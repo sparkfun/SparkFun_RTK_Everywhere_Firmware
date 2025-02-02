@@ -136,7 +136,7 @@ void espNowOnDataReceived(const esp_now_recv_info *mac,
     }
     else
     {
-        espnowRSSI = packetRSSI; // Record this packet's RSSI as an ESP NOW packet
+        espNowRSSI = packetRSSI; // Record this packet's RSSI as an ESP NOW packet
 
         // We've just received ESP-Now data. We assume this is RTCM and push it directly to the GNSS.
         // Determine if ESPNOW is the correction source
@@ -146,16 +146,16 @@ void espNowOnDataReceived(const esp_now_recv_info *mac,
             gnss->pushRawData((uint8_t *)incomingData, len);
 
             if ((settings.debugEspNow == true || settings.debugCorrections == true) && !inMainMenu)
-                systemPrintf("ESPNOW received %d RTCM bytes, pushed to GNSS, RSSI: %d\r\n", len, espnowRSSI);
+                systemPrintf("ESPNOW received %d RTCM bytes, pushed to GNSS, RSSI: %d\r\n", len, espNowRSSI);
         }
         else
         {
             if ((settings.debugEspNow == true || settings.debugCorrections == true) && !inMainMenu)
                 systemPrintf("ESPNOW received %d RTCM bytes, NOT pushed due to priority, RSSI: %d\r\n", len,
-                             espnowRSSI);
+                             espNowRSSI);
         }
 
-        espnowIncomingRTCM = true; // Display a download icon
+        espNowIncomingRTCM = true; // Display a download icon
         espNowLastRssiUpdate = millis();
     }
 }
@@ -191,7 +191,7 @@ void espnowProcessRTCM(byte incoming)
 
         espNowBytesSent += sizeof(espNowOutgoing);
 
-        espnowOutgoingRTCM = true;
+        espNowOutgoingRTCM = true;
     }
 }
 
@@ -247,7 +247,7 @@ esp_err_t espnowRemovePeer(const uint8_t *peerMac)
 //  14. Else if ESPNOW_MAC_RECEIVED state
 //      A. If ESP-NOW is corrections source, correctionLastSeen(CORR_ESPNOW)
 //          i.  gnss->pushRawData
-//  15. Set espnowIncomingRTCM
+//  15. Set espNowIncomingRTCM
 //
 // ESP-NOW shutdown from RTK
 //   1. esp_wifi_set_promiscuous(false)
@@ -726,8 +726,8 @@ void espNowUpdate()
 
             // If we don't receive an ESP NOW packet after some time, set RSSI to very negative
             // This removes the ESPNOW icon from the display when the link goes down
-            if (millis() - espNowLastRssiUpdate > 5000 && espnowRSSI > -255)
-                espnowRSSI = -255;
+            if (millis() - espNowLastRssiUpdate > 5000 && espNowRSSI > -255)
+                espNowRSSI = -255;
         }
     }
 }
@@ -779,8 +779,8 @@ void updateEspnow()
 
             // If we don't receive an ESP NOW packet after some time, set RSSI to very negative
             // This removes the ESPNOW icon from the display when the link goes down
-            if (millis() - espNowLastRssiUpdate > 5000 && espnowRSSI > -255)
-                espnowRSSI = -255;
+            if (millis() - espNowLastRssiUpdate > 5000 && espNowRSSI > -255)
+                espNowRSSI = -255;
         }
     }
 }

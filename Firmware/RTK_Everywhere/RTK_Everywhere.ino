@@ -612,7 +612,9 @@ float lBandEBNO; // Used on system status menu
 #define ESPNOW_STOP()       espnowStop()
 #endif // COMPILE_ESPNOW
 
-int espnowRSSI;
+bool espNowIncomingRTCM;
+bool espNowOutgoingRTCM;
+int espNowRSSI;
 // const uint8_t ESPNOW_MAX_PEERS = 5 is defined in settings.h
 
 // Ethernet
@@ -775,8 +777,6 @@ bool bluetoothIncomingRTCM;
 bool bluetoothOutgoingRTCM;
 bool netIncomingRTCM;
 bool netOutgoingRTCM;
-bool espnowIncomingRTCM;
-bool espnowOutgoingRTCM;
 volatile bool mqttClientDataReceived; // Flag for display
 
 uint16_t failedParserMessages_UBX;

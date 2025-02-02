@@ -759,13 +759,13 @@ void setRadioIcons(std::vector<iconPropertyBlinking> *iconList)
                 prop.duty = 0b11111111;
                 prop.icon.bitmap = nullptr;
                 // Based on RSSI, select icon
-                if (espnowRSSI >= -40)
+                if (espNowRSSI >= -40)
                     prop.icon = ESPNowSymbol3128x64;
-                else if (espnowRSSI >= -60)
+                else if (espNowRSSI >= -60)
                     prop.icon = ESPNowSymbol2128x64;
-                else if (espnowRSSI >= -80)
+                else if (espNowRSSI >= -80)
                     prop.icon = ESPNowSymbol1128x64;
-                else if (espnowRSSI > -255)
+                else if (espNowRSSI > -255)
                     prop.icon = ESPNowSymbol0128x64;
                 // Don't display a symbol if RSSI == -255
                 if (prop.icon.bitmap != nullptr)
@@ -794,21 +794,21 @@ void setRadioIcons(std::vector<iconPropertyBlinking> *iconList)
 
             if (espnowGetState() == ESPNOW_PAIRED)
             {
-                if (espnowIncomingRTCM == true) // Download : Columns 74 - 81
+                if (espNowIncomingRTCM == true) // Download : Columns 74 - 81
                 {
                     iconPropertyBlinking prop;
                     prop.icon = DownloadArrow128x64;
                     prop.duty = 0b11111111;
                     iconList->push_back(prop);
-                    espnowIncomingRTCM = false;
+                    espNowIncomingRTCM = false;
                 }
-                if (espnowOutgoingRTCM == true) // Upload : Columns 83 - 90
+                if (espNowOutgoingRTCM == true) // Upload : Columns 83 - 90
                 {
                     iconPropertyBlinking prop;
                     prop.icon = UploadArrow128x64;
                     prop.duty = 0b11111111;
                     iconList->push_back(prop);
-                    espnowOutgoingRTCM = false;
+                    espNowOutgoingRTCM = false;
                 }
             }
 
@@ -1025,36 +1025,36 @@ void setESPNowIcon_TwoRadios(std::vector<iconPropertyBlinking> *iconList)
 {
     if (espnowGetState() == ESPNOW_PAIRED)
     {
-        if (espnowIncomingRTCM == true || espnowOutgoingRTCM == true)
+        if (espNowIncomingRTCM == true || espNowOutgoingRTCM == true)
         {
             iconPropertyBlinking prop;
             prop.duty = 0b00001111;
             // Based on RSSI, select icon
-            if (espnowRSSI >= -40)
+            if (espNowRSSI >= -40)
                 prop.icon = ESPNowSymbol3Left64x48;
-            else if (espnowRSSI >= -60)
+            else if (espNowRSSI >= -60)
                 prop.icon = ESPNowSymbol2Left64x48;
-            else if (espnowRSSI >= -80)
+            else if (espNowRSSI >= -80)
                 prop.icon = ESPNowSymbol1Left64x48;
-            else // if (espnowRSSI > -255)
+            else // if (espNowRSSI > -255)
                 prop.icon =
                     ESPNowSymbol0Left64x48; // Always show the symbol because we've got incoming or outgoing data
             iconList->push_back(prop);
 
             // Share the spot. Determine if we need to indicate Up, or Down
-            if (espnowIncomingRTCM == true)
+            if (espNowIncomingRTCM == true)
             {
                 prop.icon = DownloadArrowLeft64x48;
                 prop.duty = 0b11110000;
                 iconList->push_back(prop);
-                espnowIncomingRTCM = false; // Reset, set during ESP Now data received call back
+                espNowIncomingRTCM = false; // Reset, set during ESP Now data received call back
             }
-            else // if (espnowOutgoingRTCM == true)
+            else // if (espNowOutgoingRTCM == true)
             {
                 prop.icon = UploadArrowLeft64x48;
                 prop.duty = 0b11110000;
                 iconList->push_back(prop);
-                espnowOutgoingRTCM = false; // Reset, set during espnowProcessRTCM()
+                espNowOutgoingRTCM = false; // Reset, set during espnowProcessRTCM()
             }
         }
         else
@@ -1063,16 +1063,16 @@ void setESPNowIcon_TwoRadios(std::vector<iconPropertyBlinking> *iconList)
             prop.duty = 0b11111111;
             prop.icon.bitmap = nullptr;
             // TODO: check this. Surely we want to indicate the correct signal level with no incoming RTCM?
-            if (espnowIncomingRTCM == true)
+            if (espNowIncomingRTCM == true)
             {
                 // Based on RSSI, select icon
-                if (espnowRSSI >= -40)
+                if (espNowRSSI >= -40)
                     prop.icon = ESPNowSymbol3Left64x48;
-                else if (espnowRSSI >= -60)
+                else if (espNowRSSI >= -60)
                     prop.icon = ESPNowSymbol2Left64x48;
-                else if (espnowRSSI >= -80)
+                else if (espNowRSSI >= -80)
                     prop.icon = ESPNowSymbol1Left64x48;
-                else if (espnowRSSI > -255)
+                else if (espNowRSSI > -255)
                     prop.icon = ESPNowSymbol0Left64x48;
                 // Don't display a symbol if RSSI == -255
             }
