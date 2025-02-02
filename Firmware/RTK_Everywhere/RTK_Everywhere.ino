@@ -608,14 +608,6 @@ float lBandEBNO; // Used on system status menu
 
 #include <esp_now.h> //Built-in
 
-uint8_t espnowOutgoing[250]; // ESP NOW has max of 250 characters
-unsigned long espnowLastAdd; // Tracks how long since the last byte was added to the outgoing buffer
-uint8_t espnowOutgoingSpot;  // ESP Now has a max of 250 characters
-uint16_t espnowBytesSent;    // May be more than 255
-uint8_t receivedMAC[6];      // Holds the broadcast MAC during pairing
-
-unsigned long lastEspnowRssiUpdate;
-
 #define ESPNOW_START()      espnowStart()
 #define ESPNOW_STOP()       espnowStop()
 #endif // COMPILE_ESPNOW
