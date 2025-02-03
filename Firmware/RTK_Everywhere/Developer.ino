@@ -184,9 +184,11 @@ void espnowProcessRTCM(byte incoming)   {}
 esp_err_t espnowRemovePeer(uint8_t *peerMac)        {return ESP_OK;}
 esp_err_t espnowSendPairMessage(uint8_t *sendToMac) {return ESP_OK;}
 bool espnowSetChannel(uint8_t channelNumber)        {return false;}
+bool espNowStart()                      {return true;}
 void espnowStart()                      {}
 #define ESPNOW_START()                  false
 void espnowStaticPairing()              {}
+bool espNowStop()                       {return true;}
 void espnowStop()                       {}
 #define ESPNOW_STOP()                   true
 void updateEspnow()                     {}
