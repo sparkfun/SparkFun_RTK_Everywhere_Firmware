@@ -608,7 +608,7 @@ float lBandEBNO; // Used on system status menu
 #ifdef COMPILE_ESPNOW
 
 #include <esp_now.h> //Built-in
-
+#define ESPNOW_IS_PAIRED()  (espnowGetState() == ESPNOW_PAIRED)
 #define ESPNOW_START()      espnowStart()
 #define ESPNOW_STOP()       espnowStop()
 #endif // COMPILE_ESPNOW
