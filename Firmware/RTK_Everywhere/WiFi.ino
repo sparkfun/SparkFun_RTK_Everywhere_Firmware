@@ -413,12 +413,6 @@ const char * wifiSoftApSsid = "RTK Config";
 const char * wifiSoftApPassword = nullptr;
 
 //****************************************
-// Globals
-//****************************************
-
-bool restartWiFi = false; // Restart WiFi if user changes anything
-
-//****************************************
 // Locals
 //****************************************
 

@@ -201,19 +201,19 @@ void updateEspnow()                     {}
 
 #ifndef COMPILE_WIFI
 
-void menuWiFi() {systemPrintln("**WiFi not compiled**");}
-bool wifiApIsRunning() {return false;}
+void menuWiFi()                 {systemPrintln("**WiFi not compiled**");}
+bool wifiApIsRunning()                          {return false;}
 bool wifiConnect(bool startWiFiStation, bool startWiFiAP, unsigned long timeout) {return false;}
-uint32_t wifiGetStartTimeout() {return 0;}
-#define WIFI_IS_RUNNING() 0
-int wifiNetworkCount() {return 0;}
-void wifiResetThrottleTimeout() {}
-void wifiResetTimeout() {}
-#define WIFI_SOFT_AP_RUNNING() {return false;}
-bool wifiStart() {return false;}
-bool wifiStationIsRunning() {return false;}
-#define WIFI_STOP() {}
-bool wifiUnavailable()  {return true;}
+uint32_t wifiGetStartTimeout()                  {return 0;}
+#define WIFI_IS_RUNNING()                       false
+int wifiNetworkCount()                          {return 0;}
+void wifiResetThrottleTimeout()                 {}
+void wifiResetTimeout()                         {}
+#define WIFI_SOFT_AP_RUNNING()                  false
+bool wifiStart()                                {return false;}
+bool wifiStationIsRunning()                     {return false;}
+#define WIFI_STOP()                             {}
+bool wifiUnavailable()                          {return true;}
 
 #endif // COMPILE_WIFI
 
