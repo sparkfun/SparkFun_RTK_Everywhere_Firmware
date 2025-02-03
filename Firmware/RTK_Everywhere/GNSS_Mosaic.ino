@@ -2465,9 +2465,11 @@ void GNSS_MOSAIC::storeBlock4013(SEMP_PARSE_STATE *parse)
 
     _satellitesInView = (uint8_t)std::distance(svInTracking.begin(), svInTracking.end());
 
-    //uint8_t _inPVT = (uint8_t)std::distance(svInPVT.begin(), svInPVT.end());
-
-    //systemPrintf("%d %d %d %d %d %d\r\n", N, SB1Length, SB2Length, ChannelInfoBytes, _satellitesInView, _inPVT);
+    // if (settings.debugCorrections && !inMainMenu)
+    // {
+    //     uint8_t _inPVT = (uint8_t)std::distance(svInPVT.begin(), svInPVT.end());
+    //     systemPrintf("ChannelStatus: InTracking %d, InPVT %d\r\n", _satellitesInView, _inPVT);
+    // }
 
 }
 
