@@ -18,6 +18,7 @@ typedef struct {
 
 const mosaicExpectedID mosaicExpectedIDs[] = {
     { 4007, true, 96, "PVTGeodetic" },
+    { 4013, false, 0, "ChannelStatus" },
     { 4090, false, 0, "InputLink" },
     { 4097, false, 0, "EncapsulatedOutput" },
     { 5914, true, 24, "ReceiverTime" },
@@ -45,6 +46,10 @@ const mosaicExpectedID mosaicExpectedIDs[] = {
 // Output SBF InputLink messages on this stream - on COM1 only
 // This indicates if RTCM corrections are being received - on COM2
 #define MOSAIC_SBF_INPUTLINK_STREAM (MOSAIC_SBF_EXTEVENT_STREAM + 1)
+
+// Output SBF ChannelStatus messages on this stream - on COM1 only
+// These provide the count of satellites being tracked
+#define MOSAIC_SBF_CHANNELSTATUS_STREAM (MOSAIC_SBF_INPUTLINK_STREAM + 1)
 
 // TODO: allow the user to define their own SBF stream for logging to DSK1 - through the menu / web config
 // But, in the interim, the user can define their own SBF stream (>= Stream3) via the X5 web page over USB-C
@@ -575,6 +580,8 @@ class GNSS_MOSAIC : GNSS
     float  _latStdDev;
     float  _lonStdDev;
     bool   _receiverSetupSeen;
+    std::vector<uint8_t> svInTracking;
+    //std::vector<uint8_t> svInPVT;
 
     // Constructor
     GNSS_MOSAIC() : _determiningFixedPosition(true), _clkBias_ms(0),
@@ -582,6 +589,8 @@ class GNSS_MOSAIC : GNSS
         _radioExtBytesReceived_millis(0),
          GNSS()
     {
+            svInTracking.clear();
+            //svInPVT.clear();
     }
 
     // If we have decryption keys, configure module
@@ -1015,6 +1024,9 @@ class GNSS_MOSAIC : GNSS
 
     // Save the data from the SBF Block 4007
     void storeBlock4007(SEMP_PARSE_STATE *parse);
+
+    // Save the data from the SBF Block 4013
+    void storeBlock4013(SEMP_PARSE_STATE *parse);
 
     // Save the data from the SBF Block 4090
     void storeBlock4090(SEMP_PARSE_STATE *parse);

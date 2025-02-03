@@ -579,6 +579,11 @@ bool GNSS_MOSAIC::configureOnce()
     setting = String("sso,Stream" + String(MOSAIC_SBF_INPUTLINK_STREAM) + ",COM1,InputLink,sec1\n\r");
     response &= sendWithResponse(setting, "SBFOutput");
 
+    // Output SBF ChannelStatus on its own stream - at 0.5Hz - on COM1 only
+    // OnChange is too often. The message is typically 1000 bytes in size.
+    setting = String("sso,Stream" + String(MOSAIC_SBF_CHANNELSTATUS_STREAM) + ",COM1,ChannelStatus,sec2\n\r");
+    response &= sendWithResponse(setting, "SBFOutput");
+
     response &= setElevation(settings.minElev);
 
     response &= setMinCnoRadio(settings.minCNO);
@@ -2367,14 +2372,103 @@ void GNSS_MOSAIC::storeBlock4007(SEMP_PARSE_STATE *parse)
     _longitude = sempSbfGetF8(parse, 24) * 180.0 / PI;
     _altitude = (float)sempSbfGetF8(parse, 32);
     _horizontalAccuracy = ((float)sempSbfGetU2(parse, 90)) / 100.0; // Convert from cm to m
-    _satellitesInView = sempSbfGetU1(parse, 74);
-    if (_satellitesInView == 255) // 255 indicates "Do-Not-Use"
-        _satellitesInView = 0;
+
+    // NrSV is the total number of satellites used in the PVT computation.
+    //_satellitesInView = sempSbfGetU1(parse, 74);
+    //if (_satellitesInView == 255) // 255 indicates "Do-Not-Use"
+    //    _satellitesInView = 0;
+
     _fixType = sempSbfGetU1(parse, 14) & 0x0F;
     _determiningFixedPosition = (sempSbfGetU1(parse, 14) >> 6) & 0x01;
     _clkBias_ms = sempSbfGetF8(parse, 60);
     _pvtArrivalMillis = millis();
     _pvtUpdated = true;
+}
+
+//----------------------------------------
+// Save the data from the SBF Block 4013
+//----------------------------------------
+void GNSS_MOSAIC::storeBlock4013(SEMP_PARSE_STATE *parse)
+{
+    uint16_t N = (uint16_t)sempSbfGetU1(parse, 14);
+    uint16_t SB1Length = (uint16_t)sempSbfGetU1(parse, 15);
+    uint16_t SB2Length = (uint16_t)sempSbfGetU1(parse, 16);
+    uint16_t ChannelInfoBytes = 0;
+    for (uint16_t i = 0; i < N; i++)
+    {
+        uint8_t SVID = sempSbfGetU1(parse, 20 + ChannelInfoBytes + 0);
+
+        uint16_t N2 = (uint16_t)sempSbfGetU1(parse, 20 + ChannelInfoBytes + 9);
+
+        for (uint16_t j = 0; j < N2; j++)
+        {
+            uint16_t TrackingStatus = sempSbfGetU2(parse, 20 + ChannelInfoBytes + SB1Length + (j * SB2Length) + 2);
+
+            bool Tracking = false;
+            for (uint16_t shift = 0; shift < 16; shift += 2) // Step through each 2-bit status field
+            {
+                if ((TrackingStatus & (0x0003 << shift)) == (0x0003 << shift)) // 3 : Tracking
+                {
+                    Tracking = true;
+                }
+            }
+
+            if (Tracking)
+            {
+                // SV is being tracked. If it is not in svInTracking, add it
+                std::vector<uint8_t>::iterator pos =
+                    std::find(svInTracking.begin(), svInTracking.end(), SVID);
+                if (pos == svInTracking.end())
+                    svInTracking.push_back(SVID);
+            }
+            else
+            {
+                // SV is not being tracked. If it is in svInTracking, remove it
+                std::vector<uint8_t>::iterator pos =
+                    std::find(svInTracking.begin(), svInTracking.end(), SVID);
+                if (pos != svInTracking.end())
+                    svInTracking.erase(pos);
+            }
+
+            // uint16_t PVTStatus = sempSbfGetU2(parse, 20 + ChannelInfoBytes + SB1Length + (j * SB2Length) + 4);
+
+            // bool Used = false;
+            // for (uint16_t shift = 0; shift < 16; shift += 2) // Step through each 2-bit status field
+            // {
+            //     if ((PVTStatus & (0x0003 << shift)) == (0x0002 << shift)) // 2 : Used
+            //     {
+            //         Used = true;
+            //     }
+            // }
+
+            // if (Used)
+            // {
+            //     // SV is being used for PVT. If it is not in svInPVT, add it
+            //     std::vector<uint8_t>::iterator pos =
+            //         std::find(svInPVT.begin(), svInPVT.end(), SVID);
+            //     if (pos == svInPVT.end())
+            //         svInPVT.push_back(SVID);
+            // }
+            // else
+            // {
+            //     // SV is not being used for PVT. If it is in svInPVT, remove it
+            //     std::vector<uint8_t>::iterator pos =
+            //         std::find(svInPVT.begin(), svInPVT.end(), SVID);
+            //     if (pos != svInPVT.end())
+            //         svInPVT.erase(pos);
+            // }
+
+        }
+
+        ChannelInfoBytes += SB1Length + (N2 * SB2Length);
+    }
+
+    _satellitesInView = (uint8_t)std::distance(svInTracking.begin(), svInTracking.end());
+
+    //uint8_t _inPVT = (uint8_t)std::distance(svInPVT.begin(), svInPVT.end());
+
+    //systemPrintf("%d %d %d %d %d %d\r\n", N, SB1Length, SB2Length, ChannelInfoBytes, _satellitesInView, _inPVT);
+
 }
 
 //----------------------------------------
@@ -2725,6 +2819,10 @@ void processUart1SBF(SEMP_PARSE_STATE *parse, uint16_t type)
     // If this is PVTGeodetic, extract some data
     if (sempSbfGetBlockNumber(parse) == 4007)
         mosaic->storeBlock4007(parse);
+
+    // If this is ChannelStatus, extract some data
+    if (sempSbfGetBlockNumber(parse) == 4013)
+        mosaic->storeBlock4013(parse);
 
     // If this is InputLink, extract some data
     if (sempSbfGetBlockNumber(parse) == 4090)
