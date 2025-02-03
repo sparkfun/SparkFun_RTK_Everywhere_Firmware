@@ -204,6 +204,7 @@ void updateEspnow()                     {}
 void menuWiFi()                 {systemPrintln("**WiFi not compiled**");}
 bool wifiApIsRunning()                          {return false;}
 bool wifiConnect(bool startWiFiStation, bool startWiFiAP, unsigned long timeout) {return false;}
+#define WIFI_ESPNOW_RUNNING()                   false
 uint32_t wifiGetStartTimeout()                  {return 0;}
 #define WIFI_IS_RUNNING()                       false
 int wifiNetworkCount()                          {return 0;}

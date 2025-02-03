@@ -656,7 +656,7 @@ void setRadioIcons(std::vector<iconPropertyBlinking> *iconList)
             uint8_t numberOfRadios = 1; // Bluetooth always indicated. TODO don't count if BT radio type is OFF.
             if (WIFI_IS_RUNNING())
                 numberOfRadios++;
-            if (espnowGetState() > ESPNOW_OFF)
+            if (WIFI_ESPNOW_RUNNING())
                 numberOfRadios++;
 
             // Bluetooth only
@@ -673,7 +673,7 @@ void setRadioIcons(std::vector<iconPropertyBlinking> *iconList)
                 // Do we have WiFi or ESP
                 if (WIFI_IS_RUNNING())
                     setWiFiIcon_TwoRadios(iconList);
-                else if (espnowGetState() > ESPNOW_OFF)
+                else if (WIFI_ESPNOW_RUNNING())
                     setESPNowIcon_TwoRadios(iconList);
 
                 setModeIcon(iconList); // Turn on Rover/Base type icons

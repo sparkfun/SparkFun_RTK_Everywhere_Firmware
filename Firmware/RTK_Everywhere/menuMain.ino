@@ -619,7 +619,7 @@ void menuRadio()
             byte bContinue = getUserInputCharacterNumber();
             if (bContinue == 'y')
             {
-                if (espnowGetState() > ESPNOW_OFF)
+                if (WIFI_ESPNOW_RUNNING())
                 {
                     for (int x = 0; x < settings.espnowPeerCount; x++)
                         espnowRemovePeer(settings.espnowPeers[x]);
@@ -643,7 +643,7 @@ void menuRadio()
         }
         else if (settings.enableEspNow == true && incoming == 5 && settings.debugEspNow == true)
         {
-            if (espnowGetState() == ESPNOW_OFF)
+            if (WIFI_ESPNOW_RUNNING() == false)
                 ESPNOW_START();
 
             uint8_t peer1[] = {0xB8, 0xD6, 0x1A, 0x0D, 0x8F, 0x9C}; // Random MAC
@@ -667,7 +667,7 @@ void menuRadio()
         }
         else if (settings.enableEspNow == true && incoming == 6 && settings.debugEspNow == true)
         {
-            if (espnowGetState() == ESPNOW_OFF)
+            if (WIFI_ESPNOW_RUNNING() == false)
                 ESPNOW_START();
 
             uint8_t espnowData[] =
@@ -680,7 +680,7 @@ void menuRadio()
         }
         else if (settings.enableEspNow == true && incoming == 7 && settings.debugEspNow == true)
         {
-            if (espnowGetState() == ESPNOW_OFF)
+            if (WIFI_ESPNOW_RUNNING() == false)
                 ESPNOW_START();
 
             uint8_t espnowData[] =

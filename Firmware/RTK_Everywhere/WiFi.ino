@@ -812,7 +812,7 @@ void wifiStop()
     wifiFailedConnectionAttempts = 0; // Reset the counter
 
     // If ESP-Now is active, change protocol to only Long Range
-    if (espnowGetState() > ESPNOW_OFF)
+    if (WIFI_ESPNOW_RUNNING())
     {
         if (WiFi.getMode() != WIFI_STA)
             WiFi.mode(WIFI_STA);
@@ -3108,7 +3108,7 @@ bool wifiConnect(bool startWiFiStation, bool startWiFiAP, unsigned long timeout)
         systemPrintf("Failed to get protocols: %s\r\n", esp_err_to_name(response));
 
     // If ESP-NOW is running, blend in ESP-NOW protocol.
-    if (espnowGetState() > ESPNOW_OFF)
+    if (WIFI_ESPNOW_RUNNING())
     {
         if (protocols != (WIFI_PROTOCOL_11B | WIFI_PROTOCOL_11G | WIFI_PROTOCOL_11N | WIFI_PROTOCOL_LR))
         {
