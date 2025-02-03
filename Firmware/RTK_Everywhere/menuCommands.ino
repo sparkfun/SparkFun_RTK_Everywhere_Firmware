@@ -1294,14 +1294,15 @@ SettingValueResponse updateSettingWithValue(bool inCommands, const char *setting
         // Web Config immediately of success or failure
 
         // If we're in AP only mode (no internet), try WiFi with current SSIDs
-        if (networkIsInterfaceStarted(NETWORK_WIFI) && networkHasInternet() == false)
+        if (networkIsInterfaceStarted(NETWORK_WIFI)
+            && networkInterfaceHasInternet(NETWORK_WIFI) == false)
         {
             wifiStart();
         }
 
         // Get firmware version from server
         char newVersionCSV[40];
-        if (networkHasInternet() == false)
+        if (networkInterfaceHasInternet(NETWORK_WIFI) == false)
         {
             // No internet. Report error.
             if (settings.debugWebServer == true)

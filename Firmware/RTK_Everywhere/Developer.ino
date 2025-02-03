@@ -186,13 +186,11 @@ esp_err_t espNowRemovePeer(uint8_t *peerMac)        {return ESP_OK;}
 esp_err_t espNowSendPairMessage()       {return ESP_OK;}
 bool espnowSetChannel(uint8_t channelNumber)        {return false;}
 bool espNowStart()                      {return true;}
-void espnowStart()                      {}
-#define ESPNOW_START()                  false
+#define ESPNOW_START()                  {}
 void espNowStaticPairing()              {}
 bool espNowStop()                       {return true;}
-void espnowStop()                       {}
 #define ESPNOW_STOP()                   true
-void updateEspnow()                     {}
+void espNowUpdate()                     {}
 
 #endif   // COMPILE_ESPNOW
 
@@ -203,9 +201,9 @@ void updateEspnow()                     {}
 #ifndef COMPILE_WIFI
 
 void menuWiFi()                 {systemPrintln("**WiFi not compiled**");}
-bool wifiApIsRunning()                          {return false;}
-bool wifiConnect(bool startWiFiStation, bool startWiFiAP, unsigned long timeout) {return false;}
 #define WIFI_ESPNOW_RUNNING()                   false
+#define WIFI_ESPNOW_SET_CHANNEL(chan)
+#define WIFI_GET_CHANNEL()                      0
 uint32_t wifiGetStartTimeout()                  {return 0;}
 #define WIFI_IS_RUNNING()                       false
 int wifiNetworkCount()                          {return 0;}
@@ -213,7 +211,7 @@ void wifiResetThrottleTimeout()                 {}
 void wifiResetTimeout()                         {}
 #define WIFI_SOFT_AP_RUNNING()                  false
 bool wifiStart()                                {return false;}
-bool wifiStationIsRunning()                     {return false;}
+#define WIFI_STATION_RUNNING()                  false
 #define WIFI_STOP()                             {}
 bool wifiUnavailable()                          {return true;}
 

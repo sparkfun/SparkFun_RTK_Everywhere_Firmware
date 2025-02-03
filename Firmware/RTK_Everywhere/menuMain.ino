@@ -560,7 +560,7 @@ void menuRadio()
             systemPrintln("2) Pair radios");
             systemPrintln("3) Forget all radios");
 
-            systemPrintf("4) Current channel: %d\r\n", espnowGetChannel());
+            systemPrintf("4) Current channel: %d\r\n", WIFI_GET_CHANNEL());
 
             if (settings.debugEspNow == true)
             {
@@ -605,7 +605,7 @@ void menuRadio()
 
             // Start ESP-NOW so that getChannel runs correctly
             if (settings.enableEspNow == true)
-                ESPNOW_START();
+                ESPNOW_START()
             else
                 ESPNOW_STOP();
         }
@@ -630,21 +630,30 @@ void menuRadio()
         }
         else if (settings.enableEspNow == true && incoming == 4)
         {
-            if (WIFI_IS_RUNNING() == false)
+            if (getNewSetting("Enter the WiFi channel to use for ESP-NOW communication", 1, 14,
+                              &settings.wifiChannel) == INPUT_RESPONSE_VALID)
             {
-                if (getNewSetting("Enter the WiFi channel to use for ESP-NOW communication", 1, 14,
-                                  &settings.wifiChannel) == INPUT_RESPONSE_VALID)
-                    espnowSetChannel(settings.wifiChannel);
-            }
-            else
-            {
-                systemPrintln("ESP-NOW channel can't be modified while WiFi is active.");
+                WIFI_ESPNOW_SET_CHANNEL(settings.wifiChannel);
+                if (settings.wifiChannel)
+                {
+                    if (settings.wifiChannel == WIFI_GET_CHANNEL())
+                        systemPrintf("WiFi is already on channel %d.", settings.wifiChannel);
+                    else
+                    {
+                        if (WIFI_SOFT_AP_RUNNING() || WIFI_STATION_RUNNING())
+                            systemPrintf("Restart WiFi to use channel %d.", settings.wifiChannel);
+                        else if (WIFI_ESPNOW_RUNNING())
+                            systemPrintf("Restart ESP-NOW to use channel %d.", settings.wifiChannel);
+                        else
+                            systemPrintf("Please start ESP-NOW to use channel %d.", settings.wifiChannel);
+                    }
+                }
             }
         }
         else if (settings.enableEspNow == true && incoming == 5 && settings.debugEspNow == true)
         {
             if (WIFI_ESPNOW_RUNNING() == false)
-                ESPNOW_START();
+                ESPNOW_START()
 
             uint8_t peer1[] = {0xB8, 0xD6, 0x1A, 0x0D, 0x8F, 0x9C}; // Random MAC
 #ifdef COMPILE_ESPNOW
@@ -668,7 +677,7 @@ void menuRadio()
         else if (settings.enableEspNow == true && incoming == 6 && settings.debugEspNow == true)
         {
             if (WIFI_ESPNOW_RUNNING() == false)
-                ESPNOW_START();
+                ESPNOW_START()
 
             uint8_t espnowData[] =
                 "This is the long string to test how quickly we can send one string to the other unit. I am going to "
@@ -681,7 +690,7 @@ void menuRadio()
         else if (settings.enableEspNow == true && incoming == 7 && settings.debugEspNow == true)
         {
             if (WIFI_ESPNOW_RUNNING() == false)
-                ESPNOW_START();
+                ESPNOW_START()
 
             uint8_t espnowData[] =
                 "This is the long string to test how quickly we can send one string to the other unit. I am going to "
@@ -717,7 +726,7 @@ void menuRadio()
             printUnknown(incoming);
     }
 
-    ESPNOW_START();
+    ESPNOW_START()
 
     // LoRa radio state machine will start/stop radio upon next updateLora in loop()
 

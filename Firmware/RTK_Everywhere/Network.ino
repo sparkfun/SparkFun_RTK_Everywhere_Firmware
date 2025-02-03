@@ -114,6 +114,8 @@ NetIndex_t networkIndexTable[NETWORK_OFFLINE];
 NetPriority_t networkPriority = NETWORK_OFFLINE; // Index into networkPriorityTable
 
 // Interface event handlers set these flags, networkUpdate performs action
+bool networkEventInternetAvailable[NETWORK_OFFLINE];
+bool networkEventInternetLost[NETWORK_OFFLINE];
 bool networkEventStop[NETWORK_OFFLINE];
 
 // The following entries have one bit per interface
@@ -130,8 +132,6 @@ NetMask_t networkStarted;     // Track the running networks
 NETWORK_POLL_SEQUENCE *networkSequence[NETWORK_OFFLINE];
 
 NetMask_t networkMdnsRunning; // Non-zero when mDNS is running
-
-extern bool restartWiFi; // From WiFi.ino
 
 //----------------------------------------
 // Menu for configuring TCP/UDP interfaces
@@ -455,7 +455,7 @@ void networkEvent(arduino_event_id_t event, arduino_event_info_t info)
     case ARDUINO_EVENT_WIFI_STA_GOT_IP:
     case ARDUINO_EVENT_WIFI_STA_GOT_IP6:
     case ARDUINO_EVENT_WIFI_STA_LOST_IP:
-        wifiEvent(event, info);
+        wifi.eventHandler(event, info);
         break;
 #endif // COMPILE_WIFI
     }
@@ -522,7 +522,7 @@ IPAddress networkGetIpAddress()
     IPAddress ip;
 
     // NETIF doesn't capture the IP address of a soft AP
-    if (WIFI_SOFT_AP_RUNNING() == true && wifiStationIsRunning() == false)
+    if (WIFI_SOFT_AP_RUNNING() == true && WIFI_STATION_RUNNING() == false)
         return WiFi.softAPIP();
 
     // Get the networkInterfaceTable index
@@ -596,6 +596,23 @@ bool networkHasInternet()
 }
 
 //----------------------------------------
+// Internet available event
+//----------------------------------------
+void networkInterfaceEventInternetAvailable(NetIndex_t index)
+{
+    networkEventInternetAvailable[index] = true;
+}
+
+//----------------------------------------
+// Internet lost event
+//----------------------------------------
+void networkInterfaceEventInternetLost(NetIndex_t index)
+{
+    // Notify networkUpdate of the change in state
+    networkEventInternetLost[index] = true;
+}
+
+//----------------------------------------
 // Interface stop event
 //----------------------------------------
 void networkInterfaceEventStop(NetIndex_t index)
@@ -618,7 +635,7 @@ bool networkInterfaceHasInternet(NetIndex_t index)
 //----------------------------------------
 // Mark network interface as having NO access to the internet
 //----------------------------------------
-void networkInterfaceEventInternetLost(NetIndex_t index)
+void networkInterfaceInternetConnectionLost(NetIndex_t index)
 {
     NetMask_t bitMask;
     NetPriority_t previousPriority;
@@ -687,7 +704,7 @@ void networkInterfaceEventInternetLost(NetIndex_t index)
 //----------------------------------------
 // Mark network interface as having access to the internet
 //----------------------------------------
-void networkInterfaceEventInternetAvailable(NetIndex_t index)
+void networkInterfaceInternetConnectionAvailable(NetIndex_t index)
 {
     NetMask_t bitMask;
     NetIndex_t previousIndex;
@@ -754,6 +771,22 @@ void networkInterfaceEventInternetAvailable(NetIndex_t index)
     // Only start mDNS on the highest priority network
     if (networkPriority == networkPriorityTable[previousIndex])
         networkMulticastDNSStart(previousIndex);
+}
+
+//----------------------------------------
+// Determine if the specified network has access to the internet
+//----------------------------------------
+bool networkIsConnected(NetPriority_t *clientPriority)
+{
+    // If the client is using the highest priority network and that
+    // network is still available then continue as normal
+    if (networkHasInternet_bm && (*clientPriority == networkPriority))
+        return (networkHasInternet_bm & (1 << networkIndexTable[networkPriority]))
+            ? true : false;
+
+    // The network has changed, notify the client of the change
+    *clientPriority = networkPriority;
+    return false;
 }
 
 //----------------------------------------
@@ -1338,6 +1371,43 @@ void networkUpdate()
     uint8_t priority;
     NETWORK_POLL_SEQUENCE *sequence;
 
+    // Walk the list of network priorities in descending order
+    for (priority = 0; priority < NETWORK_OFFLINE; priority++)
+    {
+        index = networkIndexTable[priority];
+
+        // Handle the network lost internet event
+        if (networkEventInternetLost[index])
+        {
+            networkEventInternetLost[index] = false;
+            networkInterfaceInternetConnectionLost(index);
+        }
+
+        // Handle the network stop event
+        if (networkEventStop[index])
+        {
+            networkEventStop[index] = false;
+            networkStop(index, settings.debugNetworkLayer);
+        }
+
+        // Handle the network has internet event
+        if (networkEventInternetAvailable[index])
+        {
+            networkEventInternetAvailable[index] = false;
+            networkInterfaceInternetConnectionAvailable(index);
+        }
+
+        // Execute any active polling routine
+        sequence = networkSequence[index];
+        if (sequence)
+        {
+            pollRoutine = sequence->routine;
+            if (pollRoutine)
+                // Execute the poll routine
+                pollRoutine(index, sequence->parameter, settings.debugNetworkLayer);
+        }
+    }
+
     // Update the network services
     DMW_c("mqttClientUpdate");
     mqttClientUpdate(); // Process any Point Perfect MQTT messages
@@ -1365,11 +1435,11 @@ void networkUpdate()
 
     int consumerCount = networkConsumers(&consumerTypes); // Update the current consumer types
 
-    // restartWiFi is used by the settings interface to indicate SSIDs or else has changed
-    // Stop WiFi to allow restart with new settings
-    if (restartWiFi == true)
+    // wifiRestartRequested is used by the settings interface to indicate
+    // SSIDs or else has changed.  Stop WiFi to allow restart with new settings
+    if (wifiRestartRequested == true)
     {
-        restartWiFi = false;
+        wifiRestartRequested = false;
 
         if (networkInterfaceHasInternet(NETWORK_WIFI))
         {
