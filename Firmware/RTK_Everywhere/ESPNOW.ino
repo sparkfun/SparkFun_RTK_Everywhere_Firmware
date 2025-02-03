@@ -197,7 +197,7 @@ void espnowProcessRTCM(byte incoming)
 
 //*********************************************************************
 // Remove a given MAC address from the peer list
-esp_err_t espnowRemovePeer(const uint8_t *peerMac)
+esp_err_t espNowRemovePeer(const uint8_t *peerMac)
 {
     esp_err_t response = esp_now_del_peer(peerMac);
     if (response != ESP_OK)
@@ -253,7 +253,7 @@ esp_err_t espnowRemovePeer(const uint8_t *peerMac)
 //   1. esp_wifi_set_promiscuous(false)
 //   2. esp_wifi_set_promiscuous_rx_cb(nullptr)
 //   3. esp_now_unregister_recv_cb()
-//   4. Remove all peers by calling espnowRemovePeer
+//   4. Remove all peers by calling espNowRemovePeer
 //   5. Get WiFi mode
 //   6. Set WiFi station mode if necessary
 //   7. esp_wifi_get_protocol
@@ -306,7 +306,7 @@ bool espNowProcessRxPairedMessage()
     if (espNowState == ESPNOW_MAC_RECEIVED)
     {
         // Remove broadcast peer
-        espnowRemovePeer(espNowBroadcastAddr);
+        espNowRemovePeer(espNowBroadcastAddr);
 
         if (esp_now_is_peer_exist(espNowReceivedMAC) == true)
         {
@@ -601,7 +601,7 @@ bool espNowStop()
         if (settings.debugEspNow)
             systemPrintf("ESP-NOW offline\r\n");
 
-        //   4. Remove all peers by calling espnowRemovePeer
+        //   4. Remove all peers by calling espNowRemovePeer
         if (settings.debugEspNow)
             systemPrintf("Calling esp_now_is_peer_exist\r\n");
         if (esp_now_is_peer_exist(espNowBroadcastAddr))
@@ -982,7 +982,7 @@ void espnowStop()
 
     // Forget all ESP-Now Peers
     for (int x = 0; x < settings.espnowPeerCount; x++)
-        espnowRemovePeer(settings.espnowPeers[x]);
+        espNowRemovePeer(settings.espnowPeers[x]);
 
     if (WiFi.getMode() != WIFI_STA)
         WiFi.mode(WIFI_STA);

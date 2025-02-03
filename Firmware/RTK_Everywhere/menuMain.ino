@@ -622,7 +622,7 @@ void menuRadio()
                 if (WIFI_ESPNOW_RUNNING())
                 {
                     for (int x = 0; x < settings.espnowPeerCount; x++)
-                        espnowRemovePeer(settings.espnowPeers[x]);
+                        espNowRemovePeer(settings.espnowPeers[x]);
                 }
                 settings.espnowPeerCount = 0;
                 systemPrintln("Radios forgotten");

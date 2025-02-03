@@ -130,7 +130,7 @@ const int arduinoEventNameEntries = sizeof(arduinoEventName) / sizeof(arduinoEve
 //   1. esp_wifi_set_promiscuous(false)
 //   2. esp_wifi_set_promiscuous_rx_cb(nullptr)
 //   3. esp_now_unregister_recv_cb()
-//   4. Remove all peers by calling espnowRemovePeer
+//   4. Remove all peers by calling espNowRemovePeer
 //   5. Get WiFi mode
 //   6. Set WiFi station mode if necessary
 //   7. esp_wifi_get_protocol
