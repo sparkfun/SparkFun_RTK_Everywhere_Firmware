@@ -2668,6 +2668,7 @@ bool GNSS_MOSAIC::updateSD()
     //     ptr += strlen(" free=\"");
     //     sscanf(ptr, "%llu\"", &sdFreeSpace);
     // }
+    // return response;
 
     _diskStatusSeen = false;
 
