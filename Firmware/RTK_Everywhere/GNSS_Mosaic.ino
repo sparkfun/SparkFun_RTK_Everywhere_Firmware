@@ -2627,7 +2627,11 @@ bool GNSS_MOSAIC::updateSD()
 
         // Allow many retries
         int retries = 0;
-        int retryLimit = 20;
+        int retryLimit = 30;
+
+        // If the card has been removed, the soft reset takes extra time. Allow more retries
+        if (!previousCardPresent)
+            retryLimit = 40;
 
         // Set COM4 to: CMD input (only), SBF output (only)
         while (!sendWithResponse("sdio,COM4,CMD,SBF\n\r", "DataInOut"))
