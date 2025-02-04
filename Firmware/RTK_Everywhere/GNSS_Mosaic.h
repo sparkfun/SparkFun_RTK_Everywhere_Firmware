@@ -580,13 +580,14 @@ class GNSS_MOSAIC : GNSS
     float  _latStdDev;
     float  _lonStdDev;
     bool   _receiverSetupSeen;
+    bool   _diskStatusSeen;
     std::vector<uint8_t> svInTracking;
     //std::vector<uint8_t> svInPVT;
 
     // Constructor
     GNSS_MOSAIC() : _determiningFixedPosition(true), _clkBias_ms(0),
         _latStdDev(999.9), _lonStdDev(999.9), _receiverSetupSeen(false),
-        _radioExtBytesReceived_millis(0),
+        _radioExtBytesReceived_millis(0), _diskStatusSeen(false),
          GNSS()
     {
             svInTracking.clear();
@@ -1051,6 +1052,8 @@ class GNSS_MOSAIC : GNSS
     bool updateSD();
 
     void waitSBFReceiverSetup(unsigned long timeout);
+
+    void waitSBFDiskStatus(unsigned long timeout);
 };
 
 #endif  // __GNSS_MOSAIC_H__
