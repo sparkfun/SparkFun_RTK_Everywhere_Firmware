@@ -162,7 +162,7 @@ void espNowOnDataReceived(const esp_now_recv_info *mac,
 
 //*********************************************************************
 // Buffer RTCM data and send to ESP-NOW peer
-void espnowProcessRTCM(byte incoming)
+void espNowProcessRTCM(byte incoming)
 {
     // If we are paired,
     // Or if the radio is broadcasting
