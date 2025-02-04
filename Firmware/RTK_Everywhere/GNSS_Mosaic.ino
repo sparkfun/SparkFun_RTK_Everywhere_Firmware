@@ -579,9 +579,10 @@ bool GNSS_MOSAIC::configureOnce()
     setting = String("sso,Stream" + String(MOSAIC_SBF_INPUTLINK_STREAM) + ",COM1,InputLink,sec1\n\r");
     response &= sendWithResponse(setting, "SBFOutput");
 
-    // Output SBF ChannelStatus on its own stream - at 0.5Hz - on COM1 only
-    // OnChange is too often. The message is typically 1000 bytes in size.
-    setting = String("sso,Stream" + String(MOSAIC_SBF_CHANNELSTATUS_STREAM) + ",COM1,ChannelStatus,sec2\n\r");
+    // Output SBF ChannelStatus and DiskStatus on their own stream - at 0.5Hz - on COM1 only
+    // For ChannelStatus: OnChange is too often. The message is typically 1000 bytes in size.
+    // For DiskStatus: DiskUsage is slow to update. 0.5Hz is plenty fast enough.
+    setting = String("sso,Stream" + String(MOSAIC_SBF_STATUS_STREAM) + ",COM1,ChannelStatus+DiskStatus,sec2\n\r");
     response &= sendWithResponse(setting, "SBFOutput");
 
     response &= setElevation(settings.minElev);
@@ -2474,6 +2475,37 @@ void GNSS_MOSAIC::storeBlock4013(SEMP_PARSE_STATE *parse)
 }
 
 //----------------------------------------
+// Save the data from the SBF Block 4059
+//----------------------------------------
+void GNSS_MOSAIC::storeBlock4059(SEMP_PARSE_STATE *parse)
+{
+    if (sempSbfGetU1(parse, 14) < 1) // Check N is at least 1
+        return;
+
+    if (sempSbfGetU1(parse, 20 + 0) != 1) // Check DiskID is 1
+        return;
+
+    uint64_t diskUsageMSB = sempSbfGetU2(parse, 20 + 2); // DiskUsageMSB
+    uint64_t diskUsageLSB = sempSbfGetU4(parse, 20 + 4); // DiskUsageLSB
+
+    if ((diskUsageMSB == 65535) && (diskUsageLSB == 4294967295)) // Do-Not-Use
+        return;
+
+    uint64_t diskSizeMB = sempSbfGetU4(parse, 20 + 8); // DiskSize in megabytes
+
+    if (diskSizeMB == 0) // Do-Not-Use
+        return;
+
+    uint64_t diskUsage = (diskUsageMSB * 4294967296) + diskUsageLSB;
+    
+    sdCardSize = diskSizeMB * 1048576; // Convert to bytes
+
+    sdFreeSpace = sdCardSize - diskUsage;
+
+    _diskStatusSeen = true;
+}
+
+//----------------------------------------
 // Save the data from the SBF Block 4090
 //----------------------------------------
 void GNSS_MOSAIC::storeBlock4090(SEMP_PARSE_STATE *parse)
@@ -2576,7 +2608,9 @@ void GNSS_MOSAIC::update()
     static uint64_t previousFreeSpace = 0;
     if (millis() > (sdCardSizeLastCheck + sdCardSizeCheckInterval))
     {
-        if (updateSD()) // updateSD will only return true if a card is inserted and the card size has been read
+        updateSD(); // Check if the card has been removed / inserted
+
+        if (_diskStatusSeen) // Check if the DiskStatus SBF message has been processed
         {
             // If previousFreeSpace hasn't been initialized, initialize it
             if (previousFreeSpace == 0)
@@ -2603,13 +2637,9 @@ void GNSS_MOSAIC::update()
                 previousFreeSpace = sdFreeSpace;
             }
         }
-        else
-        {
-            // updateSD failed. So sdFreeSpace can't be trusted and the log cannot be increasing
-            logIncreasing = false;
-        }
 
-        sdCardSizeLastCheck = millis();
+        sdCardSizeLastCheck = millis(); // Update the timer
+        _diskStatusSeen = false; // Clear the flag
     }
 
     // Update spartnCorrectionsReceived
@@ -2624,7 +2654,7 @@ void GNSS_MOSAIC::update()
 }
 
 //----------------------------------------
-bool GNSS_MOSAIC::updateSD()
+void GNSS_MOSAIC::updateSD()
 {
     // See comments in update() above
     // updateSD() is probably the best place to check if an SD card has been inserted / removed
@@ -2663,45 +2693,8 @@ bool GNSS_MOSAIC::updateSD()
         if (retries == retryLimit)
         {
             systemPrintln("Soft reset failed!");
-            return false;
         }
     }
-
-    if (!previousCardPresent) // If the card is not present, skip the list disk info
-        return false;
-
-    // Use ldi,DSK1 to read the disk information
-    // This is inefficient as the DiskInfo lists all files on the SD card
-    // exeSBFOnce DiskStatus is much more efficient
-    //
-    // char diskInfo[200];
-    // bool response =
-    //     sendAndWaitForIdle("ldi,DSK1\n\r", "DiskInfo", 1000, 25, &diskInfo[0], sizeof(diskInfo), false); // No debug
-    // if (response)
-    // {
-    //     char *ptr = strstr(diskInfo, " total=\"");
-    //     if (ptr == nullptr)
-    //         return false;
-    //     ptr += strlen(" total=\"");
-    //     sscanf(ptr, "%llu\"", &sdCardSize);
-    //     ptr = strstr(ptr, " free=\"");
-    //     if (ptr == nullptr)
-    //         return false;
-    //     ptr += strlen(" free=\"");
-    //     sscanf(ptr, "%llu\"", &sdFreeSpace);
-    // }
-    // return response;
-
-    _diskStatusSeen = false;
-
-    // Request the DiskStatus SBF block using a esoc (exeSBFOnce) command on COM4
-    String request = "esoc,COM4,DiskStatus\n\r";
-    serial2GNSS->write(request.c_str(), request.length());
-
-    // Wait for up to 1 second for the DiskStatus
-    waitSBFDiskStatus(1000);
-
-    return _diskStatusSeen;
 }
 
 //----------------------------------------
@@ -2727,40 +2720,6 @@ void GNSS_MOSAIC::waitSBFReceiverSetup(unsigned long timeout)
 
     unsigned long startTime = millis();
     while ((millis() < (startTime + timeout)) && (_receiverSetupSeen == false))
-    {
-        if (serial2GNSS->available())
-        {
-            // Update the parser state based on the incoming byte
-            sempParseNextByte(sbfParse, serial2GNSS->read());
-        }
-    }
-
-    sempStopParser(&sbfParse);
-}
-
-//----------------------------------------
-void GNSS_MOSAIC::waitSBFDiskStatus(unsigned long timeout)
-{
-    SEMP_PARSE_ROUTINE const sbfParserTable[] = {sempSbfPreamble};
-    const int sbfParserCount = sizeof(sbfParserTable) / sizeof(sbfParserTable[0]);
-    const char *const sbfParserNames[] = {
-        "SBF",
-    };
-    const int sbfParserNameCount = sizeof(sbfParserNames) / sizeof(sbfParserNames[0]);
-
-    SEMP_PARSE_STATE *sbfParse;
-
-    // Initialize the SBF parser for the mosaic-X5
-    sbfParse = sempBeginParser(sbfParserTable, sbfParserCount, sbfParserNames, sbfParserNameCount,
-                               0,                       // Scratchpad bytes
-                               500,                     // Buffer length
-                               processSBFDiskStatus,    // eom Call Back
-                               "Sbf");                  // Parser Name
-    if (!sbfParse)
-        reportFatalError("Failed to initialize the SBF parser");
-
-    unsigned long startTime = millis();
-    while ((millis() < (startTime + timeout)) && (_diskStatusSeen == false))
     {
         if (serial2GNSS->available())
         {
@@ -2869,37 +2828,6 @@ void processSBFReceiverSetup(SEMP_PARSE_STATE *parse, uint16_t type)
 }
 
 //----------------------------------------
-void processSBFDiskStatus(SEMP_PARSE_STATE *parse, uint16_t type)
-{
-    // If this is DiskStatus, extract some data
-    if (sempSbfGetBlockNumber(parse) == 4059)
-    {
-        if (sempSbfGetU1(parse, 14) < 1) // Check N is at least 1
-            return;
-
-        uint64_t diskUsageMSB = sempSbfGetU2(parse, 20 + 2); // DiskUsageMSB
-        uint64_t diskUsageLSB = sempSbfGetU4(parse, 20 + 4); // DiskUsageLSB
-
-        if ((diskUsageMSB == 65535) && (diskUsageLSB == 4294967295))
-            return;
-
-        uint64_t diskSizeMB = sempSbfGetU4(parse, 20 + 8); // DiskSize in megabytes
-
-        if (diskSizeMB == 0)
-            return;
-
-        uint64_t diskUsage = (diskUsageMSB * 4294967296) + diskUsageLSB;
-        
-        sdCardSize = diskSizeMB * 1048576; // Convert to bytes
-
-        sdFreeSpace = sdCardSize - diskUsage;
-
-        GNSS_MOSAIC *mosaic = (GNSS_MOSAIC *)gnss;
-        mosaic->_diskStatusSeen = true;
-    }
-}
-
-//----------------------------------------
 // Call back from within the SBF parser, for end of valid message
 // Process a complete message incoming from parser
 // The data is SBF. It could be:
@@ -2926,6 +2854,10 @@ void processUart1SBF(SEMP_PARSE_STATE *parse, uint16_t type)
     // If this is ChannelStatus, extract some data
     if (sempSbfGetBlockNumber(parse) == 4013)
         mosaic->storeBlock4013(parse);
+
+    // If this is DiskStatus, extract some data
+    if (sempSbfGetBlockNumber(parse) == 4059)
+        mosaic->storeBlock4059(parse);
 
     // If this is InputLink, extract some data
     if (sempSbfGetBlockNumber(parse) == 4090)

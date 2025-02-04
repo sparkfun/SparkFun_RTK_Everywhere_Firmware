@@ -19,6 +19,7 @@ typedef struct {
 const mosaicExpectedID mosaicExpectedIDs[] = {
     { 4007, true, 96, "PVTGeodetic" },
     { 4013, false, 0, "ChannelStatus" },
+    { 4059, false, 0, "DiskStatus" },
     { 4090, false, 0, "InputLink" },
     { 4097, false, 0, "EncapsulatedOutput" },
     { 5914, true, 24, "ReceiverTime" },
@@ -47,9 +48,10 @@ const mosaicExpectedID mosaicExpectedIDs[] = {
 // This indicates if RTCM corrections are being received - on COM2
 #define MOSAIC_SBF_INPUTLINK_STREAM (MOSAIC_SBF_EXTEVENT_STREAM + 1)
 
-// Output SBF ChannelStatus messages on this stream - on COM1 only
-// These provide the count of satellites being tracked
-#define MOSAIC_SBF_CHANNELSTATUS_STREAM (MOSAIC_SBF_INPUTLINK_STREAM + 1)
+// Output SBF ChannelStatus and DiskStatus messages on this stream - on COM1 only
+// ChannelStatus provides the count of satellites being tracked
+// DiskStatus provides the disk usage
+#define MOSAIC_SBF_STATUS_STREAM (MOSAIC_SBF_INPUTLINK_STREAM + 1)
 
 // TODO: allow the user to define their own SBF stream for logging to DSK1 - through the menu / web config
 // But, in the interim, the user can define their own SBF stream (>= Stream3) via the X5 web page over USB-C
@@ -1029,6 +1031,9 @@ class GNSS_MOSAIC : GNSS
     // Save the data from the SBF Block 4013
     void storeBlock4013(SEMP_PARSE_STATE *parse);
 
+    // Save the data from the SBF Block 4059
+    void storeBlock4059(SEMP_PARSE_STATE *parse);
+
     // Save the data from the SBF Block 4090
     void storeBlock4090(SEMP_PARSE_STATE *parse);
 
@@ -1049,11 +1054,9 @@ class GNSS_MOSAIC : GNSS
     // Poll routine to update the GNSS state
     void update();
 
-    bool updateSD();
+    void updateSD();
 
     void waitSBFReceiverSetup(unsigned long timeout);
-
-    void waitSBFDiskStatus(unsigned long timeout);
 };
 
 #endif  // __GNSS_MOSAIC_H__
