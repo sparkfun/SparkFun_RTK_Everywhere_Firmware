@@ -2610,7 +2610,7 @@ void GNSS_MOSAIC::update()
     {
         updateSD(); // Check if the card has been removed / inserted
 
-        if (_diskStatusSeen) // Check if the DiskStatus SBF message has been processed
+        if (_diskStatusSeen) // Check if the DiskStatus SBF message has been seen
         {
             // If previousFreeSpace hasn't been initialized, initialize it
             if (previousFreeSpace == 0)
@@ -2636,6 +2636,12 @@ void GNSS_MOSAIC::update()
                 // User must have inserted a new SD card?
                 previousFreeSpace = sdFreeSpace;
             }
+        }
+        else
+        {
+            // Disk status not seen
+            // (Unmounting the SD card will prevent _diskStatusSeen from going true)
+            logIncreasing = false;
         }
 
         sdCardSizeLastCheck = millis(); // Update the timer
