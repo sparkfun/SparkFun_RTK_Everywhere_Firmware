@@ -2576,21 +2576,39 @@ void GNSS_MOSAIC::update()
     static uint64_t previousFreeSpace = 0;
     if (millis() > (sdCardSizeLastCheck + sdCardSizeCheckInterval))
     {
-        updateSD();
-
-        if (previousFreeSpace == 0)
-            previousFreeSpace = sdFreeSpace;
-        if (sdFreeSpace < previousFreeSpace)
+        if (updateSD()) // updateSD will only return true if a card is inserted and the card size has been read
         {
-            previousFreeSpace = sdFreeSpace;
-            logIncreasing = true;
-            sdCardLastFreeChange = millis();
+            // If previousFreeSpace hasn't been initialized, initialize it
+            if (previousFreeSpace == 0)
+                previousFreeSpace = sdFreeSpace;
+
+            if (sdFreeSpace < previousFreeSpace)
+            {
+                // The free space is decreasing, so set logIncreasing to true
+                previousFreeSpace = sdFreeSpace;
+                logIncreasing = true;
+                sdCardLastFreeChange = millis();
+            }
+            else if (sdFreeSpace == previousFreeSpace)
+            {
+                // The free space has not changed
+                // X5 is slow to update free. Seems to be about every ~20s?
+                // So only set logIncreasing to false after 30s
+                if (millis() > (sdCardLastFreeChange + 30000))
+                    logIncreasing = false;
+            }
+            else // if (sdFreeSpace > previousFreeSpace)
+            {
+                // User must have inserted a new SD card?
+                previousFreeSpace = sdFreeSpace;
+            }
         }
         else
         {
-            if (millis() > (sdCardLastFreeChange + 30000)) // X5 is slow to update free. Seems to be about every ~20s?
-                logIncreasing = false;
+            // updateSD failed. So sdFreeSpace can't be trusted and the log cannot be increasing
+            logIncreasing = false;
         }
+
         sdCardSizeLastCheck = millis();
     }
 
