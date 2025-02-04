@@ -1273,7 +1273,10 @@ void provisioningUpdate()
             if (settings.debugPpCertificate)
                 systemPrintf("Days until keys expire: %d\r\n", daysRemaining);
 
-            if (daysRemaining > 28)
+            // PointPerfect returns keys that expire at midnight so the primary key
+            // is still available with 0 days left, and a Next Key that has 28 days left
+            // If there are 28 days remaining, PointPerfect won't have new keys.
+            if (daysRemaining >= 28)
                 provisioningSetState(PROVISIONING_KEYS_REMAINING); // Don't need new keys
             else
                 provisioningSetState(PROVISIONING_CHECK_ATTEMPT); // Do need new keys
