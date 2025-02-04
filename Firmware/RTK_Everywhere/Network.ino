@@ -114,6 +114,8 @@ NetIndex_t networkIndexTable[NETWORK_OFFLINE];
 NetPriority_t networkPriority = NETWORK_OFFLINE; // Index into networkPriorityTable
 
 // Interface event handlers set these flags, networkUpdate performs action
+bool networkEventInternetAvailable[NETWORK_OFFLINE];
+bool networkEventInternetLost[NETWORK_OFFLINE];
 bool networkEventStop[NETWORK_OFFLINE];
 
 // The following entries have one bit per interface
@@ -130,8 +132,6 @@ NetMask_t networkStarted;     // Track the running networks
 NETWORK_POLL_SEQUENCE *networkSequence[NETWORK_OFFLINE];
 
 NetMask_t networkMdnsRunning; // Non-zero when mDNS is running
-
-extern bool restartWiFi; // From WiFi.ino
 
 //----------------------------------------
 // Menu for configuring TCP/UDP interfaces
@@ -455,7 +455,7 @@ void networkEvent(arduino_event_id_t event, arduino_event_info_t info)
     case ARDUINO_EVENT_WIFI_STA_GOT_IP:
     case ARDUINO_EVENT_WIFI_STA_GOT_IP6:
     case ARDUINO_EVENT_WIFI_STA_LOST_IP:
-        wifiEvent(event, info);
+        wifi.eventHandler(event, info);
         break;
 #endif // COMPILE_WIFI
     }
@@ -522,7 +522,7 @@ IPAddress networkGetIpAddress()
     IPAddress ip;
 
     // NETIF doesn't capture the IP address of a soft AP
-    if (WIFI_SOFT_AP_RUNNING() == true && wifiStationIsRunning() == false)
+    if (WIFI_SOFT_AP_RUNNING() == true && WIFI_STATION_RUNNING() == false)
         return WiFi.softAPIP();
 
     // Get the networkInterfaceTable index
@@ -587,31 +587,7 @@ const char *networkGetNameByPriority(NetPriority_t priority)
 }
 
 //----------------------------------------
-// Determine if the network interface is online
-//----------------------------------------
-bool networkInterfaceHasInternet(NetIndex_t index)
-{
-    // Validate the index
-    networkValidateIndex(index);
-
-    // Return the network interface state
-    return (networkHasInternet_bm & (1 << index)) ? true : false;
-}
-
-//----------------------------------------
-// Determine if the network interface has completed its start routine
-//----------------------------------------
-bool networkIsInterfaceStarted(NetIndex_t index)
-{
-    // Validate the index
-    networkValidateIndex(index);
-
-    // Return the network started state
-    return (networkStarted & (1 << index)) ? true : false;
-}
-
-//----------------------------------------
-// Determine if any network interface is online
+// Determine if any network interface has access to the internet
 //----------------------------------------
 bool networkHasInternet()
 {
@@ -620,15 +596,20 @@ bool networkHasInternet()
 }
 
 //----------------------------------------
-// Determine if the network is present on the platform
+// Internet available event
 //----------------------------------------
-bool networkIsPresent(NetIndex_t index)
+void networkInterfaceEventInternetAvailable(NetIndex_t index)
 {
-    // Validate the index
-    networkValidateIndex(index);
+    networkEventInternetAvailable[index] = true;
+}
 
-    // Present if nullptr or bool set to true
-    return ((!networkInterfaceTable[index].present) || *(networkInterfaceTable[index].present));
+//----------------------------------------
+// Internet lost event
+//----------------------------------------
+void networkInterfaceEventInternetLost(NetIndex_t index)
+{
+    // Notify networkUpdate of the change in state
+    networkEventInternetLost[index] = true;
 }
 
 //----------------------------------------
@@ -640,9 +621,21 @@ void networkInterfaceEventStop(NetIndex_t index)
 }
 
 //----------------------------------------
-// Mark network offline
+// Determine the specified network interface access to the internet
 //----------------------------------------
-void networkInterfaceEventInternetLost(NetIndex_t index)
+bool networkInterfaceHasInternet(NetIndex_t index)
+{
+    // Validate the index
+    networkValidateIndex(index);
+
+    // Return the network interface state
+    return (networkHasInternet_bm & (1 << index)) ? true : false;
+}
+
+//----------------------------------------
+// Mark network interface as having NO access to the internet
+//----------------------------------------
+void networkInterfaceInternetConnectionLost(NetIndex_t index)
 {
     NetMask_t bitMask;
     NetPriority_t previousPriority;
@@ -709,9 +702,9 @@ void networkInterfaceEventInternetLost(NetIndex_t index)
 }
 
 //----------------------------------------
-// Mark network online
+// Mark network interface as having access to the internet
 //----------------------------------------
-void networkInterfaceEventInternetAvailable(NetIndex_t index)
+void networkInterfaceInternetConnectionAvailable(NetIndex_t index)
 {
     NetMask_t bitMask;
     NetIndex_t previousIndex;
@@ -778,6 +771,46 @@ void networkInterfaceEventInternetAvailable(NetIndex_t index)
     // Only start mDNS on the highest priority network
     if (networkPriority == networkPriorityTable[previousIndex])
         networkMulticastDNSStart(previousIndex);
+}
+
+//----------------------------------------
+// Determine if the specified network has access to the internet
+//----------------------------------------
+bool networkIsConnected(NetPriority_t *clientPriority)
+{
+    // If the client is using the highest priority network and that
+    // network is still available then continue as normal
+    if (networkHasInternet_bm && (*clientPriority == networkPriority))
+        return (networkHasInternet_bm & (1 << networkIndexTable[networkPriority]))
+            ? true : false;
+
+    // The network has changed, notify the client of the change
+    *clientPriority = networkPriority;
+    return false;
+}
+
+//----------------------------------------
+// Determine if the network interface has completed its start routine
+//----------------------------------------
+bool networkIsInterfaceStarted(NetIndex_t index)
+{
+    // Validate the index
+    networkValidateIndex(index);
+
+    // Return the network started state
+    return (networkStarted & (1 << index)) ? true : false;
+}
+
+//----------------------------------------
+// Determine if the network is present on the platform
+//----------------------------------------
+bool networkIsPresent(NetIndex_t index)
+{
+    // Validate the index
+    networkValidateIndex(index);
+
+    // Present if nullptr or bool set to true
+    return ((!networkInterfaceTable[index].present) || *(networkInterfaceTable[index].present));
 }
 
 //----------------------------------------
@@ -1124,7 +1157,6 @@ void networkSequenceStop(NetIndex_t index, bool debug)
             // Start the sequence
             networkSeqStopping |= bitMask;
             networkStarted &= ~bitMask;
-
             networkSequence[index] = sequence;
         }
     }
@@ -1184,7 +1216,6 @@ void networkSequenceStopPolling(NetIndex_t index, bool debug, bool forcedStop)
     if (forcedStop)
     {
         networkStarted &= ~bitMask;
-
         networkSeqRequest &= ~bitMask;
         networkSeqNext &= ~bitMask;
     }
@@ -1327,42 +1358,6 @@ void networkStartDelayed(NetIndex_t index, uintptr_t parameter, bool debug)
 }
 
 //----------------------------------------
-// Validate the network index
-//----------------------------------------
-void networkValidateIndex(NetIndex_t index)
-{
-    // Validate the index
-    if (index >= NETWORK_OFFLINE)
-    {
-        systemPrintf("HALTED: Invalid index value %d, valid range (0 - %d)!\r\n", index, NETWORK_OFFLINE - 1);
-        reportFatalError("Invalid index value!");
-    }
-}
-
-//----------------------------------------
-// Validate the network priority
-//----------------------------------------
-void networkValidatePriority(NetPriority_t priority)
-{
-    // Validate the priority
-    if (priority >= NETWORK_OFFLINE)
-    {
-        systemPrintf("HALTED: Invalid priority value %d, valid range (0 - %d)!\r\n", priority, NETWORK_OFFLINE - 1);
-        reportFatalError("Invalid priority value!");
-    }
-}
-
-//----------------------------------------
-// Verify the network layer tables
-//----------------------------------------
-void networkVerifyTables()
-{
-    // Verify the table lengths
-    if (NETWORK_OFFLINE != NETWORK_MAX)
-        reportFatalError("Fix networkInterfaceTable to match NetworkType");
-}
-
-//----------------------------------------
 // Maintain the network connections
 //----------------------------------------
 void networkUpdate()
@@ -1375,6 +1370,43 @@ void networkUpdate()
     NETWORK_POLL_ROUTINE pollRoutine;
     uint8_t priority;
     NETWORK_POLL_SEQUENCE *sequence;
+
+    // Walk the list of network priorities in descending order
+    for (priority = 0; priority < NETWORK_OFFLINE; priority++)
+    {
+        index = networkIndexTable[priority];
+
+        // Handle the network lost internet event
+        if (networkEventInternetLost[index])
+        {
+            networkEventInternetLost[index] = false;
+            networkInterfaceInternetConnectionLost(index);
+        }
+
+        // Handle the network stop event
+        if (networkEventStop[index])
+        {
+            networkEventStop[index] = false;
+            networkStop(index, settings.debugNetworkLayer);
+        }
+
+        // Handle the network has internet event
+        if (networkEventInternetAvailable[index])
+        {
+            networkEventInternetAvailable[index] = false;
+            networkInterfaceInternetConnectionAvailable(index);
+        }
+
+        // Execute any active polling routine
+        sequence = networkSequence[index];
+        if (sequence)
+        {
+            pollRoutine = sequence->routine;
+            if (pollRoutine)
+                // Execute the poll routine
+                pollRoutine(index, sequence->parameter, settings.debugNetworkLayer);
+        }
+    }
 
     // Update the network services
     DMW_c("mqttClientUpdate");
@@ -1403,11 +1435,11 @@ void networkUpdate()
 
     int consumerCount = networkConsumers(&consumerTypes); // Update the current consumer types
 
-    // restartWiFi is used by the settings interface to indicate SSIDs or else has changed
-    // Stop WiFi to allow restart with new settings
-    if (restartWiFi == true)
+    // wifiRestartRequested is used by the settings interface to indicate
+    // SSIDs or else has changed.  Stop WiFi to allow restart with new settings
+    if (wifiRestartRequested == true)
     {
-        restartWiFi = false;
+        wifiRestartRequested = false;
 
         if (networkInterfaceHasInternet(NETWORK_WIFI))
         {
@@ -1568,6 +1600,42 @@ void networkUpdate()
             systemPrintln("Network: Offline");
         PERIODIC_CLEAR(PD_IP_ADDRESS);
     }
+}
+
+//----------------------------------------
+// Validate the network index
+//----------------------------------------
+void networkValidateIndex(NetIndex_t index)
+{
+    // Validate the index
+    if (index >= NETWORK_OFFLINE)
+    {
+        systemPrintf("HALTED: Invalid index value %d, valid range (0 - %d)!\r\n", index, NETWORK_OFFLINE - 1);
+        reportFatalError("Invalid index value!");
+    }
+}
+
+//----------------------------------------
+// Validate the network priority
+//----------------------------------------
+void networkValidatePriority(NetPriority_t priority)
+{
+    // Validate the priority
+    if (priority >= NETWORK_OFFLINE)
+    {
+        systemPrintf("HALTED: Invalid priority value %d, valid range (0 - %d)!\r\n", priority, NETWORK_OFFLINE - 1);
+        reportFatalError("Invalid priority value!");
+    }
+}
+
+//----------------------------------------
+// Verify the network layer tables
+//----------------------------------------
+void networkVerifyTables()
+{
+    // Verify the table lengths
+    if (NETWORK_OFFLINE != NETWORK_MAX)
+        reportFatalError("Fix networkInterfaceTable to match NetworkType");
 }
 
 // Return the bitfield containing the type of consumers currently using the network

@@ -59,6 +59,7 @@ static uint32_t httpClientConnectionAttemptTimeout = 5 * 1000L; // Wait 5s
 static int httpClientConnectionAttemptsTotal;                   // Count the number of connection attempts absolutely
 
 static volatile uint32_t httpClientLastDataReceived; // Last time data was received via HTTP
+static NetPriority_t httpClientPriority = NETWORK_OFFLINE;
 
 static NetworkClientSecure *httpSecureClient;
 
@@ -275,6 +276,7 @@ void httpClientUpdate()
     case HTTP_CLIENT_ON: {
         if ((millis() - httpClientTimer) > httpClientConnectionAttemptTimeout)
         {
+            httpClientPriority = NETWORK_OFFLINE;
             httpClientSetState(HTTP_CLIENT_NETWORK_STARTED);
         }
         break;
@@ -286,8 +288,8 @@ void httpClientUpdate()
         if (!httpClientModeNeeded)
             httpClientStop(true);
 
-        // Wait until the network is connected
-        else if (networkHasInternet())
+        // Wait until the network is connected to the media
+        else if (networkIsConnected(&httpClientPriority))
             httpClientSetState(HTTP_CLIENT_CONNECTING_2_SERVER);
         break;
     }
@@ -295,7 +297,7 @@ void httpClientUpdate()
     // Connect to the HTTP server
     case HTTP_CLIENT_CONNECTING_2_SERVER: {
         // Determine if the network has failed
-        if (networkHasInternet() == false)
+        if (!networkIsConnected(&httpClientPriority))
         {
             // Failed to connect to the network, attempt to restart the network
             httpClientStop(true); // Was httpClientRestart(); - #StopVsRestart
@@ -352,7 +354,7 @@ void httpClientUpdate()
 
     case HTTP_CLIENT_CONNECTED: {
         // Determine if the network has failed
-        if (networkHasInternet() == false)
+        if (!networkIsConnected(&httpClientPriority))
         {
             // Failed to connect to the network, attempt to restart the network
             httpClientStop(true); // Was httpClientRestart(); - #StopVsRestart
@@ -556,7 +558,7 @@ void httpClientUpdate()
     // Hang here until httpClientModeNeeded is set to false by updateProvisioning
     case HTTP_CLIENT_COMPLETE: {
         // Determine if the network has failed
-        if (networkHasInternet() == false)
+        if (!networkIsConnected(&httpClientPriority))
             // Failed to connect to the network, attempt to restart the network
             httpClientStop(true); // Was httpClientRestart(); - #StopVsRestart
         break;

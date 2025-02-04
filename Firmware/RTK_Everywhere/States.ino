@@ -113,7 +113,7 @@ void stateUpdate()
             setMuxport(settings.dataPortChannel); // Return mux to original channel
 
             bluetoothStart(); // Turn on Bluetooth with 'Rover' name
-            ESPNOW_START();    // Start internal radio if enabled, otherwise disable
+            ESPNOW_START()    // Start internal radio if enabled, otherwise disable
 
             webServerStop();             // Stop the web config server
             baseCasterDisableOverride(); // Disable casting overrides
@@ -218,7 +218,7 @@ void stateUpdate()
                 if (strcmp(WiFi.softAPSSID().c_str(), "RTK Caster") != 0)
                 {
                     // The AP name cannot be changed while it is running. WiFi must be restarted.
-                    restartWiFi = true; // Tell network layer to restart WiFi
+                    wifiRestartRequested = true; // Tell network layer to restart WiFi
                 }
             }
 #endif // COMPILE_WIFI
@@ -333,7 +333,7 @@ void stateUpdate()
                 // Start the NTRIP server if requested
                 RTK_MODE(RTK_MODE_BASE_FIXED);
 
-                ESPNOW_START(); // Start internal radio if enabled, otherwise disable
+                ESPNOW_START() // Start internal radio if enabled, otherwise disable
 
                 rtcmPacketsSent = 0; // Reset any previous number
                 changeState(STATE_BASE_TEMP_TRANSMITTING);
@@ -400,7 +400,7 @@ void stateUpdate()
             {
                 baseStatusLedOn(); // Turn on the base/status LED
 
-                ESPNOW_START(); // Start internal radio if enabled, otherwise disable
+                ESPNOW_START() // Start internal radio if enabled, otherwise disable
 
                 changeState(STATE_BASE_FIXED_TRANSMITTING);
             }
@@ -453,7 +453,7 @@ void stateUpdate()
                 if (strcmp(WiFi.softAPSSID().c_str(), "RTK Config") != 0)
                 {
                     // The AP name cannot be changed while it is running. WiFi must be restarted.
-                    restartWiFi = true; // Tell network layer to restart WiFi
+                    wifiRestartRequested = true; // Tell network layer to restart WiFi
                 }
             }
 #endif // COMPILE_WIFI
@@ -567,7 +567,7 @@ void stateUpdate()
             paintEspNowPairing();
 
             // Start ESP-Now if needed, put ESP-Now into broadcast state
-            espnowBeginPairing();
+            espNowBeginPairing();
 
             changeState(STATE_ESPNOW_PAIRING);
 #else  // COMPILE_ESPNOW
@@ -577,7 +577,7 @@ void stateUpdate()
         break;
 
         case (STATE_ESPNOW_PAIRING): {
-            if (espnowIsPaired() == true)
+            if (espNowProcessRxPairedMessage() == true)
             {
                 paintEspNowPaired();
 
@@ -585,10 +585,7 @@ void stateUpdate()
                 changeState(lastSystemState);
             }
             else
-            {
-                uint8_t broadcastMac[6] = {0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF};
-                espnowSendPairMessage(broadcastMac); // Send unit's MAC address over broadcast, no ack, no encryption
-            }
+                espNowSendPairMessage(); // Send unit's MAC address over broadcast, no ack, no encryption
         }
         break;
 

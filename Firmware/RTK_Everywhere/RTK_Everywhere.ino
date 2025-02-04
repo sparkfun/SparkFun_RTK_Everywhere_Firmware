@@ -17,6 +17,65 @@
   to the GNSS receiver to achieve RTK Fix.
 
   Settings are loaded from microSD if available, otherwise settings are pulled from ESP32's file system LittleFS.
+
+  Software Layers:
+
+                       +--------+  +--------+
+                       |  GNSS  |  |  GNSS  |
+                       |  Rover |  |  Base  |
+                       +--------+  +--------+
+                             ^        |
+                             |        |
+                             |        v
+                          +-------------+
+                 .------->| RTCM Serial |<--------------.
+                 |        +-------------+               |
+                 |           ^                          |
+  HTTP Client    |           |      +--------+          |
+  MQTT Client    |           |      | Config |          |
+  NTRIP Client   |           |      +--------+          |
+  OTA Client     |           |           ^              |
+  TCP Client     |           |           |              |
+                 |           v           v              |
+                 |        +-----------------+           |
+                 |        |  Server Clients |           |
+                 |        +-----------------+           |
+                 |                 ^                    |
+                 |                 |  NTP Server        |
+                 |                 |  NTRIP Server      |
+                 |                 |  TCP Server        |
+                 |                 |  UDP Server        |
+                 |                 |  Web Server        |
+                 V                 v                    |
+  +-----------------+     +-----------------+           |
+  |     Clients     |     |     Servers     |           |
+  +-----------------+     +-----------------+           |
+           ^                       ^                    |
+           |                       |                    |
+           v                       v                    v
+  +-----------------------------------------+    +-------------+
+  |             Network Services            |    |             |
+  |                                         |    |             |
+  |  +---------------+   +---------------+  |    |             |
+  |  |   DNS Server  |   |      mDNS     |  |    |             |
+  |  +---------------+   +---------------+  |    |             |
+  |                                         |    |             |
+  +-----------------------------------------+    |             |
+           ^                       ^             |             |
+           |                       |             |             |
+           v                       v             |             |
+  +-----------------------------------------+    |   ESP-NOW   |
+  |              Network Layer              |    |             |
+  |                                         |    |             |
+  |  Priority Selection       On/Off        |    |             |
+  |  +---------------+   +---------------+  |    |             |
+  |  |    Ethernet   |   |               |  |    |             |
+  |  |  WiFi Station |   |  WiFi Soft AP |  |    |             |
+  |  |    Cellular   |   |               |  |    |             |
+  |  +---------------+   +---------------+  |    |             |
+  |                                         |    |             |
+  +-----------------------------------------+    +-------------+
+
 */
 
 // To reduce compile times, various parts of the firmware can be disabled/removed if they are not
@@ -306,16 +365,23 @@ char logFileName[sizeof("SFE_Reference_Station_230101_120101.ubx_plusExtraSpace"
 int packetRSSI;
 RTK_WIFI wifi(false);
 
-#define WIFI_IS_CONNECTED()             wifiIsConnected()
-#define WIFI_IS_RUNNING()               wifiIsRunning()
-#define WIFI_SOFT_AP_RUNNING()          wifiApIsRunning()
+#define WIFI_ESPNOW_RUNNING()           wifi.espNowRunning()
+#define WIFI_ESPNOW_SET_CHANNEL(chan)   wifi.espNowSetChannel(chan)
+#define WIFI_GET_CHANNEL()              wifi.getChannel()
+#define WIFI_IS_CONNECTED()             wifi.stationOnline()
+#define WIFI_IS_RUNNING()               wifi.running()
+#define WIFI_SOFT_AP_RUNNING()          wifi.softApRunning()
+#define WIFI_STATION_RUNNING()          wifi.stationRunning()
+
 #define WIFI_STOP()                                                                                                    \
     {                                                                                                                  \
         if (settings.debugWifiState)                                                                                   \
-            systemPrintf("wifiStop called by %s %d\r\n", __FILE__, __LINE__);                                          \
-        wifiStop();                                                                                                    \
+            systemPrintf("WIFI_STOP called by %s %d\r\n", __FILE__, __LINE__);                                         \
+        wifiStopAll();                                                                                                 \
     }
 #endif // COMPILE_WIFI
+
+bool wifiRestartRequested = false; // Restart WiFi if user changes anything
 
 #define MQTT_CLIENT_STOP(shutdown)                                                                                     \
     {                                                                                                                  \
@@ -606,19 +672,21 @@ float lBandEBNO; // Used on system status menu
 
 #include <esp_now.h> //Built-in
 
-uint8_t espnowOutgoing[250]; // ESP NOW has max of 250 characters
-unsigned long espnowLastAdd; // Tracks how long since the last byte was added to the outgoing buffer
-uint8_t espnowOutgoingSpot;  // ESP Now has a max of 250 characters
-uint16_t espnowBytesSent;    // May be more than 255
-uint8_t receivedMAC[6];      // Holds the broadcast MAC during pairing
+#define ESPNOW_IS_PAIRED()  espNowIsPaired()
+#define ESPNOW_START()                                                                      \
+    {                                                                                       \
+        if (settings.debugEspNow)                                                           \
+            systemPrintf("ESPNOW_START called in %s at line %d\r\n", __FILE__, __LINE__);   \
+        wifi.enable(true, wifi.softApRunning(), wifi.stationRunning());                     \
+    }
 
-unsigned long lastEspnowRssiUpdate;
+#define ESPNOW_STOP()       wifi.enable(false, wifi.softApRunning(), wifi.stationRunning())
 
-#define ESPNOW_START()      espnowStart()
-#define ESPNOW_STOP()       espnowStop()
 #endif // COMPILE_ESPNOW
 
-int espnowRSSI;
+bool espNowIncomingRTCM;
+bool espNowOutgoingRTCM;
+int espNowRSSI;
 // const uint8_t ESPNOW_MAX_PEERS = 5 is defined in settings.h
 
 // Ethernet
@@ -781,8 +849,6 @@ bool bluetoothIncomingRTCM;
 bool bluetoothOutgoingRTCM;
 bool netIncomingRTCM;
 bool netOutgoingRTCM;
-bool espnowIncomingRTCM;
-bool espnowOutgoingRTCM;
 volatile bool mqttClientDataReceived; // Flag for display
 
 uint16_t failedParserMessages_UBX;
@@ -1239,8 +1305,8 @@ void loop()
     DMW_c("tiltUpdate");
     tiltUpdate(); // Check if new lat/lon/alt have been calculated
 
-    DMW_c("updateEspnow");
-    updateEspnow(); // Check if we need to finish sending any RTCM over ESP-NOW radio
+    DMW_c("espNowUpdate");
+    espNowUpdate(); // Check if we need to finish sending any RTCM over ESP-NOW radio
 
     DMW_c("updateLora");
     updateLora(); // Check if we need to finish sending any RTCM over LoRa radio

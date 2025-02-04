@@ -179,17 +179,18 @@ void webServerVerifyTables() {}
 #ifndef COMPILE_ESPNOW
 
 bool espnowGetState()                   {return ESPNOW_OFF;}
-bool espnowIsPaired()                   {return false;}
-void espnowProcessRTCM(byte incoming)   {}
-esp_err_t espnowRemovePeer(uint8_t *peerMac)        {return ESP_OK;}
-esp_err_t espnowSendPairMessage(uint8_t *sendToMac) {return ESP_OK;}
+#define ESPNOW_IS_PAIRED()              false
+void espNowProcessRTCM(byte incoming)   {}
+bool espNowProcessRxPairedMessage()     {return true;}
+esp_err_t espNowRemovePeer(uint8_t *peerMac)        {return ESP_OK;}
+esp_err_t espNowSendPairMessage()       {return ESP_OK;}
 bool espnowSetChannel(uint8_t channelNumber)        {return false;}
-void espnowStart()                      {}
-#define ESPNOW_START()                  false
-void espnowStaticPairing()              {}
-void espnowStop()                       {}
+bool espNowStart()                      {return true;}
+#define ESPNOW_START()                  {}
+void espNowStaticPairing()              {}
+bool espNowStop()                       {return true;}
 #define ESPNOW_STOP()                   true
-void updateEspnow()                     {}
+void espNowUpdate()                     {}
 
 #endif   // COMPILE_ESPNOW
 
@@ -199,19 +200,20 @@ void updateEspnow()                     {}
 
 #ifndef COMPILE_WIFI
 
-void menuWiFi() {systemPrintln("**WiFi not compiled**");}
-bool wifiApIsRunning() {return false;}
-bool wifiConnect(bool startWiFiStation, bool startWiFiAP, unsigned long timeout) {return false;}
-uint32_t wifiGetStartTimeout() {return 0;}
-#define WIFI_IS_RUNNING() 0
-int wifiNetworkCount() {return 0;}
-void wifiResetThrottleTimeout() {}
-void wifiResetTimeout() {}
-#define WIFI_SOFT_AP_RUNNING() {return false;}
-bool wifiStart() {return false;}
-bool wifiStationIsRunning() {return false;}
-#define WIFI_STOP() {}
-bool wifiUnavailable()  {return true;}
+void menuWiFi()                 {systemPrintln("**WiFi not compiled**");}
+#define WIFI_ESPNOW_RUNNING()                   false
+#define WIFI_ESPNOW_SET_CHANNEL(chan)
+#define WIFI_GET_CHANNEL()                      0
+uint32_t wifiGetStartTimeout()                  {return 0;}
+#define WIFI_IS_RUNNING()                       false
+int wifiNetworkCount()                          {return 0;}
+void wifiResetThrottleTimeout()                 {}
+void wifiResetTimeout()                         {}
+#define WIFI_SOFT_AP_RUNNING()                  false
+bool wifiStart()                                {return false;}
+#define WIFI_STATION_RUNNING()                  false
+#define WIFI_STOP()                             {}
+bool wifiUnavailable()                          {return true;}
 
 #endif // COMPILE_WIFI
 
