@@ -1948,7 +1948,6 @@ class RTK_WIFI
     WIFI_CHANNEL_t _espNowChannel;  // Channel required for ESPNow, zero (0) use _channel
     bool _espNowRunning;        // ESPNow started or running
     volatile bool _scanRunning; // Scan running
-    bool _softApRunning;        // Soft AP is starting or running
     int _staAuthType;           // Authorization type for the remote AP
     bool _staConnected;         // True when station is connected
     bool _staHasIp;             // True when station has IP address
@@ -2194,11 +2193,6 @@ class RTK_WIFI
     // Outputs:
     //   Returns true when the soft AP is ready for use
     bool softApOnline();
-
-    // Determine if the soft AP is being started or is onine
-    // Outputs:
-    //  Returns true if the soft AP is being started or is online
-    bool softApRunning();
 
     // Attempt to start the soft AP mode
     // Inputs:

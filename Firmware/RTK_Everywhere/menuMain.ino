@@ -640,7 +640,7 @@ void menuRadio()
                         systemPrintf("WiFi is already on channel %d.", settings.wifiChannel);
                     else
                     {
-                        if (WIFI_SOFT_AP_RUNNING() || wifiStationRunning)
+                        if (wifiSoftApRunning || wifiStationRunning)
                             systemPrintf("Restart WiFi to use channel %d.", settings.wifiChannel);
                         else if (WIFI_ESPNOW_RUNNING())
                             systemPrintf("Restart ESP-NOW to use channel %d.", settings.wifiChannel);

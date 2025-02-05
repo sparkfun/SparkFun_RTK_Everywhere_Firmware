@@ -363,7 +363,6 @@ RTK_WIFI wifi(false);
 #define WIFI_GET_CHANNEL()              wifi.getChannel()
 #define WIFI_IS_CONNECTED()             wifi.stationOnline()
 #define WIFI_IS_RUNNING()               wifi.running()
-#define WIFI_SOFT_AP_RUNNING()          wifi.softApRunning()
 
 #define WIFI_STOP()                                                                                                    \
     {                                                                                                                  \
@@ -376,6 +375,7 @@ RTK_WIFI wifi(false);
 // WiFi Globals - For other module direct access
 uint32_t wifiReconnectionTimer; // Delay before reconnection, timer running when non-zero
 bool wifiRestartRequested;      // Restart WiFi if user changes anything
+bool wifiSoftApRunning;         // False: stopped, True: starting, running, stopping
 bool wifiStationRunning;        // False: stopped, True: starting, running, stopping
 
 //-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
@@ -685,10 +685,10 @@ float lBandEBNO; // Used on system status menu
     {                                                                                       \
         if (settings.debugEspNow)                                                           \
             systemPrintf("ESPNOW_START called in %s at line %d\r\n", __FILE__, __LINE__);   \
-        wifi.enable(true, wifi.softApRunning(), wifiStationRunning);                     \
+        wifi.enable(true, wifiSoftApRunning, wifiStationRunning);                     \
     }
 
-#define ESPNOW_STOP()       wifi.enable(false, wifi.softApRunning(), wifiStationRunning)
+#define ESPNOW_STOP()       wifi.enable(false, wifiSoftApRunning, wifiStationRunning)
 
 #endif // COMPILE_ESPNOW
 
