@@ -352,15 +352,8 @@ bool sdSizeCheckTaskComplete;
 char logFileName[sizeof("SFE_Reference_Station_230101_120101.ubx_plusExtraSpace")] = {0};
 //-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 
-// Over-the-Air (OTA) update support
+// WiFi support
 //-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
-
-#define MQTT_CERT_SIZE 2000
-
-#include <ArduinoJson.h> //http://librarymanager/All#Arduino_JSON_messagepack
-
-#include "esp_ota_ops.h" //Needed for partition counting and updateFromSD
-
 #ifdef COMPILE_WIFI
 int packetRSSI;
 RTK_WIFI wifi(false);
@@ -385,12 +378,25 @@ RTK_WIFI wifi(false);
 uint32_t wifiReconnectionTimer; // Delay before reconnection, timer running when non-zero
 bool wifiRestartRequested;      // Restart WiFi if user changes anything
 
+//-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+
+// MQTT support
+//-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+#define MQTT_CERT_SIZE 2000
+
 #define MQTT_CLIENT_STOP(shutdown)                                                                                     \
     {                                                                                                                  \
         if (settings.debugNetworkLayer || settings.debugMqttClientState)                                               \
             systemPrintf("mqttClientStop(%s) called by %s %d\r\n", shutdown ? "true" : "false", __FILE__, __LINE__);   \
         mqttClientStop(shutdown);                                                                                      \
     }
+//-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+
+// Over-the-Air (OTA) update support
+//-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+#include <ArduinoJson.h> //http://librarymanager/All#Arduino_JSON_messagepack
+
+#include "esp_ota_ops.h" //Needed for partition counting and updateFromSD
 
 #define OTA_FIRMWARE_JSON_URL_LENGTH 128
 //                                                                                                      1         1 1
