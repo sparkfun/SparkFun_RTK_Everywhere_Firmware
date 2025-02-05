@@ -2158,11 +2158,6 @@ class RTK_WIFI
     //    false upon restart failure
     bool restart(bool always);
 
-    // Determine if any use of WiFi is starting or is online
-    // Outputs:
-    //  Returns true if any WiFi use is being started or is online
-    bool running();
-
     // Configure the soft AP
     // Inputs:
     //   ipAddress: IP address of the soft AP

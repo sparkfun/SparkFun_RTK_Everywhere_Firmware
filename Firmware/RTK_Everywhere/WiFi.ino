@@ -1051,13 +1051,6 @@ bool RTK_WIFI::restart(bool always)
 }
 
 //*********************************************************************
-// Determine if any use of WiFi is starting or is online
-bool RTK_WIFI::running()
-{
-    return wifiEspNowRunning | wifiSoftApRunning | wifiStationRunning;
-}
-
-//*********************************************************************
 // Set the WiFi mode
 // Inputs:
 //   setMode: Modes to set

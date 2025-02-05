@@ -361,7 +361,6 @@ RTK_WIFI wifi(false);
 #define WIFI_ESPNOW_SET_CHANNEL(chan)   wifi.espNowSetChannel(chan)
 #define WIFI_GET_CHANNEL()              wifi.getChannel()
 #define WIFI_IS_CONNECTED()             wifi.stationOnline()
-#define WIFI_IS_RUNNING()               wifi.running()
 
 #define WIFI_STOP()                                                                                                    \
     {                                                                                                                  \
