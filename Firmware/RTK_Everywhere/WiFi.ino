@@ -531,6 +531,14 @@ void wifiDisplayState()
 }
 
 //*********************************************************************
+// Start or stop ESP-NOW
+// Returns true if successful and false upon failure
+bool wifiEspNowOn(bool on)
+{
+    return wifi.enable(on, wifiSoftApRunning, wifiStationRunning);
+}
+
+//*********************************************************************
 // Return the start timeout in milliseconds
 uint32_t wifiGetStartTimeout()
 {

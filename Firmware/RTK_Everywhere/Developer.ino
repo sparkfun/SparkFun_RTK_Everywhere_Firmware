@@ -200,6 +200,7 @@ void espNowUpdate()                     {}
 #ifndef COMPILE_WIFI
 
 void menuWiFi()                 {systemPrintln("**WiFi not compiled**");}
+bool wifiEspNowOn(bool on)                      {return !on;}
 #define WIFI_ESPNOW_SET_CHANNEL(chan)
 uint32_t wifiGetStartTimeout()                  {return 0;}
 int wifiNetworkCount()                          {return 0;}
