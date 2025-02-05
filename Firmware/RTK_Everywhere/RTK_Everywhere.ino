@@ -675,10 +675,10 @@ float lBandEBNO; // Used on system status menu
     {                                                                                       \
         if (settings.debugEspNow)                                                           \
             systemPrintf("ESPNOW_START called in %s at line %d\r\n", __FILE__, __LINE__);   \
-        wifi.enable(true, wifiSoftApRunning, wifiStationRunning);                     \
+        wifiEspNowOn(true);                     \
     }
 
-#define ESPNOW_STOP()       wifi.enable(false, wifiSoftApRunning, wifiStationRunning)
+#define ESPNOW_STOP()       wifiEspNowOn(false)
 
 #endif // COMPILE_ESPNOW
 
