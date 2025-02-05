@@ -1316,6 +1316,24 @@ void networkSequenceExit(NetIndex_t index, bool debug)
 }
 
 //----------------------------------------
+// Determine if a sequence is running
+//----------------------------------------
+bool networkSequenceIsRunning()
+{
+    // Determine if there are any pending sequences
+    if (networkSeqStarting || networkSeqStopping)
+        return true;
+
+    // Determine if there is an active sequence
+    for (int index = 0; index < NETWORK_MAX; index++)
+        if (networkSequence[index])
+            return true;
+
+    // No sequences are running
+    return false;
+}
+
+//----------------------------------------
 // Select the next entry in the sequence
 //----------------------------------------
 void networkSequenceNextEntry(NetIndex_t index, bool debug)
