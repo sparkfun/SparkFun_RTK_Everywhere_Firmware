@@ -673,13 +673,12 @@ const int updateWebSocketStackSize =
 float lBandEBNO; // Used on system status menu
 //=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 
-// ESP NOW for multipoint wireless broadcasting over 2.4GHz
+// ESP-NOW for multipoint wireless broadcasting over 2.4GHz
 //-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 #ifdef COMPILE_ESPNOW
 
 #include <esp_now.h> //Built-in
 
-#define ESPNOW_IS_PAIRED()  espNowIsPaired()
 #define ESPNOW_START()                                                                      \
     {                                                                                       \
         if (settings.debugEspNow)                                                           \
@@ -691,6 +690,7 @@ float lBandEBNO; // Used on system status menu
 
 #endif // COMPILE_ESPNOW
 
+// ESP-NOW Globals - For other module direct access
 bool espNowIncomingRTCM;
 bool espNowOutgoingRTCM;
 int espNowRSSI;

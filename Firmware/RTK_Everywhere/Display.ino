@@ -753,7 +753,7 @@ void setRadioIcons(std::vector<iconPropertyBlinking> *iconList)
             }
 #endif // /COMPILE_CELLULAR
 
-            if (ESPNOW_IS_PAIRED()) // ESPNOW : Columns 64 - 71
+            if (espNowIsPaired()) // ESPNOW : Columns 64 - 71
             {
                 iconPropertyBlinking prop;
                 prop.duty = 0b11111111;
@@ -792,7 +792,7 @@ void setRadioIcons(std::vector<iconPropertyBlinking> *iconList)
                 }
             }
 
-            if (ESPNOW_IS_PAIRED())
+            if (espNowIsPaired())
             {
                 if (espNowIncomingRTCM == true) // Download : Columns 74 - 81
                 {
@@ -1023,7 +1023,7 @@ void setBluetoothIcon_TwoRadios(std::vector<iconPropertyBlinking> *iconList)
 // This is 64x48-specific
 void setESPNowIcon_TwoRadios(std::vector<iconPropertyBlinking> *iconList)
 {
-    if (ESPNOW_IS_PAIRED())
+    if (espNowIsPaired())
     {
         if (espNowIncomingRTCM == true || espNowOutgoingRTCM == true)
         {
