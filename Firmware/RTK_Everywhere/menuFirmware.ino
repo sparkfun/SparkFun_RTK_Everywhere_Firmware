@@ -362,6 +362,37 @@ void microSdUpdateFirmware(const char *firmwareFileName)
         return;
     }
 
+    // Verify that the firmware file exists
+    if (!sd->exists(firmwareFileName))
+    {
+        systemPrintln("No firmware file found");
+        return;
+    }
+
+    // Verify that the SdFile object can be allocated
+    SdFile firmwareFile;
+    if (!firmwareFile)
+    {
+        systemPrintln("ERROR - Failed to allocate firmwareFile");
+        return;
+    }
+
+    // Verify that the firmware file can be opened
+    if (!firmwareFile.open(firmwareFileName, O_READ))
+    {
+        systemPrintf("ERROR - Failed to open %s on the microSD card!\r\n", firmwareFileName);
+        return;
+    }
+
+    // Verify that something exists in the firmware file
+    size_t updateSize = firmwareFile.size();
+    if (updateSize == 0)
+    {
+        systemPrintln("Error: Binary is empty");
+        firmwareFile.close();
+        return;
+    }
+
     // Turn off any tasks so that we are not disrupted
     ESPNOW_STOP();
     wifiStopAll();
@@ -371,29 +402,6 @@ void microSdUpdateFirmware(const char *firmwareFileName)
     tasksStopGnssUart();
 
     systemPrintf("Loading %s\r\n", firmwareFileName);
-
-    if (!sd->exists(firmwareFileName))
-    {
-        systemPrintln("No firmware file found");
-        return;
-    }
-
-    SdFile firmwareFile;
-    if (!firmwareFile)
-    {
-        systemPrintln("ERROR - Failed to allocate firmwareFile");
-        return;
-    }
-    firmwareFile.open(firmwareFileName, O_READ);
-
-    size_t updateSize = firmwareFile.size();
-
-    if (updateSize == 0)
-    {
-        systemPrintln("Error: Binary is empty");
-        firmwareFile.close();
-        return;
-    }
 
     if (Update.begin(updateSize) == false)
     {
