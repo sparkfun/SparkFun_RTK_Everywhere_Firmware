@@ -272,6 +272,9 @@ void updateFromSD(const char *firmwareFileName)
     wifiStopAll();
     bluetoothStop();
 
+    // Allow the network to stop WiFi clients and servers
+    networkUpdateWait();
+
     // Delete tasks if running
     tasksStopGnssUart();
 

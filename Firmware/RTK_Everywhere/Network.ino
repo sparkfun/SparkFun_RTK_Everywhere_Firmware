@@ -2002,6 +2002,17 @@ void networkUpdate()
 }
 
 //----------------------------------------
+// Update the network until it becomes stable
+//----------------------------------------
+void networkUpdateWait()
+{
+    // Allow the network to stop WiFi clients and servers
+    static uint32_t startDelayTimeMsec = millis();
+    while (((millis() - startDelayTimeMsec) < 100) || networkSequenceIsRunning())
+        networkUpdate();
+}
+
+//----------------------------------------
 // Validate the network index
 //----------------------------------------
 void networkValidateIndex(NetIndex_t index)

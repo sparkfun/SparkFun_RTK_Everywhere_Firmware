@@ -53,6 +53,7 @@ void networkMarkHasInternet(NetIndex_t index) {}
 void networkSequenceBoot(NetIndex_t index) {}
 void networkSequenceNextEntry(NetIndex_t index, bool debug) {}
 void networkUpdate() {}
+void networkUpdateWait() {}
 void networkValidateIndex(NetIndex_t index) {}
 void networkVerifyTables() {}
 
