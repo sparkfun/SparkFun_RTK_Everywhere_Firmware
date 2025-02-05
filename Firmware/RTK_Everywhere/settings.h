@@ -1946,7 +1946,6 @@ class RTK_WIFI
     IPAddress _apSubnetMask;    // Subnet mask for soft AP
     WIFI_CHANNEL_t _channel;    // Current WiFi channel number
     WIFI_CHANNEL_t _espNowChannel;  // Channel required for ESPNow, zero (0) use _channel
-    bool _espNowRunning;        // ESPNow started or running
     volatile bool _scanRunning; // Scan running
     int _staAuthType;           // Authorization type for the remote AP
     bool _staConnected;         // True when station is connected
@@ -2131,11 +2130,6 @@ class RTK_WIFI
     // Outputs:
     //   Returns true when ESP-NOW is online and ready for use
     bool espNowOnline();
-
-    // Get the ESP-NOW status
-    // Outputs:
-    //  Returns true if ESP-NOW is being started or is online
-    bool espNowRunning();
 
     // Set the ESP-NOW channel
     // Inputs:

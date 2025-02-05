@@ -358,7 +358,6 @@ char logFileName[sizeof("SFE_Reference_Station_230101_120101.ubx_plusExtraSpace"
 int packetRSSI;
 RTK_WIFI wifi(false);
 
-#define WIFI_ESPNOW_RUNNING()           wifi.espNowRunning()
 #define WIFI_ESPNOW_SET_CHANNEL(chan)   wifi.espNowSetChannel(chan)
 #define WIFI_GET_CHANNEL()              wifi.getChannel()
 #define WIFI_IS_CONNECTED()             wifi.stationOnline()
@@ -373,6 +372,7 @@ RTK_WIFI wifi(false);
 #endif // COMPILE_WIFI
 
 // WiFi Globals - For other module direct access
+bool wifiEspNowRunning;         // False: stopped, True: starting, running, stopping
 uint32_t wifiReconnectionTimer; // Delay before reconnection, timer running when non-zero
 bool wifiRestartRequested;      // Restart WiFi if user changes anything
 bool wifiSoftApRunning;         // False: stopped, True: starting, running, stopping

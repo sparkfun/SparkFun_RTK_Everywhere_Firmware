@@ -619,7 +619,7 @@ void menuRadio()
             byte bContinue = getUserInputCharacterNumber();
             if (bContinue == 'y')
             {
-                if (WIFI_ESPNOW_RUNNING())
+                if (wifiEspNowRunning)
                 {
                     for (int x = 0; x < settings.espnowPeerCount; x++)
                         espNowRemovePeer(settings.espnowPeers[x]);
@@ -642,7 +642,7 @@ void menuRadio()
                     {
                         if (wifiSoftApRunning || wifiStationRunning)
                             systemPrintf("Restart WiFi to use channel %d.", settings.wifiChannel);
-                        else if (WIFI_ESPNOW_RUNNING())
+                        else if (wifiEspNowRunning)
                             systemPrintf("Restart ESP-NOW to use channel %d.", settings.wifiChannel);
                         else
                             systemPrintf("Please start ESP-NOW to use channel %d.", settings.wifiChannel);
@@ -652,7 +652,7 @@ void menuRadio()
         }
         else if (settings.enableEspNow == true && incoming == 5 && settings.debugEspNow == true)
         {
-            if (WIFI_ESPNOW_RUNNING() == false)
+            if (wifiEspNowRunning == false)
                 ESPNOW_START()
 
             uint8_t peer1[] = {0xB8, 0xD6, 0x1A, 0x0D, 0x8F, 0x9C}; // Random MAC
@@ -676,7 +676,7 @@ void menuRadio()
         }
         else if (settings.enableEspNow == true && incoming == 6 && settings.debugEspNow == true)
         {
-            if (WIFI_ESPNOW_RUNNING() == false)
+            if (wifiEspNowRunning == false)
                 ESPNOW_START()
 
             uint8_t espnowData[] =
@@ -689,7 +689,7 @@ void menuRadio()
         }
         else if (settings.enableEspNow == true && incoming == 7 && settings.debugEspNow == true)
         {
-            if (WIFI_ESPNOW_RUNNING() == false)
+            if (wifiEspNowRunning == false)
                 ESPNOW_START()
 
             uint8_t espnowData[] =
