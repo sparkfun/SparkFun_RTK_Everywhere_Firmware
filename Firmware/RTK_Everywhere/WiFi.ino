@@ -757,7 +757,7 @@ RTK_WIFI::RTK_WIFI(bool verbose)
       _apGatewayAddress{(uint32_t)0},
       _apIpAddress{IPAddress("192.168.4.1")},
       _apMacAddress{0, 0, 0, 0, 0, 0},
-      _apSubnetMask{IPAddress("255.255.255.0")}, _channel{0},
+      _apSubnetMask{IPAddress("255.255.255.0")},
       _espNowChannel{0},
       _scanRunning{false},
       _staIpAddress{IPAddress((uint32_t)0)}, _staIpType{0},
@@ -766,6 +766,7 @@ RTK_WIFI::RTK_WIFI(bool verbose)
       _started{false}, _stationChannel{0},
       _usingDefaultChannel{true}, _verbose{verbose}
 {
+    wifiChannel = 0;
     wifiEspNowRunning = false;
     wifiReconnectionTimer = 0;
     wifiRestartRequested = false;
@@ -1017,7 +1018,7 @@ void RTK_WIFI::eventHandler(arduino_event_id_t event, arduino_event_info_t info)
 //   Returns the current WiFi channel number
 WIFI_CHANNEL_t RTK_WIFI::getChannel()
 {
-    return _channel;
+    return wifiChannel;
 }
 
 //*********************************************************************
@@ -1463,9 +1464,9 @@ bool RTK_WIFI::stationConnectAP()
         if (settings.debugWifiState)
             systemPrintf("WiFi connecting to %s on channel %d with %s authorization\r\n",
                          _staRemoteApSsid,
-                         _channel,
+                         wifiChannel,
                          (_staAuthType < WIFI_AUTH_MAX) ? wifiAuthorizationName[_staAuthType] : "Unknown");
-        connected = (WiFi.STA.connect(_staRemoteApSsid, _staRemoteApPassword, _channel));
+        connected = (WiFi.STA.connect(_staRemoteApSsid, _staRemoteApPassword, wifiChannel));
         if (!connected)
         {
             if (settings.debugWifiState)
@@ -1476,7 +1477,7 @@ bool RTK_WIFI::stationConnectAP()
         if (settings.debugWifiState)
             systemPrintf("WiFi station connected to %s on channel %d with %s authorization\r\n",
                          _staRemoteApSsid,
-                         _channel,
+                         wifiChannel,
                          (_staAuthType < WIFI_AUTH_MAX) ? wifiAuthorizationName[_staAuthType] : "Unknown");
 
         // Don't delay the next WiFi start request
@@ -1872,10 +1873,10 @@ bool RTK_WIFI::stopStart(WIFI_ACTION_t stopping, WIFI_ACTION_t starting)
     defaultChannel = _usingDefaultChannel;
     _usingDefaultChannel = false;
     if (((_started & ~stopping) & (WIFI_AP_ONLINE | WIFI_EN_ESP_NOW_ONLINE | WIFI_STA_ONLINE))
-        && _channel && !defaultChannel)
+        && wifiChannel && !defaultChannel)
     {
         // Continue to use the active channel
-        channel = _channel;
+        channel = wifiChannel;
         if (settings.debugWifiState && _verbose)
             systemPrintf("channel: %d, active channel\r\n", channel);
     }
@@ -2192,7 +2193,7 @@ bool RTK_WIFI::stopStart(WIFI_ACTION_t stopping, WIFI_ACTION_t starting)
         // Reset the channel if all components are stopped
         if ((softApOnline() == false) && (stationOnline() == false))
         {
-            _channel = 0;
+            wifiChannel = 0;
             _usingDefaultChannel = true;
         }
 
@@ -2273,8 +2274,8 @@ bool RTK_WIFI::stopStart(WIFI_ACTION_t stopping, WIFI_ACTION_t starting)
             _started = _started | WIFI_STA_SELECT_REMOTE_AP;
             if (channel == 0)
             {
-                if (_channel)
-                    systemPrintf("WiFi STA: No compatible remote AP found on channel %d!\r\n", _channel);
+                if (wifiChannel)
+                    systemPrintf("WiFi STA: No compatible remote AP found on channel %d!\r\n", wifiChannel);
                 else
                     systemPrintf("WiFi STA: No compatible remote AP found!\r\n");
 
@@ -2298,11 +2299,11 @@ bool RTK_WIFI::stopStart(WIFI_ACTION_t stopping, WIFI_ACTION_t starting)
             // Use the default channel if necessary
             if (!channel)
                 channel = WIFI_DEFAULT_CHANNEL;
-            _channel = channel;
+            wifiChannel = channel;
 
             // Display the selected channel
             if (settings.debugWifiState)
-                systemPrintf("Channel: %d selected\r\n", _channel);
+                systemPrintf("Channel: %d selected\r\n", wifiChannel);
         }
 
         //****************************************
@@ -2472,7 +2473,7 @@ bool RTK_WIFI::stopStart(WIFI_ACTION_t stopping, WIFI_ACTION_t starting)
             }
 
             // Set the ESP-NOW channel
-            if (primaryChannel != _channel)
+            if (primaryChannel != wifiChannel)
             {
                 if (settings.debugWifiState && _verbose)
                     systemPrintf("Calling esp_wifi_set_channel\r\n");
@@ -2547,7 +2548,7 @@ bool RTK_WIFI::stopStart(WIFI_ACTION_t stopping, WIFI_ACTION_t starting)
             systemPrintf("WiFi: ESP-NOW online (%02x:%02x:%02x:%02x:%02x:%02x, channel: %d)\r\n",
                          _staMacAddress[0], _staMacAddress[1], _staMacAddress[2],
                          _staMacAddress[3], _staMacAddress[4], _staMacAddress[5],
-                         _channel);
+                         wifiChannel);
         }
 
         // All components started successfully

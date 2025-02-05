@@ -560,7 +560,7 @@ void menuRadio()
             systemPrintln("2) Pair radios");
             systemPrintln("3) Forget all radios");
 
-            systemPrintf("4) Current channel: %d\r\n", WIFI_GET_CHANNEL());
+            systemPrintf("4) Current channel: %d\r\n", wifiChannel);
 
             if (settings.debugEspNow == true)
             {
@@ -636,7 +636,7 @@ void menuRadio()
                 WIFI_ESPNOW_SET_CHANNEL(settings.wifiChannel);
                 if (settings.wifiChannel)
                 {
-                    if (settings.wifiChannel == WIFI_GET_CHANNEL())
+                    if (settings.wifiChannel == wifiChannel)
                         systemPrintf("WiFi is already on channel %d.", settings.wifiChannel);
                     else
                     {
