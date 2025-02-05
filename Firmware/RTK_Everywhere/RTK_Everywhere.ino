@@ -359,14 +359,6 @@ int packetRSSI;
 RTK_WIFI wifi(false);
 
 #define WIFI_ESPNOW_SET_CHANNEL(chan)   wifi.espNowSetChannel(chan)
-#define WIFI_IS_CONNECTED()             wifi.stationOnline()
-
-#define WIFI_STOP()                                                                                                    \
-    {                                                                                                                  \
-        if (settings.debugWifiState)                                                                                   \
-            systemPrintf("WIFI_STOP called by %s %d\r\n", __FILE__, __LINE__);                                         \
-        wifiStopAll();                                                                                                 \
-    }
 #endif // COMPILE_WIFI
 
 // WiFi Globals - For other module direct access

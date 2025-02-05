@@ -206,7 +206,7 @@ int wifiNetworkCount()                          {return 0;}
 void wifiResetThrottleTimeout()                 {}
 void wifiResetTimeout()                         {}
 bool wifiStart()                                {return false;}
-#define WIFI_STOP()                             {}
+void wifiStopAll()                              {}
 
 #endif // COMPILE_WIFI
 
