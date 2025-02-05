@@ -261,6 +261,12 @@ void updateFromSD(const char *firmwareFileName)
         return;
     }
 
+    if (!sd->exists(firmwareFileName))
+    {
+        systemPrintln("No firmware file found");
+        return;
+    }
+
     // Turn off any tasks so that we are not disrupted
     ESPNOW_STOP();
     wifiStopAll();
@@ -270,12 +276,6 @@ void updateFromSD(const char *firmwareFileName)
     tasksStopGnssUart();
 
     systemPrintf("Loading %s\r\n", firmwareFileName);
-
-    if (!sd->exists(firmwareFileName))
-    {
-        systemPrintln("No firmware file found");
-        return;
-    }
 
     SdFile firmwareFile;
     if (!firmwareFile)
