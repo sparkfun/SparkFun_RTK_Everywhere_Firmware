@@ -692,6 +692,39 @@ void setRadioIcons(std::vector<iconPropertyBlinking> *iconList)
 
                 // No Rover/Base icons
             }
+
+
+            // On 64x48: squeeze the icon between SIV and logging
+            static bool correctionsIconPosCalculated = false;
+            const uint8_t correctionsIconXPos = 39;
+            static uint8_t correctionsIconYPos = 48;
+            // Calculate the highest (lowest!) Y position for the corrections icon
+            // Do it only once...
+            if (!correctionsIconPosCalculated)
+            {
+                for (int i = 0; i < CORR_NUM; i++)
+                    if ((48 - (correctionIconAttributes[i].yOffset + correctionIconAttributes[i].height)) <
+                        correctionsIconYPos)
+                        correctionsIconYPos =
+                            48 - (correctionIconAttributes[i].yOffset + correctionIconAttributes[i].height);
+                correctionsIconPosCalculated = true;
+            }
+
+            if (inRoverMode() == true)
+            {
+                CORRECTION_ID_T correctionSource = correctionGetSource();
+                if (correctionSource < CORR_NUM)
+                {
+                    iconPropertyBlinking prop;
+                    prop.duty = 0b11111111;
+                    prop.icon.bitmap = correctionIconAttributes[correctionSource].pointer;
+                    prop.icon.width = correctionIconAttributes[correctionSource].width;
+                    prop.icon.height = correctionIconAttributes[correctionSource].height;
+                    prop.icon.xPos = correctionsIconXPos + correctionIconAttributes[correctionSource].xOffset;
+                    prop.icon.yPos = correctionsIconYPos + correctionIconAttributes[correctionSource].yOffset;
+                    iconList->push_back(prop);
+                }
+            }
         }
         else if (present.display_type == DISPLAY_128x64)
         {
@@ -901,16 +934,18 @@ void setRadioIcons(std::vector<iconPropertyBlinking> *iconList)
                 break;
             }
 
-            // Put the corrections source icon on the bottom, right of the IP address
+            // On 128x64: put the corrections source icon on the bottom, right of the IP address
             static bool correctionsIconPosCalculated = false;
-            const uint8_t correctionsIconXPos128x64 = 96;
-            static uint8_t correctionsIconYPos128x64 = 64;
+            const uint8_t correctionsIconXPos = 96;
+            static uint8_t correctionsIconYPos = 64;
+            // Calculate the highest (lowest!) Y position for the corrections icon
+            // Do it only once...
             if (!correctionsIconPosCalculated)
             {
                 for (int i = 0; i < CORR_NUM; i++)
                     if ((64 - (correctionIconAttributes[i].yOffset + correctionIconAttributes[i].height)) <
-                        correctionsIconYPos128x64)
-                        correctionsIconYPos128x64 =
+                        correctionsIconYPos)
+                        correctionsIconYPos =
                             64 - (correctionIconAttributes[i].yOffset + correctionIconAttributes[i].height);
                 correctionsIconPosCalculated = true;
             }
@@ -925,8 +960,8 @@ void setRadioIcons(std::vector<iconPropertyBlinking> *iconList)
                     prop.icon.bitmap = correctionIconAttributes[correctionSource].pointer;
                     prop.icon.width = correctionIconAttributes[correctionSource].width;
                     prop.icon.height = correctionIconAttributes[correctionSource].height;
-                    prop.icon.xPos = correctionsIconXPos128x64 + correctionIconAttributes[correctionSource].xOffset;
-                    prop.icon.yPos = correctionsIconYPos128x64 + correctionIconAttributes[correctionSource].yOffset;
+                    prop.icon.xPos = correctionsIconXPos + correctionIconAttributes[correctionSource].xOffset;
+                    prop.icon.yPos = correctionsIconYPos + correctionIconAttributes[correctionSource].yOffset;
                     iconList->push_back(prop);
                 }
             }
@@ -1589,36 +1624,11 @@ void displayHorizontalAccuracy(std::vector<iconPropertyBlinking> *iconList, cons
 
 void displayRTKAccuracy(std::vector<iconPropertyBlinking> *iconList, const iconProperties *icon, bool fixed)
 {
-    CORRECTION_ID_T correctionSource = correctionGetSource();
-
     iconPropertyBlinking prop;
 
-    if ((present.display_type == DISPLAY_128x64) || (correctionSource == CORR_NUM))
-    {
-        prop.icon = icon->iconDisplay[present.display_type];
-        prop.duty = fixed ? 0b11111111 : 0b01010101;
-        iconList->push_back(prop);
-    }
-    else
-    {
-        // Display the icon (dual crosshair) for 6/8 intervals
-        prop.icon = icon->iconDisplay[present.display_type];
-        prop.duty = fixed ? 0b00111111 : 0b00010101;
-        iconList->push_back(prop);
-
-        // Display the correction source icon for 2/8 intervals
-        prop.icon.bitmap = correctionIconAttributes[correctionSource].pointer;
-        prop.icon.width = correctionIconAttributes[correctionSource].width;
-        prop.icon.height = correctionIconAttributes[correctionSource].height;
-        prop.icon.xPos += correctionIconAttributes[correctionSource].xOffset;
-        prop.icon.yPos += correctionIconAttributes[correctionSource].yOffset;
-        prop.duty = fixed ? 0b11000000 : 0b01000000;
-        iconList->push_back(prop);
-
-        // Restore the position for textCoords
-        prop.icon.xPos -= correctionIconAttributes[correctionSource].xOffset;
-        prop.icon.yPos -= correctionIconAttributes[correctionSource].yOffset;
-    }
+    prop.icon = icon->iconDisplay[present.display_type];
+    prop.duty = fixed ? 0b11111111 : 0b01010101;
+    iconList->push_back(prop);
 
     displayCoords textCoords;
     textCoords.x = prop.icon.xPos + 16;
@@ -1704,14 +1714,18 @@ void paintSIVText(displayCoords textCoords)
     oled->setCursor(textCoords.x, textCoords.y); // x, y
     oled->print(":");
 
+    uint8_t siv = gnss->getSatellitesInView();
+    if (siv > 99)
+        siv = 99; // Limit SIV to two digits
+
     if (online.gnss)
     {
         if (inBaseMode() == true)
-            oled->print(gnss->getSatellitesInView());
+            oled->print(siv);
         else if (gnss->isFixed() == false)
             oled->print("0");
         else
-            oled->print(gnss->getSatellitesInView());
+            oled->print(siv);
 
         paintResets();
     } // End gnss online
