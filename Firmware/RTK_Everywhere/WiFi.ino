@@ -744,6 +744,18 @@ RTK_WIFI::RTK_WIFI(bool verbose)
 }
 
 //*********************************************************************
+// Clear some of the started components
+// Inputs:
+//   components: Bitmask of components to clear
+// Outputs:
+//   Returns the bitmask of started components
+WIFI_ACTION_t RTK_WIFI::clearStarted(WIFI_ACTION_t components)
+{
+    _started = _started & ~components;
+    return _started;
+}
+
+//*********************************************************************
 // Attempts a connection to all provided SSIDs
 bool RTK_WIFI::connect(unsigned long timeout,
                        bool startAP)

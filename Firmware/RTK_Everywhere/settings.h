@@ -2109,6 +2109,13 @@ class RTK_WIFI
     //   verbose: Set to true to display additional WiFi debug data
     RTK_WIFI(bool verbose = false);
 
+    // Clear some of the started components
+    // Inputs:
+    //   components: Bitmask of components to clear
+    // Outputs:
+    //   Returns the bitmask of started components
+    WIFI_ACTION_t clearStarted(WIFI_ACTION_t components);
+
     // Attempts a connection to all provided SSIDs
     // Inputs:
     //    timeout: Number of milliseconds to wait for the connection
