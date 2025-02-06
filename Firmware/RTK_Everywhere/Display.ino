@@ -1712,11 +1712,15 @@ void paintSIVText(displayCoords textCoords)
 {
     oled->setFont(QW_FONT_8X16);                 // Set font to type 1: 8x16
     oled->setCursor(textCoords.x, textCoords.y); // x, y
-    oled->print(":");
 
     uint8_t siv = gnss->getSatellitesInView();
     if (siv > 99)
+    {
+        oled->print(">");
         siv = 99; // Limit SIV to two digits
+    }
+    else
+        oled->print(":");
 
     if (online.gnss)
     {
