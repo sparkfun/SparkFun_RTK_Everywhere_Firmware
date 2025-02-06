@@ -739,6 +739,7 @@ RTK_WIFI::RTK_WIFI(bool verbose)
       _started{false}, _stationChannel{0},
       _timer{0}, _usingDefaultChannel{true}, _verbose{verbose}
 {
+    wifiRestartRequested = false;
 }
 
 //*********************************************************************
