@@ -2214,9 +2214,6 @@ class RTK_WIFI
     //   Returns true when the WiFi station is online and ready for use
     bool stationOnline();
 
-    // Handle WiFi station reconnection requests
-    void stationReconnectionRequest();
-
     // Get the station status
     // Outputs:
     //  Returns true if the WiFi station is being started or is online

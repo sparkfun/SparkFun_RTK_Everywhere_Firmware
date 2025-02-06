@@ -211,6 +211,7 @@ void wifiResetThrottleTimeout()                 {}
 void wifiResetTimeout()                         {}
 #define WIFI_SOFT_AP_RUNNING()                  false
 bool wifiStart()                                {return false;}
+void wifiStationReconnectionRequest()           {}
 #define WIFI_STATION_RUNNING()                  false
 #define WIFI_STOP()                             {}
 bool wifiUnavailable()                          {return true;}

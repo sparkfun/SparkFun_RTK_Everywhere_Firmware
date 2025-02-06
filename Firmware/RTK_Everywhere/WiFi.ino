@@ -678,6 +678,30 @@ void wifiStartThrottled(NetIndex_t index, uintptr_t parameter, bool debug)
 }
 
 //*********************************************************************
+// Handle WiFi station reconnection requests
+void wifiStationReconnectionRequest()
+{
+    uint32_t currentMsec;
+
+    // Has the reconnection delay expired
+    currentMsec = millis();
+    if ((currentMsec - wifiReconnectionTimer) >= WIFI_RECONNECTION_DELAY)
+    {
+        // Stop the reconnection timer
+        wifiReconnectionTimer = 0;
+        if (settings.debugWifiState)
+            systemPrintf("Reconnection timer fired!\r\n");
+
+        // Start the WiFi scan
+        if (wifi.stationRunning())
+        {
+            wifi.clearStarted(WIFI_STA_RECONNECT);
+            wifi.stopStart(WIFI_AP_START_MDNS, WIFI_STA_RECONNECT);
+        }
+    }
+}
+
+//*********************************************************************
 // Stop WiFi, used by wifiStopSequence
 void wifiStop(NetIndex_t index, uintptr_t parameter, bool debug)
 {
@@ -1692,32 +1716,6 @@ bool RTK_WIFI::stationHostName(const char * hostName)
 bool RTK_WIFI::stationOnline()
 {
     return (_started & WIFI_STA_ONLINE) ? true : false;
-}
-
-//*********************************************************************
-// Handle WiFi station reconnection requests
-void RTK_WIFI::stationReconnectionRequest()
-{
-    uint32_t currentMsec;
-
-    // Check for reconnection request
-    currentMsec = millis();
-    if (wifiReconnectionTimer)
-    {
-        if ((currentMsec - wifiReconnectionTimer) >= WIFI_RECONNECTION_DELAY)
-        {
-            wifiReconnectionTimer = 0;
-            if (settings.debugWifiState)
-                systemPrintf("Reconnection timer fired!\r\n");
-
-            // Start the WiFi scan
-            if (stationRunning())
-            {
-                _started = _started & ~WIFI_STA_RECONNECT;
-                stopStart(WIFI_AP_START_MDNS, WIFI_STA_RECONNECT);
-            }
-        }
-    }
 }
 
 //*********************************************************************

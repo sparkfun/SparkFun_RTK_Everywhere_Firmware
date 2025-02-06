@@ -1390,6 +1390,10 @@ void networkUpdate()
             networkStop(index, settings.debugNetworkLayer);
         }
 
+        // Check for the WiFi station reconnection
+        if ((index == NETWORK_WIFI) && wifiReconnectionTimer)
+            wifiStationReconnectionRequest();
+
         // Handle the network has internet event
         if (networkEventInternetAvailable[index])
         {
