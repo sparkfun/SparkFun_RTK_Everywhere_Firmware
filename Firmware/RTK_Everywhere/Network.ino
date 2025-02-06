@@ -524,7 +524,7 @@ IPAddress networkGetIpAddress()
     IPAddress ip;
 
     // NETIF doesn't capture the IP address of a soft AP
-    if (WIFI_SOFT_AP_RUNNING() == true && WIFI_STATION_RUNNING() == false)
+    if (WIFI_SOFT_AP_RUNNING() == true && wifiStationRunning == false)
         return WiFi.softAPIP();
 
     // Get the networkInterfaceTable index

@@ -686,7 +686,7 @@ void wifiStationReconnectionRequest()
         wifiReconnectionTimer = currentMsec;
 
         // Start the WiFi scan
-        if (wifi.stationRunning())
+        if (wifiStationRunning)
         {
             if (settings.debugWifiState)
                 systemPrintf("WiFi: Attempting WiFi restart\r\n");
@@ -768,6 +768,7 @@ RTK_WIFI::RTK_WIFI(bool verbose)
 {
     wifiReconnectionTimer = 0;
     wifiRestartRequested = false;
+    wifiStationRunning = false;
 }
 
 //*********************************************************************
@@ -793,13 +794,13 @@ bool RTK_WIFI::connect(unsigned long timeout,
     log_w("WiFi: Not using timeout parameter for connect!\r\n");
 
     // Enable WiFi station if necessary
-    if (_stationRunning == false)
+    if (wifiStationRunning == false)
     {
         displayWiFiConnect();
         started = enable(_espNowRunning, _softApRunning, true);
     }
     else if (startAP && !_softApRunning)
-        started = enable(_espNowRunning, true, _stationRunning);
+        started = enable(_espNowRunning, true, wifiStationRunning);
 
     // Determine the WiFi station status
     if (started)
@@ -914,14 +915,14 @@ bool RTK_WIFI::enable(bool enableESPNow, bool enableSoftAP, bool enableStation)
         {
             // Start the WiFi station
             starting |= WIFI_START_STATION;
-            _stationRunning = true;
+            wifiStationRunning = true;
         }
     }
     else
     {
         // Stop the WiFi station
         stopping |= WIFI_START_STATION;
-        _stationRunning = false;
+        wifiStationRunning = false;
     }
 
     // Stop and start the WiFi components
@@ -1058,7 +1059,7 @@ bool RTK_WIFI::restart(bool always)
 // Determine if any use of WiFi is starting or is online
 bool RTK_WIFI::running()
 {
-    return _espNowRunning | _softApRunning | _stationRunning;
+    return _espNowRunning | _softApRunning | wifiStationRunning;
 }
 
 //*********************************************************************
@@ -1254,9 +1255,9 @@ bool RTK_WIFI::softApConfiguration(IPAddress ipAddress,
     success = true;
     if (softApOnline())
     {
-        success = enable(false, false, stationRunning());
+        success = enable(false, false, wifiStationRunning);
         if (success)
-            success = enable(false, true, stationRunning());
+            success = enable(false, true, wifiStationRunning);
     }
     return success;
 }
@@ -1465,7 +1466,7 @@ bool RTK_WIFI::softApSetSsidPassword(const char * ssid, const char * password)
 //    otherwise
 bool RTK_WIFI::startAp(bool forceAP)
 {
-    return enable(_espNowRunning, forceAP | settings.wifiConfigOverAP, _stationRunning);
+    return enable(_espNowRunning, forceAP | settings.wifiConfigOverAP, wifiStationRunning);
 }
 
 //*********************************************************************
@@ -1754,13 +1755,6 @@ int16_t RTK_WIFI::stationScanForAPs(WIFI_CHANNEL_t channel)
             systemPrintf("WiFi scan complete, found %d remote APs\r\n", _apCount);
     } while (0);
     return apCount;
-}
-
-//*********************************************************************
-// Get the station status
-bool RTK_WIFI::stationRunning()
-{
-    return _stationRunning;
 }
 
 //*********************************************************************

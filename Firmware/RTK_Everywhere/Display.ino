@@ -654,7 +654,7 @@ void setRadioIcons(std::vector<iconPropertyBlinking> *iconList)
 
             // Count the number of radios in use
             uint8_t numberOfRadios = 1; // Bluetooth always indicated. TODO don't count if BT radio type is OFF.
-            if (WIFI_STATION_RUNNING() || WIFI_SOFT_AP_RUNNING())
+            if (wifiStationRunning || WIFI_SOFT_AP_RUNNING())
                 numberOfRadios++;
             if (WIFI_ESPNOW_RUNNING())
                 numberOfRadios++;
@@ -671,7 +671,7 @@ void setRadioIcons(std::vector<iconPropertyBlinking> *iconList)
                 setBluetoothIcon_TwoRadios(iconList);
 
                 // Do we have WiFi or ESP
-                if (WIFI_STATION_RUNNING() || WIFI_SOFT_AP_RUNNING())
+                if (wifiStationRunning || WIFI_SOFT_AP_RUNNING())
                     setWiFiIcon_TwoRadios(iconList);
                 else if (WIFI_ESPNOW_RUNNING())
                     setESPNowIcon_TwoRadios(iconList);
@@ -706,7 +706,7 @@ void setRadioIcons(std::vector<iconPropertyBlinking> *iconList)
                 iconList->push_back(prop);
             }
 
-            if (WIFI_STATION_RUNNING() || WIFI_SOFT_AP_RUNNING()) // WiFi : Columns 34 - 46
+            if (wifiStationRunning || WIFI_SOFT_AP_RUNNING()) // WiFi : Columns 34 - 46
             {
 #ifdef COMPILE_WIFI
                 int wifiRSSI = WiFi.RSSI();
