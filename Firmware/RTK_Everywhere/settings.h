@@ -2086,14 +2086,6 @@ class RTK_WIFI
     //   Returns the channel number of the AP
     WIFI_CHANNEL_t stationSelectAP(uint8_t apCount, bool list);
 
-    // Stop and start WiFi components
-    // Inputs:
-    //   stopping: WiFi components that need to be stopped
-    //   starting: WiFi components that neet to be started
-    // Outputs:
-    //   Returns true if the modes were successfully configured
-    bool stopStart(WIFI_ACTION_t stopping, WIFI_ACTION_t starting);
-
     // Handle the WiFi event
     // Inputs:
     //   event: Arduino ESP32 event number found on
@@ -2229,6 +2221,14 @@ class RTK_WIFI
     // Outputs:
     //  Returns true if the WiFi station is being started or is online
     bool stationRunning();
+
+    // Stop and start WiFi components
+    // Inputs:
+    //   stopping: WiFi components that need to be stopped
+    //   starting: WiFi components that neet to be started
+    // Outputs:
+    //   Returns true if the modes were successfully configured
+    bool stopStart(WIFI_ACTION_t stopping, WIFI_ACTION_t starting);
 
     // Test the WiFi modes
     // Inputs:
