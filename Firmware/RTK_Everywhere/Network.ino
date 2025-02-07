@@ -785,7 +785,6 @@ void networkInterfaceInternetConnectionLost(NetIndex_t index)
             if (networkInterfaceHasInternet(index))
             {
                 // Successfully found an online network
-                networkMulticastDNSStart(index);
                 break;
             }
 
@@ -800,7 +799,13 @@ void networkInterfaceInternetConnectionLost(NetIndex_t index)
         // Set the new network priority
         networkPriority = priority;
         if (priority < NETWORK_OFFLINE)
+        {
             Network.setDefaultInterface(*networkInterfaceTable[index].netif);
+
+            // Start mDNS if this interface is connected to the internet
+            if (networkInterfaceHasInternet(index))
+                networkMulticastDNSStart(index);
+        }
 
         // Display the transition
         if (settings.debugNetworkLayer)

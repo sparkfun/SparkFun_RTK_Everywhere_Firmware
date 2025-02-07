@@ -297,26 +297,24 @@ const int arduinoEventNameEntries = sizeof(arduinoEventName) / sizeof(arduinoEve
 #define WIFI_AP_SET_SSID_PASSWORD       0x00000800
 #define WIFI_AP_SET_IP_ADDR             0x00001000
 #define WIFI_AP_SET_HOST_NAME           0x00002000
-#define WIFI_AP_START_MDNS              0x00004000
-#define WIFI_AP_START_DNS_SERVER        0x00008000
-#define WIFI_AP_ONLINE                  0x00010000
+#define WIFI_AP_START_DNS_SERVER        0x00004000
+#define WIFI_AP_ONLINE                  0x00008000
 
 // WiFi station
-#define WIFI_STA_SET_HOST_NAME          0x00020000
-#define WIFI_STA_DISABLE_AUTO_RECONNECT 0x00040000
-#define WIFI_STA_CONNECT_TO_REMOTE_AP   0x00080000
-#define WIFI_STA_START_MDNS             0x00100000
-#define WIFI_STA_ONLINE                 0x00200000
+#define WIFI_STA_SET_HOST_NAME          0x00010000
+#define WIFI_STA_DISABLE_AUTO_RECONNECT 0x00020000
+#define WIFI_STA_CONNECT_TO_REMOTE_AP   0x00040000
+#define WIFI_STA_ONLINE                 0x00080000
 
 // ESP-NOW
-#define WIFI_EN_SET_CHANNEL             0x00400000
-#define WIFI_EN_SET_PROMISCUOUS_MODE    0x00800000
-#define WIFI_EN_PROMISCUOUS_RX_CALLBACK 0x01000000
-#define WIFI_EN_START_ESP_NOW           0x02000000
-#define WIFI_EN_ESP_NOW_ONLINE          0x04000000
+#define WIFI_EN_SET_CHANNEL             0x00100000
+#define WIFI_EN_SET_PROMISCUOUS_MODE    0x00200000
+#define WIFI_EN_PROMISCUOUS_RX_CALLBACK 0x00400000
+#define WIFI_EN_START_ESP_NOW           0x00800000
+#define WIFI_EN_ESP_NOW_ONLINE          0x01000000
 
 // WIFI_MAX_START must be the last value in the define list
-#define WIFI_MAX_START                  0x08000000
+#define WIFI_MAX_START                  0x02000000
 
 const char * const wifiStartNames[] =
 {
@@ -335,13 +333,11 @@ const char * const wifiStartNames[] =
     "WIFI_AP_SET_SSID_PASSWORD",
     "WIFI_AP_SET_IP_ADDR",
     "WIFI_AP_SET_HOST_NAME",
-    "WIFI_AP_START_MDNS",
     "WIFI_AP_ONLINE",
 
     "WIFI_STA_SET_HOST_NAME",
     "WIFI_STA_DISABLE_AUTO_RECONNECT",
     "WIFI_STA_CONNECT_TO_REMOTE_AP",
-    "WIFI_STA_START_MDNS",
     "WIFI_STA_ONLINE",
 
     "WIFI_EN_SET_CHANNEL",
@@ -367,7 +363,6 @@ const int wifiStartNamesEntries = sizeof(wifiStartNames) / sizeof(wifiStartNames
                                      | WIFI_AP_SET_SSID_PASSWORD    \
                                      | WIFI_AP_SET_IP_ADDR          \
                                      | WIFI_AP_SET_HOST_NAME        \
-                                     | WIFI_AP_START_MDNS           \
                                      | WIFI_AP_START_DNS_SERVER     \
                                      | WIFI_AP_ONLINE)
 
@@ -379,7 +374,6 @@ const int wifiStartNamesEntries = sizeof(wifiStartNames) / sizeof(wifiStartNames
                                      | WIFI_STA_SET_HOST_NAME           \
                                      | WIFI_STA_DISABLE_AUTO_RECONNECT  \
                                      | WIFI_STA_CONNECT_TO_REMOTE_AP    \
-                                     | WIFI_STA_START_MDNS              \
                                      | WIFI_STA_ONLINE)
 
 #define WIFI_STA_RECONNECT          (WIFI_STA_START_SCAN                \
@@ -388,7 +382,6 @@ const int wifiStartNamesEntries = sizeof(wifiStartNames) / sizeof(wifiStartNames
                                      | WIFI_STA_SET_HOST_NAME           \
                                      | WIFI_STA_DISABLE_AUTO_RECONNECT  \
                                      | WIFI_STA_CONNECT_TO_REMOTE_AP    \
-                                     | WIFI_STA_START_MDNS              \
                                      | WIFI_STA_ONLINE)
 
 #define WIFI_SELECT_CHANNEL         (WIFI_AP_SELECT_CHANNEL     \
@@ -399,7 +392,6 @@ const int wifiStartNamesEntries = sizeof(wifiStartNames) / sizeof(wifiStartNames
                                      | WIFI_STA_SET_HOST_NAME           \
                                      | WIFI_STA_DISABLE_AUTO_RECONNECT  \
                                      | WIFI_STA_CONNECT_TO_REMOTE_AP    \
-                                     | WIFI_STA_START_MDNS              \
                                      | WIFI_STA_ONLINE)
 
 #define WIFI_STA_FAILED_SCAN        (WIFI_STA_START_SCAN          \
@@ -699,7 +691,7 @@ void wifiStationReconnectionRequest()
             if (settings.debugWifiState)
                 systemPrintf("WiFi: Attempting WiFi restart\r\n");
             wifi.clearStarted(WIFI_STA_RECONNECT);
-            if (wifi.stopStart(WIFI_AP_START_MDNS, WIFI_STA_RECONNECT))
+            if (wifi.stopStart(0, WIFI_STA_RECONNECT))
             {
                 // Stop the reconnection timer
                 wifiReconnectionTimer = 0;
@@ -1636,16 +1628,6 @@ void RTK_WIFI::stationEventHandler(arduino_event_id_t event, arduino_event_info_
             systemPrintf("WiFi station lost IPv%c address %s\r\n",
                          _staIpType, _staIpAddress.toString().c_str());
         _staHasIp = false;
-
-        // Stop mDNS if necessary
-        if (_started & WIFI_STA_START_MDNS)
-        {
-            if (settings.debugWifiState && _verbose)
-                systemPrintf("Calling networkMulticastDNSStop for WiFi station from %s event\r\n",
-                             arduinoEventName[event]);
-            _started = _started & ~WIFI_STA_START_MDNS;
-            networkMulticastDNSStop(NETWORK_WIFI);
-        }
         _staIpAddress = IPAddress((uint32_t)0);
         _staIpType = 0;
         break;
@@ -1973,34 +1955,6 @@ bool RTK_WIFI::stopStart(WIFI_ACTION_t stopping, WIFI_ACTION_t starting)
     }
 
     //****************************************
-    // Determine the use of mDNS
-    //****************************************
-
-    // It is much more difficult to determine the DHCP address of the RTK
-    // versus the hard coded IP address of the server.  As such give
-    // priority to the WiFi station for mDNS use.  When the station is
-    // not running or being started, let mDNS start for the soft AP.
-
-    // Determine if mDNS is being used for WiFi station
-    if (strlen(&settings.mdnsHostName[0]))
-    {
-        if (starting & WIFI_STA_START_MDNS)
-        {
-            // Don't start mDNS for soft AP
-            starting &= ~WIFI_AP_START_MDNS;
-
-            // Stop it if it is being used for soft AP
-            if (_started & WIFI_AP_START_MDNS)
-                stopping |= WIFI_AP_START_MDNS;
-        }
-    }
-
-    // Don't set host name or start mDNS if the host name is not specified
-    else
-        starting &= ~(WIFI_AP_SET_HOST_NAME | WIFI_AP_START_MDNS
-                      | WIFI_STA_SET_HOST_NAME | WIFI_STA_START_MDNS);
-
-    //****************************************
     // Determine if DNS needs to start
     //****************************************
 
@@ -2060,22 +2014,6 @@ bool RTK_WIFI::stopStart(WIFI_ACTION_t stopping, WIFI_ACTION_t starting)
                          (stopSoftAP && stopStation) ? ", " : "",
                          stopStation ? "Station" : "",
                          stop ? ")" : "");
-    }
-
-    //****************************************
-    // Return the use of mDNS to soft AP when WiFi STA stops
-    //****************************************
-
-    // Determine if WiFi STA is stopping
-    if (stopping & WIFI_STA_START_MDNS)
-    {
-        // Determine if mDNS should continue to run on soft AP
-        if ((_started & WIFI_AP_ONLINE) && !(stopping & WIFI_AP_ONLINE))
-        {
-            // Restart mDNS for soft AP
-            _started = _started & ~WIFI_AP_START_MDNS;
-            starting |= WIFI_AP_START_MDNS;
-        }
     }
 
     // Stop the components
@@ -2175,18 +2113,6 @@ bool RTK_WIFI::stopStart(WIFI_ACTION_t stopping, WIFI_ACTION_t starting)
         // Stop the reconnection timer
         wifiReconnectionTimer = 0;
 
-        // Stop mDNS on WiFi station
-        if (stopping & WIFI_STA_START_MDNS)
-        {
-            if (_started & WIFI_STA_START_MDNS)
-            {
-                _started = _started & ~WIFI_STA_START_MDNS;
-                if (settings.debugWifiState && _verbose)
-                    systemPrintf("Calling networkMulticastDNSStop for WiFi station\r\n");
-                networkMulticastDNSStop(NETWORK_WIFI);
-            }
-        }
-
         // Disconnect from the remote AP
         if (stopping & WIFI_STA_CONNECT_TO_REMOTE_AP)
         {
@@ -2256,15 +2182,6 @@ bool RTK_WIFI::stopStart(WIFI_ACTION_t stopping, WIFI_ACTION_t starting)
                 systemPrintf("Calling dnsServer.stop for soft AP\r\n");
             dnsServer.stop();
             _started = _started & ~WIFI_AP_START_DNS_SERVER;
-        }
-
-        // Stop mDNS
-        if (stopping & WIFI_AP_START_MDNS)
-        {
-            _started = _started & ~WIFI_AP_START_MDNS;
-            if (settings.debugWifiState && _verbose)
-                systemPrintf("Calling networkMulticastDNSStop for soft AP\r\n");
-            networkMulticastDNSStop(NETWORK_WIFI);
         }
 
         // Handle the soft AP host name
@@ -2370,8 +2287,6 @@ bool RTK_WIFI::stopStart(WIFI_ACTION_t stopping, WIFI_ACTION_t starting)
             if (wifi.stationScanForAPs(channel) < 0)
             {
                 starting &= ~WIFI_STA_FAILED_SCAN;
-                starting |= ((_started | starting) & WIFI_AP_ONLINE) ? WIFI_AP_START_MDNS : 0;
-                stopping &= ~WIFI_AP_START_MDNS;
                 notStarted |= WIFI_STA_FAILED_SCAN;
             }
         }
@@ -2390,8 +2305,6 @@ bool RTK_WIFI::stopStart(WIFI_ACTION_t stopping, WIFI_ACTION_t starting)
 
                 // Stop bringing up WiFi station
                 starting &= ~WIFI_STA_NO_REMOTE_AP;
-                starting |= ((_started | starting) & WIFI_AP_ONLINE) ? WIFI_AP_START_MDNS : 0;
-                stopping &= ~WIFI_AP_START_MDNS;
                 notStarted |= WIFI_STA_FAILED_SCAN;
             }
         }
@@ -2459,25 +2372,6 @@ bool RTK_WIFI::stopStart(WIFI_ACTION_t stopping, WIFI_ACTION_t starting)
             _started = _started | WIFI_AP_SET_HOST_NAME;
         }
 
-        // Start mDNS for the AP network
-        if (starting & WIFI_AP_START_MDNS)
-        {
-            if (settings.debugWifiState)
-                systemPrintf("Starting mDNS on soft AP\r\n");
-            if (!networkMulticastDNSStart(NETWORK_WIFI))
-            {
-                systemPrintf("ERROR: Failed to start mDNS for soft AP!\r\n");
-                break;
-            }
-            if (settings.debugWifiState)
-            {
-                systemPrintf("mDNS started on soft AP as %s.local (%s)\r\n",
-                             &settings.mdnsHostName[0],
-                             _apIpAddress.toString().c_str());
-            }
-            _started = _started | WIFI_AP_START_MDNS;
-        }
-
         // Start the DNS server
         if (starting & WIFI_AP_START_DNS_SERVER)
         {
@@ -2499,13 +2393,9 @@ bool RTK_WIFI::stopStart(WIFI_ACTION_t stopping, WIFI_ACTION_t starting)
             _started = _started | WIFI_AP_ONLINE;
 
             // Display the soft AP status
-            String mdnsName("");
-            if (_started & WIFI_AP_START_MDNS)
-                mdnsName = String(", local.") + String(&settings.mdnsHostName[0]);
-            systemPrintf("WiFi: Soft AP online, SSID: %s (%s%s), Password: %s\r\n",
+            systemPrintf("WiFi: Soft AP online, SSID: %s (%s), Password: %s\r\n",
                          wifiSoftApSsid,
                          _apIpAddress.toString().c_str(),
-                         mdnsName.c_str(),
                          wifiSoftApPassword);
         }
 
@@ -2574,33 +2464,12 @@ bool RTK_WIFI::stopStart(WIFI_ACTION_t stopping, WIFI_ACTION_t starting)
             _staIpType = (_staIpAddress.type() == IPv4) ? '4' : '6';
         }
 
-        // Start mDNS for the WiFi station
-        if (starting & WIFI_STA_START_MDNS)
-        {
-            if (settings.debugWifiState)
-                systemPrintf("Starting mDNS on WiFi station\r\n");
-            if (!networkMulticastDNSStart(NETWORK_WIFI))
-                systemPrintf("ERROR: Failed to start mDNS for WiFi station!\r\n");
-            else
-            {
-                if (settings.debugWifiState)
-                    systemPrintf("mDNS started on WiFi station as %s.local (%s)\r\n",
-                                 &settings.mdnsHostName[0],
-                                 _staIpAddress.toString().c_str());
-                _started = _started | WIFI_STA_START_MDNS;
-            }
-        }
-
         // Mark the station online
         if (starting & WIFI_STA_ONLINE)
         {
             _started = _started | WIFI_STA_ONLINE;
-            String mdnsName("");
-            if (_started & WIFI_STA_START_MDNS)
-                mdnsName = String(", local.") + String(&settings.mdnsHostName[0]);
-            systemPrintf("WiFi: Station online (%s: %s%s)\r\n",
-                         _staRemoteApSsid, _staIpAddress.toString().c_str(),
-                         mdnsName.c_str());
+            systemPrintf("WiFi: Station online (%s: %s)\r\n",
+                         _staRemoteApSsid, _staIpAddress.toString().c_str());
         }
 
         //****************************************
