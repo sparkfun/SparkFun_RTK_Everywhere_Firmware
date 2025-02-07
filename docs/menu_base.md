@@ -22,20 +22,45 @@ There are two types of bases: *Surveyed* and *Fixed*. A surveyed base is often a
 
 Please see the following tutorials for more information:
 
-<table class="table table-hover table-striped table-bordered">
-	<tr align="center">
-	<td><a href="https://learn.sparkfun.com/tutorials/what-is-gps-rtk"><img src="https://cdn.sparkfun.com/c/178-100/assets/learn_tutorials/8/1/3/Location-Wandering-GPS-combined.jpg"></a></td>
-	<td><a href="https://learn.sparkfun.com/tutorials/getting-started-with-u-center-for-u-blox"><img src="https://cdn.sparkfun.com/c/178-100/assets/learn_tutorials/8/1/5/u-center.jpg"></a></td>
-	<td><a href="https://learn.sparkfun.com/tutorials/setting-up-a-rover-base-rtk-system"><img src="https://cdn.sparkfun.com/c/178-100/assets/learn_tutorials/1/3/6/2/GNSS_RTK_DIY_Surveying_Tutorial.jpg"></a></td>
-	<td><a href="https://learn.sparkfun.com/tutorials/how-to-build-a-diy-gnss-reference-station"><img src="https://cdn.sparkfun.com/c/178-100/assets/learn_tutorials/1/3/6/3/Roof_Enclosure.jpg"></a></td>
-	</tr>
-	<tr align="center">
-	<td><a href="https://learn.sparkfun.com/tutorials/what-is-gps-rtk">What is GPS RTK?</a></td>
-	<td><a href="https://learn.sparkfun.com/tutorials/getting-started-with-u-center-for-u-blox">Getting Started with u-center for u-blox</a></td>
-	<td><a href="https://learn.sparkfun.com/tutorials/setting-up-a-rover-base-rtk-system">Setting up a Rover Base RTK System</a></td>
-	<td><a href="https://learn.sparkfun.com/tutorials/how-to-build-a-diy-gnss-reference-station">How to build a DIY GNSS reference station</a></td>
-	</tr>
-</table>
+<div class="grid cards" style="grid-template-columns: repeat(auto-fit,minmax(8rem,1fr));" align="center" markdown>
+
+-   <a href="https://learn.sparkfun.com/tutorials/813">
+	<figure markdown>
+	![Tutorial Thumbnail](https://cdn.sparkfun.com/c/178-100/assets/learn_tutorials/8/1/3/Location-Wandering-GPS-combined.jpg)
+	</figure>
+
+	---
+
+	**What is GPS RTK?**</a>
+
+-   <a href="https://learn.sparkfun.com/tutorials/815">
+	<figure markdown>
+	![Tutorial Thumbnail](https://cdn.sparkfun.com/c/264-148/assets/learn_tutorials/8/1/5/u-center.jpg)
+	</figure>
+
+	---
+
+	**Getting Started with u-center for u-blox**</a>
+
+-   <a href="https://learn.sparkfun.com/tutorials/1362">
+	<figure markdown>
+	![Tutorial Thumbnail](https://cdn.sparkfun.com/c/178-100/assets/learn_tutorials/1/3/6/2/GNSS_RTK_DIY_Surveying_Tutorial.jpg)
+	</figure>
+
+	---
+
+	**Setting up a Rover Base RTK System**</a>
+
+-   <a href="https://learn.sparkfun.com/tutorials/1363">
+	<figure markdown>
+	![Tutorial Thumbnail](https://cdn.sparkfun.com/c/178-100/assets/learn_tutorials/1/3/6/3/Roof_Enclosure.jpg)
+	</figure>
+
+	---
+
+	**How to Build a DIY GNSS Reference Station**</a>
+
+</div>
 
 ## Mode
 

@@ -20,34 +20,79 @@ The RTK product line is fully open-source hardware. This allows users to view sc
 
 Repair Parts:
 
-<table class="table table-hover table-striped table-bordered">
-	<tr align="center">
-	<td><a href="https://www.sparkfun.com/products/24675"><img src="https://cdn.sparkfun.com//assets/parts/2/5/0/0/0/SPX-24675_RTK_Facet_L-Band_Main_v14_-_1.jpg"></a></td>
-	<td><a href="https://www.sparkfun.com/products/24064"><img src="https://cdn.sparkfun.com//assets/parts/2/4/3/8/7/SPX-24064_RTK_Facet_Main_v13_-_1.jpg"></a></td>
-	<td><a href="https://www.sparkfun.com/products/24673"><img src="https://cdn.sparkfun.com//assets/parts/2/4/9/9/8/SPX-24673_RTK_Facet_Housing.jpg"></a></td>
-	</tr>
-	<tr align="center">
-	<td><a href="https://www.sparkfun.com/products/24675">SparkFun RTK Replacement Parts - Facet L-Band Main Board v14 (SPX-24675)</a></td>
-	<td><a href="https://www.sparkfun.com/products/24064">SparkFun RTK Replacement Parts - Facet Main Board v13 (SPX-24064)</a></td>
-	<td><a href="https://www.sparkfun.com/products/24673">SparkFun RTK Replacement Parts - Facet Housing (SPX-24673)</a></td>
-	</tr>
-	<tr align="center">
-	<td><a href="https://www.sparkfun.com/products/24674"><img src="https://cdn.sparkfun.com//assets/parts/2/4/9/9/9/SPX-24674_RTK_Facet_L-Band_Housing.jpg"></a></td>
-	<td><a href="https://www.sparkfun.com/products/24707"><img src="https://cdn.sparkfun.com//assets/parts/1/7/6/9/8/SPX-24707_RTK_Facet_Rubber_Sock.jpg"></a></td>
-	<td><a href="https://www.sparkfun.com/products/24706"><img src="https://cdn.sparkfun.com//assets/parts/2/5/0/3/0/SPX-24706_RTK_Facet_Connector_Board_-_1.jpg"></a></td>
-	</tr>
-	<tr align="center">
-	<td><a href="https://www.sparkfun.com/products/24674">SparkFun RTK Replacement Parts - Facet L-Band Housing (SPX-24674)</a></td>
-	<td><a href="https://www.sparkfun.com/products/24707">SparkFun RTK Replacement Parts - Facet Rubber Sock (SPX-24707)</a></td>
-	<td><a href="https://www.sparkfun.com/products/24706">SparkFun RTK Replacement Parts - Facet Connector Assembly v12 (SPX-24706)</a></td>
-	</tr>
-	<tr align="center">
-	<td><a href="https://www.sparkfun.com/products/24705"><img src="https://cdn.sparkfun.com//assets/parts/2/5/0/2/9/SPX-24705_RTK_Facet_Display_Assembly_v12_-_1.jpg"></a></td>
-	</tr>
-	<tr align="center">
-	<td><a href="https://www.sparkfun.com/products/24705">SparkFun RTK Replacement Parts - Facet Display/Button (SPX-24705)</a></td>
-	</tr>
-</table>
+<div class="grid cards" markdown>
+
+-   <a href="https://www.sparkfun.com/products/24064">
+	<figure markdown>
+	![Product Thumbnail](https://cdn.sparkfun.com/assets/parts/2/4/3/8/7/SPX-24064_RTK_Facet_Main_v13_-_1.jpg)
+	</figure>
+
+	---
+
+	**SparkFun RTK Replacement Parts - Facet Main Board v13**<br>
+	SPX-24064</a>
+
+-   <a href="https://www.sparkfun.com/products/24673">
+	<figure markdown>
+	![Product Thumbnail](https://cdn.sparkfun.com/assets/parts/2/4/9/9/8/SPX-24673_RTK_Facet_Housing.jpg)
+	</figure>		
+
+	---
+
+	**SparkFun RTK Replacement Parts - Facet Housing**<br>
+	SPX-24673</a>
+
+-   <a href="https://www.sparkfun.com/products/24674">
+	<figure markdown>
+	![Product Thumbnail](https://cdn.sparkfun.com/assets/parts/2/4/9/9/9/SPX-24674_RTK_Facet_L-Band_Housing.jpg)
+	</figure>
+
+	---
+
+	**SparkFun RTK Replacement Parts - Facet L-Band Housing**<br>
+	SPX-24674</a>
+
+-   <a href="https://www.sparkfun.com/products/24675">
+	<figure markdown>
+	![Product Thumbnail](https://cdn.sparkfun.com/assets/parts/2/5/0/0/0/SPX-24675_RTK_Facet_L-Band_Main_v14_-_1.jpg)
+	</figure>
+
+	---
+
+	**SparkFun RTK Replacement Parts - Facet L-Band Main Board v14**<br>
+	SPX-24675</a>
+
+-   <a href="https://www.sparkfun.com/products/24705">
+	<figure markdown>
+	![Product Thumbnail](https://cdn.sparkfun.com/assets/parts/2/5/0/2/9/SPX-24705_RTK_Facet_Display_Assembly_v12_-_1.jpg)
+	</figure>		
+
+	---
+
+	**SparkFun RTK Replacement Parts - Facet Display/Button**<br>
+	SPX-24705</a>
+
+-   <a href="https://www.sparkfun.com/products/24706">
+	<figure markdown>
+	![Product Thumbnail](https://cdn.sparkfun.com/assets/parts/2/5/0/3/0/SPX-24706_RTK_Facet_Connector_Board_-_1.jpg)
+	</figure>		
+
+	---
+
+	**SparkFun RTK Replacement Parts - Facet Connector Assembly v12**<br>
+	SPX-24706</a>
+
+-   <a href="https://www.sparkfun.com/products/24707">
+	<figure markdown>
+	![Product Thumbnail](https://cdn.sparkfun.com/assets/parts/1/7/6/9/8/SPX-24707_RTK_Facet_Rubber_Sock.jpg)
+	</figure>		
+
+	---
+
+	**SparkFun RTK Replacement Parts - Facet Rubber Sock**<br>
+	SPX-24707</a>
+
+</div>
 
 Tools Needed:
 

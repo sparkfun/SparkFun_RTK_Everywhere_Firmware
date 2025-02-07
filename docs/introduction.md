@@ -4,20 +4,32 @@ The SparkFun RTK Everywhere products are exceptional GNSS receivers out-of-box a
 
 The line of RTK Everywhere products offered by SparkFun all run identical firmware. The [RTK Everywhere firmware](https://github.com/sparkfun/SparkFun_RTK_Everywhere_Firmware) and this guide cover the following products:
 
-<table class="table table-hover table-striped table-bordered">
-  <tr align="center">
-   <td><a href="https://www.sparkfun.com/products/25662"><img src="img/SparkFun_RTK_Torch.png"></a></td>
-   <td><a href="https://www.sparkfun.com/products/24342"><img src="img/SparkFun_RTK_EVK.png"></a></td>
-     </tr>
-  <tr align="center">
-    <td><a href="https://www.sparkfun.com/products/25662">SparkFun RTK Torch (GPS-25662)</a></td>
-    <td><a href="https://www.sparkfun.com/products/24342">SparkFun RTK EVK (GPS-24342)</a></td>
-  </tr>
-  <tr align="center">
-    <td><a href="https://docs.sparkfun.com/SparkFun_RTK_Torch/">Hookup Guide</a></td>
-    <td><a href="https://docs.sparkfun.com/SparkFun_RTK_EVK/">Hookup Guide</a></td>
-  </tr>
-</table>
+<div class="grid cards" markdown>
+
+-   <figure markdown>
+	[![Product Image](./img/SparkFun_RTK_Torch.png)](https://www.sparkfun.com/products/25662 "Go to Product Page")
+	<figcaption markdown>
+	[SparkFun RTK Torch (GPS-25662)](https://www.sparkfun.com/products/25662)
+	</figcaption>
+	</figure>
+
+	<center>
+	[Hookup Guide](https://docs.sparkfun.com/SparkFun_RTK_Torch/){ .md-button .md-button--primary }
+	</center>
+
+
+-   <figure markdown>
+	[![Product Image](./img/SparkFun_RTK_EVK.png)](https://www.sparkfun.com/products/24342 "Go to Product Page")
+	<figcaption markdown>
+	[SparkFun RTK EVK (GPS-24342)](https://www.sparkfun.com/products/24342)
+	</figcaption>
+	</figure>
+
+	<center>
+	[Hookup Guide](https://docs.sparkfun.com/SparkFun_RTK_EVK/){ .md-button .md-button--primary }
+	</center>
+
+</div>
 
 
 Depending on the hardware platform different features may or may not be supported. We will denote each product in each section so that you know what is supported.
