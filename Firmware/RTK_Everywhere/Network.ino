@@ -637,7 +637,7 @@ bool networkInterfaceHasInternet(NetIndex_t index)
     // Validate the index
     networkValidateIndex(index);
 
-    // Return the network interface state
+    // Determine if the interface has access to the internet
     return (networkHasInternet_bm & (1 << index)) ? true : false;
 }
 
@@ -654,12 +654,12 @@ void networkInterfaceInternetConnectionLost(NetIndex_t index)
     networkValidateIndex(index);
 
     // Check for network offline
-    bitMask = 1 << index;
-    if (!(networkHasInternet_bm & bitMask))
+    if (networkInterfaceHasInternet(index) == false)
         // Already offline, nothing to do
         return;
 
     // Mark this network as offline
+    bitMask = 1 << index;
     networkHasInternet_bm &= ~bitMask;
 
     // Disable mDNS if necessary
@@ -682,8 +682,7 @@ void networkInterfaceInternetConnectionLost(NetIndex_t index)
         {
             // Is the network online?
             index = networkIndexTable[priority];
-            bitMask = 1 << index;
-            if (networkHasInternet_bm & bitMask)
+            if (networkInterfaceHasInternet(index))
             {
                 // Successfully found an online network
                 networkMulticastDNSStart(index);
@@ -724,13 +723,13 @@ void networkInterfaceInternetConnectionAvailable(NetIndex_t index)
     networkValidateIndex(index);
 
     // Check for network online
-    bitMask = 1 << index;
     previousIndex = index;
-    if (networkHasInternet_bm & bitMask)
+    if (networkInterfaceHasInternet(index))
         // Already online, nothing to do
         return;
 
     // Mark this network as online
+    bitMask = 1 << index;
     networkHasInternet_bm |= bitMask;
 
     // Raise the network priority if necessary
@@ -790,8 +789,7 @@ bool networkIsConnected(NetPriority_t *clientPriority)
     // If the client is using the highest priority network and that
     // network is still available then continue as normal
     if (networkHasInternet_bm && (*clientPriority == networkPriority))
-        return (networkHasInternet_bm & (1 << networkIndexTable[networkPriority]))
-            ? true : false;
+        return networkInterfaceHasInternet(networkIndexTable[networkPriority]);
 
     // The network has changed, notify the client of the change
     *clientPriority = networkPriority;
@@ -923,7 +921,7 @@ void networkPrintStatus(uint8_t priority)
     bitMask = (1 << index);
     highestPriority = (networkPriority == priority) ? '*' : ' ';
     status = "Starting";
-    if (networkHasInternet_bm & bitMask)
+    if (networkInterfaceHasInternet(index))
         status = "Online";
     else if (networkInterfaceTable[index].boot)
     {
