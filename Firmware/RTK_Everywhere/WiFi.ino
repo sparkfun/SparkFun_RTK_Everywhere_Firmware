@@ -681,7 +681,11 @@ void wifiStartThrottled(NetIndex_t index, uintptr_t parameter, bool debug)
 // Stop WiFi, used by wifiStopSequence
 void wifiStop(NetIndex_t index, uintptr_t parameter, bool debug)
 {
-    WIFI_STOP();
+    networkInterfaceInternetConnectionLost(NETWORK_WIFI);
+
+    // Stop WiFi stataion
+    wifi.enable(wifi.espNowRunning(), wifi.softApRunning(), false);
+
     networkSequenceNextEntry(NETWORK_WIFI, settings.debugNetworkLayer);
 }
 
@@ -1502,14 +1506,6 @@ void RTK_WIFI::stationEventHandler(arduino_event_id_t event, arduino_event_info_
     bool success;
     int type;
 
-    // Take the network offline if necessary
-    if (networkInterfaceHasInternet(NETWORK_WIFI) && (event != ARDUINO_EVENT_WIFI_STA_GOT_IP) &&
-        (event != ARDUINO_EVENT_WIFI_STA_GOT_IP6))
-    {
-        // Stop WiFi to allow it to restart
-        networkInterfaceEventStop(NETWORK_WIFI);
-    }
-
     //------------------------------
     // WiFi Status Values:
     //     WL_CONNECTED: assigned when connected to a WiFi network
@@ -2308,6 +2304,8 @@ bool RTK_WIFI::stopStart(WIFI_ACTION_t stopping, WIFI_ACTION_t starting)
         //****************************************
         // Start the radio operations
         //****************************************
+
+        enabled = false;
 
         // Start the soft AP mode
         if (starting & WIFI_AP_SET_MODE)

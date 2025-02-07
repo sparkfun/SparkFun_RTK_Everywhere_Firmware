@@ -1447,7 +1447,6 @@ void networkUpdate()
                 systemPrintln("WiFi settings changed, restarting WiFi");
 
             wifiResetThrottleTimeout();
-            WIFI_STOP();
             networkStop(NETWORK_WIFI, settings.debugNetworkLayer);
         }
     }
