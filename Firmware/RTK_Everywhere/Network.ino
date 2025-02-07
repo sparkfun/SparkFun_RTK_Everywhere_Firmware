@@ -603,6 +603,9 @@ void networkInterfaceEventInternetAvailable(NetIndex_t index)
     // Validate the index
     networkValidateIndex(index);
 
+    // Notify networkUpdate of the change in state
+    if (settings.debugNetworkLayer)
+        systemPrintf("%s internet available event\r\n", networkInterfaceTable[index].name);
     networkEventInternetAvailable[index] = true;
 }
 
@@ -615,6 +618,8 @@ void networkInterfaceEventInternetLost(NetIndex_t index)
     networkValidateIndex(index);
 
     // Notify networkUpdate of the change in state
+    if (settings.debugNetworkLayer)
+        systemPrintf("%s lost internet access event\r\n", networkInterfaceTable[index].name);
     networkEventInternetLost[index] = true;
 }
 
@@ -626,6 +631,9 @@ void networkInterfaceEventStop(NetIndex_t index)
     // Validate the index
     networkValidateIndex(index);
 
+    // Notify networkUpdate of the change in state
+    if (settings.debugNetworkLayer)
+        systemPrintf("%s stop event\r\n", networkInterfaceTable[index].name);
     networkEventStop[index] = true;
 }
 
@@ -658,12 +666,18 @@ void networkInterfaceInternetConnectionLost(NetIndex_t index)
 
     // Check for network offline
     if (networkInterfaceHasInternet(index) == false)
+    {
+        if (settings.debugNetworkLayer)
+            systemPrintf("%s previously lost internet access\r\n", networkInterfaceTable[index].name);
         // Already offline, nothing to do
         return;
+    }
 
     // Mark this network as offline
     bitMask = 1 << index;
     networkHasInternet_bm &= ~bitMask;
+    if (settings.debugNetworkLayer)
+        systemPrintf("%s does NOT have internet access\r\n", networkInterfaceTable[index].name);
 
     // Disable mDNS if necessary
     networkMulticastDNSStop(index);
@@ -731,12 +745,18 @@ void networkInterfaceInternetConnectionAvailable(NetIndex_t index)
     // Check for network online
     previousIndex = index;
     if (networkInterfaceHasInternet(index))
+    {
         // Already online, nothing to do
+        if (settings.debugNetworkLayer)
+            systemPrintf("%s already has internet access\r\n", networkInterfaceTable[index].name);
         return;
+    }
 
     // Mark this network as online
     bitMask = 1 << index;
     networkHasInternet_bm |= bitMask;
+    if (settings.debugNetworkLayer)
+        systemPrintf("%s has internet access\r\n", networkInterfaceTable[index].name);
 
     // Raise the network priority if necessary
     previousPriority = networkPriority;
