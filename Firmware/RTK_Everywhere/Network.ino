@@ -131,6 +131,7 @@ NetMask_t networkStarted;     // Track the running networks
 // Active network sequence, may be nullptr
 NETWORK_POLL_SEQUENCE *networkSequence[NETWORK_OFFLINE];
 
+NetMask_t networkMdnsRequests; // Non-zero when one or more interfaces request mDNS
 NetMask_t networkMdnsRunning; // Non-zero when mDNS is running
 
 //----------------------------------------
@@ -263,6 +264,7 @@ void menuTcpUdp()
         else if (incoming == 'm')
         {
             settings.mdnsEnable ^= 1;
+            networkMulticastDNSUpdate();
         }
 
         else if (settings.mdnsEnable && (incoming == 'n'))
@@ -783,7 +785,6 @@ void networkInterfaceInternetConnectionLost(NetIndex_t index)
             if (networkInterfaceHasInternet(index))
             {
                 // Successfully found an online network
-                networkMulticastDNSStart(index);
                 break;
             }
 
@@ -798,7 +799,13 @@ void networkInterfaceInternetConnectionLost(NetIndex_t index)
         // Set the new network priority
         networkPriority = priority;
         if (priority < NETWORK_OFFLINE)
+        {
             Network.setDefaultInterface(*networkInterfaceTable[index].netif);
+
+            // Start mDNS if this interface is connected to the internet
+            if (networkInterfaceHasInternet(index))
+                networkMulticastDNSStart(index);
+        }
 
         // Display the transition
         if (settings.debugNetworkLayer)
@@ -847,82 +854,118 @@ bool networkIsPresent(NetIndex_t index)
 }
 
 //----------------------------------------
-// Change multicast DNS to a given network
-//----------------------------------------
-void networkMulticastDNSSwitch(NetIndex_t startIndex)
-{
-    // Stop mDNS on the other networks
-    for (int index = 0; index < NETWORK_OFFLINE; index++)
-        if (index != startIndex)
-            networkMulticastDNSStop(index);
-
-    // Start mDNS on the requested network
-    networkMulticastDNSStart(startIndex); // Start DNS on the selected network, either WiFi or Ethernet
-}
-
-//----------------------------------------
 // Start multicast DNS
 //----------------------------------------
 bool networkMulticastDNSStart(NetIndex_t index)
 {
-    NetMask_t bitMask;
-    bool started;
+    bool mdnsStarted;
 
-    // Start mDNS if it is enabled and not running on this network
-    started = false;
-    bitMask = 1 << index;
-    if (settings.mdnsEnable && (!(networkMdnsRunning & bitMask)) && (mDNSUse & bitMask))
+    // Verify that this interface uses mDNS
+    mdnsStarted = false;
+    if (networkInterfaceTable[index].mDNS)
     {
-        if (MDNS.begin(&settings.mdnsHostName[0]) ==
-            false) // This should make the device findable from 'rtk.local' in a browser
-            systemPrintln("Error setting up MDNS responder!");
-        else
-        {
-            MDNS.addService("http", "tcp", settings.httpPort); // Add service to MDNS
-            networkMdnsRunning |= bitMask;
-            started = true;
+        // Request mDNS for this interface
+        NetMask_t bitMask = 1 << index;
+        networkMdnsRequests |= bitMask;
 
-            if (settings.debugNetworkLayer)
-                systemPrintf("mDNS started as %s.local\r\n", settings.mdnsHostName);
-        }
+        // Start mDNS on this interface
+        mdnsStarted = networkMulticastDNSUpdate();
     }
-    return started;
+    return mdnsStarted;
 }
 
 //----------------------------------------
 // Stop multicast DNS
 //----------------------------------------
-void networkMulticastDNSStop(NetIndex_t index)
+bool networkMulticastDNSStop(NetIndex_t index)
 {
-    // Stop mDNS if it is running on this network
-    NetMask_t bitMask = 1 << index;
-    if (settings.mdnsEnable && (networkMdnsRunning & bitMask))
+    bool mdnsStopped;
+
+    // Verify that this interface uses mDNS
+    mdnsStopped = false;
+    if (networkInterfaceTable[index].mDNS)
     {
-        MDNS.end();
-        networkMdnsRunning &= ~bitMask;
-        if (settings.debugNetworkLayer)
-            systemPrintln("mDNS stopped");
+        // Request mDNS stop on this interface
+        NetMask_t bitMask = 1 << index;
+        networkMdnsRequests &= ~bitMask;
+
+        // Stop mDNS on this interface
+        mdnsStopped = networkMulticastDNSUpdate();
     }
+    return mdnsStopped;
 }
 
 //----------------------------------------
 // Stop multicast DNS
 //----------------------------------------
-void networkMulticastDNSStop()
+bool networkMulticastDNSStop()
 {
     // Determine the highest priority network
     NetIndex_t startIndex = networkPriority;
     if (startIndex < NETWORK_OFFLINE)
+        // Convert the priority into an index
         startIndex = networkIndexTable[startIndex];
 
     // Stop mDNS on the other networks
     for (int index = 0; index < NETWORK_OFFLINE; index++)
         if (index != startIndex)
-            networkMulticastDNSStop(index);
+            networkMdnsRequests &= ~(1 << index);
 
     // Restart mDNS on the highest priority network
     if (startIndex < NETWORK_OFFLINE)
-        networkMulticastDNSStart(startIndex);
+        networkMdnsRequests |= ~(1 << startIndex);
+    return networkMulticastDNSUpdate();
+}
+
+//----------------------------------------
+// Start multicast DNS
+//----------------------------------------
+bool networkMulticastDNSUpdate()
+{
+    NetMask_t deltaMask;
+    NetMask_t requests;
+    bool status;
+
+    // Determine if mDNS needs to restart
+    status = true;
+    requests = networkMdnsRequests;
+
+    // Update the mDNS state
+    if (settings.mdnsEnable == false)
+        requests = 0;
+
+    // Determine if mDNS needs to restart
+    deltaMask = requests ^ networkMdnsRunning;
+    if (deltaMask)
+    {
+        // Stop mDNS if it is running
+        if (networkMdnsRunning)
+        {
+            MDNS.end();
+            if (settings.debugNetworkLayer)
+                systemPrintln("mDNS stopped");
+        }
+
+        // Restart mDNS if it is needed by any interface
+        if (deltaMask & requests)
+        {
+            // This should make the device findable from 'rtk.local' in a browser
+            if (MDNS.begin(&settings.mdnsHostName[0]) == false)
+            {
+                systemPrintln("Error setting up MDNS responder!");
+                requests = 0;
+                status = false;
+            }
+            else
+            {
+                if (settings.debugNetworkLayer)
+                    systemPrintf("mDNS started as %s.local\r\n", settings.mdnsHostName);
+                MDNS.addService("http", "tcp", settings.httpPort); // Add service to MDNS
+            }
+        }
+        networkMdnsRunning = requests;
+    }
+    return status;
 }
 
 //----------------------------------------
@@ -1438,6 +1481,11 @@ void networkUpdate()
                 pollRoutine(index, sequence->parameter, settings.debugNetworkLayer);
         }
     }
+
+    // Update the network services
+    // Start or stop mDNS
+    if (networkMdnsRequests != networkMdnsRunning)
+        networkMulticastDNSUpdate();
 
     // Update the network services
     DMW_c("mqttClientUpdate");
