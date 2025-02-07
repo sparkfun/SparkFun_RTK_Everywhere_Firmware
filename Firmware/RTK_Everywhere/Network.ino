@@ -600,6 +600,9 @@ bool networkHasInternet()
 //----------------------------------------
 void networkInterfaceEventInternetAvailable(NetIndex_t index)
 {
+    // Validate the index
+    networkValidateIndex(index);
+
     networkEventInternetAvailable[index] = true;
 }
 
@@ -608,6 +611,9 @@ void networkInterfaceEventInternetAvailable(NetIndex_t index)
 //----------------------------------------
 void networkInterfaceEventInternetLost(NetIndex_t index)
 {
+    // Validate the index
+    networkValidateIndex(index);
+
     // Notify networkUpdate of the change in state
     networkEventInternetLost[index] = true;
 }
@@ -617,6 +623,9 @@ void networkInterfaceEventInternetLost(NetIndex_t index)
 //----------------------------------------
 void networkInterfaceEventStop(NetIndex_t index)
 {
+    // Validate the index
+    networkValidateIndex(index);
+
     networkEventStop[index] = true;
 }
 
