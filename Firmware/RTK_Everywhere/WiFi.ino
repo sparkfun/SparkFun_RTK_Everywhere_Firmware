@@ -2309,6 +2309,8 @@ bool RTK_WIFI::stopStart(WIFI_ACTION_t stopping, WIFI_ACTION_t starting)
         // Start the radio operations
         //****************************************
 
+        enabled = false;
+
         // Start the soft AP mode
         if (starting & WIFI_AP_SET_MODE)
         {
