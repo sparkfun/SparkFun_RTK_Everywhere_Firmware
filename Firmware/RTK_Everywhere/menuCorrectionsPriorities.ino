@@ -299,11 +299,11 @@ void menuCorrectionsPriorities()
                           &settings.correctionsSourcesLifetime_s);
 
         // Check for priority decrease
-        else if ((incoming >= 'a') && (incoming < ('a' + correctionsSource::CORR_NUM)))
+        else if ((incoming >= 'a') && (incoming < ('a' + CORR_NUM)))
             correctionPriorityDecrease(settings.correctionsSourcesPriority[incoming - 'a']);
 
         // Check for priority increase
-        else if ((incoming >= 'A') && (incoming < ('A' + correctionsSource::CORR_NUM)))
+        else if ((incoming >= 'A') && (incoming < ('A' + CORR_NUM)))
             correctionPriorityIncrease(settings.correctionsSourcesPriority[incoming - 'A']);
 
         else if (incoming == 'x')

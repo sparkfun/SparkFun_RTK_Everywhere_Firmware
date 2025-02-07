@@ -149,7 +149,7 @@ typedef enum
 typedef uint8_t CORRECTION_ID_T;    // Type holding a correction ID or priority
 typedef uint8_t CORRECTION_MASK_T;  // Type holding a bitmask of correction IDs
 
-const char * const correctionsSourceNames[correctionsSource::CORR_NUM] =
+const char * const correctionsSourceNames[CORR_NUM] =
 {
     // These must match correctionsSource above
     "External Radio",
@@ -620,7 +620,7 @@ struct Settings
 
     // Corrections
     int correctionsSourcesLifetime_s = 30; // Expire a corrections source if no data is seen for this many seconds
-    CORRECTION_ID_T correctionsSourcesPriority[correctionsSource::CORR_NUM] = { (CORRECTION_ID_T)-1 }; // -1 indicates array is uninitialized, indexed by correction source ID
+    CORRECTION_ID_T correctionsSourcesPriority[CORR_NUM] = { (CORRECTION_ID_T)-1 }; // -1 indicates array is uninitialized, indexed by correction source ID
     bool debugCorrections = false;
     uint8_t enableExtCorrRadio = 254; // Will be initialized to true or false depending on model
     uint8_t extCorrRadioSPARTNSource = 0; // This selects IP (0) vs. L-Band (1) for _SPARTN_ corrections on Radio Ext (UART2)
@@ -1177,7 +1177,7 @@ const RTK_Settings_Entry rtkSettingsEntries[] =
 
     // Corrections
     { 1, 1, 0, 1, 1, 1, 1, 1, 1, _int,      0, & settings.correctionsSourcesLifetime_s, "correctionsSourcesLifetime",  },
-    { 1, 1, 1, 1, 1, 1, 1, 1, 1, tCorrSPri, correctionsSource::CORR_NUM, & settings.correctionsSourcesPriority, "correctionsPriority_",  },
+    { 1, 1, 1, 1, 1, 1, 1, 1, 1, tCorrSPri, CORR_NUM, & settings.correctionsSourcesPriority, "correctionsPriority_",  },
     { 0, 0, 0, 1, 1, 1, 1, 1, 1, _bool,     0, & settings.debugCorrections, "debugCorrections",  },
     { 1, 1, 0, 1, 1, 1, 0, 1, 1, _bool,     0, & settings.enableExtCorrRadio, "enableExtCorrRadio",  },
     { 1, 1, 0, 1, 1, 0, 0, 1, 0, _uint8_t,  0, & settings.extCorrRadioSPARTNSource, "extCorrRadioSPARTNSource",  },
