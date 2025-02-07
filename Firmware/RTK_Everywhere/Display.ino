@@ -1708,6 +1708,15 @@ displayCoords paintSIVIcon(std::vector<iconPropertyBlinking> *iconList, const ic
 
     return textCoords;
 }
+
+void nudgeAndPrintSIV(displayCoords textCoords, uint8_t siv)
+{
+    oled->setCursor(textCoords.x - 1, textCoords.y); // x, y
+    oled->print(siv / 10);
+    oled->setCursor(textCoords.x + 7, textCoords.y); // x, y
+    oled->print(siv % 10);
+}
+
 void paintSIVText(displayCoords textCoords)
 {
     oled->setFont(QW_FONT_8X16);                 // Set font to type 1: 8x16
@@ -1722,14 +1731,16 @@ void paintSIVText(displayCoords textCoords)
     else
         oled->print(":");
 
+    textCoords.x += 8;
+
     if (online.gnss)
     {
         if (inBaseMode() == true)
-            oled->print(siv);
+            nudgeAndPrintSIV(textCoords, siv);
         else if (gnss->isFixed() == false)
             oled->print("0");
         else
-            oled->print(siv);
+            nudgeAndPrintSIV(textCoords, siv);
 
         paintResets();
     } // End gnss online
