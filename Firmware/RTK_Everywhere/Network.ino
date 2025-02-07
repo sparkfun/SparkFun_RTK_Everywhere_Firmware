@@ -600,6 +600,12 @@ bool networkHasInternet()
 //----------------------------------------
 void networkInterfaceEventInternetAvailable(NetIndex_t index)
 {
+    // Validate the index
+    networkValidateIndex(index);
+
+    // Notify networkUpdate of the change in state
+    if (settings.debugNetworkLayer)
+        systemPrintf("%s internet available event\r\n", networkInterfaceTable[index].name);
     networkEventInternetAvailable[index] = true;
 }
 
@@ -608,7 +614,12 @@ void networkInterfaceEventInternetAvailable(NetIndex_t index)
 //----------------------------------------
 void networkInterfaceEventInternetLost(NetIndex_t index)
 {
+    // Validate the index
+    networkValidateIndex(index);
+
     // Notify networkUpdate of the change in state
+    if (settings.debugNetworkLayer)
+        systemPrintf("%s lost internet access event\r\n", networkInterfaceTable[index].name);
     networkEventInternetLost[index] = true;
 }
 
@@ -617,6 +628,12 @@ void networkInterfaceEventInternetLost(NetIndex_t index)
 //----------------------------------------
 void networkInterfaceEventStop(NetIndex_t index)
 {
+    // Validate the index
+    networkValidateIndex(index);
+
+    // Notify networkUpdate of the change in state
+    if (settings.debugNetworkLayer)
+        systemPrintf("%s stop event\r\n", networkInterfaceTable[index].name);
     networkEventStop[index] = true;
 }
 
@@ -628,77 +645,8 @@ bool networkInterfaceHasInternet(NetIndex_t index)
     // Validate the index
     networkValidateIndex(index);
 
-    // Return the network interface state
+    // Determine if the interface has access to the internet
     return (networkHasInternet_bm & (1 << index)) ? true : false;
-}
-
-//----------------------------------------
-// Mark network interface as having NO access to the internet
-//----------------------------------------
-void networkInterfaceInternetConnectionLost(NetIndex_t index)
-{
-    NetMask_t bitMask;
-    NetPriority_t previousPriority;
-    NetPriority_t priority;
-
-    // Validate the index
-    networkValidateIndex(index);
-
-    // Check for network offline
-    bitMask = 1 << index;
-    if (!(networkHasInternet_bm & bitMask))
-        // Already offline, nothing to do
-        return;
-
-    // Mark this network as offline
-    networkHasInternet_bm &= ~bitMask;
-
-    // Disable mDNS if necessary
-    networkMulticastDNSStop(index);
-
-    // Display offline message
-    if (settings.debugNetworkLayer)
-        systemPrintf("--------------- %s Offline ---------------\r\n", networkGetNameByIndex(index));
-
-    // Did the highest priority network just fail?
-    if (networkPriorityTable[index] == networkPriority)
-    {
-        // The highest priority network just failed
-        // Leave this network on in hopes that it will regain a connection
-        previousPriority = networkPriority;
-
-        // Search in descending priority order for the next online network
-        priority = networkPriorityTable[index];
-        for (priority += 1; priority < NETWORK_OFFLINE; priority += 1)
-        {
-            // Is the network online?
-            index = networkIndexTable[priority];
-            bitMask = 1 << index;
-            if (networkHasInternet_bm & bitMask)
-            {
-                // Successfully found an online network
-                networkMulticastDNSStart(index);
-                break;
-            }
-
-            // No, is this device present (nullptr: always present)
-            if (networkIsPresent(index))
-            {
-                // No, does this network need starting
-                networkStart(index, settings.debugNetworkLayer);
-            }
-        }
-
-        // Set the new network priority
-        networkPriority = priority;
-        if (priority < NETWORK_OFFLINE)
-            Network.setDefaultInterface(*networkInterfaceTable[index].netif);
-
-        // Display the transition
-        if (settings.debugNetworkLayer)
-            systemPrintf("Default Network Interface: %s --> %s\r\n", networkGetNameByPriority(previousPriority),
-                         networkGetNameByPriority(priority));
-    }
 }
 
 //----------------------------------------
@@ -714,15 +662,24 @@ void networkInterfaceInternetConnectionAvailable(NetIndex_t index)
     // Validate the index
     networkValidateIndex(index);
 
+    // Clear the event flag
+    networkEventInternetAvailable[index] = false;
+
     // Check for network online
-    bitMask = 1 << index;
     previousIndex = index;
-    if (networkHasInternet_bm & bitMask)
+    if (networkInterfaceHasInternet(index))
+    {
         // Already online, nothing to do
+        if (settings.debugNetworkLayer)
+            systemPrintf("%s already has internet access\r\n", networkInterfaceTable[index].name);
         return;
+    }
 
     // Mark this network as online
+    bitMask = 1 << index;
     networkHasInternet_bm |= bitMask;
+    if (settings.debugNetworkLayer)
+        systemPrintf("%s has internet access\r\n", networkInterfaceTable[index].name);
 
     // Raise the network priority if necessary
     previousPriority = networkPriority;
@@ -774,6 +731,83 @@ void networkInterfaceInternetConnectionAvailable(NetIndex_t index)
 }
 
 //----------------------------------------
+// Mark network interface as having NO access to the internet
+//----------------------------------------
+void networkInterfaceInternetConnectionLost(NetIndex_t index)
+{
+    NetMask_t bitMask;
+    NetPriority_t previousPriority;
+    NetPriority_t priority;
+
+    // Validate the index
+    networkValidateIndex(index);
+
+    // Clear the event flag
+    networkEventInternetLost[index] = false;
+
+    // Check for network offline
+    if (networkInterfaceHasInternet(index) == false)
+    {
+        if (settings.debugNetworkLayer)
+            systemPrintf("%s previously lost internet access\r\n", networkInterfaceTable[index].name);
+        // Already offline, nothing to do
+        return;
+    }
+
+    // Mark this network as offline
+    bitMask = 1 << index;
+    networkHasInternet_bm &= ~bitMask;
+    if (settings.debugNetworkLayer)
+        systemPrintf("%s does NOT have internet access\r\n", networkInterfaceTable[index].name);
+
+    // Disable mDNS if necessary
+    networkMulticastDNSStop(index);
+
+    // Display offline message
+    if (settings.debugNetworkLayer)
+        systemPrintf("--------------- %s Offline ---------------\r\n", networkGetNameByIndex(index));
+
+    // Did the highest priority network just fail?
+    if (networkPriorityTable[index] == networkPriority)
+    {
+        // The highest priority network just failed
+        // Leave this network on in hopes that it will regain a connection
+        previousPriority = networkPriority;
+
+        // Search in descending priority order for the next online network
+        priority = networkPriorityTable[index];
+        for (priority += 1; priority < NETWORK_OFFLINE; priority += 1)
+        {
+            // Is the network online?
+            index = networkIndexTable[priority];
+            if (networkInterfaceHasInternet(index))
+            {
+                // Successfully found an online network
+                networkMulticastDNSStart(index);
+                break;
+            }
+
+            // No, is this device present (nullptr: always present)
+            if (networkIsPresent(index))
+            {
+                // No, does this network need starting
+                networkStart(index, settings.debugNetworkLayer);
+            }
+        }
+
+        // Set the new network priority
+        networkPriority = priority;
+        if (priority < NETWORK_OFFLINE)
+            Network.setDefaultInterface(*networkInterfaceTable[index].netif);
+
+        // Display the transition
+        if (settings.debugNetworkLayer)
+            systemPrintf("Default Network Interface: %s --> %s\r\n", networkGetNameByPriority(previousPriority),
+                         networkGetNameByPriority(priority));
+    }
+}
+
+//----------------------------------------
 // Determine if the specified network has access to the internet
 //----------------------------------------
 bool networkIsConnected(NetPriority_t *clientPriority)
@@ -781,8 +815,7 @@ bool networkIsConnected(NetPriority_t *clientPriority)
     // If the client is using the highest priority network and that
     // network is still available then continue as normal
     if (networkHasInternet_bm && (*clientPriority == networkPriority))
-        return (networkHasInternet_bm & (1 << networkIndexTable[networkPriority]))
-            ? true : false;
+        return networkInterfaceHasInternet(networkIndexTable[networkPriority]);
 
     // The network has changed, notify the client of the change
     *clientPriority = networkPriority;
@@ -914,7 +947,7 @@ void networkPrintStatus(uint8_t priority)
     bitMask = (1 << index);
     highestPriority = (networkPriority == priority) ? '*' : ' ';
     status = "Starting";
-    if (networkHasInternet_bm & bitMask)
+    if (networkInterfaceHasInternet(index))
         status = "Online";
     else if (networkInterfaceTable[index].boot)
     {
@@ -1274,6 +1307,9 @@ void networkStop(NetIndex_t index, bool debug)
     // Validate the index
     networkValidateIndex(index);
 
+    // Clear the event flag
+    networkEventStop[index] = false;
+
     // Only stop networks that exist on the platform
     if (networkIsPresent(index))
     {
@@ -1378,24 +1414,19 @@ void networkUpdate()
 
         // Handle the network lost internet event
         if (networkEventInternetLost[index])
-        {
-            networkEventInternetLost[index] = false;
             networkInterfaceInternetConnectionLost(index);
-        }
 
         // Handle the network stop event
         if (networkEventStop[index])
-        {
-            networkEventStop[index] = false;
             networkStop(index, settings.debugNetworkLayer);
-        }
+
+        // Check for the WiFi station reconnection
+        if ((index == NETWORK_WIFI) && wifiReconnectionTimer)
+            wifiStationReconnectionRequest();
 
         // Handle the network has internet event
         if (networkEventInternetAvailable[index])
-        {
-            networkEventInternetAvailable[index] = false;
             networkInterfaceInternetConnectionAvailable(index);
-        }
 
         // Execute any active polling routine
         sequence = networkSequence[index];

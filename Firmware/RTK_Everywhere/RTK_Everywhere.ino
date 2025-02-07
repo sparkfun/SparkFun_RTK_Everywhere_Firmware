@@ -381,7 +381,9 @@ RTK_WIFI wifi(false);
     }
 #endif // COMPILE_WIFI
 
-bool wifiRestartRequested = false; // Restart WiFi if user changes anything
+// WiFi Globals - For other module direct access
+uint32_t wifiReconnectionTimer; // Delay before reconnection, timer running when non-zero
+bool wifiRestartRequested;      // Restart WiFi if user changes anything
 
 #define MQTT_CLIENT_STOP(shutdown)                                                                                     \
     {                                                                                                                  \

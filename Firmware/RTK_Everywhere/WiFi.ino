@@ -678,6 +678,41 @@ void wifiStartThrottled(NetIndex_t index, uintptr_t parameter, bool debug)
 }
 
 //*********************************************************************
+// Handle WiFi station reconnection requests
+void wifiStationReconnectionRequest()
+{
+    uint32_t currentMsec;
+
+    // Has the reconnection delay expired
+    currentMsec = millis();
+    if ((currentMsec - wifiReconnectionTimer) >= WIFI_RECONNECTION_DELAY)
+    {
+        if (settings.debugWifiState)
+            systemPrintf("WiFi: Reconnection timer fired!\r\n");
+
+        // Restart the reconnection timer
+        wifiReconnectionTimer = currentMsec;
+
+        // Start the WiFi scan
+        if (wifi.stationRunning())
+        {
+            if (settings.debugWifiState)
+                systemPrintf("WiFi: Attempting WiFi restart\r\n");
+            wifi.clearStarted(WIFI_STA_RECONNECT);
+            if (wifi.stopStart(WIFI_AP_START_MDNS, WIFI_STA_RECONNECT))
+            {
+                // Stop the reconnection timer
+                wifiReconnectionTimer = 0;
+                if (settings.debugWifiState)
+                    systemPrintf("WiFi: Reconnection timer stopped\r\n");
+            }
+            else if (settings.debugWifiState)
+                systemPrintf("WiFi: Station is not running!\r\n");
+        }
+    }
+}
+
+//*********************************************************************
 // Stop WiFi, used by wifiStopSequence
 void wifiStop(NetIndex_t index, uintptr_t parameter, bool debug)
 {
@@ -737,8 +772,22 @@ RTK_WIFI::RTK_WIFI(bool verbose)
       _staMacAddress{0, 0, 0, 0, 0, 0},
       _staRemoteApSsid{nullptr}, _staRemoteApPassword{nullptr},
       _started{false}, _stationChannel{0},
-      _timer{0}, _usingDefaultChannel{true}, _verbose{verbose}
+      _usingDefaultChannel{true}, _verbose{verbose}
 {
+    wifiReconnectionTimer = 0;
+    wifiRestartRequested = false;
+}
+
+//*********************************************************************
+// Clear some of the started components
+// Inputs:
+//   components: Bitmask of components to clear
+// Outputs:
+//   Returns the bitmask of started components
+WIFI_ACTION_t RTK_WIFI::clearStarted(WIFI_ACTION_t components)
+{
+    _started = _started & ~components;
+    return _started;
 }
 
 //*********************************************************************
@@ -1551,18 +1600,11 @@ void RTK_WIFI::stationEventHandler(arduino_event_id_t event, arduino_event_info_
         // Start the reconnection timer
         if (event == ARDUINO_EVENT_WIFI_STA_DISCONNECTED)
         {
-            if (settings.debugWifiState && _verbose && !_timer)
+            if (settings.debugWifiState && _verbose && !wifiReconnectionTimer)
                 systemPrintf("WiFi: Reconnection timer started\r\n");
-            _timer = millis();
-            if (!_timer)
-                _timer = 1;
-        }
-        else
-        {
-            // Stop the reconnection timer
-            if (settings.debugWifiState && _verbose && _timer)
-                systemPrintf("WiFi: Reconnection timer stopped\r\n");
-            _timer = 0;
+            wifiReconnectionTimer = millis();
+            if (!wifiReconnectionTimer)
+                wifiReconnectionTimer = 1;
         }
 
         // Fall through
@@ -1678,32 +1720,6 @@ bool RTK_WIFI::stationHostName(const char * hostName)
 bool RTK_WIFI::stationOnline()
 {
     return (_started & WIFI_STA_ONLINE) ? true : false;
-}
-
-//*********************************************************************
-// Handle WiFi station reconnection requests
-void RTK_WIFI::stationReconnectionRequest()
-{
-    uint32_t currentMsec;
-
-    // Check for reconnection request
-    currentMsec = millis();
-    if (_timer)
-    {
-        if ((currentMsec - _timer) >= WIFI_RECONNECTION_DELAY)
-        {
-            _timer = 0;
-            if (settings.debugWifiState)
-                systemPrintf("Reconnection timer fired!\r\n");
-
-            // Start the WiFi scan
-            if (stationRunning())
-            {
-                _started = _started & ~WIFI_STA_RECONNECT;
-                stopStart(WIFI_AP_START_MDNS, WIFI_STA_RECONNECT);
-            }
-        }
-    }
 }
 
 //*********************************************************************
@@ -2155,6 +2171,9 @@ bool RTK_WIFI::stopStart(WIFI_ACTION_t stopping, WIFI_ACTION_t starting)
                 systemPrintf("WiFi: Station offline!\r\n");
             _started = _started & ~WIFI_STA_ONLINE;
         }
+
+        // Stop the reconnection timer
+        wifiReconnectionTimer = 0;
 
         // Stop mDNS on WiFi station
         if (stopping & WIFI_STA_START_MDNS)
