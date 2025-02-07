@@ -1502,14 +1502,6 @@ void RTK_WIFI::stationEventHandler(arduino_event_id_t event, arduino_event_info_
     bool success;
     int type;
 
-    // Take the network offline if necessary
-    if (networkInterfaceHasInternet(NETWORK_WIFI) && (event != ARDUINO_EVENT_WIFI_STA_GOT_IP) &&
-        (event != ARDUINO_EVENT_WIFI_STA_GOT_IP6))
-    {
-        // Stop WiFi to allow it to restart
-        networkInterfaceEventStop(NETWORK_WIFI);
-    }
-
     //------------------------------
     // WiFi Status Values:
     //     WL_CONNECTED: assigned when connected to a WiFi network
