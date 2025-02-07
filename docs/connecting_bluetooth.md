@@ -53,7 +53,7 @@ Before proceeding, it is recommended to have the mock location provider app alre
 
 To enable **Mock Locations**, *Developer Mode* in Android must be enabled. It is best to google the [most recent procedure for this](https://www.google.com/search?q=how+to+allow+mock+location+on+android) but the following procedure should work:
 
-1) Open Android settings
+1. Open Android settings
 
 	<figure markdown>
 	![alt text](./img/MockLocation/SparkFun RTK Mock Location - Settings.png)
@@ -61,7 +61,7 @@ To enable **Mock Locations**, *Developer Mode* in Android must be enabled. It is
 	</figcaption>
 	</figure>
 
-2) Open *About phone*
+2. Open *About phone*
 
 	<figure markdown>
 	![Build Number box](./img/MockLocation/SparkFun RTK Mock Location - Build Number.png)
@@ -69,11 +69,11 @@ To enable **Mock Locations**, *Developer Mode* in Android must be enabled. It is
 	</figcaption>
 	</figure>
 
-3) Scroll to the bottom and click on *Build number* five or more times. The device will prompt as more taps are required.
+3. Scroll to the bottom and click on *Build number* five or more times. The device will prompt as more taps are required.
 
 Once Developer Mode is enabled:
 
-1) Open Android settings
+1. Open Android settings
 
 	<figure markdown>
 	![alt text](./img/MockLocation/SparkFun RTK Mock Location - Settings.png)
@@ -81,7 +81,7 @@ Once Developer Mode is enabled:
 	</figcaption>
 	</figure>
 
-2) Open *System*
+2. Open *System*
 
 	<figure markdown>
 	![Develop options menu](./img/MockLocation/SparkFun RTK Mock Location - Developer Options.png)
@@ -89,7 +89,7 @@ Once Developer Mode is enabled:
 	</figcaption>
 	</figure>
 
-3) Open *Developer options*
+3. Open *Developer options*
 
 	<figure markdown>
 	![Mock Location button](./img/MockLocation/SparkFun RTK Mock Location - Select Mock Location App.png)
@@ -97,9 +97,9 @@ Once Developer Mode is enabled:
 	</figcaption>
 	</figure>
 
-4) Scroll all the way to the bottom of a very long list of developer options.
+4. Scroll all the way to the bottom of a very long list of developer options.
 
-5) Select the app to use for Mock Location. This is usually [Lefebure](gis_software_android.md/#lefebure) or [GNSS Master](gis_software_android.md/#gnss-master) but can be tailored as needed.
+5. Select the app to use for Mock Location. This is usually [Lefebure](gis_software_android.md/#lefebure) or [GNSS Master](gis_software_android.md/#gnss-master) but can be tailored as needed.
 
 ## Apple iOS
 

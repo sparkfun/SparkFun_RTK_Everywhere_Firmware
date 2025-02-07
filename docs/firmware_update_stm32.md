@@ -36,7 +36,6 @@ Firmware updates to the STM32WLE can only be done over the serial interface. Fol
 </figure>
 
 1. Download and install [STM32CubeProgrammer](https://www.st.com/en/development-tools/stm32cubeprog.html). While it *is* available for Windows/Linux/iOS, ST makes it rather difficult to get this software. We're sorry!
-
 2. Download the latest STM32 LoRa binary from the [RTK Everywhere Firmware Binaries](https://github.com/sparkfun/SparkFun_RTK_Everywhere_Firmware_Binaries/tree/main/STM32_LoRa) repo. As of writing, this is **RTK_Torch_STM32_LoRa_v2_0_2.bin**.
 
 	<figure markdown>
@@ -54,7 +53,6 @@ Firmware updates to the STM32WLE can only be done over the serial interface. Fol
 	</figure>
 
 4. The device will automatically reset and show instructions. The device is now operating in pass-through mode at 57600bps, and ready to be programmed. If needed, to exit this pass-through mode, press and release the main power button.
-
 5. Close the terminal connection. This will likely cause the device to reset - that is ok.
 
 	<figure markdown>
@@ -72,7 +70,6 @@ Firmware updates to the STM32WLE can only be done over the serial interface. Fol
 	</figure>
 
 7. Avoid **Read Unprotected**. Do not enable. This setting writes to fuse bits and if there is a problem with serial communication, it can lead to an inoperable bootloader. The device can be repaired but only at SparkFun (we have to use an ST-Link to reprogram the fuse bits over the SWD interface).
-
 8. Select the COM port associated with COM-B of the RTK device. Not sure? Read [here](https://docs.sparkfun.com/SparkFun_RTK_Everywhere_Firmware/configure_with_serial/#rtk-torch). Once selected, click **Connect**.
 
 	<figure markdown>
@@ -106,7 +103,6 @@ Firmware updates to the STM32WLE can only be done over the serial interface. Fol
 	</figure>
 
 12. Click disconnect to close the port.
-
 13. Now press and release the power button on the Torch. The device will beep indicating it has exited pass-through mode. You can now use your device normally.
 
 	<figure markdown>

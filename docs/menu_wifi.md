@@ -29,11 +29,11 @@ Additionally, the device will continue to try to connect to WiFi if a connection
 
 WiFi is used for the following features:
 
-* NTRIP Client or Server
-* TCP Client or Server
-* Firmware Updates
-* Device Configuration (WiFi mode only)
-* PointPerfect (Access keys and IP-based corrections)
+- NTRIP Client or Server
+- TCP Client or Server
+- Firmware Updates
+- Device Configuration (WiFi mode only)
+- PointPerfect (Access keys and IP-based corrections)
 
 ## Configure device via WiFi Access Point of connect to WiFi
 

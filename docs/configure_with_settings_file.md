@@ -32,15 +32,15 @@ All system configuration can be done by editing the *SFE_[Platform]_Settings_0.t
 
 Keep in mind:
 
-* Not all devices have an SD card slot (ie, RTK Torch) and therefore do not support this configuration method.
-* The settings file contains hundreds of settings.
-* The SD card file "SFE_EVK_Settings_0.txt" is used for Profile 1, SD card file "SFE_EVK_Settings_1.txt" is used for Profile 2, etc.
+- Not all devices have an SD card slot (ie, RTK Torch) and therefore do not support this configuration method.
+- The settings file contains hundreds of settings.
+- The SD card file "SFE_EVK_Settings_0.txt" is used for Profile 1, SD card file "SFE_EVK_Settings_1.txt" is used for Profile 2, etc.
 
 	!!! note
 		The `Settings_0` is for **Profile 1**, `Settings_1` is for **Profile 2**, `Settings_2` is for **Profile 3**...
 
-* When switching to a new profile, the settings file on the SD card with all settings will be created or updated. The internal settings will not be updated until you switch to the profile. Additionally, the file for a particular profile will not be created on the SD card until you switch to that profile.
-* It is not necessary that the settings file on the SD card have all of the settings.
+- When switching to a new profile, the settings file on the SD card with all settings will be created or updated. The internal settings will not be updated until you switch to the profile. Additionally, the file for a particular profile will not be created on the SD card until you switch to that profile.
+- It is not necessary that the settings file on the SD card have all of the settings.
 
 !!! example
 	For example, if you only wanted to set up two wireless networks for **Profile 2**, you could create a file named `SFE_Express_Settings_1.txt` that only contained the following settings:

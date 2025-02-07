@@ -18,9 +18,9 @@ Compatibility Icons
 
 The ESP32 firmware is the main firmware in all RTK devices. The firmware version number is displayed in a variety of places:
 
-* Power On (if a display is supported)
-* Serial Config Menu
-* WiFi Config
+- Power On (if a display is supported)
+- Serial Config Menu
+- WiFi Config
 
 <figure markdown>
 ![RTK Express with firmware v3.0](./img/Displays/SparkFun%20RTK%20Boot%20Screen%20Version%20Number.png)
@@ -51,11 +51,11 @@ The firmware is shown at the top of the WiFi config page.
 
 From time to time SparkFun will release new firmware for the RTK product line to add and improve functionality. For most users, firmware can be upgraded over WiFi using the OTA method.
 
-* [OTA Method](firmware_update.md#updating-firmware-over-the-air): Connect over WiFi to SparkFun to download the latest firmware *over-the-air*. This can be done using the serial menu or while in WiFi AP Config Mode. Requires a local WiFi network.
-* [GUI Method](firmware_update.md#updating-using-windows-gui): Use the [Windows, Linux, MacOS or Python GUI](https://github.com/sparkfun/SparkFun_RTK_Firmware_Uploader) and a USB cable. (The Python package has been tested on Raspberry Pi)
-* [SD Method](firmware_update.md#updating-firmware-from-the-sd-card): Load the firmware on an SD card, then use a serial terminal with the *Firmware Upgrade* menu
-* [WiFi Method](firmware_update.md#updating-firmware-from-wifi): Load the firmware over WiFi when the device is in WiFi AP Config Mode
-* [CLI Method](firmware_update.md#updating-firmware-from-cli): Use the command line *batch_program.bat*
+- [OTA Method](firmware_update.md#updating-firmware-over-the-air): Connect over WiFi to SparkFun to download the latest firmware *over-the-air*. This can be done using the serial menu or while in WiFi AP Config Mode. Requires a local WiFi network.
+- [GUI Method](firmware_update.md#updating-using-windows-gui): Use the [Windows, Linux, MacOS or Python GUI](https://github.com/sparkfun/SparkFun_RTK_Firmware_Uploader) and a USB cable. (The Python package has been tested on Raspberry Pi)
+- [SD Method](firmware_update.md#updating-firmware-from-the-sd-card): Load the firmware on an SD card, then use a serial terminal with the *Firmware Upgrade* menu
+- [WiFi Method](firmware_update.md#updating-firmware-from-wifi): Load the firmware over WiFi when the device is in WiFi AP Config Mode
+- [CLI Method](firmware_update.md#updating-firmware-from-cli): Use the command line *batch_program.bat*
 
 The OTA method is generally recommended. For more information see [here](firmware_update.md#updating-firmware-over-the-air).
 
@@ -83,9 +83,9 @@ Additionally, users may opt to check for Beta firmware. This is the latest firmw
 
 Automatic release firmware update is supported over WiFi. Enabling this feature is done using the serial firmware menu. The polling period is specified in minutes and defaults to once a day. The automatic firmware update only checks for and installs the current SparkFun released firmware versions over top of any:
 
-* Older released versions (continual upgrade)
-* Beta firmware versions (newer or older, restore to released version)
-* Locally built versions (newer or older, restore to released version)
+- Older released versions (continual upgrade)
+- Beta firmware versions (newer or older, restore to released version)
+- Locally built versions (newer or older, restore to released version)
 
 ## Updating Firmware Using The Uploader GUI
 
@@ -104,22 +104,22 @@ Download the latest RTK firmware binary file located on the [releases page](http
 
 **To Use**
 
-* Attach the RTK device to your computer using a USB cable.
-* Turn the RTK device on.
-* On Windows, open the Device Manager to confirm which COM port the device is operating on. On other platforms, check ```/dev```.
+- Attach the RTK device to your computer using a USB cable.
+- Turn the RTK device on.
+- On Windows, open the Device Manager to confirm which COM port the device is operating on. On other platforms, check ```/dev```.
 
-<figure markdown>
-![Device Manager showing USB-Serial CH340 port on COM27](./img/Serial/SparkFun%20RTK%20Firmware%20Uploader%20COM%20Port.jpg)
-<figcaption markdown>
-Device Manager showing 'USB-Serial CH340' port on COM27
-</figcaption>
-</figure>
+	<figure markdown>
+	![Device Manager showing USB-Serial CH340 port on COM27](./img/Serial/SparkFun%20RTK%20Firmware%20Uploader%20COM%20Port.jpg)
+	<figcaption markdown>
+	Device Manager showing 'USB-Serial CH340' port on COM27
+	</figcaption>
+	</figure>
 
-* Get the latest binary file located on the [releases page](https://github.com/sparkfun/SparkFun_RTK_Everywhere_Firmware/releases) or from the [binaries repo](https://github.com/sparkfun/SparkFun_RTK_Everywhere_Firmware_Binaries).
-* Run *RTKUploader.exe* (it takes a few seconds to start)
-* Click *Browse* and select the binary file to upload
-* Select the COM port previously seen in the Device Manager
-* Click *Upload Firmware*
+- Get the latest binary file located on the [releases page](https://github.com/sparkfun/SparkFun_RTK_Everywhere_Firmware/releases) or from the [binaries repo](https://github.com/sparkfun/SparkFun_RTK_Everywhere_Firmware_Binaries).
+- Run *RTKUploader.exe* (it takes a few seconds to start)
+- Click *Browse* and select the binary file to upload
+- Select the COM port previously seen in the Device Manager
+- Click *Upload Firmware*
 
 Once complete, the device will reset and power down.
 

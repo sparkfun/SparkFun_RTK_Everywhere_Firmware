@@ -25,14 +25,14 @@ RTK Corrections Priorities Menu
 
 To achieve an RTK Fix, SparkFun RTK products must be provided with a correction source. An RTK device can obtain corrections from a variety of sources. Below is the list of possible sources (not all platforms support all sources) and their default priorities. These defaults generally follow the rule that a shorter baseline between Rover and Base leads to more accurate, and therefore more valuable, correction data:
 
-* External Radio (100m [OSR](https://docs.sparkfun.com/SparkFun_RTK_Everywhere_Firmware/correction_sources/#osr-vs-ssr) Baseline)
-* ESP-Now (100m OSR Baseline)
-* LoRa Radio (1km OSR Baseline)
-* Bluetooth (10+km OSR/SSR Baseline)
-* USB (10+km OSR/SSR Baseline)
-* TCP (NTRIP) (10+km OSR/SSR Baseline)
-* L-Band (100km SSR Baseline)
-* IP (PointPerfect/MQTT) (100+km SSR Baseline)
+- External Radio (100m [OSR](https://docs.sparkfun.com/SparkFun_RTK_Everywhere_Firmware/correction_sources/#osr-vs-ssr) Baseline)
+- ESP-Now (100m OSR Baseline)
+- LoRa Radio (1km OSR Baseline)
+- Bluetooth (10+km OSR/SSR Baseline)
+- USB (10+km OSR/SSR Baseline)
+- TCP (NTRIP) (10+km OSR/SSR Baseline)
+- L-Band (100km SSR Baseline)
+- IP (PointPerfect/MQTT) (100+km SSR Baseline)
 
 The *Corrections Priorities* menu allows a user to specify which correction source should be given priority. For example, if corrections are provided through ESP-NOW and IP PointPerfect simultaneously, the corrections from IP PointPerfect will be discarded because the ESP-NOW source has a higher priority. This prevents the RTK engine from receiving potentially mixed correction signals.
 
@@ -50,10 +50,10 @@ The *Correction source lifetime in seconds* setting dictates how many seconds an
 
 In the web config page:
 
-* Clicking a source increases its priority
-* Clicking the highest priority source makes it the lowest priority
-* Clicking 'Reset to Defaults' will restore the priorities to their default setting
-* Click 'Save Configuration', then 'Exit and Reset' to save the changes
+- Clicking a source increases its priority
+- Clicking the highest priority source makes it the lowest priority
+- Clicking 'Reset to Defaults' will restore the priorities to their default setting
+- Click 'Save Configuration', then 'Exit and Reset' to save the changes
 
 <figure markdown>
 ![RTK Corrections Priorities Web Config](./img/WiFi Config/SparkFun RTK Corrections Priority.gif)

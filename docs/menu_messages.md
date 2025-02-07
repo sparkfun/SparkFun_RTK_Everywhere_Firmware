@@ -27,7 +27,7 @@ From this menu, a user can control the output of various NMEA, RTCM, and other m
 
 Because of the large number of configurations possible, we provide a few common settings:
 
-* Reset to Defaults
+- Reset to Defaults
 
 RTCM can also be enabled in both Rover and Base modes.
 
@@ -35,7 +35,7 @@ RTCM can also be enabled in both Rover and Base modes.
 
 This will turn off all messages and enable the following messages:
 
-* NMEA-GGA, NMEA-GSA, NMEA-GST, NMEA-GSV, NMEA-RMC
+- NMEA-GGA, NMEA-GSA, NMEA-GST, NMEA-GSV, NMEA-RMC
 
 These five NMEA sentences are commonly used with SW Maps for general surveying.
 

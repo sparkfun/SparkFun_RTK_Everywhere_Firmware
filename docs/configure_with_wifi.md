@@ -69,12 +69,12 @@ To get into WiFi configuration follow these steps:
 4. Connect to WiFi network named ‘RTK Config’.
 5. You should be automatically re-directed to the config page but if you are not, open a browser (Chrome is preferred) and type **rtk.local** into the address bar.
 
-<figure markdown>
-![Browser with rtk.local address](./img/WiFi Config/SparkFun RTK WiFi Config - Browser rtk local.png)
-<figcaption markdown>
-Browser with rtk.local
-</figcaption>
-</figure>
+	<figure markdown>
+	![Browser with rtk.local address](./img/WiFi Config/SparkFun RTK WiFi Config - Browser rtk local.png)
+	<figcaption markdown>
+	Browser with rtk.local
+	</figcaption>
+	</figure>
 
 
 ## Connecting to WiFi Network

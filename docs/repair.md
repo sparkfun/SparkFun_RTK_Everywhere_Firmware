@@ -51,10 +51,10 @@ Repair Parts:
 
 Tools Needed:
 
-* [Small Philips Head Screwdriver](https://www.sparkfun.com/products/9146)
-* [Curved Tweezers](https://www.sparkfun.com/products/10602)
-* [U.FL Puller](https://www.sparkfun.com/products/20687) - *Recommended*
-* [Wire Cutters](https://www.sparkfun.com/products/10447) - *Recommended*
+- [Small Philips Head Screwdriver](https://www.sparkfun.com/products/9146)
+- [Curved Tweezers](https://www.sparkfun.com/products/10602)
+- [U.FL Puller](https://www.sparkfun.com/products/20687) - *Recommended*
+- [Wire Cutters](https://www.sparkfun.com/products/10447) - *Recommended*
 
 ## Facet
 

@@ -82,9 +82,9 @@ This is a powerful feature of the RTK line of products. The RTK device can be co
 
 Once the NTRIP server is enabled you will need a handful of credentials:
 
-* Local WiFi SSID and password
-* A casting service such as [RTK2Go](http://www.rtk2go.com) or [Emlid](http://caster.emlid.com) (the port is almost always 2101)
-* A mount point (required) and password (required)
+- Local WiFi SSID and password
+- A casting service such as [RTK2Go](http://www.rtk2go.com) or [Emlid](http://caster.emlid.com) (the port is almost always 2101)
+- A mount point (required) and password (required)
 
 If the NTRIP server is enabled the device will first attempt to connect to WiFi. Once WiFi connects the device will attempt to connect to the NTRIP mount point. Once connected, every second a few hundred bytes, up to ~2k, will be transmitted to your mount point.
 
@@ -129,13 +129,13 @@ Additionally, RTCM messages are generated at a rate of 1Hz. If lower RTCM rates 
 
 When entering coordinates for a fixed Base in Geodetic format, the following formats are supported:
 
-* DD.ddddddddd (ie -105.184774720, 40.090335429)
-* DDMM.mmmmmmm (ie -10511.0864832)
-* DD MM.mmmmmmm (ie 40 05.42013)
-* DD-MM.mmmmmmm (40-05.42013)
-* DDMMSS.ssssss (-1051105.188992)
-* DD MM SS.ssssss (-105 11 05.188992)
-* DD-MM-SS.ssssss (40-05-25.2075)
+- DD.ddddddddd (ie -105.184774720, 40.090335429)
+- DDMM.mmmmmmm (ie -10511.0864832)
+- DD MM.mmmmmmm (ie 40 05.42013)
+- DD-MM.mmmmmmm (40-05.42013)
+- DDMMSS.ssssss (-1051105.188992)
+- DD MM SS.ssssss (-105 11 05.188992)
+- DD-MM-SS.ssssss (40-05-25.2075)
 
 <figure markdown>
 ![Coordinate formats in the Base serial menu](./img/Terminal/SparkFun RTK Everywhere - Base Menu Alternate Coordinate Format.png)

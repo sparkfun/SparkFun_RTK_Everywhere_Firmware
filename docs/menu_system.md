@@ -51,18 +51,18 @@ The header of the system menu contains various system metrics.
 
 In order of appearance:
 
-* System Date/time
-* Device Mode
-* GNSS status including receiver type and firmware version
-* Unique ID assigned to the GNSS receiver
-* GNSS information including SIV, HPA, Lat/Lon/Alt
-* Battery information (if supported)
-* Bluetooth MAC (ending) and radio status
-* WiFi MAC (full)
-* System Uptime
-* NTRIP Client/Server uptime (if enabled)
-* MQTT Client uptime (if enabled)
-* Parser statistics
+- System Date/time
+- Device Mode
+- GNSS status including receiver type and firmware version
+- Unique ID assigned to the GNSS receiver
+- GNSS information including SIV, HPA, Lat/Lon/Alt
+- Battery information (if supported)
+- Bluetooth MAC (ending) and radio status
+- WiFi MAC (full)
+- System Uptime
+- NTRIP Client/Server uptime (if enabled)
+- MQTT Client uptime (if enabled)
+- Parser statistics
 
 ## Mode Switch
 
@@ -75,12 +75,12 @@ System Menu Options serial menu
 
 The device can be in Rover, Base, or WiFi Config mode. The selected mode will be entered once the user exits the menu system.
 
-* **B, R, W, or S** - Change the mode the device is in.
+- **B, R, W, or S** - Change the mode the device is in.
 
-	* Rover - This is the default mode. The device transmits its NMEA and other messages (if enabled) over Bluetooth. It can receive corrections over Bluetooth (or other transport methods such as NTRIP Client) to achieve RTK Fix.
-	* Base - The device will reconfigure for base mode. It will begin transmitting corrections over Bluetooth, WiFi (NTRIP Server, TCP, etc), or other (ESP-Now, external radio if compatible, etc).
-	* WiFi Config - The device will shut down GNSS operations and begin broadcasting as a WiFi Access Point (or will attempt to connect to local WiFi). Once started, the device can be connected to over WiFi for configuration.
-	* Shut Down - If supported, the device will immediately shut down.
+	- Rover - This is the default mode. The device transmits its NMEA and other messages (if enabled) over Bluetooth. It can receive corrections over Bluetooth (or other transport methods such as NTRIP Client) to achieve RTK Fix.
+	- Base - The device will reconfigure for base mode. It will begin transmitting corrections over Bluetooth, WiFi (NTRIP Server, TCP, etc), or other (ESP-Now, external radio if compatible, etc).
+	- WiFi Config - The device will shut down GNSS operations and begin broadcasting as a WiFi Access Point (or will attempt to connect to local WiFi). Once started, the device can be connected to over WiFi for configuration.
+	- Shut Down - If supported, the device will immediately shut down.
 
 ## Settings
 
@@ -91,33 +91,20 @@ System Menu Options serial menu
 </figcaption>
 </figure>
 
-* **a** - On devices that support it, a beeper is used to indicate various system states (system power on/off, tilt compensation in use, etc). This can be disabled if desired.
-
-* **b** - Change the Bluetooth protocol. By default, the RTK device begins dual broadcasting over Bluetooth Classic SPP (Serial Port Profile) **and** Bluetooth Low-Energy (BLE). The following options are available: *Dual*, *Classic*, *BLE*, or *Off*. Bluetooth v2.0 SPP (Serial Port Profile) is supported by nearly all data collectors and Android tablets. BLE is used for configuration and to be compatible with Apple iOS-based devices. Additionally, the Bluetooth radio can be turned off.
-
-* **c** - On devices that support it, a device will continue to operate until the battery is exhausted. If desired, a timeout can be entered: If no charging is detected, the device will power off once this amount of time has expired.
-
-* **d** - Enters the [Debug Software menu](menu_debug_software.md) that is for advanced users.
-
-* **e** - Controls the printing of local characters (also known as 'echoing').
-
-* **f** - On devices that support it, show any files on the microSD card (if present).
-
-* **h** - Enters the [Debug Hardware menu](menu_debug_hardware.md) that is for advanced users.
-
-* **n** - Enters the [Debug Network menu](menu_debug_network.md) that is for advanced users.
-
-* **o** - Enters the [Configure RTK operation menu](menu_debug_rtk_operation.md) that is for advanced users.
-
-* **p** - Enters the [Configure periodic print menu](menu_debug_periodic_print.md) that is for advanced users.
-
-* **r** - Reset all settings to default including a factory reset of the GNSS receiver. This can be helpful if the unit has been configured into an unknown or problematic state. See [Factory Reset](menu_system.md#factory-reset).
-
-* **u** - Change between metric and Imperial units. This only modifies the units shown on serial status messages and on the display (if available), it does not change NMEA output.
-
-* **z** - A local timezone in hours, minutes and seconds may be set by pressing 'z'. The timezone values change the RTC clock setting and the file system's timestamps for new files.
-
-* **~** - If desired, the external button(s) can be disabled to prevent accidental mode changes.
+- **a** - On devices that support it, a beeper is used to indicate various system states (system power on/off, tilt compensation in use, etc). This can be disabled if desired.
+- **b** - Change the Bluetooth protocol. By default, the RTK device begins dual broadcasting over Bluetooth Classic SPP (Serial Port Profile) **and** Bluetooth Low-Energy (BLE). The following options are available: *Dual*, *Classic*, *BLE*, or *Off*. Bluetooth v2.0 SPP (Serial Port Profile) is supported by nearly all data collectors and Android tablets. BLE is used for configuration and to be compatible with Apple iOS-based devices. Additionally, the Bluetooth radio can be turned off.
+- **c** - On devices that support it, a device will continue to operate until the battery is exhausted. If desired, a timeout can be entered: If no charging is detected, the device will power off once this amount of time has expired.
+- **d** - Enters the [Debug Software menu](menu_debug_software.md) that is for advanced users.
+- **e** - Controls the printing of local characters (also known as 'echoing').
+- **f** - On devices that support it, show any files on the microSD card (if present).
+- **h** - Enters the [Debug Hardware menu](menu_debug_hardware.md) that is for advanced users.
+- **n** - Enters the [Debug Network menu](menu_debug_network.md) that is for advanced users.
+- **o** - Enters the [Configure RTK operation menu](menu_debug_rtk_operation.md) that is for advanced users.
+- **p** - Enters the [Configure periodic print menu](menu_debug_periodic_print.md) that is for advanced users.
+- **r** - Reset all settings to default including a factory reset of the GNSS receiver. This can be helpful if the unit has been configured into an unknown or problematic state. See [Factory Reset](menu_system.md#factory-reset).
+- **u** - Change between metric and Imperial units. This only modifies the units shown on serial status messages and on the display (if available), it does not change NMEA output.
+- **z** - A local timezone in hours, minutes and seconds may be set by pressing 'z'. The timezone values change the RTC clock setting and the file system's timestamps for new files.
+- **~** - If desired, the external button(s) can be disabled to prevent accidental mode changes.
 
 !!! note
 	Bluetooth SPP cannot operate concurrently with ESP-Now radio transmissions. Therefore, if you plan to use the ESP-Now radio system to connect RTK products, the BLE protocol must be used to communicate over Bluetooth to data collectors. Alternatively, ESP-Now works concurrently with WiFi so connecting to a data collector over WiFi can be used.

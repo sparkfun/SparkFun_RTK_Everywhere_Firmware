@@ -7,7 +7,6 @@ This is information about how to compile the RTK Everywhere firmware from source
 The SparkFun RTK Everywhere Firmware is compiled using Arduino CLI (currently [v0.35.3](https://github.com/arduino/arduino-cli/releases)). To compile:
 
 1. Install [Arduino CLI](https://github.com/arduino/arduino-cli/releases).
-
 2. Install the ESP32 core for Arduino:
 
 		arduino-cli core install esp32:esp32@3.0.1
@@ -19,9 +18,7 @@ The SparkFun RTK Everywhere Firmware is compiled using Arduino CLI (currently [v
 		We use the 'ESP32 Dev Module' for pin numbering.
 
 3. Obtain each of the libraries listed in [the workflow](https://github.com/sparkfun/SparkFun_RTK_Everywhere_Firmware/blob/main/.github/workflows/compile-rtk-everywhere.yml#L72) either by using git or the Arduino CLI [library manager](https://arduino.github.io/arduino-cli/0.21/commands/arduino-cli_lib_install/). Be sure to obtain the version of the library reflected in the [workflow](https://github.com/sparkfun/SparkFun_RTK_Everywhere_Firmware/blob/main/.github/workflows/compile-rtk-everywhere.yml#L72). Be sure to include the external libraries (You may have to enable external library support in the CLI).
-
 4. RTK Everywhere uses a custom partition file. Download the [RTKEverywhere.csv](https://github.com/sparkfun/SparkFun_RTK_Everywhere_Firmware/blob/main/Firmware/RTKEverywhere.csv) file.
-
 5. Add *RTKEverywhere.csv* partition table to the Arduino partitions folder. It should look something like
 
 		C:\Users\\[user name]\AppData\Local\Arduino15\packages\esp32\hardware\esp32\3.0.1\tools\partitions\RTKEverywhere.csv
@@ -52,9 +49,7 @@ You have either not replaced the partition file correctly or failed to include t
 Execute the following commands to create the Linux virtual machine:
 
 1. Using a browser, download the Ubuntu 20.04 Desktop image
-
 2. virtualbox
-
 	1. Click on the new button
 	2. Specify the machine Name, e.g.: Sparkfun_RTK_20.04
 	3. Select Type: Linux
@@ -80,22 +75,16 @@ Execute the following commands to create the Linux virtual machine:
 	23. Under 'Attached to:' select Bridged Adapter
 	24. Click the OK button
 	25. Click the Start button
-
 3. Install Ubuntu 20.04
-
 4. Log into Ubuntu
-
 5. Click on Activities
-
 6. Type terminal into the search box
-
 7. Optionally install the SSH server
-
 	1. In the terminal window
 		1. sudo apt install -y net-tools openssh-server
 		2. ifconfig
 
-		Write down the IP address
+			Write down the IP address
 
 	2. On the PC
 		1. ssh-keygen -t rsa -f ~/.ssh/Sparkfun_RTK_20.04
@@ -267,20 +256,20 @@ Execute the following commands to create the build environment for the SparkFun 
 
 		Library List:
 
-		* ArduinoJson
-		* ESP32Time
-		* ESP32-OTA-Pull
-		* ESP32_BleSerial
-		* Ethernet
-		* JC_Button
-		* MAX17048 - Used for “Test Sketch/Batt_Monitor”
-		* PubSubClient
-		* SdFat
-		* SparkFun LIS2DH12 Arduino Library
-		* SparkFun MAX1704x Fuel Gauge Arduino Library
-		* SparkFun Qwiic OLED Graphics Library
-		* SparkFun u-blox GNSS v3
-		* SparkFun_WebServer_ESP32_W5500
+		- ArduinoJson
+		- ESP32Time
+		- ESP32-OTA-Pull
+		- ESP32_BleSerial
+		- Ethernet
+		- JC_Button
+		- MAX17048 - Used for “Test Sketch/Batt_Monitor”
+		- PubSubClient
+		- SdFat
+		- SparkFun LIS2DH12 Arduino Library
+		- SparkFun MAX1704x Fuel Gauge Arduino Library
+		- SparkFun Qwiic OLED Graphics Library
+		- SparkFun u-blox GNSS v3
+		- SparkFun_WebServer_ESP32_W5500
 
 	19. Click on the Close button
 

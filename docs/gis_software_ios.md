@@ -308,10 +308,10 @@ Modified NMEA messages on RTK Torch
 
 First, configure the RTK device to output *only* the following NMEA messages:
 
-* GPGGA
-* GPGSA
-* GPGST
-* GPGSV
+- GPGGA
+- GPGSA
+- GPGST
+- GPGSV
 
 QField currently does not correctly parse other messages such as **GPRMC**, or **RTCM**. These messages will prevent communication if they are enabled.
 

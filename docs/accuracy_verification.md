@@ -31,10 +31,10 @@ This is a replication and confirmation of the procedure done by [RTKLibExplorer 
 
 The process goes like this:
 
-* Find a local monument
-* Convert the coordinates
-* Take measurements
-* Calculate differences
+- Find a local monument
+- Convert the coordinates
+- Take measurements
+- Calculate differences
 
 ## Get Used to RTK
 
@@ -98,9 +98,9 @@ My respect for the surveying industry grows daily, but that doesn't mean they ar
 
 The SparkFun example monument is at:
 
-* Latitude: 40 05 14.86880 (NAD83 in 2012)
-* Longitude: -105 09 01.68689 (NAD83 in 2012)
-* Elliptical Height: 1613.737 meters (NAD83 in 2012)
+- Latitude: 40 05 14.86880 (NAD83 in 2012)
+- Longitude: -105 09 01.68689 (NAD83 in 2012)
+- Elliptical Height: 1613.737 meters (NAD83 in 2012)
 
 ### Convert NAD83 to Today
 
@@ -135,15 +135,15 @@ Once we enter all the pertinent data, we receive a nice output showing us our mo
 
 The SparkFun example monument is at:
 
-* Latitude: 40 05 14.88667 (WGS84 in 2022)
-* Longitude: -105 09 01.74023 (WGS84 in 2022)
-* Elliptical Height: 1612.873 meters (WGS84 in 2022)
+- Latitude: 40 05 14.88667 (WGS84 in 2022)
+- Longitude: -105 09 01.74023 (WGS84 in 2022)
+- Elliptical Height: 1612.873 meters (WGS84 in 2022)
 
 And in ECEF (this will be handy in a minute):
 
-* X: -1277423.441 m (ECEF in 2022)
-* Y: -4717810.159 m (ECEF in 2022)
-* Z: 4086459.331 m (ECEF in 2022)
+- X: -1277423.441 m (ECEF in 2022)
+- Y: -4717810.159 m (ECEF in 2022)
+- Z: 4086459.331 m (ECEF in 2022)
 
 ### Convert from HH:MM:SS to Decimal
 
@@ -158,9 +158,9 @@ The NGS coordinates are in the hour/minute/second format (ie, 40 05 14.86880). W
 
 The SparkFun example monument is at:
 
-* Latitude: 40.08746852 (WGS84 in 2022)
-* Longitude: -105.15048340 (WGS84 in 2022)
-* Elliptical Height: 1613.737 meters (WGS84 in 2022)
+- Latitude: 40.08746852 (WGS84 in 2022)
+- Longitude: -105.15048340 (WGS84 in 2022)
+- Elliptical Height: 1613.737 meters (WGS84 in 2022)
 
 These are the coordinates we hope to see using SW Maps once we get out into the field. Write down your monument coordinates so that you have some idea of how close your unit is to the ideal in real-time.
 
@@ -261,11 +261,11 @@ Feel free to look at and make a copy of the [SparkFun example](https://docs.goog
 
 ## How do I get 14mm?!
 
-* Use the best equipment. Our mechanical setup was rickety and cheap. Use a surveyor’s bipod setup, with a bubble level, and a prism pole to accurately level the RTK receiver and measure the distance to the monument.
-* Use an antenna that is NGS calibrated to obtain accurate ARPs. The [SparkFun TOP106 antenna](https://www.sparkfun.com/products/17751) has been calibrated and we are in the process of calibrating the RTK Facet and RTK Facet L-Band.
-* Use an accurate base. A temporary or ‘survey-in’ base will not be accurate. The base needs 24 hours of logging with a [PPP analysis](https://learn.sparkfun.com/tutorials/how-to-build-a-diy-gnss-reference-station/all#gather-raw-gnss-data).
-* Be within 10km of your base. A baseline that is more than 10km will introduce inaccuracies to the RTK fix readings.
-* Correction services are not as accurate as a fixed base. While services such as Skylark and PointPerfect are *convenient*, they use models to estimate the overall isotropic disturbance. A local, fixed base will outperform a correction service.
-* Take an average of points. All the points taken in this example were single snapshots. Average a few seconds' worth of readings.
+- Use the best equipment. Our mechanical setup was rickety and cheap. Use a surveyor’s bipod setup, with a bubble level, and a prism pole to accurately level the RTK receiver and measure the distance to the monument.
+- Use an antenna that is NGS calibrated to obtain accurate ARPs. The [SparkFun TOP106 antenna](https://www.sparkfun.com/products/17751) has been calibrated and we are in the process of calibrating the RTK Facet and RTK Facet L-Band.
+- Use an accurate base. A temporary or ‘survey-in’ base will not be accurate. The base needs 24 hours of logging with a [PPP analysis](https://learn.sparkfun.com/tutorials/how-to-build-a-diy-gnss-reference-station/all#gather-raw-gnss-data).
+- Be within 10km of your base. A baseline that is more than 10km will introduce inaccuracies to the RTK fix readings.
+- Correction services are not as accurate as a fixed base. While services such as Skylark and PointPerfect are *convenient*, they use models to estimate the overall isotropic disturbance. A local, fixed base will outperform a correction service.
+- Take an average of points. All the points taken in this example were single snapshots. Average a few seconds' worth of readings.
 
 This was a lot of fun and a good excuse to get outdoors. We hope you enjoy finding some new points in your world.

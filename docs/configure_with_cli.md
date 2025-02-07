@@ -170,11 +170,11 @@ If the receiver is unable to carry out the action, the following error message i
 
 The following actions shall be implemented.
 
-* APPLY: applies the currently stored settings, rebooting if necessary.
-* SAVE: Saves current settings to NVM
-* EXIT: Exits the command interface
-* REBOOT: Restarts the receiver firmware without applying settings.
-* LIST: List all firmware configuration fields.
+- **`APPLY`**: applies the currently stored settings, rebooting if necessary.
+- **`SAVE`**: Saves current settings to NVM
+- **`EXIT`**: Exits the command interface
+- **`REBOOT`**: Restarts the receiver firmware without applying settings.
+- **`LIST`**: List all firmware configuration fields.
 
 ## LIST Action
 

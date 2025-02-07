@@ -86,14 +86,14 @@ NTRIP Client enabled showing settings
 
 The SparkFun RTK Everywhere devices can obtain their correction data over a few different methods.
 
-* Bluetooth - This is the most common. An app running on a tablet or phone has an NTRIP client built into it. Once the phone is connected over Bluetooth SPP, the RTCM is pushed from the phone to the RTK device. No NTRIP Client needs to be setup on the RTK device.
-* WiFi - The rover uses WiFi to be an NTRIP Client and connect to an NTRIP Caster. WiFi and Bluetooth can run simultaneously. This is helpful in situations where a GIS software does not have an NTRIP Client; a cellular hotspot can be used to provide WiFi to the RTK device setup to use NTRIP Client an obtain RTK Fix, while Bluetooth is used to connect to the GIS software for data mapping and collection.
+- Bluetooth - This is the most common. An app running on a tablet or phone has an NTRIP client built into it. Once the phone is connected over Bluetooth SPP, the RTCM is pushed from the phone to the RTK device. No NTRIP Client needs to be setup on the RTK device.
+- WiFi - The rover uses WiFi to be an NTRIP Client and connect to an NTRIP Caster. WiFi and Bluetooth can run simultaneously. This is helpful in situations where a GIS software does not have an NTRIP Client; a cellular hotspot can be used to provide WiFi to the RTK device setup to use NTRIP Client an obtain RTK Fix, while Bluetooth is used to connect to the GIS software for data mapping and collection.
 
 Once the NTRIP Client is enabled you will need a handful of credentials:
 
-* Local WiFi SSID and password (WPA2)
-* A casting service and port such as [RTK2Go](http://rtk2go.com/) or [Emlid](https://emlid.com/ntrip-caster/) (the port is almost always 2101)
-* A mount point (required) and password (optional)
+- Local WiFi SSID and password (WPA2)
+- A casting service and port such as [RTK2Go](http://rtk2go.com/) or [Emlid](https://emlid.com/ntrip-caster/) (the port is almost always 2101)
+- A mount point (required) and password (optional)
 
 With these credentials set, the RTK device will attempt to connect to WiFi, then connect to your caster of choice, and then begin downloading the RTCM data over WiFi. We tried to make it as easy as possible. Every second a few hundred bytes, up to ~2k, will be downloaded from the mount point you've entered. Remember, the rover must be in WiFi range to connect in this mode.
 

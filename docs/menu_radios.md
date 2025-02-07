@@ -38,7 +38,6 @@ ESP-NOW is a free radio included in every RTK product and works well, but it has
 </figure>
 
 1. Limited range. You can expect two RTK devices to be able to communicate approximately 250m (845 ft) line of sight but any trees, buildings, or objects between the Base and Rover will degrade reception. This range is useful for many applications but may not be acceptable for some applications. We recommend using ESP-NOW as a quick, free, and easy way to get started with Base/Rover setups. If your application needs longer RF distances consider cellular NTRIP, WiFi NTRIP, or an external serial telemetry radio plugged into the **RADIO** port.
-
 2. ESP-NOW can co-exist with WiFi, but both the receiver and transmitter must be on the same [WiFi channel](https://docs.sparkfun.com/SparkFun_RTK_Everywhere_Firmware/menu_radios/#setting-the-wifi-channel).
 
 ### Pairing

@@ -626,15 +626,15 @@ Connect to the RTK device either over [WiFi AP config](/configure_with_wifi/) or
 
 Open a terminal at 115200bps and press a key to open the serial configuration menu. Press '2' for GNSS Messages, press '1' for NMEA messages, now be sure to enable 9 messages to a rate of 1:
 
-* GGA
-* GLL
-* GRS
-* GSA
-* GST
-* GSV
-* RMC
-* VTG
-* ZDA
+- GGA
+- GLL
+- GRS
+- GSA
+- GST
+- GSV
+- RMC
+- VTG
+- ZDA
 
 Once complete, press x until you exit the serial menus. Now we may return to Survey Master.
 

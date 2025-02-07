@@ -37,22 +37,22 @@ The [SparkFun RTK u-blox Firmware Update Tool](https://github.com/sparkfun/Spark
 
 The SparkFun RTK u-blox Firmware Update Tool will only run on Windows as it relies upon u-blox's `ubxfwupdate.exe`. The full, integrated executable for Windows is available [here](https://github.com/sparkfun/SparkFun_RTK_Everywhere_Firmware_Binaries/raw/main/u-blox_Update_GUI/Windows_exe/RTK_u-blox_Update_GUI.exe).
 
-* Attach the RTK device's USB port to your computer using a USB cable
-* Turn the RTK device on
-* Open Device Manager to confirm which COM port the device is operating on
+- Attach the RTK device's USB port to your computer using a USB cable
+- Turn the RTK device on
+- Open Device Manager to confirm which COM port the device is operating on
 
-<figure markdown>
-![Device Manager showing USB Serial port on COM14](https://github.com/sparkfun/SparkFun_RTK_Everywhere_Firmware_Binaries/raw/main/u-blox_Update_GUI/SparkFun_RTK_u-blox_Updater_COM_Port.jpg)
-<figcaption markdown>
-Device Manager showing USB Serial port on COM14
-</figcaption>
-</figure>
+	<figure markdown>
+	![Device Manager showing USB Serial port on COM14](https://github.com/sparkfun/SparkFun_RTK_Everywhere_Firmware_Binaries/raw/main/u-blox_Update_GUI/SparkFun_RTK_u-blox_Updater_COM_Port.jpg)
+	<figcaption markdown>
+	Device Manager showing USB Serial port on COM14
+	</figcaption>
+	</figure>
 
-* Get the latest binary firmware file from the [ZED Firmware](https://github.com/sparkfun/SparkFun_RTK_Everywhere_Firmware_Binaries/tree/main/ZED%20Firmware), [NEO Firmware](https://github.com/sparkfun/SparkFun_RTK_Everywhere_Firmware_Binaries/tree/main/NEO%20Firmware) folder, or the [u-blox](https://www.u-blox.com/) website
-* Run *RTK_u-blox_Update_GUI.exe* (it takes a few seconds to start)
-* Click the Firmware File *Browse* and select the binary file for the update
-* Select the COM port previously seen in the Device Manager
-* Click *Update Firmware*
+- Get the latest binary firmware file from the [ZED Firmware](https://github.com/sparkfun/SparkFun_RTK_Everywhere_Firmware_Binaries/tree/main/ZED%20Firmware), [NEO Firmware](https://github.com/sparkfun/SparkFun_RTK_Everywhere_Firmware_Binaries/tree/main/NEO%20Firmware) folder, or the [u-blox](https://www.u-blox.com/) website
+- Run *RTK_u-blox_Update_GUI.exe* (it takes a few seconds to start)
+- Click the Firmware File *Browse* and select the binary file for the update
+- Select the COM port previously seen in the Device Manager
+- Click *Update Firmware*
 
 Once complete, the u-blox module will restart.
 
@@ -68,13 +68,10 @@ Most of these binaries can be found in the [ZED Firmware/ZED-F9P](https://github
 
 All field testing and device-specific performance parameters were obtained with ZED-F9P v1.30.
 
-* v1.32 has a few SPARTN protocol-specific improvements. See [release notes](https://www.u-blox.com/sites/default/files/documents/ZED-F9P-FW100-HPG132_RN_UBX-22004887.pdf). This firmware is required for use with the NEO-D9S and the decryption of PMP messages.
-
-* v1.30 has a few RTK and receiver performance improvements, I<sup>2</sup>C communication improvements, and most importantly support for SPARTN PMP packets. See [release notes](https://www.u-blox.com/sites/default/files/ZED-F9P-FW100-HPG130_RN_UBX-21047459.pdf).
-
-* v1.13 has a few RTK and receiver performance improvements but introduces a bug that causes the RTK Status LED to fail when SBAS is enabled. See [release notes](https://content.u-blox.com/sites/default/files/ZED-F9P-FW100-HPG113_RN_%28UBX-20019211%29.pdf).
-
-* v1.12 has the benefit of working with SBAS and an operational RTK status signal (the LED illuminates correctly). See [release notes](https://content.u-blox.com/sites/default/files/ZED-F9P-FW100-HPG112_RN_%28UBX-19026698%29.pdf).
+- v1.32 has a few SPARTN protocol-specific improvements. See [release notes](https://www.u-blox.com/sites/default/files/documents/ZED-F9P-FW100-HPG132_RN_UBX-22004887.pdf). This firmware is required for use with the NEO-D9S and the decryption of PMP messages.
+- v1.30 has a few RTK and receiver performance improvements, I<sup>2</sup>C communication improvements, and most importantly support for SPARTN PMP packets. See [release notes](https://www.u-blox.com/sites/default/files/ZED-F9P-FW100-HPG130_RN_UBX-21047459.pdf).
+- v1.13 has a few RTK and receiver performance improvements but introduces a bug that causes the RTK Status LED to fail when SBAS is enabled. See [release notes](https://content.u-blox.com/sites/default/files/ZED-F9P-FW100-HPG113_RN_%28UBX-20019211%29.pdf).
+- v1.12 has the benefit of working with SBAS and an operational RTK status signal (the LED illuminates correctly). See [release notes](https://content.u-blox.com/sites/default/files/ZED-F9P-FW100-HPG112_RN_%28UBX-19026698%29.pdf).
 
 ### NEO-D9S Firmware Changes
 
@@ -82,6 +79,6 @@ This module is used in the Facet L-Band to receive encrypted PMP messages over ~
 
 This binary file can be found in the [NEO Firmware](https://github.com/sparkfun/SparkFun_RTK_Everywhere_Firmware_Binaries/tree/main/NEO%20Firmware) folder.
 
-* v1.04 Initial release.
+- v1.04 Initial release.
 
 As of writing, no additional releases of the NEO-D9S firmware have been made.

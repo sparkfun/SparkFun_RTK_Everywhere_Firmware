@@ -46,10 +46,10 @@ The **DATA** port on the RTK Facet can be configured to output a variety of diff
 
 Connect the included [4-pin JST to breadboard cable](https://www.sparkfun.com/products/17240) to the **DATA** port. The cable has the following pinout:
 
-* **Red** - 3.3V
-* **Green** - TX (output from the RTK device)
-* **Orange** - RX (input into the RTK device)
-* **Black** - GND
+- **Red** - 3.3V
+- **Green** - TX (output from the RTK device)
+- **Orange** - RX (input into the RTK device)
+- **Black** - GND
 
 <figure markdown>
 ![Wires connected to a SparkFun USB C to Serial adapter](./img/SparkFun_RTK_Facet_-_Data_Port_to_USB.jpg)
@@ -98,8 +98,7 @@ On devices that support it, external screw terminals provide direct access to th
 </figcaption>
 </figure>
 
-* TX2 : u-blox ZED-F9P UART2 transmit: 3.3V OUTPUT
-
-* RX2 : u-blox ZED-F9P UART2 receive: 3.3V INPUT
+- TX2 : u-blox ZED-F9P UART2 transmit: 3.3V OUTPUT
+- RX2 : u-blox ZED-F9P UART2 receive: 3.3V INPUT
 
 Please see the [EVK Hookup Guide](https://docs.sparkfun.com/SparkFun_RTK_EVK/hardware_overview/#zed-f9p-secondary-uart-port) for more details.
