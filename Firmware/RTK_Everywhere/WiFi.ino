@@ -681,7 +681,11 @@ void wifiStartThrottled(NetIndex_t index, uintptr_t parameter, bool debug)
 // Stop WiFi, used by wifiStopSequence
 void wifiStop(NetIndex_t index, uintptr_t parameter, bool debug)
 {
-    WIFI_STOP();
+    networkInterfaceInternetConnectionLost(NETWORK_WIFI);
+
+    // Stop WiFi stataion
+    wifi.enable(wifi.espNowRunning(), wifi.softApRunning(), false);
+
     networkSequenceNextEntry(NETWORK_WIFI, settings.debugNetworkLayer);
 }
 
