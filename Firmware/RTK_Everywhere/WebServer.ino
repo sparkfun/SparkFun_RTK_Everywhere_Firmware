@@ -774,7 +774,7 @@ void webServerUpdate()
     // Wait for connection to the network
     case WEBSERVER_STATE_WAIT_FOR_NETWORK:
         // Wait until the network is connected to the internet or has WiFi AP
-        if (networkIsConnected(&webServerPriority) || WIFI_SOFT_AP_RUNNING())
+        if (networkIsConnected(&webServerPriority) || wifiSoftApRunning)
         {
             if (settings.debugWebServer)
                 systemPrintln("Web Server connected to network");
@@ -786,7 +786,7 @@ void webServerUpdate()
     // Start the web server
     case WEBSERVER_STATE_NETWORK_CONNECTED: {
         // Determine if the network has failed
-        if (networkIsConnected(&webServerPriority) == false && WIFI_SOFT_AP_RUNNING() == false)
+        if (networkIsConnected(&webServerPriority) == false && wifiSoftApRunning == false)
             webServerStop();
         if (settings.debugWebServer)
             systemPrintln("Assigning web server resources");
@@ -802,7 +802,7 @@ void webServerUpdate()
     // Allow web services
     case WEBSERVER_STATE_RUNNING:
         // Determine if the network has failed
-        if (networkIsConnected(&webServerPriority) == false && WIFI_SOFT_AP_RUNNING() == false)
+        if (networkIsConnected(&webServerPriority) == false && wifiSoftApRunning == false)
             webServerStop();
 
         // This state is exited when webServerStop() is called

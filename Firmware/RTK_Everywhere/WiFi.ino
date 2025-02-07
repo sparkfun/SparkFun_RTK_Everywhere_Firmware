@@ -622,7 +622,7 @@ void wifiResetTimeout()
 // Returns true if WiFi has connected and false otherwise
 bool wifiStart()
 {
-    return wifi.enable(wifi.espNowRunning(), wifi.softApRunning(), true);
+    return wifi.enable(wifiEspNowRunning, wifiSoftApRunning, true);
 }
 
 //*********************************************************************
@@ -686,7 +686,7 @@ void wifiStationReconnectionRequest()
         wifiReconnectionTimer = currentMsec;
 
         // Start the WiFi scan
-        if (wifi.stationRunning())
+        if (wifiStationRunning)
         {
             if (settings.debugWifiState)
                 systemPrintf("WiFi: Attempting WiFi restart\r\n");
@@ -711,7 +711,7 @@ void wifiStop(NetIndex_t index, uintptr_t parameter, bool debug)
     networkInterfaceInternetConnectionLost(NETWORK_WIFI);
 
     // Stop WiFi stataion
-    wifi.enable(wifi.espNowRunning(), wifi.softApRunning(), false);
+    wifi.enable(wifiEspNowRunning, wifiSoftApRunning, false);
 
     networkSequenceNextEntry(NETWORK_WIFI, settings.debugNetworkLayer);
 }
@@ -757,17 +757,21 @@ RTK_WIFI::RTK_WIFI(bool verbose)
       _apGatewayAddress{(uint32_t)0},
       _apIpAddress{IPAddress("192.168.4.1")},
       _apMacAddress{0, 0, 0, 0, 0, 0},
-      _apSubnetMask{IPAddress("255.255.255.0")}, _channel{0},
-      _espNowChannel{0}, _espNowRunning{false},
-      _scanRunning{false}, _softApRunning{false},
+      _apSubnetMask{IPAddress("255.255.255.0")},
+      _espNowChannel{0},
+      _scanRunning{false},
       _staIpAddress{IPAddress((uint32_t)0)}, _staIpType{0},
       _staMacAddress{0, 0, 0, 0, 0, 0},
       _staRemoteApSsid{nullptr}, _staRemoteApPassword{nullptr},
       _started{false}, _stationChannel{0},
       _usingDefaultChannel{true}, _verbose{verbose}
 {
+    wifiChannel = 0;
+    wifiEspNowRunning = false;
     wifiReconnectionTimer = 0;
     wifiRestartRequested = false;
+    wifiStationRunning = false;
+    wifiSoftApRunning = false;
 }
 
 //*********************************************************************
@@ -793,13 +797,13 @@ bool RTK_WIFI::connect(unsigned long timeout,
     log_w("WiFi: Not using timeout parameter for connect!\r\n");
 
     // Enable WiFi station if necessary
-    if (_stationRunning == false)
+    if (wifiStationRunning == false)
     {
         displayWiFiConnect();
-        started = enable(_espNowRunning, _softApRunning, true);
+        started = enable(wifiEspNowRunning, wifiSoftApRunning, true);
     }
-    else if (startAP && !_softApRunning)
-        started = enable(_espNowRunning, true, _stationRunning);
+    else if (startAP && !wifiSoftApRunning)
+        started = enable(wifiEspNowRunning, true, wifiStationRunning);
 
     // Determine the WiFi station status
     if (started)
@@ -872,12 +876,12 @@ bool RTK_WIFI::enable(bool enableESPNow, bool enableSoftAP, bool enableStation)
     if (enableESPNow)
     {
         starting |= WIFI_START_ESP_NOW;
-        _espNowRunning = true;
+        wifiEspNowRunning = true;
     }
     else
     {
         stopping |= WIFI_START_ESP_NOW;
-        _espNowRunning = false;
+        wifiEspNowRunning = false;
     }
 
     // Update the soft AP state
@@ -887,7 +891,7 @@ bool RTK_WIFI::enable(bool enableESPNow, bool enableSoftAP, bool enableStation)
         if (wifiSoftApSsid && strlen(wifiSoftApSsid) && wifiSoftApPassword)
         {
             starting |= WIFI_START_SOFT_AP;
-            _softApRunning = true;
+            wifiSoftApRunning = true;
         }
         else
             systemPrintf("ERROR: AP SSID or password is missing\r\n");
@@ -895,7 +899,7 @@ bool RTK_WIFI::enable(bool enableESPNow, bool enableSoftAP, bool enableStation)
     else
     {
         stopping |= WIFI_START_SOFT_AP;
-        _softApRunning = false;
+        wifiSoftApRunning = false;
     }
 
     // Update the station state
@@ -914,14 +918,14 @@ bool RTK_WIFI::enable(bool enableESPNow, bool enableSoftAP, bool enableStation)
         {
             // Start the WiFi station
             starting |= WIFI_START_STATION;
-            _stationRunning = true;
+            wifiStationRunning = true;
         }
     }
     else
     {
         // Stop the WiFi station
         stopping |= WIFI_START_STATION;
-        _stationRunning = false;
+        wifiStationRunning = false;
     }
 
     // Stop and start the WiFi components
@@ -938,13 +942,6 @@ bool RTK_WIFI::enable(bool enableESPNow, bool enableSoftAP, bool enableStation)
 bool RTK_WIFI::espNowOnline()
 {
     return (_started & WIFI_EN_ESP_NOW_ONLINE) ? true : false;
-}
-
-//*********************************************************************
-// Get the ESP-NOW status
-bool RTK_WIFI::espNowRunning()
-{
-    return _espNowRunning;
 }
 
 //*********************************************************************
@@ -1021,7 +1018,7 @@ void RTK_WIFI::eventHandler(arduino_event_id_t event, arduino_event_info_t info)
 //   Returns the current WiFi channel number
 WIFI_CHANNEL_t RTK_WIFI::getChannel()
 {
-    return _channel;
+    return wifiChannel;
 }
 
 //*********************************************************************
@@ -1035,8 +1032,8 @@ bool RTK_WIFI::restart(bool always)
 
         // Determine how WiFi is being used
         bool started = false;
-        bool espNowRunning = _espNowRunning;
-        bool softApRunning = _softApRunning;
+        bool espNowRunning = wifiEspNowRunning;
+        bool softApRunning = wifiSoftApRunning;
 
         // Stop the WiFi layer
         started = enable(false, false, false);
@@ -1052,13 +1049,6 @@ bool RTK_WIFI::restart(bool always)
     }
     else
         return false;
-}
-
-//*********************************************************************
-// Determine if any use of WiFi is starting or is online
-bool RTK_WIFI::running()
-{
-    return _espNowRunning | _softApRunning | _stationRunning;
 }
 
 //*********************************************************************
@@ -1254,9 +1244,9 @@ bool RTK_WIFI::softApConfiguration(IPAddress ipAddress,
     success = true;
     if (softApOnline())
     {
-        success = enable(false, false, stationRunning());
+        success = enable(false, false, wifiStationRunning);
         if (success)
-            success = enable(false, true, stationRunning());
+            success = enable(false, true, wifiStationRunning);
     }
     return success;
 }
@@ -1430,13 +1420,6 @@ bool RTK_WIFI::softApOnline()
 }
 
 //*********************************************************************
-// Determine if the soft AP is being started or is onine
-bool RTK_WIFI::softApRunning()
-{
-    return _softApRunning;
-}
-
-//*********************************************************************
 // Set the soft AP SSID and password
 // Outputs:
 //   Returns true if successful and false upon failure
@@ -1465,7 +1448,7 @@ bool RTK_WIFI::softApSetSsidPassword(const char * ssid, const char * password)
 //    otherwise
 bool RTK_WIFI::startAp(bool forceAP)
 {
-    return enable(_espNowRunning, forceAP | settings.wifiConfigOverAP, _stationRunning);
+    return enable(wifiEspNowRunning, forceAP | settings.wifiConfigOverAP, wifiStationRunning);
 }
 
 //*********************************************************************
@@ -1481,9 +1464,9 @@ bool RTK_WIFI::stationConnectAP()
         if (settings.debugWifiState)
             systemPrintf("WiFi connecting to %s on channel %d with %s authorization\r\n",
                          _staRemoteApSsid,
-                         _channel,
+                         wifiChannel,
                          (_staAuthType < WIFI_AUTH_MAX) ? wifiAuthorizationName[_staAuthType] : "Unknown");
-        connected = (WiFi.STA.connect(_staRemoteApSsid, _staRemoteApPassword, _channel));
+        connected = (WiFi.STA.connect(_staRemoteApSsid, _staRemoteApPassword, wifiChannel));
         if (!connected)
         {
             if (settings.debugWifiState)
@@ -1494,7 +1477,7 @@ bool RTK_WIFI::stationConnectAP()
         if (settings.debugWifiState)
             systemPrintf("WiFi station connected to %s on channel %d with %s authorization\r\n",
                          _staRemoteApSsid,
-                         _channel,
+                         wifiChannel,
                          (_staAuthType < WIFI_AUTH_MAX) ? wifiAuthorizationName[_staAuthType] : "Unknown");
 
         // Don't delay the next WiFi start request
@@ -1757,13 +1740,6 @@ int16_t RTK_WIFI::stationScanForAPs(WIFI_CHANNEL_t channel)
 }
 
 //*********************************************************************
-// Get the station status
-bool RTK_WIFI::stationRunning()
-{
-    return _stationRunning;
-}
-
-//*********************************************************************
 // Select the AP and channel to use for WiFi station
 // Inputs:
 //   apCount: Number to APs detected by the WiFi scan
@@ -1897,10 +1873,10 @@ bool RTK_WIFI::stopStart(WIFI_ACTION_t stopping, WIFI_ACTION_t starting)
     defaultChannel = _usingDefaultChannel;
     _usingDefaultChannel = false;
     if (((_started & ~stopping) & (WIFI_AP_ONLINE | WIFI_EN_ESP_NOW_ONLINE | WIFI_STA_ONLINE))
-        && _channel && !defaultChannel)
+        && wifiChannel && !defaultChannel)
     {
         // Continue to use the active channel
-        channel = _channel;
+        channel = wifiChannel;
         if (settings.debugWifiState && _verbose)
             systemPrintf("channel: %d, active channel\r\n", channel);
     }
@@ -1921,11 +1897,11 @@ bool RTK_WIFI::stopStart(WIFI_ACTION_t stopping, WIFI_ACTION_t starting)
             systemPrintf("channel: Determine by remote AP scan\r\n");
 
         // Restart ESP-NOW if necessary
-        if (espNowRunning())
+        if (wifiEspNowRunning)
             stopping |= WIFI_START_ESP_NOW;
 
         // Restart soft AP if necessary
-        if (softApRunning())
+        if (wifiSoftApRunning)
             stopping |= WIFI_START_SOFT_AP;
     }
 
@@ -2217,7 +2193,7 @@ bool RTK_WIFI::stopStart(WIFI_ACTION_t stopping, WIFI_ACTION_t starting)
         // Reset the channel if all components are stopped
         if ((softApOnline() == false) && (stationOnline() == false))
         {
-            _channel = 0;
+            wifiChannel = 0;
             _usingDefaultChannel = true;
         }
 
@@ -2298,8 +2274,8 @@ bool RTK_WIFI::stopStart(WIFI_ACTION_t stopping, WIFI_ACTION_t starting)
             _started = _started | WIFI_STA_SELECT_REMOTE_AP;
             if (channel == 0)
             {
-                if (_channel)
-                    systemPrintf("WiFi STA: No compatible remote AP found on channel %d!\r\n", _channel);
+                if (wifiChannel)
+                    systemPrintf("WiFi STA: No compatible remote AP found on channel %d!\r\n", wifiChannel);
                 else
                     systemPrintf("WiFi STA: No compatible remote AP found!\r\n");
 
@@ -2323,11 +2299,11 @@ bool RTK_WIFI::stopStart(WIFI_ACTION_t stopping, WIFI_ACTION_t starting)
             // Use the default channel if necessary
             if (!channel)
                 channel = WIFI_DEFAULT_CHANNEL;
-            _channel = channel;
+            wifiChannel = channel;
 
             // Display the selected channel
             if (settings.debugWifiState)
-                systemPrintf("Channel: %d selected\r\n", _channel);
+                systemPrintf("Channel: %d selected\r\n", wifiChannel);
         }
 
         //****************************************
@@ -2497,7 +2473,7 @@ bool RTK_WIFI::stopStart(WIFI_ACTION_t stopping, WIFI_ACTION_t starting)
             }
 
             // Set the ESP-NOW channel
-            if (primaryChannel != _channel)
+            if (primaryChannel != wifiChannel)
             {
                 if (settings.debugWifiState && _verbose)
                     systemPrintf("Calling esp_wifi_set_channel\r\n");
@@ -2572,7 +2548,7 @@ bool RTK_WIFI::stopStart(WIFI_ACTION_t stopping, WIFI_ACTION_t starting)
             systemPrintf("WiFi: ESP-NOW online (%02x:%02x:%02x:%02x:%02x:%02x, channel: %d)\r\n",
                          _staMacAddress[0], _staMacAddress[1], _staMacAddress[2],
                          _staMacAddress[3], _staMacAddress[4], _staMacAddress[5],
-                         _channel);
+                         wifiChannel);
         }
 
         // All components started successfully

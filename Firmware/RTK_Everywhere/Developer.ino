@@ -179,7 +179,7 @@ void webServerVerifyTables() {}
 #ifndef COMPILE_ESPNOW
 
 bool espnowGetState()                   {return ESPNOW_OFF;}
-#define ESPNOW_IS_PAIRED()              false
+bool espNowIsPaired()                   {return false;}
 void espNowProcessRTCM(byte incoming)   {}
 bool espNowProcessRxPairedMessage()     {return true;}
 esp_err_t espNowRemovePeer(uint8_t *peerMac)        {return ESP_OK;}
@@ -201,18 +201,13 @@ void espNowUpdate()                     {}
 #ifndef COMPILE_WIFI
 
 void menuWiFi()                 {systemPrintln("**WiFi not compiled**");}
-#define WIFI_ESPNOW_RUNNING()                   false
 #define WIFI_ESPNOW_SET_CHANNEL(chan)
-#define WIFI_GET_CHANNEL()                      0
 uint32_t wifiGetStartTimeout()                  {return 0;}
-#define WIFI_IS_RUNNING()                       false
 int wifiNetworkCount()                          {return 0;}
 void wifiResetThrottleTimeout()                 {}
 void wifiResetTimeout()                         {}
-#define WIFI_SOFT_AP_RUNNING()                  false
 bool wifiStart()                                {return false;}
 void wifiStationReconnectionRequest()           {}
-#define WIFI_STATION_RUNNING()                  false
 #define WIFI_STOP()                             {}
 bool wifiUnavailable()                          {return true;}
 

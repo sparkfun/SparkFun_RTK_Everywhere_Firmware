@@ -524,7 +524,7 @@ IPAddress networkGetIpAddress()
     IPAddress ip;
 
     // NETIF doesn't capture the IP address of a soft AP
-    if (WIFI_SOFT_AP_RUNNING() == true && WIFI_STATION_RUNNING() == false)
+    if (wifiSoftApRunning == true && wifiStationRunning == false)
         return WiFi.softAPIP();
 
     // Get the networkInterfaceTable index
@@ -1612,7 +1612,7 @@ void networkUpdate()
         if ((networkHasInternet() == false) && (consumerTypes & (1 << NETIF_CELLULAR)))
         {
             // If we're in AP only mode (no internet), don't start cellular
-            if (WIFI_SOFT_AP_RUNNING() == false)
+            if (wifiSoftApRunning == false)
             {
                 // Don't start cellular until WiFi has failed to connect
                 if (wifiUnavailable() == true)

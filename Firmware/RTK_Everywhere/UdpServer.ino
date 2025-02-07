@@ -337,7 +337,7 @@ void udpServerUpdate()
             udpServerStop();
 
         // Wait until the network is connected
-        else if (networkIsConnected(&udpServerPriority) || WIFI_SOFT_AP_RUNNING())
+        else if (networkIsConnected(&udpServerPriority) || wifiSoftApRunning)
         {
             // Delay before starting the UDP server
             if ((millis() - udpServerTimer) >= (1 * 1000))
@@ -355,7 +355,7 @@ void udpServerUpdate()
     // Handle client connections and link failures
     case UDP_SERVER_STATE_RUNNING:
         // Determine if the network has failed
-        if ((networkIsConnected(&udpServerPriority) == false && WIFI_SOFT_AP_RUNNING() == false) || (!settings.enableUdpServer && !settings.baseCasterOverride))
+        if ((networkIsConnected(&udpServerPriority) == false && wifiSoftApRunning == false) || (!settings.enableUdpServer && !settings.baseCasterOverride))
         {
             if ((settings.debugUdpServer || PERIODIC_DISPLAY(PD_UDP_SERVER_DATA)) && (!inMainMenu))
             {

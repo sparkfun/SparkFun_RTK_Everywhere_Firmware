@@ -352,26 +352,14 @@ bool sdSizeCheckTaskComplete;
 char logFileName[sizeof("SFE_Reference_Station_230101_120101.ubx_plusExtraSpace")] = {0};
 //-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 
-// Over-the-Air (OTA) update support
+// WiFi support
 //-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
-
-#define MQTT_CERT_SIZE 2000
-
-#include <ArduinoJson.h> //http://librarymanager/All#Arduino_JSON_messagepack
-
-#include "esp_ota_ops.h" //Needed for partition counting and updateFromSD
-
 #ifdef COMPILE_WIFI
 int packetRSSI;
 RTK_WIFI wifi(false);
 
-#define WIFI_ESPNOW_RUNNING()           wifi.espNowRunning()
 #define WIFI_ESPNOW_SET_CHANNEL(chan)   wifi.espNowSetChannel(chan)
-#define WIFI_GET_CHANNEL()              wifi.getChannel()
 #define WIFI_IS_CONNECTED()             wifi.stationOnline()
-#define WIFI_IS_RUNNING()               wifi.running()
-#define WIFI_SOFT_AP_RUNNING()          wifi.softApRunning()
-#define WIFI_STATION_RUNNING()          wifi.stationRunning()
 
 #define WIFI_STOP()                                                                                                    \
     {                                                                                                                  \
@@ -382,8 +370,18 @@ RTK_WIFI wifi(false);
 #endif // COMPILE_WIFI
 
 // WiFi Globals - For other module direct access
+WIFI_CHANNEL_t wifiChannel;     // Current WiFi channel number
+bool wifiEspNowRunning;         // False: stopped, True: starting, running, stopping
 uint32_t wifiReconnectionTimer; // Delay before reconnection, timer running when non-zero
 bool wifiRestartRequested;      // Restart WiFi if user changes anything
+bool wifiSoftApRunning;         // False: stopped, True: starting, running, stopping
+bool wifiStationRunning;        // False: stopped, True: starting, running, stopping
+
+//-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+
+// MQTT support
+//-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+#define MQTT_CERT_SIZE 2000
 
 #define MQTT_CLIENT_STOP(shutdown)                                                                                     \
     {                                                                                                                  \
@@ -391,6 +389,13 @@ bool wifiRestartRequested;      // Restart WiFi if user changes anything
             systemPrintf("mqttClientStop(%s) called by %s %d\r\n", shutdown ? "true" : "false", __FILE__, __LINE__);   \
         mqttClientStop(shutdown);                                                                                      \
     }
+//-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+
+// Over-the-Air (OTA) update support
+//-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+#include <ArduinoJson.h> //http://librarymanager/All#Arduino_JSON_messagepack
+
+#include "esp_ota_ops.h" //Needed for partition counting and updateFromSD
 
 #define OTA_FIRMWARE_JSON_URL_LENGTH 128
 //                                                                                                      1         1 1
@@ -668,24 +673,24 @@ const int updateWebSocketStackSize =
 float lBandEBNO; // Used on system status menu
 //=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 
-// ESP NOW for multipoint wireless broadcasting over 2.4GHz
+// ESP-NOW for multipoint wireless broadcasting over 2.4GHz
 //-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 #ifdef COMPILE_ESPNOW
 
 #include <esp_now.h> //Built-in
 
-#define ESPNOW_IS_PAIRED()  espNowIsPaired()
 #define ESPNOW_START()                                                                      \
     {                                                                                       \
         if (settings.debugEspNow)                                                           \
             systemPrintf("ESPNOW_START called in %s at line %d\r\n", __FILE__, __LINE__);   \
-        wifi.enable(true, wifi.softApRunning(), wifi.stationRunning());                     \
+        wifi.enable(true, wifiSoftApRunning, wifiStationRunning);                     \
     }
 
-#define ESPNOW_STOP()       wifi.enable(false, wifi.softApRunning(), wifi.stationRunning())
+#define ESPNOW_STOP()       wifi.enable(false, wifiSoftApRunning, wifiStationRunning)
 
 #endif // COMPILE_ESPNOW
 
+// ESP-NOW Globals - For other module direct access
 bool espNowIncomingRTCM;
 bool espNowOutgoingRTCM;
 int espNowRSSI;

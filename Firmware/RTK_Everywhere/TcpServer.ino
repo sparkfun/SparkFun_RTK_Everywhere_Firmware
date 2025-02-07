@@ -411,7 +411,7 @@ void tcpServerUpdate()
     // Handle client connections and link failures
     case TCP_SERVER_STATE_RUNNING:
         // Determine if the network has failed
-        if ((networkIsConnected(&tcpServerPriority) == false && WIFI_SOFT_AP_RUNNING() == false) || (!settings.enableTcpServer && !settings.baseCasterOverride))
+        if ((networkIsConnected(&tcpServerPriority) == false && wifiSoftApRunning == false) || (!settings.enableTcpServer && !settings.baseCasterOverride))
         {
             if ((settings.debugTcpServer || PERIODIC_DISPLAY(PD_TCP_SERVER_DATA)) && (!inMainMenu))
             {
