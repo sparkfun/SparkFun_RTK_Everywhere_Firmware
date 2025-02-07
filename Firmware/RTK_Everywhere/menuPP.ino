@@ -128,7 +128,7 @@ void menuPointPerfectKeys()
             settings.pointPerfectNextKeyDuration = settings.pointPerfectCurrentKeyDuration;
 
             if (settings.debugCorrections == true)
-                pointperfectPrintKeyInformation();
+                pointperfectPrintKeyInformation("Menu PP");
         }
         else if (incoming == 4)
         {

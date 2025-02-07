@@ -474,7 +474,7 @@ void mqttClientReceiveMessage(int messageSize)
                 recordSystemSettings(); // Record these settings to unit
 
                 if (settings.debugCorrections == true)
-                    pointperfectPrintKeyInformation();
+                    pointperfectPrintKeyInformation("MQTT Topic");
             }
 
             // Correction data from PP can go direct to GNSS
@@ -585,6 +585,23 @@ void mqttClientSetState(uint8_t newState)
         }
         else
             systemPrintln(mqttClientStateName[mqttClientState]);
+
+        systemPrint("MQTT Client subscribe topics: ");
+        for (auto it = mqttSubscribeTopics.begin(); it != mqttSubscribeTopics.end(); it = std::next(it))
+        {
+            String topic = *it;
+            systemPrint(topic);
+            systemPrint(" ");
+        }
+        systemPrintln();
+        systemPrint("MQTT Client subscribed topics: ");
+        for (auto it = mqttSubscribedTopics.begin(); it != mqttSubscribedTopics.end(); it = std::next(it))
+        {
+            String topic = *it;
+            systemPrint(topic);
+            systemPrint(" ");
+        }
+        systemPrintln();
     }
 }
 
@@ -859,8 +876,10 @@ void mqttClientUpdate()
         {
             mqttSubscribeTopics.push_back(MQTT_TOPIC_ASSISTNOW);
         }
+        
         // Subscribe to the key distribution topic
         mqttSubscribeTopics.push_back(String(settings.pointPerfectKeyDistributionTopic));
+        
         // Subscribe to the continental correction topic for our region - if we have one. L-Band-only does not.
         if (strlen(settings.regionalCorrectionTopics[settings.geographicRegion]) > 0)
         {

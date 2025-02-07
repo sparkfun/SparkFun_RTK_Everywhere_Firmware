@@ -540,7 +540,7 @@ void httpClientUpdate()
                     settings.pointPerfectNextKeyStart = (*jsonZtp)["dynamickeys"]["next"]["start"];
 
                     if (settings.debugCorrections || settings.debugHttpClientData)
-                        pointperfectPrintKeyInformation();
+                        pointperfectPrintKeyInformation("HTTP Client");
 
                     // displayKeysUpdated();
 
