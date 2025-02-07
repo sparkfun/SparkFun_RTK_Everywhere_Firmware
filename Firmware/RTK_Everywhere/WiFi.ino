@@ -687,16 +687,27 @@ void wifiStationReconnectionRequest()
     currentMsec = millis();
     if ((currentMsec - wifiReconnectionTimer) >= WIFI_RECONNECTION_DELAY)
     {
-        // Stop the reconnection timer
-        wifiReconnectionTimer = 0;
         if (settings.debugWifiState)
-            systemPrintf("Reconnection timer fired!\r\n");
+            systemPrintf("WiFi: Reconnection timer fired!\r\n");
+
+        // Restart the reconnection timer
+        wifiReconnectionTimer = currentMsec;
 
         // Start the WiFi scan
         if (wifi.stationRunning())
         {
+            if (settings.debugWifiState)
+                systemPrintf("WiFi: Attempting WiFi restart\r\n");
             wifi.clearStarted(WIFI_STA_RECONNECT);
-            wifi.stopStart(WIFI_AP_START_MDNS, WIFI_STA_RECONNECT);
+            if (wifi.stopStart(WIFI_AP_START_MDNS, WIFI_STA_RECONNECT))
+            {
+                // Stop the reconnection timer
+                wifiReconnectionTimer = 0;
+                if (settings.debugWifiState)
+                    systemPrintf("WiFi: Reconnection timer stopped\r\n");
+            }
+            else if (settings.debugWifiState)
+                systemPrintf("WiFi: Station is not running!\r\n");
         }
     }
 }
@@ -1595,13 +1606,6 @@ void RTK_WIFI::stationEventHandler(arduino_event_id_t event, arduino_event_info_
             if (!wifiReconnectionTimer)
                 wifiReconnectionTimer = 1;
         }
-        else
-        {
-            // Stop the reconnection timer
-            if (settings.debugWifiState && _verbose && wifiReconnectionTimer)
-                systemPrintf("WiFi: Reconnection timer stopped\r\n");
-            wifiReconnectionTimer = 0;
-        }
 
         // Fall through
         //      |
@@ -2167,6 +2171,9 @@ bool RTK_WIFI::stopStart(WIFI_ACTION_t stopping, WIFI_ACTION_t starting)
                 systemPrintf("WiFi: Station offline!\r\n");
             _started = _started & ~WIFI_STA_ONLINE;
         }
+
+        // Stop the reconnection timer
+        wifiReconnectionTimer = 0;
 
         // Stop mDNS on WiFi station
         if (stopping & WIFI_STA_START_MDNS)
