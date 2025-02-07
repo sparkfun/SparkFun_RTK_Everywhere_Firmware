@@ -653,6 +653,9 @@ void networkInterfaceInternetConnectionLost(NetIndex_t index)
     // Validate the index
     networkValidateIndex(index);
 
+    // Clear the event flag
+    networkEventInternetLost[index] = false;
+
     // Check for network offline
     if (networkInterfaceHasInternet(index) == false)
         // Already offline, nothing to do
@@ -721,6 +724,9 @@ void networkInterfaceInternetConnectionAvailable(NetIndex_t index)
 
     // Validate the index
     networkValidateIndex(index);
+
+    // Clear the event flag
+    networkEventInternetAvailable[index] = false;
 
     // Check for network online
     previousIndex = index;
@@ -1281,6 +1287,9 @@ void networkStop(NetIndex_t index, bool debug)
     // Validate the index
     networkValidateIndex(index);
 
+    // Clear the event flag
+    networkEventStop[index] = false;
+
     // Only stop networks that exist on the platform
     if (networkIsPresent(index))
     {
@@ -1385,17 +1394,11 @@ void networkUpdate()
 
         // Handle the network lost internet event
         if (networkEventInternetLost[index])
-        {
-            networkEventInternetLost[index] = false;
             networkInterfaceInternetConnectionLost(index);
-        }
 
         // Handle the network stop event
         if (networkEventStop[index])
-        {
-            networkEventStop[index] = false;
             networkStop(index, settings.debugNetworkLayer);
-        }
 
         // Check for the WiFi station reconnection
         if ((index == NETWORK_WIFI) && wifiReconnectionTimer)
@@ -1403,10 +1406,7 @@ void networkUpdate()
 
         // Handle the network has internet event
         if (networkEventInternetAvailable[index])
-        {
-            networkEventInternetAvailable[index] = false;
             networkInterfaceInternetConnectionAvailable(index);
-        }
 
         // Execute any active polling routine
         sequence = networkSequence[index];
