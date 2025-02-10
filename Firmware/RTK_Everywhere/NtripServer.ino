@@ -493,6 +493,7 @@ void ntripServerStart(int serverIndex)
 
     // Start the NTRIP server
     systemPrintf("NTRIP Server %d start\r\n", serverIndex);
+    networkConsumerAdd(NETCONSUMER_NTRIP_CLIENT, NETWORK_ANY);
     ntripServerStop(serverIndex, false);
 }
 
@@ -539,6 +540,7 @@ void ntripServerStop(int serverIndex, bool shutdown)
             if (settings.debugNtripServerState && (!settings.ntripServer_MountPoint[serverIndex][0]))
                 systemPrintf("NTRIP Server %d mount point not configured!\r\n", serverIndex);
         }
+        networkConsumerRemove(NETCONSUMER_NTRIP_SERVER, NETWORK_ANY);
         ntripServerSetState(ntripServer, NTRIP_SERVER_OFF);
         ntripServer->connectionAttempts = 0;
         ntripServer->connectionAttemptTimeout = 0;
@@ -592,12 +594,7 @@ void ntripServerUpdate(int serverIndex)
     if (NEQ_RTK_MODE(ntripServerMode) || (!settings.enableNtripServer))
     {
         if (ntripServer->state > NTRIP_SERVER_OFF)
-        {
-            ntripServerStop(serverIndex, true); // Was false - #StopVsRestart
-            ntripServer->connectionAttempts = 0;
-            ntripServer->connectionAttemptTimeout = 0;
-            ntripServerSetState(ntripServer, NTRIP_SERVER_OFF);
-        }
+            ntripServerStop(serverIndex, true);
     }
 
     // Enable the network and the NTRIP server if requested

@@ -464,7 +464,7 @@ void ntripClientSetState(uint8_t newState)
     {
         if (newState >= NTRIP_CLIENT_STATE_MAX)
         {
-            systemPrintf("Unknown client state: %d\r\n", newState);
+            systemPrintf("Unknown NTRIP Client state: %d\r\n", newState);
             reportFatalError("Unknown NTRIP Client state");
         }
         else
@@ -487,6 +487,7 @@ void ntripClientStart()
 
     // Start the NTRIP client
     systemPrintln("NTRIP Client start");
+    networkConsumerAdd(NETCONSUMER_NTRIP_CLIENT, NETWORK_ANY);
     ntripClientStop(false);
 }
 
@@ -518,6 +519,7 @@ void ntripClientStop(bool shutdown)
     netIncomingRTCM = false;
     if (shutdown)
     {
+        networkConsumerRemove(NETCONSUMER_NTRIP_CLIENT, NETWORK_ANY);
         ntripClientSetState(NTRIP_CLIENT_OFF);
         ntripClientConnectionAttempts = 0;
         ntripClientConnectionAttemptTimeout = 0;
