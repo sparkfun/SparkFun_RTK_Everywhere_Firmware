@@ -1589,7 +1589,7 @@ void networkStart(NetIndex_t index, bool debug)
     networkValidateIndex(index);
 
     // Only start networks that exist on the platform
-    if (networkIsPresent(index))
+    if (networkIsPresent(index) && networkConsumerCount)
     {
         // Get the network bit
         bitMask = (1 << index);
@@ -1742,6 +1742,40 @@ void networkUpdate()
         }
     }
 
+    // wifiRestartRequested is used by the settings interface to indicate
+    // SSIDs or else has changed.  Stop WiFi to allow restart with new settings
+    if (wifiRestartRequested == true)
+    {
+        wifiRestartRequested = false;
+
+        // Restart immediately
+        wifiResetThrottleTimeout();
+
+        // Break existing WiFi connection if necessary
+        if (networkInterfaceHasInternet(NETWORK_WIFI))
+        {
+            if (settings.debugNetworkLayer)
+                systemPrintln("WiFi settings changed, restarting WiFi");
+
+            networkStop(NETWORK_WIFI, settings.debugNetworkLayer);
+        }
+    }
+
+    // Walk the list of network priorities in descending order
+    for (priority = 0; priority < NETWORK_OFFLINE; priority++)
+    {
+        // Execute any active polling routine
+        index = networkIndexTable[priority];
+        sequence = networkSequence[index];
+        if (sequence)
+        {
+            pollRoutine = sequence->routine;
+            if (pollRoutine)
+                // Execute the poll routine
+                pollRoutine(index, sequence->parameter, settings.debugNetworkLayer);
+        }
+    }
+
     // Update the network services
     // Start or stop mDNS
     if (networkMdnsRequests != networkMdnsRunning)
@@ -1766,140 +1800,6 @@ void networkUpdate()
     httpClientUpdate(); // Process any Point Perfect HTTP messages
     DMW_c("webServerUpdate");
     webServerUpdate(); // Start webServer for web config as needed
-
-    // Once services have been updated, determine if the network needs to be started/stopped
-
-    static uint16_t previousConsumerTypes = NETIF_NONE;
-    static uint16_t consumerTypes = NETIF_NONE;
-
-    int consumerCount = networkConsumers(&consumerTypes); // Update the current consumer types
-
-    // wifiRestartRequested is used by the settings interface to indicate
-    // SSIDs or else has changed.  Stop WiFi to allow restart with new settings
-    if (wifiRestartRequested == true)
-    {
-        wifiRestartRequested = false;
-
-        // Restart immediately
-        wifiResetThrottleTimeout();
-
-        // Break existing WiFi connection if necessary
-        if (networkInterfaceHasInternet(NETWORK_WIFI))
-        {
-            if (settings.debugNetworkLayer)
-                systemPrintln("WiFi settings changed, restarting WiFi");
-
-            networkStop(NETWORK_WIFI, settings.debugNetworkLayer);
-        }
-    }
-
-    // If there are no consumers, but the network is online, shut down all networks
-    if (consumerCount == 0 && networkHasInternet() == true)
-    {
-        if (settings.debugNetworkLayer && networkInterfaceHasInternet(NETWORK_ETHERNET) ==
-                                              false) // Ethernet is never stopped, so only print for other networks
-            systemPrintln("Stopping all networks because there are no consumers");
-
-        // Shutdown all networks
-        for (int index = 0; index < NETWORK_OFFLINE; index++)
-            networkStop(index, settings.debugNetworkLayer);
-    }
-
-    // If the consumers have indicated a network type change (ie, must have WiFi AP even though STA is connected)
-    // then stop all networks and let the lower code restart the network accordingly
-    if (consumerTypes != previousConsumerTypes)
-    {
-        if (settings.debugNetworkLayer)
-        {
-            systemPrintf("Changing network from consumer type: 0x%02X (", previousConsumerTypes);
-
-            if (previousConsumerTypes == NETIF_NONE)
-                systemPrint("None");
-            else
-            {
-                if (previousConsumerTypes & (1 << NETIF_WIFI_STA))
-                    systemPrint("/STA");
-                if (previousConsumerTypes & (1 << NETIF_WIFI_AP))
-                    systemPrint("/AP");
-                if (previousConsumerTypes & (1 << NETIF_CELLULAR))
-                    systemPrint("/CELL");
-                if (previousConsumerTypes & (1 << NETIF_ETHERNET))
-                    systemPrint("/ETH");
-            }
-
-            systemPrintf(") to: 0x%02X (", consumerTypes);
-
-            if (consumerTypes == NETIF_NONE)
-                systemPrint("None");
-            else
-            {
-                if (consumerTypes & (1 << NETIF_WIFI_STA))
-                    systemPrint("/STA");
-                if (consumerTypes & (1 << NETIF_WIFI_AP))
-                    systemPrint("/AP");
-                if (consumerTypes & (1 << NETIF_CELLULAR))
-                    systemPrint("/CELL");
-                if (consumerTypes & (1 << NETIF_ETHERNET))
-                    systemPrint("/ETH");
-            }
-
-            systemPrintln(")");
-        }
-
-        previousConsumerTypes = networkGetConsumerTypes(); // Update the previous consumer types
-
-        // Shutdown all networks
-        for (int index = 0; index < NETWORK_OFFLINE; index++)
-            networkStop(index, settings.debugNetworkLayer);
-    }
-
-    // Allow consumers to start networks
-    // Each network is expected to shut itself down if it is unavailable or of a lower priority
-    // so that a networkStart() succeeds.
-    if (consumerCount > 0 && networkHasInternet() == false)
-    {
-        // Attempt to start any network that is needed, in the order Ethernet/WiFi/Cellular
-
-        if (consumerTypes & (1 << NETIF_ETHERNET))
-        {
-            networkStart(NETWORK_ETHERNET, settings.debugNetworkLayer);
-        }
-
-        // Start WiFi if we need AP, or if we need STA+Internet
-        if ((consumerTypes & (1 << NETIF_WIFI_AP)) ||
-            ((consumerTypes & (1 << NETIF_WIFI_STA) && networkHasInternet() == false)))
-        {
-            networkStart(NETWORK_WIFI, settings.debugNetworkLayer);
-        }
-
-        if ((networkHasInternet() == false) && (consumerTypes & (1 << NETIF_CELLULAR)))
-        {
-            // If we're in AP only mode (no internet), don't start cellular
-            if (wifiSoftApRunning == false)
-            {
-                // Don't start cellular until WiFi has failed to connect
-                if (wifiUnavailable() == true)
-                {
-                    networkStart(NETWORK_CELLULAR, settings.debugNetworkLayer);
-                }
-            }
-        }
-    }
-
-    // Walk the list of network priorities in descending order
-    for (priority = 0; priority < NETWORK_OFFLINE; priority++)
-    {
-        // Execute any active polling routine
-        index = networkIndexTable[priority];
-        sequence = networkSequence[index];
-        if (sequence)
-        {
-            pollRoutine = sequence->routine;
-            if (pollRoutine)
-                // Execute the poll routine
-                pollRoutine(index, sequence->parameter, settings.debugNetworkLayer);
-        }
-    }
 
     // Periodically display the network interface state
     displayIpAddress = PERIODIC_DISPLAY(PD_IP_ADDRESS);
@@ -1980,300 +1880,6 @@ void networkVerifyTables()
 
     if (networkConsumerTableEntries != NETCONSUMER_MAX)
         reportFatalError("Fix networkConsumerTable to match NETCONSUMER list");
-}
-
-// Return the bitfield containing the type of consumers currently using the network
-uint16_t networkGetConsumerTypes()
-{
-    uint16_t consumerTypes = 0;
-
-    networkConsumers(&consumerTypes);
-
-    return (consumerTypes);
-}
-
-// Return the count of consumers (TCP, NTRIP Client, etc) that are enabled
-// and set consumerTypes bitfield
-// From this number we can decide if the network (WiFi, ethernet, cellular, etc) needs to be started
-// ESP-NOW is not considered a network consumer and is blended during wifiConnect()
-uint8_t networkConsumers()
-{
-    uint16_t consumerTypes = 0;
-
-    return (networkConsumers(&consumerTypes));
-}
-
-uint8_t networkConsumers(uint16_t *consumerTypes)
-{
-    uint8_t consumerCount = 0;
-    uint16_t consumerId = 0; // Used to debug print who is asking for access
-
-    *consumerTypes = NETIF_NONE; // Clear bitfield
-
-    // If a consumer needs the network or is currently consuming the network (is online) then increment
-    // consumer count
-
-    // Network needed for NTRIP Client
-    if (ntripClientNeedsNetwork() || online.ntripClient)
-    {
-        consumerCount++;
-        consumerId |= (1 << NETCONSUMER_NTRIP_CLIENT);
-
-        *consumerTypes = NETWORK_EWC; // Ask for eth/wifi/cellular
-    }
-
-    // Network needed for NTRIP Server
-    bool ntripServerOnline = false;
-    for (int index = 0; index < NTRIP_SERVER_MAX; index++)
-    {
-        if (online.ntripServer[index])
-        {
-            ntripServerOnline = true;
-            break;
-        }
-    }
-
-    if (ntripServerNeedsNetwork() || ntripServerOnline)
-    {
-        consumerCount++;
-        consumerId |= (1 << NETCONSUMER_NTRIP_SERVER);
-
-        *consumerTypes = NETWORK_EWC; // Ask for eth/wifi/cellular
-    }
-
-    // Network needed for TCP Client
-    if (tcpClientNeedsNetwork() || online.tcpClient)
-    {
-        consumerCount++;
-        consumerId |= (1 << NETCONSUMER_TCP_CLIENT);
-        *consumerTypes = NETWORK_EWC; // Ask for eth/wifi/cellular
-    }
-
-    // Network needed for TCP Server
-    if (tcpServerNeedsNetwork() || online.tcpServer)
-    {
-        consumerCount++;
-        consumerId |= (1 << NETCONSUMER_TCP_SERVER);
-
-        *consumerTypes = NETWORK_EWC; // Ask for eth/wifi/cellular
-
-        // If NTRIP Caster is enabled then add AP mode
-        // Caster is available over ethernet, WiFi AP, WiFi STA, and cellular
-        // Caster is available in all mode: Rover, and Base
-        if (settings.enableNtripCaster == true || settings.baseCasterOverride == true)
-            *consumerTypes |= (1 << NETIF_WIFI_AP);
-    }
-
-    // Network needed for UDP Server
-    if (udpServerNeedsNetwork() || online.udpServer)
-    {
-        consumerCount++;
-        consumerId |= (1 << NETCONSUMER_UDP_SERVER);
-        *consumerTypes = NETWORK_EWC; // Ask for eth/wifi/cellular
-    }
-
-    // Network needed for PointPerfect ZTP or key update requested by scheduler, from menu, or display menu
-    if (provisioningNeedsNetwork() || online.httpClient)
-    {
-        consumerCount++;
-        consumerId |= (1 << NETCONSUMER_PPL_KEY_UPDATE);
-        *consumerTypes = NETWORK_EWC; // Ask for eth/wifi/cellular
-    }
-
-    // Network needed for PointPerfect Corrections MQTT client
-    if (mqttClientNeedsNetwork() || online.mqttClient)
-    {
-        // PointPerfect is enabled, allow MQTT to begin
-        consumerCount++;
-        consumerId |= (1 << NETCONSUMER_PPL_MQTT_CLIENT);
-        *consumerTypes = NETWORK_EWC; // Ask for eth/wifi/cellular
-    }
-
-    // Network needed to obtain the latest firmware version or do a firmware update
-    if (otaNeedsNetwork() || online.otaClient)
-    {
-        consumerCount++;
-        consumerId |= (1 << NETCONSUMER_OTA_CLIENT);
-        *consumerTypes = (1 << NETIF_WIFI_STA); // OTA Pull library only supports WiFi
-    }
-
-    // Network needed for Web Config
-    if (webServerNeedsNetwork() || online.webServer)
-    {
-        consumerCount++;
-        consumerId |= (1 << NETCONSUMER_WEB_CONFIG);
-
-        *consumerTypes = NETWORK_EWC; // Ask for eth/wifi/cellular
-
-        if (settings.wifiConfigOverAP == true)
-            *consumerTypes |= (1 << NETIF_WIFI_AP); // WebConfig requires both AP and STA (for firmware check)
-
-        // A good number of RTK products have only WiFi
-        // If WiFi STA has failed or we have no WiFi SSIDs, fall back to WiFi AP, but allow STA to keep hunting
-        if (networkIsPresent(NETWORK_ETHERNET) == false && networkIsPresent(NETWORK_CELLULAR) == false &&
-            settings.wifiConfigOverAP == false && (wifiGetStartTimeout() > 0 || wifiNetworkCount() == 0))
-        {
-            *consumerTypes |= (1 << NETIF_WIFI_AP); // Re-allow Webconfig over AP
-        }
-    }
-
-    // Debug
-    if (settings.debugNetworkLayer)
-    {
-        static unsigned long lastPrint = 0;
-
-        if (millis() - lastPrint > 2000)
-        {
-            lastPrint = millis();
-            systemPrintf("Network consumer count: %d ", consumerCount);
-            if (consumerCount > 0)
-            {
-                systemPrintf("- Consumers: ", consumerCount);
-
-                if (consumerId & (1 << NETCONSUMER_NTRIP_CLIENT))
-                    systemPrint("Rover NTRIP Client, ");
-                if (consumerId & (1 << NETCONSUMER_NTRIP_SERVER))
-                    systemPrint("Base NTRIP Server, ");
-                if (consumerId & (1 << NETCONSUMER_TCP_CLIENT))
-                    systemPrint("TCP Client, ");
-                if (consumerId & (1 << NETCONSUMER_TCP_SERVER))
-                    systemPrint("TCP Server, ");
-                if (consumerId & (1 << NETCONSUMER_UDP_SERVER))
-                    systemPrint("UDP Server, ");
-                if (consumerId & (1 << NETCONSUMER_PPL_KEY_UPDATE))
-                    systemPrint("PPL Key Update Request, ");
-                if (consumerId & (1 << NETCONSUMER_PPL_MQTT_CLIENT))
-                    systemPrint("PPL MQTT Client, ");
-                if (consumerId & (1 << NETCONSUMER_OTA_CLIENT))
-                    systemPrint("OTA Version Check or Update, ");
-                if (consumerId & (1 << NETCONSUMER_WEB_CONFIG))
-                    systemPrint("Web Config, ");
-            }
-            systemPrintln();
-        }
-    }
-
-    return (consumerCount);
-}
-
-// Return the count of consumers (TCP, NTRIP Client, etc) that are currently using the network
-// This tells the network when it can shutdown to change (ie, move from STA to AP)
-uint8_t networkConsumersOnline()
-{
-    uint8_t consumerCountOnline = 0;
-    uint16_t consumerId = 0; // Used to debug print who is asking for access
-
-    // Network needed for NTRIP Client
-    if (online.ntripClient)
-    {
-        consumerCountOnline++;
-        consumerId |= (1 << NETCONSUMER_NTRIP_CLIENT);
-    }
-
-    // Network needed for NTRIP Server
-    bool ntripServerConnected = false;
-    for (int index = 0; index < NTRIP_SERVER_MAX; index++)
-    {
-        if (online.ntripServer[index])
-        {
-            ntripServerConnected = true;
-            break;
-        }
-    }
-
-    if (ntripServerConnected)
-    {
-        consumerCountOnline++;
-        consumerId |= (1 << NETCONSUMER_NTRIP_SERVER);
-    }
-
-    // Network needed for TCP Client
-    if (online.tcpClient)
-    {
-        consumerCountOnline++;
-        consumerId |= (1 << NETCONSUMER_TCP_CLIENT);
-    }
-
-    // Network needed for TCP Server - May use WiFi AP or WiFi STA
-    if (online.tcpServer)
-    {
-        consumerCountOnline++;
-        consumerId |= (1 << NETCONSUMER_TCP_SERVER);
-    }
-
-    // Network needed for UDP Server
-    if (online.udpServer)
-    {
-        consumerCountOnline++;
-        consumerId |= (1 << NETCONSUMER_UDP_SERVER);
-    }
-
-    // Network needed for PointPerfect ZTP or key update requested by scheduler, from menu, or display menu
-    if (online.httpClient)
-    {
-        consumerCountOnline++;
-        consumerId |= (1 << NETCONSUMER_PPL_KEY_UPDATE);
-    }
-
-    // Network needed for PointPerfect Corrections MQTT client
-    if (online.mqttClient)
-    {
-        // PointPerfect is enabled, allow MQTT to begin
-        consumerCountOnline++;
-        consumerId |= (1 << NETCONSUMER_PPL_MQTT_CLIENT);
-    }
-
-    // Network needed to obtain the latest firmware version or do update
-    if (online.otaClient)
-    {
-        consumerCountOnline++;
-        consumerId |= (1 << NETCONSUMER_OTA_CLIENT);
-    }
-
-    // Network needed for Web Config
-    if (online.webServer)
-    {
-        consumerCountOnline++;
-        consumerId |= (1 << NETCONSUMER_WEB_CONFIG);
-    }
-
-    // Debug
-    if (settings.debugNetworkLayer)
-    {
-        static unsigned long lastPrint = 0;
-
-        if (millis() - lastPrint > 2000)
-        {
-            lastPrint = millis();
-            systemPrintf("Network consumer online count: %d ", consumerCountOnline);
-            if (consumerCountOnline > 0)
-            {
-                systemPrintf("- Consumers: ", consumerCountOnline);
-                if (consumerId & (1 << NETCONSUMER_NTRIP_CLIENT))
-                    systemPrint("Rover NTRIP Client, ");
-                if (consumerId & (1 << NETCONSUMER_NTRIP_SERVER))
-                    systemPrint("Base NTRIP Server, ");
-                if (consumerId & (1 << NETCONSUMER_TCP_CLIENT))
-                    systemPrint("TCP Client, ");
-                if (consumerId & (1 << NETCONSUMER_TCP_SERVER))
-                    systemPrint("TCP Server, ");
-                if (consumerId & (1 << NETCONSUMER_UDP_SERVER))
-                    systemPrint("UDP Server, ");
-                if (consumerId & (1 << NETCONSUMER_PPL_KEY_UPDATE))
-                    systemPrint("PPL Key Update Request, ");
-                if (consumerId & (1 << NETCONSUMER_PPL_MQTT_CLIENT))
-                    systemPrint("PPL MQTT Client, ");
-                if (consumerId & (1 << NETCONSUMER_OTA_CLIENT))
-                    systemPrint("OTA Version Check or Update, ");
-                if (consumerId & (1 << NETCONSUMER_WEB_CONFIG))
-                    systemPrint("Web Config, ");
-            }
-
-            systemPrintln();
-        }
-    }
-
-    return (consumerCountOnline);
 }
 
 #endif // COMPILE_NETWORK

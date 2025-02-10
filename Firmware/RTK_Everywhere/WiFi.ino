@@ -719,20 +719,6 @@ void wifiStopAll()
 }
 
 //*********************************************************************
-// Returns true if we deem WiFi is not going to connect
-// Used to allow cellular to start
-bool wifiUnavailable()
-{
-    if(wifiNetworkCount() == 0)
-        return true;
-
-    if (wifiFailedConnectionAttempts > 2)
-        return true;
-
-    return false;
-}
-
-//*********************************************************************
 // Constructor
 // Inputs:
 //   verbose: Set to true to display additional WiFi debug data
