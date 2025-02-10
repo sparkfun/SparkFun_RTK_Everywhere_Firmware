@@ -570,14 +570,20 @@ enum
 {
     NETCONSUMER_NTRIP_CLIENT = 0,
     NETCONSUMER_NTRIP_SERVER,
+    NETCONSUMER_OTA_CLIENT,
+    NETCONSUMER_PPL_KEY_UPDATE,
+    NETCONSUMER_PPL_MQTT_CLIENT,
     NETCONSUMER_TCP_CLIENT,
     NETCONSUMER_TCP_SERVER,
     NETCONSUMER_UDP_SERVER,
-    NETCONSUMER_PPL_KEY_UPDATE,
-    NETCONSUMER_PPL_MQTT_CLIENT,
-    NETCONSUMER_OTA_CLIENT,
     NETCONSUMER_WEB_CONFIG,
+    // Add new consumers just before this line
+    // Also add them to the networkConsumerTable
+    NETCONSUMER_MAX
 };
+
+typedef uint8_t NETCONSUMER_t;
+typedef uint16_t NETCONSUMER_MASK_t;
 
 // This is all the settings that can be set on RTK Product. It's recorded to NVM and the config file.
 // Avoid reordering. The order of these variables is mimicked in NVM/record/parse/create/update/get
@@ -1791,7 +1797,8 @@ enum NetworkTypes
     NETWORK_WIFI = 1,
     NETWORK_CELLULAR = 2,
     // Add new networks here
-    NETWORK_MAX
+    NETWORK_MAX,
+    NETWORK_ANY = NETWORK_MAX,
 };
 
 #ifdef  COMPILE_NETWORK

@@ -100,8 +100,31 @@ Network.ino
 #ifdef COMPILE_NETWORK
 
 //----------------------------------------
+// Constants
+//----------------------------------------
+
+static const char * networkConsumerTable[] =
+{
+    "NTRIP_CLIENT",
+    "NTRIP_SERVER",
+    "OTA_CLIENT",
+    "PPL_KEY_UPDATE",
+    "PPL_MQTT_CLIENT",
+    "TCP_CLIENT",
+    "TCP_SERVER",
+    "UDP_SERVER",
+    "WEB_CONFIG",
+};
+
+static const int networkConsumerTableEntries = sizeof(networkConsumerTable) / sizeof(networkConsumerTable[0]);
+
+//----------------------------------------
 // Locals
 //----------------------------------------
+
+NETCONSUMER_MASK_t netIfConsumers[NETWORK_MAX]; // Consumers of a specific network
+uint8_t networkConsumerCount; // Count of network consumers (bits set)
+NETCONSUMER_MASK_t networkConsumersAny; // Consumers of any network
 
 // Priority of each of the networks in the networkInterfaceTable
 // Index by networkInterfaceTable index to get network interface priority
@@ -314,6 +337,223 @@ void networkBegin()
 #endif // COMPILE_ETHERNET
 
     // WiFi and cellular networks are started/stopped as consumers and come online/offline in networkUpdate()
+}
+
+//----------------------------------------
+// Add a network consumer
+//----------------------------------------
+
+void networkConsumerAdd(NETCONSUMER_t consumer, NetIndex_t network)
+{
+    NETCONSUMER_MASK_t bitMask;
+    NETCONSUMER_MASK_t * bits;
+    NETCONSUMER_MASK_t consumers;
+    NetIndex_t index;
+    NetPriority_t priority;
+
+    // Validate the inputs
+    networkConsumerValidate(consumer);
+    bits = &networkConsumersAny;
+    if (network != NETWORK_ANY)
+    {
+        networkValidateIndex(network);
+        bits = &netIfConsumers[network];
+    }
+
+    // Add this consumer only once
+    consumers = networkConsumersAny | *bits;
+    bitMask = 1 << consumer;
+    if ((*bits & bitMask) == 0)
+    {
+        // Display the consumer
+        if (settings.debugNetworkLayer)
+            systemPrintf("Network: Adding consumer %s\r\n", networkConsumerTable[consumer]);
+
+        // Account for this consumer
+        *bits |= bitMask;
+        networkConsumerCount += 1;
+
+        // Display the network consumers
+        if (settings.debugNetworkLayer)
+            networkConsumerDisplay();
+
+        // Start the networks if necessary
+        if (networkConsumerCount == 1)
+        {
+            // Walk the list of priorities
+            for (priority = 0; priority < NETWORK_MAX; priority += 1)
+            {
+                // Translate the priority into an interface index
+                index = networkIndexTable[priority];
+
+                // Verify that this interface is available on this system
+                if (networkIsPresent(index))
+                {
+                    // Determine if this is a supported network
+                    if ((network == NETWORK_ANY) || (network == index))
+                    {
+                        // Determine if this interface currently has internet access
+                        if (networkInterfaceHasInternet(index))
+                            break;
+
+                        // A network without a start script should already have
+                        // internet access, try the next network
+                        if (networkInterfaceTable[index].start == nullptr)
+                            continue;
+
+                        // Display the consumer
+                        if (settings.debugNetworkLayer)
+                            systemPrintf("Network: Starting the %s network\r\n", networkInterfaceTable[index].name);
+
+                        // Determine if the network has started
+                        if (networkIsStarted(index) == false)
+                            // Attempt to start the highest priority network
+                            // The network layer will start the lower priority networks
+                            networkStart(index, settings.debugNetworkLayer);
+                        break;
+                    }
+                }
+            }
+        }
+    }
+}
+
+//----------------------------------------
+// Display a network consumer
+//----------------------------------------
+
+void networkConsumerDisplay()
+{
+    NETCONSUMER_MASK_t bitMask;
+    NETCONSUMER_MASK_t * bits;
+    NETCONSUMER_t consumer;
+    NETCONSUMER_MASK_t consumersFound;
+    uint8_t index;
+    char line[128];
+    const char * networkName;
+    const char * separation;
+
+    // Validate the inputs
+    networkConsumerValidate(consumer);
+
+    // Determine if there are any network consumers
+    if (networkConsumerCount)
+    {
+        systemPrintf("Network Consumers: %d\r\n", networkConsumerCount);
+
+        // Walk the networks
+        bitMask = 1 << consumer;
+        for (index = 0; index < NETWORK_MAX; index++)
+        {
+            networkName = networkInterfaceTable[index].name;
+
+            // Determine if this interface has any consumers
+            consumersFound = networkConsumersAny | netIfConsumers[index];
+            if (consumersFound)
+            {
+                // Add the network name to the line
+                sprintf(line, "%d, %s: ", index, networkName);
+
+                // Walk the list of consumers
+                separation = "";
+                for (consumer = 0; consumer < NETCONSUMER_MAX; consumer += 1)
+                {
+                    bitMask = 1 << consumer;
+                    if (consumersFound & bitMask)
+                    {
+                        // Add the consumer to the line
+                        sprintf(&line[strlen(line)], "%s%s", separation, networkConsumerTable[consumer]);
+                        separation = ", ";
+                    }
+                }
+
+                // Display this network's consumers;
+                systemPrintf("%s\r\n", line);
+            }
+        }
+    }
+    else
+        systemPrintf("No active network consumers\r\n");
+}
+
+//----------------------------------------
+// Remove a network consumer
+//----------------------------------------
+
+void networkConsumerRemove(NETCONSUMER_t consumer, NetIndex_t network)
+{
+    NETCONSUMER_MASK_t bitMask;
+    NETCONSUMER_MASK_t * bits;
+    NETCONSUMER_MASK_t consumers;
+    NetIndex_t index;
+    int priority;
+
+    // Validate the inputs
+    networkConsumerValidate(consumer);
+    bits = &networkConsumersAny;
+    if (network != NETWORK_ANY)
+    {
+        networkValidateIndex(network);
+        bits = &netIfConsumers[network];
+    }
+
+    // Remove the consumer only once
+    consumers = networkConsumersAny | *bits;
+    bitMask = 1 << consumer;
+    if (*bits & bitMask)
+    {
+        // Display the consumer
+        if (settings.debugNetworkLayer)
+            systemPrintf("Network: Removing consumer %s\r\n", networkConsumerTable[consumer]);
+
+        // Account for this consumer
+        *bits &= ~bitMask;
+        networkConsumerCount -= 1;
+
+        // Display the network consumers
+        if (settings.debugNetworkLayer)
+            networkConsumerDisplay();
+    }
+
+    // Stop the networks when the consumer count reaches zero
+    if (consumers && (networkConsumerCount == 0))
+    {
+        // Display the consumer
+        if (settings.debugNetworkLayer)
+            systemPrintf("Network: Stopping the networks\r\n");
+
+        // Walk the networks in increasing priority
+        // Turn off the lower priority networks first to eliminate failover
+        for (priority = NETWORK_MAX - 1; priority >= 0; priority -= 1)
+        {
+            // Translate the priority into an interface index
+            index = networkIndexTable[priority];
+
+            // Verify that this interface is started
+            if (networkIsStarted(index))
+                // Attempt to stop this network interface
+                networkStop(index, settings.debugNetworkLayer);
+        }
+
+        // Update the network priority
+        networkPriority = NETWORK_OFFLINE;
+
+        // Let other tasks handle the network failure
+        delay(100);
+    }
+}
+
+//----------------------------------------
+// Validate the network consumer
+//----------------------------------------
+void networkConsumerValidate(NETCONSUMER_t consumer)
+{
+    // Validate the consumer
+    if (consumer >= NETCONSUMER_MAX)
+    {
+        systemPrintf("HALTED: Invalid consumer value %d, valid range (0 - %d)!\r\n", consumer, NETCONSUMER_MAX - 1);
+        reportFatalError("Invalid consumer value!");
+    }
 }
 
 //----------------------------------------
@@ -859,6 +1099,18 @@ bool networkIsPresent(NetIndex_t index)
 
     // Present if nullptr or bool set to true
     return ((!networkInterfaceTable[index].present) || *(networkInterfaceTable[index].present));
+}
+
+//----------------------------------------
+// Determine if the network is started
+//----------------------------------------
+bool networkIsStarted(NetIndex_t index)
+{
+    // Validate the index
+    networkValidateIndex(index);
+
+    // Determine if the interface is started
+    return ((networkSeqStarting | networkStarted) & (1 << index));
 }
 
 //----------------------------------------
@@ -1725,6 +1977,9 @@ void networkVerifyTables()
     // Verify the table lengths
     if (NETWORK_OFFLINE != NETWORK_MAX)
         reportFatalError("Fix networkInterfaceTable to match NetworkType");
+
+    if (networkConsumerTableEntries != NETCONSUMER_MAX)
+        reportFatalError("Fix networkConsumerTable to match NETCONSUMER list");
 }
 
 // Return the bitfield containing the type of consumers currently using the network
