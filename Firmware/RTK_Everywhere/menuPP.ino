@@ -28,6 +28,17 @@ MqttClient *menuppMqttClient;
 // L-Band Routines - compiled out
 //----------------------------------------
 
+bool productVariantSupportsAssistNow()
+{
+    if (productVariant == RTK_FACET_MOSAIC)
+        return false;
+    if (productVariant == RTK_TORCH)
+        return false;
+    if (productVariant == RTK_POSTCARD)
+        return false;
+    return true;
+}
+
 void menuPointPerfectKeys()
 {
     while (1)
@@ -979,7 +990,7 @@ void menuPointPerfect()
                 systemPrint(localizedDistributionTileLevelNames[settings.localizedDistributionTileLevel]);
                 systemPrintln(")");
             }
-            if (productVariant != RTK_FACET_MOSAIC)
+            if (productVariantSupportsAssistNow())
             {
                 systemPrint("a) Use AssistNow: ");
                 if (settings.useAssistNow == true)
@@ -1030,7 +1041,7 @@ void menuPointPerfect()
             if (settings.localizedDistributionTileLevel >= LOCALIZED_DISTRIBUTION_TILE_LEVELS)
                 settings.localizedDistributionTileLevel = 0;
         }
-        else if (incoming == 'a' && pointPerfectIsEnabled() && (productVariant != RTK_FACET_MOSAIC))
+        else if (incoming == 'a' && pointPerfectIsEnabled() && productVariantSupportsAssistNow())
         {
             settings.useAssistNow ^= 1;
         }
