@@ -1913,6 +1913,7 @@ o/ufQJVtMVT8QtPHRh8jrdkPSHCa2XV4cdFyQzR1bldZwgJcJmApzyMZFo6IQ6XU
 rqXRfboQnoZsG4q5WTP468SQvvG5
 -----END CERTIFICATE-----
 )=====";
+#endif  // COMPILE_NETWORK
 
 //****************************************
 // WiFi class
@@ -1920,6 +1921,7 @@ rqXRfboQnoZsG4q5WTP468SQvvG5
 
 typedef uint8_t WIFI_CHANNEL_t;
 
+#ifdef COMPILE_NETWORK
 #ifdef COMPILE_WIFI
 
 // Handle the WiFi event
