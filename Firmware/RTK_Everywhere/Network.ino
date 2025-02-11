@@ -1475,10 +1475,6 @@ void networkUpdate()
         if (networkEventStop[index])
             networkStop(index, settings.debugNetworkLayer);
 
-        // Check for the WiFi station reconnection
-        if ((index == NETWORK_WIFI) && wifiReconnectionTimer)
-            wifiStationReconnectionRequest();
-
         // Handle the network has internet event
         if (networkEventInternetAvailable[index])
             networkInterfaceInternetConnectionAvailable(index);
@@ -1532,12 +1528,15 @@ void networkUpdate()
     {
         wifiRestartRequested = false;
 
+        // Restart immediately
+        wifiResetThrottleTimeout();
+
+        // Break existing WiFi connection if necessary
         if (networkInterfaceHasInternet(NETWORK_WIFI))
         {
             if (settings.debugNetworkLayer)
                 systemPrintln("WiFi settings changed, restarting WiFi");
 
-            wifiResetThrottleTimeout();
             networkStop(NETWORK_WIFI, settings.debugNetworkLayer);
         }
     }

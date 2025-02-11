@@ -209,7 +209,6 @@ int wifiNetworkCount()                          {return 0;}
 void wifiResetThrottleTimeout()                 {}
 void wifiResetTimeout()                         {}
 bool wifiStart()                                {return false;}
-void wifiStationReconnectionRequest()           {}
 #define WIFI_STOP()                             {}
 bool wifiUnavailable()                          {return true;}
 
