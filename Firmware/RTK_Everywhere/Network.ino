@@ -1605,6 +1605,39 @@ void networkStart(NetIndex_t index, bool debug)
 }
 
 //----------------------------------------
+// Start the next lower priority network interface
+//----------------------------------------
+void networkStartNextInterface(NetIndex_t index)
+{
+    NetMask_t bitMask;
+    NetPriority_t priority;
+
+    // Verify that a network consumer is requesting the network
+    if (networkConsumerCount)
+    {
+        // Validate the index
+        networkValidateIndex(index);
+
+        // Get the priority of the specified interface
+        priority = networkPriorityTable[index];
+
+        // Determine if there is another interface available
+        for (priority = priority + 1; priority < NETWORK_MAX; priority += 1)
+        {
+            index = networkIndexTable[priority];
+            bitMask = 1 << index;
+            if (networkIsPresent(index))
+            {
+                if (((networkStarted | networkSeqStarting) & bitMask) == 0)
+                    // Start this network interface
+                    networkStart(index, settings.debugNetworkLayer);
+                break;
+            }
+        }
+    }
+}
+
+//----------------------------------------
 // Stop a network interface
 //----------------------------------------
 void networkStop(NetIndex_t index, bool debug)
