@@ -11,8 +11,9 @@ Compatibility Icons
 
 <div class="grid cards fill" markdown>
 
-- Torch: :material-radiobox-marked:{ .support-full title="Feature Supported" }
 - EVK: :material-radiobox-marked:{ .support-full title="Feature Supported" }
+- Postcard: :material-radiobox-marked:{ .support-full title="Feature Supported" }
+- Torch: :material-radiobox-marked:{ .support-full title="Feature Supported" }
 
 </div>
 
@@ -76,6 +77,30 @@ To get into WiFi configuration follow these steps:
 	</figcaption>
 	</figure>
 
+## RTK Postcard
+
+To get into WiFi configuration follow these steps:
+
+1. Connect the RTK Postcard to a power source.
+2. Once the device has started, put the RTK Postcard into WiFi config mode by clicking down on the directional pad. The first click opens the mode menu, successive clicks select the next menu option. Keep clicking until **Cfg WiFi** is highlighted, then press the center of the directional pad to select it.
+
+	<figure markdown>
+	![SparkFun RTK EVK Mode Menu](./img/Displays/24342-RTK-EVK-Action-Screen_GIF_750ms.gif)
+	<figcaption markdown>
+	SparkFun RTK EVK Mode Menu
+	</figcaption>
+	</figure>
+
+3. The display will change, showing that the device is in WiFi configuration mode.
+4. Connect to WiFi network named ‘RTK Config’.
+5. You should be automatically re-directed to the config page but if you are not, open a browser (Chrome is preferred) and type **rtk.local** into the address bar.
+
+	<figure markdown>
+	![Browser with rtk.local address](./img/WiFi Config/SparkFun RTK WiFi Config - Browser rtk local.png)
+	<figcaption markdown>
+	Browser with rtk.local
+	</figcaption>
+	</figure>
 
 ## Connecting to WiFi Network
 

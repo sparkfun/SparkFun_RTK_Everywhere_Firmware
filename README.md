@@ -5,14 +5,14 @@ The line of RTK Everywhere products offered by SparkFun all run identical firmwa
 
 <table class="table table-hover table-striped table-bordered">
 	<tr align="center">
-		<td><a href="https://www.sparkfun.com/products/25662"><img src="docs/img/SparkFun_RTK_Torch.png"></a></td>
-		<td><a href="https://www.sparkfun.com/products/24342"><img src="docs/img/SparkFun_RTK_EVK.png"></a></td>
-		<td><a href="https://www.sparkfun.com/sparkfun-rtk-postcard.html"><img src="docs/img/SparkFun_RTK_Postcard.png"></a></td>
+		<td><a href="https://www.sparkfun.com/catalog/product/view/id/25662"><img src="docs/img/SparkFun_RTK_Torch.png"></a></td>
+		<td><a href="https://www.sparkfun.com/catalog/product/view/id/24342"><img src="docs/img/SparkFun_RTK_EVK.png"></a></td>
+		<td><a href="https://www.sparkfun.com/catalog/product/view/id/26916"><img src="docs/img/SparkFun_RTK_Postcard_Small.png"></a></td>
 	</tr>
 	<tr align="center">
-		<td><a href="https://www.sparkfun.com/products/25662">SparkFun RTK Torch (GPS-25662)</a></td>
-		<td><a href="https://www.sparkfun.com/products/24342">SparkFun RTK EVK (GPS-24342)</a></td>
-		<td><a href="https://www.sparkfun.com/sparkfun-rtk-postcard.html">SparkFun RTK Postcard (GPS-26916)</a></td>
+		<td><a href="https://www.sparkfun.com/catalog/product/view/id/25662">SparkFun RTK Torch (GPS-25662)</a></td>
+		<td><a href="https://www.sparkfun.com/catalog/product/view/id/24342">SparkFun RTK EVK (GPS-24342)</a></td>
+		<td><a href="https://www.sparkfun.com/catalog/product/view/id/26919">SparkFun RTK Postcard (GPS-26916)</a></td>
 	</tr>
 	<tr align="center">
 		<td><a href="https://docs.sparkfun.com/SparkFun_RTK_Torch/">Hookup Guide</a></td>

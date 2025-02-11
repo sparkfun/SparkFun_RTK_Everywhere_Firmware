@@ -25,10 +25,9 @@ Are you using [Android](#android) or [iOS](#ios)?
 
 	- The RTK Postcard has its own [hookup guide](http://docs.sparkfun.com/SparkFun_RTK_Postcard/). At a minimum you will need to attach a L1/L2/L5 GNSS antenna. The screw on [helical](https://www.sparkfun.com/gnss-multi-band-l1-l2-l5-helical-antenna-sma.html) antenna works very well or [UFO](https://www.sparkfun.com/gnss-multi-band-l1-l2-l5-surveying-antenna-tnc-spk6618h.html) with a TNC cable for greater reception but with greater weight will work. Then head outside with a clear view of the sky.
 
-
 3. Provide power.
 
-	- Power the Postcard with USB or (optionally) the Portability Shield with an attached battery.
+	- Power the Postcard with USB or (optionally) the [Portability Shield](https://www.sparkfun.com/sparkfun-portability-shield.html) with an attached battery.
 
 		<figure markdown>
 		![RTK EVK assembled](./img/SparkFun_RTK_Postcard_Full_Stack.png)
@@ -66,7 +65,7 @@ Are you using [Android](#android) or [iOS](#ios)?
 	</figcaption>
 	</figure>
 
-To improve the accuracy (down to 1.4cm), you now need to provide the device with corrections. Continue reading the [RTK Crash Course](#rtk-crash-course).
+To improve the accuracy (down to 10mm), you now need to provide the device with corrections. Continue reading the [RTK Crash Course](#rtk-crash-course).
 
 ## iOS
 
@@ -125,7 +124,7 @@ The software options for Apple iOS are much more limited because Apple products 
 	</figcaption>
 	</figure>
 
-To improve the accuracy (down to 1.4cm), you now need to provide the device with corrections. Continue reading the [RTK Crash Course](#rtk-crash-course).
+To improve the accuracy (down to 10mm), you now need to provide the device with corrections. Continue reading the [RTK Crash Course](#rtk-crash-course).
 
 ## RTK Crash Course
 
@@ -135,7 +134,10 @@ See [Corrections Sources](correction_sources.md) for a breakdown of the options 
 
 ## NTRIP Example
 
-1. Create an account on [PointOneNav](https://app.pointonenav.com/trial?src=sparkfun). **Note:** This service costs $50 per month at the time of writing.
+1. Create an account on [PointOneNav](https://app.pointonenav.com/trial?src=sparkfun).
+
+	!!! note
+		This service costs $50 per month at the time of writing.
 
 2. Open SW Maps and connect to the RTK device over Bluetooth.
 
@@ -143,23 +145,32 @@ See [Corrections Sources](correction_sources.md) for a breakdown of the options 
 
 4. Enter the credentials provided by PointOneNav and click Connect (Figure 1). Verify that *Send NMEA GGA* is checked.
 
-    ![NTRIP credentials in SW Maps](<img/SWMaps/SparkFun RTK SW Maps - NTRIP Credentials.png>)
-
-    *Figure 1*
+	<figure markdown>
+	![NTRIP credentials in SW Maps](./img/SWMaps/SparkFun RTK SW Maps - NTRIP Credentials.png)
+	<figcaption markdown>
+	Figure 1
+	</figcaption>
+	</figure>
 
 5. Corrections will be downloaded every second from PointOneNav using your phone’s cellular connection and then sent down to the RTK device over Bluetooth. You don't need a very fast internet connection or a lot of data; it's only about 530 bytes per second.
 
-Assuming you are outside, as soon as corrections are sent to the device, the Crosshair icon will become double and begin flashing. Once RTK Fix is achieved (usually under 30 seconds) the double crosshairs will become solid and the HPA will be below 20mm (Figure 2). You can now take positional readings with millimeter accuracy!
+Assuming you are outside, as soon as corrections are sent to the device, the bubble in SW Maps will turn Orange (RTK Float). Once RTK Fix is achieved (usually under 30 seconds) the bubble will turn Green and the HPA will be below 20mm (Figure 2). You can now take positional readings with millimeter accuracy!
 
-![Double crosshair indicating RTK Fix](<img/Displays/SparkFun RTK Display - Double Crosshair.png>)
-
-*Figure 2*
+<figure markdown>
+![Double crosshair indicating RTK Fix](./img/SWMaps/SparkFun Torch - SW Maps GNSS Status RTK Fix HPA Small.png)
+<figcaption markdown>
+Figure 2
+</figcaption>
+</figure>
 
 In SW Maps, the position bubble will turn from Blue (regular GNSS fix), then to Orange (RTK Float), then to Green (RTK Fix) (Figure 3).
 
-![Green bubble indicating RTK Fix](<img/SWMaps/SparkFun RTK SW Maps - Green Bubble-1.png>)
-
-*Figure 3*
+<figure markdown>
+![Green bubble indicating RTK Fix](./img/SWMaps/SparkFun RTK SW Maps - Green Bubble-1.png)
+<figcaption markdown>
+Figure 3
+</figcaption>
+</figure>
 
 RTK Fix will be maintained as long as there is a clear view of the sky and corrections are delivered to the device every few seconds.
 
