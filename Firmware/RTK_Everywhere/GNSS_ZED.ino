@@ -893,7 +893,8 @@ void GNSS_ZED::factoryReset()
     if (online.gnss)
     {
         _zed->factoryDefault(); // Reset everything: baud rate, I2C address, update rate, everything. And save to BBR.
-        _zed->saveConfiguration();
+        delay(3000); // Allow time for CFG-CFG to be applied
+        _zed->saveConfiguration(); // Save to Flash and BBR
         _zed->hardReset(); // Perform a reset leading to a cold start (zero info start-up)
     }
 }
