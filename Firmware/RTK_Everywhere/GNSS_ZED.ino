@@ -892,9 +892,16 @@ void GNSS_ZED::factoryReset()
 {
     if (online.gnss)
     {
-        _zed->factoryDefault(); // Reset everything: baud rate, I2C address, update rate, everything. And save to BBR.
-        delay(3000); // Allow time for CFG-CFG to be applied
-        _zed->saveConfiguration(); // Save to Flash and BBR
+        // Set the clearMask and loadMask to 0xFFFF. Set deviceMask to devBBR | devFlash
+        uint8_t clearAndLoadMask[] = { 0xFF, 0xFF, 0, 0, 0, 0, 0, 0, 0xFF, 0xFF, 0, 0, 0x03 };
+        _zed->cfgCfg(clearAndLoadMask, 13);
+
+        delay(2000);
+
+        // Set the saveMask to 0xFFFF. Set deviceMask to devBBR | devFlash
+        uint8_t saveMask[] = { 0, 0, 0, 0, 0xFF, 0xFF, 0, 0, 0, 0, 0, 0, 0x03 };
+        _zed->cfgCfg(saveMask, 13);
+
         _zed->hardReset(); // Perform a reset leading to a cold start (zero info start-up)
     }
 }
