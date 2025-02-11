@@ -866,7 +866,6 @@ volatile bool deadManWalking;
         deadManWalking = true;                                                                                         \
                                                                                                                        \
         /* Output as much as possible to identify the location of the failure */                                       \
-        settings.debugGnss = true;                                                                                     \
         settings.enableHeapReport = true;                                                                              \
         settings.enableTaskReports = true;                                                                             \
         settings.enablePrintPosition = true;                                                                           \
@@ -883,16 +882,26 @@ volatile bool deadManWalking;
         settings.enablePrintSDBuffers = true;                                                                          \
         settings.periodicDisplay = (PeriodicDisplay_t) - 1;                                                            \
         settings.enablePrintEthernetDiag = true;                                                                       \
-        settings.debugWifiState = true;                                                                                \
+        settings.debugCorrections = true;                                                                              \
+        settings.debugGnss = true;                                                                                     \
+        settings.debugHttpClientData = true;                                                                           \
+        settings.debugHttpClientState = true;                                                                          \
+        settings.debugLora = true;                                                                                     \
+        settings.debugMqttClientData = true;                                                                           \
+        settings.debugMqttClientState = true;                                                                          \
         settings.debugNetworkLayer = true;                                                                             \
         settings.printNetworkStatus = true;                                                                            \
         settings.debugNtripClientRtcm = true;                                                                          \
         settings.debugNtripClientState = true;                                                                         \
         settings.debugNtripServerRtcm = true;                                                                          \
         settings.debugNtripServerState = true;                                                                         \
+        settings.debugPpCertificate = true;                                                                            \
+        settings.debugSettings = true;                                                                                 \
         settings.debugTcpClient = true;                                                                                \
         settings.debugTcpServer = true;                                                                                \
         settings.debugUdpServer = true;                                                                                \
+        settings.debugWebServer = true;                                                                                \
+        settings.debugWifiState = true;                                                                                \
         settings.printBootTimes = true;                                                                                \
     }
 
@@ -918,6 +927,49 @@ volatile bool deadManWalking;
 #define DMW_st(routine, state)
 
 #endif // 0
+
+//-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+// Debug nearly everything. Include DEBUG_NEARLY_EVERYTHING in the setup after loadSettings to print many things.
+// Similar but less verbose than DEAD_MAN_WALKING
+// If the updated settings are saved to NVM, you will need to do a factory reset to clear them
+#define DEBUG_NEARLY_EVERYTHING                                                                                        \
+    {                                                                                                                  \
+                                                                                                                       \
+        /* Turn on nearly all the debug prints */                                                                      \
+        settings.enableHeapReport = true;                                                                              \
+        settings.enablePrintPosition = true;                                                                           \
+        settings.enablePrintIdleTime = true;                                                                           \
+        settings.enablePrintBatteryMessages = true;                                                                    \
+        settings.enablePrintRoverAccuracy = true;                                                                      \
+        settings.enablePrintLogFileMessages = false;                                                                   \
+        settings.enablePrintLogFileStatus = true;                                                                      \
+        settings.enablePrintStates = true;                                                                             \
+        settings.enablePrintDuplicateStates = true;                                                                    \
+        settings.enablePrintRtcSync = true;                                                                            \
+        settings.enablePrintBufferOverrun = true;                                                                      \
+        settings.enablePrintEthernetDiag = true;                                                                       \
+        settings.debugCorrections = true;                                                                              \
+        settings.debugGnss = false;                                                                                    \
+        settings.debugHttpClientData = true;                                                                           \
+        settings.debugHttpClientState = true;                                                                          \
+        settings.debugLora = true;                                                                                     \
+        settings.debugMqttClientData = true;                                                                           \
+        settings.debugMqttClientState = true;                                                                          \
+        settings.debugNetworkLayer = true;                                                                             \
+        settings.printNetworkStatus = true;                                                                            \
+        settings.debugNtripClientRtcm = true;                                                                          \
+        settings.debugNtripClientState = true;                                                                         \
+        settings.debugNtripServerRtcm = true;                                                                          \
+        settings.debugNtripServerState = true;                                                                         \
+        settings.debugPpCertificate = true;                                                                            \
+        settings.debugSettings = true;                                                                                 \
+        settings.debugTcpClient = true;                                                                                \
+        settings.debugTcpServer = true;                                                                                \
+        settings.debugUdpServer = true;                                                                                \
+        settings.debugWebServer = true;                                                                                \
+        settings.debugWifiState = true;                                                                                \
+        settings.printBootTimes = true;                                                                                \
+    }
 
 //-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 /*
@@ -1080,6 +1132,8 @@ void setup()
 
     DMW_b("loadSettings");
     loadSettings(); // Attempt to load settings after SD is started so we can read the settings file if available
+
+    //DEBUG_NEARLY_EVERYTHING // Debug nearly all the things
 
     DMW_b("checkArrayDefaults");
     checkArrayDefaults(); // Check for uninitialized arrays that won't be initialized by gnssConfigure
