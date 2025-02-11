@@ -1282,7 +1282,7 @@ void handleGnssDataTask(void *e)
                         systemPrintf("SD %d bytes written to log file\r\n", bytesToSend);
                     }
 
-                    fileSize = logFile->fileSize(); // Update file size
+                    logFileSize = logFile->fileSize(); // Update file size
 
                     sdFreeSpace -= bytesToSend; // Update remaining space on SD
 
@@ -1310,7 +1310,7 @@ void handleGnssDataTask(void *e)
                         if (endTime - startTime > 150)
                             systemPrintf("Long Write! Time: %ld ms / Location: %ld / Recorded %d bytes / "
                                          "spaceRemaining %d bytes\r\n",
-                                         endTime - startTime, fileSize, bytesToSend, combinedSpaceRemaining);
+                                         endTime - startTime, logFileSize, bytesToSend, combinedSpaceRemaining);
                     }
 
                     xSemaphoreGive(sdCardSemaphore);

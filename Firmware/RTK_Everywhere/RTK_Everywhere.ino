@@ -492,7 +492,7 @@ TaskHandle_t pinBluetoothTaskHandle; // Dummy task to start hardware on an assig
 volatile bool bluetoothPinned;       // This variable is touched by core 0 but checked by core 1. Must be volatile.
 
 volatile static int combinedSpaceRemaining; // Overrun indicator
-volatile static long fileSize;              // Updated with each write
+volatile static uint64_t logFileSize;              // Updated with each write
 int bufferOverruns;                         // Running count of possible data losses since power-on
 
 bool zedUartPassed; // Goes true during testing if ESP can communicate with ZED over UART
@@ -721,7 +721,7 @@ bool forceSystemStateUpdate; // Set true to avoid update wait
 uint32_t lastPrintRoverAccuracy;
 uint32_t lastBaseLEDupdate; // Controls the blinking of the Base LED
 
-uint32_t lastFileReport;      // When logging, print file record stats every few seconds
+uint32_t lastFileReport = 0;  // When logging, print file record stats every few seconds
 long lastStackReport;         // Controls the report rate of stack highwater mark within a task
 uint32_t lastHeapReport;      // Report heap every 1s if option enabled
 uint32_t lastTaskHeapReport;  // Report task heap every 1s if option enabled
@@ -731,7 +731,7 @@ uint32_t lastRTCSync;         // Time in millis when the RTC was last sync'd
 bool rtcSyncd;                // Set to true when the RTC has been sync'd via TP pulse
 uint32_t lastPrintPosition;   // For periodic display of the position
 
-uint64_t lastLogSize;
+uint64_t lastLogSize = 0;
 bool logIncreasing; // Goes true when log file is greater than lastLogSize or logPosition changes
 bool reuseLastLog;  // Goes true if we have a reset due to software (rather than POR)
 
@@ -1398,18 +1398,19 @@ void logUpdate()
         // Report file sizes to show recording is working
         if ((millis() - lastFileReport) > 5000)
         {
-            if (fileSize > 0)
+            if (logFileSize > 0)
             {
                 lastFileReport = millis();
+                
                 if (settings.enablePrintLogFileStatus)
                 {
-                    systemPrintf("Log file size: %ld", fileSize);
+                    systemPrintf("Log file size: %lld", logFileSize);
 
                     if ((systemTime_minutes - startLogTime_minutes) < settings.maxLogTime_minutes)
                     {
                         // Calculate generation and write speeds every 5 seconds
-                        uint32_t fileSizeDelta = fileSize - lastLogSize;
-                        systemPrintf(" - Generation rate: %0.1fkB/s", fileSizeDelta / 5.0 / 1000.0);
+                        uint64_t fileSizeDelta = logFileSize - lastLogSize;
+                        systemPrintf(" - Generation rate: %0.1fkB/s", ((float)fileSizeDelta) / 5.0 / 1000.0);
                     }
                     else
                     {
@@ -1419,9 +1420,9 @@ void logUpdate()
                     systemPrintln();
                 }
 
-                if (fileSize > lastLogSize)
+                if (logFileSize > lastLogSize)
                 {
-                    lastLogSize = fileSize;
+                    lastLogSize = logFileSize;
                     logIncreasing = true;
                 }
                 else
