@@ -650,6 +650,9 @@ void processUart1Message(SEMP_PARSE_STATE *parse, uint16_t type)
                 parse->buffer[0] = 0;
                 parse->length = 0;
             }
+
+            // Gimme three decimals!
+            lg290pModifyGst((char *)parse->buffer, &parse->length);
         }
     }
 
