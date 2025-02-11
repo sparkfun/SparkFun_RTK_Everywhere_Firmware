@@ -29,8 +29,17 @@ The line of RTK Everywhere products offered by SparkFun all run identical firmwa
 	[Hookup Guide](https://docs.sparkfun.com/SparkFun_RTK_EVK/){ .md-button .md-button--primary }
 	</center>
 
-</div>
+-   <figure markdown>
+	[![Product Image](./img/SparkFun_RTK_Postcard.png)](https://www.sparkfun.com/sparkfun-rtk-postcard.html "Go to Product Page")
+	<figcaption markdown>
+	[SparkFun RTK Postcard (GPS-26916)](https://www.sparkfun.com/sparkfun-rtk-postcard.html)
+	</figcaption>
+	</figure>
 
+	<center>
+	[Hookup Guide](https://docs.sparkfun.com/SparkFun_RTK_Postcard/){ .md-button .md-button--primary }
+	</center>
+</div>
 
 Depending on the hardware platform different features may or may not be supported. We will denote each product in each section so that you know what is supported.
 
