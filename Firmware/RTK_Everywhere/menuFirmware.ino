@@ -788,8 +788,11 @@ void otaUpdateStop()
             systemPrintln("Firmware update releasing network request");
 
         online.otaClient = false;
+        otaRequestFirmwareVersionCheck = false;
+        otaRequestFirmwareUpdate = false;
 
-        otaRequestFirmwareUpdate = false; // Let the network know we no longer need it
+        // Let the network know we no longer need it
+        networkConsumerRemove(NETCONSUMER_OTA_CLIENT, NETWORK_ANY);
 
         // Stop the firmware update
         otaSetState(OTA_STATE_OFF);
@@ -828,10 +831,12 @@ void otaUpdate()
 
         // Wait for a request from a user or from the scheduler
         case OTA_STATE_OFF:
-            if (otaRequestFirmwareVersionCheck == true)
+            if (otaRequestFirmwareVersionCheck || otaRequestFirmwareUpdate)
+            {
+                // Start the network if necessary
+                networkConsumerAdd(NETCONSUMER_OTA_CLIENT, NETWORK_ANY);
                 otaSetState(OTA_STATE_WAIT_FOR_NETWORK);
-            if (otaRequestFirmwareUpdate == true)
-                otaSetState(OTA_STATE_WAIT_FOR_NETWORK);
+            }
             break;
 
         // Wait for connection to the network
@@ -885,7 +890,6 @@ void otaUpdate()
                     // machine
                     if (otaRequestFirmwareVersionCheck == true)
                     {
-                        otaRequestFirmwareVersionCheck = false;
                         otaUpdateStop();
                         return;
                     }
