@@ -633,25 +633,31 @@ void wifiStartThrottled(NetIndex_t index, uintptr_t parameter, bool debug)
 
 //*********************************************************************
 // Handle WiFi station reconnection requests
-void wifiStationReconnectionRequest()
+bool wifiStationReconnectionRequest()
 {
-    int seconds;
+    bool connected;
     int minutes;
+    int seconds;
 
     // Restart delay
+    connected = false;
     if ((millis() - wifiReconnectionTimer) < wifiStartTimeout)
-        return;
+        return connected;
     wifiReconnectionTimer = millis();
 
-    // Start WiFi
+    // Check for a reconnection request
     if (wifiReconnectRequest)
     {
         if (settings.debugWifiState)
             systemPrintf("WiFi: Attempting WiFi restart\r\n");
         wifi.clearStarted(WIFI_STA_RECONNECT);
     }
+
+    // Attempt to start WiFi station
     if (wifiStart())
     {
+        // Successfully connected to a remote AP
+        connected = true;
         if (settings.debugWifiState)
             systemPrintf("WiFi: WiFi station successfully started\r\n");
         networkSequenceNextEntry(NETWORK_WIFI, settings.debugNetworkLayer);
@@ -659,6 +665,7 @@ void wifiStationReconnectionRequest()
     }
     else
     {
+        // Failed to connect to a remote AP
         if (settings.debugWifiState)
             systemPrintf("WiFi: WiFi station failed to start!\r\n");
 
@@ -679,6 +686,7 @@ void wifiStationReconnectionRequest()
         if (settings.debugWifiState)
             systemPrintf("WiFi: Delaying %2d:%02d before restarting WiFi\r\n", minutes, seconds);
     }
+    return connected;
 }
 
 //*********************************************************************
