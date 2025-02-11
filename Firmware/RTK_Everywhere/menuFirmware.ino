@@ -878,6 +878,7 @@ void otaUpdate()
                 if ((isReportedVersionNewer(otaReportedVersion, &currentVersion[1]) == true) ||
                     (currentVersion[0] == 'd') || (FIRMWARE_VERSION_MAJOR == 99))
                 {
+                    newOTAFirmwareAvailable = true;
                     systemPrintf("Version Check: New firmware version available: %s\r\n", otaReportedVersion);
 
                     // If we are doing just a version check, set version number, turn off network request and stop
