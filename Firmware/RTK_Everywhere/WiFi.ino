@@ -630,6 +630,15 @@ void wifiStartThrottled(NetIndex_t index, uintptr_t parameter, bool debug)
 {
     if (wifiStationReconnectionRequest())
         networkSequenceNextEntry(NETWORK_WIFI, debug);
+
+    // Check for network shutdown
+    else if (networkConsumerCount == 0)
+    {
+        // Stop the connection attempts
+        wifiResetThrottleTimeout();
+        wifiResetTimeout();
+        networkSequenceStopPolling(NETWORK_WIFI, debug, true);
+    }
 }
 
 //*********************************************************************
