@@ -672,6 +672,10 @@ bool wifiStationReconnectionRequest()
         // Account for this connection attempt
         wifiFailedConnectionAttempts++;
 
+        // Start the next network interface if necessary
+        if (wifiFailedConnectionAttempts >= 2)
+            networkStartNextInterface(NETWORK_WIFI);
+
         // Increase the timeout
         wifiStartTimeout <<= 1;
         if (!wifiStartTimeout)
@@ -739,6 +743,7 @@ RTK_WIFI::RTK_WIFI(bool verbose)
 {
     wifiChannel = 0;
     wifiEspNowRunning = false;
+    wifiFailedConnectionAttempts = 0;
     wifiRestartRequested = false;
     wifiStationRunning = false;
     wifiSoftApRunning = false;

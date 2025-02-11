@@ -1754,7 +1754,12 @@ void networkUpdate()
 
         // Handle the network lost internet event
         if (networkEventInternetLost[index])
+        {
             networkInterfaceInternetConnectionLost(index);
+
+            // Start the failover processing
+            networkStartNextInterface(index);
+        }
 
         // Handle the network stop event
         if (networkEventStop[index])
