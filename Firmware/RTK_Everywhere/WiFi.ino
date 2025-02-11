@@ -463,6 +463,7 @@ void menuWiFi()
 
             // If we are modifying the SSID table, force restart of WiFi
             wifiRestartRequested = true;
+            wifiFailedConnectionAttempts = 0;
         }
         else if (incoming == 'a')
         {
