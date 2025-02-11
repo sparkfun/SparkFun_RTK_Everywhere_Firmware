@@ -1,10 +1,15 @@
 name: Build Documentation
 
-on:
-  # Allows you to run this workflow manually from the Actions tab
-  workflow_dispatch:
-    branches: ["main"]
+# Allows you to run this workflow manually from the Actions tab
+# on:
+#   workflow_dispatch:
+#     branches: ["main"]
 
+# Run workflow on every commit
+on:
+  push:
+    branches:
+      - main
 
 # Sets permissions of the GITHUB_TOKEN to allow files to be committed to gh-pages branch
 permissions:
