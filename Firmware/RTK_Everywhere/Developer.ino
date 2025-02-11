@@ -48,6 +48,7 @@ const uint8_t * networkGetMacAddress()
 bool networkHasInternet() {return false;}
 bool networkHasInternet(NetIndex_t index) {return false;}
 bool networkInterfaceHasInternet(NetIndex_t index) {return false;}
+bool networkIsConnected(NetPriority_t * priority) {return false;}
 bool networkIsInterfaceStarted(NetIndex_t index) {return false;}
 void networkMarkOffline(NetIndex_t index) {}
 void networkMarkHasInternet(NetIndex_t index) {}
