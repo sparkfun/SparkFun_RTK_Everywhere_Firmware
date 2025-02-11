@@ -403,8 +403,9 @@ not_in_nav: |
 nav:
   - Introduction: introduction.md
   - Quick Start:
-    - quickstart-torch.md
     - quickstart-evk.md
+    - quickstart-postcard.md
+    - quickstart-torch.md
   - connecting_bluetooth.md
   - GIS Software:
       - gis_software_android.md
