@@ -628,7 +628,8 @@ bool wifiStart()
 // Start WiFi with throttling, used by wifiStopSequence
 void wifiStartThrottled(NetIndex_t index, uintptr_t parameter, bool debug)
 {
-    wifiStationReconnectionRequest();
+    if (wifiStationReconnectionRequest())
+        networkSequenceNextEntry(NETWORK_WIFI, debug);
 }
 
 //*********************************************************************
