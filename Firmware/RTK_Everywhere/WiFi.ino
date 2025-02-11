@@ -615,14 +615,11 @@ void wifiResetTimeout()
 }
 
 //*********************************************************************
-// Starts the WiFi connection state machine (moves from WIFI_STATE_OFF to WIFI_STATE_CONNECTING)
-// Sets the appropriate protocols (WiFi + ESP-Now)
-// If radio is off entirely, start WiFi
-// If ESP-Now is active, only add the LR protocol
-// Returns true if WiFi has connected and false otherwise
-bool wifiStart()
+// Start or stop the WiFi station
+// Returns true if successful and false upon failure
+bool wifiStationOn(bool on)
 {
-    return wifi.enable(wifiEspNowRunning, wifiSoftApRunning, true);
+    return wifi.enable(wifiEspNowRunning, wifiSoftApRunning, on);
 }
 
 //*********************************************************************
@@ -665,7 +662,7 @@ bool wifiStationReconnectionRequest()
     }
 
     // Attempt to start WiFi station
-    if (wifiStart())
+    if (wifiStationOn(true))
     {
         // Successfully connected to a remote AP
         connected = true;

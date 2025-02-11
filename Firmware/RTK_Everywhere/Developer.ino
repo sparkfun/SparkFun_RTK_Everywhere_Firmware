@@ -205,7 +205,7 @@ uint32_t wifiGetStartTimeout()                  {return 0;}
 int wifiNetworkCount()                          {return 0;}
 void wifiResetThrottleTimeout()                 {}
 void wifiResetTimeout()                         {}
-bool wifiStart()                                {return false;}
+bool wifiStationOn(bool on)                     {return !on;}
 void wifiStopAll()                              {}
 
 #endif // COMPILE_WIFI

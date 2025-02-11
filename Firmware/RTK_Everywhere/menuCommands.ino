@@ -1294,11 +1294,8 @@ SettingValueResponse updateSettingWithValue(bool inCommands, const char *setting
         // Web Config immediately of success or failure
 
         // If we're in AP only mode (no internet), try WiFi with current SSIDs
-        if (networkIsInterfaceStarted(NETWORK_WIFI_STATION)
-            && networkInterfaceHasInternet(NETWORK_WIFI_STATION) == false)
-        {
-            wifiStart();
-        }
+        if (networkIsInterfaceStarted(NETWORK_WIFI_STATION) == false)
+            wifiStationOn(true);
 
         // Get firmware version from server
         char newVersionCSV[40];
