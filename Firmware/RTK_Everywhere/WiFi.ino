@@ -1022,36 +1022,6 @@ WIFI_CHANNEL_t RTK_WIFI::getChannel()
 }
 
 //*********************************************************************
-// Restart WiFi
-bool RTK_WIFI::restart(bool always)
-{
-    // Determine if restart should be perforrmed
-    if (always || wifiRestartRequested)
-    {
-        wifiRestartRequested = false;
-
-        // Determine how WiFi is being used
-        bool started = false;
-        bool espNowRunning = wifiEspNowRunning;
-        bool softApRunning = wifiSoftApRunning;
-
-        // Stop the WiFi layer
-        started = enable(false, false, false);
-
-        // Restart the WiFi layer
-        if (started)
-            started = enable(espNowRunning,
-                             softApRunning,
-                             networkConsumers() ? true : false);
-
-        // Return the started state
-        return started;
-    }
-    else
-        return false;
-}
-
-//*********************************************************************
 // Set the WiFi mode
 // Inputs:
 //   setMode: Modes to set

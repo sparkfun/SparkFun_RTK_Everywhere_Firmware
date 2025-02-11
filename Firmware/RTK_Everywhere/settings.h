@@ -2151,15 +2151,6 @@ class RTK_WIFI
     //   Returns the current WiFi channel number
     WIFI_CHANNEL_t getChannel();
 
-    // Restart WiFi
-    // Inputs:
-    //   always: Set true if this routine should always restart WiFi,
-    //           when false determine restart using _restartRequest
-    // Outputs:
-    //    Returns true if the WiFi layer was successfully restarted and
-    //    false upon restart failure
-    bool restart(bool always);
-
     // Configure the soft AP
     // Inputs:
     //   ipAddress: IP address of the soft AP
