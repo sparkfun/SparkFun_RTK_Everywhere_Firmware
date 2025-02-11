@@ -2233,6 +2233,10 @@ void lg290pModifyGst(char *nmeaSentence, uint16_t *sentenceLength)
     if (online.gnss == false)
         return;
 
+    // Only apply the GST patch if our HPA is very small (<0.1m), ie RTK Float or Fix.
+    if (gnss->isRTKFix() == false && gnss->isRTKFloat() == false)
+        return;
+
     GNSS_LG290P *lg290p = (GNSS_LG290P *)gnss;
 
     // Identify sentence type
