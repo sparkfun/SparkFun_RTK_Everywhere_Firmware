@@ -281,8 +281,9 @@ bool beginLogging(const char *customFileName)
                     return(false);
                 }
 
-                fileSize = 0;
+                logFileSize = 0;
                 lastLogSize = 0; // Reset counter - used for displaying active logging icon
+                lastFileReport = millis(); // Fake last file report to avoid an immediate timeout
 
                 bufferOverruns = 0; // Reset counter
 
