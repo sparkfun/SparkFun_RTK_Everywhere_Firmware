@@ -42,7 +42,7 @@ To get into browser configuration follow these steps:
 	<figure markdown>
 	![SparkFun RTK EVK Mode Menu](./img/Displays/SparkFun_RTK_Postcard_Config.png)
 	<figcaption markdown>
-	SparkFun RTK EVK Mode Menu
+	SparkFun RTK Mode Menu
 	</figcaption>
 	</figure>
 
@@ -73,7 +73,7 @@ To get into browser configuration follow these steps:
 	<figure markdown>
 	![SparkFun RTK EVK Mode Menu](./img/Displays/SparkFun_RTK_Postcard_Config.png)
 	<figcaption markdown>
-	SparkFun RTK EVK Mode Menu
+	SparkFun RTK Mode Menu
 	</figcaption>
 	</figure>
 
@@ -86,13 +86,12 @@ To get into browser configuration follow these steps:
 !!! note
 	Upon connecting, your phone may warn you that this WiFi network has no internet. That's ok. Stay connected to the network and open a browser. If you still have problems turn off Mobile Data so that the phone does not default to cellular for internet connectivity and instead connects to the RTK Device.
 
-
-	<figure markdown>
-	![Browser with rtk.local address](./img/WiFi Config/SparkFun RTK WiFi Config - Browser rtk local.png)
-	<figcaption markdown>
-	Browser with rtk.local
-	</figcaption>
-	</figure>
+<figure markdown>
+![Browser with rtk.local address](./img/WiFi Config/SparkFun RTK WiFi Config - Browser rtk local.png)
+<figcaption markdown>
+Browser with rtk.local
+</figcaption>
+</figure>
 
 5. You should be automatically re-directed to the config page but if you are not, open a browser (Chrome is preferred) and type **rtk.local** into the address bar.
 

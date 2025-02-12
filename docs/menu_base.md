@@ -176,12 +176,12 @@ For more information about coordinate formats, check out this [online converter]
 
 ## Base Cast
 
-	<figure markdown>
-	![SparkFun RTK EVK Mode Menu](./img/Displays/SparkFun_RTK_Postcard_BaseCasting.png)
-	<figcaption markdown>
-	SparkFun RTK EVK Mode Menu
-	</figcaption>
-	</figure>
+<figure markdown>
+![SparkFun RTK EVK Mode Menu](./img/Displays/SparkFun_RTK_Postcard_BaseCasting.png)
+<figcaption markdown>
+SparkFun RTK EVK Mode Menu
+</figcaption>
+</figure>
 
 Base Cast mode enables the following settings:
 
@@ -192,14 +192,14 @@ Base Cast mode enables the following settings:
 
 This is helpful when using the RTK device in conjunction with a drone controller that expects connectivity to a near by Base over WiFi. All of these settings can be set manually; Base Cast mode just provides an easy and quick way to put the RTK device into the default mode compatible with most drone controllers.
 
-	<figure markdown>
-	![SparkFun RTK EVK Mode Menu](./img/Displays/SparkFun_RTK_Postcard_BaseCast.png)
-	<figcaption markdown>
-	SparkFun RTK EVK Mode Menu
-	</figcaption>
-	</figure>
+<figure markdown>
+![SparkFun RTK EVK Mode Menu](./img/Displays/SparkFun_RTK_Postcard_BaseCast.png)
+<figcaption markdown>
+SparkFun RTK EVK Mode Menu
+</figcaption>
+</figure>
 
-This mode can be entered from the [System Menu](menu_system.md), using the display menu (if a display is attached), or by setting the *System Initial State* to **BaseCast* via [Browser Config](configure_with_browswer).
+This mode can be entered from the [System Menu](menu_system.md), using the display menu (if a display is attached), or by setting the *System Initial State* to **BaseCast** via [Browser Config](configure_with_browswer).
 
 ## Assisted Base
 
