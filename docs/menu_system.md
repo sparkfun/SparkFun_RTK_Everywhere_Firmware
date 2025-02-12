@@ -78,11 +78,11 @@ The device can be in Rover, Base, or WiFi Config mode. The selected mode will be
 
 - **B, C, R, W, or S** - Change the mode the device is in.
 
-	- **B**ase - The device will reconfigure for base mode. It will begin transmitting corrections over Bluetooth, WiFi (NTRIP Server, TCP, etc), or other (ESP-Now, external radio if compatible, etc).
-	- Base**C**aster - The device will reconfigure for base caster mode. It will broadcast a WiFi access point, allow incoming NTRIP Client connections on port 2101. See [BaseCast Mode](menu_base.md#base-cast).
-	- **R**over - This is the default mode. The device transmits its NMEA and other messages (if enabled) over Bluetooth. It can receive corrections over Bluetooth (or other transport methods such as NTRIP Client) to achieve RTK Fix.
-	- **W**eb Config - The device will shut down GNSS operations and serve a configuration web page over WiFi or ethernet.
-	- **S**hut Down - If supported, the device will immediately shut down.
+- **B**ase - The device will reconfigure for base mode. It will begin transmitting corrections over Bluetooth, WiFi (NTRIP Server, TCP, etc), or other (ESP-Now, external radio if compatible, etc).
+- Base**C**aster - The device will reconfigure for base caster mode. It will broadcast a WiFi access point, allow incoming NTRIP Client connections on port 2101. See [BaseCast Mode](menu_base.md#base-cast).
+- **R**over - This is the default mode. The device transmits its NMEA and other messages (if enabled) over Bluetooth. It can receive corrections over Bluetooth (or other transport methods such as NTRIP Client) to achieve RTK Fix.
+- **W**eb Config - The device will shut down GNSS operations and serve a configuration web page over WiFi or ethernet.
+- **S**hut Down - If supported, the device will immediately shut down.
 
 ## Settings
 
