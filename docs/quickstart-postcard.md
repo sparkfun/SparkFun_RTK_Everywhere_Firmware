@@ -39,7 +39,7 @@ Are you using [Android](#android) or [iOS](#ios)?
 4. From your cell phone, open Bluetooth settings and pair it with a new device. You will see a list of available Bluetooth devices. Select the ‘Postcard Rover-3AF1’. The '3AF1' is the last four digits of the device's MAC address and will vary depending on the device (Figure 3).
 
 	<figure markdown>
-	![List of Bluetooth devices on Android](./img/QuickStart/SparkFun Torch - Available Devices.png)
+	![List of Bluetooth devices on Android](./img/QuickStart/SparkFun Postcard - Available Devices.png)
 	<figcaption markdown>
 	Figure 3
 	</figcaption>
@@ -50,7 +50,7 @@ Are you using [Android](#android) or [iOS](#ios)?
 6. Press the SW Maps icon in the top left corner of the home screen and select **Bluetooth GNSS**. You should see the ‘Postcard Rover-3AF1’ in the list. Select it. Confirm that the *Instrument Model* is **SparkFun RTK**, then press the ‘Connect’ button in the bottom right corner (Figure 4). SW Maps will show a warning that the instrument height is 0m. That’s ok.
 
 	<figure markdown>
-	![SW Map list of Bluetooth devices](./img/QuickStart/SparkFun Torch - SW Maps Bluetooth Small.png)
+	![SW Map list of Bluetooth devices](./img/QuickStart/SparkFun Torch - SW Maps Postcard Bluetooth.png)
 	<figcaption markdown>
 	Figure 4
 	</figcaption>

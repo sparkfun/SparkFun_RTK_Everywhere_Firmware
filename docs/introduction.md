@@ -14,6 +14,10 @@ The line of RTK Everywhere products offered by SparkFun all run identical firmwa
 	</figure>
 
 	<center>
+	[Quickstart Guide](https://docs.sparkfun.com/SparkFun_RTK_Everywhere_Firmware/quickstart-evk/){ .md-button .md-button--primary }
+	</center>
+
+	<center>
 	[Hookup Guide](https://docs.sparkfun.com/SparkFun_RTK_EVK/){ .md-button .md-button--primary }
 	</center>
 
@@ -23,6 +27,10 @@ The line of RTK Everywhere products offered by SparkFun all run identical firmwa
 	[SparkFun RTK Postcard (GPS-26916)](https://www.sparkfun.com/sparkfun-rtk-postcard.html)
 	</figcaption>
 	</figure>
+
+	<center>
+	[Quickstart Guide](https://docs.sparkfun.com/SparkFun_RTK_Everywhere_Firmware/quickstart-postcard/){ .md-button .md-button--primary }
+	</center>
 
 	<center>
 	[Hookup Guide](https://docs.sparkfun.com/SparkFun_RTK_Postcard/){ .md-button .md-button--primary }
@@ -38,8 +46,6 @@ The line of RTK Everywhere products offered by SparkFun all run identical firmwa
 	<center>
 	[Quickstart Guide](https://docs.sparkfun.com/SparkFun_RTK_Everywhere_Firmware/quickstart-torch/){ .md-button .md-button--primary }
 	</center>
-
-	<div><br></div>
 
 	<center>
 	[Hookup Guide](https://docs.sparkfun.com/SparkFun_RTK_Torch/){ .md-button .md-button--primary }
