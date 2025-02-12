@@ -36,7 +36,7 @@ Are you using [Android](#android) or [iOS](#ios)?
 		</figcaption>
 		</figure>
 
-4. From your cell phone, open Bluetooth settings and pair it with a new device. You will see a list of available Bluetooth devices. Select the ‘Postcard Rover-3AF1’. The '3AF1' is the last four digits of the device's MAC address and will vary depending on the device (Figure 3).
+4. From your cell phone, open Bluetooth settings and pair it with a new device. You will see a list of available Bluetooth devices. Select the ‘Postcard Rover-A4D2’. The 'A4D2' is the last four digits of the device's MAC address and will vary depending on the device (Figure 3).
 
 	<figure markdown>
 	![List of Bluetooth devices on Android](./img/QuickStart/SparkFun Postcard - Available Devices.png)
@@ -47,7 +47,7 @@ Are you using [Android](#android) or [iOS](#ios)?
 
 5. Once paired, open SW Maps. Select ‘New Project’ and give your project a name like ‘RTK Project’.
 
-6. Press the SW Maps icon in the top left corner of the home screen and select **Bluetooth GNSS**. You should see the ‘Postcard Rover-3AF1’ in the list. Select it. Confirm that the *Instrument Model* is **SparkFun RTK**, then press the ‘Connect’ button in the bottom right corner (Figure 4). SW Maps will show a warning that the instrument height is 0m. That’s ok.
+6. Press the SW Maps icon in the top left corner of the home screen and select **Bluetooth GNSS**. You should see the ‘Postcard Rover-A4D2’ in the list. Select it. Confirm that the *Instrument Model* is **SparkFun RTK**, then press the ‘Connect’ button in the bottom right corner (Figure 4). SW Maps will show a warning that the instrument height is 0m. That’s ok.
 
 	<figure markdown>
 	![SW Map list of Bluetooth devices](./img/QuickStart/SparkFun Torch - SW Maps Postcard Bluetooth.png)
@@ -128,9 +128,7 @@ To improve the accuracy (down to 10mm), you now need to provide the device with 
 
 ## RTK Crash Course
 
-To get millimeter accuracy we need to provide the RTK unit with correction values. Corrections, often called RTCM, help the RTK unit refine its position calculations. RTCM (Radio Technical Commission for Maritime Services) can be obtained from a variety of sources but they fall into three buckets: Commercial, Public, and Civilian Reference Stations.
-
-See [Corrections Sources](correction_sources.md) for a breakdown of the options and the pros and cons of each. For this quickstart, we'll be showing you how to enable corrections using a monthly service called PointOneNav.
+To get millimeter accuracy we need to provide the RTK unit with correction values. Corrections, often called RTCM, help the RTK unit refine its position calculations. RTCM (Radio Technical Commission for Maritime Services) can be obtained from a variety of sources. See [Corrections Sources](correction_sources.md) for a breakdown of the options and the pros and cons of each. For this quickstart, we'll be showing you how to enable corrections using a monthly service called PointOneNav.
 
 ## NTRIP Example
 
