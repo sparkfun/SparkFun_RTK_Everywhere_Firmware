@@ -51,8 +51,14 @@ const lg290pMsg lgMessagesRTCM[] = {
     {"RTCM3-107X", 1, 0}, {"RTCM3-108X", 1, 0}, {"RTCM3-109X", 1, 0}, {"RTCM3-111X", 1, 0}, {"RTCM3-112X", 1, 0}, {"RTCM3-113X", 1, 0},
 };
 
+// Quectel Proprietary messages
+const lg290pMsg lgMessagesPQTM[] = {
+    {"EPE", 0, 0}, {"PVT", 0, 0},
+};
+
 #define MAX_LG290P_NMEA_MSG (sizeof(lgMessagesNMEA) / sizeof(lg290pMsg))
 #define MAX_LG290P_RTCM_MSG (sizeof(lgMessagesRTCM) / sizeof(lg290pMsg))
+#define MAX_LG290P_PQTM_MSG (sizeof(lgMessagesPQTM) / sizeof(lg290pMsg))
 
 enum lg290p_Models
 {
