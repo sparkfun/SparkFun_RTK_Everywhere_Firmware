@@ -1079,6 +1079,10 @@ void networkSequenceNextEntry(NetIndex_t index, bool debug)
     // Get the previous sequence entry
     next = networkSequence[index];
 
+    // Determine if the sequence has already stopped.
+    if (next == nullptr)
+        return;
+
     // Set the next sequence entry
     next += 1;
     if (next->routine)
