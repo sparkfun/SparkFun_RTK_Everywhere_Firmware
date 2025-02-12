@@ -11,8 +11,9 @@ Compatibility Icons
 
 <div class="grid cards fill" markdown>
 
-- Torch: :material-radiobox-marked:{ .support-full title="Feature Supported" }
 - EVK: :material-radiobox-marked:{ .support-full title="Feature Supported" }
+- Postcard: :material-radiobox-marked:{ .support-full title="Feature Supported" }
+- Torch: :material-radiobox-marked:{ .support-full title="Feature Supported" }
 
 </div>
 
@@ -259,10 +260,10 @@ Feel free to look at and make a copy of the [SparkFun example](https://docs.goog
 
 52mm off a professional mark is a clear indicator we are *very close* to the limit of our equipment. The sheer amount of geoscience, coordinate math, and relativistic physics that very smart people have contributed to enable any part of this experiment is awe-inspiring. It gave me great satisfaction and reassurance that our base at SparkFun HQ is set up well, and that, in the hands of a professional, the RTK product line is quite capable of providing *very* accurate readings.
 
-## How do I get 14mm?!
+## How do I get 10mm?!
 
 - Use the best equipment. Our mechanical setup was rickety and cheap. Use a surveyor’s bipod setup, with a bubble level, and a prism pole to accurately level the RTK receiver and measure the distance to the monument.
-- Use an antenna that is NGS calibrated to obtain accurate ARPs. The [SparkFun TOP106 antenna](https://www.sparkfun.com/products/17751) has been calibrated and we are in the process of calibrating the RTK Facet and RTK Facet L-Band.
+- Use an antenna that is NGS calibrated to obtain accurate ARPs. The [SparkFun SPK6618H antenna](https://www.sparkfun.com/gnss-multi-band-l1-l2-l5-surveying-antenna-tnc-spk6618h.html) has been calibrated and we are in the process of calibrating the RTK Facet and RTK Facet L-Band.
 - Use an accurate base. A temporary or ‘survey-in’ base will not be accurate. The base needs 24 hours of logging with a [PPP analysis](https://learn.sparkfun.com/tutorials/how-to-build-a-diy-gnss-reference-station/all#gather-raw-gnss-data).
 - Be within 10km of your base. A baseline that is more than 10km will introduce inaccuracies to the RTK fix readings.
 - Correction services are not as accurate as a fixed base. While services such as Skylark and PointPerfect are *convenient*, they use models to estimate the overall isotropic disturbance. A local, fixed base will outperform a correction service.

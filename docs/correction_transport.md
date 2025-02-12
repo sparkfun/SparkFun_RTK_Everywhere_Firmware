@@ -97,7 +97,7 @@ Compatibility Icons
 
 - EVK: :material-radiobox-marked:{ .support-full title="Feature Supported" }
 - Postcard: :material-radiobox-marked:{ .support-full title="Feature Supported" }
-- Torch: [:material-radiobox-blank:{ .support-none }]( title ="Feature Supported" )
+- Torch: [:material-radiobox-blank:{ .support-full }]( title ="Feature Supported" )
 
 </div>
 
@@ -124,7 +124,7 @@ Compatibility Icons
 <div class="grid cards fill" markdown>
 
 - EVK: :material-radiobox-marked:{ .support-full title="Feature Supported" }
-- Postcard: :material-radiobox-marked:{ .support-full title="Feature Not Supported" }
+- Postcard: :material-radiobox-marked:{ .support-none title="Feature Not Supported" }
 - Torch: [:material-radiobox-blank:{ .support-none }]( title ="Feature Not Supported" )
 
 </div>
@@ -150,7 +150,7 @@ Compatibility Icons
 
 <div class="grid cards fill" markdown>
 
-- EVK: :material-radiobox-marked:{ .support-full title="Feature Not Supported" }
+- EVK: :material-radiobox-marked:{ .support-none title="Feature Not Supported" }
 - Postcard: :material-radiobox-marked:{ .support-full title="Feature Supported" }
 - Torch: [:material-radiobox-blank:{ .support-none }]( title ="Feature Not Supported" )
 
@@ -191,7 +191,7 @@ Compatibility Icons
 </figcaption>
 </figure>
 
-Serial radios, sometimes called telemetry radios, provide what is essentially a serial cable between the base and rover devices. Transmission distance, frequency, maximum data rate, configurability, and price vary widely, but all behave functionally the same. SparkFun recommends the [HolyBro 100mW](https://www.sparkfun.com/products/19032) and the [SparkFun LoRaSerial 1W](https://www.sparkfun.com/products/19311) radios for RTK use.
+Serial radios, sometimes called telemetry or packet radios, provide what is essentially a serial cable between the base and rover devices. Transmission distance, frequency, maximum data rate, configurability, and price vary widely, but all behave functionally the same. SparkFun recommends the [HolyBro 100mW](https://www.sparkfun.com/products/19032) and the [SparkFun LoRaSerial 1W](https://www.sparkfun.com/products/19311) radios for RTK use.
 
 <figure markdown>
 ![Serial radio cable](./img/Corrections/17239-GHR-04V-S_to_GHR-06V-S_Cable_-_150mm-01.jpg)

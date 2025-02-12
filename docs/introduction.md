@@ -37,7 +37,9 @@ The line of RTK Everywhere products offered by SparkFun all run identical firmwa
 
 	<center>
 	[Quickstart Guide](https://docs.sparkfun.com/SparkFun_RTK_Everywhere_Firmware/quickstart-torch/){ .md-button .md-button--primary }
+	</center>
 	<br>
+	<center>
 	[Hookup Guide](https://docs.sparkfun.com/SparkFun_RTK_Torch/){ .md-button .md-button--primary }
 	</center>
 

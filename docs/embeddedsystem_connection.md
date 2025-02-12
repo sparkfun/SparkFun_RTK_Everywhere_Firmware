@@ -37,7 +37,7 @@ Compatibility Icons
 <div class="grid cards fill" markdown>
 
 - EVK: [:material-radiobox-blank:{ .support-none }]( title ="Feature Not Supported" )
-- Postcard: [:material-radiobox-blank:{ .support-none }]( title ="Feature Supported" )
+- Postcard: [:material-radiobox-blank:{ .support-full }]( title ="Feature Supported" )
 - Torch: [:material-radiobox-blank:{ .support-none }]( title ="Feature Not Supported" )
 
 </div>
