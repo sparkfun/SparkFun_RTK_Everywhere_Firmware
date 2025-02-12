@@ -426,6 +426,8 @@ void tcpClientUpdate()
         if (EQ_RTK_MODE(tcpClientMode) && settings.enableTcpClient)
         {
             timer = 0;
+            connectionAttempt = 0;
+            connectionDelay = 0;
             tcpClientPriority = NETWORK_OFFLINE;
             tcpClientSetState(TCP_CLIENT_STATE_WAIT_FOR_NETWORK);
 
