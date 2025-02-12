@@ -2259,6 +2259,8 @@ bool RTK_WIFI::stopStart(WIFI_ACTION_t stopping, WIFI_ACTION_t starting)
                 systemPrintf("channel: %d\r\n", channel);
             _started = _started | WIFI_STA_START_SCAN;
 
+            displayWiFiConnect();
+
             // Determine if WiFi scan failed, stop WiFi station startup
             if (wifi.stationScanForAPs(channel) < 0)
             {
@@ -2275,9 +2277,11 @@ bool RTK_WIFI::stopStart(WIFI_ACTION_t stopping, WIFI_ACTION_t starting)
             if (channel == 0)
             {
                 if (wifiChannel)
-                    systemPrintf("WiFi STA: No compatible remote AP found on channel %d!\r\n", wifiChannel);
+                    systemPrintf("WiFi STA: No matching remote AP found on channel %d!\r\n", wifiChannel);
                 else
-                    systemPrintf("WiFi STA: No compatible remote AP found!\r\n");
+                    systemPrintf("WiFi STA: No matching remote AP found!\r\n");
+
+                displayNoWiFi(2000);
 
                 // Stop bringing up WiFi station
                 starting &= ~WIFI_STA_NO_REMOTE_AP;
