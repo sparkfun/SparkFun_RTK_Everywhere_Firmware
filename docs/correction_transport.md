@@ -1,10 +1,10 @@
 # Correction Transport
 
-Once a [correction source](correction_sources.md) is chosen, the correction data must be transported from the base to the rover. The RTCM serial data is approximately 530 bytes per second. This section describes the various methods to move correction data from a base to one or more rovers.
+Once a [correction source](correction_sources.md) is chosen, the correction data must be transported from the base to the rover. The RTCM serial data is approximately 530 bytes per second but varies depending on the GNSS receiver and its settings. This section describes the various methods to move correction data from a base to one or more rovers.
 
-RTK calculations require RTCM data to be delivered approximately once per second. If RTCM data is lost or not received by a rover, RTK Fix can still be maintained for many seconds before the device will enter RTK Float mode. If a transport method experiences congestion (ie, cellular latency, Serial Radios dropping packets, etc) the rover(s) can continue in RTK Fix mode even if correction data is not available for multiple seconds.
+RTK calculations require RTCM data to be delivered approximately once per second. If RTCM data is lost or not received by a rover, RTK Fix can still be maintained for around 30 seconds before the device will enter RTK Float mode. If a transport method experiences congestion (ie, cellular latency, Serial Radios dropping packets, etc) the rover(s) can continue in RTK Fix mode even if correction data is not available for multiple seconds.
 
-## WiFi
+## Cellular - Built-In
 
 <!--
 Compatibility Icons
@@ -17,29 +17,16 @@ Compatibility Icons
 
 <div class="grid cards fill" markdown>
 
-- Torch: :material-radiobox-marked:{ .support-full title="Feature Supported" }
-- EVK: :material-radiobox-marked:{ .support-full title="Feature Supported" }
+- EVK: [:material-radiobox-blank:{ .support-none }]( title ="Feature Not Supported" )
+- Postcard: [:material-radiobox-blank:{ .support-none }]( title ="Feature Not Supported" )
+- Torch: [:material-radiobox-blank:{ .support-none }]( title ="Feature Not Supported" )
 
 </div>
 
-<figure markdown>
-![NTRIP Server setup](./img/WiFi Config/RTK_Surveyor_-_WiFi_Config_-_Base_Config2.jpg)
-<figcaption markdown>
-</figcaption>
-</figure>
+The RTK EVK has built-in cellular via a u-blox LARA-R6001D. However, the RTK Everywhere firmware does not yet support cellular. Adding it is on our roadmap. Stay tuned for updates! Meanwhile, we do have a stand-alone EVK code example which will connect to PointPerfect localized distribution via cellular:
 
-Any SparkFun RTK device can be set up as an [NTRIP Server](menu_base.md#ntrip-server). This means the device will connect to local WiFi and broadcast its correction data to the internet. The data is delivered to something called an NTRIP Caster. Any number of rovers can then access this data using something called an NTRIP Client. Nearly *every* GIS application has an NTRIP Client built into it so this makes it very handy.
-
-WiFi broadcasting is the most common transport method of getting RTCM correction data to the internet and to rovers via NTRIP Clients.
-
-<figure markdown>
-![RTK product in NTRIP Client mode](./img/Displays/SparkFun_RTK_Rover_NTRIP_Client_Connection.png)
-<figcaption markdown>
-RTK product showing corrections being downloaded over WiFi in NTRIP Client mode
-</figcaption>
-</figure>
-
-Similarly, any SparkFun RTK device can be set up as an [NTRIP Client](menu_gnss.md#ntrip-client). The RTK device will connect to the local WiFi and begin downloading the RTCM data from the given NTRIP Caster and RTK Fix will be achieved. This is useful only if the Rover remains in RF range of a WiFi access point. Because of the limited range, we recommend using a cell phone's hotspot feature rather than a stationary WiFi access point for NTRIP Clients.
+- [EVK example 8_5_PointPerfect_MQTT](https://github.com/sparkfun/SparkFun_RTK_EVK/tree/main/Example_Sketches/8_5_PointPerfect_MQTT)
+- [EVK example 8_6_PointPerfect_MQTT_WiFi_ETH_Cellular](https://github.com/sparkfun/SparkFun_RTK_EVK/tree/main/Example_Sketches/8_6_PointPerfect_MQTT_WiFi_ETH_Cellular)
 
 ## Cellular - Via Cellphone
 
@@ -54,8 +41,9 @@ Compatibility Icons
 
 <div class="grid cards fill" markdown>
 
-- Torch: :material-radiobox-marked:{ .support-full title="Feature Supported" }
 - EVK: :material-radiobox-marked:{ .support-full title="Feature Supported" }
+- Postcard: :material-radiobox-marked:{ .support-full title="Feature Supported" }
+- Torch: :material-radiobox-marked:{ .support-full title="Feature Supported" }
 
 </div>
 
@@ -71,7 +59,7 @@ Shown above are SW Map's NTRIP Client Settings. Nearly all GIS applications have
 
 Cellular can even be used in Base mode. We have seen some very inventive users use an old cell phone as a WiFi access point. The base unit is configured as an NTRIP Server with the cellphone's WiFi AP credentials. The base performs a survey-in, connects to the WiFi, and the RTCM data is pushed over WiFi, over cellular, to an NTRIP Caster.
 
-## Cellular - Built-In
+## Ethernet
 
 <!--
 Compatibility Icons
@@ -84,15 +72,43 @@ Compatibility Icons
 
 <div class="grid cards fill" markdown>
 
+- EVK: :material-radiobox-marked:{ .support-full title="Feature Supported" }
+- Postcard: [:material-radiobox-blank:{ .support-none }]( title ="Feature Not Supported" )
 - Torch: [:material-radiobox-blank:{ .support-none }]( title ="Feature Not Supported" )
-- EVK: [:material-radiobox-blank:{ .support-none }]( title ="Feature Not Supported" )
 
 </div>
 
-The RTK EVK has built-in cellular via a u-blox LARA-R6001D. However, the RTK Everywhere firmware does not yet support cellular. Adding it is on our roadmap. Stay tuned for updates! Meanwhile, we do have a stand-alone EVK code example which will connect to PointPerfect localized distribution via cellular:
+Ethernet-equipped RTK devices send and receive correction data via Ethernet.
 
-- [EVK example 8_5_PointPerfect_MQTT](https://github.com/sparkfun/SparkFun_RTK_EVK/tree/main/Example_Sketches/8_5_PointPerfect_MQTT)
-- [EVK example 8_6_PointPerfect_MQTT_WiFi_ETH_Cellular](https://github.com/sparkfun/SparkFun_RTK_EVK/tree/main/Example_Sketches/8_6_PointPerfect_MQTT_WiFi_ETH_Cellular)
+Please see [Ethernet Menu](menu_ethernet.md) for more details.
+
+## ESP-NOW
+
+<!--
+Compatibility Icons
+====================================================================================
+
+:material-radiobox-marked:{ .support-full title="Feature Supported" }
+:material-radiobox-indeterminate-variant:{ .support-partial title="Feature Partially Supported" }
+:material-radiobox-blank:{ .support-none title="Feature Not Supported" }
+-->
+
+<div class="grid cards fill" markdown>
+
+- EVK: :material-radiobox-marked:{ .support-full title="Feature Supported" }
+- Postcard: :material-radiobox-marked:{ .support-full title="Feature Supported" }
+- Torch: [:material-radiobox-blank:{ .support-none }]( title ="Feature Supported" )
+
+</div>
+
+<figure markdown>
+![Max transmission range of about 250m](./img/Radios/SparkFun%20RTK%20ESP-Now%20Distance%20Testing.png)
+<figcaption markdown>
+</figcaption>
+</figure>
+
+All RTK devices have a built-in radio capable of transmitting RTCM from a single base to multiple rovers. The range is not great, but it's free! See [ESP-NOW Configuration](menu_radios.md#esp-now) for more information.
+
 
 ## L-Band
 
@@ -107,8 +123,9 @@ Compatibility Icons
 
 <div class="grid cards fill" markdown>
 
-- Torch: [:material-radiobox-blank:{ .support-none }]( title ="Feature Not Supported" )
 - EVK: :material-radiobox-marked:{ .support-full title="Feature Supported" }
+- Postcard: :material-radiobox-marked:{ .support-full title="Feature Not Supported" }
+- Torch: [:material-radiobox-blank:{ .support-none }]( title ="Feature Not Supported" )
 
 </div>
 
@@ -119,6 +136,35 @@ A variety of companies provide GNSS RTK corrections broadcast from satellites ov
 These corrections are not as accurate as a fixed base station, and the corrections can require a monthly subscription fee, but you cannot beat the ease of use!
 
 L-Band reception requires specialized RF receivers capable of demodulating the satellite transmissions. The RTK EVK has a built-in NEO-D9S corrections receiver. The RTK Everywhere firmware supports this and will tune the NEO-D9S to the correct frequency if you are in the US or EU. The PointPerfect L-Band corrections are encrypted and require a subscription and valid keys in order to work. The EVK comes with a one month free subscription to PointPerfect L-Band + IP, providing built-in support for L-Band corrections and IP corrections via Ethernet or WiFi.
+
+## LoRa
+
+<!--
+Compatibility Icons
+====================================================================================
+
+:material-radiobox-marked:{ .support-full title="Feature Supported" }
+:material-radiobox-indeterminate-variant:{ .support-partial title="Feature Partially Supported" }
+:material-radiobox-blank:{ .support-none title="Feature Not Supported" }
+-->
+
+<div class="grid cards fill" markdown>
+
+- EVK: :material-radiobox-marked:{ .support-full title="Feature Not Supported" }
+- Postcard: :material-radiobox-marked:{ .support-full title="Feature Supported" }
+- Torch: [:material-radiobox-blank:{ .support-none }]( title ="Feature Not Supported" )
+
+</div>
+
+<figure markdown>
+![Antenna covered removed from the RTK Torch](./img/Repair/GPS-24672-RTK-Torch-Internal2.jpg)
+<figcaption markdown>
+Antenna covered removed from the RTK Torch
+</figcaption>
+</figure>
+
+
+The RTK Torch contains a 1 watt Long Range (LoRa) radio capable of transmitting RTCM from a single base to multiple rovers. See [LoRa Radio Configuration](menu_radios.md#configuration) for more information.
 
 ## Serial Radios
 
@@ -133,8 +179,9 @@ Compatibility Icons
 
 <div class="grid cards fill" markdown>
 
-- Torch: [:material-radiobox-blank:{ .support-none }]( title ="Feature Not Supported" )
 - EVK: :material-radiobox-marked:{ .support-full title="Feature Supported" }
+- Postcard: :material-radiobox-marked:{ .support-full title="Feature Supported" }
+- Torch: [:material-radiobox-blank:{ .support-none }]( title ="Feature Not Supported" )
 
 </div>
 
@@ -168,7 +215,8 @@ The benefit of a serial telemetry radio link is that you do not need to configur
 
 The downside to serial telemetry radios is that they generally have a much shorter range (often slightly more than a 1-kilometer functional range) than a cellular link can provide.
 
-## Ethernet
+
+## WiFi
 
 <!--
 Compatibility Icons
@@ -181,11 +229,27 @@ Compatibility Icons
 
 <div class="grid cards fill" markdown>
 
-- Torch: [:material-radiobox-blank:{ .support-none }]( title ="Feature Not Supported" )
 - EVK: :material-radiobox-marked:{ .support-full title="Feature Supported" }
+- Postcard: :material-radiobox-marked:{ .support-full title="Feature Supported" }
+- Torch: :material-radiobox-marked:{ .support-full title="Feature Supported" }
 
 </div>
 
-Ethernet-equipped RTK devices send and receive correction data via Ethernet.
+<figure markdown>
+![NTRIP Server setup](./img/WiFi Config/RTK_Surveyor_-_WiFi_Config_-_Base_Config2.jpg)
+<figcaption markdown>
+</figcaption>
+</figure>
 
-Please see [Ethernet Menu](menu_ethernet.md) for more details.
+Any SparkFun RTK device can be set up as an [NTRIP Server](menu_base.md#ntrip-server). This means the device will connect to local WiFi and broadcast its correction data to the internet. The data is delivered to something called an NTRIP Caster. Any number of rovers can then access this data using something called an NTRIP Client. Nearly *every* GIS application has an NTRIP Client built into it so this makes it very handy.
+
+WiFi broadcasting is the most common transport method of getting RTCM correction data to the internet and to rovers via NTRIP Clients.
+
+<figure markdown>
+![RTK product in NTRIP Client mode](./img/Displays/SparkFun_RTK_Rover_NTRIP_Client_Connection.png)
+<figcaption markdown>
+RTK product showing corrections being downloaded over WiFi in NTRIP Client mode
+</figcaption>
+</figure>
+
+Similarly, any SparkFun RTK device can be set up as an [NTRIP Client](menu_gnss.md#ntrip-client). The RTK device will connect to the local WiFi and begin downloading the RTCM data from the given NTRIP Caster and RTK Fix will be achieved. This is useful only if the Rover remains in RF range of a WiFi access point. Because of the limited range, we recommend using a cell phone's hotspot feature rather than a stationary WiFi access point for NTRIP Clients.

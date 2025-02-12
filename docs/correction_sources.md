@@ -11,8 +11,9 @@ Compatibility Icons
 
 <div class="grid cards fill" markdown>
 
-- Torch: :material-radiobox-marked:{ .support-full title="Feature Supported" }
 - EVK: :material-radiobox-marked:{ .support-full title="Feature Supported" }
+- Postcard: :material-radiobox-marked:{ .support-full title="Feature Supported" }
+- Torch: :material-radiobox-marked:{ .support-full title="Feature Supported" }
 
 </div>
 
@@ -22,11 +23,7 @@ To get millimeter accuracy we need to provide the RTK unit with correction value
 
 These companies set up a large number of reference stations that cover entire regions and countries, but charge a monthly fee. They are often easy to use but can be expensive.
 
-- [PointPerfect](https://docs.sparkfun.com/SparkFun_RTK_Everywhere_Firmware/quickstart-torch/#pointperfect-corrections) ($8/month) - US, EU, as well as parts of Australia, Brazil, and South Korea.
-
-	!!! note
-		 This is an SSR service.
-
+- [PointPerfect](https://docs.sparkfun.com/SparkFun_RTK_Everywhere_Firmware/quickstart-torch/#pointperfect-corrections) ($8/month) - US, EU, as well as parts of Australia, Brazil, and South Korea. Note: This is an [SSR service](https://docs.sparkfun.com/SparkFun_RTK_Everywhere_Firmware/correction_sources/#osr-vs-ssr).
 - [Onocoy](https://console.onocoy.com/explorer) ($25/month) - US, EU, Australia, and many other partial areas
 - [PointOneNav](https://app.pointonenav.com/trial?src=sparkfun) ($50/month) - US, EU, Australia, South Korea
 - [Skylark](https://www.swiftnav.com/skylark) ($29 to $69/month) - US, EU, Japan, Australia
@@ -96,11 +93,15 @@ Compatibility Icons
 
 <div class="grid cards fill" markdown>
 
-- Torch: :material-radiobox-marked:{ .support-full title="Feature Supported" }
 - EVK: [:material-radiobox-blank:{ .support-none }]( title ="Feature Not Supported" )
+- Postcard: [:material-radiobox-blank:{ .support-none }]( title ="Feature Partially Supported" )
+- Torch: :material-radiobox-marked:{ .support-full title="Feature Supported" }
 
 </div>
 
 The European Union launched a free correction service called [High Accuracy Service](https://www.gsc-europa.eu/galileo/services/galileo-high-accuracy-service-has) or **HAS** starting in 2023. The service is delivered over the E6 frequency. In general, this service will greatly improve accuracy to receivers but is lower accuracy than an OSR or SSR-based RTK Fix. Additionally, a receiver can take up to 5 minutes to benefit from these corrections (convergence time is larger), as opposed to OSR (seconds) or SSR (~180 seconds) to achieve maximum accuracy. But HAS is free! And available with very little additional configuration.
 
-Various SparkFun RTK products support this new GNSS band (E6). In general, the RTK Torch will need UM980 firmware 118333 or newer. See how to [Update the UM980 Firmware](firmware_update.md#updating-um980-firmware) for instructions. HAS/E6 is enabled by default and can be disabled in the [GNSS Menu](menu_gnss.md#galileo-e6-corrections) if desired.
+Various SparkFun RTK products support this new GNSS band (E6). 
+* The RTK EVK does not support E6 reception.
+* The RTK Postcard's LG290P GNSS receiver has the ability to receive the E6 signals but as of writing, HAS is not yet implemented in the GNSS location engine.
+* The RTK Torch will need UM980 firmware 118333 or newer. See how to [Update the UM980 Firmware](firmware_update.md#updating-um980-firmware) for instructions. HAS/E6 is enabled by default and can be disabled in the [GNSS Menu](menu_gnss.md#galileo-e6-corrections) if desired.

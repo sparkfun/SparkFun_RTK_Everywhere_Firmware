@@ -11,8 +11,9 @@ Compatibility Icons
 
 <div class="grid cards fill" markdown>
 
-- Torch: :material-radiobox-indeterminate-variant:{ .support-partial title="Feature Partially Supported" }
 - EVK: [:material-radiobox-blank:{ .support-none }]( title ="Feature Not Supported" )
+- Postcard: :material-radiobox-indeterminate-variant:{ .support-partial title="Feature Not Supported" }
+- Torch: :material-radiobox-indeterminate-variant:{ .support-partial title="Feature Partially Supported" }
 
 </div>
 

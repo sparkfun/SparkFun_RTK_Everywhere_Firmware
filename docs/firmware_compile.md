@@ -2,32 +2,34 @@
 
 This is information about how to compile the RTK Everywhere firmware from source. This is for advanced users who would like to modify the functionality of the RTK products.
 
+Please see the [compilation workflow](https://github.com/sparkfun/SparkFun_RTK_Everywhere_Firmware/blob/main/.github/workflows/compile-rtk-everywhere.yml#L77) on Github for the latest core and library versions.
+
 ## Windows
 
-The SparkFun RTK Everywhere Firmware is compiled using Arduino CLI (currently [v0.35.3](https://github.com/arduino/arduino-cli/releases)). To compile:
+The SparkFun RTK Everywhere Firmware is compiled using Arduino CLI (currently [v1.0.4](https://github.com/arduino/arduino-cli/releases)). To compile:
 
 1. Install [Arduino CLI](https://github.com/arduino/arduino-cli/releases).
 2. Install the ESP32 core for Arduino:
 
-		arduino-cli core install esp32:esp32@3.0.1
+		arduino-cli core install esp32:esp32@3.0.7
 
 	!!! note
-		Use v3.0.1 of the core.
+		Use v3.0.7 of the core.
 
 	!!! note
 		We use the 'ESP32 Dev Module' for pin numbering.
 
-3. Obtain each of the libraries listed in [the workflow](https://github.com/sparkfun/SparkFun_RTK_Everywhere_Firmware/blob/main/.github/workflows/compile-rtk-everywhere.yml#L72) either by using git or the Arduino CLI [library manager](https://arduino.github.io/arduino-cli/0.21/commands/arduino-cli_lib_install/). Be sure to obtain the version of the library reflected in the [workflow](https://github.com/sparkfun/SparkFun_RTK_Everywhere_Firmware/blob/main/.github/workflows/compile-rtk-everywhere.yml#L72). Be sure to include the external libraries (You may have to enable external library support in the CLI).
-4. RTK Everywhere uses a custom partition file. Download the [RTKEverywhere.csv](https://github.com/sparkfun/SparkFun_RTK_Everywhere_Firmware/blob/main/Firmware/RTKEverywhere.csv) file.
+3. Obtain each of the libraries listed in [the workflow](https://github.com/sparkfun/SparkFun_RTK_Everywhere_Firmware/blob/main/.github/workflows/compile-rtk-everywhere.yml#L77) either by using git or the Arduino CLI [library manager](https://arduino.github.io/arduino-cli/0.21/commands/arduino-cli_lib_install/). Be sure to obtain the version of the library reflected in the [workflow](https://github.com/sparkfun/SparkFun_RTK_Everywhere_Firmware/blob/main/.github/workflows/compile-rtk-everywhere.yml#L77). Be sure to include the external libraries (You may have to enable external library support in the CLI).
+4. RTK Everywhere uses a custom partition file. Download the [RTKEverywhere.csv](https://github.com/sparkfun/SparkFun_RTK_Everywhere_Firmware/blob/main/Firmware/RTKEverywhere.csv) or [RTKEverywhere_8MB.csv](https://github.com/sparkfun/SparkFun_RTK_Everywhere_Firmware/blob/main/Firmware/RTKEverywhere_8MB.csv) for the RTK Postcard.
 5. Add *RTKEverywhere.csv* partition table to the Arduino partitions folder. It should look something like
 
 		C:\Users\\[user name]\AppData\Local\Arduino15\packages\esp32\hardware\esp32\3.0.1\tools\partitions\RTKEverywhere.csv
 
-	This will increase the program partitions, as well as the SPIFFs partition to utilize the full 16MB of flash.
+	This will increase the program partitions, as well as the SPIFFs partition to utilize the full 16MB of flash (8MB in the case of the Postcard).
 
 6. Compile using the following command
 
-		arduino-cli compile 'Firmware/RTK_Everywhere' --build-property build.partitions=RTKEverywhere --build-property upload.maximum_size=3145728 --fqbn esp32:esp32:esp32:FlashSize=16M,PSRAM=enabled
+		arduino-cli compile 'Firmware/RTK_Everywhere' --build-property build.partitions=RTKEverywhere --build-property upload.maximum_size=4055040 --fqbn esp32:esp32:esp32:FlashSize=16M,PSRAM=enabled
 
 8. Once compiled, upload to the device using the following command where `[COM_PORT]` is the COM port on which the RTK device is located (ie `COM42`).
 
