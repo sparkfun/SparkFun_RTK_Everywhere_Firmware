@@ -310,6 +310,8 @@ bool tcpClientStart()
             tcpClient = client;
             tcpClientWriteError = false;
             online.tcpClient = true;
+            if (settings.debugTcpClient)
+                systemPrintln("TCP client online");
             return true;
         }
         else
@@ -332,6 +334,8 @@ void tcpClientStop()
     if (client)
     {
         // Delay to allow the UART task to finish with the tcpClient
+        if (settings.debugTcpClient && online.tcpClient)
+            systemPrintln("TCP client offline");
         online.tcpClient = false;
         delay(5);
 
@@ -350,8 +354,6 @@ void tcpClientStop()
 
     // Initialize the TCP client
     tcpClientWriteError = false;
-    if (settings.debugTcpClient)
-        systemPrintln("TCP client offline");
     tcpClientSetState(TCP_CLIENT_STATE_OFF);
 }
 
