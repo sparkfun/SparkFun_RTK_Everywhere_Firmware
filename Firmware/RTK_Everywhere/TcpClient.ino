@@ -325,7 +325,7 @@ bool tcpClientStart()
 }
 
 // Stop the TCP client
-void tcpClientStop()
+void tcpClientStop(bool shutdown)
 {
     NetworkClient *client;
     IPAddress ipAddress;
@@ -354,7 +354,14 @@ void tcpClientStop()
 
     // Initialize the TCP client
     tcpClientWriteError = false;
-    tcpClientSetState(TCP_CLIENT_STATE_OFF);
+    if (shutdown)
+    {
+        // Stop the network
+        networkConsumerRemove(NETCONSUMER_TCP_CLIENT, NETWORK_ANY);
+        tcpClientSetState(TCP_CLIENT_STATE_OFF);
+    }
+    else
+        tcpClientSetState(TCP_CLIENT_STATE_WAIT_FOR_NETWORK);
 }
 
 // Return true if we are in a state that requires network access
@@ -382,7 +389,7 @@ void tcpClientUpdate()
     if (NEQ_RTK_MODE(tcpClientMode) || (!settings.enableTcpClient))
     {
         if (tcpClientState > TCP_CLIENT_STATE_OFF)
-            tcpClientStop();
+            tcpClientStop(true);
     }
 
     /*
@@ -419,8 +426,13 @@ void tcpClientUpdate()
         if (EQ_RTK_MODE(tcpClientMode) && settings.enableTcpClient)
         {
             timer = 0;
+            connectionAttempt = 0;
+            connectionDelay = 0;
             tcpClientPriority = NETWORK_OFFLINE;
             tcpClientSetState(TCP_CLIENT_STATE_WAIT_FOR_NETWORK);
+
+            // Start the network
+            networkConsumerAdd(NETCONSUMER_TCP_CLIENT, NETWORK_ANY);
         }
         break;
 
@@ -428,7 +440,7 @@ void tcpClientUpdate()
     case TCP_CLIENT_STATE_WAIT_FOR_NETWORK:
         // Determine if the TCP client was turned off
         if (NEQ_RTK_MODE(tcpClientMode) || !settings.enableTcpClient)
-            tcpClientStop();
+            tcpClientStop(true);
 
         // Wait until the network is connected
         else if (networkIsConnected(&tcpClientPriority))
@@ -471,7 +483,7 @@ void tcpClientUpdate()
         // Determine if the network has failed
         if (!networkIsConnected(&tcpClientPriority))
             // Failed to connect to to the network, attempt to restart the network
-            tcpClientStop();
+            tcpClientStop(false);
 
         // Delay before connecting to the network
         else if ((millis() - timer) >= connectionDelay)
@@ -516,12 +528,12 @@ void tcpClientUpdate()
         // Determine if the network has failed
         if (!networkIsConnected(&tcpClientPriority))
             // Failed to connect to to the network, attempt to restart the network
-            tcpClientStop();
+            tcpClientStop(false);
 
         // Determine if the TCP client link is broken
         else if ((!*tcpClient) || (!tcpClient->connected()) || tcpClientWriteError)
             // Stop the TCP client
-            tcpClientStop();
+            tcpClientStop(false);
         break;
     }
 
