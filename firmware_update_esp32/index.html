@@ -15,10 +15,10 @@
         <link rel="canonical" href="https://docs.sparkfun.com/SparkFun_RTK_Everywhere_Firmware/firmware_update_esp32/">
       
       
-        <link rel="prev" href="../firmware_update_stm32/">
+        <link rel="prev" href="../firmware_update_lg290p/">
       
       
-        <link rel="next" href="../firmware_update_ublox/">
+        <link rel="next" href="../firmware_update_um980/">
       
       
         
@@ -1519,7 +1519,7 @@
   <span class="md-ellipsis">
     
   
-    Update Torch
+    Update EVK
   
 
     
@@ -1532,6 +1532,558 @@
         
         <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_7_1_label" aria-expanded="false">
           <label class="md-nav__title" for="__nav_7_1">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Update EVK
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+    
+  
+  
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  <span class="md-ellipsis">
+    
+  
+    <span class="md-typeset">
+      Updating ESP32 Firmware<a class="headerlink" href="#updating-esp32-firmware" title="Permanent link"></a>
+    </span>
+  
+
+    
+  </span>
+  
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
+        
+  
+  <span class="md-ellipsis">
+    
+  
+    <span class="md-typeset">
+      Updating ESP32 Firmware<a class="headerlink" href="#updating-esp32-firmware" title="Permanent link"></a>
+    </span>
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#updating-firmware-over-the-air" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        <span class="md-typeset">
+          Updating Firmware Over-The-Air<a class="headerlink" href="#updating-firmware-over-the-air" title="Permanent link"></a>
+        </span>
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#updating-firmware-using-the-uploader-gui" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        <span class="md-typeset">
+          Updating Firmware Using The Uploader GUI<a class="headerlink" href="#updating-firmware-using-the-uploader-gui" title="Permanent link"></a>
+        </span>
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#updating-firmware-from-the-sd-card" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        <span class="md-typeset">
+          Updating Firmware From the SD Card<a class="headerlink" href="#updating-firmware-from-the-sd-card" title="Permanent link"></a>
+        </span>
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Updating Firmware From the SD Card">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#force-firmware-loading" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        <span class="md-typeset">
+          Force Firmware Loading<a class="headerlink" href="#force-firmware-loading" title="Permanent link"></a>
+        </span>
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#updating-firmware-from-wifi" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        <span class="md-typeset">
+          Updating Firmware From WiFi<a class="headerlink" href="#updating-firmware-from-wifi" title="Permanent link"></a>
+        </span>
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#updating-firmware-from-cli" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        <span class="md-typeset">
+          Updating Firmware From CLI<a class="headerlink" href="#updating-firmware-from-cli" title="Permanent link"></a>
+        </span>
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Updating Firmware From CLI">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#windows" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        <span class="md-typeset">
+          Windows<a class="headerlink" href="#windows" title="Permanent link"></a>
+        </span>
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#macos-linux" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        <span class="md-typeset">
+          macOS / Linux<a class="headerlink" href="#macos-linux" title="Permanent link"></a>
+        </span>
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../firmware_update_ublox/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    
+  
+    <span class="md-typeset">
+      Updating u-blox Firmware<a class="headerlink" href="#updating-u-blox-firmware" title="Permanent link"></a>
+    </span>
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_7_2" >
+        
+          
+          <label class="md-nav__link" for="__nav_7_2" id="__nav_7_2_label" tabindex="0">
+            
+  
+  <span class="md-ellipsis">
+    
+  
+    Update Postcard
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_7_2_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_7_2">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Update Postcard
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+    
+  
+  
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  <span class="md-ellipsis">
+    
+  
+    <span class="md-typeset">
+      Updating ESP32 Firmware<a class="headerlink" href="#updating-esp32-firmware" title="Permanent link"></a>
+    </span>
+  
+
+    
+  </span>
+  
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
+        
+  
+  <span class="md-ellipsis">
+    
+  
+    <span class="md-typeset">
+      Updating ESP32 Firmware<a class="headerlink" href="#updating-esp32-firmware" title="Permanent link"></a>
+    </span>
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#updating-firmware-over-the-air" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        <span class="md-typeset">
+          Updating Firmware Over-The-Air<a class="headerlink" href="#updating-firmware-over-the-air" title="Permanent link"></a>
+        </span>
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#updating-firmware-using-the-uploader-gui" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        <span class="md-typeset">
+          Updating Firmware Using The Uploader GUI<a class="headerlink" href="#updating-firmware-using-the-uploader-gui" title="Permanent link"></a>
+        </span>
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#updating-firmware-from-the-sd-card" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        <span class="md-typeset">
+          Updating Firmware From the SD Card<a class="headerlink" href="#updating-firmware-from-the-sd-card" title="Permanent link"></a>
+        </span>
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Updating Firmware From the SD Card">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#force-firmware-loading" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        <span class="md-typeset">
+          Force Firmware Loading<a class="headerlink" href="#force-firmware-loading" title="Permanent link"></a>
+        </span>
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#updating-firmware-from-wifi" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        <span class="md-typeset">
+          Updating Firmware From WiFi<a class="headerlink" href="#updating-firmware-from-wifi" title="Permanent link"></a>
+        </span>
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#updating-firmware-from-cli" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        <span class="md-typeset">
+          Updating Firmware From CLI<a class="headerlink" href="#updating-firmware-from-cli" title="Permanent link"></a>
+        </span>
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Updating Firmware From CLI">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#windows" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        <span class="md-typeset">
+          Windows<a class="headerlink" href="#windows" title="Permanent link"></a>
+        </span>
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#macos-linux" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        <span class="md-typeset">
+          macOS / Linux<a class="headerlink" href="#macos-linux" title="Permanent link"></a>
+        </span>
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../firmware_update_lg290p/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    
+  
+    <span class="md-typeset">
+      Updating LG290P Firmware<a class="headerlink" href="#updating-lg290p-firmware" title="Permanent link"></a>
+    </span>
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+    
+  
+  
+  
+    
+    
+    
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_7_3" checked>
+        
+          
+          <label class="md-nav__link" for="__nav_7_3" id="__nav_7_3_label" tabindex="0">
+            
+  
+  <span class="md-ellipsis">
+    
+  
+    Update Torch
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_7_3_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_7_3">
             <span class="md-nav__icon md-icon"></span>
             
   
@@ -1778,283 +2330,6 @@
   
     <span class="md-typeset">
       Updating STM32 Firmware<a class="headerlink" href="#updating-stm32-firmware" title="Permanent link"></a>
-    </span>
-  
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-          </ul>
-        </nav>
-      
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-    
-  
-  
-  
-    
-    
-    
-    
-    <li class="md-nav__item md-nav__item--active md-nav__item--nested">
-      
-        
-        
-        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_7_2" checked>
-        
-          
-          <label class="md-nav__link" for="__nav_7_2" id="__nav_7_2_label" tabindex="0">
-            
-  
-  <span class="md-ellipsis">
-    
-  
-    Update EVK
-  
-
-    
-  </span>
-  
-  
-
-            <span class="md-nav__icon md-icon"></span>
-          </label>
-        
-        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_7_2_label" aria-expanded="true">
-          <label class="md-nav__title" for="__nav_7_2">
-            <span class="md-nav__icon md-icon"></span>
-            
-  
-    Update EVK
-  
-
-          </label>
-          <ul class="md-nav__list" data-md-scrollfix>
-            
-              
-                
-  
-  
-    
-  
-  
-  
-    <li class="md-nav__item md-nav__item--active">
-      
-      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
-      
-      
-        
-      
-      
-        <label class="md-nav__link md-nav__link--active" for="__toc">
-          
-  
-  <span class="md-ellipsis">
-    
-  
-    <span class="md-typeset">
-      Updating ESP32 Firmware<a class="headerlink" href="#updating-esp32-firmware" title="Permanent link"></a>
-    </span>
-  
-
-    
-  </span>
-  
-  
-
-          <span class="md-nav__icon md-icon"></span>
-        </label>
-      
-      <a href="./" class="md-nav__link md-nav__link--active">
-        
-  
-  <span class="md-ellipsis">
-    
-  
-    <span class="md-typeset">
-      Updating ESP32 Firmware<a class="headerlink" href="#updating-esp32-firmware" title="Permanent link"></a>
-    </span>
-  
-
-    
-  </span>
-  
-  
-
-      </a>
-      
-        
-
-<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
-  
-  
-  
-    
-  
-  
-    <label class="md-nav__title" for="__toc">
-      <span class="md-nav__icon md-icon"></span>
-      Table of contents
-    </label>
-    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
-      
-        <li class="md-nav__item">
-  <a href="#updating-firmware-over-the-air" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        <span class="md-typeset">
-          Updating Firmware Over-The-Air<a class="headerlink" href="#updating-firmware-over-the-air" title="Permanent link"></a>
-        </span>
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#updating-firmware-using-the-uploader-gui" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        <span class="md-typeset">
-          Updating Firmware Using The Uploader GUI<a class="headerlink" href="#updating-firmware-using-the-uploader-gui" title="Permanent link"></a>
-        </span>
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#updating-firmware-from-the-sd-card" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        <span class="md-typeset">
-          Updating Firmware From the SD Card<a class="headerlink" href="#updating-firmware-from-the-sd-card" title="Permanent link"></a>
-        </span>
-      
-    </span>
-  </a>
-  
-    <nav class="md-nav" aria-label="Updating Firmware From the SD Card">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
-  <a href="#force-firmware-loading" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        <span class="md-typeset">
-          Force Firmware Loading<a class="headerlink" href="#force-firmware-loading" title="Permanent link"></a>
-        </span>
-      
-    </span>
-  </a>
-  
-</li>
-        
-      </ul>
-    </nav>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#updating-firmware-from-wifi" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        <span class="md-typeset">
-          Updating Firmware From WiFi<a class="headerlink" href="#updating-firmware-from-wifi" title="Permanent link"></a>
-        </span>
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#updating-firmware-from-cli" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        <span class="md-typeset">
-          Updating Firmware From CLI<a class="headerlink" href="#updating-firmware-from-cli" title="Permanent link"></a>
-        </span>
-      
-    </span>
-  </a>
-  
-    <nav class="md-nav" aria-label="Updating Firmware From CLI">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
-  <a href="#windows" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        <span class="md-typeset">
-          Windows<a class="headerlink" href="#windows" title="Permanent link"></a>
-        </span>
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#macos-linux" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        <span class="md-typeset">
-          macOS / Linux<a class="headerlink" href="#macos-linux" title="Permanent link"></a>
-        </span>
-      
-    </span>
-  </a>
-  
-</li>
-        
-      </ul>
-    </nav>
-  
-</li>
-      
-    </ul>
-  
-</nav>
-      
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../firmware_update_ublox/" class="md-nav__link">
-        
-  
-  <span class="md-ellipsis">
-    
-  
-    <span class="md-typeset">
-      Updating u-blox Firmware<a class="headerlink" href="#updating-u-blox-firmware" title="Permanent link"></a>
     </span>
   
 
@@ -2618,7 +2893,7 @@
         <a href="./" class="md-path__link">
           
   <span class="md-ellipsis">
-    Update EVK
+    Update Torch
   </span>
 
         </a>
