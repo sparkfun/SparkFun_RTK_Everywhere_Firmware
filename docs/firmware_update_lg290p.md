@@ -21,7 +21,7 @@ Compatibility Icons
 The LG290P is the GNSS receiver used on the RTK Postcard. The following describes how to update the firmware on the LG290P.
 
 1. Download the latest LG290P firmware. As of writing, the LG290P firmware is [v4](https://raw.githubusercontent.com/SparkFun_RTK_Postcard/blob/main/Firmware/Quectel_LG290P_Firmware_Release_V0104S.zip). See the [RTK Postcard repo](https://github.com/sparkfun/SparkFun_RTK_Postcard/tree/main/Firmware) for the latest firmware.
-2. Download and install [QGNSS](https://www.quectel.com/download/qgnss_v2-0_en/). QGNSS is the software created by Quectel to configure and view output from Quectel GNSS modules. 
+2. Download and install [QGNSS](https://www.quectel.com/download/qgnss_v2-0_en/). QGNSS is the software created by Quectel to configure and view output from Quectel GNSS modules.
 
 	<figure markdown>
 	![Select the COM port and baud rate](./img/QGNSS/SparkFun RTK Postcard - Port Settings.png)
@@ -30,7 +30,7 @@ The LG290P is the GNSS receiver used on the RTK Postcard. The following describe
 	</figcaption>
 	</figure>
 
-3. Select the COM port for **Port B** of the CH342 and set the baud rate to **460800**, then press 'OK'
+3. Open QGNSS and select the COM port for **Port B** of the CH342 and set the baud rate to **460800**, then press 'OK'
 
 	<figure markdown>
 	![Open the Firmware Download window](./img/QGNSS/SparkFun RTK Postcard - Firmware Download.png)
@@ -61,9 +61,9 @@ The LG290P is the GNSS receiver used on the RTK Postcard. The following describe
 6. The update process takes a little over a minute. Once completed, close QGNSS and power cycle the RTK Postcard.
 
 	<figure markdown>
-	![UM980 Firmware version shown in System Menu](./img/Terminal/SparkFun RTK Everywhere - System Menu UM980 Firmware.png)
+	![Firmware version shown in System Menu](./img/QGNSS/SparkFun RTK Postcard - Firmware Version.png)
 	<figcaption markdown>
-	UM980 Firmware version shown in System Menu
+	Firmware version shown in System Menu
 	</figcaption>
 	</figure>
 
