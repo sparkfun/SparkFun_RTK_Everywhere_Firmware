@@ -2446,17 +2446,18 @@
 
 <h1 id="compiling-source">Compiling Source<a class="headerlink" href="#compiling-source" title="Permanent link"></a></h1>
 <p>This is information about how to compile the RTK Everywhere firmware from source. This is for advanced users who would like to modify the functionality of the RTK products.</p>
+<p>Please see the <a href="https://github.com/sparkfun/SparkFun_RTK_Everywhere_Firmware/blob/main/.github/workflows/compile-rtk-everywhere.yml#L77" target="_blank" rel="noopener">compilation workflow</a> on Github for the latest core and library versions.</p>
 <h2 id="windows">Windows<a class="headerlink" href="#windows" title="Permanent link"></a></h2>
-<p>The SparkFun RTK Everywhere Firmware is compiled using Arduino CLI (currently <a href="https://github.com/arduino/arduino-cli/releases" target="_blank" rel="noopener">v0.35.3</a>). To compile:</p>
+<p>The SparkFun RTK Everywhere Firmware is compiled using Arduino CLI (currently <a href="https://github.com/arduino/arduino-cli/releases" target="_blank" rel="noopener">v1.0.4</a>). To compile:</p>
 <ol>
 <li>Install <a href="https://github.com/arduino/arduino-cli/releases" target="_blank" rel="noopener">Arduino CLI</a>.</li>
 <li>
 <p>Install the ESP32 core for Arduino:</p>
-<div class="highlight"><pre><span></span><code>arduino-cli core install esp32:esp32@3.0.1
+<div class="highlight"><pre><span></span><code>arduino-cli core install esp32:esp32@3.0.7
 </code></pre></div>
 <div class="admonition note">
 <p class="admonition-title">Note</p>
-<p>Use v3.0.1 of the core.</p>
+<p>Use v3.0.7 of the core.</p>
 </div>
 <div class="admonition note">
 <p class="admonition-title">Note</p>
@@ -2464,18 +2465,18 @@
 </div>
 </li>
 <li>
-<p>Obtain each of the libraries listed in <a href="https://github.com/sparkfun/SparkFun_RTK_Everywhere_Firmware/blob/main/.github/workflows/compile-rtk-everywhere.yml#L72" target="_blank" rel="noopener">the workflow</a> either by using git or the Arduino CLI <a href="https://arduino.github.io/arduino-cli/0.21/commands/arduino-cli_lib_install/" target="_blank" rel="noopener">library manager</a>. Be sure to obtain the version of the library reflected in the <a href="https://github.com/sparkfun/SparkFun_RTK_Everywhere_Firmware/blob/main/.github/workflows/compile-rtk-everywhere.yml#L72" target="_blank" rel="noopener">workflow</a>. Be sure to include the external libraries (You may have to enable external library support in the CLI).</p>
+<p>Obtain each of the libraries listed in <a href="https://github.com/sparkfun/SparkFun_RTK_Everywhere_Firmware/blob/main/.github/workflows/compile-rtk-everywhere.yml#L77" target="_blank" rel="noopener">the workflow</a> either by using git or the Arduino CLI <a href="https://arduino.github.io/arduino-cli/0.21/commands/arduino-cli_lib_install/" target="_blank" rel="noopener">library manager</a>. Be sure to obtain the version of the library reflected in the <a href="https://github.com/sparkfun/SparkFun_RTK_Everywhere_Firmware/blob/main/.github/workflows/compile-rtk-everywhere.yml#L77" target="_blank" rel="noopener">workflow</a>. Be sure to include the external libraries (You may have to enable external library support in the CLI).</p>
 </li>
-<li>RTK Everywhere uses a custom partition file. Download the <a href="https://github.com/sparkfun/SparkFun_RTK_Everywhere_Firmware/blob/main/Firmware/RTKEverywhere.csv" target="_blank" rel="noopener">RTKEverywhere.csv</a> file.</li>
+<li>RTK Everywhere uses a custom partition file. Download the <a href="https://github.com/sparkfun/SparkFun_RTK_Everywhere_Firmware/blob/main/Firmware/RTKEverywhere.csv" target="_blank" rel="noopener">RTKEverywhere.csv</a> or <a href="https://github.com/sparkfun/SparkFun_RTK_Everywhere_Firmware/blob/main/Firmware/RTKEverywhere_8MB.csv" target="_blank" rel="noopener">RTKEverywhere_8MB.csv</a> for the RTK Postcard.</li>
 <li>
 <p>Add <em>RTKEverywhere.csv</em> partition table to the Arduino partitions folder. It should look something like</p>
 <div class="highlight"><pre><span></span><code>C:\Users\\[user name]\AppData\Local\Arduino15\packages\esp32\hardware\esp32\3.0.1\tools\partitions\RTKEverywhere.csv
 </code></pre></div>
-<p>This will increase the program partitions, as well as the SPIFFs partition to utilize the full 16MB of flash.</p>
+<p>This will increase the program partitions, as well as the SPIFFs partition to utilize the full 16MB of flash (8MB in the case of the Postcard).</p>
 </li>
 <li>
 <p>Compile using the following command</p>
-<div class="highlight"><pre><span></span><code>arduino-cli compile &#39;Firmware/RTK_Everywhere&#39; --build-property build.partitions=RTKEverywhere --build-property upload.maximum_size=3145728 --fqbn esp32:esp32:esp32:FlashSize=16M,PSRAM=enabled
+<div class="highlight"><pre><span></span><code>arduino-cli compile &#39;Firmware/RTK_Everywhere&#39; --build-property build.partitions=RTKEverywhere --build-property upload.maximum_size=4055040 --fqbn esp32:esp32:esp32:FlashSize=16M,PSRAM=enabled
 </code></pre></div>
 </li>
 <li>
@@ -2796,7 +2797,7 @@
     <span class="md-icon" title="Last update">
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M21 13.1c-.1 0-.3.1-.4.2l-1 1 2.1 2.1 1-1c.2-.2.2-.6 0-.8l-1.3-1.3c-.1-.1-.2-.2-.4-.2m-1.9 1.8-6.1 6V23h2.1l6.1-6.1zM12.5 7v5.2l4 2.4-1 1L11 13V7zM11 21.9c-5.1-.5-9-4.8-9-9.9C2 6.5 6.5 2 12 2c5.3 0 9.6 4.1 10 9.3-.3-.1-.6-.2-1-.2s-.7.1-1 .2C19.6 7.2 16.2 4 12 4c-4.4 0-8 3.6-8 8 0 4.1 3.1 7.5 7.1 7.9l-.1.2z"/></svg>
     </span>
-    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-timeago"><span class="timeago" datetime="2025-02-07T00:03:09+00:00" locale="en"></span></span><span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-iso_date">2025-02-07</span>
+    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-timeago"><span class="timeago" datetime="2025-02-12T21:57:46+00:00" locale="en"></span></span><span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-iso_date">2025-02-12</span>
   </span>
 
     
@@ -2840,14 +2841,14 @@
     
     <nav>
       
-        <a href="https://github.com/santaimpersonator" class="md-author" title="@santaimpersonator" target="_blank" rel="noopener">
-          
-          <img src="https://avatars.githubusercontent.com/u/36016723?v=4&amp;size=72" alt="santaimpersonator">
-        </a>
-      
         <a href="https://github.com/nseidle" class="md-author" title="@nseidle" target="_blank" rel="noopener">
           
           <img src="https://avatars.githubusercontent.com/u/117102?v=4&amp;size=72" alt="nseidle">
+        </a>
+      
+        <a href="https://github.com/santaimpersonator" class="md-author" title="@santaimpersonator" target="_blank" rel="noopener">
+          
+          <img src="https://avatars.githubusercontent.com/u/36016723?v=4&amp;size=72" alt="santaimpersonator">
         </a>
       
       
