@@ -35,6 +35,7 @@ void menuTcpUdp() {systemPrint("**Network not compiled**");}
 void networkBegin() {}
 uint8_t networkConsumers() {return(0);}
 uint16_t networkGetConsumerTypes() {return(0);}
+NetIndex_t networkGetCurrentInterfaceIndex() {return NETWORK_OFFLINE;}
 IPAddress networkGetIpAddress() {return("0.0.0.0");}
 const uint8_t * networkGetMacAddress()
 {
@@ -208,7 +209,6 @@ int wifiNetworkCount()                          {return 0;}
 void wifiResetThrottleTimeout()                 {}
 void wifiResetTimeout()                         {}
 bool wifiStart()                                {return false;}
-void wifiStationReconnectionRequest()           {}
 #define WIFI_STOP()                             {}
 bool wifiUnavailable()                          {return true;}
 

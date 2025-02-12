@@ -10,7 +10,6 @@
 // Constants
 //****************************************
 
-#define WIFI_RECONNECTION_DELAY         1000
 #define WIFI_DEFAULT_CHANNEL            1
 #define WIFI_IP_ADDRESS_TIMEOUT_MSEC    (15 * 1000)
 
@@ -413,9 +412,9 @@ static DNSServer dnsServer;
 
 // Start timeout
 static uint32_t wifiStartTimeout;
-static uint32_t wifiStartLastTry; // The last time WiFi start was attempted
 
 static int wifiFailedConnectionAttempts = 0; // Count the number of connection attempts between restarts
+static bool wifiReconnectRequest; // Set true to request WiFi reconnection
 
 //*********************************************************************
 // Set WiFi credentials
@@ -600,7 +599,7 @@ void wifiPromiscuousRxHandler(void *buf, wifi_promiscuous_pkt_type_t type)
 // Useful when WiFi settings have changed
 void wifiResetThrottleTimeout()
 {
-    wifiStartLastTry = millis() - WIFI_MAX_TIMEOUT;
+    wifiReconnectionTimer = millis() - WIFI_MAX_TIMEOUT;
 }
 
 //*********************************************************************
@@ -629,17 +628,36 @@ bool wifiStart()
 // Start WiFi with throttling, used by wifiStopSequence
 void wifiStartThrottled(NetIndex_t index, uintptr_t parameter, bool debug)
 {
-    int seconds;
+    wifiStationReconnectionRequest();
+}
+
+//*********************************************************************
+// Handle WiFi station reconnection requests
+bool wifiStationReconnectionRequest()
+{
+    bool connected;
     int minutes;
+    int seconds;
 
     // Restart delay
-    if ((millis() - wifiStartLastTry) < wifiStartTimeout)
-        return;
-    wifiStartLastTry = millis();
+    connected = false;
+    if ((millis() - wifiReconnectionTimer) < wifiStartTimeout)
+        return connected;
+    wifiReconnectionTimer = millis();
 
-    // Start WiFi
+    // Check for a reconnection request
+    if (wifiReconnectRequest)
+    {
+        if (settings.debugWifiState)
+            systemPrintf("WiFi: Attempting WiFi restart\r\n");
+        wifi.clearStarted(WIFI_STA_RECONNECT);
+    }
+
+    // Attempt to start WiFi station
     if (wifiStart())
     {
+        // Successfully connected to a remote AP
+        connected = true;
         if (settings.debugWifiState)
             systemPrintf("WiFi: WiFi station successfully started\r\n");
         networkSequenceNextEntry(NETWORK_WIFI, settings.debugNetworkLayer);
@@ -647,6 +665,7 @@ void wifiStartThrottled(NetIndex_t index, uintptr_t parameter, bool debug)
     }
     else
     {
+        // Failed to connect to a remote AP
         if (settings.debugWifiState)
             systemPrintf("WiFi: WiFi station failed to start!\r\n");
 
@@ -667,41 +686,7 @@ void wifiStartThrottled(NetIndex_t index, uintptr_t parameter, bool debug)
         if (settings.debugWifiState)
             systemPrintf("WiFi: Delaying %2d:%02d before restarting WiFi\r\n", minutes, seconds);
     }
-}
-
-//*********************************************************************
-// Handle WiFi station reconnection requests
-void wifiStationReconnectionRequest()
-{
-    uint32_t currentMsec;
-
-    // Has the reconnection delay expired
-    currentMsec = millis();
-    if ((currentMsec - wifiReconnectionTimer) >= WIFI_RECONNECTION_DELAY)
-    {
-        if (settings.debugWifiState)
-            systemPrintf("WiFi: Reconnection timer fired!\r\n");
-
-        // Restart the reconnection timer
-        wifiReconnectionTimer = currentMsec;
-
-        // Start the WiFi scan
-        if (wifiStationRunning)
-        {
-            if (settings.debugWifiState)
-                systemPrintf("WiFi: Attempting WiFi restart\r\n");
-            wifi.clearStarted(WIFI_STA_RECONNECT);
-            if (wifi.stopStart(0, WIFI_STA_RECONNECT))
-            {
-                // Stop the reconnection timer
-                wifiReconnectionTimer = 0;
-                if (settings.debugWifiState)
-                    systemPrintf("WiFi: Reconnection timer stopped\r\n");
-            }
-            else if (settings.debugWifiState)
-                systemPrintf("WiFi: Station is not running!\r\n");
-        }
-    }
+    return connected;
 }
 
 //*********************************************************************
@@ -768,10 +753,13 @@ RTK_WIFI::RTK_WIFI(bool verbose)
 {
     wifiChannel = 0;
     wifiEspNowRunning = false;
-    wifiReconnectionTimer = 0;
     wifiRestartRequested = false;
     wifiStationRunning = false;
     wifiSoftApRunning = false;
+
+    // Prepare to start WiFi immediately
+    wifiResetThrottleTimeout();
+    wifiResetTimeout();
 }
 
 //*********************************************************************
@@ -1545,11 +1533,8 @@ void RTK_WIFI::stationEventHandler(arduino_event_id_t event, arduino_event_info_
         // Start the reconnection timer
         if (event == ARDUINO_EVENT_WIFI_STA_DISCONNECTED)
         {
-            if (settings.debugWifiState && _verbose && !wifiReconnectionTimer)
-                systemPrintf("WiFi: Reconnection timer started\r\n");
-            wifiReconnectionTimer = millis();
-            if (!wifiReconnectionTimer)
-                wifiReconnectionTimer = 1;
+            wifiReconnectRequest = true;
+            networkStart(NETWORK_WIFI, settings.debugWifiState);
         }
 
         // Fall through
@@ -1811,6 +1796,7 @@ bool RTK_WIFI::stopStart(WIFI_ACTION_t stopping, WIFI_ACTION_t starting)
     WIFI_ACTION_t notStarted;
     uint8_t primaryChannel;
     WIFI_ACTION_t restarting;
+    bool restartWiFiStation;
     wifi_second_chan_t secondaryChannel;
     WIFI_ACTION_t startingNow;
     esp_err_t status;
@@ -1818,6 +1804,7 @@ bool RTK_WIFI::stopStart(WIFI_ACTION_t stopping, WIFI_ACTION_t starting)
 
     // Determine the next actions
     notStarted = 0;
+    restartWiFiStation = false;
 
     // Display the parameters
     if (settings.debugWifiState && _verbose)
@@ -2062,9 +2049,6 @@ bool RTK_WIFI::stopStart(WIFI_ACTION_t stopping, WIFI_ACTION_t starting)
                 systemPrintf("WiFi: Station offline!\r\n");
             _started = _started & ~WIFI_STA_ONLINE;
         }
-
-        // Stop the reconnection timer
-        wifiReconnectionTimer = 0;
 
         // Disconnect from the remote AP
         if (stopping & WIFI_STA_CONNECT_TO_REMOTE_AP)
@@ -2358,6 +2342,8 @@ bool RTK_WIFI::stopStart(WIFI_ACTION_t stopping, WIFI_ACTION_t starting)
         // Start the WiFi station components
         //****************************************
 
+        restartWiFiStation = true;
+
         // Set the host name
         if (starting & WIFI_STA_SET_HOST_NAME)
         {
@@ -2422,6 +2408,7 @@ bool RTK_WIFI::stopStart(WIFI_ACTION_t stopping, WIFI_ACTION_t starting)
         // Mark the station online
         if (starting & WIFI_STA_ONLINE)
         {
+            restartWiFiStation = false;
             _started = _started | WIFI_STA_ONLINE;
             systemPrintf("WiFi: Station online (%s: %s)\r\n",
                          _staRemoteApSsid, _staIpAddress.toString().c_str());
@@ -2573,6 +2560,10 @@ bool RTK_WIFI::stopStart(WIFI_ACTION_t stopping, WIFI_ACTION_t starting)
 
     if (settings.debugWifiState && _verbose && _started)
         displayComponents("Started items", _started);
+
+    // Restart WiFi if necessary
+    if (restartWiFiStation)
+        wifiReconnectRequest = true;
 
     // Return the enable status
     bool enabled = ((_started & allOnline) == expected);
