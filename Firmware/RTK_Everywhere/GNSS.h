@@ -54,7 +54,7 @@ class GNSS
 
   public:
     // Constructor
-    GNSS() : _leapSeconds(18), _pvtArrivalMillis(0), _pvtUpdated(0)
+    GNSS() : _leapSeconds(18), _pvtArrivalMillis(0), _pvtUpdated(0), _satellitesInView(0)
     {
     }
 

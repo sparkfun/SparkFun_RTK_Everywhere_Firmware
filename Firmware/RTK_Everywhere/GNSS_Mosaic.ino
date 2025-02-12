@@ -579,6 +579,12 @@ bool GNSS_MOSAIC::configureOnce()
     setting = String("sso,Stream" + String(MOSAIC_SBF_INPUTLINK_STREAM) + ",COM1,InputLink,sec1\n\r");
     response &= sendWithResponse(setting, "SBFOutput");
 
+    // Output SBF ChannelStatus and DiskStatus on their own stream - at 0.5Hz - on COM1 only
+    // For ChannelStatus: OnChange is too often. The message is typically 1000 bytes in size.
+    // For DiskStatus: DiskUsage is slow to update. 0.5Hz is plenty fast enough.
+    setting = String("sso,Stream" + String(MOSAIC_SBF_STATUS_STREAM) + ",COM1,ChannelStatus+DiskStatus,sec2\n\r");
+    response &= sendWithResponse(setting, "SBFOutput");
+
     response &= setElevation(settings.minElev);
 
     response &= setMinCnoRadio(settings.minCNO);
@@ -2367,14 +2373,136 @@ void GNSS_MOSAIC::storeBlock4007(SEMP_PARSE_STATE *parse)
     _longitude = sempSbfGetF8(parse, 24) * 180.0 / PI;
     _altitude = (float)sempSbfGetF8(parse, 32);
     _horizontalAccuracy = ((float)sempSbfGetU2(parse, 90)) / 100.0; // Convert from cm to m
-    _satellitesInView = sempSbfGetU1(parse, 74);
-    if (_satellitesInView == 255) // 255 indicates "Do-Not-Use"
-        _satellitesInView = 0;
+
+    // NrSV is the total number of satellites used in the PVT computation.
+    //_satellitesInView = sempSbfGetU1(parse, 74);
+    //if (_satellitesInView == 255) // 255 indicates "Do-Not-Use"
+    //    _satellitesInView = 0;
+
     _fixType = sempSbfGetU1(parse, 14) & 0x0F;
     _determiningFixedPosition = (sempSbfGetU1(parse, 14) >> 6) & 0x01;
     _clkBias_ms = sempSbfGetF8(parse, 60);
     _pvtArrivalMillis = millis();
     _pvtUpdated = true;
+}
+
+//----------------------------------------
+// Save the data from the SBF Block 4013
+//----------------------------------------
+void GNSS_MOSAIC::storeBlock4013(SEMP_PARSE_STATE *parse)
+{
+    uint16_t N = (uint16_t)sempSbfGetU1(parse, 14);
+    uint16_t SB1Length = (uint16_t)sempSbfGetU1(parse, 15);
+    uint16_t SB2Length = (uint16_t)sempSbfGetU1(parse, 16);
+    uint16_t ChannelInfoBytes = 0;
+    for (uint16_t i = 0; i < N; i++)
+    {
+        uint8_t SVID = sempSbfGetU1(parse, 20 + ChannelInfoBytes + 0);
+
+        uint16_t N2 = (uint16_t)sempSbfGetU1(parse, 20 + ChannelInfoBytes + 9);
+
+        for (uint16_t j = 0; j < N2; j++)
+        {
+            uint16_t TrackingStatus = sempSbfGetU2(parse, 20 + ChannelInfoBytes + SB1Length + (j * SB2Length) + 2);
+
+            bool Tracking = false;
+            for (uint16_t shift = 0; shift < 16; shift += 2) // Step through each 2-bit status field
+            {
+                if ((TrackingStatus & (0x0003 << shift)) == (0x0003 << shift)) // 3 : Tracking
+                {
+                    Tracking = true;
+                }
+            }
+
+            if (Tracking)
+            {
+                // SV is being tracked. If it is not in svInTracking, add it
+                std::vector<uint8_t>::iterator pos =
+                    std::find(svInTracking.begin(), svInTracking.end(), SVID);
+                if (pos == svInTracking.end())
+                    svInTracking.push_back(SVID);
+            }
+            else
+            {
+                // SV is not being tracked. If it is in svInTracking, remove it
+                std::vector<uint8_t>::iterator pos =
+                    std::find(svInTracking.begin(), svInTracking.end(), SVID);
+                if (pos != svInTracking.end())
+                    svInTracking.erase(pos);
+            }
+
+            // uint16_t PVTStatus = sempSbfGetU2(parse, 20 + ChannelInfoBytes + SB1Length + (j * SB2Length) + 4);
+
+            // bool Used = false;
+            // for (uint16_t shift = 0; shift < 16; shift += 2) // Step through each 2-bit status field
+            // {
+            //     if ((PVTStatus & (0x0003 << shift)) == (0x0002 << shift)) // 2 : Used
+            //     {
+            //         Used = true;
+            //     }
+            // }
+
+            // if (Used)
+            // {
+            //     // SV is being used for PVT. If it is not in svInPVT, add it
+            //     std::vector<uint8_t>::iterator pos =
+            //         std::find(svInPVT.begin(), svInPVT.end(), SVID);
+            //     if (pos == svInPVT.end())
+            //         svInPVT.push_back(SVID);
+            // }
+            // else
+            // {
+            //     // SV is not being used for PVT. If it is in svInPVT, remove it
+            //     std::vector<uint8_t>::iterator pos =
+            //         std::find(svInPVT.begin(), svInPVT.end(), SVID);
+            //     if (pos != svInPVT.end())
+            //         svInPVT.erase(pos);
+            // }
+
+        }
+
+        ChannelInfoBytes += SB1Length + (N2 * SB2Length);
+    }
+
+    _satellitesInView = (uint8_t)std::distance(svInTracking.begin(), svInTracking.end());
+
+    // if (settings.debugGnss && !inMainMenu)
+    // {
+    //     uint8_t _inPVT = (uint8_t)std::distance(svInPVT.begin(), svInPVT.end());
+    //     systemPrintf("ChannelStatus: InTracking %d, InPVT %d\r\n", _satellitesInView, _inPVT);
+    // }
+
+}
+
+//----------------------------------------
+// Save the data from the SBF Block 4059
+//----------------------------------------
+void GNSS_MOSAIC::storeBlock4059(SEMP_PARSE_STATE *parse)
+{
+    if (sempSbfGetU1(parse, 14) < 1) // Check N is at least 1
+        return;
+
+    if (sempSbfGetU1(parse, 20 + 0) != 1) // Check DiskID is 1
+        return;
+
+    uint64_t diskUsageMSB = sempSbfGetU2(parse, 20 + 2); // DiskUsageMSB
+    uint64_t diskUsageLSB = sempSbfGetU4(parse, 20 + 4); // DiskUsageLSB
+
+    if ((diskUsageMSB == 65535) && (diskUsageLSB == 4294967295)) // Do-Not-Use
+        return;
+
+    uint64_t diskSizeMB = sempSbfGetU4(parse, 20 + 8); // DiskSize in megabytes
+
+    if (diskSizeMB == 0) // Do-Not-Use
+        return;
+
+    uint64_t diskUsage = (diskUsageMSB * 4294967296) + diskUsageLSB;
+    
+    sdCardSize = diskSizeMB * 1048576; // Convert to bytes
+
+    sdFreeSpace = sdCardSize - diskUsage;
+
+    _diskStatusSeen = true;
 }
 
 //----------------------------------------
@@ -2480,22 +2608,44 @@ void GNSS_MOSAIC::update()
     static uint64_t previousFreeSpace = 0;
     if (millis() > (sdCardSizeLastCheck + sdCardSizeCheckInterval))
     {
-        updateSD();
+        updateSD(); // Check if the card has been removed / inserted
 
-        if (previousFreeSpace == 0)
-            previousFreeSpace = sdFreeSpace;
-        if (sdFreeSpace < previousFreeSpace)
+        if (_diskStatusSeen) // Check if the DiskStatus SBF message has been seen
         {
-            previousFreeSpace = sdFreeSpace;
-            logIncreasing = true;
-            sdCardLastFreeChange = millis();
+            // If previousFreeSpace hasn't been initialized, initialize it
+            if (previousFreeSpace == 0)
+                previousFreeSpace = sdFreeSpace;
+
+            if (sdFreeSpace < previousFreeSpace)
+            {
+                // The free space is decreasing, so set logIncreasing to true
+                previousFreeSpace = sdFreeSpace;
+                logIncreasing = true;
+                sdCardLastFreeChange = millis();
+            }
+            else if (sdFreeSpace == previousFreeSpace)
+            {
+                // The free space has not changed
+                // X5 is slow to update free. Seems to be about every ~20s?
+                // So only set logIncreasing to false after 30s
+                if (millis() > (sdCardLastFreeChange + 30000))
+                    logIncreasing = false;
+            }
+            else // if (sdFreeSpace > previousFreeSpace)
+            {
+                // User must have inserted a new SD card?
+                previousFreeSpace = sdFreeSpace;
+            }
         }
         else
         {
-            if (millis() > (sdCardLastFreeChange + 30000)) // X5 is slow to update free. Seems to be about every ~20s?
-                logIncreasing = false;
+            // Disk status not seen
+            // (Unmounting the SD card will prevent _diskStatusSeen from going true)
+            logIncreasing = false;
         }
-        sdCardSizeLastCheck = millis();
+
+        sdCardSizeLastCheck = millis(); // Update the timer
+        _diskStatusSeen = false; // Clear the flag
     }
 
     // Update spartnCorrectionsReceived
@@ -2510,7 +2660,7 @@ void GNSS_MOSAIC::update()
 }
 
 //----------------------------------------
-bool GNSS_MOSAIC::updateSD()
+void GNSS_MOSAIC::updateSD()
 {
     // See comments in update() above
     // updateSD() is probably the best place to check if an SD card has been inserted / removed
@@ -2531,7 +2681,11 @@ bool GNSS_MOSAIC::updateSD()
 
         // Allow many retries
         int retries = 0;
-        int retryLimit = 20;
+        int retryLimit = 30;
+
+        // If the card has been removed, the soft reset takes extra time. Allow more retries
+        if (!previousCardPresent)
+            retryLimit = 40;
 
         // Set COM4 to: CMD input (only), SBF output (only)
         while (!sendWithResponse("sdio,COM4,CMD,SBF\n\r", "DataInOut"))
@@ -2545,31 +2699,8 @@ bool GNSS_MOSAIC::updateSD()
         if (retries == retryLimit)
         {
             systemPrintln("Soft reset failed!");
-            return false;
         }
     }
-
-    if (!previousCardPresent) // If the card is not present, skip the list disk info
-        return false;
-
-    char diskInfo[200];
-    bool response =
-        sendAndWaitForIdle("ldi,DSK1\n\r", "DiskInfo", 1000, 25, &diskInfo[0], sizeof(diskInfo), false); // No debug
-    if (response)
-    {
-        char *ptr = strstr(diskInfo, " total=\"");
-        if (ptr == nullptr)
-            return false;
-        ptr += strlen(" total=\"");
-        sscanf(ptr, "%llu\"", &sdCardSize);
-        ptr = strstr(ptr, " free=\"");
-        if (ptr == nullptr)
-            return false;
-        ptr += strlen(" free=\"");
-        sscanf(ptr, "%llu\"", &sdFreeSpace);
-    }
-
-    return response;
 }
 
 //----------------------------------------
@@ -2725,6 +2856,14 @@ void processUart1SBF(SEMP_PARSE_STATE *parse, uint16_t type)
     // If this is PVTGeodetic, extract some data
     if (sempSbfGetBlockNumber(parse) == 4007)
         mosaic->storeBlock4007(parse);
+
+    // If this is ChannelStatus, extract some data
+    if (sempSbfGetBlockNumber(parse) == 4013)
+        mosaic->storeBlock4013(parse);
+
+    // If this is DiskStatus, extract some data
+    if (sempSbfGetBlockNumber(parse) == 4059)
+        mosaic->storeBlock4059(parse);
 
     // If this is InputLink, extract some data
     if (sempSbfGetBlockNumber(parse) == 4090)
