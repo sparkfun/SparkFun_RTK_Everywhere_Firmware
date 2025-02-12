@@ -437,13 +437,16 @@ nav:
       - menu_userprofiles.md
       - menu_wifi.md
   - Hardware:
+      - Update EVK:
+        - firmware_update_esp32.md
+        - firmware_update_ublox.md
+      - Update Postcard:
+        - firmware_update_esp32.md
+        - firmware_update_lg290p.md
       - Update Torch:
         - firmware_update_esp32.md
         - firmware_update_um980.md
         - firmware_update_stm32.md
-      - Update EVK:
-        - firmware_update_esp32.md
-        - firmware_update_ublox.md
       - displays.md
       - embeddedsystem_connection.md
       - repair.md

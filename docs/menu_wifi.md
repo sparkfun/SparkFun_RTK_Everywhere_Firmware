@@ -11,8 +11,8 @@ Compatibility Icons
 
 <div class="grid cards fill" markdown>
 
+- Postcard: :material-radiobox-marked:{ .support-full title="Feature Supported" }
 - Torch: :material-radiobox-marked:{ .support-full title="Feature Supported" }
-- EVK: :material-radiobox-marked:{ .support-full title="Feature Supported" }
 
 </div>
 
