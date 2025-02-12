@@ -7,18 +7,6 @@ The line of RTK Everywhere products offered by SparkFun all run identical firmwa
 <div class="grid cards" markdown>
 
 -   <figure markdown>
-	[![Product Image](./img/SparkFun_RTK_Torch.png)](https://www.sparkfun.com/products/25662 "Go to Product Page")
-	<figcaption markdown>
-	[SparkFun RTK Torch (GPS-25662)](https://www.sparkfun.com/products/25662)
-	</figcaption>
-	</figure>
-
-	<center>
-	[Hookup Guide](https://docs.sparkfun.com/SparkFun_RTK_Torch/){ .md-button .md-button--primary }
-	</center>
-
-
--   <figure markdown>
 	[![Product Image](./img/SparkFun_RTK_EVK.png)](https://www.sparkfun.com/products/24342 "Go to Product Page")
 	<figcaption markdown>
 	[SparkFun RTK EVK (GPS-24342)](https://www.sparkfun.com/products/24342)
@@ -39,6 +27,21 @@ The line of RTK Everywhere products offered by SparkFun all run identical firmwa
 	<center>
 	[Hookup Guide](https://docs.sparkfun.com/SparkFun_RTK_Postcard/){ .md-button .md-button--primary }
 	</center>
+
+-   <figure markdown>
+	[![Product Image](./img/SparkFun_RTK_Torch.png)](https://www.sparkfun.com/products/25662 "Go to Product Page")
+	<figcaption markdown>
+	[SparkFun RTK Torch (GPS-25662)](https://www.sparkfun.com/products/25662)
+	</figcaption>
+	</figure>
+
+	<center>
+	[Quickstart Guide](https://docs.sparkfun.com/SparkFun_RTK_Everywhere_Firmware/quickstart-torch/){ .md-button .md-button--primary }
+	</center>
+	<center>
+	[Hookup Guide](https://docs.sparkfun.com/SparkFun_RTK_Torch/){ .md-button .md-button--primary }
+	</center>
+
 </div>
 
 Depending on the hardware platform different features may or may not be supported. We will denote each product in each section so that you know what is supported.
