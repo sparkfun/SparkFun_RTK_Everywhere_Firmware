@@ -15,8 +15,12 @@ Compatibility Icons
 
 <div class="grid cards fill" markdown>
 
-- Torch: :material-radiobox-marked:{ .support-full title="Feature Supported" }
-- EVK: :material-radiobox-marked:{ .support-full title="Feature Supported" }
+- EVK: :material-radiobox-indeterminate-variant:{ .support-partial title="Feature Partially Supported" }
+- Postcard: :material-radiobox-marked:{ .support-full title="Feature Partially Supported" }
+- Torch: :material-radiobox-indeterminate-variant:{ .support-partial title="Feature Supported" }
+
+!!! note
+	All SparkFun RTK devices contain a radio capable of direct Rover-Base communication over 2.4GHz. The RTK Torch is currently the only RTK device with a built-in LoRa radio. 
 
 </div>
 
