@@ -102,7 +102,6 @@ void stateUpdate()
             displayRoverStart(0);
             if (gnss->configureRover() == false)
             {
-                settings.updateGNSSSettings = true; // On the next boot, update the GNSS receiver
                 recordSystemSettings();             // Record this state for next POR
 
                 systemPrintln("Rover config failed");
@@ -123,7 +122,6 @@ void stateUpdate()
                 displayRoverFail(1000);
             else
             {
-                settings.updateGNSSSettings = false; // On the next boot, no need to update the GNSS receiver
                 settings.lastState = STATE_ROVER_NOT_STARTED;
                 recordSystemSettings(); // Record this state for next POR
 
@@ -246,9 +244,7 @@ void stateUpdate()
             // Start the UART connected to the GNSS receiver for NMEA and UBX data (enables logging)
             if (tasksStartGnssUart() && gnss->configureBase())
             {
-                settings.updateGNSSSettings = false; // On the next boot, no need to update the GNSS on this profile
                 settings.lastState = STATE_BASE_NOT_STARTED; // Record this state for next POR
-
                 recordSystemSettings(); // Record this state for next POR
 
                 displayBaseSuccess(500); // Show 'Base Started'
@@ -260,7 +256,6 @@ void stateUpdate()
             }
             else
             {
-                settings.updateGNSSSettings = true; // On the next boot, update the GNSS receiver
                 recordSystemSettings();             // Record this state for next POR
 
                 displayBaseFail(1000);
@@ -485,7 +480,6 @@ void stateUpdate()
                     systemPrintln();
 
                     parseIncomingSettings();
-                    settings.updateGNSSSettings = true; // New settings; update GNSS receiver on next boot
                     recordSystemSettings();             // Record these settings to unit
 
                     // Clear buffer
@@ -605,7 +599,6 @@ void stateUpdate()
             // Start UART connected to the GNSS receiver for NMEA and UBX data (enables logging)
             if (tasksStartGnssUart() && configureUbloxModuleNTP())
             {
-                settings.updateGNSSSettings = false; // On the next boot, no need to update the GNSS on this profile
                 settings.lastState = STATE_NTPSERVER_NOT_STARTED; // Record this state for next POR
                 recordSystemSettings();
 

@@ -314,13 +314,6 @@ bool GNSS_MOSAIC::beginExternalEvent()
     if (online.gnss == false)
         return (false);
 
-    // If our settings haven't changed, trust GNSS's settings
-    if (settings.updateGNSSSettings == false)
-    {
-        systemPrintln("Skipping mosaic-X5 event configuration");
-        return (true);
-    }
-
     if (settings.dataPortChannel != MUX_PPS_EVENTTRIGGER)
         return (true); // No need to configure PPS if port is not selected
 
@@ -343,13 +336,6 @@ bool GNSS_MOSAIC::beginPPS()
 {
     if (online.gnss == false)
         return (false);
-
-    // If our settings haven't changed, trust GNSS's settings
-    if (settings.updateGNSSSettings == false)
-    {
-        systemPrintln("Skipping mosaicX5BeginPPS");
-        return (true);
-    }
 
     if (settings.dataPortChannel != MUX_PPS_EVENTTRIGGER)
         return (true); // No need to configure PPS if port is not selected
@@ -435,10 +421,7 @@ bool GNSS_MOSAIC::configureBase()
     setLoggingType(); // Update Standard, PPP, or custom for icon selection
 
     // Save the current configuration into non-volatile memory (NVM)
-    // We don't need to re-configure the MOSAICX5 at next boot
-    bool settingsWereSaved = saveConfiguration();
-    if (settingsWereSaved)
-        settings.updateGNSSSettings = false;
+    saveConfiguration();
 
     if (response == false)
     {
@@ -606,10 +589,7 @@ bool GNSS_MOSAIC::configureOnce()
         systemPrintln("mosaic-X5 configuration updated");
 
         // Save the current configuration into non-volatile memory (NVM)
-        // We don't need to re-configure the MOSAICX5 at next boot
-        bool settingsWereSaved = saveConfiguration();
-        if (settingsWereSaved)
-            settings.updateGNSSSettings = false;
+        saveConfiguration();
     }
     else
         online.gnss = false; // Take it offline
@@ -625,13 +605,6 @@ bool GNSS_MOSAIC::configureOnce()
 //----------------------------------------
 bool GNSS_MOSAIC::configureGNSS()
 {
-    // Skip configuring the MOSAICX5 if no new changes are necessary
-    if (settings.updateGNSSSettings == false)
-    {
-        systemPrintln("mosaic-X5 configuration maintained");
-        return (true);
-    }
-
     // Attempt 3 tries on MOSAICX5 config
     for (int x = 0; x < 3; x++)
     {
@@ -679,10 +652,7 @@ bool GNSS_MOSAIC::configureRover()
     setLoggingType(); // Update Standard, PPP, or custom for icon selection
 
     // Save the current configuration into non-volatile memory (NVM)
-    // We don't need to re-configure the MOSAICX5 at next boot
-    bool settingsWereSaved = saveConfiguration();
-    if (settingsWereSaved)
-        settings.updateGNSSSettings = false;
+    saveConfiguration();
 
     if (response == false)
     {
@@ -1727,8 +1697,6 @@ void GNSS_MOSAIC::menuMessagesNMEA()
             printUnknown(incoming);
     }
 
-    settings.updateGNSSSettings = true; // Update the GNSS config at the next boot
-
     clearBuffer(); // Empty buffer of any newline chars
 }
 
@@ -1797,8 +1765,6 @@ void GNSS_MOSAIC::menuMessagesRTCM(bool rover)
         else
             printUnknown(incoming);
     }
-
-    settings.updateGNSSSettings = true; // Update the GNSS config at the next boot
 
     clearBuffer(); // Empty buffer of any newline chars
 }

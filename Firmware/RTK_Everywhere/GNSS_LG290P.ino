@@ -165,13 +165,6 @@ bool GNSS_LG290P::checkPPPRates()
 //----------------------------------------
 bool GNSS_LG290P::configureGNSS()
 {
-    // Skip configuring the GNSS receiver if no new changes are necessary
-    if (settings.updateGNSSSettings == false)
-    {
-        systemPrintln("LG290P configuration maintained");
-        return (true);
-    }
-
     for (int x = 0; x < 3; x++)
     {
         // Wait up to 5 seconds for device to come online
@@ -255,10 +248,7 @@ bool GNSS_LG290P::configureOnce()
         systemPrintln("LG290P configuration updated");
 
         // Save the current configuration into non-volatile memory (NVM)
-        // We don't need to re-configure the LG290P at next boot
-        bool settingsWereSaved = saveConfiguration();
-        if (settingsWereSaved)
-            settings.updateGNSSSettings = false;
+        saveConfiguration();
     }
     else
         online.gnss = false; // Take it offline
@@ -324,10 +314,7 @@ bool GNSS_LG290P::configureRover()
     else
     {
         // Save the current configuration into non-volatile memory (NVM)
-        // We don't need to re-configure the LG290P at next boot
-        bool settingsWereSaved = saveConfiguration();
-        if (settingsWereSaved)
-            settings.updateGNSSSettings = false;
+        saveConfiguration();
 
         // For RTCM and MSM messages to take effect (ie, PointPerfect is active) we must save/reset
         softwareReset();
@@ -414,10 +401,7 @@ bool GNSS_LG290P::configureBase()
     else
     {
         // Save the current configuration into non-volatile memory (NVM)
-        // We don't need to re-configure the LG290P at next boot
-        bool settingsWereSaved = saveConfiguration();
-        if (settingsWereSaved)
-            settings.updateGNSSSettings = false;
+        saveConfiguration();
 
         softwareReset();
 
@@ -1756,8 +1740,6 @@ void GNSS_LG290P::menuMessagesSubtype(int *localMessageRate, const char *message
         else
             printUnknown(incoming);
     }
-
-    settings.updateGNSSSettings = true; // Update the GNSS config at the next boot
 
     clearBuffer(); // Empty buffer of any newline chars
 }

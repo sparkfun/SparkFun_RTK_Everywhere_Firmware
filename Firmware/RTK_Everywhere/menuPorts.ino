@@ -457,7 +457,6 @@ void menuPortHardwareTriggers()
 
     if (updateSettings)
     {
-        settings.updateGNSSSettings = true; // Force update
         gnss->beginExternalEvent();         // Update with new settings
         gnss->beginPPS();
     }

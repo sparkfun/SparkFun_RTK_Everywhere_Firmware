@@ -2366,8 +2366,6 @@ void paintProfile(uint8_t profileUnit)
 
         if (profileNumber >= 0)
         {
-            settings.updateGNSSSettings =
-                true;               // When this profile is loaded next, force system to update GNSS settings.
             recordSystemSettings(); // Before switching, we need to record the current settings to LittleFS and SD
 
             recordProfileNumber(

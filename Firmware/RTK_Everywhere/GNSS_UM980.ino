@@ -186,10 +186,7 @@ bool GNSS_UM980::configureBase()
     response &= enableNMEA();
 
     // Save the current configuration into non-volatile memory (NVM)
-    // We don't need to re-configure the UM980 at next boot
-    bool settingsWereSaved = _um980->saveConfiguration();
-    if (settingsWereSaved)
-        settings.updateGNSSSettings = false;
+    _um980->saveConfiguration();
 
     if (response == false)
     {
@@ -269,10 +266,7 @@ bool GNSS_UM980::configureOnce()
         systemPrintln("UM980 configuration updated");
 
         // Save the current configuration into non-volatile memory (NVM)
-        // We don't need to re-configure the UM980 at next boot
-        bool settingsWereSaved = _um980->saveConfiguration();
-        if (settingsWereSaved)
-            settings.updateGNSSSettings = false;
+        _um980->saveConfiguration();
     }
     else
         online.gnss = false; // Take it offline
@@ -294,13 +288,6 @@ bool GNSS_UM980::configureNtpMode()
 //----------------------------------------
 bool GNSS_UM980::configureGNSS()
 {
-    // Skip configuring the UM980 if no new changes are necessary
-    if (settings.updateGNSSSettings == false)
-    {
-        systemPrintln("UM980 configuration maintained");
-        return (true);
-    }
-
     for (int x = 0; x < 3; x++)
     {
         if (configureOnce())
@@ -368,10 +355,7 @@ bool GNSS_UM980::configureRover()
     response &= enableNMEA();
 
     // Save the current configuration into non-volatile memory (NVM)
-    // We don't need to re-configure the UM980 at next boot
-    bool settingsWereSaved = _um980->saveConfiguration();
-    if (settingsWereSaved)
-        settings.updateGNSSSettings = false;
+    _um980->saveConfiguration();
 
     if (response == false)
     {
@@ -1422,8 +1406,6 @@ void GNSS_UM980::menuMessagesSubtype(float *localMessageRate, const char *messag
         else
             printUnknown(incoming);
     }
-
-    settings.updateGNSSSettings = true; // Update the GNSS config at the next boot
 
     clearBuffer(); // Empty buffer of any newline chars
 }

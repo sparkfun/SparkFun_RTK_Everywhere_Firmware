@@ -754,7 +754,6 @@ uint32_t triggerTowMsR;    // Global copy - Time Of Week of rising edge (ms)
 uint32_t triggerTowSubMsR; // Global copy - Millisecond fraction of Time Of Week of rising edge in nanoseconds
 uint32_t triggerAccEst;    // Global copy - Accuracy estimate in nanoseconds
 
-bool firstPowerOn = true;  // After boot, apply new settings to GNSS if the user switches between base or rover
 unsigned long splashStart; // Controls how long the splash is displayed for. Currently min of 2s.
 bool restartBase;          // If the user modifies any NTRIP Server settings, we need to restart the base
 bool restartRover; // If the user modifies any NTRIP Client or PointPerfect settings, we need to restart the rover
@@ -936,18 +935,6 @@ volatile bool deadManWalking;
     {                                                                                                                  \
                                                                                                                        \
         /* Turn on nearly all the debug prints */                                                                      \
-        settings.enableHeapReport = true;                                                                              \
-        settings.enablePrintPosition = true;                                                                           \
-        settings.enablePrintIdleTime = true;                                                                           \
-        settings.enablePrintBatteryMessages = true;                                                                    \
-        settings.enablePrintRoverAccuracy = true;                                                                      \
-        settings.enablePrintLogFileMessages = false;                                                                   \
-        settings.enablePrintLogFileStatus = true;                                                                      \
-        settings.enablePrintStates = true;                                                                             \
-        settings.enablePrintDuplicateStates = true;                                                                    \
-        settings.enablePrintRtcSync = true;                                                                            \
-        settings.enablePrintBufferOverrun = true;                                                                      \
-        settings.enablePrintEthernetDiag = true;                                                                       \
         settings.debugCorrections = true;                                                                              \
         settings.debugGnss = false;                                                                                    \
         settings.debugHttpClientData = true;                                                                           \
@@ -956,7 +943,6 @@ volatile bool deadManWalking;
         settings.debugMqttClientData = true;                                                                           \
         settings.debugMqttClientState = true;                                                                          \
         settings.debugNetworkLayer = true;                                                                             \
-        settings.printNetworkStatus = true;                                                                            \
         settings.debugNtripClientRtcm = true;                                                                          \
         settings.debugNtripClientState = true;                                                                         \
         settings.debugNtripServerRtcm = true;                                                                          \
@@ -968,7 +954,23 @@ volatile bool deadManWalking;
         settings.debugUdpServer = true;                                                                                \
         settings.debugWebServer = true;                                                                                \
         settings.debugWifiState = true;                                                                                \
+        settings.enableHeapReport = true;                                                                              \
+        settings.enablePrintBatteryMessages = true;                                                                    \
+        settings.enablePrintBufferOverrun = true;                                                                      \
+        settings.enablePrintDuplicateStates = true;                                                                    \
+        settings.enablePrintEthernetDiag = true;                                                                       \
+        settings.enablePrintIdleTime = true;                                                                           \
+        settings.enablePrintLogFileMessages = false;                                                                   \
+        settings.enablePrintLogFileStatus = true;                                                                      \
+        settings.enablePrintPosition = true;                                                                           \
+        settings.enablePrintRingBufferOffsets = false;                                                                 \
+        settings.enablePrintRoverAccuracy = true;                                                                      \
+        settings.enablePrintRtcSync = true;                                                                            \
+        settings.enablePrintSDBuffers = true;                                                                          \
+        settings.enablePrintStates = true;                                                                             \
         settings.printBootTimes = true;                                                                                \
+        settings.printNetworkStatus = true;                                                                            \
+        settings.printTaskStartStop = true;                                                                            \
     }
 
 //-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-

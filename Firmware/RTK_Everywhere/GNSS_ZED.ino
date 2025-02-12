@@ -229,13 +229,6 @@ bool GNSS_ZED::beginExternalEvent()
     if (online.gnss == false)
         return (false);
 
-    // If our settings haven't changed, trust ZED's settings
-    if (settings.updateGNSSSettings == false)
-    {
-        log_d("Skipping ZED Trigger configuration");
-        return (true);
-    }
-
     if (settings.dataPortChannel != MUX_PPS_EVENTTRIGGER)
         return (true); // No need to configure PPS if port is not selected
 
@@ -259,13 +252,6 @@ bool GNSS_ZED::beginPPS()
 {
     if (online.gnss == false)
         return (false);
-
-    // If our settings haven't changed, trust ZED's settings
-    if (settings.updateGNSSSettings == false)
-    {
-        systemPrintln("Skipping ZED Trigger configuration");
-        return (true);
-    }
 
     if (settings.dataPortChannel != MUX_PPS_EVENTTRIGGER)
         return (true); // No need to configure PPS if port is not selected
@@ -326,16 +312,6 @@ bool GNSS_ZED::configureBase()
 {
     if (online.gnss == false)
         return (false);
-
-    // If our settings haven't changed, and this is first config since power on, trust ZED's settings
-    if (settings.updateGNSSSettings == false && firstPowerOn)
-    {
-        firstPowerOn = false; // Next time user switches modes, new settings will be applied
-        log_d("Skipping ZED Base configuration");
-        return (true);
-    }
-
-    firstPowerOn = false; // If we switch between rover/base in the future, force config of module.
 
     update(); // Regularly poll to get latest data
 
@@ -418,6 +394,9 @@ bool GNSS_ZED::configureBase()
 
     if (!success)
         systemPrintln("Base config fail");
+    else
+        // Save the current configuration into non-volatile memory (NVM)
+        saveConfiguration();
 
     return (success);
 }
@@ -499,6 +478,9 @@ bool GNSS_ZED::configureNtpMode()
 
     if (!success)
         systemPrintln("NTP config fail");
+    else
+        // Save the current configuration into non-volatile memory (NVM)
+        saveConfiguration();
 
     return (success);
 }
@@ -514,6 +496,7 @@ bool GNSS_ZED::configureGNSS()
         return (false);
 
     bool response = true;
+    bool success = true;
 
     // Turn on/off debug messages
     if (settings.debugGnss)
@@ -525,7 +508,7 @@ bool GNSS_ZED::configureGNSS()
     // Redundant - also done by gnssConfigure
     // checkGNSSArrayDefaults();
 
-    // Always configure the callbacks - even if settings.updateGNSSSettings is false
+    // Configure the callbacks
 
     response &=
         _zed->setAutoPVTcallbackPtr(&storePVTdata); // Enable automatic NAV PVT messages with callback to storePVTdata
@@ -562,16 +545,8 @@ bool GNSS_ZED::configureGNSS()
     {
         systemPrintln("GNSS initial configuration (callbacks, short detection, radio port) failed");
     }
+    success &= response;
     response = true; // Reset
-
-    // Configuring the ZED can take more than 2000ms. We save configuration to
-    // ZED so there is no need to update settings unless user has modified
-    // the settings file or internal settings.
-    if (settings.updateGNSSSettings == false)
-    {
-        systemPrintln("ZED-F9x configuration maintained");
-        return (true);
-    }
 
     // Wait for initial report from module
     int maxWait = 2000;
@@ -691,18 +666,21 @@ bool GNSS_ZED::configureGNSS()
 
     if (response == false)
         systemPrintln("Module failed config block 0");
+    success &= response;
     response = true; // Reset
 
     // Enable the constellations the user has set
     response &= setConstellations(); // 19 messages. Send newCfg or sendCfg with value set
     if (response == false)
         systemPrintln("Module failed config block 1");
+    success &= response;
     response = true; // Reset
 
     // Make sure the appropriate messages are enabled
     response &= setMessages(MAX_SET_MESSAGES_RETRIES); // Does a complete open/closed val set
     if (response == false)
         systemPrintln("Module failed config block 2");
+    success &= response;
     response = true; // Reset
 
     // Disable NMEA messages on all but UART1
@@ -737,10 +715,14 @@ bool GNSS_ZED::configureGNSS()
     if (response == false)
         systemPrintln("Module failed config block 3");
 
-    if (response)
+    if (success)
+    {
         systemPrintln("ZED-F9x configuration update");
+        // Save the current configuration into non-volatile memory (NVM)
+        saveConfiguration();
+    }
 
-    return (response);
+    return (success);
 }
 
 //----------------------------------------
@@ -753,16 +735,6 @@ bool GNSS_ZED::configureRover()
         systemPrintln("GNSS not online");
         return (false);
     }
-
-    // If our settings haven't changed, and this is first config since power on, trust GNSS's settings
-    if (settings.updateGNSSSettings == false && firstPowerOn)
-    {
-        firstPowerOn = false; // Next time user switches modes, new settings will be applied
-        log_d("Skipping ZED Rover configuration");
-        return (true);
-    }
-
-    firstPowerOn = false; // If we switch between rover/base in the future, force config of module.
 
     update(); // Regularly poll to get latest data
 
@@ -831,6 +803,9 @@ bool GNSS_ZED::configureRover()
 
     if (!success)
         systemPrintln("Rover config fail");
+    else
+        // Save the current configuration into non-volatile memory (NVM)
+        saveConfiguration();
 
     return (success);
 }

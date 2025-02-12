@@ -1574,14 +1574,12 @@ void loadProfileNumber()
         else
         {
             log_d("profileNumber.txt not found");
-            settings.updateGNSSSettings = true; // Force module update
             recordProfileNumber(0);             // Record profile
         }
     }
     else
     {
         log_d("profileNumber.txt not found");
-        settings.updateGNSSSettings = true; // Force module update
         recordProfileNumber(0);             // Record profile
     }
 
@@ -1589,7 +1587,6 @@ void loadProfileNumber()
     if (profileNumber >= MAX_PROFILE_COUNT)
     {
         log_d("ProfileNumber invalid. Going to zero.");
-        settings.updateGNSSSettings = true; // Force module update
         recordProfileNumber(0);             // Record profile
     }
 
