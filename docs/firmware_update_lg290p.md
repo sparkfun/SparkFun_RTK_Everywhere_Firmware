@@ -24,59 +24,41 @@ The LG290P is the GNSS receiver used on the RTK Postcard. The following describe
 2. Download and install [QGNSS](https://www.quectel.com/download/qgnss_v2-0_en/). QGNSS is the software created by Quectel to configure and view output from Quectel GNSS modules. 
 
 	<figure markdown>
-	![Hardware menu showing pass through option](./img/UPrecise/SparkFun RTK Everywhere - UM980 Passthrough.png)
+	![Select the COM port and baud rate](./img/QGNSS/SparkFun RTK Postcard - Port Settings.png)
 	<figcaption markdown>
-	Entering direct connect via Serial Configuration
+	Select the COM port and baud rate
 	</figcaption>
 	</figure>
 
-3. Put the device into passthrough mode. From the main menu navigate to System 's'->Hardware 'h'->LG290P Reset '13'. This will reset the device which will then respond to the request for update from QGNSS. Close the terminal connection so that UPrecise can connect to the COM port.
+3. Select the COM port for **Port B** of the CH342 and set the baud rate to **460800**, then press 'OK'
 
 	<figure markdown>
-	![Startup message showing passthrough mode](./img/UPrecise/SparkFun RTK Everywhere - UM980 Passthrough Startup.png)
+	![Open the Firmware Download window](./img/QGNSS/SparkFun RTK Postcard - Firmware Download.png)
 	<figcaption markdown>
-	Startup message showing passthrough mode
+	Open the Firmware Download window
 	</figcaption>
 	</figure>
-
-	!!! note
-		The RTK device will stay in this passthrough mode until the external power button is pressed and released. The device will beep when exiting passthrough mode.
 
 	<figure markdown>
-	![Connect button and connection settings in UPrecise](./img/UPrecise/SparkFun RTK Everywhere - UPrecise Inteface Connect.png)
+	![Starting the Firmware Update Process](./img/QGNSS/SparkFun RTK Postcard - Firmware Update LG290P.png)
 	<figcaption markdown>
-	Connect button and connection settings in UPrecise
+	Starting the Firmware Update Process
 	</figcaption>
 	</figure>
 
-4. Select the COM port and set the baud rate to 115200, then press 'Connect'
+4. Select the firmware to upload and press the start arrow. The update process will wait 20 seconds for the LG290P to be reset before timing out.
+
 
 	<figure markdown>
-	![Receiver Upgrade Button](./img/UPrecise/SparkFun RTK Everywhere - UPrecise Inteface Receiver Upgrade.png)
+	![Resetting LG290P](./img/QGNSS/SparkFun RTK Postcard - Reset LG290P.png)
 	<figcaption markdown>
-	Receiver Upgrade Button
+	Resetting LG290P
 	</figcaption>
 	</figure>
 
-5. Once connected, press the **Receiver Upgrade** button.
+5. Reset the LG290P. From the main menu navigate to System 's'->Hardware 'h'->LG290P reset for firmware update '13'. This will reset the LG290P and allow the bootlader to begin. If more than 20 seconds have gone by, restart the upgrade process in QGNSS and then reset the LG290P again.
 
-	<figure markdown>
-	![Firmware selection window](./img/UPrecise/SparkFun RTK Everywhere - UPrecise Inteface Firmware Selection.png)
-	<figcaption markdown>
-	Firmware selection window
-	</figcaption>
-	</figure>
-
-6. Select the latest firmware file that was previously downloaded (See the [RTK Torch repo](https://github.com/sparkfun/SparkFun_RTK_Torch) for the latest firmware). Then press Start.
-
-	<figure markdown>
-	![Firmware update process](./img/UPrecise/SparkFun RTK Everywhere - UPrecise Inteface Firmware Upload.png)
-	<figcaption markdown>
-	Firmware update process
-	</figcaption>
-	</figure>
-
-7. The update process can take multiple minutes. Once completed, close UPrecise, and power cycle the RTK Torch.
+6. The update process takes a little over a minute. Once completed, close QGNSS and power cycle the RTK Postcard.
 
 	<figure markdown>
 	![UM980 Firmware version shown in System Menu](./img/Terminal/SparkFun RTK Everywhere - System Menu UM980 Firmware.png)
