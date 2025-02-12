@@ -174,6 +174,33 @@ These coordinate formats are automatically detected and converted as needed. The
 
 For more information about coordinate formats, check out this [online converter](https://www.earthpoint.us/convert.aspx).
 
+## Base Cast
+
+	<figure markdown>
+	![SparkFun RTK EVK Mode Menu](./img/Displays/SparkFun_RTK_Postcard_BaseCasting.png)
+	<figcaption markdown>
+	SparkFun RTK EVK Mode Menu
+	</figcaption>
+	</figure>
+
+Base Cast mode enables the following settings:
+
+* Enables Base mode
+* Enables NTRIP Caster mode
+* Enables TCP on port 2101
+* Enables WiFi AP mode on IP 192.168.4.1
+
+This is helpful when using the RTK device in conjunction with a drone controller that expects connectivity to a near by Base over WiFi. All of these settings can be set manually; Base Cast mode just provides an easy and quick way to put the RTK device into the default mode compatible with most drone controllers.
+
+	<figure markdown>
+	![SparkFun RTK EVK Mode Menu](./img/Displays/SparkFun_RTK_Postcard_BaseCast.png)
+	<figcaption markdown>
+	SparkFun RTK EVK Mode Menu
+	</figcaption>
+	</figure>
+
+This mode can be entered from the [System Menu](menu_system.md), using the display menu (if a display is attached), or by setting the *System Initial State* to **BaseCast* via [Browser Config](configure_with_browswer).
+
 ## Assisted Base
 
 An Assisted Base is where a temporary base is set up to Survey-In its location but is simultaneously provided RTCM corrections so that its Survey-In is done with very precise readings. An assisted base running a Survey-In removes much of the relative inaccuracies from a Rover-Base system. We've found an Assisted Base varies as little as 50mm RMS between intra-day tests, with accuracy within 65mm of a PPP of the same location, same day.
