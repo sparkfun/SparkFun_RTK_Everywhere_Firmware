@@ -356,6 +356,8 @@ void tcpClientStop(bool shutdown)
     tcpClientWriteError = false;
     if (shutdown)
     {
+        // Stop the network
+        networkConsumerRemove(NETCONSUMER_TCP_CLIENT, NETWORK_ANY);
         tcpClientSetState(TCP_CLIENT_STATE_OFF);
     }
     else
@@ -426,6 +428,9 @@ void tcpClientUpdate()
             timer = 0;
             tcpClientPriority = NETWORK_OFFLINE;
             tcpClientSetState(TCP_CLIENT_STATE_WAIT_FOR_NETWORK);
+
+            // Start the network
+            networkConsumerAdd(NETCONSUMER_TCP_CLIENT, NETWORK_ANY);
         }
         break;
 
