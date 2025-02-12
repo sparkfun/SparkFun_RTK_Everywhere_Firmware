@@ -2646,13 +2646,12 @@ Compatibility Icons
 <p>These coordinate formats are automatically detected and converted as needed. The coordinates are displayed in the format they are entered. If a different format is desired, the coordinate display format can be changed via the serial Base menu.</p>
 <p>For more information about coordinate formats, check out this <a href="https://www.earthpoint.us/convert.aspx" target="_blank" rel="noopener">online converter</a>.</p>
 <h2 id="base-cast">Base Cast<a class="headerlink" href="#base-cast" title="Permanent link"></a></h2>
-<div class="highlight"><pre><span></span><code>&lt;figure markdown&gt;
-![SparkFun RTK EVK Mode Menu](./img/Displays/SparkFun_RTK_Postcard_BaseCasting.png)
-&lt;figcaption markdown&gt;
-SparkFun RTK EVK Mode Menu
-&lt;/figcaption&gt;
-&lt;/figure&gt;
-</code></pre></div>
+<figure>
+<p><img alt="SparkFun RTK EVK Mode Menu" src="../img/Displays/SparkFun_RTK_Postcard_BaseCasting.png" /></p>
+<figcaption>
+<p>SparkFun RTK EVK Mode Menu</p>
+</figcaption>
+</figure>
 <p>Base Cast mode enables the following settings:</p>
 <ul>
 <li>Enables Base mode</li>
@@ -2661,14 +2660,13 @@ SparkFun RTK EVK Mode Menu
 <li>Enables WiFi AP mode on IP 192.168.4.1</li>
 </ul>
 <p>This is helpful when using the RTK device in conjunction with a drone controller that expects connectivity to a near by Base over WiFi. All of these settings can be set manually; Base Cast mode just provides an easy and quick way to put the RTK device into the default mode compatible with most drone controllers.</p>
-<div class="highlight"><pre><span></span><code>&lt;figure markdown&gt;
-![SparkFun RTK EVK Mode Menu](./img/Displays/SparkFun_RTK_Postcard_BaseCast.png)
-&lt;figcaption markdown&gt;
-SparkFun RTK EVK Mode Menu
-&lt;/figcaption&gt;
-&lt;/figure&gt;
-</code></pre></div>
-<p>This mode can be entered from the <a href="../menu_system/">System Menu</a>, using the display menu (if a display is attached), or by setting the <em>System Initial State</em> to **BaseCast* via <a href="configure_with_browswer">Browser Config</a>.</p>
+<figure>
+<p><img alt="SparkFun RTK EVK Mode Menu" src="../img/Displays/SparkFun_RTK_Postcard_BaseCast.png" /></p>
+<figcaption>
+<p>SparkFun RTK EVK Mode Menu</p>
+</figcaption>
+</figure>
+<p>This mode can be entered from the <a href="../menu_system/">System Menu</a>, using the display menu (if a display is attached), or by setting the <em>System Initial State</em> to <strong>BaseCast</strong> via <a href="configure_with_browswer">Browser Config</a>.</p>
 <h2 id="assisted-base">Assisted Base<a class="headerlink" href="#assisted-base" title="Permanent link"></a></h2>
 <p>An Assisted Base is where a temporary base is set up to Survey-In its location but is simultaneously provided RTCM corrections so that its Survey-In is done with very precise readings. An assisted base running a Survey-In removes much of the relative inaccuracies from a Rover-Base system. We've found an Assisted Base varies as little as 50mm RMS between intra-day tests, with accuracy within 65mm of a PPP of the same location, same day.</p>
 <p>To set up an assisted base the RTK device should be located in a good reception area and provided with RTCM corrections. Let it obtain RTK Fix from a fixed position (on a tripod, for example) in <em>Rover</em> mode. Once an RTK fix is achieved, change the device to temporary <em>Base</em> mode (also called Survey-In). The device will take 60 seconds of positional readings, at which point the fixed position of the base will be set using RTK augmented coordinates. At this point, corrections provided to the base can be discontinued. The Base will begin outputting very accurate RTCM corrections that can be relayed to a rover that is in a less optimal reception setting.</p>
@@ -2695,7 +2693,7 @@ SparkFun RTK EVK Mode Menu
     <span class="md-icon" title="Last update">
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M21 13.1c-.1 0-.3.1-.4.2l-1 1 2.1 2.1 1-1c.2-.2.2-.6 0-.8l-1.3-1.3c-.1-.1-.2-.2-.4-.2m-1.9 1.8-6.1 6V23h2.1l6.1-6.1zM12.5 7v5.2l4 2.4-1 1L11 13V7zM11 21.9c-5.1-.5-9-4.8-9-9.9C2 6.5 6.5 2 12 2c5.3 0 9.6 4.1 10 9.3-.3-.1-.6-.2-1-.2s-.7.1-1 .2C19.6 7.2 16.2 4 12 4c-4.4 0-8 3.6-8 8 0 4.1 3.1 7.5 7.1 7.9l-.1.2z"/></svg>
     </span>
-    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-timeago"><span class="timeago" datetime="2025-02-12T23:23:45+00:00" locale="en"></span></span><span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-iso_date">2025-02-12</span>
+    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-timeago"><span class="timeago" datetime="2025-02-12T23:30:39+00:00" locale="en"></span></span><span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-iso_date">2025-02-12</span>
   </span>
 
     
