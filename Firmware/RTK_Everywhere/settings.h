@@ -552,32 +552,25 @@ const int numRegionalAreas = sizeof(Regional_Information_Table) / sizeof(Regiona
 
 #define NTRIP_SERVER_STRING_SIZE        50
 
-//Bitfield for describing the type of network the consumer can use
-enum
-{
-    NETIF_NONE = 0, // No consumers
-    NETIF_WIFI_STA, // The consumer can use STA
-    NETIF_WIFI_AP, // The consumer can use AP
-    NETIF_CELLULAR, // The consumer can use Cellular
-    NETIF_ETHERNET, // The consumer can use Ethernet
-    NETIF_UNKNOWN
-};
-
-#define NETWORK_EWC ((1 << NETIF_ETHERNET) | (1 << NETIF_WIFI_STA) | (1 << NETIF_CELLULAR))
-
 // Bitfield for describing the network consumers
 enum
 {
     NETCONSUMER_NTRIP_CLIENT = 0,
     NETCONSUMER_NTRIP_SERVER,
+    NETCONSUMER_OTA_CLIENT,
+    NETCONSUMER_PPL_KEY_UPDATE,
+    NETCONSUMER_PPL_MQTT_CLIENT,
     NETCONSUMER_TCP_CLIENT,
     NETCONSUMER_TCP_SERVER,
     NETCONSUMER_UDP_SERVER,
-    NETCONSUMER_PPL_KEY_UPDATE,
-    NETCONSUMER_PPL_MQTT_CLIENT,
-    NETCONSUMER_OTA_CLIENT,
     NETCONSUMER_WEB_CONFIG,
+    // Add new consumers just before this line
+    // Also add them to the networkConsumerTable
+    NETCONSUMER_MAX
 };
+
+typedef uint8_t NETCONSUMER_t;
+typedef uint16_t NETCONSUMER_MASK_t;
 
 // This is all the settings that can be set on RTK Product. It's recorded to NVM and the config file.
 // Avoid reordering. The order of these variables is mimicked in NVM/record/parse/create/update/get
@@ -1788,10 +1781,11 @@ enum NetworkTypes
 {
     NETWORK_NONE = -1,  // The values below must start at zero and be sequential
     NETWORK_ETHERNET = 0,
-    NETWORK_WIFI = 1,
+    NETWORK_WIFI_STATION = 1,
     NETWORK_CELLULAR = 2,
     // Add new networks here
-    NETWORK_MAX
+    NETWORK_MAX,
+    NETWORK_ANY = NETWORK_MAX,
 };
 
 #ifdef  COMPILE_NETWORK

@@ -493,6 +493,7 @@ void ntripServerStart(int serverIndex)
 
     // Start the NTRIP server
     systemPrintf("NTRIP Server %d start\r\n", serverIndex);
+    networkConsumerAdd(NETCONSUMER_NTRIP_CLIENT, NETWORK_ANY);
     ntripServerStop(serverIndex, false);
 }
 
@@ -539,6 +540,7 @@ void ntripServerStop(int serverIndex, bool shutdown)
             if (settings.debugNtripServerState && (!settings.ntripServer_MountPoint[serverIndex][0]))
                 systemPrintf("NTRIP Server %d mount point not configured!\r\n", serverIndex);
         }
+        networkConsumerRemove(NETCONSUMER_NTRIP_SERVER, NETWORK_ANY);
         ntripServerSetState(ntripServer, NTRIP_SERVER_OFF);
         ntripServer->connectionAttempts = 0;
         ntripServer->connectionAttemptTimeout = 0;
@@ -592,12 +594,7 @@ void ntripServerUpdate(int serverIndex)
     if (NEQ_RTK_MODE(ntripServerMode) || (!settings.enableNtripServer))
     {
         if (ntripServer->state > NTRIP_SERVER_OFF)
-        {
-            ntripServerStop(serverIndex, true); // Was false - #StopVsRestart
-            ntripServer->connectionAttempts = 0;
-            ntripServer->connectionAttemptTimeout = 0;
-            ntripServerSetState(ntripServer, NTRIP_SERVER_OFF);
-        }
+            ntripServerStop(serverIndex, true);
     }
 
     // Enable the network and the NTRIP server if requested
@@ -655,7 +652,7 @@ void ntripServerUpdate(int serverIndex)
         // Determine if the network has failed
         if (!networkIsConnected(&ntripServerPriority))
             // Failed to connect to to the network, attempt to restart the network
-            ntripServerStop(serverIndex, true); // Was ntripServerRestart(serverIndex); - #StopVsRestart
+            ntripServerRestart(serverIndex);
 
         else if (settings.enableNtripServer &&
                  (millis() - ntripServer->lastConnectionAttempt > ntripServer->connectionAttemptTimeout))
@@ -673,7 +670,7 @@ void ntripServerUpdate(int serverIndex)
         // Determine if the network has failed
         if (!networkIsConnected(&ntripServerPriority))
             // Failed to connect to to the network, attempt to restart the network
-            ntripServerStop(serverIndex, true); // Was ntripServerRestart(serverIndex); - #StopVsRestart
+            ntripServerRestart(serverIndex);
 
         // State change handled in ntripServerProcessRTCM
         break;
@@ -683,7 +680,7 @@ void ntripServerUpdate(int serverIndex)
         // Determine if the network has failed
         if (!networkIsConnected(&ntripServerPriority))
             // Failed to connect to to the network, attempt to restart the network
-            ntripServerStop(serverIndex, true); // Was ntripServerRestart(serverIndex); - #StopVsRestart
+            ntripServerRestart(serverIndex);
 
         // Delay before opening the NTRIP server connection
         else if ((millis() - ntripServer->timer) >= ntripServer->connectionAttemptTimeout)
@@ -711,7 +708,7 @@ void ntripServerUpdate(int serverIndex)
         // Determine if the network has failed
         if (!networkIsConnected(&ntripServerPriority))
             // Failed to connect to to the network, attempt to restart the network
-            ntripServerStop(serverIndex, true); // Was ntripServerRestart(serverIndex); - #StopVsRestart
+            ntripServerRestart(serverIndex);
 
         // Check if caster service responded
         else if (ntripServer->networkClient->available() <
@@ -805,7 +802,7 @@ void ntripServerUpdate(int serverIndex)
         // Determine if the network has failed
         if (!networkIsConnected(&ntripServerPriority))
             // Failed to connect to the network, attempt to restart the network
-            ntripServerStop(serverIndex, true); // Was ntripServerRestart(serverIndex); - #StopVsRestart
+            ntripServerRestart(serverIndex);
 
         // Check for a broken connection
         else if (!ntripServer->networkClient->connected())
