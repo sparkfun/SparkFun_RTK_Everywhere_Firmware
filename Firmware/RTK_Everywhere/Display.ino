@@ -830,7 +830,7 @@ void setRadioIcons(std::vector<iconPropertyBlinking> *iconList)
 #endif // COMPILE_ETHERNET
 
 #ifdef COMPILE_WIFI
-            if (networkInterfaceHasInternet(NETWORK_WIFI))
+            if (networkInterfaceHasInternet(NETWORK_WIFI_STATION))
                 networkHasInternet = true;
 #endif // COMPILE_WIFI
 
@@ -1099,7 +1099,7 @@ void setESPNowIcon_TwoRadios(std::vector<iconPropertyBlinking> *iconList)
 void setWiFiIcon_TwoRadios(std::vector<iconPropertyBlinking> *iconList)
 {
 #ifdef COMPILE_WIFI
-    if (networkInterfaceHasInternet(NETWORK_WIFI))
+    if (networkInterfaceHasInternet(NETWORK_WIFI_STATION))
     {
         if (netIncomingRTCM || netOutgoingRTCM || mqttClientDataReceived)
         {
@@ -1169,7 +1169,7 @@ void setWiFiIcon_TwoRadios(std::vector<iconPropertyBlinking> *iconList)
 void setWiFiIcon_ThreeRadios(std::vector<iconPropertyBlinking> *iconList)
 {
 #ifdef COMPILE_WIFI
-    if (networkInterfaceHasInternet(NETWORK_WIFI))
+    if (networkInterfaceHasInternet(NETWORK_WIFI_STATION))
     {
         if (netIncomingRTCM || netOutgoingRTCM || mqttClientDataReceived)
         {
@@ -1248,7 +1248,7 @@ void setWiFiIcon(std::vector<iconPropertyBlinking> *iconList)
         icon.icon.yPos = 0;
 
 #ifdef COMPILE_WIFI
-        if (networkInterfaceHasInternet(NETWORK_WIFI))
+        if (networkInterfaceHasInternet(NETWORK_WIFI_STATION))
             icon.duty = 0b11111111;
         else
 #endif // COMPILE_WIFI

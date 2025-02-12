@@ -423,7 +423,7 @@ void menuWiFi()
 {
     while (1)
     {
-        networkDisplayInterface(NETWORK_WIFI);
+        networkDisplayInterface(NETWORK_WIFI_STATION);
 
         systemPrintln();
         systemPrintln("Menu: WiFi Networks");
@@ -498,10 +498,10 @@ void menuWiFi()
 // Display the WiFi state
 void wifiDisplayState()
 {
-    systemPrintf("WiFi: %s\r\n", networkInterfaceHasInternet(NETWORK_WIFI) ? "Online" : "Offline");
+    systemPrintf("WiFi: %s\r\n", networkInterfaceHasInternet(NETWORK_WIFI_STATION) ? "Online" : "Offline");
     systemPrintf("    MAC Address: %02X:%02X:%02X:%02X:%02X:%02X\r\n", wifiMACAddress[0], wifiMACAddress[1],
                  wifiMACAddress[2], wifiMACAddress[3], wifiMACAddress[4], wifiMACAddress[5]);
-    if (networkInterfaceHasInternet(NETWORK_WIFI))
+    if (networkInterfaceHasInternet(NETWORK_WIFI_STATION))
     {
         // Get the DNS addresses
         IPAddress dns1 = WiFi.STA.dnsIP(0);
@@ -630,7 +630,7 @@ bool wifiStart()
 void wifiStartThrottled(NetIndex_t index, uintptr_t parameter, bool debug)
 {
     if (wifiStationReconnectionRequest())
-        networkSequenceNextEntry(NETWORK_WIFI, debug);
+        networkSequenceNextEntry(NETWORK_WIFI_STATION, debug);
 
     // Check for network shutdown
     else if (networkConsumerCount == 0)
@@ -638,7 +638,7 @@ void wifiStartThrottled(NetIndex_t index, uintptr_t parameter, bool debug)
         // Stop the connection attempts
         wifiResetThrottleTimeout();
         wifiResetTimeout();
-        networkSequenceStopPolling(NETWORK_WIFI, debug, true);
+        networkSequenceStopPolling(NETWORK_WIFI_STATION, debug, true);
     }
 }
 
@@ -671,7 +671,7 @@ bool wifiStationReconnectionRequest()
         connected = true;
         if (settings.debugWifiState)
             systemPrintf("WiFi: WiFi station successfully started\r\n");
-        networkSequenceNextEntry(NETWORK_WIFI, settings.debugNetworkLayer);
+        networkSequenceNextEntry(NETWORK_WIFI_STATION, settings.debugNetworkLayer);
         wifiFailedConnectionAttempts = 0;
     }
     else
@@ -685,7 +685,7 @@ bool wifiStationReconnectionRequest()
 
         // Start the next network interface if necessary
         if (wifiFailedConnectionAttempts >= 2)
-            networkStartNextInterface(NETWORK_WIFI);
+            networkStartNextInterface(NETWORK_WIFI_STATION);
 
         // Increase the timeout
         wifiStartTimeout <<= 1;
@@ -708,12 +708,12 @@ bool wifiStationReconnectionRequest()
 // Stop WiFi, used by wifiStopSequence
 void wifiStop(NetIndex_t index, uintptr_t parameter, bool debug)
 {
-    networkInterfaceInternetConnectionLost(NETWORK_WIFI);
+    networkInterfaceInternetConnectionLost(NETWORK_WIFI_STATION);
 
     // Stop WiFi stataion
     wifi.enable(wifiEspNowRunning, wifiSoftApRunning, false);
 
-    networkSequenceNextEntry(NETWORK_WIFI, settings.debugNetworkLayer);
+    networkSequenceNextEntry(NETWORK_WIFI_STATION, settings.debugNetworkLayer);
 }
 
 //*********************************************************************
@@ -727,7 +727,7 @@ void wifiStopAll()
     wifi.enable(false, false, false);
 
     // Take the network offline
-    networkInterfaceEventInternetLost(NETWORK_WIFI);
+    networkInterfaceEventInternetLost(NETWORK_WIFI_STATION);
 
     // Display the heap state
     reportHeapNow(settings.debugWifiState);
@@ -1536,7 +1536,7 @@ void RTK_WIFI::stationEventHandler(arduino_event_id_t event, arduino_event_info_
         if (event == ARDUINO_EVENT_WIFI_STA_DISCONNECTED)
         {
             wifiReconnectRequest = true;
-            networkStart(NETWORK_WIFI, settings.debugWifiState);
+            networkStart(NETWORK_WIFI_STATION, settings.debugWifiState);
         }
 
         // Fall through
@@ -1597,7 +1597,7 @@ void RTK_WIFI::stationEventHandler(arduino_event_id_t event, arduino_event_info_
         if (settings.debugWifiState)
             systemPrintf("WiFi: Got IPv%c address %s\r\n",
                          type, _staIpAddress.toString().c_str());
-        networkInterfaceEventInternetAvailable(NETWORK_WIFI);
+        networkInterfaceEventInternetAvailable(NETWORK_WIFI_STATION);
         break;
     }   // End of switch
 }
