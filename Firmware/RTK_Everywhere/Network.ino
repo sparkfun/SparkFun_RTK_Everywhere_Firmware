@@ -486,6 +486,14 @@ IPAddress networkGetBroadcastIpAddress()
 }
 
 //----------------------------------------
+// Get the current interface index
+//----------------------------------------
+NetIndex_t networkGetCurrentInterfaceIndex()
+{
+    return networkIndexTable[networkPriority];
+}
+
+//----------------------------------------
 // Get the current interface name
 //----------------------------------------
 const char *networkGetCurrentInterfaceName()
