@@ -1711,10 +1711,28 @@ displayCoords paintSIVIcon(std::vector<iconPropertyBlinking> *iconList, const ic
 
 void nudgeAndPrintSIV(displayCoords textCoords, uint8_t siv)
 {
-    oled->setCursor(textCoords.x - 1, textCoords.y); // x, y
-    oled->print(siv / 10);
-    oled->setCursor(textCoords.x + 7, textCoords.y); // x, y
-    oled->print(siv % 10);
+    if (present.display_type == DISPLAY_64x48)
+    {
+        // Always nudge, even if 1 digit, to avoid small jump when
+        // siv goes into 2 digits
+        oled->setCursor(textCoords.x - 1, textCoords.y); // x, y
+        if (siv >= 10)
+        {
+            oled->print(siv / 10);
+            oled->setCursor(textCoords.x + 7, textCoords.y); // x, y
+            oled->print(siv % 10);
+        }
+        else
+        {
+            oled->print(siv); // Left-justify 1 digit
+        }
+    }
+    else
+    {
+        // On 128x64, there's no need to nudge
+        oled->setCursor(textCoords.x, textCoords.y); // x, y
+        oled->print(siv); // 1 or 2 digits
+    }
 }
 
 void paintSIVText(displayCoords textCoords)
@@ -1738,7 +1756,7 @@ void paintSIVText(displayCoords textCoords)
         if (inBaseMode() == true)
             nudgeAndPrintSIV(textCoords, siv);
         else if (gnss->isFixed() == false)
-            oled->print("0");
+            nudgeAndPrintSIV(textCoords, 0);
         else
             nudgeAndPrintSIV(textCoords, siv);
 
