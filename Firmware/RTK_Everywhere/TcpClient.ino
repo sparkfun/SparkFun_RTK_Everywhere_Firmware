@@ -310,6 +310,8 @@ bool tcpClientStart()
             tcpClient = client;
             tcpClientWriteError = false;
             online.tcpClient = true;
+            if (settings.debugTcpClient)
+                systemPrintln("TCP client online");
             return true;
         }
         else
@@ -332,6 +334,8 @@ void tcpClientStop()
     if (client)
     {
         // Delay to allow the UART task to finish with the tcpClient
+        if (settings.debugTcpClient && online.tcpClient)
+            systemPrintln("TCP client offline");
         online.tcpClient = false;
         delay(5);
 
@@ -350,8 +354,6 @@ void tcpClientStop()
 
     // Initialize the TCP client
     tcpClientWriteError = false;
-    if (settings.debugTcpClient)
-        systemPrintln("TCP client offline");
     tcpClientSetState(TCP_CLIENT_STATE_OFF);
 }
 
@@ -431,29 +433,31 @@ void tcpClientUpdate()
         // Wait until the network is connected
         else if (networkIsConnected(&tcpClientPriority))
         {
-#ifdef COMPILE_WIFI
-            // Determine if WiFi is required
-            if ((!strlen(settings.tcpClientHost)) && (!networkInterfaceHasInternet(NETWORK_WIFI)))
+            NetIndex_t index = networkGetCurrentInterfaceIndex();
+
+            // Check for a valid configuration
+            if (!networkInterfaceHasInternet(index))
             {
-                // Wrong network type, WiFi is required but another network is being used
+                // Valid configurations
+                // 1.  Phone: connection via WiFi, no host name, use gateway
+                //     IP address as phone IP address
+                // 2.  Host address, name or IP address of the server
+                bool usingPhone = (index == NETWORK_WIFI_STATION)
+                                && (!strlen(settings.tcpClientHost));
+
+                // Invalid configuration, display a message on a regular
+                // basis until the issue is resolved
                 if ((millis() - timer) >= (15 * 1000))
                 {
                     timer = millis();
-                    systemPrintln("TCP Client must connect via WiFi when no host is specified");
+                    if (usingPhone)
+                        systemPrintln("TCP Client must connect via WiFi when no host is specified");
+                    else
+                        systemPrintln("TCP Client requires host name to be specified!");
                 }
             }
-#else  // COMPILE_WIFI
-            if (!strlen(settings.tcpClientHost))
-            {
-                // Wrong network type
-                if ((millis() - timer) >= (15 * 1000))
-                {
-                    timer = millis();
-                    systemPrintln("TCP Client requires host name to be specified!");
-                }
-            }
-#endif // COMPILE_WIFI
-       // The network type and host provide a valid configuration
+
+            // The network type and host provide a valid configuration
             else
             {
                 timer = millis();

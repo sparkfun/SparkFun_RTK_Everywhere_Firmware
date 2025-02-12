@@ -1913,6 +1913,7 @@ o/ufQJVtMVT8QtPHRh8jrdkPSHCa2XV4cdFyQzR1bldZwgJcJmApzyMZFo6IQ6XU
 rqXRfboQnoZsG4q5WTP468SQvvG5
 -----END CERTIFICATE-----
 )=====";
+#endif  // COMPILE_NETWORK
 
 //****************************************
 // WiFi class
@@ -1920,6 +1921,7 @@ rqXRfboQnoZsG4q5WTP468SQvvG5
 
 typedef uint8_t WIFI_CHANNEL_t;
 
+#ifdef COMPILE_NETWORK
 #ifdef COMPILE_WIFI
 
 // Handle the WiFi event
@@ -2148,15 +2150,6 @@ class RTK_WIFI
     // Outputs:
     //   Returns the current WiFi channel number
     WIFI_CHANNEL_t getChannel();
-
-    // Restart WiFi
-    // Inputs:
-    //   always: Set true if this routine should always restart WiFi,
-    //           when false determine restart using _restartRequest
-    // Outputs:
-    //    Returns true if the WiFi layer was successfully restarted and
-    //    false upon restart failure
-    bool restart(bool always);
 
     // Configure the soft AP
     // Inputs:

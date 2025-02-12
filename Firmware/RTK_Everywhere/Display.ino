@@ -1964,13 +1964,24 @@ void paintIPAddress()
 
 void displayFullIPAddress(std::vector<iconPropertyBlinking> *iconList) // Bottom left - 128x64 only
 {
+    static IPAddress ipAddress;
+    static NetPriority_t priority;
+    static NetPriority_t previousPriority;
+
     // Max width: 15*6 = 90 pixels (6 pixels per character, nnn.nnn.nnn.nnn)
     if (present.display_type == DISPLAY_128x64)
     {
         char myAddress[16];
 
-        IPAddress ipAddress = networkGetIpAddress();
+        // Reduce calls to networkGetIpAddress
+        networkIsConnected(&priority);
+        if (priority != previousPriority)
+        {
+            previousPriority = priority;
+            ipAddress = networkGetIpAddress();
+        }
 
+        // Display the IP address when it is available
         if (ipAddress != IPAddress((uint32_t)0))
         {
             snprintf(myAddress, sizeof(myAddress), "%s", ipAddress.toString());

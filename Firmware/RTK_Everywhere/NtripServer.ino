@@ -442,14 +442,20 @@ void ntripServerRestart(int serverIndex)
 // Update the state of the NTRIP server state machine
 void ntripServerSetState(NTRIP_SERVER_DATA *ntripServer, uint8_t newState)
 {
-    int serverIndex = -999;
-    for (int index = 0; index < NTRIP_SERVER_MAX; index++)
+    int index;
+    int serverIndex = 0;
+    for (index = 0; index < NTRIP_SERVER_MAX; index++)
     {
         if (ntripServer == &ntripServerArray[index])
         {
             serverIndex = index;
             break;
         }
+    }
+    if (index >= NTRIP_SERVER_MAX)
+    {
+        systemPrintf("NTRIP Server: %p unknown NTRIP Server structure!\r\n", (void *)ntripServer);
+        return;
     }
 
     // PERIODIC_DISPLAY(PD_NTRIP_SERVER_STATE) is handled by ntripServerUpdate

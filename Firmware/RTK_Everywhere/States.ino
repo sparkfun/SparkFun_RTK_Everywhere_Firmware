@@ -113,7 +113,6 @@ void stateUpdate()
             setMuxport(settings.dataPortChannel); // Return mux to original channel
 
             bluetoothStart(); // Turn on Bluetooth with 'Rover' name
-            ESPNOW_START()    // Start internal radio if enabled, otherwise disable
 
             webServerStop();             // Stop the web config server
             baseCasterDisableOverride(); // Disable casting overrides
