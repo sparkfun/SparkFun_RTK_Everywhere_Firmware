@@ -743,12 +743,11 @@ void mqttClientStop(bool shutdown)
     mqttClientDataReceived = false;
     if (shutdown)
     {
-        mqttClientSetState(MQTT_CLIENT_OFF);
-        // settings.enablePointPerfectCorrections = false;
-        //^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ Why? This means PointPerfect Corrections
-        // cannot be restarted without opening the menu or web configuration page...
         mqttClientConnectionAttempts = 0;
         mqttClientConnectionAttemptTimeout = 0;
+        mqttClientSetState(MQTT_CLIENT_OFF);
+        if (settings.debugMqttClientState)
+            systemPrintln("MQTT Client stopped");
     }
     else
         mqttClientSetState(MQTT_CLIENT_ON);
@@ -764,16 +763,11 @@ void mqttClientUpdate()
     // Shutdown the MQTT client when the mode or setting changes
     DMW_st(mqttClientSetState, mqttClientState);
 
-    if (!mqttClientEnabled())
+    if ((!mqttClientEnabled()) && (mqttClientState > MQTT_CLIENT_OFF))
     {
-        if (mqttClientState > MQTT_CLIENT_OFF)
-        {
+        if (settings.debugMqttClientState)
             systemPrintln("MQTT Client stopping");
-            MQTT_CLIENT_STOP(true); // Was false - #StopVsRestart
-            mqttClientConnectionAttempts = 0;
-            mqttClientConnectionAttemptTimeout = 0;
-            mqttClientSetState(MQTT_CLIENT_OFF);
-        }
+        mqttClientShutdown();
     }
 
     // Enable the network and the MQTT client if requested
@@ -803,12 +797,8 @@ void mqttClientUpdate()
 
     // Wait for a network media connection
     case MQTT_CLIENT_WAIT_FOR_NETWORK: {
-        // Determine if MQTT was turned off
-        if (!mqttClientEnabled())
-            mqttClientStop(true);
-
         // Wait until the network is connected to the media
-        else if (networkIsConnected(&mqttClientPriority))
+        if (networkIsConnected(&mqttClientPriority))
             mqttClientSetState(MQTT_CLIENT_CONNECTING_2_SERVER);
         break;
     }
@@ -819,7 +809,7 @@ void mqttClientUpdate()
         if (!networkIsConnected(&mqttClientPriority))
         {
             // Failed to connect to the network, attempt to restart the network
-            mqttClientStop(true); // Was mqttClientRestart(); - #StopVsRestart
+            mqttClientRestart();
             break;
         }
 
@@ -828,7 +818,7 @@ void mqttClientUpdate()
         if (!mqttSecureClient)
         {
             systemPrintln("ERROR: Failed to allocate the mqttSecureClient structure!");
-            mqttClientShutdown();
+            mqttClientRestart();
             break;
         }
 
@@ -858,8 +848,8 @@ void mqttClientUpdate()
             if (mqttClientPrivateKeyBuffer == nullptr)
                 systemPrintln("ERROR: Failed to allocate key buffer!");
 
-            // Free the buffers\
-            mqttClientShutdown();
+            // Free the buffers and attempt another connection after delay
+            mqttClientRestart();
             break;
         }
 
@@ -871,9 +861,8 @@ void mqttClientUpdate()
         if (!loadFile("certificate", mqttClientCertificateBuffer, settings.debugMqttClientState))
         {
             if (settings.debugMqttClientState)
-                systemPrintln("MQTT_CLIENT_CONNECTING_2_SERVER no certificate available");
-            mqttClientRestart(); // This does need a restart. Was mqttClientShutdown, but that causes an immediate retry
-                                 // with no timeout
+                systemPrintln("ERROR: MQTT_Client no certificate available");
+            mqttClientShutdown();
             break;
         }
         mqttSecureClient->setCertificate(mqttClientCertificateBuffer);
@@ -883,9 +872,8 @@ void mqttClientUpdate()
         if (!loadFile("privateKey", mqttClientPrivateKeyBuffer, settings.debugMqttClientState))
         {
             if (settings.debugMqttClientState)
-                systemPrintln("MQTT_CLIENT_CONNECTING_2_SERVER no private key available");
-            mqttClientRestart(); // This does need a restart. Was mqttClientShutdown, but that causes an immediate retry
-                                 // with no timeout
+                systemPrintln("ERROR: MQTT_Client no private key available");
+            mqttClientShutdown();
             break;
         }
         mqttSecureClient->setPrivateKey(mqttClientPrivateKeyBuffer);
@@ -896,7 +884,7 @@ void mqttClientUpdate()
         {
             // Failed to allocate the mqttClient structure
             systemPrintln("ERROR: Failed to allocate the mqttClient structure!");
-            mqttClientShutdown();
+            mqttClientRestart();
             break;
         }
 
@@ -906,7 +894,7 @@ void mqttClientUpdate()
         if (settings.debugMqttClientState)
             systemPrintf("MQTT client connecting to %s\r\n", settings.pointPerfectBrokerHost);
 
-        // Attempt to the MQTT broker
+        // Attempt connection to the MQTT broker
         if (!mqttClient->connect(settings.pointPerfectBrokerHost, 8883))
         {
             systemPrintf("Failed to connect to MQTT broker %s\r\n", settings.pointPerfectBrokerHost);
@@ -959,7 +947,7 @@ void mqttClientUpdate()
         if (!networkIsConnected(&mqttClientPriority))
         {
             // Failed to connect to the network, attempt to restart the network
-            mqttClientStop(true); // Was mqttClientRestart(); - #StopVsRestart
+            mqttClientRestart();
             break;
         }
 
