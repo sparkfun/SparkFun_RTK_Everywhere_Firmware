@@ -729,161 +729,210 @@ long gpsToMjd(long GpsCycle, long GpsWeek, long GpsSeconds)
 // Global L-Band Routines
 //----------------------------------------
 
-// Begin any L-Band hardware
+// Update any L-Band hardware
 // Check if NEO-D9S is connected. Configure if available.
 // If GNSS is mosaic-X5, configure LBandBeam1
-void beginLBand()
+void updateLBand()
 {
 
 #ifdef COMPILE_L_BAND
     if (present.lband_neo)
     {
-        if (i2cLBand.begin(*i2c_0, 0x43) ==
-            false) // Connect to the u-blox NEO-D9S using Wire port. The D9S default I2C address is 0x43 (not 0x42)
+        if (!online.lband_neo && settings.enablePointPerfectCorrections)
         {
-            if (settings.debugCorrections == true)
-                systemPrintln("L-Band not detected");
-            return;
-        }
+            static bool lband_neo_can_not_begin = false;
 
-        // Check the firmware version of the NEO-D9S. Based on Example21_ModuleInfo.
-        if (i2cLBand.getModuleInfo(1100) == true) // Try to get the module info
-        {
-            // Reconstruct the firmware version
-            snprintf(neoFirmwareVersion, sizeof(neoFirmwareVersion), "%s %d.%02d", i2cLBand.getFirmwareType(),
-                     i2cLBand.getFirmwareVersionHigh(), i2cLBand.getFirmwareVersionLow());
+            if (lband_neo_can_not_begin)
+                return;
 
-            printNEOInfo(); // Print module firmware version
-        }
-
-        gnss->update();
-
-        uint32_t LBandFreq;
-        uint8_t fixType = gnss->getFixType();
-        double latitude = gnss->getLatitude();
-        double longitude = gnss->getLongitude();
-        // If we have a fix, check which frequency to use
-        if (fixType >= 2 && fixType <= 5) // 2D, 3D, 3D+DR, or Time
-        {
-            int r = 0; // Step through each geographic region
-            for (; r < numRegionalAreas; r++)
+            // NEO-D9S is present but is not yet online. Try to begin the hardware
+            if (i2cLBand.begin(*i2c_0, 0x43) ==
+                false) // Connect to the u-blox NEO-D9S using Wire port. The D9S default I2C address is 0x43 (not 0x42)
             {
-                if ((longitude >= Regional_Information_Table[r].area.lonWest) &&
-                    (longitude <= Regional_Information_Table[r].area.lonEast) &&
-                    (latitude >= Regional_Information_Table[r].area.latSouth) &&
-                    (latitude <= Regional_Information_Table[r].area.latNorth))
+                systemPrintln("L-Band not detected");
+                lband_neo_can_not_begin = true;
+                return;
+            }
+
+            // Check the firmware version of the NEO-D9S. Based on Example21_ModuleInfo.
+            if (i2cLBand.getModuleInfo(1100) == true) // Try to get the module info
+            {
+                // Reconstruct the firmware version
+                snprintf(neoFirmwareVersion, sizeof(neoFirmwareVersion), "%s %d.%02d", i2cLBand.getFirmwareType(),
+                        i2cLBand.getFirmwareVersionHigh(), i2cLBand.getFirmwareVersionLow());
+
+                printNEOInfo(); // Print module firmware version
+            }
+            else
+            {
+                systemPrintln("L-Band not detected");
+                lband_neo_can_not_begin = true;
+                return;
+            }
+
+            // Update the GNSS position. Use the position to set the frequency if available
+            gnss->update();
+
+            uint32_t LBandFreq;
+            uint8_t fixType = gnss->getFixType();
+            double latitude = gnss->getLatitude();
+            double longitude = gnss->getLongitude();
+
+            // If we have a fix, check which frequency to use
+            if (fixType >= 2 && fixType <= 5) // 2D, 3D, 3D+DR, or Time
+            {
+                int r = 0; // Step through each geographic region
+                for (; r < numRegionalAreas; r++)
                 {
-                    LBandFreq = Regional_Information_Table[r].frequency;
+                    if ((longitude >= Regional_Information_Table[r].area.lonWest) &&
+                        (longitude <= Regional_Information_Table[r].area.lonEast) &&
+                        (latitude >= Regional_Information_Table[r].area.latSouth) &&
+                        (latitude <= Regional_Information_Table[r].area.latNorth))
+                    {
+                        LBandFreq = Regional_Information_Table[r].frequency;
+                        if (settings.debugCorrections == true)
+                            systemPrintf("Setting L-Band frequency to %s (%dHz)\r\n", Regional_Information_Table[r].name,
+                                        LBandFreq);
+                        break;
+                    }
+                }
+                if (r == numRegionalAreas) // Geographic region not found
+                {
+                    LBandFreq = Regional_Information_Table[settings.geographicRegion].frequency;
                     if (settings.debugCorrections == true)
-                        systemPrintf("Setting L-Band frequency to %s (%dHz)\r\n", Regional_Information_Table[r].name,
-                                     LBandFreq);
-                    break;
+                        systemPrintf("Error: Unknown L-Band geographic region. Using %s (%dHz)\r\n",
+                                    Regional_Information_Table[settings.geographicRegion].name, LBandFreq);
                 }
             }
-            if (r == numRegionalAreas) // Geographic region not found
+            else
             {
                 LBandFreq = Regional_Information_Table[settings.geographicRegion].frequency;
                 if (settings.debugCorrections == true)
-                    systemPrintf("Error: Unknown L-Band geographic region. Using %s (%dHz)\r\n",
-                                 Regional_Information_Table[settings.geographicRegion].name, LBandFreq);
+                    systemPrintf("No fix available for L-Band geographic region determination. Using %s (%dHz)\r\n",
+                                Regional_Information_Table[settings.geographicRegion].name, LBandFreq);
+            }
+
+            bool response = true;
+            response &= i2cLBand.newCfgValset();
+            response &= i2cLBand.addCfgValset(UBLOX_CFG_PMP_CENTER_FREQUENCY, LBandFreq); // Default 1539812500 Hz
+            response &= i2cLBand.addCfgValset(UBLOX_CFG_PMP_SEARCH_WINDOW, 2200);         // Default 2200 Hz
+            response &= i2cLBand.addCfgValset(UBLOX_CFG_PMP_USE_SERVICE_ID, 0);           // Default 1
+            response &= i2cLBand.addCfgValset(UBLOX_CFG_PMP_SERVICE_ID, 21845);           // Default 50821
+            response &= i2cLBand.addCfgValset(UBLOX_CFG_PMP_DATA_RATE, 2400);             // Default 2400 bps
+            response &= i2cLBand.addCfgValset(UBLOX_CFG_PMP_USE_DESCRAMBLER, 1);          // Default 1
+            response &= i2cLBand.addCfgValset(UBLOX_CFG_PMP_DESCRAMBLER_INIT, 26969);     // Default 23560
+            response &= i2cLBand.addCfgValset(UBLOX_CFG_PMP_USE_PRESCRAMBLING, 0);        // Default 0
+            response &= i2cLBand.addCfgValset(UBLOX_CFG_PMP_UNIQUE_WORD, 16238547128276412563ull);
+            response &=
+                i2cLBand.addCfgValset(UBLOX_CFG_MSGOUT_UBX_RXM_PMP_UART1, 0); // Disable UBX-RXM-PMP on UART1. Not used.
+
+            response &= i2cLBand.sendCfgValset();
+
+            GNSS_ZED *zed = (GNSS_ZED *)gnss;
+            response &= zed->lBandCommunicationEnable();
+
+            if (response == false)
+            {
+                systemPrintln("L-Band failed to configure");
+                lband_neo_can_not_begin = true;
+                return;
+            }
+
+            i2cLBand.softwareResetGNSSOnly(); // Do a restart
+
+            if (settings.debugCorrections == true)
+                systemPrintln("L-Band online");
+
+            online.lband_neo = true;
+        }
+        else if (online.lband_neo && settings.enablePointPerfectCorrections)
+        {
+            // L-Band is online. Apply the keys if they have changed
+            // This may be redundant as PROVISIONING_KEYS_REMAINING also applies the keys
+            static char previousKey[33] = "";
+            if (strncmp(previousKey, settings.pointPerfectCurrentKey, 33) != 0)
+            {
+                strncpy(previousKey, settings.pointPerfectCurrentKey, 33);
+                gnss->applyPointPerfectKeys(); // Apply keys now. This sets online.lbandCorrections
+                if (settings.debugCorrections == true)
+                    systemPrintln("ZED-F9P PointPerfect keys applied");
             }
         }
-        else
-        {
-            LBandFreq = Regional_Information_Table[settings.geographicRegion].frequency;
-            if (settings.debugCorrections == true)
-                systemPrintf("No fix available for L-Band geographic region determination. Using %s (%dHz)\r\n",
-                             Regional_Information_Table[settings.geographicRegion].name, LBandFreq);
-        }
-
-        bool response = true;
-        response &= i2cLBand.newCfgValset();
-        response &= i2cLBand.addCfgValset(UBLOX_CFG_PMP_CENTER_FREQUENCY, LBandFreq); // Default 1539812500 Hz
-        response &= i2cLBand.addCfgValset(UBLOX_CFG_PMP_SEARCH_WINDOW, 2200);         // Default 2200 Hz
-        response &= i2cLBand.addCfgValset(UBLOX_CFG_PMP_USE_SERVICE_ID, 0);           // Default 1
-        response &= i2cLBand.addCfgValset(UBLOX_CFG_PMP_SERVICE_ID, 21845);           // Default 50821
-        response &= i2cLBand.addCfgValset(UBLOX_CFG_PMP_DATA_RATE, 2400);             // Default 2400 bps
-        response &= i2cLBand.addCfgValset(UBLOX_CFG_PMP_USE_DESCRAMBLER, 1);          // Default 1
-        response &= i2cLBand.addCfgValset(UBLOX_CFG_PMP_DESCRAMBLER_INIT, 26969);     // Default 23560
-        response &= i2cLBand.addCfgValset(UBLOX_CFG_PMP_USE_PRESCRAMBLING, 0);        // Default 0
-        response &= i2cLBand.addCfgValset(UBLOX_CFG_PMP_UNIQUE_WORD, 16238547128276412563ull);
-        response &=
-            i2cLBand.addCfgValset(UBLOX_CFG_MSGOUT_UBX_RXM_PMP_UART1, 0); // Diasable UBX-RXM-PMP on UART1. Not used.
-
-        response &= i2cLBand.sendCfgValset();
-
-        GNSS_ZED *zed = (GNSS_ZED *)gnss;
-        response &= zed->lBandCommunicationEnable();
-
-        if (response == false)
-            systemPrintln("L-Band failed to configure");
-
-        i2cLBand.softwareResetGNSSOnly(); // Do a restart
-
-        if (settings.debugCorrections == true)
-            systemPrintln("L-Band online");
-
-        gnss->applyPointPerfectKeys(); // Apply keys now, if we have them. This sets online.lbandCorrections
-
-        online.lband_neo = true;
     }
 #endif // COMPILE_L_BAND
 #ifdef COMPILE_MOSAICX5
-    if (present.gnss_mosaicX5 && settings.enablePointPerfectCorrections)
+    if (present.gnss_mosaicX5)
     {
-        uint32_t LBandFreq;
-        uint8_t fixType = gnss->getFixType();
-        double latitude = gnss->getLatitude();
-        double longitude = gnss->getLongitude();
-        // If we have a fix, check which frequency to use
-        if (fixType >= 1) // Stand-Alone PVT or better
+        if (!online.lband_gnss && settings.enablePointPerfectCorrections)
         {
-            int r = 0; // Step through each geographic region
-            for (; r < numRegionalAreas; r++)
+            static bool lband_gnss_can_not_begin = false;
+
+            if (lband_gnss_can_not_begin)
+                return;
+
+            uint32_t LBandFreq;
+            uint8_t fixType = gnss->getFixType();
+            double latitude = gnss->getLatitude();
+            double longitude = gnss->getLongitude();
+            // If we have a fix, check which frequency to use
+            if (fixType >= 1) // Stand-Alone PVT or better
             {
-                if ((longitude >= Regional_Information_Table[r].area.lonWest) &&
-                    (longitude <= Regional_Information_Table[r].area.lonEast) &&
-                    (latitude >= Regional_Information_Table[r].area.latSouth) &&
-                    (latitude <= Regional_Information_Table[r].area.latNorth))
+                int r = 0; // Step through each geographic region
+                for (; r < numRegionalAreas; r++)
                 {
-                    LBandFreq = Regional_Information_Table[r].frequency;
+                    if ((longitude >= Regional_Information_Table[r].area.lonWest) &&
+                        (longitude <= Regional_Information_Table[r].area.lonEast) &&
+                        (latitude >= Regional_Information_Table[r].area.latSouth) &&
+                        (latitude <= Regional_Information_Table[r].area.latNorth))
+                    {
+                        LBandFreq = Regional_Information_Table[r].frequency;
+                        if (settings.debugCorrections == true)
+                            systemPrintf("Setting L-Band frequency to %s (%dHz)\r\n", Regional_Information_Table[r].name,
+                                        LBandFreq);
+                        break;
+                    }
+                }
+                if (r == numRegionalAreas) // Geographic region not found
+                {
+                    LBandFreq = Regional_Information_Table[settings.geographicRegion].frequency;
                     if (settings.debugCorrections == true)
-                        systemPrintf("Setting L-Band frequency to %s (%dHz)\r\n", Regional_Information_Table[r].name,
-                                     LBandFreq);
-                    break;
+                        systemPrintf("Error: Unknown L-Band geographic region. Using %s (%dHz)\r\n",
+                                    Regional_Information_Table[settings.geographicRegion].name, LBandFreq);
                 }
             }
-            if (r == numRegionalAreas) // Geographic region not found
+            else
             {
                 LBandFreq = Regional_Information_Table[settings.geographicRegion].frequency;
                 if (settings.debugCorrections == true)
-                    systemPrintf("Error: Unknown L-Band geographic region. Using %s (%dHz)\r\n",
-                                 Regional_Information_Table[settings.geographicRegion].name, LBandFreq);
+                    systemPrintf("No fix available for L-Band geographic region determination. Using %s (%dHz)\r\n",
+                                Regional_Information_Table[settings.geographicRegion].name, LBandFreq);
+            }
+
+            bool result = true;
+
+            GNSS_MOSAIC *mosaic = (GNSS_MOSAIC *)gnss;
+
+            result &= mosaic->configureGNSSCOM(true); // Ensure LBandBeam1 is enabled on COM1
+
+            result &= mosaic->configureLBand(true, LBandFreq); // Start L-Band
+
+            if (result == false)
+            {
+                systemPrintln("mosaic-X5 L-Band failed to configure");
+                lband_gnss_can_not_begin = true;
+            }
+            else
+            {
+                if (settings.debugCorrections == true)
+                    systemPrintln("mosaic-X5 L-Band online");
+                online.lband_gnss = true;
             }
         }
-        else
+        //else if (online.lband_gnss && settings.enablePointPerfectCorrections)
         {
-            LBandFreq = Regional_Information_Table[settings.geographicRegion].frequency;
-            if (settings.debugCorrections == true)
-                systemPrintf("No fix available for L-Band geographic region determination. Using %s (%dHz)\r\n",
-                             Regional_Information_Table[settings.geographicRegion].name, LBandFreq);
+            // If no SPARTN data is received, the L-Band may need a 'kick'. Turn L-Band off and back on again!
+            // But gnss->update will do this. No need to do it here
         }
-
-        bool result = true;
-
-        // If no SPARTN data is received, the L-Band may need a 'kick'. Turn L-Band off and back on again!
-        GNSS_MOSAIC *mosaic = (GNSS_MOSAIC *)gnss;
-
-        result &= mosaic->configureGNSSCOM(true); // Ensure LBandBeam1 is enabled on COM1
-
-        result &= mosaic->configureLBand(true, LBandFreq); // Start L-Band
-
-        if (result == false)
-            systemPrintln("mosaic-X5 L-Band failed to configure");
-        else if (settings.debugCorrections == true)
-            systemPrintln("mosaic-X5 L-Band online");
-
-        online.lband_gnss = result;
     }
 #endif // /COMPILE_MOSAICX5
 }
@@ -1092,7 +1141,7 @@ bool pointPerfectIsEnabled()
 }
 
 // Process any new L-Band from I2C
-void updateLBand()
+void updateLBandCorrections()
 {
     static unsigned long lbandLastReport;
     static unsigned long lbandTimeFloatStarted; // Monitors the ZED during L-Band reception if a fix takes too long

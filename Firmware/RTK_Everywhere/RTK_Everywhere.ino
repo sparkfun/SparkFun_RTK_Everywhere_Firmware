@@ -966,7 +966,7 @@ volatile bool deadManWalking;
         settings.enablePrintRingBufferOffsets = false;                                                                 \
         settings.enablePrintRoverAccuracy = true;                                                                      \
         settings.enablePrintRtcSync = true;                                                                            \
-        settings.enablePrintSDBuffers = true;                                                                          \
+        settings.enablePrintSDBuffers = false;                                                                         \
         settings.enablePrintStates = true;                                                                             \
         settings.printBootTimes = true;                                                                                \
         settings.printNetworkStatus = true;                                                                            \
@@ -1160,9 +1160,6 @@ void setup()
     DMW_b("gnss->configure");
     gnss->configure(); // Requires settings. Configure GNSS module
 
-    DMW_b("beginLBand");
-    beginLBand(); // Begin L-Band
-
     DMW_b("beginExternalEvent");
     gnss->beginExternalEvent(); // Configure the event input
 
@@ -1290,7 +1287,10 @@ void loop()
     networkUpdate(); // Maintain the network connections
 
     DMW_c("updateLBand");
-    updateLBand(); // Check if we've recently received PointPerfect corrections or not
+    updateLBand(); // Update L-Band
+
+    DMW_c("updateLBandCorrections");
+    updateLBandCorrections(); // Check if we've recently received PointPerfect corrections or not
 
     DMW_c("tiltUpdate");
     tiltUpdate(); // Check if new lat/lon/alt have been calculated

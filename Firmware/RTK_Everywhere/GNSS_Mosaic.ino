@@ -2615,6 +2615,7 @@ void GNSS_MOSAIC::update()
     }
 
     // Update spartnCorrectionsReceived
+    // Does this need if(online.lband_gnss) ? Not sure... TODO
     if (millis() > (lastSpartnReception + (settings.correctionsSourcesLifetime_s * 1000))) // Timeout
     {
         if (spartnCorrectionsReceived) // If corrections were being received
