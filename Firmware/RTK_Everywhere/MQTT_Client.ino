@@ -210,6 +210,40 @@ bool mqttClientConnectLimitReached()
 }
 
 //----------------------------------------
+// Determine if the MQTT client may be enabled
+//----------------------------------------
+bool mqttClientEnabled()
+{
+    bool enableMqttClient;
+
+    do
+    {
+        enableMqttClient = false;
+
+        // MQTT requires use of point perfect corrections
+        if (settings.enablePointPerfectCorrections == false)
+            break;
+
+        // Only support MQTT clients in rover mode
+        if (NEQ_RTK_MODE(mqttClientMode))
+            break;
+
+        // For the mosaic-X5, settings.enablePointPerfectCorrections will be true if
+        // we are using the PPL and getting keys via ZTP. BUT the Facet mosaic-X5
+        // uses the L-Band (only) plan. It should not and can not subscribe to PP IP
+        // MQTT corrections. So, if present.gnss_mosaicX5 is true, set enableMqttClient
+        // to false.
+        // TODO : review this. This feels like a bit of a hack...
+        if (present.gnss_mosaicX5)
+            break;
+
+        // All conditions support running the MQTT client
+        enableMqttClient = true;
+    } while (0);
+    return enableMqttClient;
+}
+
+//----------------------------------------
 // Determine if the client is connected to the services
 //----------------------------------------
 bool mqttClientIsConnected()
