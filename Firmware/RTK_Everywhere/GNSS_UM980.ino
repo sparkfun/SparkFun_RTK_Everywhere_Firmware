@@ -1947,9 +1947,9 @@ void um980FirmwareBeginUpdate()
             }
         }
 
-        if (digitalRead(pin_powerButton) == HIGH)
+        if (readAnalogPinAsDigital(pin_powerButton) == HIGH)
         {
-            while (digitalRead(pin_powerButton) == HIGH)
+            while (readAnalogPinAsDigital(pin_powerButton) == HIGH)
                 delay(100);
 
             // Remove file and reset to exit pass-through mode
