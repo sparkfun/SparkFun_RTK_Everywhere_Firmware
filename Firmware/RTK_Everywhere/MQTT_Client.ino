@@ -210,6 +210,26 @@ bool mqttClientConnectLimitReached()
 }
 
 //----------------------------------------
+// Determine if the client is connected to the services
+//----------------------------------------
+bool mqttClientIsConnected()
+{
+    if (mqttClientState == MQTT_CLIENT_SERVICES_CONNECTED)
+        return true;
+    return false;
+}
+
+//----------------------------------------
+// Return true if we are in states that require network access
+//----------------------------------------
+bool mqttClientNeedsNetwork()
+{
+    if (mqttClientState >= MQTT_CLIENT_WAIT_FOR_NETWORK && mqttClientState <= MQTT_CLIENT_SERVICES_CONNECTED)
+        return true;
+    return false;
+}
+
+//----------------------------------------
 // Print the MQTT client state summary
 //----------------------------------------
 void mqttClientPrintStateSummary()
@@ -680,16 +700,6 @@ void mqttClientStop(bool shutdown)
 }
 
 //----------------------------------------
-// Return true if we are in states that require network access
-//----------------------------------------
-bool mqttClientNeedsNetwork()
-{
-    if (mqttClientState >= MQTT_CLIENT_WAIT_FOR_NETWORK && mqttClientState <= MQTT_CLIENT_SERVICES_CONNECTED)
-        return true;
-    return false;
-}
-
-//----------------------------------------
 // Check for the arrival of any correction data. Push it to the GNSS.
 // Stop task if the connection has dropped or if we receive no data for
 // MQTT_CLIENT_RECEIVE_DATA_TIMEOUT
@@ -1068,16 +1078,6 @@ void mqttClientValidateTables()
 {
     if (mqttClientStateNameEntries != MQTT_CLIENT_STATE_MAX)
         reportFatalError("Fix mqttClientStateNameEntries to match MQTTClientState");
-}
-
-//----------------------------------------
-// Determine if the client is connected to the services
-//----------------------------------------
-bool mqttClientIsConnected()
-{
-    if (mqttClientState == MQTT_CLIENT_SERVICES_CONNECTED)
-        return true;
-    return false;
 }
 
 #endif // COMPILE_MQTT_CLIENT
