@@ -207,80 +207,94 @@ void GNSS_ZED::begin()
             }
 
         printModuleInfo(); // Print module type and firmware version
+
+        UBX_SEC_UNIQID_data_t chipID;
+        if (_zed->getUniqueChipId(&chipID))
+        {
+            snprintf(gnssUniqueId, sizeof(gnssUniqueId), "%s", _zed->getUniqueChipIdStr(&chipID));
+
+            systemPrintln("GNSS ZED online");
+            online.gnss = true;
+            return;
+        }
     }
 
-    UBX_SEC_UNIQID_data_t chipID;
-    if (_zed->getUniqueChipId(&chipID))
-    {
-        snprintf(gnssUniqueId, sizeof(gnssUniqueId), "%s", _zed->getUniqueChipIdStr(&chipID));
-    }
-
-    systemPrintln("GNSS ZED online");
-
-    online.gnss = true;
+    systemPrintln("GNSS ZED offline");
+    displayGNSSFail(1000);
 }
 
 //----------------------------------------
-// Setup the timepulse output on the PPS pin for external triggering
-// Setup TM2 time stamp input as need
+// Setup the timepulse output on the PPS pin for external triggering.
+// Setup TM2 time stamp input as need.
+// Allow this to be called multiple times so that the callback can be
+// set or cleared as needed.
+// This will be called once by setup and possibly multiple times by
+// menuPortsMultiplexed.
 //----------------------------------------
 bool GNSS_ZED::beginExternalEvent()
 {
     if (online.gnss == false)
         return (false);
 
-    if (settings.dataPortChannel != MUX_PPS_EVENTTRIGGER)
-        return (true); // No need to configure PPS if port is not selected
-
     bool response = true;
 
-    if (settings.enableExternalHardwareEventLogging)
+    // Assumes EXTINT is always routed through the multiplexer...
+    if (settings.enableExternalHardwareEventLogging && (settings.dataPortChannel == MUX_PPS_EVENTTRIGGER))
     {
-        _zed->setAutoTIMTM2callbackPtr(
+        response &= _zed->setAutoTIMTM2callbackPtr(
             &eventTriggerReceived); // Enable automatic TIM TM2 messages with callback to eventTriggerReceived
     }
     else
-        _zed->setAutoTIMTM2callbackPtr(nullptr);
+    {
+        response &= _zed->setAutoTIMTM2callbackPtr(nullptr);
+    }
+
+    if (response == false)
+        systemPrintln("beginExternalEvent failed");
 
     return (response);
 }
 
 //----------------------------------------
 // Setup the timepulse output on the PPS pin for external triggering
+// Allow this to be called multiple times.
+// This will be called once by setup and possibly multiple times by
+// menuPortsMultiplexed.
 //----------------------------------------
 bool GNSS_ZED::beginPPS()
 {
     if (online.gnss == false)
         return (false);
 
-    if (settings.dataPortChannel != MUX_PPS_EVENTTRIGGER)
-        return (true); // No need to configure PPS if port is not selected
-
     bool response = true;
 
-    response &= _zed->newCfgValset();
-    response &= _zed->addCfgValset(UBLOX_CFG_TP_PULSE_DEF, 0);        // Time pulse definition is a period (in us)
-    response &= _zed->addCfgValset(UBLOX_CFG_TP_PULSE_LENGTH_DEF, 1); // Define timepulse by length (not ratio)
-    response &=
-        _zed->addCfgValset(UBLOX_CFG_TP_USE_LOCKED_TP1,
-                           1); // Use CFG-TP-PERIOD_LOCK_TP1 and CFG-TP-LEN_LOCK_TP1 as soon as GNSS time is valid
-    response &= _zed->addCfgValset(UBLOX_CFG_TP_TP1_ENA, settings.enableExternalPulse); // Enable/disable timepulse
-    response &=
-        _zed->addCfgValset(UBLOX_CFG_TP_POL_TP1, settings.externalPulsePolarity); // 0 = falling, 1 = rising edge
+    // Assumes PPS is always routed through the multiplexer...
+    if (settings.dataPortChannel == MUX_PPS_EVENTTRIGGER)
+    {
+        response &= _zed->newCfgValset();
+        response &= _zed->addCfgValset(UBLOX_CFG_TP_PULSE_DEF, 0);        // Time pulse definition is a period (in us)
+        response &= _zed->addCfgValset(UBLOX_CFG_TP_PULSE_LENGTH_DEF, 1); // Define timepulse by length (not ratio)
+        response &=
+            _zed->addCfgValset(UBLOX_CFG_TP_USE_LOCKED_TP1,
+                            1); // Use CFG-TP-PERIOD_LOCK_TP1 and CFG-TP-LEN_LOCK_TP1 as soon as GNSS time is valid
+        response &= _zed->addCfgValset(UBLOX_CFG_TP_TP1_ENA, settings.enableExternalPulse); // Enable/disable timepulse
+        response &=
+            _zed->addCfgValset(UBLOX_CFG_TP_POL_TP1, settings.externalPulsePolarity); // 0 = falling, 1 = rising edge
 
-    // While the module is _locking_ to GNSS time, turn off pulse
-    response &= _zed->addCfgValset(UBLOX_CFG_TP_PERIOD_TP1, 1000000); // Set the period between pulses in us
-    response &= _zed->addCfgValset(UBLOX_CFG_TP_LEN_TP1, 0);          // Set the pulse length in us
+        // While the module is _locking_ to GNSS time, turn off pulse
+        response &= _zed->addCfgValset(UBLOX_CFG_TP_PERIOD_TP1, 1000000); // Set the period between pulses in us
+        response &= _zed->addCfgValset(UBLOX_CFG_TP_LEN_TP1, 0);          // Set the pulse length in us
 
-    // When the module is _locked_ to GNSS time, make it generate 1Hz (Default is 100ms high, 900ms low)
-    response &= _zed->addCfgValset(UBLOX_CFG_TP_PERIOD_LOCK_TP1,
-                                   settings.externalPulseTimeBetweenPulse_us); // Set the period between pulses is us
-    response &=
-        _zed->addCfgValset(UBLOX_CFG_TP_LEN_LOCK_TP1, settings.externalPulseLength_us); // Set the pulse length in us
-    response &= _zed->sendCfgValset();
+        // When the module is _locked_ to GNSS time, make it generate 1Hz (Default is 100ms high, 900ms low)
+        response &= _zed->addCfgValset(UBLOX_CFG_TP_PERIOD_LOCK_TP1,
+                                    settings.externalPulseTimeBetweenPulse_us); // Set the period between pulses is us
+        response &=
+            _zed->addCfgValset(UBLOX_CFG_TP_LEN_LOCK_TP1, settings.externalPulseLength_us); // Set the pulse length in us
+        response &= _zed->sendCfgValset();
+    }
 
     if (response == false)
-        systemPrintln("beginExternalTriggers config failed");
+        systemPrintln("beginPPS failed");
 
     return (response);
 }
@@ -312,6 +326,13 @@ bool GNSS_ZED::configureBase()
 {
     if (online.gnss == false)
         return (false);
+
+    if (settings.gnssConfiguredBase)
+    {
+        if (settings.debugGnss)
+            systemPrintln("Skipping ZED Base configuration");
+        return true;
+    }
 
     update(); // Regularly poll to get latest data
 
@@ -394,9 +415,10 @@ bool GNSS_ZED::configureBase()
 
     if (!success)
         systemPrintln("Base config fail");
-    else
-        // Save the current configuration into non-volatile memory (NVM)
-        saveConfiguration();
+
+    // The configuration should be saved to RAM and BBR. No need to saveConfiguration here.
+
+    settings.gnssConfiguredBase = success;
 
     return (success);
 }
