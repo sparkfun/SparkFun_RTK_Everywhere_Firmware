@@ -60,7 +60,6 @@ void loadSettings()
 
     // Temp store any variables from LFS that should override SD
     int resetCount = settings.resetCount;
-    SystemState stateFromLFS = settings.lastState;
 
     loadSystemSettingsFromFileSD(settingsFileName);
 
