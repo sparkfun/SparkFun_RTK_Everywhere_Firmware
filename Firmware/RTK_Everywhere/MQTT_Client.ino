@@ -166,12 +166,8 @@ bool mqttClientConnectLimitReached()
     // Retry the connection a few times
     limitReached = (mqttClientConnectionAttempts >= MAX_MQTT_CLIENT_CONNECTION_ATTEMPTS);
 
-    bool enableMqttClient = true;
-    if (!settings.enablePointPerfectCorrections)
-        enableMqttClient = false;
-
     // Restart the MQTT client
-    MQTT_CLIENT_STOP(limitReached || (!enableMqttClient));
+    MQTT_CLIENT_STOP(limitReached || (!mqttClientEnabled()));
 
     mqttClientConnectionAttempts++;
     mqttClientConnectionAttemptsTotal++;
@@ -303,21 +299,8 @@ void mqttClientPrintStatus()
     byte minutes;
     byte seconds;
 
-    bool enableMqttClient = true;
-    if (!settings.enablePointPerfectCorrections)
-        enableMqttClient = false;
-
-    // For the mosaic-X5, settings.enablePointPerfectCorrections will be true if
-    // we are using the PPL and getting keys via ZTP. BUT the Facet mosaic-X5
-    // uses the L-Band (only) plan. It should not and can not subscribe to PP IP
-    // MQTT corrections. So, if present.gnss_mosaicX5 is true, set enableMqttClient
-    // to false.
-    // TODO : review this. This feels like a bit of a hack...
-    if (present.gnss_mosaicX5)
-        enableMqttClient = false;
-
     // Display MQTT Client status and uptime
-    if (enableMqttClient && (EQ_RTK_MODE(mqttClientMode)))
+    if (mqttClientEnabled())
     {
         systemPrint("MQTT Client ");
         mqttClientPrintStateSummary();
@@ -740,23 +723,10 @@ void mqttClientStop(bool shutdown)
 //----------------------------------------
 void mqttClientUpdate()
 {
-    bool enableMqttClient = true;
-    if (!settings.enablePointPerfectCorrections)
-        enableMqttClient = false;
-
-    // For the mosaic-X5, settings.enablePointPerfectCorrections will be true if
-    // we are using the PPL and getting keys via ZTP. BUT the Facet mosaic-X5
-    // uses the L-Band (only) plan. It should not and can not subscribe to PP IP
-    // MQTT corrections. So, if present.gnss_mosaicX5 is true, set enableMqttClient
-    // to false.
-    // TODO : review this. This feels like a bit of a hack...
-    if (present.gnss_mosaicX5)
-        enableMqttClient = false;
-
     // Shutdown the MQTT client when the mode or setting changes
     DMW_st(mqttClientSetState, mqttClientState);
 
-    if (NEQ_RTK_MODE(mqttClientMode) || (!enableMqttClient))
+    if (!mqttClientEnabled())
     {
         if (mqttClientState > MQTT_CLIENT_OFF)
         {
@@ -773,7 +743,7 @@ void mqttClientUpdate()
     {
     default:
     case MQTT_CLIENT_OFF: {
-        if (EQ_RTK_MODE(mqttClientMode) && enableMqttClient)
+        if (mqttClientEnabled())
         {
             // Start the MQTT client
             if (settings.debugMqttClientState)
@@ -796,7 +766,7 @@ void mqttClientUpdate()
     // Wait for a network media connection
     case MQTT_CLIENT_WAIT_FOR_NETWORK: {
         // Determine if MQTT was turned off
-        if (NEQ_RTK_MODE(mqttClientMode) || !enableMqttClient)
+        if (!mqttClientEnabled())
             mqttClientStop(true);
 
         // Wait until the network is connected to the media
