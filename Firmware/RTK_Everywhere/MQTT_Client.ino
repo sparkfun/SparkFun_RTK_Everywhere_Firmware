@@ -336,6 +336,250 @@ void mqttClientPrintStatus()
 }
 
 //----------------------------------------
+// Process the localizedDistributionDictTopic message
+//----------------------------------------
+void mqttClientProcessLocalizedDistributionDictTopic(uint8_t * mqttData)
+{
+    // We should be using a JSON library to read the nodes. But JSON is
+    // heavy on RAM and the dict could be 25KB for Level 3.
+    // Use sscanf instead.
+    //
+    // {
+    //   "tile": "L2N5375W00125",
+    //   "nodeprefix": "pp/ip/L2N5375W00125/",
+    //   "nodes": [
+    //     "N5200W00300",
+    //     "N5200W00200",
+    //     "N5200W00100",
+    //     "N5200E00000",
+    //     "N5200E00100",
+    //     "N5300W00300",
+    //     "N5300W00200",
+    //     "N5300W00100",
+    //     "N5300E00000",
+    //     "N5400W00200",
+    //     "N5400W00100",
+    //     "N5500W00300",
+    //     "N5500W00200"
+    //   ],
+    //   "endpoint": "pp-eu.services.u-blox.com"
+    // }
+    char *nodes = strstr((const char *)mqttData, "\"nodes\":[");
+    if (nodes != nullptr)
+    {
+        nodes += strlen("\"nodes\":["); // Point to the first node
+        float minDist = 99999.0;        // Minimum distance to tile center in centidegrees
+        char *preservedTile;
+        char *tile = strtok_r(nodes, ",", &preservedTile);
+        int latitude = int(gnss->getLatitude() * 100.0);   // Centidegrees
+        int longitude = int(gnss->getLongitude() * 100.0); // Centidegrees
+        while (tile != nullptr)
+        {
+            char ns, ew;
+            int lat, lon;
+            if (sscanf(tile, "\"%c%d%c%d\"", &ns, &lat, &ew, &lon) == 4)
+            {
+                if (ns == 'S')
+                    lat = 0 - lat;
+                if (ew == 'W')
+                    lon = 0 - lon;
+                float factorLon = cos(radians(latitude / 100.0)); // Scale lon by the lat
+                float distScaled = pow(pow(lat - latitude, 2) + pow((lon - longitude) * factorLon, 2),
+                                       0.5); // Calculate distance to tile center in centidegrees
+                if (distScaled < minDist)
+                {
+                    minDist = distScaled;
+                    tile[12] = 0; // Convert the second quote to NULL for snprintf
+                    char tileTopic[50];
+                    snprintf(tileTopic, sizeof(tileTopic), "%s", localizedDistributionDictTopic.c_str());
+                    snprintf(&tileTopic[strlen(localizedPrefix) + 13],
+                             sizeof(tileTopic) - (strlen(localizedPrefix) + 13), "%s",
+                             tile + 1); // Start after the first quote
+                    localizedDistributionTileTopic = tileTopic;
+                }
+            }
+            tile = strtok_r(nullptr, ",", &preservedTile);
+        }
+    }
+}
+
+//----------------------------------------
+// Process the point perfect keys distribution message
+//----------------------------------------
+void mqttClientProcessPointPerfectKeyDistributionTopic(uint8_t * mqttData)
+{
+    // Separate the UBX message into its constituent Key/ToW/Week parts
+    uint8_t *payLoad = &mqttData[6];
+    uint8_t currentKeyLength = payLoad[5];
+    uint16_t currentWeek = (payLoad[7] << 8) | payLoad[6];
+    uint32_t currentToW =
+        (payLoad[11] << 8 * 3) | (payLoad[10] << 8 * 2) | (payLoad[9] << 8 * 1) | (payLoad[8] << 8 * 0);
+
+    char currentKey[currentKeyLength];
+    memcpy(&currentKey, &payLoad[20], currentKeyLength);
+
+    uint8_t nextKeyLength = payLoad[13];
+    uint16_t nextWeek = (payLoad[15] << 8) | payLoad[14];
+    uint32_t nextToW =
+        (payLoad[19] << 8 * 3) | (payLoad[18] << 8 * 2) | (payLoad[17] << 8 * 1) | (payLoad[16] << 8 * 0);
+
+    char nextKey[nextKeyLength];
+    memcpy(&nextKey, &payLoad[20 + currentKeyLength], nextKeyLength);
+
+    // Convert byte array to HEX character array
+    strcpy(settings.pointPerfectCurrentKey, ""); // Clear contents
+    strcpy(settings.pointPerfectNextKey, "");    // Clear contents
+    for (int x = 0; x < 16; x++)                 // Force length to max of 32 bytes
+    {
+        char temp[3];
+        snprintf(temp, sizeof(temp), "%02X", currentKey[x]);
+        strcat(settings.pointPerfectCurrentKey, temp);
+
+        snprintf(temp, sizeof(temp), "%02X", nextKey[x]);
+        strcat(settings.pointPerfectNextKey, temp);
+    }
+
+    // Convert from ToW and Week to key duration and key start
+    WeekToWToUnixEpoch(&settings.pointPerfectCurrentKeyStart, currentWeek, currentToW);
+    WeekToWToUnixEpoch(&settings.pointPerfectNextKeyStart, nextWeek, nextToW);
+
+    settings.pointPerfectCurrentKeyStart -=
+        gnss->getLeapSeconds(); // Remove GPS leap seconds to align with u-blox
+    settings.pointPerfectNextKeyStart -= gnss->getLeapSeconds();
+
+    settings.pointPerfectCurrentKeyStart *= 1000; // Convert to ms
+    settings.pointPerfectNextKeyStart *= 1000;
+
+    settings.pointPerfectCurrentKeyDuration =
+        settings.pointPerfectNextKeyStart - settings.pointPerfectCurrentKeyStart - 1;
+    // settings.pointPerfectNextKeyDuration =
+    //     settings.pointPerfectCurrentKeyDuration; // We assume next key duration is the same as current
+    //     key duration because we have to
+
+    settings.pointPerfectNextKeyDuration =
+        (1000LL * 60 * 60 * 24 * 28) - 1; // Assume next key duration is 28 days
+
+    if (online.rtc)
+        settings.lastKeyAttempt = rtc.getEpoch(); // Mark it - but only if RTC is online
+
+    recordSystemSettings(); // Record these settings to unit
+
+    if (settings.debugCorrections == true)
+        pointperfectPrintKeyInformation();
+}
+
+//----------------------------------------
+// Send the message to the ZED
+//----------------------------------------
+int mqttClientProcessZedMessage(uint8_t * mqttData, uint16_t mqttCount, int bytesPushed, char * topic)
+{
+#ifdef COMPILE_ZED
+    // Only push SPARTN if the priority says we can
+    if (
+        // We can get correction data from the continental topic
+        ((strlen(settings.regionalCorrectionTopics[settings.geographicRegion]) > 0) &&
+         (strcmp(topic, settings.regionalCorrectionTopics[settings.geographicRegion]) == 0)) ||
+        // Or from the localized distribution tile topic
+        ((localizedDistributionTileTopic.length() > 0) &&
+         (strcmp(topic, localizedDistributionTileTopic.c_str()) == 0)))
+    {
+        // Determine if MQTT (SPARTN data) is the correction source
+        if (correctionLastSeen(CORR_IP))
+        {
+            if (((settings.debugMqttClientData == true) || (settings.debugCorrections == true)) &&
+                !inMainMenu)
+                systemPrintf("Pushing %d bytes from %s topic to GNSS\r\n", mqttCount, topic);
+
+            GNSS_ZED *zed = (GNSS_ZED *)gnss;
+            zed->updateCorrectionsSource(0); // Set SOURCE to 0 (IP) if needed
+
+            gnss->pushRawData(mqttData, mqttCount);
+            bytesPushed += mqttCount;
+
+            mqttClientDataReceived = true;
+        }
+        else
+        {
+            if (((settings.debugMqttClientData == true) || (settings.debugCorrections == true)) &&
+                !inMainMenu)
+                systemPrintf("NOT pushing %d bytes from %s topic to GNSS due to priority\r\n", mqttCount,
+                             topic);
+        }
+    }
+    // Always push KEYS and MGA to the ZED
+    else
+    {
+        // KEYS or MGA
+        if (((settings.debugMqttClientData == true) || (settings.debugCorrections == true)) && !inMainMenu)
+            systemPrintf("Pushing %d bytes from %s topic to GNSS\r\n", mqttCount, topic);
+
+        gnss->pushRawData(mqttData, mqttCount);
+        bytesPushed += mqttCount;
+    }
+#endif // COMPILE_ZED
+    return bytesPushed;
+}
+
+//----------------------------------------
+// Process the subscribed messages
+//----------------------------------------
+int mqttClientProcessMessage(uint8_t * mqttData, uint16_t mqttCount, int bytesPushed, char * topic)
+{
+    // Check for localizedDistributionDictTopic
+    if ((localizedDistributionDictTopic.length() > 0) &&
+        (strcmp(topic, localizedDistributionDictTopic.c_str()) == 0))
+    {
+        mqttClientProcessLocalizedDistributionDictTopic(mqttData);
+        mqttClientLastDataReceived = millis();
+        return bytesPushed; // Return now - the dict topic should not be pushed
+    }
+
+    // Is this the full AssistNow MGA data? If so, unsubscribe and subscribe to updates
+    if (strcmp(topic, MQTT_TOPIC_ASSISTNOW.c_str()) == 0)
+    {
+        std::vector<String>::iterator pos =
+            std::find(mqttSubscribeTopics.begin(), mqttSubscribeTopics.end(), MQTT_TOPIC_ASSISTNOW);
+        if (pos != mqttSubscribeTopics.end())
+            mqttSubscribeTopics.erase(pos);
+
+        mqttSubscribeTopics.push_back(MQTT_TOPIC_ASSISTNOW_UPDATES);
+    }
+
+    // Are these keys? If so, update our local copy
+    if ((strlen(settings.pointPerfectKeyDistributionTopic) > 0) &&
+        (strcmp(topic, settings.pointPerfectKeyDistributionTopic) == 0))
+    {
+        mqttClientProcessPointPerfectKeyDistributionTopic(mqttData);
+    }
+
+    // Correction data from PP can go direct to GNSS
+    if (present.gnss_zedf9p)
+        bytesPushed = mqttClientProcessZedMessage(mqttData,
+                                                  mqttCount,
+                                                  bytesPushed,
+                                                  topic);
+
+    // For the UM980 or LG290P, we have to pass the data through the PPL first
+    else if (present.gnss_um980 || present.gnss_lg290p)
+    {
+        if (((settings.debugMqttClientData == true) || (settings.debugCorrections == true)) && !inMainMenu)
+        {
+            if (present.gnss_um980)
+                systemPrintf("Pushing %d bytes from %s topic to PPL for UM980\r\n", mqttCount, topic);
+            else if (present.gnss_lg290p)
+                systemPrintf("Pushing %d bytes from %s topic to PPL for LG290P\r\n", mqttCount, topic);
+        }
+
+        if (online.ppl == false && settings.debugMqttClientData == true)
+            systemPrintln("Warning: PPL is offline");
+
+        sendSpartnToPpl(mqttData, mqttCount);
+        bytesPushed += mqttCount;
+    }
+    return bytesPushed;
+}
+
+//----------------------------------------
 // Called when a subscribed message arrives
 //----------------------------------------
 void mqttClientReceiveMessage(int messageSize)
@@ -378,217 +622,11 @@ void mqttClientReceiveMessage(int messageSize)
 
         if (mqttCount > 0)
         {
-            // Check for localizedDistributionDictTopic
-            if ((localizedDistributionDictTopic.length() > 0) &&
-                (strcmp(topic, localizedDistributionDictTopic.c_str()) == 0))
-            {
-                // We should be using a JSON library to read the nodes. But JSON is
-                // heavy on RAM and the dict could be 25KB for Level 3.
-                // Use sscanf instead.
-                //
-                // {
-                //   "tile": "L2N5375W00125",
-                //   "nodeprefix": "pp/ip/L2N5375W00125/",
-                //   "nodes": [
-                //     "N5200W00300",
-                //     "N5200W00200",
-                //     "N5200W00100",
-                //     "N5200E00000",
-                //     "N5200E00100",
-                //     "N5300W00300",
-                //     "N5300W00200",
-                //     "N5300W00100",
-                //     "N5300E00000",
-                //     "N5400W00200",
-                //     "N5400W00100",
-                //     "N5500W00300",
-                //     "N5500W00200"
-                //   ],
-                //   "endpoint": "pp-eu.services.u-blox.com"
-                // }
-                char *nodes = strstr((const char *)mqttData, "\"nodes\":[");
-                if (nodes != nullptr)
-                {
-                    nodes += strlen("\"nodes\":["); // Point to the first node
-                    float minDist = 99999.0;        // Minimum distance to tile center in centidegrees
-                    char *preservedTile;
-                    char *tile = strtok_r(nodes, ",", &preservedTile);
-                    int latitude = int(gnss->getLatitude() * 100.0);   // Centidegrees
-                    int longitude = int(gnss->getLongitude() * 100.0); // Centidegrees
-                    while (tile != nullptr)
-                    {
-                        char ns, ew;
-                        int lat, lon;
-                        if (sscanf(tile, "\"%c%d%c%d\"", &ns, &lat, &ew, &lon) == 4)
-                        {
-                            if (ns == 'S')
-                                lat = 0 - lat;
-                            if (ew == 'W')
-                                lon = 0 - lon;
-                            float factorLon = cos(radians(latitude / 100.0)); // Scale lon by the lat
-                            float distScaled = pow(pow(lat - latitude, 2) + pow((lon - longitude) * factorLon, 2),
-                                                   0.5); // Calculate distance to tile center in centidegrees
-                            if (distScaled < minDist)
-                            {
-                                minDist = distScaled;
-                                tile[12] = 0; // Convert the second quote to NULL for snprintf
-                                char tileTopic[50];
-                                snprintf(tileTopic, sizeof(tileTopic), "%s", localizedDistributionDictTopic.c_str());
-                                snprintf(&tileTopic[strlen(localizedPrefix) + 13],
-                                         sizeof(tileTopic) - (strlen(localizedPrefix) + 13), "%s",
-                                         tile + 1); // Start after the first quote
-                                localizedDistributionTileTopic = tileTopic;
-                            }
-                        }
-                        tile = strtok_r(nullptr, ",", &preservedTile);
-                    }
-                }
-
-                mqttClientLastDataReceived = millis();
-                break; // Break now - the dict topic should not be pushed
-            }
-
-            // Is this the full AssistNow MGA data? If so, unsubscribe and subscribe to updates
-            if (strcmp(topic, MQTT_TOPIC_ASSISTNOW.c_str()) == 0)
-            {
-                std::vector<String>::iterator pos =
-                    std::find(mqttSubscribeTopics.begin(), mqttSubscribeTopics.end(), MQTT_TOPIC_ASSISTNOW);
-                if (pos != mqttSubscribeTopics.end())
-                    mqttSubscribeTopics.erase(pos);
-
-                mqttSubscribeTopics.push_back(MQTT_TOPIC_ASSISTNOW_UPDATES);
-            }
-
-            // Are these keys? If so, update our local copy
-            if ((strlen(settings.pointPerfectKeyDistributionTopic) > 0) &&
-                (strcmp(topic, settings.pointPerfectKeyDistributionTopic) == 0))
-            {
-                // Separate the UBX message into its constituent Key/ToW/Week parts
-                uint8_t *payLoad = &mqttData[6];
-                uint8_t currentKeyLength = payLoad[5];
-                uint16_t currentWeek = (payLoad[7] << 8) | payLoad[6];
-                uint32_t currentToW =
-                    (payLoad[11] << 8 * 3) | (payLoad[10] << 8 * 2) | (payLoad[9] << 8 * 1) | (payLoad[8] << 8 * 0);
-
-                char currentKey[currentKeyLength];
-                memcpy(&currentKey, &payLoad[20], currentKeyLength);
-
-                uint8_t nextKeyLength = payLoad[13];
-                uint16_t nextWeek = (payLoad[15] << 8) | payLoad[14];
-                uint32_t nextToW =
-                    (payLoad[19] << 8 * 3) | (payLoad[18] << 8 * 2) | (payLoad[17] << 8 * 1) | (payLoad[16] << 8 * 0);
-
-                char nextKey[nextKeyLength];
-                memcpy(&nextKey, &payLoad[20 + currentKeyLength], nextKeyLength);
-
-                // Convert byte array to HEX character array
-                strcpy(settings.pointPerfectCurrentKey, ""); // Clear contents
-                strcpy(settings.pointPerfectNextKey, "");    // Clear contents
-                for (int x = 0; x < 16; x++)                 // Force length to max of 32 bytes
-                {
-                    char temp[3];
-                    snprintf(temp, sizeof(temp), "%02X", currentKey[x]);
-                    strcat(settings.pointPerfectCurrentKey, temp);
-
-                    snprintf(temp, sizeof(temp), "%02X", nextKey[x]);
-                    strcat(settings.pointPerfectNextKey, temp);
-                }
-
-                // Convert from ToW and Week to key duration and key start
-                WeekToWToUnixEpoch(&settings.pointPerfectCurrentKeyStart, currentWeek, currentToW);
-                WeekToWToUnixEpoch(&settings.pointPerfectNextKeyStart, nextWeek, nextToW);
-
-                settings.pointPerfectCurrentKeyStart -=
-                    gnss->getLeapSeconds(); // Remove GPS leap seconds to align with u-blox
-                settings.pointPerfectNextKeyStart -= gnss->getLeapSeconds();
-
-                settings.pointPerfectCurrentKeyStart *= 1000; // Convert to ms
-                settings.pointPerfectNextKeyStart *= 1000;
-
-                settings.pointPerfectCurrentKeyDuration =
-                    settings.pointPerfectNextKeyStart - settings.pointPerfectCurrentKeyStart - 1;
-                // settings.pointPerfectNextKeyDuration =
-                //     settings.pointPerfectCurrentKeyDuration; // We assume next key duration is the same as current
-                //     key duration because we have to
-
-                settings.pointPerfectNextKeyDuration =
-                    (1000LL * 60 * 60 * 24 * 28) - 1; // Assume next key duration is 28 days
-
-                if (online.rtc)
-                    settings.lastKeyAttempt = rtc.getEpoch(); // Mark it - but only if RTC is online
-
-                recordSystemSettings(); // Record these settings to unit
-
-                if (settings.debugCorrections == true)
-                    pointperfectPrintKeyInformation();
-            }
-
-            // Correction data from PP can go direct to GNSS
-            if (present.gnss_zedf9p)
-            {
-#ifdef COMPILE_ZED
-                // Only push SPARTN if the priority says we can
-                if (
-                    // We can get correction data from the continental topic
-                    ((strlen(settings.regionalCorrectionTopics[settings.geographicRegion]) > 0) &&
-                     (strcmp(topic, settings.regionalCorrectionTopics[settings.geographicRegion]) == 0)) ||
-                    // Or from the localized distribution tile topic
-                    ((localizedDistributionTileTopic.length() > 0) &&
-                     (strcmp(topic, localizedDistributionTileTopic.c_str()) == 0)))
-                {
-                    // Determine if MQTT (SPARTN data) is the correction source
-                    if (correctionLastSeen(CORR_IP))
-                    {
-                        if (((settings.debugMqttClientData == true) || (settings.debugCorrections == true)) &&
-                            !inMainMenu)
-                            systemPrintf("Pushing %d bytes from %s topic to GNSS\r\n", mqttCount, topic);
-
-                        GNSS_ZED *zed = (GNSS_ZED *)gnss;
-                        zed->updateCorrectionsSource(0); // Set SOURCE to 0 (IP) if needed
-
-                        gnss->pushRawData(mqttData, mqttCount);
-                        bytesPushed += mqttCount;
-
-                        mqttClientDataReceived = true;
-                    }
-                    else
-                    {
-                        if (((settings.debugMqttClientData == true) || (settings.debugCorrections == true)) &&
-                            !inMainMenu)
-                            systemPrintf("NOT pushing %d bytes from %s topic to GNSS due to priority\r\n", mqttCount,
-                                         topic);
-                    }
-                }
-                // Always push KEYS and MGA to the ZED
-                else
-                {
-                    // KEYS or MGA
-                    if (((settings.debugMqttClientData == true) || (settings.debugCorrections == true)) && !inMainMenu)
-                        systemPrintf("Pushing %d bytes from %s topic to GNSS\r\n", mqttCount, topic);
-
-                    gnss->pushRawData(mqttData, mqttCount);
-                    bytesPushed += mqttCount;
-                }
-#endif // COMPILE_ZED
-            }
-
-            // For the UM980 or LG290P, we have to pass the data through the PPL first
-            else if (present.gnss_um980 || present.gnss_lg290p)
-            {
-                if (((settings.debugMqttClientData == true) || (settings.debugCorrections == true)) && !inMainMenu)
-                {
-                    if (present.gnss_um980)
-                        systemPrintf("Pushing %d bytes from %s topic to PPL for UM980\r\n", mqttCount, topic);
-                    else if (present.gnss_lg290p)
-                        systemPrintf("Pushing %d bytes from %s topic to PPL for LG290P\r\n", mqttCount, topic);
-                }
-
-                if (online.ppl == false && settings.debugMqttClientData == true)
-                    systemPrintln("Warning: PPL is offline");
-
-                sendSpartnToPpl(mqttData, mqttCount);
-                bytesPushed += mqttCount;
-            }
+            // Process the MQTT message
+            bytesPushed = mqttClientProcessMessage(mqttData,
+                                                   mqttCount,
+                                                   bytesPushed,
+                                                   topic);
 
             // Record the arrival of data over MQTT
             mqttClientLastDataReceived = millis();
