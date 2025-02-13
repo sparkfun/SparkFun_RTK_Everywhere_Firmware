@@ -76,8 +76,6 @@ System Menu Options serial menu
 
 The device can be in Rover, Base, or WiFi Config mode. The selected mode will be entered once the user exits the menu system.
 
-- **B, C, R, W, or S** - Change the mode the device is in.
-
 - **B**ase - The device will reconfigure for base mode. It will begin transmitting corrections over Bluetooth, WiFi (NTRIP Server, TCP, etc), or other (ESP-Now, external radio if compatible, etc).
 - Base**C**aster - The device will reconfigure for base caster mode. It will broadcast a WiFi access point, allow incoming NTRIP Client connections on port 2101. See [BaseCast Mode](menu_base.md#base-cast).
 - **R**over - This is the default mode. The device transmits its NMEA and other messages (if enabled) over Bluetooth. It can receive corrections over Bluetooth (or other transport methods such as NTRIP Client) to achieve RTK Fix.
@@ -116,10 +114,7 @@ System Menu Options serial menu
 If a device gets into an unknown state it can be returned to default settings using the WiFi or Serial interfaces.
 
 !!! note
-	On devices that support an SD card, a factory reset can also be accomplished by editing the settings files. See [Force a Factory Reset](configure_with_settings_file.md#forcing-a-factory-reset) for more information.
-
-!!! note
-	Log files and any other files on the SD card are *not* removed or modified.
+	On devices that support an SD card, a factory reset can also be accomplished by editing the settings files. See [Force a Factory Reset](configure_with_settings_file.md#forcing-a-factory-reset) for more information. During a factory reset, log files and any other files on the SD card are *not* removed or modified.
 
 <figure markdown>
 ![Issuing a factory reset](./img/Terminal/SparkFun RTK Everywhere - System Menu Factory Reset.png)
