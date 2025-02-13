@@ -1,7 +1,7 @@
 name: Build RTK Everywhere
-on: 
+on:
   workflow_dispatch:
-    branches: 
+    branches:
 
 env:
   FILENAME_PREFIX: RTK_Everywhere_Firmware
@@ -14,7 +14,7 @@ env:
 
 jobs:
   build:
-    
+
     name: Build
     runs-on: ubuntu-latest
 
@@ -149,7 +149,7 @@ jobs:
       - name: Compile Sketch
         run: arduino-cli compile --fqbn "esp32:esp32:esp32":DebugLevel=${{ env.DEBUG_LEVEL }},PSRAM=enabled ./Firmware/RTK_Everywhere/RTK_Everywhere.ino
           --build-property build.partitions=RTKEverywhere
-          --build-property upload.maximum_size=4055040 
+          --build-property upload.maximum_size=4055040
           --build-property "compiler.cpp.extra_flags=-MMD -c \"-DPOINTPERFECT_LBAND_TOKEN=$POINTPERFECT_LBAND_TOKEN\" \"-DPOINTPERFECT_IP_TOKEN=$POINTPERFECT_IP_TOKEN\" \"-DPOINTPERFECT_LBAND_IP_TOKEN=$POINTPERFECT_LBAND_IP_TOKEN\" \"-DFIRMWARE_VERSION_MAJOR=$FIRMWARE_VERSION_MAJOR\" \"-DFIRMWARE_VERSION_MINOR=$FIRMWARE_VERSION_MINOR\" \"-DENABLE_DEVELOPER=${{ env.ENABLE_DEVELOPER }}\""
           --export-binaries
 
@@ -159,12 +159,12 @@ jobs:
           mv RTK_Everywhere.ino.bin ${{ env.FILENAME_PREFIX }}${{ env.FILE_ENDING_UNDERSCORE }}.bin
 
       - name: Upload binary to action
-        uses: actions/upload-artifact@v3
-        with: 
+        uses: actions/upload-artifact@v4
+        with:
           name: ${{ env.FILENAME_PREFIX }}${{ env.FILE_ENDING_UNDERSCORE }}
           path: ./Firmware/RTK_Everywhere/build/esp32.esp32.esp32/${{ env.FILENAME_PREFIX }}${{ env.FILE_ENDING_UNDERSCORE }}.bin
 
-      
+
       - name: Push binary to Binaries Repo
         # uses: dmnemec/copy_file_to_another_repo_action #Workaround for Issue: https://github.com/orgs/community/discussions/55820#discussioncomment-5946136
         uses: Jason2866/copy_file_to_another_repo_action@http408_fix
