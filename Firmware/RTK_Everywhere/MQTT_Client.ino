@@ -142,6 +142,7 @@ static NetPriority_t mqttClientPriority = NETWORK_OFFLINE;
 
 static NetworkClientSecure *mqttSecureClient;
 
+static bool mqttClientStartRequested;
 static volatile uint8_t mqttClientState = MQTT_CLIENT_OFF;
 
 // MQTT client timer usage:
@@ -234,7 +235,7 @@ bool mqttClientEnabled()
             break;
 
         // All conditions support running the MQTT client
-        enableMqttClient = true;
+        enableMqttClient = mqttClientStartRequested;
     } while (0);
     return enableMqttClient;
 }
@@ -681,7 +682,18 @@ void mqttClientSetState(uint8_t newState)
 //----------------------------------------
 void mqttClientShutdown()
 {
+    mqttClientStartRequested = false;
     MQTT_CLIENT_STOP(true);
+}
+
+//----------------------------------------
+// Start the MQTT client
+//----------------------------------------
+void mqttClientStartEnabled()
+{
+    if (settings.debugMqttClientState)
+        systemPrintf("MQTT_Client: Start enabled\r\n");
+    mqttClientStartRequested = true;
 }
 
 //----------------------------------------
