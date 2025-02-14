@@ -280,7 +280,7 @@ bool GNSS_LG290P::configureRover()
         return (false);
     }
 
-    // If our settings haven't changed, and this is first config since power on, trust GNSS's settings
+    // If our settings haven't changed, trust GNSS's settings
     if (settings.gnssConfiguredRover)
     {
         systemPrintln("Skipping LG290P Rover configuration");
