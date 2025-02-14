@@ -974,6 +974,51 @@ volatile bool deadManWalking;
     }
 
 //-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+// Debug the essentials. Include DEBUG_THE_ESSENTIALS in the setup after loadSettings to print the essentials.
+// If the updated settings are saved to NVM, you will need to do a factory reset to clear them
+#define DEBUG_THE_ESSENTIALS                                                                                           \
+    {                                                                                                                  \
+                                                                                                                       \
+        /* Turn on nearly all the debug prints */                                                                      \
+        settings.debugCorrections = true;                                                                              \
+        settings.debugGnss = false;                                                                                    \
+        settings.debugHttpClientData = false;                                                                          \
+        settings.debugHttpClientState = true;                                                                          \
+        settings.debugLora = false;                                                                                    \
+        settings.debugMqttClientData = false;                                                                          \
+        settings.debugMqttClientState = true;                                                                          \
+        settings.debugNetworkLayer = true;                                                                             \
+        settings.debugNtripClientRtcm = false;                                                                         \
+        settings.debugNtripClientState = true;                                                                         \
+        settings.debugNtripServerRtcm = false;                                                                         \
+        settings.debugNtripServerState = true;                                                                         \
+        settings.debugPpCertificate = false;                                                                           \
+        settings.debugSettings = false;                                                                                \
+        settings.debugTcpClient = true;                                                                                \
+        settings.debugTcpServer = true;                                                                                \
+        settings.debugUdpServer = true;                                                                                \
+        settings.debugWebServer = true;                                                                                \
+        settings.debugWifiState = true;                                                                                \
+        settings.enableHeapReport = false;                                                                             \
+        settings.enablePrintBatteryMessages = false;                                                                   \
+        settings.enablePrintBufferOverrun = true;                                                                      \
+        settings.enablePrintDuplicateStates = false;                                                                   \
+        settings.enablePrintEthernetDiag = true;                                                                       \
+        settings.enablePrintIdleTime = false;                                                                          \
+        settings.enablePrintLogFileMessages = false;                                                                   \
+        settings.enablePrintLogFileStatus = true;                                                                      \
+        settings.enablePrintPosition = false;                                                                          \
+        settings.enablePrintRingBufferOffsets = false;                                                                 \
+        settings.enablePrintRoverAccuracy = true;                                                                      \
+        settings.enablePrintRtcSync = true;                                                                            \
+        settings.enablePrintSDBuffers = false;                                                                         \
+        settings.enablePrintStates = true;                                                                             \
+        settings.printBootTimes = true;                                                                                \
+        settings.printNetworkStatus = true;                                                                            \
+        settings.printTaskStartStop = true;                                                                            \
+    }
+
+//-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 /*
                      +---------------------------------------+      +----------+
                      |                 ESP32                 |      |   GNSS   |  Antenna
@@ -1136,6 +1181,7 @@ void setup()
     loadSettings(); // Attempt to load settings after SD is started so we can read the settings file if available
 
     //DEBUG_NEARLY_EVERYTHING // Debug nearly all the things
+    DEBUG_THE_ESSENTIALS // Debug the essentials - handy for measuring the boot time after a factory reset
 
     DMW_b("checkArrayDefaults");
     checkArrayDefaults(); // Check for uninitialized arrays that won't be initialized by gnssConfigure
