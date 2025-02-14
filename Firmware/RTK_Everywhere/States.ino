@@ -102,6 +102,7 @@ void stateUpdate()
             displayRoverStart(0);
             if (gnss->configureRover() == false)
             {
+                settings.gnssConfiguredRover = false; // On the next boot, reapply all settings
                 recordSystemSettings();             // Record this state for next POR
 
                 systemPrintln("Rover config failed");
@@ -122,6 +123,8 @@ void stateUpdate()
                 displayRoverFail(1000);
             else
             {
+                //settings.gnssConfiguredRover is set true by gnss->configureRover()
+                settings.gnssConfiguredBase = false; // When the mode changes, reapply all settings
                 settings.lastState = STATE_ROVER_NOT_STARTED;
                 recordSystemSettings(); // Record this state for next POR
 
@@ -244,6 +247,8 @@ void stateUpdate()
             // Start the UART connected to the GNSS receiver for NMEA and UBX data (enables logging)
             if (tasksStartGnssUart() && gnss->configureBase())
             {
+                // settings.gnssConfiguredBase is set true by gnss->configureBase()
+                settings.gnssConfiguredRover = false; // When the mode changes, reapply all settings
                 settings.lastState = STATE_BASE_NOT_STARTED; // Record this state for next POR
                 recordSystemSettings(); // Record this state for next POR
 
@@ -256,6 +261,7 @@ void stateUpdate()
             }
             else
             {
+                settings.gnssConfiguredBase = false; // On the next boot, reapply all settings
                 recordSystemSettings();             // Record this state for next POR
 
                 displayBaseFail(1000);
@@ -480,6 +486,9 @@ void stateUpdate()
                     systemPrintln();
 
                     parseIncomingSettings();
+                    settings.gnssConfiguredOnce = false; // On the next boot, reapply all settings
+                    settings.gnssConfiguredBase = false;
+                    settings.gnssConfiguredRover = false;
                     recordSystemSettings();             // Record these settings to unit
 
                     // Clear buffer
@@ -600,6 +609,8 @@ void stateUpdate()
             if (tasksStartGnssUart() && configureUbloxModuleNTP())
             {
                 settings.lastState = STATE_NTPSERVER_NOT_STARTED; // Record this state for next POR
+                settings.gnssConfiguredBase = false; // On the next boot, reapply all settings
+                settings.gnssConfiguredRover = false;
                 recordSystemSettings();
 
                 if (online.ethernetNTPServer)

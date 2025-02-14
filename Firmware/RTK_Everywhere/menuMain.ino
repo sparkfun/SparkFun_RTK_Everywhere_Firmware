@@ -456,6 +456,8 @@ void menuUserProfiles()
 // Change the active profile number, without unit reset
 void changeProfileNumber(byte newProfileNumber)
 {
+    settings.gnssConfiguredBase = false; // On the next boot, reapply all settings
+    settings.gnssConfiguredRover = false;
     recordSystemSettings(); // Before switching, we need to record the current settings to LittleFS and SD
 
     recordProfileNumber(newProfileNumber);
@@ -495,6 +497,8 @@ void factoryReset(bool alreadyHasSemaphore)
             sd->remove(stationCoordinateGeodeticFileName);
 
             xSemaphoreGive(sdCardSemaphore);
+
+            systemPrintln("Settings files deleted...");
         } // End sdCardSemaphore
         else
         {
