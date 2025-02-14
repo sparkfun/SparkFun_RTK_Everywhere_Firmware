@@ -19,9 +19,9 @@ Compatibility Icons
 - Postcard: :material-radiobox-marked:{ .support-full title="Feature Supported" }
 - Torch: :material-radiobox-marked:{ .support-full title="Feature Supported" }
 
-Note: All SparkFun RTK devices contain a radio capable of direct Rover-Base communication over 2.4GHz called ESP-NOW. The RTK Torch is currently the only RTK device with a built-in Long Range (LoRa) radio. 
-
 </div>
+
+Note: All SparkFun RTK devices contain a radio capable of direct Rover-Base communication over 2.4GHz called ESP-NOW. The RTK Torch is currently the only RTK device with a built-in Long Range (LoRa) radio. 
 
 <figure markdown>
 ![Radio menu showing ESP-NOW](./img/Terminal/SparkFun RTK Everywhere - Radios Menu.png)
