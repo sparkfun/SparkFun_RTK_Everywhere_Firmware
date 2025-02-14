@@ -776,7 +776,7 @@ bool GNSS_ZED::configureRover()
         return (false);
     }
 
-    // If our settings haven't changed, and this is first config since power on, trust GNSS's settings
+    // If our settings haven't changed, trust GNSS's settings
     if (settings.gnssConfiguredRover)
     {
         systemPrintln("Skipping ZED Rover configuration");
