@@ -142,6 +142,10 @@ lib-update:
 $(PARTITION_DST_PATH):	$(PARTITION_SRC_PATH)
 	$(COPY)  $(PARTITION_SRC_PATH)  $(PARTITION_DST_PATH)
 
+.PHONY: partition
+
+partition:	$(PARTITION_DST_PATH)
+
 $(MBED_LIB_DEST_PATH)libmbedtls.a: 	$(PATCH_SRC_PATH)libmbedtls.a  $(ESP_IDF_PATH)
 	$(DIR_LISTING) $(ESP_IDF_PATH)
 	echo ESP_
