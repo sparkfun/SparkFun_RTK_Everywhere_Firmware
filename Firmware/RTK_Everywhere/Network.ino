@@ -416,6 +416,13 @@ void networkConsumerAdd(NETCONSUMER_t consumer, NetIndex_t network)
             }
         }
     }
+    else
+    {
+        systemPrintf("Network consumer %s added more than once to network %s\r\n",
+                     networkConsumerTable[consumer],
+                     networkInterfaceTable[index]);
+        reportFatalError("Network consumer added more than once!");
+    }
 }
 
 //----------------------------------------
@@ -513,6 +520,13 @@ void networkConsumerRemove(NETCONSUMER_t consumer, NetIndex_t network)
         // Display the network consumers
         if (settings.debugNetworkLayer)
             networkConsumerDisplay();
+    }
+    else
+    {
+        systemPrintf("ERROR: Network consumer %s removed more than once from network %s\r\n",
+                     networkConsumerTable[consumer],
+                     networkInterfaceTable[index]);
+        reportFatalError("Network consumer removed more than once!");
     }
 
     // Stop the networks when the consumer count reaches zero
