@@ -960,8 +960,15 @@ void mqttClientUpdate()
         // Determine if the network has failed
         if (!networkIsConnected(&mqttClientPriority))
         {
+            // The connection was previously successful, allow more retries
+            // in the future
+            mqttClientConnectionAttempts = 0;
+
             // Failed to connect to the network, attempt to restart the network
             mqttClientRestart();
+
+            // Since the previous connection was successful, retry immediately
+            mqttClientConnectionAttemptTimeout = 0;
             break;
         }
 
