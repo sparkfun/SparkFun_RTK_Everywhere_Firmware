@@ -1541,7 +1541,8 @@ void RTK_WIFI::stationEventHandler(arduino_event_id_t event, arduino_event_info_
         if (event == ARDUINO_EVENT_WIFI_STA_DISCONNECTED)
         {
             wifiReconnectRequest = true;
-            networkStart(NETWORK_WIFI_STATION, settings.debugWifiState);
+            if (networkIsHighestPriority(NETWORK_WIFI_STATION))
+                networkStart(NETWORK_WIFI_STATION, settings.debugWifiState);
         }
 
         // Fall through
