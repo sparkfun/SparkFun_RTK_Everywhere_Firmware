@@ -755,6 +755,7 @@ void mqttClientStop(bool shutdown)
     mqttClientDataReceived = false;
     if (shutdown)
     {
+        networkConsumerRemove(NETCONSUMER_PPL_MQTT_CLIENT, NETWORK_ANY);
         mqttClientConnectionAttempts = 0;
         mqttClientConnectionAttemptTimeout = 0;
         mqttClientSetState(MQTT_CLIENT_OFF);
@@ -792,6 +793,7 @@ void mqttClientUpdate()
             // Start the MQTT client
             if (settings.debugMqttClientState)
                 systemPrintln("MQTT Client start");
+            networkConsumerAdd(NETCONSUMER_PPL_MQTT_CLIENT, NETWORK_ANY);
             mqttClientStop(false);
         }
         break;
