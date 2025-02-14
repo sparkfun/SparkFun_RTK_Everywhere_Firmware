@@ -166,6 +166,13 @@ bool GNSS_UM980::configureBase()
         return (false);
     }
 
+    if (settings.gnssConfiguredBase)
+    {
+        if (settings.debugGnss)
+            systemPrintln("Skipping UM980 Base configuration");
+        return true;
+    }
+
     disableAllOutput();
 
     bool response = true;
@@ -186,7 +193,7 @@ bool GNSS_UM980::configureBase()
     response &= enableNMEA();
 
     // Save the current configuration into non-volatile memory (NVM)
-    _um980->saveConfiguration();
+    response &= _um980->saveConfiguration();
 
     if (response == false)
     {
@@ -195,6 +202,8 @@ bool GNSS_UM980::configureBase()
 
     if (settings.debugGnss)
         systemPrintln("UM980 Base configured");
+
+    settings.gnssConfiguredBase = response;
 
     return (response);
 }
@@ -215,6 +224,12 @@ bool GNSS_UM980::configureOnce()
       Enable selected NMEA messages on COM3
       Enable selected RTCM messages on COM3
 */
+
+    if (settings.gnssConfiguredOnce)
+    {
+        systemPrintln("UM980 configuration maintained");
+        return (true);
+    }
 
     if (settings.debugGnss)
         debuggingEnable(); // Print all debug to Serial
@@ -266,10 +281,12 @@ bool GNSS_UM980::configureOnce()
         systemPrintln("UM980 configuration updated");
 
         // Save the current configuration into non-volatile memory (NVM)
-        _um980->saveConfiguration();
+        response &= _um980->saveConfiguration();
     }
     else
         online.gnss = false; // Take it offline
+
+    settings.gnssConfiguredOnce = response;
 
     return (response);
 }
@@ -325,6 +342,13 @@ bool GNSS_UM980::configureRover()
         return (false);
     }
 
+    // If our settings haven't changed, trust GNSS's settings
+    if (settings.gnssConfiguredRover)
+    {
+        systemPrintln("Skipping UM980 Rover configuration");
+        return (true);
+    }
+
     disableAllOutput();
 
     bool response = true;
@@ -355,12 +379,14 @@ bool GNSS_UM980::configureRover()
     response &= enableNMEA();
 
     // Save the current configuration into non-volatile memory (NVM)
-    _um980->saveConfiguration();
+    response &= _um980->saveConfiguration();
 
     if (response == false)
     {
         systemPrintln("UM980 Rover failed to configure");
     }
+
+    settings.gnssConfiguredRover = response;
 
     return (response);
 }
@@ -1406,6 +1432,10 @@ void GNSS_UM980::menuMessagesSubtype(float *localMessageRate, const char *messag
         else
             printUnknown(incoming);
     }
+
+    settings.gnssConfiguredOnce = false; // Update the GNSS config at the next boot
+    settings.gnssConfiguredBase = false;
+    settings.gnssConfiguredRover = false;
 
     clearBuffer(); // Empty buffer of any newline chars
 }
