@@ -561,7 +561,8 @@ const int numRegionalAreas = sizeof(Regional_Information_Table) / sizeof(Regiona
 // Bitfield for describing the network consumers
 enum
 {
-    NETCONSUMER_NTRIP_CLIENT = 0,
+    NETCONSUMER_HTTP_CLIENT = 0,
+    NETCONSUMER_NTRIP_CLIENT,
     NETCONSUMER_NTRIP_SERVER,
     NETCONSUMER_OTA_CLIENT,
     NETCONSUMER_PPL_KEY_UPDATE,
@@ -996,7 +997,7 @@ struct Settings
     int lg290pMessageRatesRTCMRover[MAX_LG290P_RTCM_MSG] = {
         254}; // Mark first record with key so defaults will be applied. Int value for each supported message - Report
               // rates for RTCM Base. Default to Quectel recommended rates.
-    int lg290pMessageRatesPQTM[MAX_LG290P_PQTM_MSG] = {254}; // Mark first record with key so defaults will be applied. 
+    int lg290pMessageRatesPQTM[MAX_LG290P_PQTM_MSG] = {254}; // Mark first record with key so defaults will be applied.
 #endif // COMPILE_LG290P
 
     bool debugSettings = false;
