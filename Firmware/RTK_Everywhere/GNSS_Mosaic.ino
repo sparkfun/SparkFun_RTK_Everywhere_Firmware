@@ -406,6 +406,13 @@ bool GNSS_MOSAIC::configureBase()
         return (false);
     }
 
+    if (settings.gnssConfiguredBase)
+    {
+        if (settings.debugGnss)
+            systemPrintln("Skipping mosaic Base configuration");
+        return true;
+    }
+
     bool response = true;
 
     response &= setModel(MOSAIC_DYN_MODEL_STATIC);
@@ -421,12 +428,14 @@ bool GNSS_MOSAIC::configureBase()
     setLoggingType(); // Update Standard, PPP, or custom for icon selection
 
     // Save the current configuration into non-volatile memory (NVM)
-    saveConfiguration();
+    response &= saveConfiguration();
 
     if (response == false)
     {
         systemPrintln("mosaic-X5 Base failed to configure");
     }
+
+    settings.gnssConfiguredBase = response;
 
     return (response);
 }
@@ -542,6 +551,12 @@ bool GNSS_MOSAIC::configureOnce()
     RTCMv3 messages are enabled by enableRTCMRover / enableRTCMBase
     */
 
+    if (settings.gnssConfiguredOnce)
+    {
+        systemPrintln("mosaic configuration maintained");
+        return (true);
+    }
+
     bool response = true;
 
     // Configure COM1. NMEA and RTCMv3 will be encapsulated in SBF format
@@ -589,10 +604,12 @@ bool GNSS_MOSAIC::configureOnce()
         systemPrintln("mosaic-X5 configuration updated");
 
         // Save the current configuration into non-volatile memory (NVM)
-        saveConfiguration();
+        response &= saveConfiguration();
     }
     else
         online.gnss = false; // Take it offline
+
+    settings.gnssConfiguredOnce = response;
 
     return (response);
 }
@@ -635,6 +652,13 @@ bool GNSS_MOSAIC::configureRover()
         return (false);
     }
 
+    // If our settings haven't changed, trust GNSS's settings
+    if (settings.gnssConfiguredRover)
+    {
+        systemPrintln("Skipping mosaic Rover configuration");
+        return (true);
+    }
+
     bool response = true;
 
     response &= sendWithResponse("spm,Rover,all,auto\n\r", "PVTMode");
@@ -652,12 +676,14 @@ bool GNSS_MOSAIC::configureRover()
     setLoggingType(); // Update Standard, PPP, or custom for icon selection
 
     // Save the current configuration into non-volatile memory (NVM)
-    saveConfiguration();
+    response &= saveConfiguration();
 
     if (response == false)
     {
         systemPrintln("mosaic-X5 Rover failed to configure");
     }
+
+    settings.gnssConfiguredRover = response;
 
     return (response);
 }
@@ -1697,6 +1723,9 @@ void GNSS_MOSAIC::menuMessagesNMEA()
             printUnknown(incoming);
     }
 
+    settings.gnssConfiguredBase = false; // Update the GNSS config at the next boot
+    settings.gnssConfiguredRover = false;
+
     clearBuffer(); // Empty buffer of any newline chars
 }
 
@@ -1765,6 +1794,9 @@ void GNSS_MOSAIC::menuMessagesRTCM(bool rover)
         else
             printUnknown(incoming);
     }
+
+    settings.gnssConfiguredBase = false; // Update the GNSS config at the next boot
+    settings.gnssConfiguredRover = false;
 
     clearBuffer(); // Empty buffer of any newline chars
 }
