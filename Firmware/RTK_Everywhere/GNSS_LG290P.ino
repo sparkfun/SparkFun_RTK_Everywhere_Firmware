@@ -101,8 +101,6 @@ void GNSS_LG290P::begin()
     online.gnss = true;
 
     // Check firmware version and print info
-    printModuleInfo();
-
     std::string version, buildDate, buildTime;
     if (_lg290p->getVersionInfo(version, buildDate, buildTime))
         snprintf(gnssFirmwareVersion, sizeof(gnssFirmwareVersion), "%s", version.c_str());
@@ -124,6 +122,8 @@ void GNSS_LG290P::begin()
             "firmware on your LG290P to allow for these features. Please see https://bit.ly/sfe-rtk-lg290p-update\r\n",
             lg290pFirmwareVersion, gnssFirmwareVersion);
     }
+
+    printModuleInfo();
 
     snprintf(gnssUniqueId, sizeof(gnssUniqueId), "%s", getId());
 }
@@ -1754,7 +1754,7 @@ void GNSS_LG290P::printModuleInfo()
         std::string version, buildDate, buildTime;
         if (_lg290p->getVersionInfo(version, buildDate, buildTime))
         {
-            systemPrintf("LG290P version: %s %s %s\r\n", version.c_str(), buildDate.c_str(), buildTime.c_str());
+            systemPrintf("LG290P version: v%02d - %s %s %s - v%d\r\n", lg290pFirmwareVersion, version.c_str(), buildDate.c_str(), buildTime.c_str());
         }
         else
         {
