@@ -999,6 +999,8 @@ void mqttClientUpdate()
                 {
                     breakOut = true; // Break out of this state as we have successfully subscribed
                     mqttClientSubscribedTopics.push_back(topic);
+                    if (settings.debugMqttClientState)
+                        systemPrintf("MQTT_Client successfully subscribed to topic %s\r\n", topic.c_str());
                 }
                 else
                 {
