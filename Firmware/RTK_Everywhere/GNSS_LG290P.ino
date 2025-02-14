@@ -211,6 +211,12 @@ bool GNSS_LG290P::configureOnce()
       Enable selected RTCM messages on COM2
 */
 
+    if (settings.gnssConfiguredOnce)
+    {
+        systemPrintln("LG290P configuration maintained");
+        return (true);
+    }
+
     if (settings.debugGnss)
         debuggingEnable(); // Print all debug to Serial
 
@@ -248,10 +254,12 @@ bool GNSS_LG290P::configureOnce()
         systemPrintln("LG290P configuration updated");
 
         // Save the current configuration into non-volatile memory (NVM)
-        saveConfiguration();
+        response &= saveConfiguration();
     }
     else
         online.gnss = false; // Take it offline
+
+    settings.gnssConfiguredOnce = response;
 
     return (response);
 }
@@ -270,6 +278,13 @@ bool GNSS_LG290P::configureRover()
     {
         systemPrintln("GNSS not online");
         return (false);
+    }
+
+    // If our settings haven't changed, and this is first config since power on, trust GNSS's settings
+    if (settings.gnssConfiguredRover)
+    {
+        systemPrintln("Skipping LG290P Rover configuration");
+        return (true);
     }
 
     bool response = true;
@@ -314,14 +329,16 @@ bool GNSS_LG290P::configureRover()
     else
     {
         // Save the current configuration into non-volatile memory (NVM)
-        saveConfiguration();
+        response &= saveConfiguration();
 
         // For RTCM and MSM messages to take effect (ie, PointPerfect is active) we must save/reset
         softwareReset();
 
-        if (settings.debugGnss)
+        if (settings.debugGnss && response)
             systemPrintln("LG290P Rover configured");
     }
+
+    settings.gnssConfiguredRover = response;
 
     return (response);
 }
@@ -341,6 +358,13 @@ bool GNSS_LG290P::configureBase()
     {
         systemPrintln("GNSS not online");
         return (false);
+    }
+
+    if (settings.gnssConfiguredBase)
+    {
+        if (settings.debugGnss)
+            systemPrintln("Skipping LG290P Base configuration");
+        return true;
     }
 
     bool response = true;
@@ -401,17 +425,19 @@ bool GNSS_LG290P::configureBase()
     else
     {
         // Save the current configuration into non-volatile memory (NVM)
-        saveConfiguration();
+        response &= saveConfiguration();
 
         softwareReset();
 
         // When a device is changed from Rover to Base, NMEA messages settings do not survive PQTMSAVEPAR
         // Re-enable NMEA post reset
-        enableNMEA(); // Set NMEA messages
+        response &= enableNMEA(); // Set NMEA messages
 
-        if (settings.debugGnss)
+        if (settings.debugGnss && response)
             systemPrintln("LG290P Base configured");
     }
+
+    settings.gnssConfiguredBase = response;
 
     return (response);
 }
@@ -1740,6 +1766,10 @@ void GNSS_LG290P::menuMessagesSubtype(int *localMessageRate, const char *message
         else
             printUnknown(incoming);
     }
+
+    settings.gnssConfiguredOnce = false; // Update the GNSS config at the next boot
+    settings.gnssConfiguredBase = false;
+    settings.gnssConfiguredRover = false;
 
     clearBuffer(); // Empty buffer of any newline chars
 }
