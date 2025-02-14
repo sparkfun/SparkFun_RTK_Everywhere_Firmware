@@ -1078,6 +1078,28 @@ bool networkIsConnected(NetPriority_t *clientPriority)
 }
 
 //----------------------------------------
+// Determine if the specified network interface is higher priority than
+// the current network interface
+//----------------------------------------
+bool networkIsHighestPriority(NetIndex_t index)
+{
+    NetPriority_t priority;
+    bool higherPriority;
+
+    // Validate the index
+    networkValidateIndex(index);
+
+    // Get the current network priority
+    priority = networkPriority;
+
+    // Determine if the specified interface has higher priority
+    higherPriority = (priority == NETWORK_OFFLINE);
+    if (!higherPriority)
+        higherPriority = (priority > networkPriorityTable[index]);
+    return higherPriority;
+}
+
+//----------------------------------------
 // Determine if the network interface has completed its start routine
 //----------------------------------------
 bool networkIsInterfaceStarted(NetIndex_t index)
