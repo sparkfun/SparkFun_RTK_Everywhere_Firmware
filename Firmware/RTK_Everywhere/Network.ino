@@ -1816,8 +1816,12 @@ void networkUpdate()
         {
             networkInterfaceInternetConnectionLost(index);
 
-            // Start the failover processing
-            networkStartNextInterface(index);
+            // Attempt to restart WiFi
+            if ((index == NETWORK_WIFI_STATION) && (networkIsHighestPriority(index)))
+            {
+                networkStop(index, settings.debugWifiState);
+                networkStart(index, settings.debugWifiState);
+            }
         }
 
         // Handle the network stop event
