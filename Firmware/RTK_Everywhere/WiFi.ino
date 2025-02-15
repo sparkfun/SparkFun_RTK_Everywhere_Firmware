@@ -664,6 +664,7 @@ bool wifiStationReconnectionRequest()
     // Check for a reconnection request
     if (wifiReconnectRequest)
     {
+        wifiReconnectRequest = false;
         if (settings.debugWifiState)
             systemPrintf("WiFi: Attempting WiFi restart\r\n");
         wifi.clearStarted(WIFI_STA_RECONNECT);
@@ -1540,9 +1541,8 @@ void RTK_WIFI::stationEventHandler(arduino_event_id_t event, arduino_event_info_
         // Start the reconnection timer
         if (event == ARDUINO_EVENT_WIFI_STA_DISCONNECTED)
         {
+            networkInterfaceEventInternetLost(NETWORK_WIFI_STATION);
             wifiReconnectRequest = true;
-            if (networkIsHighestPriority(NETWORK_WIFI_STATION))
-                networkStart(NETWORK_WIFI_STATION, settings.debugWifiState);
         }
 
         // Fall through
@@ -1564,6 +1564,12 @@ void RTK_WIFI::stationEventHandler(arduino_event_id_t event, arduino_event_info_
         //      V
 
     case ARDUINO_EVENT_WIFI_STA_LOST_IP:
+        if (event == ARDUINO_EVENT_WIFI_STA_LOST_IP)
+        {
+            networkInterfaceEventInternetLost(NETWORK_WIFI_STATION);
+            wifiReconnectRequest = true;
+        }
+
         // Mark the WiFi station offline
         if (_started & WIFI_STA_ONLINE)
             systemPrintf("WiFi: Station offline!\r\n");
