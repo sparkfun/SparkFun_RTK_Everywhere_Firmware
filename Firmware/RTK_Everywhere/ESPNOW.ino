@@ -111,7 +111,7 @@ void espNowBeginPairing()
 // Determine if ESP-NOW is paired
 bool espNowIsPaired()
 {
-    return (espNowState != ESPNOW_PAIRED);
+    return (espNowState == ESPNOW_PAIRED);
 }
 
 //*********************************************************************
