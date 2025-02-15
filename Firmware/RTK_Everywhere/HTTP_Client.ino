@@ -267,6 +267,7 @@ void httpClientStop(bool shutdown)
     online.httpClient = false;
     if (shutdown)
     {
+        networkConsumerRemove(NETCONSUMER_HTTP_CLIENT, NETWORK_ANY);
         httpClientModeNeeded = false;
         httpClientConnectionAttempts = 0;
         httpClientConnectionAttemptTimeout = 0;
@@ -293,7 +294,10 @@ void httpClientUpdate()
     default:
     case HTTP_CLIENT_OFF: {
         if (httpClientEnabled())
+        {
+            networkConsumerAdd(NETCONSUMER_HTTP_CLIENT, NETWORK_ANY);
             httpClientStart();
+        }
         break;
     }
 
