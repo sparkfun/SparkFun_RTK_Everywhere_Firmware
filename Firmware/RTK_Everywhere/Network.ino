@@ -1035,6 +1035,9 @@ void networkInterfaceInternetConnectionLost(NetIndex_t index)
     if (networkPriorityTable[index] == networkPriority)
     {
         // The highest priority network just failed
+        if (settings.debugNetworkLayer)
+            systemPrintf("Network: Looking for another interface to use\r\n");
+
         // Leave this network on in hopes that it will regain a connection
         previousPriority = networkPriority;
 
@@ -1042,18 +1045,20 @@ void networkInterfaceInternetConnectionLost(NetIndex_t index)
         priority = networkPriorityTable[index];
         for (priority += 1; priority < NETWORK_OFFLINE; priority += 1)
         {
-            // Is the network online?
+            // Is the interface online?
             index = networkIndexTable[priority];
-            if (networkInterfaceHasInternet(index))
-            {
-                // Successfully found an online network
-                break;
-            }
-
-            // No, is this device present (nullptr: always present)
             if (networkIsPresent(index))
             {
-                // No, does this network need starting
+                if (networkInterfaceHasInternet(index))
+                {
+                    // Successfully found an online network
+                    if (settings.debugNetworkLayer)
+                        systemPrintf("Network: Found interface %s\r\n", networkInterfaceTable[index].name);
+                    break;
+                }
+
+                // Interface not connected to the internet
+                // Start this interface
                 networkStart(index, settings.debugNetworkLayer);
             }
         }
