@@ -47,6 +47,8 @@ bool websocketConnected = false;
 // https://github.com/mo-thunderz/Esp32WifiPart2/blob/main/Arduino/ESP32WebserverWebsocket/ESP32WebserverWebsocket.ino
 // https://www.youtube.com/watch?v=15X0WvGaVg8
 
+//----------------------------------------
+//----------------------------------------
 void sendStringToWebsocket(const char *stringToSend)
 {
     if (!websocketConnected)
@@ -83,6 +85,8 @@ void sendStringToWebsocket(const char *stringToSend)
     }
 }
 
+//----------------------------------------
+//----------------------------------------
 static esp_err_t ws_handler(httpd_req_t *req)
 {
     // Log the req, so we can reuse it for httpd_ws_send_frame
@@ -186,6 +190,8 @@ static esp_err_t ws_handler(httpd_req_t *req)
     return ret;
 }
 
+//----------------------------------------
+//----------------------------------------
 static const httpd_uri_t ws = {.uri = "/ws",
                                .method = HTTP_GET,
                                .handler = ws_handler,
@@ -194,6 +200,8 @@ static const httpd_uri_t ws = {.uri = "/ws",
                                .handle_ws_control_frames = true,
                                .supported_subprotocol = NULL};
 
+//----------------------------------------
+//----------------------------------------
 bool websocketServerStart(void)
 {
     httpd_config_t config = HTTPD_DEFAULT_CONFIG();
@@ -224,8 +232,10 @@ bool websocketServerStart(void)
     return false;
 }
 
+//----------------------------------------
 // ===== Request Handler class used to answer more complex requests =====
 // https://github.com/espressif/arduino-esp32/blob/master/libraries/WebServer/examples/WebServer/WebServer.ino
+//----------------------------------------
 class CaptiveRequestHandler : public RequestHandler
 {
   public:
@@ -271,7 +281,9 @@ class CaptiveRequestHandler : public RequestHandler
     }
 };
 
+//----------------------------------------
 // Create the web server and web sockets
+//----------------------------------------
 bool webServerAssignResources(int httpPort = 80)
 {
     do
@@ -545,7 +557,9 @@ bool webServerAssignResources(int httpPort = 80)
     return false;
 }
 
+//----------------------------------------
 // Start the Web Server state machine
+//----------------------------------------
 void webServerStart()
 {
     // Display the heap state
@@ -555,7 +569,9 @@ void webServerStart()
     webServerSetState(WEBSERVER_STATE_WAIT_FOR_NETWORK);
 }
 
+//----------------------------------------
 // Stop the web config state machine
+//----------------------------------------
 void webServerStop()
 {
     online.webServer = false;
@@ -576,7 +592,9 @@ void webServerStop()
     }
 }
 
+//----------------------------------------
 // Return true if we are in a state that requires network access
+//----------------------------------------
 bool webServerNeedsNetwork()
 {
     if (webServerState >= WEBSERVER_STATE_WAIT_FOR_NETWORK && webServerState <= WEBSERVER_STATE_RUNNING)
@@ -584,6 +602,8 @@ bool webServerNeedsNetwork()
     return false;
 }
 
+//----------------------------------------
+//----------------------------------------
 void webServerStopSockets()
 {
     websocketConnected = false;
@@ -596,7 +616,9 @@ void webServerStopSockets()
     }
 }
 
+//----------------------------------------
 // Set the next webconfig state
+//----------------------------------------
 void webServerSetState(uint8_t newState)
 {
     char string1[40];
@@ -647,7 +669,9 @@ void webServerSetState(uint8_t newState)
         reportFatalError("Invalid web config state");
 }
 
+//----------------------------------------
 // Get the webconfig state name
+//----------------------------------------
 const char *webServerGetStateName(uint8_t state, char *string)
 {
     if (state < WEBSERVER_STATE_MAX)
@@ -656,6 +680,8 @@ const char *webServerGetStateName(uint8_t state, char *string)
     return string;
 }
 
+//----------------------------------------
+//----------------------------------------
 bool webServerIsRunning()
 {
     if (webServerState == WEBSERVER_STATE_RUNNING)
@@ -663,6 +689,8 @@ bool webServerIsRunning()
     return (false);
 }
 
+//----------------------------------------
+//----------------------------------------
 void updateWebServerTask(void *e)
 {
     // Start notification
@@ -694,6 +722,8 @@ void updateWebServerTask(void *e)
     vTaskDelete(updateWebServerTaskHandle);
 }
 
+//----------------------------------------
+//----------------------------------------
 void stopWebServer()
 {
     if (task.updateWebServerTaskRunning)
@@ -724,6 +754,8 @@ void stopWebServer()
     }
 }
 
+//----------------------------------------
+//----------------------------------------
 void webServerReleaseResources()
 {
     if (task.updateWebServerTaskRunning)
@@ -754,7 +786,9 @@ void webServerReleaseResources()
     }
 }
 
+//----------------------------------------
 // State machine to handle the starting/stopping of the web server
+//----------------------------------------
 void webServerUpdate()
 {
     // Walk the state machine
@@ -811,6 +845,8 @@ void webServerUpdate()
     }
 }
 
+//----------------------------------------
+//----------------------------------------
 void notFound()
 {
     String logmessage = "notFound: Client:" + webServer->client().remoteIP().toString() + " " + webServer->uri();
@@ -818,7 +854,9 @@ void notFound()
     webServer->send(404, "text/plain", "Not found");
 }
 
+//----------------------------------------
 // Handler for firmware file downloads
+//----------------------------------------
 static void handleFileManager()
 {
     // This section does not tolerate semaphore transactions
@@ -947,7 +985,9 @@ static void handleFileManager()
     }
 }
 
+//----------------------------------------
 // Handler for firmware file upload
+//----------------------------------------
 static void handleFirmwareFileUpload()
 {
     String fileName = "";
@@ -1044,8 +1084,10 @@ static void handleFirmwareFileUpload()
     }
 }
 
+//----------------------------------------
 // Report back to the web config page with a CSV that contains the either CURRENT or
 // the latest version as obtained by the OTA state machine
+//----------------------------------------
 void createFirmwareVersionString(char *settingsCSV)
 {
     char newVersionCSV[100];
@@ -1075,7 +1117,9 @@ void createFirmwareVersionString(char *settingsCSV)
     strcat(settingsCSV, "\0");
 }
 
+//----------------------------------------
 // Create a csv string with the dynamic data to update (current coordinates, battery level, etc)
+//----------------------------------------
 void createDynamicDataString(char *settingsCSV)
 {
     settingsCSV[0] = '\0'; // Erase current settings string
@@ -1138,9 +1182,11 @@ void createDynamicDataString(char *settingsCSV)
     strcat(settingsCSV, "\0");
 }
 
+//----------------------------------------
 // Break CSV into setting constituents
 // Can't use strtok because we may have two commas next to each other, ie
 // measurementRateHz,4.00,measurementRateSec,,dynamicModel,0,
+//----------------------------------------
 bool parseIncomingSettings()
 {
     char settingName[100] = {'\0'};
@@ -1195,8 +1241,10 @@ bool parseIncomingSettings()
     return (true);
 }
 
+//----------------------------------------
 // When called, responds with the root folder list of files on SD card
 // Name and size are formatted in CSV, formatted to html by JS
+//----------------------------------------
 void getFileList(String &returnText)
 {
     returnText = "";
@@ -1254,8 +1302,10 @@ void getFileList(String &returnText)
         systemPrintf("returnText (%d bytes): %s\r\n", returnText.length(), returnText.c_str());
 }
 
+//----------------------------------------
 // When called, responds with the messages supported on this platform
 // Message name and current rate are formatted in CSV, formatted to html by JS
+//----------------------------------------
 void createMessageList(String &returnText)
 {
     returnText = "";
@@ -1318,8 +1368,10 @@ void createMessageList(String &returnText)
         systemPrintf("returnText (%d bytes): %s\r\n", returnText.length(), returnText.c_str());
 }
 
+//----------------------------------------
 // When called, responds with the RTCM/Base messages supported on this platform
 // Message name and current rate are formatted in CSV, formatted to html by JS
+//----------------------------------------
 void createMessageListBase(String &returnText)
 {
     returnText = "";
@@ -1370,8 +1422,10 @@ void createMessageListBase(String &returnText)
         systemPrintf("returnText (%d bytes): %s\r\n", returnText.length(), returnText.c_str());
 }
 
+//----------------------------------------
 // Handles uploading of user files to SD
 // https://github.com/espressif/arduino-esp32/blob/master/libraries/WebServer/examples/FSBrowser/FSBrowser.ino
+//----------------------------------------
 void handleUpload()
 {
     HTTPUpload &upload = webServer->upload();
@@ -1460,7 +1514,9 @@ void handleUpload()
     }
 }
 
+//----------------------------------------
 // Verify the web server tables
+//----------------------------------------
 void webServerVerifyTables()
 {
     if (webServerStateEntries != WEBSERVER_STATE_MAX)
