@@ -787,7 +787,7 @@ bool webServerAssignResources(int httpPort = 80)
 
         if (!incomingSettings)
         {
-            systemPrintln("ERROR: Failed to allocate incomingSettings");
+            systemPrintln("ERROR: Web server failed to allocate incomingSettings");
             break;
         }
         memset(incomingSettings, 0, AP_CONFIG_SETTING_SIZE);
@@ -801,7 +801,7 @@ bool webServerAssignResources(int httpPort = 80)
 
         if (!settingsCSV)
         {
-            systemPrintln("ERROR: Failed to allocate settingsCSV");
+            systemPrintln("ERROR: Web server failed to allocate settingsCSV");
             break;
         }
         createSettingsString(settingsCSV);
@@ -817,7 +817,7 @@ bool webServerAssignResources(int httpPort = 80)
         webServer = new WebServer(httpPort);
         if (!webServer)
         {
-            systemPrintln("ERROR: Failed to allocate webServer");
+            systemPrintln("ERROR: Web server failed to allocate webServer");
             break;
         }
 
@@ -1020,7 +1020,7 @@ bool webServerAssignResources(int httpPort = 80)
                 &updateWebServerTaskHandle); // Task handle
 
         if (settings.debugWebServer == true)
-            systemPrintln("Web Server Started");
+            systemPrintln("Web Server: Started");
         reportHeapNow(false);
 
         // Start the web socket server on port 81 using <esp_http_server.h>
@@ -1055,7 +1055,7 @@ const char *webServerGetStateName(uint8_t state, char *string)
 {
     if (state < WEBSERVER_STATE_MAX)
         return webServerStateNames[state];
-    sprintf(string, "Unknown state (%d)", state);
+    sprintf(string, "Web Server: Unknown state (%d)", state);
     return string;
 }
 
@@ -1174,7 +1174,7 @@ void webServerSetState(uint8_t newState)
 
     // Validate the state
     if (newState >= WEBSERVER_STATE_MAX)
-        reportFatalError("Invalid web config state");
+        reportFatalError("Web Server: Invalid web config state");
 }
 
 //----------------------------------------
@@ -1185,7 +1185,8 @@ void webServerStart()
     // Display the heap state
     reportHeapNow(settings.debugWebServer);
 
-    systemPrintln("Web Server start");
+    if (settings.debugWebServer)
+        systemPrintln("Web Server: Starting");
     webServerSetState(WEBSERVER_STATE_WAIT_FOR_NETWORK);
 }
 
@@ -1195,9 +1196,6 @@ void webServerStart()
 void webServerStop()
 {
     online.webServer = false;
-
-    if (settings.debugWebServer)
-        systemPrintln("webServerStop called");
 
     if (webServerState != WEBSERVER_STATE_OFF)
     {
@@ -1209,6 +1207,8 @@ void webServerStop()
 
         // Stop the machine
         webServerSetState(WEBSERVER_STATE_OFF);
+        if (settings.debugWebServer)
+            systemPrintln("Web Server: Stopped");
     }
 }
 
