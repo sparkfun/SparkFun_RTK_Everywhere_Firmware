@@ -201,61 +201,7 @@ void createFirmwareVersionString(char *settingsCSV)
 void createMessageList(String &returnText)
 {
     returnText = "";
-
-    if (present.gnss_zedf9p)
-    {
-#ifdef COMPILE_ZED
-        for (int messageNumber = 0; messageNumber < MAX_UBX_MSG; messageNumber++)
-        {
-            if (messageSupported(messageNumber) == true)
-                returnText += "ubxMessageRate_" + String(ubxMessages[messageNumber].msgTextName) + "," +
-                              String(settings.ubxMessageRates[messageNumber]) + ",";
-        }
-#endif // COMPILE_ZED
-    }
-
-#ifdef COMPILE_UM980
-    else if (present.gnss_um980)
-    {
-        for (int messageNumber = 0; messageNumber < MAX_UM980_NMEA_MSG; messageNumber++)
-        {
-            returnText += "messageRateNMEA_" + String(umMessagesNMEA[messageNumber].msgTextName) + "," +
-                          String(settings.um980MessageRatesNMEA[messageNumber]) + ",";
-        }
-        for (int messageNumber = 0; messageNumber < MAX_UM980_RTCM_MSG; messageNumber++)
-        {
-            returnText += "messageRateRTCMRover_" + String(umMessagesRTCM[messageNumber].msgTextName) + "," +
-                          String(settings.um980MessageRatesRTCMRover[messageNumber]) + ",";
-        }
-    }
-#endif // COMPILE_UM980
-
-#ifdef COMPILE_MOSAICX5
-    else if (present.gnss_mosaicX5)
-    {
-        for (int messageNumber = 0; messageNumber < MAX_MOSAIC_NMEA_MSG; messageNumber++)
-        {
-            returnText += "messageStreamNMEA_" + String(mosaicMessagesNMEA[messageNumber].msgTextName) + "," +
-                          String(settings.mosaicMessageStreamNMEA[messageNumber]) + ",";
-        }
-        for (int stream = 0; stream < MOSAIC_NUM_NMEA_STREAMS; stream++)
-        {
-            returnText +=
-                "streamIntervalNMEA_" + String(stream) + "," + String(settings.mosaicStreamIntervalsNMEA[stream]) + ",";
-        }
-        for (int messageNumber = 0; messageNumber < MAX_MOSAIC_RTCM_V3_INTERVAL_GROUPS; messageNumber++)
-        {
-            returnText += "messageIntervalRTCMRover_" + String(mosaicRTCMv3MsgIntervalGroups[messageNumber].name) +
-                          "," + String(settings.mosaicMessageIntervalsRTCMv3Rover[messageNumber]) + ",";
-        }
-        for (int messageNumber = 0; messageNumber < MAX_MOSAIC_RTCM_V3_MSG; messageNumber++)
-        {
-            returnText += "messageEnabledRTCMRover_" + String(mosaicMessagesRTCMv3[messageNumber].name) + "," +
-                          (settings.mosaicMessageEnabledRTCMv3Rover[messageNumber] ? "true" : "false") + ",";
-        }
-    }
-#endif // COMPILE_MOSAICX5
-
+    gnss->createMessageList(returnText);
     if (settings.debugWebServer == true)
         systemPrintf("returnText (%d bytes): %s\r\n", returnText.length(), returnText.c_str());
 }
@@ -267,49 +213,7 @@ void createMessageList(String &returnText)
 void createMessageListBase(String &returnText)
 {
     returnText = "";
-
-    if (present.gnss_zedf9p)
-    {
-#ifdef COMPILE_ZED
-        GNSS_ZED *zed = (GNSS_ZED *)gnss;
-        int firstRTCMRecord = zed->getMessageNumberByName("RTCM_1005");
-
-        for (int messageNumber = 0; messageNumber < MAX_UBX_MSG_RTCM; messageNumber++)
-        {
-            if (messageSupported(firstRTCMRecord + messageNumber) == true)
-                returnText += "ubxMessageRateBase_" + String(ubxMessages[messageNumber + firstRTCMRecord].msgTextName) +
-                              "," + String(settings.ubxMessageRatesBase[messageNumber]) + ","; // UBX_RTCM_1074Base,4,
-        }
-#endif // COMPILE_ZED
-    }
-
-#ifdef COMPILE_UM980
-    else if (present.gnss_um980)
-    {
-        for (int messageNumber = 0; messageNumber < MAX_UM980_RTCM_MSG; messageNumber++)
-        {
-            returnText += "messageRateRTCMBase_" + String(umMessagesRTCM[messageNumber].msgTextName) + "," +
-                          String(settings.um980MessageRatesRTCMBase[messageNumber]) + ",";
-        }
-    }
-#endif // COMPILE_UM980
-
-#ifdef COMPILE_MOSAICX5
-    else if (present.gnss_mosaicX5)
-    {
-        for (int messageNumber = 0; messageNumber < MAX_MOSAIC_RTCM_V3_INTERVAL_GROUPS; messageNumber++)
-        {
-            returnText += "messageIntervalRTCMBase_" + String(mosaicRTCMv3MsgIntervalGroups[messageNumber].name) + "," +
-                          String(settings.mosaicMessageIntervalsRTCMv3Base[messageNumber]) + ",";
-        }
-        for (int messageNumber = 0; messageNumber < MAX_MOSAIC_RTCM_V3_MSG; messageNumber++)
-        {
-            returnText += "messageEnabledRTCMBase_" + String(mosaicMessagesRTCMv3[messageNumber].name) + "," +
-                          (settings.mosaicMessageEnabledRTCMv3Base[messageNumber] ? "true" : "false") + ",";
-        }
-    }
-#endif // COMPILE_MOSAICX5
-
+    gnss->createMessageListBase(returnText);
     if (settings.debugWebServer == true)
         systemPrintf("returnText (%d bytes): %s\r\n", returnText.length(), returnText.c_str());
 }

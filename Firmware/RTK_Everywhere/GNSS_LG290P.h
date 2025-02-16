@@ -34,7 +34,7 @@ typedef struct
 // Rate = Output once every N position fix(es).
 const lg290pMsg lgMessagesNMEA[] = {
     {"RMC", 1, 0}, {"GGA", 1, 0}, {"GSV", 1, 0}, {"GSA", 1, 0}, {"VTG", 1, 0}, {"GLL", 1, 0},
-    {"GBS", 0, 4}, {"GNS", 0, 4}, {"GST", 1, 4}, {"ZDA", 0, 4}, 
+    {"GBS", 0, 4}, {"GNS", 0, 4}, {"GST", 1, 4}, {"ZDA", 0, 4},
 };
 
 const lg290pMsg lgMessagesRTCM[] = {
@@ -161,6 +161,18 @@ class GNSS_LG290P : GNSS
     // Outputs:
     //   Returns true if successfully configured and false upon failure
     bool configureRover();
+
+    // Responds with the messages supported on this platform
+    // Inputs:
+    //   returnText: String to receive message names
+    // Returns message names in the returnText string
+    void createMessageList(String &returnText);
+
+    // Responds with the RTCM/Base messages supported on this platform
+    // Inputs:
+    //   returnText: String to receive message names
+    // Returns message names in the returnText string
+    void createMessageListBase(String &returnText);
 
     void debuggingDisable();
 
