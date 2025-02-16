@@ -1195,10 +1195,10 @@ void webServerStart()
 //----------------------------------------
 void webServerStop()
 {
-    online.webServer = false;
-
     if (webServerState != WEBSERVER_STATE_OFF)
     {
+        online.webServer = false;
+
         webServerStopSockets();      // Release socket resources
         webServerReleaseResources(); // Release web server resources
 
@@ -1209,6 +1209,9 @@ void webServerStop()
         webServerSetState(WEBSERVER_STATE_OFF);
         if (settings.debugWebServer)
             systemPrintln("Web Server: Stopped");
+
+        // Display the heap state
+        reportHeapNow(settings.debugWebServer);
     }
 }
 
