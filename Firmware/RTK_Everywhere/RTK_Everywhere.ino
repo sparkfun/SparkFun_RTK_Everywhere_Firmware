@@ -369,6 +369,9 @@ bool wifiRestartRequested;      // Restart WiFi if user changes anything
 bool wifiSoftApRunning;         // False: stopped, True: starting, running, stopping
 bool wifiStationRunning;        // False: stopped, True: starting, running, stopping
 
+const char * wifiSoftApSsid = "RTK Config";
+const char * wifiSoftApPassword = nullptr;
+
 //-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 
 // MQTT support

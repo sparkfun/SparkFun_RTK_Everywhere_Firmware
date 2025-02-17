@@ -400,9 +400,6 @@ const int wifiStartNamesEntries = sizeof(wifiStartNames) / sizeof(wifiStartNames
 #define WIFI_MAX_TIMEOUT    (15 * 60 * 1000)    // Timeout in milliseconds
 #define WIFI_MIN_TIMEOUT    (15 * 1000)         // Timeout in milliseconds
 
-const char * wifiSoftApSsid = "RTK Config";
-const char * wifiSoftApPassword = nullptr;
-
 //****************************************
 // Locals
 //****************************************
