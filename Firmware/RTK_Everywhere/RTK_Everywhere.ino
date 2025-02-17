@@ -280,7 +280,7 @@ typedef enum LoggingType
     LOGGING_PPP,
     LOGGING_CUSTOM
 } LoggingType;
-LoggingType loggingType;
+LoggingType loggingType = LOGGING_UNKNOWN;
 
 SdFile *managerTempFile = nullptr; // File used for uploading or downloading in the file manager section of AP config
 bool managerFileOpen = false;
@@ -936,7 +936,7 @@ volatile bool deadManWalking;
                                                                                                                        \
         /* Turn on nearly all the debug prints */                                                                      \
         settings.debugCorrections = true;                                                                              \
-        settings.debugGnss = false;                                                                                    \
+        settings.debugGnss = true;                                                                                     \
         settings.debugHttpClientData = true;                                                                           \
         settings.debugHttpClientState = true;                                                                          \
         settings.debugLora = true;                                                                                     \
@@ -981,7 +981,7 @@ volatile bool deadManWalking;
                                                                                                                        \
         /* Turn on nearly all the debug prints */                                                                      \
         settings.debugCorrections = true;                                                                              \
-        settings.debugGnss = false;                                                                                    \
+        settings.debugGnss = true;                                                                                     \
         settings.debugHttpClientData = false;                                                                          \
         settings.debugHttpClientState = true;                                                                          \
         settings.debugLora = false;                                                                                    \

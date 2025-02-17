@@ -1853,6 +1853,7 @@ void paintLogging(std::vector<iconPropertyBlinking> *iconList, bool pulse, bool 
     loggingIconDisplayed %= LOGGING_ICON_STATES; // Wrap
 
     iconPropertyBlinking prop;
+    prop.icon.bitmap = nullptr;
     prop.duty = 0b11111111;
 
     if (((online.logging == true) && (logIncreasing || ntpLogIncreasing)) || (present.gnss_mosaicX5 && logIncreasing))
@@ -1860,6 +1861,10 @@ void paintLogging(std::vector<iconPropertyBlinking> *iconList, bool pulse, bool 
         if (NTP)
         {
             prop.icon = LoggingNTPIconProperties.iconDisplay[loggingIconDisplayed][present.display_type];
+        }
+        else if (loggingType == LOGGING_STANDARD)
+        {
+            prop.icon = LoggingIconProperties.iconDisplay[loggingIconDisplayed][present.display_type];
         }
         else if (loggingType == LOGGING_PPP)
         {
@@ -1869,18 +1874,15 @@ void paintLogging(std::vector<iconPropertyBlinking> *iconList, bool pulse, bool 
         {
             prop.icon = LoggingCustomIconProperties.iconDisplay[loggingIconDisplayed][present.display_type];
         }
-        else // if (loggingType == LOGGING_STANDARD)
-        {
-            prop.icon = LoggingIconProperties.iconDisplay[loggingIconDisplayed][present.display_type];
-        }
-
-        iconList->push_back(prop);
+        // Could be LOGGING_UNKNOWN
     }
     else if (pulse)
     {
         prop.icon = PulseIconProperties.iconDisplay[loggingIconDisplayed][present.display_type];
-        iconList->push_back(prop);
     }
+
+    if (prop.icon.bitmap)
+        iconList->push_back(prop);
 }
 
 // Survey in is running. Show 3D Mean and elapsed time.
