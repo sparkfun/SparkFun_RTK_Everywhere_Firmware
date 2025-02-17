@@ -620,6 +620,17 @@ void wifiResetTimeout()
 }
 
 //*********************************************************************
+// Turn on and off WiFi soft AP mode
+// Inputs:
+//   on: True to start WiFi soft AP mode, false to stop WiFi soft AP mode
+// Returns:
+//   Returns the status of WiFi soft AP start or stop
+bool wifiSoftApOn(bool on)
+{
+    return wifi.enable(wifiEspNowRunning, on, wifiStationRunning);
+}
+
+//*********************************************************************
 // Start or stop the WiFi station
 // Returns true if successful and false upon failure
 bool wifiStationOn(bool on)
