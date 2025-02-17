@@ -1376,6 +1376,16 @@ bool RTK_WIFI::softApSetIpAddress(const char * ipAddress,
 }
 
 //*********************************************************************
+// Get the soft AP IP address
+// Returns the soft IP address
+IPAddress RTK_WIFI::softApIpAddress()
+{
+    if (softApOnline())
+        return _apIpAddress;
+    return IPAddress((uint32_t)0);
+}
+
+//*********************************************************************
 // Get the soft AP status
 bool RTK_WIFI::softApOnline()
 {
@@ -1648,6 +1658,16 @@ bool RTK_WIFI::stationHostName(const char * hostName)
 }
 
 //*********************************************************************
+// Get the WiFi station IP address
+// Returns the IP address of the WiFi station
+IPAddress RTK_WIFI::stationIpAddress()
+{
+    if (stationOnline())
+        return _staIpAddress;
+    return IPAddress((uint32_t)0);
+}
+
+//*********************************************************************
 // Get the station status
 bool RTK_WIFI::stationOnline()
 {
@@ -1787,6 +1807,16 @@ WIFI_CHANNEL_t RTK_WIFI::stationSelectAP(uint8_t apCount, bool list)
 
     // Return the channel number
     return apChannel;
+}
+
+//*********************************************************************
+// Get the SSID of the remote AP
+const char * RTK_WIFI::stationSsid()
+{
+    if (stationOnline())
+        return _staRemoteApSsid;
+    else
+        return "";
 }
 
 //*********************************************************************
