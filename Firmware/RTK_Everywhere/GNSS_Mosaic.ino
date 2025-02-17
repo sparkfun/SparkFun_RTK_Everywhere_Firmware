@@ -1759,8 +1759,8 @@ void GNSS_MOSAIC::menuMessagesNMEA()
             printUnknown(incoming);
     }
 
-    settings.gnssConfiguredBase = false; // Update the GNSS config at the next boot
-    settings.gnssConfiguredRover = false;
+    settings.gnssConfiguredBase = 0; // Update the GNSS config at the next boot
+    settings.gnssConfiguredRover = 0;
 
     clearBuffer(); // Empty buffer of any newline chars
 }
@@ -1831,8 +1831,8 @@ void GNSS_MOSAIC::menuMessagesRTCM(bool rover)
             printUnknown(incoming);
     }
 
-    settings.gnssConfiguredBase = false; // Update the GNSS config at the next boot
-    settings.gnssConfiguredRover = false;
+    settings.gnssConfiguredBase = 0; // Update the GNSS config at the next boot
+    settings.gnssConfiguredRover = 0;
 
     clearBuffer(); // Empty buffer of any newline chars
 }
