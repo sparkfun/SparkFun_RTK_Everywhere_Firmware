@@ -1507,58 +1507,114 @@ void paintClockAccuracy(displayCoords textCoords)
 // Draw the rover icon depending on screen
 void paintDynamicModel(std::vector<iconPropertyBlinking> *iconList)
 {
-    if (online.gnss == true)
+    if (present.dynamicModel && online.gnss)
     {
         iconPropertyBlinking prop;
+        prop.icon.bitmap = nullptr; // Use this as the test a valid icon
         prop.duty = 0b11111111;
 
-        // Display icon associated with current Dynamic Model
-        switch (settings.dynamicModel)
+        if (present.gnss_zedf9p)
         {
-        default:
-            break;
-
 #ifdef COMPILE_ZED
-        case (DYN_MODEL_PORTABLE):
-            prop.icon = DynamicModel_1_Properties.iconDisplay[present.display_type];
-            break;
-        case (DYN_MODEL_STATIONARY):
-            prop.icon = DynamicModel_2_Properties.iconDisplay[present.display_type];
-            break;
-        case (DYN_MODEL_PEDESTRIAN):
-            prop.icon = DynamicModel_3_Properties.iconDisplay[present.display_type];
-            break;
-        case (DYN_MODEL_AUTOMOTIVE):
-            prop.icon = DynamicModel_4_Properties.iconDisplay[present.display_type];
-            break;
-        case (DYN_MODEL_SEA):
-            prop.icon = DynamicModel_5_Properties.iconDisplay[present.display_type];
-            break;
-        case (DYN_MODEL_AIRBORNE1g):
-            prop.icon = DynamicModel_6_Properties.iconDisplay[present.display_type];
-            break;
-        case (DYN_MODEL_AIRBORNE2g):
-            prop.icon = DynamicModel_7_Properties.iconDisplay[present.display_type];
-            break;
-        case (DYN_MODEL_AIRBORNE4g):
-            prop.icon = DynamicModel_8_Properties.iconDisplay[present.display_type];
-            break;
-        case (DYN_MODEL_WRIST):
-            prop.icon = DynamicModel_9_Properties.iconDisplay[present.display_type];
-            break;
-        case (DYN_MODEL_BIKE):
-            prop.icon = DynamicModel_10_Properties.iconDisplay[present.display_type];
-            break;
-        case (DYN_MODEL_MOWER):
-            prop.icon = DynamicModel_11_Properties.iconDisplay[present.display_type];
-            break;
-        case (DYN_MODEL_ESCOOTER):
-            prop.icon = DynamicModel_12_Properties.iconDisplay[present.display_type];
-            break;
+            // Display icon associated with current Dynamic Model
+            switch (settings.dynamicModel)
+            {
+            default:
+                break;
+
+            case (DYN_MODEL_PORTABLE): // 0
+                prop.icon = DynamicModel_1_Properties.iconDisplay[present.display_type];
+                break;
+            case (DYN_MODEL_STATIONARY): // 2
+                prop.icon = DynamicModel_2_Properties.iconDisplay[present.display_type];
+                break;
+            case (DYN_MODEL_PEDESTRIAN):
+                prop.icon = DynamicModel_3_Properties.iconDisplay[present.display_type];
+                break;
+            case (DYN_MODEL_AUTOMOTIVE):
+                prop.icon = DynamicModel_4_Properties.iconDisplay[present.display_type];
+                break;
+            case (DYN_MODEL_SEA):
+                prop.icon = DynamicModel_5_Properties.iconDisplay[present.display_type];
+                break;
+            case (DYN_MODEL_AIRBORNE1g):
+                prop.icon = DynamicModel_6_Properties.iconDisplay[present.display_type];
+                break;
+            case (DYN_MODEL_AIRBORNE2g):
+                prop.icon = DynamicModel_7_Properties.iconDisplay[present.display_type];
+                break;
+            case (DYN_MODEL_AIRBORNE4g):
+                prop.icon = DynamicModel_8_Properties.iconDisplay[present.display_type];
+                break;
+            case (DYN_MODEL_WRIST):
+                prop.icon = DynamicModel_9_Properties.iconDisplay[present.display_type];
+                break;
+            case (DYN_MODEL_BIKE):
+                prop.icon = DynamicModel_10_Properties.iconDisplay[present.display_type];
+                break;
+            case (DYN_MODEL_MOWER):
+                prop.icon = DynamicModel_11_Properties.iconDisplay[present.display_type];
+                break;
+            case (DYN_MODEL_ESCOOTER):
+                prop.icon = DynamicModel_12_Properties.iconDisplay[present.display_type];
+                break;
+            }
 #endif // COMPILE_ZED
         }
+        else if (present.gnss_um980)
+        {
+#ifdef COMPILE_UM980
+            // Display icon associated with current Dynamic Model
+            switch (settings.dynamicModel)
+            {
+            default:
+                break;
 
-        iconList->push_back(prop);
+            case UM980_DYN_MODEL_SURVEY:
+                prop.icon = DynamicModel_2_Properties.iconDisplay[present.display_type]; // Stationary
+                break;
+            case UM980_DYN_MODEL_UAV:
+                prop.icon = DynamicModel_6_Properties.iconDisplay[present.display_type]; // Airborne1g
+                break;
+            case UM980_DYN_MODEL_AUTOMOTIVE:
+                prop.icon = DynamicModel_4_Properties.iconDisplay[present.display_type]; // Automotive
+                break;
+            }
+#endif // COMPILE_UM980
+        }
+        else if (present.gnss_mosaicX5)
+        {
+#ifdef COMPILE_MOSAICX5
+            // Display icon associated with current Dynamic Model
+            switch (settings.dynamicModel)
+            {
+            default:
+                break;
+
+            case MOSAIC_DYN_MODEL_STATIC:
+            case MOSAIC_DYN_MODEL_QUASISTATIC:
+                prop.icon = DynamicModel_2_Properties.iconDisplay[present.display_type]; // Stationary
+                break;
+            case MOSAIC_DYN_MODEL_PEDESTRIAN:
+                prop.icon = DynamicModel_3_Properties.iconDisplay[present.display_type]; // Pedestrian
+                break;
+            case MOSAIC_DYN_MODEL_AUTOMOTIVE:
+            case MOSAIC_DYN_MODEL_RACECAR:
+            case MOSAIC_DYN_MODEL_HEAVYMACHINERY:
+                prop.icon = DynamicModel_4_Properties.iconDisplay[present.display_type]; // Automotive
+                break;
+            case MOSAIC_DYN_MODEL_UAV:
+                prop.icon = DynamicModel_6_Properties.iconDisplay[present.display_type]; // Airborne1g
+                break;
+            case MOSAIC_DYN_MODEL_UNLIMITED:
+                prop.icon = DynamicModel_8_Properties.iconDisplay[present.display_type]; // Airborne4g
+                break;
+            }
+#endif // COMPILE_MOSAICX5
+        }
+            
+        if (prop.icon.bitmap)
+            iconList->push_back(prop);
     }
 }
 
