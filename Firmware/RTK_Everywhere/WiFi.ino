@@ -2313,12 +2313,14 @@ bool RTK_WIFI::stopStart(WIFI_ACTION_t stopping, WIFI_ACTION_t starting)
         // Set the soft AP host name
         if (starting & WIFI_AP_SET_HOST_NAME)
         {
+            const char * hostName = &settings.mdnsHostName[0];
+
             // Display the host name
             if (settings.debugWifiState && _verbose)
-                systemPrintf("Host name: %s\r\n", &settings.mdnsHostName[0]);
+                systemPrintf("Host name: %s\r\n", hostName);
 
             // Set the host name
-            if (!softApSetHostName(&settings.mdnsHostName[0]))
+            if (!softApSetHostName(hostName))
                 break;
             _started = _started | WIFI_AP_SET_HOST_NAME;
         }
@@ -2360,12 +2362,14 @@ bool RTK_WIFI::stopStart(WIFI_ACTION_t stopping, WIFI_ACTION_t starting)
         // Set the host name
         if (starting & WIFI_STA_SET_HOST_NAME)
         {
+            const char * hostName = &settings.mdnsHostName[0];
+
             // Display the host name
             if (settings.debugWifiState && _verbose)
-                systemPrintf("Host name: %s\r\n", &settings.mdnsHostName[0]);
+                systemPrintf("Host name: %s\r\n", hostName);
 
             // Set the host name
-            if (!stationHostName(&settings.mdnsHostName[0]))
+            if (!stationHostName(hostName))
                 break;
             _started = _started | WIFI_STA_SET_HOST_NAME;
         }
