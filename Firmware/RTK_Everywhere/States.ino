@@ -439,19 +439,6 @@ void stateUpdate()
             ESPNOW_STOP();    // We don't need ESP-NOW during web config
 
             // The GNSS UART task is left running to allow GNSS receivers to obtain LLh data for 1Hz page updates
-
-#ifdef COMPILE_WIFI
-            // If the AP is already running, check that the name is correct
-            if ((WiFi.getMode() == WIFI_AP) || (WiFi.getMode() == WIFI_AP_STA))
-            {
-                if (strcmp(WiFi.softAPSSID().c_str(), "RTK Config") != 0)
-                {
-                    // The AP name cannot be changed while it is running. WiFi must be restarted.
-                    wifiRestartRequested = true; // Tell network layer to restart WiFi
-                }
-            }
-#endif // COMPILE_WIFI
-
             // Stop any running NTRIP Client or Server
             ntripClientStop(true); // Do not allocate new wifiClient
             for (int serverIndex = 0; serverIndex < NTRIP_SERVER_MAX; serverIndex++)
