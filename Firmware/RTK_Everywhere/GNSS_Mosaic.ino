@@ -408,8 +408,8 @@ bool GNSS_MOSAIC::configureBase()
 
     if (settings.gnssConfiguredBase)
     {
-        if (settings.debugGnss)
-            systemPrintln("Skipping mosaic Base configuration");
+        systemPrintln("Skipping mosaic Base configuration");
+        setLoggingType(); // Needed because logUpdate exits early and never calls setLoggingType
         return true;
     }
 
@@ -656,6 +656,7 @@ bool GNSS_MOSAIC::configureRover()
     if (settings.gnssConfiguredRover)
     {
         systemPrintln("Skipping mosaic Rover configuration");
+        setLoggingType(); // Needed because logUpdate exits early and never calls setLoggingType
         return (true);
     }
 
