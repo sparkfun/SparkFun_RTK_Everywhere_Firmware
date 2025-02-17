@@ -333,7 +333,7 @@ bool GNSS_ZED::configureBase()
     if (online.gnss == false)
         return (false);
 
-    if (settings.gnssConfiguredBase == 0x01 | GNSS_ZED_BASE_SIGNATURE)
+    if (settings.gnssConfiguredBase == (0x01 | GNSS_ZED_BASE_SIGNATURE))
     {
         if (settings.debugGnss)
             systemPrintln("Skipping ZED Base configuration");
@@ -593,7 +593,7 @@ bool GNSS_ZED::configureGNSS()
     // Configuring the ZED can take more than 2000ms. Configuration is saved to
     // ZED RAM+BBR so there is no need to update settings unless user has modified
     // the settings file or internal settings.
-    if (settings.gnssConfiguredOnce == 0x01 | GNSS_ZED_ONCE_SIGNATURE)
+    if (settings.gnssConfiguredOnce == (0x01 | GNSS_ZED_ONCE_SIGNATURE))
     {
         systemPrintln("ZED-F9x configuration maintained");
         return (true);
@@ -799,7 +799,7 @@ bool GNSS_ZED::configureRover()
     }
 
     // If our settings haven't changed, trust GNSS's settings
-    if (settings.gnssConfiguredRover == 0x01 | GNSS_ZED_ROVER_SIGNATURE)
+    if (settings.gnssConfiguredRover == (0x01 | GNSS_ZED_ROVER_SIGNATURE))
     {
         systemPrintln("Skipping ZED Rover configuration");
         return (true);

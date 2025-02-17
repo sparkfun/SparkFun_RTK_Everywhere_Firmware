@@ -390,7 +390,6 @@ bool GNSS_MOSAIC::checkPPPRates()
 //   Returns true if successfully configured and false upon failure
 //----------------------------------------
 // If any of the settings in the signature have changed, reapply the Base configuration
-// See GNSS_MOSAIC_ROVER_SIGNATURE as an example
 #define GNSS_MOSAIC_BASE_SIGNATURE                                      \
     (                                                                   \
         ((settings.minElev & 0x01) << 1)                                \
@@ -418,7 +417,7 @@ bool GNSS_MOSAIC::configureBase()
         return (false);
     }
 
-    if (settings.gnssConfiguredBase == 0x01 | GNSS_MOSAIC_BASE_SIGNATURE)
+    if (settings.gnssConfiguredBase == (0x01 | GNSS_MOSAIC_BASE_SIGNATURE))
     {
         systemPrintln("Skipping mosaic Base configuration");
         setLoggingType(); // Needed because logUpdate exits early and never calls setLoggingType
@@ -572,7 +571,7 @@ bool GNSS_MOSAIC::configureOnce()
     RTCMv3 messages are enabled by enableRTCMRover / enableRTCMBase
     */
 
-    if (settings.gnssConfiguredOnce == 0x01 | GNSS_MOSAIC_ONCE_SIGNATURE)
+    if (settings.gnssConfiguredOnce == (0x01 | GNSS_MOSAIC_ONCE_SIGNATURE))
     {
         systemPrintln("mosaic configuration maintained");
         return (true);
@@ -686,7 +685,7 @@ bool GNSS_MOSAIC::configureRover()
     }
 
     // If our settings haven't changed, trust GNSS's settings
-    if (settings.gnssConfiguredRover == 0x01 | GNSS_MOSAIC_ROVER_SIGNATURE)
+    if (settings.gnssConfiguredRover == (0x01 | GNSS_MOSAIC_ROVER_SIGNATURE))
     {
         systemPrintln("Skipping mosaic Rover configuration");
         setLoggingType(); // Needed because logUpdate exits early and never calls setLoggingType
