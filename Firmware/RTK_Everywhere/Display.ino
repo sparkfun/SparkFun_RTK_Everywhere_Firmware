@@ -1861,10 +1861,6 @@ void paintLogging(std::vector<iconPropertyBlinking> *iconList, bool pulse, bool 
         {
             prop.icon = LoggingNTPIconProperties.iconDisplay[loggingIconDisplayed][present.display_type];
         }
-        else if (loggingType == LOGGING_STANDARD)
-        {
-            prop.icon = LoggingIconProperties.iconDisplay[loggingIconDisplayed][present.display_type];
-        }
         else if (loggingType == LOGGING_PPP)
         {
             prop.icon = LoggingPPPIconProperties.iconDisplay[loggingIconDisplayed][present.display_type];
@@ -1872,6 +1868,10 @@ void paintLogging(std::vector<iconPropertyBlinking> *iconList, bool pulse, bool 
         else if (loggingType == LOGGING_CUSTOM)
         {
             prop.icon = LoggingCustomIconProperties.iconDisplay[loggingIconDisplayed][present.display_type];
+        }
+        else // if (loggingType == LOGGING_STANDARD)
+        {
+            prop.icon = LoggingIconProperties.iconDisplay[loggingIconDisplayed][present.display_type];
         }
 
         iconList->push_back(prop);
