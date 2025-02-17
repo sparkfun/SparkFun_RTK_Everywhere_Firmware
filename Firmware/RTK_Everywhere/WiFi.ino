@@ -2582,6 +2582,11 @@ bool RTK_WIFI::stopStart(WIFI_ACTION_t stopping, WIFI_ACTION_t starting)
     if (restartWiFiStation)
         wifiReconnectRequest = true;
 
+    // Set the online flags
+    wifiEspNowOnline = espNowOnline();
+    wifiSoftApOnline = softApOnline();
+    wifiStationOnline = stationOnline();
+
     // Return the enable status
     bool enabled = ((_started & allOnline) == expected);
     if (!enabled)
