@@ -80,9 +80,6 @@
 
 static QwiicCustomOLED *oled = nullptr;
 
-unsigned long ssidDisplayTimer = 0;
-bool ssidDisplayFirstHalf = false;
-
 // Fonts
 #include <res/qw_fnt_5x7.h>
 #include <res/qw_fnt_8x16.h>
@@ -3057,11 +3054,12 @@ void displayWebConfigNotStarted()
 
 void displayConfigViaWiFi()
 {
-    int yPos = WiFi_Symbol_Height + 2;
-    int fontHeight = 8;
-
     // Characters before pixels start getting cut off. 11 characters can cut off a few pixels.
     const int displayMaxCharacters = (present.display_type == DISPLAY_64x48) ? 10 : 21;
+    int fontHeight = 8;
+    static bool ssidDisplayFirstHalf;
+    static unsigned long ssidDisplayTimer;
+    int yPos = WiFi_Symbol_Height + 2;
 
     printTextCenter("SSID:", yPos, QW_FONT_5X7, 1, false); // text, y, font type, kerning, inverted
 
