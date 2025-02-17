@@ -3057,13 +3057,11 @@ void displayConfigViaWiFi()
     // Characters before pixels start getting cut off. 11 characters can cut off a few pixels.
     const int displayMaxCharacters = (present.display_type == DISPLAY_64x48) ? 10 : 21;
     int fontHeight = 8;
+    char myIP[20] = {'\0'};
+    char mySSID[50] = {'\0'};
     static bool ssidDisplayFirstHalf;
     static unsigned long ssidDisplayTimer;
     int yPos = WiFi_Symbol_Height + 2;
-
-    printTextCenter("SSID:", yPos, QW_FONT_5X7, 1, false); // text, y, font type, kerning, inverted
-
-    yPos = yPos + fontHeight + 1;
 
     // Toggle display back and forth for long SSIDs and IPs
     // Run the timer no matter what, but load firstHalf/lastHalf with the same thing if strlen < maxWidth
@@ -3073,88 +3071,52 @@ void displayConfigViaWiFi()
         ssidDisplayFirstHalf = !ssidDisplayFirstHalf;
     }
 
-    // Convert current SSID to string
-    char mySSID[50] = {'\0'};
-
 #ifdef COMPILE_WIFI
-    if (settings.wifiConfigOverAP == true)
-        snprintf(mySSID, sizeof(mySSID), "%s", WiFi.softAPSSID().c_str());
+    // Get the SSID and IP Address
+    if (wifi.softApOnline())
+    {
+        snprintf(mySSID, sizeof(mySSID), "%s", wifiSoftApSsid);
+        strcpy(myIP, wifi.softApIpAddress().toString().c_str());
+    }
+    else if (wifi.stationOnline())
+    {
+        snprintf(mySSID, sizeof(mySSID), "%s", wifi.stationSsid());
+        strcpy(myIP, wifi.stationIpAddress().toString().c_str());
+    }
     else
     {
-        if (WiFi.getMode() == WIFI_STA)
-            snprintf(mySSID, sizeof(mySSID), "%s", WiFi.SSID().c_str());
-
-        // If we failed to connect to a friendly WiFi, and then fell back to AP mode, still display RTK Config
-        else if (WiFi.getMode() == WIFI_AP)
-            snprintf(mySSID, sizeof(mySSID), "%s", WiFi.softAPSSID().c_str());
-
-        // If we are in AP+STA mode, still display RTK Config
-        else if (WiFi.getMode() == WIFI_AP_STA)
-            snprintf(mySSID, sizeof(mySSID), "%s", WiFi.softAPSSID().c_str());
-
-        else
-            snprintf(mySSID, sizeof(mySSID), "%s", "Error");
+        snprintf(mySSID, sizeof(mySSID), "%s", "Error");
+        strcpy(myIP, "0.0.0.0");
     }
 #else  // COMPILE_WIFI
-    snprintf(mySSID, sizeof(mySSID), "%s", "!Compiled");
+    strcpy(mySSID, "!Compiled");
+    strcpy(myIP, "0.0.0.0");
 #endif // COMPILE_WIFI
-
-    char mySSIDFront[displayMaxCharacters + 1]; // 1 for null terminator
-    char mySSIDBack[displayMaxCharacters + 1];  // 1 for null terminator
+    mySSID[sizeof(mySSID) - 1] = 0;
 
     // Trim SSID to a max length
-    strncpy(mySSIDFront, mySSID, displayMaxCharacters);
+    if ((strlen(mySSID) > displayMaxCharacters) && !ssidDisplayFirstHalf)
+        memcpy(mySSID, &mySSID[strlen(mySSID) - displayMaxCharacters], displayMaxCharacters);
+    mySSID[displayMaxCharacters] = '\0';
 
-    if (strlen(mySSID) > displayMaxCharacters)
-        strncpy(mySSIDBack, mySSID + (strlen(mySSID) - displayMaxCharacters), displayMaxCharacters);
-    else
-        strncpy(mySSIDBack, mySSID, displayMaxCharacters);
+    // Trim IP address to a max length
+    if ((strlen(myIP) > displayMaxCharacters) && !ssidDisplayFirstHalf)
+        memcpy(myIP, &myIP[strlen(myIP) - displayMaxCharacters], displayMaxCharacters);
+    myIP[displayMaxCharacters] = '\0';
 
-    mySSIDFront[displayMaxCharacters] = '\0';
-    mySSIDBack[displayMaxCharacters] = '\0';
-
-    if (ssidDisplayFirstHalf)
-        printTextCenter(mySSIDFront, yPos, QW_FONT_5X7, 1, false);
-    else
-        printTextCenter(mySSIDBack, yPos, QW_FONT_5X7, 1, false);
-
-    yPos = yPos + fontHeight + 3;
-    printTextCenter("IP:", yPos, QW_FONT_5X7, 1, false);
-
+    // Display the SSID header
+    printTextCenter("SSID:", yPos, QW_FONT_5X7, 1, false); // text, y, font type, kerning, inverted
     yPos = yPos + fontHeight + 1;
 
-#ifdef COMPILE_AP
-    IPAddress myIpAddress;
-    if ((WiFi.getMode() == WIFI_AP) || (WiFi.getMode() == WIFI_AP_STA))
-        myIpAddress = WiFi.softAPIP();
-    else
-        myIpAddress = WiFi.localIP();
+    // Display the SSID
+    printTextCenter(mySSID, yPos, QW_FONT_5X7, 1, false);
+    yPos = yPos + fontHeight + 3;
 
-    // Convert to string
-    char myIP[20] = {'\0'};
-    snprintf(myIP, sizeof(myIP), "%s", myIpAddress.toString());
+    // Display the IP header
+    printTextCenter("IP:", yPos, QW_FONT_5X7, 1, false);
+    yPos = yPos + fontHeight + 1;
 
-    char myIPFront[displayMaxCharacters + 1]; // 1 for null terminator
-    char myIPBack[displayMaxCharacters + 1];  // 1 for null terminator
-
-    strncpy(myIPFront, myIP, displayMaxCharacters);
-
-    if (strlen(myIP) > displayMaxCharacters)
-        strncpy(myIPBack, myIP + (strlen(myIP) - displayMaxCharacters), displayMaxCharacters);
-    else
-        strncpy(myIPBack, myIP, displayMaxCharacters);
-
-    myIPFront[displayMaxCharacters] = '\0';
-    myIPBack[displayMaxCharacters] = '\0';
-
-    if (ssidDisplayFirstHalf == true)
-        printTextCenter(myIPFront, yPos, QW_FONT_5X7, 1, false);
-    else
-        printTextCenter(myIPBack, yPos, QW_FONT_5X7, 1, false);
-
-#else  // COMPILE_AP
-    printTextCenter("!Compiled", yPos, QW_FONT_5X7, 1, false);
-#endif // COMPILE_AP
+    printTextCenter(myIP, yPos, QW_FONT_5X7, 1, false);
 }
 
 void displayConfigViaEthernet()
