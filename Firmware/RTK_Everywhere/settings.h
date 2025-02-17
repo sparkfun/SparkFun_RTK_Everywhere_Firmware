@@ -14,34 +14,40 @@
 // https://lucid.app/lucidchart/53519501-9fa5-4352-aa40-673f88ca0c9b/edit?invitationId=inv_ebd4b988-513d-4169-93fd-c291851108f8
 typedef enum
 {
-    STATE_ROVER_NOT_STARTED = 0,
-    STATE_ROVER_NO_FIX,
-    STATE_ROVER_FIX,
-    STATE_ROVER_RTK_FLOAT,
-    STATE_ROVER_RTK_FIX,
-    STATE_BASE_CASTER_NOT_STARTED, //Set override flag
-    STATE_BASE_NOT_STARTED,
-    STATE_BASE_TEMP_SETTLE, // User has indicated base, but current pos accuracy is too low
-    STATE_BASE_TEMP_SURVEY_STARTED,
-    STATE_BASE_TEMP_TRANSMITTING,
-    STATE_BASE_FIXED_NOT_STARTED,
-    STATE_BASE_FIXED_TRANSMITTING,
+    STATE_ROVER_NOT_STARTED = 0,        //  0
+    STATE_ROVER_NO_FIX,                 //  1
+    STATE_ROVER_FIX,                    //  2
+    STATE_ROVER_RTK_FLOAT,              //  3
+    STATE_ROVER_RTK_FIX,                //  4
 
-    STATE_DISPLAY_SETUP,
-    STATE_WEB_CONFIG_NOT_STARTED,
-    STATE_WEB_CONFIG_WAIT_FOR_NETWORK,
-    STATE_WEB_CONFIG,
-    STATE_TEST,
-    STATE_TESTING,
-    STATE_PROFILE,
-    STATE_KEYS_REQUESTED,
-    STATE_ESPNOW_PAIRING_NOT_STARTED,
-    STATE_ESPNOW_PAIRING,
-    STATE_NTPSERVER_NOT_STARTED,
-    STATE_NTPSERVER_NO_SYNC,
-    STATE_NTPSERVER_SYNC,
-    STATE_SHUTDOWN,
-    STATE_NOT_SET, // Must be last on list
+    STATE_BASE_CASTER_NOT_STARTED,      //  5, Set override flag
+    STATE_BASE_NOT_STARTED,             //  6
+    STATE_BASE_TEMP_SETTLE,             //  7, User has indicated base, but current pos accuracy is too low
+    STATE_BASE_TEMP_SURVEY_STARTED,     //  8
+    STATE_BASE_TEMP_TRANSMITTING,       //  9
+    STATE_BASE_FIXED_NOT_STARTED,       // 10
+    STATE_BASE_FIXED_TRANSMITTING,      // 11
+
+    STATE_DISPLAY_SETUP,                // 12
+    STATE_WEB_CONFIG_NOT_STARTED,       // 13
+    STATE_WEB_CONFIG_WAIT_FOR_NETWORK,  // 14
+    STATE_WEB_CONFIG,                   // 15
+    STATE_TEST,                         // 16
+    STATE_TESTING,                      // 17
+    STATE_PROFILE,                      // 18
+
+    STATE_KEYS_REQUESTED,               // 19
+
+    STATE_ESPNOW_PAIRING_NOT_STARTED,   // 20
+    STATE_ESPNOW_PAIRING,               // 21
+
+    STATE_NTPSERVER_NOT_STARTED,        // 22
+    STATE_NTPSERVER_NO_SYNC,            // 23
+    STATE_NTPSERVER_SYNC,               // 24
+
+    STATE_SHUTDOWN,                     // 25
+
+    STATE_NOT_SET,                      // 26, Must be last on list
 } SystemState;
 volatile SystemState systemState = STATE_NOT_SET;
 SystemState lastSystemState = STATE_NOT_SET;
