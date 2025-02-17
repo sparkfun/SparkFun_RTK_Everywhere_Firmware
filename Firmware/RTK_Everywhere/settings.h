@@ -381,9 +381,11 @@ typedef enum
     BLUETOOTH_RADIO_OFF,
 } BluetoothRadioType_e;
 
+#define SSID_LENGTH     50
+
 typedef struct WiFiNetwork
 {
-    char ssid[50];
+    char ssid[SSID_LENGTH];
     char password[50];
 } WiFiNetwork;
 

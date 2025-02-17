@@ -3058,7 +3058,7 @@ void displayConfigViaWiFi()
     const int displayMaxCharacters = (present.display_type == DISPLAY_64x48) ? 10 : 21;
     int fontHeight = 8;
     char myIP[20] = {'\0'};
-    char mySSID[50] = {'\0'};
+    char mySSID[SSID_LENGTH + 1] = {'\0'};
     static bool ssidDisplayFirstHalf;
     static unsigned long ssidDisplayTimer;
     int yPos = WiFi_Symbol_Height + 2;
@@ -3092,7 +3092,7 @@ void displayConfigViaWiFi()
     strcpy(mySSID, "!Compiled");
     strcpy(myIP, "0.0.0.0");
 #endif // COMPILE_WIFI
-    mySSID[sizeof(mySSID) - 1] = 0;
+    mySSID[SSID_LENGTH] = 0;
 
     // Trim SSID to a max length
     if ((strlen(mySSID) > displayMaxCharacters) && !ssidDisplayFirstHalf)
