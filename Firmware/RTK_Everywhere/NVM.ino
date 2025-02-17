@@ -1573,29 +1573,29 @@ void loadProfileNumber()
         else
         {
             systemPrintln("profileNumber.txt not found");
-            settings.gnssConfiguredOnce = false; // On the next boot, reapply all settings
-            settings.gnssConfiguredBase = false;
-            settings.gnssConfiguredRover = false;
-            recordProfileNumber(0);             // Record profile
+            settings.gnssConfiguredOnce = 0; // On the next boot, reapply all settings
+            settings.gnssConfiguredBase = 0;
+            settings.gnssConfiguredRover = 0;
+            recordProfileNumber(0); // Record profile
         }
     }
     else
     {
         systemPrintln("profileNumber.txt not found");
-        settings.gnssConfiguredOnce = false; // On the next boot, reapply all settings
-        settings.gnssConfiguredBase = false;
-        settings.gnssConfiguredRover = false;
-        recordProfileNumber(0);             // Record profile
+        settings.gnssConfiguredOnce = 0; // On the next boot, reapply all settings
+        settings.gnssConfiguredBase = 0;
+        settings.gnssConfiguredRover = 0;
+        recordProfileNumber(0); // Record profile
     }
 
     // We have arbitrary limit of user profiles
     if (profileNumber >= MAX_PROFILE_COUNT)
     {
         systemPrintln("ProfileNumber invalid. Going to zero.");
-        settings.gnssConfiguredOnce = false; // On the next boot, reapply all settings
-        settings.gnssConfiguredBase = false;
-        settings.gnssConfiguredRover = false;
-        recordProfileNumber(0);             // Record profile
+        settings.gnssConfiguredOnce = 0; // On the next boot, reapply all settings
+        settings.gnssConfiguredBase = 0;
+        settings.gnssConfiguredRover = 0;
+        recordProfileNumber(0); // Record profile
     }
 
     systemPrintf("Using profile #%d\r\n", profileNumber);

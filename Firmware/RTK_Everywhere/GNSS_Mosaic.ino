@@ -389,6 +389,18 @@ bool GNSS_MOSAIC::checkPPPRates()
 // Outputs:
 //   Returns true if successfully configured and false upon failure
 //----------------------------------------
+// If any of the settings in the signature have changed, reapply the Base configuration
+// See GNSS_MOSAIC_ROVER_SIGNATURE as an example
+#define GNSS_MOSAIC_BASE_SIGNATURE                                      \
+    (                                                                   \
+        ((settings.minElev & 0x01) << 1)                                \
+        | ((settings.enableGnssToUsbSerial & 0x01) << 2)                \
+        | ((settings.enablePointPerfectCorrections & 0x01) << 3)        \
+        | ((settings.ntripClient_TransmitGGA & 0x01) << 4)              \
+        | ((settings.enableLogging & 0x01) << 5)                        \
+        | ((settings.enableLoggingRINEX & 0x01) << 6)                   \
+        | ((settings.enableExternalHardwareEventLogging & 0x01) << 7)   \
+    )
 bool GNSS_MOSAIC::configureBase()
 {
     /*
@@ -406,7 +418,7 @@ bool GNSS_MOSAIC::configureBase()
         return (false);
     }
 
-    if (settings.gnssConfiguredBase)
+    if (settings.gnssConfiguredBase == 0x01 | GNSS_MOSAIC_BASE_SIGNATURE)
     {
         systemPrintln("Skipping mosaic Base configuration");
         setLoggingType(); // Needed because logUpdate exits early and never calls setLoggingType
@@ -435,7 +447,10 @@ bool GNSS_MOSAIC::configureBase()
         systemPrintln("mosaic-X5 Base failed to configure");
     }
 
-    settings.gnssConfiguredBase = response;
+    if (response)
+        settings.gnssConfiguredBase = 0x01 | GNSS_MOSAIC_BASE_SIGNATURE;
+    else
+        settings.gnssConfiguredBase = 0;
 
     return (response);
 }
@@ -539,6 +554,12 @@ bool GNSS_MOSAIC::configureLBand(bool enableLBand, uint32_t LBandFreq)
 // Outputs:
 //   Returns true if successfully configured and false upon failure
 //----------------------------------------
+// If any of the settings in the signature have changed, reapply the configuration
+// See GNSS_MOSAIC_ROVER_SIGNATURE as an example
+#define GNSS_MOSAIC_ONCE_SIGNATURE  \
+    (                               \
+        0                           \
+    )
 bool GNSS_MOSAIC::configureOnce()
 {
     /*
@@ -551,7 +572,7 @@ bool GNSS_MOSAIC::configureOnce()
     RTCMv3 messages are enabled by enableRTCMRover / enableRTCMBase
     */
 
-    if (settings.gnssConfiguredOnce)
+    if (settings.gnssConfiguredOnce == 0x01 | GNSS_MOSAIC_ONCE_SIGNATURE)
     {
         systemPrintln("mosaic configuration maintained");
         return (true);
@@ -609,7 +630,10 @@ bool GNSS_MOSAIC::configureOnce()
     else
         online.gnss = false; // Take it offline
 
-    settings.gnssConfiguredOnce = response;
+    if (response)
+        settings.gnssConfiguredOnce = 0x01 | GNSS_MOSAIC_ONCE_SIGNATURE;
+    else
+        settings.gnssConfiguredOnce = 0;
 
     return (response);
 }
@@ -638,6 +662,15 @@ bool GNSS_MOSAIC::configureGNSS()
 // Outputs:
 //   Returns true if successfully configured and false upon failure
 //----------------------------------------
+// If any of the settings in the signature have changed, reapply the Rover configuration
+#define GNSS_MOSAIC_ROVER_SIGNATURE                                     \
+    (                                                                   \
+        ((settings.enablePointPerfectCorrections & 0x01) << 1)          \
+        | ((settings.enableGnssToUsbSerial & 0x01) << 2)                \
+        | ((settings.ntripClient_TransmitGGA & 0x01) << 3)              \
+        | ((settings.enableLogging & 0x01) << 4)                        \
+        | ((settings.enableExternalHardwareEventLogging & 0x01) << 5)   \
+    )
 bool GNSS_MOSAIC::configureRover()
 {
     /*
@@ -653,7 +686,7 @@ bool GNSS_MOSAIC::configureRover()
     }
 
     // If our settings haven't changed, trust GNSS's settings
-    if (settings.gnssConfiguredRover)
+    if (settings.gnssConfiguredRover == 0x01 | GNSS_MOSAIC_ROVER_SIGNATURE)
     {
         systemPrintln("Skipping mosaic Rover configuration");
         setLoggingType(); // Needed because logUpdate exits early and never calls setLoggingType
@@ -684,7 +717,10 @@ bool GNSS_MOSAIC::configureRover()
         systemPrintln("mosaic-X5 Rover failed to configure");
     }
 
-    settings.gnssConfiguredRover = response;
+    if (response)
+        settings.gnssConfiguredRover = 0x01 | GNSS_MOSAIC_ROVER_SIGNATURE;
+    else
+        settings.gnssConfiguredRover = 0;
 
     return (response);
 }

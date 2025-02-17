@@ -654,9 +654,14 @@ struct Settings
     uint16_t measurementRateMs = 250;       // Elapsed ms between GNSS measurements. 25ms to 65535ms. Default 4Hz.
     uint16_t navigationRate =
         1; // Ratio between number of measurements and navigation solutions. Default 1 for 4Hz (with measurementRate).
-    bool gnssConfiguredOnce = false; // Flags to indicate how the GNSS is configured (Once, Base, Rover, etc.)
-    bool gnssConfiguredBase = false;
-    bool gnssConfiguredRover = false;
+
+    // Signatures to indicate how the GNSS is configured (Once, Base, Rover, etc.)
+    // Bit 0 indicates if the GNSS has been configured previously.
+    // Bits 1 onwards record the state of critical settings. E.g. settings.enable
+    // If those critical settings have changed 
+    uint8_t gnssConfiguredOnce = 0;
+    uint8_t gnssConfiguredBase = 0;
+    uint8_t gnssConfiguredRover = 0;
 
     // GNSS UART
     uint16_t serialGNSSRxFullThreshold = 50; // RX FIFO full interrupt. Max of ~128. See pinUART2Task().
@@ -1249,9 +1254,9 @@ const RTK_Settings_Entry rtkSettingsEntries[] =
     { 0, 0, 0, 1, 1, 1, 1, 1, 1, _bool,     0, & settings.enablePrintPosition, "enablePrintPosition",  },
     { 0, 1, 0, 1, 1, 1, 1, 1, 1, _uint16_t, 0, & settings.measurementRateMs, "measurementRateMs",  },
     { 0, 1, 0, 1, 1, 1, 1, 1, 1, _uint16_t, 0, & settings.navigationRate, "navigationRate",  },
-    { 0, 0, 0, 1, 1, 1, 1, 1, 1, _bool,     0, & settings.gnssConfiguredOnce, "gnssConfiguredOnce",  },
-    { 0, 0, 0, 1, 1, 1, 1, 1, 1, _bool,     0, & settings.gnssConfiguredBase, "gnssConfiguredBase",  },
-    { 0, 0, 0, 1, 1, 1, 1, 1, 1, _bool,     0, & settings.gnssConfiguredRover, "gnssConfiguredRover",  },
+    { 0, 0, 0, 1, 1, 1, 1, 1, 1, _uint8_t,  0, & settings.gnssConfiguredOnce, "gnssConfiguredOnce",  },
+    { 0, 0, 0, 1, 1, 1, 1, 1, 1, _uint8_t,  0, & settings.gnssConfiguredBase, "gnssConfiguredBase",  },
+    { 0, 0, 0, 1, 1, 1, 1, 1, 1, _uint8_t,  0, & settings.gnssConfiguredRover, "gnssConfiguredRover",  },
 
     // Hardware
     { 1, 1, 0, 1, 1, 1, 0, 1, 0, _bool,     0, & settings.enableExternalHardwareEventLogging, "enableExternalHardwareEventLogging",  },

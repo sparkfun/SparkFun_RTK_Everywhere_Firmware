@@ -456,8 +456,8 @@ void menuUserProfiles()
 // Change the active profile number, without unit reset
 void changeProfileNumber(byte newProfileNumber)
 {
-    settings.gnssConfiguredBase = false; // On the next boot, reapply all settings
-    settings.gnssConfiguredRover = false;
+    settings.gnssConfiguredBase = 0; // On the next boot, reapply all settings
+    settings.gnssConfiguredRover = 0;
     recordSystemSettings(); // Before switching, we need to record the current settings to LittleFS and SD
 
     recordProfileNumber(newProfileNumber);

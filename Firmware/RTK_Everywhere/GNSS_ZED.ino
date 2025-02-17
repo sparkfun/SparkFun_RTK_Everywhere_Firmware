@@ -322,12 +322,18 @@ bool GNSS_ZED::checkPPPRates()
 //----------------------------------------
 // Configure specific aspects of the receiver for base mode
 //----------------------------------------
+// If any of the settings in the signature have changed, reapply the Base configuration
+// See GNSS_MOSAIC_ROVER_SIGNATURE as an example
+#define GNSS_ZED_BASE_SIGNATURE \
+    (                           \
+        0                       \
+    )
 bool GNSS_ZED::configureBase()
 {
     if (online.gnss == false)
         return (false);
 
-    if (settings.gnssConfiguredBase)
+    if (settings.gnssConfiguredBase == 0x01 | GNSS_ZED_BASE_SIGNATURE)
     {
         if (settings.debugGnss)
             systemPrintln("Skipping ZED Base configuration");
@@ -418,7 +424,10 @@ bool GNSS_ZED::configureBase()
 
     // The configuration should be saved to RAM+BBR+FLASH. No need to saveConfiguration here.
 
-    settings.gnssConfiguredBase = success;
+    if (success)
+        settings.gnssConfiguredBase = 0x01 | GNSS_ZED_BASE_SIGNATURE;
+    else
+        settings.gnssConfiguredBase = 0;
 
     return (success);
 }
@@ -517,6 +526,12 @@ bool GNSS_ZED::configureNtpMode()
 // In general we check if the setting is incorrect before writing it. Otherwise, the set commands have, on rare
 // occasion, become corrupt. The worst is when the I2C port gets turned off or the I2C address gets borked.
 //----------------------------------------
+// If any of the settings in the signature have changed, reapply the configuration
+// See GNSS_MOSAIC_ROVER_SIGNATURE as an example
+#define GNSS_ZED_ONCE_SIGNATURE \
+    (                           \
+        0                       \
+    )
 bool GNSS_ZED::configureGNSS()
 {
     if (online.gnss == false)
@@ -578,7 +593,7 @@ bool GNSS_ZED::configureGNSS()
     // Configuring the ZED can take more than 2000ms. Configuration is saved to
     // ZED RAM+BBR so there is no need to update settings unless user has modified
     // the settings file or internal settings.
-    if (settings.gnssConfiguredOnce)
+    if (settings.gnssConfiguredOnce == 0x01 | GNSS_ZED_ONCE_SIGNATURE)
     {
         systemPrintln("ZED-F9x configuration maintained");
         return (true);
@@ -755,12 +770,13 @@ bool GNSS_ZED::configureGNSS()
 
     if (success)
     {
-        systemPrintln("ZED-F9x configuration update");
+        systemPrintln("ZED-F9x configuration updated");
+        settings.gnssConfiguredOnce = 0x01 | GNSS_ZED_ONCE_SIGNATURE;
     }
+    else
+        settings.gnssConfiguredOnce = 0;
 
     // The configuration should be saved to RAM+BBR+FLASH. No need to saveConfiguration here.
-
-    settings.gnssConfiguredOnce = success;
 
     return (success);
 }
@@ -768,6 +784,12 @@ bool GNSS_ZED::configureGNSS()
 //----------------------------------------
 // Configure specific aspects of the receiver for rover mode
 //----------------------------------------
+// If any of the settings in the signature have changed, reapply the Base configuration
+// See GNSS_MOSAIC_ROVER_SIGNATURE as an example
+#define GNSS_ZED_ROVER_SIGNATURE \
+    (                            \
+        0                        \
+    )
 bool GNSS_ZED::configureRover()
 {
     if (online.gnss == false)
@@ -777,7 +799,7 @@ bool GNSS_ZED::configureRover()
     }
 
     // If our settings haven't changed, trust GNSS's settings
-    if (settings.gnssConfiguredRover)
+    if (settings.gnssConfiguredRover == 0x01 | GNSS_ZED_ROVER_SIGNATURE)
     {
         systemPrintln("Skipping ZED Rover configuration");
         return (true);
@@ -850,11 +872,14 @@ bool GNSS_ZED::configureRover()
 
     if (!success)
         systemPrintln("Rover config fail");
+    
+    if (success)
+        settings.gnssConfiguredRover = 0x01 | GNSS_ZED_ROVER_SIGNATURE;
+    else
+        settings.gnssConfiguredRover = 0;
 
     // The configuration should be saved to RAM+BBR+FLASH. No need to saveConfiguration here.
 
-    settings.gnssConfiguredRover = success;
-        
     return (success);
 }
 
