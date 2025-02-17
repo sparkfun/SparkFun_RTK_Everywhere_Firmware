@@ -881,7 +881,7 @@ bool RTK_WIFI::enable(bool enableESPNow, bool enableSoftAP, bool enableStation)
     if (enableSoftAP)
     {
         // Verify that the SSID is set
-        if (wifiSoftApSsid && strlen(wifiSoftApSsid) && wifiSoftApPassword)
+        if (wifiSoftApSsid && strlen(wifiSoftApSsid))
         {
             starting |= WIFI_START_SOFT_AP;
             wifiSoftApRunning = true;
@@ -1397,7 +1397,8 @@ bool RTK_WIFI::softApSetSsidPassword(const char * ssid, const char * password)
     if (!created)
         systemPrintf("ERROR: Failed to set soft AP SSID and Password!\r\n");
     else if (settings.debugWifiState)
-        systemPrintf("WiFi AP: SSID: %s, Password: %s\r\n", ssid, password);
+        systemPrintf("WiFi AP: SSID: %s%s%s\r\n", ssid,
+                     password ? ", Password: " : "", password ? password : "");
     return created;
 }
 
@@ -2343,10 +2344,11 @@ bool RTK_WIFI::stopStart(WIFI_ACTION_t stopping, WIFI_ACTION_t starting)
             _started = _started | WIFI_AP_ONLINE;
 
             // Display the soft AP status
-            systemPrintf("WiFi: Soft AP online, SSID: %s (%s), Password: %s\r\n",
+            systemPrintf("WiFi: Soft AP online, SSID: %s (%s)%s%s\r\n",
                          wifiSoftApSsid,
                          _apIpAddress.toString().c_str(),
-                         wifiSoftApPassword);
+                         wifiSoftApPassword ? ", Password: " : "",
+                         wifiSoftApPassword ? wifiSoftApPassword : "");
         }
 
         //****************************************
