@@ -521,40 +521,33 @@ void networkConsumerRemove(NETCONSUMER_t consumer, NetIndex_t network)
         // Display the network consumers
         if (settings.debugNetworkLayer)
             networkConsumerDisplay();
-    }
-    else
-    {
-        systemPrintf("ERROR: Network consumer %s removed more than once from network %s\r\n",
-                     networkConsumerTable[consumer],
-                     networkInterfaceTable[index]);
-        reportFatalError("Network consumer removed more than once!");
-    }
 
-    // Stop the networks when the consumer count reaches zero
-    if (consumers && (networkConsumerCount == 0))
-    {
-        // Display the consumer
-        if (settings.debugNetworkLayer)
-            systemPrintf("Network: Stopping the networks\r\n");
-
-        // Walk the networks in increasing priority
-        // Turn off the lower priority networks first to eliminate failover
-        for (priority = NETWORK_MAX - 1; priority >= 0; priority -= 1)
+        // Stop the networks when the consumer count reaches zero
+        if (networkConsumerCount == 0)
         {
-            // Translate the priority into an interface index
-            index = networkIndexTable[priority];
+            // Display the consumer
+            if (settings.debugNetworkLayer)
+                systemPrintf("Network: Stopping the networks\r\n");
 
-            // Verify that this interface is started
-            if (networkIsStarted(index))
-                // Attempt to stop this network interface
-                networkStop(index, settings.debugNetworkLayer);
+            // Walk the networks in increasing priority
+            // Turn off the lower priority networks first to eliminate failover
+            for (priority = NETWORK_MAX - 1; priority >= 0; priority -= 1)
+            {
+                // Translate the priority into an interface index
+                index = networkIndexTable[priority];
+
+                // Verify that this interface is started
+                if (networkIsStarted(index))
+                    // Attempt to stop this network interface
+                    networkStop(index, settings.debugNetworkLayer);
+            }
+
+            // Update the network priority
+            networkPriority = NETWORK_OFFLINE;
+
+            // Let other tasks handle the network failure
+            delay(100);
         }
-
-        // Update the network priority
-        networkPriority = NETWORK_OFFLINE;
-
-        // Let other tasks handle the network failure
-        delay(100);
     }
 }
 
