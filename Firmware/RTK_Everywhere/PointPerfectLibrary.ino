@@ -19,14 +19,11 @@ void updatePplTask(void *e)
             systemPrintln("UpdatePplTask running");
         }
 
-        if (pplNewRtcmNmea || pplNewSpartnMqtt || pplNewSpartnMqtt) // Decide when to call PPL_GetRTCMOutput
+        if (pplNewRtcmNmea || pplNewSpartnMqtt || pplNewSpartnLBand) // Decide when to call PPL_GetRTCMOutput
         {
-            if (pplNewRtcmNmea)
-                pplNewRtcmNmea = false;
-            if (pplNewSpartnMqtt)
-                pplNewSpartnMqtt = false;
-            if (pplNewSpartnLBand)
-                pplNewSpartnLBand = false;
+            pplNewRtcmNmea = false;
+            pplNewSpartnMqtt = false;
+            pplNewSpartnLBand = false;
 
             uint32_t rtcmLength;
 
