@@ -85,6 +85,7 @@ bool httpClientConnectLimitReached()
 
     // Retry the connection a few times
     limitReached = (httpClientConnectionAttempts >= MAX_HTTP_CLIENT_CONNECTION_ATTEMPTS);
+    limitReached = false;
 
     bool enableHttpClient = true;
     if (!settings.enablePointPerfectCorrections)
