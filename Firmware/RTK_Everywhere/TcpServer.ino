@@ -148,6 +148,27 @@ int32_t tcpServerClientSendData(int index, uint8_t *data, uint16_t length)
 }
 
 //----------------------------------------
+// Determine if the TCP server may be enabled
+//----------------------------------------
+bool tcpServerEnabled()
+{
+    bool enabled;
+
+    do
+    {
+        enabled = false;
+
+        // Verify the operating mode
+        if (NEQ_RTK_MODE(tcpServerMode))
+            break;
+
+        // Verify still enabled
+        enabled = settings.enableTcpServer || settings.baseCasterOverride;
+    } while (0);
+    return enabled;
+}
+
+//----------------------------------------
 // Send TCP data to the clients
 //----------------------------------------
 int32_t tcpServerSendData(uint16_t dataHead)
@@ -345,16 +366,15 @@ void tcpServerUpdate()
 {
     bool connected;
     bool dataSent;
+    bool enabled;
     int index;
     IPAddress ipAddress;
 
     // Shutdown the TCP server when the mode or setting changes
     DMW_st(tcpServerSetState, tcpServerState);
-    if (NEQ_RTK_MODE(tcpServerMode) || (!settings.enableTcpServer && !settings.baseCasterOverride))
-    {
-        if (tcpServerState > TCP_SERVER_STATE_OFF)
-            tcpServerStop();
-    }
+    enabled = tcpServerEnabled();
+    if ((tcpServerState > TCP_SERVER_STATE_OFF) && !enabled)
+        tcpServerStop();
 
     /*
         TCP Server state machine
@@ -385,7 +405,7 @@ void tcpServerUpdate()
     // Wait until the TCP server is enabled
     case TCP_SERVER_STATE_OFF:
         // Determine if the TCP server should be running
-        if (EQ_RTK_MODE(tcpServerMode) && (settings.enableTcpServer || settings.baseCasterOverride))
+        if (enabled)
         {
             if (settings.debugTcpServer && (!inMainMenu))
                 systemPrintln("TCP server start");
@@ -396,12 +416,8 @@ void tcpServerUpdate()
 
     // Wait until the network is connected
     case TCP_SERVER_STATE_WAIT_FOR_NETWORK:
-        // Determine if the TCP server was turned off
-        if (NEQ_RTK_MODE(tcpServerMode) || (!settings.enableTcpServer && !settings.baseCasterOverride))
-            tcpServerStop();
-
         // Wait until the network is connected to the media
-        else if (networkIsConnected(&tcpServerPriority))
+        if (networkIsConnected(&tcpServerPriority))
         {
             // Delay before starting the TCP server
             if ((millis() - tcpServerTimer) >= (1 * 1000))
