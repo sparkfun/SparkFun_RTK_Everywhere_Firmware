@@ -427,6 +427,9 @@ bool checkCertificates()
         systemPrintf("Stored certificates are %svalid\r\n", validCertificates ? "" : "NOT ");
     }
 
+    // Enable MQTT once the certificates are available and valid
+    if (validCertificates)
+        mqttClientStartEnabled();
     return (validCertificates);
 }
 

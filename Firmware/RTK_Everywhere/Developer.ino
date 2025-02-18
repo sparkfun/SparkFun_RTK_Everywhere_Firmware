@@ -133,6 +133,7 @@ bool mqttClientIsConnected() {return false;}
 bool mqttClientNeedsNetwork() {return false;}
 void mqttClientPrintStatus() {}
 void mqttClientRestart() {}
+void mqttClientStartEnabled() {}
 void mqttClientUpdate() {}
 void mqttClientValidateTables() {}
 
