@@ -166,7 +166,10 @@ bool GNSS_UM980::configureBase()
         return (false);
     }
 
-    // // If our settings haven't changed, trust GNSS's settings
+    // Trusting the saved configuration does not seem to work on the UM980.
+    // It looks like the GPGGA NMEA output does not restart...?
+    // (Re)configuration is quick. Doing this every time is not much of an overhead.
+    //
     // if (settings.gnssConfiguredBase)
     // {
     //     if (settings.debugGnss)
@@ -344,7 +347,10 @@ bool GNSS_UM980::configureRover()
         return (false);
     }
 
-    // // If our settings haven't changed, trust GNSS's settings
+    // Trusting the saved configuration does not seem to work on the UM980.
+    // It looks like the GPGGA NMEA output does not restart...?
+    // (Re)configuration is quick. Doing this every time is not much of an overhead.
+    //
     // if (settings.gnssConfiguredRover)
     // {
     //     systemPrintln("Skipping UM980 Rover configuration");
