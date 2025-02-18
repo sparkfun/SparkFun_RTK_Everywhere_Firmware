@@ -105,6 +105,7 @@ Network.ino
 
 static const char * networkConsumerTable[] =
 {
+    "HTTP_CLIENT",
     "NTRIP_CLIENT",
     "NTRIP_SERVER",
     "OTA_CLIENT",
