@@ -306,10 +306,12 @@ bool ntripClientConnect()
 //----------------------------------------
 bool ntripClientConnectLimitReached()
 {
+    bool limitReached;
     int seconds;
 
     // Retry the connection a few times
-    bool limitReached = (ntripClientConnectionAttempts >= MAX_NTRIP_CLIENT_CONNECTION_ATTEMPTS);
+    limitReached = (ntripClientConnectionAttempts >= MAX_NTRIP_CLIENT_CONNECTION_ATTEMPTS);
+    limitReached = false;
 
     // Restart the NTRIP client
     ntripClientStop(limitReached || (!settings.enableNtripClient));
