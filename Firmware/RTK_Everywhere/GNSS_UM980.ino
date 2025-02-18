@@ -166,12 +166,13 @@ bool GNSS_UM980::configureBase()
         return (false);
     }
 
-    if (settings.gnssConfiguredBase)
-    {
-        if (settings.debugGnss)
-            systemPrintln("Skipping UM980 Base configuration");
-        return true;
-    }
+    // // If our settings haven't changed, trust GNSS's settings
+    // if (settings.gnssConfiguredBase)
+    // {
+    //     if (settings.debugGnss)
+    //         systemPrintln("Skipping UM980 Base configuration");
+    //     return true;
+    // }
 
     disableAllOutput();
 
@@ -225,6 +226,7 @@ bool GNSS_UM980::configureOnce()
       Enable selected RTCM messages on COM3
 */
 
+    // // If our settings haven't changed, trust GNSS's settings
     if (settings.gnssConfiguredOnce)
     {
         systemPrintln("UM980 configuration maintained");
@@ -342,12 +344,12 @@ bool GNSS_UM980::configureRover()
         return (false);
     }
 
-    // If our settings haven't changed, trust GNSS's settings
-    if (settings.gnssConfiguredRover)
-    {
-        systemPrintln("Skipping UM980 Rover configuration");
-        return (true);
-    }
+    // // If our settings haven't changed, trust GNSS's settings
+    // if (settings.gnssConfiguredRover)
+    // {
+    //     systemPrintln("Skipping UM980 Rover configuration");
+    //     return (true);
+    // }
 
     disableAllOutput();
 
