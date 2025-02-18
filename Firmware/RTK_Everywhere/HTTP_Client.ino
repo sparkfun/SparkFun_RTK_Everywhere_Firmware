@@ -86,6 +86,7 @@ bool httpClientConnectLimitReached()
 
     // Retry the connection a few times
     limitReached = (httpClientConnectionAttempts >= MAX_HTTP_CLIENT_CONNECTION_ATTEMPTS);
+    limitReached = false;
 
     // Restart the HTTP client
     httpClientStop(limitReached || (!httpClientEnabled()));
