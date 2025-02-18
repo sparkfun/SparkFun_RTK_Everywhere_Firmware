@@ -557,6 +557,8 @@ void mqttClientReceiveMessage(int messageSize)
 
                 sendSpartnToPpl(mqttData, mqttCount);
                 bytesPushed += mqttCount;
+
+                mqttClientDataReceived = true;
             }
 
             // Record the arrival of data over MQTT
