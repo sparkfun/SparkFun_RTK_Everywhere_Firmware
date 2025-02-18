@@ -408,9 +408,14 @@ void networkConsumerAdd(NETCONSUMER_t consumer, NetIndex_t network)
 
                         // Determine if the network has started
                         if (networkIsStarted(index) == false)
+                        {
                             // Attempt to start the highest priority network
                             // The network layer will start the lower priority networks
+                            if (settings.debugNetworkLayer)
+                                systemPrintf("Network: Calling networkStart(%s) from %s at line %d\r\n",
+                                             networkInterfaceTable[index].name, __FILE__, __LINE__);
                             networkStart(index, settings.debugNetworkLayer);
+                        }
                         break;
                     }
                 }
@@ -538,8 +543,13 @@ void networkConsumerRemove(NETCONSUMER_t consumer, NetIndex_t network)
 
                 // Verify that this interface is started
                 if (networkIsStarted(index))
+                {
                     // Attempt to stop this network interface
+                    if (settings.debugNetworkLayer)
+                        systemPrintf("Network: Calling networkStop(%s) from %s at line %d\r\n",
+                                     networkInterfaceTable[index].name, __FILE__, __LINE__);
                     networkStop(index, settings.debugNetworkLayer);
+                }
             }
 
             // Update the network priority
@@ -1053,6 +1063,9 @@ void networkInterfaceInternetConnectionLost(NetIndex_t index)
 
                 // Interface not connected to the internet
                 // Start this interface
+                if (settings.debugNetworkLayer)
+                    systemPrintf("Network: Calling networkStart(%s) from %s at line %d\r\n",
+                                 networkInterfaceTable[index].name, __FILE__, __LINE__);
                 networkStart(index, settings.debugNetworkLayer);
             }
         }
@@ -1655,6 +1668,13 @@ void networkStart(NetIndex_t index, bool debug)
             networkSequenceStart(index, debug);
         }
     }
+    else if (debug)
+    {
+        if (networkIsPresent(index))
+            systemPrintf("Network: No consumers, shutting down\r\n");
+        else
+            systemPrintf("Network: %s not present\r\n", networkInterfaceTable[index].name);
+    }
 }
 
 //----------------------------------------
@@ -1682,8 +1702,13 @@ void networkStartNextInterface(NetIndex_t index)
             if (networkIsPresent(index))
             {
                 if (((networkStarted | networkSeqStarting) & bitMask) == 0)
+                {
                     // Start this network interface
+                    if (settings.debugNetworkLayer)
+                        systemPrintf("Network: Calling networkStart(%s) from %s at line %d\r\n",
+                                     networkInterfaceTable[index].name, __FILE__, __LINE__);
                     networkStart(index, settings.debugNetworkLayer);
+                }
                 break;
             }
         }
@@ -1766,6 +1791,9 @@ void networkStartDelayed(NetIndex_t index, uintptr_t parameter, bool debug)
 
             // Only lower priority interfaces or none running
             // Start this network interface
+            if (settings.debugNetworkLayer)
+                systemPrintf("Network: Calling networkStart(%s) from %s at line %d\r\n",
+                             networkInterfaceTable[index].name, __FILE__, __LINE__);
             networkStart(index, settings.debugNetworkLayer);
         }
         else if (debug)
@@ -1813,14 +1841,28 @@ void networkUpdate()
             // Attempt to restart WiFi
             if ((index == NETWORK_WIFI_STATION) && (networkIsHighestPriority(index)))
             {
+                if (settings.debugNetworkLayer)
+                    systemPrintf("Network: Calling networkStop(%s) from %s at line %d\r\n",
+                                 networkInterfaceTable[index].name, __FILE__, __LINE__);
                 networkStop(index, settings.debugWifiState);
+                if (settings.debugNetworkLayer)
+                {
+                    networkDisplayStatus();
+                    systemPrintf("Network: Calling networkStart(%s) from %s at line %d\r\n",
+                                 networkInterfaceTable[index].name, __FILE__, __LINE__);
+                }
                 networkStart(index, settings.debugWifiState);
             }
         }
 
         // Handle the network stop event
         if (networkEventStop[index])
+        {
+            if (settings.debugNetworkLayer)
+                systemPrintf("Network: Calling networkStop(%s) from %s at line %d\r\n",
+                             networkInterfaceTable[index].name, __FILE__, __LINE__);
             networkStop(index, settings.debugNetworkLayer);
+        }
 
         // Handle the network has internet event
         if (networkEventInternetAvailable[index])
@@ -1852,6 +1894,9 @@ void networkUpdate()
             if (settings.debugNetworkLayer)
                 systemPrintln("WiFi settings changed, restarting WiFi");
 
+            if (settings.debugNetworkLayer)
+                systemPrintf("Network: Calling networkStop(%s) from %s at line %d\r\n",
+                             networkInterfaceTable[index].name, __FILE__, __LINE__);
             networkStop(NETWORK_WIFI_STATION, settings.debugNetworkLayer);
         }
     }
