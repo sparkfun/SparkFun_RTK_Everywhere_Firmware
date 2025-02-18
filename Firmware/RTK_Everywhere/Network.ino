@@ -1856,10 +1856,13 @@ void networkUpdate()
             // Attempt to restart WiFi
             if ((index == NETWORK_WIFI_STATION) && (networkIsHighestPriority(index)))
             {
-                if (settings.debugNetworkLayer)
-                    systemPrintf("Network: Calling networkStop(%s) from %s at line %d\r\n",
-                                 networkInterfaceTable[index].name, __FILE__, __LINE__);
-                networkStop(index, settings.debugWifiState);
+                if (networkIsStarted(index))
+                {
+                    if (settings.debugNetworkLayer)
+                        systemPrintf("Network: Calling networkStop(%s) from %s at line %d\r\n",
+                                     networkInterfaceTable[index].name, __FILE__, __LINE__);
+                    networkStop(index, settings.debugWifiState);
+                }
                 if (settings.debugNetworkLayer)
                 {
                     networkDisplayStatus();
