@@ -176,7 +176,7 @@ class GNSS_LG290P : GNSS
     //   Returns true if successfully started and false upon failure
     bool enableRTCMTest();
 
-    bool enterConfigMode();
+    bool enterConfigMode(unsigned long waitForSemaphoreTimeout_millis);
 
     bool exitConfigMode();
 
