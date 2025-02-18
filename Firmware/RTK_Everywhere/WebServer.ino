@@ -1028,11 +1028,7 @@ bool webServerAssignResources(int httpPort = 80)
         {
             if (settings.debugWebServer == true)
                 systemPrintln("Web Sockets failed to start");
-
-            webServerStopSockets();
-            webServerReleaseResources();
-
-            return (false);
+            break;
         }
 
         if (settings.debugWebServer == true)
@@ -1043,7 +1039,6 @@ bool webServerAssignResources(int httpPort = 80)
     } while (0);
 
     // Release the resources
-    webServerStopSockets();
     webServerReleaseResources();
     return false;
 }
@@ -1089,6 +1084,8 @@ void webServerReleaseResources()
     do
         delay(10);
     while (task.updateWebServerTaskRunning);
+
+    webServerStopSockets();      // Release socket resources
 
     if (webServer != nullptr)
     {
@@ -1205,7 +1202,6 @@ void webServerStop()
     {
         online.webServer = false;
 
-        webServerStopSockets();      // Release socket resources
         webServerReleaseResources(); // Release web server resources
 
         // Stop network
