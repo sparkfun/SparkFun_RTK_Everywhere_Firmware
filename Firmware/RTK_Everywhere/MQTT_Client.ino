@@ -164,6 +164,7 @@ bool mqttClientConnectLimitReached()
 
     // Retry the connection a few times
     limitReached = (mqttClientConnectionAttempts >= MAX_MQTT_CLIENT_CONNECTION_ATTEMPTS);
+    limitReached = false;
 
     bool enableMqttClient = mqttClientIsNeeded();
 
