@@ -1257,7 +1257,7 @@ void webServerUpdate()
     case WEBSERVER_STATE_NETWORK_CONNECTED: {
         // Determine if the network has failed
         if (networkIsConnected(&webServerPriority) == false && wifiSoftApRunning == false)
-            webServerStop();
+            webServerSetState(WEBSERVER_STATE_WAIT_FOR_NETWORK);
         if (settings.debugWebServer)
             systemPrintln("Assigning web server resources");
 
@@ -1270,7 +1270,10 @@ void webServerUpdate()
     case WEBSERVER_STATE_RUNNING:
         // Determine if the network has failed
         if (networkIsConnected(&webServerPriority) == false && wifiSoftApRunning == false)
-            webServerStop();
+        {
+            webServerReleaseResources(); // Release web server resources
+            webServerSetState(WEBSERVER_STATE_WAIT_FOR_NETWORK);
+        }
 
         // This state is exited when webServerStop() is called
 
