@@ -1573,18 +1573,18 @@ void loadProfileNumber()
         else
         {
             systemPrintln("profileNumber.txt not found");
-            settings.gnssConfiguredOnce = 0; // On the next boot, reapply all settings
-            settings.gnssConfiguredBase = 0;
-            settings.gnssConfiguredRover = 0;
+            settings.gnssConfiguredOnce = false; // On the next boot, reapply all settings
+            settings.gnssConfiguredBase = false;
+            settings.gnssConfiguredRover = false;
             recordProfileNumber(0); // Record profile
         }
     }
     else
     {
         systemPrintln("profileNumber.txt not found");
-        settings.gnssConfiguredOnce = 0; // On the next boot, reapply all settings
-        settings.gnssConfiguredBase = 0;
-        settings.gnssConfiguredRover = 0;
+        settings.gnssConfiguredOnce = false; // On the next boot, reapply all settings
+        settings.gnssConfiguredBase = false;
+        settings.gnssConfiguredRover = false;
         recordProfileNumber(0); // Record profile
     }
 
@@ -1592,9 +1592,9 @@ void loadProfileNumber()
     if (profileNumber >= MAX_PROFILE_COUNT)
     {
         systemPrintln("ProfileNumber invalid. Going to zero.");
-        settings.gnssConfiguredOnce = 0; // On the next boot, reapply all settings
-        settings.gnssConfiguredBase = 0;
-        settings.gnssConfiguredRover = 0;
+        settings.gnssConfiguredOnce = false; // On the next boot, reapply all settings
+        settings.gnssConfiguredBase = false;
+        settings.gnssConfiguredRover = false;
         recordProfileNumber(0); // Record profile
     }
 
