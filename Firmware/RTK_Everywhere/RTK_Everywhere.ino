@@ -363,11 +363,17 @@ RTK_WIFI wifi(false);
 
 // WiFi Globals - For other module direct access
 WIFI_CHANNEL_t wifiChannel;     // Current WiFi channel number
+bool wifiEspNowOnline;          // ESP-Now started successfully
 bool wifiEspNowRunning;         // False: stopped, True: starting, running, stopping
 uint32_t wifiReconnectionTimer; // Delay before reconnection, timer running when non-zero
 bool wifiRestartRequested;      // Restart WiFi if user changes anything
+bool wifiSoftApOnline;          // WiFi soft AP started successfully
 bool wifiSoftApRunning;         // False: stopped, True: starting, running, stopping
+bool wifiStationOnline;         // WiFi station started successfully
 bool wifiStationRunning;        // False: stopped, True: starting, running, stopping
+
+const char * wifiSoftApSsid = "RTK Config";
+const char * wifiSoftApPassword = nullptr;
 
 //-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 

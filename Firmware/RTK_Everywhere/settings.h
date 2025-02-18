@@ -381,9 +381,11 @@ typedef enum
     BLUETOOTH_RADIO_OFF,
 } BluetoothRadioType_e;
 
+#define SSID_LENGTH     50
+
 typedef struct WiFiNetwork
 {
-    char ssid[50];
+    char ssid[SSID_LENGTH];
     char password[50];
 } WiFiNetwork;
 
@@ -2175,6 +2177,10 @@ class RTK_WIFI
     //   display: Address of a Print object
     void softApConfigurationDisplay(Print * display);
 
+    // Get the soft AP IP address
+    // Returns the soft IP address
+    IPAddress softApIpAddress();
+
     // Get the soft AP status
     // Outputs:
     //   Returns true when the soft AP is ready for use
@@ -2189,10 +2195,17 @@ class RTK_WIFI
     //    otherwise
     bool startAp(bool forceAP);
 
+    // Get the WiFi station IP address
+    // Returns the IP address of the WiFi station
+    IPAddress stationIpAddress();
+
     // Get the station status
     // Outputs:
     //   Returns true when the WiFi station is online and ready for use
     bool stationOnline();
+
+    // Get the SSID of the remote AP
+    const char * stationSsid();
 
     // Stop and start WiFi components
     // Inputs:

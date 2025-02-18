@@ -400,9 +400,6 @@ const int wifiStartNamesEntries = sizeof(wifiStartNames) / sizeof(wifiStartNames
 #define WIFI_MAX_TIMEOUT    (15 * 60 * 1000)    // Timeout in milliseconds
 #define WIFI_MIN_TIMEOUT    (15 * 1000)         // Timeout in milliseconds
 
-const char * wifiSoftApSsid = "RTK Config";
-const char * wifiSoftApPassword = nullptr;
-
 //****************************************
 // Locals
 //****************************************
@@ -620,6 +617,17 @@ void wifiResetTimeout()
     wifiStartTimeout = 0;
     if (settings.debugWifiState == true)
         systemPrintln("WiFi: Start timeout reset to zero");
+}
+
+//*********************************************************************
+// Turn on and off WiFi soft AP mode
+// Inputs:
+//   on: True to start WiFi soft AP mode, false to stop WiFi soft AP mode
+// Returns:
+//   Returns the status of WiFi soft AP start or stop
+bool wifiSoftApOn(bool on)
+{
+    return wifi.enable(wifiEspNowRunning, on, wifiStationRunning);
 }
 
 //*********************************************************************
@@ -884,7 +892,7 @@ bool RTK_WIFI::enable(bool enableESPNow, bool enableSoftAP, bool enableStation)
     if (enableSoftAP)
     {
         // Verify that the SSID is set
-        if (wifiSoftApSsid && strlen(wifiSoftApSsid) && wifiSoftApPassword)
+        if (wifiSoftApSsid && strlen(wifiSoftApSsid))
         {
             starting |= WIFI_START_SOFT_AP;
             wifiSoftApRunning = true;
@@ -1379,6 +1387,16 @@ bool RTK_WIFI::softApSetIpAddress(const char * ipAddress,
 }
 
 //*********************************************************************
+// Get the soft AP IP address
+// Returns the soft IP address
+IPAddress RTK_WIFI::softApIpAddress()
+{
+    if (softApOnline())
+        return _apIpAddress;
+    return IPAddress((uint32_t)0);
+}
+
+//*********************************************************************
 // Get the soft AP status
 bool RTK_WIFI::softApOnline()
 {
@@ -1400,7 +1418,8 @@ bool RTK_WIFI::softApSetSsidPassword(const char * ssid, const char * password)
     if (!created)
         systemPrintf("ERROR: Failed to set soft AP SSID and Password!\r\n");
     else if (settings.debugWifiState)
-        systemPrintf("WiFi AP: SSID: %s, Password: %s\r\n", ssid, password);
+        systemPrintf("WiFi AP: SSID: %s%s%s\r\n", ssid,
+                     password ? ", Password: " : "", password ? password : "");
     return created;
 }
 
@@ -1650,6 +1669,16 @@ bool RTK_WIFI::stationHostName(const char * hostName)
 }
 
 //*********************************************************************
+// Get the WiFi station IP address
+// Returns the IP address of the WiFi station
+IPAddress RTK_WIFI::stationIpAddress()
+{
+    if (stationOnline())
+        return _staIpAddress;
+    return IPAddress((uint32_t)0);
+}
+
+//*********************************************************************
 // Get the station status
 bool RTK_WIFI::stationOnline()
 {
@@ -1789,6 +1818,16 @@ WIFI_CHANNEL_t RTK_WIFI::stationSelectAP(uint8_t apCount, bool list)
 
     // Return the channel number
     return apChannel;
+}
+
+//*********************************************************************
+// Get the SSID of the remote AP
+const char * RTK_WIFI::stationSsid()
+{
+    if (stationOnline())
+        return _staRemoteApSsid;
+    else
+        return "";
 }
 
 //*********************************************************************
@@ -2315,12 +2354,14 @@ bool RTK_WIFI::stopStart(WIFI_ACTION_t stopping, WIFI_ACTION_t starting)
         // Set the soft AP host name
         if (starting & WIFI_AP_SET_HOST_NAME)
         {
+            const char * hostName = &settings.mdnsHostName[0];
+
             // Display the host name
             if (settings.debugWifiState && _verbose)
-                systemPrintf("Host name: %s\r\n", &settings.mdnsHostName[0]);
+                systemPrintf("Host name: %s\r\n", hostName);
 
             // Set the host name
-            if (!softApSetHostName(&settings.mdnsHostName[0]))
+            if (!softApSetHostName(hostName))
                 break;
             _started = _started | WIFI_AP_SET_HOST_NAME;
         }
@@ -2346,10 +2387,11 @@ bool RTK_WIFI::stopStart(WIFI_ACTION_t stopping, WIFI_ACTION_t starting)
             _started = _started | WIFI_AP_ONLINE;
 
             // Display the soft AP status
-            systemPrintf("WiFi: Soft AP online, SSID: %s (%s), Password: %s\r\n",
+            systemPrintf("WiFi: Soft AP online, SSID: %s (%s)%s%s\r\n",
                          wifiSoftApSsid,
                          _apIpAddress.toString().c_str(),
-                         wifiSoftApPassword);
+                         wifiSoftApPassword ? ", Password: " : "",
+                         wifiSoftApPassword ? wifiSoftApPassword : "");
         }
 
         //****************************************
@@ -2361,12 +2403,14 @@ bool RTK_WIFI::stopStart(WIFI_ACTION_t stopping, WIFI_ACTION_t starting)
         // Set the host name
         if (starting & WIFI_STA_SET_HOST_NAME)
         {
+            const char * hostName = &settings.mdnsHostName[0];
+
             // Display the host name
             if (settings.debugWifiState && _verbose)
-                systemPrintf("Host name: %s\r\n", &settings.mdnsHostName[0]);
+                systemPrintf("Host name: %s\r\n", hostName);
 
             // Set the host name
-            if (!stationHostName(&settings.mdnsHostName[0]))
+            if (!stationHostName(hostName))
                 break;
             _started = _started | WIFI_STA_SET_HOST_NAME;
         }
@@ -2578,6 +2622,11 @@ bool RTK_WIFI::stopStart(WIFI_ACTION_t stopping, WIFI_ACTION_t starting)
     // Restart WiFi if necessary
     if (restartWiFiStation)
         wifiReconnectRequest = true;
+
+    // Set the online flags
+    wifiEspNowOnline = espNowOnline();
+    wifiSoftApOnline = softApOnline();
+    wifiStationOnline = stationOnline();
 
     // Return the enable status
     bool enabled = ((_started & allOnline) == expected);
