@@ -251,16 +251,6 @@ bool mqttClientIsConnected()
 }
 
 //----------------------------------------
-// Return true if we are in states that require network access
-//----------------------------------------
-bool mqttClientNeedsNetwork()
-{
-    if (mqttClientState >= MQTT_CLIENT_WAIT_FOR_NETWORK && mqttClientState <= MQTT_CLIENT_SERVICES_CONNECTED)
-        return true;
-    return false;
-}
-
-//----------------------------------------
 // Print the MQTT client state summary
 //----------------------------------------
 void mqttClientPrintStateSummary()

@@ -936,10 +936,4 @@ void otaVerifyTables()
         reportFatalError("Fix otaStateNames table to match OtaState");
 }
 
-bool otaNeedsNetwork()
-{
-    if (otaState >= OTA_STATE_WAIT_FOR_NETWORK && otaState <= OTA_STATE_UPDATE_FIRMWARE)
-        return true;
-    return false;
-}
 #endif // COMPILE_OTA_AUTO

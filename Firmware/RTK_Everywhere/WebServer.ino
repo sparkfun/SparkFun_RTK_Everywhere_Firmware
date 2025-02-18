@@ -1065,16 +1065,6 @@ bool webServerIsRunning()
 }
 
 //----------------------------------------
-// Return true if we are in a state that requires network access
-//----------------------------------------
-bool webServerNeedsNetwork()
-{
-    if (webServerState >= WEBSERVER_STATE_WAIT_FOR_NETWORK && webServerState <= WEBSERVER_STATE_RUNNING)
-        return true;
-    return false;
-}
-
-//----------------------------------------
 //----------------------------------------
 void webServerReleaseResources()
 {
