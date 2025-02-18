@@ -1190,7 +1190,7 @@ void webServerStart()
 
     // Start the network
     if (settings.wifiConfigOverAP)
-        wifiSoftApOn(true);
+        networkSoftApConsumerAdd(NETCONSUMER_WEB_CONFIG);
     else
         networkConsumerAdd(NETCONSUMER_WEB_CONFIG, NETWORK_ANY);
     webServerSetState(WEBSERVER_STATE_WAIT_FOR_NETWORK);
@@ -1208,7 +1208,7 @@ void webServerStop()
         // Stop network
         systemPrintln("Web Server releasing network request");
         if (settings.wifiConfigOverAP)
-            wifiSoftApOn(false);
+            networkSoftApConsumerRemove(NETCONSUMER_WEB_CONFIG);
         else
             networkConsumerRemove(NETCONSUMER_WEB_CONFIG, NETWORK_ANY);
 

@@ -126,6 +126,8 @@ static const int networkConsumerTableEntries = sizeof(networkConsumerTable) / si
 NETCONSUMER_MASK_t netIfConsumers[NETWORK_MAX]; // Consumers of a specific network
 uint8_t networkConsumerCount; // Count of network consumers (bits set)
 NETCONSUMER_MASK_t networkConsumersAny; // Consumers of any network
+NETCONSUMER_MASK_t networkSoftApConsumer; // Consumers of soft AP
+uint8_t networkSoftApConsumerCount; // Count of soft AP consumers (bits set)
 
 // Priority of each of the networks in the networkInterfaceTable
 // Index by networkInterfaceTable index to get network interface priority
@@ -351,7 +353,6 @@ void networkBegin()
 //----------------------------------------
 // Add a network consumer
 //----------------------------------------
-
 void networkConsumerAdd(NETCONSUMER_t consumer, NetIndex_t network)
 {
     NETCONSUMER_MASK_t bitMask;
@@ -444,7 +445,6 @@ void networkConsumerAdd(NETCONSUMER_t consumer, NetIndex_t network)
 //----------------------------------------
 // Display a network consumer
 //----------------------------------------
-
 void networkConsumerDisplay()
 {
     NETCONSUMER_MASK_t bitMask;
@@ -456,16 +456,12 @@ void networkConsumerDisplay()
     const char * networkName;
     const char * separation;
 
-    // Validate the inputs
-    networkConsumerValidate(consumer);
-
     // Determine if there are any network consumers
     if (networkConsumerCount)
     {
         systemPrintf("Network Consumers: %d\r\n", networkConsumerCount);
 
         // Walk the networks
-        bitMask = 1 << consumer;
         for (index = 0; index < NETWORK_MAX; index++)
         {
             networkName = networkInterfaceTable[index].name;
@@ -502,7 +498,6 @@ void networkConsumerDisplay()
 //----------------------------------------
 // Remove a network consumer
 //----------------------------------------
-
 void networkConsumerRemove(NETCONSUMER_t consumer, NetIndex_t network)
 {
     NETCONSUMER_MASK_t bitMask;
@@ -1661,6 +1656,125 @@ void networkSequenceStopPolling(NetIndex_t index, bool debug, bool forcedStop)
             networkSequenceStart(index, debug);
         else
             networkSequenceStop(index, debug);
+    }
+}
+
+//----------------------------------------
+// Add a soft AP consumer
+//----------------------------------------
+void networkSoftApConsumerAdd(NETCONSUMER_t consumer)
+{
+    NETCONSUMER_MASK_t bitMask;
+    NetIndex_t index;
+
+    // Validate the inputs
+    networkConsumerValidate(consumer);
+
+    // Add this consumer only once
+    bitMask = 1 << consumer;
+    if ((networkSoftApConsumer & bitMask) == 0)
+    {
+        // Display the consumer
+        if (settings.debugNetworkLayer)
+            systemPrintf("Network: Adding soft AP consumer %s\r\n", networkConsumerTable[consumer]);
+
+        // Account for this consumer
+        networkSoftApConsumer |= bitMask;
+        networkSoftApConsumerCount += 1;
+
+        // Display the network consumers
+        if (settings.debugNetworkLayer)
+            networkSoftApConsumerDisplay();
+
+        // Start the networks if necessary
+        if (networkSoftApConsumerCount == 1)
+        {
+            wifiSoftApOn(true);
+            if (settings.debugNetworkLayer)
+                networkDisplayStatus();
+        }
+    }
+    else
+    {
+        systemPrintf("Network: Soft AP consumer %s added more than once!\r\n",
+                     networkConsumerTable[consumer]);
+        reportFatalError("Network: Soft AP consumer added more than once!");
+    }
+}
+
+//----------------------------------------
+// Display the soft AP consumers
+//----------------------------------------
+void networkSoftApConsumerDisplay()
+{
+    NETCONSUMER_MASK_t bitMask;
+    NETCONSUMER_MASK_t * bits;
+    NETCONSUMER_t consumer;
+    char line[128];
+
+    // Determine if there are any network consumers
+    if (networkSoftApConsumerCount)
+    {
+        sprintf(line, "WiFi Soft AP Consumers: %d", networkConsumerCount);
+
+        // Walk the list of consumers
+        for (consumer = 0; consumer < NETCONSUMER_MAX; consumer += 1)
+        {
+            bitMask = 1 << consumer;
+            if (networkSoftApConsumer & bitMask)
+            {
+                // Add the consumer to the line
+                sprintf(&line[strlen(line)], ", %s", networkConsumerTable[consumer]);
+            }
+        }
+
+        // Display this network's consumers;
+        systemPrintf("%s\r\n", line);
+    }
+    else
+        systemPrintf("No active soft AP consumers\r\n");
+}
+
+//----------------------------------------
+// Remove a soft AP consumer
+//----------------------------------------
+void networkSoftApConsumerRemove(NETCONSUMER_t consumer)
+{
+    NETCONSUMER_MASK_t bitMask;
+    NetIndex_t index;
+
+    // Validate the inputs
+    networkConsumerValidate(consumer);
+
+    // Remove the consumer only once
+    bitMask = 1 << consumer;
+    if (networkSoftApConsumer & bitMask)
+    {
+        // Display the consumer
+        if (settings.debugNetworkLayer)
+            systemPrintf("Network: Removing soft AP consumer %s\r\n", networkConsumerTable[consumer]);
+
+        // Account for this consumer
+        networkSoftApConsumer &= ~bitMask;
+        networkSoftApConsumerCount -= 1;
+
+        // Display the network consumers
+        if (settings.debugNetworkLayer)
+            networkSoftApConsumerDisplay();
+
+        // Stop the networks when the consumer count reaches zero
+        if (networkSoftApConsumerCount == 0)
+        {
+            // Display the soft AP shutdown message
+            if (settings.debugNetworkLayer)
+                systemPrintf("Network: Stopping the soft AP\r\n");
+
+            // Turn off the soft AP
+            wifiSoftApOn(false);
+
+            // Let other tasks handle the network failure
+            delay(100);
+        }
     }
 }
 
