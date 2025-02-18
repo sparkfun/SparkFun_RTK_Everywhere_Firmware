@@ -390,15 +390,10 @@ bool GNSS_MOSAIC::checkPPPRates()
 //   Returns true if successfully configured and false upon failure
 //----------------------------------------
 // If any of the settings in the signature have changed, reapply the Base configuration
-#define GNSS_MOSAIC_BASE_SIGNATURE                                      \
-    (                                                                   \
-        ((settings.minElev & 0x01) << 1)                                \
-        | ((settings.enableGnssToUsbSerial & 0x01) << 2)                \
-        | ((settings.enablePointPerfectCorrections & 0x01) << 3)        \
-        | ((settings.ntripClient_TransmitGGA & 0x01) << 4)              \
-        | ((settings.enableLogging & 0x01) << 5)                        \
-        | ((settings.enableLoggingRINEX & 0x01) << 6)                   \
-        | ((settings.enableExternalHardwareEventLogging & 0x01) << 7)   \
+// See GNSS_MOSAIC_ROVER_SIGNATURE as an example
+#define GNSS_MOSAIC_BASE_SIGNATURE      \
+    (                                   \
+        0                               \
     )
 bool GNSS_MOSAIC::configureBase()
 {
@@ -555,9 +550,9 @@ bool GNSS_MOSAIC::configureLBand(bool enableLBand, uint32_t LBandFreq)
 //----------------------------------------
 // If any of the settings in the signature have changed, reapply the configuration
 // See GNSS_MOSAIC_ROVER_SIGNATURE as an example
-#define GNSS_MOSAIC_ONCE_SIGNATURE  \
-    (                               \
-        0                           \
+#define GNSS_MOSAIC_ONCE_SIGNATURE      \
+    (                                   \
+        0                               \
     )
 bool GNSS_MOSAIC::configureOnce()
 {
@@ -662,13 +657,13 @@ bool GNSS_MOSAIC::configureGNSS()
 //   Returns true if successfully configured and false upon failure
 //----------------------------------------
 // If any of the settings in the signature have changed, reapply the Rover configuration
-#define GNSS_MOSAIC_ROVER_SIGNATURE                                     \
-    (                                                                   \
-        ((settings.enablePointPerfectCorrections & 0x01) << 1)          \
-        | ((settings.enableGnssToUsbSerial & 0x01) << 2)                \
-        | ((settings.ntripClient_TransmitGGA & 0x01) << 3)              \
-        | ((settings.enableLogging & 0x01) << 4)                        \
-        | ((settings.enableExternalHardwareEventLogging & 0x01) << 5)   \
+// E.g. ((settings.enablePointPerfectCorrections & 0x01) << 1)
+//      | ((settings.enableGnssToUsbSerial & 0x01) << 2)
+// But most of this is taken care of by restartRover and restartBase
+// You should only use the signature to trap any exceptions not covered by restartRover/Base
+#define GNSS_MOSAIC_ROVER_SIGNATURE     \
+    (                                   \
+        0                               \
     )
 bool GNSS_MOSAIC::configureRover()
 {
@@ -696,9 +691,9 @@ bool GNSS_MOSAIC::configureRover()
 
     response &= sendWithResponse("spm,Rover,all,auto\n\r", "PVTMode");
 
-    response &= setModel(settings.dynamicModel);
+    response &= setModel(settings.dynamicModel); // Set by menuGNSS which calls gnss->setModel
 
-    response &= setElevation(settings.minElev);
+    response &= setElevation(settings.minElev); // Set by menuGNSS which calls gnss->setElevation
 
     response &= enableRTCMRover();
 
