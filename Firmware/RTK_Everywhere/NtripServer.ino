@@ -238,11 +238,13 @@ bool ntripServerConnectCaster(int serverIndex)
 //----------------------------------------
 bool ntripServerConnectLimitReached(int serverIndex)
 {
+    bool limitReached;
     NTRIP_SERVER_DATA *ntripServer = &ntripServerArray[serverIndex];
     int seconds;
 
     // Retry the connection a few times
-    bool limitReached = (ntripServer->connectionAttempts >= MAX_NTRIP_SERVER_CONNECTION_ATTEMPTS);
+    limitReached = (ntripServer->connectionAttempts >= MAX_NTRIP_SERVER_CONNECTION_ATTEMPTS);
+    limitReached = false;
 
     // Shutdown the NTRIP server
     ntripServerStop(serverIndex, limitReached || (!settings.enableNtripServer));
