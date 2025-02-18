@@ -402,13 +402,7 @@ void displayUpdate()
                 displayWebConfigNotStarted(); // Display 'Web Config'
                 break;
             case (STATE_WEB_CONFIG):
-                if (networkInterfaceHasInternet(NETWORK_ETHERNET))
-                    displayConfigViaEthernet();
-                else
-                {
-                    setWiFiIcon(&iconPropertyList); // Blink WiFi in center
-                    displayConfigViaWiFi();         // Display SSID and IP
-                }
+                displayWebConfig(iconPropertyList);
                 break;
             case (STATE_TEST):
                 paintSystemTest();
@@ -3066,10 +3060,11 @@ int displayEthernetIcon()
     return yPos;
 }
 
-void displayConfigViaWiFi()
+void displayWebConfig(std::vector<iconPropertyBlinking> &iconPropertyList)
 {
     // Characters before pixels start getting cut off. 11 characters can cut off a few pixels.
     const int displayMaxCharacters = (present.display_type == DISPLAY_64x48) ? 10 : 21;
+    bool displaySsid = true;
     int fontHeight = 8;
     char myIP[20] = {'\0'};
     char mySSID[SSID_LENGTH + 1] = {'\0'};
@@ -3085,30 +3080,56 @@ void displayConfigViaWiFi()
         ssidDisplayFirstHalf = !ssidDisplayFirstHalf;
     }
 
-#ifdef COMPILE_WIFI
     // Get the SSID and IP Address
+#ifndef COMPILE_WIFI
+#ifndef COMPILE_ETHERNET
+    strcpy(mySSID, "!Compiled");
+    strcpy(myIP, "0.0.0.0");
+#endif  // COMPILE_ETHERNET
+#else   // COMPILE_WIFI
     if (wifi.softApOnline())
     {
+        setWiFiIcon(&iconPropertyList); // Blink WiFi in center
         snprintf(mySSID, sizeof(mySSID), "%s", wifiSoftApSsid);
         strcpy(myIP, wifi.softApIpAddress().toString().c_str());
     }
-    else if (wifi.stationOnline())
+    else if (networkInterfaceHasInternet(NETWORK_WIFI_STATION))
     {
+        setWiFiIcon(&iconPropertyList); // Blink WiFi in center
         snprintf(mySSID, sizeof(mySSID), "%s", wifi.stationSsid());
         strcpy(myIP, wifi.stationIpAddress().toString().c_str());
     }
     else
+#ifndef COMPILE_ETHERNET
     {
-        snprintf(mySSID, sizeof(mySSID), "%s", "Error");
+        strcpy(mySSID, "Error");
         strcpy(myIP, "0.0.0.0");
     }
-#else  // COMPILE_WIFI
-    strcpy(mySSID, "!Compiled");
-    strcpy(myIP, "0.0.0.0");
-#endif // COMPILE_WIFI
-    mySSID[SSID_LENGTH] = 0;
+#endif  // COMPILE_ETHERNET
+#endif  // COMPILE_WIFI
+
+#ifdef  COMPILE_ETHERNET
+    if (networkInterfaceHasInternet(NETWORK_ETHERNET))
+    {
+        yPos = displayEthernetIcon();
+        displaySsid = false;
+        strcpy(myIP, ETH.localIP().toString().c_str());
+    }
+    else
+    {
+#ifdef COMPILE_WIFI
+        setWiFiIcon(&iconPropertyList); // Blink WiFi in center
+        displaySsid = false;
+#else   // COMPILE_WIFI
+        yPos = displayEthernetIcon();
+#endif  // COMPILE_WIFI
+        strcpy(mySSID, "Error");
+        strcpy(myIP, "0.0.0.0");
+    }
+#endif  // COMPILE_ETHERNET
 
     // Trim SSID to a max length
+    mySSID[SSID_LENGTH] = 0;
     if ((strlen(mySSID) > displayMaxCharacters) && !ssidDisplayFirstHalf)
         memcpy(mySSID, &mySSID[strlen(mySSID) - displayMaxCharacters], displayMaxCharacters);
     mySSID[displayMaxCharacters] = '\0';
@@ -3119,8 +3140,11 @@ void displayConfigViaWiFi()
     myIP[displayMaxCharacters] = '\0';
 
     // Display the SSID header
-    printTextCenter("SSID:", yPos, QW_FONT_5X7, 1, false); // text, y, font type, kerning, inverted
-    yPos = yPos + fontHeight + 1;
+    if (displaySsid)
+    {
+        printTextCenter("SSID:", yPos, QW_FONT_5X7, 1, false); // text, y, font type, kerning, inverted
+        yPos = yPos + fontHeight + 1;
+    }
 
     // Display the SSID
     printTextCenter(mySSID, yPos, QW_FONT_5X7, 1, false);
@@ -3131,75 +3155,4 @@ void displayConfigViaWiFi()
     yPos = yPos + fontHeight + 1;
 
     printTextCenter(myIP, yPos, QW_FONT_5X7, 1, false);
-}
-
-void displayConfigViaEthernet()
-{
-#ifdef COMPILE_ETHERNET
-
-    if (online.display == true)
-    {
-        oled->erase();
-
-        uint8_t xPos = (oled->getWidth() / 2) - (Ethernet_Icon_Width / 2);
-        uint8_t yPos = Ethernet_Icon_Height / 2; // yPos is 6
-
-        static bool blink = 0;
-        blink ^= 1;
-
-        if (ETH.linkUp() || blink)
-            displayBitmap(xPos, yPos, Ethernet_Icon_Width, Ethernet_Icon_Height, Ethernet_Icon);
-
-        yPos += Ethernet_Icon_Height * 1.5; // yPos is now 24
-
-        printTextCenter("IP:", yPos, QW_FONT_5X7, 1, false); // text, y, font type, kerning, inverted
-        yPos += 8;                                           // yPos is now 32
-        if (present.display_type == DISPLAY_128x64)
-            yPos += 4; // yPos is 36 on 128x64 displays, 32 on 64x48 displays
-
-        char ipAddress[16];
-        IPAddress localIP = ETH.localIP();
-        snprintf(ipAddress, sizeof(ipAddress), "%s", localIP.toString());
-
-        // yPos is 36 on 128x64 displays, 32 on 64x48 displays. QW_FONT_8x16 will fit - as it only uses ~12 rows.
-
-        // See if 8x16 will fit. But widest character is only 7 pixels, so divide by 8 (7 plus 1 kerning) not 9.
-        int displayWidth8X16 = ((present.display_type == DISPLAY_128x64) ? 16 : 8);
-        int displayWidth5X7 = ((present.display_type == DISPLAY_128x64) ? 21 : 10); // 5 plus 1 kerning
-
-        // If we can print the full IP address without shuttling
-        if (strlen(ipAddress) <= displayWidth8X16)
-        {
-            printTextCenter(ipAddress, yPos, QW_FONT_8X16, 1, false);
-        }
-        else if (strlen(ipAddress) <= displayWidth5X7)
-        {
-            printTextCenter(ipAddress, yPos, QW_FONT_5X7, 1, false);
-        }
-        else
-        {
-            // Print as many characters as we can. Shuttle back and forth to display all.
-            static int startPos = 0;
-            char printThis[displayWidth5X7 + 1];
-            int extras = strlen(ipAddress) - displayWidth5X7;
-            int shuttle[2 * extras];
-            int x;
-            for (x = 0; x <= extras; x++)
-                shuttle[x] = x;
-            for (int y = extras - 1; y > 0; y--)
-                shuttle[x++] = y;
-            if (startPos >= (2 * extras))
-                startPos = 0;
-            snprintf(printThis, sizeof(printThis), &ipAddress[shuttle[startPos]]);
-            startPos++;
-            printTextCenter(printThis, yPos, QW_FONT_5X7, 1, false);
-        }
-
-        oled->display();
-    }
-
-#else  // COMPILE_ETHERNET
-    uint8_t yPos = oled->getHeight() / 2 - 4;
-    printTextCenter("!Compiled", yPos, QW_FONT_5X7, 1, false);
-#endif // COMPILE_ETHERNET
 }
