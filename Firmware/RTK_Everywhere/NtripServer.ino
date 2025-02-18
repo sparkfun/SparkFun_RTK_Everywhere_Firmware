@@ -572,23 +572,16 @@ void ntripServerStop(int serverIndex, bool shutdown)
 
     // Determine the next NTRIP server state
     online.ntripServer[serverIndex] = false;
-    if (shutdown || (!settings.ntripServer_CasterHost[serverIndex][0]) ||
-        (!settings.ntripServer_CasterPort[serverIndex]) || (!settings.ntripServer_MountPoint[serverIndex][0]))
+    if (shutdown)
     {
-        if (shutdown)
-        {
-            if (settings.debugNtripServerState)
-                systemPrintf("NTRIP Server %d shutdown requested!\r\n", serverIndex);
-        }
-        else
-        {
-            if (settings.debugNtripServerState && (!settings.ntripServer_CasterHost[serverIndex][0]))
-                systemPrintf("NTRIP Server %d caster host not configured!\r\n", serverIndex);
-            if (settings.debugNtripServerState && (!settings.ntripServer_CasterPort[serverIndex]))
-                systemPrintf("NTRIP Server %d caster port not configured!\r\n", serverIndex);
-            if (settings.debugNtripServerState && (!settings.ntripServer_MountPoint[serverIndex][0]))
-                systemPrintf("NTRIP Server %d mount point not configured!\r\n", serverIndex);
-        }
+        if (settings.debugNtripServerState)
+            systemPrintf("NTRIP Server %d shutdown requested!\r\n", serverIndex);
+        if (settings.debugNtripServerState && (!settings.ntripServer_CasterHost[serverIndex][0]))
+            systemPrintf("NTRIP Server %d caster host not configured!\r\n", serverIndex);
+        if (settings.debugNtripServerState && (!settings.ntripServer_CasterPort[serverIndex]))
+            systemPrintf("NTRIP Server %d caster port not configured!\r\n", serverIndex);
+        if (settings.debugNtripServerState && (!settings.ntripServer_MountPoint[serverIndex][0]))
+            systemPrintf("NTRIP Server %d mount point not configured!\r\n", serverIndex);
         networkConsumerRemove(NETCONSUMER_NTRIP_SERVER, NETWORK_ANY);
         ntripServerSetState(ntripServer, NTRIP_SERVER_OFF);
         ntripServer->connectionAttempts = 0;
@@ -602,11 +595,6 @@ void ntripServerStop(int serverIndex, bool shutdown)
                 enabled = true;
                 break;
             }
-        // settings.enableNtripServer = enabled;
-        //  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ Why? Setting settings.enableNtripServer to false means
-        //  the server connections cannot be (re)started without setting settings.enableNtripServer back
-        //  to true via the menu / web config... Was the intent to close the network connection when all
-        //  servers have disconnected?
     }
     else
     {
