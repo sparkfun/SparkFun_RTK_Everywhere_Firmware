@@ -334,7 +334,15 @@ void networkBegin()
 #ifdef COMPILE_ETHERNET
     // Start Ethernet
     if (present.ethernet_ws5500)
+    {
         ethernetStart();
+        if (settings.debugNetworkLayer)
+            systemPrintf("Network: Calling networkStart(%s) from %s at line %d\r\n",
+                         networkInterfaceTable[index].name, __FILE__, __LINE__);
+        networkStart(NETWORK_ETHERNET, settings.enablePrintEthernetDiag);
+        if (settings.debugNetworkLayer)
+            networkDisplayStatus();
+    }
 #endif // COMPILE_ETHERNET
 
     // WiFi and cellular networks are started/stopped as consumers and come online/offline in networkUpdate()
@@ -420,6 +428,8 @@ void networkConsumerAdd(NETCONSUMER_t consumer, NetIndex_t network)
                     }
                 }
             }
+            if (settings.debugNetworkLayer)
+                networkDisplayStatus();
         }
     }
     else
@@ -991,6 +1001,10 @@ void networkInterfaceInternetConnectionAvailable(NetIndex_t index)
                 networkSequenceStop(index, settings.debugNetworkLayer);
             }
         }
+
+        // Display the interface status
+        if (settings.debugNetworkLayer)
+            networkDisplayStatus();
     }
 
     // Only start mDNS on the highest priority network
@@ -1033,7 +1047,10 @@ void networkInterfaceInternetConnectionLost(NetIndex_t index)
 
     // Display offline message
     if (settings.debugNetworkLayer)
+    {
+        networkDisplayStatus();
         systemPrintf("--------------- %s Offline ---------------\r\n", networkGetNameByIndex(index));
+    }
 
     // Did the highest priority network just fail?
     if (networkPriorityTable[index] == networkPriority)
@@ -1083,8 +1100,11 @@ void networkInterfaceInternetConnectionLost(NetIndex_t index)
 
         // Display the transition
         if (settings.debugNetworkLayer)
+        {
             systemPrintf("Default Network Interface: %s --> %s\r\n", networkGetNameByPriority(previousPriority),
                          networkGetNameByPriority(priority));
+            networkDisplayStatus();
+        }
     }
 }
 
