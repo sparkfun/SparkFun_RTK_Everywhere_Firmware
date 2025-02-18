@@ -705,6 +705,16 @@ void checkGNSSArrayDefaults()
             for (int x = 0; x < MAX_LG290P_RTCM_MSG; x++)
                 settings.lg290pMessageRatesRTCMBase[x] = lgMessagesRTCM[x].msgDefaultRate;
         }
+
+        if (settings.lg290pMessageRatesPQTM[0] == 254)
+        {
+            defaultsApplied = true;
+
+            // Reset rates to defaults
+            for (int x = 0; x < MAX_LG290P_PQTM_MSG; x++)
+                settings.lg290pMessageRatesPQTM[x] = lgMessagesPQTM[x].msgDefaultRate;
+        }
+
     }
 #endif  // COMPILE_LG290P
 

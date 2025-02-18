@@ -429,6 +429,10 @@ class GNSS_None : public GNSS
     {
     }
 
+    void modifyGst(char *nmeaSentence, uint16_t *sentenceLength)
+    {
+    }
+
     // Print the module type and firmware version
     void printModuleInfo()
     {

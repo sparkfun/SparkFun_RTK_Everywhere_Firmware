@@ -1,11 +1,22 @@
 {% extends "base.html" %}
 
 {% block content %}
+
+<!-- Adds pdf icon to view generated pdf file for page -->
 {% if true %}
     <a href="https://github.com/sparkfun/SparkFun_RTK_Everywhere_Firmware/blob/gh-pages/pdf/SparkFun_RTK_Everywhere_User_Manual.pdf?raw=true" title="Download Site" class="md-content__button md-icon">
         {% include ".icons/material/file-pdf-box.svg" %}
     </a>
 {% endif %}
+
+<!-- Adds file-eye icon to view hookup guide as a single page -->
+<!--
+{% if "print_view.md" %}
+	<a href="/SparkFun_RTK_Everywhere_Firmware/print_view" title="View as Single-Page" class="md-content__button md-icon">
+		{% include ".icons/material/printer-eye.svg" %}
+	</a>
+{% endif %}
+-->
 
 {{ super() }}
 {% endblock content %}

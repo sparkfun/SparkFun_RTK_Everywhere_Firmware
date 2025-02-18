@@ -101,8 +101,6 @@ void GNSS_LG290P::begin()
     online.gnss = true;
 
     // Check firmware version and print info
-    printModuleInfo();
-
     std::string version, buildDate, buildTime;
     if (_lg290p->getVersionInfo(version, buildDate, buildTime))
         snprintf(gnssFirmwareVersion, sizeof(gnssFirmwareVersion), "%s", version.c_str());
@@ -124,6 +122,8 @@ void GNSS_LG290P::begin()
             "firmware on your LG290P to allow for these features. Please see https://bit.ly/sfe-rtk-lg290p-update\r\n",
             lg290pFirmwareVersion, gnssFirmwareVersion);
     }
+
+    printModuleInfo();
 
     snprintf(gnssUniqueId, sizeof(gnssUniqueId), "%s", getId());
 }
@@ -1080,7 +1080,6 @@ uint8_t GNSS_LG290P::getFixType()
 //----------------------------------------
 float GNSS_LG290P::getHorizontalAccuracy()
 {
-    // Coming soon from EPE
     if (online.gnss)
         return (_lg290p->get2DError());
     return 0;
@@ -1574,6 +1573,7 @@ void GNSS_LG290P::menuMessages()
         systemPrintln("1) Set NMEA Messages");
         systemPrintln("2) Set Rover RTCM Messages");
         systemPrintln("3) Set Base RTCM Messages");
+        systemPrintln("4) Set PQTM Messages");
 
         systemPrintln("10) Reset to Defaults");
 
@@ -1587,6 +1587,8 @@ void GNSS_LG290P::menuMessages()
             menuMessagesSubtype(settings.lg290pMessageRatesRTCMRover, "RTCMRover");
         else if (incoming == 3)
             menuMessagesSubtype(settings.lg290pMessageRatesRTCMBase, "RTCMBase");
+        else if (incoming == 4)
+            menuMessagesSubtype(settings.lg290pMessageRatesPQTM, "PQTM");
         else if (incoming == 10)
         {
             // Reset rates to defaults
@@ -1600,6 +1602,10 @@ void GNSS_LG290P::menuMessages()
             // Reset RTCM rates to defaults
             for (int x = 0; x < MAX_LG290P_RTCM_MSG; x++)
                 settings.lg290pMessageRatesRTCMBase[x] = lgMessagesRTCM[x].msgDefaultRate;
+
+            // Reset PQTM rates to defaults
+            for (int x = 0; x < MAX_LG290P_PQTM_MSG; x++)
+                settings.lg290pMessageRatesPQTM[x] = lgMessagesPQTM[x].msgDefaultRate;
 
             systemPrintln("Reset to Defaults");
         }
@@ -1638,7 +1644,7 @@ void GNSS_LG290P::menuMessagesSubtype(int *localMessageRate, const char *message
         {
             endOfBlock = MAX_LG290P_NMEA_MSG;
 
-            for (int x = 0; x < MAX_LG290P_NMEA_MSG; x++)
+            for (int x = 0; x < endOfBlock; x++)
             {
                 if (lg290pFirmwareVersion <= lgMessagesNMEA[x].firmwareVersionSupported)
                     systemPrintf("%d) Message %s: %d - Requires firmware update\r\n", x + 1,
@@ -1652,7 +1658,7 @@ void GNSS_LG290P::menuMessagesSubtype(int *localMessageRate, const char *message
         {
             endOfBlock = MAX_LG290P_RTCM_MSG;
 
-            for (int x = 0; x < MAX_LG290P_RTCM_MSG; x++)
+            for (int x = 0; x < endOfBlock; x++)
             {
                 if (lg290pFirmwareVersion <= lgMessagesRTCM[x].firmwareVersionSupported)
                     systemPrintf("%d) Message %s: %d - Requires firmware update\r\n", x + 1,
@@ -1666,14 +1672,28 @@ void GNSS_LG290P::menuMessagesSubtype(int *localMessageRate, const char *message
         {
             endOfBlock = MAX_LG290P_RTCM_MSG;
 
-            for (int x = 0; x < MAX_LG290P_RTCM_MSG; x++)
+            for (int x = 0; x < endOfBlock; x++)
             {
                 if (lg290pFirmwareVersion <= lgMessagesRTCM[x].firmwareVersionSupported)
-                    systemPrintf("%d) Message %s: %d - Requires firmware update\r\n", x + 1, lgMessagesRTCM[x].msgTextName,
-                                 settings.lg290pMessageRatesRTCMBase[x]);
+                    systemPrintf("%d) Message %s: %d - Requires firmware update\r\n", x + 1,
+                                 lgMessagesRTCM[x].msgTextName, settings.lg290pMessageRatesRTCMBase[x]);
                 else
                     systemPrintf("%d) Message %s: %d\r\n", x + 1, lgMessagesRTCM[x].msgTextName,
                                  settings.lg290pMessageRatesRTCMBase[x]);
+            }
+        }
+        else if (strcmp(messageType, "PQTM") == 0)
+        {
+            endOfBlock = MAX_LG290P_PQTM_MSG;
+
+            for (int x = 0; x < endOfBlock; x++)
+            {
+                if (lg290pFirmwareVersion <= lgMessagesPQTM[x].firmwareVersionSupported)
+                    systemPrintf("%d) Message %s: %d - Requires firmware update\r\n", x + 1,
+                                 lgMessagesPQTM[x].msgTextName, settings.lg290pMessageRatesPQTM[x]);
+                else
+                    systemPrintf("%d) Message %s: %d\r\n", x + 1, lgMessagesPQTM[x].msgTextName,
+                                 settings.lg290pMessageRatesPQTM[x]);
             }
         }
 
@@ -1698,6 +1718,11 @@ void GNSS_LG290P::menuMessagesSubtype(int *localMessageRate, const char *message
                 sprintf(messageString, "Enter number of fixes required before %s is reported (0 to disable)",
                         lgMessagesRTCM[incoming].msgTextName);
             }
+            else if (strcmp(messageType, "PQTM") == 0)
+            {
+                sprintf(messageString, "Enter number of fixes required before %s is reported (0 to disable)",
+                        lgMessagesPQTM[incoming].msgTextName);
+            }
 
             int newSetting = 0;
 
@@ -1717,6 +1742,11 @@ void GNSS_LG290P::menuMessagesSubtype(int *localMessageRate, const char *message
             {
                 if (getNewSetting(messageString, 0, 1200, &newSetting) == INPUT_RESPONSE_VALID)
                     settings.lg290pMessageRatesRTCMBase[incoming] = newSetting;
+            }
+            if (strcmp(messageType, "PQTM") == 0)
+            {
+                if (getNewSetting(messageString, 0, 1, &newSetting) == INPUT_RESPONSE_VALID)
+                    settings.lg290pMessageRatesPQTM[incoming] = newSetting;
             }
         }
         else if (incoming == INPUT_RESPONSE_GETNUMBER_EXIT)
@@ -1742,7 +1772,7 @@ void GNSS_LG290P::printModuleInfo()
         std::string version, buildDate, buildTime;
         if (_lg290p->getVersionInfo(version, buildDate, buildTime))
         {
-            systemPrintf("LG290P version: %s %s %s\r\n", version.c_str(), buildDate.c_str(), buildTime.c_str());
+            systemPrintf("LG290P version: v%02d - %s %s %s - v%d\r\n", lg290pFirmwareVersion, version.c_str(), buildDate.c_str(), buildTime.c_str());
         }
         else
         {
@@ -2133,4 +2163,57 @@ void lg290pBoot()
 void lg290pReset()
 {
     digitalWrite(pin_GNSS_Reset, LOW);
+}
+
+// Given a NMEA or PQTM sentence, determine if it is enabled in settings
+// This is used to signal to the processUart1Message() task to remove messages that are needed
+// by the library to function (ie, PQTMEPE, PQTMPVT, GNGSV) but should not be logged or passed to other consumers
+// If unknown, allow messages through. Filtering and suppression should be selectively added in.
+bool lg290pMessageEnabled(char *nmeaSentence, int sentenceLength)
+{
+    // Identify message type: PQTM or NMEA
+    char messageType[strlen("PQTM") + 1] = {0};
+    strncpy(messageType, &nmeaSentence[1],
+            4); // Copy four letters, starting in spot 1. Null terminated from array initializer.
+
+    if (strncmp(messageType, "PQTM", sizeof(messageType)) == 0)
+    {
+        // Identify sentence type
+        char sentenceType[strlen("EPE") + 1] = {0};
+        strncpy(sentenceType, &nmeaSentence[5],
+                3); // Copy three letters, starting in spot 5. Null terminated from array initializer.
+
+        // Find this sentence type in the settings array
+        for (int messageNumber = 0; messageNumber < MAX_LG290P_PQTM_MSG; messageNumber++)
+        {
+            if (strncmp(lgMessagesPQTM[messageNumber].msgTextName, sentenceType, sizeof(sentenceType)) == 0)
+            {
+                if (settings.lg290pMessageRatesPQTM[messageNumber] > 0)
+                    return (true);
+                return (false);
+            }
+        }
+    }
+
+    else // We have to assume $G????
+    {
+        // Identify sentence type
+        char sentenceType[strlen("GSV") + 1] = {0};
+        strncpy(sentenceType, &nmeaSentence[3],
+                3); // Copy three letters, starting in spot 3. Null terminated from array initializer.
+
+        // Find this sentence type in the settings array
+        for (int messageNumber = 0; messageNumber < MAX_LG290P_NMEA_MSG; messageNumber++)
+        {
+            if (strncmp(lgMessagesNMEA[messageNumber].msgTextName, sentenceType, sizeof(sentenceType)) == 0)
+            {
+                if (settings.lg290pMessageRatesNMEA[messageNumber] > 0)
+                    return (true);
+                return (false);
+            }
+        }
+    }
+
+    // If we can't ID this message, allow it by default. The device configuration should control most message flow.
+    return (true);
 }

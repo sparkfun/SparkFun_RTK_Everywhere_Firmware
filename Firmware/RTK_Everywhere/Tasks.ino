@@ -641,6 +641,16 @@ void processUart1Message(SEMP_PARSE_STATE *parse, uint16_t type)
     {
         // Give this data to the library to update its internal variables
         lg290pHandler(parse->buffer, parse->length);
+
+        if (type == RTK_NMEA_PARSER_INDEX)
+        {
+            // Suppress PQTM/NMEA messages as needed
+            if (lg290pMessageEnabled((char *)parse->buffer, parse->length) == false)
+            {
+                parse->buffer[0] = 0;
+                parse->length = 0;
+            }
+        }
     }
 
     // Handle LLA compensation due to tilt or outputTipAltitude setting
