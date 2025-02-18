@@ -280,12 +280,14 @@ void menuMain()
     if (restartBase == true && inBaseMode() == true)
     {
         restartBase = false;
+        settings.gnssConfiguredBase = 0; // Reapply configuration
         requestChangeState(STATE_BASE_NOT_STARTED); // Restart base upon exit for latest changes to take effect
     }
 
     if (restartRover == true && inRoverMode() == true)
     {
         restartRover = false;
+        settings.gnssConfiguredRover = 0; // Reapply configuration
         requestChangeState(STATE_ROVER_NOT_STARTED); // Restart rover upon exit for latest changes to take effect
     }
 
