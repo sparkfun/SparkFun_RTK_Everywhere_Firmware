@@ -1035,6 +1035,7 @@ bool webServerAssignResources(int httpPort = 80)
             systemPrintln("Web Socket Server Started");
         reportHeapNow(false);
 
+        online.webServer = true;
         return true;
     } while (0);
 
@@ -1084,6 +1085,8 @@ void webServerReleaseResources()
     do
         delay(10);
     while (task.updateWebServerTaskRunning);
+
+    online.webServer = false;
 
     webServerStopSockets();      // Release socket resources
 
@@ -1200,8 +1203,6 @@ void webServerStop()
 {
     if (webServerState != WEBSERVER_STATE_OFF)
     {
-        online.webServer = false;
-
         webServerReleaseResources(); // Release web server resources
 
         // Stop network
@@ -1261,10 +1262,7 @@ void webServerUpdate()
             systemPrintln("Assigning web server resources");
 
         if (webServerAssignResources(settings.httpPort) == true)
-        {
-            online.webServer = true;
             webServerSetState(WEBSERVER_STATE_RUNNING);
-        }
     }
     break;
 
