@@ -82,7 +82,9 @@ static NetPriority_t tcpServerPriority = NETWORK_OFFLINE;
 // TCP Server handleGnssDataTask Support Routines
 //----------------------------------------
 
+//----------------------------------------
 // Send data to the TCP clients
+//----------------------------------------
 int32_t tcpServerClientSendData(int index, uint8_t *data, uint16_t length)
 {
     length = tcpServerClient[index]->write(data, length);
@@ -118,7 +120,9 @@ int32_t tcpServerClientSendData(int index, uint8_t *data, uint16_t length)
     return length;
 }
 
+//----------------------------------------
 // Send TCP data to the clients
+//----------------------------------------
 int32_t tcpServerSendData(uint16_t dataHead)
 {
     int32_t usedSpace = 0;
@@ -171,7 +175,9 @@ int32_t tcpServerSendData(uint16_t dataHead)
     return usedSpace;
 }
 
+//----------------------------------------
 // Remove previous messages from the ring buffer
+//----------------------------------------
 void discardTcpServerBytes(RING_BUFFER_OFFSET previousTail, RING_BUFFER_OFFSET newTail)
 {
     int index;
@@ -200,7 +206,9 @@ void discardTcpServerBytes(RING_BUFFER_OFFSET previousTail, RING_BUFFER_OFFSET n
 // TCP Server Routines
 //----------------------------------------
 
+//----------------------------------------
 // Update the state of the TCP server state machine
+//----------------------------------------
 void tcpServerSetState(uint8_t newState)
 {
     if ((settings.debugTcpServer || PERIODIC_DISPLAY(PD_TCP_SERVER_STATE)) && (!inMainMenu))
@@ -224,7 +232,9 @@ void tcpServerSetState(uint8_t newState)
     }
 }
 
+//----------------------------------------
 // Start the TCP server
+//----------------------------------------
 bool tcpServerStart()
 {
     IPAddress localIp;
@@ -254,7 +264,9 @@ bool tcpServerStart()
     return true;
 }
 
+//----------------------------------------
 // Stop the TCP server
+//----------------------------------------
 void tcpServerStop()
 {
     int index;
@@ -295,7 +307,9 @@ void tcpServerStop()
     }
 }
 
+//----------------------------------------
 // Stop the TCP server client
+//----------------------------------------
 void tcpServerStopClient(int index)
 {
     bool connected;
@@ -324,7 +338,9 @@ void tcpServerStopClient(int index)
     tcpServerClientWriteError = tcpServerClientWriteError & (~(1 << index));
 }
 
+//----------------------------------------
 // Update the TCP server state
+//----------------------------------------
 void tcpServerUpdate()
 {
     bool connected;
@@ -539,7 +555,9 @@ void tcpServerUpdate()
         tcpServerSetState(tcpServerState);
 }
 
+//----------------------------------------
 // Verify the TCP server tables
+//----------------------------------------
 void tcpServerValidateTables()
 {
     char line[128];
@@ -556,7 +574,9 @@ void tcpServerValidateTables()
         reportFatalError("Fix tcpServerStateNameEntries to match tcpServerStates");
 }
 
+//----------------------------------------
 // Zero the TCP server client tails
+//----------------------------------------
 void tcpServerZeroTail()
 {
     int index;
