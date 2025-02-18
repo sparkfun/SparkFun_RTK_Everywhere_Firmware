@@ -332,8 +332,6 @@ void stateUpdate()
                 // Start the NTRIP server if requested
                 RTK_MODE(RTK_MODE_BASE_FIXED);
 
-                ESPNOW_START() // Start internal radio if enabled, otherwise disable
-
                 rtcmPacketsSent = 0; // Reset any previous number
                 changeState(STATE_BASE_TEMP_TRANSMITTING);
             }
@@ -398,9 +396,6 @@ void stateUpdate()
             if (response == true)
             {
                 baseStatusLedOn(); // Turn on the base/status LED
-
-                ESPNOW_START() // Start internal radio if enabled, otherwise disable
-
                 changeState(STATE_BASE_FIXED_TRANSMITTING);
             }
             else
@@ -809,6 +804,7 @@ const RTK_MODE_ENTRY stateModeTable[] = {{"Rover", STATE_ROVER_NOT_STARTED, STAT
                                          {"Base", STATE_BASE_NOT_STARTED, STATE_BASE_FIXED_TRANSMITTING},
                                          {"Setup", STATE_DISPLAY_SETUP, STATE_PROFILE},
                                          {"ESPNOW Pairing", STATE_ESPNOW_PAIRING_NOT_STARTED, STATE_ESPNOW_PAIRING},
+                                         {"Provisioning", STATE_KEYS_REQUESTED, STATE_KEYS_REQUESTED},
                                          {"NTP", STATE_NTPSERVER_NOT_STARTED, STATE_NTPSERVER_SYNC},
                                          {"Shutdown", STATE_SHUTDOWN, STATE_SHUTDOWN}};
 const int stateModeTableEntries = sizeof(stateModeTable) / sizeof(stateModeTable[0]);

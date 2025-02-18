@@ -384,24 +384,36 @@ bool checkCertificates()
 
     // Load the certificate
     memset(certificateContents, 0, MQTT_CERT_SIZE);
-    loadFile("certificate", certificateContents, settings.debugPpCertificate);
-
-    if (checkCertificateValidity(certificateContents, strlen(certificateContents)) == false)
+    if (!loadFile("certificate", certificateContents, settings.debugPpCertificate))
     {
-        if (settings.debugPpCertificate)
-            systemPrintln("Certificate is corrupt.");
+        systemPrintf("ERROR: Failed to open the certificate file\r\n");
         validCertificates = false;
+    }
+    else
+    {
+        if (checkCertificateValidity(certificateContents, strlen(certificateContents)) == false)
+        {
+            if (settings.debugPpCertificate)
+                systemPrintln("Certificate is corrupt.");
+            validCertificates = false;
+        }
     }
 
     // Load the private key
     memset(keyContents, 0, MQTT_CERT_SIZE);
-    loadFile("privateKey", keyContents, settings.debugPpCertificate);
-
-    if (checkPrivateKeyValidity(keyContents, strlen(keyContents)) == false)
+    if (!loadFile("privateKey", keyContents, settings.debugPpCertificate))
     {
-        if (settings.debugPpCertificate)
-            systemPrintln("PrivateKey is corrupt.");
+        systemPrintf("ERROR: Failed to open the private key file\r\n");
         validCertificates = false;
+    }
+    else
+    {
+        if (checkPrivateKeyValidity(keyContents, strlen(keyContents)) == false)
+        {
+            if (settings.debugPpCertificate)
+                systemPrintln("PrivateKey is corrupt.");
+            validCertificates = false;
+        }
     }
 
     // Free the content buffers

@@ -760,8 +760,7 @@ void mqttClientUpdate()
             break;
         }
 
-        // Allocate the buffers
-        // Freed by mqttClientShutdown / mqttClientStop
+        // Allocate the buffers, freed by mqttClientStop
         if (online.psram == true)
         {
             if (!mqttClientCertificateBuffer)
@@ -777,22 +776,17 @@ void mqttClientUpdate()
                 mqttClientPrivateKeyBuffer = (char *)malloc(MQTT_CERT_SIZE);
         }
 
+        // Determine if the buffers were allocated
         if ((!mqttClientCertificateBuffer) || (!mqttClientPrivateKeyBuffer))
         {
-            if (mqttClientCertificateBuffer)
-            {
-                free(mqttClientCertificateBuffer);
-                mqttClientCertificateBuffer = nullptr;
-                systemPrintln("Failed to allocate key buffer!");
-            }
+            // Complain about the buffer allocation failure
+            if (mqttClientCertificateBuffer == nullptr)
+                systemPrintln("ERROR: Failed to allocate certificate buffer!");
 
-            if (mqttClientPrivateKeyBuffer)
-            {
-                free(mqttClientPrivateKeyBuffer);
-                mqttClientPrivateKeyBuffer = nullptr;
-                systemPrintln("Failed to allocate certificate buffer!");
-            }
+            if (mqttClientPrivateKeyBuffer == nullptr)
+                systemPrintln("ERROR: Failed to allocate key buffer!");
 
+            // Free the buffers\
             mqttClientShutdown();
             break;
         }

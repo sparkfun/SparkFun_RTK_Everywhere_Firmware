@@ -111,28 +111,29 @@ arduino-config:
 
 .PHONY: lib-update
 
-ESP_CORE_VERSION=3.0.1
-ESP_IDF_VERSION=idf-release_v5.1-442a798083
+ESP_CORE_VERSION=3.0.7
+ESP_IDF_VERSION=idf-release_v5.1-632e0c2a
 
 lib-update:
 	arduino-cli core update-index
 	arduino-cli core install esp32:esp32@$(ESP_CORE_VERSION)
 	arduino-cli lib install \
-		ArduinoJson@6.19.4 \
+		ArduinoJson@7.0.4 \
 		"ArduinoMqttClient"@0.1.8 \
-		ESP32Time@2.0.0 \
-		ESP32_BleSerial@1.0.4 \
+		ESP32_BleSerial@2.0.1 \
 		"ESP32-OTA-Pull"@1.0.0 \
+		ESP32Time@2.0.0 \
 		JC_Button@2.1.2 \
 		PubSubClient@2.8.0 \
 		"SdFat"@2.1.1 \
 		"SparkFun BQ40Z50 Battery Manager Arduino Library"@1.0.0 \
-		"SparkFun Extensible Message Parser"@1.0.1 \
+		"SparkFun Extensible Message Parser"@1.0.2 \
 		"SparkFun IM19 IMU Arduino Library"@1.0.1 \
+		"SparkFun LG290P Quadband RTK GNSS Arduino Library"@1.0.0
 		"SparkFun LIS2DH12 Arduino Library"@1.0.3 \
 		"SparkFun MAX1704x Fuel Gauge Arduino Library"@1.0.4 \
 		"SparkFun Qwiic OLED Arduino Library"@1.0.13 \
-		"SparkFun u-blox GNSS v3"@3.1.5 \
+		"SparkFun u-blox GNSS v3"@3.1.8 \
 		"SparkFun u-blox PointPerfect Library"@1.11.4 \
 		"SparkFun UM980 Triband RTK GNSS Arduino Library"@1.0.4 \
 		SSLClientESP32@2.0.0
@@ -140,6 +141,10 @@ lib-update:
 
 $(PARTITION_DST_PATH):	$(PARTITION_SRC_PATH)
 	$(COPY)  $(PARTITION_SRC_PATH)  $(PARTITION_DST_PATH)
+
+.PHONY: partition
+
+partition:	$(PARTITION_DST_PATH)
 
 $(MBED_LIB_DEST_PATH)libmbedtls.a: 	$(PATCH_SRC_PATH)libmbedtls.a  $(ESP_IDF_PATH)
 	$(DIR_LISTING) $(ESP_IDF_PATH)

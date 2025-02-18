@@ -454,15 +454,15 @@ void tcpClientUpdate()
                 // 1.  Phone: connection via WiFi, no host name, use gateway
                 //     IP address as phone IP address
                 // 2.  Host address, name or IP address of the server
-                bool usingPhone = (index == NETWORK_WIFI_STATION)
-                                && (!strlen(settings.tcpClientHost));
+                bool usingGatewayIpAddress = (index == NETWORK_WIFI_STATION)
+                                             && (!strlen(settings.tcpClientHost));
 
                 // Invalid configuration, display a message on a regular
                 // basis until the issue is resolved
                 if ((millis() - timer) >= (15 * 1000))
                 {
                     timer = millis();
-                    if (usingPhone)
+                    if (usingGatewayIpAddress)
                         systemPrintln("TCP Client must connect via WiFi when no host is specified");
                     else
                         systemPrintln("TCP Client requires host name to be specified!");

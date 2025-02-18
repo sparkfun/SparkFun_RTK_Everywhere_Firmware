@@ -416,6 +416,13 @@ void networkConsumerAdd(NETCONSUMER_t consumer, NetIndex_t network)
             }
         }
     }
+    else
+    {
+        systemPrintf("Network consumer %s added more than once to network %s\r\n",
+                     networkConsumerTable[consumer],
+                     networkInterfaceTable[index]);
+        reportFatalError("Network consumer added more than once!");
+    }
 }
 
 //----------------------------------------
@@ -513,6 +520,13 @@ void networkConsumerRemove(NETCONSUMER_t consumer, NetIndex_t network)
         // Display the network consumers
         if (settings.debugNetworkLayer)
             networkConsumerDisplay();
+    }
+    else
+    {
+        systemPrintf("ERROR: Network consumer %s removed more than once from network %s\r\n",
+                     networkConsumerTable[consumer],
+                     networkInterfaceTable[index]);
+        reportFatalError("Network consumer removed more than once!");
     }
 
     // Stop the networks when the consumer count reaches zero
@@ -1021,6 +1035,9 @@ void networkInterfaceInternetConnectionLost(NetIndex_t index)
     if (networkPriorityTable[index] == networkPriority)
     {
         // The highest priority network just failed
+        if (settings.debugNetworkLayer)
+            systemPrintf("Network: Looking for another interface to use\r\n");
+
         // Leave this network on in hopes that it will regain a connection
         previousPriority = networkPriority;
 
@@ -1028,18 +1045,20 @@ void networkInterfaceInternetConnectionLost(NetIndex_t index)
         priority = networkPriorityTable[index];
         for (priority += 1; priority < NETWORK_OFFLINE; priority += 1)
         {
-            // Is the network online?
+            // Is the interface online?
             index = networkIndexTable[priority];
-            if (networkInterfaceHasInternet(index))
-            {
-                // Successfully found an online network
-                break;
-            }
-
-            // No, is this device present (nullptr: always present)
             if (networkIsPresent(index))
             {
-                // No, does this network need starting
+                if (networkInterfaceHasInternet(index))
+                {
+                    // Successfully found an online network
+                    if (settings.debugNetworkLayer)
+                        systemPrintf("Network: Found interface %s\r\n", networkInterfaceTable[index].name);
+                    break;
+                }
+
+                // Interface not connected to the internet
+                // Start this interface
                 networkStart(index, settings.debugNetworkLayer);
             }
         }
@@ -1075,6 +1094,28 @@ bool networkIsConnected(NetPriority_t *clientPriority)
     // The network has changed, notify the client of the change
     *clientPriority = networkPriority;
     return false;
+}
+
+//----------------------------------------
+// Determine if the specified network interface is higher priority than
+// the current network interface
+//----------------------------------------
+bool networkIsHighestPriority(NetIndex_t index)
+{
+    NetPriority_t priority;
+    bool higherPriority;
+
+    // Validate the index
+    networkValidateIndex(index);
+
+    // Get the current network priority
+    priority = networkPriority;
+
+    // Determine if the specified interface has higher priority
+    higherPriority = (priority == NETWORK_OFFLINE);
+    if (!higherPriority)
+        higherPriority = (priority > networkPriorityTable[index]);
+    return higherPriority;
 }
 
 //----------------------------------------
@@ -1775,8 +1816,12 @@ void networkUpdate()
         {
             networkInterfaceInternetConnectionLost(index);
 
-            // Start the failover processing
-            networkStartNextInterface(index);
+            // Attempt to restart WiFi
+            if ((index == NETWORK_WIFI_STATION) && (networkIsHighestPriority(index)))
+            {
+                networkStop(index, settings.debugWifiState);
+                networkStart(index, settings.debugWifiState);
+            }
         }
 
         // Handle the network stop event
