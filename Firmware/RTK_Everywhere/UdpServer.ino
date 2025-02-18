@@ -100,7 +100,9 @@ static NetPriority_t udpServerPriority;
 // UDP Server handleGnssDataTask Support Routines
 //----------------------------------------
 
+//----------------------------------------
 // Send data as broadcast
+//----------------------------------------
 int32_t udpServerSendDataBroadcast(uint8_t *data, uint16_t length)
 {
     if (!length)
@@ -133,7 +135,9 @@ int32_t udpServerSendDataBroadcast(uint8_t *data, uint16_t length)
     return length;
 }
 
+//----------------------------------------
 // Send UDP data as broadcast
+//----------------------------------------
 int32_t udpServerSendData(uint16_t dataHead)
 {
     int32_t usedSpace = 0;
@@ -177,7 +181,9 @@ int32_t udpServerSendData(uint16_t dataHead)
     return usedSpace;
 }
 
+//----------------------------------------
 // Remove previous messages from the ring buffer
+//----------------------------------------
 void discardUdpServerBytes(RING_BUFFER_OFFSET previousTail, RING_BUFFER_OFFSET newTail)
 {
     // int index;
@@ -202,7 +208,9 @@ void discardUdpServerBytes(RING_BUFFER_OFFSET previousTail, RING_BUFFER_OFFSET n
 // UDP Server Routines
 //----------------------------------------
 
+//----------------------------------------
 // Update the state of the UDP server state machine
+//----------------------------------------
 void udpServerSetState(uint8_t newState)
 {
     if ((settings.debugUdpServer || PERIODIC_DISPLAY(PD_UDP_SERVER_STATE)) && (!inMainMenu))
@@ -226,7 +234,9 @@ void udpServerSetState(uint8_t newState)
     }
 }
 
+//----------------------------------------
 // Start the UDP server
+//----------------------------------------
 bool udpServerStart()
 {
     IPAddress localIp;
@@ -245,7 +255,9 @@ bool udpServerStart()
     return true;
 }
 
+//----------------------------------------
 // Stop the UDP server
+//----------------------------------------
 void udpServerStop()
 {
     // Notify the rest of the system that the UDP server is shutting down
@@ -276,7 +288,9 @@ void udpServerStop()
     }
 }
 
+//----------------------------------------
 // Update the UDP server state
+//----------------------------------------
 void udpServerUpdate()
 {
     IPAddress ipAddress;
@@ -367,7 +381,9 @@ void udpServerUpdate()
         udpServerSetState(udpServerState);
 }
 
+//----------------------------------------
 // Zero the UDP server tails
+//----------------------------------------
 void udpServerZeroTail()
 {
     udpServerTail = 0;
