@@ -1669,19 +1669,14 @@ void networkSequenceStopPolling(NetIndex_t index, bool debug, bool forcedStop)
 //----------------------------------------
 void networkStart(NetIndex_t index, bool debug)
 {
-    NetMask_t bitMask;
-
     // Validate the index
     networkValidateIndex(index);
 
     // Only start networks that exist on the platform
     if (networkIsPresent(index) && networkConsumerCount)
     {
-        // Get the network bit
-        bitMask = (1 << index);
-
         // If a network has a start sequence, and it is not started, start it
-        if (networkInterfaceTable[index].start && (!(networkStarted & bitMask)))
+        if (networkInterfaceTable[index].start && (!networkIsStarted(index)))
         {
             if (debug)
                 systemPrintf("Starting network: %s\r\n", networkGetNameByIndex(index));
