@@ -364,14 +364,6 @@ void tcpClientStop(bool shutdown)
         tcpClientSetState(TCP_CLIENT_STATE_WAIT_FOR_NETWORK);
 }
 
-// Return true if we are in a state that requires network access
-bool tcpClientNeedsNetwork()
-{
-    if (tcpClientState >= TCP_CLIENT_STATE_WAIT_FOR_NETWORK && tcpClientState <= TCP_CLIENT_STATE_CONNECTED)
-        return true;
-    return false;
-}
-
 // Update the TCP client state
 void tcpClientUpdate()
 {

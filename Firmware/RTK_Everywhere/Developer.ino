@@ -116,7 +116,6 @@ void discardUdpServerBytes(RING_BUFFER_OFFSET previousTail, RING_BUFFER_OFFSET n
 #ifndef COMPILE_OTA_AUTO
 
 void otaAutoUpdate() {}
-bool otaNeedsNetwork() {return false;}
 void otaUpdate() {}
 void otaUpdateStop() {}
 void otaVerifyTables() {}
@@ -130,7 +129,6 @@ void otaVerifyTables() {}
 #ifndef COMPILE_MQTT_CLIENT
 
 bool mqttClientIsConnected() {return false;}
-bool mqttClientNeedsNetwork() {return false;}
 void mqttClientPrintStatus() {}
 void mqttClientRestart() {}
 void mqttClientStartEnabled() {}
@@ -165,7 +163,6 @@ bool webServerStart(int httpPort = 80)
 bool parseIncomingSettings() {return false;}
 void sendStringToWebsocket(const char* stringToSend) {}
 void stopWebServer() {}
-bool webServerNeedsNetwork() {return false;}
 void webServerStop() {}
 void webServerUpdate()  {}
 void webServerVerifyTables() {}

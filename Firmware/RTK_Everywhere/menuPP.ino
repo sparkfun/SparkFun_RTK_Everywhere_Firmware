@@ -1225,14 +1225,6 @@ void provisioningSetState(uint8_t newState)
 unsigned long provisioningStartTime_millis;
 const unsigned long provisioningTimeout_ms = 120000;
 
-// Return true if we are in states that require network access
-bool provisioningNeedsNetwork()
-{
-    if (provisioningState >= PROVISIONING_WAIT_FOR_NETWORK && provisioningState <= PROVISIONING_STARTED)
-        return true;
-    return false;
-}
-
 void provisioningUpdate()
 {
     DMW_st(provisioningSetState, provisioningState);
