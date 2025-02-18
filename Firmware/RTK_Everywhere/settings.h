@@ -1059,6 +1059,7 @@ typedef enum {
     tLgMRNmea,
     tLgMRRvRT,
     tLgMRBaRT,
+    tLgMRPqtm,
     tLgConst,
     // Add new settings types above <---------------->
     // (Maintain the enum of existing settings types!)
@@ -1600,7 +1601,7 @@ const RTK_Settings_Entry rtkSettingsEntries[] =
     { 0, 1, 1, 0, 0, 0, 0, 0, 1, tLgMRNmea, MAX_LG290P_NMEA_MSG, & settings.lg290pMessageRatesNMEA, "messageRateNMEA_",  },
     { 0, 1, 1, 0, 0, 0, 0, 0, 1, tLgMRBaRT, MAX_LG290P_RTCM_MSG, & settings.lg290pMessageRatesRTCMBase, "messageRateRTCMBase_",  },
     { 0, 1, 1, 0, 0, 0, 0, 0, 1, tLgMRRvRT, MAX_LG290P_RTCM_MSG, & settings.lg290pMessageRatesRTCMRover, "messageRateRTCMRover_",  },
-    { 0, 1, 1, 0, 0, 0, 0, 0, 1, tLgMRNmea, MAX_LG290P_PQTM_MSG, & settings.lg290pMessageRatesPQTM, "messageRatePQTM_",  },
+    { 0, 1, 1, 0, 0, 0, 0, 0, 1, tLgMRPqtm, MAX_LG290P_PQTM_MSG, & settings.lg290pMessageRatesPQTM, "messageRatePQTM_",  },
 #endif  // COMPILE_LG290P
 
     { 0, 0, 0, 1, 1, 1, 1, 1, 1, _bool,     0, & settings.debugSettings, "debugSettings",  },

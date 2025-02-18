@@ -273,7 +273,6 @@ void pointperfectPrintKeyInformation() {systemPrintln("**PPL Not Compiled**");}
 #ifndef COMPILE_LG290P
 
 void lg290pHandler(uint8_t * buffer, int length) {}
-void lg290pModifyGst(char *nmeaSentence, uint16_t *sentenceLength) {}
 
 #endif // COMPILE_LG290P
 

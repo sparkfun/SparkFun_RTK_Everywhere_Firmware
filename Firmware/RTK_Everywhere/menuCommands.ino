@@ -1076,6 +1076,19 @@ SettingValueResponse updateSettingWithValue(bool inCommands, const char *setting
             }
         }
         break;
+        case tLgMRPqtm: {
+            for (int x = 0; x < qualifier; x++)
+            {
+                if ((suffix[0] == lgMessagesPQTM[x].msgTextName[0]) &&
+                    (strcmp(suffix, lgMessagesPQTM[x].msgTextName) == 0))
+                {
+                    settings.lg290pMessageRatesPQTM[x] = settingValue;
+                    knownSetting = true;
+                    break;
+                }
+            }
+        }
+        break;
         case tLgConst: {
             for (int x = 0; x < qualifier; x++)
             {
@@ -1862,6 +1875,17 @@ void createSettingsString(char *newSettings)
                     char tempString[50]; // lg290pMessageRatesRTCMBase.RTCM1005=2
                     snprintf(tempString, sizeof(tempString), "%s%s,%d,", rtkSettingsEntries[i].name,
                              lgMessagesRTCM[x].msgTextName, settings.lg290pMessageRatesRTCMBase[x]);
+                    stringRecord(newSettings, tempString);
+                }
+            }
+            break;
+            case tLgMRPqtm: {
+                // Record LG290P PQTM rates
+                for (int x = 0; x < rtkSettingsEntries[i].qualifier; x++)
+                {
+                    char tempString[50]; // lg290pMessageRatesPQTM_EPE=1 Not a float
+                    snprintf(tempString, sizeof(tempString), "%s%s,%d,", rtkSettingsEntries[i].name,
+                             lgMessagesPQTM[x].msgTextName, settings.lg290pMessageRatesPQTM[x]);
                     stringRecord(newSettings, tempString);
                 }
             }
@@ -2730,6 +2754,19 @@ SettingValueResponse getSettingValue(bool inCommands, const char *settingName, c
             }
         }
         break;
+        case tLgMRPqtm: {
+            for (int x = 0; x < qualifier; x++)
+            {
+                if ((suffix[0] == lgMessagesPQTM[x].msgTextName[0]) &&
+                    (strcmp(suffix, lgMessagesPQTM[x].msgTextName) == 0))
+                {
+                    writeToString(settingValueStr, settings.lg290pMessageRatesPQTM[x]);
+                    knownSetting = true;
+                    break;
+                }
+            }
+        }
+        break;
         case tLgConst: {
             for (int x = 0; x < qualifier; x++)
             {
@@ -3270,6 +3307,18 @@ void commandList(bool inCommands, int i)
         {
             snprintf(settingName, sizeof(settingName), "%s%s", rtkSettingsEntries[i].name,
                      lgMessagesRTCM[x].msgTextName);
+
+            getSettingValue(inCommands, settingName, settingValue);
+            commandSendExecuteListResponse(settingName, "uint8_t", settingValue);
+        }
+    }
+    break;
+    case tLgMRPqtm: {
+        // Record LG290P PQTM rates
+        for (int x = 0; x < rtkSettingsEntries[i].qualifier; x++)
+        {
+            snprintf(settingName, sizeof(settingName), "%s%s", rtkSettingsEntries[i].name,
+                     lgMessagesPQTM[x].msgTextName);
 
             getSettingValue(inCommands, settingName, settingValue);
             commandSendExecuteListResponse(settingName, "uint8_t", settingValue);

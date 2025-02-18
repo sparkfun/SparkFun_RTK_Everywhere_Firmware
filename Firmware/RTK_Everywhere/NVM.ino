@@ -616,6 +616,17 @@ void recordSystemSettingsToFile(File *settingsFile)
             }
         }
         break;
+        case tLgMRPqtm: {
+            // Record LG290P PQTM rates
+            for (int x = 0; x < rtkSettingsEntries[i].qualifier; x++)
+            {
+                char tempString[50]; // lg290pMessageRatesPQTM_EPE=1
+                snprintf(tempString, sizeof(tempString), "%s%s=%d", rtkSettingsEntries[i].name,
+                         lgMessagesPQTM[x].msgTextName, settings.lg290pMessageRatesPQTM[x]);
+                settingsFile->println(tempString);
+            }
+        }
+        break;
         case tLgConst: {
             // Record LG290P Constellations
             for (int x = 0; x < rtkSettingsEntries[i].qualifier; x++)
@@ -1475,6 +1486,19 @@ bool parseLine(char *str)
                         (strcmp(suffix, lgMessagesRTCM[x].msgTextName) == 0))
                     {
                         settings.lg290pMessageRatesRTCMBase[x] = d;
+                        knownSetting = true;
+                        break;
+                    }
+                }
+            }
+            break;
+            case tLgMRPqtm: {
+                for (int x = 0; x < qualifier; x++)
+                {
+                    if ((suffix[0] == lgMessagesPQTM[x].msgTextName[0]) &&
+                        (strcmp(suffix, lgMessagesPQTM[x].msgTextName) == 0))
+                    {
+                        settings.lg290pMessageRatesPQTM[x] = d;
                         knownSetting = true;
                         break;
                     }
