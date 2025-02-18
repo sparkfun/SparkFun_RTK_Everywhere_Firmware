@@ -936,7 +936,7 @@ volatile bool deadManWalking;
                                                                                                                        \
         /* Turn on nearly all the debug prints */                                                                      \
         settings.debugCorrections = true;                                                                              \
-        settings.debugGnss = true;                                                                                     \
+        settings.debugGnss = false;                                                                                     \
         settings.debugHttpClientData = true;                                                                           \
         settings.debugHttpClientState = true;                                                                          \
         settings.debugLora = true;                                                                                     \
@@ -981,7 +981,7 @@ volatile bool deadManWalking;
                                                                                                                        \
         /* Turn on nearly all the debug prints */                                                                      \
         settings.debugCorrections = true;                                                                              \
-        settings.debugGnss = true;                                                                                     \
+        settings.debugGnss = false;                                                                                     \
         settings.debugHttpClientData = false;                                                                          \
         settings.debugHttpClientState = true;                                                                          \
         settings.debugLora = false;                                                                                    \
@@ -1181,7 +1181,7 @@ void setup()
     loadSettings(); // Attempt to load settings after SD is started so we can read the settings file if available
 
     //DEBUG_NEARLY_EVERYTHING // Debug nearly all the things
-    DEBUG_THE_ESSENTIALS // Debug the essentials - handy for measuring the boot time after a factory reset
+    //DEBUG_THE_ESSENTIALS // Debug the essentials - handy for measuring the boot time after a factory reset
 
     DMW_b("checkArrayDefaults");
     checkArrayDefaults(); // Check for uninitialized arrays that won't be initialized by gnssConfigure
