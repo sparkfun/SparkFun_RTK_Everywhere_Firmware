@@ -124,6 +124,27 @@ void udpServerDiscardBytes(RING_BUFFER_OFFSET previousTail, RING_BUFFER_OFFSET n
 }
 
 //----------------------------------------
+// Determine if the UDP server may be enabled
+//----------------------------------------
+bool udpServerEnabled()
+{
+    bool enabled;
+
+    do
+    {
+        enabled = false;
+
+        // Verify the operating mode
+        if (NEQ_RTK_MODE(udpServerMode))
+            break;
+
+        // Verify still enabled
+        enabled = settings.enableUdpServer;
+    } while (0);
+    return enabled;
+}
+
+//----------------------------------------
 // Send UDP data as broadcast
 //----------------------------------------
 int32_t udpServerSendData(uint16_t dataHead)
@@ -298,11 +319,8 @@ void udpServerUpdate()
 
     // Shutdown the UDP server when the mode or setting changes
     DMW_st(udpServerSetState, udpServerState);
-    if (NEQ_RTK_MODE(udpServerMode) || (!settings.enableUdpServer))
-    {
-        if (udpServerState > UDP_SERVER_STATE_OFF)
-            udpServerStop();
-    }
+    if ((!udpServerEnabled()) && (udpServerState > UDP_SERVER_STATE_OFF))
+        udpServerStop();
 
     /*
         UDP Server state machine
@@ -328,7 +346,7 @@ void udpServerUpdate()
     // Wait until the UDP server is enabled
     case UDP_SERVER_STATE_OFF:
         // Determine if the UDP server should be running
-        if (EQ_RTK_MODE(udpServerMode) && settings.enableUdpServer)
+        if (udpServerEnabled())
         {
             if (settings.debugUdpServer && (!inMainMenu))
                 systemPrintln("UDP server starting the network");
@@ -338,12 +356,8 @@ void udpServerUpdate()
 
     // Wait until the network is connected
     case UDP_SERVER_STATE_WAIT_FOR_NETWORK:
-        // Determine if the UDP server was turned off
-        if (NEQ_RTK_MODE(udpServerMode) || !settings.enableUdpServer)
-            udpServerStop();
-
         // Wait until the network is connected
-        else if (networkIsConnected(&udpServerPriority) || wifiSoftApRunning)
+        if (networkIsConnected(&udpServerPriority) || wifiSoftApRunning)
         {
             // Delay before starting the UDP server
             if ((millis() - udpServerTimer) >= (1 * 1000))
