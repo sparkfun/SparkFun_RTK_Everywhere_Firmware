@@ -44,7 +44,9 @@ bool newOTAFirmwareAvailable = false;
 // Menu
 //----------------------------------------
 
+//----------------------------------------
 // Update firmware if bin files found
+//----------------------------------------
 void menuFirmware()
 {
     while (1)
@@ -158,6 +160,8 @@ void menuFirmware()
 // Firmware update code
 //----------------------------------------
 
+//----------------------------------------
+//----------------------------------------
 void mountSDThenUpdate(const char *firmwareFileName)
 {
     bool gotSemaphore;
@@ -193,9 +197,11 @@ void mountSDThenUpdate(const char *firmwareFileName)
         xSemaphoreGive(sdCardSemaphore);
 }
 
+//----------------------------------------
 // Looks for matching binary files in root
 // Loads a global called binCount
 // Called from beginSD with microSD card mounted and sdCardsemaphore held
+//----------------------------------------
 void scanForFirmware()
 {
     // Count available binaries
@@ -239,9 +245,11 @@ void scanForFirmware()
     }
 }
 
+//----------------------------------------
 // Look for firmware file on SD card and update as needed
 // Called from scanForFirmware with microSD card mounted and sdCardsemaphore held
 // Called from mountSDThenUpdate with microSD card mounted and sdCardsemaphore held
+//----------------------------------------
 void updateFromSD(const char *firmwareFileName)
 {
     // Count app partitions
@@ -392,7 +400,9 @@ void updateFromSD(const char *firmwareFileName)
     systemPrintln("Firmware update failed. Please try again.");
 }
 
+//----------------------------------------
 // Format the firmware version
+//----------------------------------------
 void formatFirmwareVersion(uint8_t major, uint8_t minor, char *buffer, int bufferLength, bool includeDate)
 {
     char prefix;
@@ -419,12 +429,16 @@ void formatFirmwareVersion(uint8_t major, uint8_t minor, char *buffer, int buffe
     }
 }
 
+//----------------------------------------
 // Get the current firmware version
+//----------------------------------------
 void getFirmwareVersion(char *buffer, int bufferLength, bool includeDate)
 {
     formatFirmwareVersion(FIRMWARE_VERSION_MAJOR, FIRMWARE_VERSION_MINOR, buffer, bufferLength, includeDate);
 }
 
+//----------------------------------------
+//----------------------------------------
 const char *otaGetUrl()
 {
     const char *url;
@@ -438,9 +452,11 @@ const char *otaGetUrl()
     return enableRCFirmware ? OTA_RC_FIRMWARE_JSON_URL : OTA_FIRMWARE_JSON_URL;
 }
 
+//----------------------------------------
 // Returns true if we successfully got the versionAvailable
 // Modifies versionAvailable with OTA getVersion response
 // This is currently limited to only WiFi (no cellular) because of ESP32OTAPull limitations
+//----------------------------------------
 bool otaCheckVersion(char *versionAvailable, uint8_t versionAvailableLength)
 {
     bool gotVersion = false;
@@ -491,8 +507,10 @@ bool otaCheckVersion(char *versionAvailable, uint8_t versionAvailableLength)
     return (gotVersion);
 }
 
+//----------------------------------------
 // Updates firmware using OTA pull
 // Exits by either updating firmware and resetting, or failing to connect
+//----------------------------------------
 void otaUpdateFirmware()
 {
 #ifdef COMPILE_NETWORK
@@ -529,12 +547,16 @@ void otaUpdateFirmware()
 #endif // COMPILE_NETWORK
 }
 
+//----------------------------------------
 // Called while the OTA Pull update is happening
+//----------------------------------------
 void otaPullCallback(int bytesWritten, int totalLength)
 {
     otaDisplayPercentage(bytesWritten, totalLength, false);
 }
 
+//----------------------------------------
+//----------------------------------------
 void otaDisplayPercentage(int bytesWritten, int totalLength, bool alwaysDisplay)
 {
     static int previousPercent = -1;
@@ -569,6 +591,8 @@ void otaDisplayPercentage(int bytesWritten, int totalLength, bool alwaysDisplay)
     }
 }
 
+//----------------------------------------
+//----------------------------------------
 const char *otaPullErrorText(int code)
 {
 #ifdef COMPILE_NETWORK
@@ -599,10 +623,12 @@ const char *otaPullErrorText(int code)
     return "Unknown error";
 }
 
+//----------------------------------------
 // Returns true if otaReportedVersion is newer than currentVersion
 // Version number comes in as v2.7-Jan 5 2023
 // 2.7-Jan 5 2023 is newer than v2.7-Jan 1 2023
 // We can't use just the float number: v3.12 is a greater version than v3.9 but it is a smaller float number
+//----------------------------------------
 bool isReportedVersionNewer(char *reportedVersion, char *currentVersion)
 {
     int currentVersionNumberMajor = 0;
@@ -665,9 +691,11 @@ bool isReportedVersionNewer(char *reportedVersion, char *currentVersion)
     return (false);
 }
 
+//----------------------------------------
 // Version number comes in as v2.7-Jan 5 2023
 // Given a char string, break into version number major/minor, year, month, day
 // Returns false if parsing failed
+//----------------------------------------
 bool breakVersionIntoParts(char *version, int *versionNumberMajor, int *versionNumberMinor, int *year, int *month,
                            int *day)
 {
@@ -701,7 +729,9 @@ bool breakVersionIntoParts(char *version, int *versionNumberMajor, int *versionN
     return (true);
 }
 
+//----------------------------------------
 // https://stackoverflow.com/questions/21210319/assign-month-name-and-integer-values-from-string-using-sscanf
+//----------------------------------------
 int mapMonthName(char *mmm)
 {
     static char const *months[] = {"Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"};
@@ -715,7 +745,9 @@ int mapMonthName(char *mmm)
 
 #ifdef COMPILE_OTA_AUTO
 
+//----------------------------------------
 // Get the OTA state name
+//----------------------------------------
 const char *otaGetStateName(uint8_t state, char *string)
 {
     if (state < OTA_STATE_MAX)
@@ -724,7 +756,9 @@ const char *otaGetStateName(uint8_t state, char *string)
     return string;
 }
 
+//----------------------------------------
 // Set the next OTA state
+//----------------------------------------
 void otaSetState(uint8_t newState)
 {
     char string1[40];
@@ -775,7 +809,9 @@ void otaSetState(uint8_t newState)
         reportFatalError("Invalid firmware update state");
 }
 
+//----------------------------------------
 // Stop the automatic OTA firmware update
+//----------------------------------------
 void otaUpdateStop()
 {
     if (settings.debugFirmwareUpdate)
@@ -801,7 +837,9 @@ void otaUpdateStop()
     }
 };
 
+//----------------------------------------
 // Initiate firmware version checks, scheduled automatic updates, or requested firmware over-the-air updates
+//----------------------------------------
 void otaUpdate()
 {
     // Check if we need a scheduled check
@@ -929,7 +967,9 @@ void otaUpdate()
     }
 }
 
+//----------------------------------------
 // Verify the OTA update tables
+//----------------------------------------
 void otaVerifyTables()
 {
     // Verify the table lengths
