@@ -574,6 +574,7 @@ void ntripServerStop(int serverIndex, bool shutdown)
 
     // Determine the next NTRIP server state
     online.ntripServer[serverIndex] = false;
+    ntripServerPriority = NETWORK_OFFLINE;
     if (shutdown)
     {
         if (settings.debugNtripServerState)
@@ -637,7 +638,6 @@ void ntripServerUpdate(int serverIndex)
 
     // Start the network
     case NTRIP_SERVER_ON:
-        ntripServerPriority = NETWORK_OFFLINE;
         ntripServerSetState(ntripServer, NTRIP_SERVER_WAIT_FOR_NETWORK);
         break;
 
