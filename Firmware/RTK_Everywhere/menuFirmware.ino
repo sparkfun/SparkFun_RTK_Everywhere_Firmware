@@ -162,7 +162,7 @@ void menuFirmware()
 
 //----------------------------------------
 //----------------------------------------
-void mountSDThenUpdate(const char *firmwareFileName)
+void microSdMountThenUpdate(const char *firmwareFileName)
 {
     bool gotSemaphore;
     bool wasSdCardOnline;
@@ -248,7 +248,7 @@ void microSdScanForFirmware()
 //----------------------------------------
 // Look for firmware file on SD card and update as needed
 // Called from microSdScanForFirmware with microSD card mounted and sdCardsemaphore held
-// Called from mountSDThenUpdate with microSD card mounted and sdCardsemaphore held
+// Called from microSdMountThenUpdate with microSD card mounted and sdCardsemaphore held
 //----------------------------------------
 void updateFromSD(const char *firmwareFileName)
 {

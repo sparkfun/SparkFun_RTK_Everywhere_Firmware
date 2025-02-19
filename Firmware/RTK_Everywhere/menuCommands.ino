@@ -1198,7 +1198,7 @@ SettingValueResponse updateSettingWithValue(bool inCommands, const char *setting
     }
     else if (strcmp(settingName, "firmwareFileName") == 0)
     {
-        mountSDThenUpdate(settingValueStr);
+        microSdMountThenUpdate(settingValueStr);
 
         // If update is successful, it will force system reset and not get here.
 
