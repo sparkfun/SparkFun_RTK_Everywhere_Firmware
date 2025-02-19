@@ -987,7 +987,7 @@ void updateRingBufferTails(RING_BUFFER_OFFSET previousTail, RING_BUFFER_OFFSET n
     // Trim any long or medium tails
     discardRingBufferBytes(&btRingBufferTail, previousTail, newTail);
     discardRingBufferBytes(&sdRingBufferTail, previousTail, newTail);
-    discardTcpClientBytes(previousTail, newTail);
+    tcpClientDiscardBytes(previousTail, newTail);
     discardTcpServerBytes(previousTail, newTail);
     discardUdpServerBytes(previousTail, newTail);
 }
