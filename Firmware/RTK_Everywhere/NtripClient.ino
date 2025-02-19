@@ -315,7 +315,7 @@ bool ntripClientConnectLimitReached()
     limitReached = false;
 
     // Restart the NTRIP client
-    ntripClientStop(limitReached || (!settings.enableNtripClient));
+    ntripClientStop(limitReached || (!ntripClientEnabled()));
 
     ntripClientConnectionAttempts++;
     ntripClientConnectionAttemptsTotal++;
@@ -350,6 +350,37 @@ bool ntripClientConnectLimitReached()
         // No more connection attempts, switching to Bluetooth
         systemPrintln("NTRIP Client connection attempts exceeded!");
     return limitReached;
+}
+
+//----------------------------------------
+// Determine if the NTRIP client may be enabled
+//----------------------------------------
+bool ntripClientEnabled()
+{
+    bool enabled;
+
+    do
+    {
+        enabled = false;
+
+        // Verify the operating mode
+        if (NEQ_RTK_MODE(ntripClientMode))
+            break;
+
+        // Determine if the shutdown is being forced
+        if (ntripClientForcedShutdown)
+            break;
+
+        // Verify that the parameters were specified
+        if ((settings.ntripClient_CasterHost[0] == 0)
+            || (settings.ntripClient_CasterPort == 0)
+            || (settings.ntripClient_MountPoint[0] == 0))
+            break;
+
+        // Verify still enabled
+        enabled = settings.enableNtripClient;
+    } while (0);
+    return enabled;
 }
 
 //----------------------------------------
@@ -560,20 +591,20 @@ void ntripClientStop(bool shutdown)
 //----------------------------------------
 void ntripClientUpdate()
 {
+    bool enabled;
+
     // Shutdown the NTRIP client when the mode or setting changes
     DMW_st(ntripClientSetState, ntripClientState);
-    if (NEQ_RTK_MODE(ntripClientMode) || (!settings.enableNtripClient))
-    {
-        if (ntripClientState > NTRIP_CLIENT_OFF)
-            ntripClientStop(true);
-    }
+    enabled = ntripClientEnabled();
+    if ((!enabled) && (ntripClientState > NTRIP_CLIENT_OFF))
+        ntripClientStop(true);
 
     // Enable the network and the NTRIP client if requested
     switch (ntripClientState)
     {
     case NTRIP_CLIENT_OFF:
         // Don't allow the client to restart if a forced shutdown occurred
-        if (ntripClientForcedShutdown == false && EQ_RTK_MODE(ntripClientMode) && settings.enableNtripClient)
+        if (ntripClientEnabled())
             ntripClientStart();
         break;
 
@@ -585,12 +616,8 @@ void ntripClientUpdate()
 
     // Wait for a network media connection
     case NTRIP_CLIENT_WAIT_FOR_NETWORK:
-        // Determine if the NTRIP client was turned off
-        if (ntripClientForcedShutdown || NEQ_RTK_MODE(ntripClientMode) || !settings.enableNtripClient)
-            ntripClientStop(true);
-
         // Wait until the network is connected to the media
-        else if (networkIsConnected(&ntripClientPriority))
+        if (networkIsConnected(&ntripClientPriority))
         {
             // Allocate the ntripClient structure
             ntripClient = new NetworkClient();
