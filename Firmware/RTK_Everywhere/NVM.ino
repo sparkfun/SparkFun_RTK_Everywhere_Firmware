@@ -645,7 +645,7 @@ void recordSystemSettingsToFile(File *settingsFile)
     // Below are things not part of settings.h
 
     char firmwareVersion[30]; // v1.3 December 31 2021
-    getFirmwareVersion(firmwareVersion, sizeof(firmwareVersion), true);
+    firmwareVersionGet(firmwareVersion, sizeof(firmwareVersion), true);
     settingsFile->printf("%s=%s\r\n", "rtkFirmwareVersion", firmwareVersion);
 
     settingsFile->printf("%s=%s\r\n", "gnssFirmwareVersion", gnssFirmwareVersion);

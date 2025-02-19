@@ -55,7 +55,7 @@ void menuFirmware()
         systemPrintln("Menu: Firmware Update");
 
         char currentVersion[21];
-        getFirmwareVersion(currentVersion, sizeof(currentVersion), enableRCFirmware);
+        firmwareVersionGet(currentVersion, sizeof(currentVersion), enableRCFirmware);
         systemPrintf("Current firmware: %s\r\n", currentVersion);
 
         // Automatic firmware updates
@@ -432,7 +432,7 @@ void formatFirmwareVersion(uint8_t major, uint8_t minor, char *buffer, int buffe
 //----------------------------------------
 // Get the current firmware version
 //----------------------------------------
-void getFirmwareVersion(char *buffer, int bufferLength, bool includeDate)
+void firmwareVersionGet(char *buffer, int bufferLength, bool includeDate)
 {
     formatFirmwareVersion(FIRMWARE_VERSION_MAJOR, FIRMWARE_VERSION_MINOR, buffer, bufferLength, includeDate);
 }
@@ -470,7 +470,7 @@ bool otaCheckVersion(char *versionAvailable, uint8_t versionAvailableLength)
 
     // Create a string of the unit's current firmware version
     char currentVersion[21];
-    getFirmwareVersion(currentVersion, sizeof(currentVersion), enableRCFirmware);
+    firmwareVersionGet(currentVersion, sizeof(currentVersion), enableRCFirmware);
 
     systemPrintf("Current firmware version: %s\r\n", currentVersion);
 
@@ -915,7 +915,7 @@ void otaUpdate()
 
                 // Create a string of the unit's current firmware version
                 char currentVersion[21];
-                getFirmwareVersion(currentVersion, sizeof(currentVersion), enableRCFirmware);
+                firmwareVersionGet(currentVersion, sizeof(currentVersion), enableRCFirmware);
 
                 // We got a version number, now determine if it's newer or not
                 // Allow update if locally compiled developer version

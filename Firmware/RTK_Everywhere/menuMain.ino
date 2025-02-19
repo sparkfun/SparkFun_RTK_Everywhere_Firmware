@@ -132,7 +132,7 @@ void menuMain()
     {
         systemPrintln();
         char versionString[21];
-        getFirmwareVersion(versionString, sizeof(versionString), true);
+        firmwareVersionGet(versionString, sizeof(versionString), true);
         RTKBrandAttribute *brandAttributes = getBrandAttributeFromBrand(present.brand);
         systemPrintf("%s RTK %s %s\r\n", brandAttributes->name, platformPrefix, versionString);
 

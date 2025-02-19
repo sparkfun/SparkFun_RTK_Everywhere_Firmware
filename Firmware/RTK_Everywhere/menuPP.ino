@@ -220,7 +220,7 @@ void createZtpRequest(String &str)
 
     // Get the firmware version string
     char versionString[9];
-    getFirmwareVersion(versionString, sizeof(versionString), false);
+    firmwareVersionGet(versionString, sizeof(versionString), false);
 
     // Build the givenName:   Name vxx.yy - HardwareID
     char givenName[100];

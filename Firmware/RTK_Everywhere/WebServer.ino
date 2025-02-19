@@ -173,7 +173,7 @@ void createFirmwareVersionString(char *settingsCSV)
 
     // Create a string of the unit's current firmware version
     char currentVersion[21];
-    getFirmwareVersion(currentVersion, sizeof(currentVersion), enableRCFirmware);
+    firmwareVersionGet(currentVersion, sizeof(currentVersion), enableRCFirmware);
 
     // Compare the unit's version against the reported version from OTA
     if (isReportedVersionNewer(otaReportedVersion, currentVersion) == true)

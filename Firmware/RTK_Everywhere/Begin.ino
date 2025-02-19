@@ -747,7 +747,7 @@ void beginBoard()
 void beginVersion()
 {
     char versionString[21];
-    getFirmwareVersion(versionString, sizeof(versionString), true);
+    firmwareVersionGet(versionString, sizeof(versionString), true);
 
     char title[50];
     RTKBrandAttribute *brandAttributes = getBrandAttributeFromBrand(present.brand);
