@@ -212,18 +212,18 @@ bool mqttClientConnectLimitReached()
 //----------------------------------------
 bool mqttClientEnabled()
 {
-    bool enableMqttClient;
+    bool enabled;
 
     do
     {
-        enableMqttClient = false;
+        enabled = false;
+
+        // Verify the operating mode
+        if (NEQ_RTK_MODE(mqttClientMode))
+            break;
 
         // MQTT requires use of point perfect corrections
         if (settings.enablePointPerfectCorrections == false)
-            break;
-
-        // Only support MQTT clients in rover mode
-        if (NEQ_RTK_MODE(mqttClientMode))
             break;
 
         // For the mosaic-X5, settings.enablePointPerfectCorrections will be true if
@@ -235,10 +235,10 @@ bool mqttClientEnabled()
         if (present.gnss_mosaicX5)
             break;
 
-        // All conditions support running the MQTT client
-        enableMqttClient = mqttClientStartRequested;
+        // Verify still enabled
+        enabled = mqttClientStartRequested;
     } while (0);
-    return enableMqttClient;
+    return enabled;
 }
 
 //----------------------------------------
