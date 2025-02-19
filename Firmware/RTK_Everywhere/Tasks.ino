@@ -988,7 +988,7 @@ void updateRingBufferTails(RING_BUFFER_OFFSET previousTail, RING_BUFFER_OFFSET n
     discardRingBufferBytes(&btRingBufferTail, previousTail, newTail);
     discardRingBufferBytes(&sdRingBufferTail, previousTail, newTail);
     tcpClientDiscardBytes(previousTail, newTail);
-    discardTcpServerBytes(previousTail, newTail);
+    tcpServerDiscardBytes(previousTail, newTail);
     discardUdpServerBytes(previousTail, newTail);
 }
 
