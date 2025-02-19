@@ -118,6 +118,8 @@ void discardUdpServerBytes(RING_BUFFER_OFFSET previousTail, RING_BUFFER_OFFSET n
 
 void otaAutoUpdate() {}
 bool otaCheckVersion(char *versionAvailable, uint8_t versionAvailableLength)    {return false;}
+void otaMenuDisplay(char * currentVersion) {}
+bool otaMenuProcessInput(byte incoming) {return false;}
 void otaUpdate() {}
 void otaUpdateStop() {}
 void otaVerifyTables() {}
