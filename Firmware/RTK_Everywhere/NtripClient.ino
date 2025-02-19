@@ -353,6 +353,15 @@ bool ntripClientConnectLimitReached()
 }
 
 //----------------------------------------
+// Shutdown the NTRIP client
+//----------------------------------------
+void ntripClientForceShutdown()
+{
+    ntripClientStop(true);
+    ntripClientForcedShutdown = true; // NTRIP Client was turned off due to an error. Don't allow restart.
+}
+
+//----------------------------------------
 // Print the NTRIP client state summary
 //----------------------------------------
 void ntripClientPrintStateSummary()
@@ -489,15 +498,6 @@ void ntripClientSetState(uint8_t newState)
         else
             systemPrintln(ntripClientStateName[ntripClientState]);
     }
-}
-
-//----------------------------------------
-// Shutdown the NTRIP client
-//----------------------------------------
-void ntripClientForceShutdown()
-{
-    ntripClientStop(true);
-    ntripClientForcedShutdown = true; // NTRIP Client was turned off due to an error. Don't allow restart.
 }
 
 //----------------------------------------
