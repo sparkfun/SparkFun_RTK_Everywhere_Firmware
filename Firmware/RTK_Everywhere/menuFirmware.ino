@@ -793,6 +793,7 @@ void otaUpdateStop()
 
         // Let the network know we no longer need it
         networkConsumerRemove(NETCONSUMER_OTA_CLIENT, NETWORK_ANY);
+        otaPriority = NETWORK_OFFLINE;
 
         // Stop the firmware update
         otaSetState(OTA_STATE_OFF);
