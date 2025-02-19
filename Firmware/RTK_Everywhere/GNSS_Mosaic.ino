@@ -314,13 +314,6 @@ bool GNSS_MOSAIC::beginExternalEvent()
     if (online.gnss == false)
         return (false);
 
-    // If our settings haven't changed, trust GNSS's settings
-    if (settings.updateGNSSSettings == false)
-    {
-        systemPrintln("Skipping mosaic-X5 event configuration");
-        return (true);
-    }
-
     if (settings.dataPortChannel != MUX_PPS_EVENTTRIGGER)
         return (true); // No need to configure PPS if port is not selected
 
@@ -343,13 +336,6 @@ bool GNSS_MOSAIC::beginPPS()
 {
     if (online.gnss == false)
         return (false);
-
-    // If our settings haven't changed, trust GNSS's settings
-    if (settings.updateGNSSSettings == false)
-    {
-        systemPrintln("Skipping mosaicX5BeginPPS");
-        return (true);
-    }
 
     if (settings.dataPortChannel != MUX_PPS_EVENTTRIGGER)
         return (true); // No need to configure PPS if port is not selected
@@ -420,6 +406,13 @@ bool GNSS_MOSAIC::configureBase()
         return (false);
     }
 
+    if (settings.gnssConfiguredBase)
+    {
+        systemPrintln("Skipping mosaic Base configuration");
+        setLoggingType(); // Needed because logUpdate exits early and never calls setLoggingType
+        return true;
+    }
+
     bool response = true;
 
     response &= setModel(MOSAIC_DYN_MODEL_STATIC);
@@ -435,15 +428,14 @@ bool GNSS_MOSAIC::configureBase()
     setLoggingType(); // Update Standard, PPP, or custom for icon selection
 
     // Save the current configuration into non-volatile memory (NVM)
-    // We don't need to re-configure the MOSAICX5 at next boot
-    bool settingsWereSaved = saveConfiguration();
-    if (settingsWereSaved)
-        settings.updateGNSSSettings = false;
+    response &= saveConfiguration();
 
     if (response == false)
     {
         systemPrintln("mosaic-X5 Base failed to configure");
     }
+
+    settings.gnssConfiguredBase = response;
 
     return (response);
 }
@@ -559,6 +551,12 @@ bool GNSS_MOSAIC::configureOnce()
     RTCMv3 messages are enabled by enableRTCMRover / enableRTCMBase
     */
 
+    if (settings.gnssConfiguredOnce)
+    {
+        systemPrintln("mosaic configuration maintained");
+        return (true);
+    }
+
     bool response = true;
 
     // Configure COM1. NMEA and RTCMv3 will be encapsulated in SBF format
@@ -606,13 +604,12 @@ bool GNSS_MOSAIC::configureOnce()
         systemPrintln("mosaic-X5 configuration updated");
 
         // Save the current configuration into non-volatile memory (NVM)
-        // We don't need to re-configure the MOSAICX5 at next boot
-        bool settingsWereSaved = saveConfiguration();
-        if (settingsWereSaved)
-            settings.updateGNSSSettings = false;
+        response &= saveConfiguration();
     }
     else
         online.gnss = false; // Take it offline
+
+    settings.gnssConfiguredOnce = response;
 
     return (response);
 }
@@ -625,13 +622,6 @@ bool GNSS_MOSAIC::configureOnce()
 //----------------------------------------
 bool GNSS_MOSAIC::configureGNSS()
 {
-    // Skip configuring the MOSAICX5 if no new changes are necessary
-    if (settings.updateGNSSSettings == false)
-    {
-        systemPrintln("mosaic-X5 configuration maintained");
-        return (true);
-    }
-
     // Attempt 3 tries on MOSAICX5 config
     for (int x = 0; x < 3; x++)
     {
@@ -662,13 +652,21 @@ bool GNSS_MOSAIC::configureRover()
         return (false);
     }
 
+    // If our settings haven't changed, trust GNSS's settings
+    if (settings.gnssConfiguredRover)
+    {
+        systemPrintln("Skipping mosaic Rover configuration");
+        setLoggingType(); // Needed because logUpdate exits early and never calls setLoggingType
+        return (true);
+    }
+
     bool response = true;
 
     response &= sendWithResponse("spm,Rover,all,auto\n\r", "PVTMode");
 
-    response &= setModel(settings.dynamicModel);
+    response &= setModel(settings.dynamicModel); // Set by menuGNSS which calls gnss->setModel
 
-    response &= setElevation(settings.minElev);
+    response &= setElevation(settings.minElev); // Set by menuGNSS which calls gnss->setElevation
 
     response &= enableRTCMRover();
 
@@ -679,15 +677,14 @@ bool GNSS_MOSAIC::configureRover()
     setLoggingType(); // Update Standard, PPP, or custom for icon selection
 
     // Save the current configuration into non-volatile memory (NVM)
-    // We don't need to re-configure the MOSAICX5 at next boot
-    bool settingsWereSaved = saveConfiguration();
-    if (settingsWereSaved)
-        settings.updateGNSSSettings = false;
+    response &= saveConfiguration();
 
     if (response == false)
     {
         systemPrintln("mosaic-X5 Rover failed to configure");
     }
+
+    settings.gnssConfiguredRover = response;
 
     return (response);
 }
@@ -1727,7 +1724,8 @@ void GNSS_MOSAIC::menuMessagesNMEA()
             printUnknown(incoming);
     }
 
-    settings.updateGNSSSettings = true; // Update the GNSS config at the next boot
+    settings.gnssConfiguredBase = false; // Update the GNSS config at the next boot
+    settings.gnssConfiguredRover = false;
 
     clearBuffer(); // Empty buffer of any newline chars
 }
@@ -1798,7 +1796,8 @@ void GNSS_MOSAIC::menuMessagesRTCM(bool rover)
             printUnknown(incoming);
     }
 
-    settings.updateGNSSSettings = true; // Update the GNSS config at the next boot
+    settings.gnssConfiguredBase = false; // Update the GNSS config at the next boot
+    settings.gnssConfiguredRover = false;
 
     clearBuffer(); // Empty buffer of any newline chars
 }
@@ -2649,6 +2648,7 @@ void GNSS_MOSAIC::update()
     }
 
     // Update spartnCorrectionsReceived
+    // Does this need if(online.lband_gnss) ? Not sure... TODO
     if (millis() > (lastSpartnReception + (settings.correctionsSourcesLifetime_s * 1000))) // Timeout
     {
         if (spartnCorrectionsReceived) // If corrections were being received

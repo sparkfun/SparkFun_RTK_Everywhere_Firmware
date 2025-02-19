@@ -700,16 +700,6 @@ bool configureUbloxModuleNTP()
     if (online.gnss == false)
         return (false);
 
-    // If our settings haven't changed, and this is first config since power on, trust GNSS's settings
-    // Unless this is an EVK - where the GNSS has no battery-backed RAM
-    if ((productVariant != RTK_EVK) && (settings.updateGNSSSettings == false) && (firstPowerOn == true))
-    {
-        firstPowerOn = false; // Next time user switches modes, new settings will be applied
-        log_d("Skipping ZED NTP configuration");
-        return (true);
-    }
-    firstPowerOn = false; // If we switch between rover/base in the future, force config of module.
-
     gnss->update(); // Regularly poll to get latest data
     return gnss->configureNtpMode();
 }

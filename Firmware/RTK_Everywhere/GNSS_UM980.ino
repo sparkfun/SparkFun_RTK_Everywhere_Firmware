@@ -166,6 +166,17 @@ bool GNSS_UM980::configureBase()
         return (false);
     }
 
+    // Trusting the saved configuration does not seem to work on the UM980.
+    // It looks like the GPGGA NMEA output does not restart...?
+    // (Re)configuration is quick. Doing this every time is not much of an overhead.
+    //
+    // if (settings.gnssConfiguredBase)
+    // {
+    //     if (settings.debugGnss)
+    //         systemPrintln("Skipping UM980 Base configuration");
+    //     return true;
+    // }
+
     disableAllOutput();
 
     bool response = true;
@@ -186,10 +197,7 @@ bool GNSS_UM980::configureBase()
     response &= enableNMEA();
 
     // Save the current configuration into non-volatile memory (NVM)
-    // We don't need to re-configure the UM980 at next boot
-    bool settingsWereSaved = _um980->saveConfiguration();
-    if (settingsWereSaved)
-        settings.updateGNSSSettings = false;
+    response &= _um980->saveConfiguration();
 
     if (response == false)
     {
@@ -198,6 +206,8 @@ bool GNSS_UM980::configureBase()
 
     if (settings.debugGnss)
         systemPrintln("UM980 Base configured");
+
+    settings.gnssConfiguredBase = response;
 
     return (response);
 }
@@ -218,6 +228,13 @@ bool GNSS_UM980::configureOnce()
       Enable selected NMEA messages on COM3
       Enable selected RTCM messages on COM3
 */
+
+    // // If our settings haven't changed, trust GNSS's settings
+    if (settings.gnssConfiguredOnce)
+    {
+        systemPrintln("UM980 configuration maintained");
+        return (true);
+    }
 
     if (settings.debugGnss)
         debuggingEnable(); // Print all debug to Serial
@@ -269,13 +286,12 @@ bool GNSS_UM980::configureOnce()
         systemPrintln("UM980 configuration updated");
 
         // Save the current configuration into non-volatile memory (NVM)
-        // We don't need to re-configure the UM980 at next boot
-        bool settingsWereSaved = _um980->saveConfiguration();
-        if (settingsWereSaved)
-            settings.updateGNSSSettings = false;
+        response &= _um980->saveConfiguration();
     }
     else
         online.gnss = false; // Take it offline
+
+    settings.gnssConfiguredOnce = response;
 
     return (response);
 }
@@ -294,13 +310,6 @@ bool GNSS_UM980::configureNtpMode()
 //----------------------------------------
 bool GNSS_UM980::configureGNSS()
 {
-    // Skip configuring the UM980 if no new changes are necessary
-    if (settings.updateGNSSSettings == false)
-    {
-        systemPrintln("UM980 configuration maintained");
-        return (true);
-    }
-
     for (int x = 0; x < 3; x++)
     {
         if (configureOnce())
@@ -338,6 +347,16 @@ bool GNSS_UM980::configureRover()
         return (false);
     }
 
+    // Trusting the saved configuration does not seem to work on the UM980.
+    // It looks like the GPGGA NMEA output does not restart...?
+    // (Re)configuration is quick. Doing this every time is not much of an overhead.
+    //
+    // if (settings.gnssConfiguredRover)
+    // {
+    //     systemPrintln("Skipping UM980 Rover configuration");
+    //     return (true);
+    // }
+
     disableAllOutput();
 
     bool response = true;
@@ -368,15 +387,14 @@ bool GNSS_UM980::configureRover()
     response &= enableNMEA();
 
     // Save the current configuration into non-volatile memory (NVM)
-    // We don't need to re-configure the UM980 at next boot
-    bool settingsWereSaved = _um980->saveConfiguration();
-    if (settingsWereSaved)
-        settings.updateGNSSSettings = false;
+    response &= _um980->saveConfiguration();
 
     if (response == false)
     {
         systemPrintln("UM980 Rover failed to configure");
     }
+
+    settings.gnssConfiguredRover = response;
 
     return (response);
 }
@@ -1423,7 +1441,9 @@ void GNSS_UM980::menuMessagesSubtype(float *localMessageRate, const char *messag
             printUnknown(incoming);
     }
 
-    settings.updateGNSSSettings = true; // Update the GNSS config at the next boot
+    settings.gnssConfiguredOnce = false; // Update the GNSS config at the next boot
+    settings.gnssConfiguredBase = false;
+    settings.gnssConfiguredRover = false;
 
     clearBuffer(); // Empty buffer of any newline chars
 }
@@ -1965,9 +1985,9 @@ void um980FirmwareBeginUpdate()
             }
         }
 
-        if (digitalRead(pin_powerButton) == HIGH)
+        if (readAnalogPinAsDigital(pin_powerButton) == HIGH)
         {
-            while (digitalRead(pin_powerButton) == HIGH)
+            while (readAnalogPinAsDigital(pin_powerButton) == HIGH)
                 delay(100);
 
             // Remove file and reset to exit pass-through mode

@@ -365,7 +365,7 @@ class GNSS_ZED : GNSS
     // one core?
     bool iAmLocked = false;
 
-    SFE_UBLOX_GNSS_SUPER *_zed = nullptr; // Don't instantiate until we know what gnssPlatform we're on
+    SFE_UBLOX_GNSS_SUPER *_zed = nullptr; // Library class instance
 
     // Record rxBytes so we can tell if Radio Ext (COM2) is receiving correction data.
     // On the mosaic, we know that InputLink will arrive at 1Hz. But on the ZED, UBX-MON-COMMS

@@ -60,7 +60,6 @@ void loadSettings()
 
     // Temp store any variables from LFS that should override SD
     int resetCount = settings.resetCount;
-    SystemState stateFromLFS = settings.lastState;
 
     loadSystemSettingsFromFileSD(settingsFileName);
 
@@ -1597,27 +1596,33 @@ void loadProfileNumber()
         }
         else
         {
-            log_d("profileNumber.txt not found");
-            settings.updateGNSSSettings = true; // Force module update
-            recordProfileNumber(0);             // Record profile
+            systemPrintln("profileNumber.txt not found");
+            settings.gnssConfiguredOnce = false; // On the next boot, reapply all settings
+            settings.gnssConfiguredBase = false;
+            settings.gnssConfiguredRover = false;
+            recordProfileNumber(0); // Record profile
         }
     }
     else
     {
-        log_d("profileNumber.txt not found");
-        settings.updateGNSSSettings = true; // Force module update
-        recordProfileNumber(0);             // Record profile
+        systemPrintln("profileNumber.txt not found");
+        settings.gnssConfiguredOnce = false; // On the next boot, reapply all settings
+        settings.gnssConfiguredBase = false;
+        settings.gnssConfiguredRover = false;
+        recordProfileNumber(0); // Record profile
     }
 
     // We have arbitrary limit of user profiles
     if (profileNumber >= MAX_PROFILE_COUNT)
     {
-        log_d("ProfileNumber invalid. Going to zero.");
-        settings.updateGNSSSettings = true; // Force module update
-        recordProfileNumber(0);             // Record profile
+        systemPrintln("ProfileNumber invalid. Going to zero.");
+        settings.gnssConfiguredOnce = false; // On the next boot, reapply all settings
+        settings.gnssConfiguredBase = false;
+        settings.gnssConfiguredRover = false;
+        recordProfileNumber(0); // Record profile
     }
 
-    log_d("Using profile #%d", profileNumber);
+    systemPrintf("Using profile #%d\r\n", profileNumber);
 }
 
 // Record the given profile number as well as a config bool

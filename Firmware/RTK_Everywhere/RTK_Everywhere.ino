@@ -280,7 +280,7 @@ typedef enum LoggingType
     LOGGING_PPP,
     LOGGING_CUSTOM
 } LoggingType;
-LoggingType loggingType;
+LoggingType loggingType = LOGGING_UNKNOWN;
 
 SdFile *managerTempFile = nullptr; // File used for uploading or downloading in the file manager section of AP config
 bool managerFileOpen = false;
@@ -492,7 +492,7 @@ TaskHandle_t pinBluetoothTaskHandle; // Dummy task to start hardware on an assig
 volatile bool bluetoothPinned;       // This variable is touched by core 0 but checked by core 1. Must be volatile.
 
 volatile static int combinedSpaceRemaining; // Overrun indicator
-volatile static long fileSize;              // Updated with each write
+volatile static uint64_t logFileSize;              // Updated with each write
 int bufferOverruns;                         // Running count of possible data losses since power-on
 
 bool zedUartPassed; // Goes true during testing if ESP can communicate with ZED over UART
@@ -721,7 +721,7 @@ bool forceSystemStateUpdate; // Set true to avoid update wait
 uint32_t lastPrintRoverAccuracy;
 uint32_t lastBaseLEDupdate; // Controls the blinking of the Base LED
 
-uint32_t lastFileReport;      // When logging, print file record stats every few seconds
+uint32_t lastFileReport = 0;  // When logging, print file record stats every few seconds
 long lastStackReport;         // Controls the report rate of stack highwater mark within a task
 uint32_t lastHeapReport;      // Report heap every 1s if option enabled
 uint32_t lastTaskHeapReport;  // Report task heap every 1s if option enabled
@@ -731,7 +731,7 @@ uint32_t lastRTCSync;         // Time in millis when the RTC was last sync'd
 bool rtcSyncd;                // Set to true when the RTC has been sync'd via TP pulse
 uint32_t lastPrintPosition;   // For periodic display of the position
 
-uint64_t lastLogSize;
+uint64_t lastLogSize = 0;
 bool logIncreasing; // Goes true when log file is greater than lastLogSize or logPosition changes
 bool reuseLastLog;  // Goes true if we have a reset due to software (rather than POR)
 
@@ -754,7 +754,6 @@ uint32_t triggerTowMsR;    // Global copy - Time Of Week of rising edge (ms)
 uint32_t triggerTowSubMsR; // Global copy - Millisecond fraction of Time Of Week of rising edge in nanoseconds
 uint32_t triggerAccEst;    // Global copy - Accuracy estimate in nanoseconds
 
-bool firstPowerOn = true;  // After boot, apply new settings to GNSS if the user switches between base or rover
 unsigned long splashStart; // Controls how long the splash is displayed for. Currently min of 2s.
 bool restartBase;          // If the user modifies any NTRIP Server settings, we need to restart the base
 bool restartRover; // If the user modifies any NTRIP Client or PointPerfect settings, we need to restart the rover
@@ -866,7 +865,6 @@ volatile bool deadManWalking;
         deadManWalking = true;                                                                                         \
                                                                                                                        \
         /* Output as much as possible to identify the location of the failure */                                       \
-        settings.debugGnss = true;                                                                                     \
         settings.enableHeapReport = true;                                                                              \
         settings.enableTaskReports = true;                                                                             \
         settings.enablePrintPosition = true;                                                                           \
@@ -883,16 +881,26 @@ volatile bool deadManWalking;
         settings.enablePrintSDBuffers = true;                                                                          \
         settings.periodicDisplay = (PeriodicDisplay_t) - 1;                                                            \
         settings.enablePrintEthernetDiag = true;                                                                       \
-        settings.debugWifiState = true;                                                                                \
+        settings.debugCorrections = true;                                                                              \
+        settings.debugGnss = true;                                                                                     \
+        settings.debugHttpClientData = true;                                                                           \
+        settings.debugHttpClientState = true;                                                                          \
+        settings.debugLora = true;                                                                                     \
+        settings.debugMqttClientData = true;                                                                           \
+        settings.debugMqttClientState = true;                                                                          \
         settings.debugNetworkLayer = true;                                                                             \
         settings.printNetworkStatus = true;                                                                            \
         settings.debugNtripClientRtcm = true;                                                                          \
         settings.debugNtripClientState = true;                                                                         \
         settings.debugNtripServerRtcm = true;                                                                          \
         settings.debugNtripServerState = true;                                                                         \
+        settings.debugPpCertificate = true;                                                                            \
+        settings.debugSettings = true;                                                                                 \
         settings.debugTcpClient = true;                                                                                \
         settings.debugTcpServer = true;                                                                                \
         settings.debugUdpServer = true;                                                                                \
+        settings.debugWebServer = true;                                                                                \
+        settings.debugWifiState = true;                                                                                \
         settings.printBootTimes = true;                                                                                \
     }
 
@@ -918,6 +926,97 @@ volatile bool deadManWalking;
 #define DMW_st(routine, state)
 
 #endif // 0
+
+//-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+// Debug nearly everything. Include DEBUG_NEARLY_EVERYTHING in the setup after loadSettings to print many things.
+// Similar but less verbose than DEAD_MAN_WALKING
+// If the updated settings are saved to NVM, you will need to do a factory reset to clear them
+#define DEBUG_NEARLY_EVERYTHING                                                                                        \
+    {                                                                                                                  \
+                                                                                                                       \
+        /* Turn on nearly all the debug prints */                                                                      \
+        settings.debugCorrections = true;                                                                              \
+        settings.debugGnss = false;                                                                                     \
+        settings.debugHttpClientData = true;                                                                           \
+        settings.debugHttpClientState = true;                                                                          \
+        settings.debugLora = true;                                                                                     \
+        settings.debugMqttClientData = true;                                                                           \
+        settings.debugMqttClientState = true;                                                                          \
+        settings.debugNetworkLayer = true;                                                                             \
+        settings.debugNtripClientRtcm = true;                                                                          \
+        settings.debugNtripClientState = true;                                                                         \
+        settings.debugNtripServerRtcm = true;                                                                          \
+        settings.debugNtripServerState = true;                                                                         \
+        settings.debugPpCertificate = true;                                                                            \
+        settings.debugSettings = true;                                                                                 \
+        settings.debugTcpClient = true;                                                                                \
+        settings.debugTcpServer = true;                                                                                \
+        settings.debugUdpServer = true;                                                                                \
+        settings.debugWebServer = true;                                                                                \
+        settings.debugWifiState = true;                                                                                \
+        settings.enableHeapReport = true;                                                                              \
+        settings.enablePrintBatteryMessages = true;                                                                    \
+        settings.enablePrintBufferOverrun = true;                                                                      \
+        settings.enablePrintDuplicateStates = true;                                                                    \
+        settings.enablePrintEthernetDiag = true;                                                                       \
+        settings.enablePrintIdleTime = true;                                                                           \
+        settings.enablePrintLogFileMessages = false;                                                                   \
+        settings.enablePrintLogFileStatus = true;                                                                      \
+        settings.enablePrintPosition = true;                                                                           \
+        settings.enablePrintRingBufferOffsets = false;                                                                 \
+        settings.enablePrintRoverAccuracy = true;                                                                      \
+        settings.enablePrintRtcSync = true;                                                                            \
+        settings.enablePrintSDBuffers = false;                                                                         \
+        settings.enablePrintStates = true;                                                                             \
+        settings.printBootTimes = true;                                                                                \
+        settings.printNetworkStatus = true;                                                                            \
+        settings.printTaskStartStop = true;                                                                            \
+    }
+
+//-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+// Debug the essentials. Include DEBUG_THE_ESSENTIALS in the setup after loadSettings to print the essentials.
+// If the updated settings are saved to NVM, you will need to do a factory reset to clear them
+#define DEBUG_THE_ESSENTIALS                                                                                           \
+    {                                                                                                                  \
+                                                                                                                       \
+        /* Turn on nearly all the debug prints */                                                                      \
+        settings.debugCorrections = true;                                                                              \
+        settings.debugGnss = false;                                                                                     \
+        settings.debugHttpClientData = false;                                                                          \
+        settings.debugHttpClientState = true;                                                                          \
+        settings.debugLora = false;                                                                                    \
+        settings.debugMqttClientData = false;                                                                          \
+        settings.debugMqttClientState = true;                                                                          \
+        settings.debugNetworkLayer = true;                                                                             \
+        settings.debugNtripClientRtcm = false;                                                                         \
+        settings.debugNtripClientState = true;                                                                         \
+        settings.debugNtripServerRtcm = false;                                                                         \
+        settings.debugNtripServerState = true;                                                                         \
+        settings.debugPpCertificate = false;                                                                           \
+        settings.debugSettings = false;                                                                                \
+        settings.debugTcpClient = true;                                                                                \
+        settings.debugTcpServer = true;                                                                                \
+        settings.debugUdpServer = true;                                                                                \
+        settings.debugWebServer = true;                                                                                \
+        settings.debugWifiState = true;                                                                                \
+        settings.enableHeapReport = false;                                                                             \
+        settings.enablePrintBatteryMessages = false;                                                                   \
+        settings.enablePrintBufferOverrun = true;                                                                      \
+        settings.enablePrintDuplicateStates = false;                                                                   \
+        settings.enablePrintEthernetDiag = true;                                                                       \
+        settings.enablePrintIdleTime = false;                                                                          \
+        settings.enablePrintLogFileMessages = false;                                                                   \
+        settings.enablePrintLogFileStatus = true;                                                                      \
+        settings.enablePrintPosition = false;                                                                          \
+        settings.enablePrintRingBufferOffsets = false;                                                                 \
+        settings.enablePrintRoverAccuracy = true;                                                                      \
+        settings.enablePrintRtcSync = true;                                                                            \
+        settings.enablePrintSDBuffers = false;                                                                         \
+        settings.enablePrintStates = true;                                                                             \
+        settings.printBootTimes = true;                                                                                \
+        settings.printNetworkStatus = true;                                                                            \
+        settings.printTaskStartStop = true;                                                                            \
+    }
 
 //-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 /*
@@ -1081,6 +1180,9 @@ void setup()
     DMW_b("loadSettings");
     loadSettings(); // Attempt to load settings after SD is started so we can read the settings file if available
 
+    //DEBUG_NEARLY_EVERYTHING // Debug nearly all the things
+    //DEBUG_THE_ESSENTIALS // Debug the essentials - handy for measuring the boot time after a factory reset
+
     DMW_b("checkArrayDefaults");
     checkArrayDefaults(); // Check for uninitialized arrays that won't be initialized by gnssConfigure
                           // (checkGNSSArrayDefaults)
@@ -1103,9 +1205,6 @@ void setup()
 
     DMW_b("gnss->configure");
     gnss->configure(); // Requires settings. Configure GNSS module
-
-    DMW_b("beginLBand");
-    beginLBand(); // Begin L-Band
 
     DMW_b("beginExternalEvent");
     gnss->beginExternalEvent(); // Configure the event input
@@ -1234,7 +1333,10 @@ void loop()
     networkUpdate(); // Maintain the network connections
 
     DMW_c("updateLBand");
-    updateLBand(); // Check if we've recently received PointPerfect corrections or not
+    updateLBand(); // Update L-Band
+
+    DMW_c("updateLBandCorrections");
+    updateLBandCorrections(); // Check if we've recently received PointPerfect corrections or not
 
     DMW_c("tiltUpdate");
     tiltUpdate(); // Check if new lat/lon/alt have been calculated
@@ -1398,18 +1500,19 @@ void logUpdate()
         // Report file sizes to show recording is working
         if ((millis() - lastFileReport) > 5000)
         {
-            if (fileSize > 0)
+            if (logFileSize > 0)
             {
                 lastFileReport = millis();
+                
                 if (settings.enablePrintLogFileStatus)
                 {
-                    systemPrintf("Log file size: %ld", fileSize);
+                    systemPrintf("Log file size: %lld", logFileSize);
 
                     if ((systemTime_minutes - startLogTime_minutes) < settings.maxLogTime_minutes)
                     {
                         // Calculate generation and write speeds every 5 seconds
-                        uint32_t fileSizeDelta = fileSize - lastLogSize;
-                        systemPrintf(" - Generation rate: %0.1fkB/s", fileSizeDelta / 5.0 / 1000.0);
+                        uint64_t fileSizeDelta = logFileSize - lastLogSize;
+                        systemPrintf(" - Generation rate: %0.1fkB/s", ((float)fileSizeDelta) / 5.0 / 1000.0);
                     }
                     else
                     {
@@ -1419,9 +1522,9 @@ void logUpdate()
                     systemPrintln();
                 }
 
-                if (fileSize > lastLogSize)
+                if (logFileSize > lastLogSize)
                 {
-                    lastLogSize = fileSize;
+                    lastLogSize = logFileSize;
                     logIncreasing = true;
                 }
                 else

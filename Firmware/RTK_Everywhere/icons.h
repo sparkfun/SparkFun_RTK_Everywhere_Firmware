@@ -1797,7 +1797,7 @@ correctionIconAttribute correctionIconAttributes[CORR_NUM] = {
     { 4, 0, BT_Symbol_Width, BT_Symbol_Height, BT_Symbol },
     { 0, 0, 15, 14, Corr_USB_Icon },
     { 0, 0, 15, 14, Corr_TCP_Icon },
-    { 1, 0, SIV_Antenna_LBand_Width, SIV_Antenna_LBand_Height, SIV_Antenna_LBand },
+    { 1, 1, SIV_Antenna_LBand_Width, SIV_Antenna_LBand_Height, SIV_Antenna_LBand },
     { 0, 0, 15, 14, Corr_IP_Icon },
 };
 

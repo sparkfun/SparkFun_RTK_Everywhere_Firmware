@@ -266,7 +266,7 @@ void updatePPL() {}
 bool sendGnssToPpl(uint8_t *buffer, int numDataBytes) {return false;}
 bool sendSpartnToPpl(uint8_t *buffer, int numDataBytes) {return false;}
 bool sendAuxSpartnToPpl(uint8_t *buffer, int numDataBytes) {return false;}
-void pointperfectPrintKeyInformation() {systemPrintln("**PPL Not Compiled**");}
+void pointperfectPrintKeyInformation(const char *requestedBy) {systemPrintln("**PPL Not Compiled**");}
 
 #endif  // COMPILE_POINTPERFECT_LIBRARY
 
