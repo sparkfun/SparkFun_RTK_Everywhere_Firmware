@@ -101,38 +101,26 @@ static NetPriority_t udpServerPriority;
 //----------------------------------------
 
 //----------------------------------------
-// Send data as broadcast
+// Remove previous messages from the ring buffer
 //----------------------------------------
-int32_t udpServerSendDataBroadcast(uint8_t *data, uint16_t length)
+void discardUdpServerBytes(RING_BUFFER_OFFSET previousTail, RING_BUFFER_OFFSET newTail)
 {
-    if (!length)
-        return 0;
+    // int index;
+    uint16_t tail;
 
-    // Send the data as broadcast
-    if (settings.enableUdpServer && online.udpServer && networkIsConnected(&udpServerPriority))
+    tail = udpServerTail;
+    if (previousTail < newTail)
     {
-        IPAddress broadcastAddress = networkGetBroadcastIpAddress();
-        udpServer->beginPacket(broadcastAddress, settings.udpServerPort);
-        udpServer->write(data, length);
-        if (udpServer->endPacket())
-        {
-            if ((settings.debugUdpServer || PERIODIC_DISPLAY(PD_UDP_SERVER_BROADCAST_DATA)) && (!inMainMenu))
-            {
-                systemPrintf("UDP Server wrote %d bytes as broadcast (%s) on port %d\r\n", length,
-                             broadcastAddress.toString().c_str(), settings.udpServerPort);
-                PERIODIC_CLEAR(PD_UDP_SERVER_BROADCAST_DATA);
-            }
-        }
-        // Failed to write the data
-        else if ((settings.debugUdpServer || PERIODIC_DISPLAY(PD_UDP_SERVER_BROADCAST_DATA)) && (!inMainMenu))
-        {
-            PERIODIC_CLEAR(PD_UDP_SERVER_BROADCAST_DATA);
-            systemPrintf("UDP Server failed to write %d bytes as broadcast (%s) on port %d\r\n", length,
-                         broadcastAddress.toString().c_str(), settings.udpServerPort);
-            length = 0;
-        }
+        // No buffer wrap occurred
+        if ((tail >= previousTail) && (tail < newTail))
+            udpServerTail = newTail;
     }
-    return length;
+    else
+    {
+        // Buffer wrap occurred
+        if ((tail >= previousTail) || (tail < newTail))
+            udpServerTail = newTail;
+    }
 }
 
 //----------------------------------------
@@ -182,26 +170,38 @@ int32_t udpServerSendData(uint16_t dataHead)
 }
 
 //----------------------------------------
-// Remove previous messages from the ring buffer
+// Send data as broadcast
 //----------------------------------------
-void discardUdpServerBytes(RING_BUFFER_OFFSET previousTail, RING_BUFFER_OFFSET newTail)
+int32_t udpServerSendDataBroadcast(uint8_t *data, uint16_t length)
 {
-    // int index;
-    uint16_t tail;
+    if (!length)
+        return 0;
 
-    tail = udpServerTail;
-    if (previousTail < newTail)
+    // Send the data as broadcast
+    if (settings.enableUdpServer && online.udpServer && networkIsConnected(&udpServerPriority))
     {
-        // No buffer wrap occurred
-        if ((tail >= previousTail) && (tail < newTail))
-            udpServerTail = newTail;
+        IPAddress broadcastAddress = networkGetBroadcastIpAddress();
+        udpServer->beginPacket(broadcastAddress, settings.udpServerPort);
+        udpServer->write(data, length);
+        if (udpServer->endPacket())
+        {
+            if ((settings.debugUdpServer || PERIODIC_DISPLAY(PD_UDP_SERVER_BROADCAST_DATA)) && (!inMainMenu))
+            {
+                systemPrintf("UDP Server wrote %d bytes as broadcast (%s) on port %d\r\n", length,
+                             broadcastAddress.toString().c_str(), settings.udpServerPort);
+                PERIODIC_CLEAR(PD_UDP_SERVER_BROADCAST_DATA);
+            }
+        }
+        // Failed to write the data
+        else if ((settings.debugUdpServer || PERIODIC_DISPLAY(PD_UDP_SERVER_BROADCAST_DATA)) && (!inMainMenu))
+        {
+            PERIODIC_CLEAR(PD_UDP_SERVER_BROADCAST_DATA);
+            systemPrintf("UDP Server failed to write %d bytes as broadcast (%s) on port %d\r\n", length,
+                         broadcastAddress.toString().c_str(), settings.udpServerPort);
+            length = 0;
+        }
     }
-    else
-    {
-        // Buffer wrap occurred
-        if ((tail >= previousTail) || (tail < newTail))
-            udpServerTail = newTail;
-    }
+    return length;
 }
 
 //----------------------------------------
