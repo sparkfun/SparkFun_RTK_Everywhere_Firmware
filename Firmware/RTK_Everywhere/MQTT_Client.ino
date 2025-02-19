@@ -739,6 +739,7 @@ void mqttClientStop(bool shutdown)
     // Determine the next MQTT client state
     online.mqttClient = false;
     mqttClientDataReceived = false;
+    mqttClientPriority = NETWORK_OFFLINE;
     if (shutdown)
     {
         networkConsumerRemove(NETCONSUMER_PPL_MQTT_CLIENT, NETWORK_ANY);
@@ -789,7 +790,6 @@ void mqttClientUpdate()
     case MQTT_CLIENT_ON: {
         if ((millis() - mqttClientTimer) > mqttClientConnectionAttemptTimeout)
         {
-            mqttClientPriority = NETWORK_OFFLINE;
             mqttClientSetState(MQTT_CLIENT_WAIT_FOR_NETWORK);
         }
         break;
