@@ -280,6 +280,7 @@ void udpServerStop()
     }
 
     // Stop using the network
+    udpServerPriority = NETWORK_OFFLINE;
     if (udpServerState != UDP_SERVER_STATE_OFF)
     {
         // The UDP server is now off
@@ -331,7 +332,6 @@ void udpServerUpdate()
         {
             if (settings.debugUdpServer && (!inMainMenu))
                 systemPrintln("UDP server starting the network");
-            udpServerPriority = NETWORK_OFFLINE;
             udpServerSetState(UDP_SERVER_STATE_WAIT_FOR_NETWORK);
         }
         break;
