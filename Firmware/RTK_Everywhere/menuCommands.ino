@@ -1327,7 +1327,7 @@ SettingValueResponse updateSettingWithValue(bool inCommands, const char *setting
                 // We got a version number, now determine if it's newer or not
                 char currentVersion[40];
                 firmwareVersionGet(currentVersion, sizeof(currentVersion), enableRCFirmware);
-                if (isReportedVersionNewer(otaReportedVersion, currentVersion) == true)
+                if (firmwareVersionIsReportedNewer(otaReportedVersion, currentVersion) == true)
                 {
                     if (settings.debugWebServer == true)
                         systemPrintln("New version detected");

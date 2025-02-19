@@ -80,7 +80,7 @@ void menuFirmware()
             systemPrintf("s) Change Firmware JSON URL: %s\r\n", otaFirmwareJsonUrl);
         }
 
-        if (isReportedVersionNewer(otaReportedVersion, &currentVersion[1]) == true || FIRMWARE_VERSION_MAJOR == 99 ||
+        if (firmwareVersionIsReportedNewer(otaReportedVersion, &currentVersion[1]) == true || FIRMWARE_VERSION_MAJOR == 99 ||
             settings.debugFirmwareUpdate == true)
         {
             systemPrintf("u) Update to new firmware: v%s - ", otaReportedVersion);
@@ -629,7 +629,7 @@ const char *otaPullErrorText(int code)
 // 2.7-Jan 5 2023 is newer than v2.7-Jan 1 2023
 // We can't use just the float number: v3.12 is a greater version than v3.9 but it is a smaller float number
 //----------------------------------------
-bool isReportedVersionNewer(char *reportedVersion, char *currentVersion)
+bool firmwareVersionIsReportedNewer(char *reportedVersion, char *currentVersion)
 {
     int currentVersionNumberMajor = 0;
     int currentVersionNumberMinor = 0;
@@ -919,7 +919,7 @@ void otaUpdate()
 
                 // We got a version number, now determine if it's newer or not
                 // Allow update if locally compiled developer version
-                if ((isReportedVersionNewer(otaReportedVersion, &currentVersion[1]) == true) ||
+                if ((firmwareVersionIsReportedNewer(otaReportedVersion, &currentVersion[1]) == true) ||
                     (currentVersion[0] == 'd') || (FIRMWARE_VERSION_MAJOR == 99))
                 {
                     newOTAFirmwareAvailable = true;

@@ -176,7 +176,7 @@ void createFirmwareVersionString(char *settingsCSV)
     firmwareVersionGet(currentVersion, sizeof(currentVersion), enableRCFirmware);
 
     // Compare the unit's version against the reported version from OTA
-    if (isReportedVersionNewer(otaReportedVersion, currentVersion) == true)
+    if (firmwareVersionIsReportedNewer(otaReportedVersion, currentVersion) == true)
     {
         if (settings.debugWebServer == true)
             systemPrintln("New version detected");
