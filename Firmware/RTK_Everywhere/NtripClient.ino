@@ -573,6 +573,7 @@ void ntripClientStop(bool shutdown)
     // Determine the next NTRIP client state
     online.ntripClient = false;
     netIncomingRTCM = false;
+    ntripClientPriority = NETWORK_OFFLINE;
     if (shutdown)
     {
         networkConsumerRemove(NETCONSUMER_NTRIP_CLIENT, NETWORK_ANY);
@@ -616,7 +617,6 @@ void ntripClientUpdate()
 
     // Start the network
     case NTRIP_CLIENT_ON:
-        ntripClientPriority = NETWORK_OFFLINE;
         ntripClientSetState(NTRIP_CLIENT_WAIT_FOR_NETWORK);
         break;
 
