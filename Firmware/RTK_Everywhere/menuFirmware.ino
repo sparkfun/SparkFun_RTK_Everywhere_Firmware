@@ -202,7 +202,7 @@ void mountSDThenUpdate(const char *firmwareFileName)
 // Loads a global called binCount
 // Called from beginSD with microSD card mounted and sdCardsemaphore held
 //----------------------------------------
-void scanForFirmware()
+void microSdScanForFirmware()
 {
     // Count available binaries
     SdFile tempFile;
@@ -214,7 +214,7 @@ void scanForFirmware()
 
     dir.open("/"); // Open root
 
-    binCount = 0; // Reset count in case scanForFirmware is called again
+    binCount = 0; // Reset count in case microSdScanForFirmware is called again
 
     while (tempFile.openNext(&dir, O_READ) && binCount < maxBinFiles)
     {
@@ -247,7 +247,7 @@ void scanForFirmware()
 
 //----------------------------------------
 // Look for firmware file on SD card and update as needed
-// Called from scanForFirmware with microSD card mounted and sdCardsemaphore held
+// Called from microSdScanForFirmware with microSD card mounted and sdCardsemaphore held
 // Called from mountSDThenUpdate with microSD card mounted and sdCardsemaphore held
 //----------------------------------------
 void updateFromSD(const char *firmwareFileName)
