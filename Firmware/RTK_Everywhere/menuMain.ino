@@ -242,7 +242,7 @@ void menuMain()
         else if (incoming == 'e' && (present.ethernet_ws5500 == true))
             menuEthernet();
         else if (incoming == 'f')
-            menuFirmware();
+            firmwareMenu();
         else if (incoming == 'i')
             menuCorrectionsPriorities();
         else if (incoming == 'n' && (present.ethernet_ws5500 == true))

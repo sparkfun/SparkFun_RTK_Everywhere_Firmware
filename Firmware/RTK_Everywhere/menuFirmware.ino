@@ -47,7 +47,7 @@ bool newOTAFirmwareAvailable = false;
 //----------------------------------------
 // Update firmware if bin files found
 //----------------------------------------
-void menuFirmware()
+void firmwareMenu()
 {
     while (1)
     {
