@@ -1707,13 +1707,10 @@ int16_t RTK_WIFI::stationScanForAPs(WIFI_CHANNEL_t channel)
         }
 
         // Determine if scanning a single channel or all channels
-        if (settings.debugWifiState)
-        {
-            if (channel)
-                systemPrintf("WiFI starting scan for remote APs on channel %d\r\n", channel);
-            else
-                systemPrintf("WiFI starting scan for remote APs\r\n");
-        }
+        if (channel)
+            systemPrintf("WiFi scanning on channel %d\r\n", channel);
+        else
+            systemPrintf("WiFi scanning for access points\r\n");
 
         // Start the WiFi scan
         apCount = WiFi.scanNetworks(false,      // async
