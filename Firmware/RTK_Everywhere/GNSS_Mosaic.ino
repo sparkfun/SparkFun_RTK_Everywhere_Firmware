@@ -1017,12 +1017,12 @@ void GNSS_MOSAIC::factoryReset()
     unsigned long start = millis();
     bool result = sendWithResponse("eccf,RxDefault,Boot\n\r", "CopyConfigFile", 5000);
     if (settings.debugGnss)
-        systemPrintf("saveConfiguration: sendWithResponse eccf,RxDefault,Boot returned %s after %d ms\r\n", result ? "true" : "false", millis() - start);
+        systemPrintf("factoryReset: sendWithResponse eccf,RxDefault,Boot returned %s after %d ms\r\n", result ? "true" : "false", millis() - start);
 
     start = millis();
     result = sendWithResponse("eccf,RxDefault,Current\n\r", "CopyConfigFile", 5000);
     if (settings.debugGnss)
-        systemPrintf("saveConfiguration: sendWithResponse eccf,RxDefault,Current returned %s after %d ms\r\n", result ? "true" : "false", millis() - start);
+        systemPrintf("factoryReset: sendWithResponse eccf,RxDefault,Current returned %s after %d ms\r\n", result ? "true" : "false", millis() - start);
 }
 
 //----------------------------------------
