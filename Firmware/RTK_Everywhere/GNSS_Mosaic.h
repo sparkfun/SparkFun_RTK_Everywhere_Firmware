@@ -229,7 +229,7 @@ const mosaicSignalConstellation mosaicSignalConstellations[] = {
     {"SBAS","SBAS"},
     {"BEIDOU","BeiDou"},
     {"QZSS","QZSS"},
-    {"NAVIC","NAVIC"},
+    {"NAVIC","NavIC"},
 };
 
 #define MAX_MOSAIC_CONSTELLATIONS (sizeof(mosaicSignalConstellations) / sizeof(mosaicSignalConstellation))
