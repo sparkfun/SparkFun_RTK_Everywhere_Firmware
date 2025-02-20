@@ -135,9 +135,10 @@ void menuLogMosaic()
     {
         GNSS_MOSAIC *mosaic = (GNSS_MOSAIC *)gnss;
 
-        mosaic->configureLogging(); // This will enable / disable RINEX logging
-        mosaic->enableNMEA();       // Enable NMEA messages - this will enable/disable the DSK1 streams
-        setLoggingType();           // Update Standard, PPP, or custom for icon selection
+        mosaic->configureLogging();  // This will enable / disable RINEX logging
+        mosaic->enableNMEA();        // Enable NMEA messages - this will enable/disable the DSK1 streams
+        mosaic->saveConfiguration(); // Save the configuration
+        setLoggingType();            // Update Standard, PPP, or custom for icon selection
     }
 
     clearBuffer(); // Empty buffer of any newline chars
@@ -419,6 +420,10 @@ bool GNSS_MOSAIC::configureBase()
 
     response &= setElevation(settings.minElev);
 
+    response &= setMinCnoRadio(settings.minCNO);
+
+    response &= setConstellations();
+
     response &= enableRTCMBase();
 
     response &= enableNMEA();
@@ -583,12 +588,6 @@ bool GNSS_MOSAIC::configureOnce()
     setting = String("sso,Stream" + String(MOSAIC_SBF_STATUS_STREAM) + ",COM1,ChannelStatus+DiskStatus,sec2\n\r");
     response &= sendWithResponse(setting, "SBFOutput");
 
-    response &= setElevation(settings.minElev);
-
-    response &= setMinCnoRadio(settings.minCNO);
-
-    response &= setConstellations();
-
     // Mark L5 as healthy
     response &= sendWithResponse("shm,Tracking,off\n\r", "HealthMask");
     response &= sendWithResponse("shm,PVT,off\n\r", "HealthMask");
@@ -667,6 +666,10 @@ bool GNSS_MOSAIC::configureRover()
     response &= setModel(settings.dynamicModel); // Set by menuGNSS which calls gnss->setModel
 
     response &= setElevation(settings.minElev); // Set by menuGNSS which calls gnss->setElevation
+
+    response &= setMinCnoRadio(settings.minCNO);
+
+    response &= setConstellations();
 
     response &= enableRTCMRover();
 
@@ -1656,6 +1659,8 @@ void GNSS_MOSAIC::menuConstellations()
 
     // Apply current settings to module
     setConstellations();
+
+    saveConfiguration(); // Save the updated constellations
 
     clearBuffer(); // Empty buffer of any newline chars
 }
