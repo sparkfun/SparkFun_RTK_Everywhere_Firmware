@@ -1461,6 +1461,9 @@ void beginI2C()
     {
         // Display is on standard Wire bus
         i2cDisplay = i2c_0;
+
+        // Display splash screen for at least 1 second
+        minSplashFor = 1000;
     }
 
     if (present.display_i2c1 == true)

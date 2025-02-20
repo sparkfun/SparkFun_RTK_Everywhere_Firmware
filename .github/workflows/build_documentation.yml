@@ -1,0 +1,53 @@
+name: Build Documentation
+
+# Allows you to run this workflow manually from the Actions tab
+# on:
+#   workflow_dispatch:
+#     branches: ["main"]
+
+# Run workflow on every commit
+on:
+  push:
+    branches:
+      - main
+
+# Sets permissions of the GITHUB_TOKEN to allow files to be committed to gh-pages branch
+permissions:
+  contents: write
+
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Instal pgnquant for optimize plugin
+        run: sudo apt-get install pngquant
+
+      - name: Set up Python runtime
+        uses: actions/setup-python@v5
+        with:
+          python-version: 3.x
+
+      - name: Install Python dependencies
+        run: pip install mkdocs-monorepo-plugin mkdocs-redirects mkdocs-git-authors-plugin mkdocs-git-revision-date-localized-plugin mkdocs-git-committers-plugin-2 Pillow 'mkdocs-material[imaging]'
+
+      - name: Set up build cache
+        run: echo "cache_id=$(date --utc '+%V')" >> $GITHUB_ENV
+      - uses: actions/cache@v4
+        with:
+          key: mkdocs-material-${{ env.cache_id }}
+          path: .cache
+          restore-keys: |
+            mkdocs-material-
+
+      - name: Install Insiders build
+        env:
+          MKDOCS_TOKEN: ${{ secrets.MKDOCS_SECRET }}
+        run: pip install git+https://${MKDOCS_TOKEN}@github.com/squidfunk/mkdocs-material-insiders.git
+      - run: mkdocs gh-deploy --clean
