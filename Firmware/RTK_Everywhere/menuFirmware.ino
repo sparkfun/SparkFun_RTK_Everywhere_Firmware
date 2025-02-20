@@ -261,21 +261,24 @@ void updateFromSD(const char *firmwareFileName)
         return;
     }
 
-    // Turn off any tasks so that we are not disrupted
-    ESPNOW_STOP();
-    wifiStopAll();
-    bluetoothStop();
-
-    // Delete tasks if running
-    tasksStopGnssUart();
-
-    systemPrintf("Loading %s\r\n", firmwareFileName);
-
     if (!sd->exists(firmwareFileName))
     {
         systemPrintln("No firmware file found");
         return;
     }
+
+    // Turn off any tasks so that we are not disrupted
+    ESPNOW_STOP();
+    wifiStopAll();
+    bluetoothStop();
+
+    // Allow the network to stop WiFi clients and servers
+    networkUpdateWait();
+
+    // Delete tasks if running
+    tasksStopGnssUart();
+
+    systemPrintf("Loading %s\r\n", firmwareFileName);
 
     SdFile firmwareFile;
     if (!firmwareFile)
