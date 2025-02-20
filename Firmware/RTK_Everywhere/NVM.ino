@@ -60,10 +60,19 @@ void loadSettings()
 
     // Temp store any variables from LFS that should override SD
     int resetCount = settings.resetCount;
+    bool gnssConfiguredOnce = settings.gnssConfiguredOnce;
+    bool gnssConfiguredRover = settings.gnssConfiguredRover;
+    bool gnssConfiguredBase = settings.gnssConfiguredBase;
 
     loadSystemSettingsFromFileSD(settingsFileName);
 
     settings.resetCount = resetCount; // resetCount from LFS should override SD
+
+    // Trust gnssConfigured from LittleFS over SD.
+    // LittleFS may have been erased, SD could be stale.
+    settings.gnssConfiguredOnce = gnssConfiguredOnce;
+    settings.gnssConfiguredRover = gnssConfiguredRover;
+    settings.gnssConfiguredBase = gnssConfiguredBase;
 
     // Change empty profile name to 'Profile1' etc
     if (strlen(settings.profileName) == 0)
