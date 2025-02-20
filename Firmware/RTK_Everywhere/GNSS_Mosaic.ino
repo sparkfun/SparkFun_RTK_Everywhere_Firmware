@@ -135,9 +135,10 @@ void menuLogMosaic()
     {
         GNSS_MOSAIC *mosaic = (GNSS_MOSAIC *)gnss;
 
-        mosaic->configureLogging(); // This will enable / disable RINEX logging
-        mosaic->enableNMEA();       // Enable NMEA messages - this will enable/disable the DSK1 streams
-        setLoggingType();           // Update Standard, PPP, or custom for icon selection
+        mosaic->configureLogging();  // This will enable / disable RINEX logging
+        mosaic->enableNMEA();        // Enable NMEA messages - this will enable/disable the DSK1 streams
+        mosaic->saveConfiguration(); // Save the configuration
+        setLoggingType();            // Update Standard, PPP, or custom for icon selection
     }
 
     clearBuffer(); // Empty buffer of any newline chars
@@ -419,6 +420,10 @@ bool GNSS_MOSAIC::configureBase()
 
     response &= setElevation(settings.minElev);
 
+    response &= setMinCnoRadio(settings.minCNO);
+
+    response &= setConstellations();
+
     response &= enableRTCMBase();
 
     response &= enableNMEA();
@@ -583,12 +588,6 @@ bool GNSS_MOSAIC::configureOnce()
     setting = String("sso,Stream" + String(MOSAIC_SBF_STATUS_STREAM) + ",COM1,ChannelStatus+DiskStatus,sec2\n\r");
     response &= sendWithResponse(setting, "SBFOutput");
 
-    response &= setElevation(settings.minElev);
-
-    response &= setMinCnoRadio(settings.minCNO);
-
-    response &= setConstellations();
-
     // Mark L5 as healthy
     response &= sendWithResponse("shm,Tracking,off\n\r", "HealthMask");
     response &= sendWithResponse("shm,PVT,off\n\r", "HealthMask");
@@ -667,6 +666,10 @@ bool GNSS_MOSAIC::configureRover()
     response &= setModel(settings.dynamicModel); // Set by menuGNSS which calls gnss->setModel
 
     response &= setElevation(settings.minElev); // Set by menuGNSS which calls gnss->setElevation
+
+    response &= setMinCnoRadio(settings.minCNO);
+
+    response &= setConstellations();
 
     response &= enableRTCMRover();
 
@@ -1014,8 +1017,15 @@ bool GNSS_MOSAIC::enableRTCMTest()
 //----------------------------------------
 void GNSS_MOSAIC::factoryReset()
 {
-    sendWithResponse("eccf,RxDefault,Boot\n\r", "CopyConfigFile");
-    sendWithResponse("eccf,RxDefault,Current\n\r", "CopyConfigFile");
+    unsigned long start = millis();
+    bool result = sendWithResponse("eccf,RxDefault,Boot\n\r", "CopyConfigFile", 5000);
+    if (settings.debugGnss)
+        systemPrintf("factoryReset: sendWithResponse eccf,RxDefault,Boot returned %s after %d ms\r\n", result ? "true" : "false", millis() - start);
+
+    start = millis();
+    result = sendWithResponse("eccf,RxDefault,Current\n\r", "CopyConfigFile", 5000);
+    if (settings.debugGnss)
+        systemPrintf("factoryReset: sendWithResponse eccf,RxDefault,Current returned %s after %d ms\r\n", result ? "true" : "false", millis() - start);
 }
 
 //----------------------------------------
@@ -1650,6 +1660,8 @@ void GNSS_MOSAIC::menuConstellations()
     // Apply current settings to module
     setConstellations();
 
+    saveConfiguration(); // Save the updated constellations
+
     clearBuffer(); // Empty buffer of any newline chars
 }
 
@@ -1935,7 +1947,11 @@ uint16_t GNSS_MOSAIC::rtcmRead(uint8_t *rtcmBuffer, int rtcmBytesToRead)
 //----------------------------------------
 bool GNSS_MOSAIC::saveConfiguration()
 {
-    return sendWithResponse("eccf,Current,Boot\n\r", "CopyConfigFile");
+    unsigned long start = millis();
+    bool result = sendWithResponse("eccf,Current,Boot\n\r", "CopyConfigFile", 5000);
+    if (settings.debugGnss)
+        systemPrintf("saveConfiguration: sendWithResponse returned %s after %d ms\r\n", result ? "true" : "false", millis() - start);
+    return result;
 }
 
 //----------------------------------------
@@ -2846,12 +2862,12 @@ void processUart1SBF(SEMP_PARSE_STATE *parse, uint16_t type)
 {
     GNSS_MOSAIC *mosaic = (GNSS_MOSAIC *)gnss;
 
-    if (((settings.debugGnss == true) || PERIODIC_DISPLAY(PD_GNSS_DATA_RX)) && !inMainMenu)
-    {
-        // Don't call PERIODIC_CLEAR(PD_GNSS_DATA_RX); here. Let processUart1Message do it via rtkParse
-        systemPrintf("Processing SBF Block %d (%d bytes) from mosaic-X5\r\n", sempSbfGetBlockNumber(parse),
-        parse->length);
-    }
+    // if (((settings.debugGnss == true) || PERIODIC_DISPLAY(PD_GNSS_DATA_RX)) && !inMainMenu)
+    // {
+    //     // Don't call PERIODIC_CLEAR(PD_GNSS_DATA_RX); here. Let processUart1Message do it via rtkParse
+    //     systemPrintf("Processing SBF Block %d (%d bytes) from mosaic-X5\r\n", sempSbfGetBlockNumber(parse),
+    //     parse->length);
+    // }
 
     // If this is PVTGeodetic, extract some data
     if (sempSbfGetBlockNumber(parse) == 4007)

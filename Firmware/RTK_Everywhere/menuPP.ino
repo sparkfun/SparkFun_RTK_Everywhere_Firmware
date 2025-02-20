@@ -916,6 +916,8 @@ void updateLBand()
 
             result &= mosaic->configureLBand(true, LBandFreq); // Start L-Band
 
+            result &= mosaic->saveConfiguration(); // Save the updated configuration. Probably redundant?
+
             if (result == false)
             {
                 systemPrintln("mosaic-X5 L-Band failed to configure");

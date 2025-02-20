@@ -1293,12 +1293,12 @@ const RTK_Settings_Entry rtkSettingsEntries[] =
 
 #ifdef  COMPILE_MOSAICX5
     { 1, 1, 1, 0, 0, 1, 0, 0, 0, tMosaicConst,  MAX_MOSAIC_CONSTELLATIONS, & settings.mosaicConstellations, "constellation_",  },
-    { 0, 1, 1, 0, 0, 1, 0, 0, 0, tMosaicMSNmea, MAX_MOSAIC_NMEA_MSG, & settings.mosaicMessageStreamNMEA, "messageStreamNMEA_",  },
-    { 0, 1, 1, 0, 0, 1, 0, 0, 0, tMosaicSINmea, MOSAIC_NUM_NMEA_STREAMS, & settings.mosaicStreamIntervalsNMEA, "streamIntervalNMEA_",  },
-    { 0, 1, 1, 0, 0, 1, 0, 0, 0, tMosaicMIRvRT, MAX_MOSAIC_RTCM_V3_INTERVAL_GROUPS, & settings.mosaicMessageIntervalsRTCMv3Rover, "messageIntervalRTCMRover_",  },
-    { 0, 1, 1, 0, 0, 1, 0, 0, 0, tMosaicMIBaRT, MAX_MOSAIC_RTCM_V3_INTERVAL_GROUPS, & settings.mosaicMessageIntervalsRTCMv3Base, "messageIntervalRTCMBase_",  },
-    { 0, 1, 1, 0, 0, 1, 0, 0, 0, tMosaicMERvRT, MAX_MOSAIC_RTCM_V3_MSG, & settings.mosaicMessageEnabledRTCMv3Rover, "messageEnabledRTCMRover_",  },
-    { 0, 1, 1, 0, 0, 1, 0, 0, 0, tMosaicMEBaRT, MAX_MOSAIC_RTCM_V3_MSG, & settings.mosaicMessageEnabledRTCMv3Base, "messageEnabledRTCMBase_",  },
+    { 1, 1, 1, 0, 0, 1, 0, 0, 0, tMosaicMSNmea, MAX_MOSAIC_NMEA_MSG, & settings.mosaicMessageStreamNMEA, "messageStreamNMEA_",  },
+    { 1, 1, 1, 0, 0, 1, 0, 0, 0, tMosaicSINmea, MOSAIC_NUM_NMEA_STREAMS, & settings.mosaicStreamIntervalsNMEA, "streamIntervalNMEA_",  },
+    { 1, 1, 1, 0, 0, 1, 0, 0, 0, tMosaicMIRvRT, MAX_MOSAIC_RTCM_V3_INTERVAL_GROUPS, & settings.mosaicMessageIntervalsRTCMv3Rover, "messageIntervalRTCMRover_",  },
+    { 1, 1, 1, 0, 0, 1, 0, 0, 0, tMosaicMIBaRT, MAX_MOSAIC_RTCM_V3_INTERVAL_GROUPS, & settings.mosaicMessageIntervalsRTCMv3Base, "messageIntervalRTCMBase_",  },
+    { 1, 1, 1, 0, 0, 1, 0, 0, 0, tMosaicMERvRT, MAX_MOSAIC_RTCM_V3_MSG, & settings.mosaicMessageEnabledRTCMv3Rover, "messageEnabledRTCMRover_",  },
+    { 1, 1, 1, 0, 0, 1, 0, 0, 0, tMosaicMEBaRT, MAX_MOSAIC_RTCM_V3_MSG, & settings.mosaicMessageEnabledRTCMv3Base, "messageEnabledRTCMBase_",  },
     { 1, 1, 0, 0, 0, 1, 0, 0, 0, _bool,     0, & settings.enableLoggingRINEX, "enableLoggingRINEX",  },
     { 1, 1, 0, 0, 0, 1, 0, 0, 0, _uint8_t,  0, & settings.RINEXFileDuration, "RINEXFileDuration",  },
     { 1, 1, 0, 0, 0, 1, 0, 0, 0, _uint8_t,  0, & settings.RINEXObsInterval, "RINEXObsInterval",  },
