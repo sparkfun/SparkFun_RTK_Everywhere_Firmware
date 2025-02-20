@@ -18,7 +18,7 @@
   createSettingsString();
     In menuCommands.ino
     Generates a CSV string of all settings and their values - if they are inWebConfig
-    Called by startWebServer, onWsEvent, updateSettingWithValue (when setting / resetting a profile),
+    Called by webServerStart, onWsEvent, updateSettingWithValue (when setting / resetting a profile),
     Calls the stringRecord methods - also in menuCommands.ino
     Note: there is a _lot_ of commonality between this and recordSystemSettingsToFile. It may be
           possible to share code between the two.
@@ -60,27 +60,19 @@ void loadSettings()
 
     // Temp store any variables from LFS that should override SD
     int resetCount = settings.resetCount;
-    SystemState stateFromLFS = settings.lastState;
+    bool gnssConfiguredOnce = settings.gnssConfiguredOnce;
+    bool gnssConfiguredRover = settings.gnssConfiguredRover;
+    bool gnssConfiguredBase = settings.gnssConfiguredBase;
 
     loadSystemSettingsFromFileSD(settingsFileName);
 
     settings.resetCount = resetCount; // resetCount from LFS should override SD
 
-    // SD is not accessible during configure-via-Ethernet
-    // If stateFromLFS indicates that the firmware is not in configure-via-Ethernet mode
-    if (!((stateFromLFS >= STATE_CONFIG_VIA_ETH_NOT_STARTED) && (stateFromLFS <= STATE_CONFIG_VIA_ETH_RESTART_BASE)))
-    {
-        // and lastState from SD indicates the firmware was previously in configure-via-Ethernet mode
-        if ((settings.lastState >= STATE_CONFIG_VIA_ETH_NOT_STARTED) &&
-            (settings.lastState <= STATE_CONFIG_VIA_ETH_RESTART_BASE))
-        {
-            // then reload the settings from LFS since they will include any changes made during configure-via-Ethernet
-            // mode
-            systemPrintln("Restart after config-via-ethernet. Overwriting SD settings with those from LittleFS");
-            loadSystemSettingsFromFileLFS(settingsFileName);
-            recordSystemSettings(); // Overwrite SD settings with those from LFS
-        }
-    }
+    // Trust gnssConfigured from LittleFS over SD.
+    // LittleFS may have been erased, SD could be stale.
+    settings.gnssConfiguredOnce = gnssConfiguredOnce;
+    settings.gnssConfiguredRover = gnssConfiguredRover;
+    settings.gnssConfiguredBase = gnssConfiguredBase;
 
     // Change empty profile name to 'Profile1' etc
     if (strlen(settings.profileName) == 0)
@@ -236,11 +228,6 @@ void recordSystemSettingsToFile(File *settingsFile)
     {
         // Do not record this setting if it is not supported by the current platform
         if (settingAvailableOnPlatform(i) == false)
-            continue;
-
-        // Exceptions:
-        // runLogTest not stored in NVM
-        if (strcmp(rtkSettingsEntries[i].name, "runLogTest") == 0)
             continue;
 
         switch (rtkSettingsEntries[i].type)
@@ -637,6 +624,17 @@ void recordSystemSettingsToFile(File *settingsFile)
             }
         }
         break;
+        case tLgMRPqtm: {
+            // Record LG290P PQTM rates
+            for (int x = 0; x < rtkSettingsEntries[i].qualifier; x++)
+            {
+                char tempString[50]; // lg290pMessageRatesPQTM_EPE=1
+                snprintf(tempString, sizeof(tempString), "%s%s=%d", rtkSettingsEntries[i].name,
+                         lgMessagesPQTM[x].msgTextName, settings.lg290pMessageRatesPQTM[x]);
+                settingsFile->println(tempString);
+            }
+        }
+        break;
         case tLgConst: {
             // Record LG290P Constellations
             for (int x = 0; x < rtkSettingsEntries[i].qualifier; x++)
@@ -1006,7 +1004,7 @@ bool parseLine(char *str)
     {
         const char *table[] = {
             "gnssFirmwareVersion", "gnssUniqueId",  "neoFirmwareVersion",
-            "rtkFirmwareVersion",  "rtkIdentifier", "runLogTest",
+            "rtkFirmwareVersion",  "rtkIdentifier",
         };
         const int tableEntries = sizeof(table) / sizeof(table[0]);
 
@@ -1502,6 +1500,19 @@ bool parseLine(char *str)
                 }
             }
             break;
+            case tLgMRPqtm: {
+                for (int x = 0; x < qualifier; x++)
+                {
+                    if ((suffix[0] == lgMessagesPQTM[x].msgTextName[0]) &&
+                        (strcmp(suffix, lgMessagesPQTM[x].msgTextName) == 0))
+                    {
+                        settings.lg290pMessageRatesPQTM[x] = d;
+                        knownSetting = true;
+                        break;
+                    }
+                }
+            }
+            break;
             case tLgConst: {
                 for (int x = 0; x < qualifier; x++)
                 {
@@ -1594,27 +1605,33 @@ void loadProfileNumber()
         }
         else
         {
-            log_d("profileNumber.txt not found");
-            settings.updateGNSSSettings = true; // Force module update
-            recordProfileNumber(0);             // Record profile
+            systemPrintln("profileNumber.txt not found");
+            settings.gnssConfiguredOnce = false; // On the next boot, reapply all settings
+            settings.gnssConfiguredBase = false;
+            settings.gnssConfiguredRover = false;
+            recordProfileNumber(0); // Record profile
         }
     }
     else
     {
-        log_d("profileNumber.txt not found");
-        settings.updateGNSSSettings = true; // Force module update
-        recordProfileNumber(0);             // Record profile
+        systemPrintln("profileNumber.txt not found");
+        settings.gnssConfiguredOnce = false; // On the next boot, reapply all settings
+        settings.gnssConfiguredBase = false;
+        settings.gnssConfiguredRover = false;
+        recordProfileNumber(0); // Record profile
     }
 
     // We have arbitrary limit of user profiles
     if (profileNumber >= MAX_PROFILE_COUNT)
     {
-        log_d("ProfileNumber invalid. Going to zero.");
-        settings.updateGNSSSettings = true; // Force module update
-        recordProfileNumber(0);             // Record profile
+        systemPrintln("ProfileNumber invalid. Going to zero.");
+        settings.gnssConfiguredOnce = false; // On the next boot, reapply all settings
+        settings.gnssConfiguredBase = false;
+        settings.gnssConfiguredRover = false;
+        recordProfileNumber(0); // Record profile
     }
 
-    log_d("Using profile #%d", profileNumber);
+    systemPrintf("Using profile #%d\r\n", profileNumber);
 }
 
 // Record the given profile number as well as a config bool

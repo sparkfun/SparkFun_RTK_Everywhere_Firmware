@@ -1797,7 +1797,7 @@ correctionIconAttribute correctionIconAttributes[CORR_NUM] = {
     { 4, 0, BT_Symbol_Width, BT_Symbol_Height, BT_Symbol },
     { 0, 0, 15, 14, Corr_USB_Icon },
     { 0, 0, 15, 14, Corr_TCP_Icon },
-    { 1, 0, SIV_Antenna_LBand_Width, SIV_Antenna_LBand_Height, SIV_Antenna_LBand },
+    { 1, 1, SIV_Antenna_LBand_Width, SIV_Antenna_LBand_Height, SIV_Antenna_LBand },
     { 0, 0, 15, 14, Corr_IP_Icon },
 };
 
@@ -1936,11 +1936,17 @@ const uint8_t SIVIconXPos64x48 = 2; // This aligns the SIV icon neatly under the
 const uint8_t SIVIconYPos64x48 = 35;
 const uint8_t SIVIconXPos128x64 = 74; // Just because we can, move SIV to the right on 128x64
 const uint8_t SIVIconYPos128x64 = 26;
+const uint8_t BaseSIVIconXPos128x64 = 74; // Move SIV info below the 'Xmitting RTCM' text on 128x64
+const uint8_t BaseSIVIconYPos128x64 = (26 + 15); // Assume font size 1;
 
 const int SIVTextStartXPosOffset[DISPLAY_MAX_NONE] = { -2, -2 }; // This is a bodge to allow the paintBaseTempSurveyStarted text to be printed in the correct place
 
 const iconProperties SIVIconProperties = {{{ &SIV_Antenna, SIV_Antenna_Width, SIV_Antenna_Height, SIVIconXPos64x48, SIVIconYPos64x48 },
                                            { &SIV_Antenna, SIV_Antenna_Width, SIV_Antenna_Height, SIVIconXPos128x64, SIVIconYPos128x64 }}};
+
+const iconProperties BaseSIVIconProperties = {{{ &SIV_Antenna, SIV_Antenna_Width, SIV_Antenna_Height, SIVIconXPos64x48, SIVIconYPos64x48 },
+                                           { &SIV_Antenna, SIV_Antenna_Width, SIV_Antenna_Height, BaseSIVIconXPos128x64, BaseSIVIconYPos128x64 }}};
+
 const iconProperties LBandIconProperties = {{{ &SIV_Antenna_LBand, SIV_Antenna_LBand_Width, SIV_Antenna_LBand_Height, SIVIconXPos64x48, SIVIconYPos64x48 },
                                              { &SIV_Antenna_LBand, SIV_Antenna_LBand_Width, SIV_Antenna_LBand_Height, SIVIconXPos128x64, SIVIconYPos128x64 }}};
 const iconProperties ShortIconProperties = {{{ &Antenna_Short, Antenna_Short_Width, Antenna_Short_Height, SIVIconXPos64x48, SIVIconYPos64x48 },

@@ -135,9 +135,10 @@ void menuLogMosaic()
     {
         GNSS_MOSAIC *mosaic = (GNSS_MOSAIC *)gnss;
 
-        mosaic->configureLogging(); // This will enable / disable RINEX logging
-        mosaic->enableNMEA();       // Enable NMEA messages - this will enable/disable the DSK1 streams
-        setLoggingType();           // Update Standard, PPP, or custom for icon selection
+        mosaic->configureLogging();  // This will enable / disable RINEX logging
+        mosaic->enableNMEA();        // Enable NMEA messages - this will enable/disable the DSK1 streams
+        mosaic->saveConfiguration(); // Save the configuration
+        setLoggingType();            // Update Standard, PPP, or custom for icon selection
     }
 
     clearBuffer(); // Empty buffer of any newline chars
@@ -225,8 +226,26 @@ void GNSS_MOSAIC::begin()
 
     if (retries == retryLimit)
     {
-        systemPrintln("Could not communicate with mosaic-X5!");
-        return;
+        systemPrintln("Could not communicate with mosaic-X5! Attempting a soft reset...");
+
+        sendWithResponse("erst,soft,none\n\r", "ResetReceiver");
+
+        retries = 0;
+
+        // Set COM4 to: CMD input (only), SBF output (only)
+        while (!sendWithResponse("sdio,COM4,CMD,SBF\n\r", "DataInOut"))
+        {
+            if (retries == retryLimit)
+                break;
+            retries++;
+            sendWithResponse("SSSSSSSSSSSSSSSSSSSS\n\r", "COM4>"); // Send escape sequence
+        }
+
+        if (retries == retryLimit)
+        {
+            systemPrintln("Could not communicate with mosaic-X5!");
+            return;
+        }
     }
 
     retries = 0;
@@ -248,11 +267,11 @@ void GNSS_MOSAIC::begin()
     }
 
     // Set COM2 (Radio) and COM3 (Data) baud rates
-    gnss->setRadioBaudRate(settings.radioPortBaud);
-    gnss->setDataBaudRate(settings.dataPortBaud);
+    setRadioBaudRate(settings.radioPortBaud);
+    setDataBaudRate(settings.dataPortBaud);
 
     // Set COM2 (Radio) protocol(s)
-    gnss->setCorrRadioExtPort(settings.enableExtCorrRadio, true); // Force the setting
+    setCorrRadioExtPort(settings.enableExtCorrRadio, true); // Force the setting
 
     updateSD(); // Check card size and free space
 
@@ -296,13 +315,6 @@ bool GNSS_MOSAIC::beginExternalEvent()
     if (online.gnss == false)
         return (false);
 
-    // If our settings haven't changed, trust GNSS's settings
-    if (settings.updateGNSSSettings == false)
-    {
-        systemPrintln("Skipping mosaic-X5 event configuration");
-        return (true);
-    }
-
     if (settings.dataPortChannel != MUX_PPS_EVENTTRIGGER)
         return (true); // No need to configure PPS if port is not selected
 
@@ -325,13 +337,6 @@ bool GNSS_MOSAIC::beginPPS()
 {
     if (online.gnss == false)
         return (false);
-
-    // If our settings haven't changed, trust GNSS's settings
-    if (settings.updateGNSSSettings == false)
-    {
-        systemPrintln("Skipping mosaicX5BeginPPS");
-        return (true);
-    }
 
     if (settings.dataPortChannel != MUX_PPS_EVENTTRIGGER)
         return (true); // No need to configure PPS if port is not selected
@@ -402,11 +407,22 @@ bool GNSS_MOSAIC::configureBase()
         return (false);
     }
 
+    if (settings.gnssConfiguredBase)
+    {
+        systemPrintln("Skipping mosaic Base configuration");
+        setLoggingType(); // Needed because logUpdate exits early and never calls setLoggingType
+        return true;
+    }
+
     bool response = true;
 
     response &= setModel(MOSAIC_DYN_MODEL_STATIC);
 
     response &= setElevation(settings.minElev);
+
+    response &= setMinCnoRadio(settings.minCNO);
+
+    response &= setConstellations();
 
     response &= enableRTCMBase();
 
@@ -417,15 +433,14 @@ bool GNSS_MOSAIC::configureBase()
     setLoggingType(); // Update Standard, PPP, or custom for icon selection
 
     // Save the current configuration into non-volatile memory (NVM)
-    // We don't need to re-configure the MOSAICX5 at next boot
-    bool settingsWereSaved = saveConfiguration();
-    if (settingsWereSaved)
-        settings.updateGNSSSettings = false;
+    response &= saveConfiguration();
 
     if (response == false)
     {
         systemPrintln("mosaic-X5 Base failed to configure");
     }
+
+    settings.gnssConfiguredBase = response;
 
     return (response);
 }
@@ -435,8 +450,6 @@ bool GNSS_MOSAIC::configureLogging()
 {
     bool response = true;
     String setting;
-
-    // TODO: use sdCardPresent() here? Except the mosaic seems pretty good at figuring out if the microSD is present...
 
     // Configure logging
     if ((settings.enableLogging == true) || (settings.enableLoggingRINEX == true))
@@ -461,8 +474,6 @@ bool GNSS_MOSAIC::configureLogging()
         setting = String("srxl,DSK1,none\n\r");
         response &= sendWithResponse(setting, "RINEXLogging");
     }
-
-    // TODO: use sdCardPresent() here? Except the mosaic seems pretty good at figuring out if the microSD is present...
 
     if (settings.enableExternalHardwareEventLogging)
     {
@@ -489,6 +500,46 @@ bool GNSS_MOSAIC::configureNtpMode()
 }
 
 //----------------------------------------
+// Configure mosaic-X5 COM1 for Encapsulated RTCMv3 + SBF + NMEA, plus L-Band
+//----------------------------------------
+bool GNSS_MOSAIC::configureGNSSCOM(bool enableLBand)
+{
+    // Configure COM1. NMEA and RTCMv3 will be encapsulated in SBF format
+    String setting = String("sdio,COM1,auto,RTCMv3+SBF+NMEA+Encapsulate");
+    if (enableLBand)
+        setting += String("+LBandBeam1");
+    setting += String("\n\r");
+    return sendWithResponse(setting, "DataInOut");
+}
+
+//----------------------------------------
+// Configure mosaic-X5 L-Band
+//----------------------------------------
+bool GNSS_MOSAIC::configureLBand(bool enableLBand, uint32_t LBandFreq)
+{
+    bool result = sendWithResponse("slsm,off\n\r", "LBandSelectMode"); // Turn L-Band off
+
+    if (!enableLBand)
+        return result;
+
+    static uint32_t storedLBandFreq = 0;
+    if (LBandFreq > 0)
+        storedLBandFreq = LBandFreq;
+
+    // US SPARTN 1.8 service is on 1556290000 Hz
+    // EU SPARTN 1.8 service is on 1545260000 Hz
+    result &=
+        sendWithResponse(String("slbb,User1," + String(storedLBandFreq) + ",baud2400,PPerfect,EU,Enabled\n\r"),
+                                    "LBandBeams"); // Set Freq, baud rate
+    result &=
+        sendWithResponse("slcs,5555,6959\n\r", "LBandCustomServiceID"); // 21845 = 0x5555; 26969 = 0x6959
+    result &= sendWithResponse("slsm,manual,Inmarsat,User1,\n\r",
+                                        "LBandSelectMode"); // Set L-Band demodulator to manual
+
+    return result;
+}
+
+//----------------------------------------
 // Perform the GNSS configuration
 // Outputs:
 //   Returns true if successfully configured and false upon failure
@@ -505,14 +556,16 @@ bool GNSS_MOSAIC::configureOnce()
     RTCMv3 messages are enabled by enableRTCMRover / enableRTCMBase
     */
 
+    if (settings.gnssConfiguredOnce)
+    {
+        systemPrintln("mosaic configuration maintained");
+        return (true);
+    }
+
     bool response = true;
 
     // Configure COM1. NMEA and RTCMv3 will be encapsulated in SBF format
-    String setting = String("sdio,COM1,auto,RTCMv3+SBF+NMEA+Encapsulate");
-    if (settings.enablePointPerfectCorrections)
-        setting += String("+LBandBeam1");
-    setting += String("\n\r");
-    response &= sendWithResponse(setting, "DataInOut");
+    response &= configureGNSSCOM(settings.enablePointPerfectCorrections);
 
     // COM2 is configured by setCorrRadioExtPort
 
@@ -522,18 +575,18 @@ bool GNSS_MOSAIC::configureOnce()
     // Output SBF PVTGeodetic and ReceiverTime on their own stream - on COM1 only
     // TODO : make the interval adjustable
     // TODO : do we need to enable SBF LBandTrackerStatus so we can get CN0 ?
-    setting = String("sso,Stream" + String(MOSAIC_SBF_PVT_STREAM) + ",COM1,PVTGeodetic+ReceiverTime,msec500\n\r");
+    String setting = String("sso,Stream" + String(MOSAIC_SBF_PVT_STREAM) + ",COM1,PVTGeodetic+ReceiverTime,msec500\n\r");
     response &= sendWithResponse(setting, "SBFOutput");
 
     // Output SBF InputLink on its own stream - at 1Hz - on COM1 only
     setting = String("sso,Stream" + String(MOSAIC_SBF_INPUTLINK_STREAM) + ",COM1,InputLink,sec1\n\r");
     response &= sendWithResponse(setting, "SBFOutput");
 
-    response &= setElevation(settings.minElev);
-
-    response &= setMinCnoRadio(settings.minCNO);
-
-    response &= setConstellations();
+    // Output SBF ChannelStatus and DiskStatus on their own stream - at 0.5Hz - on COM1 only
+    // For ChannelStatus: OnChange is too often. The message is typically 1000 bytes in size.
+    // For DiskStatus: DiskUsage is slow to update. 0.5Hz is plenty fast enough.
+    setting = String("sso,Stream" + String(MOSAIC_SBF_STATUS_STREAM) + ",COM1,ChannelStatus+DiskStatus,sec2\n\r");
+    response &= sendWithResponse(setting, "SBFOutput");
 
     // Mark L5 as healthy
     response &= sendWithResponse("shm,Tracking,off\n\r", "HealthMask");
@@ -550,13 +603,12 @@ bool GNSS_MOSAIC::configureOnce()
         systemPrintln("mosaic-X5 configuration updated");
 
         // Save the current configuration into non-volatile memory (NVM)
-        // We don't need to re-configure the MOSAICX5 at next boot
-        bool settingsWereSaved = saveConfiguration();
-        if (settingsWereSaved)
-            settings.updateGNSSSettings = false;
+        response &= saveConfiguration();
     }
     else
         online.gnss = false; // Take it offline
+
+    settings.gnssConfiguredOnce = response;
 
     return (response);
 }
@@ -569,13 +621,6 @@ bool GNSS_MOSAIC::configureOnce()
 //----------------------------------------
 bool GNSS_MOSAIC::configureGNSS()
 {
-    // Skip configuring the MOSAICX5 if no new changes are necessary
-    if (settings.updateGNSSSettings == false)
-    {
-        systemPrintln("mosaic-X5 configuration maintained");
-        return (true);
-    }
-
     // Attempt 3 tries on MOSAICX5 config
     for (int x = 0; x < 3; x++)
     {
@@ -606,13 +651,25 @@ bool GNSS_MOSAIC::configureRover()
         return (false);
     }
 
+    // If our settings haven't changed, trust GNSS's settings
+    if (settings.gnssConfiguredRover)
+    {
+        systemPrintln("Skipping mosaic Rover configuration");
+        setLoggingType(); // Needed because logUpdate exits early and never calls setLoggingType
+        return (true);
+    }
+
     bool response = true;
 
     response &= sendWithResponse("spm,Rover,all,auto\n\r", "PVTMode");
 
-    response &= setModel(settings.dynamicModel);
+    response &= setModel(settings.dynamicModel); // Set by menuGNSS which calls gnss->setModel
 
-    response &= setElevation(settings.minElev);
+    response &= setElevation(settings.minElev); // Set by menuGNSS which calls gnss->setElevation
+
+    response &= setMinCnoRadio(settings.minCNO);
+
+    response &= setConstellations();
 
     response &= enableRTCMRover();
 
@@ -623,15 +680,14 @@ bool GNSS_MOSAIC::configureRover()
     setLoggingType(); // Update Standard, PPP, or custom for icon selection
 
     // Save the current configuration into non-volatile memory (NVM)
-    // We don't need to re-configure the MOSAICX5 at next boot
-    bool settingsWereSaved = saveConfiguration();
-    if (settingsWereSaved)
-        settings.updateGNSSSettings = false;
+    response &= saveConfiguration();
 
     if (response == false)
     {
         systemPrintln("mosaic-X5 Rover failed to configure");
     }
+
+    settings.gnssConfiguredRover = response;
 
     return (response);
 }
@@ -764,9 +820,6 @@ bool GNSS_MOSAIC::enableNMEA()
             setting = String("sno,Stream" + String(stream + (2 * MOSAIC_NUM_NMEA_STREAMS) + 1) + ",USB1,none,off\n\r");
             response &= sendWithResponse(setting, "NMEAOutput");
         }
-
-        // TODO: use sdCardPresent() here? Except the mosaic seems pretty good at figuring out if the microSD is
-        // present...
 
         if (settings.enableLogging)
         {
@@ -964,8 +1017,15 @@ bool GNSS_MOSAIC::enableRTCMTest()
 //----------------------------------------
 void GNSS_MOSAIC::factoryReset()
 {
-    sendWithResponse("eccf,RxDefault,Boot\n\r", "CopyConfigFile");
-    sendWithResponse("eccf,RxDefault,Current\n\r", "CopyConfigFile");
+    unsigned long start = millis();
+    bool result = sendWithResponse("eccf,RxDefault,Boot\n\r", "CopyConfigFile", 5000);
+    if (settings.debugGnss)
+        systemPrintf("factoryReset: sendWithResponse eccf,RxDefault,Boot returned %s after %d ms\r\n", result ? "true" : "false", millis() - start);
+
+    start = millis();
+    result = sendWithResponse("eccf,RxDefault,Current\n\r", "CopyConfigFile", 5000);
+    if (settings.debugGnss)
+        systemPrintf("factoryReset: sendWithResponse eccf,RxDefault,Current returned %s after %d ms\r\n", result ? "true" : "false", millis() - start);
 }
 
 //----------------------------------------
@@ -1213,10 +1273,10 @@ uint8_t GNSS_MOSAIC::getLoggingType()
     {
         if (checkNMEARates())
         {
-            loggingType = LOGGING_STANDARD;
+            logType = LOGGING_STANDARD;
 
             if (checkPPPRates())
-                loggingType = LOGGING_PPP;
+                logType = LOGGING_PPP;
         }
     }
 
@@ -1598,7 +1658,9 @@ void GNSS_MOSAIC::menuConstellations()
     }
 
     // Apply current settings to module
-    gnss->setConstellations();
+    setConstellations();
+
+    saveConfiguration(); // Save the updated constellations
 
     clearBuffer(); // Empty buffer of any newline chars
 }
@@ -1674,7 +1736,8 @@ void GNSS_MOSAIC::menuMessagesNMEA()
             printUnknown(incoming);
     }
 
-    settings.updateGNSSSettings = true; // Update the GNSS config at the next boot
+    settings.gnssConfiguredBase = false; // Update the GNSS config at the next boot
+    settings.gnssConfiguredRover = false;
 
     clearBuffer(); // Empty buffer of any newline chars
 }
@@ -1745,7 +1808,8 @@ void GNSS_MOSAIC::menuMessagesRTCM(bool rover)
             printUnknown(incoming);
     }
 
-    settings.updateGNSSSettings = true; // Update the GNSS config at the next boot
+    settings.gnssConfiguredBase = false; // Update the GNSS config at the next boot
+    settings.gnssConfiguredRover = false;
 
     clearBuffer(); // Empty buffer of any newline chars
 }
@@ -1760,7 +1824,7 @@ void GNSS_MOSAIC::menuMessages()
         systemPrintln();
         systemPrintln("Menu: GNSS Messages");
 
-        systemPrintf("Active messages: %d\r\n", gnss->getActiveMessageCount());
+        systemPrintf("Active messages: %d\r\n", getActiveMessageCount());
 
         systemPrintln("1) Set NMEA Messages");
         systemPrintln("2) Set Rover RTCM Messages");
@@ -1883,7 +1947,11 @@ uint16_t GNSS_MOSAIC::rtcmRead(uint8_t *rtcmBuffer, int rtcmBytesToRead)
 //----------------------------------------
 bool GNSS_MOSAIC::saveConfiguration()
 {
-    return sendWithResponse("eccf,Current,Boot\n\r", "CopyConfigFile");
+    unsigned long start = millis();
+    bool result = sendWithResponse("eccf,Current,Boot\n\r", "CopyConfigFile", 5000);
+    if (settings.debugGnss)
+        systemPrintf("saveConfiguration: sendWithResponse returned %s after %d ms\r\n", result ? "true" : "false", millis() - start);
+    return result;
 }
 
 //----------------------------------------
@@ -2300,6 +2368,8 @@ bool GNSS_MOSAIC::setTalkerGNGGA()
 //----------------------------------------
 bool GNSS_MOSAIC::softwareReset()
 {
+    // We could restart L-Band here if needed, but gnss->softwareReset is never called on the X5
+    // Instead, update() does it when spartnCorrectionsReceived times out
     return false;
 }
 
@@ -2318,12 +2388,136 @@ void GNSS_MOSAIC::storeBlock4007(SEMP_PARSE_STATE *parse)
     _longitude = sempSbfGetF8(parse, 24) * 180.0 / PI;
     _altitude = (float)sempSbfGetF8(parse, 32);
     _horizontalAccuracy = ((float)sempSbfGetU2(parse, 90)) / 100.0; // Convert from cm to m
-    _satellitesInView = sempSbfGetU1(parse, 74);
+
+    // NrSV is the total number of satellites used in the PVT computation.
+    //_satellitesInView = sempSbfGetU1(parse, 74);
+    //if (_satellitesInView == 255) // 255 indicates "Do-Not-Use"
+    //    _satellitesInView = 0;
+
     _fixType = sempSbfGetU1(parse, 14) & 0x0F;
     _determiningFixedPosition = (sempSbfGetU1(parse, 14) >> 6) & 0x01;
     _clkBias_ms = sempSbfGetF8(parse, 60);
     _pvtArrivalMillis = millis();
     _pvtUpdated = true;
+}
+
+//----------------------------------------
+// Save the data from the SBF Block 4013
+//----------------------------------------
+void GNSS_MOSAIC::storeBlock4013(SEMP_PARSE_STATE *parse)
+{
+    uint16_t N = (uint16_t)sempSbfGetU1(parse, 14);
+    uint16_t SB1Length = (uint16_t)sempSbfGetU1(parse, 15);
+    uint16_t SB2Length = (uint16_t)sempSbfGetU1(parse, 16);
+    uint16_t ChannelInfoBytes = 0;
+    for (uint16_t i = 0; i < N; i++)
+    {
+        uint8_t SVID = sempSbfGetU1(parse, 20 + ChannelInfoBytes + 0);
+
+        uint16_t N2 = (uint16_t)sempSbfGetU1(parse, 20 + ChannelInfoBytes + 9);
+
+        for (uint16_t j = 0; j < N2; j++)
+        {
+            uint16_t TrackingStatus = sempSbfGetU2(parse, 20 + ChannelInfoBytes + SB1Length + (j * SB2Length) + 2);
+
+            bool Tracking = false;
+            for (uint16_t shift = 0; shift < 16; shift += 2) // Step through each 2-bit status field
+            {
+                if ((TrackingStatus & (0x0003 << shift)) == (0x0003 << shift)) // 3 : Tracking
+                {
+                    Tracking = true;
+                }
+            }
+
+            if (Tracking)
+            {
+                // SV is being tracked. If it is not in svInTracking, add it
+                std::vector<uint8_t>::iterator pos =
+                    std::find(svInTracking.begin(), svInTracking.end(), SVID);
+                if (pos == svInTracking.end())
+                    svInTracking.push_back(SVID);
+            }
+            else
+            {
+                // SV is not being tracked. If it is in svInTracking, remove it
+                std::vector<uint8_t>::iterator pos =
+                    std::find(svInTracking.begin(), svInTracking.end(), SVID);
+                if (pos != svInTracking.end())
+                    svInTracking.erase(pos);
+            }
+
+            // uint16_t PVTStatus = sempSbfGetU2(parse, 20 + ChannelInfoBytes + SB1Length + (j * SB2Length) + 4);
+
+            // bool Used = false;
+            // for (uint16_t shift = 0; shift < 16; shift += 2) // Step through each 2-bit status field
+            // {
+            //     if ((PVTStatus & (0x0003 << shift)) == (0x0002 << shift)) // 2 : Used
+            //     {
+            //         Used = true;
+            //     }
+            // }
+
+            // if (Used)
+            // {
+            //     // SV is being used for PVT. If it is not in svInPVT, add it
+            //     std::vector<uint8_t>::iterator pos =
+            //         std::find(svInPVT.begin(), svInPVT.end(), SVID);
+            //     if (pos == svInPVT.end())
+            //         svInPVT.push_back(SVID);
+            // }
+            // else
+            // {
+            //     // SV is not being used for PVT. If it is in svInPVT, remove it
+            //     std::vector<uint8_t>::iterator pos =
+            //         std::find(svInPVT.begin(), svInPVT.end(), SVID);
+            //     if (pos != svInPVT.end())
+            //         svInPVT.erase(pos);
+            // }
+
+        }
+
+        ChannelInfoBytes += SB1Length + (N2 * SB2Length);
+    }
+
+    _satellitesInView = (uint8_t)std::distance(svInTracking.begin(), svInTracking.end());
+
+    // if (settings.debugGnss && !inMainMenu)
+    // {
+    //     uint8_t _inPVT = (uint8_t)std::distance(svInPVT.begin(), svInPVT.end());
+    //     systemPrintf("ChannelStatus: InTracking %d, InPVT %d\r\n", _satellitesInView, _inPVT);
+    // }
+
+}
+
+//----------------------------------------
+// Save the data from the SBF Block 4059
+//----------------------------------------
+void GNSS_MOSAIC::storeBlock4059(SEMP_PARSE_STATE *parse)
+{
+    if (sempSbfGetU1(parse, 14) < 1) // Check N is at least 1
+        return;
+
+    if (sempSbfGetU1(parse, 20 + 0) != 1) // Check DiskID is 1
+        return;
+
+    uint64_t diskUsageMSB = sempSbfGetU2(parse, 20 + 2); // DiskUsageMSB
+    uint64_t diskUsageLSB = sempSbfGetU4(parse, 20 + 4); // DiskUsageLSB
+
+    if ((diskUsageMSB == 65535) && (diskUsageLSB == 4294967295)) // Do-Not-Use
+        return;
+
+    uint64_t diskSizeMB = sempSbfGetU4(parse, 20 + 8); // DiskSize in megabytes
+
+    if (diskSizeMB == 0) // Do-Not-Use
+        return;
+
+    uint64_t diskUsage = (diskUsageMSB * 4294967296) + diskUsageLSB;
+    
+    sdCardSize = diskSizeMB * 1048576; // Convert to bytes
+
+    sdFreeSpace = sdCardSize - diskUsage;
+
+    _diskStatusSeen = true;
 }
 
 //----------------------------------------
@@ -2416,6 +2610,12 @@ bool GNSS_MOSAIC::surveyInStart()
 //----------------------------------------
 void GNSS_MOSAIC::update()
 {
+    // The mosaic-X5 supports microSD logging. But the microSD is connected directly to the X5, not the ESP32.
+    // present.microSd is false, but present.microSdCardDetectLow is true.
+    // If the microSD card is not inserted at power-on, the X5 does not recognise it if it is inserted later.
+    // The only way to get the X5 to recognise the card seems to be to perform a soft reset.
+    // Where should we perform the soft reset? updateSD seems the best place...
+
     // Update the SD card size, free space and logIncreasing
     static unsigned long sdCardSizeLastCheck = 0;
     const unsigned long sdCardSizeCheckInterval = 5000;   // Matches the interval in logUpdate
@@ -2423,51 +2623,100 @@ void GNSS_MOSAIC::update()
     static uint64_t previousFreeSpace = 0;
     if (millis() > (sdCardSizeLastCheck + sdCardSizeCheckInterval))
     {
-        updateSD();
-        if (previousFreeSpace == 0)
-            previousFreeSpace = sdFreeSpace;
-        if (sdFreeSpace < previousFreeSpace)
+        updateSD(); // Check if the card has been removed / inserted
+
+        if (_diskStatusSeen) // Check if the DiskStatus SBF message has been seen
         {
-            previousFreeSpace = sdFreeSpace;
-            logIncreasing = true;
-            sdCardLastFreeChange = millis();
+            // If previousFreeSpace hasn't been initialized, initialize it
+            if (previousFreeSpace == 0)
+                previousFreeSpace = sdFreeSpace;
+
+            if (sdFreeSpace < previousFreeSpace)
+            {
+                // The free space is decreasing, so set logIncreasing to true
+                previousFreeSpace = sdFreeSpace;
+                logIncreasing = true;
+                sdCardLastFreeChange = millis();
+            }
+            else if (sdFreeSpace == previousFreeSpace)
+            {
+                // The free space has not changed
+                // X5 is slow to update free. Seems to be about every ~20s?
+                // So only set logIncreasing to false after 30s
+                if (millis() > (sdCardLastFreeChange + 30000))
+                    logIncreasing = false;
+            }
+            else // if (sdFreeSpace > previousFreeSpace)
+            {
+                // User must have inserted a new SD card?
+                previousFreeSpace = sdFreeSpace;
+            }
         }
         else
         {
-            if (millis() > (sdCardLastFreeChange + 30000)) // X5 is slow to update free. Seems to be about every ~20s?
-                logIncreasing = false;
+            // Disk status not seen
+            // (Unmounting the SD card will prevent _diskStatusSeen from going true)
+            logIncreasing = false;
         }
-        sdCardSizeLastCheck = millis();
+
+        sdCardSizeLastCheck = millis(); // Update the timer
+        _diskStatusSeen = false; // Clear the flag
     }
 
     // Update spartnCorrectionsReceived
-    if (millis() > (lastSpartnReception + 5000))
-        spartnCorrectionsReceived = false;
+    // Does this need if(online.lband_gnss) ? Not sure... TODO
+    if (millis() > (lastSpartnReception + (settings.correctionsSourcesLifetime_s * 1000))) // Timeout
+    {
+        if (spartnCorrectionsReceived) // If corrections were being received
+        {
+            configureLBand(settings.enablePointPerfectCorrections); // Restart L-Band using stored frequency
+            spartnCorrectionsReceived = false;
+        }
+    }
 }
 
 //----------------------------------------
-bool GNSS_MOSAIC::updateSD()
+void GNSS_MOSAIC::updateSD()
 {
-    // TODO: use sdCardPresent() here? Except the mosaic seems pretty good at figuring out if the microSD is present...
+    // See comments in update() above
+    // updateSD() is probably the best place to check if an SD card has been inserted / removed
+    static bool previousCardPresent = sdCardPresent(); // This only gets called once
 
-    char diskInfo[200];
-    bool response =
-        sendAndWaitForIdle("ldi,DSK1\n\r", "DiskInfo", 1000, 25, &diskInfo[0], sizeof(diskInfo), false); // No debug
-    if (response)
+    // Check if card has been inserted / removed
+    // In both cases, perform a soft reset
+    // The X5 is not good at recognizing if a card is inserted after power-on, or was present but has been removed
+    if (previousCardPresent != sdCardPresent())
     {
-        char *ptr = strstr(diskInfo, " total=\"");
-        if (ptr == nullptr)
-            return false;
-        ptr += strlen(" total=\"");
-        sscanf(ptr, "%llu\"", &sdCardSize);
-        ptr = strstr(ptr, " free=\"");
-        if (ptr == nullptr)
-            return false;
-        ptr += strlen(" free=\"");
-        sscanf(ptr, "%llu\"", &sdFreeSpace);
-    }
+        previousCardPresent = sdCardPresent();
 
-    return response;
+        systemPrint("microSD card has been ");
+        systemPrint(previousCardPresent ? "inserted" : "removed");
+        systemPrintln(". Performing a soft reset...");
+
+        sendWithResponse("erst,soft,none\n\r", "ResetReceiver");
+
+        // Allow many retries
+        int retries = 0;
+        int retryLimit = 30;
+
+        // If the card has been removed, the soft reset takes extra time. Allow more retries
+        if (!previousCardPresent)
+            retryLimit = 40;
+
+        // Set COM4 to: CMD input (only), SBF output (only)
+        while (!sendWithResponse("sdio,COM4,CMD,SBF\n\r", "DataInOut"))
+        {
+            if (retries == retryLimit)
+                break;
+            retries++;
+            sendWithResponse("SSSSSSSSSSSSSSSSSSSS\n\r", "COM4>"); // Send escape sequence
+        }
+
+        if (retries == retryLimit)
+        {
+            systemPrintln("Soft reset failed!");
+        }
+    }
 }
 
 //----------------------------------------
@@ -2584,8 +2833,16 @@ void processSBFReceiverSetup(SEMP_PARSE_STATE *parse, uint16_t type)
     if (sempSbfGetBlockNumber(parse) == 5902)
     {
         snprintf(gnssUniqueId, sizeof(gnssUniqueId), "%s", sempSbfGetString(parse, 156)); // Extract RxSerialNumber
+
         snprintf(gnssFirmwareVersion, sizeof(gnssFirmwareVersion), "%s",
                  sempSbfGetString(parse, 196)); // Extract RXVersion
+
+        // gnssFirmwareVersion is 4.14.4, 4.14.10.1, etc.
+        // Create gnssFirmwareVersionInt from the first two fields only, so it will fit on the OLED
+        int verMajor = 0;
+        int verMinor = 0;
+        sscanf(gnssFirmwareVersion, "%d.%d.", &verMajor, &verMinor); // Do we care if this fails?
+        gnssFirmwareVersionInt = (verMajor * 100) + verMinor;
 
         GNSS_MOSAIC *mosaic = (GNSS_MOSAIC *)gnss;
         mosaic->_receiverSetupSeen = true;
@@ -2605,13 +2862,24 @@ void processUart1SBF(SEMP_PARSE_STATE *parse, uint16_t type)
 {
     GNSS_MOSAIC *mosaic = (GNSS_MOSAIC *)gnss;
 
-    // if ((settings.debugGnss == true) && !inMainMenu)
+    // if (((settings.debugGnss == true) || PERIODIC_DISPLAY(PD_GNSS_DATA_RX)) && !inMainMenu)
+    // {
+    //     // Don't call PERIODIC_CLEAR(PD_GNSS_DATA_RX); here. Let processUart1Message do it via rtkParse
     //     systemPrintf("Processing SBF Block %d (%d bytes) from mosaic-X5\r\n", sempSbfGetBlockNumber(parse),
     //     parse->length);
+    // }
 
     // If this is PVTGeodetic, extract some data
     if (sempSbfGetBlockNumber(parse) == 4007)
         mosaic->storeBlock4007(parse);
+
+    // If this is ChannelStatus, extract some data
+    if (sempSbfGetBlockNumber(parse) == 4013)
+        mosaic->storeBlock4013(parse);
+
+    // If this is DiskStatus, extract some data
+    if (sempSbfGetBlockNumber(parse) == 4059)
+        mosaic->storeBlock4059(parse);
 
     // If this is InputLink, extract some data
     if (sempSbfGetBlockNumber(parse) == 4090)
@@ -2636,8 +2904,11 @@ void processUart1SBF(SEMP_PARSE_STATE *parse, uint16_t type)
 //----------------------------------------
 void processUart1SPARTN(SEMP_PARSE_STATE *parse, uint16_t type)
 {
-    if ((settings.debugCorrections == true) && !inMainMenu)
+    if (((settings.debugGnss == true) || PERIODIC_DISPLAY(PD_GNSS_DATA_RX)) && !inMainMenu)
+    {
+        // Don't call PERIODIC_CLEAR(PD_GNSS_DATA_RX); here. Let processUart1Message do it via rtkParse
         systemPrintf("Pushing %d SPARTN (L-Band) bytes to PPL for mosaic-X5\r\n", parse->length);
+    }
 
     if (online.ppl == false && settings.debugCorrections == true && (!inMainMenu))
         systemPrintln("Warning: PPL is offline");

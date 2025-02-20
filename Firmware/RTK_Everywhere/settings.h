@@ -19,15 +19,18 @@ typedef enum
     STATE_ROVER_FIX,
     STATE_ROVER_RTK_FLOAT,
     STATE_ROVER_RTK_FIX,
+    STATE_BASE_CASTER_NOT_STARTED, //Set override flag
     STATE_BASE_NOT_STARTED,
     STATE_BASE_TEMP_SETTLE, // User has indicated base, but current pos accuracy is too low
     STATE_BASE_TEMP_SURVEY_STARTED,
     STATE_BASE_TEMP_TRANSMITTING,
     STATE_BASE_FIXED_NOT_STARTED,
     STATE_BASE_FIXED_TRANSMITTING,
+
     STATE_DISPLAY_SETUP,
-    STATE_WIFI_CONFIG_NOT_STARTED,
-    STATE_WIFI_CONFIG,
+    STATE_WEB_CONFIG_NOT_STARTED,
+    STATE_WEB_CONFIG_WAIT_FOR_NETWORK,
+    STATE_WEB_CONFIG,
     STATE_TEST,
     STATE_TESTING,
     STATE_PROFILE,
@@ -37,10 +40,6 @@ typedef enum
     STATE_NTPSERVER_NOT_STARTED,
     STATE_NTPSERVER_NO_SYNC,
     STATE_NTPSERVER_SYNC,
-    STATE_CONFIG_VIA_ETH_NOT_STARTED,
-    STATE_CONFIG_VIA_ETH_STARTED,
-    STATE_CONFIG_VIA_ETH,
-    STATE_CONFIG_VIA_ETH_RESTART_BASE,
     STATE_SHUTDOWN,
     STATE_NOT_SET, // Must be last on list
 } SystemState;
@@ -52,11 +51,10 @@ bool newSystemStateRequested = false;
 // Base modes set with RTK_MODE
 #define RTK_MODE_BASE_FIXED         0x0001
 #define RTK_MODE_BASE_SURVEY_IN     0x0002
-#define RTK_MODE_ETHERNET_CONFIG    0x0004
-#define RTK_MODE_NTP                0x0008
-#define RTK_MODE_ROVER              0x0010
-#define RTK_MODE_TESTING            0x0020
-#define RTK_MODE_WIFI_CONFIG        0x0040
+#define RTK_MODE_NTP                0x0004
+#define RTK_MODE_ROVER              0x0008
+#define RTK_MODE_TESTING            0x0010
+#define RTK_MODE_WEB_CONFIG         0x0020
 
 typedef uint8_t RtkMode_t;
 
@@ -151,7 +149,7 @@ typedef enum
 typedef uint8_t CORRECTION_ID_T;    // Type holding a correction ID or priority
 typedef uint8_t CORRECTION_MASK_T;  // Type holding a bitmask of correction IDs
 
-const char * const correctionsSourceNames[correctionsSource::CORR_NUM] =
+const char * const correctionsSourceNames[CORR_NUM] =
 {
     // These must match correctionsSource above
     "External Radio",
@@ -173,7 +171,6 @@ typedef struct
     SystemState newState;
     uint8_t newProfile; // Only valid when newState == STATE_PROFILE
 } setupButton;
-
 
 const SystemState platformPreviousStateTable[] =
 {
@@ -238,7 +235,6 @@ typedef enum
     CUSTOM_NMEA_TYPE_SYSTEM_VERSION,
     CUSTOM_NMEA_TYPE_ZED_VERSION,
     CUSTOM_NMEA_TYPE_STATUS,
-    CUSTOM_NMEA_TYPE_LOGTEST_STATUS,
     CUSTOM_NMEA_TYPE_DEVICE_BT_ID,
     CUSTOM_NMEA_TYPE_PARSER_STATS,
     CUSTOM_NMEA_TYPE_CURRENT_DATE,
@@ -301,8 +297,8 @@ enum PeriodDisplayValues
     PD_CELLULAR_STATE,          // 28
     PD_WIFI_STATE,              // 29
 
-    PD_ZED_DATA_RX,             // 30
-    PD_ZED_DATA_TX,             // 31
+    PD_GNSS_DATA_RX,             // 30
+    PD_GNSS_DATA_TX,             // 31
 
     PD_MQTT_CLIENT_DATA,        // 32
     PD_MQTT_CLIENT_STATE,       // 33
@@ -314,6 +310,8 @@ enum PeriodDisplayValues
     PD_PROVISIONING_STATE,      // 36
 
     PD_CORRECTION_SOURCE,       // 37
+
+    PD_GNSS_DATA_RX_BYTE_COUNT, // 38
     // Add new values before this line
 };
 
@@ -359,13 +357,13 @@ typedef struct _NTRIP_SERVER_DATA
 
 typedef enum
 {
-    ESPNOW_OFF,
+    ESPNOW_OFF = 0,
     ESPNOW_BROADCASTING,
     ESPNOW_PAIRING,
     ESPNOW_MAC_RECEIVED,
     ESPNOW_PAIRED,
+    ESPNOW_MAX
 } ESPNOWState;
-volatile ESPNOWState espnowState = ESPNOW_OFF;
 
 const uint8_t ESPNOW_MAX_PEERS = 5; // Maximum of 5 rovers
 
@@ -376,27 +374,6 @@ typedef enum
     BLUETOOTH_RADIO_SPP_AND_BLE,
     BLUETOOTH_RADIO_OFF,
 } BluetoothRadioType_e;
-
-// Don't make this a typedef enum as logTestState
-// can be incremented beyond LOGTEST_END
-enum LogTestState
-{
-    LOGTEST_START = 0,
-    LOGTEST_4HZ_5MSG_10MS,
-    LOGTEST_4HZ_7MSG_10MS,
-    LOGTEST_10HZ_5MSG_10MS,
-    LOGTEST_10HZ_7MSG_10MS,
-    LOGTEST_4HZ_5MSG_0MS,
-    LOGTEST_4HZ_7MSG_0MS,
-    LOGTEST_10HZ_5MSG_0MS,
-    LOGTEST_10HZ_7MSG_0MS,
-    LOGTEST_4HZ_5MSG_50MS,
-    LOGTEST_4HZ_7MSG_50MS,
-    LOGTEST_10HZ_5MSG_50MS,
-    LOGTEST_10HZ_7MSG_50MS,
-    LOGTEST_END,
-};
-uint8_t logTestState = LOGTEST_END;
 
 typedef struct WiFiNetwork
 {
@@ -467,7 +444,6 @@ typedef enum
     FUNCTION_CREATEFILE,
     FUNCTION_ENDLOGGING,
     FUNCTION_FINDLOG,
-    FUNCTION_LOGTEST,
     FUNCTION_FILELIST,
     FUNCTION_FILEMANAGER_OPEN1,
     FUNCTION_FILEMANAGER_OPEN2,
@@ -510,7 +486,6 @@ typedef enum
     SETTING_KNOWN_STRING,
 } SettingValueResponse;
 
-
 #define INCHES_IN_A_METER   39.37007874
 #define FEET_IN_A_METER     3.280839895
 
@@ -539,23 +514,6 @@ const measurementScaleEntry measurementScaleTable[] = {
     { MEASUREMENT_UNITS_FEET_INCHES, "feet and inches", "ft", "in", FEET_IN_A_METER, 3.0, 12.0, 100.0 }
 };
 const int measurementScaleEntries = sizeof(measurementScaleTable) / sizeof(measurementScaleTable[0]);
-
-#ifdef COMPILE_OTA_AUTO
-
-// Automatic over-the-air (OTA) firmware update support
-enum OtaState
-{
-    OTA_STATE_OFF = 0,
-    OTA_STATE_WAIT_FOR_NETWORK,
-    OTA_STATE_GET_FIRMWARE_VERSION,
-    OTA_STATE_CHECK_FIRMWARE_VERSION,
-    OTA_STATE_UPDATE_FIRMWARE,
-
-    // Add new states here
-    OTA_STATE_MAX
-};
-
-#endif  // COMPILE_OTA_AUTO
 
 // Regional Support
 // Some regions have both L-Band and IP. More just have IP.
@@ -594,6 +552,33 @@ const int numRegionalAreas = sizeof(Regional_Information_Table) / sizeof(Regiona
 
 #define NTRIP_SERVER_STRING_SIZE        50
 
+//Bitfield for describing the type of network the consumer can use
+enum
+{
+    NETIF_NONE = 0, // No consumers
+    NETIF_WIFI_STA, // The consumer can use STA
+    NETIF_WIFI_AP, // The consumer can use AP
+    NETIF_CELLULAR, // The consumer can use Cellular
+    NETIF_ETHERNET, // The consumer can use Ethernet
+    NETIF_UNKNOWN
+};
+
+#define NETWORK_EWC ((1 << NETIF_ETHERNET) | (1 << NETIF_WIFI_STA) | (1 << NETIF_CELLULAR))
+
+// Bitfield for describing the network consumers
+enum
+{
+    NETCONSUMER_NTRIP_CLIENT = 0,
+    NETCONSUMER_NTRIP_SERVER,
+    NETCONSUMER_TCP_CLIENT,
+    NETCONSUMER_TCP_SERVER,
+    NETCONSUMER_UDP_SERVER,
+    NETCONSUMER_PPL_KEY_UPDATE,
+    NETCONSUMER_PPL_MQTT_CLIENT,
+    NETCONSUMER_OTA_CLIENT,
+    NETCONSUMER_WEB_CONFIG,
+};
+
 // This is all the settings that can be set on RTK Product. It's recorded to NVM and the config file.
 // Avoid reordering. The order of these variables is mimicked in NVM/record/parse/create/update/get
 struct Settings
@@ -623,7 +608,7 @@ struct Settings
 
     // Battery
     bool enablePrintBatteryMessages = true;
-    uint32_t shutdownNoChargeTimeout_s = 0; // If > 0, shut down unit after timeout if not charging
+    uint32_t shutdownNoChargeTimeoutMinutes = 0; // If > 0, shut down unit after timeout if not charging
 
     // Beeper
     bool enableBeeper = true; // Some platforms have an audible notification
@@ -635,7 +620,7 @@ struct Settings
 
     // Corrections
     int correctionsSourcesLifetime_s = 30; // Expire a corrections source if no data is seen for this many seconds
-    CORRECTION_ID_T correctionsSourcesPriority[correctionsSource::CORR_NUM] = { (CORRECTION_ID_T)-1 }; // -1 indicates array is uninitialized, indexed by correction source ID
+    CORRECTION_ID_T correctionsSourcesPriority[CORR_NUM] = { (CORRECTION_ID_T)-1 }; // -1 indicates array is uninitialized, indexed by correction source ID
     bool debugCorrections = false;
     uint8_t enableExtCorrRadio = 254; // Will be initialized to true or false depending on model
     uint8_t extCorrRadioSPARTNSource = 0; // This selects IP (0) vs. L-Band (1) for _SPARTN_ corrections on Radio Ext (UART2)
@@ -669,7 +654,14 @@ struct Settings
     uint16_t measurementRateMs = 250;       // Elapsed ms between GNSS measurements. 25ms to 65535ms. Default 4Hz.
     uint16_t navigationRate =
         1; // Ratio between number of measurements and navigation solutions. Default 1 for 4Hz (with measurementRate).
-    bool updateGNSSSettings = true;   // When in doubt, update the GNSS with current settings
+
+    // Signatures to indicate how the GNSS is configured (Once, Base, Rover, etc.)
+    // Bit 0 indicates if the GNSS has been configured previously.
+    // Bits 1 onwards record the state of critical settings. E.g. settings.enablePointPerfectCorrections
+    // Configuration is reapplied if any of those critical settings have changed 
+    bool gnssConfiguredOnce = false;
+    bool gnssConfiguredBase = false;
+    bool gnssConfiguredRover = false;
 
     // GNSS UART
     uint16_t serialGNSSRxFullThreshold = 50; // RX FIFO full interrupt. Max of ~128. See pinUART2Task().
@@ -689,7 +681,6 @@ struct Settings
     bool enablePrintLogFileStatus = true;
     int maxLogLength_minutes = 60 * 24; // Default to 24 hours
     int maxLogTime_minutes = 60 * 24;        // Default to 24 hours
-    bool runLogTest = false;           // When set to true, device will create a series of test logs
 
     // MQTT
     bool debugMqttClientData = false;  // Debug the MQTT SPARTAN data flow
@@ -793,7 +784,7 @@ struct Settings
     uint8_t gnssUartInterruptsCore =
         1; // Core where hardware is started and interrupts are assigned to, 0=core, 1=Arduino
     uint8_t handleGnssDataTaskCore = 1;     // Core where task should run, 0=core, 1=Arduino
-    uint8_t handleGnssDataTaskPriority = 1; // Read from the cicular buffer and dole out to end points (SD, TCP, BT).
+    uint8_t handleGnssDataTaskPriority = 1; // Read from the circular buffer and dole out to end points (SD, TCP, BT).
     uint8_t i2cInterruptsCore = 1; // Core where hardware is started and interrupts are assigned to, 0=core, 1=Arduino
     uint8_t measurementScale = MEASUREMENT_UNITS_METERS;
     bool printBootTimes = false; // Print times and deltas during boot
@@ -976,7 +967,7 @@ struct Settings
     uint16_t httpPort = 80;
 
     // WiFi
-    bool debugWebConfig = false;
+    bool debugWebServer = false;
     bool debugWifiState = false;
     bool enableCaptivePortal = true;
     uint8_t wifiChannel = 1; //Valid channels are 1 to 14
@@ -1013,9 +1004,12 @@ struct Settings
     int lg290pMessageRatesRTCMRover[MAX_LG290P_RTCM_MSG] = {
         254}; // Mark first record with key so defaults will be applied. Int value for each supported message - Report
               // rates for RTCM Base. Default to Quectel recommended rates.
+    int lg290pMessageRatesPQTM[MAX_LG290P_PQTM_MSG] = {254}; // Mark first record with key so defaults will be applied. 
 #endif // COMPILE_LG290P
 
     bool debugSettings = false;
+    bool enableNtripCaster = false; //When true, respond as a faux NTRIP Caster to incoming TCP connections
+    bool baseCasterOverride = false; //When true, user has put device into 'BaseCast' mode. Change settings, but don't save to NVM.
 
     // Add new settings to appropriate group above or create new group
     // Then also add to the same group in rtkSettingsEntries below
@@ -1079,6 +1073,7 @@ typedef enum {
     tLgMRNmea,
     tLgMRRvRT,
     tLgMRBaRT,
+    tLgMRPqtm,
     tLgConst,
     // Add new settings types above <---------------->
     // (Maintain the enum of existing settings types!)
@@ -1160,11 +1155,11 @@ const RTK_Settings_Entry rtkSettingsEntries[] =
     { 1, 1, 0, 1, 1, 1, 1, 1, 1, _double,   9, & settings.fixedLong, "fixedLong",  },
     { 1, 1, 0, 1, 1, 1, 1, 1, 1, _int,      0, & settings.observationSeconds, "observationSeconds",  },
     { 1, 1, 0, 1, 1, 1, 1, 1, 1, _float,    2, & settings.observationPositionAccuracy, "observationPositionAccuracy",  },
-    { 1, 1, 0, 1, 1, 0, 1, 1, 1, _float,    1, & settings.surveyInStartingAccuracy, "surveyInStartingAccuracy",  },
+    { 0, 1, 0, 1, 1, 0, 1, 1, 1, _float,    1, & settings.surveyInStartingAccuracy, "surveyInStartingAccuracy",  },
 
     // Battery
     { 0, 0, 0, 0, 1, 1, 1, 1, 1, _bool,     0, & settings.enablePrintBatteryMessages, "enablePrintBatteryMessages",  },
-    { 1, 1, 0, 0, 1, 1, 1, 1, 1, _uint32_t, 0, & settings.shutdownNoChargeTimeout_s, "shutdownNoChargeTimeout",  },
+    { 1, 1, 0, 0, 1, 1, 1, 1, 1, _uint32_t, 0, & settings.shutdownNoChargeTimeoutMinutes, "shutdownNoChargeTimeoutMinutes",  },
 
 //                         F
 //                         a
@@ -1191,7 +1186,7 @@ const RTK_Settings_Entry rtkSettingsEntries[] =
 
     // Corrections
     { 1, 1, 0, 1, 1, 1, 1, 1, 1, _int,      0, & settings.correctionsSourcesLifetime_s, "correctionsSourcesLifetime",  },
-    { 1, 1, 1, 1, 1, 1, 1, 1, 1, tCorrSPri, correctionsSource::CORR_NUM, & settings.correctionsSourcesPriority, "correctionsPriority_",  },
+    { 1, 1, 1, 1, 1, 1, 1, 1, 1, tCorrSPri, CORR_NUM, & settings.correctionsSourcesPriority, "correctionsPriority_",  },
     { 0, 0, 0, 1, 1, 1, 1, 1, 1, _bool,     0, & settings.debugCorrections, "debugCorrections",  },
     { 1, 1, 0, 1, 1, 1, 0, 1, 1, _bool,     0, & settings.enableExtCorrRadio, "enableExtCorrRadio",  },
     { 1, 1, 0, 1, 1, 0, 0, 1, 0, _uint8_t,  0, & settings.extCorrRadioSPARTNSource, "extCorrRadioSPARTNSource",  },
@@ -1260,7 +1255,9 @@ const RTK_Settings_Entry rtkSettingsEntries[] =
     { 0, 0, 0, 1, 1, 1, 1, 1, 1, _bool,     0, & settings.enablePrintPosition, "enablePrintPosition",  },
     { 0, 1, 0, 1, 1, 1, 1, 1, 1, _uint16_t, 0, & settings.measurementRateMs, "measurementRateMs",  },
     { 0, 1, 0, 1, 1, 1, 1, 1, 1, _uint16_t, 0, & settings.navigationRate, "navigationRate",  },
-    { 0, 0, 0, 1, 1, 1, 1, 1, 1, _bool,     0, & settings.updateGNSSSettings, "updateGNSSSettings",  },
+    { 0, 0, 0, 1, 1, 1, 1, 1, 1, _bool,     0, & settings.gnssConfiguredOnce, "gnssConfiguredOnce",  },
+    { 0, 0, 0, 1, 1, 1, 1, 1, 1, _bool,     0, & settings.gnssConfiguredBase, "gnssConfiguredBase",  },
+    { 0, 0, 0, 1, 1, 1, 1, 1, 1, _bool,     0, & settings.gnssConfiguredRover, "gnssConfiguredRover",  },
 
     // Hardware
     { 1, 1, 0, 1, 1, 1, 0, 1, 0, _bool,     0, & settings.enableExternalHardwareEventLogging, "enableExternalHardwareEventLogging",  },
@@ -1291,18 +1288,17 @@ const RTK_Settings_Entry rtkSettingsEntries[] =
     { 0, 0, 0, 1, 1, 1, 0, 1, 1, _bool,     0, & settings.enablePrintLogFileStatus, "enablePrintLogFileStatus",  },
     { 1, 1, 0, 1, 1, 1, 0, 1, 1, _int,      0, & settings.maxLogLength_minutes, "maxLogLength",  },
     { 1, 1, 0, 1, 1, 1, 0, 1, 1, _int,      0, & settings.maxLogTime_minutes, "maxLogTime"},
-    { 0, 0, 0, 1, 1, 0, 0, 1, 1, _bool,     0, & settings.runLogTest, "runLogTest",  }, // Not stored in NVM
 
     // Mosaic
 
 #ifdef  COMPILE_MOSAICX5
     { 1, 1, 1, 0, 0, 1, 0, 0, 0, tMosaicConst,  MAX_MOSAIC_CONSTELLATIONS, & settings.mosaicConstellations, "constellation_",  },
-    { 0, 1, 1, 0, 0, 1, 0, 0, 0, tMosaicMSNmea, MAX_MOSAIC_NMEA_MSG, & settings.mosaicMessageStreamNMEA, "messageStreamNMEA_",  },
-    { 0, 1, 1, 0, 0, 1, 0, 0, 0, tMosaicSINmea, MOSAIC_NUM_NMEA_STREAMS, & settings.mosaicStreamIntervalsNMEA, "streamIntervalNMEA_",  },
-    { 0, 1, 1, 0, 0, 1, 0, 0, 0, tMosaicMIRvRT, MAX_MOSAIC_RTCM_V3_INTERVAL_GROUPS, & settings.mosaicMessageIntervalsRTCMv3Rover, "messageIntervalRTCMRover_",  },
-    { 0, 1, 1, 0, 0, 1, 0, 0, 0, tMosaicMIBaRT, MAX_MOSAIC_RTCM_V3_INTERVAL_GROUPS, & settings.mosaicMessageIntervalsRTCMv3Base, "messageIntervalRTCMBase_",  },
-    { 0, 1, 1, 0, 0, 1, 0, 0, 0, tMosaicMERvRT, MAX_MOSAIC_RTCM_V3_MSG, & settings.mosaicMessageEnabledRTCMv3Rover, "messageEnabledRTCMRover_",  },
-    { 0, 1, 1, 0, 0, 1, 0, 0, 0, tMosaicMEBaRT, MAX_MOSAIC_RTCM_V3_MSG, & settings.mosaicMessageEnabledRTCMv3Base, "messageEnabledRTCMBase_",  },
+    { 1, 1, 1, 0, 0, 1, 0, 0, 0, tMosaicMSNmea, MAX_MOSAIC_NMEA_MSG, & settings.mosaicMessageStreamNMEA, "messageStreamNMEA_",  },
+    { 1, 1, 1, 0, 0, 1, 0, 0, 0, tMosaicSINmea, MOSAIC_NUM_NMEA_STREAMS, & settings.mosaicStreamIntervalsNMEA, "streamIntervalNMEA_",  },
+    { 1, 1, 1, 0, 0, 1, 0, 0, 0, tMosaicMIRvRT, MAX_MOSAIC_RTCM_V3_INTERVAL_GROUPS, & settings.mosaicMessageIntervalsRTCMv3Rover, "messageIntervalRTCMRover_",  },
+    { 1, 1, 1, 0, 0, 1, 0, 0, 0, tMosaicMIBaRT, MAX_MOSAIC_RTCM_V3_INTERVAL_GROUPS, & settings.mosaicMessageIntervalsRTCMv3Base, "messageIntervalRTCMBase_",  },
+    { 1, 1, 1, 0, 0, 1, 0, 0, 0, tMosaicMERvRT, MAX_MOSAIC_RTCM_V3_MSG, & settings.mosaicMessageEnabledRTCMv3Rover, "messageEnabledRTCMRover_",  },
+    { 1, 1, 1, 0, 0, 1, 0, 0, 0, tMosaicMEBaRT, MAX_MOSAIC_RTCM_V3_MSG, & settings.mosaicMessageEnabledRTCMv3Base, "messageEnabledRTCMBase_",  },
     { 1, 1, 0, 0, 0, 1, 0, 0, 0, _bool,     0, & settings.enableLoggingRINEX, "enableLoggingRINEX",  },
     { 1, 1, 0, 0, 0, 1, 0, 0, 0, _uint8_t,  0, & settings.RINEXFileDuration, "RINEXFileDuration",  },
     { 1, 1, 0, 0, 0, 1, 0, 0, 0, _uint8_t,  0, & settings.RINEXObsInterval, "RINEXObsInterval",  },
@@ -1315,7 +1311,7 @@ const RTK_Settings_Entry rtkSettingsEntries[] =
 
     // Multicast DNS
     { 0, 0, 0, 1, 1, 1, 1, 1, 1, _bool,     0, & settings.mdnsEnable, "mdnsEnable",  },
-    { 1, 1, 0, 1, 1, 1, 1, 1, 1, tCharArry, sizeof(settings.mdnsHostName), & settings.mdnsHostName, "mdnsHostName",  },
+    { 0, 1, 0, 1, 1, 1, 1, 1, 1, tCharArry, sizeof(settings.mdnsHostName), & settings.mdnsHostName, "mdnsHostName",  },
 
     // Network layer
     { 0, 0, 0, 1, 1, 1, 1, 1, 1, _bool,     0, & settings.debugNetworkLayer, "debugNetworkLayer",  },
@@ -1338,7 +1334,7 @@ const RTK_Settings_Entry rtkSettingsEntries[] =
 
     // NTP (Ethernet Only)
     { 0, 0, 0, 1, 0, 0, 0, 0, 0, _bool,     0, & settings.debugNtp, "debugNtp",  },
-    { 1, 1, 0, 1, 0, 0, 0, 0, 0, _bool,     0, & settings.enableNTPFile, "enableNTPFile",  },
+    { 0, 1, 0, 1, 0, 0, 0, 0, 0, _bool,     0, & settings.enableNTPFile, "enableNTPFile",  },
     { 1, 1, 0, 1, 0, 0, 0, 0, 0, _uint16_t, 0, & settings.ethernetNtpPort, "ethernetNtpPort",  },
     { 1, 1, 0, 1, 0, 0, 0, 0, 0, _uint8_t,  0, & settings.ntpPollExponent, "ntpPollExponent",  },
     { 1, 1, 0, 1, 0, 0, 0, 0, 0, _int8_t,   0, & settings.ntpPrecision, "ntpPrecision",  },
@@ -1497,7 +1493,7 @@ const RTK_Settings_Entry rtkSettingsEntries[] =
 //    g  s  x  k  2  c  h  d  d  Type    Qual  Variable                  Name
 
     // Setup Button
-    { 1, 1, 0, 1, 1, 1, 1, 1, 1, _bool,     0, & settings.disableSetupButton, "disableSetupButton",  },
+    { 0, 1, 0, 1, 1, 1, 1, 1, 1, _bool,     0, & settings.disableSetupButton, "disableSetupButton",  },
 
     // State
     { 0, 0, 0, 1, 1, 1, 1, 1, 1, _bool,     0, & settings.enablePrintDuplicateStates, "enablePrintDuplicateStates",  },
@@ -1516,9 +1512,9 @@ const RTK_Settings_Entry rtkSettingsEntries[] =
     { 1, 1, 0, 1, 1, 1, 1, 1, 1, _uint16_t, 0, & settings.tcpServerPort, "tcpServerPort",  },
 
     // Time Zone
-    { 1, 1, 0, 1, 1, 1, 1, 1, 1, _int8_t,   0, & settings.timeZoneHours, "timeZoneHours",  },
-    { 1, 1, 0, 1, 1, 1, 1, 1, 1, _int8_t,   0, & settings.timeZoneMinutes, "timeZoneMinutes",  },
-    { 1, 1, 0, 1, 1, 1, 1, 1, 1, _int8_t,   0, & settings.timeZoneSeconds, "timeZoneSeconds",  },
+    { 0, 1, 0, 1, 1, 1, 1, 1, 1, _int8_t,   0, & settings.timeZoneHours, "timeZoneHours",  },
+    { 0, 1, 0, 1, 1, 1, 1, 1, 1, _int8_t,   0, & settings.timeZoneMinutes, "timeZoneMinutes",  },
+    { 0, 1, 0, 1, 1, 1, 1, 1, 1, _int8_t,   0, & settings.timeZoneSeconds, "timeZoneSeconds",  },
 
 //                         F
 //                         a
@@ -1578,7 +1574,7 @@ const RTK_Settings_Entry rtkSettingsEntries[] =
     { 0, 0, 0, 1, 1, 1, 1, 1, 1, _uint16_t, 0, & settings.httpPort, "httpPort",  },
 
     // WiFi
-    { 0, 0, 0, 1, 1, 1, 1, 1, 1, _bool,     0, & settings.debugWebConfig, "debugWebConfig",  },
+    { 0, 0, 0, 1, 1, 1, 1, 1, 1, _bool,     0, & settings.debugWebServer, "debugWebServer",  },
     { 0, 0, 0, 1, 1, 1, 1, 1, 1, _bool,     0, & settings.debugWifiState, "debugWifiState",  },
     { 0, 0, 0, 1, 1, 1, 1, 1, 1, _bool,     0, & settings.enableCaptivePortal, "enableCaptivePortal",  },
     { 0, 0, 0, 1, 1, 1, 1, 1, 1, _uint8_t,  0, & settings.wifiChannel, "wifiChannel",  },
@@ -1621,9 +1617,12 @@ const RTK_Settings_Entry rtkSettingsEntries[] =
     { 0, 1, 1, 0, 0, 0, 0, 0, 1, tLgMRNmea, MAX_LG290P_NMEA_MSG, & settings.lg290pMessageRatesNMEA, "messageRateNMEA_",  },
     { 0, 1, 1, 0, 0, 0, 0, 0, 1, tLgMRBaRT, MAX_LG290P_RTCM_MSG, & settings.lg290pMessageRatesRTCMBase, "messageRateRTCMBase_",  },
     { 0, 1, 1, 0, 0, 0, 0, 0, 1, tLgMRRvRT, MAX_LG290P_RTCM_MSG, & settings.lg290pMessageRatesRTCMRover, "messageRateRTCMRover_",  },
+    { 0, 1, 1, 0, 0, 0, 0, 0, 1, tLgMRPqtm, MAX_LG290P_PQTM_MSG, & settings.lg290pMessageRatesPQTM, "messageRatePQTM_",  },
 #endif  // COMPILE_LG290P
 
     { 0, 0, 0, 1, 1, 1, 1, 1, 1, _bool,     0, & settings.debugSettings, "debugSettings",  },
+    { 1, 1, 0, 1, 1, 1, 1, 1, 1, _bool,     0, & settings.enableNtripCaster, "enableNtripCaster",  },
+    { 0, 1, 0, 1, 1, 1, 1, 1, 1, _bool,     0, & settings.baseCasterOverride, "baseCasterOverride",  },
 
     // Add new settings to appropriate group above or create new group
     // Then also add to the same group in settings above
@@ -1760,34 +1759,35 @@ struct struct_present
 // Monitor which devices on the device are on or offline.
 struct struct_online
 {
-    bool microSD = false;
-    bool display = false;
-    bool gnss = false;
-    bool logging = false;
-    bool serialOutput = false;
-    bool fs = false;
-    bool rtc = false;
+    bool batteryCharger_mp2762a = false;
     bool batteryFuelGauge = false;
+    bool bluetooth = false;
+    bool button = false;
+    bool display = false;
+    bool ethernetNTPServer = false; // EthernetUDP
+    bool fs = false;
+    bool gnss = false;
+    bool gpioExpander = false;
+    bool httpClient = false;
+    bool i2c = false;
+    bool lband_gnss = false;
+    bool lband_neo = false;
+    bool lbandCorrections = false;
+    bool logging = false;
+    bool loraRadio = false;
+    bool microSD = false;
+    bool mqttClient = false;
     bool ntripClient = false;
     bool ntripServer[NTRIP_SERVER_MAX] = {false, false, false, false};
-    bool lband_neo = false;
-    bool lband_gnss = false;
-    bool lbandCorrections = false;
-    bool i2c = false;
+    bool otaClient = false;
+    bool ppl = false;
+    bool psram = false;
+    bool rtc = false;
+    bool serialOutput = false;
     bool tcpClient = false;
     bool tcpServer = false;
     bool udpServer = false;
-    bool ethernetNTPServer = false; // EthernetUDP
-    bool otaFirmwareUpdate = false;
-    bool bluetooth = false;
-    bool mqttClient = false;
-    bool psram = false;
-    bool ppl = false;
-    bool batteryCharger_mp2762a = false;
-    bool httpClient = false;
-    bool loraRadio = false;
-    bool button = false;
-    bool gpioExpander = false;
+    bool webServer = false;
 } online;
 
 typedef uint8_t NetIndex_t;     // Index into the networkInterfaceTable
@@ -1799,15 +1799,9 @@ typedef int8_t NetPriority_t;  // Index into networkPriorityTable
 enum NetworkTypes
 {
     NETWORK_NONE = -1,  // The values below must start at zero and be sequential
-    #ifdef COMPILE_ETHERNET
-        NETWORK_ETHERNET,
-    #endif  // COMPILE_ETHERNET
-    #ifdef COMPILE_WIFI
-        NETWORK_WIFI = 1,
-    #endif  // COMPILE_WIFI
-    #ifdef COMPILE_CELLULAR
-        NETWORK_CELLULAR,
-    #endif  // COMPILE_CELLULAR
+    NETWORK_ETHERNET = 0,
+    NETWORK_WIFI = 1,
+    NETWORK_CELLULAR = 2,
     // Add new networks here
     NETWORK_MAX
 };
@@ -1821,7 +1815,7 @@ enum NetworkTypes
 typedef void (* NETWORK_POLL_ROUTINE)(NetIndex_t index, uintptr_t parameter, bool debug);
 
 // Sequence entry specifying a poll routine call for a network interface
-typedef struct _NETWORK_POLL_SEQUENCE
+typedef const struct _NETWORK_POLL_SEQUENCE
 {
     NETWORK_POLL_ROUTINE routine; // Address of poll routine, nullptr at end of table
     uintptr_t parameter;          // Parameter passed to poll routine
@@ -1848,21 +1842,28 @@ extern NETWORK_POLL_SEQUENCE laraOffSequence[];
 extern NETWORK_POLL_SEQUENCE laraOnSequence[];
 
 // List of networks
-// Multiple networks may running in parallel with highest priority being
-// set to the default network.  The start routine is called as the priority
-// drops to that level.  The stop routine is called as the priority rises
-// above that level.  The priority will continue to fall or rise until a
+// Only one network is turned on at a time. The start routine is called as the priority
+// drops to that level. The stop routine is called as the priority rises
+// above that level. The priority will continue to fall or rise until a
 // network is found that is online.
 const NETWORK_TABLE_ENTRY networkInterfaceTable[] =
 { //     Interface  Name            Present                     Periodic State      Boot Sequence           Start Sequence      Stop Sequence
     #ifdef COMPILE_ETHERNET
         {&ETH,      "Ethernet",     &present.ethernet_ws5500,   PD_ETHERNET_STATE,  nullptr,                nullptr,            nullptr},
+    #else
+        {nullptr,      "Ethernet-NotCompiled",     nullptr,   PD_ETHERNET_STATE,  nullptr,                nullptr,            nullptr},
     #endif  // COMPILE_ETHERNET
+
     #ifdef COMPILE_WIFI
         {&WiFi.STA, "WiFi",         nullptr,                    PD_WIFI_STATE,      nullptr,                wifiStartSequence,  wifiStopSequence},
+    #else
+        {nullptr,   "WiFi-NotCompiled",     nullptr,            PD_WIFI_STATE,      nullptr,                nullptr,            nullptr},
     #endif  // COMPILE_WIFI
+
     #ifdef  COMPILE_CELLULAR
         {&PPP,      "Cellular",     &present.cellular_lara,     PD_CELLULAR_STATE,  laraBootSequence,       laraOnSequence,     laraOffSequence},
+    #else
+        {nullptr,   "Cellular-NotCompiled",     nullptr,            PD_CELLULAR_STATE,      nullptr,                nullptr,            nullptr},
     #endif  // COMPILE_CELLULAR
 };
 const int networkInterfaceTableEntries = sizeof(networkInterfaceTable) / sizeof(networkInterfaceTable[0]);
@@ -1923,5 +1924,333 @@ o/ufQJVtMVT8QtPHRh8jrdkPSHCa2XV4cdFyQzR1bldZwgJcJmApzyMZFo6IQ6XU
 rqXRfboQnoZsG4q5WTP468SQvvG5
 -----END CERTIFICATE-----
 )=====";
+
+#ifdef COMPILE_WIFI
+
+//****************************************
+// WiFi class
+//****************************************
+
+// Handle the WiFi event
+// Inputs:
+//   event: Arduino ESP32 event number found on
+//          https://github.com/espressif/arduino-esp32
+//          in libraries/Network/src/NetworkEvents.h
+//   info: Additional data about the event
+void wifiEventHandler(arduino_event_id_t event, arduino_event_info_t info);
+
+typedef uint32_t WIFI_ACTION_t;
+typedef uint8_t WIFI_CHANNEL_t;
+
+// Class to simplify WiFi handling
+class RTK_WIFI
+{
+  private:
+
+    WIFI_CHANNEL_t _apChannel;  // Channel required for soft AP, zero (0) use _channel
+    int16_t _apCount;           // The number or remote APs detected in the WiFi network
+    IPAddress _apDnsAddress;    // DNS IP address to use while translating names into IP addresses
+    IPAddress _apFirstDhcpAddress;  // First IP address to use for DHCP
+    IPAddress _apGatewayAddress;// IP address of the gateway to the larger network (internet?)
+    IPAddress _apIpAddress;     // IP address of the soft AP
+    uint8_t _apMacAddress[6];   // MAC address of the soft AP
+    IPAddress _apSubnetMask;    // Subnet mask for soft AP
+    WIFI_CHANNEL_t _channel;    // Current WiFi channel number
+    WIFI_CHANNEL_t _espNowChannel;  // Channel required for ESPNow, zero (0) use _channel
+    bool _espNowRunning;        // ESPNow started or running
+    volatile bool _scanRunning; // Scan running
+    bool _softApRunning;        // Soft AP is starting or running
+    int _staAuthType;           // Authorization type for the remote AP
+    bool _staConnected;         // True when station is connected
+    bool _staHasIp;             // True when station has IP address
+    IPAddress _staIpAddress;    // IP address of the station
+    uint8_t _staIpType;         // 4 or 6 when IP address is assigned
+    volatile uint8_t _staMacAddress[6]; // MAC address of the station
+    const char * _staRemoteApSsid;      // SSID of remote AP
+    const char * _staRemoteApPassword;  // Password of remote AP
+    volatile WIFI_ACTION_t _started;    // Components that are started and running
+    WIFI_CHANNEL_t _stationChannel; // Channel required for station, zero (0) use _channel
+    bool _stationRunning;       // True while station is starting or running
+    uint32_t _timer;            // Reconnection timer
+    bool _usingDefaultChannel;  // Using default WiFi channel
+    bool _verbose;              // True causes more debug output to be displayed
+
+    // Display components begin started or stopped
+    // Inputs:
+    //   text: Text describing the component list
+    //   components: A bit mask of the components
+    void displayComponents(const char * text, WIFI_ACTION_t components);
+
+    // Start the WiFi event handler
+    void eventHandlerStart();
+
+    // Stop the WiFi event handler
+    void eventHandlerStop();
+
+    // Set the WiFi mode
+    // Inputs:
+    //   setMode: Modes to set
+    //   xorMode: Modes to toggle
+    //
+    // Math: result = (mode | setMode) ^ xorMode
+    //
+    //                              setMode
+    //                      0                   1
+    //  xorMode 0       No change           Set bit
+    //          1       Toggle bit          Clear bit
+    //
+    // Outputs:
+    //   Returns true if successful and false upon failure
+    bool setWiFiMode(uint8_t setMode, uint8_t xorMode);
+
+    // Set the WiFi radio protocols
+    // Inputs:
+    //   interface: Interface on which to set the protocols
+    //   enableWiFiProtocols: When true, enable the WiFi protocols
+    //   enableLongRangeProtocol: When true, enable the long range protocol
+    // Outputs:
+    //   Returns true if successful and false upon failure
+    bool setWiFiProtocols(wifi_interface_t interface,
+                          bool enableWiFiProtocols,
+                          bool enableLongRangeProtocol);
+
+    // Handle the soft AP events
+    // Inputs:
+    //   event: Arduino ESP32 event number found on
+    //          https://github.com/espressif/arduino-esp32
+    //          in libraries/Network/src/NetworkEvents.h
+    //   info: Additional data about the event
+    void softApEventHandler(arduino_event_id_t event, arduino_event_info_t info);
+
+    // Set the soft AP host name
+    // Inputs:
+    //   hostName: Zero terminated host name character string
+    // Outputs:
+    //   Returns true if successful and false upon failure
+    bool softApSetHostName(const char * hostName);
+
+    // Set the soft AP configuration
+    // Inputs:
+    //   ipAddress: IP address of the server, nullptr or empty string causes
+    //              default 192.168.4.1 to be used
+    //   subnetMask: Subnet mask for local network segment, nullptr or empty
+    //              string causes default 0.0.0.0 to be used, unless ipAddress
+    //              is not specified, in which case 255.255.255.0 is used
+    //   gatewayAddress: Gateway to internet IP address, nullptr or empty string
+    //            causes default 0.0.0.0 to be used (no access to internet)
+    //   dnsAddress: Domain name server (name to IP address translation) IP address,
+    //              nullptr or empty string causes 0.0.0.0 to be used (only
+    //              mDNS name translation, if started)
+    //   dhcpStartAddress: Start of DHCP IP address assignments for the local
+    //              network segment, nullptr or empty string causes default
+    //              0.0.0.0 to be used (disable DHCP server)  unless ipAddress
+    //              was not specified in which case 192.168.4.2
+    // Outputs:
+    //   Returns true if successful and false upon failure
+    bool softApSetIpAddress(const char * ipAddress,
+                            const char * subnetMask,
+                            const char * gatewayAddress,
+                            const char * dnsAddress,
+                            const char * dhcpFirstAddress);
+
+    // Set the soft AP SSID and password
+    // Outputs:
+    //   Returns true if successful and false upon failure
+    bool softApSetSsidPassword(const char * ssid, const char * password);
+
+    // Connect to an access point
+    // Outputs:
+    //   Return true if the connection was successful and false upon failure.
+    bool stationConnectAP();
+
+    // Disconnect the station from an AP
+    // Outputs:
+    //   Returns true if successful and false upon failure
+    bool stationDisconnect();
+
+    // Handle the WiFi station events
+    // Inputs:
+    //   event: Arduino ESP32 event number found on
+    //          https://github.com/espressif/arduino-esp32
+    //          in libraries/Network/src/NetworkEvents.h
+    //   info: Additional data about the event
+    void stationEventHandler(arduino_event_id_t event, arduino_event_info_t info);
+
+    // Set the station's host name
+    // Inputs:
+    //   hostName: Zero terminated host name character string
+    // Outputs:
+    //   Returns true if successful and false upon failure
+    bool stationHostName(const char * hostName);
+
+    // Start the WiFi scan
+    // Inputs:
+    //   channel: Channel number for the scan, zero (0) scan all channels
+    // Outputs:
+    //   Returns the number of access points
+    int16_t stationScanForAPs(WIFI_CHANNEL_t channel);
+
+    // Select the AP and channel to use for WiFi station
+    // Inputs:
+    //   apCount: Number to APs detected by the WiFi scan
+    //   list: Determine if the APs should be listed
+    // Outputs:
+    //   Returns the channel number of the AP
+    WIFI_CHANNEL_t stationSelectAP(uint8_t apCount, bool list);
+
+    // Stop and start WiFi components
+    // Inputs:
+    //   stopping: WiFi components that need to be stopped
+    //   starting: WiFi components that neet to be started
+    // Outputs:
+    //   Returns true if the modes were successfully configured
+    bool stopStart(WIFI_ACTION_t stopping, WIFI_ACTION_t starting);
+
+    // Handle the WiFi event
+    // Inputs:
+    //   event: Arduino ESP32 event number found on
+    //          https://github.com/espressif/arduino-esp32
+    //          in libraries/Network/src/NetworkEvents.h
+    //   info: Additional data about the event
+    void wifiEvent(arduino_event_id_t event, arduino_event_info_t info);
+
+  public:
+
+    // Constructor
+    // Inputs:
+    //   verbose: Set to true to display additional WiFi debug data
+    RTK_WIFI(bool verbose = false);
+
+    // Attempts a connection to all provided SSIDs
+    // Inputs:
+    //    timeout: Number of milliseconds to wait for the connection
+    //    startAP: Set true to start AP mode, false does not change soft AP
+    //             status
+    // Outputs:
+    //    Returns true if successful and false upon timeout, no matching
+    //    SSID or other failure
+    bool connect(unsigned long timeout,
+                 bool startAP);
+
+    // Enable or disable the WiFi modes
+    // Inputs:
+    //   enableESPNow: Enable ESP-NOW mode
+    //   enableSoftAP: Enable soft AP mode
+    //   enableStataion: Enable station mode
+    // Outputs:
+    //   Returns true if the modes were successfully configured
+    bool enable(bool enableESPNow, bool enableSoftAP, bool enableStation);
+
+    // Get the ESP-NOW status
+    // Outputs:
+    //   Returns true when ESP-NOW is online and ready for use
+    bool espNowOnline();
+
+    // Get the ESP-NOW status
+    // Outputs:
+    //  Returns true if ESP-NOW is being started or is online
+    bool espNowRunning();
+
+    // Set the ESP-NOW channel
+    // Inputs:
+    //   channel: New ESP-NOW channel number
+    void espNowSetChannel(WIFI_CHANNEL_t channel);
+
+    // Handle the WiFi event
+    // Inputs:
+    //   event: Arduino ESP32 event number found on
+    //          https://github.com/espressif/arduino-esp32
+    //          in libraries/Network/src/NetworkEvents.h
+    //   info: Additional data about the event
+    void eventHandler(arduino_event_id_t event, arduino_event_info_t info);
+
+    // Get the current WiFi channel
+    // Outputs:
+    //   Returns the current WiFi channel number
+    WIFI_CHANNEL_t getChannel();
+
+    // Restart WiFi
+    // Inputs:
+    //   always: Set true if this routine should always restart WiFi,
+    //           when false determine restart using _restartRequest
+    // Outputs:
+    //    Returns true if the WiFi layer was successfully restarted and
+    //    false upon restart failure
+    bool restart(bool always);
+
+    // Determine if any use of WiFi is starting or is online
+    // Outputs:
+    //  Returns true if any WiFi use is being started or is online
+    bool running();
+
+    // Configure the soft AP
+    // Inputs:
+    //   ipAddress: IP address of the soft AP
+    //   subnetMask: Subnet mask for the soft AP network
+    //   firstDhcpAddress: First IP address to use in the DHCP range
+    //   dnsAddress: IP address to use for DNS lookup (translate name to IP address)
+    //   gatewayAddress: IP address of the gateway to a larger network (internet?)
+    // Outputs:
+    //   Returns true if the soft AP was successfully configured.
+    bool softApConfiguration(IPAddress ipAddress,
+                             IPAddress subnetMask,
+                             IPAddress firstDhcpAddress,
+                             IPAddress dnsAddress,
+                             IPAddress gateway);
+
+    // Display the soft AP configuration
+    // Inputs:
+    //   display: Address of a Print object
+    void softApConfigurationDisplay(Print * display);
+
+    // Get the soft AP status
+    // Outputs:
+    //   Returns true when the soft AP is ready for use
+    bool softApOnline();
+
+    // Determine if the soft AP is being started or is onine
+    // Outputs:
+    //  Returns true if the soft AP is being started or is online
+    bool softApRunning();
+
+    // Attempt to start the soft AP mode
+    // Inputs:
+    //    forceAP: Set to true to force AP to start, false will only start
+    //             soft AP if settings.wifiConfigOverAP is true
+    // Outputs:
+    //    Returns true if the soft AP was started successfully and false
+    //    otherwise
+    bool startAp(bool forceAP);
+
+    // Get the station status
+    // Outputs:
+    //   Returns true when the WiFi station is online and ready for use
+    bool stationOnline();
+
+    // Handle WiFi station reconnection requests
+    void stationReconnectionRequest();
+
+    // Get the station status
+    // Outputs:
+    //  Returns true if the WiFi station is being started or is online
+    bool stationRunning();
+
+    // Test the WiFi modes
+    // Inputs:
+    //   testDurationMsec: Milliseconds to run each test
+    void test(uint32_t testDurationMsec);
+
+    // Enable or disable verbose debug output
+    // Inputs:
+    //   enable: Set true to enable verbose debug output
+    // Outputs:
+    //   Return the previous enable value
+    bool verbose(bool enable);
+
+    // Verify the WiFi tables
+    void verifyTables();
+};
+
+#endif // COMPILE_WIFI
 #endif // COMPILE_NETWORK
 #endif // __SETTINGS_H__

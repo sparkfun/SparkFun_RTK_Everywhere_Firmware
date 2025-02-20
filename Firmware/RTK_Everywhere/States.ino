@@ -7,6 +7,8 @@
 
 static uint32_t lastStateTime = 0;
 
+extern bool websocketConnected;
+
 // Given the current state, see if conditions have moved us to a new state
 // A user pressing the mode button (change between rover/base) is handled by buttonCheckTask()
 void stateUpdate()
@@ -100,8 +102,8 @@ void stateUpdate()
             displayRoverStart(0);
             if (gnss->configureRover() == false)
             {
-                settings.updateGNSSSettings = true; // On the next boot, update the GNSS receiver
-                recordSystemSettings();             // Record this state for next POR
+                settings.gnssConfiguredRover = false; // On the next boot, reapply all settings
+                recordSystemSettings();           // Record this state for next POR
 
                 systemPrintln("Rover config failed");
                 displayRoverFail(1000);
@@ -111,14 +113,18 @@ void stateUpdate()
             setMuxport(settings.dataPortChannel); // Return mux to original channel
 
             bluetoothStart(); // Turn on Bluetooth with 'Rover' name
-            espnowStart();    // Start internal radio if enabled, otherwise disable
+            ESPNOW_START();    // Start internal radio if enabled, otherwise disable
+
+            webServerStop();             // Stop the web config server
+            baseCasterDisableOverride(); // Disable casting overrides
 
             // Start the UART connected to the GNSS receiver for NMEA and UBX data (enables logging)
             if (tasksStartGnssUart() == false)
                 displayRoverFail(1000);
             else
             {
-                settings.updateGNSSSettings = false; // On the next boot, no need to update the GNSS receiver
+                //settings.gnssConfiguredRover is set by gnss->configureRover()
+                settings.gnssConfiguredBase = false; // When the mode changes, reapply all settings
                 settings.lastState = STATE_ROVER_NOT_STARTED;
                 recordSystemSettings(); // Record this state for next POR
 
@@ -203,6 +209,25 @@ void stateUpdate()
 
             */
 
+        case (STATE_BASE_CASTER_NOT_STARTED): {
+            baseCasterEnableOverride();
+
+#ifdef COMPILE_WIFI
+            // If the AP is already running, check that the name is correct
+            if ((WiFi.getMode() == WIFI_AP) || (WiFi.getMode() == WIFI_AP_STA))
+            {
+                if (strcmp(WiFi.softAPSSID().c_str(), "RTK Caster") != 0)
+                {
+                    // The AP name cannot be changed while it is running. WiFi must be restarted.
+                    restartWiFi = true; // Tell network layer to restart WiFi
+                }
+            }
+#endif // COMPILE_WIFI
+
+            changeState(STATE_BASE_NOT_STARTED);
+        }
+        break;
+
         case (STATE_BASE_NOT_STARTED): {
             RTK_MODE(RTK_MODE_BASE_SURVEY_IN);
             firstRoverStart = false; // If base is starting, no test menu, normal button use.
@@ -217,12 +242,15 @@ void stateUpdate()
             bluetoothStop();
             bluetoothStart(); // Restart Bluetooth with 'Base' identifier
 
+            webServerStop(); // Stop the web config server
+
             // Start the UART connected to the GNSS receiver for NMEA and UBX data (enables logging)
             if (tasksStartGnssUart() && gnss->configureBase())
             {
-                settings.updateGNSSSettings = false; // On the next boot, no need to update the GNSS on this profile
+                // settings.gnssConfiguredBase is set by gnss->configureBase()
+                settings.gnssConfiguredRover = false; // When the mode changes, reapply all settings
                 settings.lastState = STATE_BASE_NOT_STARTED; // Record this state for next POR
-                recordSystemSettings();                      // Record this state for next POR
+                recordSystemSettings(); // Record this state for next POR
 
                 displayBaseSuccess(500); // Show 'Base Started'
 
@@ -233,8 +261,8 @@ void stateUpdate()
             }
             else
             {
-                settings.updateGNSSSettings = true; // On the next boot, update the GNSS receiver
-                recordSystemSettings();             // Record this state for next POR
+                settings.gnssConfiguredBase = false; // On the next boot, reapply all settings
+                recordSystemSettings();          // Record this state for next POR
 
                 displayBaseFail(1000);
             }
@@ -306,7 +334,7 @@ void stateUpdate()
                 // Start the NTRIP server if requested
                 RTK_MODE(RTK_MODE_BASE_FIXED);
 
-                espnowStart(); // Start internal radio if enabled, otherwise disable
+                ESPNOW_START(); // Start internal radio if enabled, otherwise disable
 
                 rtcmPacketsSent = 0; // Reset any previous number
                 changeState(STATE_BASE_TEMP_TRANSMITTING);
@@ -373,7 +401,7 @@ void stateUpdate()
             {
                 baseStatusLedOn(); // Turn on the base/status LED
 
-                espnowStart(); // Start internal radio if enabled, otherwise disable
+                ESPNOW_START(); // Start internal radio if enabled, otherwise disable
 
                 changeState(STATE_BASE_FIXED_TRANSMITTING);
             }
@@ -401,7 +429,7 @@ void stateUpdate()
         }
         break;
 
-        case (STATE_WIFI_CONFIG_NOT_STARTED): {
+        case (STATE_WEB_CONFIG_NOT_STARTED): {
             if (pin_bluetoothStatusLED != PIN_UNDEFINED)
             {
                 // Start BT LED Fade to indicate the start of WiFi
@@ -412,24 +440,38 @@ void stateUpdate()
 
             baseStatusLedOff(); // Turn off the status LED
 
-            displayWiFiConfigNotStarted(); // Display immediately during SD cluster pause
+            displayWebConfigNotStarted(); // Display immediately while we wait for server to start
 
-            WIFI_STOP(); // Notify the network layer that it should stop so we can take over control of WiFi
-            bluetoothStop();
-            espnowStop();
+            bluetoothStop(); // Bluetooth must be stopped to allow enough RAM for AP+STA (firmware check)
+            ESPNOW_STOP();    // We don't need ESP-NOW during web config
 
-            tasksStopGnssUart();   // Delete serial tasks if running
-            if (!startWebServer()) // Start web server in WiFi mode and show config html page
-                changeState(STATE_ROVER_NOT_STARTED);
-            else
+            // The GNSS UART task is left running to allow GNSS receivers to obtain LLh data for 1Hz page updates
+
+#ifdef COMPILE_WIFI
+            // If the AP is already running, check that the name is correct
+            if ((WiFi.getMode() == WIFI_AP) || (WiFi.getMode() == WIFI_AP_STA))
             {
-                RTK_MODE(RTK_MODE_WIFI_CONFIG);
-                changeState(STATE_WIFI_CONFIG);
+                if (strcmp(WiFi.softAPSSID().c_str(), "RTK Config") != 0)
+                {
+                    // The AP name cannot be changed while it is running. WiFi must be restarted.
+                    restartWiFi = true; // Tell network layer to restart WiFi
+                }
             }
+#endif // COMPILE_WIFI
+
+            // Stop any running NTRIP Client or Server
+            ntripClientStop(true); // Do not allocate new wifiClient
+            for (int serverIndex = 0; serverIndex < NTRIP_SERVER_MAX; serverIndex++)
+                ntripServerStop(serverIndex, true); // Do not allocate new wifiClient
+
+            webServerStart(); // Start the webserver state machine for web config
+
+            RTK_MODE(RTK_MODE_WEB_CONFIG);
+            changeState(STATE_WEB_CONFIG);
         }
         break;
 
-        case (STATE_WIFI_CONFIG): {
+        case (STATE_WEB_CONFIG): {
             if (incomingSettingsSpot > 0)
             {
                 // Allow for 750ms before we parse buffer for all data to arrive
@@ -444,8 +486,10 @@ void stateUpdate()
                     systemPrintln();
 
                     parseIncomingSettings();
-                    settings.updateGNSSSettings = true; // New settings; update GNSS receiver on next boot
-                    recordSystemSettings();             // Record these settings to unit
+                    settings.gnssConfiguredOnce = false; // On the next boot, reapply all settings
+                    settings.gnssConfiguredBase = false;
+                    settings.gnssConfiguredRover = false;
+                    recordSystemSettings(); // Record these settings to unit
 
                     // Clear buffer
                     incomingSettingsSpot = 0;
@@ -474,8 +518,8 @@ void stateUpdate()
                 {
                     createFirmwareVersionString(settingsCSV);
 
-                    if (settings.debugWebConfig)
-                        systemPrintf("Webconfig: Firmware version requested. Sending: %s\r\n", settingsCSV);
+                    if (settings.debugWebServer)
+                        systemPrintf("WebServer: Firmware version requested. Sending: %s\r\n", settingsCSV);
 
                     sendStringToWebsocket(settingsCSV);
 
@@ -564,8 +608,9 @@ void stateUpdate()
             // Start UART connected to the GNSS receiver for NMEA and UBX data (enables logging)
             if (tasksStartGnssUart() && configureUbloxModuleNTP())
             {
-                settings.updateGNSSSettings = false; // On the next boot, no need to update the GNSS on this profile
                 settings.lastState = STATE_NTPSERVER_NOT_STARTED; // Record this state for next POR
+                settings.gnssConfiguredBase = false; // On the next boot, reapply all settings
+                settings.gnssConfiguredRover = false;
                 recordSystemSettings();
 
                 if (online.ethernetNTPServer)
@@ -613,109 +658,6 @@ void stateUpdate()
         }
         break;
 
-        case (STATE_CONFIG_VIA_ETH_NOT_STARTED): {
-            displayConfigViaEthStarting(1500);
-
-            settings.updateGNSSSettings = false; // On the next boot, no need to update the GNSS on this profile
-            settings.lastState = STATE_CONFIG_VIA_ETH_STARTED; // Record the _next_ state for POR
-            recordSystemSettings();
-
-            forceConfigureViaEthernet(); // Create a file in LittleFS to force code into configure-via-ethernet mode
-
-            ESP.restart(); // Restart to go into the dedicated configure-via-ethernet mode
-        }
-        break;
-
-        case (STATE_CONFIG_VIA_ETH_STARTED): {
-            RTK_MODE(RTK_MODE_ETHERNET_CONFIG);
-            // The code should only be able to enter this state if configureViaEthernet is true.
-            // If configureViaEthernet is not true, we need to restart again.
-            if (!configureViaEthernet)
-            {
-                displayConfigViaEthStarting(1500);
-                settings.lastState = STATE_CONFIG_VIA_ETH_STARTED; // Re-record this state for POR
-                recordSystemSettings();
-
-                forceConfigureViaEthernet(); // Create a file in LittleFS to force code into configure-via-ethernet mode
-
-                ESP.restart(); // Restart to go into the dedicated configure-via-ethernet mode
-            }
-
-            displayConfigViaEthStarted(1500);
-
-            bluetoothStop();     // Should be redundant - but just in case
-            espnowStop();        // Should be redundant - but just in case
-            tasksStopGnssUart(); // Delete F9 serial tasks if running
-
-            ethernetWebServerStartESP32W5500(); // Start Ethernet in dedicated configure-via-ethernet mode
-
-            if (!startWebServer(false, settings.httpPort)) // Start the web server
-                changeState(STATE_ROVER_NOT_STARTED);
-            else
-                changeState(STATE_CONFIG_VIA_ETH);
-        }
-        break;
-
-        case (STATE_CONFIG_VIA_ETH): {
-            // Display will show the IP address (displayConfigViaEthernet)
-
-            if (incomingSettingsSpot > 0)
-            {
-                // Allow for 750ms before we parse buffer for all data to arrive
-                if (millis() - timeSinceLastIncomingSetting > 750)
-                {
-                    currentlyParsingData =
-                        true; // Disallow new data to flow from websocket while we are parsing the current data
-
-                    systemPrint("Parsing: ");
-                    for (int x = 0; x < incomingSettingsSpot; x++)
-                        systemWrite(incomingSettings[x]);
-                    systemPrintln();
-
-                    parseIncomingSettings();
-                    settings.updateGNSSSettings =
-                        true;               // When this profile is loaded next, force system to update GNSS settings.
-                    recordSystemSettings(); // Record these settings to unit
-
-                    // Clear buffer
-                    incomingSettingsSpot = 0;
-                    memset(incomingSettings, 0, AP_CONFIG_SETTING_SIZE);
-
-                    currentlyParsingData = false; // Allow new data from websocket
-                }
-            }
-
-#ifdef COMPILE_WIFI
-#ifdef COMPILE_AP
-            // Dynamically update the coordinates on the AP page
-            if (websocketConnected == true)
-            {
-                if (millis() - lastDynamicDataUpdate > 1000)
-                {
-                    lastDynamicDataUpdate = millis();
-                    createDynamicDataString(settingsCSV);
-
-                    // log_d("Sending coordinates: %s", settingsCSV);
-                    sendStringToWebsocket(settingsCSV);
-                }
-            }
-#endif // COMPILE_AP
-#endif // COMPILE_WIFI
-        }
-        break;
-
-        case (STATE_CONFIG_VIA_ETH_RESTART_BASE): {
-            displayConfigViaEthExiting(1000);
-
-            ethernetWebServerStopESP32W5500();
-
-            settings.updateGNSSSettings = false;         // On the next boot, no need to update the GNSS on this profile
-            settings.lastState = STATE_BASE_NOT_STARTED; // Record the _next_ state for POR
-            recordSystemSettings();
-
-            ESP.restart();
-        }
-        break;
 #endif // COMPILE_ETHERNET
 
         case (STATE_SHUTDOWN): {
@@ -757,6 +699,8 @@ const char *getState(SystemState state, char *buffer)
         return "STATE_ROVER_RTK_FLOAT";
     case (STATE_ROVER_RTK_FIX):
         return "STATE_ROVER_RTK_FIX";
+    case (STATE_BASE_CASTER_NOT_STARTED):
+        return "STATE_BASE_CASTER_NOT_STARTED";
     case (STATE_BASE_NOT_STARTED):
         return "STATE_BASE_NOT_STARTED";
     case (STATE_BASE_TEMP_SETTLE):
@@ -771,10 +715,10 @@ const char *getState(SystemState state, char *buffer)
         return "STATE_BASE_FIXED_TRANSMITTING";
     case (STATE_DISPLAY_SETUP):
         return "STATE_DISPLAY_SETUP";
-    case (STATE_WIFI_CONFIG_NOT_STARTED):
-        return "STATE_WIFI_CONFIG_NOT_STARTED";
-    case (STATE_WIFI_CONFIG):
-        return "STATE_WIFI_CONFIG";
+    case (STATE_WEB_CONFIG_NOT_STARTED):
+        return "STATE_WEB_CONFIG_NOT_STARTED";
+    case (STATE_WEB_CONFIG):
+        return "STATE_WEB_CONFIG";
     case (STATE_TEST):
         return "STATE_TEST";
     case (STATE_TESTING):
@@ -796,15 +740,6 @@ const char *getState(SystemState state, char *buffer)
         return "STATE_NTPSERVER_NO_SYNC";
     case (STATE_NTPSERVER_SYNC):
         return "STATE_NTPSERVER_SYNC";
-
-    case (STATE_CONFIG_VIA_ETH_NOT_STARTED):
-        return "STATE_CONFIG_VIA_ETH_NOT_STARTED";
-    case (STATE_CONFIG_VIA_ETH_STARTED):
-        return "STATE_CONFIG_VIA_ETH_STARTED";
-    case (STATE_CONFIG_VIA_ETH):
-        return "STATE_CONFIG_VIA_ETH";
-    case (STATE_CONFIG_VIA_ETH_RESTART_BASE):
-        return "STATE_CONFIG_VIA_ETH_RESTART_BASE";
 
     case (STATE_SHUTDOWN):
         return "STATE_SHUTDOWN";
@@ -878,14 +813,12 @@ typedef struct _RTK_MODE_ENTRY
     SystemState last;
 } RTK_MODE_ENTRY;
 
-const RTK_MODE_ENTRY stateModeTable[] = {
-    {"Rover", STATE_ROVER_NOT_STARTED, STATE_ROVER_RTK_FIX},
-    {"Base", STATE_BASE_NOT_STARTED, STATE_BASE_FIXED_TRANSMITTING},
-    {"Setup", STATE_DISPLAY_SETUP, STATE_PROFILE},
-    {"ESPNOW Pairing", STATE_ESPNOW_PAIRING_NOT_STARTED, STATE_ESPNOW_PAIRING},
-    {"NTP", STATE_NTPSERVER_NOT_STARTED, STATE_NTPSERVER_SYNC},
-    {"Ethernet Config", STATE_CONFIG_VIA_ETH_NOT_STARTED, STATE_CONFIG_VIA_ETH_RESTART_BASE},
-    {"Shutdown", STATE_SHUTDOWN, STATE_SHUTDOWN}};
+const RTK_MODE_ENTRY stateModeTable[] = {{"Rover", STATE_ROVER_NOT_STARTED, STATE_ROVER_RTK_FIX},
+                                         {"Base", STATE_BASE_NOT_STARTED, STATE_BASE_FIXED_TRANSMITTING},
+                                         {"Setup", STATE_DISPLAY_SETUP, STATE_PROFILE},
+                                         {"ESPNOW Pairing", STATE_ESPNOW_PAIRING_NOT_STARTED, STATE_ESPNOW_PAIRING},
+                                         {"NTP", STATE_NTPSERVER_NOT_STARTED, STATE_NTPSERVER_SYNC},
+                                         {"Shutdown", STATE_SHUTDOWN, STATE_SHUTDOWN}};
 const int stateModeTableEntries = sizeof(stateModeTable) / sizeof(stateModeTable[0]);
 
 const char *stateToRtkMode(SystemState state)
@@ -918,9 +851,9 @@ bool inBaseMode()
     return (false);
 }
 
-bool inWiFiConfigMode()
+bool inWebConfigMode()
 {
-    if (systemState >= STATE_WIFI_CONFIG_NOT_STARTED && systemState <= STATE_WIFI_CONFIG)
+    if (systemState >= STATE_WEB_CONFIG_NOT_STARTED && systemState <= STATE_WEB_CONFIG)
         return (true);
     return (false);
 }
@@ -945,19 +878,16 @@ void constructSetupDisplay(std::vector<setupButton> *buttons)
 {
     buttons->clear();
 
-    // It looks like we don't need "Mark"? TODO: check this!
     addSetupButton(buttons, "Base", STATE_BASE_NOT_STARTED);
+    addSetupButton(buttons, "BaseCast", STATE_BASE_CASTER_NOT_STARTED);
     addSetupButton(buttons, "Rover", STATE_ROVER_NOT_STARTED);
     if (present.ethernet_ws5500 == true)
     {
         addSetupButton(buttons, "NTP", STATE_NTPSERVER_NOT_STARTED);
-        addSetupButton(buttons, "Cfg Eth", STATE_CONFIG_VIA_ETH_NOT_STARTED);
-        addSetupButton(buttons, "Cfg WiFi", STATE_WIFI_CONFIG_NOT_STARTED);
     }
-    else
-    {
-        addSetupButton(buttons, "Config", STATE_WIFI_CONFIG_NOT_STARTED);
-    }
+
+    addSetupButton(buttons, "Config", STATE_WEB_CONFIG_NOT_STARTED);
+
     if (settings.enablePointPerfectCorrections)
     {
         addSetupButton(buttons, "Get Keys", STATE_KEYS_REQUESTED);

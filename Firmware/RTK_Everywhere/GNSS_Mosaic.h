@@ -18,6 +18,8 @@ typedef struct {
 
 const mosaicExpectedID mosaicExpectedIDs[] = {
     { 4007, true, 96, "PVTGeodetic" },
+    { 4013, false, 0, "ChannelStatus" },
+    { 4059, false, 0, "DiskStatus" },
     { 4090, false, 0, "InputLink" },
     { 4097, false, 0, "EncapsulatedOutput" },
     { 5914, true, 24, "ReceiverTime" },
@@ -45,6 +47,11 @@ const mosaicExpectedID mosaicExpectedIDs[] = {
 // Output SBF InputLink messages on this stream - on COM1 only
 // This indicates if RTCM corrections are being received - on COM2
 #define MOSAIC_SBF_INPUTLINK_STREAM (MOSAIC_SBF_EXTEVENT_STREAM + 1)
+
+// Output SBF ChannelStatus and DiskStatus messages on this stream - on COM1 only
+// ChannelStatus provides the count of satellites being tracked
+// DiskStatus provides the disk usage
+#define MOSAIC_SBF_STATUS_STREAM (MOSAIC_SBF_INPUTLINK_STREAM + 1)
 
 // TODO: allow the user to define their own SBF stream for logging to DSK1 - through the menu / web config
 // But, in the interim, the user can define their own SBF stream (>= Stream3) via the X5 web page over USB-C
@@ -222,7 +229,7 @@ const mosaicSignalConstellation mosaicSignalConstellations[] = {
     {"SBAS","SBAS"},
     {"BEIDOU","BeiDou"},
     {"QZSS","QZSS"},
-    {"NAVIC","NAVIC"},
+    {"NAVIC","NavIC"},
 };
 
 #define MAX_MOSAIC_CONSTELLATIONS (sizeof(mosaicSignalConstellations) / sizeof(mosaicSignalConstellation))
@@ -542,6 +549,14 @@ bool mosaicX5waitCR(unsigned long timeout = 25); // Header
 
 class GNSS_MOSAIC : GNSS
 {
+  // The mosaic-X5 does not have self-contained interface library.
+  // But the ZED-F9P, UM980 and LG290P all do.
+  // On the X5, we communicate manually over serial2GNSS using functions like
+  // sendWithResponse and sendAndWaitForIdle.
+  // In essence, the interface library is wholly contained in this class.
+  // TODO: consider breaking the mosaic comms functions out into their own library
+  // and add a private library class instance here.
+
   protected:
 
     // These globals are updated regularly via the SBF parser
@@ -575,13 +590,18 @@ class GNSS_MOSAIC : GNSS
     float  _latStdDev;
     float  _lonStdDev;
     bool   _receiverSetupSeen;
+    bool   _diskStatusSeen;
+    std::vector<uint8_t> svInTracking;
+    //std::vector<uint8_t> svInPVT;
 
     // Constructor
     GNSS_MOSAIC() : _determiningFixedPosition(true), _clkBias_ms(0),
         _latStdDev(999.9), _lonStdDev(999.9), _receiverSetupSeen(false),
-        _radioExtBytesReceived_millis(0),
+        _radioExtBytesReceived_millis(0), _diskStatusSeen(false),
          GNSS()
     {
+            svInTracking.clear();
+            //svInPVT.clear();
     }
 
     // If we have decryption keys, configure module
@@ -616,6 +636,12 @@ class GNSS_MOSAIC : GNSS
     // Outputs:
     //   Returns true if successfully configured and false upon failure
     bool configureBase();
+
+    // Configure mosaic-X5 COM1 for Encapsulated RTCMv3 + SBF + NMEA, plus L-Band
+    bool configureGNSSCOM(bool enableLBand);
+
+    // Configure mosaic-X5 L-Band
+    bool configureLBand(bool enableLBand, uint32_t LBandFreq = 0);
 
     bool configureLogging();
 
@@ -1010,6 +1036,12 @@ class GNSS_MOSAIC : GNSS
     // Save the data from the SBF Block 4007
     void storeBlock4007(SEMP_PARSE_STATE *parse);
 
+    // Save the data from the SBF Block 4013
+    void storeBlock4013(SEMP_PARSE_STATE *parse);
+
+    // Save the data from the SBF Block 4059
+    void storeBlock4059(SEMP_PARSE_STATE *parse);
+
     // Save the data from the SBF Block 4090
     void storeBlock4090(SEMP_PARSE_STATE *parse);
 
@@ -1030,7 +1062,7 @@ class GNSS_MOSAIC : GNSS
     // Poll routine to update the GNSS state
     void update();
 
-    bool updateSD();
+    void updateSD();
 
     void waitSBFReceiverSetup(unsigned long timeout);
 };

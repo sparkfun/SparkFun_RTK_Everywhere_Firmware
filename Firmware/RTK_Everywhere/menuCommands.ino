@@ -661,18 +661,14 @@ SettingValueResponse updateSettingWithValue(bool inCommands, const char *setting
             SystemState *ptr = (SystemState *)var;
             knownSetting = true;
 
-            // 0 = Rover, 1 = Base, 2 = NTP
-            if (settingValue == 2)
-            {
-                if (productVariant == RTK_EVK)
-                    settings.lastState = STATE_NTPSERVER_NOT_STARTED;
-                else
-                    knownSetting = false;
-            }
+            // 0 = Rover, 1 = Base, 2 = NTP, 3 = Base Caster
+            settings.lastState = STATE_ROVER_NOT_STARTED; // Default
             if (settingValue == 1)
                 settings.lastState = STATE_BASE_NOT_STARTED;
-            else
-                settings.lastState = STATE_ROVER_NOT_STARTED; // Default
+            else if (settingValue == 2 && productVariant == RTK_EVK)
+                settings.lastState = STATE_NTPSERVER_NOT_STARTED;
+            else if (settingValue == 3)
+                settings.lastState = STATE_BASE_CASTER_NOT_STARTED;
         }
         break;
         case tPulseEdg: {
@@ -1080,6 +1076,19 @@ SettingValueResponse updateSettingWithValue(bool inCommands, const char *setting
             }
         }
         break;
+        case tLgMRPqtm: {
+            for (int x = 0; x < qualifier; x++)
+            {
+                if ((suffix[0] == lgMessagesPQTM[x].msgTextName[0]) &&
+                    (strcmp(suffix, lgMessagesPQTM[x].msgTextName) == 0))
+                {
+                    settings.lg290pMessageRatesPQTM[x] = settingValue;
+                    knownSetting = true;
+                    break;
+                }
+            }
+        }
+        break;
         case tLgConst: {
             for (int x = 0; x < qualifier; x++)
             {
@@ -1134,7 +1143,7 @@ SettingValueResponse updateSettingWithValue(bool inCommands, const char *setting
         // This is one of the first settings to be received. If seen, remove the station files.
         removeFile(stationCoordinateECEFFileName);
         removeFile(stationCoordinateGeodeticFileName);
-        if (settings.debugWebConfig == true)
+        if (settings.debugWebServer == true)
             systemPrintln("Station coordinate files removed");
         knownSetting = true;
     }
@@ -1146,7 +1155,7 @@ SettingValueResponse updateSettingWithValue(bool inCommands, const char *setting
         replaceCharacter((char *)settingValueStr, ' ', ','); // Replace all ' ' with ',' before recording to file
         recordLineToSD(stationCoordinateECEFFileName, settingValueStr);
         recordLineToLFS(stationCoordinateECEFFileName, settingValueStr);
-        if (settings.debugWebConfig == true)
+        if (settings.debugWebServer == true)
             systemPrintf("%s recorded\r\n", settingValueStr);
         knownSetting = true;
     }
@@ -1155,7 +1164,7 @@ SettingValueResponse updateSettingWithValue(bool inCommands, const char *setting
         replaceCharacter((char *)settingValueStr, ' ', ','); // Replace all ' ' with ',' before recording to file
         recordLineToSD(stationCoordinateGeodeticFileName, settingValueStr);
         recordLineToLFS(stationCoordinateGeodeticFileName, settingValueStr);
-        if (settings.debugWebConfig == true)
+        if (settings.debugWebServer == true)
             systemPrintf("%s recorded\r\n", settingValueStr);
         knownSetting = true;
     }
@@ -1207,39 +1216,20 @@ SettingValueResponse updateSettingWithValue(bool inCommands, const char *setting
     else if (strcmp(settingName, "exitAndReset") == 0)
     {
         // Confirm receipt
-        if (settings.debugWebConfig == true)
+        if (settings.debugWebServer == true)
             systemPrintln("Sending reset confirmation");
 
         sendStringToWebsocket((char *)"confirmReset,1,");
         delay(500); // Allow for delivery
 
-        if (configureViaEthernet)
-            systemPrintln("Reset after Configure-Via-Ethernet");
-        else
-            systemPrintln("Reset after AP Config");
-
-        if (configureViaEthernet)
-        {
-            ethernetWebServerStopESP32W5500();
-
-            // We need to exit configure-via-ethernet mode.
-            // But if the settings have not been saved then lastState will still be STATE_CONFIG_VIA_ETH_STARTED.
-            // If that is true, then force exit to Base mode. I think it is the best we can do.
-            //(If the settings have been saved, then the code will restart in NTP, Base or Rover mode as desired.)
-            if (settings.lastState == STATE_CONFIG_VIA_ETH_STARTED)
-            {
-                systemPrintln("Settings were not saved. Resetting into Base mode.");
-                settings.lastState = STATE_BASE_NOT_STARTED;
-                recordSystemSettings();
-            }
-        }
+        systemPrintln("Reset after AP Config");
 
         ESP.restart();
     }
     else if (strcmp(settingName, "setProfile") == 0)
     {
         // Change to new profile
-        if (settings.debugWebConfig == true)
+        if (settings.debugWebServer == true)
             systemPrintf("Changing to profile number %d\r\n", settingValue);
         changeProfileNumber(settingValue);
 
@@ -1251,7 +1241,7 @@ SettingValueResponse updateSettingWithValue(bool inCommands, const char *setting
 
         createSettingsString(settingsCSV);
 
-        if (settings.debugWebConfig == true)
+        if (settings.debugWebServer == true)
         {
             systemPrintf("Sending profile %d\r\n", settingValue);
             systemPrintf("Profile contents: %s\r\n", settingsCSV);
@@ -1274,7 +1264,7 @@ SettingValueResponse updateSettingWithValue(bool inCommands, const char *setting
 
         createSettingsString(settingsCSV);
 
-        if (settings.debugWebConfig == true)
+        if (settings.debugWebServer == true)
         {
             systemPrintf("Sending reset profile %d\r\n", settingValue);
             systemPrintf("Profile contents: %s\r\n", settingsCSV);
@@ -1308,48 +1298,66 @@ SettingValueResponse updateSettingWithValue(bool inCommands, const char *setting
     }
     else if (strcmp(settingName, "checkNewFirmware") == 0)
     {
-        if (settings.debugWebConfig == true)
+        if (settings.debugWebServer == true)
             systemPrintln("Checking for new OTA Pull firmware");
 
         sendStringToWebsocket((char *)"checkingNewFirmware,1,"); // Tell the config page we received their request
 
-        // Indicate to the OTA state machine that we need to do a version check
-        otaRequestFirmwareVersionCheck = true;
+        // We don't use the OTA state machine here because we need to respond to
+        // Web Config immediately of success or failure
+
+        // If we're in AP only mode (no internet), try WiFi with current SSIDs
+        if (networkIsInterfaceStarted(NETWORK_WIFI) && networkHasInternet() == false)
+        {
+            wifiStart();
+        }
 
         // Get firmware version from server
-        // otaCheckVersion will call wifiConnect if needed
-        // if (otaCheckVersion(reportedVersion, sizeof(reportedVersion)))
-        // {
-        //     // We got a version number, now determine if it's newer or not
-        //     char currentVersion[21];
-        //     getFirmwareVersion(currentVersion, sizeof(currentVersion), enableRCFirmware);
-        //     if (isReportedVersionNewer(reportedVersion, currentVersion) == true)
-        //     {
-        //         if (settings.debugWebConfig == true)
-        //             systemPrintln("New version detected");
-        //         snprintf(newVersionCSV, sizeof(newVersionCSV), "newFirmwareVersion,%s,", reportedVersion);
-        //     }
-        //     else
-        //     {
-        //         if (settings.debugWebConfig == true)
-        //             systemPrintln("No new firmware available");
-        //         snprintf(newVersionCSV, sizeof(newVersionCSV), "newFirmwareVersion,CURRENT,");
-        //     }
-        // }
-        // else
-        // {
-        //     // Failed to get version number
-        //     if (settings.debugWebConfig == true)
-        //         systemPrintln("Sending error to AP config page");
-        //     snprintf(newVersionCSV, sizeof(newVersionCSV), "newFirmwareVersion,ERROR,");
-        // }
+        char newVersionCSV[40];
+        if (networkHasInternet() == false)
+        {
+            // No internet. Report error.
+            if (settings.debugWebServer == true)
+                systemPrintln("No internet available. Sending error to Web config page.");
+            snprintf(newVersionCSV, sizeof(newVersionCSV), "newFirmwareVersion,NO_INTERNET,");
+        }
+        else
+        {
+            char otaReportedVersion[50];
+            if (otaCheckVersion(otaReportedVersion, sizeof(otaReportedVersion)))
+            {
+                // We got a version number, now determine if it's newer or not
+                char currentVersion[40];
+                getFirmwareVersion(currentVersion, sizeof(currentVersion), enableRCFirmware);
+                if (isReportedVersionNewer(otaReportedVersion, currentVersion) == true)
+                {
+                    if (settings.debugWebServer == true)
+                        systemPrintln("New version detected");
+                    snprintf(newVersionCSV, sizeof(newVersionCSV), "newFirmwareVersion,%s,", otaReportedVersion);
+                }
+                else
+                {
+                    if (settings.debugWebServer == true)
+                        systemPrintln("No new firmware available");
+                    snprintf(newVersionCSV, sizeof(newVersionCSV), "newFirmwareVersion,CURRENT,");
+                }
+            }
+            else
+            {
+                // Failed to get version number
+                if (settings.debugWebServer == true)
+                    systemPrintln("Sending error to Web config page");
+                snprintf(newVersionCSV, sizeof(newVersionCSV), "newFirmwareVersion,NO_SERVER,");
+            }
+        }
 
-        // sendStringToWebsocket(newVersionCSV);
+        sendStringToWebsocket(newVersionCSV);
+
         knownSetting = true;
     }
     else if (strcmp(settingName, "getNewFirmware") == 0)
     {
-        if (settings.debugWebConfig == true)
+        if (settings.debugWebServer == true)
             systemPrintln("Getting new OTA Pull firmware");
 
         sendStringToWebsocket((char *)"gettingNewFirmware,1,");
@@ -1358,8 +1366,6 @@ SettingValueResponse updateSettingWithValue(bool inCommands, const char *setting
 
         // Notify the network layer we need access, and let OTA state machine take over
         otaRequestFirmwareUpdate = true;
-
-        otaForcedUpdate(); // otaForcedUpdate will call wifiConnect if needed. Also does previouslyConnected check
 
         // We get here if WiFi failed to connect
         sendStringToWebsocket((char *)"gettingNewFirmware,ERROR,");
@@ -1379,7 +1385,8 @@ SettingValueResponse updateSettingWithValue(bool inCommands, const char *setting
         const char *table[] = {
             "baseTypeSurveyIn", "enableFactoryDefaults",      "enableFirmwareUpdate", "enableForgetRadios",
             "fileSelectAll",    "fixedBaseCoordinateTypeGeo", "fixedHAEAPC",          "measurementRateSec",
-            "nicknameECEF",     "nicknameGeodetic",           "saveToArduino",
+            "nicknameECEF",     "nicknameGeodetic",           "saveToArduino",        "enableAutoReset",
+            "shutdownNoChargeTimeoutMinutesCheckbox",
         };
         const int tableEntries = sizeof(table) / sizeof(table[0]);
 
@@ -1874,6 +1881,17 @@ void createSettingsString(char *newSettings)
                 }
             }
             break;
+            case tLgMRPqtm: {
+                // Record LG290P PQTM rates
+                for (int x = 0; x < rtkSettingsEntries[i].qualifier; x++)
+                {
+                    char tempString[50]; // lg290pMessageRatesPQTM_EPE=1 Not a float
+                    snprintf(tempString, sizeof(tempString), "%s%s,%d,", rtkSettingsEntries[i].name,
+                             lgMessagesPQTM[x].msgTextName, settings.lg290pMessageRatesPQTM[x]);
+                    stringRecord(newSettings, tempString);
+                }
+            }
+            break;
             case tLgConst: {
                 // Record LG290P Constellations
                 // lg290pConstellations are uint8_t, but here we have to convert to bool (true / false) so the web page
@@ -1909,20 +1927,24 @@ void createSettingsString(char *newSettings)
 
     stringRecord(newSettings, "measurementRateHz", 1.0 / gnss->getRateS(), 2); // 2 = decimals to print
 
-    // System state at power on. Convert various system states to either Rover or Base or NTP.
-    int lastState; // 0 = Rover, 1 = Base, 2 = NTP
+    // System state at power on. Convert various system states to either Rover, Base, NTP, or BaseCast.
+    int lastState; // 0 = Rover, 1 = Base, 2 = NTP, 3 = BaseCast
     if (present.ethernet_ws5500 == true)
     {
         lastState = 1; // Default Base
-        if (settings.lastState >= STATE_ROVER_NOT_STARTED && settings.lastState <= STATE_ROVER_RTK_FIX)
+        if (settings.baseCasterOverride)
+            lastState = 3;
+        else if (settings.lastState >= STATE_ROVER_NOT_STARTED && settings.lastState <= STATE_ROVER_RTK_FIX)
             lastState = 0;
-        if (settings.lastState >= STATE_NTPSERVER_NOT_STARTED && settings.lastState <= STATE_NTPSERVER_SYNC)
+        else if (settings.lastState >= STATE_NTPSERVER_NOT_STARTED && settings.lastState <= STATE_NTPSERVER_SYNC)
             lastState = 2;
     }
     else
     {
         lastState = 0; // Default Rover
-        if (settings.lastState >= STATE_BASE_NOT_STARTED && settings.lastState <= STATE_BASE_FIXED_TRANSMITTING)
+        if (settings.baseCasterOverride)
+            lastState = 3;
+        else if (settings.lastState >= STATE_BASE_NOT_STARTED && settings.lastState <= STATE_BASE_FIXED_TRANSMITTING)
             lastState = 1;
     }
     stringRecord(newSettings, "lastState", lastState);
@@ -2056,7 +2078,7 @@ void createSettingsString(char *newSettings)
         {
             trim(stationInfo); // Remove trailing whitespace
 
-            if (settings.debugWebConfig == true)
+            if (settings.debugWebServer == true)
                 systemPrintf("ECEF SD station %d - found: %s\r\n", index, stationInfo);
 
             replaceCharacter(stationInfo, ',', ' '); // Change all , to ' ' for easier parsing on the JS side
@@ -2068,7 +2090,7 @@ void createSettingsString(char *newSettings)
         {
             trim(stationInfo); // Remove trailing whitespace
 
-            if (settings.debugWebConfig == true)
+            if (settings.debugWebServer == true)
                 systemPrintf("ECEF LFS station %d - found: %s\r\n", index, stationInfo);
 
             replaceCharacter(stationInfo, ',', ' '); // Change all , to ' ' for easier parsing on the JS side
@@ -2094,7 +2116,7 @@ void createSettingsString(char *newSettings)
         {
             trim(stationInfo); // Remove trailing whitespace
 
-            if (settings.debugWebConfig == true)
+            if (settings.debugWebServer == true)
                 systemPrintf("Geo SD station %d - found: %s\r\n", index, stationInfo);
 
             replaceCharacter(stationInfo, ',', ' '); // Change all , to ' ' for easier parsing on the JS side
@@ -2106,7 +2128,7 @@ void createSettingsString(char *newSettings)
         {
             trim(stationInfo); // Remove trailing whitespace
 
-            if (settings.debugWebConfig == true)
+            if (settings.debugWebServer == true)
                 systemPrintf("Geo LFS station %d - found: %s\r\n", index, stationInfo);
 
             replaceCharacter(stationInfo, ',', ' '); // Change all , to ' ' for easier parsing on the JS side
@@ -2340,12 +2362,6 @@ SettingValueResponse getSettingValue(bool inCommands, const char *settingName, c
         break;
         case tMuxConn: {
             muxConnectionType_e *ptr = (muxConnectionType_e *)var;
-            writeToString(settingValueStr, (int)*ptr);
-            knownSetting = true;
-        }
-        break;
-        case tSysState: {
-            SystemState *ptr = (SystemState *)var;
             writeToString(settingValueStr, (int)*ptr);
             knownSetting = true;
         }
@@ -2740,6 +2756,19 @@ SettingValueResponse getSettingValue(bool inCommands, const char *settingName, c
             }
         }
         break;
+        case tLgMRPqtm: {
+            for (int x = 0; x < qualifier; x++)
+            {
+                if ((suffix[0] == lgMessagesPQTM[x].msgTextName[0]) &&
+                    (strcmp(suffix, lgMessagesPQTM[x].msgTextName) == 0))
+                {
+                    writeToString(settingValueStr, settings.lg290pMessageRatesPQTM[x]);
+                    knownSetting = true;
+                    break;
+                }
+            }
+        }
+        break;
         case tLgConst: {
             for (int x = 0; x < qualifier; x++)
             {
@@ -2839,7 +2868,7 @@ SettingValueResponse getSettingValue(bool inCommands, const char *settingName, c
 
     if (knownSetting == false)
     {
-        if (settings.debugWebConfig)
+        if (settings.debugWebServer)
             systemPrintf("getSettingValue() Unknown setting: %s\r\n", settingName);
     }
 
@@ -3280,6 +3309,18 @@ void commandList(bool inCommands, int i)
         {
             snprintf(settingName, sizeof(settingName), "%s%s", rtkSettingsEntries[i].name,
                      lgMessagesRTCM[x].msgTextName);
+
+            getSettingValue(inCommands, settingName, settingValue);
+            commandSendExecuteListResponse(settingName, "uint8_t", settingValue);
+        }
+    }
+    break;
+    case tLgMRPqtm: {
+        // Record LG290P PQTM rates
+        for (int x = 0; x < rtkSettingsEntries[i].qualifier; x++)
+        {
+            snprintf(settingName, sizeof(settingName), "%s%s", rtkSettingsEntries[i].name,
+                     lgMessagesPQTM[x].msgTextName);
 
             getSettingValue(inCommands, settingName, settingValue);
             commandSendExecuteListResponse(settingName, "uint8_t", settingValue);

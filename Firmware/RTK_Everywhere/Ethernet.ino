@@ -174,7 +174,7 @@ void ethernetEvent(arduino_event_id_t event, arduino_event_info_t info)
         if (settings.enablePrintEthernetDiag && (!inMainMenu))
             systemPrintf("ETH Got IP: '%s'\r\n", ETH.localIP().toString().c_str());
 
-        networkMarkOnline((NetIndex_t)NETWORK_ETHERNET);
+        networkInterfaceEventInternetAvailable((NetIndex_t)NETWORK_ETHERNET);
 
         if (settings.ethernetDHCP)
             paintEthernetConnected();
@@ -200,9 +200,9 @@ void ethernetEvent(arduino_event_id_t event, arduino_event_info_t info)
     }
 
     // Take the network offline if necessary
-    if (networkIsInterfaceOnline(NETWORK_ETHERNET) && (event != ARDUINO_EVENT_ETH_GOT_IP))
+    if (networkInterfaceHasInternet(NETWORK_ETHERNET) && (event != ARDUINO_EVENT_ETH_GOT_IP))
     {
-        networkMarkOffline((NetIndex_t)NETWORK_ETHERNET);
+        networkInterfaceEventInternetLost((NetIndex_t)NETWORK_ETHERNET);
     }
 }
 
@@ -259,33 +259,6 @@ void ethernetStart()
               pin_Ethernet_Interrupt, // IRQ pin
               -1,                     // RST pin
               SPI);                   // SPIClass &
-}
-
-//=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
-// Web server routines
-//=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
-
-//----------------------------------------
-// Start Ethernet for the web server
-//----------------------------------------
-void ethernetWebServerStartESP32W5500()
-{
-    Network.onEvent(ethernetEvent);
-
-    //  begin(ETH_PHY_TYPE, ETH_PHY_ADDR, CS, IRQ, RST, SPIClass &)
-    ETH.begin(ETH_PHY_W5500, 0, pin_Ethernet_CS, pin_Ethernet_Interrupt, -1, SPI);
-
-    if (!settings.ethernetDHCP)
-        ETH.config(settings.ethernetIP, settings.ethernetGateway, settings.ethernetSubnet, settings.ethernetDNS);
-}
-
-//----------------------------------------
-// Stop Ethernet for the web server
-//----------------------------------------
-void ethernetWebServerStopESP32W5500()
-{
-    ETH.end();
-    Network.removeEvent(ethernetEvent);
 }
 
 #endif // COMPILE_ETHERNET

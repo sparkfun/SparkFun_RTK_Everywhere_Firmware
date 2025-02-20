@@ -25,28 +25,40 @@ typedef struct
 {
     const char msgTextName[11];
     const float msgDefaultRate;
+    const uint8_t firmwareVersionSupported; // The minimum version this message is supported.
+                                             // 0 = all versions.
+                                             // 9999 = Not supported
 } lg290pMsg;
 
 // Static array containing all the compatible messages
 // Rate = Output once every N position fix(es).
 const lg290pMsg lgMessagesNMEA[] = {
-    {"RMC", 1}, {"GGA", 1}, {"GSV", 1}, {"GSA", 1}, {"VTG", 1}, {"GLL", 1},
+    {"RMC", 1, 0}, {"GGA", 1, 0}, {"GSV", 1, 0}, {"GSA", 1, 0}, {"VTG", 1, 0}, {"GLL", 1, 0},
+    {"GBS", 0, 4}, {"GNS", 0, 4}, {"GST", 1, 4}, {"ZDA", 0, 4}, 
 };
 
 const lg290pMsg lgMessagesRTCM[] = {
-    {"RTCM3-1005", 1}, {"RTCM3-1006", 0},
+    {"RTCM3-1005", 1, 0}, {"RTCM3-1006", 0, 0},
 
-    {"RTCM3-1019", 0},
+    {"RTCM3-1019", 0, 0},
 
-    {"RTCM3-1020", 0},
+    {"RTCM3-1020", 0, 0},
 
-    {"RTCM3-1041", 0}, {"RTCM3-1042", 0}, {"RTCM3-1044", 0}, {"RTCM3-1046", 0},
+    {"RTCM3-1033", 0, 4}, //v4 and above
 
-    {"RTCM3-107X", 1}, {"RTCM3-108X", 1}, {"RTCM3-109X", 1}, {"RTCM3-111X", 1}, {"RTCM3-112X", 1}, {"RTCM3-113X", 1},
+    {"RTCM3-1041", 0, 0}, {"RTCM3-1042", 0, 0}, {"RTCM3-1044", 0, 0}, {"RTCM3-1046", 0, 0},
+
+    {"RTCM3-107X", 1, 0}, {"RTCM3-108X", 1, 0}, {"RTCM3-109X", 1, 0}, {"RTCM3-111X", 1, 0}, {"RTCM3-112X", 1, 0}, {"RTCM3-113X", 1, 0},
+};
+
+// Quectel Proprietary messages
+const lg290pMsg lgMessagesPQTM[] = {
+    {"EPE", 0, 0}, {"PVT", 0, 0},
 };
 
 #define MAX_LG290P_NMEA_MSG (sizeof(lgMessagesNMEA) / sizeof(lg290pMsg))
 #define MAX_LG290P_RTCM_MSG (sizeof(lgMessagesRTCM) / sizeof(lg290pMsg))
+#define MAX_LG290P_PQTM_MSG (sizeof(lgMessagesPQTM) / sizeof(lg290pMsg))
 
 enum lg290p_Models
 {
@@ -154,7 +166,7 @@ class GNSS_LG290P : GNSS
 
     void debuggingEnable();
 
-    bool disableSurveyIn();
+    bool disableSurveyIn(bool saveAndReset);
 
     void enableGgaForNtrip();
 
@@ -164,7 +176,7 @@ class GNSS_LG290P : GNSS
     //   Returns true if successfully started and false upon failure
     bool enableRTCMTest();
 
-    bool enterConfigMode();
+    bool enterConfigMode(unsigned long waitForSemaphoreTimeout_millis);
 
     bool exitConfigMode();
 

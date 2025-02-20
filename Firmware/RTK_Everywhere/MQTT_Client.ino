@@ -96,7 +96,7 @@ enum MQTTClientState
 {
     MQTT_CLIENT_OFF = 0,             // Using Bluetooth or NTRIP server
     MQTT_CLIENT_ON,                  // WIFI_STATE_START state
-    MQTT_CLIENT_NETWORK_STARTED,     // Connecting to WiFi access point or Ethernet
+    MQTT_CLIENT_WAIT_FOR_NETWORK,     // Connecting to WiFi access point or Ethernet
     MQTT_CLIENT_CONNECTING_2_SERVER, // Connecting to the MQTT server
     MQTT_CLIENT_SERVICES_CONNECTED,  // Connected to the MQTT services
     // Insert new states here
@@ -106,7 +106,7 @@ enum MQTTClientState
 const char *const mqttClientStateName[] = {
     "MQTT_CLIENT_OFF",
     "MQTT_CLIENT_ON",
-    "MQTT_CLIENT_NETWORK_STARTED",
+    "MQTT_CLIENT_WAIT_FOR_NETWORK",
     "MQTT_CLIENT_CONNECTING_2_SERVER",
     "MQTT_CLIENT_SERVICES_CONNECTED",
 };
@@ -138,7 +138,6 @@ static uint32_t mqttClientConnectionAttemptTimeout;
 static int mqttClientConnectionAttemptsTotal; // Count the number of connection attempts absolutely
 
 static volatile uint32_t mqttClientLastDataReceived; // Last time data was received via MQTT
-static NetPriority_t mqttClientPriority = NETWORK_OFFLINE;
 
 static NetworkClientSecure *mqttSecureClient;
 
@@ -155,6 +154,34 @@ static uint32_t mqttClientTimer;
 // MQTT Client Routines
 //----------------------------------------
 
+bool mqttClientIsNeeded()
+{
+    // If PointPerfectCorrections are not enabled, return false
+    if (!settings.enablePointPerfectCorrections)
+        return false;
+
+    // For the mosaic-X5, settings.enablePointPerfectCorrections will be true if
+    // we are using the PPL and getting keys via ZTP. BUT the Facet mosaic-X5
+    // uses the L-Band (only) plan. It should not and can not subscribe to PP IP
+    // MQTT corrections. So, return false - even though the L-Band frequencies topic
+    // and key distribution topic could be beneficial.
+    // We could use present.gnss_mosaicX5, but let's not. See notes on EVK below.
+    if (productVariant == RTK_FACET_MOSAIC)
+        return false;
+
+    // For the Facet v2 L-Band, the same is true. It uses the L-Band (only) plan.
+    // We get keys during ZTP (HTTP_Client). It should not and can not subscribe
+    // to PP IP MQTT corrections. So, return true only if AssistNow is enabled -
+    // even though the L-Band frequencies topic and key distribution topic could
+    // be beneficial.
+    // Note: EVK supports both L-Band and IP, so we cannot use present.lband_neo
+    if (productVariant == RTK_FACET_V2_LBAND)
+        if (!settings.useAssistNow)
+            return false;
+
+    return true;
+}
+
 // Determine if another connection is possible or if the limit has been reached
 bool mqttClientConnectLimitReached()
 {
@@ -164,9 +191,7 @@ bool mqttClientConnectLimitReached()
     // Retry the connection a few times
     limitReached = (mqttClientConnectionAttempts >= MAX_MQTT_CLIENT_CONNECTION_ATTEMPTS);
 
-    bool enableMqttClient = true;
-    if (!settings.enablePointPerfectCorrections)
-        enableMqttClient = false;
+    bool enableMqttClient = mqttClientIsNeeded();
 
     // Restart the MQTT client
     MQTT_CLIENT_STOP(limitReached || (!enableMqttClient));
@@ -220,7 +245,7 @@ void mqttClientPrintStateSummary()
         break;
 
     case MQTT_CLIENT_ON:
-    case MQTT_CLIENT_NETWORK_STARTED:
+    case MQTT_CLIENT_WAIT_FOR_NETWORK:
         systemPrint("Disconnected");
         break;
 
@@ -243,18 +268,7 @@ void mqttClientPrintStatus()
     byte minutes;
     byte seconds;
 
-    bool enableMqttClient = true;
-    if (!settings.enablePointPerfectCorrections)
-        enableMqttClient = false;
-
-    // For the mosaic-X5, settings.enablePointPerfectCorrections will be true if
-    // we are using the PPL and getting keys via ZTP. BUT the Facet mosaic-X5
-    // uses the L-Band (only) plan. It should not and can not subscribe to PP IP
-    // MQTT corrections. So, if present.gnss_mosaicX5 is true, set enableMqttClient
-    // to false.
-    // TODO : review this. This feels like a bit of a hack...
-    if (present.gnss_mosaicX5)
-        enableMqttClient = false;
+    bool enableMqttClient = mqttClientIsNeeded();
 
     // Display MQTT Client status and uptime
     if (enableMqttClient && (EQ_RTK_MODE(mqttClientMode)))
@@ -475,7 +489,7 @@ void mqttClientReceiveMessage(int messageSize)
                 recordSystemSettings(); // Record these settings to unit
 
                 if (settings.debugCorrections == true)
-                    pointperfectPrintKeyInformation();
+                    pointperfectPrintKeyInformation("MQTT Topic");
             }
 
             // Correction data from PP can go direct to GNSS
@@ -543,6 +557,8 @@ void mqttClientReceiveMessage(int messageSize)
 
                 sendSpartnToPpl(mqttData, mqttCount);
                 bytesPushed += mqttCount;
+
+                mqttClientDataReceived = true;
             }
 
             // Record the arrival of data over MQTT
@@ -586,6 +602,23 @@ void mqttClientSetState(uint8_t newState)
         }
         else
             systemPrintln(mqttClientStateName[mqttClientState]);
+
+        systemPrint("MQTT Client subscribe topics: ");
+        for (auto it = mqttSubscribeTopics.begin(); it != mqttSubscribeTopics.end(); it = std::next(it))
+        {
+            String topic = *it;
+            systemPrint(topic);
+            systemPrint(" ");
+        }
+        systemPrintln();
+        systemPrint("MQTT Client subscribed topics: ");
+        for (auto it = mqttClientSubscribedTopics.begin(); it != mqttClientSubscribedTopics.end(); it = std::next(it))
+        {
+            String topic = *it;
+            systemPrint(topic);
+            systemPrint(" ");
+        }
+        systemPrintln();
     }
 }
 
@@ -663,23 +696,20 @@ void mqttClientStop(bool shutdown)
         mqttClientSetState(MQTT_CLIENT_ON);
 }
 
+// Return true if we are in states that require network access
+bool mqttClientNeedsNetwork()
+{
+    if (mqttClientState >= MQTT_CLIENT_WAIT_FOR_NETWORK && mqttClientState <= MQTT_CLIENT_SERVICES_CONNECTED)
+        return true;
+    return false;
+}
+
 // Check for the arrival of any correction data. Push it to the GNSS.
 // Stop task if the connection has dropped or if we receive no data for
 // MQTT_CLIENT_RECEIVE_DATA_TIMEOUT
 void mqttClientUpdate()
 {
-    bool enableMqttClient = true;
-    if (!settings.enablePointPerfectCorrections)
-        enableMqttClient = false;
-
-    // For the mosaic-X5, settings.enablePointPerfectCorrections will be true if
-    // we are using the PPL and getting keys via ZTP. BUT the Facet mosaic-X5
-    // uses the L-Band (only) plan. It should not and can not subscribe to PP IP
-    // MQTT corrections. So, if present.gnss_mosaicX5 is true, set enableMqttClient
-    // to false.
-    // TODO : review this. This feels like a bit of a hack...
-    if (present.gnss_mosaicX5)
-        enableMqttClient = false;
+    bool enableMqttClient = mqttClientIsNeeded();
 
     // Shutdown the MQTT client when the mode or setting changes
     DMW_st(mqttClientSetState, mqttClientState);
@@ -715,20 +745,19 @@ void mqttClientUpdate()
     case MQTT_CLIENT_ON: {
         if ((millis() - mqttClientTimer) > mqttClientConnectionAttemptTimeout)
         {
-            mqttClientPriority = NETWORK_OFFLINE;
-            mqttClientSetState(MQTT_CLIENT_NETWORK_STARTED);
+            mqttClientSetState(MQTT_CLIENT_WAIT_FOR_NETWORK);
         }
         break;
     }
 
     // Wait for a network media connection
-    case MQTT_CLIENT_NETWORK_STARTED: {
+    case MQTT_CLIENT_WAIT_FOR_NETWORK: {
         // Determine if MQTT was turned off
         if (NEQ_RTK_MODE(mqttClientMode) || !enableMqttClient)
             mqttClientStop(true);
 
         // Wait until the network is connected to the media
-        else if (networkIsConnected(&mqttClientPriority))
+        else if (networkHasInternet())
             mqttClientSetState(MQTT_CLIENT_CONNECTING_2_SERVER);
         break;
     }
@@ -736,7 +765,7 @@ void mqttClientUpdate()
     // Connect to the MQTT server
     case MQTT_CLIENT_CONNECTING_2_SERVER: {
         // Determine if the network has failed
-        if (!networkIsConnected(&mqttClientPriority))
+        if (networkHasInternet() == false)
         {
             // Failed to connect to the network, attempt to restart the network
             mqttClientStop(true); // Was mqttClientRestart(); - #StopVsRestart
@@ -853,8 +882,10 @@ void mqttClientUpdate()
         {
             mqttSubscribeTopics.push_back(MQTT_TOPIC_ASSISTNOW);
         }
+        
         // Subscribe to the key distribution topic
         mqttSubscribeTopics.push_back(String(settings.pointPerfectKeyDistributionTopic));
+        
         // Subscribe to the continental correction topic for our region - if we have one. L-Band-only does not.
         if (strlen(settings.regionalCorrectionTopics[settings.geographicRegion]) > 0)
         {
@@ -882,7 +913,7 @@ void mqttClientUpdate()
 
     case MQTT_CLIENT_SERVICES_CONNECTED: {
         // Determine if the network has failed
-        if (!networkIsConnected(&mqttClientPriority))
+        if (networkHasInternet() == false)
         {
             // Failed to connect to the network, attempt to restart the network
             mqttClientStop(true); // Was mqttClientRestart(); - #StopVsRestart

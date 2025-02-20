@@ -91,7 +91,7 @@ void menuSystem()
             else
                 systemPrintln("Offline - ");
 
-            if (online.lbandCorrections == true)
+            if (online.ppl == true)
                 systemPrint("Keys Good");
             else
                 systemPrint("No Keys");
@@ -158,10 +158,11 @@ void menuSystem()
 
         // Support mode switching
         systemPrintln("B) Switch to Base mode");
+        systemPrintln("C) Switch to Base Caster mode");
         if (present.ethernet_ws5500 == true)
             systemPrintln("N) Switch to NTP Server mode");
         systemPrintln("R) Switch to Rover mode");
-        systemPrintln("W) Switch to WiFi Config mode");
+        systemPrintln("W) Switch to Web Config mode");
         if (present.fastPowerOff == true)
             systemPrintln("S) Shut down");
 
@@ -199,10 +200,11 @@ void menuSystem()
 
         if (present.fuelgauge_max17048 || present.fuelgauge_bq40z50 || present.charger_mp2762a)
         {
-            if (settings.shutdownNoChargeTimeout_s == 0)
+            if (settings.shutdownNoChargeTimeoutMinutes == 0)
                 systemPrintln("c) Shutdown if not charging: Disabled");
             else
-                systemPrintf("c) Shutdown if not charging after: %d seconds\r\n", settings.shutdownNoChargeTimeout_s);
+                systemPrintf("c) Shutdown if not charging after: %d minutes\r\n",
+                             settings.shutdownNoChargeTimeoutMinutes);
         }
 
         systemPrintln("d) Debug software");
@@ -298,8 +300,8 @@ void menuSystem()
         else if ((incoming == 'c') &&
                  (present.fuelgauge_max17048 || present.fuelgauge_bq40z50 || present.charger_mp2762a))
         {
-            getNewSetting("Enter time in seconds to shutdown unit if not charging (0 to disable)", 0, 60 * 60 * 24 * 7,
-                          &settings.shutdownNoChargeTimeout_s); // Arbitrary 7 day limit
+            getNewSetting("Enter time in minutes to shutdown unit if not charging (0 to disable)", 0, 60 * 24 * 7,
+                          &settings.shutdownNoChargeTimeoutMinutes); // Arbitrary 7 day limit
         }
         else if (incoming == 'd')
             menuDebugSoftware();
@@ -392,7 +394,13 @@ void menuSystem()
         else if (incoming == 'B')
         {
             forceSystemStateUpdate = true; // Immediately go to this new state
+            baseCasterDisableOverride();   // Leave Caster mode
             changeState(STATE_BASE_NOT_STARTED);
+        }
+        else if (incoming == 'C')
+        {
+            forceSystemStateUpdate = true; // Immediately go to this new state
+            changeState(STATE_BASE_CASTER_NOT_STARTED);
         }
         else if ((incoming == 'N') && (present.ethernet_ws5500 == true))
         {
@@ -407,7 +415,7 @@ void menuSystem()
         else if (incoming == 'W')
         {
             forceSystemStateUpdate = true; // Immediately go to this new state
-            changeState(STATE_WIFI_CONFIG_NOT_STARTED);
+            changeState(STATE_WEB_CONFIG_NOT_STARTED);
         }
         else if (incoming == 'S' && present.fastPowerOff == true)
         {
@@ -464,9 +472,6 @@ void menuDebugHardware()
         systemPrint("5) Print log file status: ");
         systemPrintf("%s\r\n", settings.enablePrintLogFileStatus ? "Enabled" : "Disabled");
 
-        systemPrint("6) Run Logging Test: ");
-        systemPrintf("%s\r\n", settings.runLogTest ? "Enabled" : "Disabled");
-
         systemPrint("7) Print SD and UART buffer sizes: ");
         systemPrintf("%s\r\n", settings.enablePrintSDBuffers ? "Enabled" : "Disabled");
 
@@ -485,6 +490,8 @@ void menuDebugHardware()
 
         if (present.gnss_um980)
             systemPrintln("13) UM980 direct connect");
+        else if (present.gnss_lg290p)
+            systemPrintln("13) LG290P reset for firmware update");
 
         systemPrint("14) PSRAM (");
         if (ESP.getPsramSize() == 0)
@@ -532,15 +539,7 @@ void menuDebugHardware()
             settings.enablePrintLogFileMessages ^= 1;
         else if (incoming == 5)
             settings.enablePrintLogFileStatus ^= 1;
-        else if (incoming == 6)
-        {
-            settings.runLogTest ^= 1;
 
-            logTestState = LOGTEST_START; // Start test
-
-            // Mark the current log file as complete to force the test start
-            startCurrentLogTime_minutes = systemTime_minutes - settings.maxLogLength_minutes;
-        }
         else if (incoming == 7)
             settings.enablePrintSDBuffers ^= 1;
         else if (incoming == 9)
@@ -564,16 +563,28 @@ void menuDebugHardware()
         {
             settings.enableImuCompensationDebug ^= 1;
         }
-        else if (incoming == 13 && present.gnss_um980)
+        else if (incoming == 13)
         {
-            // Create a file in LittleFS
-            if (createUm980Passthrough() == true)
+            if (present.gnss_um980)
+            {
+                // Create a file in LittleFS
+                if (createUm980Passthrough() == true)
+                {
+                    systemPrintln();
+                    systemPrintln("UM980 passthrough mode has been recorded to LittleFS. Device will now reset.");
+                    systemFlush(); // Complete prints
+
+                    ESP.restart();
+                }
+            }
+            else if (present.gnss_lg290p)
             {
                 systemPrintln();
-                systemPrintln("UM980 passthrough mode has been recorded to LittleFS. Device will now reset.");
-                systemFlush(); // Complete prints
-
-                ESP.restart();
+                systemPrintln("QGNSS must be connected to CH342 Port B at 460800bps. Begin firmware update from QGNSS (hit the play button) then reset the LG290P.");
+                lg290pReset();
+                delay(100);
+                lg290pBoot();
+                systemPrintln("LG290P reset complete.");
             }
         }
         else if (incoming == 14)
@@ -653,8 +664,8 @@ void menuDebugNetwork()
         systemPrintf("%s\r\n", settings.debugWifiState ? "Enabled" : "Disabled");
 
         // WiFi Config
-        systemPrint("4) Debug Web Config: ");
-        systemPrintf("%s\r\n", settings.debugWebConfig ? "Enabled" : "Disabled");
+        systemPrint("4) Debug Web Server: ");
+        systemPrintf("%s\r\n", settings.debugWebServer ? "Enabled" : "Disabled");
 
         // Network
         systemPrint("10) Debug network layer: ");
@@ -716,7 +727,7 @@ void menuDebugNetwork()
         else if (incoming == 3)
             settings.debugWifiState ^= 1;
         else if (incoming == 4)
-            settings.debugWebConfig ^= 1;
+            settings.debugWebServer ^= 1;
         else if (incoming == 10)
             settings.debugNetworkLayer ^= 1;
         else if (incoming == 11)
@@ -1146,11 +1157,14 @@ void menuPeriodicPrint()
         systemPrint("7) WiFi state: ");
         systemPrintf("%s\r\n", PERIODIC_SETTING(PD_WIFI_STATE) ? "Enabled" : "Disabled");
 
-        systemPrint("8) ZED RX data: ");
-        systemPrintf("%s\r\n", PERIODIC_SETTING(PD_ZED_DATA_RX) ? "Enabled" : "Disabled");
+        systemPrint("8) GNSS RX data: ");
+        systemPrintf("%s\r\n", PERIODIC_SETTING(PD_GNSS_DATA_RX) ? "Enabled" : "Disabled");
 
-        systemPrint("9) ZED TX data: ");
-        systemPrintf("%s\r\n", PERIODIC_SETTING(PD_ZED_DATA_TX) ? "Enabled" : "Disabled");
+        systemPrint("9) GNSS TX data: ");
+        systemPrintf("%s\r\n", PERIODIC_SETTING(PD_GNSS_DATA_TX) ? "Enabled" : "Disabled");
+
+        systemPrint("10) GNSS RX byte count: ");
+        systemPrintf("%s\r\n", PERIODIC_SETTING(PD_GNSS_DATA_RX_BYTE_COUNT) ? "Enabled" : "Disabled");
 
         systemPrintln("-----  Software  -----");
 
@@ -1270,9 +1284,11 @@ void menuPeriodicPrint()
         else if (incoming == 7)
             PERIODIC_TOGGLE(PD_WIFI_STATE);
         else if (incoming == 8)
-            PERIODIC_TOGGLE(PD_ZED_DATA_RX);
+            PERIODIC_TOGGLE(PD_GNSS_DATA_RX);
         else if (incoming == 9)
-            PERIODIC_TOGGLE(PD_ZED_DATA_TX);
+            PERIODIC_TOGGLE(PD_GNSS_DATA_TX);
+        else if (incoming == 10)
+            PERIODIC_TOGGLE(PD_GNSS_DATA_RX_BYTE_COUNT);
 
         else if (incoming == 20)
         {
@@ -1536,9 +1552,9 @@ void printFileList()
                     );
 
                     char fileSizeChar[20];
-                    String fileSize;
-                    stringHumanReadableSize(fileSize, tempFile.fileSize());
-                    fileSize.toCharArray(fileSizeChar, sizeof(fileSizeChar));
+                    String fileSizeStr;
+                    stringHumanReadableSize(fileSizeStr, tempFile.fileSize());
+                    fileSizeStr.toCharArray(fileSizeChar, sizeof(fileSizeChar));
 
                     char fileName[50]; // Handle long file names
                     tempFile.getName(fileName, sizeof(fileName));

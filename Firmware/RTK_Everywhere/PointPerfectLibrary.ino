@@ -19,14 +19,11 @@ void updatePplTask(void *e)
             systemPrintln("UpdatePplTask running");
         }
 
-        if (pplNewRtcmNmea || pplNewSpartnMqtt || pplNewSpartnMqtt) // Decide when to call PPL_GetRTCMOutput
+        if (pplNewRtcmNmea || pplNewSpartnMqtt || pplNewSpartnLBand) // Decide when to call PPL_GetRTCMOutput
         {
-            if (pplNewRtcmNmea)
-                pplNewRtcmNmea = false;
-            if (pplNewSpartnMqtt)
-                pplNewSpartnMqtt = false;
-            if (pplNewSpartnLBand)
-                pplNewSpartnLBand = false;
+            pplNewRtcmNmea = false;
+            pplNewSpartnMqtt = false;
+            pplNewSpartnLBand = false;
 
             uint32_t rtcmLength;
 
@@ -211,16 +208,16 @@ void stopPPL()
     if (task.updatePplTaskRunning)
         task.updatePplTaskStopRequest = true;
 
+    // Wait for task to stop running
+    do
+        delay(10);
+    while (task.updatePplTaskRunning);
+
     if (pplRtcmBuffer != nullptr)
     {
         free(pplRtcmBuffer);
         pplRtcmBuffer = nullptr;
     }
-
-    // Wait for task to stop running
-    do
-        delay(10);
-    while (task.updatePplTaskRunning);
 
     online.ppl = false;
 }
@@ -364,7 +361,7 @@ bool getUsablePplKey(char *keyBuffer, int keyBufferSize)
 
     if (settings.debugCorrections == true)
     {
-        pointperfectPrintKeyInformation();
+        pointperfectPrintKeyInformation("getUsablePplKey");
         systemPrintf("Days remaining until current key expires: %d\r\n", daysRemainingCurrent);
         systemPrintf("Days remaining until next key expires: %d\r\n", daysRemainingNext);
     }
@@ -417,7 +414,7 @@ bool sendGnssToPpl(uint8_t *buffer, int numDataBytes)
     }
     else
     {
-        if(settings.debugCorrections & !inMainMenu)
+        if (settings.debugCorrections & !inMainMenu)
             systemPrintln("sendGnssToPpl available");
         pplGnssOutput = true; // Notify updatePPL() that GNSS is outputting NMEA/RTCM
     }
@@ -444,7 +441,7 @@ bool sendSpartnToPpl(uint8_t *buffer, int numDataBytes)
     }
     else
     {
-        if(settings.debugCorrections & !inMainMenu)
+        if (settings.debugCorrections & !inMainMenu)
             systemPrintln("pplMqttCorrections available");
         pplMqttCorrections = true; // Notify updatePPL() that MQTT is online
     }
@@ -525,8 +522,10 @@ const char *PPLReturnStatusToStr(ePPL_ReturnStatus status)
     }
 }
 
-void pointperfectPrintKeyInformation()
+void pointperfectPrintKeyInformation(const char *requestedBy)
 {
+    // All calls to pointperfectPrintKeyInformation are guarded by settings.debugCorrections
+    systemPrintf("  pointPerfect keys print requested by %s\r\n", requestedBy);
     systemPrintf("  pointPerfectCurrentKey: %s\r\n", settings.pointPerfectCurrentKey);
     systemPrintf(
         "  pointPerfectCurrentKeyStart: %lld - %s\r\n", settings.pointPerfectCurrentKeyStart,

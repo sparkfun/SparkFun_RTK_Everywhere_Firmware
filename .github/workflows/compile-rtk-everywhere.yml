@@ -6,7 +6,7 @@ on:
 env:
   FILENAME_PREFIX: RTK_Everywhere_Firmware
   FIRMWARE_VERSION_MAJOR: 2
-  FIRMWARE_VERSION_MINOR: 0
+  FIRMWARE_VERSION_MINOR: 1
   POINTPERFECT_LBAND_TOKEN: ${{ secrets.POINTPERFECT_LBAND_TOKEN }}
   POINTPERFECT_IP_TOKEN: ${{ secrets.POINTPERFECT_IP_TOKEN }}
   POINTPERFECT_LBAND_IP_TOKEN: ${{ secrets.POINTPERFECT_LBAND_IP_TOKEN }}
@@ -94,7 +94,7 @@ jobs:
           "SparkFun u-blox PointPerfect Library"@1.11.4
           "SparkFun IM19 IMU Arduino Library"@1.0.1
           "SparkFun UM980 Triband RTK GNSS Arduino Library"@1.0.4
-          "SparkFun LG290P Quadband RTK GNSS Arduino Library"@1.0.0
+          "SparkFun LG290P Quadband RTK GNSS Arduino Library"@1.0.2
           "SparkFun I2C Expander Arduino Library"@1.0.1
 
       - name: Patch libmbedtls
@@ -140,6 +140,10 @@ jobs:
 
       - name: Copy custom RTKEverywhere.csv
         run:
+          # Compile the source using the 16MB partition file. Other platforms (ie, the 8MB Postcard) use 
+          # the same binary but use a different partition binary during the upload phase.
+          # View the different RTK partition files used during upload here: 
+          # https://github.com/sparkfun/SparkFun_RTK_Firmware_Uploader/tree/main/RTK_Firmware_Uploader/resource
           cp Firmware/RTKEverywhere.csv /home/runner/.arduino15/packages/esp32/hardware/esp32/${{ env.CORE_VERSION }}/tools/partitions/RTKEverywhere.csv
 
       - name: Compile Sketch

@@ -83,7 +83,7 @@ NtripClient.ino
   NTRIP Client States:
     NTRIP_CLIENT_OFF: Network off or using NTRIP server
     NTRIP_CLIENT_ON: WIFI_STATE_START state
-    NTRIP_CLIENT_NETWORK_STARTED: Connecting to the network
+    NTRIP_CLIENT_WAIT_FOR_NETWORK: Connecting to the network
     NTRIP_CLIENT_NETWORK_CONNECTED: Connected to the network
     NTRIP_CLIENT_CONNECTING: Attempting a connection to the NTRIP caster
     NTRIP_CLIENT_WAIT_RESPONSE: Wait for a response from the NTRIP caster
@@ -97,7 +97,7 @@ NtripClient.ino
                                        |                      |
                                        |                      | ntripClientRestart()
                                        v                Fail  |
-                         NTRIP_CLIENT_NETWORK_STARTED ------->+
+                         NTRIP_CLIENT_WAIT_FOR_NETWORK ------->+
                                        |                      ^
                                        |                      |
                                        v                      |
@@ -153,7 +153,7 @@ enum NTRIPClientState
 {
     NTRIP_CLIENT_OFF = 0,           // Using Bluetooth or NTRIP server
     NTRIP_CLIENT_ON,                // WIFI_STATE_START state
-    NTRIP_CLIENT_NETWORK_STARTED,   // Connecting to WiFi access point or Ethernet
+    NTRIP_CLIENT_WAIT_FOR_NETWORK,   // Connecting to WiFi access point or Ethernet
     NTRIP_CLIENT_NETWORK_CONNECTED, // Connected to an access point or Ethernet
     NTRIP_CLIENT_CONNECTING,        // Attempting a connection to the NTRIP caster
     NTRIP_CLIENT_WAIT_RESPONSE,     // Wait for a response from the NTRIP caster
@@ -164,7 +164,7 @@ enum NTRIPClientState
 
 const char *const ntripClientStateName[] = {"NTRIP_CLIENT_OFF",
                                             "NTRIP_CLIENT_ON",
-                                            "NTRIP_CLIENT_NETWORK_STARTED",
+                                            "NTRIP_CLIENT_WAIT_FOR_NETWORK",
                                             "NTRIP_CLIENT_NETWORK_CONNECTED",
                                             "NTRIP_CLIENT_CONNECTING",
                                             "NTRIP_CLIENT_WAIT_RESPONSE",
@@ -187,7 +187,6 @@ static volatile uint8_t ntripClientState = NTRIP_CLIENT_OFF;
 static int ntripClientConnectionAttempts; // Count the number of connection attempts between restarts
 static uint32_t ntripClientConnectionAttemptTimeout;
 static int ntripClientConnectionAttemptsTotal; // Count the number of connection attempts absolutely
-static NetPriority_t ntripClientPriority = NETWORK_OFFLINE;
 
 // NTRIP client timer usage:
 //  * Reconnection delay
@@ -357,7 +356,7 @@ void ntripClientPrintStateSummary()
         systemPrint("Disconnected");
         break;
     case NTRIP_CLIENT_ON:
-    case NTRIP_CLIENT_NETWORK_STARTED:
+    case NTRIP_CLIENT_WAIT_FOR_NETWORK:
     case NTRIP_CLIENT_NETWORK_CONNECTED:
     case NTRIP_CLIENT_CONNECTING:
     case NTRIP_CLIENT_WAIT_RESPONSE:
@@ -526,6 +525,14 @@ void ntripClientStop(bool shutdown)
         ntripClientSetState(NTRIP_CLIENT_ON);
 }
 
+// Return true if we are in states that require network access
+bool ntripClientNeedsNetwork()
+{
+    if (ntripClientState >= NTRIP_CLIENT_WAIT_FOR_NETWORK && ntripClientState <= NTRIP_CLIENT_CONNECTED)
+        return true;
+    return false;
+}
+
 // Check for the arrival of any correction data. Push it to the GNSS.
 // Stop task if the connection has dropped or if we receive no data for
 // NTRIP_CLIENT_RECEIVE_DATA_TIMEOUT
@@ -548,25 +555,24 @@ void ntripClientUpdate()
     switch (ntripClientState)
     {
     case NTRIP_CLIENT_OFF:
-        // Don't allow the client to restart if a forced shutdown occured
+        // Don't allow the client to restart if a forced shutdown occurred
         if (ntripClientForcedShutdown == false && EQ_RTK_MODE(ntripClientMode) && settings.enableNtripClient)
             ntripClientStart();
         break;
 
     // Start the network
     case NTRIP_CLIENT_ON:
-        ntripClientPriority = NETWORK_OFFLINE;
-        ntripClientSetState(NTRIP_CLIENT_NETWORK_STARTED);
+        ntripClientSetState(NTRIP_CLIENT_WAIT_FOR_NETWORK);
         break;
 
     // Wait for a network media connection
-    case NTRIP_CLIENT_NETWORK_STARTED:
+    case NTRIP_CLIENT_WAIT_FOR_NETWORK:
         // Determine if the NTRIP client was turned off
         if (ntripClientForcedShutdown || NEQ_RTK_MODE(ntripClientMode) || !settings.enableNtripClient)
             ntripClientStop(true);
 
-        // Wait until the network is connected to the media
-        else if (networkIsConnected(&ntripClientPriority))
+        // Wait until the network is connected
+        else if (networkHasInternet())
         {
             // Allocate the ntripClient structure
             ntripClient = new NetworkClient();
@@ -588,7 +594,7 @@ void ntripClientUpdate()
 
     case NTRIP_CLIENT_NETWORK_CONNECTED:
         // Determine if the network has failed
-        if (!networkIsConnected(&ntripClientPriority))
+        if (networkHasInternet() == false)
             // Failed to connect to to the network, attempt to restart the network
             ntripClientStop(true); // Was ntripClientRestart(); - #StopVsRestart
 
@@ -621,7 +627,7 @@ void ntripClientUpdate()
 
     case NTRIP_CLIENT_WAIT_RESPONSE:
         // Determine if the network has failed
-        if (!networkIsConnected(&ntripClientPriority))
+        if (networkHasInternet() == false)
             // Failed to connect to to the network, attempt to restart the network
             ntripClientStop(true); // Was ntripClientRestart(); - #StopVsRestart
 
@@ -742,7 +748,7 @@ void ntripClientUpdate()
 
     case NTRIP_CLIENT_CONNECTED:
         // Determine if the network has failed
-        if (!networkIsConnected(&ntripClientPriority))
+        if (networkHasInternet() == false)
             // Failed to connect to to the network, attempt to restart the network
             ntripClientStop(true); // Was ntripClientRestart(); - #StopVsRestart
 

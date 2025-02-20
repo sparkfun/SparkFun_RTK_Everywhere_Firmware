@@ -121,6 +121,9 @@ function parseIncoming(msg) {
                 show("useLocalizedDistributionCheckbox");
                 show("useEnableExtCorrRadio");
                 show("extCorrRadioSPARTNSourceDropdown");
+                hide("shutdownNoChargeTimeoutMinutesCheckboxDetail");
+
+                hide("constellationNavic"); //Not supported on ZED
             }
             else if ((platformPrefix == "Facet v2") || (platformPrefix == "Facet v2 LBand")) {
                 show("baseConfig");
@@ -140,6 +143,8 @@ function parseIncoming(msg) {
                 show("useLocalizedDistributionCheckbox");
                 show("useEnableExtCorrRadio");
                 show("extCorrRadioSPARTNSourceDropdown");
+
+                hide("constellationNavic"); //Not supported on ZED
             }
             else if (platformPrefix == "Facet mosaicX5") {
                 show("baseConfig");
@@ -178,9 +183,9 @@ function parseIncoming(msg) {
                 newOption = new Option('Unlimited', '7');
                 select.add(newOption, undefined);
 
-                ge("messageRateInfoText").setAttribute('data-bs-original-title','The GNSS can output NMEA and RTCMv3 at different rates. For NMEA: select a stream for each message, and set an interval for each stream. For RTCMv3: set an interval for each message group, and enable individual messages.');
-                ge("rtcmRateInfoText").setAttribute('data-bs-original-title','RTCM is transmitted by the base at a default of 1Hz for messages 1005, MSM4, and 0.1Hz for 1033. This can be lowered for radios with low bandwidth or tailored to transmit any/all RTCM messages. Limits: 0.1 to 600.');
-                ge("enableExtCorrRadioInfoText").setAttribute('data-bs-original-title','Enable external radio corrections: RTCMv3 on mosaic COM2. Default: False');
+                ge("messageRateInfoText").setAttribute('data-bs-original-title', 'The GNSS can output NMEA and RTCMv3 at different rates. For NMEA: select a stream for each message, and set an interval for each stream. For RTCMv3: set an interval for each message group, and enable individual messages.');
+                ge("rtcmRateInfoText").setAttribute('data-bs-original-title', 'RTCM is transmitted by the base at a default of 1Hz for messages 1005, MSM4, and 0.1Hz for 1033. This can be lowered for radios with low bandwidth or tailored to transmit any/all RTCM messages. Limits: 0.1 to 600.');
+                ge("enableExtCorrRadioInfoText").setAttribute('data-bs-original-title', 'Enable external radio corrections: RTCMv3 on mosaic COM2. Default: False');
             }
             else if (platformPrefix == "Torch") {
                 show("baseConfig");
@@ -198,6 +203,8 @@ function parseIncoming(msg) {
                 show("useAssistNowCheckbox"); //Does the PPL use MGA? Not sure...
                 show("measurementRateInput");
 
+                show("loraConfig");
+
                 select = ge("dynamicModel");
                 let newOption = new Option('Survey', '0');
                 select.add(newOption, undefined);
@@ -206,7 +213,38 @@ function parseIncoming(msg) {
                 newOption = new Option('Automotive', '2');
                 select.add(newOption, undefined);
 
-                ge("rtcmRateInfoText").setAttribute('data-bs-original-title','RTCM is transmitted by the base at a default of 1Hz for messages 1005, 1074, 1084, 1094, 1124, and 0.1Hz for 1033. This can be lowered for radios with low bandwidth or tailored to transmit any/all RTCM messages. Limits: 0 to 20. Note: The measurement rate is overridden to 1Hz when in Base mode.');
+                ge("rtcmRateInfoText").setAttribute('data-bs-original-title', 'RTCM is transmitted by the base at a default of 1Hz for messages 1005, 1074, 1084, 1094, 1124, and 0.1Hz for 1033. This can be lowered for radios with low bandwidth or tailored to transmit any/all RTCM messages. Limits: 0 to 20. Note: The measurement rate is overridden to 1Hz when in Base mode.');
+
+            }
+            else if (platformPrefix == "Postcard") {
+                show("baseConfig");
+                show("ppConfig");
+                hide("ethernetConfig");
+                hide("ntpConfig");
+                show("portsConfig");
+                show("externalPortOptions");
+                show("logToSDCard");
+
+                hide("galileoHasSetting");
+                hide("tiltConfig");
+                hide("beeperControl");
+
+                show("useAssistNowCheckbox");
+                show("measurementRateInput");
+                hide("mosaicNMEAStreamDropdowns");
+                show("surveyInSettings");
+                show("useLocalizedDistributionCheckbox");
+                show("useEnableExtCorrRadio");
+                show("extCorrRadioSPARTNSourceDropdown");
+
+                hide("constellationSbas"); //Not supported on LG290P
+                show("constellationNavic");
+
+                hide("dynamicModelDropdown"); //Not supported on LG290P
+                hide("minElevConfig"); //Not supported on LG290P
+                hide("minCNOConfig"); //Not supported on LG290P
+
+                ge("rtcmRateInfoText").setAttribute('data-bs-original-title', 'RTCM is transmitted by the base at a default of 1Hz for messages 1005, 1074, 1084, 1094, 1114, 1124, 1134. This can be lowered for radios with low bandwidth or tailored to transmit any/all RTCM messages. Limits: 0 to 20. Note: The measurement rate is overridden to 1Hz when in Base mode.');
             }
         }
         else if (id.includes("gnssFirmwareVersionInt")) {
@@ -365,7 +403,7 @@ function parseIncoming(msg) {
         else if (id.includes("messageRate") || id.includes("messageIntervalRTCM")) {
             // messageRateNMEA_GPDTM
             // messageRateRTCMRover_RTCM1001
-            // messagRatesRTCMBase_RTCM1001
+            // messageRatesRTCMBase_RTCM1001
             // messageIntervalRTCMRover_RTCM1230
             // messageIntervalRTCMBase_RTCM1230
             var messageName = id;
@@ -474,6 +512,18 @@ function parseIncoming(msg) {
                 hide("enableAutomaticResetDetails");
             }
         }
+        else if (id.includes("shutdownNoChargeTimeoutMinutes")) {
+            if (val > 0) {
+                ge("shutdownNoChargeTimeoutMinutes").value = val;
+                ge("shutdownNoChargeTimeoutMinutesCheckbox").checked = true;
+                show("shutdownNoChargeTimeoutMinutesDetails");
+            }
+            else {
+                ge("shutdownNoChargeTimeoutMinutes").value = 0;
+                ge("shutdownNoChargeTimeoutMinutesCheckbox").checked = false;
+                hide("shutdownNoChargeTimeoutMinutesDetails");
+            }
+        }
 
         //Convert incoming mm to local meters
         else if (id.includes("antennaHeight_mm")) {
@@ -485,14 +535,14 @@ function parseIncoming(msg) {
             try {
                 ge(id).checked = true;
             } catch (error) {
-                console.log("Issue with ID: " + id);
+                console.log("Set True issue with ID: " + id);
             }
         }
         else if (val == "false") {
             try {
                 ge(id).checked = false;
             } catch (error) {
-                console.log("Issue with ID: " + id);
+                console.log("Set False issue with ID: " + id);
             }
         }
 
@@ -528,6 +578,7 @@ function parseIncoming(msg) {
         ge("enableExternalPulse").dispatchEvent(new CustomEvent('change'));
         ge("enableExternalHardwareEventLogging").dispatchEvent(new CustomEvent('change'));
         ge("enableEspNow").dispatchEvent(new CustomEvent('change'));
+        ge("enableLora").dispatchEvent(new CustomEvent('change'));
         ge("antennaPhaseCenter_mm").dispatchEvent(new CustomEvent('change'));
         ge("enableLogging").dispatchEvent(new CustomEvent('change'));
         ge("enableLoggingRINEX").dispatchEvent(new CustomEvent('change'));
@@ -852,6 +903,12 @@ function validateFields() {
         ge("autoKeyRenewal").checked = true;
     }
 
+    //Port Config
+    if (ge("enableExternalPulse").checked == true) {
+        checkElementValue("externalPulseTimeBetweenPulse", 1, 60000000, "Must be 1 to 60,000,000", "collapsePortsConfig");
+        checkElementValue("externalPulseLength", 1, 60000000, "Must be 1 to 60,000,000", "collapsePortsConfig");
+    }
+
     //WiFi Config
     checkElementString("wifiNetwork_0SSID", 0, 49, "Must be 0 to 49 characters", "collapseWiFiConfig");
     checkElementString("wifiNetwork_0Password", 0, 49, "Must be 0 to 49 characters", "collapseWiFiConfig");
@@ -876,6 +933,19 @@ function validateFields() {
     //On Ethernet, TCP Client and Server can not be enabled at the same time
     //But, on WiFi, they can be...
     //checkCheckboxMutex("enableTcpClient", "enableTcpServer", "TCP Client and Server can not be enabled at the same time", "collapseTCPUDPConfig");
+
+    //Radio Config
+    if (ge("enableLora").checked == true) {
+        checkElementValue("loraCoordinationFrequency", 903, 927, "Must be 903 to 927", "collapseRadioConfig");
+        checkElementValue("loraSerialInteractionTimeout_s", 10, 600, "Must be 10 to 600", "collapseRadioConfig");
+    }
+
+    //Corrections Config
+    checkElementValue("correctionsSourcesLifetime", 5, 120, "Must be 5 to 120", "collapseCorrectionsPriorityConfig");
+
+    //Instrument Config
+    checkElementValue("antennaHeight_m", -15, 15, "Must be -15 to 15", "collapseBaseConfig");
+    checkElementValue("antennaPhaseCenter_mm", -200.0, 200.0, "Must be -200.0 to 200.0", "collapseBaseConfig");
 
     //System Config
     if (ge("enableLogging").checked == true) {
@@ -902,12 +972,18 @@ function validateFields() {
     }
 
     if (ge("enableAutoReset").checked == true) {
-        checkElementValue("rebootMinutes", 1, 4294967, "Must be 1 to 4294967", "collapseSystemConfig");
+        checkElementValue("rebootMinutes", 0, 4294967, "Must be 0 to 4,294,967", "collapseSystemConfig");
     }
     else {
         clearElement("rebootMinutes", 0); //0 = disable
     }
 
+    if (ge("shutdownNoChargeTimeoutMinutesCheckbox").checked == true) {
+        checkElementValue("shutdownNoChargeTimeoutMinutes", 0, 604800, "Must be 0 to 604,800", "collapseSystemConfig");
+    }
+    else {
+        clearElement("shutdownNoChargeTimeoutMinutes", 0); //0 = disable
+    }
 
     //Ethernet
     if (platformPrefix == "EVK") {
@@ -926,15 +1002,6 @@ function validateFields() {
         checkElementValue("ntpRootDispersion", 0, 10000000, "Must be 0 to 10,000,000", "collapseNTPConfig");
         checkElementString("ntpReferenceId", 1, 4, "Must be 1 to 4 chars", "collapseNTPConfig");
     }
-
-    //Port Config
-    if (ge("enableExternalPulse").checked == true) {
-        checkElementValue("externalPulseTimeBetweenPulse", 1, 60000000, "Must be 1 to 60,000,000", "collapsePortsConfig");
-        checkElementValue("externalPulseLength", 1, 60000000, "Must be 1 to 60,000,000", "collapsePortsConfig");
-    }
-
-    //Corrections Priorities
-    checkElementValue("correctionsSourcesLifetime", 5, 120, "Must be 5 to 120", "collapseCorrectionsPriorityConfig");
 }
 
 var currentProfileNumber = 0;
@@ -972,12 +1039,14 @@ function changeProfile() {
         collapseSection("collapsePortsConfig", "portsCaret");
         collapseSection("collapseWiFiConfig", "wifiCaret");
         collapseSection("collapseTCPUDPConfig", "tcpUdpCaret");
+        collapseSection("collapseRadioConfig", "radioCaret");
         collapseSection("collapseCorrectionsPriorityConfig", "correctionsCaret");
+        collapseSection("collapseInstrumentConfig", "instrumentCaret");
         collapseSection("collapseSystemConfig", "systemCaret");
+
         collapseSection("collapseEthernetConfig", "ethernetCaret");
         collapseSection("collapseNTPConfig", "ntpCaret");
         collapseSection("collapseFileManager", "fileManagerCaret");
-        collapseSection("collapseInstrumentConfig", "instrumentCaret");
     }
 }
 
@@ -1523,11 +1592,17 @@ document.addEventListener("DOMContentLoaded", (event) => {
             hide("ecefConfig");
             show("geodeticConfig");
 
-            if ((platformPrefix == "Facet mosaicX5") || (platformPrefix == "Facet v2") || (platformPrefix == "Facet v2 LBand")) {
-                ge("antennaPhaseCenter_mm").value = 61.4;
+            if ((platformPrefix == "Facet mosaicX5") || (platformPrefix == "Facet v2 LBand")) {
+                ge("antennaPhaseCenter_mm").value = 68.5; //Average of L1/L2
+            }
+            else if (platformPrefix == "Facet v2") {
+                ge("antennaPhaseCenter_mm").value = 69.6; //Average of L1/L2
             }
             else if (platformPrefix == "Torch") {
-                ge("antennaPhaseCenter_mm").value = 116.2;
+                ge("antennaPhaseCenter_mm").value = 116.5; //Average of L1/L2
+            }
+            else if (platformPrefix == "EVK") {
+                ge("antennaPhaseCenter_mm").value = 42.0; //Average of L1/L2
             }
             else {
                 ge("antennaPhaseCenter_mm").value = 0.0;
@@ -1631,6 +1706,15 @@ document.addEventListener("DOMContentLoaded", (event) => {
         }
     });
 
+    ge("enableLora").addEventListener("change", function () {
+        if (ge("enableLora").checked == true) {
+            show("loraDetails");
+        }
+        else {
+            hide("loraDetails");
+        }
+    });
+
     ge("enableLogging").addEventListener("change", function () {
         showHideLoggingDetails();
     });
@@ -1668,6 +1752,15 @@ document.addEventListener("DOMContentLoaded", (event) => {
         }
         else {
             hide("enableAutomaticResetDetails");
+        }
+    });
+
+    ge("shutdownNoChargeTimeoutMinutesCheckbox").addEventListener("change", function () {
+        if (ge("shutdownNoChargeTimeoutMinutesCheckbox").checked == true) {
+            show("shutdownNoChargeTimeoutMinutesDetails");
+        }
+        else {
+            hide("shutdownNoChargeTimeoutMinutesDetails");
         }
     });
 
@@ -2057,7 +2150,7 @@ function getMessageList() {
                 ge(savedCheckboxNames[x]).checked = false;
             }
             else {
-                console.log("Issue with ID: " + savedCheckboxNames[x]);
+                console.log("getMessageList Issue with ID: " + savedCheckboxNames[x]);
             }
         }
     }
@@ -2089,7 +2182,7 @@ function getMessageListBase() {
                 ge(savedCheckboxNames[x]).checked = false;
             }
             else {
-                console.log("Issue with ID: " + savedCheckboxNames[x]);
+                console.log("getMessageListBase issue with ID: " + savedCheckboxNames[x]);
             }
         }
     }
@@ -2265,7 +2358,13 @@ function checkingNewFirmware() {
 
 function newFirmwareVersion(firmwareVersion) {
     clearMsg('firmwareCheckNewMsg');
-    if (firmwareVersion == "ERROR") {
+    if (firmwareVersion == "NO_INTERNET") {
+        showMsgError('firmwareCheckNewMsg', "No internet");
+        hide("divGetNewFirmware");
+        ge("btnCheckNewFirmware").disabled = false;
+        return;
+    }
+    else if (firmwareVersion == "NO_SERVER") {
         showMsgError('firmwareCheckNewMsg', "Network or Server not available");
         hide("divGetNewFirmware");
         ge("btnCheckNewFirmware").disabled = false;

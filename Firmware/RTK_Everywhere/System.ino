@@ -98,7 +98,7 @@ void updateBattery()
                                        ((uint8_t)readAnalogPinAsDigital(pin_chargerLED));
                 systemPrint("MCP73833 Charger: ");
                 if (combinedStat == 3)
-                    systemPrintln("standby / fault");
+                    systemPrintln("standby");
                 else if (combinedStat == 2)
                     systemPrintln("battery is charging");
                 else if (combinedStat == 1)
@@ -162,12 +162,12 @@ void updateBattery()
         }
 
         // Check if we need to shutdown due to no charging
-        if (settings.shutdownNoChargeTimeout_s > 0)
+        if (settings.shutdownNoChargeTimeoutMinutes > 0)
         {
             if (isCharging() == false)
             {
-                int secondsSinceLastCharger = (millis() - shutdownNoChargeTimer) / 1000;
-                if (secondsSinceLastCharger > settings.shutdownNoChargeTimeout_s)
+                int minutesSinceLastCharge = ((millis() - shutdownNoChargeTimer) / 1000) / 60;
+                if (minutesSinceLastCharge > settings.shutdownNoChargeTimeoutMinutes)
                     powerDown(true);
             }
             else
@@ -394,7 +394,10 @@ void printReports()
             // If we are in base mode, display SIV only
             else if (inBaseMode() == true)
             {
-                systemPrintf("Base Mode - SIV: %d\r\n", gnss->getSatellitesInView());
+                if (settings.baseCasterOverride == true)
+                    systemPrintf("Base Caster Mode - SIV: %d\r\n", gnss->getSatellitesInView());
+                else
+                    systemPrintf("Base Mode - SIV: %d\r\n", gnss->getSatellitesInView());
             }
         }
     }
@@ -767,7 +770,7 @@ bool isUsbAttached()
     {
         if (pin_powerAdapterDetect != PIN_UNDEFINED)
             // Pin goes low when wall adapter is detected
-            if (digitalRead(pin_powerAdapterDetect) == HIGH)
+            if (readAnalogPinAsDigital(pin_powerAdapterDetect) == HIGH)
                 return false;
         return true;
     }

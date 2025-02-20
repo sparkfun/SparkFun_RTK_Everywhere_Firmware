@@ -23,8 +23,6 @@
 
 //----------------------------------------
 
-static bool cellularSimCardRemoved = false;
-static bool cellularSimCardPresent = false;
 static int cellularRSSI = 0;
 static bool cellularIsAttached = false;
 
@@ -86,10 +84,10 @@ void cellularEvent(arduino_event_id_t event)
     String module;
 
     // Take the network offline if necessary
-    if (networkIsInterfaceOnline(NETWORK_CELLULAR) && (event != ARDUINO_EVENT_ETH_GOT_IP) &&
+    if (networkInterfaceHasInternet(NETWORK_CELLULAR) && (event != ARDUINO_EVENT_ETH_GOT_IP) &&
         (event != ARDUINO_EVENT_ETH_GOT_IP6) && (event != ARDUINO_EVENT_PPP_CONNECTED))
     {
-        networkMarkOffline(NETWORK_CELLULAR);
+        networkInterfaceEventInternetLost(NETWORK_CELLULAR);
     }
 
     // Cellular State Machine
@@ -110,7 +108,7 @@ void cellularEvent(arduino_event_id_t event)
 
     case ARDUINO_EVENT_PPP_CONNECTED:
         systemPrintln("Cellular Connected");
-        networkMarkOnline(NETWORK_CELLULAR);
+        networkInterfaceEventInternetAvailable(NETWORK_CELLULAR);
         break;
 
     case ARDUINO_EVENT_PPP_DISCONNECTED:
@@ -148,43 +146,19 @@ void cellularSimCheck(NetIndex_t index, uintptr_t parameter, bool debug)
 {
     String simCardID;
 
-    if (cellularSimCardPresent)
-        networkSequenceNextEntry(index, debug);
-    else
-    {
-        simCardID = CELLULAR.cmd("AT+CCID", 500);
-        if (simCardID.length())
-        {
-            if (debug)
-                systemPrintf("SIM card %s installed\r\n", simCardID.c_str());
-            cellularSimCardPresent = true;
-            networkSequenceNextEntry(index, debug);
-        }
-        else
-        {
-            if (debug)
-                systemPrintf("SIM card not present\r\n");
-            cellularSimCardRemoved = true;
-            networkSequenceExit(index, debug);
-        }
-    }
-}
-
-//----------------------------------------
-// Stop if SIM card not installed
-void cellularSimInstalled(NetIndex_t index, uintptr_t parameter, bool debug)
-{
-    // Determine if the SIM card check has run
-    if (cellularSimCardRemoved)
+    simCardID = CELLULAR.cmd("AT+CCID", 500);
+    if (simCardID.length())
     {
         if (debug)
-            systemPrintf("SIM card was not present, leaving cellular off\r\n");
+            systemPrintf("SIM card %s installed\r\n", simCardID.c_str());
+        networkSequenceNextEntry(index, debug);
+    }
+    else
+    {
+        systemPrintf("SIM card not present. Marking cellular offline.\r\n");
+        present.cellular_lara = false;
         networkSequenceExit(index, debug);
     }
-
-    // Get the next sequence entry
-    else
-        networkSequenceNextEntry(index, debug);
 }
 
 //----------------------------------------

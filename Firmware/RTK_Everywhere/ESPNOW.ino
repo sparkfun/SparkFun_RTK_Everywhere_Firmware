@@ -1,3 +1,469 @@
+/**********************************************************************
+  ESPNOW.ino
+
+  Handle the ESP-NOW events
+  Use ESP NOW protocol to transmit RTCM between RTK Products via 2.4GHz
+
+  How pairing works:
+    1. Device enters pairing mode
+    2. Device adds the broadcast MAC (all 0xFFs) as peer
+    3. Device waits for incoming pairing packet from remote
+    4. If valid pairing packet received, add peer, immediately transmit a pairing packet to that peer and exit.
+
+    ESP NOW is bare metal, there is no guaranteed packet delivery. For RTCM byte transmissions using ESP NOW:
+      We don't care about dropped packets or packets out of order. The ZED will check the integrity of the RTCM packet.
+      We don't care if the ESP NOW packet is corrupt or not. RTCM has its own CRC. RTK needs valid RTCM once every
+      few seconds so a single dropped frame is not critical.
+**********************************************************************/
+
+#ifdef COMPILE_ESPNOW
+
+//****************************************
+// Constants
+//****************************************
+
+const uint8_t espnowBroadcastAddr[6] = {0xff, 0xff, 0xff, 0xff, 0xff, 0xff};
+
+//****************************************
+// Types
+//****************************************
+
+// Create a struct for ESP NOW pairing
+typedef struct _ESP_NOW_PAIR_MESSAGE
+{
+    uint8_t macAddress[6];
+    bool encrypt;
+    uint8_t channel;
+    uint8_t crc; // Simple check - add MAC together and limit to 8 bit
+} ESP_NOW_PAIR_MESSAGE;
+
+//****************************************
+// Locals
+//****************************************
+
+ESPNOWState espNowState;
+
+//*********************************************************************
+// Add a peer to the ESP-NOW network
+esp_err_t espNowAddPeer(const uint8_t * peerMac)
+{
+    esp_now_peer_info_t peerInfo;
+
+    // Describe the peer
+    memcpy(peerInfo.peer_addr, peerMac, 6);
+    peerInfo.channel = 0;
+    peerInfo.ifidx = WIFI_IF_STA;
+    peerInfo.encrypt = false;
+
+    // Add the peer
+    if (settings.debugEspNow)
+        systemPrintf("Calling esp_now_add_peer\r\n");
+    esp_err_t result = esp_now_add_peer(&peerInfo);
+    if (result != ESP_OK)
+    {
+        systemPrintf("ERROR: Failed to add ESP-NOW peer %02x:%02x:%02x:%02x:%02x:%02x, result: %d\r\n",
+                     espnowBroadcastAddr[0], espnowBroadcastAddr[1],
+                     espnowBroadcastAddr[2], espnowBroadcastAddr[3],
+                     espnowBroadcastAddr[4], espnowBroadcastAddr[5],
+                     result);
+    }
+    else if (settings.debugEspNow)
+        systemPrintf("Added ESP-NOW peer %02x:%02x:%02x:%02x:%02x:%02x\r\n",
+                     espnowBroadcastAddr[0], espnowBroadcastAddr[1],
+                     espnowBroadcastAddr[2], espnowBroadcastAddr[3],
+                     espnowBroadcastAddr[4], espnowBroadcastAddr[5]);
+    return result;
+}
+
+//*********************************************************************
+// Get the current ESP-NOW state
+ESPNOWState espnowGetState()
+{
+    return espNowState;
+}
+
+//----------------------------------------------------------------------
+// ESP-NOW bringup from example 4_9_ESP_NOW
+//   1. Set station mode
+//   2. Create nowSerial as new ESP_NOW_Serial_Class
+//   3. nowSerial.begin
+// ESP-NOW bringup from RTK
+//   1. Get WiFi mode
+//   2. Set WiFi station mode if necessary
+//   3. Get WiFi station protocols
+//   4. Set WIFI_PROTOCOL_LR protocol
+//   5. Call esp_now_init
+//   6. Call esp_wifi_set_promiscuous(true)
+//   7. Set promiscuous receive callback [esp_wifi_set_promiscuous_rx_cb(promiscuous_rx_cb)]
+//      to get RSSI of action frames
+//   8. Assign a channel if necessary, call espnowSetChannel
+//   9. Set receive callback [esp_now_register_recv_cb(espnowOnDataReceived)]
+//  10. Add peers from settings
+//      A. If no peers exist
+//          i.   Determine if broadcast peer exists, call esp_now_is_peer_exist
+//          ii.  Add broadcast peer if necessary, call espnowAddPeer
+//          iii. Set ESP-NOW state, call espnowSetState(ESP_NOW_BROADCASTING)
+//      B. If peers exist,
+//          i.  Set ESP-NOW state, call espnowSetState(ESP_NOW_PAIRED)
+//          ii. Loop through peers listed in settings, for each
+//              a. Determine if peer exists, call esp_now_is_peer_exist
+//              b. Add peer if necessary, call espnowAddPeer
+//
+// In espnowOnDataReceived
+//  11. Save ESP-NOW RSSI
+//  12. Set lastEspnowRssiUpdate = millis()
+//  13. If in ESP_NOW_PAIRING state
+//      A. Validate message CRC
+//      B. If valid CRC
+//          i.  Save peer MAC address
+//          ii. espnowSetState(ESPNOW_MAC_RECEIVED)
+//  14. Else if ESPNOW_MAC_RECEIVED state
+//      A. If ESP-NOW is corrections source, correctionLastSeen(CORR_ESPNOW)
+//          i.  gnss->pushRawData
+//  15. Set espnowIncomingRTCM
+//
+// ESP-NOW shutdown from RTK
+//   1. esp_wifi_set_promiscuous(false)
+//   2. esp_wifi_set_promiscuous_rx_cb(nullptr)
+//   3. esp_now_unregister_recv_cb()
+//   4. Remove all peers by calling espnowRemovePeer
+//   5. Get WiFi mode
+//   6. Set WiFi station mode if necessary
+//   7. esp_wifi_get_protocol
+//   8. Turn off long range protocol if necessary, call esp_wifi_set_protocol
+//   9. Turn off ESP-NOW. call esp_now_deinit
+//  10. Set ESP-NOW state, call espnowSetState(ESPNOW_OFF)
+//  11. Restart WiFi if necessary
+//----------------------------------------------------------------------
+
+//*********************************************************************
+// Update the state of the ESP Now state machine
+//
+//      +--------------------+
+//      |     ESPNOW_OFF     |
+//      +--------------------+
+//          |             |
+//          |             | No pairs listed
+//          |             V
+//          |  +---------------------+
+//          |  | ESPNOW_BROADCASTING |
+//          |  +---------------------+
+//          |             |
+//          |             |
+//          |             V
+//          |  +--------------------+
+//          |  |   ESPNOW_PAIRING   |
+//          |  +--------------------+
+//          |             |
+//          |             |
+//          |             V
+//          |  +--------------------+
+//          |  | ESPNOW_MAC_RECEIVED |
+//          |  +--------------------+
+//          |             |
+//          |             |
+//          |             V
+//          |  +--------------------+
+//          '->|   ESPNOW_PAIRED    |
+//             +--------------------+
+//
+// Send RTCM in either ESPNOW_BROADCASTING or ESPNOW_PAIRED state.
+// Receive RTCM in ESPNOW_BROADCASTING, ESPNOW_MAC_RECEIVED and
+// ESPNOW_PAIRED states.
+//*********************************************************************
+
+//*********************************************************************
+// Callback when data is received
+void espNowRxHandler(const esp_now_recv_info *mac,
+                     const uint8_t *incomingData,
+                     int len)
+{
+//    typedef struct esp_now_recv_info {
+//        uint8_t * src_addr;             // Source address of ESPNOW packet
+//        uint8_t * des_addr;             // Destination address of ESPNOW packet
+//        wifi_pkt_rx_ctrl_t * rx_ctrl;   // Rx control info of ESPNOW packet
+//    } esp_now_recv_info_t;
+
+    uint8_t receivedMAC[6];
+
+    if (espNowState == ESPNOW_PAIRING)
+    {
+        ESP_NOW_PAIR_MESSAGE pairMessage;
+        if (len == sizeof(pairMessage)) // First error check
+        {
+            memcpy(&pairMessage, incomingData, len);
+
+            // Check CRC
+            uint8_t tempCRC = 0;
+            for (int x = 0; x < 6; x++)
+                tempCRC += pairMessage.macAddress[x];
+
+            if (tempCRC == pairMessage.crc) // 2nd error check
+            {
+                memcpy(&receivedMAC, pairMessage.macAddress, 6);
+                espNowSetState(ESPNOW_MAC_RECEIVED);
+            }
+            // else Pair CRC failed
+        }
+    }
+    else if (settings.debugEspNow)
+        systemPrintf("*** ESP-NOW: RX %02x:%02x:%02x:%02x:%02x:%02x --> %02x:%02x:%02x:%02x:%02x:%02x, %d bytes, rssi: %d\r\n",
+                     mac->src_addr[0], mac->src_addr[1], mac->src_addr[2],
+                     mac->src_addr[3], mac->src_addr[4], mac->src_addr[5],
+                     mac->des_addr[0], mac->des_addr[1], mac->des_addr[2],
+                     mac->des_addr[3], mac->des_addr[4], mac->des_addr[5],
+                     len, packetRSSI);
+}
+
+//*********************************************************************
+// Update the state of the ESP-NOW subsystem
+void espNowSetState(ESPNOWState newState)
+{
+    const char * name[] =
+    {
+        "ESPNOW_OFF",
+        "ESPNOW_BROADCASTING",
+        "ESPNOW_PAIRING",
+        "ESPNOW_MAC_RECEIVED",
+        "ESPNOW_PAIRED",
+    };
+    const int nameCount = sizeof(name) / sizeof(name[0]);
+    const char * newName;
+    char nLine[80];
+    const char * oldName;
+    char oLine[80];
+
+    if (settings.debugEspNow == true)
+    {
+        // Get the old state name
+        if (espNowState < ESPNOW_MAX)
+            oldName = name[espNowState];
+        else
+        {
+            sprintf(oLine, "Unknown state: %d", espNowState);
+            oldName = &oLine[0];
+        }
+
+        // Get the new state name
+        if (newState < ESPNOW_MAX)
+            newName = name[newState];
+        else
+        {
+            sprintf(nLine, "Unknown state: %d", newState);
+            newName = &nLine[0];
+        }
+
+        // Display the state change
+        if (newState == espNowState)
+            systemPrintf("ESP-NOW: *%s\r\n", newName);
+        else
+            systemPrintf("ESP-NOW: %s --> %s\r\n", oldName, newName);
+    }
+    espNowState = newState;
+}
+
+//*********************************************************************
+// Start ESP-NOW layer
+bool espNowStart()
+{
+    int index;
+    bool started;
+    esp_err_t status;
+
+    do
+    {
+        started = false;
+
+        //   5. Call esp_now_init
+        if (settings.debugEspNow)
+            systemPrintf("Calling esp_now_init\r\n");
+        status = esp_now_init();
+        if (status != ESP_OK)
+        {
+            systemPrintf("ERROR: Failed to initialize ESP-NOW, status: %d\r\n", status);
+            break;
+        }
+
+        //   9. Set receive callback [esp_now_register_recv_cb(espnowOnDataReceived)]
+        if (settings.debugEspNow)
+            systemPrintf("Calling esp_now_register_recv_cb\r\n");
+        status = esp_now_register_recv_cb(espNowRxHandler);
+        if (status != ESP_OK)
+        {
+            systemPrintf("ERROR: Failed to set ESP_NOW RX callback, status: %d\r\n", status);
+            break;
+        }
+
+        //  10. Add peers from settings
+        //      i.  Set ESP-NOW state, call espNowSetState(ESPNOW_PAIRED)
+        if (settings.debugEspNow)
+            systemPrintf("Calling espNowSetState\r\n");
+        espNowSetState(ESPNOW_PAIRED);
+
+        //     ii. Loop through peers listed in settings, for each
+        for (index = 0; index < ESPNOW_MAX_PEERS; index++)
+        {
+            //      a. Determine if peer exists, call esp_now_is_peer_exist
+            if (settings.debugEspNow)
+                systemPrintf("Calling esp_now_is_peer_exist\r\n");
+            if (esp_now_is_peer_exist(settings.espnowPeers[index]) == false)
+            {
+                //  b. Add peer if necessary, call espnowAddPeer
+                if (settings.debugEspNow)
+                    systemPrintf("Calling espNowAddPeer\r\n");
+                status = espNowAddPeer(&settings.espnowPeers[index][0]);
+                if (status != ESP_OK)
+                {
+                    systemPrintf("ERROR: Failed to add ESP-NOW peer %02x:%02x:%02x:%02x:%02x:%02x, status: %d\r\n",
+                                 settings.espnowPeers[index][0],
+                                 settings.espnowPeers[index][1],
+                                 settings.espnowPeers[index][2],
+                                 settings.espnowPeers[index][3],
+                                 settings.espnowPeers[index][4],
+                                 settings.espnowPeers[index][5],
+                                 status);
+                    break;
+                }
+            }
+
+            // Determine if an error occurred
+            if (index < ESPNOW_MAX_PEERS)
+                break;
+        }
+
+        // ESP-NOW has started successfully
+        if (settings.debugEspNow)
+            systemPrintf("ESP-NOW online\r\n");
+
+        started = true;
+    } while (0);
+
+    return started;
+}
+
+//*********************************************************************
+// Stop ESP-NOW layer
+bool espNowStop()
+{
+    uint8_t mode;
+    esp_now_peer_num_t peerCount;
+    uint8_t primaryChannel;
+    uint8_t protocols;
+    wifi_second_chan_t secondaryChannel;
+    bool stopped;
+    esp_err_t status;
+
+    do
+    {
+        stopped = false;
+
+        //   3. esp_now_unregister_recv_cb()
+        if (settings.debugEspNow)
+            systemPrintf("Calling esp_now_unregister_recv_cb\r\n");
+        status = esp_now_unregister_recv_cb();
+        if (status != ESP_OK)
+        {
+            systemPrintf("ERROR: Failed to clear ESP_NOW RX callback, status: %d\r\n", status);
+            break;
+        }
+        if (settings.debugEspNow)
+            systemPrintf("ESP-NOW: RX callback removed\r\n");
+
+        if (settings.debugEspNow)
+            systemPrintf("ESP-NOW offline\r\n");
+
+        //   4. Remove all peers by calling espnowRemovePeer
+        if (settings.debugEspNow)
+            systemPrintf("Calling esp_now_is_peer_exist\r\n");
+        if (esp_now_is_peer_exist(espnowBroadcastAddr))
+        {
+            if (settings.debugEspNow)
+                systemPrintf("Calling esp_now_del_peer\r\n");
+            status = esp_now_del_peer(espnowBroadcastAddr);
+            if (status != ESP_OK)
+            {
+                systemPrintf("ERROR: Failed to delete broadcast peer, status: %d\r\n", status);
+                break;
+            }
+            if (settings.debugEspNow)
+                systemPrintf("ESP-NOW removed broadcast peer\r\n");
+        }
+
+        // Walk the unicast peers
+        while (1)
+        {
+            esp_now_peer_info_t peerInfo;
+
+            // Get the next unicast peer
+            if (settings.debugEspNow)
+                systemPrintf("Calling esp_now_fetch_peer\r\n");
+            status = esp_now_fetch_peer(true, &peerInfo);
+            if (status != ESP_OK)
+                break;
+
+            // Remove the unicast peer
+            if (settings.debugEspNow)
+                systemPrintf("Calling esp_now_del_peer\r\n");
+            status = esp_now_del_peer(peerInfo.peer_addr);
+            if (status != ESP_OK)
+            {
+                systemPrintf("ERROR: Failed to delete peer %02x:%02x:%02x:%02x:%02x:%02x, status: %d\r\n",
+                             peerInfo.peer_addr[0], peerInfo.peer_addr[1],
+                             peerInfo.peer_addr[2], peerInfo.peer_addr[3],
+                             peerInfo.peer_addr[4], peerInfo.peer_addr[5],
+                             status);
+                break;
+            }
+            if (settings.debugEspNow)
+                systemPrintf("ESP-NOW removed peer %02x:%02x:%02x:%02x:%02x:%02x\r\n",
+                             peerInfo.peer_addr[0], peerInfo.peer_addr[1],
+                             peerInfo.peer_addr[2], peerInfo.peer_addr[3],
+                             peerInfo.peer_addr[4], peerInfo.peer_addr[5]);
+        }
+        if (status != ESP_ERR_ESPNOW_NOT_FOUND)
+        {
+            systemPrintf("ERROR: Failed to get peer info for deletion, status: %d\r\n", status);
+            break;
+        }
+
+        // Get the number of peers
+        if (settings.debugEspNow)
+        {
+            systemPrintf("Calling esp_now_get_peer_num\r\n");
+            status = esp_now_get_peer_num(&peerCount);
+            if (status != ESP_OK)
+            {
+                systemPrintf("ERROR: Failed to get the peer count, status: %d\r\n", status);
+                break;
+            }
+            systemPrintf("peerCount: %d\r\n", peerCount);
+        }
+
+        // Stop the ESP-NOW state machine
+        espNowSetState(ESPNOW_OFF);
+
+        //   9. Turn off ESP-NOW. call esp_now_deinit
+        if (settings.debugEspNow)
+            systemPrintf("Calling esp_now_deinit\r\n");
+        status = esp_now_deinit();
+        if (status != ESP_OK)
+        {
+            systemPrintf("ERROR: Failed to deinit ESP-NOW, status: %d\r\n", status);
+            break;
+        }
+
+        //  11. Restart WiFi if necessary
+
+        // ESP-NOW has stopped successfully
+        if (settings.debugEspNow)
+            systemPrintf("ESP-NOW stopped\r\n");
+        stopped = true;
+    } while (0);
+
+    // Return the stopped status
+    return stopped;
+}
+
 /*
   Use ESP NOW protocol to transmit RTCM between RTK Products via 2.4GHz
 
@@ -18,18 +484,17 @@
 // Use the ESP32 to directly transmit/receive RTCM over 2.4GHz (no WiFi needed)
 void updateEspnow()
 {
-#ifdef COMPILE_ESPNOW
     if (settings.enableEspNow == true)
     {
-        if (espnowState == ESPNOW_PAIRED || espnowState == ESPNOW_BROADCASTING)
+        if (espNowState == ESPNOW_PAIRED || espNowState == ESPNOW_BROADCASTING)
         {
             // If it's been longer than a few ms since we last added a byte to the buffer
             // then we've reached the end of the RTCM stream. Send partial buffer.
             if (espnowOutgoingSpot > 0 && (millis() - espnowLastAdd) > 50)
             {
-                if (espnowState == ESPNOW_PAIRED)
+                if (espNowState == ESPNOW_PAIRED)
                     esp_now_send(0, (uint8_t *)&espnowOutgoing, espnowOutgoingSpot); // Send partial packet to all peers
-                else // if (espnowState == ESPNOW_BROADCASTING)
+                else // if (espNowState == ESPNOW_BROADCASTING)
                 {
                     uint8_t broadcastMac[6] = {0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF};
                     esp_now_send(broadcastMac, (uint8_t *)&espnowOutgoing,
@@ -51,43 +516,26 @@ void updateEspnow()
                 espnowRSSI = -255;
         }
     }
-#endif // COMPILE_ESPNOW
 }
 
-// Create a struct for ESP NOW pairing
-typedef struct PairMessage
-{
-    uint8_t macAddress[6];
-    bool encrypt;
-    uint8_t channel;
-    uint8_t crc; // Simple check - add MAC together and limit to 8 bit
-} PairMessage;
-
 // Callback when data is sent
-#ifdef COMPILE_ESPNOW
 void espnowOnDataSent(const uint8_t *mac_addr, esp_now_send_status_t status)
 {
     //  systemPrint("Last Packet Send Status: ");
-    //  if (status == ESP_NOW_SEND_SUCCESS)
+    //  if (status == ESPNOW_SEND_SUCCESS)
     //    systemPrintln("Delivery Success");
     //  else
     //    systemPrintln("Delivery Fail");
 }
-#endif // COMPILE_ESPNOW
-
-#ifndef COMPILE_ESPNOW
-#define esp_now_recv_info uint8_t
-#endif
 
 // Callback when data is received
 void espnowOnDataReceived(const esp_now_recv_info *mac, const uint8_t *incomingData, int len)
 {
-#ifdef COMPILE_ESPNOW
-    if (espnowState == ESPNOW_PAIRING)
+    if (espNowState == ESPNOW_PAIRING)
     {
-        if (len == sizeof(PairMessage)) // First error check
+        if (len == sizeof(ESP_NOW_PAIR_MESSAGE)) // First error check
         {
-            PairMessage pairMessage;
+            ESP_NOW_PAIR_MESSAGE pairMessage;
             memcpy(&pairMessage, incomingData, sizeof(pairMessage));
 
             // Check CRC
@@ -127,7 +575,6 @@ void espnowOnDataReceived(const esp_now_recv_info *mac, const uint8_t *incomingD
         espnowIncomingRTCM = true; // Display a download icon
         lastEspnowRssiUpdate = millis();
     }
-#endif // COMPILE_ESPNOW
 }
 
 // Callback for all RX Packets
@@ -154,8 +601,6 @@ void espnowStart()
         return;
     }
 
-#ifdef COMPILE_ESPNOW
-
     // Before we can issue esp_wifi_() commands WiFi must be started
     if (WiFi.getMode() != WIFI_STA)
         WiFi.mode(WIFI_STA);
@@ -166,7 +611,7 @@ void espnowStart()
     if (response != ESP_OK)
         systemPrintf("espnowStart: Failed to get protocols: %s\r\n", esp_err_to_name(response));
 
-    if ((!wifiIsRunning()) && espnowState == ESPNOW_OFF)
+    if ((WIFI_IS_RUNNING() == false) && espNowState == ESPNOW_OFF)
     {
         // Radio is off, turn it on
         if (protocols != (WIFI_PROTOCOL_LR))
@@ -187,7 +632,7 @@ void espnowStart()
         }
     }
     // If WiFi is on but ESP NOW is off, then enable LR protocol
-    else if (wifiIsRunning() && espnowState == ESPNOW_OFF)
+    else if (WIFI_IS_RUNNING() && espNowState == ESPNOW_OFF)
     {
         // Enable WiFi + ESP-Now
         // Enable long range, PHY rate of ESP32 will be 512Kbps or 256Kbps
@@ -235,7 +680,7 @@ void espnowStart()
     esp_wifi_set_promiscuous_rx_cb(&promiscuous_rx_cb);
 
     // Assign channel if not connected to an AP
-    if (wifiIsConnected() == false)
+    if (WIFI_IS_CONNECTED() == false)
         espnowSetChannel(settings.wifiChannel);
 
     // Register callbacks
@@ -298,15 +743,13 @@ void espnowStart()
     }
 
     systemPrintln("ESP-Now Started");
-#endif // COMPILE_ESPNOW
 }
 
 // If WiFi is already enabled, simply remove the LR protocol
 // If WiFi is off, stop the radio entirely
 void espnowStop()
 {
-#ifdef COMPILE_ESPNOW
-    if (espnowState == ESPNOW_OFF)
+    if (espNowState == ESPNOW_OFF)
         return;
 
     // Turn off promiscuous WiFi mode
@@ -362,23 +805,21 @@ void espnowStop()
 
     espnowSetState(ESPNOW_OFF);
 
-    if (!wifiIsRunning())
+    if (WIFI_IS_RUNNING() == false)
     {
-        // ESP Now was the only thing using the radio so turn WiFi radio off entirely
+        // ESP-NOW was the only thing using the radio so turn WiFi radio off entirely
         WiFi.mode(WIFI_OFF);
 
         if (settings.debugEspNow == true)
             systemPrintln("WiFi Radio off entirely");
     }
     // If WiFi is on, then restart WiFi
-    else if (wifiIsRunning())
+    else if (WIFI_IS_RUNNING())
     {
         if (settings.debugEspNow == true)
             systemPrintln("ESP-Now starting WiFi");
-        wifiForceStart(); // Force WiFi to restart
+        wifiStart(); // Force WiFi to restart
     }
-
-#endif // COMPILE_ESPNOW
 }
 
 // Start ESP-Now if needed, put ESP-Now into broadcast state
@@ -396,8 +837,7 @@ void espnowBeginPairing()
 // Regularly call during pairing to see if we've received a Pairing message
 bool espnowIsPaired()
 {
-#ifdef COMPILE_ESPNOW
-    if (espnowState == ESPNOW_MAC_RECEIVED)
+    if (espNowState == ESPNOW_MAC_RECEIVED)
     {
         // Remove broadcast peer
         uint8_t broadcastMac[6] = {0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF};
@@ -430,16 +870,14 @@ bool espnowIsPaired()
         espnowSetState(ESPNOW_PAIRED);
         return (true);
     }
-#endif // COMPILE_ESPNOW
     return (false);
 }
 
 // Create special pair packet to a given MAC
 esp_err_t espnowSendPairMessage(uint8_t *sendToMac)
 {
-#ifdef COMPILE_ESPNOW
     // Assemble message to send
-    PairMessage pairMessage;
+    ESP_NOW_PAIR_MESSAGE pairMessage;
 
     // Get unit MAC address
     memcpy(pairMessage.macAddress, wifiMACAddress, 6);
@@ -451,9 +889,6 @@ esp_err_t espnowSendPairMessage(uint8_t *sendToMac)
         pairMessage.crc += wifiMACAddress[x];
 
     return (esp_now_send(sendToMac, (uint8_t *)&pairMessage, sizeof(pairMessage))); // Send packet to given MAC
-#else                                                                               // COMPILE_ESPNOW
-    return (ESP_OK);
-#endif                                                                              // COMPILE_ESPNOW
 }
 
 // Add a given MAC address to the peer list
@@ -464,7 +899,6 @@ esp_err_t espnowAddPeer(uint8_t *peerMac)
 
 esp_err_t espnowAddPeer(uint8_t *peerMac, bool encrypt)
 {
-#ifdef COMPILE_ESPNOW
     esp_now_peer_info_t peerInfo;
 
     memcpy(peerInfo.peer_addr, peerMac, 6);
@@ -482,15 +916,11 @@ esp_err_t espnowAddPeer(uint8_t *peerMac, bool encrypt)
                          peerMac[3], peerMac[4], peerMac[5]);
     }
     return (result);
-#else  // COMPILE_ESPNOW
-    return (ESP_OK);
-#endif // COMPILE_ESPNOW
 }
 
 // Remove a given MAC address from the peer list
 esp_err_t espnowRemovePeer(uint8_t *peerMac)
 {
-#ifdef COMPILE_ESPNOW
     esp_err_t response = esp_now_del_peer(peerMac);
     if (response != ESP_OK)
     {
@@ -499,21 +929,18 @@ esp_err_t espnowRemovePeer(uint8_t *peerMac)
     }
 
     return (response);
-#else  // COMPILE_ESPNOW
-    return (ESP_OK);
-#endif // COMPILE_ESPNOW
 }
 
 // Update the state of the ESP Now state machine
 void espnowSetState(ESPNOWState newState)
 {
-    if (espnowState == newState && settings.debugEspNow == true)
+    if (espNowState == newState && settings.debugEspNow == true)
         systemPrint("*");
-    espnowState = newState;
+    espNowState = newState;
 
     if (settings.debugEspNow == true)
     {
-        systemPrint("espnowState: ");
+        systemPrint("espNowState: ");
         switch (newState)
         {
         case ESPNOW_OFF:
@@ -540,11 +967,10 @@ void espnowSetState(ESPNOWState newState)
 
 void espnowProcessRTCM(byte incoming)
 {
-#ifdef COMPILE_ESPNOW
     // If we are paired,
     // Or if the radio is broadcasting
     // Then add bytes to the outgoing buffer
-    if (espnowState == ESPNOW_PAIRED || espnowState == ESPNOW_BROADCASTING)
+    if (espNowState == ESPNOW_PAIRED || espNowState == ESPNOW_BROADCASTING)
     {
         // Move this byte into ESP NOW to send buffer
         espnowOutgoing[espnowOutgoingSpot++] = incoming;
@@ -556,9 +982,9 @@ void espnowProcessRTCM(byte incoming)
     {
         espnowOutgoingSpot = 0; // Wrap
 
-        if (espnowState == ESPNOW_PAIRED)
+        if (espNowState == ESPNOW_PAIRED)
             esp_now_send(0, (uint8_t *)&espnowOutgoing, sizeof(espnowOutgoing)); // Send packet to all peers
-        else // if (espnowState == ESPNOW_BROADCASTING)
+        else // if (espNowState == ESPNOW_BROADCASTING)
         {
             uint8_t broadcastMac[6] = {0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF};
             esp_now_send(broadcastMac, (uint8_t *)&espnowOutgoing,
@@ -571,7 +997,6 @@ void espnowProcessRTCM(byte incoming)
 
         espnowOutgoingRTCM = true;
     }
-#endif // COMPILE_ESPNOW
 }
 
 // A blocking function that is used to pair two devices
@@ -622,8 +1047,7 @@ void espnowStaticPairing()
 // Returns the current channel being used by WiFi
 uint8_t espnowGetChannel()
 {
-#ifdef COMPILE_ESPNOW
-    if (espnowState == ESPNOW_OFF)
+    if (espNowState == ESPNOW_OFF)
         return 0;
 
     bool originalPromiscuousMode = false;
@@ -647,16 +1071,12 @@ uint8_t espnowGetChannel()
         esp_wifi_set_promiscuous(false);
 
     return (primaryChannelNumber);
-#else
-    return (0);
-#endif
 }
 
 // Returns the current channel being used by WiFi
 bool espnowSetChannel(uint8_t channelNumber)
 {
-#ifdef COMPILE_ESPNOW
-    if (wifiIsConnected() == true)
+    if (WIFI_IS_CONNECTED() == true)
     {
         systemPrintln("ESP-NOW channel can't be modified while WiFi is connected.");
         return (false);
@@ -683,7 +1103,6 @@ bool espnowSetChannel(uint8_t channelNumber)
         esp_wifi_set_promiscuous(false);
 
     return (setSuccess);
-#else
-    return (false);
-#endif
 }
+
+#endif  // COMPILE_ESPNOW

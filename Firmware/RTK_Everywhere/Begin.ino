@@ -208,6 +208,7 @@ void beginBoard()
         present.brand = BRAND_SPARKFUN;
         present.psram_2mb = true;
         present.gnss_um980 = true;
+        present.antennaPhaseCenter_mm = 116.5; // Default to Torch helical APC, average of L1/L2
         present.radio_lora = true;
         present.fuelgauge_bq40z50 = true;
         present.charger_mp2762a = true;
@@ -215,7 +216,6 @@ void beginBoard()
         present.button_powerHigh = true; // Button is pressed when high
         present.beeper = true;
         present.gnss_to_uart = true;
-        present.antennaPhaseCenter_mm = 115.7; // Default to Torch helical APC
         present.needsExternalPpl = true;       // Uses the PointPerfect Library
         present.galileoHasCapable = true;
         present.multipathMitigation = true; // UM980 has MPM, other platforms do not
@@ -316,6 +316,7 @@ void beginBoard()
         // Pin defs etc. for EVK v1.1
         present.psram_4mb = true;
         present.gnss_zedf9p = true;
+        present.antennaPhaseCenter_mm = 42.0; // Default to NGS certified SPK6615H APC, average of L1/L2
         present.lband_neo = true;
         present.cellular_lara = true;
         present.ethernet_ws5500 = true;
@@ -443,13 +444,13 @@ void beginBoard()
         present.brand = BRAND_SPARKPNT;
         present.psram_4mb = true;
         present.gnss_zedf9p = true;
+        present.antennaPhaseCenter_mm = 68.5; // Default to L-Band element APC, average of L1/L2
         present.lband_neo = true;
         present.microSd = true;
         present.microSdCardDetectLow = true;
         present.display_i2c0 = true;
         present.display_type = DISPLAY_64x48;
         present.i2c0BusSpeed_400 = true;
-        present.button_mode = true;
         present.peripheralPowerControl = true;
         present.button_powerLow = true; // Button is pressed when low
         present.charger_mcp73833 = true;
@@ -525,12 +526,12 @@ void beginBoard()
         present.brand = BRAND_SPARKPNT;
         present.psram_4mb = true;
         present.gnss_zedf9p = true;
+        present.antennaPhaseCenter_mm = 69.6; // Default to NGS certified RTK Facet element APC, average of L1/L2
         present.microSd = true;
         present.microSdCardDetectLow = true;
         present.display_i2c0 = true;
         present.display_type = DISPLAY_64x48;
         present.i2c0BusSpeed_400 = true;
-        present.button_mode = true;
         present.peripheralPowerControl = true;
         present.button_powerLow = true; // Button is pressed when low
         present.charger_mcp73833 = true;
@@ -620,6 +621,7 @@ void beginBoard()
         present.brand = BRAND_SPARKPNT;
         present.psram_4mb = true;
         present.gnss_mosaicX5 = true;
+        present.antennaPhaseCenter_mm = 68.5; // Default to L-Band element APC, average of L1/L2
         present.display_i2c0 = true;
         present.display_type = DISPLAY_64x48;
         present.i2c0BusSpeed_400 = true;
@@ -690,7 +692,7 @@ void beginBoard()
         present.brand = BRAND_SPARKPNT;
         present.psram_2mb = true;
         present.gnss_lg290p = true;
-        present.antennaPhaseCenter_mm = 42.0; // Default to SPK6618H APC
+        present.antennaPhaseCenter_mm = 42.0; // Default to SPK6618H APC, average of L1/L2
         present.needsExternalPpl = true;      // Uses the PointPerfect Library
         present.gnss_to_uart = true;
 
@@ -711,14 +713,14 @@ void beginBoard()
         pin_GnssUart_TX = 22;
 
         pin_GNSS_Reset = 33;
-        pin_GNSS_TimePulse = 8; // PPS on LG290P
+        pin_GNSS_TimePulse = 36; // PPS on LG290P
 
         pin_SCK = 32;
         pin_POCI = 25;
         pin_PICO = 26;
         pin_microSD_CS = 27;
 
-        pin_gpioExpanderInterrupt = 14; // Pin 'AOI' on Portability Shield
+        pin_gpioExpanderInterrupt = 14; // Pin 'AOI' (Analog Output Input) on Portability Shield
 
         pin_bluetoothStatusLED = 4; // Blue LED
         pin_gnssStatusLED = 0; // Green LED
@@ -975,14 +977,6 @@ void beginGnssUart()
     if (present.gnss_to_uart == false)
         return;
 
-    // Skip if going into configure-via-ethernet mode
-    if (configureViaEthernet)
-    {
-        if (settings.debugNetworkLayer)
-            systemPrintln("configureViaEthernet: skipping beginGnssUart");
-        return;
-    }
-
     size_t length;
     TaskHandle_t taskHandle;
 
@@ -1061,8 +1055,7 @@ void pinGnssUartTask(void *pvParameters)
 
     // Reduce threshold value above which RX FIFO full interrupt is generated
     // Allows more time between when the UART interrupt occurs and when the FIFO buffer overruns
-    // serialGNSS->setRxFIFOFull(50); //Available in >v2.0.5
-    uart_set_rx_full_threshold(2, settings.serialGNSSRxFullThreshold); // uart_num, threshold
+    serialGNSS->setRxFIFOFull(settings.serialGNSSRxFullThreshold);
 
     // Stop notification
     if (settings.printTaskStartStop)
@@ -1075,14 +1068,6 @@ void beginGnssUart2()
 {
     if (present.gnss_to_uart2 == false)
         return;
-
-    // Skip if going into configure-via-ethernet mode
-    if (configureViaEthernet)
-    {
-        if (settings.debugNetworkLayer)
-            systemPrintln("configureViaEthernet: skipping beginGnssUart2");
-        return;
-    }
 
     serial2GNSS = new HardwareSerial(1); // Use UART1 on the ESP32 to communicate with the mosaic
 
@@ -1111,47 +1096,6 @@ void beginFS()
             }
         }
     }
-}
-
-// Check if configureViaEthernet.txt exists
-bool checkConfigureViaEthernet()
-{
-    if (online.fs == false)
-        return false;
-
-    if (LittleFS.exists("/configureViaEthernet.txt"))
-    {
-        if (settings.debugNetworkLayer)
-            systemPrintln("LittleFS configureViaEthernet.txt exists");
-        LittleFS.remove("/configureViaEthernet.txt");
-        return true;
-    }
-
-    return false;
-}
-
-// Force configure-via-ethernet mode by creating configureViaEthernet.txt in LittleFS
-bool forceConfigureViaEthernet()
-{
-    if (online.fs == false)
-        return false;
-
-    if (LittleFS.exists("/configureViaEthernet.txt"))
-    {
-        if (settings.debugNetworkLayer)
-            systemPrintln("LittleFS configureViaEthernet.txt already exists");
-        return true;
-    }
-
-    File cveFile = LittleFS.open("/configureViaEthernet.txt", FILE_WRITE);
-    cveFile.close();
-
-    if (LittleFS.exists("/configureViaEthernet.txt"))
-        return true;
-
-    if (settings.debugNetworkLayer)
-        systemPrintln("Unable to create configureViaEthernet.txt on LittleFS");
-    return false;
 }
 
 // Begin interrupts

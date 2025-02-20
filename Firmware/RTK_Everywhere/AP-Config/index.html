@@ -84,8 +84,8 @@
 <body>
     <div class="container" id="batteryIcon">
         <div align="right" class="battery">
-            <img id="batteryIconFileName" src="src/Battery2_Charging.png" alt="Battery level"> <span id="batteryPercent"
-                class="small" style="display:inline;">+67</span>
+            <img id="batteryIconFileName" src="src/BatteryBlank.png" alt="Battery level"> <span id="batteryPercent"
+                class="small" style="display:inline;"></span>
         </div>
     </div>
 
@@ -242,7 +242,7 @@
                                 <label for="measurementRateHz" class="col-form-label">In
                                     Hz:
                                     <span class="tt" data-bs-placement="right"
-                                        title="The number of solutions or location ‘fixes’ per second. Anything above 4Hz may cause Bluetooth congestion and/or logging discrepancies. Note: The measurement rate is overridden to 1Hz when in Base mode. Default: 4Hz. Limit: 0.000122 to 10Hz.">
+                                        title="The number of solutions or location ‘fixes’ per second. Anything above 4Hz may cause Bluetooth congestion and/or logging discrepancies. Note: The measurement rate is overridden to 1Hz when in Base mode. Default: 4Hz. Limits: 0.000122 to 10Hz.">
                                         <span class="icon-info-circle text-primary ms-2"></span>
                                     </span>
                                 </label>
@@ -257,7 +257,7 @@
                             <div class="col-sm-2 col-12 ms-3 form-group">
                                 <label for="measurementRateSec">Seconds between measurements:
                                     <span class="tt" data-bs-placement="right"
-                                        title="The number of seconds between measurements. This input is the inverse of the measurement rate and is useful when taking a measurement every few seconds across a long survey (24+ hours). Note: The measurement rate is overridden to 1Hz when in Base mode.Limit: 0.1 to 8196 seconds."><span
+                                        title="The number of seconds between measurements. This input is the inverse of the measurement rate and is useful when taking a measurement every few seconds across a long survey (24+ hours). Note: The measurement rate is overridden to 1Hz when in Base mode.Limits: 0.1 to 8196 seconds."><span
                                             class="icon-info-circle text-primary ms-2"></span>
                                     </span>
                                 </label>
@@ -282,29 +282,33 @@
                         </div>
                     </div>
 
-                    <div class="form-group row">
-                        <label for="minElev" class="col-sm-4 col-6 col-form-label">Min SV Elevation:
-                            <span class="tt" data-bs-placement="right"
-                                title="Minimum elevation in degrees for a GNSS satellite to be used in a fix.">
-                                <span class="icon-info-circle text-primary ms-2"></span>
-                            </span>
-                        </label>
-                        <div class="col-sm-4 col-6">
-                            <input type="number" class="form-control" id="minElev">
-                            <p id="minElevError" class="inlineError"></p>
+                    <div class="form-group row" id="minElevConfig">
+                        <div class="form-group row">
+                            <label for="minElev" class="col-sm-4 col-6 col-form-label">Min SV Elevation:
+                                <span class="tt" data-bs-placement="right"
+                                    title="Minimum elevation in degrees for a GNSS satellite to be used in a fix.">
+                                    <span class="icon-info-circle text-primary ms-2"></span>
+                                </span>
+                            </label>
+                            <div class="col-sm-4 col-6">
+                                <input type="number" class="form-control" id="minElev">
+                                <p id="minElevError" class="inlineError"></p>
+                            </div>
                         </div>
                     </div>
 
-                    <div class="form-group row">
-                        <label for="minCNO" class="col-sm-4 col-6 col-form-label">Min C/N0:
-                            <span class="tt" data-bs-placement="right"
-                                title="Minimum satellite signal level to be used in a fix. Default: 6dBHz for ZED-F9P and 10dBHz for UM980.">
-                                <span class="icon-info-circle text-primary ms-2"></span>
-                            </span>
-                        </label>
-                        <div class="col-sm-4 col-6">
-                            <input type="number" class="form-control" id="minCNO">
-                            <p id="minCNOError" class="inlineError"></p>
+                    <div class="form-group row" id="minCNOConfig">
+                        <div class="form-group row">
+                            <label for="minCNO" class="col-sm-4 col-6 col-form-label">Min C/N0:
+                                <span class="tt" data-bs-placement="right"
+                                    title="Minimum satellite signal level to be used in a fix. Default: 6dBHz for ZED-F9P and 10dBHz for UM980.">
+                                    <span class="icon-info-circle text-primary ms-2"></span>
+                                </span>
+                            </label>
+                            <div class="col-sm-4 col-6">
+                                <input type="number" class="form-control" id="minCNO">
+                                <p id="minCNOError" class="inlineError"></p>
+                            </div>
                         </div>
                     </div>
 
@@ -331,8 +335,8 @@
                             <input class="form-check-input" type="checkbox" value="" id="constellation_GPS">
                         </div>
                         <div id="constellationNavic" class="form-check mt-3 box-margin20">
-                            <label class="form-check-label" for="constellation_MAVIC">NAVIC</label>
-                            <input class="form-check-input" type="checkbox" value="" id="constellation_NAVIC">
+                            <label class="form-check-label" for="constellation_NavIC">NAVIC</label>
+                            <input class="form-check-input" type="checkbox" value="" id="constellation_NavIC">
                         </div>
                         <div id="constellationQzss" class="form-check mt-3 box-margin20">
                             <label class="form-check-label" for="constellation_QZSS">QZSS</label>
@@ -464,7 +468,8 @@
                             <div id="mosaicNMEAStreamDropdowns">
                                 <div id="mosaicNMEAStream1Dropdown">
                                     <label for="streamIntervalNMEA_0">NMEA Stream1 interval: </label>
-                                    <select name="streamIntervalNMEA_0" id="streamIntervalNMEA_0" class="form-dropdown mb-2">
+                                    <select name="streamIntervalNMEA_0" id="streamIntervalNMEA_0"
+                                        class="form-dropdown mb-2">
                                         <option value="0">10ms</option>
                                         <option value="1">20ms</option>
                                         <option value="2">40ms</option>
@@ -494,7 +499,8 @@
                                 </div>
                                 <div id="mosaicNMEAStream2Dropdown">
                                     <label for="streamIntervalNMEA_1">NMEA Stream2 interval: </label>
-                                    <select name="streamIntervalNMEA_1" id="streamIntervalNMEA_1" class="form-dropdown mb-2">
+                                    <select name="streamIntervalNMEA_1" id="streamIntervalNMEA_1"
+                                        class="form-dropdown mb-2">
                                         <option value="0">10ms</option>
                                         <option value="1">20ms</option>
                                         <option value="2">40ms</option>
@@ -524,7 +530,7 @@
                             </div>
                             <div id="messageList">
 
-                                
+
                             </div>
                         </div>
                     </div>
@@ -547,7 +553,7 @@
                         <input type="radio" id="baseTypeSurveyIn" name="baseType" class="form-radio" checked>
                         <label for="baseTypeSurveyIn">Survey-In</label>
                         <span class="tt" data-bs-placement="right"
-                            title="If the precise location of a base station is not known it may be obtained by ‘surveying’ the location. The base is fixed in one place and takes approximately 60 seconds worth of readings to obtain a best fit location based on the measurements. This method achieves ~30cm accurate position but can vary. Increasing the Minimum Observation Time and/or Required Mean Deviation will increase accuracy but only to a point. Better accuracy is achieved with long-term logging and post processing. Default: 60s and 5.0m. Limits: 60 to 900s, 1.0 to 5.0m.">
+                            title="If the precise location of a base station is not known it may be obtained by ‘surveying’ the location. The base is fixed in one place and takes approximately 60 seconds worth of readings to obtain a best fit location based on the measurements. This method achieves ~30cm accurate position but can vary. Increasing the Minimum Observation Time and/or Required Mean Deviation will increase accuracy but only to a point. Better accuracy is achieved with long-term logging and post processing. Default: 60s and 5.0m. Limits: 60 to 600s, 1.0 to 5.0m.">
                             <span class="icon-info-circle text-primary ms-2"></span>
                         </span>
                     </div>
@@ -598,7 +604,7 @@
                             <div class="form-group row">
                                 <div class="box-margin40 col-sm-8 col-8 col-form-label">
                                     <button type="button" id="useECEFCoordinates" class="btn btn-primary box-margin20"
-                                        onClick="useECEFCoordinates()">Load ECEF From ZED</button>
+                                        onClick="useECEFCoordinates()">Load ECEF From GNSS</button>
                                     <span class="tt" data-bs-placement="right"
                                         title="Puts the current ECEF coordinates into the fixed X/Y/Z boxes.">
                                         <span class="icon-info-circle text-primary ms-2"></span>
@@ -696,7 +702,7 @@
                                 <div class="box-margin40 col-sm-8 col-8 col-form-label">
                                     <button type="button" id="useGeodeticCoordinates"
                                         class="btn btn-primary box-margin20" onClick="useGeodeticCoordinates()">Load LLh
-                                        From ZED</button>
+                                        From GNSS</button>
                                     <span class="tt" data-bs-placement="right"
                                         title="Puts the current LLh into the fixed LLh boxes.">
                                         <span class="icon-info-circle text-primary ms-2"></span>
@@ -1259,7 +1265,8 @@
 
                         <div id="useLocalizedDistributionCheckbox">
                             <div class="form-check mt-3">
-                                <label class="form-check-label" for="useLocalizedDistribution">Localized Distribution </label>
+                                <label class="form-check-label" for="useLocalizedDistribution">Localized Distribution
+                                </label>
                                 <input class="form-check-input" type="checkbox" value="" id="useLocalizedDistribution">
                                 <span class="tt" data-bs-placement="right"
                                     title="When enabled, localized corrections for your location will be used instead of the continental corrections. Default: Disabled">
@@ -1269,7 +1276,8 @@
 
                             <div id="localizedDistributionTileLevelDropdown">
                                 <label for="localizedDistributionTileLevel">Localized Distribution Tile Level:</label>
-                                <select name="localizedDistributionTileLevel" id="localizedDistributionTileLevel" class="form-dropdown mb-2">
+                                <select name="localizedDistributionTileLevel" id="localizedDistributionTileLevel"
+                                    class="form-dropdown mb-2">
                                     <option value="0">1000 x 1000km Sparse</option>
                                     <option value="1">500 x 500km Sparse</option>
                                     <option value="2">250 x 250km Sparse</option>
@@ -1284,7 +1292,7 @@
                                 <br>
                             </div>
                         </div>
-    
+
 
                     </div>
                 </div>
@@ -1437,17 +1445,19 @@
 
                             <div id="useEnableExtCorrRadio">
                                 <div class="form-check mt-3">
-                                    <label class="form-check-label" for="enableExtCorrRadio">Enable External Radio Corrections</label>
+                                    <label class="form-check-label" for="enableExtCorrRadio">Enable External Radio
+                                        Corrections</label>
                                     <input class="form-check-input" type="checkbox" value="" id="enableExtCorrRadio">
                                     <span class="tt" data-bs-placement="right" id="enableExtCorrRadioInfoText"
                                         title="Enable external radio corrections: RTCM/UBX/SPARTN on ZED-F9P UART2. Default: False">
                                         <span class="icon-info-circle text-primary ms-2"></span>
                                     </span>
                                 </div>
-                                
+
                                 <div id="extCorrRadioSPARTNSourceDropdown" class="mt-3">
                                     <label for="extCorrRadioSPARTNSource">External SPARTN Source: </label>
-                                    <select name="extCorrRadioSPARTNSourceType" id="extCorrRadioSPARTNSource" class="form-dropdown">
+                                    <select name="extCorrRadioSPARTNSourceType" id="extCorrRadioSPARTNSource"
+                                        class="form-dropdown">
                                         <option value="1">L-Band</option>
                                         <option value="0">IP</option>
                                     </select>
@@ -1645,6 +1655,15 @@
                             <p id="tcpServerPortError" class="inlineError"></p>
                         </div>
                     </div>
+
+                    <div class="form-check mt-3">
+                        <input type="checkbox" value="" id="enableNtripCaster" onClick="tcpServerBoxes()">
+                        <label for="enableNtripCaster">NTRIP Caster</label>
+                        <span class="tt" data-bs-placement="right"
+                            title="If enabled, device will emulate an NTRIP caster, allowing inbound NTRIP Clients to connect and get RTCM over the given port.">
+                            <span class="icon-info-circle text-primary ms-2"></span>
+                        </span>
+                    </div>
                 </div>
                 <div class="form-group row">
                     <p id="enableTcpServerError" class="inlineError"></p>
@@ -1689,10 +1708,10 @@
             <div class="card card-body">
 
                 <div class="form-check mt-3">
-                    <label class="form-check-label" for="enableEspNow">ESP-Now </label>
+                    <label class="form-check-label" for="enableEspNow">ESP-NOW</label>
                     <input class="form-check-input" type="checkbox" value="" id="enableEspNow">
                     <span class="tt" data-bs-placement="right"
-                        title="The internal ESP32 can be used as a point-to-point, or point-to-multipoint radio for RTCM transmission. However, Bluetooth SPP cannot be used at the same time; use Bluetooth BLE. Default: Off">
+                        title="The internal ESP32 can be used as a point-to-point, or point-to-multipoint radio for RTCM transmission. Default: Off">
                         <span class="icon-info-circle text-primary ms-2"></span>
                     </span>
                 </div>
@@ -1735,8 +1754,46 @@
                             <p id="btnForgetRadiosMsg" class="inlineSuccess"></p>
                         </div>
                     </div>
-
                 </div>
+
+                <div id="loraConfig" class="collapse mb-2" style="display:none">
+                    <div class="form-check mt-3">
+                        <label class="form-check-label" for="enableLora">LoRa</label>
+                        <input class="form-check-input" type="checkbox" value="" id="enableLora">
+                        <span class="tt" data-bs-placement="right"
+                            title="The internal LoRa Radio can be used as a point-to-point, or point-to-multipoint radio for RTCM transmission. Default: Off">
+                            <span class="icon-info-circle text-primary ms-2"></span>
+                        </span>
+                    </div>
+
+                    <div id="loraDetails" class="collapse mb-2">
+                        <div class="form-check">
+                            Coordination Frequency (MHz):
+                            <span class="tt" data-bs-placement="right"
+                                title="The base frequency used to control hopping between channels. Radios that need to hear each other must use the same coordination frequency. Default: 910MHz. Limits: 903 to 927MHz.">
+                                <span class="icon-info-circle text-primary ms-2"></span>
+                            </span>
+                        </div>
+                        <div class="col-sm-4 col-5 ms-3 form-group">
+                            <input type="number" class="form-control mb-2" id="loraCoordinationFrequency">
+                            <p id="loraCoordinationFrequencyError" class="inlineError"></p>
+                        </div>
+
+                        <div class="form-check">
+                            Seconds before dedicated listening mode:
+                            <span class="tt" data-bs-placement="right"
+                                title="After this number of seconds, incoming serial over USB is ignored so that LoRa serial can flow between devices. Reset the device to re-enable serial over USB. Default: 30s. Limits: 10 to 600s.">
+                                <span class="icon-info-circle text-primary ms-2"></span>
+                            </span>
+                        </div>
+                        <div class="col-sm-4 col-5 ms-3 form-group">
+                            <input type="number" class="form-control mb-2" id="loraSerialInteractionTimeout_s">
+                            <p id="loraSerialInteractionTimeout_sError" class="inlineError"></p>
+                        </div>
+
+                    </div>
+                </div>
+
             </div>
         </div>
 
@@ -1756,7 +1813,7 @@
                     <label for="correctionsSourcesLifetime"
                         class="box-margin40 col-sm-6 col-6 col-form-label">Corrections Source Lifetime:
                         <span class="tt" data-bs-placement="right"
-                            title="A correction source expires if no data is received for this many seconds. Priority will be given to the next highest source. Limit: 5 to 120 seconds.">
+                            title="A correction source expires if no data is received for this many seconds. Priority will be given to the next highest source. Limits: 5 to 120 seconds.">
                             <span class="icon-info-circle text-primary ms-2"></span>
                         </span>
                     </label>
@@ -1826,7 +1883,7 @@
                         <label for="antennaPhaseCenter_mm" class="col-sm-4 col-6 col-form-label">Antenna Phase
                             Center (mm):
                             <span class="tt" data-bs-placement="right"
-                                title="APC is the distance from the base of the antenna to the antenna phase center. This is usually printed on the side of the antenna and is calculated during antenna calibration. Amount is added to HAE before starting fixed base. Common APCs: Torch(116mm)">
+                                title="APC is the distance from the base of the antenna to the antenna phase center. This is usually printed on the side of the antenna and is calculated during antenna calibration. Amount is added to HAE before starting fixed base. Common APCs: Torch(117mm) EVK(42mm) Facet mosaic(69mm) Facet L-Band v2(69mm) Facet v2(70mm)">
                                 <span class="icon-info-circle text-primary ms-2"></span>
                             </span>
                         </label>
@@ -1950,9 +2007,10 @@
                         <option value="0">Rover</option>
                         <option value="1">Base</option>
                         <option value="2">NTP</option>
+                        <option value="3">BaseCast</option>
                     </select>
                     <span class="tt" data-bs-placement="right"
-                        title="Put the system into rover, base or NTP mode at next Power On or Reset.">
+                        title="Put the system into the selected mode at next Power On or Reset.">
                         <span class="icon-info-circle text-primary ms-2"></span>
                     </span>
                 </div>
@@ -1973,7 +2031,7 @@
                             <label for="maxLogTime" class="box-margin40 col-sm-3 col-7 col-form-label">Max Logging
                                 Time (min):
                                 <span class="tt" data-bs-placement="right"
-                                    title="Once the max log time is achieved, logging will cease. This is useful for limiting long term, overnight, static surveys to a certain length of time. Default: 1440 minutes. Limit: 1 to 2880 minutes.">
+                                    title="Once the max log time is achieved, logging will cease. This is useful for limiting long term, overnight, static surveys to a certain length of time. Default: 1440 minutes. Limits: 1 to 2880 minutes.">
                                     <span class="icon-info-circle text-primary ms-2"></span>
                                 </span>
                             </label>
@@ -1984,7 +2042,7 @@
                         <div class="form-group row">
                             <label for="maxLogLength" class="box-margin40 col-sm-3 col-7 col-form-label">Max Log
                                 File Length (min):<span class="tt" data-bs-placement="right"
-                                    title="Once this length of time is achieved, a new log will be created. This is useful for creating multiple logs over a long survey. Default: 1440 minutes. Limit: 1 to 2880 minutes.">
+                                    title="Once this length of time is achieved, a new log will be created. This is useful for creating multiple logs over a long survey. Default: 1440 minutes. Limits: 1 to 2880 minutes.">
                                     <span class="icon-info-circle text-primary ms-2"></span>
                                 </span>
                             </label>
@@ -2049,7 +2107,8 @@
 
                         <div id="enableLoggingRINEXDetails" class="collapse mb-2">
                             <div id="rinexFileDurationDropdown" class="mb-2 mt-3">
-                                <label for="RINEXFileDuration" class="box-margin20 col-sm-3 col-4 col-form-label">RINEX file duration: </label>
+                                <label for="RINEXFileDuration" class="box-margin20 col-sm-3 col-4 col-form-label">RINEX
+                                    file duration: </label>
                                 <select name="RINEXFileDuration" id="RINEXFileDuration" class="form-dropdown">
                                     <option value="0">1 Hour</option>
                                     <option value="1">6 Hours</option>
@@ -2063,7 +2122,8 @@
                             </div>
 
                             <div id="rinexObservationIntervalDropdown" class="mb-2 mt-3">
-                                <label for="RINEXObsInterval" class="box-margin20 col-sm-3 col-4 col-form-label">RINEX observation interval: </label>
+                                <label for="RINEXObsInterval" class="box-margin20 col-sm-3 col-4 col-form-label">RINEX
+                                    observation interval: </label>
                                 <select name="RINEXObsInterval" id="RINEXObsInterval" class="form-dropdown">
                                     <option value="0">1s</option>
                                     <option value="1">2s</option>
@@ -2137,6 +2197,31 @@
                         </label>
                         <input type="number" class="form-control box-small" id="rebootMinutes">
                         <p id="rebootMinutesError" class="inlineError"></p>
+                    </div>
+                </div>
+
+                <div id="shutdownNoChargeTimeoutMinutesCheckboxDetail">
+                    <div class="form-check mt-3">
+                        <label class="form-check-label" for="shutdownNoChargeTimeoutMinutes">Shutdown if not charging:</label>
+                        <input class="form-check-input" type="checkbox" value="" id="shutdownNoChargeTimeoutMinutesCheckbox">
+                        <span class="tt" data-bs-placement="right"
+                            title="If enabled, device will turn off if no external charger is present. This is helpful when deploying in machinery or where a user may forget to turn the device off. Default: Disabled">
+                            <span class="icon-info-circle text-primary ms-2"></span>
+                        </span>
+                    </div>
+                </div>
+
+                <div id="shutdownNoChargeTimeoutMinutesDetails" class="collapse mb-2">
+                    <div class="form-group row">
+                        <label for="shutdownNoChargeTimeoutMinutes" class="box-margin40 col-sm-3 col-7 col-form-label">Minutes before
+                            shutdown:
+                            <span class="tt" data-bs-placement="right"
+                                title="If shutdown is enabled, the device will turn off after this many minutes if no external charger is detected. Limits: 0 (disabled) to 10,080.">
+                                <span class="icon-info-circle text-primary ms-2"></span>
+                            </span>
+                        </label>
+                        <input type="number" class="form-control box-small" id="shutdownNoChargeTimeoutMinutes">
+                        <p id="shutdownNoChargeTimeoutMinutesError" class="inlineError"></p>
                     </div>
                 </div>
 
@@ -2253,7 +2338,7 @@
             <button class="btn btn-primary mt-3 toggle-btn" id="ntpConfig" type="button" data-toggle="collapse"
                 data-target="#collapseNTPConfig" aria-expanded="false" aria-controls="collapseNTPConfig"
                 style="display:none">
-                NTP Configuration <i id="ntpCaret" class="caret-icon bi icon-caret-down"></i>
+                NTP Configuration<i id="ntpCaret" class="caret-icon bi icon-caret-down"></i>
             </button>
         </div>
         <div class="collapse" id="collapseNTPConfig">
@@ -2310,7 +2395,7 @@
                 <div class="form-group row">
                     <label for="ntpReferenceId" class="col-5 col-form-label">Reference ID:
                         <span class="tt" data-bs-placement="right"
-                            title="This code identifies the reference clock. Default: GPS. Limit: 1-4 characters">
+                            title="This code identifies the reference clock. Default: GPS. Limits: 1-4 characters">
                             <span class="icon-info-circle text-primary ms-2"></span>
                         </span>
                     </label>

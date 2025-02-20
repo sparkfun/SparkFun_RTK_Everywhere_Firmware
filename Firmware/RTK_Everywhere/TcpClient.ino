@@ -128,14 +128,14 @@ TcpClient.ino
 enum tcpClientStates
 {
     TCP_CLIENT_STATE_OFF = 0,
-    TCP_CLIENT_STATE_NETWORK_STARTED,
+    TCP_CLIENT_STATE_WAIT_FOR_NETWORK,
     TCP_CLIENT_STATE_CLIENT_STARTING,
     TCP_CLIENT_STATE_CONNECTED,
     // Insert new states here
     TCP_CLIENT_STATE_MAX // Last entry in the state list
 };
 
-const char *const tcpClientStateName[] = {"TCP_CLIENT_STATE_OFF", "TCP_CLIENT_STATE_NETWORK_STARTED",
+const char *const tcpClientStateName[] = {"TCP_CLIENT_STATE_OFF", "TCP_CLIENT_STATE_WAIT_FOR_NETWORK",
                                           "TCP_CLIENT_STATE_CLIENT_STARTING", "TCP_CLIENT_STATE_CONNECTED"};
 
 const int tcpClientStateNameEntries = sizeof(tcpClientStateName) / sizeof(tcpClientStateName[0]);
@@ -148,7 +148,6 @@ const RtkMode_t tcpClientMode = RTK_MODE_BASE_FIXED | RTK_MODE_BASE_SURVEY_IN | 
 
 static NetworkClient *tcpClient;
 static IPAddress tcpClientIpAddress;
-static NetPriority_t tcpClientPriority = NETWORK_OFFLINE;
 static uint8_t tcpClientState;
 static volatile RING_BUFFER_OFFSET tcpClientTail;
 static volatile bool tcpClientWriteError;
@@ -355,6 +354,14 @@ void tcpClientStop()
     tcpClientSetState(TCP_CLIENT_STATE_OFF);
 }
 
+// Return true if we are in a state that requires network access
+bool tcpClientNeedsNetwork()
+{
+    if (tcpClientState >= TCP_CLIENT_STATE_WAIT_FOR_NETWORK && tcpClientState <= TCP_CLIENT_STATE_CONNECTED)
+        return true;
+    return false;
+}
+
 // Update the TCP client state
 void tcpClientUpdate()
 {
@@ -383,7 +390,7 @@ void tcpClientUpdate()
                 | tcpClientStop             | settings.enableTcpClient
                 |                           |
                 |                           V
-                +<----------TCP_CLIENT_STATE_NETWORK_STARTED
+                +<----------TCP_CLIENT_STATE_WAIT_FOR_NETWORK
                 ^                           |
                 |                           | networkUserConnected
                 |                           |
@@ -409,23 +416,22 @@ void tcpClientUpdate()
         if (EQ_RTK_MODE(tcpClientMode) && settings.enableTcpClient)
         {
             timer = 0;
-            tcpClientPriority = NETWORK_OFFLINE;
-            tcpClientSetState(TCP_CLIENT_STATE_NETWORK_STARTED);
+            tcpClientSetState(TCP_CLIENT_STATE_WAIT_FOR_NETWORK);
         }
         break;
 
     // Wait until the network is connected
-    case TCP_CLIENT_STATE_NETWORK_STARTED:
+    case TCP_CLIENT_STATE_WAIT_FOR_NETWORK:
         // Determine if the TCP client was turned off
         if (NEQ_RTK_MODE(tcpClientMode) || !settings.enableTcpClient)
             tcpClientStop();
 
-        // Wait until the network is connected to the media
-        else if (networkIsConnected(&tcpClientPriority))
+        // Wait until the network is connected
+        else if (networkHasInternet())
         {
 #ifdef COMPILE_WIFI
             // Determine if WiFi is required
-            if ((!strlen(settings.tcpClientHost)) && (!networkIsInterfaceOnline(NETWORK_WIFI)))
+            if ((!strlen(settings.tcpClientHost)) && (!networkInterfaceHasInternet(NETWORK_WIFI)))
             {
                 // Wrong network type, WiFi is required but another network is being used
                 if ((millis() - timer) >= (15 * 1000))
@@ -457,7 +463,7 @@ void tcpClientUpdate()
     // Attempt the connection ot the TCP server
     case TCP_CLIENT_STATE_CLIENT_STARTING:
         // Determine if the network has failed
-        if (!networkIsConnected(&tcpClientPriority))
+        if (networkHasInternet() == false)
             // Failed to connect to to the network, attempt to restart the network
             tcpClientStop();
 
@@ -502,7 +508,7 @@ void tcpClientUpdate()
     // Wait for the TCP client to shutdown or a TCP client link failure
     case TCP_CLIENT_STATE_CONNECTED:
         // Determine if the network has failed
-        if (!networkIsConnected(&tcpClientPriority))
+        if (networkHasInternet() == false)
             // Failed to connect to to the network, attempt to restart the network
             tcpClientStop();
 

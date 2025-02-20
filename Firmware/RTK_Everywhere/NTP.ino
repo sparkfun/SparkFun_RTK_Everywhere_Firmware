@@ -75,7 +75,6 @@ const RtkMode_t ntpServerMode = RTK_MODE_NTP;
 // Locals
 //----------------------------------------
 
-static NetPriority_t ntpServerPriority = NETWORK_OFFLINE;
 static NetworkUDP *ntpServer; // This will be instantiated when we know the NTP port
 static uint8_t ntpServerState;
 static uint32_t lastLoggedNTPRequest;
@@ -701,16 +700,6 @@ bool configureUbloxModuleNTP()
     if (online.gnss == false)
         return (false);
 
-    // If our settings haven't changed, and this is first config since power on, trust GNSS's settings
-    // Unless this is an EVK - where the GNSS has no battery-backed RAM
-    if ((productVariant != RTK_EVK) && (settings.updateGNSSSettings == false) && (firstPowerOn == true))
-    {
-        firstPowerOn = false; // Next time user switches modes, new settings will be applied
-        log_d("Skipping ZED NTP configuration");
-        return (true);
-    }
-    firstPowerOn = false; // If we switch between rover/base in the future, force config of module.
-
     gnss->update(); // Regularly poll to get latest data
     return gnss->configureNtpMode();
 }
@@ -791,9 +780,8 @@ void ntpServerUpdate()
         if (EQ_RTK_MODE(ntpServerMode))
         {
             // The NTP server only works over Ethernet
-            if (networkIsInterfaceOnline(NETWORK_ETHERNET))
+            if (networkInterfaceHasInternet(NETWORK_ETHERNET))
             {
-                ntpServerPriority = NETWORK_OFFLINE;
                 ntpServerSetState(NTP_STATE_NETWORK_CONNECTED);
             }
         }
@@ -801,7 +789,7 @@ void ntpServerUpdate()
 
     case NTP_STATE_NETWORK_CONNECTED:
         // Determine if the network has failed
-        if (!networkIsConnected(&ntpServerPriority))
+        if (networkHasInternet() == false)
             // Stop the NTP server, restart it if possible
             ntpServerStop();
 
@@ -825,7 +813,7 @@ void ntpServerUpdate()
 
     case NTP_STATE_SERVER_RUNNING:
         // Determine if the network has failed
-        if (!networkIsConnected(&ntpServerPriority))
+        if (networkHasInternet() == false)
             // Stop the NTP server, restart it if possible
             ntpServerStop();
 

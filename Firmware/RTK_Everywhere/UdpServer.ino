@@ -69,7 +69,7 @@ UdpServer.ino
 enum udpServerStates
 {
     UDP_SERVER_STATE_OFF = 0,
-    UDP_SERVER_STATE_NETWORK_STARTED,
+    UDP_SERVER_STATE_WAIT_FOR_NETWORK,
     UDP_SERVER_STATE_RUNNING,
     // Insert new states here
     UDP_SERVER_STATE_MAX // Last entry in the state list
@@ -77,7 +77,7 @@ enum udpServerStates
 
 const char *const udpServerStateName[] = {
     "UDP_SERVER_STATE_OFF",
-    "UDP_SERVER_STATE_NETWORK_STARTED",
+    "UDP_SERVER_STATE_WAIT_FOR_NETWORK",
     "UDP_SERVER_STATE_RUNNING",
 };
 
@@ -94,7 +94,6 @@ static NetworkUDP *udpServer = nullptr;
 static uint8_t udpServerState;
 static uint32_t udpServerTimer;
 static volatile RING_BUFFER_OFFSET udpServerTail;
-static NetPriority_t udpServerPriority;
 
 //----------------------------------------
 // UDP Server handleGnssDataTask Support Routines
@@ -107,7 +106,7 @@ int32_t udpServerSendDataBroadcast(uint8_t *data, uint16_t length)
         return 0;
 
     // Send the data as broadcast
-    if (settings.enableUdpServer && online.udpServer && networkIsConnected(&udpServerPriority))
+    if (settings.enableUdpServer && online.udpServer && networkHasInternet())
     {
         IPAddress broadcastAddress = networkGetBroadcastIpAddress();
         udpServer->beginPacket(broadcastAddress, settings.udpServerPort);
@@ -276,6 +275,14 @@ void udpServerStop()
     }
 }
 
+// Return true if we are in a state that requires network access
+bool udpServerNeedsNetwork()
+{
+    if (udpServerState >= UDP_SERVER_STATE_WAIT_FOR_NETWORK && udpServerState <= UDP_SERVER_STATE_RUNNING)
+        return true;
+    return false;
+}
+
 // Update the UDP server state
 void udpServerUpdate()
 {
@@ -297,7 +304,7 @@ void udpServerUpdate()
                 | udpServerStop             | settings.enableUdpServer
                 |                           |
                 |                           V
-                +<---------UDP_SERVER_STATE_NETWORK_STARTED
+                +<---------UDP_SERVER_STATE_WAIT_FOR_NETWORK
                 ^                           |
                 |                           | networkUserConnected
                 |                           |
@@ -317,19 +324,18 @@ void udpServerUpdate()
         {
             if (settings.debugUdpServer && (!inMainMenu))
                 systemPrintln("UDP server starting the network");
-            udpServerPriority = NETWORK_OFFLINE;
-            udpServerSetState(UDP_SERVER_STATE_NETWORK_STARTED);
+            udpServerSetState(UDP_SERVER_STATE_WAIT_FOR_NETWORK);
         }
         break;
 
     // Wait until the network is connected
-    case UDP_SERVER_STATE_NETWORK_STARTED:
+    case UDP_SERVER_STATE_WAIT_FOR_NETWORK:
         // Determine if the UDP server was turned off
         if (NEQ_RTK_MODE(udpServerMode) || !settings.enableUdpServer)
             udpServerStop();
 
-        // Wait until the network is connected to the media
-        else if (networkIsConnected(&udpServerPriority))
+        // Wait until the network is connected
+        else if (networkHasInternet() || WIFI_SOFT_AP_RUNNING())
         {
             // Delay before starting the UDP server
             if ((millis() - udpServerTimer) >= (1 * 1000))
@@ -347,7 +353,7 @@ void udpServerUpdate()
     // Handle client connections and link failures
     case UDP_SERVER_STATE_RUNNING:
         // Determine if the network has failed
-        if ((!settings.enableUdpServer) || (!networkIsConnected(&udpServerPriority)))
+        if ((networkHasInternet() == false && WIFI_SOFT_AP_RUNNING() == false) || (!settings.enableUdpServer && !settings.baseCasterOverride))
         {
             if ((settings.debugUdpServer || PERIODIC_DISPLAY(PD_UDP_SERVER_DATA)) && (!inMainMenu))
             {

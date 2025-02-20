@@ -304,6 +304,7 @@ void displayUpdate()
                 setRadioIcons(&iconPropertyList);
                 break;
 
+            case (STATE_BASE_CASTER_NOT_STARTED):
             case (STATE_BASE_NOT_STARTED):
                 // Do nothing. Static display shown during state change.
                 break;
@@ -326,6 +327,7 @@ void displayUpdate()
                 displayFullIPAddress(&iconPropertyList);     // Bottom left - 128x64 only
                 setRadioIcons(&iconPropertyList);
                 paintBaseTempSurveyStarted(&iconPropertyList);
+                displaySivVsOpenShort(&iconPropertyList); // 128x64 only
                 break;
             case (STATE_BASE_TEMP_TRANSMITTING):
                 paintLogging(&iconPropertyList);
@@ -333,6 +335,7 @@ void displayUpdate()
                 displayFullIPAddress(&iconPropertyList);     // Bottom left - 128x64 only
                 setRadioIcons(&iconPropertyList);
                 paintRTCM(&iconPropertyList);
+                displaySivVsOpenShort(&iconPropertyList); // 128x64 only
                 break;
             case (STATE_BASE_FIXED_NOT_STARTED):
                 displayBatteryVsEthernet(&iconPropertyList); // Top right
@@ -345,6 +348,7 @@ void displayUpdate()
                 displayFullIPAddress(&iconPropertyList);     // Bottom left - 128x64 only
                 setRadioIcons(&iconPropertyList);
                 paintRTCM(&iconPropertyList);
+                displaySivVsOpenShort(&iconPropertyList); // 128x64 only
                 break;
 
             case (STATE_NTPSERVER_NOT_STARTED):
@@ -355,7 +359,7 @@ void displayUpdate()
                 iconPropertyBlinking prop;
                 prop.icon = EthernetIconProperties.iconDisplay[present.display_type];
 #ifdef COMPILE_ETHERNET
-                if (networkIsInterfaceOnline(NETWORK_ETHERNET))
+                if (networkInterfaceHasInternet(NETWORK_ETHERNET))
                     prop.duty = 0b11111111;
                 else
 #endif // COMPILE_ETHERNET
@@ -377,7 +381,7 @@ void displayUpdate()
                 iconPropertyBlinking prop;
                 prop.icon = EthernetIconProperties.iconDisplay[present.display_type];
 #ifdef COMPILE_ETHERNET
-                if (networkIsInterfaceOnline(NETWORK_ETHERNET))
+                if (networkInterfaceHasInternet(NETWORK_ETHERNET))
                     prop.duty = 0b11111111;
                 else
 #endif // COMPILE_ETHERNET
@@ -391,28 +395,23 @@ void displayUpdate()
             }
             break;
 
-            case (STATE_CONFIG_VIA_ETH_NOT_STARTED):
-                break;
-            case (STATE_CONFIG_VIA_ETH_STARTED):
-                break;
-            case (STATE_CONFIG_VIA_ETH):
-                displayConfigViaEthernet();
-                break;
-            case (STATE_CONFIG_VIA_ETH_RESTART_BASE):
-                break;
-
             case (STATE_PROFILE):
                 paintProfile(displayProfile);
                 break;
             case (STATE_DISPLAY_SETUP):
                 paintDisplaySetup();
                 break;
-            case (STATE_WIFI_CONFIG_NOT_STARTED):
-                displayWiFiConfigNotStarted(); // Display 'WiFi Config'
+            case (STATE_WEB_CONFIG_NOT_STARTED):
+                displayWebConfigNotStarted(); // Display 'Web Config'
                 break;
-            case (STATE_WIFI_CONFIG):
-                setWiFiIcon(&iconPropertyList); // Blink WiFi in center
-                displayWiFiConfig();            // Display SSID and IP
+            case (STATE_WEB_CONFIG):
+                if (networkInterfaceHasInternet(NETWORK_ETHERNET))
+                    displayConfigViaEthernet();
+                else
+                {
+                    setWiFiIcon(&iconPropertyList); // Blink WiFi in center
+                    displayConfigViaWiFi();         // Display SSID and IP
+                }
                 break;
             case (STATE_TEST):
                 paintSystemTest();
@@ -655,9 +654,9 @@ void setRadioIcons(std::vector<iconPropertyBlinking> *iconList)
 
             // Count the number of radios in use
             uint8_t numberOfRadios = 1; // Bluetooth always indicated. TODO don't count if BT radio type is OFF.
-            if (wifiIsRunning())
+            if (WIFI_IS_RUNNING())
                 numberOfRadios++;
-            if (espnowState > ESPNOW_OFF)
+            if (espnowGetState() > ESPNOW_OFF)
                 numberOfRadios++;
 
             // Bluetooth only
@@ -672,9 +671,9 @@ void setRadioIcons(std::vector<iconPropertyBlinking> *iconList)
                 setBluetoothIcon_TwoRadios(iconList);
 
                 // Do we have WiFi or ESP
-                if (wifiIsRunning())
+                if (WIFI_IS_RUNNING())
                     setWiFiIcon_TwoRadios(iconList);
-                else if (espnowState > ESPNOW_OFF)
+                else if (espnowGetState() > ESPNOW_OFF)
                     setESPNowIcon_TwoRadios(iconList);
 
                 setModeIcon(iconList); // Turn on Rover/Base type icons
@@ -693,6 +692,39 @@ void setRadioIcons(std::vector<iconPropertyBlinking> *iconList)
 
                 // No Rover/Base icons
             }
+
+
+            // On 64x48: squeeze the icon between SIV and logging
+            static bool correctionsIconPosCalculated = false;
+            const uint8_t correctionsIconXPos = 39;
+            static uint8_t correctionsIconYPos = 48;
+            // Calculate the highest (lowest!) Y position for the corrections icon
+            // Do it only once...
+            if (!correctionsIconPosCalculated)
+            {
+                for (int i = 0; i < CORR_NUM; i++)
+                    if ((48 - (correctionIconAttributes[i].yOffset + correctionIconAttributes[i].height)) <
+                        correctionsIconYPos)
+                        correctionsIconYPos =
+                            48 - (correctionIconAttributes[i].yOffset + correctionIconAttributes[i].height);
+                correctionsIconPosCalculated = true;
+            }
+
+            if (inRoverMode() == true)
+            {
+                CORRECTION_ID_T correctionSource = correctionGetSource();
+                if (correctionSource < CORR_NUM)
+                {
+                    iconPropertyBlinking prop;
+                    prop.duty = 0b11111111;
+                    prop.icon.bitmap = correctionIconAttributes[correctionSource].pointer;
+                    prop.icon.width = correctionIconAttributes[correctionSource].width;
+                    prop.icon.height = correctionIconAttributes[correctionSource].height;
+                    prop.icon.xPos = correctionsIconXPos + correctionIconAttributes[correctionSource].xOffset;
+                    prop.icon.yPos = correctionsIconYPos + correctionIconAttributes[correctionSource].yOffset;
+                    iconList->push_back(prop);
+                }
+            }
         }
         else if (present.display_type == DISPLAY_128x64)
         {
@@ -707,7 +739,7 @@ void setRadioIcons(std::vector<iconPropertyBlinking> *iconList)
                 iconList->push_back(prop);
             }
 
-            if (wifiIsRunning()) // WiFi : Columns 34 - 46
+            if (WIFI_IS_RUNNING()) // WiFi : Columns 34 - 46
             {
 #ifdef COMPILE_WIFI
                 int wifiRSSI = WiFi.RSSI();
@@ -754,7 +786,7 @@ void setRadioIcons(std::vector<iconPropertyBlinking> *iconList)
             }
 #endif // /COMPILE_CELLULAR
 
-            if (espnowState == ESPNOW_PAIRED) // ESPNOW : Columns 64 - 71
+            if (espnowGetState() == ESPNOW_PAIRED) // ESPNOW : Columns 64 - 71
             {
                 iconPropertyBlinking prop;
                 prop.duty = 0b11111111;
@@ -793,7 +825,7 @@ void setRadioIcons(std::vector<iconPropertyBlinking> *iconList)
                 }
             }
 
-            if (espnowState == ESPNOW_PAIRED)
+            if (espnowGetState() == ESPNOW_PAIRED)
             {
                 if (espnowIncomingRTCM == true) // Download : Columns 74 - 81
                 {
@@ -823,24 +855,24 @@ void setRadioIcons(std::vector<iconPropertyBlinking> *iconList)
                 usbSerialIncomingRtcm = false;
             }
 
-            bool networkOnline = false;
+            bool networkHasInternet = false;
 
 #ifdef COMPILE_ETHERNET
-            if (networkIsInterfaceOnline(NETWORK_ETHERNET))
-                networkOnline = true;
+            if (networkInterfaceHasInternet(NETWORK_ETHERNET))
+                networkHasInternet = true;
 #endif // COMPILE_ETHERNET
 
 #ifdef COMPILE_WIFI
-            if (networkIsInterfaceOnline(NETWORK_WIFI))
-                networkOnline = true;
+            if (networkInterfaceHasInternet(NETWORK_WIFI))
+                networkHasInternet = true;
 #endif // COMPILE_WIFI
 
 #ifdef COMPILE_CELLULAR
-            if (networkIsInterfaceOnline(NETWORK_CELLULAR))
-                networkOnline = true;
+            if (networkInterfaceHasInternet(NETWORK_CELLULAR))
+                networkHasInternet = true;
 #endif // COMPILE_CELLULAR
 
-            if (networkOnline)
+            if (networkHasInternet)
             {
                 if (netIncomingRTCM == true) // Download : Columns 74 - 81
                 {
@@ -902,16 +934,18 @@ void setRadioIcons(std::vector<iconPropertyBlinking> *iconList)
                 break;
             }
 
-            // Put the corrections source icon on the bottom, right of the IP address
+            // On 128x64: put the corrections source icon on the bottom, right of the IP address
             static bool correctionsIconPosCalculated = false;
-            const uint8_t correctionsIconXPos128x64 = 96;
-            static uint8_t correctionsIconYPos128x64 = 64;
+            const uint8_t correctionsIconXPos = 96;
+            static uint8_t correctionsIconYPos = 64;
+            // Calculate the highest (lowest!) Y position for the corrections icon
+            // Do it only once...
             if (!correctionsIconPosCalculated)
             {
                 for (int i = 0; i < CORR_NUM; i++)
                     if ((64 - (correctionIconAttributes[i].yOffset + correctionIconAttributes[i].height)) <
-                        correctionsIconYPos128x64)
-                        correctionsIconYPos128x64 =
+                        correctionsIconYPos)
+                        correctionsIconYPos =
                             64 - (correctionIconAttributes[i].yOffset + correctionIconAttributes[i].height);
                 correctionsIconPosCalculated = true;
             }
@@ -926,8 +960,8 @@ void setRadioIcons(std::vector<iconPropertyBlinking> *iconList)
                     prop.icon.bitmap = correctionIconAttributes[correctionSource].pointer;
                     prop.icon.width = correctionIconAttributes[correctionSource].width;
                     prop.icon.height = correctionIconAttributes[correctionSource].height;
-                    prop.icon.xPos = correctionsIconXPos128x64 + correctionIconAttributes[correctionSource].xOffset;
-                    prop.icon.yPos = correctionsIconYPos128x64 + correctionIconAttributes[correctionSource].yOffset;
+                    prop.icon.xPos = correctionsIconXPos + correctionIconAttributes[correctionSource].xOffset;
+                    prop.icon.yPos = correctionsIconYPos + correctionIconAttributes[correctionSource].yOffset;
                     iconList->push_back(prop);
                 }
             }
@@ -1024,7 +1058,7 @@ void setBluetoothIcon_TwoRadios(std::vector<iconPropertyBlinking> *iconList)
 // This is 64x48-specific
 void setESPNowIcon_TwoRadios(std::vector<iconPropertyBlinking> *iconList)
 {
-    if (espnowState == ESPNOW_PAIRED)
+    if (espnowGetState() == ESPNOW_PAIRED)
     {
         if (espnowIncomingRTCM == true || espnowOutgoingRTCM == true)
         {
@@ -1039,7 +1073,7 @@ void setESPNowIcon_TwoRadios(std::vector<iconPropertyBlinking> *iconList)
                 prop.icon = ESPNowSymbol1Left64x48;
             else // if (espnowRSSI > -255)
                 prop.icon =
-                    ESPNowSymbol0Left64x48; // Always show the synbol because we've got incoming or outgoing data
+                    ESPNowSymbol0Left64x48; // Always show the symbol because we've got incoming or outgoing data
             iconList->push_back(prop);
 
             // Share the spot. Determine if we need to indicate Up, or Down
@@ -1100,7 +1134,7 @@ void setESPNowIcon_TwoRadios(std::vector<iconPropertyBlinking> *iconList)
 void setWiFiIcon_TwoRadios(std::vector<iconPropertyBlinking> *iconList)
 {
 #ifdef COMPILE_WIFI
-    if (networkIsInterfaceOnline(NETWORK_WIFI))
+    if (networkInterfaceHasInternet(NETWORK_WIFI))
     {
         if (netIncomingRTCM || netOutgoingRTCM || mqttClientDataReceived)
         {
@@ -1170,7 +1204,7 @@ void setWiFiIcon_TwoRadios(std::vector<iconPropertyBlinking> *iconList)
 void setWiFiIcon_ThreeRadios(std::vector<iconPropertyBlinking> *iconList)
 {
 #ifdef COMPILE_WIFI
-    if (networkIsInterfaceOnline(NETWORK_WIFI))
+    if (networkInterfaceHasInternet(NETWORK_WIFI))
     {
         if (netIncomingRTCM || netOutgoingRTCM || mqttClientDataReceived)
         {
@@ -1249,7 +1283,7 @@ void setWiFiIcon(std::vector<iconPropertyBlinking> *iconList)
         icon.icon.yPos = 0;
 
 #ifdef COMPILE_WIFI
-        if (networkIsInterfaceOnline(NETWORK_WIFI))
+        if (networkInterfaceHasInternet(NETWORK_WIFI))
             icon.duty = 0b11111111;
         else
 #endif // COMPILE_WIFI
@@ -1279,6 +1313,7 @@ void setModeIcon(std::vector<iconPropertyBlinking> *iconList)
         paintDynamicModel(iconList);
         break;
 
+    case (STATE_BASE_CASTER_NOT_STARTED):
     case (STATE_BASE_NOT_STARTED):
         // Do nothing. Static display shown during state change.
         break;
@@ -1472,58 +1507,114 @@ void paintClockAccuracy(displayCoords textCoords)
 // Draw the rover icon depending on screen
 void paintDynamicModel(std::vector<iconPropertyBlinking> *iconList)
 {
-    if (online.gnss == true)
+    if (present.dynamicModel && online.gnss)
     {
         iconPropertyBlinking prop;
+        prop.icon.bitmap = nullptr; // Use this as the test a valid icon
         prop.duty = 0b11111111;
 
-        // Display icon associated with current Dynamic Model
-        switch (settings.dynamicModel)
+        if (present.gnss_zedf9p)
         {
-        default:
-            break;
-
 #ifdef COMPILE_ZED
-        case (DYN_MODEL_PORTABLE):
-            prop.icon = DynamicModel_1_Properties.iconDisplay[present.display_type];
-            break;
-        case (DYN_MODEL_STATIONARY):
-            prop.icon = DynamicModel_2_Properties.iconDisplay[present.display_type];
-            break;
-        case (DYN_MODEL_PEDESTRIAN):
-            prop.icon = DynamicModel_3_Properties.iconDisplay[present.display_type];
-            break;
-        case (DYN_MODEL_AUTOMOTIVE):
-            prop.icon = DynamicModel_4_Properties.iconDisplay[present.display_type];
-            break;
-        case (DYN_MODEL_SEA):
-            prop.icon = DynamicModel_5_Properties.iconDisplay[present.display_type];
-            break;
-        case (DYN_MODEL_AIRBORNE1g):
-            prop.icon = DynamicModel_6_Properties.iconDisplay[present.display_type];
-            break;
-        case (DYN_MODEL_AIRBORNE2g):
-            prop.icon = DynamicModel_7_Properties.iconDisplay[present.display_type];
-            break;
-        case (DYN_MODEL_AIRBORNE4g):
-            prop.icon = DynamicModel_8_Properties.iconDisplay[present.display_type];
-            break;
-        case (DYN_MODEL_WRIST):
-            prop.icon = DynamicModel_9_Properties.iconDisplay[present.display_type];
-            break;
-        case (DYN_MODEL_BIKE):
-            prop.icon = DynamicModel_10_Properties.iconDisplay[present.display_type];
-            break;
-        case (DYN_MODEL_MOWER):
-            prop.icon = DynamicModel_11_Properties.iconDisplay[present.display_type];
-            break;
-        case (DYN_MODEL_ESCOOTER):
-            prop.icon = DynamicModel_12_Properties.iconDisplay[present.display_type];
-            break;
+            // Display icon associated with current Dynamic Model
+            switch (settings.dynamicModel)
+            {
+            default:
+                break;
+
+            case (DYN_MODEL_PORTABLE): // 0
+                prop.icon = DynamicModel_1_Properties.iconDisplay[present.display_type];
+                break;
+            case (DYN_MODEL_STATIONARY): // 2
+                prop.icon = DynamicModel_2_Properties.iconDisplay[present.display_type];
+                break;
+            case (DYN_MODEL_PEDESTRIAN):
+                prop.icon = DynamicModel_3_Properties.iconDisplay[present.display_type];
+                break;
+            case (DYN_MODEL_AUTOMOTIVE):
+                prop.icon = DynamicModel_4_Properties.iconDisplay[present.display_type];
+                break;
+            case (DYN_MODEL_SEA):
+                prop.icon = DynamicModel_5_Properties.iconDisplay[present.display_type];
+                break;
+            case (DYN_MODEL_AIRBORNE1g):
+                prop.icon = DynamicModel_6_Properties.iconDisplay[present.display_type];
+                break;
+            case (DYN_MODEL_AIRBORNE2g):
+                prop.icon = DynamicModel_7_Properties.iconDisplay[present.display_type];
+                break;
+            case (DYN_MODEL_AIRBORNE4g):
+                prop.icon = DynamicModel_8_Properties.iconDisplay[present.display_type];
+                break;
+            case (DYN_MODEL_WRIST):
+                prop.icon = DynamicModel_9_Properties.iconDisplay[present.display_type];
+                break;
+            case (DYN_MODEL_BIKE):
+                prop.icon = DynamicModel_10_Properties.iconDisplay[present.display_type];
+                break;
+            case (DYN_MODEL_MOWER):
+                prop.icon = DynamicModel_11_Properties.iconDisplay[present.display_type];
+                break;
+            case (DYN_MODEL_ESCOOTER):
+                prop.icon = DynamicModel_12_Properties.iconDisplay[present.display_type];
+                break;
+            }
 #endif // COMPILE_ZED
         }
+        else if (present.gnss_um980)
+        {
+#ifdef COMPILE_UM980
+            // Display icon associated with current Dynamic Model
+            switch (settings.dynamicModel)
+            {
+            default:
+                break;
 
-        iconList->push_back(prop);
+            case UM980_DYN_MODEL_SURVEY:
+                prop.icon = DynamicModel_2_Properties.iconDisplay[present.display_type]; // Stationary
+                break;
+            case UM980_DYN_MODEL_UAV:
+                prop.icon = DynamicModel_6_Properties.iconDisplay[present.display_type]; // Airborne1g
+                break;
+            case UM980_DYN_MODEL_AUTOMOTIVE:
+                prop.icon = DynamicModel_4_Properties.iconDisplay[present.display_type]; // Automotive
+                break;
+            }
+#endif // COMPILE_UM980
+        }
+        else if (present.gnss_mosaicX5)
+        {
+#ifdef COMPILE_MOSAICX5
+            // Display icon associated with current Dynamic Model
+            switch (settings.dynamicModel)
+            {
+            default:
+                break;
+
+            case MOSAIC_DYN_MODEL_STATIC:
+            case MOSAIC_DYN_MODEL_QUASISTATIC:
+                prop.icon = DynamicModel_2_Properties.iconDisplay[present.display_type]; // Stationary
+                break;
+            case MOSAIC_DYN_MODEL_PEDESTRIAN:
+                prop.icon = DynamicModel_3_Properties.iconDisplay[present.display_type]; // Pedestrian
+                break;
+            case MOSAIC_DYN_MODEL_AUTOMOTIVE:
+            case MOSAIC_DYN_MODEL_RACECAR:
+            case MOSAIC_DYN_MODEL_HEAVYMACHINERY:
+                prop.icon = DynamicModel_4_Properties.iconDisplay[present.display_type]; // Automotive
+                break;
+            case MOSAIC_DYN_MODEL_UAV:
+                prop.icon = DynamicModel_6_Properties.iconDisplay[present.display_type]; // Airborne1g
+                break;
+            case MOSAIC_DYN_MODEL_UNLIMITED:
+                prop.icon = DynamicModel_8_Properties.iconDisplay[present.display_type]; // Airborne4g
+                break;
+            }
+#endif // COMPILE_MOSAICX5
+        }
+            
+        if (prop.icon.bitmap)
+            iconList->push_back(prop);
     }
 }
 
@@ -1534,7 +1625,7 @@ void displayBatteryVsEthernet(std::vector<iconPropertyBlinking> *iconList)
 #ifdef COMPILE_ETHERNET
     else // if (present.ethernet_ws5500 == true)
     {
-        if (!networkIsInterfaceOnline(NETWORK_ETHERNET))
+        if (!networkInterfaceHasInternet(NETWORK_ETHERNET))
             return; // Only display the Ethernet icon if we are successfully connected (no blinking)
 
         iconPropertyBlinking prop;
@@ -1589,36 +1680,11 @@ void displayHorizontalAccuracy(std::vector<iconPropertyBlinking> *iconList, cons
 
 void displayRTKAccuracy(std::vector<iconPropertyBlinking> *iconList, const iconProperties *icon, bool fixed)
 {
-    CORRECTION_ID_T correctionSource = correctionGetSource();
-
     iconPropertyBlinking prop;
 
-    if ((present.display_type == DISPLAY_128x64) || (correctionSource == CORR_NUM))
-    {
-        prop.icon = icon->iconDisplay[present.display_type];
-        prop.duty = fixed ? 0b11111111 : 0b01010101;
-        iconList->push_back(prop);
-    }
-    else
-    {
-        // Display the icon (dual crosshair) for 6/8 intervals
-        prop.icon = icon->iconDisplay[present.display_type];
-        prop.duty = fixed ? 0b00111111 : 0b00010101;
-        iconList->push_back(prop);
-
-        // Display the correction source icon for 2/8 intervals
-        prop.icon.bitmap = correctionIconAttributes[correctionSource].pointer;
-        prop.icon.width = correctionIconAttributes[correctionSource].width;
-        prop.icon.height = correctionIconAttributes[correctionSource].height;
-        prop.icon.xPos += correctionIconAttributes[correctionSource].xOffset;
-        prop.icon.yPos += correctionIconAttributes[correctionSource].yOffset;
-        prop.duty = fixed ? 0b11000000 : 0b01000000;
-        iconList->push_back(prop);
-
-        // Restore the position for textCoords
-        prop.icon.xPos -= correctionIconAttributes[correctionSource].xOffset;
-        prop.icon.yPos -= correctionIconAttributes[correctionSource].yOffset;
-    }
+    prop.icon = icon->iconDisplay[present.display_type];
+    prop.duty = fixed ? 0b11111111 : 0b01010101;
+    iconList->push_back(prop);
 
     displayCoords textCoords;
     textCoords.x = prop.icon.xPos + 16;
@@ -1658,10 +1724,24 @@ displayCoords paintSIVIcon(std::vector<iconPropertyBlinking> *iconList, const ic
             if (lbandCorrectionsReceived || spartnCorrectionsReceived)
                 icon = &LBandIconProperties;
             else
-                icon = &SIVIconProperties;
+            {
+                if (inBaseMode() == false)
+                    icon = &SIVIconProperties;
+                else if (systemState == STATE_BASE_TEMP_SETTLE)
+                    icon = &SIVIconProperties; //During base settle, SIV inline with HPA
+                else if (inBaseMode() && present.display_type == DISPLAY_128x64)
+                    icon = &BaseSIVIconProperties; // Move SIV down to avoid collision with 'Xmitting RTCM' text
+            }
+
+            // if in base mode, don't blink
+            if (inBaseMode() == true)
+            {
+                // override duty - solid satellite dish icon regardless of fix state
+                duty = 0b11111111;
+            }
 
             // Determine if there is a fix
-            if (gnss->isFixed() == false)
+            else if (gnss->isFixed() == false)
             {
                 // override duty - blink satellite dish icon if we don't have a fix
                 duty = 0b01010101;
@@ -1684,18 +1764,57 @@ displayCoords paintSIVIcon(std::vector<iconPropertyBlinking> *iconList, const ic
 
     return textCoords;
 }
+
+void nudgeAndPrintSIV(displayCoords textCoords, uint8_t siv)
+{
+    if (present.display_type == DISPLAY_64x48)
+    {
+        // Always nudge, even if 1 digit, to avoid small jump when
+        // siv goes into 2 digits
+        oled->setCursor(textCoords.x - 1, textCoords.y); // x, y
+        if (siv >= 10)
+        {
+            oled->print(siv / 10);
+            oled->setCursor(textCoords.x + 7, textCoords.y); // x, y
+            oled->print(siv % 10);
+        }
+        else
+        {
+            oled->print(siv); // Left-justify 1 digit
+        }
+    }
+    else
+    {
+        // On 128x64, there's no need to nudge
+        oled->setCursor(textCoords.x, textCoords.y); // x, y
+        oled->print(siv); // 1 or 2 digits
+    }
+}
+
 void paintSIVText(displayCoords textCoords)
 {
     oled->setFont(QW_FONT_8X16);                 // Set font to type 1: 8x16
     oled->setCursor(textCoords.x, textCoords.y); // x, y
-    oled->print(":");
+
+    uint8_t siv = gnss->getSatellitesInView();
+    if (siv > 99)
+    {
+        oled->print(">");
+        siv = 99; // Limit SIV to two digits
+    }
+    else
+        oled->print(":");
+
+    textCoords.x += 8;
 
     if (online.gnss)
     {
-        if (gnss->isFixed() == false)
-            oled->print("0");
+        if (inBaseMode() == true)
+            nudgeAndPrintSIV(textCoords, siv);
+        else if (gnss->isFixed() == false)
+            nudgeAndPrintSIV(textCoords, 0);
         else
-            oled->print(gnss->getSatellitesInView());
+            nudgeAndPrintSIV(textCoords, siv);
 
         paintResets();
     } // End gnss online
@@ -1734,6 +1853,7 @@ void paintLogging(std::vector<iconPropertyBlinking> *iconList, bool pulse, bool 
     loggingIconDisplayed %= LOGGING_ICON_STATES; // Wrap
 
     iconPropertyBlinking prop;
+    prop.icon.bitmap = nullptr;
     prop.duty = 0b11111111;
 
     if (((online.logging == true) && (logIncreasing || ntpLogIncreasing)) || (present.gnss_mosaicX5 && logIncreasing))
@@ -1754,14 +1874,15 @@ void paintLogging(std::vector<iconPropertyBlinking> *iconList, bool pulse, bool 
         {
             prop.icon = LoggingCustomIconProperties.iconDisplay[loggingIconDisplayed][present.display_type];
         }
-
-        iconList->push_back(prop);
+        // Could be LOGGING_UNKNOWN
     }
     else if (pulse)
     {
         prop.icon = PulseIconProperties.iconDisplay[loggingIconDisplayed][present.display_type];
-        iconList->push_back(prop);
     }
+
+    if (prop.icon.bitmap)
+        iconList->push_back(prop);
 }
 
 // Survey in is running. Show 3D Mean and elapsed time.
@@ -1840,9 +1961,11 @@ void paintRTCM(std::vector<iconPropertyBlinking> *iconList)
     uint8_t yPos = CrossHairProperties.iconDisplay[present.display_type].yPos;
 
     if (present.display_type == DISPLAY_64x48)
-        yPos = yPos - 1; // Move text up by 1 pixel on 64x48. Note: this is brittle. TODO: find a better solution
+        yPos = yPos - 1; // Move text up by 1 pixel on 64x48. Note: this is brittle.
 
-    if (casting)
+    if(settings.baseCasterOverride == true)
+        printTextAt("BaseCast", xPos + 4, yPos, QW_FONT_8X16, 1); // text, y, font type, kerning
+    else if (casting)
         printTextAt("Casting", xPos + 4, yPos, QW_FONT_8X16, 1); // text, y, font type, kerning
     else
         printTextAt("Xmitting", xPos, yPos, QW_FONT_8X16, 1); // text, y, font type, kerning
@@ -1994,9 +2117,13 @@ void displayBaseStart(uint16_t displayTime)
         oled->erase();
 
         uint8_t fontHeight = 15; // Assume fontsize 1
-        uint8_t yPos = oled->getHeight() / 2 - fontHeight;
+        uint8_t yPos = oled->getHeight() / 2 - fontHeight + 1;
 
-        printTextCenter("Base", yPos, QW_FONT_8X16, 1, false); // text, y, font type, kerning, inverted
+        if (settings.baseCasterOverride == true)
+            printTextCenter("BaseCast", yPos, QW_FONT_8X16, 1, false); // text, y, font type, kerning, inverted
+        else
+            printTextCenter("Base", yPos, QW_FONT_8X16, 1, false); // text, y, font type, kerning, inverted
+
         oled->display();
 
         oled->display();
@@ -2007,12 +2134,18 @@ void displayBaseStart(uint16_t displayTime)
 
 void displayBaseSuccess(uint16_t displayTime)
 {
-    displayMessage("Base Started", displayTime);
+    if (settings.baseCasterOverride == true)
+        displayMessage("BaseCast Started", displayTime);
+    else
+        displayMessage("Base Started", displayTime);
 }
 
 void displayBaseFail(uint16_t displayTime)
 {
-    displayMessage("Base Failed", displayTime);
+    if (settings.baseCasterOverride == true)
+        displayMessage("BaseCast Failed", displayTime);
+    else
+        displayMessage("Base Failed", displayTime);
 }
 
 void displayGNSSFail(uint16_t displayTime)
@@ -2165,118 +2298,8 @@ void displayWiFiConnect()
     displayMessage("WiFi Connect", 0);
 }
 
-// When user enters WiFi Config mode from setup, show splash while config happens
-void displayWiFiConfigNotStarted()
-{
-    displayMessage("WiFi Config", 0);
-}
-
-void displayWiFiConfig()
-{
-    int yPos = WiFi_Symbol_Height + 2;
-    int fontHeight = 8;
-
-    // Characters before pixels start getting cut off. 11 characters can cut off a few pixels.
-    const int displayMaxCharacters = (present.display_type == DISPLAY_64x48) ? 10 : 21;
-
-    printTextCenter("SSID:", yPos, QW_FONT_5X7, 1, false); // text, y, font type, kerning, inverted
-
-    yPos = yPos + fontHeight + 1;
-
-    // Toggle display back and forth for long SSIDs and IPs
-    // Run the timer no matter what, but load firstHalf/lastHalf with the same thing if strlen < maxWidth
-    if (millis() - ssidDisplayTimer > 2000)
-    {
-        ssidDisplayTimer = millis();
-        ssidDisplayFirstHalf = !ssidDisplayFirstHalf;
-    }
-
-    // Convert current SSID to string
-    char mySSID[50] = {'\0'};
-
-#ifdef COMPILE_WIFI
-    if (settings.wifiConfigOverAP == true)
-        snprintf(mySSID, sizeof(mySSID), "%s", "RTK Config");
-    else
-    {
-        if (WiFi.getMode() == WIFI_STA)
-            snprintf(mySSID, sizeof(mySSID), "%s", WiFi.SSID().c_str());
-
-        // If we failed to connect to a friendly WiFi, and then fell back to AP mode, still display RTK Config
-        else if (WiFi.getMode() == WIFI_AP)
-            snprintf(mySSID, sizeof(mySSID), "%s", "RTK Config");
-
-        // If we are in AP+STA mode, still display RTK Config
-        else if (WiFi.getMode() == WIFI_AP_STA)
-            snprintf(mySSID, sizeof(mySSID), "%s", "RTK Config");
-
-        else
-            snprintf(mySSID, sizeof(mySSID), "%s", "Error");
-    }
-#else  // COMPILE_WIFI
-    snprintf(mySSID, sizeof(mySSID), "%s", "!Compiled");
-#endif // COMPILE_WIFI
-
-    char mySSIDFront[displayMaxCharacters + 1]; // 1 for null terminator
-    char mySSIDBack[displayMaxCharacters + 1];  // 1 for null terminator
-
-    // Trim SSID to a max length
-    strncpy(mySSIDFront, mySSID, displayMaxCharacters);
-
-    if (strlen(mySSID) > displayMaxCharacters)
-        strncpy(mySSIDBack, mySSID + (strlen(mySSID) - displayMaxCharacters), displayMaxCharacters);
-    else
-        strncpy(mySSIDBack, mySSID, displayMaxCharacters);
-
-    mySSIDFront[displayMaxCharacters] = '\0';
-    mySSIDBack[displayMaxCharacters] = '\0';
-
-    if (ssidDisplayFirstHalf)
-        printTextCenter(mySSIDFront, yPos, QW_FONT_5X7, 1, false);
-    else
-        printTextCenter(mySSIDBack, yPos, QW_FONT_5X7, 1, false);
-
-    yPos = yPos + fontHeight + 3;
-    printTextCenter("IP:", yPos, QW_FONT_5X7, 1, false);
-
-    yPos = yPos + fontHeight + 1;
-
-#ifdef COMPILE_AP
-    IPAddress myIpAddress;
-    if ((WiFi.getMode() == WIFI_AP) || (WiFi.getMode() == WIFI_AP_STA))
-        myIpAddress = WiFi.softAPIP();
-    else
-        myIpAddress = WiFi.localIP();
-
-    // Convert to string
-    char myIP[20] = {'\0'};
-    snprintf(myIP, sizeof(myIP), "%s", myIpAddress.toString());
-
-    char myIPFront[displayMaxCharacters + 1]; // 1 for null terminator
-    char myIPBack[displayMaxCharacters + 1];  // 1 for null terminator
-
-    strncpy(myIPFront, myIP, displayMaxCharacters);
-
-    if (strlen(myIP) > displayMaxCharacters)
-        strncpy(myIPBack, myIP + (strlen(myIP) - displayMaxCharacters), displayMaxCharacters);
-    else
-        strncpy(myIPBack, myIP, displayMaxCharacters);
-
-    myIPFront[displayMaxCharacters] = '\0';
-    myIPBack[displayMaxCharacters] = '\0';
-
-    if (ssidDisplayFirstHalf == true)
-        printTextCenter(myIPFront, yPos, QW_FONT_5X7, 1, false);
-    else
-        printTextCenter(myIPBack, yPos, QW_FONT_5X7, 1, false);
-
-#else  // COMPILE_AP
-    printTextCenter("!Compiled", yPos, QW_FONT_5X7, 1, false);
-#endif // COMPILE_AP
-}
-
 // When user does a factory reset, let us know
-void displaySytemReset()
+void displaySystemReset()
 {
     displayMessage("Factory Reset", 0);
 }
@@ -2419,8 +2442,8 @@ void paintProfile(uint8_t profileUnit)
 
         if (profileNumber >= 0)
         {
-            settings.updateGNSSSettings =
-                true;               // When this profile is loaded next, force system to update GNSS settings.
+            settings.gnssConfiguredBase = false; // On the next boot, reapply all settings
+            settings.gnssConfiguredRover = false;
             recordSystemSettings(); // Before switching, we need to record the current settings to LittleFS and SD
 
             recordProfileNumber(
@@ -2469,15 +2492,31 @@ void paintSystemTest()
             drawFrame(); // Outside edge
 
             oled->setFont(QW_FONT_5X7);        // Set font to smallest
-            oled->setCursor(xOffset, yOffset); // x, y
-            oled->print("SD:");
 
-            if (online.microSD == false)
-                beginSD(); // Test if SD is present
-            if (online.microSD == true)
-                oled->print("OK");
-            else
-                oled->print("FAIL");
+            if (present.microSd)
+            {
+                oled->setCursor(xOffset, yOffset); // x, y
+                oled->print("SD:");
+
+                if (online.microSD == false)
+                    beginSD(); // Test if SD is present
+                if (online.microSD == true)
+                    oled->print("OK");
+                else
+                    oled->print("FAIL");
+            }
+            else if (present.gnss_mosaicX5)
+            {
+                // Facet mosaic has an SD card, but it is connected directly to the mosaic-X5
+                // Calling gnss->update() during the GNSS check will cause sdCardSize to be updated
+                oled->setCursor(xOffset, yOffset); // x, y
+                oled->print("SD:");
+
+                if (sdCardSize > 0)
+                    oled->print("OK");
+                else
+                    oled->print("FAIL");
+            }
 
             if (present.fuelgauge_max17048 || present.fuelgauge_bq40z50)
             {
@@ -2520,10 +2559,10 @@ void paintSystemTest()
                 pinMode(pin_muxADC, INPUT_PULLUP);
 
                 digitalWrite(pin_muxDAC, HIGH);
-                if (digitalRead(pin_muxADC) == HIGH)
+                if (readAnalogPinAsDigital(pin_muxADC) == HIGH)
                 {
                     digitalWrite(pin_muxDAC, LOW);
-                    if (digitalRead(pin_muxADC) == LOW)
+                    if (readAnalogPinAsDigital(pin_muxADC) == LOW)
                         oled->print("OK");
                     else
                         oled->print("FAIL");
@@ -2592,14 +2631,14 @@ void paintSystemTest()
             oled->print(" ");
             oled->print(gnssFirmwareVersionInt);
             oled->print("-");
-            if ((present.gnss_zedf9p) && (gnssFirmwareVersionInt < 130))
+            if ((present.gnss_zedf9p) && (gnssFirmwareVersionInt < 150))
                 oled->print("FAIL");
             else
                 oled->print("OK");
 
             oled->setCursor(xOffset, yOffset + (2 * charHeight)); // x, y
             oled->print("LBand:");
-            if (online.lband_neo == true)
+            if ((online.lband_neo == true) || (present.gnss_mosaicX5))
                 oled->print("OK");
             else
                 oled->print("FAIL");
@@ -3104,72 +3143,114 @@ void displayNTPFail(uint16_t displayTime)
     }
 }
 
-void displayConfigViaEthStarting(uint16_t displayTime)
+// When user enters Web Config mode, show splash while web server starts
+void displayWebConfigNotStarted()
 {
-    if (online.display == true)
-    {
-        oled->erase();
-
-        uint8_t fontHeight = 12;
-        uint8_t yPos = fontHeight;
-
-        printTextCenter("Configure", yPos, QW_FONT_8X16, 1, false); // text, y, font type, kerning, inverted
-        yPos += fontHeight;
-        printTextCenter("Via", yPos, QW_FONT_8X16, 1, false); // text, y, font type, kerning, inverted
-        yPos += fontHeight;
-        printTextCenter("Ethernet", yPos, QW_FONT_8X16, 1, false); // text, y, font type, kerning, inverted
-        yPos += fontHeight;
-        printTextCenter("Starting", yPos, QW_FONT_8X16, 1, false); // text, y, font type, kerning, inverted
-
-        oled->display();
-
-        delay(displayTime);
-    }
-}
-void displayConfigViaEthExiting(uint16_t displayTime)
-{
-    if (online.display == true)
-    {
-        oled->erase();
-
-        uint8_t fontHeight = 12;
-        uint8_t yPos = fontHeight;
-
-        printTextCenter("Configure", yPos, QW_FONT_8X16, 1, false); // text, y, font type, kerning, inverted
-        yPos += fontHeight;
-        printTextCenter("Via", yPos, QW_FONT_8X16, 1, false); // text, y, font type, kerning, inverted
-        yPos += fontHeight;
-        printTextCenter("Ethernet", yPos, QW_FONT_8X16, 1, false); // text, y, font type, kerning, inverted
-        yPos += fontHeight;
-        printTextCenter("Exiting", yPos, QW_FONT_8X16, 1, false); // text, y, font type, kerning, inverted
-
-        oled->display();
-
-        delay(displayTime);
-    }
+    displayMessage("Web Config", 0);
 }
 
-void displayConfigViaEthStarted(uint16_t displayTime)
+void displayConfigViaWiFi()
 {
-    if (online.display == true)
+    int yPos = WiFi_Symbol_Height + 2;
+    int fontHeight = 8;
+
+    // Characters before pixels start getting cut off. 11 characters can cut off a few pixels.
+    const int displayMaxCharacters = (present.display_type == DISPLAY_64x48) ? 10 : 21;
+
+    printTextCenter("SSID:", yPos, QW_FONT_5X7, 1, false); // text, y, font type, kerning, inverted
+
+    yPos = yPos + fontHeight + 1;
+
+    // Toggle display back and forth for long SSIDs and IPs
+    // Run the timer no matter what, but load firstHalf/lastHalf with the same thing if strlen < maxWidth
+    if (millis() - ssidDisplayTimer > 2000)
     {
-        oled->erase();
-
-        uint8_t fontHeight = 12;
-        uint8_t yPos = fontHeight;
-
-        printTextCenter("Configure", yPos, QW_FONT_8X16, 1, false); // text, y, font type, kerning, inverted
-        yPos += fontHeight;
-        printTextCenter("Via", yPos, QW_FONT_8X16, 1, false); // text, y, font type, kerning, inverted
-        yPos += fontHeight;
-        printTextCenter("Ethernet", yPos, QW_FONT_8X16, 1, false); // text, y, font type, kerning, inverted
-        yPos += fontHeight;
-        printTextCenter("Started", yPos, QW_FONT_8X16, 1, false); // text, y, font type, kerning, inverted
-
-        oled->display();
-
-        delay(displayTime);
+        ssidDisplayTimer = millis();
+        ssidDisplayFirstHalf = !ssidDisplayFirstHalf;
     }
+
+    // Convert current SSID to string
+    char mySSID[50] = {'\0'};
+
+#ifdef COMPILE_WIFI
+    if (settings.wifiConfigOverAP == true)
+        snprintf(mySSID, sizeof(mySSID), "%s", WiFi.softAPSSID().c_str());
+    else
+    {
+        if (WiFi.getMode() == WIFI_STA)
+            snprintf(mySSID, sizeof(mySSID), "%s", WiFi.SSID().c_str());
+
+        // If we failed to connect to a friendly WiFi, and then fell back to AP mode, still display RTK Config
+        else if (WiFi.getMode() == WIFI_AP)
+            snprintf(mySSID, sizeof(mySSID), "%s", WiFi.softAPSSID().c_str());
+
+        // If we are in AP+STA mode, still display RTK Config
+        else if (WiFi.getMode() == WIFI_AP_STA)
+            snprintf(mySSID, sizeof(mySSID), "%s", WiFi.softAPSSID().c_str());
+
+        else
+            snprintf(mySSID, sizeof(mySSID), "%s", "Error");
+    }
+#else  // COMPILE_WIFI
+    snprintf(mySSID, sizeof(mySSID), "%s", "!Compiled");
+#endif // COMPILE_WIFI
+
+    char mySSIDFront[displayMaxCharacters + 1]; // 1 for null terminator
+    char mySSIDBack[displayMaxCharacters + 1];  // 1 for null terminator
+
+    // Trim SSID to a max length
+    strncpy(mySSIDFront, mySSID, displayMaxCharacters);
+
+    if (strlen(mySSID) > displayMaxCharacters)
+        strncpy(mySSIDBack, mySSID + (strlen(mySSID) - displayMaxCharacters), displayMaxCharacters);
+    else
+        strncpy(mySSIDBack, mySSID, displayMaxCharacters);
+
+    mySSIDFront[displayMaxCharacters] = '\0';
+    mySSIDBack[displayMaxCharacters] = '\0';
+
+    if (ssidDisplayFirstHalf)
+        printTextCenter(mySSIDFront, yPos, QW_FONT_5X7, 1, false);
+    else
+        printTextCenter(mySSIDBack, yPos, QW_FONT_5X7, 1, false);
+
+    yPos = yPos + fontHeight + 3;
+    printTextCenter("IP:", yPos, QW_FONT_5X7, 1, false);
+
+    yPos = yPos + fontHeight + 1;
+
+#ifdef COMPILE_AP
+    IPAddress myIpAddress;
+    if ((WiFi.getMode() == WIFI_AP) || (WiFi.getMode() == WIFI_AP_STA))
+        myIpAddress = WiFi.softAPIP();
+    else
+        myIpAddress = WiFi.localIP();
+
+    // Convert to string
+    char myIP[20] = {'\0'};
+    snprintf(myIP, sizeof(myIP), "%s", myIpAddress.toString());
+
+    char myIPFront[displayMaxCharacters + 1]; // 1 for null terminator
+    char myIPBack[displayMaxCharacters + 1];  // 1 for null terminator
+
+    strncpy(myIPFront, myIP, displayMaxCharacters);
+
+    if (strlen(myIP) > displayMaxCharacters)
+        strncpy(myIPBack, myIP + (strlen(myIP) - displayMaxCharacters), displayMaxCharacters);
+    else
+        strncpy(myIPBack, myIP, displayMaxCharacters);
+
+    myIPFront[displayMaxCharacters] = '\0';
+    myIPBack[displayMaxCharacters] = '\0';
+
+    if (ssidDisplayFirstHalf == true)
+        printTextCenter(myIPFront, yPos, QW_FONT_5X7, 1, false);
+    else
+        printTextCenter(myIPBack, yPos, QW_FONT_5X7, 1, false);
+
+#else  // COMPILE_AP
+    printTextCenter("!Compiled", yPos, QW_FONT_5X7, 1, false);
+#endif // COMPILE_AP
 }
 
 void displayConfigViaEthernet()

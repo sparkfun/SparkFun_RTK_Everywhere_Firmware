@@ -721,8 +721,9 @@ void verifyTables()
     provisioningVerifyTables();
     mosaicVerifyTables();
     correctionVerifyTables();
+    webServerVerifyTables();
 
-    if (correctionsSource::CORR_NUM >= (int)('x' - 'a'))
+    if (CORR_NUM >= (int)('x' - 'a'))
         reportFatalError("Too many correction sources");
 }
 

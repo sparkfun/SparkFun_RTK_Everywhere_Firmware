@@ -128,7 +128,7 @@ NETWORK_POLL_SEQUENCE laraBootSequence[] =
     {laraPowerHigh,         LARA_SETTLE_TIME,       "Finish power off sequence"},
     {networkDelay,          (uintptr_t)&laraTimer,  "Delay for power off"},
 
-    // After a short delay if on other network device is available, turn on LARA
+    // After a short delay if no other network device is available, turn on LARA
     //  State               Parameter               Description
     {networkStartDelayed,   (30 * 1000),            "Attempt to start cellular if necessary"},
     {nullptr,               0,                      "Termination"},
@@ -138,7 +138,6 @@ NETWORK_POLL_SEQUENCE laraBootSequence[] =
 // (Remember that LARA_PWR is inverted by the RTK EVK level-shifter)
 NETWORK_POLL_SEQUENCE laraOnSequence[] =
 {   //  State               Parameter               Description
-    {cellularSimInstalled,  0,                      "SIM card validation"},
     {laraPowerLow,          LARA_ON_TIME,           "Notify LARA of power state change"},
     {networkDelay,          (uintptr_t)&laraTimer,  "Tell LARA to power on"},
     {laraPowerHigh,         LARA_SETTLE_TIME,       "Finish power on sequence"},

@@ -44,7 +44,7 @@ tcpServer.ino
 enum tcpServerStates
 {
     TCP_SERVER_STATE_OFF = 0,
-    TCP_SERVER_STATE_NETWORK_STARTED,
+    TCP_SERVER_STATE_WAIT_FOR_NETWORK,
     TCP_SERVER_STATE_RUNNING,
     // Insert new states here
     TCP_SERVER_STATE_MAX // Last entry in the state list
@@ -52,7 +52,7 @@ enum tcpServerStates
 
 const char *const tcpServerStateName[] = {
     "TCP_SERVER_STATE_OFF",
-    "TCP_SERVER_STATE_NETWORK_STARTED",
+    "TCP_SERVER_STATE_WAIT_FOR_NETWORK",
     "TCP_SERVER_STATE_RUNNING",
 };
 
@@ -76,7 +76,6 @@ static volatile uint8_t tcpServerClientWriteError;
 static NetworkClient *tcpServerClient[TCP_SERVER_MAX_CLIENTS];
 static IPAddress tcpServerClientIpAddress[TCP_SERVER_MAX_CLIENTS];
 static volatile RING_BUFFER_OFFSET tcpServerClientTails[TCP_SERVER_MAX_CLIENTS];
-static NetPriority_t tcpServerPriority = NETWORK_OFFLINE;
 
 //----------------------------------------
 // TCP Server handleGnssDataTask Support Routines
@@ -232,15 +231,25 @@ bool tcpServerStart()
     if (settings.debugTcpServer && (!inMainMenu))
         systemPrintln("TCP server starting the server");
 
+    uint16_t tcpPort = settings.tcpServerPort;
+    if(settings.baseCasterOverride == true)
+        tcpPort = 2101;
+
     // Start the TCP server
-    tcpServer = new NetworkServer(settings.tcpServerPort, TCP_SERVER_MAX_CLIENTS);
+    tcpServer = new NetworkServer(tcpPort, TCP_SERVER_MAX_CLIENTS);
     if (!tcpServer)
         return false;
 
     tcpServer->begin();
     online.tcpServer = true;
+
     localIp = networkGetIpAddress();
-    systemPrintf("TCP server online, IP address %s:%d\r\n", localIp.toString().c_str(), settings.tcpServerPort);
+    if (settings.enableNtripCaster || settings.baseCasterOverride)
+        systemPrintf("TCP server online, IP address %s:%d, responding as NTRIP Caster\r\n", localIp.toString().c_str(),
+                     tcpPort);
+    else
+        systemPrintf("TCP server online, IP address %s:%d\r\n", localIp.toString().c_str(), tcpPort);
+
     return true;
 }
 
@@ -314,6 +323,14 @@ void tcpServerStopClient(int index)
     tcpServerClientWriteError = tcpServerClientWriteError & (~(1 << index));
 }
 
+// Return true if we are in a state that requires network access
+bool tcpServerNeedsNetwork()
+{
+    if (tcpServerState >= TCP_SERVER_STATE_WAIT_FOR_NETWORK && tcpServerState <= TCP_SERVER_STATE_RUNNING)
+        return true;
+    return false;
+}
+
 // Update the TCP server state
 void tcpServerUpdate()
 {
@@ -324,7 +341,7 @@ void tcpServerUpdate()
 
     // Shutdown the TCP server when the mode or setting changes
     DMW_st(tcpServerSetState, tcpServerState);
-    if (NEQ_RTK_MODE(tcpServerMode) || (!settings.enableTcpServer))
+    if (NEQ_RTK_MODE(tcpServerMode) || (!settings.enableTcpServer && !settings.baseCasterOverride))
     {
         if (tcpServerState > TCP_SERVER_STATE_OFF)
             tcpServerStop();
@@ -338,7 +355,7 @@ void tcpServerUpdate()
                 | tcpServerStop             | settings.enableTcpServer
                 |                           |
                 |                           V
-                +<----------TCP_SERVER_STATE_NETWORK_STARTED
+                +<----------TCP_SERVER_STATE_WAIT_FOR_NETWORK
                 ^                           |
                 |                           | networkUserConnected
                 |                           |
@@ -359,23 +376,22 @@ void tcpServerUpdate()
     // Wait until the TCP server is enabled
     case TCP_SERVER_STATE_OFF:
         // Determine if the TCP server should be running
-        if (EQ_RTK_MODE(tcpServerMode) && settings.enableTcpServer)
+        if (EQ_RTK_MODE(tcpServerMode) && (settings.enableTcpServer || settings.baseCasterOverride))
         {
             if (settings.debugTcpServer && (!inMainMenu))
                 systemPrintln("TCP server start");
-            tcpServerPriority = NETWORK_OFFLINE;
-            tcpServerSetState(TCP_SERVER_STATE_NETWORK_STARTED);
+            tcpServerSetState(TCP_SERVER_STATE_WAIT_FOR_NETWORK);
         }
         break;
 
     // Wait until the network is connected
-    case TCP_SERVER_STATE_NETWORK_STARTED:
+    case TCP_SERVER_STATE_WAIT_FOR_NETWORK:
         // Determine if the TCP server was turned off
-        if (NEQ_RTK_MODE(tcpServerMode) || !settings.enableTcpServer)
+        if (NEQ_RTK_MODE(tcpServerMode) || (!settings.enableTcpServer && !settings.baseCasterOverride))
             tcpServerStop();
 
         // Wait until the network is connected to the media
-        else if (networkIsConnected(&tcpServerPriority))
+        else if (networkHasInternet() || WIFI_SOFT_AP_RUNNING())
         {
             // Delay before starting the TCP server
             if ((millis() - tcpServerTimer) >= (1 * 1000))
@@ -393,7 +409,7 @@ void tcpServerUpdate()
     // Handle client connections and link failures
     case TCP_SERVER_STATE_RUNNING:
         // Determine if the network has failed
-        if ((!settings.enableTcpServer) || (!networkIsConnected(&tcpServerPriority)))
+        if ((networkHasInternet() == false && WIFI_SOFT_AP_RUNNING() == false) || (!settings.enableTcpServer && !settings.baseCasterOverride))
         {
             if ((settings.debugTcpServer || PERIODIC_DISPLAY(PD_TCP_SERVER_DATA)) && (!inMainMenu))
             {
@@ -440,27 +456,77 @@ void tcpServerUpdate()
             // Determine if the client data structure is in use
             if (!(tcpServerClientConnected & (1 << index)))
             {
-                NetworkClient client;
+                if(tcpServerClient[index] == nullptr)
+                    tcpServerClient[index] = new NetworkClient;
 
                 // Data structure not in use
                 // Check for another TCP server client
-                client = tcpServer->accept();
+                *tcpServerClient[index] = tcpServer->accept();
 
-                // Done if no TCP server client found
-                if (!client)
+                // Exit if no TCP server client found
+                if (! *tcpServerClient[index])
                     break;
 
                 // Start processing the new TCP server client connection
-                tcpServerClient[index] = new NetworkClient;
                 tcpServerClientIpAddress[index] = tcpServerClient[index]->remoteIP();
-                tcpServerClientConnected = tcpServerClientConnected | (1 << index);
-                tcpServerClientDataSent = tcpServerClientDataSent | (1 << index);
+
                 if ((settings.debugTcpServer || PERIODIC_DISPLAY(PD_TCP_SERVER_DATA)) && (!inMainMenu))
                 {
                     PERIODIC_CLEAR(PD_TCP_SERVER_DATA);
                     systemPrintf("TCP server client %d connected to %s\r\n", index,
                                  tcpServerClientIpAddress[index].toString().c_str());
                 }
+
+                // If we are acting as an NTRIP Caster, intercept the initial communication from the client
+                //  and respond accordingly
+                if (settings.enableNtripCaster || settings.baseCasterOverride)
+                {
+                    // Read response from client
+                    char response[512];
+                    int spot = 0;
+                    while (tcpServerClient[index]->available())
+                    {
+                        response[spot++] = tcpServerClient[index]->read();
+                        if (spot == sizeof(response))
+                            spot = 0; // Wrap
+                    }
+                    response[spot] = '\0'; // Terminate string
+
+                    if (strnstr(response, "GET / ", sizeof(response)) != NULL) // No mount point in header
+                    {
+                        if (settings.debugTcpServer)
+                            systemPrintln("Mount point table requested.");
+
+                        // Respond with a single mountpoint
+                        const char fakeSourceTable[] =
+                            "SOURCETABLE 200 OK\r\nServer: SparkPNT Caster/1.0\r\nContent-Type: "
+                            "text/plain\r\nContent-Length: 96\r\n\r\nSTR;SparkBase;none;RTCM "
+                            "3.0;none;none;none;none;none;none;none;none;none;none;none;B;N;none;none";
+
+                        tcpServerClient[index]->write(fakeSourceTable, strlen(fakeSourceTable));
+
+                        tcpServerStopClient(index); // Disconnect from client
+                    }
+                    else if (strnstr(response, "GET /", sizeof(response)) != NULL) // Mount point in header
+                    {
+                        // NTRIP Client is sending us their mount point. Begin sending RTCM.
+                        if (settings.debugTcpServer)
+                            systemPrintln("NTRIP Client connected - Sending ICY 200 OK");
+
+                        char confirmConnection[] = "ICY 200 OK\r\n";
+                        tcpServerClient[index]->write(confirmConnection, strlen(confirmConnection));
+                    }
+                    else
+                    {
+                        // Unknown response
+                        if (settings.debugTcpServer)
+                            systemPrintf("Unknown response: %s\r\n", response);
+                    }
+                } // settings.enableNtripCaster == true || settings.baseCasterOverride == true
+
+                // Make client online after any NTRIP injections so ring buffer can start outputting data to it
+                tcpServerClientConnected = tcpServerClientConnected | (1 << index);
+                tcpServerClientDataSent = tcpServerClientDataSent | (1 << index);
             }
         }
 

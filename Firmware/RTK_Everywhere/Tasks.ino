@@ -159,7 +159,7 @@ void btReadTask(void *e)
         rxBytes = 0;
         if (bluetoothGetState() == BT_CONNECTED)
         {
-            while (btPrintEcho == false && bluetoothRxDataAvailable())
+            while (btPrintEcho == false && (bluetoothRxDataAvailable() > 0))
             {
                 // Check stream for command characters
                 byte incoming = bluetoothRead();
@@ -289,18 +289,18 @@ void sendGnssBuffer()
     {
         if (gnss->pushRawData(bluetoothOutgoingToGnss, bluetoothOutgoingToGnssHead))
         {
-            if ((settings.debugCorrections || PERIODIC_DISPLAY(PD_ZED_DATA_TX)) && !inMainMenu)
+            if ((settings.debugCorrections || PERIODIC_DISPLAY(PD_GNSS_DATA_TX)) && !inMainMenu)
             {
-                PERIODIC_CLEAR(PD_ZED_DATA_TX);
+                PERIODIC_CLEAR(PD_GNSS_DATA_TX);
                 systemPrintf("Sent %d BT bytes to GNSS\r\n", bluetoothOutgoingToGnssHead);
             }
         }
     }
     else
     {
-        if ((settings.debugCorrections || PERIODIC_DISPLAY(PD_ZED_DATA_TX)) && !inMainMenu)
+        if ((settings.debugCorrections || PERIODIC_DISPLAY(PD_GNSS_DATA_TX)) && !inMainMenu)
         {
-            PERIODIC_CLEAR(PD_ZED_DATA_TX);
+            PERIODIC_CLEAR(PD_GNSS_DATA_TX);
             systemPrintf("%d BT bytes NOT sent due to priority\r\n", bluetoothOutgoingToGnssHead);
         }
     }
@@ -424,6 +424,14 @@ void gnssReadTask(void *e)
         if ((settings.enableTaskReports == true) && (!inMainMenu))
             systemPrintf("SerialReadTask High watermark: %d\r\n", uxTaskGetStackHighWaterMark(nullptr));
 
+        // Display the RX byte count
+        static uint32_t totalRxByteCount = 0;
+        if (PERIODIC_DISPLAY(PD_GNSS_DATA_RX_BYTE_COUNT))
+        {
+            PERIODIC_CLEAR(PD_GNSS_DATA_RX_BYTE_COUNT);
+            systemPrintf("gnssReadTask total byte count: %d\r\n", totalRxByteCount);
+        }
+
         // Two methods are accessing the hardware serial port (um980Config) at the
         // same time: gnssReadTask() (to harvest incoming serial data) and um980 (the unicore library to configure the
         // device) To allow the Unicore library to send/receive serial commands, we need to block the gnssReadTask
@@ -454,6 +462,7 @@ void gnssReadTask(void *e)
                 // Read the data from UART1
                 uint8_t incomingData[500];
                 int bytesIncoming = serialGNSS->read(incomingData, sizeof(incomingData));
+                totalRxByteCount += bytesIncoming;
 
                 for (int x = 0; x < bytesIncoming; x++)
                 {
@@ -573,9 +582,9 @@ void processUart1Message(SEMP_PARSE_STATE *parse, uint16_t type)
     int32_t use;
 
     // Display the message
-    if ((settings.enablePrintLogFileMessages || PERIODIC_DISPLAY(PD_ZED_DATA_RX)) && (!parse->crc) && (!inMainMenu))
+    if ((settings.enablePrintLogFileMessages || PERIODIC_DISPLAY(PD_GNSS_DATA_RX)) && (!inMainMenu))
     {
-        PERIODIC_CLEAR(PD_ZED_DATA_RX);
+        PERIODIC_CLEAR(PD_GNSS_DATA_RX);
         if (settings.enablePrintLogFileMessages)
         {
             printTimeStamp();
@@ -632,6 +641,16 @@ void processUart1Message(SEMP_PARSE_STATE *parse, uint16_t type)
     {
         // Give this data to the library to update its internal variables
         lg290pHandler(parse->buffer, parse->length);
+
+        if (type == RTK_NMEA_PARSER_INDEX)
+        {
+            // Suppress PQTM/NMEA messages as needed
+            if (lg290pMessageEnabled((char *)parse->buffer, parse->length) == false)
+            {
+                parse->buffer[0] = 0;
+                parse->length = 0;
+            }
+        }
     }
 
     // Handle LLA compensation due to tilt or outputTipAltitude setting
@@ -723,6 +742,25 @@ void processUart1Message(SEMP_PARSE_STATE *parse, uint16_t type)
                 systemPrintf(": %d bytes\r\n", parse->length);
             }
         }
+    }
+
+    // If BaseCasterOverride is enabled, remove everything but RTCM from the circular buffer
+    // to avoid saturating the downstream radio link that is consuming over a TCP (NTRIP Caster) connection
+    // Remove NMEA, etc after passing to the GNSS receiver library so that we still have SIV and other stats available
+    if (settings.baseCasterOverride == true)
+    {
+        if (type != RTK_RTCM_PARSER_INDEX)
+        {
+            // Erase buffer
+            parse->buffer[0] = 0;
+            parse->length = 0;
+        }
+    }
+
+    // Push GGA to Caster if enabled
+    if (type == RTK_NMEA_PARSER_INDEX && strstr(sempNmeaGetSentenceName(parse), "GGA") != nullptr)
+    {
+        pushGPGGA((char *)parse->buffer);
     }
 
     // Determine if this message will fit into the ring buffer
@@ -1254,7 +1292,7 @@ void handleGnssDataTask(void *e)
                         systemPrintf("SD %d bytes written to log file\r\n", bytesToSend);
                     }
 
-                    fileSize = logFile->fileSize(); // Update file size
+                    logFileSize = logFile->fileSize(); // Update file size
 
                     sdFreeSpace -= bytesToSend; // Update remaining space on SD
 
@@ -1282,7 +1320,7 @@ void handleGnssDataTask(void *e)
                         if (endTime - startTime > 150)
                             systemPrintf("Long Write! Time: %ld ms / Location: %ld / Recorded %d bytes / "
                                          "spaceRemaining %d bytes\r\n",
-                                         endTime - startTime, fileSize, bytesToSend, combinedSpaceRemaining);
+                                         endTime - startTime, logFileSize, bytesToSend, combinedSpaceRemaining);
                     }
 
                     xSemaphoreGive(sdCardSemaphore);
@@ -1371,7 +1409,7 @@ void handleGnssDataTask(void *e)
 void tickerBluetoothLedUpdate()
 {
     // If we are in WiFi config mode, fade LED
-    if (inWiFiConfigMode() == true)
+    if (inWebConfigMode() == true)
     {
         // Fade in/out the BT LED during WiFi AP mode
         btFadeLevel += pwmFadeAmount;
@@ -1651,11 +1689,11 @@ void buttonCheckTask(void *e)
                     }
 
                     forceSystemStateUpdate = true; // Immediately go to this new state
-                    changeState(STATE_WIFI_CONFIG_NOT_STARTED);
+                    changeState(STATE_WEB_CONFIG_NOT_STARTED);
                 }
 
                 // If we are in WiFi Config Mode, exit to Rover
-                else if (inWiFiConfigMode())
+                else if (inWebConfigMode())
                 {
                     // Beep if we are not locally compiled or a release candidate
                     if (ENABLE_DEVELOPER == false)
@@ -1671,7 +1709,6 @@ void buttonCheckTask(void *e)
 
                     forceSystemStateUpdate = true; // Immediately go to this new state
                     changeState(STATE_ROVER_NOT_STARTED);
-                    wifiRestart();
                 }
             }
 
@@ -1745,14 +1782,13 @@ void buttonCheckTask(void *e)
                 case STATE_BASE_TEMP_TRANSMITTING:
                 case STATE_BASE_FIXED_NOT_STARTED:
                 case STATE_BASE_FIXED_TRANSMITTING:
-                case STATE_WIFI_CONFIG_NOT_STARTED:
-                case STATE_WIFI_CONFIG:
+                case STATE_WEB_CONFIG_NOT_STARTED:
+                case STATE_WEB_CONFIG:
                 case STATE_ESPNOW_PAIRING_NOT_STARTED:
                 case STATE_ESPNOW_PAIRING:
                 case STATE_NTPSERVER_NOT_STARTED:
                 case STATE_NTPSERVER_NO_SYNC:
                 case STATE_NTPSERVER_SYNC:
-                case STATE_CONFIG_VIA_ETH_NOT_STARTED:
                     lastSystemState = systemState; // Remember this state to return if needed
                     requestChangeState(STATE_DISPLAY_SETUP);
                     lastSetupMenuChange = millis();
@@ -1802,20 +1838,13 @@ void buttonCheckTask(void *e)
                 case STATE_TESTING:
                     // If we are in testing, return to Base Not Started
                     lastSetupMenuChange = millis(); // Prevent a timeout during state change
+                    baseCasterDisableOverride();    // Leave Caster mode
                     requestChangeState(STATE_BASE_NOT_STARTED);
                     break;
 
                 case STATE_PROFILE:
                     // If the user presses the setup button during a profile change, do nothing
                     // Allow system to return to lastSystemState
-                    break;
-
-                case STATE_CONFIG_VIA_ETH_STARTED:
-                case STATE_CONFIG_VIA_ETH:
-                    // If the user presses the button during configure-via-ethernet,
-                    // do a complete restart into Base mode
-                    lastSetupMenuChange = millis(); // Prevent a timeout during state change
-                    requestChangeState(STATE_CONFIG_VIA_ETH_RESTART_BASE);
                     break;
 
                 default:
@@ -1847,6 +1876,12 @@ void buttonCheckTask(void *e)
                             {
                                 firstButtonThrownOut = false;
                                 requestChangeState(lastSystemState);
+                            }
+                            else if (it->newState ==
+                                     STATE_BASE_NOT_STARTED) // User selected Base, clear BaseCast override
+                            {
+                                baseCasterDisableOverride();
+                                requestChangeState(it->newState);
                             }
                             else
                                 requestChangeState(it->newState);
@@ -2109,7 +2144,7 @@ void bluetoothCommandTask(void *pvParameters)
         }
 
         // Check stream for incoming characters
-        if (bluetoothCommandAvailable())
+        if (bluetoothCommandAvailable() > 0)
         {
             byte incoming = bluetoothCommandRead();
 
