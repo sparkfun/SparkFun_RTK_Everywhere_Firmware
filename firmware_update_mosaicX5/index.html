@@ -2490,75 +2490,55 @@ Compatibility Icons
 <li>Torch: <a href="title =" title="Feature Not Supported"><span class="twemoji support-none"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 20a8 8 0 0 1-8-8 8 8 0 0 1 8-8 8 8 0 0 1 8 8 8 8 0 0 1-8 8m0-18A10 10 0 0 0 2 12a10 10 0 0 0 10 10 10 10 0 0 0 10-10A10 10 0 0 0 12 2"/></svg></span></a></li>
 </ul>
 </div>
-<p>The UM980 is the GNSS receiver inside the RTK Torch. The following describes how to update the firmware on the UM980.</p>
+<p>The Septentrio mosaic-X5 is the GNSS receiver inside the RTK Facet mosaic. The following describes how to update the firmware on the mosaic-X5.</p>
 <ol>
-<li>Download the latest UM980 firmware. As of writing, the UM980 firmware is <a href="https://raw.githubusercontent.com/sparkfun/SparkFun_RTK_Torch/main/UM980_Firmware/UM980_R4.10Build11833.pkg" target="_blank" rel="noopener">v11833</a>. See the <a href="https://github.com/sparkfun/SparkFun_RTK_Torch" target="_blank" rel="noopener">RTK Torch repo</a> for the latest firmware.</li>
 <li>
-<p>Download and install <a href="https://raw.githubusercontent.com/sparkfun/SparkFun_RTK_Torch/main/UM980_Firmware/uprecise-v2-0.exe" target="_blank" rel="noopener">UPrecise</a>. UPrecise is the software created by Unicore to configure and view output from Unicore GNSS modules. v2 of the software can be downloaded <a href="https://raw.githubusercontent.com/sparkfun/SparkFun_RTK_Torch/main/UM980_Firmware/uprecise-v2-0.exe" target="_blank" rel="noopener">here</a> but newer versions may be available.</p>
+<p>Download the latest mosaic-X5 firmware. As of writing, the mosaic-X5 firmware is <a href="https://www.septentrio.com/en/products/gnss-receivers/gnss-receiver-modules/mosaic-x5#resources" target="_blank" rel="noopener">v4.14.10.1</a>.</p>
+</li>
+<li>
+<p>Connect a USB-C cable between your computer and the RTK Facet mosaic.</p>
+</li>
+<li>
+<p>Power on the Facet mosaic and allow ~10 seconds for the mosaix-X5 to start up.</p>
+</li>
+<li>
+<p>On your computer, open a web browser and navigate to <strong>192.168.3.1</strong>. You are using Ethernet-over-USB to communicate with the mosaix-X5 directly. The X5's internal web page should appear.</p>
+</li>
+<li>
+<p>Select the <strong>Admin</strong> tab and then <strong>Upgrade</strong>.</p>
 <p><figure markdown>
-<img alt="Hardware menu showing pass through option" src="../img/UPrecise/SparkFun%20RTK%20Everywhere%20-%20UM980%20Passthrough.png" />
+<img alt="The mosaic-X5 internal web page" src="../img/mosaic-X5/mosaic-X5_firmware_upgrade_1.png" />
 <figcaption markdown>
-Entering direct connect via Serial Configuration
+The mosaic-X5 internal web page
 </figcaption>
 </figure></p>
 </li>
 <li>
-<p>Put the device into passthrough mode. From the main menu navigate to System 's'-&gt;Hardware 'h'-&gt;UM980 Direct Connect '13'. This will put the device into a pass-through mode, but with special character monitoring that allows the UM980 to be reset when bootloading is detected. Close the terminal connection so that UPrecise can connect to the COM port.</p>
+<p>Click on <strong>Choose file</strong> and select the firmware file you downloaded at step 1.</p>
 <p><figure markdown>
-<img alt="Startup message showing passthrough mode" src="../img/UPrecise/SparkFun%20RTK%20Everywhere%20-%20UM980%20Passthrough%20Startup.png" />
+<img alt="Selecting the .SUF firmware file" src="../img/mosaic-X5/mosaic-X5_firmware_upgrade_2.png" />
 <figcaption markdown>
-Startup message showing passthrough mode
-</figcaption>
-</figure></p>
-<div class="admonition note">
-<p class="admonition-title">Note</p>
-<p>The RTK device will stay in this passthrough mode until the external power button is pressed and released. The device will beep when exiting passthrough mode.</p>
-</div>
-<p><figure markdown>
-<img alt="Connect button and connection settings in UPrecise" src="../img/UPrecise/SparkFun%20RTK%20Everywhere%20-%20UPrecise%20Inteface%20Connect.png" />
-<figcaption markdown>
-Connect button and connection settings in UPrecise
+Selecting the .SUF firmware file
 </figcaption>
 </figure></p>
 </li>
 <li>
-<p>Select the COM port and set the baud rate to 115200, then press 'Connect'</p>
+<p>Click <strong>Start upgrade</strong> to start the upgrade.</p>
 <p><figure markdown>
-<img alt="Receiver Upgrade Button" src="../img/UPrecise/SparkFun%20RTK%20Everywhere%20-%20UPrecise%20Inteface%20Receiver%20Upgrade.png" />
+<img alt="Starting the firmware update" src="../img/mosaic-X5/mosaic-X5_firmware_upgrade_3.png" />
 <figcaption markdown>
-Receiver Upgrade Button
+Starting the firmware update
 </figcaption>
 </figure></p>
 </li>
 <li>
-<p>Once connected, press the <strong>Receiver Upgrade</strong> button.</p>
+<p>The upgrade will take approximately one minute to complete. Check the web page dialog to ensure the firmware was updated successfully.</p>
 <p><figure markdown>
-<img alt="Firmware selection window" src="../img/UPrecise/SparkFun%20RTK%20Everywhere%20-%20UPrecise%20Inteface%20Firmware%20Selection.png" />
+<img alt="Firmware update complete" src="../img/mosaic-X5/mosaic-X5_firmware_upgrade_4.png" />
 <figcaption markdown>
-Firmware selection window
+Firmware update complete
 </figcaption>
 </figure></p>
-</li>
-<li>
-<p>Select the latest firmware file that was previously downloaded (See the <a href="https://github.com/sparkfun/SparkFun_RTK_Torch" target="_blank" rel="noopener">RTK Torch repo</a> for the latest firmware). Then press Start.</p>
-<p><figure markdown>
-<img alt="Firmware update process" src="../img/UPrecise/SparkFun%20RTK%20Everywhere%20-%20UPrecise%20Inteface%20Firmware%20Upload.png" />
-<figcaption markdown>
-Firmware update process
-</figcaption>
-</figure></p>
-</li>
-<li>
-<p>The update process can take multiple minutes. Once completed, close UPrecise, and power cycle the RTK Torch.</p>
-<p><figure markdown>
-<img alt="UM980 Firmware version shown in System Menu" src="../img/Terminal/SparkFun%20RTK%20Everywhere%20-%20System%20Menu%20UM980%20Firmware.png" />
-<figcaption markdown>
-UM980 Firmware version shown in System Menu
-</figcaption>
-</figure></p>
-</li>
-<li>
-<p>Upon power-up, the firmware will be updated. Open the System Menu to confirm the firmware version.</p>
 </li>
 </ol>
 
@@ -2583,7 +2563,7 @@ UM980 Firmware version shown in System Menu
     <span class="md-icon" title="Last update">
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M21 13.1c-.1 0-.3.1-.4.2l-1 1 2.1 2.1 1-1c.2-.2.2-.6 0-.8l-1.3-1.3c-.1-.1-.2-.2-.4-.2m-1.9 1.8-6.1 6V23h2.1l6.1-6.1zM12.5 7v5.2l4 2.4-1 1L11 13V7zM11 21.9c-5.1-.5-9-4.8-9-9.9C2 6.5 6.5 2 12 2c5.3 0 9.6 4.1 10 9.3-.3-.1-.6-.2-1-.2s-.7.1-1 .2C19.6 7.2 16.2 4 12 4c-4.4 0-8 3.6-8 8 0 4.1 3.1 7.5 7.1 7.9l-.1.2z"/></svg>
     </span>
-    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-timeago"><span class="timeago" datetime="2025-02-21T12:13:47+00:00" locale="en"></span></span><span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-iso_date">2025-02-21</span>
+    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-timeago"><span class="timeago" datetime="2025-02-21T16:47:52+00:00" locale="en"></span></span><span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-iso_date">2025-02-21</span>
   </span>
 
     
