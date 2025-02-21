@@ -332,6 +332,7 @@ const char * const wifiStartNames[] =
     "WIFI_AP_SET_SSID_PASSWORD",
     "WIFI_AP_SET_IP_ADDR",
     "WIFI_AP_SET_HOST_NAME",
+    "WIFI_AP_START_DNS_SERVER",
     "WIFI_AP_ONLINE",
 
     "WIFI_STA_SET_HOST_NAME",
@@ -2763,27 +2764,21 @@ void RTK_WIFI::verifyTables()
     if (WIFI_AUTH_MAX != wifiAuthorizationNameEntries)
     {
         systemPrintf("ERROR: Fix wifiAuthorizationName list to match wifi_auth_mode_t in esp_wifi_types.h!\r\n");
-        while (1)
-        {
-        }
+        reportFatalError("Fix wifiAuthorizationName list to match wifi_auth_mode_t in esp_wifi_types.h!");
     }
 
     // Verify the Arduino event name table
     if (ARDUINO_EVENT_MAX != arduinoEventNameEntries)
     {
         systemPrintf("ERROR: Fix arduinoEventName list to match arduino_event_id_t in NetworkEvents.h!\r\n");
-        while (1)
-        {
-        }
+        reportFatalError("Fix arduinoEventName list to match arduino_event_id_t in NetworkEvents.h!");
     }
 
     // Verify the start name table
     if (WIFI_MAX_START != (1 << wifiStartNamesEntries))
     {
         systemPrintf("ERROR: Fix wifiStartNames list to match list of defines!\r\n");
-        while (1)
-        {
-        }
+        reportFatalError("Fix wifiStartNames list to match list of defines!!");
     }
 }
 
