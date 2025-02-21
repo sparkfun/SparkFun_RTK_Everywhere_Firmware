@@ -116,7 +116,7 @@ You can now use your RTK device to measure points with good (meter) accuracy. If
 
 To get millimeter accuracy we need to provide the RTK unit with correction values. Corrections, often called RTCM, help the RTK unit refine its position calculations. RTCM (Radio Technical Commission for Maritime Services) can be obtained from a variety of sources but they fall into three buckets: Commercial, Public, and Civilian Reference Stations.
 
-See [Corrections Sources](correction_sources.md) for a breakdown of the options and the pros and cons of each. For this quickstart, we'll be showing two examples: using PointPerfect for $8 a month (a little less accurate but nation-wide coverage) and PointOne Nav for $50 a month (maximum accuracy, gaps in the coverage area).
+See [Corrections Sources](correction_sources.md) for a breakdown of the options and the pros and cons of each. For this quickstart, we'll be showing two examples: using PointPerfect L-Band for $50 a month (a little less accurate but nation-wide coverage) and PointOne Nav for $50 a month (maximum accuracy, gaps in the coverage area).
 
 ## PointPerfect Corrections
 
@@ -134,7 +134,7 @@ Steps to use PointPerfect:
 
 1. Power on the RTK Facet mosaic device by pressing the Power button for 3 to 4 seconds until the OLED display illuminates.
 
-2. Put the RTK Facet mosaic into WiFi config mode by first tapping the power button. The OLED display will show a menu of choices. Tap the power button until **Config"" is highlighted, then give the power button a quick double-tap to select config mode. Detailed instructions are available in [Configure with Browser](./configure_with_browser.md).
+2. Put the RTK Facet mosaic into WiFi config mode by first tapping the power button. The OLED display will show a menu of choices. Tap the power button until **Config** is highlighted, then give the power button a quick double-tap to select config mode. Detailed instructions are available in [Configure with Browser](./configure_with_browser.md).
 
 3. From your phone, connect to the WiFi network *RTK Config*. You should be redirected to the WiFi Config page. If you are not, open a browser (Chrome is preferred) and type **rtk.local** or **192.168.4.1** into the address bar.
 
@@ -156,7 +156,7 @@ Steps to use PointPerfect:
 
 5. [Contact SparkFun](https://www.sparkfun.com/rtk_facet_mosaic_registration) with your Device ID and pay a monthly fee of $50 per month (as of this writing). It can take up to two business days for registration to complete. For now, press **Exit and Reset** and enjoy your RTK Facet mosaic without corrections.
 
-6. Once your Device ID resitration is complete, put the RTK Facet mosaic back into WiFi config mode by tapping the power button. The OLED display will show a menu of choices. Tap the power button until **Config"" is highlighted, then give the power button a quick double-tap to select config mode.
+6. Once your Device ID resitration is complete, put the RTK Facet mosaic back into WiFi config mode by tapping the power button. The OLED display will show a menu of choices. Tap the power button until **Config** is highlighted, then give the power button a quick double-tap to select config mode.
 
 7. From your phone, connect to the WiFi network *RTK Config*. You should be redirected to the WiFi Config page. If you are not, open a browser (Chrome is preferred) and type **rtk.local** or **192.168.4.1** into the address bar.
 
