@@ -768,11 +768,15 @@ RTK_WIFI::RTK_WIFI(bool verbose)
       _usingDefaultChannel{true}, _verbose{verbose}
 {
     wifiChannel = 0;
+    wifiEspNowOnline = false;
     wifiEspNowRunning = false;
     wifiFailedConnectionAttempts = 0;
+    wifiReconnectionTimer = 0;
     wifiRestartRequested = false;
-    wifiStationRunning = false;
+    wifiSoftApOnline = false;
     wifiSoftApRunning = false;
+    wifiStationOnline = false;
+    wifiStationRunning = false;
 
     // Prepare to start WiFi immediately
     wifiResetThrottleTimeout();
