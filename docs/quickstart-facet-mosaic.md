@@ -123,7 +123,7 @@ See [Corrections Sources](correction_sources.md) for a breakdown of the options 
 One of the great features of the RTK Facet mosaic is that it has the ability to get corrections from PointPerfect over L-Band. No need for NTRIP credentials! [Contact SparkFun](https://www.sparkfun.com/rtk_facet_mosaic_registration) with your device ID, pay a monthly fee of $50 per month (as of this writing) and your device will obtain credentials and start receiving corrections anywhere in the contiguous USA.
 
 [<figure markdown>
-![PointPerfect L-Band coverage map](./img/pointperfect_coverage_l-band.jpg)](pointperfect_coverage_l-band.jpg)
+![PointPerfect L-Band coverage map](./img/PointPerfect/pointperfect_coverage_l-band.jpg)](./img/PointPerfect/pointperfect_coverage_l-band.jpg)
 <figcaption markdown>
 PointPerfect L-Band coverage map
 </figcaption>
@@ -132,13 +132,11 @@ PointPerfect L-Band coverage map
 
 Steps to use PointPerfect:
 
-1. [Register](https://www.sparkfun.com/rtk_facet_mosaic_registration) the device with SparkFun by entering the device ID (this is the ID seen on the [printed stickers](https://docs.sparkfun.com/SparkFun_RTK_Everywhere_Firmware/menu_pointperfect/#registration) included in the kit). It can take up to two business days for registration to complete.
+1. Power on the RTK Facet mosaic device by pressing the Power button for 3 to 4 seconds until the OLED display illuminates.
 
-2. Power on the RTK Facet mosaic device by pressing the Power button for 3 to 4 seconds until the OLED display illuminates.
+2. Put the RTK Facet mosaic into WiFi config mode by first tapping the power button. The OLED display will show a menu of choices. Tap the power button until **Config"" is highlighted, then give the power button a quick double-tap to select config mode. Detailed instructions are available in [Configure with Browser](./configure_with_browser.md).
 
-3. Put the RTK Facet mosaic into WiFi config mode by tapping the power button. The OLED display will show a menu of choices. Tap the power button until **Config"" is highlighted, then give the power button a quick double-tap to select config mode.
-
-4. From your phone, connect to the WiFi network *RTK Config*. You should be redirected to the WiFi Config page. If you are not, open a browser (Chrome is preferred) and type **rtk.local** or **192.168.4.1** into the address bar.
+3. From your phone, connect to the WiFi network *RTK Config*. You should be redirected to the WiFi Config page. If you are not, open a browser (Chrome is preferred) and type **rtk.local** or **192.168.4.1** into the address bar.
 
 	<figure markdown>
 	![SparkFun RTK WiFi Configuration Interface](./img/WiFi Config/SparkFun RTK WiFi Config - Header Block.png)
@@ -147,7 +145,29 @@ Steps to use PointPerfect:
 	</figcaption>
 	</figure>
 
-5. Under the *WiFi Configuration* menu, give the device WiFi credentials for your local WiFi. This can be the cellphone hotspot if local WiFi is not available.
+4. Under the [*PointPerfect Configuration* menu](menu_pointperfect.md), make a note of your Device ID.
+
+	<figure markdown>
+	![PointPerfect Configuration Menu](./img/WiFi Config/SparkFun RTK PointPerfect Config Device ID.png)
+	<figcaption markdown>
+	PointPerfect Configuration Menu
+	</figcaption>
+	</figure>
+
+5. [Contact SparkFun](https://www.sparkfun.com/rtk_facet_mosaic_registration) with your Device ID and pay a monthly fee of $50 per month (as of this writing). It can take up to two business days for registration to complete. For now, press **Exit and Reset** and enjoy your RTK Facet mosaic without corrections.
+
+6. Once your Device ID resitration is complete, put the RTK Facet mosaic back into WiFi config mode by tapping the power button. The OLED display will show a menu of choices. Tap the power button until **Config"" is highlighted, then give the power button a quick double-tap to select config mode.
+
+7. From your phone, connect to the WiFi network *RTK Config*. You should be redirected to the WiFi Config page. If you are not, open a browser (Chrome is preferred) and type **rtk.local** or **192.168.4.1** into the address bar.
+
+	<figure markdown>
+	![SparkFun RTK WiFi Configuration Interface](./img/WiFi Config/SparkFun RTK WiFi Config - Header Block.png)
+	<figcaption markdown>
+	SparkFun RTK WiFi Configuration Interface
+	</figcaption>
+	</figure>
+
+8. Under the *WiFi Configuration* menu, give the device WiFi credentials for your local WiFi. This can be the cellphone hotspot if local WiFi is not available.
 
 	<figure markdown>
 	![WiFi Menu containing one network](./img/WiFi Config/SparkFun RTK WiFi Config - WiFi Menu.png)
@@ -156,7 +176,7 @@ Steps to use PointPerfect:
 	</figcaption>
 	</figure>
 
-6. Under the [*PointPerfect Configuration* menu](menu_pointperfect.md), **Enable PointPefect Corrections** and select your **Geographic Region**.
+9. Under the [*PointPerfect Configuration* menu](menu_pointperfect.md), **Enable PointPefect Corrections** and select your **Geographic Region**.
 
 	<figure markdown>
 	![PointPerfect Configuration Menu](./img/WiFi Config/SparkFun RTK PointPerfect Config L-Band.png)
@@ -169,7 +189,7 @@ Steps to use PointPerfect:
 		It is important that you set your Geographic Region correctly, via the menu or web config page, as this determines both the IP correction distribution topic and the L-Band frequency (on L-Band-capable products). Sadly, u-blox are suspending their EU L-Band service on March 10th 2025. L-Band coverage will only be available in the contiguous USA from that date.
 
 
-7. Click **Save Configuration**. The device will record all settings in a few seconds. Then press **Exit and Reset**. The unit will now reboot.
+10. Click **Save Configuration**. The device will record all settings in a few seconds. Then press **Exit and Reset**. The unit will now reboot.
 
 	<figure markdown>
 	![Saving and All Saved notifications](./img/WiFi Config/SparkFun RTK WiFi Config - Save Steps.png)
