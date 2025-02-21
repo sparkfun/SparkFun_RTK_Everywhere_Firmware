@@ -435,9 +435,8 @@ void networkConsumerAdd(NETCONSUMER_t consumer, NetIndex_t network)
     }
     else
     {
-        systemPrintf("Network consumer %s added more than once to network %s\r\n",
-                     networkConsumerTable[consumer],
-                     networkInterfaceTable[index]);
+        systemPrintf("Network consumer %s added more than once\r\n",
+                     networkConsumerTable[consumer]);
         reportFatalError("Network consumer added more than once!");
     }
 }
