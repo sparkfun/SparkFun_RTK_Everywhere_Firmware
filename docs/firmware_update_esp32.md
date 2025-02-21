@@ -187,6 +187,15 @@ In the rare event that a unit is not staying on long enough for new firmware to 
 
 ## Updating Firmware From WiFi
 
+<div class="grid cards fill" markdown>
+
+- EVK: :material-radiobox-marked:{ .support-full title="Feature Supported" }
+- Facet mosaic: :material-radiobox-marked:{ .support-full title="Feature Supported" }
+- Postcard: :material-radiobox-marked:{ .support-full title="Feature Supported" }
+- Torch: :material-radiobox-marked:{ .support-full title="Feature Supported" }
+
+</div>
+
 <figure markdown>
 ![Advanced system settings](./img/WiFi Config/SparkFun%20RTK%20System%20Config%20Upload%20BIN.png)
 <figcaption markdown>
