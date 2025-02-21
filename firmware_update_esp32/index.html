@@ -3289,13 +3289,13 @@ Compatibility Icons
 <p>The firmware is shown at the top of the WiFi config page.</p>
 <p>From time to time SparkFun will release new firmware for the RTK product line to add and improve functionality. For most users, firmware can be upgraded over WiFi using the OTA method.</p>
 <ul>
-<li><a href="../firmware_update/#updating-firmware-over-the-air">OTA Method</a>: Connect over WiFi to SparkFun to download the latest firmware <em>over-the-air</em>. This can be done using the serial menu or while in WiFi AP Config Mode. Requires a local WiFi network.</li>
-<li><a href="../firmware_update/#updating-using-windows-gui">GUI Method</a>: Use the <a href="https://github.com/sparkfun/SparkFun_RTK_Firmware_Uploader" target="_blank" rel="noopener">Windows, Linux, MacOS or Python GUI</a> and a USB cable. (The Python package has been tested on Raspberry Pi)</li>
-<li><a href="../firmware_update/#updating-firmware-from-the-sd-card">SD Method</a>: Load the firmware on an SD card, then use a serial terminal with the <em>Firmware Upgrade</em> menu</li>
-<li><a href="../firmware_update/#updating-firmware-from-wifi">WiFi Method</a>: Load the firmware over WiFi when the device is in WiFi AP Config Mode</li>
-<li><a href="../firmware_update/#updating-firmware-from-cli">CLI Method</a>: Use the command line <em>batch_program.bat</em></li>
+<li><a href="#updating-firmware-over-the-air">OTA Method</a>: Connect over WiFi to SparkFun to download the latest firmware <em>over-the-air</em>. This can be done using the serial menu or while in WiFi AP Config Mode. Requires a local WiFi network.</li>
+<li><a href="#updating-firmware-using-the-uploader-gui">GUI Method</a>: Use the <a href="https://github.com/sparkfun/SparkFun_RTK_Firmware_Uploader" target="_blank" rel="noopener">Windows, Linux, MacOS or Python GUI</a> and a USB cable. (The Python package has been tested on Raspberry Pi)</li>
+<li><a href="#updating-firmware-from-the-sd-card">SD Method</a>: Load the firmware on an SD card, then use a serial terminal with the <em>Firmware Upgrade</em> menu</li>
+<li><a href="#updating-firmware-from-wifi">WiFi Method</a>: Load the firmware over WiFi when the device is in WiFi AP Config Mode</li>
+<li><a href="#updating-firmware-from-cli">CLI Method</a>: Use the command line <em>batch_program.bat</em></li>
 </ul>
-<p>The OTA method is generally recommended. For more information see <a href="../firmware_update/#updating-firmware-over-the-air">here</a>.</p>
+<p>The OTA method is generally recommended. For more information see <a href="#updating-firmware-over-the-air">here</a>.</p>
 <p>Remember, all SparkFun RTK devices are open source hardware meaning you have total access to the <a href="https://github.com/sparkfun/SparkFun_RTK_Everywhere_Firmware" target="_blank" rel="noopener">firmware</a> and <a href="https://github.com/sparkfun/SparkFun_RTK_Facet" target="_blank" rel="noopener">hardware</a>. Be sure to check out each repo for the latest firmware and hardware information.</p>
 <h2 id="updating-firmware-over-the-air">Updating Firmware Over-The-Air<a class="headerlink" href="#updating-firmware-over-the-air" title="Permanent link"></a></h2>
 <figure>
@@ -3383,7 +3383,7 @@ Compatibility Icons
 <p>The firmware is called <code>RTK_Surveyor_Firmware_vXX.bin</code> even though there are various RTK products (Facet, Express, Surveyor, etc). We united the different platforms into one. The <a href="https://github.com/sparkfun/SparkFun_RTK_Everywhere_Firmware" target="_blank" rel="noopener">RTK Firmware</a> runs on all our RTK products.</p>
 </div>
 <h3 id="force-firmware-loading">Force Firmware Loading<a class="headerlink" href="#force-firmware-loading" title="Permanent link"></a></h3>
-<p>In the rare event that a unit is not staying on long enough for new firmware to be loaded into a COM port, the RTK Firmware (as of version 1.2) has an override function. If a file named <em>RTK_Surveyor_Firmware_Force.bin</em> is detected on the SD card at boot that file will be used to overwrite the current firmware, and then be deleted. This update path is generally not recommended. Use the <a href="../firmware_update/#updating-firmware-using-windows-gui">GUI</a> or <a href="../firmware_update/#updating-firmware-from-wifi">WiFi OTA</a> methods as the first resort.</p>
+<p>In the rare event that a unit is not staying on long enough for new firmware to be loaded into a COM port, the RTK Firmware (as of version 1.2) has an override function. If a file named <em>RTK_Surveyor_Firmware_Force.bin</em> is detected on the SD card at boot that file will be used to overwrite the current firmware, and then be deleted. This update path is generally not recommended. Use the <a href="#updating-firmware-using-the-uploader-gui">GUI</a> or <a href="#updating-firmware-from-wifi">WiFi OTA</a> methods as the first resort.</p>
 <h2 id="updating-firmware-from-wifi">Updating Firmware From WiFi<a class="headerlink" href="#updating-firmware-from-wifi" title="Permanent link"></a></h2>
 <figure>
 <p><img alt="Advanced system settings" src="../img/WiFi%20Config/SparkFun%20RTK%20System%20Config%20Upload%20BIN.png" /></p>
@@ -3391,7 +3391,7 @@ Compatibility Icons
 </figure>
 <div class="admonition note">
 <p class="admonition-title">Note</p>
-<p>Firmware versions 1.1 to 1.9 have an issue that severely limits firmware upload over WiFi and is not recommended; use the <a href="../firmware_update/#updating-firmware-using-the-uploader-gui">GUI</a> method instead. Firmware versions v1.10 and beyond support direct firmware updates via WiFi.</p>
+<p>Firmware versions 1.1 to 1.9 have an issue that severely limits firmware upload over WiFi and is not recommended; use the <a href="#updating-firmware-using-the-uploader-gui">GUI</a> method instead. Firmware versions v1.10 and beyond support direct firmware updates via WiFi.</p>
 </div>
 <p>Firmware may be uploaded to the unit by clicking on 'Upload BIN', selecting the binary such as 'RTK_Surveyor_Firmware_v3_x.bin' and pressing upload. The unit will automatically reset once the firmware upload is complete.</p>
 <h2 id="updating-firmware-from-cli">Updating Firmware From CLI<a class="headerlink" href="#updating-firmware-from-cli" title="Permanent link"></a></h2>
@@ -3459,7 +3459,7 @@ Compatibility Icons
     <span class="md-icon" title="Last update">
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M21 13.1c-.1 0-.3.1-.4.2l-1 1 2.1 2.1 1-1c.2-.2.2-.6 0-.8l-1.3-1.3c-.1-.1-.2-.2-.4-.2m-1.9 1.8-6.1 6V23h2.1l6.1-6.1zM12.5 7v5.2l4 2.4-1 1L11 13V7zM11 21.9c-5.1-.5-9-4.8-9-9.9C2 6.5 6.5 2 12 2c5.3 0 9.6 4.1 10 9.3-.3-.1-.6-.2-1-.2s-.7.1-1 .2C19.6 7.2 16.2 4 12 4c-4.4 0-8 3.6-8 8 0 4.1 3.1 7.5 7.1 7.9l-.1.2z"/></svg>
     </span>
-    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-timeago"><span class="timeago" datetime="2025-02-21T12:13:47+00:00" locale="en"></span></span><span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-iso_date">2025-02-21</span>
+    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-timeago"><span class="timeago" datetime="2025-02-21T16:07:00+00:00" locale="en"></span></span><span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-iso_date">2025-02-21</span>
   </span>
 
     
