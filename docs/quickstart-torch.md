@@ -23,7 +23,7 @@ Are you using [Android](#android) or [iOS](#ios)?
 
 2. Mount the hardware:
 
-	- For RTK Torch: Attach the Torch to a 5/8" 11-TPI standard surveying pole or to a [monopole](https://www.amazon.com/AmazonBasics-WT1003-67-Inch-Monopod/dp/B00FAYL1YU) using the included [thread adapter](https://www.sparkfun.com/products/17546) (Figure 1).
+	- For RTK Torch: Attach the Torch to a 5/8" 11-TPI standard surveying pole or to a [monopole](https://www.sparkfun.com/telescopic-surveying-pole.html) using the included [thread adapter](https://www.sparkfun.com/products/17546) if needed (Figure 1).
 
 	<figure markdown>
 	![RTK devices attached to a monopole](./img/SparkFun Torch Attached to a Pole.png)
