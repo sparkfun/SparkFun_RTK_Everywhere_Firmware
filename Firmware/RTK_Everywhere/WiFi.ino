@@ -1050,7 +1050,6 @@ bool RTK_WIFI::setWiFiMode(uint8_t setMode, uint8_t xorMode)
     uint8_t mode;
     uint8_t newMode;
     bool started;
-    esp_err_t status;
 
     started = false;
     do
@@ -1075,12 +1074,19 @@ bool RTK_WIFI::setWiFiMode(uint8_t setMode, uint8_t xorMode)
         started = WiFi.mode((wifi_mode_t)newMode);
         if (!started)
         {
-            systemPrintf("ERROR: Failed to set %d (%s), status: %d!\r\n",
+            reportHeapNow(true);
+            systemPrintf("Current WiFi mode: 0x%08x (%s)\r\n",
+                         mode,
+                         ((mode == 0) ? "WiFi off"
+                         : ((mode & (WIFI_MODE_AP | WIFI_MODE_STA)) == (WIFI_MODE_AP | WIFI_MODE_STA) ? "Soft AP + STA"
+                         : ((mode & (WIFI_MODE_AP | WIFI_MODE_STA)) == WIFI_MODE_AP ? "Soft AP"
+                         : "STA"))));
+            systemPrintf("ERROR: Failed to set %d (%s)!\r\n",
                          newMode,
                          ((newMode == 0) ? "WiFi off"
                          : ((newMode & (WIFI_MODE_AP | WIFI_MODE_STA)) == (WIFI_MODE_AP | WIFI_MODE_STA) ? "Soft AP + STA mode"
                          : ((newMode & (WIFI_MODE_AP | WIFI_MODE_STA)) == WIFI_MODE_AP ? "Soft AP mode"
-                         : "STA mode"))), status);
+                         : "STA mode"))));
             break;
         }
         if (settings.debugWifiState && _verbose)
