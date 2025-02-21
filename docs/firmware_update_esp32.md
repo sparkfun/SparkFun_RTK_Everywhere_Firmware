@@ -12,9 +12,9 @@ Compatibility Icons
 <div class="grid cards fill" markdown>
 
 - EVK: :material-radiobox-marked:{ .support-full title="Feature Supported" }
-- Facet mosaic: :material-radiobox-marked:{ .support-full title="Feature Supported" }
+- Facet mosaic: [:material-radiobox-blank:{ .support-none }]( title ="Feature Partially Supported" )
 - Postcard: :material-radiobox-marked:{ .support-full title="Feature Supported" }
-- Torch: :material-radiobox-marked:{ .support-full title="Feature Supported" }
+- Torch: [:material-radiobox-blank:{ .support-none }]( title ="Feature Partially Supported" )
 
 </div>
 
@@ -65,6 +65,15 @@ Remember, all SparkFun RTK devices are open source hardware meaning you have tot
 
 ## Updating Firmware Over-The-Air
 
+<div class="grid cards fill" markdown>
+
+- EVK: :material-radiobox-marked:{ .support-full title="Feature Supported" }
+- Facet mosaic: :material-radiobox-marked:{ .support-full title="Feature Supported" }
+- Postcard: :material-radiobox-marked:{ .support-full title="Feature Supported" }
+- Torch: :material-radiobox-marked:{ .support-full title="Feature Supported" }
+
+</div>
+
 <figure markdown>
 ![Updating Firmware from WiFi config page](./img/WiFi Config/SparkFun RTK Everywhere - Firmware Update System Menu.gif)
 <figcaption markdown>
@@ -90,6 +99,15 @@ Automatic release firmware update is supported over WiFi. Enabling this feature 
 - Locally built versions (newer or older, restore to released version)
 
 ## Updating Firmware Using The Uploader GUI
+
+<div class="grid cards fill" markdown>
+
+- EVK: :material-radiobox-marked:{ .support-full title="Feature Supported" }
+- Facet mosaic: :material-radiobox-marked:{ .support-full title="Feature Supported" }
+- Postcard: :material-radiobox-marked:{ .support-full title="Feature Supported" }
+- Torch: :material-radiobox-marked:{ .support-full title="Feature Supported" }
+
+</div>
 
 <figure markdown>
 ![RTK Firmware GUI](./img/RTK_Uploader_Windows.png)
@@ -181,6 +199,15 @@ In the rare event that a unit is not staying on long enough for new firmware to 
 Firmware may be uploaded to the unit by clicking on 'Upload BIN', selecting the binary such as 'RTK_Surveyor_Firmware_v3_x.bin' and pressing upload. The unit will automatically reset once the firmware upload is complete.
 
 ## Updating Firmware From CLI
+
+<div class="grid cards fill" markdown>
+
+- EVK: :material-radiobox-marked:{ .support-full title="Feature Supported" }
+- Facet mosaic: :material-radiobox-marked:{ .support-full title="Feature Supported" }
+- Postcard: :material-radiobox-marked:{ .support-full title="Feature Supported" }
+- Torch: :material-radiobox-marked:{ .support-full title="Feature Supported" }
+
+</div>
 
 The command-line interface is also available. You’ll need to download the [RTK Firmware Binaries](https://github.com/sparkfun/SparkFun_RTK_Everywhere_Firmware_Binaries) repo. This repo contains the binaries but also various supporting tools including esptool.exe and the three binaries required along with the firmware (bootloader, partitions, and app0).
 
