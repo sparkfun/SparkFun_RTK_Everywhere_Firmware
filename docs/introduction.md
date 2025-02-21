@@ -36,6 +36,9 @@ The line of RTK Everywhere products offered by SparkFun all run identical firmwa
 	[Hookup Guide](https://docs.sparkfun.com/SparkFun_RTK_Facet_mosaic/){ .md-button .md-button--primary }
 	</center>
 
+</div>
+<div class="grid cards" markdown>
+
 -   <figure markdown>
 	[![Product Image](./img/SparkFun_RTK_Postcard.png)](https://www.sparkfun.com/sparkfun-rtk-postcard.html "Go to Product Page")
 	<figcaption markdown>
