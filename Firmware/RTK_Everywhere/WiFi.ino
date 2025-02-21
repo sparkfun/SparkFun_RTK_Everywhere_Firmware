@@ -1873,6 +1873,7 @@ bool RTK_WIFI::stopStart(WIFI_ACTION_t stopping, WIFI_ACTION_t starting)
         systemPrintf("WiFi: RTK_WIFI::stopStart called\r\n");
         systemPrintf("stopping: 0x%08x\r\n", stopping);
         systemPrintf("starting: 0x%08x\r\n", starting);
+        reportHeapNow(true);
     }
 
     //****************************************
@@ -2641,7 +2642,10 @@ bool RTK_WIFI::stopStart(WIFI_ACTION_t stopping, WIFI_ACTION_t starting)
     if (!enabled)
         systemPrintf("ERROR: RTK_WIFI::stopStart failed!\r\n");
     if (settings.debugWifiState && _verbose)
+    {
+        reportHeapNow(true);
         systemPrintf("WiFi: RTK_WIFI::stopStart returning; %s\r\n", enabled ? "true" : "false");
+    }
     return enabled;
 }
 
