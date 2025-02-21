@@ -57,7 +57,8 @@ PointPerfect has the following benefits and challenges:
 
 PointPerfect corrections are obtained by two methods:
 
-- **L-Band**: Corrections are transmitted from a geosynchronous satellite. Coverage areas are limited to the US contiguous 48 states and the EU. This delivery method requires special equipment (see the [RTK EVK](https://www.sparkfun.com/products/24342) for more information). No cellular or internet connection is required.
+- **L-Band**: Corrections are transmitted from a geosynchronous satellite. Coverage is limited to the US contiguous 48 states. This delivery method requires special equipment (see the [RTK EVK](https://www.sparkfun.com/products/24342) and [RTK Facet mosaic](https://www.sparkfun.com/sparkpnt-rtk-facet-mosaic-l-band.html) for more information). No cellular or internet connection is required.
+    - Sadly, u-blox are suspending the EU L-Band service with effect from March 10th 2025. The L-Band service will only be available in the contiguous USA from that date.
 - **IP**: Corrections are transmitted over the internet. The RTK device will need access to a WiFi or Ethernet network. For WiFi, this is most commonly a hotspot on a cell phone so this delivery method is generally confined to areas with cellular and/or other WiFi coverage.
 
 !!! note
