@@ -2658,7 +2658,7 @@ Figure 1
 <p>Turn on the RTK Facet mosaic device by pressing the Power button for 3 to 4 seconds until the OLED display illuminates.</p>
 </li>
 <li>
-<p>From your cell phone, open Bluetooth settings and pair it with a new device. You will see a list of available Bluetooth devices. Select the ‘Torch Rover-3AF1’. The '3AF1' is the last four digits of the device's MAC address and will vary depending on the device (Figure 3).</p>
+<p>From your cell phone, open Bluetooth settings and pair it with a new device. You will see a list of available Bluetooth devices. Select the ‘Facet mosaicX5 Rover-3AF1’. The '3AF1' is the last four digits of the device's MAC address and will vary depending on the device (Figure 3).</p>
 <p><figure markdown>
 <img alt="List of Bluetooth devices on Android" src="../img/QuickStart/SparkFun%20Torch%20-%20Available%20Devices.png" />
 <figcaption markdown>
@@ -2670,7 +2670,7 @@ Figure 3
 <p>Once paired, open SW Maps. Select ‘New Project’ and give your project a name like ‘RTK Project’.</p>
 </li>
 <li>
-<p>Press the SW Maps icon in the top left corner of the home screen and select <strong>Bluetooth GNSS</strong>. You should see the ‘Torch Rover-3AF1’ in the list. Select it. Confirm that the <em>Instrument Model</em> is <strong>SparkFun RTK</strong>, then press the ‘Connect’ button in the bottom right corner (Figure 4). SW Maps will show a warning that the instrument height is 0m. That’s ok.</p>
+<p>Press the SW Maps icon in the top left corner of the home screen and select <strong>External GNSS Connection</strong>. You should see the ‘Facet mosaicX5 Rover-3AF1’ in the list. Select it. Confirm that the <em>Instrument Model</em> is <strong>SparkFun RTK</strong>, then press the ‘Connect’ button in the bottom right corner (Figure 4). SW Maps will show a warning that the instrument height is 0m. That’s ok.</p>
 <p><figure markdown>
 <img alt="SW Map list of Bluetooth devices" src="../img/QuickStart/SparkFun%20Torch%20-%20SW%20Maps%20Bluetooth%20Small.png" />
 <figcaption markdown>
@@ -2682,7 +2682,7 @@ Figure 4
 <p>Once connected, you should see the Bluetooth icon on the RTK device OLED display.</p>
 </li>
 <li>
-<p>Now put the device outside with a clear view of the sky. GNSS doesn’t work indoors or near windows. Press the SW Maps icon in the top left corner of the home screen and select <strong>GNSS Status</strong>. Within about 30 seconds you should see 10 or more satellites in view (SIV) (Figure 5). More SIV is better. We regularly see 30 or more SIV. The horizontal positional accuracy (HPA) will start at around 10 meters and begin to decrease. The lower the HPA the more accurate your position. This accuracy is around 2m in normal mode.</p>
+<p>Now put the device outside with a clear view of the sky. GNSS doesn’t work indoors or near windows. Press the SW Maps icon in the top left corner of the home screen and select <strong>GNSS Status</strong>. Within about 30 seconds you should see 10 or more satellites in view (SIV) (Figure 5). More SIV is better. We regularly see 30 or more SIV. The horizontal positional accuracy (HPA) will start at around 10 meters and begin to decrease. The lower the HPA the more accurate your position. This accuracy should be below 1m in normal mode.</p>
 <p><figure markdown>
 <img alt="RTK GNSS Status Window" src="../img/QuickStart/SparkFun%20Torch%20-%20SW%20Maps%20GNSS%20Status%20SIV%20Small.png" />
 <figcaption markdown>
@@ -2691,6 +2691,7 @@ Figure 5
 </figure></p>
 </li>
 </ol>
+<p>Press the target icon in the top-left corner of the map to view your position.</p>
 <p>You can now use your RTK device to measure points with good (meter) accuracy. If you need extreme accuracy (down to 8mm) continue reading the <a href="#rtk-crash-course">RTK Crash Course</a>.</p>
 <h2 id="ios">iOS<a class="headerlink" href="#ios" title="Permanent link"></a></h2>
 <p>The software options for Apple iOS are much more limited because Apple products do not support Bluetooth SPP. That's ok! The SparkFun RTK products support Bluetooth Low Energy (BLE) which <em>does</em> work with iOS.</p>
@@ -2723,13 +2724,13 @@ Figure 1
 <p>Open SW Maps. Select ‘New Project’ and give your project a name like ‘RTK Project’.</p>
 </li>
 <li>
-<p>Press the SW Maps icon in the top left corner of the home screen and select Bluetooth GNSS. You will need to agree to allow a Bluetooth connection. Set the <em>Instrument Model</em> to <strong>Generic NMEA (Bluetooth LE)</strong>. Press 'Scan' and your RTK device should appear. Select it then press the ‘Connect’ button in the bottom left corner.</p>
+<p>Press the SW Maps icon in the top left corner of the home screen and select Bluetooth GNSS. You will need to agree to allow a Bluetooth connection. Set the <em>Instrument Model</em> to <strong>Generic NMEA (Bluetooth LE)</strong>. Press 'Scan' and your RTK device should appear. Select it then press the ‘Connect’ button in the bottom right corner.</p>
 </li>
 <li>
 <p>Once connected, you should see the Bluetooth icon on the RTK device OLED display.</p>
 </li>
 <li>
-<p>Now put the device outside with a clear view of the sky. GNSS doesn’t work indoors or near windows. Press the SW Maps icon in the top left corner of the home screen and select <strong>GNSS Status</strong>. Within about 30 seconds you should see 10 or more satellites in view (SIV) (Figure 3). More SIV is better. We regularly see 30 or more SIV. The horizontal positional accuracy (HPA) will start at around 10 meters and begin to decrease. The lower the HPA the more accurate your position. This accuracy is around 2m in normal mode.</p>
+<p>Now put the device outside with a clear view of the sky. GNSS doesn’t work indoors or near windows. Press the SW Maps icon in the top left corner of the home screen and select <strong>GNSS Status</strong>. Within about 30 seconds you should see 10 or more satellites in view (SIV) (Figure 3). More SIV is better. We regularly see 30 or more SIV. The horizontal positional accuracy (HPA) will start at around 10 meters and begin to decrease. The lower the HPA the more accurate your position. This accuracy should be below 1m in normal mode.</p>
 <p><figure markdown>
 <img alt="RTK GNSS Status Window" src="../img/QuickStart/SparkFun%20Torch%20-%20SW%20Maps%20GNSS%20Status%20SIV%20Small.png" />
 <figcaption markdown>
@@ -2743,27 +2744,26 @@ Figure 3
 <p>To get millimeter accuracy we need to provide the RTK unit with correction values. Corrections, often called RTCM, help the RTK unit refine its position calculations. RTCM (Radio Technical Commission for Maritime Services) can be obtained from a variety of sources but they fall into three buckets: Commercial, Public, and Civilian Reference Stations.</p>
 <p>See <a href="../correction_sources/">Corrections Sources</a> for a breakdown of the options and the pros and cons of each. For this quickstart, we'll be showing two examples: using PointPerfect for $8 a month (a little less accurate but nation-wide coverage) and PointOne Nav for $50 a month (maximum accuracy, gaps in the coverage area).</p>
 <h2 id="pointperfect-corrections">PointPerfect Corrections<a class="headerlink" href="#pointperfect-corrections" title="Permanent link"></a></h2>
-<p>One of the great features of the RTK Torch is that it has the ability to get corrections from PointPerfect over WiFi. No need for NTRIP credentials! <a href="https://www.sparkfun.com/rtk_torch_registration" target="_blank" rel="noopener">Contact SparkFun</a> with your device ID, pay a small monthly fee of $8 per month (as of this writing) and your device will obtain credentials and start receiving corrections anywhere there is coverage.</p>
-<p><a href="https://www.u-blox.com/en/pointperfect-service-coverage" target="_blank" rel="noopener"><figure markdown>
-<img alt="PointPerfect Coverage map including L-Band and IP delivery methods" src="../img/PointPerfect/SparkFun%20RTK%20Everywhere%20-%20PointPerfect%20Coverage%20Map%20Small.png" /></a></p>
+<p>One of the great features of the RTK Facet mosaic is that it has the ability to get corrections from PointPerfect over L-Band. No need for NTRIP credentials! <a href="https://www.sparkfun.com/rtk_facet_mosaic_registration" target="_blank" rel="noopener">Contact SparkFun</a> with your device ID, pay a monthly fee of $50 per month (as of this writing) and your device will obtain credentials and start receiving corrections anywhere in the contiguous USA.</p>
+<p><a href="pointperfect_coverage_l-band.jpg"><figure markdown>
+<img alt="PointPerfect L-Band coverage map" src="./img/pointperfect_coverage_l-band.jpg" /></a></p>
 <figcaption>
-<p>PointPerfect Coverage map including L-Band and IP delivery methods</p>
+<p>PointPerfect L-Band coverage map</p>
 </figcaption>
 </figure>
-<p>The PointPerfect IP service is available for various areas of the globe including the contiguous US, EU, South Korea, as well as parts of Brazil, Australia, and Canada. See the <a href="https://www.u-blox.com/en/pointperfect-service-coverage" target="_blank" rel="noopener">coverage map</a> for specifics; the RTK Torch is compatible with any area that has <em>IP Coverage</em> (it is not compatible with L-Band coverage).</p>
 <p>Steps to use PointPerfect:</p>
 <ol>
 <li>
-<p><a href="https://www.sparkfun.com/rtk_torch_registration" target="_blank" rel="noopener">Register</a> the device with SparkFun by entering the device ID (this is the ID seen on the <a href="https://docs.sparkfun.com/SparkFun_RTK_Everywhere_Firmware/menu_pointperfect/#registration" target="_blank" rel="noopener">printed stickers</a> included in the kit). It can take up to two business days for registration to complete.</p>
+<p><a href="https://www.sparkfun.com/rtk_facet_mosaic_registration" target="_blank" rel="noopener">Register</a> the device with SparkFun by entering the device ID (this is the ID seen on the <a href="https://docs.sparkfun.com/SparkFun_RTK_Everywhere_Firmware/menu_pointperfect/#registration" target="_blank" rel="noopener">printed stickers</a> included in the kit). It can take up to two business days for registration to complete.</p>
 </li>
 <li>
-<p>Power on the RTK Torch by pressing and holding the power button for around 4 seconds. The device will emit a short beep and illuminate the LEDs.</p>
+<p>Power on the RTK Facet mosaic device by pressing the Power button for 3 to 4 seconds until the OLED display illuminates.</p>
 </li>
 <li>
-<p>Put the RTK Torch into WiFi config mode by double-tapping the power button. You will hear two beeps indicating it is ready to connect to.</p>
+<p>Put the RTK Facet mosaic into WiFi config mode by tapping the power button. The OLED display will show a menu of choices. Tap the power button until **Config"" is highlighted, then give the power button a quick double-tap to select config mode.</p>
 </li>
 <li>
-<p>From your phone, connect to the WiFi network <em>RTK Config</em>. You should be redirected to the WiFi Config page. If you are not, open a browser (Chrome is preferred) and type <strong>rtk.local</strong> into the address bar.</p>
+<p>From your phone, connect to the WiFi network <em>RTK Config</em>. You should be redirected to the WiFi Config page. If you are not, open a browser (Chrome is preferred) and type <strong>rtk.local</strong> or <strong>192.168.4.1</strong> into the address bar.</p>
 <p><figure markdown>
 <img alt="SparkFun RTK WiFi Configuration Interface" src="../img/WiFi%20Config/SparkFun%20RTK%20WiFi%20Config%20-%20Header%20Block.png" />
 <figcaption markdown>
@@ -2781,16 +2781,16 @@ WiFi Menu containing one network
 </figure></p>
 </li>
 <li>
-<p>Under the <a href="../menu_pointperfect/"><em>PointPerfect Configuration</em> menu</a>, <strong>Enable PointPefect Corrections</strong> and select your <strong>Geographic Region</strong>. If desired, enable <strong>Localized Corrections</strong> and <strong>AssistNow</strong>.</p>
+<p>Under the <a href="../menu_pointperfect/"><em>PointPerfect Configuration</em> menu</a>, <strong>Enable PointPefect Corrections</strong> and select your <strong>Geographic Region</strong>.</p>
 <p><figure markdown>
-<img alt="PointPerfect Configuration Menu" src="../img/WiFi%20Config/SparkFun%20RTK%20PointPerfect%20Config.png" />
+<img alt="PointPerfect Configuration Menu" src="../img/WiFi%20Config/SparkFun%20RTK%20PointPerfect%20Config%20L-Band.png" />
 <figcaption markdown>
 PointPerfect Configuration Menu
 </figcaption>
 </figure></p>
 <div class="admonition note">
 <p class="admonition-title">Note</p>
-<p>It is important that you set your Geographic Region correctly, via the menu or web config page, as this determines both the IP correction distribution topic and the L-Band frequency (on L-Band-capable products).</p>
+<p>It is important that you set your Geographic Region correctly, via the menu or web config page, as this determines both the IP correction distribution topic and the L-Band frequency (on L-Band-capable products). Sadly, u-blox are suspending their EU L-Band service on March 10th 2025. L-Band coverage will only be available in the contiguous USA from that date.</p>
 </div>
 </li>
 <li>
@@ -2803,7 +2803,7 @@ Saving... then All Saved
 </figure></p>
 </li>
 </ol>
-<p>After the reboot, the device will connect to WiFi, obtain keys, and begin applying corrections. Assuming you are outside, after a few minutes of receiving PointPerfect corrections to the device, connect to the RTK Torch over SW Maps (or other) and the device will enter RTK Float, then RTK Fix (usually under 3 minutes). You can now take positional readings with millimeter accuracy!</p>
+<p>After the reboot, the device will connect to WiFi, obtain keys, and begin applying corrections. Assuming you are outside, after a few minutes of receiving PointPerfect corrections to the device, connect to the RTK Facet mosaic over SW Maps (or other) and the device will enter RTK Float, then RTK Fix (usually under 3 minutes). You can now take positional readings with millimeter accuracy!</p>
 <figure>
 <p><img alt="SW Maps showing accuracy" src="../img/SWMaps/SparkFun%20Torch%20-%20SW%20Maps%20PointPerfect%20Fix%20Accuracy.png" /></p>
 <figcaption>
@@ -2882,7 +2882,7 @@ Figure 1
     <span class="md-icon" title="Last update">
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M21 13.1c-.1 0-.3.1-.4.2l-1 1 2.1 2.1 1-1c.2-.2.2-.6 0-.8l-1.3-1.3c-.1-.1-.2-.2-.4-.2m-1.9 1.8-6.1 6V23h2.1l6.1-6.1zM12.5 7v5.2l4 2.4-1 1L11 13V7zM11 21.9c-5.1-.5-9-4.8-9-9.9C2 6.5 6.5 2 12 2c5.3 0 9.6 4.1 10 9.3-.3-.1-.6-.2-1-.2s-.7.1-1 .2C19.6 7.2 16.2 4 12 4c-4.4 0-8 3.6-8 8 0 4.1 3.1 7.5 7.1 7.9l-.1.2z"/></svg>
     </span>
-    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-timeago"><span class="timeago" datetime="2025-02-21T12:52:43+00:00" locale="en"></span></span><span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-iso_date">2025-02-21</span>
+    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-timeago"><span class="timeago" datetime="2025-02-21T13:59:09+00:00" locale="en"></span></span><span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-iso_date">2025-02-21</span>
   </span>
 
     
