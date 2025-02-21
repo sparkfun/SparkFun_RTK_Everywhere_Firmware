@@ -1234,7 +1234,7 @@ bool networkMulticastDNSStop()
             networkMdnsRequests &= ~(1 << index);
 
     // Restart mDNS on the highest priority network
-    if (startIndex < NETWORK_OFFLINE)
+    if ((startIndex < NETWORK_OFFLINE) && networkInterfaceTable[startIndex].mDNS)
         networkMdnsRequests |= 1 << startIndex;
     return networkMulticastDNSUpdate();
 }
