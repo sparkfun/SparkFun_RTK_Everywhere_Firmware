@@ -404,6 +404,7 @@ nav:
   - Introduction: introduction.md
   - Quick Start:
     - quickstart-evk.md
+    - quickstart-facet-mosaic.md
     - quickstart-postcard.md
     - quickstart-torch.md
   - connecting_bluetooth.md
@@ -440,6 +441,9 @@ nav:
       - Update EVK:
         - firmware_update_esp32.md
         - firmware_update_ublox.md
+      - Update Facet mosaic:
+        - firmware_update_esp32.md
+        - firmware_update_mosaicX5.md
       - Update Postcard:
         - firmware_update_esp32.md
         - firmware_update_lg290p.md

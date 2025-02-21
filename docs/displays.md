@@ -12,6 +12,7 @@ Compatibility Icons
 <div class="grid cards fill" markdown>
 
 - EVK: :material-radiobox-marked:{ .support-full title="Feature Supported" }
+- Facet mosaic: :material-radiobox-marked:{ .support-full title="Feature Supported" }
 - Postcard: :material-radiobox-marked:{ .support-full title="Feature Supported" }
 - Torch: [:material-radiobox-blank:{ .support-none }]( title ="Feature Not Supported" )
 
@@ -151,6 +152,7 @@ Compatibility Icons
 <div class="grid cards fill" markdown>
 
 - EVK: :material-radiobox-marked:{ .support-full title="Feature Supported" }
+- Facet mosaic: :material-radiobox-marked:{ .support-full title="Feature Supported" }
 - Postcard: [:material-radiobox-blank:{ .support-none }]( title ="Feature Not Supported" )
 - Torch: [:material-radiobox-blank:{ .support-none }]( title ="Feature Not Supported" )
 
@@ -197,6 +199,7 @@ Compatibility Icons
 <div class="grid cards fill" markdown>
 
 - EVK: :material-radiobox-marked:{ .support-full title="Feature Supported" }
+- Facet mosaic: [:material-radiobox-blank:{ .support-none }]( title ="Feature Partially Supported" )
 - Postcard: [:material-radiobox-blank:{ .support-none }]( title ="Feature Not Supported" )
 - Torch: [:material-radiobox-blank:{ .support-none }]( title ="Feature Not Supported" )
 
@@ -217,3 +220,5 @@ RTK EVK with the GNSS antenna disconnected (open circuit)
 RTK EVK with a GNSS antenna cable fault (short circuit)
 </figcaption>
 </figure>
+
+The RTK Facet mosaic hardware supports antenna detection, however, at the time of writing, the RTK Everywhere firmware does not. We plan to add this feature in the near future.

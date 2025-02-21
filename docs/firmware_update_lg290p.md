@@ -13,6 +13,7 @@ Compatibility Icons
 
 
 - EVK: [:material-radiobox-blank:{ .support-none }]( title ="Feature Not Supported" )
+- Facet mosaic: [:material-radiobox-blank:{ .support-none }]( title ="Feature Not Supported" )
 - Postcard: :material-radiobox-marked:{ .support-full title="Feature Supported" }
 - Torch: [:material-radiobox-blank:{ .support-none }]( title ="Feature Not Supported" )
 

@@ -22,6 +22,21 @@ The line of RTK Everywhere products offered by SparkFun all run identical firmwa
 	</center>
 
 -   <figure markdown>
+	[![Product Image](./img/SparkFun-RTK-Facet-Mosaic-L-Band.jpg)](https://www.sparkfun.com/sparkpnt-rtk-facet-mosaic-l-band.html "Go to Product Page")
+	<figcaption markdown>
+	[SparkPNT RTK Facet mosaic L-Band (GPS-24903)](https://www.sparkfun.com/sparkpnt-rtk-facet-mosaic-l-band.html)
+	</figcaption>
+	</figure>
+
+	<center>
+	[Quickstart Guide](https://docs.sparkfun.com/SparkFun_RTK_Everywhere_Firmware/quickstart-facet-mosaic/){ .md-button .md-button--primary }
+	</center>
+
+	<center>
+	[Hookup Guide](https://docs.sparkfun.com/SparkFun_RTK_Facet_mosaic/){ .md-button .md-button--primary }
+	</center>
+
+-   <figure markdown>
 	[![Product Image](./img/SparkFun_RTK_Postcard.png)](https://www.sparkfun.com/sparkfun-rtk-postcard.html "Go to Product Page")
 	<figcaption markdown>
 	[SparkFun RTK Postcard (GPS-26916)](https://www.sparkfun.com/sparkfun-rtk-postcard.html)
