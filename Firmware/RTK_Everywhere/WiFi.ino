@@ -533,7 +533,13 @@ void wifiDisplayState()
 // Returns true if successful and false upon failure
 bool wifiEspNowOn(bool on)
 {
-    return wifi.enable(on, wifiSoftApRunning, wifiStationRunning);
+    // Don't turn on ESP-NOW when it is disabled
+    if (settings.enableEspNow == false)
+        on = false;
+    if (((on == false) && wifiEspNowRunning)
+        || ((settings.enableEspNow == true) && !wifiEspNowRunning))
+        return wifi.enable(on, wifiSoftApRunning, wifiStationRunning);
+    return settings.enableEspNow;
 }
 
 //*********************************************************************
