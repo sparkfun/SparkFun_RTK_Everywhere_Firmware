@@ -187,10 +187,8 @@ esp_err_t espNowRemovePeer(uint8_t *peerMac)        {return ESP_OK;}
 esp_err_t espNowSendPairMessage()       {return ESP_OK;}
 bool espnowSetChannel(uint8_t channelNumber)        {return false;}
 bool espNowStart()                      {return true;}
-#define ESPNOW_START()                  {}
 void espNowStaticPairing()              {}
 bool espNowStop()                       {return true;}
-#define ESPNOW_STOP()                   true
 void espNowUpdate()                     {}
 
 #endif   // COMPILE_ESPNOW
@@ -202,7 +200,7 @@ void espNowUpdate()                     {}
 #ifndef COMPILE_WIFI
 
 void menuWiFi()                 {systemPrintln("**WiFi not compiled**");}
-bool wifiEspNowOn(bool on)                      {return !on;}
+bool wifiEspNowOn(bool on, const char * fileName, uint32_t lineNumber) {return !on;}
 #define WIFI_ESPNOW_SET_CHANNEL(chan)
 uint32_t wifiGetStartTimeout()                  {return 0;}
 int wifiNetworkCount()                          {return 0;}

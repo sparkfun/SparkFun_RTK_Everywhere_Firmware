@@ -530,9 +530,19 @@ void wifiDisplayState()
 
 //*********************************************************************
 // Start or stop ESP-NOW
-// Returns true if successful and false upon failure
-bool wifiEspNowOn(bool on)
+// Inputs:
+//   on: Set to true to start ESP-NOW and false to stop ESP-NOW
+//   fileName: Name of file calling the enable routine
+//   lineNumber: Line number in the file calling the enable routine
+// Outputs:
+//   Returns true if successful and false upon failure
+bool wifiEspNowOn(bool on, const char * fileName, uint32_t lineNumber)
 {
+    // Display the call
+    if (settings.debugEspNow || settings.debugWifiState)
+        systemPrintf("wifiEspNow(%s) called in %s at line %d\r\n",
+                     on ? "true" : "false", fileName, lineNumber);
+
     // Don't turn on ESP-NOW when it is disabled
     if (settings.enableEspNow == false)
         on = false;

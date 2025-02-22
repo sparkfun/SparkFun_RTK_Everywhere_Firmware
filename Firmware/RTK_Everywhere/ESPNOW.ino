@@ -99,7 +99,7 @@ esp_err_t espNowAddPeer(const uint8_t * peerMac)
 void espNowBeginPairing()
 {
     // Start ESP-NOW if necessary
-    ESPNOW_START();
+    wifiEspNowOn(true, __FILE__, __LINE__);
 
     // To begin pairing, we must add the broadcast MAC to the peer list
     espNowAddPeer(espNowBroadcastAddr);
