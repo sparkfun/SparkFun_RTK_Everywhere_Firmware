@@ -29,6 +29,30 @@ tcpServer.ino
            '------------> Cell Phone <-------------------------------'
                           for display
 
+  TCP Server Testing:
+
+     Using Ethernet or WiFi station or AP on RTK Reference Station, starting
+     the TCP Server and running Vespucci on the cell phone:
+
+        Vespucci Setup:
+            * Click on the gear icon
+            * Scroll down and click on Advanced preferences
+            * Click on Location settings
+            * Click on GPS/GNSS source
+            * Set to NMEA from TCP client
+            * Click on NMEA network source
+            * Set IP address to rtk-evk.local:2948 for Ethernet or WiFi station
+            * Set IP address to 192.168.4.1 for WiFi soft AP
+            * Uncheck Leave GPS/GNSS turned off
+            * Check Fallback to network location
+            * Click on Stale location after
+            * Set the value 5 seconds
+            * Exit the menus
+
+        1. Verify connection to the Vespucci application on the cell phone.
+
+        2. When the connection breaks, stop and restart Vespucci to create
+           a new connection to the TCP server.
 */
 
 #ifdef COMPILE_NETWORK
