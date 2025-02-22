@@ -640,10 +640,17 @@ void wifiResetTimeout()
 // Turn on and off WiFi soft AP mode
 // Inputs:
 //   on: True to start WiFi soft AP mode, false to stop WiFi soft AP mode
-// Returns:
+//   fileName: Name of file calling the enable routine
+//   lineNumber: Line number in the file calling the enable routine
+// Outputs:
 //   Returns the status of WiFi soft AP start or stop
-bool wifiSoftApOn(bool on)
+bool wifiSoftApOn(bool on, const char * fileName, uint32_t lineNumber)
 {
+    // Display the call
+    if (settings.debugWifiState)
+        systemPrintf("wifiSoftApOn(%s) called in %s at line %d\r\n",
+                     on ? "true" : "false", fileName, lineNumber);
+
     return wifi.enable(wifiEspNowRunning, on, wifiStationRunning, __FILE__, __LINE__);
 }
 
@@ -669,7 +676,7 @@ void wifiStartThrottled(NetIndex_t index, uintptr_t parameter, bool debug)
 // Returns true if successful and false upon failure
 bool wifiStationOn(bool on)
 {
-    return wifi.enable(wifiEspNowRunning, wifiSoftApRunning, on);
+    return wifi.enable(wifiEspNowRunning, wifiSoftApRunning, on, __FILE__, __LINE__);
 }
 
 //*********************************************************************
