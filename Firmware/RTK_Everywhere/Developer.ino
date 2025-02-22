@@ -207,7 +207,7 @@ int wifiNetworkCount()                          {return 0;}
 void wifiResetThrottleTimeout()                 {}
 void wifiResetTimeout()                         {}
 bool wifiSoftApOn(bool on, const char * fileName, uint32_t lineNumber)                      {return !on;}
-bool wifiStationOn(bool on)                     {return !on;}
+bool wifiStationOn(bool on, const char * fileName, uint32_t lineNumber)                     {return !on;}
 void wifiStopAll()                              {}
 
 #endif // COMPILE_WIFI
