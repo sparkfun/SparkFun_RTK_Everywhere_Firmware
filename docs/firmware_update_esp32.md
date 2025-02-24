@@ -12,9 +12,9 @@ Compatibility Icons
 <div class="grid cards fill" markdown>
 
 - EVK: :material-radiobox-marked:{ .support-full title="Feature Supported" }
-- Facet mosaic: [:material-radiobox-blank:{ .support-none }]( title ="Feature Partially Supported" )
+- Facet mosaic: :material-radiobox-indeterminate-variant:{ .support-partial title="Feature Partially Supported" }
 - Postcard: :material-radiobox-marked:{ .support-full title="Feature Supported" }
-- Torch: [:material-radiobox-blank:{ .support-none }]( title ="Feature Partially Supported" )
+- Torch: :material-radiobox-indeterminate-variant:{ .support-partial title="Feature Partially Supported" }
 
 </div>
 
