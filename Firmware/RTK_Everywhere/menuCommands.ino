@@ -3410,11 +3410,7 @@ bool commandIndexFill()
     // Allocate the command array. Never freed
     length = commandCount * sizeof(*commandIndex);
 
-    if (online.psram == true)
-        commandIndex = (int16_t *)ps_malloc(length);
-    else
-        commandIndex = (int16_t *)malloc(length);
-
+    commandIndex = (int16_t *)rtkMalloc(length);
     if (!commandIndex)
     {
         // Failed to allocate the commandIndex

@@ -21,6 +21,18 @@ void beginPsram()
     }
 }
 
+// Allocate memory from PSRAM when available
+void * rtkMalloc(size_t sizeInBytes)
+{
+    void * data;
+
+    if (online.psram == true)
+        data = ps_malloc(sizeInBytes);
+    else
+        data = malloc(sizeInBytes);
+    return data;
+}
+
 // Continue showing display until time threshold
 void finishDisplay()
 {
