@@ -2675,18 +2675,20 @@ Compatibility Icons
 
 <div class="grid cards fill">
 <ul>
-<li>EVK: <a href="title =" title="Feature Not Supported"><span class="twemoji support-none"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 20a8 8 0 0 1-8-8 8 8 0 0 1 8-8 8 8 0 0 1 8 8 8 8 0 0 1-8 8m0-18A10 10 0 0 0 2 12a10 10 0 0 0 10 10 10 10 0 0 0 10-10A10 10 0 0 0 12 2"/></svg></span></a></li>
+<li>EVK: <span class="twemoji support-none" title="Feature Not Supported"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 20a8 8 0 0 1-8-8 8 8 0 0 1 8-8 8 8 0 0 1 8 8 8 8 0 0 1-8 8m0-18A10 10 0 0 0 2 12a10 10 0 0 0 10 10 10 10 0 0 0 10-10A10 10 0 0 0 12 2"/></svg></span></li>
 <li>Facet mosaic: <span class="twemoji support-partial" title="Feature Partially Supported"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M8.46 8.46C9.4 7.53 10.67 7 12 7s2.6.53 3.54 1.46l-7.08 7.08A5.04 5.04 0 0 1 7 12c0-1.33.53-2.6 1.46-3.54m-.29-5.7A10.1 10.1 0 0 1 12 2c1.31 0 2.61.26 3.83.76 1.21.5 2.31 1.24 3.24 2.17s1.67 2.03 2.17 3.24c.5 1.22.76 2.52.76 3.83 0 2.65-1.05 5.2-2.93 7.07A9.97 9.97 0 0 1 12 22a10.1 10.1 0 0 1-3.83-.76 10 10 0 0 1-3.24-2.17A9.97 9.97 0 0 1 2 12c0-2.65 1.05-5.2 2.93-7.07.93-.93 2.03-1.67 3.24-2.17m-1.83 14.9C7.84 19.16 9.88 20 12 20s4.16-.84 5.66-2.34S20 14.12 20 12s-.84-4.16-2.34-5.66A8 8 0 0 0 12 4c-2.12 0-4.16.84-5.66 2.34A8 8 0 0 0 4 12c0 2.12.84 4.16 2.34 5.66"/></svg></span></li>
 <li>Postcard: <span class="twemoji support-partial" title="Feature Partially Supported"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M8.46 8.46C9.4 7.53 10.67 7 12 7s2.6.53 3.54 1.46l-7.08 7.08A5.04 5.04 0 0 1 7 12c0-1.33.53-2.6 1.46-3.54m-.29-5.7A10.1 10.1 0 0 1 12 2c1.31 0 2.61.26 3.83.76 1.21.5 2.31 1.24 3.24 2.17s1.67 2.03 2.17 3.24c.5 1.22.76 2.52.76 3.83 0 2.65-1.05 5.2-2.93 7.07A9.97 9.97 0 0 1 12 22a10.1 10.1 0 0 1-3.83-.76 10 10 0 0 1-3.24-2.17A9.97 9.97 0 0 1 2 12c0-2.65 1.05-5.2 2.93-7.07.93-.93 2.03-1.67 3.24-2.17m-1.83 14.9C7.84 19.16 9.88 20 12 20s4.16-.84 5.66-2.34S20 14.12 20 12s-.84-4.16-2.34-5.66A8 8 0 0 0 12 4c-2.12 0-4.16.84-5.66 2.34A8 8 0 0 0 4 12c0 2.12.84 4.16 2.34 5.66"/></svg></span></li>
 <li>Torch: <span class="twemoji support-full" title="Feature Supported"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 20a8 8 0 0 1-8-8 8 8 0 0 1 8-8 8 8 0 0 1 8 8 8 8 0 0 1-8 8m0-18A10 10 0 0 0 2 12a10 10 0 0 0 10 10 10 10 0 0 0 10-10A10 10 0 0 0 12 2m0 5a5 5 0 0 0-5 5 5 5 0 0 0 5 5 5 5 0 0 0 5-5 5 5 0 0 0-5-5"/></svg></span></li>
 </ul>
 </div>
 <p>The European Union launched a free correction service called <a href="https://www.gsc-europa.eu/galileo/services/galileo-high-accuracy-service-has" target="_blank" rel="noopener">High Accuracy Service</a> or <strong>HAS</strong> starting in 2023. The service is delivered over the E6 frequency. In general, this service will greatly improve accuracy to receivers but is lower accuracy than an OSR or SSR-based RTK Fix. Additionally, a receiver can take up to 5 minutes to benefit from these corrections (convergence time is larger), as opposed to OSR (seconds) or SSR (~180 seconds) to achieve maximum accuracy. But HAS is free! And available with very little additional configuration.</p>
-<p>Various SparkFun RTK products support this new GNSS band (E6). 
-* The RTK EVK does not support E6 reception.
-* The RTK Postcard's LG290P GNSS receiver has the ability to receive the E6 signals but as of writing, HAS is not yet implemented in the GNSS location engine.
-* The RTK Torch will need UM980 firmware 118333 or newer. See how to <a href="../firmware_update_um980/">Update the UM980 Firmware</a> for instructions. HAS/E6 is enabled by default and can be disabled in the <a href="../menu_gnss/#galileo-e6-corrections">GNSS Menu</a> if desired.
-* The RTK Facet mosaic's mosaic-X5 supports E6 reception. However, at the time of writing, the X5 firmware does not yet support the HAS service. Septentrio are planning to support it in a future firmware release.</p>
+<p>Various SparkFun RTK products support this new GNSS band (E6):</p>
+<ul>
+<li>The RTK EVK does not support E6 reception.</li>
+<li>The RTK Facet mosaic's mosaic-X5 supports E6 reception. However, at the time of writing, the X5 firmware does not yet support the HAS service. Septentrio are planning to support it in a future firmware release.</li>
+<li>The RTK Postcard's LG290P GNSS receiver has the ability to receive the E6 signals but as of writing, HAS is not yet implemented in the GNSS location engine.</li>
+<li>The RTK Torch will need UM980 firmware 118333 or newer. See how to <a href="../firmware_update_um980/">Update the UM980 Firmware</a> for instructions. HAS/E6 is enabled by default and can be disabled in the <a href="../menu_gnss/#galileo-e6-corrections">GNSS Menu</a> if desired.</li>
+</ul>
 
 
 
@@ -2709,7 +2711,7 @@ Compatibility Icons
     <span class="md-icon" title="Last update">
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M21 13.1c-.1 0-.3.1-.4.2l-1 1 2.1 2.1 1-1c.2-.2.2-.6 0-.8l-1.3-1.3c-.1-.1-.2-.2-.4-.2m-1.9 1.8-6.1 6V23h2.1l6.1-6.1zM12.5 7v5.2l4 2.4-1 1L11 13V7zM11 21.9c-5.1-.5-9-4.8-9-9.9C2 6.5 6.5 2 12 2c5.3 0 9.6 4.1 10 9.3-.3-.1-.6-.2-1-.2s-.7.1-1 .2C19.6 7.2 16.2 4 12 4c-4.4 0-8 3.6-8 8 0 4.1 3.1 7.5 7.1 7.9l-.1.2z"/></svg>
     </span>
-    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-timeago"><span class="timeago" datetime="2025-02-24T11:28:19+00:00" locale="en"></span></span><span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-iso_date">2025-02-24</span>
+    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-timeago"><span class="timeago" datetime="2025-02-24T11:58:42+00:00" locale="en"></span></span><span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-iso_date">2025-02-24</span>
   </span>
 
     
