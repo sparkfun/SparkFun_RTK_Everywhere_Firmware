@@ -222,3 +222,38 @@ RTK EVK with a GNSS antenna cable fault (short circuit)
 </figure>
 
 The RTK Facet mosaic hardware supports antenna detection, however, at the time of writing, the RTK Everywhere firmware does not. We plan to add this feature in the near future.
+
+## Corrections Source Icons
+
+The RTK Everywhere Firmware will display an additional icon to show which corrections source is currently providing RTK corrections. If multiple corrections sources are active, the icon shows which source has priority. Please see [Corrections Priorities](./menu_corrections_priorities.md) for more information on how to prioritise the corrections sources.
+
+The corrections source icon will appear on the bottom row of the OLED display, just left of the logging icon.
+
+In the screenshot below, RTK corrections are being delivered by PointPerfect:
+
+<figure markdown>
+![RTK Everywhere corrections source icon](./img/Corrections/SparkFun%20RTK%20Corrections%20Source%20Icon.png)
+<figcaption markdown>
+RTK Everywhere - with PointPerfect corrections
+</figcaption>
+</figure>
+
+Each corrections source has a unique icon:
+
+From left to right: External Radio; ESP-Now; LoRa Radio; Bluetooth
+
+<figure markdown>
+![RTK Everywhere corrections source icons](./img/Corrections/SparkFun%20RTK%20Corrections%20Source%20Icons%201.png)
+<figcaption markdown>
+RTK Everywhere corrections source icons
+</figcaption>
+</figure>
+
+From left to right: USB Serial; TCP (NTRIP); L-Band; IP (PointPerfect/MQTT)
+
+<figure markdown>
+![RTK Everywhere corrections source icons](./img/Corrections/SparkFun%20RTK%20Corrections%20Source%20Icons%202.png)
+<figcaption markdown>
+RTK Everywhere corrections source icons
+</figcaption>
+</figure>

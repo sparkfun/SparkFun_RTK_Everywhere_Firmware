@@ -64,3 +64,5 @@ In the web config page:
 </figure>
 
 Please see [Correction Sources](correction_sources.md) for a description of where to obtain corrections.
+
+Please also see [Corrections Source Icons](./displays.md#corrections-source-icons) for details of the corrections source icon displayed on the OLED.
