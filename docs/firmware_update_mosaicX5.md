@@ -11,10 +11,10 @@ Compatibility Icons
 
 <div class="grid cards fill" markdown>
 
-- EVK: [:material-radiobox-blank:{ .support-none }]( title ="Feature Not Supported" )
+- EVK: :material-radiobox-blank:{ .support-none title="Feature Not Supported" }
 - Facet mosaic: :material-radiobox-marked:{ .support-full title="Feature Supported" }
-- Postcard: [:material-radiobox-blank:{ .support-none }]( title ="Feature Not Supported" )
-- Torch: [:material-radiobox-blank:{ .support-none }]( title ="Feature Not Supported" )
+- Postcard: :material-radiobox-blank:{ .support-none title="Feature Not Supported" }
+- Torch: :material-radiobox-blank:{ .support-none title="Feature Not Supported" }
 
 </div>
 

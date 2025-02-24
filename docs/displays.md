@@ -14,7 +14,7 @@ Compatibility Icons
 - EVK: :material-radiobox-marked:{ .support-full title="Feature Supported" }
 - Facet mosaic: :material-radiobox-marked:{ .support-full title="Feature Supported" }
 - Postcard: :material-radiobox-marked:{ .support-full title="Feature Supported" }
-- Torch: [:material-radiobox-blank:{ .support-none }]( title ="Feature Not Supported" )
+- Torch: :material-radiobox-blank:{ .support-none title="Feature Not Supported" }
 
 </div>
 
@@ -153,8 +153,8 @@ Compatibility Icons
 
 - EVK: :material-radiobox-marked:{ .support-full title="Feature Supported" }
 - Facet mosaic: :material-radiobox-marked:{ .support-full title="Feature Supported" }
-- Postcard: [:material-radiobox-blank:{ .support-none }]( title ="Feature Not Supported" )
-- Torch: [:material-radiobox-blank:{ .support-none }]( title ="Feature Not Supported" )
+- Postcard: :material-radiobox-blank:{ .support-none title="Feature Not Supported" }
+- Torch: :material-radiobox-blank:{ .support-none title="Feature Not Supported" }
 
 </div>
 
@@ -200,8 +200,8 @@ Compatibility Icons
 
 - EVK: :material-radiobox-marked:{ .support-full title="Feature Supported" }
 - Facet mosaic: :material-radiobox-indeterminate-variant:{ .support-partial title="Feature Partially Supported" }
-- Postcard: [:material-radiobox-blank:{ .support-none }]( title ="Feature Not Supported" )
-- Torch: [:material-radiobox-blank:{ .support-none }]( title ="Feature Not Supported" )
+- Postcard: :material-radiobox-blank:{ .support-none title="Feature Not Supported" }
+- Torch: :material-radiobox-blank:{ .support-none title="Feature Not Supported" }
 
 </div>
 

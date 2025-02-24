@@ -94,7 +94,7 @@ Compatibility Icons
 
 <div class="grid cards fill" markdown>
 
-- EVK: [:material-radiobox-blank:{ .support-none }]( title ="Feature Not Supported" )
+- EVK: :material-radiobox-blank:{ .support-none title="Feature Not Supported" }
 - Facet mosaic: :material-radiobox-indeterminate-variant:{ .support-partial title="Feature Partially Supported" }
 - Postcard: :material-radiobox-indeterminate-variant:{ .support-partial title="Feature Partially Supported" }
 - Torch: :material-radiobox-marked:{ .support-full title="Feature Supported" }
@@ -103,8 +103,9 @@ Compatibility Icons
 
 The European Union launched a free correction service called [High Accuracy Service](https://www.gsc-europa.eu/galileo/services/galileo-high-accuracy-service-has) or **HAS** starting in 2023. The service is delivered over the E6 frequency. In general, this service will greatly improve accuracy to receivers but is lower accuracy than an OSR or SSR-based RTK Fix. Additionally, a receiver can take up to 5 minutes to benefit from these corrections (convergence time is larger), as opposed to OSR (seconds) or SSR (~180 seconds) to achieve maximum accuracy. But HAS is free! And available with very little additional configuration.
 
-Various SparkFun RTK products support this new GNSS band (E6). 
+Various SparkFun RTK products support this new GNSS band (E6):
+
 * The RTK EVK does not support E6 reception.
+* The RTK Facet mosaic's mosaic-X5 supports E6 reception. However, at the time of writing, the X5 firmware does not yet support the HAS service. Septentrio are planning to support it in a future firmware release.
 * The RTK Postcard's LG290P GNSS receiver has the ability to receive the E6 signals but as of writing, HAS is not yet implemented in the GNSS location engine.
 * The RTK Torch will need UM980 firmware 118333 or newer. See how to [Update the UM980 Firmware](./firmware_update_um980.md) for instructions. HAS/E6 is enabled by default and can be disabled in the [GNSS Menu](menu_gnss.md#galileo-e6-corrections) if desired.
-* The RTK Facet mosaic's mosaic-X5 supports E6 reception. However, at the time of writing, the X5 firmware does not yet support the HAS service. Septentrio are planning to support it in a future firmware release.
