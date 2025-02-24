@@ -101,7 +101,7 @@ Compatibility Icons
 - EVK: :material-radiobox-marked:{ .support-full title="Feature Supported" }
 - Facet mosaic: :material-radiobox-marked:{ .support-full title="Feature Supported" }
 - Postcard: :material-radiobox-marked:{ .support-full title="Feature Supported" }
-- Torch: [:material-radiobox-marked:{ .support-full }]( title ="Feature Supported" )
+- Torch: :material-radiobox-marked:{ .support-full title="Feature Supported" }
 
 </div>
 
