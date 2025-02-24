@@ -229,12 +229,21 @@ The RTK Everywhere Firmware will display an additional icon to show which correc
 
 The corrections source icon will appear on the bottom row of the OLED display, just left of the logging icon.
 
-In the screenshot below, RTK corrections are being delivered by PointPerfect:
+In the 128x64 screenshot below, RTK corrections are being delivered by PointPerfect over IP / MQTT:
 
 <figure markdown>
 ![RTK Everywhere corrections source icon](./img/Corrections/SparkFun%20RTK%20Corrections%20Source%20Icon.png)
 <figcaption markdown>
-RTK Everywhere - with PointPerfect corrections
+RTK Everywhere - with PointPerfect (IP / MQTT) corrections
+</figcaption>
+</figure>
+
+In the 64x48 screenshot below, RTK corrections are being delivered by NTRIP (RTK2go / SNIP):
+
+<figure markdown>
+![RTK Everywhere corrections source icon](./img/Corrections/SparkFun%20RTK%20Corrections%20Source%20Icon%2064x48.png)
+<figcaption markdown>
+RTK Everywhere - with NTRIP (RTK2go / SNIP) corrections
 </figcaption>
 </figure>
 
