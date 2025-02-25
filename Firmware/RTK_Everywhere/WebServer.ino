@@ -780,11 +780,7 @@ bool webServerAssignResources(int httpPort = 80)
     do
     {
         // Freed by webServerStop
-        if (online.psram == true)
-            incomingSettings = (char *)ps_malloc(AP_CONFIG_SETTING_SIZE);
-        else
-            incomingSettings = (char *)malloc(AP_CONFIG_SETTING_SIZE);
-
+        incomingSettings = (char *)rtkMalloc(AP_CONFIG_SETTING_SIZE);
         if (!incomingSettings)
         {
             systemPrintln("ERROR: Web server failed to allocate incomingSettings");
@@ -794,11 +790,7 @@ bool webServerAssignResources(int httpPort = 80)
 
         // Pre-load settings CSV
         // Freed by webServerStop
-        if (online.psram == true)
-            settingsCSV = (char *)ps_malloc(AP_CONFIG_SETTING_SIZE);
-        else
-            settingsCSV = (char *)malloc(AP_CONFIG_SETTING_SIZE);
-
+        settingsCSV = (char *)rtkMalloc(AP_CONFIG_SETTING_SIZE);
         if (!settingsCSV)
         {
             systemPrintln("ERROR: Web server failed to allocate settingsCSV");
@@ -1320,11 +1312,7 @@ static esp_err_t ws_handler(httpd_req_t *req)
     if (ws_pkt.len)
     {
         /* ws_pkt.len + 1 is for NULL termination as we are expecting a string */
-        if (online.psram == true)
-            buf = (uint8_t *)ps_malloc(ws_pkt.len + 1);
-        else
-            buf = (uint8_t *)malloc(ws_pkt.len + 1);
-
+        buf = (uint8_t *)rtkMalloc(ws_pkt.len + 1);
         if (buf == NULL)
         {
             systemPrintln("Failed to malloc memory for buf");

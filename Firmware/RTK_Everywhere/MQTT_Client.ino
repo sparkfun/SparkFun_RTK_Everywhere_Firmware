@@ -581,12 +581,7 @@ void mqttClientReceiveMessage(int messageSize)
     const uint16_t mqttLimit = 26000;
     static uint8_t *mqttData = nullptr;
     if (mqttData == nullptr) // Allocate memory to hold the MQTT data. Never freed
-    {
-        if (online.psram == true)
-            mqttData = (uint8_t *)ps_malloc(mqttLimit);
-        else
-            mqttData = (uint8_t *)malloc(mqttLimit);
-    }
+        mqttData = (uint8_t *)rtkMalloc(mqttLimit);
     if (mqttData == nullptr)
     {
         systemPrintln(F("Memory allocation for mqttData failed!"));
@@ -828,20 +823,10 @@ void mqttClientUpdate()
         }
 
         // Allocate the buffers, freed by mqttClientStop
-        if (online.psram == true)
-        {
-            if (!mqttClientCertificateBuffer)
-                mqttClientCertificateBuffer = (char *)ps_malloc(MQTT_CERT_SIZE);
-            if (!mqttClientPrivateKeyBuffer)
-                mqttClientPrivateKeyBuffer = (char *)ps_malloc(MQTT_CERT_SIZE);
-        }
-        else
-        {
-            if (!mqttClientCertificateBuffer)
-                mqttClientCertificateBuffer = (char *)malloc(MQTT_CERT_SIZE);
-            if (!mqttClientPrivateKeyBuffer)
-                mqttClientPrivateKeyBuffer = (char *)malloc(MQTT_CERT_SIZE);
-        }
+        if (!mqttClientCertificateBuffer)
+            mqttClientCertificateBuffer = (char *)rtkMalloc(MQTT_CERT_SIZE);
+        if (!mqttClientPrivateKeyBuffer)
+            mqttClientPrivateKeyBuffer = (char *)rtkMalloc(MQTT_CERT_SIZE);
 
         // Determine if the buffers were allocated
         if ((!mqttClientCertificateBuffer) || (!mqttClientPrivateKeyBuffer))

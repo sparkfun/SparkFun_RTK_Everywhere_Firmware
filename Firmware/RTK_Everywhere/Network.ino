@@ -435,9 +435,8 @@ void networkConsumerAdd(NETCONSUMER_t consumer, NetIndex_t network)
     }
     else
     {
-        systemPrintf("Network consumer %s added more than once to network %s\r\n",
-                     networkConsumerTable[consumer],
-                     networkInterfaceTable[index]);
+        systemPrintf("Network consumer %s added more than once\r\n",
+                     networkConsumerTable[consumer]);
         reportFatalError("Network consumer added more than once!");
     }
 }
@@ -1235,8 +1234,8 @@ bool networkMulticastDNSStop()
             networkMdnsRequests &= ~(1 << index);
 
     // Restart mDNS on the highest priority network
-    if (startIndex < NETWORK_OFFLINE)
-        networkMdnsRequests |= ~(1 << startIndex);
+    if ((startIndex < NETWORK_OFFLINE) && networkInterfaceTable[startIndex].mDNS)
+        networkMdnsRequests |= 1 << startIndex;
     return networkMulticastDNSUpdate();
 }
 

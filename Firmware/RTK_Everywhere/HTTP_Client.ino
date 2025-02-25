@@ -483,10 +483,7 @@ void httpClientUpdate()
             }
             else
             {
-                if (online.psram == true)
-                    tempHolderPtr = (char *)ps_malloc(MQTT_CERT_SIZE);
-                else
-                    tempHolderPtr = (char *)malloc(MQTT_CERT_SIZE);
+                tempHolderPtr = (char *)rtkMalloc(MQTT_CERT_SIZE);
 
                 if (!tempHolderPtr)
                 {

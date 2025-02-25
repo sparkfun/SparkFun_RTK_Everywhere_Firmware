@@ -3053,7 +3053,7 @@ int displayEthernetIcon()
     int yPos = Ethernet_Icon_Height / 2; // yPos is 6
 
     blink ^= 1;
-    if (ETH.linkUp() || blink)
+    if (ethernetLinkUp() || blink)
         displayBitmap(xPos, yPos, Ethernet_Icon_Width, Ethernet_Icon_Height, Ethernet_Icon);
 
     yPos += Ethernet_Icon_Height * 1.5; // yPos is now 24

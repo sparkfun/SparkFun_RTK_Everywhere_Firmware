@@ -332,6 +332,7 @@ const char * const wifiStartNames[] =
     "WIFI_AP_SET_SSID_PASSWORD",
     "WIFI_AP_SET_IP_ADDR",
     "WIFI_AP_SET_HOST_NAME",
+    "WIFI_AP_START_DNS_SERVER",
     "WIFI_AP_ONLINE",
 
     "WIFI_STA_SET_HOST_NAME",
@@ -767,11 +768,15 @@ RTK_WIFI::RTK_WIFI(bool verbose)
       _usingDefaultChannel{true}, _verbose{verbose}
 {
     wifiChannel = 0;
+    wifiEspNowOnline = false;
     wifiEspNowRunning = false;
     wifiFailedConnectionAttempts = 0;
+    wifiReconnectionTimer = 0;
     wifiRestartRequested = false;
-    wifiStationRunning = false;
+    wifiSoftApOnline = false;
     wifiSoftApRunning = false;
+    wifiStationOnline = false;
+    wifiStationRunning = false;
 
     // Prepare to start WiFi immediately
     wifiResetThrottleTimeout();
@@ -1045,7 +1050,6 @@ bool RTK_WIFI::setWiFiMode(uint8_t setMode, uint8_t xorMode)
     uint8_t mode;
     uint8_t newMode;
     bool started;
-    esp_err_t status;
 
     started = false;
     do
@@ -1070,12 +1074,19 @@ bool RTK_WIFI::setWiFiMode(uint8_t setMode, uint8_t xorMode)
         started = WiFi.mode((wifi_mode_t)newMode);
         if (!started)
         {
-            systemPrintf("ERROR: Failed to set %d (%s), status: %d!\r\n",
+            reportHeapNow(true);
+            systemPrintf("Current WiFi mode: 0x%08x (%s)\r\n",
+                         mode,
+                         ((mode == 0) ? "WiFi off"
+                         : ((mode & (WIFI_MODE_AP | WIFI_MODE_STA)) == (WIFI_MODE_AP | WIFI_MODE_STA) ? "Soft AP + STA"
+                         : ((mode & (WIFI_MODE_AP | WIFI_MODE_STA)) == WIFI_MODE_AP ? "Soft AP"
+                         : "STA"))));
+            systemPrintf("ERROR: Failed to set %d (%s)!\r\n",
                          newMode,
                          ((newMode == 0) ? "WiFi off"
                          : ((newMode & (WIFI_MODE_AP | WIFI_MODE_STA)) == (WIFI_MODE_AP | WIFI_MODE_STA) ? "Soft AP + STA mode"
                          : ((newMode & (WIFI_MODE_AP | WIFI_MODE_STA)) == WIFI_MODE_AP ? "Soft AP mode"
-                         : "STA mode"))), status);
+                         : "STA mode"))));
             break;
         }
         if (settings.debugWifiState && _verbose)
@@ -1862,6 +1873,7 @@ bool RTK_WIFI::stopStart(WIFI_ACTION_t stopping, WIFI_ACTION_t starting)
         systemPrintf("WiFi: RTK_WIFI::stopStart called\r\n");
         systemPrintf("stopping: 0x%08x\r\n", stopping);
         systemPrintf("starting: 0x%08x\r\n", starting);
+        reportHeapNow(true);
     }
 
     //****************************************
@@ -2630,7 +2642,10 @@ bool RTK_WIFI::stopStart(WIFI_ACTION_t stopping, WIFI_ACTION_t starting)
     if (!enabled)
         systemPrintf("ERROR: RTK_WIFI::stopStart failed!\r\n");
     if (settings.debugWifiState && _verbose)
+    {
+        reportHeapNow(true);
         systemPrintf("WiFi: RTK_WIFI::stopStart returning; %s\r\n", enabled ? "true" : "false");
+    }
     return enabled;
 }
 
@@ -2763,27 +2778,21 @@ void RTK_WIFI::verifyTables()
     if (WIFI_AUTH_MAX != wifiAuthorizationNameEntries)
     {
         systemPrintf("ERROR: Fix wifiAuthorizationName list to match wifi_auth_mode_t in esp_wifi_types.h!\r\n");
-        while (1)
-        {
-        }
+        reportFatalError("Fix wifiAuthorizationName list to match wifi_auth_mode_t in esp_wifi_types.h!");
     }
 
     // Verify the Arduino event name table
     if (ARDUINO_EVENT_MAX != arduinoEventNameEntries)
     {
         systemPrintf("ERROR: Fix arduinoEventName list to match arduino_event_id_t in NetworkEvents.h!\r\n");
-        while (1)
-        {
-        }
+        reportFatalError("Fix arduinoEventName list to match arduino_event_id_t in NetworkEvents.h!");
     }
 
     // Verify the start name table
     if (WIFI_MAX_START != (1 << wifiStartNamesEntries))
     {
         systemPrintf("ERROR: Fix wifiStartNames list to match list of defines!\r\n");
-        while (1)
-        {
-        }
+        reportFatalError("Fix wifiStartNames list to match list of defines!!");
     }
 }
 
