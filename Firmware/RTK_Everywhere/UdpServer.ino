@@ -305,8 +305,8 @@ void udpServerStop()
     if (udpServerState != UDP_SERVER_STATE_OFF)
     {
         // The UDP server is now off
-        networkSoftApConsumerRemove(NETCONSUMER_UDP_SERVER);
-        networkConsumerRemove(NETCONSUMER_UDP_SERVER, NETWORK_ANY);
+        networkSoftApConsumerRemove(NETCONSUMER_UDP_SERVER, __FILE__, __LINE__);
+        networkConsumerRemove(NETCONSUMER_UDP_SERVER, NETWORK_ANY, __FILE__, __LINE__);
         udpServerSetState(UDP_SERVER_STATE_OFF);
         udpServerTimer = millis();
     }
@@ -353,9 +353,9 @@ void udpServerUpdate()
             if (settings.debugUdpServer && (!inMainMenu))
                 systemPrintln("UDP server starting the network");
             if (settings.wifiConfigOverAP == false)
-                networkConsumerAdd(NETCONSUMER_UDP_SERVER, NETWORK_ANY);
+                networkConsumerAdd(NETCONSUMER_UDP_SERVER, NETWORK_ANY, __FILE__, __LINE__);
             else
-                networkSoftApConsumerAdd(NETCONSUMER_UDP_SERVER);
+                networkSoftApConsumerAdd(NETCONSUMER_UDP_SERVER, __FILE__, __LINE__);
             udpServerSetState(UDP_SERVER_STATE_WAIT_FOR_NETWORK);
         }
         break;

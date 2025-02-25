@@ -346,8 +346,8 @@ void tcpServerStop()
     // Stop using the network
     if (tcpServerState != TCP_SERVER_STATE_OFF)
     {
-        networkSoftApConsumerRemove(NETCONSUMER_TCP_SERVER);
-        networkConsumerRemove(NETCONSUMER_TCP_SERVER, NETWORK_ANY);
+        networkSoftApConsumerRemove(NETCONSUMER_TCP_SERVER, __FILE__, __LINE__);
+        networkConsumerRemove(NETCONSUMER_TCP_SERVER, NETWORK_ANY, __FILE__, __LINE__);
 
         // The TCP server is now off
         tcpServerSetState(TCP_SERVER_STATE_OFF);
@@ -437,9 +437,9 @@ void tcpServerUpdate()
             if (settings.debugTcpServer && (!inMainMenu))
                 systemPrintln("TCP server start");
             if (settings.wifiConfigOverAP == false)
-                networkConsumerAdd(NETCONSUMER_TCP_SERVER, NETWORK_ANY);
+                networkConsumerAdd(NETCONSUMER_TCP_SERVER, NETWORK_ANY, __FILE__, __LINE__);
             else
-                networkSoftApConsumerAdd(NETCONSUMER_TCP_SERVER);
+                networkSoftApConsumerAdd(NETCONSUMER_TCP_SERVER, __FILE__, __LINE__);
             tcpServerPriority = NETWORK_OFFLINE;
             tcpServerSetState(TCP_SERVER_STATE_WAIT_FOR_NETWORK);
         }

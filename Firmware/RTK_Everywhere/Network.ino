@@ -338,10 +338,7 @@ void networkBegin()
     if (present.ethernet_ws5500)
     {
         ethernetStart();
-        if (settings.debugNetworkLayer)
-            systemPrintf("Network: Calling networkStart(%s) from %s at line %d\r\n",
-                         networkInterfaceTable[index].name, __FILE__, __LINE__);
-        networkStart(NETWORK_ETHERNET, settings.enablePrintEthernetDiag);
+        networkStart(NETWORK_ETHERNET, settings.enablePrintEthernetDiag, __FILE__, __LINE__);
         if (settings.debugNetworkLayer)
             networkDisplayStatus();
     }
@@ -353,22 +350,30 @@ void networkBegin()
 //----------------------------------------
 // Add a network consumer
 //----------------------------------------
-void networkConsumerAdd(NETCONSUMER_t consumer, NetIndex_t network)
+void networkConsumerAdd(NETCONSUMER_t consumer, NetIndex_t network, const char * fileName, uint32_t lineNumber)
 {
     NETCONSUMER_MASK_t bitMask;
     NETCONSUMER_MASK_t * bits;
     NETCONSUMER_MASK_t consumers;
     NetIndex_t index;
+    const char * networkName;
     NetPriority_t priority;
 
     // Validate the inputs
     networkConsumerValidate(consumer);
     bits = &networkConsumersAny;
+    networkName = "NETWORK_ANY";
     if (network != NETWORK_ANY)
     {
         networkValidateIndex(network);
         bits = &netIfConsumers[network];
+        networkName = networkInterfaceTable[network].name;
     }
+
+    // Display the call
+    if (settings.debugNetworkLayer)
+        systemPrintf("Network: Calling networkConsumerAdd(%s) from %s at line %d\r\n",
+                     networkName, fileName, lineNumber);
 
     // Add this consumer only once
     consumers = networkConsumersAny | *bits;
@@ -417,14 +422,9 @@ void networkConsumerAdd(NETCONSUMER_t consumer, NetIndex_t network)
 
                         // Determine if the network has started
                         if (networkIsStarted(index) == false)
-                        {
                             // Attempt to start the highest priority network
                             // The network layer will start the lower priority networks
-                            if (settings.debugNetworkLayer)
-                                systemPrintf("Network: Calling networkStart(%s) from %s at line %d\r\n",
-                                             networkInterfaceTable[index].name, __FILE__, __LINE__);
-                            networkStart(index, settings.debugNetworkLayer);
-                        }
+                            networkStart(index, settings.debugNetworkLayer, __FILE__, __LINE__);
                         break;
                     }
                 }
@@ -497,22 +497,30 @@ void networkConsumerDisplay()
 //----------------------------------------
 // Remove a network consumer
 //----------------------------------------
-void networkConsumerRemove(NETCONSUMER_t consumer, NetIndex_t network)
+void networkConsumerRemove(NETCONSUMER_t consumer, NetIndex_t network, const char * fileName, uint32_t lineNumber)
 {
     NETCONSUMER_MASK_t bitMask;
     NETCONSUMER_MASK_t * bits;
     NETCONSUMER_MASK_t consumers;
     NetIndex_t index;
+    const char * networkName;
     int priority;
 
     // Validate the inputs
     networkConsumerValidate(consumer);
     bits = &networkConsumersAny;
+    networkName = "NETWORK_ANY";
     if (network != NETWORK_ANY)
     {
         networkValidateIndex(network);
         bits = &netIfConsumers[network];
+        networkName = networkInterfaceTable[network].name;
     }
+
+    // Display the call
+    if (settings.debugNetworkLayer)
+        systemPrintf("Network: Calling networkConsumerRemove(%s) from %s at line %d\r\n",
+                     networkName, fileName, lineNumber);
 
     // Remove the consumer only once
     consumers = networkConsumersAny | *bits;
@@ -547,13 +555,8 @@ void networkConsumerRemove(NETCONSUMER_t consumer, NetIndex_t network)
 
                 // Verify that this interface is started
                 if (networkIsStarted(index))
-                {
                     // Attempt to stop this network interface
-                    if (settings.debugNetworkLayer)
-                        systemPrintf("Network: Calling networkStop(%s) from %s at line %d\r\n",
-                                     networkInterfaceTable[index].name, __FILE__, __LINE__);
-                    networkStop(index, settings.debugNetworkLayer);
-                }
+                    networkStop(index, settings.debugNetworkLayer, __FILE__, __LINE__);
             }
 
             // Update the network priority
@@ -1074,10 +1077,7 @@ void networkInterfaceInternetConnectionLost(NetIndex_t index)
 
                 // Interface not connected to the internet
                 // Start this interface
-                if (settings.debugNetworkLayer)
-                    systemPrintf("Network: Calling networkStart(%s) from %s at line %d\r\n",
-                                 networkInterfaceTable[index].name, __FILE__, __LINE__);
-                networkStart(index, settings.debugNetworkLayer);
+                networkStart(index, settings.debugNetworkLayer, __FILE__, __LINE__);
             }
         }
 
@@ -1661,13 +1661,18 @@ void networkSequenceStopPolling(NetIndex_t index, bool debug, bool forcedStop)
 //----------------------------------------
 // Add a soft AP consumer
 //----------------------------------------
-void networkSoftApConsumerAdd(NETCONSUMER_t consumer)
+void networkSoftApConsumerAdd(NETCONSUMER_t consumer, const char * fileName, uint32_t lineNumber)
 {
     NETCONSUMER_MASK_t bitMask;
     NetIndex_t index;
 
     // Validate the inputs
     networkConsumerValidate(consumer);
+
+    // Display the call
+    if (settings.debugNetworkLayer)
+        systemPrintf("Network: Calling networkSoftApConsumerAdd from %s at line %d\r\n",
+                     fileName, lineNumber);
 
     // Add this consumer only once
     bitMask = 1 << consumer;
@@ -1737,13 +1742,18 @@ void networkSoftApConsumerDisplay()
 //----------------------------------------
 // Remove a soft AP consumer
 //----------------------------------------
-void networkSoftApConsumerRemove(NETCONSUMER_t consumer)
+void networkSoftApConsumerRemove(NETCONSUMER_t consumer, const char * fileName, uint32_t lineNumber)
 {
     NETCONSUMER_MASK_t bitMask;
     NetIndex_t index;
 
     // Validate the inputs
     networkConsumerValidate(consumer);
+
+    // Display the call
+    if (settings.debugNetworkLayer)
+        systemPrintf("Network: Calling networkSoftApConsumerRemove from %s at line %d\r\n",
+                     fileName, lineNumber);
 
     // Remove the consumer only once
     bitMask = 1 << consumer;
@@ -1780,10 +1790,18 @@ void networkSoftApConsumerRemove(NETCONSUMER_t consumer)
 //----------------------------------------
 // Start a network interface
 //----------------------------------------
-void networkStart(NetIndex_t index, bool debug)
+void networkStart(NetIndex_t index, bool debug, const char * fileName, uint32_t lineNumber)
 {
     // Validate the index
     networkValidateIndex(index);
+
+    // Display the call
+    if (settings.debugNetworkLayer)
+    {
+        networkDisplayStatus();
+        systemPrintf("Network: Calling networkStart(%s) from %s at line %d\r\n",
+                     networkInterfaceTable[index].name, fileName, lineNumber);
+    }
 
     // Only start networks that exist on the platform
     if (networkIsPresent(index) && networkConsumerCount)
@@ -1830,13 +1848,8 @@ void networkStartNextInterface(NetIndex_t index)
             if (networkIsPresent(index))
             {
                 if (((networkStarted | networkSeqStarting) & bitMask) == 0)
-                {
                     // Start this network interface
-                    if (settings.debugNetworkLayer)
-                        systemPrintf("Network: Calling networkStart(%s) from %s at line %d\r\n",
-                                     networkInterfaceTable[index].name, __FILE__, __LINE__);
-                    networkStart(index, settings.debugNetworkLayer);
-                }
+                    networkStart(index, settings.debugNetworkLayer, __FILE__, __LINE__);
                 break;
             }
         }
@@ -1846,12 +1859,20 @@ void networkStartNextInterface(NetIndex_t index)
 //----------------------------------------
 // Stop a network interface
 //----------------------------------------
-void networkStop(NetIndex_t index, bool debug)
+void networkStop(NetIndex_t index, bool debug, const char * fileName, uint32_t lineNumber)
 {
     NetMask_t bitMask;
 
     // Validate the index
     networkValidateIndex(index);
+
+    // Display the call
+    if (settings.debugNetworkLayer)
+    {
+        networkDisplayStatus();
+        systemPrintf("Network: Calling networkStop(%s) from %s at line %d\r\n",
+                     networkInterfaceTable[index].name, fileName, lineNumber);
+    }
 
     // Clear the event flag
     networkEventStop[index] = false;
@@ -1919,10 +1940,7 @@ void networkStartDelayed(NetIndex_t index, uintptr_t parameter, bool debug)
 
             // Only lower priority interfaces or none running
             // Start this network interface
-            if (settings.debugNetworkLayer)
-                systemPrintf("Network: Calling networkStart(%s) from %s at line %d\r\n",
-                             networkInterfaceTable[index].name, __FILE__, __LINE__);
-            networkStart(index, settings.debugNetworkLayer);
+            networkStart(index, settings.debugNetworkLayer, __FILE__, __LINE__);
         }
         else if (debug)
             systemPrintf("%s online, leaving %s off\r\n", currentInterfaceName, name);
@@ -1970,30 +1988,14 @@ void networkUpdate()
             if ((index == NETWORK_WIFI_STATION) && (networkIsHighestPriority(index)))
             {
                 if (networkIsStarted(index))
-                {
-                    if (settings.debugNetworkLayer)
-                        systemPrintf("Network: Calling networkStop(%s) from %s at line %d\r\n",
-                                     networkInterfaceTable[index].name, __FILE__, __LINE__);
-                    networkStop(index, settings.debugWifiState);
-                }
-                if (settings.debugNetworkLayer)
-                {
-                    networkDisplayStatus();
-                    systemPrintf("Network: Calling networkStart(%s) from %s at line %d\r\n",
-                                 networkInterfaceTable[index].name, __FILE__, __LINE__);
-                }
-                networkStart(index, settings.debugWifiState);
+                    networkStop(index, settings.debugWifiState, __FILE__, __LINE__);
+                networkStart(index, settings.debugWifiState, __FILE__, __LINE__);
             }
         }
 
         // Handle the network stop event
         if (networkEventStop[index])
-        {
-            if (settings.debugNetworkLayer)
-                systemPrintf("Network: Calling networkStop(%s) from %s at line %d\r\n",
-                             networkInterfaceTable[index].name, __FILE__, __LINE__);
-            networkStop(index, settings.debugNetworkLayer);
-        }
+            networkStop(index, settings.debugNetworkLayer, __FILE__, __LINE__);
 
         // Handle the network has internet event
         if (networkEventInternetAvailable[index])
@@ -2024,11 +2026,7 @@ void networkUpdate()
         {
             if (settings.debugNetworkLayer)
                 systemPrintln("WiFi settings changed, restarting WiFi");
-
-            if (settings.debugNetworkLayer)
-                systemPrintf("Network: Calling networkStop(%s) from %s at line %d\r\n",
-                             networkInterfaceTable[index].name, __FILE__, __LINE__);
-            networkStop(NETWORK_WIFI_STATION, settings.debugNetworkLayer);
+            networkStop(NETWORK_WIFI_STATION, settings.debugNetworkLayer, __FILE__, __LINE__);
         }
     }
 
