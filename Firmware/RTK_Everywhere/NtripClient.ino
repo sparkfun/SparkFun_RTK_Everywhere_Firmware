@@ -205,6 +205,9 @@ bool ntripClientForcedShutdown = false; // NTRIP Client was turned off due to an
 // NTRIP Client Routines
 //----------------------------------------
 
+//----------------------------------------
+// Attempt to connect to the remote NTRIP caster
+//----------------------------------------
 bool ntripClientConnect()
 {
     if (!ntripClient)
@@ -299,7 +302,9 @@ bool ntripClientConnect()
     return true;
 }
 
+//----------------------------------------
 // Determine if another connection is possible or if the limit has been reached
+//----------------------------------------
 bool ntripClientConnectLimitReached()
 {
     bool limitReached;
@@ -310,7 +315,7 @@ bool ntripClientConnectLimitReached()
     limitReached = false;
 
     // Restart the NTRIP client
-    ntripClientStop(limitReached || (!settings.enableNtripClient));
+    ntripClientStop(limitReached || (!ntripClientEnabled()));
 
     ntripClientConnectionAttempts++;
     ntripClientConnectionAttemptsTotal++;
@@ -347,7 +352,49 @@ bool ntripClientConnectLimitReached()
     return limitReached;
 }
 
+//----------------------------------------
+// Determine if the NTRIP client may be enabled
+//----------------------------------------
+bool ntripClientEnabled()
+{
+    bool enabled;
+
+    do
+    {
+        enabled = false;
+
+        // Verify the operating mode
+        if (NEQ_RTK_MODE(ntripClientMode))
+            break;
+
+        // Determine if the shutdown is being forced
+        if (ntripClientForcedShutdown)
+            break;
+
+        // Verify that the parameters were specified
+        if ((settings.ntripClient_CasterHost[0] == 0)
+            || (settings.ntripClient_CasterPort == 0)
+            || (settings.ntripClient_MountPoint[0] == 0))
+            break;
+
+        // Verify still enabled
+        enabled = settings.enableNtripClient;
+    } while (0);
+    return enabled;
+}
+
+//----------------------------------------
+// Shutdown the NTRIP client
+//----------------------------------------
+void ntripClientForceShutdown()
+{
+    ntripClientStop(true);
+    ntripClientForcedShutdown = true; // NTRIP Client was turned off due to an error. Don't allow restart.
+}
+
+//----------------------------------------
 // Print the NTRIP client state summary
+//----------------------------------------
 void ntripClientPrintStateSummary()
 {
     switch (ntripClientState)
@@ -371,7 +418,9 @@ void ntripClientPrintStateSummary()
     }
 }
 
+//----------------------------------------
 // Print the NTRIP Client status
+//----------------------------------------
 void ntripClientPrintStatus()
 {
     uint32_t days;
@@ -417,13 +466,17 @@ void ntripClientPrintStatus()
     }
 }
 
+//----------------------------------------
 // Determine if NTRIP client data is available
+//----------------------------------------
 int ntripClientReceiveDataAvailable()
 {
     return ntripClient->available();
 }
 
+//----------------------------------------
 // Read the response from the NTRIP client
+//----------------------------------------
 void ntripClientResponse(char *response, size_t maxLength)
 {
     char *responseEnd;
@@ -441,7 +494,9 @@ void ntripClientResponse(char *response, size_t maxLength)
     *response = '\0';
 }
 
+//----------------------------------------
 // Restart the NTRIP client
+//----------------------------------------
 void ntripClientRestart()
 {
     // Save the previous uptime value
@@ -450,8 +505,10 @@ void ntripClientRestart()
     ntripClientConnectLimitReached();
 }
 
+//----------------------------------------
 // Update the state of the NTRIP client state machine
 // PERIODIC_DISPLAY(PD_NTRIP_CLIENT_STATE) is handled by ntripClientUpdate
+//----------------------------------------
 void ntripClientSetState(uint8_t newState)
 {
     if (settings.debugNtripClientState)
@@ -474,14 +531,9 @@ void ntripClientSetState(uint8_t newState)
     }
 }
 
-// Shutdown the NTRIP client
-void ntripClientForceShutdown()
-{
-    ntripClientStop(true);
-    ntripClientForcedShutdown = true; // NTRIP Client was turned off due to an error. Don't allow restart.
-}
-
+//----------------------------------------
 // Start the NTRIP client
+//----------------------------------------
 void ntripClientStart()
 {
     // Display the heap state
@@ -493,7 +545,9 @@ void ntripClientStart()
     ntripClientStop(false);
 }
 
+//----------------------------------------
 // Shutdown or restart the NTRIP client
+//----------------------------------------
 void ntripClientStop(bool shutdown)
 {
     if (ntripClient)
@@ -519,6 +573,7 @@ void ntripClientStop(bool shutdown)
     // Determine the next NTRIP client state
     online.ntripClient = false;
     netIncomingRTCM = false;
+    ntripClientPriority = NETWORK_OFFLINE;
     if (shutdown)
     {
         networkConsumerRemove(NETCONSUMER_NTRIP_CLIENT, NETWORK_ANY);
@@ -530,42 +585,45 @@ void ntripClientStop(bool shutdown)
         ntripClientSetState(NTRIP_CLIENT_ON);
 }
 
+//----------------------------------------
 // Check for the arrival of any correction data. Push it to the GNSS.
 // Stop task if the connection has dropped or if we receive no data for
 // NTRIP_CLIENT_RECEIVE_DATA_TIMEOUT
+//----------------------------------------
 void ntripClientUpdate()
 {
+    bool enabled;
+
     // Shutdown the NTRIP client when the mode or setting changes
     DMW_st(ntripClientSetState, ntripClientState);
-    if (NEQ_RTK_MODE(ntripClientMode) || (!settings.enableNtripClient))
-    {
-        if (ntripClientState > NTRIP_CLIENT_OFF)
-            ntripClientStop(true);
-    }
+    enabled = ntripClientEnabled();
+    if ((!enabled) && (ntripClientState > NTRIP_CLIENT_OFF))
+        ntripClientStop(true);
+
+    // Determine if the network has failed
+    else if ((ntripClientState > NTRIP_CLIENT_WAIT_FOR_NETWORK)
+        && (!networkIsConnected(&ntripClientPriority)))
+        // Attempt to restart the network
+        ntripClientRestart();
 
     // Enable the network and the NTRIP client if requested
     switch (ntripClientState)
     {
     case NTRIP_CLIENT_OFF:
         // Don't allow the client to restart if a forced shutdown occurred
-        if (ntripClientForcedShutdown == false && EQ_RTK_MODE(ntripClientMode) && settings.enableNtripClient)
+        if (ntripClientEnabled())
             ntripClientStart();
         break;
 
     // Start the network
     case NTRIP_CLIENT_ON:
-        ntripClientPriority = NETWORK_OFFLINE;
         ntripClientSetState(NTRIP_CLIENT_WAIT_FOR_NETWORK);
         break;
 
     // Wait for a network media connection
     case NTRIP_CLIENT_WAIT_FOR_NETWORK:
-        // Determine if the NTRIP client was turned off
-        if (ntripClientForcedShutdown || NEQ_RTK_MODE(ntripClientMode) || !settings.enableNtripClient)
-            ntripClientStop(true);
-
         // Wait until the network is connected to the media
-        else if (networkIsConnected(&ntripClientPriority))
+        if (networkIsConnected(&ntripClientPriority))
         {
             // Allocate the ntripClient structure
             ntripClient = new NetworkClient();
@@ -586,14 +644,9 @@ void ntripClientUpdate()
         break;
 
     case NTRIP_CLIENT_NETWORK_CONNECTED:
-        // Determine if the network has failed
-        if (!networkIsConnected(&ntripClientPriority))
-            // Failed to connect to to the network, attempt to restart the network
-            ntripClientRestart();
-
         // If GGA transmission is enabled, wait for GNSS lock before connecting to NTRIP Caster
         // If GGA transmission is not enabled, start connecting to NTRIP Caster
-        else if ((settings.ntripClient_TransmitGGA == false) || (gnss->isFixed() == true))
+        if ((settings.ntripClient_TransmitGGA == false) || (gnss->isFixed() == true))
         {
             // Delay before opening the NTRIP client connection
             if ((millis() - ntripClientTimer) >= ntripClientConnectionAttemptTimeout)
@@ -619,13 +672,8 @@ void ntripClientUpdate()
         break;
 
     case NTRIP_CLIENT_WAIT_RESPONSE:
-        // Determine if the network has failed
-        if (!networkIsConnected(&ntripClientPriority))
-            // Failed to connect to to the network, attempt to restart the network
-            ntripClientRestart();
-
         // Check for no response from the caster service
-        else if (ntripClientReceiveDataAvailable() <
+        if (ntripClientReceiveDataAvailable() <
                  strlen("ICY 200 OK")) // Wait until at least a few bytes have arrived
         {
             // Check for response timeout
@@ -740,13 +788,8 @@ void ntripClientUpdate()
         break;
 
     case NTRIP_CLIENT_CONNECTED:
-        // Determine if the network has failed
-        if (!networkIsConnected(&ntripClientPriority))
-            // Failed to connect to to the network, attempt to restart the network
-            ntripClientRestart();
-
         // Check for a broken connection
-        else if (!ntripClient->connected())
+        if (!ntripClient->connected())
         {
             // Broken connection, retry the NTRIP client connection
             systemPrintln("NTRIP Client connection to caster was broken");
@@ -857,7 +900,9 @@ void ntripClientUpdate()
     }
 }
 
+//----------------------------------------
 // Verify the NTRIP client tables
+//----------------------------------------
 void ntripClientValidateTables()
 {
     if (ntripClientStateNameEntries != NTRIP_CLIENT_STATE_MAX)

@@ -212,18 +212,18 @@ bool mqttClientConnectLimitReached()
 //----------------------------------------
 bool mqttClientEnabled()
 {
-    bool enableMqttClient;
+    bool enabled;
 
     do
     {
-        enableMqttClient = false;
+        enabled = false;
+
+        // Verify the operating mode
+        if (NEQ_RTK_MODE(mqttClientMode))
+            break;
 
         // MQTT requires use of point perfect corrections
         if (settings.enablePointPerfectCorrections == false)
-            break;
-
-        // Only support MQTT clients in rover mode
-        if (NEQ_RTK_MODE(mqttClientMode))
             break;
 
         // For the mosaic-X5, settings.enablePointPerfectCorrections will be true if
@@ -235,10 +235,10 @@ bool mqttClientEnabled()
         if (present.gnss_mosaicX5)
             break;
 
-        // All conditions support running the MQTT client
-        enableMqttClient = mqttClientStartRequested;
+        // Verify still enabled
+        enabled = mqttClientStartRequested;
     } while (0);
-    return enableMqttClient;
+    return enabled;
 }
 
 //----------------------------------------
@@ -739,6 +739,7 @@ void mqttClientStop(bool shutdown)
     // Determine the next MQTT client state
     online.mqttClient = false;
     mqttClientDataReceived = false;
+    mqttClientPriority = NETWORK_OFFLINE;
     if (shutdown)
     {
         networkConsumerRemove(NETCONSUMER_PPL_MQTT_CLIENT, NETWORK_ANY);
@@ -789,7 +790,6 @@ void mqttClientUpdate()
     case MQTT_CLIENT_ON: {
         if ((millis() - mqttClientTimer) > mqttClientConnectionAttemptTimeout)
         {
-            mqttClientPriority = NETWORK_OFFLINE;
             mqttClientSetState(MQTT_CLIENT_WAIT_FOR_NETWORK);
         }
         break;
