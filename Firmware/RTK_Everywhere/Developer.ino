@@ -93,20 +93,20 @@ void tcpClientZeroTail() {}
 // TCP server
 //----------------------------------------
 
+void tcpServerDiscardBytes(RING_BUFFER_OFFSET previousTail, RING_BUFFER_OFFSET newTail) {}
 int32_t tcpServerSendData(uint16_t dataHead) {return 0;}
 void tcpServerZeroTail() {}
 void tcpServerValidateTables() {}
-void discardTcpServerBytes(RING_BUFFER_OFFSET previousTail, RING_BUFFER_OFFSET newTail) {}
 
 //----------------------------------------
 // UDP server
 //----------------------------------------
 
+void udpServerDiscardBytes(RING_BUFFER_OFFSET previousTail, RING_BUFFER_OFFSET newTail) {}
 int32_t udpServerSendData(uint16_t dataHead) {return 0;}
 void udpServerStop() {}
 void udpServerUpdate() {}
 void udpServerZeroTail() {}
-void discardUdpServerBytes(RING_BUFFER_OFFSET previousTail, RING_BUFFER_OFFSET newTail) {}
 
 #endif // COMPILE_NETWORK
 

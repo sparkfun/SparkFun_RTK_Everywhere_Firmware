@@ -1189,10 +1189,8 @@ void webServerStop()
 
         // Stop network
         systemPrintln("Web Server releasing network request");
-        if (settings.wifiConfigOverAP)
-            networkSoftApConsumerRemove(NETCONSUMER_WEB_CONFIG);
-        else
-            networkConsumerRemove(NETCONSUMER_WEB_CONFIG, NETWORK_ANY);
+        networkSoftApConsumerRemove(NETCONSUMER_WEB_CONFIG);
+        networkConsumerRemove(NETCONSUMER_WEB_CONFIG, NETWORK_ANY);
 
         // Stop the machine
         webServerSetState(WEBSERVER_STATE_OFF);

@@ -29,6 +29,30 @@ tcpServer.ino
            '------------> Cell Phone <-------------------------------'
                           for display
 
+  TCP Server Testing:
+
+     Using Ethernet or WiFi station or AP on RTK Reference Station, starting
+     the TCP Server and running Vespucci on the cell phone:
+
+        Vespucci Setup:
+            * Click on the gear icon
+            * Scroll down and click on Advanced preferences
+            * Click on Location settings
+            * Click on GPS/GNSS source
+            * Set to NMEA from TCP client
+            * Click on NMEA network source
+            * Set IP address to rtk-evk.local:2948 for Ethernet or WiFi station
+            * Set IP address to 192.168.4.1 for WiFi soft AP
+            * Uncheck Leave GPS/GNSS turned off
+            * Check Fallback to network location
+            * Click on Stale location after
+            * Set the value 5 seconds
+            * Exit the menus
+
+        1. Verify connection to the Vespucci application on the cell phone.
+
+        2. When the connection breaks, stop and restart Vespucci to create
+           a new connection to the TCP server.
 */
 
 #ifdef COMPILE_NETWORK
@@ -82,7 +106,36 @@ static NetPriority_t tcpServerPriority = NETWORK_OFFLINE;
 // TCP Server handleGnssDataTask Support Routines
 //----------------------------------------
 
+//----------------------------------------
+// Remove previous messages from the ring buffer
+//----------------------------------------
+void tcpServerDiscardBytes(RING_BUFFER_OFFSET previousTail, RING_BUFFER_OFFSET newTail)
+{
+    int index;
+    uint16_t tail;
+
+    // Update each of the clients
+    for (index = 0; index < TCP_SERVER_MAX_CLIENTS; index++)
+    {
+        tail = tcpServerClientTails[index];
+        if (previousTail < newTail)
+        {
+            // No buffer wrap occurred
+            if ((tail >= previousTail) && (tail < newTail))
+                tcpServerClientTails[index] = newTail;
+        }
+        else
+        {
+            // Buffer wrap occurred
+            if ((tail >= previousTail) || (tail < newTail))
+                tcpServerClientTails[index] = newTail;
+        }
+    }
+}
+
+//----------------------------------------
 // Send data to the TCP clients
+//----------------------------------------
 int32_t tcpServerClientSendData(int index, uint8_t *data, uint16_t length)
 {
     length = tcpServerClient[index]->write(data, length);
@@ -118,7 +171,30 @@ int32_t tcpServerClientSendData(int index, uint8_t *data, uint16_t length)
     return length;
 }
 
+//----------------------------------------
+// Determine if the TCP server may be enabled
+//----------------------------------------
+bool tcpServerEnabled()
+{
+    bool enabled;
+
+    do
+    {
+        enabled = false;
+
+        // Verify the operating mode
+        if (NEQ_RTK_MODE(tcpServerMode))
+            break;
+
+        // Verify still enabled
+        enabled = settings.enableTcpServer || settings.baseCasterOverride;
+    } while (0);
+    return enabled;
+}
+
+//----------------------------------------
 // Send TCP data to the clients
+//----------------------------------------
 int32_t tcpServerSendData(uint16_t dataHead)
 {
     int32_t usedSpace = 0;
@@ -171,36 +247,13 @@ int32_t tcpServerSendData(uint16_t dataHead)
     return usedSpace;
 }
 
-// Remove previous messages from the ring buffer
-void discardTcpServerBytes(RING_BUFFER_OFFSET previousTail, RING_BUFFER_OFFSET newTail)
-{
-    int index;
-    uint16_t tail;
-
-    // Update each of the clients
-    for (index = 0; index < TCP_SERVER_MAX_CLIENTS; index++)
-    {
-        tail = tcpServerClientTails[index];
-        if (previousTail < newTail)
-        {
-            // No buffer wrap occurred
-            if ((tail >= previousTail) && (tail < newTail))
-                tcpServerClientTails[index] = newTail;
-        }
-        else
-        {
-            // Buffer wrap occurred
-            if ((tail >= previousTail) || (tail < newTail))
-                tcpServerClientTails[index] = newTail;
-        }
-    }
-}
-
 //----------------------------------------
 // TCP Server Routines
 //----------------------------------------
 
+//----------------------------------------
 // Update the state of the TCP server state machine
+//----------------------------------------
 void tcpServerSetState(uint8_t newState)
 {
     if ((settings.debugTcpServer || PERIODIC_DISPLAY(PD_TCP_SERVER_STATE)) && (!inMainMenu))
@@ -224,7 +277,9 @@ void tcpServerSetState(uint8_t newState)
     }
 }
 
+//----------------------------------------
 // Start the TCP server
+//----------------------------------------
 bool tcpServerStart()
 {
     IPAddress localIp;
@@ -254,7 +309,9 @@ bool tcpServerStart()
     return true;
 }
 
+//----------------------------------------
 // Stop the TCP server
+//----------------------------------------
 void tcpServerStop()
 {
     int index;
@@ -289,13 +346,18 @@ void tcpServerStop()
     // Stop using the network
     if (tcpServerState != TCP_SERVER_STATE_OFF)
     {
+        networkSoftApConsumerRemove(NETCONSUMER_TCP_SERVER);
+        networkConsumerRemove(NETCONSUMER_TCP_SERVER, NETWORK_ANY);
+
         // The TCP server is now off
         tcpServerSetState(TCP_SERVER_STATE_OFF);
         tcpServerTimer = millis();
     }
 }
 
+//----------------------------------------
 // Stop the TCP server client
+//----------------------------------------
 void tcpServerStopClient(int index)
 {
     bool connected;
@@ -324,21 +386,22 @@ void tcpServerStopClient(int index)
     tcpServerClientWriteError = tcpServerClientWriteError & (~(1 << index));
 }
 
+//----------------------------------------
 // Update the TCP server state
+//----------------------------------------
 void tcpServerUpdate()
 {
     bool connected;
     bool dataSent;
+    bool enabled;
     int index;
     IPAddress ipAddress;
 
     // Shutdown the TCP server when the mode or setting changes
     DMW_st(tcpServerSetState, tcpServerState);
-    if (NEQ_RTK_MODE(tcpServerMode) || (!settings.enableTcpServer && !settings.baseCasterOverride))
-    {
-        if (tcpServerState > TCP_SERVER_STATE_OFF)
-            tcpServerStop();
-    }
+    enabled = tcpServerEnabled();
+    if ((tcpServerState > TCP_SERVER_STATE_OFF) && !enabled)
+        tcpServerStop();
 
     /*
         TCP Server state machine
@@ -369,10 +432,14 @@ void tcpServerUpdate()
     // Wait until the TCP server is enabled
     case TCP_SERVER_STATE_OFF:
         // Determine if the TCP server should be running
-        if (EQ_RTK_MODE(tcpServerMode) && (settings.enableTcpServer || settings.baseCasterOverride))
+        if (enabled)
         {
             if (settings.debugTcpServer && (!inMainMenu))
                 systemPrintln("TCP server start");
+            if (settings.wifiConfigOverAP == false)
+                networkConsumerAdd(NETCONSUMER_TCP_SERVER, NETWORK_ANY);
+            else
+                networkSoftApConsumerAdd(NETCONSUMER_TCP_SERVER);
             tcpServerPriority = NETWORK_OFFLINE;
             tcpServerSetState(TCP_SERVER_STATE_WAIT_FOR_NETWORK);
         }
@@ -380,12 +447,8 @@ void tcpServerUpdate()
 
     // Wait until the network is connected
     case TCP_SERVER_STATE_WAIT_FOR_NETWORK:
-        // Determine if the TCP server was turned off
-        if (NEQ_RTK_MODE(tcpServerMode) || (!settings.enableTcpServer && !settings.baseCasterOverride))
-            tcpServerStop();
-
         // Wait until the network is connected to the media
-        else if (networkIsConnected(&tcpServerPriority))
+        if (networkIsConnected(&tcpServerPriority))
         {
             // Delay before starting the TCP server
             if ((millis() - tcpServerTimer) >= (1 * 1000))
@@ -539,7 +602,9 @@ void tcpServerUpdate()
         tcpServerSetState(tcpServerState);
 }
 
+//----------------------------------------
 // Verify the TCP server tables
+//----------------------------------------
 void tcpServerValidateTables()
 {
     char line[128];
@@ -556,7 +621,9 @@ void tcpServerValidateTables()
         reportFatalError("Fix tcpServerStateNameEntries to match tcpServerStates");
 }
 
+//----------------------------------------
 // Zero the TCP server client tails
+//----------------------------------------
 void tcpServerZeroTail()
 {
     int index;
