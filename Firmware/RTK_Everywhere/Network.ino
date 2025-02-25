@@ -539,13 +539,8 @@ void networkConsumerRemove(NETCONSUMER_t consumer, NetIndex_t network)
 
                 // Verify that this interface is started
                 if (networkIsStarted(index))
-                {
                     // Attempt to stop this network interface
-                    if (settings.debugNetworkLayer)
-                        systemPrintf("Network: Calling networkStop(%s) from %s at line %d\r\n",
-                                     networkInterfaceTable[index].name, __FILE__, __LINE__);
-                    networkStop(index, settings.debugNetworkLayer);
-                }
+                    networkStop(index, settings.debugNetworkLayer, __FILE__, __LINE__);
             }
 
             // Update the network priority
@@ -1838,12 +1833,20 @@ void networkStartNextInterface(NetIndex_t index)
 //----------------------------------------
 // Stop a network interface
 //----------------------------------------
-void networkStop(NetIndex_t index, bool debug)
+void networkStop(NetIndex_t index, bool debug, const char * fileName, uint32_t lineNumber)
 {
     NetMask_t bitMask;
 
     // Validate the index
     networkValidateIndex(index);
+
+    // Display the call
+    if (settings.debugNetworkLayer)
+    {
+        networkDisplayStatus();
+        systemPrintf("Network: Calling networkStop(%s) from %s at line %d\r\n",
+                     networkInterfaceTable[index].name, fileName, lineNumber);
+    }
 
     // Clear the event flag
     networkEventStop[index] = false;
@@ -1959,24 +1962,14 @@ void networkUpdate()
             if ((index == NETWORK_WIFI_STATION) && (networkIsHighestPriority(index)))
             {
                 if (networkIsStarted(index))
-                {
-                    if (settings.debugNetworkLayer)
-                        systemPrintf("Network: Calling networkStop(%s) from %s at line %d\r\n",
-                                     networkInterfaceTable[index].name, __FILE__, __LINE__);
-                    networkStop(index, settings.debugWifiState);
-                }
+                    networkStop(index, settings.debugWifiState, __FILE__, __LINE__);
                 networkStart(index, settings.debugWifiState, __FILE__, __LINE__);
             }
         }
 
         // Handle the network stop event
         if (networkEventStop[index])
-        {
-            if (settings.debugNetworkLayer)
-                systemPrintf("Network: Calling networkStop(%s) from %s at line %d\r\n",
-                             networkInterfaceTable[index].name, __FILE__, __LINE__);
-            networkStop(index, settings.debugNetworkLayer);
-        }
+            networkStop(index, settings.debugNetworkLayer, __FILE__, __LINE__);
 
         // Handle the network has internet event
         if (networkEventInternetAvailable[index])
@@ -2007,11 +2000,7 @@ void networkUpdate()
         {
             if (settings.debugNetworkLayer)
                 systemPrintln("WiFi settings changed, restarting WiFi");
-
-            if (settings.debugNetworkLayer)
-                systemPrintf("Network: Calling networkStop(%s) from %s at line %d\r\n",
-                             networkInterfaceTable[index].name, __FILE__, __LINE__);
-            networkStop(NETWORK_WIFI_STATION, settings.debugNetworkLayer);
+            networkStop(NETWORK_WIFI_STATION, settings.debugNetworkLayer, __FILE__, __LINE__);
         }
     }
 
