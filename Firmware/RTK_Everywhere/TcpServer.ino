@@ -346,7 +346,7 @@ void tcpServerStop()
     // Stop using the network
     if (tcpServerState != TCP_SERVER_STATE_OFF)
     {
-        networkSoftApConsumerRemove(NETCONSUMER_TCP_SERVER);
+        networkSoftApConsumerRemove(NETCONSUMER_TCP_SERVER, __FILE__, __LINE__);
         networkConsumerRemove(NETCONSUMER_TCP_SERVER, NETWORK_ANY, __FILE__, __LINE__);
 
         // The TCP server is now off

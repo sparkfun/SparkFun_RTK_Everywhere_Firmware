@@ -1189,7 +1189,7 @@ void webServerStop()
 
         // Stop network
         systemPrintln("Web Server releasing network request");
-        networkSoftApConsumerRemove(NETCONSUMER_WEB_CONFIG);
+        networkSoftApConsumerRemove(NETCONSUMER_WEB_CONFIG, __FILE__, __LINE__);
         networkConsumerRemove(NETCONSUMER_WEB_CONFIG, NETWORK_ANY, __FILE__, __LINE__);
 
         // Stop the machine
