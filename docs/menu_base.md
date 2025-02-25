@@ -92,6 +92,8 @@ If the device is configured for *Survey-In* base mode, the survey will begin. Th
 
 In *Fixed Base* mode the GNSS receiver will go into Base mode with the defined coordinates and immediately begin outputting RTCM correction data.
 
+On RTK Facet mosaic, the minimum observation time and required initial positional accuracy do not apply. The mosaic-X5 continually refines its base position.
+
 ## NTRIP Server
 
 **NTRIP** is where the real fun begins. The Base needs a method for getting the correction data to the Rover. This can be done using radios but that's limited to a few kilometers at best. If you've got WiFi reception, use the internet!

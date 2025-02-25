@@ -43,6 +43,8 @@ Set output to GNSS data over USB Serial
 
 Enabling **Output GNSS data to USB serial** will pipe all GNSS output (generally NMEA but also RTCM) to the USB serial connection. This permits a wired connection to be made on devices, such as the RTK Torch, that have only one external port (USB).
 
+On RTK Facet mosaic, data can be output on the _USB1_ USB COM port.
+
 !!! note
 	To exit this mode, press **+++** to open the configuration menu.
 
@@ -75,7 +77,7 @@ The **Data** port on the RTK Facet, Express, and Express Plus is very flexible. 
 
 ## Data Port
 
-By default, the **Data** port is set to 460800bps and can be configured from 4800bps to 921600bps. The 460800bps baud rate was chosen to support applications where a large number of messages are enabled and a large amount of data is sent. If you need to decrease the baud rate to 115200bps or other, be sure to monitor the MON-COMM message within u-center for buffer overruns. A baud rate of 115200bps and the NMEA+RXM default configuration at 4Hz *will* cause buffer overruns.
+The **Data** port can be configured from 4800bps to 921600bps. The default depends on the GNSS model: e.g. 460800bps on LG290P; 230400 on other models. The default rate was chosen to support applications where a large number of messages are enabled and a large amount of data is sent. If you need to decrease the baud rate to 115200bps or other on the ZED-F9P, be sure to monitor the MON-COMM message within u-center for buffer overruns. A baud rate of 115200bps and the NMEA+RXM default configuration at 4Hz *will* cause buffer overruns.
 
 <figure markdown>
 ![Monitoring the COM ports on the ZED-F9P](./img/SparkFun_RTK_Express_-_Ports_Menu_MON-COMM_Overrun.jpg)
