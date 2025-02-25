@@ -632,14 +632,6 @@ bool wifiSoftApOn(bool on)
 }
 
 //*********************************************************************
-// Start or stop the WiFi station
-// Returns true if successful and false upon failure
-bool wifiStationOn(bool on)
-{
-    return wifi.enable(wifiEspNowRunning, wifiSoftApRunning, on);
-}
-
-//*********************************************************************
 // Start WiFi with throttling, used by wifiStopSequence
 void wifiStartThrottled(NetIndex_t index, uintptr_t parameter, bool debug)
 {
@@ -654,6 +646,14 @@ void wifiStartThrottled(NetIndex_t index, uintptr_t parameter, bool debug)
         wifiResetTimeout();
         networkSequenceStopPolling(NETWORK_WIFI_STATION, debug, true);
     }
+}
+
+//*********************************************************************
+// Start or stop the WiFi station
+// Returns true if successful and false upon failure
+bool wifiStationOn(bool on)
+{
+    return wifi.enable(wifiEspNowRunning, wifiSoftApRunning, on);
 }
 
 //*********************************************************************
