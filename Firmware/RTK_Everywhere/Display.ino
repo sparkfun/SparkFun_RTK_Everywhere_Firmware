@@ -327,7 +327,7 @@ void displayUpdate()
                 displayFullIPAddress(&iconPropertyList);     // Bottom left - 128x64 only
                 setRadioIcons(&iconPropertyList);
                 paintBaseTempSurveyStarted(&iconPropertyList);
-                displaySivVsOpenShort(&iconPropertyList); // 128x64 only
+                displaySivVsOpenShort(&iconPropertyList);
                 break;
             case (STATE_BASE_TEMP_TRANSMITTING):
                 paintLogging(&iconPropertyList);
@@ -335,7 +335,7 @@ void displayUpdate()
                 displayFullIPAddress(&iconPropertyList);     // Bottom left - 128x64 only
                 setRadioIcons(&iconPropertyList);
                 paintRTCM(&iconPropertyList);
-                displaySivVsOpenShort(&iconPropertyList); // 128x64 only
+                displaySivVsOpenShort(&iconPropertyList);
                 break;
             case (STATE_BASE_FIXED_NOT_STARTED):
                 displayBatteryVsEthernet(&iconPropertyList); // Top right
@@ -348,7 +348,7 @@ void displayUpdate()
                 displayFullIPAddress(&iconPropertyList);     // Bottom left - 128x64 only
                 setRadioIcons(&iconPropertyList);
                 paintRTCM(&iconPropertyList);
-                displaySivVsOpenShort(&iconPropertyList); // 128x64 only
+                displaySivVsOpenShort(&iconPropertyList);
                 break;
 
             case (STATE_NTPSERVER_NOT_STARTED):
@@ -1725,12 +1725,16 @@ displayCoords paintSIVIcon(std::vector<iconPropertyBlinking> *iconList, const ic
                 icon = &LBandIconProperties;
             else
             {
+                // If in Rover mode, always use SIVIconProperties
                 if (inBaseMode() == false)
                     icon = &SIVIconProperties;
+                // Else if in Base mode and during base settle, use SIVIconProperties
                 else if (systemState == STATE_BASE_TEMP_SETTLE)
                     icon = &SIVIconProperties; //During base settle, SIV inline with HPA
-                else if (inBaseMode() && present.display_type == DISPLAY_128x64)
-                    icon = &BaseSIVIconProperties; // Move SIV down to avoid collision with 'Xmitting RTCM' text
+                // Else use BaseSIVIconProperties.
+                // On 128x64 displays, SIV will be moved down to avoid collision with 'Xmitting RTCM' text
+                else
+                    icon = &BaseSIVIconProperties;
             }
 
             // if in base mode, don't blink
