@@ -269,7 +269,7 @@ void httpClientStop(bool shutdown)
     httpClientPriority = NETWORK_OFFLINE;
     if (shutdown)
     {
-        networkConsumerRemove(NETCONSUMER_HTTP_CLIENT, NETWORK_ANY);
+        networkConsumerRemove(NETCONSUMER_HTTP_CLIENT, NETWORK_ANY, __FILE__, __LINE__);
         httpClientModeNeeded = false;
         httpClientConnectionAttempts = 0;
         httpClientConnectionAttemptTimeout = 0;

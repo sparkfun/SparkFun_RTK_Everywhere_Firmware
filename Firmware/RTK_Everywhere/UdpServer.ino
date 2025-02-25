@@ -306,7 +306,7 @@ void udpServerStop()
     {
         // The UDP server is now off
         networkSoftApConsumerRemove(NETCONSUMER_UDP_SERVER);
-        networkConsumerRemove(NETCONSUMER_UDP_SERVER, NETWORK_ANY);
+        networkConsumerRemove(NETCONSUMER_UDP_SERVER, NETWORK_ANY, __FILE__, __LINE__);
         udpServerSetState(UDP_SERVER_STATE_OFF);
         udpServerTimer = millis();
     }

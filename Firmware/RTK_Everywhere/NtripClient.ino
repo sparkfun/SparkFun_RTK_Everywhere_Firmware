@@ -576,7 +576,7 @@ void ntripClientStop(bool shutdown)
     ntripClientPriority = NETWORK_OFFLINE;
     if (shutdown)
     {
-        networkConsumerRemove(NETCONSUMER_NTRIP_CLIENT, NETWORK_ANY);
+        networkConsumerRemove(NETCONSUMER_NTRIP_CLIENT, NETWORK_ANY, __FILE__, __LINE__);
         ntripClientSetState(NTRIP_CLIENT_OFF);
         ntripClientConnectionAttempts = 0;
         ntripClientConnectionAttemptTimeout = 0;

@@ -585,7 +585,7 @@ void ntripServerStop(int serverIndex, bool shutdown)
             systemPrintf("NTRIP Server %d caster port not configured!\r\n", serverIndex);
         if (settings.debugNtripServerState && (!settings.ntripServer_MountPoint[serverIndex][0]))
             systemPrintf("NTRIP Server %d mount point not configured!\r\n", serverIndex);
-        networkConsumerRemove(NETCONSUMER_NTRIP_SERVER, NETWORK_ANY);
+        networkConsumerRemove(NETCONSUMER_NTRIP_SERVER, NETWORK_ANY, __FILE__, __LINE__);
         ntripServerSetState(ntripServer, NTRIP_SERVER_OFF);
         ntripServer->connectionAttempts = 0;
         ntripServer->connectionAttemptTimeout = 0;

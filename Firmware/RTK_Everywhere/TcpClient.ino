@@ -367,7 +367,7 @@ void tcpClientStop(bool shutdown)
     if (shutdown)
     {
         // Stop the network
-        networkConsumerRemove(NETCONSUMER_TCP_CLIENT, NETWORK_ANY);
+        networkConsumerRemove(NETCONSUMER_TCP_CLIENT, NETWORK_ANY, __FILE__, __LINE__);
         tcpClientSetState(TCP_CLIENT_STATE_OFF);
     }
     else
