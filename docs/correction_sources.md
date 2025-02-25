@@ -26,7 +26,7 @@ These companies set up a large number of reference stations that cover entire re
 
 - [PointPerfect](https://docs.sparkfun.com/SparkFun_RTK_Everywhere_Firmware/quickstart-torch/#pointperfect-corrections) ($8/month) - US, EU, as well as parts of Australia, Brazil, and South Korea. Note: This is an [SSR service](https://docs.sparkfun.com/SparkFun_RTK_Everywhere_Firmware/correction_sources/#osr-vs-ssr).
 - [Onocoy](https://console.onocoy.com/explorer) ($25/month) - US, EU, Australia, and many other partial areas
-- [PointOneNav](https://app.pointonenav.com/trial?src=sparkfun) ($150/month) - US, EU, Australia, South Korea
+- [PointOneNav](https://app.pointonenav.com/trial?src=sparkfun) ($125/month for "True RTK") - US, UK, EU, KOR, AUS, NZ, and JP
 - [Skylark](https://www.swiftnav.com/skylark) ($29 to $69/month) - US, EU, Japan, Australia
 - [SensorCloud RTK](https://rtk.sensorcloud.com/pricing/) ($100/month) partial US, EU
 - [Premium Positioning](https://www.premium-positioning.com) (~$315/month) partial EU
