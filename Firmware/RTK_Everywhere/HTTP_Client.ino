@@ -266,6 +266,7 @@ void httpClientStop(bool shutdown)
 
     // Determine the next HTTP client state
     online.httpClient = false;
+    httpClientPriority = NETWORK_OFFLINE;
     if (shutdown)
     {
         networkConsumerRemove(NETCONSUMER_HTTP_CLIENT, NETWORK_ANY);
@@ -306,7 +307,6 @@ void httpClientUpdate()
     case HTTP_CLIENT_ON: {
         if ((millis() - httpClientTimer) > httpClientConnectionAttemptTimeout)
         {
-            httpClientPriority = NETWORK_OFFLINE;
             httpClientSetState(HTTP_CLIENT_NETWORK_STARTED);
         }
         break;
