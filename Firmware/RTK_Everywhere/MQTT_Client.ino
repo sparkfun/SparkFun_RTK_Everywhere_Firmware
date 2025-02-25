@@ -780,7 +780,7 @@ void mqttClientUpdate()
             // Start the MQTT client
             if (settings.debugMqttClientState)
                 systemPrintln("MQTT Client start");
-            networkConsumerAdd(NETCONSUMER_PPL_MQTT_CLIENT, NETWORK_ANY);
+            networkConsumerAdd(NETCONSUMER_PPL_MQTT_CLIENT, NETWORK_ANY, __FILE__, __LINE__);
             mqttClientStop(false);
         }
         break;

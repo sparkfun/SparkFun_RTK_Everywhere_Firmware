@@ -437,7 +437,7 @@ void tcpServerUpdate()
             if (settings.debugTcpServer && (!inMainMenu))
                 systemPrintln("TCP server start");
             if (settings.wifiConfigOverAP == false)
-                networkConsumerAdd(NETCONSUMER_TCP_SERVER, NETWORK_ANY);
+                networkConsumerAdd(NETCONSUMER_TCP_SERVER, NETWORK_ANY, __FILE__, __LINE__);
             else
                 networkSoftApConsumerAdd(NETCONSUMER_TCP_SERVER);
             tcpServerPriority = NETWORK_OFFLINE;

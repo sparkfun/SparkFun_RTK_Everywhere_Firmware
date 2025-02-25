@@ -542,7 +542,7 @@ void ntripServerStart(int serverIndex)
 
     // Start the NTRIP server
     systemPrintf("NTRIP Server %d start\r\n", serverIndex);
-    networkConsumerAdd(NETCONSUMER_NTRIP_CLIENT, NETWORK_ANY);
+    networkConsumerAdd(NETCONSUMER_NTRIP_CLIENT, NETWORK_ANY, __FILE__, __LINE__);
     ntripServerStop(serverIndex, false);
 }
 

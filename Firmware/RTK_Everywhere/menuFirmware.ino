@@ -796,7 +796,7 @@ void otaUpdate()
             if (otaRequestFirmwareVersionCheck || otaRequestFirmwareUpdate)
             {
                 // Start the network if necessary
-                networkConsumerAdd(NETCONSUMER_OTA_CLIENT, NETWORK_ANY);
+                networkConsumerAdd(NETCONSUMER_OTA_CLIENT, NETWORK_ANY, __FILE__, __LINE__);
                 otaSetState(OTA_STATE_WAIT_FOR_NETWORK);
             }
             break;

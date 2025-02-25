@@ -297,7 +297,7 @@ void httpClientUpdate()
     case HTTP_CLIENT_OFF: {
         if (httpClientEnabled())
         {
-            networkConsumerAdd(NETCONSUMER_HTTP_CLIENT, NETWORK_ANY);
+            networkConsumerAdd(NETCONSUMER_HTTP_CLIENT, NETWORK_ANY, __FILE__, __LINE__);
             httpClientStart();
         }
         break;

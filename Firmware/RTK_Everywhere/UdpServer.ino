@@ -353,7 +353,7 @@ void udpServerUpdate()
             if (settings.debugUdpServer && (!inMainMenu))
                 systemPrintln("UDP server starting the network");
             if (settings.wifiConfigOverAP == false)
-                networkConsumerAdd(NETCONSUMER_UDP_SERVER, NETWORK_ANY);
+                networkConsumerAdd(NETCONSUMER_UDP_SERVER, NETWORK_ANY, __FILE__, __LINE__);
             else
                 networkSoftApConsumerAdd(NETCONSUMER_UDP_SERVER);
             udpServerSetState(UDP_SERVER_STATE_WAIT_FOR_NETWORK);

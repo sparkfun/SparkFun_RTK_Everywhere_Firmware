@@ -350,22 +350,30 @@ void networkBegin()
 //----------------------------------------
 // Add a network consumer
 //----------------------------------------
-void networkConsumerAdd(NETCONSUMER_t consumer, NetIndex_t network)
+void networkConsumerAdd(NETCONSUMER_t consumer, NetIndex_t network, const char * fileName, uint32_t lineNumber)
 {
     NETCONSUMER_MASK_t bitMask;
     NETCONSUMER_MASK_t * bits;
     NETCONSUMER_MASK_t consumers;
     NetIndex_t index;
+    const char * networkName;
     NetPriority_t priority;
 
     // Validate the inputs
     networkConsumerValidate(consumer);
     bits = &networkConsumersAny;
+    networkName = "NETWORK_ANY";
     if (network != NETWORK_ANY)
     {
         networkValidateIndex(network);
         bits = &netIfConsumers[network];
+        networkName = networkInterfaceTable[network].name;
     }
+
+    // Display the call
+    if (settings.debugNetworkLayer)
+        systemPrintf("Network: Calling networkConsumerAdd(%s) from %s at line %d\r\n",
+                     networkName, fileName, lineNumber);
 
     // Add this consumer only once
     consumers = networkConsumersAny | *bits;
