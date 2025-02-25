@@ -18,6 +18,9 @@ Compatibility Icons
 
 </div>
 
+!!! note
+	Do you have a RTK Facet mosaic? Skip to the dedicated [RTK Facet mosaic](#rtk-facet-mosaic) section below as the menu options are different.
+
 <figure markdown>
 ![Message rate configuration](./img/Terminal/SparkFun RTK Everywhere - Messages Menu.png)
 <figcaption markdown>
@@ -143,3 +146,81 @@ The following messages are supported for Bluetooth output and logging (if availa
 </div>
 
 </div>
+
+## RTK Facet mosaic
+
+The GNSS Messages menu on the RTK Facet mosaic is different, due to the way message streams and itervals need to be configured.
+
+### RTK Facet mosaic NMEA Messages
+
+Opening the _Configure GNSS Messages \ Set NMEA Messages_ menu produces:
+
+<figure markdown>
+![RTK Facet mosaic NMEA configuration](./img/Terminal/SparkFun_RTK_Everywhere_Facet_NMEA_Menu.png)
+<figcaption markdown>
+The NMEA messages configuration menu on RTK Facet mosaic
+</figcaption>
+</figure>
+
+The available NMEA messages are:
+
+<div markdown>
+- NMEA-ALM (GPS Almanac Data)
+- NMEA-AVR (Trimble Navigation proprietary sentence)
+- NMEA-DTM (Datum Reference)
+- NMEA-GBS (GNSS Satellite Fault Detection)
+- NMEA-GFA (GNSS Fix Accuracy and Integrity)
+- NMEA-GGA (GPS Fix Data)
+- NMEA-GGK (Trimble Navigation proprietary sentence)
+- NMEA-GGQ (Leica Real-Time Position with CQ)
+- NMEA-GLL (Geographic Position - Latitude/Longitude)
+- NMEA-GMP (GNSS Map Projection Fix Data)
+- NMEA-GNS (GNSS Fix Data)
+- NMEA-GRS (GNSS Range Residuals)
+- NMEA-GSA (GNSS DOP and Active Satellites)
+- NMEA-GST (GNSS Pseudorange Error Statistics)
+- NMEA-GSV (GNSS Satellites in View)
+- NMEA-HDT (Heading, True)
+- NMEA-HRP (Heading, Roll, Pitch)
+- NMEA-LLK (Leica Local Position and GDOP)
+- NMEA-LLQ (Leica Local Position and Quality)
+- NMEA-RBD (Rover-Base Direction)
+- NMEA-RBP (Rover-Base Position)
+- NMEA-RBV (Rover-Base Velocity)
+- NMEA-RMC (Recommended Minimum Specific GNSS Data)
+- NMEA-ROT (Rate of Turn)
+- NMEA-SNC (NTRIP Client Status)
+- NMEA-TFM (Used Coordinate Transformation Messages)
+- NMEA-THS (True Heading and Status)
+- NMEA-TXTbase (RTCM 1029 Text Transmission)
+- NMEA-VTG (Course Over Ground and Ground Speed)
+- NMEA-ZDA (Time and Date)
+</div>
+
+To output and log a message, set its Stream to _Stream1_ or _Stream2_. To disable a message, set its Stream to _Off_.
+
+E.g. for the ALM message, select "1" to change the Stream from _Off_ to _Stream1_. Select "1" again to select _Stream2_. Select "1" again to return to _Off_.
+
+Menu options 31 and 32 can be used to set the interval of _Stream1_ and _Stream2_. The interval can be adjusted between 10 milliseconds and 60 seconds. Be careful when setting the interval to less than 200 milliseconds, the load on the X5 CPU and the SD card will increase significantly.
+
+### RTK Facet mosaic RTCM Messages
+
+Opening the _Configure GNSS Messages \ Set Rover RTCM Messages_ menu produces:
+
+<figure markdown>
+![RTK Facet mosaic Rover RTCM configuration](./img/Terminal/SparkFun_RTK_Everywhere_Facet_RTCM_Menu.png)
+<figcaption markdown>
+The Rover RTCM messages configuration menu on RTK Facet mosaic
+</figcaption>
+</figure>
+
+RTCM messages are configured differently compared to NMEA. It is necessary to first set the message interval for the message group, then enable / disable the individual message. Streams do not apply to RTCM messages.
+
+E.g. to set the RTCM1230 message to an interval of 10 seconds:
+
+- Use menu option 23 to set an interval of 10.0
+- Use menu option 52 to toggle RTCM1230 to Enabled
+
+The interval can be adjusted between 0.1 and 600.0 seconds.
+
+Enabling the MSM1 message group causes the Multiple Signal Message - Type 1 to be output: RTCM1071 + RTCM1081 + RTCM1091 + RTCM1101 + RTCM1111 + RTCM1121 + RTCM1131

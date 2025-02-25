@@ -417,6 +417,8 @@ nav:
       - configure_with_browser.md
       - configure_with_cli.md
       - configure_with_ethernet.md
+      - configure_with_ethernet_over_usb.md
+      - configure_with_rxtools.md
       - configure_with_serial.md
       - configure_with_settings_file.md
       - configure_with_ucenter.md
