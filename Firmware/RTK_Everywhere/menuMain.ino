@@ -132,7 +132,7 @@ void menuMain()
     {
         systemPrintln();
         char versionString[21];
-        getFirmwareVersion(versionString, sizeof(versionString), true);
+        firmwareVersionGet(versionString, sizeof(versionString), true);
         RTKBrandAttribute *brandAttributes = getBrandAttributeFromBrand(present.brand);
         systemPrintf("%s RTK %s %s\r\n", brandAttributes->name, platformPrefix, versionString);
 
@@ -242,7 +242,7 @@ void menuMain()
         else if (incoming == 'e' && (present.ethernet_ws5500 == true))
             menuEthernet();
         else if (incoming == 'f')
-            menuFirmware();
+            firmwareMenu();
         else if (incoming == 'i')
             menuCorrectionsPriorities();
         else if (incoming == 'n' && (present.ethernet_ws5500 == true))

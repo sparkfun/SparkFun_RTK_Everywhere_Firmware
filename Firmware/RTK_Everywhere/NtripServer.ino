@@ -227,7 +227,7 @@ bool ntripServerConnectCaster(int serverIndex)
              settings.ntripServer_MountPointPW[serverIndex], settings.ntripServer_MountPoint[serverIndex],
              platformPrefix);
     int length = strlen(serverBuffer);
-    getFirmwareVersion(&serverBuffer[length], sizeof(serverBuffer) - length, false);
+    firmwareVersionGet(&serverBuffer[length], sizeof(serverBuffer) - length, false);
 
     // Send the authorization credentials to the NTRIP caster
     ntripServer->networkClient->write((const uint8_t *)serverBuffer, strlen(serverBuffer));
@@ -574,6 +574,7 @@ void ntripServerStop(int serverIndex, bool shutdown)
 
     // Determine the next NTRIP server state
     online.ntripServer[serverIndex] = false;
+    ntripServerPriority = NETWORK_OFFLINE;
     if (shutdown)
     {
         if (settings.debugNtripServerState)
@@ -637,7 +638,6 @@ void ntripServerUpdate(int serverIndex)
 
     // Start the network
     case NTRIP_SERVER_ON:
-        ntripServerPriority = NETWORK_OFFLINE;
         ntripServerSetState(ntripServer, NTRIP_SERVER_WAIT_FOR_NETWORK);
         break;
 
