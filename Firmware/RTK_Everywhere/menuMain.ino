@@ -522,9 +522,51 @@ void factoryReset(bool alreadyHasSemaphore)
     ESP.restart();
 }
 
+// Display the Bluetooth radio menu item
+void mmDisplayBluetoothRadioMenu(char menuChar, BluetoothRadioType_e bluetoothUserChoice)
+{
+    systemPrintf("%c) Set Bluetooth Mode: ", menuChar);
+    if (bluetoothUserChoice == BLUETOOTH_RADIO_SPP_AND_BLE)
+        systemPrintln("Dual");
+    else if (bluetoothUserChoice == BLUETOOTH_RADIO_SPP)
+        systemPrintln("Classic");
+    else if (bluetoothUserChoice == BLUETOOTH_RADIO_BLE)
+        systemPrintln("BLE");
+    else
+        systemPrintln("Off");
+}
+
+// Select the Bluetooth protocol
+BluetoothRadioType_e mmChangeBluetoothProtocol(BluetoothRadioType_e bluetoothUserChoice)
+{
+    // Change Bluetooth protocol
+    if (bluetoothUserChoice == BLUETOOTH_RADIO_SPP_AND_BLE)
+        bluetoothUserChoice = BLUETOOTH_RADIO_SPP;
+    else if (bluetoothUserChoice == BLUETOOTH_RADIO_SPP)
+        bluetoothUserChoice = BLUETOOTH_RADIO_BLE;
+    else if (bluetoothUserChoice == BLUETOOTH_RADIO_BLE)
+        bluetoothUserChoice = BLUETOOTH_RADIO_OFF;
+    else if (bluetoothUserChoice == BLUETOOTH_RADIO_OFF)
+        bluetoothUserChoice = BLUETOOTH_RADIO_SPP_AND_BLE;
+    return bluetoothUserChoice;
+}
+
+// Restart Bluetooth radio if settings have changed
+void mmSetBluetoothProtocol(BluetoothRadioType_e bluetoothUserChoice)
+{
+    if (bluetoothUserChoice != settings.bluetoothRadioType)
+    {
+        bluetoothStop();
+        settings.bluetoothRadioType = bluetoothUserChoice;
+        bluetoothStart();
+    }
+}
+
 // Configure the internal radio, if available
 void menuRadio()
 {
+    BluetoothRadioType_e bluetoothUserChoice = settings.bluetoothRadioType;
+
     while (1)
     {
         systemPrintln();
@@ -595,11 +637,18 @@ void menuRadio()
             }
         }
 
+        // Display Bluetooth menu
+        mmDisplayBluetoothRadioMenu('b', bluetoothUserChoice);
+
         systemPrintln("x) Exit");
 
-        int incoming = getUserInputNumber(); // Returns EXIT, TIMEOUT, or long
+        byte incoming = getUserInputCharacterNumber();
 
-        if (incoming == 1)
+        // Select the bluetooth radio
+        if (incoming == 'b')
+            bluetoothUserChoice = mmChangeBluetoothProtocol(bluetoothUserChoice);
+
+        else if (incoming == 1)
         {
             settings.enableEspNow ^= 1;
 
@@ -718,6 +767,8 @@ void menuRadio()
                           10, 600, &settings.loraSerialInteractionTimeout_s);
         }
 
+        else if (incoming == 'x')
+            break;
         else if (incoming == INPUT_RESPONSE_GETNUMBER_EXIT)
             break;
         else if (incoming == INPUT_RESPONSE_GETNUMBER_TIMEOUT)
@@ -727,6 +778,9 @@ void menuRadio()
     }
 
     ESPNOW_START()
+
+    // Restart Bluetooth radio if settings have changed
+    mmSetBluetoothProtocol(bluetoothUserChoice);
 
     // LoRa radio state machine will start/stop radio upon next updateLora in loop()
 
