@@ -677,15 +677,6 @@ float lBandEBNO; // Used on system status menu
 
 #include <esp_now.h> //Built-in
 
-#define ESPNOW_START()                                                                      \
-    {                                                                                       \
-        if (settings.debugEspNow)                                                           \
-            systemPrintf("ESPNOW_START called in %s at line %d\r\n", __FILE__, __LINE__);   \
-        wifiEspNowOn(true);                     \
-    }
-
-#define ESPNOW_STOP()       wifiEspNowOn(false)
-
 #endif // COMPILE_ESPNOW
 
 // ESP-NOW Globals - For other module direct access

@@ -394,7 +394,7 @@ void microSdUpdateFirmware(const char *firmwareFileName)
     }
 
     // Turn off any tasks so that we are not disrupted
-    ESPNOW_STOP();
+    wifiEspNowOn(false, __FILE__, __LINE__);
     wifiStopAll();
     bluetoothStop();
 

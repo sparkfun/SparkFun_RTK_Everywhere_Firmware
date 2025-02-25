@@ -654,9 +654,9 @@ void menuRadio()
 
             // Start ESP-NOW so that getChannel runs correctly
             if (settings.enableEspNow == true)
-                ESPNOW_START()
+                wifiEspNowOn(true, __FILE__, __LINE__);
             else
-                ESPNOW_STOP();
+                wifiEspNowOn(false, __FILE__, __LINE__);
         }
         else if (settings.enableEspNow == true && incoming == 2)
         {
@@ -702,7 +702,7 @@ void menuRadio()
         else if (settings.enableEspNow == true && incoming == 5 && settings.debugEspNow == true)
         {
             if (wifiEspNowRunning == false)
-                ESPNOW_START()
+                wifiEspNowOn(true, __FILE__, __LINE__);
 
             uint8_t peer1[] = {0xB8, 0xD6, 0x1A, 0x0D, 0x8F, 0x9C}; // Random MAC
 #ifdef COMPILE_ESPNOW
@@ -726,7 +726,7 @@ void menuRadio()
         else if (settings.enableEspNow == true && incoming == 6 && settings.debugEspNow == true)
         {
             if (wifiEspNowRunning == false)
-                ESPNOW_START()
+                wifiEspNowOn(true, __FILE__, __LINE__);
 
             uint8_t espnowData[] =
                 "This is the long string to test how quickly we can send one string to the other unit. I am going to "
@@ -739,7 +739,7 @@ void menuRadio()
         else if (settings.enableEspNow == true && incoming == 7 && settings.debugEspNow == true)
         {
             if (wifiEspNowRunning == false)
-                ESPNOW_START()
+                wifiEspNowOn(true, __FILE__, __LINE__);
 
             uint8_t espnowData[] =
                 "This is the long string to test how quickly we can send one string to the other unit. I am going to "
@@ -777,7 +777,7 @@ void menuRadio()
             printUnknown(incoming);
     }
 
-    ESPNOW_START()
+    wifiEspNowOn(true, __FILE__, __LINE__);
 
     // Restart Bluetooth radio if settings have changed
     mmSetBluetoothProtocol(bluetoothUserChoice);

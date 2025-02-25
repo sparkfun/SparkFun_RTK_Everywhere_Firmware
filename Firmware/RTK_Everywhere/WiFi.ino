@@ -530,10 +530,26 @@ void wifiDisplayState()
 
 //*********************************************************************
 // Start or stop ESP-NOW
-// Returns true if successful and false upon failure
-bool wifiEspNowOn(bool on)
+// Inputs:
+//   on: Set to true to start ESP-NOW and false to stop ESP-NOW
+//   fileName: Name of file calling the enable routine
+//   lineNumber: Line number in the file calling the enable routine
+// Outputs:
+//   Returns true if successful and false upon failure
+bool wifiEspNowOn(bool on, const char * fileName, uint32_t lineNumber)
 {
-    return wifi.enable(on, wifiSoftApRunning, wifiStationRunning);
+    // Display the call
+    if (settings.debugEspNow || settings.debugWifiState)
+        systemPrintf("wifiEspNow(%s) called in %s at line %d\r\n",
+                     on ? "true" : "false", fileName, lineNumber);
+
+    // Don't turn on ESP-NOW when it is disabled
+    if (settings.enableEspNow == false)
+        on = false;
+    if (((on == false) && wifiEspNowRunning)
+        || ((settings.enableEspNow == true) && !wifiEspNowRunning))
+        return wifi.enable(on, wifiSoftApRunning, wifiStationRunning, __FILE__, __LINE__);
+    return settings.enableEspNow;
 }
 
 //*********************************************************************
@@ -624,19 +640,18 @@ void wifiResetTimeout()
 // Turn on and off WiFi soft AP mode
 // Inputs:
 //   on: True to start WiFi soft AP mode, false to stop WiFi soft AP mode
-// Returns:
+//   fileName: Name of file calling the enable routine
+//   lineNumber: Line number in the file calling the enable routine
+// Outputs:
 //   Returns the status of WiFi soft AP start or stop
-bool wifiSoftApOn(bool on)
+bool wifiSoftApOn(bool on, const char * fileName, uint32_t lineNumber)
 {
-    return wifi.enable(wifiEspNowRunning, on, wifiStationRunning);
-}
+    // Display the call
+    if (settings.debugWifiState)
+        systemPrintf("wifiSoftApOn(%s) called in %s at line %d\r\n",
+                     on ? "true" : "false", fileName, lineNumber);
 
-//*********************************************************************
-// Start or stop the WiFi station
-// Returns true if successful and false upon failure
-bool wifiStationOn(bool on)
-{
-    return wifi.enable(wifiEspNowRunning, wifiSoftApRunning, on);
+    return wifi.enable(wifiEspNowRunning, on, wifiStationRunning, __FILE__, __LINE__);
 }
 
 //*********************************************************************
@@ -654,6 +669,24 @@ void wifiStartThrottled(NetIndex_t index, uintptr_t parameter, bool debug)
         wifiResetTimeout();
         networkSequenceStopPolling(NETWORK_WIFI_STATION, debug, true);
     }
+}
+
+//*********************************************************************
+// Start or stop the WiFi station
+// Inputs:
+//   on: True to start WiFi station mode, false to stop WiFi station mode
+//   fileName: Name of file calling the enable routine
+//   lineNumber: Line number in the file calling the enable routine
+// Outputs:
+//   Returns true if successful and false upon failure
+bool wifiStationOn(bool on, const char * fileName, uint32_t lineNumber)
+{
+    // Display the call
+    if (settings.debugWifiState)
+        systemPrintf("wifiStationOn(%s) called in %s at line %d\r\n",
+                     on ? "true" : "false", fileName, lineNumber);
+
+    return wifi.enable(wifiEspNowRunning, wifiSoftApRunning, on, __FILE__, __LINE__);
 }
 
 //*********************************************************************
@@ -680,7 +713,7 @@ bool wifiStationReconnectionRequest()
     }
 
     // Attempt to start WiFi station
-    if (wifiStationOn(true))
+    if (wifiStationOn(true, __FILE__, __LINE__))
     {
         // Successfully connected to a remote AP
         connected = true;
@@ -726,7 +759,7 @@ void wifiStop(NetIndex_t index, uintptr_t parameter, bool debug)
     networkInterfaceInternetConnectionLost(NETWORK_WIFI_STATION);
 
     // Stop WiFi stataion
-    wifi.enable(wifiEspNowRunning, wifiSoftApRunning, false);
+    wifi.enable(wifiEspNowRunning, wifiSoftApRunning, false, __FILE__, __LINE__);
 
     networkSequenceNextEntry(NETWORK_WIFI_STATION, settings.debugNetworkLayer);
 }
@@ -739,7 +772,7 @@ void wifiStopAll()
     stopWebServer();
 
     // Stop the Wifi layer
-    wifi.enable(false, false, false);
+    wifi.enable(false, false, false, __FILE__, __LINE__);
 
     // Take the network offline
     networkInterfaceEventInternetLost(NETWORK_WIFI_STATION);
@@ -809,10 +842,10 @@ bool RTK_WIFI::connect(unsigned long timeout,
     if (wifiStationRunning == false)
     {
         displayWiFiConnect();
-        started = enable(wifiEspNowRunning, wifiSoftApRunning, true);
+        started = enable(wifiEspNowRunning, wifiSoftApRunning, true, __FILE__, __LINE__);
     }
     else if (startAP && !wifiSoftApRunning)
-        started = enable(wifiEspNowRunning, true, wifiStationRunning);
+        started = enable(wifiEspNowRunning, true, wifiStationRunning, __FILE__, __LINE__);
 
     // Determine the WiFi station status
     if (started)
@@ -852,9 +885,15 @@ void RTK_WIFI::displayComponents(const char * text, WIFI_ACTION_t components)
 //   enableESPNow: Enable ESP-NOW mode
 //   enableSoftAP: Enable soft AP mode
 //   enableStataion: Enable station mode
+//   fileName: Name of file calling the enable routine
+//   lineNumber: Line number in the file calling the enable routine
 // Outputs:
 //   Returns true if the modes were successfully configured
-bool RTK_WIFI::enable(bool enableESPNow, bool enableSoftAP, bool enableStation)
+bool RTK_WIFI::enable(bool enableESPNow,
+                      bool enableSoftAP,
+                      bool enableStation,
+                      const char * fileName,
+                      int lineNumber)
 {
     int authIndex;
     WIFI_ACTION_t starting;
@@ -875,7 +914,7 @@ bool RTK_WIFI::enable(bool enableESPNow, bool enableSoftAP, bool enableStation)
     // Display the parameters
     if (settings.debugWifiState && _verbose)
     {
-        systemPrintf("WiFi: RTK_WIFI::enable called\r\n");
+        systemPrintf("WiFi: RTK_WIFI::enable called from %s line %d\r\n", fileName, lineNumber);
         systemPrintf("enableESPNow: %s\r\n", enableESPNow ? "true" : "false");
         systemPrintf("enableSoftAP: %s\r\n", enableSoftAP ? "true" : "false");
         systemPrintf("enableStation: %s\r\n", enableStation ? "true" : "false");
@@ -1229,9 +1268,9 @@ bool RTK_WIFI::softApConfiguration(IPAddress ipAddress,
     success = true;
     if (softApOnline())
     {
-        success = enable(false, false, wifiStationRunning);
+        success = enable(false, false, wifiStationRunning, __FILE__, __LINE__);
         if (success)
-            success = enable(false, true, wifiStationRunning);
+            success = enable(false, true, wifiStationRunning, __FILE__, __LINE__);
     }
     return success;
 }
@@ -1444,7 +1483,7 @@ bool RTK_WIFI::softApSetSsidPassword(const char * ssid, const char * password)
 //    otherwise
 bool RTK_WIFI::startAp(bool forceAP)
 {
-    return enable(wifiEspNowRunning, forceAP | settings.wifiConfigOverAP, wifiStationRunning);
+    return enable(wifiEspNowRunning, forceAP | settings.wifiConfigOverAP, wifiStationRunning, __FILE__, __LINE__);
 }
 
 //*********************************************************************
@@ -2683,12 +2722,12 @@ void RTK_WIFI::test(uint32_t testDurationMsec)
 
     case 0:
         systemPrintf("--------------------  %d: All Stop  --------------------\r\n", rand);
-        enable(false, false, false);
+        enable(false, false, false, __FILE__, __LINE__);
         break;
 
     case 1:
         systemPrintf("--------------------  %d: STA Start  -------------------\r\n", rand);
-        enable(false, false, true);
+        enable(false, false, true, __FILE__, __LINE__);
         break;
 
     case 2:
@@ -2698,57 +2737,57 @@ void RTK_WIFI::test(uint32_t testDurationMsec)
 
     case 4:
         systemPrintf("--------------------  %d: Soft AP Start  -------------------\r\n", rand);
-        enable(false, true, false);
+        enable(false, true, false, __FILE__, __LINE__);
         break;
 
     case 5:
         systemPrintf("--------------------  %d: Soft AP & STA Start  --------------------\r\n", rand);
-        enable(false, true, true);
+        enable(false, true, true, __FILE__, __LINE__);
         break;
 
     case 6:
         systemPrintf("--------------------  %d: Soft AP Start, STA Disconnect  -------------------\r\n", rand);
         if (disconnectFirst)
             wifi.stationDisconnect();
-        enable(false, true, false);
+        enable(false, true, false, __FILE__, __LINE__);
         if (!disconnectFirst)
             wifi.stationDisconnect();
         break;
 
     case 8:
         systemPrintf("--------------------  %d: ESP-NOW Start  --------------------\r\n", rand);
-        enable(true, false, false);
+        enable(true, false, false, __FILE__, __LINE__);
         break;
 
     case 9:
         systemPrintf("--------------------  %d: ESP-NOW & STA Start  -------------------\r\n", rand);
-        enable(true, false, true);
+        enable(true, false, true, __FILE__, __LINE__);
         break;
 
     case 0xa:
         systemPrintf("--------------------  %d: ESP-NOW Start, STA Disconnect  --------------\r\n", rand);
         if (disconnectFirst)
             wifi.stationDisconnect();
-        enable(true, false, false);
+        enable(true, false, false, __FILE__, __LINE__);
         if (!disconnectFirst)
             wifi.stationDisconnect();
         break;
 
     case 0xc:
         systemPrintf("--------------------  %d: ESP-NOW & Soft AP Start  -------------------\r\n", rand);
-        enable(true, true, false);
+        enable(true, true, false, __FILE__, __LINE__);
         break;
 
     case 0xd:
         systemPrintf("--------------------  %d: ESP-NOW, Soft AP & STA Start  --------------------\r\n", rand);
-        enable(true, true, true);
+        enable(true, true, true, __FILE__, __LINE__);
         break;
 
     case 0xe:
         systemPrintf("--------------------  %d: ESP-NOW & Soft AP Start, STA Disconnect  -------------------\r\n", rand);
         if (disconnectFirst)
             wifi.stationDisconnect();
-        enable(true, true, false);
+        enable(true, true, false, __FILE__, __LINE__);
         if (!disconnectFirst)
             wifi.stationDisconnect();
         break;

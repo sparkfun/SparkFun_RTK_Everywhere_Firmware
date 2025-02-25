@@ -2130,9 +2130,15 @@ class RTK_WIFI
     //   enableESPNow: Enable ESP-NOW mode
     //   enableSoftAP: Enable soft AP mode
     //   enableStataion: Enable station mode
+    //   fileName: Name of file calling the enable routine
+    //   lineNumber: Line number in the file calling the enable routine
     // Outputs:
     //   Returns true if the modes were successfully configured
-    bool enable(bool enableESPNow, bool enableSoftAP, bool enableStation);
+    bool enable(bool enableESPNow,
+                bool enableSoftAP,
+                bool enableStation,
+                const char * fileName,
+                int lineNumber);
 
     // Get the ESP-NOW status
     // Outputs:
