@@ -69,7 +69,7 @@ void menuLogMosaic()
             systemPrintln(mosaicFileDurations[settings.RINEXFileDuration].humanName);
 
             systemPrint("4) Set RINEX observation interval: ");
-            systemPrint(mosaicObsIntervals[settings.RINEXObsInterval].humanName);
+            systemPrintln(mosaicObsIntervals[settings.RINEXObsInterval].humanName);
         }
 
         systemPrintln("x) Exit");

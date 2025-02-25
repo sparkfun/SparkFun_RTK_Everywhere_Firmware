@@ -1937,7 +1937,7 @@ const uint8_t SIVIconYPos64x48 = 35;
 const uint8_t SIVIconXPos128x64 = 74; // Just because we can, move SIV to the right on 128x64
 const uint8_t SIVIconYPos128x64 = 26;
 const uint8_t BaseSIVIconXPos128x64 = 74; // Move SIV info below the 'Xmitting RTCM' text on 128x64
-const uint8_t BaseSIVIconYPos128x64 = (26 + 15); // Assume font size 1;
+const uint8_t BaseSIVIconYPos128x64 = (26 + 14); // Assume font size 1;
 
 const int SIVTextStartXPosOffset[DISPLAY_MAX_NONE] = { -2, -2 }; // This is a bodge to allow the paintBaseTempSurveyStarted text to be printed in the correct place
 

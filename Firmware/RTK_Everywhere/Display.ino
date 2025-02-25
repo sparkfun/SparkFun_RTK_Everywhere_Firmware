@@ -327,7 +327,7 @@ void displayUpdate()
                 displayFullIPAddress(&iconPropertyList);     // Bottom left - 128x64 only
                 setRadioIcons(&iconPropertyList);
                 paintBaseTempSurveyStarted(&iconPropertyList);
-                displaySivVsOpenShort(&iconPropertyList); // 128x64 only
+                displayBaseSiv(&iconPropertyList); // 128x64 only
                 break;
             case (STATE_BASE_TEMP_TRANSMITTING):
                 paintLogging(&iconPropertyList);
@@ -335,7 +335,7 @@ void displayUpdate()
                 displayFullIPAddress(&iconPropertyList);     // Bottom left - 128x64 only
                 setRadioIcons(&iconPropertyList);
                 paintRTCM(&iconPropertyList);
-                displaySivVsOpenShort(&iconPropertyList); // 128x64 only
+                displayBaseSiv(&iconPropertyList); // 128x64 only
                 break;
             case (STATE_BASE_FIXED_NOT_STARTED):
                 displayBatteryVsEthernet(&iconPropertyList); // Top right
@@ -348,7 +348,7 @@ void displayUpdate()
                 displayFullIPAddress(&iconPropertyList);     // Bottom left - 128x64 only
                 setRadioIcons(&iconPropertyList);
                 paintRTCM(&iconPropertyList);
-                displaySivVsOpenShort(&iconPropertyList); // 128x64 only
+                displayBaseSiv(&iconPropertyList); // 128x64 only
                 break;
 
             case (STATE_NTPSERVER_NOT_STARTED):
@@ -1664,6 +1664,17 @@ void displaySivVsOpenShort(std::vector<iconPropertyBlinking> *iconList)
     }
 }
 
+void displayBaseSiv(std::vector<iconPropertyBlinking> *iconList)
+{
+    // Display SIV during Base - but only on 128x64 displays. 64x48 has no room.
+    // No support for short / open.
+    if (present.display_type == DISPLAY_128x64)
+    {
+        displayCoords textCoords = paintSIVIcon(iconList, &BaseSIVIconProperties, 0b11111111);
+        paintSIVText(textCoords);
+    }
+}
+
 void displayHorizontalAccuracy(std::vector<iconPropertyBlinking> *iconList, const iconProperties *icon, uint8_t duty)
 {
     iconPropertyBlinking prop;
@@ -1724,14 +1735,7 @@ displayCoords paintSIVIcon(std::vector<iconPropertyBlinking> *iconList, const ic
             if (lbandCorrectionsReceived || spartnCorrectionsReceived)
                 icon = &LBandIconProperties;
             else
-            {
-                if (inBaseMode() == false)
-                    icon = &SIVIconProperties;
-                else if (systemState == STATE_BASE_TEMP_SETTLE)
-                    icon = &SIVIconProperties; //During base settle, SIV inline with HPA
-                else if (inBaseMode() && present.display_type == DISPLAY_128x64)
-                    icon = &BaseSIVIconProperties; // Move SIV down to avoid collision with 'Xmitting RTCM' text
-            }
+                icon = &SIVIconProperties;
 
             // if in base mode, don't blink
             if (inBaseMode() == true)
@@ -1739,7 +1743,6 @@ displayCoords paintSIVIcon(std::vector<iconPropertyBlinking> *iconList, const ic
                 // override duty - solid satellite dish icon regardless of fix state
                 duty = 0b11111111;
             }
-
             // Determine if there is a fix
             else if (gnss->isFixed() == false)
             {
