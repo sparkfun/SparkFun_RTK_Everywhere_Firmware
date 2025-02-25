@@ -355,7 +355,7 @@ void udpServerUpdate()
             if (settings.wifiConfigOverAP == false)
                 networkConsumerAdd(NETCONSUMER_UDP_SERVER, NETWORK_ANY, __FILE__, __LINE__);
             else
-                networkSoftApConsumerAdd(NETCONSUMER_UDP_SERVER);
+                networkSoftApConsumerAdd(NETCONSUMER_UDP_SERVER, __FILE__, __LINE__);
             udpServerSetState(UDP_SERVER_STATE_WAIT_FOR_NETWORK);
         }
         break;

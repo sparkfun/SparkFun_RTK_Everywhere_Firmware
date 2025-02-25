@@ -439,7 +439,7 @@ void tcpServerUpdate()
             if (settings.wifiConfigOverAP == false)
                 networkConsumerAdd(NETCONSUMER_TCP_SERVER, NETWORK_ANY, __FILE__, __LINE__);
             else
-                networkSoftApConsumerAdd(NETCONSUMER_TCP_SERVER);
+                networkSoftApConsumerAdd(NETCONSUMER_TCP_SERVER, __FILE__, __LINE__);
             tcpServerPriority = NETWORK_OFFLINE;
             tcpServerSetState(TCP_SERVER_STATE_WAIT_FOR_NETWORK);
         }

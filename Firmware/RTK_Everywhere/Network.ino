@@ -1661,13 +1661,18 @@ void networkSequenceStopPolling(NetIndex_t index, bool debug, bool forcedStop)
 //----------------------------------------
 // Add a soft AP consumer
 //----------------------------------------
-void networkSoftApConsumerAdd(NETCONSUMER_t consumer)
+void networkSoftApConsumerAdd(NETCONSUMER_t consumer, const char * fileName, uint32_t lineNumber)
 {
     NETCONSUMER_MASK_t bitMask;
     NetIndex_t index;
 
     // Validate the inputs
     networkConsumerValidate(consumer);
+
+    // Display the call
+    if (settings.debugNetworkLayer)
+        systemPrintf("Network: Calling networkSoftApConsumerAdd from %s at line %d\r\n",
+                     fileName, lineNumber);
 
     // Add this consumer only once
     bitMask = 1 << consumer;
