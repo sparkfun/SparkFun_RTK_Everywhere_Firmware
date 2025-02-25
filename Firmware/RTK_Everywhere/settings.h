@@ -2101,6 +2101,7 @@ class RTK_WIFI
     void wifiEvent(arduino_event_id_t event, arduino_event_info_t info);
 
   public:
+    char * _apSsid; // SSID for the soft AP
 
     // Constructor
     // Inputs:
