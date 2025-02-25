@@ -875,6 +875,64 @@
   
   
     <li class="md-nav__item">
+      <a href="../configure_with_ethernet_over_usb/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    
+  
+    <span class="md-typeset">
+      Configure with Ethernet Over USB<a class="headerlink" href="#configure-with-ethernet-over-usb" title="Permanent link"></a>
+    </span>
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../configure_with_rxtools/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    
+  
+    <span class="md-typeset">
+      Configure with RxTools<a class="headerlink" href="#configure-with-rxtools" title="Permanent link"></a>
+    </span>
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
       <a href="../configure_with_serial/" class="md-nav__link">
         
   
@@ -2648,6 +2706,7 @@ Compatibility Icons
 </figcaption>
 </figure>
 <p>Enabling <strong>Output GNSS data to USB serial</strong> will pipe all GNSS output (generally NMEA but also RTCM) to the USB serial connection. This permits a wired connection to be made on devices, such as the RTK Torch, that have only one external port (USB).</p>
+<p>On RTK Facet mosaic, data can be output on the <em>USB1</em> USB COM port.</p>
 <div class="admonition note">
 <p class="admonition-title">Note</p>
 <p>To exit this mode, press <strong>+++</strong> to open the configuration menu.</p>
@@ -2673,7 +2732,7 @@ Compatibility Icons
 <li><strong>GPIO</strong> - The TX pin operates as a DAC-capable GPIO on the ESP32. The RX pin operates as an ADC-capable input on the ESP32. This is useful for custom applications.</li>
 </ul>
 <h2 id="data-port">Data Port<a class="headerlink" href="#data-port" title="Permanent link"></a></h2>
-<p>By default, the <strong>Data</strong> port is set to 460800bps and can be configured from 4800bps to 921600bps. The 460800bps baud rate was chosen to support applications where a large number of messages are enabled and a large amount of data is sent. If you need to decrease the baud rate to 115200bps or other, be sure to monitor the MON-COMM message within u-center for buffer overruns. A baud rate of 115200bps and the NMEA+RXM default configuration at 4Hz <em>will</em> cause buffer overruns.</p>
+<p>The <strong>Data</strong> port can be configured from 4800bps to 921600bps. The default depends on the GNSS model: e.g. 460800bps on LG290P; 230400 on other models. The default rate was chosen to support applications where a large number of messages are enabled and a large amount of data is sent. If you need to decrease the baud rate to 115200bps or other on the ZED-F9P, be sure to monitor the MON-COMM message within u-center for buffer overruns. A baud rate of 115200bps and the NMEA+RXM default configuration at 4Hz <em>will</em> cause buffer overruns.</p>
 <figure>
 <p><img alt="Monitoring the COM ports on the ZED-F9P" src="../img/SparkFun_RTK_Express_-_Ports_Menu_MON-COMM_Overrun.jpg" /></p>
 <figcaption>
@@ -2731,7 +2790,7 @@ Compatibility Icons
     <span class="md-icon" title="Last update">
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M21 13.1c-.1 0-.3.1-.4.2l-1 1 2.1 2.1 1-1c.2-.2.2-.6 0-.8l-1.3-1.3c-.1-.1-.2-.2-.4-.2m-1.9 1.8-6.1 6V23h2.1l6.1-6.1zM12.5 7v5.2l4 2.4-1 1L11 13V7zM11 21.9c-5.1-.5-9-4.8-9-9.9C2 6.5 6.5 2 12 2c5.3 0 9.6 4.1 10 9.3-.3-.1-.6-.2-1-.2s-.7.1-1 .2C19.6 7.2 16.2 4 12 4c-4.4 0-8 3.6-8 8 0 4.1 3.1 7.5 7.1 7.9l-.1.2z"/></svg>
     </span>
-    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-timeago"><span class="timeago" datetime="2025-02-24T11:28:19+00:00" locale="en"></span></span><span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-iso_date">2025-02-24</span>
+    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-timeago"><span class="timeago" datetime="2025-02-25T13:58:23+00:00" locale="en"></span></span><span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-iso_date">2025-02-25</span>
   </span>
 
     
