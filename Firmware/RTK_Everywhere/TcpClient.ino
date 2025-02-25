@@ -157,7 +157,28 @@ static volatile bool tcpClientWriteError;
 // TCP Client handleGnssDataTask Support Routines
 //----------------------------------------
 
+//----------------------------------------
+// Remove previous messages from the ring buffer
+//----------------------------------------
+void tcpClientDiscardBytes(RING_BUFFER_OFFSET previousTail, RING_BUFFER_OFFSET newTail)
+{
+    if (previousTail < newTail)
+    {
+        // No buffer wrap occurred
+        if ((tcpClientTail >= previousTail) && (tcpClientTail < newTail))
+            tcpClientTail = newTail;
+    }
+    else
+    {
+        // Buffer wrap occurred
+        if ((tcpClientTail >= previousTail) || (tcpClientTail < newTail))
+            tcpClientTail = newTail;
+    }
+}
+
+//----------------------------------------
 // Send TCP data to the server
+//----------------------------------------
 int32_t tcpClientSendData(uint16_t dataHead)
 {
     bool connected;
@@ -223,7 +244,9 @@ int32_t tcpClientSendData(uint16_t dataHead)
     return bytesToSend;
 }
 
+//----------------------------------------
 // Update the state of the TCP client state machine
+//----------------------------------------
 void tcpClientSetState(uint8_t newState)
 {
     if ((settings.debugTcpClient || PERIODIC_DISPLAY(PD_TCP_CLIENT_STATE)) && (!inMainMenu))
@@ -247,28 +270,13 @@ void tcpClientSetState(uint8_t newState)
     }
 }
 
-// Remove previous messages from the ring buffer
-void discardTcpClientBytes(RING_BUFFER_OFFSET previousTail, RING_BUFFER_OFFSET newTail)
-{
-    if (previousTail < newTail)
-    {
-        // No buffer wrap occurred
-        if ((tcpClientTail >= previousTail) && (tcpClientTail < newTail))
-            tcpClientTail = newTail;
-    }
-    else
-    {
-        // Buffer wrap occurred
-        if ((tcpClientTail >= previousTail) || (tcpClientTail < newTail))
-            tcpClientTail = newTail;
-    }
-}
-
 //----------------------------------------
 // TCP Client Routines
 //----------------------------------------
 
+//----------------------------------------
 // Start the TCP client
+//----------------------------------------
 bool tcpClientStart()
 {
     NetworkClient *client;
@@ -324,7 +332,9 @@ bool tcpClientStart()
     return false;
 }
 
+//----------------------------------------
 // Stop the TCP client
+//----------------------------------------
 void tcpClientStop(bool shutdown)
 {
     NetworkClient *client;
@@ -364,7 +374,9 @@ void tcpClientStop(bool shutdown)
         tcpClientSetState(TCP_CLIENT_STATE_WAIT_FOR_NETWORK);
 }
 
+//----------------------------------------
 // Update the TCP client state
+//----------------------------------------
 void tcpClientUpdate()
 {
     static uint8_t connectionAttempt;
@@ -534,14 +546,18 @@ void tcpClientUpdate()
         tcpClientSetState(tcpClientState);
 }
 
+//----------------------------------------
 // Verify the TCP client tables
+//----------------------------------------
 void tcpClientValidateTables()
 {
     if (tcpClientStateNameEntries != TCP_CLIENT_STATE_MAX)
         reportFatalError("Fix tcpClientStateNameEntries to match tcpClientStates");
 }
 
+//----------------------------------------
 // Zero the TCP client tail
+//----------------------------------------
 void tcpClientZeroTail()
 {
     tcpClientTail = 0;
