@@ -210,18 +210,7 @@ void stateUpdate()
         case (STATE_BASE_CASTER_NOT_STARTED): {
             baseCasterEnableOverride();
 
-#ifdef COMPILE_WIFI
-            // If the AP is already running, check that the name is correct
-            if ((WiFi.getMode() == WIFI_AP) || (WiFi.getMode() == WIFI_AP_STA))
-            {
-                if (strcmp(WiFi.softAPSSID().c_str(), "RTK Caster") != 0)
-                {
-                    // The AP name cannot be changed while it is running. WiFi must be restarted.
-                    wifiRestartRequested = true; // Tell network layer to restart WiFi
-                }
-            }
-#endif // COMPILE_WIFI
-
+            wifiSoftApSsid = "RTK Caster";
             changeState(STATE_BASE_NOT_STARTED);
         }
         break;
@@ -444,6 +433,7 @@ void stateUpdate()
             for (int serverIndex = 0; serverIndex < NTRIP_SERVER_MAX; serverIndex++)
                 ntripServerStop(serverIndex, true); // Do not allocate new wifiClient
 
+            wifiSoftApSsid = "RTK Config";
             webServerStart(); // Start the webserver state machine for web config
 
             RTK_MODE(RTK_MODE_WEB_CONFIG);
