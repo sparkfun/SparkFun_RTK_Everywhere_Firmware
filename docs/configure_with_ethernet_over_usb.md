@@ -44,7 +44,7 @@ The mosaic-X5's internal web page is (probably) the easiest way to view and chan
 The following is a summary of the mosaic-X5's interfaces and how they can be accessed on the RTK Facet mosaic:
 
 - **Ethernet-over-USB:**
-    - If you have followed the instructions above, the X5's internal web page can be viewed at **192.168.3.1**. This address is fixed and cannot be changed. If any of your computer's other interfaces (WiFi, Ethernet) also the 192.168.3.nnn subnet, you will run into conflicts. You will need to change the configuration of the other device to use a different subnet.
+    - If you have followed the instructions above, the X5's internal web page can be viewed at **192.168.3.1**. This address is fixed and cannot be changed. If any of your computer's other interfaces (WiFi, Ethernet) also use the 192.168.3.nnn subnet, you will run into conflicts. You will need to change the configuration of the other device to use a different subnet.
 - **USB COM (Serial) Ports:**
     - When connected via USB, two additional COM ports will appear. Internally to the X5, these are named _USB1_ and _USB2_. RxTools can connect directly to these ports. Or, if you wish, you can open a serial console / terminal emulator and enter commands directly. We recommend using _USB2_ since _USB1_ may have been [configured for GNSS Output](./menu_ports.md#output-gnss-data-over-usb).
 - **RADIO Port**:
@@ -52,7 +52,7 @@ The following is a summary of the mosaic-X5's interfaces and how they can be acc
 - **DATA Port:**
     - The RTK Facet mosaic DATA port is connected to the mosaic-X5 **COM3** serial / UART port via a hardware multiplexer. Please see [Ports Menu](./menu_ports.md) for more details, and the section on the [Mux Channel](./menu_ports.md#mux-channel) in particular. Set the multiplexer to **GNSS TX Out/RX In** to connect X5 COM3 to the **DATA** port. The baud rate can be changed through the menu; the default baud rate is **230400** (8 data bits, no parity, 1 stop bit). Commands can be entered over this port too.
 - **ESP32 and RTK Everywhere Firmware:**
-    - The ESP32 processor is connected to the mosaic-X5 **COM1** and **COM4** serial / UART ports. Configuration is performed over COM4. COM1 is used to: provide RTCM correction data _to_ the X5 in Rover mode; carry NMEA and / or RTCM data _from_ the X5 in Base mode. If you have a mobile phone connected to the RTK Facet mosaic over Bluetooth, corrections received over Bluetooth are pushed to the X5 on COM1. If the ESP32 is connected directly to WiFi, TCP (NTRIP) corrections received over WiFi are also pushed over COM1. COM1 also carries the raw L-Band correction stream from the X5, when the X5 is configured to use the u-blox PointPerfect corrections (only available in the contiguous USA).
+    - The ESP32 processor is connected to the mosaic-X5 **COM1** and **COM4** serial / UART ports. Configuration is performed over COM4. COM1 is used to: provide RTCM correction data _to_ the X5 in Rover mode; carry NMEA and / or RTCM data _from_ the X5 in Base mode. If you have a mobile phone connected to the RTK Facet mosaic over Bluetooth, corrections received over Bluetooth are pushed to the X5 on COM1. If the ESP32 is connected directly to WiFi, TCP (NTRIP) corrections received over WiFi are also pushed over COM1. COM1 also carries the raw L-Band correction stream from the X5, when the X5 is configured to use u-blox L-Band PointPerfect corrections (only available in the contiguous USA).
 
 ### mosaic-X5 microSD
 
@@ -158,8 +158,8 @@ However, it is straightforward to define your own SBF Stream and point it at DSK
 
 The abbreviated steps are:
 
-- Select the Logging tab
-- In the General window, select "New SBF stream"
+- Select the _Logging_ tab
+- In the _General_ window, select "New SBF stream"
 - Select the interval (e.g. 1 sec)
 - Click the "Detailed selection" button to reveal the vast list of SBF blocks
 - Select (e.g.) PVTCart / PVTCartesian
@@ -178,7 +178,7 @@ The mosaic-X5 configurations web page - Custom Configuration
 To save this new configuration:
 
 - Select the _Admin / Configurations_ tab
-- In the "Copy Configuration File" window:
+- In the _Copy Configuration File_ window:
     - Select _Current_ as the Source
     - Select _User1_ as the Target
 - Click OK to apply the changes
@@ -215,13 +215,13 @@ As described [above](#mosaic-x5-microsd), the RTK Facet mosaic SD card is connec
 - Connect via USB
 - Facet mosaic is in Rover mode and logging NMEA to DSK1 by default
 - Open a web browser, navigate to 192.168.3.1
-- Select the Logging tab
+- Select the _Logging_ tab
 - Note NMEA is being logged at about 140MB/day
-- Click Unmount and confirm with Unmount
+- Click _Unmount_ and confirm with _Unmount_
 - Note that the Internal Disk is not mounted and logging has stopped
 - On the OLED, the logging icon disappears. The pulse circle is displayed instead
-- The SD card pops up as mass-storage. You can now transfer and delete files
-- Click Mount
+- The SD card pops up as mass-storage on USB. You can now transfer and delete files
+- Click _Mount_
 - Wait a few seconds
 - Logging resumes and the logging icon reappears on the OLED
 
@@ -229,12 +229,12 @@ The X5 is so clever, you don't even need to pause the DSK1 logging. It just figu
 
 You can also do it with commands:
 
-- Open Admin \ Expert Control
-- In the Expert Console, enter ```emd,DSK1,Unmount```
-- Go back to the Overview tab, note that the Internal Disk is not mounted
+- Open _Admin / Expert Control_
+- In the _Expert Console_, enter ```emd,DSK1,Unmount```
+- Go back to the _Overview_ tab, note that the Internal Disk is not mounted
 - On the OLED, the logging icon disappears. The pulse circle is displayed
-- The SD card pops up as mass-storage. You can now transfer and delete files
-- Return to the Expert Console, enter ```emd,DSK1,Mount```
+- The SD card pops up as mass-storage on USB. You can now transfer and delete files
+- Return to the _Expert Console_, enter ```emd,DSK1,Mount```
 - Wait a few seconds
 - Logging resumes and the logging icon reappears on the OLED
 

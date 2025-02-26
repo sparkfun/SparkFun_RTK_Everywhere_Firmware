@@ -153,7 +153,7 @@ The GNSS Messages menu on the RTK Facet mosaic is different, due to the way mess
 
 ### RTK Facet mosaic NMEA Messages
 
-Opening the _Configure GNSS Messages \ Set NMEA Messages_ menu produces:
+Opening the _Configure GNSS Messages / Set NMEA Messages_ menu produces:
 
 <figure markdown>
 ![RTK Facet mosaic NMEA configuration](./img/Terminal/SparkFun_RTK_Everywhere_Facet_NMEA_Menu.png)
@@ -197,15 +197,15 @@ The available NMEA messages are:
 - NMEA-ZDA (Time and Date)
 </div>
 
-To output and log a message, set its Stream to _Stream1_ or _Stream2_. To disable a message, set its Stream to _Off_.
+To output and log a message, set its stream to _Stream1_ or _Stream2_. To disable a message, set its stream to _Off_.
 
-E.g. for the ALM message, select "1" to change the Stream from _Off_ to _Stream1_. Select "1" again to select _Stream2_. Select "1" again to return to _Off_.
+E.g. for the ALM message, select "1" to change the stream from _Off_ to _Stream1_. Select "1" again to select _Stream2_. Select "1" again to return to _Off_.
 
 Menu options 31 and 32 can be used to set the interval of _Stream1_ and _Stream2_. The interval can be adjusted between 10 milliseconds and 60 seconds. Be careful when setting the interval to less than 200 milliseconds, the load on the X5 CPU and the SD card will increase significantly.
 
 ### RTK Facet mosaic RTCM Messages
 
-Opening the _Configure GNSS Messages \ Set Rover RTCM Messages_ menu produces:
+Opening the _Configure GNSS Messages / Set Rover RTCM Messages_ menu produces:
 
 <figure markdown>
 ![RTK Facet mosaic Rover RTCM configuration](./img/Terminal/SparkFun_RTK_Everywhere_Facet_RTCM_Menu.png)
@@ -214,7 +214,7 @@ The Rover RTCM messages configuration menu on RTK Facet mosaic
 </figcaption>
 </figure>
 
-RTCM messages are configured differently compared to NMEA. It is necessary to first set the message interval for the message group, then enable / disable the individual message. Streams do not apply to RTCM messages.
+RTCM messages are configured differently compared to NMEA. It is necessary to first set the message interval for the message group, then enable / disable the individual message. Streams do not apply to RTCM messages, and RTCM messages can not be logged to SD card (DSK1).
 
 E.g. to set the RTCM1230 message to an interval of 10 seconds:
 
