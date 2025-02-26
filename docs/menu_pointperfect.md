@@ -153,7 +153,7 @@ Device ID within the serial menu
 </figure>
 
 <figure markdown>
-![Device ID within the WiFi Config page](./img/WiFi Config/SparkFun RTK PointPerfect Config.png)
+![Device ID within the WiFi Config page](./img/WiFi Config/SparkFun RTK PointPerfect Config Device ID.png)
 <figcaption markdown>
 Device ID within the WiFi Config page
 </figcaption>

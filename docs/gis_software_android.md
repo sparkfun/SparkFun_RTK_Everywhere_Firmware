@@ -41,7 +41,7 @@ ArcGIS Field Maps with 12mm accuracy
 </figcaption>
 </figure>
 
-Field Maps will use the device's internal location as its default location provider. With GNSS Master or Lefebure providing the mock location to the phone, Field Maps will have a super precise GNSS location and data collection can begin.
+Field Maps will use the device's internal location as its default location provider. With [GNSS Master](gis_software_android.md/#gnss-master) or [Lefebure](gis_software_android.md/#lefebure) providing the mock location to the phone, Field Maps will have a super precise GNSS location and data collection can begin.
 
 ## ArcGIS QuickCapture
 
@@ -89,7 +89,7 @@ Click the map icon in the upper right.
 </figcaption>
 </figure>
 
-The location of the receiver is shown on a map. With GNSS Master or Lefebure providing the mock location to the phone, QuickCapture will have a very precise GNSS location and data collection can begin.
+The location of the receiver is shown on a map. With [GNSS Master](gis_software_android.md/#gnss-master) or [Lefebure](gis_software_android.md/#lefebure) providing the mock location to the phone, QuickCapture will have a very precise GNSS location and data collection can begin.
 
 ## ArcGIS Survey123
 
@@ -127,7 +127,7 @@ If the mock location provider app is running, you should see the Lat/Lon/Alt fro
 </figcaption>
 </figure>
 
-The location of the receiver is shown on a map. With GNSS Master or Lefebure providing the mock location to the phone, Survey123 will have a very precise GNSS location and data collection can begin.
+The location of the receiver is shown on a map. With [GNSS Master](gis_software_android.md/#gnss-master) or [Lefebure](gis_software_android.md/#lefebure) providing the mock location to the phone, Survey123 will have a very precise GNSS location and data collection can begin.
 
 ## Diamond Maps
 
