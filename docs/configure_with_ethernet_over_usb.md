@@ -110,6 +110,8 @@ The mosaic-X5 configurations web page - Expert Console
 
 _Expert Control_ is so powerful, you may wish to use the _Admin / User Administration_ settings to limit access to the X5's configuration. But be careful that you do not prevent the firmware on the ESP32 from accessing the COM ports!
 
+The [mosaic-X5 Firmware Reference Guide](https://docs.sparkfun.com/SparkFun_RTK_Facet_mosaic/assets/component_documentation/mosaic-X5%20Firmware%20v4.14.0%20Reference%20Guide.pdf) provides more details.
+
 ### Streams
 
 On the mosaic-X5, NMEA and SBF binary messages need to be allocated to _Streams_. Each stream can then be directed to one or more "Connector Descriptors (Cd)". Connector descriptors include: COM1-4 (the UART ports), USB1-2 (additional COM ports on USB), DSK1 (the "internal disk"  which is the SD card), etc..
