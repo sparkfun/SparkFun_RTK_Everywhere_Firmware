@@ -10,7 +10,6 @@ HTTP_Client.ino
 
 ------------------------------------------------------------------------------*/
 
-
 #ifdef COMPILE_HTTP_CLIENT
 
 //----------------------------------------
@@ -23,7 +22,7 @@ HTTP_Client.ino
 // be less than the pointperfectProvisionDevice timeout.
 static const int MAX_HTTP_CLIENT_CONNECTION_ATTEMPTS = 3;
 
-//Available in menuPP.ino
+// Available in menuPP.ino
 extern const uint8_t ppLbandToken[16];
 extern const uint8_t ppIpToken[16];
 extern const uint8_t ppLbandIpToken[16];
@@ -49,14 +48,13 @@ const char *const httpClientStateName[] = {
 
 const int httpClientStateNameEntries = sizeof(httpClientStateName) / sizeof(httpClientStateName[0]);
 
-
 enum ZtpServiceLevel
 {
-    ZTP_SERVICE_NONE = 0, //Device has no access to PointPerfect
-    ZTP_SERVICE_LBAND, //SPARTN corrections over L-Band
-    ZTP_SERVICE_IP, //SPARTN corrections over IP
-    ZTP_SERVICE_LBAND_IP, //SPARTN corrections over L-Band or IP
-    ZTP_SERVICE_RTCM, //RTCM corrections over IP
+    ZTP_SERVICE_NONE = 0, // Device has no access to PointPerfect
+    ZTP_SERVICE_LBAND,    // SPARTN corrections over L-Band
+    ZTP_SERVICE_IP,       // SPARTN corrections over IP
+    ZTP_SERVICE_LBAND_IP, // SPARTN corrections over L-Band or IP
+    ZTP_SERVICE_RTCM,     // RTCM corrections over IP
     // Insert new states here
     ZTP_SERVICE_MAX // Last entry in the list
 };
@@ -68,10 +66,13 @@ const char *const ztpServiceName[] = {
 const int ztpServiceNameEntries = sizeof(ztpServiceName) / sizeof(ztpServiceName[0]);
 
 int ztpPlatformMaxProfiles = 0; // Depending on the platform there are a different number of ZTP profiles to test
-ZtpResponse ztpResponse = ZTP_NOT_STARTED; // Used in menuPP. This is the overall result of the ZTP process of testing multiple tokens
-static ZtpResponse ztpInterimResponse[4] = {ZTP_NOT_STARTED}; // Individual responses to token attempts. Local only. Size is manual count of max tokens.
+ZtpResponse ztpResponse =
+    ZTP_NOT_STARTED; // Used in menuPP. This is the overall result of the ZTP process of testing multiple tokens
+static ZtpResponse ztpInterimResponse[4] = {
+    ZTP_NOT_STARTED}; // Individual responses to token attempts. Local only. Size is manual count of max tokens.
 
-int ztpServiceLevelAllowed = ZTP_SERVICE_NONE; // Global for other services to know what service this device is allowed to use
+int ztpServiceLevelAllowed =
+    ZTP_SERVICE_NONE; // Global for other services to know what service this device is allowed to use
 
 //----------------------------------------
 // Locals
@@ -101,7 +102,7 @@ static uint32_t httpClientStartTime; // For calculating uptime
 static uint32_t httpClientTimer;
 
 // A device may be subscribed to one of a variety of services levels (L-Band, IP, etc)
-// Attempt each ZTP until we find one, or error 
+// Attempt each ZTP until we find one, or error
 static int ztpAttempt; // Step through the ZTPs until we find one that we are allowed into
 
 //----------------------------------------
@@ -381,7 +382,7 @@ void httpClientUpdate()
         online.httpClient = true;
         httpClientSetState(HTTP_CLIENT_CONNECTED);
 
-        ztpAttempt = 0; //Reset profile number
+        ztpAttempt = 0; // Reset profile number
         ztpSetMaxProfiles();
 
         break;
@@ -413,8 +414,8 @@ void httpClientUpdate()
             systemPrint("HTTP response: ");
             systemPrintln(response.c_str());
         }
-        
-        if (httpResponseCode != 200) //Connection failed
+
+        if (httpResponseCode != 200) // Connection failed
         {
             if (settings.debugCorrections || settings.debugHttpClientData)
             {
@@ -444,9 +445,9 @@ void httpClientUpdate()
                     systemPrintln("Device already registered to different profile");
 
                 ztpInterimResponse[ztpAttempt] = ZTP_ALREADY_REGISTERED;
-                
-                ztpNextToken(); //Move to the next ZTP profile. Exit client as needed.
-                
+
+                ztpNextToken(); // Move to the next ZTP profile. Exit client as needed.
+
                 break;
             }
             // If a device has been deactivated, response will be: "HTTP response error 403: No plan for device
@@ -457,8 +458,8 @@ void httpClientUpdate()
                     systemPrintln("Device has been deactivated.");
 
                 ztpInterimResponse[ztpAttempt] = ZTP_DEACTIVATED;
-                
-                ztpNextToken(); //Move to the next ZTP profile. Exit client as needed.
+
+                ztpNextToken(); // Move to the next ZTP profile. Exit client as needed.
 
                 httpClientSetState(HTTP_CLIENT_COMPLETE);
                 break;
@@ -472,7 +473,7 @@ void httpClientUpdate()
 
                 ztpInterimResponse[ztpAttempt] = ZTP_NOT_WHITELISTED;
 
-                ztpNextToken(); //Move to the next ZTP profile. Exit client as needed.
+                ztpNextToken(); // Move to the next ZTP profile. Exit client as needed.
 
                 break;
             }
@@ -482,8 +483,8 @@ void httpClientUpdate()
                 systemPrintln(response);
                 ztpInterimResponse[ztpAttempt] = ZTP_UNKNOWN_ERROR;
 
-                ztpNextToken(); //Move to the next ZTP profile. Exit client as needed.
-                
+                ztpNextToken(); // Move to the next ZTP profile. Exit client as needed.
+
                 break;
             }
         }
@@ -520,6 +521,7 @@ void httpClientUpdate()
                     httpClientShutdown(); // Try again?
                     break;
                 }
+
                 strncpy(tempHolderPtr, (const char *)((*jsonZtp)["certificate"]), MQTT_CERT_SIZE - 1);
                 recordFile("certificate", tempHolderPtr, strlen(tempHolderPtr));
 
@@ -600,8 +602,9 @@ void httpClientUpdate()
 
                     ztpInterimResponse[ztpAttempt] = ZTP_SUCCESS;
 
-                    ztpServiceLevelAllowed = ztpServiceLevelLookup(ztpAttempt); //Record this so other tasks know what PointPerfect is accessible.
-                    
+                    ztpServiceLevelAllowed = ztpServiceLevelLookup(
+                        ztpAttempt); // Record this so other tasks know what PointPerfect is accessible.
+
                     ztpResponse = ZTP_SUCCESS; // Report success to provisioningUpdate()
 
                     httpClientSetState(HTTP_CLIENT_COMPLETE);
@@ -637,10 +640,10 @@ void httpClientValidateTables()
 
 void ztpNextToken()
 {
-    ztpAttempt++; //Move to the next ZTP profile
-    
+    ztpAttempt++; // Move to the next ZTP profile
+
     // Check if we are done with ZTP attempts
-    if(ztpAttempt == ztpPlatformMaxProfiles)
+    if (ztpAttempt == ztpPlatformMaxProfiles)
     {
         // We are done, establish why we failed to get through a ZTP profile
         ztpResponse = ZTP_UNKNOWN_ERROR;
@@ -648,7 +651,7 @@ void ztpNextToken()
         if (settings.debugCorrections || settings.debugHttpClientData)
             systemPrintln("Device failed all profiles.");
 
-        ztpServiceLevelAllowed = ZTP_SERVICE_NONE; //Record this so other tasks know what PointPerfect is accessible.
+        ztpServiceLevelAllowed = ZTP_SERVICE_NONE; // Record this so other tasks know what PointPerfect is accessible.
 
         // Determine what to report to provisioningUpdate()
         // We may see a variety:
@@ -658,27 +661,28 @@ void ztpNextToken()
         // ZTP_UNKNOWN_ERROR,
 
         // ZTP_ALREADY_REGISTERED - If a device has already been registered on a different ZTP profile then
-        // we will see this on every profile attempt but the valid one, which will either be good and we won't have reached
-        // here, or it will be deactivated. Nothing to do here.
+        // we will see this on every profile attempt but the valid one, which will either be good and we won't have
+        // reached here, or it will be deactivated. Nothing to do here.
         if (settings.debugCorrections || settings.debugHttpClientData)
         {
             int alreadyRegisteredCount = 0;
             for (int x = 0; x < ztpPlatformMaxProfiles; x++)
             {
-                if(ztpInterimResponse[x] == ZTP_ALREADY_REGISTERED)
-                alreadyRegisteredCount++;
+                if (ztpInterimResponse[x] == ZTP_ALREADY_REGISTERED)
+                    alreadyRegisteredCount++;
             }
             systemPrintf("ZTP already registered count: %d\r\n", alreadyRegisteredCount);
         }
 
-        // ZTP_NOT_WHITELISTED - that's expected for all but one token. If all responses are NOT_WHITELISTED, then it's truly not whitelisted
+        // ZTP_NOT_WHITELISTED - that's expected for all but one token. If all responses are NOT_WHITELISTED, then it's
+        // truly not whitelisted
         int notWhitelistedCount = 0;
         for (int x = 0; x < ztpPlatformMaxProfiles; x++)
         {
-            if(ztpInterimResponse[x] == ZTP_NOT_WHITELISTED)
-            notWhitelistedCount++;
+            if (ztpInterimResponse[x] == ZTP_NOT_WHITELISTED)
+                notWhitelistedCount++;
         }
-        if(notWhitelistedCount == ztpPlatformMaxProfiles)
+        if (notWhitelistedCount == ztpPlatformMaxProfiles)
         {
             if (settings.debugCorrections || settings.debugHttpClientData)
                 systemPrintln("Not whitelisted on all profiles.");
@@ -691,16 +695,17 @@ void ztpNextToken()
         }
 
         // ZTP_DEACTIVATED - A device may change service types and appear deactivated on one or more services
-        // If we make it this far, and there are deactivations present, assume the device was deactivated on one or multiple services
-        if(ztpResponse == ZTP_UNKNOWN_ERROR)
+        // If we make it this far, and there are deactivations present, assume the device was deactivated on one or
+        // multiple services
+        if (ztpResponse == ZTP_UNKNOWN_ERROR)
         {
             int deactivatedCount = 0;
             for (int x = 0; x < ztpPlatformMaxProfiles; x++)
             {
-                if(ztpInterimResponse[x] == ZTP_DEACTIVATED)
-                deactivatedCount++;
+                if (ztpInterimResponse[x] == ZTP_DEACTIVATED)
+                    deactivatedCount++;
             }
-            if(deactivatedCount)
+            if (deactivatedCount)
             {
                 if (settings.debugCorrections || settings.debugHttpClientData)
                     systemPrintf("ZTP deactivated count: %d\r\n", deactivatedCount);
@@ -709,7 +714,7 @@ void ztpNextToken()
         }
 
         // ZTP_UNKNOWN_ERROR - handled by default.
-        if(ztpResponse == ZTP_UNKNOWN_ERROR)
+        if (ztpResponse == ZTP_UNKNOWN_ERROR)
         {
             if (settings.debugCorrections || settings.debugHttpClientData)
                 systemPrintln("Untrapped or unknown ZTP error.");
@@ -735,21 +740,21 @@ void ztpGetToken(char *tokenString, int attemptNumber)
     {
         // EVK, Facet mosaic, Facet v2 L-Band
         // This hardware is L-Band capable, any service level is possible
-        if(attemptNumber == 0)
+        if (attemptNumber == 0)
             pointperfectCreateTokenString(tokenString, (uint8_t *)ppLbandToken, sizeof(ppLbandToken));
-        else if(attemptNumber == 1)
+        else if (attemptNumber == 1)
             pointperfectCreateTokenString(tokenString, (uint8_t *)ppRtcmToken, sizeof(ppRtcmToken));
-        else if(attemptNumber == 2)
+        else if (attemptNumber == 2)
             pointperfectCreateTokenString(tokenString, (uint8_t *)ppIpToken, sizeof(ppIpToken));
-        else if(attemptNumber == 3)
+        else if (attemptNumber == 3)
             pointperfectCreateTokenString(tokenString, (uint8_t *)ppLbandIpToken, sizeof(ppLbandIpToken));
     }
     else if (present.gnss_mosaicX5 == false && present.lband_neo == false) // Torch, Facet v2
     {
         // This hardware lacks L-Band capability, use IP or RTCM token
-        if(attemptNumber == 0)
+        if (attemptNumber == 0)
             pointperfectCreateTokenString(tokenString, (uint8_t *)ppRtcmToken, sizeof(ppRtcmToken));
-        else if(attemptNumber == 1)
+        else if (attemptNumber == 1)
             pointperfectCreateTokenString(tokenString, (uint8_t *)ppIpToken, sizeof(ppIpToken));
     }
     else
@@ -759,29 +764,29 @@ void ztpGetToken(char *tokenString, int attemptNumber)
     }
 }
 
-//Given an attempt number, identify the service type
-//Not all platforms can handle all service levels, so this translates the attempt to a service type
+// Given an attempt number, identify the service type
+// Not all platforms can handle all service levels, so this translates the attempt to a service type
 int ztpServiceLevelLookup(int attemptNumber)
 {
     if (productVariant == RTK_EVK || present.gnss_mosaicX5 == true || present.lband_neo == true)
     {
         // EVK, Facet mosaic, Facet v2 L-Band
         // This hardware is L-Band capable, any service level is possible
-        if(attemptNumber == 0)
+        if (attemptNumber == 0)
             return (ZTP_SERVICE_LBAND);
-        else if(attemptNumber == 1)
+        else if (attemptNumber == 1)
             return (ZTP_SERVICE_RTCM);
-        else if(attemptNumber == 2)
+        else if (attemptNumber == 2)
             return (ZTP_SERVICE_IP);
-        else if(attemptNumber == 3)
+        else if (attemptNumber == 3)
             return (ZTP_SERVICE_LBAND_IP);
     }
     else if (present.gnss_mosaicX5 == false && present.lband_neo == false) // Torch, Facet v2
     {
         // This hardware lacks L-Band capability, use IP or RTCM token
-        if(attemptNumber == 0)
+        if (attemptNumber == 0)
             return (ZTP_SERVICE_RTCM);
-        else if(attemptNumber == 1)
+        else if (attemptNumber == 1)
             return (ZTP_SERVICE_IP);
     }
 
@@ -801,7 +806,6 @@ void ztpSetMaxProfiles()
     {
         ztpPlatformMaxProfiles = 2;
     }
-
 }
 
 #endif // COMPILE_HTTP_CLIENT
