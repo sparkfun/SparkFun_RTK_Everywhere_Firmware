@@ -223,4 +223,4 @@ E.g. to set the RTCM1230 message to an interval of 10 seconds:
 
 The interval can be adjusted between 0.1 and 600.0 seconds.
 
-Enabling the MSM1 message group causes the Multiple Signal Message - Type 1 to be output: RTCM1071 + RTCM1081 + RTCM1091 + RTCM1101 + RTCM1111 + RTCM1121 + RTCM1131
+Enabling the MSM7 message group causes the Multiple Signal Message - Type 7 to be output: RTCM1077 + RTCM1087 + RTCM1097 + RTCM1107 + RTCM1117 + RTCM1127 + RTCM1137
