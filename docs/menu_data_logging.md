@@ -69,3 +69,10 @@ RTK Facet mosaic RINEX Logging Configuration Menu
 The defaults set the logging interval to 30 seconds and the file duration to 24 hours. Logging will be continuous - a new file will be opened every 24 hours (cyclic logging).
 
 If you are familiar with our other RTK products, you may be wondering where the "Log Antenna Reference Position from RTCM 1005/1006" has gone. On RTK Facet mosaic, the mosaic-X5 can log the Rover-Base Position in North-East-Up format via the proprietary RBP ($PSSN,RBP) NMEA message. We believe this trumps the position extracted from RTCM 1005/1006 on ZED-F9P platforms.
+
+It is not possible to log RTCM on the mosaic-X5. Only SBF, RINEX and SBF (binary blocks) can be logged.
+
+The RTK Everywhere Firmware does not currently provide a way of configuring the logging of additional SBF binary blocks. There are just so many, managing the menu choices alone would be quite a task. However, it is straightforward to define your own SBF Stream and point it at DSK1 for logging. Please see [Custom Configuration](./configure_with_ethernet_over_usb.md#custom-configuration) for more details.
+
+[RxTools](./configure_with_rxtools.md) can read and analyse SBF log files, and convert the data into other formats.
+

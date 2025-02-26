@@ -185,6 +185,13 @@ To save this new configuration:
 
 To 'load' or 'restore' your modified configuration later, copy _User1_ into _Current_.
 
+<figure markdown>
+![The mosaic-X5 configurations web page](./img/mosaic-X5/mosaic-X5_web_config_2.png)
+<figcaption markdown>
+The mosaic-X5 configurations web page
+</figcaption>
+</figure>
+
 If you are confident that the configuration meets your needs, you can copy _Current_ into _Boot_ so that your modified configuration is loaded at power-on.
 
 Please note that a [Factory Reset](./menu_system.md#factory-reset) will overwrite the _Boot_ configuration with the RTK Everywhere Firmware defaults. If you saved your configuration in _User1_ or _User2_, you can restore it from there later.
