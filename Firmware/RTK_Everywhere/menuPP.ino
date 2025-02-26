@@ -16,11 +16,11 @@
 #define POINTPERFECT_RTCM_TOKEN DEVELOPMENT_TOKEN
 #endif // POINTPERFECT_LBAND_TOKEN
 
-static const uint8_t developmentToken[16] = {DEVELOPMENT_TOKEN};         // Token in HEX form
-static const uint8_t ppLbandToken[16] = {POINTPERFECT_LBAND_TOKEN};      // Token in HEX form
-static const uint8_t ppIpToken[16] = {POINTPERFECT_IP_TOKEN};            // Token in HEX form
-static const uint8_t ppLbandIpToken[16] = {POINTPERFECT_LBAND_IP_TOKEN}; // Token in HEX form
-static const uint8_t ppRtcmToken[16] = {POINTPERFECT_RTCM_TOKEN};        // Token in HEX form
+const uint8_t developmentToken[16] = {DEVELOPMENT_TOKEN};         // Token in HEX form
+const uint8_t ppLbandToken[16] = {POINTPERFECT_LBAND_TOKEN};      // Token in HEX form
+const uint8_t ppIpToken[16] = {POINTPERFECT_IP_TOKEN};            // Token in HEX form
+const uint8_t ppLbandIpToken[16] = {POINTPERFECT_LBAND_IP_TOKEN}; // Token in HEX form
+const uint8_t ppRtcmToken[16] = {POINTPERFECT_RTCM_TOKEN};        // Token in HEX form
 
 #ifdef COMPILE_NETWORK
 MqttClient *menuppMqttClient;
@@ -220,7 +220,7 @@ const char *printDaysFromDuration(long long duration)
 }
 
 // Create a ZTP request to be sent to thingstream JSON API
-void createZtpRequest(String &str)
+void createZtpRequest(String &str, int attemptNumber)
 {
     // Assume failure
     str = "";
@@ -251,7 +251,7 @@ void createZtpRequest(String &str)
     {
         // Use the built-in SparkFun tokens
         // Depending on how many times we've tried the ZTP interface, change the token
-        pointperfectGetToken(tokenString);
+        ztpGetToken(tokenString, attemptNumber);
 
         if (memcmp(ppLbandToken, developmentToken, sizeof(developmentToken)) == 0)
             systemPrintln("Warning: Using the development token!");
@@ -295,38 +295,6 @@ void createZtpRequest(String &str)
 
     // Convert the JSON to a string
     serializeJson(json, str);
-}
-
-// Given a token buffer and an attempt number, decide which token to use
-// Decide which token to use for ZTP
-// There are three lists:
-//   L-Band
-//   IP
-//   L-Band+IP
-void pointperfectGetToken(char *tokenString)
-{
-    // Convert uint8_t array into string with dashes in spots
-    // We must assume u-blox will not change the position of their dashes or length of their token
-
-    if (productVariant == RTK_EVK) // EVK
-    {
-        pointperfectCreateTokenString(tokenString, (uint8_t *)ppLbandIpToken, sizeof(ppLbandIpToken));
-    }
-    else if (present.gnss_mosaicX5 == false && present.lband_neo == false) // Torch, Facet v2
-    {
-        // If the hardware lacks L-Band capability, use IP token
-        pointperfectCreateTokenString(tokenString, (uint8_t *)ppIpToken, sizeof(ppIpToken));
-    }
-    else if (present.gnss_mosaicX5 == true || present.lband_neo == true) // Facet mosaic, Facet v2 L-Band
-    {
-        // If the hardware is L-Band capable, use L-Band token
-        pointperfectCreateTokenString(tokenString, (uint8_t *)ppLbandToken, sizeof(ppLbandToken));
-    }
-    else
-    {
-        systemPrintln("Unknown hardware for GetToken");
-        return;
-    }
 }
 
 // Find thing3 in (*jsonZtp)[thing1][n][thing2]. Return n on success. Return -1 on error / not found.
