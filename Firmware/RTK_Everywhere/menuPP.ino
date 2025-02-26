@@ -13,12 +13,14 @@
 #define POINTPERFECT_LBAND_TOKEN DEVELOPMENT_TOKEN
 #define POINTPERFECT_IP_TOKEN DEVELOPMENT_TOKEN
 #define POINTPERFECT_LBAND_IP_TOKEN DEVELOPMENT_TOKEN
+#define POINTPERFECT_RTCM_TOKEN DEVELOPMENT_TOKEN
 #endif // POINTPERFECT_LBAND_TOKEN
 
 static const uint8_t developmentToken[16] = {DEVELOPMENT_TOKEN};         // Token in HEX form
 static const uint8_t ppLbandToken[16] = {POINTPERFECT_LBAND_TOKEN};      // Token in HEX form
 static const uint8_t ppIpToken[16] = {POINTPERFECT_IP_TOKEN};            // Token in HEX form
 static const uint8_t ppLbandIpToken[16] = {POINTPERFECT_LBAND_IP_TOKEN}; // Token in HEX form
+static const uint8_t ppRtcmToken[16] = {POINTPERFECT_RTCM_TOKEN};        // Token in HEX form
 
 #ifdef COMPILE_NETWORK
 MqttClient *menuppMqttClient;
