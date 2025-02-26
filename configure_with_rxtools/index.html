@@ -2505,11 +2505,15 @@ Compatibility Icons
 <p>There are multiple ways to connect to the mosaic-X5 using RxTools:</p>
 <ul>
 <li>While the RTF Facet mosaic is connected to your computer via USB, two additional serial COM ports will appear in Device Manager: Septentrio Virtual USB COM Port 1 and 2. RxTools can be configured to use either serial port. The X5 firmware names these ports <em>USB1</em> and <em>USB2</em>.</li>
-<li>The mosaic-X5 also supports Ethernet-Over-USB and can be configured via TCP/IP. In RXControl  Change Connection, select <strong>TCP/IP Connection</strong> and enter <strong>192.168.3.1</strong> as the Receiver Address.</li>
-<li>The RTK Facet mosaic <strong>DATA</strong> JST connector is connected the mosaic-X5 <em>COM3</em> UART port via a multiplexer. Please see <a href="../menu_ports/">Ports Menu</a> for more details, and the section on the <a href="../menu_ports/#mux-channel">Mux Channel</a> in particular. Set the multiplexer to <strong>NMEA</strong> to connect X5 <em>COM3</em> to the <strong>DATA</strong> port. The baud rate can be changed through the menu; the default baud rate is <strong>230400</strong> (8 data bits, no parity, 1 stop bit). To connect the <strong>DATA</strong> port to your computer, you will need a <a href="https://www.sparkfun.com/sparkfun-serial-basic-breakout-ch340c-and-usb-c.html" target="_blank" rel="noopener">Serial Basic Breakout</a> or similar.</li>
+<li>The mosaic-X5 also supports Ethernet-Over-USB and can be configured via TCP/IP. In RxControl / Change Connection, select <strong>TCP/IP Connection</strong> and enter <strong>192.168.3.1</strong> as the Receiver Address.</li>
+<li>The RTK Facet mosaic <strong>DATA</strong> JST connector is connected the mosaic-X5 <em>COM3</em> UART port via a multiplexer. Please see <a href="../menu_ports/">Ports Menu</a> for more details, and the section on the <a href="../menu_ports/#mux-channel">Mux Channel</a> in particular. Set the multiplexer to <strong>GNSS TX Out/RX In</strong> to connect X5 <em>COM3</em> to the <strong>DATA</strong> port. The baud rate can be changed through the menu; the default baud rate is <strong>230400</strong> (8 data bits, no parity, 1 stop bit). To connect the <strong>DATA</strong> port to your computer, you will need a <a href="https://www.sparkfun.com/sparkfun-serial-basic-breakout-ch340c-and-usb-c.html" target="_blank" rel="noopener">Serial Basic Breakout</a> or similar.</li>
 </ul>
+<figure>
+<p><img alt="Wires connected to a SparkFun USB C to Serial adapter" src="../img/SparkFun_RTK_Facet_-_Data_Port_to_USB.jpg" /></p>
+<figcaption></figcaption>
+</figure>
 <p>If you want to save the X5 configuration after you have changed it, we recommend using either of the <em>User1</em> or <em>User2</em> Receiver Configurations. The RTK Everywhere firmware will modify the <em>Current</em> and <em>Boot</em> Receiver Configurations, but it leaves <em>User1</em> and <em>User2</em> for your use. Copy the <em>Current</em> configuration into (e.g.) <em>User1</em> to save the modified configuration. You can restore it later by copying <em>User1</em> into <em>Current</em>. See <a href="../configure_with_ethernet_over_usb/#custom-configuration">Custom Configuration</a> for more details.</p>
-<p>RxTools is very powerful software. It can read, analyze and visualise log files containing both NMEA and SBF binary data. It can also convert data to other formats. The mosaic-X5 supports data <a href="../menu_data_logging/#rtk-facet-mosaic">logging in RINEX format directly</a>. But it is also possible to log data in SBF binary format and later convert it to RINEX using RxTools.</p>
+<p>RxTools is very powerful software. It can read, analyze and visualise log files containing both NMEA and SBF binary data. It can also convert data to other formats. The mosaic-X5 supports <a href="../menu_data_logging/#rtk-facet-mosaic">data logging in RINEX format directly</a>. But it is also possible to log data in SBF binary format and later convert it to RINEX using RxTools.</p>
 
 
 
@@ -2532,7 +2536,7 @@ Compatibility Icons
     <span class="md-icon" title="Last update">
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M21 13.1c-.1 0-.3.1-.4.2l-1 1 2.1 2.1 1-1c.2-.2.2-.6 0-.8l-1.3-1.3c-.1-.1-.2-.2-.4-.2m-1.9 1.8-6.1 6V23h2.1l6.1-6.1zM12.5 7v5.2l4 2.4-1 1L11 13V7zM11 21.9c-5.1-.5-9-4.8-9-9.9C2 6.5 6.5 2 12 2c5.3 0 9.6 4.1 10 9.3-.3-.1-.6-.2-1-.2s-.7.1-1 .2C19.6 7.2 16.2 4 12 4c-4.4 0-8 3.6-8 8 0 4.1 3.1 7.5 7.1 7.9l-.1.2z"/></svg>
     </span>
-    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-timeago"><span class="timeago" datetime="2025-02-26T13:21:20+00:00" locale="en"></span></span><span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-iso_date">2025-02-26</span>
+    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-timeago"><span class="timeago" datetime="2025-02-26T14:25:05+00:00" locale="en"></span></span><span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-iso_date">2025-02-26</span>
   </span>
 
     

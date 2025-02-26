@@ -2807,7 +2807,7 @@ Compatibility Icons
 <p>The following is a summary of the mosaic-X5's interfaces and how they can be accessed on the RTK Facet mosaic:</p>
 <ul>
 <li><strong>Ethernet-over-USB:</strong><ul>
-<li>If you have followed the instructions above, the X5's internal web page can be viewed at <strong>192.168.3.1</strong>. This address is fixed and cannot be changed. If any of your computer's other interfaces (WiFi, Ethernet) also the 192.168.3.nnn subnet, you will run into conflicts. You will need to change the configuration of the other device to use a different subnet.</li>
+<li>If you have followed the instructions above, the X5's internal web page can be viewed at <strong>192.168.3.1</strong>. This address is fixed and cannot be changed. If any of your computer's other interfaces (WiFi, Ethernet) also use the 192.168.3.nnn subnet, you will run into conflicts. You will need to change the configuration of the other device to use a different subnet.</li>
 </ul>
 </li>
 <li><strong>USB COM (Serial) Ports:</strong><ul>
@@ -2823,7 +2823,7 @@ Compatibility Icons
 </ul>
 </li>
 <li><strong>ESP32 and RTK Everywhere Firmware:</strong><ul>
-<li>The ESP32 processor is connected to the mosaic-X5 <strong>COM1</strong> and <strong>COM4</strong> serial / UART ports. Configuration is performed over COM4. COM1 is used to: provide RTCM correction data <em>to</em> the X5 in Rover mode; carry NMEA and / or RTCM data <em>from</em> the X5 in Base mode. If you have a mobile phone connected to the RTK Facet mosaic over Bluetooth, corrections received over Bluetooth are pushed to the X5 on COM1. If the ESP32 is connected directly to WiFi, TCP (NTRIP) corrections received over WiFi are also pushed over COM1. COM1 also carries the raw L-Band correction stream from the X5, when the X5 is configured to use the u-blox PointPerfect corrections (only available in the contiguous USA).</li>
+<li>The ESP32 processor is connected to the mosaic-X5 <strong>COM1</strong> and <strong>COM4</strong> serial / UART ports. Configuration is performed over COM4. COM1 is used to: provide RTCM correction data <em>to</em> the X5 in Rover mode; carry NMEA and / or RTCM data <em>from</em> the X5 in Base mode. If you have a mobile phone connected to the RTK Facet mosaic over Bluetooth, corrections received over Bluetooth are pushed to the X5 on COM1. If the ESP32 is connected directly to WiFi, TCP (NTRIP) corrections received over WiFi are also pushed over COM1. COM1 also carries the raw L-Band correction stream from the X5, when the X5 is configured to use u-blox L-Band PointPerfect corrections (only available in the contiguous USA).</li>
 </ul>
 </li>
 </ul>
@@ -2909,8 +2909,8 @@ Compatibility Icons
 <p>However, it is straightforward to define your own SBF Stream and point it at DSK1 for logging.</p>
 <p>The abbreviated steps are:</p>
 <ul>
-<li>Select the Logging tab</li>
-<li>In the General window, select "New SBF stream"</li>
+<li>Select the <em>Logging</em> tab</li>
+<li>In the <em>General</em> window, select "New SBF stream"</li>
 <li>Select the interval (e.g. 1 sec)</li>
 <li>Click the "Detailed selection" button to reveal the vast list of SBF blocks</li>
 <li>Select (e.g.) PVTCart / PVTCartesian</li>
@@ -2927,7 +2927,7 @@ Compatibility Icons
 <p>To save this new configuration:</p>
 <ul>
 <li>Select the <em>Admin / Configurations</em> tab</li>
-<li>In the "Copy Configuration File" window:<ul>
+<li>In the <em>Copy Configuration File</em> window:<ul>
 <li>Select <em>Current</em> as the Source</li>
 <li>Select <em>User1</em> as the Target</li>
 </ul>
@@ -2958,25 +2958,25 @@ Compatibility Icons
 <li>Connect via USB</li>
 <li>Facet mosaic is in Rover mode and logging NMEA to DSK1 by default</li>
 <li>Open a web browser, navigate to 192.168.3.1</li>
-<li>Select the Logging tab</li>
+<li>Select the <em>Logging</em> tab</li>
 <li>Note NMEA is being logged at about 140MB/day</li>
-<li>Click Unmount and confirm with Unmount</li>
+<li>Click <em>Unmount</em> and confirm with <em>Unmount</em></li>
 <li>Note that the Internal Disk is not mounted and logging has stopped</li>
 <li>On the OLED, the logging icon disappears. The pulse circle is displayed instead</li>
-<li>The SD card pops up as mass-storage. You can now transfer and delete files</li>
-<li>Click Mount</li>
+<li>The SD card pops up as mass-storage on USB. You can now transfer and delete files</li>
+<li>Click <em>Mount</em></li>
 <li>Wait a few seconds</li>
 <li>Logging resumes and the logging icon reappears on the OLED</li>
 </ul>
 <p>The X5 is so clever, you don't even need to pause the DSK1 logging. It just figures it out itself, and resumes logging again when DSK1 is remounted.</p>
 <p>You can also do it with commands:</p>
 <ul>
-<li>Open Admin  Expert Control</li>
-<li>In the Expert Console, enter <code>emd,DSK1,Unmount</code></li>
-<li>Go back to the Overview tab, note that the Internal Disk is not mounted</li>
+<li>Open <em>Admin / Expert Control</em></li>
+<li>In the <em>Expert Console</em>, enter <code>emd,DSK1,Unmount</code></li>
+<li>Go back to the <em>Overview</em> tab, note that the Internal Disk is not mounted</li>
 <li>On the OLED, the logging icon disappears. The pulse circle is displayed</li>
-<li>The SD card pops up as mass-storage. You can now transfer and delete files</li>
-<li>Return to the Expert Console, enter <code>emd,DSK1,Mount</code></li>
+<li>The SD card pops up as mass-storage on USB. You can now transfer and delete files</li>
+<li>Return to the <em>Expert Console</em>, enter <code>emd,DSK1,Mount</code></li>
 <li>Wait a few seconds</li>
 <li>Logging resumes and the logging icon reappears on the OLED</li>
 </ul>
@@ -3002,7 +3002,7 @@ Compatibility Icons
     <span class="md-icon" title="Last update">
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M21 13.1c-.1 0-.3.1-.4.2l-1 1 2.1 2.1 1-1c.2-.2.2-.6 0-.8l-1.3-1.3c-.1-.1-.2-.2-.4-.2m-1.9 1.8-6.1 6V23h2.1l6.1-6.1zM12.5 7v5.2l4 2.4-1 1L11 13V7zM11 21.9c-5.1-.5-9-4.8-9-9.9C2 6.5 6.5 2 12 2c5.3 0 9.6 4.1 10 9.3-.3-.1-.6-.2-1-.2s-.7.1-1 .2C19.6 7.2 16.2 4 12 4c-4.4 0-8 3.6-8 8 0 4.1 3.1 7.5 7.1 7.9l-.1.2z"/></svg>
     </span>
-    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-timeago"><span class="timeago" datetime="2025-02-26T13:21:20+00:00" locale="en"></span></span><span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-iso_date">2025-02-26</span>
+    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-timeago"><span class="timeago" datetime="2025-02-26T14:25:05+00:00" locale="en"></span></span><span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-iso_date">2025-02-26</span>
   </span>
 
     

@@ -2812,7 +2812,7 @@ Compatibility Icons
 <h2 id="rtk-facet-mosaic">RTK Facet mosaic<a class="headerlink" href="#rtk-facet-mosaic" title="Permanent link"></a></h2>
 <p>The GNSS Messages menu on the RTK Facet mosaic is different, due to the way message streams and itervals need to be configured.</p>
 <h3 id="rtk-facet-mosaic-nmea-messages">RTK Facet mosaic NMEA Messages<a class="headerlink" href="#rtk-facet-mosaic-nmea-messages" title="Permanent link"></a></h3>
-<p>Opening the <em>Configure GNSS Messages  Set NMEA Messages</em> menu produces:</p>
+<p>Opening the <em>Configure GNSS Messages / Set NMEA Messages</em> menu produces:</p>
 <figure>
 <p><img alt="RTK Facet mosaic NMEA configuration" src="../img/Terminal/SparkFun_RTK_Everywhere_Facet_NMEA_Menu.png" /></p>
 <figcaption>
@@ -2854,18 +2854,18 @@ Compatibility Icons
 <li>NMEA-ZDA (Time and Date)</li>
 </ul>
 </div>
-<p>To output and log a message, set its Stream to <em>Stream1</em> or <em>Stream2</em>. To disable a message, set its Stream to <em>Off</em>.</p>
-<p>E.g. for the ALM message, select "1" to change the Stream from <em>Off</em> to <em>Stream1</em>. Select "1" again to select <em>Stream2</em>. Select "1" again to return to <em>Off</em>.</p>
+<p>To output and log a message, set its stream to <em>Stream1</em> or <em>Stream2</em>. To disable a message, set its stream to <em>Off</em>.</p>
+<p>E.g. for the ALM message, select "1" to change the stream from <em>Off</em> to <em>Stream1</em>. Select "1" again to select <em>Stream2</em>. Select "1" again to return to <em>Off</em>.</p>
 <p>Menu options 31 and 32 can be used to set the interval of <em>Stream1</em> and <em>Stream2</em>. The interval can be adjusted between 10 milliseconds and 60 seconds. Be careful when setting the interval to less than 200 milliseconds, the load on the X5 CPU and the SD card will increase significantly.</p>
 <h3 id="rtk-facet-mosaic-rtcm-messages">RTK Facet mosaic RTCM Messages<a class="headerlink" href="#rtk-facet-mosaic-rtcm-messages" title="Permanent link"></a></h3>
-<p>Opening the <em>Configure GNSS Messages  Set Rover RTCM Messages</em> menu produces:</p>
+<p>Opening the <em>Configure GNSS Messages / Set Rover RTCM Messages</em> menu produces:</p>
 <figure>
 <p><img alt="RTK Facet mosaic Rover RTCM configuration" src="../img/Terminal/SparkFun_RTK_Everywhere_Facet_RTCM_Menu.png" /></p>
 <figcaption>
 <p>The Rover RTCM messages configuration menu on RTK Facet mosaic</p>
 </figcaption>
 </figure>
-<p>RTCM messages are configured differently compared to NMEA. It is necessary to first set the message interval for the message group, then enable / disable the individual message. Streams do not apply to RTCM messages.</p>
+<p>RTCM messages are configured differently compared to NMEA. It is necessary to first set the message interval for the message group, then enable / disable the individual message. Streams do not apply to RTCM messages, and RTCM messages can not be logged to SD card (DSK1).</p>
 <p>E.g. to set the RTCM1230 message to an interval of 10 seconds:</p>
 <ul>
 <li>Use menu option 23 to set an interval of 10.0</li>
@@ -2895,7 +2895,7 @@ Compatibility Icons
     <span class="md-icon" title="Last update">
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M21 13.1c-.1 0-.3.1-.4.2l-1 1 2.1 2.1 1-1c.2-.2.2-.6 0-.8l-1.3-1.3c-.1-.1-.2-.2-.4-.2m-1.9 1.8-6.1 6V23h2.1l6.1-6.1zM12.5 7v5.2l4 2.4-1 1L11 13V7zM11 21.9c-5.1-.5-9-4.8-9-9.9C2 6.5 6.5 2 12 2c5.3 0 9.6 4.1 10 9.3-.3-.1-.6-.2-1-.2s-.7.1-1 .2C19.6 7.2 16.2 4 12 4c-4.4 0-8 3.6-8 8 0 4.1 3.1 7.5 7.1 7.9l-.1.2z"/></svg>
     </span>
-    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-timeago"><span class="timeago" datetime="2025-02-26T13:21:20+00:00" locale="en"></span></span><span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-iso_date">2025-02-26</span>
+    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-timeago"><span class="timeago" datetime="2025-02-26T14:25:05+00:00" locale="en"></span></span><span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-iso_date">2025-02-26</span>
   </span>
 
     
