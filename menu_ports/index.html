@@ -1450,11 +1450,11 @@
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
-  <a href="#pulse-per-second" class="md-nav__link">
+  <a href="#pulse-per-second-and-external-trigger" class="md-nav__link">
     <span class="md-ellipsis">
       
         <span class="md-typeset">
-          Pulse Per Second<a class="headerlink" href="#pulse-per-second" title="Permanent link"></a>
+          Pulse Per Second and External Trigger<a class="headerlink" href="#pulse-per-second-and-external-trigger" title="Permanent link"></a>
         </span>
       
     </span>
@@ -2602,11 +2602,11 @@
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
-  <a href="#pulse-per-second" class="md-nav__link">
+  <a href="#pulse-per-second-and-external-trigger" class="md-nav__link">
     <span class="md-ellipsis">
       
         <span class="md-typeset">
-          Pulse Per Second<a class="headerlink" href="#pulse-per-second" title="Permanent link"></a>
+          Pulse Per Second and External Trigger<a class="headerlink" href="#pulse-per-second-and-external-trigger" title="Permanent link"></a>
         </span>
       
     </span>
@@ -2720,28 +2720,31 @@ Compatibility Icons
 </figure>
 <h2 id="radio-port">Radio Port<a class="headerlink" href="#radio-port" title="Permanent link"></a></h2>
 <p>Available on devices that have an external <strong>RADIO</strong> port.</p>
-<p>By default, the <strong>Radio</strong> port is set to 57600bps to match the <a href="https://www.sparkfun.com/products/19032" target="_blank" rel="noopener">Serial Telemetry Radios</a> that are recommended to be used with the RTK Facet (it is a plug-and-play solution). This can be set from 4800bps to 921600bps.</p>
+<p>The <strong>RADIO</strong> port is connected directly to GNSS UART. By default, the port is set to 57600bps to match the <a href="https://www.sparkfun.com/products/19032" target="_blank" rel="noopener">Serial Telemetry Radios</a> that are recommended to be used with the RTK Facet (it is a plug-and-play solution). This can be set from 4800bps to 921600bps.</p>
 <h2 id="mux-channel">Mux Channel<a class="headerlink" href="#mux-channel" title="Permanent link"></a></h2>
 <p>Available on devices that have a built-in multiplexer on the <strong>DATA</strong> port.</p>
-<p>The <strong>Data</strong> port on the RTK Facet, Express, and Express Plus is very flexible. Internally the <strong>Data</strong> connector is connected to a digital mux allowing one of four software-selectable setups. By default, the Data port will be connected to the UART1 of the ZED-F9P and output any messages via serial.</p>
+<p>The <strong>DATA</strong> port on the RTK Facet is very flexible. Internally the <strong>DATA</strong> connector is connected to a digital mux allowing one of four software-selectable setups. By default, the port will be connected to the GNSS UART and output any messages via serial.</p>
 <ul>
-<li><strong>NMEA</strong> - The TX pin outputs any enabled messages (NMEA, UBX, and RTCM) at a default of 460,800bps (configurable 9600 to 921600bps). The RX pin can receive RTCM for RTK and can also receive UBX configuration commands if desired.</li>
-<li><strong>PPS/Trigger</strong> - The TX pin outputs the pulse-per-second signal that is accurate to 30ns RMS. This pin can be configured as an extremely accurate time base. The pulse length and time between pulses are configurable down to 1us. The RX pin is connected to the EXTINT pin on the ZED-F9P allowing for events to be measured with incredibly accurate nano-second resolution. Useful for things like audio triangulation. See the <a href="#surveyor-data-port">External Event Logging</a> section below and the Timemark section of the <a href="https://cdn.sparkfun.com/assets/learn_tutorials/1/8/5/7/ZED-F9P_IntegrationManual__UBX-18010802_.pdf" target="_blank" rel="noopener">ZED-F9P Integration Manual</a> for more information.</li>
-<li><strong>I2C</strong> - (On Express, Facet, and Facet L-Band) The TX pin operates as SCL, RX pin as SDA on the I2C bus. This allows additional sensors to be connected to the I2C bus.</li>
-<li><strong>Wheel/Dir Encoder</strong> - (On Express Plus) Connect the DATA port to the wheel tick inputs on the ZED-F9R. This aids the Sensor Fusion engine for IMU based location fixes when installed in an automobile. Signals must be limited to 3.3V.</li>
-<li><strong>GPIO</strong> - The TX pin operates as a DAC-capable GPIO on the ESP32. The RX pin operates as an ADC-capable input on the ESP32. This is useful for custom applications.</li>
+<li><strong>GNSS TX Out/RX In</strong> - The TX pin outputs any enabled messages (NMEA, RTCM and binary). If supported, the RX pin can receive RTCM for RTK and can also receive configuration commands.</li>
+<li><strong>PPS OUT/Event Trigger In</strong> - The TX pin outputs the pulse-per-second signal that is accurate to typically 30ns RMS. The RX pin is connected to the EXTINT pin on the ZED-F9P or EVENTA on the mosaic-X5, allowing events to be measured with incredibly accurate nano-second resolution. See the <a href="#pulse-per-second-and-external-trigger">Pulse Per Second and External Trigger</a> section below for more information.</li>
+<li><strong>I2C SDA/SCL</strong> - The TX pin operates as SCL, RX pin as SDA on the I2C bus. This allows additional sensors to be connected to the I2C bus, typically sharing it with the GNSS and OLED. This is useful for custom applications where you are using your own firmware.</li>
+<li><strong>ESP32 DAC Out/ADC In</strong> - The TX pin operates as a DAC-capable GPIO on the ESP32. The RX pin operates as an ADC-capable input on the ESP32. This is useful for custom applications where you are using your own firmware. These pins have no function with the standard RTK Everywhere firmware.</li>
 </ul>
 <h2 id="data-port">Data Port<a class="headerlink" href="#data-port" title="Permanent link"></a></h2>
-<p>The <strong>Data</strong> port can be configured from 4800bps to 921600bps. The default depends on the GNSS model: e.g. 460800bps on LG290P; 230400 on other models. The default rate was chosen to support applications where a large number of messages are enabled and a large amount of data is sent. If you need to decrease the baud rate to 115200bps or other on the ZED-F9P, be sure to monitor the MON-COMM message within u-center for buffer overruns. A baud rate of 115200bps and the NMEA+RXM default configuration at 4Hz <em>will</em> cause buffer overruns.</p>
+<figure>
+<p><img alt="Wires connected to a SparkFun USB C to Serial adapter" src="../img/SparkFun_RTK_Facet_-_Data_Port_to_USB.jpg" /></p>
+<figcaption></figcaption>
+</figure>
+<p>The <strong>DATA</strong> port can be configured from 4800bps to 921600bps. The default depends on the GNSS model: e.g. 460800bps on LG290P; 230400 on other models. The default rate was chosen to support applications where a large number of messages are enabled and a large amount of data is sent. If you need to decrease the baud rate to 115200bps or other on the ZED-F9P, be sure to monitor the MON-COMM message within u-center for buffer overruns. A baud rate of 115200bps and the NMEA+RXM default configuration at 4Hz <em>will</em> cause buffer overruns.</p>
 <figure>
 <p><img alt="Monitoring the COM ports on the ZED-F9P" src="../img/SparkFun_RTK_Express_-_Ports_Menu_MON-COMM_Overrun.jpg" /></p>
 <figcaption>
 <p>Monitoring the COM ports on the ZED-F9P</p>
 </figcaption>
 </figure>
-<p>If you must run the data port at lower than 460800bps, and you need to enable a large number of messages and/or increase the fix frequency beyond 4Hz, be sure to verify that UART1 usage stays below 99%. The image above shows the UART1 becoming overwhelmed because the ZED cannot transmit at 115200bps fast enough.</p>
-<p>Most applications do not need to plug anything into the <strong>Data</strong> port. Most users will get their NMEA position data over Bluetooth. However, this port can be useful for sending position data to an embedded microcontroller or single-board computer. The pinout is 3.3V / TX / RX / GND. <strong>3.3V</strong> is provided by this connector to power a remote device if needed. While the port is capable of sourcing up to 600mA, we do not recommend more than 300mA. This port should not be connected to a power source.</p>
-<h3 id="pulse-per-second">Pulse Per Second<a class="headerlink" href="#pulse-per-second" title="Permanent link"></a></h3>
+<p>If you must run the data port at lower speeds, and you need to enable a large number of messages and/or increase the fix frequency beyond 4Hz, be sure to verify that UART1 usage stays below 90%. The image above shows the UART1 becoming overwhelmed because the ZED cannot transmit at 115200bps fast enough.</p>
+<p>Most applications do not need to plug anything into the <strong>DATA</strong> port. Most users will get their NMEA position data over Bluetooth. However, this port can be useful for sending position data to an embedded microcontroller or single-board computer. The pinout is 3.3V / TX / RX / GND. <strong>3.3V</strong> is provided by this connector to power a remote device if needed. While the port is capable of sourcing up to 600mA, we do not recommend more than 300mA. This port should not be connected to a power source.</p>
+<h3 id="pulse-per-second-and-external-trigger">Pulse Per Second and External Trigger<a class="headerlink" href="#pulse-per-second-and-external-trigger" title="Permanent link"></a></h3>
 <figure>
 <p><img alt="Configuring the External Pulse and External Events" src="../img/WiFi%20Config/SparkFun%20RTK%20Ports%20PPS%20Config.png" /></p>
 <figcaption>
@@ -2754,20 +2757,24 @@ Compatibility Icons
 <p>Port menu showing mux data port connections</p>
 </figcaption>
 </figure>
-<p>When PPS/Event Trigger is selected, the Pulse-Per-Second output from the ZED-F9x is sent out of the TX pin of the DATA port. Once the RTK device has GNSS reception, this can be used as a <em>very</em> accurate time base.</p>
-<p>The time between pulses can be configured down to 100ns (10MHz) with an accuracy of 30ns RMS and 60ns 99%. The pulse width and polarity are also configurable.</p>
 <figure>
-<p><img alt="Wires connected to a SparkFun USB C to Serial adapter" src="../img/SparkFun_RTK_Facet_-_Data_Port_to_USB.jpg" /></p>
-<figcaption></figcaption>
+<p><img alt="RTK Facet mosaic External Triggers" src="../img/Terminal/SparkFun_RTK_Facet_mosaic_External_Trigger.png" /></p>
+<figcaption>
+<p>Configuring the External Pulse and External Events on RTK Facet mosaic</p>
+</figcaption>
 </figure>
-<p>For PPS, only the Black and Green wires are needed. If you need to provide 3.3V to your system, the red wire can supply up to 600mA but we do not recommend sourcing more than 300mA.</p>
+<p>When <strong>PPS OUT/Event Trigger In</strong> is selected, the Pulse-Per-Second output from the GNSS is sent out of the TX pin of the DATA port. Once the RTK device has GNSS reception, this can be used as a <em>very</em> accurate time base.</p>
+<p>The pulse width, frequency and polarity are configurable. The absolute timing accuracy depends on the GNSS.</p>
+<p>The DATA port RX pin is routed to the GNSS EXTINT / EVENTA pin, allowing external events and triggers to be captured precisely. The absolute timing accuracy depends on the GNSS. For products using the u-blox ZED-F9P GNSS, the event timing is recorded in the UBX-TIM-TM2 binary message. On the mosaic-X5, the ExtEvent and ExtEventPVTCartesian SBF binary messages capture the timing and position of events.</p>
+<p>For PPS, only the Black and Green wires are needed. For external events / triggers, only the Black and Orange wires are needed.</p>
+<p>If you need to provide 3.3V to your system, the red wire can supply up to 600mA but we do not recommend sourcing more than 300mA.</p>
 <ul>
 <li><strong>Red</strong> - 3.3V</li>
-<li><strong>Green</strong> - TX (output from the RTK device)</li>
-<li><strong>Orange</strong> - RX (input into the RTK device)</li>
+<li><strong>Green</strong> - TX (3.3V PPS output from the RTK device)</li>
+<li><strong>Orange</strong> - RX (3.3V external trigger input into the RTK device)</li>
 <li><strong>Black</strong> - GND</li>
 </ul>
-<p>Similarly, the RX pin of the DATA port can be used for event logging. See <a href="./#external-event-logging">External Event Logging</a> for more information.</p>
+<p>For products using the u-blox ZED-F9P GNSS, see the Timemark section of the <a href="https://cdn.sparkfun.com/assets/learn_tutorials/1/8/5/7/ZED-F9P_IntegrationManual__UBX-18010802_.pdf" target="_blank" rel="noopener">ZED-F9P Integration Manual</a> </p>
 
 
 
@@ -2790,7 +2797,7 @@ Compatibility Icons
     <span class="md-icon" title="Last update">
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M21 13.1c-.1 0-.3.1-.4.2l-1 1 2.1 2.1 1-1c.2-.2.2-.6 0-.8l-1.3-1.3c-.1-.1-.2-.2-.4-.2m-1.9 1.8-6.1 6V23h2.1l6.1-6.1zM12.5 7v5.2l4 2.4-1 1L11 13V7zM11 21.9c-5.1-.5-9-4.8-9-9.9C2 6.5 6.5 2 12 2c5.3 0 9.6 4.1 10 9.3-.3-.1-.6-.2-1-.2s-.7.1-1 .2C19.6 7.2 16.2 4 12 4c-4.4 0-8 3.6-8 8 0 4.1 3.1 7.5 7.1 7.9l-.1.2z"/></svg>
     </span>
-    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-timeago"><span class="timeago" datetime="2025-02-25T13:58:23+00:00" locale="en"></span></span><span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-iso_date">2025-02-25</span>
+    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-timeago"><span class="timeago" datetime="2025-02-26T11:13:02+00:00" locale="en"></span></span><span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-iso_date">2025-02-26</span>
   </span>
 
     
