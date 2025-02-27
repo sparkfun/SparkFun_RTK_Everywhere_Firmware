@@ -391,7 +391,7 @@ void tcpServerStopClient(int index)
 //----------------------------------------
 void tcpServerUpdate()
 {
-    bool connected;
+    bool clientConnected;
     bool dataSent;
     bool enabled;
     int index;
@@ -487,10 +487,10 @@ void tcpServerUpdate()
             {
                 // Data structure in use
                 // Check for a working TCP server client connection
-                connected = tcpServerClient[index]->connected();
+                clientConnected = tcpServerClient[index]->connected();
                 dataSent = ((millis() - tcpServerTimer) < TCP_SERVER_CLIENT_DATA_TIMEOUT) ||
                            (tcpServerClientDataSent & (1 << index));
-                if (connected && dataSent)
+                if (clientConnected && dataSent)
                 {
                     // Display this client connection
                     if (PERIODIC_DISPLAY(PD_TCP_SERVER_DATA) && (!inMainMenu))
