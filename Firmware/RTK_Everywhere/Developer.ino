@@ -34,6 +34,9 @@ void ntpServerStop() {}
 
 void menuTcpUdp() {systemPrint("**Network not compiled**");}
 void networkBegin() {}
+void networkConsumerAdd(NETCONSUMER_t consumer, NetIndex_t network, const char * fileName, uint32_t lineNumber) {}
+bool networkConsumerIsConnected(NETCONSUMER_t consumer) {return false;}
+void networkConsumerRemove(NETCONSUMER_t consumer, NetIndex_t network, const char * fileName, uint32_t lineNumber) {}
 IPAddress networkGetIpAddress() {return("0.0.0.0");}
 const uint8_t * networkGetMacAddress()
 {
@@ -48,7 +51,6 @@ NetPriority_t networkGetPriority() {return 0;}
 bool networkHasInternet() {return false;}
 bool networkHasInternet(NetIndex_t index) {return false;}
 bool networkInterfaceHasInternet(NetIndex_t index) {return false;}
-bool networkIsConnected(NetPriority_t * priority) {return false;}
 bool networkIsInterfaceStarted(NetIndex_t index) {return false;}
 void networkMarkOffline(NetIndex_t index) {}
 void networkMarkHasInternet(NetIndex_t index) {}

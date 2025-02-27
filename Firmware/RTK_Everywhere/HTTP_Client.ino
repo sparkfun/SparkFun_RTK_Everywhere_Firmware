@@ -59,7 +59,6 @@ static uint32_t httpClientConnectionAttemptTimeout = 5 * 1000L; // Wait 5s
 static int httpClientConnectionAttemptsTotal;                   // Count the number of connection attempts absolutely
 
 static volatile uint32_t httpClientLastDataReceived; // Last time data was received via HTTP
-static NetPriority_t httpClientPriority = NETWORK_OFFLINE;
 
 static NetworkClientSecure *httpSecureClient;
 
@@ -266,7 +265,7 @@ void httpClientStop(bool shutdown)
 
     // Determine the next HTTP client state
     online.httpClient = false;
-    httpClientPriority = NETWORK_OFFLINE;
+    networkConsumerOffline(NETCONSUMER_HTTP_CLIENT);
     if (shutdown)
     {
         networkConsumerRemove(NETCONSUMER_HTTP_CLIENT, NETWORK_ANY, __FILE__, __LINE__);
@@ -285,8 +284,11 @@ void httpClientStop(bool shutdown)
 //----------------------------------------
 void httpClientUpdate()
 {
+    bool connected;
+
     // Shutdown the HTTP client when the mode or setting changes
     DMW_st(httpClientSetState, httpClientState);
+    connected = networkConsumerIsConnected(NETCONSUMER_HTTP_CLIENT);
     if ((!httpClientEnabled()) && (httpClientState > HTTP_CLIENT_OFF))
         httpClientShutdown();
 
@@ -315,7 +317,7 @@ void httpClientUpdate()
     // Wait for a network media connection
     case HTTP_CLIENT_NETWORK_STARTED: {
         // Wait until the network is connected to the media
-        if (networkIsConnected(&httpClientPriority))
+        if (connected)
             httpClientSetState(HTTP_CLIENT_CONNECTING_2_SERVER);
         break;
     }
@@ -323,7 +325,7 @@ void httpClientUpdate()
     // Connect to the HTTP server
     case HTTP_CLIENT_CONNECTING_2_SERVER: {
         // Determine if the network has failed
-        if (!networkIsConnected(&httpClientPriority))
+        if (!connected)
         {
             // Failed to connect to the network, attempt to restart the network
             httpClientRestart();
@@ -380,7 +382,7 @@ void httpClientUpdate()
 
     case HTTP_CLIENT_CONNECTED: {
         // Determine if the network has failed
-        if (!networkIsConnected(&httpClientPriority))
+        if (!connected)
         {
             // Failed to connect to the network, attempt to restart the network
             httpClientRestart();
@@ -581,7 +583,7 @@ void httpClientUpdate()
     // Hang here until httpClientModeNeeded is set to false by updateProvisioning
     case HTTP_CLIENT_COMPLETE: {
         // Determine if the network has failed
-        if (!networkIsConnected(&httpClientPriority))
+        if (!connected)
             // Failed to connect to the network, attempt to restart the network
             httpClientRestart();
         break;

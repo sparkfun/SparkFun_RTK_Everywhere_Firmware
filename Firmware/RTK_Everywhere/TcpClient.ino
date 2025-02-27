@@ -148,7 +148,6 @@ const RtkMode_t tcpClientMode = RTK_MODE_BASE_FIXED | RTK_MODE_BASE_SURVEY_IN | 
 
 static NetworkClient *tcpClient;
 static IPAddress tcpClientIpAddress;
-static NetPriority_t tcpClientPriority = NETWORK_OFFLINE;
 static uint8_t tcpClientState;
 static volatile RING_BUFFER_OFFSET tcpClientTail;
 static volatile bool tcpClientWriteError;
@@ -379,6 +378,7 @@ void tcpClientStop(bool shutdown)
 //----------------------------------------
 void tcpClientUpdate()
 {
+    bool connected;
     static uint8_t connectionAttempt;
     static uint32_t connectionDelay;
     uint32_t days;
@@ -390,6 +390,7 @@ void tcpClientUpdate()
 
     // Shutdown the TCP client when the mode or setting changes
     DMW_st(tcpClientSetState, tcpClientState);
+    connected = networkConsumerIsConnected(NETCONSUMER_TCP_CLIENT);
     if (NEQ_RTK_MODE(tcpClientMode) || (!settings.enableTcpClient))
     {
         if (tcpClientState > TCP_CLIENT_STATE_OFF)
@@ -432,7 +433,6 @@ void tcpClientUpdate()
             timer = 0;
             connectionAttempt = 0;
             connectionDelay = 0;
-            tcpClientPriority = NETWORK_OFFLINE;
             tcpClientSetState(TCP_CLIENT_STATE_WAIT_FOR_NETWORK);
 
             // Start the network
@@ -447,7 +447,7 @@ void tcpClientUpdate()
             tcpClientStop(true);
 
         // Wait until the network is connected
-        else if (networkIsConnected(&tcpClientPriority))
+        else if (connected)
         {
             NetIndex_t index = networkGetCurrentInterfaceIndex();
 
@@ -476,6 +476,9 @@ void tcpClientUpdate()
             // The network type and host provide a valid configuration
             else
             {
+                // Connect immediately when the network changes
+                if (networkChanged(NETCONSUMER_TCP_CLIENT))
+                    connectionDelay = 0;
                 timer = millis();
                 tcpClientSetState(TCP_CLIENT_STATE_CLIENT_STARTING);
             }
@@ -485,7 +488,7 @@ void tcpClientUpdate()
     // Attempt the connection ot the TCP server
     case TCP_CLIENT_STATE_CLIENT_STARTING:
         // Determine if the network has failed
-        if (!networkIsConnected(&tcpClientPriority))
+        if (!connected)
             // Failed to connect to to the network, attempt to restart the network
             tcpClientStop(false);
 
@@ -530,7 +533,7 @@ void tcpClientUpdate()
     // Wait for the TCP client to shutdown or a TCP client link failure
     case TCP_CLIENT_STATE_CONNECTED:
         // Determine if the network has failed
-        if (!networkIsConnected(&tcpClientPriority))
+        if (!connected)
             // Failed to connect to to the network, attempt to restart the network
             tcpClientStop(false);
 

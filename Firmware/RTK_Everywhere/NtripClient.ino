@@ -187,7 +187,6 @@ static volatile uint8_t ntripClientState = NTRIP_CLIENT_OFF;
 static int ntripClientConnectionAttempts; // Count the number of connection attempts between restarts
 static uint32_t ntripClientConnectionAttemptTimeout;
 static int ntripClientConnectionAttemptsTotal; // Count the number of connection attempts absolutely
-static NetPriority_t ntripClientPriority = NETWORK_OFFLINE;
 
 // NTRIP client timer usage:
 //  * Reconnection delay
@@ -573,7 +572,7 @@ void ntripClientStop(bool shutdown)
     // Determine the next NTRIP client state
     online.ntripClient = false;
     netIncomingRTCM = false;
-    ntripClientPriority = NETWORK_OFFLINE;
+    networkConsumerOffline(NETCONSUMER_NTRIP_CLIENT);
     if (shutdown)
     {
         networkConsumerRemove(NETCONSUMER_NTRIP_CLIENT, NETWORK_ANY, __FILE__, __LINE__);
@@ -592,17 +591,19 @@ void ntripClientStop(bool shutdown)
 //----------------------------------------
 void ntripClientUpdate()
 {
+    bool connected;
     bool enabled;
 
     // Shutdown the NTRIP client when the mode or setting changes
     DMW_st(ntripClientSetState, ntripClientState);
     enabled = ntripClientEnabled();
+    connected = networkConsumerIsConnected(NETCONSUMER_NTRIP_CLIENT);
     if ((!enabled) && (ntripClientState > NTRIP_CLIENT_OFF))
         ntripClientStop(true);
 
     // Determine if the network has failed
     else if ((ntripClientState > NTRIP_CLIENT_WAIT_FOR_NETWORK)
-        && (!networkIsConnected(&ntripClientPriority)))
+        && (!connected))
         // Attempt to restart the network
         ntripClientRestart();
 
@@ -623,7 +624,7 @@ void ntripClientUpdate()
     // Wait for a network media connection
     case NTRIP_CLIENT_WAIT_FOR_NETWORK:
         // Wait until the network is connected to the media
-        if (networkIsConnected(&ntripClientPriority))
+        if (connected)
         {
             // Allocate the ntripClient structure
             ntripClient = new NetworkClient();
@@ -636,6 +637,10 @@ void ntripClientUpdate()
             else
             {
                 reportHeapNow(settings.debugNtripClientState);
+
+                // Connect immediately when the the network has changed
+                if (networkChanged(NETCONSUMER_NTRIP_CLIENT))
+                    ntripClientConnectionAttemptTimeout = 0;
 
                 // The network is available for the NTRIP client
                 ntripClientSetState(NTRIP_CLIENT_NETWORK_CONNECTED);

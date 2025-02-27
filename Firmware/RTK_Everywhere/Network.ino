@@ -106,6 +106,7 @@ Network.ino
 static const char * networkConsumerTable[] =
 {
     "HTTP_CLIENT",
+    "NTP_CLIENT",
     "NTRIP_CLIENT",
     "NTRIP_SERVER",
     "OTA_CLIENT",
@@ -128,6 +129,11 @@ uint8_t networkConsumerCount; // Count of network consumers (bits set)
 NETCONSUMER_MASK_t networkConsumersAny; // Consumers of any network
 NETCONSUMER_MASK_t networkSoftApConsumer; // Consumers of soft AP
 uint8_t networkSoftApConsumerCount; // Count of soft AP consumers (bits set)
+
+// Priority of the network when last checked by the consumer
+// Index by consumer ID
+NetPriority_t networkConsumerPriority[NETCONSUMER_MAX];
+NetPriority_t networkConsumerPriorityLast[NETCONSUMER_MAX];
 
 // Priority of each of the networks in the networkInterfaceTable
 // Index by networkInterfaceTable index to get network interface priority
@@ -330,6 +336,13 @@ void networkBegin()
     for (int index = 0; index < NETWORK_OFFLINE; index++)
         networkIndexTable[networkPriorityTable[index]] = index;
 
+    // Set the network consumer priorities
+    for (int index = 0; index < NETCONSUMER_MAX; index++)
+    {
+        networkConsumerPriority[index] = NETWORK_OFFLINE;
+        networkConsumerPriorityLast[index] = NETWORK_OFFLINE;
+    }
+
     // Handle the network events
     Network.onEvent(networkEvent);
 
@@ -345,6 +358,26 @@ void networkBegin()
 #endif // COMPILE_ETHERNET
 
     // WiFi and cellular networks are started/stopped as consumers and come online/offline in networkUpdate()
+}
+
+//----------------------------------------
+// Determine if the network interface has changed
+//----------------------------------------
+bool networkChanged(NETCONSUMER_t consumer)
+{
+    bool changed;
+
+    // Validate the consumer
+    networkConsumerValidate(consumer);
+
+    // Determine if the network interface has changed
+    changed = (networkConsumerPriority[consumer] != NETWORK_OFFLINE)
+        && (networkConsumerPriority[consumer] != networkConsumerPriorityLast[consumer]);
+
+    // Remember the new network
+    if (changed)
+        networkConsumerPriorityLast[consumer] = networkConsumerPriority[consumer];
+    return changed;
 }
 
 //----------------------------------------
@@ -387,6 +420,8 @@ void networkConsumerAdd(NETCONSUMER_t consumer, NetIndex_t network, const char *
         // Account for this consumer
         *bits |= bitMask;
         networkConsumerCount += 1;
+        networkConsumerPriority[consumer] = NETWORK_OFFLINE;
+        networkConsumerPriorityLast[consumer] = NETWORK_OFFLINE;
 
         // Display the network consumers
         if (settings.debugNetworkLayer)
@@ -492,6 +527,37 @@ void networkConsumerDisplay()
     }
     else
         systemPrintf("No active network consumers\r\n");
+}
+
+//----------------------------------------
+// Determine if the specified consumer has access to the internet
+//----------------------------------------
+bool networkConsumerIsConnected(NETCONSUMER_t consumer)
+{
+    int index;
+
+    // Validate the consumer
+    networkConsumerValidate(consumer);
+
+    // If the client is using the highest priority network and that
+    // network is still available then continue as normal
+    if (networkHasInternet_bm && (networkConsumerPriority[consumer] == networkPriority))
+    {
+        index = networkIndexTable[networkPriority];
+        return networkInterfaceHasInternet(index);
+    }
+
+    // The network has changed, notify the client of the change
+    networkConsumerPriority[consumer] = networkPriority;
+    return false;
+}
+
+//----------------------------------------
+// Mark the consumer as offline
+//----------------------------------------
+void networkConsumerOffline(NETCONSUMER_t consumer)
+{
+    networkConsumerPriority[consumer] = NETWORK_OFFLINE;
 }
 
 //----------------------------------------
@@ -1108,21 +1174,6 @@ void networkInterfaceInternetConnectionLost(NetIndex_t index)
             networkDisplayStatus();
         }
     }
-}
-
-//----------------------------------------
-// Determine if the specified network has access to the internet
-//----------------------------------------
-bool networkIsConnected(NetPriority_t *clientPriority)
-{
-    // If the client is using the highest priority network and that
-    // network is still available then continue as normal
-    if (networkHasInternet_bm && (*clientPriority == networkPriority))
-        return networkInterfaceHasInternet(networkIndexTable[networkPriority]);
-
-    // The network has changed, notify the client of the change
-    *clientPriority = networkPriority;
-    return false;
 }
 
 //----------------------------------------

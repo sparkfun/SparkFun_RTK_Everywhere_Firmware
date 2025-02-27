@@ -175,7 +175,6 @@ const RtkMode_t ntripServerMode = RTK_MODE_BASE_FIXED;
 
 // NTRIP Servers
 static NTRIP_SERVER_DATA ntripServerArray[NTRIP_SERVER_MAX];
-static NetPriority_t ntripServerPriority = NETWORK_OFFLINE;
 
 //----------------------------------------
 // NTRIP Server Routines
@@ -574,7 +573,7 @@ void ntripServerStop(int serverIndex, bool shutdown)
 
     // Determine the next NTRIP server state
     online.ntripServer[serverIndex] = false;
-    ntripServerPriority = NETWORK_OFFLINE;
+    networkConsumerOffline(NETCONSUMER_NTRIP_SERVER);
     if (shutdown)
     {
         if (settings.debugNtripServerState)
@@ -612,6 +611,7 @@ void ntripServerStop(int serverIndex, bool shutdown)
 //----------------------------------------
 void ntripServerUpdate(int serverIndex)
 {
+    bool connected;
     bool enabled;
 
     // Get the NTRIP data structure
@@ -619,13 +619,14 @@ void ntripServerUpdate(int serverIndex)
 
     // Shutdown the NTRIP server when the mode or setting changes
     DMW_ds(ntripServerSetState, ntripServer);
+    connected = networkConsumerIsConnected(NETCONSUMER_NTRIP_SERVER);
     enabled = ntripServerEnabled(serverIndex);
     if (!enabled && (ntripServer->state > NTRIP_SERVER_OFF))
         ntripServerShutdown(serverIndex);
 
     // Determine if the network has failed
     else if ((ntripServer->state > NTRIP_SERVER_WAIT_FOR_NETWORK)
-        && (!networkIsConnected(&ntripServerPriority)))
+        && (!connected))
         ntripServerRestart(serverIndex);
 
     // Enable the network and the NTRIP server if requested
@@ -644,7 +645,7 @@ void ntripServerUpdate(int serverIndex)
     // Wait for a network media connection
     case NTRIP_SERVER_WAIT_FOR_NETWORK:
         // Wait until the network is connected
-        if (networkIsConnected(&ntripServerPriority))
+        if (connected)
         {
             // Allocate the networkClient structure
             ntripServer->networkClient = new NetworkClient();
@@ -667,7 +668,7 @@ void ntripServerUpdate(int serverIndex)
     // Network available
     case NTRIP_SERVER_NETWORK_CONNECTED:
         // Determine if the network has failed
-        if (!networkIsConnected(&ntripServerPriority))
+        if (!connected)
             // Failed to connect to to the network, attempt to restart the network
             ntripServerRestart(serverIndex);
 

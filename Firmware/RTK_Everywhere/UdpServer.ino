@@ -94,7 +94,6 @@ static NetworkUDP *udpServer = nullptr;
 static uint8_t udpServerState;
 static uint32_t udpServerTimer;
 static volatile RING_BUFFER_OFFSET udpServerTail;
-static NetPriority_t udpServerPriority;
 
 //----------------------------------------
 // UDP Server handleGnssDataTask Support Routines
@@ -199,7 +198,7 @@ int32_t udpServerSendDataBroadcast(uint8_t *data, uint16_t length)
         return 0;
 
     // Send the data as broadcast
-    if (settings.enableUdpServer && online.udpServer && networkIsConnected(&udpServerPriority))
+    if (settings.enableUdpServer && online.udpServer && networkConsumerIsConnected(NETCONSUMER_UDP_SERVER))
     {
         IPAddress broadcastAddress = networkGetBroadcastIpAddress();
         udpServer->beginPacket(broadcastAddress, settings.udpServerPort);
@@ -301,7 +300,7 @@ void udpServerStop()
     }
 
     // Stop using the network
-    udpServerPriority = NETWORK_OFFLINE;
+    networkConsumerOffline(NETCONSUMER_UDP_SERVER);
     if (udpServerState != UDP_SERVER_STATE_OFF)
     {
         // The UDP server is now off
@@ -317,10 +316,12 @@ void udpServerStop()
 //----------------------------------------
 void udpServerUpdate()
 {
+    bool connected;
     IPAddress ipAddress;
 
     // Shutdown the UDP server when the mode or setting changes
     DMW_st(udpServerSetState, udpServerState);
+    connected = networkConsumerIsConnected(NETCONSUMER_UDP_SERVER);
     if ((!udpServerEnabled()) && (udpServerState > UDP_SERVER_STATE_OFF))
         udpServerStop();
 
@@ -363,7 +364,7 @@ void udpServerUpdate()
     // Wait until the network is connected
     case UDP_SERVER_STATE_WAIT_FOR_NETWORK:
         // Wait until the network is connected
-        if (networkIsConnected(&udpServerPriority) || wifiSoftApRunning)
+        if (connected || wifiSoftApRunning)
         {
             // Delay before starting the UDP server
             if ((millis() - udpServerTimer) >= (1 * 1000))
@@ -381,7 +382,7 @@ void udpServerUpdate()
     // Handle client connections and link failures
     case UDP_SERVER_STATE_RUNNING:
         // Determine if the network has failed
-        if ((networkIsConnected(&udpServerPriority) == false && wifiSoftApRunning == false) || (!settings.enableUdpServer && !settings.baseCasterOverride))
+        if ((connected == false && wifiSoftApRunning == false) || (!settings.enableUdpServer && !settings.baseCasterOverride))
         {
             if ((settings.debugUdpServer || PERIODIC_DISPLAY(PD_UDP_SERVER_DATA)) && (!inMainMenu))
             {

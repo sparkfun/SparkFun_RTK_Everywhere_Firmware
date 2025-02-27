@@ -21,7 +21,6 @@ static const uint8_t ppIpToken[16] = {POINTPERFECT_IP_TOKEN};            // Toke
 static const uint8_t ppLbandIpToken[16] = {POINTPERFECT_LBAND_IP_TOKEN}; // Token in HEX form
 
 #ifdef COMPILE_NETWORK
-static NetPriority_t pointperfectPriority = NETWORK_OFFLINE;
 MqttClient *menuppMqttClient;
 #endif // COMPILE_NETWORK
 
@@ -1216,6 +1215,12 @@ void provisioningSetState(uint8_t newState)
 unsigned long provisioningStartTime_millis;
 const unsigned long provisioningTimeout_ms = 120000;
 
+void provisioningWaitForNetwork()
+{
+    networkConsumerAdd(NETCONSUMER_PPL_KEY_UPDATE, NETWORK_ANY, __FILE__, __LINE__);
+    provisioningSetState(PROVISIONING_WAIT_FOR_NETWORK);
+}
+
 void provisioningUpdate()
 {
     DMW_st(provisioningSetState, provisioningState);
@@ -1247,21 +1252,21 @@ void provisioningUpdate()
         {
             if (settings.debugPpCertificate)
                 systemPrintln("Invalid certificates or keys. Starting provisioning");
-            provisioningSetState(PROVISIONING_WAIT_FOR_NETWORK);
+            provisioningWaitForNetwork();
         }
         // If requestKeyUpdate is true, begin provisioning
         else if (settings.requestKeyUpdate)
         {
             if (settings.debugPpCertificate)
                 systemPrintln("requestKeyUpdate is true. Starting provisioning");
-            provisioningSetState(PROVISIONING_WAIT_FOR_NETWORK);
+            provisioningWaitForNetwork();
         }
         // If RTC is not online, we have to skip PROVISIONING_CHECK_ATTEMPT
         else if (!online.rtc)
         {
             if (settings.debugPpCertificate)
                 systemPrintln("No RTC. Starting provisioning");
-            provisioningSetState(PROVISIONING_WAIT_FOR_NETWORK);
+            provisioningWaitForNetwork();
         }
         else
         {
@@ -1290,7 +1295,7 @@ void provisioningUpdate()
         {
             settings.lastKeyAttempt = rtc.getEpoch(); // Mark it
             recordSystemSettings();                   // Record these settings to unit
-            provisioningSetState(PROVISIONING_WAIT_FOR_NETWORK);
+            provisioningWaitForNetwork();
         }
         else
         {
@@ -1306,11 +1311,13 @@ void provisioningUpdate()
         // Stop waiting if PointPerfect has been disabled
         if (settings.enablePointPerfectCorrections == false)
         {
+            // Done with the network
+            networkConsumerRemove(NETCONSUMER_PPL_KEY_UPDATE, NETWORK_ANY, __FILE__, __LINE__);
             provisioningSetState(PROVISIONING_NOT_STARTED);
         }
         // Wait until the network is available
 #ifdef COMPILE_NETWORK
-        else if (networkIsConnected(&pointperfectPriority))
+        else if (networkConsumerIsConnected(NETCONSUMER_PPL_KEY_UPDATE))
         {
             if (settings.debugPpCertificate)
                 systemPrintln("PointPerfect key update connected to network");
@@ -1465,6 +1472,8 @@ void provisioningUpdate()
     }
     break;
     case PROVISIONING_WAIT_ATTEMPT: {
+        // Done with the network
+        networkConsumerRemove(NETCONSUMER_PPL_KEY_UPDATE, NETWORK_ANY, __FILE__, __LINE__);
         if (settings.requestKeyUpdate) // requestKeyUpdate can be set via the menu, mode button or web config
             provisioningSetState(PROVISIONING_CHECK_REMAINING);
         else if (!settings.enablePointPerfectCorrections || !settings.autoKeyRenewal)
