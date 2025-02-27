@@ -43,7 +43,8 @@ const uint8_t * networkGetMacAddress()
         return btMACAddress;
 #endif
     return zero;
-  }
+}
+NetPriority_t networkGetPriority() {return 0;}
 bool networkHasInternet() {return false;}
 bool networkHasInternet(NetIndex_t index) {return false;}
 bool networkInterfaceHasInternet(NetIndex_t index) {return false;}

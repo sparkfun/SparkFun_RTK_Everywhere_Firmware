@@ -862,6 +862,14 @@ const char *networkGetNameByPriority(NetPriority_t priority)
 }
 
 //----------------------------------------
+// Get the current network priority
+//----------------------------------------
+NetPriority_t networkGetPriority()
+{
+    return networkPriority;
+}
+
+//----------------------------------------
 // Determine if any network interface has access to the internet
 //----------------------------------------
 bool networkHasInternet()
