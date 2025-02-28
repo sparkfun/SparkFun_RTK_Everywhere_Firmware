@@ -760,12 +760,13 @@ void mqttClientStop(bool shutdown)
 void mqttClientUpdate()
 {
     bool connected;
+    bool enabled;
 
     // Shutdown the MQTT client when the mode or setting changes
     DMW_st(mqttClientSetState, mqttClientState);
     connected = networkConsumerIsConnected(NETCONSUMER_PPL_MQTT_CLIENT);
-
-    if ((!mqttClientEnabled()) && (mqttClientState > MQTT_CLIENT_OFF))
+    enabled = mqttClientEnabled();
+    if ((enabled == false) && (mqttClientState > MQTT_CLIENT_OFF))
     {
         if (settings.debugMqttClientState)
             systemPrintln("MQTT Client stopping");
@@ -777,7 +778,7 @@ void mqttClientUpdate()
     {
     default:
     case MQTT_CLIENT_OFF: {
-        if (mqttClientEnabled())
+        if (enabled)
         {
             // Start the MQTT client
             if (settings.debugMqttClientState)
