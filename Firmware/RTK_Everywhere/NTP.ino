@@ -89,7 +89,6 @@ static uint32_t lastLoggedNTPRequest;
 //----------------------------------------
 // Menu to get the NTP settings
 //----------------------------------------
-
 void menuNTP()
 {
     if (!present.ethernet_ws5500 == true)
@@ -200,7 +199,7 @@ void menuNTP()
 }
 
 // =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
-// NTP Packet storage and utilities
+// NTP Packet storage class and utilities
 
 struct NTPpacket
 {
@@ -343,6 +342,8 @@ struct NTPpacket
         uint8_t unsigned8;
     } unsignedSigned8;
 
+    //----------------------------------------
+    //----------------------------------------
     uint32_t extractUnsigned32(uint8_t *ptr)
     {
         uint32_t val = 0;
@@ -353,6 +354,8 @@ struct NTPpacket
         return val;
     }
 
+    //----------------------------------------
+    //----------------------------------------
     void insertUnsigned32(uint8_t *ptr, uint32_t val)
     {
         *ptr++ = val >> 24; // NTP data is Big-Endian
@@ -361,7 +364,9 @@ struct NTPpacket
         *ptr++ = val & 0xFF;
     }
 
+    //----------------------------------------
     // Extract the data from an NTP packet into the correct fields
+    //----------------------------------------
     void extract()
     {
         uint8_t *ptr = packet;
@@ -401,7 +406,9 @@ struct NTPpacket
         ptr += 4;
     }
 
+    //----------------------------------------
     // Insert the data from the fields into an NTP packet
+    //----------------------------------------
     void insert()
     {
         uint8_t *ptr = packet;
@@ -442,6 +449,8 @@ struct NTPpacket
         ptr += 4;
     }
 
+    //----------------------------------------
+    //----------------------------------------
     uint32_t convertMicrosToSecsAndFraction(uint32_t val) // 16-bit fraction used by root delay and dispersion
     {
         double secs = val;
@@ -458,6 +467,8 @@ struct NTPpacket
         return (result);
     }
 
+    //----------------------------------------
+    //----------------------------------------
     uint32_t convertMicrosToFraction(uint32_t val) // 32-bit fraction used by the timestamps
     {
         val %= 1000000;      // Just in case
@@ -467,6 +478,8 @@ struct NTPpacket
         return (uint32_t)v;
     }
 
+    //----------------------------------------
+    //----------------------------------------
     uint32_t convertFractionToMicros(uint32_t val) // 32-bit fraction used by the timestamps
     {
         double v = val;      // Convert fraction to double
@@ -477,22 +490,27 @@ struct NTPpacket
         return ret;
     }
 
+    //----------------------------------------
+    //----------------------------------------
     uint32_t convertNTPsecondsToUnix(uint32_t val)
     {
         return (val - NTPtoUnixOffset);
     }
 
+    //----------------------------------------
+    //----------------------------------------
     uint32_t convertUnixSecondsToNTP(uint32_t val)
     {
         return (val + NTPtoUnixOffset);
     }
 };
 
-// =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+//----------------------------------------
 // NTP process one request
 // recTv contains the timeval the NTP packet was received
 // syncTv contains the timeval when the RTC was last sync'd
 // ntpDiag will contain useful diagnostics
+//----------------------------------------
 bool ntpProcessOneRequest(bool process, const timeval *recTv, const timeval *syncTv, char *ntpDiag = nullptr,
                           size_t ntpDiagSize = 0); // Header
 bool ntpProcessOneRequest(bool process, const timeval *recTv, const timeval *syncTv, char *ntpDiag, size_t ntpDiagSize)
@@ -698,7 +716,9 @@ bool ntpProcessOneRequest(bool process, const timeval *recTv, const timeval *syn
     return processed;
 }
 
+//----------------------------------------
 // Configure specific aspects of the receiver for NTP mode
+//----------------------------------------
 bool configureUbloxModuleNTP()
 {
     if (present.timePulseInterrupt == false)
@@ -725,7 +745,9 @@ bool configureUbloxModuleNTP()
 // NTP Server routines
 //=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 
+//----------------------------------------
 // Update the state of the NTP server state machine
+//----------------------------------------
 void ntpServerSetState(uint8_t newState)
 {
     if ((settings.debugNtp || PERIODIC_DISPLAY(PD_NTP_SERVER_STATE)) && (!inMainMenu))
@@ -749,7 +771,9 @@ void ntpServerSetState(uint8_t newState)
     }
 }
 
+//----------------------------------------
 // Stop the NTP server
+//----------------------------------------
 void ntpServerStop()
 {
     // Mark the NTP server as off
@@ -776,7 +800,9 @@ void ntpServerStop()
         ntpServerSetState(NTP_STATE_WAIT_NETWORK);
 }
 
+//----------------------------------------
 // Update the NTP server state
+//----------------------------------------
 void ntpServerUpdate()
 {
     bool connected;
@@ -938,7 +964,9 @@ void ntpServerUpdate()
         ntpServerSetState(ntpServerState);
 }
 
+//----------------------------------------
 // Verify the NTP tables
+//----------------------------------------
 void ntpValidateTables()
 {
     if (ntpServerStateNameEntries != NTP_STATE_MAX)
