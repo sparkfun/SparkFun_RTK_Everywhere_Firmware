@@ -760,16 +760,30 @@ void mqttClientStop(bool shutdown)
 void mqttClientUpdate()
 {
     bool connected;
+    bool enabled;
 
     // Shutdown the MQTT client when the mode or setting changes
     DMW_st(mqttClientSetState, mqttClientState);
     connected = networkConsumerIsConnected(NETCONSUMER_PPL_MQTT_CLIENT);
-
-    if ((!mqttClientEnabled()) && (mqttClientState > MQTT_CLIENT_OFF))
+    enabled = mqttClientEnabled();
+    if ((enabled == false) && (mqttClientState > MQTT_CLIENT_OFF))
     {
         if (settings.debugMqttClientState)
             systemPrintln("MQTT Client stopping");
         mqttClientShutdown();
+    }
+
+    // Determine if the network has failed
+    else if ((mqttClientState > MQTT_CLIENT_WAIT_FOR_NETWORK) && !connected)
+    {
+        if (mqttClientState == MQTT_CLIENT_SERVICES_CONNECTED)
+        {
+            // The connection is successful, allow more retries in the future
+            // with immediate retries
+            mqttClientConnectionAttempts = 0;
+            mqttClientConnectionAttemptTimeout = 0;
+        }
+        mqttClientRestart();
     }
 
     // Enable the network and the MQTT client if requested
@@ -777,7 +791,7 @@ void mqttClientUpdate()
     {
     default:
     case MQTT_CLIENT_OFF: {
-        if (mqttClientEnabled())
+        if (enabled)
         {
             // Start the MQTT client
             if (settings.debugMqttClientState)
@@ -807,14 +821,6 @@ void mqttClientUpdate()
 
     // Connect to the MQTT server
     case MQTT_CLIENT_CONNECTING_2_SERVER: {
-        // Determine if the network has failed
-        if (!connected)
-        {
-            // Failed to connect to the network, attempt to restart the network
-            mqttClientRestart();
-            break;
-        }
-
         // Allocate the mqttSecureClient structure
         mqttSecureClient = new NetworkClientSecure();
         if (!mqttSecureClient)
@@ -935,21 +941,6 @@ void mqttClientUpdate()
     } // /case MQTT_CLIENT_CONNECTING_2_SERVER
 
     case MQTT_CLIENT_SERVICES_CONNECTED: {
-        // Determine if the network has failed
-        if (!connected)
-        {
-            // The connection was previously successful, allow more retries
-            // in the future
-            mqttClientConnectionAttempts = 0;
-
-            // Failed to connect to the network, attempt to restart the network
-            mqttClientRestart();
-
-            // Since the previous connection was successful, retry immediately
-            mqttClientConnectionAttemptTimeout = 0;
-            break;
-        }
-
         // Check for new data
         mqttClient->poll();
 
