@@ -27,8 +27,6 @@ static const char *const webServerStateNames[] = {
 
 static const int webServerStateEntries = sizeof(webServerStateNames) / sizeof(webServerStateNames[0]);
 
-static NetPriority_t webServerPriority = NETWORK_OFFLINE;
-
 static uint8_t webServerState;
 
 // Once connected to the access point for WiFi Config, the ESP32 sends current setting values in one long string to
@@ -1207,6 +1205,11 @@ void webServerStop()
 //----------------------------------------
 void webServerUpdate()
 {
+    bool connected;
+
+    // Determine if the network is connected
+    connected = networkConsumerIsConnected(NETCONSUMER_WEB_CONFIG);
+
     // Walk the state machine
     switch (webServerState)
     {
@@ -1224,7 +1227,7 @@ void webServerUpdate()
     // Wait for connection to the network
     case WEBSERVER_STATE_WAIT_FOR_NETWORK:
         // Wait until the network is connected to the internet or has WiFi AP
-        if (networkIsConnected(&webServerPriority) || wifiSoftApRunning)
+        if (connected || wifiSoftApRunning)
         {
             if (settings.debugWebServer)
                 systemPrintln("Web Server connected to network");
@@ -1236,7 +1239,7 @@ void webServerUpdate()
     // Start the web server
     case WEBSERVER_STATE_NETWORK_CONNECTED: {
         // Determine if the network has failed
-        if (networkIsConnected(&webServerPriority) == false && wifiSoftApRunning == false)
+        if (connected == false && wifiSoftApRunning == false)
             webServerSetState(WEBSERVER_STATE_WAIT_FOR_NETWORK);
         if (settings.debugWebServer)
             systemPrintln("Assigning web server resources");
@@ -1249,7 +1252,7 @@ void webServerUpdate()
     // Allow web services
     case WEBSERVER_STATE_RUNNING:
         // Determine if the network has failed
-        if (networkIsConnected(&webServerPriority) == false && wifiSoftApRunning == false)
+        if (connected == false && wifiSoftApRunning == false)
         {
             webServerReleaseResources(); // Release web server resources
             webServerSetState(WEBSERVER_STATE_WAIT_FOR_NETWORK);

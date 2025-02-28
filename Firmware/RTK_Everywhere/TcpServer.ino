@@ -100,7 +100,6 @@ static volatile uint8_t tcpServerClientWriteError;
 static NetworkClient *tcpServerClient[TCP_SERVER_MAX_CLIENTS];
 static IPAddress tcpServerClientIpAddress[TCP_SERVER_MAX_CLIENTS];
 static volatile RING_BUFFER_OFFSET tcpServerClientTails[TCP_SERVER_MAX_CLIENTS];
-static NetPriority_t tcpServerPriority = NETWORK_OFFLINE;
 
 //----------------------------------------
 // TCP Server handleGnssDataTask Support Routines
@@ -391,6 +390,7 @@ void tcpServerStopClient(int index)
 //----------------------------------------
 void tcpServerUpdate()
 {
+    bool clientConnected;
     bool connected;
     bool dataSent;
     bool enabled;
@@ -399,6 +399,7 @@ void tcpServerUpdate()
 
     // Shutdown the TCP server when the mode or setting changes
     DMW_st(tcpServerSetState, tcpServerState);
+    connected = networkConsumerIsConnected(NETCONSUMER_TCP_SERVER);
     enabled = tcpServerEnabled();
     if ((tcpServerState > TCP_SERVER_STATE_OFF) && !enabled)
         tcpServerStop();
@@ -440,7 +441,6 @@ void tcpServerUpdate()
                 networkConsumerAdd(NETCONSUMER_TCP_SERVER, NETWORK_ANY, __FILE__, __LINE__);
             else
                 networkSoftApConsumerAdd(NETCONSUMER_TCP_SERVER, __FILE__, __LINE__);
-            tcpServerPriority = NETWORK_OFFLINE;
             tcpServerSetState(TCP_SERVER_STATE_WAIT_FOR_NETWORK);
         }
         break;
@@ -448,7 +448,7 @@ void tcpServerUpdate()
     // Wait until the network is connected
     case TCP_SERVER_STATE_WAIT_FOR_NETWORK:
         // Wait until the network is connected to the media
-        if (networkIsConnected(&tcpServerPriority))
+        if (connected)
         {
             // Delay before starting the TCP server
             if ((millis() - tcpServerTimer) >= (1 * 1000))
@@ -466,7 +466,7 @@ void tcpServerUpdate()
     // Handle client connections and link failures
     case TCP_SERVER_STATE_RUNNING:
         // Determine if the network has failed
-        if ((networkIsConnected(&tcpServerPriority) == false && wifiSoftApRunning == false) || (!settings.enableTcpServer && !settings.baseCasterOverride))
+        if ((connected == false && wifiSoftApRunning == false) || (!settings.enableTcpServer && !settings.baseCasterOverride))
         {
             if ((settings.debugTcpServer || PERIODIC_DISPLAY(PD_TCP_SERVER_DATA)) && (!inMainMenu))
             {
@@ -487,10 +487,10 @@ void tcpServerUpdate()
             {
                 // Data structure in use
                 // Check for a working TCP server client connection
-                connected = tcpServerClient[index]->connected();
+                clientConnected = tcpServerClient[index]->connected();
                 dataSent = ((millis() - tcpServerTimer) < TCP_SERVER_CLIENT_DATA_TIMEOUT) ||
                            (tcpServerClientDataSent & (1 << index));
-                if (connected && dataSent)
+                if (clientConnected && dataSent)
                 {
                     // Display this client connection
                     if (PERIODIC_DISPLAY(PD_TCP_SERVER_DATA) && (!inMainMenu))

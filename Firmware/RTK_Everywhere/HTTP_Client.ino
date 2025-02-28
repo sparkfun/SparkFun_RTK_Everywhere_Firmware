@@ -59,7 +59,6 @@ static uint32_t httpClientConnectionAttemptTimeout = 5 * 1000L; // Wait 5s
 static int httpClientConnectionAttemptsTotal;                   // Count the number of connection attempts absolutely
 
 static volatile uint32_t httpClientLastDataReceived; // Last time data was received via HTTP
-static NetPriority_t httpClientPriority = NETWORK_OFFLINE;
 
 static NetworkClientSecure *httpSecureClient;
 
@@ -266,7 +265,7 @@ void httpClientStop(bool shutdown)
 
     // Determine the next HTTP client state
     online.httpClient = false;
-    httpClientPriority = NETWORK_OFFLINE;
+    networkConsumerOffline(NETCONSUMER_HTTP_CLIENT);
     if (shutdown)
     {
         networkConsumerRemove(NETCONSUMER_HTTP_CLIENT, NETWORK_ANY, __FILE__, __LINE__);
@@ -285,17 +284,26 @@ void httpClientStop(bool shutdown)
 //----------------------------------------
 void httpClientUpdate()
 {
+    bool connected;
+    bool enabled;
+
     // Shutdown the HTTP client when the mode or setting changes
     DMW_st(httpClientSetState, httpClientState);
-    if ((!httpClientEnabled()) && (httpClientState > HTTP_CLIENT_OFF))
+    connected = networkConsumerIsConnected(NETCONSUMER_HTTP_CLIENT);
+    enabled = httpClientEnabled();
+    if ((enabled == false) && (httpClientState > HTTP_CLIENT_OFF))
         httpClientShutdown();
+
+    // Determine if the network has failed
+    else if ((httpClientState > HTTP_CLIENT_NETWORK_STARTED) && !connected)
+        httpClientRestart();
 
     // Enable the network and the HTTP client if requested
     switch (httpClientState)
     {
     default:
     case HTTP_CLIENT_OFF: {
-        if (httpClientEnabled())
+        if (enabled)
         {
             networkConsumerAdd(NETCONSUMER_HTTP_CLIENT, NETWORK_ANY, __FILE__, __LINE__);
             httpClientStart();
@@ -315,21 +323,13 @@ void httpClientUpdate()
     // Wait for a network media connection
     case HTTP_CLIENT_NETWORK_STARTED: {
         // Wait until the network is connected to the media
-        if (networkIsConnected(&httpClientPriority))
+        if (connected)
             httpClientSetState(HTTP_CLIENT_CONNECTING_2_SERVER);
         break;
     }
 
     // Connect to the HTTP server
     case HTTP_CLIENT_CONNECTING_2_SERVER: {
-        // Determine if the network has failed
-        if (!networkIsConnected(&httpClientPriority))
-        {
-            // Failed to connect to the network, attempt to restart the network
-            httpClientRestart();
-            break;
-        }
-
         // Allocate the httpSecureClient structure
         httpSecureClient = new NetworkClientSecure();
         if (!httpSecureClient)
@@ -379,14 +379,6 @@ void httpClientUpdate()
     }
 
     case HTTP_CLIENT_CONNECTED: {
-        // Determine if the network has failed
-        if (!networkIsConnected(&httpClientPriority))
-        {
-            // Failed to connect to the network, attempt to restart the network
-            httpClientRestart();
-            break;
-        }
-
         String ztpRequest;
         createZtpRequest(ztpRequest);
 
@@ -579,13 +571,8 @@ void httpClientUpdate()
 
     // The ZTP HTTP POST is complete. We either can not or do not want to continue.
     // Hang here until httpClientModeNeeded is set to false by updateProvisioning
-    case HTTP_CLIENT_COMPLETE: {
-        // Determine if the network has failed
-        if (!networkIsConnected(&httpClientPriority))
-            // Failed to connect to the network, attempt to restart the network
-            httpClientRestart();
+    case HTTP_CLIENT_COMPLETE:
         break;
-    }
     }
 
     // Periodically display the HTTP client state

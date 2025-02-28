@@ -33,7 +33,6 @@ static const int otaStateEntries = sizeof(otaStateNames) / sizeof(otaStateNames[
 //----------------------------------------
 
 static uint32_t otaLastUpdateCheck;
-static NetPriority_t otaPriority = NETWORK_OFFLINE;
 static uint8_t otaState;
 
 #endif // COMPILE_OTA_AUTO
@@ -765,7 +764,10 @@ const char *otaStateNameGet(uint8_t state, char *string)
 //----------------------------------------
 void otaUpdate()
 {
+    bool connected;
+
     // Check if we need a scheduled check
+    connected = networkConsumerIsConnected(NETCONSUMER_OTA_CLIENT);
     if (settings.enableAutoFirmwareUpdate)
     {
         // Wait until it is time to check for a firmware update
@@ -808,7 +810,7 @@ void otaUpdate()
                 otaUpdateStop();
 
             // Wait until the network is connected to the media
-            else if (networkIsConnected(&otaPriority))
+            else if (connected)
             {
                 if (settings.debugFirmwareUpdate)
                     systemPrintln("Firmware update connected to network");
@@ -821,7 +823,7 @@ void otaUpdate()
         // Get firmware version from server
         case OTA_STATE_GET_FIRMWARE_VERSION:
             // Determine if the network has failed
-            if (!networkIsConnected(&otaPriority))
+            if (!connected)
                 otaUpdateStop();
             if (settings.debugFirmwareUpdate)
                 systemPrintln("Checking for latest firmware version");
@@ -877,7 +879,7 @@ void otaUpdate()
         // Update the firmware
         case OTA_STATE_UPDATE_FIRMWARE:
             // Determine if the network has failed
-            if (!networkIsConnected(&otaPriority))
+            if (!connected)
                 otaUpdateStop();
             else
             {
@@ -943,8 +945,8 @@ void otaUpdateStop()
         otaRequestFirmwareUpdate = false;
 
         // Let the network know we no longer need it
+        networkConsumerOffline(NETCONSUMER_OTA_CLIENT);
         networkConsumerRemove(NETCONSUMER_OTA_CLIENT, NETWORK_ANY, __FILE__, __LINE__);
-        otaPriority = NETWORK_OFFLINE;
 
         // Stop the firmware update
         otaSetState(OTA_STATE_OFF);

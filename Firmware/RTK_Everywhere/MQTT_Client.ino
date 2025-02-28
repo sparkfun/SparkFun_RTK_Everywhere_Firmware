@@ -138,7 +138,6 @@ static uint32_t mqttClientConnectionAttemptTimeout;
 static int mqttClientConnectionAttemptsTotal; // Count the number of connection attempts absolutely
 
 static volatile uint32_t mqttClientLastDataReceived; // Last time data was received via MQTT
-static NetPriority_t mqttClientPriority = NETWORK_OFFLINE;
 
 static NetworkClientSecure *mqttSecureClient;
 
@@ -739,7 +738,7 @@ void mqttClientStop(bool shutdown)
     // Determine the next MQTT client state
     online.mqttClient = false;
     mqttClientDataReceived = false;
-    mqttClientPriority = NETWORK_OFFLINE;
+    networkConsumerOffline(NETCONSUMER_PPL_MQTT_CLIENT);
     if (shutdown)
     {
         networkConsumerRemove(NETCONSUMER_PPL_MQTT_CLIENT, NETWORK_ANY, __FILE__, __LINE__);
@@ -760,8 +759,11 @@ void mqttClientStop(bool shutdown)
 //----------------------------------------
 void mqttClientUpdate()
 {
+    bool connected;
+
     // Shutdown the MQTT client when the mode or setting changes
     DMW_st(mqttClientSetState, mqttClientState);
+    connected = networkConsumerIsConnected(NETCONSUMER_PPL_MQTT_CLIENT);
 
     if ((!mqttClientEnabled()) && (mqttClientState > MQTT_CLIENT_OFF))
     {
@@ -798,7 +800,7 @@ void mqttClientUpdate()
     // Wait for a network media connection
     case MQTT_CLIENT_WAIT_FOR_NETWORK: {
         // Wait until the network is connected to the media
-        if (networkIsConnected(&mqttClientPriority))
+        if (connected)
             mqttClientSetState(MQTT_CLIENT_CONNECTING_2_SERVER);
         break;
     }
@@ -806,7 +808,7 @@ void mqttClientUpdate()
     // Connect to the MQTT server
     case MQTT_CLIENT_CONNECTING_2_SERVER: {
         // Determine if the network has failed
-        if (!networkIsConnected(&mqttClientPriority))
+        if (!connected)
         {
             // Failed to connect to the network, attempt to restart the network
             mqttClientRestart();
@@ -934,7 +936,7 @@ void mqttClientUpdate()
 
     case MQTT_CLIENT_SERVICES_CONNECTED: {
         // Determine if the network has failed
-        if (!networkIsConnected(&mqttClientPriority))
+        if (!connected)
         {
             // The connection was previously successful, allow more retries
             // in the future

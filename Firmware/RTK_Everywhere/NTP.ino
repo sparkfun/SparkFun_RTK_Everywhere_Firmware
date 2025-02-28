@@ -75,7 +75,6 @@ const RtkMode_t ntpServerMode = RTK_MODE_NTP;
 // Locals
 //----------------------------------------
 
-static NetPriority_t ntpServerPriority = NETWORK_OFFLINE;
 static NetworkUDP *ntpServer; // This will be instantiated when we know the NTP port
 static uint8_t ntpServerState;
 static uint32_t lastLoggedNTPRequest;
@@ -760,18 +759,21 @@ void ntpServerStop()
     }
 
     // Stop the NTP server
+    networkConsumerOffline(NETCONSUMER_NTP_SERVER);
     ntpServerSetState(NTP_STATE_OFF);
 }
 
 // Update the NTP server state
 void ntpServerUpdate()
 {
+    bool connected;
     char ntpDiag[768]; // Char array to hold diagnostic messages
 
     if (present.ethernet_ws5500 == false)
         return;
 
     // Shutdown the NTP server when the mode or setting changes
+    connected = networkConsumerIsConnected(NETCONSUMER_NTP_SERVER);
     if (NEQ_RTK_MODE(ntpServerMode))
     {
         if (ntpServerState > NTP_STATE_OFF)
@@ -792,16 +794,13 @@ void ntpServerUpdate()
         {
             // The NTP server only works over Ethernet
             if (networkInterfaceHasInternet(NETWORK_ETHERNET))
-            {
-                ntpServerPriority = NETWORK_OFFLINE;
                 ntpServerSetState(NTP_STATE_NETWORK_CONNECTED);
-            }
         }
         break;
 
     case NTP_STATE_NETWORK_CONNECTED:
         // Determine if the network has failed
-        if (networkIsConnected(&ntpServerPriority) == false)
+        if (connected == false)
             // Stop the NTP server, restart it if possible
             ntpServerStop();
 
@@ -825,7 +824,7 @@ void ntpServerUpdate()
 
     case NTP_STATE_SERVER_RUNNING:
         // Determine if the network has failed
-        if (networkIsConnected(&ntpServerPriority) == false)
+        if (connected == false)
             // Stop the NTP server, restart it if possible
             ntpServerStop();
 

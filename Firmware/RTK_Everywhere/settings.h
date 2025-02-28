@@ -564,6 +564,7 @@ const int numRegionalAreas = sizeof(Regional_Information_Table) / sizeof(Regiona
 enum
 {
     NETCONSUMER_HTTP_CLIENT = 0,
+    NETCONSUMER_NTP_SERVER,
     NETCONSUMER_NTRIP_CLIENT,
     NETCONSUMER_NTRIP_SERVER,
     NETCONSUMER_OTA_CLIENT,
