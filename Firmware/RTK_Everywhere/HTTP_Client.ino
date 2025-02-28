@@ -294,6 +294,10 @@ void httpClientUpdate()
     if ((enabled == false) && (httpClientState > HTTP_CLIENT_OFF))
         httpClientShutdown();
 
+    // Determine if the network has failed
+    else if ((httpClientState > HTTP_CLIENT_NETWORK_STARTED) && !connected)
+        httpClientRestart();
+
     // Enable the network and the HTTP client if requested
     switch (httpClientState)
     {
@@ -326,14 +330,6 @@ void httpClientUpdate()
 
     // Connect to the HTTP server
     case HTTP_CLIENT_CONNECTING_2_SERVER: {
-        // Determine if the network has failed
-        if (!connected)
-        {
-            // Failed to connect to the network, attempt to restart the network
-            httpClientRestart();
-            break;
-        }
-
         // Allocate the httpSecureClient structure
         httpSecureClient = new NetworkClientSecure();
         if (!httpSecureClient)
@@ -383,14 +379,6 @@ void httpClientUpdate()
     }
 
     case HTTP_CLIENT_CONNECTED: {
-        // Determine if the network has failed
-        if (!connected)
-        {
-            // Failed to connect to the network, attempt to restart the network
-            httpClientRestart();
-            break;
-        }
-
         String ztpRequest;
         createZtpRequest(ztpRequest);
 
@@ -583,13 +571,8 @@ void httpClientUpdate()
 
     // The ZTP HTTP POST is complete. We either can not or do not want to continue.
     // Hang here until httpClientModeNeeded is set to false by updateProvisioning
-    case HTTP_CLIENT_COMPLETE: {
-        // Determine if the network has failed
-        if (!connected)
-            // Failed to connect to the network, attempt to restart the network
-            httpClientRestart();
+    case HTTP_CLIENT_COMPLETE:
         break;
-    }
     }
 
     // Periodically display the HTTP client state
