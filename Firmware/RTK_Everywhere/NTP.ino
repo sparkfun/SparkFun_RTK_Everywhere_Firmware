@@ -60,13 +60,20 @@ NTP.ino
 enum NTP_STATE
 {
     NTP_STATE_OFF,
+    NTP_STATE_WAIT_NETWORK,
     NTP_STATE_NETWORK_CONNECTED,
     NTP_STATE_SERVER_RUNNING,
     // Insert new states here
     NTP_STATE_MAX
 };
 
-const char *const ntpServerStateName[] = {"NTP_STATE_OFF", "NTP_STATE_NETWORK_CONNECTED", "NTP_STATE_SERVER_RUNNING"};
+const char *const ntpServerStateName[] =
+{
+    "NTP_STATE_OFF",
+    "NTP_STATE_WAIT_NETWORK",
+    "NTP_STATE_NETWORK_CONNECTED",
+    "NTP_STATE_SERVER_RUNNING"
+};
 const int ntpServerStateNameEntries = sizeof(ntpServerStateName) / sizeof(ntpServerStateName[0]);
 
 const RtkMode_t ntpServerMode = RTK_MODE_NTP;
@@ -82,7 +89,6 @@ static uint32_t lastLoggedNTPRequest;
 //----------------------------------------
 // Menu to get the NTP settings
 //----------------------------------------
-
 void menuNTP()
 {
     if (!present.ethernet_ws5500 == true)
@@ -193,7 +199,7 @@ void menuNTP()
 }
 
 // =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
-// NTP Packet storage and utilities
+// NTP Packet storage class and utilities
 
 struct NTPpacket
 {
@@ -336,6 +342,8 @@ struct NTPpacket
         uint8_t unsigned8;
     } unsignedSigned8;
 
+    //----------------------------------------
+    //----------------------------------------
     uint32_t extractUnsigned32(uint8_t *ptr)
     {
         uint32_t val = 0;
@@ -346,6 +354,8 @@ struct NTPpacket
         return val;
     }
 
+    //----------------------------------------
+    //----------------------------------------
     void insertUnsigned32(uint8_t *ptr, uint32_t val)
     {
         *ptr++ = val >> 24; // NTP data is Big-Endian
@@ -354,7 +364,9 @@ struct NTPpacket
         *ptr++ = val & 0xFF;
     }
 
+    //----------------------------------------
     // Extract the data from an NTP packet into the correct fields
+    //----------------------------------------
     void extract()
     {
         uint8_t *ptr = packet;
@@ -394,7 +406,9 @@ struct NTPpacket
         ptr += 4;
     }
 
+    //----------------------------------------
     // Insert the data from the fields into an NTP packet
+    //----------------------------------------
     void insert()
     {
         uint8_t *ptr = packet;
@@ -435,6 +449,8 @@ struct NTPpacket
         ptr += 4;
     }
 
+    //----------------------------------------
+    //----------------------------------------
     uint32_t convertMicrosToSecsAndFraction(uint32_t val) // 16-bit fraction used by root delay and dispersion
     {
         double secs = val;
@@ -451,6 +467,8 @@ struct NTPpacket
         return (result);
     }
 
+    //----------------------------------------
+    //----------------------------------------
     uint32_t convertMicrosToFraction(uint32_t val) // 32-bit fraction used by the timestamps
     {
         val %= 1000000;      // Just in case
@@ -460,6 +478,8 @@ struct NTPpacket
         return (uint32_t)v;
     }
 
+    //----------------------------------------
+    //----------------------------------------
     uint32_t convertFractionToMicros(uint32_t val) // 32-bit fraction used by the timestamps
     {
         double v = val;      // Convert fraction to double
@@ -470,22 +490,27 @@ struct NTPpacket
         return ret;
     }
 
+    //----------------------------------------
+    //----------------------------------------
     uint32_t convertNTPsecondsToUnix(uint32_t val)
     {
         return (val - NTPtoUnixOffset);
     }
 
+    //----------------------------------------
+    //----------------------------------------
     uint32_t convertUnixSecondsToNTP(uint32_t val)
     {
         return (val + NTPtoUnixOffset);
     }
 };
 
-// =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+//----------------------------------------
 // NTP process one request
 // recTv contains the timeval the NTP packet was received
 // syncTv contains the timeval when the RTC was last sync'd
 // ntpDiag will contain useful diagnostics
+//----------------------------------------
 bool ntpProcessOneRequest(bool process, const timeval *recTv, const timeval *syncTv, char *ntpDiag = nullptr,
                           size_t ntpDiagSize = 0); // Header
 bool ntpProcessOneRequest(bool process, const timeval *recTv, const timeval *syncTv, char *ntpDiag, size_t ntpDiagSize)
@@ -509,8 +534,8 @@ bool ntpProcessOneRequest(bool process, const timeval *recTv, const timeval *syn
 
         if (ntpDiag != nullptr) // Add the packet size and remote IP/Port to the diagnostics
         {
-            snprintf(ntpDiag, ntpDiagSize, "NTP request from:  Remote IP: %s  Remote Port: %d\r\n", remoteIP.toString(),
-                     remotePort);
+            snprintf(ntpDiag, ntpDiagSize, "NTP request from:  Remote IP: %s  Remote Port: %d\r\n",
+                     remoteIP.toString().c_str(), remotePort);
         }
 
         if (packetDataSize >= NTPpacket::NTPpacketSize)
@@ -691,8 +716,10 @@ bool ntpProcessOneRequest(bool process, const timeval *recTv, const timeval *syn
     return processed;
 }
 
+//----------------------------------------
 // Configure specific aspects of the receiver for NTP mode
-bool configureUbloxModuleNTP()
+//----------------------------------------
+bool ntpConfigureUbloxModule()
 {
     if (present.timePulseInterrupt == false)
         return (false);
@@ -718,7 +745,9 @@ bool configureUbloxModuleNTP()
 // NTP Server routines
 //=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 
+//----------------------------------------
 // Update the state of the NTP server state machine
+//----------------------------------------
 void ntpServerSetState(uint8_t newState)
 {
     if ((settings.debugNtp || PERIODIC_DISPLAY(PD_NTP_SERVER_STATE)) && (!inMainMenu))
@@ -742,7 +771,9 @@ void ntpServerSetState(uint8_t newState)
     }
 }
 
+//----------------------------------------
 // Stop the NTP server
+//----------------------------------------
 void ntpServerStop()
 {
     // Mark the NTP server as off
@@ -758,28 +789,36 @@ void ntpServerStop()
             reportHeapNow(settings.debugNtp);
     }
 
-    // Stop the NTP server
+    // Stop the NTP server if necessary
     networkConsumerOffline(NETCONSUMER_NTP_SERVER);
-    ntpServerSetState(NTP_STATE_OFF);
+    if (NEQ_RTK_MODE(ntpServerMode))
+    {
+        networkConsumerRemove(NETCONSUMER_NTP_SERVER, NETWORK_ETHERNET, __FILE__, __LINE__);
+        ntpServerSetState(NTP_STATE_OFF);
+    }
+    else
+        ntpServerSetState(NTP_STATE_WAIT_NETWORK);
 }
 
+//----------------------------------------
 // Update the NTP server state
+//----------------------------------------
 void ntpServerUpdate()
 {
+    bool enabled;
     bool connected;
     char ntpDiag[768]; // Char array to hold diagnostic messages
 
     if (present.ethernet_ws5500 == false)
         return;
 
-    // Shutdown the NTP server when the mode or setting changes
+    // Shutdown the NTP server when the mode changes or network fails
     connected = networkConsumerIsConnected(NETCONSUMER_NTP_SERVER);
-    if (NEQ_RTK_MODE(ntpServerMode))
-    {
-        if (ntpServerState > NTP_STATE_OFF)
-            ntpServerStop();
-        return;
-    }
+    enabled = EQ_RTK_MODE(ntpServerMode);
+    if ((enabled == false) && (ntpServerState > NTP_STATE_OFF))
+        ntpServerStop();
+    else if ((ntpServerState > NTP_STATE_WAIT_NETWORK) && !connected)
+        ntpServerStop();
 
     // Process the NTP state
     DMW_st(ntpServerSetState, ntpServerState);
@@ -790,145 +829,135 @@ void ntpServerUpdate()
 
     case NTP_STATE_OFF:
         // Determine if the NTP server is enabled
-        if (EQ_RTK_MODE(ntpServerMode))
+        if (enabled)
         {
             // The NTP server only works over Ethernet
-            if (networkInterfaceHasInternet(NETWORK_ETHERNET))
-                ntpServerSetState(NTP_STATE_NETWORK_CONNECTED);
+            networkConsumerAdd(NETCONSUMER_NTP_SERVER, NETWORK_ETHERNET, __FILE__, __LINE__);
+            ntpServerSetState(NTP_STATE_WAIT_NETWORK);
         }
         break;
 
-    case NTP_STATE_NETWORK_CONNECTED:
-        // Determine if the network has failed
-        if (connected == false)
-            // Stop the NTP server, restart it if possible
-            ntpServerStop();
+    case NTP_STATE_WAIT_NETWORK:
+        // The NTP server only works over Ethernet
+        if (networkInterfaceHasInternet(NETWORK_ETHERNET))
+            ntpServerSetState(NTP_STATE_WAIT_NETWORK);
+        break;
 
+    case NTP_STATE_NETWORK_CONNECTED:
         // Attempt to start the NTP server
+        ntpServer = new NetworkUDP;
+        if (!ntpServer)
+            // Insufficient memory to start the NTP server
+            ntpServerStop();
         else
         {
-            ntpServer = new NetworkUDP;
-            if (!ntpServer)
-                // Insufficient memory to start the NTP server
-                ntpServerStop();
-            else
-            {
-                ntpServer->begin(settings.ethernetNtpPort); // Start the NTP server
-                online.ethernetNTPServer = true;
-                if (!inMainMenu)
-                    reportHeapNow(settings.debugNtp);
-                ntpServerSetState(NTP_STATE_SERVER_RUNNING);
-            }
+            ntpServer->begin(settings.ethernetNtpPort); // Start the NTP server
+            online.ethernetNTPServer = true;
+            if (!inMainMenu)
+                reportHeapNow(settings.debugNtp);
+            ntpServerSetState(NTP_STATE_SERVER_RUNNING);
         }
         break;
 
     case NTP_STATE_SERVER_RUNNING:
-        // Determine if the network has failed
-        if (connected == false)
-            // Stop the NTP server, restart it if possible
-            ntpServerStop();
+        // Check for new NTP requests - if the time has been sync'd
+        bool processed = ntpProcessOneRequest(systemState == STATE_NTPSERVER_SYNC, (const timeval *)&ethernetNtpTv,
+                                              (const timeval *)&gnssSyncTv, ntpDiag, sizeof(ntpDiag));
 
-        else
+        // Print the diagnostics - if enabled
+        if ((settings.debugNtp || PERIODIC_DISPLAY(PD_NTP_SERVER_DATA)) && (strlen(ntpDiag) > 0) && (!inMainMenu))
         {
-            // Check for new NTP requests - if the time has been sync'd
-            bool processed = ntpProcessOneRequest(systemState == STATE_NTPSERVER_SYNC, (const timeval *)&ethernetNtpTv,
-                                                  (const timeval *)&gnssSyncTv, ntpDiag, sizeof(ntpDiag));
+            PERIODIC_CLEAR(PD_NTP_SERVER_DATA);
+            systemPrint(ntpDiag);
+        }
 
-            // Print the diagnostics - if enabled
-            if ((settings.debugNtp || PERIODIC_DISPLAY(PD_NTP_SERVER_DATA)) && (strlen(ntpDiag) > 0) && (!inMainMenu))
+        if (processed)
+        {
+            // Log the NTP request to file - if enabled
+            if (settings.enableNTPFile)
             {
-                PERIODIC_CLEAR(PD_NTP_SERVER_DATA);
-                systemPrint(ntpDiag);
-            }
-
-            if (processed)
-            {
-                // Log the NTP request to file - if enabled
-                if (settings.enableNTPFile)
+                // Gain access to the SPI controller for the microSD card
+                if (xSemaphoreTake(sdCardSemaphore, fatSemaphore_longWait_ms) == pdPASS)
                 {
-                    // Gain access to the SPI controller for the microSD card
-                    if (xSemaphoreTake(sdCardSemaphore, fatSemaphore_longWait_ms) == pdPASS)
+                    markSemaphore(FUNCTION_NTPEVENT);
+
+                    // Get the marks file name
+                    char fileName[55];
+                    bool fileOpen = false;
+                    bool sdCardWasOnline;
+                    int year;
+                    int month;
+                    int day;
+
+                    // Get the date
+                    year = rtc.getYear();
+                    month = rtc.getMonth() + 1;
+                    day = rtc.getDay();
+
+                    // Build the file name
+                    snprintf(fileName, sizeof(fileName), "/NTP_Requests_%04d_%02d_%02d.txt", year, month, day);
+
+                    // Try to gain access the SD card
+                    sdCardWasOnline = online.microSD;
+                    if (online.microSD != true)
+                        beginSD();
+
+                    if (online.microSD == true)
                     {
-                        markSemaphore(FUNCTION_NTPEVENT);
+                        // Check if the NTP file already exists
+                        bool ntpFileExists = false;
+                        ntpFileExists = sd->exists(fileName);
 
-                        // Get the marks file name
-                        char fileName[55];
-                        bool fileOpen = false;
-                        bool sdCardWasOnline;
-                        int year;
-                        int month;
-                        int day;
+                        // Open the NTP file
+                        SdFile ntpFile;
 
-                        // Get the date
-                        year = rtc.getYear();
-                        month = rtc.getMonth() + 1;
-                        day = rtc.getDay();
-
-                        // Build the file name
-                        snprintf(fileName, sizeof(fileName), "/NTP_Requests_%04d_%02d_%02d.txt", year, month, day);
-
-                        // Try to gain access the SD card
-                        sdCardWasOnline = online.microSD;
-                        if (online.microSD != true)
-                            beginSD();
-
-                        if (online.microSD == true)
+                        if (ntpFileExists)
                         {
-                            // Check if the NTP file already exists
-                            bool ntpFileExists = false;
-                            ntpFileExists = sd->exists(fileName);
-
-                            // Open the NTP file
-                            SdFile ntpFile;
-
-                            if (ntpFileExists)
+                            if (ntpFile && ntpFile.open(fileName, O_APPEND | O_WRITE))
                             {
-                                if (ntpFile && ntpFile.open(fileName, O_APPEND | O_WRITE))
-                                {
-                                    fileOpen = true;
-                                    sdUpdateFileCreateTimestamp(&ntpFile);
-                                }
-                            }
-                            else
-                            {
-                                if (ntpFile && ntpFile.open(fileName, O_CREAT | O_WRITE))
-                                {
-                                    fileOpen = true;
-                                    sdUpdateFileAccessTimestamp(&ntpFile);
-
-                                    // If you want to add a file header, do it here
-                                }
-                            }
-
-                            if (fileOpen)
-                            {
-                                // Write the NTP request to the file
-                                ntpFile.write((const uint8_t *)ntpDiag, strlen(ntpDiag));
-
-                                // Update the file to create time & date
+                                fileOpen = true;
                                 sdUpdateFileCreateTimestamp(&ntpFile);
-
-                                // Close the mark file
-                                ntpFile.close();
                             }
+                        }
+                        else
+                        {
+                            if (ntpFile && ntpFile.open(fileName, O_CREAT | O_WRITE))
+                            {
+                                fileOpen = true;
+                                sdUpdateFileAccessTimestamp(&ntpFile);
 
-                            // Dismount the SD card
-                            if (!sdCardWasOnline)
-                                endSD(true, false);
+                                // If you want to add a file header, do it here
+                            }
                         }
 
-                        // Done with the SPI controller
-                        xSemaphoreGive(sdCardSemaphore);
+                        if (fileOpen)
+                        {
+                            // Write the NTP request to the file
+                            ntpFile.write((const uint8_t *)ntpDiag, strlen(ntpDiag));
 
-                        lastLoggedNTPRequest = millis();
-                        ntpLogIncreasing = true;
-                    } // End sdCardSemaphore
-                }
+                            // Update the file to create time & date
+                            sdUpdateFileCreateTimestamp(&ntpFile);
+
+                            // Close the mark file
+                            ntpFile.close();
+                        }
+
+                        // Dismount the SD card
+                        if (!sdCardWasOnline)
+                            endSD(true, false);
+                    }
+
+                    // Done with the SPI controller
+                    xSemaphoreGive(sdCardSemaphore);
+
+                    lastLoggedNTPRequest = millis();
+                    ntpLogIncreasing = true;
+                } // End sdCardSemaphore
             }
-
-            if (millis() > (lastLoggedNTPRequest + 5000))
-                ntpLogIncreasing = false;
         }
+
+        if (millis() > (lastLoggedNTPRequest + 5000))
+            ntpLogIncreasing = false;
         break;
     }
 
@@ -937,7 +966,9 @@ void ntpServerUpdate()
         ntpServerSetState(ntpServerState);
 }
 
+//----------------------------------------
 // Verify the NTP tables
+//----------------------------------------
 void ntpValidateTables()
 {
     if (ntpServerStateNameEntries != NTP_STATE_MAX)
