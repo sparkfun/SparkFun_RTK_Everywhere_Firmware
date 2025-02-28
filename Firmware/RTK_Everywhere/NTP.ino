@@ -805,6 +805,7 @@ void ntpServerStop()
 //----------------------------------------
 void ntpServerUpdate()
 {
+    bool enabled;
     bool connected;
     char ntpDiag[768]; // Char array to hold diagnostic messages
 
@@ -813,7 +814,8 @@ void ntpServerUpdate()
 
     // Shutdown the NTP server when the mode changes or network fails
     connected = networkConsumerIsConnected(NETCONSUMER_NTP_SERVER);
-    if (NEQ_RTK_MODE(ntpServerMode) && (ntpServerState > NTP_STATE_OFF))
+    enabled = EQ_RTK_MODE(ntpServerMode);
+    if ((enabled == false) && (ntpServerState > NTP_STATE_OFF))
         ntpServerStop();
     else if ((ntpServerState > NTP_STATE_WAIT_NETWORK) && !connected)
         ntpServerStop();
@@ -827,7 +829,7 @@ void ntpServerUpdate()
 
     case NTP_STATE_OFF:
         // Determine if the NTP server is enabled
-        if (EQ_RTK_MODE(ntpServerMode))
+        if (enabled)
         {
             // The NTP server only works over Ethernet
             networkConsumerAdd(NETCONSUMER_NTP_SERVER, NETWORK_ETHERNET, __FILE__, __LINE__);
