@@ -772,9 +772,9 @@ void ntpServerUpdate()
     if (present.ethernet_ws5500 == false)
         return;
 
-    // Shutdown the NTP server when the mode or setting changes
+    // Shutdown the NTP server when the mode changes or network fails
     connected = networkConsumerIsConnected(NETCONSUMER_NTP_SERVER);
-    if (NEQ_RTK_MODE(ntpServerMode))
+    if (NEQ_RTK_MODE(ntpServerMode) || !connected)
     {
         if (ntpServerState > NTP_STATE_OFF)
             ntpServerStop();
@@ -799,136 +799,120 @@ void ntpServerUpdate()
         break;
 
     case NTP_STATE_NETWORK_CONNECTED:
-        // Determine if the network has failed
-        if (connected == false)
-            // Stop the NTP server, restart it if possible
-            ntpServerStop();
-
         // Attempt to start the NTP server
+        ntpServer = new NetworkUDP;
+        if (!ntpServer)
+            // Insufficient memory to start the NTP server
+            ntpServerStop();
         else
         {
-            ntpServer = new NetworkUDP;
-            if (!ntpServer)
-                // Insufficient memory to start the NTP server
-                ntpServerStop();
-            else
-            {
-                ntpServer->begin(settings.ethernetNtpPort); // Start the NTP server
-                online.ethernetNTPServer = true;
-                if (!inMainMenu)
-                    reportHeapNow(settings.debugNtp);
-                ntpServerSetState(NTP_STATE_SERVER_RUNNING);
-            }
+            ntpServer->begin(settings.ethernetNtpPort); // Start the NTP server
+            online.ethernetNTPServer = true;
+            if (!inMainMenu)
+                reportHeapNow(settings.debugNtp);
+            ntpServerSetState(NTP_STATE_SERVER_RUNNING);
         }
         break;
 
     case NTP_STATE_SERVER_RUNNING:
-        // Determine if the network has failed
-        if (connected == false)
-            // Stop the NTP server, restart it if possible
-            ntpServerStop();
+        // Check for new NTP requests - if the time has been sync'd
+        bool processed = ntpProcessOneRequest(systemState == STATE_NTPSERVER_SYNC, (const timeval *)&ethernetNtpTv,
+                                              (const timeval *)&gnssSyncTv, ntpDiag, sizeof(ntpDiag));
 
-        else
+        // Print the diagnostics - if enabled
+        if ((settings.debugNtp || PERIODIC_DISPLAY(PD_NTP_SERVER_DATA)) && (strlen(ntpDiag) > 0) && (!inMainMenu))
         {
-            // Check for new NTP requests - if the time has been sync'd
-            bool processed = ntpProcessOneRequest(systemState == STATE_NTPSERVER_SYNC, (const timeval *)&ethernetNtpTv,
-                                                  (const timeval *)&gnssSyncTv, ntpDiag, sizeof(ntpDiag));
+            PERIODIC_CLEAR(PD_NTP_SERVER_DATA);
+            systemPrint(ntpDiag);
+        }
 
-            // Print the diagnostics - if enabled
-            if ((settings.debugNtp || PERIODIC_DISPLAY(PD_NTP_SERVER_DATA)) && (strlen(ntpDiag) > 0) && (!inMainMenu))
+        if (processed)
+        {
+            // Log the NTP request to file - if enabled
+            if (settings.enableNTPFile)
             {
-                PERIODIC_CLEAR(PD_NTP_SERVER_DATA);
-                systemPrint(ntpDiag);
-            }
-
-            if (processed)
-            {
-                // Log the NTP request to file - if enabled
-                if (settings.enableNTPFile)
+                // Gain access to the SPI controller for the microSD card
+                if (xSemaphoreTake(sdCardSemaphore, fatSemaphore_longWait_ms) == pdPASS)
                 {
-                    // Gain access to the SPI controller for the microSD card
-                    if (xSemaphoreTake(sdCardSemaphore, fatSemaphore_longWait_ms) == pdPASS)
+                    markSemaphore(FUNCTION_NTPEVENT);
+
+                    // Get the marks file name
+                    char fileName[55];
+                    bool fileOpen = false;
+                    bool sdCardWasOnline;
+                    int year;
+                    int month;
+                    int day;
+
+                    // Get the date
+                    year = rtc.getYear();
+                    month = rtc.getMonth() + 1;
+                    day = rtc.getDay();
+
+                    // Build the file name
+                    snprintf(fileName, sizeof(fileName), "/NTP_Requests_%04d_%02d_%02d.txt", year, month, day);
+
+                    // Try to gain access the SD card
+                    sdCardWasOnline = online.microSD;
+                    if (online.microSD != true)
+                        beginSD();
+
+                    if (online.microSD == true)
                     {
-                        markSemaphore(FUNCTION_NTPEVENT);
+                        // Check if the NTP file already exists
+                        bool ntpFileExists = false;
+                        ntpFileExists = sd->exists(fileName);
 
-                        // Get the marks file name
-                        char fileName[55];
-                        bool fileOpen = false;
-                        bool sdCardWasOnline;
-                        int year;
-                        int month;
-                        int day;
+                        // Open the NTP file
+                        SdFile ntpFile;
 
-                        // Get the date
-                        year = rtc.getYear();
-                        month = rtc.getMonth() + 1;
-                        day = rtc.getDay();
-
-                        // Build the file name
-                        snprintf(fileName, sizeof(fileName), "/NTP_Requests_%04d_%02d_%02d.txt", year, month, day);
-
-                        // Try to gain access the SD card
-                        sdCardWasOnline = online.microSD;
-                        if (online.microSD != true)
-                            beginSD();
-
-                        if (online.microSD == true)
+                        if (ntpFileExists)
                         {
-                            // Check if the NTP file already exists
-                            bool ntpFileExists = false;
-                            ntpFileExists = sd->exists(fileName);
-
-                            // Open the NTP file
-                            SdFile ntpFile;
-
-                            if (ntpFileExists)
+                            if (ntpFile && ntpFile.open(fileName, O_APPEND | O_WRITE))
                             {
-                                if (ntpFile && ntpFile.open(fileName, O_APPEND | O_WRITE))
-                                {
-                                    fileOpen = true;
-                                    sdUpdateFileCreateTimestamp(&ntpFile);
-                                }
-                            }
-                            else
-                            {
-                                if (ntpFile && ntpFile.open(fileName, O_CREAT | O_WRITE))
-                                {
-                                    fileOpen = true;
-                                    sdUpdateFileAccessTimestamp(&ntpFile);
-
-                                    // If you want to add a file header, do it here
-                                }
-                            }
-
-                            if (fileOpen)
-                            {
-                                // Write the NTP request to the file
-                                ntpFile.write((const uint8_t *)ntpDiag, strlen(ntpDiag));
-
-                                // Update the file to create time & date
+                                fileOpen = true;
                                 sdUpdateFileCreateTimestamp(&ntpFile);
-
-                                // Close the mark file
-                                ntpFile.close();
                             }
+                        }
+                        else
+                        {
+                            if (ntpFile && ntpFile.open(fileName, O_CREAT | O_WRITE))
+                            {
+                                fileOpen = true;
+                                sdUpdateFileAccessTimestamp(&ntpFile);
 
-                            // Dismount the SD card
-                            if (!sdCardWasOnline)
-                                endSD(true, false);
+                                // If you want to add a file header, do it here
+                            }
                         }
 
-                        // Done with the SPI controller
-                        xSemaphoreGive(sdCardSemaphore);
+                        if (fileOpen)
+                        {
+                            // Write the NTP request to the file
+                            ntpFile.write((const uint8_t *)ntpDiag, strlen(ntpDiag));
 
-                        lastLoggedNTPRequest = millis();
-                        ntpLogIncreasing = true;
-                    } // End sdCardSemaphore
-                }
+                            // Update the file to create time & date
+                            sdUpdateFileCreateTimestamp(&ntpFile);
+
+                            // Close the mark file
+                            ntpFile.close();
+                        }
+
+                        // Dismount the SD card
+                        if (!sdCardWasOnline)
+                            endSD(true, false);
+                    }
+
+                    // Done with the SPI controller
+                    xSemaphoreGive(sdCardSemaphore);
+
+                    lastLoggedNTPRequest = millis();
+                    ntpLogIncreasing = true;
+                } // End sdCardSemaphore
             }
-
-            if (millis() > (lastLoggedNTPRequest + 5000))
-                ntpLogIncreasing = false;
         }
+
+        if (millis() > (lastLoggedNTPRequest + 5000))
+            ntpLogIncreasing = false;
         break;
     }
 
