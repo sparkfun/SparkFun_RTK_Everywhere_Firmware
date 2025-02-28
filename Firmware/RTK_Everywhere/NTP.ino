@@ -778,7 +778,6 @@ void ntpServerUpdate()
     {
         if (ntpServerState > NTP_STATE_OFF)
             ntpServerStop();
-        return;
     }
 
     // Process the NTP state
