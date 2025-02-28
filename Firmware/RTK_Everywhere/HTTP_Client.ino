@@ -285,11 +285,13 @@ void httpClientStop(bool shutdown)
 void httpClientUpdate()
 {
     bool connected;
+    bool enabled;
 
     // Shutdown the HTTP client when the mode or setting changes
     DMW_st(httpClientSetState, httpClientState);
     connected = networkConsumerIsConnected(NETCONSUMER_HTTP_CLIENT);
-    if ((!httpClientEnabled()) && (httpClientState > HTTP_CLIENT_OFF))
+    enabled = httpClientEnabled();
+    if ((enabled == false) && (httpClientState > HTTP_CLIENT_OFF))
         httpClientShutdown();
 
     // Enable the network and the HTTP client if requested
@@ -297,7 +299,7 @@ void httpClientUpdate()
     {
     default:
     case HTTP_CLIENT_OFF: {
-        if (httpClientEnabled())
+        if (enabled)
         {
             networkConsumerAdd(NETCONSUMER_HTTP_CLIENT, NETWORK_ANY, __FILE__, __LINE__);
             httpClientStart();
