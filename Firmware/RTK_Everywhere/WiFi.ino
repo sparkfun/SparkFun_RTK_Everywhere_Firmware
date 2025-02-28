@@ -655,6 +655,20 @@ bool wifiSoftApOn(bool on, const char * fileName, uint32_t lineNumber)
 }
 
 //*********************************************************************
+// Get the WiFi soft AP SSID
+// Outputs:
+//   Returns a zero terminated string containing the SSID begin broadcast
+//   for the WiFi soft AP.  The return value of an empty string occurs
+//   when the soft AP is not online.
+const char * wifiSoftApGetSsid()
+{
+    const char * ssid;
+
+    ssid = wifi.softApOnline() ? wifi._apSsid : "";
+    return ssid;
+}
+
+//*********************************************************************
 // Start WiFi with throttling, used by wifiStopSequence
 void wifiStartThrottled(NetIndex_t index, uintptr_t parameter, bool debug)
 {
@@ -811,6 +825,11 @@ RTK_WIFI::RTK_WIFI(bool verbose)
     wifiStationOnline = false;
     wifiStationRunning = false;
 
+    // Allocate the WiFi soft AP SSID
+    _apSsid = (char *)rtkMalloc(SSID_LENGTH);
+    if (_apSsid)
+        _apSsid[0] = 0;
+
     // Prepare to start WiFi immediately
     wifiResetThrottleTimeout();
     wifiResetTimeout();
@@ -938,8 +957,20 @@ bool RTK_WIFI::enable(bool enableESPNow,
         // Verify that the SSID is set
         if (wifiSoftApSsid && strlen(wifiSoftApSsid))
         {
-            starting |= WIFI_START_SOFT_AP;
-            wifiSoftApRunning = true;
+            // Allocate the soft AP SSID
+            if (!_apSsid)
+            {
+                _apSsid = (char *)rtkMalloc(strlen(wifiSoftApSsid) + 1);
+                if (_apSsid)
+                    _apSsid[0] = 0;
+                else
+                    systemPrintf("ERROR: Failed to allocate buffer for AP SSID\r\n");
+            }
+            if (_apSsid)
+            {
+                starting |= WIFI_START_SOFT_AP;
+                wifiSoftApRunning = true;
+            }
         }
         else
             systemPrintf("ERROR: AP SSID or password is missing\r\n");
@@ -2244,7 +2275,11 @@ bool RTK_WIFI::stopStart(WIFI_ACTION_t stopping, WIFI_ACTION_t starting)
 
         // Stop use of SSID and password
         if (stopping & WIFI_AP_SET_SSID_PASSWORD)
+        {
             _started = _started & ~WIFI_AP_SET_SSID_PASSWORD;
+            if (_apSsid)
+                _apSsid[0] = 0;
+        }
 
         stillRunning = _started;
 
@@ -2377,7 +2412,15 @@ bool RTK_WIFI::stopStart(WIFI_ACTION_t stopping, WIFI_ACTION_t starting)
         // Set the soft AP SSID and password
         if (starting & WIFI_AP_SET_SSID_PASSWORD)
         {
-            if (!softApSetSsidPassword(wifiSoftApSsid, wifiSoftApPassword))
+            // Append the last four digits of the MAC address
+            if (strlen(_apSsid) == 0)
+            {
+                snprintf(_apSsid, SSID_LENGTH, "%s %02X%02X", wifiSoftApSsid, btMACAddress[4], btMACAddress[5]);
+                _apSsid[SSID_LENGTH - 1] = 0;
+            }
+
+            // Set the soft AP SSID and password
+            if (!softApSetSsidPassword(_apSsid, wifiSoftApPassword))
                 break;
             _started = _started | WIFI_AP_SET_SSID_PASSWORD;
         }
@@ -2436,7 +2479,7 @@ bool RTK_WIFI::stopStart(WIFI_ACTION_t stopping, WIFI_ACTION_t starting)
 
             // Display the soft AP status
             systemPrintf("WiFi: Soft AP online, SSID: %s (%s)%s%s\r\n",
-                         wifiSoftApSsid,
+                         _apSsid ? _apSsid : "",
                          _apIpAddress.toString().c_str(),
                          wifiSoftApPassword ? ", Password: " : "",
                          wifiSoftApPassword ? wifiSoftApPassword : "");

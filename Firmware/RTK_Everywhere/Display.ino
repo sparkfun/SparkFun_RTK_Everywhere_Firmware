@@ -3090,7 +3090,7 @@ void displayWebConfig(std::vector<iconPropertyBlinking> &iconPropertyList)
     if (wifi.softApOnline())
     {
         setWiFiIcon(&iconPropertyList); // Blink WiFi in center
-        snprintf(mySSID, sizeof(mySSID), "%s", wifiSoftApSsid);
+        snprintf(mySSID, sizeof(mySSID), "%s", wifiSoftApGetSsid());
         strcpy(myIP, wifi.softApIpAddress().toString().c_str());
     }
     else if (networkInterfaceHasInternet(NETWORK_WIFI_STATION))
