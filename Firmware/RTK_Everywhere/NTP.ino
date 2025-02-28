@@ -769,6 +769,7 @@ void ntpServerStop()
     networkConsumerOffline(NETCONSUMER_NTP_SERVER);
     if (NEQ_RTK_MODE(ntpServerMode))
     {
+        networkConsumerRemove(NETCONSUMER_NTP_SERVER, NETWORK_ETHERNET, __FILE__, __LINE__);
         ntpServerSetState(NTP_STATE_OFF);
     }
     else
@@ -802,6 +803,8 @@ void ntpServerUpdate()
         // Determine if the NTP server is enabled
         if (EQ_RTK_MODE(ntpServerMode))
         {
+            // The NTP server only works over Ethernet
+            networkConsumerAdd(NETCONSUMER_NTP_SERVER, NETWORK_ETHERNET, __FILE__, __LINE__);
             ntpServerSetState(NTP_STATE_WAIT_NETWORK);
         }
         break;
