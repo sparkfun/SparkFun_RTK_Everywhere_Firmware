@@ -298,7 +298,7 @@ void createZtpRequest(String &str, int attemptNumber)
 }
 
 // Find thing3 in (*jsonZtp)[thing1][n][thing2]. Return n on success. Return -1 on error / not found.
-int findZtpJSONEntry(const char *thing1, const char *thing2, const char *thing3, JsonDocument *jsonZtp)
+int findZtpJSONEntryTnT(const char *thing1, const char *thing2, const char *thing3, JsonDocument *jsonZtp)
 {
     if (!jsonZtp)
         return (-1);
@@ -315,6 +315,24 @@ int findZtpJSONEntry(const char *thing1, const char *thing2, const char *thing3,
         }
 
     return (-1);
+}
+
+// Find thing4 in (*jsonZtp)[thing1][thing2][n][thing3]. Return n on success. Return -1 on error / not found.
+int findZtpJSONEntryTTnT(const char *thing1, const char *thing2, const char *thing3, const char *thing4, JsonDocument *jsonZtp)
+{
+  if (!jsonZtp)
+    return (-1);
+
+  int i = (*jsonZtp)[thing1][thing2].size();
+
+  if (i == 0)
+    return (-1);
+
+  for (int j = 0; j < i; j++)
+    if (strstr((const char *)(*jsonZtp)[thing1][thing2][j][thing3], thing4) != nullptr)
+      return j;
+
+  return (-1);
 }
 
 // Given a token array, format it in the proper way and store it in the buffer

@@ -522,93 +522,141 @@ void httpClientUpdate()
                     break;
                 }
 
-                strncpy(tempHolderPtr, (const char *)((*jsonZtp)["certificate"]), MQTT_CERT_SIZE - 1);
-                recordFile("certificate", tempHolderPtr, strlen(tempHolderPtr));
-
-                strncpy(tempHolderPtr, (const char *)((*jsonZtp)["privateKey"]), MQTT_CERT_SIZE - 1);
-                recordFile("privateKey", tempHolderPtr, strlen(tempHolderPtr));
-
-                free(tempHolderPtr); // Clean up. Done with tempHolderPtr
-
-                // Validate the keys
-                if (!checkCertificates())
+                if (response.indexOf("rtcmCredentials") >= 0)
                 {
-                    systemPrintln("ERROR - Failed to validate the Point Perfect certificates!");
+                    // Handle a PointPerfect RTCM credentials response
+
+                    // Override NTRIP Settings
+                    settings.enableNtripClient = true;
+                    settings.ntripClient_TransmitGGA = true;
+
+                    // Get endPoint aka Caster host address based on Geographic Region selected by user
+                    int region = -1;
+                    if (strcmp(Regional_Information_Table[settings.geographicRegion].name, "US") == 0)
+                    {
+                        // Find the JSON entry with "region":"NorthAmerica" and extract "endpoint"
+                        region =
+                            findZtpJSONEntryTTnT("rtcmCredentials", "endPoints", "region", "NorthAmerica", jsonZtp);
+                    }
+                    else if (strcmp(Regional_Information_Table[settings.geographicRegion].name, "EU") == 0)
+                    {
+                        // Find the JSON entry with "region":"Europe" and extract "endpoint"
+                        region = findZtpJSONEntryTTnT("rtcmCredentials", "endPoints", "region", "Europe", jsonZtp);
+                    }
+
+                    if (region >= 0)
+                    {
+                        strncpy(settings.ntripClient_CasterHost,
+                                (const char *)((*jsonZtp)["rtcmCredentials"]["endPoints"][region]["endpoint"]),
+                                sizeof(settings.ntripClient_CasterHost));
+                    }
+                    else
+                    {
+                        systemPrintln("Region not found in PointPerfect response.");
+                    }
+
+                    strncpy(settings.ntripClient_CasterPort, (*jsonZtp)["httpPort"],
+                            sizeof(settings.ntripClient_CasterPort));
+                    strncpy(settings.ntripClient_CasterUser, (const char *)((*jsonZtp)["userName"]),
+                            sizeof(settings.ntripClient_CasterUser));
+                    strncpy(settings.ntripClient_CasterUserPW, (const char *)((*jsonZtp)["password"]),
+                            sizeof(settings.ntripClient_CasterUserPW));
+                    strncpy(settings.ntripClient_MountPoint, (const char *)((*jsonZtp)["mountPoint"]),
+                            sizeof(settings.ntripClient_MountPoint));
                 }
                 else
                 {
-                    if (settings.debugPpCertificate || settings.debugHttpClientData)
-                        systemPrintln("Certificates recorded successfully.");
+                    // Handle a PointPerfect 'keys' response
+                    strncpy(tempHolderPtr, (const char *)((*jsonZtp)["certificate"]), MQTT_CERT_SIZE - 1);
+                    recordFile("certificate", tempHolderPtr, strlen(tempHolderPtr));
 
-                    strncpy(settings.pointPerfectClientID, (const char *)((*jsonZtp)["clientId"]),
-                            sizeof(settings.pointPerfectClientID));
-                    strncpy(settings.pointPerfectBrokerHost, (const char *)((*jsonZtp)["brokerHost"]),
-                            sizeof(settings.pointPerfectBrokerHost));
+                    strncpy(tempHolderPtr, (const char *)((*jsonZtp)["privateKey"]), MQTT_CERT_SIZE - 1);
+                    recordFile("privateKey", tempHolderPtr, strlen(tempHolderPtr));
 
-                    // Note: from the ZTP documentation:
-                    // ["subscriptions"][0] will contain the key distribution topic
-                    // But, assuming the key distribution topic is always ["subscriptions"][0] is potentially brittle
-                    // It is safer to check the "description" contains "key distribution topic"
-                    // If we are on an IP-only plan, the path will be /pp/ubx/0236/ip
-                    // If we are on a L-Band-only or L-Band+IP plan, the path will be /pp/ubx/0236/Lb
-                    // These 0236 key distribution topics provide the keys in UBX format, ready to be pushed to a ZED.
-                    // There are also /pp/key/ip and /pp/key/Lb topics which provide the keys in JSON format - but we
-                    // don't use those.
-                    int subscription =
-                        findZtpJSONEntry("subscriptions", "description", "key distribution topic", jsonZtp);
-                    if (subscription >= 0)
-                        strncpy(settings.pointPerfectKeyDistributionTopic,
-                                (const char *)((*jsonZtp)["subscriptions"][subscription]["path"]),
-                                sizeof(settings.pointPerfectKeyDistributionTopic));
+                    free(tempHolderPtr); // Clean up. Done with tempHolderPtr
 
-                    // "subscriptions" will also contain the correction topics for all available regional areas - for
-                    // IP-only or L-Band+IP We should store those too, and then allow the user to select the one for
-                    // their regional area
-                    for (int r = 0; r < numRegionalAreas; r++)
+                    // Validate the keys
+                    if (!checkCertificates())
                     {
-                        char findMe[40];
-                        snprintf(findMe, sizeof(findMe), "correction topic for %s",
-                                 Regional_Information_Table[r].name); // Search for "US" etc.
-                        subscription = findZtpJSONEntry("subscriptions", "description", (const char *)findMe, jsonZtp);
-                        if (subscription >= 0)
-                            strncpy(settings.regionalCorrectionTopics[r],
-                                    (const char *)((*jsonZtp)["subscriptions"][subscription]["path"]),
-                                    sizeof(settings.regionalCorrectionTopics[0]));
-                        else
-                            settings.regionalCorrectionTopics[r][0] =
-                                0; // Erase any invalid (non-plan) correction topics. Just in case the plan has changed.
+                        systemPrintln("ERROR - Failed to validate the Point Perfect certificates!");
                     }
+                    else
+                    {
+                        if (settings.debugPpCertificate || settings.debugHttpClientData)
+                            systemPrintln("Certificates recorded successfully.");
 
-                    // "subscriptions" also contains the geographic area definition topic for each region for localized
-                    // distribution. We can cheat by appending "/gad" to the correction topic. TODO: think about doing
-                    // this properly.
+                        strncpy(settings.pointPerfectClientID, (const char *)((*jsonZtp)["clientId"]),
+                                sizeof(settings.pointPerfectClientID));
+                        strncpy(settings.pointPerfectBrokerHost, (const char *)((*jsonZtp)["brokerHost"]),
+                                sizeof(settings.pointPerfectBrokerHost));
 
-                    // Now we extract the current and next key pair
-                    strncpy(settings.pointPerfectCurrentKey,
-                            (const char *)((*jsonZtp)["dynamickeys"]["current"]["value"]),
-                            sizeof(settings.pointPerfectCurrentKey));
-                    settings.pointPerfectCurrentKeyDuration = (*jsonZtp)["dynamickeys"]["current"]["duration"];
-                    settings.pointPerfectCurrentKeyStart = (*jsonZtp)["dynamickeys"]["current"]["start"];
+                        // Note: from the ZTP documentation:
+                        // ["subscriptions"][0] will contain the key distribution topic
+                        // But, assuming the key distribution topic is always ["subscriptions"][0] is potentially
+                        // brittle It is safer to check the "description" contains "key distribution topic" If we are on
+                        // an IP-only plan, the path will be /pp/ubx/0236/ip If we are on a L-Band-only or L-Band+IP
+                        // plan, the path will be /pp/ubx/0236/Lb These 0236 key distribution topics provide the keys in
+                        // UBX format, ready to be pushed to a ZED. There are also /pp/key/ip and /pp/key/Lb topics
+                        // which provide the keys in JSON format - but we don't use those.
+                        int subscription =
+                            findZtpJSONEntryTnT("subscriptions", "description", "key distribution topic", jsonZtp);
+                        if (subscription >= 0)
+                            strncpy(settings.pointPerfectKeyDistributionTopic,
+                                    (const char *)((*jsonZtp)["subscriptions"][subscription]["path"]),
+                                    sizeof(settings.pointPerfectKeyDistributionTopic));
 
-                    strncpy(settings.pointPerfectNextKey, (const char *)((*jsonZtp)["dynamickeys"]["next"]["value"]),
-                            sizeof(settings.pointPerfectNextKey));
-                    settings.pointPerfectNextKeyDuration = (*jsonZtp)["dynamickeys"]["next"]["duration"];
-                    settings.pointPerfectNextKeyStart = (*jsonZtp)["dynamickeys"]["next"]["start"];
+                        // "subscriptions" will also contain the correction topics for all available regional areas -
+                        // for IP-only or L-Band+IP We should store those too, and then allow the user to select the one
+                        // for their regional area
+                        for (int r = 0; r < numRegionalAreas; r++)
+                        {
+                            char findMe[40];
+                            snprintf(findMe, sizeof(findMe), "correction topic for %s",
+                                     Regional_Information_Table[r].name); // Search for "US" etc.
+                            subscription =
+                                findZtpJSONEntryTnT("subscriptions", "description", (const char *)findMe, jsonZtp);
+                            if (subscription >= 0)
+                                strncpy(settings.regionalCorrectionTopics[r],
+                                        (const char *)((*jsonZtp)["subscriptions"][subscription]["path"]),
+                                        sizeof(settings.regionalCorrectionTopics[0]));
+                            else
+                                settings.regionalCorrectionTopics[r][0] =
+                                    0; // Erase any invalid (non-plan) correction topics. Just in case the plan has
+                                       // changed.
+                        }
 
-                    if (settings.debugCorrections || settings.debugHttpClientData)
-                        pointperfectPrintKeyInformation("HTTP Client");
+                        // "subscriptions" also contains the geographic area definition topic for each region for
+                        // localized distribution. We can cheat by appending "/gad" to the correction topic. TODO: think
+                        // about doing this properly.
 
-                    // displayKeysUpdated();
+                        // Now we extract the current and next key pair
+                        strncpy(settings.pointPerfectCurrentKey,
+                                (const char *)((*jsonZtp)["dynamickeys"]["current"]["value"]),
+                                sizeof(settings.pointPerfectCurrentKey));
+                        settings.pointPerfectCurrentKeyDuration = (*jsonZtp)["dynamickeys"]["current"]["duration"];
+                        settings.pointPerfectCurrentKeyStart = (*jsonZtp)["dynamickeys"]["current"]["start"];
 
-                    ztpInterimResponse[ztpAttempt] = ZTP_SUCCESS;
+                        strncpy(settings.pointPerfectNextKey,
+                                (const char *)((*jsonZtp)["dynamickeys"]["next"]["value"]),
+                                sizeof(settings.pointPerfectNextKey));
+                        settings.pointPerfectNextKeyDuration = (*jsonZtp)["dynamickeys"]["next"]["duration"];
+                        settings.pointPerfectNextKeyStart = (*jsonZtp)["dynamickeys"]["next"]["start"];
 
-                    ztpServiceLevelAllowed = ztpServiceLevelLookup(
-                        ztpAttempt); // Record this so other tasks know what PointPerfect is accessible.
+                        if (settings.debugCorrections || settings.debugHttpClientData)
+                            pointperfectPrintKeyInformation("HTTP Client");
 
-                    ztpResponse = ZTP_SUCCESS; // Report success to provisioningUpdate()
+                        // displayKeysUpdated();
 
-                    httpClientSetState(HTTP_CLIENT_COMPLETE);
-                }
+                        ztpInterimResponse[ztpAttempt] = ZTP_SUCCESS;
+
+                        ztpServiceLevelAllowed = ztpServiceLevelLookup(
+                            ztpAttempt); // Record this so other tasks know what PointPerfect is accessible.
+
+                        ztpResponse = ZTP_SUCCESS; // Report success to provisioningUpdate()
+
+                        httpClientSetState(HTTP_CLIENT_COMPLETE);
+                    } // Valid certificates
+                } // Handle keys type response
             } // JSON Deserialized correctly
         } // HTTP Response was 200
         break;
