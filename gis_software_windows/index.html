@@ -25,7 +25,7 @@
       
       
       <link rel="icon" href="../img/Icons/sfe_logo_sq.png">
-      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.6.5+insiders-4.53.15">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.6.7+insiders-4.53.15">
     
     
       
@@ -740,6 +740,19 @@
       Table of contents
     </label>
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#survpc" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        <span class="md-typeset">
+          SurvPC<a class="headerlink" href="#survpc" title="Permanent link"></a>
+        </span>
+      
+    </span>
+  </a>
+  
+</li>
       
         <li class="md-nav__item">
   <a href="#qgis" class="md-nav__link">
@@ -2530,6 +2543,19 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
+  <a href="#survpc" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        <span class="md-typeset">
+          SurvPC<a class="headerlink" href="#survpc" title="Permanent link"></a>
+        </span>
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#qgis" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -2649,6 +2675,96 @@ Compatibility Icons
 </ul>
 </div>
 <p>There are a variety of 3rd party apps available for GIS and surveying for <a href="https://docs.sparkfun.com/SparkFun_RTK_Everywhere_Firmware/gis_software_android/" target="_blank" rel="noopener">Android</a>, <a href="https://docs.sparkfun.com/SparkFun_RTK_Everywhere_Firmware/gis_software_ios/" target="_blank" rel="noopener">iOS</a>, and <a href="https://docs.sparkfun.com/SparkFun_RTK_Everywhere_Firmware/gis_software_windows/" target="_blank" rel="noopener">Windows</a>. We will cover a few examples below that should give you an idea of how to get the incoming NMEA data into the software of your choice.</p>
+<h2 id="survpc">SurvPC<a class="headerlink" href="#survpc" title="Permanent link"></a></h2>
+<p>Be sure your device is <a href="../connecting_bluetooth/#windows">paired over Bluetooth</a>.</p>
+<figure>
+<p><img alt="Equip Sub Menu" src="../img/SurvPC/SparkFun%20RTK%20Software%20-%20SurvPC%20Equip%20Menu.jpg" /></p>
+<figcaption>
+<p>Equip Sub Menu</p>
+</figcaption>
+</figure>
+<p>Select the <em>Equip</em> sub menu then <code>GPS Rover</code></p>
+<figure>
+<p><img alt="Select NMEA GPS Receiver" src="../img/SurvPC/SparkFun%20RTK%20Software%20-%20SurvPC%20Rover%20NMEA.jpg" /></p>
+<figcaption>
+<p>Select NMEA GPS Receiver</p>
+</figcaption>
+</figure>
+<p>From the drop down, select <code>NMEA GPS Receiver</code>.</p>
+<figure>
+<p><img alt="Select Model: DGPS" src="../img/SurvPC/SparkFun%20RTK%20Software%20-%20SurvPC%20Rover%20DGPS.jpg" /></p>
+<figcaption>
+<p>Select Model: DGPS</p>
+</figcaption>
+</figure>
+<p>Select DGPS if you'd like to connect to an NTRIP Caster. If you are using the RTK Facet L-Band, or do not need RTK fix type precision, leave the model as Generic.</p>
+<figure>
+<p><img alt="Bluetooth Settings" src="../img/SurvPC/SparkFun%20RTK%20Software%20-%20SurvPC%20Rover%20Comms.jpg" /></p>
+<figcaption>
+<p>Bluetooth Settings Button</p>
+</figcaption>
+</figure>
+<p>From the <code>Comms</code> submenu, click the Blueooth settings button.</p>
+<figure>
+<p><img alt="SurvPC Bluetooth Devices" src="../img/SurvPC/SparkFun%20RTK%20Software%20-%20SurvPC%20Rover%20Find%20Device.jpg" /></p>
+<figcaption>
+<p>SurvPC Bluetooth Devices</p>
+</figcaption>
+</figure>
+<p>Click <code>Find Device</code>.</p>
+<figure>
+<p><img alt="List of Paired Bluetooth Devices" src="../img/SurvPC/SparkFun%20RTK%20Software%20-%20SurvPC%20Rover%20Select%20Bluetooth%20Device.jpg" /></p>
+<figcaption>
+<p>List of Paired Bluetooth Devices</p>
+</figcaption>
+</figure>
+<p>You will be shown a list of devices that have been paired. Select the RTK device you want to connect to.</p>
+<figure>
+<p><img alt="Connect to Device" src="../img/SurvPC/SparkFun%20RTK%20Software%20-%20SurvPC%20Rover%20Select%20Bluetooth%20Device%20With%20MAC.jpg" /></p>
+<figcaption>
+<p>Connect to Device</p>
+</figcaption>
+</figure>
+<p>Click the <code>Connect Bluetooth</code> button, shown in red in the top right corner. The software will begin a connection to the RTK device. You'll see the MAC address on the RTK device changes to the Bluetooth icon indicating it's connected.</p>
+<p>If SurvPC detects NMEA, it will report a successful connection.</p>
+<figure>
+<p><img alt="Receiver Submenu" src="../img/SurvPC/SparkFun%20RTK%20Software%20-%20SurvPC%20Rover%20Receiver.jpg" /></p>
+<figcaption>
+<p>Receiver Submenu</p>
+</figcaption>
+</figure>
+<p>You are welcome to enter the ARP (antenna reference point) and surveying stick length for your particular setup.</p>
+<p><strong>NTRIP Client</strong></p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>If you are using a radio to connect Base to Rover, or if you are using the RTK Facet L-Band you do not need to set up NTRIP; the device will achieve RTK fixes and output extremely accurate location data by itself. But if L-Band corrections are not available, or you are not using a radio link, the NTRIP Client can provide corrections to this Rover.</p>
+</div>
+<figure>
+<p><img alt="RTK Submenu" src="../img/SurvPC/SparkFun%20RTK%20Software%20-%20SurvPC%20NTRIP%20Client.jpg" /></p>
+<figcaption>
+<p>RTK Submenu</p>
+</figcaption>
+</figure>
+<p>If you selected 'DGPS' as the Model type, the RTK submenu will be shown. This is where you give the details about your NTRIP Caster such as your mount point, user name/pw, etc. For more information about creating your own NTRIP mount point please see <a href="../permanent_base/">Creating a Permanent Base</a></p>
+<p>Enter your NTRIP Caster credentials and click connect. You will see bytes begin to transfer from your phone to the RTK device. Within a few seconds, the RTK device will go from ~300mm accuracy to 14mm. Pretty nifty, no?</p>
+<p>What's an NTRIP Caster? In a nutshell, it's a server that is sending out correction data every second. There are thousands of sites around the globe that calculate the perturbations in the ionosphere and troposphere that decrease the accuracy of GNSS accuracy. Once the inaccuracies are known, correction values are encoded into data packets in the RTCM format. You, the user, don't need to know how to decode or deal with RTCM, you simply need to get RTCM from a source within 10km of your location into the RTK device. The NTRIP client logs into the server (also known as the NTRIP caster) and grabs that data, every second, and sends it over Bluetooth to the RTK device.</p>
+<p>Don't have access to an NTRIP Caster? You can use a 2nd RTK product operating in Base mode to provide the correction data. Check out <a href="../permanent_base/">Creating a Permanent Base</a>. If you're the DIY sort, you can create your own low-cost base station using an ESP32 and a ZED-F9P breakout board. Check out <a href="https://learn.sparkfun.com/tutorials/how-to-build-a-diy-gnss-reference-station" target="_blank" rel="noopener">How to</a> Build a DIY GNSS Reference Station](https://learn.sparkfun.com/tutorials/how-to-build-a-diy-gnss-reference-station). If you'd just like a service, <a href="https://www.swiftnav.com/skylark" target="_blank" rel="noopener">Syklark</a> provides RTCM coverage for $49 a month (as of writing) and is extremely easy to set up and use. Remember, you can always use a 2nd RTK device in <em>Base</em> mode to provide RTCM correction data but it will be less accurate than a fixed position caster.</p>
+<p>Once everything is connected up, click the Green check in the top right corner.</p>
+<figure>
+<p><img alt="Storing Points" src="../img/SurvPC/SparkFun%20RTK%20Software%20-%20SurvPC%20Survey.jpg" /></p>
+<figcaption>
+<p>Storing Points</p>
+</figcaption>
+</figure>
+<p>Now that we have a connection, you can use the device, as usual, storing points and calculating distances.</p>
+<figure>
+<p><img alt="SurvPC Skyplot" src="../img/SurvPC/SparkFun%20RTK%20Software%20-%20SurvPC%20Skyplot.jpg" /></p>
+<figcaption>
+<p>SurvPC Skyplot</p>
+</figcaption>
+</figure>
+<p>Opening the Skyplot will allow you to see your GNSS details in real-time.</p>
+<p>If you are a big fan of SurvPC please contact your sales rep and ask them to include SparkFun products in their Manufacturer drop-down list.</p>
 <h2 id="qgis">QGIS<a class="headerlink" href="#qgis" title="Permanent link"></a></h2>
 <p>QGIS is a free and open-source geographic information system software for desktops. It's available <a href="https://qgis.org/" target="_blank" rel="noopener">here</a>.</p>
 <p>Once the software is installed open QGIS Desktop.</p>
@@ -2717,7 +2833,7 @@ Compatibility Icons
     <span class="md-icon" title="Last update">
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M21 13.1c-.1 0-.3.1-.4.2l-1 1 2.1 2.1 1-1c.2-.2.2-.6 0-.8l-1.3-1.3c-.1-.1-.2-.2-.4-.2m-1.9 1.8-6.1 6V23h2.1l6.1-6.1zM12.5 7v5.2l4 2.4-1 1L11 13V7zM11 21.9c-5.1-.5-9-4.8-9-9.9C2 6.5 6.5 2 12 2c5.3 0 9.6 4.1 10 9.3-.3-.1-.6-.2-1-.2s-.7.1-1 .2C19.6 7.2 16.2 4 12 4c-4.4 0-8 3.6-8 8 0 4.1 3.1 7.5 7.1 7.9l-.1.2z"/></svg>
     </span>
-    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-timeago"><span class="timeago" datetime="2025-02-21T12:13:47+00:00" locale="en"></span></span><span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-iso_date">2025-02-21</span>
+    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-timeago"><span class="timeago" datetime="2025-03-03T16:19:58+00:00" locale="en"></span></span><span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-iso_date">2025-03-03</span>
   </span>
 
     
@@ -2762,14 +2878,14 @@ Compatibility Icons
     
     <nav>
       
-        <a href="https://github.com/PaulZC" class="md-author" title="@PaulZC" target="_blank" rel="noopener">
-          
-          <img src="https://avatars.githubusercontent.com/u/5690545?v=4&amp;size=72" alt="PaulZC">
-        </a>
-      
         <a href="https://github.com/nseidle" class="md-author" title="@nseidle" target="_blank" rel="noopener">
           
           <img src="https://avatars.githubusercontent.com/u/117102?v=4&amp;size=72" alt="nseidle">
+        </a>
+      
+        <a href="https://github.com/PaulZC" class="md-author" title="@PaulZC" target="_blank" rel="noopener">
+          
+          <img src="https://avatars.githubusercontent.com/u/5690545?v=4&amp;size=72" alt="PaulZC">
         </a>
       
         <a href="https://github.com/santaimpersonator" class="md-author" title="@santaimpersonator" target="_blank" rel="noopener">
@@ -2993,7 +3109,7 @@ Compatibility Icons
     <script id="__config" type="application/json">{"base": "..", "features": ["content.code.copy", "content.code.select", "content.code.annotate", "content.action.edit", "content.tooltips", "navigation.tracking", "navigation.top", "navigation.path", "navigation.instant.preview", "search.highlight"], "search": "../assets/javascripts/workers/search.c7c1ca2c.min.js", "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}}</script>
     
     
-      <script src="../assets/javascripts/bundle.5a789024.min.js"></script>
+      <script src="../assets/javascripts/bundle.10a6bb14.min.js"></script>
       
         <script src="../js/timeago.min.js"></script>
       
