@@ -30,13 +30,17 @@ MqttClient *menuppMqttClient;
 
 bool productVariantSupportsAssistNow()
 {
+    if (productVariant == RTK_EVK)
+        return true;
     if (productVariant == RTK_FACET_MOSAIC)
         return false;
     if (productVariant == RTK_TORCH)
         return false;
     if (productVariant == RTK_POSTCARD)
         return false;
-    return true;
+
+    systemPrintln("Uncaught productVariantSupportsAssistNow()");
+    return false;
 }
 
 void menuPointPerfectKeys()
@@ -759,7 +763,7 @@ void updateLBand()
             {
                 // Reconstruct the firmware version
                 snprintf(neoFirmwareVersion, sizeof(neoFirmwareVersion), "%s %d.%02d", i2cLBand.getFirmwareType(),
-                        i2cLBand.getFirmwareVersionHigh(), i2cLBand.getFirmwareVersionLow());
+                         i2cLBand.getFirmwareVersionHigh(), i2cLBand.getFirmwareVersionLow());
 
                 printNEOInfo(); // Print module firmware version
             }
@@ -791,8 +795,8 @@ void updateLBand()
                     {
                         LBandFreq = Regional_Information_Table[r].frequency;
                         if (settings.debugCorrections == true)
-                            systemPrintf("Setting L-Band frequency to %s (%dHz)\r\n", Regional_Information_Table[r].name,
-                                        LBandFreq);
+                            systemPrintf("Setting L-Band frequency to %s (%dHz)\r\n",
+                                         Regional_Information_Table[r].name, LBandFreq);
                         break;
                     }
                 }
@@ -801,7 +805,7 @@ void updateLBand()
                     LBandFreq = Regional_Information_Table[settings.geographicRegion].frequency;
                     if (settings.debugCorrections == true)
                         systemPrintf("Error: Unknown L-Band geographic region. Using %s (%dHz)\r\n",
-                                    Regional_Information_Table[settings.geographicRegion].name, LBandFreq);
+                                     Regional_Information_Table[settings.geographicRegion].name, LBandFreq);
                 }
             }
             else
@@ -809,7 +813,7 @@ void updateLBand()
                 LBandFreq = Regional_Information_Table[settings.geographicRegion].frequency;
                 if (settings.debugCorrections == true)
                     systemPrintf("No fix available for L-Band geographic region determination. Using %s (%dHz)\r\n",
-                                Regional_Information_Table[settings.geographicRegion].name, LBandFreq);
+                                 Regional_Information_Table[settings.geographicRegion].name, LBandFreq);
             }
 
             bool response = true;
@@ -887,8 +891,8 @@ void updateLBand()
                     {
                         LBandFreq = Regional_Information_Table[r].frequency;
                         if (settings.debugCorrections == true)
-                            systemPrintf("Setting L-Band frequency to %s (%dHz)\r\n", Regional_Information_Table[r].name,
-                                        LBandFreq);
+                            systemPrintf("Setting L-Band frequency to %s (%dHz)\r\n",
+                                         Regional_Information_Table[r].name, LBandFreq);
                         break;
                     }
                 }
@@ -897,7 +901,7 @@ void updateLBand()
                     LBandFreq = Regional_Information_Table[settings.geographicRegion].frequency;
                     if (settings.debugCorrections == true)
                         systemPrintf("Error: Unknown L-Band geographic region. Using %s (%dHz)\r\n",
-                                    Regional_Information_Table[settings.geographicRegion].name, LBandFreq);
+                                     Regional_Information_Table[settings.geographicRegion].name, LBandFreq);
                 }
             }
             else
@@ -905,7 +909,7 @@ void updateLBand()
                 LBandFreq = Regional_Information_Table[settings.geographicRegion].frequency;
                 if (settings.debugCorrections == true)
                     systemPrintf("No fix available for L-Band geographic region determination. Using %s (%dHz)\r\n",
-                                Regional_Information_Table[settings.geographicRegion].name, LBandFreq);
+                                 Regional_Information_Table[settings.geographicRegion].name, LBandFreq);
             }
 
             bool result = true;
@@ -930,7 +934,7 @@ void updateLBand()
                 online.lband_gnss = true;
             }
         }
-        //else if (online.lband_gnss && settings.enablePointPerfectCorrections)
+        // else if (online.lband_gnss && settings.enablePointPerfectCorrections)
         {
             // If no SPARTN data is received, the L-Band may need a 'kick'. Turn L-Band off and back on again!
             // But gnss->update will do this. No need to do it here
@@ -1427,6 +1431,9 @@ void provisioningUpdate()
             else if (productVariant == RTK_POSTCARD)
                 snprintf(landingPageUrl, sizeof(landingPageUrl),
                          "or goto https://www.sparkfun.com/rtk_postcard_registration ");
+            else if (productVariant == RTK_FACET_MOSAIC)
+                snprintf(landingPageUrl, sizeof(landingPageUrl),
+                         "or goto https://www.sparkfun.com/rtk_facet_mosaic_registration ");
             else
                 systemPrintln("pointperfectProvisionDevice(): Platform missing landing page");
 
@@ -1456,6 +1463,9 @@ void provisioningUpdate()
             else if (productVariant == RTK_POSTCARD)
                 snprintf(landingPageUrl, sizeof(landingPageUrl),
                          "or goto https://www.sparkfun.com/rtk_postcard_registration ");
+            else if (productVariant == RTK_FACET_MOSAIC)
+                snprintf(landingPageUrl, sizeof(landingPageUrl),
+                         "or goto https://www.sparkfun.com/rtk_facet_mosaic_registration ");
             else
                 systemPrintln("pointperfectProvisionDevice(): Platform missing landing page");
 
