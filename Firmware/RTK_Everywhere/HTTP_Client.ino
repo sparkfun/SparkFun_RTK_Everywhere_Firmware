@@ -420,7 +420,7 @@ void httpClientUpdate()
             if (settings.debugCorrections || settings.debugHttpClientData)
             {
                 systemPrintf("HTTP response error %d: ", httpResponseCode);
-                systemPrintln(response);
+                systemPrintln(response.c_str());
             }
 
             // "HTTP response error -11 " = 411 which is length required
@@ -430,7 +430,7 @@ void httpClientUpdate()
                 if (settings.debugCorrections || settings.debugHttpClientData)
                 {
                     systemPrintln("HTTP response error 411: Length Required. Retrying...");
-                    systemPrintln(response);
+                    systemPrintln(response.c_str());
                 }
 
                 httpClientRestart();
@@ -480,7 +480,7 @@ void httpClientUpdate()
             else
             {
                 systemPrintf("HTTP response error %d: ", httpResponseCode);
-                systemPrintln(response);
+                systemPrintln(response.c_str());
                 ztpInterimResponse[ztpAttempt] = ZTP_UNKNOWN_ERROR;
 
                 ztpNextToken(); // Move to the next ZTP profile. Exit client as needed.
@@ -552,7 +552,12 @@ void httpClientUpdate()
                     }
                     else
                     {
-                        systemPrintln("Region not found in PointPerfect response.");
+                        // Give up
+                        systemPrintf("Region not found in PointPerfect response: %s\r\n", response.c_str());
+
+                        httpClientSetState(HTTP_CLIENT_COMPLETE);
+
+                        break;
                     }
 
                     strncpy(settings.ntripClient_CasterPort, (*jsonZtp)["httpPort"],
