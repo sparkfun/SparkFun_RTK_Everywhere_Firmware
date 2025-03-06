@@ -540,3 +540,14 @@ void pointperfectPrintKeyInformation(const char *requestedBy)
 }
 
 #endif // COMPILE_POINTPERFECT_LIBRARY
+
+void pointperfectPrintNtripInformation(const char *requestedBy)
+{
+    // All calls to pointperfectPrintNtripInformation are guarded by settings.debugCorrections
+    systemPrintf("  pointPerfect RTCM print requested by %s\r\n", requestedBy);
+    systemPrintf("  ntripClient_CasterHost: %s\r\n", settings.ntripClient_CasterHost);
+    systemPrintf("  ntripClient_CasterPort: %d\r\n", settings.ntripClient_CasterPort);
+    systemPrintf("  ntripClient_CasterUser: %s\r\n", settings.ntripClient_CasterUser);
+    systemPrintf("  ntripClient_CasterUserPW: %s\r\n", settings.ntripClient_CasterUserPW);
+    systemPrintf("  ntripClient_MountPoint: %s\r\n", settings.ntripClient_MountPoint);
+}

@@ -51,16 +51,16 @@ const int httpClientStateNameEntries = sizeof(httpClientStateName) / sizeof(http
 enum ZtpServiceLevel
 {
     ZTP_SERVICE_NONE = 0, // Device has no access to PointPerfect
-    ZTP_SERVICE_LBAND,    // SPARTN corrections over L-Band
-    ZTP_SERVICE_IP,       // SPARTN corrections over IP
-    ZTP_SERVICE_LBAND_IP, // SPARTN corrections over L-Band or IP
-    ZTP_SERVICE_RTCM,     // RTCM corrections over IP
+    ZTP_SERVICE_LBAND,    // SSR based corrections in SPARTN format, delivered over L-Band
+    ZTP_SERVICE_IP,       // SSR based corrections in SPARTN format, delivered over MQTT
+    ZTP_SERVICE_LBAND_IP, // SSR based corrections in SPARTN format, delivered ver L-Band or MQTT
+    ZTP_SERVICE_RTCM, // SSR based corrections in RTCM format, delivered over NTRIP
     // Insert new states here
     ZTP_SERVICE_MAX // Last entry in the list
 };
 
 const char *const ztpServiceName[] = {
-    "No Service", "L-Band", "IP", "L-Band and IP", "RTCM",
+    "No Service", "L-Band", "SSR-IP", "L-Band and SSR-IP", "SSR-RTCM",
 };
 
 const int ztpServiceNameEntries = sizeof(ztpServiceName) / sizeof(ztpServiceName[0]);
@@ -523,17 +523,13 @@ void httpClientUpdate()
                 {
                     // Handle a PointPerfect RTCM credentials response
 
-                    // Override NTRIP Settings
-                    settings.enableNtripClient = true;
-                    settings.ntripClient_TransmitGGA = true;
-
-                    // Get endPoint aka Caster host address based on Geographic Region selected by user
+                    // Get endPoint aka Caster host address/port based on Geographic Region selected by user
                     int region = -1;
                     if (strcmp(Regional_Information_Table[settings.geographicRegion].name, "US") == 0)
                     {
                         // Find the JSON entry with "region":"NorthAmerica" and extract "endpoint"
                         region =
-                            findZtpJSONEntryTTnT("rtcmCredentials", "endPoints", "region", "NorthAmerica", jsonZtp);
+                            findZtpJSONEntryTTnT("rtcmCredentials", "endPoints", "region", "North America", jsonZtp);
                     }
                     else if (strcmp(Regional_Information_Table[settings.geographicRegion].name, "EU") == 0)
                     {
@@ -546,6 +542,8 @@ void httpClientUpdate()
                         strncpy(settings.ntripClient_CasterHost,
                                 (const char *)((*jsonZtp)["rtcmCredentials"]["endPoints"][region]["endpoint"]),
                                 sizeof(settings.ntripClient_CasterHost));
+                        settings.ntripClient_CasterPort =
+                            (*jsonZtp)["rtcmCredentials"]["endPoints"][region]["httpPort"];
                     }
                     else
                     {
@@ -557,14 +555,30 @@ void httpClientUpdate()
                         break;
                     }
 
-                    strncpy(settings.ntripClient_CasterPort, (*jsonZtp)["httpPort"],
-                            sizeof(settings.ntripClient_CasterPort));
-                    strncpy(settings.ntripClient_CasterUser, (const char *)((*jsonZtp)["userName"]),
+                    // If region is determined, override NTRIP Settings
+                    settings.enableNtripClient = true;
+                    settings.ntripClient_TransmitGGA = true;
+
+                    strncpy(settings.ntripClient_CasterUser, (const char *)((*jsonZtp)["rtcmCredentials"]["userName"]),
                             sizeof(settings.ntripClient_CasterUser));
-                    strncpy(settings.ntripClient_CasterUserPW, (const char *)((*jsonZtp)["password"]),
+                    strncpy(settings.ntripClient_CasterUserPW,
+                            (const char *)((*jsonZtp)["rtcmCredentials"]["password"]),
                             sizeof(settings.ntripClient_CasterUserPW));
-                    strncpy(settings.ntripClient_MountPoint, (const char *)((*jsonZtp)["mountPoint"]),
+                    strncpy(settings.ntripClient_MountPoint,
+                            (const char *)((*jsonZtp)["rtcmCredentials"]["mountPoint"]),
                             sizeof(settings.ntripClient_MountPoint));
+
+                    if (settings.debugCorrections || settings.debugHttpClientData)
+                        pointperfectPrintNtripInformation("HTTP Client");
+
+                    ztpInterimResponse[ztpAttempt] = ZTP_SUCCESS;
+
+                    settings.ztpServiceLevelAllowed = ztpServiceLevelLookup(
+                        ztpAttempt); // Record this so other tasks know what PointPerfect is accessible.
+
+                    ztpResponse = ZTP_SUCCESS; // Report success to provisioningUpdate()
+
+                    httpClientSetState(HTTP_CLIENT_COMPLETE);
                 }
                 else
                 {
@@ -651,7 +665,7 @@ void httpClientUpdate()
 
                         ztpInterimResponse[ztpAttempt] = ZTP_SUCCESS;
 
-                        ztpServiceLevelAllowed = ztpServiceLevelLookup(
+                        settings.ztpServiceLevelAllowed = ztpServiceLevelLookup(
                             ztpAttempt); // Record this so other tasks know what PointPerfect is accessible.
 
                         ztpResponse = ZTP_SUCCESS; // Report success to provisioningUpdate()
@@ -701,7 +715,8 @@ void ztpNextToken()
         if (settings.debugCorrections || settings.debugHttpClientData)
             systemPrintln("Device failed all profiles.");
 
-        ztpServiceLevelAllowed = ZTP_SERVICE_NONE; // Record this so other tasks know what PointPerfect is accessible.
+        settings.ztpServiceLevelAllowed =
+            ZTP_SERVICE_NONE; // Record this so other tasks know what PointPerfect is accessible.
 
         // Determine what to report to provisioningUpdate()
         // We may see a variety:
@@ -775,12 +790,12 @@ void ztpNextToken()
 }
 
 // Given a token buffer and an attempt number, decide which token to use for ZTP
-// Not all platforms can handle all service levels so skips service levels that don't apply
+// Not all platforms can handle all service levels so this skips service levels that don't apply
 // There are four service levels:
 //   L-Band
-//   IP
-//   L-Band+IP
 //   RTCM
+//   L-Band+IP
+//   IP
 void ztpGetToken(char *tokenString, int attemptNumber)
 {
     // Convert uint8_t array into string with dashes in spots
@@ -841,6 +856,31 @@ int ztpServiceLevelLookup(int attemptNumber)
     }
 
     return (ZTP_SERVICE_NONE);
+}
+
+// Determine if this service type uses keys
+// ZTP_SERVICE_LBAND,    // SSR based corrections in SPARTN format, delivered over L-Band
+// ZTP_SERVICE_IP,       // SSR based corrections in SPARTN format, delivered over MQTT
+// ZTP_SERVICE_LBAND_IP, // SSR based corrections in SPARTN format, delivered ver L-Band or MQTT
+// ZTP_SERVICE_RTCM,     // SSR based corrections in RTCM format, delivered over NTRIP
+bool ztpServiceUsesKeys()
+{
+    if (settings.ztpServiceLevelAllowed == ZTP_SERVICE_LBAND || settings.ztpServiceLevelAllowed == ZTP_SERVICE_IP ||
+        settings.ztpServiceLevelAllowed == ZTP_SERVICE_LBAND_IP)
+        return true;
+    return false;
+}
+
+// Determine if this service type uses MQTT for communication
+// ZTP_SERVICE_LBAND,    // SSR based corrections in SPARTN format, delivered over L-Band
+// ZTP_SERVICE_IP,       // SSR based corrections in SPARTN format, delivered over MQTT
+// ZTP_SERVICE_LBAND_IP, // SSR based corrections in SPARTN format, delivered ver L-Band or MQTT
+// ZTP_SERVICE_RTCM,     // SSR based corrections in RTCM format, delivered over NTRIP
+bool ztpServiceUsesMqtt()
+{
+    if (settings.ztpServiceLevelAllowed == ZTP_SERVICE_IP || settings.ztpServiceLevelAllowed == ZTP_SERVICE_LBAND_IP)
+        return true;
+    return false;
 }
 
 // Depending on the platform, set the ztpPlatformMaxProfiles variable
