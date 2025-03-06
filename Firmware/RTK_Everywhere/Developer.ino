@@ -203,7 +203,8 @@ void espNowUpdate()                     {}
 #ifndef COMPILE_WIFI
 
 void menuWiFi()                 {systemPrintln("**WiFi not compiled**");}
-bool wifiEspNowOn(bool on, const char * fileName, uint32_t lineNumber) {return !on;}
+bool wifiEspNowOff(const char * fileName, uint32_t lineNumber) {return true;}
+bool wifiEspNowOn(const char * fileName, uint32_t lineNumber) {return false;}
 #define WIFI_ESPNOW_SET_CHANNEL(chan)
 uint32_t wifiGetStartTimeout()                  {return 0;}
 int wifiNetworkCount()                          {return 0;}
