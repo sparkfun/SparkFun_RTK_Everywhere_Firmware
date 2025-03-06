@@ -211,7 +211,8 @@ int wifiNetworkCount()                          {return 0;}
 void wifiResetThrottleTimeout()                 {}
 void wifiResetTimeout()                         {}
 const char * wifiSoftApGetSsid()                {return "";}
-bool wifiSoftApOn(bool on, const char * fileName, uint32_t lineNumber)                      {return !on;}
+bool wifiSoftApOff(const char * fileName, uint32_t lineNumber) {return true;}
+bool wifiSoftApOn(const char * fileName, uint32_t lineNumber) {return false;}
 bool wifiStationOn(bool on, const char * fileName, uint32_t lineNumber)                     {return !on;}
 void wifiStopAll()                              {}
 
