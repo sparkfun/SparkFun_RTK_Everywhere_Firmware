@@ -718,21 +718,37 @@ void wifiStartThrottled(NetIndex_t index, uintptr_t parameter, bool debug)
 }
 
 //*********************************************************************
-// Start or stop the WiFi station
+// Stop the WiFi station
 // Inputs:
-//   on: True to start WiFi station mode, false to stop WiFi station mode
 //   fileName: Name of file calling the enable routine
 //   lineNumber: Line number in the file calling the enable routine
 // Outputs:
 //   Returns true if successful and false upon failure
-bool wifiStationOn(bool on, const char * fileName, uint32_t lineNumber)
+bool wifiStationOff(const char * fileName, uint32_t lineNumber)
 {
     // Display the call
     if (settings.debugWifiState)
-        systemPrintf("wifiStationOn(%s) called in %s at line %d\r\n",
-                     on ? "true" : "false", fileName, lineNumber);
+        systemPrintf("wifiStationOff called in %s at line %d\r\n",
+                     fileName, lineNumber);
 
-    return wifi.enable(wifiEspNowRunning, wifiSoftApRunning, on, __FILE__, __LINE__);
+    return wifi.enable(wifiEspNowRunning, wifiSoftApRunning, false, __FILE__, __LINE__);
+}
+
+//*********************************************************************
+// Start the WiFi station
+// Inputs:
+//   fileName: Name of file calling the enable routine
+//   lineNumber: Line number in the file calling the enable routine
+// Outputs:
+//   Returns true if successful and false upon failure
+bool wifiStationOn(const char * fileName, uint32_t lineNumber)
+{
+    // Display the call
+    if (settings.debugWifiState)
+        systemPrintf("wifiStationOn called in %s at line %d\r\n",
+                     fileName, lineNumber);
+
+    return wifi.enable(wifiEspNowRunning, wifiSoftApRunning, true, __FILE__, __LINE__);
 }
 
 //*********************************************************************
@@ -759,7 +775,7 @@ bool wifiStationReconnectionRequest()
     }
 
     // Attempt to start WiFi station
-    if (wifiStationOn(true, __FILE__, __LINE__))
+    if (wifiStationOn(__FILE__, __LINE__))
     {
         // Successfully connected to a remote AP
         connected = true;
