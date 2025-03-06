@@ -318,21 +318,22 @@ int findZtpJSONEntryTnT(const char *thing1, const char *thing2, const char *thin
 }
 
 // Find thing4 in (*jsonZtp)[thing1][thing2][n][thing3]. Return n on success. Return -1 on error / not found.
-int findZtpJSONEntryTTnT(const char *thing1, const char *thing2, const char *thing3, const char *thing4, JsonDocument *jsonZtp)
+int findZtpJSONEntryTTnT(const char *thing1, const char *thing2, const char *thing3, const char *thing4,
+                         JsonDocument *jsonZtp)
 {
-  if (!jsonZtp)
+    if (!jsonZtp)
+        return (-1);
+
+    int i = (*jsonZtp)[thing1][thing2].size();
+
+    if (i == 0)
+        return (-1);
+
+    for (int j = 0; j < i; j++)
+        if (strstr((const char *)(*jsonZtp)[thing1][thing2][j][thing3], thing4) != nullptr)
+            return j;
+
     return (-1);
-
-  int i = (*jsonZtp)[thing1][thing2].size();
-
-  if (i == 0)
-    return (-1);
-
-  for (int j = 0; j < i; j++)
-    if (strstr((const char *)(*jsonZtp)[thing1][thing2][j][thing3], thing4) != nullptr)
-      return j;
-
-  return (-1);
 }
 
 // Given a token array, format it in the proper way and store it in the buffer
@@ -939,63 +940,65 @@ void menuPointPerfect()
         if (settings.debugCorrections == true)
             systemPrintf("Time to first RTK Fix: %ds Restarts: %d\r\n", rtkTimeToFixMs / 1000, floatLockRestarts);
 
-        if (settings.debugCorrections == true)
-            systemPrintf("settings.pointPerfectKeyDistributionTopic: %s\r\n",
-                         settings.pointPerfectKeyDistributionTopic);
+        systemPrintf("Service Level: %s\r\n", ztpServiceName[settings.ztpServiceLevelAllowed]);
 
-        systemPrint("Days until keys expire: ");
-        if (strlen(settings.pointPerfectCurrentKey) > 0)
+        if (ztpServiceUsesKeys() == true)
         {
-            if (online.rtc == false)
+            if (settings.debugCorrections == true)
+                systemPrintf("settings.pointPerfectKeyDistributionTopic: %s\r\n",
+                             settings.pointPerfectKeyDistributionTopic);
+
+            systemPrint("Days until keys expire: ");
+            if (strlen(settings.pointPerfectCurrentKey) > 0)
             {
-                // If we don't have RTC we can't calculate days to expire
-                systemPrintln("No RTC");
+                if (online.rtc == false)
+                {
+                    // If we don't have RTC we can't calculate days to expire
+                    systemPrintln("No RTC");
+                }
+                else
+                {
+                    int daysRemaining =
+                        daysFromEpoch(settings.pointPerfectNextKeyStart + settings.pointPerfectNextKeyDuration + 1);
+
+                    if (daysRemaining < 0)
+                        systemPrintln("Expired");
+                    else
+                        systemPrintln(daysRemaining);
+                }
             }
             else
+                systemPrintln("No keys");
+
+            if ((settings.useLocalizedDistribution) && (localizedDistributionTileTopic.length() > 0))
             {
-                int daysRemaining =
-                    daysFromEpoch(settings.pointPerfectNextKeyStart + settings.pointPerfectNextKeyDuration + 1);
-
-                if (daysRemaining < 0)
-                    systemPrintln("Expired");
-                else
-                    systemPrintln(daysRemaining);
+                systemPrint("Most recent localized distribution topic: ");
+                systemPrintln(localizedDistributionTileTopic.c_str()); // From MQTT_Client.ino
             }
-        }
-        else
-            systemPrintln("No keys");
-
-        if ((settings.useLocalizedDistribution) && (localizedDistributionTileTopic.length() > 0))
-        {
-            systemPrint("Most recent localized distribution topic: ");
-            systemPrintln(localizedDistributionTileTopic.c_str()); // From MQTT_Client.ino
         }
 
         // How this works:
-        //   There are three PointPerfect corrections plans: IP-only, L-Band-only, L-Band+IP
-        //   For IP-only - e.g. Torch:
-        //     During ZTP Provisioning, we receive the UBX-format key distribution topic /pp/ubx/0236/ip
-        //     We also receive the full list of regional correction topics: /pp/ip/us , /pp/ip/eu , etc.
-        //     We need to subscribe to our regional correction topic and push the data to the PPL
-        //     RTCM from the PPL is pushed to the UM980
+        //   There are four PointPerfect corrections plans: IP-only, L-Band-only, L-Band+IP, SSR-RTCM
         //   For L-Band-only - e.g. Facet mosaic or Facet v2 L-Band
         //     During ZTP Provisioning, we receive the UBX-format key distribution topic /pp/ubx/0236/Lb
         //     There are no regional correction topics for L-Band-only
         //     Facet v2 L-Band pushes the keys to the ZED and pushes PMP from the NEO to the ZED
         //     Facet mosaic pushes the current key and raw L-Band to the PPL, then pushes RTCM to the X5
+        //   For SSR-RTCM - e.g. Any user/platform that opts for cheap SSR-RTCM over NTRIP
+        //     During ZTP Provisioning, we receive NTRIP credentials and overwrite any existing NTRIP Client
+        //     There are no regional corrections - we pass GGA back to caster instead
         //   For L-Band+IP - e.g. EVK:
         //     During ZTP Provisioning, we receive the UBX-format key distribution topic /pp/ubx/0236/Lb
         //     We also receive the full list of regional correction topics: /pp/Lb/us , /pp/Lb/eu , etc.
         //     We can subscribe to the topic and push IP data to the ZED - using UBLOX_CFG_SPARTN_USE_SOURCE 0
         //     Or we can push PMP data from the NEO to the ZED - using UBLOX_CFG_SPARTN_USE_SOURCE 1
+        //   For IP-only - e.g. Old way of getting corrections:
+        //     During ZTP Provisioning, we receive the UBX-format key distribution topic /pp/ubx/0236/ip
+        //     We also receive the full list of regional correction topics: /pp/ip/us , /pp/ip/eu , etc.
+        //     We need to subscribe to our regional correction topic and push the data to the PPL
+        //     RTCM from the PPL is pushed to the GNSS receiver (ie, UM980, LG290P)
         //   We do not need the user to tell us which pointPerfectCorrectionsSource to use.
-        //   We can figure it out from the key distribution topic:
-        //     IP-only gets /pp/ubx/0236/ip.
-        //     L-Band-only and L-Band+IP get /pp/ubx/0236/Lb.
-        //   And from the regional correction topics:
-        //     IP-only gets /pp/ip/us , /pp/ip/eu , etc.
-        //     L-Band-only gets none
-        //     L-Band+IP gets /pp/Lb/us , /pp/Lb/eu , etc.
+        //   We identify the service level during ZTP and record it to settings (ztpServiceLevelAllowed)
 
         systemPrint("1) PointPerfect Corrections: ");
         if (settings.enablePointPerfectCorrections)
@@ -1292,9 +1295,11 @@ void provisioningUpdate()
     }
     break;
     case PROVISIONING_CHECK_REMAINING: {
+        // Skip ZTP if we've already determined we have RTCM-SSR access
         // If we don't have certs or keys, begin zero touch provisioning
-        if (!checkCertificates() || strlen(settings.pointPerfectCurrentKey) == 0 ||
-            strlen(settings.pointPerfectNextKey) == 0)
+        if ((settings.ztpServiceLevelAllowed != ZTP_SERVICE_RTCM) &&
+            (!checkCertificates() || strlen(settings.pointPerfectCurrentKey) == 0 ||
+             strlen(settings.pointPerfectNextKey) == 0))
         {
             if (settings.debugPpCertificate)
                 systemPrintln("Invalid certificates or keys. Starting provisioning");
@@ -1313,6 +1318,12 @@ void provisioningUpdate()
             if (settings.debugPpCertificate)
                 systemPrintln("No RTC. Starting provisioning");
             provisioningSetState(PROVISIONING_WAIT_FOR_NETWORK);
+        }
+        else if (settings.ztpServiceLevelAllowed == ZTP_SERVICE_RTCM)
+        {
+            // We've already completed ZTP and identified our service as RTCM-SSR
+            // No further provisioning is required. If a user wants to provision again, they can
+            // manually request it.
         }
         else
         {
