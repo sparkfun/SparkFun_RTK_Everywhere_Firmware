@@ -71,9 +71,6 @@ ZtpResponse ztpResponse =
 static ZtpResponse ztpInterimResponse[4] = {
     ZTP_NOT_STARTED}; // Individual responses to token attempts. Local only. Size is manual count of max tokens.
 
-int ztpServiceLevelAllowed =
-    ZTP_SERVICE_NONE; // Global for other services to know what service this device is allowed to use
-
 //----------------------------------------
 // Locals
 //----------------------------------------
