@@ -529,26 +529,42 @@ void wifiDisplayState()
 }
 
 //*********************************************************************
-// Start or stop ESP-NOW
+// Stop ESP-NOW
 // Inputs:
-//   on: Set to true to start ESP-NOW and false to stop ESP-NOW
 //   fileName: Name of file calling the enable routine
 //   lineNumber: Line number in the file calling the enable routine
 // Outputs:
 //   Returns true if successful and false upon failure
-bool wifiEspNowOn(bool on, const char * fileName, uint32_t lineNumber)
+bool wifiEspNowOff(const char * fileName, uint32_t lineNumber)
 {
     // Display the call
     if (settings.debugEspNow || settings.debugWifiState)
-        systemPrintf("wifiEspNow(%s) called in %s at line %d\r\n",
-                     on ? "true" : "false", fileName, lineNumber);
+        systemPrintf("wifiEspNowOff called in %s at line %d\r\n",
+                     fileName, lineNumber);
 
-    // Don't turn on ESP-NOW when it is disabled
-    if (settings.enableEspNow == false)
-        on = false;
-    if (((on == false) && wifiEspNowRunning)
-        || ((settings.enableEspNow == true) && !wifiEspNowRunning))
-        return wifi.enable(on, wifiSoftApRunning, wifiStationRunning, __FILE__, __LINE__);
+    // Turn off ESP-NOW when enabled
+    if (wifiEspNowRunning)
+        return wifi.enable(false, wifiSoftApRunning, wifiStationRunning, __FILE__, __LINE__);
+    return true;
+}
+
+//*********************************************************************
+// Start ESP-NOW
+// Inputs:
+//   fileName: Name of file calling the enable routine
+//   lineNumber: Line number in the file calling the enable routine
+// Outputs:
+//   Returns true if successful and false upon failure
+bool wifiEspNowOn(const char * fileName, uint32_t lineNumber)
+{
+    // Display the call
+    if (settings.debugEspNow || settings.debugWifiState)
+        systemPrintf("wifiEspNowOff called in %s at line %d\r\n",
+                     fileName, lineNumber);
+
+    // Turn on ESP-NOW when it is enabled
+    if (settings.enableEspNow && !wifiEspNowRunning)
+        return wifi.enable(true, wifiSoftApRunning, wifiStationRunning, __FILE__, __LINE__);
     return settings.enableEspNow;
 }
 
@@ -637,21 +653,37 @@ void wifiResetTimeout()
 }
 
 //*********************************************************************
-// Turn on and off WiFi soft AP mode
+// Turn off WiFi soft AP mode
 // Inputs:
-//   on: True to start WiFi soft AP mode, false to stop WiFi soft AP mode
 //   fileName: Name of file calling the enable routine
 //   lineNumber: Line number in the file calling the enable routine
 // Outputs:
-//   Returns the status of WiFi soft AP start or stop
-bool wifiSoftApOn(bool on, const char * fileName, uint32_t lineNumber)
+//   Returns the status of WiFi soft AP stop
+bool wifiSoftApOff(const char * fileName, uint32_t lineNumber)
 {
     // Display the call
     if (settings.debugWifiState)
-        systemPrintf("wifiSoftApOn(%s) called in %s at line %d\r\n",
-                     on ? "true" : "false", fileName, lineNumber);
+        systemPrintf("wifiSoftApOff called in %s at line %d\r\n",
+                     fileName, lineNumber);
 
-    return wifi.enable(wifiEspNowRunning, on, wifiStationRunning, __FILE__, __LINE__);
+    return wifi.enable(wifiEspNowRunning, false, wifiStationRunning, __FILE__, __LINE__);
+}
+
+//*********************************************************************
+// Turn on WiFi soft AP mode
+// Inputs:
+//   fileName: Name of file calling the enable routine
+//   lineNumber: Line number in the file calling the enable routine
+// Outputs:
+//   Returns the status of WiFi soft AP start
+bool wifiSoftApOn(const char * fileName, uint32_t lineNumber)
+{
+    // Display the call
+    if (settings.debugWifiState)
+        systemPrintf("wifiSoftApOn called in %s at line %d\r\n",
+                     fileName, lineNumber);
+
+    return wifi.enable(wifiEspNowRunning, true, wifiStationRunning, __FILE__, __LINE__);
 }
 
 //*********************************************************************
@@ -686,21 +718,37 @@ void wifiStartThrottled(NetIndex_t index, uintptr_t parameter, bool debug)
 }
 
 //*********************************************************************
-// Start or stop the WiFi station
+// Stop the WiFi station
 // Inputs:
-//   on: True to start WiFi station mode, false to stop WiFi station mode
 //   fileName: Name of file calling the enable routine
 //   lineNumber: Line number in the file calling the enable routine
 // Outputs:
 //   Returns true if successful and false upon failure
-bool wifiStationOn(bool on, const char * fileName, uint32_t lineNumber)
+bool wifiStationOff(const char * fileName, uint32_t lineNumber)
 {
     // Display the call
     if (settings.debugWifiState)
-        systemPrintf("wifiStationOn(%s) called in %s at line %d\r\n",
-                     on ? "true" : "false", fileName, lineNumber);
+        systemPrintf("wifiStationOff called in %s at line %d\r\n",
+                     fileName, lineNumber);
 
-    return wifi.enable(wifiEspNowRunning, wifiSoftApRunning, on, __FILE__, __LINE__);
+    return wifi.enable(wifiEspNowRunning, wifiSoftApRunning, false, __FILE__, __LINE__);
+}
+
+//*********************************************************************
+// Start the WiFi station
+// Inputs:
+//   fileName: Name of file calling the enable routine
+//   lineNumber: Line number in the file calling the enable routine
+// Outputs:
+//   Returns true if successful and false upon failure
+bool wifiStationOn(const char * fileName, uint32_t lineNumber)
+{
+    // Display the call
+    if (settings.debugWifiState)
+        systemPrintf("wifiStationOn called in %s at line %d\r\n",
+                     fileName, lineNumber);
+
+    return wifi.enable(wifiEspNowRunning, wifiSoftApRunning, true, __FILE__, __LINE__);
 }
 
 //*********************************************************************
@@ -727,7 +775,7 @@ bool wifiStationReconnectionRequest()
     }
 
     // Attempt to start WiFi station
-    if (wifiStationOn(true, __FILE__, __LINE__))
+    if (wifiStationOn(__FILE__, __LINE__))
     {
         // Successfully connected to a remote AP
         connected = true;

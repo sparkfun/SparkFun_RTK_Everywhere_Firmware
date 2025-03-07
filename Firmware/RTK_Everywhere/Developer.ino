@@ -203,15 +203,18 @@ void espNowUpdate()                     {}
 #ifndef COMPILE_WIFI
 
 void menuWiFi()                 {systemPrintln("**WiFi not compiled**");}
-bool wifiEspNowOn(bool on, const char * fileName, uint32_t lineNumber) {return !on;}
+bool wifiEspNowOff(const char * fileName, uint32_t lineNumber) {return true;}
+bool wifiEspNowOn(const char * fileName, uint32_t lineNumber) {return false;}
 #define WIFI_ESPNOW_SET_CHANNEL(chan)
 uint32_t wifiGetStartTimeout()                  {return 0;}
 int wifiNetworkCount()                          {return 0;}
 void wifiResetThrottleTimeout()                 {}
 void wifiResetTimeout()                         {}
 const char * wifiSoftApGetSsid()                {return "";}
-bool wifiSoftApOn(bool on, const char * fileName, uint32_t lineNumber)                      {return !on;}
-bool wifiStationOn(bool on, const char * fileName, uint32_t lineNumber)                     {return !on;}
+bool wifiSoftApOff(const char * fileName, uint32_t lineNumber) {return true;}
+bool wifiSoftApOn(const char * fileName, uint32_t lineNumber) {return false;}
+bool wifiStationOff(const char * fileName, uint32_t lineNumber) {return true;}
+bool wifiStationOn(const char * fileName, uint32_t lineNumber) {return false;}
 void wifiStopAll()                              {}
 
 #endif // COMPILE_WIFI

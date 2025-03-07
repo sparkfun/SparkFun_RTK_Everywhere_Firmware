@@ -1752,7 +1752,7 @@ void networkSoftApConsumerAdd(NETCONSUMER_t consumer, const char * fileName, uin
         // Start the networks if necessary
         if (networkSoftApConsumerCount == 1)
         {
-            wifiSoftApOn(true, __FILE__, __LINE__);
+            wifiSoftApOn(__FILE__, __LINE__);
             if (settings.debugNetworkLayer)
                 networkDisplayStatus();
         }
@@ -1838,7 +1838,7 @@ void networkSoftApConsumerRemove(NETCONSUMER_t consumer, const char * fileName, 
                 systemPrintf("Network: Stopping the soft AP\r\n");
 
             // Turn off the soft AP
-            wifiSoftApOn(false, __FILE__, __LINE__);
+            wifiSoftApOn(__FILE__, __LINE__);
 
             // Let other tasks handle the network failure
             delay(100);
