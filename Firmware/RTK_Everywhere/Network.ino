@@ -565,6 +565,7 @@ bool networkConsumerIsConnected(NETCONSUMER_t consumer)
 //----------------------------------------
 void networkConsumerOffline(NETCONSUMER_t consumer)
 {
+    networkUserRemove(NETCONSUMER_HTTP_CLIENT, __FILE__, __LINE__);
     networkConsumerPriority[consumer] = NETWORK_OFFLINE;
 }
 
@@ -595,6 +596,9 @@ void networkConsumerRemove(NETCONSUMER_t consumer, NetIndex_t network, const cha
     if (settings.debugNetworkLayer)
         systemPrintf("Network: Calling networkConsumerRemove(%s) from %s at line %d\r\n",
                      networkName, fileName, lineNumber);
+
+    // Done with the network
+    networkUserRemove(consumer, __FILE__, __LINE__);
 
     // Remove the consumer only once
     consumers = networkConsumersAny | *bits;
