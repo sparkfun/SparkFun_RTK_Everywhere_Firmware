@@ -27,6 +27,7 @@ extern const uint8_t ppLbandToken[16];
 extern const uint8_t ppIpToken[16];
 extern const uint8_t ppLbandIpToken[16];
 extern const uint8_t ppRtcmToken[16];
+extern const uint8_t ppRtcmTrialToken[16];
 
 // Define the HTTP client states
 enum HTTPClientState
@@ -50,17 +51,18 @@ const int httpClientStateNameEntries = sizeof(httpClientStateName) / sizeof(http
 
 enum ZtpServiceLevel
 {
-    ZTP_SERVICE_NONE = 0, // Device has no access to PointPerfect
-    ZTP_SERVICE_LBAND,    // SSR based corrections in SPARTN format, delivered over L-Band
-    ZTP_SERVICE_IP,       // SSR based corrections in SPARTN format, delivered over MQTT
-    ZTP_SERVICE_LBAND_IP, // SSR based corrections in SPARTN format, delivered ver L-Band or MQTT
-    ZTP_SERVICE_RTCM, // SSR based corrections in RTCM format, delivered over NTRIP
+    ZTP_SERVICE_NONE = 0,   // Device has no access to PointPerfect
+    ZTP_SERVICE_LBAND,      // SSR based corrections in SPARTN format, delivered over L-Band
+    ZTP_SERVICE_IP,         // SSR based corrections in SPARTN format, delivered over MQTT
+    ZTP_SERVICE_LBAND_IP,   // SSR based corrections in SPARTN format, delivered ver L-Band or MQTT
+    ZTP_SERVICE_RTCM,       // SSR based corrections in RTCM format, delivered over NTRIP
+    ZTP_SERVICE_RTCM_TRIAL, // SSR based corrections in RTCM format, delivered over NTRIP, limited trial
     // Insert new states here
     ZTP_SERVICE_MAX // Last entry in the list
 };
 
 const char *const ztpServiceName[] = {
-    "No Service", "L-Band", "SSR-IP", "L-Band and SSR-IP", "SSR-RTCM",
+    "No Service", "L-Band", "SSR-IP", "L-Band and SSR-IP", "RTCM", "RTCM-Trial"
 };
 
 const int ztpServiceNameEntries = sizeof(ztpServiceName) / sizeof(ztpServiceName[0]);
@@ -791,11 +793,12 @@ void ztpNextToken()
 
 // Given a token buffer and an attempt number, decide which token to use for ZTP
 // Not all platforms can handle all service levels so this skips service levels that don't apply
-// There are four service levels:
+// There are multiple service levels:
 //   L-Band
 //   RTCM
 //   L-Band+IP
 //   IP
+//   RTCM Trial
 void ztpGetToken(char *tokenString, int attemptNumber)
 {
     // Convert uint8_t array into string with dashes in spots
@@ -808,11 +811,13 @@ void ztpGetToken(char *tokenString, int attemptNumber)
         if (attemptNumber == 0)
             pointperfectCreateTokenString(tokenString, (uint8_t *)ppLbandToken, sizeof(ppLbandToken));
         else if (attemptNumber == 1)
-            pointperfectCreateTokenString(tokenString, (uint8_t *)ppRtcmToken, sizeof(ppRtcmToken));
+            pointperfectCreateTokenString(tokenString, (uint8_t *)ppRtcmTrialToken, sizeof(ppRtcmTrialToken));
         else if (attemptNumber == 2)
             pointperfectCreateTokenString(tokenString, (uint8_t *)ppIpToken, sizeof(ppIpToken));
         else if (attemptNumber == 3)
             pointperfectCreateTokenString(tokenString, (uint8_t *)ppLbandIpToken, sizeof(ppLbandIpToken));
+        else if (attemptNumber == 4)
+            pointperfectCreateTokenString(tokenString, (uint8_t *)ppRtcmToken, sizeof(ppRtcmToken));
     }
     else if (present.gnss_mosaicX5 == false && present.lband_neo == false) // Torch, Facet v2
     {
@@ -821,6 +826,8 @@ void ztpGetToken(char *tokenString, int attemptNumber)
             pointperfectCreateTokenString(tokenString, (uint8_t *)ppRtcmToken, sizeof(ppRtcmToken));
         else if (attemptNumber == 1)
             pointperfectCreateTokenString(tokenString, (uint8_t *)ppIpToken, sizeof(ppIpToken));
+        else if (attemptNumber == 2)
+            pointperfectCreateTokenString(tokenString, (uint8_t *)ppRtcmTrialToken, sizeof(ppRtcmTrialToken));
     }
     else
     {
