@@ -662,6 +662,7 @@ void ntripServerUpdate(int serverIndex)
                 reportHeapNow(settings.debugNtripServerState);
 
                 // The network is available for the NTRIP server
+                networkUserAdd(NETCONSUMER_NTRIP_SERVER, __FILE__, __LINE__);
                 ntripServerSetState(ntripServer, NTRIP_SERVER_NETWORK_CONNECTED);
             }
         }
