@@ -363,6 +363,7 @@ void tcpClientStop(bool shutdown)
 
     // Initialize the TCP client
     tcpClientWriteError = false;
+    networkConsumerOffline(NETCONSUMER_TCP_CLIENT);
     if (shutdown)
     {
         // Stop the network
@@ -479,6 +480,7 @@ void tcpClientUpdate()
                 if (networkChanged(NETCONSUMER_TCP_CLIENT))
                     connectionDelay = 0;
                 timer = millis();
+                networkUserAdd(NETCONSUMER_TCP_CLIENT, __FILE__, __LINE__);
                 tcpClientSetState(TCP_CLIENT_STATE_CLIENT_STARTING);
             }
         }
