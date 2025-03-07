@@ -840,7 +840,10 @@ void ntpServerUpdate()
     case NTP_STATE_WAIT_NETWORK:
         // The NTP server only works over Ethernet
         if (networkInterfaceHasInternet(NETWORK_ETHERNET))
+        {
+            networkUserAdd(NETCONSUMER_NTP_SERVER, __FILE__, __LINE__);
             ntpServerSetState(NTP_STATE_WAIT_NETWORK);
+        }
         break;
 
     case NTP_STATE_NETWORK_CONNECTED:
