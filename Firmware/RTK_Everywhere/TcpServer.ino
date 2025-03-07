@@ -343,6 +343,7 @@ void tcpServerStop()
     }
 
     // Stop using the network
+    networkConsumerOffline(NETCONSUMER_TCP_SERVER);
     if (tcpServerState != TCP_SERVER_STATE_OFF)
     {
         networkSoftApConsumerRemove(NETCONSUMER_TCP_SERVER, __FILE__, __LINE__);
@@ -458,7 +459,10 @@ void tcpServerUpdate()
 
                 // Start the TCP server
                 if (tcpServerStart())
+                {
+                    networkUserAdd(NETCONSUMER_NTRIP_SERVER, __FILE__, __LINE__);
                     tcpServerSetState(TCP_SERVER_STATE_RUNNING);
+                }
             }
         }
         break;
