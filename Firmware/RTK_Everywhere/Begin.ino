@@ -135,20 +135,20 @@ void identifyBoard()
         if (idWithAdc(idValue, 1, 10, 17.5))
             productVariant = RTK_EVK;
 
-        // Facet mosaic: 1/4.7  -->  2666mV < 2721mV < 2772mV (5.5% tolerance)
-        else if (idWithAdc(idValue, 1, 4.7, 5.5))
+        // Facet mosaic: 1/4.7  -->  2618mV < 2721mV < 2811mV (10% tolerance)
+        else if (idWithAdc(idValue, 1, 4.7, 10))
             productVariant = RTK_FACET_MOSAIC;
 
-        // Facet v2 L-Band: 12.1/1.5  -->  318mV < 364mV < 416mV (7.5% tolerance)
-        else if (idWithAdc(idValue, 12.1, 1.5, 7.5))
+        // Facet v2 L-Band: 12.1/1.5  -->  312mV < 364mV < 423mV (8.5% tolerance)
+        else if (idWithAdc(idValue, 12.1, 1.5, 8.5))
             productVariant = RTK_FACET_V2_LBAND;
 
-        // Facet v2: 10.0/2.7  -->  650mV < 702mV < 756mV (4.75% tolerance)
-        else if (idWithAdc(idValue, 10.0, 2.7, 4.75))
+        // Facet v2: 10.0/2.7  -->  612mV < 702mV < 801mV (8.5% tolerance)
+        else if (idWithAdc(idValue, 10.0, 2.7, 8.5))
             productVariant = RTK_FACET_V2;
 
-        // Postcard: 3.3/10  -->  2421mV < 2481mV < 2539mV (4.75% tolerance)
-        else if (idWithAdc(idValue, 3.3, 10, 4.75))
+        // Postcard: 3.3/10  -->  2371mV < 2481mV < 2582mV (8.5% tolerance)
+        else if (idWithAdc(idValue, 3.3, 10, 8.5))
             productVariant = RTK_POSTCARD;
     }
 
