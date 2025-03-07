@@ -161,7 +161,6 @@ const uint16_t HTTPS_PORT = 443;                                                
 #include "esp_wifi.h"         //Needed for esp_wifi_set_protocol()
 #include <WiFi.h>             //Built-in.
 #include <WiFiClientSecure.h> //Built-in.
-#include <WiFiMulti.h>        //Built-in.
 #endif                        // COMPILE_WIFI
 
 #ifdef COMPILE_CELLULAR
