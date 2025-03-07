@@ -815,7 +815,10 @@ void mqttClientUpdate()
     case MQTT_CLIENT_WAIT_FOR_NETWORK: {
         // Wait until the network is connected to the media
         if (connected)
+        {
+            networkUserAdd(NETCONSUMER_PPL_MQTT_CLIENT, __FILE__, __LINE__);
             mqttClientSetState(MQTT_CLIENT_CONNECTING_2_SERVER);
+        }
         break;
     }
 
