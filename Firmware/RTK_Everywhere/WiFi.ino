@@ -419,6 +419,8 @@ static bool wifiReconnectRequest; // Set true to request WiFi reconnection
 // Enable TCP connections
 void menuWiFi()
 {
+    bool wifiRestartRequested;      // Restart WiFi if user changes anything
+
     while (1)
     {
         networkDisplayInterface(NETWORK_WIFI_STATION);
@@ -487,6 +489,13 @@ void menuWiFi()
     {
         if (strlen(settings.wifiNetworks[x].ssid) == 0)
             strcpy(settings.wifiNetworks[x].password, "");
+    }
+
+    if (wifiRestartRequested)
+    {
+        // Fake the loss of the IP address
+        networkInterfaceEventInternetLost(NETWORK_WIFI_STATION);
+        wifiReconnectRequest = true;
     }
 
     clearBuffer(); // Empty buffer of any newline chars
@@ -704,17 +713,25 @@ const char * wifiSoftApGetSsid()
 // Start WiFi with throttling, used by wifiStopSequence
 void wifiStartThrottled(NetIndex_t index, uintptr_t parameter, bool debug)
 {
-    if (wifiStationReconnectionRequest())
-        networkSequenceNextEntry(NETWORK_WIFI_STATION, debug);
-
     // Check for network shutdown
-    else if (networkConsumerCount == 0)
+    if (networkConsumerCount == 0)
     {
         // Stop the connection attempts
         wifiResetThrottleTimeout();
         wifiResetTimeout();
         networkSequenceStopPolling(NETWORK_WIFI_STATION, debug, true);
+        return;
     }
+
+    if (wifiReconnectRequest)
+    {
+        wifiReconnectRequest = false;
+        if (settings.debugWifiState)
+            systemPrintf("WiFi: Attempting WiFi restart\r\n");
+    }
+
+    if (wifiStationReconnectionRequest())
+        networkSequenceNextEntry(NETWORK_WIFI_STATION, debug);
 }
 
 //*********************************************************************
@@ -765,15 +782,6 @@ bool wifiStationReconnectionRequest()
         return connected;
     wifiReconnectionTimer = millis();
 
-    // Check for a reconnection request
-    if (wifiReconnectRequest)
-    {
-        wifiReconnectRequest = false;
-        if (settings.debugWifiState)
-            systemPrintf("WiFi: Attempting WiFi restart\r\n");
-        wifi.clearStarted(WIFI_STA_RECONNECT);
-    }
-
     // Attempt to start WiFi station
     if (wifiStationOn(__FILE__, __LINE__))
     {
@@ -815,6 +823,36 @@ bool wifiStationReconnectionRequest()
 }
 
 //*********************************************************************
+// Start WiFi with throttling, used by wifiStopSequence
+void wifiStationRestart(NetIndex_t index, uintptr_t parameter, bool debug)
+{
+    // Check for network shutdown
+    if (networkConsumerCount == 0)
+    {
+        // Stop the connection attempts
+        wifiResetThrottleTimeout();
+        wifiResetTimeout();
+        networkSequenceStopPolling(NETWORK_WIFI_STATION, debug, true);
+        return;
+    }
+
+    // Check for a reconnection request
+    if (wifiReconnectRequest)
+    {
+        // Notify the users that the network is going offline
+        networkInterfaceEventInternetLost(NETWORK_WIFI_STATION);
+
+        // Clear the bits to perform the restart operation
+        wifi.clearStarted(WIFI_STA_RECONNECT);
+    }
+    wifi.clearStarted(WIFI_STA_ONLINE);
+    wifiStationOnline = false;
+
+    // Continue the stop sequence
+    networkSequenceNextEntry(NETWORK_WIFI_STATION, debug);
+}
+
+//*********************************************************************
 // Stop WiFi, used by wifiStopSequence
 void wifiStop(NetIndex_t index, uintptr_t parameter, bool debug)
 {
@@ -844,6 +882,45 @@ void wifiStopAll()
 }
 
 //*********************************************************************
+// Wait for WiFi users to release their connections
+void wifiWaitNoUsers(NetIndex_t index, uintptr_t parameter, bool debug)
+{
+    static uint32_t lastMsec;
+
+    // Check for network shutdown
+    if (networkConsumerCount == 0)
+    {
+        // Stop the connection attempts
+        wifiResetThrottleTimeout();
+        wifiResetTimeout();
+        networkSequenceStopPolling(NETWORK_WIFI_STATION, debug, true);
+        return;
+    }
+
+    // Check for WiFi station users
+    if (networkUsersActive(NETWORK_WIFI_STATION) == 0)
+    {
+        // None, continue the start sequence
+        if (settings.debugWifiState)
+            systemPrintf("WiFi: No users\r\n");
+
+        // Continue the stop sequence
+        networkSequenceNextEntry(NETWORK_WIFI_STATION, debug);
+    }
+    else
+    {
+        // Display the network users
+        uint32_t currentMsec = millis();
+        if (settings.debugWifiState && ((currentMsec - lastMsec) > (2 * 1000)))
+        {
+            lastMsec = currentMsec;
+            systemPrintf("WiFi: Waiting for WiFi users to shutdown\r\n");
+            networkUserDisplay(NETWORK_WIFI_STATION);
+        }
+    }
+}
+
+//*********************************************************************
 // Constructor
 // Inputs:
 //   verbose: Set to true to display additional WiFi debug data
@@ -867,7 +944,6 @@ RTK_WIFI::RTK_WIFI(bool verbose)
     wifiEspNowRunning = false;
     wifiFailedConnectionAttempts = 0;
     wifiReconnectionTimer = 0;
-    wifiRestartRequested = false;
     wifiSoftApOnline = false;
     wifiSoftApRunning = false;
     wifiStationOnline = false;
@@ -2929,17 +3005,19 @@ void RTK_WIFI::verifyTables()
 //****************************************
 // WiFi start sequence
 NETWORK_POLL_SEQUENCE wifiStartSequence[] = {
-    //  State               Parameter   Description
-    {wifiStartThrottled,    0,          "Initialize WiFi"},
-    {nullptr,               0,          "Termination"},
+    //  State           Parameter   Description
+    {wifiStartThrottled,    0,      "Initialize WiFi"},
+    {nullptr,               0,      "Termination"},
 };
 
 //****************************************
 // WiFi stop sequence
 NETWORK_POLL_SEQUENCE wifiStopSequence[] = {
-    //  State       Parameter   Description
-    {wifiStop,      0,          "Shutdown WiFi"},
-    {nullptr,       0,          "Termination"},
+    //  State           Parameter   Description
+    {wifiStationRestart,    0,      "Restart WiFi"},
+    {wifiWaitNoUsers,       0,      "Wait for no WiFi users"},
+    {wifiStop,              0,      "Shutdown WiFi"},
+    {nullptr,               0,      "Termination"},
 };
 
 #endif  // COMPILE_WIFI

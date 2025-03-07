@@ -2083,24 +2083,6 @@ void networkUpdate()
         }
     }
 
-    // wifiRestartRequested is used by the settings interface to indicate
-    // SSIDs or else has changed.  Stop WiFi to allow restart with new settings
-    if (wifiRestartRequested == true)
-    {
-        wifiRestartRequested = false;
-
-        // Restart immediately
-        wifiResetThrottleTimeout();
-
-        // Break existing WiFi connection if necessary
-        if (networkInterfaceHasInternet(NETWORK_WIFI_STATION))
-        {
-            if (settings.debugNetworkLayer)
-                systemPrintln("WiFi settings changed, restarting WiFi");
-            networkStop(NETWORK_WIFI_STATION, settings.debugNetworkLayer, __FILE__, __LINE__);
-        }
-    }
-
     // Walk the list of network priorities in descending order
     for (priority = 0; priority < NETWORK_OFFLINE; priority++)
     {
