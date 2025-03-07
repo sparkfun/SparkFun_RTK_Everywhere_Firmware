@@ -1181,6 +1181,7 @@ void webServerStart()
 //----------------------------------------
 void webServerStop()
 {
+    networkUserRemove(NETCONSUMER_WEB_CONFIG, __FILE__, __LINE__);
     if (webServerState != WEBSERVER_STATE_OFF)
     {
         webServerReleaseResources(); // Release web server resources
@@ -1232,6 +1233,7 @@ void webServerUpdate()
             if (settings.debugWebServer)
                 systemPrintln("Web Server connected to network");
 
+            networkUserAdd(NETCONSUMER_WEB_CONFIG, __FILE__, __LINE__);
             webServerSetState(WEBSERVER_STATE_NETWORK_CONNECTED);
         }
         break;
