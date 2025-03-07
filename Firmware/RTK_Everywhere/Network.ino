@@ -2189,6 +2189,9 @@ void networkUserAdd(NETCONSUMER_t consumer, const char * fileName, uint32_t line
 
     // Validate the consumer
     networkConsumerValidate(consumer);
+    if (settings.debugNetworkLayer)
+        systemPrintf("Network: Calling networkUserAdd(%s) from %s at line %d\r\n",
+                     networkConsumerTable[consumer], fileName, lineNumber);
 
     // Convert the priority into a network interface index
     index = networkIndexTable[networkPriority];
@@ -2198,7 +2201,8 @@ void networkUserAdd(NETCONSUMER_t consumer, const char * fileName, uint32_t line
     netIfUsers[index] |= mask;
 
     // Display the user
-    systemPrintf("%s adding user %s\r\n", networkInterfaceTable[index].name, networkConsumerTable[consumer]);
+    if (settings.debugNetworkLayer)
+        systemPrintf("%s adding user %s\r\n", networkInterfaceTable[index].name, networkConsumerTable[consumer]);
 
     // Remember this network interface
     networkConsumerIndexLast[consumer] = index;
@@ -2250,16 +2254,23 @@ void networkUserRemove(NETCONSUMER_t consumer, const char * fileName, uint32_t l
 
     // Validate the consumer
     networkConsumerValidate(consumer);
+    if (settings.debugNetworkLayer)
+        systemPrintf("Network: Calling networkUserRemove(%s) from %s at line %d\r\n",
+                     networkConsumerTable[consumer], fileName, lineNumber);
 
     // Convert the priority into a network interface index
     index = networkConsumerIndexLast[consumer];
 
     // Display the user
-    systemPrintf("%s removing user %s\r\n", networkInterfaceTable[index].name, networkConsumerTable[consumer]);
-
-    // The network interface is no longer in use by this consumer
     mask = 1 << consumer;
-    netIfUsers[index] &= ~mask;
+    if (netIfUsers[index] & mask)
+    {
+        if (settings.debugNetworkLayer)
+            systemPrintf("%s removing user %s\r\n", networkInterfaceTable[index].name, networkConsumerTable[consumer]);
+
+        // The network interface is no longer in use by this consumer
+        netIfUsers[index] &= ~mask;
+    }
 }
 
 //----------------------------------------
