@@ -1936,9 +1936,9 @@ void networkStop(NetIndex_t index, bool debug, const char * fileName, uint32_t l
     // Display the call
     if (settings.debugNetworkLayer)
     {
-        networkDisplayStatus();
         systemPrintf("Network: Calling networkStop(%s) from %s at line %d\r\n",
                      networkInterfaceTable[index].name, fileName, lineNumber);
+        networkDisplayStatus();
     }
 
     // Clear the event flag
