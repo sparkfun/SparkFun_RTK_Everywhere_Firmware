@@ -368,10 +368,6 @@ bool ntripClientEnabled()
         if (NEQ_RTK_MODE(ntripClientMode))
             break;
 
-        // Determine if the shutdown is being forced
-        if (ntripClientForcedShutdown)
-            break;
-
         // Verify that the parameters were specified
         if ((settings.ntripClient_CasterHost[0] == 0)
             || (settings.ntripClient_CasterPort == 0)
@@ -380,6 +376,14 @@ bool ntripClientEnabled()
 
         // Verify still enabled
         enabled = settings.enableNtripClient;
+
+        // Determine if the shutdown is being forced
+        if (enabled && ntripClientForcedShutdown)
+            enabled = false;
+
+        // User manually disabled NTRIP client
+        else if (enabled == false)
+            ntripClientForcedShutdown = false;
     } while (0);
     return enabled;
 }
@@ -577,8 +581,6 @@ void ntripClientStop(bool shutdown)
     networkConsumerOffline(NETCONSUMER_NTRIP_CLIENT);
     if (shutdown)
     {
-        if (ntripClientForcedShutdown)
-            settings.enableNtripClient = false;
         networkConsumerRemove(NETCONSUMER_NTRIP_CLIENT, NETWORK_ANY, __FILE__, __LINE__);
         ntripClientSetState(NTRIP_CLIENT_OFF);
         ntripClientConnectionAttempts = 0;
