@@ -816,6 +816,7 @@ void otaUpdate()
                     systemPrintln("Firmware update connected to network");
 
                 // Get the latest firmware version
+                networkUserAdd(NETCONSUMER_OTA_CLIENT, __FILE__, __LINE__);
                 otaSetState(OTA_STATE_GET_FIRMWARE_VERSION);
             }
             break;
