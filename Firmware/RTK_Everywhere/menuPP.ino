@@ -20,10 +20,6 @@ static const uint8_t ppLbandToken[16] = {POINTPERFECT_LBAND_TOKEN};      // Toke
 static const uint8_t ppIpToken[16] = {POINTPERFECT_IP_TOKEN};            // Token in HEX form
 static const uint8_t ppLbandIpToken[16] = {POINTPERFECT_LBAND_IP_TOKEN}; // Token in HEX form
 
-#ifdef COMPILE_NETWORK
-MqttClient *menuppMqttClient;
-#endif // COMPILE_NETWORK
-
 //----------------------------------------
 // L-Band Routines - compiled out
 //----------------------------------------
@@ -1316,7 +1312,6 @@ void provisioningUpdate()
             provisioningSetState(PROVISIONING_NOT_STARTED);
         }
         // Wait until the network is available
-#ifdef COMPILE_NETWORK
         else if (networkConsumerIsConnected(NETCONSUMER_PPL_KEY_UPDATE))
         {
             if (settings.debugPpCertificate)
@@ -1326,7 +1321,6 @@ void provisioningUpdate()
             networkUserAdd(NETCONSUMER_PPL_KEY_UPDATE, __FILE__, __LINE__);
             provisioningSetState(PROVISIONING_STARTING);
         }
-#endif // COMPILE_NETWORK
 
         // TODO If we just booted, show keys remaining regardless of provisioning state machine
         // provisioningSetState(PROVISIONING_KEYS_REMAINING);
