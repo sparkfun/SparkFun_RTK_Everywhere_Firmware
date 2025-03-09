@@ -9,7 +9,7 @@
 #define DEVELOPMENT_TOKEN 0xAA, 0xBB, 0xCC, 0xDD, 0x00, 0x11, 0x22, 0x33, 0x0A, 0x0B, 0x0C, 0x0D, 0x00, 0x01, 0x02, 0x03
 
 #ifndef POINTPERFECT_LBAND_TOKEN
-#warning Using the DEVELOPMENT_TOKEN for point perfect!
+#warning Using the DEVELOPMENT_TOKEN for PointPerfect!
 #define POINTPERFECT_LBAND_TOKEN DEVELOPMENT_TOKEN
 #define POINTPERFECT_IP_TOKEN DEVELOPMENT_TOKEN
 #define POINTPERFECT_LBAND_IP_TOKEN DEVELOPMENT_TOKEN
@@ -648,7 +648,7 @@ void dateToKeyStart(uint8_t expDay, uint8_t expMonth, uint16_t expYear, uint64_t
     long long startUnixEpoch = expireUnixEpoch - (27 * 24 * 60 * 60); // Move back 27 days
 
     // Additionally, Thingstream seems to be reporting Epochs that do not have leap seconds
-    startUnixEpoch -= gnss->getLeapSeconds(); // Modify our Epoch to match Point Perfect
+    startUnixEpoch -= gnss->getLeapSeconds(); // Modify our Epoch to match PointPerfect
 
     // PointPerfect uses/reports unix epochs in milliseconds
     *settingsKeyStart = startUnixEpoch * 1000L; // Convert to ms
