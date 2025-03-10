@@ -489,7 +489,11 @@ void wifiDisplaySoftApStatus()
         status = "Starting";
 
     // Print the network interface status
-    systemPrintf("    %-10s %s\r\n", wifiSoftApName, status);
+    systemPrintf("    %-10s %s", wifiSoftApName, status);
+
+    // Display the consumers
+    networkSoftApConsumerPrint(", ");
+    systemPrintln();
 }
 
 //*********************************************************************

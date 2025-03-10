@@ -493,6 +493,9 @@ void networkConsumerDisplay()
     systemPrintf("Network Consumers: %d\r\n", networkConsumerCount);
     for (NetPriority_t priority = 0; priority < NETWORK_MAX; priority++)
         networkPrintStatus(priority);
+
+    // Display the soft AP consumers
+    wifiDisplaySoftApStatus();
 }
 
 //----------------------------------------
@@ -1797,6 +1800,25 @@ void networkSoftApConsumerDisplay()
     }
     else
         systemPrintf("No active soft AP consumers\r\n");
+}
+
+//----------------------------------------
+// Print the soft AP consumers
+//----------------------------------------
+void networkSoftApConsumerPrint(const char * separator)
+{
+    NETCONSUMER_MASK_t consumerMask;
+
+    // Determine if soft AP has any consumers
+    for (int consumer = 0; consumer < NETCONSUMER_MAX; consumer += 1)
+    {
+        consumerMask = 1 << consumer;
+        if (networkSoftApConsumer & consumerMask)
+        {
+            systemPrintf("%s%s", separator, networkConsumerTable[consumer]);
+            separator = ", ";
+        }
+    }
 }
 
 //----------------------------------------
