@@ -676,20 +676,26 @@ void networkDelay(uint8_t priority, uintptr_t parameter, bool debug)
 }
 
 //----------------------------------------
-// Display the Ethernet data
+// Display the network data
 //----------------------------------------
 void networkDisplayInterface(NetIndex_t index)
 {
     const NETWORK_TABLE_ENTRY *entry;
-    bool hasIP;
-    const char *hostName;
-    NetworkInterface *netif;
-    const char *status;
 
     // Verify the index into the networkInterfaceTable
     networkValidateIndex(index);
     entry = &networkInterfaceTable[index];
-    netif = entry->netif;
+    networkDisplayNetworkData(entry->name, entry->netif);
+}
+
+//----------------------------------------
+// Display the network data
+//----------------------------------------
+void networkDisplayNetworkData(const char *name, NetworkInterface *netif)
+{
+    bool hasIP;
+    const char *hostName;
+    const char *status;
 
     hasIP = false;
     status = "Off";
@@ -704,7 +710,7 @@ void networkDisplayInterface(NetIndex_t index)
                 status = "Online";
         }
     }
-    systemPrintf("%s: %s%s\r\n", entry->name, status, netif->isDefault() ? ", default" : "");
+    systemPrintf("%s: %s%s\r\n", name, status, netif->isDefault() ? ", default" : "");
     hostName = netif->getHostname();
     if (hostName)
         systemPrintf("    Host Name: %s\r\n", hostName);
