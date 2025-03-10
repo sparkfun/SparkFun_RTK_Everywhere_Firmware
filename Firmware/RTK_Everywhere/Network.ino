@@ -489,52 +489,10 @@ void networkConsumerAdd(NETCONSUMER_t consumer, NetIndex_t network, const char *
 //----------------------------------------
 void networkConsumerDisplay()
 {
-    NETCONSUMER_MASK_t bitMask;
-    NETCONSUMER_MASK_t * bits;
-    NETCONSUMER_t consumer;
-    NETCONSUMER_MASK_t consumersFound;
-    uint8_t index;
-    char line[128];
-    const char * networkName;
-    const char * separation;
-
-    // Determine if there are any network consumers
-    if (networkConsumerCount)
-    {
-        systemPrintf("Network Consumers: %d\r\n", networkConsumerCount);
-
-        // Walk the networks
-        for (index = 0; index < NETWORK_MAX; index++)
-        {
-            networkName = networkInterfaceTable[index].name;
-
-            // Determine if this interface has any consumers
-            consumersFound = networkConsumersAny | netIfConsumers[index];
-            if (consumersFound)
-            {
-                // Add the network name to the line
-                sprintf(line, "%d, %s: ", index, networkName);
-
-                // Walk the list of consumers
-                separation = "";
-                for (consumer = 0; consumer < NETCONSUMER_MAX; consumer += 1)
-                {
-                    bitMask = 1 << consumer;
-                    if (consumersFound & bitMask)
-                    {
-                        // Add the consumer to the line
-                        sprintf(&line[strlen(line)], "%s%s", separation, networkConsumerTable[consumer]);
-                        separation = ", ";
-                    }
-                }
-
-                // Display this network's consumers;
-                systemPrintf("%s\r\n", line);
-            }
-        }
-    }
-    else
-        systemPrintf("No active network consumers\r\n");
+    // Walk the networks in priority order
+    systemPrintf("Network Consumers: %d\r\n", networkConsumerCount);
+    for (NetPriority_t priority = 0; priority < NETWORK_MAX; priority++)
+        networkPrintStatus(priority);
 }
 
 //----------------------------------------
@@ -1379,7 +1337,9 @@ bool networkMulticastDNSUpdate()
 void networkPrintStatus(uint8_t priority)
 {
     NetMask_t bitMask;
-    char highestPriority;
+    NETCONSUMER_MASK_t consumerMask;
+    NETCONSUMER_t consumers;
+    bool highestPriority;
     int index;
     const char *name;
     const char *status;
@@ -1387,18 +1347,22 @@ void networkPrintStatus(uint8_t priority)
     // Validate the priority
     networkValidatePriority(priority);
 
+    // Verify that the network exists on this platform
+    index = networkIndexTable[priority];
+    if (networkIsPresent(index) == false)
+        return;
+
     // Get the network name
     name = networkGetNameByPriority(priority);
 
     // Determine the network status
-    index = networkIndexTable[priority];
-    bitMask = (1 << index);
-    highestPriority = (networkPriority == priority) ? '*' : ' ';
+    highestPriority = (networkPriority == priority);
     status = "Starting";
     if (networkInterfaceHasInternet(index))
         status = "Online";
     else if (networkInterfaceTable[index].boot)
     {
+        bitMask = (1 << index);
         if (networkSeqStopping & bitMask)
             status = "Stopping";
         else if (networkStarted & bitMask)
@@ -1408,8 +1372,21 @@ void networkPrintStatus(uint8_t priority)
     }
 
     // Print the network interface status
-    if (networkIsPresent(index))
-        systemPrintf("%c%d: %-10s %-8s\r\n", highestPriority, priority, name, status);
+    systemPrintf("%c%d: %-10s %s",
+                 highestPriority ? '*' : ' ', priority, name, status);
+
+    // Determine if this interface has any consumers
+    if (highestPriority)
+    {
+        consumers = networkConsumersAny | netIfConsumers[index];
+        for (int consumer = 0; consumer < NETCONSUMER_MAX; consumer += 1)
+        {
+            consumerMask = 1 << consumer;
+            if (consumers & consumerMask)
+                systemPrintf(", %s", networkConsumerTable[consumer]);
+        }
+    }
+    systemPrintln();
 }
 
 //----------------------------------------
