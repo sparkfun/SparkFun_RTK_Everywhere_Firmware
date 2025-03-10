@@ -105,11 +105,6 @@ jobs:
           cp libmbedcrypto.a /home/runner/.arduino15/packages/esp32/tools/esp32-arduino-libs/${{ env.ESP_IDF }}/esp32/lib/libmbedcrypto.a
           cp libmbedx509.a /home/runner/.arduino15/packages/esp32/tools/esp32-arduino-libs/${{ env.ESP_IDF }}/esp32/lib/libmbedx509.a
 
-      - name: Patch NetworkEvents
-        run: |
-          cd Firmware/RTK_Everywhere/Patch/
-          cp NetworkEvents.* /home/runner/.arduino15/packages/esp32/hardware/esp32/${{ env.CORE_VERSION }}/libraries/Network/src/
-
       - name: Setup Python
         uses: actions/setup-python@v4
         with:

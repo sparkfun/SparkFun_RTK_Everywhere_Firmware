@@ -160,12 +160,6 @@ $(MBED_LIB_DEST_PATH)libmbedcrypto.a: 	$(PATCH_SRC_PATH)libmbedcrypto.a
 $(MBED_LIB_DEST_PATH)libmbedx509.a: 	$(PATCH_SRC_PATH)libmbedx509.a
 	$(COPY)  $<  $@
 
-$(NET_EVENT_PATCH_PATH)NetworkEvents.cpp:	$(PATCH_SRC_PATH)NetworkEvents.cpp
-	$(COPY)  $<  $@
-
-$(NET_EVENT_PATCH_PATH)NetworkEvents.h:	$(PATCH_SRC_PATH)NetworkEvents.h
-	$(COPY)  $<  $@
-
 #DEBUG_LEVEL=none
 DEBUG_LEVEL=debug
 ENABLE_DEVELOPER=false
@@ -177,7 +171,7 @@ form.h:	AP-Config/* AP-Config/src/* AP-Config/src/fonts/*
 	python ../Tools/index_html_zipper.py AP-Config/index.html form.h
 	python ../Tools/main_js_zipper.py AP-Config/src/main.js form.h
 
-$(RTK_BIN_PATH):	RTK_Everywhere.ino *.ino *.h makefile $(PARTITION_DST_PATH) $(MBED_LIB_DEST_PATH)libmbedtls.a $(MBED_LIB_DEST_PATH)libmbedtls_2.a $(MBED_LIB_DEST_PATH)libmbedcrypto.a $(MBED_LIB_DEST_PATH)libmbedx509.a $(NET_EVENT_PATCH_PATH)NetworkEvents.cpp $(NET_EVENT_PATCH_PATH)NetworkEvents.h
+$(RTK_BIN_PATH):	RTK_Everywhere.ino   *.ino   *.h   makefile   $(PARTITION_DST_PATH)   $(MBED_LIB_DEST_PATH)libmbedtls.a   $(MBED_LIB_DEST_PATH)libmbedtls_2.a   $(MBED_LIB_DEST_PATH)libmbedcrypto.a   $(MBED_LIB_DEST_PATH)libmbedx509.a
 	$(CLEAR)
 	arduino-cli compile --fqbn "esp32:esp32:esp32":DebugLevel=$(DEBUG_LEVEL),PSRAM=enabled RTK_Everywhere.ino \
 		--warnings default \
