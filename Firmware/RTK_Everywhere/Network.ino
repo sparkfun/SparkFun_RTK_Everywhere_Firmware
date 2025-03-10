@@ -747,6 +747,9 @@ void networkDisplayStatus()
     for (NetPriority_t priority = 0; priority < NETWORK_OFFLINE; priority++)
         networkPrintStatus(networkIndexTable[priority]);
 
+    // Display the soft AP consumers
+    wifiDisplaySoftApStatus();
+
     // Display the interfaces details
     for (NetIndex_t index = 0; index < NETWORK_OFFLINE; index++)
         if (networkIsPresent(index))

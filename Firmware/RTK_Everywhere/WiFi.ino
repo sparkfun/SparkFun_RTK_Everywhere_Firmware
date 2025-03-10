@@ -476,6 +476,23 @@ void wifiDisplayNetworkData()
 }
 
 //*********************************************************************
+// Display the soft AP consumers
+void wifiDisplaySoftApStatus()
+{
+    const char *status;
+
+    // Determine the soft AP status
+    status = "Stopping";
+    if (wifiSoftApOnline)
+        status = "Online";
+    else if (wifiSoftApRunning)
+        status = "Starting";
+
+    // Print the network interface status
+    systemPrintf("    %-10s %s\r\n", wifiSoftApName, status);
+}
+
+//*********************************************************************
 // Display the WiFi state
 void wifiDisplayState()
 {
