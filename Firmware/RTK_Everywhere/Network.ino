@@ -751,6 +751,9 @@ void networkDisplayStatus()
     for (NetIndex_t index = 0; index < NETWORK_OFFLINE; index++)
         if (networkIsPresent(index))
             networkDisplayInterface(index);
+
+    // Display the soft AP details
+    wifiDisplayNetworkData();
 }
 
 //----------------------------------------

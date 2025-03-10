@@ -346,6 +346,8 @@ const int wifiStartNamesEntries = sizeof(wifiStartNames) / sizeof(wifiStartNames
 #define WIFI_MAX_TIMEOUT    (15 * 60 * 1000)    // Timeout in milliseconds
 #define WIFI_MIN_TIMEOUT    (15 * 1000)         // Timeout in milliseconds
 
+const char * wifiSoftApName = "Soft AP";
+
 //****************************************
 // Locals
 //****************************************
@@ -435,6 +437,42 @@ void menuWiFi()
     }
 
     clearBuffer(); // Empty buffer of any newline chars
+}
+
+//*********************************************************************
+// Display the soft AP details
+void wifiDisplayNetworkData()
+{
+    bool hasIP;
+    const char *hostName;
+    IPAddress ipAddress;
+    NetworkInterface *netif;
+    const char *status;
+
+    netif = &WiFi.AP;
+    ipAddress = WiFi.softAPIP();
+    hasIP = ipAddress != "0.0.0.0";
+    status = "Off";
+    if (netif->started())
+    {
+        status = "Disconnected";
+        if (netif->linkUp())
+        {
+            status = "Link Up - No IP address";
+            if (hasIP)
+                status = "Online";
+        }
+    }
+    systemPrintf("%s: %s%s\r\n", wifiSoftApName, status, netif->isDefault() ? ", default" : "");
+    hostName = netif->getHostname();
+    if (hostName)
+        systemPrintf("    Host Name: %s\r\n", hostName);
+    systemPrintf("    MAC Address: %s\r\n", netif->macAddress().c_str());
+    if (hasIP)
+    {
+        systemPrintf("    IPv4 Address: %s (Static)\r\n", ipAddress.toString().c_str());
+        systemPrintf("    Subnet Mask: %s\r\n", netif->subnetMask().toString().c_str());
+    }
 }
 
 //*********************************************************************
