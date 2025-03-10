@@ -775,6 +775,8 @@ void updateWebServerTask(void *e)
 //----------------------------------------
 bool webServerAssignResources(int httpPort = 80)
 {
+    if (settings.debugWebServer)
+        systemPrintln("Assigning web server resources");
     do
     {
         // Freed by webServerStop
@@ -1058,6 +1060,8 @@ bool webServerIsRunning()
 //----------------------------------------
 void webServerReleaseResources()
 {
+    if (settings.debugWebServer)
+        systemPrintln("Releasing web server resources");
     if (task.updateWebServerTaskRunning)
         task.updateWebServerTaskStopRequest = true;
 
@@ -1241,8 +1245,6 @@ void webServerUpdate()
         // Determine if the network has failed
         if (connected == false && wifiSoftApRunning == false)
             webServerSetState(WEBSERVER_STATE_WAIT_FOR_NETWORK);
-        if (settings.debugWebServer)
-            systemPrintln("Assigning web server resources");
 
         if (webServerAssignResources(settings.httpPort) == true)
             webServerSetState(WEBSERVER_STATE_RUNNING);
