@@ -1104,6 +1104,7 @@ void webServerStopSockets()
     {
         // Stop the httpd server
         esp_err_t ret = httpd_stop(*wsserver);
+        delete wsserver;
         wsserver = nullptr;
     }
 }
