@@ -1472,8 +1472,6 @@ void provisioningUpdate()
     }
     break;
     case PROVISIONING_WAIT_ATTEMPT: {
-        // Done with the network
-        networkConsumerRemove(NETCONSUMER_PPL_KEY_UPDATE, NETWORK_ANY, __FILE__, __LINE__);
         if (settings.requestKeyUpdate) // requestKeyUpdate can be set via the menu, mode button or web config
             provisioningSetState(PROVISIONING_CHECK_REMAINING);
         else if (!settings.enablePointPerfectCorrections || !settings.autoKeyRenewal)
@@ -1485,6 +1483,11 @@ void provisioningUpdate()
         else if (millis() >
                  (provisioningStartTime_millis + (1000 * 60 * 60 * 24))) // Don't use settings.lastKeyAttempt (#419)
             provisioningSetState(PROVISIONING_CHECK_REMAINING);
+        else
+            break;
+
+        // Done with the network
+        networkConsumerRemove(NETCONSUMER_PPL_KEY_UPDATE, NETWORK_ANY, __FILE__, __LINE__);
     }
     break;
     }
