@@ -125,10 +125,8 @@ static const int networkConsumerTableEntries = sizeof(networkConsumerTable) / si
 //----------------------------------------
 
 NETCONSUMER_MASK_t netIfConsumers[NETWORK_MAX]; // Consumers of a specific network
-uint8_t networkConsumerCount; // Count of network consumers (bits set)
 NETCONSUMER_MASK_t networkConsumersAny; // Consumers of any network
 NETCONSUMER_MASK_t networkSoftApConsumer; // Consumers of soft AP
-uint8_t networkSoftApConsumerCount; // Count of soft AP consumers (bits set)
 
 // Priority of the network when last checked by the consumer
 // Index by consumer ID
@@ -398,6 +396,7 @@ void networkConsumerAdd(NETCONSUMER_t consumer, NetIndex_t network, const char *
     NETCONSUMER_MASK_t consumers;
     NetIndex_t index;
     const char * networkName;
+    NETCONSUMER_MASK_t previousBits;
     NetPriority_t priority;
 
     // Validate the inputs
@@ -417,9 +416,10 @@ void networkConsumerAdd(NETCONSUMER_t consumer, NetIndex_t network, const char *
                      networkName, fileName, lineNumber);
 
     // Add this consumer only once
-    consumers = networkConsumersAny | *bits;
+    previousBits = *bits;
+    consumers = networkConsumersAny | previousBits;
     bitMask = 1 << consumer;
-    if ((*bits & bitMask) == 0)
+    if ((previousBits & bitMask) == 0)
     {
         // Display the consumer
         if (settings.debugNetworkLayer)
@@ -427,7 +427,6 @@ void networkConsumerAdd(NETCONSUMER_t consumer, NetIndex_t network, const char *
 
         // Account for this consumer
         *bits |= bitMask;
-        networkConsumerCount += 1;
         networkConsumerPriority[consumer] = NETWORK_OFFLINE;
         networkConsumerPriorityLast[consumer] = NETWORK_OFFLINE;
 
@@ -436,7 +435,7 @@ void networkConsumerAdd(NETCONSUMER_t consumer, NetIndex_t network, const char *
             networkConsumerDisplay();
 
         // Start the networks if necessary
-        if (networkConsumerCount == 1)
+        if (previousBits == 0)
         {
             // Walk the list of priorities
             for (priority = 0; priority < NETWORK_MAX; priority += 1)
@@ -485,12 +484,49 @@ void networkConsumerAdd(NETCONSUMER_t consumer, NetIndex_t network, const char *
 }
 
 //----------------------------------------
+// Count the network consumer bits
+//----------------------------------------
+int networkConsumerCount(NETCONSUMER_MASK_t bits)
+{
+    int bitCount;
+    NETCONSUMER_MASK_t bitMask;
+    int bitNumber;
+    int totalBits;
+
+    // Determine the number of bits
+    totalBits = sizeof(bits) << 3;
+
+    // Count the bits
+    bitCount = 0;
+    for (bitNumber = 0; bitNumber < totalBits; bitNumber++)
+    {
+        bitMask = 1 << bitNumber;
+        if (bits & bitMask)
+            bitCount += 1;
+    }
+    return bitCount;
+}
+
+//----------------------------------------
 // Display a network consumer
 //----------------------------------------
 void networkConsumerDisplay()
 {
+    NETCONSUMER_MASK_t bits;
+    NetIndex_t index;
+
+    // Determine the consumer count
+    bits = networkConsumersAny;
+    if (networkPriority < NETWORK_OFFLINE)
+    {
+        index = networkIndexTable[networkPriority];
+        bits |= netIfConsumers[index];
+    }
+    systemPrintf("Network Consumers: %d", networkConsumerCount(bits));
+    networkConsumerPrint(bits, ", ");
+    systemPrintln();
+
     // Walk the networks in priority order
-    systemPrintf("Network Consumers: %d\r\n", networkConsumerCount);
     for (NetPriority_t priority = 0; priority < NETWORK_MAX; priority++)
         networkPrintStatus(priority);
 
@@ -531,6 +567,50 @@ void networkConsumerOffline(NETCONSUMER_t consumer)
 }
 
 //----------------------------------------
+// Print the list of consumers
+//----------------------------------------
+void networkConsumerPrint(NETCONSUMER_MASK_t consumers, const char * separation)
+{
+    NETCONSUMER_MASK_t consumerMask;
+
+    for (int consumer = 0; consumer < NETCONSUMER_MAX; consumer += 1)
+    {
+        consumerMask = 1 << consumer;
+        if (consumers & consumerMask)
+        {
+            systemPrintf("%s%s", separation, networkConsumerTable[consumer]);
+            separation = ", ";
+        }
+    }
+}
+
+//----------------------------------------
+// Notify the consumers that they need to reconnect to the network
+//----------------------------------------
+void networkConsumerReconnect(NetIndex_t index)
+{
+    NETCONSUMER_MASK_t consumers;
+
+    networkValidateIndex(index);
+
+    // Determine the consumers of the network
+    consumers = netIfConsumers[index];
+    if ((networkPriority < NETWORK_OFFLINE)
+        && (networkIndexTable[networkPriority] == index))
+    {
+        consumers |= networkConsumersAny;
+    }
+
+    // Notify the consumers to restart
+    for (int consumer = 0; consumer < NETCONSUMER_MAX; consumer++)
+    {
+        // Mark this network offline
+        if (consumers & (1 << consumer))
+            networkConsumerPriority[consumer] = NETWORK_OFFLINE;
+    }
+}
+
+//----------------------------------------
 // Remove a network consumer
 //----------------------------------------
 void networkConsumerRemove(NETCONSUMER_t consumer, NetIndex_t network, const char * fileName, uint32_t lineNumber)
@@ -540,6 +620,7 @@ void networkConsumerRemove(NETCONSUMER_t consumer, NetIndex_t network, const cha
     NETCONSUMER_MASK_t consumers;
     NetIndex_t index;
     const char * networkName;
+    NETCONSUMER_MASK_t previousBits;
     int priority;
 
     // Validate the inputs
@@ -562,9 +643,10 @@ void networkConsumerRemove(NETCONSUMER_t consumer, NetIndex_t network, const cha
     networkUserRemove(consumer, __FILE__, __LINE__);
 
     // Remove the consumer only once
-    consumers = networkConsumersAny | *bits;
+    previousBits = *bits;
+    consumers = networkConsumersAny | previousBits;
     bitMask = 1 << consumer;
-    if (*bits & bitMask)
+    if (previousBits & bitMask)
     {
         // Display the consumer
         if (settings.debugNetworkLayer)
@@ -572,14 +654,13 @@ void networkConsumerRemove(NETCONSUMER_t consumer, NetIndex_t network, const cha
 
         // Account for this consumer
         *bits &= ~bitMask;
-        networkConsumerCount -= 1;
 
         // Display the network consumers
         if (settings.debugNetworkLayer)
             networkConsumerDisplay();
 
         // Stop the networks when the consumer count reaches zero
-        if (networkConsumerCount == 0)
+        if (previousBits && (*bits == 0))
         {
             // Display the consumer
             if (settings.debugNetworkLayer)
@@ -1382,12 +1463,7 @@ void networkPrintStatus(uint8_t priority)
     if (highestPriority)
     {
         consumers = networkConsumersAny | netIfConsumers[index];
-        for (int consumer = 0; consumer < NETCONSUMER_MAX; consumer += 1)
-        {
-            consumerMask = 1 << consumer;
-            if (consumers & consumerMask)
-                systemPrintf(", %s", networkConsumerTable[consumer]);
-        }
+        networkConsumerPrint(consumers, ", ");
     }
     systemPrintln();
 }
@@ -1728,6 +1804,7 @@ void networkSoftApConsumerAdd(NETCONSUMER_t consumer, const char * fileName, uin
 {
     NETCONSUMER_MASK_t bitMask;
     NetIndex_t index;
+    NETCONSUMER_MASK_t previousBits;
 
     // Validate the inputs
     networkConsumerValidate(consumer);
@@ -1746,15 +1823,15 @@ void networkSoftApConsumerAdd(NETCONSUMER_t consumer, const char * fileName, uin
             systemPrintf("Network: Adding soft AP consumer %s\r\n", networkConsumerTable[consumer]);
 
         // Account for this consumer
+        previousBits = networkSoftApConsumer;
         networkSoftApConsumer |= bitMask;
-        networkSoftApConsumerCount += 1;
 
         // Display the network consumers
         if (settings.debugNetworkLayer)
             networkSoftApConsumerDisplay();
 
         // Start the networks if necessary
-        if (networkSoftApConsumerCount == 1)
+        if (networkSoftApConsumer == 0)
         {
             wifiSoftApOn(__FILE__, __LINE__);
             if (settings.debugNetworkLayer)
@@ -1774,32 +1851,9 @@ void networkSoftApConsumerAdd(NETCONSUMER_t consumer, const char * fileName, uin
 //----------------------------------------
 void networkSoftApConsumerDisplay()
 {
-    NETCONSUMER_MASK_t bitMask;
-    NETCONSUMER_MASK_t * bits;
-    NETCONSUMER_t consumer;
-    char line[128];
-
-    // Determine if there are any network consumers
-    if (networkSoftApConsumerCount)
-    {
-        sprintf(line, "WiFi Soft AP Consumers: %d", networkConsumerCount);
-
-        // Walk the list of consumers
-        for (consumer = 0; consumer < NETCONSUMER_MAX; consumer += 1)
-        {
-            bitMask = 1 << consumer;
-            if (networkSoftApConsumer & bitMask)
-            {
-                // Add the consumer to the line
-                sprintf(&line[strlen(line)], ", %s", networkConsumerTable[consumer]);
-            }
-        }
-
-        // Display this network's consumers;
-        systemPrintf("%s\r\n", line);
-    }
-    else
-        systemPrintf("No active soft AP consumers\r\n");
+    systemPrintf("WiFi Soft AP Consumers: %d", networkConsumerCount(networkSoftApConsumer));
+    networkConsumerPrint(networkSoftApConsumer, ", ");
+    systemPrintln();
 }
 
 //----------------------------------------
@@ -1828,6 +1882,7 @@ void networkSoftApConsumerRemove(NETCONSUMER_t consumer, const char * fileName, 
 {
     NETCONSUMER_MASK_t bitMask;
     NetIndex_t index;
+    NETCONSUMER_MASK_t previousBits;
 
     // Validate the inputs
     networkConsumerValidate(consumer);
@@ -1846,15 +1901,15 @@ void networkSoftApConsumerRemove(NETCONSUMER_t consumer, const char * fileName, 
             systemPrintf("Network: Removing soft AP consumer %s\r\n", networkConsumerTable[consumer]);
 
         // Account for this consumer
+        previousBits = networkSoftApConsumer;
         networkSoftApConsumer &= ~bitMask;
-        networkSoftApConsumerCount -= 1;
 
         // Display the network consumers
         if (settings.debugNetworkLayer)
             networkSoftApConsumerDisplay();
 
         // Stop the networks when the consumer count reaches zero
-        if (networkSoftApConsumerCount == 0)
+        if (previousBits && (networkSoftApConsumer == 0))
         {
             // Display the soft AP shutdown message
             if (settings.debugNetworkLayer)
@@ -1874,6 +1929,8 @@ void networkSoftApConsumerRemove(NETCONSUMER_t consumer, const char * fileName, 
 //----------------------------------------
 void networkStart(NetIndex_t index, bool debug, const char * fileName, uint32_t lineNumber)
 {
+    NETCONSUMER_MASK_t consumers;
+
     // Validate the index
     networkValidateIndex(index);
 
@@ -1886,7 +1943,10 @@ void networkStart(NetIndex_t index, bool debug, const char * fileName, uint32_t 
     }
 
     // Only start networks that exist on the platform
-    if (networkIsPresent(index) && networkConsumerCount)
+    consumers = networkConsumersAny;
+    if (index < NETWORK_OFFLINE)
+        consumers |= netIfConsumers[index];
+    if (networkIsPresent(index) && consumers)
     {
         // If a network has a start sequence, and it is not started, start it
         if (networkInterfaceTable[index].start && (!networkIsStarted(index)))
@@ -1911,10 +1971,14 @@ void networkStart(NetIndex_t index, bool debug, const char * fileName, uint32_t 
 void networkStartNextInterface(NetIndex_t index)
 {
     NetMask_t bitMask;
+    NETCONSUMER_MASK_t consumers;
     NetPriority_t priority;
 
     // Verify that a network consumer is requesting the network
-    if (networkConsumerCount)
+    consumers = networkConsumersAny;
+    if (index < NETWORK_OFFLINE)
+        consumers |= netIfConsumers[index];
+    if (consumers)
     {
         // Validate the index
         networkValidateIndex(index);
@@ -2212,33 +2276,14 @@ void networkUserDisplay(NetIndex_t index)
 {
     NETCONSUMER_MASK_t bits;
     NETCONSUMER_t consumer;
-    char line[128];
-    const char * separation;
 
     networkValidateIndex(index);
 
     // Determine if there are any users
     bits = netIfUsers[index];
-    if (bits)
-    {
-        systemPrintf("%s Users: %d\r\n", networkInterfaceTable[index].name, networkConsumerCount);
-
-        // Walk the list of consumers
-        line[0] = 0;
-        separation = "";
-        for (consumer = 0; consumer < NETCONSUMER_MAX; consumer += 1)
-        {
-            if (bits & (1 << consumer))
-            {
-                // Add the consumer to the line
-                sprintf(&line[strlen(line)], "%s%s", separation, networkConsumerTable[consumer]);
-                separation = ", ";
-            }
-        }
-
-        // Display this network's consumers;
-        systemPrintf("%s\r\n", line);
-    }
+    systemPrintf("%s Users: %d", networkInterfaceTable[index].name, networkConsumerCount(bits));
+    networkConsumerPrint(bits, ", ");
+    systemPrintln();
 }
 
 //----------------------------------------

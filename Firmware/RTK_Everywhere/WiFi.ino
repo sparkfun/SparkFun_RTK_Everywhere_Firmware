@@ -843,7 +843,8 @@ void wifiStationRestart(NetIndex_t index, uintptr_t parameter, bool debug)
     // Check for a reconnection request
     if (wifiReconnectRequest)
     {
-        // Notify the users that the network is going offline
+        // Fake a WiFi failure
+        networkConsumerReconnect(NETWORK_WIFI_STATION);
         networkInterfaceEventInternetLost(NETWORK_WIFI_STATION);
 
         // Clear the bits to perform the restart operation
