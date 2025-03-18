@@ -315,7 +315,7 @@ bool ntripClientConnectLimitReached()
     limitReached = false;
 
     // Restart the NTRIP client
-    ntripClientStop(limitReached || (!ntripClientEnabled()));
+    ntripClientStop(limitReached || (!ntripClientEnabled(nullptr)));
 
     ntripClientConnectionAttempts++;
     ntripClientConnectionAttemptsTotal++;
@@ -356,34 +356,59 @@ bool ntripClientConnectLimitReached()
 //----------------------------------------
 // Determine if the NTRIP client may be enabled
 //----------------------------------------
-bool ntripClientEnabled()
+bool ntripClientEnabled(char * line)
 {
     bool enabled;
 
     do
     {
         enabled = false;
+        if (line)
+            line[0] = 0;
 
         // Verify the operating mode
         if (NEQ_RTK_MODE(ntripClientMode))
+        {
+            if (line)
+                strcpy(line, ", Wrong mode!");
             break;
+        }
 
         // Verify that the parameters were specified
         if ((settings.ntripClient_CasterHost[0] == 0)
             || (settings.ntripClient_CasterPort == 0)
             || (settings.ntripClient_MountPoint[0] == 0))
+        {
+            if (line)
+            {
+                if (settings.ntripClient_CasterHost[0] == 0)
+                    strcpy(line, ", Caster host not specified!");
+                else if (settings.ntripClient_CasterPort == 0)
+                    strcpy(line, ", Caster port not specified!");
+                if (settings.ntripClient_MountPoint[0] == 0)
+                    strcpy(line, ", Mount mode not specified!");
+            }
             break;
+        }
 
         // Verify still enabled
         enabled = settings.enableNtripClient;
 
         // Determine if the shutdown is being forced
         if (enabled && ntripClientForcedShutdown)
+        {
+            if (line)
+                strcpy(line, ", Forced shutdown!");
             enabled = false;
+        }
 
         // User manually disabled NTRIP client
         else if (enabled == false)
+        {
+            if (line)
+                strcpy(line, ", Not enabled!");
             ntripClientForcedShutdown = false;
+        }
     } while (0);
     return enabled;
 }
@@ -602,7 +627,7 @@ void ntripClientUpdate()
 
     // Shutdown the NTRIP client when the mode or setting changes
     DMW_st(ntripClientSetState, ntripClientState);
-    enabled = ntripClientEnabled();
+    enabled = ntripClientEnabled(nullptr);
     connected = networkConsumerIsConnected(NETCONSUMER_NTRIP_CLIENT);
     if ((!enabled) && (ntripClientState > NTRIP_CLIENT_OFF))
         ntripClientStop(true);
@@ -618,7 +643,7 @@ void ntripClientUpdate()
     {
     case NTRIP_CLIENT_OFF:
         // Don't allow the client to restart if a forced shutdown occurred
-        if (ntripClientEnabled())
+        if (ntripClientEnabled(nullptr))
             ntripClientStart();
         break;
 
@@ -909,7 +934,15 @@ void ntripClientUpdate()
     // Periodically display the NTRIP client state
     if (PERIODIC_DISPLAY(PD_NTRIP_CLIENT_STATE))
     {
-        systemPrintf("NTRIP Client state: %s\r\n", ntripClientStateName[ntripClientState]);
+        char * line;
+        line = (char *)ps_malloc(128);
+        if (line)
+            ntripClientEnabled(line);
+        systemPrintf("NTRIP Client state: %s%s\r\n",
+                     ntripClientStateName[ntripClientState],
+                     line ? line : "");
+        if (line)
+            free(line);
         PERIODIC_CLEAR(PD_NTRIP_CLIENT_STATE);
     }
 }

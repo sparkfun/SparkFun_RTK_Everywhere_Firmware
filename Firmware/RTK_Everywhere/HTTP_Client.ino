@@ -88,7 +88,7 @@ bool httpClientConnectLimitReached()
     limitReached = (httpClientConnectionAttempts >= MAX_HTTP_CLIENT_CONNECTION_ATTEMPTS);
 
     // Restart the HTTP client
-    httpClientStop(limitReached || (!httpClientEnabled()));
+    httpClientStop(limitReached || (!httpClientEnabled(nullptr)));
 
     // Limit to max connection delay
     if (httpClientConnectionAttempts)
@@ -123,20 +123,28 @@ bool httpClientConnectLimitReached()
 //----------------------------------------
 // Determine if the HTTP client may be enabled
 //----------------------------------------
-bool httpClientEnabled()
+bool httpClientEnabled(char * line)
 {
     bool enableHttpClient;
 
     do
     {
         enableHttpClient = false;
+        if (line)
+            line[0] = 0;
 
         // HTTP requires use of point perfect corrections
         if (settings.enablePointPerfectCorrections == false)
+        {
+            if (line)
+                strcpy(line, ", PointPerfect corrections disabled!");
             break;
+        }
 
         // All conditions support running the HTTP client
         enableHttpClient = httpClientModeNeeded;
+        if (line && !enableHttpClient)
+            strcpy(line, ", HTTP Client disabled!");
     } while (0);
     return enableHttpClient;
 }
@@ -209,7 +217,6 @@ void httpClientSetState(uint8_t newState)
     httpClientState = newState;
     if (settings.debugHttpClientState || PERIODIC_DISPLAY(PD_HTTP_CLIENT_STATE))
     {
-        PERIODIC_CLEAR(PD_HTTP_CLIENT_STATE);
         if (newState >= HTTP_CLIENT_STATE_MAX)
         {
             systemPrintf("Unknown HTTP Client state: %d\r\n", newState);
@@ -299,7 +306,7 @@ void httpClientUpdate()
     // Shutdown the HTTP client when the mode or setting changes
     DMW_st(httpClientSetState, httpClientState);
     connected = networkConsumerIsConnected(NETCONSUMER_HTTP_CLIENT);
-    enabled = httpClientEnabled();
+    enabled = httpClientEnabled(nullptr);
     if ((enabled == false) && (httpClientState > HTTP_CLIENT_OFF))
         httpClientShutdown();
 
@@ -589,7 +596,18 @@ void httpClientUpdate()
 
     // Periodically display the HTTP client state
     if (PERIODIC_DISPLAY(PD_HTTP_CLIENT_STATE))
-        httpClientSetState(httpClientState);
+    {
+        char * line;
+        line = (char *)ps_malloc(128);
+        if (line)
+            httpClientEnabled(line);
+        systemPrintf("HTTP Client state: %s%s\r\n",
+                     httpClientStateName[httpClientState],
+                     line ? line : "");
+        if (line)
+            free(line);
+        PERIODIC_CLEAR(PD_HTTP_CLIENT_STATE);
+    }
 }
 
 //----------------------------------------
