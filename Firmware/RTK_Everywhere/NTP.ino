@@ -842,7 +842,7 @@ void ntpServerUpdate()
         if (networkInterfaceHasInternet(NETWORK_ETHERNET))
         {
             networkUserAdd(NETCONSUMER_NTP_SERVER, __FILE__, __LINE__);
-            ntpServerSetState(NTP_STATE_WAIT_NETWORK);
+            ntpServerSetState(NTP_STATE_NETWORK_CONNECTED);
         }
         break;
 
