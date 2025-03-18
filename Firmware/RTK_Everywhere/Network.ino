@@ -135,6 +135,14 @@ uint8_t networkSoftApConsumerCount; // Count of soft AP consumers (bits set)
 NetPriority_t networkConsumerPriority[NETCONSUMER_MAX];
 NetPriority_t networkConsumerPriorityLast[NETCONSUMER_MAX];
 
+// Index of the network interface
+// Index by consumer ID
+NetIndex_t networkConsumerIndexLast[NETCONSUMER_MAX];
+
+// Users of the network
+// Index by network index
+NETCONSUMER_MASK_t netIfUsers[NETWORK_MAX]; // Users of a specific network
+
 // Priority of each of the networks in the networkInterfaceTable
 // Index by networkInterfaceTable index to get network interface priority
 NetPriority_t networkPriorityTable[NETWORK_OFFLINE];
@@ -481,52 +489,13 @@ void networkConsumerAdd(NETCONSUMER_t consumer, NetIndex_t network, const char *
 //----------------------------------------
 void networkConsumerDisplay()
 {
-    NETCONSUMER_MASK_t bitMask;
-    NETCONSUMER_MASK_t * bits;
-    NETCONSUMER_t consumer;
-    NETCONSUMER_MASK_t consumersFound;
-    uint8_t index;
-    char line[128];
-    const char * networkName;
-    const char * separation;
+    // Walk the networks in priority order
+    systemPrintf("Network Consumers: %d\r\n", networkConsumerCount);
+    for (NetPriority_t priority = 0; priority < NETWORK_MAX; priority++)
+        networkPrintStatus(priority);
 
-    // Determine if there are any network consumers
-    if (networkConsumerCount)
-    {
-        systemPrintf("Network Consumers: %d\r\n", networkConsumerCount);
-
-        // Walk the networks
-        for (index = 0; index < NETWORK_MAX; index++)
-        {
-            networkName = networkInterfaceTable[index].name;
-
-            // Determine if this interface has any consumers
-            consumersFound = networkConsumersAny | netIfConsumers[index];
-            if (consumersFound)
-            {
-                // Add the network name to the line
-                sprintf(line, "%d, %s: ", index, networkName);
-
-                // Walk the list of consumers
-                separation = "";
-                for (consumer = 0; consumer < NETCONSUMER_MAX; consumer += 1)
-                {
-                    bitMask = 1 << consumer;
-                    if (consumersFound & bitMask)
-                    {
-                        // Add the consumer to the line
-                        sprintf(&line[strlen(line)], "%s%s", separation, networkConsumerTable[consumer]);
-                        separation = ", ";
-                    }
-                }
-
-                // Display this network's consumers;
-                systemPrintf("%s\r\n", line);
-            }
-        }
-    }
-    else
-        systemPrintf("No active network consumers\r\n");
+    // Display the soft AP consumers
+    wifiDisplaySoftApStatus();
 }
 
 //----------------------------------------
@@ -557,6 +526,7 @@ bool networkConsumerIsConnected(NETCONSUMER_t consumer)
 //----------------------------------------
 void networkConsumerOffline(NETCONSUMER_t consumer)
 {
+    networkUserRemove(NETCONSUMER_HTTP_CLIENT, __FILE__, __LINE__);
     networkConsumerPriority[consumer] = NETWORK_OFFLINE;
 }
 
@@ -587,6 +557,9 @@ void networkConsumerRemove(NETCONSUMER_t consumer, NetIndex_t network, const cha
     if (settings.debugNetworkLayer)
         systemPrintf("Network: Calling networkConsumerRemove(%s) from %s at line %d\r\n",
                      networkName, fileName, lineNumber);
+
+    // Done with the network
+    networkUserRemove(consumer, __FILE__, __LINE__);
 
     // Remove the consumer only once
     consumers = networkConsumersAny | *bits;
@@ -664,20 +637,26 @@ void networkDelay(uint8_t priority, uintptr_t parameter, bool debug)
 }
 
 //----------------------------------------
-// Display the Ethernet data
+// Display the network data
 //----------------------------------------
 void networkDisplayInterface(NetIndex_t index)
 {
     const NETWORK_TABLE_ENTRY *entry;
-    bool hasIP;
-    const char *hostName;
-    NetworkInterface *netif;
-    const char *status;
 
     // Verify the index into the networkInterfaceTable
     networkValidateIndex(index);
     entry = &networkInterfaceTable[index];
-    netif = entry->netif;
+    networkDisplayNetworkData(entry->name, entry->netif);
+}
+
+//----------------------------------------
+// Display the network data
+//----------------------------------------
+void networkDisplayNetworkData(const char *name, NetworkInterface *netif)
+{
+    bool hasIP;
+    const char *hostName;
+    const char *status;
 
     hasIP = false;
     status = "Off";
@@ -692,7 +671,7 @@ void networkDisplayInterface(NetIndex_t index)
                 status = "Online";
         }
     }
-    systemPrintf("%s: %s%s\r\n", entry->name, status, netif->isDefault() ? ", default" : "");
+    systemPrintf("%s: %s%s\r\n", name, status, netif->isDefault() ? ", default" : "");
     hostName = netif->getHostname();
     if (hostName)
         systemPrintf("    Host Name: %s\r\n", hostName);
@@ -729,10 +708,16 @@ void networkDisplayStatus()
     for (NetPriority_t priority = 0; priority < NETWORK_OFFLINE; priority++)
         networkPrintStatus(networkIndexTable[priority]);
 
+    // Display the soft AP consumers
+    wifiDisplaySoftApStatus();
+
     // Display the interfaces details
     for (NetIndex_t index = 0; index < NETWORK_OFFLINE; index++)
         if (networkIsPresent(index))
             networkDisplayInterface(index);
+
+    // Display the soft AP details
+    wifiDisplayNetworkData();
 }
 
 //----------------------------------------
@@ -1355,7 +1340,9 @@ bool networkMulticastDNSUpdate()
 void networkPrintStatus(uint8_t priority)
 {
     NetMask_t bitMask;
-    char highestPriority;
+    NETCONSUMER_MASK_t consumerMask;
+    NETCONSUMER_t consumers;
+    bool highestPriority;
     int index;
     const char *name;
     const char *status;
@@ -1363,18 +1350,22 @@ void networkPrintStatus(uint8_t priority)
     // Validate the priority
     networkValidatePriority(priority);
 
+    // Verify that the network exists on this platform
+    index = networkIndexTable[priority];
+    if (networkIsPresent(index) == false)
+        return;
+
     // Get the network name
     name = networkGetNameByPriority(priority);
 
     // Determine the network status
-    index = networkIndexTable[priority];
-    bitMask = (1 << index);
-    highestPriority = (networkPriority == priority) ? '*' : ' ';
+    highestPriority = (networkPriority == priority);
     status = "Starting";
     if (networkInterfaceHasInternet(index))
         status = "Online";
     else if (networkInterfaceTable[index].boot)
     {
+        bitMask = (1 << index);
         if (networkSeqStopping & bitMask)
             status = "Stopping";
         else if (networkStarted & bitMask)
@@ -1384,8 +1375,21 @@ void networkPrintStatus(uint8_t priority)
     }
 
     // Print the network interface status
-    if (networkIsPresent(index))
-        systemPrintf("%c%d: %-10s %-8s\r\n", highestPriority, priority, name, status);
+    systemPrintf("%c%d: %-10s %s",
+                 highestPriority ? '*' : ' ', priority, name, status);
+
+    // Determine if this interface has any consumers
+    if (highestPriority)
+    {
+        consumers = networkConsumersAny | netIfConsumers[index];
+        for (int consumer = 0; consumer < NETCONSUMER_MAX; consumer += 1)
+        {
+            consumerMask = 1 << consumer;
+            if (consumers & consumerMask)
+                systemPrintf(", %s", networkConsumerTable[consumer]);
+        }
+    }
+    systemPrintln();
 }
 
 //----------------------------------------
@@ -1799,6 +1803,25 @@ void networkSoftApConsumerDisplay()
 }
 
 //----------------------------------------
+// Print the soft AP consumers
+//----------------------------------------
+void networkSoftApConsumerPrint(const char * separator)
+{
+    NETCONSUMER_MASK_t consumerMask;
+
+    // Determine if soft AP has any consumers
+    for (int consumer = 0; consumer < NETCONSUMER_MAX; consumer += 1)
+    {
+        consumerMask = 1 << consumer;
+        if (networkSoftApConsumer & consumerMask)
+        {
+            systemPrintf("%s%s", separator, networkConsumerTable[consumer]);
+            separator = ", ";
+        }
+    }
+}
+
+//----------------------------------------
 // Remove a soft AP consumer
 //----------------------------------------
 void networkSoftApConsumerRemove(NETCONSUMER_t consumer, const char * fileName, uint32_t lineNumber)
@@ -1928,9 +1951,9 @@ void networkStop(NetIndex_t index, bool debug, const char * fileName, uint32_t l
     // Display the call
     if (settings.debugNetworkLayer)
     {
-        networkDisplayStatus();
         systemPrintf("Network: Calling networkStop(%s) from %s at line %d\r\n",
                      networkInterfaceTable[index].name, fileName, lineNumber);
+        networkDisplayStatus();
     }
 
     // Clear the event flag
@@ -2169,6 +2192,113 @@ void networkUpdate()
             systemPrintln("Network: Offline");
         PERIODIC_CLEAR(PD_IP_ADDRESS);
     }
+}
+
+//----------------------------------------
+// Add a network user
+//----------------------------------------
+void networkUserAdd(NETCONSUMER_t consumer, const char * fileName, uint32_t lineNumber)
+{
+    NetIndex_t index;
+    NETCONSUMER_MASK_t mask;
+
+    // Validate the consumer
+    networkConsumerValidate(consumer);
+    if (settings.debugNetworkLayer)
+        systemPrintf("Network: Calling networkUserAdd(%s) from %s at line %d\r\n",
+                     networkConsumerTable[consumer], fileName, lineNumber);
+
+    // Convert the priority into a network interface index
+    index = networkIndexTable[networkPriority];
+
+    // Mark the interface in use
+    mask = 1 << consumer;
+    netIfUsers[index] |= mask;
+
+    // Display the user
+    if (settings.debugNetworkLayer)
+        systemPrintf("%s adding user %s\r\n", networkInterfaceTable[index].name, networkConsumerTable[consumer]);
+
+    // Remember this network interface
+    networkConsumerIndexLast[consumer] = index;
+}
+
+//----------------------------------------
+// Display the network interface users
+//----------------------------------------
+void networkUserDisplay(NetIndex_t index)
+{
+    NETCONSUMER_MASK_t bits;
+    NETCONSUMER_t consumer;
+    char line[128];
+    const char * separation;
+
+    networkValidateIndex(index);
+
+    // Determine if there are any users
+    bits = netIfUsers[index];
+    if (bits)
+    {
+        systemPrintf("%s Users: %d\r\n", networkInterfaceTable[index].name, networkConsumerCount);
+
+        // Walk the list of consumers
+        line[0] = 0;
+        separation = "";
+        for (consumer = 0; consumer < NETCONSUMER_MAX; consumer += 1)
+        {
+            if (bits & (1 << consumer))
+            {
+                // Add the consumer to the line
+                sprintf(&line[strlen(line)], "%s%s", separation, networkConsumerTable[consumer]);
+                separation = ", ";
+            }
+        }
+
+        // Display this network's consumers;
+        systemPrintf("%s\r\n", line);
+    }
+}
+
+//----------------------------------------
+// Remove a network user
+//----------------------------------------
+void networkUserRemove(NETCONSUMER_t consumer, const char * fileName, uint32_t lineNumber)
+{
+    NetIndex_t index;
+    NETCONSUMER_MASK_t mask;
+
+    // Validate the consumer
+    networkConsumerValidate(consumer);
+    if (settings.debugNetworkLayer)
+        systemPrintf("Network: Calling networkUserRemove(%s) from %s at line %d\r\n",
+                     networkConsumerTable[consumer], fileName, lineNumber);
+
+    // Convert the priority into a network interface index
+    index = networkConsumerIndexLast[consumer];
+
+    // Display the user
+    mask = 1 << consumer;
+    if (netIfUsers[index] & mask)
+    {
+        if (settings.debugNetworkLayer)
+            systemPrintf("%s removing user %s\r\n", networkInterfaceTable[index].name, networkConsumerTable[consumer]);
+
+        // The network interface is no longer in use by this consumer
+        netIfUsers[index] &= ~mask;
+    }
+}
+
+//----------------------------------------
+// Determine if there are any network users
+//----------------------------------------
+NETCONSUMER_MASK_t networkUsersActive(NetIndex_t index)
+{
+    networkValidateIndex(index);
+
+    // Determine if there are any network users
+    if (index < NETWORK_OFFLINE)
+        return netIfUsers[index];
+    return 0;
 }
 
 //----------------------------------------

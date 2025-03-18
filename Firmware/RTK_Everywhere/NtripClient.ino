@@ -575,6 +575,8 @@ void ntripClientStop(bool shutdown)
     networkConsumerOffline(NETCONSUMER_NTRIP_CLIENT);
     if (shutdown)
     {
+        if (ntripClientForcedShutdown)
+            settings.enableNtripClient = false;
         networkConsumerRemove(NETCONSUMER_NTRIP_CLIENT, NETWORK_ANY, __FILE__, __LINE__);
         ntripClientSetState(NTRIP_CLIENT_OFF);
         ntripClientConnectionAttempts = 0;
