@@ -870,16 +870,17 @@ IPAddress networkGetBroadcastIpAddress()
 
     // Get the networkInterfaceTable index
     index = networkPriority;
+    ip = IPAddress(255, 255, 255, 255);
     if (index < NETWORK_OFFLINE)
     {
         index = networkIndexTable[index];
 
         // Return the local network broadcast IP address
-        return networkInterfaceTable[index].netif->broadcastIP();
+        ip = networkInterfaceTable[index].netif->broadcastIP();
     }
 
     // Return the broadcast address
-    return IPAddress(255, 255, 255, 255);
+    return ip;
 }
 
 //----------------------------------------
