@@ -1323,6 +1323,7 @@ void provisioningUpdate()
                 systemPrintln("PointPerfect key update connected to network");
 
             // Go get latest keys
+            networkUserAdd(NETCONSUMER_PPL_KEY_UPDATE, __FILE__, __LINE__);
             provisioningSetState(PROVISIONING_STARTING);
         }
 #endif // COMPILE_NETWORK
@@ -1468,6 +1469,9 @@ void provisioningUpdate()
         recordSystemSettings();            // Record these settings to unit
 
         provisioningStartTime_millis = millis(); // Record the time so we can restart after 24 hours
+
+        // Done with the network
+        networkConsumerRemove(NETCONSUMER_PPL_KEY_UPDATE, NETWORK_ANY, __FILE__, __LINE__);
         provisioningSetState(PROVISIONING_WAIT_ATTEMPT);
     }
     break;
@@ -1483,11 +1487,6 @@ void provisioningUpdate()
         else if (millis() >
                  (provisioningStartTime_millis + (1000 * 60 * 60 * 24))) // Don't use settings.lastKeyAttempt (#419)
             provisioningSetState(PROVISIONING_CHECK_REMAINING);
-        else
-            break;
-
-        // Done with the network
-        networkConsumerRemove(NETCONSUMER_PPL_KEY_UPDATE, NETWORK_ANY, __FILE__, __LINE__);
     }
     break;
     }

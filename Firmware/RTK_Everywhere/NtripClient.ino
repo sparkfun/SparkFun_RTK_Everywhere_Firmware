@@ -646,6 +646,9 @@ void ntripClientUpdate()
                 if (networkChanged(NETCONSUMER_NTRIP_CLIENT))
                     ntripClientConnectionAttemptTimeout = 0;
 
+                // Mark the network interface in use
+                networkUserAdd(NETCONSUMER_NTRIP_CLIENT, __FILE__, __LINE__);
+
                 // The network is available for the NTRIP client
                 ntripClientSetState(NTRIP_CLIENT_NETWORK_CONNECTED);
             }

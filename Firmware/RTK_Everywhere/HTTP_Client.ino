@@ -333,7 +333,10 @@ void httpClientUpdate()
     case HTTP_CLIENT_NETWORK_STARTED: {
         // Wait until the network is connected to the media
         if (connected)
+        {
+            networkUserAdd(NETCONSUMER_HTTP_CLIENT, __FILE__, __LINE__);
             httpClientSetState(HTTP_CLIENT_CONNECTING_2_SERVER);
+        }
         break;
     }
 

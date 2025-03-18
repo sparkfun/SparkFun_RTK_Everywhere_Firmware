@@ -374,7 +374,10 @@ void udpServerUpdate()
 
                 // Start the UDP server
                 if (udpServerStart())
+                {
+                    networkUserAdd(NETCONSUMER_UDP_SERVER, __FILE__, __LINE__);
                     udpServerSetState(UDP_SERVER_STATE_RUNNING);
+                }
             }
         }
         break;
