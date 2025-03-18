@@ -168,7 +168,7 @@ bool mqttClientConnectLimitReached()
     limitReached = false;
 
     // Restart the MQTT client
-    MQTT_CLIENT_STOP(limitReached || (!mqttClientEnabled()));
+    MQTT_CLIENT_STOP(limitReached || (!mqttClientEnabled(nullptr)));
 
     mqttClientConnectionAttempts++;
     mqttClientConnectionAttemptsTotal++;
@@ -209,21 +209,31 @@ bool mqttClientConnectLimitReached()
 //----------------------------------------
 // Determine if the MQTT client may be enabled
 //----------------------------------------
-bool mqttClientEnabled()
+bool mqttClientEnabled(char * line)
 {
     bool enabled;
 
     do
     {
         enabled = false;
+        if (line)
+            line[0] = 0;
 
         // Verify the operating mode
         if (NEQ_RTK_MODE(mqttClientMode))
+        {
+            if (line)
+                strcpy(line, ", wrong mode!");
             break;
+        }
 
         // MQTT requires use of point perfect corrections
         if (settings.enablePointPerfectCorrections == false)
+        {
+            if (line)
+                strcpy(line, ", PointPerfect corrections are disabled!");
             break;
+        }
 
         // For the mosaic-X5, settings.enablePointPerfectCorrections will be true if
         // we are using the PPL and getting keys via ZTP. BUT the Facet mosaic-X5
@@ -232,10 +242,16 @@ bool mqttClientEnabled()
         // to false.
         // TODO : review this. This feels like a bit of a hack...
         if (present.gnss_mosaicX5)
+        {
+            if (line)
+                strcpy(line, ", Mosaic not present!");
             break;
+        }
 
         // Verify still enabled
         enabled = mqttClientStartRequested;
+        if (line && !enabled)
+            strcpy(line, ", MQTT not enabled!");
     } while (0);
     return enabled;
 }
@@ -291,7 +307,7 @@ void mqttClientPrintStatus()
     byte seconds;
 
     // Display MQTT Client status and uptime
-    if (mqttClientEnabled())
+    if (mqttClientEnabled(nullptr))
     {
         systemPrint("MQTT Client ");
         mqttClientPrintStateSummary();
@@ -651,7 +667,6 @@ void mqttClientSetState(uint8_t newState)
     mqttClientState = newState;
     if (settings.debugMqttClientState || PERIODIC_DISPLAY(PD_MQTT_CLIENT_STATE))
     {
-        PERIODIC_CLEAR(PD_MQTT_CLIENT_STATE);
         if (newState >= MQTT_CLIENT_STATE_MAX)
         {
             systemPrintf("Unknown MQTT Client state: %d\r\n", newState);
@@ -765,7 +780,7 @@ void mqttClientUpdate()
     // Shutdown the MQTT client when the mode or setting changes
     DMW_st(mqttClientSetState, mqttClientState);
     connected = networkConsumerIsConnected(NETCONSUMER_PPL_MQTT_CLIENT);
-    enabled = mqttClientEnabled();
+    enabled = mqttClientEnabled(nullptr);
     if ((enabled == false) && (mqttClientState > MQTT_CLIENT_OFF))
     {
         if (settings.debugMqttClientState)
@@ -1093,7 +1108,18 @@ void mqttClientUpdate()
 
     // Periodically display the MQTT client state
     if (PERIODIC_DISPLAY(PD_MQTT_CLIENT_STATE))
-        mqttClientSetState(mqttClientState);
+    {
+        char * line;
+        line = (char *)ps_malloc(128);
+        if (line)
+            mqttClientEnabled(line);
+        systemPrintf("MQTT Client state: %s%s\r\n",
+                     mqttClientStateName[mqttClientState],
+                     line ? line : "");
+        if (line)
+            free(line);
+        PERIODIC_CLEAR(PD_MQTT_CLIENT_STATE);
+    }
 }
 
 //----------------------------------------
