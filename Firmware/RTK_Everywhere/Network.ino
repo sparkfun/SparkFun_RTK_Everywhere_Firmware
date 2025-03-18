@@ -921,7 +921,7 @@ const char *networkGetNameByPriority(NetPriority_t priority)
     if (priority < NETWORK_OFFLINE)
     {
         // Translate the priority into an index
-        NetIndex_t index = networkPriorityTable[priority];
+        NetIndex_t index = networkIndexTable[priority];
         return networkGetNameByIndex(index);
     }
     return "None";
