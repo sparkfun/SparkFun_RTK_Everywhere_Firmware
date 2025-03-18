@@ -514,16 +514,19 @@ void networkConsumerDisplay()
 {
     NETCONSUMER_MASK_t bits;
     NetIndex_t index;
+    NETCONSUMER_MASK_t users;
 
     // Determine the consumer count
     bits = networkConsumersAny;
+    users = 0;
     if (networkPriority < NETWORK_OFFLINE)
     {
         index = networkIndexTable[networkPriority];
         bits |= netIfConsumers[index];
+        users = netIfUsers[index];
     }
     systemPrintf("Network Consumers: %d", networkConsumerCount(bits));
-    networkConsumerPrint(bits, ", ");
+    networkConsumerPrint(bits, users, ", ");
     systemPrintln();
 
     // Walk the networks in priority order
@@ -569,7 +572,9 @@ void networkConsumerOffline(NETCONSUMER_t consumer)
 //----------------------------------------
 // Print the list of consumers
 //----------------------------------------
-void networkConsumerPrint(NETCONSUMER_MASK_t consumers, const char * separation)
+void networkConsumerPrint(NETCONSUMER_MASK_t consumers,
+                          NETCONSUMER_MASK_t users,
+                          const char * separation)
 {
     NETCONSUMER_MASK_t consumerMask;
 
@@ -578,7 +583,8 @@ void networkConsumerPrint(NETCONSUMER_MASK_t consumers, const char * separation)
         consumerMask = 1 << consumer;
         if (consumers & consumerMask)
         {
-            systemPrintf("%s%s", separation, networkConsumerTable[consumer]);
+            const char * active = (users & consumerMask) ? "*" : "";
+            systemPrintf("%s%s%s", separation, active, networkConsumerTable[consumer]);
             separation = ", ";
         }
     }
@@ -1464,7 +1470,8 @@ void networkPrintStatus(uint8_t priority)
     if (highestPriority)
     {
         consumers = networkConsumersAny | netIfConsumers[index];
-        networkConsumerPrint(consumers, ", ");
+        NETCONSUMER_MASK_t users = netIfUsers[index];
+        networkConsumerPrint(consumers, users, ", ");
     }
     systemPrintln();
 }
@@ -1853,7 +1860,7 @@ void networkSoftApConsumerAdd(NETCONSUMER_t consumer, const char * fileName, uin
 void networkSoftApConsumerDisplay()
 {
     systemPrintf("WiFi Soft AP Consumers: %d", networkConsumerCount(networkSoftApConsumer));
-    networkConsumerPrint(networkSoftApConsumer, ", ");
+    networkConsumerPrint(networkSoftApConsumer, 0, ", ");
     systemPrintln();
 }
 
@@ -2283,7 +2290,7 @@ void networkUserDisplay(NetIndex_t index)
     // Determine if there are any users
     bits = netIfUsers[index];
     systemPrintf("%s Users: %d", networkInterfaceTable[index].name, networkConsumerCount(bits));
-    networkConsumerPrint(bits, ", ");
+    networkConsumerPrint(bits, 0, ", ");
     systemPrintln();
 }
 
