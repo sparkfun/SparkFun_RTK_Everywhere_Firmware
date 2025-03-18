@@ -55,7 +55,7 @@ char *tempHolderPtr = nullptr;
 
 // Throttle the time between connection attempts
 static int httpClientConnectionAttempts; // Count the number of connection attempts between restarts
-static uint32_t httpClientConnectionAttemptTimeout = 5 * 1000L; // Wait 5s
+static uint32_t httpClientConnectionAttemptTimeout;
 static int httpClientConnectionAttemptsTotal;                   // Count the number of connection attempts absolutely
 
 static volatile uint32_t httpClientLastDataReceived; // Last time data was received via HTTP
@@ -81,16 +81,23 @@ static uint32_t httpClientTimer;
 bool httpClientConnectLimitReached()
 {
     bool limitReached;
+    int minutes;
     int seconds;
 
     // Retry the connection a few times
     limitReached = (httpClientConnectionAttempts >= MAX_HTTP_CLIENT_CONNECTION_ATTEMPTS);
-    limitReached = false;
 
     // Restart the HTTP client
     httpClientStop(limitReached || (!httpClientEnabled()));
 
-    httpClientConnectionAttempts++;
+    // Limit to max connection delay
+    if (httpClientConnectionAttempts)
+        httpClientConnectionAttemptTimeout = (5 * MILLISECONDS_IN_A_SECOND)
+                                           << (httpClientConnectionAttempts - 1);
+    if (httpClientConnectionAttemptTimeout > RTK_MAX_CONNECTION_MSEC)
+        httpClientConnectionAttemptTimeout = httpClientConnectionAttemptTimeout;
+    else
+        httpClientConnectionAttempts++;
     httpClientConnectionAttemptsTotal++;
     if (settings.debugHttpClientState)
         httpClientPrintStatus();
@@ -100,8 +107,10 @@ bool httpClientConnectLimitReached()
         // Display the delay before starting the HTTP client
         if (settings.debugHttpClientState && httpClientConnectionAttemptTimeout)
         {
-            seconds = httpClientConnectionAttemptTimeout / 1000;
-            systemPrintf("HTTP Client trying again in %d seconds.\r\n", seconds);
+            seconds = httpClientConnectionAttemptTimeout / MILLISECONDS_IN_A_SECOND;
+            minutes = seconds / SECONDS_IN_A_MINUTE;
+            seconds -= minutes * SECONDS_IN_A_MINUTE;
+            systemPrintf("HTTP Client trying again in %d:%02d seconds.\r\n", minutes, seconds);
         }
     }
     else
