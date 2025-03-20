@@ -565,7 +565,7 @@ bool networkConsumerIsConnected(NETCONSUMER_t consumer)
 //----------------------------------------
 void networkConsumerOffline(NETCONSUMER_t consumer)
 {
-    networkUserRemove(NETCONSUMER_HTTP_CLIENT, __FILE__, __LINE__);
+    networkUserRemove(consumer, __FILE__, __LINE__);
     networkConsumerPriority[consumer] = NETWORK_OFFLINE;
 }
 
