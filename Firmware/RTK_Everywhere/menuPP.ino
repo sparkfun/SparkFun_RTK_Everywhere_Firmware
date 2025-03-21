@@ -1009,14 +1009,76 @@ bool provisioningEnabled(const char ** line)
     return enabled;
 }
 
+// Determine if the keys are needed
+bool provisioningKeysNeeded()
+{
+    bool keysNeeded;
+
+    do
+    {
+        keysNeeded = true;
+
+        // If we don't have certs or keys, begin zero touch provisioning
+        if (!checkCertificates() || strlen(settings.pointPerfectCurrentKey) == 0 ||
+            strlen(settings.pointPerfectNextKey) == 0)
+        {
+            if (settings.debugPpCertificate)
+                systemPrintln("Invalid certificates or keys.");
+            break;
+        }
+
+        // If requestKeyUpdate is true, begin provisioning
+        if (settings.requestKeyUpdate)
+        {
+            if (settings.debugPpCertificate)
+                systemPrintln("requestKeyUpdate is true.");
+            break;
+        }
+
+        // Determine if RTC is online
+        if (!online.rtc)
+        {
+            if (settings.debugPpCertificate)
+                systemPrintln("No RTC.");
+            break;
+        }
+
+        // RTC is online. Determine days until next key expires
+        int daysRemaining =
+            daysFromEpoch(settings.pointPerfectNextKeyStart + settings.pointPerfectNextKeyDuration + 1);
+
+        if (settings.debugPpCertificate)
+            systemPrintf("Days until keys expire: %d\r\n", daysRemaining);
+
+        // PointPerfect returns keys that expire at midnight so the primary key
+        // is still available with 0 days left, and a Next Key that has 28 days left
+        // If there are 28 days remaining, PointPerfect won't have new keys.
+        if (daysRemaining < 28)
+        {
+            // When did we last try to get keys? Attempt every 24 hours - or always for DEVELOPER
+            // if (rtc.getEpoch() - settings.lastKeyAttempt > ( ENABLE_DEVELOPER ? 0 : SECONDS_IN_A_DAY))
+            // When did we last try to get keys? Attempt every 24 hours
+            if (rtc.getEpoch() - settings.lastKeyAttempt > SECONDS_IN_A_DAY)
+            {
+                settings.lastKeyAttempt = rtc.getEpoch(); // Mark it
+                recordSystemSettings();                   // Record these settings to unit
+                break;
+            }
+
+            if (settings.debugPpCertificate)
+                systemPrintln("Already tried to obtain keys for today");
+        }
+
+        // Don't need new keys
+        keysNeeded = false;
+    } while (0);
+    if (keysNeeded && settings.debugPpCertificate)
+        systemPrintln(" Starting provisioning");
+    return keysNeeded;
+}
+
 unsigned long provisioningStartTime_millis;
 const unsigned long provisioningTimeout_ms = 2 * MILLISECONDS_IN_A_MINUTE;
-
-void provisioningWaitForNetwork()
-{
-    networkConsumerAdd(NETCONSUMER_PPL_KEY_UPDATE, NETWORK_ANY, __FILE__, __LINE__);
-    provisioningSetState(PROVISIONING_WAIT_FOR_NETWORK);
-}
 
 void provisioningUpdate()
 {
@@ -1043,60 +1105,13 @@ void provisioningUpdate()
     }
     break;
     case PROVISIONING_CHECK_REMAINING: {
-        // If we don't have certs or keys, begin zero touch provisioning
-        if (!checkCertificates() || strlen(settings.pointPerfectCurrentKey) == 0 ||
-            strlen(settings.pointPerfectNextKey) == 0)
-        {
-            if (settings.debugPpCertificate)
-                systemPrintln("Invalid certificates or keys. Starting provisioning");
-            provisioningWaitForNetwork();
-        }
-        // If requestKeyUpdate is true, begin provisioning
-        else if (settings.requestKeyUpdate)
-        {
-            if (settings.debugPpCertificate)
-                systemPrintln("requestKeyUpdate is true. Starting provisioning");
-            provisioningWaitForNetwork();
-        }
-        // Determine if RTC is online
-        else if (!online.rtc)
-        {
-            if (settings.debugPpCertificate)
-                systemPrintln("No RTC. Starting provisioning");
-            provisioningWaitForNetwork();
-        }
+        if (provisioningKeysNeeded() == false)
+            provisioningSetState(PROVISIONING_KEYS_REMAINING);
         else
         {
-            // RTC is online. Determine days until next key expires
-            int daysRemaining =
-                daysFromEpoch(settings.pointPerfectNextKeyStart + settings.pointPerfectNextKeyDuration + 1);
-
-            if (settings.debugPpCertificate)
-                systemPrintf("Days until keys expire: %d\r\n", daysRemaining);
-
-            // PointPerfect returns keys that expire at midnight so the primary key
-            // is still available with 0 days left, and a Next Key that has 28 days left
-            // If there are 28 days remaining, PointPerfect won't have new keys.
-            if (daysRemaining >= 28)
-                provisioningSetState(PROVISIONING_KEYS_REMAINING); // Don't need new keys
-            else
-            {
-                // When did we last try to get keys? Attempt every 24 hours - or always for DEVELOPER
-                // if (rtc.getEpoch() - settings.lastKeyAttempt > ( ENABLE_DEVELOPER ? 0 : SECONDS_IN_A_DAY))
-                // When did we last try to get keys? Attempt every 24 hours
-                if (rtc.getEpoch() - settings.lastKeyAttempt > SECONDS_IN_A_DAY)
-                {
-                    settings.lastKeyAttempt = rtc.getEpoch(); // Mark it
-                    recordSystemSettings();                   // Record these settings to unit
-                    provisioningWaitForNetwork();
-                }
-                else
-                {
-                    if (settings.debugPpCertificate)
-                        systemPrintln("Already tried to obtain keys for today");
-                    provisioningSetState(PROVISIONING_KEYS_REMAINING);
-                }
-            }
+            // Request the network for PointPerfect key provisioning
+            networkConsumerAdd(NETCONSUMER_PPL_KEY_UPDATE, NETWORK_ANY, __FILE__, __LINE__);
+            provisioningSetState(PROVISIONING_WAIT_FOR_NETWORK);
         }
     }
     break;
