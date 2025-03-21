@@ -941,7 +941,6 @@ enum ProvisioningStates
     PROVISIONING_OFF = 0,
     PROVISIONING_CHECK_REMAINING,
     PROVISIONING_WAIT_FOR_NETWORK,
-    PROVISIONING_STARTING,
     PROVISIONING_STARTED,
     PROVISIONING_KEYS_REMAINING,
     PROVISIONING_WAIT_ATTEMPT,
@@ -952,7 +951,6 @@ static volatile uint8_t provisioningState = PROVISIONING_OFF;
 const char *const provisioningStateName[] = {"PROVISIONING_OFF",
                                              "PROVISIONING_CHECK_REMAINING",
                                              "PROVISIONING_WAIT_FOR_NETWORK",
-                                             "PROVISIONING_STARTING",
                                              "PROVISIONING_STARTED",
                                              "PROVISIONING_KEYS_REMAINING",
                                              "PROVISIONING_WAIT_ATTEMPT"};
@@ -1119,23 +1117,16 @@ void provisioningUpdate()
                 systemPrintln("PointPerfect key update connected to network");
 
             // Go get latest keys
+            ztpResponse = ZTP_NOT_STARTED;           // HTTP_Client will update this
+            httpClientModeNeeded = true;             // This will start the HTTP_Client
+            provisioningStartTime_millis = millis(); // Record the start time so we can timeout
+            paintGettingKeys();
             networkUserAdd(NETCONSUMER_PPL_KEY_UPDATE, __FILE__, __LINE__);
-            provisioningSetState(PROVISIONING_STARTING);
+            provisioningSetState(PROVISIONING_STARTED);
         }
-
-        // TODO If we just booted, show keys remaining regardless of provisioning state machine
-        // provisioningSetState(PROVISIONING_KEYS_REMAINING);
     }
-
     break;
 
-    case PROVISIONING_STARTING: {
-        ztpResponse = ZTP_NOT_STARTED;           // HTTP_Client will update this
-        httpClientModeNeeded = true;             // This will start the HTTP_Client
-        provisioningStartTime_millis = millis(); // Record the start time so we can timeout
-        paintGettingKeys();
-        provisioningSetState(PROVISIONING_STARTED);
-    }
     case PROVISIONING_STARTED: {
         // Only leave this state if we timeout or ZTP is complete
         if (millis() > (provisioningStartTime_millis + provisioningTimeout_ms))
