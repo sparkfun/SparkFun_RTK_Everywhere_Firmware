@@ -176,6 +176,32 @@ void tcpClientDiscardBytes(RING_BUFFER_OFFSET previousTail, RING_BUFFER_OFFSET n
 }
 
 //----------------------------------------
+// Determine if the TCP client is enabled
+//----------------------------------------
+bool tcpClientEnabled(const char ** line)
+{
+    bool enabled;
+
+    do
+    {
+        enabled = false;
+
+        // Verify the operating mode
+        if (NEQ_RTK_MODE(tcpClientMode))
+        {
+            *line = ", Wrong mode!";
+            break;
+        }
+
+        // Verify enabled
+        enabled = settings.enableTcpClient;
+        if (enabled == false)
+            *line = ", Not enabled!";
+    } while (0);
+    return enabled;
+}
+
+//----------------------------------------
 // Send TCP data to the server
 //----------------------------------------
 int32_t tcpClientSendData(uint16_t dataHead)
@@ -248,7 +274,7 @@ int32_t tcpClientSendData(uint16_t dataHead)
 //----------------------------------------
 void tcpClientSetState(uint8_t newState)
 {
-    if ((settings.debugTcpClient || PERIODIC_DISPLAY(PD_TCP_CLIENT_STATE)) && (!inMainMenu))
+    if (settings.debugTcpClient && (!inMainMenu))
     {
         if (tcpClientState == newState)
             systemPrint("*");
@@ -256,9 +282,8 @@ void tcpClientSetState(uint8_t newState)
             systemPrintf("%s --> ", tcpClientStateName[tcpClientState]);
     }
     tcpClientState = newState;
-    if ((settings.debugTcpClient || PERIODIC_DISPLAY(PD_TCP_CLIENT_STATE)) && (!inMainMenu))
+    if (settings.debugTcpClient && (!inMainMenu))
     {
-        PERIODIC_CLEAR(PD_TCP_CLIENT_STATE);
         if (newState >= TCP_CLIENT_STATE_MAX)
         {
             systemPrintf("Unknown TCP Client state: %d\r\n", tcpClientState);
@@ -385,6 +410,7 @@ void tcpClientUpdate()
     uint32_t days;
     bool enabled;
     byte hours;
+    const char * line = "";
     uint64_t milliseconds;
     byte minutes;
     byte seconds;
@@ -393,7 +419,7 @@ void tcpClientUpdate()
     // Shutdown the TCP client when the mode or setting changes
     DMW_st(tcpClientSetState, tcpClientState);
     connected = networkConsumerIsConnected(NETCONSUMER_TCP_CLIENT);
-    enabled = EQ_RTK_MODE(tcpClientMode) && settings.enableTcpClient;
+    enabled = tcpClientEnabled(&line);
     if ((enabled == false) && (tcpClientState > TCP_CLIENT_STATE_OFF))
         tcpClientStop(true);
 
@@ -541,7 +567,11 @@ void tcpClientUpdate()
 
     // Periodically display the TCP client state
     if (PERIODIC_DISPLAY(PD_TCP_CLIENT_STATE))
-        tcpClientSetState(tcpClientState);
+    {
+        systemPrintf("TCP Client state: %s%s\r\n",
+                     tcpClientStateName[tcpClientState], line);
+        PERIODIC_CLEAR(PD_TCP_CLIENT_STATE);
+    }
 }
 
 //----------------------------------------
