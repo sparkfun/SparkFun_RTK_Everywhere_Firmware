@@ -974,7 +974,7 @@ void provisioningVerifyTables()
 
 void provisioningSetState(uint8_t newState)
 {
-    if (settings.debugPpCertificate || PERIODIC_DISPLAY(PD_PROVISIONING_STATE))
+    if (settings.debugPpCertificate)
     {
         if (provisioningState == newState)
             systemPrint("Provisioning: *");
@@ -982,9 +982,8 @@ void provisioningSetState(uint8_t newState)
             systemPrintf("Provisioning: %s --> ", provisioningStateName[provisioningState]);
     }
     provisioningState = newState;
-    if (settings.debugPpCertificate || PERIODIC_DISPLAY(PD_PROVISIONING_STATE))
+    if (settings.debugPpCertificate)
     {
-        PERIODIC_CLEAR(PD_PROVISIONING_STATE);
         if (newState >= PROVISIONING_STATE_MAX)
         {
             systemPrintf("Unknown provisioning state: %d\r\n", newState);
@@ -996,7 +995,7 @@ void provisioningSetState(uint8_t newState)
 }
 
 // Determine if provisioning is enabled
-bool provisioningEnabled()
+bool provisioningEnabled(const char ** line)
 {
     bool enabled;
 
@@ -1005,11 +1004,15 @@ bool provisioningEnabled()
         // Provisioning requires PointPerfect corrections
         enabled = settings.enablePointPerfectCorrections;
         if (enabled == false)
+        {
+            *line = ", PointPerfect corrections disabled!";
             break;
+        }
 
         if (settings.autoKeyRenewal || settings.requestKeyUpdate)
             break;
         enabled = false;
+        *line = ", Auto key renewal off and key not requested!";
     } while (0);
     return enabled;
 }
@@ -1026,10 +1029,11 @@ void provisioningWaitForNetwork()
 void provisioningUpdate()
 {
     bool enabled;
+    const char * line = "";
 
     // Determine if key provisioning is enabled
     DMW_st(provisioningSetState, provisioningState);
-    enabled = provisioningEnabled();
+    enabled = provisioningEnabled(&line);
 
     switch (provisioningState)
     {
@@ -1296,5 +1300,9 @@ void provisioningUpdate()
 
     // Periodically display the provisioning state
     if (PERIODIC_DISPLAY(PD_PROVISIONING_STATE))
-        provisioningSetState(provisioningState);
+    {
+        systemPrintf("Provisioning state: %s%s\r\n",
+                     provisioningStateName[provisioningState], line);
+        PERIODIC_CLEAR(PD_PROVISIONING_STATE);
+    }
 }
