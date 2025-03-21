@@ -939,7 +939,6 @@ void updateLBand()
 enum ProvisioningStates
 {
     PROVISIONING_OFF = 0,
-    PROVISIONING_WAIT_RTC,
     PROVISIONING_NOT_STARTED,
     PROVISIONING_CHECK_REMAINING,
     PROVISIONING_CHECK_ATTEMPT,
@@ -953,7 +952,6 @@ enum ProvisioningStates
 static volatile uint8_t provisioningState = PROVISIONING_OFF;
 
 const char *const provisioningStateName[] = {"PROVISIONING_OFF",
-                                             "PROVISIONING_WAIT_RTC",
                                              "PROVISIONING_NOT_STARTED",
                                              "PROVISIONING_CHECK_REMAINING",
                                              "PROVISIONING_CHECK_ATTEMPT",
@@ -1030,23 +1028,23 @@ void provisioningUpdate()
 {
     bool enabled;
     const char * line = "";
+    static bool rtcOnline;
 
     // Determine if key provisioning is enabled
     DMW_st(provisioningSetState, provisioningState);
     enabled = provisioningEnabled(&line);
 
+    // Determine if the RTC was properly initialized
+    if (rtcOnline == false)
+        rtcOnline = online.rtc || settings.requestKeyUpdate
+                  || (millis() > provisioningTimeout_ms);
+
     switch (provisioningState)
     {
     default:
     case PROVISIONING_OFF: {
-        provisioningStartTime_millis = millis(); // Record the start time so we can timeout
-        provisioningSetState(PROVISIONING_WAIT_RTC);
-    }
-    break;
-    case PROVISIONING_WAIT_RTC: {
         // If RTC is not online after provisioningTimeout_ms, try to provision anyway
-        if ((online.rtc) || (millis() > (provisioningStartTime_millis + provisioningTimeout_ms)) ||
-            (settings.requestKeyUpdate))
+        if (rtcOnline)
             provisioningSetState(PROVISIONING_NOT_STARTED);
     }
     break;
@@ -1287,7 +1285,10 @@ void provisioningUpdate()
         if (settings.requestKeyUpdate) // requestKeyUpdate can be set via the menu, mode button or web config
             provisioningSetState(PROVISIONING_CHECK_REMAINING);
         else if (enabled == false)
+        {
+            provisioningStartTime_millis = millis(); // Record the start time so we can timeout
             provisioningSetState(PROVISIONING_OFF);
+        }
         // When did we last try to get keys? Attempt every 24 hours - or every 15 mins for DEVELOPER
         // else if (millis() > (provisioningStartTime_millis + ( ENABLE_DEVELOPER ? (15 * MILLISECONDS_IN_A_MINUTE)
         //                                                                        : MILLISECONDS_IN_A_DAY)))
