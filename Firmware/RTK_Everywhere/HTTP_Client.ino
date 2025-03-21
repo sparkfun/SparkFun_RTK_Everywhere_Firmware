@@ -123,28 +123,26 @@ bool httpClientConnectLimitReached()
 //----------------------------------------
 // Determine if the HTTP client may be enabled
 //----------------------------------------
-bool httpClientEnabled(char * line)
+bool httpClientEnabled(const char ** line)
 {
     bool enableHttpClient;
 
     do
     {
         enableHttpClient = false;
-        if (line)
-            line[0] = 0;
 
         // HTTP requires use of point perfect corrections
         if (settings.enablePointPerfectCorrections == false)
         {
             if (line)
-                strcpy(line, ", PointPerfect corrections disabled!");
+                *line = ", PointPerfect corrections disabled!";
             break;
         }
 
         // All conditions support running the HTTP client
         enableHttpClient = httpClientModeNeeded;
         if (line && !enableHttpClient)
-            strcpy(line, ", HTTP Client disabled!");
+            *line = ", HTTP Client disabled!";
     } while (0);
     return enableHttpClient;
 }
@@ -208,7 +206,7 @@ void httpClientRestart()
 //----------------------------------------
 void httpClientSetState(uint8_t newState)
 {
-    if (settings.debugHttpClientState || PERIODIC_DISPLAY(PD_HTTP_CLIENT_STATE))
+    if (settings.debugHttpClientState)
     {
         if (httpClientState == newState)
             systemPrint("*");
@@ -216,7 +214,7 @@ void httpClientSetState(uint8_t newState)
             systemPrintf("%s --> ", httpClientStateName[httpClientState]);
     }
     httpClientState = newState;
-    if (settings.debugHttpClientState || PERIODIC_DISPLAY(PD_HTTP_CLIENT_STATE))
+    if (settings.debugHttpClientState)
     {
         if (newState >= HTTP_CLIENT_STATE_MAX)
         {
@@ -598,15 +596,10 @@ void httpClientUpdate()
     // Periodically display the HTTP client state
     if (PERIODIC_DISPLAY(PD_HTTP_CLIENT_STATE))
     {
-        char * line;
-        line = (char *)ps_malloc(128);
-        if (line)
-            httpClientEnabled(line);
+        const char * line = "";
+        httpClientEnabled(&line);
         systemPrintf("HTTP Client state: %s%s\r\n",
-                     httpClientStateName[httpClientState],
-                     line ? line : "");
-        if (line)
-            free(line);
+                     httpClientStateName[httpClientState], line);
         PERIODIC_CLEAR(PD_HTTP_CLIENT_STATE);
     }
 }
