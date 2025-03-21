@@ -811,13 +811,13 @@ void mqttClientUpdate()
             // Start the MQTT client
             if (settings.debugMqttClientState)
                 systemPrintln("MQTT Client start");
-            networkConsumerAdd(NETCONSUMER_PPL_MQTT_CLIENT, NETWORK_ANY, __FILE__, __LINE__);
             mqttClientStop(false);
+            networkConsumerAdd(NETCONSUMER_PPL_MQTT_CLIENT, NETWORK_ANY, __FILE__, __LINE__);
         }
         break;
     }
 
-    // Start the network
+    // Delay before using the network
     case MQTT_CLIENT_ON: {
         if ((millis() - mqttClientTimer) > mqttClientConnectionAttemptTimeout)
         {
