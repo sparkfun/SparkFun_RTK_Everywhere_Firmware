@@ -248,7 +248,7 @@ bool ntripServerConnectLimitReached(int serverIndex)
     limitReached = false;
 
     // Shutdown the NTRIP server
-    ntripServerStop(serverIndex, limitReached || (!ntripServerEnabled(serverIndex)));
+    ntripServerStop(serverIndex, limitReached || (!ntripServerEnabled(serverIndex, nullptr)));
 
     ntripServer->connectionAttempts++;
     ntripServer->connectionAttemptsTotal++;
@@ -289,7 +289,7 @@ bool ntripServerConnectLimitReached(int serverIndex)
 //----------------------------------------
 // Determine if the NTRIP server may be enabled
 //----------------------------------------
-bool ntripServerEnabled(int serverIndex)
+bool ntripServerEnabled(int serverIndex, const char ** line)
 {
     bool enabled;
 
@@ -299,16 +299,33 @@ bool ntripServerEnabled(int serverIndex)
 
         // Verify the operating mode
         if (NEQ_RTK_MODE(ntripServerMode))
+        {
+            if (line)
+                *line = ", Wrong mode!";
             break;
+        }
 
         // Verify that the parameters were specified
         if ((settings.ntripServer_CasterHost[serverIndex][0] == 0)
             || (settings.ntripServer_CasterPort[serverIndex] == 0)
             || (settings.ntripServer_MountPoint[serverIndex][0] == 0))
+        {
+            if (line)
+            {
+                if (settings.ntripServer_CasterHost[0] == 0)
+                    *line = ", Caster host not specified!";
+                else if (settings.ntripServer_CasterPort == 0)
+                    *line = ", Caster port not specified!";
+                else
+                    *line = ", Mount point not specified!";
+            }
             break;
+        }
 
         // Verify still enabled
         enabled = settings.enableNtripServer;
+        if (line && (enabled == false))
+            *line = ", Not enabled!";
     } while (0);
     return enabled;
 }
@@ -504,7 +521,6 @@ void ntripServerSetState(NTRIP_SERVER_DATA *ntripServer, uint8_t newState)
         return;
     }
 
-    // PERIODIC_DISPLAY(PD_NTRIP_SERVER_STATE) is handled by ntripServerUpdate
     if (settings.debugNtripServerState)
     {
         if (ntripServer->state == newState)
@@ -622,7 +638,7 @@ void ntripServerUpdate(int serverIndex)
     // Shutdown the NTRIP server when the mode or setting changes
     DMW_ds(ntripServerSetState, ntripServer);
     connected = networkConsumerIsConnected(NETCONSUMER_NTRIP_SERVER);
-    enabled = ntripServerEnabled(serverIndex);
+    enabled = ntripServerEnabled(serverIndex, nullptr);
     if (!enabled && (ntripServer->state > NTRIP_SERVER_OFF))
         ntripServerShutdown(serverIndex);
 
@@ -845,7 +861,10 @@ void ntripServerUpdate(int serverIndex)
     // Periodically display the state
     if (PERIODIC_DISPLAY(PD_NTRIP_SERVER_STATE))
     {
-        systemPrintf("NTRIP Server %d state: %s\r\n", serverIndex, ntripServerStateName[ntripServer->state]);
+        const char * line = "";
+        ntripServerEnabled(serverIndex, &line);
+        systemPrintf("NTRIP Server %d state: %s%s\r\n", serverIndex,
+                     ntripServerStateName[ntripServer->state], line);
         if (serverIndex == (NTRIP_SERVER_MAX - 1))
             PERIODIC_CLEAR(PD_NTRIP_SERVER_STATE); // Clear the periodic display only on the last server
     }
