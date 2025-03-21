@@ -940,7 +940,6 @@ enum ProvisioningStates
 {
     PROVISIONING_OFF = 0,
     PROVISIONING_CHECK_REMAINING,
-    PROVISIONING_CHECK_ATTEMPT,
     PROVISIONING_WAIT_FOR_NETWORK,
     PROVISIONING_STARTING,
     PROVISIONING_STARTED,
@@ -952,7 +951,6 @@ static volatile uint8_t provisioningState = PROVISIONING_OFF;
 
 const char *const provisioningStateName[] = {"PROVISIONING_OFF",
                                              "PROVISIONING_CHECK_REMAINING",
-                                             "PROVISIONING_CHECK_ATTEMPT",
                                              "PROVISIONING_WAIT_FOR_NETWORK",
                                              "PROVISIONING_STARTING",
                                              "PROVISIONING_STARTED",
@@ -1062,7 +1060,7 @@ void provisioningUpdate()
                 systemPrintln("requestKeyUpdate is true. Starting provisioning");
             provisioningWaitForNetwork();
         }
-        // If RTC is not online, we have to skip PROVISIONING_CHECK_ATTEMPT
+        // Determine if RTC is online
         else if (!online.rtc)
         {
             if (settings.debugPpCertificate)
@@ -1084,25 +1082,23 @@ void provisioningUpdate()
             if (daysRemaining >= 28)
                 provisioningSetState(PROVISIONING_KEYS_REMAINING); // Don't need new keys
             else
-                provisioningSetState(PROVISIONING_CHECK_ATTEMPT); // Do need new keys
-        }
-    }
-    break;
-    case PROVISIONING_CHECK_ATTEMPT: {
-        // When did we last try to get keys? Attempt every 24 hours - or always for DEVELOPER
-        // if (rtc.getEpoch() - settings.lastKeyAttempt > ( ENABLE_DEVELOPER ? 0 : SECONDS_IN_A_DAY))
-        // When did we last try to get keys? Attempt every 24 hours
-        if (rtc.getEpoch() - settings.lastKeyAttempt > SECONDS_IN_A_DAY)
-        {
-            settings.lastKeyAttempt = rtc.getEpoch(); // Mark it
-            recordSystemSettings();                   // Record these settings to unit
-            provisioningWaitForNetwork();
-        }
-        else
-        {
-            if (settings.debugPpCertificate)
-                systemPrintln("Already tried to obtain keys for today");
-            provisioningSetState(PROVISIONING_KEYS_REMAINING);
+            {
+                // When did we last try to get keys? Attempt every 24 hours - or always for DEVELOPER
+                // if (rtc.getEpoch() - settings.lastKeyAttempt > ( ENABLE_DEVELOPER ? 0 : SECONDS_IN_A_DAY))
+                // When did we last try to get keys? Attempt every 24 hours
+                if (rtc.getEpoch() - settings.lastKeyAttempt > SECONDS_IN_A_DAY)
+                {
+                    settings.lastKeyAttempt = rtc.getEpoch(); // Mark it
+                    recordSystemSettings();                   // Record these settings to unit
+                    provisioningWaitForNetwork();
+                }
+                else
+                {
+                    if (settings.debugPpCertificate)
+                        systemPrintln("Already tried to obtain keys for today");
+                    provisioningSetState(PROVISIONING_KEYS_REMAINING);
+                }
+            }
         }
     }
     break;
