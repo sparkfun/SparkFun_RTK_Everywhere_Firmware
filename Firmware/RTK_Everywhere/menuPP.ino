@@ -995,6 +995,25 @@ void provisioningSetState(uint8_t newState)
     }
 }
 
+// Determine if provisioning is enabled
+bool provisioningEnabled()
+{
+    bool enabled;
+
+    do
+    {
+        // Provisioning requires PointPerfect corrections
+        enabled = settings.enablePointPerfectCorrections;
+        if (enabled == false)
+            break;
+
+        if (settings.autoKeyRenewal || settings.requestKeyUpdate)
+            break;
+        enabled = false;
+    } while (0);
+    return enabled;
+}
+
 unsigned long provisioningStartTime_millis;
 const unsigned long provisioningTimeout_ms = 2 * MILLISECONDS_IN_A_MINUTE;
 
@@ -1006,7 +1025,11 @@ void provisioningWaitForNetwork()
 
 void provisioningUpdate()
 {
+    bool enabled;
+
+    // Determine if key provisioning is enabled
     DMW_st(provisioningSetState, provisioningState);
+    enabled = provisioningEnabled();
 
     switch (provisioningState)
     {
@@ -1024,7 +1047,7 @@ void provisioningUpdate()
     }
     break;
     case PROVISIONING_NOT_STARTED: {
-        if (settings.enablePointPerfectCorrections && (settings.autoKeyRenewal || settings.requestKeyUpdate))
+        if (enabled)
             provisioningSetState(PROVISIONING_CHECK_REMAINING);
     }
     break;
@@ -1092,7 +1115,7 @@ void provisioningUpdate()
     // Wait for connection to the network
     case PROVISIONING_WAIT_FOR_NETWORK: {
         // Stop waiting if PointPerfect has been disabled
-        if (settings.enablePointPerfectCorrections == false)
+        if (enabled == false)
         {
             // Done with the network
             networkConsumerRemove(NETCONSUMER_PPL_KEY_UPDATE, NETWORK_ANY, __FILE__, __LINE__);
@@ -1259,7 +1282,7 @@ void provisioningUpdate()
     case PROVISIONING_WAIT_ATTEMPT: {
         if (settings.requestKeyUpdate) // requestKeyUpdate can be set via the menu, mode button or web config
             provisioningSetState(PROVISIONING_CHECK_REMAINING);
-        else if (!settings.enablePointPerfectCorrections || !settings.autoKeyRenewal)
+        else if (enabled == false)
             provisioningSetState(PROVISIONING_OFF);
         // When did we last try to get keys? Attempt every 24 hours - or every 15 mins for DEVELOPER
         // else if (millis() > (provisioningStartTime_millis + ( ENABLE_DEVELOPER ? (15 * MILLISECONDS_IN_A_MINUTE)
