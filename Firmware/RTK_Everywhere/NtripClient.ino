@@ -356,21 +356,19 @@ bool ntripClientConnectLimitReached()
 //----------------------------------------
 // Determine if the NTRIP client may be enabled
 //----------------------------------------
-bool ntripClientEnabled(char * line)
+bool ntripClientEnabled(const char ** line)
 {
     bool enabled;
 
     do
     {
         enabled = false;
-        if (line)
-            line[0] = 0;
 
         // Verify the operating mode
         if (NEQ_RTK_MODE(ntripClientMode))
         {
             if (line)
-                strcpy(line, ", Wrong mode!");
+                *line = ", Wrong mode!";
             break;
         }
 
@@ -382,11 +380,11 @@ bool ntripClientEnabled(char * line)
             if (line)
             {
                 if (settings.ntripClient_CasterHost[0] == 0)
-                    strcpy(line, ", Caster host not specified!");
+                    *line = ", Caster host not specified!";
                 else if (settings.ntripClient_CasterPort == 0)
-                    strcpy(line, ", Caster port not specified!");
-                if (settings.ntripClient_MountPoint[0] == 0)
-                    strcpy(line, ", Mount mode not specified!");
+                    *line = ", Caster port not specified!";
+                else
+                    *line = ", Mount point not specified!";
             }
             break;
         }
@@ -398,7 +396,7 @@ bool ntripClientEnabled(char * line)
         if (enabled && ntripClientForcedShutdown)
         {
             if (line)
-                strcpy(line, ", Forced shutdown!");
+                *line = ", Forced shutdown!";
             enabled = false;
         }
 
@@ -406,7 +404,7 @@ bool ntripClientEnabled(char * line)
         else if (enabled == false)
         {
             if (line)
-                strcpy(line, ", Not enabled!");
+                *line = ", Not enabled!";
             ntripClientForcedShutdown = false;
         }
     } while (0);
@@ -934,15 +932,10 @@ void ntripClientUpdate()
     // Periodically display the NTRIP client state
     if (PERIODIC_DISPLAY(PD_NTRIP_CLIENT_STATE))
     {
-        char * line;
-        line = (char *)ps_malloc(128);
-        if (line)
-            ntripClientEnabled(line);
+        const char * line = "";
+        ntripClientEnabled(&line);
         systemPrintf("NTRIP Client state: %s%s\r\n",
-                     ntripClientStateName[ntripClientState],
-                     line ? line : "");
-        if (line)
-            free(line);
+                     ntripClientStateName[ntripClientState], line);
         PERIODIC_CLEAR(PD_NTRIP_CLIENT_STATE);
     }
 }
