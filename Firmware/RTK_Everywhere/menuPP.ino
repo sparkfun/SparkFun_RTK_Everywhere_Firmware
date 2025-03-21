@@ -939,7 +939,6 @@ void updateLBand()
 enum ProvisioningStates
 {
     PROVISIONING_OFF = 0,
-    PROVISIONING_NOT_STARTED,
     PROVISIONING_CHECK_REMAINING,
     PROVISIONING_CHECK_ATTEMPT,
     PROVISIONING_WAIT_FOR_NETWORK,
@@ -952,7 +951,6 @@ enum ProvisioningStates
 static volatile uint8_t provisioningState = PROVISIONING_OFF;
 
 const char *const provisioningStateName[] = {"PROVISIONING_OFF",
-                                             "PROVISIONING_NOT_STARTED",
                                              "PROVISIONING_CHECK_REMAINING",
                                              "PROVISIONING_CHECK_ATTEMPT",
                                              "PROVISIONING_WAIT_FOR_NETWORK",
@@ -1044,12 +1042,7 @@ void provisioningUpdate()
     default:
     case PROVISIONING_OFF: {
         // If RTC is not online after provisioningTimeout_ms, try to provision anyway
-        if (rtcOnline)
-            provisioningSetState(PROVISIONING_NOT_STARTED);
-    }
-    break;
-    case PROVISIONING_NOT_STARTED: {
-        if (enabled)
+        if (enabled && rtcOnline)
             provisioningSetState(PROVISIONING_CHECK_REMAINING);
     }
     break;
@@ -1121,7 +1114,7 @@ void provisioningUpdate()
         {
             // Done with the network
             networkConsumerRemove(NETCONSUMER_PPL_KEY_UPDATE, NETWORK_ANY, __FILE__, __LINE__);
-            provisioningSetState(PROVISIONING_NOT_STARTED);
+            provisioningSetState(PROVISIONING_OFF);
         }
         // Wait until the network is available
         else if (networkConsumerIsConnected(NETCONSUMER_PPL_KEY_UPDATE))
