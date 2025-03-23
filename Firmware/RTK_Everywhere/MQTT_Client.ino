@@ -493,9 +493,12 @@ int mqttClientProcessZedMessage(uint8_t * mqttData, uint16_t mqttCount, int byte
         // Determine if MQTT (SPARTN data) is the correction source
         if (correctionLastSeen(CORR_IP))
         {
-            if (((settings.debugMqttClientData == true) || (settings.debugCorrections == true)) &&
-                !inMainMenu)
+            if (((settings.debugMqttClientData == true) || (settings.debugCorrections == true)
+                || PERIODIC_DISPLAY(PD_MQTT_CLIENT_DATA)) && !inMainMenu)
+            {
+                PERIODIC_CLEAR(PD_MQTT_CLIENT_DATA);
                 systemPrintf("Pushing %d bytes from %s topic to GNSS\r\n", mqttCount, topic);
+            }
 
             GNSS_ZED *zed = (GNSS_ZED *)gnss;
             zed->updateCorrectionsSource(0); // Set SOURCE to 0 (IP) if needed
@@ -507,18 +510,25 @@ int mqttClientProcessZedMessage(uint8_t * mqttData, uint16_t mqttCount, int byte
         }
         else
         {
-            if (((settings.debugMqttClientData == true) || (settings.debugCorrections == true)) &&
-                !inMainMenu)
+            if (((settings.debugMqttClientData == true) || (settings.debugCorrections == true)
+                || PERIODIC_DISPLAY(PD_MQTT_CLIENT_DATA)) && !inMainMenu)
+            {
+                PERIODIC_CLEAR(PD_MQTT_CLIENT_DATA);
                 systemPrintf("NOT pushing %d bytes from %s topic to GNSS due to priority\r\n", mqttCount,
                              topic);
+            }
         }
     }
     // Always push KEYS and MGA to the ZED
     else
     {
         // KEYS or MGA
-        if (((settings.debugMqttClientData == true) || (settings.debugCorrections == true)) && !inMainMenu)
+        if (((settings.debugMqttClientData == true) || (settings.debugCorrections == true)
+            || PERIODIC_DISPLAY(PD_MQTT_CLIENT_DATA)) && !inMainMenu)
+        {
+            PERIODIC_CLEAR(PD_MQTT_CLIENT_DATA);
             systemPrintf("Pushing %d bytes from %s topic to GNSS\r\n", mqttCount, topic);
+        }
 
         gnss->pushRawData(mqttData, mqttCount);
         bytesPushed += mqttCount;
