@@ -97,7 +97,7 @@ enum MQTTClientState
     MQTT_CLIENT_OFF = 0,             // Using Bluetooth or NTRIP server
     MQTT_CLIENT_ON,                  // WIFI_STATE_START state
     MQTT_CLIENT_WAIT_FOR_NETWORK,     // Connecting to WiFi access point or Ethernet
-    MQTT_CLIENT_CONNECTING_2_SERVER, // Connecting to the MQTT server
+    MQTT_CLIENT_CONNECTING_2_BROKER, // Connecting to the MQTT server
     MQTT_CLIENT_SERVICES_CONNECTED,  // Connected to the MQTT services
     // Insert new states here
     MQTT_CLIENT_STATE_MAX // Last entry in the state list
@@ -107,7 +107,7 @@ const char *const mqttClientStateName[] = {
     "MQTT_CLIENT_OFF",
     "MQTT_CLIENT_ON",
     "MQTT_CLIENT_WAIT_FOR_NETWORK",
-    "MQTT_CLIENT_CONNECTING_2_SERVER",
+    "MQTT_CLIENT_CONNECTING_2_BROKER",
     "MQTT_CLIENT_SERVICES_CONNECTED",
 };
 
@@ -285,7 +285,7 @@ void mqttClientPrintStateSummary()
         systemPrint("Disconnected");
         break;
 
-    case MQTT_CLIENT_CONNECTING_2_SERVER:
+    case MQTT_CLIENT_CONNECTING_2_BROKER:
         systemPrint("Connecting");
         break;
 
@@ -757,7 +757,7 @@ void mqttClientStop(bool shutdown)
 
     // Increase timeouts if we started the network
     if (mqttClientState > MQTT_CLIENT_ON)
-        // Mark the Client stop so that we don't immediately attempt re-connect to Caster
+        // Mark client stop so that we don't immediately attempt re-connect to broker
         mqttClientTimer = millis();
 
     // Determine the next MQTT client state
@@ -842,13 +842,13 @@ void mqttClientUpdate()
         if (connected)
         {
             networkUserAdd(NETCONSUMER_PPL_MQTT_CLIENT, __FILE__, __LINE__);
-            mqttClientSetState(MQTT_CLIENT_CONNECTING_2_SERVER);
+            mqttClientSetState(MQTT_CLIENT_CONNECTING_2_BROKER);
         }
         break;
     }
 
     // Connect to the MQTT server
-    case MQTT_CLIENT_CONNECTING_2_SERVER: {
+    case MQTT_CLIENT_CONNECTING_2_BROKER: {
         // Allocate the mqttSecureClient structure
         mqttSecureClient = new NetworkClientSecure();
         if (!mqttSecureClient)
@@ -966,7 +966,7 @@ void mqttClientUpdate()
         mqttClientSetState(MQTT_CLIENT_SERVICES_CONNECTED);
 
         break;
-    } // /case MQTT_CLIENT_CONNECTING_2_SERVER
+    } // /case MQTT_CLIENT_CONNECTING_2_BROKER
 
     case MQTT_CLIENT_SERVICES_CONNECTED: {
         // Verify the connection to the broker
