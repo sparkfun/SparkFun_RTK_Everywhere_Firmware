@@ -969,6 +969,13 @@ void mqttClientUpdate()
     } // /case MQTT_CLIENT_CONNECTING_2_SERVER
 
     case MQTT_CLIENT_SERVICES_CONNECTED: {
+        // Verify the connection to the broker
+        if (mqttSecureClient->connected() == false)
+        {
+            mqttClientRestart();
+            break;
+        }
+
         // Check for new data
         mqttClient->poll();
 
