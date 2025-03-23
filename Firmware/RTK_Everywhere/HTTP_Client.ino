@@ -28,8 +28,8 @@ static const int MAX_HTTP_CLIENT_CONNECTION_ATTEMPTS = 3;
 enum HTTPClientState
 {
     HTTP_CLIENT_OFF = 0,
-    HTTP_CLIENT_ON,                  // WIFI_STATE_START state
     HTTP_CLIENT_NETWORK_STARTED,     // Connecting to WiFi access point or Ethernet
+    HTTP_CLIENT_CONNECTION_DELAY,    // Delay before connecting to HTTP server
     HTTP_CLIENT_CONNECTING_2_SERVER, // Connecting to the HTTP server
     HTTP_CLIENT_CONNECTED,           // Connected to the HTTP services
     HTTP_CLIENT_COMPLETE,            // Complete. Can not or do not need to continue
@@ -38,8 +38,12 @@ enum HTTPClientState
 };
 
 const char *const httpClientStateName[] = {
-    "HTTP_CLIENT_OFF",       "HTTP_CLIENT_ON",       "HTTP_CLIENT_NETWORK_STARTED", "HTTP_CLIENT_CONNECTING_2_SERVER",
-    "HTTP_CLIENT_CONNECTED", "HTTP_CLIENT_COMPLETE",
+    "HTTP_CLIENT_OFF",
+    "HTTP_CLIENT_NETWORK_STARTED",
+    "HTTP_CLIENT_CONNECTION_DELAY",
+    "HTTP_CLIENT_CONNECTING_2_SERVER",
+    "HTTP_CLIENT_CONNECTED",
+    "HTTP_CLIENT_COMPLETE",
 };
 
 const int httpClientStateNameEntries = sizeof(httpClientStateName) / sizeof(httpClientStateName[0]);
@@ -161,8 +165,8 @@ void httpClientPrintStateSummary()
         systemPrint("Off");
         break;
 
-    case HTTP_CLIENT_ON:
     case HTTP_CLIENT_NETWORK_STARTED:
+    case HTTP_CLIENT_CONNECTION_DELAY:
         systemPrint("Disconnected");
         break;
 
@@ -274,7 +278,7 @@ void httpClientStop(bool shutdown)
     }
 
     // Increase timeouts if we started the network
-    if (httpClientState > HTTP_CLIENT_ON)
+    if (httpClientState > HTTP_CLIENT_NETWORK_STARTED)
         // Mark the Client stop so that we don't immediately attempt re-connect to Caster
         httpClientTimer = millis();
 
@@ -291,7 +295,7 @@ void httpClientStop(bool shutdown)
         systemPrintln("HTTP Client stopped");
     }
     else
-        httpClientSetState(HTTP_CLIENT_ON);
+        httpClientSetState(HTTP_CLIENT_NETWORK_STARTED);
 }
 
 //----------------------------------------
@@ -326,21 +330,21 @@ void httpClientUpdate()
         break;
     }
 
-    // Start the network
-    case HTTP_CLIENT_ON: {
-        if ((millis() - httpClientTimer) > httpClientConnectionAttemptTimeout)
-        {
-            httpClientSetState(HTTP_CLIENT_NETWORK_STARTED);
-        }
-        break;
-    }
-
     // Wait for a network media connection
     case HTTP_CLIENT_NETWORK_STARTED: {
         // Wait until the network is connected to the media
         if (connected)
         {
             networkUserAdd(NETCONSUMER_HTTP_CLIENT, __FILE__, __LINE__);
+            httpClientSetState(HTTP_CLIENT_CONNECTION_DELAY);
+        }
+        break;
+    }
+
+    // Delay before connecting to HTTP server
+    case HTTP_CLIENT_CONNECTION_DELAY: {
+        if ((millis() - httpClientTimer) > httpClientConnectionAttemptTimeout)
+        {
             httpClientSetState(HTTP_CLIENT_CONNECTING_2_SERVER);
         }
         break;
