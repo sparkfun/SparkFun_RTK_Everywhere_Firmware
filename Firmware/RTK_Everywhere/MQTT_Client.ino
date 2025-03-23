@@ -830,6 +830,9 @@ void mqttClientUpdate()
         // Wait until the network is connected to the media
         if (connected)
         {
+            // Reset the timeout when the network changes
+            if (networkChanged(NETCONSUMER_PPL_MQTT_CLIENT))
+                mqttClientConnectionAttemptTimeout = 0;
             networkUserAdd(NETCONSUMER_PPL_MQTT_CLIENT, __FILE__, __LINE__);
             mqttClientSetState(MQTT_CLIENT_CONNECTION_DELAY);
         }
