@@ -335,6 +335,9 @@ void httpClientUpdate()
         // Wait until the network is connected to the media
         if (connected)
         {
+            // Reset the timeout when the network changes
+            if (networkChanged(NETCONSUMER_HTTP_CLIENT))
+                httpClientConnectionAttemptTimeout = 0;
             networkUserAdd(NETCONSUMER_HTTP_CLIENT, __FILE__, __LINE__);
             httpClientSetState(HTTP_CLIENT_CONNECTION_DELAY);
         }
