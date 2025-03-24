@@ -161,6 +161,14 @@ $(MBED_LIB_DEST_PATH)libmbedcrypto.a: 	$(PATCH_SRC_PATH)libmbedcrypto.a
 $(MBED_LIB_DEST_PATH)libmbedx509.a: 	$(PATCH_SRC_PATH)libmbedx509.a
 	$(COPY)  $<  $@
 
+.PHONY: patch
+
+patch:
+	touch   $(PATCH_SRC_PATH)libmbedtls.a
+	touch   $(PATCH_SRC_PATH)libmbedtls_2.a
+	touch   $(PATCH_SRC_PATH)libmbedcrypto.a
+	touch   $(PATCH_SRC_PATH)libmbedx509.a
+
 #DEBUG_LEVEL=none
 DEBUG_LEVEL=debug
 ENABLE_DEVELOPER=false
