@@ -598,6 +598,7 @@ int AsciiToNibble(int data)
     return -1;
 }
 
+// Dump a buffer in hex and ASCII
 void dumpBuffer(uint8_t *buffer, uint16_t length)
 {
     int bytes;
@@ -953,6 +954,7 @@ void printPartitionTable(void)
     }
 }
 
+// Find the partition in the SPI flash used for the file system
 bool findSpiffsPartition(void)
 {
     esp_partition_iterator_t pi = esp_partition_find(ESP_PARTITION_TYPE_ANY, ESP_PARTITION_SUBTYPE_ANY, NULL);
@@ -967,3 +969,218 @@ bool findSpiffsPartition(void)
     }
     return false;
 }
+
+// Covert a given key's expiration date to a GPS Epoch, so that we can calculate GPS Week and ToW
+// Add a millisecond to roll over from 11:59UTC to midnight of the following day
+// Convert from unix epoch (time lib outputs unix) to GPS epoch (the NED-D9S expects)
+long long dateToGPSEpoch(uint8_t day, uint8_t month, uint16_t year)
+{
+    long long unixEpoch = dateToUnixEpoch(day, month, year); // Returns Unix Epoch
+
+    // Convert Unix Epoch time from PP to GPS Time Of Week needed for UBX message
+    long long gpsEpoch = unixEpoch - 315964800; // Shift to GPS Epoch.
+
+    return (gpsEpoch);
+}
+
+// Given a date, calculate and return the key start in unixEpoch
+void dateToKeyStart(uint8_t expDay, uint8_t expMonth, uint16_t expYear, uint64_t *settingsKeyStart)
+{
+    long long expireUnixEpoch = dateToUnixEpoch(expDay, expMonth, expYear);
+
+    // Thingstream lists the date that a key expires at midnight
+    // So if a user types in March 7th, 2022 as exp date the key's Week and ToW need to be
+    // calculated from (March 7th - 27 days).
+    long long startUnixEpoch = expireUnixEpoch - (27 * SECONDS_IN_A_DAY); // Move back 27 days
+
+    // Additionally, Thingstream seems to be reporting Epochs that do not have leap seconds
+    startUnixEpoch -= gnss->getLeapSeconds(); // Modify our Epoch to match PointPerfect
+
+    // PointPerfect uses/reports unix epochs in milliseconds
+    *settingsKeyStart = startUnixEpoch * MILLISECONDS_IN_A_SECOND; // Convert to ms
+
+    uint16_t keyGPSWeek;
+    uint32_t keyGPSToW;
+    long long gpsEpoch = thingstreamEpochToGPSEpoch(*settingsKeyStart);
+
+    epochToWeekToW(gpsEpoch, &keyGPSWeek, &keyGPSToW);
+
+    // Print ToW and Week for debugging
+    if (settings.debugCorrections == true)
+    {
+        systemPrintf("  expireUnixEpoch: %lld - %s\r\n", expireUnixEpoch, printDateFromUnixEpoch(expireUnixEpoch));
+        systemPrintf("  startUnixEpoch: %lld - %s\r\n", startUnixEpoch, printDateFromUnixEpoch(startUnixEpoch));
+        systemPrintf("  gpsEpoch: %lld - %s\r\n", gpsEpoch, printDateFromGPSEpoch(gpsEpoch));
+        systemPrintf("  KeyStart: %lld - %s\r\n", *settingsKeyStart, printDateFromUnixEpoch(*settingsKeyStart));
+        systemPrintf("  keyGPSWeek: %d\r\n", keyGPSWeek);
+        systemPrintf("  keyGPSToW: %d\r\n", keyGPSToW);
+    }
+}
+
+/*
+   http://www.leapsecond.com/tools/gpsdate.c
+   Return Modified Julian Day given calendar year,
+   month (1-12), and day (1-31).
+   - Valid for Gregorian dates from 17-Nov-1858.
+   - Adapted from sci.astro FAQ.
+*/
+long dateToMjd(long Year, long Month, long Day)
+{
+    return 367 * Year - 7 * (Year + (Month + 9) / 12) / 4 - 3 * ((Year + (Month - 9) / 7) / 100 + 1) / 4 +
+           275 * Month / 9 + Day + 1721028 - 2400000;
+}
+
+// Given a date, convert into epoch
+// https://www.epochconverter.com/programming/c
+long dateToUnixEpoch(uint8_t day, uint8_t month, uint16_t year)
+{
+    struct tm t;
+    time_t t_of_day;
+
+    t.tm_year = year - 1900;
+    t.tm_mon = month - 1;
+    t.tm_mday = day;
+
+    t.tm_hour = 0;
+    t.tm_min = 0;
+    t.tm_sec = 0;
+    t.tm_isdst = -1; // Is DST on? 1 = yes, 0 = no, -1 = unknown
+
+    t_of_day = mktime(&t);
+
+    return (t_of_day);
+}
+
+// Given an epoch in ms, return the number of days from given Epoch and now
+int daysFromEpoch(long long endEpoch)
+{
+    long delta = secondsFromEpoch(endEpoch); // number of s between dates
+
+    if (delta == -1)
+        return (-1);
+
+    delta /= SECONDS_IN_AN_HOUR; // hours
+
+    delta /= 24; // days
+    return ((int)delta);
+}
+
+// Given an epoch, set the GPSWeek and GPSToW
+void epochToWeekToW(long long epoch, uint16_t *GPSWeek, uint32_t *GPSToW)
+{
+    *GPSWeek = (uint16_t)(epoch / (7 * SECONDS_IN_A_DAY));
+    *GPSToW = (uint32_t)(epoch % (7 * SECONDS_IN_A_DAY));
+}
+
+// Get a date from a user
+// Return true if validated
+// https://www.includehelp.com/c-programs/validate-date.aspx
+bool getDate(uint8_t &dd, uint8_t &mm, uint16_t &yy)
+{
+    systemPrint("Enter Day: ");
+    dd = getUserInputNumber(); // Returns EXIT, TIMEOUT, or long
+
+    systemPrint("Enter Month: ");
+    mm = getUserInputNumber(); // Returns EXIT, TIMEOUT, or long
+
+    systemPrint("Enter Year (YYYY): ");
+    yy = getUserInputNumber(); // Returns EXIT, TIMEOUT, or long
+
+    // check year
+    if (yy >= 2022 && yy <= 9999)
+    {
+        // check month
+        if (mm >= 1 && mm <= 12)
+        {
+            // check days
+            if ((dd >= 1 && dd <= 31) && (mm == 1 || mm == 3 || mm == 5 || mm == 7 || mm == 8 || mm == 10 || mm == 12))
+                return (true);
+            else if ((dd >= 1 && dd <= 30) && (mm == 4 || mm == 6 || mm == 9 || mm == 11))
+                return (true);
+            else if ((dd >= 1 && dd <= 28) && (mm == 2))
+                return (true);
+            else if (dd == 29 && mm == 2 && (yy % 400 == 0 || (yy % 4 == 0 && yy % 100 != 0)))
+                return (true);
+            else
+            {
+                printf("Day is invalid.\n");
+                return (false);
+            }
+        }
+        else
+        {
+            printf("Month is not valid.\n");
+            return (false);
+        }
+    }
+
+    printf("Year is not valid.\n");
+    return (false);
+}
+
+/*
+   Convert GPS Week and Seconds to Modified Julian Day.
+   - Ignores UTC leap seconds.
+*/
+long gpsToMjd(long GpsCycle, long GpsWeek, long GpsSeconds)
+{
+    long GpsDays = ((GpsCycle * 1024) + GpsWeek) * 7 + (GpsSeconds / 86400);
+    // GpsDays -= 1; //Correction
+    return dateToMjd(1980, 1, 6) + GpsDays;
+}
+
+// Given a GPS Week and ToW, convert to an expiration date
+void gpsWeekToWToDate(uint16_t keyGPSWeek, uint32_t keyGPSToW, long *expDay, long *expMonth, long *expYear)
+{
+    long gpsDays = gpsToMjd(0, (long)keyGPSWeek, (long)keyGPSToW); // Covert ToW and Week to # of days since Jan 6, 1980
+    mjdToDate(gpsDays, expYear, expMonth, expDay);
+}
+
+/*
+   Convert Modified Julian Day to calendar date.
+   - Assumes Gregorian calendar.
+   - Adapted from Fliegel/van Flandern ACM 11/#10 p 657 Oct 1968.
+*/
+void mjdToDate(long Mjd, long *Year, long *Month, long *Day)
+{
+    long J, C, Y, M;
+
+    J = Mjd + 2400001 + 68569;
+    C = 4 * J / 146097;
+    J = J - (146097 * C + 3) / 4;
+    Y = 4000 * (J + 1) / 1461001;
+    J = J - 1461 * Y / 4 + 31;
+    M = 80 * J / 2447;
+    *Day = J - 2447 * M / 80;
+    J = M / 11;
+    *Month = M + 2 - (12 * J);
+    *Year = 100 * (C - 49) + Y + J;
+}
+
+// Given an epoch in ms, return the number of seconds from given Epoch and now
+long secondsFromEpoch(long long endEpoch)
+{
+    if (online.rtc == false)
+    {
+        // If we don't have RTC we can't calculate days to expire
+        if (settings.debugCorrections == true)
+            systemPrintln("No RTC available");
+        return (-1);
+    }
+
+    endEpoch /= MILLISECONDS_IN_A_SECOND; // Convert PointPerfect ms Epoch to s
+
+    long currentEpoch = rtc.getEpoch();
+
+    long delta = endEpoch - currentEpoch; // number of s between dates
+    return (delta);
+}
+
+// Given a GPSWeek and GPSToW, set the epoch
+void WeekToWToUnixEpoch(uint64_t *unixEpoch, uint16_t GPSWeek, uint32_t GPSToW)
+{
+    *unixEpoch = GPSWeek * (7 * SECONDS_IN_A_DAY); // 2192
+    *unixEpoch += GPSToW;                          // 518400
+    *unixEpoch += 315964800;
+}
+

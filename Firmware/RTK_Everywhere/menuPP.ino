@@ -9,7 +9,7 @@
 #define DEVELOPMENT_TOKEN 0xAA, 0xBB, 0xCC, 0xDD, 0x00, 0x11, 0x22, 0x33, 0x0A, 0x0B, 0x0C, 0x0D, 0x00, 0x01, 0x02, 0x03
 
 #ifndef POINTPERFECT_LBAND_TOKEN
-#warning Using the DEVELOPMENT_TOKEN for point perfect!
+#warning Using the DEVELOPMENT_TOKEN for PointPerfect!
 #define POINTPERFECT_LBAND_TOKEN DEVELOPMENT_TOKEN
 #define POINTPERFECT_IP_TOKEN DEVELOPMENT_TOKEN
 #define POINTPERFECT_LBAND_IP_TOKEN DEVELOPMENT_TOKEN
@@ -19,10 +19,6 @@ static const uint8_t developmentToken[16] = {DEVELOPMENT_TOKEN};         // Toke
 static const uint8_t ppLbandToken[16] = {POINTPERFECT_LBAND_TOKEN};      // Token in HEX form
 static const uint8_t ppIpToken[16] = {POINTPERFECT_IP_TOKEN};            // Token in HEX form
 static const uint8_t ppLbandIpToken[16] = {POINTPERFECT_LBAND_IP_TOKEN}; // Token in HEX form
-
-#ifdef COMPILE_NETWORK
-MqttClient *menuppMqttClient;
-#endif // COMPILE_NETWORK
 
 //----------------------------------------
 // L-Band Routines - compiled out
@@ -53,7 +49,7 @@ void menuPointPerfectKeys()
         {
             long long gpsEpoch = thingstreamEpochToGPSEpoch(settings.pointPerfectCurrentKeyStart);
 
-            gpsEpoch += (settings.pointPerfectCurrentKeyDuration / 1000) -
+            gpsEpoch += (settings.pointPerfectCurrentKeyDuration / MILLISECONDS_IN_A_SECOND) -
                         1; // Add key duration back to the key start date to get key expiration
 
             systemPrintf("%s\r\n", printDateFromGPSEpoch(gpsEpoch));
@@ -79,7 +75,7 @@ void menuPointPerfectKeys()
             long long gpsEpoch = thingstreamEpochToGPSEpoch(settings.pointPerfectNextKeyStart);
 
             gpsEpoch += (settings.pointPerfectNextKeyDuration /
-                         1000); // Add key duration back to the key start date to get key expiration
+                         MILLISECONDS_IN_A_SECOND); // Add key duration back to the key start date to get key expiration
 
             systemPrintf("%s\r\n", printDateFromGPSEpoch(gpsEpoch));
         }
@@ -119,7 +115,7 @@ void menuPointPerfectKeys()
             // The u-blox API reports key durations of 5 weeks, but the web interface reports expiration dates
             // that are 4 weeks.
             // If the user has manually entered a date, force duration down to four weeks
-            settings.pointPerfectCurrentKeyDuration = (1000LL * 60 * 60 * 24 * 28);
+            settings.pointPerfectCurrentKeyDuration = 28LL * MILLISECONDS_IN_A_DAY;
 
             // Calculate the next key expiration date
             settings.pointPerfectNextKeyStart = settings.pointPerfectCurrentKeyStart +
@@ -200,7 +196,7 @@ const char *printDaysFromDuration(long long duration)
 {
     static char response[strlen("99.99") + 1]; // Make room for terminator
 
-    float days = duration / (1000.0 * 60 * 60 * 24); // Convert ms to days
+    float days = duration / MILLISECONDS_IN_A_DAY; // Convert ms to days
 
     sprintf(response, "%0.2f", days);
     return ((const char *)response);
@@ -491,85 +487,6 @@ void erasePointperfectCredentials()
     strcpy(settings.pointPerfectNextKey, "");    // Clear contents
 }
 
-// Get a date from a user
-// Return true if validated
-// https://www.includehelp.com/c-programs/validate-date.aspx
-bool getDate(uint8_t &dd, uint8_t &mm, uint16_t &yy)
-{
-    systemPrint("Enter Day: ");
-    dd = getUserInputNumber(); // Returns EXIT, TIMEOUT, or long
-
-    systemPrint("Enter Month: ");
-    mm = getUserInputNumber(); // Returns EXIT, TIMEOUT, or long
-
-    systemPrint("Enter Year (YYYY): ");
-    yy = getUserInputNumber(); // Returns EXIT, TIMEOUT, or long
-
-    // check year
-    if (yy >= 2022 && yy <= 9999)
-    {
-        // check month
-        if (mm >= 1 && mm <= 12)
-        {
-            // check days
-            if ((dd >= 1 && dd <= 31) && (mm == 1 || mm == 3 || mm == 5 || mm == 7 || mm == 8 || mm == 10 || mm == 12))
-                return (true);
-            else if ((dd >= 1 && dd <= 30) && (mm == 4 || mm == 6 || mm == 9 || mm == 11))
-                return (true);
-            else if ((dd >= 1 && dd <= 28) && (mm == 2))
-                return (true);
-            else if (dd == 29 && mm == 2 && (yy % 400 == 0 || (yy % 4 == 0 && yy % 100 != 0)))
-                return (true);
-            else
-            {
-                printf("Day is invalid.\n");
-                return (false);
-            }
-        }
-        else
-        {
-            printf("Month is not valid.\n");
-            return (false);
-        }
-    }
-
-    printf("Year is not valid.\n");
-    return (false);
-}
-
-// Given an epoch in ms, return the number of days from given Epoch and now
-int daysFromEpoch(long long endEpoch)
-{
-    long delta = secondsFromEpoch(endEpoch); // number of s between dates
-
-    if (delta == -1)
-        return (-1);
-
-    delta /= (60 * 60); // hours
-
-    delta /= 24; // days
-    return ((int)delta);
-}
-
-// Given an epoch in ms, return the number of seconds from given Epoch and now
-long secondsFromEpoch(long long endEpoch)
-{
-    if (online.rtc == false)
-    {
-        // If we don't have RTC we can't calculate days to expire
-        if (settings.debugCorrections == true)
-            systemPrintln("No RTC available");
-        return (-1);
-    }
-
-    endEpoch /= 1000; // Convert PointPerfect ms Epoch to s
-
-    long currentEpoch = rtc.getEpoch();
-
-    long delta = endEpoch - currentEpoch; // number of s between dates
-    return (delta);
-}
-
 // Given the key's starting epoch time, and the key's duration
 // Convert from ms to s
 // Add leap seconds (the API reports start times with GPS leap seconds removed)
@@ -578,146 +495,11 @@ long secondsFromEpoch(long long endEpoch)
 long long thingstreamEpochToGPSEpoch(long long startEpoch)
 {
     long long epoch = startEpoch;
-    epoch /= 1000; // Convert PointPerfect ms Epoch to s
+    epoch /= MILLISECONDS_IN_A_SECOND; // Convert PointPerfect ms Epoch to s
 
     // Convert Unix Epoch time from PointPerfect to GPS Time Of Week needed for UBX message
     long long gpsEpoch = epoch - 315964800 + gnss->getLeapSeconds(); // Shift to GPS Epoch.
     return (gpsEpoch);
-}
-
-// Covert a given key's expiration date to a GPS Epoch, so that we can calculate GPS Week and ToW
-// Add a millisecond to roll over from 11:59UTC to midnight of the following day
-// Convert from unix epoch (time lib outputs unix) to GPS epoch (the NED-D9S expects)
-long long dateToGPSEpoch(uint8_t day, uint8_t month, uint16_t year)
-{
-    long long unixEpoch = dateToUnixEpoch(day, month, year); // Returns Unix Epoch
-
-    // Convert Unix Epoch time from PP to GPS Time Of Week needed for UBX message
-    long long gpsEpoch = unixEpoch - 315964800; // Shift to GPS Epoch.
-
-    return (gpsEpoch);
-}
-
-// Given an epoch, set the GPSWeek and GPSToW
-void epochToWeekToW(long long epoch, uint16_t *GPSWeek, uint32_t *GPSToW)
-{
-    *GPSWeek = (uint16_t)(epoch / (7 * 24 * 60 * 60));
-    *GPSToW = (uint32_t)(epoch % (7 * 24 * 60 * 60));
-}
-
-// Given a GPSWeek and GPSToW, set the epoch
-void WeekToWToUnixEpoch(uint64_t *unixEpoch, uint16_t GPSWeek, uint32_t GPSToW)
-{
-    *unixEpoch = GPSWeek * (7 * 24 * 60 * 60); // 2192
-    *unixEpoch += GPSToW;                      // 518400
-    *unixEpoch += 315964800;
-}
-
-// Given a GPS Week and ToW, convert to an expiration date
-void gpsWeekToWToDate(uint16_t keyGPSWeek, uint32_t keyGPSToW, long *expDay, long *expMonth, long *expYear)
-{
-    long gpsDays = gpsToMjd(0, (long)keyGPSWeek, (long)keyGPSToW); // Covert ToW and Week to # of days since Jan 6, 1980
-    mjdToDate(gpsDays, expYear, expMonth, expDay);
-}
-
-// Given a date, convert into epoch
-// https://www.epochconverter.com/programming/c
-long dateToUnixEpoch(uint8_t day, uint8_t month, uint16_t year)
-{
-    struct tm t;
-    time_t t_of_day;
-
-    t.tm_year = year - 1900;
-    t.tm_mon = month - 1;
-    t.tm_mday = day;
-
-    t.tm_hour = 0;
-    t.tm_min = 0;
-    t.tm_sec = 0;
-    t.tm_isdst = -1; // Is DST on? 1 = yes, 0 = no, -1 = unknown
-
-    t_of_day = mktime(&t);
-
-    return (t_of_day);
-}
-
-// Given a date, calculate and return the key start in unixEpoch
-void dateToKeyStart(uint8_t expDay, uint8_t expMonth, uint16_t expYear, uint64_t *settingsKeyStart)
-{
-    long long expireUnixEpoch = dateToUnixEpoch(expDay, expMonth, expYear);
-
-    // Thingstream lists the date that a key expires at midnight
-    // So if a user types in March 7th, 2022 as exp date the key's Week and ToW need to be
-    // calculated from (March 7th - 27 days).
-    long long startUnixEpoch = expireUnixEpoch - (27 * 24 * 60 * 60); // Move back 27 days
-
-    // Additionally, Thingstream seems to be reporting Epochs that do not have leap seconds
-    startUnixEpoch -= gnss->getLeapSeconds(); // Modify our Epoch to match Point Perfect
-
-    // PointPerfect uses/reports unix epochs in milliseconds
-    *settingsKeyStart = startUnixEpoch * 1000L; // Convert to ms
-
-    uint16_t keyGPSWeek;
-    uint32_t keyGPSToW;
-    long long gpsEpoch = thingstreamEpochToGPSEpoch(*settingsKeyStart);
-
-    epochToWeekToW(gpsEpoch, &keyGPSWeek, &keyGPSToW);
-
-    // Print ToW and Week for debugging
-    if (settings.debugCorrections == true)
-    {
-        systemPrintf("  expireUnixEpoch: %lld - %s\r\n", expireUnixEpoch, printDateFromUnixEpoch(expireUnixEpoch));
-        systemPrintf("  startUnixEpoch: %lld - %s\r\n", startUnixEpoch, printDateFromUnixEpoch(startUnixEpoch));
-        systemPrintf("  gpsEpoch: %lld - %s\r\n", gpsEpoch, printDateFromGPSEpoch(gpsEpoch));
-        systemPrintf("  KeyStart: %lld - %s\r\n", *settingsKeyStart, printDateFromUnixEpoch(*settingsKeyStart));
-        systemPrintf("  keyGPSWeek: %d\r\n", keyGPSWeek);
-        systemPrintf("  keyGPSToW: %d\r\n", keyGPSToW);
-    }
-}
-
-/*
-   http://www.leapsecond.com/tools/gpsdate.c
-   Return Modified Julian Day given calendar year,
-   month (1-12), and day (1-31).
-   - Valid for Gregorian dates from 17-Nov-1858.
-   - Adapted from sci.astro FAQ.
-*/
-long dateToMjd(long Year, long Month, long Day)
-{
-    return 367 * Year - 7 * (Year + (Month + 9) / 12) / 4 - 3 * ((Year + (Month - 9) / 7) / 100 + 1) / 4 +
-           275 * Month / 9 + Day + 1721028 - 2400000;
-}
-
-/*
-   Convert Modified Julian Day to calendar date.
-   - Assumes Gregorian calendar.
-   - Adapted from Fliegel/van Flandern ACM 11/#10 p 657 Oct 1968.
-*/
-void mjdToDate(long Mjd, long *Year, long *Month, long *Day)
-{
-    long J, C, Y, M;
-
-    J = Mjd + 2400001 + 68569;
-    C = 4 * J / 146097;
-    J = J - (146097 * C + 3) / 4;
-    Y = 4000 * (J + 1) / 1461001;
-    J = J - 1461 * Y / 4 + 31;
-    M = 80 * J / 2447;
-    *Day = J - 2447 * M / 80;
-    J = M / 11;
-    *Month = M + 2 - (12 * J);
-    *Year = 100 * (C - 49) + Y + J;
-}
-
-/*
-   Convert GPS Week and Seconds to Modified Julian Day.
-   - Ignores UTC leap seconds.
-*/
-long gpsToMjd(long GpsCycle, long GpsWeek, long GpsSeconds)
-{
-    long GpsDays = ((GpsCycle * 1024) + GpsWeek) * 7 + (GpsSeconds / 86400);
-    // GpsDays -= 1; //Correction
-    return dateToMjd(1980, 1, 6) + GpsDays;
 }
 
 //----------------------------------------
@@ -893,7 +675,8 @@ void menuPointPerfect()
         systemPrintln("Menu: PointPerfect Corrections");
 
         if (settings.debugCorrections == true)
-            systemPrintf("Time to first RTK Fix: %ds Restarts: %d\r\n", rtkTimeToFixMs / 1000, floatLockRestarts);
+            systemPrintf("Time to first RTK Fix: %ds Restarts: %d\r\n",
+                         rtkTimeToFixMs / MILLISECONDS_IN_A_SECOND, floatLockRestarts);
 
         if (settings.debugCorrections == true)
             systemPrintf("settings.pointPerfectKeyDistributionTopic: %s\r\n",
@@ -1099,7 +882,7 @@ void updateLBand()
         i2cLBand.checkCallbacks(); // Check if any L-Band callbacks are waiting to be processed.
 
         // If a certain amount of time has elapsed between last decryption, turn off L-Band icon
-        if (lbandCorrectionsReceived == true && millis() - lastLBandDecryption > 5000)
+        if (lbandCorrectionsReceived == true && millis() - lastLBandDecryption > (5 * MILLISECONDS_IN_A_SECOND))
             lbandCorrectionsReceived = false;
 
         // If we don't get an L-Band fix within Timeout, hot-start ZED-F9x
@@ -1108,19 +891,19 @@ void updateLBand()
             if (lbandTimeFloatStarted == 0)
                 lbandTimeFloatStarted = millis();
 
-            if (millis() - lbandLastReport > 1000)
+            if (millis() - lbandLastReport > MILLISECONDS_IN_A_SECOND)
             {
                 lbandLastReport = millis();
 
                 if (settings.debugCorrections == true)
                     systemPrintf("ZED restarts: %d Time remaining before Float lock forced restart: %ds\r\n",
                                  floatLockRestarts,
-                                 settings.lbandFixTimeout_seconds - ((millis() - lbandTimeFloatStarted) / 1000));
+                                 settings.lbandFixTimeout_seconds - ((millis() - lbandTimeFloatStarted) / MILLISECONDS_IN_A_SECOND));
             }
 
             if (settings.lbandFixTimeout_seconds > 0)
             {
-                if ((millis() - lbandTimeFloatStarted) > (settings.lbandFixTimeout_seconds * 1000L))
+                if ((millis() - lbandTimeFloatStarted) > (settings.lbandFixTimeout_seconds * MILLISECONDS_IN_A_SECOND))
                 {
                     floatLockRestarts++;
 
@@ -1141,7 +924,7 @@ void updateLBand()
 
             rtkTimeToFixMs = millis();
             if (settings.debugCorrections == true)
-                systemPrintf("Time to first RTK Fix: %ds\r\n", rtkTimeToFixMs / 1000);
+                systemPrintf("Time to first RTK Fix: %ds\r\n", rtkTimeToFixMs / MILLISECONDS_IN_A_SECOND);
         }
         else
         {
@@ -1213,7 +996,7 @@ void provisioningSetState(uint8_t newState)
 }
 
 unsigned long provisioningStartTime_millis;
-const unsigned long provisioningTimeout_ms = 120000;
+const unsigned long provisioningTimeout_ms = 2 * MILLISECONDS_IN_A_MINUTE;
 
 void provisioningWaitForNetwork()
 {
@@ -1289,9 +1072,9 @@ void provisioningUpdate()
     break;
     case PROVISIONING_CHECK_ATTEMPT: {
         // When did we last try to get keys? Attempt every 24 hours - or always for DEVELOPER
-        // if (rtc.getEpoch() - settings.lastKeyAttempt > ( ENABLE_DEVELOPER ? 0 : (60 * 60 * 24)))
+        // if (rtc.getEpoch() - settings.lastKeyAttempt > ( ENABLE_DEVELOPER ? 0 : SECONDS_IN_A_DAY))
         // When did we last try to get keys? Attempt every 24 hours
-        if (rtc.getEpoch() - settings.lastKeyAttempt > (60 * 60 * 24))
+        if (rtc.getEpoch() - settings.lastKeyAttempt > SECONDS_IN_A_DAY)
         {
             settings.lastKeyAttempt = rtc.getEpoch(); // Mark it
             recordSystemSettings();                   // Record these settings to unit
@@ -1316,7 +1099,6 @@ void provisioningUpdate()
             provisioningSetState(PROVISIONING_NOT_STARTED);
         }
         // Wait until the network is available
-#ifdef COMPILE_NETWORK
         else if (networkConsumerIsConnected(NETCONSUMER_PPL_KEY_UPDATE))
         {
             if (settings.debugPpCertificate)
@@ -1326,7 +1108,6 @@ void provisioningUpdate()
             networkUserAdd(NETCONSUMER_PPL_KEY_UPDATE, __FILE__, __LINE__);
             provisioningSetState(PROVISIONING_STARTING);
         }
-#endif // COMPILE_NETWORK
 
         // TODO If we just booted, show keys remaining regardless of provisioning state machine
         // provisioningSetState(PROVISIONING_KEYS_REMAINING);
@@ -1346,7 +1127,7 @@ void provisioningUpdate()
         if (millis() > (provisioningStartTime_millis + provisioningTimeout_ms))
         {
             httpClientModeNeeded = false; // Tell HTTP_Client to give up. (But it probably already has...)
-            paintKeyUpdateFail(5000);
+            paintKeyUpdateFail(5 * MILLISECONDS_IN_A_SECOND);
             provisioningSetState(PROVISIONING_KEYS_REMAINING);
         }
         else if (ztpResponse == ZTP_SUCCESS)
@@ -1381,7 +1162,7 @@ void provisioningUpdate()
                          landingPageUrl, hardwareID);
 
             httpClientModeNeeded = false; // Tell HTTP_Client to give up.
-            displayAccountExpired(5000);
+            displayAccountExpired(5 * MILLISECONDS_IN_A_SECOND);
 
             provisioningSetState(PROVISIONING_KEYS_REMAINING);
         }
@@ -1410,7 +1191,7 @@ void provisioningUpdate()
                          landingPageUrl, hardwareID);
 
             httpClientModeNeeded = false; // Tell HTTP_Client to give up.
-            displayNotListed(5000);
+            displayNotListed(5 * MILLISECONDS_IN_A_SECOND);
 
             provisioningSetState(PROVISIONING_KEYS_REMAINING);
         }
@@ -1426,7 +1207,7 @@ void provisioningUpdate()
                          hardwareID);
 
             httpClientModeNeeded = false; // Tell HTTP_Client to give up.
-            displayAlreadyRegistered(5000);
+            displayAlreadyRegistered(5 * MILLISECONDS_IN_A_SECOND);
 
             provisioningSetState(PROVISIONING_KEYS_REMAINING);
         }
@@ -1450,7 +1231,7 @@ void provisioningUpdate()
                 systemPrintf("Days until PointPerfect keys expire: %d\r\n", daysRemaining);
                 if (daysRemaining >= 0)
                 {
-                    paintKeyDaysRemaining(daysRemaining, 2000);
+                    paintKeyDaysRemaining(daysRemaining, 2 * MILLISECONDS_IN_A_SECOND);
                 }
                 else
                 {
@@ -1481,11 +1262,10 @@ void provisioningUpdate()
         else if (!settings.enablePointPerfectCorrections || !settings.autoKeyRenewal)
             provisioningSetState(PROVISIONING_OFF);
         // When did we last try to get keys? Attempt every 24 hours - or every 15 mins for DEVELOPER
-        // else if (millis() > (provisioningStartTime_millis + ( ENABLE_DEVELOPER ? (1000 * 60 * 15) : (1000 * 60 * 60 *
-        // 24))))
+        // else if (millis() > (provisioningStartTime_millis + ( ENABLE_DEVELOPER ? (15 * MILLISECONDS_IN_A_MINUTE)
+        //                                                                        : MILLISECONDS_IN_A_DAY)))
         // When did we last try to get keys? Attempt every 24 hours
-        else if (millis() >
-                 (provisioningStartTime_millis + (1000 * 60 * 60 * 24))) // Don't use settings.lastKeyAttempt (#419)
+        else if (millis() > (provisioningStartTime_millis + MILLISECONDS_IN_A_DAY)) // Don't use settings.lastKeyAttempt (#419)
             provisioningSetState(PROVISIONING_CHECK_REMAINING);
     }
     break;

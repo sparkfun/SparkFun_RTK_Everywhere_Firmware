@@ -189,6 +189,7 @@ void httpClientPrintStatus()
 {
     systemPrint("HTTP Client ");
     httpClientPrintStateSummary();
+    systemPrintln();
 }
 
 //----------------------------------------
@@ -321,8 +322,8 @@ void httpClientUpdate()
     case HTTP_CLIENT_OFF: {
         if (enabled)
         {
-            networkConsumerAdd(NETCONSUMER_HTTP_CLIENT, NETWORK_ANY, __FILE__, __LINE__);
             httpClientStart();
+            networkConsumerAdd(NETCONSUMER_HTTP_CLIENT, NETWORK_ANY, __FILE__, __LINE__);
         }
         break;
     }

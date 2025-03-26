@@ -412,8 +412,8 @@ void networkConsumerAdd(NETCONSUMER_t consumer, NetIndex_t network, const char *
 
     // Display the call
     if (settings.debugNetworkLayer)
-        systemPrintf("Network: Calling networkConsumerAdd(%s) from %s at line %d\r\n",
-                     networkName, fileName, lineNumber);
+        systemPrintf("Network: Calling networkConsumerAdd(%s, %s) from %s at line %d\r\n",
+                     networkConsumerTable[consumer], networkName, fileName, lineNumber);
 
     // Add this consumer only once
     previousBits = *bits;
@@ -565,7 +565,7 @@ bool networkConsumerIsConnected(NETCONSUMER_t consumer)
 //----------------------------------------
 void networkConsumerOffline(NETCONSUMER_t consumer)
 {
-    networkUserRemove(NETCONSUMER_HTTP_CLIENT, __FILE__, __LINE__);
+    networkUserRemove(consumer, __FILE__, __LINE__);
     networkConsumerPriority[consumer] = NETWORK_OFFLINE;
 }
 
@@ -642,8 +642,8 @@ void networkConsumerRemove(NETCONSUMER_t consumer, NetIndex_t network, const cha
 
     // Display the call
     if (settings.debugNetworkLayer)
-        systemPrintf("Network: Calling networkConsumerRemove(%s) from %s at line %d\r\n",
-                     networkName, fileName, lineNumber);
+        systemPrintf("Network: Calling networkConsumerRemove(%s, %s) from %s at line %d\r\n",
+                     networkConsumerTable[consumer], networkName, fileName, lineNumber);
 
     // Done with the network
     networkUserRemove(consumer, __FILE__, __LINE__);
@@ -1466,9 +1466,17 @@ void networkPrintStatus(uint8_t priority)
     systemPrintf("%c%d: %-10s %s",
                  highestPriority ? '*' : ' ', priority, name, status);
 
-    // Determine if this interface has any consumers
+    // Display more data about the highest priority network
     if (highestPriority)
     {
+        // Display the IP address
+        if (networkInterfaceHasInternet(index))
+        {
+            IPAddress ipAddress = networkInterfaceTable[index].netif->localIP();
+            systemPrintf(", %s", ipAddress.toString().c_str());
+        }
+
+        // Display the consumers
         consumers = networkConsumersAny | netIfConsumers[index];
         NETCONSUMER_MASK_t users = netIfUsers[index];
         networkConsumerPrint(consumers, users, ", ");

@@ -365,11 +365,9 @@ void printReports()
         lastPrintPosition = millis();
     }
 
-    if ((settings.enablePrintRoverAccuracy && (millis() - lastPrintRoverAccuracy > 2000)) ||
-        (PERIODIC_DISPLAY(PD_MQTT_CLIENT_DATA)))
+    if (settings.enablePrintRoverAccuracy && (millis() - lastPrintRoverAccuracy > 2000))
     {
         lastPrintRoverAccuracy = millis();
-        PERIODIC_CLEAR(PD_MQTT_CLIENT_DATA);
 
         if (online.gnss)
         {
