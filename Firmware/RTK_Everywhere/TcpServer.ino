@@ -173,7 +173,7 @@ int32_t tcpServerClientSendData(int index, uint8_t *data, uint16_t length)
 //----------------------------------------
 // Determine if the TCP server may be enabled
 //----------------------------------------
-bool tcpServerEnabled()
+bool tcpServerEnabled(const char ** line)
 {
     bool enabled;
 
@@ -183,10 +183,15 @@ bool tcpServerEnabled()
 
         // Verify the operating mode
         if (NEQ_RTK_MODE(tcpServerMode))
+        {
+            *line = ", Wrong mode!";
             break;
+        }
 
         // Verify still enabled
         enabled = settings.enableTcpServer || settings.baseCasterOverride;
+        if (enabled == false)
+            *line = ", Not enabled!";
     } while (0);
     return enabled;
 }
@@ -255,7 +260,7 @@ int32_t tcpServerSendData(uint16_t dataHead)
 //----------------------------------------
 void tcpServerSetState(uint8_t newState)
 {
-    if ((settings.debugTcpServer || PERIODIC_DISPLAY(PD_TCP_SERVER_STATE)) && (!inMainMenu))
+    if (settings.debugTcpServer && (!inMainMenu))
     {
         if (tcpServerState == newState)
             systemPrint("*");
@@ -263,9 +268,8 @@ void tcpServerSetState(uint8_t newState)
             systemPrintf("%s --> ", tcpServerStateName[tcpServerState]);
     }
     tcpServerState = newState;
-    if ((settings.debugTcpServer || PERIODIC_DISPLAY(PD_TCP_SERVER_STATE)) && (!inMainMenu))
+    if (settings.debugTcpServer && (!inMainMenu))
     {
-        PERIODIC_CLEAR(PD_TCP_SERVER_STATE);
         if (newState >= TCP_SERVER_STATE_MAX)
         {
             systemPrintf("Unknown TCP Server state: %d\r\n", tcpServerState);
@@ -397,11 +401,12 @@ void tcpServerUpdate()
     bool enabled;
     int index;
     IPAddress ipAddress;
+    const char * line = "";
 
     // Shutdown the TCP server when the mode or setting changes
     DMW_st(tcpServerSetState, tcpServerState);
     connected = networkConsumerIsConnected(NETCONSUMER_TCP_SERVER);
-    enabled = tcpServerEnabled();
+    enabled = tcpServerEnabled(&line);
     if ((tcpServerState > TCP_SERVER_STATE_OFF) && !enabled)
         tcpServerStop();
 
@@ -603,7 +608,11 @@ void tcpServerUpdate()
 
     // Periodically display the TCP state
     if (PERIODIC_DISPLAY(PD_TCP_SERVER_STATE) && (!inMainMenu))
-        tcpServerSetState(tcpServerState);
+    {
+        systemPrintf("TCP Server state: %s%s\r\n",
+                     tcpServerStateName[tcpServerState], line);
+        PERIODIC_CLEAR(PD_TCP_SERVER_STATE);
+    }
 }
 
 //----------------------------------------

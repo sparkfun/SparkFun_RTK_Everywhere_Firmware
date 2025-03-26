@@ -209,21 +209,19 @@ bool mqttClientConnectLimitReached()
 //----------------------------------------
 // Determine if the MQTT client may be enabled
 //----------------------------------------
-bool mqttClientEnabled(char * line)
+bool mqttClientEnabled(const char ** line)
 {
     bool enabled;
 
     do
     {
         enabled = false;
-        if (line)
-            line[0] = 0;
 
         // Verify the operating mode
         if (NEQ_RTK_MODE(mqttClientMode))
         {
             if (line)
-                strcpy(line, ", wrong mode!");
+                *line = ", wrong mode!";
             break;
         }
 
@@ -231,7 +229,7 @@ bool mqttClientEnabled(char * line)
         if (settings.enablePointPerfectCorrections == false)
         {
             if (line)
-                strcpy(line, ", PointPerfect corrections are disabled!");
+                *line = ", PointPerfect corrections are disabled!";
             break;
         }
 
@@ -244,14 +242,14 @@ bool mqttClientEnabled(char * line)
         if (present.gnss_mosaicX5)
         {
             if (line)
-                strcpy(line, ", Mosaic not present!");
+                *line = ", Mosaic not present!";
             break;
         }
 
         // Verify still enabled
         enabled = mqttClientStartRequested;
         if (line && !enabled)
-            strcpy(line, ", MQTT not enabled!");
+            *line = ", MQTT not enabled!";
     } while (0);
     return enabled;
 }
@@ -667,7 +665,7 @@ void mqttClientRestart()
 //----------------------------------------
 void mqttClientSetState(uint8_t newState)
 {
-    if (settings.debugMqttClientState || PERIODIC_DISPLAY(PD_MQTT_CLIENT_STATE))
+    if (settings.debugMqttClientState)
     {
         if (mqttClientState == newState)
             systemPrint("*");
@@ -675,7 +673,7 @@ void mqttClientSetState(uint8_t newState)
             systemPrintf("%s --> ", mqttClientStateName[mqttClientState]);
     }
     mqttClientState = newState;
-    if (settings.debugMqttClientState || PERIODIC_DISPLAY(PD_MQTT_CLIENT_STATE))
+    if (settings.debugMqttClientState)
     {
         if (newState >= MQTT_CLIENT_STATE_MAX)
         {
@@ -1126,15 +1124,10 @@ void mqttClientUpdate()
     // Periodically display the MQTT client state
     if (PERIODIC_DISPLAY(PD_MQTT_CLIENT_STATE))
     {
-        char * line;
-        line = (char *)ps_malloc(128);
-        if (line)
-            mqttClientEnabled(line);
+        const char * line = "";
+        mqttClientEnabled(&line);
         systemPrintf("MQTT Client state: %s%s\r\n",
-                     mqttClientStateName[mqttClientState],
-                     line ? line : "");
-        if (line)
-            free(line);
+                     mqttClientStateName[mqttClientState], line);
         PERIODIC_CLEAR(PD_MQTT_CLIENT_STATE);
     }
 }

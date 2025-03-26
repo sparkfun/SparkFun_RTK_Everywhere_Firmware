@@ -125,7 +125,7 @@ void udpServerDiscardBytes(RING_BUFFER_OFFSET previousTail, RING_BUFFER_OFFSET n
 //----------------------------------------
 // Determine if the UDP server may be enabled
 //----------------------------------------
-bool udpServerEnabled()
+bool udpServerEnabled(const char ** line)
 {
     bool enabled;
 
@@ -135,10 +135,15 @@ bool udpServerEnabled()
 
         // Verify the operating mode
         if (NEQ_RTK_MODE(udpServerMode))
+        {
+            *line = ", Wrong mode!";
             break;
+        }
 
         // Verify still enabled
         enabled = settings.enableUdpServer;
+        if (enabled == false)
+            *line = ", Not enabled!";
     } while (0);
     return enabled;
 }
@@ -233,7 +238,7 @@ int32_t udpServerSendDataBroadcast(uint8_t *data, uint16_t length)
 //----------------------------------------
 void udpServerSetState(uint8_t newState)
 {
-    if ((settings.debugUdpServer || PERIODIC_DISPLAY(PD_UDP_SERVER_STATE)) && (!inMainMenu))
+    if (settings.debugUdpServer && (!inMainMenu))
     {
         if (udpServerState == newState)
             systemPrint("UDP Server: *");
@@ -241,9 +246,8 @@ void udpServerSetState(uint8_t newState)
             systemPrintf("UDP Server: %s --> ", udpServerStateName[udpServerState]);
     }
     udpServerState = newState;
-    if ((settings.debugUdpServer || PERIODIC_DISPLAY(PD_UDP_SERVER_STATE)) && (!inMainMenu))
+    if (settings.debugUdpServer && (!inMainMenu))
     {
-        PERIODIC_CLEAR(PD_UDP_SERVER_STATE);
         if (newState >= UDP_SERVER_STATE_MAX)
         {
             systemPrintf("Unknown state: %d\r\n", udpServerState);
@@ -317,12 +321,15 @@ void udpServerStop()
 void udpServerUpdate()
 {
     bool connected;
+    bool enabled;
     IPAddress ipAddress;
+    const char * line = "";
 
     // Shutdown the UDP server when the mode or setting changes
     DMW_st(udpServerSetState, udpServerState);
     connected = networkConsumerIsConnected(NETCONSUMER_UDP_SERVER);
-    if ((!udpServerEnabled()) && (udpServerState > UDP_SERVER_STATE_OFF))
+    enabled = udpServerEnabled(&line);
+    if ((!enabled) && (udpServerState > UDP_SERVER_STATE_OFF))
         udpServerStop();
 
     /*
@@ -349,7 +356,7 @@ void udpServerUpdate()
     // Wait until the UDP server is enabled
     case UDP_SERVER_STATE_OFF:
         // Determine if the UDP server should be running
-        if (udpServerEnabled())
+        if (enabled)
         {
             if (settings.debugUdpServer && (!inMainMenu))
                 systemPrintln("UDP server starting the network");
@@ -402,7 +409,11 @@ void udpServerUpdate()
 
     // Periodically display the UDP state
     if (PERIODIC_DISPLAY(PD_UDP_SERVER_STATE) && (!inMainMenu))
-        udpServerSetState(udpServerState);
+    {
+        systemPrintf("UDP Server state: %s%s\r\n",
+                     udpServerStateName[udpServerState], line);
+        PERIODIC_CLEAR(PD_UDP_SERVER_STATE);
+    }
 }
 
 //----------------------------------------
