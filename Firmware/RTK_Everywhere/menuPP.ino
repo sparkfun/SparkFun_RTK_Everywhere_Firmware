@@ -19,6 +19,8 @@ static const uint8_t developmentToken[16] = {DEVELOPMENT_TOKEN};         // Toke
 static const uint8_t ppLbandToken[16] = {POINTPERFECT_LBAND_TOKEN};      // Token in HEX form
 static const uint8_t ppIpToken[16] = {POINTPERFECT_IP_TOKEN};            // Token in HEX form
 static const uint8_t ppLbandIpToken[16] = {POINTPERFECT_LBAND_IP_TOKEN}; // Token in HEX form
+static unsigned long provisioningStartTime_millis;
+static bool provisioningRunning;
 
 //----------------------------------------
 // L-Band Routines - compiled out
@@ -939,29 +941,19 @@ void updateLBand()
 enum ProvisioningStates
 {
     PROVISIONING_OFF = 0,
-    PROVISIONING_WAIT_RTC,
-    PROVISIONING_NOT_STARTED,
     PROVISIONING_CHECK_REMAINING,
-    PROVISIONING_CHECK_ATTEMPT,
     PROVISIONING_WAIT_FOR_NETWORK,
-    PROVISIONING_STARTING,
     PROVISIONING_STARTED,
     PROVISIONING_KEYS_REMAINING,
-    PROVISIONING_WAIT_ATTEMPT,
     PROVISIONING_STATE_MAX,
 };
 static volatile uint8_t provisioningState = PROVISIONING_OFF;
 
 const char *const provisioningStateName[] = {"PROVISIONING_OFF",
-                                             "PROVISIONING_WAIT_RTC",
-                                             "PROVISIONING_NOT_STARTED",
                                              "PROVISIONING_CHECK_REMAINING",
-                                             "PROVISIONING_CHECK_ATTEMPT",
                                              "PROVISIONING_WAIT_FOR_NETWORK",
-                                             "PROVISIONING_STARTING",
                                              "PROVISIONING_STARTED",
-                                             "PROVISIONING_KEYS_REMAINING",
-                                             "PROVISIONING_WAIT_ATTEMPT"};
+                                             "PROVISIONING_KEYS_REMAINING"};
 
 const int provisioningStateNameEntries = sizeof(provisioningStateName) / sizeof(provisioningStateName[0]);
 
@@ -1009,109 +1001,141 @@ bool provisioningEnabled(const char ** line)
             break;
         }
 
-        if (settings.autoKeyRenewal || settings.requestKeyUpdate)
+        // Keep running until provisioning attempt is complete
+        if (provisioningRunning)
             break;
-        enabled = false;
-        *line = ", Auto key renewal off and key not requested!";
+
+        // Determine if provisioning should start
+        provisioningRunning = settings.requestKeyUpdate // Manual update
+            || (provisioningStartTime_millis == 0) // Update keys at boot
+            || (settings.autoKeyRenewal && // Auto renewal time (24 hours expired)
+                ((millis() - provisioningStartTime_millis) > MILLISECONDS_IN_A_DAY));
+
+        // Determine if key provisioning is enabled
+        enabled = provisioningRunning;
+        if (settings.autoKeyRenewal)
+            *line = ", Key not requested and auto key renewal running later!";
+        else
+            *line = ", Key not requested and auto key renewal is disabled!";
     } while (0);
     return enabled;
 }
 
-unsigned long provisioningStartTime_millis;
-const unsigned long provisioningTimeout_ms = 2 * MILLISECONDS_IN_A_MINUTE;
-
-void provisioningWaitForNetwork()
+// Determine if the keys are needed
+bool provisioningKeysNeeded()
 {
-    networkConsumerAdd(NETCONSUMER_PPL_KEY_UPDATE, NETWORK_ANY, __FILE__, __LINE__);
-    provisioningSetState(PROVISIONING_WAIT_FOR_NETWORK);
+    bool keysNeeded;
+
+    do
+    {
+        keysNeeded = true;
+
+        // If we don't have certs or keys, begin zero touch provisioning
+        if (!checkCertificates() || strlen(settings.pointPerfectCurrentKey) == 0 ||
+            strlen(settings.pointPerfectNextKey) == 0)
+        {
+            if (settings.debugPpCertificate)
+                systemPrintln("Invalid certificates or keys.");
+            break;
+        }
+
+        // If requestKeyUpdate is true, begin provisioning
+        if (settings.requestKeyUpdate)
+        {
+            if (settings.debugPpCertificate)
+                systemPrintln("requestKeyUpdate is true.");
+            break;
+        }
+
+        // Determine if RTC is online
+        if (!online.rtc)
+        {
+            if (settings.debugPpCertificate)
+                systemPrintln("No RTC.");
+            break;
+        }
+
+        // RTC is online. Determine days until next key expires
+        int daysRemaining =
+            daysFromEpoch(settings.pointPerfectNextKeyStart + settings.pointPerfectNextKeyDuration + 1);
+
+        if (settings.debugPpCertificate)
+            systemPrintf("Days until keys expire: %d\r\n", daysRemaining);
+
+        // PointPerfect returns keys that expire at midnight so the primary key
+        // is still available with 0 days left, and a Next Key that has 28 days left
+        // If there are 28 days remaining, PointPerfect won't have new keys.
+        if (daysRemaining < 28)
+        {
+            // When did we last try to get keys? Attempt every 24 hours - or always for DEVELOPER
+            // if (rtc.getEpoch() - settings.lastKeyAttempt > ( ENABLE_DEVELOPER ? 0 : SECONDS_IN_A_DAY))
+            // When did we last try to get keys? Attempt every 24 hours
+            if (rtc.getEpoch() - settings.lastKeyAttempt > SECONDS_IN_A_DAY)
+            {
+                settings.lastKeyAttempt = rtc.getEpoch(); // Mark it
+                recordSystemSettings();                   // Record these settings to unit
+                break;
+            }
+
+            if (settings.debugPpCertificate)
+                systemPrintln("Already tried to obtain keys for today");
+        }
+
+        // Don't need new keys
+        keysNeeded = false;
+    } while (0);
+    if (keysNeeded && settings.debugPpCertificate)
+        systemPrintln(" Starting provisioning");
+    return keysNeeded;
+}
+
+void provisioningStop(const char * file, uint32_t line)
+{
+    // Done with this request attempt
+    settings.requestKeyUpdate = false;
+    provisioningRunning = false;
+
+    // Record the time so we can restart after 24 hours
+    provisioningStartTime_millis = millis();
+
+    // Done with the network
+    networkConsumerRemove(NETCONSUMER_PPL_KEY_UPDATE, NETWORK_ANY, file, line);
+    provisioningSetState(PROVISIONING_OFF);
 }
 
 void provisioningUpdate()
 {
     bool enabled;
     const char * line = "";
+    const unsigned long provisioningTimeout_ms = 2 * MILLISECONDS_IN_A_MINUTE;
+    static bool rtcOnline;
 
     // Determine if key provisioning is enabled
     DMW_st(provisioningSetState, provisioningState);
     enabled = provisioningEnabled(&line);
 
+    // Determine if the RTC was properly initialized
+    if (rtcOnline == false)
+        rtcOnline = online.rtc || settings.requestKeyUpdate
+                  || (millis() > provisioningTimeout_ms);
+
     switch (provisioningState)
     {
     default:
     case PROVISIONING_OFF: {
-        provisioningStartTime_millis = millis(); // Record the start time so we can timeout
-        provisioningSetState(PROVISIONING_WAIT_RTC);
-    }
-    break;
-    case PROVISIONING_WAIT_RTC: {
         // If RTC is not online after provisioningTimeout_ms, try to provision anyway
-        if ((online.rtc) || (millis() > (provisioningStartTime_millis + provisioningTimeout_ms)) ||
-            (settings.requestKeyUpdate))
-            provisioningSetState(PROVISIONING_NOT_STARTED);
-    }
-    break;
-    case PROVISIONING_NOT_STARTED: {
-        if (enabled)
+        if (enabled && rtcOnline)
             provisioningSetState(PROVISIONING_CHECK_REMAINING);
     }
     break;
     case PROVISIONING_CHECK_REMAINING: {
-        // If we don't have certs or keys, begin zero touch provisioning
-        if (!checkCertificates() || strlen(settings.pointPerfectCurrentKey) == 0 ||
-            strlen(settings.pointPerfectNextKey) == 0)
-        {
-            if (settings.debugPpCertificate)
-                systemPrintln("Invalid certificates or keys. Starting provisioning");
-            provisioningWaitForNetwork();
-        }
-        // If requestKeyUpdate is true, begin provisioning
-        else if (settings.requestKeyUpdate)
-        {
-            if (settings.debugPpCertificate)
-                systemPrintln("requestKeyUpdate is true. Starting provisioning");
-            provisioningWaitForNetwork();
-        }
-        // If RTC is not online, we have to skip PROVISIONING_CHECK_ATTEMPT
-        else if (!online.rtc)
-        {
-            if (settings.debugPpCertificate)
-                systemPrintln("No RTC. Starting provisioning");
-            provisioningWaitForNetwork();
-        }
-        else
-        {
-            // RTC is online. Determine days until next key expires
-            int daysRemaining =
-                daysFromEpoch(settings.pointPerfectNextKeyStart + settings.pointPerfectNextKeyDuration + 1);
-
-            if (settings.debugPpCertificate)
-                systemPrintf("Days until keys expire: %d\r\n", daysRemaining);
-
-            // PointPerfect returns keys that expire at midnight so the primary key
-            // is still available with 0 days left, and a Next Key that has 28 days left
-            // If there are 28 days remaining, PointPerfect won't have new keys.
-            if (daysRemaining >= 28)
-                provisioningSetState(PROVISIONING_KEYS_REMAINING); // Don't need new keys
-            else
-                provisioningSetState(PROVISIONING_CHECK_ATTEMPT); // Do need new keys
-        }
-    }
-    break;
-    case PROVISIONING_CHECK_ATTEMPT: {
-        // When did we last try to get keys? Attempt every 24 hours - or always for DEVELOPER
-        // if (rtc.getEpoch() - settings.lastKeyAttempt > ( ENABLE_DEVELOPER ? 0 : SECONDS_IN_A_DAY))
-        // When did we last try to get keys? Attempt every 24 hours
-        if (rtc.getEpoch() - settings.lastKeyAttempt > SECONDS_IN_A_DAY)
-        {
-            settings.lastKeyAttempt = rtc.getEpoch(); // Mark it
-            recordSystemSettings();                   // Record these settings to unit
-            provisioningWaitForNetwork();
-        }
-        else
-        {
-            if (settings.debugPpCertificate)
-                systemPrintln("Already tried to obtain keys for today");
+        if (provisioningKeysNeeded() == false)
             provisioningSetState(PROVISIONING_KEYS_REMAINING);
+        else
+        {
+            // Request the network for PointPerfect key provisioning
+            networkConsumerAdd(NETCONSUMER_PPL_KEY_UPDATE, NETWORK_ANY, __FILE__, __LINE__);
+            provisioningSetState(PROVISIONING_WAIT_FOR_NETWORK);
         }
     }
     break;
@@ -1120,11 +1144,8 @@ void provisioningUpdate()
     case PROVISIONING_WAIT_FOR_NETWORK: {
         // Stop waiting if PointPerfect has been disabled
         if (enabled == false)
-        {
-            // Done with the network
-            networkConsumerRemove(NETCONSUMER_PPL_KEY_UPDATE, NETWORK_ANY, __FILE__, __LINE__);
-            provisioningSetState(PROVISIONING_NOT_STARTED);
-        }
+            provisioningStop(__FILE__, __LINE__);
+
         // Wait until the network is available
         else if (networkConsumerIsConnected(NETCONSUMER_PPL_KEY_UPDATE))
         {
@@ -1132,23 +1153,16 @@ void provisioningUpdate()
                 systemPrintln("PointPerfect key update connected to network");
 
             // Go get latest keys
+            ztpResponse = ZTP_NOT_STARTED;           // HTTP_Client will update this
+            httpClientModeNeeded = true;             // This will start the HTTP_Client
+            provisioningStartTime_millis = millis(); // Record the start time so we can timeout
+            paintGettingKeys();
             networkUserAdd(NETCONSUMER_PPL_KEY_UPDATE, __FILE__, __LINE__);
-            provisioningSetState(PROVISIONING_STARTING);
+            provisioningSetState(PROVISIONING_STARTED);
         }
-
-        // TODO If we just booted, show keys remaining regardless of provisioning state machine
-        // provisioningSetState(PROVISIONING_KEYS_REMAINING);
     }
-
     break;
 
-    case PROVISIONING_STARTING: {
-        ztpResponse = ZTP_NOT_STARTED;           // HTTP_Client will update this
-        httpClientModeNeeded = true;             // This will start the HTTP_Client
-        provisioningStartTime_millis = millis(); // Record the start time so we can timeout
-        paintGettingKeys();
-        provisioningSetState(PROVISIONING_STARTED);
-    }
     case PROVISIONING_STARTED: {
         // Only leave this state if we timeout or ZTP is complete
         if (millis() > (provisioningStartTime_millis + provisioningTimeout_ms))
@@ -1273,27 +1287,10 @@ void provisioningUpdate()
 
         gnss->applyPointPerfectKeys(); // Send current keys, if available, to GNSS
 
-        settings.requestKeyUpdate = false; // However we got here, clear requestKeyUpdate
         recordSystemSettings();            // Record these settings to unit
 
-        provisioningStartTime_millis = millis(); // Record the time so we can restart after 24 hours
-
         // Done with the network
-        networkConsumerRemove(NETCONSUMER_PPL_KEY_UPDATE, NETWORK_ANY, __FILE__, __LINE__);
-        provisioningSetState(PROVISIONING_WAIT_ATTEMPT);
-    }
-    break;
-    case PROVISIONING_WAIT_ATTEMPT: {
-        if (settings.requestKeyUpdate) // requestKeyUpdate can be set via the menu, mode button or web config
-            provisioningSetState(PROVISIONING_CHECK_REMAINING);
-        else if (enabled == false)
-            provisioningSetState(PROVISIONING_OFF);
-        // When did we last try to get keys? Attempt every 24 hours - or every 15 mins for DEVELOPER
-        // else if (millis() > (provisioningStartTime_millis + ( ENABLE_DEVELOPER ? (15 * MILLISECONDS_IN_A_MINUTE)
-        //                                                                        : MILLISECONDS_IN_A_DAY)))
-        // When did we last try to get keys? Attempt every 24 hours
-        else if (millis() > (provisioningStartTime_millis + MILLISECONDS_IN_A_DAY)) // Don't use settings.lastKeyAttempt (#419)
-            provisioningSetState(PROVISIONING_CHECK_REMAINING);
+        provisioningStop(__FILE__, __LINE__);
     }
     break;
     }
