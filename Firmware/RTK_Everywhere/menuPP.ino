@@ -19,6 +19,8 @@ static const uint8_t developmentToken[16] = {DEVELOPMENT_TOKEN};         // Toke
 static const uint8_t ppLbandToken[16] = {POINTPERFECT_LBAND_TOKEN};      // Token in HEX form
 static const uint8_t ppIpToken[16] = {POINTPERFECT_IP_TOKEN};            // Token in HEX form
 static const uint8_t ppLbandIpToken[16] = {POINTPERFECT_LBAND_IP_TOKEN}; // Token in HEX form
+static unsigned long provisioningStartTime_millis;
+static bool provisioningRunning;
 
 //----------------------------------------
 // L-Band Routines - compiled out
@@ -943,7 +945,6 @@ enum ProvisioningStates
     PROVISIONING_WAIT_FOR_NETWORK,
     PROVISIONING_STARTED,
     PROVISIONING_KEYS_REMAINING,
-    PROVISIONING_WAIT_ATTEMPT,
     PROVISIONING_STATE_MAX,
 };
 static volatile uint8_t provisioningState = PROVISIONING_OFF;
@@ -952,8 +953,7 @@ const char *const provisioningStateName[] = {"PROVISIONING_OFF",
                                              "PROVISIONING_CHECK_REMAINING",
                                              "PROVISIONING_WAIT_FOR_NETWORK",
                                              "PROVISIONING_STARTED",
-                                             "PROVISIONING_KEYS_REMAINING",
-                                             "PROVISIONING_WAIT_ATTEMPT"};
+                                             "PROVISIONING_KEYS_REMAINING"};
 
 const int provisioningStateNameEntries = sizeof(provisioningStateName) / sizeof(provisioningStateName[0]);
 
@@ -1001,10 +1001,22 @@ bool provisioningEnabled(const char ** line)
             break;
         }
 
-        if (settings.autoKeyRenewal || settings.requestKeyUpdate)
+        // Keep running until provisioning attempt is complete
+        if (provisioningRunning)
             break;
-        enabled = false;
-        *line = ", Auto key renewal off and key not requested!";
+
+        // Determine if provisioning should start
+        provisioningRunning = settings.requestKeyUpdate // Manual update
+            || (provisioningStartTime_millis == 0) // Update keys at boot
+            || (settings.autoKeyRenewal && // Auto renewal time (24 hours expired)
+                ((millis() - provisioningStartTime_millis) > MILLISECONDS_IN_A_DAY));
+
+        // Determine if key provisioning is enabled
+        enabled = provisioningRunning;
+        if (settings.autoKeyRenewal)
+            *line = ", Key not requested and auto key renewal running later!";
+        else
+            *line = ", Key not requested and auto key renewal is disabled!";
     } while (0);
     return enabled;
 }
@@ -1077,13 +1089,25 @@ bool provisioningKeysNeeded()
     return keysNeeded;
 }
 
-unsigned long provisioningStartTime_millis;
-const unsigned long provisioningTimeout_ms = 2 * MILLISECONDS_IN_A_MINUTE;
+void provisioningStop(const char * file, uint32_t line)
+{
+    // Done with this request attempt
+    settings.requestKeyUpdate = false;
+    provisioningRunning = false;
+
+    // Record the time so we can restart after 24 hours
+    provisioningStartTime_millis = millis();
+
+    // Done with the network
+    networkConsumerRemove(NETCONSUMER_PPL_KEY_UPDATE, NETWORK_ANY, file, line);
+    provisioningSetState(PROVISIONING_OFF);
+}
 
 void provisioningUpdate()
 {
     bool enabled;
     const char * line = "";
+    const unsigned long provisioningTimeout_ms = 2 * MILLISECONDS_IN_A_MINUTE;
     static bool rtcOnline;
 
     // Determine if key provisioning is enabled
@@ -1120,11 +1144,8 @@ void provisioningUpdate()
     case PROVISIONING_WAIT_FOR_NETWORK: {
         // Stop waiting if PointPerfect has been disabled
         if (enabled == false)
-        {
-            // Done with the network
-            networkConsumerRemove(NETCONSUMER_PPL_KEY_UPDATE, NETWORK_ANY, __FILE__, __LINE__);
-            provisioningSetState(PROVISIONING_OFF);
-        }
+            provisioningStop(__FILE__, __LINE__);
+
         // Wait until the network is available
         else if (networkConsumerIsConnected(NETCONSUMER_PPL_KEY_UPDATE))
         {
@@ -1266,30 +1287,10 @@ void provisioningUpdate()
 
         gnss->applyPointPerfectKeys(); // Send current keys, if available, to GNSS
 
-        settings.requestKeyUpdate = false; // However we got here, clear requestKeyUpdate
         recordSystemSettings();            // Record these settings to unit
 
-        provisioningStartTime_millis = millis(); // Record the time so we can restart after 24 hours
-
         // Done with the network
-        networkConsumerRemove(NETCONSUMER_PPL_KEY_UPDATE, NETWORK_ANY, __FILE__, __LINE__);
-        provisioningSetState(PROVISIONING_WAIT_ATTEMPT);
-    }
-    break;
-    case PROVISIONING_WAIT_ATTEMPT: {
-        if (settings.requestKeyUpdate) // requestKeyUpdate can be set via the menu, mode button or web config
-            provisioningSetState(PROVISIONING_CHECK_REMAINING);
-        else if (enabled == false)
-        {
-            provisioningStartTime_millis = millis(); // Record the start time so we can timeout
-            provisioningSetState(PROVISIONING_OFF);
-        }
-        // When did we last try to get keys? Attempt every 24 hours - or every 15 mins for DEVELOPER
-        // else if (millis() > (provisioningStartTime_millis + ( ENABLE_DEVELOPER ? (15 * MILLISECONDS_IN_A_MINUTE)
-        //                                                                        : MILLISECONDS_IN_A_DAY)))
-        // When did we last try to get keys? Attempt every 24 hours
-        else if (millis() > (provisioningStartTime_millis + MILLISECONDS_IN_A_DAY)) // Don't use settings.lastKeyAttempt (#419)
-            provisioningSetState(PROVISIONING_CHECK_REMAINING);
+        provisioningStop(__FILE__, __LINE__);
     }
     break;
     }
