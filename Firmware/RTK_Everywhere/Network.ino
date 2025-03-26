@@ -412,8 +412,8 @@ void networkConsumerAdd(NETCONSUMER_t consumer, NetIndex_t network, const char *
 
     // Display the call
     if (settings.debugNetworkLayer)
-        systemPrintf("Network: Calling networkConsumerAdd(%s) from %s at line %d\r\n",
-                     networkName, fileName, lineNumber);
+        systemPrintf("Network: Calling networkConsumerAdd(%s, %s) from %s at line %d\r\n",
+                     networkConsumerTable[consumer], networkName, fileName, lineNumber);
 
     // Add this consumer only once
     previousBits = *bits;
@@ -642,8 +642,8 @@ void networkConsumerRemove(NETCONSUMER_t consumer, NetIndex_t network, const cha
 
     // Display the call
     if (settings.debugNetworkLayer)
-        systemPrintf("Network: Calling networkConsumerRemove(%s) from %s at line %d\r\n",
-                     networkName, fileName, lineNumber);
+        systemPrintf("Network: Calling networkConsumerRemove(%s, %s) from %s at line %d\r\n",
+                     networkConsumerTable[consumer], networkName, fileName, lineNumber);
 
     // Done with the network
     networkUserRemove(consumer, __FILE__, __LINE__);
