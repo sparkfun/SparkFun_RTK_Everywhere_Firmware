@@ -677,6 +677,13 @@ void ntripServerUpdate(int serverIndex)
             {
                 reportHeapNow(settings.debugNtripServerState);
 
+                // Reset the timeout when the network changes
+                if (networkChanged(NETCONSUMER_NTRIP_SERVER))
+                {
+                    ntripServer->connectionAttempts = 0;
+                    ntripServer->connectionAttemptTimeout = 0;
+                }
+
                 // The network is available for the NTRIP server
                 networkUserAdd(NETCONSUMER_NTRIP_SERVER, __FILE__, __LINE__);
                 ntripServerSetState(ntripServer, NTRIP_SERVER_NETWORK_CONNECTED);

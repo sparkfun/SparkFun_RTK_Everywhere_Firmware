@@ -669,7 +669,10 @@ void ntripClientUpdate()
 
                 // Connect immediately when the the network has changed
                 if (networkChanged(NETCONSUMER_NTRIP_CLIENT))
+                {
+                    ntripClientConnectionAttempts = 0;
                     ntripClientConnectionAttemptTimeout = 0;
+                }
 
                 // Mark the network interface in use
                 networkUserAdd(NETCONSUMER_NTRIP_CLIENT, __FILE__, __LINE__);

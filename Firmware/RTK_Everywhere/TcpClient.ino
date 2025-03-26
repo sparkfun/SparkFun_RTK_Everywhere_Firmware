@@ -504,7 +504,10 @@ void tcpClientUpdate()
             {
                 // Connect immediately when the network changes
                 if (networkChanged(NETCONSUMER_TCP_CLIENT))
+                {
+                    connectionAttempt = 0;
                     connectionDelay = 0;
+                }
                 timer = millis();
                 networkUserAdd(NETCONSUMER_TCP_CLIENT, __FILE__, __LINE__);
                 tcpClientSetState(TCP_CLIENT_STATE_CLIENT_STARTING);

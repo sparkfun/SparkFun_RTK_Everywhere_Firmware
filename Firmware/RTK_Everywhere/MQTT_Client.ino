@@ -2,10 +2,10 @@
 MQTT_Client.ino
 
   The MQTT client sits on top of the network layer and receives correction
-  data from a Point Perfect MQTT server and then provided to the ZED (GNSS
+  data from a Point Perfect MQTT broker and then provided to the ZED (GNSS
   radio).
 
-                          MQTT Server
+                          MQTT Broker
                                |
                                | SPARTN correction data
                                V
@@ -56,7 +56,7 @@ MQTT_Client.ino
                                              ^
                                              |
                                              v
-                                        MQTT Server
+                                        MQTT Broker
 
 ------------------------------------------------------------------------------*/
 
@@ -95,9 +95,9 @@ static const int MQTT_CLIENT_DATA_TIMEOUT = (30 * 1000); // milliseconds
 enum MQTTClientState
 {
     MQTT_CLIENT_OFF = 0,             // Using Bluetooth or NTRIP server
-    MQTT_CLIENT_ON,                  // WIFI_STATE_START state
-    MQTT_CLIENT_WAIT_FOR_NETWORK,     // Connecting to WiFi access point or Ethernet
-    MQTT_CLIENT_CONNECTING_2_BROKER, // Connecting to the MQTT server
+    MQTT_CLIENT_WAIT_FOR_NETWORK,    // Connecting to WiFi access point or Ethernet
+    MQTT_CLIENT_CONNECTION_DELAY,    // Delay before using the network
+    MQTT_CLIENT_CONNECTING_2_BROKER, // Connecting to the MQTT broker
     MQTT_CLIENT_SERVICES_CONNECTED,  // Connected to the MQTT services
     // Insert new states here
     MQTT_CLIENT_STATE_MAX // Last entry in the state list
@@ -105,8 +105,8 @@ enum MQTTClientState
 
 const char *const mqttClientStateName[] = {
     "MQTT_CLIENT_OFF",
-    "MQTT_CLIENT_ON",
     "MQTT_CLIENT_WAIT_FOR_NETWORK",
+    "MQTT_CLIENT_CONNECTION_DELAY",
     "MQTT_CLIENT_CONNECTING_2_BROKER",
     "MQTT_CLIENT_SERVICES_CONNECTED",
 };
@@ -278,8 +278,8 @@ void mqttClientPrintStateSummary()
         systemPrint("Off");
         break;
 
-    case MQTT_CLIENT_ON:
     case MQTT_CLIENT_WAIT_FOR_NETWORK:
+    case MQTT_CLIENT_CONNECTION_DELAY:
         systemPrint("Disconnected");
         break;
 
@@ -754,7 +754,7 @@ void mqttClientStop(bool shutdown)
     reportHeapNow(settings.debugMqttClientState);
 
     // Increase timeouts if we started the network
-    if (mqttClientState > MQTT_CLIENT_ON)
+    if (mqttClientState > MQTT_CLIENT_WAIT_FOR_NETWORK)
         // Mark client stop so that we don't immediately attempt re-connect to broker
         mqttClientTimer = millis();
 
@@ -772,7 +772,7 @@ void mqttClientStop(bool shutdown)
             systemPrintln("MQTT Client stopped");
     }
     else
-        mqttClientSetState(MQTT_CLIENT_ON);
+        mqttClientSetState(MQTT_CLIENT_WAIT_FOR_NETWORK);
 }
 
 //----------------------------------------
@@ -825,27 +825,30 @@ void mqttClientUpdate()
         break;
     }
 
-    // Delay before using the network
-    case MQTT_CLIENT_ON: {
-        if ((millis() - mqttClientTimer) > mqttClientConnectionAttemptTimeout)
-        {
-            mqttClientSetState(MQTT_CLIENT_WAIT_FOR_NETWORK);
-        }
-        break;
-    }
-
     // Wait for a network media connection
     case MQTT_CLIENT_WAIT_FOR_NETWORK: {
         // Wait until the network is connected to the media
         if (connected)
         {
+            // Reset the timeout when the network changes
+            if (networkChanged(NETCONSUMER_PPL_MQTT_CLIENT))
+                mqttClientConnectionAttemptTimeout = 0;
             networkUserAdd(NETCONSUMER_PPL_MQTT_CLIENT, __FILE__, __LINE__);
+            mqttClientSetState(MQTT_CLIENT_CONNECTION_DELAY);
+        }
+        break;
+    }
+
+    // Delay before using the network
+    case MQTT_CLIENT_CONNECTION_DELAY: {
+        if ((millis() - mqttClientTimer) > mqttClientConnectionAttemptTimeout)
+        {
             mqttClientSetState(MQTT_CLIENT_CONNECTING_2_BROKER);
         }
         break;
     }
 
-    // Connect to the MQTT server
+    // Connect to the MQTT broker
     case MQTT_CLIENT_CONNECTING_2_BROKER: {
         // Allocate the mqttSecureClient structure
         mqttSecureClient = new NetworkClientSecure();
@@ -926,7 +929,7 @@ void mqttClientUpdate()
             break;
         }
 
-        // The MQTT server is now connected
+        // The MQTT broker is now connected
         mqttClient->onMessage(mqttClientReceiveMessage);
 
         mqttSubscribeTopics.clear();        // Clear the list of MQTT topics to be subscribed to
