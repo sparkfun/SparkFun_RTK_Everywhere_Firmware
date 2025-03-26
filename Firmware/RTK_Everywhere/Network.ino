@@ -1466,9 +1466,17 @@ void networkPrintStatus(uint8_t priority)
     systemPrintf("%c%d: %-10s %s",
                  highestPriority ? '*' : ' ', priority, name, status);
 
-    // Determine if this interface has any consumers
+    // Display more data about the highest priority network
     if (highestPriority)
     {
+        // Display the IP address
+        if (networkInterfaceHasInternet(index))
+        {
+            IPAddress ipAddress = networkInterfaceTable[index].netif->localIP();
+            systemPrintf(", %s", ipAddress.toString().c_str());
+        }
+
+        // Display the consumers
         consumers = networkConsumersAny | netIfConsumers[index];
         NETCONSUMER_MASK_t users = netIfUsers[index];
         networkConsumerPrint(consumers, users, ", ");
