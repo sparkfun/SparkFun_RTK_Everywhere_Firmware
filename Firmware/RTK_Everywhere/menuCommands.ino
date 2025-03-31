@@ -3410,7 +3410,7 @@ bool commandIndexFill()
     // Allocate the command array. Never freed
     length = commandCount * sizeof(*commandIndex);
 
-    commandIndex = (int16_t *)rtkMalloc(length);
+    commandIndex = (int16_t *)rtkMalloc(length, "Command index array (commandIndex)");
     if (!commandIndex)
     {
         // Failed to allocate the commandIndex

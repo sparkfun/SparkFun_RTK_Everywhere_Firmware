@@ -989,7 +989,7 @@ void beginGnssUart()
 
     // Never freed...
     if (rbOffsetArray == nullptr)
-        rbOffsetArray = (RING_BUFFER_OFFSET *)rtkMalloc(length);
+        rbOffsetArray = (RING_BUFFER_OFFSET *)rtkMalloc(length, "Ring buffer (rbOffsetArray)");
 
     if (!rbOffsetArray)
     {

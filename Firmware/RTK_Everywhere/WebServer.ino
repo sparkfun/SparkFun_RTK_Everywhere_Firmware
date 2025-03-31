@@ -720,19 +720,19 @@ void stopWebServer()
     if (webServer != nullptr)
     {
         webServer->close();
-        free(webServer);
+        delete webServer;
         webServer = nullptr;
     }
 
     if (settingsCSV != nullptr)
     {
-        free(settingsCSV);
+        rtkFree(settingsCSV, "Settings buffer (settingsCSV)");
         settingsCSV = nullptr;
     }
 
     if (incomingSettings != nullptr)
     {
-        free(incomingSettings);
+        rtkFree(incomingSettings, "Settings buffer (incomingSettings)");
         incomingSettings = nullptr;
     }
 }
@@ -780,7 +780,7 @@ bool webServerAssignResources(int httpPort = 80)
     do
     {
         // Freed by webServerStop
-        incomingSettings = (char *)rtkMalloc(AP_CONFIG_SETTING_SIZE);
+        incomingSettings = (char *)rtkMalloc(AP_CONFIG_SETTING_SIZE, "Settings buffer (incomingSettings)");
         if (!incomingSettings)
         {
             systemPrintln("ERROR: Web server failed to allocate incomingSettings");
@@ -790,7 +790,7 @@ bool webServerAssignResources(int httpPort = 80)
 
         // Pre-load settings CSV
         // Freed by webServerStop
-        settingsCSV = (char *)rtkMalloc(AP_CONFIG_SETTING_SIZE);
+        settingsCSV = (char *)rtkMalloc(AP_CONFIG_SETTING_SIZE, "Settings buffer (settingsCSV)");
         if (!settingsCSV)
         {
             systemPrintln("ERROR: Web server failed to allocate settingsCSV");
@@ -800,11 +800,6 @@ bool webServerAssignResources(int httpPort = 80)
 
     //
     https: // github.com/espressif/arduino-esp32/blob/master/libraries/DNSServer/examples/CaptivePortal/CaptivePortal.ino
-        if (settings.enableCaptivePortal == true)
-        {
-            dnsserver = new DNSServer;
-            dnsserver->start();
-        }
 
         webServer = new WebServer(httpPort);
         if (!webServer)
@@ -1077,19 +1072,19 @@ void webServerReleaseResources()
     if (webServer != nullptr)
     {
         webServer->close();
-        free(webServer);
+        delete webServer;
         webServer = nullptr;
     }
 
     if (settingsCSV != nullptr)
     {
-        free(settingsCSV);
+        rtkFree(settingsCSV, "Settings buffer (settingsCSV)");
         settingsCSV = nullptr;
     }
 
     if (incomingSettings != nullptr)
     {
-        free(incomingSettings);
+        rtkFree(incomingSettings, "Settings buffer (incomingSettings)");
         incomingSettings = nullptr;
     }
 }
@@ -1318,7 +1313,7 @@ static esp_err_t ws_handler(httpd_req_t *req)
     if (ws_pkt.len)
     {
         /* ws_pkt.len + 1 is for NULL termination as we are expecting a string */
-        buf = (uint8_t *)rtkMalloc(ws_pkt.len + 1);
+        buf = (uint8_t *)rtkMalloc(ws_pkt.len + 1, "Payload buffer (buf)");
         if (buf == NULL)
         {
             systemPrintln("Failed to malloc memory for buf");
@@ -1330,7 +1325,7 @@ static esp_err_t ws_handler(httpd_req_t *req)
         if (ret != ESP_OK)
         {
             systemPrintf("httpd_ws_recv_frame failed with %d\r\n", ret);
-            free(buf);
+            rtkFree(buf, "Payload buffer (buf)");
             return ret;
         }
     }
@@ -1375,7 +1370,7 @@ static esp_err_t ws_handler(httpd_req_t *req)
         websocketConnected = false;
     }
 
-    free(buf);
+    rtkFree(buf, "Payload buffer (buf)");
     return ret;
 }
 

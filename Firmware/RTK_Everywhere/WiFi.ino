@@ -955,7 +955,7 @@ RTK_WIFI::RTK_WIFI(bool verbose)
     wifiStationRunning = false;
 
     // Allocate the WiFi soft AP SSID
-    _apSsid = (char *)rtkMalloc(SSID_LENGTH);
+    _apSsid = (char *)rtkMalloc(SSID_LENGTH, "SSID string (_apSsid)");
     if (_apSsid)
         _apSsid[0] = 0;
 
@@ -1089,7 +1089,7 @@ bool RTK_WIFI::enable(bool enableESPNow,
             // Allocate the soft AP SSID
             if (!_apSsid)
             {
-                _apSsid = (char *)rtkMalloc(strlen(wifiSoftApSsid) + 1);
+                _apSsid = (char *)rtkMalloc(strlen(wifiSoftApSsid) + 1, "SSID string (_apSsid)");
                 if (_apSsid)
                     _apSsid[0] = 0;
                 else
