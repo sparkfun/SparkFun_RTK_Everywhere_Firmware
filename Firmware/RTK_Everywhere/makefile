@@ -112,7 +112,8 @@ arduino-config:
 .PHONY: lib-update
 
 ESP_CORE_VERSION=3.0.7
-ESP_IDF_VERSION=idf-release_v5.1-632e0c2a
+ESP_IDF_VERSION=idf-release_v5.1-442a798083
+#ESP_IDF_VERSION=idf-release_v5.1-632e0c2a
 
 lib-update:
 	arduino-cli core update-index
