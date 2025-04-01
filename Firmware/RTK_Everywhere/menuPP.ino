@@ -358,14 +358,14 @@ bool checkCertificates()
     char *keyContents = nullptr;
 
     // Allocate the buffers
-    certificateContents = (char *)rtkMalloc(MQTT_CERT_SIZE);
-    keyContents = (char *)rtkMalloc(MQTT_CERT_SIZE);
+    certificateContents = (char *)rtkMalloc(MQTT_CERT_SIZE, "Certificate buffer (certificateContents)");
+    keyContents = (char *)rtkMalloc(MQTT_CERT_SIZE, "Certificate buffer (keyContents)");
     if ((!certificateContents) || (!keyContents))
     {
         if (certificateContents)
-            free(certificateContents);
+            rtkFree(certificateContents, "Certificate buffer (certificateContents)");
         if (keyContents)
-            free(keyContents);
+            rtkFree(keyContents, "Certificate buffer (keyContents)");
         systemPrintln("Failed to allocate content buffers!");
         return (false);
     }
@@ -406,9 +406,9 @@ bool checkCertificates()
 
     // Free the content buffers
     if (certificateContents)
-        free(certificateContents);
+        rtkFree(certificateContents, "Certificate buffer (certificateContents)");
     if (keyContents)
-        free(keyContents);
+        rtkFree(keyContents, "Certificate buffer (keyContents)");
 
     if (settings.debugPpCertificate)
     {

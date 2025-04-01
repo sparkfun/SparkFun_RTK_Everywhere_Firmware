@@ -1007,6 +1007,8 @@ struct Settings
     bool enableNtripCaster = false; //When true, respond as a faux NTRIP Caster to incoming TCP connections
     bool baseCasterOverride = false; //When true, user has put device into 'BaseCast' mode. Change settings, but don't save to NVM.
 
+    bool debugMalloc = false;
+
     // Add new settings to appropriate group above or create new group
     // Then also add to the same group in rtkSettingsEntries below
 } settings;
@@ -1364,6 +1366,7 @@ const RTK_Settings_Entry rtkSettingsEntries[] =
     { 0, 0, 0, 1, 1, 1, 1, 1, 1, _uint8_t,  0, & settings.bluetoothInterruptsCore, "bluetoothInterruptsCore",  },
     { 0, 0, 0, 1, 1, 1, 1, 1, 1, _uint8_t,  0, & settings.btReadTaskCore, "btReadTaskCore",  },
     { 0, 0, 0, 1, 1, 1, 1, 1, 1, _uint8_t,  0, & settings.btReadTaskPriority, "btReadTaskPriority",  },
+    { 0, 0, 0, 1, 1, 1, 1, 1, 1, _bool,     0, & settings.debugMalloc, "debugMalloc",  },
     { 0, 0, 0, 1, 1, 1, 1, 1, 1, _bool,     0, & settings.enableHeapReport, "enableHeapReport",  },
     { 0, 0, 0, 1, 1, 1, 1, 1, 1, _bool,     0, & settings.enablePrintIdleTime, "enablePrintIdleTime",  },
     { 0, 0, 0, 1, 1, 1, 1, 1, 1, _bool,     0, & settings.enablePsram, "enablePsram",  },
