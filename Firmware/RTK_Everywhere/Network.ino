@@ -426,7 +426,10 @@ void networkConsumerAdd(NETCONSUMER_t consumer, NetIndex_t network, const char *
     {
         // Display the consumer
         if (settings.debugNetworkLayer)
+        {
+            networkDisplayMode();
             systemPrintf("Network: Adding consumer %s\r\n", networkConsumerTable[consumer]);
+        }
 
         // Account for this consumer
         *bits |= bitMask;
@@ -659,7 +662,10 @@ void networkConsumerRemove(NETCONSUMER_t consumer, NetIndex_t network, const cha
     {
         // Display the consumer
         if (settings.debugNetworkLayer)
+        {
+            networkDisplayMode();
             systemPrintf("Network: Removing consumer %s\r\n", networkConsumerTable[consumer]);
+        }
 
         // Account for this consumer
         *bits &= ~bitMask;
@@ -737,6 +743,33 @@ void networkDisplayInterface(NetIndex_t index)
     networkValidateIndex(index);
     entry = &networkInterfaceTable[index];
     networkDisplayNetworkData(entry->name, entry->netif);
+}
+
+//----------------------------------------
+// Display the mode
+//----------------------------------------
+void networkDisplayMode()
+{
+    uint32_t mode;
+
+    if (rtkMode == 0)
+    {
+        systemPrintf("rtkMode: 0 (Not specified)\r\n");
+        return;
+    }
+
+    // Display the mode name
+    for (mode = 0; mode < RTK_MODE_MAX; mode++)
+    {
+        if ((1 << mode) == rtkMode)
+        {
+            systemPrintf("rtkMode: 0x%02x (%s)\r\n", rtkMode, rtkModeName[mode]);
+            return;
+        }
+    }
+
+    // Illegal mode value
+    systemPrintf("rtkMode: 0x%02x (Illegal value)\r\n", rtkMode);
 }
 
 //----------------------------------------
@@ -2382,8 +2415,13 @@ void networkVerifyTables()
     if (NETWORK_OFFLINE != NETWORK_MAX)
         reportFatalError("Fix networkInterfaceTable to match NetworkType");
 
+    // Verify the consumers
     if (networkConsumerTableEntries != NETCONSUMER_MAX)
         reportFatalError("Fix networkConsumerTable to match NETCONSUMER list");
+
+    // Verify the modes of operation
+    if (rtkModeNameEntries != RTK_MODE_MAX)
+        reportFatalError("Fix rtkModeName to match RTK_MODE list");
 }
 
 #endif // COMPILE_NETWORK

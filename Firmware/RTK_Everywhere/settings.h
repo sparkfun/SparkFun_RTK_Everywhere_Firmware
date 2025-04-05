@@ -55,14 +55,26 @@ SystemState requestedSystemState = STATE_NOT_SET;
 bool newSystemStateRequested = false;
 
 // Base modes set with RTK_MODE
-#define RTK_MODE_BASE_FIXED         0x0001
-#define RTK_MODE_BASE_SURVEY_IN     0x0002
-#define RTK_MODE_NTP                0x0004
-#define RTK_MODE_ROVER              0x0008
-#define RTK_MODE_TESTING            0x0010
-#define RTK_MODE_WEB_CONFIG         0x0020
+#define RTK_MODE_BASE_FIXED         0x0001  // 1 << 0
+#define RTK_MODE_BASE_SURVEY_IN     0x0002  // 1 << 1
+#define RTK_MODE_NTP                0x0004  // 1 << 2
+#define RTK_MODE_ROVER              0x0008  // 1 << 3
+#define RTK_MODE_TESTING            0x0010  // 1 << 4
+#define RTK_MODE_WEB_CONFIG         0x0020  // 1 << 5
+#define RTK_MODE_MAX                6
 
 typedef uint8_t RtkMode_t;
+
+const char * const rtkModeName[] =
+{
+    "RTK_MODE_BASE_FIXED",
+    "RTK_MODE_BASE_SURVEY_IN",
+    "RTK_MODE_NTP",
+    "RTK_MODE_ROVER",
+    "RTK_MODE_TESTING",
+    "RTK_MODE_WEB_CONFIG",
+};
+const uint8_t rtkModeNameEntries = sizeof(rtkModeName) / sizeof(rtkModeName[0]);
 
 #define RTK_MODE(mode)          rtkMode = mode;
 
