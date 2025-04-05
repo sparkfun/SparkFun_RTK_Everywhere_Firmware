@@ -569,8 +569,9 @@ void ntripClientStart()
 
     // Start the NTRIP client
     systemPrintln("NTRIP Client start");
-    networkConsumerAdd(NETCONSUMER_NTRIP_CLIENT, NETWORK_ANY, __FILE__, __LINE__);
     ntripClientStop(false);
+    if (ntripClientEnabled(nullptr))
+        networkConsumerAdd(NETCONSUMER_NTRIP_CLIENT, NETWORK_ANY, __FILE__, __LINE__);
 }
 
 //----------------------------------------
