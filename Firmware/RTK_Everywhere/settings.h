@@ -61,7 +61,7 @@ typedef uint8_t RtkMode_t;
 #define RTK_MODE(mode)          rtkMode = mode;
 
 #define EQ_RTK_MODE(mode)       (rtkMode && (rtkMode == (mode & rtkMode)))
-#define NEQ_RTK_MODE(mode)      (rtkMode && (rtkMode != (mode & rtkMode)))
+#define NEQ_RTK_MODE(mode)      ((rtkMode == 0) || ((mode & rtkMode) == 0))
 
 //Used as part of device ID and whitelists. Do not reorder.
 typedef enum
