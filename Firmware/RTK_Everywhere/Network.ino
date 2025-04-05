@@ -1681,6 +1681,10 @@ void networkSequenceStart(NetIndex_t index, bool debug)
             systemPrintf("--------------- %s Start Sequence Starting ---------------\r\n",
                          networkGetNameByIndex(index));
             systemPrintf("%s: Stopped --> Starting\r\n", networkGetNameByIndex(index));
+
+            // Display the consumers
+            networkDisplayMode();
+            networkConsumerDisplay();
         }
 
         // Display the description
@@ -1755,6 +1759,10 @@ void networkSequenceStop(NetIndex_t index, bool debug)
             systemPrintf("%s sequencer idle\r\n", networkGetNameByIndex(index));
             systemPrintf("--------------- %s Stop Sequence Starting ---------------\r\n", networkGetNameByIndex(index));
             systemPrintf("%s: Started --> Stopping\r\n", networkGetNameByIndex(index));
+
+            // Display the consumers
+            networkDisplayMode();
+            networkConsumerDisplay();
         }
 
         // Display the description
@@ -1819,6 +1827,10 @@ void networkSequenceStopPolling(NetIndex_t index, bool debug, bool forcedStop)
         systemPrintf("--------------- %s %s Sequence Stopping ---------------\r\n", networkGetNameByIndex(index),
                      sequenceName);
         systemPrintf("%s sequencer idle\r\n", networkGetNameByIndex(index));
+
+        // Display the consumers
+        networkDisplayMode();
+        networkConsumerDisplay();
     }
 
     // Clear the status bits
