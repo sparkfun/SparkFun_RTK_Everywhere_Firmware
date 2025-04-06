@@ -29,11 +29,8 @@ void laraSetPins(NetIndex_t index, uintptr_t parameter, bool debug)
     if (!laraPowerPinRead(debug))
         laraPowerLowMsec = currentMsec;
 
-    // Specify the timer expiration date
-    laraTimer = currentMsec + parameter;
-
-    // Set the next state
-    networkSequenceNextEntry(index, debug);
+    // Specify the timer expiration date and set the next state
+    laraTimerStart(index, parameter, debug);
 }
 
 //----------------------------------------
@@ -51,9 +48,6 @@ void laraPowerHigh(NetIndex_t index, uintptr_t parameter, bool debug)
     digitalWrite(pin_Cellular_PWR_ON, LARA_PWR_HIGH_VALUE);
     currentMsec = millis();
 
-    // Specify the timer expiration date
-    laraTimer = currentMsec + parameter;
-
     // Display the pulse width
     if (debug)
     {
@@ -64,8 +58,8 @@ void laraPowerHigh(NetIndex_t index, uintptr_t parameter, bool debug)
         systemPrintf("LARA power pulse width: %d.%03d Sec\r\n", seconds, milliseconds);
     }
 
-    // Set the next state
-    networkSequenceNextEntry(index, debug);
+    // Specify the timer expiration date and set the next state
+    laraTimerStart(index, parameter, debug);
 }
 
 //----------------------------------------
@@ -90,8 +84,16 @@ void laraPowerLow(NetIndex_t index, uintptr_t parameter, bool debug)
         laraPowerPinRead(debug);
     }
 
+    // Specify the timer expiration date and set the next state
+    laraTimerStart(index, parameter, debug);
+}
+
+//----------------------------------------
+// Start the LARA timer and set the next state
+void laraTimerStart(NetIndex_t index, uintptr_t parameter, bool debug)
+{
     // Specify the timer expiration date
-    laraTimer = currentMsec + parameter;
+    laraTimer = millis() + parameter;
 
     // Set the next state
     networkSequenceNextEntry(index, debug);
