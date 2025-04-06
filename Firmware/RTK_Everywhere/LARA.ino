@@ -6,6 +6,7 @@ static uint32_t laraPowerLowMsec; // Measure the power off time
 
 #define LARA_ON_TIME (2 * 1000)     // Milliseconds
 #define LARA_OFF_TIME (5 * 1000)    // Milliseconds
+#define LARA_PRIORITY_TIME  100     // Milliseconds
 #define LARA_SETTLE_TIME (2 * 1000) // Milliseconds
 #define LARA_SIM_DELAY (1 * 1000)   // Milliseconds. 500 is too short
 
@@ -140,6 +141,8 @@ NETWORK_POLL_SEQUENCE laraBootSequence[] =
 // (Remember that LARA_PWR is inverted by the RTK EVK level-shifter)
 NETWORK_POLL_SEQUENCE laraOnSequence[] =
 {   //  State               Parameter               Description
+    {laraTimerStart,        LARA_PRIORITY_TIME,     "Start the LARA timer"},
+    {networkVerifyPriority, (uintptr_t)&laraTimer,  "Verify the LARA priority"},
     {laraPowerLow,          LARA_ON_TIME,           "Notify LARA of power state change"},
     {networkDelay,          (uintptr_t)&laraTimer,  "Tell LARA to power on"},
     {laraPowerHigh,         LARA_SETTLE_TIME,       "Finish power on sequence"},
