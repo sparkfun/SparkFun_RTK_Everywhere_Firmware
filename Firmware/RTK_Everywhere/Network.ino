@@ -2434,6 +2434,15 @@ void networkVerifyTables()
     // Verify the modes of operation
     if (rtkModeNameEntries != RTK_MODE_MAX)
         reportFatalError("Fix rtkModeName to match RTK_MODE list");
+
+    // Verify that the default priorities match the indexes into the
+    // networkInterfaceTable table.  This verifies the initial values in
+    // networkIndexTable and networkPriorityTable.
+    for (NetPriority_t priority = 0; priority < NETWORK_MAX; priority++)
+    {
+        if (priority != networkInterfaceTable[priority].index)
+            reportFatalError("networkInterfaceTable and NetworkType must be in default priority order");
+    }
 }
 
 #endif // COMPILE_NETWORK
