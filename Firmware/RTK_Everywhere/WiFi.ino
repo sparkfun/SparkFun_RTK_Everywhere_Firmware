@@ -1044,6 +1044,7 @@ bool RTK_WIFI::enable(bool enableESPNow,
                       int lineNumber)
 {
     int authIndex;
+    bool startOrStopSomething;
     WIFI_ACTION_t starting;
     bool status;
     WIFI_ACTION_t stopping;
@@ -1137,7 +1138,16 @@ bool RTK_WIFI::enable(bool enableESPNow,
     }
 
     // Stop and start the WiFi components
-    status = stopStart(stopping, starting);
+    startOrStopSomething = (stopping & _started) | (starting & ~_started);
+    if (startOrStopSomething)
+        status = stopStart(stopping, starting);
+    else
+        // Nothing to do, verify the required devices are online
+        status = (enableESPNow == ((_started & WIFI_EN_ESP_NOW_ONLINE) != 0))
+                && (enableSoftAP == ((_started & WIFI_AP_ONLINE) != 0))
+                && (enableStation == ((_started & WIFI_STA_ONLINE) != 0));
+
+    // Display the final status
     if (settings.debugWifiState && _verbose)
         systemPrintf("WiFi: RTK_WIFI::enable returning %s\r\n", status ? "true" : "false");
     return status;
