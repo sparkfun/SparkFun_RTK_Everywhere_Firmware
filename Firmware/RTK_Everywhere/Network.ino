@@ -719,7 +719,7 @@ void networkConsumerValidate(NETCONSUMER_t consumer)
 //----------------------------------------
 // Delay for a while
 //----------------------------------------
-void networkDelay(uint8_t priority, uintptr_t parameter, bool debug)
+void networkDelay(NetIndex_t index, uintptr_t parameter, bool debug)
 {
     // Get the timer address
     uint32_t *timer = (uint32_t *)parameter;
@@ -728,7 +728,7 @@ void networkDelay(uint8_t priority, uintptr_t parameter, bool debug)
     if ((int32_t)(millis() - *timer) >= 0)
     {
         // Timer has expired
-        networkSequenceNextEntry(priority, debug);
+        networkSequenceNextEntry(index, debug);
     }
 }
 
