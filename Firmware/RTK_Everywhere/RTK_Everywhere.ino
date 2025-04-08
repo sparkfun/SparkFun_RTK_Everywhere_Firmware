@@ -647,17 +647,8 @@ unsigned long lastDynamicDataUpdate;
 
 // https://github.com/espressif/arduino-esp32/blob/master/libraries/DNSServer/examples/CaptivePortal/CaptivePortal.ino
 DNSServer *dnsserver;
-WebServer *webServer;
 
-// httpd_req_t *last_ws_req;
-int last_ws_fd;
-
-TaskHandle_t updateWebServerTaskHandle;
-const uint8_t updateWebServerTaskPriority = 0; // 3 being the highest, and 0 being the lowest
-const int updateWebServerTaskStackSize =
-    AP_CONFIG_SETTING_SIZE + 3000; // Needs to be large enough to hold the file manager file list
-const int updateWebSocketStackSize =
-    AP_CONFIG_SETTING_SIZE + 3000; // Needs to be large enough to hold the full settings string
+bool websocketConnected = false;
 
 #endif // COMPILE_AP
 #endif // COMPILE_WIFI

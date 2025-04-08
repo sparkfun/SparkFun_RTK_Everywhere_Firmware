@@ -56,8 +56,18 @@ static uint8_t webServerState;
 // Once connected to the access point for WiFi Config, the ESP32 sends current setting values in one long string to
 // websocket After user clicks 'save', data is validated via main.js and a long string of values is returned.
 
-bool websocketConnected = false;
 static httpd_handle_t wsserver;
+static WebServer *webServer;
+
+// httpd_req_t *last_ws_req;
+static int last_ws_fd;
+
+static TaskHandle_t updateWebServerTaskHandle;
+static const uint8_t updateWebServerTaskPriority = 0; // 3 being the highest, and 0 being the lowest
+const int updateWebServerTaskStackSize =
+    AP_CONFIG_SETTING_SIZE + 3000; // Needs to be large enough to hold the file manager file list
+const int updateWebSocketStackSize =
+    AP_CONFIG_SETTING_SIZE + 3000; // Needs to be large enough to hold the full settings string
 
 // Inspired by:
 // https://github.com/espressif/arduino-esp32/blob/master/libraries/WebServer/examples/MultiHomedServers/MultiHomedServers.ino
