@@ -1336,6 +1336,40 @@ static const httpd_uri_t ws = {.uri = "/ws",
                                .supported_subprotocol = NULL};
 
 //----------------------------------------
+// Display the HTTPD configuration
+//----------------------------------------
+void httpdDisplayConfig(struct httpd_config * config)
+{
+    systemPrintf("httpd_config object:\r\n");
+    systemPrintf("%10d: task_priority\r\n", config->task_priority);
+    systemPrintf("%10d: stack_size\r\n", config->stack_size);
+    systemPrintf("%10d: core_id\r\n", config->core_id);
+    systemPrintf("%10d: server_port\r\n", config->server_port);
+    systemPrintf("%10d: ctrl_port\r\n", config->ctrl_port);
+    systemPrintf("%10d: max_open_sockets\r\n", config->max_open_sockets);
+    systemPrintf("%10d: max_uri_handlers\r\n", config->max_uri_handlers);
+    systemPrintf("%10d: max_resp_headers\r\n", config->max_resp_headers);
+    systemPrintf("%10d: backlog_conn\r\n", config->backlog_conn);
+    systemPrintf("%10s: lru_purge_enable\r\n", config->lru_purge_enable ? "true" : "false");
+    systemPrintf("%10d: recv_wait_timeout\r\n", config->recv_wait_timeout);
+
+    systemPrintf("%10d: send_wait_timeout\r\n", config->send_wait_timeout);
+    systemPrintf("%p: global_user_ctx\r\n", config->global_user_ctx);
+    systemPrintf("%p: global_user_ctx_free_fn\r\n", config->global_user_ctx_free_fn);
+    systemPrintf("%p: global_transport_ctx\r\n", config->global_transport_ctx);
+    systemPrintf("%p: global_transport_ctx_free_fn\r\n", (void *)config->global_transport_ctx_free_fn);
+    systemPrintf("%10s: enable_so_linger\r\n", config->enable_so_linger ? "true" : "false");
+    systemPrintf("%10d: linger_timeout\r\n", config->linger_timeout);
+    systemPrintf("%10s: keep_alive_enable\r\n", config->keep_alive_enable ? "true" : "false");
+    systemPrintf("%10d: keep_alive_idle\r\n", config->keep_alive_idle);
+    systemPrintf("%10d: keep_alive_interval\r\n", config->keep_alive_interval);
+    systemPrintf("%10d: keep_alive_count\r\n", config->keep_alive_count);
+    systemPrintf("%p: open_fn\r\n", (void *)config->open_fn);
+    systemPrintf("%p: close_fn\r\n", (void *)config->close_fn);
+    systemPrintf("%p: uri_match_fn\r\n", (void *)config->uri_match_fn);
+}
+
+//----------------------------------------
 //----------------------------------------
 bool websocketServerStart(void)
 {
@@ -1354,6 +1388,11 @@ bool websocketServerStart(void)
     if (settings.debugWebServer == true)
         systemPrintf("Starting wsserver on port: %d\r\n", config.server_port);
 
+    if (settings.debugWebServer == true)
+    {
+        httpdDisplayConfig(&config);
+        reportHeapNow(true);
+    }
     status = httpd_start(&wsserver, &config);
     if (status == ESP_OK)
     {
