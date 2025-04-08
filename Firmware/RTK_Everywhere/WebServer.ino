@@ -57,6 +57,7 @@ static uint8_t webServerState;
 // websocket After user clicks 'save', data is validated via main.js and a long string of values is returned.
 
 bool websocketConnected = false;
+static httpd_handle_t wsserver;
 
 // Inspired by:
 // https://github.com/espressif/arduino-esp32/blob/master/libraries/WebServer/examples/MultiHomedServers/MultiHomedServers.ino
@@ -717,7 +718,7 @@ void sendStringToWebsocket(const char *stringToSend)
     //}
 
     // If we use httpd_ws_send_frame_async, it requires a fd.
-    esp_err_t ret = httpd_ws_send_frame_async(*wsserver, last_ws_fd, &ws_pkt);
+    esp_err_t ret = httpd_ws_send_frame_async(wsserver, last_ws_fd, &ws_pkt);
     if (ret != ESP_OK)
     {
         systemPrintf("httpd_ws_send_frame failed with %d\r\n", ret);
@@ -1046,8 +1047,10 @@ void webServerStopSockets()
     if (wsserver != nullptr)
     {
         // Stop the httpd server
-        esp_err_t ret = httpd_stop(*wsserver);
-        delete wsserver;
+        esp_err_t status = httpd_stop(wsserver);
+        if (status != ESP_OK)
+            systemPrintf("ERROR: wsserver failed to stop, status: %s!\r\n",
+                         esp_err_to_name(status));
         wsserver = nullptr;
     }
 }
@@ -1336,6 +1339,9 @@ static const httpd_uri_t ws = {.uri = "/ws",
 //----------------------------------------
 bool websocketServerStart(void)
 {
+    esp_err_t status;
+
+    // Gete the configuration object
     httpd_config_t config = HTTPD_DEFAULT_CONFIG();
 
     // Use different ports for websocket and webServer - use port 81 for the websocket - also defined in main.js
@@ -1348,19 +1354,19 @@ bool websocketServerStart(void)
     if (settings.debugWebServer == true)
         systemPrintf("Starting wsserver on port: %d\r\n", config.server_port);
 
-    if (wsserver == nullptr)
-        wsserver = new httpd_handle_t;
-
-    if (httpd_start(wsserver, &config) == ESP_OK)
+    status = httpd_start(&wsserver, &config);
+    if (status == ESP_OK)
     {
         // Registering the ws handler
         if (settings.debugWebServer == true)
             systemPrintln("Registering URI handlers");
-        httpd_register_uri_handler(*wsserver, &ws);
+        httpd_register_uri_handler(wsserver, &ws);
         return true;
     }
 
-    systemPrintln("Error starting wsserver!");
+    // Display the failure to start
+    systemPrintf("ERROR: wsserver failed to start, status: %s!\r\n",
+                 esp_err_to_name(status));
     return false;
 }
 

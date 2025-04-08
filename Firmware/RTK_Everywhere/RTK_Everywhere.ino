@@ -649,7 +649,6 @@ unsigned long lastDynamicDataUpdate;
 DNSServer *dnsserver;
 WebServer *webServer;
 
-httpd_handle_t *wsserver = nullptr;
 // httpd_req_t *last_ws_req;
 int last_ws_fd;
 
