@@ -216,7 +216,6 @@ void stateUpdate()
         break;
 
         case (STATE_BASE_NOT_STARTED): {
-            RTK_MODE(RTK_MODE_BASE_SURVEY_IN);
             firstRoverStart = false; // If base is starting, no test menu, normal button use.
 
             if (online.gnss == false)
@@ -242,8 +241,11 @@ void stateUpdate()
                 displayBaseSuccess(500); // Show 'Base Started'
 
                 if (settings.fixedBase == false)
+                {
+                    RTK_MODE(RTK_MODE_BASE_SURVEY_IN);
                     changeState(STATE_BASE_TEMP_SETTLE);
-                else if (settings.fixedBase == true)
+                }
+                else
                     changeState(STATE_BASE_FIXED_NOT_STARTED);
             }
             else
