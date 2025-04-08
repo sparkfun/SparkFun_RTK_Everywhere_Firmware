@@ -66,8 +66,6 @@ static TaskHandle_t updateWebServerTaskHandle;
 static const uint8_t updateWebServerTaskPriority = 0; // 3 being the highest, and 0 being the lowest
 const int updateWebServerTaskStackSize =
     AP_CONFIG_SETTING_SIZE + 3000; // Needs to be large enough to hold the file manager file list
-const int updateWebSocketStackSize =
-    AP_CONFIG_SETTING_SIZE + 3000; // Needs to be large enough to hold the full settings string
 
 // Inspired by:
 // https://github.com/espressif/arduino-esp32/blob/master/libraries/WebServer/examples/MultiHomedServers/MultiHomedServers.ino
@@ -1391,8 +1389,8 @@ bool websocketServerStart(void)
     // Use different ports for websocket and webServer - use port 81 for the websocket - also defined in main.js
     config.server_port = 81;
 
-    // Increase the stack size from 4K to ~15K
-    config.stack_size = updateWebSocketStackSize;
+    // Increase the stack size from 4K to 8K
+    config.stack_size = 4096 * 2;
 
     // Start the httpd server
     if (settings.debugWebServer == true)
