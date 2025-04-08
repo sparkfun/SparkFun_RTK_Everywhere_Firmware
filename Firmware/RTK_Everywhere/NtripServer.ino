@@ -559,7 +559,7 @@ void ntripServerStart(int serverIndex)
 
     // Start the NTRIP server
     systemPrintf("NTRIP Server %d start\r\n", serverIndex);
-    networkConsumerAdd(NETCONSUMER_NTRIP_SERVER, NETWORK_ANY, __FILE__, __LINE__);
+    networkConsumerAdd(NETCONSUMER_NTRIP_SERVER_0 + serverIndex, NETWORK_ANY, __FILE__, __LINE__);
     ntripServerStop(serverIndex, false);
 }
 
@@ -591,7 +591,7 @@ void ntripServerStop(int serverIndex, bool shutdown)
 
     // Determine the next NTRIP server state
     online.ntripServer[serverIndex] = false;
-    networkConsumerOffline(NETCONSUMER_NTRIP_SERVER);
+    networkConsumerOffline(NETCONSUMER_NTRIP_SERVER_0 + serverIndex);
     if (shutdown)
     {
         if (settings.debugNtripServerState)
@@ -602,7 +602,7 @@ void ntripServerStop(int serverIndex, bool shutdown)
             systemPrintf("NTRIP Server %d caster port not configured!\r\n", serverIndex);
         if (settings.debugNtripServerState && (!settings.ntripServer_MountPoint[serverIndex][0]))
             systemPrintf("NTRIP Server %d mount point not configured!\r\n", serverIndex);
-        networkConsumerRemove(NETCONSUMER_NTRIP_SERVER, NETWORK_ANY, __FILE__, __LINE__);
+        networkConsumerRemove(NETCONSUMER_NTRIP_SERVER_0 + serverIndex, NETWORK_ANY, __FILE__, __LINE__);
         ntripServerSetState(ntripServer, NTRIP_SERVER_OFF);
         ntripServer->connectionAttempts = 0;
         ntripServer->connectionAttemptTimeout = 0;
@@ -637,7 +637,7 @@ void ntripServerUpdate(int serverIndex)
 
     // Shutdown the NTRIP server when the mode or setting changes
     DMW_ds(ntripServerSetState, ntripServer);
-    connected = networkConsumerIsConnected(NETCONSUMER_NTRIP_SERVER);
+    connected = networkConsumerIsConnected(NETCONSUMER_NTRIP_SERVER_0 + serverIndex);
     enabled = ntripServerEnabled(serverIndex, nullptr);
     if (!enabled && (ntripServer->state > NTRIP_SERVER_OFF))
         ntripServerShutdown(serverIndex);
@@ -678,14 +678,14 @@ void ntripServerUpdate(int serverIndex)
                 reportHeapNow(settings.debugNtripServerState);
 
                 // Reset the timeout when the network changes
-                if (networkChanged(NETCONSUMER_NTRIP_SERVER))
+                if (networkChanged(NETCONSUMER_NTRIP_SERVER_0 + serverIndex))
                 {
                     ntripServer->connectionAttempts = 0;
                     ntripServer->connectionAttemptTimeout = 0;
                 }
 
                 // The network is available for the NTRIP server
-                networkUserAdd(NETCONSUMER_NTRIP_SERVER, __FILE__, __LINE__);
+                networkUserAdd(NETCONSUMER_NTRIP_SERVER_0 + serverIndex, __FILE__, __LINE__);
                 ntripServerSetState(ntripServer, NTRIP_SERVER_NETWORK_CONNECTED);
             }
         }
@@ -891,6 +891,8 @@ void ntripServerUpdate()
 //----------------------------------------
 void ntripServerValidateTables()
 {
+    if (NETCONSUMER_OTA_CLIENT != (NETCONSUMER_NTRIP_SERVER_0 + NTRIP_SERVER_MAX))
+        reportFatalError("Adjust NETCONSUMER_NTRIP_SERVER_* entries to match NTRIP_SERVER_MAX");
     if (ntripServerStateNameEntries != NTRIP_SERVER_STATE_MAX)
         reportFatalError("Fix ntripServerStateNameEntries to match NTRIPServerState");
 }
