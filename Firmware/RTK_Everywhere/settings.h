@@ -1807,16 +1807,18 @@ typedef uint32_t NetMask_t;      // One bit for each network interface
 typedef int8_t NetPriority_t;  // Index into networkPriorityTable
                                 // Value 0 (highest) - 255 (lowest) priority
 
-// Types of networks, must be in same order as networkInterfaceTable
+// Types of networks, these values must be in the same order as the
+// entries in networkInterfaceTable since they are used as indexes into
+// that table!
 enum NetworkTypes
 {
     NETWORK_NONE = -1,  // The values below must start at zero and be sequential
-    NETWORK_ETHERNET = 0,
-    NETWORK_WIFI_STATION = 1,
-    NETWORK_CELLULAR = 2,
-    // Add new networks here
-    NETWORK_MAX,
-    NETWORK_ANY = NETWORK_MAX,
+    NETWORK_ETHERNET,       // 0
+    NETWORK_WIFI_STATION,   // 1
+    NETWORK_CELLULAR,       // 2
+    // Add new networks above this line in default priority order
+    NETWORK_ANY,            // 3
+    NETWORK_MAX = NETWORK_ANY,
 };
 
 #ifdef  COMPILE_NETWORK
@@ -1847,6 +1849,7 @@ typedef struct _NETWORK_TABLE_ENTRY
 {
     NetworkInterface * netif;       // Network interface object address
     bool mDNS;                      // Set true to use mDNS service
+    NetIndex_t index;               // Table index, also default priority
     uint8_t pdState;                // Periodic display state value
     NETWORK_POLL_SEQUENCE * boot;   // Boot sequence, may be nullptr
     NETWORK_POLL_SEQUENCE * start;  // Start sequence (Off --> On), may be nullptr
@@ -1855,29 +1858,31 @@ typedef struct _NETWORK_TABLE_ENTRY
     bool * present;                 // Address of present bool or nullptr if always available
 } NETWORK_TABLE_ENTRY;
 
-// List of networks
-// Only one network is turned on at a time. The start routine is called as the priority
-// drops to that level. The stop routine is called as the priority rises
-// above that level. The priority will continue to fall or rise until a
-// network is found that is online.
+// List of networks in default priority order!  These entries must match
+// the index values in the NetworkTypes enumeration!
+//
+// Only one network is turned on at a time. The start routine is called
+// as the priority drops to that level. The stop routine is called as the
+// priority rises above that level. The priority will continue to fall or
+// rise until a network is found that is online.
 const NETWORK_TABLE_ENTRY networkInterfaceTable[] =
-{ //     Interface  mDNS    Periodic State      Boot Sequence           Start Sequence      Stop Sequence       Name                    Present
+{ //     Interface  mDNS    Index                   Periodic State      Boot Sequence           Start Sequence      Stop Sequence       Name                    Present
     #ifdef COMPILE_ETHERNET
-        {&ETH,      true,   PD_ETHERNET_STATE,  nullptr,                nullptr,            nullptr,            "Ethernet",             &present.ethernet_ws5500},
+        {&ETH,      true,   NETWORK_ETHERNET,       PD_ETHERNET_STATE,  nullptr,                nullptr,            nullptr,            "Ethernet",             &present.ethernet_ws5500},
     #else
-        {nullptr,   false,  PD_ETHERNET_STATE,  nullptr,                nullptr,            nullptr,            "Ethernet-NotCompiled", nullptr},
+        {nullptr,   false,  NETWORK_ETHERNET,       PD_ETHERNET_STATE,  nullptr,                nullptr,            nullptr,            "Ethernet-NotCompiled", nullptr},
     #endif  // COMPILE_ETHERNET
 
     #ifdef COMPILE_WIFI
-        {&WiFi.STA, true,   PD_WIFI_STATE,      nullptr,                wifiStartSequence,  wifiStopSequence,   "WiFi",                 nullptr},
+        {&WiFi.STA, true,   NETWORK_WIFI_STATION,   PD_WIFI_STATE,      nullptr,                wifiStartSequence,  wifiStopSequence,   "WiFi",                 nullptr},
     #else
-        {nullptr,   false,  PD_WIFI_STATE,      nullptr,                nullptr,            nullptr,            "WiFi-NotCompiled",     nullptr},
+        {nullptr,   false,  NETWORK_WIFI_STATION,   PD_WIFI_STATE,      nullptr,                nullptr,            nullptr,            "WiFi-NotCompiled",     nullptr},
     #endif  // COMPILE_WIFI
 
     #ifdef  COMPILE_CELLULAR
-        {&PPP,      false,  PD_CELLULAR_STATE,  laraBootSequence,       laraOnSequence,     laraOffSequence,    "Cellular",             &present.cellular_lara},
+        {&PPP,      false,  NETWORK_CELLULAR,       PD_CELLULAR_STATE,  laraBootSequence,       laraOnSequence,     laraOffSequence,    "Cellular",             &present.cellular_lara},
     #else
-        {nullptr,   false,  PD_CELLULAR_STATE,  nullptr,                nullptr,            nullptr,            "Cellular-NotCompiled", nullptr,            },
+        {nullptr,   false,  NETWORK_CELLULAR,       PD_CELLULAR_STATE,  nullptr,                nullptr,            nullptr,            "Cellular-NotCompiled", nullptr,            },
     #endif  // COMPILE_CELLULAR
 };
 const int networkInterfaceTableEntries = sizeof(networkInterfaceTable) / sizeof(networkInterfaceTable[0]);

@@ -719,7 +719,7 @@ void networkConsumerValidate(NETCONSUMER_t consumer)
 //----------------------------------------
 // Delay for a while
 //----------------------------------------
-void networkDelay(uint8_t priority, uintptr_t parameter, bool debug)
+void networkDelay(NetIndex_t index, uintptr_t parameter, bool debug)
 {
     // Get the timer address
     uint32_t *timer = (uint32_t *)parameter;
@@ -728,7 +728,7 @@ void networkDelay(uint8_t priority, uintptr_t parameter, bool debug)
     if ((int32_t)(millis() - *timer) >= 0)
     {
         // Timer has expired
-        networkSequenceNextEntry(priority, debug);
+        networkSequenceNextEntry(index, debug);
     }
 }
 
@@ -2419,6 +2419,53 @@ void networkValidatePriority(NetPriority_t priority)
 }
 
 //----------------------------------------
+// Verify the interface priority.  Since the design has changed and WiFi
+// is now brought up synchronously instead of asynchronously, give WiFi
+// a chance to come online before really starting a lower priority
+// device such as Cellular.
+void networkVerifyPriority(NetIndex_t index, uintptr_t parameter, bool debug)
+{
+    uint32_t currentMsec;
+    NetPriority_t interfacePriority;
+
+    // Validate the index
+    networkValidateIndex(index);
+
+    // Determine if this interface is still the highest priority
+    interfacePriority = networkPriorityTable[index];
+    if (interfacePriority > networkPriority)
+    {
+        // Another device has come online and takes priority, this device
+        // does not need to startup.  Note: Lowest number has highest
+        // priority!
+        if (debug)
+            systemPrintf("%s: Value %d > %d, indicating lower priority, stopping device!\r\n",
+                         networkInterfaceTable[index].name, interfacePriority, networkPriority);
+        networkSequenceExit(index, debug);
+    }
+
+    // This device is still the highest priority, continue the delay and
+    // start the device if the end of delay is reached
+    else
+    {
+        // Get the timer address
+        uint32_t *timer = (uint32_t *)parameter;
+
+        // Delay until the timer expires
+        if ((int32_t)(millis() - *timer) >= 0)
+        {
+            // Display the priorties
+            if (debug)
+                systemPrintf("%s: Value %d <= %d, indicating higher priority, starting device!\r\n",
+                             networkInterfaceTable[index].name, interfacePriority, networkPriority);
+
+            // Timer has expired
+            networkSequenceNextEntry(index, debug);
+        }
+    }
+}
+
+//----------------------------------------
 // Verify the network layer tables
 //----------------------------------------
 void networkVerifyTables()
@@ -2434,6 +2481,15 @@ void networkVerifyTables()
     // Verify the modes of operation
     if (rtkModeNameEntries != RTK_MODE_MAX)
         reportFatalError("Fix rtkModeName to match RTK_MODE list");
+
+    // Verify that the default priorities match the indexes into the
+    // networkInterfaceTable table.  This verifies the initial values in
+    // networkIndexTable and networkPriorityTable.
+    for (NetPriority_t priority = 0; priority < NETWORK_MAX; priority++)
+    {
+        if (priority != networkInterfaceTable[priority].index)
+            reportFatalError("networkInterfaceTable and NetworkType must be in default priority order");
+    }
 }
 
 #endif // COMPILE_NETWORK
