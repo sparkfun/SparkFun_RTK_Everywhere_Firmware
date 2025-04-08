@@ -74,6 +74,22 @@
 #define ICON_ANTENNA_SHORT (1 << 11)
 #define ICON_ANTENNA_OPEN (1 << 12)
 
+// Icon positions
+enum ICON_POSITION_t
+{
+    ICON_POSITION_LEFT = 0,
+    ICON_POSITION_CENTER,
+    ICON_POSITION_RIGHT,
+    ICON_POSITION_MAX
+};
+
+// WiFi icons
+const iconProperty * wifiIconTable[ICON_POSITION_MAX][4]
+{   //          0                       1                       2                       3
+    {&WiFiSymbol0Left64x48,  &WiFiSymbol1Left64x48,  &WiFiSymbol2Left64x48,  &WiFiSymbol3Left64x48},
+    {&WiFiSymbol0128x64,     &WiFiSymbol1128x64,     &WiFiSymbol2128x64,     &WiFiSymbol3128x64},
+    {&WiFiSymbol0Right64x48, &WiFiSymbol1Right64x48, &WiFiSymbol2Right64x48, &WiFiSymbol3Right64x48},
+};
 //----------------------------------------
 // Locals
 //----------------------------------------
@@ -628,6 +644,8 @@ void paintBatteryLevel(std::vector<iconPropertyBlinking> *iconList)
 // up arrow, blink the ESP Now icon, etc.
 void setRadioIcons(std::vector<iconPropertyBlinking> *iconList)
 {
+    iconPropertyBlinking prop;
+
     if (online.display == true)
     {
         if (present.display_type == DISPLAY_64x48)
@@ -691,32 +709,13 @@ void setRadioIcons(std::vector<iconPropertyBlinking> *iconList)
             // Bluetooth indicated when connected: Columns 25 to 31 . TODO don't count if BT radio type is OFF.
             if (bluetoothGetState() == BT_CONNECTED)
             {
-                iconPropertyBlinking prop;
                 prop.duty = 0b11111111;
                 prop.icon = BTSymbol128x64;
                 iconList->push_back(prop);
             }
 
             if (wifiStationRunning || wifiSoftApRunning) // WiFi : Columns 34 - 46
-            {
-#ifdef COMPILE_WIFI
-                int wifiRSSI = WiFi.RSSI();
-#else  // COMPILE_WIFI
-                int wifiRSSI = -40; // Dummy
-#endif // COMPILE_WIFI
-                iconPropertyBlinking prop;
-                prop.duty = 0b11111111;
-                // Based on RSSI, select icon
-                if (wifiRSSI >= -40)
-                    prop.icon = WiFiSymbol3128x64;
-                else if (wifiRSSI >= -60)
-                    prop.icon = WiFiSymbol2128x64;
-                else if (wifiRSSI >= -80)
-                    prop.icon = WiFiSymbol1128x64;
-                else
-                    prop.icon = WiFiSymbol0128x64;
-                iconList->push_back(prop);
-            }
+                displayWiFiIcon(iconList, prop, ICON_POSITION_CENTER, 0b11111111);
 
 #ifdef COMPILE_CELLULAR
             // Cellular : Columns 49 - 61
@@ -727,7 +726,6 @@ void setRadioIcons(std::vector<iconPropertyBlinking> *iconList)
             // 31 -51 dBm <= RSSI of the network
             if (cellularIsAttached)
             {
-                iconPropertyBlinking prop;
                 prop.duty = 0b11111111;
                 prop.icon.bitmap = nullptr;
                 // Based on RSSI, select icon
@@ -767,7 +765,6 @@ void setRadioIcons(std::vector<iconPropertyBlinking> *iconList)
             {
                 if (bluetoothIncomingRTCM == true) // Download : Columns 74 - 81
                 {
-                    iconPropertyBlinking prop;
                     prop.icon = DownloadArrow128x64;
                     prop.duty = 0b11111111;
                     iconList->push_back(prop);
@@ -775,7 +772,6 @@ void setRadioIcons(std::vector<iconPropertyBlinking> *iconList)
                 }
                 if (bluetoothOutgoingRTCM == true) // Upload : Columns 83 - 90
                 {
-                    iconPropertyBlinking prop;
                     prop.icon = UploadArrow128x64;
                     prop.duty = 0b11111111;
                     iconList->push_back(prop);
@@ -787,7 +783,6 @@ void setRadioIcons(std::vector<iconPropertyBlinking> *iconList)
             {
                 if (espNowIncomingRTCM == true) // Download : Columns 74 - 81
                 {
-                    iconPropertyBlinking prop;
                     prop.icon = DownloadArrow128x64;
                     prop.duty = 0b11111111;
                     iconList->push_back(prop);
@@ -795,7 +790,6 @@ void setRadioIcons(std::vector<iconPropertyBlinking> *iconList)
                 }
                 if (espNowOutgoingRTCM == true) // Upload : Columns 83 - 90
                 {
-                    iconPropertyBlinking prop;
                     prop.icon = UploadArrow128x64;
                     prop.duty = 0b11111111;
                     iconList->push_back(prop);
@@ -806,7 +800,6 @@ void setRadioIcons(std::vector<iconPropertyBlinking> *iconList)
             if (usbSerialIncomingRtcm)
             {
                 // Download : Columns 74 - 81
-                iconPropertyBlinking prop;
                 prop.icon = DownloadArrow128x64;
                 prop.duty = 0b11111111;
                 iconList->push_back(prop);
@@ -834,7 +827,6 @@ void setRadioIcons(std::vector<iconPropertyBlinking> *iconList)
             {
                 if (netIncomingRTCM == true) // Download : Columns 74 - 81
                 {
-                    iconPropertyBlinking prop;
                     prop.icon = DownloadArrow128x64;
                     prop.duty = 0b11111111;
                     iconList->push_back(prop);
@@ -842,7 +834,6 @@ void setRadioIcons(std::vector<iconPropertyBlinking> *iconList)
                 }
                 if (mqttClientDataReceived == true) // Download : Columns 74 - 81
                 {
-                    iconPropertyBlinking prop;
                     prop.icon = DownloadArrow128x64;
                     prop.duty = 0b11111111;
                     iconList->push_back(prop);
@@ -850,7 +841,6 @@ void setRadioIcons(std::vector<iconPropertyBlinking> *iconList)
                 }
                 if (netOutgoingRTCM == true) // Upload : Columns 83 - 90
                 {
-                    iconPropertyBlinking prop;
                     prop.icon = UploadArrow128x64;
                     prop.duty = 0b11111111;
                     iconList->push_back(prop);
@@ -868,21 +858,18 @@ void setRadioIcons(std::vector<iconPropertyBlinking> *iconList)
                 break;
             case (STATE_BASE_TEMP_SETTLE):
             case (STATE_BASE_TEMP_SURVEY_STARTED): {
-                iconPropertyBlinking prop;
                 prop.duty = 0b00001111;
                 prop.icon = BaseTemporaryProperties.iconDisplay[present.display_type];
                 iconList->push_back(prop);
             }
             break;
             case (STATE_BASE_TEMP_TRANSMITTING): {
-                iconPropertyBlinking prop;
                 prop.duty = 0b11111111;
                 prop.icon = BaseTemporaryProperties.iconDisplay[present.display_type];
                 iconList->push_back(prop);
             }
             break;
             case (STATE_BASE_FIXED_TRANSMITTING): {
-                iconPropertyBlinking prop;
                 prop.duty = 0b11111111;
                 prop.icon = BaseFixedProperties.iconDisplay[present.display_type];
                 iconList->push_back(prop);
@@ -911,7 +898,6 @@ void setRadioIcons(std::vector<iconPropertyBlinking> *iconList)
                 CORRECTION_ID_T correctionSource = correctionGetSource();
                 if (correctionSource < CORR_NUM)
                 {
-                    iconPropertyBlinking prop;
                     prop.duty = 0b11111111;
                     prop.icon.bitmap = correctionIconAttributes[correctionSource].pointer;
                     prop.icon.width = correctionIconAttributes[correctionSource].width;
@@ -1089,24 +1075,14 @@ void setESPNowIcon_TwoRadios(std::vector<iconPropertyBlinking> *iconList)
 // This is 64x48-specific
 void setWiFiIcon_TwoRadios(std::vector<iconPropertyBlinking> *iconList)
 {
+    iconPropertyBlinking prop;
+
 #ifdef COMPILE_WIFI
     if (networkInterfaceHasInternet(NETWORK_WIFI_STATION))
     {
         if (netIncomingRTCM || netOutgoingRTCM || mqttClientDataReceived)
         {
-            int wifiRSSI = WiFi.RSSI();
-            iconPropertyBlinking prop;
-            prop.duty = 0b00001111;
-            // Based on RSSI, select icon
-            if (wifiRSSI >= -40)
-                prop.icon = WiFiSymbol3Left64x48;
-            else if (wifiRSSI >= -60)
-                prop.icon = WiFiSymbol2Left64x48;
-            else if (wifiRSSI >= -80)
-                prop.icon = WiFiSymbol1Left64x48;
-            else
-                prop.icon = WiFiSymbol0Left64x48;
-            iconList->push_back(prop);
+            displayWiFiIcon(iconList, prop, ICON_POSITION_LEFT, 0b00001111);
 
             // Share the spot. Determine if we need to indicate Up, or Down
             if (netIncomingRTCM || mqttClientDataReceived)
@@ -1128,29 +1104,10 @@ void setWiFiIcon_TwoRadios(std::vector<iconPropertyBlinking> *iconList)
             }
         }
         else
-        {
-            int wifiRSSI = WiFi.RSSI();
-            iconPropertyBlinking prop;
-            prop.duty = 0b11111111;
-            // Based on RSSI, select icon
-            if (wifiRSSI >= -40)
-                prop.icon = WiFiSymbol3Left64x48;
-            else if (wifiRSSI >= -60)
-                prop.icon = WiFiSymbol2Left64x48;
-            else if (wifiRSSI >= -80)
-                prop.icon = WiFiSymbol1Left64x48;
-            else
-                prop.icon = WiFiSymbol0Left64x48;
-            iconList->push_back(prop);
-        }
+            displayWiFiIcon(iconList, prop, ICON_POSITION_LEFT, 0b11111111);
     }
     else // We are not paired, blink icon
-    {
-        iconPropertyBlinking prop;
-        prop.duty = 0b00001111;
-        prop.icon = WiFiSymbol3Left64x48; // Full symbol
-        iconList->push_back(prop);
-    }
+        displayWiFiFullIcon(iconList, prop, ICON_POSITION_LEFT, 0b00001111);
 #endif // COMPILE_WIFI
 }
 
@@ -1159,24 +1116,14 @@ void setWiFiIcon_TwoRadios(std::vector<iconPropertyBlinking> *iconList)
 // This is 64x48-specific
 void setWiFiIcon_ThreeRadios(std::vector<iconPropertyBlinking> *iconList)
 {
+    iconPropertyBlinking prop;
+
 #ifdef COMPILE_WIFI
     if (networkInterfaceHasInternet(NETWORK_WIFI_STATION))
     {
         if (netIncomingRTCM || netOutgoingRTCM || mqttClientDataReceived)
         {
-            int wifiRSSI = WiFi.RSSI();
-            iconPropertyBlinking prop;
-            prop.duty = 0b00001111;
-            // Based on RSSI, select icon
-            if (wifiRSSI >= -40)
-                prop.icon = WiFiSymbol3Right64x48;
-            else if (wifiRSSI >= -60)
-                prop.icon = WiFiSymbol2Right64x48;
-            else if (wifiRSSI >= -80)
-                prop.icon = WiFiSymbol1Right64x48;
-            else
-                prop.icon = WiFiSymbol0Right64x48;
-            iconList->push_back(prop);
+            displayWiFiIcon(iconList, prop, ICON_POSITION_RIGHT, 0b00001111);
 
             // Share the spot. Determine if we need to indicate Up, or Down
             if (netIncomingRTCM || mqttClientDataReceived)
@@ -1198,29 +1145,10 @@ void setWiFiIcon_ThreeRadios(std::vector<iconPropertyBlinking> *iconList)
             }
         }
         else
-        {
-            int wifiRSSI = WiFi.RSSI();
-            iconPropertyBlinking prop;
-            prop.duty = 0b11111111;
-            // Based on RSSI, select icon
-            if (wifiRSSI >= -40)
-                prop.icon = WiFiSymbol3Right64x48;
-            else if (wifiRSSI >= -60)
-                prop.icon = WiFiSymbol2Right64x48;
-            else if (wifiRSSI >= -80)
-                prop.icon = WiFiSymbol1Right64x48;
-            else
-                prop.icon = WiFiSymbol0Right64x48;
-            iconList->push_back(prop);
-        }
+            displayWiFiIcon(iconList, prop, ICON_POSITION_RIGHT, 0b11111111);
     }
     else // We are not paired, blink icon
-    {
-        iconPropertyBlinking prop;
-        prop.duty = 0b00001111;
-        prop.icon = WiFiSymbol3Right64x48; // Full symbol
-        iconList->push_back(prop);
-    }
+        displayWiFiFullIcon(iconList, prop, ICON_POSITION_RIGHT, 0b00001111);
 #endif // COMPILE_WIFI
 }
 
@@ -2257,6 +2185,42 @@ void displaySDFail(uint16_t displayTime)
 
         delay(displayTime);
     }
+}
+
+// Display the full WiFi icon
+void displayWiFiFullIcon(std::vector<iconPropertyBlinking> *iconList,
+                         iconPropertyBlinking prop,
+                         uint8_t position,
+                         uint8_t dutyCycle)
+{
+    prop.duty = dutyCycle;
+    prop.icon = *wifiIconTable[position][3];
+    iconList->push_back(prop);
+}
+
+// Display the WiFi icon based upon RSSI value
+void displayWiFiIcon(std::vector<iconPropertyBlinking> *iconList,
+                     iconPropertyBlinking prop,
+                     uint8_t position,
+                     uint8_t dutyCycle)
+{
+#ifdef COMPILE_WIFI
+    int wifiRSSI = WiFi.RSSI();
+#else  // COMPILE_WIFI
+    int wifiRSSI = -40; // Dummy
+#endif // COMPILE_WIFI
+
+    prop.duty = dutyCycle;
+    // Based on RSSI, select icon
+    if (wifiRSSI >= -40)
+        prop.icon = *wifiIconTable[position][3];
+    else if (wifiRSSI >= -60)
+        prop.icon = *wifiIconTable[position][2];
+    else if (wifiRSSI >= -80)
+        prop.icon = *wifiIconTable[position][1];
+    else
+        prop.icon = *wifiIconTable[position][0];
+    iconList->push_back(prop);
 }
 
 // Draw a frame at outside edge
