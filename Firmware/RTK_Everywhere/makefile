@@ -109,15 +109,19 @@ all: $(EXECUTABLES)
 arduino-config:
 	arduino-cli config init --overwrite --additional-urls "https://raw.githubusercontent.com/espressif/arduino-esp32/gh-pages/package_esp32_index.json,https://espressif.github.io/arduino-esp32/package_esp32_dev_index.json"
 
+.PHONY: core-update
+
+core-update:
+	$(DELETE) $(HOME_BOARD_PATH)
+	arduino-cli core update-index
+	arduino-cli core install esp32:esp32@$(ESP_CORE_VERSION)
+
 .PHONY: lib-update
 
 ESP_CORE_VERSION=3.0.7
-ESP_IDF_VERSION=idf-release_v5.1-442a798083
-#ESP_IDF_VERSION=idf-release_v5.1-632e0c2a
+ESP_IDF_VERSION=idf-release_v5.1-632e0c2a
 
-lib-update:
-	arduino-cli core update-index
-	arduino-cli core install esp32:esp32@$(ESP_CORE_VERSION)
+lib-update:	core-update
 	arduino-cli lib install \
 		ArduinoJson@7.0.4 \
 		"ArduinoMqttClient"@0.1.8 \
@@ -170,7 +174,12 @@ patch:
 	touch   $(PATCH_SRC_PATH)libmbedx509.a
 
 #DEBUG_LEVEL=none
+#DEBUG_LEVEL=error
+#DEBUG_LEVEL=warn
+#DEBUG_LEVEL=info
 DEBUG_LEVEL=debug
+#DEBUG_LEVEL=verbose
+
 ENABLE_DEVELOPER=false
 FIRMWARE_VERSION_MAJOR=99
 FIRMWARE_VERSION_MINOR=99
