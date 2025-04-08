@@ -1381,7 +1381,7 @@ const RTK_Settings_Entry rtkSettingsEntries[] =
     { 0, 0, 0, 1, 1, 1, 1, 1, 1, _uint8_t,  0, & settings.bluetoothInterruptsCore, "bluetoothInterruptsCore",  },
     { 0, 0, 0, 1, 1, 1, 1, 1, 1, _uint8_t,  0, & settings.btReadTaskCore, "btReadTaskCore",  },
     { 0, 0, 0, 1, 1, 1, 1, 1, 1, _uint8_t,  0, & settings.btReadTaskPriority, "btReadTaskPriority",  },
-    { 0, 0, 0, 1, 1, 1, 1, 1, 1, _bool,     0, & settings.debugMalloc, "debugMalloc",  },
+    { 0, 1, 0, 1, 1, 1, 1, 1, 1, _bool,     0, & settings.debugMalloc, "debugMalloc",  },
     { 0, 0, 0, 1, 1, 1, 1, 1, 1, _bool,     0, & settings.enableHeapReport, "enableHeapReport",  },
     { 0, 0, 0, 1, 1, 1, 1, 1, 1, _bool,     0, & settings.enablePrintIdleTime, "enablePrintIdleTime",  },
     { 0, 0, 0, 1, 1, 1, 1, 1, 1, _bool,     0, & settings.enablePsram, "enablePsram",  },
