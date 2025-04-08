@@ -64,8 +64,7 @@ static int last_ws_fd;
 
 static TaskHandle_t updateWebServerTaskHandle;
 static const uint8_t updateWebServerTaskPriority = 0; // 3 being the highest, and 0 being the lowest
-const int updateWebServerTaskStackSize =
-    AP_CONFIG_SETTING_SIZE + 3000; // Needs to be large enough to hold the file manager file list
+static const int webServerTaskStackSize = 4096; // Needs to be large enough to hold the file manager file list
 
 // Inspired by:
 // https://github.com/espressif/arduino-esp32/blob/master/libraries/WebServer/examples/MultiHomedServers/MultiHomedServers.ino
@@ -951,6 +950,7 @@ bool webServerAssignResources(int httpPort = 80)
         // Handler for file manager
         webServer->on("/file", HTTP_GET, handleFileManager);
 
+        // Start the web server
         webServer->begin();
 
         // Starts task for updating webServer with handleClient
@@ -958,7 +958,7 @@ bool webServerAssignResources(int httpPort = 80)
             xTaskCreate(
                 updateWebServerTask,
                 "UpdateWebServer",            // Just for humans
-                updateWebServerTaskStackSize, // Stack Size - needs to be large enough to hold the file manager list
+                webServerTaskStackSize,       // Stack Size - needs to be large enough to hold the file manager list
                 nullptr,                      // Task input parameter
                 updateWebServerTaskPriority,
                 &updateWebServerTaskHandle); // Task handle
@@ -976,14 +976,18 @@ bool webServerAssignResources(int httpPort = 80)
         }
 
         if (settings.debugWebServer == true)
+        {
             systemPrintln("Web Socket Server Started");
-        reportHeapNow(false);
+            reportHeapNow(true);
+        }
 
         online.webServer = true;
         return true;
     } while (0);
 
     // Release the resources
+    if (settings.debugWebServer == true)
+        reportHeapNow(true);
     webServerReleaseResources();
     return false;
 }
