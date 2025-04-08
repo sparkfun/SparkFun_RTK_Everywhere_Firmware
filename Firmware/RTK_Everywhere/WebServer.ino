@@ -1205,9 +1205,13 @@ void webServerUpdate()
     case WEBSERVER_STATE_NETWORK_CONNECTED: {
         // Determine if the network has failed
         if (connected == false && wifiSoftApRunning == false)
+        {
+            networkUserRemove(NETCONSUMER_WEB_CONFIG, __FILE__, __LINE__);
             webServerSetState(WEBSERVER_STATE_WAIT_FOR_NETWORK);
+        }
 
-        if (webServerAssignResources(settings.httpPort) == true)
+        // Attempt to start the web server
+        else if (webServerAssignResources(settings.httpPort) == true)
             webServerSetState(WEBSERVER_STATE_RUNNING);
     }
     break;
