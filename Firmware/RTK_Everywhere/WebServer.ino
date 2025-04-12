@@ -6,6 +6,10 @@ WebServer.ino
 
 #ifdef COMPILE_AP
 
+//----------------------------------------
+// Constants
+//----------------------------------------
+
 // State machine to allow web server access to network layer
 enum WebServerState
 {
@@ -24,6 +28,26 @@ static const char *const webServerStateNames[] = {
     "WEBSERVER_STATE_NETWORK_CONNECTED",
     "WEBSERVER_STATE_RUNNING",
 };
+
+//----------------------------------------
+// Macros
+//----------------------------------------
+
+#define GET_PAGE(page, type, data) \
+    webServer->on(page, HTTP_GET, []() { \
+        String length;  \
+        if (settings.debugWebServer == true)    \
+            Serial.printf("WebServer: Sending %s (%p, %d bytes)\r\n", \
+                          page, (void *)data, sizeof(data));  \
+        webServer->sendHeader("Content-Encoding", "gzip"); \
+        length = String(sizeof(data));  \
+        webServer->sendHeader("Content-Length", length.c_str()); \
+        webServer->send_P(200, type, (const char *)data, sizeof(data)); \
+    });
+
+//----------------------------------------
+// Locals
+//----------------------------------------
 
 static const int webServerStateEntries = sizeof(webServerStateNames) / sizeof(webServerStateNames[0]);
 
@@ -836,113 +860,37 @@ bool webServerAssignResources(int httpPort = 80)
 
         webServer->onNotFound(notFound);
 
-        webServer->on("/", HTTP_GET, []() {
-            webServer->sendHeader("Content-Encoding", "gzip");
-            webServer->send_P(200, "text/html", (const char *)index_html, sizeof(index_html));
-        });
-
-        webServer->on("/favicon.ico", HTTP_GET, []() {
-            webServer->sendHeader("Content-Encoding", "gzip");
-            webServer->send_P(200, "text/plain", (const char *)favicon_ico, sizeof(favicon_ico));
-        });
-
-        webServer->on("/src/bootstrap.bundle.min.js", HTTP_GET, []() {
-            webServer->sendHeader("Content-Encoding", "gzip");
-            webServer->send_P(200, "text/javascript", (const char *)bootstrap_bundle_min_js,
-                              sizeof(bootstrap_bundle_min_js));
-        });
-
-        webServer->on("/src/bootstrap.min.css", HTTP_GET, []() {
-            webServer->sendHeader("Content-Encoding", "gzip");
-            webServer->send_P(200, "text/css", (const char *)bootstrap_min_css, sizeof(bootstrap_min_css));
-        });
-
-        webServer->on("/src/bootstrap.min.js", HTTP_GET, []() {
-            webServer->sendHeader("Content-Encoding", "gzip");
-            webServer->send_P(200, "text/javascript", (const char *)bootstrap_min_js, sizeof(bootstrap_min_js));
-        });
-
-        webServer->on("/src/jquery-3.6.0.min.js", HTTP_GET, []() {
-            webServer->sendHeader("Content-Encoding", "gzip");
-            webServer->send_P(200, "text/javascript", (const char *)jquery_js, sizeof(jquery_js));
-        });
-
-        webServer->on("/src/main.js", HTTP_GET, []() {
-            webServer->sendHeader("Content-Encoding", "gzip");
-            webServer->send_P(200, "text/javascript", (const char *)main_js, sizeof(main_js));
-        });
-
-        webServer->on("/src/rtk-setup.png", HTTP_GET, []() {
-            webServer->sendHeader("Content-Encoding", "gzip");
-            if (productVariant == RTK_EVK)
-                webServer->send_P(200, "image/png", (const char *)rtkSetup_png, sizeof(rtkSetup_png));
-            else
-                webServer->send_P(200, "image/png", (const char *)rtkSetupWiFi_png, sizeof(rtkSetupWiFi_png));
-        });
+        GET_PAGE("/", "text/html", index_html);
+        GET_PAGE("/favicon.ico", "text/plain", favicon_ico);
+        GET_PAGE("/src/bootstrap.bundle.min.js", "text/javascript", bootstrap_bundle_min_js);
+        GET_PAGE("/src/bootstrap.min.css", "text/css", bootstrap_min_css);
+        GET_PAGE("/src/bootstrap.min.js", "text/javascript", bootstrap_min_js);
+        GET_PAGE("/src/jquery-3.6.0.min.js", "text/javascript", jquery_js);
+        GET_PAGE("/src/main.js", "text/javascript", main_js);
+        if (productVariant == RTK_EVK)
+        {
+            GET_PAGE("/src/rtk-setup.png", "image/png", rtkSetup_png);
+        }
+        else
+        {
+            GET_PAGE("/src/rtk-setup.png", "image/png", rtkSetupWiFi_png);
+        }
 
         // Battery icons
-        webServer->on("/src/BatteryBlank.png", HTTP_GET, []() {
-            webServer->sendHeader("Content-Encoding", "gzip");
-            webServer->send_P(200, "image/png", (const char *)batteryBlank_png, sizeof(batteryBlank_png));
-        });
-        webServer->on("/src/Battery0.png", HTTP_GET, []() {
-            webServer->sendHeader("Content-Encoding", "gzip");
-            webServer->send_P(200, "image/png", (const char *)battery0_png, sizeof(battery0_png));
-        });
-        webServer->on("/src/Battery1.png", HTTP_GET, []() {
-            webServer->sendHeader("Content-Encoding", "gzip");
-            webServer->send_P(200, "image/png", (const char *)battery1_png, sizeof(battery1_png));
-        });
-        webServer->on("/src/Battery2.png", HTTP_GET, []() {
-            webServer->sendHeader("Content-Encoding", "gzip");
-            webServer->send_P(200, "image/png", (const char *)battery2_png, sizeof(battery2_png));
-        });
-        webServer->on("/src/Battery3.png", HTTP_GET, []() {
-            webServer->sendHeader("Content-Encoding", "gzip");
-            webServer->send_P(200, "image/png", (const char *)battery3_png, sizeof(battery3_png));
-        });
-
-        webServer->on("/src/Battery0_Charging.png", HTTP_GET, []() {
-            webServer->sendHeader("Content-Encoding", "gzip");
-            webServer->send_P(200, "image/png", (const char *)battery0_Charging_png, sizeof(battery0_Charging_png));
-        });
-        webServer->on("/src/Battery1_Charging.png", HTTP_GET, []() {
-            webServer->sendHeader("Content-Encoding", "gzip");
-            webServer->send_P(200, "image/png", (const char *)battery1_Charging_png, sizeof(battery1_Charging_png));
-        });
-        webServer->on("/src/Battery2_Charging.png", HTTP_GET, []() {
-            webServer->sendHeader("Content-Encoding", "gzip");
-            webServer->send_P(200, "image/png", (const char *)battery2_Charging_png, sizeof(battery2_Charging_png));
-        });
-        webServer->on("/src/Battery3_Charging.png", HTTP_GET, []() {
-            webServer->sendHeader("Content-Encoding", "gzip");
-            webServer->send_P(200, "image/png", (const char *)battery3_Charging_png, sizeof(battery3_Charging_png));
-        });
-
-        webServer->on("/src/style.css", HTTP_GET, []() {
-            webServer->sendHeader("Content-Encoding", "gzip");
-            webServer->send_P(200, "text/css", (const char *)style_css, sizeof(style_css));
-        });
-
-        webServer->on("/src/fonts/icomoon.eot", HTTP_GET, []() {
-            webServer->sendHeader("Content-Encoding", "gzip");
-            webServer->send_P(200, "text/plain", (const char *)icomoon_eot, sizeof(icomoon_eot));
-        });
-
-        webServer->on("/src/fonts/icomoon.svg", HTTP_GET, []() {
-            webServer->sendHeader("Content-Encoding", "gzip");
-            webServer->send_P(200, "text/plain", (const char *)icomoon_svg, sizeof(icomoon_svg));
-        });
-
-        webServer->on("/src/fonts/icomoon.ttf", HTTP_GET, []() {
-            webServer->sendHeader("Content-Encoding", "gzip");
-            webServer->send_P(200, "text/plain", (const char *)icomoon_ttf, sizeof(icomoon_ttf));
-        });
-
-        webServer->on("/src/fonts/icomoon.woof", HTTP_GET, []() {
-            webServer->sendHeader("Content-Encoding", "gzip");
-            webServer->send_P(200, "text/plain", (const char *)icomoon_woof, sizeof(icomoon_woof));
-        });
+        GET_PAGE("/src/BatteryBlank.png", "image/png", batteryBlank_png);
+        GET_PAGE("/src/Battery0.png", "image/png", battery0_png);
+        GET_PAGE("/src/Battery1.png", "image/png", battery1_png);
+        GET_PAGE("/src/Battery2.png", "image/png", battery2_png);
+        GET_PAGE("/src/Battery3.png", "image/png", battery3_png);
+        GET_PAGE("/src/Battery0_Charging.png", "image/png", battery0_Charging_png);
+        GET_PAGE("/src/Battery1_Charging.png", "image/png", battery1_Charging_png);
+        GET_PAGE("/src/Battery2_Charging.png", "image/png", battery2_Charging_png);
+        GET_PAGE("/src/Battery3_Charging.png", "image/png", battery3_Charging_png);
+        GET_PAGE("/src/style.css", "text/css", style_css);
+        GET_PAGE("/src/fonts/icomoon.eot", "text/plain", icomoon_eot);
+        GET_PAGE("/src/fonts/icomoon.svg", "text/plain", icomoon_svg);
+        GET_PAGE("/src/fonts/icomoon.ttf", "text/plain", icomoon_ttf);
+        GET_PAGE("/src/fonts/icomoon.woof", "text/plain", icomoon_woof);
 
         // https://lemariva.com/blog/2017/11/white-hacking-wemos-captive-portal-using-micropython
         webServer->on("/connecttest.txt", HTTP_GET,
