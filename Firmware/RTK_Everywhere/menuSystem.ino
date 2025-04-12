@@ -1229,6 +1229,9 @@ void menuPeriodicPrint()
         systemPrint("58) UDP server broadcast data: ");
         systemPrintf("%s\r\n", PERIODIC_SETTING(PD_UDP_SERVER_BROADCAST_DATA) ? "Enabled" : "Disabled");
 
+        systemPrint("59) WebServer state: ");
+        systemPrintf("%s\r\n", PERIODIC_SETTING(PD_WEB_SERVER_STATE) ? "Enabled" : "Disabled");
+
         systemPrintln("-------  Tasks  ------");
         systemPrint("70) btReadTask state: ");
         systemPrintf("%s\r\n", PERIODIC_SETTING(PD_TASK_BLUETOOTH_READ) ? "Enabled" : "Disabled");
@@ -1334,6 +1337,8 @@ void menuPeriodicPrint()
             PERIODIC_TOGGLE(PD_UDP_SERVER_DATA);
         else if (incoming == 58)
             PERIODIC_TOGGLE(PD_UDP_SERVER_BROADCAST_DATA);
+        else if (incoming == 59)
+            PERIODIC_TOGGLE(PD_WEB_SERVER_STATE);
 
         else if (incoming == 70)
             PERIODIC_TOGGLE(PD_TASK_BLUETOOTH_READ);
