@@ -1304,22 +1304,33 @@ static esp_err_t ws_handler(httpd_req_t *req)
         }
     }
     if (settings.debugWebServer == true)
-        systemPrintf("Packet type: %d\r\n", ws_pkt.type);
-    // HTTPD_WS_TYPE_CONTINUE   = 0x0,
-    // HTTPD_WS_TYPE_TEXT       = 0x1,
-    // HTTPD_WS_TYPE_BINARY     = 0x2,
-    // HTTPD_WS_TYPE_CLOSE      = 0x8,
-    // HTTPD_WS_TYPE_PING       = 0x9,
-    // HTTPD_WS_TYPE_PONG       = 0xA
+    {
+        const char * pktType;
+        size_t length = ws_pkt.len;
+        switch (ws_pkt.type)
+        {
+        default: pktType = nullptr; break;
+        case HTTPD_WS_TYPE_CONTINUE: pktType = "HTTPD_WS_TYPE_CONTINUE"; break;
+        case HTTPD_WS_TYPE_TEXT:     pktType = "HTTPD_WS_TYPE_TEXT"; break;
+        case HTTPD_WS_TYPE_BINARY:   pktType = "HTTPD_WS_TYPE_BINARY"; break;
+        case HTTPD_WS_TYPE_CLOSE:    pktType = "HTTPD_WS_TYPE_CLOSE"; break;
+        case HTTPD_WS_TYPE_PING:     pktType = "HTTPD_WS_TYPE_PING"; break;
+        case HTTPD_WS_TYPE_PONG:     pktType = "HTTPD_WS_TYPE_PONG"; break;
+        }
+        systemPrintf("Packet: %p, %d bytes, type: %d%s%s%s\r\n",
+                     ws_pkt.payload,
+                     length,
+                     ws_pkt.type,
+                     pktType ? " (" : "",
+                     pktType ? pktType : "",
+                     pktType ? ")" : "");
+        if (length > 0x40)
+            length = 0x40;
+        dumpBuffer(ws_pkt.payload, length);
+    }
 
     if (ws_pkt.type == HTTPD_WS_TYPE_TEXT)
     {
-        if (settings.debugWebServer == true)
-        {
-            systemPrintf("Got packet with message: %s\r\n", ws_pkt.payload);
-            dumpBuffer(ws_pkt.payload, ws_pkt.len);
-        }
-
         if (currentlyParsingData == false)
         {
             for (int i = 0; i < ws_pkt.len; i++)
