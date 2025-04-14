@@ -137,35 +137,29 @@ void tcpServerDiscardBytes(RING_BUFFER_OFFSET previousTail, RING_BUFFER_OFFSET n
 //----------------------------------------
 int32_t tcpServerClientSendData(int index, uint8_t *data, uint16_t length)
 {
-    length = tcpServerClient[index]->write(data, length);
-    if (length > 0)
+    if (tcpServerClient[index])
     {
-        // Update the data sent flag when data successfully sent
+        length = tcpServerClient[index]->write(data, length);
         if (length > 0)
-            tcpServerClientDataSent = tcpServerClientDataSent | (1 << index);
-        if ((settings.debugTcpServer || PERIODIC_DISPLAY(PD_TCP_SERVER_CLIENT_DATA)) && (!inMainMenu))
         {
-            PERIODIC_CLEAR(PD_TCP_SERVER_CLIENT_DATA);
-            systemPrintf("TCP server wrote %d bytes to %s\r\n", length,
-                         tcpServerClientIpAddress[index].toString().c_str());
-        }
-    }
-
-    // Failed to write the data
-    else
-    {
-        // Done with this client connection
-        if ((settings.debugTcpServer || PERIODIC_DISPLAY(PD_TCP_SERVER_CLIENT_DATA)) && (!inMainMenu))
-        {
-            PERIODIC_CLEAR(PD_TCP_SERVER_CLIENT_DATA);
-            systemPrintf("TCP server breaking connection %d with client %s\r\n", index,
-                         tcpServerClientIpAddress[index].toString().c_str());
+            // Update the data sent flag when data successfully sent
+            if (length > 0)
+                tcpServerClientDataSent = tcpServerClientDataSent | (1 << index);
+            if ((settings.debugTcpServer || PERIODIC_DISPLAY(PD_TCP_SERVER_CLIENT_DATA)) && (!inMainMenu))
+            {
+                PERIODIC_CLEAR(PD_TCP_SERVER_CLIENT_DATA);
+                systemPrintf("TCP server wrote %d bytes to %s\r\n", length,
+                             tcpServerClientIpAddress[index].toString().c_str());
+            }
         }
 
-        tcpServerClient[index]->stop();
-        tcpServerClientConnected = tcpServerClientConnected & (~(1 << index));
-        tcpServerClientWriteError = tcpServerClientWriteError | (1 << index);
-        length = 0;
+        // Failed to write the data
+        else
+        {
+            // Done with this client connection
+            tcpServerStopClient(index);
+            length = 0;
+        }
     }
     return length;
 }
@@ -322,6 +316,9 @@ void tcpServerStop()
     // Notify the rest of the system that the TCP server is shutting down
     if (online.tcpServer)
     {
+        if (settings.debugTcpServer && (!inMainMenu))
+            systemPrintf("TcpServer: Notifying GNSS UART task to stop sending data\r\n");
+
         // Notify the GNSS UART tasks of the TCP server shutdown
         online.tcpServer = false;
         delay(5);
@@ -340,13 +337,15 @@ void tcpServerStop()
     {
         // Stop the TCP server
         if (settings.debugTcpServer && (!inMainMenu))
-            systemPrintln("TCP server stopping");
+            systemPrintln("TcpServer: Stopping the server");
         tcpServer->stop();
         delete tcpServer;
         tcpServer = nullptr;
     }
 
     // Stop using the network
+    if (settings.debugTcpServer && (!inMainMenu))
+        systemPrintln("TcpServer: Stopping network consumers");
     networkConsumerOffline(NETCONSUMER_TCP_SERVER);
     if (tcpServerState != TCP_SERVER_STATE_OFF)
     {
@@ -367,25 +366,32 @@ void tcpServerStopClient(int index)
     bool connected;
     bool dataSent;
 
-    // Done with this client connection
-    if ((settings.debugTcpServer || PERIODIC_DISPLAY(PD_TCP_SERVER_DATA)) && (!inMainMenu))
+    // Determine if a client was allocated
+    if (tcpServerClient[index])
     {
-        PERIODIC_CLEAR(PD_TCP_SERVER_DATA);
+        // Done with this client connection
+        if ((settings.debugTcpServer || PERIODIC_DISPLAY(PD_TCP_SERVER_DATA)) && (!inMainMenu))
+        {
+            PERIODIC_CLEAR(PD_TCP_SERVER_DATA);
 
-        // Determine the shutdown reason
-        connected = tcpServerClient[index]->connected() && (!(tcpServerClientWriteError & (1 << index)));
-        dataSent =
-            ((millis() - tcpServerTimer) < TCP_SERVER_CLIENT_DATA_TIMEOUT) || (tcpServerClientDataSent & (1 << index));
-        if (!dataSent)
-            systemPrintf("TCP Server: No data sent over %d seconds\r\n", TCP_SERVER_CLIENT_DATA_TIMEOUT / 1000);
-        if (!connected)
-            systemPrintf("TCP Server: Link to client broken\r\n");
-        systemPrintf("TCP server client %d disconnected from %s\r\n", index,
-                     tcpServerClientIpAddress[index].toString().c_str());
+            // Determine the shutdown reason
+            connected = tcpServerClient[index]->connected()
+                      && (!(tcpServerClientWriteError & (1 << index)));
+            dataSent = ((millis() - tcpServerTimer) < TCP_SERVER_CLIENT_DATA_TIMEOUT)
+                     || (tcpServerClientDataSent & (1 << index));
+            if (!dataSent)
+                systemPrintf("TCP Server: No data sent over %d seconds\r\n", TCP_SERVER_CLIENT_DATA_TIMEOUT / 1000);
+            if (!connected)
+                systemPrintf("TCP Server: Link to client broken\r\n");
+            systemPrintf("TCP server client %d disconnected from %s\r\n", index,
+                         tcpServerClientIpAddress[index].toString().c_str());
+        }
+
+        // Shutdown the TCP server client link
+        tcpServerClient[index]->stop();
+        delete tcpServerClient[index];
+        tcpServerClient[index] = nullptr;
     }
-
-    // Shutdown the TCP server client link
-    tcpServerClient[index]->stop();
     tcpServerClientConnected = tcpServerClientConnected & (~(1 << index));
     tcpServerClientWriteError = tcpServerClientWriteError & (~(1 << index));
 }
