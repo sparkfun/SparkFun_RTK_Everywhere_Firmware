@@ -1070,10 +1070,17 @@ void networkInterfaceEventInternetAvailable(NetIndex_t index)
 //----------------------------------------
 // Internet lost event
 //----------------------------------------
-void networkInterfaceEventInternetLost(NetIndex_t index)
+void networkInterfaceEventInternetLost(NetIndex_t index,
+                                       const char * fileName,
+                                       uint32_t lineNumber)
 {
     // Validate the index
     networkValidateIndex(index);
+
+    // Display the call
+    if (settings.debugNetworkLayer)
+        systemPrintf("Network: Calling networkInterfaceEventInternetLost(%s) from %s at line %d\r\n",
+                     networkInterfaceTable[index].name, fileName, lineNumber);
 
     // Notify networkUpdate of the change in state
     if (settings.debugNetworkLayer)
@@ -1178,7 +1185,7 @@ void networkInterfaceInternetConnectionAvailable(NetIndex_t index)
             {
                 // Stop the previous network
                 systemPrintf("Stopping %s\r\n", networkGetNameByIndex(index));
-                networkSequenceStop(index, settings.debugNetworkLayer);
+                networkSequenceStop(index, settings.debugNetworkLayer, __FILE__, __LINE__);
             }
         }
 
@@ -1195,7 +1202,9 @@ void networkInterfaceInternetConnectionAvailable(NetIndex_t index)
 //----------------------------------------
 // Mark network interface as having NO access to the internet
 //----------------------------------------
-void networkInterfaceInternetConnectionLost(NetIndex_t index)
+void networkInterfaceInternetConnectionLost(NetIndex_t index,
+                                            const char * fileName,
+                                            uint32_t lineNumber)
 {
     NetMask_t bitMask;
     NetPriority_t previousPriority;
@@ -1203,6 +1212,11 @@ void networkInterfaceInternetConnectionLost(NetIndex_t index)
 
     // Validate the index
     networkValidateIndex(index);
+
+    // Display the call
+    if (settings.debugNetworkLayer)
+        systemPrintf("Network: Calling networkInterfaceInternetConnectionLost(%s) from %s at line %d\r\n",
+                     networkInterfaceTable[index].name, fileName, lineNumber);
 
     // Clear the event flag
     networkEventInternetLost[index] = false;
@@ -1562,10 +1576,18 @@ void networkSequenceBoot(NetIndex_t index)
 //----------------------------------------
 // Exit the sequence by force
 //----------------------------------------
-void networkSequenceExit(NetIndex_t index, bool debug)
+void networkSequenceExit(NetIndex_t index,
+                         bool debug,
+                         const char * fileName,
+                         uint32_t lineNumber)
 {
+    // Display the call
+    if (settings.debugNetworkLayer)
+        systemPrintf("Network: Calling networkSequenceExit(%s) from %s at line %d\r\n",
+                     networkInterfaceTable[index].name, fileName, lineNumber);
+
     // Stop the polling for this sequence
-    networkSequenceStopPolling(index, debug, true);
+    networkSequenceStopPolling(index, debug, true, __FILE__, __LINE__);
 }
 
 //----------------------------------------
@@ -1621,13 +1643,16 @@ void networkSequenceNextEntry(NetIndex_t index, bool debug)
 
     // Termination entry found, stop the sequence or start next sequence
     else
-        networkSequenceStopPolling(index, debug, false);
+        networkSequenceStopPolling(index, debug, false, __FILE__, __LINE__);
 }
 
 //----------------------------------------
 // Attempt to start the start sequence
 //----------------------------------------
-void networkSequenceStart(NetIndex_t index, bool debug)
+void networkSequenceStart(NetIndex_t index,
+                          bool debug,
+                          const char * fileName,
+                          uint32_t lineNumber)
 {
     NetMask_t bitMask;
     const char *description;
@@ -1635,6 +1660,11 @@ void networkSequenceStart(NetIndex_t index, bool debug)
 
     // Validate the index
     networkValidateIndex(index);
+
+    // Display the call
+    if (settings.debugNetworkLayer)
+        systemPrintf("Network: Calling networkSequenceStart(%s) from %s at line %d\r\n",
+                     networkInterfaceTable[index].name, fileName, lineNumber);
 
     // Set the network bit
     bitMask = 1 << index;
@@ -1706,7 +1736,10 @@ void networkSequenceStart(NetIndex_t index, bool debug)
 //----------------------------------------
 // Start the stop sequence
 //----------------------------------------
-void networkSequenceStop(NetIndex_t index, bool debug)
+void networkSequenceStop(NetIndex_t index,
+                         bool debug,
+                         const char * fileName,
+                         uint32_t lineNumber)
 {
     NetMask_t bitMask;
     const char *description;
@@ -1714,6 +1747,11 @@ void networkSequenceStop(NetIndex_t index, bool debug)
 
     // Validate the index
     networkValidateIndex(index);
+
+    // Display the call
+    if (settings.debugNetworkLayer)
+        systemPrintf("Network: Calling networkSequenceStop(%s) from %s at line %d\r\n",
+                     networkInterfaceTable[index].name, fileName, lineNumber);
 
     // Set the network bit
     bitMask = 1 << index;
@@ -1784,13 +1822,26 @@ void networkSequenceStop(NetIndex_t index, bool debug)
 //----------------------------------------
 // Stop the polling sequence
 //----------------------------------------
-void networkSequenceStopPolling(NetIndex_t index, bool debug, bool forcedStop)
+void networkSequenceStopPolling(NetIndex_t index,
+                                bool debug,
+                                bool forcedStop,
+                                const char * fileName,
+                                uint32_t lineNumber)
 {
     NetMask_t bitMask;
     bool start;
 
     // Validate the index
     networkValidateIndex(index);
+
+    // Display the call
+    if (settings.debugNetworkLayer)
+        systemPrintf("Network: Calling networkSequenceStopPolling(%s, debug: %s, forcedStop: %s) from %s at line %d\r\n",
+                     networkInterfaceTable[index].name,
+                     debug ? "true" : "false",
+                     forcedStop ? "true" : "false",
+                     fileName,
+                     lineNumber);
 
     // Stop the polling for this sequence
     networkSequence[index] = nullptr;
@@ -1855,9 +1906,9 @@ void networkSequenceStopPolling(NetIndex_t index, bool debug, bool forcedStop)
 
         // Start the next sequence
         if (start)
-            networkSequenceStart(index, debug);
+            networkSequenceStart(index, debug, __FILE__, __LINE__);
         else
-            networkSequenceStop(index, debug);
+            networkSequenceStop(index, debug, __FILE__, __LINE__);
     }
 }
 
@@ -2017,7 +2068,7 @@ void networkStart(NetIndex_t index, bool debug, const char * fileName, uint32_t 
         {
             if (debug)
                 systemPrintf("Starting network: %s\r\n", networkGetNameByIndex(index));
-            networkSequenceStart(index, debug);
+            networkSequenceStart(index, debug, __FILE__, __LINE__);
         }
     }
     else if (debug)
@@ -2098,7 +2149,7 @@ void networkStop(NetIndex_t index, bool debug, const char * fileName, uint32_t l
         {
             if (debug)
                 systemPrintf("Stopping network: %s\r\n", networkGetNameByIndex(index));
-            networkSequenceStop(index, debug);
+            networkSequenceStop(index, debug, __FILE__, __LINE__);
         }
     }
 }
@@ -2192,7 +2243,7 @@ void networkUpdate()
         // Handle the network lost internet event
         if (networkEventInternetLost[index])
         {
-            networkInterfaceInternetConnectionLost(index);
+            networkInterfaceInternetConnectionLost(index, __FILE__, __LINE__);
 
             // Attempt to restart WiFi
             if ((index == NETWORK_WIFI_STATION) && (networkIsHighestPriority(index)))
@@ -2441,7 +2492,7 @@ void networkVerifyPriority(NetIndex_t index, uintptr_t parameter, bool debug)
         if (debug)
             systemPrintf("%s: Value %d > %d, indicating lower priority, stopping device!\r\n",
                          networkInterfaceTable[index].name, interfacePriority, networkPriority);
-        networkSequenceExit(index, debug);
+        networkSequenceExit(index, debug, __FILE__, __LINE__);
     }
 
     // This device is still the highest priority, continue the delay and

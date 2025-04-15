@@ -441,7 +441,7 @@ void menuWiFi()
     if (wifiRestartRequested)
     {
         // Fake the loss of the IP address
-        networkInterfaceEventInternetLost(NETWORK_WIFI_STATION);
+        networkInterfaceEventInternetLost(NETWORK_WIFI_STATION, __FILE__, __LINE__);
         wifiReconnectRequest = true;
     }
 
@@ -723,7 +723,7 @@ void wifiStartThrottled(NetIndex_t index, uintptr_t parameter, bool debug)
         // Stop the connection attempts
         wifiResetThrottleTimeout();
         wifiResetTimeout();
-        networkSequenceStopPolling(NETWORK_WIFI_STATION, debug, true);
+        networkSequenceExit(NETWORK_WIFI_STATION, debug, __FILE__, __LINE__);
         return;
     }
 
@@ -836,7 +836,7 @@ void wifiStationRestart(NetIndex_t index, uintptr_t parameter, bool debug)
         // Stop the connection attempts
         wifiResetThrottleTimeout();
         wifiResetTimeout();
-        networkSequenceStopPolling(NETWORK_WIFI_STATION, debug, true);
+        networkSequenceExit(NETWORK_WIFI_STATION, debug, __FILE__, __LINE__);
         return;
     }
 
@@ -845,7 +845,7 @@ void wifiStationRestart(NetIndex_t index, uintptr_t parameter, bool debug)
     {
         // Fake a WiFi failure
         networkConsumerReconnect(NETWORK_WIFI_STATION);
-        networkInterfaceEventInternetLost(NETWORK_WIFI_STATION);
+        networkInterfaceEventInternetLost(NETWORK_WIFI_STATION, __FILE__, __LINE__);
 
         // Clear the bits to perform the restart operation
         wifi.clearStarted(WIFI_STA_RECONNECT);
@@ -861,7 +861,7 @@ void wifiStationRestart(NetIndex_t index, uintptr_t parameter, bool debug)
 // Stop WiFi, used by wifiStopSequence
 void wifiStop(NetIndex_t index, uintptr_t parameter, bool debug)
 {
-    networkInterfaceInternetConnectionLost(NETWORK_WIFI_STATION);
+    networkInterfaceInternetConnectionLost(NETWORK_WIFI_STATION, __FILE__, __LINE__);
 
     // Stop WiFi stataion
     wifi.enable(wifiEspNowRunning, wifiSoftApRunning, false, __FILE__, __LINE__);
@@ -880,7 +880,7 @@ void wifiStopAll()
     wifi.enable(false, false, false, __FILE__, __LINE__);
 
     // Take the network offline
-    networkInterfaceEventInternetLost(NETWORK_WIFI_STATION);
+    networkInterfaceEventInternetLost(NETWORK_WIFI_STATION, __FILE__, __LINE__);
 
     // Display the heap state
     reportHeapNow(settings.debugWifiState);
@@ -898,7 +898,7 @@ void wifiWaitNoUsers(NetIndex_t index, uintptr_t parameter, bool debug)
         // Stop the connection attempts
         wifiResetThrottleTimeout();
         wifiResetTimeout();
-        networkSequenceStopPolling(NETWORK_WIFI_STATION, debug, true);
+        networkSequenceExit(NETWORK_WIFI_STATION, debug, __FILE__, __LINE__);
         return;
     }
 
@@ -1780,7 +1780,7 @@ void RTK_WIFI::stationEventHandler(arduino_event_id_t event, arduino_event_info_
         // Start the reconnection timer
         if (event == ARDUINO_EVENT_WIFI_STA_DISCONNECTED)
         {
-            networkInterfaceEventInternetLost(NETWORK_WIFI_STATION);
+            networkInterfaceEventInternetLost(NETWORK_WIFI_STATION, __FILE__, __LINE__);
             wifiReconnectRequest = true;
         }
 
@@ -1805,7 +1805,7 @@ void RTK_WIFI::stationEventHandler(arduino_event_id_t event, arduino_event_info_
     case ARDUINO_EVENT_WIFI_STA_LOST_IP:
         if (event == ARDUINO_EVENT_WIFI_STA_LOST_IP)
         {
-            networkInterfaceEventInternetLost(NETWORK_WIFI_STATION);
+            networkInterfaceEventInternetLost(NETWORK_WIFI_STATION, __FILE__, __LINE__);
             wifiReconnectRequest = true;
         }
 

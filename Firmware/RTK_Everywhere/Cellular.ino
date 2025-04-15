@@ -87,7 +87,7 @@ void cellularEvent(arduino_event_id_t event)
     if (networkInterfaceHasInternet(NETWORK_CELLULAR) && (event != ARDUINO_EVENT_ETH_GOT_IP) &&
         (event != ARDUINO_EVENT_ETH_GOT_IP6) && (event != ARDUINO_EVENT_PPP_CONNECTED))
     {
-        networkInterfaceEventInternetLost(NETWORK_CELLULAR);
+        networkInterfaceEventInternetLost(NETWORK_CELLULAR, __FILE__, __LINE__);
     }
 
     // Cellular State Machine
@@ -157,7 +157,7 @@ void cellularSimCheck(NetIndex_t index, uintptr_t parameter, bool debug)
     {
         systemPrintf("SIM card not present. Marking cellular offline.\r\n");
         present.cellular_lara = false;
-        networkSequenceExit(index, debug);
+        networkSequenceExit(index, debug, __FILE__, __LINE__);
     }
 }
 
