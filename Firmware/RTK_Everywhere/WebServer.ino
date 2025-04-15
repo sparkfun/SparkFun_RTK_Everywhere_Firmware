@@ -1128,15 +1128,23 @@ void webServerStart()
     // Display the heap state
     reportHeapNow(settings.debugWebServer);
 
-    if (settings.debugWebServer)
-        systemPrintln("Web Server: Starting");
-
-    // Start the network
-    if (settings.wifiConfigOverAP == false)
-        networkConsumerAdd(NETCONSUMER_WEB_CONFIG, NETWORK_ANY, __FILE__, __LINE__);
+    if (webServerState != WEBSERVER_STATE_OFF)
+    {
+        if (settings.debugWebServer)
+            systemPrintln("Web Server: Already running!");
+    }
     else
-        networkSoftApConsumerAdd(NETCONSUMER_WEB_CONFIG, __FILE__, __LINE__);
-    webServerSetState(WEBSERVER_STATE_WAIT_FOR_NETWORK);
+    {
+        if (settings.debugWebServer)
+            systemPrintln("Web Server: Starting");
+
+        // Start the network
+        if (settings.wifiConfigOverAP == false)
+            networkConsumerAdd(NETCONSUMER_WEB_CONFIG, NETWORK_ANY, __FILE__, __LINE__);
+        else
+            networkSoftApConsumerAdd(NETCONSUMER_WEB_CONFIG, __FILE__, __LINE__);
+        webServerSetState(WEBSERVER_STATE_WAIT_FOR_NETWORK);
+    }
 }
 
 //----------------------------------------
