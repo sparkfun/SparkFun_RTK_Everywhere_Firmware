@@ -195,6 +195,8 @@ void beginDisplay(TwoWire *i2cBus)
 // Given the system state, display the appropriate information
 void displayUpdate()
 {
+    static std::vector<iconPropertyBlinking> iconPropertyList; // List of icons to be displayed
+
     // Update the display if connected
     if (online.display == true)
     {
@@ -209,7 +211,6 @@ void displayUpdate()
 
             oled->erase();
 
-            std::vector<iconPropertyBlinking> iconPropertyList; // List of icons to be displayed
             iconPropertyList.clear();                           // Redundant?
 
             switch (systemState)
