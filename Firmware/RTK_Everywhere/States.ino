@@ -7,8 +7,6 @@
 
 static uint32_t lastStateTime = 0;
 
-extern bool websocketConnected;
-
 // Given the current state, see if conditions have moved us to a new state
 // A user pressing the mode button (change between rover/base) is handled by buttonCheckTask()
 void stateUpdate()

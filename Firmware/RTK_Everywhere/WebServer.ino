@@ -6,6 +6,10 @@ WebServer.ino
 
 #ifdef COMPILE_AP
 
+//----------------------------------------
+// Constants
+//----------------------------------------
+
 // State machine to allow web server access to network layer
 enum WebServerState
 {
@@ -25,6 +29,26 @@ static const char *const webServerStateNames[] = {
     "WEBSERVER_STATE_RUNNING",
 };
 
+//----------------------------------------
+// Macros
+//----------------------------------------
+
+#define GET_PAGE(page, type, data) \
+    webServer->on(page, HTTP_GET, []() { \
+        String length;  \
+        if (settings.debugWebServer == true)    \
+            Serial.printf("WebServer: Sending %s (%p, %d bytes)\r\n", \
+                          page, (void *)data, sizeof(data));  \
+        webServer->sendHeader("Content-Encoding", "gzip"); \
+        length = String(sizeof(data));  \
+        webServer->sendHeader("Content-Length", length.c_str()); \
+        webServer->send_P(200, type, (const char *)data, sizeof(data)); \
+    });
+
+//----------------------------------------
+// Locals
+//----------------------------------------
+
 static const int webServerStateEntries = sizeof(webServerStateNames) / sizeof(webServerStateNames[0]);
 
 static uint8_t webServerState;
@@ -32,7 +56,15 @@ static uint8_t webServerState;
 // Once connected to the access point for WiFi Config, the ESP32 sends current setting values in one long string to
 // websocket After user clicks 'save', data is validated via main.js and a long string of values is returned.
 
-bool websocketConnected = false;
+static httpd_handle_t wsserver;
+static WebServer *webServer;
+
+// httpd_req_t *last_ws_req;
+static int last_ws_fd;
+
+static TaskHandle_t updateWebServerTaskHandle;
+static const uint8_t updateWebServerTaskPriority = 0; // 3 being the highest, and 0 being the lowest
+static const int webServerTaskStackSize = 4096; // Needs to be large enough to hold the file manager file list
 
 // Inspired by:
 // https://github.com/espressif/arduino-esp32/blob/master/libraries/WebServer/examples/MultiHomedServers/MultiHomedServers.ino
@@ -693,7 +725,7 @@ void sendStringToWebsocket(const char *stringToSend)
     //}
 
     // If we use httpd_ws_send_frame_async, it requires a fd.
-    esp_err_t ret = httpd_ws_send_frame_async(*wsserver, last_ws_fd, &ws_pkt);
+    esp_err_t ret = httpd_ws_send_frame_async(wsserver, last_ws_fd, &ws_pkt);
     if (ret != ESP_OK)
     {
         systemPrintf("httpd_ws_send_frame failed with %d\r\n", ret);
@@ -836,113 +868,37 @@ bool webServerAssignResources(int httpPort = 80)
 
         webServer->onNotFound(notFound);
 
-        webServer->on("/", HTTP_GET, []() {
-            webServer->sendHeader("Content-Encoding", "gzip");
-            webServer->send_P(200, "text/html", (const char *)index_html, sizeof(index_html));
-        });
-
-        webServer->on("/favicon.ico", HTTP_GET, []() {
-            webServer->sendHeader("Content-Encoding", "gzip");
-            webServer->send_P(200, "text/plain", (const char *)favicon_ico, sizeof(favicon_ico));
-        });
-
-        webServer->on("/src/bootstrap.bundle.min.js", HTTP_GET, []() {
-            webServer->sendHeader("Content-Encoding", "gzip");
-            webServer->send_P(200, "text/javascript", (const char *)bootstrap_bundle_min_js,
-                              sizeof(bootstrap_bundle_min_js));
-        });
-
-        webServer->on("/src/bootstrap.min.css", HTTP_GET, []() {
-            webServer->sendHeader("Content-Encoding", "gzip");
-            webServer->send_P(200, "text/css", (const char *)bootstrap_min_css, sizeof(bootstrap_min_css));
-        });
-
-        webServer->on("/src/bootstrap.min.js", HTTP_GET, []() {
-            webServer->sendHeader("Content-Encoding", "gzip");
-            webServer->send_P(200, "text/javascript", (const char *)bootstrap_min_js, sizeof(bootstrap_min_js));
-        });
-
-        webServer->on("/src/jquery-3.6.0.min.js", HTTP_GET, []() {
-            webServer->sendHeader("Content-Encoding", "gzip");
-            webServer->send_P(200, "text/javascript", (const char *)jquery_js, sizeof(jquery_js));
-        });
-
-        webServer->on("/src/main.js", HTTP_GET, []() {
-            webServer->sendHeader("Content-Encoding", "gzip");
-            webServer->send_P(200, "text/javascript", (const char *)main_js, sizeof(main_js));
-        });
-
-        webServer->on("/src/rtk-setup.png", HTTP_GET, []() {
-            webServer->sendHeader("Content-Encoding", "gzip");
-            if (productVariant == RTK_EVK)
-                webServer->send_P(200, "image/png", (const char *)rtkSetup_png, sizeof(rtkSetup_png));
-            else
-                webServer->send_P(200, "image/png", (const char *)rtkSetupWiFi_png, sizeof(rtkSetupWiFi_png));
-        });
+        GET_PAGE("/", "text/html", index_html);
+        GET_PAGE("/favicon.ico", "text/plain", favicon_ico);
+        GET_PAGE("/src/bootstrap.bundle.min.js", "text/javascript", bootstrap_bundle_min_js);
+        GET_PAGE("/src/bootstrap.min.css", "text/css", bootstrap_min_css);
+        GET_PAGE("/src/bootstrap.min.js", "text/javascript", bootstrap_min_js);
+        GET_PAGE("/src/jquery-3.6.0.min.js", "text/javascript", jquery_js);
+        GET_PAGE("/src/main.js", "text/javascript", main_js);
+        if (productVariant == RTK_EVK)
+        {
+            GET_PAGE("/src/rtk-setup.png", "image/png", rtkSetup_png);
+        }
+        else
+        {
+            GET_PAGE("/src/rtk-setup.png", "image/png", rtkSetupWiFi_png);
+        }
 
         // Battery icons
-        webServer->on("/src/BatteryBlank.png", HTTP_GET, []() {
-            webServer->sendHeader("Content-Encoding", "gzip");
-            webServer->send_P(200, "image/png", (const char *)batteryBlank_png, sizeof(batteryBlank_png));
-        });
-        webServer->on("/src/Battery0.png", HTTP_GET, []() {
-            webServer->sendHeader("Content-Encoding", "gzip");
-            webServer->send_P(200, "image/png", (const char *)battery0_png, sizeof(battery0_png));
-        });
-        webServer->on("/src/Battery1.png", HTTP_GET, []() {
-            webServer->sendHeader("Content-Encoding", "gzip");
-            webServer->send_P(200, "image/png", (const char *)battery1_png, sizeof(battery1_png));
-        });
-        webServer->on("/src/Battery2.png", HTTP_GET, []() {
-            webServer->sendHeader("Content-Encoding", "gzip");
-            webServer->send_P(200, "image/png", (const char *)battery2_png, sizeof(battery2_png));
-        });
-        webServer->on("/src/Battery3.png", HTTP_GET, []() {
-            webServer->sendHeader("Content-Encoding", "gzip");
-            webServer->send_P(200, "image/png", (const char *)battery3_png, sizeof(battery3_png));
-        });
-
-        webServer->on("/src/Battery0_Charging.png", HTTP_GET, []() {
-            webServer->sendHeader("Content-Encoding", "gzip");
-            webServer->send_P(200, "image/png", (const char *)battery0_Charging_png, sizeof(battery0_Charging_png));
-        });
-        webServer->on("/src/Battery1_Charging.png", HTTP_GET, []() {
-            webServer->sendHeader("Content-Encoding", "gzip");
-            webServer->send_P(200, "image/png", (const char *)battery1_Charging_png, sizeof(battery1_Charging_png));
-        });
-        webServer->on("/src/Battery2_Charging.png", HTTP_GET, []() {
-            webServer->sendHeader("Content-Encoding", "gzip");
-            webServer->send_P(200, "image/png", (const char *)battery2_Charging_png, sizeof(battery2_Charging_png));
-        });
-        webServer->on("/src/Battery3_Charging.png", HTTP_GET, []() {
-            webServer->sendHeader("Content-Encoding", "gzip");
-            webServer->send_P(200, "image/png", (const char *)battery3_Charging_png, sizeof(battery3_Charging_png));
-        });
-
-        webServer->on("/src/style.css", HTTP_GET, []() {
-            webServer->sendHeader("Content-Encoding", "gzip");
-            webServer->send_P(200, "text/css", (const char *)style_css, sizeof(style_css));
-        });
-
-        webServer->on("/src/fonts/icomoon.eot", HTTP_GET, []() {
-            webServer->sendHeader("Content-Encoding", "gzip");
-            webServer->send_P(200, "text/plain", (const char *)icomoon_eot, sizeof(icomoon_eot));
-        });
-
-        webServer->on("/src/fonts/icomoon.svg", HTTP_GET, []() {
-            webServer->sendHeader("Content-Encoding", "gzip");
-            webServer->send_P(200, "text/plain", (const char *)icomoon_svg, sizeof(icomoon_svg));
-        });
-
-        webServer->on("/src/fonts/icomoon.ttf", HTTP_GET, []() {
-            webServer->sendHeader("Content-Encoding", "gzip");
-            webServer->send_P(200, "text/plain", (const char *)icomoon_ttf, sizeof(icomoon_ttf));
-        });
-
-        webServer->on("/src/fonts/icomoon.woof", HTTP_GET, []() {
-            webServer->sendHeader("Content-Encoding", "gzip");
-            webServer->send_P(200, "text/plain", (const char *)icomoon_woof, sizeof(icomoon_woof));
-        });
+        GET_PAGE("/src/BatteryBlank.png", "image/png", batteryBlank_png);
+        GET_PAGE("/src/Battery0.png", "image/png", battery0_png);
+        GET_PAGE("/src/Battery1.png", "image/png", battery1_png);
+        GET_PAGE("/src/Battery2.png", "image/png", battery2_png);
+        GET_PAGE("/src/Battery3.png", "image/png", battery3_png);
+        GET_PAGE("/src/Battery0_Charging.png", "image/png", battery0_Charging_png);
+        GET_PAGE("/src/Battery1_Charging.png", "image/png", battery1_Charging_png);
+        GET_PAGE("/src/Battery2_Charging.png", "image/png", battery2_Charging_png);
+        GET_PAGE("/src/Battery3_Charging.png", "image/png", battery3_Charging_png);
+        GET_PAGE("/src/style.css", "text/css", style_css);
+        GET_PAGE("/src/fonts/icomoon.eot", "text/plain", icomoon_eot);
+        GET_PAGE("/src/fonts/icomoon.svg", "text/plain", icomoon_svg);
+        GET_PAGE("/src/fonts/icomoon.ttf", "text/plain", icomoon_ttf);
+        GET_PAGE("/src/fonts/icomoon.woof", "text/plain", icomoon_woof);
 
         // https://lemariva.com/blog/2017/11/white-hacking-wemos-captive-portal-using-micropython
         webServer->on("/connecttest.txt", HTTP_GET,
@@ -994,6 +950,7 @@ bool webServerAssignResources(int httpPort = 80)
         // Handler for file manager
         webServer->on("/file", HTTP_GET, handleFileManager);
 
+        // Start the web server
         webServer->begin();
 
         // Starts task for updating webServer with handleClient
@@ -1001,7 +958,7 @@ bool webServerAssignResources(int httpPort = 80)
             xTaskCreate(
                 updateWebServerTask,
                 "UpdateWebServer",            // Just for humans
-                updateWebServerTaskStackSize, // Stack Size - needs to be large enough to hold the file manager list
+                webServerTaskStackSize,       // Stack Size - needs to be large enough to hold the file manager list
                 nullptr,                      // Task input parameter
                 updateWebServerTaskPriority,
                 &updateWebServerTaskHandle); // Task handle
@@ -1019,14 +976,18 @@ bool webServerAssignResources(int httpPort = 80)
         }
 
         if (settings.debugWebServer == true)
+        {
             systemPrintln("Web Socket Server Started");
-        reportHeapNow(false);
+            reportHeapNow(true);
+        }
 
         online.webServer = true;
         return true;
     } while (0);
 
     // Release the resources
+    if (settings.debugWebServer == true)
+        reportHeapNow(true);
     webServerReleaseResources();
     return false;
 }
@@ -1098,8 +1059,10 @@ void webServerStopSockets()
     if (wsserver != nullptr)
     {
         // Stop the httpd server
-        esp_err_t ret = httpd_stop(*wsserver);
-        delete wsserver;
+        esp_err_t status = httpd_stop(wsserver);
+        if (status != ESP_OK)
+            systemPrintf("ERROR: wsserver failed to stop, status: %s!\r\n",
+                         esp_err_to_name(status));
         wsserver = nullptr;
     }
 }
@@ -1242,9 +1205,13 @@ void webServerUpdate()
     case WEBSERVER_STATE_NETWORK_CONNECTED: {
         // Determine if the network has failed
         if (connected == false && wifiSoftApRunning == false)
+        {
+            networkUserRemove(NETCONSUMER_WEB_CONFIG, __FILE__, __LINE__);
             webServerSetState(WEBSERVER_STATE_WAIT_FOR_NETWORK);
+        }
 
-        if (webServerAssignResources(settings.httpPort) == true)
+        // Attempt to start the web server
+        else if (webServerAssignResources(settings.httpPort) == true)
             webServerSetState(WEBSERVER_STATE_RUNNING);
     }
     break;
@@ -1261,6 +1228,13 @@ void webServerUpdate()
         // This state is exited when webServerStop() is called
 
         break;
+    }
+
+    // Display an alive message
+    if (PERIODIC_DISPLAY(PD_WEB_SERVER_STATE))
+    {
+        systemPrintf("Web Server state: %s\r\n", webServerStateNames[webServerState]);
+        PERIODIC_CLEAR(PD_WEB_SERVER_STATE);
     }
 }
 
@@ -1330,22 +1304,33 @@ static esp_err_t ws_handler(httpd_req_t *req)
         }
     }
     if (settings.debugWebServer == true)
-        systemPrintf("Packet type: %d\r\n", ws_pkt.type);
-    // HTTPD_WS_TYPE_CONTINUE   = 0x0,
-    // HTTPD_WS_TYPE_TEXT       = 0x1,
-    // HTTPD_WS_TYPE_BINARY     = 0x2,
-    // HTTPD_WS_TYPE_CLOSE      = 0x8,
-    // HTTPD_WS_TYPE_PING       = 0x9,
-    // HTTPD_WS_TYPE_PONG       = 0xA
+    {
+        const char * pktType;
+        size_t length = ws_pkt.len;
+        switch (ws_pkt.type)
+        {
+        default: pktType = nullptr; break;
+        case HTTPD_WS_TYPE_CONTINUE: pktType = "HTTPD_WS_TYPE_CONTINUE"; break;
+        case HTTPD_WS_TYPE_TEXT:     pktType = "HTTPD_WS_TYPE_TEXT"; break;
+        case HTTPD_WS_TYPE_BINARY:   pktType = "HTTPD_WS_TYPE_BINARY"; break;
+        case HTTPD_WS_TYPE_CLOSE:    pktType = "HTTPD_WS_TYPE_CLOSE"; break;
+        case HTTPD_WS_TYPE_PING:     pktType = "HTTPD_WS_TYPE_PING"; break;
+        case HTTPD_WS_TYPE_PONG:     pktType = "HTTPD_WS_TYPE_PONG"; break;
+        }
+        systemPrintf("Packet: %p, %d bytes, type: %d%s%s%s\r\n",
+                     ws_pkt.payload,
+                     length,
+                     ws_pkt.type,
+                     pktType ? " (" : "",
+                     pktType ? pktType : "",
+                     pktType ? ")" : "");
+        if (length > 0x40)
+            length = 0x40;
+        dumpBuffer(ws_pkt.payload, length);
+    }
 
     if (ws_pkt.type == HTTPD_WS_TYPE_TEXT)
     {
-        if (settings.debugWebServer == true)
-        {
-            systemPrintf("Got packet with message: %s\r\n", ws_pkt.payload);
-            dumpBuffer(ws_pkt.payload, ws_pkt.len);
-        }
-
         if (currentlyParsingData == false)
         {
             for (int i = 0; i < ws_pkt.len; i++)
@@ -1385,34 +1370,76 @@ static const httpd_uri_t ws = {.uri = "/ws",
                                .supported_subprotocol = NULL};
 
 //----------------------------------------
+// Display the HTTPD configuration
+//----------------------------------------
+void httpdDisplayConfig(struct httpd_config * config)
+{
+    systemPrintf("httpd_config object:\r\n");
+    systemPrintf("%10d: task_priority\r\n", config->task_priority);
+    systemPrintf("%10d: stack_size\r\n", config->stack_size);
+    systemPrintf("%10d: core_id\r\n", config->core_id);
+    systemPrintf("%10d: server_port\r\n", config->server_port);
+    systemPrintf("%10d: ctrl_port\r\n", config->ctrl_port);
+    systemPrintf("%10d: max_open_sockets\r\n", config->max_open_sockets);
+    systemPrintf("%10d: max_uri_handlers\r\n", config->max_uri_handlers);
+    systemPrintf("%10d: max_resp_headers\r\n", config->max_resp_headers);
+    systemPrintf("%10d: backlog_conn\r\n", config->backlog_conn);
+    systemPrintf("%10s: lru_purge_enable\r\n", config->lru_purge_enable ? "true" : "false");
+    systemPrintf("%10d: recv_wait_timeout\r\n", config->recv_wait_timeout);
+
+    systemPrintf("%10d: send_wait_timeout\r\n", config->send_wait_timeout);
+    systemPrintf("%p: global_user_ctx\r\n", config->global_user_ctx);
+    systemPrintf("%p: global_user_ctx_free_fn\r\n", config->global_user_ctx_free_fn);
+    systemPrintf("%p: global_transport_ctx\r\n", config->global_transport_ctx);
+    systemPrintf("%p: global_transport_ctx_free_fn\r\n", (void *)config->global_transport_ctx_free_fn);
+    systemPrintf("%10s: enable_so_linger\r\n", config->enable_so_linger ? "true" : "false");
+    systemPrintf("%10d: linger_timeout\r\n", config->linger_timeout);
+    systemPrintf("%10s: keep_alive_enable\r\n", config->keep_alive_enable ? "true" : "false");
+    systemPrintf("%10d: keep_alive_idle\r\n", config->keep_alive_idle);
+    systemPrintf("%10d: keep_alive_interval\r\n", config->keep_alive_interval);
+    systemPrintf("%10d: keep_alive_count\r\n", config->keep_alive_count);
+    systemPrintf("%p: open_fn\r\n", (void *)config->open_fn);
+    systemPrintf("%p: close_fn\r\n", (void *)config->close_fn);
+    systemPrintf("%p: uri_match_fn\r\n", (void *)config->uri_match_fn);
+}
+
+//----------------------------------------
 //----------------------------------------
 bool websocketServerStart(void)
 {
+    esp_err_t status;
+
+    // Gete the configuration object
     httpd_config_t config = HTTPD_DEFAULT_CONFIG();
 
     // Use different ports for websocket and webServer - use port 81 for the websocket - also defined in main.js
     config.server_port = 81;
 
-    // Increase the stack size from 4K to ~15K
-    config.stack_size = updateWebSocketStackSize;
+    // Increase the stack size from 4K to 8K
+    config.stack_size = 4096 * 2;
 
     // Start the httpd server
     if (settings.debugWebServer == true)
         systemPrintf("Starting wsserver on port: %d\r\n", config.server_port);
 
-    if (wsserver == nullptr)
-        wsserver = new httpd_handle_t;
-
-    if (httpd_start(wsserver, &config) == ESP_OK)
+    if (settings.debugWebServer == true)
+    {
+        httpdDisplayConfig(&config);
+        reportHeapNow(true);
+    }
+    status = httpd_start(&wsserver, &config);
+    if (status == ESP_OK)
     {
         // Registering the ws handler
         if (settings.debugWebServer == true)
             systemPrintln("Registering URI handlers");
-        httpd_register_uri_handler(*wsserver, &ws);
+        httpd_register_uri_handler(wsserver, &ws);
         return true;
     }
 
-    systemPrintln("Error starting wsserver!");
+    // Display the failure to start
+    systemPrintf("ERROR: wsserver failed to start, status: %s!\r\n",
+                 esp_err_to_name(status));
     return false;
 }
 
