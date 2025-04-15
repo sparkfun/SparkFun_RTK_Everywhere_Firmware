@@ -1070,10 +1070,17 @@ void networkInterfaceEventInternetAvailable(NetIndex_t index)
 //----------------------------------------
 // Internet lost event
 //----------------------------------------
-void networkInterfaceEventInternetLost(NetIndex_t index)
+void networkInterfaceEventInternetLost(NetIndex_t index,
+                                       const char * fileName,
+                                       uint32_t lineNumber)
 {
     // Validate the index
     networkValidateIndex(index);
+
+    // Display the call
+    if (settings.debugNetworkLayer)
+        systemPrintf("Network: Calling networkInterfaceEventInternetLost(%s) from %s at line %d\r\n",
+                     networkInterfaceTable[index].name, fileName, lineNumber);
 
     // Notify networkUpdate of the change in state
     if (settings.debugNetworkLayer)
