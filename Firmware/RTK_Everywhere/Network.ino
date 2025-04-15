@@ -1635,7 +1635,10 @@ void networkSequenceNextEntry(NetIndex_t index, bool debug)
 //----------------------------------------
 // Attempt to start the start sequence
 //----------------------------------------
-void networkSequenceStart(NetIndex_t index, bool debug)
+void networkSequenceStart(NetIndex_t index,
+                          bool debug,
+                          const char * fileName,
+                          uint32_t lineNumber)
 {
     NetMask_t bitMask;
     const char *description;
@@ -1643,6 +1646,11 @@ void networkSequenceStart(NetIndex_t index, bool debug)
 
     // Validate the index
     networkValidateIndex(index);
+
+    // Display the call
+    if (settings.debugNetworkLayer)
+        systemPrintf("Network: Calling networkSequenceStart(%s) from %s at line %d\r\n",
+                     networkInterfaceTable[index].name, fileName, lineNumber);
 
     // Set the network bit
     bitMask = 1 << index;
@@ -1884,7 +1892,7 @@ void networkSequenceStopPolling(NetIndex_t index,
 
         // Start the next sequence
         if (start)
-            networkSequenceStart(index, debug);
+            networkSequenceStart(index, debug, __FILE__, __LINE__);
         else
             networkSequenceStop(index, debug, __FILE__, __LINE__);
     }
@@ -2046,7 +2054,7 @@ void networkStart(NetIndex_t index, bool debug, const char * fileName, uint32_t 
         {
             if (debug)
                 systemPrintf("Starting network: %s\r\n", networkGetNameByIndex(index));
-            networkSequenceStart(index, debug);
+            networkSequenceStart(index, debug, __FILE__, __LINE__);
         }
     }
     else if (debug)
