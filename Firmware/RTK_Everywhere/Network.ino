@@ -1562,8 +1562,16 @@ void networkSequenceBoot(NetIndex_t index)
 //----------------------------------------
 // Exit the sequence by force
 //----------------------------------------
-void networkSequenceExit(NetIndex_t index, bool debug)
+void networkSequenceExit(NetIndex_t index,
+                         bool debug,
+                         const char * fileName,
+                         uint32_t lineNumber)
 {
+    // Display the call
+    if (settings.debugNetworkLayer)
+        systemPrintf("Network: Calling networkSequenceExit(%s) from %s at line %d\r\n",
+                     networkInterfaceTable[index].name, fileName, lineNumber);
+
     // Stop the polling for this sequence
     networkSequenceStopPolling(index, debug, true);
 }
@@ -2441,7 +2449,7 @@ void networkVerifyPriority(NetIndex_t index, uintptr_t parameter, bool debug)
         if (debug)
             systemPrintf("%s: Value %d > %d, indicating lower priority, stopping device!\r\n",
                          networkInterfaceTable[index].name, interfacePriority, networkPriority);
-        networkSequenceExit(index, debug);
+        networkSequenceExit(index, debug, __FILE__, __LINE__);
     }
 
     // This device is still the highest priority, continue the delay and

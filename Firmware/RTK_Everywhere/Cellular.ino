@@ -157,7 +157,7 @@ void cellularSimCheck(NetIndex_t index, uintptr_t parameter, bool debug)
     {
         systemPrintf("SIM card not present. Marking cellular offline.\r\n");
         present.cellular_lara = false;
-        networkSequenceExit(index, debug);
+        networkSequenceExit(index, debug, __FILE__, __LINE__);
     }
 }
 

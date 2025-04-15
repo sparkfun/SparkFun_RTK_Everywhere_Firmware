@@ -723,7 +723,7 @@ void wifiStartThrottled(NetIndex_t index, uintptr_t parameter, bool debug)
         // Stop the connection attempts
         wifiResetThrottleTimeout();
         wifiResetTimeout();
-        networkSequenceStopPolling(NETWORK_WIFI_STATION, debug, true);
+        networkSequenceExit(NETWORK_WIFI_STATION, debug, __FILE__, __LINE__);
         return;
     }
 
@@ -836,7 +836,7 @@ void wifiStationRestart(NetIndex_t index, uintptr_t parameter, bool debug)
         // Stop the connection attempts
         wifiResetThrottleTimeout();
         wifiResetTimeout();
-        networkSequenceStopPolling(NETWORK_WIFI_STATION, debug, true);
+        networkSequenceExit(NETWORK_WIFI_STATION, debug, __FILE__, __LINE__);
         return;
     }
 
@@ -898,7 +898,7 @@ void wifiWaitNoUsers(NetIndex_t index, uintptr_t parameter, bool debug)
         // Stop the connection attempts
         wifiResetThrottleTimeout();
         wifiResetTimeout();
-        networkSequenceStopPolling(NETWORK_WIFI_STATION, debug, true);
+        networkSequenceExit(NETWORK_WIFI_STATION, debug, __FILE__, __LINE__);
         return;
     }
 
