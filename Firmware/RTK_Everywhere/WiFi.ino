@@ -861,7 +861,7 @@ void wifiStationRestart(NetIndex_t index, uintptr_t parameter, bool debug)
 // Stop WiFi, used by wifiStopSequence
 void wifiStop(NetIndex_t index, uintptr_t parameter, bool debug)
 {
-    networkInterfaceInternetConnectionLost(NETWORK_WIFI_STATION);
+    networkInterfaceInternetConnectionLost(NETWORK_WIFI_STATION, __FILE__, __LINE__);
 
     // Stop WiFi stataion
     wifi.enable(wifiEspNowRunning, wifiSoftApRunning, false, __FILE__, __LINE__);

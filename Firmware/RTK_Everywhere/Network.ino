@@ -1195,7 +1195,9 @@ void networkInterfaceInternetConnectionAvailable(NetIndex_t index)
 //----------------------------------------
 // Mark network interface as having NO access to the internet
 //----------------------------------------
-void networkInterfaceInternetConnectionLost(NetIndex_t index)
+void networkInterfaceInternetConnectionLost(NetIndex_t index,
+                                            const char * fileName,
+                                            uint32_t lineNumber)
 {
     NetMask_t bitMask;
     NetPriority_t previousPriority;
@@ -1203,6 +1205,11 @@ void networkInterfaceInternetConnectionLost(NetIndex_t index)
 
     // Validate the index
     networkValidateIndex(index);
+
+    // Display the call
+    if (settings.debugNetworkLayer)
+        systemPrintf("Network: Calling networkInterfaceInternetConnectionLost(%s) from %s at line %d\r\n",
+                     networkInterfaceTable[index].name, fileName, lineNumber);
 
     // Clear the event flag
     networkEventInternetLost[index] = false;
@@ -2229,7 +2236,7 @@ void networkUpdate()
         // Handle the network lost internet event
         if (networkEventInternetLost[index])
         {
-            networkInterfaceInternetConnectionLost(index);
+            networkInterfaceInternetConnectionLost(index, __FILE__, __LINE__);
 
             // Attempt to restart WiFi
             if ((index == NETWORK_WIFI_STATION) && (networkIsHighestPriority(index)))
