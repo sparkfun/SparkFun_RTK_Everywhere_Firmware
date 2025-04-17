@@ -2172,18 +2172,6 @@ void GNSS_LG290P::update()
     // We don't check serial data here; the gnssReadTask takes care of serial consumption
 }
 
-#endif // COMPILE_LG290P
-
-//----------------------------------------
-void lg290pBoot()
-{
-    digitalWrite(pin_GNSS_Reset, HIGH); // Tell LG290P to boot
-}
-
-void lg290pReset()
-{
-    digitalWrite(pin_GNSS_Reset, LOW);
-}
 
 // Given a NMEA or PQTM sentence, determine if it is enabled in settings
 // This is used to signal to the processUart1Message() task to remove messages that are needed
@@ -2237,3 +2225,17 @@ bool lg290pMessageEnabled(char *nmeaSentence, int sentenceLength)
     // If we can't ID this message, allow it by default. The device configuration should control most message flow.
     return (true);
 }
+
+#endif // COMPILE_LG290P
+
+//----------------------------------------
+void lg290pBoot()
+{
+    digitalWrite(pin_GNSS_Reset, HIGH); // Tell LG290P to boot
+}
+
+void lg290pReset()
+{
+    digitalWrite(pin_GNSS_Reset, LOW);
+}
+
