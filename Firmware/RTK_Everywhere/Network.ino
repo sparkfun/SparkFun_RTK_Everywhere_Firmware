@@ -2031,7 +2031,7 @@ void networkSoftApConsumerRemove(NETCONSUMER_t consumer, const char * fileName, 
                 systemPrintf("Network: Stopping the soft AP\r\n");
 
             // Turn off the soft AP
-            wifiSoftApOn(__FILE__, __LINE__);
+            wifiSoftApOff(__FILE__, __LINE__);
 
             // Let other tasks handle the network failure
             delay(100);
