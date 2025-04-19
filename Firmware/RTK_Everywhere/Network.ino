@@ -1946,7 +1946,7 @@ void networkSoftApConsumerAdd(NETCONSUMER_t consumer, const char * fileName, uin
             networkSoftApConsumerDisplay();
 
         // Start the networks if necessary
-        if (networkSoftApConsumer == 0)
+        if (previousBits == 0)
         {
             wifiSoftApOn(__FILE__, __LINE__);
             if (settings.debugNetworkLayer)
