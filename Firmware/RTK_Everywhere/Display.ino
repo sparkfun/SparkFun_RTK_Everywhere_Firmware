@@ -99,6 +99,7 @@ static QwiicCustomOLED *oled = nullptr;
 // Fonts
 #include <res/qw_fnt_5x7.h>
 #include <res/qw_fnt_8x16.h>
+#include <res/qw_fnt_31x48.h>
 #include <res/qw_fnt_largenum.h>
 
 // Icons
@@ -2268,6 +2269,20 @@ void displayFirmwareUpdateProgress(int percentComplete)
 void displayEventMarked(uint16_t displayTime)
 {
     displayMessage("Event Marked", displayTime);
+}
+
+// Print the error message every 15 seconds
+void displayHalt()
+{
+    if (online.display)
+    {
+        oled->erase(); // Clear the display's internal buffer
+        int yPos = (oled->getHeight() - 16) / 2;
+        QwiicFont * font = (oled->getWidth() > 64) ? (QwiicFont *)&QW_FONT_31X48
+                                                   : (QwiicFont *)&QW_FONT_8X16;
+        printTextCenter("Halt", yPos, *font, 1, false); // text, y, font type, kerning, inverted
+        oled->display(); // Push internal buffer to display
+    }
 }
 
 void displayNoLogging(uint16_t displayTime)
