@@ -543,8 +543,6 @@ IPAddress networkGetIpAddress()
 //----------------------------------------
 const uint8_t *networkGetMacAddress()
 {
-    static const uint8_t zero[6] = {0, 0, 0, 0, 0, 0};
-
 #ifdef COMPILE_BT
     if (bluetoothGetState() != BT_OFF)
         return btMACAddress;
@@ -557,7 +555,9 @@ const uint8_t *networkGetMacAddress()
     if (networkInterfaceHasInternet(NETWORK_ETHERNET))
         return ethernetMACAddress;
 #endif // COMPILE_ETHERNET
-    return zero;
+
+    // Use Bluetooth MAC address when nothing else is available
+    return btMACAddress;
 }
 
 //----------------------------------------
