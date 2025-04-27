@@ -169,6 +169,7 @@ const uint16_t HTTPS_PORT = 443;                                                
 #include <PPP.h>
 #endif // COMPILE_CELLULAR
 
+#include <esp_mac.h>    // MAC address support
 #include "settings.h"
 
 #define MAX_CPU_CORES 2

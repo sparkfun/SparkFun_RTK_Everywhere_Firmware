@@ -868,3 +868,18 @@ void trim(char *str)
 
     memmove(str, p, l + 1);
 }
+
+// Read the MAC addresses directly from the chip
+void getMacAddresses(uint8_t * macAddress, const char * name, esp_mac_type_t type, bool debug)
+{
+    esp_err_t status;
+
+    status = esp_read_mac(macAddress, type);
+    if (status)
+        systemPrintf("ERROR: Failed to get %s, status: %d, %s\r\n", name, status, esp_err_to_name(status));
+    if (debug)
+        systemPrintf("%02x:%02x:%02x:%02x:%02x:%02x - %s\r\n",
+                     macAddress[0], macAddress[1], macAddress[2],
+                     macAddress[3], macAddress[4], macAddress[5],
+                     name);
+};
