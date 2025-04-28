@@ -1403,7 +1403,47 @@ SettingValueResponse updateSettingWithValue(bool inCommands, const char *setting
     // Last catch
     if (knownSetting == false)
     {
-        systemPrintf("Unknown '%s': %0.3lf\r\n", settingName, settingValue);
+        size_t length;
+        char * name;
+        char * suffix;
+
+        // Allocate the buffers
+        length = strlen(settingName) + 1;
+        name = (char * )rtkMalloc(2 * length, "name & suffix buffers");
+        if (name == nullptr)
+            systemPrintf("ERROR: Failed allocation, Unknown '%s': %0.3lf\r\n", settingName, settingValue);
+        else
+        {
+            int rtkIndex;
+
+            suffix = &name[length];
+
+            // Split the name
+            commandSplitName(settingName, name, length, suffix, length);
+
+            // Loop through the settings entries
+            for (rtkIndex = 0; rtkIndex < numRtkSettingsEntries; rtkIndex++)
+            {
+                const char * command = rtkSettingsEntries[rtkIndex].name;
+
+                // For speed, compare the first letter, then the whole string
+                if ((command[0] == settingName[0]) && (strcmp(command, name) == 0))
+                    break;
+            }
+
+            if (rtkIndex >= numRtkSettingsEntries)
+                systemPrintf("ERROR: Unknown '%s': %0.3lf\r\n", settingName, settingValue);
+            else
+            {
+                // Display the warning
+                if (settings.debugWebServer == true)
+                    systemPrintf("Warning: InCommands is false for '%s': %0.3lf\r\n", settingName, settingValue);
+                knownSetting = true;
+            }
+        }
+
+        // Done with the buffer
+        rtkFree(name, "name & suffix buffers");
     }
 
     if (knownSetting == true && settingIsString == true)
