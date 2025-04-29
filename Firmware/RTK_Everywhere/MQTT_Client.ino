@@ -154,7 +154,9 @@ static uint32_t mqttClientTimer;
 // MQTT Client Routines
 //----------------------------------------
 
+//----------------------------------------
 // Determine if another connection is possible or if the limit has been reached
+//----------------------------------------
 bool mqttClientConnectLimitReached()
 {
     bool limitReached;
@@ -204,6 +206,9 @@ bool mqttClientConnectLimitReached()
     return limitReached;
 }
 
+//----------------------------------------
+// Determine if the client is connected to the services
+//----------------------------------------
 bool mqttClientIsConnected()
 {
     if (mqttClientState == MQTT_CLIENT_SERVICES_CONNECTED)
@@ -239,6 +244,9 @@ bool mqttClientIsNeeded()
     return true;
 }
 
+//----------------------------------------
+// Determine if the client is connected to the services
+//----------------------------------------
 // Return true if we are in states that require network access
 bool mqttClientNeedsNetwork()
 {
@@ -247,7 +255,9 @@ bool mqttClientNeedsNetwork()
     return false;
 }
 
+//----------------------------------------
 // Print the MQTT client state summary
+//----------------------------------------
 void mqttClientPrintStateSummary()
 {
     switch (mqttClientState)
@@ -274,7 +284,9 @@ void mqttClientPrintStateSummary()
     }
 }
 
+//----------------------------------------
 // Print the MQTT Client status
+//----------------------------------------
 void mqttClientPrintStatus()
 {
     uint32_t days;
@@ -321,7 +333,9 @@ void mqttClientPrintStatus()
     }
 }
 
+//----------------------------------------
 // Called when a subscribed message arrives
+//----------------------------------------
 void mqttClientReceiveMessage(int messageSize)
 {
     // The Level 3 localized distribution dictionary topic can be up to 25KB
@@ -587,7 +601,9 @@ void mqttClientReceiveMessage(int messageSize)
     }
 }
 
+//----------------------------------------
 // Restart the MQTT client
+//----------------------------------------
 void mqttClientRestart()
 {
     // Save the previous uptime value
@@ -596,7 +612,9 @@ void mqttClientRestart()
     mqttClientConnectLimitReached();
 }
 
+//----------------------------------------
 // Update the state of the MQTT client state machine
+//----------------------------------------
 void mqttClientSetState(uint8_t newState)
 {
     if (settings.debugMqttClientState || PERIODIC_DISPLAY(PD_MQTT_CLIENT_STATE))
@@ -637,13 +655,17 @@ void mqttClientSetState(uint8_t newState)
     }
 }
 
+//----------------------------------------
 // Shutdown the MQTT client
+//----------------------------------------
 void mqttClientShutdown()
 {
     MQTT_CLIENT_STOP(true);
 }
 
+//----------------------------------------
 // Shutdown or restart the MQTT client
+//----------------------------------------
 void mqttClientStop(bool shutdown)
 {
     // Display the uptime
@@ -711,9 +733,11 @@ void mqttClientStop(bool shutdown)
         mqttClientSetState(MQTT_CLIENT_ON);
 }
 
+//----------------------------------------
 // Check for the arrival of any correction data. Push it to the GNSS.
 // Stop task if the connection has dropped or if we receive no data for
 // MQTT_CLIENT_RECEIVE_DATA_TIMEOUT
+//----------------------------------------
 void mqttClientUpdate()
 {
     bool enableMqttClient = mqttClientIsNeeded();
@@ -1077,7 +1101,9 @@ void mqttClientUpdate()
         mqttClientSetState(mqttClientState);
 }
 
+//----------------------------------------
 // Verify the MQTT client tables
+//----------------------------------------
 void mqttClientValidateTables()
 {
     if (mqttClientStateNameEntries != MQTT_CLIENT_STATE_MAX)
