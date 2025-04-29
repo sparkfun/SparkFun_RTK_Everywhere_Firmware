@@ -375,23 +375,14 @@ bool checkCertificates()
     char *keyContents = nullptr;
 
     // Allocate the buffers
-    if (online.psram == true)
-    {
-        certificateContents = (char *)ps_malloc(MQTT_CERT_SIZE);
-        keyContents = (char *)ps_malloc(MQTT_CERT_SIZE);
-    }
-    else
-    {
-        certificateContents = (char *)malloc(MQTT_CERT_SIZE);
-        keyContents = (char *)malloc(MQTT_CERT_SIZE);
-    }
-
+    certificateContents = (char *)rtkMalloc(MQTT_CERT_SIZE, "Certificate buffer (certificateContents)");
+    keyContents = (char *)rtkMalloc(MQTT_CERT_SIZE, "Certificate buffer (keyContents)");
     if ((!certificateContents) || (!keyContents))
     {
         if (certificateContents)
-            free(certificateContents);
+            rtkFree(certificateContents, "Certificate buffer (certificateContents)");
         if (keyContents)
-            free(keyContents);
+            rtkFree(keyContents, "Certificate buffer (keyContents)");
         systemPrintln("Failed to allocate content buffers!");
         return (false);
     }

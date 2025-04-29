@@ -819,7 +819,7 @@ void stopWebServer()
     if (webServer != nullptr)
     {
         webServer->close();
-        free(webServer);
+        delete webServer;
         webServer = nullptr;
     }
 
@@ -828,13 +828,13 @@ void stopWebServer()
 
     if (settingsCSV != nullptr)
     {
-        free(settingsCSV);
+        rtkFree(settingsCSV, "Settings buffer (settingsCSV)");
         settingsCSV = nullptr;
     }
 
     if (incomingSettings != nullptr)
     {
-        free(incomingSettings);
+        rtkFree(incomingSettings, "Settings buffer (incomingSettings)");
         incomingSettings = nullptr;
     }
 }
@@ -880,28 +880,20 @@ bool webServerAssignResources(int httpPort = 80)
     do
     {
         // Freed by webServerStop
-        if (online.psram == true)
-            incomingSettings = (char *)ps_malloc(AP_CONFIG_SETTING_SIZE);
-        else
-            incomingSettings = (char *)malloc(AP_CONFIG_SETTING_SIZE);
-
+        incomingSettings = (char *)rtkMalloc(AP_CONFIG_SETTING_SIZE, "Settings buffer (incomingSettings)");
         if (!incomingSettings)
         {
-            systemPrintln("ERROR: Failed to allocate incomingSettings");
+            systemPrintln("ERROR: Web server failed to allocate incomingSettings");
             break;
         }
         memset(incomingSettings, 0, AP_CONFIG_SETTING_SIZE);
 
         // Pre-load settings CSV
         // Freed by webServerStop
-        if (online.psram == true)
-            settingsCSV = (char *)ps_malloc(AP_CONFIG_SETTING_SIZE);
-        else
-            settingsCSV = (char *)malloc(AP_CONFIG_SETTING_SIZE);
-
+        settingsCSV = (char *)rtkMalloc(AP_CONFIG_SETTING_SIZE, "Settings buffer (settingsCSV)");
         if (!settingsCSV)
         {
-            systemPrintln("ERROR: Failed to allocate settingsCSV");
+            systemPrintln("ERROR: Web server failed to allocate settingsCSV");
             break;
         }
         createSettingsString(settingsCSV);
@@ -917,7 +909,7 @@ bool webServerAssignResources(int httpPort = 80)
         webServer = new WebServer(httpPort);
         if (!webServer)
         {
-            systemPrintln("ERROR: Failed to allocate webServer");
+            systemPrintln("ERROR: Web server failed to allocate webServer");
             break;
         }
 
@@ -1195,7 +1187,7 @@ void webServerReleaseResources()
     if (webServer != nullptr)
     {
         webServer->close();
-        free(webServer);
+        delete webServer;
         webServer = nullptr;
     }
 
@@ -1204,13 +1196,13 @@ void webServerReleaseResources()
 
     if (settingsCSV != nullptr)
     {
-        free(settingsCSV);
+        rtkFree(settingsCSV, "Settings buffer (settingsCSV)");
         settingsCSV = nullptr;
     }
 
     if (incomingSettings != nullptr)
     {
-        free(incomingSettings);
+        rtkFree(incomingSettings, "Settings buffer (incomingSettings)");
         incomingSettings = nullptr;
     }
 }
@@ -1425,11 +1417,7 @@ static esp_err_t ws_handler(httpd_req_t *req)
     if (ws_pkt.len)
     {
         /* ws_pkt.len + 1 is for NULL termination as we are expecting a string */
-        if (online.psram == true)
-            buf = (uint8_t *)ps_malloc(ws_pkt.len + 1);
-        else
-            buf = (uint8_t *)malloc(ws_pkt.len + 1);
-
+        buf = (uint8_t *)rtkMalloc(ws_pkt.len + 1, "Payload buffer (buf)");
         if (buf == NULL)
         {
             systemPrintln("Failed to malloc memory for buf");
@@ -1441,7 +1429,7 @@ static esp_err_t ws_handler(httpd_req_t *req)
         if (ret != ESP_OK)
         {
             systemPrintf("httpd_ws_recv_frame failed with %d\r\n", ret);
-            free(buf);
+            rtkFree(buf, "Payload buffer (buf)");
             return ret;
         }
     }
@@ -1486,7 +1474,7 @@ static esp_err_t ws_handler(httpd_req_t *req)
         websocketConnected = false;
     }
 
-    free(buf);
+    rtkFree(buf, "Payload buffer (buf)");
     return ret;
 }
 

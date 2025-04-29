@@ -989,12 +989,7 @@ void beginGnssUart()
 
     // Never freed...
     if (rbOffsetArray == nullptr)
-    {
-        if (online.psram == true)
-            rbOffsetArray = (RING_BUFFER_OFFSET *)ps_malloc(length);
-        else
-            rbOffsetArray = (RING_BUFFER_OFFSET *)malloc(length);
-    }
+        rbOffsetArray = (RING_BUFFER_OFFSET *)rtkMalloc(length, "Ring buffer (rbOffsetArray)");
 
     if (!rbOffsetArray)
     {

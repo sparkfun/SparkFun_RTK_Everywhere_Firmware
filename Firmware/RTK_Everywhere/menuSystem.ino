@@ -793,6 +793,8 @@ void menuDebugSoftware()
 
         systemPrintf("3) WiFi Connect Timeout (ms): %d\r\n", settings.wifiConnectTimeoutMs);
 
+        systemPrintf("4) Debug malloc/free and new/delete: %s\r\n", settings.debugMalloc ? "Enabled" : "Disabled");
+
         // Ring buffer
         systemPrint("10) Print ring buffer offsets: ");
         systemPrintf("%s\r\n", settings.enablePrintRingBufferOffsets ? "Enabled" : "Disabled");
@@ -856,6 +858,8 @@ void menuDebugSoftware()
         {
             getNewSetting("Enter WiFi connect timeout in ms", 1000, 120000, &settings.wifiConnectTimeoutMs);
         }
+        else if (incoming == 4)
+            settings.debugMalloc ^= 1;
         else if (incoming == 10)
             settings.enablePrintRingBufferOffsets ^= 1;
         else if (incoming == 11)

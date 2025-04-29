@@ -474,10 +474,7 @@ void httpClientUpdate()
             }
             else
             {
-                if (online.psram == true)
-                    tempHolderPtr = (char *)ps_malloc(MQTT_CERT_SIZE);
-                else
-                    tempHolderPtr = (char *)malloc(MQTT_CERT_SIZE);
+                tempHolderPtr = (char *)rtkMalloc(MQTT_CERT_SIZE, "Certificate buffer (tempHolderPtr)");
 
                 if (!tempHolderPtr)
                 {
@@ -491,7 +488,7 @@ void httpClientUpdate()
                 strncpy(tempHolderPtr, (const char *)((*jsonZtp)["privateKey"]), MQTT_CERT_SIZE - 1);
                 recordFile("privateKey", tempHolderPtr, strlen(tempHolderPtr));
 
-                free(tempHolderPtr); // Clean up. Done with tempHolderPtr
+                rtkFree(tempHolderPtr, "Certificate buffer (tempHolderPtr)"); // Clean up. Done with tempHolderPtr
 
                 // Validate the keys
                 if (!checkCertificates())

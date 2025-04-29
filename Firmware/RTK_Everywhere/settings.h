@@ -658,7 +658,7 @@ struct Settings
     // Signatures to indicate how the GNSS is configured (Once, Base, Rover, etc.)
     // Bit 0 indicates if the GNSS has been configured previously.
     // Bits 1 onwards record the state of critical settings. E.g. settings.enablePointPerfectCorrections
-    // Configuration is reapplied if any of those critical settings have changed 
+    // Configuration is reapplied if any of those critical settings have changed
     bool gnssConfiguredOnce = false;
     bool gnssConfiguredBase = false;
     bool gnssConfiguredRover = false;
@@ -1004,12 +1004,14 @@ struct Settings
     int lg290pMessageRatesRTCMRover[MAX_LG290P_RTCM_MSG] = {
         254}; // Mark first record with key so defaults will be applied. Int value for each supported message - Report
               // rates for RTCM Base. Default to Quectel recommended rates.
-    int lg290pMessageRatesPQTM[MAX_LG290P_PQTM_MSG] = {254}; // Mark first record with key so defaults will be applied. 
+    int lg290pMessageRatesPQTM[MAX_LG290P_PQTM_MSG] = {254}; // Mark first record with key so defaults will be applied.
 #endif // COMPILE_LG290P
 
     bool debugSettings = false;
     bool enableNtripCaster = false; //When true, respond as a faux NTRIP Caster to incoming TCP connections
     bool baseCasterOverride = false; //When true, user has put device into 'BaseCast' mode. Change settings, but don't save to NVM.
+
+    bool debugMalloc = false;
 
     // Add new settings to appropriate group above or create new group
     // Then also add to the same group in rtkSettingsEntries below
@@ -1370,6 +1372,7 @@ const RTK_Settings_Entry rtkSettingsEntries[] =
     { 0, 0, 0, 1, 1, 1, 1, 1, 1, _uint8_t,  0, & settings.bluetoothInterruptsCore, "bluetoothInterruptsCore",  },
     { 0, 0, 0, 1, 1, 1, 1, 1, 1, _uint8_t,  0, & settings.btReadTaskCore, "btReadTaskCore",  },
     { 0, 0, 0, 1, 1, 1, 1, 1, 1, _uint8_t,  0, & settings.btReadTaskPriority, "btReadTaskPriority",  },
+    { 0, 1, 0, 1, 1, 1, 1, 1, 1, _bool,     0, & settings.debugMalloc, "debugMalloc",  },
     { 0, 0, 0, 1, 1, 1, 1, 1, 1, _bool,     0, & settings.enableHeapReport, "enableHeapReport",  },
     { 0, 0, 0, 1, 1, 1, 1, 1, 1, _bool,     0, & settings.enablePrintIdleTime, "enablePrintIdleTime",  },
     { 0, 0, 0, 1, 1, 1, 1, 1, 1, _bool,     0, & settings.enablePsram, "enablePsram",  },

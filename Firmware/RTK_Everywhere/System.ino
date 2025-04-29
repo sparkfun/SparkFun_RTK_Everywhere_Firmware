@@ -21,6 +21,64 @@ void beginPsram()
     }
 }
 
+// Free memory to PSRAM when available
+void rtkFree(void * data, const char * text)
+{
+    if (settings.debugMalloc)
+        systemPrintf("%p: Freeing %s\r\n", data, text);
+    free(data);
+}
+
+// Allocate memory from PSRAM when available
+void * rtkMalloc(size_t sizeInBytes, const char * text)
+{
+    const char * area;
+    void * data;
+
+    if (online.psram == true)
+    {
+        area = "PSRAM";
+        data = ps_malloc(sizeInBytes);
+    }
+    else
+    {
+        area = "RAM";
+        data = malloc(sizeInBytes);
+    }
+
+    // Display the allocation
+    if (settings.debugMalloc)
+    {
+        if (data)
+            systemPrintf("%p, %s %d bytes allocated: %s\r\n", data, area, sizeInBytes, text);
+        else
+            systemPrintf("Failed to allocate %d bytes from %s: %s\r\n", sizeInBytes, area, text);
+    }
+    return data;
+}
+
+// See https://en.cppreference.com/w/cpp/memory/new/operator_delete
+void operator delete(void * ptr) noexcept
+{
+    rtkFree(ptr, "buffer");
+}
+
+void operator delete[](void * ptr) noexcept
+{
+    rtkFree(ptr, "array");
+}
+
+// See https://en.cppreference.com/w/cpp/memory/new/operator_new
+void * operator new(std::size_t count)
+{
+    return rtkMalloc(count, "new buffer");
+}
+
+void * operator new[](std::size_t count)
+{
+    return rtkMalloc(count, "new array");
+}
+
 // Continue showing display until time threshold
 void finishDisplay()
 {
