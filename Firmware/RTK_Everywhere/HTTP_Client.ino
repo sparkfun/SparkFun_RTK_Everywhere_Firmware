@@ -524,39 +524,13 @@ void httpClientUpdate()
                 if (response.indexOf("rtcmCredentials") >= 0)
                 {
                     // Handle a PointPerfect RTCM credentials response
+                    systemPrintf("PointPerfect response: %s\r\n", response.c_str());
 
-                    // Get endPoint aka Caster host address/port based on Geographic Region selected by user
-                    int region = -1;
-                    if (strcmp(Regional_Information_Table[settings.geographicRegion].name, "US") == 0)
-                    {
-                        // Find the JSON entry with "region":"NorthAmerica" and extract "endpoint"
-                        region =
-                            findZtpJSONEntryTTnT("rtcmCredentials", "endPoints", "region", "North America", jsonZtp);
-                    }
-                    else if (strcmp(Regional_Information_Table[settings.geographicRegion].name, "EU") == 0)
-                    {
-                        // Find the JSON entry with "region":"Europe" and extract "endpoint"
-                        region = findZtpJSONEntryTTnT("rtcmCredentials", "endPoints", "region", "Europe", jsonZtp);
-                    }
-
-                    if (region >= 0)
-                    {
-                        strncpy(settings.ntripClient_CasterHost,
-                                (const char *)((*jsonZtp)["rtcmCredentials"]["endPoints"][region]["endpoint"]),
-                                sizeof(settings.ntripClient_CasterHost));
-                        settings.ntripClient_CasterPort =
-                            (*jsonZtp)["rtcmCredentials"]["endPoints"][region]["httpPort"];
-                    }
-                    else
-                    {
-                        // Give up
-                        systemPrintf("Region not found in PointPerfect response: %s\r\n", response.c_str());
-
-                        httpClientSetState(HTTP_CLIENT_COMPLETE);
-
-                        break;
-                    }
-
+                    strncpy(settings.ntripClient_CasterHost,
+                            (const char *)((*jsonZtp)["rtcmCredentials"]["endpoint"]),
+                            sizeof(settings.ntripClient_CasterHost));
+                    settings.ntripClient_CasterPort = (*jsonZtp)["rtcmCredentials"]["httpPort"];
+                    
                     // If region is determined, override NTRIP Settings
                     settings.enableNtripClient = true;
                     settings.ntripClient_TransmitGGA = true;
