@@ -154,34 +154,6 @@ static uint32_t mqttClientTimer;
 // MQTT Client Routines
 //----------------------------------------
 
-bool mqttClientIsNeeded()
-{
-    // If PointPerfectCorrections are not enabled, return false
-    if (!settings.enablePointPerfectCorrections)
-        return false;
-
-    // For the mosaic-X5, settings.enablePointPerfectCorrections will be true if
-    // we are using the PPL and getting keys via ZTP. BUT the Facet mosaic-X5
-    // uses the L-Band (only) plan. It should not and can not subscribe to PP IP
-    // MQTT corrections. So, return false - even though the L-Band frequencies topic
-    // and key distribution topic could be beneficial.
-    // We could use present.gnss_mosaicX5, but let's not. See notes on EVK below.
-    if (productVariant == RTK_FACET_MOSAIC)
-        return false;
-
-    // For the Facet v2 L-Band, the same is true. It uses the L-Band (only) plan.
-    // We get keys during ZTP (HTTP_Client). It should not and can not subscribe
-    // to PP IP MQTT corrections. So, return true only if AssistNow is enabled -
-    // even though the L-Band frequencies topic and key distribution topic could
-    // be beneficial.
-    // Note: EVK supports both L-Band and IP, so we cannot use present.lband_neo
-    if (productVariant == RTK_FACET_V2_LBAND)
-        if (!settings.useAssistNow)
-            return false;
-
-    return true;
-}
-
 // Determine if another connection is possible or if the limit has been reached
 bool mqttClientConnectLimitReached()
 {
@@ -230,6 +202,49 @@ bool mqttClientConnectLimitReached()
         systemPrintln("MQTT Client connection attempts exceeded!");
 
     return limitReached;
+}
+
+bool mqttClientIsConnected()
+{
+    if (mqttClientState == MQTT_CLIENT_SERVICES_CONNECTED)
+        return true;
+    return false;
+}
+
+bool mqttClientIsNeeded()
+{
+    // If PointPerfectCorrections are not enabled, return false
+    if (!settings.enablePointPerfectCorrections)
+        return false;
+
+    // For the mosaic-X5, settings.enablePointPerfectCorrections will be true if
+    // we are using the PPL and getting keys via ZTP. BUT the Facet mosaic-X5
+    // uses the L-Band (only) plan. It should not and can not subscribe to PP IP
+    // MQTT corrections. So, return false - even though the L-Band frequencies topic
+    // and key distribution topic could be beneficial.
+    // We could use present.gnss_mosaicX5, but let's not. See notes on EVK below.
+    if (productVariant == RTK_FACET_MOSAIC)
+        return false;
+
+    // For the Facet v2 L-Band, the same is true. It uses the L-Band (only) plan.
+    // We get keys during ZTP (HTTP_Client). It should not and can not subscribe
+    // to PP IP MQTT corrections. So, return true only if AssistNow is enabled -
+    // even though the L-Band frequencies topic and key distribution topic could
+    // be beneficial.
+    // Note: EVK supports both L-Band and IP, so we cannot use present.lband_neo
+    if (productVariant == RTK_FACET_V2_LBAND)
+        if (!settings.useAssistNow)
+            return false;
+
+    return true;
+}
+
+// Return true if we are in states that require network access
+bool mqttClientNeedsNetwork()
+{
+    if (mqttClientState >= MQTT_CLIENT_WAIT_FOR_NETWORK && mqttClientState <= MQTT_CLIENT_SERVICES_CONNECTED)
+        return true;
+    return false;
 }
 
 // Print the MQTT client state summary
@@ -696,14 +711,6 @@ void mqttClientStop(bool shutdown)
         mqttClientSetState(MQTT_CLIENT_ON);
 }
 
-// Return true if we are in states that require network access
-bool mqttClientNeedsNetwork()
-{
-    if (mqttClientState >= MQTT_CLIENT_WAIT_FOR_NETWORK && mqttClientState <= MQTT_CLIENT_SERVICES_CONNECTED)
-        return true;
-    return false;
-}
-
 // Check for the arrival of any correction data. Push it to the GNSS.
 // Stop task if the connection has dropped or if we receive no data for
 // MQTT_CLIENT_RECEIVE_DATA_TIMEOUT
@@ -882,10 +889,10 @@ void mqttClientUpdate()
         {
             mqttSubscribeTopics.push_back(MQTT_TOPIC_ASSISTNOW);
         }
-        
+
         // Subscribe to the key distribution topic
         mqttSubscribeTopics.push_back(String(settings.pointPerfectKeyDistributionTopic));
-        
+
         // Subscribe to the continental correction topic for our region - if we have one. L-Band-only does not.
         if (strlen(settings.regionalCorrectionTopics[settings.geographicRegion]) > 0)
         {
@@ -1075,13 +1082,6 @@ void mqttClientValidateTables()
 {
     if (mqttClientStateNameEntries != MQTT_CLIENT_STATE_MAX)
         reportFatalError("Fix mqttClientStateNameEntries to match MQTTClientState");
-}
-
-bool mqttClientIsConnected()
-{
-    if (mqttClientState == MQTT_CLIENT_SERVICES_CONNECTED)
-        return true;
-    return false;
 }
 
 #endif // COMPILE_MQTT_CLIENT
