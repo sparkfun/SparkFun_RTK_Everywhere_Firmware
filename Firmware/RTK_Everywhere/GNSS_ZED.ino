@@ -1050,6 +1050,19 @@ uint8_t GNSS_ZED::getActiveMessageCount()
 }
 
 //----------------------------------------
+// Return the number of active/enabled RTCM messages
+//----------------------------------------
+uint8_t GNSS_ZED::getActiveRtcmMessageCount()
+{
+    uint8_t count = 0;
+
+    for (int x = 0; x < MAX_UBX_MSG; x++)
+        if (settings.ubxMessageRatesBase[x] > 0)
+            count++;
+    return (count);
+}
+
+//----------------------------------------
 //   Returns the altitude in meters or zero if the GNSS is offline
 //----------------------------------------
 double GNSS_ZED::getAltitude()

@@ -151,6 +151,12 @@ class GNSS_None : public GNSS
         return 0;
     }
 
+    // Return the number of active/enabled RTCM messages
+    uint8_t getActiveRtcmMessageCount()
+    {
+        return 0;
+    }
+
     // Get the altitude
     // Outputs:
     //   Returns the altitude in meters or zero if the GNSS is offline
