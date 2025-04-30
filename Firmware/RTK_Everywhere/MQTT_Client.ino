@@ -95,8 +95,8 @@ static const int MQTT_CLIENT_DATA_TIMEOUT = (30 * 1000); // milliseconds
 enum MQTTClientState
 {
     MQTT_CLIENT_OFF = 0,             // Using Bluetooth or NTRIP server
-    MQTT_CLIENT_ON,                  // WIFI_STATE_START state
-    MQTT_CLIENT_WAIT_FOR_NETWORK,     // Connecting to WiFi access point or Ethernet
+    MQTT_CLIENT_WAIT_FOR_NETWORK,    // Connecting to WiFi access point or Ethernet
+    MQTT_CLIENT_CONNECTION_DELAY,    // Delay before using the network
     MQTT_CLIENT_CONNECTING_2_SERVER, // Connecting to the MQTT server
     MQTT_CLIENT_SERVICES_CONNECTED,  // Connected to the MQTT services
     // Insert new states here
@@ -105,8 +105,8 @@ enum MQTTClientState
 
 const char *const mqttClientStateName[] = {
     "MQTT_CLIENT_OFF",
-    "MQTT_CLIENT_ON",
     "MQTT_CLIENT_WAIT_FOR_NETWORK",
+    "MQTT_CLIENT_CONNECTION_DELAY",
     "MQTT_CLIENT_CONNECTING_2_SERVER",
     "MQTT_CLIENT_SERVICES_CONNECTED",
 };
@@ -323,8 +323,8 @@ void mqttClientPrintStateSummary()
         systemPrint("Off");
         break;
 
-    case MQTT_CLIENT_ON:
     case MQTT_CLIENT_WAIT_FOR_NETWORK:
+    case MQTT_CLIENT_CONNECTION_DELAY:
         systemPrint("Disconnected");
         break;
 
@@ -1026,7 +1026,7 @@ void mqttClientStop(bool shutdown)
     reportHeapNow(settings.debugMqttClientState);
 
     // Increase timeouts if we started the network
-    if (mqttClientState > MQTT_CLIENT_ON)
+    if (mqttClientState > MQTT_CLIENT_WAIT_FOR_NETWORK)
         // Mark the Client stop so that we don't immediately attempt re-connect to Caster
         mqttClientTimer = millis();
 
@@ -1043,7 +1043,7 @@ void mqttClientStop(bool shutdown)
         mqttClientConnectionAttemptTimeout = 0;
     }
     else
-        mqttClientSetState(MQTT_CLIENT_ON);
+        mqttClientSetState(MQTT_CLIENT_WAIT_FOR_NETWORK);
 }
 
 //----------------------------------------
@@ -1085,15 +1085,6 @@ void mqttClientUpdate()
         break;
     }
 
-    // Start the network
-    case MQTT_CLIENT_ON: {
-        if ((millis() - mqttClientTimer) > mqttClientConnectionAttemptTimeout)
-        {
-            mqttClientSetState(MQTT_CLIENT_WAIT_FOR_NETWORK);
-        }
-        break;
-    }
-
     // Wait for a network media connection
     case MQTT_CLIENT_WAIT_FOR_NETWORK: {
         // Determine if MQTT was turned off
@@ -1102,7 +1093,16 @@ void mqttClientUpdate()
 
         // Wait until the network is connected to the media
         else if (networkHasInternet())
+            mqttClientSetState(MQTT_CLIENT_CONNECTION_DELAY);
+        break;
+    }
+
+    // Delay before using the network
+    case MQTT_CLIENT_CONNECTION_DELAY: {
+        if ((millis() - mqttClientTimer) > mqttClientConnectionAttemptTimeout)
+        {
             mqttClientSetState(MQTT_CLIENT_CONNECTING_2_SERVER);
+        }
         break;
     }
 
