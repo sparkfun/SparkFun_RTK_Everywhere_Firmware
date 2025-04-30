@@ -157,6 +157,153 @@ void menuFirmware()
 // Firmware update code
 //----------------------------------------
 
+// Version number comes in as v2.7-Jan 5 2023
+// Given a char string, break into version number major/minor, year, month, day
+// Returns false if parsing failed
+bool breakVersionIntoParts(char *version, int *versionNumberMajor, int *versionNumberMinor, int *year, int *month,
+                           int *day)
+{
+    char monthStr[20];
+    int placed = 0;
+
+    if (enableRCFirmware == false)
+    {
+        placed = sscanf(version, "%d.%d", versionNumberMajor, versionNumberMinor);
+        if (placed != 2)
+        {
+            log_d("Failed to sscanf basic");
+            return (false); // Something went wrong
+        }
+    }
+    else
+    {
+        placed = sscanf(version, "%d.%d-%s %d %d", versionNumberMajor, versionNumberMinor, monthStr, day, year);
+
+        if (placed != 5)
+        {
+            log_d("Failed to sscanf RC");
+            return (false); // Something went wrong
+        }
+
+        (*month) = mapMonthName(monthStr);
+        if (*month == -1)
+            return (false); // Something went wrong
+    }
+
+    return (true);
+}
+
+// Format the firmware version
+void formatFirmwareVersion(uint8_t major, uint8_t minor, char *buffer, int bufferLength, bool includeDate)
+{
+    char prefix;
+
+    // Construct the full or release candidate version number
+    prefix = ENABLE_DEVELOPER ? 'd' : 'v';
+    if (enableRCFirmware && (bufferLength >= 21))
+        // 123456789012345678901
+        // pxxx.yyy-dd-mmm-yyyy0
+        snprintf(buffer, bufferLength, "%c%d.%d-%s", prefix, major, minor, __DATE__);
+
+    // Construct a truncated version number
+    else if (bufferLength >= 9)
+        // 123456789
+        // pxxx.yyy0
+        snprintf(buffer, bufferLength, "%c%d.%d", prefix, major, minor);
+
+    // The buffer is too small for the version number
+    else
+    {
+        systemPrintf("ERROR: Buffer too small for version number!\r\n");
+        if (bufferLength > 0)
+            *buffer = 0;
+    }
+}
+
+// Get the current firmware version
+void getFirmwareVersion(char *buffer, int bufferLength, bool includeDate)
+{
+    formatFirmwareVersion(FIRMWARE_VERSION_MAJOR, FIRMWARE_VERSION_MINOR, buffer, bufferLength, includeDate);
+}
+
+// Returns true if otaReportedVersion is newer than currentVersion
+// Version number comes in as v2.7-Jan 5 2023
+// 2.7-Jan 5 2023 is newer than v2.7-Jan 1 2023
+// We can't use just the float number: v3.12 is a greater version than v3.9 but it is a smaller float number
+bool isReportedVersionNewer(char *reportedVersion, char *currentVersion)
+{
+    int currentVersionNumberMajor = 0;
+    int currentVersionNumberMinor = 0;
+    int currentDay = 0;
+    int currentMonth = 0;
+    int currentYear = 0;
+
+    int reportedVersionNumberMajor = 0;
+    int reportedVersionNumberMinor = 0;
+    int reportedDay = 0;
+    int reportedMonth = 0;
+    int reportedYear = 0;
+
+    breakVersionIntoParts(currentVersion, &currentVersionNumberMajor, &currentVersionNumberMinor, &currentYear,
+                          &currentMonth, &currentDay);
+    breakVersionIntoParts(reportedVersion, &reportedVersionNumberMajor, &reportedVersionNumberMinor, &reportedYear,
+                          &reportedMonth, &reportedDay);
+
+    if (settings.debugFirmwareUpdate)
+    {
+        systemPrintf("currentVersion (%s): %d.%d %d %d %d\r\n", currentVersion, currentVersionNumberMajor,
+                     currentVersionNumberMinor, currentYear, currentMonth, currentDay);
+        systemPrintf("reportedVersion (%s): %d.%d %d %d %d\r\n", reportedVersion, reportedVersionNumberMajor,
+                     reportedVersionNumberMinor, reportedYear, reportedMonth, reportedDay);
+        if (enableRCFirmware)
+            systemPrintln("RC firmware enabled");
+    }
+
+    // Production firmware is named "2.6"
+    // Release Candidate firmware is named "2.6-Dec 5 2022"
+
+    // If the user is not using Release Candidate firmware, then check only the version number
+    if (enableRCFirmware == false)
+    {
+        if (reportedVersionNumberMajor > currentVersionNumberMajor)
+            return (true);
+        if (reportedVersionNumberMajor == currentVersionNumberMajor &&
+            reportedVersionNumberMinor > currentVersionNumberMinor)
+            return (true);
+        return (false);
+    }
+
+    // For RC firmware, compare firmware date as well
+    // Check version number
+    if (reportedVersionNumberMajor > currentVersionNumberMajor)
+        return (true);
+    if (reportedVersionNumberMajor == currentVersionNumberMajor &&
+        reportedVersionNumberMinor > currentVersionNumberMinor)
+        return (true);
+
+    // Check which date is more recent
+    // https://stackoverflow.com/questions/5283120/date-comparison-to-find-which-is-bigger-in-c
+    int reportedVersionScore = reportedDay + reportedMonth * 100 + reportedYear * 2000;
+    int currentVersionScore = currentDay + currentMonth * 100 + currentYear * 2000;
+
+    if (reportedVersionScore > currentVersionScore)
+        return (true);
+
+    return (false);
+}
+
+// https://stackoverflow.com/questions/21210319/assign-month-name-and-integer-values-from-string-using-sscanf
+int mapMonthName(char *mmm)
+{
+    static char const *months[] = {"Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"};
+    for (size_t i = 0; i < sizeof(months) / sizeof(months[0]); i++)
+    {
+        if (strcmp(mmm, months[i]) == 0)
+            return i + 1;
+    }
+    return -1;
+}
+
 void mountSDThenUpdate(const char *firmwareFileName)
 {
     bool gotSemaphore;
@@ -391,51 +538,7 @@ void updateFromSD(const char *firmwareFileName)
     systemPrintln("Firmware update failed. Please try again.");
 }
 
-// Format the firmware version
-void formatFirmwareVersion(uint8_t major, uint8_t minor, char *buffer, int bufferLength, bool includeDate)
-{
-    char prefix;
-
-    // Construct the full or release candidate version number
-    prefix = ENABLE_DEVELOPER ? 'd' : 'v';
-    if (enableRCFirmware && (bufferLength >= 21))
-        // 123456789012345678901
-        // pxxx.yyy-dd-mmm-yyyy0
-        snprintf(buffer, bufferLength, "%c%d.%d-%s", prefix, major, minor, __DATE__);
-
-    // Construct a truncated version number
-    else if (bufferLength >= 9)
-        // 123456789
-        // pxxx.yyy0
-        snprintf(buffer, bufferLength, "%c%d.%d", prefix, major, minor);
-
-    // The buffer is too small for the version number
-    else
-    {
-        systemPrintf("ERROR: Buffer too small for version number!\r\n");
-        if (bufferLength > 0)
-            *buffer = 0;
-    }
-}
-
-// Get the current firmware version
-void getFirmwareVersion(char *buffer, int bufferLength, bool includeDate)
-{
-    formatFirmwareVersion(FIRMWARE_VERSION_MAJOR, FIRMWARE_VERSION_MINOR, buffer, bufferLength, includeDate);
-}
-
-const char *otaGetUrl()
-{
-    const char *url;
-
-    // Return the user specified URL if it was specified
-    url = enableRCFirmware ? otaRcFirmwareJsonUrl : otaFirmwareJsonUrl;
-    if (strlen(url))
-        return url;
-
-    // Select the URL for the over-the-air (OTA) updates
-    return enableRCFirmware ? OTA_RC_FIRMWARE_JSON_URL : OTA_FIRMWARE_JSON_URL;
-}
+#ifdef COMPILE_OTA_AUTO
 
 // Returns true if we successfully got the versionAvailable
 // Modifies versionAvailable with OTA getVersion response
@@ -490,50 +593,6 @@ bool otaCheckVersion(char *versionAvailable, uint8_t versionAvailableLength)
     return (gotVersion);
 }
 
-// Updates firmware using OTA pull
-// Exits by either updating firmware and resetting, or failing to connect
-void otaUpdateFirmware()
-{
-#ifdef COMPILE_NETWORK
-    char versionString[9];
-    formatFirmwareVersion(0, 0, versionString, sizeof(versionString), false);
-
-    ESP32OTAPull ota;
-
-    int response;
-    const char *url = otaGetUrl();
-    response = ota.CheckForOTAUpdate(url, &versionString[1], ESP32OTAPull::DONT_DO_UPDATE);
-
-    if (response == ESP32OTAPull::UPDATE_AVAILABLE)
-    {
-        systemPrintln("Installing new firmware");
-        ota.SetCallback(otaPullCallback);
-        ota.CheckForOTAUpdate(url, &versionString[1]); // Install new firmware, no reset
-
-        if (apConfigFirmwareUpdateInProcess)
-        {
-#ifdef COMPILE_AP
-            // Tell AP page to display reset info
-            sendStringToWebsocket("confirmReset,1,");
-#endif // COMPILE_AP
-        }
-        ESP.restart();
-    }
-    else if (response == ESP32OTAPull::NO_UPDATE_AVAILABLE)
-        systemPrintln("OTA Update: Current firmware is up to date");
-    else if (response == ESP32OTAPull::HTTP_FAILED)
-        systemPrintln("OTA Update: Firmware server not available");
-    else
-        systemPrintln("OTA Update: OTA failed");
-#endif // COMPILE_NETWORK
-}
-
-// Called while the OTA Pull update is happening
-void otaPullCallback(int bytesWritten, int totalLength)
-{
-    otaDisplayPercentage(bytesWritten, totalLength, false);
-}
-
 void otaDisplayPercentage(int bytesWritten, int totalLength, bool alwaysDisplay)
 {
     static int previousPercent = -1;
@@ -568,6 +627,32 @@ void otaDisplayPercentage(int bytesWritten, int totalLength, bool alwaysDisplay)
     }
 }
 
+const char *otaGetUrl()
+{
+    const char *url;
+
+    // Return the user specified URL if it was specified
+    url = enableRCFirmware ? otaRcFirmwareJsonUrl : otaFirmwareJsonUrl;
+    if (strlen(url))
+        return url;
+
+    // Select the URL for the over-the-air (OTA) updates
+    return enableRCFirmware ? OTA_RC_FIRMWARE_JSON_URL : OTA_FIRMWARE_JSON_URL;
+}
+
+bool otaNeedsNetwork()
+{
+    if (otaState >= OTA_STATE_WAIT_FOR_NETWORK && otaState <= OTA_STATE_UPDATE_FIRMWARE)
+        return true;
+    return false;
+}
+
+// Called while the OTA Pull update is happening
+void otaPullCallback(int bytesWritten, int totalLength)
+{
+    otaDisplayPercentage(bytesWritten, totalLength, false);
+}
+
 const char *otaPullErrorText(int code)
 {
 #ifdef COMPILE_NETWORK
@@ -596,131 +681,6 @@ const char *otaPullErrorText(int code)
     }
 #endif // COMPILE_NETWORK
     return "Unknown error";
-}
-
-// Returns true if otaReportedVersion is newer than currentVersion
-// Version number comes in as v2.7-Jan 5 2023
-// 2.7-Jan 5 2023 is newer than v2.7-Jan 1 2023
-// We can't use just the float number: v3.12 is a greater version than v3.9 but it is a smaller float number
-bool isReportedVersionNewer(char *reportedVersion, char *currentVersion)
-{
-    int currentVersionNumberMajor = 0;
-    int currentVersionNumberMinor = 0;
-    int currentDay = 0;
-    int currentMonth = 0;
-    int currentYear = 0;
-
-    int reportedVersionNumberMajor = 0;
-    int reportedVersionNumberMinor = 0;
-    int reportedDay = 0;
-    int reportedMonth = 0;
-    int reportedYear = 0;
-
-    breakVersionIntoParts(currentVersion, &currentVersionNumberMajor, &currentVersionNumberMinor, &currentYear,
-                          &currentMonth, &currentDay);
-    breakVersionIntoParts(reportedVersion, &reportedVersionNumberMajor, &reportedVersionNumberMinor, &reportedYear,
-                          &reportedMonth, &reportedDay);
-
-    if (settings.debugFirmwareUpdate)
-    {
-        systemPrintf("currentVersion (%s): %d.%d %d %d %d\r\n", currentVersion, currentVersionNumberMajor,
-                     currentVersionNumberMinor, currentYear, currentMonth, currentDay);
-        systemPrintf("reportedVersion (%s): %d.%d %d %d %d\r\n", reportedVersion, reportedVersionNumberMajor,
-                     reportedVersionNumberMinor, reportedYear, reportedMonth, reportedDay);
-        if (enableRCFirmware)
-            systemPrintln("RC firmware enabled");
-    }
-
-    // Production firmware is named "2.6"
-    // Release Candidate firmware is named "2.6-Dec 5 2022"
-
-    // If the user is not using Release Candidate firmware, then check only the version number
-    if (enableRCFirmware == false)
-    {
-        if (reportedVersionNumberMajor > currentVersionNumberMajor)
-            return (true);
-        if (reportedVersionNumberMajor == currentVersionNumberMajor &&
-            reportedVersionNumberMinor > currentVersionNumberMinor)
-            return (true);
-        return (false);
-    }
-
-    // For RC firmware, compare firmware date as well
-    // Check version number
-    if (reportedVersionNumberMajor > currentVersionNumberMajor)
-        return (true);
-    if (reportedVersionNumberMajor == currentVersionNumberMajor &&
-        reportedVersionNumberMinor > currentVersionNumberMinor)
-        return (true);
-
-    // Check which date is more recent
-    // https://stackoverflow.com/questions/5283120/date-comparison-to-find-which-is-bigger-in-c
-    int reportedVersionScore = reportedDay + reportedMonth * 100 + reportedYear * 2000;
-    int currentVersionScore = currentDay + currentMonth * 100 + currentYear * 2000;
-
-    if (reportedVersionScore > currentVersionScore)
-        return (true);
-
-    return (false);
-}
-
-// Version number comes in as v2.7-Jan 5 2023
-// Given a char string, break into version number major/minor, year, month, day
-// Returns false if parsing failed
-bool breakVersionIntoParts(char *version, int *versionNumberMajor, int *versionNumberMinor, int *year, int *month,
-                           int *day)
-{
-    char monthStr[20];
-    int placed = 0;
-
-    if (enableRCFirmware == false)
-    {
-        placed = sscanf(version, "%d.%d", versionNumberMajor, versionNumberMinor);
-        if (placed != 2)
-        {
-            log_d("Failed to sscanf basic");
-            return (false); // Something went wrong
-        }
-    }
-    else
-    {
-        placed = sscanf(version, "%d.%d-%s %d %d", versionNumberMajor, versionNumberMinor, monthStr, day, year);
-
-        if (placed != 5)
-        {
-            log_d("Failed to sscanf RC");
-            return (false); // Something went wrong
-        }
-
-        (*month) = mapMonthName(monthStr);
-        if (*month == -1)
-            return (false); // Something went wrong
-    }
-
-    return (true);
-}
-
-// https://stackoverflow.com/questions/21210319/assign-month-name-and-integer-values-from-string-using-sscanf
-int mapMonthName(char *mmm)
-{
-    static char const *months[] = {"Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"};
-    for (size_t i = 0; i < sizeof(months) / sizeof(months[0]); i++)
-    {
-        if (strcmp(mmm, months[i]) == 0)
-            return i + 1;
-    }
-    return -1;
-}
-
-#ifdef COMPILE_OTA_AUTO
-
-// Get the OTA state name
-const char *otaGetStateName(uint8_t state, char *string)
-{
-    if (state < OTA_STATE_MAX)
-        return otaStateNames[state];
-    sprintf(string, "Unknown state (%d)", state);
-    return string;
 }
 
 // Set the next OTA state
@@ -774,27 +734,14 @@ void otaSetState(uint8_t newState)
         reportFatalError("Invalid firmware update state");
 }
 
-// Stop the automatic OTA firmware update
-void otaUpdateStop()
+// Get the OTA state name
+const char *otaGetStateName(uint8_t state, char *string)
 {
-    if (settings.debugFirmwareUpdate)
-        systemPrintln("otaUpdateStop called");
-
-    if (otaState != OTA_STATE_OFF)
-    {
-        // Stop network
-        if (settings.debugFirmwareUpdate)
-            systemPrintln("Firmware update releasing network request");
-
-        online.otaClient = false;
-
-        otaRequestFirmwareUpdate = false; // Let the network know we no longer need it
-
-        // Stop the firmware update
-        otaSetState(OTA_STATE_OFF);
-        otaLastUpdateCheck = millis();
-    }
-};
+    if (state < OTA_STATE_MAX)
+        return otaStateNames[state];
+    sprintf(string, "Unknown state (%d)", state);
+    return string;
+}
 
 // Initiate firmware version checks, scheduled automatic updates, or requested firmware over-the-air updates
 void otaUpdate()
@@ -926,6 +873,66 @@ void otaUpdate()
     }
 }
 
+// Updates firmware using OTA pull
+// Exits by either updating firmware and resetting, or failing to connect
+void otaUpdateFirmware()
+{
+#ifdef COMPILE_NETWORK
+    char versionString[9];
+    formatFirmwareVersion(0, 0, versionString, sizeof(versionString), false);
+
+    ESP32OTAPull ota;
+
+    int response;
+    const char *url = otaGetUrl();
+    response = ota.CheckForOTAUpdate(url, &versionString[1], ESP32OTAPull::DONT_DO_UPDATE);
+
+    if (response == ESP32OTAPull::UPDATE_AVAILABLE)
+    {
+        systemPrintln("Installing new firmware");
+        ota.SetCallback(otaPullCallback);
+        ota.CheckForOTAUpdate(url, &versionString[1]); // Install new firmware, no reset
+
+        if (apConfigFirmwareUpdateInProcess)
+        {
+#ifdef COMPILE_AP
+            // Tell AP page to display reset info
+            sendStringToWebsocket("confirmReset,1,");
+#endif // COMPILE_AP
+        }
+        ESP.restart();
+    }
+    else if (response == ESP32OTAPull::NO_UPDATE_AVAILABLE)
+        systemPrintln("OTA Update: Current firmware is up to date");
+    else if (response == ESP32OTAPull::HTTP_FAILED)
+        systemPrintln("OTA Update: Firmware server not available");
+    else
+        systemPrintln("OTA Update: OTA failed");
+#endif // COMPILE_NETWORK
+}
+
+// Stop the automatic OTA firmware update
+void otaUpdateStop()
+{
+    if (settings.debugFirmwareUpdate)
+        systemPrintln("otaUpdateStop called");
+
+    if (otaState != OTA_STATE_OFF)
+    {
+        // Stop network
+        if (settings.debugFirmwareUpdate)
+            systemPrintln("Firmware update releasing network request");
+
+        online.otaClient = false;
+
+        otaRequestFirmwareUpdate = false; // Let the network know we no longer need it
+
+        // Stop the firmware update
+        otaSetState(OTA_STATE_OFF);
+        otaLastUpdateCheck = millis();
+    }
+};
+
 // Verify the OTA update tables
 void otaVerifyTables()
 {
@@ -934,10 +941,4 @@ void otaVerifyTables()
         reportFatalError("Fix otaStateNames table to match OtaState");
 }
 
-bool otaNeedsNetwork()
-{
-    if (otaState >= OTA_STATE_WAIT_FOR_NETWORK && otaState <= OTA_STATE_UPDATE_FIRMWARE)
-        return true;
-    return false;
-}
 #endif // COMPILE_OTA_AUTO
