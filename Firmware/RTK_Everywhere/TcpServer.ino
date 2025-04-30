@@ -81,6 +81,31 @@ static volatile RING_BUFFER_OFFSET tcpServerClientTails[TCP_SERVER_MAX_CLIENTS];
 // TCP Server handleGnssDataTask Support Routines
 //----------------------------------------
 
+// Remove previous messages from the ring buffer
+void discardTcpServerBytes(RING_BUFFER_OFFSET previousTail, RING_BUFFER_OFFSET newTail)
+{
+    int index;
+    uint16_t tail;
+
+    // Update each of the clients
+    for (index = 0; index < TCP_SERVER_MAX_CLIENTS; index++)
+    {
+        tail = tcpServerClientTails[index];
+        if (previousTail < newTail)
+        {
+            // No buffer wrap occurred
+            if ((tail >= previousTail) && (tail < newTail))
+                tcpServerClientTails[index] = newTail;
+        }
+        else
+        {
+            // Buffer wrap occurred
+            if ((tail >= previousTail) || (tail < newTail))
+                tcpServerClientTails[index] = newTail;
+        }
+    }
+}
+
 // Send data to the TCP clients
 int32_t tcpServerClientSendData(int index, uint8_t *data, uint16_t length)
 {
@@ -115,6 +140,14 @@ int32_t tcpServerClientSendData(int index, uint8_t *data, uint16_t length)
         length = 0;
     }
     return length;
+}
+
+// Return true if we are in a state that requires network access
+bool tcpServerNeedsNetwork()
+{
+    if (tcpServerState >= TCP_SERVER_STATE_WAIT_FOR_NETWORK && tcpServerState <= TCP_SERVER_STATE_RUNNING)
+        return true;
+    return false;
 }
 
 // Send TCP data to the clients
@@ -168,31 +201,6 @@ int32_t tcpServerSendData(uint16_t dataHead)
 
     // Return the amount of space that TCP server client is using in the buffer
     return usedSpace;
-}
-
-// Remove previous messages from the ring buffer
-void discardTcpServerBytes(RING_BUFFER_OFFSET previousTail, RING_BUFFER_OFFSET newTail)
-{
-    int index;
-    uint16_t tail;
-
-    // Update each of the clients
-    for (index = 0; index < TCP_SERVER_MAX_CLIENTS; index++)
-    {
-        tail = tcpServerClientTails[index];
-        if (previousTail < newTail)
-        {
-            // No buffer wrap occurred
-            if ((tail >= previousTail) && (tail < newTail))
-                tcpServerClientTails[index] = newTail;
-        }
-        else
-        {
-            // Buffer wrap occurred
-            if ((tail >= previousTail) || (tail < newTail))
-                tcpServerClientTails[index] = newTail;
-        }
-    }
 }
 
 //----------------------------------------
@@ -321,14 +329,6 @@ void tcpServerStopClient(int index)
     tcpServerClient[index]->stop();
     tcpServerClientConnected = tcpServerClientConnected & (~(1 << index));
     tcpServerClientWriteError = tcpServerClientWriteError & (~(1 << index));
-}
-
-// Return true if we are in a state that requires network access
-bool tcpServerNeedsNetwork()
-{
-    if (tcpServerState >= TCP_SERVER_STATE_WAIT_FOR_NETWORK && tcpServerState <= TCP_SERVER_STATE_RUNNING)
-        return true;
-    return false;
 }
 
 // Update the TCP server state
