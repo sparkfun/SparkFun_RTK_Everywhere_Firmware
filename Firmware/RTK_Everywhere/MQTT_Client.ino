@@ -2,10 +2,10 @@
 MQTT_Client.ino
 
   The MQTT client sits on top of the network layer and receives correction
-  data from a Point Perfect MQTT server and then provided to the ZED (GNSS
+  data from a Point Perfect MQTT broker and then provided to the ZED (GNSS
   radio).
 
-                          MQTT Server
+                          MQTT Broker
                                |
                                | SPARTN correction data
                                V
@@ -56,7 +56,7 @@ MQTT_Client.ino
                                              ^
                                              |
                                              v
-                                        MQTT Server
+                                        MQTT Broker
 
 ------------------------------------------------------------------------------*/
 
@@ -97,7 +97,7 @@ enum MQTTClientState
     MQTT_CLIENT_OFF = 0,             // Using Bluetooth or NTRIP server
     MQTT_CLIENT_WAIT_FOR_NETWORK,    // Connecting to WiFi access point or Ethernet
     MQTT_CLIENT_CONNECTION_DELAY,    // Delay before using the network
-    MQTT_CLIENT_CONNECTING_2_SERVER, // Connecting to the MQTT server
+    MQTT_CLIENT_CONNECTING_2_BROKER, // Connecting to the MQTT broker
     MQTT_CLIENT_SERVICES_CONNECTED,  // Connected to the MQTT services
     // Insert new states here
     MQTT_CLIENT_STATE_MAX // Last entry in the state list
@@ -107,7 +107,7 @@ const char *const mqttClientStateName[] = {
     "MQTT_CLIENT_OFF",
     "MQTT_CLIENT_WAIT_FOR_NETWORK",
     "MQTT_CLIENT_CONNECTION_DELAY",
-    "MQTT_CLIENT_CONNECTING_2_SERVER",
+    "MQTT_CLIENT_CONNECTING_2_BROKER",
     "MQTT_CLIENT_SERVICES_CONNECTED",
 };
 
@@ -328,7 +328,7 @@ void mqttClientPrintStateSummary()
         systemPrint("Disconnected");
         break;
 
-    case MQTT_CLIENT_CONNECTING_2_SERVER:
+    case MQTT_CLIENT_CONNECTING_2_BROKER:
         systemPrint("Connecting");
         break;
 
@@ -1101,13 +1101,13 @@ void mqttClientUpdate()
     case MQTT_CLIENT_CONNECTION_DELAY: {
         if ((millis() - mqttClientTimer) > mqttClientConnectionAttemptTimeout)
         {
-            mqttClientSetState(MQTT_CLIENT_CONNECTING_2_SERVER);
+            mqttClientSetState(MQTT_CLIENT_CONNECTING_2_BROKER);
         }
         break;
     }
 
-    // Connect to the MQTT server
-    case MQTT_CLIENT_CONNECTING_2_SERVER: {
+    // Connect to the MQTT broker
+    case MQTT_CLIENT_CONNECTING_2_BROKER: {
         // Determine if the network has failed
         if (networkHasInternet() == false)
         {
@@ -1187,7 +1187,7 @@ void mqttClientUpdate()
         if (settings.debugMqttClientState)
             systemPrintf("MQTT client connecting to %s\r\n", settings.pointPerfectBrokerHost);
 
-        // Attempt to the MQTT broker
+        // Attempt connection to the MQTT broker
         if (!mqttClient->connect(settings.pointPerfectBrokerHost, 8883))
         {
             systemPrintf("Failed to connect to MQTT broker %s\r\n", settings.pointPerfectBrokerHost);
@@ -1195,7 +1195,7 @@ void mqttClientUpdate()
             break;
         }
 
-        // The MQTT server is now connected
+        // The MQTT broker is now connected
         mqttClient->onMessage(mqttClientReceiveMessage);
 
         mqttSubscribeTopics.clear();        // Clear the list of MQTT topics to be subscribed to
@@ -1235,7 +1235,7 @@ void mqttClientUpdate()
         mqttClientSetState(MQTT_CLIENT_SERVICES_CONNECTED);
 
         break;
-    } // /case MQTT_CLIENT_CONNECTING_2_SERVER
+    } // /case MQTT_CLIENT_CONNECTING_2_BROKER
 
     case MQTT_CLIENT_SERVICES_CONNECTED: {
         // Determine if the network has failed
