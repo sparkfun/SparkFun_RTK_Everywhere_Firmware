@@ -45,183 +45,6 @@ bool websocketConnected = false;
 // https://github.com/mo-thunderz/Esp32WifiPart2/blob/main/Arduino/ESP32WebserverWebsocket/ESP32WebserverWebsocket.ino
 // https://www.youtube.com/watch?v=15X0WvGaVg8
 
-void sendStringToWebsocket(const char *stringToSend)
-{
-    if (!websocketConnected)
-    {
-        systemPrintf("sendStringToWebsocket: not connected - could not send: %s\r\n", stringToSend);
-        return;
-    }
-
-    // To send content to the webServer, we would call: webServer->sendContent(stringToSend);
-    // But here we want to send content to the websocket (wsserver)...
-
-    httpd_ws_frame_t ws_pkt;
-    memset(&ws_pkt, 0, sizeof(httpd_ws_frame_t));
-    ws_pkt.payload = (uint8_t *)stringToSend;
-    ws_pkt.len = strlen(stringToSend);
-    ws_pkt.type = HTTPD_WS_TYPE_TEXT;
-
-    // If we use httpd_ws_send_frame, it requires a req.
-    // esp_err_t ret = httpd_ws_send_frame(last_ws_req, &ws_pkt);
-    // if (ret != ESP_OK) {
-    //    ESP_LOGE(TAG, "httpd_ws_send_frame failed with %d", ret);
-    //}
-
-    // If we use httpd_ws_send_frame_async, it requires a fd.
-    esp_err_t ret = httpd_ws_send_frame_async(*wsserver, last_ws_fd, &ws_pkt);
-    if (ret != ESP_OK)
-    {
-        systemPrintf("httpd_ws_send_frame failed with %d\r\n", ret);
-    }
-    else
-    {
-        if (settings.debugWebServer == true)
-            systemPrintf("sendStringToWebsocket: %s\r\n", stringToSend);
-    }
-}
-
-static esp_err_t ws_handler(httpd_req_t *req)
-{
-    // Log the req, so we can reuse it for httpd_ws_send_frame
-    // TODO: do we need to be cleverer about this?
-    // last_ws_req = req;
-
-    if (req->method == HTTP_GET)
-    {
-        // Log the fd, so we can reuse it for httpd_ws_send_frame_async
-        // TODO: do we need to be cleverer about this?
-        last_ws_fd = httpd_req_to_sockfd(req);
-
-        if (settings.debugWebServer == true)
-            systemPrintf("Handshake done, the new ws connection was opened with fd %d\r\n", last_ws_fd);
-
-        websocketConnected = true;
-        lastDynamicDataUpdate = millis();
-        sendStringToWebsocket(settingsCSV);
-
-        return ESP_OK;
-    }
-
-    httpd_ws_frame_t ws_pkt;
-    uint8_t *buf = NULL;
-    memset(&ws_pkt, 0, sizeof(httpd_ws_frame_t));
-    ws_pkt.type = HTTPD_WS_TYPE_TEXT;
-    /* Set max_len = 0 to get the frame len */
-    esp_err_t ret = httpd_ws_recv_frame(req, &ws_pkt, 0);
-    if (ret != ESP_OK)
-    {
-        systemPrintf("httpd_ws_recv_frame failed to get frame len with %d\r\n", ret);
-        return ret;
-    }
-    if (settings.debugWebServer == true)
-        systemPrintf("frame len is %d\r\n", ws_pkt.len);
-    if (ws_pkt.len)
-    {
-        /* ws_pkt.len + 1 is for NULL termination as we are expecting a string */
-        if (online.psram == true)
-            buf = (uint8_t *)ps_malloc(ws_pkt.len + 1);
-        else
-            buf = (uint8_t *)malloc(ws_pkt.len + 1);
-
-        if (buf == NULL)
-        {
-            systemPrintln("Failed to malloc memory for buf");
-            return ESP_ERR_NO_MEM;
-        }
-        ws_pkt.payload = buf;
-        /* Set max_len = ws_pkt.len to get the frame payload */
-        ret = httpd_ws_recv_frame(req, &ws_pkt, ws_pkt.len);
-        if (ret != ESP_OK)
-        {
-            systemPrintf("httpd_ws_recv_frame failed with %d\r\n", ret);
-            free(buf);
-            return ret;
-        }
-    }
-    if (settings.debugWebServer == true)
-        systemPrintf("Packet type: %d\r\n", ws_pkt.type);
-    // HTTPD_WS_TYPE_CONTINUE   = 0x0,
-    // HTTPD_WS_TYPE_TEXT       = 0x1,
-    // HTTPD_WS_TYPE_BINARY     = 0x2,
-    // HTTPD_WS_TYPE_CLOSE      = 0x8,
-    // HTTPD_WS_TYPE_PING       = 0x9,
-    // HTTPD_WS_TYPE_PONG       = 0xA
-
-    if (ws_pkt.type == HTTPD_WS_TYPE_TEXT)
-    {
-        if (settings.debugWebServer == true)
-        {
-            systemPrintf("Got packet with message: %s\r\n", ws_pkt.payload);
-            dumpBuffer(ws_pkt.payload, ws_pkt.len);
-        }
-
-        if (currentlyParsingData == false)
-        {
-            for (int i = 0; i < ws_pkt.len; i++)
-            {
-                incomingSettings[incomingSettingsSpot++] = ws_pkt.payload[i];
-                incomingSettingsSpot %= AP_CONFIG_SETTING_SIZE;
-            }
-            timeSinceLastIncomingSetting = millis();
-        }
-        else
-        {
-            if (settings.debugWebServer == true)
-                systemPrintln("Ignoring packet due to parsing block");
-        }
-    }
-    else if (ws_pkt.type == HTTPD_WS_TYPE_CLOSE)
-    {
-        if (settings.debugWebServer == true)
-            systemPrintln("Client closed or refreshed the web page");
-
-        createSettingsString(settingsCSV);
-        websocketConnected = false;
-    }
-
-    free(buf);
-    return ret;
-}
-
-static const httpd_uri_t ws = {.uri = "/ws",
-                               .method = HTTP_GET,
-                               .handler = ws_handler,
-                               .user_ctx = NULL,
-                               .is_websocket = true,
-                               .handle_ws_control_frames = true,
-                               .supported_subprotocol = NULL};
-
-bool websocketServerStart(void)
-{
-    httpd_config_t config = HTTPD_DEFAULT_CONFIG();
-
-    // Use different ports for websocket and webServer - use port 81 for the websocket - also defined in main.js
-    config.server_port = 81;
-
-    // Increase the stack size from 4K to ~15K
-    config.stack_size = updateWebSocketStackSize;
-
-    // Start the httpd server
-    if (settings.debugWebServer == true)
-        systemPrintf("Starting wsserver on port: %d\r\n", config.server_port);
-
-    if (wsserver == nullptr)
-        wsserver = new httpd_handle_t;
-
-    if (httpd_start(wsserver, &config) == ESP_OK)
-    {
-        // Registering the ws handler
-        if (settings.debugWebServer == true)
-            systemPrintln("Registering URI handlers");
-        httpd_register_uri_handler(*wsserver, &ws);
-        return true;
-    }
-
-    systemPrintln("Error starting wsserver!");
-    return false;
-}
-
 // ===== Request Handler class used to answer more complex requests =====
 // https://github.com/espressif/arduino-esp32/blob/master/libraries/WebServer/examples/WebServer/WebServer.ino
 class CaptiveRequestHandler : public RequestHandler
@@ -268,6 +91,755 @@ class CaptiveRequestHandler : public RequestHandler
         return true;
     }
 };
+
+// Create a csv string with the dynamic data to update (current coordinates, battery level, etc)
+void createDynamicDataString(char *settingsCSV)
+{
+    settingsCSV[0] = '\0'; // Erase current settings string
+
+    // Current coordinates come from HPPOSLLH call back
+    stringRecord(settingsCSV, "geodeticLat", gnss->getLatitude(), haeNumberOfDecimals);
+    stringRecord(settingsCSV, "geodeticLon", gnss->getLongitude(), haeNumberOfDecimals);
+    stringRecord(settingsCSV, "geodeticAlt", gnss->getAltitude(), 3);
+
+    double ecefX = 0;
+    double ecefY = 0;
+    double ecefZ = 0;
+
+    geodeticToEcef(gnss->getLatitude(), gnss->getLongitude(), gnss->getAltitude(), &ecefX, &ecefY, &ecefZ);
+
+    stringRecord(settingsCSV, "ecefX", ecefX, 3);
+    stringRecord(settingsCSV, "ecefY", ecefY, 3);
+    stringRecord(settingsCSV, "ecefZ", ecefZ, 3);
+
+    if (online.batteryFuelGauge == false) // Product has no battery
+    {
+        stringRecord(settingsCSV, "batteryIconFileName", (char *)"src/BatteryBlank.png");
+        stringRecord(settingsCSV, "batteryPercent", (char *)" ");
+    }
+    else
+    {
+        // Determine battery icon
+        int iconLevel = 0;
+        if (batteryLevelPercent < 25)
+            iconLevel = 0;
+        else if (batteryLevelPercent < 50)
+            iconLevel = 1;
+        else if (batteryLevelPercent < 75)
+            iconLevel = 2;
+        else // batt level > 75
+            iconLevel = 3;
+
+        char batteryIconFileName[sizeof("src/Battery2_Charging.png__")]; // sizeof() includes 1 for \0 termination
+
+        if (isCharging())
+            snprintf(batteryIconFileName, sizeof(batteryIconFileName), "src/Battery%d_Charging.png", iconLevel);
+        else
+            snprintf(batteryIconFileName, sizeof(batteryIconFileName), "src/Battery%d.png", iconLevel);
+
+        stringRecord(settingsCSV, "batteryIconFileName", batteryIconFileName);
+
+        // Limit batteryLevelPercent to sane levels
+        if (batteryLevelPercent > 100)
+            batteryLevelPercent = 100;
+
+        // Determine battery percent
+        char batteryPercent[sizeof("+100%__")];
+        if (isCharging())
+            snprintf(batteryPercent, sizeof(batteryPercent), "+%d%%", batteryLevelPercent);
+        else
+            snprintf(batteryPercent, sizeof(batteryPercent), "%d%%", batteryLevelPercent);
+        stringRecord(settingsCSV, "batteryPercent", batteryPercent);
+    }
+
+    strcat(settingsCSV, "\0");
+}
+
+// Report back to the web config page with a CSV that contains the either CURRENT or
+// the latest version as obtained by the OTA state machine
+void createFirmwareVersionString(char *settingsCSV)
+{
+    char newVersionCSV[100];
+
+    settingsCSV[0] = '\0'; // Erase current settings string
+
+    // Create a string of the unit's current firmware version
+    char currentVersion[21];
+    getFirmwareVersion(currentVersion, sizeof(currentVersion), enableRCFirmware);
+
+    // Compare the unit's version against the reported version from OTA
+    if (isReportedVersionNewer(otaReportedVersion, currentVersion) == true)
+    {
+        if (settings.debugWebServer == true)
+            systemPrintln("New version detected");
+        snprintf(newVersionCSV, sizeof(newVersionCSV), "%s,", otaReportedVersion);
+    }
+    else
+    {
+        if (settings.debugWebServer == true)
+            systemPrintln("No new firmware available");
+        snprintf(newVersionCSV, sizeof(newVersionCSV), "CURRENT,");
+    }
+
+    stringRecord(settingsCSV, "newFirmwareVersion", newVersionCSV);
+
+    strcat(settingsCSV, "\0");
+}
+
+// When called, responds with the messages supported on this platform
+// Message name and current rate are formatted in CSV, formatted to html by JS
+void createMessageList(String &returnText)
+{
+    returnText = "";
+
+    if (present.gnss_zedf9p)
+    {
+#ifdef COMPILE_ZED
+        for (int messageNumber = 0; messageNumber < MAX_UBX_MSG; messageNumber++)
+        {
+            if (messageSupported(messageNumber) == true)
+                returnText += "ubxMessageRate_" + String(ubxMessages[messageNumber].msgTextName) + "," +
+                              String(settings.ubxMessageRates[messageNumber]) + ",";
+        }
+#endif // COMPILE_ZED
+    }
+
+#ifdef COMPILE_UM980
+    else if (present.gnss_um980)
+    {
+        for (int messageNumber = 0; messageNumber < MAX_UM980_NMEA_MSG; messageNumber++)
+        {
+            returnText += "messageRateNMEA_" + String(umMessagesNMEA[messageNumber].msgTextName) + "," +
+                          String(settings.um980MessageRatesNMEA[messageNumber]) + ",";
+        }
+        for (int messageNumber = 0; messageNumber < MAX_UM980_RTCM_MSG; messageNumber++)
+        {
+            returnText += "messageRateRTCMRover_" + String(umMessagesRTCM[messageNumber].msgTextName) + "," +
+                          String(settings.um980MessageRatesRTCMRover[messageNumber]) + ",";
+        }
+    }
+#endif // COMPILE_UM980
+
+#ifdef COMPILE_MOSAICX5
+    else if (present.gnss_mosaicX5)
+    {
+        for (int messageNumber = 0; messageNumber < MAX_MOSAIC_NMEA_MSG; messageNumber++)
+        {
+            returnText += "messageStreamNMEA_" + String(mosaicMessagesNMEA[messageNumber].msgTextName) + "," +
+                          String(settings.mosaicMessageStreamNMEA[messageNumber]) + ",";
+        }
+        for (int stream = 0; stream < MOSAIC_NUM_NMEA_STREAMS; stream++)
+        {
+            returnText +=
+                "streamIntervalNMEA_" + String(stream) + "," + String(settings.mosaicStreamIntervalsNMEA[stream]) + ",";
+        }
+        for (int messageNumber = 0; messageNumber < MAX_MOSAIC_RTCM_V3_INTERVAL_GROUPS; messageNumber++)
+        {
+            returnText += "messageIntervalRTCMRover_" + String(mosaicRTCMv3MsgIntervalGroups[messageNumber].name) +
+                          "," + String(settings.mosaicMessageIntervalsRTCMv3Rover[messageNumber]) + ",";
+        }
+        for (int messageNumber = 0; messageNumber < MAX_MOSAIC_RTCM_V3_MSG; messageNumber++)
+        {
+            returnText += "messageEnabledRTCMRover_" + String(mosaicMessagesRTCMv3[messageNumber].name) + "," +
+                          (settings.mosaicMessageEnabledRTCMv3Rover[messageNumber] ? "true" : "false") + ",";
+        }
+    }
+#endif // COMPILE_MOSAICX5
+
+    if (settings.debugWebServer == true)
+        systemPrintf("returnText (%d bytes): %s\r\n", returnText.length(), returnText.c_str());
+}
+
+// When called, responds with the RTCM/Base messages supported on this platform
+// Message name and current rate are formatted in CSV, formatted to html by JS
+void createMessageListBase(String &returnText)
+{
+    returnText = "";
+
+    if (present.gnss_zedf9p)
+    {
+#ifdef COMPILE_ZED
+        GNSS_ZED *zed = (GNSS_ZED *)gnss;
+        int firstRTCMRecord = zed->getMessageNumberByName("RTCM_1005");
+
+        for (int messageNumber = 0; messageNumber < MAX_UBX_MSG_RTCM; messageNumber++)
+        {
+            if (messageSupported(firstRTCMRecord + messageNumber) == true)
+                returnText += "ubxMessageRateBase_" + String(ubxMessages[messageNumber + firstRTCMRecord].msgTextName) +
+                              "," + String(settings.ubxMessageRatesBase[messageNumber]) + ","; // UBX_RTCM_1074Base,4,
+        }
+#endif // COMPILE_ZED
+    }
+
+#ifdef COMPILE_UM980
+    else if (present.gnss_um980)
+    {
+        for (int messageNumber = 0; messageNumber < MAX_UM980_RTCM_MSG; messageNumber++)
+        {
+            returnText += "messageRateRTCMBase_" + String(umMessagesRTCM[messageNumber].msgTextName) + "," +
+                          String(settings.um980MessageRatesRTCMBase[messageNumber]) + ",";
+        }
+    }
+#endif // COMPILE_UM980
+
+#ifdef COMPILE_MOSAICX5
+    else if (present.gnss_mosaicX5)
+    {
+        for (int messageNumber = 0; messageNumber < MAX_MOSAIC_RTCM_V3_INTERVAL_GROUPS; messageNumber++)
+        {
+            returnText += "messageIntervalRTCMBase_" + String(mosaicRTCMv3MsgIntervalGroups[messageNumber].name) + "," +
+                          String(settings.mosaicMessageIntervalsRTCMv3Base[messageNumber]) + ",";
+        }
+        for (int messageNumber = 0; messageNumber < MAX_MOSAIC_RTCM_V3_MSG; messageNumber++)
+        {
+            returnText += "messageEnabledRTCMBase_" + String(mosaicMessagesRTCMv3[messageNumber].name) + "," +
+                          (settings.mosaicMessageEnabledRTCMv3Base[messageNumber] ? "true" : "false") + ",";
+        }
+    }
+#endif // COMPILE_MOSAICX5
+
+    if (settings.debugWebServer == true)
+        systemPrintf("returnText (%d bytes): %s\r\n", returnText.length(), returnText.c_str());
+}
+
+// When called, responds with the root folder list of files on SD card
+// Name and size are formatted in CSV, formatted to html by JS
+void getFileList(String &returnText)
+{
+    returnText = "";
+
+    // Update the SD Size and Free Space
+    String cardSize;
+    stringHumanReadableSize(cardSize, sdCardSize);
+    returnText += "sdSize," + cardSize + ",";
+    String freeSpace;
+    stringHumanReadableSize(freeSpace, sdFreeSpace);
+    returnText += "sdFreeSpace," + freeSpace + ",";
+
+    char fileName[50]; // Handle long file names
+
+    // Attempt to gain access to the SD card
+    if (xSemaphoreTake(sdCardSemaphore, fatSemaphore_longWait_ms) == pdPASS)
+    {
+        markSemaphore(FUNCTION_FILEMANAGER_UPLOAD1);
+
+        SdFile root;
+        root.open("/"); // Open root
+        SdFile file;
+        uint16_t fileCount = 0;
+
+        while (file.openNext(&root, O_READ))
+        {
+            if (file.isFile())
+            {
+                fileCount++;
+
+                file.getName(fileName, sizeof(fileName));
+
+                String fileSize;
+                stringHumanReadableSize(fileSize, file.fileSize());
+                returnText += "fmName," + String(fileName) + ",fmSize," + fileSize + ",";
+            }
+        }
+
+        root.close();
+        file.close();
+
+        xSemaphoreGive(sdCardSemaphore);
+    }
+    else
+    {
+        char semaphoreHolder[50];
+        getSemaphoreFunction(semaphoreHolder);
+
+        // This is an error because the current settings no longer match the settings
+        // on the microSD card, and will not be restored to the expected settings!
+        systemPrintf("sdCardSemaphore failed to yield, held by %s, Form.ino line %d\r\n", semaphoreHolder, __LINE__);
+    }
+
+    if (settings.debugWebServer == true)
+        systemPrintf("returnText (%d bytes): %s\r\n", returnText.length(), returnText.c_str());
+}
+
+// Handler for firmware file downloads
+static void handleFileManager()
+{
+    // This section does not tolerate semaphore transactions
+    String logmessage =
+        "handleFileManager: Client:" + webServer->client().remoteIP().toString() + " " + webServer->uri();
+
+    if (webServer->hasArg("name") && webServer->hasArg("action"))
+    {
+        String fileName = webServer->arg("name");
+        String fileAction = webServer->arg("action");
+
+        logmessage = "Client:" + webServer->client().remoteIP().toString() + " " + webServer->uri() +
+                     "?name=" + fileName + "&action=" + fileAction;
+
+        char slashFileName[60];
+        snprintf(slashFileName, sizeof(slashFileName), "/%s", fileName.c_str());
+
+        bool fileExists = sd->exists(slashFileName);
+
+        if (fileExists == false)
+        {
+            logmessage += " ERROR: file ";
+            logmessage += slashFileName;
+            logmessage += " does not exist";
+            webServer->send(400, "text/plain", "ERROR: file does not exist");
+        }
+        else
+        {
+            logmessage += " file exists";
+
+            if (fileAction == "download")
+            {
+                logmessage += " downloaded";
+
+                // This would be SO much easier with webServer->streamFile
+                // except streamFile only works with File - not SdFile...
+                // TODO: if we ever upgrade to SD from SdFat, replace this with streamFile
+
+                if (managerFileOpen == false)
+                {
+                    // Allocate the managerTempFile
+                    if (!managerTempFile)
+                    {
+                        managerTempFile = new SdFile;
+                        if (!managerTempFile)
+                        {
+                            systemPrintln("Failed to allocate managerTempFile!");
+                            return;
+                        }
+                    }
+
+                    if (managerTempFile->open(slashFileName, O_READ) == true)
+                        managerFileOpen = true;
+                    else
+                        systemPrintln("Error: File Manager failed to open file");
+                }
+                else
+                {
+                    // File is already in use. Wait your turn.
+                    webServer->send(202, "text/plain", "ERROR: File already downloading");
+                }
+
+                const size_t maxLen = 8192;
+                uint8_t *buf = new uint8_t[maxLen];
+
+                size_t dataAvailable = managerTempFile->size();
+
+                bool firstSend = true;
+
+                while (dataAvailable > 0)
+                {
+                    size_t sending;
+
+                    if (dataAvailable > maxLen)
+                    {
+                        sending = managerTempFile->read(buf, maxLen);
+                    }
+                    else
+                    {
+                        sending = managerTempFile->read(buf, dataAvailable);
+                    }
+
+                    if (firstSend) // First send?
+                    {
+                        webServer->setContentLength(dataAvailable);
+                        webServer->sendHeader("Cache-Control", "no-cache");
+                        webServer->sendHeader("Content-Disposition", "attachment; filename=" + String(fileName));
+                        webServer->sendHeader("Access-Control-Allow-Origin", "*");
+                        webServer->send(200, "application/octet-stream", "");
+                        firstSend = false;
+                    }
+
+                    webServer->sendContent((const char *)buf, sending);
+
+                    if (sending < maxLen) // Last send?
+                    {
+                        managerTempFile->close();
+
+                        managerFileOpen = false;
+
+                        sendStringToWebsocket("fmNext,1,"); // Tell browser to send next file if needed
+                    }
+
+                    dataAvailable -= sending;
+                }
+
+                delete[] buf;
+            }
+            else if (fileAction == "delete")
+            {
+                logmessage += " deleted";
+                sd->remove(slashFileName);
+                webServer->send(200, "text/plain", "Deleted File: " + fileName);
+            }
+            else
+            {
+                logmessage += " ERROR: invalid action param supplied";
+                webServer->send(400, "text/plain", "ERROR: invalid action param supplied");
+            }
+        }
+        systemPrintln(logmessage);
+    }
+    else
+    {
+        webServer->send(400, "text/plain", "ERROR: name and action params required");
+    }
+}
+
+// Handler for firmware file upload
+static void handleFirmwareFileUpload()
+{
+    String fileName = "";
+
+    HTTPUpload &upload = webServer->upload();
+
+    if (upload.status == UPLOAD_FILE_START)
+    {
+        // Check file name against valid firmware names
+        const char *BIN_EXT = "bin";
+        const char *BIN_HEADER = "RTK_Everywhere_Firmware";
+
+        fileName = upload.filename;
+
+        int fnameLen = fileName.length();
+        char fname[fnameLen + 2] = {'/'}; // Filename must start with / or VERY bad things happen on SD_MMC
+        fileName.toCharArray(&fname[1], fnameLen + 1);
+        fname[fnameLen + 1] = '\0'; // Terminate array
+
+        // Check 'bin' extension
+        if (strcmp(BIN_EXT, &fname[strlen(fname) - strlen(BIN_EXT)]) == 0)
+        {
+            // Check for 'RTK_Everywhere_Firmware' start of file name
+            if (strncmp(fname, BIN_HEADER, strlen(BIN_HEADER)) == 0)
+            {
+                // Begin update process
+                if (!Update.begin(UPDATE_SIZE_UNKNOWN))
+                {
+                    Update.printError(Serial);
+                    webServer->send(400, "text/plain", "OTA could not begin");
+                    return;
+                }
+            }
+            else
+            {
+                systemPrintf("handleFirmwareFileUpload: Unknown: %s\r\n", fname);
+                webServer->send(400, "text/html", "<b>Error:</b> Unknown file type");
+                return;
+            }
+        }
+        else
+        {
+            systemPrintf("handleFirmwareFileUpload: Unknown: %s\r\n", fname);
+            webServer->send(400, "text/html", "<b>Error:</b> Unknown file type");
+            return;
+        }
+    }
+
+    // Write chunked data to the free sketch space
+    else if (upload.status == UPLOAD_FILE_WRITE)
+    {
+        if (Update.write(upload.buf, upload.currentSize) != upload.currentSize)
+        {
+            webServer->send(400, "text/plain", "OTA could not begin");
+            return;
+        }
+        else
+        {
+            binBytesSent = upload.currentSize;
+
+            // Send an update to browser every 100k
+            if (binBytesSent - binBytesLastUpdate > 100000)
+            {
+                binBytesLastUpdate = binBytesSent;
+
+                char bytesSentMsg[100];
+                snprintf(bytesSentMsg, sizeof(bytesSentMsg), "%'d bytes sent", binBytesSent);
+
+                char statusMsg[200] = {'\0'};
+                stringRecord(statusMsg, "firmwareUploadStatus",
+                             bytesSentMsg); // Convert to "firmwareUploadMsg,11214 bytes sent,"
+
+                systemPrintf("msg: %s\r\n", statusMsg);
+                sendStringToWebsocket(statusMsg);
+            }
+        }
+    }
+
+    else if (upload.status == UPLOAD_FILE_END)
+    {
+        if (!Update.end(true))
+        {
+            Update.printError(Serial);
+            webServer->send(400, "text/plain", "Could not end OTA");
+            return;
+        }
+        else
+        {
+            sendStringToWebsocket("firmwareUploadComplete,1,");
+            systemPrintln("Firmware update complete. Restarting");
+            delay(500);
+            ESP.restart();
+        }
+    }
+}
+
+// Handles uploading of user files to SD
+// https://github.com/espressif/arduino-esp32/blob/master/libraries/WebServer/examples/FSBrowser/FSBrowser.ino
+void handleUpload()
+{
+    HTTPUpload &upload = webServer->upload();
+
+    if (upload.status == UPLOAD_FILE_START)
+    {
+        String filename = upload.filename;
+
+        String logmessage = "Upload Start: " + filename;
+
+        int fileNameLen = filename.length();
+        char tempFileName[fileNameLen + 2] = {'/'}; // Filename must start with / or VERY bad things happen on SD_MMC
+        filename.toCharArray(&tempFileName[1], fileNameLen + 1);
+        tempFileName[fileNameLen + 1] = '\0'; // Terminate array
+
+        // Allocate the managerTempFile
+        if (!managerTempFile)
+        {
+            managerTempFile = new SdFile;
+            if (!managerTempFile)
+            {
+                systemPrintln("Failed to allocate managerTempFile!");
+                return;
+            }
+        }
+
+        if (managerFileOpen == false)
+        {
+            // Attempt to gain access to the SD card
+            if (xSemaphoreTake(sdCardSemaphore, fatSemaphore_longWait_ms) == pdPASS)
+            {
+                markSemaphore(FUNCTION_FILEMANAGER_UPLOAD1);
+
+                if (managerTempFile->open(tempFileName, O_CREAT | O_APPEND | O_WRITE) == true)
+                    managerFileOpen = true;
+                else
+                    systemPrintln("Error: handleUpload failed to open file");
+
+                xSemaphoreGive(sdCardSemaphore);
+            }
+        }
+        else
+        {
+            // File is already in use. Wait your turn.
+            webServer->send(202, "text/plain", "ERROR: File already uploading");
+        }
+
+        systemPrintln(logmessage);
+    }
+
+    else if (upload.status == UPLOAD_FILE_WRITE)
+    {
+        // Attempt to gain access to the SD card
+        if (xSemaphoreTake(sdCardSemaphore, fatSemaphore_longWait_ms) == pdPASS)
+        {
+            markSemaphore(FUNCTION_FILEMANAGER_UPLOAD2);
+
+            managerTempFile->write(upload.buf, upload.currentSize); // stream the incoming chunk to the opened file
+
+            xSemaphoreGive(sdCardSemaphore);
+        }
+    }
+
+    else if (upload.status == UPLOAD_FILE_END)
+    {
+        String logmessage = "Upload Complete: " + String(upload.filename) + ", size: " + String(upload.totalSize);
+
+        // Attempt to gain access to the SD card
+        if (xSemaphoreTake(sdCardSemaphore, fatSemaphore_longWait_ms) == pdPASS)
+        {
+            markSemaphore(FUNCTION_FILEMANAGER_UPLOAD3);
+
+            sdUpdateFileCreateTimestamp(managerTempFile); // Update the file create time & date
+
+            managerTempFile->close();
+            managerFileOpen = false;
+
+            xSemaphoreGive(sdCardSemaphore);
+        }
+
+        systemPrintln(logmessage);
+
+        // Redirect to "/"
+        webServer->sendHeader("Location", "/");
+        webServer->send(302, "text/plain", "");
+    }
+}
+
+void notFound()
+{
+    String logmessage = "notFound: Client:" + webServer->client().remoteIP().toString() + " " + webServer->uri();
+    systemPrintln(logmessage);
+    webServer->send(404, "text/plain", "Not found");
+}
+
+// Break CSV into setting constituents
+// Can't use strtok because we may have two commas next to each other, ie
+// measurementRateHz,4.00,measurementRateSec,,dynamicModel,0,
+bool parseIncomingSettings()
+{
+    char settingName[100] = {'\0'};
+    char valueStr[150] = {'\0'}; // stationGeodetic1,ANameThatIsTooLongToBeDisplayed 40.09029479 -105.18505761 1560.089
+
+    char *commaPtr = incomingSettings;
+    char *headPtr = incomingSettings;
+
+    int counter = 0;
+    int maxAttempts = 500;
+    while (*headPtr) // Check if we've reached the end of the string
+    {
+        // Spin to first comma
+        commaPtr = strstr(headPtr, ",");
+        if (commaPtr != nullptr)
+        {
+            *commaPtr = '\0';
+            strcpy(settingName, headPtr);
+            headPtr = commaPtr + 1;
+        }
+
+        commaPtr = strstr(headPtr, ",");
+        if (commaPtr != nullptr)
+        {
+            *commaPtr = '\0';
+            strcpy(valueStr, headPtr);
+            headPtr = commaPtr + 1;
+        }
+
+        if (settings.debugWebServer == true)
+            systemPrintf("settingName: %s value: %s\r\n", settingName, valueStr);
+
+        updateSettingWithValue(false, settingName, valueStr);
+
+        // Avoid infinite loop if response is malformed
+        counter++;
+        if (counter == maxAttempts)
+        {
+            systemPrintln("Error: Incoming settings malformed.");
+            break;
+        }
+    }
+
+    if (counter < maxAttempts)
+    {
+        // Confirm receipt
+        if (settings.debugWebServer == true)
+            systemPrintln("Sending receipt confirmation of settings");
+        sendStringToWebsocket("confirmDataReceipt,1,");
+    }
+
+    return (true);
+}
+
+void sendStringToWebsocket(const char *stringToSend)
+{
+    if (!websocketConnected)
+    {
+        systemPrintf("sendStringToWebsocket: not connected - could not send: %s\r\n", stringToSend);
+        return;
+    }
+
+    // To send content to the webServer, we would call: webServer->sendContent(stringToSend);
+    // But here we want to send content to the websocket (wsserver)...
+
+    httpd_ws_frame_t ws_pkt;
+    memset(&ws_pkt, 0, sizeof(httpd_ws_frame_t));
+    ws_pkt.payload = (uint8_t *)stringToSend;
+    ws_pkt.len = strlen(stringToSend);
+    ws_pkt.type = HTTPD_WS_TYPE_TEXT;
+
+    // If we use httpd_ws_send_frame, it requires a req.
+    // esp_err_t ret = httpd_ws_send_frame(last_ws_req, &ws_pkt);
+    // if (ret != ESP_OK) {
+    //    ESP_LOGE(TAG, "httpd_ws_send_frame failed with %d", ret);
+    //}
+
+    // If we use httpd_ws_send_frame_async, it requires a fd.
+    esp_err_t ret = httpd_ws_send_frame_async(*wsserver, last_ws_fd, &ws_pkt);
+    if (ret != ESP_OK)
+    {
+        systemPrintf("httpd_ws_send_frame failed with %d\r\n", ret);
+    }
+    else
+    {
+        if (settings.debugWebServer == true)
+            systemPrintf("sendStringToWebsocket: %s\r\n", stringToSend);
+    }
+}
+
+void stopWebServer()
+{
+    if (task.updateWebServerTaskRunning)
+        task.updateWebServerTaskStopRequest = true;
+
+    // Wait for task to stop running
+    do
+        delay(10);
+    while (task.updateWebServerTaskRunning);
+
+    if (webServer != nullptr)
+    {
+        webServer->close();
+        free(webServer);
+        webServer = nullptr;
+    }
+
+    // Stop the multicast DNS server
+    networkMulticastDNSStop();
+
+    if (settingsCSV != nullptr)
+    {
+        free(settingsCSV);
+        settingsCSV = nullptr;
+    }
+
+    if (incomingSettings != nullptr)
+    {
+        free(incomingSettings);
+        incomingSettings = nullptr;
+    }
+}
+
+void updateWebServerTask(void *e)
+{
+    // Start notification
+    task.updateWebServerTaskRunning = true;
+    if (settings.printTaskStartStop)
+        systemPrintln("Task updateWebServerTask started");
+
+    // Verify that the task is still running
+    task.updateWebServerTaskStopRequest = false;
+    while (task.updateWebServerTaskStopRequest == false)
+    {
+        // Display an alive message
+        if (PERIODIC_DISPLAY(PD_TASK_UPDATE_WEBSERVER))
+        {
+            PERIODIC_CLEAR(PD_TASK_UPDATE_WEBSERVER);
+            systemPrintln("updateWebServerTask running");
+        }
+
+        webServer->handleClient();
+
+        feedWdt();
+        taskYIELD();
+    }
+
+    // Stop notification
+    if (settings.printTaskStartStop)
+        systemPrintln("Task updateWebServerTask stopped");
+    task.updateWebServerTaskRunning = false;
+    vTaskDelete(updateWebServerTaskHandle);
+}
 
 // Create the web server and web sockets
 bool webServerAssignResources(int httpPort = 80)
@@ -543,35 +1115,20 @@ bool webServerAssignResources(int httpPort = 80)
     return false;
 }
 
-// Start the Web Server state machine
-void webServerStart()
+// Get the webconfig state name
+const char *webServerGetStateName(uint8_t state, char *string)
 {
-    // Display the heap state
-    reportHeapNow(settings.debugWebServer);
-
-    systemPrintln("Web Server start");
-    webServerSetState(WEBSERVER_STATE_WAIT_FOR_NETWORK);
+    if (state < WEBSERVER_STATE_MAX)
+        return webServerStateNames[state];
+    sprintf(string, "Unknown state (%d)", state);
+    return string;
 }
 
-// Stop the web config state machine
-void webServerStop()
+bool webServerIsRunning()
 {
-    online.webServer = false;
-
-    if (settings.debugWebServer)
-        systemPrintln("webServerStop called");
-
-    if (webServerState != WEBSERVER_STATE_OFF)
-    {
-        webServerStopSockets();      // Release socket resources
-        webServerReleaseResources(); // Release web server resources
-
-        // Stop network
-        systemPrintln("Web Server releasing network request");
-
-        // Stop the machine
-        webServerSetState(WEBSERVER_STATE_OFF);
-    }
+    if (webServerState == WEBSERVER_STATE_RUNNING)
+        return (true);
+    return (false);
 }
 
 // Return true if we are in a state that requires network access
@@ -582,15 +1139,36 @@ bool webServerNeedsNetwork()
     return false;
 }
 
-void webServerStopSockets()
+void webServerReleaseResources()
 {
-    websocketConnected = false;
+    if (task.updateWebServerTaskRunning)
+        task.updateWebServerTaskStopRequest = true;
 
-    if (wsserver != nullptr)
+    // Wait for task to stop running
+    do
+        delay(10);
+    while (task.updateWebServerTaskRunning);
+
+    if (webServer != nullptr)
     {
-        // Stop the httpd server
-        esp_err_t ret = httpd_stop(*wsserver);
-        wsserver = nullptr;
+        webServer->close();
+        free(webServer);
+        webServer = nullptr;
+    }
+
+    // Stop the multicast DNS server
+    networkMulticastDNSStop();
+
+    if (settingsCSV != nullptr)
+    {
+        free(settingsCSV);
+        settingsCSV = nullptr;
+    }
+
+    if (incomingSettings != nullptr)
+    {
+        free(incomingSettings);
+        incomingSettings = nullptr;
     }
 }
 
@@ -645,116 +1223,46 @@ void webServerSetState(uint8_t newState)
         reportFatalError("Invalid web config state");
 }
 
-// Get the webconfig state name
-const char *webServerGetStateName(uint8_t state, char *string)
+// Start the Web Server state machine
+void webServerStart()
 {
-    if (state < WEBSERVER_STATE_MAX)
-        return webServerStateNames[state];
-    sprintf(string, "Unknown state (%d)", state);
-    return string;
+    // Display the heap state
+    reportHeapNow(settings.debugWebServer);
+
+    systemPrintln("Web Server start");
+    webServerSetState(WEBSERVER_STATE_WAIT_FOR_NETWORK);
 }
 
-bool webServerIsRunning()
+// Stop the web config state machine
+void webServerStop()
 {
-    if (webServerState == WEBSERVER_STATE_RUNNING)
-        return (true);
-    return (false);
-}
+    online.webServer = false;
 
-void updateWebServerTask(void *e)
-{
-    // Start notification
-    task.updateWebServerTaskRunning = true;
-    if (settings.printTaskStartStop)
-        systemPrintln("Task updateWebServerTask started");
+    if (settings.debugWebServer)
+        systemPrintln("webServerStop called");
 
-    // Verify that the task is still running
-    task.updateWebServerTaskStopRequest = false;
-    while (task.updateWebServerTaskStopRequest == false)
+    if (webServerState != WEBSERVER_STATE_OFF)
     {
-        // Display an alive message
-        if (PERIODIC_DISPLAY(PD_TASK_UPDATE_WEBSERVER))
-        {
-            PERIODIC_CLEAR(PD_TASK_UPDATE_WEBSERVER);
-            systemPrintln("updateWebServerTask running");
-        }
+        webServerStopSockets();      // Release socket resources
+        webServerReleaseResources(); // Release web server resources
 
-        webServer->handleClient();
+        // Stop network
+        systemPrintln("Web Server releasing network request");
 
-        feedWdt();
-        taskYIELD();
-    }
-
-    // Stop notification
-    if (settings.printTaskStartStop)
-        systemPrintln("Task updateWebServerTask stopped");
-    task.updateWebServerTaskRunning = false;
-    vTaskDelete(updateWebServerTaskHandle);
-}
-
-void stopWebServer()
-{
-    if (task.updateWebServerTaskRunning)
-        task.updateWebServerTaskStopRequest = true;
-
-    // Wait for task to stop running
-    do
-        delay(10);
-    while (task.updateWebServerTaskRunning);
-
-    if (webServer != nullptr)
-    {
-        webServer->close();
-        free(webServer);
-        webServer = nullptr;
-    }
-
-    // Stop the multicast DNS server
-    networkMulticastDNSStop();
-
-    if (settingsCSV != nullptr)
-    {
-        free(settingsCSV);
-        settingsCSV = nullptr;
-    }
-
-    if (incomingSettings != nullptr)
-    {
-        free(incomingSettings);
-        incomingSettings = nullptr;
+        // Stop the machine
+        webServerSetState(WEBSERVER_STATE_OFF);
     }
 }
 
-void webServerReleaseResources()
+void webServerStopSockets()
 {
-    if (task.updateWebServerTaskRunning)
-        task.updateWebServerTaskStopRequest = true;
+    websocketConnected = false;
 
-    // Wait for task to stop running
-    do
-        delay(10);
-    while (task.updateWebServerTaskRunning);
-
-    if (webServer != nullptr)
+    if (wsserver != nullptr)
     {
-        webServer->close();
-        free(webServer);
-        webServer = nullptr;
-    }
-
-    // Stop the multicast DNS server
-    networkMulticastDNSStop();
-
-    if (settingsCSV != nullptr)
-    {
-        free(settingsCSV);
-        settingsCSV = nullptr;
-    }
-
-    if (incomingSettings != nullptr)
-    {
-        free(incomingSettings);
-        incomingSettings = nullptr;
+        // Stop the httpd server
+        esp_err_t ret = httpd_stop(*wsserver);
+        wsserver = nullptr;
     }
 }
 
@@ -815,660 +1323,152 @@ void webServerUpdate()
     }
 }
 
-void notFound()
-{
-    String logmessage = "notFound: Client:" + webServer->client().remoteIP().toString() + " " + webServer->uri();
-    systemPrintln(logmessage);
-    webServer->send(404, "text/plain", "Not found");
-}
-
-// Handler for firmware file downloads
-static void handleFileManager()
-{
-    // This section does not tolerate semaphore transactions
-    String logmessage =
-        "handleFileManager: Client:" + webServer->client().remoteIP().toString() + " " + webServer->uri();
-
-    if (webServer->hasArg("name") && webServer->hasArg("action"))
-    {
-        String fileName = webServer->arg("name");
-        String fileAction = webServer->arg("action");
-
-        logmessage = "Client:" + webServer->client().remoteIP().toString() + " " + webServer->uri() +
-                     "?name=" + fileName + "&action=" + fileAction;
-
-        char slashFileName[60];
-        snprintf(slashFileName, sizeof(slashFileName), "/%s", fileName.c_str());
-
-        bool fileExists = sd->exists(slashFileName);
-
-        if (fileExists == false)
-        {
-            logmessage += " ERROR: file ";
-            logmessage += slashFileName;
-            logmessage += " does not exist";
-            webServer->send(400, "text/plain", "ERROR: file does not exist");
-        }
-        else
-        {
-            logmessage += " file exists";
-
-            if (fileAction == "download")
-            {
-                logmessage += " downloaded";
-
-                // This would be SO much easier with webServer->streamFile
-                // except streamFile only works with File - not SdFile...
-                // TODO: if we ever upgrade to SD from SdFat, replace this with streamFile
-
-                if (managerFileOpen == false)
-                {
-                    // Allocate the managerTempFile
-                    if (!managerTempFile)
-                    {
-                        managerTempFile = new SdFile;
-                        if (!managerTempFile)
-                        {
-                            systemPrintln("Failed to allocate managerTempFile!");
-                            return;
-                        }
-                    }
-
-                    if (managerTempFile->open(slashFileName, O_READ) == true)
-                        managerFileOpen = true;
-                    else
-                        systemPrintln("Error: File Manager failed to open file");
-                }
-                else
-                {
-                    // File is already in use. Wait your turn.
-                    webServer->send(202, "text/plain", "ERROR: File already downloading");
-                }
-
-                const size_t maxLen = 8192;
-                uint8_t *buf = new uint8_t[maxLen];
-
-                size_t dataAvailable = managerTempFile->size();
-
-                bool firstSend = true;
-
-                while (dataAvailable > 0)
-                {
-                    size_t sending;
-
-                    if (dataAvailable > maxLen)
-                    {
-                        sending = managerTempFile->read(buf, maxLen);
-                    }
-                    else
-                    {
-                        sending = managerTempFile->read(buf, dataAvailable);
-                    }
-
-                    if (firstSend) // First send?
-                    {
-                        webServer->setContentLength(dataAvailable);
-                        webServer->sendHeader("Cache-Control", "no-cache");
-                        webServer->sendHeader("Content-Disposition", "attachment; filename=" + String(fileName));
-                        webServer->sendHeader("Access-Control-Allow-Origin", "*");
-                        webServer->send(200, "application/octet-stream", "");
-                        firstSend = false;
-                    }
-
-                    webServer->sendContent((const char *)buf, sending);
-
-                    if (sending < maxLen) // Last send?
-                    {
-                        managerTempFile->close();
-
-                        managerFileOpen = false;
-
-                        sendStringToWebsocket("fmNext,1,"); // Tell browser to send next file if needed
-                    }
-
-                    dataAvailable -= sending;
-                }
-
-                delete[] buf;
-            }
-            else if (fileAction == "delete")
-            {
-                logmessage += " deleted";
-                sd->remove(slashFileName);
-                webServer->send(200, "text/plain", "Deleted File: " + fileName);
-            }
-            else
-            {
-                logmessage += " ERROR: invalid action param supplied";
-                webServer->send(400, "text/plain", "ERROR: invalid action param supplied");
-            }
-        }
-        systemPrintln(logmessage);
-    }
-    else
-    {
-        webServer->send(400, "text/plain", "ERROR: name and action params required");
-    }
-}
-
-// Handler for firmware file upload
-static void handleFirmwareFileUpload()
-{
-    String fileName = "";
-
-    HTTPUpload &upload = webServer->upload();
-
-    if (upload.status == UPLOAD_FILE_START)
-    {
-        // Check file name against valid firmware names
-        const char *BIN_EXT = "bin";
-        const char *BIN_HEADER = "RTK_Everywhere_Firmware";
-
-        fileName = upload.filename;
-
-        int fnameLen = fileName.length();
-        char fname[fnameLen + 2] = {'/'}; // Filename must start with / or VERY bad things happen on SD_MMC
-        fileName.toCharArray(&fname[1], fnameLen + 1);
-        fname[fnameLen + 1] = '\0'; // Terminate array
-
-        // Check 'bin' extension
-        if (strcmp(BIN_EXT, &fname[strlen(fname) - strlen(BIN_EXT)]) == 0)
-        {
-            // Check for 'RTK_Everywhere_Firmware' start of file name
-            if (strncmp(fname, BIN_HEADER, strlen(BIN_HEADER)) == 0)
-            {
-                // Begin update process
-                if (!Update.begin(UPDATE_SIZE_UNKNOWN))
-                {
-                    Update.printError(Serial);
-                    webServer->send(400, "text/plain", "OTA could not begin");
-                    return;
-                }
-            }
-            else
-            {
-                systemPrintf("handleFirmwareFileUpload: Unknown: %s\r\n", fname);
-                webServer->send(400, "text/html", "<b>Error:</b> Unknown file type");
-                return;
-            }
-        }
-        else
-        {
-            systemPrintf("handleFirmwareFileUpload: Unknown: %s\r\n", fname);
-            webServer->send(400, "text/html", "<b>Error:</b> Unknown file type");
-            return;
-        }
-    }
-
-    // Write chunked data to the free sketch space
-    else if (upload.status == UPLOAD_FILE_WRITE)
-    {
-        if (Update.write(upload.buf, upload.currentSize) != upload.currentSize)
-        {
-            webServer->send(400, "text/plain", "OTA could not begin");
-            return;
-        }
-        else
-        {
-            binBytesSent = upload.currentSize;
-
-            // Send an update to browser every 100k
-            if (binBytesSent - binBytesLastUpdate > 100000)
-            {
-                binBytesLastUpdate = binBytesSent;
-
-                char bytesSentMsg[100];
-                snprintf(bytesSentMsg, sizeof(bytesSentMsg), "%'d bytes sent", binBytesSent);
-
-                char statusMsg[200] = {'\0'};
-                stringRecord(statusMsg, "firmwareUploadStatus",
-                             bytesSentMsg); // Convert to "firmwareUploadMsg,11214 bytes sent,"
-
-                systemPrintf("msg: %s\r\n", statusMsg);
-                sendStringToWebsocket(statusMsg);
-            }
-        }
-    }
-
-    else if (upload.status == UPLOAD_FILE_END)
-    {
-        if (!Update.end(true))
-        {
-            Update.printError(Serial);
-            webServer->send(400, "text/plain", "Could not end OTA");
-            return;
-        }
-        else
-        {
-            sendStringToWebsocket("firmwareUploadComplete,1,");
-            systemPrintln("Firmware update complete. Restarting");
-            delay(500);
-            ESP.restart();
-        }
-    }
-}
-
-// Report back to the web config page with a CSV that contains the either CURRENT or
-// the latest version as obtained by the OTA state machine
-void createFirmwareVersionString(char *settingsCSV)
-{
-    char newVersionCSV[100];
-
-    settingsCSV[0] = '\0'; // Erase current settings string
-
-    // Create a string of the unit's current firmware version
-    char currentVersion[21];
-    getFirmwareVersion(currentVersion, sizeof(currentVersion), enableRCFirmware);
-
-    // Compare the unit's version against the reported version from OTA
-    if (isReportedVersionNewer(otaReportedVersion, currentVersion) == true)
-    {
-        if (settings.debugWebServer == true)
-            systemPrintln("New version detected");
-        snprintf(newVersionCSV, sizeof(newVersionCSV), "%s,", otaReportedVersion);
-    }
-    else
-    {
-        if (settings.debugWebServer == true)
-            systemPrintln("No new firmware available");
-        snprintf(newVersionCSV, sizeof(newVersionCSV), "CURRENT,");
-    }
-
-    stringRecord(settingsCSV, "newFirmwareVersion", newVersionCSV);
-
-    strcat(settingsCSV, "\0");
-}
-
-// Create a csv string with the dynamic data to update (current coordinates, battery level, etc)
-void createDynamicDataString(char *settingsCSV)
-{
-    settingsCSV[0] = '\0'; // Erase current settings string
-
-    // Current coordinates come from HPPOSLLH call back
-    stringRecord(settingsCSV, "geodeticLat", gnss->getLatitude(), haeNumberOfDecimals);
-    stringRecord(settingsCSV, "geodeticLon", gnss->getLongitude(), haeNumberOfDecimals);
-    stringRecord(settingsCSV, "geodeticAlt", gnss->getAltitude(), 3);
-
-    double ecefX = 0;
-    double ecefY = 0;
-    double ecefZ = 0;
-
-    geodeticToEcef(gnss->getLatitude(), gnss->getLongitude(), gnss->getAltitude(), &ecefX, &ecefY, &ecefZ);
-
-    stringRecord(settingsCSV, "ecefX", ecefX, 3);
-    stringRecord(settingsCSV, "ecefY", ecefY, 3);
-    stringRecord(settingsCSV, "ecefZ", ecefZ, 3);
-
-    if (online.batteryFuelGauge == false) // Product has no battery
-    {
-        stringRecord(settingsCSV, "batteryIconFileName", (char *)"src/BatteryBlank.png");
-        stringRecord(settingsCSV, "batteryPercent", (char *)" ");
-    }
-    else
-    {
-        // Determine battery icon
-        int iconLevel = 0;
-        if (batteryLevelPercent < 25)
-            iconLevel = 0;
-        else if (batteryLevelPercent < 50)
-            iconLevel = 1;
-        else if (batteryLevelPercent < 75)
-            iconLevel = 2;
-        else // batt level > 75
-            iconLevel = 3;
-
-        char batteryIconFileName[sizeof("src/Battery2_Charging.png__")]; // sizeof() includes 1 for \0 termination
-
-        if (isCharging())
-            snprintf(batteryIconFileName, sizeof(batteryIconFileName), "src/Battery%d_Charging.png", iconLevel);
-        else
-            snprintf(batteryIconFileName, sizeof(batteryIconFileName), "src/Battery%d.png", iconLevel);
-
-        stringRecord(settingsCSV, "batteryIconFileName", batteryIconFileName);
-
-        // Limit batteryLevelPercent to sane levels
-        if (batteryLevelPercent > 100)
-            batteryLevelPercent = 100;
-
-        // Determine battery percent
-        char batteryPercent[sizeof("+100%__")];
-        if (isCharging())
-            snprintf(batteryPercent, sizeof(batteryPercent), "+%d%%", batteryLevelPercent);
-        else
-            snprintf(batteryPercent, sizeof(batteryPercent), "%d%%", batteryLevelPercent);
-        stringRecord(settingsCSV, "batteryPercent", batteryPercent);
-    }
-
-    strcat(settingsCSV, "\0");
-}
-
-// Break CSV into setting constituents
-// Can't use strtok because we may have two commas next to each other, ie
-// measurementRateHz,4.00,measurementRateSec,,dynamicModel,0,
-bool parseIncomingSettings()
-{
-    char settingName[100] = {'\0'};
-    char valueStr[150] = {'\0'}; // stationGeodetic1,ANameThatIsTooLongToBeDisplayed 40.09029479 -105.18505761 1560.089
-
-    char *commaPtr = incomingSettings;
-    char *headPtr = incomingSettings;
-
-    int counter = 0;
-    int maxAttempts = 500;
-    while (*headPtr) // Check if we've reached the end of the string
-    {
-        // Spin to first comma
-        commaPtr = strstr(headPtr, ",");
-        if (commaPtr != nullptr)
-        {
-            *commaPtr = '\0';
-            strcpy(settingName, headPtr);
-            headPtr = commaPtr + 1;
-        }
-
-        commaPtr = strstr(headPtr, ",");
-        if (commaPtr != nullptr)
-        {
-            *commaPtr = '\0';
-            strcpy(valueStr, headPtr);
-            headPtr = commaPtr + 1;
-        }
-
-        if (settings.debugWebServer == true)
-            systemPrintf("settingName: %s value: %s\r\n", settingName, valueStr);
-
-        updateSettingWithValue(false, settingName, valueStr);
-
-        // Avoid infinite loop if response is malformed
-        counter++;
-        if (counter == maxAttempts)
-        {
-            systemPrintln("Error: Incoming settings malformed.");
-            break;
-        }
-    }
-
-    if (counter < maxAttempts)
-    {
-        // Confirm receipt
-        if (settings.debugWebServer == true)
-            systemPrintln("Sending receipt confirmation of settings");
-        sendStringToWebsocket("confirmDataReceipt,1,");
-    }
-
-    return (true);
-}
-
-// When called, responds with the root folder list of files on SD card
-// Name and size are formatted in CSV, formatted to html by JS
-void getFileList(String &returnText)
-{
-    returnText = "";
-
-    // Update the SD Size and Free Space
-    String cardSize;
-    stringHumanReadableSize(cardSize, sdCardSize);
-    returnText += "sdSize," + cardSize + ",";
-    String freeSpace;
-    stringHumanReadableSize(freeSpace, sdFreeSpace);
-    returnText += "sdFreeSpace," + freeSpace + ",";
-
-    char fileName[50]; // Handle long file names
-
-    // Attempt to gain access to the SD card
-    if (xSemaphoreTake(sdCardSemaphore, fatSemaphore_longWait_ms) == pdPASS)
-    {
-        markSemaphore(FUNCTION_FILEMANAGER_UPLOAD1);
-
-        SdFile root;
-        root.open("/"); // Open root
-        SdFile file;
-        uint16_t fileCount = 0;
-
-        while (file.openNext(&root, O_READ))
-        {
-            if (file.isFile())
-            {
-                fileCount++;
-
-                file.getName(fileName, sizeof(fileName));
-
-                String fileSize;
-                stringHumanReadableSize(fileSize, file.fileSize());
-                returnText += "fmName," + String(fileName) + ",fmSize," + fileSize + ",";
-            }
-        }
-
-        root.close();
-        file.close();
-
-        xSemaphoreGive(sdCardSemaphore);
-    }
-    else
-    {
-        char semaphoreHolder[50];
-        getSemaphoreFunction(semaphoreHolder);
-
-        // This is an error because the current settings no longer match the settings
-        // on the microSD card, and will not be restored to the expected settings!
-        systemPrintf("sdCardSemaphore failed to yield, held by %s, Form.ino line %d\r\n", semaphoreHolder, __LINE__);
-    }
-
-    if (settings.debugWebServer == true)
-        systemPrintf("returnText (%d bytes): %s\r\n", returnText.length(), returnText.c_str());
-}
-
-// When called, responds with the messages supported on this platform
-// Message name and current rate are formatted in CSV, formatted to html by JS
-void createMessageList(String &returnText)
-{
-    returnText = "";
-
-    if (present.gnss_zedf9p)
-    {
-#ifdef COMPILE_ZED
-        for (int messageNumber = 0; messageNumber < MAX_UBX_MSG; messageNumber++)
-        {
-            if (messageSupported(messageNumber) == true)
-                returnText += "ubxMessageRate_" + String(ubxMessages[messageNumber].msgTextName) + "," +
-                              String(settings.ubxMessageRates[messageNumber]) + ",";
-        }
-#endif // COMPILE_ZED
-    }
-
-#ifdef COMPILE_UM980
-    else if (present.gnss_um980)
-    {
-        for (int messageNumber = 0; messageNumber < MAX_UM980_NMEA_MSG; messageNumber++)
-        {
-            returnText += "messageRateNMEA_" + String(umMessagesNMEA[messageNumber].msgTextName) + "," +
-                          String(settings.um980MessageRatesNMEA[messageNumber]) + ",";
-        }
-        for (int messageNumber = 0; messageNumber < MAX_UM980_RTCM_MSG; messageNumber++)
-        {
-            returnText += "messageRateRTCMRover_" + String(umMessagesRTCM[messageNumber].msgTextName) + "," +
-                          String(settings.um980MessageRatesRTCMRover[messageNumber]) + ",";
-        }
-    }
-#endif // COMPILE_UM980
-
-#ifdef COMPILE_MOSAICX5
-    else if (present.gnss_mosaicX5)
-    {
-        for (int messageNumber = 0; messageNumber < MAX_MOSAIC_NMEA_MSG; messageNumber++)
-        {
-            returnText += "messageStreamNMEA_" + String(mosaicMessagesNMEA[messageNumber].msgTextName) + "," +
-                          String(settings.mosaicMessageStreamNMEA[messageNumber]) + ",";
-        }
-        for (int stream = 0; stream < MOSAIC_NUM_NMEA_STREAMS; stream++)
-        {
-            returnText +=
-                "streamIntervalNMEA_" + String(stream) + "," + String(settings.mosaicStreamIntervalsNMEA[stream]) + ",";
-        }
-        for (int messageNumber = 0; messageNumber < MAX_MOSAIC_RTCM_V3_INTERVAL_GROUPS; messageNumber++)
-        {
-            returnText += "messageIntervalRTCMRover_" + String(mosaicRTCMv3MsgIntervalGroups[messageNumber].name) +
-                          "," + String(settings.mosaicMessageIntervalsRTCMv3Rover[messageNumber]) + ",";
-        }
-        for (int messageNumber = 0; messageNumber < MAX_MOSAIC_RTCM_V3_MSG; messageNumber++)
-        {
-            returnText += "messageEnabledRTCMRover_" + String(mosaicMessagesRTCMv3[messageNumber].name) + "," +
-                          (settings.mosaicMessageEnabledRTCMv3Rover[messageNumber] ? "true" : "false") + ",";
-        }
-    }
-#endif // COMPILE_MOSAICX5
-
-    if (settings.debugWebServer == true)
-        systemPrintf("returnText (%d bytes): %s\r\n", returnText.length(), returnText.c_str());
-}
-
-// When called, responds with the RTCM/Base messages supported on this platform
-// Message name and current rate are formatted in CSV, formatted to html by JS
-void createMessageListBase(String &returnText)
-{
-    returnText = "";
-
-    if (present.gnss_zedf9p)
-    {
-#ifdef COMPILE_ZED
-        GNSS_ZED *zed = (GNSS_ZED *)gnss;
-        int firstRTCMRecord = zed->getMessageNumberByName("RTCM_1005");
-
-        for (int messageNumber = 0; messageNumber < MAX_UBX_MSG_RTCM; messageNumber++)
-        {
-            if (messageSupported(firstRTCMRecord + messageNumber) == true)
-                returnText += "ubxMessageRateBase_" + String(ubxMessages[messageNumber + firstRTCMRecord].msgTextName) +
-                              "," + String(settings.ubxMessageRatesBase[messageNumber]) + ","; // UBX_RTCM_1074Base,4,
-        }
-#endif // COMPILE_ZED
-    }
-
-#ifdef COMPILE_UM980
-    else if (present.gnss_um980)
-    {
-        for (int messageNumber = 0; messageNumber < MAX_UM980_RTCM_MSG; messageNumber++)
-        {
-            returnText += "messageRateRTCMBase_" + String(umMessagesRTCM[messageNumber].msgTextName) + "," +
-                          String(settings.um980MessageRatesRTCMBase[messageNumber]) + ",";
-        }
-    }
-#endif // COMPILE_UM980
-
-#ifdef COMPILE_MOSAICX5
-    else if (present.gnss_mosaicX5)
-    {
-        for (int messageNumber = 0; messageNumber < MAX_MOSAIC_RTCM_V3_INTERVAL_GROUPS; messageNumber++)
-        {
-            returnText += "messageIntervalRTCMBase_" + String(mosaicRTCMv3MsgIntervalGroups[messageNumber].name) + "," +
-                          String(settings.mosaicMessageIntervalsRTCMv3Base[messageNumber]) + ",";
-        }
-        for (int messageNumber = 0; messageNumber < MAX_MOSAIC_RTCM_V3_MSG; messageNumber++)
-        {
-            returnText += "messageEnabledRTCMBase_" + String(mosaicMessagesRTCMv3[messageNumber].name) + "," +
-                          (settings.mosaicMessageEnabledRTCMv3Base[messageNumber] ? "true" : "false") + ",";
-        }
-    }
-#endif // COMPILE_MOSAICX5
-
-    if (settings.debugWebServer == true)
-        systemPrintf("returnText (%d bytes): %s\r\n", returnText.length(), returnText.c_str());
-}
-
-// Handles uploading of user files to SD
-// https://github.com/espressif/arduino-esp32/blob/master/libraries/WebServer/examples/FSBrowser/FSBrowser.ino
-void handleUpload()
-{
-    HTTPUpload &upload = webServer->upload();
-
-    if (upload.status == UPLOAD_FILE_START)
-    {
-        String filename = upload.filename;
-
-        String logmessage = "Upload Start: " + filename;
-
-        int fileNameLen = filename.length();
-        char tempFileName[fileNameLen + 2] = {'/'}; // Filename must start with / or VERY bad things happen on SD_MMC
-        filename.toCharArray(&tempFileName[1], fileNameLen + 1);
-        tempFileName[fileNameLen + 1] = '\0'; // Terminate array
-
-        // Allocate the managerTempFile
-        if (!managerTempFile)
-        {
-            managerTempFile = new SdFile;
-            if (!managerTempFile)
-            {
-                systemPrintln("Failed to allocate managerTempFile!");
-                return;
-            }
-        }
-
-        if (managerFileOpen == false)
-        {
-            // Attempt to gain access to the SD card
-            if (xSemaphoreTake(sdCardSemaphore, fatSemaphore_longWait_ms) == pdPASS)
-            {
-                markSemaphore(FUNCTION_FILEMANAGER_UPLOAD1);
-
-                if (managerTempFile->open(tempFileName, O_CREAT | O_APPEND | O_WRITE) == true)
-                    managerFileOpen = true;
-                else
-                    systemPrintln("Error: handleUpload failed to open file");
-
-                xSemaphoreGive(sdCardSemaphore);
-            }
-        }
-        else
-        {
-            // File is already in use. Wait your turn.
-            webServer->send(202, "text/plain", "ERROR: File already uploading");
-        }
-
-        systemPrintln(logmessage);
-    }
-
-    else if (upload.status == UPLOAD_FILE_WRITE)
-    {
-        // Attempt to gain access to the SD card
-        if (xSemaphoreTake(sdCardSemaphore, fatSemaphore_longWait_ms) == pdPASS)
-        {
-            markSemaphore(FUNCTION_FILEMANAGER_UPLOAD2);
-
-            managerTempFile->write(upload.buf, upload.currentSize); // stream the incoming chunk to the opened file
-
-            xSemaphoreGive(sdCardSemaphore);
-        }
-    }
-
-    else if (upload.status == UPLOAD_FILE_END)
-    {
-        String logmessage = "Upload Complete: " + String(upload.filename) + ", size: " + String(upload.totalSize);
-
-        // Attempt to gain access to the SD card
-        if (xSemaphoreTake(sdCardSemaphore, fatSemaphore_longWait_ms) == pdPASS)
-        {
-            markSemaphore(FUNCTION_FILEMANAGER_UPLOAD3);
-
-            sdUpdateFileCreateTimestamp(managerTempFile); // Update the file create time & date
-
-            managerTempFile->close();
-            managerFileOpen = false;
-
-            xSemaphoreGive(sdCardSemaphore);
-        }
-
-        systemPrintln(logmessage);
-
-        // Redirect to "/"
-        webServer->sendHeader("Location", "/");
-        webServer->send(302, "text/plain", "");
-    }
-}
-
 // Verify the web server tables
 void webServerVerifyTables()
 {
     if (webServerStateEntries != WEBSERVER_STATE_MAX)
         reportFatalError("Fix webServerStateNames to match WebServerState");
+}
+
+static esp_err_t ws_handler(httpd_req_t *req)
+{
+    // Log the req, so we can reuse it for httpd_ws_send_frame
+    // TODO: do we need to be cleverer about this?
+    // last_ws_req = req;
+
+    if (req->method == HTTP_GET)
+    {
+        // Log the fd, so we can reuse it for httpd_ws_send_frame_async
+        // TODO: do we need to be cleverer about this?
+        last_ws_fd = httpd_req_to_sockfd(req);
+
+        if (settings.debugWebServer == true)
+            systemPrintf("Handshake done, the new ws connection was opened with fd %d\r\n", last_ws_fd);
+
+        websocketConnected = true;
+        lastDynamicDataUpdate = millis();
+        sendStringToWebsocket(settingsCSV);
+
+        return ESP_OK;
+    }
+
+    httpd_ws_frame_t ws_pkt;
+    uint8_t *buf = NULL;
+    memset(&ws_pkt, 0, sizeof(httpd_ws_frame_t));
+    ws_pkt.type = HTTPD_WS_TYPE_TEXT;
+    /* Set max_len = 0 to get the frame len */
+    esp_err_t ret = httpd_ws_recv_frame(req, &ws_pkt, 0);
+    if (ret != ESP_OK)
+    {
+        systemPrintf("httpd_ws_recv_frame failed to get frame len with %d\r\n", ret);
+        return ret;
+    }
+    if (settings.debugWebServer == true)
+        systemPrintf("frame len is %d\r\n", ws_pkt.len);
+    if (ws_pkt.len)
+    {
+        /* ws_pkt.len + 1 is for NULL termination as we are expecting a string */
+        if (online.psram == true)
+            buf = (uint8_t *)ps_malloc(ws_pkt.len + 1);
+        else
+            buf = (uint8_t *)malloc(ws_pkt.len + 1);
+
+        if (buf == NULL)
+        {
+            systemPrintln("Failed to malloc memory for buf");
+            return ESP_ERR_NO_MEM;
+        }
+        ws_pkt.payload = buf;
+        /* Set max_len = ws_pkt.len to get the frame payload */
+        ret = httpd_ws_recv_frame(req, &ws_pkt, ws_pkt.len);
+        if (ret != ESP_OK)
+        {
+            systemPrintf("httpd_ws_recv_frame failed with %d\r\n", ret);
+            free(buf);
+            return ret;
+        }
+    }
+    if (settings.debugWebServer == true)
+        systemPrintf("Packet type: %d\r\n", ws_pkt.type);
+    // HTTPD_WS_TYPE_CONTINUE   = 0x0,
+    // HTTPD_WS_TYPE_TEXT       = 0x1,
+    // HTTPD_WS_TYPE_BINARY     = 0x2,
+    // HTTPD_WS_TYPE_CLOSE      = 0x8,
+    // HTTPD_WS_TYPE_PING       = 0x9,
+    // HTTPD_WS_TYPE_PONG       = 0xA
+
+    if (ws_pkt.type == HTTPD_WS_TYPE_TEXT)
+    {
+        if (settings.debugWebServer == true)
+        {
+            systemPrintf("Got packet with message: %s\r\n", ws_pkt.payload);
+            dumpBuffer(ws_pkt.payload, ws_pkt.len);
+        }
+
+        if (currentlyParsingData == false)
+        {
+            for (int i = 0; i < ws_pkt.len; i++)
+            {
+                incomingSettings[incomingSettingsSpot++] = ws_pkt.payload[i];
+                incomingSettingsSpot %= AP_CONFIG_SETTING_SIZE;
+            }
+            timeSinceLastIncomingSetting = millis();
+        }
+        else
+        {
+            if (settings.debugWebServer == true)
+                systemPrintln("Ignoring packet due to parsing block");
+        }
+    }
+    else if (ws_pkt.type == HTTPD_WS_TYPE_CLOSE)
+    {
+        if (settings.debugWebServer == true)
+            systemPrintln("Client closed or refreshed the web page");
+
+        createSettingsString(settingsCSV);
+        websocketConnected = false;
+    }
+
+    free(buf);
+    return ret;
+}
+
+static const httpd_uri_t ws = {.uri = "/ws",
+                               .method = HTTP_GET,
+                               .handler = ws_handler,
+                               .user_ctx = NULL,
+                               .is_websocket = true,
+                               .handle_ws_control_frames = true,
+                               .supported_subprotocol = NULL};
+
+bool websocketServerStart(void)
+{
+    httpd_config_t config = HTTPD_DEFAULT_CONFIG();
+
+    // Use different ports for websocket and webServer - use port 81 for the websocket - also defined in main.js
+    config.server_port = 81;
+
+    // Increase the stack size from 4K to ~15K
+    config.stack_size = updateWebSocketStackSize;
+
+    // Start the httpd server
+    if (settings.debugWebServer == true)
+        systemPrintf("Starting wsserver on port: %d\r\n", config.server_port);
+
+    if (wsserver == nullptr)
+        wsserver = new httpd_handle_t;
+
+    if (httpd_start(wsserver, &config) == ESP_OK)
+    {
+        // Registering the ws handler
+        if (settings.debugWebServer == true)
+            systemPrintln("Registering URI handlers");
+        httpd_register_uri_handler(*wsserver, &ws);
+        return true;
+    }
+
+    systemPrintln("Error starting wsserver!");
+    return false;
 }
 
 #endif // COMPILE_AP
