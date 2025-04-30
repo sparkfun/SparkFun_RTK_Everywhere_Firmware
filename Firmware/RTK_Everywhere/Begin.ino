@@ -69,13 +69,9 @@ void identifyBoard()
     // Get unit MAC address
     // This was in beginVersion, but is needed earlier so that beginBoard
     // can print the MAC address if identifyBoard fails.
-    esp_read_mac(wifiMACAddress, ESP_MAC_WIFI_STA);
-    memcpy(btMACAddress, wifiMACAddress, sizeof(wifiMACAddress));
-    btMACAddress[5] +=
-        2; // Convert MAC address to Bluetooth MAC (add 2):
-           // https://docs.espressif.com/projects/esp-idf/en/latest/esp32/api-reference/system/system.html#mac-address
-    memcpy(ethernetMACAddress, wifiMACAddress, sizeof(wifiMACAddress));
-    ethernetMACAddress[5] += 3; // Convert MAC address to Ethernet MAC (add 3)
+    getMacAddresses(wifiMACAddress, "wifiMACAddress", ESP_MAC_WIFI_STA, true);
+    getMacAddresses(btMACAddress, "btMACAddress", ESP_MAC_BT, true);
+    getMacAddresses(ethernetMACAddress, "ethernetMACAddress", ESP_MAC_ETH, true);
 
     // First, test for devices that do not have ID resistors
     if (productVariant == RTK_UNKNOWN)
