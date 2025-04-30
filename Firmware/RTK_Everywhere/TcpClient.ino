@@ -156,6 +156,31 @@ static volatile bool tcpClientWriteError;
 // TCP Client handleGnssDataTask Support Routines
 //----------------------------------------
 
+// Remove previous messages from the ring buffer
+void discardTcpClientBytes(RING_BUFFER_OFFSET previousTail, RING_BUFFER_OFFSET newTail)
+{
+    if (previousTail < newTail)
+    {
+        // No buffer wrap occurred
+        if ((tcpClientTail >= previousTail) && (tcpClientTail < newTail))
+            tcpClientTail = newTail;
+    }
+    else
+    {
+        // Buffer wrap occurred
+        if ((tcpClientTail >= previousTail) || (tcpClientTail < newTail))
+            tcpClientTail = newTail;
+    }
+}
+
+// Return true if we are in a state that requires network access
+bool tcpClientNeedsNetwork()
+{
+    if (tcpClientState >= TCP_CLIENT_STATE_WAIT_FOR_NETWORK && tcpClientState <= TCP_CLIENT_STATE_CONNECTED)
+        return true;
+    return false;
+}
+
 // Send TCP data to the server
 int32_t tcpClientSendData(uint16_t dataHead)
 {
@@ -243,23 +268,6 @@ void tcpClientSetState(uint8_t newState)
         }
         else
             systemPrintln(tcpClientStateName[tcpClientState]);
-    }
-}
-
-// Remove previous messages from the ring buffer
-void discardTcpClientBytes(RING_BUFFER_OFFSET previousTail, RING_BUFFER_OFFSET newTail)
-{
-    if (previousTail < newTail)
-    {
-        // No buffer wrap occurred
-        if ((tcpClientTail >= previousTail) && (tcpClientTail < newTail))
-            tcpClientTail = newTail;
-    }
-    else
-    {
-        // Buffer wrap occurred
-        if ((tcpClientTail >= previousTail) || (tcpClientTail < newTail))
-            tcpClientTail = newTail;
     }
 }
 
@@ -352,14 +360,6 @@ void tcpClientStop()
     if (settings.debugTcpClient)
         systemPrintln("TCP client offline");
     tcpClientSetState(TCP_CLIENT_STATE_OFF);
-}
-
-// Return true if we are in a state that requires network access
-bool tcpClientNeedsNetwork()
-{
-    if (tcpClientState >= TCP_CLIENT_STATE_WAIT_FOR_NETWORK && tcpClientState <= TCP_CLIENT_STATE_CONNECTED)
-        return true;
-    return false;
 }
 
 // Update the TCP client state
