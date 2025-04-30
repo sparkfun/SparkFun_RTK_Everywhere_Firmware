@@ -1198,7 +1198,7 @@ SettingValueResponse updateSettingWithValue(bool inCommands, const char *setting
     }
     else if (strcmp(settingName, "firmwareFileName") == 0)
     {
-        mountSDThenUpdate(settingValueStr);
+        microSDMountThenUpdate(settingValueStr);
 
         // If update is successful, it will force system reset and not get here.
 
@@ -1328,8 +1328,8 @@ SettingValueResponse updateSettingWithValue(bool inCommands, const char *setting
             {
                 // We got a version number, now determine if it's newer or not
                 char currentVersion[40];
-                getFirmwareVersion(currentVersion, sizeof(currentVersion), enableRCFirmware);
-                if (isReportedVersionNewer(otaReportedVersion, currentVersion) == true)
+                firmwareVersionGet(currentVersion, sizeof(currentVersion), enableRCFirmware);
+                if (firmwareVersionIsReportedNewer(otaReportedVersion, currentVersion) == true)
                 {
                     if (settings.debugWebServer == true)
                         systemPrintln("New version detected");
@@ -1431,7 +1431,7 @@ void createSettingsString(char *newSettings)
     stringRecord(newSettings, "platformPrefix", apPlatformPrefix);
 
     char apRtkFirmwareVersion[86];
-    getFirmwareVersion(apRtkFirmwareVersion, sizeof(apRtkFirmwareVersion), true);
+    firmwareVersionGet(apRtkFirmwareVersion, sizeof(apRtkFirmwareVersion), true);
     stringRecord(newSettings, "rtkFirmwareVersion", apRtkFirmwareVersion);
 
     char apGNSSFirmwareVersion[80];

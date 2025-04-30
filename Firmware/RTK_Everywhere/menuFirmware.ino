@@ -44,7 +44,7 @@ bool newOTAFirmwareAvailable = false;
 //----------------------------------------
 
 // Update firmware if bin files found
-void menuFirmware()
+void firmwareMenu()
 {
     while (1)
     {
@@ -52,7 +52,7 @@ void menuFirmware()
         systemPrintln("Menu: Firmware Update");
 
         char currentVersion[21];
-        getFirmwareVersion(currentVersion, sizeof(currentVersion), enableRCFirmware);
+        firmwareVersionGet(currentVersion, sizeof(currentVersion), enableRCFirmware);
         systemPrintf("Current firmware: %s\r\n", currentVersion);
 
         // Automatic firmware updates
@@ -77,7 +77,7 @@ void menuFirmware()
             systemPrintf("s) Change Firmware JSON URL: %s\r\n", otaFirmwareJsonUrl);
         }
 
-        if (isReportedVersionNewer(otaReportedVersion, &currentVersion[1]) == true || FIRMWARE_VERSION_MAJOR == 99 ||
+        if (firmwareVersionIsReportedNewer(otaReportedVersion, &currentVersion[1]) == true || FIRMWARE_VERSION_MAJOR == 99 ||
             settings.debugFirmwareUpdate == true)
         {
             systemPrintf("u) Update to new firmware: v%s - ", otaReportedVersion);
@@ -98,7 +98,7 @@ void menuFirmware()
         {
             // Adjust incoming to match array
             incoming--;
-            updateFromSD(binFileNames[incoming]);
+            microSDUpdateFirmware(binFileNames[incoming]);
         }
 
         else if (incoming == 'a')
@@ -153,14 +153,10 @@ void menuFirmware()
     clearBuffer(); // Empty buffer of any newline chars
 }
 
-//----------------------------------------
-// Firmware update code
-//----------------------------------------
-
 // Version number comes in as v2.7-Jan 5 2023
 // Given a char string, break into version number major/minor, year, month, day
 // Returns false if parsing failed
-bool breakVersionIntoParts(char *version, int *versionNumberMajor, int *versionNumberMinor, int *year, int *month,
+bool firmwareVersionBreakIntoParts(char *version, int *versionNumberMajor, int *versionNumberMinor, int *year, int *month,
                            int *day)
 {
     char monthStr[20];
@@ -185,7 +181,7 @@ bool breakVersionIntoParts(char *version, int *versionNumberMajor, int *versionN
             return (false); // Something went wrong
         }
 
-        (*month) = mapMonthName(monthStr);
+        (*month) = firmwareVersionMapMonthName(monthStr);
         if (*month == -1)
             return (false); // Something went wrong
     }
@@ -194,7 +190,7 @@ bool breakVersionIntoParts(char *version, int *versionNumberMajor, int *versionN
 }
 
 // Format the firmware version
-void formatFirmwareVersion(uint8_t major, uint8_t minor, char *buffer, int bufferLength, bool includeDate)
+void firmwareVersionFormat(uint8_t major, uint8_t minor, char *buffer, int bufferLength, bool includeDate)
 {
     char prefix;
 
@@ -221,16 +217,16 @@ void formatFirmwareVersion(uint8_t major, uint8_t minor, char *buffer, int buffe
 }
 
 // Get the current firmware version
-void getFirmwareVersion(char *buffer, int bufferLength, bool includeDate)
+void firmwareVersionGet(char *buffer, int bufferLength, bool includeDate)
 {
-    formatFirmwareVersion(FIRMWARE_VERSION_MAJOR, FIRMWARE_VERSION_MINOR, buffer, bufferLength, includeDate);
+    firmwareVersionFormat(FIRMWARE_VERSION_MAJOR, FIRMWARE_VERSION_MINOR, buffer, bufferLength, includeDate);
 }
 
 // Returns true if otaReportedVersion is newer than currentVersion
 // Version number comes in as v2.7-Jan 5 2023
 // 2.7-Jan 5 2023 is newer than v2.7-Jan 1 2023
 // We can't use just the float number: v3.12 is a greater version than v3.9 but it is a smaller float number
-bool isReportedVersionNewer(char *reportedVersion, char *currentVersion)
+bool firmwareVersionIsReportedNewer(char *reportedVersion, char *currentVersion)
 {
     int currentVersionNumberMajor = 0;
     int currentVersionNumberMinor = 0;
@@ -244,10 +240,10 @@ bool isReportedVersionNewer(char *reportedVersion, char *currentVersion)
     int reportedMonth = 0;
     int reportedYear = 0;
 
-    breakVersionIntoParts(currentVersion, &currentVersionNumberMajor, &currentVersionNumberMinor, &currentYear,
-                          &currentMonth, &currentDay);
-    breakVersionIntoParts(reportedVersion, &reportedVersionNumberMajor, &reportedVersionNumberMinor, &reportedYear,
-                          &reportedMonth, &reportedDay);
+    firmwareVersionBreakIntoParts(currentVersion, &currentVersionNumberMajor, &currentVersionNumberMinor, &currentYear,
+                                  &currentMonth, &currentDay);
+    firmwareVersionBreakIntoParts(reportedVersion, &reportedVersionNumberMajor, &reportedVersionNumberMinor, &reportedYear,
+                                  &reportedMonth, &reportedDay);
 
     if (settings.debugFirmwareUpdate)
     {
@@ -293,7 +289,7 @@ bool isReportedVersionNewer(char *reportedVersion, char *currentVersion)
 }
 
 // https://stackoverflow.com/questions/21210319/assign-month-name-and-integer-values-from-string-using-sscanf
-int mapMonthName(char *mmm)
+int firmwareVersionMapMonthName(char *mmm)
 {
     static char const *months[] = {"Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"};
     for (size_t i = 0; i < sizeof(months) / sizeof(months[0]); i++)
@@ -304,7 +300,11 @@ int mapMonthName(char *mmm)
     return -1;
 }
 
-void mountSDThenUpdate(const char *firmwareFileName)
+//----------------------------------------
+// Firmware update code
+//----------------------------------------
+
+void microSDMountThenUpdate(const char *firmwareFileName)
 {
     bool gotSemaphore;
     bool wasSdCardOnline;
@@ -324,7 +324,7 @@ void mountSDThenUpdate(const char *firmwareFileName)
         if (xSemaphoreTake(sdCardSemaphore, fatSemaphore_longWait_ms) == pdPASS)
         {
             gotSemaphore = true;
-            updateFromSD(firmwareFileName);
+            microSDUpdateFirmware(firmwareFileName);
         } // End Semaphore check
         else
         {
@@ -342,7 +342,7 @@ void mountSDThenUpdate(const char *firmwareFileName)
 // Looks for matching binary files in root
 // Loads a global called binCount
 // Called from beginSD with microSD card mounted and sdCardsemaphore held
-void scanForFirmware()
+void microSDScanForFirmware()
 {
     // Count available binaries
     SdFile tempFile;
@@ -354,7 +354,7 @@ void scanForFirmware()
 
     dir.open("/"); // Open root
 
-    binCount = 0; // Reset count in case scanForFirmware is called again
+    binCount = 0; // Reset count in case microSDScanForFirmware is called again
 
     while (tempFile.openNext(&dir, O_READ) && binCount < maxBinFiles)
     {
@@ -366,7 +366,7 @@ void scanForFirmware()
             {
                 systemPrintln("Forced firmware detected. Loading...");
                 displayForcedFirmwareUpdate();
-                updateFromSD(forceFirmwareFileName);
+                microSDUpdateFirmware(forceFirmwareFileName);
             }
 
             // Check 'bin' extension
@@ -386,9 +386,9 @@ void scanForFirmware()
 }
 
 // Look for firmware file on SD card and update as needed
-// Called from scanForFirmware with microSD card mounted and sdCardsemaphore held
-// Called from mountSDThenUpdate with microSD card mounted and sdCardsemaphore held
-void updateFromSD(const char *firmwareFileName)
+// Called from microSDScanForFirmware with microSD card mounted and sdCardsemaphore held
+// Called from microSDMountThenUpdate with microSD card mounted and sdCardsemaphore held
+void microSDUpdateFirmware(const char *firmwareFileName)
 {
     // Count app partitions
     int appPartitions = 0;
@@ -556,7 +556,7 @@ bool otaCheckVersion(char *versionAvailable, uint8_t versionAvailableLength)
 
     // Create a string of the unit's current firmware version
     char currentVersion[21];
-    getFirmwareVersion(currentVersion, sizeof(currentVersion), enableRCFirmware);
+    firmwareVersionGet(currentVersion, sizeof(currentVersion), enableRCFirmware);
 
     systemPrintf("Current firmware version: %s\r\n", currentVersion);
 
@@ -703,7 +703,7 @@ void otaSetState(uint8_t newState)
             asterisk = "*";
         else
         {
-            initialState = otaGetStateName(otaState, string1);
+            initialState = otaStateNameGet(otaState, string1);
             arrow = " --> ";
         }
     }
@@ -713,7 +713,7 @@ void otaSetState(uint8_t newState)
     if (settings.debugFirmwareUpdate)
     {
         // Display the new firmware update state
-        endingState = otaGetStateName(newState, string2);
+        endingState = otaStateNameGet(newState, string2);
         if (!online.rtc)
             systemPrintf("%s%s%s%s\r\n", asterisk, initialState, arrow, endingState);
         else
@@ -735,7 +735,7 @@ void otaSetState(uint8_t newState)
 }
 
 // Get the OTA state name
-const char *otaGetStateName(uint8_t state, char *string)
+const char *otaStateNameGet(uint8_t state, char *string)
 {
     if (state < OTA_STATE_MAX)
         return otaStateNames[state];
@@ -821,11 +821,11 @@ void otaUpdate()
 
                 // Create a string of the unit's current firmware version
                 char currentVersion[21];
-                getFirmwareVersion(currentVersion, sizeof(currentVersion), enableRCFirmware);
+                firmwareVersionGet(currentVersion, sizeof(currentVersion), enableRCFirmware);
 
                 // We got a version number, now determine if it's newer or not
                 // Allow update if locally compiled developer version
-                if ((isReportedVersionNewer(otaReportedVersion, &currentVersion[1]) == true) ||
+                if ((firmwareVersionIsReportedNewer(otaReportedVersion, &currentVersion[1]) == true) ||
                     (currentVersion[0] == 'd') || (FIRMWARE_VERSION_MAJOR == 99))
                 {
                     systemPrintf("Version Check: New firmware version available: %s\r\n", otaReportedVersion);
@@ -879,7 +879,7 @@ void otaUpdateFirmware()
 {
 #ifdef COMPILE_NETWORK
     char versionString[9];
-    formatFirmwareVersion(0, 0, versionString, sizeof(versionString), false);
+    firmwareVersionFormat(0, 0, versionString, sizeof(versionString), false);
 
     ESP32OTAPull ota;
 

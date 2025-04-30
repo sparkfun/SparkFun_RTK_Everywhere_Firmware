@@ -747,7 +747,7 @@ void beginBoard()
 void beginVersion()
 {
     char versionString[21];
-    getFirmwareVersion(versionString, sizeof(versionString), true);
+    firmwareVersionGet(versionString, sizeof(versionString), true);
 
     char title[50];
     RTKBrandAttribute *brandAttributes = getBrandAttributeFromBrand(present.brand);
@@ -926,7 +926,7 @@ void beginSD()
         }
 
         // Load firmware file from the microSD card if it is present
-        scanForFirmware();
+        microSDScanForFirmware();
 
         // Mark card not yet usable for logging
         sdCardSize = 0;

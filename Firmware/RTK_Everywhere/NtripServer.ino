@@ -224,7 +224,7 @@ bool ntripServerConnectCaster(int serverIndex)
              settings.ntripServer_MountPointPW[serverIndex], settings.ntripServer_MountPoint[serverIndex],
              platformPrefix);
     int length = strlen(serverBuffer);
-    getFirmwareVersion(&serverBuffer[length], sizeof(serverBuffer) - length, false);
+    firmwareVersionGet(&serverBuffer[length], sizeof(serverBuffer) - length, false);
 
     // Send the authorization credentials to the NTRIP caster
     ntripServer->networkClient->write((const uint8_t *)serverBuffer, strlen(serverBuffer));
