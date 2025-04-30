@@ -180,7 +180,9 @@ static NTRIP_SERVER_DATA ntripServerArray[NTRIP_SERVER_MAX];
 // NTRIP Server Routines
 //----------------------------------------
 
+//----------------------------------------
 // Initiate a connection to the NTRIP caster
+//----------------------------------------
 bool ntripServerConnectCaster(int serverIndex)
 {
     NTRIP_SERVER_DATA *ntripServer = &ntripServerArray[serverIndex];
@@ -231,7 +233,9 @@ bool ntripServerConnectCaster(int serverIndex)
     return true;
 }
 
+//----------------------------------------
 // Determine if the connection limit has been reached
+//----------------------------------------
 bool ntripServerConnectLimitReached(int serverIndex)
 {
     NTRIP_SERVER_DATA *ntripServer = &ntripServerArray[serverIndex];
@@ -278,8 +282,10 @@ bool ntripServerConnectLimitReached(int serverIndex)
     return limitReached;
 }
 
+//----------------------------------------
 // Return true if we are in states that require network access
 // Walk through all servers to see if we need the network
+//----------------------------------------
 bool ntripServerNeedsNetwork()
 {
     NTRIP_SERVER_DATA *ntripServer;
@@ -294,7 +300,9 @@ bool ntripServerNeedsNetwork()
     return false;
 }
 
+//----------------------------------------
 // Print the NTRIP server state summary
+//----------------------------------------
 void ntripServerPrintStateSummary(int serverIndex)
 {
     NTRIP_SERVER_DATA *ntripServer = &ntripServerArray[serverIndex];
@@ -321,7 +329,9 @@ void ntripServerPrintStateSummary(int serverIndex)
     }
 }
 
+//----------------------------------------
 // Print the NTRIP server status
+//----------------------------------------
 void ntripServerPrintStatus(int serverIndex)
 {
     NTRIP_SERVER_DATA *ntripServer = &ntripServerArray[serverIndex];
@@ -367,7 +377,9 @@ void ntripServerPrintStatus(int serverIndex)
     }
 }
 
+//----------------------------------------
 // This function gets called as each RTCM byte comes in
+//----------------------------------------
 void ntripServerProcessRTCM(int serverIndex, uint8_t incoming)
 {
     NTRIP_SERVER_DATA *ntripServer = &ntripServerArray[serverIndex];
@@ -426,7 +438,9 @@ void ntripServerProcessRTCM(int serverIndex, uint8_t incoming)
     }
 }
 
+//----------------------------------------
 // Read the authorization response from the NTRIP caster
+//----------------------------------------
 void ntripServerResponse(int serverIndex, char *response, size_t maxLength)
 {
     NTRIP_SERVER_DATA *ntripServer = &ntripServerArray[serverIndex];
@@ -443,7 +457,9 @@ void ntripServerResponse(int serverIndex, char *response, size_t maxLength)
     *response = '\0';
 }
 
+//----------------------------------------
 // Restart the NTRIP server
+//----------------------------------------
 void ntripServerRestart(int serverIndex)
 {
     NTRIP_SERVER_DATA *ntripServer = &ntripServerArray[serverIndex];
@@ -454,7 +470,9 @@ void ntripServerRestart(int serverIndex)
     ntripServerConnectLimitReached(serverIndex);
 }
 
+//----------------------------------------
 // Update the state of the NTRIP server state machine
+//----------------------------------------
 void ntripServerSetState(NTRIP_SERVER_DATA *ntripServer, uint8_t newState)
 {
     int serverIndex = -999;
@@ -488,13 +506,17 @@ void ntripServerSetState(NTRIP_SERVER_DATA *ntripServer, uint8_t newState)
     }
 }
 
+//----------------------------------------
 // Shutdown the NTRIP server
+//----------------------------------------
 void ntripServerShutdown(int serverIndex)
 {
     ntripServerStop(serverIndex, true);
 }
 
+//----------------------------------------
 // Start the NTRIP server
+//----------------------------------------
 void ntripServerStart(int serverIndex)
 {
     // Display the heap state
@@ -505,7 +527,9 @@ void ntripServerStart(int serverIndex)
     ntripServerStop(serverIndex, false);
 }
 
+//----------------------------------------
 // Shutdown or restart the NTRIP server
+//----------------------------------------
 void ntripServerStop(int serverIndex, bool shutdown)
 {
     bool enabled;
@@ -574,7 +598,9 @@ void ntripServerStop(int serverIndex, bool shutdown)
     }
 }
 
+//----------------------------------------
 // Update the NTRIP server state machine
+//----------------------------------------
 void ntripServerUpdate(int serverIndex)
 {
     // Get the NTRIP data structure
@@ -845,14 +871,18 @@ void ntripServerUpdate(int serverIndex)
     }
 }
 
+//----------------------------------------
 // Update the NTRIP server state machine
+//----------------------------------------
 void ntripServerUpdate()
 {
     for (int serverIndex = 0; serverIndex < NTRIP_SERVER_MAX; serverIndex++)
         ntripServerUpdate(serverIndex);
 }
 
+//----------------------------------------
 // Verify the NTRIP server tables
+//----------------------------------------
 void ntripServerValidateTables()
 {
     if (ntripServerStateNameEntries != NTRIP_SERVER_STATE_MAX)
