@@ -87,6 +87,8 @@
 #include <NetworkUdp.h>
 #endif // COMPILE_NETWORK
 
+#define RTK_MAX_CONNECTION_MSEC     (15 * MILLISECONDS_IN_A_MINUTE)
+
 bool RTK_CONFIG_MBEDTLS_EXTERNAL_MEM_ALLOC =
     false; // Flag used by the special build of libmbedtls (libmbedcrypto) to select external memory
 
