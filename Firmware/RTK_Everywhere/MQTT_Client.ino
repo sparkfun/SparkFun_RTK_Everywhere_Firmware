@@ -191,6 +191,10 @@ bool mqttClientConnectLimitReached()
             mqttClientConnectionAttemptTimeout =
                 (mqttClientConnectionAttempts - 4) * 5 * 60 * 1000L; // Wait 5, 10, 15, etc minutes between attempts
 
+        // Limit the maximum timeout
+        if (mqttClientConnectionAttemptTimeout > RTK_MAX_CONNECTION_MSEC)
+            mqttClientConnectionAttemptTimeout = RTK_MAX_CONNECTION_MSEC;
+
         // Display the delay before starting the MQTT client
         if (settings.debugMqttClientState && mqttClientConnectionAttemptTimeout)
         {
