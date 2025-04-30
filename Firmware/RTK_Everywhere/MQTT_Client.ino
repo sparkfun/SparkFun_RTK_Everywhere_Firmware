@@ -167,10 +167,8 @@ bool mqttClientConnectLimitReached()
     limitReached = (mqttClientConnectionAttempts >= MAX_MQTT_CLIENT_CONNECTION_ATTEMPTS);
     limitReached = false;
 
-    bool enableMqttClient = mqttClientIsNeeded();
-
     // Restart the MQTT client
-    MQTT_CLIENT_STOP(limitReached || (!enableMqttClient));
+    MQTT_CLIENT_STOP(limitReached || (!mqttClientEnabled(nullptr)));
 
     mqttClientConnectionAttempts++;
     mqttClientConnectionAttemptsTotal++;
@@ -270,34 +268,6 @@ bool mqttClientIsConnected()
     return false;
 }
 
-bool mqttClientIsNeeded()
-{
-    // If PointPerfectCorrections are not enabled, return false
-    if (!settings.enablePointPerfectCorrections)
-        return false;
-
-    // For the mosaic-X5, settings.enablePointPerfectCorrections will be true if
-    // we are using the PPL and getting keys via ZTP. BUT the Facet mosaic-X5
-    // uses the L-Band (only) plan. It should not and can not subscribe to PP IP
-    // MQTT corrections. So, return false - even though the L-Band frequencies topic
-    // and key distribution topic could be beneficial.
-    // We could use present.gnss_mosaicX5, but let's not. See notes on EVK below.
-    if (productVariant == RTK_FACET_MOSAIC)
-        return false;
-
-    // For the Facet v2 L-Band, the same is true. It uses the L-Band (only) plan.
-    // We get keys during ZTP (HTTP_Client). It should not and can not subscribe
-    // to PP IP MQTT corrections. So, return true only if AssistNow is enabled -
-    // even though the L-Band frequencies topic and key distribution topic could
-    // be beneficial.
-    // Note: EVK supports both L-Band and IP, so we cannot use present.lband_neo
-    if (productVariant == RTK_FACET_V2_LBAND)
-        if (!settings.useAssistNow)
-            return false;
-
-    return true;
-}
-
 //----------------------------------------
 // Determine if the client is connected to the services
 //----------------------------------------
@@ -349,10 +319,8 @@ void mqttClientPrintStatus()
     byte minutes;
     byte seconds;
 
-    bool enableMqttClient = mqttClientIsNeeded();
-
     // Display MQTT Client status and uptime
-    if (enableMqttClient && (EQ_RTK_MODE(mqttClientMode)))
+    if (mqttClientEnabled(nullptr))
     {
         systemPrint("MQTT Client ");
         mqttClientPrintStateSummary();
@@ -1053,12 +1021,12 @@ void mqttClientStop(bool shutdown)
 //----------------------------------------
 void mqttClientUpdate()
 {
-    bool enableMqttClient = mqttClientIsNeeded();
+    bool enabled;
 
     // Shutdown the MQTT client when the mode or setting changes
     DMW_st(mqttClientSetState, mqttClientState);
-
-    if (NEQ_RTK_MODE(mqttClientMode) || (!enableMqttClient))
+    enabled = mqttClientEnabled(nullptr);
+    if (NEQ_RTK_MODE(mqttClientMode) || (enabled == false))
     {
         if (mqttClientState > MQTT_CLIENT_OFF)
         {
@@ -1082,7 +1050,7 @@ void mqttClientUpdate()
     {
     default:
     case MQTT_CLIENT_OFF: {
-        if (EQ_RTK_MODE(mqttClientMode) && enableMqttClient)
+        if (enabled)
         {
             // Start the MQTT client
             if (settings.debugMqttClientState)
@@ -1095,7 +1063,7 @@ void mqttClientUpdate()
     // Wait for a network media connection
     case MQTT_CLIENT_WAIT_FOR_NETWORK: {
         // Determine if MQTT was turned off
-        if (NEQ_RTK_MODE(mqttClientMode) || !enableMqttClient)
+        if (NEQ_RTK_MODE(mqttClientMode) || !enabled)
             mqttClientStop(true);
 
         // Wait until the network is connected to the media
