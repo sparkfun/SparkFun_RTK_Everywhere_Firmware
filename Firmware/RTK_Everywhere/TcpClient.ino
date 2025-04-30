@@ -157,7 +157,7 @@ static volatile bool tcpClientWriteError;
 //----------------------------------------
 
 // Remove previous messages from the ring buffer
-void discardTcpClientBytes(RING_BUFFER_OFFSET previousTail, RING_BUFFER_OFFSET newTail)
+void tcpClientDiscardBytes(RING_BUFFER_OFFSET previousTail, RING_BUFFER_OFFSET newTail)
 {
     if (previousTail < newTail)
     {

@@ -83,11 +83,11 @@ bool ntripServerIsCasting(int serverIndex) {
 // TCP client
 //----------------------------------------
 
+void tcpClientDiscardBytes(RING_BUFFER_OFFSET previousTail, RING_BUFFER_OFFSET newTail) {}
 int32_t tcpClientSendData(uint16_t dataHead) {return 0;}
 void tcpClientUpdate() {}
 void tcpClientValidateTables() {}
 void tcpClientZeroTail() {}
-void discardTcpClientBytes(RING_BUFFER_OFFSET previousTail, RING_BUFFER_OFFSET newTail) {}
 
 //----------------------------------------
 // TCP server
