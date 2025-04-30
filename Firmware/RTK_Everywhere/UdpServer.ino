@@ -100,7 +100,7 @@ static volatile RING_BUFFER_OFFSET udpServerTail;
 //----------------------------------------
 
 // Remove previous messages from the ring buffer
-void discardUdpServerBytes(RING_BUFFER_OFFSET previousTail, RING_BUFFER_OFFSET newTail)
+void udpServerDiscardBytes(RING_BUFFER_OFFSET previousTail, RING_BUFFER_OFFSET newTail)
 {
     // int index;
     uint16_t tail;

@@ -1005,7 +1005,7 @@ void updateRingBufferTails(RING_BUFFER_OFFSET previousTail, RING_BUFFER_OFFSET n
     discardRingBufferBytes(&sdRingBufferTail, previousTail, newTail);
     tcpClientDiscardBytes(previousTail, newTail);
     tcpServerDiscardBytes(previousTail, newTail);
-    discardUdpServerBytes(previousTail, newTail);
+    udpServerDiscardBytes(previousTail, newTail);
 }
 
 // Remove previous messages from the ring buffer
