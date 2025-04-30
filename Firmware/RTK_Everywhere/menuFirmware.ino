@@ -672,6 +672,87 @@ bool otaNeedsNetwork()
 }
 
 //----------------------------------------
+// Display the OTA portion of the firmware menu
+//----------------------------------------
+void otaMenuDisplay(char * currentVersion)
+{
+    // Automatic firmware updates
+    systemPrintf("a) Automatic firmware updates: %s\r\n",
+                 settings.enableAutoFirmwareUpdate ? "Enabled" : "Disabled");
+
+    systemPrint("c) Check SparkFun for device firmware: ");
+
+    if (otaRequestFirmwareVersionCheck == true)
+        systemPrintln("Requested");
+    else
+        systemPrintln("Not requested");
+
+    systemPrintf("e) Allow Beta Firmware: %s\r\n", enableRCFirmware ? "Enabled" : "Disabled");
+
+    if (settings.enableAutoFirmwareUpdate)
+        systemPrintf("i) Automatic firmware check minutes: %d\r\n", settings.autoFirmwareCheckMinutes);
+
+    if (settings.debugWifiState == true)
+    {
+        systemPrintf("r) Change RC Firmware JSON URL: %s\r\n", otaRcFirmwareJsonUrl);
+        systemPrintf("s) Change Firmware JSON URL: %s\r\n", otaFirmwareJsonUrl);
+    }
+
+    if (firmwareVersionIsReportedNewer(otaReportedVersion, &currentVersion[1]) == true || FIRMWARE_VERSION_MAJOR == 99 ||
+        settings.debugFirmwareUpdate == true)
+    {
+        systemPrintf("u) Update to new firmware: v%s - ", otaReportedVersion);
+        if (otaRequestFirmwareUpdate == true)
+            systemPrintln("Requested");
+        else
+            systemPrintln("Not requested");
+    }
+}
+
+//----------------------------------------
+// Process the OTA specific firmware menu input
+//----------------------------------------
+bool otaMenuProcessInput(byte incoming)
+{
+    if (incoming == 'a')
+        settings.enableAutoFirmwareUpdate ^= 1;
+
+    else if (incoming == 'c')
+        otaRequestFirmwareVersionCheck ^= 1;
+
+    else if (incoming == 'e')
+    {
+        enableRCFirmware ^= 1;
+        strncpy(otaReportedVersion, "", sizeof(otaReportedVersion) - 1); // Reset to force c) menu
+        newOTAFirmwareAvailable = false;
+    }
+
+    else if ((incoming == 'i') && settings.enableAutoFirmwareUpdate)
+        getNewSetting("Enter minutes before next firmware check", 1, 999999, &settings.autoFirmwareCheckMinutes);
+
+    else if ((incoming == 'r') && (settings.debugWifiState == true))
+    {
+        systemPrint("Enter RC Firmware JSON URL (empty to use default): ");
+        memset(otaRcFirmwareJsonUrl, 0, sizeof(otaRcFirmwareJsonUrl));
+        getUserInputString(otaRcFirmwareJsonUrl, sizeof(otaRcFirmwareJsonUrl) - 1);
+    }
+    else if ((incoming == 's') && (settings.debugWifiState == true))
+    {
+        systemPrint("Enter Firmware JSON URL (empty to use default): ");
+        memset(otaFirmwareJsonUrl, 0, sizeof(otaFirmwareJsonUrl));
+        getUserInputString(otaFirmwareJsonUrl, sizeof(otaFirmwareJsonUrl) - 1);
+    }
+
+    else if ((incoming == 'u') && (newOTAFirmwareAvailable || settings.debugFirmwareUpdate == true))
+        otaRequestFirmwareUpdate ^= 1; // Tell network we need access, and otaUpdate() that we want to update
+
+    // Input not associated with OTA menu items
+    else
+        return false;
+    return true;
+}
+
+//----------------------------------------
 // Called while the OTA Pull update is happening
 //----------------------------------------
 void otaPullCallback(int bytesWritten, int totalLength)
