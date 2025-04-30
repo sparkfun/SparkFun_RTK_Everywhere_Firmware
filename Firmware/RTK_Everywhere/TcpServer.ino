@@ -82,7 +82,7 @@ static volatile RING_BUFFER_OFFSET tcpServerClientTails[TCP_SERVER_MAX_CLIENTS];
 //----------------------------------------
 
 // Remove previous messages from the ring buffer
-void discardTcpServerBytes(RING_BUFFER_OFFSET previousTail, RING_BUFFER_OFFSET newTail)
+void tcpServerDiscardBytes(RING_BUFFER_OFFSET previousTail, RING_BUFFER_OFFSET newTail)
 {
     int index;
     uint16_t tail;
