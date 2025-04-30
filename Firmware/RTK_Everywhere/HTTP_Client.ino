@@ -75,7 +75,9 @@ static uint32_t httpClientTimer;
 // HTTP Client Routines
 //----------------------------------------
 
+//----------------------------------------
 // Determine if another connection is possible or if the limit has been reached
+//----------------------------------------
 bool httpClientConnectLimitReached()
 {
     bool limitReached;
@@ -112,7 +114,9 @@ bool httpClientConnectLimitReached()
     return limitReached;
 }
 
+//----------------------------------------
 // Print the HTTP client state summary
+//----------------------------------------
 void httpClientPrintStateSummary()
 {
     switch (httpClientState)
@@ -143,14 +147,18 @@ void httpClientPrintStateSummary()
     }
 }
 
+//----------------------------------------
 // Print the HTTP Client status
+//----------------------------------------
 void httpClientPrintStatus()
 {
     systemPrint("HTTP Client ");
     httpClientPrintStateSummary();
 }
 
+//----------------------------------------
 // Restart the HTTP client
+//----------------------------------------
 void httpClientRestart()
 {
     // Save the previous uptime value
@@ -159,7 +167,9 @@ void httpClientRestart()
     httpClientConnectLimitReached();
 }
 
+//----------------------------------------
 // Update the state of the HTTP client state machine
+//----------------------------------------
 void httpClientSetState(uint8_t newState)
 {
     if (settings.debugHttpClientState || PERIODIC_DISPLAY(PD_HTTP_CLIENT_STATE))
@@ -183,13 +193,17 @@ void httpClientSetState(uint8_t newState)
     }
 }
 
+//----------------------------------------
 // Shutdown the HTTP client
+//----------------------------------------
 void httpClientShutdown()
 {
     httpClientStop(true);
 }
 
+//----------------------------------------
 // Start the HTTP client
+//----------------------------------------
 void httpClientStart()
 {
     // Display the heap state
@@ -200,7 +214,9 @@ void httpClientStart()
     httpClientStop(false);
 }
 
+//----------------------------------------
 // Shutdown or restart the HTTP client
+//----------------------------------------
 void httpClientStop(bool shutdown)
 {
     // Free the httpClient resources
@@ -244,6 +260,9 @@ void httpClientStop(bool shutdown)
         httpClientSetState(HTTP_CLIENT_ON);
 }
 
+//----------------------------------------
+// Update the state of the HTTP client
+//----------------------------------------
 void httpClientUpdate()
 {
     // Shutdown the HTTP client when the mode or setting changes
@@ -568,7 +587,9 @@ void httpClientUpdate()
         httpClientSetState(httpClientState);
 }
 
+//----------------------------------------
 // Verify the HTTP client tables
+//----------------------------------------
 void httpClientValidateTables()
 {
     if (httpClientStateNameEntries != HTTP_CLIENT_STATE_MAX)
