@@ -192,7 +192,7 @@ void menuNTP()
 }
 
 // =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
-// NTP Packet storage and utilities
+// NTP Packet storage class and utilities
 
 struct NTPpacket
 {

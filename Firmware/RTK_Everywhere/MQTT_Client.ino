@@ -1131,6 +1131,7 @@ void mqttClientUpdate()
         if (!mqttClientPrivateKeyBuffer)
             mqttClientPrivateKeyBuffer = (char *)rtkMalloc(MQTT_CERT_SIZE, "Certificate buffer (mqttClientPrivateKeyBuffer)");
 
+        // Determine if the buffers were allocated
         if ((!mqttClientCertificateBuffer) || (!mqttClientPrivateKeyBuffer))
         {
             // Complain about the buffer allocation failure

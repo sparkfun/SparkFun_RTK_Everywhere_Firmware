@@ -562,7 +562,7 @@ void checkGNSSArrayDefaults()
     {
         if (settings.dynamicModel == 254)
             settings.dynamicModel = UM980_DYN_MODEL_SURVEY;
-            
+
         if (settings.enableExtCorrRadio == 254)
             settings.enableExtCorrRadio = false;
 
@@ -609,7 +609,7 @@ void checkGNSSArrayDefaults()
     {
         if (settings.dynamicModel == 254)
             settings.dynamicModel = MOSAIC_DYN_MODEL_QUASISTATIC;
-            
+
         if (settings.enableExtCorrRadio == 254)
             settings.enableExtCorrRadio = true;
 

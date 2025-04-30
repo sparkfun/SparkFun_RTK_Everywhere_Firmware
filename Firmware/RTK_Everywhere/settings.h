@@ -14,34 +14,40 @@
 // https://lucid.app/lucidchart/53519501-9fa5-4352-aa40-673f88ca0c9b/edit?invitationId=inv_ebd4b988-513d-4169-93fd-c291851108f8
 typedef enum
 {
-    STATE_ROVER_NOT_STARTED = 0,
-    STATE_ROVER_NO_FIX,
-    STATE_ROVER_FIX,
-    STATE_ROVER_RTK_FLOAT,
-    STATE_ROVER_RTK_FIX,
-    STATE_BASE_CASTER_NOT_STARTED, //Set override flag
-    STATE_BASE_NOT_STARTED,
-    STATE_BASE_TEMP_SETTLE, // User has indicated base, but current pos accuracy is too low
-    STATE_BASE_TEMP_SURVEY_STARTED,
-    STATE_BASE_TEMP_TRANSMITTING,
-    STATE_BASE_FIXED_NOT_STARTED,
-    STATE_BASE_FIXED_TRANSMITTING,
+    STATE_ROVER_NOT_STARTED = 0,        //  0
+    STATE_ROVER_NO_FIX,                 //  1
+    STATE_ROVER_FIX,                    //  2
+    STATE_ROVER_RTK_FLOAT,              //  3
+    STATE_ROVER_RTK_FIX,                //  4
 
-    STATE_DISPLAY_SETUP,
-    STATE_WEB_CONFIG_NOT_STARTED,
-    STATE_WEB_CONFIG_WAIT_FOR_NETWORK,
-    STATE_WEB_CONFIG,
-    STATE_TEST,
-    STATE_TESTING,
-    STATE_PROFILE,
-    STATE_KEYS_REQUESTED,
-    STATE_ESPNOW_PAIRING_NOT_STARTED,
-    STATE_ESPNOW_PAIRING,
-    STATE_NTPSERVER_NOT_STARTED,
-    STATE_NTPSERVER_NO_SYNC,
-    STATE_NTPSERVER_SYNC,
-    STATE_SHUTDOWN,
-    STATE_NOT_SET, // Must be last on list
+    STATE_BASE_CASTER_NOT_STARTED,      //  5, Set override flag
+    STATE_BASE_NOT_STARTED,             //  6
+    STATE_BASE_TEMP_SETTLE,             //  7, User has indicated base, but current pos accuracy is too low
+    STATE_BASE_TEMP_SURVEY_STARTED,     //  8
+    STATE_BASE_TEMP_TRANSMITTING,       //  9
+    STATE_BASE_FIXED_NOT_STARTED,       // 10
+    STATE_BASE_FIXED_TRANSMITTING,      // 11
+
+    STATE_DISPLAY_SETUP,                // 12
+    STATE_WEB_CONFIG_NOT_STARTED,       // 13
+    STATE_WEB_CONFIG_WAIT_FOR_NETWORK,  // 14
+    STATE_WEB_CONFIG,                   // 15
+    STATE_TEST,                         // 16
+    STATE_TESTING,                      // 17
+    STATE_PROFILE,                      // 18
+
+    STATE_KEYS_REQUESTED,               // 19
+
+    STATE_ESPNOW_PAIRING_NOT_STARTED,   // 20
+    STATE_ESPNOW_PAIRING,               // 21
+
+    STATE_NTPSERVER_NOT_STARTED,        // 22
+    STATE_NTPSERVER_NO_SYNC,            // 23
+    STATE_NTPSERVER_SYNC,               // 24
+
+    STATE_SHUTDOWN,                     // 25
+
+    STATE_NOT_SET,                      // 26, Must be last on list
 } SystemState;
 volatile SystemState systemState = STATE_NOT_SET;
 SystemState lastSystemState = STATE_NOT_SET;
@@ -49,12 +55,13 @@ SystemState requestedSystemState = STATE_NOT_SET;
 bool newSystemStateRequested = false;
 
 // Base modes set with RTK_MODE
-#define RTK_MODE_BASE_FIXED         0x0001
-#define RTK_MODE_BASE_SURVEY_IN     0x0002
-#define RTK_MODE_NTP                0x0004
-#define RTK_MODE_ROVER              0x0008
-#define RTK_MODE_TESTING            0x0010
-#define RTK_MODE_WEB_CONFIG         0x0020
+#define RTK_MODE_BASE_FIXED         0x0001  // 1 << 0
+#define RTK_MODE_BASE_SURVEY_IN     0x0002  // 1 << 1
+#define RTK_MODE_NTP                0x0004  // 1 << 2
+#define RTK_MODE_ROVER              0x0008  // 1 << 3
+#define RTK_MODE_TESTING            0x0010  // 1 << 4
+#define RTK_MODE_WEB_CONFIG         0x0020  // 1 << 5
+#define RTK_MODE_MAX                6
 
 typedef uint8_t RtkMode_t;
 
@@ -297,8 +304,8 @@ enum PeriodDisplayValues
     PD_CELLULAR_STATE,          // 28
     PD_WIFI_STATE,              // 29
 
-    PD_GNSS_DATA_RX,             // 30
-    PD_GNSS_DATA_TX,             // 31
+    PD_GNSS_DATA_RX,            // 30
+    PD_GNSS_DATA_TX,            // 31
 
     PD_MQTT_CLIENT_DATA,        // 32
     PD_MQTT_CLIENT_STATE,       // 33
@@ -1798,14 +1805,16 @@ typedef uint32_t NetMask_t;      // One bit for each network interface
 typedef int8_t NetPriority_t;  // Index into networkPriorityTable
                                 // Value 0 (highest) - 255 (lowest) priority
 
-// Types of networks, must be in same order as networkInterfaceTable
+// Types of networks, these values must be in the same order as the
+// entries in networkInterfaceTable since they are used as indexes into
+// that table!
 enum NetworkTypes
 {
     NETWORK_NONE = -1,  // The values below must start at zero and be sequential
-    NETWORK_ETHERNET = 0,
-    NETWORK_WIFI_STATION = 1,
-    NETWORK_CELLULAR = 2,
-    // Add new networks here
+    NETWORK_ETHERNET,       // 0
+    NETWORK_WIFI_STATION,   // 1
+    NETWORK_CELLULAR,       // 2
+    // Add new networks above this line in default priority order
     NETWORK_MAX
 };
 
@@ -1844,11 +1853,13 @@ extern NETWORK_POLL_SEQUENCE laraBootSequence[];
 extern NETWORK_POLL_SEQUENCE laraOffSequence[];
 extern NETWORK_POLL_SEQUENCE laraOnSequence[];
 
-// List of networks
-// Only one network is turned on at a time. The start routine is called as the priority
-// drops to that level. The stop routine is called as the priority rises
-// above that level. The priority will continue to fall or rise until a
-// network is found that is online.
+// List of networks in default priority order!  These entries must match
+// the index values in the NetworkTypes enumeration!
+//
+// Only one network is turned on at a time. The start routine is called
+// as the priority drops to that level. The stop routine is called as the
+// priority rises above that level. The priority will continue to fall or
+// rise until a network is found that is online.
 const NETWORK_TABLE_ENTRY networkInterfaceTable[] =
 { //     Interface  Name            Present                     Periodic State      Boot Sequence           Start Sequence      Stop Sequence
     #ifdef COMPILE_ETHERNET

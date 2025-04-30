@@ -6,6 +6,10 @@ WebServer.ino
 
 #ifdef COMPILE_AP
 
+//----------------------------------------
+// Constants
+//----------------------------------------
+
 // State machine to allow web server access to network layer
 enum WebServerState
 {
@@ -24,6 +28,10 @@ static const char *const webServerStateNames[] = {
     "WEBSERVER_STATE_NETWORK_CONNECTED",
     "WEBSERVER_STATE_RUNNING",
 };
+
+//----------------------------------------
+// Locals
+//----------------------------------------
 
 static const int webServerStateEntries = sizeof(webServerStateNames) / sizeof(webServerStateNames[0]);
 

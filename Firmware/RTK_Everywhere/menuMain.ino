@@ -323,7 +323,7 @@ void menuMain()
 // Profile -
 // AP -
 // Setup button -
-// Factory reset - 
+// Factory reset -
 void menuUserProfiles()
 {
     uint8_t originalProfileNumber = profileNumber;
@@ -530,7 +530,7 @@ void factoryReset(bool alreadyHasSemaphore)
     }
     else
         systemPrintln("GNSS not online. Unable to factoryReset...");
-    
+
     systemPrintln("Settings erased successfully. Rebooting. Goodbye!");
     delay(2000);
     ESP.restart();

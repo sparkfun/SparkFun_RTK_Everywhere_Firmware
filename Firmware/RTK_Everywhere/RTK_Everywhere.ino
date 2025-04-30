@@ -17,6 +17,65 @@
   to the GNSS receiver to achieve RTK Fix.
 
   Settings are loaded from microSD if available, otherwise settings are pulled from ESP32's file system LittleFS.
+
+  Software Layers:
+
+                       +--------+  +--------+
+                       |  GNSS  |  |  GNSS  |
+                       |  Rover |  |  Base  |
+                       +--------+  +--------+
+                             ^        |
+                             |        |
+                             |        v
+                          +-------------+
+                 .------->| RTCM Serial |<--------------.
+                 |        +-------------+               |
+                 |           ^                          |
+  HTTP Client    |           |      +--------+          |
+  MQTT Client    |           |      | Config |          |
+  NTRIP Client   |           |      +--------+          |
+  OTA Client     |           |           ^              |
+  TCP Client     |           |           |              |
+                 |           v           v              |
+                 |        +-----------------+           |
+                 |        |  Server Clients |           |
+                 |        +-----------------+           |
+                 |                 ^                    |
+                 |                 |  NTP Server        |
+                 |                 |  NTRIP Server      |
+                 |                 |  TCP Server        |
+                 |                 |  UDP Server        |
+                 |                 |  Web Server        |
+                 V                 v                    |
+  +-----------------+     +-----------------+           |
+  |     Clients     |     |     Servers     |           |
+  +-----------------+     +-----------------+           |
+           ^                       ^                    |
+           |                       |                    |
+           v                       v                    v
+  +-----------------------------------------+    +-------------+
+  |             Network Services            |    |             |
+  |                                         |    |             |
+  |  +---------------+   +---------------+  |    |             |
+  |  |   DNS Server  |   |      mDNS     |  |    |             |
+  |  +---------------+   +---------------+  |    |             |
+  |                                         |    |             |
+  +-----------------------------------------+    |             |
+           ^                       ^             |             |
+           |                       |             |             |
+           v                       v             |             |
+  +-----------------------------------------+    |   ESP-NOW   |
+  |              Network Layer              |    |             |
+  |                                         |    |             |
+  |  Priority Selection       On/Off        |    |             |
+  |  +---------------+   +---------------+  |    |             |
+  |  |    Ethernet   |   |               |  |    |             |
+  |  |  WiFi Station |   |  WiFi Soft AP |  |    |             |
+  |  |    Cellular   |   |               |  |    |             |
+  |  +---------------+   +---------------+  |    |             |
+  |                                         |    |             |
+  +-----------------------------------------+    +-------------+
+
 */
 
 // To reduce compile times, various parts of the firmware can be disabled/removed if they are not

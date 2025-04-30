@@ -45,7 +45,7 @@ UdpServer.ino
             * Click on Positioning
             * Add a new Positioning device
             * Set Connection type to UDP (NMEA)
-            * Set the Address to <broadcast>
+            * Set the Address to <local broadcast, xxx.xxx.xxx.255>
             * Set the Port to the value of the specified udpServerPort (default 10110)
             * Optional: give it a name (e.g. RTK Express UDP)
             * Click on the Checkmark

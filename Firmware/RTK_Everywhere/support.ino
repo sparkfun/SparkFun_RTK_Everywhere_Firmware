@@ -598,6 +598,7 @@ int AsciiToNibble(int data)
     return -1;
 }
 
+// Dump a buffer in hex and ASCII
 void dumpBuffer(uint8_t *buffer, uint16_t length)
 {
     int bytes;
@@ -950,6 +951,7 @@ void printPartitionTable(void)
     }
 }
 
+// Find the partition in the SPI flash used for the file system
 bool findSpiffsPartition(void)
 {
     esp_partition_iterator_t pi = esp_partition_find(ESP_PARTITION_TYPE_ANY, ESP_PARTITION_SUBTYPE_ANY, NULL);

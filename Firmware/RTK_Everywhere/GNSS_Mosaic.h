@@ -329,7 +329,7 @@ const mosaicNMEAMsg mosaicMessagesNMEA[] = {
 
 /* Do we need RTCMv2?
 
-typedef struct 
+typedef struct
 {
     const char msgName[10];
     const uint16_t defaultZCountOrInterval;
@@ -347,7 +347,7 @@ const mosaicRTCMv2Msg mosaicMessagesRTCMv2[] = {
 
     {"RTCM1", 2, true, false},  {"RTCM3", 2, true, false}, {"RTCM9", 2, true, false},
     {"RTCM16", 2, true, false}, {"RTCM17", 2, true, false},
-    {"RTCM18|19", 1, false, false}, {"RTCM20|21", 1, false, false}, 
+    {"RTCM18|19", 1, false, false}, {"RTCM20|21", 1, false, false},
     {"RTCM22", 2, true, false},  {"RTCM23|24", 2, true, false}, {"RTCM31", 2, true, false},
     {"RTCM32", 2, true, false},
 };
@@ -418,7 +418,7 @@ const mosaicRTCMv3MsgIntervalGroup mosaicRTCMv3MsgIntervalGroups[] = {
 
 #define MAX_MOSAIC_RTCM_V3_INTERVAL_GROUPS (sizeof(mosaicRTCMv3MsgIntervalGroups) / sizeof(mosaicRTCMv3MsgIntervalGroup))
 
-typedef struct 
+typedef struct
 {
     const char name[9];
     const uint8_t intervalGroup;
@@ -454,7 +454,7 @@ const mosaicRTCMv3Msg mosaicMessagesRTCMv3[] = {
     {"MSM4", MOSAIC_RTCM_V3_INTERVAL_GROUP_MSM4, true},
     {"MSM5", MOSAIC_RTCM_V3_INTERVAL_GROUP_MSM5, false},
     {"MSM6", MOSAIC_RTCM_V3_INTERVAL_GROUP_MSM6, false},
-    {"MSM7", MOSAIC_RTCM_V3_INTERVAL_GROUP_MSM7, false},    
+    {"MSM7", MOSAIC_RTCM_V3_INTERVAL_GROUP_MSM7, false},
 /*
     {"RTCM1071", MOSAIC_RTCM_V3_INTERVAL_GROUP_MSM1, false},
     {"RTCM1072", MOSAIC_RTCM_V3_INTERVAL_GROUP_MSM2, false},
@@ -566,7 +566,7 @@ class GNSS_MOSAIC : GNSS
     // Record NrBytesReceived so we can tell if Radio Ext (COM2) is receiving correction data.
     // On the mosaic, we know that InputLink will arrive at 1Hz. But on the ZED, UBX-MON-COMMS
     // is tied to the navigation rate. To keep it simple, record the last time NrBytesReceived
-    // was seen to increase and use that for corrections timeout. This is updated by the SBF 
+    // was seen to increase and use that for corrections timeout. This is updated by the SBF
     // InputLink message. isCorrRadioExtPortActive returns true if the bytes-received has
     // increased in the previous settings.correctionsSourcesLifetime_s
     uint32_t _radioExtBytesReceived_millis;
@@ -574,7 +574,7 @@ class GNSS_MOSAIC : GNSS
     // See notes at GNSS_MOSAIC::setCorrRadioExtPort
     uint32_t previousNrBytesReceived = 0;
     bool firstTimeNrBytesReceived = true;
-    
+
     // Setup the general configuration of the GNSS
     // Not Rover or Base specific (ie, baud rates)
     // Outputs:

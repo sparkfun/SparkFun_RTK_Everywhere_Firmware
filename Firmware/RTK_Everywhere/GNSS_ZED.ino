@@ -505,7 +505,7 @@ bool GNSS_ZED::configureNtpMode()
 
     if (!success)
         systemPrintln("NTP config fail");
-    
+
     // The configuration should be saved to RAM+BBR+FLASH. No need to saveConfiguration here.
 
     return (success);
@@ -850,7 +850,7 @@ bool GNSS_ZED::configureRover()
 
     if (!success)
         systemPrintln("Rover config fail");
-    
+
     settings.gnssConfiguredRover = success;
 
     // The configuration should be saved to RAM+BBR+FLASH. No need to saveConfiguration here.

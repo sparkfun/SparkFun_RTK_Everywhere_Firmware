@@ -2512,7 +2512,7 @@ void GNSS_MOSAIC::storeBlock4059(SEMP_PARSE_STATE *parse)
         return;
 
     uint64_t diskUsage = (diskUsageMSB * 4294967296) + diskUsageLSB;
-    
+
     sdCardSize = diskSizeMB * 1048576; // Convert to bytes
 
     sdFreeSpace = sdCardSize - diskUsage;
