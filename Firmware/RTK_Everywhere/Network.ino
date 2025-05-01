@@ -738,7 +738,7 @@ void networkInterfaceInternetConnectionLost(NetIndex_t index)
             if (networkIsPresent(index))
             {
                 // No, does this network need starting
-                networkStart(index, settings.debugNetworkLayer);
+                networkStart(index, settings.debugNetworkLayer, __FILE__, __LINE__);
             }
         }
 
@@ -1206,12 +1206,20 @@ void networkSequenceStopPolling(NetIndex_t index, bool debug, bool forcedStop)
 //----------------------------------------
 // Start a network interface
 //----------------------------------------
-void networkStart(NetIndex_t index, bool debug)
+void networkStart(NetIndex_t index, bool debug, const char * fileName, uint32_t lineNumber)
 {
     NetMask_t bitMask;
 
     // Validate the index
     networkValidateIndex(index);
+
+    // Display the call
+    if (settings.debugNetworkLayer)
+    {
+        networkDisplayStatus();
+        systemPrintf("Network: Calling networkStart(%s) from %s at line %d\r\n",
+                     networkInterfaceTable[index].name, fileName, lineNumber);
+    }
 
     // Only start networks that exist on the platform
     if (networkIsPresent(index))
@@ -1302,7 +1310,7 @@ void networkStartDelayed(NetIndex_t index, uintptr_t parameter, bool debug)
 
             // Only lower priority interfaces or none running
             // Start this network interface
-            networkStart(index, settings.debugNetworkLayer);
+            networkStart(index, settings.debugNetworkLayer, __FILE__, __LINE__);
         }
         else if (debug)
             systemPrintf("%s online, leaving %s off\r\n", currentInterfaceName, name);
@@ -1449,14 +1457,14 @@ void networkUpdate()
 
         if (consumerTypes & (1 << NETIF_ETHERNET))
         {
-            networkStart(NETWORK_ETHERNET, settings.debugNetworkLayer);
+            networkStart(NETWORK_ETHERNET, settings.debugNetworkLayer, __FILE__, __LINE__);
         }
 
         // Start WiFi if we need AP, or if we need STA+Internet
         if ((consumerTypes & (1 << NETIF_WIFI_AP)) ||
             ((consumerTypes & (1 << NETIF_WIFI_STA) && networkHasInternet() == false)))
         {
-            networkStart(NETWORK_WIFI_STATION, settings.debugNetworkLayer);
+            networkStart(NETWORK_WIFI_STATION, settings.debugNetworkLayer, __FILE__, __LINE__);
         }
 
         if ((networkHasInternet() == false) && (consumerTypes & (1 << NETIF_CELLULAR)))
@@ -1467,7 +1475,7 @@ void networkUpdate()
                 // Don't start cellular until WiFi has failed to connect
                 if (wifiUnavailable() == true)
                 {
-                    networkStart(NETWORK_CELLULAR, settings.debugNetworkLayer);
+                    networkStart(NETWORK_CELLULAR, settings.debugNetworkLayer, __FILE__, __LINE__);
                 }
             }
         }
