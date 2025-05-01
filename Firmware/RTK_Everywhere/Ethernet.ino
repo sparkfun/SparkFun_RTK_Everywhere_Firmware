@@ -174,7 +174,7 @@ void ethernetEvent(arduino_event_id_t event, arduino_event_info_t info)
         if (settings.enablePrintEthernetDiag && (!inMainMenu))
             systemPrintf("ETH Got IP: '%s'\r\n", ETH.localIP().toString().c_str());
 
-        networkInterfaceEventInternetAvailable((NetIndex_t)NETWORK_ETHERNET);
+        networkInterfaceInternetConnectionAvailable((NetIndex_t)NETWORK_ETHERNET);
 
         if (settings.ethernetDHCP)
             paintEthernetConnected();
@@ -202,7 +202,7 @@ void ethernetEvent(arduino_event_id_t event, arduino_event_info_t info)
     // Take the network offline if necessary
     if (networkInterfaceHasInternet(NETWORK_ETHERNET) && (event != ARDUINO_EVENT_ETH_GOT_IP))
     {
-        networkInterfaceEventInternetLost((NetIndex_t)NETWORK_ETHERNET);
+        networkInterfaceInternetConnectionLost((NetIndex_t)NETWORK_ETHERNET);
     }
 }
 

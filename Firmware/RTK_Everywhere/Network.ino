@@ -616,7 +616,7 @@ bool networkInterfaceHasInternet(NetIndex_t index)
 //----------------------------------------
 // Mark network interface as having access to the internet
 //----------------------------------------
-void networkInterfaceEventInternetAvailable(NetIndex_t index)
+void networkInterfaceInternetConnectionAvailable(NetIndex_t index)
 {
     NetMask_t bitMask;
     NetIndex_t previousIndex;
@@ -688,7 +688,7 @@ void networkInterfaceEventInternetAvailable(NetIndex_t index)
 //----------------------------------------
 // Mark network interface as having NO access to the internet
 //----------------------------------------
-void networkInterfaceEventInternetLost(NetIndex_t index)
+void networkInterfaceInternetConnectionLost(NetIndex_t index)
 {
     NetMask_t bitMask;
     NetPriority_t previousPriority;
