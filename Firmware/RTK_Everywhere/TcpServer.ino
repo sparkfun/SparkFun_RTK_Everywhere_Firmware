@@ -171,6 +171,32 @@ int32_t tcpServerClientSendData(int index, uint8_t *data, uint16_t length)
 }
 
 //----------------------------------------
+// Determine if the TCP server may be enabled
+//----------------------------------------
+bool tcpServerEnabled(const char ** line)
+{
+    bool enabled;
+
+    do
+    {
+        enabled = false;
+
+        // Verify the operating mode
+        if (NEQ_RTK_MODE(tcpServerMode))
+        {
+            *line = ", Wrong mode!";
+            break;
+        }
+
+        // Verify still enabled
+        enabled = settings.enableTcpServer || settings.baseCasterOverride;
+        if (enabled == false)
+            *line = ", Not enabled!";
+    } while (0);
+    return enabled;
+}
+
+//----------------------------------------
 // Return true if we are in a state that requires network access
 //----------------------------------------
 bool tcpServerNeedsNetwork()
