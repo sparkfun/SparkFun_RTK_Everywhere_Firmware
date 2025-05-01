@@ -510,7 +510,7 @@ void wifiEvent(arduino_event_id_t event, arduino_event_info_t info)
             if (settings.debugWifiState)
                 systemPrintf("Stopping WiFi because of event # %d\r\n", event);
 
-            networkStop(NETWORK_WIFI_STATION, settings.debugNetworkLayer); // Stop WiFi to allow it to restart
+            networkStop(NETWORK_WIFI_STATION, settings.debugNetworkLayer, __FILE__, __LINE__); // Stop WiFi to allow it to restart
         }
     }
 

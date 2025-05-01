@@ -1251,12 +1251,23 @@ void networkStart(NetIndex_t index,
 //----------------------------------------
 // Stop a network interface
 //----------------------------------------
-void networkStop(NetIndex_t index, bool debug)
+void networkStop(NetIndex_t index,
+                 bool debug,
+                 const char * fileName,
+                 uint32_t lineNumber)
 {
     NetMask_t bitMask;
 
     // Validate the index
     networkValidateIndex(index);
+
+    // Display the call
+    if (settings.debugNetworkLayer)
+    {
+        systemPrintf("Network: Calling networkStop(%s) from %s at line %d\r\n",
+                     networkInterfaceTable[index].name, fileName, lineNumber);
+        networkDisplayStatus();
+    }
 
     // Only stop networks that exist on the platform
     if (networkIsPresent(index))
@@ -1395,7 +1406,7 @@ void networkUpdate()
 
             wifiResetThrottleTimeout();
             WIFI_STOP();
-            networkStop(NETWORK_WIFI_STATION, settings.debugNetworkLayer);
+            networkStop(NETWORK_WIFI_STATION, settings.debugNetworkLayer, __FILE__, __LINE__);
         }
     }
 
@@ -1408,7 +1419,7 @@ void networkUpdate()
 
         // Shutdown all networks
         for (int index = 0; index < NETWORK_OFFLINE; index++)
-            networkStop(index, settings.debugNetworkLayer);
+            networkStop(index, settings.debugNetworkLayer, __FILE__, __LINE__);
     }
 
     // If the consumers have indicated a network type change (ie, must have WiFi AP even though STA is connected)
@@ -1456,7 +1467,7 @@ void networkUpdate()
 
         // Shutdown all networks
         for (int index = 0; index < NETWORK_OFFLINE; index++)
-            networkStop(index, settings.debugNetworkLayer);
+            networkStop(index, settings.debugNetworkLayer, __FILE__, __LINE__);
     }
 
     // Allow consumers to start networks
