@@ -614,75 +614,6 @@ bool networkInterfaceHasInternet(NetIndex_t index)
 }
 
 //----------------------------------------
-// Mark network interface as having NO access to the internet
-//----------------------------------------
-void networkInterfaceEventInternetLost(NetIndex_t index)
-{
-    NetMask_t bitMask;
-    NetPriority_t previousPriority;
-    NetPriority_t priority;
-
-    // Validate the index
-    networkValidateIndex(index);
-
-    // Check for network offline
-    bitMask = 1 << index;
-    if (!(networkHasInternet_bm & bitMask))
-        // Already offline, nothing to do
-        return;
-
-    // Mark this network as offline
-    networkHasInternet_bm &= ~bitMask;
-
-    // Disable mDNS if necessary
-    networkMulticastDNSStop(index);
-
-    // Display offline message
-    if (settings.debugNetworkLayer)
-        systemPrintf("--------------- %s Offline ---------------\r\n", networkGetNameByIndex(index));
-
-    // Did the highest priority network just fail?
-    if (networkPriorityTable[index] == networkPriority)
-    {
-        // The highest priority network just failed
-        // Leave this network on in hopes that it will regain a connection
-        previousPriority = networkPriority;
-
-        // Search in descending priority order for the next online network
-        priority = networkPriorityTable[index];
-        for (priority += 1; priority < NETWORK_OFFLINE; priority += 1)
-        {
-            // Is the network online?
-            index = networkIndexTable[priority];
-            bitMask = 1 << index;
-            if (networkHasInternet_bm & bitMask)
-            {
-                // Successfully found an online network
-                networkMulticastDNSStart(index);
-                break;
-            }
-
-            // No, is this device present (nullptr: always present)
-            if (networkIsPresent(index))
-            {
-                // No, does this network need starting
-                networkStart(index, settings.debugNetworkLayer);
-            }
-        }
-
-        // Set the new network priority
-        networkPriority = priority;
-        if (priority < NETWORK_OFFLINE)
-            Network.setDefaultInterface(*networkInterfaceTable[index].netif);
-
-        // Display the transition
-        if (settings.debugNetworkLayer)
-            systemPrintf("Default Network Interface: %s --> %s\r\n", networkGetNameByPriority(previousPriority),
-                         networkGetNameByPriority(priority));
-    }
-}
-
-//----------------------------------------
 // Mark network interface as having access to the internet
 //----------------------------------------
 void networkInterfaceEventInternetAvailable(NetIndex_t index)
@@ -752,6 +683,75 @@ void networkInterfaceEventInternetAvailable(NetIndex_t index)
     // Only start mDNS on the highest priority network
     if (networkPriority == networkPriorityTable[previousIndex])
         networkMulticastDNSStart(previousIndex);
+}
+
+//----------------------------------------
+// Mark network interface as having NO access to the internet
+//----------------------------------------
+void networkInterfaceEventInternetLost(NetIndex_t index)
+{
+    NetMask_t bitMask;
+    NetPriority_t previousPriority;
+    NetPriority_t priority;
+
+    // Validate the index
+    networkValidateIndex(index);
+
+    // Check for network offline
+    bitMask = 1 << index;
+    if (!(networkHasInternet_bm & bitMask))
+        // Already offline, nothing to do
+        return;
+
+    // Mark this network as offline
+    networkHasInternet_bm &= ~bitMask;
+
+    // Disable mDNS if necessary
+    networkMulticastDNSStop(index);
+
+    // Display offline message
+    if (settings.debugNetworkLayer)
+        systemPrintf("--------------- %s Offline ---------------\r\n", networkGetNameByIndex(index));
+
+    // Did the highest priority network just fail?
+    if (networkPriorityTable[index] == networkPriority)
+    {
+        // The highest priority network just failed
+        // Leave this network on in hopes that it will regain a connection
+        previousPriority = networkPriority;
+
+        // Search in descending priority order for the next online network
+        priority = networkPriorityTable[index];
+        for (priority += 1; priority < NETWORK_OFFLINE; priority += 1)
+        {
+            // Is the network online?
+            index = networkIndexTable[priority];
+            bitMask = 1 << index;
+            if (networkHasInternet_bm & bitMask)
+            {
+                // Successfully found an online network
+                networkMulticastDNSStart(index);
+                break;
+            }
+
+            // No, is this device present (nullptr: always present)
+            if (networkIsPresent(index))
+            {
+                // No, does this network need starting
+                networkStart(index, settings.debugNetworkLayer);
+            }
+        }
+
+        // Set the new network priority
+        networkPriority = priority;
+        if (priority < NETWORK_OFFLINE)
+            Network.setDefaultInterface(*networkInterfaceTable[index].netif);
+
+        // Display the transition
+        if (settings.debugNetworkLayer)
+            systemPrintf("Default Network Interface: %s --> %s\r\n", networkGetNameByPriority(previousPriority),
+                         networkGetNameByPriority(priority));
+    }
 }
 
 //----------------------------------------
