@@ -116,6 +116,33 @@ bool httpClientConnectLimitReached()
 }
 
 //----------------------------------------
+// Determine if the HTTP client may be enabled
+//----------------------------------------
+bool httpClientEnabled(const char ** line)
+{
+    bool enableHttpClient;
+
+    do
+    {
+        enableHttpClient = false;
+
+        // HTTP requires use of point perfect corrections
+        if (settings.enablePointPerfectCorrections == false)
+        {
+            if (line)
+                *line = ", PointPerfect corrections disabled!";
+            break;
+        }
+
+        // All conditions support running the HTTP client
+        enableHttpClient = httpClientModeNeeded;
+        if (line && !enableHttpClient)
+            *line = ", HTTP Client disabled!";
+    } while (0);
+    return enableHttpClient;
+}
+
+//----------------------------------------
 // Print the HTTP client state summary
 //----------------------------------------
 void httpClientPrintStateSummary()
