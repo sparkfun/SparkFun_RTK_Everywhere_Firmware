@@ -176,6 +176,32 @@ void tcpClientDiscardBytes(RING_BUFFER_OFFSET previousTail, RING_BUFFER_OFFSET n
 }
 
 //----------------------------------------
+// Determine if the TCP client is enabled
+//----------------------------------------
+bool tcpClientEnabled(const char ** line)
+{
+    bool enabled;
+
+    do
+    {
+        enabled = false;
+
+        // Verify the operating mode
+        if (NEQ_RTK_MODE(tcpClientMode))
+        {
+            *line = ", Wrong mode!";
+            break;
+        }
+
+        // Verify enabled
+        enabled = settings.enableTcpClient;
+        if (enabled == false)
+            *line = ", Not enabled!";
+    } while (0);
+    return enabled;
+}
+
+//----------------------------------------
 // Return true if we are in a state that requires network access
 //----------------------------------------
 bool tcpClientNeedsNetwork()
