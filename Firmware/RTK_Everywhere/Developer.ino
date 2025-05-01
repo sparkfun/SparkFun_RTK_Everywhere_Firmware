@@ -34,6 +34,9 @@ void ntpServerStop() {}
 
 void menuTcpUdp() {systemPrint("**Network not compiled**");}
 void networkBegin() {}
+void networkConsumerAdd(NETCONSUMER_t consumer, NetIndex_t network, const char * fileName, uint32_t lineNumber) {}
+bool networkConsumerIsConnected(NETCONSUMER_t consumer) {return false;}
+void networkConsumerRemove(NETCONSUMER_t consumer, NetIndex_t network, const char * fileName, uint32_t lineNumber) {}
 uint8_t networkConsumers() {return(0);}
 uint16_t networkGetConsumerTypes() {return(0);}
 IPAddress networkGetIpAddress() {return("0.0.0.0");}
@@ -45,7 +48,8 @@ const uint8_t * networkGetMacAddress()
         return btMACAddress;
 #endif
     return zero;
-  }
+}
+NetPriority_t networkGetPriority() {return 0;}
 bool networkHasInternet() {return false;}
 bool networkHasInternet(NetIndex_t index) {return false;}
 bool networkInterfaceHasInternet(NetIndex_t index) {return false;}
@@ -55,6 +59,8 @@ void networkMarkHasInternet(NetIndex_t index) {}
 void networkSequenceBoot(NetIndex_t index) {}
 void networkSequenceNextEntry(NetIndex_t index, bool debug) {}
 void networkUpdate() {}
+void networkUserAdd(NETCONSUMER_t consumer, const char * fileName, uint32_t lineNumber) {}
+void networkUserRemove(NETCONSUMER_t consumer, const char * fileName, uint32_t lineNumber) {}
 void networkValidateIndex(NetIndex_t index) {}
 void networkVerifyTables() {}
 
@@ -205,11 +211,14 @@ void espNowUpdate()                     {}
 void menuWiFi() {systemPrintln("**WiFi not compiled**");}
 bool wifiApIsRunning() {return false;}
 bool wifiConnect(bool startWiFiStation, bool startWiFiAP, unsigned long timeout) {return false;}
+void wifiDisplaySoftApStatus()                  {}
 uint32_t wifiGetStartTimeout() {return 0;}
 #define WIFI_IS_RUNNING() 0
 int wifiNetworkCount() {return 0;}
 void wifiResetThrottleTimeout() {}
 void wifiResetTimeout() {}
+bool wifiSoftApOff(const char * fileName, uint32_t lineNumber) {return true;}
+bool wifiSoftApOn(const char * fileName, uint32_t lineNumber) {return false;}
 #define WIFI_SOFT_AP_RUNNING() false
 bool wifiStart() {return false;}
 bool wifiStationIsRunning() {return false;}

@@ -354,6 +354,8 @@ const int wifiStartNamesEntries = sizeof(wifiStartNames) / sizeof(wifiStartNames
 #define WIFI_MAX_TIMEOUT    (15 * 60 * 1000)    // Timeout in milliseconds
 #define WIFI_MIN_TIMEOUT    (15 * 1000)         // Timeout in milliseconds
 
+const char * wifiSoftApName = "Soft AP";
+
 const char * wifiSoftApSsid = "RTK Config";
 const char * wifiSoftApPassword = nullptr;
 
@@ -454,6 +456,27 @@ void menuWiFi()
     }
 
     clearBuffer(); // Empty buffer of any newline chars
+}
+
+//*********************************************************************
+// Display the soft AP consumers
+void wifiDisplaySoftApStatus()
+{
+    const char *status;
+
+    // Determine the soft AP status
+    status = "Stopping";
+    if (wifiSoftApOnline)
+        status = "Online";
+    else if (wifiSoftApRunning)
+        status = "Starting";
+
+    // Print the network interface status
+    systemPrintf("    %-10s %s", wifiSoftApName, status);
+
+    // Display the consumers
+    networkSoftApConsumerPrint(", ");
+    systemPrintln();
 }
 
 //*********************************************************************
@@ -672,6 +695,40 @@ void wifiResetTimeout()
     wifiStartTimeout = 0;
     if (settings.debugWifiState == true)
         systemPrintln("WiFi: Start timeout reset to zero");
+}
+
+//*********************************************************************
+// Turn off WiFi soft AP mode
+// Inputs:
+//   fileName: Name of file calling the enable routine
+//   lineNumber: Line number in the file calling the enable routine
+// Outputs:
+//   Returns the status of WiFi soft AP stop
+bool wifiSoftApOff(const char * fileName, uint32_t lineNumber)
+{
+    // Display the call
+    if (settings.debugWifiState)
+        systemPrintf("wifiSoftApOff called in %s at line %d\r\n",
+                     fileName, lineNumber);
+
+    return false;
+}
+
+//*********************************************************************
+// Turn on WiFi soft AP mode
+// Inputs:
+//   fileName: Name of file calling the enable routine
+//   lineNumber: Line number in the file calling the enable routine
+// Outputs:
+//   Returns the status of WiFi soft AP start
+bool wifiSoftApOn(const char * fileName, uint32_t lineNumber)
+{
+    // Display the call
+    if (settings.debugWifiState)
+        systemPrintf("wifiSoftApOn called in %s at line %d\r\n",
+                     fileName, lineNumber);
+
+    return false;
 }
 
 //*********************************************************************

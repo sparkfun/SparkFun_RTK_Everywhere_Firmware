@@ -65,6 +65,17 @@ bool newSystemStateRequested = false;
 
 typedef uint8_t RtkMode_t;
 
+const char * const rtkModeName[] =
+{
+    "RTK_MODE_BASE_FIXED",
+    "RTK_MODE_BASE_SURVEY_IN",
+    "RTK_MODE_NTP",
+    "RTK_MODE_ROVER",
+    "RTK_MODE_TESTING",
+    "RTK_MODE_WEB_CONFIG",
+};
+const uint8_t rtkModeNameEntries = sizeof(rtkModeName) / sizeof(rtkModeName[0]);
+
 #define RTK_MODE(mode)          rtkMode = mode;
 
 #define EQ_RTK_MODE(mode)       (rtkMode && (rtkMode == (mode & rtkMode)))
@@ -584,7 +595,13 @@ enum
     NETCONSUMER_PPL_MQTT_CLIENT,
     NETCONSUMER_OTA_CLIENT,
     NETCONSUMER_WEB_CONFIG,
+    // Add new consumers just before this line
+    // Also add them to the networkConsumerTable
+    NETCONSUMER_MAX
 };
+
+typedef uint8_t NETCONSUMER_t;
+typedef uint16_t NETCONSUMER_MASK_t;
 
 // This is all the settings that can be set on RTK Product. It's recorded to NVM and the config file.
 // Avoid reordering. The order of these variables is mimicked in NVM/record/parse/create/update/get
@@ -1815,7 +1832,8 @@ enum NetworkTypes
     NETWORK_WIFI_STATION,   // 1
     NETWORK_CELLULAR,       // 2
     // Add new networks above this line in default priority order
-    NETWORK_MAX
+    NETWORK_ANY,            // 3
+    NETWORK_MAX = NETWORK_ANY,
 };
 
 #ifdef  COMPILE_NETWORK
@@ -1834,24 +1852,26 @@ typedef const struct _NETWORK_POLL_SEQUENCE
     const char * description;     // Description of operation
 } NETWORK_POLL_SEQUENCE;
 
-// networkInterfaceTable entry
-typedef struct _NETWORK_TABLE_ENTRY
-{
-    NetworkInterface * netif;       // Network interface object address
-    const char * name;              // Name of the network interface
-    bool * present;                 // Address of present bool or nullptr if always available
-    uint8_t pdState;                // Periodic display state value
-    NETWORK_POLL_SEQUENCE * boot;   // Boot sequence, may be nullptr
-    NETWORK_POLL_SEQUENCE * start;  // Start sequence (Off --> On), may be nullptr
-    NETWORK_POLL_SEQUENCE * stop;   // Stop routine (On --> Off), may be nullptr
-} NETWORK_TABLE_ENTRY;
-
 // Sequence table declarations
 extern NETWORK_POLL_SEQUENCE wifiStartSequence[];
 extern NETWORK_POLL_SEQUENCE wifiStopSequence[];
 extern NETWORK_POLL_SEQUENCE laraBootSequence[];
 extern NETWORK_POLL_SEQUENCE laraOffSequence[];
 extern NETWORK_POLL_SEQUENCE laraOnSequence[];
+
+// networkInterfaceTable entry
+typedef struct _NETWORK_TABLE_ENTRY
+{
+    NetworkInterface * netif;       // Network interface object address
+    bool mDNS;                      // Set true to use mDNS service
+    NetIndex_t index;               // Table index, also default priority
+    uint8_t pdState;                // Periodic display state value
+    NETWORK_POLL_SEQUENCE * boot;   // Boot sequence, may be nullptr
+    NETWORK_POLL_SEQUENCE * start;  // Start sequence (Off --> On), may be nullptr
+    NETWORK_POLL_SEQUENCE * stop;   // Stop routine (On --> Off), may be nullptr
+    const char * name;              // Name of the network interface
+    bool * present;                 // Address of present bool or nullptr if always available
+} NETWORK_TABLE_ENTRY;
 
 // List of networks in default priority order!  These entries must match
 // the index values in the NetworkTypes enumeration!
@@ -1861,23 +1881,23 @@ extern NETWORK_POLL_SEQUENCE laraOnSequence[];
 // priority rises above that level. The priority will continue to fall or
 // rise until a network is found that is online.
 const NETWORK_TABLE_ENTRY networkInterfaceTable[] =
-{ //     Interface  Name            Present                     Periodic State      Boot Sequence           Start Sequence      Stop Sequence
+{ //     Interface  mDNS    Index                   Periodic State      Boot Sequence           Start Sequence      Stop Sequence       Name                    Present
     #ifdef COMPILE_ETHERNET
-        {&ETH,      "Ethernet",     &present.ethernet_ws5500,   PD_ETHERNET_STATE,  nullptr,                nullptr,            nullptr},
+        {&ETH,      true,   NETWORK_ETHERNET,       PD_ETHERNET_STATE,  nullptr,                nullptr,            nullptr,            "Ethernet",             &present.ethernet_ws5500},
     #else
-        {nullptr,      "Ethernet-NotCompiled",     nullptr,   PD_ETHERNET_STATE,  nullptr,                nullptr,            nullptr},
+        {nullptr,   false,  NETWORK_ETHERNET,       PD_ETHERNET_STATE,  nullptr,                nullptr,            nullptr,            "Ethernet-NotCompiled", nullptr},
     #endif  // COMPILE_ETHERNET
 
     #ifdef COMPILE_WIFI
-        {&WiFi.STA, "WiFi",         nullptr,                    PD_WIFI_STATE,      nullptr,                wifiStartSequence,  wifiStopSequence},
+        {&WiFi.STA, true,   NETWORK_WIFI_STATION,   PD_WIFI_STATE,      nullptr,                wifiStartSequence,  wifiStopSequence,   "WiFi",                 nullptr},
     #else
-        {nullptr,   "WiFi-NotCompiled",     nullptr,            PD_WIFI_STATE,      nullptr,                nullptr,            nullptr},
+        {nullptr,   false,  NETWORK_WIFI_STATION,   PD_WIFI_STATE,      nullptr,                nullptr,            nullptr,            "WiFi-NotCompiled",     nullptr},
     #endif  // COMPILE_WIFI
 
     #ifdef  COMPILE_CELLULAR
-        {&PPP,      "Cellular",     &present.cellular_lara,     PD_CELLULAR_STATE,  laraBootSequence,       laraOnSequence,     laraOffSequence},
+        {&PPP,      false,  NETWORK_CELLULAR,       PD_CELLULAR_STATE,  laraBootSequence,       laraOnSequence,     laraOffSequence,    "Cellular",             &present.cellular_lara},
     #else
-        {nullptr,   "Cellular-NotCompiled",     nullptr,            PD_CELLULAR_STATE,      nullptr,                nullptr,            nullptr},
+        {nullptr,   false,  NETWORK_CELLULAR,       PD_CELLULAR_STATE,  nullptr,                nullptr,            nullptr,            "Cellular-NotCompiled", nullptr,            },
     #endif  // COMPILE_CELLULAR
 };
 const int networkInterfaceTableEntries = sizeof(networkInterfaceTable) / sizeof(networkInterfaceTable[0]);
