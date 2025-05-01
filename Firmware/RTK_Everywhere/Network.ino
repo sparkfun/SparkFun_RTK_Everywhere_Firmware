@@ -941,7 +941,7 @@ void networkSequenceBoot(NetIndex_t index)
 void networkSequenceExit(NetIndex_t index, bool debug)
 {
     // Stop the polling for this sequence
-    networkSequenceStopPolling(index, debug, true);
+    networkSequenceStopPolling(index, debug, true, __FILE__, __LINE__);
 }
 
 //----------------------------------------
@@ -975,7 +975,7 @@ void networkSequenceNextEntry(NetIndex_t index, bool debug)
 
     // Termination entry found, stop the sequence or start next sequence
     else
-        networkSequenceStopPolling(index, debug, false);
+        networkSequenceStopPolling(index, debug, false, __FILE__, __LINE__);
 }
 
 //----------------------------------------
@@ -1146,13 +1146,26 @@ void networkSequenceStop(NetIndex_t index,
 //----------------------------------------
 // Stop the polling sequence
 //----------------------------------------
-void networkSequenceStopPolling(NetIndex_t index, bool debug, bool forcedStop)
+void networkSequenceStopPolling(NetIndex_t index,
+                                bool debug,
+                                bool forcedStop,
+                                const char * fileName,
+                                uint32_t lineNumber)
 {
     NetMask_t bitMask;
     bool start;
 
     // Validate the index
     networkValidateIndex(index);
+
+    // Display the call
+    if (settings.debugNetworkLayer)
+        systemPrintf("Network: Calling networkSequenceStopPolling(%s, debug: %s, forcedStop: %s) from %s at line %d\r\n",
+                     networkInterfaceTable[index].name,
+                     debug ? "true" : "false",
+                     forcedStop ? "true" : "false",
+                     fileName,
+                     lineNumber);
 
     // Stop the polling for this sequence
     networkSequence[index] = nullptr;
