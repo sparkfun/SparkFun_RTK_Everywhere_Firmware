@@ -675,7 +675,7 @@ void networkInterfaceInternetConnectionAvailable(NetIndex_t index)
             {
                 // Stop the previous network
                 systemPrintf("Stopping %s\r\n", networkGetNameByIndex(index));
-                networkSequenceStop(index, settings.debugNetworkLayer);
+                networkSequenceStop(index, settings.debugNetworkLayer, __FILE__, __LINE__);
             }
         }
     }
@@ -1064,7 +1064,10 @@ void networkSequenceStart(NetIndex_t index,
 //----------------------------------------
 // Start the stop sequence
 //----------------------------------------
-void networkSequenceStop(NetIndex_t index, bool debug)
+void networkSequenceStop(NetIndex_t index,
+                         bool debug,
+                         const char * fileName,
+                         uint32_t lineNumber)
 {
     NetMask_t bitMask;
     const char *description;
@@ -1072,6 +1075,11 @@ void networkSequenceStop(NetIndex_t index, bool debug)
 
     // Validate the index
     networkValidateIndex(index);
+
+    // Display the call
+    if (settings.debugNetworkLayer)
+        systemPrintf("Network: Calling networkSequenceStop(%s) from %s at line %d\r\n",
+                     networkInterfaceTable[index].name, fileName, lineNumber);
 
     // Set the network bit
     bitMask = 1 << index;
@@ -1207,7 +1215,7 @@ void networkSequenceStopPolling(NetIndex_t index, bool debug, bool forcedStop)
         if (start)
             networkSequenceStart(index, debug, __FILE__, __LINE__);
         else
-            networkSequenceStop(index, debug);
+            networkSequenceStop(index, debug, __FILE__, __LINE__);
     }
 }
 
@@ -1280,7 +1288,7 @@ void networkStop(NetIndex_t index,
         {
             if (debug)
                 systemPrintf("Stopping network: %s\r\n", networkGetNameByIndex(index));
-            networkSequenceStop(index, debug);
+            networkSequenceStop(index, debug, __FILE__, __LINE__);
         }
     }
 }
