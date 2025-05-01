@@ -938,8 +938,16 @@ void networkSequenceBoot(NetIndex_t index)
 //----------------------------------------
 // Exit the sequence by force
 //----------------------------------------
-void networkSequenceExit(NetIndex_t index, bool debug)
+void networkSequenceExit(NetIndex_t index,
+                         bool debug,
+                         const char * fileName,
+                         uint32_t lineNumber)
 {
+    // Display the call
+    if (settings.debugNetworkLayer)
+        systemPrintf("Network: Calling networkSequenceExit(%s) from %s at line %d\r\n",
+                     networkInterfaceTable[index].name, fileName, lineNumber);
+
     // Stop the polling for this sequence
     networkSequenceStopPolling(index, debug, true, __FILE__, __LINE__);
 }
