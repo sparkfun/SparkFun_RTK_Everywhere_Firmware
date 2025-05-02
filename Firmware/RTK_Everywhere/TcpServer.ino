@@ -428,12 +428,8 @@ void tcpServerUpdate()
 
     // Wait until the network is connected
     case TCP_SERVER_STATE_WAIT_FOR_NETWORK:
-        // Determine if the TCP server was turned off
-        if (NEQ_RTK_MODE(tcpServerMode) || (!settings.enableTcpServer && !settings.baseCasterOverride))
-            tcpServerStop();
-
         // Wait until the network is connected to the media
-        else if (networkHasInternet() || WIFI_SOFT_AP_RUNNING())
+        if (networkHasInternet() || WIFI_SOFT_AP_RUNNING())
         {
             // Delay before starting the TCP server
             if ((millis() - tcpServerTimer) >= (1 * 1000))
