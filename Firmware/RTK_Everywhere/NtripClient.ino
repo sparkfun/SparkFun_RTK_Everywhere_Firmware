@@ -344,6 +344,21 @@ bool ntripClientConnectLimitReached()
     return limitReached;
 }
 
+// Shutdown the NTRIP client
+void ntripClientForceShutdown()
+{
+    ntripClientStop(true);
+    ntripClientForcedShutdown = true; // NTRIP Client was turned off due to an error. Don't allow restart.
+}
+
+// Return true if we are in states that require network access
+bool ntripClientNeedsNetwork()
+{
+    if (ntripClientState >= NTRIP_CLIENT_WAIT_FOR_NETWORK && ntripClientState <= NTRIP_CLIENT_CONNECTED)
+        return true;
+    return false;
+}
+
 // Print the NTRIP client state summary
 void ntripClientPrintStateSummary()
 {
@@ -471,13 +486,6 @@ void ntripClientSetState(uint8_t newState)
     }
 }
 
-// Shutdown the NTRIP client
-void ntripClientForceShutdown()
-{
-    ntripClientStop(true);
-    ntripClientForcedShutdown = true; // NTRIP Client was turned off due to an error. Don't allow restart.
-}
-
 // Start the NTRIP client
 void ntripClientStart()
 {
@@ -523,14 +531,6 @@ void ntripClientStop(bool shutdown)
     }
     else
         ntripClientSetState(NTRIP_CLIENT_ON);
-}
-
-// Return true if we are in states that require network access
-bool ntripClientNeedsNetwork()
-{
-    if (ntripClientState >= NTRIP_CLIENT_WAIT_FOR_NETWORK && ntripClientState <= NTRIP_CLIENT_CONNECTED)
-        return true;
-    return false;
 }
 
 // Check for the arrival of any correction data. Push it to the GNSS.
