@@ -621,6 +621,12 @@ void ntripServerUpdate(int serverIndex)
         }
     }
 
+    // Determine if the network has failed
+    else if ((ntripServer->state > NTRIP_SERVER_WAIT_FOR_NETWORK)
+        && (networkHasInternet() == false))
+        // Failed to connect to to the network, attempt to restart the network
+        ntripServerStop(serverIndex, true); // Was ntripServerRestart(serverIndex); - #StopVsRestart
+
     // Enable the network and the NTRIP server if requested
     switch (ntripServer->state)
     {
@@ -690,23 +696,13 @@ void ntripServerUpdate(int serverIndex)
 
     // Wait for GNSS correction data
     case NTRIP_SERVER_WAIT_GNSS_DATA:
-        // Determine if the network has failed
-        if (networkHasInternet() == false)
-            // Failed to connect to to the network, attempt to restart the network
-            ntripServerStop(serverIndex, true); // Was ntripServerRestart(serverIndex); - #StopVsRestart
-
         // State change handled in ntripServerProcessRTCM
         break;
 
     // Initiate the connection to the NTRIP caster
     case NTRIP_SERVER_CONNECTING:
-        // Determine if the network has failed
-        if (networkHasInternet() == false)
-            // Failed to connect to to the network, attempt to restart the network
-            ntripServerStop(serverIndex, true); // Was ntripServerRestart(serverIndex); - #StopVsRestart
-
         // Delay before opening the NTRIP server connection
-        else if ((millis() - ntripServer->timer) >= ntripServer->connectionAttemptTimeout)
+        if ((millis() - ntripServer->timer) >= ntripServer->connectionAttemptTimeout)
         {
             // Attempt a connection to the NTRIP caster
             if (!ntripServerConnectCaster(serverIndex))
@@ -728,13 +724,8 @@ void ntripServerUpdate(int serverIndex)
 
     // Wait for authorization response
     case NTRIP_SERVER_AUTHORIZATION:
-        // Determine if the network has failed
-        if (networkHasInternet() == false)
-            // Failed to connect to to the network, attempt to restart the network
-            ntripServerStop(serverIndex, true); // Was ntripServerRestart(serverIndex); - #StopVsRestart
-
         // Check if caster service responded
-        else if (ntripServer->networkClient->available() <
+        if (ntripServer->networkClient->available() <
                  strlen("ICY 200 OK")) // Wait until at least a few bytes have arrived
         {
             // Check for response timeout
@@ -822,13 +813,8 @@ void ntripServerUpdate(int serverIndex)
 
     // NTRIP server authorized to send RTCM correction data to NTRIP caster
     case NTRIP_SERVER_CASTING:
-        // Determine if the network has failed
-        if (networkHasInternet() == false)
-            // Failed to connect to the network, attempt to restart the network
-            ntripServerStop(serverIndex, true); // Was ntripServerRestart(serverIndex); - #StopVsRestart
-
         // Check for a broken connection
-        else if (!ntripServer->networkClient->connected())
+        if (!ntripServer->networkClient->connected())
         {
             // Broken connection, retry the NTRIP connection
             systemPrintf("Connection to NTRIP Caster %d - %s was lost\r\n", serverIndex,
