@@ -680,7 +680,7 @@ void mqttClientRestart()
 //----------------------------------------
 void mqttClientSetState(uint8_t newState)
 {
-    if (settings.debugMqttClientState || PERIODIC_DISPLAY(PD_MQTT_CLIENT_STATE))
+    if (settings.debugMqttClientState)
     {
         if (mqttClientState == newState)
             systemPrint("*");
@@ -688,9 +688,8 @@ void mqttClientSetState(uint8_t newState)
             systemPrintf("%s --> ", mqttClientStateName[mqttClientState]);
     }
     mqttClientState = newState;
-    if (settings.debugMqttClientState || PERIODIC_DISPLAY(PD_MQTT_CLIENT_STATE))
+    if (settings.debugMqttClientState)
     {
-        PERIODIC_CLEAR(PD_MQTT_CLIENT_STATE);
         if (newState >= MQTT_CLIENT_STATE_MAX)
         {
             systemPrintf("Unknown MQTT Client state: %d\r\n", newState);
@@ -1145,7 +1144,13 @@ void mqttClientUpdate()
 
     // Periodically display the MQTT client state
     if (PERIODIC_DISPLAY(PD_MQTT_CLIENT_STATE))
-        mqttClientSetState(mqttClientState);
+    {
+        const char * line = "";
+        mqttClientEnabled(&line);
+        systemPrintf("MQTT Client state: %s%s\r\n",
+                     mqttClientStateName[mqttClientState], line);
+        PERIODIC_CLEAR(PD_MQTT_CLIENT_STATE);
+    }
 }
 
 //----------------------------------------
