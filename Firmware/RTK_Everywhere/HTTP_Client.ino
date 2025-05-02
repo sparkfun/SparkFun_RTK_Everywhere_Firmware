@@ -200,7 +200,7 @@ void httpClientRestart()
 //----------------------------------------
 void httpClientSetState(uint8_t newState)
 {
-    if (settings.debugHttpClientState || PERIODIC_DISPLAY(PD_HTTP_CLIENT_STATE))
+    if (settings.debugHttpClientState)
     {
         if (httpClientState == newState)
             systemPrint("*");
@@ -208,9 +208,8 @@ void httpClientSetState(uint8_t newState)
             systemPrintf("%s --> ", httpClientStateName[httpClientState]);
     }
     httpClientState = newState;
-    if (settings.debugHttpClientState || PERIODIC_DISPLAY(PD_HTTP_CLIENT_STATE))
+    if (settings.debugHttpClientState)
     {
-        PERIODIC_CLEAR(PD_HTTP_CLIENT_STATE);
         if (newState >= HTTP_CLIENT_STATE_MAX)
         {
             systemPrintf("Unknown HTTP Client state: %d\r\n", newState);
@@ -596,7 +595,13 @@ void httpClientUpdate()
 
     // Periodically display the HTTP client state
     if (PERIODIC_DISPLAY(PD_HTTP_CLIENT_STATE))
-        httpClientSetState(httpClientState);
+    {
+        const char * line = "";
+        httpClientEnabled(&line);
+        systemPrintf("HTTP Client state: %s%s\r\n",
+                     httpClientStateName[httpClientState], line);
+        PERIODIC_CLEAR(PD_HTTP_CLIENT_STATE);
+    }
 }
 
 //----------------------------------------
