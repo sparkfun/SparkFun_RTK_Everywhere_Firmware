@@ -352,6 +352,64 @@ bool ntripClientConnectLimitReached()
 }
 
 //----------------------------------------
+// Determine if the NTRIP client may be enabled
+//----------------------------------------
+bool ntripClientEnabled(const char ** line)
+{
+    bool enabled;
+
+    do
+    {
+        enabled = false;
+
+        // Verify the operating mode
+        if (NEQ_RTK_MODE(ntripClientMode))
+        {
+            if (line)
+                *line = ", Wrong mode!";
+            break;
+        }
+
+        // Verify that the parameters were specified
+        if ((settings.ntripClient_CasterHost[0] == 0)
+            || (settings.ntripClient_CasterPort == 0)
+            || (settings.ntripClient_MountPoint[0] == 0))
+        {
+            if (line)
+            {
+                if (settings.ntripClient_CasterHost[0] == 0)
+                    *line = ", Caster host not specified!";
+                else if (settings.ntripClient_CasterPort == 0)
+                    *line = ", Caster port not specified!";
+                else
+                    *line = ", Mount point not specified!";
+            }
+            break;
+        }
+
+        // Verify still enabled
+        enabled = settings.enableNtripClient;
+
+        // Determine if the shutdown is being forced
+        if (enabled && ntripClientForcedShutdown)
+        {
+            if (line)
+                *line = ", Forced shutdown!";
+            enabled = false;
+        }
+
+        // User manually disabled NTRIP client
+        else if (enabled == false)
+        {
+            if (line)
+                *line = ", Not enabled!";
+            ntripClientForcedShutdown = false;
+        }
+    } while (0);
+    return enabled;
+}
+
+//----------------------------------------
 // Shutdown the NTRIP client
 //----------------------------------------
 void ntripClientForceShutdown()
