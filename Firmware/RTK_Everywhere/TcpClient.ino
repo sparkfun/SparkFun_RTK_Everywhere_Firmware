@@ -284,7 +284,7 @@ int32_t tcpClientSendData(uint16_t dataHead)
 //----------------------------------------
 void tcpClientSetState(uint8_t newState)
 {
-    if ((settings.debugTcpClient || PERIODIC_DISPLAY(PD_TCP_CLIENT_STATE)) && (!inMainMenu))
+    if (settings.debugTcpClient && (!inMainMenu))
     {
         if (tcpClientState == newState)
             systemPrint("*");
@@ -292,9 +292,8 @@ void tcpClientSetState(uint8_t newState)
             systemPrintf("%s --> ", tcpClientStateName[tcpClientState]);
     }
     tcpClientState = newState;
-    if ((settings.debugTcpClient || PERIODIC_DISPLAY(PD_TCP_CLIENT_STATE)) && (!inMainMenu))
+    if (settings.debugTcpClient && (!inMainMenu))
     {
-        PERIODIC_CLEAR(PD_TCP_CLIENT_STATE);
         if (newState >= TCP_CLIENT_STATE_MAX)
         {
             systemPrintf("Unknown TCP Client state: %d\r\n", tcpClientState);
@@ -408,7 +407,9 @@ void tcpClientUpdate()
     static uint8_t connectionAttempt;
     static uint32_t connectionDelay;
     uint32_t days;
+    bool enabled;
     byte hours;
+    const char * line = "";
     uint64_t milliseconds;
     byte minutes;
     byte seconds;
@@ -416,6 +417,7 @@ void tcpClientUpdate()
 
     // Shutdown the TCP client when the mode or setting changes
     DMW_st(tcpClientSetState, tcpClientState);
+    enabled = tcpClientEnabled(&line);
     if (NEQ_RTK_MODE(tcpClientMode) || (!settings.enableTcpClient))
     {
         if (tcpClientState > TCP_CLIENT_STATE_OFF)
@@ -552,7 +554,11 @@ void tcpClientUpdate()
 
     // Periodically display the TCP client state
     if (PERIODIC_DISPLAY(PD_TCP_CLIENT_STATE))
-        tcpClientSetState(tcpClientState);
+    {
+        systemPrintf("TCP Client state: %s%s\r\n",
+                     tcpClientStateName[tcpClientState], line);
+        PERIODIC_CLEAR(PD_TCP_CLIENT_STATE);
+    }
 }
 
 //----------------------------------------
