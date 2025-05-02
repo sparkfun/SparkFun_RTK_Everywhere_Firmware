@@ -92,7 +92,7 @@ bool httpClientConnectLimitReached()
         enableHttpClient = false;
 
     // Restart the HTTP client
-    httpClientStop(limitReached || (!enableHttpClient));
+    httpClientStop(limitReached || (!httpClientEnabled(nullptr)));
 
     httpClientConnectionAttempts++;
     httpClientConnectionAttemptsTotal++;
@@ -292,19 +292,19 @@ void httpClientStop(bool shutdown)
 //----------------------------------------
 void httpClientUpdate()
 {
+    bool enabled;
+
     // Shutdown the HTTP client when the mode or setting changes
     DMW_st(httpClientSetState, httpClientState);
 
-    if (!httpClientModeNeeded)
+    enabled = httpClientEnabled(nullptr);
+    if ((enabled == false) && (httpClientState > HTTP_CLIENT_OFF))
     {
-        if (httpClientState > HTTP_CLIENT_OFF)
-        {
-            systemPrintln("HTTP Client stopping");
-            httpClientStop(true); // Was false - #StopVsRestart
-            httpClientConnectionAttempts = 0;
-            httpClientConnectionAttemptTimeout = 0;
-            httpClientSetState(HTTP_CLIENT_OFF);
-        }
+        systemPrintln("HTTP Client stopping");
+        httpClientStop(true); // Was false - #StopVsRestart
+        httpClientConnectionAttempts = 0;
+        httpClientConnectionAttemptTimeout = 0;
+        httpClientSetState(HTTP_CLIENT_OFF);
     }
 
     // Determine if the network has failed
