@@ -303,6 +303,50 @@ bool ntripServerNeedsNetwork()
 }
 
 //----------------------------------------
+// Determine if the NTRIP server may be enabled
+//----------------------------------------
+bool ntripServerEnabled(int serverIndex, const char ** line)
+{
+    bool enabled;
+
+    do
+    {
+        enabled = false;
+
+        // Verify the operating mode
+        if (NEQ_RTK_MODE(ntripServerMode))
+        {
+            if (line)
+                *line = ", Wrong mode!";
+            break;
+        }
+
+        // Verify that the parameters were specified
+        if ((settings.ntripServer_CasterHost[serverIndex][0] == 0)
+            || (settings.ntripServer_CasterPort[serverIndex] == 0)
+            || (settings.ntripServer_MountPoint[serverIndex][0] == 0))
+        {
+            if (line)
+            {
+                if (settings.ntripServer_CasterHost[0] == 0)
+                    *line = ", Caster host not specified!";
+                else if (settings.ntripServer_CasterPort == 0)
+                    *line = ", Caster port not specified!";
+                else
+                    *line = ", Mount point not specified!";
+            }
+            break;
+        }
+
+        // Verify still enabled
+        enabled = settings.enableNtripServer;
+        if (line && (enabled == false))
+            *line = ", Not enabled!";
+    } while (0);
+    return enabled;
+}
+
+//----------------------------------------
 // Print the NTRIP server state summary
 //----------------------------------------
 void ntripServerPrintStateSummary(int serverIndex)
