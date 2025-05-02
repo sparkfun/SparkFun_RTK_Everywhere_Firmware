@@ -1070,6 +1070,13 @@ void mqttClientUpdate()
         }
     }
 
+    // Determine if the network has failed
+    else if ((mqttClientState > MQTT_CLIENT_WAIT_FOR_NETWORK) && (networkHasInternet() == false))
+    {
+        // Failed to connect to the network, attempt to restart the network
+        mqttClientStop(true); // Was mqttClientRestart(); - #StopVsRestart
+    }
+
     // Enable the network and the MQTT client if requested
     switch (mqttClientState)
     {
@@ -1108,14 +1115,6 @@ void mqttClientUpdate()
 
     // Connect to the MQTT broker
     case MQTT_CLIENT_CONNECTING_2_BROKER: {
-        // Determine if the network has failed
-        if (networkHasInternet() == false)
-        {
-            // Failed to connect to the network, attempt to restart the network
-            mqttClientStop(true); // Was mqttClientRestart(); - #StopVsRestart
-            break;
-        }
-
         // Allocate the mqttSecureClient structure
         mqttSecureClient = new NetworkClientSecure();
         if (!mqttSecureClient)
@@ -1239,14 +1238,6 @@ void mqttClientUpdate()
     } // /case MQTT_CLIENT_CONNECTING_2_BROKER
 
     case MQTT_CLIENT_SERVICES_CONNECTED: {
-        // Determine if the network has failed
-        if (networkHasInternet() == false)
-        {
-            // Failed to connect to the network, attempt to restart the network
-            mqttClientStop(true); // Was mqttClientRestart(); - #StopVsRestart
-            break;
-        }
-
         // Check for new data
         mqttClient->poll();
 
