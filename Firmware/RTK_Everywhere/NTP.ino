@@ -740,7 +740,7 @@ bool configureUbloxModuleNTP()
 //----------------------------------------
 void ntpServerSetState(uint8_t newState)
 {
-    if ((settings.debugNtp || PERIODIC_DISPLAY(PD_NTP_SERVER_STATE)) && (!inMainMenu))
+    if (settings.debugNtp && (!inMainMenu))
     {
         if (ntpServerState == newState)
             systemPrint("NTP Server: *");
@@ -748,9 +748,8 @@ void ntpServerSetState(uint8_t newState)
             systemPrintf("NTP Server: %s --> ", ntpServerStateName[ntpServerState]);
     }
     ntpServerState = newState;
-    if (settings.debugNtp || PERIODIC_DISPLAY(PD_NTP_SERVER_STATE))
+    if (settings.debugNtp)
     {
-        PERIODIC_CLEAR(PD_NTP_SERVER_STATE);
         if (newState >= NTP_STATE_MAX)
         {
             systemPrintf("Unknown state: %d\r\n", newState);
@@ -956,7 +955,14 @@ void ntpServerUpdate()
 
     // Periodically display the NTP server state
     if (PERIODIC_DISPLAY(PD_NTP_SERVER_STATE))
-        ntpServerSetState(ntpServerState);
+    {
+        const char * line = "";
+        if (NEQ_RTK_MODE(ntpServerMode))
+            line = ", Wrong mode!";
+        systemPrintf("NTP state: %s%s\r\n",
+                     ntpServerStateName[ntpServerState], line);
+        PERIODIC_CLEAR(PD_NTP_SERVER_STATE);
+    }
 }
 
 //----------------------------------------
