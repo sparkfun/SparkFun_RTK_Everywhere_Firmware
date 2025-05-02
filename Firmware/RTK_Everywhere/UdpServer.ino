@@ -248,7 +248,7 @@ int32_t udpServerSendDataBroadcast(uint8_t *data, uint16_t length)
 //----------------------------------------
 void udpServerSetState(uint8_t newState)
 {
-    if ((settings.debugUdpServer || PERIODIC_DISPLAY(PD_UDP_SERVER_STATE)) && (!inMainMenu))
+    if (settings.debugUdpServer && (!inMainMenu))
     {
         if (udpServerState == newState)
             systemPrint("UDP Server: *");
@@ -256,9 +256,8 @@ void udpServerSetState(uint8_t newState)
             systemPrintf("UDP Server: %s --> ", udpServerStateName[udpServerState]);
     }
     udpServerState = newState;
-    if ((settings.debugUdpServer || PERIODIC_DISPLAY(PD_UDP_SERVER_STATE)) && (!inMainMenu))
+    if (settings.debugUdpServer && (!inMainMenu))
     {
-        PERIODIC_CLEAR(PD_UDP_SERVER_STATE);
         if (newState >= UDP_SERVER_STATE_MAX)
         {
             systemPrintf("Unknown state: %d\r\n", udpServerState);
@@ -328,10 +327,13 @@ void udpServerStop()
 //----------------------------------------
 void udpServerUpdate()
 {
+    bool enabled;
     IPAddress ipAddress;
+    const char * line = "";
 
     // Shutdown the UDP server when the mode or setting changes
     DMW_st(udpServerSetState, udpServerState);
+    enabled = udpServerEnabled(&line);
     if (NEQ_RTK_MODE(udpServerMode) || (!settings.enableUdpServer))
     {
         if (udpServerState > UDP_SERVER_STATE_OFF)
@@ -408,7 +410,11 @@ void udpServerUpdate()
 
     // Periodically display the UDP state
     if (PERIODIC_DISPLAY(PD_UDP_SERVER_STATE) && (!inMainMenu))
-        udpServerSetState(udpServerState);
+    {
+        systemPrintf("UDP Server state: %s%s\r\n",
+                     udpServerStateName[udpServerState], line);
+        PERIODIC_CLEAR(PD_UDP_SERVER_STATE);
+    }
 }
 
 //----------------------------------------
