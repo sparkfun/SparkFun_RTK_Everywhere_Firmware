@@ -1390,6 +1390,13 @@ void webServerUpdate()
 
         break;
     }
+
+    // Display an alive message
+    if (PERIODIC_DISPLAY(PD_WEB_SERVER_STATE))
+    {
+        systemPrintf("Web Server state: %s\r\n", webServerStateNames[webServerState]);
+        PERIODIC_CLEAR(PD_WEB_SERVER_STATE);
+    }
 }
 
 //----------------------------------------
