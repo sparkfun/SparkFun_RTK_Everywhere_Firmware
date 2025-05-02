@@ -531,7 +531,6 @@ void ntripServerSetState(NTRIP_SERVER_DATA *ntripServer, uint8_t newState)
         }
     }
 
-    // PERIODIC_DISPLAY(PD_NTRIP_SERVER_STATE) is handled by ntripServerUpdate
     if (settings.debugNtripServerState)
     {
         if (ntripServer->state == newState)
@@ -897,7 +896,10 @@ void ntripServerUpdate(int serverIndex)
     // Periodically display the state
     if (PERIODIC_DISPLAY(PD_NTRIP_SERVER_STATE))
     {
-        systemPrintf("NTRIP Server %d state: %s\r\n", serverIndex, ntripServerStateName[ntripServer->state]);
+        const char * line = "";
+        ntripServerEnabled(serverIndex, &line);
+        systemPrintf("NTRIP Server %d state: %s%s\r\n", serverIndex,
+                     ntripServerStateName[ntripServer->state], line);
         if (serverIndex == (NTRIP_SERVER_MAX - 1))
             PERIODIC_CLEAR(PD_NTRIP_SERVER_STATE); // Clear the periodic display only on the last server
     }
