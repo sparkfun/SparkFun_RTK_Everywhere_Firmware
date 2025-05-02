@@ -396,6 +396,11 @@ void tcpClientUpdate()
             tcpClientStop();
     }
 
+    // Determine if the network has failed
+    else if ((tcpClientState > TCP_CLIENT_STATE_WAIT_FOR_NETWORK)
+        && (networkHasInternet() == false))
+        tcpClientStop();
+
     /*
         TCP Client state machine
 
@@ -436,12 +441,8 @@ void tcpClientUpdate()
 
     // Wait until the network is connected
     case TCP_CLIENT_STATE_WAIT_FOR_NETWORK:
-        // Determine if the TCP client was turned off
-        if (NEQ_RTK_MODE(tcpClientMode) || !settings.enableTcpClient)
-            tcpClientStop();
-
         // Wait until the network is connected
-        else if (networkHasInternet())
+        if (networkHasInternet())
         {
 #ifdef COMPILE_WIFI
             // Determine if WiFi is required
@@ -476,13 +477,8 @@ void tcpClientUpdate()
 
     // Attempt the connection ot the TCP server
     case TCP_CLIENT_STATE_CLIENT_STARTING:
-        // Determine if the network has failed
-        if (networkHasInternet() == false)
-            // Failed to connect to to the network, attempt to restart the network
-            tcpClientStop();
-
         // Delay before connecting to the network
-        else if ((millis() - timer) >= connectionDelay)
+        if ((millis() - timer) >= connectionDelay)
         {
             timer = millis();
 
@@ -521,13 +517,8 @@ void tcpClientUpdate()
 
     // Wait for the TCP client to shutdown or a TCP client link failure
     case TCP_CLIENT_STATE_CONNECTED:
-        // Determine if the network has failed
-        if (networkHasInternet() == false)
-            // Failed to connect to to the network, attempt to restart the network
-            tcpClientStop();
-
         // Determine if the TCP client link is broken
-        else if ((!*tcpClient) || (!tcpClient->connected()) || tcpClientWriteError)
+        if ((!*tcpClient) || (!tcpClient->connected()) || tcpClientWriteError)
             // Stop the TCP client
             tcpClientStop();
         break;
