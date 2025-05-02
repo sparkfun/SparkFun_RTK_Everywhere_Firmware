@@ -314,7 +314,7 @@ bool ntripClientConnectLimitReached()
     limitReached = false;
 
     // Restart the NTRIP client
-    ntripClientStop(limitReached || (!settings.enableNtripClient));
+    ntripClientStop(limitReached || (!ntripClientEnabled(nullptr)));
 
     ntripClientConnectionAttempts++;
     ntripClientConnectionAttemptsTotal++;
@@ -625,17 +625,18 @@ void ntripClientStop(bool shutdown)
 //----------------------------------------
 void ntripClientUpdate()
 {
+    bool enabled;
+    const char * line = "";
+
     // Shutdown the NTRIP client when the mode or setting changes
     DMW_st(ntripClientSetState, ntripClientState);
-    if (NEQ_RTK_MODE(ntripClientMode) || (!settings.enableNtripClient))
+    enabled = ntripClientEnabled(&line);
+    if ((!enabled) && (ntripClientState > NTRIP_CLIENT_OFF))
     {
-        if (ntripClientState > NTRIP_CLIENT_OFF)
-        {
-            ntripClientStop(true); // Was false - #StopVsRestart
-            ntripClientConnectionAttempts = 0;
-            ntripClientConnectionAttemptTimeout = 0;
-            ntripClientSetState(NTRIP_CLIENT_OFF);
-        }
+        ntripClientStop(true); // Was false - #StopVsRestart
+        ntripClientConnectionAttempts = 0;
+        ntripClientConnectionAttemptTimeout = 0;
+        ntripClientSetState(NTRIP_CLIENT_OFF);
     }
 
     // Determine if the network has failed
@@ -649,7 +650,7 @@ void ntripClientUpdate()
     {
     case NTRIP_CLIENT_OFF:
         // Don't allow the client to restart if a forced shutdown occurred
-        if (ntripClientForcedShutdown == false && EQ_RTK_MODE(ntripClientMode) && settings.enableNtripClient)
+        if (enabled)
             ntripClientStart();
         break;
 
@@ -937,8 +938,6 @@ void ntripClientUpdate()
     // Periodically display the NTRIP client state
     if (PERIODIC_DISPLAY(PD_NTRIP_CLIENT_STATE))
     {
-        const char * line = "";
-        ntripClientEnabled(&line);
         systemPrintf("NTRIP Client state: %s%s\r\n",
                      ntripClientStateName[ntripClientState], line);
         PERIODIC_CLEAR(PD_NTRIP_CLIENT_STATE);
