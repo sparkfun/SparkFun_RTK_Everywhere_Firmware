@@ -278,6 +278,22 @@ bool ntripServerConnectLimitReached(int serverIndex)
     return limitReached;
 }
 
+// Return true if we are in states that require network access
+// Walk through all servers to see if we need the network
+bool ntripServerNeedsNetwork()
+{
+    NTRIP_SERVER_DATA *ntripServer;
+
+    for (int serverIndex = 0; serverIndex < NTRIP_SERVER_MAX; serverIndex++)
+    {
+        ntripServer = &ntripServerArray[serverIndex];
+        if (ntripServer->state >= NTRIP_SERVER_WAIT_FOR_NETWORK && ntripServer->state <= NTRIP_SERVER_CASTING)
+            return true;
+    }
+
+    return false;
+}
+
 // Print the NTRIP server state summary
 void ntripServerPrintStateSummary(int serverIndex)
 {
@@ -556,22 +572,6 @@ void ntripServerStop(int serverIndex, bool shutdown)
             systemPrintf("ntripServerStop server %d start requested\r\n", serverIndex);
         ntripServerSetState(ntripServer, NTRIP_SERVER_ON);
     }
-}
-
-// Return true if we are in states that require network access
-// Walk through all servers to see if we need the network
-bool ntripServerNeedsNetwork()
-{
-    NTRIP_SERVER_DATA *ntripServer;
-
-    for (int serverIndex = 0; serverIndex < NTRIP_SERVER_MAX; serverIndex++)
-    {
-        ntripServer = &ntripServerArray[serverIndex];
-        if (ntripServer->state >= NTRIP_SERVER_WAIT_FOR_NETWORK && ntripServer->state <= NTRIP_SERVER_CASTING)
-            return true;
-    }
-
-    return false;
 }
 
 // Update the NTRIP server state machine
