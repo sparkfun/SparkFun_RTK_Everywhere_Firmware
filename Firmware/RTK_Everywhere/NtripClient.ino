@@ -559,7 +559,7 @@ void ntripClientSetState(uint8_t newState)
     {
         if (newState >= NTRIP_CLIENT_STATE_MAX)
         {
-            systemPrintf("Unknown client state: %d\r\n", newState);
+            systemPrintf("Unknown NTRIP Client state: %d\r\n", newState);
             reportFatalError("Unknown NTRIP Client state");
         }
         else
@@ -937,7 +937,10 @@ void ntripClientUpdate()
     // Periodically display the NTRIP client state
     if (PERIODIC_DISPLAY(PD_NTRIP_CLIENT_STATE))
     {
-        systemPrintf("NTRIP Client state: %s\r\n", ntripClientStateName[ntripClientState]);
+        const char * line = "";
+        ntripClientEnabled(&line);
+        systemPrintf("NTRIP Client state: %s%s\r\n",
+                     ntripClientStateName[ntripClientState], line);
         PERIODIC_CLEAR(PD_NTRIP_CLIENT_STATE);
     }
 }
