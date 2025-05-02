@@ -580,6 +580,12 @@ void ntripClientUpdate()
         }
     }
 
+    // Determine if the network has failed
+    else if ((ntripClientState > NTRIP_CLIENT_WAIT_FOR_NETWORK)
+        && (networkHasInternet() == false))
+        // Failed to connect to to the network, attempt to restart the network
+        ntripClientStop(true); // Was ntripClientRestart(); - #StopVsRestart
+
     // Enable the network and the NTRIP client if requested
     switch (ntripClientState)
     {
@@ -622,14 +628,9 @@ void ntripClientUpdate()
         break;
 
     case NTRIP_CLIENT_NETWORK_CONNECTED:
-        // Determine if the network has failed
-        if (networkHasInternet() == false)
-            // Failed to connect to to the network, attempt to restart the network
-            ntripClientStop(true); // Was ntripClientRestart(); - #StopVsRestart
-
         // If GGA transmission is enabled, wait for GNSS lock before connecting to NTRIP Caster
         // If GGA transmission is not enabled, start connecting to NTRIP Caster
-        else if ((settings.ntripClient_TransmitGGA == false) || (gnss->isFixed() == true))
+        if ((settings.ntripClient_TransmitGGA == false) || (gnss->isFixed() == true))
         {
             // Delay before opening the NTRIP client connection
             if ((millis() - ntripClientTimer) >= ntripClientConnectionAttemptTimeout)
@@ -655,13 +656,8 @@ void ntripClientUpdate()
         break;
 
     case NTRIP_CLIENT_WAIT_RESPONSE:
-        // Determine if the network has failed
-        if (networkHasInternet() == false)
-            // Failed to connect to to the network, attempt to restart the network
-            ntripClientStop(true); // Was ntripClientRestart(); - #StopVsRestart
-
         // Check for no response from the caster service
-        else if (ntripClientReceiveDataAvailable() <
+        if (ntripClientReceiveDataAvailable() <
                  strlen("ICY 200 OK")) // Wait until at least a few bytes have arrived
         {
             // Check for response timeout
@@ -776,13 +772,8 @@ void ntripClientUpdate()
         break;
 
     case NTRIP_CLIENT_CONNECTED:
-        // Determine if the network has failed
-        if (networkHasInternet() == false)
-            // Failed to connect to to the network, attempt to restart the network
-            ntripClientStop(true); // Was ntripClientRestart(); - #StopVsRestart
-
         // Check for a broken connection
-        else if (!ntripClient->connected())
+        if (!ntripClient->connected())
         {
             // Broken connection, retry the NTRIP client connection
             systemPrintln("NTRIP Client connection to caster was broken");
