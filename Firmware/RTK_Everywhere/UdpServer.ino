@@ -346,12 +346,8 @@ void udpServerUpdate()
 
     // Wait until the network is connected
     case UDP_SERVER_STATE_WAIT_FOR_NETWORK:
-        // Determine if the UDP server was turned off
-        if (NEQ_RTK_MODE(udpServerMode) || !settings.enableUdpServer)
-            udpServerStop();
-
         // Wait until the network is connected
-        else if (networkHasInternet() || WIFI_SOFT_AP_RUNNING())
+        if (networkHasInternet() || WIFI_SOFT_AP_RUNNING())
         {
             // Delay before starting the UDP server
             if ((millis() - udpServerTimer) >= (1 * 1000))
