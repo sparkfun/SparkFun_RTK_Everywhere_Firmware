@@ -247,7 +247,7 @@ bool ntripServerConnectLimitReached(int serverIndex)
     limitReached = false;
 
     // Shutdown the NTRIP server
-    ntripServerStop(serverIndex, limitReached || (!settings.enableNtripServer));
+    ntripServerStop(serverIndex, limitReached || (!ntripServerEnabled(serverIndex, nullptr)));
 
     ntripServer->connectionAttempts++;
     ntripServer->connectionAttemptsTotal++;
@@ -648,20 +648,20 @@ void ntripServerStop(int serverIndex, bool shutdown)
 //----------------------------------------
 void ntripServerUpdate(int serverIndex)
 {
+    bool enabled;
+
     // Get the NTRIP data structure
     NTRIP_SERVER_DATA *ntripServer = &ntripServerArray[serverIndex];
 
     // Shutdown the NTRIP server when the mode or setting changes
     DMW_ds(ntripServerSetState, ntripServer);
-    if (NEQ_RTK_MODE(ntripServerMode) || (!settings.enableNtripServer))
+    enabled = ntripServerEnabled(serverIndex, nullptr);
+    if (!enabled && (ntripServer->state > NTRIP_SERVER_OFF))
     {
-        if (ntripServer->state > NTRIP_SERVER_OFF)
-        {
-            ntripServerStop(serverIndex, true); // Was false - #StopVsRestart
-            ntripServer->connectionAttempts = 0;
-            ntripServer->connectionAttemptTimeout = 0;
-            ntripServerSetState(ntripServer, NTRIP_SERVER_OFF);
-        }
+        ntripServerStop(serverIndex, true); // Was false - #StopVsRestart
+        ntripServer->connectionAttempts = 0;
+        ntripServer->connectionAttemptTimeout = 0;
+        ntripServerSetState(ntripServer, NTRIP_SERVER_OFF);
     }
 
     // Determine if the network has failed
