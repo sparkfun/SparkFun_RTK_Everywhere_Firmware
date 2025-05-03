@@ -1346,8 +1346,8 @@ void loop()
     DMW_c("tiltUpdate");
     tiltUpdate(); // Check if new lat/lon/alt have been calculated
 
-    DMW_c("updateEspnow");
-    updateEspnow(); // Check if we need to finish sending any RTCM over ESP-NOW radio
+    DMW_c("espNowUpdate");
+    espNowUpdate(); // Check if we need to finish sending any RTCM over ESP-NOW radio
 
     DMW_c("updateLora");
     updateLora(); // Check if we need to finish sending any RTCM over LoRa radio

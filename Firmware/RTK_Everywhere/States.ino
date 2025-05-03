@@ -570,7 +570,7 @@ void stateUpdate()
             paintEspNowPairing();
 
             // Start ESP-Now if needed, put ESP-Now into broadcast state
-            espnowBeginPairing();
+            espNowBeginPairing();
 
             changeState(STATE_ESPNOW_PAIRING);
 #else  // COMPILE_ESPNOW
@@ -580,7 +580,7 @@ void stateUpdate()
         break;
 
         case (STATE_ESPNOW_PAIRING): {
-            if (espnowIsPaired() == true)
+            if (espNowIsPaired() == true)
             {
                 paintEspNowPaired();
 
@@ -590,7 +590,7 @@ void stateUpdate()
             else
             {
                 uint8_t broadcastMac[6] = {0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF};
-                espnowSendPairMessage(broadcastMac); // Send unit's MAC address over broadcast, no ack, no encryption
+                espNowSendPairMessage(broadcastMac); // Send unit's MAC address over broadcast, no ack, no encryption
             }
         }
         break;

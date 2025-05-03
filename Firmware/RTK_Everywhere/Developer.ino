@@ -179,18 +179,18 @@ void webServerVerifyTables() {}
 
 #ifndef COMPILE_ESPNOW
 
-bool espnowGetState()                   {return ESPNOW_OFF;}
-bool espnowIsPaired()                   {return false;}
-void espnowProcessRTCM(byte incoming)   {}
-esp_err_t espnowRemovePeer(uint8_t *peerMac)        {return ESP_OK;}
-esp_err_t espnowSendPairMessage(uint8_t *sendToMac) {return ESP_OK;}
+bool espNowGetState()                   {return ESPNOW_OFF;}
+bool espNowIsPaired()                   {return false;}
+void espNowProcessRTCM(byte incoming)   {}
+esp_err_t espNowRemovePeer(uint8_t *peerMac)        {return ESP_OK;}
+esp_err_t espNowSendPairMessage(uint8_t *sendToMac) {return ESP_OK;}
 bool espnowSetChannel(uint8_t channelNumber)        {return false;}
 bool espNowStart()                      {return false;}
 #define ESPNOW_START()                  false
 void espnowStaticPairing()              {}
 bool espNowStop()                       {return true;}
 #define ESPNOW_STOP()                   true
-void updateEspnow()                     {}
+void espNowUpdate()                     {}
 
 #endif   // COMPILE_ESPNOW
 

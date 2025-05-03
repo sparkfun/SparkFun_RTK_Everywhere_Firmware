@@ -1277,7 +1277,7 @@ SettingValueResponse updateSettingWithValue(bool inCommands, const char *setting
     {
         // Forget all ESP-Now Peers
         for (int x = 0; x < settings.espnowPeerCount; x++)
-            espnowRemovePeer(settings.espnowPeers[x]);
+            espNowRemovePeer(settings.espnowPeers[x]);
         settings.espnowPeerCount = 0;
         knownSetting = true;
     }

@@ -633,10 +633,10 @@ void menuRadio()
             byte bContinue = getUserInputCharacterNumber();
             if (bContinue == 'y')
             {
-                if (espnowGetState() > ESPNOW_OFF)
+                if (espNowGetState() > ESPNOW_OFF)
                 {
                     for (int x = 0; x < settings.espnowPeerCount; x++)
-                        espnowRemovePeer(settings.espnowPeers[x]);
+                        espNowRemovePeer(settings.espnowPeers[x]);
                 }
                 settings.espnowPeerCount = 0;
                 systemPrintln("Radios forgotten");
@@ -657,7 +657,7 @@ void menuRadio()
         }
         else if (settings.enableEspNow == true && incoming == 5 && settings.debugEspNow == true)
         {
-            if (espnowGetState() == ESPNOW_OFF)
+            if (espNowGetState() == ESPNOW_OFF)
                 ESPNOW_START();
 
             uint8_t peer1[] = {0xB8, 0xD6, 0x1A, 0x0D, 0x8F, 0x9C}; // Random MAC
@@ -676,12 +676,12 @@ void menuRadio()
                 recordSystemSettings();
             }
 
-            espnowSetState(ESPNOW_PAIRED);
+            espNowSetState(ESPNOW_PAIRED);
 #endif
         }
         else if (settings.enableEspNow == true && incoming == 6 && settings.debugEspNow == true)
         {
-            if (espnowGetState() == ESPNOW_OFF)
+            if (espNowGetState() == ESPNOW_OFF)
                 ESPNOW_START();
 
             uint8_t espnowData[] =
@@ -694,7 +694,7 @@ void menuRadio()
         }
         else if (settings.enableEspNow == true && incoming == 7 && settings.debugEspNow == true)
         {
-            if (espnowGetState() == ESPNOW_OFF)
+            if (espNowGetState() == ESPNOW_OFF)
                 ESPNOW_START();
 
             uint8_t espnowData[] =
