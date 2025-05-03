@@ -431,7 +431,7 @@ void tcpClientUpdate()
         {
 #ifdef COMPILE_WIFI
             // Determine if WiFi is required
-            if ((!strlen(settings.tcpClientHost)) && (!networkInterfaceHasInternet(NETWORK_WIFI)))
+            if ((!strlen(settings.tcpClientHost)) && (!networkInterfaceHasInternet(NETWORK_WIFI_STATION)))
             {
                 // Wrong network type, WiFi is required but another network is being used
                 if ((millis() - timer) >= (15 * 1000))

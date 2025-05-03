@@ -441,7 +441,7 @@ void menuWiFi()
 {
     while (1)
     {
-        networkDisplayInterface(NETWORK_WIFI);
+        networkDisplayInterface(NETWORK_WIFI_STATION);
 
         systemPrintln();
         systemPrintln("Menu: WiFi Networks");
@@ -515,10 +515,10 @@ void menuWiFi()
 // Display the WiFi state
 void wifiDisplayState()
 {
-    systemPrintf("WiFi: %s\r\n", networkInterfaceHasInternet(NETWORK_WIFI) ? "Online" : "Offline");
+    systemPrintf("WiFi: %s\r\n", networkInterfaceHasInternet(NETWORK_WIFI_STATION) ? "Online" : "Offline");
     systemPrintf("    MAC Address: %02X:%02X:%02X:%02X:%02X:%02X\r\n", wifiMACAddress[0], wifiMACAddress[1],
                  wifiMACAddress[2], wifiMACAddress[3], wifiMACAddress[4], wifiMACAddress[5]);
-    if (networkInterfaceHasInternet(NETWORK_WIFI))
+    if (networkInterfaceHasInternet(NETWORK_WIFI_STATION))
     {
         // Get the DNS addresses
         IPAddress dns1 = WiFi.STA.dnsIP(0);
@@ -559,13 +559,13 @@ void wifiEvent(arduino_event_id_t event, arduino_event_info_t info)
     if (WiFi.getMode() == WIFI_MODE_STA)
     {
         // Take the network offline if necessary
-        if (networkInterfaceHasInternet(NETWORK_WIFI) && (event != ARDUINO_EVENT_WIFI_STA_GOT_IP) &&
+        if (networkInterfaceHasInternet(NETWORK_WIFI_STATION) && (event != ARDUINO_EVENT_WIFI_STA_GOT_IP) &&
             (event != ARDUINO_EVENT_WIFI_STA_GOT_IP6))
         {
             if (settings.debugWifiState)
                 systemPrintf("Stopping WiFi because of event # %d\r\n", event);
 
-            networkStop(NETWORK_WIFI, settings.debugNetworkLayer); // Stop WiFi to allow it to restart
+            networkStop(NETWORK_WIFI_STATION, settings.debugNetworkLayer); // Stop WiFi to allow it to restart
         }
     }
 
@@ -641,7 +641,7 @@ void wifiEvent(arduino_event_id_t event, arduino_event_info_t info)
             systemPrint("WiFi STA Got IPv4: ");
             systemPrintln(ipAddress);
         }
-        networkInterfaceInternetConnectionAvailable(NETWORK_WIFI);
+        networkInterfaceInternetConnectionAvailable(NETWORK_WIFI_STATION);
         break;
 
     case ARDUINO_EVENT_WIFI_STA_GOT_IP6:
@@ -651,7 +651,7 @@ void wifiEvent(arduino_event_id_t event, arduino_event_info_t info)
             systemPrint("WiFi STA Got IPv6: ");
             systemPrintln(ipAddress);
         }
-        networkInterfaceInternetConnectionAvailable(NETWORK_WIFI);
+        networkInterfaceInternetConnectionAvailable(NETWORK_WIFI_STATION);
         break;
 
     case ARDUINO_EVENT_WIFI_STA_LOST_IP:
@@ -836,7 +836,7 @@ void wifiStop()
     }
 
     // Take the network offline
-    networkInterfaceInternetConnectionLost(NETWORK_WIFI);
+    networkInterfaceInternetConnectionLost(NETWORK_WIFI_STATION);
 
     if (wifiMulti != nullptr)
         wifiMulti = nullptr;
@@ -852,7 +852,7 @@ void wifiStop()
 void wifiStop(NetIndex_t index, uintptr_t parameter, bool debug)
 {
     wifiStop();
-    networkSequenceNextEntry(NETWORK_WIFI, settings.debugNetworkLayer);
+    networkSequenceNextEntry(NETWORK_WIFI_STATION, settings.debugNetworkLayer);
 }
 
 //*********************************************************************
@@ -1641,11 +1641,11 @@ void RTK_WIFI::stationEventHandler(arduino_event_id_t event, arduino_event_info_
     int type;
 
     // Take the network offline if necessary
-    if (networkInterfaceHasInternet(NETWORK_WIFI) && (event != ARDUINO_EVENT_WIFI_STA_GOT_IP) &&
+    if (networkInterfaceHasInternet(NETWORK_WIFI_STATION) && (event != ARDUINO_EVENT_WIFI_STA_GOT_IP) &&
         (event != ARDUINO_EVENT_WIFI_STA_GOT_IP6))
     {
         // Stop WiFi to allow it to restart
-        networkInterfaceEventStop(NETWORK_WIFI);
+        networkInterfaceEventStop(NETWORK_WIFI_STATION);
     }
 
     //------------------------------
@@ -1744,7 +1744,7 @@ void RTK_WIFI::stationEventHandler(arduino_event_id_t event, arduino_event_info_
                 systemPrintf("Calling networkMulticastDNSStop for WiFi station from %s event\r\n",
                              arduinoEventName[event]);
             _started = _started & ~WIFI_STA_START_MDNS;
-            networkMulticastDNSStop(NETWORK_WIFI);
+            networkMulticastDNSStop(NETWORK_WIFI_STATION);
         }
         _staIpAddress = IPAddress((uint32_t)0);
         _staIpType = 0;
@@ -1775,7 +1775,7 @@ void RTK_WIFI::stationEventHandler(arduino_event_id_t event, arduino_event_info_
         if (settings.debugWifiState)
             systemPrintf("WiFi: Got IPv%c address %s\r\n",
                          type, _staIpAddress.toString().c_str());
-        networkInterfaceInternetConnectionAvailable(NETWORK_WIFI);
+        networkInterfaceInternetConnectionAvailable(NETWORK_WIFI_STATION);
         break;
     }   // End of switch
 }
@@ -2305,7 +2305,7 @@ bool RTK_WIFI::stopStart(WIFI_ACTION_t stopping, WIFI_ACTION_t starting)
                 _started = _started & ~WIFI_STA_START_MDNS;
                 if (settings.debugWifiState && _verbose)
                     systemPrintf("Calling networkMulticastDNSStop for WiFi station\r\n");
-                networkMulticastDNSStop(NETWORK_WIFI);
+                networkMulticastDNSStop(NETWORK_WIFI_STATION);
             }
         }
 
@@ -2386,7 +2386,7 @@ bool RTK_WIFI::stopStart(WIFI_ACTION_t stopping, WIFI_ACTION_t starting)
             _started = _started & ~WIFI_AP_START_MDNS;
             if (settings.debugWifiState && _verbose)
                 systemPrintf("Calling networkMulticastDNSStop for soft AP\r\n");
-            networkMulticastDNSStop(NETWORK_WIFI);
+            networkMulticastDNSStop(NETWORK_WIFI_STATION);
         }
 
         // Handle the soft AP host name
@@ -2584,7 +2584,7 @@ bool RTK_WIFI::stopStart(WIFI_ACTION_t stopping, WIFI_ACTION_t starting)
         {
             if (settings.debugWifiState)
                 systemPrintf("Starting mDNS on soft AP\r\n");
-            if (!networkMulticastDNSStart(NETWORK_WIFI))
+            if (!networkMulticastDNSStart(NETWORK_WIFI_STATION))
             {
                 systemPrintf("ERROR: Failed to start mDNS for soft AP!\r\n");
                 break;
@@ -2699,7 +2699,7 @@ bool RTK_WIFI::stopStart(WIFI_ACTION_t stopping, WIFI_ACTION_t starting)
         {
             if (settings.debugWifiState)
                 systemPrintf("Starting mDNS on WiFi station\r\n");
-            if (!networkMulticastDNSStart(NETWORK_WIFI))
+            if (!networkMulticastDNSStart(NETWORK_WIFI_STATION))
                 systemPrintf("ERROR: Failed to start mDNS for WiFi station!\r\n");
             else
             {
@@ -3281,7 +3281,7 @@ void wifiThrottledStart(NetIndex_t index, uintptr_t parameter, bool debug)
     // Start WiFi
     if (wifiStart())
     {
-        networkSequenceNextEntry(NETWORK_WIFI, settings.debugNetworkLayer);
+        networkSequenceNextEntry(NETWORK_WIFI_STATION, settings.debugNetworkLayer);
         wifiFailedConnectionAttempts = 0;
     }
     else

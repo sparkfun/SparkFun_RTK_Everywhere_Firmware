@@ -1800,7 +1800,7 @@ enum NetworkTypes
 {
     NETWORK_NONE = -1,  // The values below must start at zero and be sequential
     NETWORK_ETHERNET = 0,
-    NETWORK_WIFI = 1,
+    NETWORK_WIFI_STATION = 1,
     NETWORK_CELLULAR = 2,
     // Add new networks here
     NETWORK_MAX

@@ -550,7 +550,7 @@ const uint8_t *networkGetMacAddress()
         return btMACAddress;
 #endif // COMPILE_BT
 #ifdef COMPILE_WIFI
-    if (networkInterfaceHasInternet(NETWORK_WIFI))
+    if (networkInterfaceHasInternet(NETWORK_WIFI_STATION))
         return wifiMACAddress;
 #endif // COMPILE_WIFI
 #ifdef COMPILE_ETHERNET
@@ -1369,14 +1369,14 @@ void networkUpdate()
     {
         restartWiFi = false;
 
-        if (networkInterfaceHasInternet(NETWORK_WIFI))
+        if (networkInterfaceHasInternet(NETWORK_WIFI_STATION))
         {
             if (settings.debugNetworkLayer)
                 systemPrintln("WiFi settings changed, restarting WiFi");
 
             wifiResetThrottleTimeout();
             WIFI_STOP();
-            networkStop(NETWORK_WIFI, settings.debugNetworkLayer);
+            networkStop(NETWORK_WIFI_STATION, settings.debugNetworkLayer);
         }
     }
 
@@ -1456,7 +1456,7 @@ void networkUpdate()
         if ((consumerTypes & (1 << NETIF_WIFI_AP)) ||
             ((consumerTypes & (1 << NETIF_WIFI_STA) && networkHasInternet() == false)))
         {
-            networkStart(NETWORK_WIFI, settings.debugNetworkLayer);
+            networkStart(NETWORK_WIFI_STATION, settings.debugNetworkLayer);
         }
 
         if ((networkHasInternet() == false) && (consumerTypes & (1 << NETIF_CELLULAR)))
@@ -1509,7 +1509,7 @@ void networkUpdate()
             else if (networkInterfaceTable[index].netif->started())
                 systemPrintf("%s: Started\r\n", networkInterfaceTable[index].name);
 
-            else if (index == NETWORK_WIFI && (WiFi.getMode() == WIFI_AP || WiFi.getMode() == WIFI_AP_STA))
+            else if (index == NETWORK_WIFI_STATION && (WiFi.getMode() == WIFI_AP || WiFi.getMode() == WIFI_AP_STA))
             {
                 // NETIF doesn't capture the IP address of a soft AP
                 ipAddress = WiFi.softAPIP();
