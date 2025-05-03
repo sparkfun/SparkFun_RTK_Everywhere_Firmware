@@ -727,60 +727,16 @@ void networkDelay(NetIndex_t index, uintptr_t parameter, bool debug)
 }
 
 //----------------------------------------
-// Display the Ethernet data
+// Display the network data
 //----------------------------------------
 void networkDisplayInterface(NetIndex_t index)
 {
     const NETWORK_TABLE_ENTRY *entry;
-    bool hasIP;
-    const char *hostName;
-    NetworkInterface *netif;
-    const char *status;
 
     // Verify the index into the networkInterfaceTable
     networkValidateIndex(index);
     entry = &networkInterfaceTable[index];
-    netif = entry->netif;
-
-    hasIP = false;
-    status = "Off";
-    if (netif->started())
-    {
-        status = "Disconnected";
-        if (netif->linkUp())
-        {
-            status = "Link Up - No IP address";
-            hasIP = netif->hasIP();
-            if (hasIP)
-                status = "Online";
-        }
-    }
-    systemPrintf("%s: %s%s\r\n", entry->name, status, netif->isDefault() ? ", default" : "");
-    hostName = netif->getHostname();
-    if (hostName)
-        systemPrintf("    Host Name: %s\r\n", hostName);
-    systemPrintf("    MAC Address: %s\r\n", netif->macAddress().c_str());
-    if (hasIP)
-    {
-        if (netif->hasGlobalIPv6())
-            systemPrintf("    Global IPv6 Address: %s\r\n", netif->globalIPv6().toString().c_str());
-        if (netif->hasLinkLocalIPv6())
-            systemPrintf("    Link Local IPv6 Address: %s\r\n", netif->linkLocalIPv6().toString().c_str());
-        systemPrintf("    IPv4 Address: %s (%s)\r\n", netif->localIP().toString().c_str(),
-                     settings.ethernetDHCP ? "DHCP" : "Static");
-        systemPrintf("    Subnet Mask: %s\r\n", netif->subnetMask().toString().c_str());
-        systemPrintf("    Gateway: %s\r\n", netif->gatewayIP().toString().c_str());
-        IPAddress previousIpAddress = IPAddress((uint32_t)0);
-        for (int dnsAddress = 0; dnsAddress < 4; dnsAddress++)
-        {
-            IPAddress ipAddress = netif->dnsIP(dnsAddress);
-            if ((!ipAddress) || (ipAddress == previousIpAddress))
-                break;
-            previousIpAddress = ipAddress;
-            systemPrintf("    DNS %d: %s\r\n", dnsAddress + 1, ipAddress.toString().c_str());
-        }
-        systemPrintf("    Broadcast: %s\r\n", netif->broadcastIP().toString().c_str());
-    }
+    networkDisplayNetworkData(entry->name, entry->netif);
 }
 
 //----------------------------------------
