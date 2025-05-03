@@ -459,6 +459,12 @@ void menuWiFi()
 }
 
 //*********************************************************************
+// Display the soft AP details
+void wifiDisplayNetworkData()
+{
+}
+
+//*********************************************************************
 // Display the soft AP consumers
 void wifiDisplaySoftApStatus()
 {

@@ -825,10 +825,16 @@ void networkDisplayStatus()
     for (NetPriority_t priority = 0; priority < NETWORK_OFFLINE; priority++)
         networkPrintStatus(networkIndexTable[priority]);
 
+    // Display the soft AP consumers
+    wifiDisplaySoftApStatus();
+
     // Display the interfaces details
     for (NetIndex_t index = 0; index < NETWORK_OFFLINE; index++)
         if (networkIsPresent(index))
             networkDisplayInterface(index);
+
+    // Display the soft AP details
+    wifiDisplayNetworkData();
 }
 
 //----------------------------------------
@@ -1161,6 +1167,10 @@ void networkInterfaceInternetConnectionAvailable(NetIndex_t index)
                 networkSequenceStop(index, settings.debugNetworkLayer, __FILE__, __LINE__);
             }
         }
+
+        // Display the interface status
+        if (settings.debugNetworkLayer)
+            networkDisplayStatus();
     }
 
     // Only start mDNS on the highest priority network
@@ -1194,7 +1204,10 @@ void networkInterfaceInternetConnectionLost(NetIndex_t index)
 
     // Display offline message
     if (settings.debugNetworkLayer)
+    {
+        networkDisplayStatus();
         systemPrintf("--------------- %s Offline ---------------\r\n", networkGetNameByIndex(index));
+    }
 
     // Did the highest priority network just fail?
     if (networkPriorityTable[index] == networkPriority)
@@ -1232,8 +1245,11 @@ void networkInterfaceInternetConnectionLost(NetIndex_t index)
 
         // Display the transition
         if (settings.debugNetworkLayer)
+        {
             systemPrintf("Default Network Interface: %s --> %s\r\n", networkGetNameByPriority(previousPriority),
                          networkGetNameByPriority(priority));
+            networkDisplayStatus();
+        }
     }
 }
 
@@ -1586,6 +1602,10 @@ void networkSequenceStart(NetIndex_t index,
             systemPrintf("--------------- %s Start Sequence Starting ---------------\r\n",
                          networkGetNameByIndex(index));
             systemPrintf("%s: Stopped --> Starting\r\n", networkGetNameByIndex(index));
+
+            // Display the consumers
+            networkDisplayMode();
+            networkConsumerDisplay();
         }
 
         // Display the description
@@ -1668,6 +1688,10 @@ void networkSequenceStop(NetIndex_t index,
             systemPrintf("%s sequencer idle\r\n", networkGetNameByIndex(index));
             systemPrintf("--------------- %s Stop Sequence Starting ---------------\r\n", networkGetNameByIndex(index));
             systemPrintf("%s: Started --> Stopping\r\n", networkGetNameByIndex(index));
+
+            // Display the consumers
+            networkDisplayMode();
+            networkConsumerDisplay();
         }
 
         // Display the description
@@ -1745,6 +1769,10 @@ void networkSequenceStopPolling(NetIndex_t index,
         systemPrintf("--------------- %s %s Sequence Stopping ---------------\r\n", networkGetNameByIndex(index),
                      sequenceName);
         systemPrintf("%s sequencer idle\r\n", networkGetNameByIndex(index));
+
+        // Display the consumers
+        networkDisplayMode();
+        networkConsumerDisplay();
     }
 
     // Clear the status bits

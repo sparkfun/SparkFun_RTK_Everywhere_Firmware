@@ -213,6 +213,7 @@ void espNowUpdate()                     {}
 void menuWiFi() {systemPrintln("**WiFi not compiled**");}
 bool wifiApIsRunning() {return false;}
 bool wifiConnect(bool startWiFiStation, bool startWiFiAP, unsigned long timeout) {return false;}
+void wifiDisplayNetworkData()                   {}
 void wifiDisplaySoftApStatus()                  {}
 uint32_t wifiGetStartTimeout() {return 0;}
 #define WIFI_IS_RUNNING() 0
