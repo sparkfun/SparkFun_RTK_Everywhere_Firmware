@@ -207,6 +207,14 @@ void ethernetEvent(arduino_event_id_t event, arduino_event_info_t info)
 }
 
 //----------------------------------------
+// Determine if the Ethernet is up
+//----------------------------------------
+bool ethernetLinkUp()
+{
+    return ETH.linkUp();
+}
+
+//----------------------------------------
 // Convert the Ethernet event ID into an ASCII string
 //----------------------------------------
 const char *ethernetGetEventName(arduino_event_id_t event)
