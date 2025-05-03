@@ -2126,6 +2126,21 @@ void networkUpdate()
     uint8_t priority;
     NETWORK_POLL_SEQUENCE *sequence;
 
+    // Walk the list of network priorities in descending order
+    for (priority = 0; priority < NETWORK_OFFLINE; priority++)
+    {
+        // Execute any active polling routine
+        index = networkIndexTable[priority];
+        sequence = networkSequence[index];
+        if (sequence)
+        {
+            pollRoutine = sequence->routine;
+            if (pollRoutine)
+                // Execute the poll routine
+                pollRoutine(index, sequence->parameter, settings.debugNetworkLayer);
+        }
+    }
+
     // Update the network services
     DMW_c("mqttClientUpdate");
     mqttClientUpdate(); // Process any Point Perfect MQTT messages
@@ -2260,21 +2275,6 @@ void networkUpdate()
                     networkStart(NETWORK_CELLULAR, settings.debugNetworkLayer, __FILE__, __LINE__);
                 }
             }
-        }
-    }
-
-    // Walk the list of network priorities in descending order
-    for (priority = 0; priority < NETWORK_OFFLINE; priority++)
-    {
-        // Execute any active polling routine
-        index = networkIndexTable[priority];
-        sequence = networkSequence[index];
-        if (sequence)
-        {
-            pollRoutine = sequence->routine;
-            if (pollRoutine)
-                // Execute the poll routine
-                pollRoutine(index, sequence->parameter, settings.debugNetworkLayer);
         }
     }
 
