@@ -105,6 +105,18 @@ class GNSS
     //   Returns true if successfully configured and false upon failure
     virtual bool configureRover();
 
+    // Responds with the messages supported on this platform
+    // Inputs:
+    //   returnText: String to receive message names
+    // Returns message names in the returnText string
+    virtual void createMessageList(String &returnText);
+
+    // Responds with the RTCM/Base messages supported on this platform
+    // Inputs:
+    //   returnText: String to receive message names
+    // Returns message names in the returnText string
+    virtual void createMessageListBase(String &returnText);
+
     virtual void debuggingDisable();
 
     virtual void debuggingEnable();

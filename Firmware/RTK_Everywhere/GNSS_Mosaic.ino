@@ -693,6 +693,56 @@ bool GNSS_MOSAIC::configureRover()
 }
 
 //----------------------------------------
+// Responds with the messages supported on this platform
+// Inputs:
+//   returnText: String to receive message names
+// Returns message names in the returnText string
+//----------------------------------------
+void GNSS_MOSAIC::createMessageList(String &returnText)
+{
+    for (int messageNumber = 0; messageNumber < MAX_MOSAIC_NMEA_MSG; messageNumber++)
+    {
+        returnText += "messageStreamNMEA_" + String(mosaicMessagesNMEA[messageNumber].msgTextName) + "," +
+                      String(settings.mosaicMessageStreamNMEA[messageNumber]) + ",";
+    }
+    for (int stream = 0; stream < MOSAIC_NUM_NMEA_STREAMS; stream++)
+    {
+        returnText +=
+            "streamIntervalNMEA_" + String(stream) + "," + String(settings.mosaicStreamIntervalsNMEA[stream]) + ",";
+    }
+    for (int messageNumber = 0; messageNumber < MAX_MOSAIC_RTCM_V3_INTERVAL_GROUPS; messageNumber++)
+    {
+        returnText += "messageIntervalRTCMRover_" + String(mosaicRTCMv3MsgIntervalGroups[messageNumber].name) +
+                      "," + String(settings.mosaicMessageIntervalsRTCMv3Rover[messageNumber]) + ",";
+    }
+    for (int messageNumber = 0; messageNumber < MAX_MOSAIC_RTCM_V3_MSG; messageNumber++)
+    {
+        returnText += "messageEnabledRTCMRover_" + String(mosaicMessagesRTCMv3[messageNumber].name) + "," +
+                      (settings.mosaicMessageEnabledRTCMv3Rover[messageNumber] ? "true" : "false") + ",";
+    }
+}
+
+//----------------------------------------
+// Responds with the RTCM/Base messages supported on this platform
+// Inputs:
+//   returnText: String to receive message names
+// Returns message names in the returnText string
+//----------------------------------------
+void GNSS_MOSAIC::createMessageListBase(String &returnText)
+{
+    for (int messageNumber = 0; messageNumber < MAX_MOSAIC_RTCM_V3_INTERVAL_GROUPS; messageNumber++)
+    {
+        returnText += "messageIntervalRTCMBase_" + String(mosaicRTCMv3MsgIntervalGroups[messageNumber].name) + "," +
+                      String(settings.mosaicMessageIntervalsRTCMv3Base[messageNumber]) + ",";
+    }
+    for (int messageNumber = 0; messageNumber < MAX_MOSAIC_RTCM_V3_MSG; messageNumber++)
+    {
+        returnText += "messageEnabledRTCMBase_" + String(mosaicMessagesRTCMv3[messageNumber].name) + "," +
+                      (settings.mosaicMessageEnabledRTCMv3Base[messageNumber] ? "true" : "false") + ",";
+    }
+}
+
+//----------------------------------------
 void GNSS_MOSAIC::debuggingDisable()
 {
     // TODO

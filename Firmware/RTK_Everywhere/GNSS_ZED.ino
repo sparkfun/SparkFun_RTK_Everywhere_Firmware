@@ -859,6 +859,41 @@ bool GNSS_ZED::configureRover()
 }
 
 //----------------------------------------
+// Responds with the messages supported on this platform
+// Inputs:
+//   returnText: String to receive message names
+// Returns message names in the returnText string
+//----------------------------------------
+void GNSS_ZED::createMessageList(String &returnText)
+{
+    for (int messageNumber = 0; messageNumber < MAX_UBX_MSG; messageNumber++)
+    {
+        if (messageSupported(messageNumber) == true)
+            returnText += "ubxMessageRate_" + String(ubxMessages[messageNumber].msgTextName) + "," +
+                          String(settings.ubxMessageRates[messageNumber]) + ",";
+    }
+}
+
+//----------------------------------------
+// Responds with the RTCM/Base messages supported on this platform
+// Inputs:
+//   returnText: String to receive message names
+// Returns message names in the returnText string
+//----------------------------------------
+void GNSS_ZED::createMessageListBase(String &returnText)
+{
+    GNSS_ZED *zed = (GNSS_ZED *)gnss;
+    int firstRTCMRecord = zed->getMessageNumberByName("RTCM_1005");
+
+    for (int messageNumber = 0; messageNumber < MAX_UBX_MSG_RTCM; messageNumber++)
+    {
+        if (messageSupported(firstRTCMRecord + messageNumber) == true)
+            returnText += "ubxMessageRateBase_" + String(ubxMessages[messageNumber + firstRTCMRecord].msgTextName) +
+                          "," + String(settings.ubxMessageRatesBase[messageNumber]) + ","; // UBX_RTCM_1074Base,4,
+    }
+}
+
+//----------------------------------------
 void GNSS_ZED::debuggingDisable()
 {
     if (online.gnss)

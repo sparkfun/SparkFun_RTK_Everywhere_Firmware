@@ -467,6 +467,26 @@ bool GNSS_LG290P::configureBase()
 }
 
 //----------------------------------------
+// Responds with the messages supported on this platform
+// Inputs:
+//   returnText: String to receive message names
+// Returns message names in the returnText string
+//----------------------------------------
+void GNSS_LG290P::createMessageList(String &returnText)
+{
+}
+
+//----------------------------------------
+// Responds with the RTCM/Base messages supported on this platform
+// Inputs:
+//   returnText: String to receive message names
+// Returns message names in the returnText string
+//----------------------------------------
+void GNSS_LG290P::createMessageListBase(String &returnText)
+{
+}
+
+//----------------------------------------
 // Return the survey-in mode from PQTMCFGSVIN
 // 0 - Disabled, 1 - Survey-in mode, 2 - Fixed mode
 //----------------------------------------
