@@ -421,16 +421,6 @@ void ntripClientForceShutdown()
 }
 
 //----------------------------------------
-// Return true if we are in states that require network access
-//----------------------------------------
-bool ntripClientNeedsNetwork()
-{
-    if (ntripClientState >= NTRIP_CLIENT_WAIT_FOR_NETWORK && ntripClientState <= NTRIP_CLIENT_CONNECTED)
-        return true;
-    return false;
-}
-
-//----------------------------------------
 // Print the NTRIP client state summary
 //----------------------------------------
 void ntripClientPrintStateSummary()
@@ -580,6 +570,8 @@ void ntripClientStart()
     // Start the NTRIP client
     systemPrintln("NTRIP Client start");
     ntripClientStop(false);
+    if (ntripClientEnabled(nullptr))
+        networkConsumerAdd(NETCONSUMER_NTRIP_CLIENT, NETWORK_ANY, __FILE__, __LINE__);
 }
 
 //----------------------------------------
@@ -610,8 +602,10 @@ void ntripClientStop(bool shutdown)
     // Determine the next NTRIP client state
     online.ntripClient = false;
     netIncomingRTCM = false;
+    networkConsumerOffline(NETCONSUMER_NTRIP_CLIENT);
     if (shutdown)
     {
+        networkConsumerRemove(NETCONSUMER_NTRIP_CLIENT, NETWORK_ANY, __FILE__, __LINE__);
         ntripClientSetState(NTRIP_CLIENT_OFF);
         ntripClientConnectionAttempts = 0;
         ntripClientConnectionAttemptTimeout = 0;
@@ -634,7 +628,7 @@ void ntripClientUpdate()
     // Shutdown the NTRIP client when the mode or setting changes
     DMW_st(ntripClientSetState, ntripClientState);
     enabled = ntripClientEnabled(&line);
-    connected = networkHasInternet();
+    connected = networkConsumerIsConnected(NETCONSUMER_NTRIP_CLIENT);
     if ((!enabled) && (ntripClientState > NTRIP_CLIENT_OFF))
         ntripClientStop(true);
 
@@ -674,6 +668,16 @@ void ntripClientUpdate()
             else
             {
                 reportHeapNow(settings.debugNtripClientState);
+
+                // Connect immediately when the the network has changed
+                if (networkChanged(NETCONSUMER_NTRIP_CLIENT))
+                {
+                    ntripClientConnectionAttempts = 0;
+                    ntripClientConnectionAttemptTimeout = 0;
+                }
+
+                // Mark the network interface in use
+                networkUserAdd(NETCONSUMER_NTRIP_CLIENT, __FILE__, __LINE__);
 
                 // The network is available for the NTRIP client
                 ntripClientSetState(NTRIP_CLIENT_NETWORK_CONNECTED);
