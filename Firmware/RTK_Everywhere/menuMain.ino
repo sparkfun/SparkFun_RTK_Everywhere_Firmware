@@ -707,7 +707,7 @@ void menuRadio()
             else
             {
                 // Add new peer to system
-                espnowAddPeer(peer1);
+                espNowAddPeer(peer1);
 
                 // Record this MAC to peer list
                 memcpy(settings.espnowPeers[settings.espnowPeerCount], peer1, 6);
@@ -724,12 +724,12 @@ void menuRadio()
             if (espNowGetState() == ESPNOW_OFF)
                 ESPNOW_START();
 
-            uint8_t espnowData[] =
+            uint8_t espNowData[] =
                 "This is the long string to test how quickly we can send one string to the other unit. I am going to "
                 "need a much longer sentence if I want to get a long amount of data into one transmission. This is "
                 "nearing 200 characters but needs to be near 250.";
 #ifdef COMPILE_ESPNOW
-            esp_now_send(0, (uint8_t *)&espnowData, sizeof(espnowData)); // Send packet to all peers
+            esp_now_send(0, (uint8_t *)&espNowData, sizeof(espNowData)); // Send packet to all peers
 #endif
         }
         else if (settings.enableEspNow == true && incoming == 7 && settings.debugEspNow == true)
@@ -737,13 +737,13 @@ void menuRadio()
             if (espNowGetState() == ESPNOW_OFF)
                 ESPNOW_START();
 
-            uint8_t espnowData[] =
+            uint8_t espNowData[] =
                 "This is the long string to test how quickly we can send one string to the other unit. I am going to "
                 "need a much longer sentence if I want to get a long amount of data into one transmission. This is "
                 "nearing 200 characters but needs to be near 250.";
             uint8_t broadcastMac[6] = {0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF};
 #ifdef COMPILE_ESPNOW
-            esp_now_send(broadcastMac, (uint8_t *)&espnowData, sizeof(espnowData)); // Send packet over broadcast
+            esp_now_send(broadcastMac, (uint8_t *)&espNowData, sizeof(espNowData)); // Send packet over broadcast
 #endif
         }
 
