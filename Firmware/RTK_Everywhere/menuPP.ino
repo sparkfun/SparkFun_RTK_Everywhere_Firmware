@@ -411,9 +411,9 @@ bool checkCertificates()
 
     // Free the content buffers
     if (certificateContents)
-        free(certificateContents);
+        rtkFree(certificateContents, "Certificate buffer (certificateContents)");
     if (keyContents)
-        free(keyContents);
+        rtkFree(keyContents, "Certificate buffer (keyContents)");
 
     if (settings.debugPpCertificate)
     {

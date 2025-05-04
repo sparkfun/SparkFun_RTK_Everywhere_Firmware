@@ -139,13 +139,7 @@ void beginPPL()
     // PPL_MAX_RTCM_BUFFER is 3345 bytes so we create it on the heap
     // Freed by stopPPL()
     if (pplRtcmBuffer == nullptr)
-    {
-        if (online.psram == true)
-            pplRtcmBuffer = (uint8_t *)ps_malloc(PPL_MAX_RTCM_BUFFER);
-        else
-            pplRtcmBuffer = (uint8_t *)malloc(PPL_MAX_RTCM_BUFFER);
-    }
-
+        pplRtcmBuffer = (uint8_t *)rtkMalloc(PPL_MAX_RTCM_BUFFER, "PPL RTCM buffer (pplRtcmBuffer)");
     if (!pplRtcmBuffer)
     {
         systemPrintln("ERROR: Failed to allocate rtcmBuffer");
@@ -215,7 +209,7 @@ void stopPPL()
 
     if (pplRtcmBuffer != nullptr)
     {
-        free(pplRtcmBuffer);
+        rtkFree(pplRtcmBuffer, "PPL RTCM buffer (pplRtcmBuffer)");
         pplRtcmBuffer = nullptr;
     }
 
