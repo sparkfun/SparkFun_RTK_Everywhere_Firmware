@@ -356,6 +356,29 @@ void mqttClientPrintStatus()
 }
 
 //----------------------------------------
+// Print the subscribed topics
+//----------------------------------------
+void mqttClientPrintSubscribedTopics()
+{
+    systemPrint("MQTT Client subscribe topics: ");
+    for (auto it = mqttSubscribeTopics.begin(); it != mqttSubscribeTopics.end(); it = std::next(it))
+    {
+        String topic = *it;
+        systemPrint(topic);
+        systemPrint(" ");
+    }
+    systemPrintln();
+    systemPrint("MQTT Client subscribed topics: ");
+    for (auto it = mqttClientSubscribedTopics.begin(); it != mqttClientSubscribedTopics.end(); it = std::next(it))
+    {
+        String topic = *it;
+        systemPrint(topic);
+        systemPrint(" ");
+    }
+    systemPrintln();
+}
+
+//----------------------------------------
 // Process the localizedDistributionDictTopic message
 //----------------------------------------
 void mqttClientProcessLocalizedDistributionDictTopic(uint8_t * mqttData)
@@ -697,23 +720,6 @@ void mqttClientSetState(uint8_t newState)
         }
         else
             systemPrintln(mqttClientStateName[mqttClientState]);
-
-        systemPrint("MQTT Client subscribe topics: ");
-        for (auto it = mqttSubscribeTopics.begin(); it != mqttSubscribeTopics.end(); it = std::next(it))
-        {
-            String topic = *it;
-            systemPrint(topic);
-            systemPrint(" ");
-        }
-        systemPrintln();
-        systemPrint("MQTT Client subscribed topics: ");
-        for (auto it = mqttClientSubscribedTopics.begin(); it != mqttClientSubscribedTopics.end(); it = std::next(it))
-        {
-            String topic = *it;
-            systemPrint(topic);
-            systemPrint(" ");
-        }
-        systemPrintln();
     }
 }
 
@@ -800,9 +806,13 @@ void mqttClientStop(bool shutdown)
         // cannot be restarted without opening the menu or web configuration page...
         mqttClientConnectionAttempts = 0;
         mqttClientConnectionAttemptTimeout = 0;
+        mqttClientPrintSubscribedTopics();
     }
     else
+    {
         mqttClientSetState(MQTT_CLIENT_WAIT_FOR_NETWORK);
+        mqttClientPrintSubscribedTopics();
+    }
 }
 
 //----------------------------------------
@@ -859,7 +869,10 @@ void mqttClientUpdate()
 
         // Wait until the network is connected to the media
         else if (networkHasInternet())
+        {
             mqttClientSetState(MQTT_CLIENT_CONNECTION_DELAY);
+            mqttClientPrintSubscribedTopics();
+        }
         break;
     }
 
@@ -868,6 +881,7 @@ void mqttClientUpdate()
         if ((millis() - mqttClientTimer) > mqttClientConnectionAttemptTimeout)
         {
             mqttClientSetState(MQTT_CLIENT_CONNECTING_2_BROKER);
+            mqttClientPrintSubscribedTopics();
         }
         break;
     }
@@ -992,7 +1006,7 @@ void mqttClientUpdate()
         online.mqttClient = true;
 
         mqttClientSetState(MQTT_CLIENT_SERVICES_CONNECTED);
-
+        mqttClientPrintSubscribedTopics();
         break;
     } // /case MQTT_CLIENT_CONNECTING_2_BROKER
 
@@ -1149,6 +1163,7 @@ void mqttClientUpdate()
         mqttClientEnabled(&line);
         systemPrintf("MQTT Client state: %s%s\r\n",
                      mqttClientStateName[mqttClientState], line);
+        mqttClientPrintSubscribedTopics();
         PERIODIC_CLEAR(PD_MQTT_CLIENT_STATE);
     }
 }
