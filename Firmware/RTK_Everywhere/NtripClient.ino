@@ -307,6 +307,7 @@ bool ntripClientConnect()
 bool ntripClientConnectLimitReached()
 {
     bool limitReached;
+    int minutes;
     int seconds;
 
     // Retry the connection a few times
@@ -334,15 +335,16 @@ bool ntripClientConnectLimitReached()
         else
             ntripClientConnectionAttemptTimeout =
                 (ntripClientConnectionAttempts - 4) * 5 * 60 * 1000L; // Wait 5, 10, 15, etc minutes between attempts
+        if (ntripClientConnectionAttemptTimeout > RTK_MAX_CONNECTION_MSEC)
+            ntripClientConnectionAttemptTimeout = RTK_MAX_CONNECTION_MSEC;
 
         // Display the delay before starting the NTRIP client
         if (settings.debugNtripClientState && ntripClientConnectionAttemptTimeout)
         {
-            seconds = ntripClientConnectionAttemptTimeout / 1000;
-            if (seconds < 120)
-                systemPrintf("NTRIP Client trying again in %d seconds.\r\n", seconds);
-            else
-                systemPrintf("NTRIP Client trying again in %d minutes.\r\n", seconds / 60);
+            seconds = ntripClientConnectionAttemptTimeout / MILLISECONDS_IN_A_SECOND;
+            minutes = seconds / SECONDS_IN_A_MINUTE;
+            seconds -= minutes * SECONDS_IN_A_MINUTE;
+            systemPrintf("NTRIP Client trying again in %d:%02d seconds.\r\n", minutes, seconds);
         }
     }
     else
