@@ -131,8 +131,6 @@ NETWORK_POLL_SEQUENCE *networkSequence[NETWORK_OFFLINE];
 
 NetMask_t networkMdnsRunning; // Non-zero when mDNS is running
 
-extern bool restartWiFi; // From WiFi.ino
-
 //----------------------------------------
 // Menu for configuring TCP/UDP interfaces
 //----------------------------------------

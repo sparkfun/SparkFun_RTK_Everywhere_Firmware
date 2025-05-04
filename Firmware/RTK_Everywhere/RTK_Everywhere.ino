@@ -317,6 +317,8 @@ RTK_WIFI wifi(false);
     }
 #endif // COMPILE_WIFI
 
+bool restartWiFi = false; // Restart WiFi if user changes anything
+
 #define MQTT_CLIENT_STOP(shutdown)                                                                                     \
     {                                                                                                                  \
         if (settings.debugNetworkLayer || settings.debugMqttClientState)                                               \
@@ -1503,7 +1505,7 @@ void logUpdate()
             if (logFileSize > 0)
             {
                 lastFileReport = millis();
-                
+
                 if (settings.enablePrintLogFileStatus)
                 {
                     systemPrintf("Log file size: %lld", logFileSize);
