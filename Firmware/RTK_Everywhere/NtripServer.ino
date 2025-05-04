@@ -921,6 +921,8 @@ void ntripServerUpdate()
 //----------------------------------------
 void ntripServerValidateTables()
 {
+    if (NETCONSUMER_OTA_CLIENT != (NETCONSUMER_NTRIP_SERVER_0 + NTRIP_SERVER_MAX))
+        reportFatalError("Adjust NETCONSUMER_NTRIP_SERVER_* entries to match NTRIP_SERVER_MAX");
     if (ntripServerStateNameEntries != NTRIP_SERVER_STATE_MAX)
         reportFatalError("Fix ntripServerStateNameEntries to match NTRIPServerState");
 }
