@@ -2755,14 +2755,6 @@ uint8_t networkConsumers(uint16_t *consumerTypes)
     // If a consumer needs the network or is currently consuming the network (is online) then increment
     // consumer count
 
-    // Network needed for TCP Client
-    if (tcpClientNeedsNetwork() || online.tcpClient)
-    {
-        consumerCount++;
-        consumerId |= (1 << NETCONSUMER_TCP_CLIENT);
-        *consumerTypes = NETWORK_EWC; // Ask for eth/wifi/cellular
-    }
-
     // Network needed for TCP Server
     if (tcpServerNeedsNetwork() || online.tcpServer)
     {
@@ -2819,8 +2811,6 @@ uint8_t networkConsumers(uint16_t *consumerTypes)
             {
                 systemPrintf("- Consumers: ", consumerCount);
 
-                if (consumerId & (1 << NETCONSUMER_TCP_CLIENT))
-                    systemPrint("TCP Client, ");
                 if (consumerId & (1 << NETCONSUMER_TCP_SERVER))
                     systemPrint("TCP Server, ");
                 if (consumerId & (1 << NETCONSUMER_UDP_SERVER))
@@ -2841,13 +2831,6 @@ uint8_t networkConsumersOnline()
 {
     uint8_t consumerCountOnline = 0;
     uint16_t consumerId = 0; // Used to debug print who is asking for access
-
-    // Network needed for TCP Client
-    if (online.tcpClient)
-    {
-        consumerCountOnline++;
-        consumerId |= (1 << NETCONSUMER_TCP_CLIENT);
-    }
 
     // Network needed for TCP Server - May use WiFi AP or WiFi STA
     if (online.tcpServer)
@@ -2882,8 +2865,6 @@ uint8_t networkConsumersOnline()
             if (consumerCountOnline > 0)
             {
                 systemPrintf("- Consumers: ", consumerCountOnline);
-                if (consumerId & (1 << NETCONSUMER_TCP_CLIENT))
-                    systemPrint("TCP Client, ");
                 if (consumerId & (1 << NETCONSUMER_TCP_SERVER))
                     systemPrint("TCP Server, ");
                 if (consumerId & (1 << NETCONSUMER_UDP_SERVER))

@@ -202,16 +202,6 @@ bool tcpClientEnabled(const char ** line)
 }
 
 //----------------------------------------
-// Return true if we are in a state that requires network access
-//----------------------------------------
-bool tcpClientNeedsNetwork()
-{
-    if (tcpClientState >= TCP_CLIENT_STATE_WAIT_FOR_NETWORK && tcpClientState <= TCP_CLIENT_STATE_CONNECTED)
-        return true;
-    return false;
-}
-
-//----------------------------------------
 // Send TCP data to the server
 //----------------------------------------
 int32_t tcpClientSendData(uint16_t dataHead)
@@ -398,9 +388,15 @@ void tcpClientStop(bool shutdown)
 
     // Initialize the TCP client
     tcpClientWriteError = false;
-    if (settings.debugTcpClient)
-        systemPrintln("TCP client offline");
-    tcpClientSetState(TCP_CLIENT_STATE_OFF);
+    networkConsumerOffline(NETCONSUMER_TCP_CLIENT);
+    if (shutdown)
+    {
+        // Stop the network
+        networkConsumerRemove(NETCONSUMER_TCP_CLIENT, NETWORK_ANY, __FILE__, __LINE__);
+        tcpClientSetState(TCP_CLIENT_STATE_OFF);
+    }
+    else
+        tcpClientSetState(TCP_CLIENT_STATE_WAIT_FOR_NETWORK);
 }
 
 //----------------------------------------
@@ -422,7 +418,7 @@ void tcpClientUpdate()
 
     // Shutdown the TCP client when the mode or setting changes
     DMW_st(tcpClientSetState, tcpClientState);
-    connected = networkHasInternet();
+    connected = networkConsumerIsConnected(NETCONSUMER_TCP_CLIENT);
     enabled = tcpClientEnabled(&line);
     if ((enabled == false) && (tcpClientState > TCP_CLIENT_STATE_OFF))
         tcpClientStop(true);
@@ -469,6 +465,9 @@ void tcpClientUpdate()
             connectionAttempt = 0;
             connectionDelay = 0;
             tcpClientSetState(TCP_CLIENT_STATE_WAIT_FOR_NETWORK);
+
+            // Start the network
+            networkConsumerAdd(NETCONSUMER_TCP_CLIENT, NETWORK_ANY, __FILE__, __LINE__);
         }
         break;
 
@@ -504,7 +503,14 @@ void tcpClientUpdate()
             // The network type and host provide a valid configuration
             else
             {
+                // Connect immediately when the network changes
+                if (networkChanged(NETCONSUMER_TCP_CLIENT))
+                {
+                    connectionAttempt = 0;
+                    connectionDelay = 0;
+                }
                 timer = millis();
+                networkUserAdd(NETCONSUMER_TCP_CLIENT, __FILE__, __LINE__);
                 tcpClientSetState(TCP_CLIENT_STATE_CLIENT_STARTING);
             }
         }
