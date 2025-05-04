@@ -276,7 +276,10 @@ void pointperfectPrintKeyInformation(const char *requestedBy) {systemPrintln("**
 
 #ifndef COMPILE_LG290P
 
+void lg290pBoot()       {}
 void lg290pHandler(uint8_t * buffer, int length) {}
+bool lg290pMessageEnabled(char *nmeaSentence, int sentenceLength)   {return false;}
+void lg290pReset()      {}
 
 #endif // COMPILE_LG290P
 
