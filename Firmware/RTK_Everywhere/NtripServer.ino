@@ -239,6 +239,7 @@ bool ntripServerConnectCaster(int serverIndex)
 bool ntripServerConnectLimitReached(int serverIndex)
 {
     bool limitReached;
+    int minutes;
     NTRIP_SERVER_DATA *ntripServer = &ntripServerArray[serverIndex];
     int seconds;
 
@@ -267,15 +268,16 @@ bool ntripServerConnectLimitReached(int serverIndex)
         else
             ntripServer->connectionAttemptTimeout =
                 (ntripServer->connectionAttempts - 4) * 5 * 60 * 1000L; // Wait 5, 10, 15, etc minutes between attempts
+        if (ntripServer->connectionAttemptTimeout > RTK_MAX_CONNECTION_MSEC)
+            ntripServer->connectionAttemptTimeout = RTK_MAX_CONNECTION_MSEC;
 
         // Display the delay before starting the NTRIP server
         if (settings.debugNtripServerState && ntripServer->connectionAttemptTimeout)
         {
-            seconds = ntripServer->connectionAttemptTimeout / 1000;
-            if (seconds < 120)
-                systemPrintf("NTRIP Server %d trying again in %d seconds.\r\n", serverIndex, seconds);
-            else
-                systemPrintf("NTRIP Server %d trying again in %d minutes.\r\n", serverIndex, seconds / 60);
+            seconds = ntripServer->connectionAttemptTimeout / MILLISECONDS_IN_A_SECOND;
+            minutes = seconds / SECONDS_IN_A_MINUTE;
+            seconds -= minutes * SECONDS_IN_A_MINUTE;
+            systemPrintf("NTRIP Server %d trying again in %d:%02d seconds.\r\n", serverIndex, minutes, seconds);
         }
     }
     else
