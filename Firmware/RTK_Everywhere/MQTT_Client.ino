@@ -728,6 +728,7 @@ void mqttClientSetState(uint8_t newState)
 //----------------------------------------
 void mqttClientShutdown()
 {
+    mqttClientStartRequested = false;
     MQTT_CLIENT_STOP(true);
 }
 
@@ -792,7 +793,7 @@ void mqttClientStop(bool shutdown)
 
     // Increase timeouts if we started the network
     if (mqttClientState > MQTT_CLIENT_WAIT_FOR_NETWORK)
-        // Mark the Client stop so that we don't immediately attempt re-connect to Caster
+        // Mark client stop so that we don't immediately attempt re-connect to broker
         mqttClientTimer = millis();
 
     // Determine the next MQTT client state
@@ -800,13 +801,12 @@ void mqttClientStop(bool shutdown)
     mqttClientDataReceived = false;
     if (shutdown)
     {
-        mqttClientSetState(MQTT_CLIENT_OFF);
-        // settings.enablePointPerfectCorrections = false;
-        //^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ Why? This means PointPerfect Corrections
-        // cannot be restarted without opening the menu or web configuration page...
         mqttClientConnectionAttempts = 0;
         mqttClientConnectionAttemptTimeout = 0;
         mqttClientPrintSubscribedTopics();
+        mqttClientSetState(MQTT_CLIENT_OFF);
+        if (settings.debugMqttClientState)
+            systemPrintln("MQTT Client stopped");
     }
     else
     {
@@ -822,28 +822,31 @@ void mqttClientStop(bool shutdown)
 //----------------------------------------
 void mqttClientUpdate()
 {
+    bool connected;
     bool enabled;
 
     // Shutdown the MQTT client when the mode or setting changes
     DMW_st(mqttClientSetState, mqttClientState);
+    connected = networkHasInternet();
     enabled = mqttClientEnabled(nullptr);
-    if (NEQ_RTK_MODE(mqttClientMode) || (enabled == false))
+    if ((enabled == false) && (mqttClientState > MQTT_CLIENT_OFF))
     {
-        if (mqttClientState > MQTT_CLIENT_OFF)
-        {
+        if (settings.debugMqttClientState)
             systemPrintln("MQTT Client stopping");
-            MQTT_CLIENT_STOP(true); // Was false - #StopVsRestart
-            mqttClientConnectionAttempts = 0;
-            mqttClientConnectionAttemptTimeout = 0;
-            mqttClientSetState(MQTT_CLIENT_OFF);
-        }
+        mqttClientShutdown();
     }
 
     // Determine if the network has failed
-    else if ((mqttClientState > MQTT_CLIENT_WAIT_FOR_NETWORK) && (networkHasInternet() == false))
+    else if ((mqttClientState > MQTT_CLIENT_WAIT_FOR_NETWORK) && !connected)
     {
-        // Failed to connect to the network, attempt to restart the network
-        mqttClientStop(true); // Was mqttClientRestart(); - #StopVsRestart
+        if (mqttClientState == MQTT_CLIENT_SERVICES_CONNECTED)
+        {
+            // The connection is successful, allow more retries in the future
+            // with immediate retries
+            mqttClientConnectionAttempts = 0;
+            mqttClientConnectionAttemptTimeout = 0;
+        }
+        mqttClientRestart();
     }
 
     // Enable the network and the MQTT client if requested
@@ -863,13 +866,12 @@ void mqttClientUpdate()
 
     // Wait for a network media connection
     case MQTT_CLIENT_WAIT_FOR_NETWORK: {
-        // Determine if MQTT was turned off
-        if (NEQ_RTK_MODE(mqttClientMode) || !enabled)
-            mqttClientStop(true);
-
         // Wait until the network is connected to the media
-        else if (networkHasInternet())
+        if (connected)
         {
+            // Reset the timeout when the network changes
+            if (networkChanged(NETCONSUMER_PPL_MQTT_CLIENT))
+                mqttClientConnectionAttemptTimeout = 0;
             mqttClientSetState(MQTT_CLIENT_CONNECTION_DELAY);
             mqttClientPrintSubscribedTopics();
         }
@@ -893,7 +895,7 @@ void mqttClientUpdate()
         if (!mqttSecureClient)
         {
             systemPrintln("ERROR: Failed to allocate the mqttSecureClient structure!");
-            mqttClientShutdown();
+            mqttClientRestart();
             break;
         }
 
@@ -913,7 +915,8 @@ void mqttClientUpdate()
             if (mqttClientPrivateKeyBuffer == nullptr)
                 systemPrintln("ERROR: Failed to allocate key buffer!");
 
-            mqttClientShutdown();
+            // Free the buffers and attempt another connection after delay
+            mqttClientRestart();
             break;
         }
 
@@ -925,9 +928,8 @@ void mqttClientUpdate()
         if (!loadFile("certificate", mqttClientCertificateBuffer, settings.debugMqttClientState))
         {
             if (settings.debugMqttClientState)
-                systemPrintln("MQTT_CLIENT_CONNECTING_2_SERVER no certificate available");
-            mqttClientRestart(); // This does need a restart. Was mqttClientShutdown, but that causes an immediate retry
-                                 // with no timeout
+                systemPrintln("ERROR: MQTT_Client no certificate available");
+            mqttClientShutdown();
             break;
         }
         mqttSecureClient->setCertificate(mqttClientCertificateBuffer);
@@ -937,9 +939,8 @@ void mqttClientUpdate()
         if (!loadFile("privateKey", mqttClientPrivateKeyBuffer, settings.debugMqttClientState))
         {
             if (settings.debugMqttClientState)
-                systemPrintln("MQTT_CLIENT_CONNECTING_2_SERVER no private key available");
-            mqttClientRestart(); // This does need a restart. Was mqttClientShutdown, but that causes an immediate retry
-                                 // with no timeout
+                systemPrintln("ERROR: MQTT_Client no private key available");
+            mqttClientShutdown();
             break;
         }
         mqttSecureClient->setPrivateKey(mqttClientPrivateKeyBuffer);
@@ -950,7 +951,7 @@ void mqttClientUpdate()
         {
             // Failed to allocate the mqttClient structure
             systemPrintln("ERROR: Failed to allocate the mqttClient structure!");
-            mqttClientShutdown();
+            mqttClientRestart();
             break;
         }
 
@@ -1011,6 +1012,13 @@ void mqttClientUpdate()
     } // /case MQTT_CLIENT_CONNECTING_2_BROKER
 
     case MQTT_CLIENT_SERVICES_CONNECTED: {
+        // Verify the connection to the broker
+        if (mqttSecureClient->connected() == false)
+        {
+            mqttClientRestart();
+            break;
+        }
+
         // Check for new data
         mqttClient->poll();
 
@@ -1038,6 +1046,8 @@ void mqttClientUpdate()
                 {
                     breakOut = true; // Break out of this state as we have successfully subscribed
                     mqttClientSubscribedTopics.push_back(topic);
+                    if (settings.debugMqttClientState)
+                        systemPrintf("MQTT_Client successfully subscribed to topic %s\r\n", topic.c_str());
                 }
                 else
                 {
