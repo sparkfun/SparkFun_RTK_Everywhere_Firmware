@@ -523,14 +523,16 @@ void ntripServerRestart(int serverIndex)
 //----------------------------------------
 void ntripServerSetState(NTRIP_SERVER_DATA *ntripServer, uint8_t newState)
 {
-    int serverIndex = -999;
-    for (int index = 0; index < NTRIP_SERVER_MAX; index++)
+    int serverIndex;
+    for (serverIndex = 0; serverIndex < NTRIP_SERVER_MAX; serverIndex++)
     {
-        if (ntripServer == &ntripServerArray[index])
-        {
-            serverIndex = index;
-            break;
-        }
+        if (ntripServer == &ntripServerArray[serverIndex])
+            serverIndex = serverIndex;
+    }
+    if (serverIndex >= NTRIP_SERVER_MAX)
+    {
+        systemPrintf("NTRIP Server: %p unknown NTRIP Server structure!\r\n", (void *)ntripServer);
+        return;
     }
 
     if (settings.debugNtripServerState)
