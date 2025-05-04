@@ -327,18 +327,17 @@ void udpServerStop()
 //----------------------------------------
 void udpServerUpdate()
 {
+    bool connected;
     bool enabled;
     IPAddress ipAddress;
     const char * line = "";
 
     // Shutdown the UDP server when the mode or setting changes
     DMW_st(udpServerSetState, udpServerState);
+    connected = networkHasInternet();
     enabled = udpServerEnabled(&line);
-    if (NEQ_RTK_MODE(udpServerMode) || (!settings.enableUdpServer))
-    {
-        if (udpServerState > UDP_SERVER_STATE_OFF)
-            udpServerStop();
-    }
+    if ((!enabled) && (udpServerState > UDP_SERVER_STATE_OFF))
+        udpServerStop();
 
     /*
         UDP Server state machine
@@ -364,7 +363,7 @@ void udpServerUpdate()
     // Wait until the UDP server is enabled
     case UDP_SERVER_STATE_OFF:
         // Determine if the UDP server should be running
-        if (EQ_RTK_MODE(udpServerMode) && settings.enableUdpServer)
+        if (enabled)
         {
             if (settings.debugUdpServer && (!inMainMenu))
                 systemPrintln("UDP server starting the network");
@@ -375,7 +374,7 @@ void udpServerUpdate()
     // Wait until the network is connected
     case UDP_SERVER_STATE_WAIT_FOR_NETWORK:
         // Wait until the network is connected
-        if (networkHasInternet() || WIFI_SOFT_AP_RUNNING())
+        if (connected || WIFI_SOFT_AP_RUNNING())
         {
             // Delay before starting the UDP server
             if ((millis() - udpServerTimer) >= (1 * 1000))
@@ -393,7 +392,7 @@ void udpServerUpdate()
     // Handle client connections and link failures
     case UDP_SERVER_STATE_RUNNING:
         // Determine if the network has failed
-        if ((networkHasInternet() == false && WIFI_SOFT_AP_RUNNING() == false) || (!settings.enableUdpServer && !settings.baseCasterOverride))
+        if ((connected == false && WIFI_SOFT_AP_RUNNING() == false) || (!settings.enableUdpServer && !settings.baseCasterOverride))
         {
             if ((settings.debugUdpServer || PERIODIC_DISPLAY(PD_UDP_SERVER_DATA)) && (!inMainMenu))
             {
