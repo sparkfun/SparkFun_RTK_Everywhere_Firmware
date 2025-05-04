@@ -516,8 +516,12 @@ void tcpClientUpdate()
                 // Connection failure
                 if (settings.debugTcpClient)
                     systemPrintln("TCP Client connection failed");
+
+                // Limit to max connection delay
                 connectionDelay = TCP_DELAY_BETWEEN_CONNECTIONS << connectionAttempt;
-                if (connectionAttempt < TCP_MAX_CONNECTIONS)
+                if (connectionDelay > RTK_MAX_CONNECTION_MSEC)
+                    connectionDelay = RTK_MAX_CONNECTION_MSEC;
+                else
                     connectionAttempt += 1;
 
                 // Display the uptime
