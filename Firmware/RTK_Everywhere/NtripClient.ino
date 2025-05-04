@@ -627,25 +627,22 @@ void ntripClientStop(bool shutdown)
 //----------------------------------------
 void ntripClientUpdate()
 {
+    bool connected;
     bool enabled;
     const char * line = "";
 
     // Shutdown the NTRIP client when the mode or setting changes
     DMW_st(ntripClientSetState, ntripClientState);
     enabled = ntripClientEnabled(&line);
+    connected = networkHasInternet();
     if ((!enabled) && (ntripClientState > NTRIP_CLIENT_OFF))
-    {
-        ntripClientStop(true); // Was false - #StopVsRestart
-        ntripClientConnectionAttempts = 0;
-        ntripClientConnectionAttemptTimeout = 0;
-        ntripClientSetState(NTRIP_CLIENT_OFF);
-    }
+        ntripClientStop(true);
 
     // Determine if the network has failed
     else if ((ntripClientState > NTRIP_CLIENT_WAIT_FOR_NETWORK)
-        && (networkHasInternet() == false))
-        // Failed to connect to to the network, attempt to restart the network
-        ntripClientStop(true); // Was ntripClientRestart(); - #StopVsRestart
+        && (!connected))
+        // Attempt to restart the network
+        ntripClientRestart();
 
     // Enable the network and the NTRIP client if requested
     switch (ntripClientState)
@@ -663,12 +660,8 @@ void ntripClientUpdate()
 
     // Wait for a network media connection
     case NTRIP_CLIENT_WAIT_FOR_NETWORK:
-        // Determine if the NTRIP client was turned off
-        if (ntripClientForcedShutdown || NEQ_RTK_MODE(ntripClientMode) || !settings.enableNtripClient)
-            ntripClientStop(true);
-
-        // Wait until the network is connected
-        else if (networkHasInternet())
+        // Wait until the network is connected to the media
+        if (connected)
         {
             // Allocate the ntripClient structure
             ntripClient = new NetworkClient();
