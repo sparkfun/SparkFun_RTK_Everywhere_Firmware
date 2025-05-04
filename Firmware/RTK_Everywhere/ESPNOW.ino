@@ -105,7 +105,7 @@ ESPNOWState espNowGetState()
 //   6. Call esp_wifi_set_promiscuous(true)
 //   7. Set promiscuous receive callback [esp_wifi_set_promiscuous_rx_cb(promiscuous_rx_cb)]
 //      to get RSSI of action frames
-//   8. Assign a channel if necessary, call espnowSetChannel
+//   8. Assign a channel if necessary, call espNowSetChannel
 //   9. Set receive callback [esp_now_register_recv_cb(espNowOnDataReceived)]
 //  10. Add peers from settings
 //      A. If no peers exist
@@ -120,7 +120,7 @@ ESPNOWState espNowGetState()
 //
 // In espNowOnDataReceived
 //  11. Save ESP-NOW RSSI
-//  12. Set lastEspnowRssiUpdate = millis()
+//  12. Set lastEspNowRssiUpdate = millis()
 //  13. If in ESP_NOW_PAIRING state
 //      A. Validate message CRC
 //      B. If valid CRC
@@ -129,7 +129,7 @@ ESPNOWState espNowGetState()
 //  14. Else if ESPNOW_MAC_RECEIVED state
 //      A. If ESP-NOW is corrections source, correctionLastSeen(CORR_ESPNOW)
 //          i.  gnss->pushRawData
-//  15. Set espnowIncomingRTCM
+//  15. Set espNowIncomingRTCM
 //
 // ESP-NOW shutdown from RTK
 //   1. esp_wifi_set_promiscuous(false)
@@ -499,30 +499,30 @@ void espNowUpdate()
         {
             // If it's been longer than a few ms since we last added a byte to the buffer
             // then we've reached the end of the RTCM stream. Send partial buffer.
-            if (espnowOutgoingSpot > 0 && (millis() - espnowLastAdd) > 50)
+            if (espNowOutgoingSpot > 0 && (millis() - espNowLastAdd) > 50)
             {
                 if (espNowState == ESPNOW_PAIRED)
-                    esp_now_send(0, (uint8_t *)&espnowOutgoing, espnowOutgoingSpot); // Send partial packet to all peers
+                    esp_now_send(0, (uint8_t *)&espNowOutgoing, espNowOutgoingSpot); // Send partial packet to all peers
                 else // if (espNowState == ESPNOW_BROADCASTING)
                 {
                     uint8_t broadcastMac[6] = {0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF};
-                    esp_now_send(broadcastMac, (uint8_t *)&espnowOutgoing,
-                                 espnowOutgoingSpot); // Send packet via broadcast
+                    esp_now_send(broadcastMac, (uint8_t *)&espNowOutgoing,
+                                 espNowOutgoingSpot); // Send packet via broadcast
                 }
 
                 if (!inMainMenu)
                 {
                     if (settings.debugEspNow == true)
-                        systemPrintf("ESPNOW transmitted %d RTCM bytes\r\n", espnowBytesSent + espnowOutgoingSpot);
+                        systemPrintf("ESPNOW transmitted %d RTCM bytes\r\n", espNowBytesSent + espNowOutgoingSpot);
                 }
-                espnowBytesSent = 0;
-                espnowOutgoingSpot = 0; // Reset
+                espNowBytesSent = 0;
+                espNowOutgoingSpot = 0; // Reset
             }
 
             // If we don't receive an ESP NOW packet after some time, set RSSI to very negative
             // This removes the ESPNOW icon from the display when the link goes down
-            if (millis() - lastEspnowRssiUpdate > 5000 && espnowRSSI > -255)
-                espnowRSSI = -255;
+            if (millis() - lastEspNowRssiUpdate > 5000 && espNowRSSI > -255)
+                espNowRSSI = -255;
         }
     }
 }
@@ -562,7 +562,7 @@ void espNowOnDataReceived(const esp_now_recv_info *mac, const uint8_t *incomingD
     }
     else
     {
-        espnowRSSI = packetRSSI; // Record this packet's RSSI as an ESP NOW packet
+        espNowRSSI = packetRSSI; // Record this packet's RSSI as an ESP NOW packet
 
         // We've just received ESP-Now data. We assume this is RTCM and push it directly to the GNSS.
         // Determine if ESPNOW is the correction source
@@ -572,17 +572,17 @@ void espNowOnDataReceived(const esp_now_recv_info *mac, const uint8_t *incomingD
             gnss->pushRawData((uint8_t *)incomingData, len);
 
             if ((settings.debugEspNow == true || settings.debugCorrections == true) && !inMainMenu)
-                systemPrintf("ESPNOW received %d RTCM bytes, pushed to GNSS, RSSI: %d\r\n", len, espnowRSSI);
+                systemPrintf("ESPNOW received %d RTCM bytes, pushed to GNSS, RSSI: %d\r\n", len, espNowRSSI);
         }
         else
         {
             if ((settings.debugEspNow == true || settings.debugCorrections == true) && !inMainMenu)
                 systemPrintf("ESPNOW received %d RTCM bytes, NOT pushed due to priority, RSSI: %d\r\n", len,
-                             espnowRSSI);
+                             espNowRSSI);
         }
 
-        espnowIncomingRTCM = true; // Display a download icon
-        lastEspnowRssiUpdate = millis();
+        espNowIncomingRTCM = true; // Display a download icon
+        lastEspNowRssiUpdate = millis();
     }
 }
 
@@ -591,7 +591,7 @@ void espNowOnDataReceived(const esp_now_recv_info *mac, const uint8_t *incomingD
 #ifdef COMPILE_ESPNOW
 void promiscuous_rx_cb(void *buf, wifi_promiscuous_pkt_type_t type)
 {
-    // All espnow traffic uses action frames which are a subtype of the mgmnt frames so filter out everything else.
+    // All espNow traffic uses action frames which are a subtype of the mgmnt frames so filter out everything else.
     if (type != WIFI_PKT_MGMT)
         return;
 
@@ -690,7 +690,7 @@ void espnowStart()
 
     // Assign channel if not connected to an AP
     if (WIFI_IS_CONNECTED() == false)
-        espnowSetChannel(settings.wifiChannel);
+        espNowSetChannel(settings.wifiChannel);
 
     // Register callbacks
     // esp_now_register_send_cb(espNowOnDataSent);
@@ -955,35 +955,35 @@ void espNowProcessRTCM(byte incoming)
     if (espNowState == ESPNOW_PAIRED || espNowState == ESPNOW_BROADCASTING)
     {
         // Move this byte into ESP NOW to send buffer
-        espnowOutgoing[espnowOutgoingSpot++] = incoming;
-        espnowLastAdd = millis();
+        espNowOutgoing[espNowOutgoingSpot++] = incoming;
+        espNowLastAdd = millis();
     }
 
     // Send buffer when full
-    if (espnowOutgoingSpot == sizeof(espnowOutgoing))
+    if (espNowOutgoingSpot == sizeof(espNowOutgoing))
     {
-        espnowOutgoingSpot = 0; // Wrap
+        espNowOutgoingSpot = 0; // Wrap
 
         if (espNowState == ESPNOW_PAIRED)
-            esp_now_send(0, (uint8_t *)&espnowOutgoing, sizeof(espnowOutgoing)); // Send packet to all peers
+            esp_now_send(0, (uint8_t *)&espNowOutgoing, sizeof(espNowOutgoing)); // Send packet to all peers
         else // if (espNowState == ESPNOW_BROADCASTING)
         {
             uint8_t broadcastMac[6] = {0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF};
-            esp_now_send(broadcastMac, (uint8_t *)&espnowOutgoing,
-                         sizeof(espnowOutgoing)); // Send packet via broadcast
+            esp_now_send(broadcastMac, (uint8_t *)&espNowOutgoing,
+                         sizeof(espNowOutgoing)); // Send packet via broadcast
         }
 
         delay(10); // We need a small delay between sending multiple packets
 
-        espnowBytesSent += sizeof(espnowOutgoing);
+        espNowBytesSent += sizeof(espNowOutgoing);
 
-        espnowOutgoingRTCM = true;
+        espNowOutgoingRTCM = true;
     }
 }
 
 // A blocking function that is used to pair two devices
 // either through the serial menu or AP config
-void espnowStaticPairing()
+void espNowStaticPairing()
 {
     systemPrintln("Begin ESP NOW Pairing");
 
@@ -1027,7 +1027,7 @@ void espnowStaticPairing()
 }
 
 // Returns the current channel being used by WiFi
-uint8_t espnowGetChannel()
+uint8_t espNowGetChannel()
 {
     if (espNowState == ESPNOW_OFF)
         return 0;
@@ -1056,7 +1056,7 @@ uint8_t espnowGetChannel()
 }
 
 // Returns the current channel being used by WiFi
-bool espnowSetChannel(uint8_t channelNumber)
+bool espNowSetChannel(uint8_t channelNumber)
 {
     if (WIFI_IS_CONNECTED() == true)
     {

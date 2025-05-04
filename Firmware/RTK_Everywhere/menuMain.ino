@@ -616,7 +616,7 @@ void menuRadio()
             systemPrintln("2) Pair radios");
             systemPrintln("3) Forget all radios");
 
-            systemPrintf("4) Current channel: %d\r\n", espnowGetChannel());
+            systemPrintf("4) Current channel: %d\r\n", espNowGetChannel());
 
             if (settings.debugEspNow == true)
             {
@@ -674,7 +674,7 @@ void menuRadio()
         }
         else if (settings.enableEspNow == true && incoming == 2)
         {
-            espnowStaticPairing();
+            espNowStaticPairing();
         }
         else if (settings.enableEspNow == true && incoming == 3)
         {
@@ -697,7 +697,7 @@ void menuRadio()
             {
                 if (getNewSetting("Enter the WiFi channel to use for ESP-NOW communication", 1, 14,
                                   &settings.wifiChannel) == INPUT_RESPONSE_VALID)
-                    espnowSetChannel(settings.wifiChannel);
+                    espNowSetChannel(settings.wifiChannel);
             }
             else
             {

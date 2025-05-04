@@ -676,19 +676,19 @@ float lBandEBNO; // Used on system status menu
 
 #include <esp_now.h> //Built-in
 
-uint8_t espnowOutgoing[250]; // ESP NOW has max of 250 characters
-unsigned long espnowLastAdd; // Tracks how long since the last byte was added to the outgoing buffer
-uint8_t espnowOutgoingSpot;  // ESP Now has a max of 250 characters
-uint16_t espnowBytesSent;    // May be more than 255
+uint8_t espNowOutgoing[250]; // ESP NOW has max of 250 characters
+unsigned long espNowLastAdd; // Tracks how long since the last byte was added to the outgoing buffer
+uint8_t espNowOutgoingSpot;  // ESP Now has a max of 250 characters
+uint16_t espNowBytesSent;    // May be more than 255
 uint8_t receivedMAC[6];      // Holds the broadcast MAC during pairing
 
-unsigned long lastEspnowRssiUpdate;
+unsigned long lastEspNowRssiUpdate;
 
 #define ESPNOW_START()      espnowStart()
 #define ESPNOW_STOP()       espnowStop()
 #endif // COMPILE_ESPNOW
 
-int espnowRSSI;
+int espNowRSSI;
 // const uint8_t ESPNOW_MAX_PEERS = 5 is defined in settings.h
 
 // Ethernet
@@ -850,8 +850,8 @@ bool bluetoothIncomingRTCM;
 bool bluetoothOutgoingRTCM;
 bool netIncomingRTCM;
 bool netOutgoingRTCM;
-bool espnowIncomingRTCM;
-bool espnowOutgoingRTCM;
+bool espNowIncomingRTCM;
+bool espNowOutgoingRTCM;
 volatile bool mqttClientDataReceived; // Flag for display
 
 uint16_t failedParserMessages_UBX;
