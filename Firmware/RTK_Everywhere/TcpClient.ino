@@ -352,6 +352,8 @@ bool tcpClientStart()
             tcpClient = client;
             tcpClientWriteError = false;
             online.tcpClient = true;
+            if (settings.debugTcpClient)
+                systemPrintln("TCP client online");
             return true;
         }
         else
@@ -367,7 +369,7 @@ bool tcpClientStart()
 //----------------------------------------
 // Stop the TCP client
 //----------------------------------------
-void tcpClientStop()
+void tcpClientStop(bool shutdown)
 {
     NetworkClient *client;
     IPAddress ipAddress;
@@ -376,6 +378,8 @@ void tcpClientStop()
     if (client)
     {
         // Delay to allow the UART task to finish with the tcpClient
+        if (settings.debugTcpClient && online.tcpClient)
+            systemPrintln("TCP client offline");
         online.tcpClient = false;
         delay(5);
 
@@ -404,6 +408,7 @@ void tcpClientStop()
 //----------------------------------------
 void tcpClientUpdate()
 {
+    bool connected;
     static uint8_t connectionAttempt;
     static uint32_t connectionDelay;
     uint32_t days;
@@ -417,17 +422,15 @@ void tcpClientUpdate()
 
     // Shutdown the TCP client when the mode or setting changes
     DMW_st(tcpClientSetState, tcpClientState);
+    connected = networkHasInternet();
     enabled = tcpClientEnabled(&line);
-    if (NEQ_RTK_MODE(tcpClientMode) || (!settings.enableTcpClient))
-    {
-        if (tcpClientState > TCP_CLIENT_STATE_OFF)
-            tcpClientStop();
-    }
+    if ((enabled == false) && (tcpClientState > TCP_CLIENT_STATE_OFF))
+        tcpClientStop(true);
 
     // Determine if the network has failed
     else if ((tcpClientState > TCP_CLIENT_STATE_WAIT_FOR_NETWORK)
-        && (networkHasInternet() == false))
-        tcpClientStop();
+        && !connected)
+        tcpClientStop(false);
 
     /*
         TCP Client state machine
@@ -460,9 +463,11 @@ void tcpClientUpdate()
     // Wait until the TCP client is enabled
     case TCP_CLIENT_STATE_OFF:
         // Determine if the TCP client should be running
-        if (EQ_RTK_MODE(tcpClientMode) && settings.enableTcpClient)
+        if (enabled)
         {
             timer = 0;
+            connectionAttempt = 0;
+            connectionDelay = 0;
             tcpClientSetState(TCP_CLIENT_STATE_WAIT_FOR_NETWORK);
         }
         break;
@@ -470,7 +475,7 @@ void tcpClientUpdate()
     // Wait until the network is connected
     case TCP_CLIENT_STATE_WAIT_FOR_NETWORK:
         // Wait until the network is connected
-        if (networkHasInternet())
+        if (connected)
         {
 #ifdef COMPILE_WIFI
             // Determine if WiFi is required
@@ -552,7 +557,7 @@ void tcpClientUpdate()
         // Determine if the TCP client link is broken
         if ((!*tcpClient) || (!tcpClient->connected()) || tcpClientWriteError)
             // Stop the TCP client
-            tcpClientStop();
+            tcpClientStop(false);
         break;
     }
 
