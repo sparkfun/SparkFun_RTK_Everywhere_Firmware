@@ -460,7 +460,7 @@ void ntripServerProcessRTCM(int serverIndex, uint8_t incoming)
         // If we have not gotten new RTCM bytes for a period of time, assume end of frame
         if (((millis() - ntripServer->timer) > 100) && (ntripServer->bytesSent > 0))
         {
-            if ((!inMainMenu) && settings.debugNtripServerState)
+            if ((!inMainMenu) && settings.debugNtripServerRtcm)
                 systemPrintf("NTRIP Server %d transmitted %d RTCM bytes to Caster\r\n", serverIndex,
                              ntripServer->bytesSent);
 
