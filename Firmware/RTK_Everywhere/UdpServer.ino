@@ -149,16 +149,6 @@ bool udpServerEnabled(const char ** line)
 }
 
 //----------------------------------------
-// Return true if we are in a state that requires network access
-//----------------------------------------
-bool udpServerNeedsNetwork()
-{
-    if (udpServerState >= UDP_SERVER_STATE_WAIT_FOR_NETWORK && udpServerState <= UDP_SERVER_STATE_RUNNING)
-        return true;
-    return false;
-}
-
-//----------------------------------------
 // Send UDP data as broadcast
 //----------------------------------------
 int32_t udpServerSendData(uint16_t dataHead)
@@ -213,7 +203,7 @@ int32_t udpServerSendDataBroadcast(uint8_t *data, uint16_t length)
         return 0;
 
     // Send the data as broadcast
-    if (settings.enableUdpServer && online.udpServer && networkHasInternet())
+    if (settings.enableUdpServer && online.udpServer && networkConsumerIsConnected(NETCONSUMER_UDP_SERVER))
     {
         IPAddress broadcastAddress = networkGetBroadcastIpAddress();
         udpServer->beginPacket(broadcastAddress, settings.udpServerPort);
@@ -314,9 +304,12 @@ void udpServerStop()
     }
 
     // Stop using the network
+    networkConsumerOffline(NETCONSUMER_UDP_SERVER);
     if (udpServerState != UDP_SERVER_STATE_OFF)
     {
         // The UDP server is now off
+        networkSoftApConsumerRemove(NETCONSUMER_UDP_SERVER, __FILE__, __LINE__);
+        networkConsumerRemove(NETCONSUMER_UDP_SERVER, NETWORK_ANY, __FILE__, __LINE__);
         udpServerSetState(UDP_SERVER_STATE_OFF);
         udpServerTimer = millis();
     }
@@ -334,7 +327,7 @@ void udpServerUpdate()
 
     // Shutdown the UDP server when the mode or setting changes
     DMW_st(udpServerSetState, udpServerState);
-    connected = networkHasInternet();
+    connected = networkConsumerIsConnected(NETCONSUMER_UDP_SERVER);
     enabled = udpServerEnabled(&line);
     if ((!enabled) && (udpServerState > UDP_SERVER_STATE_OFF))
         udpServerStop();
@@ -367,6 +360,10 @@ void udpServerUpdate()
         {
             if (settings.debugUdpServer && (!inMainMenu))
                 systemPrintln("UDP server starting the network");
+            if (settings.wifiConfigOverAP == false)
+                networkConsumerAdd(NETCONSUMER_UDP_SERVER, NETWORK_ANY, __FILE__, __LINE__);
+            else
+                networkSoftApConsumerAdd(NETCONSUMER_UDP_SERVER, __FILE__, __LINE__);
             udpServerSetState(UDP_SERVER_STATE_WAIT_FOR_NETWORK);
         }
         break;
@@ -384,7 +381,10 @@ void udpServerUpdate()
 
                 // Start the UDP server
                 if (udpServerStart())
+                {
+                    networkUserAdd(NETCONSUMER_UDP_SERVER, __FILE__, __LINE__);
                     udpServerSetState(UDP_SERVER_STATE_RUNNING);
+                }
             }
         }
         break;

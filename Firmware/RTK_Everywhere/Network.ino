@@ -2755,14 +2755,6 @@ uint8_t networkConsumers(uint16_t *consumerTypes)
     // If a consumer needs the network or is currently consuming the network (is online) then increment
     // consumer count
 
-    // Network needed for UDP Server
-    if (udpServerNeedsNetwork() || online.udpServer)
-    {
-        consumerCount++;
-        consumerId |= (1 << NETCONSUMER_UDP_SERVER);
-        *consumerTypes = NETWORK_EWC; // Ask for eth/wifi/cellular
-    }
-
     // Network needed for Web Config
     if (webServerNeedsNetwork() || online.webServer)
     {
@@ -2796,8 +2788,6 @@ uint8_t networkConsumers(uint16_t *consumerTypes)
             {
                 systemPrintf("- Consumers: ", consumerCount);
 
-                if (consumerId & (1 << NETCONSUMER_UDP_SERVER))
-                    systemPrint("UDP Server, ");
                 if (consumerId & (1 << NETCONSUMER_WEB_CONFIG))
                     systemPrint("Web Config, ");
             }
@@ -2814,13 +2804,6 @@ uint8_t networkConsumersOnline()
 {
     uint8_t consumerCountOnline = 0;
     uint16_t consumerId = 0; // Used to debug print who is asking for access
-
-    // Network needed for UDP Server
-    if (online.udpServer)
-    {
-        consumerCountOnline++;
-        consumerId |= (1 << NETCONSUMER_UDP_SERVER);
-    }
 
     // Network needed for Web Config
     if (online.webServer)
@@ -2841,8 +2824,6 @@ uint8_t networkConsumersOnline()
             if (consumerCountOnline > 0)
             {
                 systemPrintf("- Consumers: ", consumerCountOnline);
-                if (consumerId & (1 << NETCONSUMER_UDP_SERVER))
-                    systemPrint("UDP Server, ");
                 if (consumerId & (1 << NETCONSUMER_WEB_CONFIG))
                     systemPrint("Web Config, ");
             }
