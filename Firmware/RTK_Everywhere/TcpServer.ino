@@ -405,6 +405,7 @@ void tcpServerStopClient(int index)
 //----------------------------------------
 void tcpServerUpdate()
 {
+    bool clientConnected;
     bool connected;
     bool dataSent;
     bool enabled;
@@ -414,12 +415,10 @@ void tcpServerUpdate()
 
     // Shutdown the TCP server when the mode or setting changes
     DMW_st(tcpServerSetState, tcpServerState);
+    connected = networkHasInternet();
     enabled = tcpServerEnabled(&line);
-    if (NEQ_RTK_MODE(tcpServerMode) || (!settings.enableTcpServer && !settings.baseCasterOverride))
-    {
-        if (tcpServerState > TCP_SERVER_STATE_OFF)
-            tcpServerStop();
-    }
+    if ((tcpServerState > TCP_SERVER_STATE_OFF) && !enabled)
+        tcpServerStop();
 
     /*
         TCP Server state machine
@@ -450,7 +449,7 @@ void tcpServerUpdate()
     // Wait until the TCP server is enabled
     case TCP_SERVER_STATE_OFF:
         // Determine if the TCP server should be running
-        if (EQ_RTK_MODE(tcpServerMode) && (settings.enableTcpServer || settings.baseCasterOverride))
+        if (enabled)
         {
             if (settings.debugTcpServer && (!inMainMenu))
                 systemPrintln("TCP server start");
@@ -461,7 +460,7 @@ void tcpServerUpdate()
     // Wait until the network is connected
     case TCP_SERVER_STATE_WAIT_FOR_NETWORK:
         // Wait until the network is connected to the media
-        if (networkHasInternet() || WIFI_SOFT_AP_RUNNING())
+        if (connected || WIFI_SOFT_AP_RUNNING())
         {
             // Delay before starting the TCP server
             if ((millis() - tcpServerTimer) >= (1 * 1000))
@@ -479,7 +478,7 @@ void tcpServerUpdate()
     // Handle client connections and link failures
     case TCP_SERVER_STATE_RUNNING:
         // Determine if the network has failed
-        if ((networkHasInternet() == false && WIFI_SOFT_AP_RUNNING() == false) || (!settings.enableTcpServer && !settings.baseCasterOverride))
+        if ((connected == false && WIFI_SOFT_AP_RUNNING() == false) || (!settings.enableTcpServer && !settings.baseCasterOverride))
         {
             if ((settings.debugTcpServer || PERIODIC_DISPLAY(PD_TCP_SERVER_DATA)) && (!inMainMenu))
             {
@@ -500,10 +499,10 @@ void tcpServerUpdate()
             {
                 // Data structure in use
                 // Check for a working TCP server client connection
-                connected = tcpServerClient[index]->connected();
+                clientConnected = tcpServerClient[index]->connected();
                 dataSent = ((millis() - tcpServerTimer) < TCP_SERVER_CLIENT_DATA_TIMEOUT) ||
                            (tcpServerClientDataSent & (1 << index));
-                if (connected && dataSent)
+                if (clientConnected && dataSent)
                 {
                     // Display this client connection
                     if (PERIODIC_DISPLAY(PD_TCP_SERVER_DATA) && (!inMainMenu))
