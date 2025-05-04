@@ -2814,15 +2814,6 @@ uint8_t networkConsumers(uint16_t *consumerTypes)
         *consumerTypes = NETWORK_EWC; // Ask for eth/wifi/cellular
     }
 
-    // Network needed for PointPerfect Corrections MQTT client
-    if (mqttClientNeedsNetwork() || online.mqttClient)
-    {
-        // PointPerfect is enabled, allow MQTT to begin
-        consumerCount++;
-        consumerId |= (1 << NETCONSUMER_PPL_MQTT_CLIENT);
-        *consumerTypes = NETWORK_EWC; // Ask for eth/wifi/cellular
-    }
-
     // Network needed for Web Config
     if (webServerNeedsNetwork() || online.webServer)
     {
@@ -2866,8 +2857,6 @@ uint8_t networkConsumers(uint16_t *consumerTypes)
                     systemPrint("TCP Server, ");
                 if (consumerId & (1 << NETCONSUMER_UDP_SERVER))
                     systemPrint("UDP Server, ");
-                if (consumerId & (1 << NETCONSUMER_PPL_MQTT_CLIENT))
-                    systemPrint("PPL MQTT Client, ");
                 if (consumerId & (1 << NETCONSUMER_WEB_CONFIG))
                     systemPrint("Web Config, ");
             }
@@ -2930,14 +2919,6 @@ uint8_t networkConsumersOnline()
         consumerId |= (1 << NETCONSUMER_UDP_SERVER);
     }
 
-    // Network needed for PointPerfect Corrections MQTT client
-    if (online.mqttClient)
-    {
-        // PointPerfect is enabled, allow MQTT to begin
-        consumerCountOnline++;
-        consumerId |= (1 << NETCONSUMER_PPL_MQTT_CLIENT);
-    }
-
     // Network needed for Web Config
     if (online.webServer)
     {
@@ -2967,8 +2948,6 @@ uint8_t networkConsumersOnline()
                     systemPrint("TCP Server, ");
                 if (consumerId & (1 << NETCONSUMER_UDP_SERVER))
                     systemPrint("UDP Server, ");
-                if (consumerId & (1 << NETCONSUMER_PPL_MQTT_CLIENT))
-                    systemPrint("PPL MQTT Client, ");
                 if (consumerId & (1 << NETCONSUMER_WEB_CONFIG))
                     systemPrint("Web Config, ");
             }

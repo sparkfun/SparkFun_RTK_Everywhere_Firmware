@@ -269,17 +269,6 @@ bool mqttClientIsConnected()
 }
 
 //----------------------------------------
-// Determine if the client is connected to the services
-//----------------------------------------
-// Return true if we are in states that require network access
-bool mqttClientNeedsNetwork()
-{
-    if (mqttClientState >= MQTT_CLIENT_WAIT_FOR_NETWORK && mqttClientState <= MQTT_CLIENT_SERVICES_CONNECTED)
-        return true;
-    return false;
-}
-
-//----------------------------------------
 // Print the MQTT client state summary
 //----------------------------------------
 void mqttClientPrintStateSummary()
@@ -799,8 +788,10 @@ void mqttClientStop(bool shutdown)
     // Determine the next MQTT client state
     online.mqttClient = false;
     mqttClientDataReceived = false;
+    networkConsumerOffline(NETCONSUMER_PPL_MQTT_CLIENT);
     if (shutdown)
     {
+        networkConsumerRemove(NETCONSUMER_PPL_MQTT_CLIENT, NETWORK_ANY, __FILE__, __LINE__);
         mqttClientConnectionAttempts = 0;
         mqttClientConnectionAttemptTimeout = 0;
         mqttClientPrintSubscribedTopics();
@@ -827,7 +818,7 @@ void mqttClientUpdate()
 
     // Shutdown the MQTT client when the mode or setting changes
     DMW_st(mqttClientSetState, mqttClientState);
-    connected = networkHasInternet();
+    connected = networkConsumerIsConnected(NETCONSUMER_PPL_MQTT_CLIENT);
     enabled = mqttClientEnabled(nullptr);
     if ((enabled == false) && (mqttClientState > MQTT_CLIENT_OFF))
     {
@@ -860,6 +851,7 @@ void mqttClientUpdate()
             if (settings.debugMqttClientState)
                 systemPrintln("MQTT Client start");
             mqttClientStop(false);
+            networkConsumerAdd(NETCONSUMER_PPL_MQTT_CLIENT, NETWORK_ANY, __FILE__, __LINE__);
         }
         break;
     }
@@ -872,6 +864,7 @@ void mqttClientUpdate()
             // Reset the timeout when the network changes
             if (networkChanged(NETCONSUMER_PPL_MQTT_CLIENT))
                 mqttClientConnectionAttemptTimeout = 0;
+            networkUserAdd(NETCONSUMER_PPL_MQTT_CLIENT, __FILE__, __LINE__);
             mqttClientSetState(MQTT_CLIENT_CONNECTION_DELAY);
             mqttClientPrintSubscribedTopics();
         }
