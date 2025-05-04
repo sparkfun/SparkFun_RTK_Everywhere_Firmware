@@ -723,6 +723,8 @@ void menuRadio()
                           10, 600, &settings.loraSerialInteractionTimeout_s);
         }
 
+        else if (incoming == 'x')
+            break;
         else if (incoming == INPUT_RESPONSE_GETNUMBER_EXIT)
             break;
         else if (incoming == INPUT_RESPONSE_GETNUMBER_TIMEOUT)
