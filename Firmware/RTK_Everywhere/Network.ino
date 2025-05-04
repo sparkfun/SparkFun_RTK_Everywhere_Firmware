@@ -2755,25 +2755,6 @@ uint8_t networkConsumers(uint16_t *consumerTypes)
     // If a consumer needs the network or is currently consuming the network (is online) then increment
     // consumer count
 
-    // Network needed for NTRIP Server
-    bool ntripServerOnline = false;
-    for (int index = 0; index < NTRIP_SERVER_MAX; index++)
-    {
-        if (online.ntripServer[index])
-        {
-            ntripServerOnline = true;
-            break;
-        }
-    }
-
-    if (ntripServerNeedsNetwork() || ntripServerOnline)
-    {
-        consumerCount++;
-        consumerId |= (1 << NETCONSUMER_NTRIP_SERVER);
-
-        *consumerTypes = NETWORK_EWC; // Ask for eth/wifi/cellular
-    }
-
     // Network needed for TCP Client
     if (tcpClientNeedsNetwork() || online.tcpClient)
     {
@@ -2838,8 +2819,6 @@ uint8_t networkConsumers(uint16_t *consumerTypes)
             {
                 systemPrintf("- Consumers: ", consumerCount);
 
-                if (consumerId & (1 << NETCONSUMER_NTRIP_SERVER))
-                    systemPrint("Base NTRIP Server, ");
                 if (consumerId & (1 << NETCONSUMER_TCP_CLIENT))
                     systemPrint("TCP Client, ");
                 if (consumerId & (1 << NETCONSUMER_TCP_SERVER))
@@ -2862,23 +2841,6 @@ uint8_t networkConsumersOnline()
 {
     uint8_t consumerCountOnline = 0;
     uint16_t consumerId = 0; // Used to debug print who is asking for access
-
-    // Network needed for NTRIP Server
-    bool ntripServerConnected = false;
-    for (int index = 0; index < NTRIP_SERVER_MAX; index++)
-    {
-        if (online.ntripServer[index])
-        {
-            ntripServerConnected = true;
-            break;
-        }
-    }
-
-    if (ntripServerConnected)
-    {
-        consumerCountOnline++;
-        consumerId |= (1 << NETCONSUMER_NTRIP_SERVER);
-    }
 
     // Network needed for TCP Client
     if (online.tcpClient)
@@ -2920,8 +2882,6 @@ uint8_t networkConsumersOnline()
             if (consumerCountOnline > 0)
             {
                 systemPrintf("- Consumers: ", consumerCountOnline);
-                if (consumerId & (1 << NETCONSUMER_NTRIP_SERVER))
-                    systemPrint("Base NTRIP Server, ");
                 if (consumerId & (1 << NETCONSUMER_TCP_CLIENT))
                     systemPrint("TCP Client, ");
                 if (consumerId & (1 << NETCONSUMER_TCP_SERVER))
