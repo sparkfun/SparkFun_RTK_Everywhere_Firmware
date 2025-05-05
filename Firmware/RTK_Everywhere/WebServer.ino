@@ -814,6 +814,8 @@ void updateWebServerTask(void *e)
 //----------------------------------------
 bool webServerAssignResources(int httpPort = 80)
 {
+    if (settings.debugWebServer)
+        systemPrintln("Assigning web server resources");
     do
     {
         // Freed by webServerStop
@@ -960,6 +962,7 @@ bool webServerAssignResources(int httpPort = 80)
         // Handler for file manager
         webServer->on("/file", HTTP_GET, handleFileManager);
 
+        // Start the web server
         webServer->begin();
 
         // Starts task for updating webServer with handleClient
@@ -973,7 +976,7 @@ bool webServerAssignResources(int httpPort = 80)
                 &updateWebServerTaskHandle); // Task handle
 
         if (settings.debugWebServer == true)
-            systemPrintln("Web Server Started");
+            systemPrintln("Web Server: Started");
         reportHeapNow(false);
 
         // Start the web socket server on port 81 using <esp_http_server.h>
@@ -989,13 +992,17 @@ bool webServerAssignResources(int httpPort = 80)
         }
 
         if (settings.debugWebServer == true)
+        {
             systemPrintln("Web Socket Server Started");
-        reportHeapNow(false);
+            reportHeapNow(true);
+        }
 
         return true;
     } while (0);
 
     // Release the resources
+    if (settings.debugWebServer == true)
+        reportHeapNow(true);
     webServerStopSockets();
     webServerReleaseResources();
     return false;
@@ -1008,7 +1015,7 @@ const char *webServerGetStateName(uint8_t state, char *string)
 {
     if (state < WEBSERVER_STATE_MAX)
         return webServerStateNames[state];
-    sprintf(string, "Unknown state (%d)", state);
+    sprintf(string, "Web Server: Unknown state (%d)", state);
     return string;
 }
 
@@ -1037,6 +1044,8 @@ bool webServerNeedsNetwork()
 //----------------------------------------
 void webServerReleaseResources()
 {
+    if (settings.debugWebServer)
+        systemPrintln("Releasing web server resources");
     if (task.updateWebServerTaskRunning)
         task.updateWebServerTaskStopRequest = true;
 
@@ -1118,7 +1127,7 @@ void webServerSetState(uint8_t newState)
 
     // Validate the state
     if (newState >= WEBSERVER_STATE_MAX)
-        reportFatalError("Invalid web config state");
+        reportFatalError("Web Server: Invalid web config state");
 }
 
 //----------------------------------------
@@ -1164,10 +1173,16 @@ void webServerStop()
 
         // Stop the machine
         webServerSetState(WEBSERVER_STATE_OFF);
+        if (settings.debugWebServer)
+            systemPrintln("Web Server: Stopped");
+
+        // Display the heap state
+        reportHeapNow(settings.debugWebServer);
     }
 }
 
 //----------------------------------------
+// State machine to handle the starting/stopping of the web server
 //----------------------------------------
 void webServerStopSockets()
 {
@@ -1220,6 +1235,7 @@ void webServerUpdate()
         if (settings.debugWebServer)
             systemPrintln("Assigning web server resources");
 
+        // Attempt to start the web server
         if (webServerAssignResources(settings.httpPort) == true)
         {
             online.webServer = true;
@@ -1313,22 +1329,33 @@ static esp_err_t ws_handler(httpd_req_t *req)
         }
     }
     if (settings.debugWebServer == true)
-        systemPrintf("Packet type: %d\r\n", ws_pkt.type);
-    // HTTPD_WS_TYPE_CONTINUE   = 0x0,
-    // HTTPD_WS_TYPE_TEXT       = 0x1,
-    // HTTPD_WS_TYPE_BINARY     = 0x2,
-    // HTTPD_WS_TYPE_CLOSE      = 0x8,
-    // HTTPD_WS_TYPE_PING       = 0x9,
-    // HTTPD_WS_TYPE_PONG       = 0xA
+    {
+        const char * pktType;
+        size_t length = ws_pkt.len;
+        switch (ws_pkt.type)
+        {
+        default: pktType = nullptr; break;
+        case HTTPD_WS_TYPE_CONTINUE: pktType = "HTTPD_WS_TYPE_CONTINUE"; break;
+        case HTTPD_WS_TYPE_TEXT:     pktType = "HTTPD_WS_TYPE_TEXT"; break;
+        case HTTPD_WS_TYPE_BINARY:   pktType = "HTTPD_WS_TYPE_BINARY"; break;
+        case HTTPD_WS_TYPE_CLOSE:    pktType = "HTTPD_WS_TYPE_CLOSE"; break;
+        case HTTPD_WS_TYPE_PING:     pktType = "HTTPD_WS_TYPE_PING"; break;
+        case HTTPD_WS_TYPE_PONG:     pktType = "HTTPD_WS_TYPE_PONG"; break;
+        }
+        systemPrintf("Packet: %p, %d bytes, type: %d%s%s%s\r\n",
+                     ws_pkt.payload,
+                     length,
+                     ws_pkt.type,
+                     pktType ? " (" : "",
+                     pktType ? pktType : "",
+                     pktType ? ")" : "");
+        if (length > 0x40)
+            length = 0x40;
+        dumpBuffer(ws_pkt.payload, length);
+    }
 
     if (ws_pkt.type == HTTPD_WS_TYPE_TEXT)
     {
-        if (settings.debugWebServer == true)
-        {
-            systemPrintf("Got packet with message: %s\r\n", ws_pkt.payload);
-            dumpBuffer(ws_pkt.payload, ws_pkt.len);
-        }
-
         if (currentlyParsingData == false)
         {
             for (int i = 0; i < ws_pkt.len; i++)
@@ -1405,6 +1432,9 @@ void httpdDisplayConfig(struct httpd_config * config)
 //----------------------------------------
 bool websocketServerStart(void)
 {
+    esp_err_t status;
+
+    // Gete the configuration object
     httpd_config_t config = HTTPD_DEFAULT_CONFIG();
 
     // Use different ports for websocket and webServer - use port 81 for the websocket - also defined in main.js
@@ -1420,7 +1450,13 @@ bool websocketServerStart(void)
     if (wsserver == nullptr)
         wsserver = new httpd_handle_t;
 
-    if (httpd_start(wsserver, &config) == ESP_OK)
+    if (settings.debugWebServer == true)
+    {
+        httpdDisplayConfig(&config);
+        reportHeapNow(true);
+    }
+    status = httpd_start(wsserver, &config);
+    if (status == ESP_OK)
     {
         // Registering the ws handler
         if (settings.debugWebServer == true)
@@ -1429,7 +1465,9 @@ bool websocketServerStart(void)
         return true;
     }
 
-    systemPrintln("Error starting wsserver!");
+    // Display the failure to start
+    systemPrintf("ERROR: wsserver failed to start, status: %s!\r\n",
+                 esp_err_to_name(status));
     return false;
 }
 
