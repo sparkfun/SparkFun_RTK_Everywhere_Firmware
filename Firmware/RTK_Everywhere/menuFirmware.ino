@@ -802,7 +802,10 @@ const char *otaStateNameGet(uint8_t state, char *string)
 //----------------------------------------
 void otaUpdate()
 {
+    bool connected;
+
     // Check if we need a scheduled check
+    connected = networkHasInternet();
     if (settings.enableAutoFirmwareUpdate)
     {
         // Wait until it is time to check for a firmware update
@@ -843,9 +846,7 @@ void otaUpdate()
                 otaUpdateStop();
 
             // Wait until the network is connected to the media
-            // else if (networkHasInternet())
-            else if (networkInterfaceHasInternet(
-                         NETWORK_WIFI_STATION)) // TODO Remove once OTA works over other network interfaces
+            else if (connected)
             {
                 if (settings.debugFirmwareUpdate)
                     systemPrintln("Firmware update connected to network");
@@ -858,9 +859,7 @@ void otaUpdate()
         // Get firmware version from server
         case OTA_STATE_GET_FIRMWARE_VERSION:
             // Determine if the network has failed
-            // if (networkHasInternet() == false)
-            if (networkInterfaceHasInternet(NETWORK_WIFI_STATION) ==
-                false) // TODO Remove once OTA works over other network interfaces
+            if (!connected)
                 otaUpdateStop();
             if (settings.debugFirmwareUpdate)
                 systemPrintln("Checking for latest firmware version");
@@ -916,7 +915,7 @@ void otaUpdate()
         // Update the firmware
         case OTA_STATE_UPDATE_FIRMWARE:
             // Determine if the network has failed
-            if (networkHasInternet() == false)
+            if (!connected)
                 otaUpdateStop();
             else
             {
