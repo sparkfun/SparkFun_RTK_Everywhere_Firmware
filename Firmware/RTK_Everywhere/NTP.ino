@@ -719,7 +719,7 @@ bool ntpProcessOneRequest(bool process, const timeval *recTv, const timeval *syn
 //----------------------------------------
 // Configure specific aspects of the receiver for NTP mode
 //----------------------------------------
-bool configureUbloxModuleNTP()
+bool ntpConfigureUbloxModule()
 {
     if (present.timePulseInterrupt == false)
         return (false);

@@ -606,7 +606,7 @@ void stateUpdate()
             displayNtpStart(500); // Show 'NTP'
 
             // Start UART connected to the GNSS receiver for NMEA and UBX data (enables logging)
-            if (tasksStartGnssUart() && configureUbloxModuleNTP())
+            if (tasksStartGnssUart() && ntpConfigureUbloxModule())
             {
                 settings.lastState = STATE_NTPSERVER_NOT_STARTED; // Record this state for next POR
                 settings.gnssConfiguredBase = false; // On the next boot, reapply all settings
