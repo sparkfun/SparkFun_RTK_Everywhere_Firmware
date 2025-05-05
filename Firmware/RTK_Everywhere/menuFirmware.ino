@@ -606,13 +606,6 @@ const char *otaGetUrl()
     return enableRCFirmware ? OTA_RC_FIRMWARE_JSON_URL : OTA_FIRMWARE_JSON_URL;
 }
 
-bool otaNeedsNetwork()
-{
-    if (otaState >= OTA_STATE_WAIT_FOR_NETWORK && otaState <= OTA_STATE_UPDATE_FIRMWARE)
-        return true;
-    return false;
-}
-
 //----------------------------------------
 // Display the OTA portion of the firmware menu
 //----------------------------------------
@@ -805,7 +798,7 @@ void otaUpdate()
     bool connected;
 
     // Check if we need a scheduled check
-    connected = networkHasInternet();
+    connected = networkConsumerIsConnected(NETCONSUMER_OTA_CLIENT);
     if (settings.enableAutoFirmwareUpdate)
     {
         // Wait until it is time to check for a firmware update
@@ -834,7 +827,11 @@ void otaUpdate()
         // Wait for a request from a user or from the scheduler
         case OTA_STATE_OFF:
             if (otaRequestFirmwareVersionCheck || otaRequestFirmwareUpdate)
+            {
+                // Start the network if necessary
+                networkConsumerAdd(NETCONSUMER_OTA_CLIENT, NETWORK_ANY, __FILE__, __LINE__);
                 otaSetState(OTA_STATE_WAIT_FOR_NETWORK);
+            }
             break;
 
         // Wait for connection to the network
@@ -850,6 +847,7 @@ void otaUpdate()
                     systemPrintln("Firmware update connected to network");
 
                 // Get the latest firmware version
+                networkUserAdd(NETCONSUMER_OTA_CLIENT, __FILE__, __LINE__);
                 otaSetState(OTA_STATE_GET_FIRMWARE_VERSION);
             }
             break;
@@ -977,6 +975,10 @@ void otaUpdateStop()
         online.otaClient = false;
         otaRequestFirmwareVersionCheck = false;
         otaRequestFirmwareUpdate = false;
+
+        // Let the network know we no longer need it
+        networkConsumerOffline(NETCONSUMER_OTA_CLIENT);
+        networkConsumerRemove(NETCONSUMER_OTA_CLIENT, NETWORK_ANY, __FILE__, __LINE__);
 
         // Stop the firmware update
         otaSetState(OTA_STATE_OFF);

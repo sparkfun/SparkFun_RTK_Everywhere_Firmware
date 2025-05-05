@@ -2831,14 +2831,6 @@ uint8_t networkConsumers(uint16_t *consumerTypes)
         *consumerTypes = NETWORK_EWC; // Ask for eth/wifi/cellular
     }
 
-    // Network needed to obtain the latest firmware version or do a firmware update
-    if (otaNeedsNetwork() || online.otaClient)
-    {
-        consumerCount++;
-        consumerId |= (1 << NETCONSUMER_OTA_CLIENT);
-        *consumerTypes = (1 << NETIF_WIFI_STA); // OTA Pull library only supports WiFi
-    }
-
     // Network needed for Web Config
     if (webServerNeedsNetwork() || online.webServer)
     {
@@ -2886,8 +2878,6 @@ uint8_t networkConsumers(uint16_t *consumerTypes)
                     systemPrint("PPL Key Update Request, ");
                 if (consumerId & (1 << NETCONSUMER_PPL_MQTT_CLIENT))
                     systemPrint("PPL MQTT Client, ");
-                if (consumerId & (1 << NETCONSUMER_OTA_CLIENT))
-                    systemPrint("OTA Version Check or Update, ");
                 if (consumerId & (1 << NETCONSUMER_WEB_CONFIG))
                     systemPrint("Web Config, ");
             }
@@ -2965,13 +2955,6 @@ uint8_t networkConsumersOnline()
         consumerId |= (1 << NETCONSUMER_PPL_MQTT_CLIENT);
     }
 
-    // Network needed to obtain the latest firmware version or do update
-    if (online.otaClient)
-    {
-        consumerCountOnline++;
-        consumerId |= (1 << NETCONSUMER_OTA_CLIENT);
-    }
-
     // Network needed for Web Config
     if (online.webServer)
     {
@@ -3005,8 +2988,6 @@ uint8_t networkConsumersOnline()
                     systemPrint("PPL Key Update Request, ");
                 if (consumerId & (1 << NETCONSUMER_PPL_MQTT_CLIENT))
                     systemPrint("PPL MQTT Client, ");
-                if (consumerId & (1 << NETCONSUMER_OTA_CLIENT))
-                    systemPrint("OTA Version Check or Update, ");
                 if (consumerId & (1 << NETCONSUMER_WEB_CONFIG))
                     systemPrint("Web Config, ");
             }
