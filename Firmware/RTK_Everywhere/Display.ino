@@ -212,7 +212,6 @@ void displayUpdate()
 
             oled->erase();
 
-            std::vector<iconPropertyBlinking> iconPropertyList; // List of icons to be displayed
             iconPropertyList.clear();                           // Redundant?
 
             switch (systemState)
@@ -704,7 +703,6 @@ void setRadioIcons(std::vector<iconPropertyBlinking> *iconList)
 
                 // No Rover/Base icons
             }
-
 
             // On 64x48: squeeze the icon between SIV and logging
             static bool correctionsIconPosCalculated = false;
@@ -1664,6 +1662,7 @@ displayCoords paintSIVIcon(std::vector<iconPropertyBlinking> *iconList, const ic
                 // override duty - solid satellite dish icon regardless of fix state
                 duty = 0b11111111;
             }
+
             // Determine if there is a fix
             else if (gnss->isFixed() == false)
             {

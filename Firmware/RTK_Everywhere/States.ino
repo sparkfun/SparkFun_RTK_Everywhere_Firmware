@@ -7,8 +7,6 @@
 
 static uint32_t lastStateTime = 0;
 
-extern bool websocketConnected;
-
 // Given the current state, see if conditions have moved us to a new state
 // A user pressing the mode button (change between rover/base) is handled by buttonCheckTask()
 void stateUpdate()
@@ -123,7 +121,6 @@ void stateUpdate()
                 displayRoverFail(1000);
             else
             {
-                //settings.gnssConfiguredRover is set by gnss->configureRover()
                 settings.gnssConfiguredBase = false; // When the mode changes, reapply all settings
                 settings.lastState = STATE_ROVER_NOT_STARTED;
                 recordSystemSettings(); // Record this state for next POR

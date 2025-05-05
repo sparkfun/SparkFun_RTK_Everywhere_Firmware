@@ -719,6 +719,28 @@ void networkConsumerRemove(NETCONSUMER_t consumer,
 }
 
 //----------------------------------------
+// Determine if the current network interface has any consumer
+//----------------------------------------
+NETCONSUMER_MASK_t networkConsumers()
+{
+    NETCONSUMER_MASK_t consumers;
+    NetIndex_t index;
+    NetPriority_t priority;
+
+    // Get the network interface index
+    consumers = 0;
+    priority = networkPriority;
+    if (priority != NETWORK_OFFLINE)
+    {
+        index = networkIndexTable[priority];
+        consumers = networkConsumerBits(index);
+    }
+
+    // Return the consumers as a bit mask
+    return consumers;
+}
+
+//----------------------------------------
 // Validate the network consumer
 //----------------------------------------
 void networkConsumerValidate(NETCONSUMER_t consumer)
@@ -1382,20 +1404,6 @@ bool networkIsStarted(NetIndex_t index)
 
     // Determine if the interface is started
     return ((networkSeqStarting | networkStarted) & (1 << index));
-}
-
-//----------------------------------------
-// Change multicast DNS to a given network
-//----------------------------------------
-void networkMulticastDNSSwitch(NetIndex_t startIndex)
-{
-    // Stop mDNS on the other networks
-    for (int index = 0; index < NETWORK_OFFLINE; index++)
-        if (index != startIndex)
-            networkMulticastDNSStop(index);
-
-    // Start mDNS on the requested network
-    networkMulticastDNSStart(startIndex); // Start DNS on the selected network, either WiFi or Ethernet
 }
 
 //----------------------------------------

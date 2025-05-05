@@ -37,8 +37,6 @@ void networkBegin() {}
 void networkConsumerAdd(NETCONSUMER_t consumer, NetIndex_t network, const char * fileName, uint32_t lineNumber) {}
 bool networkConsumerIsConnected(NETCONSUMER_t consumer) {return false;}
 void networkConsumerRemove(NETCONSUMER_t consumer, NetIndex_t network, const char * fileName, uint32_t lineNumber) {}
-uint8_t networkConsumers() {return(0);}
-uint16_t networkGetConsumerTypes() {return(0);}
 IPAddress networkGetIpAddress() {return("0.0.0.0");}
 const uint8_t * networkGetMacAddress()
 {
@@ -127,7 +125,6 @@ void otaAutoUpdate() {}
 bool otaCheckVersion(char *versionAvailable, uint8_t versionAvailableLength)    {return false;}
 void otaMenuDisplay(char * currentVersion) {}
 bool otaMenuProcessInput(byte incoming) {return false;}
-bool otaNeedsNetwork() {return false;}
 void otaUpdate() {}
 void otaUpdateStop() {}
 void otaVerifyTables() {}
@@ -141,7 +138,6 @@ void otaVerifyTables() {}
 #ifndef COMPILE_MQTT_CLIENT
 
 bool mqttClientIsConnected() {return false;}
-bool mqttClientNeedsNetwork() {return false;}
 void mqttClientPrintStatus() {}
 void mqttClientRestart() {}
 void mqttClientStartEnabled() {}
@@ -176,7 +172,6 @@ bool webServerStart(int httpPort = 80)
 bool parseIncomingSettings() {return false;}
 void sendStringToWebsocket(const char* stringToSend) {}
 void stopWebServer() {}
-bool webServerNeedsNetwork() {return false;}
 void webServerStop() {}
 void webServerUpdate()  {}
 void webServerVerifyTables() {}

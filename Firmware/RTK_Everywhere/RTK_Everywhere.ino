@@ -575,7 +575,7 @@ TaskHandle_t pinBluetoothTaskHandle; // Dummy task to start hardware on an assig
 volatile bool bluetoothPinned;       // This variable is touched by core 0 but checked by core 1. Must be volatile.
 
 volatile static int combinedSpaceRemaining; // Overrun indicator
-volatile static uint64_t logFileSize;              // Updated with each write
+volatile static uint64_t logFileSize;       // Updated with each write
 int bufferOverruns;                         // Running count of possible data losses since power-on
 
 bool zedUartPassed; // Goes true during testing if ESP can communicate with ZED over UART

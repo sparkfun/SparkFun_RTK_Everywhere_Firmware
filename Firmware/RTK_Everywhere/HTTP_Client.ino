@@ -578,8 +578,6 @@ void httpClientUpdate()
                     if (settings.debugCorrections || settings.debugHttpClientData)
                         pointperfectPrintKeyInformation("HTTP Client");
 
-                    // displayKeysUpdated();
-
                     ztpResponse = ZTP_SUCCESS;
                     httpClientSetState(HTTP_CLIENT_COMPLETE);
                 }

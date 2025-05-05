@@ -574,19 +574,6 @@ const int numRegionalAreas = sizeof(Regional_Information_Table) / sizeof(Regiona
 
 #define NTRIP_SERVER_STRING_SIZE        50
 
-//Bitfield for describing the type of network the consumer can use
-enum
-{
-    NETIF_NONE = 0, // No consumers
-    NETIF_WIFI_STA, // The consumer can use STA
-    NETIF_WIFI_AP, // The consumer can use AP
-    NETIF_CELLULAR, // The consumer can use Cellular
-    NETIF_ETHERNET, // The consumer can use Ethernet
-    NETIF_UNKNOWN
-};
-
-#define NETWORK_EWC ((1 << NETIF_ETHERNET) | (1 << NETIF_WIFI_STA) | (1 << NETIF_CELLULAR))
-
 // Bitfield for describing the network consumers
 enum
 {
