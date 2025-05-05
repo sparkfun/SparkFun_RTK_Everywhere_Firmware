@@ -60,13 +60,20 @@ NTP.ino
 enum NTP_STATE
 {
     NTP_STATE_OFF,
+    NTP_STATE_WAIT_NETWORK,
     NTP_STATE_NETWORK_CONNECTED,
     NTP_STATE_SERVER_RUNNING,
     // Insert new states here
     NTP_STATE_MAX
 };
 
-const char *const ntpServerStateName[] = {"NTP_STATE_OFF", "NTP_STATE_NETWORK_CONNECTED", "NTP_STATE_SERVER_RUNNING"};
+const char *const ntpServerStateName[] =
+{
+    "NTP_STATE_OFF",
+    "NTP_STATE_WAIT_NETWORK",
+    "NTP_STATE_NETWORK_CONNECTED",
+    "NTP_STATE_SERVER_RUNNING"
+};
 const int ntpServerStateNameEntries = sizeof(ntpServerStateName) / sizeof(ntpServerStateName[0]);
 
 const RtkMode_t ntpServerMode = RTK_MODE_NTP;
@@ -778,8 +785,11 @@ void ntpServerStop()
             reportHeapNow(settings.debugNtp);
     }
 
-    // Stop the NTP server
-    ntpServerSetState(NTP_STATE_OFF);
+    // Stop the NTP server if necessary
+    if (NEQ_RTK_MODE(ntpServerMode))
+        ntpServerSetState(NTP_STATE_OFF);
+    else
+        ntpServerSetState(NTP_STATE_WAIT_NETWORK);
 }
 
 //----------------------------------------
@@ -795,11 +805,12 @@ void ntpServerUpdate()
         return;
 
     // Shutdown the NTP server when the mode changes or network fails
+    // The NTP server only works over Ethernet
     connected = networkInterfaceHasInternet(NETWORK_ETHERNET);
     enabled = EQ_RTK_MODE(ntpServerMode);
     if ((enabled == false) && (ntpServerState > NTP_STATE_OFF))
         ntpServerStop();
-    else if ((ntpServerState > NTP_STATE_OFF) && !connected)
+    else if ((ntpServerState > NTP_STATE_WAIT_NETWORK) && !connected)
         ntpServerStop();
 
     // Process the NTP state
@@ -812,21 +823,24 @@ void ntpServerUpdate()
     case NTP_STATE_OFF:
         // Determine if the NTP server is enabled
         if (enabled)
-        {
-            // The NTP server only works over Ethernet
-            if (connected)
-                ntpServerSetState(NTP_STATE_NETWORK_CONNECTED);
-        }
+            ntpServerSetState(NTP_STATE_WAIT_NETWORK);
+        break;
+
+    case NTP_STATE_WAIT_NETWORK:
+        // Wait until the internet is accessible
+        if (connected)
+            ntpServerSetState(NTP_STATE_NETWORK_CONNECTED);
         break;
 
     case NTP_STATE_NETWORK_CONNECTED:
-        // Attempt to start the NTP server
+        // Attempt to allocate the UDP object
         ntpServer = new NetworkUDP;
         if (!ntpServer)
             // Insufficient memory to start the NTP server
             ntpServerStop();
         else
         {
+            // Start the NTP server
             ntpServer->begin(settings.ethernetNtpPort); // Start the NTP server
             online.ethernetNTPServer = true;
             if (!inMainMenu)
