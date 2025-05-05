@@ -97,7 +97,7 @@ void firmwareMenu()
 // Returns false if parsing failed
 //----------------------------------------
 bool firmwareVersionBreakIntoParts(char *version, int *versionNumberMajor, int *versionNumberMinor, int *year, int *month,
-                           int *day)
+                                   int *day)
 {
     char monthStr[20];
     int placed = 0;
@@ -510,7 +510,6 @@ void microSDUpdateFirmware(const char *firmwareFileName)
 bool otaCheckVersion(char *versionAvailable, uint8_t versionAvailableLength)
 {
     bool gotVersion = false;
-#ifdef COMPILE_NETWORK
 
     if (networkHasInternet() == false)
     {
@@ -553,7 +552,6 @@ bool otaCheckVersion(char *versionAvailable, uint8_t versionAvailableLength)
         systemPrintln("OTA failed");
     }
 
-#endif // COMPILE_NETWORK
     return (gotVersion);
 }
 
@@ -704,9 +702,11 @@ void otaPullCallback(int bytesWritten, int totalLength)
     otaDisplayPercentage(bytesWritten, totalLength, false);
 }
 
+//----------------------------------------
+// Translate the ESP32OTAPull code into a zero terminated error string
+//----------------------------------------
 const char *otaPullErrorText(int code)
 {
-#ifdef COMPILE_NETWORK
     switch (code)
     {
     case ESP32OTAPull::UPDATE_AVAILABLE:
@@ -730,7 +730,6 @@ const char *otaPullErrorText(int code)
             return "Unexpected HTTP response code";
         break;
     }
-#endif // COMPILE_NETWORK
     return "Unknown error";
 }
 
@@ -936,7 +935,6 @@ void otaUpdate()
 //----------------------------------------
 void otaUpdateFirmware()
 {
-#ifdef COMPILE_NETWORK
     char versionString[9];
     firmwareVersionFormat(0, 0, versionString, sizeof(versionString), false);
 
@@ -953,12 +951,8 @@ void otaUpdateFirmware()
         ota.CheckForOTAUpdate(url, &versionString[1]); // Install new firmware, no reset
 
         if (apConfigFirmwareUpdateInProcess)
-        {
-#ifdef COMPILE_AP
             // Tell AP page to display reset info
             sendStringToWebsocket("confirmReset,1,");
-#endif // COMPILE_AP
-        }
         ESP.restart();
     }
     else if (response == ESP32OTAPull::NO_UPDATE_AVAILABLE)
@@ -967,7 +961,6 @@ void otaUpdateFirmware()
         systemPrintln("OTA Update: Firmware server not available");
     else
         systemPrintln("OTA Update: OTA failed");
-#endif // COMPILE_NETWORK
 }
 
 //----------------------------------------
