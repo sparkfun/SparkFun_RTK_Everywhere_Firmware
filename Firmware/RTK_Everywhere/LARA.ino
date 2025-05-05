@@ -6,6 +6,7 @@ static uint32_t laraPowerLowMsec; // Measure the power off time
 
 #define LARA_ON_TIME (2 * 1000)     // Milliseconds
 #define LARA_OFF_TIME (5 * 1000)    // Milliseconds
+#define LARA_PRIORITY_TIME  100     // Milliseconds
 #define LARA_SETTLE_TIME (2 * 1000) // Milliseconds
 #define LARA_SIM_DELAY (1 * 1000)   // Milliseconds. 500 is too short
 
@@ -29,11 +30,8 @@ void laraSetPins(NetIndex_t index, uintptr_t parameter, bool debug)
     if (!laraPowerPinRead(debug))
         laraPowerLowMsec = currentMsec;
 
-    // Specify the timer expiration date
-    laraTimer = currentMsec + parameter;
-
-    // Set the next state
-    networkSequenceNextEntry(index, debug);
+    // Specify the timer expiration date and set the next state
+    laraTimerStart(index, parameter, debug);
 }
 
 //----------------------------------------
@@ -51,9 +49,6 @@ void laraPowerHigh(NetIndex_t index, uintptr_t parameter, bool debug)
     digitalWrite(pin_Cellular_PWR_ON, LARA_PWR_HIGH_VALUE);
     currentMsec = millis();
 
-    // Specify the timer expiration date
-    laraTimer = currentMsec + parameter;
-
     // Display the pulse width
     if (debug)
     {
@@ -64,8 +59,8 @@ void laraPowerHigh(NetIndex_t index, uintptr_t parameter, bool debug)
         systemPrintf("LARA power pulse width: %d.%03d Sec\r\n", seconds, milliseconds);
     }
 
-    // Set the next state
-    networkSequenceNextEntry(index, debug);
+    // Specify the timer expiration date and set the next state
+    laraTimerStart(index, parameter, debug);
 }
 
 //----------------------------------------
@@ -90,8 +85,16 @@ void laraPowerLow(NetIndex_t index, uintptr_t parameter, bool debug)
         laraPowerPinRead(debug);
     }
 
+    // Specify the timer expiration date and set the next state
+    laraTimerStart(index, parameter, debug);
+}
+
+//----------------------------------------
+// Start the LARA timer and set the next state
+void laraTimerStart(NetIndex_t index, uintptr_t parameter, bool debug)
+{
     // Specify the timer expiration date
-    laraTimer = currentMsec + parameter;
+    laraTimer = millis() + parameter;
 
     // Set the next state
     networkSequenceNextEntry(index, debug);
@@ -138,6 +141,8 @@ NETWORK_POLL_SEQUENCE laraBootSequence[] =
 // (Remember that LARA_PWR is inverted by the RTK EVK level-shifter)
 NETWORK_POLL_SEQUENCE laraOnSequence[] =
 {   //  State               Parameter               Description
+    {laraTimerStart,        LARA_PRIORITY_TIME,     "Start the LARA timer"},
+    {networkVerifyPriority, (uintptr_t)&laraTimer,  "Verify the LARA priority"},
     {laraPowerLow,          LARA_ON_TIME,           "Notify LARA of power state change"},
     {networkDelay,          (uintptr_t)&laraTimer,  "Tell LARA to power on"},
     {laraPowerHigh,         LARA_SETTLE_TIME,       "Finish power on sequence"},
