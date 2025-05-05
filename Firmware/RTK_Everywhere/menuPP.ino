@@ -19,6 +19,8 @@ static const uint8_t developmentToken[16] = {DEVELOPMENT_TOKEN};         // Toke
 static const uint8_t ppLbandToken[16] = {POINTPERFECT_LBAND_TOKEN};      // Token in HEX form
 static const uint8_t ppIpToken[16] = {POINTPERFECT_IP_TOKEN};            // Token in HEX form
 static const uint8_t ppLbandIpToken[16] = {POINTPERFECT_LBAND_IP_TOKEN}; // Token in HEX form
+static unsigned long provisioningStartTime_millis;
+static bool provisioningRunning;
 
 #ifdef COMPILE_NETWORK
 MqttClient *menuppMqttClient;
@@ -1049,7 +1051,122 @@ void provisioningSetState(uint8_t newState)
     }
 }
 
-unsigned long provisioningStartTime_millis;
+// Determine if provisioning is enabled
+bool provisioningEnabled(const char ** line)
+{
+    bool enabled;
+
+    do
+    {
+        // Provisioning requires PointPerfect corrections
+        enabled = settings.enablePointPerfectCorrections;
+        if (enabled == false)
+        {
+            *line = ", PointPerfect corrections disabled!";
+            break;
+        }
+
+        // Keep running until provisioning attempt is complete
+        if (provisioningRunning)
+            break;
+
+        // Determine if provisioning should start
+        provisioningRunning = settings.requestKeyUpdate // Manual update
+            || (provisioningStartTime_millis == 0) // Update keys at boot
+            || (settings.autoKeyRenewal && // Auto renewal time (24 hours expired)
+                ((millis() - provisioningStartTime_millis) > MILLISECONDS_IN_A_DAY));
+
+        // Determine if key provisioning is enabled
+        enabled = provisioningRunning;
+        if (settings.autoKeyRenewal)
+            *line = ", Key not requested and auto key renewal running later!";
+        else
+            *line = ", Key not requested and auto key renewal is disabled!";
+    } while (0);
+    return enabled;
+}
+
+// Determine if the keys are needed
+bool provisioningKeysNeeded()
+{
+    bool keysNeeded;
+
+    do
+    {
+        keysNeeded = true;
+
+        // If we don't have certs or keys, begin zero touch provisioning
+        if (!checkCertificates() || strlen(settings.pointPerfectCurrentKey) == 0 ||
+            strlen(settings.pointPerfectNextKey) == 0)
+        {
+            if (settings.debugPpCertificate)
+                systemPrintln("Invalid certificates or keys.");
+            break;
+        }
+
+        // If requestKeyUpdate is true, begin provisioning
+        if (settings.requestKeyUpdate)
+        {
+            if (settings.debugPpCertificate)
+                systemPrintln("requestKeyUpdate is true.");
+            break;
+        }
+
+        // Determine if RTC is online
+        if (!online.rtc)
+        {
+            if (settings.debugPpCertificate)
+                systemPrintln("No RTC.");
+            break;
+        }
+
+        // RTC is online. Determine days until next key expires
+        int daysRemaining =
+            daysFromEpoch(settings.pointPerfectNextKeyStart + settings.pointPerfectNextKeyDuration + 1);
+
+        if (settings.debugPpCertificate)
+            systemPrintf("Days until keys expire: %d\r\n", daysRemaining);
+
+        // PointPerfect returns keys that expire at midnight so the primary key
+        // is still available with 0 days left, and a Next Key that has 28 days left
+        // If there are 28 days remaining, PointPerfect won't have new keys.
+        if (daysRemaining < 28)
+        {
+            // When did we last try to get keys? Attempt every 24 hours - or always for DEVELOPER
+            // if (rtc.getEpoch() - settings.lastKeyAttempt > ( ENABLE_DEVELOPER ? 0 : SECONDS_IN_A_DAY))
+            // When did we last try to get keys? Attempt every 24 hours
+            if (rtc.getEpoch() - settings.lastKeyAttempt > SECONDS_IN_A_DAY)
+            {
+                settings.lastKeyAttempt = rtc.getEpoch(); // Mark it
+                recordSystemSettings();                   // Record these settings to unit
+                break;
+            }
+
+            if (settings.debugPpCertificate)
+                systemPrintln("Already tried to obtain keys for today");
+        }
+
+        // Don't need new keys
+        keysNeeded = false;
+    } while (0);
+    if (keysNeeded && settings.debugPpCertificate)
+        systemPrintln(" Starting provisioning");
+    return keysNeeded;
+}
+
+void provisioningStop(const char * file, uint32_t line)
+{
+    // Done with this request attempt
+    settings.requestKeyUpdate = false;
+    provisioningRunning = false;
+
+    // Record the time so we can restart after 24 hours
+    provisioningStartTime_millis = millis();
+
+    // Done with the network
+    provisioningSetState(PROVISIONING_OFF);
+}
+
 const unsigned long provisioningTimeout_ms = 120000;
 
 // Return true if we are in states that require network access
