@@ -1000,7 +1000,6 @@ enum ProvisioningStates
     PROVISIONING_WAIT_FOR_NETWORK,
     PROVISIONING_STARTED,
     PROVISIONING_KEYS_REMAINING,
-    PROVISIONING_WAIT_ATTEMPT,
     PROVISIONING_STATE_MAX,
 };
 static volatile uint8_t provisioningState = PROVISIONING_OFF;
@@ -1009,8 +1008,7 @@ const char *const provisioningStateName[] = {"PROVISIONING_OFF",
                                              "PROVISIONING_CHECK_REMAINING",
                                              "PROVISIONING_WAIT_FOR_NETWORK",
                                              "PROVISIONING_STARTED",
-                                             "PROVISIONING_KEYS_REMAINING",
-                                             "PROVISIONING_WAIT_ATTEMPT"};
+                                             "PROVISIONING_KEYS_REMAINING"};
 
 const int provisioningStateNameEntries = sizeof(provisioningStateName) / sizeof(provisioningStateName[0]);
 
@@ -1355,25 +1353,10 @@ void provisioningUpdate()
 
         gnss->applyPointPerfectKeys(); // Send current keys, if available, to GNSS
 
-        settings.requestKeyUpdate = false; // However we got here, clear requestKeyUpdate
         recordSystemSettings();            // Record these settings to unit
 
-        provisioningStartTime_millis = millis(); // Record the time so we can restart after 24 hours
-        provisioningSetState(PROVISIONING_WAIT_ATTEMPT);
-    }
-    break;
-    case PROVISIONING_WAIT_ATTEMPT: {
-        if (settings.requestKeyUpdate) // requestKeyUpdate can be set via the menu, mode button or web config
-            provisioningSetState(PROVISIONING_CHECK_REMAINING);
-        else if (!settings.enablePointPerfectCorrections || !settings.autoKeyRenewal)
-            provisioningSetState(PROVISIONING_OFF);
-        // When did we last try to get keys? Attempt every 24 hours - or every 15 mins for DEVELOPER
-        // else if (millis() > (provisioningStartTime_millis + ( ENABLE_DEVELOPER ? (1000 * 60 * 15) : (1000 * 60 * 60 *
-        // 24))))
-        // When did we last try to get keys? Attempt every 24 hours
-        else if (millis() >
-                 (provisioningStartTime_millis + MILLISECONDS_IN_A_DAY)) // Don't use settings.lastKeyAttempt (#419)
-            provisioningSetState(PROVISIONING_CHECK_REMAINING);
+        // Done with the network
+        provisioningStop(__FILE__, __LINE__);
     }
     break;
     }
