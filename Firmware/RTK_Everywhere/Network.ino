@@ -2814,14 +2814,6 @@ uint8_t networkConsumers(uint16_t *consumerTypes)
         *consumerTypes = NETWORK_EWC; // Ask for eth/wifi/cellular
     }
 
-    // Network needed for PointPerfect ZTP or key update requested by scheduler, from menu, or display menu
-    if (provisioningNeedsNetwork() || online.httpClient)
-    {
-        consumerCount++;
-        consumerId |= (1 << NETCONSUMER_PPL_KEY_UPDATE);
-        *consumerTypes = NETWORK_EWC; // Ask for eth/wifi/cellular
-    }
-
     // Network needed for PointPerfect Corrections MQTT client
     if (mqttClientNeedsNetwork() || online.mqttClient)
     {
@@ -2874,8 +2866,6 @@ uint8_t networkConsumers(uint16_t *consumerTypes)
                     systemPrint("TCP Server, ");
                 if (consumerId & (1 << NETCONSUMER_UDP_SERVER))
                     systemPrint("UDP Server, ");
-                if (consumerId & (1 << NETCONSUMER_PPL_KEY_UPDATE))
-                    systemPrint("PPL Key Update Request, ");
                 if (consumerId & (1 << NETCONSUMER_PPL_MQTT_CLIENT))
                     systemPrint("PPL MQTT Client, ");
                 if (consumerId & (1 << NETCONSUMER_WEB_CONFIG))
@@ -2940,13 +2930,6 @@ uint8_t networkConsumersOnline()
         consumerId |= (1 << NETCONSUMER_UDP_SERVER);
     }
 
-    // Network needed for PointPerfect ZTP or key update requested by scheduler, from menu, or display menu
-    if (online.httpClient)
-    {
-        consumerCountOnline++;
-        consumerId |= (1 << NETCONSUMER_PPL_KEY_UPDATE);
-    }
-
     // Network needed for PointPerfect Corrections MQTT client
     if (online.mqttClient)
     {
@@ -2984,8 +2967,6 @@ uint8_t networkConsumersOnline()
                     systemPrint("TCP Server, ");
                 if (consumerId & (1 << NETCONSUMER_UDP_SERVER))
                     systemPrint("UDP Server, ");
-                if (consumerId & (1 << NETCONSUMER_PPL_KEY_UPDATE))
-                    systemPrint("PPL Key Update Request, ");
                 if (consumerId & (1 << NETCONSUMER_PPL_MQTT_CLIENT))
                     systemPrint("PPL MQTT Client, ");
                 if (consumerId & (1 << NETCONSUMER_WEB_CONFIG))

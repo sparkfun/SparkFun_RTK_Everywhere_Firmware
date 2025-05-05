@@ -1159,15 +1159,8 @@ void provisioningStop(const char * file, uint32_t line)
     provisioningStartTime_millis = millis();
 
     // Done with the network
+    networkConsumerRemove(NETCONSUMER_PPL_KEY_UPDATE, NETWORK_ANY, file, line);
     provisioningSetState(PROVISIONING_OFF);
-}
-
-// Return true if we are in states that require network access
-bool provisioningNeedsNetwork()
-{
-    if (provisioningState >= PROVISIONING_WAIT_FOR_NETWORK && provisioningState <= PROVISIONING_STARTED)
-        return true;
-    return false;
 }
 
 void provisioningUpdate()
@@ -1200,6 +1193,8 @@ void provisioningUpdate()
             provisioningSetState(PROVISIONING_KEYS_REMAINING);
         else
         {
+            // Request the network for PointPerfect key provisioning
+            networkConsumerAdd(NETCONSUMER_PPL_KEY_UPDATE, NETWORK_ANY, __FILE__, __LINE__);
             provisioningSetState(PROVISIONING_WAIT_FOR_NETWORK);
         }
     }
@@ -1212,7 +1207,7 @@ void provisioningUpdate()
             provisioningStop(__FILE__, __LINE__);
 
         // Wait until the network is available
-        else if (networkHasInternet())
+        else if (networkConsumerIsConnected(NETCONSUMER_PPL_KEY_UPDATE))
         {
             if (settings.debugPpCertificate)
                 systemPrintln("PointPerfect key update connected to network");
@@ -1222,6 +1217,7 @@ void provisioningUpdate()
             httpClientModeNeeded = true;             // This will start the HTTP_Client
             provisioningStartTime_millis = millis(); // Record the start time so we can timeout
             paintGettingKeys();
+            networkUserAdd(NETCONSUMER_PPL_KEY_UPDATE, __FILE__, __LINE__);
             provisioningSetState(PROVISIONING_STARTED);
         }
     }
