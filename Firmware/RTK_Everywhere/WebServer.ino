@@ -984,11 +984,7 @@ bool webServerAssignResources(int httpPort = 80)
         {
             if (settings.debugWebServer == true)
                 systemPrintln("Web Sockets failed to start");
-
-            webServerStopSockets();
-            webServerReleaseResources();
-
-            return (false);
+            break;
         }
 
         if (settings.debugWebServer == true)
@@ -997,13 +993,13 @@ bool webServerAssignResources(int httpPort = 80)
             reportHeapNow(true);
         }
 
+        online.webServer = true;
         return true;
     } while (0);
 
     // Release the resources
     if (settings.debugWebServer == true)
         reportHeapNow(true);
-    webServerStopSockets();
     webServerReleaseResources();
     return false;
 }
@@ -1054,6 +1050,10 @@ void webServerReleaseResources()
         delay(10);
     while (task.updateWebServerTaskRunning);
 
+    online.webServer = false;
+
+    webServerStopSockets();      // Release socket resources
+
     if (webServer != nullptr)
     {
         webServer->close();
@@ -1074,6 +1074,23 @@ void webServerReleaseResources()
     {
         rtkFree(incomingSettings, "Settings buffer (incomingSettings)");
         incomingSettings = nullptr;
+    }
+}
+
+//----------------------------------------
+//----------------------------------------
+void webServerStopSockets()
+{
+    websocketConnected = false;
+
+    if (wsserver != nullptr)
+    {
+        // Stop the httpd server
+        esp_err_t status = httpd_stop(wsserver);
+        if (status != ESP_OK)
+            systemPrintf("ERROR: wsserver failed to stop, status: %s!\r\n",
+                         esp_err_to_name(status));
+        wsserver = nullptr;
     }
 }
 
@@ -1184,21 +1201,6 @@ void webServerStop()
 //----------------------------------------
 // State machine to handle the starting/stopping of the web server
 //----------------------------------------
-void webServerStopSockets()
-{
-    websocketConnected = false;
-
-    if (wsserver != nullptr)
-    {
-        // Stop the httpd server
-        esp_err_t ret = httpd_stop(wsserver);
-        wsserver = nullptr;
-    }
-}
-
-//----------------------------------------
-// State machine to handle the starting/stopping of the web server
-//----------------------------------------
 void webServerUpdate()
 {
     // Walk the state machine
@@ -1236,11 +1238,8 @@ void webServerUpdate()
             systemPrintln("Assigning web server resources");
 
         // Attempt to start the web server
-        if (webServerAssignResources(settings.httpPort) == true)
-        {
-            online.webServer = true;
+        else if (webServerAssignResources(settings.httpPort) == true)
             webServerSetState(WEBSERVER_STATE_RUNNING);
-        }
     }
     break;
 
@@ -1248,7 +1247,10 @@ void webServerUpdate()
     case WEBSERVER_STATE_RUNNING:
         // Determine if the network has failed
         if (networkHasInternet() == false && WIFI_SOFT_AP_RUNNING() == false)
-            webServerStop();
+        {
+            webServerReleaseResources(); // Release web server resources
+            webServerSetState(WEBSERVER_STATE_WAIT_FOR_NETWORK);
+        }
 
         // This state is exited when webServerStop() is called
 
