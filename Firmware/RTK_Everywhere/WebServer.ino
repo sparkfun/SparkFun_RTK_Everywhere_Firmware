@@ -1129,8 +1129,19 @@ void webServerStart()
     // Display the heap state
     reportHeapNow(settings.debugWebServer);
 
-    systemPrintln("Web Server start");
-    webServerSetState(WEBSERVER_STATE_WAIT_FOR_NETWORK);
+    if (webServerState != WEBSERVER_STATE_OFF)
+    {
+        if (settings.debugWebServer)
+            systemPrintln("Web Server: Already running!");
+    }
+    else
+    {
+        if (settings.debugWebServer)
+            systemPrintln("Web Server: Starting");
+
+        // Start the network
+        webServerSetState(WEBSERVER_STATE_WAIT_FOR_NETWORK);
+    }
 }
 
 //----------------------------------------
