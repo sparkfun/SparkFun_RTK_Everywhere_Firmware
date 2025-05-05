@@ -22,10 +22,6 @@ static const uint8_t ppLbandIpToken[16] = {POINTPERFECT_LBAND_IP_TOKEN}; // Toke
 static unsigned long provisioningStartTime_millis;
 static bool provisioningRunning;
 
-#ifdef COMPILE_NETWORK
-MqttClient *menuppMqttClient;
-#endif // COMPILE_NETWORK
-
 //----------------------------------------
 // L-Band Routines - compiled out
 //----------------------------------------
@@ -391,9 +387,12 @@ bool checkCertificates()
 
     // Load the certificate
     memset(certificateContents, 0, MQTT_CERT_SIZE);
-    loadFile("certificate", certificateContents, settings.debugPpCertificate);
-
-    if (checkCertificateValidity(certificateContents, strlen(certificateContents)) == false)
+    if (!loadFile("certificate", certificateContents, settings.debugPpCertificate))
+    {
+        systemPrintf("ERROR: Failed to open the certificate file\r\n");
+        validCertificates = false;
+    }
+    else if (checkCertificateValidity(certificateContents, strlen(certificateContents)) == false)
     {
         if (settings.debugPpCertificate)
             systemPrintln("Certificate is corrupt.");
@@ -402,9 +401,12 @@ bool checkCertificates()
 
     // Load the private key
     memset(keyContents, 0, MQTT_CERT_SIZE);
-    loadFile("privateKey", keyContents, settings.debugPpCertificate);
-
-    if (checkPrivateKeyValidity(keyContents, strlen(keyContents)) == false)
+    if (!loadFile("privateKey", keyContents, settings.debugPpCertificate))
+    {
+        systemPrintf("ERROR: Failed to open the private key file\r\n");
+        validCertificates = false;
+    }
+    else if (checkPrivateKeyValidity(keyContents, strlen(keyContents)) == false)
     {
         if (settings.debugPpCertificate)
             systemPrintln("PrivateKey is corrupt.");
@@ -422,6 +424,9 @@ bool checkCertificates()
         systemPrintf("Stored certificates are %svalid\r\n", validCertificates ? "" : "NOT ");
     }
 
+    // Enable MQTT once the certificates are available and valid
+    if (validCertificates)
+        mqttClientStartEnabled();
     return (validCertificates);
 }
 
