@@ -87,7 +87,7 @@ void cellularEvent(arduino_event_id_t event)
     if (networkInterfaceHasInternet(NETWORK_CELLULAR) && (event != ARDUINO_EVENT_ETH_GOT_IP) &&
         (event != ARDUINO_EVENT_ETH_GOT_IP6) && (event != ARDUINO_EVENT_PPP_CONNECTED))
     {
-        networkInterfaceInternetConnectionLost(NETWORK_CELLULAR);
+        networkInterfaceEventInternetLost(NETWORK_CELLULAR, __FILE__, __LINE__);
     }
 
     // Cellular State Machine
@@ -108,7 +108,7 @@ void cellularEvent(arduino_event_id_t event)
 
     case ARDUINO_EVENT_PPP_CONNECTED:
         systemPrintln("Cellular Connected");
-        networkInterfaceInternetConnectionAvailable(NETWORK_CELLULAR);
+        networkInterfaceEventInternetAvailable(NETWORK_CELLULAR);
         break;
 
     case ARDUINO_EVENT_PPP_DISCONNECTED:

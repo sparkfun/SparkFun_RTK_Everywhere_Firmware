@@ -2190,6 +2190,44 @@ void networkUpdate()
     // Walk the list of network priorities in descending order
     for (priority = 0; priority < NETWORK_OFFLINE; priority++)
     {
+        index = networkIndexTable[priority];
+
+        // Handle the network lost internet event
+        if (networkEventInternetLost[index])
+        {
+            networkInterfaceInternetConnectionLost(index);
+
+            // Attempt to restart WiFi
+            if ((index == NETWORK_WIFI_STATION) && (networkIsHighestPriority(index)))
+            {
+                if (networkIsStarted(index))
+                    networkStop(index, settings.debugWifiState, __FILE__, __LINE__);
+                networkStart(index, settings.debugWifiState, __FILE__, __LINE__);
+            }
+        }
+
+        // Handle the network stop event
+        if (networkEventStop[index])
+            networkStop(index, settings.debugNetworkLayer, __FILE__, __LINE__);
+
+        // Handle the network has internet event
+        if (networkEventInternetAvailable[index])
+            networkInterfaceInternetConnectionAvailable(index);
+
+        // Execute any active polling routine
+        sequence = networkSequence[index];
+        if (sequence)
+        {
+            pollRoutine = sequence->routine;
+            if (pollRoutine)
+                // Execute the poll routine
+                pollRoutine(index, sequence->parameter, settings.debugNetworkLayer);
+        }
+    }
+
+    // Walk the list of network priorities in descending order
+    for (priority = 0; priority < NETWORK_OFFLINE; priority++)
+    {
         // Execute any active polling routine
         index = networkIndexTable[priority];
         sequence = networkSequence[index];
