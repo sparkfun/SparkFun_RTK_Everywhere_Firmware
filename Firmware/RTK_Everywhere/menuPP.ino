@@ -1026,7 +1026,7 @@ void provisioningVerifyTables()
 
 void provisioningSetState(uint8_t newState)
 {
-    if (settings.debugPpCertificate || PERIODIC_DISPLAY(PD_PROVISIONING_STATE))
+    if (settings.debugPpCertificate)
     {
         if (provisioningState == newState)
             systemPrint("Provisioning: *");
@@ -1034,9 +1034,8 @@ void provisioningSetState(uint8_t newState)
             systemPrintf("Provisioning: %s --> ", provisioningStateName[provisioningState]);
     }
     provisioningState = newState;
-    if (settings.debugPpCertificate || PERIODIC_DISPLAY(PD_PROVISIONING_STATE))
+    if (settings.debugPpCertificate)
     {
-        PERIODIC_CLEAR(PD_PROVISIONING_STATE);
         if (newState >= PROVISIONING_STATE_MAX)
         {
             systemPrintf("Unknown provisioning state: %d\r\n", newState);
