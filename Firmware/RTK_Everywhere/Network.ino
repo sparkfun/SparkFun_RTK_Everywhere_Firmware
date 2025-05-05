@@ -2755,21 +2755,6 @@ uint8_t networkConsumers(uint16_t *consumerTypes)
     // If a consumer needs the network or is currently consuming the network (is online) then increment
     // consumer count
 
-    // Network needed for TCP Server
-    if (tcpServerNeedsNetwork() || online.tcpServer)
-    {
-        consumerCount++;
-        consumerId |= (1 << NETCONSUMER_TCP_SERVER);
-
-        *consumerTypes = NETWORK_EWC; // Ask for eth/wifi/cellular
-
-        // If NTRIP Caster is enabled then add AP mode
-        // Caster is available over ethernet, WiFi AP, WiFi STA, and cellular
-        // Caster is available in all mode: Rover, and Base
-        if (settings.enableNtripCaster == true || settings.baseCasterOverride == true)
-            *consumerTypes |= (1 << NETIF_WIFI_AP);
-    }
-
     // Network needed for UDP Server
     if (udpServerNeedsNetwork() || online.udpServer)
     {
@@ -2811,8 +2796,6 @@ uint8_t networkConsumers(uint16_t *consumerTypes)
             {
                 systemPrintf("- Consumers: ", consumerCount);
 
-                if (consumerId & (1 << NETCONSUMER_TCP_SERVER))
-                    systemPrint("TCP Server, ");
                 if (consumerId & (1 << NETCONSUMER_UDP_SERVER))
                     systemPrint("UDP Server, ");
                 if (consumerId & (1 << NETCONSUMER_WEB_CONFIG))
@@ -2831,13 +2814,6 @@ uint8_t networkConsumersOnline()
 {
     uint8_t consumerCountOnline = 0;
     uint16_t consumerId = 0; // Used to debug print who is asking for access
-
-    // Network needed for TCP Server - May use WiFi AP or WiFi STA
-    if (online.tcpServer)
-    {
-        consumerCountOnline++;
-        consumerId |= (1 << NETCONSUMER_TCP_SERVER);
-    }
 
     // Network needed for UDP Server
     if (online.udpServer)
@@ -2865,8 +2841,6 @@ uint8_t networkConsumersOnline()
             if (consumerCountOnline > 0)
             {
                 systemPrintf("- Consumers: ", consumerCountOnline);
-                if (consumerId & (1 << NETCONSUMER_TCP_SERVER))
-                    systemPrint("TCP Server, ");
                 if (consumerId & (1 << NETCONSUMER_UDP_SERVER))
                     systemPrint("UDP Server, ");
                 if (consumerId & (1 << NETCONSUMER_WEB_CONFIG))

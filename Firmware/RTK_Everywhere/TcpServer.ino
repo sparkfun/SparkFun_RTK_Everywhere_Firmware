@@ -191,16 +191,6 @@ bool tcpServerEnabled(const char ** line)
 }
 
 //----------------------------------------
-// Return true if we are in a state that requires network access
-//----------------------------------------
-bool tcpServerNeedsNetwork()
-{
-    if (tcpServerState >= TCP_SERVER_STATE_WAIT_FOR_NETWORK && tcpServerState <= TCP_SERVER_STATE_RUNNING)
-        return true;
-    return false;
-}
-
-//----------------------------------------
 // Send TCP data to the clients
 //----------------------------------------
 int32_t tcpServerSendData(uint16_t dataHead)
@@ -354,8 +344,14 @@ void tcpServerStop()
     }
 
     // Stop using the network
+    if (settings.debugTcpServer && (!inMainMenu))
+        systemPrintln("TcpServer: Stopping network consumers");
+    networkConsumerOffline(NETCONSUMER_TCP_SERVER);
     if (tcpServerState != TCP_SERVER_STATE_OFF)
     {
+        networkSoftApConsumerRemove(NETCONSUMER_TCP_SERVER, __FILE__, __LINE__);
+        networkConsumerRemove(NETCONSUMER_TCP_SERVER, NETWORK_ANY, __FILE__, __LINE__);
+
         // The TCP server is now off
         tcpServerSetState(TCP_SERVER_STATE_OFF);
         tcpServerTimer = millis();
@@ -415,7 +411,7 @@ void tcpServerUpdate()
 
     // Shutdown the TCP server when the mode or setting changes
     DMW_st(tcpServerSetState, tcpServerState);
-    connected = networkHasInternet();
+    connected = networkConsumerIsConnected(NETCONSUMER_TCP_SERVER);
     enabled = tcpServerEnabled(&line);
     if ((tcpServerState > TCP_SERVER_STATE_OFF) && !enabled)
         tcpServerStop();
@@ -453,6 +449,10 @@ void tcpServerUpdate()
         {
             if (settings.debugTcpServer && (!inMainMenu))
                 systemPrintln("TCP server start");
+            if (settings.wifiConfigOverAP == false)
+                networkConsumerAdd(NETCONSUMER_TCP_SERVER, NETWORK_ANY, __FILE__, __LINE__);
+            else
+                networkSoftApConsumerAdd(NETCONSUMER_TCP_SERVER, __FILE__, __LINE__);
             tcpServerSetState(TCP_SERVER_STATE_WAIT_FOR_NETWORK);
         }
         break;
@@ -470,7 +470,10 @@ void tcpServerUpdate()
 
                 // Start the TCP server
                 if (tcpServerStart())
+                {
+                    networkUserAdd(NETCONSUMER_TCP_SERVER, __FILE__, __LINE__);
                     tcpServerSetState(TCP_SERVER_STATE_RUNNING);
+                }
             }
         }
         break;
