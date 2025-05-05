@@ -56,7 +56,7 @@ static uint8_t webServerState;
 // Once connected to the access point for WiFi Config, the ESP32 sends current setting values in one long string to
 // websocket After user clicks 'save', data is validated via main.js and a long string of values is returned.
 
-static httpd_handle_t *wsserver;
+static httpd_handle_t wsserver;
 static WebServer *webServer;
 
 // httpd_req_t *last_ws_req;
@@ -728,7 +728,7 @@ void sendStringToWebsocket(const char *stringToSend)
     //}
 
     // If we use httpd_ws_send_frame_async, it requires a fd.
-    esp_err_t ret = httpd_ws_send_frame_async(*wsserver, last_ws_fd, &ws_pkt);
+    esp_err_t ret = httpd_ws_send_frame_async(wsserver, last_ws_fd, &ws_pkt);
     if (ret != ESP_OK)
     {
         systemPrintf("httpd_ws_send_frame failed with %d\r\n", ret);
@@ -1191,7 +1191,7 @@ void webServerStopSockets()
     if (wsserver != nullptr)
     {
         // Stop the httpd server
-        esp_err_t ret = httpd_stop(*wsserver);
+        esp_err_t ret = httpd_stop(wsserver);
         wsserver = nullptr;
     }
 }
@@ -1447,21 +1447,18 @@ bool websocketServerStart(void)
     if (settings.debugWebServer == true)
         systemPrintf("Starting wsserver on port: %d\r\n", config.server_port);
 
-    if (wsserver == nullptr)
-        wsserver = new httpd_handle_t;
-
     if (settings.debugWebServer == true)
     {
         httpdDisplayConfig(&config);
         reportHeapNow(true);
     }
-    status = httpd_start(wsserver, &config);
+    status = httpd_start(&wsserver, &config);
     if (status == ESP_OK)
     {
         // Registering the ws handler
         if (settings.debugWebServer == true)
             systemPrintln("Registering URI handlers");
-        httpd_register_uri_handler(*wsserver, &ws);
+        httpd_register_uri_handler(wsserver, &ws);
         return true;
     }
 
