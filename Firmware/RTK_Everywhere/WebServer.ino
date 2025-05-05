@@ -1023,17 +1023,6 @@ bool webServerIsRunning()
 }
 
 //----------------------------------------
-// Return true if we are in a state that requires network access
-//----------------------------------------
-bool webServerNeedsNetwork()
-{
-    if (webServerState >= WEBSERVER_STATE_WAIT_FOR_NETWORK && webServerState <= WEBSERVER_STATE_RUNNING)
-        return true;
-    return false;
-}
-
-//----------------------------------------
-// Release resources allocated by webServerAquireResources
 //----------------------------------------
 void webServerReleaseResources()
 {
@@ -1160,6 +1149,10 @@ void webServerStart()
             systemPrintln("Web Server: Starting");
 
         // Start the network
+        if (settings.wifiConfigOverAP == false)
+            networkConsumerAdd(NETCONSUMER_WEB_CONFIG, NETWORK_ANY, __FILE__, __LINE__);
+        else
+            networkSoftApConsumerAdd(NETCONSUMER_WEB_CONFIG, __FILE__, __LINE__);
         webServerSetState(WEBSERVER_STATE_WAIT_FOR_NETWORK);
     }
 }
@@ -1169,18 +1162,15 @@ void webServerStart()
 //----------------------------------------
 void webServerStop()
 {
-    online.webServer = false;
-
-    if (settings.debugWebServer)
-        systemPrintln("webServerStop called");
-
+    networkUserRemove(NETCONSUMER_WEB_CONFIG, __FILE__, __LINE__);
     if (webServerState != WEBSERVER_STATE_OFF)
     {
-        webServerStopSockets();      // Release socket resources
         webServerReleaseResources(); // Release web server resources
 
         // Stop network
         systemPrintln("Web Server releasing network request");
+        networkSoftApConsumerRemove(NETCONSUMER_WEB_CONFIG, __FILE__, __LINE__);
+        networkConsumerRemove(NETCONSUMER_WEB_CONFIG, NETWORK_ANY, __FILE__, __LINE__);
 
         // Stop the machine
         webServerSetState(WEBSERVER_STATE_OFF);
@@ -1197,6 +1187,11 @@ void webServerStop()
 //----------------------------------------
 void webServerUpdate()
 {
+    bool connected;
+
+    // Determine if the network is connected
+    connected = networkConsumerIsConnected(NETCONSUMER_WEB_CONFIG);
+
     // Walk the state machine
     switch (webServerState)
     {
@@ -1214,11 +1209,12 @@ void webServerUpdate()
     // Wait for connection to the network
     case WEBSERVER_STATE_WAIT_FOR_NETWORK:
         // Wait until the network is connected to the internet or has WiFi AP
-        if (networkHasInternet() || WIFI_SOFT_AP_RUNNING())
+        if (connected || WIFI_SOFT_AP_RUNNING())
         {
             if (settings.debugWebServer)
                 systemPrintln("Web Server connected to network");
 
+            networkUserAdd(NETCONSUMER_WEB_CONFIG, __FILE__, __LINE__);
             webServerSetState(WEBSERVER_STATE_NETWORK_CONNECTED);
         }
         break;
@@ -1226,10 +1222,11 @@ void webServerUpdate()
     // Start the web server
     case WEBSERVER_STATE_NETWORK_CONNECTED: {
         // Determine if the network has failed
-        if (networkHasInternet() == false && WIFI_SOFT_AP_RUNNING() == false)
-            webServerStop();
-        if (settings.debugWebServer)
-            systemPrintln("Assigning web server resources");
+        if (connected == false && WIFI_SOFT_AP_RUNNING() == false)
+        {
+            networkUserRemove(NETCONSUMER_WEB_CONFIG, __FILE__, __LINE__);
+            webServerSetState(WEBSERVER_STATE_WAIT_FOR_NETWORK);
+        }
 
         // Attempt to start the web server
         else if (webServerAssignResources(settings.httpPort) == true)
@@ -1240,7 +1237,7 @@ void webServerUpdate()
     // Allow web services
     case WEBSERVER_STATE_RUNNING:
         // Determine if the network has failed
-        if (networkHasInternet() == false && WIFI_SOFT_AP_RUNNING() == false)
+        if (connected == false && WIFI_SOFT_AP_RUNNING() == false)
         {
             webServerReleaseResources(); // Release web server resources
             webServerSetState(WEBSERVER_STATE_WAIT_FOR_NETWORK);
