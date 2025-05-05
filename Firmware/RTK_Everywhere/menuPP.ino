@@ -996,8 +996,6 @@ void updateLBandCorrections()
 enum ProvisioningStates
 {
     PROVISIONING_OFF = 0,
-    PROVISIONING_WAIT_RTC,
-    PROVISIONING_NOT_STARTED,
     PROVISIONING_CHECK_REMAINING,
     PROVISIONING_CHECK_ATTEMPT,
     PROVISIONING_WAIT_FOR_NETWORK,
@@ -1010,8 +1008,6 @@ enum ProvisioningStates
 static volatile uint8_t provisioningState = PROVISIONING_OFF;
 
 const char *const provisioningStateName[] = {"PROVISIONING_OFF",
-                                             "PROVISIONING_WAIT_RTC",
-                                             "PROVISIONING_NOT_STARTED",
                                              "PROVISIONING_CHECK_REMAINING",
                                              "PROVISIONING_CHECK_ATTEMPT",
                                              "PROVISIONING_WAIT_FOR_NETWORK",
@@ -1168,8 +1164,6 @@ void provisioningStop(const char * file, uint32_t line)
     provisioningSetState(PROVISIONING_OFF);
 }
 
-const unsigned long provisioningTimeout_ms = 2 * MILLISECONDS_IN_A_MINUTE;
-
 // Return true if we are in states that require network access
 bool provisioningNeedsNetwork()
 {
@@ -1182,26 +1176,24 @@ void provisioningUpdate()
 {
     bool enabled;
     const char * line = "";
+    const unsigned long provisioningTimeout_ms = 2 * MILLISECONDS_IN_A_MINUTE;
+    static bool rtcOnline;
+
+    // Determine if key provisioning is enabled
     DMW_st(provisioningSetState, provisioningState);
     enabled = provisioningEnabled(&line);
+
+    // Determine if the RTC was properly initialized
+    if (rtcOnline == false)
+        rtcOnline = online.rtc || settings.requestKeyUpdate
+                  || (millis() > provisioningTimeout_ms);
 
     switch (provisioningState)
     {
     default:
     case PROVISIONING_OFF: {
-        provisioningStartTime_millis = millis(); // Record the start time so we can timeout
-        provisioningSetState(PROVISIONING_WAIT_RTC);
-    }
-    break;
-    case PROVISIONING_WAIT_RTC: {
         // If RTC is not online after provisioningTimeout_ms, try to provision anyway
-        if ((online.rtc) || (millis() > (provisioningStartTime_millis + provisioningTimeout_ms)) ||
-            (settings.requestKeyUpdate))
-            provisioningSetState(PROVISIONING_NOT_STARTED);
-    }
-    break;
-    case PROVISIONING_NOT_STARTED: {
-        if (settings.enablePointPerfectCorrections && (settings.autoKeyRenewal || settings.requestKeyUpdate))
+        if (enabled && rtcOnline)
             provisioningSetState(PROVISIONING_CHECK_REMAINING);
     }
     break;
@@ -1269,10 +1261,9 @@ void provisioningUpdate()
     // Wait for connection to the network
     case PROVISIONING_WAIT_FOR_NETWORK: {
         // Stop waiting if PointPerfect has been disabled
-        if (settings.enablePointPerfectCorrections == false)
-        {
-            provisioningSetState(PROVISIONING_NOT_STARTED);
-        }
+        if (enabled == false)
+            provisioningStop(__FILE__, __LINE__);
+
         // Wait until the network is available
 #ifdef COMPILE_NETWORK
         else if (networkHasInternet())
