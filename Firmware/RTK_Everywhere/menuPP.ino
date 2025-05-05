@@ -1180,7 +1180,10 @@ bool provisioningNeedsNetwork()
 
 void provisioningUpdate()
 {
+    bool enabled;
+    const char * line = "";
     DMW_st(provisioningSetState, provisioningState);
+    enabled = provisioningEnabled(&line);
 
     switch (provisioningState)
     {
@@ -1450,5 +1453,9 @@ void provisioningUpdate()
 
     // Periodically display the provisioning state
     if (PERIODIC_DISPLAY(PD_PROVISIONING_STATE))
-        provisioningSetState(provisioningState);
+    {
+        systemPrintf("Provisioning state: %s%s\r\n",
+                     provisioningStateName[provisioningState], line);
+        PERIODIC_CLEAR(PD_PROVISIONING_STATE);
+    }
 }
