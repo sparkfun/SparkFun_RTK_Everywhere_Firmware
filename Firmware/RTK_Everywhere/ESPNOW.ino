@@ -186,7 +186,7 @@ void espNowOnDataReceived(const esp_now_recv_info *mac, const uint8_t *incomingD
         }
 
         espNowIncomingRTCM = true; // Display a download icon
-        lastEspNowRssiUpdate = millis();
+        espNowLastRssiUpdate = millis();
     }
 }
 
@@ -664,7 +664,7 @@ void espNowUpdate()
 
             // If we don't receive an ESP NOW packet after some time, set RSSI to very negative
             // This removes the ESPNOW icon from the display when the link goes down
-            if (millis() - lastEspNowRssiUpdate > 5000 && espNowRSSI > -255)
+            if (millis() - espNowLastRssiUpdate > 5000 && espNowRSSI > -255)
                 espNowRSSI = -255;
         }
     }
@@ -699,7 +699,7 @@ void espNowUpdate()
 //
 // In espNowOnDataReceived
 //  11. Save ESP-NOW RSSI
-//  12. Set lastEspNowRssiUpdate = millis()
+//  12. Set espNowLastRssiUpdate = millis()
 //  13. If in ESP_NOW_PAIRING state
 //      A. Validate message CRC
 //      B. If valid CRC

@@ -670,7 +670,7 @@ const int updateWebSocketStackSize =
 float lBandEBNO; // Used on system status menu
 //=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 
-// ESP NOW for multipoint wireless broadcasting over 2.4GHz
+// ESP-NOW for multipoint wireless broadcasting over 2.4GHz
 //-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 #ifdef COMPILE_ESPNOW
 
@@ -682,7 +682,7 @@ uint8_t espNowOutgoingSpot;  // ESP Now has a max of 250 characters
 uint16_t espNowBytesSent;    // May be more than 255
 uint8_t receivedMAC[6];      // Holds the broadcast MAC during pairing
 
-unsigned long lastEspNowRssiUpdate;
+unsigned long espNowLastRssiUpdate;
 
 #define ESPNOW_START()      espnowStart()
 #define ESPNOW_STOP()       espnowStop()
