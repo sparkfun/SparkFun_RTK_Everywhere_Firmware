@@ -680,7 +680,7 @@ uint8_t espNowOutgoing[250]; // ESP NOW has max of 250 characters
 unsigned long espNowLastAdd; // Tracks how long since the last byte was added to the outgoing buffer
 uint8_t espNowOutgoingSpot;  // ESP Now has a max of 250 characters
 uint16_t espNowBytesSent;    // May be more than 255
-uint8_t receivedMAC[6];      // Holds the broadcast MAC during pairing
+uint8_t espNowReceivedMAC[6];      // Holds the broadcast MAC during pairing
 
 unsigned long espNowLastRssiUpdate;
 
