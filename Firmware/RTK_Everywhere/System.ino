@@ -764,6 +764,7 @@ const char *coordinatePrintableInputType(CoordinateInputType coordinateInputType
 // Print the error message every 15 seconds
 void reportFatalError(const char *errorMsg)
 {
+    displayHalt();
     while (1)
     {
         systemPrint("HALTED: ");
