@@ -683,6 +683,9 @@ float lBandEBNO; // Used on system status menu
 #define ESPNOW_STOP()       espnowStop()
 #endif // COMPILE_ESPNOW
 
+// ESP-NOW Globals - For other module direct access
+bool espNowIncomingRTCM;
+bool espNowOutgoingRTCM;
 int espNowRSSI;
 const uint8_t espNowBroadcastAddr[6] = {0xff, 0xff, 0xff, 0xff, 0xff, 0xff};
 
@@ -845,8 +848,6 @@ bool bluetoothIncomingRTCM;
 bool bluetoothOutgoingRTCM;
 bool netIncomingRTCM;
 bool netOutgoingRTCM;
-bool espNowIncomingRTCM;
-bool espNowOutgoingRTCM;
 volatile bool mqttClientDataReceived; // Flag for display
 
 uint16_t failedParserMessages_UBX;
