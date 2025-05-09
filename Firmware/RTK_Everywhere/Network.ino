@@ -1102,7 +1102,8 @@ void networkInterfaceEventStop(NetIndex_t index)
 bool networkInterfaceHasInternet(NetIndex_t index)
 {
     // Validate the index
-    networkValidateIndex(index);
+    if (index >= NETWORK_OFFLINE)
+        return false;
 
     // Return the network interface state
     return (networkHasInternet_bm & (1 << index)) ? true : false;
