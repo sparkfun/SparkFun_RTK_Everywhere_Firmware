@@ -146,10 +146,10 @@ NETCONSUMER_MASK_t netIfUsers[NETWORK_MAX]; // Users of a specific network
 
 // Priority of each of the networks in the networkInterfaceTable
 // Index by networkInterfaceTable index to get network interface priority
-NetPriority_t networkPriorityTable[NETWORK_OFFLINE];
+NetPriority_t networkPriorityTable[NETWORK_OFFLINE + 1];
 
 // Index by priority to get the networkInterfaceTable index
-NetIndex_t networkIndexTable[NETWORK_OFFLINE];
+NetIndex_t networkIndexTable[NETWORK_OFFLINE + 1];
 
 // Priority of the default network interface
 NetPriority_t networkPriority = NETWORK_OFFLINE; // Index into networkPriorityTable
@@ -337,11 +337,11 @@ void networkBegin()
 
     // Set the network priority values
     // Normally these would come from settings
-    for (int index = 0; index < NETWORK_OFFLINE; index++)
+    for (int index = 0; index <= NETWORK_OFFLINE; index++)
         networkPriorityTable[index] = index;
 
     // Set the network index values based upon the priorities
-    for (int index = 0; index < NETWORK_OFFLINE; index++)
+    for (int index = 0; index <= NETWORK_OFFLINE; index++)
         networkIndexTable[networkPriorityTable[index]] = index;
 
     // Set the network consumer priorities
