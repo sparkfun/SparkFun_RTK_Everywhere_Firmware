@@ -3118,6 +3118,117 @@ void displayWebConfigNotStarted()
     displayMessage("Web Config", 0);
 }
 
+int displayEthernetIcon()
+{
+    static bool blink;
+    uint8_t xPos = (oled->getWidth() - Ethernet_Icon_Width) / 2;
+    int yPos = Ethernet_Icon_Height / 2; // yPos is 6
+
+    blink ^= 1;
+    if (ethernetLinkUp() || blink)
+        displayBitmap(xPos, yPos, Ethernet_Icon_Width, Ethernet_Icon_Height, Ethernet_Icon);
+
+    yPos += Ethernet_Icon_Height * 1.5; // yPos is now 24
+    return yPos;
+}
+
+void displayWebConfig(std::vector<iconPropertyBlinking> &iconPropertyList)
+{
+    // Characters before pixels start getting cut off. 11 characters can cut off a few pixels.
+    const int displayMaxCharacters = (present.display_type == DISPLAY_64x48) ? 10 : 21;
+    bool displaySsid = true;
+    int fontHeight = 8;
+    char myIP[20] = {'\0'};
+    char mySSID[SSID_LENGTH + 1] = {'\0'};
+    static bool ssidDisplayFirstHalf;
+    static unsigned long ssidDisplayTimer;
+    int yPos = WiFi_Symbol_Height + 2;
+
+    // Toggle display back and forth for long SSIDs and IPs
+    // Run the timer no matter what, but load firstHalf/lastHalf with the same thing if strlen < maxWidth
+    if (millis() - ssidDisplayTimer > 2000)
+    {
+        ssidDisplayTimer = millis();
+        ssidDisplayFirstHalf = !ssidDisplayFirstHalf;
+    }
+
+    // Get the SSID and IP Address
+#ifndef COMPILE_WIFI
+#ifndef COMPILE_ETHERNET
+    strcpy(mySSID, "!Compiled");
+    strcpy(myIP, "0.0.0.0");
+#endif  // COMPILE_ETHERNET
+#else   // COMPILE_WIFI
+    if (wifi.softApOnline())
+    {
+        setWiFiIcon(&iconPropertyList); // Blink WiFi in center
+        snprintf(mySSID, sizeof(mySSID), "%s", wifiSoftApGetSsid());
+        strcpy(myIP, wifiSoftApGetIpAddress().toString().c_str());
+    }
+    else if (networkInterfaceHasInternet(NETWORK_WIFI_STATION))
+    {
+        setWiFiIcon(&iconPropertyList); // Blink WiFi in center
+        snprintf(mySSID, sizeof(mySSID), "%s", wifiStationGetSsid());
+        strcpy(myIP, wifiSoftApGetIpAddress().toString().c_str());
+    }
+    else
+#ifndef COMPILE_ETHERNET
+    {
+        strcpy(mySSID, "Error");
+        strcpy(myIP, "0.0.0.0");
+    }
+#endif  // COMPILE_ETHERNET
+#endif  // COMPILE_WIFI
+
+#ifdef  COMPILE_ETHERNET
+    if (networkInterfaceHasInternet(NETWORK_ETHERNET))
+    {
+        yPos = displayEthernetIcon();
+        displaySsid = false;
+        strcpy(myIP, ETH.localIP().toString().c_str());
+    }
+    else
+    {
+#ifdef COMPILE_WIFI
+        setWiFiIcon(&iconPropertyList); // Blink WiFi in center
+        displaySsid = false;
+#else   // COMPILE_WIFI
+        yPos = displayEthernetIcon();
+#endif  // COMPILE_WIFI
+        strcpy(mySSID, "Error");
+        strcpy(myIP, "0.0.0.0");
+    }
+#endif  // COMPILE_ETHERNET
+
+    // Trim SSID to a max length
+    mySSID[SSID_LENGTH] = 0;
+    if ((strlen(mySSID) > displayMaxCharacters) && !ssidDisplayFirstHalf)
+        memcpy(mySSID, &mySSID[strlen(mySSID) - displayMaxCharacters], displayMaxCharacters);
+    mySSID[displayMaxCharacters] = '\0';
+
+    // Trim IP address to a max length
+    if ((strlen(myIP) > displayMaxCharacters) && !ssidDisplayFirstHalf)
+        memcpy(myIP, &myIP[strlen(myIP) - displayMaxCharacters], displayMaxCharacters);
+    myIP[displayMaxCharacters] = '\0';
+
+    // Display the SSID header
+    if (displaySsid)
+    {
+        printTextCenter("SSID:", yPos, QW_FONT_5X7, 1, false); // text, y, font type, kerning, inverted
+        yPos = yPos + fontHeight + 1;
+    }
+
+    // Display the SSID
+    printTextCenter(mySSID, yPos, QW_FONT_5X7, 1, false);
+    yPos = yPos + fontHeight + 3;
+
+    // Display the IP header
+    printTextCenter("IP:", yPos, QW_FONT_5X7, 1, false);
+    yPos = yPos + fontHeight + 1;
+
+    printTextCenter(myIP, yPos, QW_FONT_5X7, 1, false);
+}
+
 void displayConfigViaWiFi()
 {
     int yPos = WiFi_Symbol_Height + 2;
