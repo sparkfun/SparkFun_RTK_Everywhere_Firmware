@@ -1050,7 +1050,7 @@ NetPriority_t networkGetPriority()
 bool networkHasInternet()
 {
     // Return the network state
-    return networkHasInternet_bm ? true : false;
+    return networkInterfaceHasInternet(networkGetCurrentInterfaceIndex());
 }
 
 //----------------------------------------
