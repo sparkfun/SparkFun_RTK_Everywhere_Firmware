@@ -1510,7 +1510,9 @@ bool networkMulticastDNSUpdate()
 void networkPrintStatus(uint8_t priority)
 {
     NetMask_t bitMask;
-    char highestPriority;
+    NETCONSUMER_MASK_t consumerMask;
+    NETCONSUMER_t consumers;
+    bool highestPriority;
     int index;
     const char *name;
     const char *status;
@@ -1518,18 +1520,22 @@ void networkPrintStatus(uint8_t priority)
     // Validate the priority
     networkValidatePriority(priority);
 
+    // Verify that the network exists on this platform
+    index = networkIndexTable[priority];
+    if (networkIsPresent(index) == false)
+        return;
+
     // Get the network name
     name = networkGetNameByPriority(priority);
 
     // Determine the network status
-    index = networkIndexTable[priority];
-    bitMask = (1 << index);
-    highestPriority = (networkPriority == priority) ? '*' : ' ';
+    highestPriority = (networkPriority == priority);
     status = "Starting";
-    if (networkHasInternet_bm & bitMask)
+    if (networkInterfaceHasInternet(index))
         status = "Online";
     else if (networkInterfaceTable[index].boot)
     {
+        bitMask = (1 << index);
         if (networkSeqStopping & bitMask)
             status = "Stopping";
         else if (networkStarted & bitMask)
@@ -1539,8 +1545,25 @@ void networkPrintStatus(uint8_t priority)
     }
 
     // Print the network interface status
-    if (networkIsPresent(index))
-        systemPrintf("%c%d: %-10s %-8s\r\n", highestPriority, priority, name, status);
+    systemPrintf("%c%d: %-10s %s",
+                 highestPriority ? '*' : ' ', priority, name, status);
+
+    // Display more data about the highest priority network
+    if (highestPriority)
+    {
+        // Display the IP address
+        if (networkInterfaceHasInternet(index))
+        {
+            IPAddress ipAddress = networkInterfaceTable[index].netif->localIP();
+            systemPrintf(", %s", ipAddress.toString().c_str());
+        }
+
+        // Display the consumers
+        consumers = networkConsumersAny | netIfConsumers[index];
+        NETCONSUMER_MASK_t users = netIfUsers[index];
+        networkConsumerPrint(consumers, users, ", ");
+    }
+    systemPrintln();
 }
 
 //----------------------------------------
