@@ -1993,20 +1993,34 @@ void paintIPAddress()
 
 void displayFullIPAddress(std::vector<iconPropertyBlinking> *iconList) // Bottom left - 128x64 only
 {
+    static IPAddress ipAddress;
+    NetPriority_t priority;
+    static NetPriority_t previousPriority;
+
     // Max width: 15*6 = 90 pixels (6 pixels per character, nnn.nnn.nnn.nnn)
     if (present.display_type == DISPLAY_128x64)
     {
         char myAddress[16];
 
-        IPAddress ipAddress = networkGetIpAddress();
-
-        if (ipAddress != IPAddress((uint32_t)0))
+        // Reduce calls to networkGetIpAddress
+        if (networkHasInternet())
         {
-            snprintf(myAddress, sizeof(myAddress), "%s", ipAddress.toString());
+            priority = networkGetPriority();
+            if (priority != previousPriority)
+            {
+                previousPriority = priority;
+                ipAddress = networkGetIpAddress();
+            }
 
-            oled->setFont(QW_FONT_5X7); // Set font to smallest
-            oled->setCursor(0, 55);
-            oled->print(ipAddress);
+            // Display the IP address when it is available
+            if (ipAddress != IPAddress((uint32_t)0))
+            {
+                snprintf(myAddress, sizeof(myAddress), "%s", ipAddress.toString());
+
+                oled->setFont(QW_FONT_5X7); // Set font to smallest
+                oled->setCursor(0, 55);
+                oled->print(ipAddress);
+            }
         }
     }
 }
