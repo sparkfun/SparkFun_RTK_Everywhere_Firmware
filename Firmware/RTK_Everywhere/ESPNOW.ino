@@ -311,7 +311,7 @@ bool espNowProcessRxPairedMessage()
 
 //*********************************************************************
 // Remove a given MAC address from the peer list
-esp_err_t espNowRemovePeer(uint8_t *peerMac)
+esp_err_t espNowRemovePeer(const uint8_t *peerMac)
 {
     esp_err_t response = esp_now_del_peer(peerMac);
     if (response != ESP_OK)
@@ -325,7 +325,7 @@ esp_err_t espNowRemovePeer(uint8_t *peerMac)
 
 //*********************************************************************
 // Create special pair packet to a given MAC
-esp_err_t espNowSendPairMessage(uint8_t *sendToMac)
+esp_err_t espNowSendPairMessage(const uint8_t *sendToMac)
 {
     // Assemble message to send
     ESP_NOW_PAIR_MESSAGE pairMessage;

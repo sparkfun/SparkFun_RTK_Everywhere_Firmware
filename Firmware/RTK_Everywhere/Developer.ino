@@ -193,8 +193,8 @@ bool espNowGetState()                   {return ESPNOW_OFF;}
 bool espNowIsPaired()                   {return false;}
 void espNowProcessRTCM(byte incoming)   {}
 bool espNowProcessRxPairedMessage()     {return true;}
-esp_err_t espNowRemovePeer(uint8_t *peerMac)        {return ESP_OK;}
-esp_err_t espNowSendPairMessage(uint8_t *sendToMac) {return ESP_OK;}
+esp_err_t espNowRemovePeer(const uint8_t *peerMac)        {return ESP_OK;}
+esp_err_t espNowSendPairMessage(const uint8_t *sendToMac) {return ESP_OK;}
 bool espNowSetChannel(uint8_t channelNumber)        {return false;}
 bool espNowStart()                      {return false;}
 #define ESPNOW_START()                  false
