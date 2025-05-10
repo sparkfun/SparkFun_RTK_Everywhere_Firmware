@@ -249,39 +249,40 @@ void espNowProcessRTCM(byte incoming)
 // Regularly call during pairing to see if we've received a Pairing message
 bool espNowProcessRxPairedMessage()
 {
-    if (espNowState == ESPNOW_MAC_RECEIVED)
+    if (espNowState != ESPNOW_MAC_RECEIVED)
+        return false;
+
+    // Remove broadcast peer
+    espNowRemovePeer(espNowBroadcastAddr);
+
+    // Is the received MAC already paired?
+    if (esp_now_is_peer_exist(espNowReceivedMAC) == true)
     {
-        // Remove broadcast peer
-        espNowRemovePeer(espNowBroadcastAddr);
-
-        if (esp_now_is_peer_exist(espNowReceivedMAC) == true)
-        {
-            if (settings.debugEspNow == true)
-                systemPrintln("Peer already exists");
-        }
-        else
-        {
-            // Add new peer to system
-            espNowAddPeer(espNowReceivedMAC);
-
-            // Record this MAC to peer list
-            memcpy(settings.espnowPeers[settings.espnowPeerCount], espNowReceivedMAC, 6);
-            settings.espnowPeerCount++;
-            settings.espnowPeerCount %= ESPNOW_MAX_PEERS;
-        }
-
-        // Send message directly to the received MAC (not unicast), then exit
-        espNowSendPairMessage(espNowReceivedMAC);
-
-        // Enable radio. User may have arrived here from the setup menu rather than serial menu.
-        settings.enableEspNow = true;
-
-        recordSystemSettings(); // Record enableEspNow and espnowPeerCount to NVM
-
-        espNowSetState(ESPNOW_PAIRED);
-        return (true);
+        // Yes, already paired
+        if (settings.debugEspNow == true)
+            systemPrintln("Peer already exists");
     }
-    return (false);
+    else
+    {
+        // No, add new peer to system
+        espNowAddPeer(espNowReceivedMAC);
+
+        // Record this MAC to peer list
+        memcpy(settings.espnowPeers[settings.espnowPeerCount], espNowReceivedMAC, 6);
+        settings.espnowPeerCount++;
+        settings.espnowPeerCount %= ESPNOW_MAX_PEERS;
+    }
+
+    // Send message directly to the received MAC (not unicast), then exit
+    espNowSendPairMessage(espNowReceivedMAC);
+
+    // Enable radio. User may have arrived here from the setup menu rather than serial menu.
+    settings.enableEspNow = true;
+
+    // Record enableEspNow and espNowPeerCount to NVM
+    recordSystemSettings();
+    espNowSetState(ESPNOW_PAIRED);
+    return (true);
 }
 
 //*********************************************************************
