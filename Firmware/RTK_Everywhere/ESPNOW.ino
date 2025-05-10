@@ -579,8 +579,8 @@ bool espNowStop()
         if (esp_now_is_peer_exist(espNowBroadcastAddr))
         {
             if (settings.debugEspNow)
-                systemPrintf("Calling esp_now_del_peer\r\n");
-            status = esp_now_del_peer(espNowBroadcastAddr);
+                systemPrintf("Calling espNowRemovePeer\r\n");
+            status = espNowRemovePeer(espNowBroadcastAddr);
             if (status != ESP_OK)
             {
                 systemPrintf("ERROR: Failed to delete broadcast peer, status: %d\r\n", status);
@@ -604,8 +604,8 @@ bool espNowStop()
 
             // Remove the unicast peer
             if (settings.debugEspNow)
-                systemPrintf("Calling esp_now_del_peer\r\n");
-            status = esp_now_del_peer(peerInfo.peer_addr);
+                systemPrintf("Calling espNowRemovePeer\r\n");
+            status = espNowRemovePeer(peerInfo.peer_addr);
             if (status != ESP_OK)
             {
                 systemPrintf("ERROR: Failed to delete peer %02x:%02x:%02x:%02x:%02x:%02x, status: %d\r\n",
