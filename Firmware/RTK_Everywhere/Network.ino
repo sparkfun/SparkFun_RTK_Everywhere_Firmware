@@ -1230,14 +1230,28 @@ void networkInterfaceInternetConnectionLost(NetIndex_t index)
     // Validate the index
     networkValidateIndex(index);
 
+    // Display the call
+    if (settings.debugNetworkLayer)
+        systemPrintf("Network: Calling networkInterfaceInternetConnectionLost(%s)\r\n",
+                     networkInterfaceTable[index].name);
+
+    // Clear the event flag
+    networkEventInternetLost[index] = false;
+
     // Check for network offline
-    bitMask = 1 << index;
-    if (!(networkHasInternet_bm & bitMask))
+    if (networkInterfaceHasInternet(index) == false)
+    {
+        if (settings.debugNetworkLayer)
+            systemPrintf("%s previously lost internet access\r\n", networkInterfaceTable[index].name);
         // Already offline, nothing to do
         return;
+    }
 
     // Mark this network as offline
+    bitMask = 1 << index;
     networkHasInternet_bm &= ~bitMask;
+    if (settings.debugNetworkLayer)
+        systemPrintf("%s does NOT have internet access\r\n", networkInterfaceTable[index].name);
 
     // Disable mDNS if necessary
     networkMulticastDNSStop(index);
@@ -1253,6 +1267,9 @@ void networkInterfaceInternetConnectionLost(NetIndex_t index)
     if (networkPriorityTable[index] == networkPriority)
     {
         // The highest priority network just failed
+        if (settings.debugNetworkLayer)
+            systemPrintf("Network: Looking for another interface to use\r\n");
+
         // Leave this network on in hopes that it will regain a connection
         previousPriority = networkPriority;
 
@@ -1260,20 +1277,20 @@ void networkInterfaceInternetConnectionLost(NetIndex_t index)
         priority = networkPriorityTable[index];
         for (priority += 1; priority < NETWORK_OFFLINE; priority += 1)
         {
-            // Is the network online?
+            // Is the interface online?
             index = networkIndexTable[priority];
-            bitMask = 1 << index;
-            if (networkHasInternet_bm & bitMask)
-            {
-                // Successfully found an online network
-                networkMulticastDNSStart(index);
-                break;
-            }
-
-            // No, is this device present (nullptr: always present)
             if (networkIsPresent(index))
             {
-                // No, does this network need starting
+                if (networkInterfaceHasInternet(index))
+                {
+                    // Successfully found an online network
+                    if (settings.debugNetworkLayer)
+                        systemPrintf("Network: Found interface %s\r\n", networkInterfaceTable[index].name);
+                    break;
+                }
+
+                // Interface not connected to the internet
+                // Start this interface
                 networkStart(index, settings.debugNetworkLayer, __FILE__, __LINE__);
             }
         }
@@ -1281,7 +1298,13 @@ void networkInterfaceInternetConnectionLost(NetIndex_t index)
         // Set the new network priority
         networkPriority = priority;
         if (priority < NETWORK_OFFLINE)
+        {
             Network.setDefaultInterface(*networkInterfaceTable[index].netif);
+
+            // Start mDNS if this interface is connected to the internet
+            if (networkInterfaceHasInternet(index))
+                networkMulticastDNSStart(index);
+        }
 
         // Display the transition
         if (settings.debugNetworkLayer)
