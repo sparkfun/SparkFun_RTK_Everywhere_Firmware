@@ -292,11 +292,12 @@ void httpClientStop(bool shutdown)
 //----------------------------------------
 void httpClientUpdate()
 {
+    bool connected;
     bool enabled;
 
     // Shutdown the HTTP client when the mode or setting changes
     DMW_st(httpClientSetState, httpClientState);
-
+    connected = networkHasInternet();
     enabled = httpClientEnabled(nullptr);
     if ((enabled == false) && (httpClientState > HTTP_CLIENT_OFF))
     {
@@ -308,7 +309,7 @@ void httpClientUpdate()
     }
 
     // Determine if the network has failed
-    else if ((httpClientState > HTTP_CLIENT_NETWORK_STARTED) && (networkHasInternet() == false))
+    else if ((httpClientState > HTTP_CLIENT_NETWORK_STARTED) && !connected)
     {
         // Failed to connect to the network, attempt to restart the network
         httpClientStop(true); // Was httpClientRestart(); - #StopVsRestart
@@ -320,7 +321,7 @@ void httpClientUpdate()
     {
     default:
     case HTTP_CLIENT_OFF: {
-        if (httpClientModeNeeded)
+        if (enabled)
             httpClientStart();
         break;
     }
@@ -336,12 +337,8 @@ void httpClientUpdate()
 
     // Wait for a network media connection
     case HTTP_CLIENT_NETWORK_STARTED: {
-        // Determine if the HTTP client was turned off
-        if (!httpClientModeNeeded)
-            httpClientStop(true);
-
-        // Wait until the network is connected
-        else if (networkHasInternet())
+        // Wait until the network is connected to the media
+        if (connected)
             httpClientSetState(HTTP_CLIENT_CONNECTING_2_SERVER);
         break;
     }
