@@ -276,12 +276,11 @@ void httpClientStop(bool shutdown)
     online.httpClient = false;
     if (shutdown)
     {
-        httpClientSetState(HTTP_CLIENT_OFF);
-        // settings.enablePointPerfectCorrections = false;
-        //^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ Why? This means PointPerfect Corrections
-        // cannot be restarted without opening the menu or web configuration page...
+        httpClientModeNeeded = false;
         httpClientConnectionAttempts = 0;
         httpClientConnectionAttemptTimeout = 0;
+        httpClientSetState(HTTP_CLIENT_OFF);
+        systemPrintln("HTTP Client stopped");
     }
     else
         httpClientSetState(HTTP_CLIENT_ON);
@@ -300,21 +299,11 @@ void httpClientUpdate()
     connected = networkHasInternet();
     enabled = httpClientEnabled(nullptr);
     if ((enabled == false) && (httpClientState > HTTP_CLIENT_OFF))
-    {
-        systemPrintln("HTTP Client stopping");
-        httpClientStop(true); // Was false - #StopVsRestart
-        httpClientConnectionAttempts = 0;
-        httpClientConnectionAttemptTimeout = 0;
-        httpClientSetState(HTTP_CLIENT_OFF);
-    }
+        httpClientShutdown();
 
     // Determine if the network has failed
     else if ((httpClientState > HTTP_CLIENT_NETWORK_STARTED) && !connected)
-    {
-        // Failed to connect to the network, attempt to restart the network
-        httpClientStop(true); // Was httpClientRestart(); - #StopVsRestart
-    }
-
+        httpClientRestart();
 
     // Enable the network and the HTTP client if requested
     switch (httpClientState)
