@@ -99,9 +99,9 @@ void espNowBeginPairing()
 
 //*********************************************************************
 // Callback when data is received
-void espNowRxHandler(const esp_now_recv_info *mac,
-                     const uint8_t *incomingData,
-                     int len)
+void espNowOnDataReceived(const esp_now_recv_info *mac,
+                          const uint8_t *incomingData,
+                          int len)
 {
 //    typedef struct esp_now_recv_info {
 //        uint8_t * src_addr;             // Source address of ESPNOW packet
@@ -136,12 +136,8 @@ void espNowRxHandler(const esp_now_recv_info *mac,
                      mac->des_addr[0], mac->des_addr[1], mac->des_addr[2],
                      mac->des_addr[3], mac->des_addr[4], mac->des_addr[5],
                      len, packetRSSI);
-}
 
-//*********************************************************************
-// Callback when data is received
-void espNowOnDataReceived(const esp_now_recv_info *mac, const uint8_t *incomingData, int len)
-{
+
     if (espNowState == ESPNOW_PAIRING)
     {
         if (len == sizeof(ESP_NOW_PAIR_MESSAGE)) // First error check
@@ -392,7 +388,7 @@ bool espNowStart()
     {
         started = false;
 
-        //   5. Call esp_now_init
+        // Initialize the ESP-NOW layer
         if (settings.debugEspNow)
             systemPrintf("Calling esp_now_init\r\n");
         status = esp_now_init();
@@ -402,10 +398,10 @@ bool espNowStart()
             break;
         }
 
-        //   9. Set receive callback [esp_now_register_recv_cb(espNowOnDataReceived)]
+        // Set the receive packet routine address
         if (settings.debugEspNow)
             systemPrintf("Calling esp_now_register_recv_cb\r\n");
-        status = esp_now_register_recv_cb(espNowRxHandler);
+        status = esp_now_register_recv_cb(espNowOnDataReceived);
         if (status != ESP_OK)
         {
             systemPrintf("ERROR: Failed to set ESP_NOW RX callback, status: %d\r\n", status);
