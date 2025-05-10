@@ -684,7 +684,7 @@ float lBandEBNO; // Used on system status menu
 #endif // COMPILE_ESPNOW
 
 int espNowRSSI;
-// const uint8_t ESPNOW_MAX_PEERS = 5 is defined in settings.h
+const uint8_t espNowBroadcastAddr[6] = {0xff, 0xff, 0xff, 0xff, 0xff, 0xff};
 
 // Ethernet
 //=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
