@@ -2087,6 +2087,9 @@ void networkStop(NetIndex_t index,
         networkDisplayStatus();
     }
 
+    // Clear the event flag
+    networkEventStop[index] = false;
+
     // Only stop networks that exist on the platform
     if (networkIsPresent(index))
     {
