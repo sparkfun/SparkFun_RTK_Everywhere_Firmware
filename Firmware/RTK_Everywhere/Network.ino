@@ -493,6 +493,15 @@ void networkConsumerAdd(NETCONSUMER_t consumer,
 }
 
 //----------------------------------------
+// Get the bit mask of network consumers
+//----------------------------------------
+NETCONSUMER_MASK_t networkConsumerBits(NetIndex_t index)
+{
+    networkValidateIndex(index);
+    return networkConsumersAny | netIfConsumers[index];
+}
+
+//----------------------------------------
 // Count the network consumer bits
 //----------------------------------------
 int networkConsumerCount(NETCONSUMER_MASK_t bits)
@@ -1996,6 +2005,14 @@ void networkSoftApConsumerAdd(NETCONSUMER_t consumer,
 }
 
 //----------------------------------------
+// Get the bit mask of network consumers
+//----------------------------------------
+NETCONSUMER_MASK_t networkSoftApConsumerBits()
+{
+    return networkSoftApConsumer;
+}
+
+//----------------------------------------
 // Display the soft AP consumers
 //----------------------------------------
 void networkSoftApConsumerDisplay()
@@ -2083,7 +2100,7 @@ void networkStart(NetIndex_t index,
                   const char * fileName,
                   uint32_t lineNumber)
 {
-    NetMask_t bitMask;
+    NETCONSUMER_MASK_t consumers;
 
     // Validate the index
     networkValidateIndex(index);
@@ -2097,18 +2114,25 @@ void networkStart(NetIndex_t index,
     }
 
     // Only start networks that exist on the platform
-    if (networkIsPresent(index))
+    consumers = networkConsumersAny;
+    if (index < NETWORK_OFFLINE)
+        consumers |= netIfConsumers[index];
+    if (networkIsPresent(index) && consumers)
     {
-        // Get the network bit
-        bitMask = (1 << index);
-
         // If a network has a start sequence, and it is not started, start it
-        if (networkInterfaceTable[index].start && (!(networkStarted & bitMask)))
+        if (networkInterfaceTable[index].start && (!networkIsStarted(index)))
         {
             if (debug)
                 systemPrintf("Starting network: %s\r\n", networkGetNameByIndex(index));
             networkSequenceStart(index, debug, __FILE__, __LINE__);
         }
+    }
+    else if (debug)
+    {
+        if (networkIsPresent(index))
+            systemPrintf("Network: No consumers, shutting down\r\n");
+        else
+            systemPrintf("Network: %s not present\r\n", networkInterfaceTable[index].name);
     }
 }
 
