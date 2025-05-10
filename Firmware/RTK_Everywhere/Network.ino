@@ -1146,15 +1146,24 @@ void networkInterfaceInternetConnectionAvailable(NetIndex_t index)
     // Validate the index
     networkValidateIndex(index);
 
+    // Clear the event flag
+    networkEventInternetAvailable[index] = false;
+
     // Check for network online
-    bitMask = 1 << index;
     previousIndex = index;
-    if (networkHasInternet_bm & bitMask)
+    if (networkInterfaceHasInternet(index))
+    {
         // Already online, nothing to do
+        if (settings.debugNetworkLayer)
+            systemPrintf("%s already has internet access\r\n", networkInterfaceTable[index].name);
         return;
+    }
 
     // Mark this network as online
+    bitMask = 1 << index;
     networkHasInternet_bm |= bitMask;
+    if (settings.debugNetworkLayer)
+        systemPrintf("%s has internet access\r\n", networkInterfaceTable[index].name);
 
     // Raise the network priority if necessary
     previousPriority = networkPriority;
