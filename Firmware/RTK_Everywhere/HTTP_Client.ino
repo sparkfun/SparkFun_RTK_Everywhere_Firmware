@@ -30,6 +30,7 @@ enum HTTPClientState
     HTTP_CLIENT_OFF = 0,
     HTTP_CLIENT_ON,                  // WIFI_STATE_START state
     HTTP_CLIENT_NETWORK_STARTED,     // Connecting to WiFi access point or Ethernet
+    HTTP_CLIENT_CONNECTION_DELAY,    // Delay before connecting to HTTP server
     HTTP_CLIENT_CONNECTING_2_SERVER, // Connecting to the HTTP server
     HTTP_CLIENT_CONNECTED,           // Connected to the HTTP services
     HTTP_CLIENT_COMPLETE,            // Complete. Can not or do not need to continue
@@ -38,8 +39,13 @@ enum HTTPClientState
 };
 
 const char *const httpClientStateName[] = {
-    "HTTP_CLIENT_OFF",       "HTTP_CLIENT_ON",       "HTTP_CLIENT_NETWORK_STARTED", "HTTP_CLIENT_CONNECTING_2_SERVER",
-    "HTTP_CLIENT_CONNECTED", "HTTP_CLIENT_COMPLETE",
+    "HTTP_CLIENT_OFF",
+    "HTTP_CLIENT_ON",
+    "HTTP_CLIENT_NETWORK_STARTED",
+    "HTTP_CLIENT_CONNECTION_DELAY",
+    "HTTP_CLIENT_CONNECTING_2_SERVER",
+    "HTTP_CLIENT_CONNECTED",
+    "HTTP_CLIENT_COMPLETE",
 };
 
 const int httpClientStateNameEntries = sizeof(httpClientStateName) / sizeof(httpClientStateName[0]);
@@ -157,6 +163,7 @@ void httpClientPrintStateSummary()
 
     case HTTP_CLIENT_ON:
     case HTTP_CLIENT_NETWORK_STARTED:
+    case HTTP_CLIENT_CONNECTION_DELAY:
         systemPrint("Disconnected");
         break;
 
@@ -317,10 +324,7 @@ void httpClientUpdate()
 
     // Start the network
     case HTTP_CLIENT_ON: {
-        if ((millis() - httpClientTimer) > httpClientConnectionAttemptTimeout)
-        {
-            httpClientSetState(HTTP_CLIENT_NETWORK_STARTED);
-        }
+        httpClientSetState(HTTP_CLIENT_NETWORK_STARTED);
         break;
     }
 
@@ -328,7 +332,16 @@ void httpClientUpdate()
     case HTTP_CLIENT_NETWORK_STARTED: {
         // Wait until the network is connected to the media
         if (connected)
+            httpClientSetState(HTTP_CLIENT_CONNECTION_DELAY);
+        break;
+    }
+
+    // Delay before connecting to HTTP server
+    case HTTP_CLIENT_CONNECTION_DELAY: {
+        if ((millis() - httpClientTimer) > httpClientConnectionAttemptTimeout)
+        {
             httpClientSetState(HTTP_CLIENT_CONNECTING_2_SERVER);
+        }
         break;
     }
 
