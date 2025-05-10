@@ -405,35 +405,81 @@ bool espNowStart()
             break;
         }
 
-        //  10. Add peers from settings
-        //      i.  Set ESP-NOW state, call espNowSetState(ESPNOW_PAIRED)
-        if (settings.debugEspNow)
-            systemPrintf("Calling espNowSetState\r\n");
-        espNowSetState(ESPNOW_PAIRED);
-
-        //     ii. Loop through peers listed in settings, for each
-        for (index = 0; index < ESPNOW_MAX_PEERS; index++)
+        // Check for peers listed in settings
+        if (settings.espnowPeerCount == 0)
         {
-            //      a. Determine if peer exists, call esp_now_is_peer_exist
-            if (settings.debugEspNow)
-                systemPrintf("Calling esp_now_is_peer_exist\r\n");
-            if (esp_now_is_peer_exist(settings.espnowPeers[index]) == false)
+            // No peers, enter broadcast mode
+            // Determine if the broadcast peer already exists
+            if (esp_now_is_peer_exist(espNowBroadcastAddr) == true)
             {
-                //  b. Add peer if necessary, call espNowAddPeer
-                if (settings.debugEspNow)
-                    systemPrintf("Calling espNowAddPeer\r\n");
-                status = espNowAddPeer(&settings.espnowPeers[index][0]);
-                if (status != ESP_OK)
+                if (settings.debugEspNow == true)
+                    systemPrintln("Broadcast peer already exists");
+            }
+            else
+            {
+                // Add the broadcast peer
+                esp_err_t result = espNowAddPeer(espNowBroadcastAddr);
+                if (settings.debugEspNow == true)
                 {
-                    systemPrintf("ERROR: Failed to add ESP-NOW peer %02x:%02x:%02x:%02x:%02x:%02x, status: %d\r\n",
-                                 settings.espnowPeers[index][0],
-                                 settings.espnowPeers[index][1],
-                                 settings.espnowPeers[index][2],
-                                 settings.espnowPeers[index][3],
-                                 settings.espnowPeers[index][4],
-                                 settings.espnowPeers[index][5],
-                                 status);
-                    break;
+                    if (result != ESP_OK)
+                        systemPrintln("Failed to add broadcast peer");
+                    else
+                        systemPrintln("Broadcast peer added");
+                }
+            }
+            espNowSetState(ESPNOW_BROADCASTING);
+        }
+        else
+        {
+            // If we have peers, move to paired state
+            espNowSetState(ESPNOW_PAIRED);
+
+            if (settings.debugEspNow == true)
+                systemPrintf("Adding %d espNow peers\r\n", settings.espnowPeerCount);
+
+            // Loop through peers listed in settings
+            for (index = 0; index < ESPNOW_MAX_PEERS; index++)
+            {
+                // Determine if peer exists
+                if (esp_now_is_peer_exist(settings.espnowPeers[index]))
+                {
+                    if (settings.debugEspNow == true)
+                        systemPrintf("ESP-NOW peer %02x:%02x:%02x:%02x:%02x:%02x, status: already exists\r\n",
+                                     settings.espnowPeers[index][0],
+                                     settings.espnowPeers[index][1],
+                                     settings.espnowPeers[index][2],
+                                     settings.espnowPeers[index][3],
+                                     settings.espnowPeers[index][4],
+                                     settings.espnowPeers[index][5]);
+                }
+                else
+                {
+                    // Add peer if necessary
+                    status = espNowAddPeer(&settings.espnowPeers[index][0]);
+                    if (status == ESP_OK)
+                    {
+                        if (settings.debugEspNow == true)
+                            systemPrintf("Added ESP-NOW peer %02x:%02x:%02x:%02x:%02x:%02x\r\n",
+                                         settings.espnowPeers[index][0],
+                                         settings.espnowPeers[index][1],
+                                         settings.espnowPeers[index][2],
+                                         settings.espnowPeers[index][3],
+                                         settings.espnowPeers[index][4],
+                                         settings.espnowPeers[index][5]);
+                    }
+                    else
+                    {
+                        if (settings.debugEspNow == true)
+                            systemPrintf("ERROR: Failed to add ESP-NOW peer %02x:%02x:%02x:%02x:%02x:%02x, status: %d, %s\r\n",
+                                         settings.espnowPeers[index][0],
+                                         settings.espnowPeers[index][1],
+                                         settings.espnowPeers[index][2],
+                                         settings.espnowPeers[index][3],
+                                         settings.espnowPeers[index][4],
+                                         settings.espnowPeers[index][5],
+                                         status, esp_err_to_name(status));
+                        break;
+                    }
                 }
             }
 
