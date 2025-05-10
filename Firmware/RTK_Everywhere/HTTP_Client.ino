@@ -323,7 +323,12 @@ void httpClientUpdate()
     case HTTP_CLIENT_NETWORK_STARTED: {
         // Wait until the network is connected to the media
         if (connected)
+        {
+            // Reset the timeout when the network changes
+            if (networkChanged(NETCONSUMER_HTTP_CLIENT))
+                httpClientConnectionAttemptTimeout = 0;
             httpClientSetState(HTTP_CLIENT_CONNECTION_DELAY);
+        }
         break;
     }
 
