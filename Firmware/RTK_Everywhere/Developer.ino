@@ -190,6 +190,7 @@ void webServerVerifyTables() {}
 #ifndef COMPILE_ESPNOW
 
 bool espNowGetState()                   {return ESPNOW_OFF;}
+bool espNowIsPaired()                   {return false;}
 void espNowProcessRTCM(byte incoming)   {}
 bool espNowProcessRxPairedMessage()     {return true;}
 esp_err_t espNowRemovePeer(uint8_t *peerMac)        {return ESP_OK;}

@@ -98,6 +98,13 @@ void espNowBeginPairing()
 }
 
 //*********************************************************************
+// Determine if ESP-NOW is paired
+bool espNowIsPaired()
+{
+    return (espNowState == ESPNOW_PAIRED);
+}
+
+//*********************************************************************
 // Callback when data is received
 void espNowOnDataReceived(const esp_now_recv_info *mac,
                           const uint8_t *incomingData,
