@@ -1050,12 +1050,25 @@ NetPriority_t networkGetPriority()
 }
 
 //----------------------------------------
-// Determine if any network interface has access to the internet
+// Determine if the current network interface has access to the internet
 //----------------------------------------
 bool networkHasInternet()
 {
+    bool internetAccessible;
+    NetIndex_t index;
+    NetPriority_t priority;
+
+    // Does any interface have access to the internet
+    internetAccessible = false;
+    priority = networkPriority;
+    if (priority != NETWORK_OFFLINE)
+    {
+        index = networkIndexTable[priority];
+        internetAccessible = networkInterfaceHasInternet(index);
+    }
+
     // Return the network state
-    return networkInterfaceHasInternet(networkGetCurrentInterfaceIndex());
+    return internetAccessible;
 }
 
 //----------------------------------------
