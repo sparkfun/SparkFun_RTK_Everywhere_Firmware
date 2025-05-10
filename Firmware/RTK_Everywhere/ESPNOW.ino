@@ -289,14 +289,22 @@ bool espNowProcessRxPairedMessage()
 // Remove a given MAC address from the peer list
 esp_err_t espNowRemovePeer(const uint8_t *peerMac)
 {
-    esp_err_t response = esp_now_del_peer(peerMac);
-    if (response != ESP_OK)
+    esp_err_t result = esp_now_del_peer(peerMac);
+    if (settings.debugEspNow == true)
     {
-        if (settings.debugEspNow == true)
-            systemPrintf("Failed to remove peer: %s\r\n", esp_err_to_name(response));
+        if (result != ESP_OK)
+            systemPrintf("ERROR: Failed to remove ESP-NOW peer %02x:%02x:%02x:%02x:%02x:%02x, result: %s\r\n",
+                         peerMac[0], peerMac[1],
+                         peerMac[2], peerMac[3],
+                         peerMac[4], peerMac[5],
+                         esp_err_to_name(result));
+        else
+            systemPrintf("Removed ESP-NOW peer %02x:%02x:%02x:%02x:%02x:%02x\r\n",
+                         peerMac[0], peerMac[1],
+                         peerMac[2], peerMac[3],
+                         peerMac[4], peerMac[5]);
     }
-
-    return (response);
+    return result;
 }
 
 //*********************************************************************
