@@ -46,6 +46,12 @@ typedef struct _ESP_NOW_PAIR_MESSAGE
 // Locals
 //****************************************
 
+uint16_t espNowBytesSent;    // May be more than 255
+unsigned long espNowLastAdd; // Tracks how long since the last byte was added to the outgoing buffer
+unsigned long espNowLastRssiUpdate;
+uint8_t espNowOutgoing[250]; // ESP NOW has max of 250 characters
+uint8_t espNowOutgoingSpot;  // ESP Now has a max of 250 characters
+uint8_t espNowReceivedMAC[6]; // Holds the MAC received during pairing
 ESPNOWState espNowState;
 
 //*********************************************************************
