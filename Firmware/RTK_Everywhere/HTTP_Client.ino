@@ -87,12 +87,8 @@ bool httpClientConnectLimitReached()
     limitReached = (httpClientConnectionAttempts >= MAX_HTTP_CLIENT_CONNECTION_ATTEMPTS);
     limitReached = false;
 
-    bool enableHttpClient = true;
-    if (!settings.enablePointPerfectCorrections)
-        enableHttpClient = false;
-
     // Restart the HTTP client
-    httpClientStop(limitReached || (!httpClientEnabled(nullptr)));
+    httpClientStop((!httpClientEnabled(nullptr)) || limitReached);
 
     httpClientConnectionAttempts++;
     httpClientConnectionAttemptsTotal++;
