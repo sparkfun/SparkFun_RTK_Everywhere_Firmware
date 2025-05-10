@@ -172,6 +172,7 @@ NetMask_t networkStarted;     // Track the running networks
 // Active network sequence, may be nullptr
 NETWORK_POLL_SEQUENCE *networkSequence[NETWORK_OFFLINE];
 
+NetMask_t networkMdnsRequests; // Non-zero when one or more interfaces request mDNS
 NetMask_t networkMdnsRunning; // Non-zero when mDNS is running
 
 //----------------------------------------
@@ -1393,6 +1394,57 @@ void networkMulticastDNSStop()
     // Restart mDNS on the highest priority network
     if (startIndex < NETWORK_OFFLINE)
         networkMulticastDNSStart(startIndex);
+}
+
+//----------------------------------------
+// Start multicast DNS
+//----------------------------------------
+bool networkMulticastDNSUpdate()
+{
+    NetMask_t deltaMask;
+    NetMask_t requests;
+    bool status;
+
+    // Determine if mDNS needs to restart
+    status = true;
+    requests = networkMdnsRequests;
+
+    // Update the mDNS state
+    if (settings.mdnsEnable == false)
+        requests = 0;
+
+    // Determine if mDNS needs to restart
+    deltaMask = requests ^ networkMdnsRunning;
+    if (deltaMask)
+    {
+        // Stop mDNS if it is running
+        if (networkMdnsRunning)
+        {
+            MDNS.end();
+            if (settings.debugNetworkLayer)
+                systemPrintln("mDNS stopped");
+        }
+
+        // Restart mDNS if it is needed by any interface
+        if (deltaMask & requests)
+        {
+            // This should make the device findable from 'rtk.local' in a browser
+            if (MDNS.begin(&settings.mdnsHostName[0]) == false)
+            {
+                systemPrintln("Error setting up MDNS responder!");
+                requests = 0;
+                status = false;
+            }
+            else
+            {
+                if (settings.debugNetworkLayer)
+                    systemPrintf("mDNS started as %s.local\r\n", settings.mdnsHostName);
+                MDNS.addService("http", "tcp", settings.httpPort); // Add service to MDNS
+            }
+        }
+        networkMdnsRunning = requests;
+    }
+    return status;
 }
 
 //----------------------------------------
