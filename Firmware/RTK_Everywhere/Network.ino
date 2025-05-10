@@ -2324,6 +2324,11 @@ void networkUpdate()
     }
 
     // Update the network services
+    // Start or stop mDNS
+    if (networkMdnsRequests != networkMdnsRunning)
+        networkMulticastDNSUpdate();
+
+    // Update the network services
     DMW_c("mqttClientUpdate");
     mqttClientUpdate(); // Process any Point Perfect MQTT messages
     DMW_c("ntpServerUpdate");
