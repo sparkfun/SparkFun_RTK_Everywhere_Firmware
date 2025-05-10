@@ -115,6 +115,17 @@ void espNowOnDataReceived(const esp_now_recv_info *mac,
 //        wifi_pkt_rx_ctrl_t * rx_ctrl;   // Rx control info of ESPNOW packet
 //    } esp_now_recv_info_t;
 
+    // Display the packet
+    if (settings.debugEspNow == true)
+    {
+        systemPrintf("*** ESP-NOW: RX %02x:%02x:%02x:%02x:%02x:%02x --> %02x:%02x:%02x:%02x:%02x:%02x, %d bytes, rssi: %d\r\n",
+                     mac->src_addr[0], mac->src_addr[1], mac->src_addr[2],
+                     mac->src_addr[3], mac->src_addr[4], mac->src_addr[5],
+                     mac->des_addr[0], mac->des_addr[1], mac->des_addr[2],
+                     mac->des_addr[3], mac->des_addr[4], mac->des_addr[5],
+                     len, packetRSSI);
+    }
+
     if (espNowState == ESPNOW_PAIRING)
     {
         ESP_NOW_PAIR_MESSAGE pairMessage;
@@ -122,42 +133,15 @@ void espNowOnDataReceived(const esp_now_recv_info *mac,
         {
             memcpy(&pairMessage, incomingData, len);
 
-            // Check CRC
+            // Compute the CRC
             uint8_t tempCRC = 0;
             for (int x = 0; x < 6; x++)
                 tempCRC += pairMessage.macAddress[x];
 
-            if (tempCRC == pairMessage.crc) // 2nd error check
+            // Check the CRC
+            if (tempCRC == pairMessage.crc)
             {
-                memcpy(&espNowReceivedMAC, pairMessage.macAddress, 6);
-                espNowSetState(ESPNOW_MAC_RECEIVED);
-            }
-            // else Pair CRC failed
-        }
-    }
-    else if (settings.debugEspNow)
-        systemPrintf("*** ESP-NOW: RX %02x:%02x:%02x:%02x:%02x:%02x --> %02x:%02x:%02x:%02x:%02x:%02x, %d bytes, rssi: %d\r\n",
-                     mac->src_addr[0], mac->src_addr[1], mac->src_addr[2],
-                     mac->src_addr[3], mac->src_addr[4], mac->src_addr[5],
-                     mac->des_addr[0], mac->des_addr[1], mac->des_addr[2],
-                     mac->des_addr[3], mac->des_addr[4], mac->des_addr[5],
-                     len, packetRSSI);
-
-
-    if (espNowState == ESPNOW_PAIRING)
-    {
-        if (len == sizeof(ESP_NOW_PAIR_MESSAGE)) // First error check
-        {
-            ESP_NOW_PAIR_MESSAGE pairMessage;
-            memcpy(&pairMessage, incomingData, sizeof(pairMessage));
-
-            // Check CRC
-            uint8_t tempCRC = 0;
-            for (int x = 0; x < 6; x++)
-                tempCRC += pairMessage.macAddress[x];
-
-            if (tempCRC == pairMessage.crc) // 2nd error check
-            {
+                // Valid CRC, save the MAC address
                 memcpy(&espNowReceivedMAC, pairMessage.macAddress, 6);
                 espNowSetState(ESPNOW_MAC_RECEIVED);
             }
