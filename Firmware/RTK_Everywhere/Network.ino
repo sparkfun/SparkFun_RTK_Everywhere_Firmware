@@ -357,7 +357,12 @@ void networkBegin()
 #ifdef COMPILE_ETHERNET
     // Start Ethernet
     if (present.ethernet_ws5500)
+    {
+        networkStart(NETWORK_ETHERNET, settings.enablePrintEthernetDiag, __FILE__, __LINE__);
         ethernetStart();
+        if (settings.debugNetworkLayer)
+            networkDisplayStatus();
+    }
 #endif // COMPILE_ETHERNET
 
     // WiFi and cellular networks are started/stopped as consumers and come online/offline in networkUpdate()
