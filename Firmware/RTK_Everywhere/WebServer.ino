@@ -760,9 +760,6 @@ void stopWebServer()
         webServer = nullptr;
     }
 
-    // Stop the multicast DNS server
-    networkMulticastDNSStop();
-
     if (settingsCSV != nullptr)
     {
         rtkFree(settingsCSV, "Settings buffer (settingsCSV)");
@@ -1060,9 +1057,6 @@ void webServerReleaseResources()
         delete webServer;
         webServer = nullptr;
     }
-
-    // Stop the multicast DNS server
-    networkMulticastDNSStop();
 
     if (settingsCSV != nullptr)
     {
