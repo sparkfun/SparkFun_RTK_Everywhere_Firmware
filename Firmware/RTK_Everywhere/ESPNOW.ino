@@ -258,7 +258,7 @@ void espNowProcessRTCM(byte incoming)
 
 //*********************************************************************
 // Regularly call during pairing to see if we've received a Pairing message
-bool espNowIsPaired()
+bool espNowProcessRxPairedMessage()
 {
     if (espNowState == ESPNOW_MAC_RECEIVED)
     {
@@ -487,7 +487,7 @@ void espNowStaticPairing()
         {
             delay(1);
 
-            if (espNowIsPaired() == true) // Check if we've received a pairing message
+            if (espNowProcessRxPairedMessage() == true) // Check if we've received a pairing message
             {
                 systemPrintln("Pairing compete");
                 exitPair = true;
