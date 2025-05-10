@@ -1111,6 +1111,12 @@ void networkInterfaceEventInternetLost(NetIndex_t index,
 //----------------------------------------
 void networkInterfaceEventStop(NetIndex_t index)
 {
+    // Validate the index
+    networkValidateIndex(index);
+
+    // Notify networkUpdate of the change in state
+    if (settings.debugNetworkLayer)
+        systemPrintf("%s stop event\r\n", networkInterfaceTable[index].name);
     networkEventStop[index] = true;
 }
 
