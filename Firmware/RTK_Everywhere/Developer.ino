@@ -211,6 +211,8 @@ bool wifiApIsRunning() {return false;}
 bool wifiConnect(bool startWiFiStation, bool startWiFiAP, unsigned long timeout) {return false;}
 void wifiDisplayNetworkData()                   {}
 void wifiDisplaySoftApStatus()                  {}
+bool wifiEspNowOff(const char * fileName, uint32_t lineNumber) {return true;}
+bool wifiEspNowOn(const char * fileName, uint32_t lineNumber) {return false;}
 uint32_t wifiGetStartTimeout() {return 0;}
 #define WIFI_IS_RUNNING() 0
 int wifiNetworkCount() {return 0;}
@@ -218,10 +220,13 @@ void wifiResetThrottleTimeout() {}
 void wifiResetTimeout() {}
 bool wifiSoftApOff(const char * fileName, uint32_t lineNumber) {return true;}
 bool wifiSoftApOn(const char * fileName, uint32_t lineNumber) {return false;}
+bool wifiStationOff(const char * fileName, uint32_t lineNumber) {return true;}
+bool wifiStationOn(const char * fileName, uint32_t lineNumber) {return false;}
 #define WIFI_SOFT_AP_RUNNING() false
 bool wifiStart() {return false;}
 bool wifiStationIsRunning() {return false;}
 #define WIFI_STOP() {}
+void wifiStopAll()                              {}
 bool wifiUnavailable()  {return true;}
 
 #endif // COMPILE_WIFI

@@ -88,7 +88,8 @@ esp_err_t espNowAddPeer(const uint8_t *peerMac)
 // Start ESP-Now if needed, put ESP-Now into broadcast state
 void espNowBeginPairing()
 {
-    espnowStart();
+    // Start ESP-NOW if necessary
+    wifiEspNowOn(__FILE__, __LINE__);
 
     // To begin pairing, we must add the broadcast MAC to the peer list
     espNowAddPeer(espNowBroadcastAddr, false); // Encryption is not supported for multicast addresses

@@ -1308,7 +1308,7 @@ SettingValueResponse updateSettingWithValue(bool inCommands, const char *setting
 
         // If we're in AP only mode (no internet), try WiFi with current SSIDs
         if (networkIsInterfaceStarted(NETWORK_WIFI_STATION) == false)
-            wifiStart();
+            wifiStationOn(__FILE__, __LINE__);
 
         // Get firmware version from server
         char newVersionCSV[40];

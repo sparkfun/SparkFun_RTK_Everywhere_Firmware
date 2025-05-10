@@ -933,7 +933,7 @@ void networkEvent(arduino_event_id_t event, arduino_event_info_t info)
     case ARDUINO_EVENT_WIFI_STA_GOT_IP:
     case ARDUINO_EVENT_WIFI_STA_GOT_IP6:
     case ARDUINO_EVENT_WIFI_STA_LOST_IP:
-        wifiEvent(event, info);
+        wifi.eventHandler(event, info);
         break;
 #endif // COMPILE_WIFI
     }
@@ -1009,7 +1009,7 @@ IPAddress networkGetIpAddress()
     IPAddress ip;
 
     // NETIF doesn't capture the IP address of a soft AP
-    if (WIFI_SOFT_AP_RUNNING() == true && wifiStationIsRunning() == false)
+    if (wifiSoftApRunning == true && wifiStationRunning == false)
         return WiFi.softAPIP();
 
     // Get the networkInterfaceTable index

@@ -380,11 +380,13 @@ RTK_WIFI wifi(false);
 
 // WiFi Globals - For other module direct access
 bool restartWiFi = false; // Restart WiFi if user changes anything
+WIFI_CHANNEL_t wifiChannel;     // Current WiFi channel number
 bool wifiEspNowRunning;         // False: stopped, True: starting, running, stopping
 uint32_t wifiReconnectionTimer; // Delay before reconnection, timer running when non-zero
 bool wifiSoftApOnline;          // WiFi soft AP started successfully
 bool wifiSoftApRunning;         // False: stopped, True: starting, running, stopping
 bool wifiStationOnline;         // WiFi station started successfully
+bool wifiStationRunning;        // False: stopped, True: starting, running, stopping
 
 //-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 

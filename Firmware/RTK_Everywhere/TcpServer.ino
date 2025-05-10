@@ -460,7 +460,7 @@ void tcpServerUpdate()
     // Wait until the network is connected
     case TCP_SERVER_STATE_WAIT_FOR_NETWORK:
         // Wait until the network is connected to the media
-        if (connected || WIFI_SOFT_AP_RUNNING())
+        if (connected || wifiSoftApRunning)
         {
             // Delay before starting the TCP server
             if ((millis() - tcpServerTimer) >= (1 * 1000))
@@ -481,7 +481,7 @@ void tcpServerUpdate()
     // Handle client connections and link failures
     case TCP_SERVER_STATE_RUNNING:
         // Determine if the network has failed
-        if ((connected == false && WIFI_SOFT_AP_RUNNING() == false) || (!settings.enableTcpServer && !settings.baseCasterOverride))
+        if ((connected == false && wifiSoftApRunning == false) || (!settings.enableTcpServer && !settings.baseCasterOverride))
         {
             if ((settings.debugTcpServer || PERIODIC_DISPLAY(PD_TCP_SERVER_DATA)) && (!inMainMenu))
             {

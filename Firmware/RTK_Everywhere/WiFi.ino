@@ -370,7 +370,6 @@ static bool wifiReconnectRequest; // Set true to request WiFi reconnection
 
 // WiFi interface status
 static bool wifiApRunning;
-static bool wifiStationRunning;
 
 static int wifiFailedConnectionAttempts = 0; // Count the number of connection attempts between restarts
 static WiFiMulti *wifiMulti;
@@ -513,6 +512,46 @@ void wifiDisplayState()
         systemPrintf("    WiFi Strength: %d dBm\r\n", WiFi.RSSI());
         systemPrintf("    WiFi Status: %d (%s)\r\n", wifiStatus, wifiStatusString);
     }
+}
+
+//*********************************************************************
+// Stop ESP-NOW
+// Inputs:
+//   fileName: Name of file calling the enable routine
+//   lineNumber: Line number in the file calling the enable routine
+// Outputs:
+//   Returns true if successful and false upon failure
+bool wifiEspNowOff(const char * fileName, uint32_t lineNumber)
+{
+    // Display the call
+    if (settings.debugEspNow || settings.debugWifiState)
+        systemPrintf("wifiEspNowOff called in %s at line %d\r\n",
+                     fileName, lineNumber);
+
+    // Turn off ESP-NOW when enabled
+    if (wifiEspNowRunning)
+        return wifi.enable(false, wifiSoftApRunning, wifiStationRunning, __FILE__, __LINE__);
+    return true;
+}
+
+//*********************************************************************
+// Start ESP-NOW
+// Inputs:
+//   fileName: Name of file calling the enable routine
+//   lineNumber: Line number in the file calling the enable routine
+// Outputs:
+//   Returns true if successful and false upon failure
+bool wifiEspNowOn(const char * fileName, uint32_t lineNumber)
+{
+    // Display the call
+    if (settings.debugEspNow || settings.debugWifiState)
+        systemPrintf("wifiEspNowOff called in %s at line %d\r\n",
+                     fileName, lineNumber);
+
+    // Turn on ESP-NOW when it is enabled
+    if (settings.enableEspNow && !wifiEspNowRunning)
+        return wifi.enable(true, wifiSoftApRunning, wifiStationRunning, __FILE__, __LINE__);
+    return settings.enableEspNow;
 }
 
 //*********************************************************************

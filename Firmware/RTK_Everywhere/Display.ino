@@ -665,9 +665,9 @@ void setRadioIcons(std::vector<iconPropertyBlinking> *iconList)
 
             // Count the number of radios in use
             uint8_t numberOfRadios = 1; // Bluetooth always indicated. TODO don't count if BT radio type is OFF.
-            if (WIFI_IS_RUNNING())
+            if (wifiStationRunning || wifiSoftApRunning)
                 numberOfRadios++;
-            if (espNowGetState() > ESPNOW_OFF)
+            if (wifiEspNowRunning)
                 numberOfRadios++;
 
             // Bluetooth only
@@ -682,9 +682,9 @@ void setRadioIcons(std::vector<iconPropertyBlinking> *iconList)
                 setBluetoothIcon_TwoRadios(iconList);
 
                 // Do we have WiFi or ESP
-                if (WIFI_IS_RUNNING())
+                if (wifiStationRunning || wifiSoftApRunning)
                     setWiFiIcon_TwoRadios(iconList);
-                else if (espNowGetState() > ESPNOW_OFF)
+                else if (wifiEspNowRunning)
                     setESPNowIcon_TwoRadios(iconList);
 
                 setModeIcon(iconList); // Turn on Rover/Base type icons
@@ -747,7 +747,7 @@ void setRadioIcons(std::vector<iconPropertyBlinking> *iconList)
                 iconList->push_back(prop);
             }
 
-            if (WIFI_IS_RUNNING()) // WiFi : Columns 34 - 46
+            if (wifiStationRunning || wifiSoftApRunning) // WiFi : Columns 34 - 46
                 displayWiFiIcon(iconList, prop, ICON_POSITION_CENTER, 0b11111111);
 
 #ifdef COMPILE_CELLULAR
@@ -3181,13 +3181,13 @@ void displayWebConfig(std::vector<iconPropertyBlinking> &iconPropertyList)
     {
         setWiFiIcon(&iconPropertyList); // Blink WiFi in center
         snprintf(mySSID, sizeof(mySSID), "%s", wifiSoftApGetSsid());
-        strcpy(myIP, wifiSoftApGetIpAddress().toString().c_str());
+        strcpy(myIP, wifi.softApIpAddress().toString().c_str());
     }
     else if (networkInterfaceHasInternet(NETWORK_WIFI_STATION))
     {
         setWiFiIcon(&iconPropertyList); // Blink WiFi in center
-        snprintf(mySSID, sizeof(mySSID), "%s", wifiStationGetSsid());
-        strcpy(myIP, wifiSoftApGetIpAddress().toString().c_str());
+        snprintf(mySSID, sizeof(mySSID), "%s", wifi.stationSsid());
+        strcpy(myIP, wifi.stationIpAddress().toString().c_str());
     }
     else
 #ifndef COMPILE_ETHERNET

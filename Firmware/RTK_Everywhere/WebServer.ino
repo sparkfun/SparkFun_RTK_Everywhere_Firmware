@@ -1209,7 +1209,7 @@ void webServerUpdate()
     // Wait for connection to the network
     case WEBSERVER_STATE_WAIT_FOR_NETWORK:
         // Wait until the network is connected to the internet or has WiFi AP
-        if (connected || WIFI_SOFT_AP_RUNNING())
+        if (connected || wifiSoftApRunning)
         {
             if (settings.debugWebServer)
                 systemPrintln("Web Server connected to network");
@@ -1222,7 +1222,7 @@ void webServerUpdate()
     // Start the web server
     case WEBSERVER_STATE_NETWORK_CONNECTED: {
         // Determine if the network has failed
-        if (connected == false && WIFI_SOFT_AP_RUNNING() == false)
+        if (connected == false && wifiSoftApRunning == false)
         {
             networkUserRemove(NETCONSUMER_WEB_CONFIG, __FILE__, __LINE__);
             webServerSetState(WEBSERVER_STATE_WAIT_FOR_NETWORK);
@@ -1237,7 +1237,7 @@ void webServerUpdate()
     // Allow web services
     case WEBSERVER_STATE_RUNNING:
         // Determine if the network has failed
-        if (connected == false && WIFI_SOFT_AP_RUNNING() == false)
+        if (connected == false && wifiSoftApRunning == false)
         {
             webServerReleaseResources(); // Release web server resources
             webServerSetState(WEBSERVER_STATE_WAIT_FOR_NETWORK);
