@@ -181,6 +181,7 @@ void httpClientPrintStatus()
 {
     systemPrint("HTTP Client ");
     httpClientPrintStateSummary();
+    systemPrintln();
 }
 
 //----------------------------------------
