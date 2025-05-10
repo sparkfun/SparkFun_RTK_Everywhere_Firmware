@@ -105,14 +105,19 @@ Network.ino
 
 static const char * networkConsumerTable[] =
 {
+    "HTTP_CLIENT",
+    "NTP_SERVER",
     "NTRIP_CLIENT",
-    "NTRIP_SERVER",
+    "NTRIP_SERVER_0",
+    "NTRIP_SERVER_1",
+    "NTRIP_SERVER_2",
+    "NTRIP_SERVER_3",
+    "OTA_CLIENT",
+    "PPL_KEY_UPDATE",
+    "PPL_MQTT_CLIENT",
     "TCP_CLIENT",
     "TCP_SERVER",
     "UDP_SERVER",
-    "PPL_KEY_UPDATE",
-    "PPL_MQTT_CLIENT",
-    "OTA_CLIENT",
     "WEB_CONFIG",
 };
 
