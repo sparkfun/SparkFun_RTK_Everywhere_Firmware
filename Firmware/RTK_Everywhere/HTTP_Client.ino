@@ -278,8 +278,10 @@ void httpClientStop(bool shutdown)
 
     // Determine the next HTTP client state
     online.httpClient = false;
+    networkConsumerOffline(NETCONSUMER_HTTP_CLIENT);
     if (shutdown)
     {
+        networkConsumerRemove(NETCONSUMER_HTTP_CLIENT, NETWORK_ANY, __FILE__, __LINE__);
         httpClientModeNeeded = false;
         httpClientConnectionAttempts = 0;
         httpClientConnectionAttemptTimeout = 0;
@@ -300,7 +302,7 @@ void httpClientUpdate()
 
     // Shutdown the HTTP client when the mode or setting changes
     DMW_st(httpClientSetState, httpClientState);
-    connected = networkHasInternet();
+    connected = networkConsumerIsConnected(NETCONSUMER_HTTP_CLIENT);
     enabled = httpClientEnabled(nullptr);
     if ((enabled == false) && (httpClientState > HTTP_CLIENT_OFF))
         httpClientShutdown();
@@ -315,7 +317,10 @@ void httpClientUpdate()
     default:
     case HTTP_CLIENT_OFF: {
         if (enabled)
+        {
             httpClientStart();
+            networkConsumerAdd(NETCONSUMER_HTTP_CLIENT, NETWORK_ANY, __FILE__, __LINE__);
+        }
         break;
     }
 
@@ -327,6 +332,7 @@ void httpClientUpdate()
             // Reset the timeout when the network changes
             if (networkChanged(NETCONSUMER_HTTP_CLIENT))
                 httpClientConnectionAttemptTimeout = 0;
+            networkUserAdd(NETCONSUMER_HTTP_CLIENT, __FILE__, __LINE__);
             httpClientSetState(HTTP_CLIENT_CONNECTION_DELAY);
         }
         break;
