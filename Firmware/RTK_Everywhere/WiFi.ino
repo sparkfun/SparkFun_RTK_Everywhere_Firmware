@@ -912,10 +912,10 @@ bool RTK_WIFI::connect(unsigned long timeout,
     if (_stationRunning == false)
     {
         displayWiFiConnect();
-        started = enable(_espNowRunning, _softApRunning, true);
+        started = enable(_espNowRunning, _softApRunning, true, __FILE__, __LINE__);
     }
     else if (startAP && !_softApRunning)
-        started = enable(_espNowRunning, true, _stationRunning);
+        started = enable(_espNowRunning, true, _stationRunning, __FILE__, __LINE__);
 
     // Determine the WiFi station status
     if (started)
@@ -955,9 +955,15 @@ void RTK_WIFI::displayComponents(const char * text, WIFI_ACTION_t components)
 //   enableESPNow: Enable ESP-NOW mode
 //   enableSoftAP: Enable soft AP mode
 //   enableStataion: Enable station mode
+//   fileName: Name of file calling the enable routine
+//   lineNumber: Line number in the file calling the enable routine
 // Outputs:
 //   Returns true if the modes were successfully configured
-bool RTK_WIFI::enable(bool enableESPNow, bool enableSoftAP, bool enableStation)
+bool RTK_WIFI::enable(bool enableESPNow,
+                      bool enableSoftAP,
+                      bool enableStation,
+                      const char * fileName,
+                      int lineNumber)
 {
     int authIndex;
     WIFI_ACTION_t starting;
@@ -1154,13 +1160,14 @@ bool RTK_WIFI::restart(bool always)
         bool softApRunning = _softApRunning;
 
         // Stop the WiFi layer
-        started = enable(false, false, false);
+        started = enable(false, false, false, __FILE__, __LINE__);
 
         // Restart the WiFi layer
         if (started)
             started = enable(espNowRunning,
                              softApRunning,
-                             networkConsumers() ? true : false);
+                             networkConsumers() ? true : false,
+                             __FILE__, __LINE__);
 
         // Return the started state
         return started;
@@ -1369,9 +1376,9 @@ bool RTK_WIFI::softApConfiguration(IPAddress ipAddress,
     success = true;
     if (softApOnline())
     {
-        success = enable(false, false, stationRunning());
+        success = enable(false, false, stationRunning(), __FILE__, __LINE__);
         if (success)
-            success = enable(false, true, stationRunning());
+            success = enable(false, true, stationRunning(), __FILE__, __LINE__);
     }
     return success;
 }
@@ -1580,7 +1587,10 @@ bool RTK_WIFI::softApSetSsidPassword(const char * ssid, const char * password)
 //    otherwise
 bool RTK_WIFI::startAp(bool forceAP)
 {
-    return enable(_espNowRunning, forceAP | settings.wifiConfigOverAP, _stationRunning);
+    return enable(_espNowRunning,
+                  forceAP | settings.wifiConfigOverAP,
+                  _stationRunning,
+                  __FILE__, __LINE__);
 }
 
 //*********************************************************************
@@ -2935,12 +2945,12 @@ void RTK_WIFI::test(uint32_t testDurationMsec)
 
     case 0:
         systemPrintf("--------------------  %d: All Stop  --------------------\r\n", rand);
-        enable(false, false, false);
+        enable(false, false, false, __FILE__, __LINE__);
         break;
 
     case 1:
         systemPrintf("--------------------  %d: STA Start  -------------------\r\n", rand);
-        enable(false, false, true);
+        enable(false, false, true, __FILE__, __LINE__);
         break;
 
     case 2:
@@ -2950,57 +2960,57 @@ void RTK_WIFI::test(uint32_t testDurationMsec)
 
     case 4:
         systemPrintf("--------------------  %d: Soft AP Start  -------------------\r\n", rand);
-        enable(false, true, false);
+        enable(false, true, false, __FILE__, __LINE__);
         break;
 
     case 5:
         systemPrintf("--------------------  %d: Soft AP & STA Start  --------------------\r\n", rand);
-        enable(false, true, true);
+        enable(false, true, true, __FILE__, __LINE__);
         break;
 
     case 6:
         systemPrintf("--------------------  %d: Soft AP Start, STA Disconnect  -------------------\r\n", rand);
         if (disconnectFirst)
             wifi.stationDisconnect();
-        enable(false, true, false);
+        enable(false, true, false, __FILE__, __LINE__);
         if (!disconnectFirst)
             wifi.stationDisconnect();
         break;
 
     case 8:
         systemPrintf("--------------------  %d: ESP-NOW Start  --------------------\r\n", rand);
-        enable(true, false, false);
+        enable(true, false, false, __FILE__, __LINE__);
         break;
 
     case 9:
         systemPrintf("--------------------  %d: ESP-NOW & STA Start  -------------------\r\n", rand);
-        enable(true, false, true);
+        enable(true, false, true, __FILE__, __LINE__);
         break;
 
     case 0xa:
         systemPrintf("--------------------  %d: ESP-NOW Start, STA Disconnect  --------------\r\n", rand);
         if (disconnectFirst)
             wifi.stationDisconnect();
-        enable(true, false, false);
+        enable(true, false, false, __FILE__, __LINE__);
         if (!disconnectFirst)
             wifi.stationDisconnect();
         break;
 
     case 0xc:
         systemPrintf("--------------------  %d: ESP-NOW & Soft AP Start  -------------------\r\n", rand);
-        enable(true, true, false);
+        enable(true, true, false, __FILE__, __LINE__);
         break;
 
     case 0xd:
         systemPrintf("--------------------  %d: ESP-NOW, Soft AP & STA Start  --------------------\r\n", rand);
-        enable(true, true, true);
+        enable(true, true, true, __FILE__, __LINE__);
         break;
 
     case 0xe:
         systemPrintf("--------------------  %d: ESP-NOW & Soft AP Start, STA Disconnect  -------------------\r\n", rand);
         if (disconnectFirst)
             wifi.stationDisconnect();
-        enable(true, true, false);
+        enable(true, true, false, __FILE__, __LINE__);
         if (!disconnectFirst)
             wifi.stationDisconnect();
         break;
