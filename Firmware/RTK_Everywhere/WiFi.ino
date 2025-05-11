@@ -705,7 +705,7 @@ void wifiPromiscuousRxHandler(void *buf, wifi_promiscuous_pkt_type_t type)
 // Useful when WiFi settings have changed
 void wifiResetThrottleTimeout()
 {
-    wifiStartLastTry = 0;
+    wifiStartLastTry = millis() - WIFI_MAX_TIMEOUT;
 }
 
 //*********************************************************************
