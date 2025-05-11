@@ -1174,9 +1174,6 @@ void setup()
     systemPrintln();
     systemPrintln();
 
-    DMW_b("verifyTables");
-    verifyTables(); // Verify the consistency of the internal tables
-
     DMW_b("findSpiffsPartition");
     if (!findSpiffsPartition())
     {
@@ -1230,6 +1227,9 @@ void setup()
 
     DMW_b("beginDisplay");
     beginDisplay(i2cDisplay); // Start display to be able to display any errors
+
+    DMW_b("verifyTables");
+    verifyTables(); // Verify the consistency of the internal tables
 
     beginVersion(); // Assemble platform name. Requires settings/LFS.
 
