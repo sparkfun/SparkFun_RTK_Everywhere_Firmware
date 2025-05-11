@@ -635,6 +635,12 @@ void wifiEvent(arduino_event_id_t event, arduino_event_info_t info)
 }
 
 //*********************************************************************
+uint32_t wifiGetStartTimeout()
+{
+    return (wifiStartTimeout);
+}
+
+//*********************************************************************
 // Counts the number of entered SSIDs
 int wifiNetworkCount()
 {
@@ -690,6 +696,14 @@ void wifiPromiscuousRxHandler(void *buf, wifi_promiscuous_pkt_type_t type)
 
     ppkt = (wifi_promiscuous_pkt_t *)buf;
     packetRSSI = ppkt->rx_ctrl.rssi;
+}
+
+//*********************************************************************
+// Reset the last WiFi start attempt
+// Useful when WiFi settings have changed
+void wifiResetThrottleTimeout()
+{
+    wifiStartLastTry = 0;
 }
 
 //*********************************************************************
@@ -1398,6 +1412,20 @@ void RTK_WIFI::softApEventHandler(arduino_event_id_t event, arduino_event_info_t
 }
 
 //*********************************************************************
+// Get the soft AP status
+bool RTK_WIFI::softApOnline()
+{
+    return (_started & WIFI_AP_ONLINE) ? true : false;
+}
+
+//*********************************************************************
+// Determine if the soft AP is being started or is onine
+bool RTK_WIFI::softApRunning()
+{
+    return _softApRunning;
+}
+
+//*********************************************************************
 // Set the soft AP host name
 // Inputs:
 //   hostName: Zero terminated host name character string
@@ -1521,20 +1549,6 @@ bool RTK_WIFI::softApSetIpAddress(const char * ipAddress,
     if (!configured)
         systemPrintf("ERROR: Failed to configure the soft AP with IP addresses!\r\n");
     return configured;
-}
-
-//*********************************************************************
-// Get the soft AP status
-bool RTK_WIFI::softApOnline()
-{
-    return (_started & WIFI_AP_ONLINE) ? true : false;
-}
-
-//*********************************************************************
-// Determine if the soft AP is being started or is onine
-bool RTK_WIFI::softApRunning()
-{
-    return _softApRunning;
 }
 
 //*********************************************************************
@@ -1857,6 +1871,13 @@ void RTK_WIFI::stationReconnectionRequest()
 }
 
 //*********************************************************************
+// Get the station status
+bool RTK_WIFI::stationRunning()
+{
+    return _stationRunning;
+}
+
+//*********************************************************************
 // Scan the WiFi network for remote APs
 // Inputs:
 //   channel: Channel number for the scan, zero (0) scan all channels
@@ -1906,13 +1927,6 @@ int16_t RTK_WIFI::stationScanForAPs(WIFI_CHANNEL_t channel)
             systemPrintf("WiFi scan complete, found %d remote APs\r\n", _apCount);
     } while (0);
     return apCount;
-}
-
-//*********************************************************************
-// Get the station status
-bool RTK_WIFI::stationRunning()
-{
-    return _stationRunning;
 }
 
 //*********************************************************************
@@ -3246,22 +3260,6 @@ bool wifiIsRunning()
     if (wifiStationRunning || wifiApRunning)
         return true;
     return false;
-}
-
-//----------------------------------------
-//----------------------------------------
-uint32_t wifiGetStartTimeout()
-{
-    return (wifiStartTimeout);
-}
-
-//----------------------------------------
-// Reset the last WiFi start attempt
-// Useful when WiFi settings have changed
-//----------------------------------------
-void wifiResetThrottleTimeout()
-{
-    wifiStartLastTry = 0;
 }
 
 //----------------------------------------
