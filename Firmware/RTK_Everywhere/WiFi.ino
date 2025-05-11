@@ -373,6 +373,7 @@ static uint32_t wifiStartLastTry; // The last time WiFi start was attempted
 // WiFi Timer usage:
 //  * Measure interval to display IP address
 static unsigned long wifiDisplayTimer;
+static bool wifiReconnectRequest; // Set true to request WiFi reconnection
 
 // WiFi interface status
 static bool wifiApRunning;
@@ -635,6 +636,7 @@ void wifiEvent(arduino_event_id_t event, arduino_event_info_t info)
 }
 
 //*********************************************************************
+// Return the start timeout in milliseconds
 uint32_t wifiGetStartTimeout()
 {
     return (wifiStartTimeout);
@@ -715,6 +717,30 @@ void wifiResetTimeout()
     wifiStartTimeout = 0;
     if (settings.debugWifiState == true)
         systemPrintln("WiFi: Start timeout reset to zero");
+}
+
+//*********************************************************************
+// Get the IP address being used for the software access point (AP)
+// Outputs:
+//   Returns an IPAddress object containing the IP address used by the
+//   soft AP
+IPAddress wifiSoftApGetIpAddress()
+{
+    return wifi.softApOnline() ? WiFi.AP.localIP() : IPAddress((uint32_t)0);
+}
+
+//*********************************************************************
+// Get the WiFi soft AP SSID
+// Outputs:
+//   Returns a zero terminated string containing the SSID begin broadcast
+//   for the WiFi soft AP.  The return value of an empty string occurs
+//   when the soft AP is not online.
+const char * wifiSoftApGetSsid()
+{
+    const char * ssid;
+
+    ssid = wifi.softApOnline() ? wifi._apSsid : "";
+    return ssid;
 }
 
 //*********************************************************************
@@ -821,6 +847,145 @@ bool wifiStart()
 }
 
 //*********************************************************************
+// Get the IP address being used by the WiFi station
+// Outputs:
+//   Returns an IPAddress object containing the IP address used by the
+//   WiFi station
+IPAddress wifiStationGetIpAddress()
+{
+    return WiFi.STA.localIP();
+}
+
+//*********************************************************************
+// Get the SSID that is being used for the WiFi station
+// Outputs:
+//   Returns the SSID as a string object used by the WiFi station to
+//   connect to the remote AP
+String wifiStationGetSsid()
+{
+    return WiFi.STA.SSID();
+}
+
+//*********************************************************************
+// Stop the WiFi station
+// Inputs:
+//   fileName: Name of file calling the enable routine
+//   lineNumber: Line number in the file calling the enable routine
+// Outputs:
+//   Returns true if successful and false upon failure
+bool wifiStationOff(const char * fileName, uint32_t lineNumber)
+{
+    // Display the call
+    if (settings.debugWifiState)
+        systemPrintf("wifiStationOff called in %s at line %d\r\n",
+                     fileName, lineNumber);
+
+    return wifi.enable(wifiEspNowRunning, wifiSoftApRunning, false, __FILE__, __LINE__);
+}
+
+//*********************************************************************
+// Start the WiFi station
+// Inputs:
+//   fileName: Name of file calling the enable routine
+//   lineNumber: Line number in the file calling the enable routine
+// Outputs:
+//   Returns true if successful and false upon failure
+bool wifiStationOn(const char * fileName, uint32_t lineNumber)
+{
+    // Display the call
+    if (settings.debugWifiState)
+        systemPrintf("wifiStationOn called in %s at line %d\r\n",
+                     fileName, lineNumber);
+
+    return wifi.enable(wifiEspNowRunning, wifiSoftApRunning, true, __FILE__, __LINE__);
+}
+
+//*********************************************************************
+// Handle WiFi station reconnection requests
+bool wifiStationReconnectionRequest()
+{
+    bool connected;
+    int minutes;
+    int seconds;
+
+    // Restart delay
+    connected = false;
+    if ((millis() - wifiReconnectionTimer) < wifiStartTimeout)
+        return connected;
+    wifiReconnectionTimer = millis();
+
+    // Attempt to start WiFi station
+    if (wifiStationOn(__FILE__, __LINE__))
+    {
+        // Successfully connected to a remote AP
+        connected = true;
+        if (settings.debugWifiState)
+            systemPrintf("WiFi: WiFi station successfully started\r\n");
+        networkSequenceNextEntry(NETWORK_WIFI_STATION, settings.debugNetworkLayer);
+        wifiFailedConnectionAttempts = 0;
+    }
+    else
+    {
+        // Failed to connect to a remote AP
+        if (settings.debugWifiState)
+            systemPrintf("WiFi: WiFi station failed to start!\r\n");
+
+        // Account for this connection attempt
+        wifiFailedConnectionAttempts++;
+
+        // Start the next network interface if necessary
+        if (wifiFailedConnectionAttempts >= 2)
+            networkStartNextInterface(NETWORK_WIFI_STATION);
+
+        // Increase the timeout
+        wifiStartTimeout <<= 1;
+        if (!wifiStartTimeout)
+            wifiStartTimeout = WIFI_MIN_TIMEOUT;
+        else if (wifiStartTimeout > WIFI_MAX_TIMEOUT)
+            wifiStartTimeout = WIFI_MAX_TIMEOUT;
+
+        // Display the delay
+        seconds = wifiStartTimeout / MILLISECONDS_IN_A_SECOND;
+        minutes = seconds / SECONDS_IN_A_MINUTE;
+        seconds -= minutes * SECONDS_IN_A_MINUTE;
+        if (settings.debugWifiState)
+            systemPrintf("WiFi: Delaying %2d:%02d before restarting WiFi\r\n", minutes, seconds);
+    }
+    return connected;
+}
+
+//*********************************************************************
+// Start WiFi with throttling, used by wifiStopSequence
+void wifiStationRestart(NetIndex_t index, uintptr_t parameter, bool debug)
+{
+    // Check for network shutdown
+    if (networkConsumerCount == 0)
+    {
+        // Stop the connection attempts
+        wifiResetThrottleTimeout();
+        wifiResetTimeout();
+        networkSequenceExit(NETWORK_WIFI_STATION, debug, __FILE__, __LINE__);
+        return;
+    }
+
+    // Check for a reconnection request
+    if (wifiReconnectRequest)
+    {
+        // Fake a WiFi failure
+        networkConsumerReconnect(NETWORK_WIFI_STATION);
+        networkInterfaceEventInternetLost(NETWORK_WIFI_STATION, __FILE__, __LINE__);
+
+        // Clear the bits to perform the restart operation
+        wifi.clearStarted(WIFI_STA_RECONNECT);
+    }
+    wifi.clearStarted(WIFI_STA_ONLINE);
+    wifiStationOnline = false;
+
+    // Continue the stop sequence
+    networkSequenceNextEntry(NETWORK_WIFI_STATION, debug);
+}
+
+//*********************************************************************
 // Stop WiFi and release all resources
 void wifiStop()
 {
@@ -878,6 +1043,23 @@ void wifiStop(NetIndex_t index, uintptr_t parameter, bool debug)
 }
 
 //*********************************************************************
+// Stop WiFi and release all resources
+void wifiStopAll()
+{
+    // Stop the web server
+    stopWebServer();
+
+    // Stop the Wifi layer
+    wifi.enable(false, false, false, __FILE__, __LINE__);
+
+    // Take the network offline
+    networkInterfaceEventInternetLost(NETWORK_WIFI_STATION, __FILE__, __LINE__);
+
+    // Display the heap state
+    reportHeapNow(settings.debugWifiState);
+}
+
+//*********************************************************************
 // Constructor
 // Inputs:
 //   verbose: Set to true to display additional WiFi debug data
@@ -896,6 +1078,18 @@ RTK_WIFI::RTK_WIFI(bool verbose)
       _started{false}, _stationChannel{0},
       _timer{0}, _usingDefaultChannel{true}, _verbose{verbose}
 {
+}
+
+//*********************************************************************
+// Clear some of the started components
+// Inputs:
+//   components: Bitmask of components to clear
+// Outputs:
+//   Returns the bitmask of started components
+WIFI_ACTION_t RTK_WIFI::clearStarted(WIFI_ACTION_t components)
+{
+    _started = _started & ~components;
+    return _started;
 }
 
 //*********************************************************************
@@ -1419,6 +1613,16 @@ void RTK_WIFI::softApEventHandler(arduino_event_id_t event, arduino_event_info_t
 }
 
 //*********************************************************************
+// Get the soft AP IP address
+// Returns the soft IP address
+IPAddress RTK_WIFI::softApIpAddress()
+{
+    if (softApOnline())
+        return _apIpAddress;
+    return IPAddress((uint32_t)0);
+}
+
+//*********************************************************************
 // Get the soft AP status
 bool RTK_WIFI::softApOnline()
 {
@@ -1848,6 +2052,16 @@ bool RTK_WIFI::stationHostName(const char * hostName)
 }
 
 //*********************************************************************
+// Get the WiFi station IP address
+// Returns the IP address of the WiFi station
+IPAddress RTK_WIFI::stationIpAddress()
+{
+    if (stationOnline())
+        return _staIpAddress;
+    return IPAddress((uint32_t)0);
+}
+
+//*********************************************************************
 // Get the station status
 bool RTK_WIFI::stationOnline()
 {
@@ -2020,6 +2234,16 @@ WIFI_CHANNEL_t RTK_WIFI::stationSelectAP(uint8_t apCount, bool list)
 
     // Return the channel number
     return apChannel;
+}
+
+//*********************************************************************
+// Get the SSID of the remote AP
+const char * RTK_WIFI::stationSsid()
+{
+    if (stationOnline())
+        return _staRemoteApSsid;
+    else
+        return "";
 }
 
 //*********************************************************************

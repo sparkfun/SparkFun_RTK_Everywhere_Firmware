@@ -384,8 +384,11 @@ RTK_WIFI wifi(false);
 
 // WiFi Globals - For other module direct access
 bool restartWiFi = false; // Restart WiFi if user changes anything
+bool wifiEspNowRunning;         // False: stopped, True: starting, running, stopping
+uint32_t wifiReconnectionTimer; // Delay before reconnection, timer running when non-zero
 bool wifiSoftApOnline;          // WiFi soft AP started successfully
 bool wifiSoftApRunning;         // False: stopped, True: starting, running, stopping
+bool wifiStationOnline;         // WiFi station started successfully
 
 #define MQTT_CLIENT_STOP(shutdown)                                                                                     \
     {                                                                                                                  \

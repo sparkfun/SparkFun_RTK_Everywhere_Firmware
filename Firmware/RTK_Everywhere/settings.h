@@ -2140,14 +2140,6 @@ class RTK_WIFI
     //   Returns the channel number of the AP
     WIFI_CHANNEL_t stationSelectAP(uint8_t apCount, bool list);
 
-    // Stop and start WiFi components
-    // Inputs:
-    //   stopping: WiFi components that need to be stopped
-    //   starting: WiFi components that neet to be started
-    // Outputs:
-    //   Returns true if the modes were successfully configured
-    bool stopStart(WIFI_ACTION_t stopping, WIFI_ACTION_t starting);
-
     // Handle the WiFi event
     // Inputs:
     //   event: Arduino ESP32 event number found on
@@ -2157,11 +2149,19 @@ class RTK_WIFI
     void wifiEvent(arduino_event_id_t event, arduino_event_info_t info);
 
   public:
+    char * _apSsid; // SSID for the soft AP
 
     // Constructor
     // Inputs:
     //   verbose: Set to true to display additional WiFi debug data
     RTK_WIFI(bool verbose = false);
+
+    // Clear some of the started components
+    // Inputs:
+    //   components: Bitmask of components to clear
+    // Outputs:
+    //   Returns the bitmask of started components
+    WIFI_ACTION_t clearStarted(WIFI_ACTION_t components);
 
     // Attempts a connection to all provided SSIDs
     // Inputs:
@@ -2251,6 +2251,10 @@ class RTK_WIFI
     //   display: Address of a Print object
     void softApConfigurationDisplay(Print * display);
 
+    // Get the soft AP IP address
+    // Returns the soft IP address
+    IPAddress softApIpAddress();
+
     // Get the soft AP status
     // Outputs:
     //   Returns true when the soft AP is ready for use
@@ -2270,6 +2274,10 @@ class RTK_WIFI
     //    otherwise
     bool startAp(bool forceAP);
 
+    // Get the WiFi station IP address
+    // Returns the IP address of the WiFi station
+    IPAddress stationIpAddress();
+
     // Get the station status
     // Outputs:
     //   Returns true when the WiFi station is online and ready for use
@@ -2282,6 +2290,17 @@ class RTK_WIFI
     // Outputs:
     //  Returns true if the WiFi station is being started or is online
     bool stationRunning();
+
+    // Get the SSID of the remote AP
+    const char * stationSsid();
+
+    // Stop and start WiFi components
+    // Inputs:
+    //   stopping: WiFi components that need to be stopped
+    //   starting: WiFi components that neet to be started
+    // Outputs:
+    //   Returns true if the modes were successfully configured
+    bool stopStart(WIFI_ACTION_t stopping, WIFI_ACTION_t starting);
 
     // Test the WiFi modes
     // Inputs:
