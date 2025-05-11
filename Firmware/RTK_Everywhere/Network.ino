@@ -2607,10 +2607,4 @@ void networkVerifyTables()
     }
 }
 
-// Return the count of consumers (TCP, NTRIP Client, etc) that are enabled
-uint8_t networkConsumers()
-{
-    return 0;
-}
-
 #endif // COMPILE_NETWORK

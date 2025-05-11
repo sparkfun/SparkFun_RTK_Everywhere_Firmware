@@ -1358,7 +1358,7 @@ bool RTK_WIFI::restart(bool always)
         if (started)
             started = enable(espNowRunning,
                              softApRunning,
-                             networkConsumers() ? true : false,
+                             networkConsumerBits(NETWORK_WIFI_STATION) ? true : false,
                              __FILE__, __LINE__);
 
         // Return the started state
