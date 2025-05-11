@@ -1955,12 +1955,16 @@ o/ufQJVtMVT8QtPHRh8jrdkPSHCa2XV4cdFyQzR1bldZwgJcJmApzyMZFo6IQ6XU
 rqXRfboQnoZsG4q5WTP468SQvvG5
 -----END CERTIFICATE-----
 )=====";
-
-#ifdef COMPILE_WIFI
+#endif  // COMPILE_NETWORK
 
 //****************************************
 // WiFi class
 //****************************************
+
+typedef uint8_t WIFI_CHANNEL_t;
+
+#ifdef COMPILE_NETWORK
+#ifdef COMPILE_WIFI
 
 // Handle the WiFi event
 // Inputs:
@@ -1971,7 +1975,6 @@ rqXRfboQnoZsG4q5WTP468SQvvG5
 void wifiEventHandler(arduino_event_id_t event, arduino_event_info_t info);
 
 typedef uint32_t WIFI_ACTION_t;
-typedef uint8_t WIFI_CHANNEL_t;
 
 // Class to simplify WiFi handling
 class RTK_WIFI
