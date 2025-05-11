@@ -935,23 +935,9 @@ volatile bool deadManWalking;
         deadManWalking = true;                                                                                         \
                                                                                                                        \
         /* Output as much as possible to identify the location of the failure */                                       \
-        settings.enableHeapReport = true;                                                                              \
-        settings.enableTaskReports = true;                                                                             \
-        settings.enablePrintPosition = true;                                                                           \
-        settings.enablePrintIdleTime = true;                                                                           \
-        settings.enablePrintBatteryMessages = true;                                                                    \
-        settings.enablePrintRoverAccuracy = true;                                                                      \
-        settings.enablePrintLogFileMessages = true;                                                                    \
-        settings.enablePrintLogFileStatus = true;                                                                      \
-        settings.enablePrintRingBufferOffsets = true;                                                                  \
-        settings.enablePrintStates = true;                                                                             \
-        settings.enablePrintDuplicateStates = true;                                                                    \
-        settings.enablePrintRtcSync = true;                                                                            \
-        settings.enablePrintBufferOverrun = true;                                                                      \
-        settings.enablePrintSDBuffers = true;                                                                          \
-        settings.periodicDisplay = (PeriodicDisplay_t) - 1;                                                            \
-        settings.enablePrintEthernetDiag = true;                                                                       \
         settings.debugCorrections = true;                                                                              \
+        settings.debugEspNow = true;                                                                                   \
+        settings.debugFirmwareUpdate = true;                                                                           \
         settings.debugGnss = true;                                                                                     \
         settings.debugHttpClientData = true;                                                                           \
         settings.debugHttpClientState = true;                                                                          \
@@ -959,7 +945,7 @@ volatile bool deadManWalking;
         settings.debugMqttClientData = true;                                                                           \
         settings.debugMqttClientState = true;                                                                          \
         settings.debugNetworkLayer = true;                                                                             \
-        settings.printNetworkStatus = true;                                                                            \
+        settings.debugNtp = true;                                                                                      \
         settings.debugNtripClientRtcm = true;                                                                          \
         settings.debugNtripClientState = true;                                                                         \
         settings.debugNtripServerRtcm = true;                                                                          \
@@ -971,7 +957,27 @@ volatile bool deadManWalking;
         settings.debugUdpServer = true;                                                                                \
         settings.debugWebServer = true;                                                                                \
         settings.debugWifiState = true;                                                                                \
+        settings.enableHeapReport = true;                                                                              \
+        settings.enableImuDebug = true;                                                                                \
+        settings.enablePrintBatteryMessages = true;                                                                    \
+        settings.enablePrintBufferOverrun = true;                                                                      \
+        settings.enablePrintDuplicateStates = true;                                                                    \
+        settings.enablePrintEthernetDiag = true;                                                                       \
+        settings.enablePrintIdleTime = true;                                                                           \
+        settings.enablePrintLogFileMessages = true;                                                                    \
+        settings.enablePrintLogFileStatus = true;                                                                      \
+        settings.enablePrintPosition = true;                                                                           \
+        settings.enablePrintRingBufferOffsets = true;                                                                  \
+        settings.enablePrintRoverAccuracy = true;                                                                      \
+        settings.enablePrintRtcSync = true;                                                                            \
+        settings.enablePrintSDBuffers = true;                                                                          \
+        settings.enablePrintStates = true;                                                                             \
+        settings.enableTaskReports = true;                                                                             \
+        settings.periodicDisplay = (PeriodicDisplay_t) - 1;                                                            \
         settings.printBootTimes = true;                                                                                \
+        settings.printNetworkStatus = true;                                                                            \
+        settings.printPartitionTable = true;                                                                           \
+        settings.printTaskStartStop = true;                                                                            \
     }
 
 #else // 0
