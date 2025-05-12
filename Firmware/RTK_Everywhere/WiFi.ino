@@ -1170,7 +1170,7 @@ RTK_WIFI::RTK_WIFI(bool verbose)
       _apMacAddress{0, 0, 0, 0, 0, 0},
       _apSubnetMask{IPAddress("255.255.255.0")},
       _espNowChannel{0},
-      _scanRunning{false}, _softApRunning{false},
+      _scanRunning{false},
       _staIpAddress{IPAddress((uint32_t)0)}, _staIpType{0},
       _staMacAddress{0, 0, 0, 0, 0, 0},
       _staRemoteApSsid{nullptr}, _staRemoteApPassword{nullptr},
@@ -1223,9 +1223,9 @@ bool RTK_WIFI::connect(unsigned long timeout,
     if (_stationRunning == false)
     {
         displayWiFiConnect();
-        started = enable(wifiEspNowRunning, _softApRunning, true, __FILE__, __LINE__);
+        started = enable(wifiEspNowRunning, wifiSoftApRunning, true, __FILE__, __LINE__);
     }
-    else if (startAP && !_softApRunning)
+    else if (startAP && !wifiSoftApRunning)
         started = enable(wifiEspNowRunning, true, _stationRunning, __FILE__, __LINE__);
 
     // Determine the WiFi station status
@@ -1311,7 +1311,7 @@ bool RTK_WIFI::enable(bool enableESPNow,
         if (wifiSoftApSsid && strlen(wifiSoftApSsid) && wifiSoftApPassword)
         {
             starting |= WIFI_START_SOFT_AP;
-            _softApRunning = true;
+            wifiSoftApRunning = true;
         }
         else
             systemPrintf("ERROR: AP SSID or password is missing\r\n");
@@ -1319,7 +1319,7 @@ bool RTK_WIFI::enable(bool enableESPNow,
     else
     {
         stopping |= WIFI_START_SOFT_AP;
-        _softApRunning = false;
+        wifiSoftApRunning = false;
     }
 
     // Update the station state
@@ -1461,7 +1461,7 @@ bool RTK_WIFI::restart(bool always)
         // Determine how WiFi is being used
         bool started = false;
         bool espNowRunning = wifiEspNowRunning;
-        bool softApRunning = _softApRunning;
+        bool softApRunning = wifiSoftApRunning;
 
         // Stop the WiFi layer
         started = enable(false, false, false, __FILE__, __LINE__);
@@ -1484,7 +1484,7 @@ bool RTK_WIFI::restart(bool always)
 // Determine if any use of WiFi is starting or is online
 bool RTK_WIFI::running()
 {
-    return wifiEspNowRunning | _softApRunning | _stationRunning;
+    return wifiEspNowRunning | wifiSoftApRunning | _stationRunning;
 }
 
 //*********************************************************************
@@ -1737,13 +1737,6 @@ IPAddress RTK_WIFI::softApIpAddress()
 bool RTK_WIFI::softApOnline()
 {
     return (_started & WIFI_AP_ONLINE) ? true : false;
-}
-
-//*********************************************************************
-// Determine if the soft AP is being started or is onine
-bool RTK_WIFI::softApRunning()
-{
-    return _softApRunning;
 }
 
 //*********************************************************************
@@ -2424,7 +2417,7 @@ bool RTK_WIFI::stopStart(WIFI_ACTION_t stopping, WIFI_ACTION_t starting)
             stopping |= WIFI_START_ESP_NOW;
 
         // Restart soft AP if necessary
-        if (softApRunning())
+        if (wifiSoftApRunning)
             stopping |= WIFI_START_SOFT_AP;
     }
 
