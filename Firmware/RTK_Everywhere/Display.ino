@@ -342,7 +342,7 @@ void displayUpdate()
                 displayFullIPAddress(&iconPropertyList);     // Bottom left - 128x64 only
                 setRadioIcons(&iconPropertyList);
                 paintBaseTempSurveyStarted(&iconPropertyList);
-                displaySivVsOpenShort(&iconPropertyList); // 128x64 only
+                displayBaseSiv(&iconPropertyList); // 128x64 only
                 break;
             case (STATE_BASE_TEMP_TRANSMITTING):
                 paintLogging(&iconPropertyList);
@@ -350,7 +350,7 @@ void displayUpdate()
                 displayFullIPAddress(&iconPropertyList);     // Bottom left - 128x64 only
                 setRadioIcons(&iconPropertyList);
                 paintRTCM(&iconPropertyList);
-                displaySivVsOpenShort(&iconPropertyList); // 128x64 only
+                displayBaseSiv(&iconPropertyList); // 128x64 only
                 break;
             case (STATE_BASE_FIXED_NOT_STARTED):
                 displayBatteryVsEthernet(&iconPropertyList); // Top right
@@ -363,7 +363,7 @@ void displayUpdate()
                 displayFullIPAddress(&iconPropertyList);     // Bottom left - 128x64 only
                 setRadioIcons(&iconPropertyList);
                 paintRTCM(&iconPropertyList);
-                displaySivVsOpenShort(&iconPropertyList); // 128x64 only
+                displayBaseSiv(&iconPropertyList); // 128x64 only
                 break;
 
             case (STATE_NTPSERVER_NOT_STARTED):
@@ -420,7 +420,7 @@ void displayUpdate()
                 displayWebConfigNotStarted(); // Display 'Web Config'
                 break;
             case (STATE_WEB_CONFIG):
-                displayWebConfig(iconPropertyList);
+                displayWebConfig(iconPropertyList); // Display IP, subnet mask, etc.
                 break;
             case (STATE_TEST):
                 paintSystemTest();
@@ -703,6 +703,37 @@ void setRadioIcons(std::vector<iconPropertyBlinking> *iconList)
 
                 // No Rover/Base icons
             }
+
+            // On 64x48: squeeze the icon between SIV and logging
+            static bool correctionsIconPosCalculated = false;
+            const uint8_t correctionsIconXPos = 39;
+            static uint8_t correctionsIconYPos = 48;
+            // Calculate the highest (lowest!) Y position for the corrections icon
+            // Do it only once...
+            if (!correctionsIconPosCalculated)
+            {
+                for (int i = 0; i < CORR_NUM; i++)
+                    if ((48 - (correctionIconAttributes[i].yOffset + correctionIconAttributes[i].height)) <
+                        correctionsIconYPos)
+                        correctionsIconYPos =
+                            48 - (correctionIconAttributes[i].yOffset + correctionIconAttributes[i].height);
+                correctionsIconPosCalculated = true;
+            }
+
+            if (inRoverMode() == true)
+            {
+                CORRECTION_ID_T correctionSource = correctionGetSource();
+                if (correctionSource < CORR_NUM)
+                {
+                    prop.duty = 0b11111111;
+                    prop.icon.bitmap = correctionIconAttributes[correctionSource].pointer;
+                    prop.icon.width = correctionIconAttributes[correctionSource].width;
+                    prop.icon.height = correctionIconAttributes[correctionSource].height;
+                    prop.icon.xPos = correctionsIconXPos + correctionIconAttributes[correctionSource].xOffset;
+                    prop.icon.yPos = correctionsIconYPos + correctionIconAttributes[correctionSource].yOffset;
+                    iconList->push_back(prop);
+                }
+            }
         }
         else if (present.display_type == DISPLAY_128x64)
         {
@@ -881,16 +912,18 @@ void setRadioIcons(std::vector<iconPropertyBlinking> *iconList)
                 break;
             }
 
-            // Put the corrections source icon on the bottom, right of the IP address
+            // On 128x64: put the corrections source icon on the bottom, right of the IP address
             static bool correctionsIconPosCalculated = false;
-            const uint8_t correctionsIconXPos128x64 = 96;
-            static uint8_t correctionsIconYPos128x64 = 64;
+            const uint8_t correctionsIconXPos = 96;
+            static uint8_t correctionsIconYPos = 64;
+            // Calculate the highest (lowest!) Y position for the corrections icon
+            // Do it only once...
             if (!correctionsIconPosCalculated)
             {
                 for (int i = 0; i < CORR_NUM; i++)
                     if ((64 - (correctionIconAttributes[i].yOffset + correctionIconAttributes[i].height)) <
-                        correctionsIconYPos128x64)
-                        correctionsIconYPos128x64 =
+                        correctionsIconYPos)
+                        correctionsIconYPos =
                             64 - (correctionIconAttributes[i].yOffset + correctionIconAttributes[i].height);
                 correctionsIconPosCalculated = true;
             }
@@ -904,8 +937,8 @@ void setRadioIcons(std::vector<iconPropertyBlinking> *iconList)
                     prop.icon.bitmap = correctionIconAttributes[correctionSource].pointer;
                     prop.icon.width = correctionIconAttributes[correctionSource].width;
                     prop.icon.height = correctionIconAttributes[correctionSource].height;
-                    prop.icon.xPos = correctionsIconXPos128x64 + correctionIconAttributes[correctionSource].xOffset;
-                    prop.icon.yPos = correctionsIconYPos128x64 + correctionIconAttributes[correctionSource].yOffset;
+                    prop.icon.xPos = correctionsIconXPos + correctionIconAttributes[correctionSource].xOffset;
+                    prop.icon.yPos = correctionsIconYPos + correctionIconAttributes[correctionSource].yOffset;
                     iconList->push_back(prop);
                 }
             }
@@ -1393,58 +1426,114 @@ void paintClockAccuracy(displayCoords textCoords)
 // Draw the rover icon depending on screen
 void paintDynamicModel(std::vector<iconPropertyBlinking> *iconList)
 {
-    if (online.gnss == true)
+    if (present.dynamicModel && online.gnss)
     {
         iconPropertyBlinking prop;
+        prop.icon.bitmap = nullptr; // Use this as the test a valid icon
         prop.duty = 0b11111111;
 
-        // Display icon associated with current Dynamic Model
-        switch (settings.dynamicModel)
+        if (present.gnss_zedf9p)
         {
-        default:
-            break;
-
 #ifdef COMPILE_ZED
-        case (DYN_MODEL_PORTABLE):
-            prop.icon = DynamicModel_1_Properties.iconDisplay[present.display_type];
-            break;
-        case (DYN_MODEL_STATIONARY):
-            prop.icon = DynamicModel_2_Properties.iconDisplay[present.display_type];
-            break;
-        case (DYN_MODEL_PEDESTRIAN):
-            prop.icon = DynamicModel_3_Properties.iconDisplay[present.display_type];
-            break;
-        case (DYN_MODEL_AUTOMOTIVE):
-            prop.icon = DynamicModel_4_Properties.iconDisplay[present.display_type];
-            break;
-        case (DYN_MODEL_SEA):
-            prop.icon = DynamicModel_5_Properties.iconDisplay[present.display_type];
-            break;
-        case (DYN_MODEL_AIRBORNE1g):
-            prop.icon = DynamicModel_6_Properties.iconDisplay[present.display_type];
-            break;
-        case (DYN_MODEL_AIRBORNE2g):
-            prop.icon = DynamicModel_7_Properties.iconDisplay[present.display_type];
-            break;
-        case (DYN_MODEL_AIRBORNE4g):
-            prop.icon = DynamicModel_8_Properties.iconDisplay[present.display_type];
-            break;
-        case (DYN_MODEL_WRIST):
-            prop.icon = DynamicModel_9_Properties.iconDisplay[present.display_type];
-            break;
-        case (DYN_MODEL_BIKE):
-            prop.icon = DynamicModel_10_Properties.iconDisplay[present.display_type];
-            break;
-        case (DYN_MODEL_MOWER):
-            prop.icon = DynamicModel_11_Properties.iconDisplay[present.display_type];
-            break;
-        case (DYN_MODEL_ESCOOTER):
-            prop.icon = DynamicModel_12_Properties.iconDisplay[present.display_type];
-            break;
+            // Display icon associated with current Dynamic Model
+            switch (settings.dynamicModel)
+            {
+            default:
+                break;
+
+            case (DYN_MODEL_PORTABLE): // 0
+                prop.icon = DynamicModel_1_Properties.iconDisplay[present.display_type];
+                break;
+            case (DYN_MODEL_STATIONARY): // 2
+                prop.icon = DynamicModel_2_Properties.iconDisplay[present.display_type];
+                break;
+            case (DYN_MODEL_PEDESTRIAN):
+                prop.icon = DynamicModel_3_Properties.iconDisplay[present.display_type];
+                break;
+            case (DYN_MODEL_AUTOMOTIVE):
+                prop.icon = DynamicModel_4_Properties.iconDisplay[present.display_type];
+                break;
+            case (DYN_MODEL_SEA):
+                prop.icon = DynamicModel_5_Properties.iconDisplay[present.display_type];
+                break;
+            case (DYN_MODEL_AIRBORNE1g):
+                prop.icon = DynamicModel_6_Properties.iconDisplay[present.display_type];
+                break;
+            case (DYN_MODEL_AIRBORNE2g):
+                prop.icon = DynamicModel_7_Properties.iconDisplay[present.display_type];
+                break;
+            case (DYN_MODEL_AIRBORNE4g):
+                prop.icon = DynamicModel_8_Properties.iconDisplay[present.display_type];
+                break;
+            case (DYN_MODEL_WRIST):
+                prop.icon = DynamicModel_9_Properties.iconDisplay[present.display_type];
+                break;
+            case (DYN_MODEL_BIKE):
+                prop.icon = DynamicModel_10_Properties.iconDisplay[present.display_type];
+                break;
+            case (DYN_MODEL_MOWER):
+                prop.icon = DynamicModel_11_Properties.iconDisplay[present.display_type];
+                break;
+            case (DYN_MODEL_ESCOOTER):
+                prop.icon = DynamicModel_12_Properties.iconDisplay[present.display_type];
+                break;
+            }
 #endif // COMPILE_ZED
         }
+        else if (present.gnss_um980)
+        {
+#ifdef COMPILE_UM980
+            // Display icon associated with current Dynamic Model
+            switch (settings.dynamicModel)
+            {
+            default:
+                break;
 
-        iconList->push_back(prop);
+            case UM980_DYN_MODEL_SURVEY:
+                prop.icon = DynamicModel_2_Properties.iconDisplay[present.display_type]; // Stationary
+                break;
+            case UM980_DYN_MODEL_UAV:
+                prop.icon = DynamicModel_6_Properties.iconDisplay[present.display_type]; // Airborne1g
+                break;
+            case UM980_DYN_MODEL_AUTOMOTIVE:
+                prop.icon = DynamicModel_4_Properties.iconDisplay[present.display_type]; // Automotive
+                break;
+            }
+#endif // COMPILE_UM980
+        }
+        else if (present.gnss_mosaicX5)
+        {
+#ifdef COMPILE_MOSAICX5
+            // Display icon associated with current Dynamic Model
+            switch (settings.dynamicModel)
+            {
+            default:
+                break;
+
+            case MOSAIC_DYN_MODEL_STATIC:
+            case MOSAIC_DYN_MODEL_QUASISTATIC:
+                prop.icon = DynamicModel_2_Properties.iconDisplay[present.display_type]; // Stationary
+                break;
+            case MOSAIC_DYN_MODEL_PEDESTRIAN:
+                prop.icon = DynamicModel_3_Properties.iconDisplay[present.display_type]; // Pedestrian
+                break;
+            case MOSAIC_DYN_MODEL_AUTOMOTIVE:
+            case MOSAIC_DYN_MODEL_RACECAR:
+            case MOSAIC_DYN_MODEL_HEAVYMACHINERY:
+                prop.icon = DynamicModel_4_Properties.iconDisplay[present.display_type]; // Automotive
+                break;
+            case MOSAIC_DYN_MODEL_UAV:
+                prop.icon = DynamicModel_6_Properties.iconDisplay[present.display_type]; // Airborne1g
+                break;
+            case MOSAIC_DYN_MODEL_UNLIMITED:
+                prop.icon = DynamicModel_8_Properties.iconDisplay[present.display_type]; // Airborne4g
+                break;
+            }
+#endif // COMPILE_MOSAICX5
+        }
+
+        if (prop.icon.bitmap)
+            iconList->push_back(prop);
     }
 }
 
@@ -1494,6 +1583,17 @@ void displaySivVsOpenShort(std::vector<iconPropertyBlinking> *iconList)
     }
 }
 
+void displayBaseSiv(std::vector<iconPropertyBlinking> *iconList)
+{
+    // Display SIV during Base - but only on 128x64 displays. 64x48 has no room.
+    // No support for short / open.
+    if (present.display_type == DISPLAY_128x64)
+    {
+        displayCoords textCoords = paintSIVIcon(iconList, &BaseSIVIconProperties, 0b11111111);
+        paintSIVText(textCoords);
+    }
+}
+
 void displayHorizontalAccuracy(std::vector<iconPropertyBlinking> *iconList, const iconProperties *icon, uint8_t duty)
 {
     iconPropertyBlinking prop;
@@ -1510,36 +1610,11 @@ void displayHorizontalAccuracy(std::vector<iconPropertyBlinking> *iconList, cons
 
 void displayRTKAccuracy(std::vector<iconPropertyBlinking> *iconList, const iconProperties *icon, bool fixed)
 {
-    CORRECTION_ID_T correctionSource = correctionGetSource();
-
     iconPropertyBlinking prop;
 
-    if ((present.display_type == DISPLAY_128x64) || (correctionSource == CORR_NUM))
-    {
-        prop.icon = icon->iconDisplay[present.display_type];
-        prop.duty = fixed ? 0b11111111 : 0b01010101;
-        iconList->push_back(prop);
-    }
-    else
-    {
-        // Display the icon (dual crosshair) for 6/8 intervals
-        prop.icon = icon->iconDisplay[present.display_type];
-        prop.duty = fixed ? 0b00111111 : 0b00010101;
-        iconList->push_back(prop);
-
-        // Display the correction source icon for 2/8 intervals
-        prop.icon.bitmap = correctionIconAttributes[correctionSource].pointer;
-        prop.icon.width = correctionIconAttributes[correctionSource].width;
-        prop.icon.height = correctionIconAttributes[correctionSource].height;
-        prop.icon.xPos += correctionIconAttributes[correctionSource].xOffset;
-        prop.icon.yPos += correctionIconAttributes[correctionSource].yOffset;
-        prop.duty = fixed ? 0b11000000 : 0b01000000;
-        iconList->push_back(prop);
-
-        // Restore the position for textCoords
-        prop.icon.xPos -= correctionIconAttributes[correctionSource].xOffset;
-        prop.icon.yPos -= correctionIconAttributes[correctionSource].yOffset;
-    }
+    prop.icon = icon->iconDisplay[present.display_type];
+    prop.duty = fixed ? 0b11111111 : 0b01010101;
+    iconList->push_back(prop);
 
     displayCoords textCoords;
     textCoords.x = prop.icon.xPos + 16;
@@ -1579,14 +1654,7 @@ displayCoords paintSIVIcon(std::vector<iconPropertyBlinking> *iconList, const ic
             if (lbandCorrectionsReceived || spartnCorrectionsReceived)
                 icon = &LBandIconProperties;
             else
-            {
-                if (inBaseMode() == false)
-                    icon = &SIVIconProperties;
-                else if (systemState == STATE_BASE_TEMP_SETTLE)
-                    icon = &SIVIconProperties; //During base settle, SIV inline with HPA
-                else if (inBaseMode() && present.display_type == DISPLAY_128x64)
-                    icon = &BaseSIVIconProperties; // Move SIV down to avoid collision with 'Xmitting RTCM' text
-            }
+                icon = &SIVIconProperties;
 
             // if in base mode, don't blink
             if (inBaseMode() == true)
@@ -1619,20 +1687,57 @@ displayCoords paintSIVIcon(std::vector<iconPropertyBlinking> *iconList, const ic
 
     return textCoords;
 }
+
+void nudgeAndPrintSIV(displayCoords textCoords, uint8_t siv)
+{
+    if (present.display_type == DISPLAY_64x48)
+    {
+        // Always nudge, even if 1 digit, to avoid small jump when
+        // siv goes into 2 digits
+        oled->setCursor(textCoords.x - 1, textCoords.y); // x, y
+        if (siv >= 10)
+        {
+            oled->print(siv / 10);
+            oled->setCursor(textCoords.x + 7, textCoords.y); // x, y
+            oled->print(siv % 10);
+        }
+        else
+        {
+            oled->print(siv); // Left-justify 1 digit
+        }
+    }
+    else
+    {
+        // On 128x64, there's no need to nudge
+        oled->setCursor(textCoords.x, textCoords.y); // x, y
+        oled->print(siv); // 1 or 2 digits
+    }
+}
+
 void paintSIVText(displayCoords textCoords)
 {
     oled->setFont(QW_FONT_8X16);                 // Set font to type 1: 8x16
     oled->setCursor(textCoords.x, textCoords.y); // x, y
-    oled->print(":");
+
+    uint8_t siv = gnss->getSatellitesInView();
+    if (siv > 99)
+    {
+        oled->print(">");
+        siv = 99; // Limit SIV to two digits
+    }
+    else
+        oled->print(":");
+
+    textCoords.x += 8;
 
     if (online.gnss)
     {
         if (inBaseMode() == true)
-            oled->print(gnss->getSatellitesInView());
+            nudgeAndPrintSIV(textCoords, siv);
         else if (gnss->isFixed() == false)
-            oled->print("0");
+            nudgeAndPrintSIV(textCoords, 0);
         else
-            oled->print(gnss->getSatellitesInView());
+            nudgeAndPrintSIV(textCoords, siv);
 
         paintResets();
     } // End gnss online
@@ -1671,6 +1776,7 @@ void paintLogging(std::vector<iconPropertyBlinking> *iconList, bool pulse, bool 
     loggingIconDisplayed %= LOGGING_ICON_STATES; // Wrap
 
     iconPropertyBlinking prop;
+    prop.icon.bitmap = nullptr;
     prop.duty = 0b11111111;
 
     if (((online.logging == true) && (logIncreasing || ntpLogIncreasing)) || (present.gnss_mosaicX5 && logIncreasing))
@@ -1691,14 +1797,15 @@ void paintLogging(std::vector<iconPropertyBlinking> *iconList, bool pulse, bool 
         {
             prop.icon = LoggingCustomIconProperties.iconDisplay[loggingIconDisplayed][present.display_type];
         }
-
-        iconList->push_back(prop);
+        // Could be LOGGING_UNKNOWN
     }
     else if (pulse)
     {
         prop.icon = PulseIconProperties.iconDisplay[loggingIconDisplayed][present.display_type];
-        iconList->push_back(prop);
     }
+
+    if (prop.icon.bitmap)
+        iconList->push_back(prop);
 }
 
 // Survey in is running. Show 3D Mean and elapsed time.
