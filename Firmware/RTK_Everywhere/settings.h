@@ -1966,14 +1966,6 @@ typedef uint8_t WIFI_CHANNEL_t;
 #ifdef COMPILE_NETWORK
 #ifdef COMPILE_WIFI
 
-// Handle the WiFi event
-// Inputs:
-//   event: Arduino ESP32 event number found on
-//          https://github.com/espressif/arduino-esp32
-//          in libraries/Network/src/NetworkEvents.h
-//   info: Additional data about the event
-void wifiEventHandler(arduino_event_id_t event, arduino_event_info_t info);
-
 typedef uint32_t WIFI_ACTION_t;
 
 // Class to simplify WiFi handling
@@ -2199,20 +2191,6 @@ class RTK_WIFI
     //   Returns the current WiFi channel number
     WIFI_CHANNEL_t getChannel();
 
-    // Restart WiFi
-    // Inputs:
-    //   always: Set true if this routine should always restart WiFi,
-    //           when false determine restart using _restartRequest
-    // Outputs:
-    //    Returns true if the WiFi layer was successfully restarted and
-    //    false upon restart failure
-    bool restart(bool always);
-
-    // Determine if any use of WiFi is starting or is online
-    // Outputs:
-    //  Returns true if any WiFi use is being started or is online
-    bool running();
-
     // Configure the soft AP
     // Inputs:
     //   ipAddress: IP address of the soft AP
@@ -2259,9 +2237,6 @@ class RTK_WIFI
     // Outputs:
     //   Returns true when the WiFi station is online and ready for use
     bool stationOnline();
-
-    // Handle WiFi station reconnection requests
-    void stationReconnectionRequest();
 
     // Get the SSID of the remote AP
     const char * stationSsid();

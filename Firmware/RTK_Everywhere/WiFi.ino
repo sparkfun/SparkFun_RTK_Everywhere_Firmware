@@ -590,119 +590,6 @@ bool wifiEspNowOn(const char * fileName, uint32_t lineNumber)
 }
 
 //*********************************************************************
-// Process the WiFi events
-void wifiEvent(arduino_event_id_t event, arduino_event_info_t info)
-{
-    char ssid[sizeof(info.wifi_sta_connected.ssid) + 1];
-    IPAddress ipAddress;
-
-    // If we are in AP or AP_STA, the network is immediately marked online
-    // Once AP is online, don't stop WiFi because STA has various events
-    if (WiFi.getMode() == WIFI_MODE_STA)
-    {
-        // Take the network offline if necessary
-        if (networkInterfaceHasInternet(NETWORK_WIFI_STATION) && (event != ARDUINO_EVENT_WIFI_STA_GOT_IP) &&
-            (event != ARDUINO_EVENT_WIFI_STA_GOT_IP6))
-        {
-            if (settings.debugWifiState)
-                systemPrintf("Stopping WiFi because of event # %d\r\n", event);
-
-            networkStop(NETWORK_WIFI_STATION, settings.debugNetworkLayer, __FILE__, __LINE__); // Stop WiFi to allow it to restart
-        }
-    }
-
-    // WiFi State Machine
-    //
-    //   .--------+<----------+<-----------+<-------------+<----------+<----------+<------------.
-    //   v        |           |            |              |           |           |             |
-    // STOP --> READY --> STA_START --> SCAN_DONE --> CONNECTED --> GOT_IP --> LOST_IP --> DISCONNECTED
-    //                                                    ^           ^           |             |
-    //                                                    |           '-----------'             |
-    //                                                    '-------------------------------------'
-    //
-    // Handle the event
-    switch (event)
-    {
-    default:
-        systemPrintf("ERROR: Unknown WiFi event: %d\r\n", event);
-        break;
-
-    case ARDUINO_EVENT_WIFI_OFF:
-        systemPrintln("WiFi Off");
-        break;
-
-    case ARDUINO_EVENT_WIFI_READY:
-        if (settings.debugWifiState)
-            systemPrintln("WiFi Ready");
-        WiFi.setHostname(settings.mdnsHostName);
-        break;
-
-    case ARDUINO_EVENT_WIFI_SCAN_DONE:
-        if (settings.debugWifiState)
-            systemPrintln("WiFi Scan Done");
-        // wifi_event_sta_scan_done_t info.wifi_scan_done;
-        break;
-
-    case ARDUINO_EVENT_WIFI_STA_START:
-        if (settings.debugWifiState)
-            systemPrintln("WiFi STA Started");
-        break;
-
-    case ARDUINO_EVENT_WIFI_STA_STOP:
-        if (settings.debugWifiState)
-            systemPrintln("WiFi STA Stopped");
-        break;
-
-    case ARDUINO_EVENT_WIFI_STA_CONNECTED:
-        memcpy(ssid, info.wifi_sta_connected.ssid, info.wifi_sta_connected.ssid_len);
-        ssid[info.wifi_sta_connected.ssid_len] = 0;
-
-        ipAddress = WiFi.localIP();
-        systemPrintf("WiFi STA connected to %s with IP address: ", ssid);
-        systemPrintln(ipAddress);
-
-        WiFi.setHostname(settings.mdnsHostName);
-        break;
-
-    case ARDUINO_EVENT_WIFI_STA_DISCONNECTED:
-        memcpy(ssid, info.wifi_sta_disconnected.ssid, info.wifi_sta_disconnected.ssid_len);
-        ssid[info.wifi_sta_disconnected.ssid_len] = 0;
-        systemPrintf("WiFi STA disconnected from %s\r\n", ssid);
-        // wifi_event_sta_disconnected_t info.wifi_sta_disconnected;
-        break;
-
-    case ARDUINO_EVENT_WIFI_STA_AUTHMODE_CHANGE:
-        systemPrintln("WiFi STA Auth Mode Changed");
-        // wifi_event_sta_authmode_change_t info.wifi_sta_authmode_change;
-        break;
-
-    case ARDUINO_EVENT_WIFI_STA_GOT_IP:
-        if (settings.debugWifiState)
-        {
-            ipAddress = WiFi.localIP();
-            systemPrint("WiFi STA Got IPv4: ");
-            systemPrintln(ipAddress);
-        }
-        networkInterfaceEventInternetAvailable(NETWORK_WIFI_STATION);
-        break;
-
-    case ARDUINO_EVENT_WIFI_STA_GOT_IP6:
-        if (settings.debugWifiState)
-        {
-            ipAddress = WiFi.localIP();
-            systemPrint("WiFi STA Got IPv6: ");
-            systemPrintln(ipAddress);
-        }
-        networkInterfaceEventInternetAvailable(NETWORK_WIFI_STATION);
-        break;
-
-    case ARDUINO_EVENT_WIFI_STA_LOST_IP:
-        systemPrintln("WiFi STA Lost IP");
-        break;
-    }
-}
-
-//*********************************************************************
 // Return the start timeout in milliseconds
 uint32_t wifiGetStartTimeout()
 {
@@ -925,16 +812,6 @@ bool wifiStart()
 IPAddress wifiStationGetIpAddress()
 {
     return WiFi.STA.localIP();
-}
-
-//*********************************************************************
-// Get the SSID that is being used for the WiFi station
-// Outputs:
-//   Returns the SSID as a string object used by the WiFi station to
-//   connect to the remote AP
-String wifiStationGetSsid()
-{
-    return WiFi.STA.SSID();
 }
 
 //*********************************************************************
@@ -1493,44 +1370,6 @@ void RTK_WIFI::eventHandler(arduino_event_id_t event, arduino_event_info_t info)
 WIFI_CHANNEL_t RTK_WIFI::getChannel()
 {
     return wifiChannel;
-}
-
-//*********************************************************************
-// Restart WiFi
-bool RTK_WIFI::restart(bool always)
-{
-    // Determine if restart should be perforrmed
-    if (always || restartWiFi)
-    {
-        restartWiFi = false;
-
-        // Determine how WiFi is being used
-        bool started = false;
-        bool espNowRunning = wifiEspNowRunning;
-        bool softApRunning = wifiSoftApRunning;
-
-        // Stop the WiFi layer
-        started = enable(false, false, false, __FILE__, __LINE__);
-
-        // Restart the WiFi layer
-        if (started)
-            started = enable(espNowRunning,
-                             softApRunning,
-                             networkConsumerBits(NETWORK_WIFI_STATION) ? true : false,
-                             __FILE__, __LINE__);
-
-        // Return the started state
-        return started;
-    }
-    else
-        return false;
-}
-
-//*********************************************************************
-// Determine if any use of WiFi is starting or is online
-bool RTK_WIFI::running()
-{
-    return wifiEspNowRunning | wifiSoftApRunning | wifiStationRunning;
 }
 
 //*********************************************************************
@@ -2211,32 +2050,6 @@ IPAddress RTK_WIFI::stationIpAddress()
 bool RTK_WIFI::stationOnline()
 {
     return (_started & WIFI_STA_ONLINE) ? true : false;
-}
-
-//*********************************************************************
-// Handle WiFi station reconnection requests
-void RTK_WIFI::stationReconnectionRequest()
-{
-    uint32_t currentMsec;
-
-    // Check for reconnection request
-    currentMsec = millis();
-    if (wifiReconnectionTimer)
-    {
-        if ((currentMsec - wifiReconnectionTimer) >= WIFI_RECONNECTION_DELAY)
-        {
-            wifiReconnectionTimer = 0;
-            if (settings.debugWifiState)
-                systemPrintf("Reconnection timer fired!\r\n");
-
-            // Start the WiFi scan
-            if (wifiStationRunning)
-            {
-                _started = _started & ~WIFI_STA_RECONNECT;
-                stopStart(0, WIFI_STA_RECONNECT);
-            }
-        }
-    }
 }
 
 //*********************************************************************
