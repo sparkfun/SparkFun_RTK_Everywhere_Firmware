@@ -471,14 +471,14 @@ bool espNowStart()
                     else
                     {
                         if (settings.debugEspNow == true)
-                            systemPrintf("ERROR: Failed to add ESP-NOW peer %02x:%02x:%02x:%02x:%02x:%02x, status: %s\r\n",
+                            systemPrintf("ERROR: Failed to add ESP-NOW peer %02x:%02x:%02x:%02x:%02x:%02x, status: %d, %s\r\n",
                                          settings.espnowPeers[index][0],
                                          settings.espnowPeers[index][1],
                                          settings.espnowPeers[index][2],
                                          settings.espnowPeers[index][3],
                                          settings.espnowPeers[index][4],
                                          settings.espnowPeers[index][5],
-                                         esp_err_to_name(status));
+                                         status, esp_err_to_name(status));
                         break;
                     }
                 }
