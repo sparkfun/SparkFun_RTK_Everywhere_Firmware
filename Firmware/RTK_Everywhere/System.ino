@@ -826,7 +826,7 @@ bool isUsbAttached()
     {
         if (pin_powerAdapterDetect != PIN_UNDEFINED)
             // Pin goes low when wall adapter is detected
-            if (digitalRead(pin_powerAdapterDetect) == HIGH)
+            if (readAnalogPinAsDigital(pin_powerAdapterDetect) == HIGH)
                 return false;
         return true;
     }
