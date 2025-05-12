@@ -693,15 +693,24 @@ void menuRadio()
         }
         else if (settings.enableEspNow == true && incoming == 4)
         {
-            if (WIFI_IS_RUNNING() == false)
+            if (getNewSetting("Enter the WiFi channel to use for ESP-NOW communication", 1, 14,
+                              &settings.wifiChannel) == INPUT_RESPONSE_VALID)
             {
-                if (getNewSetting("Enter the WiFi channel to use for ESP-NOW communication", 1, 14,
-                                  &settings.wifiChannel) == INPUT_RESPONSE_VALID)
-                    espNowSetChannel(settings.wifiChannel);
-            }
-            else
-            {
-                systemPrintln("ESP-NOW channel can't be modified while WiFi is active.");
+                wifiEspNowSetChannel(settings.wifiChannel);
+                if (settings.wifiChannel)
+                {
+                    if (settings.wifiChannel == wifiChannel)
+                        systemPrintf("WiFi is already on channel %d.", settings.wifiChannel);
+                    else
+                    {
+                        if (wifiSoftApRunning || wifiStationRunning)
+                            systemPrintf("Restart WiFi to use channel %d.", settings.wifiChannel);
+                        else if (wifiEspNowRunning)
+                            systemPrintf("Restart ESP-NOW to use channel %d.", settings.wifiChannel);
+                        else
+                            systemPrintf("Please start ESP-NOW to use channel %d.", settings.wifiChannel);
+                    }
+                }
             }
         }
         else if (settings.enableEspNow == true && incoming == 5 && settings.debugEspNow == true)

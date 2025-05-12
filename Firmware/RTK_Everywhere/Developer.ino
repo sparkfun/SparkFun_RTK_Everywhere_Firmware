@@ -213,6 +213,7 @@ void wifiDisplayNetworkData()                   {}
 void wifiDisplaySoftApStatus()                  {}
 bool wifiEspNowOff(const char * fileName, uint32_t lineNumber) {return true;}
 bool wifiEspNowOn(const char * fileName, uint32_t lineNumber) {return false;}
+void wifiEspNowSetChannel(WIFI_CHANNEL_t channel) {}
 uint32_t wifiGetStartTimeout() {return 0;}
 #define WIFI_IS_RUNNING() 0
 int wifiNetworkCount() {return 0;}
