@@ -1877,14 +1877,6 @@ void RTK_WIFI::stationEventHandler(arduino_event_id_t event, arduino_event_info_
     bool success;
     int type;
 
-    // Take the network offline if necessary
-    if (networkInterfaceHasInternet(NETWORK_WIFI_STATION) && (event != ARDUINO_EVENT_WIFI_STA_GOT_IP) &&
-        (event != ARDUINO_EVENT_WIFI_STA_GOT_IP6))
-    {
-        // Stop WiFi to allow it to restart
-        networkInterfaceEventStop(NETWORK_WIFI_STATION);
-    }
-
     //------------------------------
     // WiFi Status Values:
     //     WL_CONNECTED: assigned when connected to a WiFi network
@@ -1930,18 +1922,8 @@ void RTK_WIFI::stationEventHandler(arduino_event_id_t event, arduino_event_info_
         // Start the reconnection timer
         if (event == ARDUINO_EVENT_WIFI_STA_DISCONNECTED)
         {
-            if (settings.debugWifiState && _verbose && !wifiReconnectionTimer)
-                systemPrintf("WiFi: Reconnection timer started\r\n");
-            wifiReconnectionTimer = millis();
-            if (!wifiReconnectionTimer)
-                wifiReconnectionTimer = 1;
-        }
-        else
-        {
-            // Stop the reconnection timer
-            if (settings.debugWifiState && _verbose && wifiReconnectionTimer)
-                systemPrintf("WiFi: Reconnection timer stopped\r\n");
-            wifiReconnectionTimer = 0;
+            networkInterfaceEventInternetLost(NETWORK_WIFI_STATION, __FILE__, __LINE__);
+            wifiReconnectRequest = true;
         }
 
         // Fall through
@@ -1963,6 +1945,12 @@ void RTK_WIFI::stationEventHandler(arduino_event_id_t event, arduino_event_info_
         //      V
 
     case ARDUINO_EVENT_WIFI_STA_LOST_IP:
+        if (event == ARDUINO_EVENT_WIFI_STA_LOST_IP)
+        {
+            networkInterfaceEventInternetLost(NETWORK_WIFI_STATION, __FILE__, __LINE__);
+            wifiReconnectRequest = true;
+        }
+
         // Mark the WiFi station offline
         if (_started & WIFI_STA_ONLINE)
             systemPrintf("WiFi: Station offline!\r\n");
