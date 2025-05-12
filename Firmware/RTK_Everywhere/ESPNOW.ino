@@ -434,7 +434,7 @@ bool espNowStart()
             espNowSetState(ESPNOW_PAIRED);
 
             if (settings.debugEspNow == true)
-                systemPrintf("Adding %d espnow peers\r\n", settings.espnowPeerCount);
+                systemPrintf("Adding %d espNow peers\r\n", settings.espnowPeerCount);
 
             // Loop through peers listed in settings
             for (index = 0; index < ESPNOW_MAX_PEERS; index++)

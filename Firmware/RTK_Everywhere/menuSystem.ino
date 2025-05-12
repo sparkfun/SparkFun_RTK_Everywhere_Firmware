@@ -1538,9 +1538,9 @@ void printFileList()
                     );
 
                     char fileSizeChar[20];
-                    String fileSize;
-                    stringHumanReadableSize(fileSize, tempFile.fileSize());
-                    fileSize.toCharArray(fileSizeChar, sizeof(fileSizeChar));
+                    String fileSizeStr;
+                    stringHumanReadableSize(fileSizeStr, tempFile.fileSize());
+                    fileSizeStr.toCharArray(fileSizeChar, sizeof(fileSizeChar));
 
                     char fileName[50]; // Handle long file names
                     tempFile.getName(fileName, sizeof(fileName));

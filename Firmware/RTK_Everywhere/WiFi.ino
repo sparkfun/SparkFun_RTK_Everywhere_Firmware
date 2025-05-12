@@ -44,31 +44,31 @@ static const int wifiAuthorizationNameEntries =
 //   6. Call esp_wifi_set_promiscuous(true)
 //   7. Set promiscuous receive callback [esp_wifi_set_promiscuous_rx_cb(promiscuous_rx_cb)]
 //      to get RSSI of action frames
-//   8. Assign a channel if necessary, call espnowSetChannel
-//   9. Set receive callback [esp_now_register_recv_cb(espnowOnDataReceived)]
+//   8. Assign a channel if necessary, call RTK_WIFI::espNowSetChannel
+//   9. Set receive callback [esp_now_register_recv_cb(espNowOnDataReceived)]
 //  10. Add peers from settings
 //      A. If no peers exist
 //          i.   Determine if broadcast peer exists, call esp_now_is_peer_exist
-//          ii.  Add broadcast peer if necessary, call espnowAddPeer
-//          iii. Set ESP-NOW state, call espnowSetState(ESPNOW_BROADCASTING)
+//          ii.  Add broadcast peer if necessary, call espNowAddPeer
+//          iii. Set ESP-NOW state, call espNowSetState(ESPNOW_BROADCASTING)
 //      B. If peers exist,
-//          i.  Set ESP-NOW state, call espnowSetState(ESPNOW_PAIRED)
+//          i.  Set ESP-NOW state, call espNowSetState(ESPNOW_PAIRED)
 //          ii. Loop through peers listed in settings, for each
 //              a. Determine if peer exists, call esp_now_is_peer_exist
-//              b. Add peer if necessary, call espnowAddPeer
+//              b. Add peer if necessary, call espNowAddPeer
 //
-// In espnowOnDataReceived
+// In espNowOnDataReceived
 //  11. Save ESP-NOW RSSI
-//  12. Set lastEspnowRssiUpdate = millis()
+//  12. Set espNowLastRssiUpdate = millis()
 //  13. If in ESPNOW_PAIRING state
 //      A. Validate message CRC
 //      B. If valid CRC
 //          i.  Save peer MAC address
-//          ii. espnowSetState(ESPNOW_MAC_RECEIVED)
+//          ii. espNowSetState(ESPNOW_MAC_RECEIVED)
 //  14. Else if ESPNOW_MAC_RECEIVED state
 //      A. If ESP-NOW is corrections source, correctionLastSeen(CORR_ESPNOW)
 //          i.  gnss->pushRawData
-//  15. Set espnowIncomingRTCM
+//  15. Set espNowIncomingRTCM
 //
 // ESP-NOW shutdown from RTK
 //   1. esp_wifi_set_promiscuous(false)
@@ -80,7 +80,7 @@ static const int wifiAuthorizationNameEntries =
 //   7. esp_wifi_get_protocol
 //   8. Turn off long range protocol if necessary, call esp_wifi_set_protocol
 //   9. Turn off ESP-NOW. call esp_now_deinit
-//  10. Set ESP-NOW state, call espnowSetState(ESPNOW_OFF)
+//  10. Set ESP-NOW state, call espNowSetState(ESPNOW_OFF)
 //  11. Restart WiFi if necessary
 //----------------------------------------------------------------------
 
@@ -637,7 +637,7 @@ void wifiPromiscuousRxHandler(void *buf, wifi_promiscuous_pkt_type_t type)
 {
     const wifi_promiscuous_pkt_t *ppkt; // Defined in esp_wifi_types_native.h
 
-    // All espnow traffic uses action frames which are a subtype of the
+    // All espNow traffic uses action frames which are a subtype of the
     // mgmnt frames so filter out everything else.
     if (type != WIFI_PKT_MGMT)
         return;
@@ -863,7 +863,7 @@ void wifiStop(NetIndex_t index, uintptr_t parameter, bool debug)
 {
     networkInterfaceInternetConnectionLost(NETWORK_WIFI_STATION, __FILE__, __LINE__);
 
-    // Stop WiFi stataion
+    // Stop WiFi station
     wifi.enable(wifiEspNowRunning, wifiSoftApRunning, false, __FILE__, __LINE__);
 
     networkSequenceNextEntry(NETWORK_WIFI_STATION, settings.debugNetworkLayer);
