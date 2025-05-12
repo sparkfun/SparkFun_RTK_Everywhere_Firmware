@@ -946,8 +946,10 @@ void mqttClientUpdate()
         {
             mqttSubscribeTopics.push_back(MQTT_TOPIC_ASSISTNOW);
         }
+
         // Subscribe to the key distribution topic
         mqttSubscribeTopics.push_back(String(settings.pointPerfectKeyDistributionTopic));
+
         // Subscribe to the continental correction topic for our region - if we have one. L-Band-only does not.
         if (strlen(settings.regionalCorrectionTopics[settings.geographicRegion]) > 0)
         {

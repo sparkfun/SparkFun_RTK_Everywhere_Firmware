@@ -585,7 +585,7 @@ bool wifiEspNowOn(const char * fileName, uint32_t lineNumber)
 // Return the start timeout in milliseconds
 uint32_t wifiGetStartTimeout()
 {
-    return wifiStartTimeout;
+    return (wifiStartTimeout);
 }
 
 //*********************************************************************

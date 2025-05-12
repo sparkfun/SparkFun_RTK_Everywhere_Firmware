@@ -63,7 +63,7 @@ void powerDown(bool displayInfo)
     {
         // Platforms with power control won't get here
         // Postcard will get here if the battery is too low
-        
+
         systemPrintln("Device powered down");
         delay(5000);
 

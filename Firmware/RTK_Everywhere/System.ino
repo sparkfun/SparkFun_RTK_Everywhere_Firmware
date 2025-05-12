@@ -414,7 +414,6 @@ void printReports()
     if (settings.enablePrintRoverAccuracy && (millis() - lastPrintRoverAccuracy > 2000))
     {
         lastPrintRoverAccuracy = millis();
-
         if (online.gnss)
         {
             // If we are in rover mode, display HPA and SIV
