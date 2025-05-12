@@ -345,6 +345,29 @@ void mqttClientPrintStatus()
 }
 
 //----------------------------------------
+// Print the subscribed topics
+//----------------------------------------
+void mqttClientPrintSubscribedTopics()
+{
+    systemPrint("MQTT Client subscribe topics: ");
+    for (auto it = mqttSubscribeTopics.begin(); it != mqttSubscribeTopics.end(); it = std::next(it))
+    {
+        String topic = *it;
+        systemPrint(topic);
+        systemPrint(" ");
+    }
+    systemPrintln();
+    systemPrint("MQTT Client subscribed topics: ");
+    for (auto it = mqttClientSubscribedTopics.begin(); it != mqttClientSubscribedTopics.end(); it = std::next(it))
+    {
+        String topic = *it;
+        systemPrint(topic);
+        systemPrint(" ");
+    }
+    systemPrintln();
+}
+
+//----------------------------------------
 // Process the localizedDistributionDictTopic message
 //----------------------------------------
 void mqttClientProcessLocalizedDistributionDictTopic(uint8_t * mqttData)
@@ -771,12 +794,16 @@ void mqttClientStop(bool shutdown)
         networkConsumerRemove(NETCONSUMER_PPL_MQTT_CLIENT, NETWORK_ANY, __FILE__, __LINE__);
         mqttClientConnectionAttempts = 0;
         mqttClientConnectionAttemptTimeout = 0;
+        mqttClientPrintSubscribedTopics();
         mqttClientSetState(MQTT_CLIENT_OFF);
         if (settings.debugMqttClientState)
             systemPrintln("MQTT Client stopped");
     }
     else
+    {
         mqttClientSetState(MQTT_CLIENT_WAIT_FOR_NETWORK);
+        mqttClientPrintSubscribedTopics();
+    }
 }
 
 //----------------------------------------
@@ -839,6 +866,7 @@ void mqttClientUpdate()
                 mqttClientConnectionAttemptTimeout = 0;
             networkUserAdd(NETCONSUMER_PPL_MQTT_CLIENT, __FILE__, __LINE__);
             mqttClientSetState(MQTT_CLIENT_CONNECTION_DELAY);
+            mqttClientPrintSubscribedTopics();
         }
         break;
     }
@@ -848,6 +876,7 @@ void mqttClientUpdate()
         if ((millis() - mqttClientTimer) > mqttClientConnectionAttemptTimeout)
         {
             mqttClientSetState(MQTT_CLIENT_CONNECTING_2_BROKER);
+            mqttClientPrintSubscribedTopics();
         }
         break;
     }
@@ -971,7 +1000,7 @@ void mqttClientUpdate()
         online.mqttClient = true;
 
         mqttClientSetState(MQTT_CLIENT_SERVICES_CONNECTED);
-
+        mqttClientPrintSubscribedTopics();
         break;
     } // /case MQTT_CLIENT_CONNECTING_2_BROKER
 
@@ -1137,6 +1166,7 @@ void mqttClientUpdate()
         mqttClientEnabled(&line);
         systemPrintf("MQTT Client state: %s%s\r\n",
                      mqttClientStateName[mqttClientState], line);
+        mqttClientPrintSubscribedTopics();
         PERIODIC_CLEAR(PD_MQTT_CLIENT_STATE);
     }
 }
