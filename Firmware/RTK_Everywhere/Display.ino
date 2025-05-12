@@ -2439,10 +2439,10 @@ void paintSystemTest()
                 pinMode(pin_muxADC, INPUT_PULLUP);
 
                 digitalWrite(pin_muxDAC, HIGH);
-                if (digitalRead(pin_muxADC) == HIGH)
+                if (readAnalogPinAsDigital(pin_muxADC) == HIGH)
                 {
                     digitalWrite(pin_muxDAC, LOW);
-                    if (digitalRead(pin_muxADC) == LOW)
+                    if (readAnalogPinAsDigital(pin_muxADC) == LOW)
                         oled->print("OK");
                     else
                         oled->print("FAIL");
