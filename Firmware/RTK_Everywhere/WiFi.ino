@@ -361,7 +361,6 @@ static DNSServer dnsServer;
 
 // Start timeout
 static uint32_t wifiStartTimeout;
-static uint32_t wifiStartLastTry; // The last time WiFi start was attempted
 
 // WiFi Timer usage:
 //  * Measure interval to display IP address
@@ -767,7 +766,7 @@ void wifiPromiscuousRxHandler(void *buf, wifi_promiscuous_pkt_type_t type)
 // Useful when WiFi settings have changed
 void wifiResetThrottleTimeout()
 {
-    wifiStartLastTry = millis() - WIFI_MAX_TIMEOUT;
+    wifiReconnectionTimer = millis() - WIFI_MAX_TIMEOUT;
 }
 
 //*********************************************************************
@@ -1175,7 +1174,7 @@ RTK_WIFI::RTK_WIFI(bool verbose)
       _staMacAddress{0, 0, 0, 0, 0, 0},
       _staRemoteApSsid{nullptr}, _staRemoteApPassword{nullptr},
       _started{false}, _stationChannel{0},
-      _timer{0}, _usingDefaultChannel{true}, _verbose{verbose}
+      _usingDefaultChannel{true}, _verbose{verbose}
 {
     wifiChannel = 0;
     wifiEspNowOnline = false;
@@ -2032,18 +2031,18 @@ void RTK_WIFI::stationEventHandler(arduino_event_id_t event, arduino_event_info_
         // Start the reconnection timer
         if (event == ARDUINO_EVENT_WIFI_STA_DISCONNECTED)
         {
-            if (settings.debugWifiState && _verbose && !_timer)
+            if (settings.debugWifiState && _verbose && !wifiReconnectionTimer)
                 systemPrintf("WiFi: Reconnection timer started\r\n");
-            _timer = millis();
-            if (!_timer)
-                _timer = 1;
+            wifiReconnectionTimer = millis();
+            if (!wifiReconnectionTimer)
+                wifiReconnectionTimer = 1;
         }
         else
         {
             // Stop the reconnection timer
-            if (settings.debugWifiState && _verbose && _timer)
+            if (settings.debugWifiState && _verbose && wifiReconnectionTimer)
                 systemPrintf("WiFi: Reconnection timer stopped\r\n");
-            _timer = 0;
+            wifiReconnectionTimer = 0;
         }
 
         // Fall through
@@ -2169,11 +2168,11 @@ void RTK_WIFI::stationReconnectionRequest()
 
     // Check for reconnection request
     currentMsec = millis();
-    if (_timer)
+    if (wifiReconnectionTimer)
     {
-        if ((currentMsec - _timer) >= WIFI_RECONNECTION_DELAY)
+        if ((currentMsec - wifiReconnectionTimer) >= WIFI_RECONNECTION_DELAY)
         {
-            _timer = 0;
+            wifiReconnectionTimer = 0;
             if (settings.debugWifiState)
                 systemPrintf("Reconnection timer fired!\r\n");
 
@@ -3483,9 +3482,9 @@ void wifiThrottledStart(NetIndex_t index, uintptr_t parameter, bool debug)
     int minutes;
 
     // Restart delay
-    if ((millis() - wifiStartLastTry) < wifiStartTimeout)
+    if ((millis() - wifiReconnectionTimer) < wifiStartTimeout)
         return;
-    wifiStartLastTry = millis();
+    wifiReconnectionTimer = millis();
 
     // Start WiFi
     if (wifiStart())
