@@ -1220,13 +1220,13 @@ bool RTK_WIFI::connect(unsigned long timeout,
     log_w("WiFi: Not using timeout parameter for connect!\r\n");
 
     // Enable WiFi station if necessary
-    if (_stationRunning == false)
+    if (wifiStationRunning == false)
     {
         displayWiFiConnect();
         started = enable(wifiEspNowRunning, wifiSoftApRunning, true, __FILE__, __LINE__);
     }
     else if (startAP && !wifiSoftApRunning)
-        started = enable(wifiEspNowRunning, true, _stationRunning, __FILE__, __LINE__);
+        started = enable(wifiEspNowRunning, true, wifiStationRunning, __FILE__, __LINE__);
 
     // Determine the WiFi station status
     if (started)
@@ -1348,7 +1348,7 @@ bool RTK_WIFI::enable(bool enableESPNow,
             {
                 // Start the WiFi station
                 starting |= WIFI_START_STATION;
-                _stationRunning = true;
+                wifiStationRunning = true;
             }
         }
     }
@@ -1356,7 +1356,7 @@ bool RTK_WIFI::enable(bool enableESPNow,
     {
         // Stop the WiFi station
         stopping |= WIFI_START_STATION;
-        _stationRunning = false;
+        wifiStationRunning = false;
     }
 
     // Stop and start the WiFi components
@@ -1484,7 +1484,7 @@ bool RTK_WIFI::restart(bool always)
 // Determine if any use of WiFi is starting or is online
 bool RTK_WIFI::running()
 {
-    return wifiEspNowRunning | wifiSoftApRunning | _stationRunning;
+    return wifiEspNowRunning | wifiSoftApRunning | wifiStationRunning;
 }
 
 //*********************************************************************
@@ -1680,9 +1680,9 @@ bool RTK_WIFI::softApConfiguration(IPAddress ipAddress,
     success = true;
     if (softApOnline())
     {
-        success = enable(false, false, stationRunning(), __FILE__, __LINE__);
+        success = enable(false, false, wifiStationRunning, __FILE__, __LINE__);
         if (success)
-            success = enable(false, true, stationRunning(), __FILE__, __LINE__);
+            success = enable(false, true, wifiStationRunning, __FILE__, __LINE__);
     }
     return success;
 }
@@ -1896,7 +1896,7 @@ bool RTK_WIFI::startAp(bool forceAP)
 {
     return enable(wifiEspNowRunning,
                   forceAP | settings.wifiConfigOverAP,
-                  _stationRunning,
+                  wifiStationRunning,
                   __FILE__, __LINE__);
 }
 
@@ -2178,20 +2178,13 @@ void RTK_WIFI::stationReconnectionRequest()
                 systemPrintf("Reconnection timer fired!\r\n");
 
             // Start the WiFi scan
-            if (stationRunning())
+            if (wifiStationRunning)
             {
                 _started = _started & ~WIFI_STA_RECONNECT;
                 stopStart(0, WIFI_STA_RECONNECT);
             }
         }
     }
-}
-
-//*********************************************************************
-// Get the station status
-bool RTK_WIFI::stationRunning()
-{
-    return _stationRunning;
 }
 
 //*********************************************************************

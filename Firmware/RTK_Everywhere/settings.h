@@ -2001,7 +2001,6 @@ class RTK_WIFI
     const char * _staRemoteApPassword;  // Password of remote AP
     volatile WIFI_ACTION_t _started;    // Components that are started and running
     WIFI_CHANNEL_t _stationChannel; // Channel required for station, zero (0) use wifiChannel
-    bool _stationRunning;       // True while station is starting or running
     uint32_t _timer;            // Reconnection timer
     bool _usingDefaultChannel;  // Using default WiFi channel
     bool _verbose;              // True causes more debug output to be displayed
@@ -2264,11 +2263,6 @@ class RTK_WIFI
 
     // Handle WiFi station reconnection requests
     void stationReconnectionRequest();
-
-    // Get the station status
-    // Outputs:
-    //  Returns true if the WiFi station is being started or is online
-    bool stationRunning();
 
     // Get the SSID of the remote AP
     const char * stationSsid();
