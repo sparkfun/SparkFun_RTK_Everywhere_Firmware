@@ -1178,6 +1178,23 @@ RTK_WIFI::RTK_WIFI(bool verbose)
       _timer{0}, _usingDefaultChannel{true}, _verbose{verbose}
 {
     wifiChannel = 0;
+    wifiEspNowOnline = false;
+    wifiEspNowRunning = false;
+    wifiFailedConnectionAttempts = 0;
+    wifiReconnectionTimer = 0;
+    wifiSoftApOnline = false;
+    wifiSoftApRunning = false;
+    wifiStationOnline = false;
+    wifiStationRunning = false;
+
+    // Allocate the WiFi soft AP SSID
+    _apSsid = (char *)rtkMalloc(SSID_LENGTH, "SSID string (_apSsid)");
+    if (_apSsid)
+        _apSsid[0] = 0;
+
+    // Prepare to start WiFi immediately
+    wifiResetThrottleTimeout();
+    wifiResetTimeout();
 }
 
 //*********************************************************************
