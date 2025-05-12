@@ -1300,8 +1300,17 @@ bool RTK_WIFI::enable(bool enableESPNow,
                       int lineNumber)
 {
     int authIndex;
+    bool startOrStopSomething;
     WIFI_ACTION_t starting;
+    bool status;
     WIFI_ACTION_t stopping;
+
+    // Turn on WiFi debugging if necessary
+    if (_verbose)
+    {
+        settings.debugEspNow = true;
+        settings.debugWifiState = true;
+    }
 
     // Determine the next actions
     starting = 0;
@@ -1310,6 +1319,7 @@ bool RTK_WIFI::enable(bool enableESPNow,
     // Display the parameters
     if (settings.debugWifiState && _verbose)
     {
+        systemPrintf("WiFi: RTK_WIFI::enable called from %s line %d\r\n", fileName, lineNumber);
         systemPrintf("enableESPNow: %s\r\n", enableESPNow ? "true" : "false");
         systemPrintf("enableSoftAP: %s\r\n", enableSoftAP ? "true" : "false");
         systemPrintf("enableStation: %s\r\n", enableStation ? "true" : "false");
@@ -1331,10 +1341,22 @@ bool RTK_WIFI::enable(bool enableESPNow,
     if (enableSoftAP)
     {
         // Verify that the SSID is set
-        if (wifiSoftApSsid && strlen(wifiSoftApSsid) && wifiSoftApPassword)
+        if (wifiSoftApSsid && strlen(wifiSoftApSsid))
         {
-            starting |= WIFI_START_SOFT_AP;
-            wifiSoftApRunning = true;
+            // Allocate the soft AP SSID
+            if (!_apSsid)
+            {
+                _apSsid = (char *)rtkMalloc(strlen(wifiSoftApSsid) + 1, "SSID string (_apSsid)");
+                if (_apSsid)
+                    _apSsid[0] = 0;
+                else
+                    systemPrintf("ERROR: Failed to allocate buffer for AP SSID\r\n");
+            }
+            if (_apSsid)
+            {
+                starting |= WIFI_START_SOFT_AP;
+                wifiSoftApRunning = true;
+            }
         }
         else
             systemPrintf("ERROR: AP SSID or password is missing\r\n");
@@ -1348,31 +1370,20 @@ bool RTK_WIFI::enable(bool enableESPNow,
     // Update the station state
     if (enableStation)
     {
-        // Verify that at least one WiFi access point is in the list
-        if (MAX_WIFI_NETWORKS == 0)
+        // Verify that at least one SSID is set
+        for (authIndex = 0; authIndex < MAX_WIFI_NETWORKS; authIndex++)
+            if (strlen(settings.wifiNetworks[authIndex].ssid))
+                break;
+        if (authIndex >= MAX_WIFI_NETWORKS)
         {
-            systemPrintf("ERROR: No entries in wiFiSsidPassword\r\n");
+            systemPrintf("ERROR: No valid SSID in settings.wifiNetworks\r\n");
             displayNoSSIDs(2000);
         }
         else
         {
-            // Verify that at least one SSID is set
-            for (authIndex = 0; authIndex < MAX_WIFI_NETWORKS; authIndex++)
-                if (strlen(settings.wifiNetworks[authIndex].ssid))
-                {
-                    break;
-                }
-            if (authIndex >= MAX_WIFI_NETWORKS)
-            {
-                systemPrintf("ERROR: No valid SSID in settings\r\n");
-                displayNoSSIDs(2000);
-            }
-            else
-            {
-                // Start the WiFi station
-                starting |= WIFI_START_STATION;
-                wifiStationRunning = true;
-            }
+            // Start the WiFi station
+            starting |= WIFI_START_STATION;
+            wifiStationRunning = true;
         }
     }
     else
@@ -1383,7 +1394,19 @@ bool RTK_WIFI::enable(bool enableESPNow,
     }
 
     // Stop and start the WiFi components
-    return stopStart(stopping, starting);
+    startOrStopSomething = (stopping & _started) | (starting & ~_started);
+    if (startOrStopSomething)
+        status = stopStart(stopping, starting);
+    else
+        // Nothing to do, verify the required devices are online
+        status = (enableESPNow == ((_started & WIFI_EN_ESP_NOW_ONLINE) != 0))
+                && (enableSoftAP == ((_started & WIFI_AP_ONLINE) != 0))
+                && (enableStation == ((_started & WIFI_STA_ONLINE) != 0));
+
+    // Display the final status
+    if (settings.debugWifiState && _verbose)
+        systemPrintf("WiFi: RTK_WIFI::enable returning %s\r\n", status ? "true" : "false");
+    return status;
 }
 
 //*********************************************************************
