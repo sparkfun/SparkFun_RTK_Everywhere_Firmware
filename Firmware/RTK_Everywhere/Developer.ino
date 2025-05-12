@@ -191,11 +191,9 @@ bool espNowProcessRxPairedMessage()     {return true;}
 esp_err_t espNowRemovePeer(const uint8_t *peerMac)        {return ESP_OK;}
 esp_err_t espNowSendPairMessage(const uint8_t *sendToMac) {return ESP_OK;}
 bool espNowSetChannel(uint8_t channelNumber)        {return false;}
-bool espNowStart()                      {return false;}
-#define ESPNOW_START()                  false
+bool espNowStart()                      {return true;}
 void espNowStaticPairing()              {}
 bool espNowStop()                       {return true;}
-#define ESPNOW_STOP()                   true
 void espNowUpdate()                     {}
 
 #endif   // COMPILE_ESPNOW
@@ -206,29 +204,22 @@ void espNowUpdate()                     {}
 
 #ifndef COMPILE_WIFI
 
-void menuWiFi() {systemPrintln("**WiFi not compiled**");}
-bool wifiApIsRunning() {return false;}
-bool wifiConnect(bool startWiFiStation, bool startWiFiAP, unsigned long timeout) {return false;}
+void menuWiFi()                 {systemPrintln("**WiFi not compiled**");}
 void wifiDisplayNetworkData()                   {}
 void wifiDisplaySoftApStatus()                  {}
 bool wifiEspNowOff(const char * fileName, uint32_t lineNumber) {return true;}
 bool wifiEspNowOn(const char * fileName, uint32_t lineNumber) {return false;}
 void wifiEspNowSetChannel(WIFI_CHANNEL_t channel) {}
-uint32_t wifiGetStartTimeout() {return 0;}
-#define WIFI_IS_RUNNING() 0
-int wifiNetworkCount() {return 0;}
-void wifiResetThrottleTimeout() {}
-void wifiResetTimeout() {}
+uint32_t wifiGetStartTimeout()                  {return 0;}
+int wifiNetworkCount()                          {return 0;}
+void wifiResetThrottleTimeout()                 {}
+void wifiResetTimeout()                         {}
+const char * wifiSoftApGetSsid()                {return "";}
 bool wifiSoftApOff(const char * fileName, uint32_t lineNumber) {return true;}
 bool wifiSoftApOn(const char * fileName, uint32_t lineNumber) {return false;}
 bool wifiStationOff(const char * fileName, uint32_t lineNumber) {return true;}
 bool wifiStationOn(const char * fileName, uint32_t lineNumber) {return false;}
-#define WIFI_SOFT_AP_RUNNING() false
-bool wifiStart() {return false;}
-bool wifiStationIsRunning() {return false;}
-#define WIFI_STOP() {}
 void wifiStopAll()                              {}
-bool wifiUnavailable()  {return true;}
 
 #endif // COMPILE_WIFI
 

@@ -166,7 +166,6 @@ const uint16_t HTTPS_PORT = 443;                                                
 #include "esp_wifi.h"         //Needed for esp_wifi_set_protocol()
 #include <WiFi.h>             //Built-in.
 #include <WiFiClientSecure.h> //Built-in.
-#include <WiFiMulti.h>        //Built-in.
 #endif                        // COMPILE_WIFI
 
 #ifdef COMPILE_CELLULAR
@@ -366,20 +365,9 @@ char logFileName[sizeof("SFE_Reference_Station_230101_120101.ubx_plusExtraSpace"
 #ifdef COMPILE_WIFI
 int packetRSSI;
 RTK_WIFI wifi(false);
-
-#define WIFI_IS_CONNECTED()             wifiIsConnected()
-#define WIFI_IS_RUNNING()               wifiIsRunning()
-#define WIFI_SOFT_AP_RUNNING()          wifiApIsRunning()
-#define WIFI_STOP()                                                                                                    \
-    {                                                                                                                  \
-        if (settings.debugWifiState)                                                                                   \
-            systemPrintf("wifiStop called by %s %d\r\n", __FILE__, __LINE__);                                          \
-        wifiStop();                                                                                                    \
-    }
 #endif // COMPILE_WIFI
 
 // WiFi Globals - For other module direct access
-bool restartWiFi = false; // Restart WiFi if user changes anything
 WIFI_CHANNEL_t wifiChannel;     // Current WiFi channel number
 bool wifiEspNowOnline;          // ESP-Now started successfully
 bool wifiEspNowRunning;         // False: stopped, True: starting, running, stopping
@@ -685,8 +673,6 @@ float lBandEBNO; // Used on system status menu
 
 #include <esp_now.h> //Built-in
 
-#define ESPNOW_START()      espnowStart()
-#define ESPNOW_STOP()       espnowStop()
 #endif // COMPILE_ESPNOW
 
 // ESP-NOW Globals - For other module direct access
