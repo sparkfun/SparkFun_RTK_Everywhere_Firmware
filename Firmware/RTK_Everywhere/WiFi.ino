@@ -3156,18 +3156,14 @@ void RTK_WIFI::verifyTables()
     if (WIFI_AUTH_MAX != wifiAuthorizationNameEntries)
     {
         systemPrintf("ERROR: Fix wifiAuthorizationName list to match wifi_auth_mode_t in esp_wifi_types.h!\r\n");
-        while (1)
-        {
-        }
+        reportFatalError("Fix wifiAuthorizationName list to match wifi_auth_mode_t in esp_wifi_types.h!");
     }
 
     // Verify the start name table
     if (WIFI_MAX_START != (1 << wifiStartNamesEntries))
     {
         systemPrintf("ERROR: Fix wifiStartNames list to match list of defines!\r\n");
-        while (1)
-        {
-        }
+        reportFatalError("Fix wifiStartNames list to match list of defines!!");
     }
 }
 
