@@ -392,7 +392,10 @@ bool networkChanged(NETCONSUMER_t consumer)
 //----------------------------------------
 // Add a network consumer
 //----------------------------------------
-void networkConsumerAdd(NETCONSUMER_t consumer, NetIndex_t network, const char * fileName, uint32_t lineNumber)
+void networkConsumerAdd(NETCONSUMER_t consumer,
+                        NetIndex_t network,
+                        const char * fileName,
+                        uint32_t lineNumber)
 {
     NETCONSUMER_MASK_t bitMask;
     NETCONSUMER_MASK_t * bits;
@@ -625,7 +628,10 @@ void networkConsumerReconnect(NetIndex_t index)
 //----------------------------------------
 // Remove a network consumer
 //----------------------------------------
-void networkConsumerRemove(NETCONSUMER_t consumer, NetIndex_t network, const char * fileName, uint32_t lineNumber)
+void networkConsumerRemove(NETCONSUMER_t consumer,
+                           NetIndex_t network,
+                           const char * fileName,
+                           uint32_t lineNumber)
 {
     NETCONSUMER_MASK_t bitMask;
     NETCONSUMER_MASK_t * bits;
@@ -1916,7 +1922,9 @@ void networkSequenceStopPolling(NetIndex_t index,
 //----------------------------------------
 // Add a soft AP consumer
 //----------------------------------------
-void networkSoftApConsumerAdd(NETCONSUMER_t consumer, const char * fileName, uint32_t lineNumber)
+void networkSoftApConsumerAdd(NETCONSUMER_t consumer,
+                              const char * fileName,
+                              uint32_t lineNumber)
 {
     NETCONSUMER_MASK_t bitMask;
     NetIndex_t index;
@@ -1994,7 +2002,9 @@ void networkSoftApConsumerPrint(const char * separator)
 //----------------------------------------
 // Remove a soft AP consumer
 //----------------------------------------
-void networkSoftApConsumerRemove(NETCONSUMER_t consumer, const char * fileName, uint32_t lineNumber)
+void networkSoftApConsumerRemove(NETCONSUMER_t consumer,
+                                 const char * fileName,
+                                 uint32_t lineNumber)
 {
     NETCONSUMER_MASK_t bitMask;
     NetIndex_t index;
@@ -2043,7 +2053,10 @@ void networkSoftApConsumerRemove(NETCONSUMER_t consumer, const char * fileName, 
 //----------------------------------------
 // Start a network interface
 //----------------------------------------
-void networkStart(NetIndex_t index, bool debug, const char * fileName, uint32_t lineNumber)
+void networkStart(NetIndex_t index,
+                  bool debug,
+                  const char * fileName,
+                  uint32_t lineNumber)
 {
     NETCONSUMER_MASK_t consumers;
 
@@ -2121,7 +2134,10 @@ void networkStartNextInterface(NetIndex_t index)
 //----------------------------------------
 // Stop a network interface
 //----------------------------------------
-void networkStop(NetIndex_t index, bool debug, const char * fileName, uint32_t lineNumber)
+void networkStop(NetIndex_t index,
+                 bool debug,
+                 const char * fileName,
+                 uint32_t lineNumber)
 {
     NetMask_t bitMask;
 
@@ -2359,7 +2375,9 @@ void networkUpdate()
 //----------------------------------------
 // Add a network user
 //----------------------------------------
-void networkUserAdd(NETCONSUMER_t consumer, const char * fileName, uint32_t lineNumber)
+void networkUserAdd(NETCONSUMER_t consumer,
+                    const char * fileName,
+                    uint32_t lineNumber)
 {
     NetIndex_t index;
     NETCONSUMER_MASK_t mask;
@@ -2405,7 +2423,9 @@ void networkUserDisplay(NetIndex_t index)
 //----------------------------------------
 // Remove a network user
 //----------------------------------------
-void networkUserRemove(NETCONSUMER_t consumer, const char * fileName, uint32_t lineNumber)
+void networkUserRemove(NETCONSUMER_t consumer,
+                       const char * fileName,
+                       uint32_t lineNumber)
 {
     NetIndex_t index;
     NETCONSUMER_MASK_t mask;
