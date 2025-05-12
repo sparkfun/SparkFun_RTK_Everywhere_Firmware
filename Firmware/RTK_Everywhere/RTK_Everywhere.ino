@@ -394,6 +394,7 @@ const char * wifiSoftApPassword = nullptr;
             systemPrintf("mqttClientStop(%s) called by %s %d\r\n", shutdown ? "true" : "false", __FILE__, __LINE__);   \
         mqttClientStop(shutdown);                                                                                      \
     }
+
 //-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 
 // Over-the-Air (OTA) update support
