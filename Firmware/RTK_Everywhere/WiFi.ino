@@ -557,7 +557,10 @@ bool wifiEspNowOff(const char * fileName, uint32_t lineNumber)
 
     // Turn off ESP-NOW when enabled
     if (wifiEspNowRunning)
-        return wifi.enable(false, wifiSoftApRunning, wifiStationRunning, __FILE__, __LINE__);
+        return wifi.enable(false,
+                           wifiSoftApRunning,
+                           wifiStationRunning,
+                           __FILE__, __LINE__);
     return true;
 }
 
@@ -577,7 +580,10 @@ bool wifiEspNowOn(const char * fileName, uint32_t lineNumber)
 
     // Turn on ESP-NOW when it is enabled
     if (settings.enableEspNow && !wifiEspNowRunning)
-        return wifi.enable(true, wifiSoftApRunning, wifiStationRunning, __FILE__, __LINE__);
+        return wifi.enable(true,
+                           wifiSoftApRunning,
+                           wifiStationRunning,
+                           __FILE__, __LINE__);
     return settings.enableEspNow;
 }
 
@@ -679,7 +685,10 @@ bool wifiSoftApOff(const char * fileName, uint32_t lineNumber)
         systemPrintf("wifiSoftApOff called in %s at line %d\r\n",
                      fileName, lineNumber);
 
-    return wifi.enable(wifiEspNowRunning, false, wifiStationRunning, __FILE__, __LINE__);
+    return wifi.enable(wifiEspNowRunning,
+                       false,
+                       wifiStationRunning,
+                       __FILE__, __LINE__);
 }
 
 //*********************************************************************
@@ -696,7 +705,10 @@ bool wifiSoftApOn(const char * fileName, uint32_t lineNumber)
         systemPrintf("wifiSoftApOn called in %s at line %d\r\n",
                      fileName, lineNumber);
 
-    return wifi.enable(wifiEspNowRunning, true, wifiStationRunning, __FILE__, __LINE__);
+    return wifi.enable(wifiEspNowRunning,
+                       true,
+                       wifiStationRunning,
+                       __FILE__, __LINE__);
 }
 
 //*********************************************************************
@@ -752,7 +764,10 @@ bool wifiStationOff(const char * fileName, uint32_t lineNumber)
         systemPrintf("wifiStationOff called in %s at line %d\r\n",
                      fileName, lineNumber);
 
-    return wifi.enable(wifiEspNowRunning, wifiSoftApRunning, false, __FILE__, __LINE__);
+    return wifi.enable(wifiEspNowRunning,
+                       wifiSoftApRunning,
+                       false,
+                       __FILE__, __LINE__);
 }
 
 //*********************************************************************
@@ -769,7 +784,10 @@ bool wifiStationOn(const char * fileName, uint32_t lineNumber)
         systemPrintf("wifiStationOn called in %s at line %d\r\n",
                      fileName, lineNumber);
 
-    return wifi.enable(wifiEspNowRunning, wifiSoftApRunning, true, __FILE__, __LINE__);
+    return wifi.enable(wifiEspNowRunning,
+                       wifiSoftApRunning,
+                       true,
+                       __FILE__, __LINE__);
 }
 
 //*********************************************************************
@@ -990,10 +1008,16 @@ bool RTK_WIFI::connect(unsigned long timeout,
     if (wifiStationRunning == false)
     {
         displayWiFiConnect();
-        started = enable(wifiEspNowRunning, wifiSoftApRunning, true, __FILE__, __LINE__);
+        started = enable(wifiEspNowRunning,
+                         wifiSoftApRunning,
+                         true,
+                         __FILE__, __LINE__);
     }
     else if (startAP && !wifiSoftApRunning)
-        started = enable(wifiEspNowRunning, true, wifiStationRunning, __FILE__, __LINE__);
+        started = enable(wifiEspNowRunning,
+                         true,
+                         wifiStationRunning,
+                         __FILE__, __LINE__);
 
     // Determine the WiFi station status
     if (started)
@@ -1438,9 +1462,15 @@ bool RTK_WIFI::softApConfiguration(IPAddress ipAddress,
     success = true;
     if (softApOnline())
     {
-        success = enable(false, false, wifiStationRunning, __FILE__, __LINE__);
+        success = enable(false,
+                         false,
+                         wifiStationRunning,
+                         __FILE__, __LINE__);
         if (success)
-            success = enable(false, true, wifiStationRunning, __FILE__, __LINE__);
+            success = enable(false,
+                             true,
+                             wifiStationRunning,
+                             __FILE__, __LINE__);
     }
     return success;
 }
@@ -1653,7 +1683,10 @@ bool RTK_WIFI::softApSetSsidPassword(const char * ssid, const char * password)
 //    otherwise
 bool RTK_WIFI::startAp(bool forceAP)
 {
-    return enable(wifiEspNowRunning, forceAP | settings.wifiConfigOverAP, wifiStationRunning, __FILE__, __LINE__);
+    return enable(wifiEspNowRunning,
+                  forceAP | settings.wifiConfigOverAP,
+                  wifiStationRunning,
+                  __FILE__, __LINE__);
 }
 
 //*********************************************************************
