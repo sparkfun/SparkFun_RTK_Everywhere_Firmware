@@ -474,7 +474,7 @@ void mqttClientProcessPointPerfectKeyDistributionTopic(uint8_t * mqttData)
     recordSystemSettings(); // Record these settings to unit
 
     if (settings.debugCorrections == true)
-        pointperfectPrintKeyInformation();
+        pointperfectPrintKeyInformation("MQTT Topic");
 }
 
 //----------------------------------------
