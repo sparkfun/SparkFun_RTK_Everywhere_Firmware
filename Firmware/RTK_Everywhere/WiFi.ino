@@ -1777,7 +1777,8 @@ bool RTK_WIFI::softApSetSsidPassword(const char * ssid, const char * password)
     if (!created)
         systemPrintf("ERROR: Failed to set soft AP SSID and Password!\r\n");
     else if (settings.debugWifiState)
-        systemPrintf("WiFi AP: SSID: %s, Password: %s\r\n", ssid, password);
+        systemPrintf("WiFi AP: SSID: %s%s%s\r\n", ssid,
+                     password ? ", Password: " : "", password ? password : "");
     return created;
 }
 
