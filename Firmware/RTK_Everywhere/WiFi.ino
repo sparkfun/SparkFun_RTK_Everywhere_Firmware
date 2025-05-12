@@ -378,6 +378,8 @@ static WiFiMulti *wifiMulti;
 // Enable TCP connections
 void menuWiFi()
 {
+    bool wifiRestartRequested;      // Restart WiFi if user changes anything
+
     while (1)
     {
         networkDisplayInterface(NETWORK_WIFI_STATION);
@@ -419,12 +421,13 @@ void menuWiFi()
             }
 
             // If we are modifying the SSID table, force restart of WiFi
-            restartWiFi = true;
+            wifiRestartRequested = true;
+            wifiFailedConnectionAttempts = 0;
         }
         else if (incoming == 'a')
         {
             settings.wifiConfigOverAP ^= 1;
-            restartWiFi = true;
+            wifiRestartRequested = true;
         }
         else if (incoming == 'c')
         {
@@ -447,6 +450,7 @@ void menuWiFi()
             strcpy(settings.wifiNetworks[x].password, "");
     }
 
+    restartWiFi = wifiRestartRequested;
     clearBuffer(); // Empty buffer of any newline chars
 }
 
