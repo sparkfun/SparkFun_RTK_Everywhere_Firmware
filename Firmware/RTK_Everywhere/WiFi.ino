@@ -1120,6 +1120,45 @@ void wifiStopAll()
 }
 
 //*********************************************************************
+// Wait for WiFi users to release their connections
+void wifiWaitNoUsers(NetIndex_t index, uintptr_t parameter, bool debug)
+{
+    static uint32_t lastMsec;
+
+    // Check for network shutdown
+    if (networkConsumerCount == 0)
+    {
+        // Stop the connection attempts
+        wifiResetThrottleTimeout();
+        wifiResetTimeout();
+        networkSequenceExit(NETWORK_WIFI_STATION, debug, __FILE__, __LINE__);
+        return;
+    }
+
+    // Check for WiFi station users
+    if (networkUsersActive(NETWORK_WIFI_STATION) == 0)
+    {
+        // None, continue the start sequence
+        if (settings.debugWifiState)
+            systemPrintf("WiFi: No users\r\n");
+
+        // Continue the stop sequence
+        networkSequenceNextEntry(NETWORK_WIFI_STATION, debug);
+    }
+    else
+    {
+        // Display the network users
+        uint32_t currentMsec = millis();
+        if (settings.debugWifiState && ((currentMsec - lastMsec) > (2 * 1000)))
+        {
+            lastMsec = currentMsec;
+            systemPrintf("WiFi: Waiting for WiFi users to shutdown\r\n");
+            networkUserDisplay(NETWORK_WIFI_STATION);
+        }
+    }
+}
+
+//*********************************************************************
 // Constructor
 // Inputs:
 //   verbose: Set to true to display additional WiFi debug data
