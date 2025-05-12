@@ -648,7 +648,7 @@ void wifiPromiscuousRxHandler(void *buf, wifi_promiscuous_pkt_type_t type)
 {
     const wifi_promiscuous_pkt_t *ppkt; // Defined in esp_wifi_types_native.h
 
-    // All espnow traffic uses action frames which are a subtype of the
+    // All espNow traffic uses action frames which are a subtype of the
     // mgmnt frames so filter out everything else.
     if (type != WIFI_PKT_MGMT)
         return;
