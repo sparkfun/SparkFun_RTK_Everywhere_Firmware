@@ -2213,15 +2213,17 @@ const char * RTK_WIFI::stationSsid()
 //   Returns true if the modes were successfully configured
 bool RTK_WIFI::stopStart(WIFI_ACTION_t stopping, WIFI_ACTION_t starting)
 {
+    const WIFI_ACTION_t allOnline = WIFI_AP_ONLINE | WIFI_EN_ESP_NOW_ONLINE | WIFI_STA_ONLINE;
     int authIndex;
     WIFI_CHANNEL_t channel;
     bool defaultChannel;
     WIFI_ACTION_t delta;
-    bool enabled;
+    WIFI_ACTION_t expected;
     WIFI_ACTION_t mask;
     WIFI_ACTION_t notStarted;
     uint8_t primaryChannel;
     WIFI_ACTION_t restarting;
+    bool restartWiFiStation;
     wifi_second_chan_t secondaryChannel;
     WIFI_ACTION_t startingNow;
     esp_err_t status;
@@ -2229,13 +2231,15 @@ bool RTK_WIFI::stopStart(WIFI_ACTION_t stopping, WIFI_ACTION_t starting)
 
     // Determine the next actions
     notStarted = 0;
-    enabled = true;
+    restartWiFiStation = false;
 
     // Display the parameters
     if (settings.debugWifiState && _verbose)
     {
+        systemPrintf("WiFi: RTK_WIFI::stopStart called\r\n");
         systemPrintf("stopping: 0x%08x\r\n", stopping);
         systemPrintf("starting: 0x%08x\r\n", starting);
+        reportHeapNow(true);
     }
 
     //****************************************
@@ -2253,8 +2257,7 @@ bool RTK_WIFI::stopStart(WIFI_ACTION_t stopping, WIFI_ACTION_t starting)
     // Determine if there is an active channel
     defaultChannel = _usingDefaultChannel;
     _usingDefaultChannel = false;
-    if (((_started & ~stopping) & (WIFI_AP_ONLINE | WIFI_EN_ESP_NOW_ONLINE | WIFI_STA_ONLINE))
-        && wifiChannel && !defaultChannel)
+    if ((allOnline & _started & ~stopping) && wifiChannel && !defaultChannel)
     {
         // Continue to use the active channel
         channel = wifiChannel;
@@ -2329,6 +2332,9 @@ bool RTK_WIFI::stopStart(WIFI_ACTION_t stopping, WIFI_ACTION_t starting)
     // Only stop the started components
     stopping &= _started;
 
+    // Determine the components that are being started
+    expected = starting & allOnline;
+
     // Determine which components are being restarted
     restarting = _started & stopping & starting;
     if (settings.debugWifiState && _verbose)
@@ -2336,7 +2342,8 @@ bool RTK_WIFI::stopStart(WIFI_ACTION_t stopping, WIFI_ACTION_t starting)
         systemPrintf("0x%08x: _started\r\n", _started);
         systemPrintf("0x%08x: stopping\r\n", stopping);
         systemPrintf("0x%08x: starting\r\n", starting);
-        systemPrintf("0x%08x: restarting\r\n", starting);
+        systemPrintf("0x%08x: restarting\r\n", restarting);
+        systemPrintf("0x%08x: expected\r\n", expected);
     }
 
     // Don't start components that are already running and are not being
@@ -2564,7 +2571,11 @@ bool RTK_WIFI::stopStart(WIFI_ACTION_t stopping, WIFI_ACTION_t starting)
 
         // Stop use of SSID and password
         if (stopping & WIFI_AP_SET_SSID_PASSWORD)
+        {
             _started = _started & ~WIFI_AP_SET_SSID_PASSWORD;
+            if (_apSsid)
+                _apSsid[0] = 0;
+        }
 
         stillRunning = _started;
 
@@ -2639,6 +2650,8 @@ bool RTK_WIFI::stopStart(WIFI_ACTION_t stopping, WIFI_ACTION_t starting)
                 systemPrintf("channel: %d\r\n", channel);
             _started = _started | WIFI_STA_START_SCAN;
 
+            displayWiFiConnect();
+
             // Determine if WiFi scan failed, stop WiFi station startup
             if (wifi.stationScanForAPs(channel) < 0)
             {
@@ -2655,9 +2668,11 @@ bool RTK_WIFI::stopStart(WIFI_ACTION_t stopping, WIFI_ACTION_t starting)
             if (channel == 0)
             {
                 if (wifiChannel)
-                    systemPrintf("WiFi STA: No compatible remote AP found on channel %d!\r\n", wifiChannel);
+                    systemPrintf("WiFi STA: No matching remote AP found on channel %d!\r\n", wifiChannel);
                 else
-                    systemPrintf("WiFi STA: No compatible remote AP found!\r\n");
+                    systemPrintf("WiFi STA: No matching remote AP found!\r\n");
+
+                displayNoWiFi(2000);
 
                 // Stop bringing up WiFi station
                 starting &= ~WIFI_STA_NO_REMOTE_AP;
@@ -2693,7 +2708,15 @@ bool RTK_WIFI::stopStart(WIFI_ACTION_t stopping, WIFI_ACTION_t starting)
         // Set the soft AP SSID and password
         if (starting & WIFI_AP_SET_SSID_PASSWORD)
         {
-            if (!softApSetSsidPassword(wifiSoftApSsid, wifiSoftApPassword))
+            // Append the last four digits of the MAC address
+            if (strlen(_apSsid) == 0)
+            {
+                snprintf(_apSsid, SSID_LENGTH, "%s %02X%02X", wifiSoftApSsid, btMACAddress[4], btMACAddress[5]);
+                _apSsid[SSID_LENGTH - 1] = 0;
+            }
+
+            // Set the soft AP SSID and password
+            if (!softApSetSsidPassword(_apSsid, wifiSoftApPassword))
                 break;
             _started = _started | WIFI_AP_SET_SSID_PASSWORD;
         }
@@ -2718,12 +2741,14 @@ bool RTK_WIFI::stopStart(WIFI_ACTION_t stopping, WIFI_ACTION_t starting)
         // Set the soft AP host name
         if (starting & WIFI_AP_SET_HOST_NAME)
         {
+            const char * hostName = &settings.mdnsHostName[0];
+
             // Display the host name
             if (settings.debugWifiState && _verbose)
-                systemPrintf("Host name: %s\r\n", &settings.mdnsHostName[0]);
+                systemPrintf("Host name: %s\r\n", hostName);
 
             // Set the host name
-            if (!softApSetHostName(&settings.mdnsHostName[0]))
+            if (!softApSetHostName(hostName))
                 break;
             _started = _started | WIFI_AP_SET_HOST_NAME;
         }
@@ -2750,7 +2775,7 @@ bool RTK_WIFI::stopStart(WIFI_ACTION_t stopping, WIFI_ACTION_t starting)
 
             // Display the soft AP status
             systemPrintf("WiFi: Soft AP online, SSID: %s (%s)%s%s\r\n",
-                         wifiSoftApSsid,
+                         _apSsid ? _apSsid : "",
                          _apIpAddress.toString().c_str(),
                          wifiSoftApPassword ? ", Password: " : "",
                          wifiSoftApPassword ? wifiSoftApPassword : "");
@@ -2760,15 +2785,19 @@ bool RTK_WIFI::stopStart(WIFI_ACTION_t stopping, WIFI_ACTION_t starting)
         // Start the WiFi station components
         //****************************************
 
+        restartWiFiStation = true;
+
         // Set the host name
         if (starting & WIFI_STA_SET_HOST_NAME)
         {
+            const char * hostName = &settings.mdnsHostName[0];
+
             // Display the host name
             if (settings.debugWifiState && _verbose)
-                systemPrintf("Host name: %s\r\n", &settings.mdnsHostName[0]);
+                systemPrintf("Host name: %s\r\n", hostName);
 
             // Set the host name
-            if (!stationHostName(&settings.mdnsHostName[0]))
+            if (!stationHostName(hostName))
                 break;
             _started = _started | WIFI_STA_SET_HOST_NAME;
         }
@@ -2824,6 +2853,7 @@ bool RTK_WIFI::stopStart(WIFI_ACTION_t stopping, WIFI_ACTION_t starting)
         // Mark the station online
         if (starting & WIFI_STA_ONLINE)
         {
+            restartWiFiStation = false;
             _started = _started | WIFI_STA_ONLINE;
             systemPrintf("WiFi: Station online (%s: %s)\r\n",
                          _staRemoteApSsid, _staIpAddress.toString().c_str());
@@ -2931,9 +2961,6 @@ bool RTK_WIFI::stopStart(WIFI_ACTION_t stopping, WIFI_ACTION_t starting)
                          _staMacAddress[3], _staMacAddress[4], _staMacAddress[5],
                          wifiChannel);
         }
-
-        // All components started successfully
-        enabled = true;
     } while (0);
 
     //****************************************
@@ -2979,9 +3006,24 @@ bool RTK_WIFI::stopStart(WIFI_ACTION_t stopping, WIFI_ACTION_t starting)
     if (settings.debugWifiState && _verbose && _started)
         displayComponents("Started items", _started);
 
+    // Restart WiFi if necessary
+    if (restartWiFiStation)
+        wifiReconnectRequest = true;
+
+    // Set the online flags
+    wifiEspNowOnline = espNowOnline();
+    wifiSoftApOnline = softApOnline();
+    wifiStationOnline = stationOnline();
+
     // Return the enable status
+    bool enabled = ((_started & allOnline) == expected);
     if (!enabled)
-        systemPrintf("ERROR: RTK_WIFI::enable failed!\r\n");
+        systemPrintf("ERROR: RTK_WIFI::stopStart failed!\r\n");
+    if (settings.debugWifiState && _verbose)
+    {
+        reportHeapNow(true);
+        systemPrintf("WiFi: RTK_WIFI::stopStart returning; %s\r\n", enabled ? "true" : "false");
+    }
     return enabled;
 }
 
