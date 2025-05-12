@@ -1981,7 +1981,7 @@ class RTK_WIFI
 {
   private:
 
-    WIFI_CHANNEL_t _apChannel;  // Channel required for soft AP, zero (0) use _channel
+    WIFI_CHANNEL_t _apChannel;  // Channel required for soft AP, zero (0) use wifiChannel
     int16_t _apCount;           // The number or remote APs detected in the WiFi network
     IPAddress _apDnsAddress;    // DNS IP address to use while translating names into IP addresses
     IPAddress _apFirstDhcpAddress;  // First IP address to use for DHCP
@@ -1989,8 +1989,7 @@ class RTK_WIFI
     IPAddress _apIpAddress;     // IP address of the soft AP
     uint8_t _apMacAddress[6];   // MAC address of the soft AP
     IPAddress _apSubnetMask;    // Subnet mask for soft AP
-    WIFI_CHANNEL_t _channel;    // Current WiFi channel number
-    WIFI_CHANNEL_t _espNowChannel;  // Channel required for ESPNow, zero (0) use _channel
+    WIFI_CHANNEL_t _espNowChannel;  // Channel required for ESPNow, zero (0) use wifiChannel
     bool _espNowRunning;        // ESPNow started or running
     volatile bool _scanRunning; // Scan running
     bool _softApRunning;        // Soft AP is starting or running
@@ -2003,7 +2002,7 @@ class RTK_WIFI
     const char * _staRemoteApSsid;      // SSID of remote AP
     const char * _staRemoteApPassword;  // Password of remote AP
     volatile WIFI_ACTION_t _started;    // Components that are started and running
-    WIFI_CHANNEL_t _stationChannel; // Channel required for station, zero (0) use _channel
+    WIFI_CHANNEL_t _stationChannel; // Channel required for station, zero (0) use wifiChannel
     bool _stationRunning;       // True while station is starting or running
     uint32_t _timer;            // Reconnection timer
     bool _usingDefaultChannel;  // Using default WiFi channel
