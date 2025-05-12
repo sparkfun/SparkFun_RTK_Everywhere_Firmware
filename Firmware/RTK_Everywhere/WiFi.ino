@@ -943,6 +943,16 @@ void wifiStationRestart(NetIndex_t index, uintptr_t parameter, bool debug)
 }
 
 //*********************************************************************
+// Stop WiFi, used by wifiStopSequence
+void wifiStop(NetIndex_t index, uintptr_t parameter, bool debug)
+{
+    // Stop WiFi station
+    wifiStop();
+
+    networkSequenceNextEntry(NETWORK_WIFI_STATION, settings.debugNetworkLayer);
+}
+
+//*********************************************************************
 // Stop WiFi and release all resources
 void wifiStop()
 {
@@ -989,14 +999,6 @@ void wifiStop()
     reportHeapNow(settings.debugWifiState);
     wifiStationRunning = false;
     wifiApRunning = false;
-}
-
-//*********************************************************************
-// Needed for wifiStopSequence
-void wifiStop(NetIndex_t index, uintptr_t parameter, bool debug)
-{
-    wifiStop();
-    networkSequenceNextEntry(NETWORK_WIFI_STATION, settings.debugNetworkLayer);
 }
 
 //*********************************************************************
