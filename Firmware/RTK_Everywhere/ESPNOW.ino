@@ -211,28 +211,6 @@ void espNowProcessRTCM(byte incoming)
 }
 
 //*********************************************************************
-// Remove a given MAC address from the peer list
-esp_err_t espNowRemovePeer(const uint8_t *peerMac)
-{
-    esp_err_t result = esp_now_del_peer(peerMac);
-    if (settings.debugEspNow == true)
-    {
-        if (result != ESP_OK)
-            systemPrintf("ERROR: Failed to remove ESP-NOW peer %02x:%02x:%02x:%02x:%02x:%02x, result: %s\r\n",
-                         peerMac[0], peerMac[1],
-                         peerMac[2], peerMac[3],
-                         peerMac[4], peerMac[5],
-                         esp_err_to_name(result));
-        else
-            systemPrintf("Removed ESP-NOW peer %02x:%02x:%02x:%02x:%02x:%02x\r\n",
-                         peerMac[0], peerMac[1],
-                         peerMac[2], peerMac[3],
-                         peerMac[4], peerMac[5]);
-    }
-    return result;
-}
-
-//*********************************************************************
 // Update the state of the ESP Now state machine
 //
 //      +---------------------+
@@ -309,6 +287,47 @@ bool espNowProcessRxPairedMessage()
 }
 
 //*********************************************************************
+// Remove a given MAC address from the peer list
+esp_err_t espNowRemovePeer(const uint8_t *peerMac)
+{
+    esp_err_t result = esp_now_del_peer(peerMac);
+    if (settings.debugEspNow == true)
+    {
+        if (result != ESP_OK)
+            systemPrintf("ERROR: Failed to remove ESP-NOW peer %02x:%02x:%02x:%02x:%02x:%02x, result: %s\r\n",
+                         peerMac[0], peerMac[1],
+                         peerMac[2], peerMac[3],
+                         peerMac[4], peerMac[5],
+                         esp_err_to_name(result));
+        else
+            systemPrintf("Removed ESP-NOW peer %02x:%02x:%02x:%02x:%02x:%02x\r\n",
+                         peerMac[0], peerMac[1],
+                         peerMac[2], peerMac[3],
+                         peerMac[4], peerMac[5]);
+    }
+    return result;
+}
+
+//*********************************************************************
+// Create special pair packet to a given MAC
+esp_err_t espNowSendPairMessage(const uint8_t *sendToMac)
+{
+    // Assemble message to send
+    ESP_NOW_PAIR_MESSAGE pairMessage;
+
+    // Get unit MAC address
+    memcpy(pairMessage.macAddress, wifiMACAddress, 6);
+    pairMessage.encrypt = false;
+    pairMessage.channel = 0;
+
+    pairMessage.crc = 0; // Calculate CRC
+    for (int x = 0; x < 6; x++)
+        pairMessage.crc += wifiMACAddress[x];
+
+    return (esp_now_send(sendToMac, (uint8_t *)&pairMessage, sizeof(pairMessage))); // Send packet to given MAC
+}
+
+//*********************************************************************
 // Update the state of the ESP-NOW subsystem
 void espNowSetState(ESPNOWState newState)
 {
@@ -353,25 +372,6 @@ void espNowSetState(ESPNOWState newState)
             systemPrintf("ESP-NOW: %s --> %s\r\n", oldName, newName);
     }
     espNowState = newState;
-}
-
-//*********************************************************************
-// Create special pair packet to a given MAC
-esp_err_t espNowSendPairMessage(const uint8_t *sendToMac)
-{
-    // Assemble message to send
-    ESP_NOW_PAIR_MESSAGE pairMessage;
-
-    // Get unit MAC address
-    memcpy(pairMessage.macAddress, wifiMACAddress, 6);
-    pairMessage.encrypt = false;
-    pairMessage.channel = 0;
-
-    pairMessage.crc = 0; // Calculate CRC
-    for (int x = 0; x < 6; x++)
-        pairMessage.crc += wifiMACAddress[x];
-
-    return (esp_now_send(sendToMac, (uint8_t *)&pairMessage, sizeof(pairMessage))); // Send packet to given MAC
 }
 
 //*********************************************************************
