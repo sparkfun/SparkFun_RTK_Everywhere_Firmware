@@ -60,11 +60,19 @@ void loadSettings()
 
     // Temp store any variables from LFS that should override SD
     int resetCount = settings.resetCount;
-    SystemState stateFromLFS = settings.lastState;
+    bool gnssConfiguredOnce = settings.gnssConfiguredOnce;
+    bool gnssConfiguredRover = settings.gnssConfiguredRover;
+    bool gnssConfiguredBase = settings.gnssConfiguredBase;
 
     loadSystemSettingsFromFileSD(settingsFileName);
 
     settings.resetCount = resetCount; // resetCount from LFS should override SD
+
+    // Trust gnssConfigured from LittleFS over SD.
+    // LittleFS may have been erased, SD could be stale.
+    settings.gnssConfiguredOnce = gnssConfiguredOnce;
+    settings.gnssConfiguredRover = gnssConfiguredRover;
+    settings.gnssConfiguredBase = gnssConfiguredBase;
 
     // Change empty profile name to 'Profile1' etc
     if (strlen(settings.profileName) == 0)
@@ -1597,27 +1605,33 @@ void loadProfileNumber()
         }
         else
         {
-            log_d("profileNumber.txt not found");
-            settings.updateGNSSSettings = true; // Force module update
-            recordProfileNumber(0);             // Record profile
+            systemPrintln("profileNumber.txt not found");
+            settings.gnssConfiguredOnce = false; // On the next boot, reapply all settings
+            settings.gnssConfiguredBase = false;
+            settings.gnssConfiguredRover = false;
+            recordProfileNumber(0); // Record profile
         }
     }
     else
     {
-        log_d("profileNumber.txt not found");
-        settings.updateGNSSSettings = true; // Force module update
-        recordProfileNumber(0);             // Record profile
+        systemPrintln("profileNumber.txt not found");
+        settings.gnssConfiguredOnce = false; // On the next boot, reapply all settings
+        settings.gnssConfiguredBase = false;
+        settings.gnssConfiguredRover = false;
+        recordProfileNumber(0); // Record profile
     }
 
     // We have arbitrary limit of user profiles
     if (profileNumber >= MAX_PROFILE_COUNT)
     {
-        log_d("ProfileNumber invalid. Going to zero.");
-        settings.updateGNSSSettings = true; // Force module update
-        recordProfileNumber(0);             // Record profile
+        systemPrintln("ProfileNumber invalid. Going to zero.");
+        settings.gnssConfiguredOnce = false; // On the next boot, reapply all settings
+        settings.gnssConfiguredBase = false;
+        settings.gnssConfiguredRover = false;
+        recordProfileNumber(0); // Record profile
     }
 
-    log_d("Using profile #%d", profileNumber);
+    systemPrintf("Using profile #%d\r\n", profileNumber);
 }
 
 // Record the given profile number as well as a config bool

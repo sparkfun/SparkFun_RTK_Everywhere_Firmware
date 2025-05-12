@@ -2322,8 +2322,8 @@ void paintProfile(uint8_t profileUnit)
 
         if (profileNumber >= 0)
         {
-            settings.updateGNSSSettings =
-                true;               // When this profile is loaded next, force system to update GNSS settings.
+            settings.gnssConfiguredBase = false; // On the next boot, reapply all settings
+            settings.gnssConfiguredRover = false;
             recordSystemSettings(); // Before switching, we need to record the current settings to LittleFS and SD
 
             recordProfileNumber(

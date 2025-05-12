@@ -280,12 +280,14 @@ void menuMain()
     if (restartBase == true && inBaseMode() == true)
     {
         restartBase = false;
+        settings.gnssConfiguredBase = false; // Reapply configuration
         requestChangeState(STATE_BASE_NOT_STARTED); // Restart base upon exit for latest changes to take effect
     }
 
     if (restartRover == true && inRoverMode() == true)
     {
         restartRover = false;
+        settings.gnssConfiguredRover = false; // Reapply configuration
         requestChangeState(STATE_ROVER_NOT_STARTED); // Restart rover upon exit for latest changes to take effect
     }
 
@@ -456,8 +458,9 @@ void menuUserProfiles()
 // Change the active profile number, without unit reset
 void changeProfileNumber(byte newProfileNumber)
 {
-    settings.updateGNSSSettings = true; // When this profile is loaded next, force system to update GNSS settings.
-    recordSystemSettings();             // Before switching, we need to record the current settings to LittleFS and SD
+    settings.gnssConfiguredBase = false; // On the next boot, reapply all settings
+    settings.gnssConfiguredRover = false;
+    recordSystemSettings(); // Before switching, we need to record the current settings to LittleFS and SD
 
     recordProfileNumber(newProfileNumber);
     profileNumber = newProfileNumber;

@@ -312,7 +312,6 @@ void menuPortsMultiplexed()
 // Most often used for logging events (inputs) and when external triggers (outputs) occur
 void menuPortHardwareTriggers()
 {
-    bool updateSettings = false;
     while (1)
     {
         systemPrintln();
@@ -364,7 +363,6 @@ void menuPortHardwareTriggers()
         if (incoming == 1)
         {
             settings.enableExternalPulse ^= 1;
-            updateSettings = true;
         }
         else if (incoming == 2 && settings.enableExternalPulse == true)
         {
@@ -382,7 +380,6 @@ void menuPortHardwareTriggers()
                 if (interval >= 1 && interval <= MAX_MOSAIC_PPS_INTERVALS)
                 {
                     settings.externalPulseTimeBetweenPulse_us = mosaicPPSIntervals[interval - 1].interval_us;
-                    updateSettings = true;
                 }
             }
             else
@@ -402,8 +399,6 @@ void menuPortHardwareTriggers()
                             (settings.externalPulseLength_us / 1000)) // pulseTime must be longer than pulseLength
                             settings.externalPulseLength_us = settings.externalPulseTimeBetweenPulse_us /
                                                               2; // Force pulse length to be 1/2 time between pulses
-
-                        updateSettings = true;
                     }
                 }
             }
@@ -421,7 +416,6 @@ void menuPortHardwareTriggers()
                 else
                 {
                     settings.externalPulseLength_us = pulseLength * 1000;
-                    updateSettings = true;
                 }
             }
         }
@@ -431,17 +425,14 @@ void menuPortHardwareTriggers()
                 settings.externalPulsePolarity = PULSE_FALLING_EDGE;
             else
                 settings.externalPulsePolarity = PULSE_RISING_EDGE;
-            updateSettings = true;
         }
         else if (incoming == 5)
         {
             settings.enableExternalHardwareEventLogging ^= 1;
-            updateSettings = true;
         }
         else if ((incoming == 6) && (settings.enableExternalHardwareEventLogging == true) && present.gnss_mosaicX5)
         {
             settings.externalEventPolarity ^= 1;
-            updateSettings = true;
         }
         else if (incoming == 'x')
             break;
@@ -454,11 +445,4 @@ void menuPortHardwareTriggers()
     }
 
     clearBuffer(); // Empty buffer of any newline chars
-
-    if (updateSettings)
-    {
-        settings.updateGNSSSettings = true; // Force update
-        gnss->beginExternalEvent();         // Update with new settings
-        gnss->beginPPS();
-    }
 }

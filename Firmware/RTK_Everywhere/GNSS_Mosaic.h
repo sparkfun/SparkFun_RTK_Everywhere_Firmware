@@ -229,7 +229,7 @@ const mosaicSignalConstellation mosaicSignalConstellations[] = {
     {"SBAS","SBAS"},
     {"BEIDOU","BeiDou"},
     {"QZSS","QZSS"},
-    {"NAVIC","NAVIC"},
+    {"NAVIC","NavIC"},
 };
 
 #define MAX_MOSAIC_CONSTELLATIONS (sizeof(mosaicSignalConstellations) / sizeof(mosaicSignalConstellation))
@@ -549,6 +549,14 @@ bool mosaicX5waitCR(unsigned long timeout = 25); // Header
 
 class GNSS_MOSAIC : GNSS
 {
+  // The mosaic-X5 does not have self-contained interface library.
+  // But the ZED-F9P, UM980 and LG290P all do.
+  // On the X5, we communicate manually over serial2GNSS using functions like
+  // sendWithResponse and sendAndWaitForIdle.
+  // In essence, the interface library is wholly contained in this class.
+  // TODO: consider breaking the mosaic comms functions out into their own library
+  // and add a private library class instance here.
+
   protected:
 
     // These globals are updated regularly via the SBF parser

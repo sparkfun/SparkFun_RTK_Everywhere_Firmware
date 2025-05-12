@@ -69,7 +69,7 @@ void menuLogMosaic()
             systemPrintln(mosaicFileDurations[settings.RINEXFileDuration].humanName);
 
             systemPrint("4) Set RINEX observation interval: ");
-            systemPrint(mosaicObsIntervals[settings.RINEXObsInterval].humanName);
+            systemPrintln(mosaicObsIntervals[settings.RINEXObsInterval].humanName);
         }
 
         systemPrintln("x) Exit");
@@ -135,9 +135,10 @@ void menuLogMosaic()
     {
         GNSS_MOSAIC *mosaic = (GNSS_MOSAIC *)gnss;
 
-        mosaic->configureLogging(); // This will enable / disable RINEX logging
-        mosaic->enableNMEA();       // Enable NMEA messages - this will enable/disable the DSK1 streams
-        setLoggingType();           // Update Standard, PPP, or custom for icon selection
+        mosaic->configureLogging();  // This will enable / disable RINEX logging
+        mosaic->enableNMEA();        // Enable NMEA messages - this will enable/disable the DSK1 streams
+        mosaic->saveConfiguration(); // Save the configuration
+        setLoggingType();            // Update Standard, PPP, or custom for icon selection
     }
 
     clearBuffer(); // Empty buffer of any newline chars
@@ -314,13 +315,6 @@ bool GNSS_MOSAIC::beginExternalEvent()
     if (online.gnss == false)
         return (false);
 
-    // If our settings haven't changed, trust GNSS's settings
-    if (settings.updateGNSSSettings == false)
-    {
-        systemPrintln("Skipping mosaic-X5 event configuration");
-        return (true);
-    }
-
     if (settings.dataPortChannel != MUX_PPS_EVENTTRIGGER)
         return (true); // No need to configure PPS if port is not selected
 
@@ -343,13 +337,6 @@ bool GNSS_MOSAIC::beginPPS()
 {
     if (online.gnss == false)
         return (false);
-
-    // If our settings haven't changed, trust GNSS's settings
-    if (settings.updateGNSSSettings == false)
-    {
-        systemPrintln("Skipping mosaicX5BeginPPS");
-        return (true);
-    }
 
     if (settings.dataPortChannel != MUX_PPS_EVENTTRIGGER)
         return (true); // No need to configure PPS if port is not selected
@@ -420,11 +407,22 @@ bool GNSS_MOSAIC::configureBase()
         return (false);
     }
 
+    if (settings.gnssConfiguredBase)
+    {
+        systemPrintln("Skipping mosaic Base configuration");
+        setLoggingType(); // Needed because logUpdate exits early and never calls setLoggingType
+        return true;
+    }
+
     bool response = true;
 
     response &= setModel(MOSAIC_DYN_MODEL_STATIC);
 
     response &= setElevation(settings.minElev);
+
+    response &= setMinCnoRadio(settings.minCNO);
+
+    response &= setConstellations();
 
     response &= enableRTCMBase();
 
@@ -435,15 +433,14 @@ bool GNSS_MOSAIC::configureBase()
     setLoggingType(); // Update Standard, PPP, or custom for icon selection
 
     // Save the current configuration into non-volatile memory (NVM)
-    // We don't need to re-configure the MOSAICX5 at next boot
-    bool settingsWereSaved = saveConfiguration();
-    if (settingsWereSaved)
-        settings.updateGNSSSettings = false;
+    response &= saveConfiguration();
 
     if (response == false)
     {
         systemPrintln("mosaic-X5 Base failed to configure");
     }
+
+    settings.gnssConfiguredBase = response;
 
     return (response);
 }
@@ -559,6 +556,12 @@ bool GNSS_MOSAIC::configureOnce()
     RTCMv3 messages are enabled by enableRTCMRover / enableRTCMBase
     */
 
+    if (settings.gnssConfiguredOnce)
+    {
+        systemPrintln("mosaic configuration maintained");
+        return (true);
+    }
+
     bool response = true;
 
     // Configure COM1. NMEA and RTCMv3 will be encapsulated in SBF format
@@ -585,12 +588,6 @@ bool GNSS_MOSAIC::configureOnce()
     setting = String("sso,Stream" + String(MOSAIC_SBF_STATUS_STREAM) + ",COM1,ChannelStatus+DiskStatus,sec2\n\r");
     response &= sendWithResponse(setting, "SBFOutput");
 
-    response &= setElevation(settings.minElev);
-
-    response &= setMinCnoRadio(settings.minCNO);
-
-    response &= setConstellations();
-
     // Mark L5 as healthy
     response &= sendWithResponse("shm,Tracking,off\n\r", "HealthMask");
     response &= sendWithResponse("shm,PVT,off\n\r", "HealthMask");
@@ -606,13 +603,12 @@ bool GNSS_MOSAIC::configureOnce()
         systemPrintln("mosaic-X5 configuration updated");
 
         // Save the current configuration into non-volatile memory (NVM)
-        // We don't need to re-configure the MOSAICX5 at next boot
-        bool settingsWereSaved = saveConfiguration();
-        if (settingsWereSaved)
-            settings.updateGNSSSettings = false;
+        response &= saveConfiguration();
     }
     else
         online.gnss = false; // Take it offline
+
+    settings.gnssConfiguredOnce = response;
 
     return (response);
 }
@@ -625,13 +621,6 @@ bool GNSS_MOSAIC::configureOnce()
 //----------------------------------------
 bool GNSS_MOSAIC::configureGNSS()
 {
-    // Skip configuring the MOSAICX5 if no new changes are necessary
-    if (settings.updateGNSSSettings == false)
-    {
-        systemPrintln("mosaic-X5 configuration maintained");
-        return (true);
-    }
-
     // Attempt 3 tries on MOSAICX5 config
     for (int x = 0; x < 3; x++)
     {
@@ -662,13 +651,25 @@ bool GNSS_MOSAIC::configureRover()
         return (false);
     }
 
+    // If our settings haven't changed, trust GNSS's settings
+    if (settings.gnssConfiguredRover)
+    {
+        systemPrintln("Skipping mosaic Rover configuration");
+        setLoggingType(); // Needed because logUpdate exits early and never calls setLoggingType
+        return (true);
+    }
+
     bool response = true;
 
     response &= sendWithResponse("spm,Rover,all,auto\n\r", "PVTMode");
 
-    response &= setModel(settings.dynamicModel);
+    response &= setModel(settings.dynamicModel); // Set by menuGNSS which calls gnss->setModel
 
-    response &= setElevation(settings.minElev);
+    response &= setElevation(settings.minElev); // Set by menuGNSS which calls gnss->setElevation
+
+    response &= setMinCnoRadio(settings.minCNO);
+
+    response &= setConstellations();
 
     response &= enableRTCMRover();
 
@@ -679,15 +680,14 @@ bool GNSS_MOSAIC::configureRover()
     setLoggingType(); // Update Standard, PPP, or custom for icon selection
 
     // Save the current configuration into non-volatile memory (NVM)
-    // We don't need to re-configure the MOSAICX5 at next boot
-    bool settingsWereSaved = saveConfiguration();
-    if (settingsWereSaved)
-        settings.updateGNSSSettings = false;
+    response &= saveConfiguration();
 
     if (response == false)
     {
         systemPrintln("mosaic-X5 Rover failed to configure");
     }
+
+    settings.gnssConfiguredRover = response;
 
     return (response);
 }
@@ -1067,8 +1067,15 @@ bool GNSS_MOSAIC::enableRTCMTest()
 //----------------------------------------
 void GNSS_MOSAIC::factoryReset()
 {
-    sendWithResponse("eccf,RxDefault,Boot\n\r", "CopyConfigFile");
-    sendWithResponse("eccf,RxDefault,Current\n\r", "CopyConfigFile");
+    unsigned long start = millis();
+    bool result = sendWithResponse("eccf,RxDefault,Boot\n\r", "CopyConfigFile", 5000);
+    if (settings.debugGnss)
+        systemPrintf("factoryReset: sendWithResponse eccf,RxDefault,Boot returned %s after %d ms\r\n", result ? "true" : "false", millis() - start);
+
+    start = millis();
+    result = sendWithResponse("eccf,RxDefault,Current\n\r", "CopyConfigFile", 5000);
+    if (settings.debugGnss)
+        systemPrintf("factoryReset: sendWithResponse eccf,RxDefault,Current returned %s after %d ms\r\n", result ? "true" : "false", millis() - start);
 }
 
 //----------------------------------------
@@ -1703,6 +1710,8 @@ void GNSS_MOSAIC::menuConstellations()
     // Apply current settings to module
     setConstellations();
 
+    saveConfiguration(); // Save the updated constellations
+
     clearBuffer(); // Empty buffer of any newline chars
 }
 
@@ -1777,7 +1786,8 @@ void GNSS_MOSAIC::menuMessagesNMEA()
             printUnknown(incoming);
     }
 
-    settings.updateGNSSSettings = true; // Update the GNSS config at the next boot
+    settings.gnssConfiguredBase = false; // Update the GNSS config at the next boot
+    settings.gnssConfiguredRover = false;
 
     clearBuffer(); // Empty buffer of any newline chars
 }
@@ -1848,7 +1858,8 @@ void GNSS_MOSAIC::menuMessagesRTCM(bool rover)
             printUnknown(incoming);
     }
 
-    settings.updateGNSSSettings = true; // Update the GNSS config at the next boot
+    settings.gnssConfiguredBase = false; // Update the GNSS config at the next boot
+    settings.gnssConfiguredRover = false;
 
     clearBuffer(); // Empty buffer of any newline chars
 }
@@ -1986,7 +1997,11 @@ uint16_t GNSS_MOSAIC::rtcmRead(uint8_t *rtcmBuffer, int rtcmBytesToRead)
 //----------------------------------------
 bool GNSS_MOSAIC::saveConfiguration()
 {
-    return sendWithResponse("eccf,Current,Boot\n\r", "CopyConfigFile");
+    unsigned long start = millis();
+    bool result = sendWithResponse("eccf,Current,Boot\n\r", "CopyConfigFile", 5000);
+    if (settings.debugGnss)
+        systemPrintf("saveConfiguration: sendWithResponse returned %s after %d ms\r\n", result ? "true" : "false", millis() - start);
+    return result;
 }
 
 //----------------------------------------
@@ -2699,6 +2714,7 @@ void GNSS_MOSAIC::update()
     }
 
     // Update spartnCorrectionsReceived
+    // Does this need if(online.lband_gnss) ? Not sure... TODO
     if (millis() > (lastSpartnReception + (settings.correctionsSourcesLifetime_s * 1000))) // Timeout
     {
         if (spartnCorrectionsReceived) // If corrections were being received
@@ -2896,12 +2912,12 @@ void processUart1SBF(SEMP_PARSE_STATE *parse, uint16_t type)
 {
     GNSS_MOSAIC *mosaic = (GNSS_MOSAIC *)gnss;
 
-    if (((settings.debugGnss == true) || PERIODIC_DISPLAY(PD_GNSS_DATA_RX)) && !inMainMenu)
-    {
-        // Don't call PERIODIC_CLEAR(PD_GNSS_DATA_RX); here. Let processUart1Message do it via rtkParse
-        systemPrintf("Processing SBF Block %d (%d bytes) from mosaic-X5\r\n", sempSbfGetBlockNumber(parse),
-        parse->length);
-    }
+    // if (((settings.debugGnss == true) || PERIODIC_DISPLAY(PD_GNSS_DATA_RX)) && !inMainMenu)
+    // {
+    //     // Don't call PERIODIC_CLEAR(PD_GNSS_DATA_RX); here. Let processUart1Message do it via rtkParse
+    //     systemPrintf("Processing SBF Block %d (%d bytes) from mosaic-X5\r\n", sempSbfGetBlockNumber(parse),
+    //     parse->length);
+    // }
 
     // If this is PVTGeodetic, extract some data
     if (sempSbfGetBlockNumber(parse) == 4007)
