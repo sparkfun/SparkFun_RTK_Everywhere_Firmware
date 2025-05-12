@@ -343,6 +343,7 @@ struct NTPpacket
     } unsignedSigned8;
 
     //----------------------------------------
+    // Convert a 32-bit big-endian value to a little-endian value
     //----------------------------------------
     uint32_t extractUnsigned32(uint8_t *ptr)
     {
@@ -355,6 +356,7 @@ struct NTPpacket
     }
 
     //----------------------------------------
+    // Convert a 32-bit little-endian value to a big-endian value
     //----------------------------------------
     void insertUnsigned32(uint8_t *ptr, uint32_t val)
     {
@@ -450,6 +452,7 @@ struct NTPpacket
     }
 
     //----------------------------------------
+    // Convert microseconds into two values, seconds and a 16-bit fraction of a second
     //----------------------------------------
     uint32_t convertMicrosToSecsAndFraction(uint32_t val) // 16-bit fraction used by root delay and dispersion
     {
@@ -468,6 +471,7 @@ struct NTPpacket
     }
 
     //----------------------------------------
+    // Convert microseconds into a 32-bit fraction of a second
     //----------------------------------------
     uint32_t convertMicrosToFraction(uint32_t val) // 32-bit fraction used by the timestamps
     {
@@ -479,6 +483,7 @@ struct NTPpacket
     }
 
     //----------------------------------------
+    // Convert a 32-bit fraction of a second into microseconds
     //----------------------------------------
     uint32_t convertFractionToMicros(uint32_t val) // 32-bit fraction used by the timestamps
     {
@@ -491,6 +496,7 @@ struct NTPpacket
     }
 
     //----------------------------------------
+    // Convert from NTP seconds to Unix seconds
     //----------------------------------------
     uint32_t convertNTPsecondsToUnix(uint32_t val)
     {
@@ -498,6 +504,7 @@ struct NTPpacket
     }
 
     //----------------------------------------
+    // Convert from Unix seconds to NTP seconds
     //----------------------------------------
     uint32_t convertUnixSecondsToNTP(uint32_t val)
     {
@@ -802,7 +809,8 @@ void ntpServerUpdate()
         return;
 
     // Shutdown the NTP server when the mode changes or network fails
-    connected = networkConsumerIsConnected(NETCONSUMER_NTP_SERVER);
+    // The NTP server only works over Ethernet
+    connected = networkInterfaceHasInternet(NETWORK_ETHERNET);
     enabled = EQ_RTK_MODE(ntpServerMode);
     if ((enabled == false) && (ntpServerState > NTP_STATE_OFF))
         ntpServerStop();
@@ -827,8 +835,8 @@ void ntpServerUpdate()
         break;
 
     case NTP_STATE_WAIT_NETWORK:
-        // The NTP server only works over Ethernet
-        if (networkInterfaceHasInternet(NETWORK_ETHERNET))
+        // Wait until the internet is accessible
+        if (connected)
         {
             networkUserAdd(NETCONSUMER_NTP_SERVER, __FILE__, __LINE__);
             ntpServerSetState(NTP_STATE_NETWORK_CONNECTED);
@@ -836,13 +844,14 @@ void ntpServerUpdate()
         break;
 
     case NTP_STATE_NETWORK_CONNECTED:
-        // Attempt to start the NTP server
+        // Attempt to allocate the UDP object
         ntpServer = new NetworkUDP;
         if (!ntpServer)
             // Insufficient memory to start the NTP server
             ntpServerStop();
         else
         {
+            // Start the NTP server
             ntpServer->begin(settings.ethernetNtpPort); // Start the NTP server
             online.ethernetNTPServer = true;
             if (!inMainMenu)
