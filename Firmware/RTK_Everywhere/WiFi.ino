@@ -347,11 +347,6 @@ const int wifiStartNamesEntries = sizeof(wifiStartNames) / sizeof(wifiStartNames
 #define WIFI_MAX_TIMEOUT    (15 * 60 * 1000)    // Timeout in milliseconds
 #define WIFI_MIN_TIMEOUT    (15 * 1000)         // Timeout in milliseconds
 
-const char * wifiSoftApName = "Soft AP";
-
-const char * wifiSoftApSsid = "RTK Config";
-const char * wifiSoftApPassword = nullptr;
-
 //****************************************
 // Locals
 //****************************************
@@ -359,18 +354,22 @@ const char * wifiSoftApPassword = nullptr;
 // DNS server for Captive Portal
 static DNSServer dnsServer;
 
+static int wifiFailedConnectionAttempts = 0; // Count the number of connection attempts between restarts
+static bool wifiReconnectRequest; // Set true to request WiFi reconnection
+
+const char * wifiSoftApName = "Soft AP";
+
 // Start timeout
 static uint32_t wifiStartTimeout;
+
 
 // WiFi Timer usage:
 //  * Measure interval to display IP address
 static unsigned long wifiDisplayTimer;
-static bool wifiReconnectRequest; // Set true to request WiFi reconnection
 
 // WiFi interface status
 static bool wifiApRunning;
 
-static int wifiFailedConnectionAttempts = 0; // Count the number of connection attempts between restarts
 static WiFiMulti *wifiMulti;
 
 //*********************************************************************

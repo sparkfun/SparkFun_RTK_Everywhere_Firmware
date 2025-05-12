@@ -389,6 +389,9 @@ bool wifiSoftApRunning;         // False: stopped, True: starting, running, stop
 bool wifiStationOnline;         // WiFi station started successfully
 bool wifiStationRunning;        // False: stopped, True: starting, running, stopping
 
+const char * wifiSoftApSsid = "RTK Config";
+const char * wifiSoftApPassword = nullptr;
+
 //-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 
 // MQTT support
