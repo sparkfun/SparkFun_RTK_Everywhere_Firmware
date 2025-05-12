@@ -1033,7 +1033,7 @@ void setESPNowIcon_TwoRadios(std::vector<iconPropertyBlinking> *iconList)
                 prop.icon = UploadArrowLeft64x48;
                 prop.duty = 0b11110000;
                 iconList->push_back(prop);
-                espNowOutgoingRTCM = false; // Reset, set during espnowProcessRTCM()
+                espNowOutgoingRTCM = false; // Reset, set during espNowProcessRTCM()
             }
         }
         else

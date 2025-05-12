@@ -571,7 +571,7 @@ TaskHandle_t pinBluetoothTaskHandle; // Dummy task to start hardware on an assig
 volatile bool bluetoothPinned;       // This variable is touched by core 0 but checked by core 1. Must be volatile.
 
 volatile static int combinedSpaceRemaining; // Overrun indicator
-volatile static long fileSize;              // Updated with each write
+volatile static uint64_t logFileSize;       // Updated with each write
 int bufferOverruns;                         // Running count of possible data losses since power-on
 
 bool zedUartPassed; // Goes true during testing if ESP can communicate with ZED over UART
@@ -1473,18 +1473,19 @@ void logUpdate()
         // Report file sizes to show recording is working
         if ((millis() - lastFileReport) > 5000)
         {
-            if (fileSize > 0)
+            if (logFileSize > 0)
             {
                 lastFileReport = millis();
+
                 if (settings.enablePrintLogFileStatus)
                 {
-                    systemPrintf("Log file size: %ld", fileSize);
+                    systemPrintf("Log file size: %lld", logFileSize);
 
                     if ((systemTime_minutes - startLogTime_minutes) < settings.maxLogTime_minutes)
                     {
                         // Calculate generation and write speeds every 5 seconds
-                        uint32_t fileSizeDelta = fileSize - lastLogSize;
-                        systemPrintf(" - Generation rate: %0.1fkB/s", fileSizeDelta / 5.0 / 1000.0);
+                        uint64_t fileSizeDelta = logFileSize - lastLogSize;
+                        systemPrintf(" - Generation rate: %0.1fkB/s", ((float)fileSizeDelta) / 5.0 / 1000.0);
                     }
                     else
                     {
@@ -1494,9 +1495,9 @@ void logUpdate()
                     systemPrintln();
                 }
 
-                if (fileSize > lastLogSize)
+                if (logFileSize > lastLogSize)
                 {
-                    lastLogSize = fileSize;
+                    lastLogSize = logFileSize;
                     logIncreasing = true;
                 }
                 else
