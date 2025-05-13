@@ -556,7 +556,7 @@ void stateUpdate()
                 changeState(lastSystemState);
             }
             else
-                espNowSendPairMessage(); // Send unit's MAC address over broadcast, no ack, no encryption
+                espNowSendPairMessage(espNowBroadcastAddr); // Send unit's MAC address over broadcast, no ack, no encryption
         }
         break;
 

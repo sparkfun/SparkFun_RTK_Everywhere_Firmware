@@ -64,7 +64,7 @@ t_cliResult processCommand(char *cmdBuffer)
         }
 
         // Remove $
-        memmove(cmdBuffer, &cmdBuffer[1], sizeof(cmdBuffer) - 1);
+        memmove(cmdBuffer, &cmdBuffer[1], strlen(cmdBuffer));
 
         // Change * to , and null terminate on the first CRC character
         cmdBuffer[strlen(cmdBuffer) - 3] = ',';
