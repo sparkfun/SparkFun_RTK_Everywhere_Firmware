@@ -114,6 +114,8 @@ void stateUpdate()
 
             webServerStop();             // Stop the web config server
             baseCasterDisableOverride(); // Disable casting overrides
+            wifiStationOn(__FILE__, __LINE__);
+            wifiEspNowOn(__FILE__, __LINE__);
 
             // Start the UART connected to the GNSS receiver for NMEA and UBX data (enables logging)
             if (tasksStartGnssUart() == false)
