@@ -317,13 +317,13 @@ void menuMain()
 }
 
 // Change system wide settings based on current user profile
-// Ways to change the ZED settings:
-// Menus - we apply ZED changes at the exit of each sub menu
-// Settings file - we detect differences between NVM and settings txt file and updateGNSSSettings = true
-// Profile - Before profile is changed, set updateGNSSSettings = true
-// AP - once new settings are parsed, set updateGNSSSettings = true
+// Ways to change the GNSS settings:
+// Menus - we apply changes at the exit of each sub menu
+// Settings file - we detect differences between NVM and settings txt file
+// Profile -
+// AP -
 // Setup button -
-// Factory reset - updatesZEDSettings = true by default
+// Factory reset -
 void menuUserProfiles()
 {
     uint8_t originalProfileNumber = profileNumber;
@@ -499,6 +499,8 @@ void factoryReset(bool alreadyHasSemaphore)
             sd->remove(stationCoordinateGeodeticFileName);
 
             xSemaphoreGive(sdCardSemaphore);
+
+            systemPrintln("Settings files deleted...");
         } // End sdCardSemaphore
         else
         {
@@ -508,8 +510,12 @@ void factoryReset(bool alreadyHasSemaphore)
             // An error occurs when a settings file is on the microSD card and it is not
             // deleted, as such the settings on the microSD card will be loaded when the
             // RTK reboots, resulting in failure to achieve the factory reset condition
-            log_d("sdCardSemaphore failed to yield, held by %s, menuMain.ino line %d\r\n", semaphoreHolder, __LINE__);
+            systemPrintf("sdCardSemaphore failed to yield, held by %s, menuMain.ino line %d\r\n", semaphoreHolder, __LINE__);
         }
+    }
+    else
+    {
+        systemPrintln("microSD not online. Unable to delete settings files...");
     }
 
     tiltSensorFactoryReset();
@@ -518,7 +524,12 @@ void factoryReset(bool alreadyHasSemaphore)
     LittleFS.format();
 
     if (online.gnss == true)
+    {
+        systemPrintln("Resetting the GNSS to factory defaults. This could take a few seconds...");
         gnss->factoryReset();
+    }
+    else
+        systemPrintln("GNSS not online. Unable to factoryReset...");
 
     systemPrintln("Settings erased successfully. Rebooting. Goodbye!");
     delay(2000);
