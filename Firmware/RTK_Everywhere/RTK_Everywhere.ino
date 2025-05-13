@@ -90,11 +90,14 @@
 #define COMPILE_ESPNOW // Requires WiFi. Comment out to remove ESP-Now functionality.
 #endif                 // COMPILE_WIFI
 
-#define COMPILE_ZED      // Comment out to remove ZED-F9x functionality
-#define COMPILE_L_BAND   // Comment out to remove L-Band functionality
-#define COMPILE_UM980 // Comment out to remove UM980 functionality
-#define COMPILE_MOSAICX5 // Comment out to remove mosaic-X5 functionality
 #define COMPILE_LG290P   // Comment out to remove LG290P functionality
+#define COMPILE_MOSAICX5 // Comment out to remove mosaic-X5 functionality
+#define COMPILE_UM980 // Comment out to remove UM980 functionality
+#define COMPILE_ZED      // Comment out to remove ZED-F9x functionality
+
+#ifdef  COMPILE_ZED
+#define COMPILE_L_BAND   // Comment out to remove L-Band functionality
+#endif                   // COMPILE_ZED
 
 #define COMPILE_IM19_IMU             // Comment out to remove IM19_IMU functionality
 #define COMPILE_POINTPERFECT_LIBRARY // Comment out to remove PPL support
