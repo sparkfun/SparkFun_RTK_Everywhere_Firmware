@@ -1966,14 +1966,6 @@ typedef uint8_t WIFI_CHANNEL_t;
 #ifdef COMPILE_NETWORK
 #ifdef COMPILE_WIFI
 
-// Handle the WiFi event
-// Inputs:
-//   event: Arduino ESP32 event number found on
-//          https://github.com/espressif/arduino-esp32
-//          in libraries/Network/src/NetworkEvents.h
-//   info: Additional data about the event
-void wifiEventHandler(arduino_event_id_t event, arduino_event_info_t info);
-
 typedef uint32_t WIFI_ACTION_t;
 
 // Class to simplify WiFi handling
@@ -2001,7 +1993,6 @@ class RTK_WIFI
     const char * _staRemoteApPassword;  // Password of remote AP
     volatile WIFI_ACTION_t _started;    // Components that are started and running
     WIFI_CHANNEL_t _stationChannel; // Channel required for station, zero (0) use wifiChannel
-    uint32_t _timer;            // Reconnection timer
     bool _usingDefaultChannel;  // Using default WiFi channel
     bool _verbose;              // True causes more debug output to be displayed
 
