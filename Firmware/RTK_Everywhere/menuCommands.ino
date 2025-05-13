@@ -2404,6 +2404,12 @@ SettingValueResponse getSettingValue(bool inCommands, const char *settingName, c
             knownSetting = true;
         }
         break;
+        case tSysState: {
+            SystemState *ptr = (SystemState *)var;
+            writeToString(settingValueStr, (int)*ptr);
+            knownSetting = true;
+        }
+        break;
         case tPulseEdg: {
             pulseEdgeType_e *ptr = (pulseEdgeType_e *)var;
             writeToString(settingValueStr, (int)*ptr);
