@@ -253,7 +253,7 @@ void stateUpdate()
 
                 if (settings.fixedBase == false)
                     changeState(STATE_BASE_TEMP_SETTLE);
-                else if (settings.fixedBase == true)
+                else
                     changeState(STATE_BASE_FIXED_NOT_STARTED);
             }
             else
