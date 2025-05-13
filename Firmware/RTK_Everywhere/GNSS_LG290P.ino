@@ -2197,8 +2197,6 @@ void GNSS_LG290P::update()
     // We don't check serial data here; the gnssReadTask takes care of serial consumption
 }
 
-#endif // COMPILE_LG290P
-
 //----------------------------------------
 void lg290pBoot()
 {
@@ -2262,3 +2260,5 @@ bool lg290pMessageEnabled(char *nmeaSentence, int sentenceLength)
     // If we can't ID this message, allow it by default. The device configuration should control most message flow.
     return (true);
 }
+
+#endif // COMPILE_LG290P

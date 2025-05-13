@@ -184,10 +184,10 @@ void espnowProcessRTCM(byte incoming)   {}
 esp_err_t espnowRemovePeer(uint8_t *peerMac)        {return ESP_OK;}
 esp_err_t espnowSendPairMessage(uint8_t *sendToMac) {return ESP_OK;}
 bool espnowSetChannel(uint8_t channelNumber)        {return false;}
-void espnowStart()                      {}
+bool espNowStart()                      {return false;}
 #define ESPNOW_START()                  false
 void espnowStaticPairing()              {}
-void espnowStop()                       {}
+bool espNowStop()                       {return true;}
 #define ESPNOW_STOP()                   true
 void updateEspnow()                     {}
 
@@ -207,7 +207,7 @@ uint32_t wifiGetStartTimeout() {return 0;}
 int wifiNetworkCount() {return 0;}
 void wifiResetThrottleTimeout() {}
 void wifiResetTimeout() {}
-#define WIFI_SOFT_AP_RUNNING() {return false;}
+#define WIFI_SOFT_AP_RUNNING() false
 bool wifiStart() {return false;}
 bool wifiStationIsRunning() {return false;}
 #define WIFI_STOP() {}
@@ -276,7 +276,10 @@ void pointperfectPrintKeyInformation(const char *requestedBy) {systemPrintln("**
 
 #ifndef COMPILE_LG290P
 
+void lg290pBoot()       {}
 void lg290pHandler(uint8_t * buffer, int length) {}
+bool lg290pMessageEnabled(char *nmeaSentence, int sentenceLength)   {return false;}
+void lg290pReset()      {}
 
 #endif // COMPILE_LG290P
 
