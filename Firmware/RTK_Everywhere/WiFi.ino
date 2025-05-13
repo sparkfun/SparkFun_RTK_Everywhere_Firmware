@@ -1258,7 +1258,7 @@ bool RTK_WIFI::enable(bool enableESPNow,
                 break;
         if (authIndex >= MAX_WIFI_NETWORKS)
         {
-            systemPrintf("ERROR: No valid SSID in settings.wifiNetworks\r\n");
+            systemPrintf("ERROR: No valid SSID in settings\r\n");
             displayNoSSIDs(2000);
         }
         else
