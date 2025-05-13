@@ -280,7 +280,7 @@ bool espNowProcessRxPairedMessage()
     // Enable radio. User may have arrived here from the setup menu rather than serial menu.
     settings.enableEspNow = true;
 
-    // Record enableEspNow and espNowPeerCount to NVM
+    // Record enableEspNow and espnowPeerCount to NVM
     recordSystemSettings();
     espNowSetState(ESPNOW_PAIRED);
     return (true);
