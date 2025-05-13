@@ -672,6 +672,30 @@ void wifiResetTimeout()
 }
 
 //*********************************************************************
+// Get the IP address being used for the software access point (AP)
+// Outputs:
+//   Returns an IPAddress object containing the IP address used by the
+//   soft AP
+IPAddress wifiSoftApGetIpAddress()
+{
+    return wifi.softApOnline() ? WiFi.AP.localIP() : IPAddress((uint32_t)0);
+}
+
+//*********************************************************************
+// Get the WiFi soft AP SSID
+// Outputs:
+//   Returns a zero terminated string containing the SSID begin broadcast
+//   for the WiFi soft AP.  The return value of an empty string occurs
+//   when the soft AP is not online.
+const char * wifiSoftApGetSsid()
+{
+    const char * ssid;
+
+    ssid = wifi.softApOnline() ? wifi._apSsid : "";
+    return ssid;
+}
+
+//*********************************************************************
 // Turn off WiFi soft AP mode
 // Inputs:
 //   fileName: Name of file calling the enable routine
@@ -709,20 +733,6 @@ bool wifiSoftApOn(const char * fileName, uint32_t lineNumber)
                        true,
                        wifiStationRunning,
                        __FILE__, __LINE__);
-}
-
-//*********************************************************************
-// Get the WiFi soft AP SSID
-// Outputs:
-//   Returns a zero terminated string containing the SSID begin broadcast
-//   for the WiFi soft AP.  The return value of an empty string occurs
-//   when the soft AP is not online.
-const char * wifiSoftApGetSsid()
-{
-    const char * ssid;
-
-    ssid = wifi.softApOnline() ? wifi._apSsid : "";
-    return ssid;
 }
 
 //*********************************************************************
@@ -1511,6 +1521,23 @@ void RTK_WIFI::softApEventHandler(arduino_event_id_t event, arduino_event_info_t
 }
 
 //*********************************************************************
+// Get the soft AP IP address
+// Returns the soft IP address
+IPAddress RTK_WIFI::softApIpAddress()
+{
+    if (softApOnline())
+        return _apIpAddress;
+    return IPAddress((uint32_t)0);
+}
+
+//*********************************************************************
+// Get the soft AP status
+bool RTK_WIFI::softApOnline()
+{
+    return (_started & WIFI_AP_ONLINE) ? true : false;
+}
+
+//*********************************************************************
 // Set the soft AP host name
 // Inputs:
 //   hostName: Zero terminated host name character string
@@ -1634,23 +1661,6 @@ bool RTK_WIFI::softApSetIpAddress(const char * ipAddress,
     if (!configured)
         systemPrintf("ERROR: Failed to configure the soft AP with IP addresses!\r\n");
     return configured;
-}
-
-//*********************************************************************
-// Get the soft AP IP address
-// Returns the soft IP address
-IPAddress RTK_WIFI::softApIpAddress()
-{
-    if (softApOnline())
-        return _apIpAddress;
-    return IPAddress((uint32_t)0);
-}
-
-//*********************************************************************
-// Get the soft AP status
-bool RTK_WIFI::softApOnline()
-{
-    return (_started & WIFI_AP_ONLINE) ? true : false;
 }
 
 //*********************************************************************
@@ -1960,10 +1970,13 @@ int16_t RTK_WIFI::stationScanForAPs(WIFI_CHANNEL_t channel)
         }
 
         // Determine if scanning a single channel or all channels
-        if (channel)
-            systemPrintf("WiFi scanning on channel %d\r\n", channel);
-        else
-            systemPrintf("WiFi scanning for access points\r\n");
+        if (settings.debugWifiState)
+        {
+            if (channel)
+                systemPrintf("WiFI starting scan for remote APs on channel %d\r\n", channel);
+            else
+                systemPrintf("WiFI starting scan for remote APs\r\n");
+        }
 
         // Start the WiFi scan
         apCount = WiFi.scanNetworks(false,      // async

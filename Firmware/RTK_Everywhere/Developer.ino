@@ -205,8 +205,8 @@ void espNowUpdate()                     {}
 #ifndef COMPILE_WIFI
 
 void menuWiFi()                 {systemPrintln("**WiFi not compiled**");}
-void wifiDisplaySoftApStatus()                  {}
 void wifiDisplayNetworkData()                   {}
+void wifiDisplaySoftApStatus()                  {}
 bool wifiEspNowOff(const char * fileName, uint32_t lineNumber) {return true;}
 bool wifiEspNowOn(const char * fileName, uint32_t lineNumber) {return false;}
 #define WIFI_ESPNOW_SET_CHANNEL(chan)
