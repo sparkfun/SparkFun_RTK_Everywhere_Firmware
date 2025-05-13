@@ -493,6 +493,15 @@ void networkConsumerAdd(NETCONSUMER_t consumer,
 }
 
 //----------------------------------------
+// Get the bit mask of network consumers
+//----------------------------------------
+NETCONSUMER_MASK_t networkConsumerBits(NetIndex_t index)
+{
+    networkValidateIndex(index);
+    return networkConsumersAny | netIfConsumers[index];
+}
+
+//----------------------------------------
 // Count the network consumer bits
 //----------------------------------------
 int networkConsumerCount(NETCONSUMER_MASK_t bits)
@@ -707,6 +716,28 @@ void networkConsumerRemove(NETCONSUMER_t consumer,
             delay(100);
         }
     }
+}
+
+//----------------------------------------
+// Determine if the current network interface has any consumer
+//----------------------------------------
+NETCONSUMER_MASK_t networkConsumers()
+{
+    NETCONSUMER_MASK_t consumers;
+    NetIndex_t index;
+    NetPriority_t priority;
+
+    // Get the network interface index
+    consumers = 0;
+    priority = networkPriority;
+    if (priority != NETWORK_OFFLINE)
+    {
+        index = networkIndexTable[priority];
+        consumers = networkConsumerBits(index);
+    }
+
+    // Return the consumers as a bit mask
+    return consumers;
 }
 
 //----------------------------------------
@@ -1968,6 +1999,14 @@ void networkSoftApConsumerAdd(NETCONSUMER_t consumer,
                      networkConsumerTable[consumer]);
         reportFatalError("Network: Soft AP consumer added more than once!");
     }
+}
+
+//----------------------------------------
+// Get the bit mask of network consumers
+//----------------------------------------
+NETCONSUMER_MASK_t networkSoftApConsumerBits()
+{
+    return networkSoftApConsumer;
 }
 
 //----------------------------------------
