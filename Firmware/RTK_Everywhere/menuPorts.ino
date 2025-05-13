@@ -306,10 +306,16 @@ void menuPortsMultiplexed()
             restartBase = true;
     }
 #endif // COMPILE_MOSAICX5
+
+    gnss->beginExternalEvent();         // Update with new settings
+    gnss->beginPPS();
 }
 
-// Configure the behavior of the PPS and INT pins on the ZED-F9P
-// Most often used for logging events (inputs) and when external triggers (outputs) occur
+// Configure the behavior of the PPS and INT pins.
+// Most often used for logging events (inputs) and when external triggers (outputs) occur.
+// menuPortHardwareTriggers is only called by menuPortsMultiplexed.
+// Call gnss->beginExternalEvent() and gnss->beginPPS() in menuPortsMultiplexed, not here
+// since menuPortsMultiplexed has control of the multiplexer
 void menuPortHardwareTriggers()
 {
     while (1)
