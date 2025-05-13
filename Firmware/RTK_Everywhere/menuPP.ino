@@ -377,14 +377,11 @@ bool checkCertificates()
         systemPrintf("ERROR: Failed to open the certificate file\r\n");
         validCertificates = false;
     }
-    else
+    else if (checkCertificateValidity(certificateContents, strlen(certificateContents)) == false)
     {
-        if (checkCertificateValidity(certificateContents, strlen(certificateContents)) == false)
-        {
-            if (settings.debugPpCertificate)
-                systemPrintln("Certificate is corrupt.");
-            validCertificates = false;
-        }
+        if (settings.debugPpCertificate)
+            systemPrintln("Certificate is corrupt.");
+        validCertificates = false;
     }
 
     // Load the private key
@@ -394,14 +391,11 @@ bool checkCertificates()
         systemPrintf("ERROR: Failed to open the private key file\r\n");
         validCertificates = false;
     }
-    else
+    else if (checkPrivateKeyValidity(keyContents, strlen(keyContents)) == false)
     {
-        if (checkPrivateKeyValidity(keyContents, strlen(keyContents)) == false)
-        {
-            if (settings.debugPpCertificate)
-                systemPrintln("PrivateKey is corrupt.");
-            validCertificates = false;
-        }
+        if (settings.debugPpCertificate)
+            systemPrintln("PrivateKey is corrupt.");
+        validCertificates = false;
     }
 
     // Free the content buffers
