@@ -1161,7 +1161,7 @@ bool networkInterfaceHasInternet(NetIndex_t index)
     if (index >= NETWORK_OFFLINE)
         return false;
 
-    // Return the network interface state
+    // Determine if the interface has access to the internet
     return (networkHasInternet_bm & (1 << index)) ? true : false;
 }
 
