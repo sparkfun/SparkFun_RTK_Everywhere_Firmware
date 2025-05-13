@@ -90,12 +90,18 @@ bool httpClientConnectLimitReached()
 
     // Retry the connection a few times
     limitReached = (httpClientConnectionAttempts >= MAX_HTTP_CLIENT_CONNECTION_ATTEMPTS);
-    limitReached = false;
 
     // Restart the HTTP client
-    httpClientStop((!httpClientEnabled(nullptr)) || limitReached);
+    httpClientStop(limitReached || (!httpClientEnabled(nullptr)));
 
-    httpClientConnectionAttempts++;
+    // Limit to max connection delay
+    if (httpClientConnectionAttempts)
+        httpClientConnectionAttemptTimeout = (5 * MILLISECONDS_IN_A_SECOND)
+                                           << (httpClientConnectionAttempts - 1);
+    if (httpClientConnectionAttemptTimeout > RTK_MAX_CONNECTION_MSEC)
+        httpClientConnectionAttemptTimeout = httpClientConnectionAttemptTimeout;
+    else
+        httpClientConnectionAttempts++;
     httpClientConnectionAttemptsTotal++;
     if (settings.debugHttpClientState)
         httpClientPrintStatus();
