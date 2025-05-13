@@ -24,12 +24,6 @@
 #ifdef COMPILE_ESPNOW
 
 //****************************************
-// Constants
-//****************************************
-
-const uint8_t espNowBroadcastAddr[6] = {0xff, 0xff, 0xff, 0xff, 0xff, 0xff};
-
-//****************************************
 // Types
 //****************************************
 
@@ -53,12 +47,6 @@ uint8_t espNowOutgoing[250]; // ESP NOW has max of 250 characters
 uint8_t espNowOutgoingSpot;  // ESP Now has a max of 250 characters
 uint8_t espNowReceivedMAC[6]; // Holds the broadcast MAC during pairing
 ESPNOWState espNowState;
-
-//****************************************
-// Forward routine declarations
-//****************************************
-
-esp_err_t espNowSendPairMessage(const uint8_t *sendToMac = espNowBroadcastAddr);
 
 //*********************************************************************
 // Add a peer to the ESP-NOW network
@@ -547,7 +535,7 @@ void espNowStaticPairing()
             }
         }
 
-        espNowSendPairMessage(); // Send unit's MAC address over broadcast, no ack, no encryption
+        espNowSendPairMessage(espNowBroadcastAddr); // Send unit's MAC address over broadcast, no ack, no encryption
 
         systemPrintln("Scanning for other radio...");
     }

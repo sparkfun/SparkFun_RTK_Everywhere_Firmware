@@ -106,7 +106,7 @@ Network.ino
 static const char * networkConsumerTable[] =
 {
     "HTTP_CLIENT",
-    "NTP_CLIENT",
+    "NTP_SERVER",
     "NTRIP_CLIENT",
     "NTRIP_SERVER_0",
     "NTRIP_SERVER_1",
@@ -146,10 +146,10 @@ NETCONSUMER_MASK_t netIfUsers[NETWORK_MAX]; // Users of a specific network
 
 // Priority of each of the networks in the networkInterfaceTable
 // Index by networkInterfaceTable index to get network interface priority
-NetPriority_t networkPriorityTable[NETWORK_OFFLINE];
+NetPriority_t networkPriorityTable[NETWORK_OFFLINE + 1];
 
 // Index by priority to get the networkInterfaceTable index
-NetIndex_t networkIndexTable[NETWORK_OFFLINE];
+NetIndex_t networkIndexTable[NETWORK_OFFLINE + 1];
 
 // Priority of the default network interface
 NetPriority_t networkPriority = NETWORK_OFFLINE; // Index into networkPriorityTable
@@ -338,11 +338,11 @@ void networkBegin()
 
     // Set the network priority values
     // Normally these would come from settings
-    for (int index = 0; index < NETWORK_OFFLINE; index++)
+    for (int index = 0; index <= NETWORK_OFFLINE; index++)
         networkPriorityTable[index] = index;
 
     // Set the network index values based upon the priorities
-    for (int index = 0; index < NETWORK_OFFLINE; index++)
+    for (int index = 0; index <= NETWORK_OFFLINE; index++)
         networkIndexTable[networkPriorityTable[index]] = index;
 
     // Set the network consumer priorities
@@ -359,8 +359,8 @@ void networkBegin()
     // Start Ethernet
     if (present.ethernet_ws5500)
     {
-        ethernetStart();
         networkStart(NETWORK_ETHERNET, settings.enablePrintEthernetDiag, __FILE__, __LINE__);
+        ethernetStart();
         if (settings.debugNetworkLayer)
             networkDisplayStatus();
     }
@@ -1108,7 +1108,8 @@ void networkInterfaceEventStop(NetIndex_t index)
 bool networkInterfaceHasInternet(NetIndex_t index)
 {
     // Validate the index
-    networkValidateIndex(index);
+    if (index >= NETWORK_OFFLINE)
+        return false;
 
     // Determine if the interface has access to the internet
     return (networkHasInternet_bm & (1 << index)) ? true : false;
@@ -2474,6 +2475,7 @@ void networkValidatePriority(NetPriority_t priority)
 // is now brought up synchronously instead of asynchronously, give WiFi
 // a chance to come online before really starting a lower priority
 // device such as Cellular.
+//----------------------------------------
 void networkVerifyPriority(NetIndex_t index, uintptr_t parameter, bool debug)
 {
     uint32_t currentMsec;
