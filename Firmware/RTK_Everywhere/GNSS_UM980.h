@@ -130,8 +130,6 @@ class GNSS_UM980 : GNSS
 
     uint8_t getActiveNmeaMessageCount();
 
-    uint8_t getActiveRtcmMessageCount();
-
     // Given the name of an NMEA message, return the array number
     uint8_t getNmeaMessageNumberByName(const char *msgName);
 
@@ -246,6 +244,9 @@ class GNSS_UM980 : GNSS
 
     // Return the number of active/enabled messages
     uint8_t getActiveMessageCount();
+
+    // Return the number of active/enabled RTCM messages
+    uint8_t getActiveRtcmMessageCount();
 
     // Get the altitude
     // Outputs:
