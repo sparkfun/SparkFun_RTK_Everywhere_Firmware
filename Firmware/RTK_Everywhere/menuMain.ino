@@ -696,7 +696,7 @@ void menuRadio()
             if (getNewSetting("Enter the WiFi channel to use for ESP-NOW communication", 1, 14,
                               &settings.wifiChannel) == INPUT_RESPONSE_VALID)
             {
-                WIFI_ESPNOW_SET_CHANNEL(settings.wifiChannel);
+                wifiEspNowSetChannel(settings.wifiChannel);
                 if (settings.wifiChannel)
                 {
                     if (settings.wifiChannel == wifiChannel)

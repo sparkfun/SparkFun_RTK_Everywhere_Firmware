@@ -365,8 +365,6 @@ char logFileName[sizeof("SFE_Reference_Station_230101_120101.ubx_plusExtraSpace"
 #ifdef COMPILE_WIFI
 int packetRSSI;
 RTK_WIFI wifi(false);
-
-#define WIFI_ESPNOW_SET_CHANNEL(chan)   wifi.espNowSetChannel(chan)
 #endif // COMPILE_WIFI
 
 // WiFi Globals - For other module direct access

@@ -542,6 +542,13 @@ void wifiDisplayState()
 }
 
 //*********************************************************************
+// Set the ESP-NOW channel
+void wifiEspNowSetChannel(WIFI_CHANNEL_t channel)
+{
+    wifi.espNowSetChannel(channel);
+}
+
+//*********************************************************************
 // Stop ESP-NOW
 // Inputs:
 //   fileName: Name of file calling the enable routine
