@@ -210,9 +210,7 @@ void wifiDisplaySoftApStatus()                  {}
 bool wifiEspNowOff(const char * fileName, uint32_t lineNumber) {return true;}
 bool wifiEspNowOn(const char * fileName, uint32_t lineNumber) {return false;}
 void wifiEspNowSetChannel(WIFI_CHANNEL_t channel) {}
-uint32_t wifiGetStartTimeout()                  {return 0;}
 int wifiNetworkCount()                          {return 0;}
-void wifiResetThrottleTimeout()                 {}
 void wifiResetTimeout()                         {}
 IPAddress wifiSoftApGetIpAddress()              {return IPAddress((uint32_t)0);}
 const char * wifiSoftApGetSsid()                {return "";}

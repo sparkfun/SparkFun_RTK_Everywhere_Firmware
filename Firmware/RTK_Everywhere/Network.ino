@@ -2314,17 +2314,7 @@ void networkUpdate()
 
         // Handle the network lost internet event
         if (networkEventInternetLost[index])
-        {
             networkInterfaceInternetConnectionLost(index);
-
-            // Attempt to restart WiFi
-            if ((index == NETWORK_WIFI_STATION) && (networkIsHighestPriority(index)))
-            {
-                if (networkIsStarted(index))
-                    networkStop(index, settings.debugWifiState, __FILE__, __LINE__);
-                networkStart(index, settings.debugWifiState, __FILE__, __LINE__);
-            }
-        }
 
         // Handle the network stop event
         if (networkEventStop[index])
@@ -2359,6 +2349,9 @@ void networkUpdate()
                 pollRoutine(index, sequence->parameter, settings.debugNetworkLayer);
         }
     }
+
+    // Update the WiFi state
+    wifiStationUpdate();
 
     // Update the network services
     // Start or stop mDNS
