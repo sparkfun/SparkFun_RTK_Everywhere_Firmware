@@ -440,7 +440,7 @@ void stateUpdate()
             displayWebConfigNotStarted(); // Display immediately while we wait for server to start
 
             bluetoothStop(); // Bluetooth must be stopped to allow enough RAM for AP+STA (firmware check)
-            ESPNOW_STOP();    // We don't need ESP-NOW during web config
+            wifiEspNowOff(__FILE__, __LINE__); // We don't need ESP-NOW during web config
 
             // The GNSS UART task is left running to allow GNSS receivers to obtain LLh data for 1Hz page updates
 
