@@ -1056,7 +1056,7 @@ uint8_t GNSS_ZED::getActiveRtcmMessageCount()
 {
     uint8_t count = 0;
 
-    for (int x = 0; x < MAX_UBX_MSG; x++)
+    for (int x = 0; x < MAX_UBX_MSG_RTCM; x++)
         if (settings.ubxMessageRatesBase[x] > 0)
             count++;
     return (count);
