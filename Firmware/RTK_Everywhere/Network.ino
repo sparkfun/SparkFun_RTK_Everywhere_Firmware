@@ -1355,7 +1355,7 @@ void networkInterfaceInternetConnectionLost(NetIndex_t index)
 bool networkIsHighestPriority(NetIndex_t index)
 {
     NetPriority_t priority;
-    bool higherPriority;
+    bool highestPriority;
 
     // Validate the index
     networkValidateIndex(index);
@@ -1364,10 +1364,10 @@ bool networkIsHighestPriority(NetIndex_t index)
     priority = networkPriority;
 
     // Determine if the specified interface has higher priority
-    higherPriority = (priority == NETWORK_OFFLINE);
-    if (!higherPriority)
-        higherPriority = (priority >= networkPriorityTable[index]);
-    return higherPriority;
+    highestPriority = (priority == NETWORK_OFFLINE);
+    if (highestPriority == false)
+        highestPriority = (priority >= networkPriorityTable[index]);
+    return highestPriority;
 }
 
 //----------------------------------------
