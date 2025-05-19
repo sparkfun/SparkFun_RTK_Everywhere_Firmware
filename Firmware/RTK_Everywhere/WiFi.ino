@@ -961,6 +961,14 @@ void wifiWaitNoUsers(NetIndex_t index, uintptr_t parameter, bool debug)
 }
 
 //*********************************************************************
+// Verify the WiFi tables
+void wifiVerifyTables()
+{
+    // Verify the RTK_WIFI tables
+    wifi.verifyTables();
+}
+
+//*********************************************************************
 // Constructor
 // Inputs:
 //   verbose: Set to true to display additional WiFi debug data

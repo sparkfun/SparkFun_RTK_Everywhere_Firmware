@@ -723,9 +723,7 @@ void verifyTables()
     mosaicVerifyTables();
     correctionVerifyTables();
     webServerVerifyTables();
-#ifdef COMPILE_WIFI
-    wifi.verifyTables();
-#endif  // COMPILE_WIFI
+    wifiVerifyTables();
 
     if (CORR_NUM >= (int)('x' - 'a'))
         reportFatalError("Too many correction sources");
