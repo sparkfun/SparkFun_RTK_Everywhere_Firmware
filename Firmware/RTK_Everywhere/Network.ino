@@ -2301,10 +2301,7 @@ void networkStartDelayed(NetIndex_t index, uintptr_t parameter, bool debug)
 //----------------------------------------
 void networkUpdate()
 {
-    bool displayIpAddress;
     NetIndex_t index;
-    IPAddress ipAddress;
-    bool ipAddressDisplayed;
     uint8_t networkType;
     NETWORK_POLL_ROUTINE pollRoutine;
     uint8_t priority;
@@ -2389,44 +2386,62 @@ void networkUpdate()
     webServerUpdate(); // Start webServer for web config as needed
 
     // Periodically display the network interface state
-    displayIpAddress = PERIODIC_DISPLAY(PD_IP_ADDRESS);
-    for (int index = 0; index < NETWORK_OFFLINE; index++)
-    {
-        // Display the current state
-        ipAddressDisplayed = displayIpAddress && (index == networkPriority);
-        if (PERIODIC_DISPLAY(networkInterfaceTable[index].pdState) || PERIODIC_DISPLAY(PD_NETWORK_STATE) ||
-            ipAddressDisplayed)
-        {
-            PERIODIC_CLEAR(networkInterfaceTable[index].pdState);
-            if (networkInterfaceTable[index].netif->hasIP())
-            {
-                ipAddress = networkInterfaceTable[index].netif->localIP();
-                systemPrintf("%s: %s%s\r\n", networkInterfaceTable[index].name, ipAddress.toString().c_str(),
-                             networkInterfaceTable[index].netif->isDefault() ? " (default)" : "");
-            }
-            else if (networkInterfaceTable[index].netif->linkUp())
-                systemPrintf("%s: Link Up\r\n", networkInterfaceTable[index].name);
-            else if (networkInterfaceTable[index].netif->started())
-                systemPrintf("%s: Started\r\n", networkInterfaceTable[index].name);
-
-            else if (index == NETWORK_WIFI_STATION && (WiFi.getMode() == WIFI_AP || WiFi.getMode() == WIFI_AP_STA))
-            {
-                // NETIF doesn't capture the IP address of a soft AP
-                ipAddress = WiFi.softAPIP();
-                systemPrintf("%s: %s%s\r\n", networkInterfaceTable[index].name, ipAddress.toString().c_str(),
-                             networkInterfaceTable[index].netif->isDefault() ? " (default)" : "");
-            }
-            else
-                systemPrintf("%s: Stopped\r\n", networkInterfaceTable[index].name);
-        }
-    }
     if (PERIODIC_DISPLAY(PD_NETWORK_STATE))
-        PERIODIC_CLEAR(PD_NETWORK_STATE);
-    if (displayIpAddress)
     {
-        if (!ipAddressDisplayed)
-            systemPrintln("Network: Offline");
+        PERIODIC_CLEAR(PD_NETWORK_STATE);
         PERIODIC_CLEAR(PD_IP_ADDRESS);
+        for (int index = 0; index < NETWORK_OFFLINE; index++)
+            PERIODIC_CLEAR(networkInterfaceTable[index].pdState);
+
+        // Display the network state
+        networkDisplayStatus();
+    }
+
+    // Periodically display the IP address
+    else if (PERIODIC_DISPLAY(PD_IP_ADDRESS))
+    {
+        int index;
+        IPAddress ipAddress;
+
+        PERIODIC_CLEAR(PD_IP_ADDRESS);
+
+        // Display the IP address of the highest priority network
+        index = networkPriorityTable[networkPriority];
+        if ((index < NETWORK_OFFLINE)
+            && networkInterfaceHasInternet(index)
+            && networkInterfaceTable[index].netif->hasIP())
+        {
+            ipAddress = networkInterfaceTable[index].netif->localIP();
+            systemPrintf("%s: %s%s\r\n",
+                         networkInterfaceTable[index].name,
+                         ipAddress.toString().c_str(),
+                         networkInterfaceTable[index].netif->isDefault() ? " (default)" : "");
+        }
+        else
+            systemPrintf("Network: Offline\r\n");
+
+        // Display the soft AP IP address
+        if (wifiSoftApOnline)
+        {
+            ipAddress = wifiSoftApGetIpAddress();
+            systemPrintf("WiFi Soft AP: %s\r\n", ipAddress.toString().c_str());
+        }
+        else
+            systemPrintf("WiFi Soft AP: Offline\r\n");
+    }
+
+    // Periodically display an interface state
+    else
+    {
+        for (int index = 0; index < NETWORK_OFFLINE; index++)
+            if (PERIODIC_DISPLAY(networkInterfaceTable[index].pdState))
+            {
+                PERIODIC_CLEAR(networkInterfaceTable[index].pdState);
+
+                // Display the state for an interface
+                networkPrintStatus(index);
+                networkDisplayInterface(index);
+            }
     }
 }
 
