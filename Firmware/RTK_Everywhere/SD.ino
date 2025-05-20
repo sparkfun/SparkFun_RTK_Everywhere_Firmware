@@ -84,13 +84,13 @@ bool sdCardPresent(void)
 {
     if (present.microSdCardDetectLow == true)
     {
-        if (digitalRead(pin_microSD_CardDetect) == LOW)
+        if (readAnalogPinAsDigital(pin_microSD_CardDetect) == LOW)
             return (true); // Card detect low = SD in place
         return (false);    // Card detect high = No SD
     }
     else if (present.microSdCardDetectHigh == true)
     {
-        if (digitalRead(pin_microSD_CardDetect) == HIGH)
+        if (readAnalogPinAsDigital(pin_microSD_CardDetect) == HIGH)
             return (true); // Card detect high = SD in place
         return (false);    // Card detect low = No SD
     }

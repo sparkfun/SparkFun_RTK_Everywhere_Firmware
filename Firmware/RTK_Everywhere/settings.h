@@ -167,7 +167,7 @@ typedef enum
 typedef uint8_t CORRECTION_ID_T;    // Type holding a correction ID or priority
 typedef uint8_t CORRECTION_MASK_T;  // Type holding a bitmask of correction IDs
 
-const char * const correctionsSourceNames[correctionsSource::CORR_NUM] =
+const char * const correctionsSourceNames[CORR_NUM] =
 {
     // These must match correctionsSource above
     "External Radio",
@@ -580,7 +580,8 @@ enum
     NETCONSUMER_HTTP_CLIENT = 0,
     NETCONSUMER_NTP_SERVER,
     NETCONSUMER_NTRIP_CLIENT,
-    NETCONSUMER_NTRIP_SERVER_0,
+    NETCONSUMER_NTRIP_SERVER,
+    NETCONSUMER_NTRIP_SERVER_0 = NETCONSUMER_NTRIP_SERVER,
     NETCONSUMER_NTRIP_SERVER_1,
     NETCONSUMER_NTRIP_SERVER_2,
     NETCONSUMER_NTRIP_SERVER_3,
@@ -640,7 +641,7 @@ struct Settings
 
     // Corrections
     int correctionsSourcesLifetime_s = 30; // Expire a corrections source if no data is seen for this many seconds
-    CORRECTION_ID_T correctionsSourcesPriority[correctionsSource::CORR_NUM] = { (CORRECTION_ID_T)-1 }; // -1 indicates array is uninitialized, indexed by correction source ID
+    CORRECTION_ID_T correctionsSourcesPriority[CORR_NUM] = { (CORRECTION_ID_T)-1 }; // -1 indicates array is uninitialized, indexed by correction source ID
     bool debugCorrections = false;
     uint8_t enableExtCorrRadio = 254; // Will be initialized to true or false depending on model
     uint8_t extCorrRadioSPARTNSource = 0; // This selects IP (0) vs. L-Band (1) for _SPARTN_ corrections on Radio Ext (UART2)
@@ -674,7 +675,14 @@ struct Settings
     uint16_t measurementRateMs = 250;       // Elapsed ms between GNSS measurements. 25ms to 65535ms. Default 4Hz.
     uint16_t navigationRate =
         1; // Ratio between number of measurements and navigation solutions. Default 1 for 4Hz (with measurementRate).
-    bool updateGNSSSettings = true;   // When in doubt, update the GNSS with current settings
+
+    // Signatures to indicate how the GNSS is configured (Once, Base, Rover, etc.)
+    // Bit 0 indicates if the GNSS has been configured previously.
+    // Bits 1 onwards record the state of critical settings. E.g. settings.enablePointPerfectCorrections
+    // Configuration is reapplied if any of those critical settings have changed
+    bool gnssConfiguredOnce = false;
+    bool gnssConfiguredBase = false;
+    bool gnssConfiguredRover = false;
 
     // GNSS UART
     uint16_t serialGNSSRxFullThreshold = 50; // RX FIFO full interrupt. Max of ~128. See pinUART2Task().
@@ -1201,7 +1209,7 @@ const RTK_Settings_Entry rtkSettingsEntries[] =
 
     // Corrections
     { 1, 1, 0, 1, 1, 1, 1, 1, 1, _int,      0, & settings.correctionsSourcesLifetime_s, "correctionsSourcesLifetime",  },
-    { 1, 1, 1, 1, 1, 1, 1, 1, 1, tCorrSPri, correctionsSource::CORR_NUM, & settings.correctionsSourcesPriority, "correctionsPriority_",  },
+    { 1, 1, 1, 1, 1, 1, 1, 1, 1, tCorrSPri, CORR_NUM, & settings.correctionsSourcesPriority, "correctionsPriority_",  },
     { 0, 0, 0, 1, 1, 1, 1, 1, 1, _bool,     0, & settings.debugCorrections, "debugCorrections",  },
     { 1, 1, 0, 1, 1, 1, 0, 1, 1, _bool,     0, & settings.enableExtCorrRadio, "enableExtCorrRadio",  },
     { 1, 1, 0, 1, 1, 0, 0, 1, 0, _uint8_t,  0, & settings.extCorrRadioSPARTNSource, "extCorrRadioSPARTNSource",  },
@@ -1270,7 +1278,9 @@ const RTK_Settings_Entry rtkSettingsEntries[] =
     { 0, 0, 0, 1, 1, 1, 1, 1, 1, _bool,     0, & settings.enablePrintPosition, "enablePrintPosition",  },
     { 0, 1, 0, 1, 1, 1, 1, 1, 1, _uint16_t, 0, & settings.measurementRateMs, "measurementRateMs",  },
     { 0, 1, 0, 1, 1, 1, 1, 1, 1, _uint16_t, 0, & settings.navigationRate, "navigationRate",  },
-    { 0, 0, 0, 1, 1, 1, 1, 1, 1, _bool,     0, & settings.updateGNSSSettings, "updateGNSSSettings",  },
+    { 0, 0, 0, 1, 1, 1, 1, 1, 1, _bool,     0, & settings.gnssConfiguredOnce, "gnssConfiguredOnce",  },
+    { 0, 0, 0, 1, 1, 1, 1, 1, 1, _bool,     0, & settings.gnssConfiguredBase, "gnssConfiguredBase",  },
+    { 0, 0, 0, 1, 1, 1, 1, 1, 1, _bool,     0, & settings.gnssConfiguredRover, "gnssConfiguredRover",  },
 
     // Hardware
     { 1, 1, 0, 1, 1, 1, 0, 1, 0, _bool,     0, & settings.enableExternalHardwareEventLogging, "enableExternalHardwareEventLogging",  },
@@ -1306,12 +1316,12 @@ const RTK_Settings_Entry rtkSettingsEntries[] =
 
 #ifdef  COMPILE_MOSAICX5
     { 1, 1, 1, 0, 0, 1, 0, 0, 0, tMosaicConst,  MAX_MOSAIC_CONSTELLATIONS, & settings.mosaicConstellations, "constellation_",  },
-    { 0, 1, 1, 0, 0, 1, 0, 0, 0, tMosaicMSNmea, MAX_MOSAIC_NMEA_MSG, & settings.mosaicMessageStreamNMEA, "messageStreamNMEA_",  },
-    { 0, 1, 1, 0, 0, 1, 0, 0, 0, tMosaicSINmea, MOSAIC_NUM_NMEA_STREAMS, & settings.mosaicStreamIntervalsNMEA, "streamIntervalNMEA_",  },
-    { 0, 1, 1, 0, 0, 1, 0, 0, 0, tMosaicMIRvRT, MAX_MOSAIC_RTCM_V3_INTERVAL_GROUPS, & settings.mosaicMessageIntervalsRTCMv3Rover, "messageIntervalRTCMRover_",  },
-    { 0, 1, 1, 0, 0, 1, 0, 0, 0, tMosaicMIBaRT, MAX_MOSAIC_RTCM_V3_INTERVAL_GROUPS, & settings.mosaicMessageIntervalsRTCMv3Base, "messageIntervalRTCMBase_",  },
-    { 0, 1, 1, 0, 0, 1, 0, 0, 0, tMosaicMERvRT, MAX_MOSAIC_RTCM_V3_MSG, & settings.mosaicMessageEnabledRTCMv3Rover, "messageEnabledRTCMRover_",  },
-    { 0, 1, 1, 0, 0, 1, 0, 0, 0, tMosaicMEBaRT, MAX_MOSAIC_RTCM_V3_MSG, & settings.mosaicMessageEnabledRTCMv3Base, "messageEnabledRTCMBase_",  },
+    { 1, 1, 1, 0, 0, 1, 0, 0, 0, tMosaicMSNmea, MAX_MOSAIC_NMEA_MSG, & settings.mosaicMessageStreamNMEA, "messageStreamNMEA_",  },
+    { 1, 1, 1, 0, 0, 1, 0, 0, 0, tMosaicSINmea, MOSAIC_NUM_NMEA_STREAMS, & settings.mosaicStreamIntervalsNMEA, "streamIntervalNMEA_",  },
+    { 1, 1, 1, 0, 0, 1, 0, 0, 0, tMosaicMIRvRT, MAX_MOSAIC_RTCM_V3_INTERVAL_GROUPS, & settings.mosaicMessageIntervalsRTCMv3Rover, "messageIntervalRTCMRover_",  },
+    { 1, 1, 1, 0, 0, 1, 0, 0, 0, tMosaicMIBaRT, MAX_MOSAIC_RTCM_V3_INTERVAL_GROUPS, & settings.mosaicMessageIntervalsRTCMv3Base, "messageIntervalRTCMBase_",  },
+    { 1, 1, 1, 0, 0, 1, 0, 0, 0, tMosaicMERvRT, MAX_MOSAIC_RTCM_V3_MSG, & settings.mosaicMessageEnabledRTCMv3Rover, "messageEnabledRTCMRover_",  },
+    { 1, 1, 1, 0, 0, 1, 0, 0, 0, tMosaicMEBaRT, MAX_MOSAIC_RTCM_V3_MSG, & settings.mosaicMessageEnabledRTCMv3Base, "messageEnabledRTCMBase_",  },
     { 1, 1, 0, 0, 0, 1, 0, 0, 0, _bool,     0, & settings.enableLoggingRINEX, "enableLoggingRINEX",  },
     { 1, 1, 0, 0, 0, 1, 0, 0, 0, _uint8_t,  0, & settings.RINEXFileDuration, "RINEXFileDuration",  },
     { 1, 1, 0, 0, 0, 1, 0, 0, 0, _uint8_t,  0, & settings.RINEXObsInterval, "RINEXObsInterval",  },
@@ -1956,14 +1966,6 @@ typedef uint8_t WIFI_CHANNEL_t;
 #ifdef COMPILE_NETWORK
 #ifdef COMPILE_WIFI
 
-// Handle the WiFi event
-// Inputs:
-//   event: Arduino ESP32 event number found on
-//          https://github.com/espressif/arduino-esp32
-//          in libraries/Network/src/NetworkEvents.h
-//   info: Additional data about the event
-void wifiEventHandler(arduino_event_id_t event, arduino_event_info_t info);
-
 typedef uint32_t WIFI_ACTION_t;
 
 // Class to simplify WiFi handling
@@ -1991,7 +1993,6 @@ class RTK_WIFI
     const char * _staRemoteApPassword;  // Password of remote AP
     volatile WIFI_ACTION_t _started;    // Components that are started and running
     WIFI_CHANNEL_t _stationChannel; // Channel required for station, zero (0) use wifiChannel
-    uint32_t _timer;            // Reconnection timer
     bool _usingDefaultChannel;  // Using default WiFi channel
     bool _verbose;              // True causes more debug output to be displayed
 

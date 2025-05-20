@@ -414,7 +414,6 @@ void printReports()
     if (settings.enablePrintRoverAccuracy && (millis() - lastPrintRoverAccuracy > 2000))
     {
         lastPrintRoverAccuracy = millis();
-
         if (online.gnss)
         {
             // If we are in rover mode, display HPA and SIV
@@ -827,7 +826,7 @@ bool isUsbAttached()
     {
         if (pin_powerAdapterDetect != PIN_UNDEFINED)
             // Pin goes low when wall adapter is detected
-            if (digitalRead(pin_powerAdapterDetect) == HIGH)
+            if (readAnalogPinAsDigital(pin_powerAdapterDetect) == HIGH)
                 return false;
         return true;
     }

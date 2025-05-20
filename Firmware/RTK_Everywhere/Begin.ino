@@ -922,7 +922,7 @@ void beginSD()
         }
 
         // Load firmware file from the microSD card if it is present
-        microSdScanForFirmware();
+        microSDScanForFirmware();
 
         // Mark card not yet usable for logging
         sdCardSize = 0;

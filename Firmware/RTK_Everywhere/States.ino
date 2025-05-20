@@ -100,8 +100,8 @@ void stateUpdate()
             displayRoverStart(0);
             if (gnss->configureRover() == false)
             {
-                settings.updateGNSSSettings = true; // On the next boot, update the GNSS receiver
-                recordSystemSettings();             // Record this state for next POR
+                settings.gnssConfiguredRover = false; // On the next boot, reapply all settings
+                recordSystemSettings();           // Record this state for next POR
 
                 systemPrintln("Rover config failed");
                 displayRoverFail(1000);
@@ -120,7 +120,7 @@ void stateUpdate()
                 displayRoverFail(1000);
             else
             {
-                settings.updateGNSSSettings = false; // On the next boot, no need to update the GNSS receiver
+                settings.gnssConfiguredBase = false; // When the mode changes, reapply all settings
                 settings.lastState = STATE_ROVER_NOT_STARTED;
                 recordSystemSettings(); // Record this state for next POR
 
@@ -214,6 +214,7 @@ void stateUpdate()
         break;
 
         case (STATE_BASE_NOT_STARTED): {
+            RTK_MODE(RTK_MODE_BASE_SURVEY_IN);
             firstRoverStart = false; // If base is starting, no test menu, normal button use.
 
             if (online.gnss == false)
@@ -231,25 +232,22 @@ void stateUpdate()
             // Start the UART connected to the GNSS receiver for NMEA and UBX data (enables logging)
             if (tasksStartGnssUart() && gnss->configureBase())
             {
-                settings.updateGNSSSettings = false; // On the next boot, no need to update the GNSS on this profile
+                // settings.gnssConfiguredBase is set by gnss->configureBase()
+                settings.gnssConfiguredRover = false; // When the mode changes, reapply all settings
                 settings.lastState = STATE_BASE_NOT_STARTED; // Record this state for next POR
-
                 recordSystemSettings(); // Record this state for next POR
 
                 displayBaseSuccess(500); // Show 'Base Started'
 
                 if (settings.fixedBase == false)
-                {
-                    RTK_MODE(RTK_MODE_BASE_SURVEY_IN);
                     changeState(STATE_BASE_TEMP_SETTLE);
-                }
                 else
                     changeState(STATE_BASE_FIXED_NOT_STARTED);
             }
             else
             {
-                settings.updateGNSSSettings = true; // On the next boot, update the GNSS receiver
-                recordSystemSettings();             // Record this state for next POR
+                settings.gnssConfiguredBase = false; // On the next boot, reapply all settings
+                recordSystemSettings();          // Record this state for next POR
 
                 displayBaseFail(1000);
             }
@@ -456,8 +454,10 @@ void stateUpdate()
                     systemPrintln();
 
                     parseIncomingSettings();
-                    settings.updateGNSSSettings = true; // New settings; update GNSS receiver on next boot
-                    recordSystemSettings();             // Record these settings to unit
+                    settings.gnssConfiguredOnce = false; // On the next boot, reapply all settings
+                    settings.gnssConfiguredBase = false;
+                    settings.gnssConfiguredRover = false;
+                    recordSystemSettings(); // Record these settings to unit
 
                     // Clear buffer
                     incomingSettingsSpot = 0;
@@ -556,7 +556,7 @@ void stateUpdate()
                 changeState(lastSystemState);
             }
             else
-                espNowSendPairMessage(); // Send unit's MAC address over broadcast, no ack, no encryption
+                espNowSendPairMessage(espNowBroadcastAddr); // Send unit's MAC address over broadcast, no ack, no encryption
         }
         break;
 
@@ -573,8 +573,9 @@ void stateUpdate()
             // Start UART connected to the GNSS receiver for NMEA and UBX data (enables logging)
             if (tasksStartGnssUart() && ntpConfigureUbloxModule())
             {
-                settings.updateGNSSSettings = false; // On the next boot, no need to update the GNSS on this profile
                 settings.lastState = STATE_NTPSERVER_NOT_STARTED; // Record this state for next POR
+                settings.gnssConfiguredBase = false; // On the next boot, reapply all settings
+                settings.gnssConfiguredRover = false;
                 recordSystemSettings();
 
                 if (online.ethernetNTPServer)

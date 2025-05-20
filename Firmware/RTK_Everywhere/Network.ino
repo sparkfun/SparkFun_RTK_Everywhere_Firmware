@@ -106,7 +106,7 @@ Network.ino
 static const char * networkConsumerTable[] =
 {
     "HTTP_CLIENT",
-    "NTP_CLIENT",
+    "NTP_SERVER",
     "NTRIP_CLIENT",
     "NTRIP_SERVER_0",
     "NTRIP_SERVER_1",
@@ -146,10 +146,10 @@ NETCONSUMER_MASK_t netIfUsers[NETWORK_MAX]; // Users of a specific network
 
 // Priority of each of the networks in the networkInterfaceTable
 // Index by networkInterfaceTable index to get network interface priority
-NetPriority_t networkPriorityTable[NETWORK_OFFLINE];
+NetPriority_t networkPriorityTable[NETWORK_OFFLINE + 1];
 
 // Index by priority to get the networkInterfaceTable index
-NetIndex_t networkIndexTable[NETWORK_OFFLINE];
+NetIndex_t networkIndexTable[NETWORK_OFFLINE + 1];
 
 // Priority of the default network interface
 NetPriority_t networkPriority = NETWORK_OFFLINE; // Index into networkPriorityTable
@@ -338,11 +338,11 @@ void networkBegin()
 
     // Set the network priority values
     // Normally these would come from settings
-    for (int index = 0; index < NETWORK_OFFLINE; index++)
+    for (int index = 0; index <= NETWORK_OFFLINE; index++)
         networkPriorityTable[index] = index;
 
     // Set the network index values based upon the priorities
-    for (int index = 0; index < NETWORK_OFFLINE; index++)
+    for (int index = 0; index <= NETWORK_OFFLINE; index++)
         networkIndexTable[networkPriorityTable[index]] = index;
 
     // Set the network consumer priorities
@@ -359,8 +359,8 @@ void networkBegin()
     // Start Ethernet
     if (present.ethernet_ws5500)
     {
-        ethernetStart();
         networkStart(NETWORK_ETHERNET, settings.enablePrintEthernetDiag, __FILE__, __LINE__);
+        ethernetStart();
         if (settings.debugNetworkLayer)
             networkDisplayStatus();
     }
@@ -392,7 +392,10 @@ bool networkChanged(NETCONSUMER_t consumer)
 //----------------------------------------
 // Add a network consumer
 //----------------------------------------
-void networkConsumerAdd(NETCONSUMER_t consumer, NetIndex_t network, const char * fileName, uint32_t lineNumber)
+void networkConsumerAdd(NETCONSUMER_t consumer,
+                        NetIndex_t network,
+                        const char * fileName,
+                        uint32_t lineNumber)
 {
     NETCONSUMER_MASK_t bitMask;
     NETCONSUMER_MASK_t * bits;
@@ -487,6 +490,15 @@ void networkConsumerAdd(NETCONSUMER_t consumer, NetIndex_t network, const char *
                      networkConsumerTable[consumer]);
         reportFatalError("Network consumer added more than once!");
     }
+}
+
+//----------------------------------------
+// Get the bit mask of network consumers
+//----------------------------------------
+NETCONSUMER_MASK_t networkConsumerBits(NetIndex_t index)
+{
+    networkValidateIndex(index);
+    return networkConsumersAny | netIfConsumers[index];
 }
 
 //----------------------------------------
@@ -625,7 +637,10 @@ void networkConsumerReconnect(NetIndex_t index)
 //----------------------------------------
 // Remove a network consumer
 //----------------------------------------
-void networkConsumerRemove(NETCONSUMER_t consumer, NetIndex_t network, const char * fileName, uint32_t lineNumber)
+void networkConsumerRemove(NETCONSUMER_t consumer,
+                           NetIndex_t network,
+                           const char * fileName,
+                           uint32_t lineNumber)
 {
     NETCONSUMER_MASK_t bitMask;
     NETCONSUMER_MASK_t * bits;
@@ -701,6 +716,28 @@ void networkConsumerRemove(NETCONSUMER_t consumer, NetIndex_t network, const cha
             delay(100);
         }
     }
+}
+
+//----------------------------------------
+// Determine if the current network interface has any consumer
+//----------------------------------------
+NETCONSUMER_MASK_t networkConsumers()
+{
+    NETCONSUMER_MASK_t consumers;
+    NetIndex_t index;
+    NetPriority_t priority;
+
+    // Get the network interface index
+    consumers = 0;
+    priority = networkPriority;
+    if (priority != NETWORK_OFFLINE)
+    {
+        index = networkIndexTable[priority];
+        consumers = networkConsumerBits(index);
+    }
+
+    // Return the consumers as a bit mask
+    return consumers;
 }
 
 //----------------------------------------
@@ -1045,12 +1082,25 @@ NetPriority_t networkGetPriority()
 }
 
 //----------------------------------------
-// Determine if any network interface has access to the internet
+// Determine if the current network interface has access to the internet
 //----------------------------------------
 bool networkHasInternet()
 {
+    bool internetAccessible;
+    NetIndex_t index;
+    NetPriority_t priority;
+
+    // Does any interface have access to the internet
+    internetAccessible = false;
+    priority = networkPriority;
+    if (priority != NETWORK_OFFLINE)
+    {
+        index = networkIndexTable[priority];
+        internetAccessible = networkInterfaceHasInternet(index);
+    }
+
     // Return the network state
-    return networkHasInternet_bm ? true : false;
+    return internetAccessible;
 }
 
 //----------------------------------------
@@ -1108,7 +1158,8 @@ void networkInterfaceEventStop(NetIndex_t index)
 bool networkInterfaceHasInternet(NetIndex_t index)
 {
     // Validate the index
-    networkValidateIndex(index);
+    if (index >= NETWORK_OFFLINE)
+        return false;
 
     // Determine if the interface has access to the internet
     return (networkHasInternet_bm & (1 << index)) ? true : false;
@@ -1202,9 +1253,7 @@ void networkInterfaceInternetConnectionAvailable(NetIndex_t index)
 //----------------------------------------
 // Mark network interface as having NO access to the internet
 //----------------------------------------
-void networkInterfaceInternetConnectionLost(NetIndex_t index,
-                                            const char * fileName,
-                                            uint32_t lineNumber)
+void networkInterfaceInternetConnectionLost(NetIndex_t index)
 {
     NetMask_t bitMask;
     NetPriority_t previousPriority;
@@ -1215,8 +1264,8 @@ void networkInterfaceInternetConnectionLost(NetIndex_t index,
 
     // Display the call
     if (settings.debugNetworkLayer)
-        systemPrintf("Network: Calling networkInterfaceInternetConnectionLost(%s) from %s at line %d\r\n",
-                     networkInterfaceTable[index].name, fileName, lineNumber);
+        systemPrintf("Network: Calling networkInterfaceInternetConnectionLost(%s)\r\n",
+                     networkInterfaceTable[index].name);
 
     // Clear the event flag
     networkEventInternetLost[index] = false;
@@ -1915,7 +1964,9 @@ void networkSequenceStopPolling(NetIndex_t index,
 //----------------------------------------
 // Add a soft AP consumer
 //----------------------------------------
-void networkSoftApConsumerAdd(NETCONSUMER_t consumer, const char * fileName, uint32_t lineNumber)
+void networkSoftApConsumerAdd(NETCONSUMER_t consumer,
+                              const char * fileName,
+                              uint32_t lineNumber)
 {
     NETCONSUMER_MASK_t bitMask;
     NetIndex_t index;
@@ -1962,6 +2013,14 @@ void networkSoftApConsumerAdd(NETCONSUMER_t consumer, const char * fileName, uin
 }
 
 //----------------------------------------
+// Get the bit mask of network consumers
+//----------------------------------------
+NETCONSUMER_MASK_t networkSoftApConsumerBits()
+{
+    return networkSoftApConsumer;
+}
+
+//----------------------------------------
 // Display the soft AP consumers
 //----------------------------------------
 void networkSoftApConsumerDisplay()
@@ -1993,7 +2052,9 @@ void networkSoftApConsumerPrint(const char * separator)
 //----------------------------------------
 // Remove a soft AP consumer
 //----------------------------------------
-void networkSoftApConsumerRemove(NETCONSUMER_t consumer, const char * fileName, uint32_t lineNumber)
+void networkSoftApConsumerRemove(NETCONSUMER_t consumer,
+                                 const char * fileName,
+                                 uint32_t lineNumber)
 {
     NETCONSUMER_MASK_t bitMask;
     NetIndex_t index;
@@ -2042,7 +2103,10 @@ void networkSoftApConsumerRemove(NETCONSUMER_t consumer, const char * fileName, 
 //----------------------------------------
 // Start a network interface
 //----------------------------------------
-void networkStart(NetIndex_t index, bool debug, const char * fileName, uint32_t lineNumber)
+void networkStart(NetIndex_t index,
+                  bool debug,
+                  const char * fileName,
+                  uint32_t lineNumber)
 {
     NETCONSUMER_MASK_t consumers;
 
@@ -2120,7 +2184,10 @@ void networkStartNextInterface(NetIndex_t index)
 //----------------------------------------
 // Stop a network interface
 //----------------------------------------
-void networkStop(NetIndex_t index, bool debug, const char * fileName, uint32_t lineNumber)
+void networkStop(NetIndex_t index,
+                 bool debug,
+                 const char * fileName,
+                 uint32_t lineNumber)
 {
     NetMask_t bitMask;
 
@@ -2243,7 +2310,7 @@ void networkUpdate()
         // Handle the network lost internet event
         if (networkEventInternetLost[index])
         {
-            networkInterfaceInternetConnectionLost(index, __FILE__, __LINE__);
+            networkInterfaceInternetConnectionLost(index);
 
             // Attempt to restart WiFi
             if ((index == NETWORK_WIFI_STATION) && (networkIsHighestPriority(index)))
@@ -2358,7 +2425,9 @@ void networkUpdate()
 //----------------------------------------
 // Add a network user
 //----------------------------------------
-void networkUserAdd(NETCONSUMER_t consumer, const char * fileName, uint32_t lineNumber)
+void networkUserAdd(NETCONSUMER_t consumer,
+                    const char * fileName,
+                    uint32_t lineNumber)
 {
     NetIndex_t index;
     NETCONSUMER_MASK_t mask;
@@ -2404,7 +2473,9 @@ void networkUserDisplay(NetIndex_t index)
 //----------------------------------------
 // Remove a network user
 //----------------------------------------
-void networkUserRemove(NETCONSUMER_t consumer, const char * fileName, uint32_t lineNumber)
+void networkUserRemove(NETCONSUMER_t consumer,
+                       const char * fileName,
+                       uint32_t lineNumber)
 {
     NetIndex_t index;
     NETCONSUMER_MASK_t mask;
@@ -2474,6 +2545,7 @@ void networkValidatePriority(NetPriority_t priority)
 // is now brought up synchronously instead of asynchronously, give WiFi
 // a chance to come online before really starting a lower priority
 // device such as Cellular.
+//----------------------------------------
 void networkVerifyPriority(NetIndex_t index, uintptr_t parameter, bool debug)
 {
     uint32_t currentMsec;

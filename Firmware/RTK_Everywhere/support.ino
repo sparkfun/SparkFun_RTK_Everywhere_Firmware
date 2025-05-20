@@ -727,7 +727,7 @@ void verifyTables()
     wifi.verifyTables();
 #endif  // COMPILE_WIFI
 
-    if (correctionsSource::CORR_NUM >= (int)('x' - 'a'))
+    if (CORR_NUM >= (int)('x' - 'a'))
         reportFatalError("Too many correction sources");
 }
 

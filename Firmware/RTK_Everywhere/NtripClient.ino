@@ -623,10 +623,11 @@ void ntripClientUpdate()
 {
     bool connected;
     bool enabled;
+    const char * line = "";
 
     // Shutdown the NTRIP client when the mode or setting changes
     DMW_st(ntripClientSetState, ntripClientState);
-    enabled = ntripClientEnabled(nullptr);
+    enabled = ntripClientEnabled(&line);
     connected = networkConsumerIsConnected(NETCONSUMER_NTRIP_CLIENT);
     if ((!enabled) && (ntripClientState > NTRIP_CLIENT_OFF))
         ntripClientStop(true);
@@ -642,7 +643,7 @@ void ntripClientUpdate()
     {
     case NTRIP_CLIENT_OFF:
         // Don't allow the client to restart if a forced shutdown occurred
-        if (ntripClientEnabled(nullptr))
+        if (enabled)
             ntripClientStart();
         break;
 
@@ -936,8 +937,6 @@ void ntripClientUpdate()
     // Periodically display the NTRIP client state
     if (PERIODIC_DISPLAY(PD_NTRIP_CLIENT_STATE))
     {
-        const char * line = "";
-        ntripClientEnabled(&line);
         systemPrintf("NTRIP Client state: %s%s\r\n",
                      ntripClientStateName[ntripClientState], line);
         PERIODIC_CLEAR(PD_NTRIP_CLIENT_STATE);

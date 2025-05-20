@@ -184,13 +184,13 @@ void webServerVerifyTables() {}
 
 #ifndef COMPILE_ESPNOW
 
-bool espnowGetState()                   {return ESPNOW_OFF;}
+bool espNowGetState()                   {return ESPNOW_OFF;}
 bool espNowIsPaired()                   {return false;}
 void espNowProcessRTCM(byte incoming)   {}
 bool espNowProcessRxPairedMessage()     {return true;}
-esp_err_t espNowRemovePeer(uint8_t *peerMac)        {return ESP_OK;}
-esp_err_t espNowSendPairMessage()       {return ESP_OK;}
-bool espnowSetChannel(uint8_t channelNumber)        {return false;}
+esp_err_t espNowRemovePeer(const uint8_t *peerMac)        {return ESP_OK;}
+esp_err_t espNowSendPairMessage(const uint8_t *sendToMac) {return ESP_OK;}
+bool espNowSetChannel(uint8_t channelNumber)        {return false;}
 bool espNowStart()                      {return true;}
 void espNowStaticPairing()              {}
 bool espNowStop()                       {return true;}
@@ -205,11 +205,11 @@ void espNowUpdate()                     {}
 #ifndef COMPILE_WIFI
 
 void menuWiFi()                 {systemPrintln("**WiFi not compiled**");}
-void wifiDisplaySoftApStatus()                  {}
 void wifiDisplayNetworkData()                   {}
+void wifiDisplaySoftApStatus()                  {}
 bool wifiEspNowOff(const char * fileName, uint32_t lineNumber) {return true;}
 bool wifiEspNowOn(const char * fileName, uint32_t lineNumber) {return false;}
-#define WIFI_ESPNOW_SET_CHANNEL(chan)
+void wifiEspNowSetChannel(WIFI_CHANNEL_t channel) {}
 uint32_t wifiGetStartTimeout()                  {return 0;}
 int wifiNetworkCount()                          {return 0;}
 void wifiResetThrottleTimeout()                 {}
@@ -274,7 +274,7 @@ void updatePPL() {}
 bool sendGnssToPpl(uint8_t *buffer, int numDataBytes) {return false;}
 bool sendSpartnToPpl(uint8_t *buffer, int numDataBytes) {return false;}
 bool sendAuxSpartnToPpl(uint8_t *buffer, int numDataBytes) {return false;}
-void pointperfectPrintKeyInformation() {systemPrintln("**PPL Not Compiled**");}
+void pointperfectPrintKeyInformation(const char *requestedBy) {systemPrintln("**PPL Not Compiled**");}
 
 #endif  // COMPILE_POINTPERFECT_LIBRARY
 
@@ -284,8 +284,10 @@ void pointperfectPrintKeyInformation() {systemPrintln("**PPL Not Compiled**");}
 
 #ifndef COMPILE_LG290P
 
+void lg290pBoot()       {}
 void lg290pHandler(uint8_t * buffer, int length) {}
-bool lg290pMessageEnabled(char *nmeaSentence, int sentenceLength) {return(false);}
+bool lg290pMessageEnabled(char *nmeaSentence, int sentenceLength)   {return false;}
+void lg290pReset()      {}
 
 #endif // COMPILE_LG290P
 

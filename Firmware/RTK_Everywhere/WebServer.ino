@@ -65,6 +65,7 @@ static int last_ws_fd;
 static TaskHandle_t updateWebServerTaskHandle;
 static const uint8_t updateWebServerTaskPriority = 0; // 3 being the highest, and 0 being the lowest
 static const int webServerTaskStackSize = 4096; // Needs to be large enough to hold the file manager file list
+static const int webSocketStackSize = 8192;
 
 // Inspired by:
 // https://github.com/espressif/arduino-esp32/blob/master/libraries/WebServer/examples/MultiHomedServers/MultiHomedServers.ino
@@ -632,6 +633,7 @@ void handleUpload()
 }
 
 //----------------------------------------
+// Generate the Not Found page
 //----------------------------------------
 void notFound()
 {
@@ -700,6 +702,7 @@ bool parseIncomingSettings()
 }
 
 //----------------------------------------
+// Send a string to the browser using the web socket
 //----------------------------------------
 void sendStringToWebsocket(const char *stringToSend)
 {
@@ -738,6 +741,7 @@ void sendStringToWebsocket(const char *stringToSend)
 }
 
 //----------------------------------------
+// Stop the web server
 //----------------------------------------
 void stopWebServer()
 {
@@ -1004,6 +1008,7 @@ const char *webServerGetStateName(uint8_t state, char *string)
 }
 
 //----------------------------------------
+// Determine if the web server is running
 //----------------------------------------
 bool webServerIsRunning()
 {
@@ -1423,8 +1428,8 @@ bool websocketServerStart(void)
     // Use different ports for websocket and webServer - use port 81 for the websocket - also defined in main.js
     config.server_port = 81;
 
-    // Increase the stack size from 4K to 8K
-    config.stack_size = 4096 * 2;
+    // Increase the stack size from 4K to handle page processing
+    config.stack_size = webSocketStackSize;
 
     // Start the httpd server
     if (settings.debugWebServer == true)

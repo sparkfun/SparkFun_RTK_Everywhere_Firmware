@@ -64,7 +64,7 @@ t_cliResult processCommand(char *cmdBuffer)
         }
 
         // Remove $
-        memmove(cmdBuffer, &cmdBuffer[1], sizeof(cmdBuffer) - 1);
+        memmove(cmdBuffer, &cmdBuffer[1], strlen(cmdBuffer));
 
         // Change * to , and null terminate on the first CRC character
         cmdBuffer[strlen(cmdBuffer) - 3] = ',';
@@ -1198,7 +1198,7 @@ SettingValueResponse updateSettingWithValue(bool inCommands, const char *setting
     }
     else if (strcmp(settingName, "firmwareFileName") == 0)
     {
-        microSdMountThenUpdate(settingValueStr);
+        microSDMountThenUpdate(settingValueStr);
 
         // If update is successful, it will force system reset and not get here.
 
@@ -2400,6 +2400,12 @@ SettingValueResponse getSettingValue(bool inCommands, const char *settingName, c
         break;
         case tMuxConn: {
             muxConnectionType_e *ptr = (muxConnectionType_e *)var;
+            writeToString(settingValueStr, (int)*ptr);
+            knownSetting = true;
+        }
+        break;
+        case tSysState: {
+            SystemState *ptr = (SystemState *)var;
             writeToString(settingValueStr, (int)*ptr);
             knownSetting = true;
         }

@@ -482,9 +482,9 @@ void beginLoraFirmwareUpdate()
         while (serialGNSS->available())
             Serial.write(serialGNSS->read());
 
-        if (digitalRead(pin_powerButton) == HIGH)
+        if (readAnalogPinAsDigital(pin_powerButton) == HIGH)
         {
-            while (digitalRead(pin_powerButton) == HIGH)
+            while (readAnalogPinAsDigital(pin_powerButton) == HIGH)
                 delay(100);
 
             // Remove file and reset to exit LoRa update pass-through mode

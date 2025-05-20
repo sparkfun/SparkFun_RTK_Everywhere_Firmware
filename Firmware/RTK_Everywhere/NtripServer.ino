@@ -505,17 +505,13 @@ void ntripServerRestart(int serverIndex)
 //----------------------------------------
 void ntripServerSetState(NTRIP_SERVER_DATA *ntripServer, uint8_t newState)
 {
-    int index;
-    int serverIndex = 0;
-    for (index = 0; index < NTRIP_SERVER_MAX; index++)
+    int serverIndex;
+    for (serverIndex = 0; serverIndex < NTRIP_SERVER_MAX; serverIndex++)
     {
-        if (ntripServer == &ntripServerArray[index])
-        {
-            serverIndex = index;
-            break;
-        }
+        if (ntripServer == &ntripServerArray[serverIndex])
+            serverIndex = serverIndex;
     }
-    if (index >= NTRIP_SERVER_MAX)
+    if (serverIndex >= NTRIP_SERVER_MAX)
     {
         systemPrintf("NTRIP Server: %p unknown NTRIP Server structure!\r\n", (void *)ntripServer);
         return;
@@ -632,6 +628,7 @@ void ntripServerUpdate(int serverIndex)
 {
     bool connected;
     bool enabled;
+    const char * line = "";
 
     // Get the NTRIP data structure
     NTRIP_SERVER_DATA *ntripServer = &ntripServerArray[serverIndex];
@@ -639,7 +636,7 @@ void ntripServerUpdate(int serverIndex)
     // Shutdown the NTRIP server when the mode or setting changes
     DMW_ds(ntripServerSetState, ntripServer);
     connected = networkConsumerIsConnected(NETCONSUMER_NTRIP_SERVER_0 + serverIndex);
-    enabled = ntripServerEnabled(serverIndex, nullptr);
+    enabled = ntripServerEnabled(serverIndex, &line);
     if (!enabled && (ntripServer->state > NTRIP_SERVER_OFF))
         ntripServerShutdown(serverIndex);
 
@@ -869,8 +866,6 @@ void ntripServerUpdate(int serverIndex)
     // Periodically display the state
     if (PERIODIC_DISPLAY(PD_NTRIP_SERVER_STATE))
     {
-        const char * line = "";
-        ntripServerEnabled(serverIndex, &line);
         systemPrintf("NTRIP Server %d state: %s%s\r\n", serverIndex,
                      ntripServerStateName[ntripServer->state], line);
         if (serverIndex == (NTRIP_SERVER_MAX - 1))

@@ -71,7 +71,7 @@ void firmwareMenu()
         {
             // Adjust incoming to match array
             incoming--;
-            microSdUpdateFirmware(binFileNames[incoming]);
+            microSDUpdateFirmware(binFileNames[incoming]);
         }
 
         else if (otaMenuProcessInput(incoming))
@@ -254,7 +254,7 @@ int firmwareVersionMapMonthName(char *mmm)
 
 //----------------------------------------
 //----------------------------------------
-void microSdMountThenUpdate(const char *firmwareFileName)
+void microSDMountThenUpdate(const char *firmwareFileName)
 {
     bool gotSemaphore;
     bool wasSdCardOnline;
@@ -274,7 +274,7 @@ void microSdMountThenUpdate(const char *firmwareFileName)
         if (xSemaphoreTake(sdCardSemaphore, fatSemaphore_longWait_ms) == pdPASS)
         {
             gotSemaphore = true;
-            microSdUpdateFirmware(firmwareFileName);
+            microSDUpdateFirmware(firmwareFileName);
         } // End Semaphore check
         else
         {
@@ -294,7 +294,7 @@ void microSdMountThenUpdate(const char *firmwareFileName)
 // Loads a global called binCount
 // Called from beginSD with microSD card mounted and sdCardsemaphore held
 //----------------------------------------
-void microSdScanForFirmware()
+void microSDScanForFirmware()
 {
     // Count available binaries
     SdFile tempFile;
@@ -306,7 +306,7 @@ void microSdScanForFirmware()
 
     dir.open("/"); // Open root
 
-    binCount = 0; // Reset count in case microSdScanForFirmware is called again
+    binCount = 0; // Reset count in case microSDScanForFirmware is called again
 
     while (tempFile.openNext(&dir, O_READ) && binCount < maxBinFiles)
     {
@@ -318,7 +318,7 @@ void microSdScanForFirmware()
             {
                 systemPrintln("Forced firmware detected. Loading...");
                 displayForcedFirmwareUpdate();
-                microSdUpdateFirmware(forceFirmwareFileName);
+                microSDUpdateFirmware(forceFirmwareFileName);
             }
 
             // Check 'bin' extension
@@ -339,10 +339,10 @@ void microSdScanForFirmware()
 
 //----------------------------------------
 // Look for firmware file on SD card and update as needed
-// Called from microSdScanForFirmware with microSD card mounted and sdCardsemaphore held
-// Called from microSdMountThenUpdate with microSD card mounted and sdCardsemaphore held
+// Called from microSDScanForFirmware with microSD card mounted and sdCardsemaphore held
+// Called from microSDMountThenUpdate with microSD card mounted and sdCardsemaphore held
 //----------------------------------------
-void microSdUpdateFirmware(const char *firmwareFileName)
+void microSDUpdateFirmware(const char *firmwareFileName)
 {
     // Count app partitions
     int appPartitions = 0;
@@ -693,6 +693,37 @@ bool otaMenuProcessInput(byte incoming)
 void otaPullCallback(int bytesWritten, int totalLength)
 {
     otaDisplayPercentage(bytesWritten, totalLength, false);
+}
+
+//----------------------------------------
+// Translate the ESP32OTAPull code into a zero terminated error string
+//----------------------------------------
+const char *otaPullErrorText(int code)
+{
+    switch (code)
+    {
+    case ESP32OTAPull::UPDATE_AVAILABLE:
+        return "An update is available but wasn't installed";
+    case ESP32OTAPull::NO_UPDATE_PROFILE_FOUND:
+        return "No profile matches";
+    case ESP32OTAPull::NO_UPDATE_AVAILABLE:
+        return "Profile matched, but update not applicable";
+    case ESP32OTAPull::UPDATE_OK:
+        return "An update was done, but no reboot";
+    case ESP32OTAPull::HTTP_FAILED:
+        return "HTTP GET failure";
+    case ESP32OTAPull::WRITE_ERROR:
+        return "Write error";
+    case ESP32OTAPull::JSON_PROBLEM:
+        return "Invalid JSON";
+    case ESP32OTAPull::OTA_UPDATE_FAIL:
+        return "Update fail (no OTA partition?)";
+    default:
+        if (code > 0)
+            return "Unexpected HTTP response code";
+        break;
+    }
+    return "Unknown error";
 }
 
 //----------------------------------------

@@ -93,8 +93,6 @@ class GNSS_LG290P : GNSS
 
     uint8_t getActiveNmeaMessageCount();
 
-    uint8_t getActiveRtcmMessageCount();
-
     // Given the name of an NMEA message, return the array number
     uint8_t getNmeaMessageNumberByName(const char *msgName);
 
@@ -188,7 +186,7 @@ class GNSS_LG290P : GNSS
     //   Returns true if successfully started and false upon failure
     bool enableRTCMTest();
 
-    bool enterConfigMode();
+    bool enterConfigMode(unsigned long waitForSemaphoreTimeout_millis);
 
     bool exitConfigMode();
 
@@ -206,6 +204,9 @@ class GNSS_LG290P : GNSS
 
     // Return the number of active/enabled messages
     uint8_t getActiveMessageCount();
+
+    // Return the number of active/enabled RTCM messages
+    uint8_t getActiveRtcmMessageCount();
 
     // Get the altitude
     // Outputs:

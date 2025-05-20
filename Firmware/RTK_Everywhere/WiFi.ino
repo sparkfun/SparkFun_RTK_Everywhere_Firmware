@@ -44,31 +44,31 @@ static const int wifiAuthorizationNameEntries =
 //   6. Call esp_wifi_set_promiscuous(true)
 //   7. Set promiscuous receive callback [esp_wifi_set_promiscuous_rx_cb(promiscuous_rx_cb)]
 //      to get RSSI of action frames
-//   8. Assign a channel if necessary, call espnowSetChannel
-//   9. Set receive callback [esp_now_register_recv_cb(espnowOnDataReceived)]
+//   8. Assign a channel if necessary, call RTK_WIFI::espNowSetChannel
+//   9. Set receive callback [esp_now_register_recv_cb(espNowOnDataReceived)]
 //  10. Add peers from settings
 //      A. If no peers exist
 //          i.   Determine if broadcast peer exists, call esp_now_is_peer_exist
-//          ii.  Add broadcast peer if necessary, call espnowAddPeer
-//          iii. Set ESP-NOW state, call espnowSetState(ESPNOW_BROADCASTING)
+//          ii.  Add broadcast peer if necessary, call espNowAddPeer
+//          iii. Set ESP-NOW state, call espNowSetState(ESPNOW_BROADCASTING)
 //      B. If peers exist,
-//          i.  Set ESP-NOW state, call espnowSetState(ESPNOW_PAIRED)
+//          i.  Set ESP-NOW state, call espNowSetState(ESPNOW_PAIRED)
 //          ii. Loop through peers listed in settings, for each
 //              a. Determine if peer exists, call esp_now_is_peer_exist
-//              b. Add peer if necessary, call espnowAddPeer
+//              b. Add peer if necessary, call espNowAddPeer
 //
-// In espnowOnDataReceived
+// In espNowOnDataReceived
 //  11. Save ESP-NOW RSSI
-//  12. Set lastEspnowRssiUpdate = millis()
+//  12. Set espNowLastRssiUpdate = millis()
 //  13. If in ESPNOW_PAIRING state
 //      A. Validate message CRC
 //      B. If valid CRC
 //          i.  Save peer MAC address
-//          ii. espnowSetState(ESPNOW_MAC_RECEIVED)
+//          ii. espNowSetState(ESPNOW_MAC_RECEIVED)
 //  14. Else if ESPNOW_MAC_RECEIVED state
 //      A. If ESP-NOW is corrections source, correctionLastSeen(CORR_ESPNOW)
 //          i.  gnss->pushRawData
-//  15. Set espnowIncomingRTCM
+//  15. Set espNowIncomingRTCM
 //
 // ESP-NOW shutdown from RTK
 //   1. esp_wifi_set_promiscuous(false)
@@ -80,7 +80,7 @@ static const int wifiAuthorizationNameEntries =
 //   7. esp_wifi_get_protocol
 //   8. Turn off long range protocol if necessary, call esp_wifi_set_protocol
 //   9. Turn off ESP-NOW. call esp_now_deinit
-//  10. Set ESP-NOW state, call espnowSetState(ESPNOW_OFF)
+//  10. Set ESP-NOW state, call espNowSetState(ESPNOW_OFF)
 //  11. Restart WiFi if necessary
 //----------------------------------------------------------------------
 
@@ -346,8 +346,6 @@ const int wifiStartNamesEntries = sizeof(wifiStartNames) / sizeof(wifiStartNames
 #define WIFI_MAX_TIMEOUT    (15 * 60 * 1000)    // Timeout in milliseconds
 #define WIFI_MIN_TIMEOUT    (15 * 1000)         // Timeout in milliseconds
 
-const char * wifiSoftApName = "Soft AP";
-
 //****************************************
 // Locals
 //****************************************
@@ -355,11 +353,13 @@ const char * wifiSoftApName = "Soft AP";
 // DNS server for Captive Portal
 static DNSServer dnsServer;
 
-// Start timeout
-static uint32_t wifiStartTimeout;
-
 static int wifiFailedConnectionAttempts = 0; // Count the number of connection attempts between restarts
 static bool wifiReconnectRequest; // Set true to request WiFi reconnection
+
+const char * wifiSoftApName = "Soft AP";
+
+// Start timeout
+static uint32_t wifiStartTimeout;
 
 //*********************************************************************
 // Set WiFi credentials
@@ -542,6 +542,13 @@ void wifiDisplayState()
 }
 
 //*********************************************************************
+// Set the ESP-NOW channel
+void wifiEspNowSetChannel(WIFI_CHANNEL_t channel)
+{
+    wifi.espNowSetChannel(channel);
+}
+
+//*********************************************************************
 // Stop ESP-NOW
 // Inputs:
 //   fileName: Name of file calling the enable routine
@@ -557,7 +564,10 @@ bool wifiEspNowOff(const char * fileName, uint32_t lineNumber)
 
     // Turn off ESP-NOW when enabled
     if (wifiEspNowRunning)
-        return wifi.enable(false, wifiSoftApRunning, wifiStationRunning, __FILE__, __LINE__);
+        return wifi.enable(false,
+                           wifiSoftApRunning,
+                           wifiStationRunning,
+                           __FILE__, __LINE__);
     return true;
 }
 
@@ -577,7 +587,10 @@ bool wifiEspNowOn(const char * fileName, uint32_t lineNumber)
 
     // Turn on ESP-NOW when it is enabled
     if (settings.enableEspNow && !wifiEspNowRunning)
-        return wifi.enable(true, wifiSoftApRunning, wifiStationRunning, __FILE__, __LINE__);
+        return wifi.enable(true,
+                           wifiSoftApRunning,
+                           wifiStationRunning,
+                           __FILE__, __LINE__);
     return settings.enableEspNow;
 }
 
@@ -585,7 +598,7 @@ bool wifiEspNowOn(const char * fileName, uint32_t lineNumber)
 // Return the start timeout in milliseconds
 uint32_t wifiGetStartTimeout()
 {
-    return wifiStartTimeout;
+    return (wifiStartTimeout);
 }
 
 //*********************************************************************
@@ -637,7 +650,7 @@ void wifiPromiscuousRxHandler(void *buf, wifi_promiscuous_pkt_type_t type)
 {
     const wifi_promiscuous_pkt_t *ppkt; // Defined in esp_wifi_types_native.h
 
-    // All espnow traffic uses action frames which are a subtype of the
+    // All espNow traffic uses action frames which are a subtype of the
     // mgmnt frames so filter out everything else.
     if (type != WIFI_PKT_MGMT)
         return;
@@ -666,6 +679,30 @@ void wifiResetTimeout()
 }
 
 //*********************************************************************
+// Get the IP address being used for the software access point (AP)
+// Outputs:
+//   Returns an IPAddress object containing the IP address used by the
+//   soft AP
+IPAddress wifiSoftApGetIpAddress()
+{
+    return wifi.softApOnline() ? WiFi.AP.localIP() : IPAddress((uint32_t)0);
+}
+
+//*********************************************************************
+// Get the WiFi soft AP SSID
+// Outputs:
+//   Returns a zero terminated string containing the SSID begin broadcast
+//   for the WiFi soft AP.  The return value of an empty string occurs
+//   when the soft AP is not online.
+const char * wifiSoftApGetSsid()
+{
+    const char * ssid;
+
+    ssid = wifi.softApOnline() ? wifi._apSsid : "";
+    return ssid;
+}
+
+//*********************************************************************
 // Turn off WiFi soft AP mode
 // Inputs:
 //   fileName: Name of file calling the enable routine
@@ -679,7 +716,10 @@ bool wifiSoftApOff(const char * fileName, uint32_t lineNumber)
         systemPrintf("wifiSoftApOff called in %s at line %d\r\n",
                      fileName, lineNumber);
 
-    return wifi.enable(wifiEspNowRunning, false, wifiStationRunning, __FILE__, __LINE__);
+    return wifi.enable(wifiEspNowRunning,
+                       false,
+                       wifiStationRunning,
+                       __FILE__, __LINE__);
 }
 
 //*********************************************************************
@@ -696,21 +736,10 @@ bool wifiSoftApOn(const char * fileName, uint32_t lineNumber)
         systemPrintf("wifiSoftApOn called in %s at line %d\r\n",
                      fileName, lineNumber);
 
-    return wifi.enable(wifiEspNowRunning, true, wifiStationRunning, __FILE__, __LINE__);
-}
-
-//*********************************************************************
-// Get the WiFi soft AP SSID
-// Outputs:
-//   Returns a zero terminated string containing the SSID begin broadcast
-//   for the WiFi soft AP.  The return value of an empty string occurs
-//   when the soft AP is not online.
-const char * wifiSoftApGetSsid()
-{
-    const char * ssid;
-
-    ssid = wifi.softApOnline() ? wifi._apSsid : "";
-    return ssid;
+    return wifi.enable(wifiEspNowRunning,
+                       true,
+                       wifiStationRunning,
+                       __FILE__, __LINE__);
 }
 
 //*********************************************************************
@@ -752,7 +781,10 @@ bool wifiStationOff(const char * fileName, uint32_t lineNumber)
         systemPrintf("wifiStationOff called in %s at line %d\r\n",
                      fileName, lineNumber);
 
-    return wifi.enable(wifiEspNowRunning, wifiSoftApRunning, false, __FILE__, __LINE__);
+    return wifi.enable(wifiEspNowRunning,
+                       wifiSoftApRunning,
+                       false,
+                       __FILE__, __LINE__);
 }
 
 //*********************************************************************
@@ -769,7 +801,10 @@ bool wifiStationOn(const char * fileName, uint32_t lineNumber)
         systemPrintf("wifiStationOn called in %s at line %d\r\n",
                      fileName, lineNumber);
 
-    return wifi.enable(wifiEspNowRunning, wifiSoftApRunning, true, __FILE__, __LINE__);
+    return wifi.enable(wifiEspNowRunning,
+                       wifiSoftApRunning,
+                       true,
+                       __FILE__, __LINE__);
 }
 
 //*********************************************************************
@@ -861,9 +896,9 @@ void wifiStationRestart(NetIndex_t index, uintptr_t parameter, bool debug)
 // Stop WiFi, used by wifiStopSequence
 void wifiStop(NetIndex_t index, uintptr_t parameter, bool debug)
 {
-    networkInterfaceInternetConnectionLost(NETWORK_WIFI_STATION, __FILE__, __LINE__);
+    networkInterfaceInternetConnectionLost(NETWORK_WIFI_STATION);
 
-    // Stop WiFi stataion
+    // Stop WiFi station
     wifi.enable(wifiEspNowRunning, wifiSoftApRunning, false, __FILE__, __LINE__);
 
     networkSequenceNextEntry(NETWORK_WIFI_STATION, settings.debugNetworkLayer);
@@ -990,10 +1025,16 @@ bool RTK_WIFI::connect(unsigned long timeout,
     if (wifiStationRunning == false)
     {
         displayWiFiConnect();
-        started = enable(wifiEspNowRunning, wifiSoftApRunning, true, __FILE__, __LINE__);
+        started = enable(wifiEspNowRunning,
+                         wifiSoftApRunning,
+                         true,
+                         __FILE__, __LINE__);
     }
     else if (startAP && !wifiSoftApRunning)
-        started = enable(wifiEspNowRunning, true, wifiStationRunning, __FILE__, __LINE__);
+        started = enable(wifiEspNowRunning,
+                         true,
+                         wifiStationRunning,
+                         __FILE__, __LINE__);
 
     // Determine the WiFi station status
     if (started)
@@ -1438,9 +1479,15 @@ bool RTK_WIFI::softApConfiguration(IPAddress ipAddress,
     success = true;
     if (softApOnline())
     {
-        success = enable(false, false, wifiStationRunning, __FILE__, __LINE__);
+        success = enable(false,
+                         false,
+                         wifiStationRunning,
+                         __FILE__, __LINE__);
         if (success)
-            success = enable(false, true, wifiStationRunning, __FILE__, __LINE__);
+            success = enable(false,
+                             true,
+                             wifiStationRunning,
+                             __FILE__, __LINE__);
     }
     return success;
 }
@@ -1478,6 +1525,23 @@ void RTK_WIFI::softApEventHandler(arduino_event_id_t event, arduino_event_info_t
             systemPrintf("_started: 0x%08x\r\n", _started);
         break;
     }
+}
+
+//*********************************************************************
+// Get the soft AP IP address
+// Returns the soft IP address
+IPAddress RTK_WIFI::softApIpAddress()
+{
+    if (softApOnline())
+        return _apIpAddress;
+    return IPAddress((uint32_t)0);
+}
+
+//*********************************************************************
+// Get the soft AP status
+bool RTK_WIFI::softApOnline()
+{
+    return (_started & WIFI_AP_ONLINE) ? true : false;
 }
 
 //*********************************************************************
@@ -1607,23 +1671,6 @@ bool RTK_WIFI::softApSetIpAddress(const char * ipAddress,
 }
 
 //*********************************************************************
-// Get the soft AP IP address
-// Returns the soft IP address
-IPAddress RTK_WIFI::softApIpAddress()
-{
-    if (softApOnline())
-        return _apIpAddress;
-    return IPAddress((uint32_t)0);
-}
-
-//*********************************************************************
-// Get the soft AP status
-bool RTK_WIFI::softApOnline()
-{
-    return (_started & WIFI_AP_ONLINE) ? true : false;
-}
-
-//*********************************************************************
 // Set the soft AP SSID and password
 // Outputs:
 //   Returns true if successful and false upon failure
@@ -1653,7 +1700,10 @@ bool RTK_WIFI::softApSetSsidPassword(const char * ssid, const char * password)
 //    otherwise
 bool RTK_WIFI::startAp(bool forceAP)
 {
-    return enable(wifiEspNowRunning, forceAP | settings.wifiConfigOverAP, wifiStationRunning, __FILE__, __LINE__);
+    return enable(wifiEspNowRunning,
+                  forceAP | settings.wifiConfigOverAP,
+                  wifiStationRunning,
+                  __FILE__, __LINE__);
 }
 
 //*********************************************************************
@@ -1927,10 +1977,13 @@ int16_t RTK_WIFI::stationScanForAPs(WIFI_CHANNEL_t channel)
         }
 
         // Determine if scanning a single channel or all channels
-        if (channel)
-            systemPrintf("WiFi scanning on channel %d\r\n", channel);
-        else
-            systemPrintf("WiFi scanning for access points\r\n");
+        if (settings.debugWifiState)
+        {
+            if (channel)
+                systemPrintf("WiFI starting scan for remote APs on channel %d\r\n", channel);
+            else
+                systemPrintf("WiFI starting scan for remote APs\r\n");
+        }
 
         // Start the WiFi scan
         apCount = WiFi.scanNetworks(false,      // async

@@ -280,12 +280,14 @@ void menuMain()
     if (restartBase == true && inBaseMode() == true)
     {
         restartBase = false;
+        settings.gnssConfiguredBase = false; // Reapply configuration
         requestChangeState(STATE_BASE_NOT_STARTED); // Restart base upon exit for latest changes to take effect
     }
 
     if (restartRover == true && inRoverMode() == true)
     {
         restartRover = false;
+        settings.gnssConfiguredRover = false; // Reapply configuration
         requestChangeState(STATE_ROVER_NOT_STARTED); // Restart rover upon exit for latest changes to take effect
     }
 
@@ -315,13 +317,13 @@ void menuMain()
 }
 
 // Change system wide settings based on current user profile
-// Ways to change the ZED settings:
-// Menus - we apply ZED changes at the exit of each sub menu
-// Settings file - we detect differences between NVM and settings txt file and updateGNSSSettings = true
-// Profile - Before profile is changed, set updateGNSSSettings = true
-// AP - once new settings are parsed, set updateGNSSSettings = true
+// Ways to change the GNSS settings:
+// Menus - we apply changes at the exit of each sub menu
+// Settings file - we detect differences between NVM and settings txt file
+// Profile -
+// AP -
 // Setup button -
-// Factory reset - updatesZEDSettings = true by default
+// Factory reset -
 void menuUserProfiles()
 {
     uint8_t originalProfileNumber = profileNumber;
@@ -456,8 +458,9 @@ void menuUserProfiles()
 // Change the active profile number, without unit reset
 void changeProfileNumber(byte newProfileNumber)
 {
-    settings.updateGNSSSettings = true; // When this profile is loaded next, force system to update GNSS settings.
-    recordSystemSettings();             // Before switching, we need to record the current settings to LittleFS and SD
+    settings.gnssConfiguredBase = false; // On the next boot, reapply all settings
+    settings.gnssConfiguredRover = false;
+    recordSystemSettings(); // Before switching, we need to record the current settings to LittleFS and SD
 
     recordProfileNumber(newProfileNumber);
     profileNumber = newProfileNumber;
@@ -496,6 +499,8 @@ void factoryReset(bool alreadyHasSemaphore)
             sd->remove(stationCoordinateGeodeticFileName);
 
             xSemaphoreGive(sdCardSemaphore);
+
+            systemPrintln("Settings files deleted...");
         } // End sdCardSemaphore
         else
         {
@@ -505,8 +510,12 @@ void factoryReset(bool alreadyHasSemaphore)
             // An error occurs when a settings file is on the microSD card and it is not
             // deleted, as such the settings on the microSD card will be loaded when the
             // RTK reboots, resulting in failure to achieve the factory reset condition
-            log_d("sdCardSemaphore failed to yield, held by %s, menuMain.ino line %d\r\n", semaphoreHolder, __LINE__);
+            systemPrintf("sdCardSemaphore failed to yield, held by %s, menuMain.ino line %d\r\n", semaphoreHolder, __LINE__);
         }
+    }
+    else
+    {
+        systemPrintln("microSD not online. Unable to delete settings files...");
     }
 
     tiltSensorFactoryReset();
@@ -515,7 +524,12 @@ void factoryReset(bool alreadyHasSemaphore)
     LittleFS.format();
 
     if (online.gnss == true)
+    {
+        systemPrintln("Resetting the GNSS to factory defaults. This could take a few seconds...");
         gnss->factoryReset();
+    }
+    else
+        systemPrintln("GNSS not online. Unable to factoryReset...");
 
     systemPrintln("Settings erased successfully. Rebooting. Goodbye!");
     delay(2000);
@@ -682,7 +696,7 @@ void menuRadio()
             if (getNewSetting("Enter the WiFi channel to use for ESP-NOW communication", 1, 14,
                               &settings.wifiChannel) == INPUT_RESPONSE_VALID)
             {
-                WIFI_ESPNOW_SET_CHANNEL(settings.wifiChannel);
+                wifiEspNowSetChannel(settings.wifiChannel);
                 if (settings.wifiChannel)
                 {
                     if (settings.wifiChannel == wifiChannel)
@@ -728,12 +742,12 @@ void menuRadio()
             if (wifiEspNowRunning == false)
                 wifiEspNowOn(__FILE__, __LINE__);
 
-            uint8_t espnowData[] =
+            uint8_t espNowData[] =
                 "This is the long string to test how quickly we can send one string to the other unit. I am going to "
                 "need a much longer sentence if I want to get a long amount of data into one transmission. This is "
                 "nearing 200 characters but needs to be near 250.";
 #ifdef COMPILE_ESPNOW
-            esp_now_send(0, (uint8_t *)&espnowData, sizeof(espnowData)); // Send packet to all peers
+            esp_now_send(0, (uint8_t *)&espNowData, sizeof(espNowData)); // Send packet to all peers
 #endif
         }
         else if (settings.enableEspNow == true && incoming == 7 && settings.debugEspNow == true)
@@ -741,13 +755,13 @@ void menuRadio()
             if (wifiEspNowRunning == false)
                 wifiEspNowOn(__FILE__, __LINE__);
 
-            uint8_t espnowData[] =
+            uint8_t espNowData[] =
                 "This is the long string to test how quickly we can send one string to the other unit. I am going to "
                 "need a much longer sentence if I want to get a long amount of data into one transmission. This is "
                 "nearing 200 characters but needs to be near 250.";
             uint8_t broadcastMac[6] = {0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF};
 #ifdef COMPILE_ESPNOW
-            esp_now_send(broadcastMac, (uint8_t *)&espnowData, sizeof(espnowData)); // Send packet over broadcast
+            esp_now_send(broadcastMac, (uint8_t *)&espNowData, sizeof(espNowData)); // Send packet over broadcast
 #endif
         }
 

@@ -424,7 +424,8 @@ void tcpClientUpdate()
         tcpClientStop(true);
 
     // Determine if the network has failed
-    else if ((tcpClientState > TCP_CLIENT_STATE_WAIT_FOR_NETWORK) && !connected)
+    else if ((tcpClientState > TCP_CLIENT_STATE_WAIT_FOR_NETWORK)
+        && !connected)
         tcpClientStop(false);
 
     /*

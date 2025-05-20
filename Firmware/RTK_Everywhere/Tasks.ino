@@ -763,6 +763,22 @@ void processUart1Message(SEMP_PARSE_STATE *parse, uint16_t type)
         pushGPGGA((char *)parse->buffer);
     }
 
+    // If the user has not specifically enabled RTCM used by the PPL, then suppress it
+    if (inRoverMode() && gnss->getActiveRtcmMessageCount() == 0 && type == RTK_RTCM_PARSER_INDEX)
+    {
+        // Erase buffer
+        parse->buffer[0] = 0;
+        parse->length = 0;
+    }
+
+    // Suppress binary messages from UM980. Not needed by end GIS apps.
+    if (type == RTK_UNICORE_BINARY_PARSER_INDEX)
+    {
+        // Erase buffer
+        parse->buffer[0] = 0;
+        parse->length = 0;
+    }
+
     // Determine if this message will fit into the ring buffer
     bytesToCopy = parse->length;
     space = availableHandlerSpace;
@@ -1292,7 +1308,7 @@ void handleGnssDataTask(void *e)
                         systemPrintf("SD %d bytes written to log file\r\n", bytesToSend);
                     }
 
-                    fileSize = logFile->fileSize(); // Update file size
+                    logFileSize = logFile->fileSize(); // Update file size
 
                     sdFreeSpace -= bytesToSend; // Update remaining space on SD
 
@@ -1320,7 +1336,7 @@ void handleGnssDataTask(void *e)
                         if (endTime - startTime > 150)
                             systemPrintf("Long Write! Time: %ld ms / Location: %ld / Recorded %d bytes / "
                                          "spaceRemaining %d bytes\r\n",
-                                         endTime - startTime, fileSize, bytesToSend, combinedSpaceRemaining);
+                                         endTime - startTime, logFileSize, bytesToSend, combinedSpaceRemaining);
                     }
 
                     xSemaphoreGive(sdCardSemaphore);
