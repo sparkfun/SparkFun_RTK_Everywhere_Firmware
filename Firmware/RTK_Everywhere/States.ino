@@ -7,8 +7,6 @@
 
 static uint32_t lastStateTime = 0;
 
-extern bool websocketConnected;
-
 // Given the current state, see if conditions have moved us to a new state
 // A user pressing the mode button (change between rover/base) is handled by buttonCheckTask()
 void stateUpdate()
@@ -123,7 +121,6 @@ void stateUpdate()
                 displayRoverFail(1000);
             else
             {
-                //settings.gnssConfiguredRover is set by gnss->configureRover()
                 settings.gnssConfiguredBase = false; // When the mode changes, reapply all settings
                 settings.lastState = STATE_ROVER_NOT_STARTED;
                 recordSystemSettings(); // Record this state for next POR
@@ -256,7 +253,7 @@ void stateUpdate()
 
                 if (settings.fixedBase == false)
                     changeState(STATE_BASE_TEMP_SETTLE);
-                else if (settings.fixedBase == true)
+                else
                     changeState(STATE_BASE_FIXED_NOT_STARTED);
             }
             else
@@ -443,7 +440,7 @@ void stateUpdate()
             displayWebConfigNotStarted(); // Display immediately while we wait for server to start
 
             bluetoothStop(); // Bluetooth must be stopped to allow enough RAM for AP+STA (firmware check)
-            ESPNOW_STOP();    // We don't need ESP-NOW during web config
+            wifiEspNowOff(__FILE__, __LINE__); // We don't need ESP-NOW during web config
 
             // The GNSS UART task is left running to allow GNSS receivers to obtain LLh data for 1Hz page updates
 
@@ -570,7 +567,7 @@ void stateUpdate()
             paintEspNowPairing();
 
             // Start ESP-Now if needed, put ESP-Now into broadcast state
-            espnowBeginPairing();
+            espNowBeginPairing();
 
             changeState(STATE_ESPNOW_PAIRING);
 #else  // COMPILE_ESPNOW
@@ -580,7 +577,7 @@ void stateUpdate()
         break;
 
         case (STATE_ESPNOW_PAIRING): {
-            if (espnowIsPaired() == true)
+            if (espNowProcessRxPairedMessage() == true)
             {
                 paintEspNowPaired();
 
@@ -588,10 +585,7 @@ void stateUpdate()
                 changeState(lastSystemState);
             }
             else
-            {
-                uint8_t broadcastMac[6] = {0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF};
-                espnowSendPairMessage(broadcastMac); // Send unit's MAC address over broadcast, no ack, no encryption
-            }
+                espNowSendPairMessage(espNowBroadcastAddr); // Send unit's MAC address over broadcast, no ack, no encryption
         }
         break;
 
@@ -606,7 +600,7 @@ void stateUpdate()
             displayNtpStart(500); // Show 'NTP'
 
             // Start UART connected to the GNSS receiver for NMEA and UBX data (enables logging)
-            if (tasksStartGnssUart() && configureUbloxModuleNTP())
+            if (tasksStartGnssUart() && ntpConfigureUbloxModule())
             {
                 settings.lastState = STATE_NTPSERVER_NOT_STARTED; // Record this state for next POR
                 settings.gnssConfiguredBase = false; // On the next boot, reapply all settings
@@ -817,6 +811,7 @@ const RTK_MODE_ENTRY stateModeTable[] = {{"Rover", STATE_ROVER_NOT_STARTED, STAT
                                          {"Base", STATE_BASE_NOT_STARTED, STATE_BASE_FIXED_TRANSMITTING},
                                          {"Setup", STATE_DISPLAY_SETUP, STATE_PROFILE},
                                          {"ESPNOW Pairing", STATE_ESPNOW_PAIRING_NOT_STARTED, STATE_ESPNOW_PAIRING},
+                                         {"Provisioning", STATE_KEYS_REQUESTED, STATE_KEYS_REQUESTED},
                                          {"NTP", STATE_NTPSERVER_NOT_STARTED, STATE_NTPSERVER_SYNC},
                                          {"Shutdown", STATE_SHUTDOWN, STATE_SHUTDOWN}};
 const int stateModeTableEntries = sizeof(stateModeTable) / sizeof(stateModeTable[0]);

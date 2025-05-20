@@ -188,15 +188,7 @@ void menuSystem()
             systemPrintf("%d (%d days %d:%02d)\r\n", settings.rebootMinutes, days, hours, minutes);
         }
 
-        systemPrint("b) Set Bluetooth Mode: ");
-        if (bluetoothUserChoice == BLUETOOTH_RADIO_SPP_AND_BLE)
-            systemPrintln("Dual");
-        else if (bluetoothUserChoice == BLUETOOTH_RADIO_SPP)
-            systemPrintln("Classic");
-        else if (bluetoothUserChoice == BLUETOOTH_RADIO_BLE)
-            systemPrintln("BLE");
-        else
-            systemPrintln("Off");
+        mmDisplayBluetoothRadioMenu('b', bluetoothUserChoice);
 
         if (present.fuelgauge_max17048 || present.fuelgauge_bq40z50 || present.charger_mp2762a)
         {
@@ -286,17 +278,7 @@ void menuSystem()
             }
         }
         else if (incoming == 'b')
-        {
-            // Change Bluetooth protocol
-            if (bluetoothUserChoice == BLUETOOTH_RADIO_SPP_AND_BLE)
-                bluetoothUserChoice = BLUETOOTH_RADIO_SPP;
-            else if (bluetoothUserChoice == BLUETOOTH_RADIO_SPP)
-                bluetoothUserChoice = BLUETOOTH_RADIO_BLE;
-            else if (bluetoothUserChoice == BLUETOOTH_RADIO_BLE)
-                bluetoothUserChoice = BLUETOOTH_RADIO_OFF;
-            else if (bluetoothUserChoice == BLUETOOTH_RADIO_OFF)
-                bluetoothUserChoice = BLUETOOTH_RADIO_SPP_AND_BLE;
-        }
+            bluetoothUserChoice = mmChangeBluetoothProtocol(bluetoothUserChoice);
         else if ((incoming == 'c') &&
                  (present.fuelgauge_max17048 || present.fuelgauge_bq40z50 || present.charger_mp2762a))
         {
@@ -436,12 +418,7 @@ void menuSystem()
     }
 
     // Restart Bluetooth radio if settings have changed
-    if (bluetoothUserChoice != settings.bluetoothRadioType)
-    {
-        bluetoothStop();
-        settings.bluetoothRadioType = bluetoothUserChoice;
-        bluetoothStart();
-    }
+    mmSetBluetoothProtocol(bluetoothUserChoice);
 
     clearBuffer(); // Empty buffer of any newline chars
 }
@@ -793,6 +770,8 @@ void menuDebugSoftware()
 
         systemPrintf("3) WiFi Connect Timeout (ms): %d\r\n", settings.wifiConnectTimeoutMs);
 
+        systemPrintf("4) Debug malloc/free and new/delete: %s\r\n", settings.debugMalloc ? "Enabled" : "Disabled");
+
         // Ring buffer
         systemPrint("10) Print ring buffer offsets: ");
         systemPrintf("%s\r\n", settings.enablePrintRingBufferOffsets ? "Enabled" : "Disabled");
@@ -856,6 +835,8 @@ void menuDebugSoftware()
         {
             getNewSetting("Enter WiFi connect timeout in ms", 1000, 120000, &settings.wifiConnectTimeoutMs);
         }
+        else if (incoming == 4)
+            settings.debugMalloc ^= 1;
         else if (incoming == 10)
             settings.enablePrintRingBufferOffsets ^= 1;
         else if (incoming == 11)
@@ -1248,6 +1229,9 @@ void menuPeriodicPrint()
         systemPrint("58) UDP server broadcast data: ");
         systemPrintf("%s\r\n", PERIODIC_SETTING(PD_UDP_SERVER_BROADCAST_DATA) ? "Enabled" : "Disabled");
 
+        systemPrint("59) WebServer state: ");
+        systemPrintf("%s\r\n", PERIODIC_SETTING(PD_WEB_SERVER_STATE) ? "Enabled" : "Disabled");
+
         systemPrintln("-------  Tasks  ------");
         systemPrint("70) btReadTask state: ");
         systemPrintf("%s\r\n", PERIODIC_SETTING(PD_TASK_BLUETOOTH_READ) ? "Enabled" : "Disabled");
@@ -1353,6 +1337,8 @@ void menuPeriodicPrint()
             PERIODIC_TOGGLE(PD_UDP_SERVER_DATA);
         else if (incoming == 58)
             PERIODIC_TOGGLE(PD_UDP_SERVER_BROADCAST_DATA);
+        else if (incoming == 59)
+            PERIODIC_TOGGLE(PD_WEB_SERVER_STATE);
 
         else if (incoming == 70)
             PERIODIC_TOGGLE(PD_TASK_BLUETOOTH_READ);

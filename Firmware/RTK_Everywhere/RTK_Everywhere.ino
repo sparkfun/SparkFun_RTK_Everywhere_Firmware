@@ -17,6 +17,65 @@
   to the GNSS receiver to achieve RTK Fix.
 
   Settings are loaded from microSD if available, otherwise settings are pulled from ESP32's file system LittleFS.
+
+  Software Layers:
+
+                       +--------+  +--------+
+                       |  GNSS  |  |  GNSS  |
+                       |  Rover |  |  Base  |
+                       +--------+  +--------+
+                             ^        |
+                             |        |
+                             |        v
+                          +-------------+
+                 .------->| RTCM Serial |<--------------.
+                 |        +-------------+               |
+                 |           ^                          |
+  HTTP Client    |           |      +--------+          |
+  MQTT Client    |           |      | Config |          |
+  NTRIP Client   |           |      +--------+          |
+  OTA Client     |           |           ^              |
+  TCP Client     |           |           |              |
+                 |           v           v              |
+                 |        +-----------------+           |
+                 |        |  Server Clients |           |
+                 |        +-----------------+           |
+                 |                 ^                    |
+                 |                 |  NTP Server        |
+                 |                 |  NTRIP Server      |
+                 |                 |  TCP Server        |
+                 |                 |  UDP Server        |
+                 |                 |  Web Server        |
+                 V                 v                    |
+  +-----------------+     +-----------------+           |
+  |     Clients     |     |     Servers     |           |
+  +-----------------+     +-----------------+           |
+           ^                       ^                    |
+           |                       |                    |
+           v                       v                    v
+  +-----------------------------------------+    +-------------+
+  |             Network Services            |    |             |
+  |                                         |    |             |
+  |  +---------------+   +---------------+  |    |             |
+  |  |   DNS Server  |   |      mDNS     |  |    |             |
+  |  +---------------+   +---------------+  |    |             |
+  |                                         |    |             |
+  +-----------------------------------------+    |             |
+           ^                       ^             |             |
+           |                       |             |             |
+           v                       v             |             |
+  +-----------------------------------------+    |   ESP-NOW   |
+  |              Network Layer              |    |             |
+  |                                         |    |             |
+  |  Priority Selection       On/Off        |    |             |
+  |  +---------------+   +---------------+  |    |             |
+  |  |    Ethernet   |   |               |  |    |             |
+  |  |  WiFi Station |   |  WiFi Soft AP |  |    |             |
+  |  |    Cellular   |   |               |  |    |             |
+  |  +---------------+   +---------------+  |    |             |
+  |                                         |    |             |
+  +-----------------------------------------+    +-------------+
+
 */
 
 // To reduce compile times, various parts of the firmware can be disabled/removed if they are not
@@ -87,6 +146,8 @@
 #include <NetworkUdp.h>
 #endif // COMPILE_NETWORK
 
+#define RTK_MAX_CONNECTION_MSEC     (15 * MILLISECONDS_IN_A_MINUTE)
+
 bool RTK_CONFIG_MBEDTLS_EXTERNAL_MEM_ALLOC =
     false; // Flag used by the special build of libmbedtls (libmbedcrypto) to select external memory
 
@@ -105,27 +166,30 @@ const uint16_t HTTPS_PORT = 443;                                                
 #include "esp_wifi.h"         //Needed for esp_wifi_set_protocol()
 #include <WiFi.h>             //Built-in.
 #include <WiFiClientSecure.h> //Built-in.
-#include <WiFiMulti.h>        //Built-in.
 #endif                        // COMPILE_WIFI
 
 #ifdef COMPILE_CELLULAR
 #include <PPP.h>
 #endif // COMPILE_CELLULAR
 
+#include <esp_mac.h>    // MAC address support
 #include "settings.h"
 
 #define MAX_CPU_CORES 2
 #define IDLE_COUNT_PER_SECOND 515400 // Found by empirical sketch
 #define IDLE_TIME_DISPLAY_SECONDS 5
 #define MAX_IDLE_TIME_COUNT (IDLE_TIME_DISPLAY_SECONDS * IDLE_COUNT_PER_SECOND)
-#define MILLISECONDS_IN_A_SECOND 1000
-#define MILLISECONDS_IN_A_MINUTE (60 * MILLISECONDS_IN_A_SECOND)
-#define MILLISECONDS_IN_AN_HOUR (60 * MILLISECONDS_IN_A_MINUTE)
-#define MILLISECONDS_IN_A_DAY (24 * MILLISECONDS_IN_AN_HOUR)
 
-#define SECONDS_IN_A_MINUTE 60
-#define SECONDS_IN_AN_HOUR (60 * SECONDS_IN_A_MINUTE)
-#define SECONDS_IN_A_DAY (24 * SECONDS_IN_AN_HOUR)
+#define HOURS_IN_A_DAY      24L
+#define MINUTES_IN_AN_HOUR  60L
+#define SECONDS_IN_A_MINUTE 60L
+#define MILLISECONDS_IN_A_SECOND 1000L
+#define MILLISECONDS_IN_A_MINUTE (SECONDS_IN_A_MINUTE * MILLISECONDS_IN_A_SECOND)
+#define MILLISECONDS_IN_AN_HOUR (MINUTES_IN_AN_HOUR * MILLISECONDS_IN_A_MINUTE)
+#define MILLISECONDS_IN_A_DAY (HOURS_IN_A_DAY * MILLISECONDS_IN_AN_HOUR)
+
+#define SECONDS_IN_AN_HOUR (MINUTES_IN_AN_HOUR * SECONDS_IN_A_MINUTE)
+#define SECONDS_IN_A_DAY (HOURS_IN_A_DAY * SECONDS_IN_AN_HOUR)
 
 // Hardware connections
 //=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
@@ -296,31 +360,31 @@ bool sdSizeCheckTaskComplete;
 char logFileName[sizeof("SFE_Reference_Station_230101_120101.ubx_plusExtraSpace")] = {0};
 //-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 
-// Over-the-Air (OTA) update support
+// WiFi support
 //-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
-
-#define MQTT_CERT_SIZE 2000
-
-#include <ArduinoJson.h> //http://librarymanager/All#Arduino_JSON_messagepack
-
-#include "esp_ota_ops.h" //Needed for partition counting and updateFromSD
-
 #ifdef COMPILE_WIFI
 int packetRSSI;
 RTK_WIFI wifi(false);
-
-#define WIFI_IS_CONNECTED()             wifiIsConnected()
-#define WIFI_IS_RUNNING()               wifiIsRunning()
-#define WIFI_SOFT_AP_RUNNING()          wifiApIsRunning()
-#define WIFI_STOP()                                                                                                    \
-    {                                                                                                                  \
-        if (settings.debugWifiState)                                                                                   \
-            systemPrintf("wifiStop called by %s %d\r\n", __FILE__, __LINE__);                                          \
-        wifiStop();                                                                                                    \
-    }
 #endif // COMPILE_WIFI
 
-bool restartWiFi = false; // Restart WiFi if user changes anything
+// WiFi Globals - For other module direct access
+WIFI_CHANNEL_t wifiChannel;     // Current WiFi channel number
+bool wifiEspNowOnline;          // ESP-Now started successfully
+bool wifiEspNowRunning;         // False: stopped, True: starting, running, stopping
+uint32_t wifiReconnectionTimer; // Delay before reconnection, timer running when non-zero
+bool wifiSoftApOnline;          // WiFi soft AP started successfully
+bool wifiSoftApRunning;         // False: stopped, True: starting, running, stopping
+bool wifiStationOnline;         // WiFi station started successfully
+bool wifiStationRunning;        // False: stopped, True: starting, running, stopping
+
+const char * wifiSoftApSsid = "RTK Config";
+const char * wifiSoftApPassword = nullptr;
+
+//-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+
+// MQTT support
+//-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+#define MQTT_CERT_SIZE 2000
 
 #define MQTT_CLIENT_STOP(shutdown)                                                                                     \
     {                                                                                                                  \
@@ -328,6 +392,14 @@ bool restartWiFi = false; // Restart WiFi if user changes anything
             systemPrintf("mqttClientStop(%s) called by %s %d\r\n", shutdown ? "true" : "false", __FILE__, __LINE__);   \
         mqttClientStop(shutdown);                                                                                      \
     }
+
+//-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+
+// Over-the-Air (OTA) update support
+//-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+#include <ArduinoJson.h> //http://librarymanager/All#Arduino_JSON_messagepack
+
+#include "esp_ota_ops.h" //Needed for partition counting and updateFromSD
 
 #define OTA_FIRMWARE_JSON_URL_LENGTH 128
 //                                                                                                      1         1 1
@@ -497,7 +569,7 @@ TaskHandle_t pinBluetoothTaskHandle; // Dummy task to start hardware on an assig
 volatile bool bluetoothPinned;       // This variable is touched by core 0 but checked by core 1. Must be volatile.
 
 volatile static int combinedSpaceRemaining; // Overrun indicator
-volatile static uint64_t logFileSize;              // Updated with each write
+volatile static uint64_t logFileSize;       // Updated with each write
 int bufferOverruns;                         // Running count of possible data losses since power-on
 
 bool zedUartPassed; // Goes true during testing if ESP can communicate with ZED over UART
@@ -578,18 +650,8 @@ unsigned long lastDynamicDataUpdate;
 
 // https://github.com/espressif/arduino-esp32/blob/master/libraries/DNSServer/examples/CaptivePortal/CaptivePortal.ino
 DNSServer *dnsserver;
-WebServer *webServer;
 
-httpd_handle_t *wsserver = nullptr;
-// httpd_req_t *last_ws_req;
-int last_ws_fd;
-
-TaskHandle_t updateWebServerTaskHandle;
-const uint8_t updateWebServerTaskPriority = 0; // 3 being the highest, and 0 being the lowest
-const int updateWebServerTaskStackSize =
-    AP_CONFIG_SETTING_SIZE + 3000; // Needs to be large enough to hold the file manager file list
-const int updateWebSocketStackSize =
-    AP_CONFIG_SETTING_SIZE + 3000; // Needs to be large enough to hold the full settings string
+bool websocketConnected = false;
 
 #endif // COMPILE_AP
 #endif // COMPILE_WIFI
@@ -605,26 +667,19 @@ const int updateWebSocketStackSize =
 float lBandEBNO; // Used on system status menu
 //=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 
-// ESP NOW for multipoint wireless broadcasting over 2.4GHz
+// ESP-NOW for multipoint wireless broadcasting over 2.4GHz
 //-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 #ifdef COMPILE_ESPNOW
 
 #include <esp_now.h> //Built-in
 
-uint8_t espnowOutgoing[250]; // ESP NOW has max of 250 characters
-unsigned long espnowLastAdd; // Tracks how long since the last byte was added to the outgoing buffer
-uint8_t espnowOutgoingSpot;  // ESP Now has a max of 250 characters
-uint16_t espnowBytesSent;    // May be more than 255
-uint8_t receivedMAC[6];      // Holds the broadcast MAC during pairing
-
-unsigned long lastEspnowRssiUpdate;
-
-#define ESPNOW_START()      espnowStart()
-#define ESPNOW_STOP()       espnowStop()
 #endif // COMPILE_ESPNOW
 
-int espnowRSSI;
-// const uint8_t ESPNOW_MAX_PEERS = 5 is defined in settings.h
+// ESP-NOW Globals - For other module direct access
+bool espNowIncomingRTCM;
+bool espNowOutgoingRTCM;
+int espNowRSSI;
+const uint8_t espNowBroadcastAddr[6] = {0xff, 0xff, 0xff, 0xff, 0xff, 0xff};
 
 // Ethernet
 //=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
@@ -785,8 +840,6 @@ bool bluetoothIncomingRTCM;
 bool bluetoothOutgoingRTCM;
 bool netIncomingRTCM;
 bool netOutgoingRTCM;
-bool espnowIncomingRTCM;
-bool espnowOutgoingRTCM;
 volatile bool mqttClientDataReceived; // Flag for display
 
 uint16_t failedParserMessages_UBX;
@@ -870,23 +923,9 @@ volatile bool deadManWalking;
         deadManWalking = true;                                                                                         \
                                                                                                                        \
         /* Output as much as possible to identify the location of the failure */                                       \
-        settings.enableHeapReport = true;                                                                              \
-        settings.enableTaskReports = true;                                                                             \
-        settings.enablePrintPosition = true;                                                                           \
-        settings.enablePrintIdleTime = true;                                                                           \
-        settings.enablePrintBatteryMessages = true;                                                                    \
-        settings.enablePrintRoverAccuracy = true;                                                                      \
-        settings.enablePrintLogFileMessages = true;                                                                    \
-        settings.enablePrintLogFileStatus = true;                                                                      \
-        settings.enablePrintRingBufferOffsets = true;                                                                  \
-        settings.enablePrintStates = true;                                                                             \
-        settings.enablePrintDuplicateStates = true;                                                                    \
-        settings.enablePrintRtcSync = true;                                                                            \
-        settings.enablePrintBufferOverrun = true;                                                                      \
-        settings.enablePrintSDBuffers = true;                                                                          \
-        settings.periodicDisplay = (PeriodicDisplay_t) - 1;                                                            \
-        settings.enablePrintEthernetDiag = true;                                                                       \
         settings.debugCorrections = true;                                                                              \
+        settings.debugEspNow = true;                                                                                   \
+        settings.debugFirmwareUpdate = true;                                                                           \
         settings.debugGnss = true;                                                                                     \
         settings.debugHttpClientData = true;                                                                           \
         settings.debugHttpClientState = true;                                                                          \
@@ -894,7 +933,7 @@ volatile bool deadManWalking;
         settings.debugMqttClientData = true;                                                                           \
         settings.debugMqttClientState = true;                                                                          \
         settings.debugNetworkLayer = true;                                                                             \
-        settings.printNetworkStatus = true;                                                                            \
+        settings.debugNtp = true;                                                                                      \
         settings.debugNtripClientRtcm = true;                                                                          \
         settings.debugNtripClientState = true;                                                                         \
         settings.debugNtripServerRtcm = true;                                                                          \
@@ -906,7 +945,27 @@ volatile bool deadManWalking;
         settings.debugUdpServer = true;                                                                                \
         settings.debugWebServer = true;                                                                                \
         settings.debugWifiState = true;                                                                                \
+        settings.enableHeapReport = true;                                                                              \
+        settings.enableImuDebug = true;                                                                                \
+        settings.enablePrintBatteryMessages = true;                                                                    \
+        settings.enablePrintBufferOverrun = true;                                                                      \
+        settings.enablePrintDuplicateStates = true;                                                                    \
+        settings.enablePrintEthernetDiag = true;                                                                       \
+        settings.enablePrintIdleTime = true;                                                                           \
+        settings.enablePrintLogFileMessages = true;                                                                    \
+        settings.enablePrintLogFileStatus = true;                                                                      \
+        settings.enablePrintPosition = true;                                                                           \
+        settings.enablePrintRingBufferOffsets = true;                                                                  \
+        settings.enablePrintRoverAccuracy = true;                                                                      \
+        settings.enablePrintRtcSync = true;                                                                            \
+        settings.enablePrintSDBuffers = true;                                                                          \
+        settings.enablePrintStates = true;                                                                             \
+        settings.enableTaskReports = true;                                                                             \
+        settings.periodicDisplay = (PeriodicDisplay_t) - 1;                                                            \
         settings.printBootTimes = true;                                                                                \
+        settings.printNetworkStatus = true;                                                                            \
+        settings.printPartitionTable = true;                                                                           \
+        settings.printTaskStartStop = true;                                                                            \
     }
 
 #else // 0
@@ -1107,9 +1166,6 @@ void setup()
     systemPrintln();
     systemPrintln();
 
-    DMW_b("verifyTables");
-    verifyTables(); // Verify the consistency of the internal tables
-
     DMW_b("findSpiffsPartition");
     if (!findSpiffsPartition())
     {
@@ -1163,6 +1219,9 @@ void setup()
 
     DMW_b("beginDisplay");
     beginDisplay(i2cDisplay); // Start display to be able to display any errors
+
+    DMW_b("verifyTables");
+    verifyTables(); // Verify the consistency of the internal tables
 
     beginVersion(); // Assemble platform name. Requires settings/LFS.
 
@@ -1346,8 +1405,8 @@ void loop()
     DMW_c("tiltUpdate");
     tiltUpdate(); // Check if new lat/lon/alt have been calculated
 
-    DMW_c("updateEspnow");
-    updateEspnow(); // Check if we need to finish sending any RTCM over ESP-NOW radio
+    DMW_c("espNowUpdate");
+    espNowUpdate(); // Check if we need to finish sending any RTCM over ESP-NOW radio
 
     DMW_c("updateLora");
     updateLora(); // Check if we need to finish sending any RTCM over LoRa radio

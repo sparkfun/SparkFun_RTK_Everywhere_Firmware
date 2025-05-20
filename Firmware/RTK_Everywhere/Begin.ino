@@ -69,13 +69,9 @@ void identifyBoard()
     // Get unit MAC address
     // This was in beginVersion, but is needed earlier so that beginBoard
     // can print the MAC address if identifyBoard fails.
-    esp_read_mac(wifiMACAddress, ESP_MAC_WIFI_STA);
-    memcpy(btMACAddress, wifiMACAddress, sizeof(wifiMACAddress));
-    btMACAddress[5] +=
-        2; // Convert MAC address to Bluetooth MAC (add 2):
-           // https://docs.espressif.com/projects/esp-idf/en/latest/esp32/api-reference/system/system.html#mac-address
-    memcpy(ethernetMACAddress, wifiMACAddress, sizeof(wifiMACAddress));
-    ethernetMACAddress[5] += 3; // Convert MAC address to Ethernet MAC (add 3)
+    getMacAddresses(wifiMACAddress, "wifiMACAddress", ESP_MAC_WIFI_STA, true);
+    getMacAddresses(btMACAddress, "btMACAddress", ESP_MAC_BT, true);
+    getMacAddresses(ethernetMACAddress, "ethernetMACAddress", ESP_MAC_ETH, true);
 
     // First, test for devices that do not have ID resistors
     if (productVariant == RTK_UNKNOWN)
@@ -747,7 +743,7 @@ void beginBoard()
 void beginVersion()
 {
     char versionString[21];
-    getFirmwareVersion(versionString, sizeof(versionString), true);
+    firmwareVersionGet(versionString, sizeof(versionString), true);
 
     char title[50];
     RTKBrandAttribute *brandAttributes = getBrandAttributeFromBrand(present.brand);
@@ -926,7 +922,7 @@ void beginSD()
         }
 
         // Load firmware file from the microSD card if it is present
-        scanForFirmware();
+        microSDScanForFirmware();
 
         // Mark card not yet usable for logging
         sdCardSize = 0;
@@ -989,12 +985,7 @@ void beginGnssUart()
 
     // Never freed...
     if (rbOffsetArray == nullptr)
-    {
-        if (online.psram == true)
-            rbOffsetArray = (RING_BUFFER_OFFSET *)ps_malloc(length);
-        else
-            rbOffsetArray = (RING_BUFFER_OFFSET *)malloc(length);
-    }
+        rbOffsetArray = (RING_BUFFER_OFFSET *)rtkMalloc(length, "Ring buffer (rbOffsetArray)");
 
     if (!rbOffsetArray)
     {

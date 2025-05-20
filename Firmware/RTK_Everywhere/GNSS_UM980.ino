@@ -400,6 +400,41 @@ bool GNSS_UM980::configureRover()
 }
 
 //----------------------------------------
+// Responds with the messages supported on this platform
+// Inputs:
+//   returnText: String to receive message names
+// Returns message names in the returnText string
+//----------------------------------------
+void GNSS_UM980::createMessageList(String &returnText)
+{
+    for (int messageNumber = 0; messageNumber < MAX_UM980_NMEA_MSG; messageNumber++)
+    {
+        returnText += "messageRateNMEA_" + String(umMessagesNMEA[messageNumber].msgTextName) + "," +
+                      String(settings.um980MessageRatesNMEA[messageNumber]) + ",";
+    }
+    for (int messageNumber = 0; messageNumber < MAX_UM980_RTCM_MSG; messageNumber++)
+    {
+        returnText += "messageRateRTCMRover_" + String(umMessagesRTCM[messageNumber].msgTextName) + "," +
+                      String(settings.um980MessageRatesRTCMRover[messageNumber]) + ",";
+    }
+}
+
+//----------------------------------------
+// Responds with the RTCM/Base messages supported on this platform
+// Inputs:
+//   returnText: String to receive message names
+// Returns message names in the returnText string
+//----------------------------------------
+void GNSS_UM980::createMessageListBase(String &returnText)
+{
+    for (int messageNumber = 0; messageNumber < MAX_UM980_RTCM_MSG; messageNumber++)
+    {
+        returnText += "messageRateRTCMBase_" + String(umMessagesRTCM[messageNumber].msgTextName) + "," +
+                      String(settings.um980MessageRatesRTCMBase[messageNumber]) + ",";
+    }
+}
+
+//----------------------------------------
 void GNSS_UM980::debuggingDisable()
 {
     if (online.gnss)

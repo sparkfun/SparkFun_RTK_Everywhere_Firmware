@@ -1198,7 +1198,7 @@ SettingValueResponse updateSettingWithValue(bool inCommands, const char *setting
     }
     else if (strcmp(settingName, "firmwareFileName") == 0)
     {
-        mountSDThenUpdate(settingValueStr);
+        microSDMountThenUpdate(settingValueStr);
 
         // If update is successful, it will force system reset and not get here.
 
@@ -1277,7 +1277,7 @@ SettingValueResponse updateSettingWithValue(bool inCommands, const char *setting
     {
         // Forget all ESP-Now Peers
         for (int x = 0; x < settings.espnowPeerCount; x++)
-            espnowRemovePeer(settings.espnowPeers[x]);
+            espNowRemovePeer(settings.espnowPeers[x]);
         settings.espnowPeerCount = 0;
         knownSetting = true;
     }
@@ -1307,14 +1307,12 @@ SettingValueResponse updateSettingWithValue(bool inCommands, const char *setting
         // Web Config immediately of success or failure
 
         // If we're in AP only mode (no internet), try WiFi with current SSIDs
-        if (networkIsInterfaceStarted(NETWORK_WIFI) && networkHasInternet() == false)
-        {
-            wifiStart();
-        }
+        if (networkIsInterfaceStarted(NETWORK_WIFI_STATION) == false)
+            wifiStationOn(__FILE__, __LINE__);
 
         // Get firmware version from server
         char newVersionCSV[40];
-        if (networkHasInternet() == false)
+        if (networkInterfaceHasInternet(NETWORK_WIFI_STATION) == false)
         {
             // No internet. Report error.
             if (settings.debugWebServer == true)
@@ -1328,8 +1326,8 @@ SettingValueResponse updateSettingWithValue(bool inCommands, const char *setting
             {
                 // We got a version number, now determine if it's newer or not
                 char currentVersion[40];
-                getFirmwareVersion(currentVersion, sizeof(currentVersion), enableRCFirmware);
-                if (isReportedVersionNewer(otaReportedVersion, currentVersion) == true)
+                firmwareVersionGet(currentVersion, sizeof(currentVersion), enableRCFirmware);
+                if (firmwareVersionIsReportedNewer(otaReportedVersion, currentVersion) == true)
                 {
                     if (settings.debugWebServer == true)
                         systemPrintln("New version detected");
@@ -1405,7 +1403,47 @@ SettingValueResponse updateSettingWithValue(bool inCommands, const char *setting
     // Last catch
     if (knownSetting == false)
     {
-        systemPrintf("Unknown '%s': %0.3lf\r\n", settingName, settingValue);
+        size_t length;
+        char * name;
+        char * suffix;
+
+        // Allocate the buffers
+        length = strlen(settingName) + 1;
+        name = (char * )rtkMalloc(2 * length, "name & suffix buffers");
+        if (name == nullptr)
+            systemPrintf("ERROR: Failed allocation, Unknown '%s': %0.3lf\r\n", settingName, settingValue);
+        else
+        {
+            int rtkIndex;
+
+            suffix = &name[length];
+
+            // Split the name
+            commandSplitName(settingName, name, length, suffix, length);
+
+            // Loop through the settings entries
+            for (rtkIndex = 0; rtkIndex < numRtkSettingsEntries; rtkIndex++)
+            {
+                const char * command = rtkSettingsEntries[rtkIndex].name;
+
+                // For speed, compare the first letter, then the whole string
+                if ((command[0] == settingName[0]) && (strcmp(command, name) == 0))
+                    break;
+            }
+
+            if (rtkIndex >= numRtkSettingsEntries)
+                systemPrintf("ERROR: Unknown '%s': %0.3lf\r\n", settingName, settingValue);
+            else
+            {
+                // Display the warning
+                if (settings.debugWebServer == true)
+                    systemPrintf("Warning: InCommands is false for '%s': %0.3lf\r\n", settingName, settingValue);
+                knownSetting = true;
+            }
+        }
+
+        // Done with the buffer
+        rtkFree(name, "name & suffix buffers");
     }
 
     if (knownSetting == true && settingIsString == true)
@@ -1431,7 +1469,7 @@ void createSettingsString(char *newSettings)
     stringRecord(newSettings, "platformPrefix", apPlatformPrefix);
 
     char apRtkFirmwareVersion[86];
-    getFirmwareVersion(apRtkFirmwareVersion, sizeof(apRtkFirmwareVersion), true);
+    firmwareVersionGet(apRtkFirmwareVersion, sizeof(apRtkFirmwareVersion), true);
     stringRecord(newSettings, "rtkFirmwareVersion", apRtkFirmwareVersion);
 
     char apGNSSFirmwareVersion[80];
@@ -2365,6 +2403,7 @@ SettingValueResponse getSettingValue(bool inCommands, const char *settingName, c
             writeToString(settingValueStr, (int)*ptr);
             knownSetting = true;
         }
+        break;
         case tSysState: {
             SystemState *ptr = (SystemState *)var;
             writeToString(settingValueStr, (int)*ptr);
@@ -3417,11 +3456,7 @@ bool commandIndexFill()
     // Allocate the command array. Never freed
     length = commandCount * sizeof(*commandIndex);
 
-    if (online.psram == true)
-        commandIndex = (int16_t *)ps_malloc(length);
-    else
-        commandIndex = (int16_t *)malloc(length);
-
+    commandIndex = (int16_t *)rtkMalloc(length, "Command index array (commandIndex)");
     if (!commandIndex)
     {
         // Failed to allocate the commandIndex

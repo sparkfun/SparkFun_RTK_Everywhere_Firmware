@@ -180,7 +180,9 @@ static NTRIP_SERVER_DATA ntripServerArray[NTRIP_SERVER_MAX];
 // NTRIP Server Routines
 //----------------------------------------
 
+//----------------------------------------
 // Initiate a connection to the NTRIP caster
+//----------------------------------------
 bool ntripServerConnectCaster(int serverIndex)
 {
     NTRIP_SERVER_DATA *ntripServer = &ntripServerArray[serverIndex];
@@ -224,24 +226,29 @@ bool ntripServerConnectCaster(int serverIndex)
              settings.ntripServer_MountPointPW[serverIndex], settings.ntripServer_MountPoint[serverIndex],
              platformPrefix);
     int length = strlen(serverBuffer);
-    getFirmwareVersion(&serverBuffer[length], sizeof(serverBuffer) - length, false);
+    firmwareVersionGet(&serverBuffer[length], sizeof(serverBuffer) - length, false);
 
     // Send the authorization credentials to the NTRIP caster
     ntripServer->networkClient->write((const uint8_t *)serverBuffer, strlen(serverBuffer));
     return true;
 }
 
+//----------------------------------------
 // Determine if the connection limit has been reached
+//----------------------------------------
 bool ntripServerConnectLimitReached(int serverIndex)
 {
+    bool limitReached;
+    int minutes;
     NTRIP_SERVER_DATA *ntripServer = &ntripServerArray[serverIndex];
     int seconds;
 
     // Retry the connection a few times
-    bool limitReached = (ntripServer->connectionAttempts >= MAX_NTRIP_SERVER_CONNECTION_ATTEMPTS);
+    limitReached = (ntripServer->connectionAttempts >= MAX_NTRIP_SERVER_CONNECTION_ATTEMPTS);
+    limitReached = false;
 
     // Shutdown the NTRIP server
-    ntripServerStop(serverIndex, limitReached || (!settings.enableNtripServer));
+    ntripServerStop(serverIndex, limitReached || (!ntripServerEnabled(serverIndex, nullptr)));
 
     ntripServer->connectionAttempts++;
     ntripServer->connectionAttemptsTotal++;
@@ -261,15 +268,16 @@ bool ntripServerConnectLimitReached(int serverIndex)
         else
             ntripServer->connectionAttemptTimeout =
                 (ntripServer->connectionAttempts - 4) * 5 * 60 * 1000L; // Wait 5, 10, 15, etc minutes between attempts
+        if (ntripServer->connectionAttemptTimeout > RTK_MAX_CONNECTION_MSEC)
+            ntripServer->connectionAttemptTimeout = RTK_MAX_CONNECTION_MSEC;
 
         // Display the delay before starting the NTRIP server
         if (settings.debugNtripServerState && ntripServer->connectionAttemptTimeout)
         {
-            seconds = ntripServer->connectionAttemptTimeout / 1000;
-            if (seconds < 120)
-                systemPrintf("NTRIP Server %d trying again in %d seconds.\r\n", serverIndex, seconds);
-            else
-                systemPrintf("NTRIP Server %d trying again in %d minutes.\r\n", serverIndex, seconds / 60);
+            seconds = ntripServer->connectionAttemptTimeout / MILLISECONDS_IN_A_SECOND;
+            minutes = seconds / SECONDS_IN_A_MINUTE;
+            seconds -= minutes * SECONDS_IN_A_MINUTE;
+            systemPrintf("NTRIP Server %d trying again in %d:%02d seconds.\r\n", serverIndex, minutes, seconds);
         }
     }
     else
@@ -278,7 +286,53 @@ bool ntripServerConnectLimitReached(int serverIndex)
     return limitReached;
 }
 
+//----------------------------------------
+// Determine if the NTRIP server may be enabled
+//----------------------------------------
+bool ntripServerEnabled(int serverIndex, const char ** line)
+{
+    bool enabled;
+
+    do
+    {
+        enabled = false;
+
+        // Verify the operating mode
+        if (NEQ_RTK_MODE(ntripServerMode))
+        {
+            if (line)
+                *line = ", Wrong mode!";
+            break;
+        }
+
+        // Verify that the parameters were specified
+        if ((settings.ntripServer_CasterHost[serverIndex][0] == 0)
+            || (settings.ntripServer_CasterPort[serverIndex] == 0)
+            || (settings.ntripServer_MountPoint[serverIndex][0] == 0))
+        {
+            if (line)
+            {
+                if (settings.ntripServer_CasterHost[0] == 0)
+                    *line = ", Caster host not specified!";
+                else if (settings.ntripServer_CasterPort == 0)
+                    *line = ", Caster port not specified!";
+                else
+                    *line = ", Mount point not specified!";
+            }
+            break;
+        }
+
+        // Verify still enabled
+        enabled = settings.enableNtripServer;
+        if (line && (enabled == false))
+            *line = ", Not enabled!";
+    } while (0);
+    return enabled;
+}
+
+//----------------------------------------
 // Print the NTRIP server state summary
+//----------------------------------------
 void ntripServerPrintStateSummary(int serverIndex)
 {
     NTRIP_SERVER_DATA *ntripServer = &ntripServerArray[serverIndex];
@@ -305,7 +359,9 @@ void ntripServerPrintStateSummary(int serverIndex)
     }
 }
 
+//----------------------------------------
 // Print the NTRIP server status
+//----------------------------------------
 void ntripServerPrintStatus(int serverIndex)
 {
     NTRIP_SERVER_DATA *ntripServer = &ntripServerArray[serverIndex];
@@ -351,7 +407,9 @@ void ntripServerPrintStatus(int serverIndex)
     }
 }
 
+//----------------------------------------
 // This function gets called as each RTCM byte comes in
+//----------------------------------------
 void ntripServerProcessRTCM(int serverIndex, uint8_t incoming)
 {
     NTRIP_SERVER_DATA *ntripServer = &ntripServerArray[serverIndex];
@@ -386,7 +444,7 @@ void ntripServerProcessRTCM(int serverIndex, uint8_t incoming)
         // If we have not gotten new RTCM bytes for a period of time, assume end of frame
         if (((millis() - ntripServer->timer) > 100) && (ntripServer->bytesSent > 0))
         {
-            if ((!inMainMenu) && settings.debugNtripServerState)
+            if ((!inMainMenu) && settings.debugNtripServerRtcm)
                 systemPrintf("NTRIP Server %d transmitted %d RTCM bytes to Caster\r\n", serverIndex,
                              ntripServer->bytesSent);
 
@@ -410,7 +468,9 @@ void ntripServerProcessRTCM(int serverIndex, uint8_t incoming)
     }
 }
 
+//----------------------------------------
 // Read the authorization response from the NTRIP caster
+//----------------------------------------
 void ntripServerResponse(int serverIndex, char *response, size_t maxLength)
 {
     NTRIP_SERVER_DATA *ntripServer = &ntripServerArray[serverIndex];
@@ -427,7 +487,9 @@ void ntripServerResponse(int serverIndex, char *response, size_t maxLength)
     *response = '\0';
 }
 
+//----------------------------------------
 // Restart the NTRIP server
+//----------------------------------------
 void ntripServerRestart(int serverIndex)
 {
     NTRIP_SERVER_DATA *ntripServer = &ntripServerArray[serverIndex];
@@ -438,20 +500,23 @@ void ntripServerRestart(int serverIndex)
     ntripServerConnectLimitReached(serverIndex);
 }
 
+//----------------------------------------
 // Update the state of the NTRIP server state machine
+//----------------------------------------
 void ntripServerSetState(NTRIP_SERVER_DATA *ntripServer, uint8_t newState)
 {
-    int serverIndex = -999;
-    for (int index = 0; index < NTRIP_SERVER_MAX; index++)
+    int serverIndex;
+    for (serverIndex = 0; serverIndex < NTRIP_SERVER_MAX; serverIndex++)
     {
-        if (ntripServer == &ntripServerArray[index])
-        {
-            serverIndex = index;
-            break;
-        }
+        if (ntripServer == &ntripServerArray[serverIndex])
+            serverIndex = serverIndex;
+    }
+    if (serverIndex >= NTRIP_SERVER_MAX)
+    {
+        systemPrintf("NTRIP Server: %p unknown NTRIP Server structure!\r\n", (void *)ntripServer);
+        return;
     }
 
-    // PERIODIC_DISPLAY(PD_NTRIP_SERVER_STATE) is handled by ntripServerUpdate
     if (settings.debugNtripServerState)
     {
         if (ntripServer->state == newState)
@@ -472,13 +537,17 @@ void ntripServerSetState(NTRIP_SERVER_DATA *ntripServer, uint8_t newState)
     }
 }
 
+//----------------------------------------
 // Shutdown the NTRIP server
+//----------------------------------------
 void ntripServerShutdown(int serverIndex)
 {
     ntripServerStop(serverIndex, true);
 }
 
+//----------------------------------------
 // Start the NTRIP server
+//----------------------------------------
 void ntripServerStart(int serverIndex)
 {
     // Display the heap state
@@ -487,9 +556,13 @@ void ntripServerStart(int serverIndex)
     // Start the NTRIP server
     systemPrintf("NTRIP Server %d start\r\n", serverIndex);
     ntripServerStop(serverIndex, false);
+    if (ntripServerEnabled(serverIndex, nullptr))
+        networkConsumerAdd(NETCONSUMER_NTRIP_SERVER_0 + serverIndex, NETWORK_ANY, __FILE__, __LINE__);
 }
 
+//----------------------------------------
 // Shutdown or restart the NTRIP server
+//----------------------------------------
 void ntripServerStop(int serverIndex, bool shutdown)
 {
     bool enabled;
@@ -515,23 +588,18 @@ void ntripServerStop(int serverIndex, bool shutdown)
 
     // Determine the next NTRIP server state
     online.ntripServer[serverIndex] = false;
-    if (shutdown || (!settings.ntripServer_CasterHost[serverIndex][0]) ||
-        (!settings.ntripServer_CasterPort[serverIndex]) || (!settings.ntripServer_MountPoint[serverIndex][0]))
+    networkConsumerOffline(NETCONSUMER_NTRIP_SERVER_0 + serverIndex);
+    if (shutdown)
     {
-        if (shutdown)
-        {
-            if (settings.debugNtripServerState)
-                systemPrintf("NTRIP Server %d shutdown requested!\r\n", serverIndex);
-        }
-        else
-        {
-            if (settings.debugNtripServerState && (!settings.ntripServer_CasterHost[serverIndex][0]))
-                systemPrintf("NTRIP Server %d caster host not configured!\r\n", serverIndex);
-            if (settings.debugNtripServerState && (!settings.ntripServer_CasterPort[serverIndex]))
-                systemPrintf("NTRIP Server %d caster port not configured!\r\n", serverIndex);
-            if (settings.debugNtripServerState && (!settings.ntripServer_MountPoint[serverIndex][0]))
-                systemPrintf("NTRIP Server %d mount point not configured!\r\n", serverIndex);
-        }
+        if (settings.debugNtripServerState)
+            systemPrintf("NTRIP Server %d shutdown requested!\r\n", serverIndex);
+        if (settings.debugNtripServerState && (!settings.ntripServer_CasterHost[serverIndex][0]))
+            systemPrintf("NTRIP Server %d caster host not configured!\r\n", serverIndex);
+        if (settings.debugNtripServerState && (!settings.ntripServer_CasterPort[serverIndex]))
+            systemPrintf("NTRIP Server %d caster port not configured!\r\n", serverIndex);
+        if (settings.debugNtripServerState && (!settings.ntripServer_MountPoint[serverIndex][0]))
+            systemPrintf("NTRIP Server %d mount point not configured!\r\n", serverIndex);
+        networkConsumerRemove(NETCONSUMER_NTRIP_SERVER_0 + serverIndex, NETWORK_ANY, __FILE__, __LINE__);
         ntripServerSetState(ntripServer, NTRIP_SERVER_OFF);
         ntripServer->connectionAttempts = 0;
         ntripServer->connectionAttemptTimeout = 0;
@@ -544,11 +612,6 @@ void ntripServerStop(int serverIndex, bool shutdown)
                 enabled = true;
                 break;
             }
-        // settings.enableNtripServer = enabled;
-        //  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ Why? Setting settings.enableNtripServer to false means
-        //  the server connections cannot be (re)started without setting settings.enableNtripServer back
-        //  to true via the menu / web config... Was the intent to close the network connection when all
-        //  servers have disconnected?
     }
     else
     {
@@ -558,51 +621,36 @@ void ntripServerStop(int serverIndex, bool shutdown)
     }
 }
 
-// Return true if we are in states that require network access
-// Walk through all servers to see if we need the network
-bool ntripServerNeedsNetwork()
-{
-    NTRIP_SERVER_DATA *ntripServer;
-
-    for (int serverIndex = 0; serverIndex < NTRIP_SERVER_MAX; serverIndex++)
-    {
-        ntripServer = &ntripServerArray[serverIndex];
-        if (ntripServer->state >= NTRIP_SERVER_WAIT_FOR_NETWORK && ntripServer->state <= NTRIP_SERVER_CASTING)
-            return true;
-    }
-
-    return false;
-}
-
+//----------------------------------------
 // Update the NTRIP server state machine
+//----------------------------------------
 void ntripServerUpdate(int serverIndex)
 {
+    bool connected;
+    bool enabled;
+    const char * line = "";
+
     // Get the NTRIP data structure
     NTRIP_SERVER_DATA *ntripServer = &ntripServerArray[serverIndex];
 
     // Shutdown the NTRIP server when the mode or setting changes
     DMW_ds(ntripServerSetState, ntripServer);
-    if (NEQ_RTK_MODE(ntripServerMode) || (!settings.enableNtripServer))
-    {
-        if (ntripServer->state > NTRIP_SERVER_OFF)
-        {
-            ntripServerStop(serverIndex, true); // Was false - #StopVsRestart
-            ntripServer->connectionAttempts = 0;
-            ntripServer->connectionAttemptTimeout = 0;
-            ntripServerSetState(ntripServer, NTRIP_SERVER_OFF);
-        }
-    }
+    connected = networkConsumerIsConnected(NETCONSUMER_NTRIP_SERVER_0 + serverIndex);
+    enabled = ntripServerEnabled(serverIndex, &line);
+    if (!enabled && (ntripServer->state > NTRIP_SERVER_OFF))
+        ntripServerShutdown(serverIndex);
+
+    // Determine if the network has failed
+    else if ((ntripServer->state > NTRIP_SERVER_WAIT_FOR_NETWORK)
+        && (!connected))
+        ntripServerRestart(serverIndex);
 
     // Enable the network and the NTRIP server if requested
     switch (ntripServer->state)
     {
     case NTRIP_SERVER_OFF:
-        if (EQ_RTK_MODE(ntripServerMode) && settings.enableNtripServer &&
-            settings.ntripServer_CasterHost[serverIndex][0] && settings.ntripServer_CasterPort[serverIndex] &&
-            settings.ntripServer_MountPoint[serverIndex][0])
-        {
+        if (enabled)
             ntripServerStart(serverIndex);
-        }
         break;
 
     // Start the network
@@ -612,17 +660,8 @@ void ntripServerUpdate(int serverIndex)
 
     // Wait for a network media connection
     case NTRIP_SERVER_WAIT_FOR_NETWORK:
-        // Determine if the NTRIP server was turned off
-        if (NEQ_RTK_MODE(ntripServerMode) || (settings.enableNtripServer == false) ||
-            (settings.ntripServer_CasterHost[serverIndex][0] == 0) ||
-            (settings.ntripServer_CasterPort[serverIndex] == 0) ||
-            (settings.ntripServer_MountPoint[serverIndex][0] == 0))
-        {
-            ntripServerStop(serverIndex, true);
-        }
-
         // Wait until the network is connected
-        else if (networkHasInternet())
+        if (connected)
         {
             // Allocate the networkClient structure
             ntripServer->networkClient = new NetworkClient();
@@ -636,7 +675,15 @@ void ntripServerUpdate(int serverIndex)
             {
                 reportHeapNow(settings.debugNtripServerState);
 
+                // Reset the timeout when the network changes
+                if (networkChanged(NETCONSUMER_NTRIP_SERVER_0 + serverIndex))
+                {
+                    ntripServer->connectionAttempts = 0;
+                    ntripServer->connectionAttemptTimeout = 0;
+                }
+
                 // The network is available for the NTRIP server
+                networkUserAdd(NETCONSUMER_NTRIP_SERVER_0 + serverIndex, __FILE__, __LINE__);
                 ntripServerSetState(ntripServer, NTRIP_SERVER_NETWORK_CONNECTED);
             }
         }
@@ -645,9 +692,9 @@ void ntripServerUpdate(int serverIndex)
     // Network available
     case NTRIP_SERVER_NETWORK_CONNECTED:
         // Determine if the network has failed
-        if (networkHasInternet() == false)
+        if (!connected)
             // Failed to connect to to the network, attempt to restart the network
-            ntripServerStop(serverIndex, true); // Was ntripServerRestart(serverIndex); - #StopVsRestart
+            ntripServerRestart(serverIndex);
 
         else if (settings.enableNtripServer &&
                  (millis() - ntripServer->lastConnectionAttempt > ntripServer->connectionAttemptTimeout))
@@ -662,23 +709,13 @@ void ntripServerUpdate(int serverIndex)
 
     // Wait for GNSS correction data
     case NTRIP_SERVER_WAIT_GNSS_DATA:
-        // Determine if the network has failed
-        if (networkHasInternet() == false)
-            // Failed to connect to to the network, attempt to restart the network
-            ntripServerStop(serverIndex, true); // Was ntripServerRestart(serverIndex); - #StopVsRestart
-
         // State change handled in ntripServerProcessRTCM
         break;
 
     // Initiate the connection to the NTRIP caster
     case NTRIP_SERVER_CONNECTING:
-        // Determine if the network has failed
-        if (networkHasInternet() == false)
-            // Failed to connect to to the network, attempt to restart the network
-            ntripServerStop(serverIndex, true); // Was ntripServerRestart(serverIndex); - #StopVsRestart
-
         // Delay before opening the NTRIP server connection
-        else if ((millis() - ntripServer->timer) >= ntripServer->connectionAttemptTimeout)
+        if ((millis() - ntripServer->timer) >= ntripServer->connectionAttemptTimeout)
         {
             // Attempt a connection to the NTRIP caster
             if (!ntripServerConnectCaster(serverIndex))
@@ -700,13 +737,8 @@ void ntripServerUpdate(int serverIndex)
 
     // Wait for authorization response
     case NTRIP_SERVER_AUTHORIZATION:
-        // Determine if the network has failed
-        if (networkHasInternet() == false)
-            // Failed to connect to to the network, attempt to restart the network
-            ntripServerStop(serverIndex, true); // Was ntripServerRestart(serverIndex); - #StopVsRestart
-
         // Check if caster service responded
-        else if (ntripServer->networkClient->available() <
+        if (ntripServer->networkClient->available() <
                  strlen("ICY 200 OK")) // Wait until at least a few bytes have arrived
         {
             // Check for response timeout
@@ -794,13 +826,8 @@ void ntripServerUpdate(int serverIndex)
 
     // NTRIP server authorized to send RTCM correction data to NTRIP caster
     case NTRIP_SERVER_CASTING:
-        // Determine if the network has failed
-        if (networkHasInternet() == false)
-            // Failed to connect to the network, attempt to restart the network
-            ntripServerStop(serverIndex, true); // Was ntripServerRestart(serverIndex); - #StopVsRestart
-
         // Check for a broken connection
-        else if (!ntripServer->networkClient->connected())
+        if (!ntripServer->networkClient->connected())
         {
             // Broken connection, retry the NTRIP connection
             systemPrintf("Connection to NTRIP Caster %d - %s was lost\r\n", serverIndex,
@@ -839,22 +866,29 @@ void ntripServerUpdate(int serverIndex)
     // Periodically display the state
     if (PERIODIC_DISPLAY(PD_NTRIP_SERVER_STATE))
     {
-        systemPrintf("NTRIP Server %d state: %s\r\n", serverIndex, ntripServerStateName[ntripServer->state]);
+        systemPrintf("NTRIP Server %d state: %s%s\r\n", serverIndex,
+                     ntripServerStateName[ntripServer->state], line);
         if (serverIndex == (NTRIP_SERVER_MAX - 1))
             PERIODIC_CLEAR(PD_NTRIP_SERVER_STATE); // Clear the periodic display only on the last server
     }
 }
 
+//----------------------------------------
 // Update the NTRIP server state machine
+//----------------------------------------
 void ntripServerUpdate()
 {
     for (int serverIndex = 0; serverIndex < NTRIP_SERVER_MAX; serverIndex++)
         ntripServerUpdate(serverIndex);
 }
 
+//----------------------------------------
 // Verify the NTRIP server tables
+//----------------------------------------
 void ntripServerValidateTables()
 {
+    if (NETCONSUMER_OTA_CLIENT != (NETCONSUMER_NTRIP_SERVER_0 + NTRIP_SERVER_MAX))
+        reportFatalError("Adjust NETCONSUMER_NTRIP_SERVER_* entries to match NTRIP_SERVER_MAX");
     if (ntripServerStateNameEntries != NTRIP_SERVER_STATE_MAX)
         reportFatalError("Fix ntripServerStateNameEntries to match NTRIPServerState");
 }

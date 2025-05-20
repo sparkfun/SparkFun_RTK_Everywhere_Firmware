@@ -101,6 +101,40 @@ class GNSS_None : public GNSS
         return false;
     }
 
+    // Responds with the messages supported on this platform
+    // Inputs:
+    //   returnText: String to receive message names
+    // Returns message names in the returnText string
+    void createMessageList(String &returnText)
+    {
+
+    }
+
+    // Responds with the RTCM/Base messages supported on this platform
+    // Inputs:
+    //   returnText: String to receive message names
+    // Returns message names in the returnText string
+    void createMessageListBase(String &returnText)
+    {
+
+    }
+
+    // Responds with the messages supported on this platform
+    // Inputs:
+    //   returnText: String to receive message names
+    // Returns message names in the returnText string
+    void getMessageList(String &returnText)
+    {
+    }
+
+    // Responds with the RTCM/Base messages supported on this platform
+    // Inputs:
+    //   returnText: String to receive message names
+    // Returns message names in the returnText string
+    void getMessageListBase(String &returnText)
+    {
+    }
+
     void debuggingDisable()
     {
     }
