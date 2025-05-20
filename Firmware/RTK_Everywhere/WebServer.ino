@@ -836,11 +836,6 @@ bool webServerAssignResources(int httpPort = 80)
 
     //
     https: // github.com/espressif/arduino-esp32/blob/master/libraries/DNSServer/examples/CaptivePortal/CaptivePortal.ino
-        if (settings.enableCaptivePortal == true)
-        {
-            dnsserver = new DNSServer;
-            dnsserver->start();
-        }
 
         webServer = new WebServer(httpPort);
         if (!webServer)

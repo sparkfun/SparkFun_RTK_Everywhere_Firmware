@@ -111,7 +111,6 @@ void stateUpdate()
             setMuxport(settings.dataPortChannel); // Return mux to original channel
 
             bluetoothStart(); // Turn on Bluetooth with 'Rover' name
-            ESPNOW_START();    // Start internal radio if enabled, otherwise disable
 
             webServerStop();             // Stop the web config server
             baseCasterDisableOverride(); // Disable casting overrides
@@ -209,18 +208,7 @@ void stateUpdate()
         case (STATE_BASE_CASTER_NOT_STARTED): {
             baseCasterEnableOverride();
 
-#ifdef COMPILE_WIFI
-            // If the AP is already running, check that the name is correct
-            if ((WiFi.getMode() == WIFI_AP) || (WiFi.getMode() == WIFI_AP_STA))
-            {
-                if (strcmp(WiFi.softAPSSID().c_str(), "RTK Caster") != 0)
-                {
-                    // The AP name cannot be changed while it is running. WiFi must be restarted.
-                    restartWiFi = true; // Tell network layer to restart WiFi
-                }
-            }
-#endif // COMPILE_WIFI
-
+            wifiSoftApSsid = "RTK Caster";
             changeState(STATE_BASE_NOT_STARTED);
         }
         break;
@@ -331,8 +319,6 @@ void stateUpdate()
                 // Start the NTRIP server if requested
                 RTK_MODE(RTK_MODE_BASE_FIXED);
 
-                ESPNOW_START(); // Start internal radio if enabled, otherwise disable
-
                 rtcmPacketsSent = 0; // Reset any previous number
                 changeState(STATE_BASE_TEMP_TRANSMITTING);
             }
@@ -397,9 +383,6 @@ void stateUpdate()
             if (response == true)
             {
                 baseStatusLedOn(); // Turn on the base/status LED
-
-                ESPNOW_START(); // Start internal radio if enabled, otherwise disable
-
                 changeState(STATE_BASE_FIXED_TRANSMITTING);
             }
             else
@@ -443,24 +426,12 @@ void stateUpdate()
             wifiEspNowOff(__FILE__, __LINE__); // We don't need ESP-NOW during web config
 
             // The GNSS UART task is left running to allow GNSS receivers to obtain LLh data for 1Hz page updates
-
-#ifdef COMPILE_WIFI
-            // If the AP is already running, check that the name is correct
-            if ((WiFi.getMode() == WIFI_AP) || (WiFi.getMode() == WIFI_AP_STA))
-            {
-                if (strcmp(WiFi.softAPSSID().c_str(), "RTK Config") != 0)
-                {
-                    // The AP name cannot be changed while it is running. WiFi must be restarted.
-                    restartWiFi = true; // Tell network layer to restart WiFi
-                }
-            }
-#endif // COMPILE_WIFI
-
             // Stop any running NTRIP Client or Server
             ntripClientStop(true); // Do not allocate new wifiClient
             for (int serverIndex = 0; serverIndex < NTRIP_SERVER_MAX; serverIndex++)
                 ntripServerStop(serverIndex, true); // Do not allocate new wifiClient
 
+            wifiSoftApSsid = "RTK Config";
             webServerStart(); // Start the webserver state machine for web config
 
             RTK_MODE(RTK_MODE_WEB_CONFIG);
