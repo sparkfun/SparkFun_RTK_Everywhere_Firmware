@@ -21,7 +21,7 @@ Compatibility Icons
 
 The LG290P is the GNSS receiver used on the RTK Postcard. The following describes how to update the firmware on the LG290P.
 
-1. Download the latest LG290P firmware. As of writing, the LG290P firmware is [v4](https://raw.githubusercontent.com/SparkFun_RTK_Postcard/blob/main/Firmware/Quectel_LG290P_Firmware_Release_V0104S.zip). See the [RTK Postcard repo](https://github.com/sparkfun/SparkFun_RTK_Postcard/tree/main/Firmware) for the latest firmware.
+1. Download the latest LG290P firmware. As of writing, the LG290P firmware is [v5](https://raw.githubusercontent.com/SparkFun_RTK_Postcard/blob/main/Firmware/Quectel_LG290P_Firmware_Release_V0105S.zip). See the [RTK Postcard repo](https://github.com/sparkfun/SparkFun_RTK_Postcard/tree/main/Firmware) for the latest firmware.
 2. Download and install [QGNSS](https://www.quectel.com/download/qgnss_v2-0_en/). QGNSS is the software created by Quectel to configure and view output from Quectel GNSS modules.
 
 	<figure markdown>
