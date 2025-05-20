@@ -2462,6 +2462,26 @@ void networkUserAdd(NETCONSUMER_t consumer,
 }
 
 //----------------------------------------
+// Get the network user bit mask
+//----------------------------------------
+NETCONSUMER_MASK_t networkUserBits(NetIndex_t index)
+{
+    // Validate the index
+    networkValidateIndex(index);
+
+    // Return the consumer bits
+    return netIfUsers[index];
+}
+
+//----------------------------------------
+// Count the number of network users
+//----------------------------------------
+int networkUserCount(NetIndex_t index)
+{
+    return networkConsumerCountBits(networkUserBits(index));
+}
+
+//----------------------------------------
 // Display the network interface users
 //----------------------------------------
 void networkUserDisplay(NetIndex_t index)
