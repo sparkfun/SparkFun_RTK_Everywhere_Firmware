@@ -27,7 +27,7 @@ if [ -f "$log_file" ] ; then
 fi
 
 # Create the data file
-git cherry $start_revision $end_revision > $data_file
+git cherry $start_revision~1 $end_revision > $data_file
 
 # Get the starting and ending commits
 while read  operation_type  commit_id
