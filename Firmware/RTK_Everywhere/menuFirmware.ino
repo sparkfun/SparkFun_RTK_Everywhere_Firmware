@@ -633,7 +633,7 @@ void otaMenuDisplay(char * currentVersion)
         systemPrintf("s) Change Firmware JSON URL: %s\r\n", otaFirmwareJsonUrl);
     }
 
-    if (firmwareVersionIsReportedNewer(otaReportedVersion, &currentVersion[1]) == true || FIRMWARE_VERSION_MAJOR == 99 ||
+    if (firmwareVersionIsReportedNewer(otaReportedVersion, &currentVersion[1]) == true ||
         settings.debugFirmwareUpdate == true)
     {
         systemPrintf("u) Update to new firmware: v%s - ", otaReportedVersion);
@@ -877,7 +877,7 @@ void otaUpdate()
                 // We got a version number, now determine if it's newer or not
                 // Allow update if locally compiled developer version
                 if ((firmwareVersionIsReportedNewer(otaReportedVersion, &currentVersion[1]) == true) ||
-                    (currentVersion[0] == 'd') || (FIRMWARE_VERSION_MAJOR == 99))
+                    (currentVersion[0] == 'd'))
                 {
                     newOTAFirmwareAvailable = true;
                     systemPrintf("Version Check: New firmware version available: %s\r\n", otaReportedVersion);
