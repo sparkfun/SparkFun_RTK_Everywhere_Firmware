@@ -1775,8 +1775,8 @@ struct struct_present
     float antennaPhaseCenter_mm = 0.0; // Used to setup tilt compensation
     bool galileoHasCapable = false; // UM980 has HAS capabilities
     bool multipathMitigation = false; // UM980 has MPM, other platforms do not
-    bool minCno = false; // ZED, mosaic, UM980 have minCN0. LG290P does not.
-    bool minElevation = false; // ZED, mosaic, UM980 have minElevation. LG290P does not.
+    bool minCno = false; // ZED, mosaic, UM980 have minCN0. LG290P does on version >= v5.
+    bool minElevation = false; // ZED, mosaic, UM980 have minElevation. LG290P does on versions >= v5.
     bool dynamicModel = false; // ZED, mosaic, UM980 have dynamic models. LG290P does not.
 } present;
 
