@@ -38,6 +38,9 @@ During Tilt Compensation, all outgoing NMEA messages are modified to output the 
 
 If the audible beeper is enabled, a long beep will be heard when the IMU starts calibration (by shaking). A short beep will be heard when the IMU completes calibration and Tilt Compensation is active. A short beep will continue every 10 seconds to let the user know Tilt Compensation is being applied.
 
+!!! info "Tilt Affects Point Altitude"
+During tilt compensation the reported location is that *of the tip of the pole*. If Tilt mode is exited for whatever reason, the reported location and altitude of the device will change significantly. It is recommended the user use, listen for, and confirm the audible beep before recording a point in order to avoid recording an inaccurate location and altitude.
+
 Tilt Compensation mode will be exited when the user short presses the power button, and a long beep will be heard. Additionally, Tilt Compensation mode will be exited if RTK Fix is lost. When this happens, the IMU will attempt to re-enter Tilt Compensation mode if RTK Fix is re-achieved.
 
 Tilt compensation mode can be entered using the following steps:
