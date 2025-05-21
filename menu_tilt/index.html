@@ -1569,6 +1569,19 @@
   
 </li>
       
+        <li class="md-nav__item">
+  <a href="#height-of-instrument-calculation" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        <span class="md-typeset">
+          Height of Instrument Calculation<a class="headerlink" href="#height-of-instrument-calculation" title="Permanent link"></a>
+        </span>
+      
+    </span>
+  </a>
+  
+</li>
+      
     </ul>
   
 </nav>
@@ -2580,6 +2593,19 @@
   
 </li>
       
+        <li class="md-nav__item">
+  <a href="#height-of-instrument-calculation" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        <span class="md-typeset">
+          Height of Instrument Calculation<a class="headerlink" href="#height-of-instrument-calculation" title="Permanent link"></a>
+        </span>
+      
+    </span>
+  </a>
+  
+</li>
+      
     </ul>
   
 </nav>
@@ -2664,8 +2690,8 @@ Compatibility Icons
 <p>If the audible beeper is enabled, a long beep will be heard when the IMU starts calibration (by shaking). A short beep will be heard when the IMU completes calibration and Tilt Compensation is active. A short beep will continue every 10 seconds to let the user know Tilt Compensation is being applied.</p>
 <div class="admonition info">
 <p class="admonition-title">Tilt Affects Point Altitude</p>
-</div>
 <p>During tilt compensation the reported location is that <em>of the tip of the pole</em>. If Tilt mode is exited for whatever reason, the reported location and altitude of the device will change significantly. It is recommended the user use, listen for, and confirm the audible beep before recording a point in order to avoid recording an inaccurate location and altitude.</p>
+</div>
 <p>Tilt Compensation mode will be exited when the user short presses the power button, and a long beep will be heard. Additionally, Tilt Compensation mode will be exited if RTK Fix is lost. When this happens, the IMU will attempt to re-enter Tilt Compensation mode if RTK Fix is re-achieved.</p>
 <p>Tilt compensation mode can be entered using the following steps:</p>
 <ol>
@@ -2678,6 +2704,11 @@ Compatibility Icons
 <li>On devices that support it, the device will emit a long chirp once Tilt Compensation Mode is active. The device is now outputting the <em>location of the tip</em> of the pole.</li>
 <li>Exit Tilt Compensation Mode by short pressing the power button.</li>
 </ol>
+<h2 id="height-of-instrument-calculation">Height of Instrument Calculation<a class="headerlink" href="#height-of-instrument-calculation" title="Permanent link"></a></h2>
+<p>During tilt compensation, the length of the pole, and the APC (antenna phase center) must be accurately configured. It is recommended to leave the default APC (116.5mm for the RTK Torch) and use a 1.8m length pole. Once tilt is activated, the IMU will automatically adjust the reported location <em>from</em> the APC <em>to</em> the pole tip.</p>
+<p>The pole length is the distance measured from the pole tip (usually on the ground) to where the bottom of the RTK device interfaces with the pole.</p>
+<p>The Antenna Phase Center is the theoretical point where the GNSS signals are effectively received by the antenna. It is not necessarily (and is rarely) the physical surface of the antenna element. The APC is the measured distance between this known point in space and the bottom surface of the RTK device (also known as the Antenna Reference Point or ARP).</p>
+<p>How do we find this 'known point in space'? Antenna APCs are estimated using various mathematical models then measured and calibrated using services provided by the <a href="https://geodesy.noaa.gov/ANTCAL/" target="_blank" rel="noopener">NGS</a> or other agencies.</p>
 
 
 
@@ -2700,7 +2731,7 @@ Compatibility Icons
     <span class="md-icon" title="Last update">
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M21 13.1c-.1 0-.3.1-.4.2l-1 1 2.1 2.1 1-1c.2-.2.2-.6 0-.8l-1.3-1.3c-.1-.1-.2-.2-.4-.2m-1.9 1.8-6.1 6V23h2.1l6.1-6.1zM12.5 7v5.2l4 2.4-1 1L11 13V7zM11 21.9c-5.1-.5-9-4.8-9-9.9C2 6.5 6.5 2 12 2c5.3 0 9.6 4.1 10 9.3-.3-.1-.6-.2-1-.2s-.7.1-1 .2C19.6 7.2 16.2 4 12 4c-4.4 0-8 3.6-8 8 0 4.1 3.1 7.5 7.1 7.9l-.1.2z"/></svg>
     </span>
-    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-timeago" title="May 21, 2025 20:00:04"><span class="timeago" datetime="2025-05-21T20:00:04+00:00" locale="en"></span></span><span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-iso_date" title="May 21, 2025 20:00:04">2025-05-21</span>
+    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-timeago" title="May 21, 2025 20:16:13"><span class="timeago" datetime="2025-05-21T20:16:13+00:00" locale="en"></span></span><span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-iso_date" title="May 21, 2025 20:16:13">2025-05-21</span>
   </span>
 
     
