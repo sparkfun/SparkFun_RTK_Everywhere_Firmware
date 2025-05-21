@@ -2,242 +2,242 @@
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
     <url>
          <loc>https://docs.sparkfun.com/SparkFun_RTK_Everywhere_Firmware/</loc>
-         <lastmod>2025-05-20</lastmod>
+         <lastmod>2025-05-21</lastmod>
     </url>
     <url>
          <loc>https://docs.sparkfun.com/SparkFun_RTK_Everywhere_Firmware/accuracy_verification/</loc>
-         <lastmod>2025-05-20</lastmod>
+         <lastmod>2025-05-21</lastmod>
     </url>
     <url>
          <loc>https://docs.sparkfun.com/SparkFun_RTK_Everywhere_Firmware/configure_with_bluetooth/</loc>
-         <lastmod>2025-05-20</lastmod>
+         <lastmod>2025-05-21</lastmod>
     </url>
     <url>
          <loc>https://docs.sparkfun.com/SparkFun_RTK_Everywhere_Firmware/configure_with_browser/</loc>
-         <lastmod>2025-05-20</lastmod>
+         <lastmod>2025-05-21</lastmod>
     </url>
     <url>
          <loc>https://docs.sparkfun.com/SparkFun_RTK_Everywhere_Firmware/configure_with_cli/</loc>
-         <lastmod>2025-05-20</lastmod>
+         <lastmod>2025-05-21</lastmod>
     </url>
     <url>
          <loc>https://docs.sparkfun.com/SparkFun_RTK_Everywhere_Firmware/configure_with_ethernet/</loc>
-         <lastmod>2025-05-20</lastmod>
+         <lastmod>2025-05-21</lastmod>
     </url>
     <url>
          <loc>https://docs.sparkfun.com/SparkFun_RTK_Everywhere_Firmware/configure_with_ethernet_over_usb/</loc>
-         <lastmod>2025-05-20</lastmod>
+         <lastmod>2025-05-21</lastmod>
     </url>
     <url>
          <loc>https://docs.sparkfun.com/SparkFun_RTK_Everywhere_Firmware/configure_with_rxtools/</loc>
-         <lastmod>2025-05-20</lastmod>
+         <lastmod>2025-05-21</lastmod>
     </url>
     <url>
          <loc>https://docs.sparkfun.com/SparkFun_RTK_Everywhere_Firmware/configure_with_serial/</loc>
-         <lastmod>2025-05-20</lastmod>
+         <lastmod>2025-05-21</lastmod>
     </url>
     <url>
          <loc>https://docs.sparkfun.com/SparkFun_RTK_Everywhere_Firmware/configure_with_settings_file/</loc>
-         <lastmod>2025-05-20</lastmod>
+         <lastmod>2025-05-21</lastmod>
     </url>
     <url>
          <loc>https://docs.sparkfun.com/SparkFun_RTK_Everywhere_Firmware/configure_with_ucenter/</loc>
-         <lastmod>2025-05-20</lastmod>
+         <lastmod>2025-05-21</lastmod>
     </url>
     <url>
          <loc>https://docs.sparkfun.com/SparkFun_RTK_Everywhere_Firmware/configure_with_wifi/</loc>
-         <lastmod>2025-05-20</lastmod>
+         <lastmod>2025-05-21</lastmod>
     </url>
     <url>
          <loc>https://docs.sparkfun.com/SparkFun_RTK_Everywhere_Firmware/connecting_bluetooth/</loc>
-         <lastmod>2025-05-20</lastmod>
+         <lastmod>2025-05-21</lastmod>
     </url>
     <url>
          <loc>https://docs.sparkfun.com/SparkFun_RTK_Everywhere_Firmware/contribute/</loc>
-         <lastmod>2025-05-20</lastmod>
+         <lastmod>2025-05-21</lastmod>
     </url>
     <url>
          <loc>https://docs.sparkfun.com/SparkFun_RTK_Everywhere_Firmware/correction_sources/</loc>
-         <lastmod>2025-05-20</lastmod>
+         <lastmod>2025-05-21</lastmod>
     </url>
     <url>
          <loc>https://docs.sparkfun.com/SparkFun_RTK_Everywhere_Firmware/correction_transport/</loc>
-         <lastmod>2025-05-20</lastmod>
+         <lastmod>2025-05-21</lastmod>
     </url>
     <url>
          <loc>https://docs.sparkfun.com/SparkFun_RTK_Everywhere_Firmware/displays/</loc>
-         <lastmod>2025-05-20</lastmod>
+         <lastmod>2025-05-21</lastmod>
     </url>
     <url>
          <loc>https://docs.sparkfun.com/SparkFun_RTK_Everywhere_Firmware/embeddedsystem_connection/</loc>
-         <lastmod>2025-05-20</lastmod>
+         <lastmod>2025-05-21</lastmod>
     </url>
     <url>
          <loc>https://docs.sparkfun.com/SparkFun_RTK_Everywhere_Firmware/firmware_compile/</loc>
-         <lastmod>2025-05-20</lastmod>
+         <lastmod>2025-05-21</lastmod>
     </url>
     <url>
          <loc>https://docs.sparkfun.com/SparkFun_RTK_Everywhere_Firmware/firmware_update/</loc>
-         <lastmod>2025-05-20</lastmod>
+         <lastmod>2025-05-21</lastmod>
     </url>
     <url>
          <loc>https://docs.sparkfun.com/SparkFun_RTK_Everywhere_Firmware/firmware_update_esp32/</loc>
-         <lastmod>2025-05-20</lastmod>
+         <lastmod>2025-05-21</lastmod>
     </url>
     <url>
          <loc>https://docs.sparkfun.com/SparkFun_RTK_Everywhere_Firmware/firmware_update_lg290p/</loc>
-         <lastmod>2025-05-20</lastmod>
+         <lastmod>2025-05-21</lastmod>
     </url>
     <url>
          <loc>https://docs.sparkfun.com/SparkFun_RTK_Everywhere_Firmware/firmware_update_mosaicX5/</loc>
-         <lastmod>2025-05-20</lastmod>
+         <lastmod>2025-05-21</lastmod>
     </url>
     <url>
          <loc>https://docs.sparkfun.com/SparkFun_RTK_Everywhere_Firmware/firmware_update_stm32/</loc>
-         <lastmod>2025-05-20</lastmod>
+         <lastmod>2025-05-21</lastmod>
     </url>
     <url>
          <loc>https://docs.sparkfun.com/SparkFun_RTK_Everywhere_Firmware/firmware_update_ublox/</loc>
-         <lastmod>2025-05-20</lastmod>
+         <lastmod>2025-05-21</lastmod>
     </url>
     <url>
          <loc>https://docs.sparkfun.com/SparkFun_RTK_Everywhere_Firmware/firmware_update_um980/</loc>
-         <lastmod>2025-05-20</lastmod>
+         <lastmod>2025-05-21</lastmod>
     </url>
     <url>
          <loc>https://docs.sparkfun.com/SparkFun_RTK_Everywhere_Firmware/gis_software_android/</loc>
-         <lastmod>2025-05-20</lastmod>
+         <lastmod>2025-05-21</lastmod>
     </url>
     <url>
          <loc>https://docs.sparkfun.com/SparkFun_RTK_Everywhere_Firmware/gis_software_ios/</loc>
-         <lastmod>2025-05-20</lastmod>
+         <lastmod>2025-05-21</lastmod>
     </url>
     <url>
          <loc>https://docs.sparkfun.com/SparkFun_RTK_Everywhere_Firmware/gis_software_windows/</loc>
-         <lastmod>2025-05-20</lastmod>
+         <lastmod>2025-05-21</lastmod>
     </url>
     <url>
          <loc>https://docs.sparkfun.com/SparkFun_RTK_Everywhere_Firmware/intro/</loc>
-         <lastmod>2025-05-20</lastmod>
+         <lastmod>2025-05-21</lastmod>
     </url>
     <url>
          <loc>https://docs.sparkfun.com/SparkFun_RTK_Everywhere_Firmware/introduction/</loc>
-         <lastmod>2025-05-20</lastmod>
+         <lastmod>2025-05-21</lastmod>
     </url>
     <url>
          <loc>https://docs.sparkfun.com/SparkFun_RTK_Everywhere_Firmware/menu_base/</loc>
-         <lastmod>2025-05-20</lastmod>
+         <lastmod>2025-05-21</lastmod>
     </url>
     <url>
          <loc>https://docs.sparkfun.com/SparkFun_RTK_Everywhere_Firmware/menu_corrections_priorities/</loc>
-         <lastmod>2025-05-20</lastmod>
+         <lastmod>2025-05-21</lastmod>
     </url>
     <url>
          <loc>https://docs.sparkfun.com/SparkFun_RTK_Everywhere_Firmware/menu_data_logging/</loc>
-         <lastmod>2025-05-20</lastmod>
+         <lastmod>2025-05-21</lastmod>
     </url>
     <url>
          <loc>https://docs.sparkfun.com/SparkFun_RTK_Everywhere_Firmware/menu_debug_hardware/</loc>
-         <lastmod>2025-05-20</lastmod>
+         <lastmod>2025-05-21</lastmod>
     </url>
     <url>
          <loc>https://docs.sparkfun.com/SparkFun_RTK_Everywhere_Firmware/menu_debug_network/</loc>
-         <lastmod>2025-05-20</lastmod>
+         <lastmod>2025-05-21</lastmod>
     </url>
     <url>
          <loc>https://docs.sparkfun.com/SparkFun_RTK_Everywhere_Firmware/menu_debug_periodic_print/</loc>
-         <lastmod>2025-05-20</lastmod>
+         <lastmod>2025-05-21</lastmod>
     </url>
     <url>
          <loc>https://docs.sparkfun.com/SparkFun_RTK_Everywhere_Firmware/menu_debug_rtk_operation/</loc>
-         <lastmod>2025-05-20</lastmod>
+         <lastmod>2025-05-21</lastmod>
     </url>
     <url>
          <loc>https://docs.sparkfun.com/SparkFun_RTK_Everywhere_Firmware/menu_debug_software/</loc>
-         <lastmod>2025-05-20</lastmod>
+         <lastmod>2025-05-21</lastmod>
     </url>
     <url>
          <loc>https://docs.sparkfun.com/SparkFun_RTK_Everywhere_Firmware/menu_ethernet/</loc>
-         <lastmod>2025-05-20</lastmod>
+         <lastmod>2025-05-21</lastmod>
     </url>
     <url>
          <loc>https://docs.sparkfun.com/SparkFun_RTK_Everywhere_Firmware/menu_firmware/</loc>
-         <lastmod>2025-05-20</lastmod>
+         <lastmod>2025-05-21</lastmod>
     </url>
     <url>
          <loc>https://docs.sparkfun.com/SparkFun_RTK_Everywhere_Firmware/menu_gnss/</loc>
-         <lastmod>2025-05-20</lastmod>
+         <lastmod>2025-05-21</lastmod>
     </url>
     <url>
          <loc>https://docs.sparkfun.com/SparkFun_RTK_Everywhere_Firmware/menu_messages/</loc>
-         <lastmod>2025-05-20</lastmod>
+         <lastmod>2025-05-21</lastmod>
     </url>
     <url>
          <loc>https://docs.sparkfun.com/SparkFun_RTK_Everywhere_Firmware/menu_ntp/</loc>
-         <lastmod>2025-05-20</lastmod>
+         <lastmod>2025-05-21</lastmod>
     </url>
     <url>
          <loc>https://docs.sparkfun.com/SparkFun_RTK_Everywhere_Firmware/menu_pointperfect/</loc>
-         <lastmod>2025-05-20</lastmod>
+         <lastmod>2025-05-21</lastmod>
     </url>
     <url>
          <loc>https://docs.sparkfun.com/SparkFun_RTK_Everywhere_Firmware/menu_ports/</loc>
-         <lastmod>2025-05-20</lastmod>
+         <lastmod>2025-05-21</lastmod>
     </url>
     <url>
          <loc>https://docs.sparkfun.com/SparkFun_RTK_Everywhere_Firmware/menu_radios/</loc>
-         <lastmod>2025-05-20</lastmod>
+         <lastmod>2025-05-21</lastmod>
     </url>
     <url>
          <loc>https://docs.sparkfun.com/SparkFun_RTK_Everywhere_Firmware/menu_system/</loc>
-         <lastmod>2025-05-20</lastmod>
+         <lastmod>2025-05-21</lastmod>
     </url>
     <url>
          <loc>https://docs.sparkfun.com/SparkFun_RTK_Everywhere_Firmware/menu_tcp_udp/</loc>
-         <lastmod>2025-05-20</lastmod>
+         <lastmod>2025-05-21</lastmod>
     </url>
     <url>
          <loc>https://docs.sparkfun.com/SparkFun_RTK_Everywhere_Firmware/menu_tilt/</loc>
-         <lastmod>2025-05-20</lastmod>
+         <lastmod>2025-05-21</lastmod>
     </url>
     <url>
          <loc>https://docs.sparkfun.com/SparkFun_RTK_Everywhere_Firmware/menu_userprofiles/</loc>
-         <lastmod>2025-05-20</lastmod>
+         <lastmod>2025-05-21</lastmod>
     </url>
     <url>
          <loc>https://docs.sparkfun.com/SparkFun_RTK_Everywhere_Firmware/menu_wifi/</loc>
-         <lastmod>2025-05-20</lastmod>
+         <lastmod>2025-05-21</lastmod>
     </url>
     <url>
          <loc>https://docs.sparkfun.com/SparkFun_RTK_Everywhere_Firmware/permanent_base/</loc>
-         <lastmod>2025-05-20</lastmod>
+         <lastmod>2025-05-21</lastmod>
     </url>
     <url>
          <loc>https://docs.sparkfun.com/SparkFun_RTK_Everywhere_Firmware/quickstart-evk/</loc>
-         <lastmod>2025-05-20</lastmod>
+         <lastmod>2025-05-21</lastmod>
     </url>
     <url>
          <loc>https://docs.sparkfun.com/SparkFun_RTK_Everywhere_Firmware/quickstart-facet-mosaic/</loc>
-         <lastmod>2025-05-20</lastmod>
+         <lastmod>2025-05-21</lastmod>
     </url>
     <url>
          <loc>https://docs.sparkfun.com/SparkFun_RTK_Everywhere_Firmware/quickstart-postcard/</loc>
-         <lastmod>2025-05-20</lastmod>
+         <lastmod>2025-05-21</lastmod>
     </url>
     <url>
          <loc>https://docs.sparkfun.com/SparkFun_RTK_Everywhere_Firmware/quickstart-torch/</loc>
-         <lastmod>2025-05-20</lastmod>
+         <lastmod>2025-05-21</lastmod>
     </url>
     <url>
          <loc>https://docs.sparkfun.com/SparkFun_RTK_Everywhere_Firmware/readme/</loc>
-         <lastmod>2025-05-20</lastmod>
+         <lastmod>2025-05-21</lastmod>
     </url>
     <url>
          <loc>https://docs.sparkfun.com/SparkFun_RTK_Everywhere_Firmware/reference_documents/</loc>
-         <lastmod>2025-05-20</lastmod>
+         <lastmod>2025-05-21</lastmod>
     </url>
     <url>
          <loc>https://docs.sparkfun.com/SparkFun_RTK_Everywhere_Firmware/repair/</loc>
-         <lastmod>2025-05-20</lastmod>
+         <lastmod>2025-05-21</lastmod>
     </url>
 </urlset>
