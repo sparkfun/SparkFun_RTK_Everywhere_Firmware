@@ -702,6 +702,10 @@ void beginBoard()
         present.gpioExpander = true;
         present.microSdCardDetectGpioExpanderHigh = true; // CD is on GPIO 5 of expander. High = SD in place.
 
+        //We can't enable here because we don't know if lg290pFirmwareVersion is >= v05
+        //present.minElevation = true;
+        //present.minCno = true;
+        
         pin_I2C0_SDA = 7;
         pin_I2C0_SCL = 20;
 
