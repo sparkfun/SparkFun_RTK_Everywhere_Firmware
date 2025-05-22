@@ -61,9 +61,7 @@ enum ZtpServiceLevel
     ZTP_SERVICE_MAX // Last entry in the list
 };
 
-const char *const ztpServiceName[] = {
-    "No Service", "L-Band", "SSR-IP", "L-Band and SSR-IP", "RTCM", "RTCM-Trial"
-};
+const char *const ztpServiceName[] = {"No Service", "L-Band", "SSR-IP", "L-Band and SSR-IP", "RTCM", "RTCM-Trial"};
 
 const int ztpServiceNameEntries = sizeof(ztpServiceName) / sizeof(ztpServiceName[0]);
 
@@ -526,11 +524,10 @@ void httpClientUpdate()
                     // Handle a PointPerfect RTCM credentials response
                     systemPrintf("PointPerfect response: %s\r\n", response.c_str());
 
-                    strncpy(settings.ntripClient_CasterHost,
-                            (const char *)((*jsonZtp)["rtcmCredentials"]["endpoint"]),
+                    strncpy(settings.ntripClient_CasterHost, (const char *)((*jsonZtp)["rtcmCredentials"]["endpoint"]),
                             sizeof(settings.ntripClient_CasterHost));
                     settings.ntripClient_CasterPort = (*jsonZtp)["rtcmCredentials"]["httpPort"];
-                    
+
                     // If region is determined, override NTRIP Settings
                     settings.enableNtripClient = true;
                     settings.ntripClient_TransmitGGA = true;
