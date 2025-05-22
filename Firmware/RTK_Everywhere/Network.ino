@@ -1528,7 +1528,7 @@ void networkPrintStatus(uint8_t priority)
 {
     NetMask_t bitMask;
     NETCONSUMER_MASK_t consumerMask;
-    NETCONSUMER_t consumers;
+    NETCONSUMER_MASK_t consumers;
     bool highestPriority;
     int index;
     const char *name;
