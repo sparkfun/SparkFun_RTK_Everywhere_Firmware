@@ -135,7 +135,7 @@ lib-update:	core-update
 		"SparkFun Extensible Message Parser"@1.0.2 \
 		"SparkFun I2C Expander Arduino Library"@1.0.1 \
 		"SparkFun IM19 IMU Arduino Library"@1.0.1 \
-		"SparkFun LG290P Quadband RTK GNSS Arduino Library"@1.0.2
+		"SparkFun LG290P Quadband RTK GNSS Arduino Library"@1.0.5
 		"SparkFun LIS2DH12 Arduino Library"@1.0.3 \
 		"SparkFun MAX1704x Fuel Gauge Arduino Library"@1.0.4 \
 		"SparkFun Qwiic OLED Arduino Library"@1.0.13 \
