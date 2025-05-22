@@ -8,13 +8,6 @@ void terminalUpdate()
     static bool passRtcmToGnss;
     static uint32_t rtcmTimer;
 
-    // Determine which items are periodically displayed
-    if ((millis() - lastPeriodicDisplay) >= settings.periodicDisplayInterval)
-    {
-        lastPeriodicDisplay = millis();
-        periodicDisplay = settings.periodicDisplay;
-    }
-
     // Check for USB serial input
     if (systemAvailable())
     {
