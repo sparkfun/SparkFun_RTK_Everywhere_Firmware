@@ -20,9 +20,9 @@
 const uint8_t developmentToken[16] = {DEVELOPMENT_TOKEN};             // Token in HEX form
 const uint8_t ppLbandToken[16] = {POINTPERFECT_LBAND_TOKEN};          // Token in HEX form
 const uint8_t ppIpToken[16] = {POINTPERFECT_IP_TOKEN};                // Token in HEX form
-const uint8_t ppLbandIpToken[16] = {POINTPERFECT_LBAND_IP_TOKEN};     // Token in HEX form
+const uint8_t ppLbandIpToken[16] = {POINTPERFECT_LBAND_IP_TOKEN};     // Token in HEX form - can't remove until all units are moved to L-Band token
 const uint8_t ppRtcmToken[16] = {POINTPERFECT_RTCM_TOKEN};            // Token in HEX form
-const uint8_t ppRtcmTrialToken[16] = {POINTPERFECT_RTCM_TRIAL_TOKEN}; // Token in HEX form
+const uint8_t ppGlobalToken[16] = {DEVELOPMENT_TOKEN}; // TBD
 
 #ifdef COMPILE_NETWORK
 MqttClient *menuppMqttClient;
@@ -34,13 +34,36 @@ MqttClient *menuppMqttClient;
 
 bool productVariantSupportsAssistNow()
 {
+    if (productVariant == RTK_EVK)
+        return true;
+    if (productVariant == RTK_FACET_V2)
+        return false; //TODO - will require specific module lookup
     if (productVariant == RTK_FACET_MOSAIC)
         return false;
     if (productVariant == RTK_TORCH)
         return false;
     if (productVariant == RTK_POSTCARD)
         return false;
-    return true;
+
+    systemPrintln("AssistNow Error: Unhandled Variant");
+    return false;
+}
+
+bool productVariantSupportsLbandNA()
+{
+    if (productVariant == RTK_EVK)
+        return true;
+    if (productVariant == RTK_FACET_V2)
+        return false; //TODO - will require specific module lookup
+    if (productVariant == RTK_FACET_MOSAIC)
+        return true;
+    if (productVariant == RTK_TORCH)
+        return false;
+    if (productVariant == RTK_POSTCARD)
+        return false;
+
+    systemPrintln("LBand Error: Unhandled Variant");
+    return false;
 }
 
 void menuPointPerfectKeys()
@@ -222,7 +245,7 @@ const char *printDaysFromDuration(long long duration)
 }
 
 // Create a ZTP request to be sent to thingstream JSON API
-void createZtpRequest(String &str, int attemptNumber)
+void createZtpRequest(String &str)
 {
     // Assume failure
     str = "";
@@ -252,19 +275,18 @@ void createZtpRequest(String &str, int attemptNumber)
     if (strlen(settings.pointPerfectDeviceProfileToken) == 0)
     {
         // Use the built-in SparkFun tokens
-        // Depending on how many times we've tried the ZTP interface, change the token
-        ztpGetToken(tokenString, attemptNumber);
+        ztpGetToken(tokenString);
 
         if (memcmp(ppLbandToken, developmentToken, sizeof(developmentToken)) == 0)
             systemPrintln("Warning: Using the development token!");
 
         if (settings.debugCorrections == true)
         {
-            // Don't expose the SparkFun tokens
             char tokenChar = tokenString[4];
-            tokenString[4] = 0;
-            systemPrintf("Using token: %s\r\n", tokenString);
-            tokenString[4] = tokenChar;
+            tokenString[4] = 0; // Clip token to first four characters
+            systemPrintf("Using token: %s - 0x%s\r\n", ztpServiceName[ztpServiceLevelLookup(attemptNumber)],
+                         tokenString);
+            tokenString[4] = tokenChar; // Return token to original state
         }
     }
     else
@@ -942,9 +964,7 @@ void menuPointPerfect()
         if (settings.debugCorrections == true)
             systemPrintf("Time to first RTK Fix: %ds Restarts: %d\r\n", rtkTimeToFixMs / 1000, floatLockRestarts);
 
-        systemPrintf("Service Level: %s\r\n", ztpServiceName[settings.ztpServiceLevelAllowed]);
-
-        if (ztpServiceUsesKeys() == true)
+        if (ppServiceUsesKeys() == true)
         {
             if (settings.debugCorrections == true)
                 systemPrintf("settings.pointPerfectKeyDistributionTopic: %s\r\n",
@@ -1000,59 +1020,73 @@ void menuPointPerfect()
         //     We need to subscribe to our regional correction topic and push the data to the PPL
         //     RTCM from the PPL is pushed to the GNSS receiver (ie, UM980, LG290P)
         //   We do not need the user to tell us which pointPerfectCorrectionsSource to use.
-        //   We identify the service level during ZTP and record it to settings (ztpServiceLevelAllowed)
+        //   We identify the service level during ZTP and record it to settings (pointPerfectService)
 
-        systemPrint("1) PointPerfect Corrections: ");
-        if (settings.enablePointPerfectCorrections)
-            systemPrintln("Enabled");
-        else
-            systemPrintln("Disabled");
+        systemPrintf("1) PointPerfect Service: %s\r\n", ppServices.serviceName[settings.pointPerfectService]);
 
+#ifdef COMPILE_NETWORK
         if (pointPerfectIsEnabled())
         {
-#ifdef COMPILE_NETWORK
-            systemPrint("2) Toggle Auto Key Renewal: ");
-            if (settings.autoKeyRenewal == true)
-                systemPrintln("Enabled");
-            else
-                systemPrintln("Disabled");
-            systemPrint("3) Request Key Update: ");
-            if (settings.requestKeyUpdate == true)
-                systemPrintln("Requested");
-            else
-                systemPrintln("Not requested");
-            systemPrint("4) Use localized distribution: ");
-            if (settings.useLocalizedDistribution == true)
-                systemPrintln("Enabled");
-            else
-                systemPrintln("Disabled");
-            if (settings.useLocalizedDistribution)
+            if (ppServiceUsesKeys() == false)
             {
-                systemPrint("5) Localized distribution tile level: ");
-                systemPrint(settings.localizedDistributionTileLevel);
-                systemPrint(" (");
-                systemPrint(localizedDistributionTileLevelNames[settings.localizedDistributionTileLevel]);
-                systemPrintln(")");
+                systemPrint("2) Update Credentials: ");
+                if (settings.requestKeyUpdate == true)
+                    systemPrintln("Requested");
+                else
+                    systemPrintln("Not requested");
+
+                systemPrintln("i) Show device ID");
             }
-            if (productVariantSupportsAssistNow())
+            else
             {
-                systemPrint("a) Use AssistNow: ");
-                if (settings.useAssistNow == true)
+                systemPrint("3) Toggle Auto Key Renewal: ");
+                if (settings.autoKeyRenewal == true)
                     systemPrintln("Enabled");
                 else
                     systemPrintln("Disabled");
+                systemPrint("4) Request Key Update: ");
+                if (settings.requestKeyUpdate == true)
+                    systemPrintln("Requested");
+                else
+                    systemPrintln("Not requested");
+                systemPrint("5) Use localized distribution: ");
+                if (settings.useLocalizedDistribution == true)
+                    systemPrintln("Enabled");
+                else
+                    systemPrintln("Disabled");
+                if (settings.useLocalizedDistribution)
+                {
+                    systemPrint("6) Localized distribution tile level: ");
+                    systemPrint(settings.localizedDistributionTileLevel);
+                    systemPrint(" (");
+                    systemPrint(localizedDistributionTileLevelNames[settings.localizedDistributionTileLevel]);
+                    systemPrintln(")");
+                }
+                if (productVariantSupportsAssistNow())
+                {
+                    systemPrint("a) Use AssistNow: ");
+                    if (settings.useAssistNow == true)
+                        systemPrintln("Enabled");
+                    else
+                        systemPrintln("Disabled");
+                }
+
+                systemPrintln("c) Clear the Keys");
+
+                systemPrintln("i) Show device ID");
+
+                systemPrintln("k) Manual Key Entry");
+
+                systemPrint("g) Geographic Region: ");
+                systemPrintln(Regional_Information_Table[settings.geographicRegion].name);
             }
-#endif // COMPILE_NETWORK
-
-            systemPrintln("c) Clear the Keys");
-
+        }
+        else
+        {
             systemPrintln("i) Show device ID");
-
-            systemPrintln("k) Manual Key Entry");
         }
 
-        systemPrint("g) Geographic Region: ");
-        systemPrintln(Regional_Information_Table[settings.geographicRegion].name);
+#endif // COMPILE_NETWORK
 
         systemPrintln("x) Exit");
 
@@ -1060,6 +1094,9 @@ void menuPointPerfect()
 
         if (incoming == 1)
         {
+        
+            // Many functions depend on settings.enablePointPerfectCorrections so continue to support it
+            
             settings.enablePointPerfectCorrections ^= 1;
             restartRover = true; // Require a rover restart to enable / disable RTCM for PPL
             settings.requestKeyUpdate = settings.enablePointPerfectCorrections; // Force a key update - or don't
@@ -1071,42 +1108,49 @@ void menuPointPerfect()
             settings.autoKeyRenewal ^= 1;
             settings.requestKeyUpdate = settings.autoKeyRenewal; // Force a key update - or don't
         }
-        else if (incoming == 3 && pointPerfectIsEnabled())
+        else if (incoming == 3 && pointPerfectIsEnabled() && ppServiceUsesKeys() == true)
+        {
+            settings.autoKeyRenewal ^= 1;
+            settings.requestKeyUpdate = settings.autoKeyRenewal; // Force a key update - or don't
+        }
+        else if (incoming == 4 && pointPerfectIsEnabled() && ppServiceUsesKeys() == true)
         {
             settings.requestKeyUpdate ^= 1;
         }
-        else if (incoming == 4 && pointPerfectIsEnabled())
+        else if (incoming == 5 && pointPerfectIsEnabled() && ppServiceUsesKeys() == true)
         {
             settings.useLocalizedDistribution ^= 1;
         }
-        else if (incoming == 5 && pointPerfectIsEnabled() && settings.useLocalizedDistribution)
+        else if (incoming == 6 && pointPerfectIsEnabled() && settings.useLocalizedDistribution &&
+                 ppServiceUsesKeys() == true)
         {
             settings.localizedDistributionTileLevel++;
             if (settings.localizedDistributionTileLevel >= LOCALIZED_DISTRIBUTION_TILE_LEVELS)
                 settings.localizedDistributionTileLevel = 0;
         }
-        else if (incoming == 'a' && pointPerfectIsEnabled() && productVariantSupportsAssistNow())
+        else if (incoming == 'a' && pointPerfectIsEnabled() && productVariantSupportsAssistNow() &&
+                 ppServiceUsesKeys() == true)
         {
             settings.useAssistNow ^= 1;
         }
 #endif // COMPILE_NETWORK
-        else if (incoming == 'c' && pointPerfectIsEnabled())
+        else if (incoming == 'c' && pointPerfectIsEnabled() && ppServiceUsesKeys() == true)
         {
             settings.pointPerfectCurrentKey[0] = 0;
             settings.pointPerfectNextKey[0] = 0;
         }
-        else if (incoming == 'i' && pointPerfectIsEnabled())
+        else if (incoming == 'i')
         {
             char hardwareID[15];
             snprintf(hardwareID, sizeof(hardwareID), "%02X%02X%02X%02X%02X%02X%02X", btMACAddress[0], btMACAddress[1],
                      btMACAddress[2], btMACAddress[3], btMACAddress[4], btMACAddress[5], productVariant);
             systemPrintf("Device ID: %s\r\n", hardwareID);
         }
-        else if (incoming == 'k' && pointPerfectIsEnabled())
+        else if (incoming == 'k' && pointPerfectIsEnabled() && ppServiceUsesKeys() == true)
         {
             menuPointPerfectKeys();
         }
-        else if (incoming == 'g')
+        else if (incoming == 'g' && pointPerfectIsEnabled() && ppServiceUsesKeys() == true)
         {
             settings.geographicRegion++;
             if (settings.geographicRegion >= numRegionalAreas)
@@ -1299,7 +1343,7 @@ void provisioningUpdate()
     case PROVISIONING_CHECK_REMAINING: {
         // Skip ZTP if we've already determined we have RTCM-SSR access
         // If we don't have certs or keys, begin zero touch provisioning
-        if ((settings.ztpServiceLevelAllowed != ZTP_SERVICE_RTCM) &&
+        if ((settings.pointPerfectService != ZTP_SERVICE_RTCM) &&
             (!checkCertificates() || strlen(settings.pointPerfectCurrentKey) == 0 ||
              strlen(settings.pointPerfectNextKey) == 0))
         {
@@ -1321,7 +1365,7 @@ void provisioningUpdate()
                 systemPrintln("No RTC. Starting provisioning");
             provisioningSetState(PROVISIONING_WAIT_FOR_NETWORK);
         }
-        else if (settings.ztpServiceLevelAllowed == ZTP_SERVICE_RTCM)
+        else if (settings.pointPerfectService == ZTP_SERVICE_RTCM)
         {
             // We've already completed ZTP and identified our service as RTCM-SSR
             // No further provisioning is required. If a user wants to provision again, they can
@@ -1409,7 +1453,12 @@ void provisioningUpdate()
         {
             httpClientModeNeeded = false; // Tell HTTP_Client to give up
             recordSystemSettings();       // Make sure the new cert and keys are recorded
-            systemPrintln("Keys successfully updated!");
+
+            if (ppServiceUsesKeys() == true)
+                systemPrintln("Keys successfully updated!");
+            else
+                systemPrintln("Credentials successfully updated!");
+
             provisioningSetState(PROVISIONING_KEYS_REMAINING);
         }
         else if (ztpResponse == ZTP_DEACTIVATED)

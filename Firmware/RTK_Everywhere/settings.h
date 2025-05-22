@@ -828,7 +828,7 @@ struct Settings
         "",
         "",
     };
-    uint8_t ztpServiceLevelAllowed = 0; // ZTP_SERVICE_NONE - Global for other services to know what service this device is allowed to use
+    uint8_t pointPerfectService = 0; // See ppServices[]. Records which PointPerfect service the user has chosen.
 
     // Profiles
     char profileName[50] = "";
@@ -1412,7 +1412,7 @@ const RTK_Settings_Entry rtkSettingsEntries[] =
     { 0, 0, 0, 1, 1, 1, 1, 1, 1, _uint64_t, 0, & settings.pointPerfectNextKeyStart, "pointPerfectNextKeyStart",  },
     { 0, 1, 0, 1, 1, 1, 1, 1, 1, _uint16_t, 0, & settings.pplFixTimeoutS, "pplFixTimeoutS",  },
     { 0, 0, 1, 1, 1, 1, 1, 1, 1, tRegCorTp, numRegionalAreas, & settings.regionalCorrectionTopics, "regionalCorrectionTopics_",  },
-    { 1, 1, 0, 1, 1, 1, 1, 1, 1, _uint8_t, 0, & settings.ztpServiceLevelAllowed, "ztpServiceLevelAllowed",  },
+    { 1, 1, 0, 1, 1, 1, 1, 1, 1, _uint8_t, 0, & settings.pointPerfectService, "pointPerfectService",  },
 
     // Profiles
     { 1, 1, 0, 1, 1, 1, 1, 1, 1, tCharArry, sizeof(settings.profileName), & settings.profileName, "profileName",  },

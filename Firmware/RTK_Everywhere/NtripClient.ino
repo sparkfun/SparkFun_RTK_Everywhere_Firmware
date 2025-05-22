@@ -153,7 +153,7 @@ enum NTRIPClientState
 {
     NTRIP_CLIENT_OFF = 0,           // Using Bluetooth or NTRIP server
     NTRIP_CLIENT_ON,                // WIFI_STATE_START state
-    NTRIP_CLIENT_WAIT_FOR_NETWORK,   // Connecting to WiFi access point or Ethernet
+    NTRIP_CLIENT_WAIT_FOR_NETWORK,  // Connecting to WiFi access point or Ethernet
     NTRIP_CLIENT_NETWORK_CONNECTED, // Connected to an access point or Ethernet
     NTRIP_CLIENT_CONNECTING,        // Attempting a connection to the NTRIP caster
     NTRIP_CLIENT_WAIT_RESPONSE,     // Wait for a response from the NTRIP caster
@@ -728,9 +728,24 @@ void ntripClientUpdate()
             else if (strstr(response, "401") != nullptr)
             {
                 // Look for '401 Unauthorized'
-                systemPrintf("NTRIP Caster responded with unauthorized error: %s. Are you sure your caster credentials "
-                             "are correct?\r\n",
-                             response);
+
+                // If we are using PointPerfect RTCM credentials, let the user know they may be deactivated.
+                if (settings.enablePointPerfectCorrections == true && ppServiceUsesKeys() == false)
+                {
+                    systemPrintf("NTRIP Caster responded with unauthorized error. Your account may be deactivated. "
+                                 "Please contact "
+                                 "support@sparkfun.com %sto renew the PointPerfect "
+                                 "subscription. Please reference device ID: %s\r\n",
+                                 hardwareID);
+                }
+                else
+                {
+                    // This is a regular NTRIP credential problem
+                    systemPrintf(
+                        "NTRIP Caster responded with unauthorized error: %s. Are you sure your caster credentials "
+                        "are correct?\r\n",
+                        response);
+                }
 
                 // Stop NTRIP client operations
                 ntripClientForceShutdown();

@@ -180,7 +180,7 @@ bool mqttClientIsNeeded()
             return false;
 
     // If we are using PointPerfect RTCM-SSR service over NTRIP, we do not need MQTT
-    if(settings.ztpServiceLevelAllowed == ZTP_SERVICE_RTCM)
+    if(settings.pointPerfectService == ZTP_SERVICE_RTCM)
         return false;
 
     // If we do not have a broker host yet, we can't connect
