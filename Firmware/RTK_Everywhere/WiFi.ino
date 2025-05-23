@@ -11,7 +11,8 @@
 //****************************************
 
 #define WIFI_DEFAULT_CHANNEL            1
-#define WIFI_IP_ADDRESS_TIMEOUT_MSEC    (15 * 1000)
+#define WIFI_IP_ADDRESS_TIMEOUT_MSEC    (15 * MILLISECONDS_IN_A_SECOND)
+#define WIFI_CONNECTION_STABLE_MSEC     (15 * MILLISECONDS_IN_A_MINUTE)
 
 static const char * wifiAuthorizationName[] =
 {
@@ -1029,6 +1030,182 @@ void wifiStop(NetIndex_t index, uintptr_t parameter, bool debug)
     wifi.enable(wifiEspNowRunning, wifiSoftApRunning, false, __FILE__, __LINE__);
 
     networkSequenceNextEntry(NETWORK_WIFI_STATION, settings.debugNetworkLayer);
+}
+
+//*********************************************************************
+// Update the WiFi station state
+void wifiStationUpdate()
+{
+    static int connectionAttempts;
+    bool enabled;
+    bool online;
+    const char * reason;
+    static uint32_t startTimeout;
+    static uint32_t timer;
+    int users;
+
+    // Determine if WiFi station should stop
+    enabled = wifiStationEnabled(&reason);
+    online = wifiStationOnline;
+    if ((enabled == false) && (wifiStationState >= WIFI_STATION_STATE_STARTING))
+    {
+        // Display the reason why WiFi is disabled
+        if (settings.debugWifiState)
+            systemPrintf("WiFi Station %s\r\n", reason);
+
+        // Notify the consumers that WiFi is shutting down
+        if (online)
+        {
+            // Notify the consumers that the network connection is broken
+            networkConsumerReconnect(NETWORK_WIFI_STATION);
+
+            // Tell the network layer that the network is offline
+            // This prevents network consumers from reconnecting to this network
+            networkInterfaceInternetConnectionLost(NETWORK_WIFI_STATION);
+
+            // WiFi station is no longer online
+            wifi.clearStarted(WIFI_STA_ONLINE);
+            wifiStationOnline = false;
+        }
+        wifiStationSetState(WIFI_STATION_STATE_WAIT_NO_USERS);
+    }
+
+    // Update the WiFi station state
+    switch (wifiStationState)
+    {
+    // There are no WiFi station consumers
+    case WIFI_STATION_STATE_OFF:
+        if (enabled)
+        {
+            connectionAttempts = 0;
+            timer = millis();
+            startTimeout = 0;
+
+            // Display the major state transition
+            if (settings.debugWifiState)
+                systemPrintf("--------------- %s Starting ---------------\r\n",
+                             networkInterfaceTable[NETWORK_WIFI_STATION].name);
+
+            // Start WiFi station
+            wifiStationSetState(WIFI_STATION_STATE_STARTING);
+        }
+        break;
+
+    // Wait for WiFi station users to release resources before shutting
+    // down WiFi station
+    case WIFI_STATION_STATE_WAIT_NO_USERS:
+        users = networkUserCount(NETWORK_WIFI_STATION);
+        if (users)
+        {
+            static uint32_t lastMsec;
+
+            // Display the network users
+            uint32_t currentMsec = millis();
+            if (settings.debugWifiState && ((currentMsec - lastMsec) > (2 * 1000)))
+            {
+                lastMsec = currentMsec;
+                systemPrintf("%s: Waiting for WiFi users to shutdown\r\n",
+                             networkInterfaceTable[NETWORK_WIFI_STATION].name);
+                networkUserDisplay(NETWORK_WIFI_STATION);
+            }
+        }
+
+        // No more network users
+        else
+        {
+            // Stop WiFi station if necessary
+            if (enabled == false)
+            {
+                // Display the major state transition
+                if (wifiStationRunning)
+                {
+                    if (settings.debugWifiState)
+                        systemPrintf("--------------- %s Stopping ---------------\r\n",
+                                     networkInterfaceTable[NETWORK_WIFI_STATION].name);
+                    wifiStationOff(__FILE__, __LINE__);
+                }
+                wifiStationSetState(WIFI_STATION_STATE_OFF);
+            }
+
+            // Restart WiFi after delay
+            else
+            {
+                // Clear the bits to perform the restart operation
+                wifi.clearStarted(WIFI_STA_RECONNECT);
+                wifiStationSetState(WIFI_STATION_STATE_RESTART);
+            }
+        }
+        break;
+
+    // Display the restart delay and then start WiFi station
+    case WIFI_STATION_STATE_RESTART:
+        if (startTimeout && settings.debugWifiState)
+        {
+            // Display the delay
+            uint32_t seconds = startTimeout / MILLISECONDS_IN_A_SECOND;
+            uint32_t minutes = seconds / SECONDS_IN_A_MINUTE;
+            seconds -= minutes * SECONDS_IN_A_MINUTE;
+            systemPrintf("WiFi: Delaying %2d:%02d before restarting WiFi\r\n", minutes, seconds);
+        }
+        timer = millis();
+        wifiStationSetState(WIFI_STATION_STATE_STARTING);
+        break;
+
+    // At least one consumer is requesting a network
+    case WIFI_STATION_STATE_STARTING:
+        // Delay before starting WiFi
+        if ((millis() - timer) >= startTimeout)
+        {
+            timer = millis();
+
+            // Increase the timeout
+            startTimeout <<= 1;
+            if (!startTimeout)
+                startTimeout = WIFI_MIN_TIMEOUT;
+            else if (startTimeout > WIFI_MAX_TIMEOUT)
+                startTimeout = WIFI_MAX_TIMEOUT;
+
+            // Account for this connection attempt
+            connectionAttempts++;
+
+            // Attempt to start WiFi station
+            if (wifiStationOn(__FILE__, __LINE__))
+            {
+                // Successfully connected to a remote AP
+                if (settings.debugWifiState)
+                    systemPrintf("WiFi: WiFi station successfully started\r\n");
+
+                // WiFi station is now available
+                wifiStationSetState(WIFI_STATION_STATE_ONLINE);
+            }
+            else
+            {
+                // Failed to connect to a remote AP
+                if (settings.debugWifiState)
+                    systemPrintf("WiFi: WiFi station failed to start!\r\n");
+
+                // Start the next network interface if necessary
+                if (connectionAttempts >= 2)
+                    networkStartNextInterface(NETWORK_WIFI_STATION);
+            }
+        }
+        break;
+
+    // WiFi station consumers have internet access
+    case WIFI_STATION_STATE_ONLINE:
+        // Wait until the WiFi link is stable
+        if ((millis() - timer) >= WIFI_CONNECTION_STABLE_MSEC)
+        {
+            connectionAttempts = 0;
+            startTimeout = 0;
+            wifiStationSetState(WIFI_STATION_STATE_STABLE);
+        }
+        break;
+
+    // WiFi station consumers have internet access
+    case WIFI_STATION_STATE_STABLE:
+        break;
+    }
 }
 
 //*********************************************************************
