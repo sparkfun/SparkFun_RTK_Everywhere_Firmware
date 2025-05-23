@@ -640,7 +640,7 @@ void updateLBand()
 
             online.lband_neo = true;
         }
-        else if (online.lband_neo && settings.enablePointPerfectCorrections)
+        else if (online.lband_neo && pointPerfectIsEnabled())
         {
             // L-Band is online. Apply the keys if they have changed
             // This may be redundant as PROVISIONING_KEYS_REMAINING also applies the keys
@@ -658,7 +658,7 @@ void updateLBand()
 #ifdef COMPILE_MOSAICX5
     if (present.gnss_mosaicX5)
     {
-        if (!online.lband_gnss && settings.enablePointPerfectCorrections)
+        if (!online.lband_gnss && pointPerfectIsEnabled())
         {
             static bool lband_gnss_can_not_begin = false;
 
@@ -725,7 +725,7 @@ void updateLBand()
                 online.lband_gnss = true;
             }
         }
-        // else if (online.lband_gnss && settings.enablePointPerfectCorrections)
+        // else if (online.lband_gnss && pointPerfectIsEnabled())
         {
             // If no SPARTN data is received, the L-Band may need a 'kick'. Turn L-Band off and back on again!
             // But gnss->update will do this. No need to do it here
@@ -1088,7 +1088,7 @@ bool provisioningEnabled(const char ** line)
     do
     {
         // Provisioning requires PointPerfect corrections
-        enabled = settings.enablePointPerfectCorrections;
+        enabled = pointPerfectIsEnabled();
         if (enabled == false)
         {
             *line = ", PointPerfect corrections disabled!";

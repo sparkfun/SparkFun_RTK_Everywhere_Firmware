@@ -230,14 +230,14 @@ bool mqttClientEnabled(const char ** line)
         }
 
         // MQTT requires use of point perfect corrections
-        if (settings.enablePointPerfectCorrections == false)
+        if (pointPerfectIsEnabled() == false)
         {
             if (line)
                 *line = ", PointPerfect corrections are disabled!";
             break;
         }
 
-        // For the mosaic-X5, settings.enablePointPerfectCorrections will be true if
+        // For the mosaic-X5, pointPerfectIsEnabled() will be true if
         // we are using the PPL and getting keys via ZTP. BUT the Facet mosaic-X5
         // uses the L-Band (only) plan. It should not and can not subscribe to PP IP
         // MQTT corrections. So, if present.gnss_mosaicX5 is true, set enableMqttClient
