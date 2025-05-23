@@ -24,42 +24,230 @@ static const uint8_t ppLbandIpToken[16] = {POINTPERFECT_LBAND_IP_TOKEN}; // Toke
 static unsigned long provisioningStartTime_millis;
 static bool provisioningRunning;
 
-//----------------------------------------
-// L-Band Routines - compiled out
-//----------------------------------------
-
-bool productVariantSupportsAssistNow()
+// Provision device on ThingStream
+// Download keys
+void menuPointPerfect()
 {
-    if (productVariant == RTK_EVK)
-        return true;
-    if (productVariant == RTK_FACET_V2)
-        return false; // TODO - will require specific module lookup
-    if (productVariant == RTK_FACET_MOSAIC)
-        return false;
-    if (productVariant == RTK_TORCH)
-        return false;
-    if (productVariant == RTK_POSTCARD)
-        return false;
+    while (1)
+    {
+        systemPrintln();
+        systemPrintln("Menu: PointPerfect Corrections");
 
-    systemPrintln("Uncaught productVariantSupportsAssistNow()");
-    return false;
-}
+        if (settings.debugCorrections == true)
+            systemPrintf("Time to first RTK Fix: %ds Restarts: %d\r\n",
+                         rtkTimeToFixMs / MILLISECONDS_IN_A_SECOND, floatLockRestarts);
 
-bool productVariantSupportsLbandNA()
-{
-    if (productVariant == RTK_EVK)
-        return true;
-    if (productVariant == RTK_FACET_V2)
-        return false; // TODO - will require specific module lookup
-    if (productVariant == RTK_FACET_MOSAIC)
-        return true;
-    if (productVariant == RTK_TORCH)
-        return false;
-    if (productVariant == RTK_POSTCARD)
-        return false;
+        if (ppServiceUsesKeys() == true)
+        {
+            if (settings.debugCorrections == true)
+                systemPrintf("settings.pointPerfectKeyDistributionTopic: %s\r\n",
+                             settings.pointPerfectKeyDistributionTopic);
 
-    systemPrintln("Uncaught productVariantSupportsLbandNA()");
-    return false;
+            systemPrint("Days until keys expire: ");
+            if (strlen(settings.pointPerfectCurrentKey) > 0)
+            {
+                if (online.rtc == false)
+                {
+                    // If we don't have RTC we can't calculate days to expire
+                    systemPrintln("No RTC");
+                }
+                else
+                {
+                    int daysRemaining =
+                        daysFromEpoch(settings.pointPerfectNextKeyStart + settings.pointPerfectNextKeyDuration + 1);
+
+                    if (daysRemaining < 0)
+                        systemPrintln("Expired");
+                    else
+                        systemPrintln(daysRemaining);
+                }
+            }
+            else
+                systemPrintln("No keys");
+
+            if ((settings.useLocalizedDistribution) && (localizedDistributionTileTopic.length() > 0))
+            {
+                systemPrint("Most recent localized distribution topic: ");
+                systemPrintln(localizedDistributionTileTopic.c_str()); // From MQTT_Client.ino
+            }
+        }
+
+        // How this works:
+        //   There are four PointPerfect corrections plans: IP-only, L-Band-only, L-Band+IP, SSR-RTCM
+        //   For L-Band-only - e.g. Facet mosaic or Facet v2 L-Band
+        //     During ZTP Provisioning, we receive the UBX-format key distribution topic /pp/ubx/0236/Lb
+        //     There are no regional correction topics for L-Band-only
+        //     Facet v2 L-Band pushes the keys to the ZED and pushes PMP from the NEO to the ZED
+        //     Facet mosaic pushes the current key and raw L-Band to the PPL, then pushes RTCM to the X5
+        //   For SSR-RTCM - e.g. Any user/platform that opts for cheap SSR-RTCM over NTRIP
+        //     During ZTP Provisioning, we receive NTRIP credentials and overwrite any existing NTRIP Client
+        //     There are no regional corrections - we pass GGA back to caster instead
+        //   For L-Band+IP - e.g. EVK:
+        //     During ZTP Provisioning, we receive the UBX-format key distribution topic /pp/ubx/0236/Lb
+        //     We also receive the full list of regional correction topics: /pp/Lb/us , /pp/Lb/eu , etc.
+        //     We can subscribe to the topic and push IP data to the ZED - using UBLOX_CFG_SPARTN_USE_SOURCE 0
+        //     Or we can push PMP data from the NEO to the ZED - using UBLOX_CFG_SPARTN_USE_SOURCE 1
+        //   For IP-only - e.g. Old way of getting corrections:
+        //     During ZTP Provisioning, we receive the UBX-format key distribution topic /pp/ubx/0236/ip
+        //     We also receive the full list of regional correction topics: /pp/ip/us , /pp/ip/eu , etc.
+        //     We need to subscribe to our regional correction topic and push the data to the PPL
+        //     RTCM from the PPL is pushed to the GNSS receiver (ie, UM980, LG290P)
+        //   We do not need the user to tell us which pointPerfectCorrectionsSource to use.
+        //   We identify the service level during ZTP and record it to settings (pointPerfectService)
+
+        systemPrintf("1) PointPerfect Service: %s\r\n", ppServices.serviceName[settings.pointPerfectService]);
+
+#ifdef COMPILE_NETWORK
+        if (pointPerfectIsEnabled())
+        {
+            if (ppServiceUsesKeys() == false)
+            {
+                systemPrint("2) Update Credentials: ");
+                if (settings.requestKeyUpdate == true)
+                    systemPrintln("Requested");
+                else
+                    systemPrintln("Not requested");
+
+                systemPrintln("i) Show device ID");
+            }
+            else
+            {
+                systemPrint("3) Toggle Auto Key Renewal: ");
+                if (settings.autoKeyRenewal == true)
+                    systemPrintln("Enabled");
+                else
+                    systemPrintln("Disabled");
+                systemPrint("4) Request Key Update: ");
+                if (settings.requestKeyUpdate == true)
+                    systemPrintln("Requested");
+                else
+                    systemPrintln("Not requested");
+                systemPrint("5) Use localized distribution: ");
+                if (settings.useLocalizedDistribution == true)
+                    systemPrintln("Enabled");
+                else
+                    systemPrintln("Disabled");
+                if (settings.useLocalizedDistribution)
+                {
+                    systemPrint("6) Localized distribution tile level: ");
+                    systemPrint(settings.localizedDistributionTileLevel);
+                    systemPrint(" (");
+                    systemPrint(localizedDistributionTileLevelNames[settings.localizedDistributionTileLevel]);
+                    systemPrintln(")");
+                }
+                if (productVariantSupportsAssistNow())
+                {
+                    systemPrint("a) Use AssistNow: ");
+                    if (settings.useAssistNow == true)
+                        systemPrintln("Enabled");
+                    else
+                        systemPrintln("Disabled");
+                }
+
+                systemPrintln("c) Clear the Keys");
+
+                systemPrintln("i) Show device ID");
+
+                systemPrintln("k) Manual Key Entry");
+
+                systemPrint("g) Geographic Region: ");
+                systemPrintln(Regional_Information_Table[settings.geographicRegion].name);
+            }
+        }
+        else
+        {
+            systemPrintln("i) Show device ID");
+        }
+
+#endif // COMPILE_NETWORK
+
+        systemPrintln("x) Exit");
+
+        byte incoming = getUserInputCharacterNumber();
+
+        if (incoming == 1)
+        {
+            settings.pointPerfectService++;
+            if (settings.pointPerfectService > ppServiceCount)
+                settings.pointPerfectService = 0;
+
+            // Many functions depend on settings.enablePointPerfectCorrections so continue to support it
+            settings.enablePointPerfectCorrections = settings.pointPerfectService;
+
+            restartRover = true; // Require a rover restart to enable / disable RTCM for PPL
+            settings.requestKeyUpdate = settings.enablePointPerfectCorrections; // Force a key update - or don't
+        }
+
+#ifdef COMPILE_NETWORK
+        else if (incoming == 2 && pointPerfectIsEnabled())
+        {
+            settings.autoKeyRenewal ^= 1;
+            settings.requestKeyUpdate = settings.autoKeyRenewal; // Force a key update - or don't
+        }
+        else if (incoming == 3 && pointPerfectIsEnabled() && ppServiceUsesKeys() == true)
+        {
+            settings.autoKeyRenewal ^= 1;
+            settings.requestKeyUpdate = settings.autoKeyRenewal; // Force a key update - or don't
+        }
+        else if (incoming == 4 && pointPerfectIsEnabled() && ppServiceUsesKeys() == true)
+        {
+            settings.requestKeyUpdate ^= 1;
+        }
+        else if (incoming == 5 && pointPerfectIsEnabled() && ppServiceUsesKeys() == true)
+        {
+            settings.useLocalizedDistribution ^= 1;
+        }
+        else if (incoming == 6 && pointPerfectIsEnabled() && settings.useLocalizedDistribution &&
+                 ppServiceUsesKeys() == true)
+        {
+            settings.localizedDistributionTileLevel++;
+            if (settings.localizedDistributionTileLevel >= LOCALIZED_DISTRIBUTION_TILE_LEVELS)
+                settings.localizedDistributionTileLevel = 0;
+        }
+        else if (incoming == 'a' && pointPerfectIsEnabled() && productVariantSupportsAssistNow() &&
+                 ppServiceUsesKeys() == true)
+        {
+            settings.useAssistNow ^= 1;
+        }
+#endif // COMPILE_NETWORK
+        else if (incoming == 'c' && pointPerfectIsEnabled() && ppServiceUsesKeys() == true)
+        {
+            settings.pointPerfectCurrentKey[0] = 0;
+            settings.pointPerfectNextKey[0] = 0;
+        }
+        else if (incoming == 'i')
+        {
+            char hardwareID[15];
+            snprintf(hardwareID, sizeof(hardwareID), "%02X%02X%02X%02X%02X%02X%02X", btMACAddress[0], btMACAddress[1],
+                     btMACAddress[2], btMACAddress[3], btMACAddress[4], btMACAddress[5], productVariant);
+            systemPrintf("Device ID: %s\r\n", hardwareID);
+        }
+        else if (incoming == 'k' && pointPerfectIsEnabled() && ppServiceUsesKeys() == true)
+        {
+            menuPointPerfectKeys();
+        }
+        else if (incoming == 'g' && pointPerfectIsEnabled() && ppServiceUsesKeys() == true)
+        {
+            settings.geographicRegion++;
+            if (settings.geographicRegion >= numRegionalAreas)
+                settings.geographicRegion = 0;
+        }
+        else if (incoming == 'x')
+            break;
+        else if (incoming == INPUT_RESPONSE_GETCHARACTERNUMBER_EMPTY)
+            break;
+        else if (incoming == INPUT_RESPONSE_GETCHARACTERNUMBER_TIMEOUT)
+            break;
+        else
+            printUnknown(incoming);
+    }
+
+    if (strlen(settings.pointPerfectClientID) > 0)
+    {
+        gnss->applyPointPerfectKeys();
+    }
+
+    clearBuffer(); // Empty buffer of any newline chars
 }
 
 void menuPointPerfectKeys()
@@ -193,6 +381,322 @@ void menuPointPerfectKeys()
     }
 
     clearBuffer(); // Empty buffer of any newline chars
+}
+
+// Update any L-Band hardware
+// Check if NEO-D9S is connected. Configure if available.
+// If GNSS is mosaic-X5, configure LBandBeam1
+void updateLBand()
+{
+
+#ifdef COMPILE_L_BAND
+    if (present.lband_neo)
+    {
+        if (!online.lband_neo && pointPerfectIsEnabled())
+        {
+            static bool lband_neo_can_not_begin = false;
+
+            if (lband_neo_can_not_begin)
+                return;
+
+            // NEO-D9S is present but is not yet online. Try to begin the hardware
+            if (i2cLBand.begin(*i2c_0, 0x43) ==
+                false) // Connect to the u-blox NEO-D9S using Wire port. The D9S default I2C address is 0x43 (not 0x42)
+            {
+                systemPrintln("L-Band not detected");
+                lband_neo_can_not_begin = true;
+                return;
+            }
+
+            // Check the firmware version of the NEO-D9S. Based on Example21_ModuleInfo.
+            if (i2cLBand.getModuleInfo(1100) == true) // Try to get the module info
+            {
+                // Reconstruct the firmware version
+                snprintf(neoFirmwareVersion, sizeof(neoFirmwareVersion), "%s %d.%02d", i2cLBand.getFirmwareType(),
+                         i2cLBand.getFirmwareVersionHigh(), i2cLBand.getFirmwareVersionLow());
+
+                printNEOInfo(); // Print module firmware version
+            }
+            else
+            {
+                systemPrintln("L-Band not detected");
+                lband_neo_can_not_begin = true;
+                return;
+            }
+
+            // Update the GNSS position. Use the position to set the frequency if available
+            gnss->update();
+
+            uint32_t LBandFreq;
+            uint8_t fixType = gnss->getFixType();
+            double latitude = gnss->getLatitude();
+            double longitude = gnss->getLongitude();
+
+            // If we have a fix, check which frequency to use
+            if (fixType >= 2 && fixType <= 5) // 2D, 3D, 3D+DR, or Time
+            {
+                int r = 0; // Step through each geographic region
+                for (; r < numRegionalAreas; r++)
+                {
+                    if ((longitude >= Regional_Information_Table[r].area.lonWest) &&
+                        (longitude <= Regional_Information_Table[r].area.lonEast) &&
+                        (latitude >= Regional_Information_Table[r].area.latSouth) &&
+                        (latitude <= Regional_Information_Table[r].area.latNorth))
+                    {
+                        LBandFreq = Regional_Information_Table[r].frequency;
+                        if (settings.debugCorrections == true)
+                            systemPrintf("Setting L-Band frequency to %s (%dHz)\r\n",
+                                         Regional_Information_Table[r].name, LBandFreq);
+                        break;
+                    }
+                }
+                if (r == numRegionalAreas) // Geographic region not found
+                {
+                    LBandFreq = Regional_Information_Table[settings.geographicRegion].frequency;
+                    if (settings.debugCorrections == true)
+                        systemPrintf("Error: Unknown L-Band geographic region. Using %s (%dHz)\r\n",
+                                     Regional_Information_Table[settings.geographicRegion].name, LBandFreq);
+                }
+            }
+            else
+            {
+                LBandFreq = Regional_Information_Table[settings.geographicRegion].frequency;
+                if (settings.debugCorrections == true)
+                    systemPrintf("No fix available for L-Band geographic region determination. Using %s (%dHz)\r\n",
+                                 Regional_Information_Table[settings.geographicRegion].name, LBandFreq);
+            }
+
+            bool response = true;
+            response &= i2cLBand.newCfgValset();
+            response &= i2cLBand.addCfgValset(UBLOX_CFG_PMP_CENTER_FREQUENCY, LBandFreq); // Default 1539812500 Hz
+            response &= i2cLBand.addCfgValset(UBLOX_CFG_PMP_SEARCH_WINDOW, 2200);         // Default 2200 Hz
+            response &= i2cLBand.addCfgValset(UBLOX_CFG_PMP_USE_SERVICE_ID, 0);           // Default 1
+            response &= i2cLBand.addCfgValset(UBLOX_CFG_PMP_SERVICE_ID, 21845);           // Default 50821
+            response &= i2cLBand.addCfgValset(UBLOX_CFG_PMP_DATA_RATE, 2400);             // Default 2400 bps
+            response &= i2cLBand.addCfgValset(UBLOX_CFG_PMP_USE_DESCRAMBLER, 1);          // Default 1
+            response &= i2cLBand.addCfgValset(UBLOX_CFG_PMP_DESCRAMBLER_INIT, 26969);     // Default 23560
+            response &= i2cLBand.addCfgValset(UBLOX_CFG_PMP_USE_PRESCRAMBLING, 0);        // Default 0
+            response &= i2cLBand.addCfgValset(UBLOX_CFG_PMP_UNIQUE_WORD, 16238547128276412563ull);
+            response &=
+                i2cLBand.addCfgValset(UBLOX_CFG_MSGOUT_UBX_RXM_PMP_UART1, 0); // Disable UBX-RXM-PMP on UART1. Not used.
+
+            response &= i2cLBand.sendCfgValset();
+
+            GNSS_ZED *zed = (GNSS_ZED *)gnss;
+            response &= zed->lBandCommunicationEnable();
+
+            if (response == false)
+            {
+                systemPrintln("L-Band failed to configure");
+                lband_neo_can_not_begin = true;
+                return;
+            }
+
+            i2cLBand.softwareResetGNSSOnly(); // Do a restart
+
+            if (settings.debugCorrections == true)
+                systemPrintln("L-Band online");
+
+            online.lband_neo = true;
+        }
+        else if (online.lband_neo && pointPerfectIsEnabled())
+        {
+            // L-Band is online. Apply the keys if they have changed
+            // This may be redundant as PROVISIONING_KEYS_REMAINING also applies the keys
+            static char previousKey[33] = "";
+            if (strncmp(previousKey, settings.pointPerfectCurrentKey, 33) != 0)
+            {
+                strncpy(previousKey, settings.pointPerfectCurrentKey, 33);
+                gnss->applyPointPerfectKeys(); // Apply keys now. This sets online.lbandCorrections
+                if (settings.debugCorrections == true)
+                    systemPrintln("ZED-F9P PointPerfect keys applied");
+            }
+        }
+    }
+#endif // COMPILE_L_BAND
+#ifdef COMPILE_MOSAICX5
+    if (present.gnss_mosaicX5)
+    {
+        if (!online.lband_gnss && pointPerfectIsEnabled())
+        {
+            static bool lband_gnss_can_not_begin = false;
+
+            if (lband_gnss_can_not_begin)
+                return;
+
+            uint32_t LBandFreq;
+            uint8_t fixType = gnss->getFixType();
+            double latitude = gnss->getLatitude();
+            double longitude = gnss->getLongitude();
+            // If we have a fix, check which frequency to use
+            if (fixType >= 1) // Stand-Alone PVT or better
+            {
+                int r = 0; // Step through each geographic region
+                for (; r < numRegionalAreas; r++)
+                {
+                    if ((longitude >= Regional_Information_Table[r].area.lonWest) &&
+                        (longitude <= Regional_Information_Table[r].area.lonEast) &&
+                        (latitude >= Regional_Information_Table[r].area.latSouth) &&
+                        (latitude <= Regional_Information_Table[r].area.latNorth))
+                    {
+                        LBandFreq = Regional_Information_Table[r].frequency;
+                        if (settings.debugCorrections == true)
+                            systemPrintf("Setting L-Band frequency to %s (%dHz)\r\n",
+                                         Regional_Information_Table[r].name, LBandFreq);
+                        break;
+                    }
+                }
+                if (r == numRegionalAreas) // Geographic region not found
+                {
+                    LBandFreq = Regional_Information_Table[settings.geographicRegion].frequency;
+                    if (settings.debugCorrections == true)
+                        systemPrintf("Error: Unknown L-Band geographic region. Using %s (%dHz)\r\n",
+                                     Regional_Information_Table[settings.geographicRegion].name, LBandFreq);
+                }
+            }
+            else
+            {
+                LBandFreq = Regional_Information_Table[settings.geographicRegion].frequency;
+                if (settings.debugCorrections == true)
+                    systemPrintf("No fix available for L-Band geographic region determination. Using %s (%dHz)\r\n",
+                                 Regional_Information_Table[settings.geographicRegion].name, LBandFreq);
+            }
+
+            bool result = true;
+
+            GNSS_MOSAIC *mosaic = (GNSS_MOSAIC *)gnss;
+
+            result &= mosaic->configureGNSSCOM(true); // Ensure LBandBeam1 is enabled on COM1
+
+            result &= mosaic->configureLBand(true, LBandFreq); // Start L-Band
+
+            result &= mosaic->saveConfiguration(); // Save the updated configuration. Probably redundant?
+
+            if (result == false)
+            {
+                systemPrintln("mosaic-X5 L-Band failed to configure");
+                lband_gnss_can_not_begin = true;
+            }
+            else
+            {
+                if (settings.debugCorrections == true)
+                    systemPrintln("mosaic-X5 L-Band online");
+                online.lband_gnss = true;
+            }
+        }
+        // else if (online.lband_gnss && pointPerfectIsEnabled())
+        {
+            // If no SPARTN data is received, the L-Band may need a 'kick'. Turn L-Band off and back on again!
+            // But gnss->update will do this. No need to do it here
+        }
+    }
+#endif // /COMPILE_MOSAICX5
+}
+
+// Process any new L-Band from I2C
+void updateLBandCorrections()
+{
+    static unsigned long lbandLastReport;
+    static unsigned long lbandTimeFloatStarted; // Monitors the ZED during L-Band reception if a fix takes too long
+
+#ifdef COMPILE_L_BAND
+    if (online.lbandCorrections == true)
+    {
+        i2cLBand.checkUblox();     // Check for the arrival of new PMP data and process it.
+        i2cLBand.checkCallbacks(); // Check if any L-Band callbacks are waiting to be processed.
+
+        // If a certain amount of time has elapsed between last decryption, turn off L-Band icon
+        if (lbandCorrectionsReceived == true && millis() - lastLBandDecryption > (5 * MILLISECONDS_IN_A_SECOND))
+            lbandCorrectionsReceived = false;
+
+        // If we don't get an L-Band fix within Timeout, hot-start ZED-F9x
+        if (gnss->isRTKFloat())
+        {
+            if (lbandTimeFloatStarted == 0)
+                lbandTimeFloatStarted = millis();
+
+            if (millis() - lbandLastReport > MILLISECONDS_IN_A_SECOND)
+            {
+                lbandLastReport = millis();
+
+                if (settings.debugCorrections == true)
+                    systemPrintf("ZED restarts: %d Time remaining before Float lock forced restart: %ds\r\n",
+                                 floatLockRestarts,
+                                 settings.lbandFixTimeout_seconds - ((millis() - lbandTimeFloatStarted) / MILLISECONDS_IN_A_SECOND));
+            }
+
+            if (settings.lbandFixTimeout_seconds > 0)
+            {
+                if ((millis() - lbandTimeFloatStarted) > (settings.lbandFixTimeout_seconds * MILLISECONDS_IN_A_SECOND))
+                {
+                    floatLockRestarts++;
+
+                    lbandTimeFloatStarted =
+                        millis(); // Restart timer for L-Band. Don't immediately reset ZED to achieve fix.
+
+                    // Hotstart GNSS to try to get RTK lock
+                    gnss->softwareReset();
+
+                    if (settings.debugCorrections == true)
+                        systemPrintf("Restarting ZED. Number of Float lock restarts: %d\r\n", floatLockRestarts);
+                }
+            }
+        }
+        else if (gnss->isRTKFix() && rtkTimeToFixMs == 0)
+        {
+            lbandTimeFloatStarted = 0; // Restart timer in case we drop from RTK Fix
+
+            rtkTimeToFixMs = millis();
+            if (settings.debugCorrections == true)
+                systemPrintf("Time to first RTK Fix: %ds\r\n", rtkTimeToFixMs / MILLISECONDS_IN_A_SECOND);
+        }
+        else
+        {
+            // We are not in float or fix, so restart timer
+            lbandTimeFloatStarted = 0;
+        }
+    }
+
+#endif // COMPILE_L_BAND
+}
+
+bool pointPerfectIsEnabled()
+{
+    return (settings.pointPerfectService);
+}
+
+bool productVariantSupportsAssistNow()
+{
+    if (productVariant == RTK_EVK)
+        return true;
+    if (productVariant == RTK_FACET_V2)
+        return false; // TODO - will require specific module lookup
+    if (productVariant == RTK_FACET_MOSAIC)
+        return false;
+    if (productVariant == RTK_TORCH)
+        return false;
+    if (productVariant == RTK_POSTCARD)
+        return false;
+
+    systemPrintln("Uncaught productVariantSupportsAssistNow()");
+    return false;
+}
+
+bool productVariantSupportsLbandNA()
+{
+    if (productVariant == RTK_EVK)
+        return true;
+    if (productVariant == RTK_FACET_V2)
+        return false; // TODO - will require specific module lookup
+    if (productVariant == RTK_FACET_MOSAIC)
+        return true;
+    if (productVariant == RTK_TORCH)
+        return false;
+    if (productVariant == RTK_POSTCARD)
+        return false;
+
+    systemPrintln("Uncaught productVariantSupportsLbandNA()");
+    return false;
 }
 
 // Given a GPS Epoch, return a DD/MM/YYYY string
@@ -520,518 +1024,6 @@ long long thingstreamEpochToGPSEpoch(long long startEpoch)
     return (gpsEpoch);
 }
 
-//----------------------------------------
-// Global L-Band Routines
-//----------------------------------------
-
-// Update any L-Band hardware
-// Check if NEO-D9S is connected. Configure if available.
-// If GNSS is mosaic-X5, configure LBandBeam1
-void updateLBand()
-{
-
-#ifdef COMPILE_L_BAND
-    if (present.lband_neo)
-    {
-        if (!online.lband_neo && pointPerfectIsEnabled())
-        {
-            static bool lband_neo_can_not_begin = false;
-
-            if (lband_neo_can_not_begin)
-                return;
-
-            // NEO-D9S is present but is not yet online. Try to begin the hardware
-            if (i2cLBand.begin(*i2c_0, 0x43) ==
-                false) // Connect to the u-blox NEO-D9S using Wire port. The D9S default I2C address is 0x43 (not 0x42)
-            {
-                systemPrintln("L-Band not detected");
-                lband_neo_can_not_begin = true;
-                return;
-            }
-
-            // Check the firmware version of the NEO-D9S. Based on Example21_ModuleInfo.
-            if (i2cLBand.getModuleInfo(1100) == true) // Try to get the module info
-            {
-                // Reconstruct the firmware version
-                snprintf(neoFirmwareVersion, sizeof(neoFirmwareVersion), "%s %d.%02d", i2cLBand.getFirmwareType(),
-                         i2cLBand.getFirmwareVersionHigh(), i2cLBand.getFirmwareVersionLow());
-
-                printNEOInfo(); // Print module firmware version
-            }
-            else
-            {
-                systemPrintln("L-Band not detected");
-                lband_neo_can_not_begin = true;
-                return;
-            }
-
-            // Update the GNSS position. Use the position to set the frequency if available
-            gnss->update();
-
-            uint32_t LBandFreq;
-            uint8_t fixType = gnss->getFixType();
-            double latitude = gnss->getLatitude();
-            double longitude = gnss->getLongitude();
-
-            // If we have a fix, check which frequency to use
-            if (fixType >= 2 && fixType <= 5) // 2D, 3D, 3D+DR, or Time
-            {
-                int r = 0; // Step through each geographic region
-                for (; r < numRegionalAreas; r++)
-                {
-                    if ((longitude >= Regional_Information_Table[r].area.lonWest) &&
-                        (longitude <= Regional_Information_Table[r].area.lonEast) &&
-                        (latitude >= Regional_Information_Table[r].area.latSouth) &&
-                        (latitude <= Regional_Information_Table[r].area.latNorth))
-                    {
-                        LBandFreq = Regional_Information_Table[r].frequency;
-                        if (settings.debugCorrections == true)
-                            systemPrintf("Setting L-Band frequency to %s (%dHz)\r\n",
-                                         Regional_Information_Table[r].name, LBandFreq);
-                        break;
-                    }
-                }
-                if (r == numRegionalAreas) // Geographic region not found
-                {
-                    LBandFreq = Regional_Information_Table[settings.geographicRegion].frequency;
-                    if (settings.debugCorrections == true)
-                        systemPrintf("Error: Unknown L-Band geographic region. Using %s (%dHz)\r\n",
-                                     Regional_Information_Table[settings.geographicRegion].name, LBandFreq);
-                }
-            }
-            else
-            {
-                LBandFreq = Regional_Information_Table[settings.geographicRegion].frequency;
-                if (settings.debugCorrections == true)
-                    systemPrintf("No fix available for L-Band geographic region determination. Using %s (%dHz)\r\n",
-                                 Regional_Information_Table[settings.geographicRegion].name, LBandFreq);
-            }
-
-            bool response = true;
-            response &= i2cLBand.newCfgValset();
-            response &= i2cLBand.addCfgValset(UBLOX_CFG_PMP_CENTER_FREQUENCY, LBandFreq); // Default 1539812500 Hz
-            response &= i2cLBand.addCfgValset(UBLOX_CFG_PMP_SEARCH_WINDOW, 2200);         // Default 2200 Hz
-            response &= i2cLBand.addCfgValset(UBLOX_CFG_PMP_USE_SERVICE_ID, 0);           // Default 1
-            response &= i2cLBand.addCfgValset(UBLOX_CFG_PMP_SERVICE_ID, 21845);           // Default 50821
-            response &= i2cLBand.addCfgValset(UBLOX_CFG_PMP_DATA_RATE, 2400);             // Default 2400 bps
-            response &= i2cLBand.addCfgValset(UBLOX_CFG_PMP_USE_DESCRAMBLER, 1);          // Default 1
-            response &= i2cLBand.addCfgValset(UBLOX_CFG_PMP_DESCRAMBLER_INIT, 26969);     // Default 23560
-            response &= i2cLBand.addCfgValset(UBLOX_CFG_PMP_USE_PRESCRAMBLING, 0);        // Default 0
-            response &= i2cLBand.addCfgValset(UBLOX_CFG_PMP_UNIQUE_WORD, 16238547128276412563ull);
-            response &=
-                i2cLBand.addCfgValset(UBLOX_CFG_MSGOUT_UBX_RXM_PMP_UART1, 0); // Disable UBX-RXM-PMP on UART1. Not used.
-
-            response &= i2cLBand.sendCfgValset();
-
-            GNSS_ZED *zed = (GNSS_ZED *)gnss;
-            response &= zed->lBandCommunicationEnable();
-
-            if (response == false)
-            {
-                systemPrintln("L-Band failed to configure");
-                lband_neo_can_not_begin = true;
-                return;
-            }
-
-            i2cLBand.softwareResetGNSSOnly(); // Do a restart
-
-            if (settings.debugCorrections == true)
-                systemPrintln("L-Band online");
-
-            online.lband_neo = true;
-        }
-        else if (online.lband_neo && pointPerfectIsEnabled())
-        {
-            // L-Band is online. Apply the keys if they have changed
-            // This may be redundant as PROVISIONING_KEYS_REMAINING also applies the keys
-            static char previousKey[33] = "";
-            if (strncmp(previousKey, settings.pointPerfectCurrentKey, 33) != 0)
-            {
-                strncpy(previousKey, settings.pointPerfectCurrentKey, 33);
-                gnss->applyPointPerfectKeys(); // Apply keys now. This sets online.lbandCorrections
-                if (settings.debugCorrections == true)
-                    systemPrintln("ZED-F9P PointPerfect keys applied");
-            }
-        }
-    }
-#endif // COMPILE_L_BAND
-#ifdef COMPILE_MOSAICX5
-    if (present.gnss_mosaicX5)
-    {
-        if (!online.lband_gnss && pointPerfectIsEnabled())
-        {
-            static bool lband_gnss_can_not_begin = false;
-
-            if (lband_gnss_can_not_begin)
-                return;
-
-            uint32_t LBandFreq;
-            uint8_t fixType = gnss->getFixType();
-            double latitude = gnss->getLatitude();
-            double longitude = gnss->getLongitude();
-            // If we have a fix, check which frequency to use
-            if (fixType >= 1) // Stand-Alone PVT or better
-            {
-                int r = 0; // Step through each geographic region
-                for (; r < numRegionalAreas; r++)
-                {
-                    if ((longitude >= Regional_Information_Table[r].area.lonWest) &&
-                        (longitude <= Regional_Information_Table[r].area.lonEast) &&
-                        (latitude >= Regional_Information_Table[r].area.latSouth) &&
-                        (latitude <= Regional_Information_Table[r].area.latNorth))
-                    {
-                        LBandFreq = Regional_Information_Table[r].frequency;
-                        if (settings.debugCorrections == true)
-                            systemPrintf("Setting L-Band frequency to %s (%dHz)\r\n",
-                                         Regional_Information_Table[r].name, LBandFreq);
-                        break;
-                    }
-                }
-                if (r == numRegionalAreas) // Geographic region not found
-                {
-                    LBandFreq = Regional_Information_Table[settings.geographicRegion].frequency;
-                    if (settings.debugCorrections == true)
-                        systemPrintf("Error: Unknown L-Band geographic region. Using %s (%dHz)\r\n",
-                                     Regional_Information_Table[settings.geographicRegion].name, LBandFreq);
-                }
-            }
-            else
-            {
-                LBandFreq = Regional_Information_Table[settings.geographicRegion].frequency;
-                if (settings.debugCorrections == true)
-                    systemPrintf("No fix available for L-Band geographic region determination. Using %s (%dHz)\r\n",
-                                 Regional_Information_Table[settings.geographicRegion].name, LBandFreq);
-            }
-
-            bool result = true;
-
-            GNSS_MOSAIC *mosaic = (GNSS_MOSAIC *)gnss;
-
-            result &= mosaic->configureGNSSCOM(true); // Ensure LBandBeam1 is enabled on COM1
-
-            result &= mosaic->configureLBand(true, LBandFreq); // Start L-Band
-
-            result &= mosaic->saveConfiguration(); // Save the updated configuration. Probably redundant?
-
-            if (result == false)
-            {
-                systemPrintln("mosaic-X5 L-Band failed to configure");
-                lband_gnss_can_not_begin = true;
-            }
-            else
-            {
-                if (settings.debugCorrections == true)
-                    systemPrintln("mosaic-X5 L-Band online");
-                online.lband_gnss = true;
-            }
-        }
-        // else if (online.lband_gnss && pointPerfectIsEnabled())
-        {
-            // If no SPARTN data is received, the L-Band may need a 'kick'. Turn L-Band off and back on again!
-            // But gnss->update will do this. No need to do it here
-        }
-    }
-#endif // /COMPILE_MOSAICX5
-}
-
-// Provision device on ThingStream
-// Download keys
-void menuPointPerfect()
-{
-    while (1)
-    {
-        systemPrintln();
-        systemPrintln("Menu: PointPerfect Corrections");
-
-        if (settings.debugCorrections == true)
-            systemPrintf("Time to first RTK Fix: %ds Restarts: %d\r\n",
-                         rtkTimeToFixMs / MILLISECONDS_IN_A_SECOND, floatLockRestarts);
-
-        if (ppServiceUsesKeys() == true)
-        {
-            if (settings.debugCorrections == true)
-                systemPrintf("settings.pointPerfectKeyDistributionTopic: %s\r\n",
-                             settings.pointPerfectKeyDistributionTopic);
-
-            systemPrint("Days until keys expire: ");
-            if (strlen(settings.pointPerfectCurrentKey) > 0)
-            {
-                if (online.rtc == false)
-                {
-                    // If we don't have RTC we can't calculate days to expire
-                    systemPrintln("No RTC");
-                }
-                else
-                {
-                    int daysRemaining =
-                        daysFromEpoch(settings.pointPerfectNextKeyStart + settings.pointPerfectNextKeyDuration + 1);
-
-                    if (daysRemaining < 0)
-                        systemPrintln("Expired");
-                    else
-                        systemPrintln(daysRemaining);
-                }
-            }
-            else
-                systemPrintln("No keys");
-
-            if ((settings.useLocalizedDistribution) && (localizedDistributionTileTopic.length() > 0))
-            {
-                systemPrint("Most recent localized distribution topic: ");
-                systemPrintln(localizedDistributionTileTopic.c_str()); // From MQTT_Client.ino
-            }
-        }
-
-        // How this works:
-        //   There are four PointPerfect corrections plans: IP-only, L-Band-only, L-Band+IP, SSR-RTCM
-        //   For L-Band-only - e.g. Facet mosaic or Facet v2 L-Band
-        //     During ZTP Provisioning, we receive the UBX-format key distribution topic /pp/ubx/0236/Lb
-        //     There are no regional correction topics for L-Band-only
-        //     Facet v2 L-Band pushes the keys to the ZED and pushes PMP from the NEO to the ZED
-        //     Facet mosaic pushes the current key and raw L-Band to the PPL, then pushes RTCM to the X5
-        //   For SSR-RTCM - e.g. Any user/platform that opts for cheap SSR-RTCM over NTRIP
-        //     During ZTP Provisioning, we receive NTRIP credentials and overwrite any existing NTRIP Client
-        //     There are no regional corrections - we pass GGA back to caster instead
-        //   For L-Band+IP - e.g. EVK:
-        //     During ZTP Provisioning, we receive the UBX-format key distribution topic /pp/ubx/0236/Lb
-        //     We also receive the full list of regional correction topics: /pp/Lb/us , /pp/Lb/eu , etc.
-        //     We can subscribe to the topic and push IP data to the ZED - using UBLOX_CFG_SPARTN_USE_SOURCE 0
-        //     Or we can push PMP data from the NEO to the ZED - using UBLOX_CFG_SPARTN_USE_SOURCE 1
-        //   For IP-only - e.g. Old way of getting corrections:
-        //     During ZTP Provisioning, we receive the UBX-format key distribution topic /pp/ubx/0236/ip
-        //     We also receive the full list of regional correction topics: /pp/ip/us , /pp/ip/eu , etc.
-        //     We need to subscribe to our regional correction topic and push the data to the PPL
-        //     RTCM from the PPL is pushed to the GNSS receiver (ie, UM980, LG290P)
-        //   We do not need the user to tell us which pointPerfectCorrectionsSource to use.
-        //   We identify the service level during ZTP and record it to settings (pointPerfectService)
-
-        systemPrintf("1) PointPerfect Service: %s\r\n", ppServices.serviceName[settings.pointPerfectService]);
-
-#ifdef COMPILE_NETWORK
-        if (pointPerfectIsEnabled())
-        {
-            if (ppServiceUsesKeys() == false)
-            {
-                systemPrint("2) Update Credentials: ");
-                if (settings.requestKeyUpdate == true)
-                    systemPrintln("Requested");
-                else
-                    systemPrintln("Not requested");
-
-                systemPrintln("i) Show device ID");
-            }
-            else
-            {
-                systemPrint("3) Toggle Auto Key Renewal: ");
-                if (settings.autoKeyRenewal == true)
-                    systemPrintln("Enabled");
-                else
-                    systemPrintln("Disabled");
-                systemPrint("4) Request Key Update: ");
-                if (settings.requestKeyUpdate == true)
-                    systemPrintln("Requested");
-                else
-                    systemPrintln("Not requested");
-                systemPrint("5) Use localized distribution: ");
-                if (settings.useLocalizedDistribution == true)
-                    systemPrintln("Enabled");
-                else
-                    systemPrintln("Disabled");
-                if (settings.useLocalizedDistribution)
-                {
-                    systemPrint("6) Localized distribution tile level: ");
-                    systemPrint(settings.localizedDistributionTileLevel);
-                    systemPrint(" (");
-                    systemPrint(localizedDistributionTileLevelNames[settings.localizedDistributionTileLevel]);
-                    systemPrintln(")");
-                }
-                if (productVariantSupportsAssistNow())
-                {
-                    systemPrint("a) Use AssistNow: ");
-                    if (settings.useAssistNow == true)
-                        systemPrintln("Enabled");
-                    else
-                        systemPrintln("Disabled");
-                }
-
-                systemPrintln("c) Clear the Keys");
-
-                systemPrintln("i) Show device ID");
-
-                systemPrintln("k) Manual Key Entry");
-
-                systemPrint("g) Geographic Region: ");
-                systemPrintln(Regional_Information_Table[settings.geographicRegion].name);
-            }
-        }
-        else
-        {
-            systemPrintln("i) Show device ID");
-        }
-
-#endif // COMPILE_NETWORK
-
-        systemPrintln("x) Exit");
-
-        byte incoming = getUserInputCharacterNumber();
-
-        if (incoming == 1)
-        {
-            settings.pointPerfectService++;
-            if (settings.pointPerfectService > ppServiceCount)
-                settings.pointPerfectService = 0;
-
-            // Many functions depend on settings.enablePointPerfectCorrections so continue to support it
-            settings.enablePointPerfectCorrections = settings.pointPerfectService;
-
-            restartRover = true; // Require a rover restart to enable / disable RTCM for PPL
-            settings.requestKeyUpdate = settings.enablePointPerfectCorrections; // Force a key update - or don't
-        }
-
-#ifdef COMPILE_NETWORK
-        else if (incoming == 2 && pointPerfectIsEnabled())
-        {
-            settings.autoKeyRenewal ^= 1;
-            settings.requestKeyUpdate = settings.autoKeyRenewal; // Force a key update - or don't
-        }
-        else if (incoming == 3 && pointPerfectIsEnabled() && ppServiceUsesKeys() == true)
-        {
-            settings.autoKeyRenewal ^= 1;
-            settings.requestKeyUpdate = settings.autoKeyRenewal; // Force a key update - or don't
-        }
-        else if (incoming == 4 && pointPerfectIsEnabled() && ppServiceUsesKeys() == true)
-        {
-            settings.requestKeyUpdate ^= 1;
-        }
-        else if (incoming == 5 && pointPerfectIsEnabled() && ppServiceUsesKeys() == true)
-        {
-            settings.useLocalizedDistribution ^= 1;
-        }
-        else if (incoming == 6 && pointPerfectIsEnabled() && settings.useLocalizedDistribution &&
-                 ppServiceUsesKeys() == true)
-        {
-            settings.localizedDistributionTileLevel++;
-            if (settings.localizedDistributionTileLevel >= LOCALIZED_DISTRIBUTION_TILE_LEVELS)
-                settings.localizedDistributionTileLevel = 0;
-        }
-        else if (incoming == 'a' && pointPerfectIsEnabled() && productVariantSupportsAssistNow() &&
-                 ppServiceUsesKeys() == true)
-        {
-            settings.useAssistNow ^= 1;
-        }
-#endif // COMPILE_NETWORK
-        else if (incoming == 'c' && pointPerfectIsEnabled() && ppServiceUsesKeys() == true)
-        {
-            settings.pointPerfectCurrentKey[0] = 0;
-            settings.pointPerfectNextKey[0] = 0;
-        }
-        else if (incoming == 'i')
-        {
-            char hardwareID[15];
-            snprintf(hardwareID, sizeof(hardwareID), "%02X%02X%02X%02X%02X%02X%02X", btMACAddress[0], btMACAddress[1],
-                     btMACAddress[2], btMACAddress[3], btMACAddress[4], btMACAddress[5], productVariant);
-            systemPrintf("Device ID: %s\r\n", hardwareID);
-        }
-        else if (incoming == 'k' && pointPerfectIsEnabled() && ppServiceUsesKeys() == true)
-        {
-            menuPointPerfectKeys();
-        }
-        else if (incoming == 'g' && pointPerfectIsEnabled() && ppServiceUsesKeys() == true)
-        {
-            settings.geographicRegion++;
-            if (settings.geographicRegion >= numRegionalAreas)
-                settings.geographicRegion = 0;
-        }
-        else if (incoming == 'x')
-            break;
-        else if (incoming == INPUT_RESPONSE_GETCHARACTERNUMBER_EMPTY)
-            break;
-        else if (incoming == INPUT_RESPONSE_GETCHARACTERNUMBER_TIMEOUT)
-            break;
-        else
-            printUnknown(incoming);
-    }
-
-    if (strlen(settings.pointPerfectClientID) > 0)
-    {
-        gnss->applyPointPerfectKeys();
-    }
-
-    clearBuffer(); // Empty buffer of any newline chars
-}
-
-bool pointPerfectIsEnabled()
-{
-    return (settings.pointPerfectService);
-}
-
-// Process any new L-Band from I2C
-void updateLBandCorrections()
-{
-    static unsigned long lbandLastReport;
-    static unsigned long lbandTimeFloatStarted; // Monitors the ZED during L-Band reception if a fix takes too long
-
-#ifdef COMPILE_L_BAND
-    if (online.lbandCorrections == true)
-    {
-        i2cLBand.checkUblox();     // Check for the arrival of new PMP data and process it.
-        i2cLBand.checkCallbacks(); // Check if any L-Band callbacks are waiting to be processed.
-
-        // If a certain amount of time has elapsed between last decryption, turn off L-Band icon
-        if (lbandCorrectionsReceived == true && millis() - lastLBandDecryption > (5 * MILLISECONDS_IN_A_SECOND))
-            lbandCorrectionsReceived = false;
-
-        // If we don't get an L-Band fix within Timeout, hot-start ZED-F9x
-        if (gnss->isRTKFloat())
-        {
-            if (lbandTimeFloatStarted == 0)
-                lbandTimeFloatStarted = millis();
-
-            if (millis() - lbandLastReport > MILLISECONDS_IN_A_SECOND)
-            {
-                lbandLastReport = millis();
-
-                if (settings.debugCorrections == true)
-                    systemPrintf("ZED restarts: %d Time remaining before Float lock forced restart: %ds\r\n",
-                                 floatLockRestarts,
-                                 settings.lbandFixTimeout_seconds - ((millis() - lbandTimeFloatStarted) / MILLISECONDS_IN_A_SECOND));
-            }
-
-            if (settings.lbandFixTimeout_seconds > 0)
-            {
-                if ((millis() - lbandTimeFloatStarted) > (settings.lbandFixTimeout_seconds * MILLISECONDS_IN_A_SECOND))
-                {
-                    floatLockRestarts++;
-
-                    lbandTimeFloatStarted =
-                        millis(); // Restart timer for L-Band. Don't immediately reset ZED to achieve fix.
-
-                    // Hotstart GNSS to try to get RTK lock
-                    gnss->softwareReset();
-
-                    if (settings.debugCorrections == true)
-                        systemPrintf("Restarting ZED. Number of Float lock restarts: %d\r\n", floatLockRestarts);
-                }
-            }
-        }
-        else if (gnss->isRTKFix() && rtkTimeToFixMs == 0)
-        {
-            lbandTimeFloatStarted = 0; // Restart timer in case we drop from RTK Fix
-
-            rtkTimeToFixMs = millis();
-            if (settings.debugCorrections == true)
-                systemPrintf("Time to first RTK Fix: %ds\r\n", rtkTimeToFixMs / MILLISECONDS_IN_A_SECOND);
-        }
-        else
-        {
-            // We are not in float or fix, so restart timer
-            lbandTimeFloatStarted = 0;
-        }
-    }
-
-#endif // COMPILE_L_BAND
-}
-
 enum ProvisioningStates
 {
     PROVISIONING_OFF = 0,
@@ -1050,35 +1042,6 @@ const char *const provisioningStateName[] = {"PROVISIONING_OFF",
                                              "PROVISIONING_KEYS_REMAINING"};
 
 const int provisioningStateNameEntries = sizeof(provisioningStateName) / sizeof(provisioningStateName[0]);
-
-void provisioningVerifyTables()
-{
-    // Verify the table length
-    if (provisioningStateNameEntries != PROVISIONING_STATE_MAX)
-        reportFatalError("Please fix provisioningStateName table to match ProvisioningStates");
-}
-
-void provisioningSetState(uint8_t newState)
-{
-    if (settings.debugPpCertificate)
-    {
-        if (provisioningState == newState)
-            systemPrint("Provisioning: *");
-        else
-            systemPrintf("Provisioning: %s --> ", provisioningStateName[provisioningState]);
-    }
-    provisioningState = newState;
-    if (settings.debugPpCertificate)
-    {
-        if (newState >= PROVISIONING_STATE_MAX)
-        {
-            systemPrintf("Unknown provisioning state: %d\r\n", newState);
-            reportFatalError("Unknown provisioning state");
-        }
-        else
-            systemPrintln(provisioningStateName[provisioningState]);
-    }
-}
 
 // Determine if provisioning is enabled
 bool provisioningEnabled(const char ** line)
@@ -1182,6 +1145,28 @@ bool provisioningKeysNeeded()
     if (keysNeeded && settings.debugPpCertificate)
         systemPrintln(" Starting provisioning");
     return keysNeeded;
+}
+
+void provisioningSetState(uint8_t newState)
+{
+    if (settings.debugPpCertificate)
+    {
+        if (provisioningState == newState)
+            systemPrint("Provisioning: *");
+        else
+            systemPrintf("Provisioning: %s --> ", provisioningStateName[provisioningState]);
+    }
+    provisioningState = newState;
+    if (settings.debugPpCertificate)
+    {
+        if (newState >= PROVISIONING_STATE_MAX)
+        {
+            systemPrintf("Unknown provisioning state: %d\r\n", newState);
+            reportFatalError("Unknown provisioning state");
+        }
+        else
+            systemPrintln(provisioningStateName[provisioningState]);
+    }
 }
 
 void provisioningStop(const char * file, uint32_t line)
@@ -1408,4 +1393,11 @@ void provisioningUpdate()
                      provisioningStateName[provisioningState], line);
         PERIODIC_CLEAR(PD_PROVISIONING_STATE);
     }
+}
+
+void provisioningVerifyTables()
+{
+    // Verify the table length
+    if (provisioningStateNameEntries != PROVISIONING_STATE_MAX)
+        reportFatalError("Please fix provisioningStateName table to match ProvisioningStates");
 }
