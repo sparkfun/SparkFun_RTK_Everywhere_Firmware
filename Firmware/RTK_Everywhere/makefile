@@ -24,9 +24,9 @@ DELETE=del /s
 DIR_LISTING=dir
 TERMINAL_APP=
 TERMINAL_PORT=
-TERMINAL_PARAMS=
+TERMINAL_PORT_LG209P=
 TERMINAL_PORT_TORCH=
-TERMINAL_PARAMS_TORCH=
+TERMINAL_PARAMS=
 
 # Windows NT generic paths
 USER_DIRECTORY_PATH=C:\Users\$(USERNAME)
@@ -59,9 +59,9 @@ DELETE=rm -Rf
 DIR_LISTING=ls
 TERMINAL_APP=minicom
 TERMINAL_PORT=/dev/ttyUSB0
-TERMINAL_PARAMS=-b 115200 -8 -D $(TERMINAL_PORT) < /dev/tty
+TERMINAL_PORT_LG290P=/dev/ttyACM0
 TERMINAL_PORT_TORCH=/dev/ttyACM1
-TERMINAL_PARAMS_TORCH=-b 115200 -8 -D $(TERMINAL_PORT_TORCH) < /dev/tty
+TERMINAL_PARAMS=-b 115200 -8 < /dev/tty
 
 # Linux generic paths
 USER_DIRECTORY_PATH=~
@@ -135,7 +135,7 @@ lib-update:	core-update
 		"SparkFun Extensible Message Parser"@1.0.2 \
 		"SparkFun I2C Expander Arduino Library"@1.0.1 \
 		"SparkFun IM19 IMU Arduino Library"@1.0.1 \
-		"SparkFun LG290P Quadband RTK GNSS Arduino Library"@1.0.2
+		"SparkFun LG290P Quadband RTK GNSS Arduino Library"@1.0.5
 		"SparkFun LIS2DH12 Arduino Library"@1.0.3 \
 		"SparkFun MAX1704x Fuel Gauge Arduino Library"@1.0.4 \
 		"SparkFun Qwiic OLED Arduino Library"@1.0.13 \
@@ -222,7 +222,27 @@ upload:	$(RTK_BIN_PATH)
          0x8000   $(BOOT_LOADER_PATH)RTK_Surveyor_Partitions_16MB.bin \
          0xe000   $(BOOT_LOADER_PATH)boot_app0.bin \
         0x10000   $<
-	$(TERMINAL_APP) $(TERMINAL_PARAMS)
+	$(TERMINAL_APP)   -D $(TERMINAL_PORT)   $(TERMINAL_PARAMS)
+
+.PHONY: upload_lg290p
+
+upload_lg290p:	$(RTK_BIN_PATH)
+	python3 $(ESPTOOL_PATH)esptool.py \
+        --chip   esp32 \
+        --port   $(TERMINAL_PORT_LG290P) \
+        --baud   460800 \
+        --before   default_reset \
+        --after   hard_reset \
+        write_flash \
+        --flash_mode dio \
+        --flash_freq 80m \
+        --flash_size detect \
+        --compress \
+         0x1000   $(BOOT_LOADER_PATH)RTK_Surveyor.ino.bootloader.bin \
+         0x8000   $(BOOT_LOADER_PATH)RTK_Everywhere_Partitions_8MB.bin \
+         0xe000   $(BOOT_LOADER_PATH)boot_app0.bin \
+        0x10000   $<
+	$(TERMINAL_APP)   -D $(TERMINAL_PORT_LG290P)   $(TERMINAL_PARAMS)
 
 .PHONY: upload_torch
 
@@ -242,17 +262,22 @@ upload_torch:	$(RTK_BIN_PATH)
          0x8000   $(BOOT_LOADER_PATH)RTK_Surveyor_Partitions_16MB.bin \
          0xe000   $(BOOT_LOADER_PATH)boot_app0.bin \
         0x10000   $<
-	$(TERMINAL_APP) $(TERMINAL_PARAMS_TORCH)
+	$(TERMINAL_APP)   -D $(TERMINAL_PORT_TORCH)   $(TERMINAL_PARAMS)
 
 .PHONY:	terminal
 
 terminal:
-	$(TERMINAL_APP) $(TERMINAL_PARAMS)
+	$(TERMINAL_APP)   -D $(TERMINAL_PORT)   $(TERMINAL_PARAMS)
+
+.PHONY:	terminal_lg290p
+
+terminal_lg290p:
+	$(TERMINAL_APP)   -D $(TERMINAL_PORT_LG290P)   $(TERMINAL_PARAMS)
 
 .PHONY:	terminal_torch
 
 terminal_torch:
-	$(TERMINAL_APP) $(TERMINAL_PARAMS_TORCH)
+	$(TERMINAL_APP)   -D $(TERMINAL_PORT_TORCH)   $(TERMINAL_PARAMS)
 
 ########
 # Clean the build directory
