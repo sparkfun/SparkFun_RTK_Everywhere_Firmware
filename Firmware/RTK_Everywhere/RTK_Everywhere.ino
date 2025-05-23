@@ -912,7 +912,6 @@ volatile bool deadManWalking;
         DMW_if systemPrintf("%s called\r\n", string);                                                                  \
     }
 #define DMW_c(string) DMW_if systemPrintf("%s called\r\n", string);
-#define DMW_ds(routine, dataStructure) DMW_if routine(dataStructure, dataStructure->state);
 #define DMW_m(string) DMW_if systemPrintln(string);
 #define DMW_r(string) DMW_if systemPrintf("%s returning\r\n", string);
 #define DMW_rs(string, status) DMW_if systemPrintf("%s returning %d\r\n", string, (int32_t)status);
