@@ -82,7 +82,6 @@ NtripServer.ino
 /*=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
   NTRIP Server States:
     NTRIP_SERVER_OFF: Network off or using NTRIP Client
-    NTRIP_SERVER_ON: WIFI_STATE_START state
     NTRIP_SERVER_WAIT_FOR_NETWORK: Connecting to the network
     NTRIP_SERVER_NETWORK_CONNECTED: Connected to the network
     NTRIP_SERVER_WAIT_GNSS_DATA: Waiting for correction data from GNSS
@@ -94,12 +93,8 @@ NtripServer.ino
                                        |   ^
                       ntripServerStart |   | ntripServerShutdown()
                                        v   |
-                    .---------> NTRIP_SERVER_ON <-------------------.
+                    .--> NTRIP_SERVER_WAIT_FOR_NETWORK <------------.
                     |                  |                            |
-                    |                  |                            | ntripServerRestart()
-                    |                  v                      Fail  |
-                    |    NTRIP_SERVER_WAIT_FOR_NETWORK ------------->+
-                    |                  |                            ^
                     |                  |                            |
                     |                  v                      Fail  |
                     |    NTRIP_SERVER_NETWORK_CONNECTED ----------->+
@@ -145,7 +140,6 @@ static const int NTRIP_SERVER_CONNECTION_TIME = 5 * 60 * 1000;
 enum NTRIPServerState
 {
     NTRIP_SERVER_OFF = 0,           // Using Bluetooth or NTRIP client
-    NTRIP_SERVER_ON,                // WIFI_STATE_START state
     NTRIP_SERVER_WAIT_FOR_NETWORK,  // Connecting to WiFi access point
     NTRIP_SERVER_NETWORK_CONNECTED, // WiFi connected to an access point
     NTRIP_SERVER_WAIT_GNSS_DATA,    // Waiting for correction data from GNSS
@@ -157,7 +151,6 @@ enum NTRIPServerState
 };
 
 const char *const ntripServerStateName[] = {"NTRIP_SERVER_OFF",
-                                            "NTRIP_SERVER_ON",
                                             "NTRIP_SERVER_WAIT_FOR_NETWORK",
                                             "NTRIP_SERVER_NETWORK_CONNECTED",
                                             "NTRIP_SERVER_WAIT_GNSS_DATA",
@@ -351,7 +344,6 @@ void ntripServerPrintStateSummary(int serverIndex)
     case NTRIP_SERVER_OFF:
         systemPrint("Disconnected");
         break;
-    case NTRIP_SERVER_ON:
     case NTRIP_SERVER_WAIT_FOR_NETWORK:
     case NTRIP_SERVER_NETWORK_CONNECTED:
     case NTRIP_SERVER_WAIT_GNSS_DATA:
@@ -579,7 +571,7 @@ void ntripServerStop(int serverIndex, bool shutdown)
     }
 
     // Increase timeouts if we started the network
-    if (ntripServer->state > NTRIP_SERVER_ON)
+    if (ntripServer->state > NTRIP_SERVER_OFF)
         // Mark the Server stop so that we don't immediately attempt re-connect to Caster
         ntripServer->timer = millis();
 
@@ -648,12 +640,11 @@ void ntripServerUpdate(int serverIndex)
     {
     case NTRIP_SERVER_OFF:
         if (enabled)
+        {
+            // Start the network
             ntripServerStart(serverIndex);
-        break;
-
-    // Start the network
-    case NTRIP_SERVER_ON:
-        ntripServerSetState(serverIndex, NTRIP_SERVER_WAIT_FOR_NETWORK);
+            ntripServerSetState(serverIndex, NTRIP_SERVER_WAIT_FOR_NETWORK);
+        }
         break;
 
     // Wait for a network media connection
