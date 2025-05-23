@@ -1468,7 +1468,7 @@ bool RTK_WIFI::enable(bool enableESPNow,
     if (enableSoftAP)
     {
         // Verify that the SSID is set
-        if (wifiSoftApSsid && strlen(wifiSoftApSsid))
+        if (wifiSoftApSsidSet)
         {
             // Allocate the soft AP SSID
             if (!_apSsid)
@@ -1498,10 +1498,7 @@ bool RTK_WIFI::enable(bool enableESPNow,
     if (enableStation)
     {
         // Verify that at least one SSID is set
-        for (authIndex = 0; authIndex < MAX_WIFI_NETWORKS; authIndex++)
-            if (strlen(settings.wifiNetworks[authIndex].ssid))
-                break;
-        if (authIndex >= MAX_WIFI_NETWORKS)
+        if (wifiStationSsidSet == false)
         {
             systemPrintf("ERROR: No valid SSID in settings\r\n");
             displayNoSSIDs(2000);
