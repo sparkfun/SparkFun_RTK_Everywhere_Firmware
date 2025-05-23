@@ -863,7 +863,7 @@ bool wifiStationReconnectionRequest()
 
 //*********************************************************************
 // Start WiFi with throttling, used by wifiStopSequence
-void wifiStationRestart(NetIndex_t index, uintptr_t parameter, bool debug)
+void wifiStationRestartOld(NetIndex_t index, uintptr_t parameter, bool debug)
 {
     // Check for network shutdown
     if (networkConsumerCount == 0)
@@ -3075,7 +3075,7 @@ NETWORK_POLL_SEQUENCE wifiStartSequence[] = {
 // WiFi stop sequence
 NETWORK_POLL_SEQUENCE wifiStopSequence[] = {
     //  State           Parameter   Description
-    {wifiStationRestart,    0,      "Restart WiFi"},
+    {wifiStationRestartOld, 0,      "Restart WiFi"},
     {wifiWaitNoUsers,       0,      "Wait for no WiFi users"},
     {wifiStop,              0,      "Shutdown WiFi"},
     {nullptr,               0,      "Termination"},
