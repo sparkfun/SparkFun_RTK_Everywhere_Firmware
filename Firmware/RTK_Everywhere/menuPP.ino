@@ -33,7 +33,7 @@ bool productVariantSupportsAssistNow()
     if (productVariant == RTK_EVK)
         return true;
     if (productVariant == RTK_FACET_V2)
-        return false; //TODO - will require specific module lookup
+        return false; // TODO - will require specific module lookup
     if (productVariant == RTK_FACET_MOSAIC)
         return false;
     if (productVariant == RTK_TORCH)
@@ -50,7 +50,7 @@ bool productVariantSupportsLbandNA()
     if (productVariant == RTK_EVK)
         return true;
     if (productVariant == RTK_FACET_V2)
-        return false; //TODO - will require specific module lookup
+        return false; // TODO - will require specific module lookup
     if (productVariant == RTK_FACET_MOSAIC)
         return true;
     if (productVariant == RTK_TORCH)
@@ -533,7 +533,7 @@ void updateLBand()
 #ifdef COMPILE_L_BAND
     if (present.lband_neo)
     {
-        if (!online.lband_neo && settings.enablePointPerfectCorrections)
+        if (!online.lband_neo && pointPerfectIsEnabled())
         {
             static bool lband_neo_can_not_begin = false;
 
@@ -877,10 +877,13 @@ void menuPointPerfect()
 
         if (incoming == 1)
         {
-        
+            settings.pointPerfectService++;
+            if (settings.pointPerfectService > ppServiceCount)
+                settings.pointPerfectService = 0;
+
             // Many functions depend on settings.enablePointPerfectCorrections so continue to support it
-            
-            settings.enablePointPerfectCorrections ^= 1;
+            settings.enablePointPerfectCorrections = settings.pointPerfectService;
+
             restartRover = true; // Require a rover restart to enable / disable RTCM for PPL
             settings.requestKeyUpdate = settings.enablePointPerfectCorrections; // Force a key update - or don't
         }
@@ -959,7 +962,7 @@ void menuPointPerfect()
 
 bool pointPerfectIsEnabled()
 {
-    return (settings.enablePointPerfectCorrections);
+    return (settings.pointPerfectService);
 }
 
 // Process any new L-Band from I2C

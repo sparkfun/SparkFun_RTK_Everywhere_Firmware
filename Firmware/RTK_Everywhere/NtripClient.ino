@@ -813,7 +813,7 @@ void ntripClientUpdate()
                 // Look for '401 Unauthorized'
 
                 // If we are using PointPerfect RTCM credentials, let the user know they may be deactivated.
-                if (settings.enablePointPerfectCorrections == true && ppServiceUsesKeys() == false)
+                if (pointPerfectIsEnabled() == true && ppServiceUsesKeys() == false)
                 {
                     systemPrintf("NTRIP Caster responded with unauthorized error. Your account may be deactivated. "
                                  "Please contact "

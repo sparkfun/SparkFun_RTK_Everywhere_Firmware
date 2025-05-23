@@ -565,7 +565,7 @@ bool GNSS_MOSAIC::configureOnce()
     bool response = true;
 
     // Configure COM1. NMEA and RTCMv3 will be encapsulated in SBF format
-    response &= configureGNSSCOM(settings.enablePointPerfectCorrections);
+    response &= configureGNSSCOM(pointPerfectIsEnabled());
 
     // COM2 is configured by setCorrRadioExtPort
 
@@ -799,7 +799,7 @@ bool GNSS_MOSAIC::enableNMEA()
         }
     }
 
-    if (settings.enablePointPerfectCorrections)
+    if (pointPerfectIsEnabled())
     {
         // Force on any messages that are needed for PPL
         if (gpggaEnabled == false)
@@ -968,7 +968,7 @@ bool GNSS_MOSAIC::enableRTCMRover()
 
             // If we are using IP based corrections, we need to send local data to the PPL
             // The PPL requires being fed GPGGA/ZDA, and RTCM1019/1020/1042/1046
-            if (settings.enablePointPerfectCorrections)
+            if (pointPerfectIsEnabled())
             {
                 // Mark PPL required messages as enabled if rate > 0
                 if (strcmp(mosaicMessagesRTCMv3[message].name, "RTCM1019") == 0)
@@ -983,7 +983,7 @@ bool GNSS_MOSAIC::enableRTCMRover()
         }
     }
 
-    if (settings.enablePointPerfectCorrections)
+    if (pointPerfectIsEnabled())
     {
         // Force on any messages that are needed for PPL
         if (rtcm1019Enabled == false)
@@ -2719,7 +2719,7 @@ void GNSS_MOSAIC::update()
     {
         if (spartnCorrectionsReceived) // If corrections were being received
         {
-            configureLBand(settings.enablePointPerfectCorrections); // Restart L-Band using stored frequency
+            configureLBand(pointPerfectIsEnabled()); // Restart L-Band using stored frequency
             spartnCorrectionsReceived = false;
         }
     }

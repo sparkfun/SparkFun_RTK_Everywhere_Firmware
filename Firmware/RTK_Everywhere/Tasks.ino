@@ -675,13 +675,13 @@ void processUart1Message(SEMP_PARSE_STATE *parse, uint16_t type)
     // Determine if we are using the PPL - UM980, LG290P, or mosaic-X5
     bool usingPPL = false;
     // UM980 : Determine if we want to use corrections, and are connected to the broker
-    if ((present.gnss_um980) && (settings.enablePointPerfectCorrections) && (mqttClientIsConnected() == true))
+    if ((present.gnss_um980) && (pointPerfectIsEnabled()) && (mqttClientIsConnected() == true))
         usingPPL = true;
     // LG290P : Determine if we want to use corrections, and are connected to the broker
-    if ((present.gnss_lg290p) && (settings.enablePointPerfectCorrections) && (mqttClientIsConnected() == true))
+    if ((present.gnss_lg290p) && (pointPerfectIsEnabled()) && (mqttClientIsConnected() == true))
         usingPPL = true;
     // mosaic-X5 : Determine if we want to use corrections
-    if ((present.gnss_mosaicX5) && (settings.enablePointPerfectCorrections))
+    if ((present.gnss_mosaicX5) && (pointPerfectIsEnabled()))
         usingPPL = true;
 
     if (usingPPL)
