@@ -220,6 +220,7 @@ bool wifiSoftApOn(const char * fileName, uint32_t lineNumber) {return false;}
 bool wifiStationOff(const char * fileName, uint32_t lineNumber) {return true;}
 bool wifiStationOn(const char * fileName, uint32_t lineNumber) {return false;}
 void wifiStopAll()                              {}
+void wifiUpdateSettings()                       {}
 void wifiVerifyTables()                         {}
 
 #endif // COMPILE_WIFI

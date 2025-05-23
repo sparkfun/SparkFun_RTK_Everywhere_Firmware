@@ -381,6 +381,9 @@ static int wifiFailedConnectionAttempts = 0; // Count the number of connection a
 static bool wifiReconnectRequest; // Set true to request WiFi reconnection
 
 const char * wifiSoftApName = "Soft AP";
+bool wifiSoftApSsidSet; // Set when the WiFi soft AP SSID string exists
+bool wifiStationRestart; // Restart Wifi station
+bool wifiStationSsidSet; // Set when one or more SSID strings exist
 
 // Start timeout
 static uint32_t wifiStartTimeout;
@@ -435,11 +438,13 @@ void menuWiFi()
             // If we are modifying the SSID table, force restart of WiFi
             wifiRestartRequested = true;
             wifiFailedConnectionAttempts = 0;
+            wifiUpdateSettings();
         }
         else if (incoming == 'a')
         {
             settings.wifiConfigOverAP ^= 1;
             wifiRestartRequested = true;
+            wifiUpdateSettings();
         }
         else if (incoming == 'c')
         {
@@ -792,6 +797,57 @@ void wifiStartThrottled(NetIndex_t index, uintptr_t parameter, bool debug)
 }
 
 //*********************************************************************
+// Determine if WiFi should be running
+bool wifiStationEnabled(const char ** reason)
+{
+    bool enabled = false;
+    static char * reasonBuffer;
+
+    do
+    {
+        // Verify that at least one SSID value is set
+        if (wifiStationSsidSet == false)
+        {
+            *reason = "SSID not available";
+            break;
+        }
+
+        // Determine if Wifi is begin restarted
+        if (wifiStationRestart)
+        {
+            wifiStationRestart = false;
+            *reason = "restart requested";
+            break;
+        }
+
+        // Is WiFi the highest priority
+        if (networkIsHighestPriority(NETWORK_WIFI_STATION) == false)
+        {
+            // Allocate the reason buffer once
+            if (reasonBuffer == nullptr)
+                reasonBuffer = (char *) rtkMalloc(64, "WiFi reasonBuffer");
+
+            // Build the reason
+            if (reasonBuffer)
+            {
+                sprintf(reasonBuffer,"is lower priority than %s", networkGetCurrentInterfaceName());
+                *reason = reasonBuffer;
+            }
+
+            // Allocation failed
+            else
+                *reason = "is lower priority";
+            break;
+        }
+
+        // WiFi should start and continue running
+        enabled = true;
+        *reason = "is enabled";
+    } while (0);
+    return enabled;
+}
+
+//*********************************************************************
 // Get the state name for WiFi station
 const char * wifiStationGetStateName(uint8_t state)
 {
@@ -1029,6 +1085,29 @@ void wifiWaitNoUsers(NetIndex_t index, uintptr_t parameter, bool debug)
             networkUserDisplay(NETWORK_WIFI_STATION);
         }
     }
+}
+
+//*********************************************************************
+// Determine if any of the WiFi station SSID values are set
+void wifiUpdateSettings()
+{
+    bool ssidSet;
+
+    // Verify that at least one SSID is set
+    ssidSet = false;
+    for (int index = 0; index < MAX_WIFI_NETWORKS; index++)
+        if (strlen(settings.wifiNetworks[index].ssid))
+        {
+            ssidSet = true;
+            break;
+        }
+
+    // Remember the change in SSID values
+    wifiStationSsidSet = ssidSet;
+    wifiStationRestart = ssidSet;
+
+    // Determine if the WiFi soft AP SSID string is present
+    wifiSoftApSsidSet = (wifiSoftApSsid && strlen(wifiSoftApSsid));
 }
 
 //*********************************************************************
