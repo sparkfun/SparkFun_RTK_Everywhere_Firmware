@@ -2,10 +2,10 @@
 MQTT_Client.ino
 
   The MQTT client sits on top of the network layer and receives correction
-  data from a Point Perfect MQTT server and then provided to the ZED (GNSS
+  data from a Point Perfect MQTT broker and then provided to the ZED (GNSS
   radio).
 
-                          MQTT Server
+                          MQTT Broker
                                |
                                | SPARTN correction data
                                V
@@ -56,7 +56,7 @@ MQTT_Client.ino
                                              ^
                                              |
                                              v
-                                        MQTT Server
+                                        MQTT Broker
 
 ------------------------------------------------------------------------------*/
 
@@ -95,9 +95,9 @@ static const int MQTT_CLIENT_DATA_TIMEOUT = (30 * 1000); // milliseconds
 enum MQTTClientState
 {
     MQTT_CLIENT_OFF = 0,             // Using Bluetooth or NTRIP server
-    MQTT_CLIENT_ON,                  // WIFI_STATE_START state
-    MQTT_CLIENT_WAIT_FOR_NETWORK,     // Connecting to WiFi access point or Ethernet
-    MQTT_CLIENT_CONNECTING_2_SERVER, // Connecting to the MQTT server
+    MQTT_CLIENT_WAIT_FOR_NETWORK,    // Connecting to WiFi access point or Ethernet
+    MQTT_CLIENT_CONNECTION_DELAY,    // Delay before using the network
+    MQTT_CLIENT_CONNECTING_2_BROKER, // Connecting to the MQTT broker
     MQTT_CLIENT_SERVICES_CONNECTED,  // Connected to the MQTT services
     // Insert new states here
     MQTT_CLIENT_STATE_MAX // Last entry in the state list
@@ -105,9 +105,9 @@ enum MQTTClientState
 
 const char *const mqttClientStateName[] = {
     "MQTT_CLIENT_OFF",
-    "MQTT_CLIENT_ON",
     "MQTT_CLIENT_WAIT_FOR_NETWORK",
-    "MQTT_CLIENT_CONNECTING_2_SERVER",
+    "MQTT_CLIENT_CONNECTION_DELAY",
+    "MQTT_CLIENT_CONNECTING_2_BROKER",
     "MQTT_CLIENT_SERVICES_CONNECTED",
 };
 
@@ -141,6 +141,7 @@ static volatile uint32_t mqttClientLastDataReceived; // Last time data was recei
 
 static NetworkClientSecure *mqttSecureClient;
 
+static bool mqttClientStartRequested;
 static volatile uint8_t mqttClientState = MQTT_CLIENT_OFF;
 
 // MQTT client timer usage:
@@ -154,43 +155,9 @@ static uint32_t mqttClientTimer;
 // MQTT Client Routines
 //----------------------------------------
 
-bool mqttClientIsNeeded()
-{
-    // If PointPerfectCorrections are not enabled, return false
-    if (!settings.enablePointPerfectCorrections)
-        return false;
-
-    // For the mosaic-X5, settings.enablePointPerfectCorrections will be true if
-    // we are using the PPL and getting keys via ZTP. BUT the Facet mosaic-X5
-    // uses the L-Band (only) plan. It should not and can not subscribe to PP IP
-    // MQTT corrections. So, return false - even though the L-Band frequencies topic
-    // and key distribution topic could be beneficial.
-    // We could use present.gnss_mosaicX5, but let's not. See notes on EVK below.
-    if (productVariant == RTK_FACET_MOSAIC)
-        return false;
-
-    // For the Facet v2 L-Band, the same is true. It uses the L-Band (only) plan.
-    // We get keys during ZTP (HTTP_Client). It should not and can not subscribe
-    // to PP IP MQTT corrections. So, return true only if AssistNow is enabled -
-    // even though the L-Band frequencies topic and key distribution topic could
-    // be beneficial.
-    // Note: EVK supports both L-Band and IP, so we cannot use present.lband_neo
-    if (productVariant == RTK_FACET_V2_LBAND)
-        if (!settings.useAssistNow)
-            return false;
-
-    // If we are using PointPerfect RTCM-SSR service over NTRIP, we do not need MQTT
-    if(settings.pointPerfectService == ZTP_SERVICE_RTCM)
-        return false;
-
-    // If we do not have a broker host yet, we can't connect
-    if(strlen(settings.pointPerfectBrokerHost) == 0)
-        return false;
-
-    return true;
-}
-
+//----------------------------------------
 // Determine if another connection is possible or if the limit has been reached
+//----------------------------------------
 bool mqttClientConnectLimitReached()
 {
     bool limitReached;
@@ -198,11 +165,10 @@ bool mqttClientConnectLimitReached()
 
     // Retry the connection a few times
     limitReached = (mqttClientConnectionAttempts >= MAX_MQTT_CLIENT_CONNECTION_ATTEMPTS);
-
-    bool enableMqttClient = mqttClientIsNeeded();
+    limitReached = false;
 
     // Restart the MQTT client
-    MQTT_CLIENT_STOP(limitReached || (!enableMqttClient));
+    MQTT_CLIENT_STOP(limitReached || (!mqttClientEnabled(nullptr)));
 
     mqttClientConnectionAttempts++;
     mqttClientConnectionAttemptsTotal++;
@@ -223,6 +189,10 @@ bool mqttClientConnectLimitReached()
             mqttClientConnectionAttemptTimeout =
                 (mqttClientConnectionAttempts - 4) * 5 * 60 * 1000L; // Wait 5, 10, 15, etc minutes between attempts
 
+        // Limit the maximum timeout
+        if (mqttClientConnectionAttemptTimeout > RTK_MAX_CONNECTION_MSEC)
+            mqttClientConnectionAttemptTimeout = RTK_MAX_CONNECTION_MSEC;
+
         // Display the delay before starting the MQTT client
         if (settings.debugMqttClientState && mqttClientConnectionAttemptTimeout)
         {
@@ -240,7 +210,67 @@ bool mqttClientConnectLimitReached()
     return limitReached;
 }
 
+//----------------------------------------
+// Determine if the MQTT client may be enabled
+//----------------------------------------
+bool mqttClientEnabled(const char ** line)
+{
+    bool enabled;
+
+    do
+    {
+        enabled = false;
+
+        // Verify the operating mode
+        if (NEQ_RTK_MODE(mqttClientMode))
+        {
+            if (line)
+                *line = ", wrong mode!";
+            break;
+        }
+
+        // MQTT requires use of point perfect corrections
+        if (settings.enablePointPerfectCorrections == false)
+        {
+            if (line)
+                *line = ", PointPerfect corrections are disabled!";
+            break;
+        }
+
+        // For the mosaic-X5, settings.enablePointPerfectCorrections will be true if
+        // we are using the PPL and getting keys via ZTP. BUT the Facet mosaic-X5
+        // uses the L-Band (only) plan. It should not and can not subscribe to PP IP
+        // MQTT corrections. So, if present.gnss_mosaicX5 is true, set enableMqttClient
+        // to false.
+        // TODO : review this. This feels like a bit of a hack...
+        if (present.gnss_mosaicX5)
+        {
+            if (line)
+                *line = ", Mosaic not present!";
+            break;
+        }
+
+        // Verify still enabled
+        enabled = mqttClientStartRequested;
+        if (line && !enabled)
+            *line = ", MQTT not enabled!";
+    } while (0);
+    return enabled;
+}
+
+//----------------------------------------
+// Determine if the client is connected to the services
+//----------------------------------------
+bool mqttClientIsConnected()
+{
+    if (mqttClientState == MQTT_CLIENT_SERVICES_CONNECTED)
+        return true;
+    return false;
+}
+
+//----------------------------------------
 // Print the MQTT client state summary
+//----------------------------------------
 void mqttClientPrintStateSummary()
 {
     switch (mqttClientState)
@@ -252,12 +282,12 @@ void mqttClientPrintStateSummary()
         systemPrint("Off");
         break;
 
-    case MQTT_CLIENT_ON:
     case MQTT_CLIENT_WAIT_FOR_NETWORK:
+    case MQTT_CLIENT_CONNECTION_DELAY:
         systemPrint("Disconnected");
         break;
 
-    case MQTT_CLIENT_CONNECTING_2_SERVER:
+    case MQTT_CLIENT_CONNECTING_2_BROKER:
         systemPrint("Connecting");
         break;
 
@@ -267,7 +297,9 @@ void mqttClientPrintStateSummary()
     }
 }
 
+//----------------------------------------
 // Print the MQTT Client status
+//----------------------------------------
 void mqttClientPrintStatus()
 {
     uint32_t days;
@@ -276,10 +308,8 @@ void mqttClientPrintStatus()
     byte minutes;
     byte seconds;
 
-    bool enableMqttClient = mqttClientIsNeeded();
-
     // Display MQTT Client status and uptime
-    if (enableMqttClient && (EQ_RTK_MODE(mqttClientMode)))
+    if (mqttClientEnabled(nullptr))
     {
         systemPrint("MQTT Client ");
         mqttClientPrintStateSummary();
@@ -314,7 +344,286 @@ void mqttClientPrintStatus()
     }
 }
 
+//----------------------------------------
+// Print the subscribed topics
+//----------------------------------------
+void mqttClientPrintSubscribedTopics()
+{
+    systemPrint("MQTT Client subscribe topics: ");
+    for (auto it = mqttSubscribeTopics.begin(); it != mqttSubscribeTopics.end(); it = std::next(it))
+    {
+        String topic = *it;
+        systemPrint(topic);
+        systemPrint(" ");
+    }
+    systemPrintln();
+    systemPrint("MQTT Client subscribed topics: ");
+    for (auto it = mqttClientSubscribedTopics.begin(); it != mqttClientSubscribedTopics.end(); it = std::next(it))
+    {
+        String topic = *it;
+        systemPrint(topic);
+        systemPrint(" ");
+    }
+    systemPrintln();
+}
+
+//----------------------------------------
+// Process the localizedDistributionDictTopic message
+//----------------------------------------
+void mqttClientProcessLocalizedDistributionDictTopic(uint8_t * mqttData)
+{
+    // We should be using a JSON library to read the nodes. But JSON is
+    // heavy on RAM and the dict could be 25KB for Level 3.
+    // Use sscanf instead.
+    //
+    // {
+    //   "tile": "L2N5375W00125",
+    //   "nodeprefix": "pp/ip/L2N5375W00125/",
+    //   "nodes": [
+    //     "N5200W00300",
+    //     "N5200W00200",
+    //     "N5200W00100",
+    //     "N5200E00000",
+    //     "N5200E00100",
+    //     "N5300W00300",
+    //     "N5300W00200",
+    //     "N5300W00100",
+    //     "N5300E00000",
+    //     "N5400W00200",
+    //     "N5400W00100",
+    //     "N5500W00300",
+    //     "N5500W00200"
+    //   ],
+    //   "endpoint": "pp-eu.services.u-blox.com"
+    // }
+    char *nodes = strstr((const char *)mqttData, "\"nodes\":[");
+    if (nodes != nullptr)
+    {
+        nodes += strlen("\"nodes\":["); // Point to the first node
+        float minDist = 99999.0;        // Minimum distance to tile center in centidegrees
+        char *preservedTile;
+        char *tile = strtok_r(nodes, ",", &preservedTile);
+        int latitude = int(gnss->getLatitude() * 100.0);   // Centidegrees
+        int longitude = int(gnss->getLongitude() * 100.0); // Centidegrees
+        while (tile != nullptr)
+        {
+            char ns, ew;
+            int lat, lon;
+            if (sscanf(tile, "\"%c%d%c%d\"", &ns, &lat, &ew, &lon) == 4)
+            {
+                if (ns == 'S')
+                    lat = 0 - lat;
+                if (ew == 'W')
+                    lon = 0 - lon;
+                float factorLon = cos(radians(latitude / 100.0)); // Scale lon by the lat
+                float distScaled = pow(pow(lat - latitude, 2) + pow((lon - longitude) * factorLon, 2),
+                                       0.5); // Calculate distance to tile center in centidegrees
+                if (distScaled < minDist)
+                {
+                    minDist = distScaled;
+                    tile[12] = 0; // Convert the second quote to NULL for snprintf
+                    char tileTopic[50];
+                    snprintf(tileTopic, sizeof(tileTopic), "%s", localizedDistributionDictTopic.c_str());
+                    snprintf(&tileTopic[strlen(localizedPrefix) + 13],
+                             sizeof(tileTopic) - (strlen(localizedPrefix) + 13), "%s",
+                             tile + 1); // Start after the first quote
+                    localizedDistributionTileTopic = tileTopic;
+                }
+            }
+            tile = strtok_r(nullptr, ",", &preservedTile);
+        }
+    }
+}
+
+//----------------------------------------
+// Process the point perfect keys distribution message
+//----------------------------------------
+void mqttClientProcessPointPerfectKeyDistributionTopic(uint8_t * mqttData)
+{
+    // Separate the UBX message into its constituent Key/ToW/Week parts
+    uint8_t *payLoad = &mqttData[6];
+    uint8_t currentKeyLength = payLoad[5];
+    uint16_t currentWeek = (payLoad[7] << 8) | payLoad[6];
+    uint32_t currentToW =
+        (payLoad[11] << 8 * 3) | (payLoad[10] << 8 * 2) | (payLoad[9] << 8 * 1) | (payLoad[8] << 8 * 0);
+
+    char currentKey[currentKeyLength];
+    memcpy(&currentKey, &payLoad[20], currentKeyLength);
+
+    uint8_t nextKeyLength = payLoad[13];
+    uint16_t nextWeek = (payLoad[15] << 8) | payLoad[14];
+    uint32_t nextToW =
+        (payLoad[19] << 8 * 3) | (payLoad[18] << 8 * 2) | (payLoad[17] << 8 * 1) | (payLoad[16] << 8 * 0);
+
+    char nextKey[nextKeyLength];
+    memcpy(&nextKey, &payLoad[20 + currentKeyLength], nextKeyLength);
+
+    // Convert byte array to HEX character array
+    strcpy(settings.pointPerfectCurrentKey, ""); // Clear contents
+    strcpy(settings.pointPerfectNextKey, "");    // Clear contents
+    for (int x = 0; x < 16; x++)                 // Force length to max of 32 bytes
+    {
+        char temp[3];
+        snprintf(temp, sizeof(temp), "%02X", currentKey[x]);
+        strcat(settings.pointPerfectCurrentKey, temp);
+
+        snprintf(temp, sizeof(temp), "%02X", nextKey[x]);
+        strcat(settings.pointPerfectNextKey, temp);
+    }
+
+    // Convert from ToW and Week to key duration and key start
+    WeekToWToUnixEpoch(&settings.pointPerfectCurrentKeyStart, currentWeek, currentToW);
+    WeekToWToUnixEpoch(&settings.pointPerfectNextKeyStart, nextWeek, nextToW);
+
+    settings.pointPerfectCurrentKeyStart -=
+        gnss->getLeapSeconds(); // Remove GPS leap seconds to align with u-blox
+    settings.pointPerfectNextKeyStart -= gnss->getLeapSeconds();
+
+    settings.pointPerfectCurrentKeyStart *= 1000; // Convert to ms
+    settings.pointPerfectNextKeyStart *= 1000;
+
+    settings.pointPerfectCurrentKeyDuration =
+        settings.pointPerfectNextKeyStart - settings.pointPerfectCurrentKeyStart - 1;
+    // settings.pointPerfectNextKeyDuration =
+    //     settings.pointPerfectCurrentKeyDuration; // We assume next key duration is the same as current
+    //     key duration because we have to
+
+    settings.pointPerfectNextKeyDuration =
+        (1000LL * 60 * 60 * 24 * 28) - 1; // Assume next key duration is 28 days
+
+    if (online.rtc)
+        settings.lastKeyAttempt = rtc.getEpoch(); // Mark it - but only if RTC is online
+
+    recordSystemSettings(); // Record these settings to unit
+
+    if (settings.debugCorrections == true)
+        pointperfectPrintKeyInformation("MQTT Topic");
+}
+
+//----------------------------------------
+// Send the message to the ZED
+//----------------------------------------
+int mqttClientProcessZedMessage(uint8_t * mqttData, uint16_t mqttCount, int bytesPushed, char * topic)
+{
+#ifdef COMPILE_ZED
+    // Only push SPARTN if the priority says we can
+    if (
+        // We can get correction data from the continental topic
+        ((strlen(settings.regionalCorrectionTopics[settings.geographicRegion]) > 0) &&
+         (strcmp(topic, settings.regionalCorrectionTopics[settings.geographicRegion]) == 0)) ||
+        // Or from the localized distribution tile topic
+        ((localizedDistributionTileTopic.length() > 0) &&
+         (strcmp(topic, localizedDistributionTileTopic.c_str()) == 0)))
+    {
+        // Determine if MQTT (SPARTN data) is the correction source
+        if (correctionLastSeen(CORR_IP))
+        {
+            if (((settings.debugMqttClientData == true) || (settings.debugCorrections == true)
+                || PERIODIC_DISPLAY(PD_MQTT_CLIENT_DATA)) && !inMainMenu)
+            {
+                PERIODIC_CLEAR(PD_MQTT_CLIENT_DATA);
+                systemPrintf("Pushing %d bytes from %s topic to GNSS\r\n", mqttCount, topic);
+            }
+
+            GNSS_ZED *zed = (GNSS_ZED *)gnss;
+            zed->updateCorrectionsSource(0); // Set SOURCE to 0 (IP) if needed
+
+            gnss->pushRawData(mqttData, mqttCount);
+            bytesPushed += mqttCount;
+
+            mqttClientDataReceived = true;
+        }
+        else
+        {
+            if (((settings.debugMqttClientData == true) || (settings.debugCorrections == true)
+                || PERIODIC_DISPLAY(PD_MQTT_CLIENT_DATA)) && !inMainMenu)
+            {
+                PERIODIC_CLEAR(PD_MQTT_CLIENT_DATA);
+                systemPrintf("NOT pushing %d bytes from %s topic to GNSS due to priority\r\n", mqttCount,
+                             topic);
+            }
+        }
+    }
+    // Always push KEYS and MGA to the ZED
+    else
+    {
+        // KEYS or MGA
+        if (((settings.debugMqttClientData == true) || (settings.debugCorrections == true)
+            || PERIODIC_DISPLAY(PD_MQTT_CLIENT_DATA)) && !inMainMenu)
+        {
+            PERIODIC_CLEAR(PD_MQTT_CLIENT_DATA);
+            systemPrintf("Pushing %d bytes from %s topic to GNSS\r\n", mqttCount, topic);
+        }
+
+        gnss->pushRawData(mqttData, mqttCount);
+        bytesPushed += mqttCount;
+    }
+#endif // COMPILE_ZED
+    return bytesPushed;
+}
+
+//----------------------------------------
+// Process the subscribed messages
+//----------------------------------------
+int mqttClientProcessMessage(uint8_t * mqttData, uint16_t mqttCount, int bytesPushed, char * topic)
+{
+    // Check for localizedDistributionDictTopic
+    if ((localizedDistributionDictTopic.length() > 0) &&
+        (strcmp(topic, localizedDistributionDictTopic.c_str()) == 0))
+    {
+        mqttClientProcessLocalizedDistributionDictTopic(mqttData);
+        mqttClientLastDataReceived = millis();
+        return bytesPushed; // Return now - the dict topic should not be pushed
+    }
+
+    // Is this the full AssistNow MGA data? If so, unsubscribe and subscribe to updates
+    if (strcmp(topic, MQTT_TOPIC_ASSISTNOW.c_str()) == 0)
+    {
+        std::vector<String>::iterator pos =
+            std::find(mqttSubscribeTopics.begin(), mqttSubscribeTopics.end(), MQTT_TOPIC_ASSISTNOW);
+        if (pos != mqttSubscribeTopics.end())
+            mqttSubscribeTopics.erase(pos);
+
+        mqttSubscribeTopics.push_back(MQTT_TOPIC_ASSISTNOW_UPDATES);
+    }
+
+    // Are these keys? If so, update our local copy
+    if ((strlen(settings.pointPerfectKeyDistributionTopic) > 0) &&
+        (strcmp(topic, settings.pointPerfectKeyDistributionTopic) == 0))
+    {
+        mqttClientProcessPointPerfectKeyDistributionTopic(mqttData);
+    }
+
+    // Correction data from PP can go direct to GNSS
+    if (present.gnss_zedf9p)
+        bytesPushed = mqttClientProcessZedMessage(mqttData,
+                                                  mqttCount,
+                                                  bytesPushed,
+                                                  topic);
+
+    // For the UM980 or LG290P, we have to pass the data through the PPL first
+    else if (present.gnss_um980 || present.gnss_lg290p)
+    {
+        if (((settings.debugMqttClientData == true) || (settings.debugCorrections == true)) && !inMainMenu)
+        {
+            if (present.gnss_um980)
+                systemPrintf("Pushing %d bytes from %s topic to PPL for UM980\r\n", mqttCount, topic);
+            else if (present.gnss_lg290p)
+                systemPrintf("Pushing %d bytes from %s topic to PPL for LG290P\r\n", mqttCount, topic);
+        }
+
+        if (online.ppl == false && settings.debugMqttClientData == true)
+            systemPrintln("Warning: PPL is offline");
+
+        sendSpartnToPpl(mqttData, mqttCount);
+        bytesPushed += mqttCount;
+    }
+    return bytesPushed;
+}
+
+//----------------------------------------
 // Called when a subscribed message arrives
+//----------------------------------------
 void mqttClientReceiveMessage(int messageSize)
 {
     // The Level 3 localized distribution dictionary topic can be up to 25KB
@@ -322,12 +631,7 @@ void mqttClientReceiveMessage(int messageSize)
     const uint16_t mqttLimit = 26000;
     static uint8_t *mqttData = nullptr;
     if (mqttData == nullptr) // Allocate memory to hold the MQTT data. Never freed
-    {
-        if (online.psram == true)
-            mqttData = (uint8_t *)ps_malloc(mqttLimit);
-        else
-            mqttData = (uint8_t *)malloc(mqttLimit);
-    }
+        mqttData = (uint8_t *)rtkMalloc(mqttLimit, "MQTT data (mqttData)");
     if (mqttData == nullptr)
     {
         systemPrintln(F("Memory allocation for mqttData failed!"));
@@ -355,219 +659,11 @@ void mqttClientReceiveMessage(int messageSize)
 
         if (mqttCount > 0)
         {
-            // Check for localizedDistributionDictTopic
-            if ((localizedDistributionDictTopic.length() > 0) &&
-                (strcmp(topic, localizedDistributionDictTopic.c_str()) == 0))
-            {
-                // We should be using a JSON library to read the nodes. But JSON is
-                // heavy on RAM and the dict could be 25KB for Level 3.
-                // Use sscanf instead.
-                //
-                // {
-                //   "tile": "L2N5375W00125",
-                //   "nodeprefix": "pp/ip/L2N5375W00125/",
-                //   "nodes": [
-                //     "N5200W00300",
-                //     "N5200W00200",
-                //     "N5200W00100",
-                //     "N5200E00000",
-                //     "N5200E00100",
-                //     "N5300W00300",
-                //     "N5300W00200",
-                //     "N5300W00100",
-                //     "N5300E00000",
-                //     "N5400W00200",
-                //     "N5400W00100",
-                //     "N5500W00300",
-                //     "N5500W00200"
-                //   ],
-                //   "endpoint": "pp-eu.services.u-blox.com"
-                // }
-                char *nodes = strstr((const char *)mqttData, "\"nodes\":[");
-                if (nodes != nullptr)
-                {
-                    nodes += strlen("\"nodes\":["); // Point to the first node
-                    float minDist = 99999.0;        // Minimum distance to tile center in centidegrees
-                    char *preservedTile;
-                    char *tile = strtok_r(nodes, ",", &preservedTile);
-                    int latitude = int(gnss->getLatitude() * 100.0);   // Centidegrees
-                    int longitude = int(gnss->getLongitude() * 100.0); // Centidegrees
-                    while (tile != nullptr)
-                    {
-                        char ns, ew;
-                        int lat, lon;
-                        if (sscanf(tile, "\"%c%d%c%d\"", &ns, &lat, &ew, &lon) == 4)
-                        {
-                            if (ns == 'S')
-                                lat = 0 - lat;
-                            if (ew == 'W')
-                                lon = 0 - lon;
-                            float factorLon = cos(radians(latitude / 100.0)); // Scale lon by the lat
-                            float distScaled = pow(pow(lat - latitude, 2) + pow((lon - longitude) * factorLon, 2),
-                                                   0.5); // Calculate distance to tile center in centidegrees
-                            if (distScaled < minDist)
-                            {
-                                minDist = distScaled;
-                                tile[12] = 0; // Convert the second quote to NULL for snprintf
-                                char tileTopic[50];
-                                snprintf(tileTopic, sizeof(tileTopic), "%s", localizedDistributionDictTopic.c_str());
-                                snprintf(&tileTopic[strlen(localizedPrefix) + 13],
-                                         sizeof(tileTopic) - (strlen(localizedPrefix) + 13), "%s",
-                                         tile + 1); // Start after the first quote
-                                localizedDistributionTileTopic = tileTopic;
-                            }
-                        }
-                        tile = strtok_r(nullptr, ",", &preservedTile);
-                    }
-                }
-
-                mqttClientLastDataReceived = millis();
-                break; // Break now - the dict topic should not be pushed
-            }
-
-            // Is this the full AssistNow MGA data? If so, unsubscribe and subscribe to updates
-            if (strcmp(topic, MQTT_TOPIC_ASSISTNOW.c_str()) == 0)
-            {
-                std::vector<String>::iterator pos =
-                    std::find(mqttSubscribeTopics.begin(), mqttSubscribeTopics.end(), MQTT_TOPIC_ASSISTNOW);
-                if (pos != mqttSubscribeTopics.end())
-                    mqttSubscribeTopics.erase(pos);
-
-                mqttSubscribeTopics.push_back(MQTT_TOPIC_ASSISTNOW_UPDATES);
-            }
-
-            // Are these keys? If so, update our local copy
-            if ((strlen(settings.pointPerfectKeyDistributionTopic) > 0) &&
-                (strcmp(topic, settings.pointPerfectKeyDistributionTopic) == 0))
-            {
-                // Separate the UBX message into its constituent Key/ToW/Week parts
-                uint8_t *payLoad = &mqttData[6];
-                uint8_t currentKeyLength = payLoad[5];
-                uint16_t currentWeek = (payLoad[7] << 8) | payLoad[6];
-                uint32_t currentToW =
-                    (payLoad[11] << 8 * 3) | (payLoad[10] << 8 * 2) | (payLoad[9] << 8 * 1) | (payLoad[8] << 8 * 0);
-
-                char currentKey[currentKeyLength];
-                memcpy(&currentKey, &payLoad[20], currentKeyLength);
-
-                uint8_t nextKeyLength = payLoad[13];
-                uint16_t nextWeek = (payLoad[15] << 8) | payLoad[14];
-                uint32_t nextToW =
-                    (payLoad[19] << 8 * 3) | (payLoad[18] << 8 * 2) | (payLoad[17] << 8 * 1) | (payLoad[16] << 8 * 0);
-
-                char nextKey[nextKeyLength];
-                memcpy(&nextKey, &payLoad[20 + currentKeyLength], nextKeyLength);
-
-                // Convert byte array to HEX character array
-                strcpy(settings.pointPerfectCurrentKey, ""); // Clear contents
-                strcpy(settings.pointPerfectNextKey, "");    // Clear contents
-                for (int x = 0; x < 16; x++)                 // Force length to max of 32 bytes
-                {
-                    char temp[3];
-                    snprintf(temp, sizeof(temp), "%02X", currentKey[x]);
-                    strcat(settings.pointPerfectCurrentKey, temp);
-
-                    snprintf(temp, sizeof(temp), "%02X", nextKey[x]);
-                    strcat(settings.pointPerfectNextKey, temp);
-                }
-
-                // Convert from ToW and Week to key duration and key start
-                WeekToWToUnixEpoch(&settings.pointPerfectCurrentKeyStart, currentWeek, currentToW);
-                WeekToWToUnixEpoch(&settings.pointPerfectNextKeyStart, nextWeek, nextToW);
-
-                settings.pointPerfectCurrentKeyStart -=
-                    gnss->getLeapSeconds(); // Remove GPS leap seconds to align with u-blox
-                settings.pointPerfectNextKeyStart -= gnss->getLeapSeconds();
-
-                settings.pointPerfectCurrentKeyStart *= 1000; // Convert to ms
-                settings.pointPerfectNextKeyStart *= 1000;
-
-                settings.pointPerfectCurrentKeyDuration =
-                    settings.pointPerfectNextKeyStart - settings.pointPerfectCurrentKeyStart - 1;
-                // settings.pointPerfectNextKeyDuration =
-                //     settings.pointPerfectCurrentKeyDuration; // We assume next key duration is the same as current
-                //     key duration because we have to
-
-                settings.pointPerfectNextKeyDuration =
-                    (1000LL * 60 * 60 * 24 * 28) - 1; // Assume next key duration is 28 days
-
-                if (online.rtc)
-                    settings.lastKeyAttempt = rtc.getEpoch(); // Mark it - but only if RTC is online
-
-                recordSystemSettings(); // Record these settings to unit
-
-                if (settings.debugCorrections == true)
-                    pointperfectPrintKeyInformation("MQTT Topic");
-            }
-
-            // Correction data from PP can go direct to GNSS
-            if (present.gnss_zedf9p)
-            {
-#ifdef COMPILE_ZED
-                // Only push SPARTN if the priority says we can
-                if (
-                    // We can get correction data from the continental topic
-                    ((strlen(settings.regionalCorrectionTopics[settings.geographicRegion]) > 0) &&
-                     (strcmp(topic, settings.regionalCorrectionTopics[settings.geographicRegion]) == 0)) ||
-                    // Or from the localized distribution tile topic
-                    ((localizedDistributionTileTopic.length() > 0) &&
-                     (strcmp(topic, localizedDistributionTileTopic.c_str()) == 0)))
-                {
-                    // Determine if MQTT (SPARTN data) is the correction source
-                    if (correctionLastSeen(CORR_IP))
-                    {
-                        if (((settings.debugMqttClientData == true) || (settings.debugCorrections == true)) &&
-                            !inMainMenu)
-                            systemPrintf("Pushing %d bytes from %s topic to GNSS\r\n", mqttCount, topic);
-
-                        GNSS_ZED *zed = (GNSS_ZED *)gnss;
-                        zed->updateCorrectionsSource(0); // Set SOURCE to 0 (IP) if needed
-
-                        gnss->pushRawData(mqttData, mqttCount);
-                        bytesPushed += mqttCount;
-
-                        mqttClientDataReceived = true;
-                    }
-                    else
-                    {
-                        if (((settings.debugMqttClientData == true) || (settings.debugCorrections == true)) &&
-                            !inMainMenu)
-                            systemPrintf("NOT pushing %d bytes from %s topic to GNSS due to priority\r\n", mqttCount,
-                                         topic);
-                    }
-                }
-                // Always push KEYS and MGA to the ZED
-                else
-                {
-                    // KEYS or MGA
-                    if (((settings.debugMqttClientData == true) || (settings.debugCorrections == true)) && !inMainMenu)
-                        systemPrintf("Pushing %d bytes from %s topic to GNSS\r\n", mqttCount, topic);
-
-                    gnss->pushRawData(mqttData, mqttCount);
-                    bytesPushed += mqttCount;
-                }
-#endif // COMPILE_ZED
-            }
-
-            // For the UM980 or LG290P, we have to pass the data through the PPL first
-            else if (present.gnss_um980 || present.gnss_lg290p)
-            {
-                if (((settings.debugMqttClientData == true) || (settings.debugCorrections == true)) && !inMainMenu)
-                {
-                    if (present.gnss_um980)
-                        systemPrintf("Pushing %d bytes from %s topic to PPL for UM980\r\n", mqttCount, topic);
-                    else if (present.gnss_lg290p)
-                        systemPrintf("Pushing %d bytes from %s topic to PPL for LG290P\r\n", mqttCount, topic);
-                }
-
-                if (online.ppl == false && settings.debugMqttClientData == true)
-                    systemPrintln("Warning: PPL is offline");
-
-                sendSpartnToPpl(mqttData, mqttCount);
-                bytesPushed += mqttCount;
-
-                mqttClientDataReceived = true;
-            }
+            // Process the MQTT message
+            bytesPushed = mqttClientProcessMessage(mqttData,
+                                                   mqttCount,
+                                                   bytesPushed,
+                                                   topic);
 
             // Record the arrival of data over MQTT
             mqttClientLastDataReceived = millis();
@@ -580,7 +676,9 @@ void mqttClientReceiveMessage(int messageSize)
     }
 }
 
+//----------------------------------------
 // Restart the MQTT client
+//----------------------------------------
 void mqttClientRestart()
 {
     // Save the previous uptime value
@@ -589,10 +687,12 @@ void mqttClientRestart()
     mqttClientConnectLimitReached();
 }
 
+//----------------------------------------
 // Update the state of the MQTT client state machine
+//----------------------------------------
 void mqttClientSetState(uint8_t newState)
 {
-    if (settings.debugMqttClientState || PERIODIC_DISPLAY(PD_MQTT_CLIENT_STATE))
+    if (settings.debugMqttClientState)
     {
         if (mqttClientState == newState)
             systemPrint("*");
@@ -600,9 +700,8 @@ void mqttClientSetState(uint8_t newState)
             systemPrintf("%s --> ", mqttClientStateName[mqttClientState]);
     }
     mqttClientState = newState;
-    if (settings.debugMqttClientState || PERIODIC_DISPLAY(PD_MQTT_CLIENT_STATE))
+    if (settings.debugMqttClientState)
     {
-        PERIODIC_CLEAR(PD_MQTT_CLIENT_STATE);
         if (newState >= MQTT_CLIENT_STATE_MAX)
         {
             systemPrintf("Unknown MQTT Client state: %d\r\n", newState);
@@ -610,33 +709,31 @@ void mqttClientSetState(uint8_t newState)
         }
         else
             systemPrintln(mqttClientStateName[mqttClientState]);
-
-        systemPrint("MQTT Client subscribe topics: ");
-        for (auto it = mqttSubscribeTopics.begin(); it != mqttSubscribeTopics.end(); it = std::next(it))
-        {
-            String topic = *it;
-            systemPrint(topic);
-            systemPrint(" ");
-        }
-        systemPrintln();
-        systemPrint("MQTT Client subscribed topics: ");
-        for (auto it = mqttClientSubscribedTopics.begin(); it != mqttClientSubscribedTopics.end(); it = std::next(it))
-        {
-            String topic = *it;
-            systemPrint(topic);
-            systemPrint(" ");
-        }
-        systemPrintln();
     }
 }
 
+//----------------------------------------
 // Shutdown the MQTT client
+//----------------------------------------
 void mqttClientShutdown()
 {
+    mqttClientStartRequested = false;
     MQTT_CLIENT_STOP(true);
 }
 
+//----------------------------------------
+// Start the MQTT client
+//----------------------------------------
+void mqttClientStartEnabled()
+{
+    if (settings.debugMqttClientState)
+        systemPrintf("MQTT_Client: Start enabled\r\n");
+    mqttClientStartRequested = true;
+}
+
+//----------------------------------------
 // Shutdown or restart the MQTT client
+//----------------------------------------
 void mqttClientStop(bool shutdown)
 {
     // Display the uptime
@@ -671,67 +768,76 @@ void mqttClientStop(bool shutdown)
     // Release the buffers
     if (mqttClientPrivateKeyBuffer != nullptr)
     {
-        free(mqttClientPrivateKeyBuffer);
+        rtkFree(mqttClientPrivateKeyBuffer, "Certificate buffer (mqttClientPrivateKeyBuffer)");
         mqttClientPrivateKeyBuffer = nullptr;
     }
 
     if (mqttClientCertificateBuffer != nullptr)
     {
-        free(mqttClientCertificateBuffer);
+        rtkFree(mqttClientCertificateBuffer, "Certificate buffer (mqttClientCertificateBuffer)");
         mqttClientCertificateBuffer = nullptr;
     }
 
     reportHeapNow(settings.debugMqttClientState);
 
     // Increase timeouts if we started the network
-    if (mqttClientState > MQTT_CLIENT_ON)
-        // Mark the Client stop so that we don't immediately attempt re-connect to Caster
+    if (mqttClientState > MQTT_CLIENT_WAIT_FOR_NETWORK)
+        // Mark client stop so that we don't immediately attempt re-connect to broker
         mqttClientTimer = millis();
 
     // Determine the next MQTT client state
     online.mqttClient = false;
     mqttClientDataReceived = false;
+    networkConsumerOffline(NETCONSUMER_PPL_MQTT_CLIENT);
     if (shutdown)
     {
-        mqttClientSetState(MQTT_CLIENT_OFF);
-        // settings.enablePointPerfectCorrections = false;
-        //^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ Why? This means PointPerfect Corrections
-        // cannot be restarted without opening the menu or web configuration page...
+        networkConsumerRemove(NETCONSUMER_PPL_MQTT_CLIENT, NETWORK_ANY, __FILE__, __LINE__);
         mqttClientConnectionAttempts = 0;
         mqttClientConnectionAttemptTimeout = 0;
+        mqttClientPrintSubscribedTopics();
+        mqttClientSetState(MQTT_CLIENT_OFF);
+        if (settings.debugMqttClientState)
+            systemPrintln("MQTT Client stopped");
     }
     else
-        mqttClientSetState(MQTT_CLIENT_ON);
+    {
+        mqttClientSetState(MQTT_CLIENT_WAIT_FOR_NETWORK);
+        mqttClientPrintSubscribedTopics();
+    }
 }
 
-// Return true if we are in states that require network access
-bool mqttClientNeedsNetwork()
-{
-    if (mqttClientState >= MQTT_CLIENT_WAIT_FOR_NETWORK && mqttClientState <= MQTT_CLIENT_SERVICES_CONNECTED)
-        return true;
-    return false;
-}
-
+//----------------------------------------
 // Check for the arrival of any correction data. Push it to the GNSS.
 // Stop task if the connection has dropped or if we receive no data for
 // MQTT_CLIENT_RECEIVE_DATA_TIMEOUT
+//----------------------------------------
 void mqttClientUpdate()
 {
-    bool enableMqttClient = mqttClientIsNeeded();
+    bool connected;
+    bool enabled;
 
     // Shutdown the MQTT client when the mode or setting changes
     DMW_st(mqttClientSetState, mqttClientState);
-
-    if (NEQ_RTK_MODE(mqttClientMode) || (!enableMqttClient))
+    connected = networkConsumerIsConnected(NETCONSUMER_PPL_MQTT_CLIENT);
+    enabled = mqttClientEnabled(nullptr);
+    if ((enabled == false) && (mqttClientState > MQTT_CLIENT_OFF))
     {
-        if (mqttClientState > MQTT_CLIENT_OFF)
-        {
+        if (settings.debugMqttClientState)
             systemPrintln("MQTT Client stopping");
-            MQTT_CLIENT_STOP(true); // Was false - #StopVsRestart
+        mqttClientShutdown();
+    }
+
+    // Determine if the network has failed
+    else if ((mqttClientState > MQTT_CLIENT_WAIT_FOR_NETWORK) && !connected)
+    {
+        if (mqttClientState == MQTT_CLIENT_SERVICES_CONNECTED)
+        {
+            // The connection is successful, allow more retries in the future
+            // with immediate retries
             mqttClientConnectionAttempts = 0;
             mqttClientConnectionAttemptTimeout = 0;
-            mqttClientSetState(MQTT_CLIENT_OFF);
         }
+        mqttClientRestart();
     }
 
     // Enable the network and the MQTT client if requested
@@ -739,90 +845,71 @@ void mqttClientUpdate()
     {
     default:
     case MQTT_CLIENT_OFF: {
-        if (EQ_RTK_MODE(mqttClientMode) && enableMqttClient)
+        if (enabled)
         {
             // Start the MQTT client
             if (settings.debugMqttClientState)
                 systemPrintln("MQTT Client start");
             mqttClientStop(false);
-        }
-        break;
-    }
-
-    // Start the network
-    case MQTT_CLIENT_ON: {
-        if ((millis() - mqttClientTimer) > mqttClientConnectionAttemptTimeout)
-        {
-            mqttClientSetState(MQTT_CLIENT_WAIT_FOR_NETWORK);
+            networkConsumerAdd(NETCONSUMER_PPL_MQTT_CLIENT, NETWORK_ANY, __FILE__, __LINE__);
         }
         break;
     }
 
     // Wait for a network media connection
     case MQTT_CLIENT_WAIT_FOR_NETWORK: {
-        // Determine if MQTT was turned off
-        if (NEQ_RTK_MODE(mqttClientMode) || !enableMqttClient)
-            mqttClientStop(true);
-
         // Wait until the network is connected to the media
-        else if (networkHasInternet())
-            mqttClientSetState(MQTT_CLIENT_CONNECTING_2_SERVER);
+        if (connected)
+        {
+            // Reset the timeout when the network changes
+            if (networkChanged(NETCONSUMER_PPL_MQTT_CLIENT))
+                mqttClientConnectionAttemptTimeout = 0;
+            networkUserAdd(NETCONSUMER_PPL_MQTT_CLIENT, __FILE__, __LINE__);
+            mqttClientSetState(MQTT_CLIENT_CONNECTION_DELAY);
+            mqttClientPrintSubscribedTopics();
+        }
         break;
     }
 
-    // Connect to the MQTT server
-    case MQTT_CLIENT_CONNECTING_2_SERVER: {
-        // Determine if the network has failed
-        if (networkHasInternet() == false)
+    // Delay before using the network
+    case MQTT_CLIENT_CONNECTION_DELAY: {
+        if ((millis() - mqttClientTimer) > mqttClientConnectionAttemptTimeout)
         {
-            // Failed to connect to the network, attempt to restart the network
-            mqttClientStop(true); // Was mqttClientRestart(); - #StopVsRestart
-            break;
+            mqttClientSetState(MQTT_CLIENT_CONNECTING_2_BROKER);
+            mqttClientPrintSubscribedTopics();
         }
+        break;
+    }
 
+    // Connect to the MQTT broker
+    case MQTT_CLIENT_CONNECTING_2_BROKER: {
         // Allocate the mqttSecureClient structure
         mqttSecureClient = new NetworkClientSecure();
         if (!mqttSecureClient)
         {
             systemPrintln("ERROR: Failed to allocate the mqttSecureClient structure!");
-            mqttClientShutdown();
+            mqttClientRestart();
             break;
         }
 
-        // Allocate the buffers
-        // Freed by mqttClientShutdown / mqttClientStop
-        if (online.psram == true)
-        {
-            if (!mqttClientCertificateBuffer)
-                mqttClientCertificateBuffer = (char *)ps_malloc(MQTT_CERT_SIZE);
-            if (!mqttClientPrivateKeyBuffer)
-                mqttClientPrivateKeyBuffer = (char *)ps_malloc(MQTT_CERT_SIZE);
-        }
-        else
-        {
-            if (!mqttClientCertificateBuffer)
-                mqttClientCertificateBuffer = (char *)malloc(MQTT_CERT_SIZE);
-            if (!mqttClientPrivateKeyBuffer)
-                mqttClientPrivateKeyBuffer = (char *)malloc(MQTT_CERT_SIZE);
-        }
+        // Allocate the buffers, freed by mqttClientStop
+        if (!mqttClientCertificateBuffer)
+            mqttClientCertificateBuffer = (char *)rtkMalloc(MQTT_CERT_SIZE, "Certificate buffer (mqttClientCertificateBuffer)");
+        if (!mqttClientPrivateKeyBuffer)
+            mqttClientPrivateKeyBuffer = (char *)rtkMalloc(MQTT_CERT_SIZE, "Certificate buffer (mqttClientPrivateKeyBuffer)");
 
+        // Determine if the buffers were allocated
         if ((!mqttClientCertificateBuffer) || (!mqttClientPrivateKeyBuffer))
         {
-            if (mqttClientCertificateBuffer)
-            {
-                free(mqttClientCertificateBuffer);
-                mqttClientCertificateBuffer = nullptr;
-                systemPrintln("Failed to allocate key buffer!");
-            }
+            // Complain about the buffer allocation failure
+            if (mqttClientCertificateBuffer == nullptr)
+                systemPrintln("ERROR: Failed to allocate certificate buffer!");
 
-            if (mqttClientPrivateKeyBuffer)
-            {
-                free(mqttClientPrivateKeyBuffer);
-                mqttClientPrivateKeyBuffer = nullptr;
-                systemPrintln("Failed to allocate certificate buffer!");
-            }
+            if (mqttClientPrivateKeyBuffer == nullptr)
+                systemPrintln("ERROR: Failed to allocate key buffer!");
 
-            mqttClientShutdown();
+            // Free the buffers and attempt another connection after delay
+            mqttClientRestart();
             break;
         }
 
@@ -834,9 +921,8 @@ void mqttClientUpdate()
         if (!loadFile("certificate", mqttClientCertificateBuffer, settings.debugMqttClientState))
         {
             if (settings.debugMqttClientState)
-                systemPrintln("MQTT_CLIENT_CONNECTING_2_SERVER no certificate available");
-            mqttClientRestart(); // This does need a restart. Was mqttClientShutdown, but that causes an immediate retry
-                                 // with no timeout
+                systemPrintln("ERROR: MQTT_Client no certificate available");
+            mqttClientShutdown();
             break;
         }
         mqttSecureClient->setCertificate(mqttClientCertificateBuffer);
@@ -846,9 +932,8 @@ void mqttClientUpdate()
         if (!loadFile("privateKey", mqttClientPrivateKeyBuffer, settings.debugMqttClientState))
         {
             if (settings.debugMqttClientState)
-                systemPrintln("MQTT_CLIENT_CONNECTING_2_SERVER no private key available");
-            mqttClientRestart(); // This does need a restart. Was mqttClientShutdown, but that causes an immediate retry
-                                 // with no timeout
+                systemPrintln("ERROR: MQTT_Client no private key available");
+            mqttClientShutdown();
             break;
         }
         mqttSecureClient->setPrivateKey(mqttClientPrivateKeyBuffer);
@@ -859,7 +944,7 @@ void mqttClientUpdate()
         {
             // Failed to allocate the mqttClient structure
             systemPrintln("ERROR: Failed to allocate the mqttClient structure!");
-            mqttClientShutdown();
+            mqttClientRestart();
             break;
         }
 
@@ -869,7 +954,7 @@ void mqttClientUpdate()
         if (settings.debugMqttClientState)
             systemPrintf("MQTT client connecting to %s\r\n", settings.pointPerfectBrokerHost);
 
-        // Attempt to the MQTT broker
+        // Attempt connection to the MQTT broker
         if (!mqttClient->connect(settings.pointPerfectBrokerHost, 8883))
         {
             systemPrintf("Failed to connect to MQTT broker %s\r\n", settings.pointPerfectBrokerHost);
@@ -877,7 +962,7 @@ void mqttClientUpdate()
             break;
         }
 
-        // The MQTT server is now connected
+        // The MQTT broker is now connected
         mqttClient->onMessage(mqttClientReceiveMessage);
 
         mqttSubscribeTopics.clear();        // Clear the list of MQTT topics to be subscribed to
@@ -890,10 +975,10 @@ void mqttClientUpdate()
         {
             mqttSubscribeTopics.push_back(MQTT_TOPIC_ASSISTNOW);
         }
-        
+
         // Subscribe to the key distribution topic
         mqttSubscribeTopics.push_back(String(settings.pointPerfectKeyDistributionTopic));
-        
+
         // Subscribe to the continental correction topic for our region - if we have one. L-Band-only does not.
         if (strlen(settings.regionalCorrectionTopics[settings.geographicRegion]) > 0)
         {
@@ -915,16 +1000,15 @@ void mqttClientUpdate()
         online.mqttClient = true;
 
         mqttClientSetState(MQTT_CLIENT_SERVICES_CONNECTED);
-
+        mqttClientPrintSubscribedTopics();
         break;
-    } // /case MQTT_CLIENT_CONNECTING_2_SERVER
+    } // /case MQTT_CLIENT_CONNECTING_2_BROKER
 
     case MQTT_CLIENT_SERVICES_CONNECTED: {
-        // Determine if the network has failed
-        if (networkHasInternet() == false)
+        // Verify the connection to the broker
+        if (mqttSecureClient->connected() == false)
         {
-            // Failed to connect to the network, attempt to restart the network
-            mqttClientStop(true); // Was mqttClientRestart(); - #StopVsRestart
+            mqttClientRestart();
             break;
         }
 
@@ -955,6 +1039,8 @@ void mqttClientUpdate()
                 {
                     breakOut = true; // Break out of this state as we have successfully subscribed
                     mqttClientSubscribedTopics.push_back(topic);
+                    if (settings.debugMqttClientState)
+                        systemPrintf("MQTT_Client successfully subscribed to topic %s\r\n", topic.c_str());
                 }
                 else
                 {
@@ -1075,21 +1161,23 @@ void mqttClientUpdate()
 
     // Periodically display the MQTT client state
     if (PERIODIC_DISPLAY(PD_MQTT_CLIENT_STATE))
-        mqttClientSetState(mqttClientState);
+    {
+        const char * line = "";
+        mqttClientEnabled(&line);
+        systemPrintf("MQTT Client state: %s%s\r\n",
+                     mqttClientStateName[mqttClientState], line);
+        mqttClientPrintSubscribedTopics();
+        PERIODIC_CLEAR(PD_MQTT_CLIENT_STATE);
+    }
 }
 
+//----------------------------------------
 // Verify the MQTT client tables
+//----------------------------------------
 void mqttClientValidateTables()
 {
     if (mqttClientStateNameEntries != MQTT_CLIENT_STATE_MAX)
         reportFatalError("Fix mqttClientStateNameEntries to match MQTTClientState");
-}
-
-bool mqttClientIsConnected()
-{
-    if (mqttClientState == MQTT_CLIENT_SERVICES_CONNECTED)
-        return true;
-    return false;
 }
 
 #endif // COMPILE_MQTT_CLIENT

@@ -109,37 +109,47 @@ all: $(EXECUTABLES)
 arduino-config:
 	arduino-cli config init --overwrite --additional-urls "https://raw.githubusercontent.com/espressif/arduino-esp32/gh-pages/package_esp32_index.json,https://espressif.github.io/arduino-esp32/package_esp32_dev_index.json"
 
-.PHONY: lib-update
+.PHONY: core-update
 
-ESP_CORE_VERSION=3.0.1
-ESP_IDF_VERSION=idf-release_v5.1-442a798083
-
-lib-update:
+core-update:
+	$(DELETE) $(HOME_BOARD_PATH)
 	arduino-cli core update-index
 	arduino-cli core install esp32:esp32@$(ESP_CORE_VERSION)
+
+.PHONY: lib-update
+
+ESP_CORE_VERSION=3.0.7
+ESP_IDF_VERSION=idf-release_v5.1-632e0c2a
+
+lib-update:	core-update
 	arduino-cli lib install \
-		ArduinoJson@6.19.4 \
+		ArduinoJson@7.0.4 \
 		"ArduinoMqttClient"@0.1.8 \
-		ESP32Time@2.0.0 \
-		ESP32_BleSerial@1.0.4 \
+		ESP32_BleSerial@2.0.1 \
 		"ESP32-OTA-Pull"@1.0.0 \
+		ESP32Time@2.0.0 \
 		JC_Button@2.1.2 \
 		PubSubClient@2.8.0 \
 		"SdFat"@2.1.1 \
 		"SparkFun BQ40Z50 Battery Manager Arduino Library"@1.0.0 \
-		"SparkFun Extensible Message Parser"@1.0.1 \
+		"SparkFun Extensible Message Parser"@1.0.2 \
+		"SparkFun I2C Expander Arduino Library"@1.0.1 \
 		"SparkFun IM19 IMU Arduino Library"@1.0.1 \
+		"SparkFun LG290P Quadband RTK GNSS Arduino Library"@1.0.2
 		"SparkFun LIS2DH12 Arduino Library"@1.0.3 \
 		"SparkFun MAX1704x Fuel Gauge Arduino Library"@1.0.4 \
 		"SparkFun Qwiic OLED Arduino Library"@1.0.13 \
-		"SparkFun u-blox GNSS v3"@3.1.5 \
+		"SparkFun u-blox GNSS v3"@3.1.8 \
 		"SparkFun u-blox PointPerfect Library"@1.11.4 \
 		"SparkFun UM980 Triband RTK GNSS Arduino Library"@1.0.4 \
 		SSLClientESP32@2.0.0
 
-
 $(PARTITION_DST_PATH):	$(PARTITION_SRC_PATH)
 	$(COPY)  $(PARTITION_SRC_PATH)  $(PARTITION_DST_PATH)
+
+.PHONY: partition
+
+partition:	$(PARTITION_DST_PATH)
 
 $(MBED_LIB_DEST_PATH)libmbedtls.a: 	$(PATCH_SRC_PATH)libmbedtls.a  $(ESP_IDF_PATH)
 	$(DIR_LISTING) $(ESP_IDF_PATH)
@@ -155,14 +165,21 @@ $(MBED_LIB_DEST_PATH)libmbedcrypto.a: 	$(PATCH_SRC_PATH)libmbedcrypto.a
 $(MBED_LIB_DEST_PATH)libmbedx509.a: 	$(PATCH_SRC_PATH)libmbedx509.a
 	$(COPY)  $<  $@
 
-$(NET_EVENT_PATCH_PATH)NetworkEvents.cpp:	$(PATCH_SRC_PATH)NetworkEvents.cpp
-	$(COPY)  $<  $@
+.PHONY: patch
 
-$(NET_EVENT_PATCH_PATH)NetworkEvents.h:	$(PATCH_SRC_PATH)NetworkEvents.h
-	$(COPY)  $<  $@
+patch:
+	touch   $(PATCH_SRC_PATH)libmbedtls.a
+	touch   $(PATCH_SRC_PATH)libmbedtls_2.a
+	touch   $(PATCH_SRC_PATH)libmbedcrypto.a
+	touch   $(PATCH_SRC_PATH)libmbedx509.a
 
 #DEBUG_LEVEL=none
+#DEBUG_LEVEL=error
+#DEBUG_LEVEL=warn
+#DEBUG_LEVEL=info
 DEBUG_LEVEL=debug
+#DEBUG_LEVEL=verbose
+
 ENABLE_DEVELOPER=false
 FIRMWARE_VERSION_MAJOR=99
 FIRMWARE_VERSION_MINOR=99
@@ -172,7 +189,7 @@ form.h:	AP-Config/* AP-Config/src/* AP-Config/src/fonts/*
 	python ../Tools/index_html_zipper.py AP-Config/index.html form.h
 	python ../Tools/main_js_zipper.py AP-Config/src/main.js form.h
 
-$(RTK_BIN_PATH):	RTK_Everywhere.ino *.ino *.h makefile $(PARTITION_DST_PATH) $(MBED_LIB_DEST_PATH)libmbedtls.a $(MBED_LIB_DEST_PATH)libmbedtls_2.a $(MBED_LIB_DEST_PATH)libmbedcrypto.a $(MBED_LIB_DEST_PATH)libmbedx509.a $(NET_EVENT_PATCH_PATH)NetworkEvents.cpp $(NET_EVENT_PATCH_PATH)NetworkEvents.h
+$(RTK_BIN_PATH):	RTK_Everywhere.ino   *.ino   *.h   makefile   $(PARTITION_DST_PATH)   $(MBED_LIB_DEST_PATH)libmbedtls.a   $(MBED_LIB_DEST_PATH)libmbedtls_2.a   $(MBED_LIB_DEST_PATH)libmbedcrypto.a   $(MBED_LIB_DEST_PATH)libmbedx509.a
 	$(CLEAR)
 	arduino-cli compile --fqbn "esp32:esp32:esp32":DebugLevel=$(DEBUG_LEVEL),PSRAM=enabled RTK_Everywhere.ino \
 		--warnings default \

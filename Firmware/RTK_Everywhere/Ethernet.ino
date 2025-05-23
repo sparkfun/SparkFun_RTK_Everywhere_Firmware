@@ -188,9 +188,6 @@ void ethernetEvent(arduino_event_id_t event, arduino_event_info_t info)
     case ARDUINO_EVENT_ETH_DISCONNECTED:
         if (settings.enablePrintEthernetDiag && (!inMainMenu))
             systemPrintln("ETH Disconnected");
-
-        wifiResetTimeout(); // If we loose ethernet, allow WiFi to immediately try to start
-
         break;
 
     case ARDUINO_EVENT_ETH_STOP:
@@ -200,10 +197,18 @@ void ethernetEvent(arduino_event_id_t event, arduino_event_info_t info)
     }
 
     // Take the network offline if necessary
-    if (networkInterfaceHasInternet(NETWORK_ETHERNET) && (event != ARDUINO_EVENT_ETH_GOT_IP))
+    if (event != ARDUINO_EVENT_ETH_GOT_IP)
     {
-        networkInterfaceEventInternetLost((NetIndex_t)NETWORK_ETHERNET);
+        networkInterfaceEventInternetLost((NetIndex_t)NETWORK_ETHERNET, __FILE__, __LINE__);
     }
+}
+
+//----------------------------------------
+// Determine if the Ethernet is up
+//----------------------------------------
+bool ethernetLinkUp()
+{
+    return ETH.linkUp();
 }
 
 //----------------------------------------

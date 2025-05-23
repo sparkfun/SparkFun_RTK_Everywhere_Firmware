@@ -156,7 +156,54 @@ static volatile bool tcpClientWriteError;
 // TCP Client handleGnssDataTask Support Routines
 //----------------------------------------
 
+//----------------------------------------
+// Remove previous messages from the ring buffer
+//----------------------------------------
+void tcpClientDiscardBytes(RING_BUFFER_OFFSET previousTail, RING_BUFFER_OFFSET newTail)
+{
+    if (previousTail < newTail)
+    {
+        // No buffer wrap occurred
+        if ((tcpClientTail >= previousTail) && (tcpClientTail < newTail))
+            tcpClientTail = newTail;
+    }
+    else
+    {
+        // Buffer wrap occurred
+        if ((tcpClientTail >= previousTail) || (tcpClientTail < newTail))
+            tcpClientTail = newTail;
+    }
+}
+
+//----------------------------------------
+// Determine if the TCP client is enabled
+//----------------------------------------
+bool tcpClientEnabled(const char ** line)
+{
+    bool enabled;
+
+    do
+    {
+        enabled = false;
+
+        // Verify the operating mode
+        if (NEQ_RTK_MODE(tcpClientMode))
+        {
+            *line = ", Wrong mode!";
+            break;
+        }
+
+        // Verify enabled
+        enabled = settings.enableTcpClient;
+        if (enabled == false)
+            *line = ", Not enabled!";
+    } while (0);
+    return enabled;
+}
+
+//----------------------------------------
 // Send TCP data to the server
+//----------------------------------------
 int32_t tcpClientSendData(uint16_t dataHead)
 {
     bool connected;
@@ -222,10 +269,12 @@ int32_t tcpClientSendData(uint16_t dataHead)
     return bytesToSend;
 }
 
+//----------------------------------------
 // Update the state of the TCP client state machine
+//----------------------------------------
 void tcpClientSetState(uint8_t newState)
 {
-    if ((settings.debugTcpClient || PERIODIC_DISPLAY(PD_TCP_CLIENT_STATE)) && (!inMainMenu))
+    if (settings.debugTcpClient && (!inMainMenu))
     {
         if (tcpClientState == newState)
             systemPrint("*");
@@ -233,9 +282,8 @@ void tcpClientSetState(uint8_t newState)
             systemPrintf("%s --> ", tcpClientStateName[tcpClientState]);
     }
     tcpClientState = newState;
-    if ((settings.debugTcpClient || PERIODIC_DISPLAY(PD_TCP_CLIENT_STATE)) && (!inMainMenu))
+    if (settings.debugTcpClient && (!inMainMenu))
     {
-        PERIODIC_CLEAR(PD_TCP_CLIENT_STATE);
         if (newState >= TCP_CLIENT_STATE_MAX)
         {
             systemPrintf("Unknown TCP Client state: %d\r\n", tcpClientState);
@@ -246,28 +294,13 @@ void tcpClientSetState(uint8_t newState)
     }
 }
 
-// Remove previous messages from the ring buffer
-void discardTcpClientBytes(RING_BUFFER_OFFSET previousTail, RING_BUFFER_OFFSET newTail)
-{
-    if (previousTail < newTail)
-    {
-        // No buffer wrap occurred
-        if ((tcpClientTail >= previousTail) && (tcpClientTail < newTail))
-            tcpClientTail = newTail;
-    }
-    else
-    {
-        // Buffer wrap occurred
-        if ((tcpClientTail >= previousTail) || (tcpClientTail < newTail))
-            tcpClientTail = newTail;
-    }
-}
-
 //----------------------------------------
 // TCP Client Routines
 //----------------------------------------
 
+//----------------------------------------
 // Start the TCP client
+//----------------------------------------
 bool tcpClientStart()
 {
     NetworkClient *client;
@@ -309,6 +342,8 @@ bool tcpClientStart()
             tcpClient = client;
             tcpClientWriteError = false;
             online.tcpClient = true;
+            if (settings.debugTcpClient)
+                systemPrintln("TCP client online");
             return true;
         }
         else
@@ -321,8 +356,10 @@ bool tcpClientStart()
     return false;
 }
 
+//----------------------------------------
 // Stop the TCP client
-void tcpClientStop()
+//----------------------------------------
+void tcpClientStop(bool shutdown)
 {
     NetworkClient *client;
     IPAddress ipAddress;
@@ -331,6 +368,8 @@ void tcpClientStop()
     if (client)
     {
         // Delay to allow the UART task to finish with the tcpClient
+        if (settings.debugTcpClient && online.tcpClient)
+            systemPrintln("TCP client offline");
         online.tcpClient = false;
         delay(5);
 
@@ -349,26 +388,29 @@ void tcpClientStop()
 
     // Initialize the TCP client
     tcpClientWriteError = false;
-    if (settings.debugTcpClient)
-        systemPrintln("TCP client offline");
-    tcpClientSetState(TCP_CLIENT_STATE_OFF);
+    networkConsumerOffline(NETCONSUMER_TCP_CLIENT);
+    if (shutdown)
+    {
+        // Stop the network
+        networkConsumerRemove(NETCONSUMER_TCP_CLIENT, NETWORK_ANY, __FILE__, __LINE__);
+        tcpClientSetState(TCP_CLIENT_STATE_OFF);
+    }
+    else
+        tcpClientSetState(TCP_CLIENT_STATE_WAIT_FOR_NETWORK);
 }
 
-// Return true if we are in a state that requires network access
-bool tcpClientNeedsNetwork()
-{
-    if (tcpClientState >= TCP_CLIENT_STATE_WAIT_FOR_NETWORK && tcpClientState <= TCP_CLIENT_STATE_CONNECTED)
-        return true;
-    return false;
-}
-
+//----------------------------------------
 // Update the TCP client state
+//----------------------------------------
 void tcpClientUpdate()
 {
+    bool connected;
     static uint8_t connectionAttempt;
     static uint32_t connectionDelay;
     uint32_t days;
+    bool enabled;
     byte hours;
+    const char * line = "";
     uint64_t milliseconds;
     byte minutes;
     byte seconds;
@@ -376,11 +418,15 @@ void tcpClientUpdate()
 
     // Shutdown the TCP client when the mode or setting changes
     DMW_st(tcpClientSetState, tcpClientState);
-    if (NEQ_RTK_MODE(tcpClientMode) || (!settings.enableTcpClient))
-    {
-        if (tcpClientState > TCP_CLIENT_STATE_OFF)
-            tcpClientStop();
-    }
+    connected = networkConsumerIsConnected(NETCONSUMER_TCP_CLIENT);
+    enabled = tcpClientEnabled(&line);
+    if ((enabled == false) && (tcpClientState > TCP_CLIENT_STATE_OFF))
+        tcpClientStop(true);
+
+    // Determine if the network has failed
+    else if ((tcpClientState > TCP_CLIENT_STATE_WAIT_FOR_NETWORK)
+        && !connected)
+        tcpClientStop(false);
 
     /*
         TCP Client state machine
@@ -413,48 +459,58 @@ void tcpClientUpdate()
     // Wait until the TCP client is enabled
     case TCP_CLIENT_STATE_OFF:
         // Determine if the TCP client should be running
-        if (EQ_RTK_MODE(tcpClientMode) && settings.enableTcpClient)
+        if (enabled)
         {
             timer = 0;
+            connectionAttempt = 0;
+            connectionDelay = 0;
             tcpClientSetState(TCP_CLIENT_STATE_WAIT_FOR_NETWORK);
+
+            // Start the network
+            networkConsumerAdd(NETCONSUMER_TCP_CLIENT, NETWORK_ANY, __FILE__, __LINE__);
         }
         break;
 
     // Wait until the network is connected
     case TCP_CLIENT_STATE_WAIT_FOR_NETWORK:
-        // Determine if the TCP client was turned off
-        if (NEQ_RTK_MODE(tcpClientMode) || !settings.enableTcpClient)
-            tcpClientStop();
-
         // Wait until the network is connected
-        else if (networkHasInternet())
+        if (connected)
         {
-#ifdef COMPILE_WIFI
-            // Determine if WiFi is required
-            if ((!strlen(settings.tcpClientHost)) && (!networkInterfaceHasInternet(NETWORK_WIFI)))
+            NetIndex_t index = networkGetCurrentInterfaceIndex();
+
+            // Check for a valid configuration
+            if (!networkInterfaceHasInternet(index))
             {
-                // Wrong network type, WiFi is required but another network is being used
+                // Valid configurations
+                // 1.  Phone: connection via WiFi, no host name, use gateway
+                //     IP address as phone IP address
+                // 2.  Host address, name or IP address of the server
+                bool usingGatewayIpAddress = (index == NETWORK_WIFI_STATION)
+                                             && (!strlen(settings.tcpClientHost));
+
+                // Invalid configuration, display a message on a regular
+                // basis until the issue is resolved
                 if ((millis() - timer) >= (15 * 1000))
                 {
                     timer = millis();
-                    systemPrintln("TCP Client must connect via WiFi when no host is specified");
+                    if (usingGatewayIpAddress)
+                        systemPrintln("TCP Client must connect via WiFi when no host is specified");
+                    else
+                        systemPrintln("TCP Client requires host name to be specified!");
                 }
             }
-#else  // COMPILE_WIFI
-            if (!strlen(settings.tcpClientHost))
-            {
-                // Wrong network type
-                if ((millis() - timer) >= (15 * 1000))
-                {
-                    timer = millis();
-                    systemPrintln("TCP Client requires host name to be specified!");
-                }
-            }
-#endif // COMPILE_WIFI
-       // The network type and host provide a valid configuration
+
+            // The network type and host provide a valid configuration
             else
             {
+                // Connect immediately when the network changes
+                if (networkChanged(NETCONSUMER_TCP_CLIENT))
+                {
+                    connectionAttempt = 0;
+                    connectionDelay = 0;
+                }
                 timer = millis();
+                networkUserAdd(NETCONSUMER_TCP_CLIENT, __FILE__, __LINE__);
                 tcpClientSetState(TCP_CLIENT_STATE_CLIENT_STARTING);
             }
         }
@@ -462,13 +518,8 @@ void tcpClientUpdate()
 
     // Attempt the connection ot the TCP server
     case TCP_CLIENT_STATE_CLIENT_STARTING:
-        // Determine if the network has failed
-        if (networkHasInternet() == false)
-            // Failed to connect to to the network, attempt to restart the network
-            tcpClientStop();
-
         // Delay before connecting to the network
-        else if ((millis() - timer) >= connectionDelay)
+        if ((millis() - timer) >= connectionDelay)
         {
             timer = millis();
 
@@ -478,8 +529,12 @@ void tcpClientUpdate()
                 // Connection failure
                 if (settings.debugTcpClient)
                     systemPrintln("TCP Client connection failed");
+
+                // Limit to max connection delay
                 connectionDelay = TCP_DELAY_BETWEEN_CONNECTIONS << connectionAttempt;
-                if (connectionAttempt < TCP_MAX_CONNECTIONS)
+                if (connectionDelay > RTK_MAX_CONNECTION_MSEC)
+                    connectionDelay = RTK_MAX_CONNECTION_MSEC;
+                else
                     connectionAttempt += 1;
 
                 // Display the uptime
@@ -507,31 +562,34 @@ void tcpClientUpdate()
 
     // Wait for the TCP client to shutdown or a TCP client link failure
     case TCP_CLIENT_STATE_CONNECTED:
-        // Determine if the network has failed
-        if (networkHasInternet() == false)
-            // Failed to connect to to the network, attempt to restart the network
-            tcpClientStop();
-
         // Determine if the TCP client link is broken
-        else if ((!*tcpClient) || (!tcpClient->connected()) || tcpClientWriteError)
+        if ((!*tcpClient) || (!tcpClient->connected()) || tcpClientWriteError)
             // Stop the TCP client
-            tcpClientStop();
+            tcpClientStop(false);
         break;
     }
 
     // Periodically display the TCP client state
     if (PERIODIC_DISPLAY(PD_TCP_CLIENT_STATE))
-        tcpClientSetState(tcpClientState);
+    {
+        systemPrintf("TCP Client state: %s%s\r\n",
+                     tcpClientStateName[tcpClientState], line);
+        PERIODIC_CLEAR(PD_TCP_CLIENT_STATE);
+    }
 }
 
+//----------------------------------------
 // Verify the TCP client tables
+//----------------------------------------
 void tcpClientValidateTables()
 {
     if (tcpClientStateNameEntries != TCP_CLIENT_STATE_MAX)
         reportFatalError("Fix tcpClientStateNameEntries to match tcpClientStates");
 }
 
+//----------------------------------------
 // Zero the TCP client tail
+//----------------------------------------
 void tcpClientZeroTail()
 {
     tcpClientTail = 0;

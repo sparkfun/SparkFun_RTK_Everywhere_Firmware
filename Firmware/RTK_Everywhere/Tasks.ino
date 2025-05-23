@@ -763,6 +763,22 @@ void processUart1Message(SEMP_PARSE_STATE *parse, uint16_t type)
         pushGPGGA((char *)parse->buffer);
     }
 
+    // If the user has not specifically enabled RTCM used by the PPL, then suppress it
+    if (inRoverMode() && gnss->getActiveRtcmMessageCount() == 0 && type == RTK_RTCM_PARSER_INDEX)
+    {
+        // Erase buffer
+        parse->buffer[0] = 0;
+        parse->length = 0;
+    }
+
+    // Suppress binary messages from UM980. Not needed by end GIS apps.
+    if (type == RTK_UNICORE_BINARY_PARSER_INDEX)
+    {
+        // Erase buffer
+        parse->buffer[0] = 0;
+        parse->length = 0;
+    }
+
     // Determine if this message will fit into the ring buffer
     bytesToCopy = parse->length;
     space = availableHandlerSpace;
@@ -987,9 +1003,9 @@ void updateRingBufferTails(RING_BUFFER_OFFSET previousTail, RING_BUFFER_OFFSET n
     // Trim any long or medium tails
     discardRingBufferBytes(&btRingBufferTail, previousTail, newTail);
     discardRingBufferBytes(&sdRingBufferTail, previousTail, newTail);
-    discardTcpClientBytes(previousTail, newTail);
-    discardTcpServerBytes(previousTail, newTail);
-    discardUdpServerBytes(previousTail, newTail);
+    tcpClientDiscardBytes(previousTail, newTail);
+    tcpServerDiscardBytes(previousTail, newTail);
+    udpServerDiscardBytes(previousTail, newTail);
 }
 
 // Remove previous messages from the ring buffer

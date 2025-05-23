@@ -21,6 +21,64 @@ void beginPsram()
     }
 }
 
+// Free memory to PSRAM when available
+void rtkFree(void * data, const char * text)
+{
+    if (settings.debugMalloc)
+        systemPrintf("%p: Freeing %s\r\n", data, text);
+    free(data);
+}
+
+// Allocate memory from PSRAM when available
+void * rtkMalloc(size_t sizeInBytes, const char * text)
+{
+    const char * area;
+    void * data;
+
+    if (online.psram == true)
+    {
+        area = "PSRAM";
+        data = ps_malloc(sizeInBytes);
+    }
+    else
+    {
+        area = "RAM";
+        data = malloc(sizeInBytes);
+    }
+
+    // Display the allocation
+    if (settings.debugMalloc)
+    {
+        if (data)
+            systemPrintf("%p, %s %d bytes allocated: %s\r\n", data, area, sizeInBytes, text);
+        else
+            systemPrintf("Failed to allocate %d bytes from %s: %s\r\n", sizeInBytes, area, text);
+    }
+    return data;
+}
+
+// See https://en.cppreference.com/w/cpp/memory/new/operator_delete
+void operator delete(void * ptr) noexcept
+{
+    rtkFree(ptr, "buffer");
+}
+
+void operator delete[](void * ptr) noexcept
+{
+    rtkFree(ptr, "array");
+}
+
+// See https://en.cppreference.com/w/cpp/memory/new/operator_new
+void * operator new(std::size_t count)
+{
+    return rtkMalloc(count, "new buffer");
+}
+
+void * operator new[](std::size_t count)
+{
+    return rtkMalloc(count, "new array");
+}
+
 // Continue showing display until time threshold
 void finishDisplay()
 {
@@ -353,12 +411,9 @@ void printReports()
         lastPrintPosition = millis();
     }
 
-    if ((settings.enablePrintRoverAccuracy && (millis() - lastPrintRoverAccuracy > 2000)) ||
-        (PERIODIC_DISPLAY(PD_MQTT_CLIENT_DATA)))
+    if (settings.enablePrintRoverAccuracy && (millis() - lastPrintRoverAccuracy > 2000))
     {
         lastPrintRoverAccuracy = millis();
-        PERIODIC_CLEAR(PD_MQTT_CLIENT_DATA);
-
         if (online.gnss)
         {
             // If we are in rover mode, display HPA and SIV
@@ -709,6 +764,7 @@ const char *coordinatePrintableInputType(CoordinateInputType coordinateInputType
 // Print the error message every 15 seconds
 void reportFatalError(const char *errorMsg)
 {
+    displayHalt();
     while (1)
     {
         systemPrint("HALTED: ");
@@ -811,3 +867,18 @@ void trim(char *str)
 
     memmove(str, p, l + 1);
 }
+
+// Read the MAC addresses directly from the chip
+void getMacAddresses(uint8_t * macAddress, const char * name, esp_mac_type_t type, bool debug)
+{
+    esp_err_t status;
+
+    status = esp_read_mac(macAddress, type);
+    if (status)
+        systemPrintf("ERROR: Failed to get %s, status: %d, %s\r\n", name, status, esp_err_to_name(status));
+    if (debug)
+        systemPrintf("%02x:%02x:%02x:%02x:%02x:%02x - %s\r\n",
+                     macAddress[0], macAddress[1], macAddress[2],
+                     macAddress[3], macAddress[4], macAddress[5],
+                     name);
+};

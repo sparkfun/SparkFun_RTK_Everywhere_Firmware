@@ -14,34 +14,40 @@
 // https://lucid.app/lucidchart/53519501-9fa5-4352-aa40-673f88ca0c9b/edit?invitationId=inv_ebd4b988-513d-4169-93fd-c291851108f8
 typedef enum
 {
-    STATE_ROVER_NOT_STARTED = 0,
-    STATE_ROVER_NO_FIX,
-    STATE_ROVER_FIX,
-    STATE_ROVER_RTK_FLOAT,
-    STATE_ROVER_RTK_FIX,
-    STATE_BASE_CASTER_NOT_STARTED, //Set override flag
-    STATE_BASE_NOT_STARTED,
-    STATE_BASE_TEMP_SETTLE, // User has indicated base, but current pos accuracy is too low
-    STATE_BASE_TEMP_SURVEY_STARTED,
-    STATE_BASE_TEMP_TRANSMITTING,
-    STATE_BASE_FIXED_NOT_STARTED,
-    STATE_BASE_FIXED_TRANSMITTING,
+    STATE_ROVER_NOT_STARTED = 0,        //  0
+    STATE_ROVER_NO_FIX,                 //  1
+    STATE_ROVER_FIX,                    //  2
+    STATE_ROVER_RTK_FLOAT,              //  3
+    STATE_ROVER_RTK_FIX,                //  4
 
-    STATE_DISPLAY_SETUP,
-    STATE_WEB_CONFIG_NOT_STARTED,
-    STATE_WEB_CONFIG_WAIT_FOR_NETWORK,
-    STATE_WEB_CONFIG,
-    STATE_TEST,
-    STATE_TESTING,
-    STATE_PROFILE,
-    STATE_KEYS_REQUESTED,
-    STATE_ESPNOW_PAIRING_NOT_STARTED,
-    STATE_ESPNOW_PAIRING,
-    STATE_NTPSERVER_NOT_STARTED,
-    STATE_NTPSERVER_NO_SYNC,
-    STATE_NTPSERVER_SYNC,
-    STATE_SHUTDOWN,
-    STATE_NOT_SET, // Must be last on list
+    STATE_BASE_CASTER_NOT_STARTED,      //  5, Set override flag
+    STATE_BASE_NOT_STARTED,             //  6
+    STATE_BASE_TEMP_SETTLE,             //  7, User has indicated base, but current pos accuracy is too low
+    STATE_BASE_TEMP_SURVEY_STARTED,     //  8
+    STATE_BASE_TEMP_TRANSMITTING,       //  9
+    STATE_BASE_FIXED_NOT_STARTED,       // 10
+    STATE_BASE_FIXED_TRANSMITTING,      // 11
+
+    STATE_DISPLAY_SETUP,                // 12
+    STATE_WEB_CONFIG_NOT_STARTED,       // 13
+    STATE_WEB_CONFIG_WAIT_FOR_NETWORK,  // 14
+    STATE_WEB_CONFIG,                   // 15
+    STATE_TEST,                         // 16
+    STATE_TESTING,                      // 17
+    STATE_PROFILE,                      // 18
+
+    STATE_KEYS_REQUESTED,               // 19
+
+    STATE_ESPNOW_PAIRING_NOT_STARTED,   // 20
+    STATE_ESPNOW_PAIRING,               // 21
+
+    STATE_NTPSERVER_NOT_STARTED,        // 22
+    STATE_NTPSERVER_NO_SYNC,            // 23
+    STATE_NTPSERVER_SYNC,               // 24
+
+    STATE_SHUTDOWN,                     // 25
+
+    STATE_NOT_SET,                      // 26, Must be last on list
 } SystemState;
 volatile SystemState systemState = STATE_NOT_SET;
 SystemState lastSystemState = STATE_NOT_SET;
@@ -49,19 +55,31 @@ SystemState requestedSystemState = STATE_NOT_SET;
 bool newSystemStateRequested = false;
 
 // Base modes set with RTK_MODE
-#define RTK_MODE_BASE_FIXED         0x0001
-#define RTK_MODE_BASE_SURVEY_IN     0x0002
-#define RTK_MODE_NTP                0x0004
-#define RTK_MODE_ROVER              0x0008
-#define RTK_MODE_TESTING            0x0010
-#define RTK_MODE_WEB_CONFIG         0x0020
+#define RTK_MODE_BASE_FIXED         0x0001  // 1 << 0
+#define RTK_MODE_BASE_SURVEY_IN     0x0002  // 1 << 1
+#define RTK_MODE_NTP                0x0004  // 1 << 2
+#define RTK_MODE_ROVER              0x0008  // 1 << 3
+#define RTK_MODE_TESTING            0x0010  // 1 << 4
+#define RTK_MODE_WEB_CONFIG         0x0020  // 1 << 5
+#define RTK_MODE_MAX                6
 
 typedef uint8_t RtkMode_t;
+
+const char * const rtkModeName[] =
+{
+    "RTK_MODE_BASE_FIXED",
+    "RTK_MODE_BASE_SURVEY_IN",
+    "RTK_MODE_NTP",
+    "RTK_MODE_ROVER",
+    "RTK_MODE_TESTING",
+    "RTK_MODE_WEB_CONFIG",
+};
+const uint8_t rtkModeNameEntries = sizeof(rtkModeName) / sizeof(rtkModeName[0]);
 
 #define RTK_MODE(mode)          rtkMode = mode;
 
 #define EQ_RTK_MODE(mode)       (rtkMode && (rtkMode == (mode & rtkMode)))
-#define NEQ_RTK_MODE(mode)      (rtkMode && (rtkMode != (mode & rtkMode)))
+#define NEQ_RTK_MODE(mode)      ((rtkMode == 0) || ((mode & rtkMode) == 0))
 
 //Used as part of device ID and whitelists. Do not reorder.
 typedef enum
@@ -297,8 +315,8 @@ enum PeriodDisplayValues
     PD_CELLULAR_STATE,          // 28
     PD_WIFI_STATE,              // 29
 
-    PD_GNSS_DATA_RX,             // 30
-    PD_GNSS_DATA_TX,             // 31
+    PD_GNSS_DATA_RX,            // 30
+    PD_GNSS_DATA_TX,            // 31
 
     PD_MQTT_CLIENT_DATA,        // 32
     PD_MQTT_CLIENT_STATE,       // 33
@@ -312,6 +330,8 @@ enum PeriodDisplayValues
     PD_CORRECTION_SOURCE,       // 37
 
     PD_GNSS_DATA_RX_BYTE_COUNT, // 38
+
+    PD_WEB_SERVER_STATE,        // 39
     // Add new values before this line
 };
 
@@ -375,9 +395,11 @@ typedef enum
     BLUETOOTH_RADIO_OFF,
 } BluetoothRadioType_e;
 
+#define SSID_LENGTH     50
+
 typedef struct WiFiNetwork
 {
-    char ssid[50];
+    char ssid[SSID_LENGTH];
     char password[50];
 } WiFiNetwork;
 
@@ -552,32 +574,31 @@ const int numRegionalAreas = sizeof(Regional_Information_Table) / sizeof(Regiona
 
 #define NTRIP_SERVER_STRING_SIZE        50
 
-//Bitfield for describing the type of network the consumer can use
-enum
-{
-    NETIF_NONE = 0, // No consumers
-    NETIF_WIFI_STA, // The consumer can use STA
-    NETIF_WIFI_AP, // The consumer can use AP
-    NETIF_CELLULAR, // The consumer can use Cellular
-    NETIF_ETHERNET, // The consumer can use Ethernet
-    NETIF_UNKNOWN
-};
-
-#define NETWORK_EWC ((1 << NETIF_ETHERNET) | (1 << NETIF_WIFI_STA) | (1 << NETIF_CELLULAR))
-
 // Bitfield for describing the network consumers
 enum
 {
-    NETCONSUMER_NTRIP_CLIENT = 0,
+    NETCONSUMER_HTTP_CLIENT = 0,
+    NETCONSUMER_NTP_SERVER,
+    NETCONSUMER_NTRIP_CLIENT,
     NETCONSUMER_NTRIP_SERVER,
+    NETCONSUMER_NTRIP_SERVER_0 = NETCONSUMER_NTRIP_SERVER,
+    NETCONSUMER_NTRIP_SERVER_1,
+    NETCONSUMER_NTRIP_SERVER_2,
+    NETCONSUMER_NTRIP_SERVER_3,
+    NETCONSUMER_OTA_CLIENT,
+    NETCONSUMER_PPL_KEY_UPDATE,
+    NETCONSUMER_PPL_MQTT_CLIENT,
     NETCONSUMER_TCP_CLIENT,
     NETCONSUMER_TCP_SERVER,
     NETCONSUMER_UDP_SERVER,
-    NETCONSUMER_PPL_KEY_UPDATE,
-    NETCONSUMER_PPL_MQTT_CLIENT,
-    NETCONSUMER_OTA_CLIENT,
     NETCONSUMER_WEB_CONFIG,
+    // Add new consumers just before this line
+    // Also add them to the networkConsumerTable
+    NETCONSUMER_MAX
 };
+
+typedef uint8_t NETCONSUMER_t;
+typedef uint16_t NETCONSUMER_MASK_t;
 
 // This is all the settings that can be set on RTK Product. It's recorded to NVM and the config file.
 // Avoid reordering. The order of these variables is mimicked in NVM/record/parse/create/update/get
@@ -658,7 +679,7 @@ struct Settings
     // Signatures to indicate how the GNSS is configured (Once, Base, Rover, etc.)
     // Bit 0 indicates if the GNSS has been configured previously.
     // Bits 1 onwards record the state of critical settings. E.g. settings.enablePointPerfectCorrections
-    // Configuration is reapplied if any of those critical settings have changed 
+    // Configuration is reapplied if any of those critical settings have changed
     bool gnssConfiguredOnce = false;
     bool gnssConfiguredBase = false;
     bool gnssConfiguredRover = false;
@@ -1005,12 +1026,14 @@ struct Settings
     int lg290pMessageRatesRTCMRover[MAX_LG290P_RTCM_MSG] = {
         254}; // Mark first record with key so defaults will be applied. Int value for each supported message - Report
               // rates for RTCM Base. Default to Quectel recommended rates.
-    int lg290pMessageRatesPQTM[MAX_LG290P_PQTM_MSG] = {254}; // Mark first record with key so defaults will be applied. 
+    int lg290pMessageRatesPQTM[MAX_LG290P_PQTM_MSG] = {254}; // Mark first record with key so defaults will be applied.
 #endif // COMPILE_LG290P
 
     bool debugSettings = false;
     bool enableNtripCaster = false; //When true, respond as a faux NTRIP Caster to incoming TCP connections
     bool baseCasterOverride = false; //When true, user has put device into 'BaseCast' mode. Change settings, but don't save to NVM.
+
+    bool debugMalloc = false;
 
     // Add new settings to appropriate group above or create new group
     // Then also add to the same group in rtkSettingsEntries below
@@ -1371,6 +1394,7 @@ const RTK_Settings_Entry rtkSettingsEntries[] =
     { 0, 0, 0, 1, 1, 1, 1, 1, 1, _uint8_t,  0, & settings.bluetoothInterruptsCore, "bluetoothInterruptsCore",  },
     { 0, 0, 0, 1, 1, 1, 1, 1, 1, _uint8_t,  0, & settings.btReadTaskCore, "btReadTaskCore",  },
     { 0, 0, 0, 1, 1, 1, 1, 1, 1, _uint8_t,  0, & settings.btReadTaskPriority, "btReadTaskPriority",  },
+    { 0, 1, 0, 1, 1, 1, 1, 1, 1, _bool,     0, & settings.debugMalloc, "debugMalloc",  },
     { 0, 0, 0, 1, 1, 1, 1, 1, 1, _bool,     0, & settings.enableHeapReport, "enableHeapReport",  },
     { 0, 0, 0, 1, 1, 1, 1, 1, 1, _bool,     0, & settings.enablePrintIdleTime, "enablePrintIdleTime",  },
     { 0, 0, 0, 1, 1, 1, 1, 1, 1, _bool,     0, & settings.enablePsram, "enablePsram",  },
@@ -1753,8 +1777,8 @@ struct struct_present
     float antennaPhaseCenter_mm = 0.0; // Used to setup tilt compensation
     bool galileoHasCapable = false; // UM980 has HAS capabilities
     bool multipathMitigation = false; // UM980 has MPM, other platforms do not
-    bool minCno = false; // ZED, mosaic, UM980 have minCN0. LG290P does not.
-    bool minElevation = false; // ZED, mosaic, UM980 have minElevation. LG290P does not.
+    bool minCno = false; // ZED, mosaic, UM980 have minCN0. LG290P does on version >= v5.
+    bool minElevation = false; // ZED, mosaic, UM980 have minElevation. LG290P does on versions >= v5.
     bool dynamicModel = false; // ZED, mosaic, UM980 have dynamic models. LG290P does not.
 } present;
 
@@ -1797,15 +1821,18 @@ typedef uint32_t NetMask_t;      // One bit for each network interface
 typedef int8_t NetPriority_t;  // Index into networkPriorityTable
                                 // Value 0 (highest) - 255 (lowest) priority
 
-// Types of networks, must be in same order as networkInterfaceTable
+// Types of networks, these values must be in the same order as the
+// entries in networkInterfaceTable since they are used as indexes into
+// that table!
 enum NetworkTypes
 {
     NETWORK_NONE = -1,  // The values below must start at zero and be sequential
-    NETWORK_ETHERNET = 0,
-    NETWORK_WIFI = 1,
-    NETWORK_CELLULAR = 2,
-    // Add new networks here
-    NETWORK_MAX
+    NETWORK_ETHERNET,       // 0
+    NETWORK_WIFI_STATION,   // 1
+    NETWORK_CELLULAR,       // 2
+    // Add new networks above this line in default priority order
+    NETWORK_ANY,            // 3
+    NETWORK_MAX = NETWORK_ANY,
 };
 
 #ifdef  COMPILE_NETWORK
@@ -1824,18 +1851,6 @@ typedef const struct _NETWORK_POLL_SEQUENCE
     const char * description;     // Description of operation
 } NETWORK_POLL_SEQUENCE;
 
-// networkInterfaceTable entry
-typedef struct _NETWORK_TABLE_ENTRY
-{
-    NetworkInterface * netif;       // Network interface object address
-    const char * name;              // Name of the network interface
-    bool * present;                 // Address of present bool or nullptr if always available
-    uint8_t pdState;                // Periodic display state value
-    NETWORK_POLL_SEQUENCE * boot;   // Boot sequence, may be nullptr
-    NETWORK_POLL_SEQUENCE * start;  // Start sequence (Off --> On), may be nullptr
-    NETWORK_POLL_SEQUENCE * stop;   // Stop routine (On --> Off), may be nullptr
-} NETWORK_TABLE_ENTRY;
-
 // Sequence table declarations
 extern NETWORK_POLL_SEQUENCE wifiStartSequence[];
 extern NETWORK_POLL_SEQUENCE wifiStopSequence[];
@@ -1843,29 +1858,45 @@ extern NETWORK_POLL_SEQUENCE laraBootSequence[];
 extern NETWORK_POLL_SEQUENCE laraOffSequence[];
 extern NETWORK_POLL_SEQUENCE laraOnSequence[];
 
-// List of networks
-// Only one network is turned on at a time. The start routine is called as the priority
-// drops to that level. The stop routine is called as the priority rises
-// above that level. The priority will continue to fall or rise until a
-// network is found that is online.
+// networkInterfaceTable entry
+typedef struct _NETWORK_TABLE_ENTRY
+{
+    NetworkInterface * netif;       // Network interface object address
+    bool mDNS;                      // Set true to use mDNS service
+    NetIndex_t index;               // Table index, also default priority
+    uint8_t pdState;                // Periodic display state value
+    NETWORK_POLL_SEQUENCE * boot;   // Boot sequence, may be nullptr
+    NETWORK_POLL_SEQUENCE * start;  // Start sequence (Off --> On), may be nullptr
+    NETWORK_POLL_SEQUENCE * stop;   // Stop routine (On --> Off), may be nullptr
+    const char * name;              // Name of the network interface
+    bool * present;                 // Address of present bool or nullptr if always available
+} NETWORK_TABLE_ENTRY;
+
+// List of networks in default priority order!  These entries must match
+// the index values in the NetworkTypes enumeration!
+//
+// Only one network is turned on at a time. The start routine is called
+// as the priority drops to that level. The stop routine is called as the
+// priority rises above that level. The priority will continue to fall or
+// rise until a network is found that is online.
 const NETWORK_TABLE_ENTRY networkInterfaceTable[] =
-{ //     Interface  Name            Present                     Periodic State      Boot Sequence           Start Sequence      Stop Sequence
+{ //     Interface  mDNS    Index                   Periodic State      Boot Sequence           Start Sequence      Stop Sequence       Name                    Present
     #ifdef COMPILE_ETHERNET
-        {&ETH,      "Ethernet",     &present.ethernet_ws5500,   PD_ETHERNET_STATE,  nullptr,                nullptr,            nullptr},
+        {&ETH,      true,   NETWORK_ETHERNET,       PD_ETHERNET_STATE,  nullptr,                nullptr,            nullptr,            "Ethernet",             &present.ethernet_ws5500},
     #else
-        {nullptr,      "Ethernet-NotCompiled",     nullptr,   PD_ETHERNET_STATE,  nullptr,                nullptr,            nullptr},
+        {nullptr,   false,  NETWORK_ETHERNET,       PD_ETHERNET_STATE,  nullptr,                nullptr,            nullptr,            "Ethernet-NotCompiled", nullptr},
     #endif  // COMPILE_ETHERNET
 
     #ifdef COMPILE_WIFI
-        {&WiFi.STA, "WiFi",         nullptr,                    PD_WIFI_STATE,      nullptr,                wifiStartSequence,  wifiStopSequence},
+        {&WiFi.STA, true,   NETWORK_WIFI_STATION,   PD_WIFI_STATE,      nullptr,                wifiStartSequence,  wifiStopSequence,   "WiFi",                 nullptr},
     #else
-        {nullptr,   "WiFi-NotCompiled",     nullptr,            PD_WIFI_STATE,      nullptr,                nullptr,            nullptr},
+        {nullptr,   false,  NETWORK_WIFI_STATION,   PD_WIFI_STATE,      nullptr,                nullptr,            nullptr,            "WiFi-NotCompiled",     nullptr},
     #endif  // COMPILE_WIFI
 
     #ifdef  COMPILE_CELLULAR
-        {&PPP,      "Cellular",     &present.cellular_lara,     PD_CELLULAR_STATE,  laraBootSequence,       laraOnSequence,     laraOffSequence},
+        {&PPP,      false,  NETWORK_CELLULAR,       PD_CELLULAR_STATE,  laraBootSequence,       laraOnSequence,     laraOffSequence,    "Cellular",             &present.cellular_lara},
     #else
-        {nullptr,   "Cellular-NotCompiled",     nullptr,            PD_CELLULAR_STATE,      nullptr,                nullptr,            nullptr},
+        {nullptr,   false,  NETWORK_CELLULAR,       PD_CELLULAR_STATE,  nullptr,                nullptr,            nullptr,            "Cellular-NotCompiled", nullptr,            },
     #endif  // COMPILE_CELLULAR
 };
 const int networkInterfaceTableEntries = sizeof(networkInterfaceTable) / sizeof(networkInterfaceTable[0]);
@@ -1926,30 +1957,25 @@ o/ufQJVtMVT8QtPHRh8jrdkPSHCa2XV4cdFyQzR1bldZwgJcJmApzyMZFo6IQ6XU
 rqXRfboQnoZsG4q5WTP468SQvvG5
 -----END CERTIFICATE-----
 )=====";
-
-#ifdef COMPILE_WIFI
+#endif  // COMPILE_NETWORK
 
 //****************************************
 // WiFi class
 //****************************************
 
-// Handle the WiFi event
-// Inputs:
-//   event: Arduino ESP32 event number found on
-//          https://github.com/espressif/arduino-esp32
-//          in libraries/Network/src/NetworkEvents.h
-//   info: Additional data about the event
-void wifiEventHandler(arduino_event_id_t event, arduino_event_info_t info);
+typedef uint8_t WIFI_CHANNEL_t;
+
+#ifdef COMPILE_NETWORK
+#ifdef COMPILE_WIFI
 
 typedef uint32_t WIFI_ACTION_t;
-typedef uint8_t WIFI_CHANNEL_t;
 
 // Class to simplify WiFi handling
 class RTK_WIFI
 {
   private:
 
-    WIFI_CHANNEL_t _apChannel;  // Channel required for soft AP, zero (0) use _channel
+    WIFI_CHANNEL_t _apChannel;  // Channel required for soft AP, zero (0) use wifiChannel
     int16_t _apCount;           // The number or remote APs detected in the WiFi network
     IPAddress _apDnsAddress;    // DNS IP address to use while translating names into IP addresses
     IPAddress _apFirstDhcpAddress;  // First IP address to use for DHCP
@@ -1957,11 +1983,8 @@ class RTK_WIFI
     IPAddress _apIpAddress;     // IP address of the soft AP
     uint8_t _apMacAddress[6];   // MAC address of the soft AP
     IPAddress _apSubnetMask;    // Subnet mask for soft AP
-    WIFI_CHANNEL_t _channel;    // Current WiFi channel number
-    WIFI_CHANNEL_t _espNowChannel;  // Channel required for ESPNow, zero (0) use _channel
-    bool _espNowRunning;        // ESPNow started or running
+    WIFI_CHANNEL_t _espNowChannel;  // Channel required for ESPNow, zero (0) use wifiChannel
     volatile bool _scanRunning; // Scan running
-    bool _softApRunning;        // Soft AP is starting or running
     int _staAuthType;           // Authorization type for the remote AP
     bool _staConnected;         // True when station is connected
     bool _staHasIp;             // True when station has IP address
@@ -1971,9 +1994,7 @@ class RTK_WIFI
     const char * _staRemoteApSsid;      // SSID of remote AP
     const char * _staRemoteApPassword;  // Password of remote AP
     volatile WIFI_ACTION_t _started;    // Components that are started and running
-    WIFI_CHANNEL_t _stationChannel; // Channel required for station, zero (0) use _channel
-    bool _stationRunning;       // True while station is starting or running
-    uint32_t _timer;            // Reconnection timer
+    WIFI_CHANNEL_t _stationChannel; // Channel required for station, zero (0) use wifiChannel
     bool _usingDefaultChannel;  // Using default WiFi channel
     bool _verbose;              // True causes more debug output to be displayed
 
@@ -2100,14 +2121,6 @@ class RTK_WIFI
     //   Returns the channel number of the AP
     WIFI_CHANNEL_t stationSelectAP(uint8_t apCount, bool list);
 
-    // Stop and start WiFi components
-    // Inputs:
-    //   stopping: WiFi components that need to be stopped
-    //   starting: WiFi components that neet to be started
-    // Outputs:
-    //   Returns true if the modes were successfully configured
-    bool stopStart(WIFI_ACTION_t stopping, WIFI_ACTION_t starting);
-
     // Handle the WiFi event
     // Inputs:
     //   event: Arduino ESP32 event number found on
@@ -2117,11 +2130,19 @@ class RTK_WIFI
     void wifiEvent(arduino_event_id_t event, arduino_event_info_t info);
 
   public:
+    char * _apSsid; // SSID for the soft AP
 
     // Constructor
     // Inputs:
     //   verbose: Set to true to display additional WiFi debug data
     RTK_WIFI(bool verbose = false);
+
+    // Clear some of the started components
+    // Inputs:
+    //   components: Bitmask of components to clear
+    // Outputs:
+    //   Returns the bitmask of started components
+    WIFI_ACTION_t clearStarted(WIFI_ACTION_t components);
 
     // Attempts a connection to all provided SSIDs
     // Inputs:
@@ -2139,19 +2160,20 @@ class RTK_WIFI
     //   enableESPNow: Enable ESP-NOW mode
     //   enableSoftAP: Enable soft AP mode
     //   enableStataion: Enable station mode
+    //   fileName: Name of file calling the enable routine
+    //   lineNumber: Line number in the file calling the enable routine
     // Outputs:
     //   Returns true if the modes were successfully configured
-    bool enable(bool enableESPNow, bool enableSoftAP, bool enableStation);
+    bool enable(bool enableESPNow,
+                bool enableSoftAP,
+                bool enableStation,
+                const char * fileName,
+                int lineNumber);
 
     // Get the ESP-NOW status
     // Outputs:
     //   Returns true when ESP-NOW is online and ready for use
     bool espNowOnline();
-
-    // Get the ESP-NOW status
-    // Outputs:
-    //  Returns true if ESP-NOW is being started or is online
-    bool espNowRunning();
 
     // Set the ESP-NOW channel
     // Inputs:
@@ -2170,20 +2192,6 @@ class RTK_WIFI
     // Outputs:
     //   Returns the current WiFi channel number
     WIFI_CHANNEL_t getChannel();
-
-    // Restart WiFi
-    // Inputs:
-    //   always: Set true if this routine should always restart WiFi,
-    //           when false determine restart using _restartRequest
-    // Outputs:
-    //    Returns true if the WiFi layer was successfully restarted and
-    //    false upon restart failure
-    bool restart(bool always);
-
-    // Determine if any use of WiFi is starting or is online
-    // Outputs:
-    //  Returns true if any WiFi use is being started or is online
-    bool running();
 
     // Configure the soft AP
     // Inputs:
@@ -2205,15 +2213,14 @@ class RTK_WIFI
     //   display: Address of a Print object
     void softApConfigurationDisplay(Print * display);
 
+    // Get the soft AP IP address
+    // Returns the soft IP address
+    IPAddress softApIpAddress();
+
     // Get the soft AP status
     // Outputs:
     //   Returns true when the soft AP is ready for use
     bool softApOnline();
-
-    // Determine if the soft AP is being started or is onine
-    // Outputs:
-    //  Returns true if the soft AP is being started or is online
-    bool softApRunning();
 
     // Attempt to start the soft AP mode
     // Inputs:
@@ -2224,18 +2231,25 @@ class RTK_WIFI
     //    otherwise
     bool startAp(bool forceAP);
 
+    // Get the WiFi station IP address
+    // Returns the IP address of the WiFi station
+    IPAddress stationIpAddress();
+
     // Get the station status
     // Outputs:
     //   Returns true when the WiFi station is online and ready for use
     bool stationOnline();
 
-    // Handle WiFi station reconnection requests
-    void stationReconnectionRequest();
+    // Get the SSID of the remote AP
+    const char * stationSsid();
 
-    // Get the station status
+    // Stop and start WiFi components
+    // Inputs:
+    //   stopping: WiFi components that need to be stopped
+    //   starting: WiFi components that neet to be started
     // Outputs:
-    //  Returns true if the WiFi station is being started or is online
-    bool stationRunning();
+    //   Returns true if the modes were successfully configured
+    bool stopStart(WIFI_ACTION_t stopping, WIFI_ACTION_t starting);
 
     // Test the WiFi modes
     // Inputs:

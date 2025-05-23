@@ -505,7 +505,7 @@ bool GNSS_ZED::configureNtpMode()
 
     if (!success)
         systemPrintln("NTP config fail");
-    
+
     // The configuration should be saved to RAM+BBR+FLASH. No need to saveConfiguration here.
 
     return (success);
@@ -850,12 +850,47 @@ bool GNSS_ZED::configureRover()
 
     if (!success)
         systemPrintln("Rover config fail");
-    
+
     settings.gnssConfiguredRover = success;
 
     // The configuration should be saved to RAM+BBR+FLASH. No need to saveConfiguration here.
 
     return (success);
+}
+
+//----------------------------------------
+// Responds with the messages supported on this platform
+// Inputs:
+//   returnText: String to receive message names
+// Returns message names in the returnText string
+//----------------------------------------
+void GNSS_ZED::createMessageList(String &returnText)
+{
+    for (int messageNumber = 0; messageNumber < MAX_UBX_MSG; messageNumber++)
+    {
+        if (messageSupported(messageNumber) == true)
+            returnText += "ubxMessageRate_" + String(ubxMessages[messageNumber].msgTextName) + "," +
+                          String(settings.ubxMessageRates[messageNumber]) + ",";
+    }
+}
+
+//----------------------------------------
+// Responds with the RTCM/Base messages supported on this platform
+// Inputs:
+//   returnText: String to receive message names
+// Returns message names in the returnText string
+//----------------------------------------
+void GNSS_ZED::createMessageListBase(String &returnText)
+{
+    GNSS_ZED *zed = (GNSS_ZED *)gnss;
+    int firstRTCMRecord = zed->getMessageNumberByName("RTCM_1005");
+
+    for (int messageNumber = 0; messageNumber < MAX_UBX_MSG_RTCM; messageNumber++)
+    {
+        if (messageSupported(firstRTCMRecord + messageNumber) == true)
+            returnText += "ubxMessageRateBase_" + String(ubxMessages[messageNumber + firstRTCMRecord].msgTextName) +
+                          "," + String(settings.ubxMessageRatesBase[messageNumber]) + ","; // UBX_RTCM_1074Base,4,
+    }
 }
 
 //----------------------------------------
@@ -1045,6 +1080,19 @@ uint8_t GNSS_ZED::getActiveMessageCount()
 
     for (int x = 0; x < MAX_UBX_MSG; x++)
         if (settings.ubxMessageRates[x] > 0)
+            count++;
+    return (count);
+}
+
+//----------------------------------------
+// Return the number of active/enabled RTCM messages
+//----------------------------------------
+uint8_t GNSS_ZED::getActiveRtcmMessageCount()
+{
+    uint8_t count = 0;
+
+    for (int x = 0; x < MAX_UBX_MSG_RTCM; x++)
+        if (settings.ubxMessageRatesBase[x] > 0)
             count++;
     return (count);
 }

@@ -122,6 +122,22 @@ void GNSS_LG290P::begin()
             "firmware on your LG290P to allow for these features. Please see https://bit.ly/sfe-rtk-lg290p-update\r\n",
             lg290pFirmwareVersion, gnssFirmwareVersion);
     }
+    if (lg290pFirmwareVersion < 5)
+    {
+        systemPrintf(
+            "Current LG290P firmware: v%d (full form: %s). Elevation and CNR mask configuration require v5 or newer. "
+            "Please "
+            "update the "
+            "firmware on your LG290P to allow for these features. Please see https://bit.ly/sfe-rtk-lg290p-update\r\n",
+            lg290pFirmwareVersion, gnssFirmwareVersion);
+    }
+
+    if (lg290pFirmwareVersion >= 5)
+    {
+        // Supported starting in v05
+        present.minElevation = true;
+        present.minCno = true;
+    }
 
     printModuleInfo();
 
@@ -323,6 +339,10 @@ bool GNSS_LG290P::configureRover()
             systemPrintln("configureRover: Set mode rover failed");
     }
 
+    response &= setElevation(settings.minElev);
+
+    response &= setMinCnoRadio(settings.minCNO);
+
     // Set the fix rate. Default on LG290P is 10Hz so set accordingly.
     response &= setRate(settings.measurementRateMs / 1000.0); // May require save/reset
     if (settings.debugGnss && response == false)
@@ -432,6 +452,10 @@ bool GNSS_LG290P::configureBase()
             systemPrintln("configureBase: disable survey in failed");
     }
 
+    response &= setElevation(settings.minElev);
+
+    response &= setMinCnoRadio(settings.minCNO);
+
     response &= enableRTCMBase(); // Set RTCM messages
     if (settings.debugGnss && response == false)
         systemPrintln("configureBase: Enable RTCM failed");
@@ -467,6 +491,26 @@ bool GNSS_LG290P::configureBase()
 }
 
 //----------------------------------------
+// Responds with the messages supported on this platform
+// Inputs:
+//   returnText: String to receive message names
+// Returns message names in the returnText string
+//----------------------------------------
+void GNSS_LG290P::createMessageList(String &returnText)
+{
+}
+
+//----------------------------------------
+// Responds with the RTCM/Base messages supported on this platform
+// Inputs:
+//   returnText: String to receive message names
+// Returns message names in the returnText string
+//----------------------------------------
+void GNSS_LG290P::createMessageListBase(String &returnText)
+{
+}
+
+//----------------------------------------
 // Return the survey-in mode from PQTMCFGSVIN
 // 0 - Disabled, 1 - Survey-in mode, 2 - Fixed mode
 //----------------------------------------
@@ -494,7 +538,8 @@ bool GNSS_LG290P::enterConfigMode(unsigned long waitForSemaphoreTimeout_millis)
     {
         unsigned long start = millis();
         bool isBlocking;
-        do { // Wait for up to waitForSemaphoreTimeout for library to stop blocking
+        do
+        { // Wait for up to waitForSemaphoreTimeout for library to stop blocking
             isBlocking = _lg290p->isBlocking();
         } while (isBlocking && (millis() < (start + waitForSemaphoreTimeout_millis)));
 
@@ -1817,7 +1862,8 @@ void GNSS_LG290P::printModuleInfo()
         std::string version, buildDate, buildTime;
         if (_lg290p->getVersionInfo(version, buildDate, buildTime))
         {
-            systemPrintf("LG290P version: v%02d - %s %s %s - v%d\r\n", lg290pFirmwareVersion, version.c_str(), buildDate.c_str(), buildTime.c_str());
+            systemPrintf("LG290P version: v%02d - %s %s %s - v%d\r\n", lg290pFirmwareVersion, version.c_str(),
+                         buildDate.c_str(), buildTime.c_str());
         }
         else
         {
@@ -1955,8 +2001,12 @@ bool GNSS_LG290P::setCorrRadioExtPort(bool enable, bool force)
 //----------------------------------------
 bool GNSS_LG290P::setElevation(uint8_t elevationDegrees)
 {
-    // Not a feature on LG290p
-    return false;
+    // Present on >= v05
+    if (lg290pFirmwareVersion >= 5)
+        return(_lg290p->setElevationAngle(elevationDegrees));
+
+    // Because we call this during module setup we rely on a positive result
+    return true;
 }
 
 //----------------------------------------
@@ -1985,8 +2035,12 @@ bool GNSS_LG290P::setMessagesUsb(int maxRetries)
 //----------------------------------------
 bool GNSS_LG290P::setMinCnoRadio(uint8_t cnoValue)
 {
-    // Not a feature on LG290p
-    return false;
+    // Present on >= v05
+    if (lg290pFirmwareVersion >= 5)
+        return(_lg290p->setCNR((float)cnoValue)); // 0.0 to 99.0
+
+    // Because we call this during module setup we rely on a positive result
+    return true;
 }
 
 //----------------------------------------
@@ -2197,6 +2251,17 @@ void GNSS_LG290P::update()
     // We don't check serial data here; the gnssReadTask takes care of serial consumption
 }
 
+//----------------------------------------
+void lg290pBoot()
+{
+    digitalWrite(pin_GNSS_Reset, HIGH); // Tell LG290P to boot
+}
+
+void lg290pReset()
+{
+    digitalWrite(pin_GNSS_Reset, LOW);
+}
+
 // Given a NMEA or PQTM sentence, determine if it is enabled in settings
 // This is used to signal to the processUart1Message() task to remove messages that are needed
 // by the library to function (ie, PQTMEPE, PQTMPVT, GNGSV) but should not be logged or passed to other consumers
@@ -2251,14 +2316,3 @@ bool lg290pMessageEnabled(char *nmeaSentence, int sentenceLength)
 }
 
 #endif // COMPILE_LG290P
-
-//----------------------------------------
-void lg290pBoot()
-{
-    digitalWrite(pin_GNSS_Reset, HIGH); // Tell LG290P to boot
-}
-
-void lg290pReset()
-{
-    digitalWrite(pin_GNSS_Reset, LOW);
-}

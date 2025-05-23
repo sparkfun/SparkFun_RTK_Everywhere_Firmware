@@ -45,7 +45,7 @@ UdpServer.ino
             * Click on Positioning
             * Add a new Positioning device
             * Set Connection type to UDP (NMEA)
-            * Set the Address to <broadcast>
+            * Set the Address to <local broadcast, xxx.xxx.xxx.255>
             * Set the Port to the value of the specified udpServerPort (default 10110)
             * Optional: give it a name (e.g. RTK Express UDP)
             * Click on the Checkmark
@@ -99,40 +99,58 @@ static volatile RING_BUFFER_OFFSET udpServerTail;
 // UDP Server handleGnssDataTask Support Routines
 //----------------------------------------
 
-// Send data as broadcast
-int32_t udpServerSendDataBroadcast(uint8_t *data, uint16_t length)
+//----------------------------------------
+// Remove previous messages from the ring buffer
+//----------------------------------------
+void udpServerDiscardBytes(RING_BUFFER_OFFSET previousTail, RING_BUFFER_OFFSET newTail)
 {
-    if (!length)
-        return 0;
+    // int index;
+    uint16_t tail;
 
-    // Send the data as broadcast
-    if (settings.enableUdpServer && online.udpServer && networkHasInternet())
+    tail = udpServerTail;
+    if (previousTail < newTail)
     {
-        IPAddress broadcastAddress = networkGetBroadcastIpAddress();
-        udpServer->beginPacket(broadcastAddress, settings.udpServerPort);
-        udpServer->write(data, length);
-        if (udpServer->endPacket())
-        {
-            if ((settings.debugUdpServer || PERIODIC_DISPLAY(PD_UDP_SERVER_BROADCAST_DATA)) && (!inMainMenu))
-            {
-                systemPrintf("UDP Server wrote %d bytes as broadcast (%s) on port %d\r\n", length,
-                             broadcastAddress.toString().c_str(), settings.udpServerPort);
-                PERIODIC_CLEAR(PD_UDP_SERVER_BROADCAST_DATA);
-            }
-        }
-        // Failed to write the data
-        else if ((settings.debugUdpServer || PERIODIC_DISPLAY(PD_UDP_SERVER_BROADCAST_DATA)) && (!inMainMenu))
-        {
-            PERIODIC_CLEAR(PD_UDP_SERVER_BROADCAST_DATA);
-            systemPrintf("UDP Server failed to write %d bytes as broadcast (%s) on port %d\r\n", length,
-                         broadcastAddress.toString().c_str(), settings.udpServerPort);
-            length = 0;
-        }
+        // No buffer wrap occurred
+        if ((tail >= previousTail) && (tail < newTail))
+            udpServerTail = newTail;
     }
-    return length;
+    else
+    {
+        // Buffer wrap occurred
+        if ((tail >= previousTail) || (tail < newTail))
+            udpServerTail = newTail;
+    }
 }
 
+//----------------------------------------
+// Determine if the UDP server may be enabled
+//----------------------------------------
+bool udpServerEnabled(const char ** line)
+{
+    bool enabled;
+
+    do
+    {
+        enabled = false;
+
+        // Verify the operating mode
+        if (NEQ_RTK_MODE(udpServerMode))
+        {
+            *line = ", Wrong mode!";
+            break;
+        }
+
+        // Verify still enabled
+        enabled = settings.enableUdpServer;
+        if (enabled == false)
+            *line = ", Not enabled!";
+    } while (0);
+    return enabled;
+}
+
+//----------------------------------------
 // Send UDP data as broadcast
+//----------------------------------------
 int32_t udpServerSendData(uint16_t dataHead)
 {
     int32_t usedSpace = 0;
@@ -176,35 +194,51 @@ int32_t udpServerSendData(uint16_t dataHead)
     return usedSpace;
 }
 
-// Remove previous messages from the ring buffer
-void discardUdpServerBytes(RING_BUFFER_OFFSET previousTail, RING_BUFFER_OFFSET newTail)
+//----------------------------------------
+// Send data as broadcast
+//----------------------------------------
+int32_t udpServerSendDataBroadcast(uint8_t *data, uint16_t length)
 {
-    // int index;
-    uint16_t tail;
+    if (!length)
+        return 0;
 
-    tail = udpServerTail;
-    if (previousTail < newTail)
+    // Send the data as broadcast
+    if (settings.enableUdpServer && online.udpServer && networkConsumerIsConnected(NETCONSUMER_UDP_SERVER))
     {
-        // No buffer wrap occurred
-        if ((tail >= previousTail) && (tail < newTail))
-            udpServerTail = newTail;
+        IPAddress broadcastAddress = networkGetBroadcastIpAddress();
+        udpServer->beginPacket(broadcastAddress, settings.udpServerPort);
+        udpServer->write(data, length);
+        if (udpServer->endPacket())
+        {
+            if ((settings.debugUdpServer || PERIODIC_DISPLAY(PD_UDP_SERVER_BROADCAST_DATA)) && (!inMainMenu))
+            {
+                systemPrintf("UDP Server wrote %d bytes as broadcast (%s) on port %d\r\n", length,
+                             broadcastAddress.toString().c_str(), settings.udpServerPort);
+                PERIODIC_CLEAR(PD_UDP_SERVER_BROADCAST_DATA);
+            }
+        }
+        // Failed to write the data
+        else if ((settings.debugUdpServer || PERIODIC_DISPLAY(PD_UDP_SERVER_BROADCAST_DATA)) && (!inMainMenu))
+        {
+            PERIODIC_CLEAR(PD_UDP_SERVER_BROADCAST_DATA);
+            systemPrintf("UDP Server failed to write %d bytes as broadcast (%s) on port %d\r\n", length,
+                         broadcastAddress.toString().c_str(), settings.udpServerPort);
+            length = 0;
+        }
     }
-    else
-    {
-        // Buffer wrap occurred
-        if ((tail >= previousTail) || (tail < newTail))
-            udpServerTail = newTail;
-    }
+    return length;
 }
 
 //----------------------------------------
 // UDP Server Routines
 //----------------------------------------
 
+//----------------------------------------
 // Update the state of the UDP server state machine
+//----------------------------------------
 void udpServerSetState(uint8_t newState)
 {
-    if ((settings.debugUdpServer || PERIODIC_DISPLAY(PD_UDP_SERVER_STATE)) && (!inMainMenu))
+    if (settings.debugUdpServer && (!inMainMenu))
     {
         if (udpServerState == newState)
             systemPrint("UDP Server: *");
@@ -212,9 +246,8 @@ void udpServerSetState(uint8_t newState)
             systemPrintf("UDP Server: %s --> ", udpServerStateName[udpServerState]);
     }
     udpServerState = newState;
-    if ((settings.debugUdpServer || PERIODIC_DISPLAY(PD_UDP_SERVER_STATE)) && (!inMainMenu))
+    if (settings.debugUdpServer && (!inMainMenu))
     {
-        PERIODIC_CLEAR(PD_UDP_SERVER_STATE);
         if (newState >= UDP_SERVER_STATE_MAX)
         {
             systemPrintf("Unknown state: %d\r\n", udpServerState);
@@ -225,7 +258,9 @@ void udpServerSetState(uint8_t newState)
     }
 }
 
+//----------------------------------------
 // Start the UDP server
+//----------------------------------------
 bool udpServerStart()
 {
     IPAddress localIp;
@@ -244,7 +279,9 @@ bool udpServerStart()
     return true;
 }
 
+//----------------------------------------
 // Stop the UDP server
+//----------------------------------------
 void udpServerStop()
 {
     // Notify the rest of the system that the UDP server is shutting down
@@ -267,34 +304,33 @@ void udpServerStop()
     }
 
     // Stop using the network
+    networkConsumerOffline(NETCONSUMER_UDP_SERVER);
     if (udpServerState != UDP_SERVER_STATE_OFF)
     {
         // The UDP server is now off
+        networkSoftApConsumerRemove(NETCONSUMER_UDP_SERVER, __FILE__, __LINE__);
+        networkConsumerRemove(NETCONSUMER_UDP_SERVER, NETWORK_ANY, __FILE__, __LINE__);
         udpServerSetState(UDP_SERVER_STATE_OFF);
         udpServerTimer = millis();
     }
 }
 
-// Return true if we are in a state that requires network access
-bool udpServerNeedsNetwork()
-{
-    if (udpServerState >= UDP_SERVER_STATE_WAIT_FOR_NETWORK && udpServerState <= UDP_SERVER_STATE_RUNNING)
-        return true;
-    return false;
-}
-
+//----------------------------------------
 // Update the UDP server state
+//----------------------------------------
 void udpServerUpdate()
 {
+    bool connected;
+    bool enabled;
     IPAddress ipAddress;
+    const char * line = "";
 
     // Shutdown the UDP server when the mode or setting changes
     DMW_st(udpServerSetState, udpServerState);
-    if (NEQ_RTK_MODE(udpServerMode) || (!settings.enableUdpServer))
-    {
-        if (udpServerState > UDP_SERVER_STATE_OFF)
-            udpServerStop();
-    }
+    connected = networkConsumerIsConnected(NETCONSUMER_UDP_SERVER);
+    enabled = udpServerEnabled(&line);
+    if ((!enabled) && (udpServerState > UDP_SERVER_STATE_OFF))
+        udpServerStop();
 
     /*
         UDP Server state machine
@@ -320,22 +356,22 @@ void udpServerUpdate()
     // Wait until the UDP server is enabled
     case UDP_SERVER_STATE_OFF:
         // Determine if the UDP server should be running
-        if (EQ_RTK_MODE(udpServerMode) && settings.enableUdpServer)
+        if (enabled)
         {
             if (settings.debugUdpServer && (!inMainMenu))
                 systemPrintln("UDP server starting the network");
+            if (settings.wifiConfigOverAP == false)
+                networkConsumerAdd(NETCONSUMER_UDP_SERVER, NETWORK_ANY, __FILE__, __LINE__);
+            else
+                networkSoftApConsumerAdd(NETCONSUMER_UDP_SERVER, __FILE__, __LINE__);
             udpServerSetState(UDP_SERVER_STATE_WAIT_FOR_NETWORK);
         }
         break;
 
     // Wait until the network is connected
     case UDP_SERVER_STATE_WAIT_FOR_NETWORK:
-        // Determine if the UDP server was turned off
-        if (NEQ_RTK_MODE(udpServerMode) || !settings.enableUdpServer)
-            udpServerStop();
-
         // Wait until the network is connected
-        else if (networkHasInternet() || WIFI_SOFT_AP_RUNNING())
+        if (connected || wifiSoftApRunning)
         {
             // Delay before starting the UDP server
             if ((millis() - udpServerTimer) >= (1 * 1000))
@@ -345,7 +381,10 @@ void udpServerUpdate()
 
                 // Start the UDP server
                 if (udpServerStart())
+                {
+                    networkUserAdd(NETCONSUMER_UDP_SERVER, __FILE__, __LINE__);
                     udpServerSetState(UDP_SERVER_STATE_RUNNING);
+                }
             }
         }
         break;
@@ -353,7 +392,7 @@ void udpServerUpdate()
     // Handle client connections and link failures
     case UDP_SERVER_STATE_RUNNING:
         // Determine if the network has failed
-        if ((networkHasInternet() == false && WIFI_SOFT_AP_RUNNING() == false) || (!settings.enableUdpServer && !settings.baseCasterOverride))
+        if ((connected == false && wifiSoftApRunning == false) || (!settings.enableUdpServer && !settings.baseCasterOverride))
         {
             if ((settings.debugUdpServer || PERIODIC_DISPLAY(PD_UDP_SERVER_DATA)) && (!inMainMenu))
             {
@@ -370,10 +409,16 @@ void udpServerUpdate()
 
     // Periodically display the UDP state
     if (PERIODIC_DISPLAY(PD_UDP_SERVER_STATE) && (!inMainMenu))
-        udpServerSetState(udpServerState);
+    {
+        systemPrintf("UDP Server state: %s%s\r\n",
+                     udpServerStateName[udpServerState], line);
+        PERIODIC_CLEAR(PD_UDP_SERVER_STATE);
+    }
 }
 
+//----------------------------------------
 // Zero the UDP server tails
+//----------------------------------------
 void udpServerZeroTail()
 {
     udpServerTail = 0;

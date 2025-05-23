@@ -32,8 +32,8 @@ extern const uint8_t ppRtcmToken[16];
 enum HTTPClientState
 {
     HTTP_CLIENT_OFF = 0,
-    HTTP_CLIENT_ON,                  // WIFI_STATE_START state
     HTTP_CLIENT_NETWORK_STARTED,     // Connecting to WiFi access point or Ethernet
+    HTTP_CLIENT_CONNECTION_DELAY,    // Delay before connecting to HTTP server
     HTTP_CLIENT_CONNECTING_2_SERVER, // Connecting to the HTTP server
     HTTP_CLIENT_CONNECTED,           // Connected to the HTTP services
     HTTP_CLIENT_COMPLETE,            // Complete. Can not or do not need to continue
@@ -42,8 +42,12 @@ enum HTTPClientState
 };
 
 const char *const httpClientStateName[] = {
-    "HTTP_CLIENT_OFF",       "HTTP_CLIENT_ON",       "HTTP_CLIENT_NETWORK_STARTED", "HTTP_CLIENT_CONNECTING_2_SERVER",
-    "HTTP_CLIENT_CONNECTED", "HTTP_CLIENT_COMPLETE",
+    "HTTP_CLIENT_OFF",
+    "HTTP_CLIENT_NETWORK_STARTED",
+    "HTTP_CLIENT_CONNECTION_DELAY",
+    "HTTP_CLIENT_CONNECTING_2_SERVER",
+    "HTTP_CLIENT_CONNECTED",
+    "HTTP_CLIENT_COMPLETE",
 };
 
 const int httpClientStateNameEntries = sizeof(httpClientStateName) / sizeof(httpClientStateName[0]);
@@ -127,7 +131,7 @@ char *tempHolderPtr = nullptr;
 
 // Throttle the time between connection attempts
 static int httpClientConnectionAttempts; // Count the number of connection attempts between restarts
-static uint32_t httpClientConnectionAttemptTimeout = 5 * 1000L; // Wait 5s
+static uint32_t httpClientConnectionAttemptTimeout;
 static int httpClientConnectionAttemptsTotal;                   // Count the number of connection attempts absolutely
 
 static volatile uint32_t httpClientLastDataReceived; // Last time data was received via HTTP
@@ -147,23 +151,29 @@ static uint32_t httpClientTimer;
 // HTTP Client Routines
 //----------------------------------------
 
+//----------------------------------------
 // Determine if another connection is possible or if the limit has been reached
+//----------------------------------------
 bool httpClientConnectLimitReached()
 {
     bool limitReached;
+    int minutes;
     int seconds;
 
     // Retry the connection a few times
     limitReached = (httpClientConnectionAttempts >= MAX_HTTP_CLIENT_CONNECTION_ATTEMPTS);
 
-    bool enableHttpClient = true;
-    if (!settings.enablePointPerfectCorrections)
-        enableHttpClient = false;
-
     // Restart the HTTP client
-    httpClientStop(limitReached || (!enableHttpClient));
+    httpClientStop(limitReached || (!httpClientEnabled(nullptr)));
 
-    httpClientConnectionAttempts++;
+    // Limit to max connection delay
+    if (httpClientConnectionAttempts)
+        httpClientConnectionAttemptTimeout = (5 * MILLISECONDS_IN_A_SECOND)
+                                           << (httpClientConnectionAttempts - 1);
+    if (httpClientConnectionAttemptTimeout > RTK_MAX_CONNECTION_MSEC)
+        httpClientConnectionAttemptTimeout = httpClientConnectionAttemptTimeout;
+    else
+        httpClientConnectionAttempts++;
     httpClientConnectionAttemptsTotal++;
     if (settings.debugHttpClientState)
         httpClientPrintStatus();
@@ -173,8 +183,10 @@ bool httpClientConnectLimitReached()
         // Display the delay before starting the HTTP client
         if (settings.debugHttpClientState && httpClientConnectionAttemptTimeout)
         {
-            seconds = httpClientConnectionAttemptTimeout / 1000;
-            systemPrintf("HTTP Client trying again in %d seconds.\r\n", seconds);
+            seconds = httpClientConnectionAttemptTimeout / MILLISECONDS_IN_A_SECOND;
+            minutes = seconds / SECONDS_IN_A_MINUTE;
+            seconds -= minutes * SECONDS_IN_A_MINUTE;
+            systemPrintf("HTTP Client trying again in %d:%02d seconds.\r\n", minutes, seconds);
         }
     }
     else
@@ -184,7 +196,36 @@ bool httpClientConnectLimitReached()
     return limitReached;
 }
 
+//----------------------------------------
+// Determine if the HTTP client may be enabled
+//----------------------------------------
+bool httpClientEnabled(const char ** line)
+{
+    bool enableHttpClient;
+
+    do
+    {
+        enableHttpClient = false;
+
+        // HTTP requires use of point perfect corrections
+        if (settings.enablePointPerfectCorrections == false)
+        {
+            if (line)
+                *line = ", PointPerfect corrections disabled!";
+            break;
+        }
+
+        // All conditions support running the HTTP client
+        enableHttpClient = httpClientModeNeeded;
+        if (line && !enableHttpClient)
+            *line = ", HTTP Client disabled!";
+    } while (0);
+    return enableHttpClient;
+}
+
+//----------------------------------------
 // Print the HTTP client state summary
+//----------------------------------------
 void httpClientPrintStateSummary()
 {
     switch (httpClientState)
@@ -196,8 +237,8 @@ void httpClientPrintStateSummary()
         systemPrint("Off");
         break;
 
-    case HTTP_CLIENT_ON:
     case HTTP_CLIENT_NETWORK_STARTED:
+    case HTTP_CLIENT_CONNECTION_DELAY:
         systemPrint("Disconnected");
         break;
 
@@ -215,14 +256,19 @@ void httpClientPrintStateSummary()
     }
 }
 
+//----------------------------------------
 // Print the HTTP Client status
+//----------------------------------------
 void httpClientPrintStatus()
 {
     systemPrint("HTTP Client ");
     httpClientPrintStateSummary();
+    systemPrintln();
 }
 
+//----------------------------------------
 // Restart the HTTP client
+//----------------------------------------
 void httpClientRestart()
 {
     // Save the previous uptime value
@@ -231,10 +277,12 @@ void httpClientRestart()
     httpClientConnectLimitReached();
 }
 
+//----------------------------------------
 // Update the state of the HTTP client state machine
+//----------------------------------------
 void httpClientSetState(uint8_t newState)
 {
-    if (settings.debugHttpClientState || PERIODIC_DISPLAY(PD_HTTP_CLIENT_STATE))
+    if (settings.debugHttpClientState)
     {
         if (httpClientState == newState)
             systemPrint("*");
@@ -242,9 +290,8 @@ void httpClientSetState(uint8_t newState)
             systemPrintf("%s --> ", httpClientStateName[httpClientState]);
     }
     httpClientState = newState;
-    if (settings.debugHttpClientState || PERIODIC_DISPLAY(PD_HTTP_CLIENT_STATE))
+    if (settings.debugHttpClientState)
     {
-        PERIODIC_CLEAR(PD_HTTP_CLIENT_STATE);
         if (newState >= HTTP_CLIENT_STATE_MAX)
         {
             systemPrintf("Unknown HTTP Client state: %d\r\n", newState);
@@ -255,13 +302,17 @@ void httpClientSetState(uint8_t newState)
     }
 }
 
+//----------------------------------------
 // Shutdown the HTTP client
+//----------------------------------------
 void httpClientShutdown()
 {
     httpClientStop(true);
 }
 
+//----------------------------------------
 // Start the HTTP client
+//----------------------------------------
 void httpClientStart()
 {
     // Display the heap state
@@ -272,7 +323,9 @@ void httpClientStart()
     httpClientStop(false);
 }
 
+//----------------------------------------
 // Shutdown or restart the HTTP client
+//----------------------------------------
 void httpClientStop(bool shutdown)
 {
     // Free the httpClient resources
@@ -297,83 +350,83 @@ void httpClientStop(bool shutdown)
     }
 
     // Increase timeouts if we started the network
-    if (httpClientState > HTTP_CLIENT_ON)
+    if (httpClientState > HTTP_CLIENT_NETWORK_STARTED)
         // Mark the Client stop so that we don't immediately attempt re-connect to Caster
         httpClientTimer = millis();
 
     // Determine the next HTTP client state
     online.httpClient = false;
+    networkConsumerOffline(NETCONSUMER_HTTP_CLIENT);
     if (shutdown)
     {
-        httpClientSetState(HTTP_CLIENT_OFF);
-        // settings.enablePointPerfectCorrections = false;
-        //^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ Why? This means PointPerfect Corrections
-        // cannot be restarted without opening the menu or web configuration page...
+        networkConsumerRemove(NETCONSUMER_HTTP_CLIENT, NETWORK_ANY, __FILE__, __LINE__);
+        httpClientModeNeeded = false;
         httpClientConnectionAttempts = 0;
         httpClientConnectionAttemptTimeout = 0;
+        httpClientSetState(HTTP_CLIENT_OFF);
+        systemPrintln("HTTP Client stopped");
     }
     else
-        httpClientSetState(HTTP_CLIENT_ON);
+        httpClientSetState(HTTP_CLIENT_NETWORK_STARTED);
 }
 
+//----------------------------------------
+// Update the state of the HTTP client
+//----------------------------------------
 void httpClientUpdate()
 {
+    bool connected;
+    bool enabled;
+
     // Shutdown the HTTP client when the mode or setting changes
     DMW_st(httpClientSetState, httpClientState);
+    connected = networkConsumerIsConnected(NETCONSUMER_HTTP_CLIENT);
+    enabled = httpClientEnabled(nullptr);
+    if ((enabled == false) && (httpClientState > HTTP_CLIENT_OFF))
+        httpClientShutdown();
 
-    if (!httpClientModeNeeded)
-    {
-        if (httpClientState > HTTP_CLIENT_OFF)
-        {
-            systemPrintln("HTTP Client stopping");
-            httpClientStop(true); // Was false - #StopVsRestart
-            httpClientConnectionAttempts = 0;
-            httpClientConnectionAttemptTimeout = 0;
-            httpClientSetState(HTTP_CLIENT_OFF);
-        }
-    }
+    // Determine if the network has failed
+    else if ((httpClientState > HTTP_CLIENT_NETWORK_STARTED) && !connected)
+        httpClientRestart();
 
     // Enable the network and the HTTP client if requested
     switch (httpClientState)
     {
     default:
     case HTTP_CLIENT_OFF: {
-        if (httpClientModeNeeded)
-            httpClientStart();
-        break;
-    }
-
-    // Start the network
-    case HTTP_CLIENT_ON: {
-        if ((millis() - httpClientTimer) > httpClientConnectionAttemptTimeout)
+        if (enabled)
         {
-            httpClientSetState(HTTP_CLIENT_NETWORK_STARTED);
+            httpClientStart();
+            networkConsumerAdd(NETCONSUMER_HTTP_CLIENT, NETWORK_ANY, __FILE__, __LINE__);
         }
         break;
     }
 
     // Wait for a network media connection
     case HTTP_CLIENT_NETWORK_STARTED: {
-        // Determine if the HTTP client was turned off
-        if (!httpClientModeNeeded)
-            httpClientStop(true);
+        // Wait until the network is connected to the media
+        if (connected)
+        {
+            // Reset the timeout when the network changes
+            if (networkChanged(NETCONSUMER_HTTP_CLIENT))
+                httpClientConnectionAttemptTimeout = 0;
+            networkUserAdd(NETCONSUMER_HTTP_CLIENT, __FILE__, __LINE__);
+            httpClientSetState(HTTP_CLIENT_CONNECTION_DELAY);
+        }
+        break;
+    }
 
-        // Wait until the network is connected
-        else if (networkHasInternet())
+    // Delay before connecting to HTTP server
+    case HTTP_CLIENT_CONNECTION_DELAY: {
+        if ((millis() - httpClientTimer) > httpClientConnectionAttemptTimeout)
+        {
             httpClientSetState(HTTP_CLIENT_CONNECTING_2_SERVER);
+        }
         break;
     }
 
     // Connect to the HTTP server
     case HTTP_CLIENT_CONNECTING_2_SERVER: {
-        // Determine if the network has failed
-        if (networkHasInternet() == false)
-        {
-            // Failed to connect to the network, attempt to restart the network
-            httpClientStop(true); // Was httpClientRestart(); - #StopVsRestart
-            break;
-        }
-
         // Allocate the httpSecureClient structure
         httpSecureClient = new NetworkClientSecure();
         if (!httpSecureClient)
@@ -424,14 +477,6 @@ void httpClientUpdate()
     }
 
     case HTTP_CLIENT_CONNECTED: {
-        // Determine if the network has failed
-        if (networkHasInternet() == false)
-        {
-            // Failed to connect to the network, attempt to restart the network
-            httpClientStop(true); // Was httpClientRestart(); - #StopVsRestart
-            break;
-        }
-
         String ztpRequest;
         createZtpRequest(ztpRequest);
 
@@ -543,10 +588,7 @@ void httpClientUpdate()
             }
             else
             {
-                if (online.psram == true)
-                    tempHolderPtr = (char *)ps_malloc(MQTT_CERT_SIZE);
-                else
-                    tempHolderPtr = (char *)malloc(MQTT_CERT_SIZE);
+                tempHolderPtr = (char *)rtkMalloc(MQTT_CERT_SIZE, "Certificate buffer (tempHolderPtr)");
 
                 if (!tempHolderPtr)
                 {
@@ -555,7 +597,13 @@ void httpClientUpdate()
                     break;
                 }
 
-                if (response.indexOf("rtcmCredentials") >= 0)
+                strncpy(tempHolderPtr, (const char *)((*jsonZtp)["privateKey"]), MQTT_CERT_SIZE - 1);
+                recordFile("privateKey", tempHolderPtr, strlen(tempHolderPtr));
+
+                rtkFree(tempHolderPtr, "Certificate buffer (tempHolderPtr)"); // Clean up. Done with tempHolderPtr
+
+                // Validate the keys
+                if (!checkCertificates())
                 {
                     // Handle a PointPerfect RTCM credentials response
                     systemPrintf("PointPerfect response: %s\r\n", response.c_str());
@@ -683,22 +731,24 @@ void httpClientUpdate()
 
     // The ZTP HTTP POST is complete. We either can not or do not want to continue.
     // Hang here until httpClientModeNeeded is set to false by updateProvisioning
-    case HTTP_CLIENT_COMPLETE: {
-        // Determine if the network has failed
-        if (networkHasInternet() == false)
-            // Failed to connect to the network, attempt to restart the network
-            httpClientStop(true); // Was httpClientRestart(); - #StopVsRestart
+    case HTTP_CLIENT_COMPLETE:
         break;
     }
 
-    } // switch (httpClientState)
-
     // Periodically display the HTTP client state
     if (PERIODIC_DISPLAY(PD_HTTP_CLIENT_STATE))
-        httpClientSetState(httpClientState);
+    {
+        const char * line = "";
+        httpClientEnabled(&line);
+        systemPrintf("HTTP Client state: %s%s\r\n",
+                     httpClientStateName[httpClientState], line);
+        PERIODIC_CLEAR(PD_HTTP_CLIENT_STATE);
+    }
 }
 
+//----------------------------------------
 // Verify the HTTP client tables
+//----------------------------------------
 void httpClientValidateTables()
 {
     if (httpClientStateNameEntries != HTTP_CLIENT_STATE_MAX)
