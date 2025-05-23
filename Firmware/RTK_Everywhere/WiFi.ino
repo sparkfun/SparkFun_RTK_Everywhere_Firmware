@@ -30,6 +30,30 @@ static const char * wifiAuthorizationName[] =
 static const int wifiAuthorizationNameEntries =
     sizeof(wifiAuthorizationName) / sizeof(wifiAuthorizationName[0]);
 
+enum WIFI_STATION_STATES
+{
+    WIFI_STATION_STATE_OFF,
+    WIFI_STATION_STATE_WAIT_NO_USERS,
+    WIFI_STATION_STATE_RESTART,
+    WIFI_STATION_STATE_STARTING,
+    WIFI_STATION_STATE_ONLINE,
+    WIFI_STATION_STATE_STABLE,
+    // The following line must be the last in the list
+    WIFI_STATION_STATE_MAX
+};
+uint8_t wifiStationState;
+
+const char * wifiStationStateName[] =
+{
+    "WIFI_STATION_STATE_OFF",
+    "WIFI_STATION_STATE_WAIT_NO_USERS",
+    "WIFI_STATION_STATE_RESTART",
+    "WIFI_STATION_STATE_STARTING",
+    "WIFI_STATION_STATE_ONLINE",
+    "WIFI_STATION_STATE_STABLE",
+};
+const int wifiStationStateNameEntries = sizeof(wifiStationStateName) / sizeof(wifiStationStateName[0]);
+
 //----------------------------------------------------------------------
 // ESP-NOW bringup from example 4_9_ESP_NOW
 //   1. Set station mode
@@ -768,6 +792,15 @@ void wifiStartThrottled(NetIndex_t index, uintptr_t parameter, bool debug)
 }
 
 //*********************************************************************
+// Get the state name for WiFi station
+const char * wifiStationGetStateName(uint8_t state)
+{
+    if (state < wifiStationStateNameEntries)
+        return wifiStationStateName[state];
+    return "Unknown WiFi Station state";
+}
+
+//*********************************************************************
 // Stop the WiFi station
 // Inputs:
 //   fileName: Name of file calling the enable routine
@@ -805,6 +838,44 @@ bool wifiStationOn(const char * fileName, uint32_t lineNumber)
                        wifiSoftApRunning,
                        true,
                        __FILE__, __LINE__);
+}
+
+//*********************************************************************
+// Set the WiFi station state
+void wifiStationSetState(uint8_t newState)
+{
+    // Display the state transition
+    if (settings.debugWifiState)
+    {
+        const char * asterisk;
+        const char * stateNew;
+        const char * stateOld;
+        const char * transition;
+
+        // Get the current state name
+        stateOld = wifiStationGetStateName(wifiStationState);
+
+        // Check for a transition
+        if (newState != wifiStationState)
+        {
+            asterisk = "";
+            transition = " --> ";
+            stateNew = wifiStationGetStateName(newState);
+        }
+        else
+        {
+            // No transition
+            asterisk = "*";
+            transition = "";
+            stateNew = "";
+        }
+
+        // Display the state transition
+        systemPrintf("%s%s%s%s\r\n", asterisk, stateOld, transition, stateNew);
+    }
+
+    // Set the new state
+    wifiStationState = newState;
 }
 
 //*********************************************************************
@@ -966,6 +1037,13 @@ void wifiVerifyTables()
 {
     // Verify the RTK_WIFI tables
     wifi.verifyTables();
+
+    // Verify the WiFi station state name table
+    if (WIFI_STATION_STATE_MAX != wifiStationStateNameEntries)
+    {
+        systemPrintf("ERROR: Fix wifiStationStateName list to match WIFI_STATION_STATES!\r\n");
+        reportFatalError("Fix wifiStationStateName list to match WIFI_STATION_STATES!");
+    }
 }
 
 //*********************************************************************
