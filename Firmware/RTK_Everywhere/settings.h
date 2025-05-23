@@ -1886,7 +1886,7 @@ const NETWORK_TABLE_ENTRY networkInterfaceTable[] =
     #endif  // COMPILE_ETHERNET
 
     #ifdef COMPILE_WIFI
-        {&WiFi.STA, true,   NETWORK_WIFI_STATION,   PD_WIFI_STATE,      nullptr,                wifiStartSequence,  wifiStopSequence,   "WiFi",                 nullptr},
+        {&WiFi.STA, true,   NETWORK_WIFI_STATION,   PD_WIFI_STATE,      nullptr,                nullptr,            nullptr,            "WiFi Station",         nullptr},
     #else
         {nullptr,   false,  NETWORK_WIFI_STATION,   PD_WIFI_STATE,      nullptr,                nullptr,            nullptr,            "WiFi-NotCompiled",     nullptr},
     #endif  // COMPILE_WIFI
