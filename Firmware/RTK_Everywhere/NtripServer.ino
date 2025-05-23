@@ -545,8 +545,7 @@ void ntripServerStart(int serverIndex)
     // Start the NTRIP server
     systemPrintf("NTRIP Server %d start\r\n", serverIndex);
     ntripServerStop(serverIndex, false);
-    if (ntripServerEnabled(serverIndex, nullptr))
-        networkConsumerAdd(NETWORK_CONSUMER(serverIndex), NETWORK_ANY, __FILE__, __LINE__);
+    networkConsumerAdd(NETWORK_CONSUMER(serverIndex), NETWORK_ANY, __FILE__, __LINE__);
 }
 
 //----------------------------------------
