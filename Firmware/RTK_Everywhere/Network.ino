@@ -702,7 +702,10 @@ void networkConsumerRemove(NETCONSUMER_t consumer,
         {
             // Display the consumer
             if (settings.debugNetworkLayer)
+            {
+                networkDisplayStatus();
                 systemPrintf("Network: Stopping the networks\r\n");
+            }
 
             // Walk the networks in increasing priority
             // Turn off the lower priority networks first to eliminate failover
