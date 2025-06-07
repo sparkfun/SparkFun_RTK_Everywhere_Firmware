@@ -788,6 +788,10 @@ void networkDisplayInterface(NetIndex_t index)
     networkValidateIndex(index);
     entry = &networkInterfaceTable[index];
     networkDisplayNetworkData(entry->name, entry->netif);
+
+    // Display additional WiFi data
+    if (index == NETWORK_WIFI_STATION)
+        wifiStationDisplayData();
 }
 
 //----------------------------------------

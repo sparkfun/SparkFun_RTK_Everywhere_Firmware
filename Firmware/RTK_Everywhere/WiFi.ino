@@ -729,6 +729,22 @@ bool wifiSoftApOn(const char * fileName, uint32_t lineNumber)
 }
 
 //*********************************************************************
+// Display additional Wifi data
+void wifiStationDisplayData()
+{
+    // Display additional WiFi data
+    if (WiFi.STA.linkUp())
+    {
+        String ssid = WiFi.STA.SSID();
+        int32_t channel = WiFi.channel();
+        int8_t rssi = WiFi.STA.RSSI();
+        systemPrintf("    SSID: %s\r\n", ssid.c_str());
+        systemPrintf("    Channel: %d\r\n", channel);
+        systemPrintf("    RSSI: %4d\r\n", rssi);
+    }
+}
+
+//*********************************************************************
 // Determine if WiFi should be running
 bool wifiStationEnabled(const char ** reason)
 {
