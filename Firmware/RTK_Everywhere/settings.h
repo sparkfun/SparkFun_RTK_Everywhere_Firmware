@@ -107,7 +107,7 @@ const char * const productDisplayNames[] =
     // Add new values just above this line
     "Unknown"
 };
-const int productDisplayNamesEntries = sizeof (productDisplayNames) / sizeof(productDisplayNames[0]);
+const int productDisplayNamesEntries = sizeof(productDisplayNames) / sizeof(productDisplayNames[0]);
 
 const char * const platformFilePrefixTable[] =
 {
@@ -120,7 +120,7 @@ const char * const platformFilePrefixTable[] =
     // Add new values just above this line
     "SFE_Unknown"
 };
-const int platformFilePrefixTableEntries = sizeof (platformFilePrefixTable) / sizeof(platformFilePrefixTable[0]);
+const int platformFilePrefixTableEntries = sizeof(platformFilePrefixTable) / sizeof(platformFilePrefixTable[0]);
 
 const char * const platformPrefixTable[] =
 {
@@ -133,7 +133,7 @@ const char * const platformPrefixTable[] =
     // Add new values just above this line
     "Unknown"
 };
-const int platformPrefixTableEntries = sizeof (platformPrefixTable) / sizeof(platformPrefixTable[0]);
+const int platformPrefixTableEntries = sizeof(platformPrefixTable) / sizeof(platformPrefixTable[0]);
 
 const char * const platformProvisionTable[] =
 {
@@ -146,7 +146,20 @@ const char * const platformProvisionTable[] =
     // Add new values just above this line
     "Unknown"
 };
-const int platformProvisionTableEntries = sizeof (platformProvisionTable) / sizeof(platformProvisionTable[0]);
+const int platformProvisionTableEntries = sizeof(platformProvisionTable) / sizeof(platformProvisionTable[0]);
+
+const char * const platformRegistrationPageTable[] =
+{
+    "https://www.sparkfun.com/rtk_evk_registration",
+    "Unknown",
+    "https://www.sparkfun.com/rtk_facet_mosaic_registration",
+    "https://www.sparkfun.com/rtk_torch_registration",
+    "Unknown",
+    "https://www.sparkfun.com/rtk_postcard_registration",
+    // Add new values just above this line
+    "Unknown"
+};
+const int platformRegistrationPageTableEntries = sizeof(platformRegistrationPageTable) / sizeof(platformRegistrationPageTable[0]);
 
 // Corrections Priority
 typedef enum
