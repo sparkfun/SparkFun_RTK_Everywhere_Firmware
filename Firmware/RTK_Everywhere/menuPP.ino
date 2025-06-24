@@ -101,8 +101,8 @@ void menuPointPerfect()
         systemPrintln("Menu: PointPerfect Corrections");
 
         if (settings.debugCorrections == true)
-            systemPrintf("Time to first RTK Fix: %ds Restarts: %d\r\n",
-                         rtkTimeToFixMs / MILLISECONDS_IN_A_SECOND, floatLockRestarts);
+            systemPrintf("Time to first RTK Fix: %ds Restarts: %d\r\n", rtkTimeToFixMs / MILLISECONDS_IN_A_SECOND,
+                         floatLockRestarts);
 
         if (pointPerfectServiceUsesKeys() == true)
         {
@@ -162,7 +162,7 @@ void menuPointPerfect()
         //   We do not need the user to tell us which pointPerfectCorrectionsSource to use.
         //   We identify the service level during ZTP and record it to settings (pointPerfectService)
 
-        systemPrintf("1) PointPerfect Service: %s\r\n", ppServices.serviceName[settings.pointPerfectService]);
+        systemPrintf("1) Select PointPerfect Service: %s\r\n", ppServices[settings.pointPerfectService].serviceName);
 
 #ifdef COMPILE_NETWORK
         if (pointPerfectIsEnabled())
@@ -234,15 +234,7 @@ void menuPointPerfect()
 
         if (incoming == 1)
         {
-            settings.pointPerfectService++;
-            if (settings.pointPerfectService > ppServiceCount)
-                settings.pointPerfectService = 0;
-
-            // Many functions depend on settings.enablePointPerfectCorrections so continue to support it
-            settings.enablePointPerfectCorrections = settings.pointPerfectService;
-
-            restartRover = true; // Require a rover restart to enable / disable RTCM for PPL
-            settings.requestKeyUpdate = settings.enablePointPerfectCorrections; // Force a key update - or don't
+            menuPointPerfectSelectService();
         }
 
 #ifdef COMPILE_NETWORK
@@ -299,6 +291,63 @@ void menuPointPerfect()
             if (settings.geographicRegion >= numRegionalAreas)
                 settings.geographicRegion = 0;
         }
+        else if (incoming == 'x')
+            break;
+        else if (incoming == INPUT_RESPONSE_GETCHARACTERNUMBER_EMPTY)
+            break;
+        else if (incoming == INPUT_RESPONSE_GETCHARACTERNUMBER_TIMEOUT)
+            break;
+        else
+            printUnknown(incoming);
+    }
+
+    if (strlen(settings.pointPerfectClientID) > 0)
+    {
+        gnss->applyPointPerfectKeys();
+    }
+
+    clearBuffer(); // Empty buffer of any newline chars
+}
+
+// Present user with list of available services, list depends on platform
+void menuPointPerfectSelectService()
+{
+    while (1)
+    {
+        systemPrintln();
+        systemPrintln("Menu: PointPerfect Service Selection");
+        systemPrintln("Select from the following PointPerfect services compatible with this device:");
+
+        for (int x = 0; x < ppServiceCount; x++)
+        {
+            if (productVariantSupportsService(x))
+                systemPrintf("%d) %s\r\n", x + 1, ppServices[x].serviceName);
+        }
+
+        systemPrintln("x) Exit");
+
+        byte incoming = getUserInputCharacterNumber();
+
+        if (incoming >= 1 && incoming <= ppServiceCount)
+        {
+            if (productVariantSupportsService(incoming - 1) == true) // Align incoming to array
+            {
+                settings.pointPerfectService = incoming - 1; // Align incoming to array
+
+                // Many functions depend on settings.enablePointPerfectCorrections so continue to support it
+                settings.enablePointPerfectCorrections = settings.pointPerfectService;
+
+                restartRover = true; // Require a rover restart to enable / disable RTCM for PPL
+                settings.requestKeyUpdate = settings.enablePointPerfectCorrections; // Force a key update - or don't
+
+                break; // Exit menu once selected
+            }
+            else
+            {
+                printUnknown(incoming);
+            }
+        }
+
         else if (incoming == 'x')
             break;
         else if (incoming == INPUT_RESPONSE_GETCHARACTERNUMBER_EMPTY)
@@ -689,7 +738,8 @@ void updateLBandCorrections()
                 if (settings.debugCorrections == true)
                     systemPrintf("ZED restarts: %d Time remaining before Float lock forced restart: %ds\r\n",
                                  floatLockRestarts,
-                                 settings.lbandFixTimeout_seconds - ((millis() - lbandTimeFloatStarted) / MILLISECONDS_IN_A_SECOND));
+                                 settings.lbandFixTimeout_seconds -
+                                     ((millis() - lbandTimeFloatStarted) / MILLISECONDS_IN_A_SECOND));
             }
 
             if (settings.lbandFixTimeout_seconds > 0)
@@ -924,8 +974,7 @@ void createZtpRequest(String &str)
         {
             char tokenChar = tokenString[4];
             tokenString[4] = 0; // Clip token to first four characters
-            systemPrintf("Using token: %s - 0x%s\r\n", ztpServiceName[ztpServiceLevelLookup(attemptNumber)],
-                         tokenString);
+            systemPrintf("Using token: %s\r\n", tokenString);
             tokenString[4] = tokenChar; // Return token to original state
         }
     }
@@ -1205,16 +1254,14 @@ enum ProvisioningStates
 };
 static volatile uint8_t provisioningState = PROVISIONING_OFF;
 
-const char *const provisioningStateName[] = {"PROVISIONING_OFF",
-                                             "PROVISIONING_CHECK_REMAINING",
-                                             "PROVISIONING_WAIT_FOR_NETWORK",
-                                             "PROVISIONING_STARTED",
+const char *const provisioningStateName[] = {"PROVISIONING_OFF", "PROVISIONING_CHECK_REMAINING",
+                                             "PROVISIONING_WAIT_FOR_NETWORK", "PROVISIONING_STARTED",
                                              "PROVISIONING_KEYS_REMAINING"};
 
 const int provisioningStateNameEntries = sizeof(provisioningStateName) / sizeof(provisioningStateName[0]);
 
 // Determine if provisioning is enabled
-bool provisioningEnabled(const char ** line)
+bool provisioningEnabled(const char **line)
 {
     bool enabled;
 
@@ -1233,10 +1280,10 @@ bool provisioningEnabled(const char ** line)
             break;
 
         // Determine if provisioning should start
-        provisioningRunning = settings.requestKeyUpdate // Manual update
-            || (provisioningStartTime_millis == 0) // Update keys at boot
-            || (settings.autoKeyRenewal && // Auto renewal time (24 hours expired)
-                ((millis() - provisioningStartTime_millis) > MILLISECONDS_IN_A_DAY));
+        provisioningRunning = settings.requestKeyUpdate              // Manual update
+                              || (provisioningStartTime_millis == 0) // Update keys at boot
+                              || (settings.autoKeyRenewal &&         // Auto renewal time (24 hours expired)
+                                  ((millis() - provisioningStartTime_millis) > MILLISECONDS_IN_A_DAY));
 
         // Determine if key provisioning is enabled
         enabled = provisioningRunning;
@@ -1258,8 +1305,7 @@ bool provisioningKeysNeeded()
         keysNeeded = true;
 
         // If we don't have certs or keys, begin zero touch provisioning
-        if ((settings.pointPerfectService != ZTP_SERVICE_RTCM) &&
-            (!checkCertificates() || strlen(settings.pointPerfectCurrentKey) == 0 ||
+        if ((!checkCertificates() || strlen(settings.pointPerfectCurrentKey) == 0 ||
              strlen(settings.pointPerfectNextKey) == 0))
         {
             if (settings.debugPpCertificate)
@@ -1284,8 +1330,7 @@ bool provisioningKeysNeeded()
         }
 
         // RTC is online. Determine days until next key expires
-        int daysRemaining =
-            daysFromEpoch(settings.pointPerfectNextKeyStart + settings.pointPerfectNextKeyDuration + 1);
+        int daysRemaining = daysFromEpoch(settings.pointPerfectNextKeyStart + settings.pointPerfectNextKeyDuration + 1);
 
         if (settings.debugPpCertificate)
             systemPrintf("Days until keys expire: %d\r\n", daysRemaining);
@@ -1339,7 +1384,7 @@ void provisioningSetState(uint8_t newState)
     }
 }
 
-void provisioningStop(const char * file, uint32_t line)
+void provisioningStop(const char *file, uint32_t line)
 {
     // Done with this request attempt
     settings.requestKeyUpdate = false;
@@ -1356,7 +1401,7 @@ void provisioningStop(const char * file, uint32_t line)
 void provisioningUpdate()
 {
     bool enabled;
-    const char * line = "";
+    const char *line = "";
     const unsigned long provisioningTimeout_ms = 2 * MILLISECONDS_IN_A_MINUTE;
     static bool rtcOnline;
 
@@ -1366,8 +1411,7 @@ void provisioningUpdate()
 
     // Determine if the RTC was properly initialized
     if (rtcOnline == false)
-        rtcOnline = online.rtc || settings.requestKeyUpdate
-                  || (millis() > provisioningTimeout_ms);
+        rtcOnline = online.rtc || settings.requestKeyUpdate || (millis() > provisioningTimeout_ms);
 
     switch (provisioningState)
     {
@@ -1508,7 +1552,7 @@ void provisioningUpdate()
 
         gnss->applyPointPerfectKeys(); // Send current keys, if available, to GNSS
 
-        recordSystemSettings();            // Record these settings to unit
+        recordSystemSettings(); // Record these settings to unit
 
         // Done with the network
         provisioningStop(__FILE__, __LINE__);
@@ -1519,8 +1563,7 @@ void provisioningUpdate()
     // Periodically display the provisioning state
     if (PERIODIC_DISPLAY(PD_PROVISIONING_STATE))
     {
-        systemPrintf("Provisioning state: %s%s\r\n",
-                     provisioningStateName[provisioningState], line);
+        systemPrintf("Provisioning state: %s%s\r\n", provisioningStateName[provisioningState], line);
         PERIODIC_CLEAR(PD_PROVISIONING_STATE);
     }
 }
