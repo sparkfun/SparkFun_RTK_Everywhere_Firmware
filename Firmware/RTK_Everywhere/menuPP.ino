@@ -784,6 +784,61 @@ bool productVariantSupportsLbandNA()
     return false;
 }
 
+bool productVariantSupportsLbandGlobal()
+{
+    if (productVariant == RTK_EVK)
+        return false;
+    if (productVariant == RTK_FACET_V2)
+        return false; // TODO - will require specific module lookup
+    if (productVariant == RTK_FACET_MOSAIC)
+        return true;
+    if (productVariant == RTK_TORCH)
+        return false;
+    if (productVariant == RTK_POSTCARD)
+        return false;
+
+    systemPrintln("Uncaught productVariantSupportsLbandGlobal()");
+    return false;
+}
+
+// Given a service nick name, return whether this platform supports it
+// Helps with printing the menu
+bool productVariantSupportsService(uint8_t ppNickName)
+{
+    if (ppNickName == PP_NICKNAME_DISABLED)
+        return true;
+    else if (ppNickName == PP_NICKNAME_FLEX_RTCM)
+    {
+        // All platforms support RTCM over NTRIP/TCP
+        return true;
+    }
+    else if (ppNickName == PP_NICKNAME_FLEX_RTCM)
+    {
+        // All platforms support RTCM over NTRIP/TCP
+        return true;
+    }
+    else if (ppNickName == PP_NICKNAME_FLEX_LBAND_NA)
+    {
+        return (productVariantSupportsLbandNA());
+    }
+    else if (ppNickName == PP_NICKNAME_GLOBAL)
+    {
+        return (productVariantSupportsLbandGlobal());
+    }
+    else if (ppNickName == PP_NICKNAME_LIVE)
+    {
+        // All platforms support RTCM over NTRIP
+        return true;
+    }
+    else if (ppNickName == PP_NICKNAME_IP_MQTT)
+    {
+        // All platforms support SPARTN over MQTT
+        return true;
+    }
+
+    return false; // Default
+}
+
 // Given a GPS Epoch, return a DD/MM/YYYY string
 const char *printDateFromGPSEpoch(long long gpsEpoch)
 {
