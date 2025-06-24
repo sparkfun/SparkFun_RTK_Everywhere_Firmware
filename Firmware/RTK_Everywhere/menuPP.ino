@@ -104,7 +104,7 @@ void menuPointPerfect()
             systemPrintf("Time to first RTK Fix: %ds Restarts: %d\r\n",
                          rtkTimeToFixMs / MILLISECONDS_IN_A_SECOND, floatLockRestarts);
 
-        if (ppServiceUsesKeys() == true)
+        if (pointPerfectServiceUsesKeys() == true)
         {
             if (settings.debugCorrections == true)
                 systemPrintf("settings.pointPerfectKeyDistributionTopic: %s\r\n",
@@ -167,7 +167,7 @@ void menuPointPerfect()
 #ifdef COMPILE_NETWORK
         if (pointPerfectIsEnabled())
         {
-            if (ppServiceUsesKeys() == false)
+            if (pointPerfectServiceUsesKeys() == false)
             {
                 systemPrint("2) Update Credentials: ");
                 if (settings.requestKeyUpdate == true)
@@ -251,33 +251,33 @@ void menuPointPerfect()
             settings.autoKeyRenewal ^= 1;
             settings.requestKeyUpdate = settings.autoKeyRenewal; // Force a key update - or don't
         }
-        else if (incoming == 3 && pointPerfectIsEnabled() && ppServiceUsesKeys() == true)
+        else if (incoming == 3 && pointPerfectIsEnabled() && pointPerfectServiceUsesKeys() == true)
         {
             settings.autoKeyRenewal ^= 1;
             settings.requestKeyUpdate = settings.autoKeyRenewal; // Force a key update - or don't
         }
-        else if (incoming == 4 && pointPerfectIsEnabled() && ppServiceUsesKeys() == true)
+        else if (incoming == 4 && pointPerfectIsEnabled() && pointPerfectServiceUsesKeys() == true)
         {
             settings.requestKeyUpdate ^= 1;
         }
-        else if (incoming == 5 && pointPerfectIsEnabled() && ppServiceUsesKeys() == true)
+        else if (incoming == 5 && pointPerfectIsEnabled() && pointPerfectServiceUsesKeys() == true)
         {
             settings.useLocalizedDistribution ^= 1;
         }
         else if (incoming == 6 && pointPerfectIsEnabled() && settings.useLocalizedDistribution &&
-                 ppServiceUsesKeys() == true)
+                 pointPerfectServiceUsesKeys() == true)
         {
             settings.localizedDistributionTileLevel++;
             if (settings.localizedDistributionTileLevel >= LOCALIZED_DISTRIBUTION_TILE_LEVELS)
                 settings.localizedDistributionTileLevel = 0;
         }
         else if (incoming == 'a' && pointPerfectIsEnabled() && productVariantSupportsAssistNow() &&
-                 ppServiceUsesKeys() == true)
+                 pointPerfectServiceUsesKeys() == true)
         {
             settings.useAssistNow ^= 1;
         }
 #endif // COMPILE_NETWORK
-        else if (incoming == 'c' && pointPerfectIsEnabled() && ppServiceUsesKeys() == true)
+        else if (incoming == 'c' && pointPerfectIsEnabled() && pointPerfectServiceUsesKeys() == true)
         {
             settings.pointPerfectCurrentKey[0] = 0;
             settings.pointPerfectNextKey[0] = 0;
@@ -289,11 +289,11 @@ void menuPointPerfect()
                      btMACAddress[2], btMACAddress[3], btMACAddress[4], btMACAddress[5], productVariant);
             systemPrintf("Device ID: %s\r\n", hardwareID);
         }
-        else if (incoming == 'k' && pointPerfectIsEnabled() && ppServiceUsesKeys() == true)
+        else if (incoming == 'k' && pointPerfectIsEnabled() && pointPerfectServiceUsesKeys() == true)
         {
             menuPointPerfectKeys();
         }
-        else if (incoming == 'g' && pointPerfectIsEnabled() && ppServiceUsesKeys() == true)
+        else if (incoming == 'g' && pointPerfectIsEnabled() && pointPerfectServiceUsesKeys() == true)
         {
             settings.geographicRegion++;
             if (settings.geographicRegion >= numRegionalAreas)
