@@ -1098,6 +1098,36 @@ long long thingstreamEpochToGPSEpoch(long long startEpoch)
     return (gpsEpoch);
 }
 
+// Given a token buffer, decide which token to use for ZTP based on service level
+void ztpGetToken(char *tokenString)
+{
+    // pointperfectCreateTokenString() converts uint8_t array into string with dashes in spots
+    // We must assume u-blox will not change the position of their dashes or length of their token
+
+    if (settings.pointPerfectService == PP_NICKNAME_FLEX_RTCM)
+        pointperfectCreateTokenString(tokenString, (uint8_t *)ppRtcmToken, sizeof(ppRtcmToken));
+
+    else if (settings.pointPerfectService == PP_NICKNAME_FLEX_LBAND_NA)
+        pointperfectCreateTokenString(tokenString, (uint8_t *)ppLbandToken, sizeof(ppLbandToken));
+
+    else if (settings.pointPerfectService == PP_NICKNAME_GLOBAL)
+        pointperfectCreateTokenString(tokenString, (uint8_t *)ppGlobalToken, sizeof(ppGlobalToken));
+
+    else if (settings.pointPerfectService == PP_NICKNAME_LIVE)
+        pointperfectCreateTokenString(tokenString, (uint8_t *)ppLiveToken, sizeof(ppLiveToken));
+
+    else if (settings.pointPerfectService == PP_NICKNAME_IP_MQTT)
+        pointperfectCreateTokenString(tokenString, (uint8_t *)ppIpToken, sizeof(ppIpToken)); // Deprecated
+
+    // ppLbandIpToken //Deprecated - remove from use once all LBand+IP users are moved over to L-Band
+
+    else
+    {
+        systemPrintln("Unknown hardware for GetToken");
+        return;
+    }
+}
+
 enum ProvisioningStates
 {
     PROVISIONING_OFF = 0,
@@ -1330,7 +1360,7 @@ void provisioningUpdate()
             httpClientModeNeeded = false; // Tell HTTP_Client to give up
             recordSystemSettings();       // Make sure the new cert and keys are recorded
 
-            if (ppServiceUsesKeys() == true)
+            if (pointPerfectServiceUsesKeys() == true)
                 systemPrintln("Keys successfully updated!");
             else
                 systemPrintln("Credentials successfully updated!");
@@ -1339,30 +1369,10 @@ void provisioningUpdate()
         }
         else if (ztpResponse == ZTP_DEACTIVATED)
         {
-            char hardwareID[15];
-            snprintf(hardwareID, sizeof(hardwareID), "%02X%02X%02X%02X%02X%02X%02X", btMACAddress[0], btMACAddress[1],
-                     btMACAddress[2], btMACAddress[3], btMACAddress[4], btMACAddress[5], productVariant);
-
-            char landingPageUrl[200] = "";
-            if (productVariant == RTK_TORCH)
-                snprintf(landingPageUrl, sizeof(landingPageUrl),
-                         "or goto https://www.sparkfun.com/rtk_torch_registration ");
-            else if (productVariant == RTK_EVK)
-                snprintf(landingPageUrl, sizeof(landingPageUrl),
-                         "or goto https://www.sparkfun.com/rtk_evk_registration ");
-            else if (productVariant == RTK_POSTCARD)
-                snprintf(landingPageUrl, sizeof(landingPageUrl),
-                         "or goto https://www.sparkfun.com/rtk_postcard_registration ");
-            else if (productVariant == RTK_FACET_MOSAIC)
-                snprintf(landingPageUrl, sizeof(landingPageUrl),
-                         "or goto https://www.sparkfun.com/rtk_facet_mosaic_registration ");
-            else
-                systemPrintln("pointperfectProvisionDevice(): Platform missing landing page");
-
             systemPrintf("This device has been deactivated. Please contact "
-                         "support@sparkfun.com %sto renew the PointPerfect "
-                         "subscription. Please reference device ID: %s\r\n",
-                         landingPageUrl, hardwareID);
+                         "support@sparkfun.com or goto %s to renew the PointPerfect "
+                         "subscription. Please reference device ID: %X\r\n",
+                         platformRegistrationPageTable[productVariant], btMACAddress);
 
             httpClientModeNeeded = false; // Tell HTTP_Client to give up.
             displayAccountExpired(5 * MILLISECONDS_IN_A_SECOND);
@@ -1371,30 +1381,10 @@ void provisioningUpdate()
         }
         else if (ztpResponse == ZTP_NOT_WHITELISTED)
         {
-            char hardwareID[15];
-            snprintf(hardwareID, sizeof(hardwareID), "%02X%02X%02X%02X%02X%02X%02X", btMACAddress[0], btMACAddress[1],
-                     btMACAddress[2], btMACAddress[3], btMACAddress[4], btMACAddress[5], productVariant);
-
-            char landingPageUrl[200] = "";
-            if (productVariant == RTK_TORCH)
-                snprintf(landingPageUrl, sizeof(landingPageUrl),
-                         "or goto https://www.sparkfun.com/rtk_torch_registration ");
-            else if (productVariant == RTK_EVK)
-                snprintf(landingPageUrl, sizeof(landingPageUrl),
-                         "or goto https://www.sparkfun.com/rtk_evk_registration ");
-            else if (productVariant == RTK_POSTCARD)
-                snprintf(landingPageUrl, sizeof(landingPageUrl),
-                         "or goto https://www.sparkfun.com/rtk_postcard_registration ");
-            else if (productVariant == RTK_FACET_MOSAIC)
-                snprintf(landingPageUrl, sizeof(landingPageUrl),
-                         "or goto https://www.sparkfun.com/rtk_facet_mosaic_registration ");
-            else
-                systemPrintln("pointperfectProvisionDevice(): Platform missing landing page");
-
             systemPrintf("This device is not whitelisted. Please contact "
-                         "support@sparkfun.com %sto get the subscription "
-                         "activated. Please reference device ID: %s\r\n",
-                         landingPageUrl, hardwareID);
+                         "support@sparkfun.com or goto %s to get the subscription "
+                         "activated. Please reference device ID: %X\r\n",
+                         platformRegistrationPageTable[productVariant], btMACAddress);
 
             httpClientModeNeeded = false; // Tell HTTP_Client to give up.
             displayNotListed(5 * MILLISECONDS_IN_A_SECOND);
