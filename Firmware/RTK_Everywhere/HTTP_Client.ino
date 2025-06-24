@@ -22,12 +22,6 @@ HTTP_Client.ino
 // be less than the pointperfectProvisionDevice timeout.
 static const int MAX_HTTP_CLIENT_CONNECTION_ATTEMPTS = 3;
 
-// Available in menuPP.ino
-extern const uint8_t ppLbandToken[16];
-extern const uint8_t ppIpToken[16];
-extern const uint8_t ppLbandIpToken[16];
-extern const uint8_t ppRtcmToken[16];
-
 // Define the HTTP client states
 enum HTTPClientState
 {
@@ -52,73 +46,11 @@ const char *const httpClientStateName[] = {
 
 const int httpClientStateNameEntries = sizeof(httpClientStateName) / sizeof(httpClientStateName[0]);
 
-// PointPerfect offers are variety of services
-// Here we capture the various service levels and types
-
-enum PP_ModelType
-{
-    PP_MODEL_SSR = 0, // State Space Representation style model (mathematical model covering large geographic area)
-    PP_MODEL_OSR,     // Observation Space Representation (lots of static reference stations)
-    PP_MODEL_NONE,
-};
-
-enum PP_DeliveryMethod
-{
-    PP_DELIVERY_NTRIP = 0,    // Delivery over an internet connection (essentially TCP)
-    PP_DELIVERY_MQTT,         // Delivery over an internet connection using MQTT (deprecated)
-    PP_DELIVERY_LBAND_NA,     // Delivery over L-Band signal, North America coverage
-    PP_DELIVERY_LBAND_GLOBAL, // Delivery over L-Band signal, global coverage
-    PP_DELIVERY_NONE,
-};
-
-enum PP_Encoding
-{
-    PP_ENCODING_SPARTN = 0, // Low bit rate, u-blox proprietary
-    PP_ENCODING_RTCM,       // Classic RTCM encoding that nearly all RTK receivers can understand
-    PP_ENCODING_NONE,
-};
-
-// PointPerfect offers are variety of services
-// Each service will have a printable name
-typedef struct
-{
-    const char serviceName[23];
-    PP_ModelType modelType;
-    PP_DeliveryMethod deliveryMethod;
-    PP_Encoding encoding;
-} PP_Service;
-
-// Static array containing all the compatible messages
-// Rate = Output once every N position fix(es).
-const PP_Service ppServices[] = {
-    {"Disabled", PP_MODEL_NONE, PP_DELIVERY_NONE, PP_ENCODING_NONE},            // Do not use PointPerfect corrections
-    {"Flex RTCM", PP_MODEL_SSR, PP_DELIVERY_NTRIP, PP_ENCODING_RTCM},           // Uses "ZTP-RTCM-100" profile
-    {"Flex L-Band NA", PP_MODEL_SSR, PP_DELIVERY_LBAND_NA, PP_ENCODING_SPARTN}, // Uses "ZTP-LBand" profile
-    {"Global", PP_MODEL_SSR, PP_DELIVERY_LBAND_GLOBAL, PP_ENCODING_SPARTN},     // Uses "ZTP-Global" profile
-    {"Live", PP_SERVICE_OSR, PP_DELIVERY_NTRIP, PP_ENCODING_RTCM},              // Uses "ZTP-Live" profile
-    {"Flex MQTT (Deprecated)", PP_MODEL_SSR, PP_DELIVERY_MQTT, PP_ENCODING_SPARTN}, // Deprecated
-    // "ZTP-IP" profile deprecated - This was used for
-    // "ZTP-RTCM-100-Trial" profile deprecated
-    // "ZTP-LBand+IP" profile deprecated
-};
-
-enum PP_NickName
-{
-    PP_NICKNAME_DISABLED = 0,
-    PP_NICKNAME_FLEX_RTCM,
-    PP_NICKNAME_FLEX_LBAND_NA,
-    PP_NICKNAME_GLOBAL,
-    PP_NICKNAME_LIVE,
-    PP_NICKNAME_IP_MQTT,
-};
-
-const int ppServiceCount = sizeof(ppServices) / sizeof(ppServices[0]);
-
-int ztpPlatformMaxProfiles = 0; // Depending on the platform there are a different number of ZTP profiles to test
+//int ztpPlatformMaxProfiles = 0; // Depending on the platform there are a different number of ZTP profiles to test
 ZtpResponse ztpResponse =
     ZTP_NOT_STARTED; // Used in menuPP. This is the overall result of the ZTP process of testing multiple tokens
-static ZtpResponse ztpInterimResponse[4] = {
-    ZTP_NOT_STARTED}; // Individual responses to token attempts. Local only. Size is manual count of max tokens.
+// static ZtpResponse ztpInterimResponse[4] = {
+    // ZTP_NOT_STARTED}; // Individual responses to token attempts. Local only. Size is manual count of max tokens.
 
 //----------------------------------------
 // Locals
@@ -208,7 +140,7 @@ bool httpClientEnabled(const char ** line)
         enableHttpClient = false;
 
         // HTTP requires use of point perfect corrections
-        if (settings.enablePointPerfectCorrections == false)
+        if (pointPerfectIsEnabled() == false)
         {
             if (line)
                 *line = ", PointPerfect corrections disabled!";
@@ -628,7 +560,7 @@ void httpClientUpdate()
                     if (settings.debugCorrections || settings.debugHttpClientData)
                         pointperfectPrintNtripInformation("HTTP Client");
 
-                    ztpInterimResponse[ztpAttempt] = ZTP_SUCCESS;
+                    //ztpInterimResponse[ztpAttempt] = ZTP_SUCCESS;
 
                     ztpResponse = ZTP_SUCCESS; // Report success to provisioningUpdate()
 
@@ -717,7 +649,7 @@ void httpClientUpdate()
 
                         // displayKeysUpdated();
 
-                        ztpInterimResponse[ztpAttempt] = ZTP_SUCCESS;
+                        //ztpInterimResponse[ztpAttempt] = ZTP_SUCCESS;
 
                         ztpResponse = ZTP_SUCCESS; // Report success to provisioningUpdate()
 
@@ -753,52 +685,6 @@ void httpClientValidateTables()
 {
     if (httpClientStateNameEntries != HTTP_CLIENT_STATE_MAX)
         reportFatalError("Fix httpClientStateNameEntries to match HTTPClientState");
-}
-
-// Given a token buffer and an attempt number, decide which token to use for ZTP
-// Not all platforms can handle all service levels so this skips service levels that don't apply
-// There are multiple service levels:
-//   L-Band
-//   RTCM
-//   L-Band+IP
-//   IP
-//   RTCM Trial
-void ztpGetToken(char *tokenString)
-{
-    // pointperfectCreateTokenString() convert uint8_t array into string with dashes in spots
-    // We must assume u-blox will not change the position of their dashes or length of their token
-
-    if (settings.pointPerfectService == PP_NICKNAME_FLEX_RTCM)
-        pointperfectCreateTokenString(tokenString, (uint8_t *)ppRtcmToken, sizeof(ppRtcmToken));
-
-    else if (settings.pointPerfectService == PP_NICKNAME_FLEX_LBAND_NA)
-        pointperfectCreateTokenString(tokenString, (uint8_t *)ppLbandToken, sizeof(ppLbandToken));
-
-    else if (settings.pointPerfectService == PP_NICKNAME_GLOBAL)
-        pointperfectCreateTokenString(tokenString, (uint8_t *)ppGlobalToken, sizeof(ppGlobalToken));
-
-    else if (settings.pointPerfectService == PP_NICKNAME_LIVE)
-        pointperfectCreateTokenString(tokenString, (uint8_t *)ppLiveToken, sizeof(ppLiveToken));
-
-    else if (settings.pointPerfectService == PP_NICKNAME_IP_MQTT)
-        pointperfectCreateTokenString(tokenString, (uint8_t *)ppIpToken, sizeof(ppIpToken)); // Deprecated
-
-    // ppLbandIpToken //Deprecated - remove from use once all LBand+IP users are moved over to L-Band
-
-    else
-    {
-        systemPrintln("Unknown hardware for GetToken");
-        return;
-    }
-}
-
-// Determine if this service type uses keys
-bool ppServiceUsesKeys()
-{
-    if (settings.pointPerfectService == PP_NICKNAME_FLEX_LBAND_NA ||
-        settings.pointPerfectService == PP_NICKNAME_GLOBAL || settings.pointPerfectService == PP_NICKNAME_IP_MQTT)
-        return true;
-    return false;
 }
 
 #endif // COMPILE_HTTP_CLIENT

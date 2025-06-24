@@ -155,6 +155,7 @@ void mqttClientValidateTables() {}
 void httpClientPrintStatus() {}
 void httpClientUpdate() {}
 void httpClientValidateTables() {}
+bool pointPerfectServiceUsesKeys() {return(false);}
 
 #endif   // COMPILE_HTTP_CLIENT
 
