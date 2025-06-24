@@ -28,6 +28,69 @@ static const uint8_t ppLiveToken[16] = {POINTPERFECT_LIVE_TOKEN};        // Toke
 static unsigned long provisioningStartTime_millis;
 static bool provisioningRunning;
 
+// PointPerfect offers are variety of services
+// Here we capture the various service levels and types
+
+enum PP_ModelType
+{
+    PP_MODEL_SSR = 0, // State Space Representation style model (mathematical model covering large geographic area)
+    PP_MODEL_OSR,     // Observation Space Representation (lots of static reference stations)
+    PP_MODEL_NONE,
+};
+
+enum PP_DeliveryMethod
+{
+    PP_DELIVERY_NTRIP = 0,    // Delivery over an internet connection (essentially TCP)
+    PP_DELIVERY_MQTT,         // Delivery over an internet connection using MQTT (deprecated)
+    PP_DELIVERY_LBAND_NA,     // Delivery over L-Band signal, North America coverage
+    PP_DELIVERY_LBAND_GLOBAL, // Delivery over L-Band signal, global coverage
+    PP_DELIVERY_NONE,
+};
+
+enum PP_Encoding
+{
+    PP_ENCODING_SPARTN = 0, // Low bit rate, u-blox proprietary
+    PP_ENCODING_RTCM,       // Classic RTCM encoding that nearly all RTK receivers can understand
+    PP_ENCODING_NONE,
+};
+
+// PointPerfect offers are variety of services
+// Each service will have a printable name
+typedef struct
+{
+    const char serviceName[23];
+    PP_ModelType modelType;
+    PP_DeliveryMethod deliveryMethod;
+    PP_Encoding encoding;
+} PP_Service;
+
+// Static array containing all the compatible messages
+// Rate = Output once every N position fix(es).
+const PP_Service ppServices[] = {
+    {"Disabled", PP_MODEL_NONE, PP_DELIVERY_NONE, PP_ENCODING_NONE},            // Do not use PointPerfect corrections
+    {"Flex RTCM", PP_MODEL_SSR, PP_DELIVERY_NTRIP, PP_ENCODING_RTCM},           // Uses "ZTP-RTCM-100" profile
+    {"Flex L-Band NA", PP_MODEL_SSR, PP_DELIVERY_LBAND_NA, PP_ENCODING_SPARTN}, // Uses "ZTP-LBand" profile
+    {"Global", PP_MODEL_SSR, PP_DELIVERY_LBAND_GLOBAL, PP_ENCODING_SPARTN},     // Uses "ZTP-Global" profile
+    {"Live", PP_MODEL_OSR, PP_DELIVERY_NTRIP, PP_ENCODING_RTCM},                // Uses "ZTP-Live" profile
+    {"Flex MQTT (Deprecated)", PP_MODEL_SSR, PP_DELIVERY_MQTT, PP_ENCODING_SPARTN}, // Deprecated
+    // "ZTP-IP" profile deprecated - This was used for
+    // "ZTP-RTCM-100-Trial" profile deprecated
+    // "ZTP-LBand+IP" profile deprecated
+};
+
+enum PP_NickName
+{
+    PP_NICKNAME_DISABLED = 0,
+    PP_NICKNAME_FLEX_RTCM,
+    PP_NICKNAME_FLEX_LBAND_NA,
+    PP_NICKNAME_GLOBAL,
+    PP_NICKNAME_LIVE,
+    PP_NICKNAME_IP_MQTT,
+    PP_NICKNAME_MAX,
+};
+
+const int ppServiceCount = sizeof(ppServices) / sizeof(ppServices[0]);
+
 // Provision device on ThingStream
 // Download keys
 void menuPointPerfect()
@@ -662,6 +725,13 @@ void updateLBandCorrections()
     }
 
 #endif // COMPILE_L_BAND
+}
+
+void pointPerfectVerifyTables()
+{
+    // Verify the table length
+    if (ppServiceCount != PP_NICKNAME_MAX)
+        reportFatalError("Please fix ppServices table to match PP_NickNames");
 }
 
 bool pointPerfectIsEnabled()

@@ -703,6 +703,8 @@ void verifyTables()
         reportFatalError("Fix platformPreviousStateTable to match ProductVariant");
     if (platformProvisionTableEntries != (RTK_UNKNOWN + 1))
         reportFatalError("Fix platformProvisionTable to match ProductVariant");
+    if (platformRegistrationPageTableEntries != (RTK_UNKNOWN + 1))
+        reportFatalError("Fix platformRegistrationPageTable to match ProductVariant");
 
     // Verify the measurement scales
     if (measurementScaleEntries != MEASUREMENT_UNITS_MAX)
@@ -723,6 +725,7 @@ void verifyTables()
     mosaicVerifyTables();
     correctionVerifyTables();
     webServerVerifyTables();
+    pointPerfectVerifyTables();
 #ifdef COMPILE_WIFI
     wifi.verifyTables();
 #endif  // COMPILE_WIFI
