@@ -736,7 +736,18 @@ void pointPerfectVerifyTables()
 
 bool pointPerfectIsEnabled()
 {
-    return (settings.pointPerfectService);
+    if (settings.pointPerfectService > PP_NICKNAME_DISABLED)
+        return true;
+    return false;
+}
+
+// Determine if this service type uses keys
+bool pointPerfectServiceUsesKeys()
+{
+    if (settings.pointPerfectService == PP_NICKNAME_FLEX_LBAND_NA ||
+        settings.pointPerfectService == PP_NICKNAME_GLOBAL || settings.pointPerfectService == PP_NICKNAME_IP_MQTT)
+        return true;
+    return false;
 }
 
 bool productVariantSupportsAssistNow()
