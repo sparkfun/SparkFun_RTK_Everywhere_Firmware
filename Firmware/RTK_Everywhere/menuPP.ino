@@ -1074,7 +1074,7 @@ void pointperfectCreateTokenString(char *tokenBuffer, uint8_t *tokenArray, int t
 }
 
 // Check certificate and privatekey for valid formatting
-// Return false if improperly formatted
+// Return false if improperly formatted or do not exist
 bool checkCertificates()
 {
     bool validCertificates = true;
@@ -1098,7 +1098,8 @@ bool checkCertificates()
     memset(certificateContents, 0, MQTT_CERT_SIZE);
     if (!loadFile("certificate", certificateContents, settings.debugPpCertificate))
     {
-        systemPrintf("ERROR: Failed to open the certificate file\r\n");
+        if (settings.debugPpCertificate)
+            systemPrintf("ERROR: Failed to open the certificate file\r\n");
         validCertificates = false;
     }
     else if (checkCertificateValidity(certificateContents, strlen(certificateContents)) == false)
@@ -1112,7 +1113,8 @@ bool checkCertificates()
     memset(keyContents, 0, MQTT_CERT_SIZE);
     if (!loadFile("privateKey", keyContents, settings.debugPpCertificate))
     {
-        systemPrintf("ERROR: Failed to open the private key file\r\n");
+        if (settings.debugPpCertificate)
+            systemPrintf("ERROR: Failed to open the private key file\r\n");
         validCertificates = false;
     }
     else if (checkPrivateKeyValidity(keyContents, strlen(keyContents)) == false)
