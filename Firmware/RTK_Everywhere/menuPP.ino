@@ -1315,6 +1315,12 @@ bool provisioningKeysNeeded()
     {
         keysNeeded = true;
 
+        if (pointPerfectServiceUsesKeys() == false)
+        {
+            keysNeeded = false;
+            break;
+        }
+
         // If we don't have certs or keys, begin zero touch provisioning
         if ((!checkCertificates() || strlen(settings.pointPerfectCurrentKey) == 0 ||
              strlen(settings.pointPerfectNextKey) == 0))
