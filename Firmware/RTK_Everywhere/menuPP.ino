@@ -68,7 +68,7 @@ typedef struct
 // Rate = Output once every N position fix(es).
 const PP_Service ppServices[] = {
     {"Disabled", PP_MODEL_NONE, PP_DELIVERY_NONE, PP_ENCODING_NONE},            // Do not use PointPerfect corrections
-    {"Flex RTCM", PP_MODEL_SSR, PP_DELIVERY_NTRIP, PP_ENCODING_RTCM},           // Uses "ZTP-RTCM-100" profile
+    {"Flex NTRIP/RTCM", PP_MODEL_SSR, PP_DELIVERY_NTRIP, PP_ENCODING_RTCM},     // Uses "ZTP-RTCM-100" profile
     {"Flex L-Band NA", PP_MODEL_SSR, PP_DELIVERY_LBAND_NA, PP_ENCODING_SPARTN}, // Uses "ZTP-LBand" profile
     {"Global", PP_MODEL_SSR, PP_DELIVERY_LBAND_GLOBAL, PP_ENCODING_SPARTN},     // Uses "ZTP-Global" profile
     {"Live", PP_MODEL_OSR, PP_DELIVERY_NTRIP, PP_ENCODING_RTCM},                // Uses "ZTP-Live" profile
@@ -277,10 +277,7 @@ void menuPointPerfect()
         }
         else if (incoming == 'i')
         {
-            char hardwareID[15];
-            snprintf(hardwareID, sizeof(hardwareID), "%02X%02X%02X%02X%02X%02X%02X", btMACAddress[0], btMACAddress[1],
-                     btMACAddress[2], btMACAddress[3], btMACAddress[4], btMACAddress[5], productVariant);
-            systemPrintf("Device ID: %s\r\n", hardwareID);
+            systemPrintf("Device ID: %s\r\n", printDeviceId());
         }
         else if (incoming == 'k' && pointPerfectIsEnabled() && pointPerfectServiceUsesKeys() == true)
         {
@@ -308,6 +305,16 @@ void menuPointPerfect()
     }
 
     clearBuffer(); // Empty buffer of any newline chars
+}
+
+// Returns string containing the MAC + product variant number
+const char *printDeviceId()
+{
+    static char deviceID[strlen("1234567890ABXX") + 1]; // 12 character MAC + 2 character variant + room for terminator
+    snprintf(deviceID, sizeof(deviceID), "%02X%02X%02X%02X%02X%02X%02X", btMACAddress[0], btMACAddress[1],
+             btMACAddress[2], btMACAddress[3], btMACAddress[4], btMACAddress[5], productVariant);
+
+    return ((const char *)deviceID);
 }
 
 // Present user with list of available services, list depends on platform
@@ -846,6 +853,7 @@ bool productVariantSupportsLbandNA()
 bool productVariantSupportsLbandGlobal()
 {
     return false; //As of June 2025, LBand Global is not yet available
+
     if (productVariant == RTK_EVK)
         return false;
     if (productVariant == RTK_FACET_V2)
@@ -952,20 +960,15 @@ void createZtpRequest(String &str)
     // Assume failure
     str = "";
 
-    // Get the hardware ID
-    char hardwareID[15];
-    snprintf(hardwareID, sizeof(hardwareID), "%02X%02X%02X%02X%02X%02X%02X", btMACAddress[0], btMACAddress[1],
-             btMACAddress[2], btMACAddress[3], btMACAddress[4], btMACAddress[5], productVariant);
-
     // Get the firmware version string
     char versionString[9];
     firmwareVersionGet(versionString, sizeof(versionString), false);
 
-    // Build the givenName:   Name vxx.yy - HardwareID
+    // Build the givenName:   Name vxx.yy - deviceID
     char givenName[100];
     memset(givenName, 0, sizeof(givenName));
     snprintf(givenName, sizeof(givenName), "%s %s - %s", platformProvisionTable[productVariant], versionString,
-             hardwareID);
+             printDeviceId());
     if (strlen(givenName) >= 50)
     {
         systemPrintf("Error: GivenName '%s' too long: %d bytes\r\n", givenName, strlen(givenName));
@@ -1001,7 +1004,7 @@ void createZtpRequest(String &str)
     JsonDocument json;
     json["tags"][0] = "ztp";
     json["token"] = tokenString;
-    json["hardwareId"] = hardwareID;
+    json["hardwareId"] = printDeviceId();
     json["givenName"] = givenName;
 
     // Debug the request
@@ -1014,7 +1017,7 @@ void createZtpRequest(String &str)
         systemPrintf("  token: %s\r\n", tokenString);
         tokenString[4] = tokenChar;
         systemPrintf("  givenName: %s\r\n", givenName);
-        systemPrintf("  hardwareId: %s\r\n", hardwareID);
+        systemPrintf("  hardwareId: %s\r\n", printDeviceId());
         systemPrintln("}");
     }
 
@@ -1502,8 +1505,8 @@ void provisioningUpdate()
         {
             systemPrintf("This device has been deactivated. Please contact "
                          "support@sparkfun.com or goto %s to renew the PointPerfect "
-                         "subscription. Please reference device ID: %X\r\n",
-                         platformRegistrationPageTable[productVariant], btMACAddress);
+                         "subscription. Please reference device ID: %s\r\n",
+                         platformRegistrationPageTable[productVariant], printDeviceId());
 
             httpClientModeNeeded = false; // Tell HTTP_Client to give up.
             displayAccountExpired(5 * MILLISECONDS_IN_A_SECOND);
@@ -1514,8 +1517,8 @@ void provisioningUpdate()
         {
             systemPrintf("This device is not whitelisted. Please contact "
                          "support@sparkfun.com or goto %s to get the subscription "
-                         "activated. Please reference device ID: %X\r\n",
-                         platformRegistrationPageTable[productVariant], btMACAddress);
+                         "activated. Please reference device ID: %s\r\n",
+                         platformRegistrationPageTable[productVariant], printDeviceId());
 
             httpClientModeNeeded = false; // Tell HTTP_Client to give up.
             displayNotListed(5 * MILLISECONDS_IN_A_SECOND);
@@ -1525,13 +1528,9 @@ void provisioningUpdate()
         else if (ztpResponse == ZTP_ALREADY_REGISTERED)
         {
             // Device is already registered to a different ZTP profile.
-            char hardwareID[15];
-            snprintf(hardwareID, sizeof(hardwareID), "%02X%02X%02X%02X%02X%02X%02X", btMACAddress[0], btMACAddress[1],
-                     btMACAddress[2], btMACAddress[3], btMACAddress[4], btMACAddress[5], productVariant);
-
             systemPrintf("This device is registered on a different profile. Please contact "
                          "support@sparkfun.com for more assistance. Please reference device ID: %s\r\n",
-                         hardwareID);
+                         printDeviceId());
 
             httpClientModeNeeded = false; // Tell HTTP_Client to give up.
             displayAlreadyRegistered(5 * MILLISECONDS_IN_A_SECOND);
