@@ -65,6 +65,7 @@ char *tempHolderPtr = nullptr;
 static int httpClientConnectionAttempts; // Count the number of connection attempts between restarts
 static uint32_t httpClientConnectionAttemptTimeout;
 static int httpClientConnectionAttemptsTotal;                   // Count the number of connection attempts absolutely
+static int httpClientConnectionAttemptsTotal; // Count the number of connection attempts absolutely
 
 static volatile uint32_t httpClientLastDataReceived; // Last time data was received via HTTP
 
@@ -101,7 +102,7 @@ bool httpClientConnectLimitReached()
     // Limit to max connection delay
     if (httpClientConnectionAttempts)
         httpClientConnectionAttemptTimeout = (5 * MILLISECONDS_IN_A_SECOND)
-                                           << (httpClientConnectionAttempts - 1);
+        httpClientConnectionAttemptTimeout = (5 * MILLISECONDS_IN_A_SECOND) << (httpClientConnectionAttempts - 1);
     if (httpClientConnectionAttemptTimeout > RTK_MAX_CONNECTION_MSEC)
         httpClientConnectionAttemptTimeout = httpClientConnectionAttemptTimeout;
     else
@@ -132,6 +133,7 @@ bool httpClientConnectLimitReached()
 // Determine if the HTTP client may be enabled
 //----------------------------------------
 bool httpClientEnabled(const char ** line)
+bool httpClientEnabled(const char **line)
 {
     bool enableHttpClient;
 
@@ -659,10 +661,9 @@ void httpClientUpdate()
     // Periodically display the HTTP client state
     if (PERIODIC_DISPLAY(PD_HTTP_CLIENT_STATE))
     {
-        const char * line = "";
+        const char *line = "";
         httpClientEnabled(&line);
-        systemPrintf("HTTP Client state: %s%s\r\n",
-                     httpClientStateName[httpClientState], line);
+        systemPrintf("HTTP Client state: %s%s\r\n", httpClientStateName[httpClientState], line);
         PERIODIC_CLEAR(PD_HTTP_CLIENT_STATE);
     }
 }
