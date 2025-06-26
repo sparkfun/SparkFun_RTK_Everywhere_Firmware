@@ -451,6 +451,7 @@ void httpClientUpdate()
             {
                 if (settings.debugCorrections || settings.debugHttpClientData)
                     systemPrintln("Device already registered to different profile");
+                ztpResponse = ZTP_ALREADY_REGISTERED;
                 httpClientSetState(HTTP_CLIENT_COMPLETE);
                 break;
             }
@@ -461,6 +462,7 @@ void httpClientUpdate()
                 if (settings.debugCorrections || settings.debugHttpClientData)
                     systemPrintln("Device has been deactivated.");
 
+                ztpResponse = ZTP_DEACTIVATED;
                 httpClientSetState(HTTP_CLIENT_COMPLETE);
                 break;
             }
@@ -470,15 +472,17 @@ void httpClientUpdate()
             {
                 if (settings.debugCorrections || settings.debugHttpClientData)
                     systemPrintln("Device not whitelisted.");
+                ztpResponse = ZTP_NOT_WHITELISTED;
                 httpClientSetState(HTTP_CLIENT_COMPLETE);
                 break;
             }
 
-            //Unknown. Report and shut down.
+            // Unknown. Report and shut down.
             else
             {
                 systemPrintf("HTTP response error %d: ", httpResponseCode);
                 systemPrintln(response.c_str());
+                ztpResponse = ZTP_UNKNOWN_ERROR;
                 httpClientSetState(HTTP_CLIENT_COMPLETE);
                 break;
             }
