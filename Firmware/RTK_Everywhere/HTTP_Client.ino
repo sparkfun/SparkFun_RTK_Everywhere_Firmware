@@ -46,11 +46,8 @@ const char *const httpClientStateName[] = {
 
 const int httpClientStateNameEntries = sizeof(httpClientStateName) / sizeof(httpClientStateName[0]);
 
-//int ztpPlatformMaxProfiles = 0; // Depending on the platform there are a different number of ZTP profiles to test
 ZtpResponse ztpResponse =
     ZTP_NOT_STARTED; // Used in menuPP. This is the overall result of the ZTP process of testing multiple tokens
-// static ZtpResponse ztpInterimResponse[4] = {
-    // ZTP_NOT_STARTED}; // Individual responses to token attempts. Local only. Size is manual count of max tokens.
 
 //----------------------------------------
 // Locals
@@ -64,7 +61,6 @@ char *tempHolderPtr = nullptr;
 // Throttle the time between connection attempts
 static int httpClientConnectionAttempts; // Count the number of connection attempts between restarts
 static uint32_t httpClientConnectionAttemptTimeout;
-static int httpClientConnectionAttemptsTotal;                   // Count the number of connection attempts absolutely
 static int httpClientConnectionAttemptsTotal; // Count the number of connection attempts absolutely
 
 static volatile uint32_t httpClientLastDataReceived; // Last time data was received via HTTP
@@ -101,7 +97,6 @@ bool httpClientConnectLimitReached()
 
     // Limit to max connection delay
     if (httpClientConnectionAttempts)
-        httpClientConnectionAttemptTimeout = (5 * MILLISECONDS_IN_A_SECOND)
         httpClientConnectionAttemptTimeout = (5 * MILLISECONDS_IN_A_SECOND) << (httpClientConnectionAttempts - 1);
     if (httpClientConnectionAttemptTimeout > RTK_MAX_CONNECTION_MSEC)
         httpClientConnectionAttemptTimeout = httpClientConnectionAttemptTimeout;
@@ -132,7 +127,6 @@ bool httpClientConnectLimitReached()
 //----------------------------------------
 // Determine if the HTTP client may be enabled
 //----------------------------------------
-bool httpClientEnabled(const char ** line)
 bool httpClientEnabled(const char **line)
 {
     bool enableHttpClient;
@@ -511,62 +505,26 @@ void httpClientUpdate()
             }
             else
             {
-                tempHolderPtr = (char *)rtkMalloc(MQTT_CERT_SIZE, "Certificate buffer (tempHolderPtr)");
-
-                if (!tempHolderPtr)
-                {
-                    systemPrintln("ERROR - Failed to allocate tempHolderPtr buffer!\r\n");
-                    httpClientShutdown(); // Try again?
-                    break;
-                }
-
-                strncpy(tempHolderPtr, (const char *)((*jsonZtp)["privateKey"]), MQTT_CERT_SIZE - 1);
-                recordFile("privateKey", tempHolderPtr, strlen(tempHolderPtr));
-
-                rtkFree(tempHolderPtr, "Certificate buffer (tempHolderPtr)"); // Clean up. Done with tempHolderPtr
-
-                // Validate the keys
-                if (!checkCertificates())
-                {
-                    // Handle a PointPerfect RTCM credentials response
-                    systemPrintf("PointPerfect response: %s\r\n", response.c_str());
-
-                    strncpy(settings.ntripClient_CasterHost, (const char *)((*jsonZtp)["rtcmCredentials"]["endpoint"]),
-                            sizeof(settings.ntripClient_CasterHost));
-                    settings.ntripClient_CasterPort = (*jsonZtp)["rtcmCredentials"]["httpPort"];
-
-                    // If region is determined, override NTRIP Settings
-                    settings.enableNtripClient = true;
-                    settings.ntripClient_TransmitGGA = true;
-
-                    strncpy(settings.ntripClient_CasterUser, (const char *)((*jsonZtp)["rtcmCredentials"]["userName"]),
-                            sizeof(settings.ntripClient_CasterUser));
-                    strncpy(settings.ntripClient_CasterUserPW,
-                            (const char *)((*jsonZtp)["rtcmCredentials"]["password"]),
-                            sizeof(settings.ntripClient_CasterUserPW));
-                    strncpy(settings.ntripClient_MountPoint,
-                            (const char *)((*jsonZtp)["rtcmCredentials"]["mountPoint"]),
-                            sizeof(settings.ntripClient_MountPoint));
-
-                    if (settings.debugCorrections || settings.debugHttpClientData)
-                        pointperfectPrintNtripInformation("HTTP Client");
-
-                    //ztpInterimResponse[ztpAttempt] = ZTP_SUCCESS;
-
-                    ztpResponse = ZTP_SUCCESS; // Report success to provisioningUpdate()
-
-                    httpClientSetState(HTTP_CLIENT_COMPLETE);
-                }
-                else
+                // Depending on the service selected, we will get different responses
+                if (pointPerfectServiceUsesKeys() == true)
                 {
                     // Handle a PointPerfect 'keys' response
+                    tempHolderPtr = (char *)rtkMalloc(MQTT_CERT_SIZE, "Certificate buffer (tempHolderPtr)");
+
+                    if (!tempHolderPtr)
+                    {
+                        systemPrintln("ERROR - Failed to allocate tempHolderPtr buffer!\r\n");
+                        httpClientShutdown(); // Try again?
+                        break;
+                    }
+
                     strncpy(tempHolderPtr, (const char *)((*jsonZtp)["certificate"]), MQTT_CERT_SIZE - 1);
                     recordFile("certificate", tempHolderPtr, strlen(tempHolderPtr));
 
                     strncpy(tempHolderPtr, (const char *)((*jsonZtp)["privateKey"]), MQTT_CERT_SIZE - 1);
                     recordFile("privateKey", tempHolderPtr, strlen(tempHolderPtr));
 
-                    free(tempHolderPtr); // Clean up. Done with tempHolderPtr
+                    rtkFree(tempHolderPtr, "Certificate buffer (tempHolderPtr)"); // Clean up. Done with tempHolderPtr
 
                     // Validate the keys
                     if (!checkCertificates())
@@ -575,6 +533,8 @@ void httpClientUpdate()
                     }
                     else
                     {
+                        // Pull out MQTT settings and keys from remaining JSON
+
                         if (settings.debugPpCertificate || settings.debugHttpClientData)
                             systemPrintln("Certificates recorded successfully.");
 
@@ -640,13 +600,46 @@ void httpClientUpdate()
 
                         // displayKeysUpdated();
 
-                        //ztpInterimResponse[ztpAttempt] = ZTP_SUCCESS;
-
                         ztpResponse = ZTP_SUCCESS; // Report success to provisioningUpdate()
 
                         httpClientSetState(HTTP_CLIENT_COMPLETE);
                     } // Valid certificates
-                } // Handle keys type response
+                } // End handle keys type response
+                else if (pointPerfectServiceUsesNtrip() == true)
+                {
+                    // We received a JSON blob containing NTRIP credentials
+                    systemPrintf("PointPerfect response: %s\r\n", response.c_str());
+
+                    strncpy(settings.ntripClient_CasterHost, (const char *)((*jsonZtp)["rtcmCredentials"]["endpoint"]),
+                            sizeof(settings.ntripClient_CasterHost));
+                    settings.ntripClient_CasterPort = (*jsonZtp)["rtcmCredentials"]["httpPort"];
+
+                    // If region is determined, override NTRIP Settings
+                    settings.enableNtripClient = true;
+                    settings.ntripClient_TransmitGGA = true;
+
+                    strncpy(settings.ntripClient_CasterUser, (const char *)((*jsonZtp)["rtcmCredentials"]["userName"]),
+                            sizeof(settings.ntripClient_CasterUser));
+                    strncpy(settings.ntripClient_CasterUserPW,
+                            (const char *)((*jsonZtp)["rtcmCredentials"]["password"]),
+                            sizeof(settings.ntripClient_CasterUserPW));
+                    strncpy(settings.ntripClient_MountPoint,
+                            (const char *)((*jsonZtp)["rtcmCredentials"]["mountPoint"]),
+                            sizeof(settings.ntripClient_MountPoint));
+
+                    if (settings.debugCorrections || settings.debugHttpClientData)
+                        pointperfectPrintNtripInformation("HTTP Client");
+
+                    ztpResponse = ZTP_SUCCESS; // Report success to provisioningUpdate()
+
+                    httpClientSetState(HTTP_CLIENT_COMPLETE);
+                } // End handle NTRIP/RTCM response
+                else
+                {
+                    systemPrintf("Error: Unhandled PointPerfect service response");
+                    delay(2000);
+                }
+
             } // JSON Deserialized correctly
         } // HTTP Response was 200
         break;
