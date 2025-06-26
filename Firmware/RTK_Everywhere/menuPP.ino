@@ -73,7 +73,8 @@ const PP_Service ppServices[] = {
     {"Global", PP_MODEL_SSR, PP_DELIVERY_LBAND_GLOBAL, PP_ENCODING_SPARTN},     // Uses "ZTP-Global" profile
     {"Live", PP_MODEL_OSR, PP_DELIVERY_NTRIP, PP_ENCODING_RTCM},                // Uses "ZTP-Live" profile
     {"Flex MQTT (Deprecated)", PP_MODEL_SSR, PP_DELIVERY_MQTT, PP_ENCODING_SPARTN}, // Deprecated
-    // "ZTP-IP" profile deprecated - This was used for getting corrections over IP using MQTT transport (no longer supported on new accounts)
+    // "ZTP-IP" profile deprecated - This was used for getting corrections over IP using MQTT transport (no longer
+    // supported on new accounts)
     // "ZTP-RTCM-100-Trial" profile deprecated
     // "ZTP-LBand+IP" profile deprecated
 };
@@ -803,8 +804,7 @@ bool pointPerfectServiceUsesKeys()
 // Determine if this service type uses NTRIP for corrections
 bool pointPerfectServiceUsesNtrip()
 {
-    if (settings.pointPerfectService == PP_NICKNAME_FLEX_RTCM ||
-        settings.pointPerfectService == PP_NICKNAME_LIVE)
+    if (settings.pointPerfectService == PP_NICKNAME_FLEX_RTCM || settings.pointPerfectService == PP_NICKNAME_LIVE)
         return true;
     return false;
 }
