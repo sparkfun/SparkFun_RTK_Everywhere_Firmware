@@ -22,7 +22,7 @@ void beginPsram()
 }
 
 // Free memory to PSRAM when available
-void rtkFree(void * data, const char * text)
+void rtkFree(void *data, const char *text)
 {
     if (settings.debugMalloc)
         systemPrintf("%p: Freeing %s\r\n", data, text);
@@ -30,10 +30,10 @@ void rtkFree(void * data, const char * text)
 }
 
 // Allocate memory from PSRAM when available
-void * rtkMalloc(size_t sizeInBytes, const char * text)
+void *rtkMalloc(size_t sizeInBytes, const char *text)
 {
-    const char * area;
-    void * data;
+    const char *area;
+    void *data;
 
     if (online.psram == true)
     {
@@ -58,23 +58,23 @@ void * rtkMalloc(size_t sizeInBytes, const char * text)
 }
 
 // See https://en.cppreference.com/w/cpp/memory/new/operator_delete
-void operator delete(void * ptr) noexcept
+void operator delete(void *ptr) noexcept
 {
     rtkFree(ptr, "buffer");
 }
 
-void operator delete[](void * ptr) noexcept
+void operator delete[](void *ptr) noexcept
 {
     rtkFree(ptr, "array");
 }
 
 // See https://en.cppreference.com/w/cpp/memory/new/operator_new
-void * operator new(std::size_t count)
+void *operator new(std::size_t count)
 {
     return rtkMalloc(count, "new buffer");
 }
 
-void * operator new[](std::size_t count)
+void *operator new[](std::size_t count)
 {
     return rtkMalloc(count, "new array");
 }
@@ -137,36 +137,6 @@ bool readAnalogPinAsDigital(int pin)
 // Output serial message if enabled
 void updateBattery()
 {
-    if (present.charger_mcp73833 && (pin_chargerLED != PIN_UNDEFINED) && (pin_chargerLED2 != PIN_UNDEFINED))
-    {
-        static unsigned long lastChargerStatusUpdate = 0;
-        if (millis() - lastChargerStatusUpdate > 5000)
-        {
-            lastChargerStatusUpdate = millis();
-
-            // Display the charge status
-            if (settings.enablePrintBatteryMessages)
-            {
-                //   State           | STAT1 | STAT2
-                // 3 Standby / Fault | HIGH  | HIGH
-                // 2 Charging        | LOW   | HIGH
-                // 1 Charge Complete | HIGH  | LOW
-                // 0 Test mode       | LOW   | LOW
-                uint8_t combinedStat = (((uint8_t)readAnalogPinAsDigital(pin_chargerLED2)) << 1) |
-                                       ((uint8_t)readAnalogPinAsDigital(pin_chargerLED));
-                systemPrint("MCP73833 Charger: ");
-                if (combinedStat == 3)
-                    systemPrintln("standby");
-                else if (combinedStat == 2)
-                    systemPrintln("battery is charging");
-                else if (combinedStat == 1)
-                    systemPrintln("battery charging is complete");
-                else // if (combinedStat == 0)
-                    systemPrintln("test mode");
-            }
-        }
-    }
-
     if (online.batteryFuelGauge == true)
     {
         static unsigned long lastBatteryFuelGaugeUpdate = 0;
@@ -187,7 +157,29 @@ void updateBattery()
 
                 systemPrintf("Batt (%d%%): Voltage: %0.02fV", batteryLevelPercent, batteryVoltage);
 
-                systemPrintf(" %sharging: %0.02f%%/hr\r\n", tempStr, batteryChargingPercentPerHour);
+                systemPrintf(" %sharging: %0.02f%%/hr", tempStr, batteryChargingPercentPerHour);
+
+                if (present.charger_mcp73833 && (pin_chargerLED != PIN_UNDEFINED) && (pin_chargerLED2 != PIN_UNDEFINED))
+                {
+                    //   State           | STAT1 | STAT2
+                    // 3 Standby / Fault | HIGH  | HIGH
+                    // 2 Charging        | LOW   | HIGH
+                    // 1 Charge Complete | HIGH  | LOW
+                    // 0 Test mode       | LOW   | LOW
+                    uint8_t combinedStat = (((uint8_t)readAnalogPinAsDigital(pin_chargerLED2)) << 1) |
+                                           ((uint8_t)readAnalogPinAsDigital(pin_chargerLED));
+                    systemPrint(" Charger Status: ");
+                    if (combinedStat == 3)
+                        systemPrint("Standby");
+                    else if (combinedStat == 2)
+                        systemPrint("Battery is charging");
+                    else if (combinedStat == 1)
+                        systemPrint("Charging is complete");
+                    else // if (combinedStat == 0)
+                        systemPrint("Test mode");
+                }
+
+                systemPrintln();
             }
         }
     }
@@ -869,7 +861,7 @@ void trim(char *str)
 }
 
 // Read the MAC addresses directly from the chip
-void getMacAddresses(uint8_t * macAddress, const char * name, esp_mac_type_t type, bool debug)
+void getMacAddresses(uint8_t *macAddress, const char *name, esp_mac_type_t type, bool debug)
 {
     esp_err_t status;
 
@@ -877,8 +869,6 @@ void getMacAddresses(uint8_t * macAddress, const char * name, esp_mac_type_t typ
     if (status)
         systemPrintf("ERROR: Failed to get %s, status: %d, %s\r\n", name, status, esp_err_to_name(status));
     if (debug)
-        systemPrintf("%02x:%02x:%02x:%02x:%02x:%02x - %s\r\n",
-                     macAddress[0], macAddress[1], macAddress[2],
-                     macAddress[3], macAddress[4], macAddress[5],
-                     name);
+        systemPrintf("%02x:%02x:%02x:%02x:%02x:%02x - %s\r\n", macAddress[0], macAddress[1], macAddress[2],
+                     macAddress[3], macAddress[4], macAddress[5], name);
 };
