@@ -1318,6 +1318,15 @@ bool provisioningKeysNeeded()
     {
         keysNeeded = true;
 
+        // If requestKeyUpdate is true, begin provisioning
+        // Must come first to allow NTRIP/RTCM type services to start provisioning
+        if (settings.requestKeyUpdate)
+        {
+            if (settings.debugPpCertificate)
+                systemPrintln("requestKeyUpdate is true.");
+            break;
+        }
+
         if (pointPerfectServiceUsesKeys() == false)
         {
             keysNeeded = false;
@@ -1330,14 +1339,6 @@ bool provisioningKeysNeeded()
         {
             if (settings.debugPpCertificate)
                 systemPrintln("Invalid certificates or keys.");
-            break;
-        }
-
-        // If requestKeyUpdate is true, begin provisioning
-        if (settings.requestKeyUpdate)
-        {
-            if (settings.debugPpCertificate)
-                systemPrintln("requestKeyUpdate is true.");
             break;
         }
 
@@ -1378,7 +1379,7 @@ bool provisioningKeysNeeded()
         keysNeeded = false;
     } while (0);
     if (keysNeeded && settings.debugPpCertificate)
-        systemPrintln(" Starting provisioning");
+        systemPrintln("Starting provisioning");
     return keysNeeded;
 }
 
