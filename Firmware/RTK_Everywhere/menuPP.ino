@@ -845,6 +845,7 @@ bool productVariantSupportsLbandNA()
 
 bool productVariantSupportsLbandGlobal()
 {
+    return false; //As of June 2025, LBand Global is not yet available
     if (productVariant == RTK_EVK)
         return false;
     if (productVariant == RTK_FACET_V2)
@@ -886,6 +887,8 @@ bool productVariantSupportsService(uint8_t ppNickName)
     }
     else if (ppNickName == PP_NICKNAME_LIVE)
     {
+        return false; //As of June 2025, PointPerfect Live is not yet available
+
         // All platforms support RTCM over NTRIP
         return true;
     }
