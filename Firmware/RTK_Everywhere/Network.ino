@@ -103,22 +103,10 @@ Network.ino
 // Constants
 //----------------------------------------
 
-static const char * networkConsumerTable[] =
-{
-    "HTTP_CLIENT",
-    "NTP_SERVER",
-    "NTRIP_CLIENT",
-    "NTRIP_SERVER_0",
-    "NTRIP_SERVER_1",
-    "NTRIP_SERVER_2",
-    "NTRIP_SERVER_3",
-    "OTA_CLIENT",
-    "PPL_KEY_UPDATE",
-    "PPL_MQTT_CLIENT",
-    "TCP_CLIENT",
-    "TCP_SERVER",
-    "UDP_SERVER",
-    "WEB_CONFIG",
+static const char *networkConsumerTable[] = {
+    "HTTP_CLIENT",    "NTP_SERVER",     "NTRIP_CLIENT", "NTRIP_SERVER_0", "NTRIP_SERVER_1",
+    "NTRIP_SERVER_2", "NTRIP_SERVER_3", "OTA_CLIENT",   "PPL_KEY_UPDATE", "PPL_MQTT_CLIENT",
+    "TCP_CLIENT",     "TCP_SERVER",     "UDP_SERVER",   "WEB_CONFIG",
 };
 
 static const int networkConsumerTableEntries = sizeof(networkConsumerTable) / sizeof(networkConsumerTable[0]);
@@ -128,8 +116,8 @@ static const int networkConsumerTableEntries = sizeof(networkConsumerTable) / si
 //----------------------------------------
 
 NETCONSUMER_MASK_t netIfConsumers[NETWORK_MAX]; // Consumers of a specific network
-NETCONSUMER_MASK_t networkConsumersAny; // Consumers of any network
-NETCONSUMER_MASK_t networkSoftApConsumer; // Consumers of soft AP
+NETCONSUMER_MASK_t networkConsumersAny;         // Consumers of any network
+NETCONSUMER_MASK_t networkSoftApConsumer;       // Consumers of soft AP
 
 // Priority of the network when last checked by the consumer
 // Index by consumer ID
@@ -173,7 +161,7 @@ NetMask_t networkStarted;     // Track the running networks
 NETWORK_POLL_SEQUENCE *networkSequence[NETWORK_OFFLINE];
 
 NetMask_t networkMdnsRequests; // Non-zero when one or more interfaces request mDNS
-NetMask_t networkMdnsRunning; // Non-zero when mDNS is running
+NetMask_t networkMdnsRunning;  // Non-zero when mDNS is running
 
 //----------------------------------------
 // Menu for configuring TCP/UDP interfaces
@@ -380,8 +368,8 @@ bool networkChanged(NETCONSUMER_t consumer)
     networkConsumerValidate(consumer);
 
     // Determine if the network interface has changed
-    changed = (networkConsumerPriority[consumer] != NETWORK_OFFLINE)
-        && (networkConsumerPriority[consumer] != networkConsumerPriorityLast[consumer]);
+    changed = (networkConsumerPriority[consumer] != NETWORK_OFFLINE) &&
+              (networkConsumerPriority[consumer] != networkConsumerPriorityLast[consumer]);
 
     // Remember the new network
     if (changed)
@@ -392,16 +380,13 @@ bool networkChanged(NETCONSUMER_t consumer)
 //----------------------------------------
 // Add a network consumer
 //----------------------------------------
-void networkConsumerAdd(NETCONSUMER_t consumer,
-                        NetIndex_t network,
-                        const char * fileName,
-                        uint32_t lineNumber)
+void networkConsumerAdd(NETCONSUMER_t consumer, NetIndex_t network, const char *fileName, uint32_t lineNumber)
 {
     NETCONSUMER_MASK_t bitMask;
-    NETCONSUMER_MASK_t * bits;
+    NETCONSUMER_MASK_t *bits;
     NETCONSUMER_MASK_t consumers;
     NetIndex_t index;
-    const char * networkName;
+    const char *networkName;
     NETCONSUMER_MASK_t previousBits;
     NetPriority_t priority;
 
@@ -486,8 +471,7 @@ void networkConsumerAdd(NETCONSUMER_t consumer,
     }
     else
     {
-        systemPrintf("Network consumer %s added more than once\r\n",
-                     networkConsumerTable[consumer]);
+        systemPrintf("Network consumer %s added more than once\r\n", networkConsumerTable[consumer]);
         reportFatalError("Network consumer added more than once!");
     }
 }
@@ -590,9 +574,7 @@ void networkConsumerOffline(NETCONSUMER_t consumer)
 //----------------------------------------
 // Print the list of consumers
 //----------------------------------------
-void networkConsumerPrint(NETCONSUMER_MASK_t consumers,
-                          NETCONSUMER_MASK_t users,
-                          const char * separation)
+void networkConsumerPrint(NETCONSUMER_MASK_t consumers, NETCONSUMER_MASK_t users, const char *separation)
 {
     NETCONSUMER_MASK_t consumerMask;
 
@@ -601,7 +583,7 @@ void networkConsumerPrint(NETCONSUMER_MASK_t consumers,
         consumerMask = 1 << consumer;
         if (consumers & consumerMask)
         {
-            const char * active = (users & consumerMask) ? "*" : "";
+            const char *active = (users & consumerMask) ? "*" : "";
             systemPrintf("%s%s%s", separation, active, networkConsumerTable[consumer]);
             separation = ", ";
         }
@@ -619,8 +601,7 @@ void networkConsumerReconnect(NetIndex_t index)
 
     // Determine the consumers of the network
     consumers = netIfConsumers[index];
-    if ((networkPriority < NETWORK_OFFLINE)
-        && (networkIndexTable[networkPriority] == index))
+    if ((networkPriority < NETWORK_OFFLINE) && (networkIndexTable[networkPriority] == index))
     {
         consumers |= networkConsumersAny;
     }
@@ -637,16 +618,13 @@ void networkConsumerReconnect(NetIndex_t index)
 //----------------------------------------
 // Remove a network consumer
 //----------------------------------------
-void networkConsumerRemove(NETCONSUMER_t consumer,
-                           NetIndex_t network,
-                           const char * fileName,
-                           uint32_t lineNumber)
+void networkConsumerRemove(NETCONSUMER_t consumer, NetIndex_t network, const char *fileName, uint32_t lineNumber)
 {
     NETCONSUMER_MASK_t bitMask;
-    NETCONSUMER_MASK_t * bits;
+    NETCONSUMER_MASK_t *bits;
     NETCONSUMER_MASK_t consumers;
     NetIndex_t index;
-    const char * networkName;
+    const char *networkName;
     NETCONSUMER_MASK_t previousBits;
     int priority;
 
@@ -868,6 +846,7 @@ void networkDisplayNetworkData(const char *name, NetworkInterface *netif)
         }
         systemPrintf("    Broadcast: %s\r\n", netif->broadcastIP().toString().c_str());
     }
+#endif
 }
 
 //----------------------------------------
@@ -1131,9 +1110,7 @@ void networkInterfaceEventInternetAvailable(NetIndex_t index)
 //----------------------------------------
 // Internet lost event
 //----------------------------------------
-void networkInterfaceEventInternetLost(NetIndex_t index,
-                                       const char * fileName,
-                                       uint32_t lineNumber)
+void networkInterfaceEventInternetLost(NetIndex_t index, const char *fileName, uint32_t lineNumber)
 {
     // Validate the index
     networkValidateIndex(index);
@@ -1573,8 +1550,7 @@ void networkPrintStatus(uint8_t priority)
     }
 
     // Print the network interface status
-    systemPrintf("%c%d: %-10s %s",
-                 highestPriority ? '*' : ' ', priority, name, status);
+    systemPrintf("%c%d: %-10s %s", highestPriority ? '*' : ' ', priority, name, status);
 
     // Display more data about the highest priority network
     if (highestPriority)
@@ -1636,10 +1612,7 @@ void networkSequenceBoot(NetIndex_t index)
 //----------------------------------------
 // Exit the sequence by force
 //----------------------------------------
-void networkSequenceExit(NetIndex_t index,
-                         bool debug,
-                         const char * fileName,
-                         uint32_t lineNumber)
+void networkSequenceExit(NetIndex_t index, bool debug, const char *fileName, uint32_t lineNumber)
 {
     // Display the call
     if (settings.debugNetworkLayer)
@@ -1709,10 +1682,7 @@ void networkSequenceNextEntry(NetIndex_t index, bool debug)
 //----------------------------------------
 // Attempt to start the start sequence
 //----------------------------------------
-void networkSequenceStart(NetIndex_t index,
-                          bool debug,
-                          const char * fileName,
-                          uint32_t lineNumber)
+void networkSequenceStart(NetIndex_t index, bool debug, const char *fileName, uint32_t lineNumber)
 {
     NetMask_t bitMask;
     const char *description;
@@ -1796,10 +1766,7 @@ void networkSequenceStart(NetIndex_t index,
 //----------------------------------------
 // Start the stop sequence
 //----------------------------------------
-void networkSequenceStop(NetIndex_t index,
-                         bool debug,
-                         const char * fileName,
-                         uint32_t lineNumber)
+void networkSequenceStop(NetIndex_t index, bool debug, const char *fileName, uint32_t lineNumber)
 {
     NetMask_t bitMask;
     const char *description;
@@ -1882,10 +1849,7 @@ void networkSequenceStop(NetIndex_t index,
 //----------------------------------------
 // Stop the polling sequence
 //----------------------------------------
-void networkSequenceStopPolling(NetIndex_t index,
-                                bool debug,
-                                bool forcedStop,
-                                const char * fileName,
+void networkSequenceStopPolling(NetIndex_t index, bool debug, bool forcedStop, const char *fileName,
                                 uint32_t lineNumber)
 {
     NetMask_t bitMask;
@@ -1896,12 +1860,10 @@ void networkSequenceStopPolling(NetIndex_t index,
 
     // Display the call
     if (settings.debugNetworkLayer)
-        systemPrintf("Network: Calling networkSequenceStopPolling(%s, debug: %s, forcedStop: %s) from %s at line %d\r\n",
-                     networkInterfaceTable[index].name,
-                     debug ? "true" : "false",
-                     forcedStop ? "true" : "false",
-                     fileName,
-                     lineNumber);
+        systemPrintf(
+            "Network: Calling networkSequenceStopPolling(%s, debug: %s, forcedStop: %s) from %s at line %d\r\n",
+            networkInterfaceTable[index].name, debug ? "true" : "false", forcedStop ? "true" : "false", fileName,
+            lineNumber);
 
     // Stop the polling for this sequence
     networkSequence[index] = nullptr;
@@ -1975,9 +1937,7 @@ void networkSequenceStopPolling(NetIndex_t index,
 //----------------------------------------
 // Add a soft AP consumer
 //----------------------------------------
-void networkSoftApConsumerAdd(NETCONSUMER_t consumer,
-                              const char * fileName,
-                              uint32_t lineNumber)
+void networkSoftApConsumerAdd(NETCONSUMER_t consumer, const char *fileName, uint32_t lineNumber)
 {
     NETCONSUMER_MASK_t bitMask;
     NetIndex_t index;
@@ -1988,8 +1948,7 @@ void networkSoftApConsumerAdd(NETCONSUMER_t consumer,
 
     // Display the call
     if (settings.debugNetworkLayer)
-        systemPrintf("Network: Calling networkSoftApConsumerAdd from %s at line %d\r\n",
-                     fileName, lineNumber);
+        systemPrintf("Network: Calling networkSoftApConsumerAdd from %s at line %d\r\n", fileName, lineNumber);
 
     // Add this consumer only once
     bitMask = 1 << consumer;
@@ -2017,8 +1976,7 @@ void networkSoftApConsumerAdd(NETCONSUMER_t consumer,
     }
     else
     {
-        systemPrintf("Network: Soft AP consumer %s added more than once!\r\n",
-                     networkConsumerTable[consumer]);
+        systemPrintf("Network: Soft AP consumer %s added more than once!\r\n", networkConsumerTable[consumer]);
         reportFatalError("Network: Soft AP consumer added more than once!");
     }
 }
@@ -2044,7 +2002,7 @@ void networkSoftApConsumerDisplay()
 //----------------------------------------
 // Print the soft AP consumers
 //----------------------------------------
-void networkSoftApConsumerPrint(const char * separator)
+void networkSoftApConsumerPrint(const char *separator)
 {
     NETCONSUMER_MASK_t consumerMask;
 
@@ -2063,9 +2021,7 @@ void networkSoftApConsumerPrint(const char * separator)
 //----------------------------------------
 // Remove a soft AP consumer
 //----------------------------------------
-void networkSoftApConsumerRemove(NETCONSUMER_t consumer,
-                                 const char * fileName,
-                                 uint32_t lineNumber)
+void networkSoftApConsumerRemove(NETCONSUMER_t consumer, const char *fileName, uint32_t lineNumber)
 {
     NETCONSUMER_MASK_t bitMask;
     NetIndex_t index;
@@ -2076,8 +2032,7 @@ void networkSoftApConsumerRemove(NETCONSUMER_t consumer,
 
     // Display the call
     if (settings.debugNetworkLayer)
-        systemPrintf("Network: Calling networkSoftApConsumerRemove from %s at line %d\r\n",
-                     fileName, lineNumber);
+        systemPrintf("Network: Calling networkSoftApConsumerRemove from %s at line %d\r\n", fileName, lineNumber);
 
     // Remove the consumer only once
     bitMask = 1 << consumer;
@@ -2114,10 +2069,7 @@ void networkSoftApConsumerRemove(NETCONSUMER_t consumer,
 //----------------------------------------
 // Start a network interface
 //----------------------------------------
-void networkStart(NetIndex_t index,
-                  bool debug,
-                  const char * fileName,
-                  uint32_t lineNumber)
+void networkStart(NetIndex_t index, bool debug, const char *fileName, uint32_t lineNumber)
 {
     NETCONSUMER_MASK_t consumers;
 
@@ -2128,8 +2080,8 @@ void networkStart(NetIndex_t index,
     if (settings.debugNetworkLayer)
     {
         networkDisplayStatus();
-        systemPrintf("Network: Calling networkStart(%s) from %s at line %d\r\n",
-                     networkInterfaceTable[index].name, fileName, lineNumber);
+        systemPrintf("Network: Calling networkStart(%s) from %s at line %d\r\n", networkInterfaceTable[index].name,
+                     fileName, lineNumber);
     }
 
     // Only start networks that exist on the platform
@@ -2195,10 +2147,7 @@ void networkStartNextInterface(NetIndex_t index)
 //----------------------------------------
 // Stop a network interface
 //----------------------------------------
-void networkStop(NetIndex_t index,
-                 bool debug,
-                 const char * fileName,
-                 uint32_t lineNumber)
+void networkStop(NetIndex_t index, bool debug, const char *fileName, uint32_t lineNumber)
 {
     NetMask_t bitMask;
 
@@ -2208,8 +2157,8 @@ void networkStop(NetIndex_t index,
     // Display the call
     if (settings.debugNetworkLayer)
     {
-        systemPrintf("Network: Calling networkStop(%s) from %s at line %d\r\n",
-                     networkInterfaceTable[index].name, fileName, lineNumber);
+        systemPrintf("Network: Calling networkStop(%s) from %s at line %d\r\n", networkInterfaceTable[index].name,
+                     fileName, lineNumber);
         networkDisplayStatus();
     }
 
@@ -2436,9 +2385,7 @@ void networkUpdate()
 //----------------------------------------
 // Add a network user
 //----------------------------------------
-void networkUserAdd(NETCONSUMER_t consumer,
-                    const char * fileName,
-                    uint32_t lineNumber)
+void networkUserAdd(NETCONSUMER_t consumer, const char *fileName, uint32_t lineNumber)
 {
     NetIndex_t index;
     NETCONSUMER_MASK_t mask;
@@ -2446,8 +2393,8 @@ void networkUserAdd(NETCONSUMER_t consumer,
     // Validate the consumer
     networkConsumerValidate(consumer);
     if (settings.debugNetworkLayer)
-        systemPrintf("Network: Calling networkUserAdd(%s) from %s at line %d\r\n",
-                     networkConsumerTable[consumer], fileName, lineNumber);
+        systemPrintf("Network: Calling networkUserAdd(%s) from %s at line %d\r\n", networkConsumerTable[consumer],
+                     fileName, lineNumber);
 
     // Convert the priority into a network interface index
     index = networkIndexTable[networkPriority];
@@ -2484,9 +2431,7 @@ void networkUserDisplay(NetIndex_t index)
 //----------------------------------------
 // Remove a network user
 //----------------------------------------
-void networkUserRemove(NETCONSUMER_t consumer,
-                       const char * fileName,
-                       uint32_t lineNumber)
+void networkUserRemove(NETCONSUMER_t consumer, const char *fileName, uint32_t lineNumber)
 {
     NetIndex_t index;
     NETCONSUMER_MASK_t mask;
@@ -2494,8 +2439,8 @@ void networkUserRemove(NETCONSUMER_t consumer,
     // Validate the consumer
     networkConsumerValidate(consumer);
     if (settings.debugNetworkLayer)
-        systemPrintf("Network: Calling networkUserRemove(%s) from %s at line %d\r\n",
-                     networkConsumerTable[consumer], fileName, lineNumber);
+        systemPrintf("Network: Calling networkUserRemove(%s) from %s at line %d\r\n", networkConsumerTable[consumer],
+                     fileName, lineNumber);
 
     // Convert the priority into a network interface index
     index = networkConsumerIndexLast[consumer];
