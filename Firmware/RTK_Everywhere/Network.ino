@@ -1179,8 +1179,19 @@ void networkInterfaceInternetConnectionAvailable(NetIndex_t index)
         return;
     }
 
-    // Mark this network as online
     bitMask = 1 << index;
+
+    // If we are currently running a stop sequence, do nothing
+    // Avoids an infinite start/stop loop
+    if (networkSeqStopping & bitMask)
+    {
+        // if (settings.debugNetworkLayer)
+        systemPrintf("\r\n !!! %s stop sequencer running, not marking interface online\r\n",
+                     networkGetNameByIndex(index));
+        return;
+    }
+
+    // Mark this network as online
     networkHasInternet_bm |= bitMask;
     if (settings.debugNetworkLayer)
         systemPrintf("%s has internet access\r\n", networkInterfaceTable[index].name);
