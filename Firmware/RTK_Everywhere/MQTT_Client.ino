@@ -794,10 +794,12 @@ void mqttClientStop(bool shutdown)
         networkConsumerRemove(NETCONSUMER_PPL_MQTT_CLIENT, NETWORK_ANY, __FILE__, __LINE__);
         mqttClientConnectionAttempts = 0;
         mqttClientConnectionAttemptTimeout = 0;
-        mqttClientPrintSubscribedTopics();
         mqttClientSetState(MQTT_CLIENT_OFF);
         if (settings.debugMqttClientState)
+        {
+            mqttClientPrintSubscribedTopics();
             systemPrintln("MQTT Client stopped");
+        }
     }
     else
     {
