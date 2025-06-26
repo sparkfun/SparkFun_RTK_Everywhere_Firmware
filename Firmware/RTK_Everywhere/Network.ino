@@ -820,6 +820,17 @@ void networkDisplayNetworkData(const char *name, NetworkInterface *netif)
 
     hasIP = false;
     status = "Off";
+
+#ifndef COMPILE_ETHERNET
+    systemPrintln("** Ethernet not compiled **");
+    return;
+#else
+    if (netif == nullptr)
+    {
+        systemPrintln("Error: No network interface");
+        return;
+    }
+
     if (netif->started())
     {
         status = "Disconnected";
