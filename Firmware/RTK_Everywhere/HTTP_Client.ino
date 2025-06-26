@@ -455,9 +455,7 @@ void httpClientUpdate()
             {
                 if (settings.debugCorrections || settings.debugHttpClientData)
                     systemPrintln("Device already registered to different profile");
-
-                // ztpInterimResponse[ztpAttempt] = ZTP_ALREADY_REGISTERED;
-
+                httpClientSetState(HTTP_CLIENT_COMPLETE);
                 break;
             }
             // If a device has been deactivated, response will be: "HTTP response error 403: No plan for device
@@ -466,10 +464,6 @@ void httpClientUpdate()
             {
                 if (settings.debugCorrections || settings.debugHttpClientData)
                     systemPrintln("Device has been deactivated.");
-
-                // ztpInterimResponse[ztpAttempt] = ZTP_DEACTIVATED;
-
-                // ztpNextToken(); // Move to the next ZTP profile. Exit client as needed.
 
                 httpClientSetState(HTTP_CLIENT_COMPLETE);
                 break;
@@ -480,21 +474,16 @@ void httpClientUpdate()
             {
                 if (settings.debugCorrections || settings.debugHttpClientData)
                     systemPrintln("Device not whitelisted.");
-
-                // ztpInterimResponse[ztpAttempt] = ZTP_NOT_WHITELISTED;
-
-                // ztpNextToken(); // Move to the next ZTP profile. Exit client as needed.
-
+                httpClientSetState(HTTP_CLIENT_COMPLETE);
                 break;
             }
+
+            //Unknown. Report and shut down.
             else
             {
                 systemPrintf("HTTP response error %d: ", httpResponseCode);
                 systemPrintln(response.c_str());
-                // ztpInterimResponse[ztpAttempt] = ZTP_UNKNOWN_ERROR;
-
-                // ztpNextToken(); // Move to the next ZTP profile. Exit client as needed.
-
+                httpClientSetState(HTTP_CLIENT_COMPLETE);
                 break;
             }
         }
