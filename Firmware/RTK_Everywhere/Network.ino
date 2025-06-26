@@ -1710,7 +1710,7 @@ void networkSequenceStart(NetIndex_t index, bool debug, const char *fileName, ui
     // Set the network bit
     bitMask = 1 << index;
 
-    // Determine if the sequence any sequence is already running
+    // Determine if any sequence is already running
     sequence = networkSequence[index];
     if (sequence)
     {
@@ -1732,7 +1732,13 @@ void networkSequenceStart(NetIndex_t index, bool debug, const char *fileName, ui
         else
         {
             if (debug)
-                systemPrintf("%s sequencer running, delaying start sequence\r\n", networkGetNameByIndex(index));
+            {
+                if (networkSeqStopping & bitMask)
+                    systemPrintf("%s stop sequencer running, delaying start sequence\r\n",
+                                 networkGetNameByIndex(index));
+                else
+                    systemPrintf("%s sequencer running, delaying start sequence\r\n", networkGetNameByIndex(index));
+            }
 
             // Compress multiple requests
             //   Boot --> Start
