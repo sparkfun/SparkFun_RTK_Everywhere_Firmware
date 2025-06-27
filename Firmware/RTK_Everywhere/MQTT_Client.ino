@@ -237,19 +237,6 @@ bool mqttClientEnabled(const char ** line)
             break;
         }
 
-        // For the mosaic-X5, pointPerfectIsEnabled() will be true if
-        // we are using the PPL and getting keys via ZTP. BUT the Facet mosaic-X5
-        // uses the L-Band (only) plan. It should not and can not subscribe to PP IP
-        // MQTT corrections. So, if present.gnss_mosaicX5 is true, set enableMqttClient
-        // to false.
-        // TODO : review this. This feels like a bit of a hack...
-        if (present.gnss_mosaicX5)
-        {
-            if (line)
-                *line = ", Mosaic not present!";
-            break;
-        }
-
         // Verify still enabled
         enabled = mqttClientStartRequested;
         if (line && !enabled)
