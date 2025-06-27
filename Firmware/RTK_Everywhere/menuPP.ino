@@ -512,11 +512,13 @@ void menuPointPerfectKeys()
 // If GNSS is mosaic-X5, configure LBandBeam1
 void updateLBand()
 {
+    static bool lband_gnss_can_not_begin = false;
 
 #ifdef COMPILE_L_BAND
     if (present.lband_neo)
     {
-        if (!online.lband_neo && pointPerfectIsEnabled())
+        //Start L-Band if it is enabled        
+        if (online.lband_neo == false && pointPerfectLbandEnabled() == true)
         {
             static bool lband_neo_can_not_begin = false;
 
@@ -641,10 +643,9 @@ void updateLBand()
 #ifdef COMPILE_MOSAICX5
     if (present.gnss_mosaicX5)
     {
-        if (!online.lband_gnss && pointPerfectIsEnabled())
+        // Start L-Band if service is enabled
+        if (online.lband_gnss == false && pointPerfectLbandEnabled())
         {
-            static bool lband_gnss_can_not_begin = false;
-
             if (lband_gnss_can_not_begin)
                 return;
 
@@ -694,7 +695,7 @@ void updateLBand()
 
             result &= mosaic->configureLBand(true, LBandFreq); // Start L-Band
 
-            result &= mosaic->saveConfiguration(); // Save the updated configuration. Probably redundant?
+            result &= mosaic->saveConfiguration(); // Save the updated configuration.
 
             if (result == false)
             {
@@ -708,10 +709,32 @@ void updateLBand()
                 online.lband_gnss = true;
             }
         }
-        // else if (online.lband_gnss && pointPerfectIsEnabled())
+
+        // Stop L-Band is service is disabled
+        else if (online.lband_gnss == true && pointPerfectLbandEnabled() == false)
         {
-            // If no SPARTN data is received, the L-Band may need a 'kick'. Turn L-Band off and back on again!
-            // But gnss->update will do this. No need to do it here
+            Serial.println("\n\r Taking L-Band offline");
+
+            bool result = true;
+
+            GNSS_MOSAIC *mosaic = (GNSS_MOSAIC *)gnss;
+
+            uint32_t LBandFreq = 1556290000;                    // Default to US band
+            result &= mosaic->configureLBand(false, LBandFreq); // Stop L-Band
+
+            result &= mosaic->saveConfiguration(); // Save the updated configuration.
+
+            if (result == false)
+            {
+                systemPrintln("mosaic-X5 L-Band failed to stop. Retrying...");
+            }
+            else
+            {
+                if (settings.debugCorrections == true)
+                    systemPrintln("mosaic-X5 L-Band successfully taken offline");
+                online.lband_gnss = false;
+                lband_gnss_can_not_begin = false; // reset so L-Band can restart if requested
+            }
         }
     }
 #endif // /COMPILE_MOSAICX5
@@ -799,7 +822,7 @@ bool pointPerfectIsEnabled()
     return false;
 }
 
-// Determine if this service type uses keys
+// Determine if this service type is encrypted and requires keys for decryption
 bool pointPerfectServiceUsesKeys()
 {
     if (settings.pointPerfectService == PP_NICKNAME_FLEX_LBAND_NA ||
@@ -808,8 +831,16 @@ bool pointPerfectServiceUsesKeys()
     return false;
 }
 
+// Determine if this service type uses L-Band
+bool pointPerfectLbandEnabled()
+{
+    if (settings.pointPerfectService == PP_NICKNAME_FLEX_LBAND_NA || settings.pointPerfectService == PP_NICKNAME_GLOBAL)
+        return true;
+    return false;
+}
+
 // Determine if this service type uses NTRIP for corrections
-bool pointPerfectServiceUsesNtrip()
+bool pointPerfectNtripEnabled()
 {
     if (settings.pointPerfectService == PP_NICKNAME_FLEX_RTCM || settings.pointPerfectService == PP_NICKNAME_LIVE)
         return true;
@@ -852,7 +883,7 @@ bool productVariantSupportsLbandNA()
 
 bool productVariantSupportsLbandGlobal()
 {
-    return false; //As of June 2025, LBand Global is not yet available
+    return false; // As of June 2025, LBand Global is not yet available
 
     if (productVariant == RTK_EVK)
         return false;
@@ -868,6 +899,25 @@ bool productVariantSupportsLbandGlobal()
     systemPrintln("Uncaught productVariantSupportsLbandGlobal()");
     return false;
 }
+
+// Returns true if this platform requires the PointPerfect Library to run to use the corrections from PointPerfect
+bool productVariantNeedsPpl()
+{
+    if (productVariant == RTK_EVK)
+        return false;
+    if (productVariant == RTK_FACET_V2)
+        return false; // TODO - will require specific module lookup
+    if (productVariant == RTK_FACET_MOSAIC)
+        return true;
+    if (productVariant == RTK_TORCH)
+        return true;
+    if (productVariant == RTK_POSTCARD)
+        return true;
+
+    systemPrintln("Uncaught productVariantNeedsPpl()");
+    return false;
+}
+
 
 // Given a service nick name, return whether this platform supports it
 // Helps with printing the menu
@@ -895,7 +945,7 @@ bool productVariantSupportsService(uint8_t ppNickName)
     }
     else if (ppNickName == PP_NICKNAME_LIVE)
     {
-        return false; //As of June 2025, PointPerfect Live is not yet available
+        return false; // As of June 2025, PointPerfect Live is not yet available
 
         // All platforms support RTCM over NTRIP
         return true;
