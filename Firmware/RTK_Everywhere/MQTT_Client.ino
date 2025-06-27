@@ -589,7 +589,7 @@ int mqttClientProcessMessage(uint8_t * mqttData, uint16_t mqttCount, int bytesPu
                                                   topic);
 
     // For the UM980 or LG290P, we have to pass the data through the PPL first
-    else if (present.gnss_um980 || present.gnss_lg290p)
+    else if (present.gnss_um980 || present.gnss_lg290p || present.gnss_mosaicX5)
     {
         if (((settings.debugMqttClientData == true) || (settings.debugCorrections == true)) && !inMainMenu)
         {
@@ -597,6 +597,8 @@ int mqttClientProcessMessage(uint8_t * mqttData, uint16_t mqttCount, int bytesPu
                 systemPrintf("Pushing %d bytes from %s topic to PPL for UM980\r\n", mqttCount, topic);
             else if (present.gnss_lg290p)
                 systemPrintf("Pushing %d bytes from %s topic to PPL for LG290P\r\n", mqttCount, topic);
+            else if (present.gnss_mosaicX5)
+                systemPrintf("Pushing %d bytes from %s topic to PPL for mosaic-X5\r\n", mqttCount, topic);
         }
 
         if (online.ppl == false && settings.debugMqttClientData == true)
@@ -604,6 +606,10 @@ int mqttClientProcessMessage(uint8_t * mqttData, uint16_t mqttCount, int bytesPu
 
         sendSpartnToPpl(mqttData, mqttCount);
         bytesPushed += mqttCount;
+    }
+    else
+    {
+        systemPrintln("Unhandled receiver mqttClientProcessMessage()");
     }
     return bytesPushed;
 }
