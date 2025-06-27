@@ -538,7 +538,6 @@ void httpClientUpdate()
                     else
                     {
                         // Pull out MQTT settings and keys from remaining JSON
-
                         if (settings.debugPpCertificate || settings.debugHttpClientData)
                             systemPrintln("Certificates recorded successfully.");
 
@@ -550,7 +549,7 @@ void httpClientUpdate()
                         // Note: from the ZTP documentation:
                         // ["subscriptions"][0] will contain the key distribution topic
                         // But, assuming the key distribution topic is always ["subscriptions"][0] is potentially
-                        // brittle It is safer to check the "description" contains "key distribution topic" If we are on
+                        // brittle. It is safer to check the "description" contains "key distribution topic". If we are on
                         // an IP-only plan, the path will be /pp/ubx/0236/ip If we are on a L-Band-only or L-Band+IP
                         // plan, the path will be /pp/ubx/0236/Lb These 0236 key distribution topics provide the keys in
                         // UBX format, ready to be pushed to a ZED. There are also /pp/key/ip and /pp/key/Lb topics
@@ -609,7 +608,7 @@ void httpClientUpdate()
                         httpClientSetState(HTTP_CLIENT_COMPLETE);
                     } // Valid certificates
                 } // End handle keys type response
-                else if (pointPerfectServiceUsesNtrip() == true)
+                else if (pointPerfectNtripEnabled() == true)
                 {
                     // We received a JSON blob containing NTRIP credentials
                     systemPrintf("PointPerfect response: %s\r\n", response.c_str());
