@@ -2117,7 +2117,7 @@ void displayNotListed(uint16_t displayTime)
 
 void displayAlreadyRegistered(uint16_t displayTime)
 {
-    displayMessage("Already Registered", displayTime);
+    displayMessage("Already Register", displayTime);
 }
 
 void displayUpdateZEDF9P(uint16_t displayTime)
