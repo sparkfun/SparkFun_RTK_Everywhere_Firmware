@@ -2023,10 +2023,7 @@ void createSettingsString(char *newSettings)
     stringRecord(newSettings, "sdMounted", online.microSD);
 
     // Add Device ID used for corrections
-    char hardwareID[15];
-    snprintf(hardwareID, sizeof(hardwareID), "%02X%02X%02X%02X%02X%02X%02X", btMACAddress[0], btMACAddress[1],
-             btMACAddress[2], btMACAddress[3], btMACAddress[4], btMACAddress[5], productVariant);
-    stringRecord(newSettings, "hardwareID", hardwareID);
+    stringRecord(newSettings, "hardwareID", printDeviceId());
 
     // Add Days Remaining for corrections
     char apDaysRemaining[20];
@@ -2838,11 +2835,7 @@ SettingValueResponse getSettingValue(bool inCommands, const char *settingName, c
     // Report deviceID over CLI - Useful for label generation
     if (strcmp(settingName, "deviceId") == 0)
     {
-        char hardwareID[15];
-        snprintf(hardwareID, sizeof(hardwareID), "%02X%02X%02X%02X%02X%02X%02X", btMACAddress[0], btMACAddress[1],
-                 btMACAddress[2], btMACAddress[3], btMACAddress[4], btMACAddress[5], productVariant);
-
-        writeToString(settingValueStr, hardwareID);
+        writeToString(settingValueStr, printDeviceId());
         knownSetting = true;
         settingIsString = true;
     }

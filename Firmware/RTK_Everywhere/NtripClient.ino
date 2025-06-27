@@ -815,8 +815,8 @@ void ntripClientUpdate()
                     systemPrintf("NTRIP Caster responded with unauthorized error. Your account may be deactivated. "
                                  "Please contact "
                                  "support@sparkfun.com or goto %s to renew the PointPerfect "
-                                 "subscription. Please reference device ID: %X\r\n",
-                                 platformRegistrationPageTable[productVariant], btMACAddress);
+                                 "subscription. Please reference device ID: %x\r\n",
+                                 platformRegistrationPageTable[productVariant], printDeviceId());
                 }
                 else
                 {
