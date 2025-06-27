@@ -153,6 +153,7 @@ void beginPPL()
         pplConfigOptionsMask = PPL_CFG_ENABLE_AUX_CHANNEL; // auxiliary channel support
     else
         pplConfigOptionsMask = PPL_CFG_DEFAULT_CFG; // IP and L-Band support
+    
     ePPL_ReturnStatus result = PPL_Initialize(pplConfigOptionsMask);
 
     if (result != ePPL_Success)
@@ -230,7 +231,10 @@ void updatePPL()
 
     static unsigned long pplTime3dFixStarted;
 
-    if ((online.ppl == false) && (pointPerfectIsEnabled() == true) && (gnss->isFixed()))
+    // Start the PPL only if the selected PointPerfect service is encrypted, and the current hardware needs the PPL to
+    // decrypt
+    if ((online.ppl == false) && (pointPerfectServiceUsesKeys() == true) && (productVariantNeedsPpl() == true) &&
+        (gnss->isFixed()))
     {
         // Start PPL only after GNSS is outputting appropriate NMEA+RTCM, we have a key, and the MQTT broker is
         // connected or L-Band SPARTN is being received. Don't restart the PPL if we've already tried.
@@ -245,8 +249,9 @@ void updatePPL()
             }
         }
     }
-    else if (online.ppl == true)
+    else if ((online.ppl == true) && (pointPerfectServiceUsesKeys() == true))
     {
+
         if (settings.debugCorrections == true)
         {
             if (millis() - pplReport > 5000)
@@ -322,6 +327,11 @@ void updatePPL()
         }
     }
 
+    // Stop PPL if the PointPerfect service changes and no longer needs it
+    else if ((online.ppl == true) && (pointPerfectServiceUsesKeys() == false))
+    {
+        stopPPL(); // Stop PPL and mark it offline. It will auto-restart at the next update().
+    }
     // The PPL is fed during updatePplTask()
 }
 
@@ -460,6 +470,11 @@ bool sendAuxSpartnToPpl(uint8_t *buffer, int numDataBytes)
         {
             if ((settings.debugCorrections == true) && !inMainMenu)
                 systemPrintf("ERROR PPL_SendAuxSpartn: %s\r\n", PPLReturnStatusToStr(result));
+
+            // Force print wrong key error
+            else if (result == ePPL_IncorrectDynKey && !inMainMenu)
+                systemPrintf("ERROR PPL_SendAuxSpartn: %s\r\n", PPLReturnStatusToStr(result));
+
             return false;
         }
         lastSpartnToPpl = millis();
