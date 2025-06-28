@@ -1232,6 +1232,9 @@ void menuPeriodicPrint()
         systemPrint("59) WebServer state: ");
         systemPrintf("%s\r\n", PERIODIC_SETTING(PD_WEB_SERVER_STATE) ? "Enabled" : "Disabled");
 
+        systemPrint("60) OTA firmware update state: ");
+        systemPrintf("%s\r\n", PERIODIC_SETTING(PD_OTA_STATE) ? "Enabled" : "Disabled");
+
         systemPrintln("-------  Tasks  ------");
         systemPrint("70) btReadTask state: ");
         systemPrintf("%s\r\n", PERIODIC_SETTING(PD_TASK_BLUETOOTH_READ) ? "Enabled" : "Disabled");
@@ -1339,6 +1342,8 @@ void menuPeriodicPrint()
             PERIODIC_TOGGLE(PD_UDP_SERVER_BROADCAST_DATA);
         else if (incoming == 59)
             PERIODIC_TOGGLE(PD_WEB_SERVER_STATE);
+        else if (incoming == 60)
+            PERIODIC_TOGGLE(PD_OTA_STATE);
 
         else if (incoming == 70)
             PERIODIC_TOGGLE(PD_TASK_BLUETOOTH_READ);
