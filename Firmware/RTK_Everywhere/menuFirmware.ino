@@ -137,7 +137,7 @@ void firmwareVersionFormat(uint8_t major, uint8_t minor, char *buffer, int buffe
     char prefix;
 
     // Construct the full or release candidate version number
-    prefix = ENABLE_DEVELOPER ? 'd' : 'v';
+    prefix = (ENABLE_DEVELOPER || (major >= 99)) ? 'd' : 'v';
     if (enableRCFirmware && (bufferLength >= 21))
         // 123456789012345678901
         // pxxx.yyy-dd-mmm-yyyy0
