@@ -922,6 +922,17 @@ void otaUpdate()
             break;
         }
     }
+
+    // Periodically display the state
+    if (PERIODIC_DISPLAY(PD_OTA_STATE))
+    {
+        char line[30];
+        const char * state;
+
+        PERIODIC_CLEAR(PD_OTA_STATE);
+        state = otaStateNameGet(otaState, line);
+        systemPrintf("OTA Firmware Update state: %s\r\n", state);
+    }
 }
 
 //----------------------------------------
