@@ -461,6 +461,29 @@ void menuWiFi()
 }
 
 //*********************************************************************
+// Check for setting differences
+bool wifiCheckSettings(struct Settings * newSettings)
+{
+    bool changed;
+
+    // Determine if any of the WiFi station SSID or password changes
+    changed = (memcmp(newSettings->wifiNetworks[0].ssid, settings.wifiNetworks[0].ssid, SSID_LENGTH) != 0)
+        || (memcmp(newSettings->wifiNetworks[0].password, settings.wifiNetworks[0].password, PASSWORD_LENGTH) != 0)
+        || (memcmp(newSettings->wifiNetworks[1].ssid, settings.wifiNetworks[1].ssid, SSID_LENGTH) != 0)
+        || (memcmp(newSettings->wifiNetworks[1].password, settings.wifiNetworks[1].password, PASSWORD_LENGTH) != 0)
+        || (memcmp(newSettings->wifiNetworks[2].ssid, settings.wifiNetworks[2].ssid, SSID_LENGTH) != 0)
+        || (memcmp(newSettings->wifiNetworks[2].password, settings.wifiNetworks[2].password, PASSWORD_LENGTH) != 0)
+        || (memcmp(newSettings->wifiNetworks[3].ssid, settings.wifiNetworks[3].ssid, SSID_LENGTH) != 0)
+        || (memcmp(newSettings->wifiNetworks[3].password, settings.wifiNetworks[3].password, PASSWORD_LENGTH) != 0);
+    if (changed)
+    {
+        // Update the WiFi settings
+        wifiUpdateSettings();
+    }
+    return changed;
+}
+
+//*********************************************************************
 // Display the soft AP details
 void wifiDisplayNetworkData()
 {

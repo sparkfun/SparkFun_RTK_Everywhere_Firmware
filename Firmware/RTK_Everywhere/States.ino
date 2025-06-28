@@ -445,6 +445,8 @@ void stateUpdate()
                 // Allow for 750ms before we parse buffer for all data to arrive
                 if (millis() - timeSinceLastIncomingSetting > 750)
                 {
+                    bool changed;
+
                     currentlyParsingData =
                         true; // Disallow new data to flow from websocket while we are parsing the current data
 
@@ -453,17 +455,25 @@ void stateUpdate()
                         systemWrite(incomingSettings[x]);
                     systemPrintln();
 
+                    webServerSettingsClone();
                     parseIncomingSettings();
                     settings.gnssConfiguredOnce = false; // On the next boot, reapply all settings
                     settings.gnssConfiguredBase = false;
                     settings.gnssConfiguredRover = false;
                     recordSystemSettings(); // Record these settings to unit
+                    changed = webServerSettingsCheckAndFree();
 
                     // Clear buffer
                     incomingSettingsSpot = 0;
                     memset(incomingSettings, 0, AP_CONFIG_SETTING_SIZE);
 
                     currentlyParsingData = false; // Allow new data from websocket
+                    if (changed)
+                    {
+                        // Restart the web server if the WiFi parameters changed
+                        webServerStop();
+                        changeState(STATE_WEB_CONFIG_NOT_STARTED); // Return to rover mode to avoid being in fixed base mode
+                    }
                 }
             }
 
