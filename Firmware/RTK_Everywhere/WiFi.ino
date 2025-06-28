@@ -756,7 +756,7 @@ bool wifiStationEnabled(const char ** reason)
         // Verify that at least one SSID value is set
         if (wifiStationSsidSet == false)
         {
-            *reason = "SSID not available";
+            *reason = ", SSID not available";
             break;
         }
 
@@ -764,7 +764,7 @@ bool wifiStationEnabled(const char ** reason)
         if (wifiStationRestart)
         {
             wifiStationRestart = false;
-            *reason = "restart requested";
+            *reason = ", restart requested";
             break;
         }
 
@@ -778,19 +778,19 @@ bool wifiStationEnabled(const char ** reason)
             // Build the reason
             if (reasonBuffer)
             {
-                sprintf(reasonBuffer,"is lower priority than %s", networkGetCurrentInterfaceName());
+                sprintf(reasonBuffer,", is lower priority than %s", networkGetCurrentInterfaceName());
                 *reason = reasonBuffer;
             }
 
             // Allocation failed
             else
-                *reason = "is lower priority";
+                *reason = ", is lower priority";
             break;
         }
 
         // WiFi should start and continue running
         enabled = true;
-        *reason = "is enabled";
+        *reason = ", is enabled";
     } while (0);
     return enabled;
 }
@@ -1055,6 +1055,14 @@ void wifiStationUpdate()
     // WiFi station consumers have internet access
     case WIFI_STATION_STATE_STABLE:
         break;
+    }
+
+    // Periodically display the WiFi state
+    if (PERIODIC_DISPLAY(PD_WIFI_STATE))
+    {
+        systemPrintf("WiFi station state: %s%s\r\n",
+                     wifiStationStateName[wifiStationState], reason);
+        PERIODIC_CLEAR(PD_WIFI_STATE);
     }
 }
 
