@@ -525,6 +525,8 @@ void updateLBand()
             if (lband_neo_can_not_begin)
                 return;
 
+            paintLBandConfigure();
+
             // NEO-D9S is present but is not yet online. Try to begin the hardware
             if (i2cLBand.begin(*i2c_0, 0x43) ==
                 false) // Connect to the u-blox NEO-D9S using Wire port. The D9S default I2C address is 0x43 (not 0x42)
@@ -648,6 +650,8 @@ void updateLBand()
         {
             if (lband_gnss_can_not_begin)
                 return;
+
+            paintLBandConfigure();
 
             uint32_t LBandFreq;
             uint8_t fixType = gnss->getFixType();
@@ -1605,31 +1609,35 @@ void provisioningUpdate()
     }
     break;
     case PROVISIONING_KEYS_REMAINING: {
-        if (online.rtc == true)
+
+        // Report expiration of keys if this PointPerfect service uses them
+        if (pointPerfectServiceUsesKeys() == true)
         {
-            if (settings.pointPerfectNextKeyStart > 0)
+            if (online.rtc == true)
             {
-                int daysRemaining =
-                    daysFromEpoch(settings.pointPerfectNextKeyStart + settings.pointPerfectNextKeyDuration + 1);
-                systemPrintf("Days until PointPerfect keys expire: %d\r\n", daysRemaining);
-                if (daysRemaining >= 0)
+                if (settings.pointPerfectNextKeyStart > 0)
                 {
-                    paintKeyDaysRemaining(daysRemaining, 2 * MILLISECONDS_IN_A_SECOND);
-                }
-                else
-                {
-                    paintKeysExpired();
+                    int daysRemaining =
+                        daysFromEpoch(settings.pointPerfectNextKeyStart + settings.pointPerfectNextKeyDuration + 1);
+                    systemPrintf("Days until PointPerfect keys expire: %d\r\n", daysRemaining);
+                    if (daysRemaining >= 0)
+                    {
+                        paintKeyDaysRemaining(daysRemaining, 2 * MILLISECONDS_IN_A_SECOND);
+                    }
+                    else
+                    {
+                        paintKeysExpired();
+                    }
                 }
             }
+
+            // Be sure we ignore any external RTCM sources
+            gnss->rtcmOnGnssDisable();
+
+            gnss->applyPointPerfectKeys(); // Send current keys, if available, to GNSS
+
+            recordSystemSettings(); // Record these settings to unit
         }
-        paintLBandConfigure();
-
-        // Be sure we ignore any external RTCM sources
-        gnss->rtcmOnGnssDisable();
-
-        gnss->applyPointPerfectKeys(); // Send current keys, if available, to GNSS
-
-        recordSystemSettings(); // Record these settings to unit
 
         // Done with the network
         provisioningStop(__FILE__, __LINE__);
