@@ -1190,36 +1190,50 @@
 
                     <div>
                         Device ID: <p id="hardwareID" style="display:inline;">N/A</p><br>
-                        Days until keys expire: <p id="daysRemaining" style="display:inline;">No Keys</p>
                     </div>
 
-                    <div class="form-check mt-3">
-                        <label class="form-check-label" for="enablePointPerfectCorrections">Enable PointPerfect
-                            Corrections </label>
-                        <input class="form-check-input" type="checkbox" value="" id="enablePointPerfectCorrections">
-                        <span class="tt" data-bs-placement="right"
-                            title="Use L-Band / IP PointPerfect corrections when available. Default: Disabled">
-                            <span class="icon-info-circle text-primary ms-2"></span>
-                        </span>
-                    </div>
-
-                    <div id="geographicRegionDropdown">
-                        <label for="geographicRegion">Geographic Region:</label>
-                        <select name="geographicRegion" id="geographicRegion" class="form-dropdown mb-2">
-                            <option value="0">US</option>
-                            <option value="1">EU</option>
-                            <option value="2">AU</option>
-                            <option value="3">KR</option>
-                            <option value="4">Japan</option>
+                    <div id="pointPerfectServiceDropdown">
+                        <label for="pointPerfectService">PointPerfect Service:</label>
+                        <select name="pointPerfectService" id="pointPerfectService" class="form-dropdown mb-2">
                         </select>
                         <span class="tt" data-bs-placement="right"
-                            title="Select your geographic region. This defines the L-Band frequency and Regional Correction topic. Default: US">
+                            title="Select the PointPerfect service the device has been registered to. Default: Disabled">
                             <span class="icon-info-circle text-primary ms-2"></span>
                         </span>
                         <br>
                     </div>
 
-                    <div id="ppSettingsConfig">
+                    <div id="ppSettingsRtcmConfig">
+                        <div class="form-check mt-3">
+                            <label class="form-check-label" for="requestKeyUpdate">Request Key Update </label>
+                            <input class="form-check-input" type="checkbox" value="" id="requestKeyUpdate">
+                            <span class="tt" data-bs-placement="right"
+                                title="When checked, the PointPerfect keys will be requested and updated at the next opportunity. Default: Disabled">
+                                <span class="icon-info-circle text-primary ms-2"></span>
+                            </span>
+                        </div>
+                    </div>
+
+                    <div id="ppSettingsLBandNAConfig">
+                        <div>
+                            Days until keys expire: <p id="daysRemaining" style="display:inline;">No Keys</p>
+                        </div>
+                        <div id="geographicRegionDropdown">
+                            <label for="geographicRegion">Geographic Region:</label>
+                            <select name="geographicRegion" id="geographicRegion" class="form-dropdown mb-2">
+                                <option value="0">US</option>
+                                <option value="1">EU</option>
+                                <option value="2">AU</option>
+                                <option value="3">KR</option>
+                                <option value="4">Japan</option>
+                            </select>
+                            <span class="tt" data-bs-placement="right"
+                                title="Select your geographic region. This defines the L-Band frequency and Regional Correction topic. Default: US">
+                                <span class="icon-info-circle text-primary ms-2"></span>
+                            </span>
+                            <br>
+                        </div>
+
                         <div class="form-check mt-3">
                             <label class="form-check-label" for="autoKeyRenewal">Auto Key Renewal </label>
                             <input class="form-check-input" type="checkbox" value="" id="autoKeyRenewal">
@@ -2202,8 +2216,10 @@
 
                 <div id="shutdownNoChargeTimeoutMinutesCheckboxDetail">
                     <div class="form-check mt-3">
-                        <label class="form-check-label" for="shutdownNoChargeTimeoutMinutes">Shutdown If Not Charging</label>
-                        <input class="form-check-input" type="checkbox" value="" id="shutdownNoChargeTimeoutMinutesCheckbox">
+                        <label class="form-check-label" for="shutdownNoChargeTimeoutMinutes">Shutdown If Not
+                            Charging</label>
+                        <input class="form-check-input" type="checkbox" value=""
+                            id="shutdownNoChargeTimeoutMinutesCheckbox">
                         <span class="tt" data-bs-placement="right"
                             title="If enabled, device will turn off if no external charger is present. This is helpful when deploying in machinery or where a user may forget to turn the device off. Default: Disabled">
                             <span class="icon-info-circle text-primary ms-2"></span>
@@ -2213,7 +2229,8 @@
 
                 <div id="shutdownNoChargeTimeoutMinutesDetails" class="collapse mb-2">
                     <div class="form-group row">
-                        <label for="shutdownNoChargeTimeoutMinutes" class="box-margin40 col-sm-3 col-7 col-form-label">Minutes before
+                        <label for="shutdownNoChargeTimeoutMinutes"
+                            class="box-margin40 col-sm-3 col-7 col-form-label">Minutes before
                             shutdown:
                             <span class="tt" data-bs-placement="right"
                                 title="If shutdown is enabled, the device will turn off after this many minutes if no external charger is detected. Limits: 0 (disabled) to 10,080.">
