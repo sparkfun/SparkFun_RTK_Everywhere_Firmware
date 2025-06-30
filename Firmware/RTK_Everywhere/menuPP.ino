@@ -55,26 +55,23 @@ enum PP_Encoding
 };
 
 // PointPerfect offers are variety of services
-// Each service will have a printable name
+// Each service will have a printable name, delivery method, and encoding
 typedef struct
 {
-    const char serviceName[23];
+    const char serviceName[30];
     PP_ModelType modelType;
     PP_DeliveryMethod deliveryMethod;
     PP_Encoding encoding;
 } PP_Service;
 
-// Static array containing all the compatible messages
-// Rate = Output once every N position fix(es).
+// The various services offered by PointPerfect
 const PP_Service ppServices[] = {
     {"Disabled", PP_MODEL_NONE, PP_DELIVERY_NONE, PP_ENCODING_NONE},            // Do not use PointPerfect corrections
     {"Flex NTRIP/RTCM", PP_MODEL_SSR, PP_DELIVERY_NTRIP, PP_ENCODING_RTCM},     // Uses "ZTP-RTCM-100" profile
-    {"Flex L-Band NA", PP_MODEL_SSR, PP_DELIVERY_LBAND_NA, PP_ENCODING_SPARTN}, // Uses "ZTP-LBand" profile
+    {"Flex L-Band North America", PP_MODEL_SSR, PP_DELIVERY_LBAND_NA, PP_ENCODING_SPARTN}, // Uses "ZTP-LBand" profile
     {"Global", PP_MODEL_SSR, PP_DELIVERY_LBAND_GLOBAL, PP_ENCODING_SPARTN},     // Uses "ZTP-Global" profile
     {"Live", PP_MODEL_OSR, PP_DELIVERY_NTRIP, PP_ENCODING_RTCM},                // Uses "ZTP-Live" profile
-    {"Flex MQTT (Deprecated)", PP_MODEL_SSR, PP_DELIVERY_MQTT, PP_ENCODING_SPARTN}, // Deprecated
-    // "ZTP-IP" profile deprecated - This was used for getting corrections over IP using MQTT transport (no longer
-    // supported on new accounts)
+    {"Flex MQTT (Deprecated)", PP_MODEL_SSR, PP_DELIVERY_MQTT, PP_ENCODING_SPARTN}, // Uses "ZTP-IP" profile, now deprecated
     // "ZTP-RTCM-100-Trial" profile deprecated
     // "ZTP-LBand+IP" profile deprecated
 };
@@ -320,6 +317,8 @@ const char *printDeviceId()
 // Present user with list of available services, list depends on platform
 void menuPointPerfectSelectService()
 {
+    clearBuffer(); // Empty buffer of any newline chars
+
     while (1)
     {
         systemPrintln();
@@ -342,11 +341,8 @@ void menuPointPerfectSelectService()
             {
                 settings.pointPerfectService = incoming - 1; // Align incoming to array
 
-                // Many functions depend on settings.enablePointPerfectCorrections so continue to support it
-                settings.enablePointPerfectCorrections = settings.pointPerfectService;
-
                 restartRover = true; // Require a rover restart to enable / disable RTCM for PPL
-                settings.requestKeyUpdate = settings.enablePointPerfectCorrections; // Force a key update - or don't
+                settings.requestKeyUpdate = settings.pointPerfectService; // Force a key update - or don't
 
                 break; // Exit menu once selected
             }
