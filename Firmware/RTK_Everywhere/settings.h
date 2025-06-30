@@ -691,7 +691,7 @@ struct Settings
 
     // Signatures to indicate how the GNSS is configured (Once, Base, Rover, etc.)
     // Bit 0 indicates if the GNSS has been configured previously.
-    // Bits 1 onwards record the state of critical settings. E.g. settings.enablePointPerfectCorrections
+    // Bits 1 onwards record the state of critical settings.
     // Configuration is reapplied if any of those critical settings have changed
     bool gnssConfiguredOnce = false;
     bool gnssConfiguredBase = false;
@@ -835,7 +835,6 @@ struct Settings
     // Point Perfect
     bool autoKeyRenewal = true; // Attempt to get keys if we get under 28 days from the expiration date
     bool debugPpCertificate = false; // Debug Point Perfect certificate management
-    bool enablePointPerfectCorrections = false; // Things are better now. We could default to true. Also change line 940 in index.html
     int geographicRegion = 0; // Default to US - first entry in Regional_Information_Table
     uint64_t lastKeyAttempt = 0;     // Epoch time of last attempt at obtaining keys
     uint16_t lbandFixTimeout_seconds = 180; // Number of seconds of no L-Band fix before resetting ZED
@@ -1433,7 +1432,6 @@ const RTK_Settings_Entry rtkSettingsEntries[] =
     // Point Perfect
     { 1, 1, 0, 1, 1, 1, 1, 1, 1, _bool,     0, & settings.autoKeyRenewal, "autoKeyRenewal",  },
     { 0, 0, 0, 1, 1, 1, 1, 1, 1, _bool,     0, & settings.debugPpCertificate, "debugPpCertificate",  },
-    { 1, 1, 0, 1, 1, 1, 1, 1, 1, _bool,     0, & settings.enablePointPerfectCorrections, "enablePointPerfectCorrections",  },
     { 1, 1, 0, 1, 1, 1, 1, 1, 1, _int,      0, & settings.geographicRegion, "geographicRegion",  },
     { 0, 0, 0, 1, 1, 1, 1, 1, 1, _uint64_t, 0, & settings.lastKeyAttempt, "lastKeyAttempt",  },
     { 0, 1, 0, 1, 1, 1, 1, 1, 1, _uint16_t, 0, & settings.lbandFixTimeout_seconds, "lbandFixTimeout",  },
