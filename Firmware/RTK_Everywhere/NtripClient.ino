@@ -810,12 +810,12 @@ void ntripClientUpdate()
                 // Look for '401 Unauthorized'
 
                 // If we are using PointPerfect RTCM credentials, let the user know they may be deactivated.
-                if (pointPerfectIsEnabled() == true && pointPerfectServiceUsesKeys() == false)
+                if (pointPerfectNtripNeeded() == true)
                 {
                     systemPrintf("NTRIP Caster responded with unauthorized error. Your account may be deactivated. "
                                  "Please contact "
                                  "support@sparkfun.com or goto %s to renew the PointPerfect "
-                                 "subscription. Please reference device ID: %x\r\n",
+                                 "subscription. Please reference device ID: %s\r\n",
                                  platformRegistrationPageTable[productVariant], printDeviceId());
                 }
                 else
