@@ -2023,7 +2023,7 @@ void createSettingsString(char *newSettings)
     stringRecord(newSettings, "sdMounted", online.microSD);
 
     // Add Device ID used for corrections
-    stringRecord(newSettings, "hardwareID", printDeviceId());
+    stringRecord(newSettings, "hardwareID", (char *)printDeviceId());
 
     // Add Days Remaining for corrections
     char apDaysRemaining[20];
@@ -2835,7 +2835,7 @@ SettingValueResponse getSettingValue(bool inCommands, const char *settingName, c
     // Report deviceID over CLI - Useful for label generation
     if (strcmp(settingName, "deviceId") == 0)
     {
-        writeToString(settingValueStr, printDeviceId());
+        writeToString(settingValueStr, (char *)printDeviceId());
         knownSetting = true;
         settingIsString = true;
     }
@@ -3524,7 +3524,6 @@ void printAvailableSettings()
         else if (commandIndex[i] == COMMAND_PROFILE_NUMBER)
         {
             char settingValue[100];
-
             snprintf(settingValue, sizeof(settingValue), "%d", profileNumber);
             commandSendExecuteListResponse("profileNumber", "uint8_t", settingValue);
         }
@@ -3532,13 +3531,9 @@ void printAvailableSettings()
         // Display the device ID - used in PointPerfect
         else if (commandIndex[i] == COMMAND_DEVICE_ID)
         {
-            char hardwareID[15];
             char settingType[100];
-
-            snprintf(hardwareID, sizeof(hardwareID), "%02X%02X%02X%02X%02X%02X%02X", btMACAddress[0], btMACAddress[1],
-                     btMACAddress[2], btMACAddress[3], btMACAddress[4], btMACAddress[5], productVariant);
-            snprintf(settingType, sizeof(settingType), "char[%d]", sizeof(hardwareID));
-            commandSendExecuteListResponse("deviceId", settingType, hardwareID);
+            snprintf(settingType, sizeof(settingType), "char[%d]", strlen(printDeviceId()));
+            commandSendExecuteListResponse("deviceId", settingType, printDeviceId());
         }
     }
     systemPrintln();
