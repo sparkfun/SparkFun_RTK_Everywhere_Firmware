@@ -664,7 +664,7 @@ void setRadioIcons(std::vector<iconPropertyBlinking> *iconList)
             // ESP-Now + Bluetooth + WiFi
 
             // Count the number of radios in use
-            uint8_t numberOfRadios = 1; // Bluetooth always indicated. TODO don't count if BT radio type is OFF.
+            uint8_t numberOfRadios = 1; // Bluetooth always indicated.
             if (wifiStationRunning || wifiSoftApRunning)
                 numberOfRadios++;
             if (wifiEspNowRunning)
@@ -747,8 +747,22 @@ void setRadioIcons(std::vector<iconPropertyBlinking> *iconList)
                 iconList->push_back(prop);
             }
 
-            if (wifiStationRunning || wifiSoftApRunning) // WiFi : Columns 34 - 46
+            // WiFi : Columns 34 - 46
+            if (wifiStationRunning && networkInterfaceHasInternet(NETWORK_WIFI_STATION))
+            {
+                //Display solid icon based on RSSI
                 displayWiFiIcon(iconList, prop, ICON_POSITION_CENTER, 0b11111111);
+            }
+            else if (wifiStationRunning && (networkInterfaceHasInternet(NETWORK_WIFI_STATION) == false))
+            {
+                // We are not connected, blink icon
+                displayWiFiFullIcon(iconList, prop, ICON_POSITION_CENTER, 0b00001111);
+            }
+            else if(wifiSoftApRunning)
+            {
+                // We are in AP mode, solid WiFi icon
+                displayWiFiIcon(iconList, prop, ICON_POSITION_CENTER, 0b11111111);
+            }
 
 #ifdef COMPILE_CELLULAR
             // Cellular : Columns 49 - 61
@@ -1139,10 +1153,14 @@ void setWiFiIcon_TwoRadios(std::vector<iconPropertyBlinking> *iconList)
             }
         }
         else
+        {
             displayWiFiIcon(iconList, prop, ICON_POSITION_LEFT, 0b11111111);
+        }
     }
     else // We are not paired, blink icon
+    {
         displayWiFiFullIcon(iconList, prop, ICON_POSITION_LEFT, 0b00001111);
+    }
 #endif // COMPILE_WIFI
 }
 
