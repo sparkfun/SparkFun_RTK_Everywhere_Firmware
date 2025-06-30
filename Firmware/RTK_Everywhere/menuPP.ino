@@ -517,8 +517,8 @@ void updateLBand()
 #ifdef COMPILE_L_BAND
     if (present.lband_neo)
     {
-        //Start L-Band if it is enabled        
-        if (online.lband_neo == false && pointPerfectLbandEnabled() == true)
+        // Start L-Band if it is enabled
+        if (online.lband_neo == false && pointPerfectLbandNeeded() == true)
         {
             static bool lband_neo_can_not_begin = false;
 
@@ -625,7 +625,7 @@ void updateLBand()
 
             online.lband_neo = true;
         }
-        else if (online.lband_neo && pointPerfectIsEnabled())
+        else if (online.lband_neo && pointPerfectServiceUsesKeys())
         {
             // L-Band is online. Apply the keys if they have changed
             // This may be redundant as PROVISIONING_KEYS_REMAINING also applies the keys
@@ -644,7 +644,7 @@ void updateLBand()
     if (present.gnss_mosaicX5)
     {
         // Start L-Band if service is enabled
-        if (online.lband_gnss == false && pointPerfectLbandEnabled())
+        if (online.lband_gnss == false && pointPerfectLbandNeeded())
         {
             if (lband_gnss_can_not_begin)
                 return;
@@ -711,7 +711,7 @@ void updateLBand()
         }
 
         // Stop L-Band is service is disabled
-        else if (online.lband_gnss == true && pointPerfectLbandEnabled() == false)
+        else if (online.lband_gnss == true && pointPerfectLbandNeeded() == false)
         {
             Serial.println("\n\r Taking L-Band offline");
 
@@ -831,8 +831,16 @@ bool pointPerfectServiceUsesKeys()
     return false;
 }
 
-// Determine if this service type uses L-Band
-bool pointPerfectLbandEnabled()
+// Determine if this service type uses MQTT for corrections
+bool pointPerfectMqttNeeded()
+{
+    if (settings.pointPerfectService == PP_NICKNAME_IP_MQTT)
+        return true;
+    return false;
+}
+
+// Determine if this service type uses L-Band for corrections
+bool pointPerfectLbandNeeded()
 {
     if (settings.pointPerfectService == PP_NICKNAME_FLEX_LBAND_NA || settings.pointPerfectService == PP_NICKNAME_GLOBAL)
         return true;
@@ -840,7 +848,7 @@ bool pointPerfectLbandEnabled()
 }
 
 // Determine if this service type uses NTRIP for corrections
-bool pointPerfectNtripEnabled()
+bool pointPerfectNtripNeeded()
 {
     if (settings.pointPerfectService == PP_NICKNAME_FLEX_RTCM || settings.pointPerfectService == PP_NICKNAME_LIVE)
         return true;
@@ -917,7 +925,6 @@ bool productVariantNeedsPpl()
     systemPrintln("Uncaught productVariantNeedsPpl()");
     return false;
 }
-
 
 // Given a service nick name, return whether this platform supports it
 // Helps with printing the menu

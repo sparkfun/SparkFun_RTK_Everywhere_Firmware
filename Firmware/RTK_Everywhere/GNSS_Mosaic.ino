@@ -2719,7 +2719,7 @@ void GNSS_MOSAIC::update()
     {
         if (spartnCorrectionsReceived) // If corrections were being received
         {
-            configureLBand(pointPerfectLbandEnabled()); // Restart L-Band using stored frequency
+            configureLBand(pointPerfectLbandNeeded()); // Restart L-Band using stored frequency
             spartnCorrectionsReceived = false;
         }
     }

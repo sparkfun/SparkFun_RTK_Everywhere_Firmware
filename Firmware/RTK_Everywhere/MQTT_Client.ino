@@ -229,8 +229,8 @@ bool mqttClientEnabled(const char **line)
             break;
         }
 
-        // MQTT requires use of point perfect corrections
-        if (pointPerfectIsEnabled() == false)
+        // Stop MQTT client if user changes PointPerfect service
+        if (pointPerfectMqttNeeded() == false)
         {
             if (line)
                 *line = ", PointPerfect corrections are disabled!";
@@ -1007,7 +1007,7 @@ void mqttClientUpdate()
             mqttClientRestart();
             break;
         }
-
+        
         // Check for new data
         mqttClient->poll();
 

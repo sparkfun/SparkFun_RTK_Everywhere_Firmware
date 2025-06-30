@@ -608,7 +608,7 @@ void httpClientUpdate()
                         httpClientSetState(HTTP_CLIENT_COMPLETE);
                     } // Valid certificates
                 } // End handle keys type response
-                else if (pointPerfectNtripEnabled() == true)
+                else if (pointPerfectNtripNeeded() == true)
                 {
                     // We received a JSON blob containing NTRIP credentials
                     systemPrintf("PointPerfect response: %s\r\n", response.c_str());
