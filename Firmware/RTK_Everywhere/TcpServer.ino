@@ -82,7 +82,9 @@ const char *const tcpServerStateName[] = {
 
 const int tcpServerStateNameEntries = sizeof(tcpServerStateName) / sizeof(tcpServerStateName[0]);
 
-const RtkMode_t tcpServerMode = RTK_MODE_BASE_FIXED | RTK_MODE_BASE_SURVEY_IN | RTK_MODE_ROVER;
+const RtkMode_t baseCasterMode = RTK_MODE_BASE_FIXED;
+const RtkMode_t tcpServerMode = RTK_MODE_ROVER
+                              | RTK_MODE_BASE_SURVEY_IN;
 
 //----------------------------------------
 // Locals
@@ -92,6 +94,7 @@ const RtkMode_t tcpServerMode = RTK_MODE_BASE_FIXED | RTK_MODE_BASE_SURVEY_IN | 
 static NetworkServer *tcpServer = nullptr;
 static uint8_t tcpServerState;
 static uint32_t tcpServerTimer;
+static const char * tcpServerName;
 
 // TCP server clients
 static volatile uint8_t tcpServerClientConnected;
@@ -146,7 +149,8 @@ int32_t tcpServerClientSendData(int index, uint8_t *data, uint16_t length)
             if (length > 0)
                 tcpServerClientDataSent = tcpServerClientDataSent | (1 << index);
             if ((settings.debugTcpServer || PERIODIC_DISPLAY(PD_TCP_SERVER_CLIENT_DATA)) && (!inMainMenu))
-                systemPrintf("TCP server wrote %d bytes to %s\r\n", length,
+                systemPrintf("%s wrote %d bytes to %s\r\n",
+                             tcpServerName, length,
                              tcpServerClientIpAddress[index].toString().c_str());
         }
 
@@ -167,22 +171,66 @@ int32_t tcpServerClientSendData(int index, uint8_t *data, uint16_t length)
 bool tcpServerEnabled(const char ** line)
 {
     bool enabled;
+    const char * name;
 
     do
     {
+        // Determine if the server is enabled
         enabled = false;
+        if ((settings.enableTcpServer
+            || settings.enableNtripCaster
+            || settings.baseCasterOverride) == false)
+        {
+            *line = ", Not enabled!";
+            break;
+        }
 
-        // Verify the operating mode
-        if (NEQ_RTK_MODE(tcpServerMode))
+        // Determine if the TCP server should be running
+        if ((EQ_RTK_MODE(tcpServerMode) && settings.enableTcpServer))
+        {
+            // TCP server running in Rover mode
+            name = "TCP Server";
+        }
+
+        // Determine if the base caster should be running
+        else if (EQ_RTK_MODE(baseCasterMode)
+            && (settings.enableNtripCaster || settings.baseCasterOverride))
+        {
+            // Select the base caster WiFi mode and port number
+            if (settings.baseCasterOverride)
+            {
+                name = "Base Caster";
+            }
+            else
+            {
+                name = "NTRIP Caster";
+            }
+        }
+
+        // Wrong mode for TCP server or base caster operation
+        else
         {
             *line = ", Wrong mode!";
             break;
         }
 
-        // Verify still enabled
-        enabled = settings.enableTcpServer || settings.baseCasterOverride;
-        if (enabled == false)
-            *line = ", Not enabled!";
+        // Only change modes when in off state
+        if (tcpServerState == TCP_SERVER_STATE_OFF)
+        {
+            // Update the TCP server configuration
+            tcpServerName = name;
+        }
+
+        // Shutdown and restart the TCP server when configuration changes
+        else if (name != tcpServerName)
+        {
+            *line = ", Wrong state to switch configuration!";
+            break;
+        }
+
+        // The server is enabled and in the correct mode
+        *line = "";
+        enabled = true;
     } while (0);
     return enabled;
 }
@@ -265,7 +313,7 @@ void tcpServerSetState(uint8_t newState)
     {
         if (newState >= TCP_SERVER_STATE_MAX)
         {
-            systemPrintf("Unknown TCP Server state: %d\r\n", tcpServerState);
+            systemPrintf("Unknown %s state: %d\r\n", tcpServerName, tcpServerState);
             reportFatalError("Unknown TCP Server state");
         }
         else
@@ -281,7 +329,7 @@ bool tcpServerStart()
     IPAddress localIp;
 
     if (settings.debugTcpServer && (!inMainMenu))
-        systemPrintln("TCP server starting the server");
+        systemPrintf("%s starting the server\r\n", tcpServerName);
 
     uint16_t tcpPort = settings.tcpServerPort;
     if(settings.baseCasterOverride == true)
@@ -296,12 +344,8 @@ bool tcpServerStart()
     online.tcpServer = true;
 
     localIp = networkGetIpAddress();
-    if (settings.enableNtripCaster || settings.baseCasterOverride)
-        systemPrintf("TCP server online, IP address %s:%d, responding as NTRIP Caster\r\n", localIp.toString().c_str(),
-                     tcpPort);
-    else
-        systemPrintf("TCP server online, IP address %s:%d\r\n", localIp.toString().c_str(), tcpPort);
-
+    systemPrintf("%s online, IP address %s:%d\r\n", tcpServerName,
+                     localIp.toString().c_str(), tcpPort);
     return true;
 }
 
@@ -316,7 +360,8 @@ void tcpServerStop()
     if (online.tcpServer)
     {
         if (settings.debugTcpServer && (!inMainMenu))
-            systemPrintf("TcpServer: Notifying GNSS UART task to stop sending data\r\n");
+            systemPrintf("%s: Notifying GNSS UART task to stop sending data\r\n",
+                         tcpServerName);
 
         // Notify the GNSS UART tasks of the TCP server shutdown
         online.tcpServer = false;
@@ -336,7 +381,7 @@ void tcpServerStop()
     {
         // Stop the TCP server
         if (settings.debugTcpServer && (!inMainMenu))
-            systemPrintln("TcpServer: Stopping the server");
+            systemPrintf("%s: Stopping the server\r\n", tcpServerName);
         tcpServer->stop();
         delete tcpServer;
         tcpServer = nullptr;
@@ -344,7 +389,7 @@ void tcpServerStop()
 
     // Stop using the network
     if (settings.debugTcpServer && (!inMainMenu))
-        systemPrintln("TcpServer: Stopping network consumers");
+        systemPrintf("%s: Stopping network consumers\r\n", tcpServerName);
     networkConsumerOffline(NETCONSUMER_TCP_SERVER);
     if (tcpServerState != TCP_SERVER_STATE_OFF)
     {
@@ -379,10 +424,13 @@ void tcpServerStopClient(int index)
             dataSent = ((millis() - tcpServerTimer) < TCP_SERVER_CLIENT_DATA_TIMEOUT)
                      || (tcpServerClientDataSent & (1 << index));
             if (!dataSent)
-                systemPrintf("TCP Server: No data sent over %d seconds\r\n", TCP_SERVER_CLIENT_DATA_TIMEOUT / 1000);
+                systemPrintf("%s: No data sent over %d seconds\r\n",
+                             tcpServerName,
+                             TCP_SERVER_CLIENT_DATA_TIMEOUT / 1000);
             if (!connected)
-                systemPrintf("TCP Server: Link to client broken\r\n");
-            systemPrintf("TCP server client %d disconnected from %s\r\n", index,
+                systemPrintf("%s: Link to client broken\r\n", tcpServerName);
+            systemPrintf("%s client %d disconnected from %s\r\n",
+                         tcpServerName, index,
                          tcpServerClientIpAddress[index].toString().c_str());
         }
 
@@ -447,7 +495,7 @@ void tcpServerUpdate()
         if (enabled)
         {
             if (settings.debugTcpServer && (!inMainMenu))
-                systemPrintln("TCP server start");
+                systemPrintf("%s start/r/n", tcpServerName);
             if (settings.tcpUdpOverWiFiStation == true)
                 networkConsumerAdd(NETCONSUMER_TCP_SERVER, NETWORK_ANY, __FILE__, __LINE__);
             else
@@ -485,7 +533,7 @@ void tcpServerUpdate()
             if ((settings.debugTcpServer || PERIODIC_DISPLAY(PD_TCP_SERVER_DATA)) && (!inMainMenu))
             {
                 PERIODIC_CLEAR(PD_TCP_SERVER_DATA);
-                systemPrintln("TCP server initiating shutdown");
+                systemPrintf("%s initiating shutdown\r\n", tcpServerName);
             }
 
             // Network connection failed, attempt to restart the network
@@ -510,7 +558,8 @@ void tcpServerUpdate()
                     if (PERIODIC_DISPLAY(PD_TCP_SERVER_DATA) && (!inMainMenu))
                     {
                         PERIODIC_CLEAR(PD_TCP_SERVER_DATA);
-                        systemPrintf("TCP server client %d connected to %s\r\n", index,
+                        systemPrintf("%s client %d connected to %s\r\n",
+                                     tcpServerName, index,
                                      tcpServerClientIpAddress[index].toString().c_str());
                     }
                 }
@@ -544,7 +593,8 @@ void tcpServerUpdate()
                 if ((settings.debugTcpServer || PERIODIC_DISPLAY(PD_TCP_SERVER_DATA)) && (!inMainMenu))
                 {
                     PERIODIC_CLEAR(PD_TCP_SERVER_DATA);
-                    systemPrintf("TCP server client %d connected to %s\r\n", index,
+                    systemPrintf("%s client %d connected to %s\r\n",
+                                 tcpServerName, index,
                                  tcpServerClientIpAddress[index].toString().c_str());
                 }
 
@@ -614,7 +664,7 @@ void tcpServerUpdate()
     // Periodically display the TCP state
     if (PERIODIC_DISPLAY(PD_TCP_SERVER_STATE) && (!inMainMenu))
     {
-        systemPrintf("TCP Server state: %s%s\r\n",
+        systemPrintf("%s state: %s%s\r\n", tcpServerName,
                      tcpServerStateName[tcpServerState], line);
         PERIODIC_CLEAR(PD_TCP_SERVER_STATE);
     }
