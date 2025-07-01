@@ -439,6 +439,7 @@ bool otaRequestFirmwareUpdate = false;
 
 bool enableRCFirmware;     // Goes true from AP config page
 bool currentlyParsingData; // Goes true when we hit 750ms timeout with new data
+bool tcpServerInCasterMode;// True when TCP server is running in caster mode
 
 // Give up connecting after this number of attempts
 // Connection attempts are throttled to increase the time between attempts

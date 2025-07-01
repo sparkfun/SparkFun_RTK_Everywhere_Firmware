@@ -171,6 +171,7 @@ int32_t tcpServerClientSendData(int index, uint8_t *data, uint16_t length)
 //----------------------------------------
 bool tcpServerEnabled(const char ** line)
 {
+    bool casterMode;
     bool enabled;
     const char * name;
     uint16_t port;
@@ -192,6 +193,7 @@ bool tcpServerEnabled(const char ** line)
         {
             // TCP server running in Rover mode
             name = "TCP Server";
+            casterMode = false;
             port = settings.tcpServerPort;
         }
 
@@ -199,6 +201,9 @@ bool tcpServerEnabled(const char ** line)
         else if (EQ_RTK_MODE(baseCasterMode)
             && (settings.enableNtripCaster || settings.baseCasterOverride))
         {
+            // TCP server running in caster mode
+            casterMode = true;
+
             // Select the base caster WiFi mode and port number
             if (settings.baseCasterOverride)
             {
@@ -224,11 +229,13 @@ bool tcpServerEnabled(const char ** line)
         {
             // Update the TCP server configuration
             tcpServerName = name;
+            tcpServerInCasterMode = casterMode;
             tcpServerPort = port;
         }
 
         // Shutdown and restart the TCP server when configuration changes
         else if ((name != tcpServerName)
+            || (casterMode != tcpServerInCasterMode)
             || (port != tcpServerPort))
         {
             *line = ", Wrong state to switch configuration!";
@@ -603,7 +610,7 @@ void tcpServerUpdate()
 
                 // If we are acting as an NTRIP Caster, intercept the initial communication from the client
                 //  and respond accordingly
-                if (settings.enableNtripCaster || settings.baseCasterOverride)
+                if (tcpServerInCasterMode)
                 {
                     // Read response from client
                     char response[512];
@@ -646,7 +653,7 @@ void tcpServerUpdate()
                         if (settings.debugTcpServer)
                             systemPrintf("Unknown response: %s\r\n", response);
                     }
-                } // settings.enableNtripCaster == true || settings.baseCasterOverride == true
+                } // tcpServerInCasterMode
 
                 // Make client online after any NTRIP injections so ring buffer can start outputting data to it
                 tcpServerClientConnected = tcpServerClientConnected | (1 << index);
