@@ -213,7 +213,10 @@ void menuTcpUdp()
             systemPrintf("7) UDP Server Port: %ld\r\n", settings.udpServerPort);
 
         if (settings.enableTcpServer)
+        {
             systemPrintf("8) Enable NTRIP Caster: %s\r\n", settings.enableNtripCaster ? "Enabled" : "Disabled");
+            systemPrintf("9) Enable base Caster override: %s\r\n", settings.baseCasterOverride ? "Enabled" : "Disabled");
+        }
 
         //------------------------------
         // Display the mDNS server menu items
@@ -297,6 +300,9 @@ void menuTcpUdp()
         }
         else if (incoming == 8 && settings.enableTcpServer)
             settings.enableNtripCaster ^= 1;
+
+        else if (incoming == 9 && settings.enableTcpServer)
+            settings.baseCasterOverride ^= 1;
 
         //------------------------------
         // Get the mDNS server parameters
