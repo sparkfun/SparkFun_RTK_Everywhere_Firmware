@@ -119,6 +119,7 @@ static const char * tcpServerName;
 // TCP server clients
 static volatile uint8_t tcpServerClientConnected;
 static volatile uint8_t tcpServerClientDataSent;
+static volatile uint8_t tcpServerClientSendingData;
 static uint32_t tcpServerClientTimer[TCP_SERVER_MAX_CLIENTS];
 static volatile uint8_t tcpServerClientWriteError;
 static NetworkClient *tcpServerClient[TCP_SERVER_MAX_CLIENTS];
@@ -295,7 +296,7 @@ int32_t tcpServerSendData(uint16_t dataHead)
         tail = tcpServerClientTails[index];
 
         // Determine if the client is connected
-        if (!(tcpServerClientConnected & (1 << index)))
+        if ((tcpServerClientSendingData & (1 << index)) == 0)
             tail = dataHead;
         else
         {
@@ -437,6 +438,7 @@ void tcpServerClientUpdate(uint8_t index)
                 tcpServerClient[index]->write(confirmConnection, strlen(confirmConnection));
 
                 // Start sending RTCM
+                tcpServerClientSendingData = tcpServerClientSendingData | (1 << index);
                 tcpServerClientState[index] = TCP_SERVER_CLIENT_SENDING_DATA;
             }
             break;
@@ -491,8 +493,11 @@ void tcpServerClientUpdate(uint8_t index)
         if (tcpServerInCasterMode)
             tcpServerClientState[index] = TCP_SERVER_CLIENT_WAIT_REQUEST;
         else
+        {
             // Make client online after any NTRIP injections so ring buffer can start outputting data to it
+            tcpServerClientSendingData = tcpServerClientSendingData | (1 << index);
             tcpServerClientState[index] = TCP_SERVER_CLIENT_SENDING_DATA;
+        }
         break;
     }
 }
@@ -606,6 +611,9 @@ void tcpServerStopClient(int index)
 {
     bool connected;
     bool dataSent;
+
+    // Stop sending data
+    tcpServerClientSendingData = tcpServerClientSendingData & ~(1 << index);
 
     // Determine if a client was allocated
     if (tcpServerClient[index])
