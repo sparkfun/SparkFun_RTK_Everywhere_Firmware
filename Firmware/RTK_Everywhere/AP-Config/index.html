@@ -1197,27 +1197,27 @@
                         <select name="pointPerfectService" id="pointPerfectService" class="form-dropdown mb-2">
                         </select>
                         <span class="tt" data-bs-placement="right"
-                            title="Select the PointPerfect service the device has been registered to. Default: Disabled">
+                            title="The device will attempt to use PointPerfect for corrections. The device must be registered through SparkFun. NTRIP/RTCM service requires WiFi. Default: Disabled">
                             <span class="icon-info-circle text-primary ms-2"></span>
                         </span>
-                        <br>
-                    </div>
-
-                    <div id="ppSettingsRtcmConfig">
-                        <div class="form-check mt-3">
-                            <label class="form-check-label" for="requestKeyUpdate">Request Key Update </label>
-                            <input class="form-check-input" type="checkbox" value="" id="requestKeyUpdate">
-                            <span class="tt" data-bs-placement="right"
-                                title="When checked, the PointPerfect keys will be requested and updated at the next opportunity. Default: Disabled">
-                                <span class="icon-info-circle text-primary ms-2"></span>
-                            </span>
-                        </div>
+                        <p id="pointPerfectServiceError" class="inlineError"></p>
                     </div>
 
                     <div id="ppSettingsLBandNAConfig">
                         <div>
                             Days until keys expire: <p id="daysRemaining" style="display:inline;">No Keys</p>
                         </div>
+
+                        <div class="form-check mt-3">
+                            <label class="form-check-label" for="requestKeyUpdate"
+                                id="pointPerfectKeyUpdateLabel">Request Key Update</label>
+                            <input class="form-check-input" type="checkbox" value="" id="requestKeyUpdate">
+                            <span class="tt" data-bs-placement="right"
+                                title="When checked, the PointPerfect keys will be requested and updated at the next opportunity. Default: Disabled">
+                                <span class="icon-info-circle text-primary ms-2"></span>
+                            </span>
+                        </div>
+
                         <div id="geographicRegionDropdown">
                             <label for="geographicRegion">Geographic Region:</label>
                             <select name="geographicRegion" id="geographicRegion" class="form-dropdown mb-2">
@@ -1255,15 +1255,6 @@
                                 <input type="text" class="form-control" id="pointPerfectDeviceProfileToken">
                                 <p id="pointPerfectDeviceProfileTokenError" class="inlineError"></p>
                             </div>
-                        </div>
-
-                        <div class="form-check mt-3">
-                            <label class="form-check-label" for="requestKeyUpdate">Request Key Update </label>
-                            <input class="form-check-input" type="checkbox" value="" id="requestKeyUpdate">
-                            <span class="tt" data-bs-placement="right"
-                                title="When checked, the PointPerfect keys will be requested and updated at the next opportunity. Default: Disabled">
-                                <span class="icon-info-circle text-primary ms-2"></span>
-                            </span>
                         </div>
 
                         <div id="useAssistNowCheckbox">

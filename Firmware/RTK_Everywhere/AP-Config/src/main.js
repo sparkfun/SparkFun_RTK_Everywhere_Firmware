@@ -501,8 +501,7 @@ function parseIncoming(msg) {
                 correctionsSourcePriorities.push(correctionPriority);
             }
             else {
-                console.log("Too many corrections sources");
-                console.log(correctionsSourceNames.length);
+                console.log("Too many corrections sources: ", correctionsSourceNames.length);
             }
         }
         else if (id.includes("checkingNewFirmware")) {
@@ -922,15 +921,7 @@ function validateFields() {
     // }
 
     //PointPerfect Config
-    if (ge("pointPerfectService").value > 0) {
-        value = ge("pointPerfectDeviceProfileToken").value;
-        if (value.length > 0)
-            checkElementString("pointPerfectDeviceProfileToken", 36, 36, "Must be 36 characters", "collapsePPConfig");
-    }
-    else {
-        clearElement("pointPerfectDeviceProfileToken", "");
-        ge("autoKeyRenewal").checked = true;
-    }
+    checkPointPerfectService();
 
     //Port Config
     if (ge("enableExternalPulse").checked == true) {
@@ -1091,8 +1082,8 @@ function saveConfig() {
         clearSuccess('saveBtn');
     }
     else {
-        sendData();
         clearError('saveBtn');
+        sendData();
         showSuccess('saveBtn', "Saving...");
     }
 
@@ -1109,6 +1100,30 @@ function checkConstellations() {
     }
     else
         clearError("gnssConstellations");
+}
+
+function checkPointPerfectService() {
+    if (ge("pointPerfectService").value > 0) {
+        value = ge("pointPerfectDeviceProfileToken").value;
+        if (value.length > 0)
+            checkElementString("pointPerfectDeviceProfileToken", 36, 36, "Must be 36 characters", "collapsePPConfig");
+
+        if (networkCount() == 0) {
+            showError('pointPerfectService', "This PointPerfect service requires at least one WiFi network");
+            ge("collapsePPConfig").classList.add('show');
+            ge("collapseWiFiConfig").classList.add('show');
+            errorCount++;
+        }
+        else {
+            clearError("pointPerfectService");
+        }
+
+    }
+    else {
+        clearElement("pointPerfectDeviceProfileToken", "");
+        ge("autoKeyRenewal").checked = true;
+        clearError("pointPerfectService");
+    }
 }
 
 function checkBitMapValue(id, min, max, bitMap, errorText, collapseID) {
@@ -1682,16 +1697,13 @@ document.addEventListener("DOMContentLoaded", (event) => {
     });
 
     ge("pointPerfectService").addEventListener("change", function () {
-        if (ge("pointPerfectService").value == 1) {
+        if (ge("pointPerfectService").value == 1) { //Flex RTCM 
             hide("ppSettingsLBandNAConfig");
-            show("ppSettingsRtcmConfig");
         }
-        else if (ge("pointPerfectService").value == 2) {
-            hide("ppSettingsRtcmConfig");
+        else if (ge("pointPerfectService").value == 2) { //Flex L-Band NA
             show("ppSettingsLBandNAConfig");
         }
-        else { //"pointPerfectService").value == 0
-            hide("ppSettingsRtcmConfig");
+        else { //"pointPerfectService").value == 0 //Disabled
             hide("ppSettingsLBandNAConfig");
         }
     });
