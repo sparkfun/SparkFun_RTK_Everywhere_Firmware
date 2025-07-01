@@ -346,12 +346,9 @@ void tcpServerClientUpdate(uint8_t index)
 
         // Periodically display this client connection
         if (PERIODIC_DISPLAY(PD_TCP_SERVER_DATA) && (!inMainMenu))
-        {
-            PERIODIC_CLEAR(PD_TCP_SERVER_DATA);
             systemPrintf("%s client %d connected to %s\r\n",
                          tcpServerName, index,
                          tcpServerClientIpAddress[index].toString().c_str());
-        }
         break;
     }
 
@@ -371,14 +368,10 @@ void tcpServerClientUpdate(uint8_t index)
             // TCP server client found
             // Start processing the new TCP server client connection
             tcpServerClientIpAddress[index] = tcpServerClient[index]->remoteIP();
-
             if ((settings.debugTcpServer || PERIODIC_DISPLAY(PD_TCP_SERVER_DATA)) && (!inMainMenu))
-            {
-                PERIODIC_CLEAR(PD_TCP_SERVER_DATA);
                 systemPrintf("%s client %d connected to %s\r\n",
                              tcpServerName, index,
                              tcpServerClientIpAddress[index].toString().c_str());
-            }
 
             // If we are acting as an NTRIP Caster, intercept the initial communication from the client
             //  and respond accordingly
@@ -550,8 +543,6 @@ void tcpServerStopClient(int index)
         // Done with this client connection
         if ((settings.debugTcpServer || PERIODIC_DISPLAY(PD_TCP_SERVER_DATA)) && (!inMainMenu))
         {
-            PERIODIC_CLEAR(PD_TCP_SERVER_DATA);
-
             // Determine the shutdown reason
             connected = tcpServerClient[index]->connected()
                       && (!(tcpServerClientWriteError & (1 << index)));
@@ -664,21 +655,19 @@ void tcpServerUpdate()
         if (connected == false)
         {
             if ((settings.debugTcpServer || PERIODIC_DISPLAY(PD_TCP_SERVER_DATA)) && (!inMainMenu))
-            {
-                PERIODIC_CLEAR(PD_TCP_SERVER_DATA);
                 systemPrintf("%s initiating shutdown\r\n", tcpServerName);
-            }
 
             // Network connection failed, attempt to restart the network
             tcpServerStop();
+            if (PERIODIC_DISPLAY(PD_TCP_SERVER_DATA))
+                PERIODIC_CLEAR(PD_TCP_SERVER_DATA);
             break;
         }
 
         // Walk the list of TCP server clients
         for (index = 0; index < TCP_SERVER_MAX_CLIENTS; index++)
-        {
             tcpServerClientUpdate(index);
-        }
+        PERIODIC_CLEAR(PD_TCP_SERVER_DATA);
 
         // Check for data moving across the connections
         if ((millis() - tcpServerTimer) >= TCP_SERVER_CLIENT_DATA_TIMEOUT)
