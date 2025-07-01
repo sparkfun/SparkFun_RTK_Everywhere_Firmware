@@ -79,8 +79,26 @@ const char *const tcpServerStateName[] = {
     "TCP_SERVER_STATE_WAIT_FOR_NETWORK",
     "TCP_SERVER_STATE_RUNNING",
 };
-
 const int tcpServerStateNameEntries = sizeof(tcpServerStateName) / sizeof(tcpServerStateName[0]);
+
+// Define the TCP server client states
+enum tcpServerClientStates
+{
+    TCP_SERVER_CLIENT_OFF = 0,
+    TCP_SERVER_CLIENT_WAIT_REQUEST,
+    TCP_SERVER_CLIENT_GET_REQUEST,
+    TCP_SERVER_CLIENT_SENDING_DATA,
+    // Insert new states here
+    TCP_SERVER_CLIENT_MAX // Last entry in the state list
+};
+
+const char *const tcpServerClientStateName[] = {
+    "TCP_SERVER_CLIENT_OFF",
+    "TCP_SERVER_CLIENT_WAIT_REQUEST",
+    "TCP_SERVER_CLIENT_GET_REQUEST",
+    "TCP_SERVER_CLIENT_SENDING_DATA",
+};
+const int tcpServerClientStateNameEntries = sizeof(tcpServerClientStateName) / sizeof(tcpServerClientStateName[0]);
 
 const RtkMode_t baseCasterMode = RTK_MODE_BASE_FIXED;
 const RtkMode_t tcpServerMode = RTK_MODE_ROVER
@@ -105,6 +123,7 @@ static uint32_t tcpServerClientTimer[TCP_SERVER_MAX_CLIENTS];
 static volatile uint8_t tcpServerClientWriteError;
 static NetworkClient *tcpServerClient[TCP_SERVER_MAX_CLIENTS];
 static IPAddress tcpServerClientIpAddress[TCP_SERVER_MAX_CLIENTS];
+static uint8_t tcpServerClientState[TCP_SERVER_MAX_CLIENTS];
 static volatile RING_BUFFER_OFFSET tcpServerClientTails[TCP_SERVER_MAX_CLIENTS];
 
 //----------------------------------------
@@ -350,83 +369,119 @@ void tcpServerClientUpdate(uint8_t index)
             systemPrintf("%s client %d connected to %s\r\n",
                          tcpServerName, index,
                          tcpServerClientIpAddress[index].toString().c_str());
+
+        // Process the client state
+        switch (tcpServerClientState[index])
+        {
+        // Wait until the request is received from the NTRIP client
+        case TCP_SERVER_CLIENT_WAIT_REQUEST:
+            if (tcpServerClient[index]->available())
+            {
+                // Indicate that data was received
+                tcpServerClientDataSent = tcpServerClientDataSent | (1 << index);
+                tcpServerClientTimer[index] = millis();
+                tcpServerClientState[index] = TCP_SERVER_CLIENT_GET_REQUEST;
+            }
+            break;
+
+        // Process the request from the NTRIP client
+        case TCP_SERVER_CLIENT_GET_REQUEST:
+            // Read response from client
+            spot = 0;
+            while (tcpServerClient[index]->available())
+            {
+                response[spot++] = tcpServerClient[index]->read();
+                if (spot == sizeof(response))
+                    spot = 0; // Wrap
+            }
+            response[spot] = '\0'; // Terminate string
+
+            // Handle the mount point table request
+            if (strnstr(response, "GET / ", sizeof(response)) != NULL) // No mount point in header
+            {
+                if (settings.debugTcpServer)
+                    systemPrintln("Mount point table requested.");
+
+                // Respond with a single mountpoint
+                const char fakeSourceTable[] =
+                    "SOURCETABLE 200 OK\r\nServer: SparkPNT Caster/1.0\r\nContent-Type: "
+                    "text/plain\r\nContent-Length: 96\r\n\r\nSTR;SparkBase;none;RTCM "
+                    "3.0;none;none;none;none;none;none;none;none;none;none;none;B;N;none;none";
+
+                tcpServerClient[index]->write(fakeSourceTable, strlen(fakeSourceTable));
+
+                // Disconnect from client
+                tcpServerStopClient(index);
+            }
+
+            // Check for unknown request
+            else if (strnstr(response, "GET /", sizeof(response)) == NULL)
+            {
+                // Unknown response
+                if (settings.debugTcpServer)
+                    systemPrintf("Unknown response: %s\r\n", response);
+
+                // Disconnect from client
+                tcpServerStopClient(index);
+            }
+
+            // Handle the mount point request, ignore the mount point and start sending data
+            else
+            {
+                // NTRIP Client is sending us their mount point. Begin sending RTCM.
+                if (settings.debugTcpServer)
+                    systemPrintln("NTRIP Client connected - Sending ICY 200 OK");
+
+                // Successfully connected to the mount point
+                char confirmConnection[] = "ICY 200 OK\r\n";
+                tcpServerClient[index]->write(confirmConnection, strlen(confirmConnection));
+
+                // Start sending RTCM
+                tcpServerClientState[index] = TCP_SERVER_CLIENT_SENDING_DATA;
+            }
+            break;
+
+        case TCP_SERVER_CLIENT_SENDING_DATA:
+            break;
+        }
         break;
     }
 
     // Determine if the client data structure is not in use
     while ((tcpServerClientConnected & (1 << index)) == 0)
     {
+        // Data structure not in use
         if(tcpServerClient[index] == nullptr)
             tcpServerClient[index] = new NetworkClient;
 
-        // Data structure not in use
         // Check for another TCP server client
         *tcpServerClient[index] = tcpServer->accept();
 
         // Exit if no TCP server client found
-        if (*tcpServerClient[index])
-        {
-            // TCP server client found
-            // Start processing the new TCP server client connection
-            tcpServerClientIpAddress[index] = tcpServerClient[index]->remoteIP();
-            if ((settings.debugTcpServer || PERIODIC_DISPLAY(PD_TCP_SERVER_DATA)) && (!inMainMenu))
-                systemPrintf("%s client %d connected to %s\r\n",
-                             tcpServerName, index,
-                             tcpServerClientIpAddress[index].toString().c_str());
+        if (!*tcpServerClient[index])
+            break;
 
-            // If we are acting as an NTRIP Caster, intercept the initial communication from the client
-            //  and respond accordingly
-            if (tcpServerInCasterMode)
-            {
-                // Read response from client
-                spot = 0;
-                while (tcpServerClient[index]->available())
-                {
-                    response[spot++] = tcpServerClient[index]->read();
-                    if (spot == sizeof(response))
-                        spot = 0; // Wrap
-                }
-                response[spot] = '\0'; // Terminate string
+        // TCP server client found
+        // Start processing the new TCP server client connection
+        tcpServerClientIpAddress[index] = tcpServerClient[index]->remoteIP();
+        if ((settings.debugTcpServer || PERIODIC_DISPLAY(PD_TCP_SERVER_DATA)) && (!inMainMenu))
+            systemPrintf("%s client %d connected to %s\r\n",
+                         tcpServerName, index,
+                         tcpServerClientIpAddress[index].toString().c_str());
 
-                if (strnstr(response, "GET / ", sizeof(response)) != NULL) // No mount point in header
-                {
-                    if (settings.debugTcpServer)
-                        systemPrintln("Mount point table requested.");
+        // Mark this client as connected
+        tcpServerClientConnected = tcpServerClientConnected | (1 << index);
 
-                    // Respond with a single mountpoint
-                    const char fakeSourceTable[] =
-                        "SOURCETABLE 200 OK\r\nServer: SparkPNT Caster/1.0\r\nContent-Type: "
-                        "text/plain\r\nContent-Length: 96\r\n\r\nSTR;SparkBase;none;RTCM "
-                        "3.0;none;none;none;none;none;none;none;none;none;none;none;B;N;none;none";
+        // Start the data timer
+        tcpServerClientTimer[index] = millis();
+        tcpServerClientDataSent = tcpServerClientDataSent | (1 << index);
 
-                    tcpServerClient[index]->write(fakeSourceTable, strlen(fakeSourceTable));
-
-                    tcpServerStopClient(index); // Disconnect from client
-                }
-                else if (strnstr(response, "GET /", sizeof(response)) != NULL) // Mount point in header
-                {
-                    // NTRIP Client is sending us their mount point. Begin sending RTCM.
-                    if (settings.debugTcpServer)
-                        systemPrintln("NTRIP Client connected - Sending ICY 200 OK");
-
-                    char confirmConnection[] = "ICY 200 OK\r\n";
-                    tcpServerClient[index]->write(confirmConnection, strlen(confirmConnection));
-                }
-                else
-                {
-                    // Unknown response
-                    if (settings.debugTcpServer)
-                        systemPrintf("Unknown response: %s\r\n", response);
-                }
-            } // tcpServerInCasterMode
-
-            // Start the data timer
-            tcpServerClientTimer[index] = millis();
-
+        // Set the client state
+        if (tcpServerInCasterMode)
+            tcpServerClientState[index] = TCP_SERVER_CLIENT_WAIT_REQUEST;
+        else
             // Make client online after any NTRIP injections so ring buffer can start outputting data to it
-            tcpServerClientConnected = tcpServerClientConnected | (1 << index);
-            tcpServerClientDataSent = tcpServerClientDataSent | (1 << index);
-        }
+            tcpServerClientState[index] = TCP_SERVER_CLIENT_SENDING_DATA;
         break;
     }
 }
@@ -647,6 +702,8 @@ void tcpServerUpdate()
                 if (tcpServerStart())
                 {
                     networkUserAdd(NETCONSUMER_TCP_SERVER, __FILE__, __LINE__);
+                    for (index = 0; index < TCP_SERVER_MAX_CLIENTS; index++)
+                        tcpServerClientState[index] = TCP_SERVER_CLIENT_OFF;
                     tcpServerSetState(TCP_SERVER_STATE_RUNNING);
                 }
             }
@@ -707,8 +764,12 @@ void tcpServerValidateTables()
                  sizeof(tcpServerClientConnected) * 8);
         reportFatalError(line);
     }
+
+    // Verify the state name tables
     if (tcpServerStateNameEntries != TCP_SERVER_STATE_MAX)
         reportFatalError("Fix tcpServerStateNameEntries to match tcpServerStates");
+    if (tcpServerClientStateNameEntries != TCP_SERVER_CLIENT_MAX)
+        reportFatalError("Fix tcpServerClientStateNameEntries to match tcpServerClientStates");
 }
 
 //----------------------------------------
