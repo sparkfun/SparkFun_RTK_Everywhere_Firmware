@@ -101,6 +101,7 @@ static const char * tcpServerName;
 // TCP server clients
 static volatile uint8_t tcpServerClientConnected;
 static volatile uint8_t tcpServerClientDataSent;
+static uint32_t tcpServerClientTimer[TCP_SERVER_MAX_CLIENTS];
 static volatile uint8_t tcpServerClientWriteError;
 static NetworkClient *tcpServerClient[TCP_SERVER_MAX_CLIENTS];
 static IPAddress tcpServerClientIpAddress[TCP_SERVER_MAX_CLIENTS];
@@ -335,8 +336,8 @@ void tcpServerClientUpdate(uint8_t index)
         // The client data structure is in use
         // Check for a working TCP server client connection
         clientConnected = tcpServerClient[index]->connected();
-        dataSent = ((millis() - tcpServerTimer) < TCP_SERVER_CLIENT_DATA_TIMEOUT) ||
-                   (tcpServerClientDataSent & (1 << index));
+        dataSent = ((millis() - tcpServerClientTimer[index]) < TCP_SERVER_CLIENT_DATA_TIMEOUT)
+            || (tcpServerClientDataSent & (1 << index));
         if ((clientConnected && dataSent) == false)
         {
             // Broken connection, shutdown the TCP server client link
@@ -418,6 +419,9 @@ void tcpServerClientUpdate(uint8_t index)
                         systemPrintf("Unknown response: %s\r\n", response);
                 }
             } // tcpServerInCasterMode
+
+            // Start the data timer
+            tcpServerClientTimer[index] = millis();
 
             // Make client online after any NTRIP injections so ring buffer can start outputting data to it
             tcpServerClientConnected = tcpServerClientConnected | (1 << index);
@@ -546,7 +550,7 @@ void tcpServerStopClient(int index)
             // Determine the shutdown reason
             connected = tcpServerClient[index]->connected()
                       && (!(tcpServerClientWriteError & (1 << index)));
-            dataSent = ((millis() - tcpServerTimer) < TCP_SERVER_CLIENT_DATA_TIMEOUT)
+            dataSent = ((millis() - tcpServerClientTimer[index]) < TCP_SERVER_CLIENT_DATA_TIMEOUT)
                      || (tcpServerClientDataSent & (1 << index));
             if (!dataSent)
                 systemPrintf("%s: No data sent over %d seconds\r\n",
