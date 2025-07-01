@@ -452,18 +452,29 @@ void tcpServerClientUpdate(uint8_t index)
     {
         // Data structure not in use
         if(tcpServerClient[index] == nullptr)
+        {
             tcpServerClient[index] = new NetworkClient;
 
-        // Check for another TCP server client
+            // Check for allocation failure
+            if(tcpServerClient[index] == nullptr)
+            {
+                if (settings.debugTcpServer)
+                    Serial.printf("ERROR: Failed to allocate %s client!\r\n", tcpServerName);
+                break;
+            }
+        }
+
+        // Check for another incoming TCP server client connection request
         *tcpServerClient[index] = tcpServer->accept();
 
         // Exit if no TCP server client found
         if (!*tcpServerClient[index])
             break;
 
-        // TCP server client found
-        // Start processing the new TCP server client connection
+        // Get the remote IP address
         tcpServerClientIpAddress[index] = tcpServerClient[index]->remoteIP();
+
+        // Display the connection
         if ((settings.debugTcpServer || PERIODIC_DISPLAY(PD_TCP_SERVER_DATA)) && (!inMainMenu))
             systemPrintf("%s client %d connected to %s\r\n",
                          tcpServerName, index,
