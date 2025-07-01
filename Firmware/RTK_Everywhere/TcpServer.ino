@@ -95,6 +95,7 @@ static NetworkServer *tcpServer = nullptr;
 static uint16_t tcpServerPort;
 static uint8_t tcpServerState;
 static uint32_t tcpServerTimer;
+static bool tcpServerWiFiSoftAp;
 static const char * tcpServerName;
 
 // TCP server clients
@@ -175,6 +176,7 @@ bool tcpServerEnabled(const char ** line)
     bool enabled;
     const char * name;
     uint16_t port;
+    bool softAP;
 
     do
     {
@@ -195,6 +197,7 @@ bool tcpServerEnabled(const char ** line)
             name = "TCP Server";
             casterMode = false;
             port = settings.tcpServerPort;
+            softAP = false;
         }
 
         // Determine if the base caster should be running
@@ -207,13 +210,17 @@ bool tcpServerEnabled(const char ** line)
             // Select the base caster WiFi mode and port number
             if (settings.baseCasterOverride)
             {
+                // Using soft AP
                 name = "Base Caster";
                 port = 2101;
+                softAP = true;
             }
             else
             {
                 name = "NTRIP Caster";
+                // Using WiFi station
                 port = settings.tcpServerPort;
+                softAP = false;
             }
         }
 
@@ -231,12 +238,14 @@ bool tcpServerEnabled(const char ** line)
             tcpServerName = name;
             tcpServerInCasterMode = casterMode;
             tcpServerPort = port;
+            tcpServerWiFiSoftAp = softAP;
         }
 
         // Shutdown and restart the TCP server when configuration changes
         else if ((name != tcpServerName)
             || (casterMode != tcpServerInCasterMode)
-            || (port != tcpServerPort))
+            || (port != tcpServerPort)
+            || (softAP != tcpServerWiFiSoftAp))
         {
             *line = ", Wrong state to switch configuration!";
             break;
@@ -468,7 +477,8 @@ void tcpServerUpdate()
 
     // Shutdown the TCP server when the mode or setting changes
     DMW_st(tcpServerSetState, tcpServerState);
-    connected = networkConsumerIsConnected(NETCONSUMER_TCP_SERVER);
+    connected = networkConsumerIsConnected(NETCONSUMER_TCP_SERVER)
+              || (tcpServerWiFiSoftAp && wifiSoftApOnline);
     enabled = tcpServerEnabled(&line);
     if ((tcpServerState > TCP_SERVER_STATE_OFF) && !enabled)
         tcpServerStop();
@@ -517,7 +527,7 @@ void tcpServerUpdate()
     // Wait until the network is connected
     case TCP_SERVER_STATE_WAIT_FOR_NETWORK:
         // Wait until the network is connected to the media
-        if (connected || wifiSoftApOnline)
+        if (connected)
         {
             // Delay before starting the TCP server
             if ((millis() - tcpServerTimer) >= (1 * 1000))
@@ -538,7 +548,7 @@ void tcpServerUpdate()
     // Handle client connections and link failures
     case TCP_SERVER_STATE_RUNNING:
         // Determine if the network has failed
-        if ((connected == false && wifiSoftApOnline == false) || (!settings.enableTcpServer && !settings.baseCasterOverride))
+        if (connected == false)
         {
             if ((settings.debugTcpServer || PERIODIC_DISPLAY(PD_TCP_SERVER_DATA)) && (!inMainMenu))
             {
