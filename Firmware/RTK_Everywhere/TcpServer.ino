@@ -330,32 +330,33 @@ void tcpServerClientUpdate(uint8_t index)
     int spot;
 
     // Determine if the client data structure is in use
-    if (tcpServerClientConnected & (1 << index))
+    while (tcpServerClientConnected & (1 << index))
     {
-        // Data structure in use
+        // The client data structure is in use
         // Check for a working TCP server client connection
         clientConnected = tcpServerClient[index]->connected();
         dataSent = ((millis() - tcpServerTimer) < TCP_SERVER_CLIENT_DATA_TIMEOUT) ||
                    (tcpServerClientDataSent & (1 << index));
-        if (clientConnected && dataSent)
+        if ((clientConnected && dataSent) == false)
         {
-            // Display this client connection
-            if (PERIODIC_DISPLAY(PD_TCP_SERVER_DATA) && (!inMainMenu))
-            {
-                PERIODIC_CLEAR(PD_TCP_SERVER_DATA);
-                systemPrintf("%s client %d connected to %s\r\n",
-                             tcpServerName, index,
-                             tcpServerClientIpAddress[index].toString().c_str());
-            }
+            // Broken connection, shutdown the TCP server client link
+            tcpServerStopClient(index);
+            break;
         }
 
-        // Shutdown the TCP server client link
-        else
-            tcpServerStopClient(index);
+        // Periodically display this client connection
+        if (PERIODIC_DISPLAY(PD_TCP_SERVER_DATA) && (!inMainMenu))
+        {
+            PERIODIC_CLEAR(PD_TCP_SERVER_DATA);
+            systemPrintf("%s client %d connected to %s\r\n",
+                         tcpServerName, index,
+                         tcpServerClientIpAddress[index].toString().c_str());
+        }
+        break;
     }
 
-    // Determine if the client data structure is in use
-    if (!(tcpServerClientConnected & (1 << index)))
+    // Determine if the client data structure is not in use
+    while ((tcpServerClientConnected & (1 << index)) == 0)
     {
         if(tcpServerClient[index] == nullptr)
             tcpServerClient[index] = new NetworkClient;
@@ -429,6 +430,7 @@ void tcpServerClientUpdate(uint8_t index)
             tcpServerClientConnected = tcpServerClientConnected | (1 << index);
             tcpServerClientDataSent = tcpServerClientDataSent | (1 << index);
         }
+        break;
     }
 }
 
