@@ -320,6 +320,119 @@ int32_t tcpServerSendData(uint16_t dataHead)
 //----------------------------------------
 
 //----------------------------------------
+// Update the TCP server client state
+//----------------------------------------
+void tcpServerClientUpdate(uint8_t index)
+{
+    bool clientConnected;
+    bool dataSent;
+    char response[512];
+    int spot;
+
+    // Determine if the client data structure is in use
+    if (tcpServerClientConnected & (1 << index))
+    {
+        // Data structure in use
+        // Check for a working TCP server client connection
+        clientConnected = tcpServerClient[index]->connected();
+        dataSent = ((millis() - tcpServerTimer) < TCP_SERVER_CLIENT_DATA_TIMEOUT) ||
+                   (tcpServerClientDataSent & (1 << index));
+        if (clientConnected && dataSent)
+        {
+            // Display this client connection
+            if (PERIODIC_DISPLAY(PD_TCP_SERVER_DATA) && (!inMainMenu))
+            {
+                PERIODIC_CLEAR(PD_TCP_SERVER_DATA);
+                systemPrintf("%s client %d connected to %s\r\n",
+                             tcpServerName, index,
+                             tcpServerClientIpAddress[index].toString().c_str());
+            }
+        }
+
+        // Shutdown the TCP server client link
+        else
+            tcpServerStopClient(index);
+    }
+
+    // Determine if the client data structure is in use
+    if (!(tcpServerClientConnected & (1 << index)))
+    {
+        if(tcpServerClient[index] == nullptr)
+            tcpServerClient[index] = new NetworkClient;
+
+        // Data structure not in use
+        // Check for another TCP server client
+        *tcpServerClient[index] = tcpServer->accept();
+
+        // Exit if no TCP server client found
+        if (*tcpServerClient[index])
+        {
+            // TCP server client found
+            // Start processing the new TCP server client connection
+            tcpServerClientIpAddress[index] = tcpServerClient[index]->remoteIP();
+
+            if ((settings.debugTcpServer || PERIODIC_DISPLAY(PD_TCP_SERVER_DATA)) && (!inMainMenu))
+            {
+                PERIODIC_CLEAR(PD_TCP_SERVER_DATA);
+                systemPrintf("%s client %d connected to %s\r\n",
+                             tcpServerName, index,
+                             tcpServerClientIpAddress[index].toString().c_str());
+            }
+
+            // If we are acting as an NTRIP Caster, intercept the initial communication from the client
+            //  and respond accordingly
+            if (tcpServerInCasterMode)
+            {
+                // Read response from client
+                spot = 0;
+                while (tcpServerClient[index]->available())
+                {
+                    response[spot++] = tcpServerClient[index]->read();
+                    if (spot == sizeof(response))
+                        spot = 0; // Wrap
+                }
+                response[spot] = '\0'; // Terminate string
+
+                if (strnstr(response, "GET / ", sizeof(response)) != NULL) // No mount point in header
+                {
+                    if (settings.debugTcpServer)
+                        systemPrintln("Mount point table requested.");
+
+                    // Respond with a single mountpoint
+                    const char fakeSourceTable[] =
+                        "SOURCETABLE 200 OK\r\nServer: SparkPNT Caster/1.0\r\nContent-Type: "
+                        "text/plain\r\nContent-Length: 96\r\n\r\nSTR;SparkBase;none;RTCM "
+                        "3.0;none;none;none;none;none;none;none;none;none;none;none;B;N;none;none";
+
+                    tcpServerClient[index]->write(fakeSourceTable, strlen(fakeSourceTable));
+
+                    tcpServerStopClient(index); // Disconnect from client
+                }
+                else if (strnstr(response, "GET /", sizeof(response)) != NULL) // Mount point in header
+                {
+                    // NTRIP Client is sending us their mount point. Begin sending RTCM.
+                    if (settings.debugTcpServer)
+                        systemPrintln("NTRIP Client connected - Sending ICY 200 OK");
+
+                    char confirmConnection[] = "ICY 200 OK\r\n";
+                    tcpServerClient[index]->write(confirmConnection, strlen(confirmConnection));
+                }
+                else
+                {
+                    // Unknown response
+                    if (settings.debugTcpServer)
+                        systemPrintf("Unknown response: %s\r\n", response);
+                }
+            } // tcpServerInCasterMode
+
+            // Make client online after any NTRIP injections so ring buffer can start outputting data to it
+            tcpServerClientConnected = tcpServerClientConnected | (1 << index);
+            tcpServerClientDataSent = tcpServerClientDataSent | (1 << index);
+        }
+    }
+}
+
+//----------------------------------------
 // Update the state of the TCP server state machine
 //----------------------------------------
 void tcpServerSetState(uint8_t newState)
@@ -467,9 +580,7 @@ void tcpServerStopClient(int index)
 //----------------------------------------
 void tcpServerUpdate()
 {
-    bool clientConnected;
     bool connected;
-    bool dataSent;
     bool enabled;
     int index;
     IPAddress ipAddress;
@@ -564,111 +675,7 @@ void tcpServerUpdate()
         // Walk the list of TCP server clients
         for (index = 0; index < TCP_SERVER_MAX_CLIENTS; index++)
         {
-            // Determine if the client data structure is in use
-            if (tcpServerClientConnected & (1 << index))
-            {
-                // Data structure in use
-                // Check for a working TCP server client connection
-                clientConnected = tcpServerClient[index]->connected();
-                dataSent = ((millis() - tcpServerTimer) < TCP_SERVER_CLIENT_DATA_TIMEOUT) ||
-                           (tcpServerClientDataSent & (1 << index));
-                if (clientConnected && dataSent)
-                {
-                    // Display this client connection
-                    if (PERIODIC_DISPLAY(PD_TCP_SERVER_DATA) && (!inMainMenu))
-                    {
-                        PERIODIC_CLEAR(PD_TCP_SERVER_DATA);
-                        systemPrintf("%s client %d connected to %s\r\n",
-                                     tcpServerName, index,
-                                     tcpServerClientIpAddress[index].toString().c_str());
-                    }
-                }
-
-                // Shutdown the TCP server client link
-                else
-                    tcpServerStopClient(index);
-            }
-        }
-
-        // Walk the list of TCP server clients
-        for (index = 0; index < TCP_SERVER_MAX_CLIENTS; index++)
-        {
-            // Determine if the client data structure is in use
-            if (!(tcpServerClientConnected & (1 << index)))
-            {
-                if(tcpServerClient[index] == nullptr)
-                    tcpServerClient[index] = new NetworkClient;
-
-                // Data structure not in use
-                // Check for another TCP server client
-                *tcpServerClient[index] = tcpServer->accept();
-
-                // Exit if no TCP server client found
-                if (! *tcpServerClient[index])
-                    break;
-
-                // Start processing the new TCP server client connection
-                tcpServerClientIpAddress[index] = tcpServerClient[index]->remoteIP();
-
-                if ((settings.debugTcpServer || PERIODIC_DISPLAY(PD_TCP_SERVER_DATA)) && (!inMainMenu))
-                {
-                    PERIODIC_CLEAR(PD_TCP_SERVER_DATA);
-                    systemPrintf("%s client %d connected to %s\r\n",
-                                 tcpServerName, index,
-                                 tcpServerClientIpAddress[index].toString().c_str());
-                }
-
-                // If we are acting as an NTRIP Caster, intercept the initial communication from the client
-                //  and respond accordingly
-                if (tcpServerInCasterMode)
-                {
-                    // Read response from client
-                    char response[512];
-                    int spot = 0;
-                    while (tcpServerClient[index]->available())
-                    {
-                        response[spot++] = tcpServerClient[index]->read();
-                        if (spot == sizeof(response))
-                            spot = 0; // Wrap
-                    }
-                    response[spot] = '\0'; // Terminate string
-
-                    if (strnstr(response, "GET / ", sizeof(response)) != NULL) // No mount point in header
-                    {
-                        if (settings.debugTcpServer)
-                            systemPrintln("Mount point table requested.");
-
-                        // Respond with a single mountpoint
-                        const char fakeSourceTable[] =
-                            "SOURCETABLE 200 OK\r\nServer: SparkPNT Caster/1.0\r\nContent-Type: "
-                            "text/plain\r\nContent-Length: 96\r\n\r\nSTR;SparkBase;none;RTCM "
-                            "3.0;none;none;none;none;none;none;none;none;none;none;none;B;N;none;none";
-
-                        tcpServerClient[index]->write(fakeSourceTable, strlen(fakeSourceTable));
-
-                        tcpServerStopClient(index); // Disconnect from client
-                    }
-                    else if (strnstr(response, "GET /", sizeof(response)) != NULL) // Mount point in header
-                    {
-                        // NTRIP Client is sending us their mount point. Begin sending RTCM.
-                        if (settings.debugTcpServer)
-                            systemPrintln("NTRIP Client connected - Sending ICY 200 OK");
-
-                        char confirmConnection[] = "ICY 200 OK\r\n";
-                        tcpServerClient[index]->write(confirmConnection, strlen(confirmConnection));
-                    }
-                    else
-                    {
-                        // Unknown response
-                        if (settings.debugTcpServer)
-                            systemPrintf("Unknown response: %s\r\n", response);
-                    }
-                } // tcpServerInCasterMode
-
-                // Make client online after any NTRIP injections so ring buffer can start outputting data to it
-                tcpServerClientConnected = tcpServerClientConnected | (1 << index);
-                tcpServerClientDataSent = tcpServerClientDataSent | (1 << index);
-            }
+            tcpServerClientUpdate(index);
         }
 
         // Check for data moving across the connections
