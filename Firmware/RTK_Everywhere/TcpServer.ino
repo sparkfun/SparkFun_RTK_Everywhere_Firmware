@@ -146,11 +146,8 @@ int32_t tcpServerClientSendData(int index, uint8_t *data, uint16_t length)
             if (length > 0)
                 tcpServerClientDataSent = tcpServerClientDataSent | (1 << index);
             if ((settings.debugTcpServer || PERIODIC_DISPLAY(PD_TCP_SERVER_CLIENT_DATA)) && (!inMainMenu))
-            {
-                PERIODIC_CLEAR(PD_TCP_SERVER_CLIENT_DATA);
                 systemPrintf("TCP server wrote %d bytes to %s\r\n", length,
                              tcpServerClientIpAddress[index].toString().c_str());
-            }
         }
 
         // Failed to write the data
@@ -240,6 +237,8 @@ int32_t tcpServerSendData(uint16_t dataHead)
         }
         tcpServerClientTails[index] = tail;
     }
+    if (PERIODIC_DISPLAY(PD_TCP_SERVER_CLIENT_DATA))
+        PERIODIC_CLEAR(PD_TCP_SERVER_CLIENT_DATA);
 
     // Return the amount of space that TCP server client is using in the buffer
     return usedSpace;
