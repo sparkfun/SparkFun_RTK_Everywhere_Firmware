@@ -3039,7 +3039,7 @@ bool RTK_WIFI::stopStart(WIFI_ACTION_t stopping, WIFI_ACTION_t starting)
     // Display the items that were not started
     //****************************************
 
-    if (settings.debugWifiState && _verbose && _verbose)
+    if (settings.debugWifiState && _verbose)
     {
         systemPrintf("0x%08x: startingNow\r\n", startingNow);
         systemPrintf("0x%08x: _started\r\n", _started);
@@ -3047,16 +3047,6 @@ bool RTK_WIFI::stopStart(WIFI_ACTION_t stopping, WIFI_ACTION_t starting)
     startingNow &= ~_started;
     if (settings.debugWifiState &&  startingNow)
         displayComponents("ERROR: Items NOT started", startingNow);
-
-    //****************************************
-    // Display the items that were not started
-    //****************************************
-
-    if (settings.debugWifiState && _verbose)
-    {
-        systemPrintf("0x%08x: startingNow\r\n", startingNow);
-        systemPrintf("0x%08x: _started\r\n", _started);
-    }
 
     // Clear the items that were not started
     _started = _started & ~notStarted;
