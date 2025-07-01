@@ -92,6 +92,7 @@ const RtkMode_t tcpServerMode = RTK_MODE_ROVER
 
 // TCP server
 static NetworkServer *tcpServer = nullptr;
+static uint16_t tcpServerPort;
 static uint8_t tcpServerState;
 static uint32_t tcpServerTimer;
 static const char * tcpServerName;
@@ -172,6 +173,7 @@ bool tcpServerEnabled(const char ** line)
 {
     bool enabled;
     const char * name;
+    uint16_t port;
 
     do
     {
@@ -190,6 +192,7 @@ bool tcpServerEnabled(const char ** line)
         {
             // TCP server running in Rover mode
             name = "TCP Server";
+            port = settings.tcpServerPort;
         }
 
         // Determine if the base caster should be running
@@ -200,10 +203,12 @@ bool tcpServerEnabled(const char ** line)
             if (settings.baseCasterOverride)
             {
                 name = "Base Caster";
+                port = 2101;
             }
             else
             {
                 name = "NTRIP Caster";
+                port = settings.tcpServerPort;
             }
         }
 
@@ -219,10 +224,12 @@ bool tcpServerEnabled(const char ** line)
         {
             // Update the TCP server configuration
             tcpServerName = name;
+            tcpServerPort = port;
         }
 
         // Shutdown and restart the TCP server when configuration changes
-        else if (name != tcpServerName)
+        else if ((name != tcpServerName)
+            || (port != tcpServerPort))
         {
             *line = ", Wrong state to switch configuration!";
             break;
@@ -331,12 +338,8 @@ bool tcpServerStart()
     if (settings.debugTcpServer && (!inMainMenu))
         systemPrintf("%s starting the server\r\n", tcpServerName);
 
-    uint16_t tcpPort = settings.tcpServerPort;
-    if(settings.baseCasterOverride == true)
-        tcpPort = 2101;
-
     // Start the TCP server
-    tcpServer = new NetworkServer(tcpPort, TCP_SERVER_MAX_CLIENTS);
+    tcpServer = new NetworkServer(tcpServerPort, TCP_SERVER_MAX_CLIENTS);
     if (!tcpServer)
         return false;
 
@@ -345,7 +348,7 @@ bool tcpServerStart()
 
     localIp = networkGetIpAddress();
     systemPrintf("%s online, IP address %s:%d\r\n", tcpServerName,
-                     localIp.toString().c_str(), tcpPort);
+                     localIp.toString().c_str(), tcpServerPort);
     return true;
 }
 
