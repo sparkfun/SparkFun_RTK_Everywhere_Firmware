@@ -66,12 +66,13 @@ typedef struct
 
 // The various services offered by PointPerfect
 const PP_Service ppServices[] = {
-    {"Disabled", PP_MODEL_NONE, PP_DELIVERY_NONE, PP_ENCODING_NONE},            // Do not use PointPerfect corrections
-    {"Flex NTRIP/RTCM", PP_MODEL_SSR, PP_DELIVERY_NTRIP, PP_ENCODING_RTCM},     // Uses "ZTP-RTCM-100" profile
+    {"Disabled", PP_MODEL_NONE, PP_DELIVERY_NONE, PP_ENCODING_NONE},        // Do not use PointPerfect corrections
+    {"Flex NTRIP/RTCM", PP_MODEL_SSR, PP_DELIVERY_NTRIP, PP_ENCODING_RTCM}, // Uses "ZTP-RTCM-100" profile
     {"Flex L-Band North America", PP_MODEL_SSR, PP_DELIVERY_LBAND_NA, PP_ENCODING_SPARTN}, // Uses "ZTP-LBand" profile
-    {"Global", PP_MODEL_SSR, PP_DELIVERY_LBAND_GLOBAL, PP_ENCODING_SPARTN},     // Uses "ZTP-Global" profile
-    {"Live", PP_MODEL_OSR, PP_DELIVERY_NTRIP, PP_ENCODING_RTCM},                // Uses "ZTP-Live" profile
-    {"Flex MQTT (Deprecated)", PP_MODEL_SSR, PP_DELIVERY_MQTT, PP_ENCODING_SPARTN}, // Uses "ZTP-IP" profile, now deprecated
+    {"Global", PP_MODEL_SSR, PP_DELIVERY_LBAND_GLOBAL, PP_ENCODING_SPARTN},                // Uses "ZTP-Global" profile
+    {"Live", PP_MODEL_OSR, PP_DELIVERY_NTRIP, PP_ENCODING_RTCM},                           // Uses "ZTP-Live" profile
+    {"Flex MQTT (Deprecated)", PP_MODEL_SSR, PP_DELIVERY_MQTT,
+     PP_ENCODING_SPARTN}, // Uses "ZTP-IP" profile, now deprecated
     // "ZTP-RTCM-100-Trial" profile deprecated
     // "ZTP-LBand+IP" profile deprecated
 };
@@ -317,8 +318,6 @@ const char *printDeviceId()
 // Present user with list of available services, list depends on platform
 void menuPointPerfectSelectService()
 {
-    clearBuffer(); // Empty buffer of any newline chars
-
     while (1)
     {
         systemPrintln();
@@ -1379,11 +1378,21 @@ bool provisioningKeysNeeded()
         keysNeeded = true;
 
         // If requestKeyUpdate is true, begin provisioning
-        // Must come first to allow NTRIP/RTCM type services to start provisioning
+        // Must come before pointPerfectServiceUsesKeys() check
         if (settings.requestKeyUpdate)
         {
             if (settings.debugPpCertificate)
                 systemPrintln("requestKeyUpdate is true.");
+            break;
+        }
+
+        // If NTRIP service, but no credentials, then start provisioning
+        // Must come before pointPerfectServiceUsesKeys() check
+        if (pointPerfectNtripNeeded() &&
+            strlen(settings.ntripClient_CasterHost) == 0) // NTRIP service, but no credentials
+        {
+            if (settings.debugPpCertificate)
+                systemPrintln("NTRIP credentials empty, starting ZTP.");
             break;
         }
 
@@ -1421,8 +1430,6 @@ bool provisioningKeysNeeded()
         // If there are 28 days remaining, PointPerfect won't have new keys.
         if (daysRemaining < 28)
         {
-            // When did we last try to get keys? Attempt every 24 hours - or always for DEVELOPER
-            // if (rtc.getEpoch() - settings.lastKeyAttempt > ( ENABLE_DEVELOPER ? 0 : SECONDS_IN_A_DAY))
             // When did we last try to get keys? Attempt every 24 hours
             if (rtc.getEpoch() - settings.lastKeyAttempt > SECONDS_IN_A_DAY)
             {
