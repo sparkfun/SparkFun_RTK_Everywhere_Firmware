@@ -1381,9 +1381,18 @@ SettingValueResponse updateSettingWithValue(bool inCommands, const char *setting
     else
     {
         const char *table[] = {
-            "baseTypeSurveyIn", "enableFactoryDefaults",      "enableFirmwareUpdate", "enableForgetRadios",
-            "fileSelectAll",    "fixedBaseCoordinateTypeGeo", "fixedHAEAPC",          "measurementRateSec",
-            "nicknameECEF",     "nicknameGeodetic",           "saveToArduino",        "enableAutoReset",
+            "baseTypeSurveyIn",
+            "enableFactoryDefaults",
+            "enableFirmwareUpdate",
+            "enableForgetRadios",
+            "fileSelectAll",
+            "fixedBaseCoordinateTypeGeo",
+            "fixedHAEAPC",
+            "measurementRateSec",
+            "nicknameECEF",
+            "nicknameGeodetic",
+            "saveToArduino",
+            "enableAutoReset",
             "shutdownNoChargeTimeoutMinutesCheckbox",
         };
         const int tableEntries = sizeof(table) / sizeof(table[0]);
@@ -1404,12 +1413,12 @@ SettingValueResponse updateSettingWithValue(bool inCommands, const char *setting
     if (knownSetting == false)
     {
         size_t length;
-        char * name;
-        char * suffix;
+        char *name;
+        char *suffix;
 
         // Allocate the buffers
         length = strlen(settingName) + 1;
-        name = (char * )rtkMalloc(2 * length, "name & suffix buffers");
+        name = (char *)rtkMalloc(2 * length, "name & suffix buffers");
         if (name == nullptr)
             systemPrintf("ERROR: Failed allocation, Unknown '%s': %0.3lf\r\n", settingName, settingValue);
         else
@@ -1424,7 +1433,7 @@ SettingValueResponse updateSettingWithValue(bool inCommands, const char *setting
             // Loop through the settings entries
             for (rtkIndex = 0; rtkIndex < numRtkSettingsEntries; rtkIndex++)
             {
-                const char * command = rtkSettingsEntries[rtkIndex].name;
+                const char *command = rtkSettingsEntries[rtkIndex].name;
 
                 // For speed, compare the first letter, then the whole string
                 if ((command[0] == settingName[0]) && (strcmp(command, name) == 0))
