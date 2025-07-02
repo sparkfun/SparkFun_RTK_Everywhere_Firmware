@@ -776,6 +776,13 @@ bool wifiStationEnabled(const char ** reason)
 
     do
     {
+        // Verify that there is at least one consumer
+        if(networkConsumerCount(NETWORK_WIFI_STATION) == 0)
+        {
+            *reason = ", No consumers";
+            break;
+        }
+
         // Verify that at least one SSID value is set
         if (wifiStationSsidSet == false)
         {
@@ -783,7 +790,7 @@ bool wifiStationEnabled(const char ** reason)
             break;
         }
 
-        // Determine if Wifi is begin restarted
+        // Determine if WiFi is begin restarted
         if (wifiStationRestart)
         {
             wifiStationRestart = false;
@@ -3084,10 +3091,10 @@ bool RTK_WIFI::stopStart(WIFI_ACTION_t stopping, WIFI_ACTION_t starting)
         systemPrintf("WiFi: RTK_WIFI::stopStart returning; %s\r\n", enabled ? "true" : "false");
         if(enabled == false)
         {
-            systemPrintf("0x%08x: _started\r\n", _started);
-            systemPrintf("0x%08x: allOnline\r\n", allOnline);
-            systemPrintf("0x%08x: (_started & allOnline)\r\n", (_started & allOnline));
-            systemPrintf("0x%08x: expected\r\n", expected);
+            systemPrintf("    0x%08x: _started\r\n", _started);
+            systemPrintf("    0x%08x: allOnline\r\n", allOnline);
+            systemPrintf("    0x%08x: (_started & allOnline)\r\n", (_started & allOnline));
+            systemPrintf("    0x%08x: expected\r\n", expected);
         }
 
         reportHeapNow(true);
