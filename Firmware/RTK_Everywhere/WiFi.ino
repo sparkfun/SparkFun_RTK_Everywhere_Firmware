@@ -1336,10 +1336,13 @@ bool RTK_WIFI::enable(bool enableESPNow,
     // Update the station state
     if (enableStation)
     {
+        //Load the latest settings
+        wifiUpdateSettings();
+
         // Verify that at least one SSID is set
         if (wifiStationSsidSet == false)
         {
-            systemPrintf("ERROR: No valid SSID in settings\r\n");
+            systemPrintf("ERROR: No valid SSID in settings to start WiFi station\r\n");
             displayNoSSIDs(2000);
         }
         else
