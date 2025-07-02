@@ -2161,7 +2161,7 @@ int16_t RTK_WIFI::stationScanForAPs(WIFI_CHANNEL_t channel)
                                     nullptr,    // ssid *
                                     nullptr);   // bssid *
         if (settings.debugWifiState && _verbose)
-            Serial.printf("apCount: %d\r\n", apCount);
+            systemPrintf("apCount: %d\r\n", apCount);
         if (apCount < 0)
         {
             systemPrintf("ERROR: WiFi scan failed, status: %d!\r\n", apCount);
