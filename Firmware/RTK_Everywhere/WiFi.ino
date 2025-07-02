@@ -1123,7 +1123,10 @@ void wifiUpdateSettings()
 
     // Remember the change in SSID values
     wifiStationSsidSet = ssidSet;
-    wifiStationRestart = ssidSet;
+    
+    //If WiFi currently has connectivity, don't restart it
+    if(networkHasInternet() == false)
+        wifiStationRestart = ssidSet;
 
     // Determine if the WiFi soft AP SSID string is present
     wifiSoftApSsidSet = (wifiSoftApSsid && strlen(wifiSoftApSsid));
