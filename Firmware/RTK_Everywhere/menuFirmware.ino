@@ -630,15 +630,11 @@ void otaMenuDisplay(char *currentVersion)
         systemPrintf("s) Change Firmware JSON URL: %s\r\n", otaFirmwareJsonUrl);
     }
 
-    if (firmwareVersionIsReportedNewer(otaReportedVersion, &currentVersion[1]) == true ||
-        settings.debugFirmwareUpdate == true)
-    {
-        systemPrintf("u) Update to new firmware: v%s - ", otaReportedVersion);
-        if (otaRequestFirmwareUpdate == true)
-            systemPrintln("Requested");
-        else
-            systemPrintln("Not requested");
-    }
+    systemPrintf("u) Update to new firmware: v%s - ", otaReportedVersion);
+    if (otaRequestFirmwareUpdate == true)
+        systemPrintln("Requested");
+    else
+        systemPrintln("Not requested");
 }
 
 //----------------------------------------
@@ -675,7 +671,7 @@ bool otaMenuProcessInput(byte incoming)
         getUserInputString(otaFirmwareJsonUrl, sizeof(otaFirmwareJsonUrl) - 1);
     }
 
-    else if ((incoming == 'u') && (newOTAFirmwareAvailable || settings.debugFirmwareUpdate == true))
+    else if (incoming == 'u')
         otaRequestFirmwareUpdate ^= 1; // Tell network we need access, and otaUpdate() that we want to update
 
     // Input not associated with OTA menu items
