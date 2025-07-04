@@ -2435,6 +2435,25 @@ void networkUpdate()
 }
 
 //----------------------------------------
+// Set the default network interface
+//----------------------------------------
+void networkUseDefaultInterface()
+{
+    NetIndex_t index;
+    bool isDefault;
+
+    // Get the network index
+    index = networkGetCurrentInterfaceIndex();
+    if (index < NETWORK_OFFLINE)
+    {
+        // Get the default network interface
+        isDefault = networkInterfaceTable[index].netif->isDefault();
+        if (!isDefault)
+            networkInterfaceTable[index].netif->setDefault();
+    }
+}
+
+//----------------------------------------
 // Add a network user
 //----------------------------------------
 void networkUserAdd(NETCONSUMER_t consumer, const char *fileName, uint32_t lineNumber)

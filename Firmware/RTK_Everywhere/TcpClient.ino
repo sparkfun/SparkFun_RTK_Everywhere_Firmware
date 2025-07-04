@@ -306,6 +306,7 @@ bool tcpClientStart()
     NetworkClient *client;
 
     // Allocate the TCP client
+    networkUseDefaultInterface();
     client = new NetworkClient();
     if (client)
     {
