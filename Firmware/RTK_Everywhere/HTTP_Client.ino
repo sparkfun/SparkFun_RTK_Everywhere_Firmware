@@ -356,6 +356,7 @@ void httpClientUpdate()
     // Connect to the HTTP server
     case HTTP_CLIENT_CONNECTING_2_SERVER: {
         // Allocate the httpSecureClient structure
+        networkUseDefaultInterface();
         httpSecureClient = new NetworkClientSecure();
         if (!httpSecureClient)
         {

@@ -884,6 +884,7 @@ void mqttClientUpdate()
     // Connect to the MQTT broker
     case MQTT_CLIENT_CONNECTING_2_BROKER: {
         // Allocate the mqttSecureClient structure
+        networkUseDefaultInterface();
         mqttSecureClient = new NetworkClientSecure();
         if (!mqttSecureClient)
         {
