@@ -42,7 +42,7 @@ enum WIFI_STATION_STATES
 {
     WIFI_STATION_STATE_OFF,
     WIFI_STATION_STATE_WAIT_NO_USERS,
-    WIFI_STATION_STATE_RESTART,
+    WIFI_STATION_STATE_RESTART_DELAY,
     WIFI_STATION_STATE_STARTING,
     WIFI_STATION_STATE_ONLINE,
     WIFI_STATION_STATE_STABLE,
@@ -51,9 +51,14 @@ enum WIFI_STATION_STATES
 };
 uint8_t wifiStationState;
 
-const char *wifiStationStateName[] = {
-    "WIFI_STATION_STATE_OFF",      "WIFI_STATION_STATE_WAIT_NO_USERS", "WIFI_STATION_STATE_RESTART",
-    "WIFI_STATION_STATE_STARTING", "WIFI_STATION_STATE_ONLINE",        "WIFI_STATION_STATE_STABLE",
+const char * wifiStationStateName[] =
+{
+    "WIFI_STATION_STATE_OFF",
+    "WIFI_STATION_STATE_WAIT_NO_USERS",
+    "WIFI_STATION_STATE_RESTART_DELAY",
+    "WIFI_STATION_STATE_STARTING",
+    "WIFI_STATION_STATE_ONLINE",
+    "WIFI_STATION_STATE_STABLE",
 };
 const int wifiStationStateNameEntries = sizeof(wifiStationStateName) / sizeof(wifiStationStateName[0]);
 
@@ -935,12 +940,12 @@ void wifiStationUpdate()
                                | enabled                   |    |
                                |                           |    |
                                V                  !enabled |    |
-                WIFI_STATION_STATE_RESTART_DELAY ----------'    |
-                               |                                |
-                               | Timeout                        |
-                               | Complete                       |
-                               V                  !enabled      |
-           .----> WIFI_STATION_STATE_STARTING -------------.    |
+           .--> WIFI_STATION_STATE_RESTART_DELAY ----------'    |
+           |                   |                                |
+           |                   | Timeout                        |
+           |                   | Complete                       |
+           |                   V                  !enabled      |
+           |      WIFI_STATION_STATE_STARTING -------------.    |
            |                   |                           |    |
            |                   | WiFi connected            |    |
            |                   V                  !enabled |    |
@@ -952,18 +957,14 @@ void wifiStationUpdate()
            |                   |                           |    |
            |                   | !enabled                  |    |
            |                   V                           |    |
-           |                   +<--------------------------'    |
-           |                   |                                |
+           | Display           +<--------------------------'    |
+           | delay             |                                |
            |                   V                                |
            |    WIFI_STATION_STATE_WAIT_NO_USERS                |
            |                   |                                |
            |                   | No Users                       |
-           |                   V                 !enabled       |
-           |                   +--------------------------------'
-           | Display           |
-           | delay             | enabled
-           |                   V
-           '------ WIFI_STATION_STATE_RESTART
+           |      enabled      V                 !enabled       |
+           '-------------------+--------------------------------'
 
     Network Loss Handling:
 
@@ -1032,13 +1033,8 @@ void wifiStationUpdate()
             timer = millis();
             startTimeout = 0;
 
-            // Display the major state transition
-            if (settings.debugWifiState)
-                systemPrintf("--------------- %s Starting ---------------\r\n",
-                             networkInterfaceTable[NETWORK_WIFI_STATION].name);
-
             // Start WiFi station
-            wifiStationSetState(WIFI_STATION_STATE_STARTING);
+            wifiStationSetState(WIFI_STATION_STATE_RESTART_DELAY);
         }
         break;
 
@@ -1075,6 +1071,8 @@ void wifiStationUpdate()
                                      networkInterfaceTable[NETWORK_WIFI_STATION].name);
                     wifiStationOff(__FILE__, __LINE__);
                 }
+
+                // Reset the start timeout
                 wifiStationSetState(WIFI_STATION_STATE_OFF);
             }
 
@@ -1083,67 +1081,83 @@ void wifiStationUpdate()
             {
                 // Clear the bits to perform the restart operation
                 wifi.clearStarted(WIFI_STA_RECONNECT);
-                wifiStationSetState(WIFI_STATION_STATE_RESTART);
+
+                // Display the restart delay and then start WiFi station
+                if (startTimeout && settings.debugWifiState)
+                {
+                    // Display the delay
+                    uint32_t seconds = startTimeout / MILLISECONDS_IN_A_SECOND;
+                    uint32_t minutes = seconds / SECONDS_IN_A_MINUTE;
+                    seconds -= minutes * SECONDS_IN_A_MINUTE;
+                    systemPrintf("WiFi: Delaying %2d:%02d before restarting WiFi\r\n", minutes, seconds);
+                }
+                timer = millis();
+                wifiStationSetState(WIFI_STATION_STATE_RESTART_DELAY);
             }
         }
         break;
 
-    // Display the restart delay and then start WiFi station
-    case WIFI_STATION_STATE_RESTART:
-        if (startTimeout && settings.debugWifiState)
+    // Perform the restart delay
+    case WIFI_STATION_STATE_RESTART_DELAY:
+        // Stop WiFi station if necessary
+        if (enabled == false)
         {
-            // Display the delay
-            uint32_t seconds = startTimeout / MILLISECONDS_IN_A_SECOND;
-            uint32_t minutes = seconds / SECONDS_IN_A_MINUTE;
-            seconds -= minutes * SECONDS_IN_A_MINUTE;
-            systemPrintf("WiFi: Delaying %2d:%02d before restarting WiFi\r\n", minutes, seconds);
+            wifiStationSetState(WIFI_STATION_STATE_OFF);
+            break;
         }
-        timer = millis();
+
+        // Delay before starting WiFi
+        if ((millis() - timer) < startTimeout)
+            break;
+
+        // Display the major state transition
+        if (settings.debugWifiState)
+            systemPrintf("--------------- %s Starting ---------------\r\n",
+                         networkInterfaceTable[NETWORK_WIFI_STATION].name);
+
+        // Timeout complete
         wifiStationSetState(WIFI_STATION_STATE_STARTING);
-        break;
+
+        //          |
+        //          | Fall through
+        //          V
 
     // At least one consumer is requesting a network
     case WIFI_STATION_STATE_STARTING:
-        // Delay before starting WiFi
-        if ((millis() - timer) >= startTimeout)
+        // Increase the timeout
+        startTimeout <<= 1;
+        if (!startTimeout)
+            startTimeout = WIFI_MIN_TIMEOUT;
+        else if (startTimeout > WIFI_MAX_TIMEOUT)
+            startTimeout = WIFI_MAX_TIMEOUT;
+
+        // Account for this connection attempt
+        connectionAttempts++;
+
+        // Attempt to start WiFi station
+        if (wifiStationOn(__FILE__, __LINE__) == false)
         {
+            // Failed to connect to a remote AP
+            if (settings.debugWifiState)
+                systemPrintf("WiFi: WiFi station failed to start!\r\n");
+
+            // Start the next network interface if necessary
+            if (connectionAttempts >= 2)
+                networkStartNextInterface(NETWORK_WIFI_STATION);
+
+            // Perform the restart delay
             timer = millis();
+            wifiStationSetState(WIFI_STATION_STATE_RESTART_DELAY);
+        }
+        else
+        {
+            // Successfully connected to a remote AP
+            if (settings.debugWifiState)
+                systemPrintf("WiFi: WiFi station successfully started\r\n");
 
-            // Increase the timeout
-            startTimeout <<= 1;
-            if (!startTimeout)
-                startTimeout = WIFI_MIN_TIMEOUT;
-            else if (startTimeout > WIFI_MAX_TIMEOUT)
-                startTimeout = WIFI_MAX_TIMEOUT;
-
-            // Account for this connection attempt
-            connectionAttempts++;
-
-            // Attempt to start WiFi station
-            if (wifiStationOn(__FILE__, __LINE__))
-            {
-                // Successfully connected to a remote AP
-                if (settings.debugWifiState)
-                    systemPrintf("WiFi: WiFi station successfully started\r\n");
-
-                // WiFi station is now available
-                wifiStationSetState(WIFI_STATION_STATE_ONLINE);
-            }
-            else
-            {
-                // Failed to connect to a remote AP
-                if (settings.debugWifiState)
-                    systemPrintf("WiFi: WiFi station failed to start!\r\n");
-
-                // Restart WiFi after delay
-                // Clear the bits to perform the restart operation
-                wifi.clearStarted(WIFI_STA_RECONNECT);
-                wifiStationSetState(WIFI_STATION_STATE_RESTART);
-
-                // Start the next network interface if necessary
-                if (connectionAttempts >= 2)
-                    networkStartNextInterface(NETWORK_WIFI_STATION);
-            }
+            // WiFi station is now available
+            timer = millis();
+            wifiStationSetState(WIFI_STATION_STATE_ONLINE);
         }
         break;
 
