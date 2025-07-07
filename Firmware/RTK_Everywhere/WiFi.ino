@@ -762,8 +762,8 @@ bool wifiStationEnabled(const char **reason)
             break;
         }
 
-        // Is WiFi the highest priority
-        if (networkIsHighestPriority(NETWORK_WIFI_STATION) == false)
+        // Determine if WiFi should be running (is the highest priority)
+        if (networkInterfaceRunning(NETWORK_WIFI_STATION) == false)
         {
             // Another network has higher priority
             // Allocate the reason buffer once
