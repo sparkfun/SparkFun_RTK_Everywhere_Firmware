@@ -1064,6 +1064,11 @@ void wifiStationUpdate()
                 if (settings.debugWifiState)
                     systemPrintf("WiFi: WiFi station failed to start!\r\n");
 
+                // Restart WiFi after delay
+                // Clear the bits to perform the restart operation
+                wifi.clearStarted(WIFI_STA_RECONNECT);
+                wifiStationSetState(WIFI_STATION_STATE_RESTART);
+
                 // Start the next network interface if necessary
                 if (connectionAttempts >= 2)
                     networkStartNextInterface(NETWORK_WIFI_STATION);
