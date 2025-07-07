@@ -209,7 +209,7 @@ void wifiDisplayNetworkData()                   {}
 void wifiDisplaySoftApStatus()                  {}
 bool wifiEspNowOff(const char * fileName, uint32_t lineNumber) {return true;}
 bool wifiEspNowOn(const char * fileName, uint32_t lineNumber) {return false;}
-void wifiEspNowSetChannel(WIFI_CHANNEL_t channel) {}
+void wifiEspNowChannelSet(WIFI_CHANNEL_t channel) {}
 int wifiNetworkCount()                          {return 0;}
 void wifiResetTimeout()                         {}
 IPAddress wifiSoftApGetIpAddress()              {return IPAddress((uint32_t)0);}

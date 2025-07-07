@@ -582,10 +582,17 @@ void wifiDisplayState()
 }
 
 //*********************************************************************
-// Set the ESP-NOW channel
-void wifiEspNowSetChannel(WIFI_CHANNEL_t channel)
+// Get the ESP-NOW channel
+WIFI_CHANNEL_t wifiEspNowChannelGet()
 {
-    wifi.espNowSetChannel(channel);
+    return wifi.espNowChannelGet();
+}
+
+//*********************************************************************
+// Set the ESP-NOW channel
+void wifiEspNowChannelSet(WIFI_CHANNEL_t channel)
+{
+    wifi.espNowChannelSet(channel);
 }
 
 //*********************************************************************
@@ -682,6 +689,20 @@ void wifiPromiscuousRxHandler(void *buf, wifi_promiscuous_pkt_type_t type)
 
     ppkt = (wifi_promiscuous_pkt_t *)buf;
     packetRSSI = ppkt->rx_ctrl.rssi;
+}
+
+//*********************************************************************
+// Get the soft AP channel
+WIFI_CHANNEL_t wifiSoftApChannelGet()
+{
+    return wifi.softApChannelGet();
+}
+
+//*********************************************************************
+// Set the soft AP channel
+void wifiSoftApChannelSet(WIFI_CHANNEL_t channel)
+{
+    wifi.softApChannelSet(channel);
 }
 
 //*********************************************************************
@@ -1361,21 +1382,30 @@ bool RTK_WIFI::enable(bool enableESPNow, bool enableSoftAP, bool enableStation, 
 }
 
 //*********************************************************************
-// Get the ESP-NOW status
+// Get the ESP-NOW channel
 // Outputs:
-//   Returns true when ESP-NOW is online and ready for use
-bool RTK_WIFI::espNowOnline()
+//   Returns the requested ESP-NOW channel
+WIFI_CHANNEL_t RTK_WIFI::espNowChannelGet()
 {
-    return (_started & WIFI_EN_ESP_NOW_ONLINE) ? true : false;
+    return _espNowChannel;
 }
 
 //*********************************************************************
 // Set the ESP-NOW channel
 // Inputs:
 //   channel: New ESP-NOW channel number
-void RTK_WIFI::espNowSetChannel(WIFI_CHANNEL_t channel)
+void RTK_WIFI::espNowChannelSet(WIFI_CHANNEL_t channel)
 {
     _espNowChannel = channel;
+}
+
+//*********************************************************************
+// Get the ESP-NOW status
+// Outputs:
+//   Returns true when ESP-NOW is online and ready for use
+bool RTK_WIFI::espNowOnline()
+{
+    return (_started & WIFI_EN_ESP_NOW_ONLINE) ? true : false;
 }
 
 //*********************************************************************
@@ -1607,6 +1637,24 @@ bool RTK_WIFI::setWiFiProtocols(wifi_interface_t interface, bool enableWiFiProto
 
     // Return the final status
     return started;
+}
+
+//*********************************************************************
+// Get the soft AP channel
+// Outputs:
+//   Returns the requested soft AP channel
+WIFI_CHANNEL_t RTK_WIFI::softApChannelGet()
+{
+    return _apChannel;
+}
+
+//*********************************************************************
+// Set the soft AP channel
+// Inputs:
+//   channel: Request the channel for WiFi soft AP
+void RTK_WIFI::softApChannelSet(WIFI_CHANNEL_t channel)
+{
+    _apChannel = channel;
 }
 
 //*********************************************************************
@@ -1854,6 +1902,20 @@ bool RTK_WIFI::softApSetSsidPassword(const char *ssid, const char *password)
 bool RTK_WIFI::startAp(bool forceAP)
 {
     return enable(wifiEspNowRunning, forceAP | settings.wifiConfigOverAP, wifiStationRunning, __FILE__, __LINE__);
+}
+
+//*********************************************************************
+// Get the station channel
+WIFI_CHANNEL_t RTK_WIFI::stationChannelGet()
+{
+    return _stationChannel;
+}
+
+//*********************************************************************
+// Set the station channel
+void RTK_WIFI::stationChannelSet(WIFI_CHANNEL_t channel)
+{
+    _stationChannel = channel;
 }
 
 //*********************************************************************
