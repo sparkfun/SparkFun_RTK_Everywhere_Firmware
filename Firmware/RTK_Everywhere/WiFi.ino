@@ -1131,9 +1131,13 @@ void wifiUpdateSettings()
     // Remember the change in SSID values
     wifiStationSsidSet = ssidSet;
     
-    //If WiFi currently has connectivity, don't restart it
-    if(networkHasInternet() == false)
+    //If there are consumers, and WiFi currently has connectivity, don't restart it
+    if((networkConsumerCount(NETWORK_WIFI_STATION) > 0) && (networkHasInternet() == false))
+    {
+        if (settings.debugWifiState)
+            systemPrintln("Restarting WiFi because settings have changed");
         wifiStationRestart = ssidSet;
+    }
 
     // Determine if the WiFi soft AP SSID string is present
     wifiSoftApSsidSet = (wifiSoftApSsid && strlen(wifiSoftApSsid));
@@ -1343,9 +1347,6 @@ bool RTK_WIFI::enable(bool enableESPNow,
     // Update the station state
     if (enableStation)
     {
-        //Load the latest settings
-        wifiUpdateSettings();
-
         // Verify that at least one SSID is set
         if (wifiStationSsidSet == false)
         {
