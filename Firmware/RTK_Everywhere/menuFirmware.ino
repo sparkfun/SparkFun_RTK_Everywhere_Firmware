@@ -886,6 +886,14 @@ void otaUpdate()
                     // machine
                     if (otaRequestFirmwareVersionCheck == true)
                     {
+                        if (websocketConnected)
+                        {
+                            char newVersionCSV[40];
+                            snprintf(newVersionCSV, sizeof(newVersionCSV), "newFirmwareVersion,%s,",
+                                     otaReportedVersion);
+                            sendStringToWebsocket(newVersionCSV);
+                        }
+
                         otaUpdateStop();
                         return;
                     }
@@ -897,6 +905,9 @@ void otaUpdate()
                 else
                 {
                     systemPrintln("Version Check: Firmware is up to date. No new firmware available.");
+                    if (websocketConnected)
+                        sendStringToWebsocket((char *)"newFirmwareVersion,CURRENT,");
+
                     otaUpdateStop();
                 }
             }
@@ -904,6 +915,8 @@ void otaUpdate()
             {
                 // Failed to get version number
                 systemPrintln("Failed to get version number from server.");
+                if (websocketConnected)
+                    sendStringToWebsocket((char *)"newFirmwareVersion,NO_SERVER,");
                 otaUpdateStop();
             }
             break;
@@ -912,11 +925,21 @@ void otaUpdate()
         case OTA_STATE_UPDATE_FIRMWARE:
             // Determine if the network has failed
             if (!connected)
+            {
                 otaUpdateStop();
+
+                if (websocketConnected)
+                    sendStringToWebsocket((char *)"gettingNewFirmware,ERROR,");
+            }
             else
             {
                 // Perform the firmware update
                 otaUpdateFirmware();
+
+                // Update triggers ESP.restart(). If we get this far, the firmware update has failed
+                if (websocketConnected)
+                    sendStringToWebsocket((char *)"gettingNewFirmware,ERROR,");
+
                 otaUpdateStop();
             }
             break;
@@ -927,7 +950,7 @@ void otaUpdate()
     if (PERIODIC_DISPLAY(PD_OTA_STATE))
     {
         char line[30];
-        const char * state;
+        const char *state;
 
         PERIODIC_CLEAR(PD_OTA_STATE);
         state = otaStateNameGet(otaState, line);
