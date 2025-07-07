@@ -96,8 +96,8 @@ void firmwareMenu()
 // Given a char string, break into version number major/minor, year, month, day
 // Returns false if parsing failed
 //----------------------------------------
-bool firmwareVersionBreakIntoParts(char *version, int *versionNumberMajor, int *versionNumberMinor, int *year, int *month,
-                                   int *day)
+bool firmwareVersionBreakIntoParts(char *version, int *versionNumberMajor, int *versionNumberMinor, int *year,
+                                   int *month, int *day)
 {
     char monthStr[20];
     int placed = 0;
@@ -188,8 +188,8 @@ bool firmwareVersionIsReportedNewer(char *reportedVersion, char *currentVersion)
 
     firmwareVersionBreakIntoParts(currentVersion, &currentVersionNumberMajor, &currentVersionNumberMinor, &currentYear,
                                   &currentMonth, &currentDay);
-    firmwareVersionBreakIntoParts(reportedVersion, &reportedVersionNumberMajor, &reportedVersionNumberMinor, &reportedYear,
-                                  &reportedMonth, &reportedDay);
+    firmwareVersionBreakIntoParts(reportedVersion, &reportedVersionNumberMajor, &reportedVersionNumberMinor,
+                                  &reportedYear, &reportedMonth, &reportedDay);
 
     if (settings.debugFirmwareUpdate)
     {
@@ -580,11 +580,9 @@ void otaDisplayPercentage(int bytesWritten, int totalLength, bool alwaysDisplay)
 
         if (apConfigFirmwareUpdateInProcess == true)
         {
-#ifdef COMPILE_AP
             char myProgress[50];
             snprintf(myProgress, sizeof(myProgress), "otaFirmwareStatus,%d,", percent);
             sendStringToWebsocket(myProgress);
-#endif // COMPILE_AP
         }
 
         previousPercent = percent;
@@ -609,11 +607,10 @@ const char *otaGetUrl()
 //----------------------------------------
 // Display the OTA portion of the firmware menu
 //----------------------------------------
-void otaMenuDisplay(char * currentVersion)
+void otaMenuDisplay(char *currentVersion)
 {
     // Automatic firmware updates
-    systemPrintf("a) Automatic firmware updates: %s\r\n",
-                 settings.enableAutoFirmwareUpdate ? "Enabled" : "Disabled");
+    systemPrintf("a) Automatic firmware updates: %s\r\n", settings.enableAutoFirmwareUpdate ? "Enabled" : "Disabled");
 
     systemPrint("c) Check SparkFun for device firmware: ");
 
