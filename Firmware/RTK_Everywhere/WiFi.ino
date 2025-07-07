@@ -2413,7 +2413,7 @@ bool RTK_WIFI::stopStart(WIFI_ACTION_t stopping, WIFI_ACTION_t starting)
     stopping &= _started;
 
     // Determine the components that are being started
-    expected = starting & allOnline;
+    expected = (_started | starting) & allOnline;
 
     // Determine which components are being restarted
     restarting = _started & stopping & starting;
