@@ -927,7 +927,75 @@ void wifiStationUpdate()
     static uint32_t timer;
     int users;
 
-    // Determine if WiFi station should stop
+/*
+        WiFi Station States:
+
+                     WIFI_STATION_STATE_OFF <--------------+<---.
+                               |                           ^    |
+                               | enabled                   |    |
+                               |                           |    |
+                               V                  !enabled |    |
+                WIFI_STATION_STATE_RESTART_DELAY ----------'    |
+                               |                                |
+                               | Timeout                        |
+                               | Complete                       |
+                               V                  !enabled      |
+           .----> WIFI_STATION_STATE_STARTING -------------.    |
+           |                   |                           |    |
+           |                   | WiFi connected            |    |
+           |                   V                  !enabled |    |
+           |       WIFI_STATION_STATE_ONLINE ------------->+    |
+           |                   |                           ^    |
+           |                   | Long delay                |    |
+           |                   V                           |    |
+           |       WIFI_STATION_STATE_STABLE               |    |
+           |                   |                           |    |
+           |                   | !enabled                  |    |
+           |                   V                           |    |
+           |                   +<--------------------------'    |
+           |                   |                                |
+           |                   V                                |
+           |    WIFI_STATION_STATE_WAIT_NO_USERS                |
+           |                   |                                |
+           |                   | No Users                       |
+           |                   V                 !enabled       |
+           |                   +--------------------------------'
+           | Display           |
+           | delay             | enabled
+           |                   V
+           '------ WIFI_STATION_STATE_RESTART
+
+    Network Loss Handling:
+
+                 ARDUINO_EVENT_WIFI_STA_LOST_IP
+                               |
+                               |
+                               V
+                networkInterfaceEventInternetLost
+                               |
+                               | Set internet lost event flag
+                               V
+                         networkUpdate
+                               |
+                               | Clear internet lost event flag
+                               V
+                               +<------- Fake connection loss
+                               |
+                               V
+              networkInterfaceInternetConnectionLost
+                               |
+                               | Notify Interface of connection loss
+                               V
+              .----------------+----------------.
+              |                                 |
+              |                                 |
+              V                                 V
+    networkInterfaceRunning          Interface stop sequence
+     in wifiStationEnabled
+
+*/
+
+    // Determine if WiFi station should start or stop
     enabled = wifiStationEnabled(&reason);
     online = wifiStationOnline;
     if ((enabled == false) && (wifiStationState >= WIFI_STATION_STATE_STARTING))
