@@ -648,9 +648,6 @@ unsigned long lastDynamicDataUpdate;
 #include <WebServer.h>       // Port 80
 #include <esp_http_server.h> // Needed for web sockets only - on port 81
 
-// https://github.com/espressif/arduino-esp32/blob/master/libraries/DNSServer/examples/CaptivePortal/CaptivePortal.ino
-DNSServer *dnsserver;
-
 bool websocketConnected = false;
 
 #endif // COMPILE_AP
