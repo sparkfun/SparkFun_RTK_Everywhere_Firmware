@@ -1532,13 +1532,16 @@ void provisioningUpdate()
         else if (networkConsumerIsConnected(NETCONSUMER_POINTPERFECT_KEY_UPDATE))
         {
             if (settings.debugPpCertificate)
-                systemPrintln("PointPerfect key update connected to network");
+                systemPrintln("PointPerfect key/credentials update connected to network");
 
             // Go get latest keys
             ztpResponse = ZTP_NOT_STARTED;           // HTTP_Client will update this
             httpClientModeNeeded = true;             // This will start the HTTP_Client
             provisioningStartTime_millis = millis(); // Record the start time so we can timeout
-            paintGettingKeys();
+            if (pointPerfectServiceUsesKeys() == true)
+                paintGettingKeys();
+            else
+                paintGettingCredentials();
             networkUserAdd(NETCONSUMER_POINTPERFECT_KEY_UPDATE, __FILE__, __LINE__);
             provisioningSetState(PROVISIONING_STARTED);
         }

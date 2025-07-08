@@ -3010,6 +3010,11 @@ void paintGettingKeys()
     displayMessage("Getting Keys", 2000);
 }
 
+void paintGettingCredentials()
+{
+    displayMessage("Getting Creds", 2000);
+}
+
 void paintEthernetConnected()
 {
     displayMessage("Ethernet Connected", 1000);
