@@ -622,13 +622,15 @@ void httpClientUpdate()
                 else if (pointPerfectNtripNeeded() == true)
                 {
                     // We received a JSON blob containing NTRIP credentials
+                    // Note: this prints the userName and password, which should probably be kept secret?
+                    // TODO: comment this
                     systemPrintf("PointPerfect response: %s\r\n", response.c_str());
 
                     // Check if the JSON blob contains rtcmCredentials
                     // If this is the first time this device has connected to ThingStream, rtcmCredentials
-                    // will not be present and we need to retry
+                    // endpoint will not be present and we need to retry
                     // httpClientConnectLimitReached will prevent excessive retries
-                    if ((const char *)((*jsonZtp)["rtcmCredentials"]) == nullptr)
+                    if ((const char *)((*jsonZtp)["rtcmCredentials"]["endpoint"]) == nullptr)
                     {
                         systemPrintln("ERROR - rtcmCredentials not found!\r\n");
                         httpClientRestart(); // Try again - allow time for ThingStream to finish activating the device on plan
