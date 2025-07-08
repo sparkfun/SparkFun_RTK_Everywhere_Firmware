@@ -2785,6 +2785,21 @@ bool RTK_WIFI::stopStart(WIFI_ACTION_t stopping, WIFI_ACTION_t starting)
         // Start the soft AP components
         //****************************************
 
+        // Set the soft AP subnet mask, IP, gateway, DNS, and first DHCP addresses
+        if (starting & WIFI_AP_SET_IP_ADDR)
+        {
+            Serial.println("\n\r Running softAP set IP");
+            if (!softApSetIpAddress(_apIpAddress.toString().c_str(),
+                                    _apSubnetMask.toString().c_str(),
+                                    _apGatewayAddress.toString().c_str(),
+                                    _apDnsAddress.toString().c_str(),
+                                    _apFirstDhcpAddress.toString().c_str()))
+            {
+                break;
+            }
+            _started = _started | WIFI_AP_SET_IP_ADDR;
+        }
+
         // Set the soft AP SSID and password
         if (starting & WIFI_AP_SET_SSID_PASSWORD)
         {
@@ -2799,20 +2814,6 @@ bool RTK_WIFI::stopStart(WIFI_ACTION_t stopping, WIFI_ACTION_t starting)
             if (!softApSetSsidPassword(_apSsid, wifiSoftApPassword))
                 break;
             _started = _started | WIFI_AP_SET_SSID_PASSWORD;
-        }
-
-        // Set the soft AP subnet mask, IP, gateway, DNS, and first DHCP addresses
-        if (starting & WIFI_AP_SET_IP_ADDR)
-        {
-            if (!softApSetIpAddress(_apIpAddress.toString().c_str(),
-                                    _apSubnetMask.toString().c_str(),
-                                    _apGatewayAddress.toString().c_str(),
-                                    _apDnsAddress.toString().c_str(),
-                                    _apFirstDhcpAddress.toString().c_str()))
-            {
-                break;
-            }
-            _started = _started | WIFI_AP_SET_IP_ADDR;
         }
 
         // Get the soft AP MAC address
