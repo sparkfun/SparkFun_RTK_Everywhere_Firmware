@@ -10,8 +10,6 @@ HTTP_Client.ino
 
 ------------------------------------------------------------------------------*/
 
-ZtpResponse ztpResponse = ZTP_NOT_STARTED; // Used in menuPP
-
 #ifdef COMPILE_HTTP_CLIENT
 
 //----------------------------------------
@@ -48,6 +46,9 @@ const char *const httpClientStateName[] = {
 
 const int httpClientStateNameEntries = sizeof(httpClientStateName) / sizeof(httpClientStateName[0]);
 
+ZtpResponse ztpResponse =
+    ZTP_NOT_STARTED; // Used in menuPP. This is the overall result of the ZTP process of testing multiple tokens
+
 //----------------------------------------
 // Locals
 //----------------------------------------
@@ -60,7 +61,7 @@ char *tempHolderPtr = nullptr;
 // Throttle the time between connection attempts
 static int httpClientConnectionAttempts; // Count the number of connection attempts between restarts
 static uint32_t httpClientConnectionAttemptTimeout;
-static int httpClientConnectionAttemptsTotal;                   // Count the number of connection attempts absolutely
+static int httpClientConnectionAttemptsTotal; // Count the number of connection attempts absolutely
 
 static volatile uint32_t httpClientLastDataReceived; // Last time data was received via HTTP
 
@@ -96,8 +97,7 @@ bool httpClientConnectLimitReached()
 
     // Limit to max connection delay
     if (httpClientConnectionAttempts)
-        httpClientConnectionAttemptTimeout = (5 * MILLISECONDS_IN_A_SECOND)
-                                           << (httpClientConnectionAttempts - 1);
+        httpClientConnectionAttemptTimeout = (5 * MILLISECONDS_IN_A_SECOND) << (httpClientConnectionAttempts - 1);
     if (httpClientConnectionAttemptTimeout > RTK_MAX_CONNECTION_MSEC)
         httpClientConnectionAttemptTimeout = httpClientConnectionAttemptTimeout;
     else
@@ -127,7 +127,7 @@ bool httpClientConnectLimitReached()
 //----------------------------------------
 // Determine if the HTTP client may be enabled
 //----------------------------------------
-bool httpClientEnabled(const char ** line)
+bool httpClientEnabled(const char **line)
 {
     bool enableHttpClient;
 
@@ -136,7 +136,7 @@ bool httpClientEnabled(const char ** line)
         enableHttpClient = false;
 
         // HTTP requires use of point perfect corrections
-        if (settings.enablePointPerfectCorrections == false)
+        if (pointPerfectIsEnabled() == false)
         {
             if (line)
                 *line = ", PointPerfect corrections disabled!";
@@ -400,6 +400,7 @@ void httpClientUpdate()
         reportHeapNow(settings.debugHttpClientState);
         online.httpClient = true;
         httpClientSetState(HTTP_CLIENT_CONNECTED);
+
         break;
     }
 
@@ -421,18 +422,26 @@ void httpClientUpdate()
             systemPrint("HTTP response: ");
             systemPrintln(response.c_str());
         }
-        if (httpResponseCode != 200)
+
+        if (httpResponseCode != 200) // Connection failed
         {
             if (settings.debugCorrections || settings.debugHttpClientData)
             {
                 systemPrintf("HTTP response error %d: ", httpResponseCode);
-                systemPrintln(response);
+                systemPrintln(response.c_str());
             }
 
-            // "HTTP response error -11:  "
+            // "HTTP response error -11 " = 411 which is length required
+            // https://stackoverflow.com/questions/19227142/http-status-code-411-length-required
             if (httpResponseCode == -11)
             {
-                httpClientRestart(); // I _think_ we want to restart here - i.e. retry after the timeout?
+                if (settings.debugCorrections || settings.debugHttpClientData)
+                {
+                    systemPrintln("HTTP response error 411: Length Required. Retrying...");
+                    systemPrintln(response.c_str());
+                }
+
+                httpClientRestart();
                 break;
             }
 
@@ -442,7 +451,6 @@ void httpClientUpdate()
             {
                 if (settings.debugCorrections || settings.debugHttpClientData)
                     systemPrintln("Device already registered to different profile");
-
                 ztpResponse = ZTP_ALREADY_REGISTERED;
                 httpClientSetState(HTTP_CLIENT_COMPLETE);
                 break;
@@ -464,21 +472,22 @@ void httpClientUpdate()
             {
                 if (settings.debugCorrections || settings.debugHttpClientData)
                     systemPrintln("Device not whitelisted.");
-
                 ztpResponse = ZTP_NOT_WHITELISTED;
-                // paintKeyProvisionFail(10000); // Device not whitelisted. Show device ID.
                 httpClientSetState(HTTP_CLIENT_COMPLETE);
                 break;
             }
+
+            // Unknown. Report and shut down.
             else
             {
                 systemPrintf("HTTP response error %d: ", httpResponseCode);
-                systemPrintln(response);
+                systemPrintln(response.c_str());
                 ztpResponse = ZTP_UNKNOWN_ERROR;
                 httpClientSetState(HTTP_CLIENT_COMPLETE);
                 break;
             }
         }
+
         else
         {
             // Device is now active with ThingStream
@@ -500,93 +509,164 @@ void httpClientUpdate()
             }
             else
             {
-                tempHolderPtr = (char *)rtkMalloc(MQTT_CERT_SIZE, "Certificate buffer (tempHolderPtr)");
-
-                if (!tempHolderPtr)
+                // Depending on the service selected, we will get different responses
+                if (pointPerfectServiceUsesKeys() == true)
                 {
-                    systemPrintln("ERROR - Failed to allocate tempHolderPtr buffer!\r\n");
-                    httpClientShutdown(); // Try again?
-                    break;
-                }
-                strncpy(tempHolderPtr, (const char *)((*jsonZtp)["certificate"]), MQTT_CERT_SIZE - 1);
-                recordFile("certificate", tempHolderPtr, strlen(tempHolderPtr));
+                    // Handle a PointPerfect 'keys' response
+                    tempHolderPtr = (char *)rtkMalloc(MQTT_CERT_SIZE, "Certificate buffer (tempHolderPtr)");
 
-                strncpy(tempHolderPtr, (const char *)((*jsonZtp)["privateKey"]), MQTT_CERT_SIZE - 1);
-                recordFile("privateKey", tempHolderPtr, strlen(tempHolderPtr));
-
-                rtkFree(tempHolderPtr, "Certificate buffer (tempHolderPtr)"); // Clean up. Done with tempHolderPtr
-
-                // Validate the keys
-                if (!checkCertificates())
-                {
-                    systemPrintln("ERROR - Failed to validate the Point Perfect certificates!");
-                }
-                else
-                {
-                    if (settings.debugPpCertificate || settings.debugHttpClientData)
-                        systemPrintln("Certificates recorded successfully.");
-
-                    strncpy(settings.pointPerfectClientID, (const char *)((*jsonZtp)["clientId"]),
-                            sizeof(settings.pointPerfectClientID));
-                    strncpy(settings.pointPerfectBrokerHost, (const char *)((*jsonZtp)["brokerHost"]),
-                            sizeof(settings.pointPerfectBrokerHost));
-
-                    // Note: from the ZTP documentation:
-                    // ["subscriptions"][0] will contain the key distribution topic
-                    // But, assuming the key distribution topic is always ["subscriptions"][0] is potentially brittle
-                    // It is safer to check the "description" contains "key distribution topic"
-                    // If we are on an IP-only plan, the path will be /pp/ubx/0236/ip
-                    // If we are on a L-Band-only or L-Band+IP plan, the path will be /pp/ubx/0236/Lb
-                    // These 0236 key distribution topics provide the keys in UBX format, ready to be pushed to a ZED.
-                    // There are also /pp/key/ip and /pp/key/Lb topics which provide the keys in JSON format - but we
-                    // don't use those.
-                    int subscription =
-                        findZtpJSONEntry("subscriptions", "description", "key distribution topic", jsonZtp);
-                    if (subscription >= 0)
-                        strncpy(settings.pointPerfectKeyDistributionTopic,
-                                (const char *)((*jsonZtp)["subscriptions"][subscription]["path"]),
-                                sizeof(settings.pointPerfectKeyDistributionTopic));
-
-                    // "subscriptions" will also contain the correction topics for all available regional areas - for
-                    // IP-only or L-Band+IP We should store those too, and then allow the user to select the one for
-                    // their regional area
-                    for (int r = 0; r < numRegionalAreas; r++)
+                    if (!tempHolderPtr)
                     {
-                        char findMe[40];
-                        snprintf(findMe, sizeof(findMe), "correction topic for %s",
-                                 Regional_Information_Table[r].name); // Search for "US" etc.
-                        subscription = findZtpJSONEntry("subscriptions", "description", (const char *)findMe, jsonZtp);
-                        if (subscription >= 0)
-                            strncpy(settings.regionalCorrectionTopics[r],
-                                    (const char *)((*jsonZtp)["subscriptions"][subscription]["path"]),
-                                    sizeof(settings.regionalCorrectionTopics[0]));
-                        else
-                            settings.regionalCorrectionTopics[r][0] =
-                                0; // Erase any invalid (non-plan) correction topics. Just in case the plan has changed.
+                        systemPrintln("ERROR - Failed to allocate tempHolderPtr buffer!\r\n");
+                        httpClientShutdown(); // Try again?
+                        break;
                     }
 
-                    // "subscriptions" also contains the geographic area definition topic for each region for localized
-                    // distribution. We can cheat by appending "/gad" to the correction topic. TODO: think about doing
-                    // this properly.
+                    // Check if the JSON blob contains a certificate and private key
+                    // If this is the first time this device has connected to ThingStream, they
+                    // will not be present and we need to retry
+                    // httpClientConnectLimitReached will prevent excessive retries
+                    if (((const char *)((*jsonZtp)["certificate"]) == nullptr) || ((const char *)((*jsonZtp)["privateKey"]) == nullptr))
+                    {
+                        systemPrintln("ERROR - certificate or privateKey not found!\r\n");
+                        httpClientRestart(); // Try again - allow time for ThingStream to finish activating the device on plan
+                        break;
+                    }
 
-                    // Now we extract the current and next key pair
-                    strncpy(settings.pointPerfectCurrentKey,
-                            (const char *)((*jsonZtp)["dynamickeys"]["current"]["value"]),
-                            sizeof(settings.pointPerfectCurrentKey));
-                    settings.pointPerfectCurrentKeyDuration = (*jsonZtp)["dynamickeys"]["current"]["duration"];
-                    settings.pointPerfectCurrentKeyStart = (*jsonZtp)["dynamickeys"]["current"]["start"];
+                    strncpy(tempHolderPtr, (const char *)((*jsonZtp)["certificate"]), MQTT_CERT_SIZE - 1);
+                    recordFile("certificate", tempHolderPtr, strlen(tempHolderPtr));
 
-                    strncpy(settings.pointPerfectNextKey, (const char *)((*jsonZtp)["dynamickeys"]["next"]["value"]),
-                            sizeof(settings.pointPerfectNextKey));
-                    settings.pointPerfectNextKeyDuration = (*jsonZtp)["dynamickeys"]["next"]["duration"];
-                    settings.pointPerfectNextKeyStart = (*jsonZtp)["dynamickeys"]["next"]["start"];
+                    strncpy(tempHolderPtr, (const char *)((*jsonZtp)["privateKey"]), MQTT_CERT_SIZE - 1);
+                    recordFile("privateKey", tempHolderPtr, strlen(tempHolderPtr));
+
+                    rtkFree(tempHolderPtr, "Certificate buffer (tempHolderPtr)"); // Clean up. Done with tempHolderPtr
+
+                    // Validate the keys
+                    if (!checkCertificates())
+                    {
+                        systemPrintln("ERROR - Failed to validate the Point Perfect certificates!");
+                    }
+                    else
+                    {
+                        // Pull out MQTT settings and keys from remaining JSON
+                        if (settings.debugPpCertificate || settings.debugHttpClientData)
+                            systemPrintln("Certificates recorded successfully.");
+
+                        strncpy(settings.pointPerfectClientID, (const char *)((*jsonZtp)["clientId"]),
+                                sizeof(settings.pointPerfectClientID));
+                        strncpy(settings.pointPerfectBrokerHost, (const char *)((*jsonZtp)["brokerHost"]),
+                                sizeof(settings.pointPerfectBrokerHost));
+
+                        // Note: from the ZTP documentation:
+                        // ["subscriptions"][0] will contain the key distribution topic
+                        // But, assuming the key distribution topic is always ["subscriptions"][0] is potentially
+                        // brittle. It is safer to check the "description" contains "key distribution topic". If we are on
+                        // an IP-only plan, the path will be /pp/ubx/0236/ip If we are on a L-Band-only or L-Band+IP
+                        // plan, the path will be /pp/ubx/0236/Lb These 0236 key distribution topics provide the keys in
+                        // UBX format, ready to be pushed to a ZED. There are also /pp/key/ip and /pp/key/Lb topics
+                        // which provide the keys in JSON format - but we don't use those.
+                        int subscription =
+                            findZtpJSONEntryTnT("subscriptions", "description", "key distribution topic", jsonZtp);
+                        if (subscription >= 0)
+                            strncpy(settings.pointPerfectKeyDistributionTopic,
+                                    (const char *)((*jsonZtp)["subscriptions"][subscription]["path"]),
+                                    sizeof(settings.pointPerfectKeyDistributionTopic));
+
+                        // "subscriptions" will also contain the correction topics for all available regional areas -
+                        // for IP-only or L-Band+IP We should store those too, and then allow the user to select the one
+                        // for their regional area
+                        for (int r = 0; r < numRegionalAreas; r++)
+                        {
+                            char findMe[40];
+                            snprintf(findMe, sizeof(findMe), "correction topic for %s",
+                                     Regional_Information_Table[r].name); // Search for "US" etc.
+                            subscription =
+                                findZtpJSONEntryTnT("subscriptions", "description", (const char *)findMe, jsonZtp);
+                            if (subscription >= 0)
+                                strncpy(settings.regionalCorrectionTopics[r],
+                                        (const char *)((*jsonZtp)["subscriptions"][subscription]["path"]),
+                                        sizeof(settings.regionalCorrectionTopics[0]));
+                            else
+                                settings.regionalCorrectionTopics[r][0] =
+                                    0; // Erase any invalid (non-plan) correction topics. Just in case the plan has
+                                       // changed.
+                        }
+
+                        // "subscriptions" also contains the geographic area definition topic for each region for
+                        // localized distribution. We can cheat by appending "/gad" to the correction topic. TODO: think
+                        // about doing this properly.
+
+                        // Now we extract the current and next key pair
+                        strncpy(settings.pointPerfectCurrentKey,
+                                (const char *)((*jsonZtp)["dynamickeys"]["current"]["value"]),
+                                sizeof(settings.pointPerfectCurrentKey));
+                        settings.pointPerfectCurrentKeyDuration = (*jsonZtp)["dynamickeys"]["current"]["duration"];
+                        settings.pointPerfectCurrentKeyStart = (*jsonZtp)["dynamickeys"]["current"]["start"];
+
+                        strncpy(settings.pointPerfectNextKey,
+                                (const char *)((*jsonZtp)["dynamickeys"]["next"]["value"]),
+                                sizeof(settings.pointPerfectNextKey));
+                        settings.pointPerfectNextKeyDuration = (*jsonZtp)["dynamickeys"]["next"]["duration"];
+                        settings.pointPerfectNextKeyStart = (*jsonZtp)["dynamickeys"]["next"]["start"];
+
+                        if (settings.debugCorrections || settings.debugHttpClientData)
+                            pointperfectPrintKeyInformation("HTTP Client");
+
+                        // displayKeysUpdated();
+
+                        ztpResponse = ZTP_SUCCESS; // Report success to provisioningUpdate()
+
+                        httpClientSetState(HTTP_CLIENT_COMPLETE);
+                    } // Valid certificates
+                } // End handle keys type response
+                else if (pointPerfectNtripNeeded() == true)
+                {
+                    // We received a JSON blob containing NTRIP credentials
+                    // Note: this prints the userName and password, which should probably be kept secret?
+                    // TODO: comment this
+                    systemPrintf("PointPerfect response: %s\r\n", response.c_str());
+
+                    // Check if the JSON blob contains rtcmCredentials
+                    // If this is the first time this device has connected to ThingStream, rtcmCredentials
+                    // endpoint will not be present and we need to retry
+                    // httpClientConnectLimitReached will prevent excessive retries
+                    if ((const char *)((*jsonZtp)["rtcmCredentials"]["endpoint"]) == nullptr)
+                    {
+                        systemPrintln("ERROR - rtcmCredentials not found!\r\n");
+                        httpClientRestart(); // Try again - allow time for ThingStream to finish activating the device on plan
+                        break;
+                    }
+
+                    strncpy(settings.ntripClient_CasterHost, (const char *)((*jsonZtp)["rtcmCredentials"]["endpoint"]),
+                            sizeof(settings.ntripClient_CasterHost));
+                    settings.ntripClient_CasterPort = (*jsonZtp)["rtcmCredentials"]["httpPort"];
+
+                    // If region is determined, override NTRIP Settings
+                    settings.enableNtripClient = true;
+                    settings.ntripClient_TransmitGGA = true;
+
+                    strncpy(settings.ntripClient_CasterUser, (const char *)((*jsonZtp)["rtcmCredentials"]["userName"]),
+                            sizeof(settings.ntripClient_CasterUser));
+                    strncpy(settings.ntripClient_CasterUserPW,
+                            (const char *)((*jsonZtp)["rtcmCredentials"]["password"]),
+                            sizeof(settings.ntripClient_CasterUserPW));
+                    strncpy(settings.ntripClient_MountPoint,
+                            (const char *)((*jsonZtp)["rtcmCredentials"]["mountPoint"]),
+                            sizeof(settings.ntripClient_MountPoint));
 
                     if (settings.debugCorrections || settings.debugHttpClientData)
-                        pointperfectPrintKeyInformation("HTTP Client");
+                        pointperfectPrintNtripInformation("HTTP Client");
 
-                    ztpResponse = ZTP_SUCCESS;
+                    ztpResponse = ZTP_SUCCESS; // Report success to provisioningUpdate()
+
                     httpClientSetState(HTTP_CLIENT_COMPLETE);
+                } // End handle NTRIP/RTCM response
+                else
+                {
+                    systemPrintf("Error: Unhandled PointPerfect service response");
+                    delay(2000);
                 }
+
             } // JSON Deserialized correctly
         } // HTTP Response was 200
         break;
@@ -601,10 +681,9 @@ void httpClientUpdate()
     // Periodically display the HTTP client state
     if (PERIODIC_DISPLAY(PD_HTTP_CLIENT_STATE))
     {
-        const char * line = "";
+        const char *line = "";
         httpClientEnabled(&line);
-        systemPrintf("HTTP Client state: %s%s\r\n",
-                     httpClientStateName[httpClientState], line);
+        systemPrintf("HTTP Client state: %s%s\r\n", httpClientStateName[httpClientState], line);
         PERIODIC_CLEAR(PD_HTTP_CLIENT_STATE);
     }
 }

@@ -664,7 +664,7 @@ void setRadioIcons(std::vector<iconPropertyBlinking> *iconList)
             // ESP-Now + Bluetooth + WiFi
 
             // Count the number of radios in use
-            uint8_t numberOfRadios = 1; // Bluetooth always indicated. TODO don't count if BT radio type is OFF.
+            uint8_t numberOfRadios = 1; // Bluetooth always indicated.
             if (wifiStationRunning || wifiSoftApRunning)
                 numberOfRadios++;
             if (wifiEspNowRunning)
@@ -747,8 +747,22 @@ void setRadioIcons(std::vector<iconPropertyBlinking> *iconList)
                 iconList->push_back(prop);
             }
 
-            if (wifiStationRunning || wifiSoftApRunning) // WiFi : Columns 34 - 46
+            // WiFi : Columns 34 - 46
+            if (wifiStationRunning && networkInterfaceHasInternet(NETWORK_WIFI_STATION))
+            {
+                //Display solid icon based on RSSI
                 displayWiFiIcon(iconList, prop, ICON_POSITION_CENTER, 0b11111111);
+            }
+            else if (wifiStationRunning && (networkInterfaceHasInternet(NETWORK_WIFI_STATION) == false))
+            {
+                // We are not connected, blink icon
+                displayWiFiFullIcon(iconList, prop, ICON_POSITION_CENTER, 0b00001111);
+            }
+            else if(wifiSoftApRunning)
+            {
+                // We are in AP mode, solid WiFi icon
+                displayWiFiIcon(iconList, prop, ICON_POSITION_CENTER, 0b11111111);
+            }
 
 #ifdef COMPILE_CELLULAR
             // Cellular : Columns 49 - 61
@@ -1139,10 +1153,14 @@ void setWiFiIcon_TwoRadios(std::vector<iconPropertyBlinking> *iconList)
             }
         }
         else
+        {
             displayWiFiIcon(iconList, prop, ICON_POSITION_LEFT, 0b11111111);
+        }
     }
     else // We are not paired, blink icon
+    {
         displayWiFiFullIcon(iconList, prop, ICON_POSITION_LEFT, 0b00001111);
+    }
 #endif // COMPILE_WIFI
 }
 
@@ -1557,7 +1575,7 @@ void displayBatteryVsEthernet(std::vector<iconPropertyBlinking> *iconList)
 
 void displaySivVsOpenShort(std::vector<iconPropertyBlinking> *iconList)
 {
-    if (present.antennaShortOpen == false)
+    if (gnss->supportsAntennaShortOpen() == false)
     {
         displayCoords textCoords = paintSIVIcon(iconList, nullptr, 0b11111111);
         paintSIVText(textCoords);
@@ -1566,11 +1584,11 @@ void displaySivVsOpenShort(std::vector<iconPropertyBlinking> *iconList)
     {
         displayCoords textCoords;
 
-        if (aStatus == SFE_UBLOX_ANTENNA_STATUS_SHORT)
+        if (gnss->isAntennaShorted())
         {
             textCoords = paintSIVIcon(iconList, &ShortIconProperties, 0b01010101);
         }
-        else if (aStatus == SFE_UBLOX_ANTENNA_STATUS_OPEN)
+        else if (gnss->isAntennaOpen())
         {
             textCoords = paintSIVIcon(iconList, &OpenIconProperties, 0b01010101);
         }
@@ -1828,7 +1846,7 @@ void paintBaseTempSurveyStarted(std::vector<iconPropertyBlinking> *iconList)
     xPos = SIVIconProperties.iconDisplay[present.display_type].xPos;
     yPos = SIVIconProperties.iconDisplay[present.display_type].yPos;
 
-    if (present.antennaShortOpen == false)
+    if (gnss->supportsAntennaShortOpen() == false)
     {
         oled->setCursor((uint8_t)((int)xPos + SIVTextStartXPosOffset[present.display_type]), yPos + 4); // x, y
         oled->setFont(QW_FONT_5X7);
@@ -1836,11 +1854,11 @@ void paintBaseTempSurveyStarted(std::vector<iconPropertyBlinking> *iconList)
     }
     else
     {
-        if (aStatus == SFE_UBLOX_ANTENNA_STATUS_SHORT)
+        if (gnss->isAntennaShorted())
         {
             paintSIVIcon(iconList, &ShortIconProperties, 0b01010101);
         }
-        else if (aStatus == SFE_UBLOX_ANTENNA_STATUS_OPEN)
+        else if (gnss->isAntennaOpen())
         {
             paintSIVIcon(iconList, &OpenIconProperties, 0b01010101);
         }
@@ -1896,7 +1914,7 @@ void paintRTCM(std::vector<iconPropertyBlinking> *iconList)
     xPos = SIVIconProperties.iconDisplay[present.display_type].xPos;
     yPos = SIVIconProperties.iconDisplay[present.display_type].yPos;
 
-    if (present.antennaShortOpen == false)
+    if (gnss->supportsAntennaShortOpen() == false)
     {
         oled->setCursor((uint8_t)((int)xPos + SIVTextStartXPosOffset[present.display_type]), yPos + 4); // x, y
         oled->setFont(QW_FONT_5X7);
@@ -1904,11 +1922,11 @@ void paintRTCM(std::vector<iconPropertyBlinking> *iconList)
     }
     else
     {
-        if (aStatus == SFE_UBLOX_ANTENNA_STATUS_SHORT)
+        if (gnss->isAntennaShorted())
         {
             paintSIVIcon(iconList, &ShortIconProperties, 0b01010101);
         }
-        else if (aStatus == SFE_UBLOX_ANTENNA_STATUS_OPEN)
+        else if (gnss->isAntennaOpen())
         {
             paintSIVIcon(iconList, &OpenIconProperties, 0b01010101);
         }
@@ -2117,7 +2135,7 @@ void displayNotListed(uint16_t displayTime)
 
 void displayAlreadyRegistered(uint16_t displayTime)
 {
-    displayMessage("Already Registered", displayTime);
+    displayMessage("Already Register", displayTime);
 }
 
 void displayUpdateZEDF9P(uint16_t displayTime)
@@ -2990,6 +3008,11 @@ void paintLBandConfigure()
 void paintGettingKeys()
 {
     displayMessage("Getting Keys", 2000);
+}
+
+void paintGettingCredentials()
+{
+    displayMessage("Getting Creds", 2000);
 }
 
 void paintEthernetConnected()

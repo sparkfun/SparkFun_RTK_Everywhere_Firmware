@@ -854,7 +854,7 @@ void constructSetupDisplay(std::vector<setupButton> *buttons)
 
     addSetupButton(buttons, "Config", STATE_WEB_CONFIG_NOT_STARTED);
 
-    if (settings.enablePointPerfectCorrections)
+    if (pointPerfectIsEnabled())
     {
         addSetupButton(buttons, "Get Keys", STATE_KEYS_REQUESTED);
     }

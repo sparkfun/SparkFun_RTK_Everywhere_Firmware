@@ -1424,6 +1424,22 @@ uint16_t GNSS_ZED::getYear()
 }
 
 //----------------------------------------
+// Returns true if the antenna is shorted
+//----------------------------------------
+bool GNSS_ZED::isAntennaShorted()
+{
+    return (aStatus == SFE_UBLOX_ANTENNA_STATUS_SHORT);
+}
+
+//----------------------------------------
+// Returns true if the antenna is shorted
+//----------------------------------------
+bool GNSS_ZED::isAntennaOpen()
+{
+    return (aStatus == SFE_UBLOX_ANTENNA_STATUS_OPEN);
+}
+
+//----------------------------------------
 bool GNSS_ZED::isBlocking()
 {
     return (false);
@@ -2484,7 +2500,9 @@ void GNSS_ZED::storeHPdataRadio(UBX_NAV_HPPOSLLH_data_t *ubxDataStruct)
 //----------------------------------------
 void storeMONHWdata(UBX_MON_HW_data_t *ubxDataStruct)
 {
-    aStatus = ubxDataStruct->aStatus;
+    GNSS_ZED *zed = (GNSS_ZED *)gnss;
+
+    zed->aStatus = ubxDataStruct->aStatus;
 }
 
 //----------------------------------------
@@ -2625,6 +2643,12 @@ void storeTIMTPdata(UBX_TIM_TP_data_t *ubxDataStruct)
     timTpMicros = us;
     timTpArrivalMillis = millis();
     timTpUpdated = true;
+}
+
+// Antenna Short / Open detection
+bool GNSS_ZED::supportsAntennaShortOpen()
+{
+    return present.antennaShortOpen;
 }
 
 //----------------------------------------

@@ -153,7 +153,7 @@ enum NTRIPClientState
 {
     NTRIP_CLIENT_OFF = 0,           // Using Bluetooth or NTRIP server
     NTRIP_CLIENT_ON,                // WIFI_STATE_START state
-    NTRIP_CLIENT_WAIT_FOR_NETWORK,   // Connecting to WiFi access point or Ethernet
+    NTRIP_CLIENT_WAIT_FOR_NETWORK,  // Connecting to WiFi access point or Ethernet
     NTRIP_CLIENT_NETWORK_CONNECTED, // Connected to an access point or Ethernet
     NTRIP_CLIENT_CONNECTING,        // Attempting a connection to the NTRIP caster
     NTRIP_CLIENT_WAIT_RESPONSE,     // Wait for a response from the NTRIP caster
@@ -356,7 +356,7 @@ bool ntripClientConnectLimitReached()
 //----------------------------------------
 // Determine if the NTRIP client may be enabled
 //----------------------------------------
-bool ntripClientEnabled(const char ** line)
+bool ntripClientEnabled(const char **line)
 {
     bool enabled;
 
@@ -373,9 +373,8 @@ bool ntripClientEnabled(const char ** line)
         }
 
         // Verify that the parameters were specified
-        if ((settings.ntripClient_CasterHost[0] == 0)
-            || (settings.ntripClient_CasterPort == 0)
-            || (settings.ntripClient_MountPoint[0] == 0))
+        if ((settings.ntripClient_CasterHost[0] == 0) || (settings.ntripClient_CasterPort == 0) ||
+            (settings.ntripClient_MountPoint[0] == 0))
         {
             if (line)
             {
@@ -623,7 +622,7 @@ void ntripClientUpdate()
 {
     bool connected;
     bool enabled;
-    const char * line = "";
+    const char *line = "";
 
     // Shutdown the NTRIP client when the mode or setting changes
     DMW_st(ntripClientSetState, ntripClientState);
@@ -633,8 +632,7 @@ void ntripClientUpdate()
         ntripClientStop(true);
 
     // Determine if the network has failed
-    else if ((ntripClientState > NTRIP_CLIENT_WAIT_FOR_NETWORK)
-        && (!connected))
+    else if ((ntripClientState > NTRIP_CLIENT_WAIT_FOR_NETWORK) && (!connected))
         // Attempt to restart the network
         ntripClientRestart();
 
@@ -715,8 +713,7 @@ void ntripClientUpdate()
 
     case NTRIP_CLIENT_WAIT_RESPONSE:
         // Check for no response from the caster service
-        if (ntripClientReceiveDataAvailable() <
-                 strlen("ICY 200 OK")) // Wait until at least a few bytes have arrived
+        if (ntripClientReceiveDataAvailable() < strlen("ICY 200 OK")) // Wait until at least a few bytes have arrived
         {
             // Check for response timeout
             if (millis() - ntripClientTimer > NTRIP_CLIENT_RESPONSE_TIMEOUT)
@@ -811,9 +808,24 @@ void ntripClientUpdate()
             else if (strstr(response, "401") != nullptr)
             {
                 // Look for '401 Unauthorized'
-                systemPrintf("NTRIP Caster responded with unauthorized error: %s. Are you sure your caster credentials "
-                             "are correct?\r\n",
-                             response);
+
+                // If we are using PointPerfect RTCM credentials, let the user know they may be deactivated.
+                if (pointPerfectNtripNeeded() == true)
+                {
+                    systemPrintf("NTRIP Caster responded with unauthorized error. Your account may be deactivated. "
+                                 "Please contact "
+                                 "support@sparkfun.com or goto %s to renew the PointPerfect "
+                                 "subscription. Please reference device ID: %s\r\n",
+                                 platformRegistrationPageTable[productVariant], printDeviceId());
+                }
+                else
+                {
+                    // This is a regular NTRIP credential problem
+                    systemPrintf(
+                        "NTRIP Caster responded with unauthorized error: %s. Are you sure your caster credentials "
+                        "are correct?\r\n",
+                        response);
+                }
 
                 // Stop NTRIP client operations
                 ntripClientForceShutdown();
@@ -937,8 +949,7 @@ void ntripClientUpdate()
     // Periodically display the NTRIP client state
     if (PERIODIC_DISPLAY(PD_NTRIP_CLIENT_STATE))
     {
-        systemPrintf("NTRIP Client state: %s%s\r\n",
-                     ntripClientStateName[ntripClientState], line);
+        systemPrintf("NTRIP Client state: %s%s\r\n", ntripClientStateName[ntripClientState], line);
         PERIODIC_CLEAR(PD_NTRIP_CLIENT_STATE);
     }
 }

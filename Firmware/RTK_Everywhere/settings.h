@@ -107,7 +107,7 @@ const char * const productDisplayNames[] =
     // Add new values just above this line
     "Unknown"
 };
-const int productDisplayNamesEntries = sizeof (productDisplayNames) / sizeof(productDisplayNames[0]);
+const int productDisplayNamesEntries = sizeof(productDisplayNames) / sizeof(productDisplayNames[0]);
 
 const char * const platformFilePrefixTable[] =
 {
@@ -120,7 +120,7 @@ const char * const platformFilePrefixTable[] =
     // Add new values just above this line
     "SFE_Unknown"
 };
-const int platformFilePrefixTableEntries = sizeof (platformFilePrefixTable) / sizeof(platformFilePrefixTable[0]);
+const int platformFilePrefixTableEntries = sizeof(platformFilePrefixTable) / sizeof(platformFilePrefixTable[0]);
 
 const char * const platformPrefixTable[] =
 {
@@ -133,7 +133,7 @@ const char * const platformPrefixTable[] =
     // Add new values just above this line
     "Unknown"
 };
-const int platformPrefixTableEntries = sizeof (platformPrefixTable) / sizeof(platformPrefixTable[0]);
+const int platformPrefixTableEntries = sizeof(platformPrefixTable) / sizeof(platformPrefixTable[0]);
 
 const char * const platformProvisionTable[] =
 {
@@ -146,7 +146,20 @@ const char * const platformProvisionTable[] =
     // Add new values just above this line
     "Unknown"
 };
-const int platformProvisionTableEntries = sizeof (platformProvisionTable) / sizeof(platformProvisionTable[0]);
+const int platformProvisionTableEntries = sizeof(platformProvisionTable) / sizeof(platformProvisionTable[0]);
+
+const char * const platformRegistrationPageTable[] =
+{
+    "https://www.sparkfun.com/rtk_evk_registration",
+    "Unknown",
+    "https://www.sparkfun.com/rtk_facet_mosaic_registration",
+    "https://www.sparkfun.com/rtk_torch_registration",
+    "Unknown",
+    "https://www.sparkfun.com/rtk_postcard_registration",
+    // Add new values just above this line
+    "Unknown"
+};
+const int platformRegistrationPageTableEntries = sizeof(platformRegistrationPageTable) / sizeof(platformRegistrationPageTable[0]);
 
 // Corrections Priority
 typedef enum
@@ -581,10 +594,14 @@ enum
     NETCONSUMER_NTP_SERVER,
     NETCONSUMER_NTRIP_CLIENT,
     NETCONSUMER_NTRIP_SERVER,
+    NETCONSUMER_NTRIP_SERVER_0 = NETCONSUMER_NTRIP_SERVER,
+    NETCONSUMER_NTRIP_SERVER_1,
+    NETCONSUMER_NTRIP_SERVER_2,
+    NETCONSUMER_NTRIP_SERVER_3,
     NETCONSUMER_NTRIP_SERVER_MAX = NETCONSUMER_NTRIP_SERVER + NTRIP_SERVER_MAX,
     NETCONSUMER_OTA_CLIENT = NETCONSUMER_NTRIP_SERVER_MAX,
-    NETCONSUMER_PPL_KEY_UPDATE,
-    NETCONSUMER_PPL_MQTT_CLIENT,
+    NETCONSUMER_POINTPERFECT_KEY_UPDATE,
+    NETCONSUMER_POINTPERFECT_MQTT_CLIENT,
     NETCONSUMER_TCP_CLIENT,
     NETCONSUMER_TCP_SERVER,
     NETCONSUMER_UDP_SERVER,
@@ -675,7 +692,7 @@ struct Settings
 
     // Signatures to indicate how the GNSS is configured (Once, Base, Rover, etc.)
     // Bit 0 indicates if the GNSS has been configured previously.
-    // Bits 1 onwards record the state of critical settings. E.g. settings.enablePointPerfectCorrections
+    // Bits 1 onwards record the state of critical settings.
     // Configuration is reapplied if any of those critical settings have changed
     bool gnssConfiguredOnce = false;
     bool gnssConfiguredBase = false;
@@ -819,7 +836,6 @@ struct Settings
     // Point Perfect
     bool autoKeyRenewal = true; // Attempt to get keys if we get under 28 days from the expiration date
     bool debugPpCertificate = false; // Debug Point Perfect certificate management
-    bool enablePointPerfectCorrections = false; // Things are better now. We could default to true. Also change line 940 in index.html
     int geographicRegion = 0; // Default to US - first entry in Regional_Information_Table
     uint64_t lastKeyAttempt = 0;     // Epoch time of last attempt at obtaining keys
     uint16_t lbandFixTimeout_seconds = 180; // Number of seconds of no L-Band fix before resetting ZED
@@ -846,6 +862,7 @@ struct Settings
         "",
         "",
     };
+    uint8_t pointPerfectService = 0; // See ppServices[]. Records which PointPerfect service the user has chosen.
 
     // Profiles
     char profileName[50] = "";
@@ -1416,7 +1433,6 @@ const RTK_Settings_Entry rtkSettingsEntries[] =
     // Point Perfect
     { 1, 1, 0, 1, 1, 1, 1, 1, 1, _bool,     0, & settings.autoKeyRenewal, "autoKeyRenewal",  },
     { 0, 0, 0, 1, 1, 1, 1, 1, 1, _bool,     0, & settings.debugPpCertificate, "debugPpCertificate",  },
-    { 1, 1, 0, 1, 1, 1, 1, 1, 1, _bool,     0, & settings.enablePointPerfectCorrections, "enablePointPerfectCorrections",  },
     { 1, 1, 0, 1, 1, 1, 1, 1, 1, _int,      0, & settings.geographicRegion, "geographicRegion",  },
     { 0, 0, 0, 1, 1, 1, 1, 1, 1, _uint64_t, 0, & settings.lastKeyAttempt, "lastKeyAttempt",  },
     { 0, 1, 0, 1, 1, 1, 1, 1, 1, _uint16_t, 0, & settings.lbandFixTimeout_seconds, "lbandFixTimeout",  },
@@ -1432,6 +1448,7 @@ const RTK_Settings_Entry rtkSettingsEntries[] =
     { 0, 0, 0, 1, 1, 1, 1, 1, 1, _uint64_t, 0, & settings.pointPerfectNextKeyStart, "pointPerfectNextKeyStart",  },
     { 0, 1, 0, 1, 1, 1, 1, 1, 1, _uint16_t, 0, & settings.pplFixTimeoutS, "pplFixTimeoutS",  },
     { 0, 0, 1, 1, 1, 1, 1, 1, 1, tRegCorTp, numRegionalAreas, & settings.regionalCorrectionTopics, "regionalCorrectionTopics_",  },
+    { 1, 1, 0, 1, 1, 1, 1, 1, 1, _uint8_t, 0, & settings.pointPerfectService, "pointPerfectService",  },
 
     // Profiles
     { 1, 1, 0, 1, 1, 1, 1, 1, 1, tCharArry, sizeof(settings.profileName), & settings.profileName, "profileName",  },
