@@ -1269,6 +1269,37 @@ void networkInterfaceInternetConnectionAvailable(NetIndex_t index)
         networkMulticastDNSStart(previousIndex);
 }
 
+/*
+    Network Loss Handling:
+
+                     Arduino IP lost event
+                               |
+                               |
+                               V
+                networkInterfaceEventInternetLost
+                               |
+                               | Set internet lost event flag
+                               V
+                         networkUpdate
+                               |
+                               | Clear internet lost event flag
+                               V
+                               +<------- Fake connection loss
+                               |
+                               V
+              networkInterfaceInternetConnectionLost
+                               |
+                               | Notify Interface of connection loss
+                               V
+              .----------------+----------------.
+              |                                 |
+              |                                 |
+              V                                 V
+    networkInterfaceRunning          Interface stop sequence
+      called by xxxUpdate
+         or xxxEnabled
+*/
+
 //----------------------------------------
 // Mark network interface as having NO access to the internet
 //----------------------------------------
@@ -1375,6 +1406,35 @@ void networkInterfaceInternetConnectionLost(NetIndex_t index)
             networkDisplayStatus();
         }
     }
+}
+
+//----------------------------------------
+// Get the interface priority
+//----------------------------------------
+NetPriority_t networkInterfacePriority(NetIndex_t index)
+{
+    NetPriority_t priority;
+
+    // Validate the index
+    networkValidateIndex(index);
+
+    // Get the interface priority
+    priority = networkIndexTable[index];
+    return priority;
+}
+
+//----------------------------------------
+// Determine if the interface should be running
+//----------------------------------------
+NetPriority_t networkInterfaceRunning(NetIndex_t index)
+{
+    NetPriority_t priority;
+
+    // Get the interface priority
+    priority = networkInterfacePriority(index);
+
+    // Return the running status
+    return (networkPriority >= priority);
 }
 
 //----------------------------------------
