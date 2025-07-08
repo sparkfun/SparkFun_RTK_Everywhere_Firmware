@@ -875,7 +875,7 @@ unsigned long loraLastIncomingSerial; // Last time a user sent a serial command.
 
 // Display boot times
 //-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
-#define MAX_BOOT_TIME_ENTRIES 41
+#define MAX_BOOT_TIME_ENTRIES 42
 uint8_t bootTimeIndex;
 uint32_t bootTime[MAX_BOOT_TIME_ENTRIES];
 const char *bootTimeString[MAX_BOOT_TIME_ENTRIES];
@@ -909,7 +909,6 @@ volatile bool deadManWalking;
         DMW_if systemPrintf("%s called\r\n", string);                                                                  \
     }
 #define DMW_c(string) DMW_if systemPrintf("%s called\r\n", string);
-#define DMW_ds(routine, dataStructure) DMW_if routine(dataStructure, dataStructure->state);
 #define DMW_m(string) DMW_if systemPrintln(string);
 #define DMW_r(string) DMW_if systemPrintf("%s returning\r\n", string);
 #define DMW_rs(string, status) DMW_if systemPrintf("%s returning %d\r\n", string, (int32_t)status);
@@ -1254,6 +1253,9 @@ void setup()
 
     DMW_b("beginIdleTasks");
     beginIdleTasks(); // Requires settings. Enable processor load calculations
+
+    DMW_b("wifiUpdateSettings");
+    wifiUpdateSettings();
 
     DMW_b("networkBegin");
     networkBegin();

@@ -11,7 +11,8 @@
 //****************************************
 
 #define WIFI_DEFAULT_CHANNEL            1
-#define WIFI_IP_ADDRESS_TIMEOUT_MSEC    (15 * 1000)
+#define WIFI_IP_ADDRESS_TIMEOUT_MSEC    (15 * MILLISECONDS_IN_A_SECOND)
+#define WIFI_CONNECTION_STABLE_MSEC     (15 * MILLISECONDS_IN_A_MINUTE)
 
 static const char * wifiAuthorizationName[] =
 {
@@ -29,6 +30,30 @@ static const char * wifiAuthorizationName[] =
 };
 static const int wifiAuthorizationNameEntries =
     sizeof(wifiAuthorizationName) / sizeof(wifiAuthorizationName[0]);
+
+enum WIFI_STATION_STATES
+{
+    WIFI_STATION_STATE_OFF,
+    WIFI_STATION_STATE_WAIT_NO_USERS,
+    WIFI_STATION_STATE_RESTART,
+    WIFI_STATION_STATE_STARTING,
+    WIFI_STATION_STATE_ONLINE,
+    WIFI_STATION_STATE_STABLE,
+    // The following line must be the last in the list
+    WIFI_STATION_STATE_MAX
+};
+uint8_t wifiStationState;
+
+const char * wifiStationStateName[] =
+{
+    "WIFI_STATION_STATE_OFF",
+    "WIFI_STATION_STATE_WAIT_NO_USERS",
+    "WIFI_STATION_STATE_RESTART",
+    "WIFI_STATION_STATE_STARTING",
+    "WIFI_STATION_STATE_ONLINE",
+    "WIFI_STATION_STATE_STABLE",
+};
+const int wifiStationStateNameEntries = sizeof(wifiStationStateName) / sizeof(wifiStationStateName[0]);
 
 //----------------------------------------------------------------------
 // ESP-NOW bringup from example 4_9_ESP_NOW
@@ -353,21 +378,16 @@ const int wifiStartNamesEntries = sizeof(wifiStartNames) / sizeof(wifiStartNames
 // DNS server for Captive Portal
 static DNSServer dnsServer;
 
-static int wifiFailedConnectionAttempts = 0; // Count the number of connection attempts between restarts
-static bool wifiReconnectRequest; // Set true to request WiFi reconnection
-
 const char * wifiSoftApName = "Soft AP";
-
-// Start timeout
-static uint32_t wifiStartTimeout;
+bool wifiSoftApSsidSet; // Set when the WiFi soft AP SSID string exists
+bool wifiStationRestart; // Restart Wifi station
+bool wifiStationSsidSet; // Set when one or more SSID strings exist
 
 //*********************************************************************
 // Set WiFi credentials
 // Enable TCP connections
 void menuWiFi()
 {
-    bool wifiRestartRequested;      // Restart WiFi if user changes anything
-
     while (1)
     {
         networkDisplayInterface(NETWORK_WIFI_STATION);
@@ -409,13 +429,12 @@ void menuWiFi()
             }
 
             // If we are modifying the SSID table, force restart of WiFi
-            wifiRestartRequested = true;
-            wifiFailedConnectionAttempts = 0;
+            wifiUpdateSettings();
         }
         else if (incoming == 'a')
         {
             settings.wifiConfigOverAP ^= 1;
-            wifiRestartRequested = true;
+            wifiUpdateSettings();
         }
         else if (incoming == 'c')
         {
@@ -436,13 +455,6 @@ void menuWiFi()
     {
         if (strlen(settings.wifiNetworks[x].ssid) == 0)
             strcpy(settings.wifiNetworks[x].password, "");
-    }
-
-    if (wifiRestartRequested)
-    {
-        // Fake the loss of the IP address
-        networkInterfaceEventInternetLost(NETWORK_WIFI_STATION, __FILE__, __LINE__);
-        wifiReconnectRequest = true;
     }
 
     clearBuffer(); // Empty buffer of any newline chars
@@ -595,13 +607,6 @@ bool wifiEspNowOn(const char * fileName, uint32_t lineNumber)
 }
 
 //*********************************************************************
-// Return the start timeout in milliseconds
-uint32_t wifiGetStartTimeout()
-{
-    return (wifiStartTimeout);
-}
-
-//*********************************************************************
 // Counts the number of entered SSIDs
 int wifiNetworkCount()
 {
@@ -657,25 +662,6 @@ void wifiPromiscuousRxHandler(void *buf, wifi_promiscuous_pkt_type_t type)
 
     ppkt = (wifi_promiscuous_pkt_t *)buf;
     packetRSSI = ppkt->rx_ctrl.rssi;
-}
-
-//*********************************************************************
-// Reset the last WiFi start attempt
-// Useful when WiFi settings have changed
-void wifiResetThrottleTimeout()
-{
-    wifiReconnectionTimer = millis() - WIFI_MAX_TIMEOUT;
-}
-
-//*********************************************************************
-// Set WiFi timeout back to zero
-// Useful if other things (such as a successful ethernet connection) need
-// to reset wifi timeout
-void wifiResetTimeout()
-{
-    wifiStartTimeout = 0;
-    if (settings.debugWifiState == true)
-        systemPrintln("WiFi: Start timeout reset to zero");
 }
 
 //*********************************************************************
@@ -743,28 +729,79 @@ bool wifiSoftApOn(const char * fileName, uint32_t lineNumber)
 }
 
 //*********************************************************************
-// Start WiFi with throttling, used by wifiStopSequence
-void wifiStartThrottled(NetIndex_t index, uintptr_t parameter, bool debug)
+// Display additional Wifi data
+void wifiStationDisplayData()
 {
-    // Check for network shutdown
-    if (networkConsumerCount == 0)
+    // Display additional WiFi data
+    if (WiFi.STA.linkUp())
     {
-        // Stop the connection attempts
-        wifiResetThrottleTimeout();
-        wifiResetTimeout();
-        networkSequenceExit(NETWORK_WIFI_STATION, debug, __FILE__, __LINE__);
-        return;
+        String ssid = WiFi.STA.SSID();
+        int32_t channel = WiFi.channel();
+        int8_t rssi = WiFi.STA.RSSI();
+        systemPrintf("    SSID: %s\r\n", ssid.c_str());
+        systemPrintf("    Channel: %d\r\n", channel);
+        systemPrintf("    RSSI: %4d\r\n", rssi);
     }
+}
 
-    if (wifiReconnectRequest)
+//*********************************************************************
+// Determine if WiFi should be running
+bool wifiStationEnabled(const char ** reason)
+{
+    bool enabled = false;
+    static char * reasonBuffer;
+
+    do
     {
-        wifiReconnectRequest = false;
-        if (settings.debugWifiState)
-            systemPrintf("WiFi: Attempting WiFi restart\r\n");
-    }
+        // Verify that at least one SSID value is set
+        if (wifiStationSsidSet == false)
+        {
+            *reason = "SSID not available";
+            break;
+        }
 
-    if (wifiStationReconnectionRequest())
-        networkSequenceNextEntry(NETWORK_WIFI_STATION, debug);
+        // Determine if Wifi is begin restarted
+        if (wifiStationRestart)
+        {
+            wifiStationRestart = false;
+            *reason = "restart requested";
+            break;
+        }
+
+        // Is WiFi the highest priority
+        if (networkIsHighestPriority(NETWORK_WIFI_STATION) == false)
+        {
+            // Allocate the reason buffer once
+            if (reasonBuffer == nullptr)
+                reasonBuffer = (char *) rtkMalloc(64, "WiFi reasonBuffer");
+
+            // Build the reason
+            if (reasonBuffer)
+            {
+                sprintf(reasonBuffer,"is lower priority than %s", networkGetCurrentInterfaceName());
+                *reason = reasonBuffer;
+            }
+
+            // Allocation failed
+            else
+                *reason = "is lower priority";
+            break;
+        }
+
+        // WiFi should start and continue running
+        enabled = true;
+        *reason = "is enabled";
+    } while (0);
+    return enabled;
+}
+
+//*********************************************************************
+// Get the state name for WiFi station
+const char * wifiStationGetStateName(uint8_t state)
+{
+    if (state < wifiStationStateNameEntries)
+        return wifiStationStateName[state];
+    return "Unknown WiFi Station state";
 }
 
 //*********************************************************************
@@ -808,100 +845,217 @@ bool wifiStationOn(const char * fileName, uint32_t lineNumber)
 }
 
 //*********************************************************************
-// Handle WiFi station reconnection requests
-bool wifiStationReconnectionRequest()
+// Set the WiFi station state
+void wifiStationSetState(uint8_t newState)
 {
-    bool connected;
-    int minutes;
-    int seconds;
-
-    // Restart delay
-    connected = false;
-    if ((millis() - wifiReconnectionTimer) < wifiStartTimeout)
-        return connected;
-    wifiReconnectionTimer = millis();
-
-    // Attempt to start WiFi station
-    if (wifiStationOn(__FILE__, __LINE__))
+    // Display the state transition
+    if (settings.debugWifiState)
     {
-        // Successfully connected to a remote AP
-        connected = true;
-        if (settings.debugWifiState)
-            systemPrintf("WiFi: WiFi station successfully started\r\n");
-        networkSequenceNextEntry(NETWORK_WIFI_STATION, settings.debugNetworkLayer);
-        wifiFailedConnectionAttempts = 0;
+        const char * asterisk;
+        const char * stateNew;
+        const char * stateOld;
+        const char * transition;
+
+        // Get the current state name
+        stateOld = wifiStationGetStateName(wifiStationState);
+
+        // Check for a transition
+        if (newState != wifiStationState)
+        {
+            asterisk = "";
+            transition = " --> ";
+            stateNew = wifiStationGetStateName(newState);
+        }
+        else
+        {
+            // No transition
+            asterisk = "*";
+            transition = "";
+            stateNew = "";
+        }
+
+        // Display the state transition
+        systemPrintf("%s%s%s%s\r\n", asterisk, stateOld, transition, stateNew);
     }
-    else
+
+    // Set the new state
+    wifiStationState = newState;
+}
+
+//*********************************************************************
+// Update the WiFi station state
+void wifiStationUpdate()
+{
+    static int connectionAttempts;
+    bool enabled;
+    bool online;
+    const char * reason;
+    static uint32_t startTimeout;
+    static uint32_t timer;
+    int users;
+
+    // Determine if WiFi station should stop
+    enabled = wifiStationEnabled(&reason);
+    online = wifiStationOnline;
+    if ((enabled == false) && (wifiStationState >= WIFI_STATION_STATE_STARTING))
     {
-        // Failed to connect to a remote AP
+        // Display the reason why WiFi is disabled
         if (settings.debugWifiState)
-            systemPrintf("WiFi: WiFi station failed to start!\r\n");
+            systemPrintf("WiFi Station %s\r\n", reason);
 
-        // Account for this connection attempt
-        wifiFailedConnectionAttempts++;
+        // Notify the consumers that WiFi is shutting down
+        if (online)
+        {
+            // Notify the consumers that the network connection is broken
+            networkConsumerReconnect(NETWORK_WIFI_STATION);
 
-        // Start the next network interface if necessary
-        if (wifiFailedConnectionAttempts >= 2)
-            networkStartNextInterface(NETWORK_WIFI_STATION);
+            // Tell the network layer that the network is offline
+            // This prevents network consumers from reconnecting to this network
+            networkInterfaceInternetConnectionLost(NETWORK_WIFI_STATION);
 
-        // Increase the timeout
-        wifiStartTimeout <<= 1;
-        if (!wifiStartTimeout)
-            wifiStartTimeout = WIFI_MIN_TIMEOUT;
-        else if (wifiStartTimeout > WIFI_MAX_TIMEOUT)
-            wifiStartTimeout = WIFI_MAX_TIMEOUT;
+            // WiFi station is no longer online
+            wifi.clearStarted(WIFI_STA_ONLINE);
+            wifiStationOnline = false;
+        }
+        wifiStationSetState(WIFI_STATION_STATE_WAIT_NO_USERS);
+    }
 
-        // Display the delay
-        seconds = wifiStartTimeout / MILLISECONDS_IN_A_SECOND;
-        minutes = seconds / SECONDS_IN_A_MINUTE;
-        seconds -= minutes * SECONDS_IN_A_MINUTE;
-        if (settings.debugWifiState)
+    // Update the WiFi station state
+    switch (wifiStationState)
+    {
+    // There are no WiFi station consumers
+    case WIFI_STATION_STATE_OFF:
+        if (enabled)
+        {
+            connectionAttempts = 0;
+            timer = millis();
+            startTimeout = 0;
+
+            // Display the major state transition
+            if (settings.debugWifiState)
+                systemPrintf("--------------- %s Starting ---------------\r\n",
+                             networkInterfaceTable[NETWORK_WIFI_STATION].name);
+
+            // Start WiFi station
+            wifiStationSetState(WIFI_STATION_STATE_STARTING);
+        }
+        break;
+
+    // Wait for WiFi station users to release resources before shutting
+    // down WiFi station
+    case WIFI_STATION_STATE_WAIT_NO_USERS:
+        users = networkUserCount(NETWORK_WIFI_STATION);
+        if (users)
+        {
+            static uint32_t lastMsec;
+
+            // Display the network users
+            uint32_t currentMsec = millis();
+            if (settings.debugWifiState && ((currentMsec - lastMsec) > (2 * 1000)))
+            {
+                lastMsec = currentMsec;
+                systemPrintf("%s: Waiting for WiFi users to shutdown\r\n",
+                             networkInterfaceTable[NETWORK_WIFI_STATION].name);
+                networkUserDisplay(NETWORK_WIFI_STATION);
+            }
+        }
+
+        // No more network users
+        else
+        {
+            // Stop WiFi station if necessary
+            if (enabled == false)
+            {
+                // Display the major state transition
+                if (wifiStationRunning)
+                {
+                    if (settings.debugWifiState)
+                        systemPrintf("--------------- %s Stopping ---------------\r\n",
+                                     networkInterfaceTable[NETWORK_WIFI_STATION].name);
+                    wifiStationOff(__FILE__, __LINE__);
+                }
+                wifiStationSetState(WIFI_STATION_STATE_OFF);
+            }
+
+            // Restart WiFi after delay
+            else
+            {
+                // Clear the bits to perform the restart operation
+                wifi.clearStarted(WIFI_STA_RECONNECT);
+                wifiStationSetState(WIFI_STATION_STATE_RESTART);
+            }
+        }
+        break;
+
+    // Display the restart delay and then start WiFi station
+    case WIFI_STATION_STATE_RESTART:
+        if (startTimeout && settings.debugWifiState)
+        {
+            // Display the delay
+            uint32_t seconds = startTimeout / MILLISECONDS_IN_A_SECOND;
+            uint32_t minutes = seconds / SECONDS_IN_A_MINUTE;
+            seconds -= minutes * SECONDS_IN_A_MINUTE;
             systemPrintf("WiFi: Delaying %2d:%02d before restarting WiFi\r\n", minutes, seconds);
+        }
+        timer = millis();
+        wifiStationSetState(WIFI_STATION_STATE_STARTING);
+        break;
+
+    // At least one consumer is requesting a network
+    case WIFI_STATION_STATE_STARTING:
+        // Delay before starting WiFi
+        if ((millis() - timer) >= startTimeout)
+        {
+            timer = millis();
+
+            // Increase the timeout
+            startTimeout <<= 1;
+            if (!startTimeout)
+                startTimeout = WIFI_MIN_TIMEOUT;
+            else if (startTimeout > WIFI_MAX_TIMEOUT)
+                startTimeout = WIFI_MAX_TIMEOUT;
+
+            // Account for this connection attempt
+            connectionAttempts++;
+
+            // Attempt to start WiFi station
+            if (wifiStationOn(__FILE__, __LINE__))
+            {
+                // Successfully connected to a remote AP
+                if (settings.debugWifiState)
+                    systemPrintf("WiFi: WiFi station successfully started\r\n");
+
+                // WiFi station is now available
+                wifiStationSetState(WIFI_STATION_STATE_ONLINE);
+            }
+            else
+            {
+                // Failed to connect to a remote AP
+                if (settings.debugWifiState)
+                    systemPrintf("WiFi: WiFi station failed to start!\r\n");
+
+                // Start the next network interface if necessary
+                if (connectionAttempts >= 2)
+                    networkStartNextInterface(NETWORK_WIFI_STATION);
+            }
+        }
+        break;
+
+    // WiFi station consumers have internet access
+    case WIFI_STATION_STATE_ONLINE:
+        // Wait until the WiFi link is stable
+        if ((millis() - timer) >= WIFI_CONNECTION_STABLE_MSEC)
+        {
+            connectionAttempts = 0;
+            startTimeout = 0;
+            wifiStationSetState(WIFI_STATION_STATE_STABLE);
+        }
+        break;
+
+    // WiFi station consumers have internet access
+    case WIFI_STATION_STATE_STABLE:
+        break;
     }
-    return connected;
-}
-
-//*********************************************************************
-// Start WiFi with throttling, used by wifiStopSequence
-void wifiStationRestart(NetIndex_t index, uintptr_t parameter, bool debug)
-{
-    // Check for network shutdown
-    if (networkConsumerCount == 0)
-    {
-        // Stop the connection attempts
-        wifiResetThrottleTimeout();
-        wifiResetTimeout();
-        networkSequenceExit(NETWORK_WIFI_STATION, debug, __FILE__, __LINE__);
-        return;
-    }
-
-    // Check for a reconnection request
-    if (wifiReconnectRequest)
-    {
-        // Fake a WiFi failure
-        networkConsumerReconnect(NETWORK_WIFI_STATION);
-        networkInterfaceEventInternetLost(NETWORK_WIFI_STATION, __FILE__, __LINE__);
-
-        // Clear the bits to perform the restart operation
-        wifi.clearStarted(WIFI_STA_RECONNECT);
-    }
-    wifi.clearStarted(WIFI_STA_ONLINE);
-    wifiStationOnline = false;
-
-    // Continue the stop sequence
-    networkSequenceNextEntry(NETWORK_WIFI_STATION, debug);
-}
-
-//*********************************************************************
-// Stop WiFi, used by wifiStopSequence
-void wifiStop(NetIndex_t index, uintptr_t parameter, bool debug)
-{
-    networkInterfaceInternetConnectionLost(NETWORK_WIFI_STATION);
-
-    // Stop WiFi station
-    wifi.enable(wifiEspNowRunning, wifiSoftApRunning, false, __FILE__, __LINE__);
-
-    networkSequenceNextEntry(NETWORK_WIFI_STATION, settings.debugNetworkLayer);
 }
 
 //*********************************************************************
@@ -922,41 +1076,40 @@ void wifiStopAll()
 }
 
 //*********************************************************************
-// Wait for WiFi users to release their connections
-void wifiWaitNoUsers(NetIndex_t index, uintptr_t parameter, bool debug)
+// Determine if any of the WiFi station SSID values are set
+void wifiUpdateSettings()
 {
-    static uint32_t lastMsec;
+    bool ssidSet;
 
-    // Check for network shutdown
-    if (networkConsumerCount == 0)
-    {
-        // Stop the connection attempts
-        wifiResetThrottleTimeout();
-        wifiResetTimeout();
-        networkSequenceExit(NETWORK_WIFI_STATION, debug, __FILE__, __LINE__);
-        return;
-    }
-
-    // Check for WiFi station users
-    if (networkUsersActive(NETWORK_WIFI_STATION) == 0)
-    {
-        // None, continue the start sequence
-        if (settings.debugWifiState)
-            systemPrintf("WiFi: No users\r\n");
-
-        // Continue the stop sequence
-        networkSequenceNextEntry(NETWORK_WIFI_STATION, debug);
-    }
-    else
-    {
-        // Display the network users
-        uint32_t currentMsec = millis();
-        if (settings.debugWifiState && ((currentMsec - lastMsec) > (2 * 1000)))
+    // Verify that at least one SSID is set
+    ssidSet = false;
+    for (int index = 0; index < MAX_WIFI_NETWORKS; index++)
+        if (strlen(settings.wifiNetworks[index].ssid))
         {
-            lastMsec = currentMsec;
-            systemPrintf("WiFi: Waiting for WiFi users to shutdown\r\n");
-            networkUserDisplay(NETWORK_WIFI_STATION);
+            ssidSet = true;
+            break;
         }
+
+    // Remember the change in SSID values
+    wifiStationSsidSet = ssidSet;
+    wifiStationRestart = ssidSet;
+
+    // Determine if the WiFi soft AP SSID string is present
+    wifiSoftApSsidSet = (wifiSoftApSsid && strlen(wifiSoftApSsid));
+}
+
+//*********************************************************************
+// Verify the WiFi tables
+void wifiVerifyTables()
+{
+    // Verify the RTK_WIFI tables
+    wifi.verifyTables();
+
+    // Verify the WiFi station state name table
+    if (WIFI_STATION_STATE_MAX != wifiStationStateNameEntries)
+    {
+        systemPrintf("ERROR: Fix wifiStationStateName list to match WIFI_STATION_STATES!\r\n");
+        reportFatalError("Fix wifiStationStateName list to match WIFI_STATION_STATES!");
     }
 }
 
@@ -982,8 +1135,6 @@ RTK_WIFI::RTK_WIFI(bool verbose)
     wifiChannel = 0;
     wifiEspNowOnline = false;
     wifiEspNowRunning = false;
-    wifiFailedConnectionAttempts = 0;
-    wifiReconnectionTimer = 0;
     wifiSoftApOnline = false;
     wifiSoftApRunning = false;
     wifiStationOnline = false;
@@ -993,10 +1144,6 @@ RTK_WIFI::RTK_WIFI(bool verbose)
     _apSsid = (char *)rtkMalloc(SSID_LENGTH, "SSID string (_apSsid)");
     if (_apSsid)
         _apSsid[0] = 0;
-
-    // Prepare to start WiFi immediately
-    wifiResetThrottleTimeout();
-    wifiResetTimeout();
 }
 
 //*********************************************************************
@@ -1126,7 +1273,7 @@ bool RTK_WIFI::enable(bool enableESPNow,
     if (enableSoftAP)
     {
         // Verify that the SSID is set
-        if (wifiSoftApSsid && strlen(wifiSoftApSsid))
+        if (wifiSoftApSsidSet)
         {
             // Allocate the soft AP SSID
             if (!_apSsid)
@@ -1156,10 +1303,7 @@ bool RTK_WIFI::enable(bool enableESPNow,
     if (enableStation)
     {
         // Verify that at least one SSID is set
-        for (authIndex = 0; authIndex < MAX_WIFI_NETWORKS; authIndex++)
-            if (strlen(settings.wifiNetworks[authIndex].ssid))
-                break;
-        if (authIndex >= MAX_WIFI_NETWORKS)
+        if (wifiStationSsidSet == false)
         {
             systemPrintf("ERROR: No valid SSID in settings\r\n");
             displayNoSSIDs(2000);
@@ -1735,8 +1879,6 @@ bool RTK_WIFI::stationConnectAP()
                          wifiChannel,
                          (_staAuthType < WIFI_AUTH_MAX) ? wifiAuthorizationName[_staAuthType] : "Unknown");
 
-        // Don't delay the next WiFi start request
-        wifiResetTimeout();
     } while (0);
     return connected;
 }
@@ -1829,10 +1971,7 @@ void RTK_WIFI::stationEventHandler(arduino_event_id_t event, arduino_event_info_
     case ARDUINO_EVENT_WIFI_STA_DISCONNECTED:
         // Start the reconnection timer
         if (event == ARDUINO_EVENT_WIFI_STA_DISCONNECTED)
-        {
             networkInterfaceEventInternetLost(NETWORK_WIFI_STATION, __FILE__, __LINE__);
-            wifiReconnectRequest = true;
-        }
 
         // Fall through
         //      |
@@ -1854,10 +1993,7 @@ void RTK_WIFI::stationEventHandler(arduino_event_id_t event, arduino_event_info_
 
     case ARDUINO_EVENT_WIFI_STA_LOST_IP:
         if (event == ARDUINO_EVENT_WIFI_STA_LOST_IP)
-        {
             networkInterfaceEventInternetLost(NETWORK_WIFI_STATION, __FILE__, __LINE__);
-            wifiReconnectRequest = true;
-        }
 
         // Mark the WiFi station offline
         if (_started & WIFI_STA_ONLINE)
@@ -2119,7 +2255,6 @@ bool RTK_WIFI::stopStart(WIFI_ACTION_t stopping, WIFI_ACTION_t starting)
     WIFI_ACTION_t notStarted;
     uint8_t primaryChannel;
     WIFI_ACTION_t restarting;
-    bool restartWiFiStation;
     wifi_second_chan_t secondaryChannel;
     WIFI_ACTION_t startingNow;
     esp_err_t status;
@@ -2127,7 +2262,6 @@ bool RTK_WIFI::stopStart(WIFI_ACTION_t stopping, WIFI_ACTION_t starting)
 
     // Determine the next actions
     notStarted = 0;
-    restartWiFiStation = false;
 
     // Display the parameters
     if (settings.debugWifiState && _verbose)
@@ -2681,8 +2815,6 @@ bool RTK_WIFI::stopStart(WIFI_ACTION_t stopping, WIFI_ACTION_t starting)
         // Start the WiFi station components
         //****************************************
 
-        restartWiFiStation = true;
-
         // Set the host name
         if (starting & WIFI_STA_SET_HOST_NAME)
         {
@@ -2749,7 +2881,6 @@ bool RTK_WIFI::stopStart(WIFI_ACTION_t stopping, WIFI_ACTION_t starting)
         // Mark the station online
         if (starting & WIFI_STA_ONLINE)
         {
-            restartWiFiStation = false;
             _started = _started | WIFI_STA_ONLINE;
             systemPrintf("WiFi: Station online (%s: %s)\r\n",
                          _staRemoteApSsid, _staIpAddress.toString().c_str());
@@ -2901,10 +3032,6 @@ bool RTK_WIFI::stopStart(WIFI_ACTION_t stopping, WIFI_ACTION_t starting)
 
     if (settings.debugWifiState && _verbose && _started)
         displayComponents("Started items", _started);
-
-    // Restart WiFi if necessary
-    if (restartWiFiStation)
-        wifiReconnectRequest = true;
 
     // Set the online flags
     wifiEspNowOnline = espNowOnline();
@@ -3062,23 +3189,5 @@ void RTK_WIFI::verifyTables()
         reportFatalError("Fix wifiStartNames list to match list of defines!!");
     }
 }
-
-//****************************************
-// WiFi start sequence
-NETWORK_POLL_SEQUENCE wifiStartSequence[] = {
-    //  State           Parameter   Description
-    {wifiStartThrottled,    0,      "Initialize WiFi"},
-    {nullptr,               0,      "Termination"},
-};
-
-//****************************************
-// WiFi stop sequence
-NETWORK_POLL_SEQUENCE wifiStopSequence[] = {
-    //  State           Parameter   Description
-    {wifiStationRestart,    0,      "Restart WiFi"},
-    {wifiWaitNoUsers,       0,      "Wait for no WiFi users"},
-    {wifiStop,              0,      "Shutdown WiFi"},
-    {nullptr,               0,      "Termination"},
-};
 
 #endif  // COMPILE_WIFI

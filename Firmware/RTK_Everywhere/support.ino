@@ -726,9 +726,7 @@ void verifyTables()
     correctionVerifyTables();
     webServerVerifyTables();
     pointPerfectVerifyTables();
-#ifdef COMPILE_WIFI
     wifi.verifyTables();
-#endif  // COMPILE_WIFI
 
     if (CORR_NUM >= (int)('x' - 'a'))
         reportFatalError("Too many correction sources");

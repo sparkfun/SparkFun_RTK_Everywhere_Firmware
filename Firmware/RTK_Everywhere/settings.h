@@ -598,7 +598,8 @@ enum
     NETCONSUMER_NTRIP_SERVER_1,
     NETCONSUMER_NTRIP_SERVER_2,
     NETCONSUMER_NTRIP_SERVER_3,
-    NETCONSUMER_OTA_CLIENT,
+    NETCONSUMER_NTRIP_SERVER_MAX = NETCONSUMER_NTRIP_SERVER + NTRIP_SERVER_MAX,
+    NETCONSUMER_OTA_CLIENT = NETCONSUMER_NTRIP_SERVER_MAX,
     NETCONSUMER_POINTPERFECT_KEY_UPDATE,
     NETCONSUMER_POINTPERFECT_MQTT_CLIENT,
     NETCONSUMER_TCP_CLIENT,
@@ -1899,7 +1900,7 @@ const NETWORK_TABLE_ENTRY networkInterfaceTable[] =
     #endif  // COMPILE_ETHERNET
 
     #ifdef COMPILE_WIFI
-        {&WiFi.STA, true,   NETWORK_WIFI_STATION,   PD_WIFI_STATE,      nullptr,                wifiStartSequence,  wifiStopSequence,   "WiFi",                 nullptr},
+        {&WiFi.STA, true,   NETWORK_WIFI_STATION,   PD_WIFI_STATE,      nullptr,                nullptr,            nullptr,            "WiFi Station",         nullptr},
     #else
         {nullptr,   false,  NETWORK_WIFI_STATION,   PD_WIFI_STATE,      nullptr,                nullptr,            nullptr,            "WiFi-NotCompiled",     nullptr},
     #endif  // COMPILE_WIFI
