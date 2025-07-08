@@ -105,7 +105,7 @@ Network.ino
 
 static const char *networkConsumerTable[] = {
     "HTTP_CLIENT",    "NTP_SERVER",     "NTRIP_CLIENT", "NTRIP_SERVER_0", "NTRIP_SERVER_1",
-    "NTRIP_SERVER_2", "NTRIP_SERVER_3", "OTA_CLIENT",   "PPL_KEY_UPDATE", "PPL_MQTT_CLIENT",
+    "NTRIP_SERVER_2", "NTRIP_SERVER_3", "OTA_CLIENT",   "POINTPERFECT_KEY_UPDATE", "POINTPERFECT_MQTT_CLIENT",
     "TCP_CLIENT",     "TCP_SERVER",     "UDP_SERVER",   "WEB_CONFIG",
 };
 
@@ -201,7 +201,10 @@ void menuTcpUdp()
             systemPrintf("7) UDP Server Port: %ld\r\n", settings.udpServerPort);
 
         if (settings.enableTcpServer)
+        {
             systemPrintf("8) Enable NTRIP Caster: %s\r\n", settings.enableNtripCaster ? "Enabled" : "Disabled");
+            systemPrintf("9) Enable base Caster override: %s\r\n", settings.baseCasterOverride ? "Enabled" : "Disabled");
+        }
 
         //------------------------------
         // Display the mDNS server menu items
@@ -285,6 +288,9 @@ void menuTcpUdp()
         }
         else if (incoming == 8 && settings.enableTcpServer)
             settings.enableNtripCaster ^= 1;
+
+        else if (incoming == 9 && settings.enableTcpServer)
+            settings.baseCasterOverride ^= 1;
 
         //------------------------------
         // Get the mDNS server parameters
@@ -813,6 +819,17 @@ void networkDisplayNetworkData(const char *name, NetworkInterface *netif)
 
     hasIP = false;
     status = "Off";
+
+#ifndef COMPILE_ETHERNET
+    systemPrintln("** Ethernet not compiled **");
+    return;
+#else
+    if (netif == nullptr)
+    {
+        systemPrintln("Error: No network interface");
+        return;
+    }
+
     if (netif->started())
     {
         status = "Disconnected";
@@ -850,6 +867,7 @@ void networkDisplayNetworkData(const char *name, NetworkInterface *netif)
         }
         systemPrintf("    Broadcast: %s\r\n", netif->broadcastIP().toString().c_str());
     }
+#endif
 }
 
 //----------------------------------------
@@ -1722,7 +1740,7 @@ void networkSequenceStart(NetIndex_t index, bool debug, const char *fileName, ui
     // Set the network bit
     bitMask = 1 << index;
 
-    // Determine if the sequence any sequence is already running
+    // Determine if any sequence is already running
     sequence = networkSequence[index];
     if (sequence)
     {
@@ -1744,7 +1762,13 @@ void networkSequenceStart(NetIndex_t index, bool debug, const char *fileName, ui
         else
         {
             if (debug)
-                systemPrintf("%s sequencer running, delaying start sequence\r\n", networkGetNameByIndex(index));
+            {
+                if (networkSeqStopping & bitMask)
+                    systemPrintf("%s stop sequencer running, delaying start sequence\r\n",
+                                 networkGetNameByIndex(index));
+                else
+                    systemPrintf("%s sequencer running, delaying start sequence\r\n", networkGetNameByIndex(index));
+            }
 
             // Compress multiple requests
             //   Boot --> Start

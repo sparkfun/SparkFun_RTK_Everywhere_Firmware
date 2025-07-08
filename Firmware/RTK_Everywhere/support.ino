@@ -703,6 +703,8 @@ void verifyTables()
         reportFatalError("Fix platformPreviousStateTable to match ProductVariant");
     if (platformProvisionTableEntries != (RTK_UNKNOWN + 1))
         reportFatalError("Fix platformProvisionTable to match ProductVariant");
+    if (platformRegistrationPageTableEntries != (RTK_UNKNOWN + 1))
+        reportFatalError("Fix platformRegistrationPageTable to match ProductVariant");
 
     // Verify the measurement scales
     if (measurementScaleEntries != MEASUREMENT_UNITS_MAX)
@@ -723,7 +725,8 @@ void verifyTables()
     mosaicVerifyTables();
     correctionVerifyTables();
     webServerVerifyTables();
-    wifiVerifyTables();
+    pointPerfectVerifyTables();
+    wifi.verifyTables();
 
     if (CORR_NUM >= (int)('x' - 'a'))
         reportFatalError("Too many correction sources");
