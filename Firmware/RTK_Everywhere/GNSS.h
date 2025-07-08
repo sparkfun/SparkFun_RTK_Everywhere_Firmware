@@ -238,6 +238,10 @@ class GNSS
     // Returns full year, ie 2023, not 23.
     virtual uint16_t getYear();
 
+    // Antenna Short / Open detection
+    virtual bool isAntennaShorted();
+    virtual bool isAntennaOpen();
+
     virtual bool isBlocking();
 
     // Date is confirmed once we have GNSS fix
@@ -373,6 +377,9 @@ class GNSS
     virtual bool softwareReset();
 
     virtual bool standby();
+
+    // Antenna Short / Open detection
+    virtual bool supportsAntennaShortOpen();
 
     // Reset the survey-in operation
     // Outputs:

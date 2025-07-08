@@ -19,6 +19,7 @@ typedef struct {
 const mosaicExpectedID mosaicExpectedIDs[] = {
     { 4007, true, 96, "PVTGeodetic" },
     { 4013, false, 0, "ChannelStatus" },
+    { 4014, false, 0, "ReceiverStatus" },
     { 4059, false, 0, "DiskStatus" },
     { 4090, false, 0, "InputLink" },
     { 4097, false, 0, "EncapsulatedOutput" },
@@ -48,7 +49,7 @@ const mosaicExpectedID mosaicExpectedIDs[] = {
 // This indicates if RTCM corrections are being received - on COM2
 #define MOSAIC_SBF_INPUTLINK_STREAM (MOSAIC_SBF_EXTEVENT_STREAM + 1)
 
-// Output SBF ChannelStatus and DiskStatus messages on this stream - on COM1 only
+// Output SBF ChannelStatus, ReceiverStatus and DiskStatus messages on this stream - on COM1 only
 // ChannelStatus provides the count of satellites being tracked
 // DiskStatus provides the disk usage
 #define MOSAIC_SBF_STATUS_STREAM (MOSAIC_SBF_INPUTLINK_STREAM + 1)
@@ -561,7 +562,9 @@ class GNSS_MOSAIC : GNSS
 
     // These globals are updated regularly via the SBF parser
     double _clkBias_ms; // PVTGeodetic RxClkBias (will be sawtooth unless clock steering is enabled)
-    bool   _determiningFixedPosition; // PVTGeodetic Mode Bit 6
+    bool _determiningFixedPosition; // PVTGeodetic Mode Bit 6
+    bool _antennaIsOpen; // ReceiverStatus RxState Bit 1 ACTIVEANTENNA indicates antenna current draw
+    bool _antennaIsShorted; // ReceiverStatus RxError Bit 5 ANTENNA indicates antenna overcurrent
 
     // Record NrBytesReceived so we can tell if Radio Ext (COM2) is receiving correction data.
     // On the mosaic, we know that InputLink will arrive at 1Hz. But on the ZED, UBX-MON-COMMS
@@ -598,6 +601,7 @@ class GNSS_MOSAIC : GNSS
     GNSS_MOSAIC() : _determiningFixedPosition(true), _clkBias_ms(0),
         _latStdDev(999.9), _lonStdDev(999.9), _receiverSetupSeen(false),
         _radioExtBytesReceived_millis(0), _diskStatusSeen(false),
+        _antennaIsOpen(false), _antennaIsShorted(false),
          GNSS()
     {
             svInTracking.clear();
@@ -815,6 +819,10 @@ class GNSS_MOSAIC : GNSS
     // Returns true if the device is in Rover mode
     // Currently the only two modes are Rover or Base
     bool inRoverMode();
+
+    // Antenna Short / Open detection
+    bool isAntennaShorted();
+    bool isAntennaOpen();
 
     bool isBlocking();
 
@@ -1054,6 +1062,9 @@ class GNSS_MOSAIC : GNSS
     // Save the data from the SBF Block 4013
     void storeBlock4013(SEMP_PARSE_STATE *parse);
 
+    // Save the data from the SBF Block 4014
+    void storeBlock4014(SEMP_PARSE_STATE *parse);
+
     // Save the data from the SBF Block 4059
     void storeBlock4059(SEMP_PARSE_STATE *parse);
 
@@ -1062,6 +1073,9 @@ class GNSS_MOSAIC : GNSS
 
     // Save the data from the SBF Block 5914
     void storeBlock5914(SEMP_PARSE_STATE *parse);
+
+    // Antenna Short / Open detection
+    bool supportsAntennaShortOpen();
 
     // Reset the survey-in operation
     // Outputs:

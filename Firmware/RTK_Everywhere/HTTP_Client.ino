@@ -522,6 +522,17 @@ void httpClientUpdate()
                         break;
                     }
 
+                    // Check if the JSON blob contains a certificate and private key
+                    // If this is the first time this device has connected to ThingStream, they
+                    // will not be present and we need to retry
+                    // httpClientConnectLimitReached will prevent excessive retries
+                    if (((const char *)((*jsonZtp)["certificate"]) == nullptr) || ((const char *)((*jsonZtp)["privateKey"]) == nullptr))
+                    {
+                        systemPrintln("ERROR - certificate or privateKey not found!\r\n");
+                        httpClientRestart(); // Try again - allow time for ThingStream to finish activating the device on plan
+                        break;
+                    }
+
                     strncpy(tempHolderPtr, (const char *)((*jsonZtp)["certificate"]), MQTT_CERT_SIZE - 1);
                     recordFile("certificate", tempHolderPtr, strlen(tempHolderPtr));
 
@@ -611,7 +622,20 @@ void httpClientUpdate()
                 else if (pointPerfectNtripNeeded() == true)
                 {
                     // We received a JSON blob containing NTRIP credentials
+                    // Note: this prints the userName and password, which should probably be kept secret?
+                    // TODO: comment this
                     systemPrintf("PointPerfect response: %s\r\n", response.c_str());
+
+                    // Check if the JSON blob contains rtcmCredentials
+                    // If this is the first time this device has connected to ThingStream, rtcmCredentials
+                    // endpoint will not be present and we need to retry
+                    // httpClientConnectLimitReached will prevent excessive retries
+                    if ((const char *)((*jsonZtp)["rtcmCredentials"]["endpoint"]) == nullptr)
+                    {
+                        systemPrintln("ERROR - rtcmCredentials not found!\r\n");
+                        httpClientRestart(); // Try again - allow time for ThingStream to finish activating the device on plan
+                        break;
+                    }
 
                     strncpy(settings.ntripClient_CasterHost, (const char *)((*jsonZtp)["rtcmCredentials"]["endpoint"]),
                             sizeof(settings.ntripClient_CasterHost));

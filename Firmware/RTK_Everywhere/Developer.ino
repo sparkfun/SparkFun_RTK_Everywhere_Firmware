@@ -298,18 +298,6 @@ void lg290pReset()      {}
 
 #ifndef COMPILE_ZED
 
-// MON HW Antenna Status
-enum sfe_ublox_antenna_status_e
-{
-  SFE_UBLOX_ANTENNA_STATUS_INIT,
-  SFE_UBLOX_ANTENNA_STATUS_DONTKNOW,
-  SFE_UBLOX_ANTENNA_STATUS_OK,
-  SFE_UBLOX_ANTENNA_STATUS_SHORT,
-  SFE_UBLOX_ANTENNA_STATUS_OPEN
-};
-
-uint8_t aStatus = SFE_UBLOX_ANTENNA_STATUS_DONTKNOW;
-
 // void checkRXMCOR() {}
 // void pushRXMPMP() {}
 void convertGnssTimeToEpoch(uint32_t *epochSecs, uint32_t *epochMicros) {

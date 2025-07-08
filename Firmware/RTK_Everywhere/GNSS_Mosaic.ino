@@ -582,10 +582,10 @@ bool GNSS_MOSAIC::configureOnce()
     setting = String("sso,Stream" + String(MOSAIC_SBF_INPUTLINK_STREAM) + ",COM1,InputLink,sec1\n\r");
     response &= sendWithResponse(setting, "SBFOutput");
 
-    // Output SBF ChannelStatus and DiskStatus on their own stream - at 0.5Hz - on COM1 only
+    // Output SBF ChannelStatus, ReceiverStatus and DiskStatus on their own stream - at 0.5Hz - on COM1 only
     // For ChannelStatus: OnChange is too often. The message is typically 1000 bytes in size.
     // For DiskStatus: DiskUsage is slow to update. 0.5Hz is plenty fast enough.
-    setting = String("sso,Stream" + String(MOSAIC_SBF_STATUS_STREAM) + ",COM1,ChannelStatus+DiskStatus,sec2\n\r");
+    setting = String("sso,Stream" + String(MOSAIC_SBF_STATUS_STREAM) + ",COM1,ChannelStatus+ReceiverStatus+DiskStatus,sec2\n\r");
     response &= sendWithResponse(setting, "SBFOutput");
 
     // Mark L5 as healthy
@@ -1509,6 +1509,22 @@ bool GNSS_MOSAIC::inRoverMode()
         return (false);
 
     return (true); // Default to Rover
+}
+
+//----------------------------------------
+// Returns true if the antenna is shorted
+//----------------------------------------
+bool GNSS_MOSAIC::isAntennaShorted()
+{
+    return _antennaIsShorted;
+}
+
+//----------------------------------------
+// Returns true if the antenna is shorted
+//----------------------------------------
+bool GNSS_MOSAIC::isAntennaOpen()
+{
+    return _antennaIsOpen;
 }
 
 //----------------------------------------
@@ -2540,6 +2556,22 @@ void GNSS_MOSAIC::storeBlock4013(SEMP_PARSE_STATE *parse)
 }
 
 //----------------------------------------
+// Save the data from the SBF Block 4014
+//----------------------------------------
+void GNSS_MOSAIC::storeBlock4014(SEMP_PARSE_STATE *parse)
+{
+    uint16_t N = (uint16_t)sempSbfGetU1(parse, 14);
+    uint32_t RxState = (uint16_t)sempSbfGetU4(parse, 20);
+    uint32_t RxError = (uint16_t)sempSbfGetU4(parse, 24);
+
+    _antennaIsShorted = ((RxError >> 5) & 0x1) == 0x1;
+    if (_antennaIsShorted)
+        _antennaIsOpen = false; // Shorted has priority
+    else
+        _antennaIsOpen = ((RxState >> 1) & 0x1) == 0x0;
+}
+
+//----------------------------------------
 // Save the data from the SBF Block 4059
 //----------------------------------------
 void GNSS_MOSAIC::storeBlock4059(SEMP_PARSE_STATE *parse)
@@ -2619,6 +2651,12 @@ void GNSS_MOSAIC::storeBlock5914(SEMP_PARSE_STATE *parse)
     _validTime = (sempSbfGetU1(parse, 21) >> 1) & 0x01;
     _fullyResolved = (sempSbfGetU1(parse, 21) >> 2) & 0x01;
     _leapSeconds = sempSbfGetU1(parse, 20);
+}
+
+// Antenna Short / Open detection
+bool GNSS_MOSAIC::supportsAntennaShortOpen()
+{
+    return true;
 }
 
 //----------------------------------------
@@ -2926,6 +2964,10 @@ void processUart1SBF(SEMP_PARSE_STATE *parse, uint16_t type)
     // If this is ChannelStatus, extract some data
     if (sempSbfGetBlockNumber(parse) == 4013)
         mosaic->storeBlock4013(parse);
+
+    // If this is ReceiverStatus, extract some data
+    if (sempSbfGetBlockNumber(parse) == 4014)
+        mosaic->storeBlock4014(parse);
 
     // If this is DiskStatus, extract some data
     if (sempSbfGetBlockNumber(parse) == 4059)
