@@ -1025,19 +1025,6 @@ void wifiStationUpdate()
     // Update the WiFi station state
     switch (wifiStationState)
     {
-    // There are no WiFi station consumers
-    case WIFI_STATION_STATE_OFF:
-        if (enabled)
-        {
-            connectionAttempts = 0;
-            timer = millis();
-            startTimeout = 0;
-
-            // Start WiFi station
-            wifiStationSetState(WIFI_STATION_STATE_RESTART_DELAY);
-        }
-        break;
-
     // Wait for WiFi station users to release resources before shutting
     // down WiFi station
     case WIFI_STATION_STATE_WAIT_NO_USERS:
@@ -1096,6 +1083,27 @@ void wifiStationUpdate()
             }
         }
         break;
+
+    // There are no WiFi station consumers
+    case WIFI_STATION_STATE_OFF:
+        // Check for disabled
+        if (!enabled)
+            break;
+
+        // Reset the restart timeout when off
+        if (wifiStationState == WIFI_STATION_STATE_OFF)
+        {
+            connectionAttempts = 0;
+            timer = millis();
+            startTimeout = 0;
+        }
+
+        // Wait for the delay to complete
+        wifiStationSetState(WIFI_STATION_STATE_RESTART_DELAY);
+
+        //          |
+        //          | Fall through
+        //          V
 
     // Perform the restart delay
     case WIFI_STATION_STATE_RESTART_DELAY:
