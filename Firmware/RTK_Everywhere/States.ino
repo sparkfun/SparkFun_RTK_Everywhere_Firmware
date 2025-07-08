@@ -457,7 +457,7 @@ void stateUpdate()
 
                     //Create temporary copy of Settings, so that we can check if they change while parsing
                     //Useful for detecting when we need to change WiFi station settings
-                    webServerSettingsClone();
+                    wifiSettingsClone();
                     
                     parseIncomingSettings();
                     

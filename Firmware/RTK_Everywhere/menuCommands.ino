@@ -1305,9 +1305,6 @@ SettingValueResponse updateSettingWithValue(bool inCommands, const char *setting
 
         knownSetting = true;
 
-        // Check to see if WiFi settings have been changed
-        //bool changed = webServerSettingsCheckAndFree();
-
         // Inform the OTA state machine that it is needed
         otaRequestFirmwareVersionCheck = true;
     }

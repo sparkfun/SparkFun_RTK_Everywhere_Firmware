@@ -341,11 +341,15 @@ bool wifiSoftApSsidSet;  // Set when the WiFi soft AP SSID string exists
 bool wifiStationRestart; // Restart Wifi station
 bool wifiStationSsidSet; // Set when one or more SSID strings exist
 
+static struct Settings *wifiPreviousSettings;
+
 //*********************************************************************
 // Set WiFi credentials
 // Enable TCP connections
 void menuWiFi()
 {
+    wifiSettingsClone(); // Create a copy of settings to detect if WiFi settings change
+
     while (1)
     {
         networkDisplayInterface(NETWORK_WIFI_STATION);
@@ -418,9 +422,26 @@ void menuWiFi()
     clearBuffer(); // Empty buffer of any newline chars
 }
 
+//----------------------------------------
+// Check the settings and free the settings structure
+//----------------------------------------
+bool wifiSettingsChangedAndFree()
+{
+    bool changed;
+
+    changed = false;
+    if (wifiPreviousSettings)
+    {
+        changed = wifiSettingsChanged(wifiPreviousSettings);
+        rtkFree(wifiPreviousSettings, "WiFi previous settings");
+        wifiPreviousSettings = nullptr;
+    }
+    return changed;
+}
+
 //*********************************************************************
 // Check for setting differences
-bool wifiCheckSettings(struct Settings *newSettings)
+bool wifiSettingsChanged(struct Settings *newSettings)
 {
     bool changed;
 
@@ -434,12 +455,19 @@ bool wifiCheckSettings(struct Settings *newSettings)
         (memcmp(newSettings->wifiNetworks[2].password, settings.wifiNetworks[2].password, PASSWORD_LENGTH) != 0) ||
         (memcmp(newSettings->wifiNetworks[3].ssid, settings.wifiNetworks[3].ssid, SSID_LENGTH) != 0) ||
         (memcmp(newSettings->wifiNetworks[3].password, settings.wifiNetworks[3].password, PASSWORD_LENGTH) != 0);
-    if (changed)
-    {
-        // Update the WiFi settings
-        wifiUpdateSettings();
-    }
     return changed;
+}
+
+//----------------------------------------
+// Allocate the settings structure and clone the settings
+//----------------------------------------
+void wifiSettingsClone()
+{
+    wifiPreviousSettings = (struct Settings *)rtkMalloc(sizeof(settings), "WiFi previous settings");
+    if (wifiPreviousSettings == nullptr)
+        systemPrintln("ERROR: WiFi failed to allocate previous settings!\r\n");
+    else
+        memcpy(wifiPreviousSettings, &settings, sizeof(settings));
 }
 
 //*********************************************************************
@@ -1070,9 +1098,21 @@ void wifiUpdateSettings()
     // Remember the change in SSID values
     wifiStationSsidSet = ssidSet;
 
-    // If there are consumers, and WiFi currently has connectivity, don't restart it
-    if ((networkConsumerCount(NETWORK_WIFI_STATION) > 0) && (networkHasInternet() == false))
+    // If there are consumers, and WiFi currently is not connected, then allow restart
+    if ((networkConsumerCount(NETWORK_WIFI_STATION) > 0) &&
+        (networkInterfaceHasInternet(NETWORK_WIFI_STATION) == false))
     {
+        if (settings.debugWifiState)
+            systemPrintln("Restarting WiFi because settings have changed");
+        wifiStationRestart = ssidSet;
+    }
+
+    // If we are connected over WiFi, and settings change, restart connection
+    bool wifiChanged =
+        wifiSettingsChangedAndFree(); // Check to see if WiFi settings have been changed, then clear memory
+    if (wifiChanged == true && networkInterfaceHasInternet(NETWORK_WIFI_STATION) == true)
+    {
+        // Restart network
         if (settings.debugWifiState)
             systemPrintln("Restarting WiFi because settings have changed");
         wifiStationRestart = ssidSet;
