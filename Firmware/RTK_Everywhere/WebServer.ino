@@ -52,6 +52,7 @@ static const char *const webServerStateNames[] = {
 static const int webServerStateEntries = sizeof(webServerStateNames) / sizeof(webServerStateNames[0]);
 
 static uint8_t webServerState;
+static struct Settings * webServerPreviousSettings;
 
 // Once connected to the access point for WiFi Config, the ESP32 sends current setting values in one long string to
 // websocket After user clicks 'save', data is validated via main.js and a long string of values is returned.
@@ -1125,6 +1126,35 @@ void webServerSetState(uint8_t newState)
 }
 
 //----------------------------------------
+// Check the web server settings and free the settings structure
+//----------------------------------------
+bool webServerSettingsCheckAndFree()
+{
+    bool changed;
+
+    changed = false;
+    if (webServerPreviousSettings)
+    {
+        changed = wifiCheckSettings(webServerPreviousSettings);
+        rtkFree(webServerPreviousSettings, "WebServer previous settings");
+        webServerPreviousSettings = nullptr;
+    }
+    return changed;
+}
+
+//----------------------------------------
+// Allocate the settings structure and clone the settings
+//----------------------------------------
+void webServerSettingsClone()
+{
+    webServerPreviousSettings = (struct Settings *) rtkMalloc(sizeof(settings), "WebServer previous settings");
+    if (webServerPreviousSettings == nullptr)
+        systemPrintln("ERROR: Web Server failed to allocate previous settings!\r\n");
+    else
+        memcpy(webServerPreviousSettings, &settings, sizeof(settings));
+}
+
+//----------------------------------------
 // Start the Web Server state machine
 //----------------------------------------
 void webServerStart()
@@ -1143,9 +1173,9 @@ void webServerStart()
             systemPrintln("Web Server: Starting");
 
         // Start the network
-        if (settings.wifiConfigOverAP == false)
+        if ((settings.wifiConfigOverAP == false) || networkHasInternet())
             networkConsumerAdd(NETCONSUMER_WEB_CONFIG, NETWORK_ANY, __FILE__, __LINE__);
-        else
+        if (settings.wifiConfigOverAP)
             networkSoftApConsumerAdd(NETCONSUMER_WEB_CONFIG, __FILE__, __LINE__);
         webServerSetState(WEBSERVER_STATE_WAIT_FOR_NETWORK);
     }

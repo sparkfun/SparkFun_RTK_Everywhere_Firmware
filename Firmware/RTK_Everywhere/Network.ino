@@ -1298,7 +1298,6 @@ void networkInterfaceInternetConnectionLost(NetIndex_t index)
         return;
     }
 
-    // Mark this network as offline
     bitMask = 1 << index;
 
     // If we are currently running a start sequence, do nothing
@@ -1310,6 +1309,7 @@ void networkInterfaceInternetConnectionLost(NetIndex_t index)
         return;
     }
 
+    // Mark this network as offline
     networkHasInternet_bm &= ~bitMask;
     if (settings.debugNetworkLayer)
         systemPrintf("%s does NOT have internet access\r\n", networkInterfaceTable[index].name);
@@ -2399,14 +2399,11 @@ void networkUpdate()
 
         // Display the IP address of the highest priority network
         index = networkPriorityTable[networkPriority];
-        if ((index < NETWORK_OFFLINE)
-            && networkInterfaceHasInternet(index)
-            && networkInterfaceTable[index].netif->hasIP())
+        if ((index < NETWORK_OFFLINE) && networkInterfaceHasInternet(index) &&
+            networkInterfaceTable[index].netif->hasIP())
         {
             ipAddress = networkInterfaceTable[index].netif->localIP();
-            systemPrintf("%s: %s%s\r\n",
-                         networkInterfaceTable[index].name,
-                         ipAddress.toString().c_str(),
+            systemPrintf("%s: %s%s\r\n", networkInterfaceTable[index].name, ipAddress.toString().c_str(),
                          networkInterfaceTable[index].netif->isDefault() ? " (default)" : "");
         }
         else
