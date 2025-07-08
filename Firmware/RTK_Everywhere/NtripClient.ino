@@ -656,6 +656,7 @@ void ntripClientUpdate()
         if (connected)
         {
             // Allocate the ntripClient structure
+            networkUseDefaultInterface();
             ntripClient = new NetworkClient();
             if (!ntripClient)
             {
