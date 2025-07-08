@@ -350,6 +350,8 @@ void menuUserProfiles()
 
         systemPrintf("%d) Delete profile '%s'\r\n", MAX_PROFILE_COUNT + 3, profileNames[profileNumber]);
 
+        systemPrintf("%d) Print profile\r\n", MAX_PROFILE_COUNT + 4);
+
         systemPrintln("x) Exit");
 
         int incoming = getUserInputNumber(); // Returns EXIT, TIMEOUT, or long
@@ -423,6 +425,21 @@ void menuUserProfiles()
             }
             else
                 systemPrintln("Delete aborted");
+        }
+        else if (incoming == MAX_PROFILE_COUNT + 4)
+        {
+            // Print profile
+            systemPrintf("Select the profile to be printed (1-%d): ",MAX_PROFILE_COUNT);
+
+            int printThis = getUserInputNumber(); // Returns EXIT, TIMEOUT, or long
+
+            if (printThis >= 1 && printThis <= MAX_PROFILE_COUNT)
+            {
+                char printFileName[60];
+                snprintf(printFileName, sizeof(printFileName), "/%s_Settings_%d.txt", platformFilePrefix,
+                         printThis - 1);
+                printSystemSettingsFromFileLFS(printFileName);
+            }
         }
 
         else if (incoming == INPUT_RESPONSE_GETNUMBER_EXIT)
