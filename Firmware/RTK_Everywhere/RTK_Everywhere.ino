@@ -497,7 +497,7 @@ SFE_MAX1704X lipo(MAX1704X_MAX17048);
 
 #ifdef COMPILE_BQ40Z50
 #include "SparkFun_BQ40Z50_Battery_Manager_Arduino_Library.h" //Click here to get the library: http://librarymanager/All#SparkFun_BQ40Z50
-BQ40Z50 *bq40z50Battery;
+BQ40Z50 *bq40z50Battery = nullptr;
 #endif // COMPILE_BQ40Z50
 
 // RTK LED PWM (LEDC) properties
@@ -544,8 +544,8 @@ volatile bool forwardGnssDataToUsbSerial;
 
 #define platformPrefix platformPrefixTable[productVariant] // Sets the prefix for broadcast names
 
-HardwareSerial *serialGNSS;  // Don't instantiate until we know what gnssPlatform we're on
-HardwareSerial *serial2GNSS; // Don't instantiate until we know what gnssPlatform we're on
+HardwareSerial *serialGNSS = nullptr;  // Don't instantiate until we know what gnssPlatform we're on
+HardwareSerial *serial2GNSS = nullptr; // Don't instantiate until we know what gnssPlatform we're on
 
 #define SERIAL_SIZE_TX 512
 uint8_t wBuffer[SERIAL_SIZE_TX]; // Buffer for writing from incoming SPP to F9P
@@ -619,7 +619,7 @@ const int beepTaskUpdatesHz = 20; // Update Beep 20 times a second. Shortest dur
 // Buttons - Interrupt driven and debounce
 //-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 #include <JC_Button.h> //http://librarymanager/All#JC_Button
-Button *userBtn;
+Button *userBtn = nullptr;
 
 const uint8_t buttonCheckTaskPriority = 1; // 3 being the highest, and 0 being the lowest
 const int buttonTaskStackSize = 2000;
