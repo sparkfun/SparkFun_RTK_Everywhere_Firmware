@@ -811,6 +811,7 @@ bool wifiStationEnabled(const char **reason)
         // Is WiFi the highest priority
         if (networkIsHighestPriority(NETWORK_WIFI_STATION) == false)
         {
+            // Another network has higher priority
             // Allocate the reason buffer once
             if (reasonBuffer == nullptr)
                 reasonBuffer = (char *)rtkMalloc(64, "WiFi reasonBuffer");
@@ -830,7 +831,7 @@ bool wifiStationEnabled(const char **reason)
 
         // WiFi should start and continue running
         enabled = true;
-        *reason = ", is enabled";
+        *reason = "";
     } while (0);
     return enabled;
 }
