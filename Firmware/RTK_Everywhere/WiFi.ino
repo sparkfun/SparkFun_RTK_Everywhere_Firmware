@@ -3135,7 +3135,8 @@ void RTK_WIFI::verifyTables()
     // Verify the authorization name table
     if (WIFI_AUTH_MAX != wifiAuthorizationNameEntries)
     {
-        systemPrintf("ERROR: Fix wifiAuthorizationName list to match wifi_auth_mode_t in esp_wifi_types.h!\r\n");
+        //https://github.com/espressif/esp-idf/blob/master/components/esp_wifi/include/esp_wifi_types_generic.h#L86
+        systemPrintf("ERROR: Fix wifiAuthorizationName list (%d) to match wifi_auth_mode_t (%d) in esp_wifi_types.h!\r\n", wifiAuthorizationNameEntries, WIFI_AUTH_MAX);
         reportFatalError("Fix wifiAuthorizationName list to match wifi_auth_mode_t in esp_wifi_types.h!");
     }
 
