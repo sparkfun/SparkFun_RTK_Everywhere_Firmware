@@ -2377,6 +2377,7 @@ function newFirmwareVersion(firmwareVersion) {
         return;
     }
 
+    showMsg('firmwareCheckNewMsg', "New firmware available!");
     ge("btnGetNewFirmware").innerHTML = "Update to v" + firmwareVersion;
     ge("btnGetNewFirmware").disabled = false;
     ge("firmwareUpdateProgressBar").value = 0;
