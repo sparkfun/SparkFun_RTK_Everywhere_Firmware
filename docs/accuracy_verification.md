@@ -67,7 +67,7 @@ Boulder has a large number of monuments
 </figcaption>
 </figure>
 
-Thankfully, in the USA the National Geodetic Survey has an incredible database of public monuments. Enter your location into the [NGS Data Explorer](https://www.ngs.noaa.gov/NGSDataExplorer/) to find the nearest monument.
+Thankfully, in the USA the National Geodetic Survey has an incredible database of public monuments. Enter your location into the [NGS Web Map](https://geodesy.noaa.gov/datasheets/ngs_map/), to find the nearest monument.
 
 <figure markdown>
 ![Boulder's GPS monuments](./img/VerifyAccuracy/SparkFun%20Verify%20RTK%20-%202%20Boulder%20GPS%20Sites.jpg)
