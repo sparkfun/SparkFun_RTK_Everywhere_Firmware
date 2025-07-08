@@ -793,6 +793,7 @@ const char *otaStateNameGet(uint8_t state, char *string)
 void otaUpdate()
 {
     bool connected;
+    static uint32_t connectTimer = 0;
 
     // Check if we need a scheduled check
     connected = networkConsumerIsConnected(NETCONSUMER_OTA_CLIENT);
@@ -827,6 +828,7 @@ void otaUpdate()
             {
                 // Start the network if necessary
                 networkConsumerAdd(NETCONSUMER_OTA_CLIENT, NETWORK_ANY, __FILE__, __LINE__);
+                connectTimer = millis();
                 otaSetState(OTA_STATE_WAIT_FOR_NETWORK);
             }
             break;
@@ -846,6 +848,18 @@ void otaUpdate()
                 // Get the latest firmware version
                 networkUserAdd(NETCONSUMER_OTA_CLIENT, __FILE__, __LINE__);
                 otaSetState(OTA_STATE_GET_FIRMWARE_VERSION);
+            }
+
+            else if ((millis() - connectTimer) > (5 * MILLISECONDS_IN_A_SECOND))
+            {
+                // Report failed connection to web client
+                if (websocketConnected)
+                {
+                    if (settings.debugFirmwareUpdate)
+                        systemPrintln("Firmware update failed to connect to network");
+                    sendStringToWebsocket((char *)"newFirmwareVersion,NO_INTERNET,");
+                    otaUpdateStop();
+                }
             }
             break;
 
@@ -883,6 +897,8 @@ void otaUpdate()
                     // machine
                     if (otaRequestFirmwareVersionCheck == true)
                     {
+                        otaRequestFirmwareVersionCheck = false;
+                        
                         if (websocketConnected)
                         {
                             char newVersionCSV[40];
