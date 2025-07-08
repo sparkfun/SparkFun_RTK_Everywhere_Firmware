@@ -2363,10 +2363,6 @@ bool RTK_WIFI::stopStart(WIFI_ACTION_t stopping, WIFI_ACTION_t starting)
         // Restart ESP-NOW if necessary
         if (wifiEspNowRunning)
             stopping |= WIFI_START_ESP_NOW;
-
-        // Restart soft AP if necessary
-        if (wifiSoftApRunning)
-            stopping |= WIFI_START_SOFT_AP;
     }
 
     // Determine if the ESP-NOW channel was specified
