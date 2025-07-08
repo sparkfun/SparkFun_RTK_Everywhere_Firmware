@@ -1001,28 +1001,23 @@ void wifiStationUpdate()
         // No more network users
         else
         {
+            // Display the major state transition
+            if (wifiStationRunning)
+            {
+                if (settings.debugWifiState)
+                    systemPrintf("--------------- %s Stopping ---------------\r\n",
+                                 networkInterfaceTable[NETWORK_WIFI_STATION].name);
+                wifiStationOff(__FILE__, __LINE__);
+            }
+
             // Stop WiFi station if necessary
             if (enabled == false)
-            {
-                // Display the major state transition
-                if (wifiStationRunning)
-                {
-                    if (settings.debugWifiState)
-                        systemPrintf("--------------- %s Stopping ---------------\r\n",
-                                     networkInterfaceTable[NETWORK_WIFI_STATION].name);
-                    wifiStationOff(__FILE__, __LINE__);
-                }
-
                 // Reset the start timeout
                 wifiStationSetState(WIFI_STATION_STATE_OFF);
-            }
 
             // Restart WiFi after delay
             else
             {
-                // Clear the bits to perform the restart operation
-                wifi.clearStarted(WIFI_STA_RECONNECT);
-
                 // Display the restart delay and then start WiFi station
                 if (startTimeout && settings.debugWifiState)
                 {
@@ -1033,7 +1028,7 @@ void wifiStationUpdate()
                     systemPrintf("WiFi: Delaying %2d:%02d before restarting WiFi\r\n", minutes, seconds);
                 }
                 timer = millis();
-                wifiStationSetState(WIFI_STATION_STATE_STARTING);
+                wifiStationSetState(WIFI_STATION_STATE_RESTART_DELAY);
             }
         }
         break;
@@ -1108,6 +1103,7 @@ void wifiStationUpdate()
         // Wait until the WiFi link is stable
         if ((millis() - timer) >= WIFI_CONNECTION_STABLE_MSEC)
         {
+            // Reset restart timeout and the connection attempts
             connectionAttempts = 0;
             startTimeout = 0;
             wifiStationSetState(WIFI_STATION_STATE_STABLE);
