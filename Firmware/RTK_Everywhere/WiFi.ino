@@ -15,8 +15,18 @@
 #define WIFI_CONNECTION_STABLE_MSEC (15 * MILLISECONDS_IN_A_MINUTE)
 
 static const char *wifiAuthorizationName[] = {
-    "Open",     "WEP",           "WPA_PSK",  "WPA2_PSK", "WPA_WPA2_PSK", "WPA2_Enterprise",
+    "Open",     "WEP",           "WPA_PSK",  "WPA2_PSK", "WPA_WPA2_PSK", //"ENTERPRISE", 
+    "WPA2_Enterprise",
     "WPA3_PSK", "WPA2_WPA3_PSK", "WAPI_PSK", "OWE",      "WPA3_ENT_192",
+
+    //Compatible with ESP32 core v3.2.1, 16 reported, 18 listed here:
+    //https://github.com/espressif/esp-idf/blob/master/components/esp_wifi/include/esp_wifi_types_generic.h#L86
+    //"WPA3_EXT_PSK",
+    //"WPA3_EXT_PSK_MIXED_MODE",
+    //"DPP",
+    //"WPA3_ENTERPRISE",
+    //"WPA2_WPA3_ENTERPRISE",
+    //"WPA_ENTERPRISE",
 };
 static const int wifiAuthorizationNameEntries = sizeof(wifiAuthorizationName) / sizeof(wifiAuthorizationName[0]);
 
