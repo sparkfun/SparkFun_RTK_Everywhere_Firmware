@@ -1575,7 +1575,7 @@ void displayBatteryVsEthernet(std::vector<iconPropertyBlinking> *iconList)
 
 void displaySivVsOpenShort(std::vector<iconPropertyBlinking> *iconList)
 {
-    if (present.antennaShortOpen == false)
+    if (gnss->supportsAntennaShortOpen() == false)
     {
         displayCoords textCoords = paintSIVIcon(iconList, nullptr, 0b11111111);
         paintSIVText(textCoords);
@@ -1584,11 +1584,11 @@ void displaySivVsOpenShort(std::vector<iconPropertyBlinking> *iconList)
     {
         displayCoords textCoords;
 
-        if (aStatus == SFE_UBLOX_ANTENNA_STATUS_SHORT)
+        if (gnss->isAntennaShorted())
         {
             textCoords = paintSIVIcon(iconList, &ShortIconProperties, 0b01010101);
         }
-        else if (aStatus == SFE_UBLOX_ANTENNA_STATUS_OPEN)
+        else if (gnss->isAntennaOpen())
         {
             textCoords = paintSIVIcon(iconList, &OpenIconProperties, 0b01010101);
         }
@@ -1846,7 +1846,7 @@ void paintBaseTempSurveyStarted(std::vector<iconPropertyBlinking> *iconList)
     xPos = SIVIconProperties.iconDisplay[present.display_type].xPos;
     yPos = SIVIconProperties.iconDisplay[present.display_type].yPos;
 
-    if (present.antennaShortOpen == false)
+    if (gnss->supportsAntennaShortOpen() == false)
     {
         oled->setCursor((uint8_t)((int)xPos + SIVTextStartXPosOffset[present.display_type]), yPos + 4); // x, y
         oled->setFont(QW_FONT_5X7);
@@ -1854,11 +1854,11 @@ void paintBaseTempSurveyStarted(std::vector<iconPropertyBlinking> *iconList)
     }
     else
     {
-        if (aStatus == SFE_UBLOX_ANTENNA_STATUS_SHORT)
+        if (gnss->isAntennaShorted())
         {
             paintSIVIcon(iconList, &ShortIconProperties, 0b01010101);
         }
-        else if (aStatus == SFE_UBLOX_ANTENNA_STATUS_OPEN)
+        else if (gnss->isAntennaOpen())
         {
             paintSIVIcon(iconList, &OpenIconProperties, 0b01010101);
         }
@@ -1914,7 +1914,7 @@ void paintRTCM(std::vector<iconPropertyBlinking> *iconList)
     xPos = SIVIconProperties.iconDisplay[present.display_type].xPos;
     yPos = SIVIconProperties.iconDisplay[present.display_type].yPos;
 
-    if (present.antennaShortOpen == false)
+    if (gnss->supportsAntennaShortOpen() == false)
     {
         oled->setCursor((uint8_t)((int)xPos + SIVTextStartXPosOffset[present.display_type]), yPos + 4); // x, y
         oled->setFont(QW_FONT_5X7);
@@ -1922,11 +1922,11 @@ void paintRTCM(std::vector<iconPropertyBlinking> *iconList)
     }
     else
     {
-        if (aStatus == SFE_UBLOX_ANTENNA_STATUS_SHORT)
+        if (gnss->isAntennaShorted())
         {
             paintSIVIcon(iconList, &ShortIconProperties, 0b01010101);
         }
-        else if (aStatus == SFE_UBLOX_ANTENNA_STATUS_OPEN)
+        else if (gnss->isAntennaOpen())
         {
             paintSIVIcon(iconList, &OpenIconProperties, 0b01010101);
         }

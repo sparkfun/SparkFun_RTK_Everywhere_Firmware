@@ -11,8 +11,6 @@ GNSS_ZED.h
 
 #include <SparkFun_u-blox_GNSS_v3.h> //http://librarymanager/All#SparkFun_u-blox_GNSS_v3
 
-uint8_t aStatus = SFE_UBLOX_ANTENNA_STATUS_DONTKNOW;
-
 // Each constellation will have its config key, enable, and a visible name
 typedef struct
 {
@@ -385,6 +383,8 @@ class GNSS_ZED : GNSS
     {
     }
 
+    uint8_t aStatus = SFE_UBLOX_ANTENNA_STATUS_DONTKNOW;
+
     // If we have decryption keys, configure module
     // Note: don't check online.lband_neo here. We could be using ip corrections
     void applyPointPerfectKeys();
@@ -570,6 +570,10 @@ class GNSS_ZED : GNSS
     // Returns full year, ie 2023, not 23.
     uint16_t getYear();
 
+    // Antenna Short / Open detection
+    bool isAntennaShorted();
+    bool isAntennaOpen();
+
     bool isBlocking();
 
     // Date is confirmed once we have GNSS fix
@@ -735,6 +739,9 @@ class GNSS_ZED : GNSS
 
     // Callback to store MON-COMMS information
     void storeMONCOMMSdataRadio(UBX_MON_COMMS_data_t *ubxDataStruct);
+
+    // Antenna Short / Open detection
+    bool supportsAntennaShortOpen();
 
     // Reset the survey-in operation
     // Outputs:
