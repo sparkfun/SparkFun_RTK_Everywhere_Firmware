@@ -455,25 +455,22 @@ void stateUpdate()
                         systemWrite(incomingSettings[x]);
                     systemPrintln();
 
+                    //Create temporary copy of Settings, so that we can check if they change while parsing
+                    //Useful for detecting when we need to change WiFi station settings
                     webServerSettingsClone();
+                    
                     parseIncomingSettings();
+                    
                     settings.gnssConfiguredOnce = false; // On the next boot, reapply all settings
                     settings.gnssConfiguredBase = false;
                     settings.gnssConfiguredRover = false;
                     recordSystemSettings(); // Record these settings to unit
-                    changed = webServerSettingsCheckAndFree();
 
                     // Clear buffer
                     incomingSettingsSpot = 0;
                     memset(incomingSettings, 0, AP_CONFIG_SETTING_SIZE);
 
                     currentlyParsingData = false; // Allow new data from websocket
-                    if (changed)
-                    {
-                        // Restart the web server if the WiFi parameters changed
-                        webServerStop();
-                        changeState(STATE_WEB_CONFIG_NOT_STARTED); // Return to rover mode to avoid being in fixed base mode
-                    }
                 }
             }
 
