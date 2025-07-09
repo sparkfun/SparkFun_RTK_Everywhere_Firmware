@@ -1303,55 +1303,10 @@ SettingValueResponse updateSettingWithValue(bool inCommands, const char *setting
 
         sendStringToWebsocket((char *)"checkingNewFirmware,1,"); // Tell the config page we received their request
 
-        // We don't use the OTA state machine here because we need to respond to
-        // Web Config immediately of success or failure
-
-        // If we're in AP only mode (no internet), try WiFi with current SSIDs
-        if (networkIsInterfaceStarted(NETWORK_WIFI_STATION) == false)
-            wifiStationOn(__FILE__, __LINE__);
-
-        // Get firmware version from server
-        char newVersionCSV[40];
-        if (networkInterfaceHasInternet(NETWORK_WIFI_STATION) == false)
-        {
-            // No internet. Report error.
-            if (settings.debugWebServer == true)
-                systemPrintln("No internet available. Sending error to Web config page.");
-            snprintf(newVersionCSV, sizeof(newVersionCSV), "newFirmwareVersion,NO_INTERNET,");
-        }
-        else
-        {
-            char otaReportedVersion[50];
-            if (otaCheckVersion(otaReportedVersion, sizeof(otaReportedVersion)))
-            {
-                // We got a version number, now determine if it's newer or not
-                char currentVersion[40];
-                firmwareVersionGet(currentVersion, sizeof(currentVersion), enableRCFirmware);
-                if (firmwareVersionIsReportedNewer(otaReportedVersion, currentVersion) == true)
-                {
-                    if (settings.debugWebServer == true)
-                        systemPrintln("New version detected");
-                    snprintf(newVersionCSV, sizeof(newVersionCSV), "newFirmwareVersion,%s,", otaReportedVersion);
-                }
-                else
-                {
-                    if (settings.debugWebServer == true)
-                        systemPrintln("No new firmware available");
-                    snprintf(newVersionCSV, sizeof(newVersionCSV), "newFirmwareVersion,CURRENT,");
-                }
-            }
-            else
-            {
-                // Failed to get version number
-                if (settings.debugWebServer == true)
-                    systemPrintln("Sending error to Web config page");
-                snprintf(newVersionCSV, sizeof(newVersionCSV), "newFirmwareVersion,NO_SERVER,");
-            }
-        }
-
-        sendStringToWebsocket(newVersionCSV);
-
         knownSetting = true;
+
+        // Inform the OTA state machine that it is needed
+        otaRequestFirmwareVersionCheck = true;
     }
     else if (strcmp(settingName, "getNewFirmware") == 0)
     {
@@ -1360,13 +1315,12 @@ SettingValueResponse updateSettingWithValue(bool inCommands, const char *setting
 
         sendStringToWebsocket((char *)"gettingNewFirmware,1,");
 
+        // Let the OTA state machine know it needs to report its progress to the websocket
         apConfigFirmwareUpdateInProcess = true;
 
         // Notify the network layer we need access, and let OTA state machine take over
         otaRequestFirmwareUpdate = true;
 
-        // We get here if WiFi failed to connect
-        sendStringToWebsocket((char *)"gettingNewFirmware,ERROR,");
         knownSetting = true;
     }
 

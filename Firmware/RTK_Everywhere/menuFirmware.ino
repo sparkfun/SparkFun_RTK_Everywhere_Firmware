@@ -96,8 +96,8 @@ void firmwareMenu()
 // Given a char string, break into version number major/minor, year, month, day
 // Returns false if parsing failed
 //----------------------------------------
-bool firmwareVersionBreakIntoParts(char *version, int *versionNumberMajor, int *versionNumberMinor, int *year, int *month,
-                                   int *day)
+bool firmwareVersionBreakIntoParts(char *version, int *versionNumberMajor, int *versionNumberMinor, int *year,
+                                   int *month, int *day)
 {
     char monthStr[20];
     int placed = 0;
@@ -137,7 +137,7 @@ void firmwareVersionFormat(uint8_t major, uint8_t minor, char *buffer, int buffe
     char prefix;
 
     // Construct the full or release candidate version number
-    prefix = ENABLE_DEVELOPER ? 'd' : 'v';
+    prefix = (ENABLE_DEVELOPER || (major >= 99)) ? 'd' : 'v';
     if (enableRCFirmware && (bufferLength >= 21))
         // 123456789012345678901
         // pxxx.yyy-dd-mmm-yyyy0
@@ -188,8 +188,8 @@ bool firmwareVersionIsReportedNewer(char *reportedVersion, char *currentVersion)
 
     firmwareVersionBreakIntoParts(currentVersion, &currentVersionNumberMajor, &currentVersionNumberMinor, &currentYear,
                                   &currentMonth, &currentDay);
-    firmwareVersionBreakIntoParts(reportedVersion, &reportedVersionNumberMajor, &reportedVersionNumberMinor, &reportedYear,
-                                  &reportedMonth, &reportedDay);
+    firmwareVersionBreakIntoParts(reportedVersion, &reportedVersionNumberMajor, &reportedVersionNumberMinor,
+                                  &reportedYear, &reportedMonth, &reportedDay);
 
     if (settings.debugFirmwareUpdate)
     {
@@ -580,11 +580,9 @@ void otaDisplayPercentage(int bytesWritten, int totalLength, bool alwaysDisplay)
 
         if (apConfigFirmwareUpdateInProcess == true)
         {
-#ifdef COMPILE_AP
             char myProgress[50];
             snprintf(myProgress, sizeof(myProgress), "otaFirmwareStatus,%d,", percent);
             sendStringToWebsocket(myProgress);
-#endif // COMPILE_AP
         }
 
         previousPercent = percent;
@@ -609,11 +607,10 @@ const char *otaGetUrl()
 //----------------------------------------
 // Display the OTA portion of the firmware menu
 //----------------------------------------
-void otaMenuDisplay(char * currentVersion)
+void otaMenuDisplay(char *currentVersion)
 {
     // Automatic firmware updates
-    systemPrintf("a) Automatic firmware updates: %s\r\n",
-                 settings.enableAutoFirmwareUpdate ? "Enabled" : "Disabled");
+    systemPrintf("a) Automatic firmware updates: %s\r\n", settings.enableAutoFirmwareUpdate ? "Enabled" : "Disabled");
 
     systemPrint("c) Check SparkFun for device firmware: ");
 
@@ -796,6 +793,7 @@ const char *otaStateNameGet(uint8_t state, char *string)
 void otaUpdate()
 {
     bool connected;
+    static uint32_t connectTimer = 0;
 
     // Check if we need a scheduled check
     connected = networkConsumerIsConnected(NETCONSUMER_OTA_CLIENT);
@@ -830,6 +828,7 @@ void otaUpdate()
             {
                 // Start the network if necessary
                 networkConsumerAdd(NETCONSUMER_OTA_CLIENT, NETWORK_ANY, __FILE__, __LINE__);
+                connectTimer = millis();
                 otaSetState(OTA_STATE_WAIT_FOR_NETWORK);
             }
             break;
@@ -849,6 +848,18 @@ void otaUpdate()
                 // Get the latest firmware version
                 networkUserAdd(NETCONSUMER_OTA_CLIENT, __FILE__, __LINE__);
                 otaSetState(OTA_STATE_GET_FIRMWARE_VERSION);
+            }
+
+            else if ((millis() - connectTimer) > (5 * MILLISECONDS_IN_A_SECOND))
+            {
+                // Report failed connection to web client
+                if (websocketConnected)
+                {
+                    if (settings.debugFirmwareUpdate)
+                        systemPrintln("Firmware update failed to connect to network");
+                    sendStringToWebsocket((char *)"newFirmwareVersion,NO_INTERNET,");
+                    otaUpdateStop();
+                }
             }
             break;
 
@@ -886,6 +897,16 @@ void otaUpdate()
                     // machine
                     if (otaRequestFirmwareVersionCheck == true)
                     {
+                        otaRequestFirmwareVersionCheck = false;
+                        
+                        if (websocketConnected)
+                        {
+                            char newVersionCSV[40];
+                            snprintf(newVersionCSV, sizeof(newVersionCSV), "newFirmwareVersion,%s,",
+                                     otaReportedVersion);
+                            sendStringToWebsocket(newVersionCSV);
+                        }
+
                         otaUpdateStop();
                         return;
                     }
@@ -897,6 +918,9 @@ void otaUpdate()
                 else
                 {
                     systemPrintln("Version Check: Firmware is up to date. No new firmware available.");
+                    if (websocketConnected)
+                        sendStringToWebsocket((char *)"newFirmwareVersion,CURRENT,");
+
                     otaUpdateStop();
                 }
             }
@@ -904,6 +928,8 @@ void otaUpdate()
             {
                 // Failed to get version number
                 systemPrintln("Failed to get version number from server.");
+                if (websocketConnected)
+                    sendStringToWebsocket((char *)"newFirmwareVersion,NO_SERVER,");
                 otaUpdateStop();
             }
             break;
@@ -912,15 +938,36 @@ void otaUpdate()
         case OTA_STATE_UPDATE_FIRMWARE:
             // Determine if the network has failed
             if (!connected)
+            {
                 otaUpdateStop();
+
+                if (websocketConnected)
+                    sendStringToWebsocket((char *)"gettingNewFirmware,ERROR,");
+            }
             else
             {
                 // Perform the firmware update
                 otaUpdateFirmware();
+
+                // Update triggers ESP.restart(). If we get this far, the firmware update has failed
+                if (websocketConnected)
+                    sendStringToWebsocket((char *)"gettingNewFirmware,ERROR,");
+
                 otaUpdateStop();
             }
             break;
         }
+    }
+
+    // Periodically display the state
+    if (PERIODIC_DISPLAY(PD_OTA_STATE))
+    {
+        char line[30];
+        const char *state;
+
+        PERIODIC_CLEAR(PD_OTA_STATE);
+        state = otaStateNameGet(otaState, line);
+        systemPrintf("OTA Firmware Update state: %s\r\n", state);
     }
 }
 

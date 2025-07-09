@@ -345,6 +345,8 @@ enum PeriodDisplayValues
     PD_GNSS_DATA_RX_BYTE_COUNT, // 38
 
     PD_WEB_SERVER_STATE,        // 39
+
+    PD_OTA_STATE,               // 40
     // Add new values before this line
 };
 
@@ -409,11 +411,12 @@ typedef enum
 } BluetoothRadioType_e;
 
 #define SSID_LENGTH     50
+#define PASSWORD_LENGTH 50
 
 typedef struct WiFiNetwork
 {
     char ssid[SSID_LENGTH];
-    char password[50];
+    char password[PASSWORD_LENGTH];
 } WiFiNetwork;
 
 #define MAX_WIFI_NETWORKS 4

@@ -445,6 +445,8 @@ void stateUpdate()
                 // Allow for 750ms before we parse buffer for all data to arrive
                 if (millis() - timeSinceLastIncomingSetting > 750)
                 {
+                    bool changed;
+
                     currentlyParsingData =
                         true; // Disallow new data to flow from websocket while we are parsing the current data
 
@@ -453,7 +455,12 @@ void stateUpdate()
                         systemWrite(incomingSettings[x]);
                     systemPrintln();
 
+                    //Create temporary copy of Settings, so that we can check if they change while parsing
+                    //Useful for detecting when we need to change WiFi station settings
+                    wifiSettingsClone();
+                    
                     parseIncomingSettings();
+                    
                     settings.gnssConfiguredOnce = false; // On the next boot, reapply all settings
                     settings.gnssConfiguredBase = false;
                     settings.gnssConfiguredRover = false;
