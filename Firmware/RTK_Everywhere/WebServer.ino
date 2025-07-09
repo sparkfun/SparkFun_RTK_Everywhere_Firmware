@@ -77,55 +77,7 @@ static const int webSocketStackSize = 8192;
 // These are useful:
 // https://github.com/mo-thunderz/Esp32WifiPart2/blob/main/Arduino/ESP32WebserverWebsocket/ESP32WebserverWebsocket.ino
 // https://www.youtube.com/watch?v=15X0WvGaVg8
-
-//----------------------------------------
-// ===== Request Handler class used to answer more complex requests =====
 // https://github.com/espressif/arduino-esp32/blob/master/libraries/WebServer/examples/WebServer/WebServer.ino
-//----------------------------------------
-class CaptiveRequestHandler : public RequestHandler
-{
-  public:
-    // https://en.wikipedia.org/wiki/Captive_portal
-    String urls[5] = {"/hotspot-detect.html", "/library/test/success.html", "/generate_204", "/ncsi.txt",
-                      "/check_network_status.txt"};
-    CaptiveRequestHandler()
-    {
-        if (settings.debugWebServer == true)
-            systemPrintln("CaptiveRequestHandler is registered");
-    }
-    virtual ~CaptiveRequestHandler()
-    {
-    }
-
-    bool canHandle(HTTPMethod requestMethod, String uri)
-    {
-        for (int i = 0; i < sizeof(urls); i++)
-        {
-            if (uri == urls[i])
-                return true;
-        }
-        return false;
-    }
-
-    bool handle(WebServer &server, HTTPMethod requestMethod, String requestUri)
-    {
-        String logmessage = "Captive Portal Client:" + server.client().remoteIP().toString() + " " + requestUri;
-        if (settings.debugWebServer == true)
-            systemPrintln(logmessage);
-        String response = "<!DOCTYPE html><html><head><title>RTK Config</title></head><body>";
-        response += "<div class='container'>";
-        response += "<div align='center' class='col-sm-12'><img src='http://";
-        response += WiFi.softAPIP().toString();
-        response += "/src/rtk-setup.png' alt='SparkFun RTK WiFi Setup'></div>";
-        response += "<div align='center'><h3>Configure your RTK receiver <a href='http://";
-        response += WiFi.softAPIP().toString();
-        response += "/'>here</a></h3></div>";
-        response += "</div></body></html>";
-        server.send(200, "text/html", response);
-
-        return true;
-    }
-};
 
 //----------------------------------------
 // Create a csv string with the dynamic data to update (current coordinates, battery level, etc)
@@ -637,9 +589,53 @@ void handleUpload()
 //----------------------------------------
 void notFound()
 {
-    String logmessage = "notFound: Client:" + webServer->client().remoteIP().toString() + " " + webServer->uri();
-    systemPrintln(logmessage);
+    if (settings.enableCaptivePortal == true && knownCaptiveUrl(webServer->uri()) == true)
+    {
+        String logmessage = "Known captive URI: " + webServer->client().remoteIP().toString() + " " + webServer->uri();
+        Serial.println(logmessage);
+        webServer->sendHeader("Location", "/portal");
+        webServer->send(302, "text/plain", "Redirect to captive portal");
+        return;
+    }
+
+    String logmessage = "notFound: " + webServer->client().remoteIP().toString() + " " + webServer->uri();
+    Serial.println(logmessage);
     webServer->send(404, "text/plain", "Not found");
+}
+
+// These are the various files or endpoints that browsers will attempt to access to see if internet access is available
+// If one is requested, redirect user to captive portal
+String captiveUrls[] = {
+    "/hotspot-detect.html", "/library/test/success.html", "/generate_204", "/ncsi.txt", "/check_network_status.txt",
+    "/connecttest.txt"};
+
+static const uint8_t captiveUrlCount = sizeof(captiveUrls) / sizeof(captiveUrls[0]);
+
+// Check if given URI is a captive portal endpoint
+bool knownCaptiveUrl(String uri)
+{
+    for (int i = 0; i < captiveUrlCount; i++)
+    {
+        if (uri == captiveUrls[i])
+            return true;
+    }
+    return false;
+}
+
+void respondWithPortal()
+{
+    Serial.println("\r\n Send portal page");
+
+    String response = "<!DOCTYPE html><html><head><title>RTK Config</title></head><body>";
+    response += "<div class='container'>";
+    response += "<div align='center' class='col-sm-12'><img src='http://";
+    response += WiFi.softAPIP().toString();
+    response += "/src/rtk-setup.png' alt='SparkFun RTK WiFi Setup'></div>";
+    response += "<div align='center'><h3>Configure your RTK receiver <a href='http://";
+    response += WiFi.softAPIP().toString();
+    response += "/'>here</a></h3></div>";
+    response += "</div></body></html>";
+    webServer->send(200, "text/html", response);
 }
 
 //----------------------------------------
@@ -834,18 +830,14 @@ bool webServerAssignResources(int httpPort = 80)
         }
         createSettingsString(settingsCSV);
 
-        /* https://github.com/espressif/arduino-esp32/blob/master/libraries/DNSServer/examples/CaptivePortal/CaptivePortal.ino */
+        /* https://github.com/espressif/arduino-esp32/blob/master/libraries/DNSServer/examples/CaptivePortal/CaptivePortal.ino
+         */
 
         webServer = new WebServer(httpPort);
         if (!webServer)
         {
             systemPrintln("ERROR: Web server failed to allocate webServer");
             break;
-        }
-
-        if (settings.enableCaptivePortal == true)
-        {
-            webServer->addHandler(new CaptiveRequestHandler());
         }
 
         // * index.html (not gz'd)
@@ -903,9 +895,12 @@ bool webServerAssignResources(int httpPort = 80)
         GET_PAGE("/src/fonts/icomoon.ttf", "text/plain", icomoon_ttf);
         GET_PAGE("/src/fonts/icomoon.woof", "text/plain", icomoon_woof);
 
-        // https://lemariva.com/blog/2017/11/white-hacking-wemos-captive-portal-using-micropython
-        webServer->on("/connecttest.txt", HTTP_GET,
-                      []() { webServer->send(200, "text/plain", "Microsoft Connect Test"); });
+        // Handler for captive portal page
+        if (settings.enableCaptivePortal == true)
+        {
+            Serial.println("\r\n Setting portal");
+            webServer->on("/portal", []() { respondWithPortal(); });
+        }
 
         // Handler for the /uploadFile form POST
         webServer->on(
