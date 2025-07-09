@@ -904,6 +904,7 @@ struct Settings
     uint32_t radioPortBaud = 57600;       // Default to 57600bps to support connection to SiK1000 type telemetry radios
     int16_t serialTimeoutGNSS = 1; // In ms - used during serialGNSS->begin. Number of ms to pass of no data before
                                    // hardware serial reports data available.
+    bool enableNmeaOnRadio = true; // Postcard (LG290P) and Facet mosaic only
 
     // Setup Button
     bool disableSetupButton = false;                  // By default, allow setup through the overlay button(s)
@@ -1517,6 +1518,7 @@ const RTK_Settings_Entry rtkSettingsEntries[] =
     { 1, 1, 0, 1, 1, 1, 1, 1, 1, _bool,     0, & settings.enableGnssToUsbSerial, "enableGnssToUsbSerial",  },
     { 1, 1, 0, 1, 1, 1, 1, 1, 1, _uint32_t, 0, & settings.radioPortBaud, "radioPortBaud",  },
     { 0, 0, 0, 1, 1, 1, 1, 1, 1, _int16_t,  0, & settings.serialTimeoutGNSS, "serialTimeoutGNSS",  },
+    { 1, 1, 0, 0, 0, 1, 0, 0, 1, _bool,     0, & settings.enableNmeaOnRadio, "enableNmeaOnRadio",  },
 
 //                         F
 //                         a

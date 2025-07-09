@@ -79,6 +79,8 @@ void menuPortsNoMux()
         {
             systemPrintf("4) Toggle use of external corrections radio on UART3: %s\r\n",
                          settings.enableExtCorrRadio ? "Enabled" : "Disabled");
+            systemPrintf("5) NMEA output on radio UART3: %s\r\n",
+                         settings.enableNmeaOnRadio ? "Enabled" : "Disabled");
         }
 
         systemPrintln("x) Exit");
@@ -139,6 +141,10 @@ void menuPortsNoMux()
         {
             // Toggle the SPARTN source for the external corrections radio
             settings.extCorrRadioSPARTNSource ^= 1;
+        }
+        else if ((incoming == 5) && (present.gnss_lg290p))
+        {
+            settings.enableNmeaOnRadio ^= 1;
         }
         else if (incoming == 'x')
             break;
@@ -201,6 +207,8 @@ void menuPortsMultiplexed()
                          settings.enableExtCorrRadio ? "Enabled" : "Disabled");
             systemPrintf("5) Output GNSS data to USB1 serial: %s\r\n",
                          settings.enableGnssToUsbSerial ? "Enabled" : "Disabled");
+            systemPrintf("6) NMEA output on radio COM2: %s\r\n",
+                         settings.enableNmeaOnRadio ? "Enabled" : "Disabled");
         }
 
         systemPrintln("x) Exit");
@@ -282,6 +290,10 @@ void menuPortsMultiplexed()
         else if ((incoming == 5) && (present.gnss_mosaicX5))
         {
             settings.enableGnssToUsbSerial ^= 1;
+        }
+        else if ((incoming == 6) && (present.gnss_mosaicX5))
+        {
+            settings.enableNmeaOnRadio ^= 1;
         }
         else if (incoming == 'x')
             break;
