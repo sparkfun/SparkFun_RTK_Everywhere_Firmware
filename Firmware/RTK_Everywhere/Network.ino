@@ -2532,7 +2532,19 @@ void networkUseDefaultInterface()
         isDefault = networkInterfaceTable[index].netif->isDefault();
         if (!isDefault)
             networkInterfaceTable[index].netif->setDefault();
+
+        if (settings.debugNetworkLayer)
+            networkPrintDefaultInterface();
     }
+}
+
+//----------------------------------------
+// Print the default network interface specs
+//----------------------------------------
+void networkPrintDefaultInterface()
+{
+    NetworkInterface *irfc = Network.getDefaultInterface();
+    systemPrintln(irfc->printTo(Serial));
 }
 
 //----------------------------------------
