@@ -1665,6 +1665,15 @@ void RTK_WIFI::softApEventHandler(arduino_event_id_t event, arduino_event_info_t
         if (settings.debugWifiState && _verbose)
             systemPrintf("_started: 0x%08x\r\n", _started);
         break;
+
+    case ARDUINO_EVENT_WIFI_AP_STACONNECTED:
+        if (settings.debugWifiState)
+            systemPrintln("Device connected to Soft AP!");
+        break;
+    case ARDUINO_EVENT_WIFI_AP_STADISCONNECTED:
+        if (settings.debugWifiState)
+            systemPrintln("Device disconnected from Soft AP!");
+        break;
     }
 }
 
@@ -2746,7 +2755,7 @@ bool RTK_WIFI::stopStart(WIFI_ACTION_t stopping, WIFI_ACTION_t starting)
         // Start the DNS server
         if (starting & WIFI_AP_START_DNS_SERVER)
         {
-            if (settings.debugWifiState)
+            if (settings.debugWifiState || settings.debugWebServer)
                 systemPrintf("Starting DNS on soft AP\r\n");
             if (dnsServer.start(53, "*", WiFi.softAPIP()) == false)
             {
