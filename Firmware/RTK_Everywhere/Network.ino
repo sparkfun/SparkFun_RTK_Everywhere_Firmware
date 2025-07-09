@@ -104,9 +104,20 @@ Network.ino
 //----------------------------------------
 
 static const char *networkConsumerTable[] = {
-    "HTTP_CLIENT",    "NTP_SERVER",     "NTRIP_CLIENT", "NTRIP_SERVER_0", "NTRIP_SERVER_1",
-    "NTRIP_SERVER_2", "NTRIP_SERVER_3", "OTA_CLIENT",   "POINTPERFECT_KEY_UPDATE", "POINTPERFECT_MQTT_CLIENT",
-    "TCP_CLIENT",     "TCP_SERVER",     "UDP_SERVER",   "WEB_CONFIG",
+    "HTTP_CLIENT",
+    "NTP_SERVER",
+    "NTRIP_CLIENT",
+    "NTRIP_SERVER_0",
+    "NTRIP_SERVER_1",
+    "NTRIP_SERVER_2",
+    "NTRIP_SERVER_3",
+    "OTA_CLIENT",
+    "POINTPERFECT_KEY_UPDATE",
+    "POINTPERFECT_MQTT_CLIENT",
+    "TCP_CLIENT",
+    "TCP_SERVER",
+    "UDP_SERVER",
+    "WEB_CONFIG",
 };
 
 static const int networkConsumerTableEntries = sizeof(networkConsumerTable) / sizeof(networkConsumerTable[0]);
@@ -203,7 +214,8 @@ void menuTcpUdp()
         if (settings.enableTcpServer)
         {
             systemPrintf("8) Enable NTRIP Caster: %s\r\n", settings.enableNtripCaster ? "Enabled" : "Disabled");
-            systemPrintf("9) Enable base Caster override: %s\r\n", settings.baseCasterOverride ? "Enabled" : "Disabled");
+            systemPrintf("9) Enable base Caster override: %s\r\n",
+                         settings.baseCasterOverride ? "Enabled" : "Disabled");
         }
 
         //------------------------------
