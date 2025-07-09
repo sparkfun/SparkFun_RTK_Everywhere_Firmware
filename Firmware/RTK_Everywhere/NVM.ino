@@ -840,8 +840,7 @@ bool loadSystemSettingsFromFileLFS(char *fileName, const char *findMe, char *fou
             {
                 // If we can't read the first line of the settings file, give up
                 systemPrintln("Giving up on settings file");
-                settingsFile.close();
-                return (false);
+                break;
             }
         }
         else
@@ -856,7 +855,6 @@ bool loadSystemSettingsFromFileLFS(char *fileName, const char *findMe, char *fou
                     {
                         // If we can't read the first line of the settings file, give up
                         systemPrintln("Giving up on settings file");
-                        settingsFile.close();
                         break;
                     }
                 }
@@ -877,7 +875,7 @@ bool loadSystemSettingsFromFileLFS(char *fileName, const char *findMe, char *fou
                         }
                     }
                     strncpy(found, ptr, len);
-                    break;
+                    break; // We are done
                 }
             }
         }
@@ -934,8 +932,7 @@ bool printSystemSettingsFromFileLFS(char *fileName)
             {
                 // If we can't read the first line of the settings file, give up
                 systemPrintln("Giving up on settings file");
-                settingsFile.close();
-                return (false);
+                break;
             }
         }
         else
