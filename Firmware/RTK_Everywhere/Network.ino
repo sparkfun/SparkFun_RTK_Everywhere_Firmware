@@ -947,6 +947,13 @@ void networkEvent(arduino_event_id_t event, arduino_event_info_t info)
     case ARDUINO_EVENT_WIFI_STA_GOT_IP:
     case ARDUINO_EVENT_WIFI_STA_GOT_IP6:
     case ARDUINO_EVENT_WIFI_STA_LOST_IP:
+    case ARDUINO_EVENT_WIFI_AP_START:
+    case ARDUINO_EVENT_WIFI_AP_STOP:
+    case ARDUINO_EVENT_WIFI_AP_STACONNECTED:
+    case ARDUINO_EVENT_WIFI_AP_STADISCONNECTED:
+    case ARDUINO_EVENT_WIFI_AP_STAIPASSIGNED:
+    case ARDUINO_EVENT_WIFI_AP_PROBEREQRECVED:
+    case ARDUINO_EVENT_WIFI_AP_GOT_IP6:
         wifi.eventHandler(event, info);
         break;
 #endif // COMPILE_WIFI
