@@ -156,6 +156,18 @@ void menuPortsNoMux()
             printUnknown(incoming);
     }
 
+#ifdef COMPILE_LG290P
+    if (present.gnss_lg290p)
+    {
+        // Apply these changes at menu exit - to enable/disable NMEA on radio
+        GNSS_LG290P *aLG290P = (GNSS_LG290P *)gnss;
+        if (aLG290P->inRoverMode() == true)
+            restartRover = true;
+        else
+            restartBase = true;
+    }
+#endif // COMPILE_MOSAICX5
+
     clearBuffer(); // Empty buffer of any newline chars
 }
 
@@ -311,6 +323,7 @@ void menuPortsMultiplexed()
     if (present.gnss_mosaicX5)
     {
         // Apply these changes at menu exit - to enable message output on USB1
+        // and/or enable/disable NMEA on radio
         GNSS_MOSAIC *mosaic = (GNSS_MOSAIC *)gnss;
         if (mosaic->inRoverMode() == true)
             restartRover = true;
