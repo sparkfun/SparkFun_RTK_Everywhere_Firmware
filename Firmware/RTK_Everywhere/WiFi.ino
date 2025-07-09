@@ -2700,7 +2700,6 @@ bool RTK_WIFI::stopStart(WIFI_ACTION_t stopping, WIFI_ACTION_t starting)
         // Set the soft AP subnet mask, IP, gateway, DNS, and first DHCP addresses
         if (starting & WIFI_AP_SET_IP_ADDR)
         {
-            Serial.println("\n\r Running softAP set IP");
             if (!softApSetIpAddress(_apIpAddress.toString().c_str(), _apSubnetMask.toString().c_str(),
                                     _apGatewayAddress.toString().c_str(), _apDnsAddress.toString().c_str(),
                                     _apFirstDhcpAddress.toString().c_str()))

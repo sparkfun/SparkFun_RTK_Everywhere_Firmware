@@ -898,6 +898,9 @@ void networkEvent(arduino_event_id_t event, arduino_event_info_t info)
 {
     int index;
 
+    if (settings.debugNetworkLayer)
+        systemPrintf("event: %d (%s)\r\n", event, Network.eventName(event));
+
     // Get the index into the networkInterfaceTable for the default interface
     index = networkPriority;
     if (index < NETWORK_OFFLINE)
