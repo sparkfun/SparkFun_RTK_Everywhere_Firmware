@@ -8,7 +8,7 @@ GNSS_LG290P.ino
 
 #ifdef COMPILE_LG290P
 
-uint8_t lg290pFirmwareVersion = 0;
+uint8_t lg290pFirmwareVersion = 0; // 0 = Unknown
 
 //----------------------------------------
 // If we have decryption keys, configure module
@@ -111,7 +111,7 @@ void GNSS_LG290P::begin()
     {
         spot += strlen("LG290P03AANR01A");
         if (sscanf(spot, "%d", &lg290pFirmwareVersion) != 1)
-            lg290pFirmwareVersion = 99;
+            lg290pFirmwareVersion = 0; // Unknown
     }
 
     if (lg290pFirmwareVersion < 4)
@@ -675,11 +675,25 @@ bool GNSS_LG290P::enableNMEA()
     if (pointPerfectIsEnabled())
     {
         // Force on any messages that are needed for PPL
-        if (gpggaEnabled == false)
-            response &= _lg290p->setMessageRate("GGA", 1);
+        // If firmware is 4 or higher, use setMessageRateOnPort, otherwise setMessageRate
+        if (lg290pFirmwareVersion >= 4)
+        {
+            // Enable GGA / ZDA on port 2 (ESP32) only
+            if (gpggaEnabled == false)
+                response &= _lg290p->setMessageRateOnPort("GGA", 1, 2);
 
-        // if (gpzdaEnabled == false)
-        //     response &= _lg290p->setMessageRate("ZDA", 1);
+            // if (gpggaEnabled == false)
+            //     response &= _lg290p->setMessageRateOnPort("GGA", 1, 1);
+        }
+        else
+        {
+            // Enable GGA / ZDA on all ports. It's the best we can do.
+            if (gpggaEnabled == false)
+                response &= _lg290p->setMessageRate("GGA", 1);
+
+            // if (gpzdaEnabled == false)
+            //     response &= _lg290p->setMessageRate("ZDA", 1);
+        }
     }
 
     return (response);
