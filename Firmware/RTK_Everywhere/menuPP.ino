@@ -714,8 +714,6 @@ void updateLBand()
         // Stop L-Band is service is disabled
         else if (online.lband_gnss == true && pointPerfectLbandNeeded() == false)
         {
-            Serial.println("\n\r Taking L-Band offline");
-
             bool result = true;
 
             GNSS_MOSAIC *mosaic = (GNSS_MOSAIC *)gnss;
