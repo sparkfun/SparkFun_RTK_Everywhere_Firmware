@@ -23,8 +23,10 @@ static const uint8_t ppLbandToken[16] = {POINTPERFECT_LBAND_TOKEN};      // Toke
 static const uint8_t ppIpToken[16] = {POINTPERFECT_IP_TOKEN};            // Token in HEX form
 static const uint8_t ppLbandIpToken[16] = {POINTPERFECT_LBAND_IP_TOKEN}; // Token in HEX form
 static const uint8_t ppRtcmToken[16] = {POINTPERFECT_RTCM_TOKEN};        // Token in HEX form
-static const uint8_t ppGlobalToken[16] = {POINTPERFECT_GLOBAL_TOKEN};    // Token in HEX form
-static const uint8_t ppLiveToken[16] = {POINTPERFECT_LIVE_TOKEN};        // Token in HEX form
+static const uint8_t ppGlobalToken[16] = {0};
+//{POINTPERFECT_GLOBAL_TOKEN};                                             // Token in HEX form
+static const uint8_t ppLiveToken[16] = {0};
+//{POINTPERFECT_LIVE_TOKEN}; // Token in HEX form
 static unsigned long provisioningStartTime_millis;
 static bool provisioningRunning;
 
