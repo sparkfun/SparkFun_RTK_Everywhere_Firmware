@@ -63,8 +63,8 @@ static int last_ws_fd;
 
 static TaskHandle_t updateWebServerTaskHandle;
 static const uint8_t updateWebServerTaskPriority = 0; // 3 being the highest, and 0 being the lowest
-static const int webServerTaskStackSize = 4096;       // Needs to be large enough to hold the file manager file list
-static const int webSocketStackSize = 8192;
+static const int webServerTaskStackSize = 1024 * 4;
+static const int webSocketStackSize = 1024 * 20; // Needs to be large enough to hold the file manager file list
 
 // Inspired by:
 // https://github.com/espressif/arduino-esp32/blob/master/libraries/WebServer/examples/MultiHomedServers/MultiHomedServers.ino
