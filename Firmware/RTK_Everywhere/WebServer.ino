@@ -591,14 +591,14 @@ void notFound()
     if (settings.enableCaptivePortal == true && knownCaptiveUrl(webServer->uri()) == true)
     {
         String logmessage = "Known captive URI: " + webServer->client().remoteIP().toString() + " " + webServer->uri();
-        Serial.println(logmessage);
-        webServer->sendHeader("Location", "/portal");
-        webServer->send(302, "text/plain", "Redirect to captive portal");
+        systemPrintln(logmessage);
+        webServer->sendHeader("Location", "/");
+        webServer->send(302, "text/plain", "Redirect to Web Config");
         return;
     }
 
     String logmessage = "notFound: " + webServer->client().remoteIP().toString() + " " + webServer->uri();
-    Serial.println(logmessage);
+    systemPrintln(logmessage);
     webServer->send(404, "text/plain", "Not found");
 }
 
@@ -619,22 +619,6 @@ bool knownCaptiveUrl(String uri)
             return true;
     }
     return false;
-}
-
-void respondWithPortal()
-{
-    Serial.println("\r\n Send portal page");
-
-    String response = "<!DOCTYPE html><html><head><title>RTK Config</title></head><body>";
-    response += "<div class='container'>";
-    response += "<div align='center' class='col-sm-12'><img src='http://";
-    response += WiFi.softAPIP().toString();
-    response += "/src/rtk-setup.png' alt='SparkFun RTK WiFi Setup'></div>";
-    response += "<div align='center'><h3>Configure your RTK receiver <a href='http://";
-    response += WiFi.softAPIP().toString();
-    response += "/'>here</a></h3></div>";
-    response += "</div></body></html>";
-    webServer->send(200, "text/html", response);
 }
 
 //----------------------------------------
@@ -893,13 +877,6 @@ bool webServerAssignResources(int httpPort = 80)
         GET_PAGE("/src/fonts/icomoon.svg", "text/plain", icomoon_svg);
         GET_PAGE("/src/fonts/icomoon.ttf", "text/plain", icomoon_ttf);
         GET_PAGE("/src/fonts/icomoon.woof", "text/plain", icomoon_woof);
-
-        // Handler for captive portal page
-        if (settings.enableCaptivePortal == true)
-        {
-            Serial.println("\r\n Setting portal");
-            webServer->on("/portal", []() { respondWithPortal(); });
-        }
 
         // Handler for the /uploadFile form POST
         webServer->on(
