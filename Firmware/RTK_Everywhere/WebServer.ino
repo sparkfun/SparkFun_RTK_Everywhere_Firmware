@@ -816,6 +816,16 @@ bool webServerAssignResources(int httpPort = 80)
         /* https://github.com/espressif/arduino-esp32/blob/master/libraries/DNSServer/examples/CaptivePortal/CaptivePortal.ino
          */
 
+        if (MDNS.begin(&settings.mdnsHostName[0]) == false)
+        {
+            systemPrintln("Error setting up MDNS responder!");
+        }
+        else
+        {
+            //if (settings.debugNetworkLayer)
+                systemPrintf("mDNS started as %s.local\r\n", settings.mdnsHostName);
+        }
+
         webServer = new WebServer(httpPort);
         if (!webServer)
         {
@@ -926,6 +936,9 @@ bool webServerAssignResources(int httpPort = 80)
 
         // Start the web server
         webServer->begin();
+
+        if (settings.mdnsEnable == true)
+            MDNS.addService("http", "tcp", settings.httpPort); // Add service to MDNS
 
         // Starts task for updating webServer with handleClient
         if (task.updateWebServerTaskRunning == false)
