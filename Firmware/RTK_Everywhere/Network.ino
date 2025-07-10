@@ -104,9 +104,20 @@ Network.ino
 //----------------------------------------
 
 static const char *networkConsumerTable[] = {
-    "HTTP_CLIENT",    "NTP_SERVER",     "NTRIP_CLIENT", "NTRIP_SERVER_0", "NTRIP_SERVER_1",
-    "NTRIP_SERVER_2", "NTRIP_SERVER_3", "OTA_CLIENT",   "POINTPERFECT_KEY_UPDATE", "POINTPERFECT_MQTT_CLIENT",
-    "TCP_CLIENT",     "TCP_SERVER",     "UDP_SERVER",   "WEB_CONFIG",
+    "HTTP_CLIENT",
+    "NTP_SERVER",
+    "NTRIP_CLIENT",
+    "NTRIP_SERVER_0",
+    "NTRIP_SERVER_1",
+    "NTRIP_SERVER_2",
+    "NTRIP_SERVER_3",
+    "OTA_CLIENT",
+    "POINTPERFECT_KEY_UPDATE",
+    "POINTPERFECT_MQTT_CLIENT",
+    "TCP_CLIENT",
+    "TCP_SERVER",
+    "UDP_SERVER",
+    "WEB_CONFIG",
 };
 
 static const int networkConsumerTableEntries = sizeof(networkConsumerTable) / sizeof(networkConsumerTable[0]);
@@ -203,7 +214,8 @@ void menuTcpUdp()
         if (settings.enableTcpServer)
         {
             systemPrintf("8) Enable NTRIP Caster: %s\r\n", settings.enableNtripCaster ? "Enabled" : "Disabled");
-            systemPrintf("9) Enable base Caster override: %s\r\n", settings.baseCasterOverride ? "Enabled" : "Disabled");
+            systemPrintf("9) Enable base Caster override: %s\r\n",
+                         settings.baseCasterOverride ? "Enabled" : "Disabled");
         }
 
         //------------------------------
@@ -898,6 +910,9 @@ void networkEvent(arduino_event_id_t event, arduino_event_info_t info)
 {
     int index;
 
+    if (settings.debugNetworkLayer)
+        systemPrintf("event: %d (%s)\r\n", event, Network.eventName(event));
+
     // Get the index into the networkInterfaceTable for the default interface
     index = networkPriority;
     if (index < NETWORK_OFFLINE)
@@ -944,6 +959,13 @@ void networkEvent(arduino_event_id_t event, arduino_event_info_t info)
     case ARDUINO_EVENT_WIFI_STA_GOT_IP:
     case ARDUINO_EVENT_WIFI_STA_GOT_IP6:
     case ARDUINO_EVENT_WIFI_STA_LOST_IP:
+    case ARDUINO_EVENT_WIFI_AP_START:
+    case ARDUINO_EVENT_WIFI_AP_STOP:
+    case ARDUINO_EVENT_WIFI_AP_STACONNECTED:
+    case ARDUINO_EVENT_WIFI_AP_STADISCONNECTED:
+    case ARDUINO_EVENT_WIFI_AP_STAIPASSIGNED:
+    case ARDUINO_EVENT_WIFI_AP_PROBEREQRECVED:
+    case ARDUINO_EVENT_WIFI_AP_GOT_IP6:
         wifi.eventHandler(event, info);
         break;
 #endif // COMPILE_WIFI
@@ -2510,7 +2532,19 @@ void networkUseDefaultInterface()
         isDefault = networkInterfaceTable[index].netif->isDefault();
         if (!isDefault)
             networkInterfaceTable[index].netif->setDefault();
+
+        if (settings.debugNetworkLayer)
+            networkPrintDefaultInterface();
     }
+}
+
+//----------------------------------------
+// Print the default network interface specs
+//----------------------------------------
+void networkPrintDefaultInterface()
+{
+    NetworkInterface *irfc = Network.getDefaultInterface();
+    systemPrintln(irfc->printTo(Serial));
 }
 
 //----------------------------------------

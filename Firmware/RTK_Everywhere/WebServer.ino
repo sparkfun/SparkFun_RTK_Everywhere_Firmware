@@ -33,16 +33,15 @@ static const char *const webServerStateNames[] = {
 // Macros
 //----------------------------------------
 
-#define GET_PAGE(page, type, data) \
-    webServer->on(page, HTTP_GET, []() { \
-        String length;  \
-        if (settings.debugWebServer == true)    \
-            Serial.printf("WebServer: Sending %s (%p, %d bytes)\r\n", \
-                          page, (void *)data, sizeof(data));  \
-        webServer->sendHeader("Content-Encoding", "gzip"); \
-        length = String(sizeof(data));  \
-        webServer->sendHeader("Content-Length", length.c_str()); \
-        webServer->send_P(200, type, (const char *)data, sizeof(data)); \
+#define GET_PAGE(page, type, data)                                                                                     \
+    webServer->on(page, HTTP_GET, []() {                                                                               \
+        String length;                                                                                                 \
+        if (settings.debugWebServer == true)                                                                           \
+            Serial.printf("WebServer: Sending %s (%p, %d bytes)\r\n", page, (void *)data, sizeof(data));               \
+        webServer->sendHeader("Content-Encoding", "gzip");                                                             \
+        length = String(sizeof(data));                                                                                 \
+        webServer->sendHeader("Content-Length", length.c_str());                                                       \
+        webServer->send_P(200, type, (const char *)data, sizeof(data));                                                \
     });
 
 //----------------------------------------
@@ -64,8 +63,8 @@ static int last_ws_fd;
 
 static TaskHandle_t updateWebServerTaskHandle;
 static const uint8_t updateWebServerTaskPriority = 0; // 3 being the highest, and 0 being the lowest
-static const int webServerTaskStackSize = 4096; // Needs to be large enough to hold the file manager file list
-static const int webSocketStackSize = 8192;
+static const int webServerTaskStackSize = 1024 * 4;
+static const int webSocketStackSize = 1024 * 20; // Needs to be large enough to hold the file manager file list
 
 // Inspired by:
 // https://github.com/espressif/arduino-esp32/blob/master/libraries/WebServer/examples/MultiHomedServers/MultiHomedServers.ino
@@ -77,55 +76,7 @@ static const int webSocketStackSize = 8192;
 // These are useful:
 // https://github.com/mo-thunderz/Esp32WifiPart2/blob/main/Arduino/ESP32WebserverWebsocket/ESP32WebserverWebsocket.ino
 // https://www.youtube.com/watch?v=15X0WvGaVg8
-
-//----------------------------------------
-// ===== Request Handler class used to answer more complex requests =====
 // https://github.com/espressif/arduino-esp32/blob/master/libraries/WebServer/examples/WebServer/WebServer.ino
-//----------------------------------------
-class CaptiveRequestHandler : public RequestHandler
-{
-  public:
-    // https://en.wikipedia.org/wiki/Captive_portal
-    String urls[5] = {"/hotspot-detect.html", "/library/test/success.html", "/generate_204", "/ncsi.txt",
-                      "/check_network_status.txt"};
-    CaptiveRequestHandler()
-    {
-        if (settings.debugWebServer == true)
-            systemPrintln("CaptiveRequestHandler is registered");
-    }
-    virtual ~CaptiveRequestHandler()
-    {
-    }
-
-    bool canHandle(HTTPMethod requestMethod, String uri)
-    {
-        for (int i = 0; i < sizeof(urls); i++)
-        {
-            if (uri == urls[i])
-                return true;
-        }
-        return false;
-    }
-
-    bool handle(WebServer &server, HTTPMethod requestMethod, String requestUri)
-    {
-        String logmessage = "Captive Portal Client:" + server.client().remoteIP().toString() + " " + requestUri;
-        if (settings.debugWebServer == true)
-            systemPrintln(logmessage);
-        String response = "<!DOCTYPE html><html><head><title>RTK Config</title></head><body>";
-        response += "<div class='container'>";
-        response += "<div align='center' class='col-sm-12'><img src='http://";
-        response += WiFi.softAPIP().toString();
-        response += "/src/rtk-setup.png' alt='SparkFun RTK WiFi Setup'></div>";
-        response += "<div align='center'><h3>Configure your RTK receiver <a href='http://";
-        response += WiFi.softAPIP().toString();
-        response += "/'>here</a></h3></div>";
-        response += "</div></body></html>";
-        server.send(200, "text/html", response);
-
-        return true;
-    }
-};
 
 //----------------------------------------
 // Create a csv string with the dynamic data to update (current coordinates, battery level, etc)
@@ -637,9 +588,37 @@ void handleUpload()
 //----------------------------------------
 void notFound()
 {
-    String logmessage = "notFound: Client:" + webServer->client().remoteIP().toString() + " " + webServer->uri();
+    if (settings.enableCaptivePortal == true && knownCaptiveUrl(webServer->uri()) == true)
+    {
+        String logmessage = "Known captive URI: " + webServer->client().remoteIP().toString() + " " + webServer->uri();
+        systemPrintln(logmessage);
+        webServer->sendHeader("Location", "/");
+        webServer->send(302, "text/plain", "Redirect to Web Config");
+        return;
+    }
+
+    String logmessage = "notFound: " + webServer->client().remoteIP().toString() + " " + webServer->uri();
     systemPrintln(logmessage);
     webServer->send(404, "text/plain", "Not found");
+}
+
+// These are the various files or endpoints that browsers will attempt to access to see if internet access is available
+// If one is requested, redirect user to captive portal
+String captiveUrls[] = {
+    "/hotspot-detect.html", "/library/test/success.html", "/generate_204", "/ncsi.txt", "/check_network_status.txt",
+    "/connecttest.txt"};
+
+static const uint8_t captiveUrlCount = sizeof(captiveUrls) / sizeof(captiveUrls[0]);
+
+// Check if given URI is a captive portal endpoint
+bool knownCaptiveUrl(String uri)
+{
+    for (int i = 0; i < captiveUrlCount; i++)
+    {
+        if (uri == captiveUrls[i])
+            return true;
+    }
+    return false;
 }
 
 //----------------------------------------
@@ -834,18 +813,24 @@ bool webServerAssignResources(int httpPort = 80)
         }
         createSettingsString(settingsCSV);
 
-        /* https://github.com/espressif/arduino-esp32/blob/master/libraries/DNSServer/examples/CaptivePortal/CaptivePortal.ino */
+        /* https://github.com/espressif/arduino-esp32/blob/master/libraries/DNSServer/examples/CaptivePortal/CaptivePortal.ino
+         */
+
+        if (MDNS.begin(&settings.mdnsHostName[0]) == false)
+        {
+            systemPrintln("Error setting up MDNS responder!");
+        }
+        else
+        {
+            if (settings.debugNetworkLayer)
+                systemPrintf("mDNS started as %s.local\r\n", settings.mdnsHostName);
+        }
 
         webServer = new WebServer(httpPort);
         if (!webServer)
         {
             systemPrintln("ERROR: Web server failed to allocate webServer");
             break;
-        }
-
-        if (settings.enableCaptivePortal == true)
-        {
-            webServer->addHandler(new CaptiveRequestHandler());
         }
 
         // * index.html (not gz'd)
@@ -903,10 +888,6 @@ bool webServerAssignResources(int httpPort = 80)
         GET_PAGE("/src/fonts/icomoon.ttf", "text/plain", icomoon_ttf);
         GET_PAGE("/src/fonts/icomoon.woof", "text/plain", icomoon_woof);
 
-        // https://lemariva.com/blog/2017/11/white-hacking-wemos-captive-portal-using-micropython
-        webServer->on("/connecttest.txt", HTTP_GET,
-                      []() { webServer->send(200, "text/plain", "Microsoft Connect Test"); });
-
         // Handler for the /uploadFile form POST
         webServer->on(
             "/uploadFile", HTTP_POST, []() { webServer->send(200, "text/plain", ""); },
@@ -956,15 +937,17 @@ bool webServerAssignResources(int httpPort = 80)
         // Start the web server
         webServer->begin();
 
+        if (settings.mdnsEnable == true)
+            MDNS.addService("http", "tcp", settings.httpPort); // Add service to MDNS
+
         // Starts task for updating webServer with handleClient
         if (task.updateWebServerTaskRunning == false)
-            xTaskCreate(
-                updateWebServerTask,
-                "UpdateWebServer",            // Just for humans
-                webServerTaskStackSize,       // Stack Size - needs to be large enough to hold the file manager list
-                nullptr,                      // Task input parameter
-                updateWebServerTaskPriority,
-                &updateWebServerTaskHandle); // Task handle
+            xTaskCreate(updateWebServerTask,
+                        "UpdateWebServer",      // Just for humans
+                        webServerTaskStackSize, // Stack Size - needs to be large enough to hold the file manager list
+                        nullptr,                // Task input parameter
+                        updateWebServerTaskPriority,
+                        &updateWebServerTaskHandle); // Task handle
 
         if (settings.debugWebServer == true)
             systemPrintln("Web Server: Started");
@@ -1032,7 +1015,7 @@ void webServerReleaseResources()
 
     online.webServer = false;
 
-    webServerStopSockets();      // Release socket resources
+    webServerStopSockets(); // Release socket resources
 
     if (webServer != nullptr)
     {
@@ -1065,8 +1048,7 @@ void webServerStopSockets()
         // Stop the httpd server
         esp_err_t status = httpd_stop(wsserver);
         if (status != ESP_OK)
-            systemPrintf("ERROR: wsserver failed to stop, status: %s!\r\n",
-                         esp_err_to_name(status));
+            systemPrintf("ERROR: wsserver failed to stop, status: %s!\r\n", esp_err_to_name(status));
         wsserver = nullptr;
     }
 }
@@ -1317,25 +1299,34 @@ static esp_err_t ws_handler(httpd_req_t *req)
     }
     if (settings.debugWebServer == true)
     {
-        const char * pktType;
+        const char *pktType;
         size_t length = ws_pkt.len;
         switch (ws_pkt.type)
         {
-        default: pktType = nullptr; break;
-        case HTTPD_WS_TYPE_CONTINUE: pktType = "HTTPD_WS_TYPE_CONTINUE"; break;
-        case HTTPD_WS_TYPE_TEXT:     pktType = "HTTPD_WS_TYPE_TEXT"; break;
-        case HTTPD_WS_TYPE_BINARY:   pktType = "HTTPD_WS_TYPE_BINARY"; break;
-        case HTTPD_WS_TYPE_CLOSE:    pktType = "HTTPD_WS_TYPE_CLOSE"; break;
-        case HTTPD_WS_TYPE_PING:     pktType = "HTTPD_WS_TYPE_PING"; break;
-        case HTTPD_WS_TYPE_PONG:     pktType = "HTTPD_WS_TYPE_PONG"; break;
+        default:
+            pktType = nullptr;
+            break;
+        case HTTPD_WS_TYPE_CONTINUE:
+            pktType = "HTTPD_WS_TYPE_CONTINUE";
+            break;
+        case HTTPD_WS_TYPE_TEXT:
+            pktType = "HTTPD_WS_TYPE_TEXT";
+            break;
+        case HTTPD_WS_TYPE_BINARY:
+            pktType = "HTTPD_WS_TYPE_BINARY";
+            break;
+        case HTTPD_WS_TYPE_CLOSE:
+            pktType = "HTTPD_WS_TYPE_CLOSE";
+            break;
+        case HTTPD_WS_TYPE_PING:
+            pktType = "HTTPD_WS_TYPE_PING";
+            break;
+        case HTTPD_WS_TYPE_PONG:
+            pktType = "HTTPD_WS_TYPE_PONG";
+            break;
         }
-        systemPrintf("Packet: %p, %d bytes, type: %d%s%s%s\r\n",
-                     ws_pkt.payload,
-                     length,
-                     ws_pkt.type,
-                     pktType ? " (" : "",
-                     pktType ? pktType : "",
-                     pktType ? ")" : "");
+        systemPrintf("Packet: %p, %d bytes, type: %d%s%s%s\r\n", ws_pkt.payload, length, ws_pkt.type,
+                     pktType ? " (" : "", pktType ? pktType : "", pktType ? ")" : "");
         if (length > 0x40)
             length = 0x40;
         dumpBuffer(ws_pkt.payload, length);
@@ -1384,7 +1375,7 @@ static const httpd_uri_t ws = {.uri = "/ws",
 //----------------------------------------
 // Display the HTTPD configuration
 //----------------------------------------
-void httpdDisplayConfig(struct httpd_config * config)
+void httpdDisplayConfig(struct httpd_config *config)
 {
     systemPrintf("httpd_config object:\r\n");
     systemPrintf("%10d: task_priority\r\n", config->task_priority);
@@ -1450,8 +1441,7 @@ bool websocketServerStart(void)
     }
 
     // Display the failure to start
-    systemPrintf("ERROR: wsserver failed to start, status: %s!\r\n",
-                 esp_err_to_name(status));
+    systemPrintf("ERROR: wsserver failed to start, status: %s!\r\n", esp_err_to_name(status));
     return false;
 }
 

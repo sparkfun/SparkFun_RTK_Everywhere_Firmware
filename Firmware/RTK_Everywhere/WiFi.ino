@@ -15,12 +15,20 @@
 #define WIFI_CONNECTION_STABLE_MSEC (15 * MILLISECONDS_IN_A_MINUTE)
 
 static const char *wifiAuthorizationName[] = {
-    "Open",     "WEP",           "WPA_PSK",  "WPA2_PSK", "WPA_WPA2_PSK", //"ENTERPRISE", 
+    "Open",
+    "WEP",
+    "WPA_PSK",
+    "WPA2_PSK",
+    "WPA_WPA2_PSK", //"ENTERPRISE",
     "WPA2_Enterprise",
-    "WPA3_PSK", "WPA2_WPA3_PSK", "WAPI_PSK", "OWE",      "WPA3_ENT_192",
+    "WPA3_PSK",
+    "WPA2_WPA3_PSK",
+    "WAPI_PSK",
+    "OWE",
+    "WPA3_ENT_192",
 
-    //Compatible with ESP32 core v3.2.1, 16 reported, 18 listed here:
-    //https://github.com/espressif/esp-idf/blob/master/components/esp_wifi/include/esp_wifi_types_generic.h#L86
+    // Compatible with ESP32 core v3.2.1, 16 reported, 18 listed here:
+    // https://github.com/espressif/esp-idf/blob/master/components/esp_wifi/include/esp_wifi_types_generic.h#L86
     //"WPA3_EXT_PSK",
     //"WPA3_EXT_PSK_MIXED_MODE",
     //"DPP",
@@ -1665,6 +1673,15 @@ void RTK_WIFI::softApEventHandler(arduino_event_id_t event, arduino_event_info_t
         if (settings.debugWifiState && _verbose)
             systemPrintf("_started: 0x%08x\r\n", _started);
         break;
+
+    case ARDUINO_EVENT_WIFI_AP_STACONNECTED:
+        if (settings.debugWifiState)
+            systemPrintln("Device connected to Soft AP!");
+        break;
+    case ARDUINO_EVENT_WIFI_AP_STADISCONNECTED:
+        if (settings.debugWifiState)
+            systemPrintln("Device disconnected from Soft AP!");
+        break;
     }
 }
 
@@ -2700,13 +2717,12 @@ bool RTK_WIFI::stopStart(WIFI_ACTION_t stopping, WIFI_ACTION_t starting)
         // Set the soft AP subnet mask, IP, gateway, DNS, and first DHCP addresses
         if (starting & WIFI_AP_SET_IP_ADDR)
         {
-            Serial.println("\n\r Running softAP set IP");
-            if (!softApSetIpAddress(_apIpAddress.toString().c_str(), _apSubnetMask.toString().c_str(),
-                                    _apGatewayAddress.toString().c_str(), _apDnsAddress.toString().c_str(),
-                                    _apFirstDhcpAddress.toString().c_str()))
-            {
-                break;
-            }
+            // if (!softApSetIpAddress(_apIpAddress.toString().c_str(), _apSubnetMask.toString().c_str(),
+            //                         _apGatewayAddress.toString().c_str(), _apDnsAddress.toString().c_str(),
+            //                         _apFirstDhcpAddress.toString().c_str()))
+            // {
+            //     break;
+            // }
             _started = _started | WIFI_AP_SET_IP_ADDR;
         }
 
@@ -2747,7 +2763,7 @@ bool RTK_WIFI::stopStart(WIFI_ACTION_t stopping, WIFI_ACTION_t starting)
         // Start the DNS server
         if (starting & WIFI_AP_START_DNS_SERVER)
         {
-            if (settings.debugWifiState)
+            if (settings.debugWifiState || settings.debugWebServer)
                 systemPrintf("Starting DNS on soft AP\r\n");
             if (dnsServer.start(53, "*", WiFi.softAPIP()) == false)
             {
@@ -3145,8 +3161,10 @@ void RTK_WIFI::verifyTables()
     // Verify the authorization name table
     if (WIFI_AUTH_MAX != wifiAuthorizationNameEntries)
     {
-        //https://github.com/espressif/esp-idf/blob/master/components/esp_wifi/include/esp_wifi_types_generic.h#L86
-        systemPrintf("ERROR: Fix wifiAuthorizationName list (%d) to match wifi_auth_mode_t (%d) in esp_wifi_types.h!\r\n", wifiAuthorizationNameEntries, WIFI_AUTH_MAX);
+        // https://github.com/espressif/esp-idf/blob/master/components/esp_wifi/include/esp_wifi_types_generic.h#L86
+        systemPrintf(
+            "ERROR: Fix wifiAuthorizationName list (%d) to match wifi_auth_mode_t (%d) in esp_wifi_types.h!\r\n",
+            wifiAuthorizationNameEntries, WIFI_AUTH_MAX);
         reportFatalError("Fix wifiAuthorizationName list to match wifi_auth_mode_t in esp_wifi_types.h!");
     }
 
