@@ -8,7 +8,7 @@ GNSS_LG290P.ino
 
 #ifdef COMPILE_LG290P
 
-uint8_t lg290pFirmwareVersion = 0; // 0 = Unknown
+int lg290pFirmwareVersion = 0;
 
 //----------------------------------------
 // If we have decryption keys, configure module
@@ -101,18 +101,7 @@ void GNSS_LG290P::begin()
     online.gnss = true;
 
     // Check firmware version and print info
-    std::string version, buildDate, buildTime;
-    if (_lg290p->getVersionInfo(version, buildDate, buildTime))
-        snprintf(gnssFirmwareVersion, sizeof(gnssFirmwareVersion), "%s", version.c_str());
-
-    // Version strings look like LG290P03AANR01A03S and is version 03
-    char *spot = strnstr(gnssFirmwareVersion, "LG290P03AANR01A", sizeof(gnssFirmwareVersion));
-    if (spot != NULL)
-    {
-        spot += strlen("LG290P03AANR01A");
-        if (sscanf(spot, "%d", &lg290pFirmwareVersion) != 1)
-            lg290pFirmwareVersion = 0; // Unknown
-    }
+    _lg290p->getFirmwareVersion(lg290pFirmwareVersion); // Needs LG290P library v1.0.7
 
     if (lg290pFirmwareVersion < 4)
     {
