@@ -822,7 +822,7 @@ bool webServerAssignResources(int httpPort = 80)
         }
         else
         {
-            //if (settings.debugNetworkLayer)
+            if (settings.debugNetworkLayer)
                 systemPrintf("mDNS started as %s.local\r\n", settings.mdnsHostName);
         }
 
