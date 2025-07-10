@@ -2665,11 +2665,11 @@ bool RTK_WIFI::stopStart(WIFI_ACTION_t stopping, WIFI_ACTION_t starting)
                 else
                     systemPrintf("WiFi STA: No matching remote AP found!\r\n");
 
-                displayNoWiFi(2000);
+                // displayNoWiFi(2000);
 
                 // Stop bringing up WiFi station
-                starting &= ~WIFI_STA_NO_REMOTE_AP;
-                notStarted |= WIFI_STA_FAILED_SCAN;
+                // starting &= ~WIFI_STA_NO_REMOTE_AP;
+                // notStarted |= WIFI_STA_FAILED_SCAN;
             }
         }
 
