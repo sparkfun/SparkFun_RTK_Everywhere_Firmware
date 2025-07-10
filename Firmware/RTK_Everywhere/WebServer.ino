@@ -33,16 +33,15 @@ static const char *const webServerStateNames[] = {
 // Macros
 //----------------------------------------
 
-#define GET_PAGE(page, type, data) \
-    webServer->on(page, HTTP_GET, []() { \
-        String length;  \
-        if (settings.debugWebServer == true)    \
-            Serial.printf("WebServer: Sending %s (%p, %d bytes)\r\n", \
-                          page, (void *)data, sizeof(data));  \
-        webServer->sendHeader("Content-Encoding", "gzip"); \
-        length = String(sizeof(data));  \
-        webServer->sendHeader("Content-Length", length.c_str()); \
-        webServer->send_P(200, type, (const char *)data, sizeof(data)); \
+#define GET_PAGE(page, type, data)                                                                                     \
+    webServer->on(page, HTTP_GET, []() {                                                                               \
+        String length;                                                                                                 \
+        if (settings.debugWebServer == true)                                                                           \
+            Serial.printf("WebServer: Sending %s (%p, %d bytes)\r\n", page, (void *)data, sizeof(data));               \
+        webServer->sendHeader("Content-Encoding", "gzip");                                                             \
+        length = String(sizeof(data));                                                                                 \
+        webServer->sendHeader("Content-Length", length.c_str());                                                       \
+        webServer->send_P(200, type, (const char *)data, sizeof(data));                                                \
     });
 
 //----------------------------------------
@@ -64,7 +63,7 @@ static int last_ws_fd;
 
 static TaskHandle_t updateWebServerTaskHandle;
 static const uint8_t updateWebServerTaskPriority = 0; // 3 being the highest, and 0 being the lowest
-static const int webServerTaskStackSize = 4096; // Needs to be large enough to hold the file manager file list
+static const int webServerTaskStackSize = 4096;       // Needs to be large enough to hold the file manager file list
 static const int webSocketStackSize = 8192;
 
 // Inspired by:
@@ -953,13 +952,12 @@ bool webServerAssignResources(int httpPort = 80)
 
         // Starts task for updating webServer with handleClient
         if (task.updateWebServerTaskRunning == false)
-            xTaskCreate(
-                updateWebServerTask,
-                "UpdateWebServer",            // Just for humans
-                webServerTaskStackSize,       // Stack Size - needs to be large enough to hold the file manager list
-                nullptr,                      // Task input parameter
-                updateWebServerTaskPriority,
-                &updateWebServerTaskHandle); // Task handle
+            xTaskCreate(updateWebServerTask,
+                        "UpdateWebServer",      // Just for humans
+                        webServerTaskStackSize, // Stack Size - needs to be large enough to hold the file manager list
+                        nullptr,                // Task input parameter
+                        updateWebServerTaskPriority,
+                        &updateWebServerTaskHandle); // Task handle
 
         if (settings.debugWebServer == true)
             systemPrintln("Web Server: Started");
@@ -1027,7 +1025,7 @@ void webServerReleaseResources()
 
     online.webServer = false;
 
-    webServerStopSockets();      // Release socket resources
+    webServerStopSockets(); // Release socket resources
 
     if (webServer != nullptr)
     {
@@ -1060,8 +1058,7 @@ void webServerStopSockets()
         // Stop the httpd server
         esp_err_t status = httpd_stop(wsserver);
         if (status != ESP_OK)
-            systemPrintf("ERROR: wsserver failed to stop, status: %s!\r\n",
-                         esp_err_to_name(status));
+            systemPrintf("ERROR: wsserver failed to stop, status: %s!\r\n", esp_err_to_name(status));
         wsserver = nullptr;
     }
 }
@@ -1312,25 +1309,34 @@ static esp_err_t ws_handler(httpd_req_t *req)
     }
     if (settings.debugWebServer == true)
     {
-        const char * pktType;
+        const char *pktType;
         size_t length = ws_pkt.len;
         switch (ws_pkt.type)
         {
-        default: pktType = nullptr; break;
-        case HTTPD_WS_TYPE_CONTINUE: pktType = "HTTPD_WS_TYPE_CONTINUE"; break;
-        case HTTPD_WS_TYPE_TEXT:     pktType = "HTTPD_WS_TYPE_TEXT"; break;
-        case HTTPD_WS_TYPE_BINARY:   pktType = "HTTPD_WS_TYPE_BINARY"; break;
-        case HTTPD_WS_TYPE_CLOSE:    pktType = "HTTPD_WS_TYPE_CLOSE"; break;
-        case HTTPD_WS_TYPE_PING:     pktType = "HTTPD_WS_TYPE_PING"; break;
-        case HTTPD_WS_TYPE_PONG:     pktType = "HTTPD_WS_TYPE_PONG"; break;
+        default:
+            pktType = nullptr;
+            break;
+        case HTTPD_WS_TYPE_CONTINUE:
+            pktType = "HTTPD_WS_TYPE_CONTINUE";
+            break;
+        case HTTPD_WS_TYPE_TEXT:
+            pktType = "HTTPD_WS_TYPE_TEXT";
+            break;
+        case HTTPD_WS_TYPE_BINARY:
+            pktType = "HTTPD_WS_TYPE_BINARY";
+            break;
+        case HTTPD_WS_TYPE_CLOSE:
+            pktType = "HTTPD_WS_TYPE_CLOSE";
+            break;
+        case HTTPD_WS_TYPE_PING:
+            pktType = "HTTPD_WS_TYPE_PING";
+            break;
+        case HTTPD_WS_TYPE_PONG:
+            pktType = "HTTPD_WS_TYPE_PONG";
+            break;
         }
-        systemPrintf("Packet: %p, %d bytes, type: %d%s%s%s\r\n",
-                     ws_pkt.payload,
-                     length,
-                     ws_pkt.type,
-                     pktType ? " (" : "",
-                     pktType ? pktType : "",
-                     pktType ? ")" : "");
+        systemPrintf("Packet: %p, %d bytes, type: %d%s%s%s\r\n", ws_pkt.payload, length, ws_pkt.type,
+                     pktType ? " (" : "", pktType ? pktType : "", pktType ? ")" : "");
         if (length > 0x40)
             length = 0x40;
         dumpBuffer(ws_pkt.payload, length);
@@ -1379,7 +1385,7 @@ static const httpd_uri_t ws = {.uri = "/ws",
 //----------------------------------------
 // Display the HTTPD configuration
 //----------------------------------------
-void httpdDisplayConfig(struct httpd_config * config)
+void httpdDisplayConfig(struct httpd_config *config)
 {
     systemPrintf("httpd_config object:\r\n");
     systemPrintf("%10d: task_priority\r\n", config->task_priority);
@@ -1445,8 +1451,7 @@ bool websocketServerStart(void)
     }
 
     // Display the failure to start
-    systemPrintf("ERROR: wsserver failed to start, status: %s!\r\n",
-                 esp_err_to_name(status));
+    systemPrintf("ERROR: wsserver failed to start, status: %s!\r\n", esp_err_to_name(status));
     return false;
 }
 

@@ -146,7 +146,7 @@
 #include <NetworkUdp.h>
 #endif // COMPILE_NETWORK
 
-#define RTK_MAX_CONNECTION_MSEC     (15 * MILLISECONDS_IN_A_MINUTE)
+#define RTK_MAX_CONNECTION_MSEC (15 * MILLISECONDS_IN_A_MINUTE)
 
 bool RTK_CONFIG_MBEDTLS_EXTERNAL_MEM_ALLOC =
     false; // Flag used by the special build of libmbedtls (libmbedcrypto) to select external memory
@@ -172,16 +172,16 @@ const uint16_t HTTPS_PORT = 443;                                                
 #include <PPP.h>
 #endif // COMPILE_CELLULAR
 
-#include <esp_mac.h>    // MAC address support
 #include "settings.h"
+#include <esp_mac.h> // MAC address support
 
 #define MAX_CPU_CORES 2
 #define IDLE_COUNT_PER_SECOND 515400 // Found by empirical sketch
 #define IDLE_TIME_DISPLAY_SECONDS 5
 #define MAX_IDLE_TIME_COUNT (IDLE_TIME_DISPLAY_SECONDS * IDLE_COUNT_PER_SECOND)
 
-#define HOURS_IN_A_DAY      24L
-#define MINUTES_IN_AN_HOUR  60L
+#define HOURS_IN_A_DAY 24L
+#define MINUTES_IN_AN_HOUR 60L
 #define SECONDS_IN_A_MINUTE 60L
 #define MILLISECONDS_IN_A_SECOND 1000L
 #define MILLISECONDS_IN_A_MINUTE (SECONDS_IN_A_MINUTE * MILLISECONDS_IN_A_SECOND)
@@ -377,8 +377,8 @@ bool wifiSoftApRunning;         // False: stopped, True: starting, running, stop
 bool wifiStationOnline;         // WiFi station started successfully
 bool wifiStationRunning;        // False: stopped, True: starting, running, stopping
 
-const char * wifiSoftApSsid = "RTK Config";
-const char * wifiSoftApPassword = nullptr;
+const char *wifiSoftApSsid = "RTK Config";
+const char *wifiSoftApPassword = nullptr;
 
 //-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 
@@ -996,7 +996,7 @@ volatile bool deadManWalking;
                                                                                                                        \
         /* Turn on nearly all the debug prints */                                                                      \
         settings.debugCorrections = true;                                                                              \
-        settings.debugGnss = false;                                                                                     \
+        settings.debugGnss = false;                                                                                    \
         settings.debugHttpClientData = true;                                                                           \
         settings.debugHttpClientState = true;                                                                          \
         settings.debugLora = true;                                                                                     \
@@ -1041,7 +1041,7 @@ volatile bool deadManWalking;
                                                                                                                        \
         /* Turn on nearly all the debug prints */                                                                      \
         settings.debugCorrections = true;                                                                              \
-        settings.debugGnss = false;                                                                                     \
+        settings.debugGnss = false;                                                                                    \
         settings.debugHttpClientData = false;                                                                          \
         settings.debugHttpClientState = true;                                                                          \
         settings.debugLora = false;                                                                                    \
@@ -1240,8 +1240,8 @@ void setup()
     DMW_b("loadSettings");
     loadSettings(); // Attempt to load settings after SD is started so we can read the settings file if available
 
-    //DEBUG_NEARLY_EVERYTHING // Debug nearly all the things
-    //DEBUG_THE_ESSENTIALS // Debug the essentials - handy for measuring the boot time after a factory reset
+    // DEBUG_NEARLY_EVERYTHING // Debug nearly all the things
+    // DEBUG_THE_ESSENTIALS // Debug the essentials - handy for measuring the boot time after a factory reset
 
     DMW_b("checkArrayDefaults");
     checkArrayDefaults(); // Check for uninitialized arrays that won't be initialized by gnssConfigure
