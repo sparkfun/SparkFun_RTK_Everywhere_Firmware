@@ -136,10 +136,6 @@ class GNSS_UM980 : GNSS
     // Given the name of an RTCM message, return the array number
     uint8_t getRtcmMessageNumberByName(const char *msgName);
 
-    // Returns true if the device is in Rover mode
-    // Currently the only two modes are Rover or Base
-    bool inRoverMode();
-
     // Return true if the GPGGA message is active
     bool isGgaActive();
 
@@ -338,6 +334,10 @@ class GNSS_UM980 : GNSS
 
     // Returns full year, ie 2023, not 23.
     uint16_t getYear();
+
+    // Returns true if the device is in Rover mode
+    // Currently the only two modes are Rover or Base
+    bool inRoverMode();
 
     bool isBlocking();
 

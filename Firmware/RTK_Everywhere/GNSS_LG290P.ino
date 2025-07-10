@@ -617,16 +617,21 @@ bool GNSS_LG290P::enableNMEA()
             // Check if this NMEA message is supported by the current LG290P firmware
             if (lg290pFirmwareVersion >= lgMessagesNMEA[messageNumber].firmwareVersionSupported)
             {
+                // Disable NMEA output on UART3 RADIO
+                int msgRate = settings.lg290pMessageRatesNMEA[messageNumber];
+                if ((portNumber == 3) && (settings.enableNmeaOnRadio == false))
+                    msgRate = 0;
+
                 // If firmware is 4 or higher, use setMessageRateOnPort, otherwise setMessageRate
                 if (lg290pFirmwareVersion >= 4)
                     // Enable this message, at this rate, on this port
                     response &=
                         _lg290p->setMessageRateOnPort(lgMessagesNMEA[messageNumber].msgTextName,
-                                                      settings.lg290pMessageRatesNMEA[messageNumber], portNumber);
+                                                      msgRate, portNumber);
                 else
                     // Enable this message, at this rate
                     response &= _lg290p->setMessageRate(lgMessagesNMEA[messageNumber].msgTextName,
-                                                        settings.lg290pMessageRatesNMEA[messageNumber]);
+                                                        msgRate);
                 if (response == false && settings.debugGnss)
                     systemPrintf("Enable NMEA failed at messageNumber %d %s.\r\n", messageNumber,
                                  lgMessagesNMEA[messageNumber].msgTextName);
@@ -659,11 +664,25 @@ bool GNSS_LG290P::enableNMEA()
     if (pointPerfectIsEnabled())
     {
         // Force on any messages that are needed for PPL
-        if (gpggaEnabled == false)
-            response &= _lg290p->setMessageRate("GGA", 1);
+        // If firmware is 4 or higher, use setMessageRateOnPort, otherwise setMessageRate
+        if (lg290pFirmwareVersion >= 4)
+        {
+            // Enable GGA / ZDA on port 2 (ESP32) only
+            if (gpggaEnabled == false)
+                response &= _lg290p->setMessageRateOnPort("GGA", 1, 2);
 
-        // if (gpzdaEnabled == false)
-        //     response &= _lg290p->setMessageRate("ZDA", 1);
+            // if (gpggaEnabled == false)
+            //     response &= _lg290p->setMessageRateOnPort("GGA", 1, 1);
+        }
+        else
+        {
+            // Enable GGA / ZDA on all ports. It's the best we can do.
+            if (gpggaEnabled == false)
+                response &= _lg290p->setMessageRate("GGA", 1);
+
+            // if (gpzdaEnabled == false)
+            //     response &= _lg290p->setMessageRate("ZDA", 1);
+        }
     }
 
     return (response);

@@ -79,6 +79,8 @@ void menuPortsNoMux()
         {
             systemPrintf("4) Toggle use of external corrections radio on UART3: %s\r\n",
                          settings.enableExtCorrRadio ? "Enabled" : "Disabled");
+            systemPrintf("5) NMEA output on radio UART3: %s\r\n",
+                         settings.enableNmeaOnRadio ? "Enabled" : "Disabled");
         }
 
         systemPrintln("x) Exit");
@@ -140,6 +142,10 @@ void menuPortsNoMux()
             // Toggle the SPARTN source for the external corrections radio
             settings.extCorrRadioSPARTNSource ^= 1;
         }
+        else if ((incoming == 5) && (present.gnss_lg290p))
+        {
+            settings.enableNmeaOnRadio ^= 1;
+        }
         else if (incoming == 'x')
             break;
         else if (incoming == INPUT_RESPONSE_GETNUMBER_EXIT)
@@ -149,6 +155,18 @@ void menuPortsNoMux()
         else
             printUnknown(incoming);
     }
+
+#ifdef COMPILE_LG290P
+    if (present.gnss_lg290p)
+    {
+        // Apply these changes at menu exit - to enable/disable NMEA on radio
+        GNSS_LG290P *aLG290P = (GNSS_LG290P *)gnss;
+        if (aLG290P->inRoverMode() == true)
+            restartRover = true;
+        else
+            restartBase = true;
+    }
+#endif // COMPILE_MOSAICX5
 
     clearBuffer(); // Empty buffer of any newline chars
 }
@@ -201,6 +219,8 @@ void menuPortsMultiplexed()
                          settings.enableExtCorrRadio ? "Enabled" : "Disabled");
             systemPrintf("5) Output GNSS data to USB1 serial: %s\r\n",
                          settings.enableGnssToUsbSerial ? "Enabled" : "Disabled");
+            systemPrintf("6) NMEA output on radio COM2: %s\r\n",
+                         settings.enableNmeaOnRadio ? "Enabled" : "Disabled");
         }
 
         systemPrintln("x) Exit");
@@ -283,6 +303,10 @@ void menuPortsMultiplexed()
         {
             settings.enableGnssToUsbSerial ^= 1;
         }
+        else if ((incoming == 6) && (present.gnss_mosaicX5))
+        {
+            settings.enableNmeaOnRadio ^= 1;
+        }
         else if (incoming == 'x')
             break;
         else if (incoming == INPUT_RESPONSE_GETNUMBER_EXIT)
@@ -299,6 +323,7 @@ void menuPortsMultiplexed()
     if (present.gnss_mosaicX5)
     {
         // Apply these changes at menu exit - to enable message output on USB1
+        // and/or enable/disable NMEA on radio
         GNSS_MOSAIC *mosaic = (GNSS_MOSAIC *)gnss;
         if (mosaic->inRoverMode() == true)
             restartRover = true;

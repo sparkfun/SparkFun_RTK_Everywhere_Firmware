@@ -121,6 +121,7 @@ function parseIncoming(msg) {
                 show("useLocalizedDistributionCheckbox");
                 show("useEnableExtCorrRadio");
                 show("extCorrRadioSPARTNSourceDropdown");
+                hide("enableNmeaOnRadio");
                 hide("shutdownNoChargeTimeoutMinutesCheckboxDetail");
 
                 hide("constellationNavic"); //Not supported on ZED
@@ -151,6 +152,7 @@ function parseIncoming(msg) {
                 show("useLocalizedDistributionCheckbox");
                 show("useEnableExtCorrRadio");
                 show("extCorrRadioSPARTNSourceDropdown");
+                hide("enableNmeaOnRadio");
 
                 hide("constellationNavic"); //Not supported on ZED
             }
@@ -172,6 +174,7 @@ function parseIncoming(msg) {
                 hide("useLocalizedDistributionCheckbox");
                 show("useEnableExtCorrRadio");
                 hide("extCorrRadioSPARTNSourceDropdown");
+                show("enableNmeaOnRadio");
 
                 select = ge("dynamicModel");
                 let newOption = new Option('Static', '0');
@@ -256,7 +259,8 @@ function parseIncoming(msg) {
                 show("surveyInSettings");
                 show("useLocalizedDistributionCheckbox");
                 show("useEnableExtCorrRadio");
-                show("extCorrRadioSPARTNSourceDropdown");
+                hide("extCorrRadioSPARTNSourceDropdown");
+                show("enableNmeaOnRadio");
 
                 hide("constellationSbas"); //Not supported on LG290P
                 show("constellationNavic");
