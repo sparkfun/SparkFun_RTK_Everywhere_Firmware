@@ -389,11 +389,17 @@ bool GNSS_LG290P::configureBase()
         return (false);
     }
 
-    if (settings.gnssConfiguredBase)
+    // If the device is set to Survey-In, we must allow the device to be configured.
+    // Otherwise PQMTEPE (estimated position error) is never populated, so the survey
+    // never starts (Waiting for Horz Accuracy < 2.00m...)
+    if (settings.fixedBase == false) //Not a fixed base = Survey-in
     {
-        if (settings.debugGnss)
-            systemPrintln("Skipping LG290P Base configuration");
-        return true;
+        if (settings.gnssConfiguredBase)
+        {
+            if (settings.debugGnss)
+                systemPrintln("Skipping LG290P Base configuration");
+            return true;
+        }
     }
 
     bool response = true;
