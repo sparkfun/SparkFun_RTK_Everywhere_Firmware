@@ -617,6 +617,17 @@ enum
 typedef uint8_t NETCONSUMER_t;
 typedef uint16_t NETCONSUMER_MASK_t;
 
+enum PP_NickName
+{
+    PP_NICKNAME_DISABLED = 0,
+    PP_NICKNAME_FLEX_RTCM,
+    PP_NICKNAME_FLEX_LBAND_NA,
+    PP_NICKNAME_GLOBAL,
+    PP_NICKNAME_LIVE,
+    PP_NICKNAME_IP_MQTT,
+    PP_NICKNAME_MAX,
+};
+
 // This is all the settings that can be set on RTK Product. It's recorded to NVM and the config file.
 // Avoid reordering. The order of these variables is mimicked in NVM/record/parse/create/update/get
 struct Settings
@@ -865,7 +876,7 @@ struct Settings
         "",
         "",
     };
-    uint8_t pointPerfectService = 0; // See ppServices[]. Records which PointPerfect service the user has chosen.
+    uint8_t pointPerfectService = PP_NICKNAME_DISABLED; // See ppServices[]. Records which PointPerfect service the user has chosen.
 
     // Profiles
     char profileName[50] = "";
