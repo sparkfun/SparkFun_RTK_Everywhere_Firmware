@@ -88,6 +88,15 @@ esp_err_t espNowAddPeer(const uint8_t *peerMac)
 // Start ESP-Now if needed, put ESP-Now into broadcast state
 void espNowBeginPairing()
 {
+    if (settings.enableEspNow == false)
+    {
+        settings.enableEspNow = true;
+        recordSystemSettings();
+        
+        if (settings.debugEspNow)
+            systemPrintln("espNowBeginPairing enabling ESP-NOW");
+    }
+
     // Start ESP-NOW if necessary
     wifiEspNowOn(__FILE__, __LINE__);
 
