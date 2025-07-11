@@ -811,13 +811,13 @@ void networkDisplayMode()
     {
         if ((1 << mode) == rtkMode)
         {
-            systemPrintf("rtkMode: 0x%02x (%s)\r\n", rtkMode, rtkModeName[mode]);
+            systemPrintf("rtkMode: 0x%02X (%s)\r\n", rtkMode, rtkModeName[mode]);
             return;
         }
     }
 
     // Illegal mode value
-    systemPrintf("rtkMode: 0x%02x (Illegal value)\r\n", rtkMode);
+    systemPrintf("rtkMode: 0x%02X (Illegal value)\r\n", rtkMode);
 }
 
 //----------------------------------------

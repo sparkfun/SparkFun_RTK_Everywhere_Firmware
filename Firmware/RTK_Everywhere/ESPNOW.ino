@@ -66,11 +66,11 @@ esp_err_t espNowAddPeer(const uint8_t *peerMac, bool encrypt)
     esp_err_t result = esp_now_add_peer(&peerInfo);
     if (result != ESP_OK)
     {
-        systemPrintf("ERROR: Failed to add ESP-NOW peer %02x:%02x:%02x:%02x:%02x:%02x, result: %d (%s)\r\n", peerMac[0],
+        systemPrintf("ERROR: Failed to add ESP-NOW peer %02X:%02X:%02X:%02X:%02X:%02X, result: %d (%s)\r\n", peerMac[0],
                      peerMac[1], peerMac[2], peerMac[3], peerMac[4], peerMac[5], result, esp_err_to_name(result));
     }
     else if (settings.debugEspNow)
-        systemPrintf("Added ESP-NOW peer %02x:%02x:%02x:%02x:%02x:%02x\r\n", peerMac[0], peerMac[1], peerMac[2],
+        systemPrintf("Added ESP-NOW peer %02X:%02X:%02X:%02X:%02X:%02X\r\n", peerMac[0], peerMac[1], peerMac[2],
                      peerMac[3], peerMac[4], peerMac[5]);
     return result;
 }
@@ -125,7 +125,7 @@ void espNowOnDataReceived(const esp_now_recv_info *mac, const uint8_t *incomingD
     if (settings.debugEspNow == true)
     {
         systemPrintf(
-            "*** ESP-NOW: RX %02x:%02x:%02x:%02x:%02x:%02x --> %02x:%02x:%02x:%02x:%02x:%02x, %d bytes, rssi: %d\r\n",
+            "*** ESP-NOW: RX %02X:%02X:%02X:%02X:%02X:%02X --> %02X:%02X:%02X:%02X:%02X:%02X, %d bytes, rssi: %d\r\n",
             mac->src_addr[0], mac->src_addr[1], mac->src_addr[2], mac->src_addr[3], mac->src_addr[4], mac->src_addr[5],
             mac->des_addr[0], mac->des_addr[1], mac->des_addr[2], mac->des_addr[3], mac->des_addr[4], mac->des_addr[5],
             len, packetRSSI);
@@ -298,11 +298,11 @@ esp_err_t espNowRemovePeer(const uint8_t *peerMac)
     if (settings.debugEspNow == true)
     {
         if (result != ESP_OK)
-            systemPrintf("ERROR: Failed to remove ESP-NOW peer %02x:%02x:%02x:%02x:%02x:%02x, result: %s\r\n",
+            systemPrintf("ERROR: Failed to remove ESP-NOW peer %02X:%02X:%02X:%02X:%02X:%02X, result: %s\r\n",
                          peerMac[0], peerMac[1], peerMac[2], peerMac[3], peerMac[4], peerMac[5],
                          esp_err_to_name(result));
         else
-            systemPrintf("Removed ESP-NOW peer %02x:%02x:%02x:%02x:%02x:%02x\r\n", peerMac[0], peerMac[1], peerMac[2],
+            systemPrintf("Removed ESP-NOW peer %02X:%02X:%02X:%02X:%02X:%02X\r\n", peerMac[0], peerMac[1], peerMac[2],
                          peerMac[3], peerMac[4], peerMac[5]);
     }
     return result;
@@ -440,7 +440,7 @@ bool espNowStart()
                 if (esp_now_is_peer_exist(settings.espnowPeers[index]))
                 {
                     if (settings.debugEspNow == true)
-                        systemPrintf("ESP-NOW peer %02x:%02x:%02x:%02x:%02x:%02x, status: already exists\r\n",
+                        systemPrintf("ESP-NOW peer %02X:%02X:%02X:%02X:%02X:%02X, status: already exists\r\n",
                                      settings.espnowPeers[index][0], settings.espnowPeers[index][1],
                                      settings.espnowPeers[index][2], settings.espnowPeers[index][3],
                                      settings.espnowPeers[index][4], settings.espnowPeers[index][5]);
@@ -452,7 +452,7 @@ bool espNowStart()
                     if (status == ESP_OK)
                     {
                         if (settings.debugEspNow == true)
-                            systemPrintf("Added ESP-NOW peer %02x:%02x:%02x:%02x:%02x:%02x\r\n",
+                            systemPrintf("Added ESP-NOW peer %02X:%02X:%02X:%02X:%02X:%02X\r\n",
                                          settings.espnowPeers[index][0], settings.espnowPeers[index][1],
                                          settings.espnowPeers[index][2], settings.espnowPeers[index][3],
                                          settings.espnowPeers[index][4], settings.espnowPeers[index][5]);
@@ -461,7 +461,7 @@ bool espNowStart()
                     {
                         if (settings.debugEspNow == true)
                             systemPrintf(
-                                "ERROR: Failed to add ESP-NOW peer %02x:%02x:%02x:%02x:%02x:%02x, status: %d, %s\r\n",
+                                "ERROR: Failed to add ESP-NOW peer %02X:%02X:%02X:%02X:%02X:%02X, status: %d, %s\r\n",
                                 settings.espnowPeers[index][0], settings.espnowPeers[index][1],
                                 settings.espnowPeers[index][2], settings.espnowPeers[index][3],
                                 settings.espnowPeers[index][4], settings.espnowPeers[index][5], status,
@@ -596,13 +596,13 @@ bool espNowStop()
             status = espNowRemovePeer(peerInfo.peer_addr);
             if (status != ESP_OK)
             {
-                systemPrintf("ERROR: Failed to delete peer %02x:%02x:%02x:%02x:%02x:%02x, status: %d\r\n",
+                systemPrintf("ERROR: Failed to delete peer %02X:%02X:%02X:%02X:%02X:%02X, status: %d\r\n",
                              peerInfo.peer_addr[0], peerInfo.peer_addr[1], peerInfo.peer_addr[2], peerInfo.peer_addr[3],
                              peerInfo.peer_addr[4], peerInfo.peer_addr[5], status);
                 break;
             }
             if (settings.debugEspNow)
-                systemPrintf("ESP-NOW removed peer %02x:%02x:%02x:%02x:%02x:%02x\r\n", peerInfo.peer_addr[0],
+                systemPrintf("ESP-NOW removed peer %02X:%02X:%02X:%02X:%02X:%02X\r\n", peerInfo.peer_addr[0],
                              peerInfo.peer_addr[1], peerInfo.peer_addr[2], peerInfo.peer_addr[3], peerInfo.peer_addr[4],
                              peerInfo.peer_addr[5]);
         }
