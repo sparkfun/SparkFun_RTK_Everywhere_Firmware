@@ -1128,7 +1128,7 @@ void pointperfectCreateTokenString(char *tokenBuffer, uint8_t *tokenArray, int t
     for (int x = 0; x < tokenArrayLength; x++)
     {
         char temp[3];
-        snprintf(temp, sizeof(temp), "%02x", tokenArray[x]);
+        snprintf(temp, sizeof(temp), "%02X", tokenArray[x]);
         strcat(tokenBuffer, temp);
         if (x == 3 || x == 5 || x == 7 || x == 9)
             strcat(tokenBuffer, "-");

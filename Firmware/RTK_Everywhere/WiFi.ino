@@ -618,7 +618,7 @@ bool wifiEspNowOn(const char *fileName, uint32_t lineNumber)
 {
     // Display the call
     if (settings.debugEspNow || settings.debugWifiState)
-        systemPrintf("wifiEspNowOff called in %s at line %d\r\n", fileName, lineNumber);
+        systemPrintf("wifiEspNowOn called in %s at line %d\r\n", fileName, lineNumber);
 
     // Turn on ESP-NOW when it is enabled
     if (settings.enableEspNow && !wifiEspNowRunning)
@@ -1677,10 +1677,12 @@ void RTK_WIFI::softApEventHandler(arduino_event_id_t event, arduino_event_info_t
     case ARDUINO_EVENT_WIFI_AP_STACONNECTED:
         if (settings.debugWifiState)
             systemPrintln("Device connected to Soft AP!");
+        wifiSoftApConnected = true;
         break;
     case ARDUINO_EVENT_WIFI_AP_STADISCONNECTED:
         if (settings.debugWifiState)
             systemPrintln("Device disconnected from Soft AP!");
+        wifiSoftApConnected = false;
         break;
     }
 }
@@ -1958,7 +1960,7 @@ void RTK_WIFI::stationEventHandler(arduino_event_id_t event, arduino_event_info_
     case ARDUINO_EVENT_WIFI_STA_START:
         WiFi.STA.macAddress((uint8_t *)_staMacAddress);
         if (settings.debugWifiState)
-            systemPrintf("WiFi Event: Station start: MAC: %02x:%02x:%02x:%02x:%02x:%02x\r\n", _staMacAddress[0],
+            systemPrintf("WiFi Event: Station start: MAC: %02X:%02X:%02X:%02X:%02X:%02X\r\n", _staMacAddress[0],
                          _staMacAddress[1], _staMacAddress[2], _staMacAddress[3], _staMacAddress[4], _staMacAddress[5]);
 
         // Fall through
@@ -2958,7 +2960,7 @@ bool RTK_WIFI::stopStart(WIFI_ACTION_t stopping, WIFI_ACTION_t starting)
 
             // Display the ESP-NOW MAC address
             _started = _started | WIFI_EN_ESP_NOW_ONLINE;
-            systemPrintf("WiFi: ESP-NOW online (%02x:%02x:%02x:%02x:%02x:%02x, channel: %d)\r\n", _staMacAddress[0],
+            systemPrintf("WiFi: ESP-NOW online (%02X:%02X:%02X:%02X:%02X:%02X, channel: %d)\r\n", _staMacAddress[0],
                          _staMacAddress[1], _staMacAddress[2], _staMacAddress[3], _staMacAddress[4], _staMacAddress[5],
                          wifiChannel);
         }

@@ -624,7 +624,7 @@ void dumpBuffer(uint8_t *buffer, uint16_t length)
 
         // Display the data bytes
         for (index = 0; index < bytes; index++)
-            systemPrintf("%02x ", buffer[index]);
+            systemPrintf("%02X ", buffer[index]);
 
         // Separate the data bytes from the ASCII
         for (; index < (16 - (offset & 0xf)); index++)
@@ -949,7 +949,7 @@ void printPartitionTable(void)
         do
         {
             const esp_partition_t *p = esp_partition_get(pi);
-            systemPrintf("|  %02x  | %02x  | 0x%06X | 0x%06X | %-16s |\r\n", p->type, p->subtype, p->address, p->size,
+            systemPrintf("|  %02X  | %02X  | 0x%06X | 0x%06X | %-16s |\r\n", p->type, p->subtype, p->address, p->size,
                          p->label);
         } while ((pi = (esp_partition_next(pi))));
     }
