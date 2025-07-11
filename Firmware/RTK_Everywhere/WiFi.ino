@@ -618,7 +618,7 @@ bool wifiEspNowOn(const char *fileName, uint32_t lineNumber)
 {
     // Display the call
     if (settings.debugEspNow || settings.debugWifiState)
-        systemPrintf("wifiEspNowOff called in %s at line %d\r\n", fileName, lineNumber);
+        systemPrintf("wifiEspNowOn called in %s at line %d\r\n", fileName, lineNumber);
 
     // Turn on ESP-NOW when it is enabled
     if (settings.enableEspNow && !wifiEspNowRunning)
