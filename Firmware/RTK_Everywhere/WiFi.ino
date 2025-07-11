@@ -1677,10 +1677,12 @@ void RTK_WIFI::softApEventHandler(arduino_event_id_t event, arduino_event_info_t
     case ARDUINO_EVENT_WIFI_AP_STACONNECTED:
         if (settings.debugWifiState)
             systemPrintln("Device connected to Soft AP!");
+        wifiSoftApConnected = true;
         break;
     case ARDUINO_EVENT_WIFI_AP_STADISCONNECTED:
         if (settings.debugWifiState)
             systemPrintln("Device disconnected from Soft AP!");
+        wifiSoftApConnected = false;
         break;
     }
 }
