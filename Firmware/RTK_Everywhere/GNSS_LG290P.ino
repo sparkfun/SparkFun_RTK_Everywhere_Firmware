@@ -389,11 +389,17 @@ bool GNSS_LG290P::configureBase()
         return (false);
     }
 
-    if (settings.gnssConfiguredBase)
+    // If the device is set to Survey-In, we must allow the device to be configured.
+    // Otherwise PQMTEPE (estimated position error) is never populated, so the survey
+    // never starts (Waiting for Horz Accuracy < 2.00m...)
+    if (settings.fixedBase == false) //Not a fixed base = Survey-in
     {
-        if (settings.debugGnss)
-            systemPrintln("Skipping LG290P Base configuration");
-        return true;
+        if (settings.gnssConfiguredBase)
+        {
+            if (settings.debugGnss)
+                systemPrintln("Skipping LG290P Base configuration");
+            return true;
+        }
     }
 
     bool response = true;
@@ -630,12 +636,10 @@ bool GNSS_LG290P::enableNMEA()
                 if (lg290pFirmwareVersion >= 4)
                     // Enable this message, at this rate, on this port
                     response &=
-                        _lg290p->setMessageRateOnPort(lgMessagesNMEA[messageNumber].msgTextName,
-                                                      msgRate, portNumber);
+                        _lg290p->setMessageRateOnPort(lgMessagesNMEA[messageNumber].msgTextName, msgRate, portNumber);
                 else
                     // Enable this message, at this rate
-                    response &= _lg290p->setMessageRate(lgMessagesNMEA[messageNumber].msgTextName,
-                                                        msgRate);
+                    response &= _lg290p->setMessageRate(lgMessagesNMEA[messageNumber].msgTextName, msgRate);
                 if (response == false && settings.debugGnss)
                     systemPrintf("Enable NMEA failed at messageNumber %d %s.\r\n", messageNumber,
                                  lgMessagesNMEA[messageNumber].msgTextName);
@@ -2015,7 +2019,7 @@ bool GNSS_LG290P::setElevation(uint8_t elevationDegrees)
 {
     // Present on >= v05
     if (lg290pFirmwareVersion >= 5)
-        return(_lg290p->setElevationAngle(elevationDegrees));
+        return (_lg290p->setElevationAngle(elevationDegrees));
 
     // Because we call this during module setup we rely on a positive result
     return true;
@@ -2049,7 +2053,7 @@ bool GNSS_LG290P::setMinCnoRadio(uint8_t cnoValue)
 {
     // Present on >= v05
     if (lg290pFirmwareVersion >= 5)
-        return(_lg290p->setCNR((float)cnoValue)); // 0.0 to 99.0
+        return (_lg290p->setCNR((float)cnoValue)); // 0.0 to 99.0
 
     // Because we call this during module setup we rely on a positive result
     return true;

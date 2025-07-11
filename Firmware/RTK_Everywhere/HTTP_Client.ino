@@ -10,6 +10,9 @@ HTTP_Client.ino
 
 ------------------------------------------------------------------------------*/
 
+ZtpResponse ztpResponse =
+    ZTP_NOT_STARTED; // Used in menuPP. This is the overall result of the ZTP process of testing multiple tokens
+
 #ifdef COMPILE_HTTP_CLIENT
 
 //----------------------------------------
@@ -45,9 +48,6 @@ const char *const httpClientStateName[] = {
 };
 
 const int httpClientStateNameEntries = sizeof(httpClientStateName) / sizeof(httpClientStateName[0]);
-
-ZtpResponse ztpResponse =
-    ZTP_NOT_STARTED; // Used in menuPP. This is the overall result of the ZTP process of testing multiple tokens
 
 //----------------------------------------
 // Locals
@@ -527,10 +527,12 @@ void httpClientUpdate()
                     // If this is the first time this device has connected to ThingStream, they
                     // will not be present and we need to retry
                     // httpClientConnectLimitReached will prevent excessive retries
-                    if (((const char *)((*jsonZtp)["certificate"]) == nullptr) || ((const char *)((*jsonZtp)["privateKey"]) == nullptr))
+                    if (((const char *)((*jsonZtp)["certificate"]) == nullptr) ||
+                        ((const char *)((*jsonZtp)["privateKey"]) == nullptr))
                     {
                         systemPrintln("ERROR - certificate or privateKey not found!\r\n");
-                        httpClientRestart(); // Try again - allow time for ThingStream to finish activating the device on plan
+                        httpClientRestart(); // Try again - allow time for ThingStream to finish activating the device
+                                             // on plan
                         break;
                     }
 
@@ -561,8 +563,8 @@ void httpClientUpdate()
                         // Note: from the ZTP documentation:
                         // ["subscriptions"][0] will contain the key distribution topic
                         // But, assuming the key distribution topic is always ["subscriptions"][0] is potentially
-                        // brittle. It is safer to check the "description" contains "key distribution topic". If we are on
-                        // an IP-only plan, the path will be /pp/ubx/0236/ip If we are on a L-Band-only or L-Band+IP
+                        // brittle. It is safer to check the "description" contains "key distribution topic". If we are
+                        // on an IP-only plan, the path will be /pp/ubx/0236/ip If we are on a L-Band-only or L-Band+IP
                         // plan, the path will be /pp/ubx/0236/Lb These 0236 key distribution topics provide the keys in
                         // UBX format, ready to be pushed to a ZED. There are also /pp/key/ip and /pp/key/Lb topics
                         // which provide the keys in JSON format - but we don't use those.
@@ -634,7 +636,8 @@ void httpClientUpdate()
                     if ((const char *)((*jsonZtp)["rtcmCredentials"]["endpoint"]) == nullptr)
                     {
                         systemPrintln("ERROR - rtcmCredentials not found!\r\n");
-                        httpClientRestart(); // Try again - allow time for ThingStream to finish activating the device on plan
+                        httpClientRestart(); // Try again - allow time for ThingStream to finish activating the device
+                                             // on plan
                         break;
                     }
 
