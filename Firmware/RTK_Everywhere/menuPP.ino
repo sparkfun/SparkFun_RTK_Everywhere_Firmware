@@ -79,23 +79,14 @@ const PP_Service ppServices[] = {
     // "ZTP-LBand+IP" profile deprecated
 };
 
-enum PP_NickName
-{
-    PP_NICKNAME_DISABLED = 0,
-    PP_NICKNAME_FLEX_RTCM,
-    PP_NICKNAME_FLEX_LBAND_NA,
-    PP_NICKNAME_GLOBAL,
-    PP_NICKNAME_LIVE,
-    PP_NICKNAME_IP_MQTT,
-    PP_NICKNAME_MAX,
-};
-
 const int ppServiceCount = sizeof(ppServices) / sizeof(ppServices[0]);
 
 // Provision device on ThingStream
 // Download keys
 void menuPointPerfect()
 {
+    uint8_t pointPerfectServiceOnEntry = settings.pointPerfectService;
+    
     while (1)
     {
         systemPrintln();
@@ -304,6 +295,10 @@ void menuPointPerfect()
         gnss->applyPointPerfectKeys();
     }
 
+    // If, on entry, we needed NTRIP, and now we don't, then disable settings.enableNtripClient
+    if ((pointPerfectNtripNeeded(pointPerfectServiceOnEntry)) && (!pointPerfectNtripNeeded()))
+        settings.enableNtripClient = false;
+
     clearBuffer(); // Empty buffer of any newline chars
 }
 
@@ -343,7 +338,7 @@ void menuPointPerfectSelectService()
                 settings.pointPerfectService = incoming - 1; // Align incoming to array
 
                 restartRover = true; // Require a rover restart to enable / disable RTCM for PPL
-                settings.requestKeyUpdate = settings.pointPerfectService; // Force a key update - or don't
+                settings.requestKeyUpdate = settings.pointPerfectService != PP_NICKNAME_DISABLED; // Force a key update - or don't
 
                 break; // Exit menu once selected
             }
@@ -816,7 +811,7 @@ void pointPerfectVerifyTables()
 
 bool pointPerfectIsEnabled()
 {
-    if (settings.pointPerfectService > PP_NICKNAME_DISABLED)
+    if (settings.pointPerfectService != PP_NICKNAME_DISABLED)
         return true;
     return false;
 }
@@ -849,7 +844,13 @@ bool pointPerfectLbandNeeded()
 // Determine if this service type uses NTRIP for corrections
 bool pointPerfectNtripNeeded()
 {
-    if (settings.pointPerfectService == PP_NICKNAME_FLEX_RTCM || settings.pointPerfectService == PP_NICKNAME_LIVE)
+    return pointPerfectNtripNeeded(settings.pointPerfectService);
+}
+
+// Determine if this service type uses NTRIP for corrections
+bool pointPerfectNtripNeeded(uint8_t pointPerfectService)
+{
+    if (pointPerfectService == PP_NICKNAME_FLEX_RTCM || pointPerfectService == PP_NICKNAME_LIVE)
         return true;
     return false;
 }
