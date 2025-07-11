@@ -226,6 +226,9 @@ void menuTcpUdp()
         if (settings.mdnsEnable)
             systemPrintf("n) MDNS host name: %s\r\n", settings.mdnsHostName);
 
+        systemPrint("a) Broadcast TCP/UDP Server packets over local WiFi or act as Access Point: ");
+        systemPrintf("%s\r\n", settings.tcpUdpOverWiFiStation ? "WiFi" : "AP");
+
         //------------------------------
         // Finish the menu and get the input
         //------------------------------
@@ -320,6 +323,11 @@ void menuTcpUdp()
             getUserInputString((char *)&settings.mdnsHostName, sizeof(settings.mdnsHostName));
         }
 
+        else if (incoming == 'a')
+        {
+            settings.tcpUdpOverWiFiStation ^= 1;
+            wifiUpdateSettings();
+        }
         //------------------------------
         // Handle exit and invalid input
         //------------------------------

@@ -449,7 +449,7 @@ void tcpServerUpdate()
         {
             if (settings.debugTcpServer && (!inMainMenu))
                 systemPrintln("TCP server start");
-            if (settings.wifiConfigOverAP == false)
+            if (settings.tcpUdpOverWiFiStation == true)
                 networkConsumerAdd(NETCONSUMER_TCP_SERVER, NETWORK_ANY, __FILE__, __LINE__);
             else
                 networkSoftApConsumerAdd(NETCONSUMER_TCP_SERVER, __FILE__, __LINE__);

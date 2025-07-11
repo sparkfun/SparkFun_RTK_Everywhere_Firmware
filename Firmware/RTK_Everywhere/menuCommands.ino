@@ -1962,10 +1962,16 @@ void createSettingsString(char *newSettings)
     }
 
     // Drop downs on the AP config page expect a value, whereas bools get stringRecord as true/false
+    // These special bool settings get added twice to the string, once above, once here.
     if (settings.wifiConfigOverAP == true)
         stringRecord(newSettings, "wifiConfigOverAP", 1); // 1 = AP mode, 0 = WiFi
     else
         stringRecord(newSettings, "wifiConfigOverAP", 0); // 1 = AP mode, 0 = WiFi
+
+    if (settings.tcpUdpOverWiFiStation == true)
+        stringRecord(newSettings, "tcpUdpOverWiFiStation", 1); // 1 = WiFi mode, 0 = AP
+    else
+        stringRecord(newSettings, "tcpUdpOverWiFiStation", 0); // 1 = WiFi mode, 0 = AP
 
     // Single variables needed on Config page
     stringRecord(newSettings, "minCNO", gnss->getMinCno());
