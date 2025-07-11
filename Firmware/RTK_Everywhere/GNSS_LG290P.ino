@@ -103,6 +103,10 @@ void GNSS_LG290P::begin()
     // Check firmware version and print info
     _lg290p->getFirmwareVersion(lg290pFirmwareVersion); // Needs LG290P library v1.0.7
 
+    std::string version, buildDate, buildTime;
+    if (_lg290p->getVersionInfo(version, buildDate, buildTime))
+        snprintf(gnssFirmwareVersion, sizeof(gnssFirmwareVersion), "%s", version.c_str());
+
     if (lg290pFirmwareVersion < 4)
     {
         systemPrintf(
