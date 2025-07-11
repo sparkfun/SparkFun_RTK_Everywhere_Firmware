@@ -2021,12 +2021,6 @@ class RTK_WIFI
     //   components: A bit mask of the components
     void displayComponents(const char * text, WIFI_ACTION_t components);
 
-    // Start the WiFi event handler
-    void eventHandlerStart();
-
-    // Stop the WiFi event handler
-    void eventHandlerStop();
-
     // Set the WiFi mode
     // Inputs:
     //   setMode: Modes to set

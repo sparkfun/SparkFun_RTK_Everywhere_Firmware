@@ -756,7 +756,7 @@ void setRadioIcons(std::vector<iconPropertyBlinking> *iconList)
             else if (wifiStationRunning && (networkInterfaceHasInternet(NETWORK_WIFI_STATION) == false))
             {
                 // We are not connected, blink icon
-                displayWiFiFullIcon(iconList, prop, ICON_POSITION_CENTER, 0b00001111);
+                displayWiFiFullIcon(iconList, prop, ICON_POSITION_CENTER, 0b01010101);
             }
             else if(wifiSoftApRunning)
             {
@@ -1220,7 +1220,7 @@ void setWiFiIcon(std::vector<iconPropertyBlinking> *iconList)
         icon.icon.yPos = 0;
 
 #ifdef COMPILE_WIFI
-        if (networkInterfaceHasInternet(NETWORK_WIFI_STATION))
+        if (networkInterfaceHasInternet(NETWORK_WIFI_STATION) || wifiSoftApConnected == true)
             icon.duty = 0b11111111;
         else
 #endif // COMPILE_WIFI
