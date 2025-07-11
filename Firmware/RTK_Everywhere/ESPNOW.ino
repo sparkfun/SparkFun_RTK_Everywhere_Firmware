@@ -96,10 +96,8 @@ void espNowBeginPairing()
     }
 
     // Start ESP-NOW if necessary
+    // If no peers are on file, automatically add the broadcast MAC to the peer list
     wifiEspNowOn(__FILE__, __LINE__);
-
-    // To begin pairing, we must add the broadcast MAC to the peer list
-    espNowAddPeer(espNowBroadcastAddr, false); // Encryption is not supported for multicast addresses
 
     espNowSetState(ESPNOW_PAIRING);
 }
