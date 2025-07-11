@@ -935,6 +935,7 @@ struct Settings
     bool debugTcpServer = false;
     bool enableTcpServer = false;
     uint16_t tcpServerPort = 2948; // TCP server port, 2948 is GPS Daemon: http://tcp-udp-ports.com/port-2948.htm
+    bool tcpUdpOverWiFiStation = true; // Controls if TCP/UDP settings should use Station or AP
 
     // Time Zone - Default to UTC
     int8_t timeZoneHours = 0;
@@ -1564,6 +1565,7 @@ const RTK_Settings_Entry rtkSettingsEntries[] =
     { 0, 0, 0, 1, 1, 1, 1, 1, 1, _bool,     0, & settings.debugTcpServer, "debugTcpServer",  },
     { 1, 1, 0, 1, 1, 1, 1, 1, 1, _bool,     0, & settings.enableTcpServer, "enableTcpServer",  },
     { 1, 1, 0, 1, 1, 1, 1, 1, 1, _uint16_t, 0, & settings.tcpServerPort, "tcpServerPort",  },
+    { 1, 1, 0, 1, 1, 1, 1, 1, 1, _bool,     0, & settings.tcpUdpOverWiFiStation, "tcpUdpOverWiFiStation",  },
 
     // Time Zone
     { 0, 1, 0, 1, 1, 1, 1, 1, 1, _int8_t,   0, & settings.timeZoneHours, "timeZoneHours",  },

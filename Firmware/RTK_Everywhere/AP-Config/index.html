@@ -1709,6 +1709,18 @@
                     <p id="enableUdpServerError" class="inlineError"></p>
                 </div>
 
+                <div id="tcpUdpWiFiTypeDropdown" class="mt-3">
+                    <label for="tcpUdpOverWiFiStation">TCP/UDP Server Connection: </label>
+                    <select name="tcpUdpWiFiType" id="tcpUdpOverWiFiStation" class="form-dropdown">
+                        <option value="1">WiFi</option>
+                        <option value="0">AP</option>
+                    </select>
+                    <span class="tt" data-bs-placement="right"
+                        title="In WiFi mode, the device will attempt to connect to local WiFi to broadcast TCP/UDP packets. In AP mode, the device will become an Access Point that devices can connect to over WiFi.">
+                        <span class="icon-info-circle text-primary ms-2"></span>
+                    </span>
+                </div>
+
             </div>
         </div>
 
@@ -2181,7 +2193,7 @@
                 </div>
 
                 <div id="measurementScaleDropdown" class="mb-2 mt-3">
-                    <label for="measurementScale">Measurement Scale: </label>
+                    <label for="measurementScale">Units: </label>
                     <select name="measurementScale" id="measurementScale" class="form-dropdown">
                         <option value="0">Meters</option>
                         <option value="1">Feet/Inches</option>
