@@ -374,6 +374,7 @@ bool wifiEspNowRunning;         // False: stopped, True: starting, running, stop
 uint32_t wifiReconnectionTimer; // Delay before reconnection, timer running when non-zero
 bool wifiSoftApOnline;          // WiFi soft AP started successfully
 bool wifiSoftApRunning;         // False: stopped, True: starting, running, stopping
+bool wifiSoftApConnected;         // False: no client connected, True: client connected
 bool wifiStationOnline;         // WiFi station started successfully
 bool wifiStationRunning;        // False: stopped, True: starting, running, stopping
 
