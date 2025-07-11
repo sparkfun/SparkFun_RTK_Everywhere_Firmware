@@ -154,7 +154,6 @@ void mqttClientValidateTables() {}
 void httpClientPrintStatus() {}
 void httpClientUpdate() {}
 void httpClientValidateTables() {}
-bool pointPerfectServiceUsesKeys() {return(false);}
 
 #endif   // COMPILE_HTTP_CLIENT
 
@@ -175,6 +174,7 @@ void stopWebServer() {}
 void webServerStop() {}
 void webServerUpdate()  {}
 void webServerVerifyTables() {}
+void wifiSettingsClone() {}
 
 #endif  // COMPILE_AP
 
