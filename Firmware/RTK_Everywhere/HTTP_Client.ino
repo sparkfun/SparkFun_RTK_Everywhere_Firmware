@@ -625,9 +625,8 @@ void httpClientUpdate()
                 else if (pointPerfectNtripNeeded() == true)
                 {
                     // We received a JSON blob containing NTRIP credentials
-                    // Note: this prints the userName and password, which should probably be kept secret?
-                    // TODO: comment this
-                    systemPrintf("PointPerfect response: %s\r\n", response.c_str());
+                    if (settings.debugPpCertificate || settings.debugHttpClientData)
+                        systemPrintf("PointPerfect response: %s\r\n", response.c_str());
 
                     // Check if the JSON blob contains rtcmCredentials
                     // If this is the first time this device has connected to ThingStream, rtcmCredentials
