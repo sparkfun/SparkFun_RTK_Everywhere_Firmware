@@ -861,11 +861,13 @@ void constructSetupDisplay(std::vector<setupButton> *buttons)
 
     addSetupButton(buttons, "Config", STATE_WEB_CONFIG_NOT_STARTED);
 
-    if (pointPerfectIsEnabled())
+    if (pointPerfectIsEnabled() && pointPerfectServiceUsesKeys())
     {
         addSetupButton(buttons, "Get Keys", STATE_KEYS_REQUESTED);
     }
+
     addSetupButton(buttons, "E-Pair", STATE_ESPNOW_PAIRING_NOT_STARTED);
+
     // If only one active profile do not show any profiles
     if (getProfileCount() > 1)
     {
