@@ -354,8 +354,8 @@ bool beginLogging(const char *customFileName)
                                    gnssFirmwareVersion); // textID, buffer, sizeOfBuffer, text
                 logFile->println(nmeaMessage);
 
-                // ZED-F9 unique chip ID
-                createNMEASentence(CUSTOM_NMEA_TYPE_ZED_UNIQUE_ID, nmeaMessage, sizeof(nmeaMessage),
+                // GNSS module unique chip ID
+                createNMEASentence(CUSTOM_NMEA_TYPE_GNSS_UNIQUE_ID, nmeaMessage, sizeof(nmeaMessage),
                                    gnssUniqueId); // textID, buffer, sizeOfBuffer, text
                 logFile->println(nmeaMessage);
 
