@@ -99,15 +99,21 @@ void GNSS_UM980::begin()
     }
     systemPrintln("GNSS UM980 online");
 
-    // Shortly after reset, the UM980 responds to the VERSIONB command with OK but doesn't report version information
-    if (ENABLE_DEVELOPER == false)
-        delay(2000); // 1s fails, 2s ok
-
     // Check firmware version and print info
     printModuleInfo();
 
     // Shortly after reset, the UM980 responds to the VERSIONB command with OK but doesn't report version information
     snprintf(gnssFirmwareVersion, sizeof(gnssFirmwareVersion), "%s", _um980->getVersion());
+
+    if (strcmp(gnssFirmwareVersion, "Error") == 0)
+    {
+        // Shortly after reset, the UM980 responds to the VERSIONB command with OK but doesn't report version
+        // information
+        delay(2000); // 1s fails, 2s ok
+
+        // Ask for the version again after a short delay
+        snprintf(gnssFirmwareVersion, sizeof(gnssFirmwareVersion), "%s", _um980->getVersion());
+    }
 
     if (sscanf(gnssFirmwareVersion, "%d", &gnssFirmwareVersionInt) != 1)
         gnssFirmwareVersionInt = 99;
