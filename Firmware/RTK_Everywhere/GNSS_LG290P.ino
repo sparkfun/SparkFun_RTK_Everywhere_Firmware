@@ -237,6 +237,7 @@ bool GNSS_LG290P::configureOnce()
 
     while ((retries > 0) && (!enterConfigMode(500)))
     {
+        online.gnss = true; // Mark online so enterConfigMode can re-enter
         retries--;
         systemPrintf("configureOnce: Enter config mode failed. %d retries remaining\r\n", retries);
     }
