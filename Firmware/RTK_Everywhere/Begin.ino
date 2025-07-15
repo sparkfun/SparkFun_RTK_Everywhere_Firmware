@@ -1027,12 +1027,6 @@ void pinGnssUartTask(void *pvParameters)
     if (settings.printTaskStartStop)
         systemPrintln("Task pinGnssUartTask started");
 
-    if (productVariant == RTK_TORCH)
-    {
-        // Override user setting. Required because beginGnssUart() is called before beginBoard().
-        settings.dataPortBaud = 115200;
-    }
-
     if (serialGNSS == nullptr)
         serialGNSS = new HardwareSerial(2); // Use UART2 on the ESP32 for communication with the GNSS module
 
@@ -1042,9 +1036,24 @@ void pinGnssUartTask(void *pvParameters)
     if (pin_GnssUart_RX == -1 || pin_GnssUart_TX == -1)
         reportFatalError("Illegal UART pin assignment.");
 
-    serialGNSS->begin(settings.dataPortBaud, SERIAL_8N1, pin_GnssUart_RX,
-                      pin_GnssUart_TX); // Start UART on platform depedent pins for SPP. The GNSS will be configured
-                                        // to output NMEA over its UART at the same rate.
+    uint32_t platformGnssCommunicationRate =
+        settings.dataPortBaud; // Default to 230400bps for ZED. This limits GNSS fixes at 4Hz but allows SD buffer to be
+                               // reduced to 6k.
+
+    if (productVariant == RTK_TORCH)
+    {
+        // Override user setting. Required because beginGnssUart() is called before beginBoard().
+        platformGnssCommunicationRate = 115200;
+    }
+    else if (productVariant == RTK_POSTCARD)
+    {
+        // LG290P communicates at 460800bps.
+        platformGnssCommunicationRate = 115200 * 4;
+    }
+
+    serialGNSS->begin(platformGnssCommunicationRate, SERIAL_8N1, pin_GnssUart_RX,
+                      pin_GnssUart_TX); // Start UART on platform dependent pins for SPP. The GNSS will be
+                                        // configured to output NMEA over its UART at the same rate.
 
     // Reduce threshold value above which RX FIFO full interrupt is generated
     // Allows more time between when the UART interrupt occurs and when the FIFO buffer overruns
