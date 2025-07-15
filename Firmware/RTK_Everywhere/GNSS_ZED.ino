@@ -2812,6 +2812,29 @@ void GNSS_ZED::updateCorrectionsSource(uint8_t source)
     //_zed->softwareResetGNSSOnly(); // Restart the GNSS? Not sure if this helps...
 }
 
+//----------------------------------------
+// Check if given baud rate is allowed
+//----------------------------------------
+const uint32_t zedAllowedRates[] = {4800, 9600, 19200, 38400, 57600, 115200, 230400, 460800, 921600};
+const int zedAllowedRatesCount = sizeof(zedAllowedRates) / sizeof(zedAllowedRates[0]);
+
+bool GNSS_ZED::baudIsAllowed(uint32_t baudRate)
+{
+    for (int x = 0; x < zedAllowedRatesCount; x++)
+        if (zedAllowedRates[x] == baudRate) return (true);
+    return (false);
+}
+
+uint32_t GNSS_ZED::baudGetMinimum()
+{
+    return (zedAllowedRates[0]);
+}
+
+uint32_t GNSS_ZED::baudGetMaximum()
+{
+    return (zedAllowedRates[zedAllowedRatesCount - 1]);
+}
+
 // When new PMP message arrives from NEO-D9S push it back to ZED-F9P
 void pushRXMPMP(UBX_RXM_PMP_message_data_t *pmpData)
 {

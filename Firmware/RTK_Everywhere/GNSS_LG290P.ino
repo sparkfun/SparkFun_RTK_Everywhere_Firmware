@@ -392,7 +392,7 @@ bool GNSS_LG290P::configureBase()
     // If the device is set to Survey-In, we must allow the device to be configured.
     // Otherwise PQTMEPE (estimated position error) is never populated, so the survey
     // never starts (Waiting for Horz Accuracy < 2.00m...)
-    if (settings.fixedBase == false) //Not a fixed base = Survey-in
+    if (settings.fixedBase == false) // Not a fixed base = Survey-in
     {
         if (settings.gnssConfiguredBase)
         {
@@ -2265,6 +2265,30 @@ void GNSS_LG290P::lg290pUpdate(uint8_t *incomingBuffer, int bufferLength)
 void GNSS_LG290P::update()
 {
     // We don't check serial data here; the gnssReadTask takes care of serial consumption
+}
+
+//----------------------------------------
+// Check if given baud rate is allowed
+//----------------------------------------
+const uint32_t lg290pAllowedRates[] = {9600, 115200, 230400, 460800, 921600};
+const int lg290pAllowedRatesCount = sizeof(lg290pAllowedRates) / sizeof(lg290pAllowedRates[0]);
+
+bool GNSS_LG290P::baudIsAllowed(uint32_t baudRate)
+{
+    for (int x = 0; x < lg290pAllowedRatesCount; x++)
+        if (lg290pAllowedRates[x] == baudRate)
+            return (true);
+    return (false);
+}
+
+uint32_t GNSS_LG290P::baudGetMinimum()
+{
+    return (lg290pAllowedRates[0]);
+}
+
+uint32_t GNSS_LG290P::baudGetMaximum()
+{
+    return (lg290pAllowedRates[lg290pAllowedRatesCount - 1]);
 }
 
 //----------------------------------------
