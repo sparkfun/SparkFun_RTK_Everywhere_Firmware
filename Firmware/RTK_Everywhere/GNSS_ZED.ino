@@ -541,10 +541,6 @@ bool GNSS_ZED::configureGNSS()
         _zed->setAutoPVTcallbackPtr(&storePVTdata, VAL_LAYER_ALL); // Enable automatic NAV PVT messages with callback to storePVTdata
     response &= _zed->setAutoHPPOSLLHcallbackPtr(
         &storeHPdata, VAL_LAYER_ALL); // Enable automatic NAV HPPOSLLH messages with callback to storeHPdata
-    _zed->setRTCM1005InputcallbackPtr(
-        &storeRTCM1005data); // Configure a callback for RTCM 1005 - parsed from pushRawData
-    _zed->setRTCM1006InputcallbackPtr(
-        &storeRTCM1006data); // Configure a callback for RTCM 1006 - parsed from pushRawData
 
     if (present.timePulseInterrupt)
         response &= _zed->setAutoTIMTPcallbackPtr(
@@ -2595,30 +2591,6 @@ void GNSS_ZED::storeMONCOMMSdataRadio(UBX_MON_COMMS_data_t *ubxDataStruct)
             break;
         }
     }
-}
-
-//----------------------------------------
-// Callback to save ARPECEF*
-//----------------------------------------
-void storeRTCM1005data(RTCM_1005_data_t *rtcmData1005)
-{
-    ARPECEFX = rtcmData1005->AntennaReferencePointECEFX;
-    ARPECEFY = rtcmData1005->AntennaReferencePointECEFY;
-    ARPECEFZ = rtcmData1005->AntennaReferencePointECEFZ;
-    ARPECEFH = 0;
-    newARPAvailable = true;
-}
-
-//----------------------------------------
-// Callback to save ARPECEF*
-//----------------------------------------
-void storeRTCM1006data(RTCM_1006_data_t *rtcmData1006)
-{
-    ARPECEFX = rtcmData1006->AntennaReferencePointECEFX;
-    ARPECEFY = rtcmData1006->AntennaReferencePointECEFY;
-    ARPECEFZ = rtcmData1006->AntennaReferencePointECEFZ;
-    ARPECEFH = rtcmData1006->AntennaHeight;
-    newARPAvailable = true;
 }
 
 //----------------------------------------

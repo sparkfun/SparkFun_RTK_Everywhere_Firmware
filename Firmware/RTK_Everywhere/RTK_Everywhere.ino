@@ -480,6 +480,7 @@ bool usbSerialIncomingRtcm; // Incoming RTCM over the USB serial port
 SEMP_PARSE_STATE *rtkParse = nullptr;
 SEMP_PARSE_STATE *sbfParse = nullptr;    // mosaic-X5
 SEMP_PARSE_STATE *spartnParse = nullptr; // mosaic-X5
+SEMP_PARSE_STATE *rtcmParse = nullptr; // Parse incoming corrections for RTCM1005 / 1006 base locations
 
 //=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 
@@ -1228,6 +1229,9 @@ void setup()
 
     DMW_b("beginGnssUart2");
     beginGnssUart2();
+
+    DMW_b("beginRtcmParse");
+    beginRtcmParse();
 
     DMW_b("displaySplash");
     displaySplash(); // Display the RTK product name and firmware version

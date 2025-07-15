@@ -287,6 +287,7 @@ void sendGnssBuffer()
 {
     if (correctionLastSeen(CORR_BLUETOOTH))
     {
+        sempParseNextBytes(rtcmParse, bluetoothOutgoingToGnss, bluetoothOutgoingToGnssHead); // Parse the data for RTCM1005/1006
         if (gnss->pushRawData(bluetoothOutgoingToGnss, bluetoothOutgoingToGnssHead))
         {
             if ((settings.debugCorrections || PERIODIC_DISPLAY(PD_GNSS_DATA_TX)) && !inMainMenu)

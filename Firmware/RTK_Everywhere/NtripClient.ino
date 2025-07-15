@@ -919,6 +919,7 @@ void ntripClientUpdate()
                         {
                             // Push RTCM to GNSS module over I2C / SPI
                             gnss->pushRawData(rtcmData, rtcmCount);
+                            sempParseNextBytes(rtcmParse, rtcmData, rtcmCount); // Parse the data for RTCM1005/1006
 
                             if ((settings.debugCorrections || settings.debugNtripClientRtcm ||
                                  PERIODIC_DISPLAY(PD_NTRIP_CLIENT_DATA)) &&

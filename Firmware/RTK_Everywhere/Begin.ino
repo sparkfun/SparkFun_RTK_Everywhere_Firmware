@@ -1071,6 +1071,22 @@ void beginGnssUart2()
     serial2GNSS->begin(115200, SERIAL_8N1, pin_GnssUart2_RX, pin_GnssUart2_TX);
 }
 
+void beginRtcmParse()
+{
+    SEMP_PARSE_ROUTINE const rtcmParserTable[] = { sempRtcmPreamble };
+    const char *const rtcmParserNames[] = { "RTCM" };
+
+    // Begin the RTCM parser - which will extract the base location from RTCM1005 / 1006
+    rtcmParse = sempBeginParser(rtcmParserTable, 1, rtcmParserNames, 1,
+                               0,                   // Scratchpad bytes
+                               1050,                // Buffer length
+                               processRTCMMessage, // eom Call Back
+                               "rtcmParse");         // Parser Name
+    if (!rtcmParse)
+        reportFatalError("Failed to initialize the RTCM parser");
+
+}
+
 void beginFS()
 {
     if (online.fs == false)
