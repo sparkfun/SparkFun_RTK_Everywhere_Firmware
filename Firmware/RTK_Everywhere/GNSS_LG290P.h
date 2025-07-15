@@ -459,6 +459,9 @@ class GNSS_LG290P : GNSS
     // we can pass data back into the LG290P library to allow it to update its own variables
     void lg290pUpdate(uint8_t *incomingBuffer, int bufferLength);
 
+    // Return the baud rate of UART2, connected to the ESP32 UART1
+    uint32_t getCommBaudRate();
+
     // Poll routine to update the GNSS state
     void update();
 };

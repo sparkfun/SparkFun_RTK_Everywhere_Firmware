@@ -246,11 +246,28 @@ bool GNSS_LG290P::configureOnce()
     if (settings.debugGnss && response == false)
         systemPrintln("configureOnce: Enter config mode failed");
 
-    response &= setDataBaudRate(settings.dataPortBaud);   // LG290P UART1 is connected to CH342 (Port B)
-    response &= _lg290p->setPortBaudrate(2, 115200 * 4);  // LG290P UART2 is connected to the ESP32 UART1
-    response &= setRadioBaudRate(settings.radioPortBaud); // LG290P UART3 is connected to the locking JST connector
-    if (settings.debugGnss && response == false)
-        systemPrintln("configureOnce: setBauds failed");
+    // Check baud settings. LG290P has a limited number of allowable bauds
+    if (baudIsAllowed(settings.dataPortBaud) == false)
+        settings.dataPortBaud = 460800;
+    if (baudIsAllowed(settings.radioPortBaud) == false)
+        settings.radioPortBaud = 115200;
+
+    // Set the baud rate for the three UARTs
+    if (response == true)
+    {
+        if (getDataBaudRate() != settings.dataPortBaud)
+            response &= setDataBaudRate(settings.dataPortBaud); // LG290P UART1 is connected to CH342 (Port B)
+
+        if (getCommBaudRate() != (115200 * 4))
+            response &= setBaudrate(115200 * 4); // LG290P UART2 is connected to the ESP32 UART1
+
+        if (getRadioBaudRate() != settings.radioPortBaud)
+            response &=
+                setRadioBaudRate(settings.radioPortBaud); // LG290P UART3 is connected to the locking JST connector
+
+        if (settings.debugGnss)
+            systemPrintln("configureOnce: setBauds failed.");
+    }
 
     // Enable PPS signal with a width of 200ms
     response &= _lg290p->setPPS(200, false, true); // duration time ms, alwaysOutput, polarity
@@ -1097,14 +1114,14 @@ uint8_t GNSS_LG290P::getCarrierSolution()
 //----------------------------------------
 uint32_t GNSS_LG290P::getDataBaudRate()
 {
+    uint32_t baud = 0;
     if (online.gnss)
     {
-        uint32_t baud;
         uint8_t dataBits, parity, stop, flowControl;
-        if (_lg290p->getPortInfo(1, baud, dataBits, parity, stop, flowControl) == true)
-            return baud;
+
+        _lg290p->getPortInfo(1, baud, dataBits, parity, stop, flowControl, 250);
     }
-    return (0);
+    return (baud);
 }
 
 //----------------------------------------
@@ -1116,7 +1133,7 @@ bool GNSS_LG290P::setDataBaudRate(uint32_t baud)
 {
     if (online.gnss)
     {
-        return (_lg290p->setPortBaudrate(1, baud) == true);
+        return (_lg290p->setPortBaudrate(1, baud, 250));
     }
     return (0);
 }
@@ -1125,22 +1142,21 @@ bool GNSS_LG290P::setDataBaudRate(uint32_t baud)
 //----------------------------------------
 uint32_t GNSS_LG290P::getRadioBaudRate()
 {
+    uint32_t baud = 0;
     if (online.gnss)
     {
-        uint32_t baud;
         uint8_t dataBits, parity, stop, flowControl;
 
-        if (_lg290p->getPortInfo(3, baud, dataBits, parity, stop, flowControl) == true)
-            return baud;
+        _lg290p->getPortInfo(3, baud, dataBits, parity, stop, flowControl, 250);
     }
-    return (0);
+    return (baud);
 }
 
 // Set the baud rate for UART3, connected to the locking JST connector
 //----------------------------------------
 bool GNSS_LG290P::setRadioBaudRate(uint32_t baud)
 {
-    return (_lg290p->setPortBaudrate(3, baud));
+    return (_lg290p->setPortBaudrate(3, baud, 250));
 }
 
 //----------------------------------------
@@ -1949,14 +1965,28 @@ bool GNSS_LG290P::saveConfiguration()
 //----------------------------------------
 // Set the baud rate on the GNSS port that interfaces between the ESP32 and the GNSS
 // This just sets the GNSS side
-// Used during Bluetooth testing
 //----------------------------------------
-bool GNSS_LG290P::setBaudrate(uint32_t baudRate)
+bool GNSS_LG290P::setBaudrate(uint32_t baud)
 {
     if (online.gnss)
         // Set the baud rate on UART2 of the LG290P
-        return _lg290p->setPortBaudrate(2, baudRate);
+        return (_lg290p->setPortBaudrate(2, baud, 250));
     return false;
+}
+
+//----------------------------------------
+// Return the baud rate of UART2, connected to the ESP32 UART1
+//----------------------------------------
+uint32_t GNSS_LG290P::getCommBaudRate()
+{
+    uint32_t baud = 0;
+    if (online.gnss)
+    {
+        uint8_t dataBits, parity, stop, flowControl;
+
+        _lg290p->getPortInfo(2, baud, dataBits, parity, stop, flowControl, 250);
+    }
+    return (baud);
 }
 
 //----------------------------------------

@@ -736,8 +736,6 @@ void beginBoard()
         pinMode(pin_GNSS_Reset, OUTPUT);
         lg290pBoot(); // Tell LG290P to boot
 
-        settings.dataPortBaud = (115200 * 4); // Override settings. LG290P communicates at 460800bps.
-
         // Disable the microSD card
         pinMode(pin_microSD_CS, OUTPUT);
         sdDeselectCard();
