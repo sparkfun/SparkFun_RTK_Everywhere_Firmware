@@ -212,7 +212,7 @@ void beginBoard()
         present.button_powerHigh = true; // Button is pressed when high
         present.beeper = true;
         present.gnss_to_uart = true;
-        present.needsExternalPpl = true;       // Uses the PointPerfect Library
+        present.needsExternalPpl = true; // Uses the PointPerfect Library
         present.galileoHasCapable = true;
         present.multipathMitigation = true; // UM980 has MPM, other platforms do not
         present.minCno = true;
@@ -702,10 +702,10 @@ void beginBoard()
         present.gpioExpander = true;
         present.microSdCardDetectGpioExpanderHigh = true; // CD is on GPIO 5 of expander. High = SD in place.
 
-        //We can't enable here because we don't know if lg290pFirmwareVersion is >= v05
-        //present.minElevation = true;
-        //present.minCno = true;
-        
+        // We can't enable here because we don't know if lg290pFirmwareVersion is >= v05
+        // present.minElevation = true;
+        // present.minCno = true;
+
         pin_I2C0_SDA = 7;
         pin_I2C0_SCL = 20;
 
@@ -723,7 +723,7 @@ void beginBoard()
         pin_gpioExpanderInterrupt = 14; // Pin 'AOI' (Analog Output Input) on Portability Shield
 
         pin_bluetoothStatusLED = 4; // Blue LED
-        pin_gnssStatusLED = 0; // Green LED
+        pin_gnssStatusLED = 0;      // Green LED
 
         // Turn on Bluetooth and GNSS LEDs to indicate power on
         pinMode(pin_bluetoothStatusLED, OUTPUT);
