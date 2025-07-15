@@ -265,18 +265,24 @@ bool GNSS_LG290P::configureOnce()
             response &=
                 setRadioBaudRate(settings.radioPortBaud); // LG290P UART3 is connected to the locking JST connector
 
-        if (settings.debugGnss)
+        if (response == false && settings.debugGnss)
             systemPrintln("configureOnce: setBauds failed.");
     }
 
     // Enable PPS signal with a width of 200ms
-    response &= _lg290p->setPPS(200, false, true); // duration time ms, alwaysOutput, polarity
-    if (settings.debugGnss && response == false)
-        systemPrintln("configureOnce: setPPS failed");
+    if (response == true)
+    {
+        response &= _lg290p->setPPS(200, false, true); // duration time ms, alwaysOutput, polarity
+        if (settings.debugGnss && response == false)
+            systemPrintln("configureOnce: setPPS failed");
+    }
 
-    response &= setConstellations();
-    if (settings.debugGnss && response == false)
-        systemPrintln("configureOnce: setConstellations failed");
+    if (response == true)
+    {
+        response &= setConstellations();
+        if (settings.debugGnss && response == false)
+            systemPrintln("configureOnce: setConstellations failed");
+    }
 
     // We do not set Rover or fix rate here because fix rate only applies in rover mode.
 
