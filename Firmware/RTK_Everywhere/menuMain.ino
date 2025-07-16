@@ -8,13 +8,6 @@ void terminalUpdate()
     static bool passRtcmToGnss;
     static uint32_t rtcmTimer;
 
-    // Determine which items are periodically displayed
-    if ((millis() - lastPeriodicDisplay) >= settings.periodicDisplayInterval)
-    {
-        lastPeriodicDisplay = millis();
-        periodicDisplay = settings.periodicDisplay;
-    }
-
     // Check for USB serial input
     if (systemAvailable())
     {
@@ -132,7 +125,7 @@ void menuMain()
     {
         systemPrintln();
         char versionString[21];
-        getFirmwareVersion(versionString, sizeof(versionString), true);
+        firmwareVersionGet(versionString, sizeof(versionString), true);
         RTKBrandAttribute *brandAttributes = getBrandAttributeFromBrand(present.brand);
         systemPrintf("%s RTK %s %s\r\n", brandAttributes->name, platformPrefix, versionString);
 
@@ -242,7 +235,7 @@ void menuMain()
         else if (incoming == 'e' && (present.ethernet_ws5500 == true))
             menuEthernet();
         else if (incoming == 'f')
-            menuFirmware();
+            firmwareMenu();
         else if (incoming == 'i')
             menuCorrectionsPriorities();
         else if (incoming == 'n' && (present.ethernet_ws5500 == true))
@@ -323,7 +316,7 @@ void menuMain()
 // Profile -
 // AP -
 // Setup button -
-// Factory reset - 
+// Factory reset -
 void menuUserProfiles()
 {
     uint8_t originalProfileNumber = profileNumber;
@@ -356,6 +349,8 @@ void menuUserProfiles()
                      profileNames[profileNumber]);
 
         systemPrintf("%d) Delete profile '%s'\r\n", MAX_PROFILE_COUNT + 3, profileNames[profileNumber]);
+
+        systemPrintf("%d) Print profile\r\n", MAX_PROFILE_COUNT + 4);
 
         systemPrintln("x) Exit");
 
@@ -430,6 +425,21 @@ void menuUserProfiles()
             }
             else
                 systemPrintln("Delete aborted");
+        }
+        else if (incoming == MAX_PROFILE_COUNT + 4)
+        {
+            // Print profile
+            systemPrintf("Select the profile to be printed (1-%d): ",MAX_PROFILE_COUNT);
+
+            int printThis = getUserInputNumber(); // Returns EXIT, TIMEOUT, or long
+
+            if (printThis >= 1 && printThis <= MAX_PROFILE_COUNT)
+            {
+                char printFileName[60];
+                snprintf(printFileName, sizeof(printFileName), "/%s_Settings_%d.txt", platformFilePrefix,
+                         printThis - 1);
+                printSystemSettingsFromFileLFS(printFileName);
+            }
         }
 
         else if (incoming == INPUT_RESPONSE_GETNUMBER_EXIT)
@@ -530,15 +540,57 @@ void factoryReset(bool alreadyHasSemaphore)
     }
     else
         systemPrintln("GNSS not online. Unable to factoryReset...");
-    
+
     systemPrintln("Settings erased successfully. Rebooting. Goodbye!");
     delay(2000);
     ESP.restart();
 }
 
+// Display the Bluetooth radio menu item
+void mmDisplayBluetoothRadioMenu(char menuChar, BluetoothRadioType_e bluetoothUserChoice)
+{
+    systemPrintf("%c) Set Bluetooth Mode: ", menuChar);
+    if (bluetoothUserChoice == BLUETOOTH_RADIO_SPP_AND_BLE)
+        systemPrintln("Dual");
+    else if (bluetoothUserChoice == BLUETOOTH_RADIO_SPP)
+        systemPrintln("Classic");
+    else if (bluetoothUserChoice == BLUETOOTH_RADIO_BLE)
+        systemPrintln("BLE");
+    else
+        systemPrintln("Off");
+}
+
+// Select the Bluetooth protocol
+BluetoothRadioType_e mmChangeBluetoothProtocol(BluetoothRadioType_e bluetoothUserChoice)
+{
+    // Change Bluetooth protocol
+    if (bluetoothUserChoice == BLUETOOTH_RADIO_SPP_AND_BLE)
+        bluetoothUserChoice = BLUETOOTH_RADIO_SPP;
+    else if (bluetoothUserChoice == BLUETOOTH_RADIO_SPP)
+        bluetoothUserChoice = BLUETOOTH_RADIO_BLE;
+    else if (bluetoothUserChoice == BLUETOOTH_RADIO_BLE)
+        bluetoothUserChoice = BLUETOOTH_RADIO_OFF;
+    else if (bluetoothUserChoice == BLUETOOTH_RADIO_OFF)
+        bluetoothUserChoice = BLUETOOTH_RADIO_SPP_AND_BLE;
+    return bluetoothUserChoice;
+}
+
+// Restart Bluetooth radio if settings have changed
+void mmSetBluetoothProtocol(BluetoothRadioType_e bluetoothUserChoice)
+{
+    if (bluetoothUserChoice != settings.bluetoothRadioType)
+    {
+        bluetoothStop();
+        settings.bluetoothRadioType = bluetoothUserChoice;
+        bluetoothStart();
+    }
+}
+
 // Configure the internal radio, if available
 void menuRadio()
 {
+    BluetoothRadioType_e bluetoothUserChoice = settings.bluetoothRadioType;
+
     while (1)
     {
         systemPrintln();
@@ -574,7 +626,7 @@ void menuRadio()
             systemPrintln("2) Pair radios");
             systemPrintln("3) Forget all radios");
 
-            systemPrintf("4) Current channel: %d\r\n", espnowGetChannel());
+            systemPrintf("4) Current channel: %d\r\n", wifiChannel);
 
             if (settings.debugEspNow == true)
             {
@@ -609,23 +661,30 @@ void menuRadio()
             }
         }
 
+        // Display Bluetooth menu
+        mmDisplayBluetoothRadioMenu('b', bluetoothUserChoice);
+
         systemPrintln("x) Exit");
 
-        int incoming = getUserInputNumber(); // Returns EXIT, TIMEOUT, or long
+        byte incoming = getUserInputCharacterNumber();
 
-        if (incoming == 1)
+        // Select the bluetooth radio
+        if (incoming == 'b')
+            bluetoothUserChoice = mmChangeBluetoothProtocol(bluetoothUserChoice);
+
+        else if (incoming == 1)
         {
             settings.enableEspNow ^= 1;
 
             // Start ESP-NOW so that getChannel runs correctly
             if (settings.enableEspNow == true)
-                ESPNOW_START();
+                wifiEspNowOn(__FILE__, __LINE__);
             else
-                ESPNOW_STOP();
+                wifiEspNowOff(__FILE__, __LINE__);
         }
         else if (settings.enableEspNow == true && incoming == 2)
         {
-            espnowStaticPairing();
+            espNowStaticPairing();
         }
         else if (settings.enableEspNow == true && incoming == 3)
         {
@@ -633,10 +692,10 @@ void menuRadio()
             byte bContinue = getUserInputCharacterNumber();
             if (bContinue == 'y')
             {
-                if (espnowGetState() > ESPNOW_OFF)
+                if (wifiEspNowRunning)
                 {
                     for (int x = 0; x < settings.espnowPeerCount; x++)
-                        espnowRemovePeer(settings.espnowPeers[x]);
+                        espNowRemovePeer(settings.espnowPeers[x]);
                 }
                 settings.espnowPeerCount = 0;
                 systemPrintln("Radios forgotten");
@@ -644,21 +703,30 @@ void menuRadio()
         }
         else if (settings.enableEspNow == true && incoming == 4)
         {
-            if (WIFI_IS_RUNNING() == false)
+            if (getNewSetting("Enter the WiFi channel to use for ESP-NOW communication", 1, 14,
+                              &settings.wifiChannel) == INPUT_RESPONSE_VALID)
             {
-                if (getNewSetting("Enter the WiFi channel to use for ESP-NOW communication", 1, 14,
-                                  &settings.wifiChannel) == INPUT_RESPONSE_VALID)
-                    espnowSetChannel(settings.wifiChannel);
-            }
-            else
-            {
-                systemPrintln("ESP-NOW channel can't be modified while WiFi is active.");
+                wifiEspNowSetChannel(settings.wifiChannel);
+                if (settings.wifiChannel)
+                {
+                    if (settings.wifiChannel == wifiChannel)
+                        systemPrintf("WiFi is already on channel %d.", settings.wifiChannel);
+                    else
+                    {
+                        if (wifiSoftApRunning || wifiStationRunning)
+                            systemPrintf("Restart WiFi to use channel %d.", settings.wifiChannel);
+                        else if (wifiEspNowRunning)
+                            systemPrintf("Restart ESP-NOW to use channel %d.", settings.wifiChannel);
+                        else
+                            systemPrintf("Please start ESP-NOW to use channel %d.", settings.wifiChannel);
+                    }
+                }
             }
         }
         else if (settings.enableEspNow == true && incoming == 5 && settings.debugEspNow == true)
         {
-            if (espnowGetState() == ESPNOW_OFF)
-                ESPNOW_START();
+            if (wifiEspNowRunning == false)
+                wifiEspNowOn(__FILE__, __LINE__);
 
             uint8_t peer1[] = {0xB8, 0xD6, 0x1A, 0x0D, 0x8F, 0x9C}; // Random MAC
 #ifdef COMPILE_ESPNOW
@@ -667,7 +735,7 @@ void menuRadio()
             else
             {
                 // Add new peer to system
-                espnowAddPeer(peer1);
+                espNowAddPeer(peer1);
 
                 // Record this MAC to peer list
                 memcpy(settings.espnowPeers[settings.espnowPeerCount], peer1, 6);
@@ -676,34 +744,34 @@ void menuRadio()
                 recordSystemSettings();
             }
 
-            espnowSetState(ESPNOW_PAIRED);
+            espNowSetState(ESPNOW_PAIRED);
 #endif
         }
         else if (settings.enableEspNow == true && incoming == 6 && settings.debugEspNow == true)
         {
-            if (espnowGetState() == ESPNOW_OFF)
-                ESPNOW_START();
+            if (wifiEspNowRunning == false)
+                wifiEspNowOn(__FILE__, __LINE__);
 
-            uint8_t espnowData[] =
+            uint8_t espNowData[] =
                 "This is the long string to test how quickly we can send one string to the other unit. I am going to "
                 "need a much longer sentence if I want to get a long amount of data into one transmission. This is "
                 "nearing 200 characters but needs to be near 250.";
 #ifdef COMPILE_ESPNOW
-            esp_now_send(0, (uint8_t *)&espnowData, sizeof(espnowData)); // Send packet to all peers
+            esp_now_send(0, (uint8_t *)&espNowData, sizeof(espNowData)); // Send packet to all peers
 #endif
         }
         else if (settings.enableEspNow == true && incoming == 7 && settings.debugEspNow == true)
         {
-            if (espnowGetState() == ESPNOW_OFF)
-                ESPNOW_START();
+            if (wifiEspNowRunning == false)
+                wifiEspNowOn(__FILE__, __LINE__);
 
-            uint8_t espnowData[] =
+            uint8_t espNowData[] =
                 "This is the long string to test how quickly we can send one string to the other unit. I am going to "
                 "need a much longer sentence if I want to get a long amount of data into one transmission. This is "
                 "nearing 200 characters but needs to be near 250.";
             uint8_t broadcastMac[6] = {0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF};
 #ifdef COMPILE_ESPNOW
-            esp_now_send(broadcastMac, (uint8_t *)&espnowData, sizeof(espnowData)); // Send packet over broadcast
+            esp_now_send(broadcastMac, (uint8_t *)&espNowData, sizeof(espNowData)); // Send packet over broadcast
 #endif
         }
 
@@ -723,6 +791,8 @@ void menuRadio()
                           10, 600, &settings.loraSerialInteractionTimeout_s);
         }
 
+        else if (incoming == 'x')
+            break;
         else if (incoming == INPUT_RESPONSE_GETNUMBER_EXIT)
             break;
         else if (incoming == INPUT_RESPONSE_GETNUMBER_TIMEOUT)
@@ -731,7 +801,10 @@ void menuRadio()
             printUnknown(incoming);
     }
 
-    ESPNOW_START();
+    wifiEspNowOn(__FILE__, __LINE__);
+
+    // Restart Bluetooth radio if settings have changed
+    mmSetBluetoothProtocol(bluetoothUserChoice);
 
     // LoRa radio state machine will start/stop radio upon next updateLora in loop()
 

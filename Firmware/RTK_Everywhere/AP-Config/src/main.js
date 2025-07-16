@@ -121,9 +121,18 @@ function parseIncoming(msg) {
                 show("useLocalizedDistributionCheckbox");
                 show("useEnableExtCorrRadio");
                 show("extCorrRadioSPARTNSourceDropdown");
+                hide("enableNmeaOnRadio");
                 hide("shutdownNoChargeTimeoutMinutesCheckboxDetail");
 
                 hide("constellationNavic"); //Not supported on ZED
+
+                select = ge("pointPerfectService");
+                let newOption = new Option('Disabled', '0');
+                select.add(newOption, undefined);
+                newOption = new Option('Flex NTRIP/RTCM', '1');
+                select.add(newOption, undefined);
+                newOption = new Option('Flex L-Band North America', '2');
+                select.add(newOption, undefined);
             }
             else if ((platformPrefix == "Facet v2") || (platformPrefix == "Facet v2 LBand")) {
                 show("baseConfig");
@@ -143,6 +152,7 @@ function parseIncoming(msg) {
                 show("useLocalizedDistributionCheckbox");
                 show("useEnableExtCorrRadio");
                 show("extCorrRadioSPARTNSourceDropdown");
+                hide("enableNmeaOnRadio");
 
                 hide("constellationNavic"); //Not supported on ZED
             }
@@ -164,6 +174,7 @@ function parseIncoming(msg) {
                 hide("useLocalizedDistributionCheckbox");
                 show("useEnableExtCorrRadio");
                 hide("extCorrRadioSPARTNSourceDropdown");
+                show("enableNmeaOnRadio");
 
                 select = ge("dynamicModel");
                 let newOption = new Option('Static', '0');
@@ -186,6 +197,14 @@ function parseIncoming(msg) {
                 ge("messageRateInfoText").setAttribute('data-bs-original-title', 'The GNSS can output NMEA and RTCMv3 at different rates. For NMEA: select a stream for each message, and set an interval for each stream. For RTCMv3: set an interval for each message group, and enable individual messages.');
                 ge("rtcmRateInfoText").setAttribute('data-bs-original-title', 'RTCM is transmitted by the base at a default of 1Hz for messages 1005, MSM4, and 0.1Hz for 1033. This can be lowered for radios with low bandwidth or tailored to transmit any/all RTCM messages. Limits: 0.1 to 600.');
                 ge("enableExtCorrRadioInfoText").setAttribute('data-bs-original-title', 'Enable external radio corrections: RTCMv3 on mosaic COM2. Default: False');
+
+                select = ge("pointPerfectService");
+                newOption = new Option('Disabled', '0');
+                select.add(newOption, undefined);
+                newOption = new Option('Flex NTRIP/RTCM', '1');
+                select.add(newOption, undefined);
+                newOption = new Option('Flex L-Band North America', '2');
+                select.add(newOption, undefined);
             }
             else if (platformPrefix == "Torch") {
                 show("baseConfig");
@@ -193,6 +212,9 @@ function parseIncoming(msg) {
                 hide("ethernetConfig");
                 hide("ntpConfig");
                 show("portsConfig");
+
+                // No RADIO port on Torch
+                // No DATA port on Torch
                 hide("externalPortOptions");
 
                 hide("logToSDCard");
@@ -215,6 +237,11 @@ function parseIncoming(msg) {
 
                 ge("rtcmRateInfoText").setAttribute('data-bs-original-title', 'RTCM is transmitted by the base at a default of 1Hz for messages 1005, 1074, 1084, 1094, 1124, and 0.1Hz for 1033. This can be lowered for radios with low bandwidth or tailored to transmit any/all RTCM messages. Limits: 0 to 20. Note: The measurement rate is overridden to 1Hz when in Base mode.');
 
+                select = ge("pointPerfectService");
+                newOption = new Option('Disabled', '0');
+                select.add(newOption, undefined);
+                newOption = new Option('Flex NTRIP/RTCM', '1');
+                select.add(newOption, undefined);
             }
             else if (platformPrefix == "Postcard") {
                 show("baseConfig");
@@ -235,7 +262,8 @@ function parseIncoming(msg) {
                 show("surveyInSettings");
                 show("useLocalizedDistributionCheckbox");
                 show("useEnableExtCorrRadio");
-                show("extCorrRadioSPARTNSourceDropdown");
+                hide("extCorrRadioSPARTNSourceDropdown");
+                show("enableNmeaOnRadio");
 
                 hide("constellationSbas"); //Not supported on LG290P
                 show("constellationNavic");
@@ -245,6 +273,39 @@ function parseIncoming(msg) {
                 hide("minCNOConfig"); //Not supported on LG290P
 
                 ge("rtcmRateInfoText").setAttribute('data-bs-original-title', 'RTCM is transmitted by the base at a default of 1Hz for messages 1005, 1074, 1084, 1094, 1114, 1124, 1134. This can be lowered for radios with low bandwidth or tailored to transmit any/all RTCM messages. Limits: 0 to 20. Note: The measurement rate is overridden to 1Hz when in Base mode.');
+
+                select = ge("pointPerfectService");
+                let newOption = new Option('Disabled', '0');
+                select.add(newOption, undefined);
+                newOption = new Option('Flex NTRIP/RTCM', '1');
+                select.add(newOption, undefined);
+
+                console.log("Change baud list");
+                ge("radioPortBaud").options.length = 0; //Remove all from list
+                select = ge("radioPortBaud");
+                newOption = new Option('9600', '9600');
+                select.add(newOption, undefined);
+                newOption = new Option('115200', '115200');
+                select.add(newOption, undefined);
+                newOption = new Option('230400', '230400');
+                select.add(newOption, undefined);
+                newOption = new Option('460800', '460800');
+                select.add(newOption, undefined);
+                newOption = new Option('921600', '921600');
+                select.add(newOption, undefined);
+
+                ge("dataPortBaud").options.length = 0; //Remove all from list
+                select = ge("dataPortBaud");
+                newOption = new Option('9600', '9600');
+                select.add(newOption, undefined);
+                newOption = new Option('115200', '115200');
+                select.add(newOption, undefined);
+                newOption = new Option('230400', '230400');
+                select.add(newOption, undefined);
+                newOption = new Option('460800', '460800');
+                select.add(newOption, undefined);
+                newOption = new Option('921600', '921600');
+                select.add(newOption, undefined);
             }
         }
         else if (id.includes("gnssFirmwareVersionInt")) {
@@ -473,8 +534,9 @@ function parseIncoming(msg) {
                 correctionsSourceNames.push(correctionNameLabel);
                 correctionsSourcePriorities.push(correctionPriority);
             }
-            else
-                console.log("Too many corrections sources");
+            else {
+                console.log("Too many corrections sources: ", correctionsSourceNames.length);
+            }
         }
         else if (id.includes("checkingNewFirmware")) {
             checkingNewFirmware();
@@ -574,7 +636,7 @@ function parseIncoming(msg) {
         ge("enableNtripServer").dispatchEvent(new CustomEvent('change'));
         ge("enableNtripClient").dispatchEvent(new CustomEvent('change'));
         ge("dataPortChannel").dispatchEvent(new CustomEvent('change'));
-        ge("enablePointPerfectCorrections").dispatchEvent(new CustomEvent('change'));
+        ge("pointPerfectService").dispatchEvent(new CustomEvent('change'));
         ge("enableExternalPulse").dispatchEvent(new CustomEvent('change'));
         ge("enableExternalHardwareEventLogging").dispatchEvent(new CustomEvent('change'));
         ge("enableEspNow").dispatchEvent(new CustomEvent('change'));
@@ -893,15 +955,7 @@ function validateFields() {
     // }
 
     //PointPerfect Config
-    if (ge("enablePointPerfectCorrections").checked == true) {
-        value = ge("pointPerfectDeviceProfileToken").value;
-        if (value.length > 0)
-            checkElementString("pointPerfectDeviceProfileToken", 36, 36, "Must be 36 characters", "collapsePPConfig");
-    }
-    else {
-        clearElement("pointPerfectDeviceProfileToken", "");
-        ge("autoKeyRenewal").checked = true;
-    }
+    checkPointPerfectService();
 
     //Port Config
     if (ge("enableExternalPulse").checked == true) {
@@ -1062,8 +1116,8 @@ function saveConfig() {
         clearSuccess('saveBtn');
     }
     else {
-        sendData();
         clearError('saveBtn');
+        sendData();
         showSuccess('saveBtn', "Saving...");
     }
 
@@ -1080,6 +1134,30 @@ function checkConstellations() {
     }
     else
         clearError("gnssConstellations");
+}
+
+function checkPointPerfectService() {
+    if (ge("pointPerfectService").value > 0) {
+        value = ge("pointPerfectDeviceProfileToken").value;
+        if (value.length > 0)
+            checkElementString("pointPerfectDeviceProfileToken", 36, 36, "Must be 36 characters", "collapsePPConfig");
+
+        if (networkCount() == 0) {
+            showError('pointPerfectService', "This PointPerfect service requires at least one WiFi network");
+            ge("collapsePPConfig").classList.add('show');
+            ge("collapseWiFiConfig").classList.add('show');
+            errorCount++;
+        }
+        else {
+            clearError("pointPerfectService");
+        }
+
+    }
+    else {
+        clearElement("pointPerfectDeviceProfileToken", "");
+        ge("autoKeyRenewal").checked = true;
+        clearError("pointPerfectService");
+    }
 }
 
 function checkBitMapValue(id, min, max, bitMap, errorText, collapseID) {
@@ -1652,12 +1730,15 @@ document.addEventListener("DOMContentLoaded", (event) => {
         }
     });
 
-    ge("enablePointPerfectCorrections").addEventListener("change", function () {
-        if (ge("enablePointPerfectCorrections").checked) {
-            show("ppSettingsConfig");
+    ge("pointPerfectService").addEventListener("change", function () {
+        if (ge("pointPerfectService").value == 1) { //Flex RTCM 
+            hide("ppSettingsLBandNAConfig");
         }
-        else {
-            hide("ppSettingsConfig");
+        else if (ge("pointPerfectService").value == 2) { //Flex L-Band NA
+            show("ppSettingsLBandNAConfig");
+        }
+        else { //"pointPerfectService").value == 0 //Disabled
+            hide("ppSettingsLBandNAConfig");
         }
     });
 
@@ -2377,6 +2458,7 @@ function newFirmwareVersion(firmwareVersion) {
         return;
     }
 
+    showMsg('firmwareCheckNewMsg', "New firmware available!");
     ge("btnGetNewFirmware").innerHTML = "Update to v" + firmwareVersion;
     ge("btnGetNewFirmware").disabled = false;
     ge("firmwareUpdateProgressBar").value = 0;

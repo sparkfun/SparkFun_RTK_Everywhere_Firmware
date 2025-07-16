@@ -653,7 +653,7 @@ void recordSystemSettingsToFile(File *settingsFile)
     // Below are things not part of settings.h
 
     char firmwareVersion[30]; // v1.3 December 31 2021
-    getFirmwareVersion(firmwareVersion, sizeof(firmwareVersion), true);
+    firmwareVersionGet(firmwareVersion, sizeof(firmwareVersion), true);
     settingsFile->printf("%s=%s\r\n", "rtkFirmwareVersion", firmwareVersion);
 
     settingsFile->printf("%s=%s\r\n", "gnssFirmwareVersion", gnssFirmwareVersion);
@@ -840,7 +840,7 @@ bool loadSystemSettingsFromFileLFS(char *fileName, const char *findMe, char *fou
             {
                 // If we can't read the first line of the settings file, give up
                 systemPrintln("Giving up on settings file");
-                return (false);
+                break;
             }
         }
         else
@@ -875,7 +875,7 @@ bool loadSystemSettingsFromFileLFS(char *fileName, const char *findMe, char *fou
                         }
                     }
                     strncpy(found, ptr, len);
-                    break;
+                    break; // We are done
                 }
             }
         }
@@ -887,6 +887,69 @@ bool loadSystemSettingsFromFileLFS(char *fileName, const char *findMe, char *fou
             break;
         }
     }
+
+    settingsFile.close();
+    return (true);
+}
+
+bool printSystemSettingsFromFileLFS(char *fileName)
+{
+    // log_d("printing setting fileName: %s", fileName);
+
+    if (!LittleFS.exists(fileName))
+    {
+        // log_d("settingsFile not found in LittleFS\r\n");
+        return (false);
+    }
+
+    File settingsFile = LittleFS.open(fileName, FILE_READ);
+    if (!settingsFile)
+    {
+        // log_d("settingsFile not found in LittleFS\r\n");
+        return (false);
+    }
+
+    char line[100];
+    int lineNumber = 0;
+
+    systemPrintln();
+    systemPrintln("--------------------------------------------------------------------------------");
+
+    while (settingsFile.available())
+    {
+        // Get the next line from the file
+        int n;
+        n = getLine(&settingsFile, line, sizeof(line));
+
+        if (n <= 0)
+        {
+            systemPrintf("Failed to read line %d from settings file\r\n", lineNumber);
+        }
+        else if (line[n - 1] != '\n' && n == (sizeof(line) - 1))
+        {
+            systemPrintf("Settings line %d too long\r\n", lineNumber);
+            if (lineNumber == 0)
+            {
+                // If we can't read the first line of the settings file, give up
+                systemPrintln("Giving up on settings file");
+                break;
+            }
+        }
+        else
+        {
+            systemPrintln(line);
+        }
+
+        lineNumber++;
+        if (lineNumber > 800) // Arbitrary limit. Catch corrupt files.
+        {
+            systemPrintf("Max line number exceeded. Giving up reading file: %s\r\n", fileName);
+            break;
+        }
+    }
+
+    systemPrintln("--------------------------------------------------------------------------------");
+    systemPrintln();
 
     settingsFile.close();
     return (true);

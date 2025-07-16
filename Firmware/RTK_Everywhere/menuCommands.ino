@@ -64,7 +64,7 @@ t_cliResult processCommand(char *cmdBuffer)
         }
 
         // Remove $
-        memmove(cmdBuffer, &cmdBuffer[1], sizeof(cmdBuffer) - 1);
+        memmove(cmdBuffer, &cmdBuffer[1], strlen(cmdBuffer));
 
         // Change * to , and null terminate on the first CRC character
         cmdBuffer[strlen(cmdBuffer) - 3] = ',';
@@ -1198,7 +1198,7 @@ SettingValueResponse updateSettingWithValue(bool inCommands, const char *setting
     }
     else if (strcmp(settingName, "firmwareFileName") == 0)
     {
-        mountSDThenUpdate(settingValueStr);
+        microSDMountThenUpdate(settingValueStr);
 
         // If update is successful, it will force system reset and not get here.
 
@@ -1277,7 +1277,7 @@ SettingValueResponse updateSettingWithValue(bool inCommands, const char *setting
     {
         // Forget all ESP-Now Peers
         for (int x = 0; x < settings.espnowPeerCount; x++)
-            espnowRemovePeer(settings.espnowPeers[x]);
+            espNowRemovePeer(settings.espnowPeers[x]);
         settings.espnowPeerCount = 0;
         knownSetting = true;
     }
@@ -1303,57 +1303,10 @@ SettingValueResponse updateSettingWithValue(bool inCommands, const char *setting
 
         sendStringToWebsocket((char *)"checkingNewFirmware,1,"); // Tell the config page we received their request
 
-        // We don't use the OTA state machine here because we need to respond to
-        // Web Config immediately of success or failure
-
-        // If we're in AP only mode (no internet), try WiFi with current SSIDs
-        if (networkIsInterfaceStarted(NETWORK_WIFI) && networkHasInternet() == false)
-        {
-            wifiStart();
-        }
-
-        // Get firmware version from server
-        char newVersionCSV[40];
-        if (networkHasInternet() == false)
-        {
-            // No internet. Report error.
-            if (settings.debugWebServer == true)
-                systemPrintln("No internet available. Sending error to Web config page.");
-            snprintf(newVersionCSV, sizeof(newVersionCSV), "newFirmwareVersion,NO_INTERNET,");
-        }
-        else
-        {
-            char otaReportedVersion[50];
-            if (otaCheckVersion(otaReportedVersion, sizeof(otaReportedVersion)))
-            {
-                // We got a version number, now determine if it's newer or not
-                char currentVersion[40];
-                getFirmwareVersion(currentVersion, sizeof(currentVersion), enableRCFirmware);
-                if (isReportedVersionNewer(otaReportedVersion, currentVersion) == true)
-                {
-                    if (settings.debugWebServer == true)
-                        systemPrintln("New version detected");
-                    snprintf(newVersionCSV, sizeof(newVersionCSV), "newFirmwareVersion,%s,", otaReportedVersion);
-                }
-                else
-                {
-                    if (settings.debugWebServer == true)
-                        systemPrintln("No new firmware available");
-                    snprintf(newVersionCSV, sizeof(newVersionCSV), "newFirmwareVersion,CURRENT,");
-                }
-            }
-            else
-            {
-                // Failed to get version number
-                if (settings.debugWebServer == true)
-                    systemPrintln("Sending error to Web config page");
-                snprintf(newVersionCSV, sizeof(newVersionCSV), "newFirmwareVersion,NO_SERVER,");
-            }
-        }
-
-        sendStringToWebsocket(newVersionCSV);
-
         knownSetting = true;
+
+        // Inform the OTA state machine that it is needed
+        otaRequestFirmwareVersionCheck = true;
     }
     else if (strcmp(settingName, "getNewFirmware") == 0)
     {
@@ -1362,13 +1315,12 @@ SettingValueResponse updateSettingWithValue(bool inCommands, const char *setting
 
         sendStringToWebsocket((char *)"gettingNewFirmware,1,");
 
+        // Let the OTA state machine know it needs to report its progress to the websocket
         apConfigFirmwareUpdateInProcess = true;
 
         // Notify the network layer we need access, and let OTA state machine take over
         otaRequestFirmwareUpdate = true;
 
-        // We get here if WiFi failed to connect
-        sendStringToWebsocket((char *)"gettingNewFirmware,ERROR,");
         knownSetting = true;
     }
 
@@ -1383,9 +1335,18 @@ SettingValueResponse updateSettingWithValue(bool inCommands, const char *setting
     else
     {
         const char *table[] = {
-            "baseTypeSurveyIn", "enableFactoryDefaults",      "enableFirmwareUpdate", "enableForgetRadios",
-            "fileSelectAll",    "fixedBaseCoordinateTypeGeo", "fixedHAEAPC",          "measurementRateSec",
-            "nicknameECEF",     "nicknameGeodetic",           "saveToArduino",        "enableAutoReset",
+            "baseTypeSurveyIn",
+            "enableFactoryDefaults",
+            "enableFirmwareUpdate",
+            "enableForgetRadios",
+            "fileSelectAll",
+            "fixedBaseCoordinateTypeGeo",
+            "fixedHAEAPC",
+            "measurementRateSec",
+            "nicknameECEF",
+            "nicknameGeodetic",
+            "saveToArduino",
+            "enableAutoReset",
             "shutdownNoChargeTimeoutMinutesCheckbox",
         };
         const int tableEntries = sizeof(table) / sizeof(table[0]);
@@ -1405,7 +1366,47 @@ SettingValueResponse updateSettingWithValue(bool inCommands, const char *setting
     // Last catch
     if (knownSetting == false)
     {
-        systemPrintf("Unknown '%s': %0.3lf\r\n", settingName, settingValue);
+        size_t length;
+        char *name;
+        char *suffix;
+
+        // Allocate the buffers
+        length = strlen(settingName) + 1;
+        name = (char *)rtkMalloc(2 * length, "name & suffix buffers");
+        if (name == nullptr)
+            systemPrintf("ERROR: Failed allocation, Unknown '%s': %0.3lf\r\n", settingName, settingValue);
+        else
+        {
+            int rtkIndex;
+
+            suffix = &name[length];
+
+            // Split the name
+            commandSplitName(settingName, name, length, suffix, length);
+
+            // Loop through the settings entries
+            for (rtkIndex = 0; rtkIndex < numRtkSettingsEntries; rtkIndex++)
+            {
+                const char *command = rtkSettingsEntries[rtkIndex].name;
+
+                // For speed, compare the first letter, then the whole string
+                if ((command[0] == settingName[0]) && (strcmp(command, name) == 0))
+                    break;
+            }
+
+            if (rtkIndex >= numRtkSettingsEntries)
+                systemPrintf("ERROR: Unknown '%s': %0.3lf\r\n", settingName, settingValue);
+            else
+            {
+                // Display the warning
+                if (settings.debugWebServer == true)
+                    systemPrintf("Warning: InCommands is false for '%s': %0.3lf\r\n", settingName, settingValue);
+                knownSetting = true;
+            }
+        }
+
+        // Done with the buffer
+        rtkFree(name, "name & suffix buffers");
     }
 
     if (knownSetting == true && settingIsString == true)
@@ -1431,7 +1432,7 @@ void createSettingsString(char *newSettings)
     stringRecord(newSettings, "platformPrefix", apPlatformPrefix);
 
     char apRtkFirmwareVersion[86];
-    getFirmwareVersion(apRtkFirmwareVersion, sizeof(apRtkFirmwareVersion), true);
+    firmwareVersionGet(apRtkFirmwareVersion, sizeof(apRtkFirmwareVersion), true);
     stringRecord(newSettings, "rtkFirmwareVersion", apRtkFirmwareVersion);
 
     char apGNSSFirmwareVersion[80];
@@ -1961,10 +1962,16 @@ void createSettingsString(char *newSettings)
     }
 
     // Drop downs on the AP config page expect a value, whereas bools get stringRecord as true/false
+    // These special bool settings get added twice to the string, once above, once here.
     if (settings.wifiConfigOverAP == true)
         stringRecord(newSettings, "wifiConfigOverAP", 1); // 1 = AP mode, 0 = WiFi
     else
         stringRecord(newSettings, "wifiConfigOverAP", 0); // 1 = AP mode, 0 = WiFi
+
+    if (settings.tcpUdpOverWiFiStation == true)
+        stringRecord(newSettings, "tcpUdpOverWiFiStation", 1); // 1 = WiFi mode, 0 = AP
+    else
+        stringRecord(newSettings, "tcpUdpOverWiFiStation", 0); // 1 = WiFi mode, 0 = AP
 
     // Single variables needed on Config page
     stringRecord(newSettings, "minCNO", gnss->getMinCno());
@@ -1985,10 +1992,7 @@ void createSettingsString(char *newSettings)
     stringRecord(newSettings, "sdMounted", online.microSD);
 
     // Add Device ID used for corrections
-    char hardwareID[15];
-    snprintf(hardwareID, sizeof(hardwareID), "%02X%02X%02X%02X%02X%02X%02X", btMACAddress[0], btMACAddress[1],
-             btMACAddress[2], btMACAddress[3], btMACAddress[4], btMACAddress[5], productVariant);
-    stringRecord(newSettings, "hardwareID", hardwareID);
+    stringRecord(newSettings, "hardwareID", (char *)printDeviceId());
 
     // Add Days Remaining for corrections
     char apDaysRemaining[20];
@@ -2362,6 +2366,12 @@ SettingValueResponse getSettingValue(bool inCommands, const char *settingName, c
         break;
         case tMuxConn: {
             muxConnectionType_e *ptr = (muxConnectionType_e *)var;
+            writeToString(settingValueStr, (int)*ptr);
+            knownSetting = true;
+        }
+        break;
+        case tSysState: {
+            SystemState *ptr = (SystemState *)var;
             writeToString(settingValueStr, (int)*ptr);
             knownSetting = true;
         }
@@ -2794,11 +2804,7 @@ SettingValueResponse getSettingValue(bool inCommands, const char *settingName, c
     // Report deviceID over CLI - Useful for label generation
     if (strcmp(settingName, "deviceId") == 0)
     {
-        char hardwareID[15];
-        snprintf(hardwareID, sizeof(hardwareID), "%02X%02X%02X%02X%02X%02X%02X", btMACAddress[0], btMACAddress[1],
-                 btMACAddress[2], btMACAddress[3], btMACAddress[4], btMACAddress[5], productVariant);
-
-        writeToString(settingValueStr, hardwareID);
+        writeToString(settingValueStr, (char *)printDeviceId());
         knownSetting = true;
         settingIsString = true;
     }
@@ -3412,11 +3418,7 @@ bool commandIndexFill()
     // Allocate the command array. Never freed
     length = commandCount * sizeof(*commandIndex);
 
-    if (online.psram == true)
-        commandIndex = (int16_t *)ps_malloc(length);
-    else
-        commandIndex = (int16_t *)malloc(length);
-
+    commandIndex = (int16_t *)rtkMalloc(length, "Command index array (commandIndex)");
     if (!commandIndex)
     {
         // Failed to allocate the commandIndex
@@ -3491,7 +3493,6 @@ void printAvailableSettings()
         else if (commandIndex[i] == COMMAND_PROFILE_NUMBER)
         {
             char settingValue[100];
-
             snprintf(settingValue, sizeof(settingValue), "%d", profileNumber);
             commandSendExecuteListResponse("profileNumber", "uint8_t", settingValue);
         }
@@ -3499,13 +3500,9 @@ void printAvailableSettings()
         // Display the device ID - used in PointPerfect
         else if (commandIndex[i] == COMMAND_DEVICE_ID)
         {
-            char hardwareID[15];
             char settingType[100];
-
-            snprintf(hardwareID, sizeof(hardwareID), "%02X%02X%02X%02X%02X%02X%02X", btMACAddress[0], btMACAddress[1],
-                     btMACAddress[2], btMACAddress[3], btMACAddress[4], btMACAddress[5], productVariant);
-            snprintf(settingType, sizeof(settingType), "char[%d]", sizeof(hardwareID));
-            commandSendExecuteListResponse("deviceId", settingType, hardwareID);
+            snprintf(settingType, sizeof(settingType), "char[%d]", strlen(printDeviceId()));
+            commandSendExecuteListResponse("deviceId", settingType, printDeviceId());
         }
     }
     systemPrintln();

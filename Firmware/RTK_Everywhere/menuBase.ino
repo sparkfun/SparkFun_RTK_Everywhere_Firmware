@@ -637,14 +637,9 @@ void recordLineToSD(const char *fileName, const char *lineData)
             gotSemaphore = true;
 
             SdFile file;
-            if (!file)
-            {
-                systemPrintln("ERROR - Failed to allocate file");
-                break;
-            }
             if (file.open(fileName, O_CREAT | O_APPEND | O_WRITE) == false)
             {
-                log_d("File %s not found", fileName);
+                systemPrintf("recordLineToSD: Failed to modify %s\n\r", fileName);
                 break;
             }
 

@@ -344,7 +344,7 @@ bool beginLogging(const char *customFileName)
                 // SparkFun RTK Express v1.10-Feb 11 2022
                 char firmwareVersion[30]; // v1.3 December 31 2021
                 firmwareVersion[0] = 'v';
-                getFirmwareVersion(&firmwareVersion[1], sizeof(firmwareVersion) - 1, true);
+                firmwareVersionGet(&firmwareVersion[1], sizeof(firmwareVersion) - 1, true);
                 createNMEASentence(CUSTOM_NMEA_TYPE_SYSTEM_VERSION, nmeaMessage, sizeof(nmeaMessage),
                                    firmwareVersion); // textID, buffer, sizeOfBuffer, text
                 logFile->println(nmeaMessage);
@@ -354,8 +354,8 @@ bool beginLogging(const char *customFileName)
                                    gnssFirmwareVersion); // textID, buffer, sizeOfBuffer, text
                 logFile->println(nmeaMessage);
 
-                // ZED-F9 unique chip ID
-                createNMEASentence(CUSTOM_NMEA_TYPE_ZED_UNIQUE_ID, nmeaMessage, sizeof(nmeaMessage),
+                // GNSS module unique chip ID
+                createNMEASentence(CUSTOM_NMEA_TYPE_GNSS_UNIQUE_ID, nmeaMessage, sizeof(nmeaMessage),
                                    gnssUniqueId); // textID, buffer, sizeOfBuffer, text
                 logFile->println(nmeaMessage);
 
@@ -562,7 +562,7 @@ void checkGNSSArrayDefaults()
     {
         if (settings.dynamicModel == 254)
             settings.dynamicModel = UM980_DYN_MODEL_SURVEY;
-            
+
         if (settings.enableExtCorrRadio == 254)
             settings.enableExtCorrRadio = false;
 
@@ -609,7 +609,7 @@ void checkGNSSArrayDefaults()
     {
         if (settings.dynamicModel == 254)
             settings.dynamicModel = MOSAIC_DYN_MODEL_QUASISTATIC;
-            
+
         if (settings.enableExtCorrRadio == 254)
             settings.enableExtCorrRadio = true;
 

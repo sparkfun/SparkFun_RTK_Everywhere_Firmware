@@ -1190,36 +1190,50 @@
 
                     <div>
                         Device ID: <p id="hardwareID" style="display:inline;">N/A</p><br>
-                        Days until keys expire: <p id="daysRemaining" style="display:inline;">No Keys</p>
                     </div>
 
-                    <div class="form-check mt-3">
-                        <label class="form-check-label" for="enablePointPerfectCorrections">Enable PointPerfect
-                            Corrections </label>
-                        <input class="form-check-input" type="checkbox" value="" id="enablePointPerfectCorrections">
-                        <span class="tt" data-bs-placement="right"
-                            title="Use L-Band / IP PointPerfect corrections when available. Default: Disabled">
-                            <span class="icon-info-circle text-primary ms-2"></span>
-                        </span>
-                    </div>
-
-                    <div id="geographicRegionDropdown">
-                        <label for="geographicRegion">Geographic Region:</label>
-                        <select name="geographicRegion" id="geographicRegion" class="form-dropdown mb-2">
-                            <option value="0">US</option>
-                            <option value="1">EU</option>
-                            <option value="2">AU</option>
-                            <option value="3">KR</option>
-                            <option value="4">Japan</option>
+                    <div id="pointPerfectServiceDropdown">
+                        <label for="pointPerfectService">PointPerfect Service:</label>
+                        <select name="pointPerfectService" id="pointPerfectService" class="form-dropdown mb-2">
                         </select>
                         <span class="tt" data-bs-placement="right"
-                            title="Select your geographic region. This defines the L-Band frequency and Regional Correction topic. Default: US">
+                            title="The device will attempt to use PointPerfect for corrections. The device must be registered through SparkFun. NTRIP/RTCM service requires WiFi. Default: Disabled">
                             <span class="icon-info-circle text-primary ms-2"></span>
                         </span>
-                        <br>
+                        <p id="pointPerfectServiceError" class="inlineError"></p>
                     </div>
 
-                    <div id="ppSettingsConfig">
+                    <div id="ppSettingsLBandNAConfig">
+                        <div>
+                            Days until keys expire: <p id="daysRemaining" style="display:inline;">No Keys</p>
+                        </div>
+
+                        <div class="form-check mt-3">
+                            <label class="form-check-label" for="requestKeyUpdate"
+                                id="pointPerfectKeyUpdateLabel">Request Key Update</label>
+                            <input class="form-check-input" type="checkbox" value="" id="requestKeyUpdate">
+                            <span class="tt" data-bs-placement="right"
+                                title="When checked, the PointPerfect keys will be requested and updated at the next opportunity. Default: Disabled">
+                                <span class="icon-info-circle text-primary ms-2"></span>
+                            </span>
+                        </div>
+
+                        <div id="geographicRegionDropdown">
+                            <label for="geographicRegion">Geographic Region:</label>
+                            <select name="geographicRegion" id="geographicRegion" class="form-dropdown mb-2">
+                                <option value="0">US</option>
+                                <option value="1">EU</option>
+                                <option value="2">AU</option>
+                                <option value="3">KR</option>
+                                <option value="4">Japan</option>
+                            </select>
+                            <span class="tt" data-bs-placement="right"
+                                title="Select your geographic region. This defines the L-Band frequency and Regional Correction topic. Default: US">
+                                <span class="icon-info-circle text-primary ms-2"></span>
+                            </span>
+                            <br>
+                        </div>
+
                         <div class="form-check mt-3">
                             <label class="form-check-label" for="autoKeyRenewal">Auto Key Renewal </label>
                             <input class="form-check-input" type="checkbox" value="" id="autoKeyRenewal">
@@ -1241,15 +1255,6 @@
                                 <input type="text" class="form-control" id="pointPerfectDeviceProfileToken">
                                 <p id="pointPerfectDeviceProfileTokenError" class="inlineError"></p>
                             </div>
-                        </div>
-
-                        <div class="form-check mt-3">
-                            <label class="form-check-label" for="requestKeyUpdate">Request Key Update </label>
-                            <input class="form-check-input" type="checkbox" value="" id="requestKeyUpdate">
-                            <span class="tt" data-bs-placement="right"
-                                title="When checked, the PointPerfect keys will be requested and updated at the next opportunity. Default: Disabled">
-                                <span class="icon-info-circle text-primary ms-2"></span>
-                            </span>
                         </div>
 
                         <div id="useAssistNowCheckbox">
@@ -1315,6 +1320,7 @@
                             <div id="radioPortChannelDropdown" class="mb-2">
                                 <label for="radioPortBaud">Radio Port Baud Rate: </label>
                                 <select name="radioPortBaud" id="radioPortBaud" class="form-dropdown">
+                                    <!-- These are the compatible options for ZED-F9P and mosaic -->
                                     <option value="4800">4800</option>
                                     <option value="9600">9600</option>
                                     <option value="19200">19200</option>
@@ -1326,7 +1332,7 @@
                                     <option value="921600">921600</option>
                                 </select>
                                 <span class="tt" data-bs-placement="right"
-                                    title="The baud rate for the RADIO port can be changed to match a user's choice of radio. Default: 57600bps">
+                                    title="The baud rate for the RADIO port can be changed to match a user's choice of radio. Default: 57600bps or 115200bps">
                                     <span class="icon-info-circle text-primary ms-2"></span>
                                 </span>
                                 <br>
@@ -1463,6 +1469,16 @@
                                     </select>
                                     <span class="tt" data-bs-placement="right"
                                         title="When SPARTN corrections are provided on UART2, this defines the source. For NEO-D9C: select L-Band. Default: IP.">
+                                        <span class="icon-info-circle text-primary ms-2"></span>
+                                    </span>
+                                </div>
+
+                                <div class="form-check mt-3">
+                                    <label class="form-check-label" for="enableNmeaOnRadio">Enable NMEA output on
+                                        Radio</label>
+                                    <input class="form-check-input" type="checkbox" value="" id="enableNmeaOnRadio">
+                                    <span class="tt" data-bs-placement="right" id="enableNmeaOnRadioInfoText"
+                                        title="Enable NMEA output on external radio. Default: True">
                                         <span class="icon-info-circle text-primary ms-2"></span>
                                     </span>
                                 </div>
@@ -1692,6 +1708,18 @@
                 </div>
                 <div class="form-group row">
                     <p id="enableUdpServerError" class="inlineError"></p>
+                </div>
+
+                <div id="tcpUdpWiFiTypeDropdown" class="mt-3">
+                    <label for="tcpUdpOverWiFiStation">TCP/UDP Server Connection: </label>
+                    <select name="tcpUdpWiFiType" id="tcpUdpOverWiFiStation" class="form-dropdown">
+                        <option value="1">WiFi</option>
+                        <option value="0">AP</option>
+                    </select>
+                    <span class="tt" data-bs-placement="right"
+                        title="In WiFi mode, the device will attempt to connect to local WiFi to broadcast TCP/UDP packets. In AP mode, the device will become an Access Point that devices can connect to over WiFi.">
+                        <span class="icon-info-circle text-primary ms-2"></span>
+                    </span>
                 </div>
 
             </div>
@@ -2166,7 +2194,7 @@
                 </div>
 
                 <div id="measurementScaleDropdown" class="mb-2 mt-3">
-                    <label for="measurementScale">Measurement Scale: </label>
+                    <label for="measurementScale">Units: </label>
                     <select name="measurementScale" id="measurementScale" class="form-dropdown">
                         <option value="0">Meters</option>
                         <option value="1">Feet/Inches</option>
@@ -2202,8 +2230,10 @@
 
                 <div id="shutdownNoChargeTimeoutMinutesCheckboxDetail">
                     <div class="form-check mt-3">
-                        <label class="form-check-label" for="shutdownNoChargeTimeoutMinutes">Shutdown if not charging:</label>
-                        <input class="form-check-input" type="checkbox" value="" id="shutdownNoChargeTimeoutMinutesCheckbox">
+                        <label class="form-check-label" for="shutdownNoChargeTimeoutMinutes">Shutdown If Not
+                            Charging</label>
+                        <input class="form-check-input" type="checkbox" value=""
+                            id="shutdownNoChargeTimeoutMinutesCheckbox">
                         <span class="tt" data-bs-placement="right"
                             title="If enabled, device will turn off if no external charger is present. This is helpful when deploying in machinery or where a user may forget to turn the device off. Default: Disabled">
                             <span class="icon-info-circle text-primary ms-2"></span>
@@ -2213,7 +2243,8 @@
 
                 <div id="shutdownNoChargeTimeoutMinutesDetails" class="collapse mb-2">
                     <div class="form-group row">
-                        <label for="shutdownNoChargeTimeoutMinutes" class="box-margin40 col-sm-3 col-7 col-form-label">Minutes before
+                        <label for="shutdownNoChargeTimeoutMinutes"
+                            class="box-margin40 col-sm-3 col-7 col-form-label">Minutes before
                             shutdown:
                             <span class="tt" data-bs-placement="right"
                                 title="If shutdown is enabled, the device will turn off after this many minutes if no external charger is detected. Limits: 0 (disabled) to 10,080.">

@@ -11,8 +11,6 @@ GNSS_ZED.h
 
 #include <SparkFun_u-blox_GNSS_v3.h> //http://librarymanager/All#SparkFun_u-blox_GNSS_v3
 
-uint8_t aStatus = SFE_UBLOX_ANTENNA_STATUS_DONTKNOW;
-
 // Each constellation will have its config key, enable, and a visible name
 typedef struct
 {
@@ -385,6 +383,8 @@ class GNSS_ZED : GNSS
     {
     }
 
+    uint8_t aStatus = SFE_UBLOX_ANTENNA_STATUS_DONTKNOW;
+
     // If we have decryption keys, configure module
     // Note: don't check online.lband_neo here. We could be using ip corrections
     void applyPointPerfectKeys();
@@ -394,6 +394,11 @@ class GNSS_ZED : GNSS
 
     // Reset to Low Bandwidth Link (1074/1084/1094/1124 0.5Hz & 1005/1230 0.1Hz)
     virtual void baseRtcmLowDataRate();
+
+    // Check if a given baud rate is supported by this module
+    bool baudIsAllowed(uint32_t baudRate);
+    uint32_t baudGetMinimum();
+    uint32_t baudGetMaximum();
 
     // Connect to GNSS and identify particulars
     void begin();
@@ -432,6 +437,18 @@ class GNSS_ZED : GNSS
     //   Returns true if successfully configured and false upon failure
     bool configureRover();
 
+    // Responds with the messages supported on this platform
+    // Inputs:
+    //   returnText: String to receive message names
+    // Returns message names in the returnText string
+    void createMessageList(String &returnText);
+
+    // Responds with the RTCM/Base messages supported on this platform
+    // Inputs:
+    //   returnText: String to receive message names
+    // Returns message names in the returnText string
+    void createMessageListBase(String &returnText);
+
     void debuggingDisable();
 
     void debuggingEnable();
@@ -458,6 +475,9 @@ class GNSS_ZED : GNSS
 
     // Return the number of active/enabled messages
     uint8_t getActiveMessageCount();
+
+    // Return the number of active/enabled RTCM messages
+    uint8_t getActiveRtcmMessageCount();
 
     // Get the altitude
     // Outputs:
@@ -554,6 +574,10 @@ class GNSS_ZED : GNSS
 
     // Returns full year, ie 2023, not 23.
     uint16_t getYear();
+
+    // Antenna Short / Open detection
+    bool isAntennaShorted();
+    bool isAntennaOpen();
 
     bool isBlocking();
 
@@ -720,6 +744,9 @@ class GNSS_ZED : GNSS
 
     // Callback to store MON-COMMS information
     void storeMONCOMMSdataRadio(UBX_MON_COMMS_data_t *ubxDataStruct);
+
+    // Antenna Short / Open detection
+    bool supportsAntennaShortOpen();
 
     // Reset the survey-in operation
     // Outputs:

@@ -71,7 +71,8 @@ void GNSS_ZED::applyPointPerfectKeys()
         {
             if (settings.debugCorrections)
                 systemPrintln("PointPerfect keys applied");
-            online.lbandCorrections = true;
+
+            online.pointPerfectKeysApplied = true;
         }
     }
     else
@@ -505,7 +506,7 @@ bool GNSS_ZED::configureNtpMode()
 
     if (!success)
         systemPrintln("NTP config fail");
-    
+
     // The configuration should be saved to RAM+BBR+FLASH. No need to saveConfiguration here.
 
     return (success);
@@ -850,12 +851,47 @@ bool GNSS_ZED::configureRover()
 
     if (!success)
         systemPrintln("Rover config fail");
-    
+
     settings.gnssConfiguredRover = success;
 
     // The configuration should be saved to RAM+BBR+FLASH. No need to saveConfiguration here.
 
     return (success);
+}
+
+//----------------------------------------
+// Responds with the messages supported on this platform
+// Inputs:
+//   returnText: String to receive message names
+// Returns message names in the returnText string
+//----------------------------------------
+void GNSS_ZED::createMessageList(String &returnText)
+{
+    for (int messageNumber = 0; messageNumber < MAX_UBX_MSG; messageNumber++)
+    {
+        if (messageSupported(messageNumber) == true)
+            returnText += "ubxMessageRate_" + String(ubxMessages[messageNumber].msgTextName) + "," +
+                          String(settings.ubxMessageRates[messageNumber]) + ",";
+    }
+}
+
+//----------------------------------------
+// Responds with the RTCM/Base messages supported on this platform
+// Inputs:
+//   returnText: String to receive message names
+// Returns message names in the returnText string
+//----------------------------------------
+void GNSS_ZED::createMessageListBase(String &returnText)
+{
+    GNSS_ZED *zed = (GNSS_ZED *)gnss;
+    int firstRTCMRecord = zed->getMessageNumberByName("RTCM_1005");
+
+    for (int messageNumber = 0; messageNumber < MAX_UBX_MSG_RTCM; messageNumber++)
+    {
+        if (messageSupported(firstRTCMRecord + messageNumber) == true)
+            returnText += "ubxMessageRateBase_" + String(ubxMessages[messageNumber + firstRTCMRecord].msgTextName) +
+                          "," + String(settings.ubxMessageRatesBase[messageNumber]) + ","; // UBX_RTCM_1074Base,4,
+    }
 }
 
 //----------------------------------------
@@ -1045,6 +1081,19 @@ uint8_t GNSS_ZED::getActiveMessageCount()
 
     for (int x = 0; x < MAX_UBX_MSG; x++)
         if (settings.ubxMessageRates[x] > 0)
+            count++;
+    return (count);
+}
+
+//----------------------------------------
+// Return the number of active/enabled RTCM messages
+//----------------------------------------
+uint8_t GNSS_ZED::getActiveRtcmMessageCount()
+{
+    uint8_t count = 0;
+
+    for (int x = 0; x < MAX_UBX_MSG_RTCM; x++)
+        if (settings.ubxMessageRatesBase[x] > 0)
             count++;
     return (count);
 }
@@ -1373,6 +1422,22 @@ uint32_t GNSS_ZED::getTimeAccuracy()
 uint16_t GNSS_ZED::getYear()
 {
     return (_year);
+}
+
+//----------------------------------------
+// Returns true if the antenna is shorted
+//----------------------------------------
+bool GNSS_ZED::isAntennaShorted()
+{
+    return (aStatus == SFE_UBLOX_ANTENNA_STATUS_SHORT);
+}
+
+//----------------------------------------
+// Returns true if the antenna is shorted
+//----------------------------------------
+bool GNSS_ZED::isAntennaOpen()
+{
+    return (aStatus == SFE_UBLOX_ANTENNA_STATUS_OPEN);
 }
 
 //----------------------------------------
@@ -2436,7 +2501,9 @@ void GNSS_ZED::storeHPdataRadio(UBX_NAV_HPPOSLLH_data_t *ubxDataStruct)
 //----------------------------------------
 void storeMONHWdata(UBX_MON_HW_data_t *ubxDataStruct)
 {
-    aStatus = ubxDataStruct->aStatus;
+    GNSS_ZED *zed = (GNSS_ZED *)gnss;
+
+    zed->aStatus = ubxDataStruct->aStatus;
 }
 
 //----------------------------------------
@@ -2577,6 +2644,12 @@ void storeTIMTPdata(UBX_TIM_TP_data_t *ubxDataStruct)
     timTpMicros = us;
     timTpArrivalMillis = millis();
     timTpUpdated = true;
+}
+
+// Antenna Short / Open detection
+bool GNSS_ZED::supportsAntennaShortOpen()
+{
+    return present.antennaShortOpen;
 }
 
 //----------------------------------------
@@ -2738,6 +2811,29 @@ void GNSS_ZED::updateCorrectionsSource(uint8_t source)
         systemPrintf("updateZEDCorrectionsSource(%d) failed!\r\n", source);
 
     //_zed->softwareResetGNSSOnly(); // Restart the GNSS? Not sure if this helps...
+}
+
+//----------------------------------------
+// Check if given baud rate is allowed
+//----------------------------------------
+const uint32_t zedAllowedRates[] = {4800, 9600, 19200, 38400, 57600, 115200, 230400, 460800, 921600};
+const int zedAllowedRatesCount = sizeof(zedAllowedRates) / sizeof(zedAllowedRates[0]);
+
+bool GNSS_ZED::baudIsAllowed(uint32_t baudRate)
+{
+    for (int x = 0; x < zedAllowedRatesCount; x++)
+        if (zedAllowedRates[x] == baudRate) return (true);
+    return (false);
+}
+
+uint32_t GNSS_ZED::baudGetMinimum()
+{
+    return (zedAllowedRates[0]);
+}
+
+uint32_t GNSS_ZED::baudGetMaximum()
+{
+    return (zedAllowedRates[zedAllowedRatesCount - 1]);
 }
 
 // When new PMP message arrives from NEO-D9S push it back to ZED-F9P

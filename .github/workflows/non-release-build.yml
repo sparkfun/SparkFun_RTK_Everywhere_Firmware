@@ -94,7 +94,7 @@ jobs:
           "SparkFun u-blox PointPerfect Library"@1.11.4
           "SparkFun IM19 IMU Arduino Library"@1.0.1
           "SparkFun UM980 Triband RTK GNSS Arduino Library"@1.0.4
-          "SparkFun LG290P Quadband RTK GNSS Arduino Library"@1.0.0
+          "SparkFun LG290P Quadband RTK GNSS Arduino Library"@1.0.7
           "SparkFun I2C Expander Arduino Library"@1.0.1
 
       - name: Patch libmbedtls

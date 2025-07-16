@@ -69,7 +69,7 @@ void menuLogMosaic()
             systemPrintln(mosaicFileDurations[settings.RINEXFileDuration].humanName);
 
             systemPrint("4) Set RINEX observation interval: ");
-            systemPrint(mosaicObsIntervals[settings.RINEXObsInterval].humanName);
+            systemPrintln(mosaicObsIntervals[settings.RINEXObsInterval].humanName);
         }
 
         systemPrintln("x) Exit");
@@ -565,7 +565,7 @@ bool GNSS_MOSAIC::configureOnce()
     bool response = true;
 
     // Configure COM1. NMEA and RTCMv3 will be encapsulated in SBF format
-    response &= configureGNSSCOM(settings.enablePointPerfectCorrections);
+    response &= configureGNSSCOM(pointPerfectIsEnabled());
 
     // COM2 is configured by setCorrRadioExtPort
 
@@ -582,10 +582,10 @@ bool GNSS_MOSAIC::configureOnce()
     setting = String("sso,Stream" + String(MOSAIC_SBF_INPUTLINK_STREAM) + ",COM1,InputLink,sec1\n\r");
     response &= sendWithResponse(setting, "SBFOutput");
 
-    // Output SBF ChannelStatus and DiskStatus on their own stream - at 0.5Hz - on COM1 only
+    // Output SBF ChannelStatus, ReceiverStatus and DiskStatus on their own stream - at 0.5Hz - on COM1 only
     // For ChannelStatus: OnChange is too often. The message is typically 1000 bytes in size.
     // For DiskStatus: DiskUsage is slow to update. 0.5Hz is plenty fast enough.
-    setting = String("sso,Stream" + String(MOSAIC_SBF_STATUS_STREAM) + ",COM1,ChannelStatus+DiskStatus,sec2\n\r");
+    setting = String("sso,Stream" + String(MOSAIC_SBF_STATUS_STREAM) + ",COM1,ChannelStatus+ReceiverStatus+DiskStatus,sec2\n\r");
     response &= sendWithResponse(setting, "SBFOutput");
 
     // Mark L5 as healthy
@@ -693,6 +693,56 @@ bool GNSS_MOSAIC::configureRover()
 }
 
 //----------------------------------------
+// Responds with the messages supported on this platform
+// Inputs:
+//   returnText: String to receive message names
+// Returns message names in the returnText string
+//----------------------------------------
+void GNSS_MOSAIC::createMessageList(String &returnText)
+{
+    for (int messageNumber = 0; messageNumber < MAX_MOSAIC_NMEA_MSG; messageNumber++)
+    {
+        returnText += "messageStreamNMEA_" + String(mosaicMessagesNMEA[messageNumber].msgTextName) + "," +
+                      String(settings.mosaicMessageStreamNMEA[messageNumber]) + ",";
+    }
+    for (int stream = 0; stream < MOSAIC_NUM_NMEA_STREAMS; stream++)
+    {
+        returnText +=
+            "streamIntervalNMEA_" + String(stream) + "," + String(settings.mosaicStreamIntervalsNMEA[stream]) + ",";
+    }
+    for (int messageNumber = 0; messageNumber < MAX_MOSAIC_RTCM_V3_INTERVAL_GROUPS; messageNumber++)
+    {
+        returnText += "messageIntervalRTCMRover_" + String(mosaicRTCMv3MsgIntervalGroups[messageNumber].name) +
+                      "," + String(settings.mosaicMessageIntervalsRTCMv3Rover[messageNumber]) + ",";
+    }
+    for (int messageNumber = 0; messageNumber < MAX_MOSAIC_RTCM_V3_MSG; messageNumber++)
+    {
+        returnText += "messageEnabledRTCMRover_" + String(mosaicMessagesRTCMv3[messageNumber].name) + "," +
+                      (settings.mosaicMessageEnabledRTCMv3Rover[messageNumber] ? "true" : "false") + ",";
+    }
+}
+
+//----------------------------------------
+// Responds with the RTCM/Base messages supported on this platform
+// Inputs:
+//   returnText: String to receive message names
+// Returns message names in the returnText string
+//----------------------------------------
+void GNSS_MOSAIC::createMessageListBase(String &returnText)
+{
+    for (int messageNumber = 0; messageNumber < MAX_MOSAIC_RTCM_V3_INTERVAL_GROUPS; messageNumber++)
+    {
+        returnText += "messageIntervalRTCMBase_" + String(mosaicRTCMv3MsgIntervalGroups[messageNumber].name) + "," +
+                      String(settings.mosaicMessageIntervalsRTCMv3Base[messageNumber]) + ",";
+    }
+    for (int messageNumber = 0; messageNumber < MAX_MOSAIC_RTCM_V3_MSG; messageNumber++)
+    {
+        returnText += "messageEnabledRTCMBase_" + String(mosaicMessagesRTCMv3[messageNumber].name) + "," +
+                      (settings.mosaicMessageEnabledRTCMv3Base[messageNumber] ? "true" : "false") + ",";
+    }
+}
+
+//----------------------------------------
 void GNSS_MOSAIC::debuggingDisable()
 {
     // TODO
@@ -749,7 +799,7 @@ bool GNSS_MOSAIC::enableNMEA()
         }
     }
 
-    if (settings.enablePointPerfectCorrections)
+    if (pointPerfectIsEnabled())
     {
         // Force on any messages that are needed for PPL
         if (gpggaEnabled == false)
@@ -803,8 +853,11 @@ bool GNSS_MOSAIC::enableNMEA()
                                 String(mosaicMsgRates[settings.mosaicStreamIntervalsNMEA[stream]].name) + "\n\r");
         response &= sendWithResponse(setting, "NMEAOutput");
 
-        setting = String("sno,Stream" + String(stream + MOSAIC_NUM_NMEA_STREAMS + 1) + ",COM2," + streams[stream] +
-                         "," + String(mosaicMsgRates[settings.mosaicStreamIntervalsNMEA[stream]].name) + "\n\r");
+        if (settings.enableNmeaOnRadio)
+            setting = String("sno,Stream" + String(stream + MOSAIC_NUM_NMEA_STREAMS + 1) + ",COM2," + streams[stream] +
+                            "," + String(mosaicMsgRates[settings.mosaicStreamIntervalsNMEA[stream]].name) + "\n\r");
+        else
+            setting = String("sno,Stream" + String(stream + MOSAIC_NUM_NMEA_STREAMS + 1) + ",COM2,none,off\n\r");
         response &= sendWithResponse(setting, "NMEAOutput");
 
         if (settings.enableGnssToUsbSerial)
@@ -918,7 +971,7 @@ bool GNSS_MOSAIC::enableRTCMRover()
 
             // If we are using IP based corrections, we need to send local data to the PPL
             // The PPL requires being fed GPGGA/ZDA, and RTCM1019/1020/1042/1046
-            if (settings.enablePointPerfectCorrections)
+            if (pointPerfectIsEnabled())
             {
                 // Mark PPL required messages as enabled if rate > 0
                 if (strcmp(mosaicMessagesRTCMv3[message].name, "RTCM1019") == 0)
@@ -933,7 +986,7 @@ bool GNSS_MOSAIC::enableRTCMRover()
         }
     }
 
-    if (settings.enablePointPerfectCorrections)
+    if (pointPerfectIsEnabled())
     {
         // Force on any messages that are needed for PPL
         if (rtcm1019Enabled == false)
@@ -1459,6 +1512,22 @@ bool GNSS_MOSAIC::inRoverMode()
         return (false);
 
     return (true); // Default to Rover
+}
+
+//----------------------------------------
+// Returns true if the antenna is shorted
+//----------------------------------------
+bool GNSS_MOSAIC::isAntennaShorted()
+{
+    return _antennaIsShorted;
+}
+
+//----------------------------------------
+// Returns true if the antenna is shorted
+//----------------------------------------
+bool GNSS_MOSAIC::isAntennaOpen()
+{
+    return _antennaIsOpen;
 }
 
 //----------------------------------------
@@ -2490,6 +2559,22 @@ void GNSS_MOSAIC::storeBlock4013(SEMP_PARSE_STATE *parse)
 }
 
 //----------------------------------------
+// Save the data from the SBF Block 4014
+//----------------------------------------
+void GNSS_MOSAIC::storeBlock4014(SEMP_PARSE_STATE *parse)
+{
+    uint16_t N = (uint16_t)sempSbfGetU1(parse, 14);
+    uint32_t RxState = (uint16_t)sempSbfGetU4(parse, 20);
+    uint32_t RxError = (uint16_t)sempSbfGetU4(parse, 24);
+
+    _antennaIsShorted = ((RxError >> 5) & 0x1) == 0x1;
+    if (_antennaIsShorted)
+        _antennaIsOpen = false; // Shorted has priority
+    else
+        _antennaIsOpen = ((RxState >> 1) & 0x1) == 0x0;
+}
+
+//----------------------------------------
 // Save the data from the SBF Block 4059
 //----------------------------------------
 void GNSS_MOSAIC::storeBlock4059(SEMP_PARSE_STATE *parse)
@@ -2512,7 +2597,7 @@ void GNSS_MOSAIC::storeBlock4059(SEMP_PARSE_STATE *parse)
         return;
 
     uint64_t diskUsage = (diskUsageMSB * 4294967296) + diskUsageLSB;
-    
+
     sdCardSize = diskSizeMB * 1048576; // Convert to bytes
 
     sdFreeSpace = sdCardSize - diskUsage;
@@ -2569,6 +2654,12 @@ void GNSS_MOSAIC::storeBlock5914(SEMP_PARSE_STATE *parse)
     _validTime = (sempSbfGetU1(parse, 21) >> 1) & 0x01;
     _fullyResolved = (sempSbfGetU1(parse, 21) >> 2) & 0x01;
     _leapSeconds = sempSbfGetU1(parse, 20);
+}
+
+// Antenna Short / Open detection
+bool GNSS_MOSAIC::supportsAntennaShortOpen()
+{
+    return true;
 }
 
 //----------------------------------------
@@ -2669,7 +2760,7 @@ void GNSS_MOSAIC::update()
     {
         if (spartnCorrectionsReceived) // If corrections were being received
         {
-            configureLBand(settings.enablePointPerfectCorrections); // Restart L-Band using stored frequency
+            configureLBand(pointPerfectLbandNeeded()); // Restart L-Band using stored frequency
             spartnCorrectionsReceived = false;
         }
     }
@@ -2751,6 +2842,26 @@ void GNSS_MOSAIC::waitSBFReceiverSetup(unsigned long timeout)
     }
 
     sempStopParser(&sbfParse);
+}
+
+//----------------------------------------
+// Check if given baud rate is allowed
+//----------------------------------------
+bool GNSS_MOSAIC::baudIsAllowed(uint32_t baudRate)
+{
+    for (int x = 0; x < MAX_MOSAIC_COM_RATES; x++)
+        if (mosaicComRates[x].rate == baudRate) return (true);
+    return (false);
+}
+
+uint32_t GNSS_MOSAIC::baudGetMinimum()
+{
+    return (mosaicComRates[0].rate);
+}
+
+uint32_t GNSS_MOSAIC::baudGetMaximum()
+{
+    return (mosaicComRates[MAX_MOSAIC_COM_RATES - 1].rate);
 }
 
 //==========================================================================
@@ -2876,6 +2987,10 @@ void processUart1SBF(SEMP_PARSE_STATE *parse, uint16_t type)
     // If this is ChannelStatus, extract some data
     if (sempSbfGetBlockNumber(parse) == 4013)
         mosaic->storeBlock4013(parse);
+
+    // If this is ReceiverStatus, extract some data
+    if (sempSbfGetBlockNumber(parse) == 4014)
+        mosaic->storeBlock4014(parse);
 
     // If this is DiskStatus, extract some data
     if (sempSbfGetBlockNumber(parse) == 4059)

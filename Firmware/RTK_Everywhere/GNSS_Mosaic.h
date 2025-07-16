@@ -19,6 +19,7 @@ typedef struct {
 const mosaicExpectedID mosaicExpectedIDs[] = {
     { 4007, true, 96, "PVTGeodetic" },
     { 4013, false, 0, "ChannelStatus" },
+    { 4014, false, 0, "ReceiverStatus" },
     { 4059, false, 0, "DiskStatus" },
     { 4090, false, 0, "InputLink" },
     { 4097, false, 0, "EncapsulatedOutput" },
@@ -48,7 +49,7 @@ const mosaicExpectedID mosaicExpectedIDs[] = {
 // This indicates if RTCM corrections are being received - on COM2
 #define MOSAIC_SBF_INPUTLINK_STREAM (MOSAIC_SBF_EXTEVENT_STREAM + 1)
 
-// Output SBF ChannelStatus and DiskStatus messages on this stream - on COM1 only
+// Output SBF ChannelStatus, ReceiverStatus and DiskStatus messages on this stream - on COM1 only
 // ChannelStatus provides the count of satellites being tracked
 // DiskStatus provides the disk usage
 #define MOSAIC_SBF_STATUS_STREAM (MOSAIC_SBF_INPUTLINK_STREAM + 1)
@@ -329,7 +330,7 @@ const mosaicNMEAMsg mosaicMessagesNMEA[] = {
 
 /* Do we need RTCMv2?
 
-typedef struct 
+typedef struct
 {
     const char msgName[10];
     const uint16_t defaultZCountOrInterval;
@@ -347,7 +348,7 @@ const mosaicRTCMv2Msg mosaicMessagesRTCMv2[] = {
 
     {"RTCM1", 2, true, false},  {"RTCM3", 2, true, false}, {"RTCM9", 2, true, false},
     {"RTCM16", 2, true, false}, {"RTCM17", 2, true, false},
-    {"RTCM18|19", 1, false, false}, {"RTCM20|21", 1, false, false}, 
+    {"RTCM18|19", 1, false, false}, {"RTCM20|21", 1, false, false},
     {"RTCM22", 2, true, false},  {"RTCM23|24", 2, true, false}, {"RTCM31", 2, true, false},
     {"RTCM32", 2, true, false},
 };
@@ -418,7 +419,7 @@ const mosaicRTCMv3MsgIntervalGroup mosaicRTCMv3MsgIntervalGroups[] = {
 
 #define MAX_MOSAIC_RTCM_V3_INTERVAL_GROUPS (sizeof(mosaicRTCMv3MsgIntervalGroups) / sizeof(mosaicRTCMv3MsgIntervalGroup))
 
-typedef struct 
+typedef struct
 {
     const char name[9];
     const uint8_t intervalGroup;
@@ -454,7 +455,7 @@ const mosaicRTCMv3Msg mosaicMessagesRTCMv3[] = {
     {"MSM4", MOSAIC_RTCM_V3_INTERVAL_GROUP_MSM4, true},
     {"MSM5", MOSAIC_RTCM_V3_INTERVAL_GROUP_MSM5, false},
     {"MSM6", MOSAIC_RTCM_V3_INTERVAL_GROUP_MSM6, false},
-    {"MSM7", MOSAIC_RTCM_V3_INTERVAL_GROUP_MSM7, false},    
+    {"MSM7", MOSAIC_RTCM_V3_INTERVAL_GROUP_MSM7, false},
 /*
     {"RTCM1071", MOSAIC_RTCM_V3_INTERVAL_GROUP_MSM1, false},
     {"RTCM1072", MOSAIC_RTCM_V3_INTERVAL_GROUP_MSM2, false},
@@ -561,12 +562,14 @@ class GNSS_MOSAIC : GNSS
 
     // These globals are updated regularly via the SBF parser
     double _clkBias_ms; // PVTGeodetic RxClkBias (will be sawtooth unless clock steering is enabled)
-    bool   _determiningFixedPosition; // PVTGeodetic Mode Bit 6
+    bool _determiningFixedPosition; // PVTGeodetic Mode Bit 6
+    bool _antennaIsOpen; // ReceiverStatus RxState Bit 1 ACTIVEANTENNA indicates antenna current draw
+    bool _antennaIsShorted; // ReceiverStatus RxError Bit 5 ANTENNA indicates antenna overcurrent
 
     // Record NrBytesReceived so we can tell if Radio Ext (COM2) is receiving correction data.
     // On the mosaic, we know that InputLink will arrive at 1Hz. But on the ZED, UBX-MON-COMMS
     // is tied to the navigation rate. To keep it simple, record the last time NrBytesReceived
-    // was seen to increase and use that for corrections timeout. This is updated by the SBF 
+    // was seen to increase and use that for corrections timeout. This is updated by the SBF
     // InputLink message. isCorrRadioExtPortActive returns true if the bytes-received has
     // increased in the previous settings.correctionsSourcesLifetime_s
     uint32_t _radioExtBytesReceived_millis;
@@ -574,7 +577,7 @@ class GNSS_MOSAIC : GNSS
     // See notes at GNSS_MOSAIC::setCorrRadioExtPort
     uint32_t previousNrBytesReceived = 0;
     bool firstTimeNrBytesReceived = true;
-    
+
     // Setup the general configuration of the GNSS
     // Not Rover or Base specific (ie, baud rates)
     // Outputs:
@@ -598,6 +601,7 @@ class GNSS_MOSAIC : GNSS
     GNSS_MOSAIC() : _determiningFixedPosition(true), _clkBias_ms(0),
         _latStdDev(999.9), _lonStdDev(999.9), _receiverSetupSeen(false),
         _radioExtBytesReceived_millis(0), _diskStatusSeen(false),
+        _antennaIsOpen(false), _antennaIsShorted(false),
          GNSS()
     {
             svInTracking.clear();
@@ -614,6 +618,11 @@ class GNSS_MOSAIC : GNSS
     // Reset to Low Bandwidth Link (MSM4 0.5Hz & 1005/1033 0.1Hz)
     void baseRtcmLowDataRate();
 
+    // Check if a given baud rate is supported by this module
+    bool baudIsAllowed(uint32_t baudRate);
+    uint32_t baudGetMinimum();
+    uint32_t baudGetMaximum();
+    
     // Connect to GNSS and identify particulars
     void begin();
 
@@ -658,6 +667,18 @@ class GNSS_MOSAIC : GNSS
     //   Returns true if successfully configured and false upon failure
     bool configureRover();
 
+    // Responds with the messages supported on this platform
+    // Inputs:
+    //   returnText: String to receive message names
+    // Returns message names in the returnText string
+    void createMessageList(String &returnText);
+
+    // Responds with the RTCM/Base messages supported on this platform
+    // Inputs:
+    //   returnText: String to receive message names
+    // Returns message names in the returnText string
+    void createMessageListBase(String &returnText);
+
     void debuggingDisable();
 
     void debuggingEnable();
@@ -693,6 +714,9 @@ class GNSS_MOSAIC : GNSS
 
     // Return the number of active/enabled messages
     uint8_t getActiveMessageCount();
+
+    // Return the number of active/enabled RTCM messages
+    uint8_t getActiveRtcmMessageCount() {return(0);}
 
     // Get the altitude
     // Outputs:
@@ -800,6 +824,10 @@ class GNSS_MOSAIC : GNSS
     // Returns true if the device is in Rover mode
     // Currently the only two modes are Rover or Base
     bool inRoverMode();
+
+    // Antenna Short / Open detection
+    bool isAntennaShorted();
+    bool isAntennaOpen();
 
     bool isBlocking();
 
@@ -1039,6 +1067,9 @@ class GNSS_MOSAIC : GNSS
     // Save the data from the SBF Block 4013
     void storeBlock4013(SEMP_PARSE_STATE *parse);
 
+    // Save the data from the SBF Block 4014
+    void storeBlock4014(SEMP_PARSE_STATE *parse);
+
     // Save the data from the SBF Block 4059
     void storeBlock4059(SEMP_PARSE_STATE *parse);
 
@@ -1047,6 +1078,9 @@ class GNSS_MOSAIC : GNSS
 
     // Save the data from the SBF Block 5914
     void storeBlock5914(SEMP_PARSE_STATE *parse);
+
+    // Antenna Short / Open detection
+    bool supportsAntennaShortOpen();
 
     // Reset the survey-in operation
     // Outputs:

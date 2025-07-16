@@ -47,6 +47,17 @@ class GNSS_None : public GNSS
     {
     }
 
+    // Check if a given baud rate is supported by this module
+    bool baudIsAllowed(uint32_t baudRate) {
+        return false;
+    }
+    uint32_t baudGetMinimum() {
+        return 0;
+    }
+    uint32_t baudGetMaximum() {
+        return 0;
+    }
+
     // Connect to GNSS and identify particulars
     void begin()
     {
@@ -101,6 +112,40 @@ class GNSS_None : public GNSS
         return false;
     }
 
+    // Responds with the messages supported on this platform
+    // Inputs:
+    //   returnText: String to receive message names
+    // Returns message names in the returnText string
+    void createMessageList(String &returnText)
+    {
+
+    }
+
+    // Responds with the RTCM/Base messages supported on this platform
+    // Inputs:
+    //   returnText: String to receive message names
+    // Returns message names in the returnText string
+    void createMessageListBase(String &returnText)
+    {
+
+    }
+
+    // Responds with the messages supported on this platform
+    // Inputs:
+    //   returnText: String to receive message names
+    // Returns message names in the returnText string
+    void getMessageList(String &returnText)
+    {
+    }
+
+    // Responds with the RTCM/Base messages supported on this platform
+    // Inputs:
+    //   returnText: String to receive message names
+    // Returns message names in the returnText string
+    void getMessageListBase(String &returnText)
+    {
+    }
+
     void debuggingDisable()
     {
     }
@@ -147,6 +192,12 @@ class GNSS_None : public GNSS
 
     // Return the number of active/enabled messages
     uint8_t getActiveMessageCount()
+    {
+        return 0;
+    }
+
+    // Return the number of active/enabled RTCM messages
+    uint8_t getActiveRtcmMessageCount()
     {
         return 0;
     }

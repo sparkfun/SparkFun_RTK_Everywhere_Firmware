@@ -26,15 +26,15 @@ typedef struct
     const char msgTextName[11];
     const float msgDefaultRate;
     const uint8_t firmwareVersionSupported; // The minimum version this message is supported.
-                                             // 0 = all versions.
-                                             // 9999 = Not supported
+                                            // 0 = all versions.
+                                            // 9999 = Not supported
 } lg290pMsg;
 
 // Static array containing all the compatible messages
 // Rate = Output once every N position fix(es).
 const lg290pMsg lgMessagesNMEA[] = {
-    {"RMC", 1, 0}, {"GGA", 1, 0}, {"GSV", 1, 0}, {"GSA", 1, 0}, {"VTG", 1, 0}, {"GLL", 1, 0},
-    {"GBS", 0, 4}, {"GNS", 0, 4}, {"GST", 1, 4}, {"ZDA", 0, 4}, 
+    {"RMC", 1, 0}, {"GGA", 1, 0}, {"GSV", 1, 0}, {"GSA", 1, 0}, {"VTG", 1, 0},
+    {"GLL", 1, 0}, {"GBS", 0, 4}, {"GNS", 0, 4}, {"GST", 1, 4}, {"ZDA", 0, 4},
 };
 
 const lg290pMsg lgMessagesRTCM[] = {
@@ -44,16 +44,18 @@ const lg290pMsg lgMessagesRTCM[] = {
 
     {"RTCM3-1020", 0, 0},
 
-    {"RTCM3-1033", 0, 4}, //v4 and above
+    {"RTCM3-1033", 0, 4}, // v4 and above
 
     {"RTCM3-1041", 0, 0}, {"RTCM3-1042", 0, 0}, {"RTCM3-1044", 0, 0}, {"RTCM3-1046", 0, 0},
 
-    {"RTCM3-107X", 1, 0}, {"RTCM3-108X", 1, 0}, {"RTCM3-109X", 1, 0}, {"RTCM3-111X", 1, 0}, {"RTCM3-112X", 1, 0}, {"RTCM3-113X", 1, 0},
+    {"RTCM3-107X", 1, 0}, {"RTCM3-108X", 1, 0}, {"RTCM3-109X", 1, 0}, {"RTCM3-111X", 1, 0},
+    {"RTCM3-112X", 1, 0}, {"RTCM3-113X", 1, 0},
 };
 
 // Quectel Proprietary messages
 const lg290pMsg lgMessagesPQTM[] = {
-    {"EPE", 0, 0}, {"PVT", 0, 0},
+    {"EPE", 0, 0},
+    {"PVT", 0, 0},
 };
 
 #define MAX_LG290P_NMEA_MSG (sizeof(lgMessagesNMEA) / sizeof(lg290pMsg))
@@ -93,17 +95,11 @@ class GNSS_LG290P : GNSS
 
     uint8_t getActiveNmeaMessageCount();
 
-    uint8_t getActiveRtcmMessageCount();
-
     // Given the name of an NMEA message, return the array number
     uint8_t getNmeaMessageNumberByName(const char *msgName);
 
     // Given the name of an RTCM message, return the array number
     uint8_t getRtcmMessageNumberByName(const char *msgName);
-
-    // Returns true if the device is in Rover mode
-    // Currently the only two modes are Rover or Base
-    bool inRoverMode();
 
     // Return true if the GPGGA message is active
     bool isGgaActive();
@@ -130,6 +126,11 @@ class GNSS_LG290P : GNSS
 
     // Reset to Low Bandwidth Link (1074/1084/1094/1124 0.5Hz & 1005/1230 0.1Hz)
     void baseRtcmLowDataRate();
+
+    // Check if a given baud rate is supported by this module
+    bool baudIsAllowed(uint32_t baudRate);
+    uint32_t baudGetMinimum();
+    uint32_t baudGetMaximum();
 
     // Connect to GNSS and identify particulars
     void begin();
@@ -161,6 +162,18 @@ class GNSS_LG290P : GNSS
     // Outputs:
     //   Returns true if successfully configured and false upon failure
     bool configureRover();
+
+    // Responds with the messages supported on this platform
+    // Inputs:
+    //   returnText: String to receive message names
+    // Returns message names in the returnText string
+    void createMessageList(String &returnText);
+
+    // Responds with the RTCM/Base messages supported on this platform
+    // Inputs:
+    //   returnText: String to receive message names
+    // Returns message names in the returnText string
+    void createMessageListBase(String &returnText);
 
     void debuggingDisable();
 
@@ -194,6 +207,9 @@ class GNSS_LG290P : GNSS
 
     // Return the number of active/enabled messages
     uint8_t getActiveMessageCount();
+
+    // Return the number of active/enabled RTCM messages
+    uint8_t getActiveRtcmMessageCount();
 
     // Get the altitude
     // Outputs:
@@ -290,6 +306,10 @@ class GNSS_LG290P : GNSS
 
     // Returns full year, ie 2023, not 23.
     uint16_t getYear();
+
+    // Returns true if the device is in Rover mode
+    // Currently the only two modes are Rover or Base
+    bool inRoverMode();
 
     bool isBlocking();
 
@@ -438,6 +458,9 @@ class GNSS_LG290P : GNSS
     // If we have received serial data from the LG290P outside of the library (ie, from processUart1Message task)
     // we can pass data back into the LG290P library to allow it to update its own variables
     void lg290pUpdate(uint8_t *incomingBuffer, int bufferLength);
+
+    // Return the baud rate of UART2, connected to the ESP32 UART1
+    uint32_t getCommBaudRate();
 
     // Poll routine to update the GNSS state
     void update();

@@ -675,13 +675,13 @@ void processUart1Message(SEMP_PARSE_STATE *parse, uint16_t type)
     // Determine if we are using the PPL - UM980, LG290P, or mosaic-X5
     bool usingPPL = false;
     // UM980 : Determine if we want to use corrections, and are connected to the broker
-    if ((present.gnss_um980) && (settings.enablePointPerfectCorrections) && (mqttClientIsConnected() == true))
+    if ((present.gnss_um980) && (pointPerfectIsEnabled()) && (mqttClientIsConnected() == true))
         usingPPL = true;
     // LG290P : Determine if we want to use corrections, and are connected to the broker
-    if ((present.gnss_lg290p) && (settings.enablePointPerfectCorrections) && (mqttClientIsConnected() == true))
+    if ((present.gnss_lg290p) && (pointPerfectIsEnabled()) && (mqttClientIsConnected() == true))
         usingPPL = true;
     // mosaic-X5 : Determine if we want to use corrections
-    if ((present.gnss_mosaicX5) && (settings.enablePointPerfectCorrections))
+    if ((present.gnss_mosaicX5) && (pointPerfectIsEnabled()))
         usingPPL = true;
 
     if (usingPPL)
@@ -761,6 +761,22 @@ void processUart1Message(SEMP_PARSE_STATE *parse, uint16_t type)
     if (type == RTK_NMEA_PARSER_INDEX && strstr(sempNmeaGetSentenceName(parse), "GGA") != nullptr)
     {
         pushGPGGA((char *)parse->buffer);
+    }
+
+    // If the user has not specifically enabled RTCM used by the PPL, then suppress it
+    if (inRoverMode() && gnss->getActiveRtcmMessageCount() == 0 && type == RTK_RTCM_PARSER_INDEX)
+    {
+        // Erase buffer
+        parse->buffer[0] = 0;
+        parse->length = 0;
+    }
+
+    // Suppress binary messages from UM980. Not needed by end GIS apps.
+    if (type == RTK_UNICORE_BINARY_PARSER_INDEX)
+    {
+        // Erase buffer
+        parse->buffer[0] = 0;
+        parse->length = 0;
     }
 
     // Determine if this message will fit into the ring buffer
@@ -987,9 +1003,9 @@ void updateRingBufferTails(RING_BUFFER_OFFSET previousTail, RING_BUFFER_OFFSET n
     // Trim any long or medium tails
     discardRingBufferBytes(&btRingBufferTail, previousTail, newTail);
     discardRingBufferBytes(&sdRingBufferTail, previousTail, newTail);
-    discardTcpClientBytes(previousTail, newTail);
-    discardTcpServerBytes(previousTail, newTail);
-    discardUdpServerBytes(previousTail, newTail);
+    tcpClientDiscardBytes(previousTail, newTail);
+    tcpServerDiscardBytes(previousTail, newTail);
+    udpServerDiscardBytes(previousTail, newTail);
 }
 
 // Remove previous messages from the ring buffer
@@ -1246,6 +1262,11 @@ void handleGnssDataTask(void *e)
 
         // Determine if the SD card is enabled for logging
         connected = online.logging && ((systemTime_minutes - startLogTime_minutes) < settings.maxLogTime_minutes);
+
+        // Block logging during Web Config to avoid SD collisions
+        // See issue: https://github.com/sparkfun/SparkFun_RTK_Everywhere_Firmware/issues/693
+        if(webServerIsRunning() == true)
+            connected = false;
 
         // If user wants to log, record to SD
         if (!connected)

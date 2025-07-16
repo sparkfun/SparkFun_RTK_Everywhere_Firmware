@@ -9,6 +9,7 @@
 // Ethernet
 //----------------------------------------
 
+bool ethernetLinkUp()   {return false;}
 void menuEthernet() {systemPrintln("**Ethernet not compiled**");}
 
 bool ntpLogIncreasing = false;
@@ -33,8 +34,9 @@ void ntpServerStop() {}
 
 void menuTcpUdp() {systemPrint("**Network not compiled**");}
 void networkBegin() {}
-uint8_t networkConsumers() {return(0);}
-uint16_t networkGetConsumerTypes() {return(0);}
+void networkConsumerAdd(NETCONSUMER_t consumer, NetIndex_t network, const char * fileName, uint32_t lineNumber) {}
+bool networkConsumerIsConnected(NETCONSUMER_t consumer) {return false;}
+void networkConsumerRemove(NETCONSUMER_t consumer, NetIndex_t network, const char * fileName, uint32_t lineNumber) {}
 IPAddress networkGetIpAddress() {return("0.0.0.0");}
 const uint8_t * networkGetMacAddress()
 {
@@ -44,9 +46,9 @@ const uint8_t * networkGetMacAddress()
         return btMACAddress;
 #endif
     return zero;
-  }
+}
+NetPriority_t networkGetPriority() {return 0;}
 bool networkHasInternet() {return false;}
-bool networkHasInternet(NetIndex_t index) {return false;}
 bool networkInterfaceHasInternet(NetIndex_t index) {return false;}
 bool networkIsInterfaceStarted(NetIndex_t index) {return false;}
 void networkMarkOffline(NetIndex_t index) {}
@@ -54,6 +56,8 @@ void networkMarkHasInternet(NetIndex_t index) {}
 void networkSequenceBoot(NetIndex_t index) {}
 void networkSequenceNextEntry(NetIndex_t index, bool debug) {}
 void networkUpdate() {}
+void networkUserAdd(NETCONSUMER_t consumer, const char * fileName, uint32_t lineNumber) {}
+void networkUserRemove(NETCONSUMER_t consumer, const char * fileName, uint32_t lineNumber) {}
 void networkValidateIndex(NetIndex_t index) {}
 void networkVerifyTables() {}
 
@@ -83,30 +87,30 @@ bool ntripServerIsCasting(int serverIndex) {
 // TCP client
 //----------------------------------------
 
+void tcpClientDiscardBytes(RING_BUFFER_OFFSET previousTail, RING_BUFFER_OFFSET newTail) {}
 int32_t tcpClientSendData(uint16_t dataHead) {return 0;}
 void tcpClientUpdate() {}
 void tcpClientValidateTables() {}
 void tcpClientZeroTail() {}
-void discardTcpClientBytes(RING_BUFFER_OFFSET previousTail, RING_BUFFER_OFFSET newTail) {}
 
 //----------------------------------------
 // TCP server
 //----------------------------------------
 
+void tcpServerDiscardBytes(RING_BUFFER_OFFSET previousTail, RING_BUFFER_OFFSET newTail) {}
 int32_t tcpServerSendData(uint16_t dataHead) {return 0;}
 void tcpServerZeroTail() {}
 void tcpServerValidateTables() {}
-void discardTcpServerBytes(RING_BUFFER_OFFSET previousTail, RING_BUFFER_OFFSET newTail) {}
 
 //----------------------------------------
 // UDP server
 //----------------------------------------
 
+void udpServerDiscardBytes(RING_BUFFER_OFFSET previousTail, RING_BUFFER_OFFSET newTail) {}
 int32_t udpServerSendData(uint16_t dataHead) {return 0;}
 void udpServerStop() {}
 void udpServerUpdate() {}
 void udpServerZeroTail() {}
-void discardUdpServerBytes(RING_BUFFER_OFFSET previousTail, RING_BUFFER_OFFSET newTail) {}
 
 #endif // COMPILE_NETWORK
 
@@ -117,7 +121,9 @@ void discardUdpServerBytes(RING_BUFFER_OFFSET previousTail, RING_BUFFER_OFFSET n
 #ifndef COMPILE_OTA_AUTO
 
 void otaAutoUpdate() {}
-bool otaNeedsNetwork() {return false;}
+bool otaCheckVersion(char *versionAvailable, uint8_t versionAvailableLength)    {return false;}
+void otaMenuDisplay(char * currentVersion) {}
+bool otaMenuProcessInput(byte incoming) {return false;}
 void otaUpdate() {}
 void otaUpdateStop() {}
 void otaVerifyTables() {}
@@ -131,9 +137,9 @@ void otaVerifyTables() {}
 #ifndef COMPILE_MQTT_CLIENT
 
 bool mqttClientIsConnected() {return false;}
-bool mqttClientNeedsNetwork() {return false;}
 void mqttClientPrintStatus() {}
 void mqttClientRestart() {}
+void mqttClientStartEnabled() {}
 void mqttClientUpdate() {}
 void mqttClientValidateTables() {}
 
@@ -165,10 +171,11 @@ bool webServerStart(int httpPort = 80)
 bool parseIncomingSettings() {return false;}
 void sendStringToWebsocket(const char* stringToSend) {}
 void stopWebServer() {}
-bool webServerNeedsNetwork() {return false;}
 void webServerStop() {}
 void webServerUpdate()  {}
 void webServerVerifyTables() {}
+void wifiSettingsClone() {}
+bool webServerIsRunning() {return false;}
 
 #endif  // COMPILE_AP
 
@@ -178,18 +185,17 @@ void webServerVerifyTables() {}
 
 #ifndef COMPILE_ESPNOW
 
-bool espnowGetState()                   {return ESPNOW_OFF;}
-bool espnowIsPaired()                   {return false;}
-void espnowProcessRTCM(byte incoming)   {}
-esp_err_t espnowRemovePeer(uint8_t *peerMac)        {return ESP_OK;}
-esp_err_t espnowSendPairMessage(uint8_t *sendToMac) {return ESP_OK;}
-bool espnowSetChannel(uint8_t channelNumber)        {return false;}
-void espnowStart()                      {}
-#define ESPNOW_START()                  false
-void espnowStaticPairing()              {}
-void espnowStop()                       {}
-#define ESPNOW_STOP()                   true
-void updateEspnow()                     {}
+bool espNowGetState()                   {return ESPNOW_OFF;}
+bool espNowIsPaired()                   {return false;}
+void espNowProcessRTCM(byte incoming)   {}
+bool espNowProcessRxPairedMessage()     {return true;}
+esp_err_t espNowRemovePeer(const uint8_t *peerMac)        {return ESP_OK;}
+esp_err_t espNowSendPairMessage(const uint8_t *sendToMac) {return ESP_OK;}
+bool espNowSetChannel(uint8_t channelNumber)        {return false;}
+bool espNowStart()                      {return true;}
+void espNowStaticPairing()              {}
+bool espNowStop()                       {return true;}
+void espNowUpdate()                     {}
 
 #endif   // COMPILE_ESPNOW
 
@@ -199,19 +205,25 @@ void updateEspnow()                     {}
 
 #ifndef COMPILE_WIFI
 
-void menuWiFi() {systemPrintln("**WiFi not compiled**");}
-bool wifiApIsRunning() {return false;}
-bool wifiConnect(bool startWiFiStation, bool startWiFiAP, unsigned long timeout) {return false;}
-uint32_t wifiGetStartTimeout() {return 0;}
-#define WIFI_IS_RUNNING() 0
-int wifiNetworkCount() {return 0;}
-void wifiResetThrottleTimeout() {}
-void wifiResetTimeout() {}
-#define WIFI_SOFT_AP_RUNNING() {return false;}
-bool wifiStart() {return false;}
-bool wifiStationIsRunning() {return false;}
-#define WIFI_STOP() {}
-bool wifiUnavailable()  {return true;}
+void menuWiFi()                 {systemPrintln("**WiFi not compiled**");}
+void wifiDisplayNetworkData()                   {}
+void wifiDisplaySoftApStatus()                  {}
+bool wifiEspNowOff(const char * fileName, uint32_t lineNumber) {return true;}
+bool wifiEspNowOn(const char * fileName, uint32_t lineNumber) {return false;}
+void wifiEspNowSetChannel(WIFI_CHANNEL_t channel) {}
+int wifiNetworkCount()                          {return 0;}
+void wifiResetTimeout()                         {}
+IPAddress wifiSoftApGetIpAddress()              {return IPAddress((uint32_t)0);}
+const char * wifiSoftApGetSsid()                {return "";}
+bool wifiSoftApOff(const char * fileName, uint32_t lineNumber) {return true;}
+bool wifiSoftApOn(const char * fileName, uint32_t lineNumber) {return false;}
+void wifiStationDisplayData()                   {}
+bool wifiStationOff(const char * fileName, uint32_t lineNumber) {return true;}
+bool wifiStationOn(const char * fileName, uint32_t lineNumber) {return false;}
+void wifiStationUpdate()                        {}
+void wifiStopAll()                              {}
+void wifiUpdateSettings()                       {}
+void wifiVerifyTables()                         {}
 
 #endif // COMPILE_WIFI
 
@@ -276,7 +288,10 @@ void pointperfectPrintKeyInformation(const char *requestedBy) {systemPrintln("**
 
 #ifndef COMPILE_LG290P
 
+void lg290pBoot()       {}
 void lg290pHandler(uint8_t * buffer, int length) {}
+bool lg290pMessageEnabled(char *nmeaSentence, int sentenceLength)   {return false;}
+void lg290pReset()      {}
 
 #endif // COMPILE_LG290P
 
@@ -285,18 +300,6 @@ void lg290pHandler(uint8_t * buffer, int length) {}
 //----------------------------------------
 
 #ifndef COMPILE_ZED
-
-// MON HW Antenna Status
-enum sfe_ublox_antenna_status_e
-{
-  SFE_UBLOX_ANTENNA_STATUS_INIT,
-  SFE_UBLOX_ANTENNA_STATUS_DONTKNOW,
-  SFE_UBLOX_ANTENNA_STATUS_OK,
-  SFE_UBLOX_ANTENNA_STATUS_SHORT,
-  SFE_UBLOX_ANTENNA_STATUS_OPEN
-};
-
-uint8_t aStatus = SFE_UBLOX_ANTENNA_STATUS_DONTKNOW;
 
 // void checkRXMCOR() {}
 // void pushRXMPMP() {}

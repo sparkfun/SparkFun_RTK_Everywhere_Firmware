@@ -79,6 +79,8 @@ void menuPortsNoMux()
         {
             systemPrintf("4) Toggle use of external corrections radio on UART3: %s\r\n",
                          settings.enableExtCorrRadio ? "Enabled" : "Disabled");
+            systemPrintf("5) NMEA output on radio UART3: %s\r\n",
+                         settings.enableNmeaOnRadio ? "Enabled" : "Disabled");
         }
 
         systemPrintln("x) Exit");
@@ -87,12 +89,11 @@ void menuPortsNoMux()
 
         if (incoming == 1)
         {
-            systemPrint("Enter baud rate (4800 to 921600) for Radio Port: ");
+            systemPrintf("Enter baud rate (%d to %d) for Radio Port: ", gnss->baudGetMinimum(), gnss->baudGetMaximum());
             int newBaud = getUserInputNumber(); // Returns EXIT, TIMEOUT, or long
             if ((newBaud != INPUT_RESPONSE_GETNUMBER_EXIT) && (newBaud != INPUT_RESPONSE_GETNUMBER_TIMEOUT))
             {
-                if (newBaud == 4800 || newBaud == 9600 || newBaud == 19200 || newBaud == 38400 || newBaud == 57600 ||
-                    newBaud == 115200 || newBaud == 230400 || newBaud == 460800 || newBaud == 921600)
+                if (gnss->baudIsAllowed(newBaud))
                 {
                     settings.radioPortBaud = newBaud;
                     if (online.gnss == true)
@@ -106,12 +107,11 @@ void menuPortsNoMux()
         }
         else if (incoming == 2)
         {
-            systemPrint("Enter baud rate (4800 to 921600) for Data Port: ");
+            systemPrintf("Enter baud rate (%d to %d) for Data Port: ", gnss->baudGetMinimum(), gnss->baudGetMaximum());
             int newBaud = getUserInputNumber(); // Returns EXIT, TIMEOUT, or long
             if ((newBaud != INPUT_RESPONSE_GETNUMBER_EXIT) && (newBaud != INPUT_RESPONSE_GETNUMBER_TIMEOUT))
             {
-                if (newBaud == 4800 || newBaud == 9600 || newBaud == 19200 || newBaud == 38400 || newBaud == 57600 ||
-                    newBaud == 115200 || newBaud == 230400 || newBaud == 460800 || newBaud == 921600)
+                if (gnss->baudIsAllowed(newBaud))
                 {
                     settings.dataPortBaud = newBaud;
                     if (online.gnss == true)
@@ -140,6 +140,10 @@ void menuPortsNoMux()
             // Toggle the SPARTN source for the external corrections radio
             settings.extCorrRadioSPARTNSource ^= 1;
         }
+        else if ((incoming == 5) && (present.gnss_lg290p))
+        {
+            settings.enableNmeaOnRadio ^= 1;
+        }
         else if (incoming == 'x')
             break;
         else if (incoming == INPUT_RESPONSE_GETNUMBER_EXIT)
@@ -149,6 +153,18 @@ void menuPortsNoMux()
         else
             printUnknown(incoming);
     }
+
+#ifdef COMPILE_LG290P
+    if (present.gnss_lg290p)
+    {
+        // Apply these changes at menu exit - to enable/disable NMEA on radio
+        GNSS_LG290P *aLG290P = (GNSS_LG290P *)gnss;
+        if (aLG290P->inRoverMode() == true)
+            restartRover = true;
+        else
+            restartBase = true;
+    }
+#endif // COMPILE_LG290P
 
     clearBuffer(); // Empty buffer of any newline chars
 }
@@ -201,6 +217,8 @@ void menuPortsMultiplexed()
                          settings.enableExtCorrRadio ? "Enabled" : "Disabled");
             systemPrintf("5) Output GNSS data to USB1 serial: %s\r\n",
                          settings.enableGnssToUsbSerial ? "Enabled" : "Disabled");
+            systemPrintf("6) NMEA output on radio COM2: %s\r\n",
+                         settings.enableNmeaOnRadio ? "Enabled" : "Disabled");
         }
 
         systemPrintln("x) Exit");
@@ -209,12 +227,11 @@ void menuPortsMultiplexed()
 
         if (incoming == 1)
         {
-            systemPrint("Enter baud rate (4800 to 921600) for Radio Port: ");
+            systemPrintf("Enter baud rate (%d to %d) for Radio Port: ", gnss->baudGetMinimum(), gnss->baudGetMaximum());
             int newBaud = getUserInputNumber(); // Returns EXIT, TIMEOUT, or long
             if ((newBaud != INPUT_RESPONSE_GETNUMBER_EXIT) && (newBaud != INPUT_RESPONSE_GETNUMBER_TIMEOUT))
             {
-                if (newBaud == 4800 || newBaud == 9600 || newBaud == 19200 || newBaud == 38400 || newBaud == 57600 ||
-                    newBaud == 115200 || newBaud == 230400 || newBaud == 460800 || newBaud == 921600)
+                if (gnss->baudIsAllowed(newBaud))
                 {
                     settings.radioPortBaud = newBaud;
                     if (online.gnss == true)
@@ -247,12 +264,11 @@ void menuPortsMultiplexed()
         }
         else if (incoming == 3 && settings.dataPortChannel == MUX_GNSS_UART)
         {
-            systemPrint("Enter baud rate (4800 to 921600) for Data Port: ");
+            systemPrintf("Enter baud rate (%d to %d) for Data Port: ", gnss->baudGetMinimum(), gnss->baudGetMaximum());
             int newBaud = getUserInputNumber(); // Returns EXIT, TIMEOUT, or long
             if ((newBaud != INPUT_RESPONSE_GETNUMBER_EXIT) && (newBaud != INPUT_RESPONSE_GETNUMBER_TIMEOUT))
             {
-                if (newBaud == 4800 || newBaud == 9600 || newBaud == 19200 || newBaud == 38400 || newBaud == 57600 ||
-                    newBaud == 115200 || newBaud == 230400 || newBaud == 460800 || newBaud == 921600)
+                if (gnss->baudIsAllowed(newBaud))
                 {
                     settings.dataPortBaud = newBaud;
                     if (online.gnss == true)
@@ -283,6 +299,10 @@ void menuPortsMultiplexed()
         {
             settings.enableGnssToUsbSerial ^= 1;
         }
+        else if ((incoming == 6) && (present.gnss_mosaicX5))
+        {
+            settings.enableNmeaOnRadio ^= 1;
+        }
         else if (incoming == 'x')
             break;
         else if (incoming == INPUT_RESPONSE_GETNUMBER_EXIT)
@@ -299,6 +319,7 @@ void menuPortsMultiplexed()
     if (present.gnss_mosaicX5)
     {
         // Apply these changes at menu exit - to enable message output on USB1
+        // and/or enable/disable NMEA on radio
         GNSS_MOSAIC *mosaic = (GNSS_MOSAIC *)gnss;
         if (mosaic->inRoverMode() == true)
             restartRover = true;

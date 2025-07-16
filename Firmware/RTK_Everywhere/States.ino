@@ -7,8 +7,6 @@
 
 static uint32_t lastStateTime = 0;
 
-extern bool websocketConnected;
-
 // Given the current state, see if conditions have moved us to a new state
 // A user pressing the mode button (change between rover/base) is handled by buttonCheckTask()
 void stateUpdate()
@@ -113,7 +111,6 @@ void stateUpdate()
             setMuxport(settings.dataPortChannel); // Return mux to original channel
 
             bluetoothStart(); // Turn on Bluetooth with 'Rover' name
-            ESPNOW_START();    // Start internal radio if enabled, otherwise disable
 
             webServerStop();             // Stop the web config server
             baseCasterDisableOverride(); // Disable casting overrides
@@ -123,7 +120,6 @@ void stateUpdate()
                 displayRoverFail(1000);
             else
             {
-                //settings.gnssConfiguredRover is set by gnss->configureRover()
                 settings.gnssConfiguredBase = false; // When the mode changes, reapply all settings
                 settings.lastState = STATE_ROVER_NOT_STARTED;
                 recordSystemSettings(); // Record this state for next POR
@@ -212,18 +208,7 @@ void stateUpdate()
         case (STATE_BASE_CASTER_NOT_STARTED): {
             baseCasterEnableOverride();
 
-#ifdef COMPILE_WIFI
-            // If the AP is already running, check that the name is correct
-            if ((WiFi.getMode() == WIFI_AP) || (WiFi.getMode() == WIFI_AP_STA))
-            {
-                if (strcmp(WiFi.softAPSSID().c_str(), "RTK Caster") != 0)
-                {
-                    // The AP name cannot be changed while it is running. WiFi must be restarted.
-                    restartWiFi = true; // Tell network layer to restart WiFi
-                }
-            }
-#endif // COMPILE_WIFI
-
+            wifiSoftApSsid = "RTK Caster";
             changeState(STATE_BASE_NOT_STARTED);
         }
         break;
@@ -256,7 +241,7 @@ void stateUpdate()
 
                 if (settings.fixedBase == false)
                     changeState(STATE_BASE_TEMP_SETTLE);
-                else if (settings.fixedBase == true)
+                else
                     changeState(STATE_BASE_FIXED_NOT_STARTED);
             }
             else
@@ -334,8 +319,6 @@ void stateUpdate()
                 // Start the NTRIP server if requested
                 RTK_MODE(RTK_MODE_BASE_FIXED);
 
-                ESPNOW_START(); // Start internal radio if enabled, otherwise disable
-
                 rtcmPacketsSent = 0; // Reset any previous number
                 changeState(STATE_BASE_TEMP_TRANSMITTING);
             }
@@ -400,9 +383,6 @@ void stateUpdate()
             if (response == true)
             {
                 baseStatusLedOn(); // Turn on the base/status LED
-
-                ESPNOW_START(); // Start internal radio if enabled, otherwise disable
-
                 changeState(STATE_BASE_FIXED_TRANSMITTING);
             }
             else
@@ -443,27 +423,15 @@ void stateUpdate()
             displayWebConfigNotStarted(); // Display immediately while we wait for server to start
 
             bluetoothStop(); // Bluetooth must be stopped to allow enough RAM for AP+STA (firmware check)
-            ESPNOW_STOP();    // We don't need ESP-NOW during web config
+            wifiEspNowOff(__FILE__, __LINE__); // We don't need ESP-NOW during web config
 
             // The GNSS UART task is left running to allow GNSS receivers to obtain LLh data for 1Hz page updates
-
-#ifdef COMPILE_WIFI
-            // If the AP is already running, check that the name is correct
-            if ((WiFi.getMode() == WIFI_AP) || (WiFi.getMode() == WIFI_AP_STA))
-            {
-                if (strcmp(WiFi.softAPSSID().c_str(), "RTK Config") != 0)
-                {
-                    // The AP name cannot be changed while it is running. WiFi must be restarted.
-                    restartWiFi = true; // Tell network layer to restart WiFi
-                }
-            }
-#endif // COMPILE_WIFI
-
             // Stop any running NTRIP Client or Server
             ntripClientStop(true); // Do not allocate new wifiClient
             for (int serverIndex = 0; serverIndex < NTRIP_SERVER_MAX; serverIndex++)
                 ntripServerStop(serverIndex, true); // Do not allocate new wifiClient
 
+            wifiSoftApSsid = "RTK Config";
             webServerStart(); // Start the webserver state machine for web config
 
             RTK_MODE(RTK_MODE_WEB_CONFIG);
@@ -477,6 +445,8 @@ void stateUpdate()
                 // Allow for 750ms before we parse buffer for all data to arrive
                 if (millis() - timeSinceLastIncomingSetting > 750)
                 {
+                    bool changed;
+
                     currentlyParsingData =
                         true; // Disallow new data to flow from websocket while we are parsing the current data
 
@@ -485,7 +455,12 @@ void stateUpdate()
                         systemWrite(incomingSettings[x]);
                     systemPrintln();
 
+                    //Create temporary copy of Settings, so that we can check if they change while parsing
+                    //Useful for detecting when we need to change WiFi station settings
+                    wifiSettingsClone();
+                    
                     parseIncomingSettings();
+                    
                     settings.gnssConfiguredOnce = false; // On the next boot, reapply all settings
                     settings.gnssConfiguredBase = false;
                     settings.gnssConfiguredRover = false;
@@ -570,7 +545,7 @@ void stateUpdate()
             paintEspNowPairing();
 
             // Start ESP-Now if needed, put ESP-Now into broadcast state
-            espnowBeginPairing();
+            espNowBeginPairing();
 
             changeState(STATE_ESPNOW_PAIRING);
 #else  // COMPILE_ESPNOW
@@ -580,7 +555,7 @@ void stateUpdate()
         break;
 
         case (STATE_ESPNOW_PAIRING): {
-            if (espnowIsPaired() == true)
+            if (espNowProcessRxPairedMessage() == true)
             {
                 paintEspNowPaired();
 
@@ -588,10 +563,7 @@ void stateUpdate()
                 changeState(lastSystemState);
             }
             else
-            {
-                uint8_t broadcastMac[6] = {0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF};
-                espnowSendPairMessage(broadcastMac); // Send unit's MAC address over broadcast, no ack, no encryption
-            }
+                espNowSendPairMessage(espNowBroadcastAddr); // Send unit's MAC address over broadcast, no ack, no encryption
         }
         break;
 
@@ -606,7 +578,7 @@ void stateUpdate()
             displayNtpStart(500); // Show 'NTP'
 
             // Start UART connected to the GNSS receiver for NMEA and UBX data (enables logging)
-            if (tasksStartGnssUart() && configureUbloxModuleNTP())
+            if (tasksStartGnssUart() && ntpConfigureUbloxModule())
             {
                 settings.lastState = STATE_NTPSERVER_NOT_STARTED; // Record this state for next POR
                 settings.gnssConfiguredBase = false; // On the next boot, reapply all settings
@@ -817,6 +789,7 @@ const RTK_MODE_ENTRY stateModeTable[] = {{"Rover", STATE_ROVER_NOT_STARTED, STAT
                                          {"Base", STATE_BASE_NOT_STARTED, STATE_BASE_FIXED_TRANSMITTING},
                                          {"Setup", STATE_DISPLAY_SETUP, STATE_PROFILE},
                                          {"ESPNOW Pairing", STATE_ESPNOW_PAIRING_NOT_STARTED, STATE_ESPNOW_PAIRING},
+                                         {"Provisioning", STATE_KEYS_REQUESTED, STATE_KEYS_REQUESTED},
                                          {"NTP", STATE_NTPSERVER_NOT_STARTED, STATE_NTPSERVER_SYNC},
                                          {"Shutdown", STATE_SHUTDOWN, STATE_SHUTDOWN}};
 const int stateModeTableEntries = sizeof(stateModeTable) / sizeof(stateModeTable[0]);
@@ -888,11 +861,13 @@ void constructSetupDisplay(std::vector<setupButton> *buttons)
 
     addSetupButton(buttons, "Config", STATE_WEB_CONFIG_NOT_STARTED);
 
-    if (settings.enablePointPerfectCorrections)
+    if (pointPerfectIsEnabled() && pointPerfectServiceUsesKeys())
     {
         addSetupButton(buttons, "Get Keys", STATE_KEYS_REQUESTED);
     }
+
     addSetupButton(buttons, "E-Pair", STATE_ESPNOW_PAIRING_NOT_STARTED);
+
     // If only one active profile do not show any profiles
     if (getProfileCount() > 1)
     {

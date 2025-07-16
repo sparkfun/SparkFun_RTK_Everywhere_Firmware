@@ -44,6 +44,16 @@ float GNSS::getSurveyInStartingAccuracy()
 }
 
 //----------------------------------------
+// Returns true if the antenna is shorted
+//----------------------------------------
+bool GNSS::isAntennaShorted() { return false; }
+
+//----------------------------------------
+// Returns true if the antenna is shorted
+//----------------------------------------
+bool GNSS::isAntennaOpen() { return false; }
+
+//----------------------------------------
 // Set the minimum satellite signal level for navigation.
 //----------------------------------------
 bool GNSS::setMinCno(uint8_t cnoValue)
@@ -53,6 +63,12 @@ bool GNSS::setMinCno(uint8_t cnoValue)
 
     // Pass the value to the GNSS receiver
     return gnss->setMinCnoRadio(cnoValue);
+}
+
+// Antenna Short / Open detection
+bool GNSS::supportsAntennaShortOpen()
+{
+    return false;
 }
 
 // Periodically push GGA sentence over NTRIP Client, to Caster, if enabled

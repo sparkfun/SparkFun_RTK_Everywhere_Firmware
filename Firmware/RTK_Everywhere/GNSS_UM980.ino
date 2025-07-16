@@ -99,15 +99,21 @@ void GNSS_UM980::begin()
     }
     systemPrintln("GNSS UM980 online");
 
-    // Shortly after reset, the UM980 responds to the VERSIONB command with OK but doesn't report version information
-    if (ENABLE_DEVELOPER == false)
-        delay(2000); // 1s fails, 2s ok
-
     // Check firmware version and print info
     printModuleInfo();
 
     // Shortly after reset, the UM980 responds to the VERSIONB command with OK but doesn't report version information
     snprintf(gnssFirmwareVersion, sizeof(gnssFirmwareVersion), "%s", _um980->getVersion());
+
+    if (strcmp(gnssFirmwareVersion, "Error") == 0)
+    {
+        // Shortly after reset, the UM980 responds to the VERSIONB command with OK but doesn't report version
+        // information
+        delay(2000); // 1s fails, 2s ok
+
+        // Ask for the version again after a short delay
+        snprintf(gnssFirmwareVersion, sizeof(gnssFirmwareVersion), "%s", _um980->getVersion());
+    }
 
     if (sscanf(gnssFirmwareVersion, "%d", &gnssFirmwareVersionInt) != 1)
         gnssFirmwareVersionInt = 99;
@@ -400,6 +406,41 @@ bool GNSS_UM980::configureRover()
 }
 
 //----------------------------------------
+// Responds with the messages supported on this platform
+// Inputs:
+//   returnText: String to receive message names
+// Returns message names in the returnText string
+//----------------------------------------
+void GNSS_UM980::createMessageList(String &returnText)
+{
+    for (int messageNumber = 0; messageNumber < MAX_UM980_NMEA_MSG; messageNumber++)
+    {
+        returnText += "messageRateNMEA_" + String(umMessagesNMEA[messageNumber].msgTextName) + "," +
+                      String(settings.um980MessageRatesNMEA[messageNumber]) + ",";
+    }
+    for (int messageNumber = 0; messageNumber < MAX_UM980_RTCM_MSG; messageNumber++)
+    {
+        returnText += "messageRateRTCMRover_" + String(umMessagesRTCM[messageNumber].msgTextName) + "," +
+                      String(settings.um980MessageRatesRTCMRover[messageNumber]) + ",";
+    }
+}
+
+//----------------------------------------
+// Responds with the RTCM/Base messages supported on this platform
+// Inputs:
+//   returnText: String to receive message names
+// Returns message names in the returnText string
+//----------------------------------------
+void GNSS_UM980::createMessageListBase(String &returnText)
+{
+    for (int messageNumber = 0; messageNumber < MAX_UM980_RTCM_MSG; messageNumber++)
+    {
+        returnText += "messageRateRTCMBase_" + String(umMessagesRTCM[messageNumber].msgTextName) + "," +
+                      String(settings.um980MessageRatesRTCMBase[messageNumber]) + ",";
+    }
+}
+
+//----------------------------------------
 void GNSS_UM980::debuggingDisable()
 {
     if (online.gnss)
@@ -478,7 +519,7 @@ bool GNSS_UM980::enableNMEA()
 
             // If we are using IP based corrections, we need to send local data to the PPL
             // The PPL requires being fed GPGGA/ZDA, and RTCM1019/1020/1042/1046
-            if (settings.enablePointPerfectCorrections)
+            if (pointPerfectIsEnabled())
             {
                 // Mark PPL required messages as enabled if rate > 0
                 if (settings.um980MessageRatesNMEA[messageNumber] > 0)
@@ -492,7 +533,7 @@ bool GNSS_UM980::enableNMEA()
         }
     }
 
-    if (settings.enablePointPerfectCorrections)
+    if (pointPerfectIsEnabled())
     {
         // Force on any messages that are needed for PPL
         if (gpggaEnabled == false)
@@ -558,7 +599,7 @@ bool GNSS_UM980::enableRTCMRover()
 
             // If we are using IP based corrections, we need to send local data to the PPL
             // The PPL requires being fed GPGGA/ZDA, and RTCM1019/1020/1042/1046
-            if (settings.enablePointPerfectCorrections)
+            if (pointPerfectIsEnabled())
             {
                 // Mark PPL required messages as enabled if rate > 0
                 if (settings.um980MessageRatesRTCMRover[messageNumber] > 0)
@@ -576,7 +617,7 @@ bool GNSS_UM980::enableRTCMRover()
         }
     }
 
-    if (settings.enablePointPerfectCorrections)
+    if (pointPerfectIsEnabled())
     {
         // Force on any messages that are needed for PPL
         if (rtcm1019Enabled == false)
@@ -1861,6 +1902,31 @@ bool GNSS_UM980::surveyInStart()
     }
     return false;
 }
+
+//----------------------------------------
+// Check if given baud rate is allowed
+//----------------------------------------
+const uint32_t um980AllowedRates[] = {9600, 19200, 38400, 57600, 115200, 230400, 460800, 921600};
+const int um980AllowedRatesCount = sizeof(um980AllowedRates) / sizeof(um980AllowedRates[0]);
+
+bool GNSS_UM980::baudIsAllowed(uint32_t baudRate)
+{
+    for (int x = 0; x < um980AllowedRatesCount; x++)
+        if (um980AllowedRates[x] == baudRate)
+            return (true);
+    return (false);
+}
+
+uint32_t GNSS_UM980::baudGetMinimum()
+{
+    return (um980AllowedRates[0]);
+}
+
+uint32_t GNSS_UM980::baudGetMaximum()
+{
+    return (um980AllowedRates[um980AllowedRatesCount - 1]);
+}
+
 
 //----------------------------------------
 // If we have received serial data from the UM980 outside of the Unicore library (ie, from processUart1Message task)

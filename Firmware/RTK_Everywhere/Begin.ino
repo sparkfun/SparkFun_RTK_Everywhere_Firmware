@@ -69,13 +69,9 @@ void identifyBoard()
     // Get unit MAC address
     // This was in beginVersion, but is needed earlier so that beginBoard
     // can print the MAC address if identifyBoard fails.
-    esp_read_mac(wifiMACAddress, ESP_MAC_WIFI_STA);
-    memcpy(btMACAddress, wifiMACAddress, sizeof(wifiMACAddress));
-    btMACAddress[5] +=
-        2; // Convert MAC address to Bluetooth MAC (add 2):
-           // https://docs.espressif.com/projects/esp-idf/en/latest/esp32/api-reference/system/system.html#mac-address
-    memcpy(ethernetMACAddress, wifiMACAddress, sizeof(wifiMACAddress));
-    ethernetMACAddress[5] += 3; // Convert MAC address to Ethernet MAC (add 3)
+    getMacAddresses(wifiMACAddress, "wifiMACAddress", ESP_MAC_WIFI_STA, true);
+    getMacAddresses(btMACAddress, "btMACAddress", ESP_MAC_BT, true);
+    getMacAddresses(ethernetMACAddress, "ethernetMACAddress", ESP_MAC_ETH, true);
 
     // First, test for devices that do not have ID resistors
     if (productVariant == RTK_UNKNOWN)
@@ -135,20 +131,20 @@ void identifyBoard()
         if (idWithAdc(idValue, 1, 10, 17.5))
             productVariant = RTK_EVK;
 
-        // Facet mosaic: 1/4.7  -->  2666mV < 2721mV < 2772mV (5.5% tolerance)
-        else if (idWithAdc(idValue, 1, 4.7, 5.5))
+        // Facet mosaic: 1/4.7  -->  2618mV < 2721mV < 2811mV (10% tolerance)
+        else if (idWithAdc(idValue, 1, 4.7, 10))
             productVariant = RTK_FACET_MOSAIC;
 
-        // Facet v2 L-Band: 12.1/1.5  -->  318mV < 364mV < 416mV (7.5% tolerance)
-        else if (idWithAdc(idValue, 12.1, 1.5, 7.5))
+        // Facet v2 L-Band: 12.1/1.5  -->  312mV < 364mV < 423mV (8.5% tolerance)
+        else if (idWithAdc(idValue, 12.1, 1.5, 8.5))
             productVariant = RTK_FACET_V2_LBAND;
 
-        // Facet v2: 10.0/2.7  -->  650mV < 702mV < 756mV (4.75% tolerance)
-        else if (idWithAdc(idValue, 10.0, 2.7, 4.75))
+        // Facet v2: 10.0/2.7  -->  612mV < 702mV < 801mV (8.5% tolerance)
+        else if (idWithAdc(idValue, 10.0, 2.7, 8.5))
             productVariant = RTK_FACET_V2;
 
-        // Postcard: 3.3/10  -->  2421mV < 2481mV < 2539mV (4.75% tolerance)
-        else if (idWithAdc(idValue, 3.3, 10, 4.75))
+        // Postcard: 3.3/10  -->  2371mV < 2481mV < 2582mV (8.5% tolerance)
+        else if (idWithAdc(idValue, 3.3, 10, 8.5))
             productVariant = RTK_POSTCARD;
     }
 
@@ -216,7 +212,7 @@ void beginBoard()
         present.button_powerHigh = true; // Button is pressed when high
         present.beeper = true;
         present.gnss_to_uart = true;
-        present.needsExternalPpl = true;       // Uses the PointPerfect Library
+        present.needsExternalPpl = true; // Uses the PointPerfect Library
         present.galileoHasCapable = true;
         present.multipathMitigation = true; // UM980 has MPM, other platforms do not
         present.minCno = true;
@@ -706,6 +702,10 @@ void beginBoard()
         present.gpioExpander = true;
         present.microSdCardDetectGpioExpanderHigh = true; // CD is on GPIO 5 of expander. High = SD in place.
 
+        // We can't enable here because we don't know if lg290pFirmwareVersion is >= v05
+        // present.minElevation = true;
+        // present.minCno = true;
+
         pin_I2C0_SDA = 7;
         pin_I2C0_SCL = 20;
 
@@ -723,7 +723,7 @@ void beginBoard()
         pin_gpioExpanderInterrupt = 14; // Pin 'AOI' (Analog Output Input) on Portability Shield
 
         pin_bluetoothStatusLED = 4; // Blue LED
-        pin_gnssStatusLED = 0; // Green LED
+        pin_gnssStatusLED = 0;      // Green LED
 
         // Turn on Bluetooth and GNSS LEDs to indicate power on
         pinMode(pin_bluetoothStatusLED, OUTPUT);
@@ -736,8 +736,6 @@ void beginBoard()
         pinMode(pin_GNSS_Reset, OUTPUT);
         lg290pBoot(); // Tell LG290P to boot
 
-        settings.dataPortBaud = (115200 * 4); // Override settings. LG290P communicates at 460800bps.
-
         // Disable the microSD card
         pinMode(pin_microSD_CS, OUTPUT);
         sdDeselectCard();
@@ -747,7 +745,7 @@ void beginBoard()
 void beginVersion()
 {
     char versionString[21];
-    getFirmwareVersion(versionString, sizeof(versionString), true);
+    firmwareVersionGet(versionString, sizeof(versionString), true);
 
     char title[50];
     RTKBrandAttribute *brandAttributes = getBrandAttributeFromBrand(present.brand);
@@ -926,7 +924,7 @@ void beginSD()
         }
 
         // Load firmware file from the microSD card if it is present
-        scanForFirmware();
+        microSDScanForFirmware();
 
         // Mark card not yet usable for logging
         sdCardSize = 0;
@@ -989,12 +987,7 @@ void beginGnssUart()
 
     // Never freed...
     if (rbOffsetArray == nullptr)
-    {
-        if (online.psram == true)
-            rbOffsetArray = (RING_BUFFER_OFFSET *)ps_malloc(length);
-        else
-            rbOffsetArray = (RING_BUFFER_OFFSET *)malloc(length);
-    }
+        rbOffsetArray = (RING_BUFFER_OFFSET *)rtkMalloc(length, "Ring buffer (rbOffsetArray)");
 
     if (!rbOffsetArray)
     {
@@ -1034,12 +1027,6 @@ void pinGnssUartTask(void *pvParameters)
     if (settings.printTaskStartStop)
         systemPrintln("Task pinGnssUartTask started");
 
-    if (productVariant == RTK_TORCH)
-    {
-        // Override user setting. Required because beginGnssUart() is called before beginBoard().
-        settings.dataPortBaud = 115200;
-    }
-
     if (serialGNSS == nullptr)
         serialGNSS = new HardwareSerial(2); // Use UART2 on the ESP32 for communication with the GNSS module
 
@@ -1049,9 +1036,24 @@ void pinGnssUartTask(void *pvParameters)
     if (pin_GnssUart_RX == -1 || pin_GnssUart_TX == -1)
         reportFatalError("Illegal UART pin assignment.");
 
-    serialGNSS->begin(settings.dataPortBaud, SERIAL_8N1, pin_GnssUart_RX,
-                      pin_GnssUart_TX); // Start UART on platform depedent pins for SPP. The GNSS will be configured
-                                        // to output NMEA over its UART at the same rate.
+    uint32_t platformGnssCommunicationRate =
+        settings.dataPortBaud; // Default to 230400bps for ZED. This limits GNSS fixes at 4Hz but allows SD buffer to be
+                               // reduced to 6k.
+
+    if (productVariant == RTK_TORCH)
+    {
+        // Override user setting. Required because beginGnssUart() is called before beginBoard().
+        platformGnssCommunicationRate = 115200;
+    }
+    else if (productVariant == RTK_POSTCARD)
+    {
+        // LG290P communicates at 460800bps.
+        platformGnssCommunicationRate = 115200 * 4;
+    }
+
+    serialGNSS->begin(platformGnssCommunicationRate, SERIAL_8N1, pin_GnssUart_RX,
+                      pin_GnssUart_TX); // Start UART on platform dependent pins for SPP. The GNSS will be
+                                        // configured to output NMEA over its UART at the same rate.
 
     // Reduce threshold value above which RX FIFO full interrupt is generated
     // Allows more time between when the UART interrupt occurs and when the FIFO buffer overruns

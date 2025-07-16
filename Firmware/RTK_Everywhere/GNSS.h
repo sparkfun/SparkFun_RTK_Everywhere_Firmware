@@ -68,6 +68,11 @@ class GNSS
     // Reset to Low Bandwidth Link (1074/1084/1094/1124 0.5Hz & 1005/1230 0.1Hz)
     virtual void baseRtcmLowDataRate();
 
+    // Check if a given baud rate is supported by this module
+    virtual bool baudIsAllowed(uint32_t baudRate);
+    virtual uint32_t baudGetMinimum();
+    virtual uint32_t baudGetMaximum();
+
     // Connect to GNSS and identify particulars
     virtual void begin();
 
@@ -105,6 +110,18 @@ class GNSS
     //   Returns true if successfully configured and false upon failure
     virtual bool configureRover();
 
+    // Responds with the messages supported on this platform
+    // Inputs:
+    //   returnText: String to receive message names
+    // Returns message names in the returnText string
+    virtual void createMessageList(String &returnText);
+
+    // Responds with the RTCM/Base messages supported on this platform
+    // Inputs:
+    //   returnText: String to receive message names
+    // Returns message names in the returnText string
+    virtual void createMessageListBase(String &returnText);
+
     virtual void debuggingDisable();
 
     virtual void debuggingEnable();
@@ -131,6 +148,9 @@ class GNSS
 
     // Return the number of active/enabled messages
     virtual uint8_t getActiveMessageCount();
+
+    // Return the number of active/enabled RTCM messages
+    virtual uint8_t getActiveRtcmMessageCount();
 
     // Get the altitude
     // Outputs:
@@ -222,6 +242,10 @@ class GNSS
 
     // Returns full year, ie 2023, not 23.
     virtual uint16_t getYear();
+
+    // Antenna Short / Open detection
+    virtual bool isAntennaShorted();
+    virtual bool isAntennaOpen();
 
     virtual bool isBlocking();
 
@@ -358,6 +382,9 @@ class GNSS
     virtual bool softwareReset();
 
     virtual bool standby();
+
+    // Antenna Short / Open detection
+    virtual bool supportsAntennaShortOpen();
 
     // Reset the survey-in operation
     // Outputs:

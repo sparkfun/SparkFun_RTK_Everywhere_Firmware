@@ -9,34 +9,362 @@
 #define DEVELOPMENT_TOKEN 0xAA, 0xBB, 0xCC, 0xDD, 0x00, 0x11, 0x22, 0x33, 0x0A, 0x0B, 0x0C, 0x0D, 0x00, 0x01, 0x02, 0x03
 
 #ifndef POINTPERFECT_LBAND_TOKEN
-#warning Using the DEVELOPMENT_TOKEN for point perfect!
+#warning Using the DEVELOPMENT_TOKEN for PointPerfect!
 #define POINTPERFECT_LBAND_TOKEN DEVELOPMENT_TOKEN
 #define POINTPERFECT_IP_TOKEN DEVELOPMENT_TOKEN
 #define POINTPERFECT_LBAND_IP_TOKEN DEVELOPMENT_TOKEN
+#define POINTPERFECT_RTCM_TOKEN DEVELOPMENT_TOKEN
+#define POINTPERFECT_GLOBAL_TOKEN DEVELOPMENT_TOKEN
+#define POINTPERFECT_LIVE_TOKEN DEVELOPMENT_TOKEN
 #endif // POINTPERFECT_LBAND_TOKEN
 
 static const uint8_t developmentToken[16] = {DEVELOPMENT_TOKEN};         // Token in HEX form
 static const uint8_t ppLbandToken[16] = {POINTPERFECT_LBAND_TOKEN};      // Token in HEX form
 static const uint8_t ppIpToken[16] = {POINTPERFECT_IP_TOKEN};            // Token in HEX form
 static const uint8_t ppLbandIpToken[16] = {POINTPERFECT_LBAND_IP_TOKEN}; // Token in HEX form
+static const uint8_t ppRtcmToken[16] = {POINTPERFECT_RTCM_TOKEN};        // Token in HEX form
+static const uint8_t ppGlobalToken[16] = {0};
+//{POINTPERFECT_GLOBAL_TOKEN};                                             // Token in HEX form
+static const uint8_t ppLiveToken[16] = {0};
+//{POINTPERFECT_LIVE_TOKEN}; // Token in HEX form
+static unsigned long provisioningStartTime_millis;
+static bool provisioningRunning;
+
+// PointPerfect offers are variety of services
+// Here we capture the various service levels and types
+
+enum PP_ModelType
+{
+    PP_MODEL_SSR = 0, // State Space Representation style model (mathematical model covering large geographic area)
+    PP_MODEL_OSR,     // Observation Space Representation (lots of static reference stations)
+    PP_MODEL_NONE,
+};
+
+enum PP_DeliveryMethod
+{
+    PP_DELIVERY_NTRIP = 0,    // Delivery over an internet connection (essentially TCP)
+    PP_DELIVERY_MQTT,         // Delivery over an internet connection using MQTT (deprecated)
+    PP_DELIVERY_LBAND_NA,     // Delivery over L-Band signal, North America coverage
+    PP_DELIVERY_LBAND_GLOBAL, // Delivery over L-Band signal, global coverage
+    PP_DELIVERY_NONE,
+};
+
+enum PP_Encoding
+{
+    PP_ENCODING_SPARTN = 0, // Low bit rate, u-blox proprietary
+    PP_ENCODING_RTCM,       // Classic RTCM encoding that nearly all RTK receivers can understand
+    PP_ENCODING_NONE,
+};
+
+// PointPerfect offers are variety of services
+// Each service will have a printable name, delivery method, and encoding
+typedef struct
+{
+    const char serviceName[30];
+    PP_ModelType modelType;
+    PP_DeliveryMethod deliveryMethod;
+    PP_Encoding encoding;
+} PP_Service;
+
+// The various services offered by PointPerfect
+const PP_Service ppServices[] = {
+    {"Disabled", PP_MODEL_NONE, PP_DELIVERY_NONE, PP_ENCODING_NONE},        // Do not use PointPerfect corrections
+    {"Flex NTRIP/RTCM", PP_MODEL_SSR, PP_DELIVERY_NTRIP, PP_ENCODING_RTCM}, // Uses "ZTP-RTCM-100" profile
+    {"Flex L-Band North America", PP_MODEL_SSR, PP_DELIVERY_LBAND_NA, PP_ENCODING_SPARTN}, // Uses "ZTP-LBand" profile
+    {"Global", PP_MODEL_SSR, PP_DELIVERY_LBAND_GLOBAL, PP_ENCODING_SPARTN},                // Uses "ZTP-Global" profile
+    {"Live", PP_MODEL_OSR, PP_DELIVERY_NTRIP, PP_ENCODING_RTCM},                           // Uses "ZTP-Live" profile
+    {"Flex MQTT (Deprecated)", PP_MODEL_SSR, PP_DELIVERY_MQTT,
+     PP_ENCODING_SPARTN}, // Uses "ZTP-IP" profile, now deprecated
+    // "ZTP-RTCM-100-Trial" profile deprecated
+    // "ZTP-LBand+IP" profile deprecated
+};
+
+const int ppServiceCount = sizeof(ppServices) / sizeof(ppServices[0]);
+
+// Provision device on ThingStream
+// Download keys
+void menuPointPerfect()
+{
+    uint8_t pointPerfectServiceOnEntry = settings.pointPerfectService;
+
+    while (1)
+    {
+        systemPrintln();
+        systemPrintln("Menu: PointPerfect Corrections");
+
+        if (settings.debugCorrections == true)
+            systemPrintf("Time to first RTK Fix: %ds Restarts: %d\r\n", rtkTimeToFixMs / MILLISECONDS_IN_A_SECOND,
+                         floatLockRestarts);
+
+        if (pointPerfectServiceUsesKeys() == true)
+        {
+            if (settings.debugCorrections == true)
+                systemPrintf("settings.pointPerfectKeyDistributionTopic: %s\r\n",
+                             settings.pointPerfectKeyDistributionTopic);
+
+            systemPrint("Days until keys expire: ");
+            if (strlen(settings.pointPerfectCurrentKey) > 0)
+            {
+                if (online.rtc == false)
+                {
+                    // If we don't have RTC we can't calculate days to expire
+                    systemPrintln("No RTC");
+                }
+                else
+                {
+                    int daysRemaining =
+                        daysFromEpoch(settings.pointPerfectNextKeyStart + settings.pointPerfectNextKeyDuration + 1);
+
+                    if (daysRemaining < 0)
+                        systemPrintln("Expired");
+                    else
+                        systemPrintln(daysRemaining);
+                }
+            }
+            else
+                systemPrintln("No keys");
+
+            if ((settings.useLocalizedDistribution) && (localizedDistributionTileTopic.length() > 0))
+            {
+                systemPrint("Most recent localized distribution topic: ");
+                systemPrintln(localizedDistributionTileTopic.c_str()); // From MQTT_Client.ino
+            }
+        }
+
+        // How this works:
+        //   There are four PointPerfect corrections plans: IP-only, L-Band-only, L-Band+IP, SSR-RTCM
+        //   For L-Band-only - e.g. Facet mosaic or Facet v2 L-Band
+        //     During ZTP Provisioning, we receive the UBX-format key distribution topic /pp/ubx/0236/Lb
+        //     There are no regional correction topics for L-Band-only
+        //     Facet v2 L-Band pushes the keys to the ZED and pushes PMP from the NEO to the ZED
+        //     Facet mosaic pushes the current key and raw L-Band to the PPL, then pushes RTCM to the X5
+        //   For SSR-RTCM - e.g. Any user/platform that opts for cheap SSR-RTCM over NTRIP
+        //     During ZTP Provisioning, we receive NTRIP credentials and overwrite any existing NTRIP Client
+        //     There are no regional corrections - we pass GGA back to caster instead
+        //   For L-Band+IP - e.g. EVK:
+        //     During ZTP Provisioning, we receive the UBX-format key distribution topic /pp/ubx/0236/Lb
+        //     We also receive the full list of regional correction topics: /pp/Lb/us , /pp/Lb/eu , etc.
+        //     We can subscribe to the topic and push IP data to the ZED - using UBLOX_CFG_SPARTN_USE_SOURCE 0
+        //     Or we can push PMP data from the NEO to the ZED - using UBLOX_CFG_SPARTN_USE_SOURCE 1
+        //   For IP-only - e.g. Old way of getting corrections:
+        //     During ZTP Provisioning, we receive the UBX-format key distribution topic /pp/ubx/0236/ip
+        //     We also receive the full list of regional correction topics: /pp/ip/us , /pp/ip/eu , etc.
+        //     We need to subscribe to our regional correction topic and push the data to the PPL
+        //     RTCM from the PPL is pushed to the GNSS receiver (ie, UM980, LG290P)
+        //   We do not need the user to tell us which pointPerfectCorrectionsSource to use.
+        //   We identify the service level during ZTP and record it to settings (pointPerfectService)
+
+        systemPrintf("1) Select PointPerfect Service: %s\r\n", ppServices[settings.pointPerfectService].serviceName);
 
 #ifdef COMPILE_NETWORK
-MqttClient *menuppMqttClient;
+        if (pointPerfectIsEnabled())
+        {
+            if (pointPerfectServiceUsesKeys() == false)
+            {
+                systemPrint("2) Update Credentials: ");
+                if (settings.requestKeyUpdate == true)
+                    systemPrintln("Requested");
+                else
+                    systemPrintln("Not requested");
+
+                systemPrintln("i) Show device ID");
+            }
+            else
+            {
+                systemPrint("3) Toggle Auto Key Renewal: ");
+                if (settings.autoKeyRenewal == true)
+                    systemPrintln("Enabled");
+                else
+                    systemPrintln("Disabled");
+                systemPrint("4) Request Key Update: ");
+                if (settings.requestKeyUpdate == true)
+                    systemPrintln("Requested");
+                else
+                    systemPrintln("Not requested");
+                systemPrint("5) Use localized distribution: ");
+                if (settings.useLocalizedDistribution == true)
+                    systemPrintln("Enabled");
+                else
+                    systemPrintln("Disabled");
+                if (settings.useLocalizedDistribution)
+                {
+                    systemPrint("6) Localized distribution tile level: ");
+                    systemPrint(settings.localizedDistributionTileLevel);
+                    systemPrint(" (");
+                    systemPrint(localizedDistributionTileLevelNames[settings.localizedDistributionTileLevel]);
+                    systemPrintln(")");
+                }
+                if (productVariantSupportsAssistNow())
+                {
+                    systemPrint("a) Use AssistNow: ");
+                    if (settings.useAssistNow == true)
+                        systemPrintln("Enabled");
+                    else
+                        systemPrintln("Disabled");
+                }
+
+                systemPrintln("c) Clear the Keys");
+
+                systemPrintln("i) Show device ID");
+
+                systemPrintln("k) Manual Key Entry");
+
+                systemPrint("g) Geographic Region: ");
+                systemPrintln(Regional_Information_Table[settings.geographicRegion].name);
+            }
+        }
+        else
+        {
+            systemPrintln("i) Show device ID");
+        }
+
 #endif // COMPILE_NETWORK
 
-//----------------------------------------
-// L-Band Routines - compiled out
-//----------------------------------------
+        systemPrintln("x) Exit");
 
-bool productVariantSupportsAssistNow()
+        byte incoming = getUserInputCharacterNumber();
+
+        if (incoming == 1)
+        {
+            menuPointPerfectSelectService();
+        }
+
+#ifdef COMPILE_NETWORK
+        else if (incoming == 2 && pointPerfectIsEnabled())
+        {
+            settings.autoKeyRenewal ^= 1;
+            settings.requestKeyUpdate = settings.autoKeyRenewal; // Force a key update - or don't
+        }
+        else if (incoming == 3 && pointPerfectIsEnabled() && pointPerfectServiceUsesKeys() == true)
+        {
+            settings.autoKeyRenewal ^= 1;
+            settings.requestKeyUpdate = settings.autoKeyRenewal; // Force a key update - or don't
+        }
+        else if (incoming == 4 && pointPerfectIsEnabled() && pointPerfectServiceUsesKeys() == true)
+        {
+            settings.requestKeyUpdate ^= 1;
+        }
+        else if (incoming == 5 && pointPerfectIsEnabled() && pointPerfectServiceUsesKeys() == true)
+        {
+            settings.useLocalizedDistribution ^= 1;
+        }
+        else if (incoming == 6 && pointPerfectIsEnabled() && settings.useLocalizedDistribution &&
+                 pointPerfectServiceUsesKeys() == true)
+        {
+            settings.localizedDistributionTileLevel++;
+            if (settings.localizedDistributionTileLevel >= LOCALIZED_DISTRIBUTION_TILE_LEVELS)
+                settings.localizedDistributionTileLevel = 0;
+        }
+        else if (incoming == 'a' && pointPerfectIsEnabled() && productVariantSupportsAssistNow() &&
+                 pointPerfectServiceUsesKeys() == true)
+        {
+            settings.useAssistNow ^= 1;
+        }
+#endif // COMPILE_NETWORK
+        else if (incoming == 'c' && pointPerfectIsEnabled() && pointPerfectServiceUsesKeys() == true)
+        {
+            settings.pointPerfectCurrentKey[0] = 0;
+            settings.pointPerfectNextKey[0] = 0;
+        }
+        else if (incoming == 'i')
+        {
+            systemPrintf("Device ID: %s\r\n", printDeviceId());
+        }
+        else if (incoming == 'k' && pointPerfectIsEnabled() && pointPerfectServiceUsesKeys() == true)
+        {
+            menuPointPerfectKeys();
+        }
+        else if (incoming == 'g' && pointPerfectIsEnabled() && pointPerfectServiceUsesKeys() == true)
+        {
+            settings.geographicRegion++;
+            if (settings.geographicRegion >= numRegionalAreas)
+                settings.geographicRegion = 0;
+        }
+        else if (incoming == 'x')
+            break;
+        else if (incoming == INPUT_RESPONSE_GETCHARACTERNUMBER_EMPTY)
+            break;
+        else if (incoming == INPUT_RESPONSE_GETCHARACTERNUMBER_TIMEOUT)
+            break;
+        else
+            printUnknown(incoming);
+    }
+
+    if ((strlen(settings.pointPerfectClientID) > 0) && (pointPerfectServiceUsesKeys() == true))
+    {
+        gnss->applyPointPerfectKeys();
+    }
+
+    // If, on entry, we needed NTRIP, and now we don't, then disable settings.enableNtripClient
+    if ((pointPerfectNtripNeeded(pointPerfectServiceOnEntry)) && (!pointPerfectNtripNeeded()))
+        settings.enableNtripClient = false;
+
+    clearBuffer(); // Empty buffer of any newline chars
+}
+
+// Returns string containing the MAC + product variant number
+const char *printDeviceId()
 {
-    if (productVariant == RTK_FACET_MOSAIC)
-        return false;
-    if (productVariant == RTK_TORCH)
-        return false;
-    if (productVariant == RTK_POSTCARD)
-        return false;
-    return true;
+    static char deviceID[strlen("1234567890ABXX") + 1]; // 12 character MAC + 2 character variant + room for terminator
+    snprintf(deviceID, sizeof(deviceID), "%02X%02X%02X%02X%02X%02X%02X", btMACAddress[0], btMACAddress[1],
+             btMACAddress[2], btMACAddress[3], btMACAddress[4], btMACAddress[5], productVariant);
+
+    return ((const char *)deviceID);
+}
+
+// Present user with list of available services, list depends on platform
+void menuPointPerfectSelectService()
+{
+    while (1)
+    {
+        systemPrintln();
+        systemPrintln("Menu: PointPerfect Service Selection");
+        systemPrintln("Select from the following PointPerfect services compatible with this device:");
+
+        for (int x = 0; x < ppServiceCount; x++)
+        {
+            if (productVariantSupportsService(x))
+                systemPrintf("%d) %s\r\n", x + 1, ppServices[x].serviceName);
+        }
+
+        systemPrintln("x) Exit");
+
+        byte incoming = getUserInputCharacterNumber();
+
+        if (incoming >= 1 && incoming <= ppServiceCount)
+        {
+            if (productVariantSupportsService(incoming - 1) == true) // Align incoming to array
+            {
+                settings.pointPerfectService = incoming - 1; // Align incoming to array
+
+                restartRover = true; // Require a rover restart to enable / disable RTCM for PPL
+                settings.requestKeyUpdate =
+                    settings.pointPerfectService != PP_NICKNAME_DISABLED; // Force a key update - or don't
+
+                break; // Exit menu once selected
+            }
+            else
+            {
+                printUnknown(incoming);
+            }
+        }
+
+        else if (incoming == 'x')
+            break;
+        else if (incoming == INPUT_RESPONSE_GETCHARACTERNUMBER_EMPTY)
+            break;
+        else if (incoming == INPUT_RESPONSE_GETCHARACTERNUMBER_TIMEOUT)
+            break;
+        else
+            printUnknown(incoming);
+    }
+
+    if (strlen(settings.pointPerfectClientID) > 0)
+    {
+        gnss->applyPointPerfectKeys();
+    }
+
+    clearBuffer(); // Empty buffer of any newline chars
 }
 
 void menuPointPerfectKeys()
@@ -64,7 +392,7 @@ void menuPointPerfectKeys()
         {
             long long gpsEpoch = thingstreamEpochToGPSEpoch(settings.pointPerfectCurrentKeyStart);
 
-            gpsEpoch += (settings.pointPerfectCurrentKeyDuration / 1000) -
+            gpsEpoch += (settings.pointPerfectCurrentKeyDuration / MILLISECONDS_IN_A_SECOND) -
                         1; // Add key duration back to the key start date to get key expiration
 
             systemPrintf("%s\r\n", printDateFromGPSEpoch(gpsEpoch));
@@ -90,7 +418,7 @@ void menuPointPerfectKeys()
             long long gpsEpoch = thingstreamEpochToGPSEpoch(settings.pointPerfectNextKeyStart);
 
             gpsEpoch += (settings.pointPerfectNextKeyDuration /
-                         1000); // Add key duration back to the key start date to get key expiration
+                         MILLISECONDS_IN_A_SECOND); // Add key duration back to the key start date to get key expiration
 
             systemPrintf("%s\r\n", printDateFromGPSEpoch(gpsEpoch));
         }
@@ -130,7 +458,7 @@ void menuPointPerfectKeys()
             // The u-blox API reports key durations of 5 weeks, but the web interface reports expiration dates
             // that are 4 weeks.
             // If the user has manually entered a date, force duration down to four weeks
-            settings.pointPerfectCurrentKeyDuration = (1000LL * 60 * 60 * 24 * 28);
+            settings.pointPerfectCurrentKeyDuration = 28LL * MILLISECONDS_IN_A_DAY;
 
             // Calculate the next key expiration date
             settings.pointPerfectNextKeyStart = settings.pointPerfectCurrentKeyStart +
@@ -172,6 +500,473 @@ void menuPointPerfectKeys()
     clearBuffer(); // Empty buffer of any newline chars
 }
 
+// Update any L-Band hardware
+// Check if NEO-D9S is connected. Configure if available.
+// If GNSS is mosaic-X5, configure LBandBeam1
+void updateLBand()
+{
+    static bool lband_gnss_can_not_begin = false;
+
+#ifdef COMPILE_L_BAND
+    if (present.lband_neo)
+    {
+        // Start L-Band if it is enabled
+        if (online.lband_neo == false && pointPerfectLbandNeeded() == true)
+        {
+            static bool lband_neo_can_not_begin = false;
+
+            if (lband_neo_can_not_begin)
+                return;
+
+            paintLBandConfigure();
+
+            // NEO-D9S is present but is not yet online. Try to begin the hardware
+            if (i2cLBand.begin(*i2c_0, 0x43) ==
+                false) // Connect to the u-blox NEO-D9S using Wire port. The D9S default I2C address is 0x43 (not 0x42)
+            {
+                systemPrintln("L-Band not detected");
+                lband_neo_can_not_begin = true;
+                return;
+            }
+
+            // Check the firmware version of the NEO-D9S. Based on Example21_ModuleInfo.
+            if (i2cLBand.getModuleInfo(1100) == true) // Try to get the module info
+            {
+                // Reconstruct the firmware version
+                snprintf(neoFirmwareVersion, sizeof(neoFirmwareVersion), "%s %d.%02d", i2cLBand.getFirmwareType(),
+                         i2cLBand.getFirmwareVersionHigh(), i2cLBand.getFirmwareVersionLow());
+
+                printNEOInfo(); // Print module firmware version
+            }
+            else
+            {
+                systemPrintln("L-Band not detected");
+                lband_neo_can_not_begin = true;
+                return;
+            }
+
+            // Update the GNSS position. Use the position to set the frequency if available
+            gnss->update();
+
+            uint32_t LBandFreq;
+            uint8_t fixType = gnss->getFixType();
+            double latitude = gnss->getLatitude();
+            double longitude = gnss->getLongitude();
+
+            // If we have a fix, check which frequency to use
+            if (fixType >= 2 && fixType <= 5) // 2D, 3D, 3D+DR, or Time
+            {
+                int r = 0; // Step through each geographic region
+                for (; r < numRegionalAreas; r++)
+                {
+                    if ((longitude >= Regional_Information_Table[r].area.lonWest) &&
+                        (longitude <= Regional_Information_Table[r].area.lonEast) &&
+                        (latitude >= Regional_Information_Table[r].area.latSouth) &&
+                        (latitude <= Regional_Information_Table[r].area.latNorth))
+                    {
+                        LBandFreq = Regional_Information_Table[r].frequency;
+                        if (settings.debugCorrections == true)
+                            systemPrintf("Setting L-Band frequency to %s (%dHz)\r\n",
+                                         Regional_Information_Table[r].name, LBandFreq);
+                        break;
+                    }
+                }
+                if (r == numRegionalAreas) // Geographic region not found
+                {
+                    LBandFreq = Regional_Information_Table[settings.geographicRegion].frequency;
+                    if (settings.debugCorrections == true)
+                        systemPrintf("Error: Unknown L-Band geographic region. Using %s (%dHz)\r\n",
+                                     Regional_Information_Table[settings.geographicRegion].name, LBandFreq);
+                }
+            }
+            else
+            {
+                LBandFreq = Regional_Information_Table[settings.geographicRegion].frequency;
+                if (settings.debugCorrections == true)
+                    systemPrintf("No fix available for L-Band geographic region determination. Using %s (%dHz)\r\n",
+                                 Regional_Information_Table[settings.geographicRegion].name, LBandFreq);
+            }
+
+            bool response = true;
+            response &= i2cLBand.newCfgValset();
+            response &= i2cLBand.addCfgValset(UBLOX_CFG_PMP_CENTER_FREQUENCY, LBandFreq); // Default 1539812500 Hz
+            response &= i2cLBand.addCfgValset(UBLOX_CFG_PMP_SEARCH_WINDOW, 2200);         // Default 2200 Hz
+            response &= i2cLBand.addCfgValset(UBLOX_CFG_PMP_USE_SERVICE_ID, 0);           // Default 1
+            response &= i2cLBand.addCfgValset(UBLOX_CFG_PMP_SERVICE_ID, 21845);           // Default 50821
+            response &= i2cLBand.addCfgValset(UBLOX_CFG_PMP_DATA_RATE, 2400);             // Default 2400 bps
+            response &= i2cLBand.addCfgValset(UBLOX_CFG_PMP_USE_DESCRAMBLER, 1);          // Default 1
+            response &= i2cLBand.addCfgValset(UBLOX_CFG_PMP_DESCRAMBLER_INIT, 26969);     // Default 23560
+            response &= i2cLBand.addCfgValset(UBLOX_CFG_PMP_USE_PRESCRAMBLING, 0);        // Default 0
+            response &= i2cLBand.addCfgValset(UBLOX_CFG_PMP_UNIQUE_WORD, 16238547128276412563ull);
+            response &=
+                i2cLBand.addCfgValset(UBLOX_CFG_MSGOUT_UBX_RXM_PMP_UART1, 0); // Disable UBX-RXM-PMP on UART1. Not used.
+
+            response &= i2cLBand.sendCfgValset();
+
+            GNSS_ZED *zed = (GNSS_ZED *)gnss;
+            response &= zed->lBandCommunicationEnable();
+
+            if (response == false)
+            {
+                systemPrintln("L-Band failed to configure");
+                lband_neo_can_not_begin = true;
+                return;
+            }
+
+            i2cLBand.softwareResetGNSSOnly(); // Do a restart
+
+            if (settings.debugCorrections == true)
+                systemPrintln("L-Band online");
+
+            online.lband_neo = true;
+        }
+        else if (online.lband_neo && pointPerfectServiceUsesKeys())
+        {
+            // L-Band is online. Apply the keys if they have changed
+            // This may be redundant as PROVISIONING_KEYS_REMAINING also applies the keys
+            static char previousKey[33] = "";
+            if (strncmp(previousKey, settings.pointPerfectCurrentKey, 33) != 0)
+            {
+                strncpy(previousKey, settings.pointPerfectCurrentKey, 33);
+                gnss->applyPointPerfectKeys(); // Apply keys now.
+                if (settings.debugCorrections == true)
+                    systemPrintln("ZED-F9P PointPerfect keys applied");
+            }
+        }
+    }
+#endif // COMPILE_L_BAND
+#ifdef COMPILE_MOSAICX5
+    if (present.gnss_mosaicX5)
+    {
+        // Start L-Band if service is enabled
+        if (online.lband_gnss == false && pointPerfectLbandNeeded())
+        {
+            if (lband_gnss_can_not_begin)
+                return;
+
+            paintLBandConfigure();
+
+            uint32_t LBandFreq;
+            uint8_t fixType = gnss->getFixType();
+            double latitude = gnss->getLatitude();
+            double longitude = gnss->getLongitude();
+            // If we have a fix, check which frequency to use
+            if (fixType >= 1) // Stand-Alone PVT or better
+            {
+                int r = 0; // Step through each geographic region
+                for (; r < numRegionalAreas; r++)
+                {
+                    if ((longitude >= Regional_Information_Table[r].area.lonWest) &&
+                        (longitude <= Regional_Information_Table[r].area.lonEast) &&
+                        (latitude >= Regional_Information_Table[r].area.latSouth) &&
+                        (latitude <= Regional_Information_Table[r].area.latNorth))
+                    {
+                        LBandFreq = Regional_Information_Table[r].frequency;
+                        if (settings.debugCorrections == true)
+                            systemPrintf("Setting L-Band frequency to %s (%dHz)\r\n",
+                                         Regional_Information_Table[r].name, LBandFreq);
+                        break;
+                    }
+                }
+                if (r == numRegionalAreas) // Geographic region not found
+                {
+                    LBandFreq = Regional_Information_Table[settings.geographicRegion].frequency;
+                    if (settings.debugCorrections == true)
+                        systemPrintf("Error: Unknown L-Band geographic region. Using %s (%dHz)\r\n",
+                                     Regional_Information_Table[settings.geographicRegion].name, LBandFreq);
+                }
+            }
+            else
+            {
+                LBandFreq = Regional_Information_Table[settings.geographicRegion].frequency;
+                if (settings.debugCorrections == true)
+                    systemPrintf("No fix available for L-Band geographic region determination. Using %s (%dHz)\r\n",
+                                 Regional_Information_Table[settings.geographicRegion].name, LBandFreq);
+            }
+
+            bool result = true;
+
+            GNSS_MOSAIC *mosaic = (GNSS_MOSAIC *)gnss;
+
+            result &= mosaic->configureGNSSCOM(true); // Ensure LBandBeam1 is enabled on COM1
+
+            result &= mosaic->configureLBand(true, LBandFreq); // Start L-Band
+
+            result &= mosaic->saveConfiguration(); // Save the updated configuration.
+
+            if (result == false)
+            {
+                systemPrintln("mosaic-X5 L-Band failed to configure");
+                lband_gnss_can_not_begin = true;
+            }
+            else
+            {
+                if (settings.debugCorrections == true)
+                    systemPrintln("mosaic-X5 L-Band online");
+                online.lband_gnss = true;
+            }
+        }
+
+        // Stop L-Band is service is disabled
+        else if (online.lband_gnss == true && pointPerfectLbandNeeded() == false)
+        {
+            bool result = true;
+
+            GNSS_MOSAIC *mosaic = (GNSS_MOSAIC *)gnss;
+
+            uint32_t LBandFreq = 1556290000;                    // Default to US band
+            result &= mosaic->configureLBand(false, LBandFreq); // Stop L-Band
+
+            result &= mosaic->saveConfiguration(); // Save the updated configuration.
+
+            if (result == false)
+            {
+                systemPrintln("mosaic-X5 L-Band failed to stop. Retrying...");
+            }
+            else
+            {
+                if (settings.debugCorrections == true)
+                    systemPrintln("mosaic-X5 L-Band successfully taken offline");
+                online.lband_gnss = false;
+                lband_gnss_can_not_begin = false; // reset so L-Band can restart if requested
+            }
+        }
+    }
+#endif // /COMPILE_MOSAICX5
+}
+
+// Process any new L-Band from I2C
+void updateLBandCorrections()
+{
+    static unsigned long lbandLastReport;
+    static unsigned long lbandTimeFloatStarted; // Monitors the ZED during L-Band reception if a fix takes too long
+
+#ifdef COMPILE_L_BAND
+    if ((online.lband_neo == true) && (pointPerfectLbandNeeded() == true) && (online.pointPerfectKeysApplied == true))
+    {
+        i2cLBand.checkUblox();     // Check for the arrival of new PMP data and process it.
+        i2cLBand.checkCallbacks(); // Check if any L-Band callbacks are waiting to be processed.
+
+        // If a certain amount of time has elapsed between last decryption, turn off L-Band icon
+        if (lbandCorrectionsReceived == true && millis() - lastLBandDecryption > (5 * MILLISECONDS_IN_A_SECOND))
+            lbandCorrectionsReceived = false;
+
+        // If we don't get an L-Band fix within Timeout, hot-start ZED-F9x
+        if (gnss->isRTKFloat())
+        {
+            if (lbandTimeFloatStarted == 0)
+                lbandTimeFloatStarted = millis();
+
+            if (millis() - lbandLastReport > MILLISECONDS_IN_A_SECOND)
+            {
+                lbandLastReport = millis();
+
+                if (settings.debugCorrections == true)
+                    systemPrintf("ZED restarts: %d Time remaining before Float lock forced restart: %ds\r\n",
+                                 floatLockRestarts,
+                                 settings.lbandFixTimeout_seconds -
+                                     ((millis() - lbandTimeFloatStarted) / MILLISECONDS_IN_A_SECOND));
+            }
+
+            if (settings.lbandFixTimeout_seconds > 0)
+            {
+                if ((millis() - lbandTimeFloatStarted) > (settings.lbandFixTimeout_seconds * MILLISECONDS_IN_A_SECOND))
+                {
+                    floatLockRestarts++;
+
+                    lbandTimeFloatStarted =
+                        millis(); // Restart timer for L-Band. Don't immediately reset ZED to achieve fix.
+
+                    // Hotstart GNSS to try to get RTK lock
+                    gnss->softwareReset();
+
+                    if (settings.debugCorrections == true)
+                        systemPrintf("Restarting ZED. Number of Float lock restarts: %d\r\n", floatLockRestarts);
+                }
+            }
+        }
+        else if (gnss->isRTKFix() && rtkTimeToFixMs == 0)
+        {
+            lbandTimeFloatStarted = 0; // Restart timer in case we drop from RTK Fix
+
+            rtkTimeToFixMs = millis();
+            if (settings.debugCorrections == true)
+                systemPrintf("Time to first RTK Fix: %ds\r\n", rtkTimeToFixMs / MILLISECONDS_IN_A_SECOND);
+        }
+        else
+        {
+            // We are not in float or fix, so restart timer
+            lbandTimeFloatStarted = 0;
+        }
+    }
+
+#endif // COMPILE_L_BAND
+}
+
+void pointPerfectVerifyTables()
+{
+    // Verify the table length
+    if (ppServiceCount != PP_NICKNAME_MAX)
+        reportFatalError("Please fix ppServices table to match PP_NickNames");
+}
+
+bool pointPerfectIsEnabled()
+{
+    if (settings.pointPerfectService != PP_NICKNAME_DISABLED)
+        return true;
+    return false;
+}
+
+// Determine if this service type is encrypted and requires keys for decryption
+bool pointPerfectServiceUsesKeys()
+{
+    if (settings.pointPerfectService == PP_NICKNAME_FLEX_LBAND_NA ||
+        settings.pointPerfectService == PP_NICKNAME_GLOBAL || settings.pointPerfectService == PP_NICKNAME_IP_MQTT)
+        return true;
+    return false;
+}
+
+// Determine if this service type uses MQTT for corrections
+bool pointPerfectMqttNeeded()
+{
+    if (settings.pointPerfectService == PP_NICKNAME_IP_MQTT)
+        return true;
+    return false;
+}
+
+// Determine if this service type uses L-Band for corrections
+bool pointPerfectLbandNeeded()
+{
+    if (settings.pointPerfectService == PP_NICKNAME_FLEX_LBAND_NA || settings.pointPerfectService == PP_NICKNAME_GLOBAL)
+        return true;
+    return false;
+}
+
+// Determine if this service type uses NTRIP for corrections
+bool pointPerfectNtripNeeded()
+{
+    return pointPerfectNtripNeeded(settings.pointPerfectService);
+}
+
+// Determine if this service type uses NTRIP for corrections
+bool pointPerfectNtripNeeded(uint8_t pointPerfectService)
+{
+    if (pointPerfectService == PP_NICKNAME_FLEX_RTCM || pointPerfectService == PP_NICKNAME_LIVE)
+        return true;
+    return false;
+}
+
+bool productVariantSupportsAssistNow()
+{
+    if (productVariant == RTK_EVK)
+        return true;
+    if (productVariant == RTK_FACET_V2)
+        return false; // TODO - will require specific module lookup
+    if (productVariant == RTK_FACET_MOSAIC)
+        return false;
+    if (productVariant == RTK_TORCH)
+        return false;
+    if (productVariant == RTK_POSTCARD)
+        return false;
+
+    systemPrintln("Uncaught productVariantSupportsAssistNow()");
+    return false;
+}
+
+bool productVariantSupportsLbandNA()
+{
+    if (productVariant == RTK_EVK)
+        return true;
+    if (productVariant == RTK_FACET_V2)
+        return false; // TODO - will require specific module lookup
+    if (productVariant == RTK_FACET_MOSAIC)
+        return true;
+    if (productVariant == RTK_TORCH)
+        return false;
+    if (productVariant == RTK_POSTCARD)
+        return false;
+
+    systemPrintln("Uncaught productVariantSupportsLbandNA()");
+    return false;
+}
+
+bool productVariantSupportsLbandGlobal()
+{
+    return false; // As of June 2025, LBand Global is not yet available
+
+    if (productVariant == RTK_EVK)
+        return false;
+    if (productVariant == RTK_FACET_V2)
+        return false; // TODO - will require specific module lookup
+    if (productVariant == RTK_FACET_MOSAIC)
+        return true;
+    if (productVariant == RTK_TORCH)
+        return false;
+    if (productVariant == RTK_POSTCARD)
+        return false;
+
+    systemPrintln("Uncaught productVariantSupportsLbandGlobal()");
+    return false;
+}
+
+// Returns true if this platform requires the PointPerfect Library to run to use the corrections from PointPerfect
+bool productVariantNeedsPpl()
+{
+    if (productVariant == RTK_EVK)
+        return false;
+    if (productVariant == RTK_FACET_V2)
+        return false; // TODO - will require specific module lookup
+    if (productVariant == RTK_FACET_MOSAIC)
+        return true;
+    if (productVariant == RTK_TORCH)
+        return true;
+    if (productVariant == RTK_POSTCARD)
+        return true;
+
+    systemPrintln("Uncaught productVariantNeedsPpl()");
+    return false;
+}
+
+// Given a service nick name, return whether this platform supports it
+// Helps with printing the menu
+bool productVariantSupportsService(uint8_t ppNickName)
+{
+    if (ppNickName == PP_NICKNAME_DISABLED)
+        return true;
+    else if (ppNickName == PP_NICKNAME_FLEX_RTCM)
+    {
+        // All platforms support RTCM over NTRIP/TCP
+        return true;
+    }
+    else if (ppNickName == PP_NICKNAME_FLEX_RTCM)
+    {
+        // All platforms support RTCM over NTRIP/TCP
+        return true;
+    }
+    else if (ppNickName == PP_NICKNAME_FLEX_LBAND_NA)
+    {
+        return (productVariantSupportsLbandNA());
+    }
+    else if (ppNickName == PP_NICKNAME_GLOBAL)
+    {
+        return (productVariantSupportsLbandGlobal());
+    }
+    else if (ppNickName == PP_NICKNAME_LIVE)
+    {
+        return false; // As of June 2025, PointPerfect Live is not yet available
+
+        // All platforms support RTCM over NTRIP
+        return true;
+    }
+    else if (ppNickName == PP_NICKNAME_IP_MQTT)
+    {
+        // All platforms support SPARTN over MQTT
+        return true;
+    }
+
+    return false; // Default
+}
+
 // Given a GPS Epoch, return a DD/MM/YYYY string
 const char *printDateFromGPSEpoch(long long gpsEpoch)
 {
@@ -211,7 +1006,7 @@ const char *printDaysFromDuration(long long duration)
 {
     static char response[strlen("99.99") + 1]; // Make room for terminator
 
-    float days = duration / (1000.0 * 60 * 60 * 24); // Convert ms to days
+    float days = duration / MILLISECONDS_IN_A_DAY; // Convert ms to days
 
     sprintf(response, "%0.2f", days);
     return ((const char *)response);
@@ -223,20 +1018,15 @@ void createZtpRequest(String &str)
     // Assume failure
     str = "";
 
-    // Get the hardware ID
-    char hardwareID[15];
-    snprintf(hardwareID, sizeof(hardwareID), "%02X%02X%02X%02X%02X%02X%02X", btMACAddress[0], btMACAddress[1],
-             btMACAddress[2], btMACAddress[3], btMACAddress[4], btMACAddress[5], productVariant);
-
     // Get the firmware version string
     char versionString[9];
-    getFirmwareVersion(versionString, sizeof(versionString), false);
+    firmwareVersionGet(versionString, sizeof(versionString), false);
 
-    // Build the givenName:   Name vxx.yy - HardwareID
+    // Build the givenName:   Name vxx.yy - deviceID
     char givenName[100];
     memset(givenName, 0, sizeof(givenName));
     snprintf(givenName, sizeof(givenName), "%s %s - %s", platformProvisionTable[productVariant], versionString,
-             hardwareID);
+             printDeviceId());
     if (strlen(givenName) >= 50)
     {
         systemPrintf("Error: GivenName '%s' too long: %d bytes\r\n", givenName, strlen(givenName));
@@ -248,19 +1038,17 @@ void createZtpRequest(String &str)
     if (strlen(settings.pointPerfectDeviceProfileToken) == 0)
     {
         // Use the built-in SparkFun tokens
-        // Depending on how many times we've tried the ZTP interface, change the token
-        pointperfectGetToken(tokenString);
+        ztpGetToken(tokenString);
 
         if (memcmp(ppLbandToken, developmentToken, sizeof(developmentToken)) == 0)
             systemPrintln("Warning: Using the development token!");
 
         if (settings.debugCorrections == true)
         {
-            // Don't expose the SparkFun tokens
             char tokenChar = tokenString[4];
-            tokenString[4] = 0;
+            tokenString[4] = 0; // Clip token to first four characters
             systemPrintf("Using token: %s\r\n", tokenString);
-            tokenString[4] = tokenChar;
+            tokenString[4] = tokenChar; // Return token to original state
         }
     }
     else
@@ -274,7 +1062,7 @@ void createZtpRequest(String &str)
     JsonDocument json;
     json["tags"][0] = "ztp";
     json["token"] = tokenString;
-    json["hardwareId"] = hardwareID;
+    json["hardwareId"] = printDeviceId();
     json["givenName"] = givenName;
 
     // Debug the request
@@ -287,7 +1075,7 @@ void createZtpRequest(String &str)
         systemPrintf("  token: %s\r\n", tokenString);
         tokenString[4] = tokenChar;
         systemPrintf("  givenName: %s\r\n", givenName);
-        systemPrintf("  hardwareId: %s\r\n", hardwareID);
+        systemPrintf("  hardwareId: %s\r\n", printDeviceId());
         systemPrintln("}");
     }
 
@@ -295,40 +1083,8 @@ void createZtpRequest(String &str)
     serializeJson(json, str);
 }
 
-// Given a token buffer and an attempt number, decide which token to use
-// Decide which token to use for ZTP
-// There are three lists:
-//   L-Band
-//   IP
-//   L-Band+IP
-void pointperfectGetToken(char *tokenString)
-{
-    // Convert uint8_t array into string with dashes in spots
-    // We must assume u-blox will not change the position of their dashes or length of their token
-
-    if (productVariant == RTK_EVK) // EVK
-    {
-        pointperfectCreateTokenString(tokenString, (uint8_t *)ppLbandIpToken, sizeof(ppLbandIpToken));
-    }
-    else if (present.gnss_mosaicX5 == false && present.lband_neo == false) // Torch, Facet v2
-    {
-        // If the hardware lacks L-Band capability, use IP token
-        pointperfectCreateTokenString(tokenString, (uint8_t *)ppIpToken, sizeof(ppIpToken));
-    }
-    else if (present.gnss_mosaicX5 == true || present.lband_neo == true) // Facet mosaic, Facet v2 L-Band
-    {
-        // If the hardware is L-Band capable, use L-Band token
-        pointperfectCreateTokenString(tokenString, (uint8_t *)ppLbandToken, sizeof(ppLbandToken));
-    }
-    else
-    {
-        systemPrintln("Unknown hardware for GetToken");
-        return;
-    }
-}
-
 // Find thing3 in (*jsonZtp)[thing1][n][thing2]. Return n on success. Return -1 on error / not found.
-int findZtpJSONEntry(const char *thing1, const char *thing2, const char *thing3, JsonDocument *jsonZtp)
+int findZtpJSONEntryTnT(const char *thing1, const char *thing2, const char *thing3, JsonDocument *jsonZtp)
 {
     if (!jsonZtp)
         return (-1);
@@ -347,6 +1103,25 @@ int findZtpJSONEntry(const char *thing1, const char *thing2, const char *thing3,
     return (-1);
 }
 
+// Find thing4 in (*jsonZtp)[thing1][thing2][n][thing3]. Return n on success. Return -1 on error / not found.
+int findZtpJSONEntryTTnT(const char *thing1, const char *thing2, const char *thing3, const char *thing4,
+                         JsonDocument *jsonZtp)
+{
+    if (!jsonZtp)
+        return (-1);
+
+    int i = (*jsonZtp)[thing1][thing2].size();
+
+    if (i == 0)
+        return (-1);
+
+    for (int j = 0; j < i; j++)
+        if (strstr((const char *)(*jsonZtp)[thing1][thing2][j][thing3], thing4) != nullptr)
+            return j;
+
+    return (-1);
+}
+
 // Given a token array, format it in the proper way and store it in the buffer
 void pointperfectCreateTokenString(char *tokenBuffer, uint8_t *tokenArray, int tokenArrayLength)
 {
@@ -355,7 +1130,7 @@ void pointperfectCreateTokenString(char *tokenBuffer, uint8_t *tokenArray, int t
     for (int x = 0; x < tokenArrayLength; x++)
     {
         char temp[3];
-        snprintf(temp, sizeof(temp), "%02x", tokenArray[x]);
+        snprintf(temp, sizeof(temp), "%02x", tokenArray[x]); // Tokens are case sensitive. Must be lower case.
         strcat(tokenBuffer, temp);
         if (x == 3 || x == 5 || x == 7 || x == 9)
             strcat(tokenBuffer, "-");
@@ -363,7 +1138,7 @@ void pointperfectCreateTokenString(char *tokenBuffer, uint8_t *tokenArray, int t
 }
 
 // Check certificate and privatekey for valid formatting
-// Return false if improperly formatted
+// Return false if improperly formatted or do not exist
 bool checkCertificates()
 {
     bool validCertificates = true;
@@ -371,32 +1146,27 @@ bool checkCertificates()
     char *keyContents = nullptr;
 
     // Allocate the buffers
-    if (online.psram == true)
-    {
-        certificateContents = (char *)ps_malloc(MQTT_CERT_SIZE);
-        keyContents = (char *)ps_malloc(MQTT_CERT_SIZE);
-    }
-    else
-    {
-        certificateContents = (char *)malloc(MQTT_CERT_SIZE);
-        keyContents = (char *)malloc(MQTT_CERT_SIZE);
-    }
-
+    certificateContents = (char *)rtkMalloc(MQTT_CERT_SIZE, "Certificate buffer (certificateContents)");
+    keyContents = (char *)rtkMalloc(MQTT_CERT_SIZE, "Certificate buffer (keyContents)");
     if ((!certificateContents) || (!keyContents))
     {
         if (certificateContents)
-            free(certificateContents);
+            rtkFree(certificateContents, "Certificate buffer (certificateContents)");
         if (keyContents)
-            free(keyContents);
+            rtkFree(keyContents, "Certificate buffer (keyContents)");
         systemPrintln("Failed to allocate content buffers!");
         return (false);
     }
 
     // Load the certificate
     memset(certificateContents, 0, MQTT_CERT_SIZE);
-    loadFile("certificate", certificateContents, settings.debugPpCertificate);
-
-    if (checkCertificateValidity(certificateContents, strlen(certificateContents)) == false)
+    if (!loadFile("certificate", certificateContents, settings.debugPpCertificate))
+    {
+        if (settings.debugPpCertificate)
+            systemPrintf("ERROR: Failed to open the certificate file\r\n");
+        validCertificates = false;
+    }
+    else if (checkCertificateValidity(certificateContents, strlen(certificateContents)) == false)
     {
         if (settings.debugPpCertificate)
             systemPrintln("Certificate is corrupt.");
@@ -405,9 +1175,13 @@ bool checkCertificates()
 
     // Load the private key
     memset(keyContents, 0, MQTT_CERT_SIZE);
-    loadFile("privateKey", keyContents, settings.debugPpCertificate);
-
-    if (checkPrivateKeyValidity(keyContents, strlen(keyContents)) == false)
+    if (!loadFile("privateKey", keyContents, settings.debugPpCertificate))
+    {
+        if (settings.debugPpCertificate)
+            systemPrintf("ERROR: Failed to open the private key file\r\n");
+        validCertificates = false;
+    }
+    else if (checkPrivateKeyValidity(keyContents, strlen(keyContents)) == false)
     {
         if (settings.debugPpCertificate)
             systemPrintln("PrivateKey is corrupt.");
@@ -416,15 +1190,18 @@ bool checkCertificates()
 
     // Free the content buffers
     if (certificateContents)
-        free(certificateContents);
+        rtkFree(certificateContents, "Certificate buffer (certificateContents)");
     if (keyContents)
-        free(keyContents);
+        rtkFree(keyContents, "Certificate buffer (keyContents)");
 
     if (settings.debugPpCertificate)
     {
         systemPrintf("Stored certificates are %svalid\r\n", validCertificates ? "" : "NOT ");
     }
 
+    // Enable MQTT once the certificates are available and valid
+    if (validCertificates)
+        mqttClientStartEnabled();
     return (validCertificates);
 }
 
@@ -496,85 +1273,6 @@ void erasePointperfectCredentials()
     strcpy(settings.pointPerfectNextKey, "");    // Clear contents
 }
 
-// Get a date from a user
-// Return true if validated
-// https://www.includehelp.com/c-programs/validate-date.aspx
-bool getDate(uint8_t &dd, uint8_t &mm, uint16_t &yy)
-{
-    systemPrint("Enter Day: ");
-    dd = getUserInputNumber(); // Returns EXIT, TIMEOUT, or long
-
-    systemPrint("Enter Month: ");
-    mm = getUserInputNumber(); // Returns EXIT, TIMEOUT, or long
-
-    systemPrint("Enter Year (YYYY): ");
-    yy = getUserInputNumber(); // Returns EXIT, TIMEOUT, or long
-
-    // check year
-    if (yy >= 2022 && yy <= 9999)
-    {
-        // check month
-        if (mm >= 1 && mm <= 12)
-        {
-            // check days
-            if ((dd >= 1 && dd <= 31) && (mm == 1 || mm == 3 || mm == 5 || mm == 7 || mm == 8 || mm == 10 || mm == 12))
-                return (true);
-            else if ((dd >= 1 && dd <= 30) && (mm == 4 || mm == 6 || mm == 9 || mm == 11))
-                return (true);
-            else if ((dd >= 1 && dd <= 28) && (mm == 2))
-                return (true);
-            else if (dd == 29 && mm == 2 && (yy % 400 == 0 || (yy % 4 == 0 && yy % 100 != 0)))
-                return (true);
-            else
-            {
-                printf("Day is invalid.\n");
-                return (false);
-            }
-        }
-        else
-        {
-            printf("Month is not valid.\n");
-            return (false);
-        }
-    }
-
-    printf("Year is not valid.\n");
-    return (false);
-}
-
-// Given an epoch in ms, return the number of days from given Epoch and now
-int daysFromEpoch(long long endEpoch)
-{
-    long delta = secondsFromEpoch(endEpoch); // number of s between dates
-
-    if (delta == -1)
-        return (-1);
-
-    delta /= (60 * 60); // hours
-
-    delta /= 24; // days
-    return ((int)delta);
-}
-
-// Given an epoch in ms, return the number of seconds from given Epoch and now
-long secondsFromEpoch(long long endEpoch)
-{
-    if (online.rtc == false)
-    {
-        // If we don't have RTC we can't calculate days to expire
-        if (settings.debugCorrections == true)
-            systemPrintln("No RTC available");
-        return (-1);
-    }
-
-    endEpoch /= 1000; // Convert PointPerfect ms Epoch to s
-
-    long currentEpoch = rtc.getEpoch();
-
-    long delta = endEpoch - currentEpoch; // number of s between dates
-    return (delta);
-}
-
 // Given the key's starting epoch time, and the key's duration
 // Convert from ms to s
 // Add leap seconds (the API reports start times with GPS leap seconds removed)
@@ -583,671 +1281,180 @@ long secondsFromEpoch(long long endEpoch)
 long long thingstreamEpochToGPSEpoch(long long startEpoch)
 {
     long long epoch = startEpoch;
-    epoch /= 1000; // Convert PointPerfect ms Epoch to s
+    epoch /= MILLISECONDS_IN_A_SECOND; // Convert PointPerfect ms Epoch to s
 
     // Convert Unix Epoch time from PointPerfect to GPS Time Of Week needed for UBX message
     long long gpsEpoch = epoch - 315964800 + gnss->getLeapSeconds(); // Shift to GPS Epoch.
     return (gpsEpoch);
 }
 
-// Covert a given key's expiration date to a GPS Epoch, so that we can calculate GPS Week and ToW
-// Add a millisecond to roll over from 11:59UTC to midnight of the following day
-// Convert from unix epoch (time lib outputs unix) to GPS epoch (the NED-D9S expects)
-long long dateToGPSEpoch(uint8_t day, uint8_t month, uint16_t year)
+// Given a token buffer, decide which token to use for ZTP based on service level
+void ztpGetToken(char *tokenString)
 {
-    long long unixEpoch = dateToUnixEpoch(day, month, year); // Returns Unix Epoch
+    // pointperfectCreateTokenString() converts uint8_t array into string with dashes in spots
+    // We must assume u-blox will not change the position of their dashes or length of their token
 
-    // Convert Unix Epoch time from PP to GPS Time Of Week needed for UBX message
-    long long gpsEpoch = unixEpoch - 315964800; // Shift to GPS Epoch.
+    if (settings.pointPerfectService == PP_NICKNAME_FLEX_RTCM)
+        pointperfectCreateTokenString(tokenString, (uint8_t *)ppRtcmToken, sizeof(ppRtcmToken));
 
-    return (gpsEpoch);
-}
+    else if (settings.pointPerfectService == PP_NICKNAME_FLEX_LBAND_NA)
+        pointperfectCreateTokenString(tokenString, (uint8_t *)ppLbandToken, sizeof(ppLbandToken));
 
-// Given an epoch, set the GPSWeek and GPSToW
-void epochToWeekToW(long long epoch, uint16_t *GPSWeek, uint32_t *GPSToW)
-{
-    *GPSWeek = (uint16_t)(epoch / (7 * 24 * 60 * 60));
-    *GPSToW = (uint32_t)(epoch % (7 * 24 * 60 * 60));
-}
+    else if (settings.pointPerfectService == PP_NICKNAME_GLOBAL)
+        pointperfectCreateTokenString(tokenString, (uint8_t *)ppGlobalToken, sizeof(ppGlobalToken));
 
-// Given a GPSWeek and GPSToW, set the epoch
-void WeekToWToUnixEpoch(uint64_t *unixEpoch, uint16_t GPSWeek, uint32_t GPSToW)
-{
-    *unixEpoch = GPSWeek * (7 * 24 * 60 * 60); // 2192
-    *unixEpoch += GPSToW;                      // 518400
-    *unixEpoch += 315964800;
-}
+    else if (settings.pointPerfectService == PP_NICKNAME_LIVE)
+        pointperfectCreateTokenString(tokenString, (uint8_t *)ppLiveToken, sizeof(ppLiveToken));
 
-// Given a GPS Week and ToW, convert to an expiration date
-void gpsWeekToWToDate(uint16_t keyGPSWeek, uint32_t keyGPSToW, long *expDay, long *expMonth, long *expYear)
-{
-    long gpsDays = gpsToMjd(0, (long)keyGPSWeek, (long)keyGPSToW); // Covert ToW and Week to # of days since Jan 6, 1980
-    mjdToDate(gpsDays, expYear, expMonth, expDay);
-}
+    else if (settings.pointPerfectService == PP_NICKNAME_IP_MQTT)
+        pointperfectCreateTokenString(tokenString, (uint8_t *)ppIpToken, sizeof(ppIpToken)); // Deprecated
 
-// Given a date, convert into epoch
-// https://www.epochconverter.com/programming/c
-long dateToUnixEpoch(uint8_t day, uint8_t month, uint16_t year)
-{
-    struct tm t;
-    time_t t_of_day;
+    // ppLbandIpToken //Deprecated - remove from use once all LBand+IP users are moved over to L-Band
 
-    t.tm_year = year - 1900;
-    t.tm_mon = month - 1;
-    t.tm_mday = day;
-
-    t.tm_hour = 0;
-    t.tm_min = 0;
-    t.tm_sec = 0;
-    t.tm_isdst = -1; // Is DST on? 1 = yes, 0 = no, -1 = unknown
-
-    t_of_day = mktime(&t);
-
-    return (t_of_day);
-}
-
-// Given a date, calculate and return the key start in unixEpoch
-void dateToKeyStart(uint8_t expDay, uint8_t expMonth, uint16_t expYear, uint64_t *settingsKeyStart)
-{
-    long long expireUnixEpoch = dateToUnixEpoch(expDay, expMonth, expYear);
-
-    // Thingstream lists the date that a key expires at midnight
-    // So if a user types in March 7th, 2022 as exp date the key's Week and ToW need to be
-    // calculated from (March 7th - 27 days).
-    long long startUnixEpoch = expireUnixEpoch - (27 * 24 * 60 * 60); // Move back 27 days
-
-    // Additionally, Thingstream seems to be reporting Epochs that do not have leap seconds
-    startUnixEpoch -= gnss->getLeapSeconds(); // Modify our Epoch to match Point Perfect
-
-    // PointPerfect uses/reports unix epochs in milliseconds
-    *settingsKeyStart = startUnixEpoch * 1000L; // Convert to ms
-
-    uint16_t keyGPSWeek;
-    uint32_t keyGPSToW;
-    long long gpsEpoch = thingstreamEpochToGPSEpoch(*settingsKeyStart);
-
-    epochToWeekToW(gpsEpoch, &keyGPSWeek, &keyGPSToW);
-
-    // Print ToW and Week for debugging
-    if (settings.debugCorrections == true)
+    else
     {
-        systemPrintf("  expireUnixEpoch: %lld - %s\r\n", expireUnixEpoch, printDateFromUnixEpoch(expireUnixEpoch));
-        systemPrintf("  startUnixEpoch: %lld - %s\r\n", startUnixEpoch, printDateFromUnixEpoch(startUnixEpoch));
-        systemPrintf("  gpsEpoch: %lld - %s\r\n", gpsEpoch, printDateFromGPSEpoch(gpsEpoch));
-        systemPrintf("  KeyStart: %lld - %s\r\n", *settingsKeyStart, printDateFromUnixEpoch(*settingsKeyStart));
-        systemPrintf("  keyGPSWeek: %d\r\n", keyGPSWeek);
-        systemPrintf("  keyGPSToW: %d\r\n", keyGPSToW);
+        systemPrintln("Unknown hardware for GetToken");
+        return;
     }
-}
-
-/*
-   http://www.leapsecond.com/tools/gpsdate.c
-   Return Modified Julian Day given calendar year,
-   month (1-12), and day (1-31).
-   - Valid for Gregorian dates from 17-Nov-1858.
-   - Adapted from sci.astro FAQ.
-*/
-long dateToMjd(long Year, long Month, long Day)
-{
-    return 367 * Year - 7 * (Year + (Month + 9) / 12) / 4 - 3 * ((Year + (Month - 9) / 7) / 100 + 1) / 4 +
-           275 * Month / 9 + Day + 1721028 - 2400000;
-}
-
-/*
-   Convert Modified Julian Day to calendar date.
-   - Assumes Gregorian calendar.
-   - Adapted from Fliegel/van Flandern ACM 11/#10 p 657 Oct 1968.
-*/
-void mjdToDate(long Mjd, long *Year, long *Month, long *Day)
-{
-    long J, C, Y, M;
-
-    J = Mjd + 2400001 + 68569;
-    C = 4 * J / 146097;
-    J = J - (146097 * C + 3) / 4;
-    Y = 4000 * (J + 1) / 1461001;
-    J = J - 1461 * Y / 4 + 31;
-    M = 80 * J / 2447;
-    *Day = J - 2447 * M / 80;
-    J = M / 11;
-    *Month = M + 2 - (12 * J);
-    *Year = 100 * (C - 49) + Y + J;
-}
-
-/*
-   Convert GPS Week and Seconds to Modified Julian Day.
-   - Ignores UTC leap seconds.
-*/
-long gpsToMjd(long GpsCycle, long GpsWeek, long GpsSeconds)
-{
-    long GpsDays = ((GpsCycle * 1024) + GpsWeek) * 7 + (GpsSeconds / 86400);
-    // GpsDays -= 1; //Correction
-    return dateToMjd(1980, 1, 6) + GpsDays;
-}
-
-//----------------------------------------
-// Global L-Band Routines
-//----------------------------------------
-
-// Update any L-Band hardware
-// Check if NEO-D9S is connected. Configure if available.
-// If GNSS is mosaic-X5, configure LBandBeam1
-void updateLBand()
-{
-
-#ifdef COMPILE_L_BAND
-    if (present.lband_neo)
-    {
-        if (!online.lband_neo && settings.enablePointPerfectCorrections)
-        {
-            static bool lband_neo_can_not_begin = false;
-
-            if (lband_neo_can_not_begin)
-                return;
-
-            // NEO-D9S is present but is not yet online. Try to begin the hardware
-            if (i2cLBand.begin(*i2c_0, 0x43) ==
-                false) // Connect to the u-blox NEO-D9S using Wire port. The D9S default I2C address is 0x43 (not 0x42)
-            {
-                systemPrintln("L-Band not detected");
-                lband_neo_can_not_begin = true;
-                return;
-            }
-
-            // Check the firmware version of the NEO-D9S. Based on Example21_ModuleInfo.
-            if (i2cLBand.getModuleInfo(1100) == true) // Try to get the module info
-            {
-                // Reconstruct the firmware version
-                snprintf(neoFirmwareVersion, sizeof(neoFirmwareVersion), "%s %d.%02d", i2cLBand.getFirmwareType(),
-                        i2cLBand.getFirmwareVersionHigh(), i2cLBand.getFirmwareVersionLow());
-
-                printNEOInfo(); // Print module firmware version
-            }
-            else
-            {
-                systemPrintln("L-Band not detected");
-                lband_neo_can_not_begin = true;
-                return;
-            }
-
-            // Update the GNSS position. Use the position to set the frequency if available
-            gnss->update();
-
-            uint32_t LBandFreq;
-            uint8_t fixType = gnss->getFixType();
-            double latitude = gnss->getLatitude();
-            double longitude = gnss->getLongitude();
-
-            // If we have a fix, check which frequency to use
-            if (fixType >= 2 && fixType <= 5) // 2D, 3D, 3D+DR, or Time
-            {
-                int r = 0; // Step through each geographic region
-                for (; r < numRegionalAreas; r++)
-                {
-                    if ((longitude >= Regional_Information_Table[r].area.lonWest) &&
-                        (longitude <= Regional_Information_Table[r].area.lonEast) &&
-                        (latitude >= Regional_Information_Table[r].area.latSouth) &&
-                        (latitude <= Regional_Information_Table[r].area.latNorth))
-                    {
-                        LBandFreq = Regional_Information_Table[r].frequency;
-                        if (settings.debugCorrections == true)
-                            systemPrintf("Setting L-Band frequency to %s (%dHz)\r\n", Regional_Information_Table[r].name,
-                                        LBandFreq);
-                        break;
-                    }
-                }
-                if (r == numRegionalAreas) // Geographic region not found
-                {
-                    LBandFreq = Regional_Information_Table[settings.geographicRegion].frequency;
-                    if (settings.debugCorrections == true)
-                        systemPrintf("Error: Unknown L-Band geographic region. Using %s (%dHz)\r\n",
-                                    Regional_Information_Table[settings.geographicRegion].name, LBandFreq);
-                }
-            }
-            else
-            {
-                LBandFreq = Regional_Information_Table[settings.geographicRegion].frequency;
-                if (settings.debugCorrections == true)
-                    systemPrintf("No fix available for L-Band geographic region determination. Using %s (%dHz)\r\n",
-                                Regional_Information_Table[settings.geographicRegion].name, LBandFreq);
-            }
-
-            bool response = true;
-            response &= i2cLBand.newCfgValset();
-            response &= i2cLBand.addCfgValset(UBLOX_CFG_PMP_CENTER_FREQUENCY, LBandFreq); // Default 1539812500 Hz
-            response &= i2cLBand.addCfgValset(UBLOX_CFG_PMP_SEARCH_WINDOW, 2200);         // Default 2200 Hz
-            response &= i2cLBand.addCfgValset(UBLOX_CFG_PMP_USE_SERVICE_ID, 0);           // Default 1
-            response &= i2cLBand.addCfgValset(UBLOX_CFG_PMP_SERVICE_ID, 21845);           // Default 50821
-            response &= i2cLBand.addCfgValset(UBLOX_CFG_PMP_DATA_RATE, 2400);             // Default 2400 bps
-            response &= i2cLBand.addCfgValset(UBLOX_CFG_PMP_USE_DESCRAMBLER, 1);          // Default 1
-            response &= i2cLBand.addCfgValset(UBLOX_CFG_PMP_DESCRAMBLER_INIT, 26969);     // Default 23560
-            response &= i2cLBand.addCfgValset(UBLOX_CFG_PMP_USE_PRESCRAMBLING, 0);        // Default 0
-            response &= i2cLBand.addCfgValset(UBLOX_CFG_PMP_UNIQUE_WORD, 16238547128276412563ull);
-            response &=
-                i2cLBand.addCfgValset(UBLOX_CFG_MSGOUT_UBX_RXM_PMP_UART1, 0); // Disable UBX-RXM-PMP on UART1. Not used.
-
-            response &= i2cLBand.sendCfgValset();
-
-            GNSS_ZED *zed = (GNSS_ZED *)gnss;
-            response &= zed->lBandCommunicationEnable();
-
-            if (response == false)
-            {
-                systemPrintln("L-Band failed to configure");
-                lband_neo_can_not_begin = true;
-                return;
-            }
-
-            i2cLBand.softwareResetGNSSOnly(); // Do a restart
-
-            if (settings.debugCorrections == true)
-                systemPrintln("L-Band online");
-
-            online.lband_neo = true;
-        }
-        else if (online.lband_neo && settings.enablePointPerfectCorrections)
-        {
-            // L-Band is online. Apply the keys if they have changed
-            // This may be redundant as PROVISIONING_KEYS_REMAINING also applies the keys
-            static char previousKey[33] = "";
-            if (strncmp(previousKey, settings.pointPerfectCurrentKey, 33) != 0)
-            {
-                strncpy(previousKey, settings.pointPerfectCurrentKey, 33);
-                gnss->applyPointPerfectKeys(); // Apply keys now. This sets online.lbandCorrections
-                if (settings.debugCorrections == true)
-                    systemPrintln("ZED-F9P PointPerfect keys applied");
-            }
-        }
-    }
-#endif // COMPILE_L_BAND
-#ifdef COMPILE_MOSAICX5
-    if (present.gnss_mosaicX5)
-    {
-        if (!online.lband_gnss && settings.enablePointPerfectCorrections)
-        {
-            static bool lband_gnss_can_not_begin = false;
-
-            if (lband_gnss_can_not_begin)
-                return;
-
-            uint32_t LBandFreq;
-            uint8_t fixType = gnss->getFixType();
-            double latitude = gnss->getLatitude();
-            double longitude = gnss->getLongitude();
-            // If we have a fix, check which frequency to use
-            if (fixType >= 1) // Stand-Alone PVT or better
-            {
-                int r = 0; // Step through each geographic region
-                for (; r < numRegionalAreas; r++)
-                {
-                    if ((longitude >= Regional_Information_Table[r].area.lonWest) &&
-                        (longitude <= Regional_Information_Table[r].area.lonEast) &&
-                        (latitude >= Regional_Information_Table[r].area.latSouth) &&
-                        (latitude <= Regional_Information_Table[r].area.latNorth))
-                    {
-                        LBandFreq = Regional_Information_Table[r].frequency;
-                        if (settings.debugCorrections == true)
-                            systemPrintf("Setting L-Band frequency to %s (%dHz)\r\n", Regional_Information_Table[r].name,
-                                        LBandFreq);
-                        break;
-                    }
-                }
-                if (r == numRegionalAreas) // Geographic region not found
-                {
-                    LBandFreq = Regional_Information_Table[settings.geographicRegion].frequency;
-                    if (settings.debugCorrections == true)
-                        systemPrintf("Error: Unknown L-Band geographic region. Using %s (%dHz)\r\n",
-                                    Regional_Information_Table[settings.geographicRegion].name, LBandFreq);
-                }
-            }
-            else
-            {
-                LBandFreq = Regional_Information_Table[settings.geographicRegion].frequency;
-                if (settings.debugCorrections == true)
-                    systemPrintf("No fix available for L-Band geographic region determination. Using %s (%dHz)\r\n",
-                                Regional_Information_Table[settings.geographicRegion].name, LBandFreq);
-            }
-
-            bool result = true;
-
-            GNSS_MOSAIC *mosaic = (GNSS_MOSAIC *)gnss;
-
-            result &= mosaic->configureGNSSCOM(true); // Ensure LBandBeam1 is enabled on COM1
-
-            result &= mosaic->configureLBand(true, LBandFreq); // Start L-Band
-
-            result &= mosaic->saveConfiguration(); // Save the updated configuration. Probably redundant?
-
-            if (result == false)
-            {
-                systemPrintln("mosaic-X5 L-Band failed to configure");
-                lband_gnss_can_not_begin = true;
-            }
-            else
-            {
-                if (settings.debugCorrections == true)
-                    systemPrintln("mosaic-X5 L-Band online");
-                online.lband_gnss = true;
-            }
-        }
-        //else if (online.lband_gnss && settings.enablePointPerfectCorrections)
-        {
-            // If no SPARTN data is received, the L-Band may need a 'kick'. Turn L-Band off and back on again!
-            // But gnss->update will do this. No need to do it here
-        }
-    }
-#endif // /COMPILE_MOSAICX5
-}
-
-// Provision device on ThingStream
-// Download keys
-void menuPointPerfect()
-{
-    while (1)
-    {
-        systemPrintln();
-        systemPrintln("Menu: PointPerfect Corrections");
-
-        if (settings.debugCorrections == true)
-            systemPrintf("Time to first RTK Fix: %ds Restarts: %d\r\n", rtkTimeToFixMs / 1000, floatLockRestarts);
-
-        if (settings.debugCorrections == true)
-            systemPrintf("settings.pointPerfectKeyDistributionTopic: %s\r\n",
-                         settings.pointPerfectKeyDistributionTopic);
-
-        systemPrint("Days until keys expire: ");
-        if (strlen(settings.pointPerfectCurrentKey) > 0)
-        {
-            if (online.rtc == false)
-            {
-                // If we don't have RTC we can't calculate days to expire
-                systemPrintln("No RTC");
-            }
-            else
-            {
-                int daysRemaining =
-                    daysFromEpoch(settings.pointPerfectNextKeyStart + settings.pointPerfectNextKeyDuration + 1);
-
-                if (daysRemaining < 0)
-                    systemPrintln("Expired");
-                else
-                    systemPrintln(daysRemaining);
-            }
-        }
-        else
-            systemPrintln("No keys");
-
-        if ((settings.useLocalizedDistribution) && (localizedDistributionTileTopic.length() > 0))
-        {
-            systemPrint("Most recent localized distribution topic: ");
-            systemPrintln(localizedDistributionTileTopic.c_str()); // From MQTT_Client.ino
-        }
-
-        // How this works:
-        //   There are three PointPerfect corrections plans: IP-only, L-Band-only, L-Band+IP
-        //   For IP-only - e.g. Torch:
-        //     During ZTP Provisioning, we receive the UBX-format key distribution topic /pp/ubx/0236/ip
-        //     We also receive the full list of regional correction topics: /pp/ip/us , /pp/ip/eu , etc.
-        //     We need to subscribe to our regional correction topic and push the data to the PPL
-        //     RTCM from the PPL is pushed to the UM980
-        //   For L-Band-only - e.g. Facet mosaic or Facet v2 L-Band
-        //     During ZTP Provisioning, we receive the UBX-format key distribution topic /pp/ubx/0236/Lb
-        //     There are no regional correction topics for L-Band-only
-        //     Facet v2 L-Band pushes the keys to the ZED and pushes PMP from the NEO to the ZED
-        //     Facet mosaic pushes the current key and raw L-Band to the PPL, then pushes RTCM to the X5
-        //   For L-Band+IP - e.g. EVK:
-        //     During ZTP Provisioning, we receive the UBX-format key distribution topic /pp/ubx/0236/Lb
-        //     We also receive the full list of regional correction topics: /pp/Lb/us , /pp/Lb/eu , etc.
-        //     We can subscribe to the topic and push IP data to the ZED - using UBLOX_CFG_SPARTN_USE_SOURCE 0
-        //     Or we can push PMP data from the NEO to the ZED - using UBLOX_CFG_SPARTN_USE_SOURCE 1
-        //   We do not need the user to tell us which pointPerfectCorrectionsSource to use.
-        //   We can figure it out from the key distribution topic:
-        //     IP-only gets /pp/ubx/0236/ip.
-        //     L-Band-only and L-Band+IP get /pp/ubx/0236/Lb.
-        //   And from the regional correction topics:
-        //     IP-only gets /pp/ip/us , /pp/ip/eu , etc.
-        //     L-Band-only gets none
-        //     L-Band+IP gets /pp/Lb/us , /pp/Lb/eu , etc.
-
-        systemPrint("1) PointPerfect Corrections: ");
-        if (settings.enablePointPerfectCorrections)
-            systemPrintln("Enabled");
-        else
-            systemPrintln("Disabled");
-
-        if (pointPerfectIsEnabled())
-        {
-#ifdef COMPILE_NETWORK
-            systemPrint("2) Toggle Auto Key Renewal: ");
-            if (settings.autoKeyRenewal == true)
-                systemPrintln("Enabled");
-            else
-                systemPrintln("Disabled");
-            systemPrint("3) Request Key Update: ");
-            if (settings.requestKeyUpdate == true)
-                systemPrintln("Requested");
-            else
-                systemPrintln("Not requested");
-            systemPrint("4) Use localized distribution: ");
-            if (settings.useLocalizedDistribution == true)
-                systemPrintln("Enabled");
-            else
-                systemPrintln("Disabled");
-            if (settings.useLocalizedDistribution)
-            {
-                systemPrint("5) Localized distribution tile level: ");
-                systemPrint(settings.localizedDistributionTileLevel);
-                systemPrint(" (");
-                systemPrint(localizedDistributionTileLevelNames[settings.localizedDistributionTileLevel]);
-                systemPrintln(")");
-            }
-            if (productVariantSupportsAssistNow())
-            {
-                systemPrint("a) Use AssistNow: ");
-                if (settings.useAssistNow == true)
-                    systemPrintln("Enabled");
-                else
-                    systemPrintln("Disabled");
-            }
-#endif // COMPILE_NETWORK
-
-            systemPrintln("c) Clear the Keys");
-
-            systemPrintln("i) Show device ID");
-
-            systemPrintln("k) Manual Key Entry");
-        }
-
-        systemPrint("g) Geographic Region: ");
-        systemPrintln(Regional_Information_Table[settings.geographicRegion].name);
-
-        systemPrintln("x) Exit");
-
-        byte incoming = getUserInputCharacterNumber();
-
-        if (incoming == 1)
-        {
-            settings.enablePointPerfectCorrections ^= 1;
-            restartRover = true; // Require a rover restart to enable / disable RTCM for PPL
-            settings.requestKeyUpdate = settings.enablePointPerfectCorrections; // Force a key update - or don't
-        }
-
-#ifdef COMPILE_NETWORK
-        else if (incoming == 2 && pointPerfectIsEnabled())
-        {
-            settings.autoKeyRenewal ^= 1;
-            settings.requestKeyUpdate = settings.autoKeyRenewal; // Force a key update - or don't
-        }
-        else if (incoming == 3 && pointPerfectIsEnabled())
-        {
-            settings.requestKeyUpdate ^= 1;
-        }
-        else if (incoming == 4 && pointPerfectIsEnabled())
-        {
-            settings.useLocalizedDistribution ^= 1;
-        }
-        else if (incoming == 5 && pointPerfectIsEnabled() && settings.useLocalizedDistribution)
-        {
-            settings.localizedDistributionTileLevel++;
-            if (settings.localizedDistributionTileLevel >= LOCALIZED_DISTRIBUTION_TILE_LEVELS)
-                settings.localizedDistributionTileLevel = 0;
-        }
-        else if (incoming == 'a' && pointPerfectIsEnabled() && productVariantSupportsAssistNow())
-        {
-            settings.useAssistNow ^= 1;
-        }
-#endif // COMPILE_NETWORK
-        else if (incoming == 'c' && pointPerfectIsEnabled())
-        {
-            settings.pointPerfectCurrentKey[0] = 0;
-            settings.pointPerfectNextKey[0] = 0;
-        }
-        else if (incoming == 'i' && pointPerfectIsEnabled())
-        {
-            char hardwareID[15];
-            snprintf(hardwareID, sizeof(hardwareID), "%02X%02X%02X%02X%02X%02X%02X", btMACAddress[0], btMACAddress[1],
-                     btMACAddress[2], btMACAddress[3], btMACAddress[4], btMACAddress[5], productVariant);
-            systemPrintf("Device ID: %s\r\n", hardwareID);
-        }
-        else if (incoming == 'k' && pointPerfectIsEnabled())
-        {
-            menuPointPerfectKeys();
-        }
-        else if (incoming == 'g')
-        {
-            settings.geographicRegion++;
-            if (settings.geographicRegion >= numRegionalAreas)
-                settings.geographicRegion = 0;
-        }
-        else if (incoming == 'x')
-            break;
-        else if (incoming == INPUT_RESPONSE_GETCHARACTERNUMBER_EMPTY)
-            break;
-        else if (incoming == INPUT_RESPONSE_GETCHARACTERNUMBER_TIMEOUT)
-            break;
-        else
-            printUnknown(incoming);
-    }
-
-    if (strlen(settings.pointPerfectClientID) > 0)
-    {
-        gnss->applyPointPerfectKeys();
-    }
-
-    clearBuffer(); // Empty buffer of any newline chars
-}
-
-bool pointPerfectIsEnabled()
-{
-    return (settings.enablePointPerfectCorrections);
-}
-
-// Process any new L-Band from I2C
-void updateLBandCorrections()
-{
-    static unsigned long lbandLastReport;
-    static unsigned long lbandTimeFloatStarted; // Monitors the ZED during L-Band reception if a fix takes too long
-
-#ifdef COMPILE_L_BAND
-    if (online.lbandCorrections == true)
-    {
-        i2cLBand.checkUblox();     // Check for the arrival of new PMP data and process it.
-        i2cLBand.checkCallbacks(); // Check if any L-Band callbacks are waiting to be processed.
-
-        // If a certain amount of time has elapsed between last decryption, turn off L-Band icon
-        if (lbandCorrectionsReceived == true && millis() - lastLBandDecryption > 5000)
-            lbandCorrectionsReceived = false;
-
-        // If we don't get an L-Band fix within Timeout, hot-start ZED-F9x
-        if (gnss->isRTKFloat())
-        {
-            if (lbandTimeFloatStarted == 0)
-                lbandTimeFloatStarted = millis();
-
-            if (millis() - lbandLastReport > 1000)
-            {
-                lbandLastReport = millis();
-
-                if (settings.debugCorrections == true)
-                    systemPrintf("ZED restarts: %d Time remaining before Float lock forced restart: %ds\r\n",
-                                 floatLockRestarts,
-                                 settings.lbandFixTimeout_seconds - ((millis() - lbandTimeFloatStarted) / 1000));
-            }
-
-            if (settings.lbandFixTimeout_seconds > 0)
-            {
-                if ((millis() - lbandTimeFloatStarted) > (settings.lbandFixTimeout_seconds * 1000L))
-                {
-                    floatLockRestarts++;
-
-                    lbandTimeFloatStarted =
-                        millis(); // Restart timer for L-Band. Don't immediately reset ZED to achieve fix.
-
-                    // Hotstart GNSS to try to get RTK lock
-                    gnss->softwareReset();
-
-                    if (settings.debugCorrections == true)
-                        systemPrintf("Restarting ZED. Number of Float lock restarts: %d\r\n", floatLockRestarts);
-                }
-            }
-        }
-        else if (gnss->isRTKFix() && rtkTimeToFixMs == 0)
-        {
-            lbandTimeFloatStarted = 0; // Restart timer in case we drop from RTK Fix
-
-            rtkTimeToFixMs = millis();
-            if (settings.debugCorrections == true)
-                systemPrintf("Time to first RTK Fix: %ds\r\n", rtkTimeToFixMs / 1000);
-        }
-        else
-        {
-            // We are not in float or fix, so restart timer
-            lbandTimeFloatStarted = 0;
-        }
-    }
-
-#endif // COMPILE_L_BAND
 }
 
 enum ProvisioningStates
 {
     PROVISIONING_OFF = 0,
-    PROVISIONING_WAIT_RTC,
-    PROVISIONING_NOT_STARTED,
     PROVISIONING_CHECK_REMAINING,
-    PROVISIONING_CHECK_ATTEMPT,
     PROVISIONING_WAIT_FOR_NETWORK,
-    PROVISIONING_STARTING,
     PROVISIONING_STARTED,
     PROVISIONING_KEYS_REMAINING,
-    PROVISIONING_WAIT_ATTEMPT,
     PROVISIONING_STATE_MAX,
 };
 static volatile uint8_t provisioningState = PROVISIONING_OFF;
 
-const char *const provisioningStateName[] = {"PROVISIONING_OFF",
-                                             "PROVISIONING_WAIT_RTC",
-                                             "PROVISIONING_NOT_STARTED",
-                                             "PROVISIONING_CHECK_REMAINING",
-                                             "PROVISIONING_CHECK_ATTEMPT",
-                                             "PROVISIONING_WAIT_FOR_NETWORK",
-                                             "PROVISIONING_STARTING",
-                                             "PROVISIONING_STARTED",
-                                             "PROVISIONING_KEYS_REMAINING",
-                                             "PROVISIONING_WAIT_ATTEMPT"};
+const char *const provisioningStateName[] = {"PROVISIONING_OFF", "PROVISIONING_CHECK_REMAINING",
+                                             "PROVISIONING_WAIT_FOR_NETWORK", "PROVISIONING_STARTED",
+                                             "PROVISIONING_KEYS_REMAINING"};
 
 const int provisioningStateNameEntries = sizeof(provisioningStateName) / sizeof(provisioningStateName[0]);
 
-void provisioningVerifyTables()
+// Determine if provisioning is enabled
+bool provisioningEnabled(const char **line)
 {
-    // Verify the table length
-    if (provisioningStateNameEntries != PROVISIONING_STATE_MAX)
-        reportFatalError("Please fix provisioningStateName table to match ProvisioningStates");
+    bool enabled;
+
+    do
+    {
+        // Provisioning requires PointPerfect corrections
+        enabled = pointPerfectIsEnabled();
+        if (enabled == false)
+        {
+            *line = ", PointPerfect corrections disabled!";
+            break;
+        }
+
+        // Keep running until provisioning attempt is complete
+        if (provisioningRunning)
+            break;
+
+        // Determine if provisioning should start
+        provisioningRunning = settings.requestKeyUpdate              // Manual update
+                              || (provisioningStartTime_millis == 0) // Update keys at boot
+                              || (settings.autoKeyRenewal &&         // Auto renewal time (24 hours expired)
+                                  ((millis() - provisioningStartTime_millis) > MILLISECONDS_IN_A_DAY));
+
+        // Determine if key provisioning is enabled
+        enabled = provisioningRunning;
+        if (settings.autoKeyRenewal)
+            *line = ", Key not requested and auto key renewal running later!";
+        else
+            *line = ", Key not requested and auto key renewal is disabled!";
+    } while (0);
+    return enabled;
+}
+
+// Determine if the keys are needed
+bool provisioningKeysNeeded()
+{
+    bool keysNeeded;
+
+    do
+    {
+        keysNeeded = true;
+
+        // If requestKeyUpdate is true, begin provisioning
+        // Must come before pointPerfectServiceUsesKeys() check
+        if (settings.requestKeyUpdate)
+        {
+            if (settings.debugPpCertificate)
+                systemPrintln("requestKeyUpdate is true.");
+            break;
+        }
+
+        // If NTRIP service, but no credentials, then start provisioning
+        // Must come before pointPerfectServiceUsesKeys() check
+        if (pointPerfectNtripNeeded() &&
+            strlen(settings.ntripClient_CasterHost) == 0) // NTRIP service, but no credentials
+        {
+            if (settings.debugPpCertificate)
+                systemPrintln("NTRIP credentials empty, starting ZTP.");
+            break;
+        }
+
+        if (pointPerfectServiceUsesKeys() == false)
+        {
+            keysNeeded = false;
+            break;
+        }
+
+        // If we don't have certs or keys, begin zero touch provisioning
+        if ((!checkCertificates() || strlen(settings.pointPerfectCurrentKey) == 0 ||
+             strlen(settings.pointPerfectNextKey) == 0))
+        {
+            if (settings.debugPpCertificate)
+                systemPrintln("Invalid certificates or keys.");
+            break;
+        }
+
+        // Determine if RTC is online
+        if (!online.rtc)
+        {
+            if (settings.debugPpCertificate)
+                systemPrintln("No RTC.");
+            break;
+        }
+
+        // RTC is online. Determine days until next key expires
+        int daysRemaining = daysFromEpoch(settings.pointPerfectNextKeyStart + settings.pointPerfectNextKeyDuration + 1);
+
+        if (settings.debugPpCertificate)
+            systemPrintf("Days until keys expire: %d\r\n", daysRemaining);
+
+        // PointPerfect returns keys that expire at midnight so the primary key
+        // is still available with 0 days left, and a Next Key that has 28 days left
+        // If there are 28 days remaining, PointPerfect won't have new keys.
+        if (daysRemaining < 28)
+        {
+            // When did we last try to get keys? Attempt every 24 hours
+            if (rtc.getEpoch() - settings.lastKeyAttempt > SECONDS_IN_A_DAY)
+            {
+                settings.lastKeyAttempt = rtc.getEpoch(); // Mark it
+                recordSystemSettings();                   // Record these settings to unit
+                break;
+            }
+
+            if (settings.debugPpCertificate)
+                systemPrintln("Already tried to obtain keys for today");
+        }
+
+        // Don't need new keys
+        keysNeeded = false;
+    } while (0);
+    if (keysNeeded && settings.debugPpCertificate)
+        systemPrintln("Starting provisioning");
+    return keysNeeded;
 }
 
 void provisioningSetState(uint8_t newState)
 {
-    if (settings.debugPpCertificate || PERIODIC_DISPLAY(PD_PROVISIONING_STATE))
+    if (settings.debugPpCertificate)
     {
         if (provisioningState == newState)
             systemPrint("Provisioning: *");
@@ -1255,9 +1462,8 @@ void provisioningSetState(uint8_t newState)
             systemPrintf("Provisioning: %s --> ", provisioningStateName[provisioningState]);
     }
     provisioningState = newState;
-    if (settings.debugPpCertificate || PERIODIC_DISPLAY(PD_PROVISIONING_STATE))
+    if (settings.debugPpCertificate)
     {
-        PERIODIC_CLEAR(PD_PROVISIONING_STATE);
         if (newState >= PROVISIONING_STATE_MAX)
         {
             systemPrintf("Unknown provisioning state: %d\r\n", newState);
@@ -1268,98 +1474,52 @@ void provisioningSetState(uint8_t newState)
     }
 }
 
-unsigned long provisioningStartTime_millis;
-const unsigned long provisioningTimeout_ms = 120000;
-
-// Return true if we are in states that require network access
-bool provisioningNeedsNetwork()
+void provisioningStop(const char *file, uint32_t line)
 {
-    if (provisioningState >= PROVISIONING_WAIT_FOR_NETWORK && provisioningState <= PROVISIONING_STARTED)
-        return true;
-    return false;
+    // Done with this request attempt
+    settings.requestKeyUpdate = false;
+    provisioningRunning = false;
+
+    // Record the time so we can restart after 24 hours
+    provisioningStartTime_millis = millis();
+
+    // Done with the network
+    networkConsumerRemove(NETCONSUMER_POINTPERFECT_KEY_UPDATE, NETWORK_ANY, file, line);
+    provisioningSetState(PROVISIONING_OFF);
 }
 
 void provisioningUpdate()
 {
+    bool enabled;
+    const char *line = "";
+    const unsigned long provisioningTimeout_ms = 2 * MILLISECONDS_IN_A_MINUTE;
+    static bool rtcOnline;
+
+    // Determine if key provisioning is enabled
     DMW_st(provisioningSetState, provisioningState);
+    enabled = provisioningEnabled(&line);
+
+    // Determine if the RTC was properly initialized
+    if (rtcOnline == false)
+        rtcOnline = online.rtc || settings.requestKeyUpdate || (millis() > provisioningTimeout_ms);
 
     switch (provisioningState)
     {
     default:
     case PROVISIONING_OFF: {
-        provisioningStartTime_millis = millis(); // Record the start time so we can timeout
-        provisioningSetState(PROVISIONING_WAIT_RTC);
-    }
-    break;
-    case PROVISIONING_WAIT_RTC: {
         // If RTC is not online after provisioningTimeout_ms, try to provision anyway
-        if ((online.rtc) || (millis() > (provisioningStartTime_millis + provisioningTimeout_ms)) ||
-            (settings.requestKeyUpdate))
-            provisioningSetState(PROVISIONING_NOT_STARTED);
-    }
-    break;
-    case PROVISIONING_NOT_STARTED: {
-        if (settings.enablePointPerfectCorrections && (settings.autoKeyRenewal || settings.requestKeyUpdate))
+        if (enabled && rtcOnline)
             provisioningSetState(PROVISIONING_CHECK_REMAINING);
     }
     break;
     case PROVISIONING_CHECK_REMAINING: {
-        // If we don't have certs or keys, begin zero touch provisioning
-        if (!checkCertificates() || strlen(settings.pointPerfectCurrentKey) == 0 ||
-            strlen(settings.pointPerfectNextKey) == 0)
-        {
-            if (settings.debugPpCertificate)
-                systemPrintln("Invalid certificates or keys. Starting provisioning");
-            provisioningSetState(PROVISIONING_WAIT_FOR_NETWORK);
-        }
-        // If requestKeyUpdate is true, begin provisioning
-        else if (settings.requestKeyUpdate)
-        {
-            if (settings.debugPpCertificate)
-                systemPrintln("requestKeyUpdate is true. Starting provisioning");
-            provisioningSetState(PROVISIONING_WAIT_FOR_NETWORK);
-        }
-        // If RTC is not online, we have to skip PROVISIONING_CHECK_ATTEMPT
-        else if (!online.rtc)
-        {
-            if (settings.debugPpCertificate)
-                systemPrintln("No RTC. Starting provisioning");
-            provisioningSetState(PROVISIONING_WAIT_FOR_NETWORK);
-        }
-        else
-        {
-            // RTC is online. Determine days until next key expires
-            int daysRemaining =
-                daysFromEpoch(settings.pointPerfectNextKeyStart + settings.pointPerfectNextKeyDuration + 1);
-
-            if (settings.debugPpCertificate)
-                systemPrintf("Days until keys expire: %d\r\n", daysRemaining);
-
-            // PointPerfect returns keys that expire at midnight so the primary key
-            // is still available with 0 days left, and a Next Key that has 28 days left
-            // If there are 28 days remaining, PointPerfect won't have new keys.
-            if (daysRemaining >= 28)
-                provisioningSetState(PROVISIONING_KEYS_REMAINING); // Don't need new keys
-            else
-                provisioningSetState(PROVISIONING_CHECK_ATTEMPT); // Do need new keys
-        }
-    }
-    break;
-    case PROVISIONING_CHECK_ATTEMPT: {
-        // When did we last try to get keys? Attempt every 24 hours - or always for DEVELOPER
-        // if (rtc.getEpoch() - settings.lastKeyAttempt > ( ENABLE_DEVELOPER ? 0 : (60 * 60 * 24)))
-        // When did we last try to get keys? Attempt every 24 hours
-        if (rtc.getEpoch() - settings.lastKeyAttempt > (60 * 60 * 24))
-        {
-            settings.lastKeyAttempt = rtc.getEpoch(); // Mark it
-            recordSystemSettings();                   // Record these settings to unit
-            provisioningSetState(PROVISIONING_WAIT_FOR_NETWORK);
-        }
-        else
-        {
-            if (settings.debugPpCertificate)
-                systemPrintln("Already tried to obtain keys for today");
+        if (provisioningKeysNeeded() == false)
             provisioningSetState(PROVISIONING_KEYS_REMAINING);
+        else
+        {
+            // Request the network for PointPerfect key provisioning
+            networkConsumerAdd(NETCONSUMER_POINTPERFECT_KEY_UPDATE, NETWORK_ANY, __FILE__, __LINE__);
+            provisioningSetState(PROVISIONING_WAIT_FOR_NETWORK);
         }
     }
     break;
@@ -1367,121 +1527,82 @@ void provisioningUpdate()
     // Wait for connection to the network
     case PROVISIONING_WAIT_FOR_NETWORK: {
         // Stop waiting if PointPerfect has been disabled
-        if (settings.enablePointPerfectCorrections == false)
-        {
-            provisioningSetState(PROVISIONING_NOT_STARTED);
-        }
+        if (enabled == false)
+            provisioningStop(__FILE__, __LINE__);
+
         // Wait until the network is available
-#ifdef COMPILE_NETWORK
-        else if (networkHasInternet())
+        else if (networkConsumerIsConnected(NETCONSUMER_POINTPERFECT_KEY_UPDATE))
         {
             if (settings.debugPpCertificate)
-                systemPrintln("PointPerfect key update connected to network");
+                systemPrintln("PointPerfect key/credentials update connected to network");
 
             // Go get latest keys
-            provisioningSetState(PROVISIONING_STARTING);
+            ztpResponse = ZTP_NOT_STARTED;           // HTTP_Client will update this
+            httpClientModeNeeded = true;             // This will start the HTTP_Client
+            provisioningStartTime_millis = millis(); // Record the start time so we can timeout
+            if (pointPerfectServiceUsesKeys() == true)
+                paintGettingKeys();
+            else
+                paintGettingCredentials();
+            networkUserAdd(NETCONSUMER_POINTPERFECT_KEY_UPDATE, __FILE__, __LINE__);
+            provisioningSetState(PROVISIONING_STARTED);
         }
-#endif // COMPILE_NETWORK
-
-        // TODO If we just booted, show keys remaining regardless of provisioning state machine
-        // provisioningSetState(PROVISIONING_KEYS_REMAINING);
     }
-
     break;
 
-    case PROVISIONING_STARTING: {
-        ztpResponse = ZTP_NOT_STARTED;           // HTTP_Client will update this
-        httpClientModeNeeded = true;             // This will start the HTTP_Client
-        provisioningStartTime_millis = millis(); // Record the start time so we can timeout
-        paintGettingKeys();
-        provisioningSetState(PROVISIONING_STARTED);
-    }
     case PROVISIONING_STARTED: {
         // Only leave this state if we timeout or ZTP is complete
         if (millis() > (provisioningStartTime_millis + provisioningTimeout_ms))
         {
             httpClientModeNeeded = false; // Tell HTTP_Client to give up. (But it probably already has...)
-            paintKeyUpdateFail(5000);
+            paintKeyUpdateFail(5 * MILLISECONDS_IN_A_SECOND);
             provisioningSetState(PROVISIONING_KEYS_REMAINING);
         }
         else if (ztpResponse == ZTP_SUCCESS)
         {
             httpClientModeNeeded = false; // Tell HTTP_Client to give up
             recordSystemSettings();       // Make sure the new cert and keys are recorded
-            systemPrintln("Keys successfully updated!");
+
+            if (pointPerfectServiceUsesKeys() == true)
+                systemPrintln("Keys successfully updated!");
+            else
+                systemPrintln("Credentials successfully updated!");
+
             provisioningSetState(PROVISIONING_KEYS_REMAINING);
         }
         else if (ztpResponse == ZTP_DEACTIVATED)
         {
-            char hardwareID[15];
-            snprintf(hardwareID, sizeof(hardwareID), "%02X%02X%02X%02X%02X%02X%02X", btMACAddress[0], btMACAddress[1],
-                     btMACAddress[2], btMACAddress[3], btMACAddress[4], btMACAddress[5], productVariant);
-
-            char landingPageUrl[200] = "";
-            if (productVariant == RTK_TORCH)
-                snprintf(landingPageUrl, sizeof(landingPageUrl),
-                         "or goto https://www.sparkfun.com/rtk_torch_registration ");
-            else if (productVariant == RTK_EVK)
-                snprintf(landingPageUrl, sizeof(landingPageUrl),
-                         "or goto https://www.sparkfun.com/rtk_evk_registration ");
-            else if (productVariant == RTK_POSTCARD)
-                snprintf(landingPageUrl, sizeof(landingPageUrl),
-                         "or goto https://www.sparkfun.com/rtk_postcard_registration ");
-            else
-                systemPrintln("pointperfectProvisionDevice(): Platform missing landing page");
-
             systemPrintf("This device has been deactivated. Please contact "
-                         "support@sparkfun.com %sto renew the PointPerfect "
+                         "support@sparkfun.com or goto %s to renew the PointPerfect "
                          "subscription. Please reference device ID: %s\r\n",
-                         landingPageUrl, hardwareID);
+                         platformRegistrationPageTable[productVariant], printDeviceId());
 
             httpClientModeNeeded = false; // Tell HTTP_Client to give up.
-            displayAccountExpired(5000);
+            displayAccountExpired(5 * MILLISECONDS_IN_A_SECOND);
 
             provisioningSetState(PROVISIONING_KEYS_REMAINING);
         }
         else if (ztpResponse == ZTP_NOT_WHITELISTED)
         {
-            char hardwareID[15];
-            snprintf(hardwareID, sizeof(hardwareID), "%02X%02X%02X%02X%02X%02X%02X", btMACAddress[0], btMACAddress[1],
-                     btMACAddress[2], btMACAddress[3], btMACAddress[4], btMACAddress[5], productVariant);
-
-            char landingPageUrl[200] = "";
-            if (productVariant == RTK_TORCH)
-                snprintf(landingPageUrl, sizeof(landingPageUrl),
-                         "or goto https://www.sparkfun.com/rtk_torch_registration ");
-            else if (productVariant == RTK_EVK)
-                snprintf(landingPageUrl, sizeof(landingPageUrl),
-                         "or goto https://www.sparkfun.com/rtk_evk_registration ");
-            else if (productVariant == RTK_POSTCARD)
-                snprintf(landingPageUrl, sizeof(landingPageUrl),
-                         "or goto https://www.sparkfun.com/rtk_postcard_registration ");
-            else
-                systemPrintln("pointperfectProvisionDevice(): Platform missing landing page");
-
             systemPrintf("This device is not whitelisted. Please contact "
-                         "support@sparkfun.com %sto get the subscription "
+                         "support@sparkfun.com or goto %s to get the subscription "
                          "activated. Please reference device ID: %s\r\n",
-                         landingPageUrl, hardwareID);
+                         platformRegistrationPageTable[productVariant], printDeviceId());
 
             httpClientModeNeeded = false; // Tell HTTP_Client to give up.
-            displayNotListed(5000);
+            displayNotListed(5 * MILLISECONDS_IN_A_SECOND);
 
             provisioningSetState(PROVISIONING_KEYS_REMAINING);
         }
         else if (ztpResponse == ZTP_ALREADY_REGISTERED)
         {
             // Device is already registered to a different ZTP profile.
-            char hardwareID[15];
-            snprintf(hardwareID, sizeof(hardwareID), "%02X%02X%02X%02X%02X%02X%02X", btMACAddress[0], btMACAddress[1],
-                     btMACAddress[2], btMACAddress[3], btMACAddress[4], btMACAddress[5], productVariant);
-
             systemPrintf("This device is registered on a different profile. Please contact "
                          "support@sparkfun.com for more assistance. Please reference device ID: %s\r\n",
-                         hardwareID);
+                         printDeviceId());
 
             httpClientModeNeeded = false; // Tell HTTP_Client to give up.
-            displayAlreadyRegistered(5000);
+            displayAlreadyRegistered(5 * MILLISECONDS_IN_A_SECOND);
 
             provisioningSetState(PROVISIONING_KEYS_REMAINING);
         }
@@ -1496,54 +1617,53 @@ void provisioningUpdate()
     }
     break;
     case PROVISIONING_KEYS_REMAINING: {
-        if (online.rtc == true)
+
+        // Report expiration of keys if this PointPerfect service uses them
+        if (pointPerfectServiceUsesKeys() == true)
         {
-            if (settings.pointPerfectNextKeyStart > 0)
+            if (online.rtc == true)
             {
-                int daysRemaining =
-                    daysFromEpoch(settings.pointPerfectNextKeyStart + settings.pointPerfectNextKeyDuration + 1);
-                systemPrintf("Days until PointPerfect keys expire: %d\r\n", daysRemaining);
-                if (daysRemaining >= 0)
+                if (settings.pointPerfectNextKeyStart > 0)
                 {
-                    paintKeyDaysRemaining(daysRemaining, 2000);
-                }
-                else
-                {
-                    paintKeysExpired();
+                    int daysRemaining =
+                        daysFromEpoch(settings.pointPerfectNextKeyStart + settings.pointPerfectNextKeyDuration + 1);
+                    systemPrintf("Days until PointPerfect keys expire: %d\r\n", daysRemaining);
+                    if (daysRemaining >= 0)
+                    {
+                        paintKeyDaysRemaining(daysRemaining, 2 * MILLISECONDS_IN_A_SECOND);
+                    }
+                    else
+                    {
+                        paintKeysExpired();
+                    }
                 }
             }
+
+            // Be sure we ignore any external RTCM sources
+            gnss->rtcmOnGnssDisable();
+
+            gnss->applyPointPerfectKeys(); // Send current keys, if available, to GNSS
+
+            recordSystemSettings(); // Record these settings to unit
         }
-        paintLBandConfigure();
 
-        // Be sure we ignore any external RTCM sources
-        gnss->rtcmOnGnssDisable();
-
-        gnss->applyPointPerfectKeys(); // Send current keys, if available, to GNSS
-
-        settings.requestKeyUpdate = false; // However we got here, clear requestKeyUpdate
-        recordSystemSettings();            // Record these settings to unit
-
-        provisioningStartTime_millis = millis(); // Record the time so we can restart after 24 hours
-        provisioningSetState(PROVISIONING_WAIT_ATTEMPT);
-    }
-    break;
-    case PROVISIONING_WAIT_ATTEMPT: {
-        if (settings.requestKeyUpdate) // requestKeyUpdate can be set via the menu, mode button or web config
-            provisioningSetState(PROVISIONING_CHECK_REMAINING);
-        else if (!settings.enablePointPerfectCorrections || !settings.autoKeyRenewal)
-            provisioningSetState(PROVISIONING_OFF);
-        // When did we last try to get keys? Attempt every 24 hours - or every 15 mins for DEVELOPER
-        // else if (millis() > (provisioningStartTime_millis + ( ENABLE_DEVELOPER ? (1000 * 60 * 15) : (1000 * 60 * 60 *
-        // 24))))
-        // When did we last try to get keys? Attempt every 24 hours
-        else if (millis() >
-                 (provisioningStartTime_millis + (1000 * 60 * 60 * 24))) // Don't use settings.lastKeyAttempt (#419)
-            provisioningSetState(PROVISIONING_CHECK_REMAINING);
+        // Done with the network
+        provisioningStop(__FILE__, __LINE__);
     }
     break;
     }
 
     // Periodically display the provisioning state
     if (PERIODIC_DISPLAY(PD_PROVISIONING_STATE))
-        provisioningSetState(provisioningState);
+    {
+        systemPrintf("Provisioning state: %s%s\r\n", provisioningStateName[provisioningState], line);
+        PERIODIC_CLEAR(PD_PROVISIONING_STATE);
+    }
+}
+
+void provisioningVerifyTables()
+{
+    // Verify the table length
+    if (provisioningStateNameEntries != PROVISIONING_STATE_MAX)
+        reportFatalError("Please fix provisioningStateName table to match ProvisioningStates");
 }
