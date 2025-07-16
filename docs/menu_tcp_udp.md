@@ -20,11 +20,14 @@ Compatibility Icons
 
 NMEA data is generally consumed by a GIS application or Data Collector. These messages can be transmitted over a variety of transport methods. This section focuses on the delivery of NMEA messages via TCP and UDP.
 
-<p align="center">
-  <img src="./img/Terminal/SparkFun RTK Everywhere - TCP-UDP Menu.png" alt="TCP/UDP Menu showing various Client and Server options">
-</p>
+<figure markdown>
 
-*<p align="center">TCP/UDP Menu showing various Client and Server options</p>*
+![TCP/UDP Menu showing various Client and Server options](<./img/Terminal/SparkFun RTK Everywhere - TCP-UDP Menu.png>)
+
+<figcaption markdown>
+TCP/UDP Menu showing various Client and Server options
+</figcaption>
+</figure>
 
 <p align="center">
   <img src="./img/WiFi Config/SparkFun RTK Config - TCP Port.png" alt="TCP/UDP settings using Web Config">
@@ -61,4 +64,4 @@ Multicast DNS allows other devices on the same network to discover this device u
 
 ## Broadcast TCP/UDP over WiFi or AP
 
-TCP Server and UDP Server can connect over a local WiFi network, or by becoming an Access Point (hosting its own WiFi network) that client devices can connect to. Use option **a** to select between the type of WiFi to use for TCP/UDP Server broadcasting.
+TCP Server and UDP Server can connect over a local WiFi network, or by becoming an Access Point (hosting its own WiFi network) that client devices can connect to. Use this option to select between the type of WiFi to use for TCP/UDP Server broadcasting.
