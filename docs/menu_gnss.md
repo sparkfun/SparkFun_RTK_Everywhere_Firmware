@@ -18,7 +18,7 @@ Compatibility Icons
 
 </div>
 
-The SparkFun RTK product line is immensely configurable. The RTK device will, by default, put the GNSS receiver into the most common configuration for rover/base RTK for use with *SW Maps* and other GIS applications.
+The SparkFun RTK product line is immensely configurable. The RTK device will, by default, put the GNSS receiver into the most common configuration for rover/base RTK for use with most GIS applications.
 
 The GNSS Configuration menu allows a user to change the report rate, dynamic model, and select which constellations should be used for fix calculations.
 
@@ -111,6 +111,7 @@ Compatibility Icons
 
 - EVK: :material-radiobox-blank:{ .support-none title="Feature Not Supported" }
 - Facet mosaic: :material-radiobox-indeterminate-variant:{ .support-partial title="Feature Partially Supported" }
+- Postcard: :material-radiobox-blank:{ .support-none title="Feature Not Supported" }
 - Torch: :material-radiobox-marked:{ .support-full title="Feature Supported" }
 
 </div>

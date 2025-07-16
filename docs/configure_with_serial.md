@@ -21,11 +21,66 @@ Compatibility Icons
 !!! note
 	Any serial menu that is shown below can also be accessed over Bluetooth. This makes any configuration of a device much easier in the field. Please see [Configure With Bluetooth](configure_with_bluetooth.md) for more information.
 
-To configure an RTK device using serial attach a [USB C cable](https://www.sparkfun.com/products/15425) to the device.
-
-## RTK Torch
+## USB Connection
 
 <figure markdown>
+
+![Terminal showing the main menu](<./img/Terminal/SparkFun RTK Everywhere - Main Menu.png>)
+<figcaption markdown>
+The Main Menu
+</figcaption>
+</figure>
+
+To configure an RTK device using serial attach a [USB C cable](https://www.sparkfun.com/products/25630) to the device. Any USB C cable should work. Connect your device to a computer and you should see a Serial port appear. Open this port at 115200bps using your favorite terminal program and press any key to open the Main Menu.
+
+### RTK EVK
+
+<figure markdown>
+
+![SparkFun RTK EVK connectors](<./img/EVK/SparkFun RTK EVK Front.png>)
+<figcaption markdown>
+SparkFun RTK EVK connectors
+</figcaption>
+</figure>
+
+The connector labeled **CONFIG ESP32** is used for Serial Configuration. For an in depth review of the EVK hardware, please see the [SparkFun RTK EVK Hookup Guide](https://docs.sparkfun.com/SparkFun_RTK_EVK/hardware_overview/).
+
+### RTK Facet mosaic
+
+<figure markdown>
+
+![SparkFun RTK Facet mosaic connectors](<./img/Facet/SparkFun RTK Facet mosaic Connectors.png>)
+<figcaption markdown>
+SparkFun RTK Facet mosaic connectors
+</figcaption>
+</figure>
+
+The connector labeled **USB** is used for Serial Configuration and charging.
+
+### RTK Postcard
+
+<figure markdown>
+
+![SparkFun RTK Postcard connectors](<./img/Postcard/SparkFun RTK PostCard Ports.png>)
+<figcaption markdown>
+SparkFun RTK Postcard connectors
+</figcaption>
+</figure>
+
+<figure markdown>
+
+![SparkFun RTK Postcard connectors](<./img/Postcard/SparkFun RTK PostCard USB Channels.png>)
+<figcaption markdown>
+SparkFun RTK Postcard serial channels
+</figcaption>
+</figure>
+
+The DATA port on the RTK Postcard is the USB C connector. This connection creates two serial ports. **SERIAL-A** is used for [Serial Configuration](configure_with_serial.md). **SERIAL-B** is connected to the DATA port of the LG290P to receive NMEA and other data directly. The DATA port is also used for [updating the firmware](firmware_update_lg290p.md) on the LG290P.
+
+### RTK Torch
+
+<figure markdown>
+
 [![The USB Connector on the RTK Torch](./img/RTK-Torch_Buttons_Back-Small.png)](./img/RTK-Torch_Buttons_Back.png)
 <figcaption markdown>
 The USB Connector on the RTK Torch
@@ -35,6 +90,7 @@ The USB Connector on the RTK Torch
 Pull back the silicone cover and insert a USB C and power on the device. Once the device is powered on, open the `Device Manager` in Windows and look under the Ports branch to see what COM port the device is assigned to.
 
 <figure markdown>
+
 ![SparkFun RTK Torch Two Enumerated Ports](./img/Torch/RTK-Torch_Two-COM-Ports.png)
 <figcaption markdown>
 SparkFun RTK Torch Two Enumerated Ports
@@ -53,7 +109,8 @@ Open a terminal window at 115200bps; you should see various status messages ever
 Note that some Windows terminal programs (e.g. Tera Term) may reboot the RTK device when the terminal connection is closed. You can disconnect the USB cable first to prevent this from happening.
 
 <figure markdown>
-![Terminal showing the main menu](./img/Terminal/SparkFun RTK Everywhere - Main Menu.png)
+
+![Terminal showing the main menu](<./img/Terminal/SparkFun RTK Everywhere - Main Menu.png>)
 <figcaption markdown>
 The Main Menu
 </figcaption>
@@ -69,7 +126,8 @@ Pressing '1' or 's' for example, will open those submenus.
 The menus will timeout after 10 minutes of inactivity, so if you do not press a key the device will exit the menu and return to reporting status messages.
 
 <figure markdown>
-![Configuration menu open over Bluetooth](./img/Bluetooth/SparkFun%20RTK%20BEM%20-%20Exit%20BEM.png)
+
+![Configuration menu open over Bluetooth](<./img/Bluetooth/SparkFun%20RTK%20BEM%20-%20Exit%20BEM.png>)
 <figcaption markdown>
 Configuration menu via Bluetooth
 </figcaption>

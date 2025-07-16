@@ -20,7 +20,7 @@ Compatibility Icons
 
 <figure markdown>
 
-![Setting the baud rate of the ports](<./img/WiFi Config/RTK_Surveyor_-_WiFi_Config_-_Express_Ports_Config.jpg>)
+![Setting the baud rate of the ports](<./img/WiFi Config/SparkFun RTK Ports Config.png>)
 <figcaption markdown>
 Setting the baud rates of the two available external ports
 </figcaption>
@@ -30,7 +30,7 @@ Setting the baud rates of the two available external ports
 
 ![Baud rate configuration of Radio and Data ports](<./img/Terminal/SparkFun_RTK_Express_-_Ports_Menu.jpg>)
 <figcaption markdown>
-Baud rate configuration of Radio and Data ports
+Baud rate configuration of the RADIO and DATA ports
 </figcaption>
 </figure>
 
@@ -41,21 +41,13 @@ The RADIO and DATA ports vary between RTK devices:
 * The RTK Postcard has both RADIO and DATA ports.
 * The RTK EVK has only a RADIO port.
 
-<figure markdown>
-
-![RADIO and DATA ports on the RTK Postacrd](<./img/Postcard/SparkFun RTK PostCard Ports.png>)
-<figcaption markdown>
-RADIO and DATA ports on the RTK Postacrd
-</figcaption>
-</figure>
-
 ## Radio Port
 
 Available on devices that have an external **RADIO** port. 
 
-The **RADIO** port is connected directly to GNSS UART. Depending on the platform, the port is set to 57600bps to match the [Serial Telemetry Radios](https://www.sparkfun.com/products/19032) that are recommended to be used with the RTK Facet (it is a plug-and-play solution). This can be set from 4800bps to 921600bps.
+The **RADIO** port is connected directly to a UART on the GNSS receiver allowing output of NMEA or RTCM, and receiving RTCM corrections. Depending on the platform, the port is set to 57600bps to match the [Serial Telemetry Radios](https://www.sparkfun.com/products/19032) that are recommended to be used with the RTK Facet (it is a plug-and-play solution). This can be set from 4800bps to 921600bps.
 
-The default for the RTK Postcard is 115200bps. 
+The default RADIO baud rate for the RTK Postcard is 115200bps. 
 
 ## Data Port
 
@@ -67,7 +59,7 @@ DATA port connected to a SparkFun USB C to Serial adapter
 </figcaption>
 </figure>
 
-The **DATA** port can be configured from 4800bps to 921600bps. The default depends on the GNSS model: e.g. 460800bps on LG290P,  230400 on other models. The default rate was chosen to support applications where a large number of messages are enabled and a large amount of data is sent. If you need to decrease the baud rate to 115200bps or other on the ZED-F9P, be sure to monitor the MON-COMM message within u-center for buffer overruns. A baud rate of 115200bps and the NMEA+RXM default configuration at 4Hz *will* cause buffer overruns.
+The **DATA** port can be configured from 4800bps to 921600bps. The default depends on the GNSS model: e.g. 460800bps on LG290P,  230400bps on other models. The default rate was chosen to support applications where a large number of messages are enabled and a large amount of data is sent. If you need to decrease the baud rate to 115200bps or other on the ZED-F9P, be sure to monitor the MON-COMM message within u-center for buffer overruns. A baud rate of 115200bps and the NMEA+RXM default configuration at 4Hz *will* cause buffer overruns.
 
 <figure markdown>
 
@@ -83,9 +75,19 @@ Most applications do not need to plug anything into the **DATA** port. Most user
 
 ### Postcard USB Ports
 
+<figure markdown>
+
+![RADIO and DATA ports on the RTK Postacrd](<./img/Postcard/SparkFun RTK PostCard Ports.png>)
+<figcaption markdown>
+RADIO and DATA ports on the RTK Postacrd
+</figcaption>
+</figure>
+
+
+
 ![alt text](<img/Postcard/SparkFun RTK PostCard USB Channels.png>)
 
-The DATA port on the RTK Postcard is the USB C connector. This connection creates two serial ports. **SERIAL-A** is used for Serial Configuration. **SERIAL-B** is connected to the DATA port of the LG290P to receive NMEA and other data directly.
+The DATA port on the RTK Postcard is the USB C connector. This connection creates two serial ports. **SERIAL-A** is used for [Serial Configuration](configure_with_serial.md). **SERIAL-B** is connected to the DATA port of the LG290P to receive NMEA and other data directly. The DATA port is also used for [updating the firmware](firmware_update_lg290p.md) on the LG290P.
 
 ## Output GNSS Data over USB
 
@@ -108,13 +110,13 @@ Example NMEA output over USB
 
 ## Limit RADIO Port Output to RTCM
 
-Enabling this option will turn off all data output except for the minimum RTCM messages necessary for RTK work. This is helpful in situations where a telemetry radio is used for connecting a Rover to a Base. Extra NMEA and binary data can tax a radio link and may cause the link to become intermittent or fail.
+Enabling this option will turn off all data output to the RADIO port except for the minimum RTCM messages necessary for RTK work. This is helpful in situations where a telemetry radio is used for connecting a Rover to a Base. Extra NMEA and binary data can tax a radio link and may cause the link to become intermittent or fail.
 
 ## Allow Incoming Corrections on COM/UART
 
-Disable this to block corrections on the given port.
+Disable this feature to block corrections on the given port.
 
-If a GNSS receiver gets corrections from multiple sources (WiFi, Bluetooth, serial, etc) it can lead to unpredictable outcomes. To avoid this, RTK Everywhere firmware includes a sophisticated 'corrections controller' to give priority to the various sources, discarding any lower priority corrections sources that are detected. See the [Corrections Priority](menu_corrections_priorities.md) section for more information. Because the RTK Everywhere firmware cannot directly filter out corrections from a direct serial connection, this option allows a user to disable that correction source directly.
+If a GNSS receiver gets corrections from multiple sources (WiFi, Bluetooth, serial, etc) it can lead to unpredictable outcomes. To avoid this, RTK Everywhere firmware includes a sophisticated 'corrections controller' to give priority to the various sources, discarding any lower priority corrections sources that are detected. See the [Corrections Priority](menu_corrections_priorities.md) section for more information. Because the RTK Everywhere firmware cannot filter out corrections from a serial connection, this option allows a user to disable that correction source that may .
 
 ## Mux Channel
 
