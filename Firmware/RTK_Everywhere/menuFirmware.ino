@@ -370,11 +370,6 @@ void microSDUpdateFirmware(const char *firmwareFileName)
 
     // Verify that the SdFile object can be allocated
     SdFile firmwareFile;
-    if (!firmwareFile)
-    {
-        systemPrintln("ERROR - Failed to allocate firmwareFile");
-        return;
-    }
 
     // Verify that the firmware file can be opened
     if (!firmwareFile.open(firmwareFileName, O_READ))

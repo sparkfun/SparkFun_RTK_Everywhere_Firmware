@@ -914,7 +914,7 @@ void ntpServerUpdate()
 
                         if (ntpFileExists)
                         {
-                            if (ntpFile && ntpFile.open(fileName, O_APPEND | O_WRITE))
+                            if (ntpFile.open(fileName, O_APPEND | O_WRITE))
                             {
                                 fileOpen = true;
                                 sdUpdateFileCreateTimestamp(&ntpFile);
