@@ -65,7 +65,7 @@ void menuSystem()
             else
                 systemPrintln("Offline - ");
 
-            if (online.lbandCorrections == true)
+            if (online.pointPerfectKeysApplied == true)
                 systemPrint("Keys Good");
             else
                 systemPrint("No Keys");

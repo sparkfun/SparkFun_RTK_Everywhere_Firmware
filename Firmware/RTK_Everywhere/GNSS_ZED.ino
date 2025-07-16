@@ -71,7 +71,8 @@ void GNSS_ZED::applyPointPerfectKeys()
         {
             if (settings.debugCorrections)
                 systemPrintln("PointPerfect keys applied");
-            online.lbandCorrections = true;
+
+            online.pointPerfectKeysApplied = true;
         }
     }
     else
