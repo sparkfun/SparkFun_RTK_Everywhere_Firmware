@@ -94,12 +94,18 @@ const char *const sbfParserNames[] = {
     "SBF",
 };
 const int sbfParserNameCount = sizeof(sbfParserNames) / sizeof(sbfParserNames[0]);
+
 SEMP_PARSE_ROUTINE const spartnParserTable[] = {sempSpartnPreamble};
 const int spartnParserCount = sizeof(spartnParserTable) / sizeof(spartnParserTable[0]);
 const char *const spartnParserNames[] = {
     "SPARTN",
 };
 const int spartnParserNameCount = sizeof(spartnParserNames) / sizeof(spartnParserNames[0]);
+
+SEMP_PARSE_ROUTINE const rtcmParserTable[] = { sempRtcmPreamble };
+const int rtcmParserCount = sizeof(rtcmParserTable) / sizeof(rtcmParserTable[0]);
+const char *const rtcmParserNames[] = { "RTCM" };
+const int rtcmParserNameCount = sizeof(rtcmParserNames) / sizeof(rtcmParserNames[0]);
 
 //----------------------------------------
 // Locals
@@ -2195,4 +2201,41 @@ void bluetoothCommandTask(void *pvParameters)
         systemPrintln("Task bluetoothCommandTask stopped");
     task.bluetoothCommandTaskRunning = false;
     vTaskDelete(NULL);
+}
+
+void beginRtcmParse()
+{
+    // Begin the RTCM parser - which will extract the base location from RTCM1005 / 1006
+    rtcmParse = sempBeginParser(rtcmParserTable, rtcmParserCount, rtcmParserNames, rtcmParserNameCount,
+                               0,                   // Scratchpad bytes
+                               1050,                // Buffer length
+                               processRTCMMessage, // eom Call Back
+                               "rtcmParse");         // Parser Name
+    if (!rtcmParse)
+        reportFatalError("Failed to initialize the RTCM parser");
+
+}
+
+// Check and record the base location in RTCM1005/1006
+void processRTCMMessage(SEMP_PARSE_STATE *parse, uint16_t type)
+{
+    SEMP_SCRATCH_PAD *scratchPad = (SEMP_SCRATCH_PAD *)parse->scratchPad;
+
+    if (sempRtcmGetMessageNumber(parse) == 1005)
+    {
+        ARPECEFX = sempRtcmGetSignedBits(parse, 34, 38);
+        ARPECEFY = sempRtcmGetSignedBits(parse, 74, 38);
+        ARPECEFZ = sempRtcmGetSignedBits(parse, 114, 38);
+        ARPECEFH = 0;
+        newARPAvailable = true;
+    }
+
+    if (sempRtcmGetMessageNumber(parse) == 1005)
+    {
+        ARPECEFX = sempRtcmGetSignedBits(parse, 34, 38);
+        ARPECEFY = sempRtcmGetSignedBits(parse, 74, 38);
+        ARPECEFZ = sempRtcmGetSignedBits(parse, 114, 38);
+        ARPECEFH = sempRtcmGetUnsignedBits(parse, 152, 16);
+        newARPAvailable = true;
+    }
 }

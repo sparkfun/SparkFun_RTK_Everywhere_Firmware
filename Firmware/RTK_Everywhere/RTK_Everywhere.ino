@@ -807,7 +807,7 @@ std::vector<setupButton> setupButtons; // A vector (linked list) of the setup 'b
 
 bool firstRoverStart; // Used to detect if the user is toggling the power button at POR to enter the test menu
 
-bool newEventToRecord;     // Goes true when INT pin goes high
+bool newEventToRecord;     // Goes true when INT pin goes high. Currently this is ZED-specific.
 uint32_t triggerCount;     // Global copy - TM2 event counter
 uint32_t triggerTowMsR;    // Global copy - Time Of Week of rising edge (ms)
 uint32_t triggerTowSubMsR; // Global copy - Millisecond fraction of Time Of Week of rising edge in nanoseconds
@@ -1489,7 +1489,8 @@ void logUpdate()
         // Record any pending trigger events
         if (newEventToRecord == true)
         {
-            systemPrintln("Recording event");
+            if (settings.enablePrintLogFileStatus)
+                systemPrintln("Log file: recording event");
 
             // Record trigger count with Time Of Week of rising edge (ms), Millisecond fraction of Time Of Week of
             // rising edge (ns), and accuracy estimate (ns)
@@ -1527,7 +1528,8 @@ void logUpdate()
         if (newARPAvailable == true && settings.enableARPLogging &&
             ((millis() - lastARPLog) > (settings.ARPLoggingInterval_s * 1000)))
         {
-            systemPrintln("Recording Antenna Reference Position");
+            if (settings.enablePrintLogFileStatus)
+                systemPrintln("Log file: recording Antenna Reference Position");
 
             lastARPLog = millis();
             newARPAvailable = false;
@@ -1554,7 +1556,6 @@ void logUpdate()
                 logFile->println(nmeaMessage);
 
                 xSemaphoreGive(sdCardSemaphore);
-                newEventToRecord = false;
             }
             else
             {

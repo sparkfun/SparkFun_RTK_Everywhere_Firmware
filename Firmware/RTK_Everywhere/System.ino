@@ -872,27 +872,3 @@ void getMacAddresses(uint8_t *macAddress, const char *name, esp_mac_type_t type,
         systemPrintf("%02X:%02X:%02X:%02X:%02X:%02X - %s\r\n", macAddress[0], macAddress[1], macAddress[2],
                      macAddress[3], macAddress[4], macAddress[5], name);
 };
-
-// Check and record the base location in RTCM1005/1006
-void processRTCMMessage(SEMP_PARSE_STATE *parse, uint16_t type)
-{
-    SEMP_SCRATCH_PAD *scratchPad = (SEMP_SCRATCH_PAD *)parse->scratchPad;
-
-    if (sempRtcmGetMessageNumber(parse) == 1005)
-    {
-        ARPECEFX = sempRtcmGetSignedBits(parse, 34, 38);
-        ARPECEFY = sempRtcmGetSignedBits(parse, 74, 38);
-        ARPECEFZ = sempRtcmGetSignedBits(parse, 114, 38);
-        ARPECEFH = 0;
-        newARPAvailable = true;
-    }
-
-    if (sempRtcmGetMessageNumber(parse) == 1005)
-    {
-        ARPECEFX = sempRtcmGetSignedBits(parse, 34, 38);
-        ARPECEFY = sempRtcmGetSignedBits(parse, 74, 38);
-        ARPECEFZ = sempRtcmGetSignedBits(parse, 114, 38);
-        ARPECEFH = sempRtcmGetUnsignedBits(parse, 152, 16);
-        newARPAvailable = true;
-    }
-}
