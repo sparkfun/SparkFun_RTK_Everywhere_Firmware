@@ -11,8 +11,9 @@ Compatibility Icons
 
 <div class="grid cards fill" markdown>
 
-- EVK: [:material-radiobox-blank:{ .support-none }]( title ="Feature Not Supported" )
-- Postcard: [:material-radiobox-blank:{ .support-none }]( title ="Feature Not Supported" )
+- EVK: :material-radiobox-blank:{ .support-none title="Feature Not Supported" }
+- Facet mosaic: :material-radiobox-blank:{ .support-none title="Feature Not Supported" }
+- Postcard: :material-radiobox-blank:{ .support-none title="Feature Not Supported" }
 - Torch: :material-radiobox-marked:{ .support-full title="Feature Supported" }
 
 </div>
@@ -37,6 +38,9 @@ During Tilt Compensation, all outgoing NMEA messages are modified to output the 
 
 If the audible beeper is enabled, a long beep will be heard when the IMU starts calibration (by shaking). A short beep will be heard when the IMU completes calibration and Tilt Compensation is active. A short beep will continue every 10 seconds to let the user know Tilt Compensation is being applied.
 
+!!! info "Tilt Affects Point Altitude"
+    During tilt compensation the reported location is that *of the tip of the pole*. If Tilt mode is exited for whatever reason, the reported location and altitude of the device will change significantly. It is recommended the user use, listen for, and confirm the audible beep before recording a point in order to avoid recording an inaccurate location and altitude.
+
 Tilt Compensation mode will be exited when the user short presses the power button, and a long beep will be heard. Additionally, Tilt Compensation mode will be exited if RTK Fix is lost. When this happens, the IMU will attempt to re-enter Tilt Compensation mode if RTK Fix is re-achieved.
 
 Tilt compensation mode can be entered using the following steps:
@@ -49,3 +53,13 @@ Tilt compensation mode can be entered using the following steps:
 6. Place the tip of the device on the ground. Move the head of the device back and forth up to ~30 degrees of tilt. Repeat on the opposite axis.
 7. On devices that support it, the device will emit a long chirp once Tilt Compensation Mode is active. The device is now outputting the *location of the tip* of the pole.
 8. Exit Tilt Compensation Mode by short pressing the power button.
+
+## Height of Instrument Calculation
+
+During tilt compensation, the length of the pole, and the APC (antenna phase center) must be accurately configured. It is recommended to leave the default APC (116.5mm for the RTK Torch) and use a 1.8m length pole. Once tilt is activated, the IMU will automatically adjust the reported location *from* the APC *to* the pole tip.
+
+The pole length is the distance measured from the pole tip (usually on the ground) to where the bottom of the RTK device interfaces with the pole.
+
+The Antenna Phase Center is the theoretical point where the GNSS signals are effectively received by the antenna. It is not necessarily (and is rarely) the physical surface of the antenna element. The APC is the measured distance between this known point in space and the bottom surface of the RTK device (also known as the Antenna Reference Point or ARP).
+
+How do we find this 'known point in space'? Antenna APCs are estimated using various mathematical models then measured and calibrated using services provided by the [NGS](https://geodesy.noaa.gov/ANTCAL/) or other agencies.

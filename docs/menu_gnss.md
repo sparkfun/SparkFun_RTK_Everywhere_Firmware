@@ -12,6 +12,7 @@ Compatibility Icons
 <div class="grid cards fill" markdown>
 
 - EVK: :material-radiobox-marked:{ .support-full title="Feature Supported" }
+- Facet mosaic: :material-radiobox-marked:{ .support-full title="Feature Supported" }
 - Postcard: :material-radiobox-marked:{ .support-full title="Feature Supported" }
 - Torch: :material-radiobox-marked:{ .support-full title="Feature Supported" }
 
@@ -113,8 +114,9 @@ Compatibility Icons
 
 <div class="grid cards fill" markdown>
 
+- EVK: :material-radiobox-blank:{ .support-none title="Feature Not Supported" }
+- Facet mosaic: :material-radiobox-indeterminate-variant:{ .support-partial title="Feature Partially Supported" }
 - Torch: :material-radiobox-marked:{ .support-full title="Feature Supported" }
-- EVK: [:material-radiobox-blank:{ .support-none }]( title ="Feature Not Supported" )
 
 </div>
 
@@ -126,3 +128,5 @@ Menu for controlling Multipath Mitigation
 </figure>
 
 On devices that support it, *Multipath Mitigation* can be enabled (default) or disabled. Multipath Mitigation allows the GNSS receiver to filter signals more rigorously, which aids accuracy in urban or high multipath environments, but may increase processing times in an open environment.
+
+On the RTK Facet mosaic, the mosaic-X5 supports multipath mitigation. However, this cannot yet be configured through the RTK Everywhere. Instead it will be necessary to configure the X5 through its own internal web page and save the configuration to its internal memory.

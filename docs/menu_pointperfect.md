@@ -12,6 +12,7 @@ Compatibility Icons
 <div class="grid cards fill" markdown>
 
 - EVK: :material-radiobox-marked:{ .support-full title="Feature Supported" }
+- Facet mosaic: :material-radiobox-marked:{ .support-full title="Feature Supported" }
 - Postcard: :material-radiobox-marked:{ .support-full title="Feature Supported" }
 - Torch: :material-radiobox-marked:{ .support-full title="Feature Supported" }
 
@@ -56,7 +57,8 @@ PointPerfect has the following benefits and challenges:
 
 PointPerfect corrections are obtained by two methods:
 
-- **L-Band**: Corrections are transmitted from a geosynchronous satellite. Coverage areas are limited to the US contiguous 48 states and the EU. This delivery method requires special equipment (see the [RTK EVK](https://www.sparkfun.com/products/24342) for more information). No cellular or internet connection is required.
+- **L-Band**: Corrections are transmitted from a geosynchronous satellite. Coverage is limited to the US contiguous 48 states. This delivery method requires special equipment (see the [RTK EVK](https://www.sparkfun.com/products/24342) and [RTK Facet mosaic](https://www.sparkfun.com/sparkpnt-rtk-facet-mosaic-l-band.html) for more information). No cellular or internet connection is required.
+    - Sadly, u-blox are suspending the EU L-Band service with effect from March 10th 2025. The L-Band service will only be available in the contiguous USA from that date.
 - **IP**: Corrections are transmitted over the internet. The RTK device will need access to a WiFi or Ethernet network. For WiFi, this is most commonly a hotspot on a cell phone so this delivery method is generally confined to areas with cellular and/or other WiFi coverage.
 
 !!! note
@@ -91,22 +93,16 @@ Configuring PointPerfect settings over serial
 
 ## Registration
 
-<figure markdown>
-![Three stickers showing Device ID and QR code to registration page](./img/Torch/SparkFun RTK Torch - Device ID Stickers.png)
-<figcaption markdown>
-Three stickers showing Device ID and QR code to registration page
-</figcaption>
-</figure>
+All SparkFun RTK products can operate in RTK mode out-of-the-box using corrections from a local base or a RTCM provider (see [Correction Sources](correction_sources.md)). If you wish to use PointPerfect corrections, the device must be registered before it is allowed on the PointPerfect network. To facilitate this, please [obtain your device ID](https://docs.sparkfun.com/SparkFun_RTK_Everywhere_Firmware/menu_pointperfect/#obtaining-the-device-id) through the software interface and visit the registration page associated with your device:
 
-All SparkFun RTK products must be registered before they are allowed on the PointPerfect network. To facilitate this, most products ship with a printed Device ID sticker and registration QR code included with the product. The QR code will prefill the registration page with the device's unique ID. If you do not have these materials, don't worry!
-
-- **RTK EVK:** please visit the [RTK EVK registration page](https://www.sparkfun.com/rtk_evk_registration) and [obtain your device ID](https://docs.sparkfun.com/SparkFun_RTK_Everywhere_Firmware/menu_pointperfect/#obtaining-the-device-id) through the software interface.
-- **RTK Postcard:** please visit the [RTK Postcard registration page](https://www.sparkfun.com/rtk_postcard_registration) and [obtain your device ID](https://docs.sparkfun.com/SparkFun_RTK_Everywhere_Firmware/menu_pointperfect/#obtaining-the-device-id) through the software interface.
-- **RTK Torch:** please visit the [RTK Torch registration page](https://www.sparkfun.com/rtk_torch_registration) and [obtain your device ID](https://docs.sparkfun.com/SparkFun_RTK_Everywhere_Firmware/menu_pointperfect/#obtaining-the-device-id) through the software interface.
+- **RTK EVK:** please visit the [RTK EVK registration page](https://www.sparkfun.com/rtk_evk_registration)
+- **RTK Facet mosaic:** please visit the [RTK Facet mosaic registration page](https://www.sparkfun.com/rtk_facet_mosaic_registration)
+- **RTK Postcard:** please visit the [RTK Postcard registration page](https://www.sparkfun.com/rtk_postcard_registration)
+- **RTK Torch:** please visit the [RTK Torch registration page](https://www.sparkfun.com/rtk_torch_registration)
 
 ## Keys
 
-To gain access to the PointPerfect system, the device must be given WiFi. Once provided, the RTK device will automatically obtain **keys**. These keys allow the decryption of corrections.
+Once registered, to gain access to the PointPerfect system, the device must be given WiFi. The RTK device will automatically obtain **keys**. These keys allow the decryption of corrections.
 
 PointPerfect keys are valid for a maximum of 56 days. During that time, the RTK device can operate normally without the need to update keys. However, when the keys are set to expire in 28 days or less, the RTK device will attempt to log in to WiFi at each power on. If WiFi is not available, it will continue normal operation.
 
@@ -157,7 +153,7 @@ Device ID within the serial menu
 </figure>
 
 <figure markdown>
-![Device ID within the WiFi Config page](./img/WiFi Config/SparkFun RTK PointPerfect Config.png)
+![Device ID within the WiFi Config page](./img/WiFi Config/SparkFun RTK PointPerfect Config Device ID.png)
 <figcaption markdown>
 Device ID within the WiFi Config page
 </figcaption>

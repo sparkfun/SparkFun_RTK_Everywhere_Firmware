@@ -12,8 +12,9 @@ Compatibility Icons
 <div class="grid cards fill" markdown>
 
 - EVK: :material-radiobox-marked:{ .support-full title="Feature Supported" }
-- Postcard: [:material-radiobox-blank:{ .support-none }]( title ="Feature Not Supported" )
-- Torch: [:material-radiobox-blank:{ .support-none }]( title ="Feature Not Supported" )
+- Facet mosaic: :material-radiobox-blank:{ .support-none title="Feature Not Supported" }
+- Postcard: :material-radiobox-blank:{ .support-none title="Feature Not Supported" }
+- Torch: :material-radiobox-blank:{ .support-none title="Feature Not Supported" }
 
 </div>
 
@@ -23,7 +24,7 @@ The firmware loaded onto the ZED-F9P and NEO-D9S receivers is written by u-blox 
 
 Not sure what firmware is loaded onto your RTK product? Open the [System Menu](menu_system.md) to display the module's current firmware version.
 
-The firmware on u-blox devices can be updated using a [Windows-based GUI](firmware_update.md#updating-using-windows-gui) or [u-center](firmware_update.md#updating-using-u-center). A CLI method is also possible using the `ubxfwupdate.exe` tool provided with u-center. Additionally, u-blox offers the source for the ubxfwupdate tool that is written in C. It is currently released only under an NDA so contact your local u-blox Field Applications Engineer if you need a different method.
+The firmware on u-blox devices can be updated using a [Windows-based GUI](#updating-using-windows-gui) or [u-center](#updating-using-u-center). A CLI method is also possible using the `ubxfwupdate.exe` tool provided with u-center. Additionally, u-blox offers the source for the ubxfwupdate tool that is written in C. It is currently released only under an NDA so contact your local u-blox Field Applications Engineer if you need a different method.
 
 ### Update Using Windows GUI
 

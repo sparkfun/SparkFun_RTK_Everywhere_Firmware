@@ -12,6 +12,7 @@ Compatibility Icons
 <div class="grid cards fill" markdown>
 
 - EVK: :material-radiobox-marked:{ .support-full title="Feature Supported" }
+- Facet mosaic: :material-radiobox-marked:{ .support-full title="Feature Supported" }
 - Postcard: :material-radiobox-marked:{ .support-full title="Feature Supported" }
 - Torch: :material-radiobox-marked:{ .support-full title="Feature Supported" }
 
@@ -90,6 +91,8 @@ Once the device has been configured, a user enters Base mode by changing the mod
 If the device is configured for *Survey-In* base mode, the survey will begin. The mean standard deviation will be printed as well as the time elapsed. For most Survey-In setups, the survey will complete in around 60 seconds.
 
 In *Fixed Base* mode the GNSS receiver will go into Base mode with the defined coordinates and immediately begin outputting RTCM correction data.
+
+On RTK Facet mosaic, the minimum observation time and required initial positional accuracy do not apply. The mosaic-X5 continually refines its base position.
 
 ## NTRIP Server
 

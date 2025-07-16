@@ -12,6 +12,7 @@ Compatibility Icons
 <div class="grid cards fill" markdown>
 
 - EVK: :material-radiobox-marked:{ .support-full title="Feature Supported" }
+- Facet mosaic: :material-radiobox-marked:{ .support-full title="Feature Supported" }
 - Postcard: :material-radiobox-marked:{ .support-full title="Feature Supported" }
 - Torch: :material-radiobox-marked:{ .support-full title="Feature Supported" }
 
@@ -151,6 +152,15 @@ The firmware for the RTK device and the firmware for the GNSS receiver is shown 
 
 ## File Manager
 
+<div class="grid cards fill" markdown>
+
+- EVK: :material-radiobox-marked:{ .support-full title="Feature Supported" }
+- Facet mosaic: :material-radiobox-blank:{ .support-none title="Feature Not Supported" }
+- Postcard: :material-radiobox-marked:{ .support-full title="Feature Supported" }
+- Torch: :material-radiobox-blank:{ .support-none title="Feature Not Supported" }
+
+</div>
+
 <figure markdown>
 ![List of files in file manager](./img/WiFi Config/SparkFun%20RTK%20WiFi%20Config%20File%20Manager.png)
 <figcaption markdown>
@@ -160,6 +170,8 @@ The firmware for the RTK device and the firmware for the GNSS receiver is shown 
 On devices that support an external SD card, a file manager is shown if an SD card is detected. This is a handy way to download files to a local device (cell phone or laptop) as well as delete any unneeded files. The SD size and free space are shown. Files may be uploaded to the SD card if needed.
 
 Additionally, clicking on the top checkbox will select all files for easy removal of a large number of files.
+
+On the RTK Facet mosaic, the SD card is connected directly to the mosaic-X5 GNSS and is not easily accessible from the ESP32. File transfer through the RTK Everywhere Firmware is not currenty supported.
 
 ## Saving and Exit
 

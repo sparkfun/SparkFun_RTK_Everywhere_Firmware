@@ -23,7 +23,7 @@ Are you using [Android](#android) or [iOS](#ios)?
 
 2. Mount the hardware:
 
-	- For RTK Torch: Attach the Torch to a 5/8" 11-TPI standard surveying pole or to a [monopole](https://www.amazon.com/AmazonBasics-WT1003-67-Inch-Monopod/dp/B00FAYL1YU) using the included [thread adapter](https://www.sparkfun.com/products/17546) (Figure 1).
+	- For RTK Torch: Attach the Torch to a 5/8" 11-TPI standard surveying pole or to a [monopole](https://www.sparkfun.com/telescopic-surveying-pole.html) using the included [thread adapter](https://www.sparkfun.com/products/17546) if needed (Figure 1).
 
 	<figure markdown>
 	![RTK devices attached to a monopole](./img/SparkFun Torch Attached to a Pole.png)
@@ -128,7 +128,7 @@ You can now use your RTK device to measure points with good (meter) accuracy. If
 
 To get millimeter accuracy we need to provide the RTK unit with correction values. Corrections, often called RTCM, help the RTK unit refine its position calculations. RTCM (Radio Technical Commission for Maritime Services) can be obtained from a variety of sources but they fall into three buckets: Commercial, Public, and Civilian Reference Stations.
 
-See [Corrections Sources](correction_sources.md) for a breakdown of the options and the pros and cons of each. For this quickstart, we'll be showing two examples: using PointPerfect for $8 a month (a little less accurate but nation-wide coverage) and PointOne Nav for $50 a month (maximum accuracy, gaps in the coverage area).
+See [Corrections Sources](correction_sources.md) for a breakdown of the options and the pros and cons of each. For this quickstart, we'll be showing two examples: using PointPerfect for $8 a month; and PointOne Nav for $125/month for "True RTK".
 
 ## PointPerfect Corrections
 
@@ -207,7 +207,7 @@ If you decide to use a service that provides NTRIP (as opposed to PointPerfect) 
 1. Create an account on [PointOneNav](https://app.pointonenav.com/trial?src=sparkfun).
 
 	!!! note
-		This service costs $50 per month at the time of writing.
+		This service costs $125/month for "True RTK" at the time of writing.
 
 2. Open SW Maps and connect to the RTK device over Bluetooth.
 
