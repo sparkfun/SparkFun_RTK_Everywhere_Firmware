@@ -897,8 +897,8 @@ void ntripClientUpdate()
             else
             {
                 // Receive data from the NTRIP Caster
-                uint8_t rtcmData[RTCM_DATA_SIZE];
-                size_t rtcmCount = 0;
+                static uint8_t rtcmData[RTCM_DATA_SIZE];
+                static size_t rtcmCount = 0;
 
                 // Collect any available RTCM data
                 if (ntripClientReceiveDataAvailable() > 0)
