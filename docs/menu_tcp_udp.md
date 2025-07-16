@@ -21,13 +21,13 @@ Compatibility Icons
 NMEA data is generally consumed by a GIS application or Data Collector. These messages can be transmitted over a variety of transport methods. This section focuses on the delivery of NMEA messages via TCP and UDP.
 
 <p align="center">
-  <img src="img/Terminal/SparkFun RTK Everywhere - TCP-UDP Menu.png" alt="TCP/UDP Menu showing various Client and Server options">
+  <img src="./img/Terminal/SparkFun RTK Everywhere - TCP-UDP Menu.png" alt="TCP/UDP Menu showing various Client and Server options">
 </p>
 
 *<p align="center">TCP/UDP Menu showing various Client and Server options</p>*
 
 <p align="center">
-  <img src="img/WiFi Config/SparkFun RTK Config - TCP Port.png" alt="TCP/UDP settings using Web Config">
+  <img src="./img/WiFi Config/SparkFun RTK Config - TCP Port.png" alt="TCP/UDP settings using Web Config">
 </p>
 
 *<p align="center">TCP/UDP settings using Web Config</p>*
@@ -36,11 +36,11 @@ NMEA data is generally consumed by a GIS application or Data Collector. These me
 
 The RTK device supports connection over TCP. The TCP Client sits on top of the network layer (WiFi in general, and Ethernet/Cellular on the EVK) and sends position data to one or more computers or cell phones for display. Some Data Collector software (such as [Vespucci](gis_software.md#vespucci)) requires that the SparkFun RTK device connect as a TCP Client. Other software (such as [QGIS](gis_software.md#qgis)) requires that the SparkFun RTK device acts as a TCP Server. Both are supported.
 
-If either Client or Server is enabled, a port can be designated. By default, the port is 2947 (registered as [*GPS Daemon request/response*](https://tcp-udp-ports.com/port-2948.htm)) but any port 0 to 65535 is supported.
+If either Client or Server is enabled, a port can be designated. By default, the port is 2948 (registered as [*GPS Daemon request/response*](https://tcp-udp-ports.com/port-2948.htm)) but any port 0 to 65535 is supported.
 
 
 <p align="center">
-  <img src="img/Terminal/TCP_Client.gif" alt="Ethernet TCP Client connection">
+  <img src="./img/Terminal/TCP_Client.gif" alt="Ethernet TCP Client connection">
 </p>
 
 *<p align="center">Ethernet TCP Client connection</p>*
