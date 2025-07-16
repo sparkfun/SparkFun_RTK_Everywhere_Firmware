@@ -23,17 +23,18 @@ NMEA data is generally consumed by a GIS application or Data Collector. These me
 <figure markdown>
 
 ![TCP/UDP Menu showing various Client and Server options](<./img/Terminal/SparkFun RTK Everywhere - TCP-UDP Menu.png>)
-
 <figcaption markdown>
 TCP/UDP Menu showing various Client and Server options
 </figcaption>
 </figure>
 
-<p align="center">
-  <img src="./img/WiFi Config/SparkFun RTK Config - TCP Port.png" alt="TCP/UDP settings using Web Config">
-</p>
+<figure markdown>
 
-*<p align="center">TCP/UDP settings using Web Config</p>*
+![TCP/UDP settings using Web Config](<./img/WiFi Config/SparkFun RTK Config - TCP Port.png>)
+<figcaption markdown>
+TCP/UDP settings using Web Config
+</figcaption>
+</figure>
 
 ## TCP Client and Server
 
@@ -41,12 +42,14 @@ The RTK device supports connection over TCP. The TCP Client sits on top of the n
 
 If either Client or Server is enabled, a port can be designated. By default, the port is 2948 (registered as [*GPS Daemon request/response*](https://tcp-udp-ports.com/port-2948.htm)) but any port 0 to 65535 is supported.
 
+<figure markdown>
 
-<p align="center">
-  <img src="./img/Terminal/TCP_Client.gif" alt="Ethernet TCP Client connection">
-</p>
+![Ethernet TCP Client connection](<./img/Terminal/TCP_Client.gif>)
+<figcaption markdown>
+Ethernet TCP Client connection
+</figcaption>
+</figure>
 
-*<p align="center">Ethernet TCP Client connection</p>*
 
 The above animation was generated using [TCP_Server.py](https://github.com/sparkfun/SparkFun_RTK_Everywhere_Firmware/blob/main/Firmware/Tools/TCP_Server.py) and demonstrates connecting to an RTK device over TCP from a desktop.
 
