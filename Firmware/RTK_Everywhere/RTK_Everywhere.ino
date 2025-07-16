@@ -1223,6 +1223,9 @@ void setup()
 
     beginVersion(); // Assemble platform name. Requires settings/LFS.
 
+    //if (esp_reset_reason() == ESP_RST_PANIC) // Halt on PANIC - to trap rare crashes
+    //    reportFatalError("ESP_RST_PANIC");
+
     DMW_b("beginGnssUart");
     beginGnssUart(); // Requires settings. Start the UART connected to the GNSS receiver on core 0. Start before
                      // gnssBegin in case it is needed (Torch).
@@ -1528,9 +1531,6 @@ void logUpdate()
         if (newARPAvailable == true && settings.enableARPLogging &&
             ((millis() - lastARPLog) > (settings.ARPLoggingInterval_s * 1000)))
         {
-            if (settings.enablePrintLogFileStatus)
-                systemPrintln("Log file: recording Antenna Reference Position");
-
             lastARPLog = millis();
             newARPAvailable = false;
 
@@ -1544,6 +1544,9 @@ void logUpdate()
             h /= 10000.0;     // Convert to m
             char ARPData[82]; // Max NMEA sentence length is 82
             snprintf(ARPData, sizeof(ARPData), "%.4f,%.4f,%.4f,%.4f", x, y, z, h);
+
+            if (settings.enablePrintLogFileStatus)
+                systemPrintf("Log file: recording Antenna Reference Position %s\r\n", ARPData);
 
             char nmeaMessage[82]; // Max NMEA sentence length is 82
             createNMEASentence(CUSTOM_NMEA_TYPE_ARP_ECEF_XYZH, nmeaMessage, sizeof(nmeaMessage),
