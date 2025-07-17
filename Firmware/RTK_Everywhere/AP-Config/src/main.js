@@ -114,14 +114,15 @@ function parseIncoming(msg) {
                 hide("galileoHasSetting");
                 hide("tiltConfig");
                 hide("beeperControl");
-                show("useAssistNowCheckbox");
                 show("measurementRateInput");
                 hide("mosaicNMEAStreamDropdowns");
                 show("surveyInSettings");
+
                 show("useLocalizedDistributionCheckbox");
                 show("useEnableExtCorrRadio");
                 show("extCorrRadioSPARTNSourceDropdown");
                 hide("enableNmeaOnRadio");
+
                 hide("shutdownNoChargeTimeoutMinutesCheckboxDetail");
 
                 hide("constellationNavic"); //Not supported on ZED
@@ -145,7 +146,6 @@ function parseIncoming(msg) {
                 hide("galileoHasSetting");
                 hide("tiltConfig");
                 hide("beeperControl");
-                show("useAssistNowCheckbox");
                 show("measurementRateInput");
                 hide("mosaicNMEAStreamDropdowns");
                 show("surveyInSettings");
@@ -167,10 +167,10 @@ function parseIncoming(msg) {
                 hide("galileoHasSetting");
                 hide("tiltConfig");
                 hide("beeperControl");
-                hide("useAssistNowCheckbox");
                 hide("measurementRateInput");
                 show("mosaicNMEAStreamDropdowns");
                 hide("surveyInSettings");
+
                 hide("useLocalizedDistributionCheckbox");
                 show("useEnableExtCorrRadio");
                 hide("extCorrRadioSPARTNSourceDropdown");
@@ -222,7 +222,6 @@ function parseIncoming(msg) {
                 hide("constellationSbas"); //Not supported on UM980
                 hide("constellationNavic"); //Not supported on UM980
 
-                show("useAssistNowCheckbox"); //Does the PPL use MGA? Not sure...
                 show("measurementRateInput");
 
                 show("loraConfig");
@@ -256,7 +255,6 @@ function parseIncoming(msg) {
                 hide("tiltConfig");
                 hide("beeperControl");
 
-                show("useAssistNowCheckbox");
                 show("measurementRateInput");
                 hide("mosaicNMEAStreamDropdowns");
                 show("surveyInSettings");
