@@ -58,13 +58,8 @@ PointPerfect corrections are obtained by two methods:
 
 PointPerfect has the following benefits and challenges:
 
-- SparkFun RTK devices require a monthly paid subscription varying from $15 to $50 a month to access to PointPerfect. Please see the product details for your device. 
-	- [RTK EVK Registration](https://www.sparkfun.com/rtk_evk_registration)
-	- [RTK Facet mosaic Registration](https://www.sparkfun.com/rtk_facet_mosaic_registration)
-	- [RTK Postcard Registration](https://www.sparkfun.com/rtk_postcard_registration)
-	- [RTK Torch Registration](https://www.sparkfun.com/rtk_torch_registration)
+- SparkFun RTK devices require a monthly paid subscription varying from $15 to $50 a month to access to PointPerfect. Please see the [registration](#registration) section for details. 
 - Using PointPerfect, a SparkFun RTK device can obtain an RTK Fix anywhere there is [coverage](https://www.u-blox.com/en/pointperfect-service-coverage). It depends on the type of service, but this generally includes the US contiguous 48 states, the EU, Korea, as well as parts of Australia, Brazil, and Canada.
-
 - You don't need to be near a base station - the PPP-RTK model covers entire continents.
 - Because PointPerfect uses a model instead of a dedicated base station, it is cheaper than many alternative correction services. However, the RTK Fix is not as accurate (3-6cm) as compared to getting corrections from a dedicated base station (2cm or better but depends on the baseline distance).
 - Because PointPerfect uses a model instead of a dedicated base station, convergence times (the time to get to RTK Fix) can vary widely. Expect to wait multiple minutes for an RTK Fix, as opposed to corrections from a dedicated that can provide an RTK Fix in seconds.
@@ -73,7 +68,7 @@ PointPerfect has the following benefits and challenges:
 
 ### PointPerfect Flex RTCM/NTRIP
 
-This service is commonly used with cellular hot spots. When this service is enabled, the device will attempt to connect to WiFi. If registration has been completed through SparkFun (see above), the device will be allowed to obtain NTRIP credentials. The NTRIP Client will be automatically turned on, and the device will quickly enter RTK Float, the RTK Fix states. Users report fast fix times with good accuracy.
+This service is commonly used with cellular hot spots. When this service is enabled, the device will attempt to connect to WiFi. If [registration](#registration) has been completed through SparkFun, the device will be allowed to obtain NTRIP credentials. The NTRIP Client will be automatically turned on, and the device will quickly enter RTK Float, the RTK Fix states. Users report fast fix times with good accuracy.
 
 <figure markdown>
 
@@ -87,11 +82,11 @@ In the above image we see the WiFi symbol indicating a high signal strength. The
 
 #### Credentials
 
-PointPerfect Flex RTCM/NTRIP service uses a standard NTRIP interface to obtain corrections. Once registered, to gain access to the PointPerfect system, the device must be given WiFi. The RTK device will automatically obtain **credentials**. These credentials will be copied into the NTRIP Client, and the NTRIP Client will be turned on. The device will then use WiFi (usually a cellular hot spot) to connect to the PointPerfect NTRIP Caster and begin providing the SparkFun RTK device with corrections. Within a few seconds, the device should change from RTK Float to RTK Fix.
+PointPerfect Flex RTCM/NTRIP service uses a standard NTRIP interface to obtain corrections. Once [registered](#registration), to gain access to the PointPerfect system, the device must be given WiFi. The RTK device will automatically obtain **credentials**. These credentials will be copied into the NTRIP Client, and the NTRIP Client will be turned on. The device will then use WiFi (usually a cellular hot spot) to connect to the PointPerfect NTRIP Caster and begin providing the SparkFun RTK device with corrections. Within a few seconds, the device should change from RTK Float to RTK Fix.
 
 ### PointPerfect Flex L-Band
 
-When this service is enabled, the device will attempt to connect to WiFi. If registration has been completed through SparkFun (see above), the device will be issued L-Band specific keys and will obtain corrections over an extra signal broadcast by a geosynchronous satellite. The encrypted SPARTN packets are sent through the PointPerfectLibrary (PPL) and RTCM corrections are produced after ~60 seconds. The device will enter RTK Float, the RTK Fix states. Users report variable fix times with ok accuracy (not as good as RTCM service).
+When this service is enabled, the device will attempt to connect to WiFi. If [registration](#registration) has been completed through SparkFun, the device will be issued L-Band specific keys and will obtain corrections over an extra signal broadcast by a geosynchronous satellite. The encrypted SPARTN packets are sent through the PointPerfectLibrary (PPL) and RTCM corrections are produced after ~60 seconds. The device will enter RTK Float, the RTK Fix states. Users report variable fix times with ok accuracy (not as good as RTCM service).
 
 #### Keys
 
@@ -183,12 +178,12 @@ Configuring PointPerfect settings over serial
 
 ## Registration
 
-All SparkFun RTK products can operate in RTK mode out-of-the-box using corrections from a local base or a RTCM provider (see [Correction Sources](correction_sources.md)). If you wish to use PointPerfect corrections, the device must be registered before it is allowed on the PointPerfect network. To facilitate this, please [obtain your device ID](https://docs.sparkfun.com/SparkFun_RTK_Everywhere_Firmware/menu_pointperfect/#obtaining-the-device-id) through the software interface and visit the registration page associated with your device:
+All SparkFun RTK products can operate in RTK mode out-of-the-box using corrections from a local base or a RTCM provider (see [Correction Sources](correction_sources.md)). If you wish to use PointPerfect corrections, the cost varies from $15 to $50 per month and varies on the service type. The device must be registered before it is allowed on the PointPerfect network. To facilitate this, please [obtain your device ID](https://docs.sparkfun.com/SparkFun_RTK_Everywhere_Firmware/menu_pointperfect/#obtaining-the-device-id) through the software interface and visit the registration page associated with your device:
 
-- **RTK EVK:** please visit the [RTK EVK registration page](https://www.sparkfun.com/rtk_evk_registration)
-- **RTK Facet mosaic:** please visit the [RTK Facet mosaic registration page](https://www.sparkfun.com/rtk_facet_mosaic_registration)
-- **RTK Postcard:** please visit the [RTK Postcard registration page](https://www.sparkfun.com/rtk_postcard_registration)
-- **RTK Torch:** please visit the [RTK Torch registration page](https://www.sparkfun.com/rtk_torch_registration)
+- [RTK EVK registration page](https://www.sparkfun.com/rtk_evk_registration)
+- [RTK Facet mosaic registration page](https://www.sparkfun.com/rtk_facet_mosaic_registration)
+- [RTK Postcard registration page](https://www.sparkfun.com/rtk_postcard_registration)
+- [RTK Torch registration page](https://www.sparkfun.com/rtk_torch_registration)
 
 ## Obtaining the Device ID
 
