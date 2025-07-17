@@ -2844,6 +2844,26 @@ void GNSS_MOSAIC::waitSBFReceiverSetup(unsigned long timeout)
     sempStopParser(&sbfParse);
 }
 
+//----------------------------------------
+// Check if given baud rate is allowed
+//----------------------------------------
+bool GNSS_MOSAIC::baudIsAllowed(uint32_t baudRate)
+{
+    for (int x = 0; x < MAX_MOSAIC_COM_RATES; x++)
+        if (mosaicComRates[x].rate == baudRate) return (true);
+    return (false);
+}
+
+uint32_t GNSS_MOSAIC::baudGetMinimum()
+{
+    return (mosaicComRates[0].rate);
+}
+
+uint32_t GNSS_MOSAIC::baudGetMaximum()
+{
+    return (mosaicComRates[MAX_MOSAIC_COM_RATES - 1].rate);
+}
+
 //==========================================================================
 // Parser support routines
 //==========================================================================

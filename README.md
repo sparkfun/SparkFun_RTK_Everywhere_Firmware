@@ -5,27 +5,38 @@ The line of RTK Everywhere products offered by SparkFun all run identical firmwa
 
 <table class="table table-hover table-striped table-bordered">
 	<tr align="center">
-		<td><a href="https://www.sparkfun.com/catalog/product/view/id/25662"><img src="docs/img/SparkFun_RTK_Torch.png"></a></td>
-		<td><a href="https://www.sparkfun.com/catalog/product/view/id/24342"><img src="docs/img/SparkFun_RTK_EVK.png"></a></td>
-		<td><a href="https://www.sparkfun.com/catalog/product/view/id/26916"><img src="docs/img/SparkFun_RTK_Postcard_Small.png"></a></td>
+		<td><a href="https://www.sparkfun.com/sparkfun-rtk-evk.html"><img src="docs/img/SparkFun_RTK_EVK.png"></a></td>
+		<td><a href="https://www.sparkfun.com/sparkpnt-rtk-facet-mosaic-l-band.html"><img src="docs/img/SparkFun-RTK-Facet-Mosaic-L-Band.png"></a></td>
 	</tr>
 	<tr align="center">
-		<td><a href="https://www.sparkfun.com/catalog/product/view/id/25662">SparkFun RTK Torch (GPS-25662)</a></td>
-		<td><a href="https://www.sparkfun.com/catalog/product/view/id/24342">SparkFun RTK EVK (GPS-24342)</a></td>
-		<td><a href="https://www.sparkfun.com/catalog/product/view/id/26919">SparkFun RTK Postcard (GPS-26916)</a></td>
+		<td><a href="https://www.sparkfun.com/sparkfun-rtk-evk.html">SparkFun RTK EVK (GPS-24342)</a></td>
+		<td><a href="https://www.sparkfun.com/sparkpnt-rtk-facet-mosaic-l-band.html">SparkFun RTK Facet mosaic (GPS-24903)</a></td>
 	</tr>
 	<tr align="center">
-		<td><a href="https://docs.sparkfun.com/SparkFun_RTK_Torch/">Hookup Guide</a></td>
 		<td><a href="https://docs.sparkfun.com/SparkFun_RTK_EVK/">Hookup Guide</a></td>
+		<td><a href="https://docs.sparkfun.com/SparkFun_RTK_Facet_mosaic/">Hookup Guide</a></td>
+	</tr>
+	<tr align="center">
+		<td><a href="https://www.sparkfun.com/sparkfun-rtk-postcard.html"><img src="docs/img/SparkFun_RTK_Postcard_Small.png"></a></td>
+		<td><a href="https://www.sparkfun.com/products/25662"><img src="docs/img/SparkFun_RTK_Torch.png"></a></td>
+	</tr>
+	<tr align="center">
+		<td><a href="https://www.sparkfun.com/sparkfun-rtk-postcard.html">SparkFun RTK Postcard (GPS-26916)</a></td>
+		<td><a href="https://www.sparkfun.com/products/25662">SparkFun RTK Torch (GPS-25662)</a></td>
+	</tr>
+	<tr align="center">
 		<td><a href="https://docs.sparkfun.com/SparkFun_RTK_Postcard/">Hookup Guide</a></td>
+		<td><a href="https://docs.sparkfun.com/SparkFun_RTK_Torch/">Hookup Guide</a></td>
 	</tr>
 </table>
 
-The [SparkFun RTK Torch](https://www.sparkfun.com/products/25662) is a centimeter-level GNSS receiver. With RTK enabled, these devices can output your location with 8mm horizontal and vertical [*accuracy*](https://docs.sparkfun.com/SparkFun_RTK_Everywhere_Firmware/accuracy_verification/) at up to 20Hz. It supports Galileo E6 HAS and has built-in tilt compensation too!
-
 The [SparkFun RTK EVK](https://www.sparkfun.com/products/24342) is the perfect development platform for your fixed or mobile high-precision positioning and navigation needs. We called it the EVK (Evaluation Kit) as it truly covers all the options: L1 + L2 RTK GNSS, with L-Band correction built-in. Regarding connectivity, the SparkFun RTK EVK has it all: WiFi / Bluetooth®, Ethernet and LTE cellular!
 
+The [SparkFun RTK Facet mosaic](https://www.sparkfun.com/sparkpnt-rtk-facet-mosaic-l-band.html) is the gold standard. Featuring the mosaic-X5 GNSS module from Septentrio, the Facet mosaic can track all GNSS constellations and their current and future signals including L-Band. In the contiguous USA and with a subscription to u-blox PointPerfect, the Facet mosaic can deliver centimeter accuracy in areas with no cellular coverage and without needing corrections from a RTK Base.
+
 The [SparkFun RTK Postcard](https://www.sparkfun.com/products/26916) is a scalable DIY RTK device capable of running the RTK Everywhere Firmware. The LG290P RTK module lives at the heart of the RTK Postcard providing 10mm accuracy and L1/L2/L5 reception. Add the [Portability Shield](https://www.sparkfun.com/sparkfun-portability-shield.html) to add a display, battery charging and logging.
+
+The [SparkFun RTK Torch](https://www.sparkfun.com/products/25662) is a centimeter-level GNSS receiver. With RTK enabled, these devices can output your location with 8mm horizontal and vertical [*accuracy*](https://docs.sparkfun.com/SparkFun_RTK_Everywhere_Firmware/accuracy_verification/) at up to 20Hz. It supports Galileo E6 HAS and has built-in tilt compensation too!
 
 This repo houses the [RTK Product Manual](https://docs.sparkfun.com/SparkFun_RTK_Everywhere_Firmware) and the firmware that runs on the SparkFun RTK product line including:
 

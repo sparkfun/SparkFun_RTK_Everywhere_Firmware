@@ -1828,7 +1828,7 @@ struct struct_online
     bool i2c = false;
     bool lband_gnss = false;
     bool lband_neo = false;
-    bool lbandCorrections = false;
+    bool pointPerfectKeysApplied = false;
     bool logging = false;
     bool loraRadio = false;
     bool microSD = false;

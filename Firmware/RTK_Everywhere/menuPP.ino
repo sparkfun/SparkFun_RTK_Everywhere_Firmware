@@ -86,7 +86,7 @@ const int ppServiceCount = sizeof(ppServices) / sizeof(ppServices[0]);
 void menuPointPerfect()
 {
     uint8_t pointPerfectServiceOnEntry = settings.pointPerfectService;
-    
+
     while (1)
     {
         systemPrintln();
@@ -290,7 +290,7 @@ void menuPointPerfect()
             printUnknown(incoming);
     }
 
-    if (strlen(settings.pointPerfectClientID) > 0)
+    if ((strlen(settings.pointPerfectClientID) > 0) && (pointPerfectServiceUsesKeys() == true))
     {
         gnss->applyPointPerfectKeys();
     }
@@ -338,7 +338,8 @@ void menuPointPerfectSelectService()
                 settings.pointPerfectService = incoming - 1; // Align incoming to array
 
                 restartRover = true; // Require a rover restart to enable / disable RTCM for PPL
-                settings.requestKeyUpdate = settings.pointPerfectService != PP_NICKNAME_DISABLED; // Force a key update - or don't
+                settings.requestKeyUpdate =
+                    settings.pointPerfectService != PP_NICKNAME_DISABLED; // Force a key update - or don't
 
                 break; // Exit menu once selected
             }
@@ -627,7 +628,7 @@ void updateLBand()
             if (strncmp(previousKey, settings.pointPerfectCurrentKey, 33) != 0)
             {
                 strncpy(previousKey, settings.pointPerfectCurrentKey, 33);
-                gnss->applyPointPerfectKeys(); // Apply keys now. This sets online.lbandCorrections
+                gnss->applyPointPerfectKeys(); // Apply keys now.
                 if (settings.debugCorrections == true)
                     systemPrintln("ZED-F9P PointPerfect keys applied");
             }
@@ -741,7 +742,7 @@ void updateLBandCorrections()
     static unsigned long lbandTimeFloatStarted; // Monitors the ZED during L-Band reception if a fix takes too long
 
 #ifdef COMPILE_L_BAND
-    if (online.lbandCorrections == true)
+    if ((online.lband_neo == true) && (pointPerfectLbandNeeded() == true) && (online.pointPerfectKeysApplied == true))
     {
         i2cLBand.checkUblox();     // Check for the arrival of new PMP data and process it.
         i2cLBand.checkCallbacks(); // Check if any L-Band callbacks are waiting to be processed.
@@ -1129,7 +1130,7 @@ void pointperfectCreateTokenString(char *tokenBuffer, uint8_t *tokenArray, int t
     for (int x = 0; x < tokenArrayLength; x++)
     {
         char temp[3];
-        snprintf(temp, sizeof(temp), "%02x", tokenArray[x]); //Tokens are case sensitive. Must be lower case.
+        snprintf(temp, sizeof(temp), "%02x", tokenArray[x]); // Tokens are case sensitive. Must be lower case.
         strcat(tokenBuffer, temp);
         if (x == 3 || x == 5 || x == 7 || x == 9)
             strcat(tokenBuffer, "-");

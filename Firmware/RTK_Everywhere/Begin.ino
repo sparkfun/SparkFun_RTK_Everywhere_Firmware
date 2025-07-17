@@ -212,7 +212,7 @@ void beginBoard()
         present.button_powerHigh = true; // Button is pressed when high
         present.beeper = true;
         present.gnss_to_uart = true;
-        present.needsExternalPpl = true;       // Uses the PointPerfect Library
+        present.needsExternalPpl = true; // Uses the PointPerfect Library
         present.galileoHasCapable = true;
         present.multipathMitigation = true; // UM980 has MPM, other platforms do not
         present.minCno = true;
@@ -702,10 +702,10 @@ void beginBoard()
         present.gpioExpander = true;
         present.microSdCardDetectGpioExpanderHigh = true; // CD is on GPIO 5 of expander. High = SD in place.
 
-        //We can't enable here because we don't know if lg290pFirmwareVersion is >= v05
-        //present.minElevation = true;
-        //present.minCno = true;
-        
+        // We can't enable here because we don't know if lg290pFirmwareVersion is >= v05
+        // present.minElevation = true;
+        // present.minCno = true;
+
         pin_I2C0_SDA = 7;
         pin_I2C0_SCL = 20;
 
@@ -723,7 +723,7 @@ void beginBoard()
         pin_gpioExpanderInterrupt = 14; // Pin 'AOI' (Analog Output Input) on Portability Shield
 
         pin_bluetoothStatusLED = 4; // Blue LED
-        pin_gnssStatusLED = 0; // Green LED
+        pin_gnssStatusLED = 0;      // Green LED
 
         // Turn on Bluetooth and GNSS LEDs to indicate power on
         pinMode(pin_bluetoothStatusLED, OUTPUT);
@@ -735,8 +735,6 @@ void beginBoard()
 
         pinMode(pin_GNSS_Reset, OUTPUT);
         lg290pBoot(); // Tell LG290P to boot
-
-        settings.dataPortBaud = (115200 * 4); // Override settings. LG290P communicates at 460800bps.
 
         // Disable the microSD card
         pinMode(pin_microSD_CS, OUTPUT);
@@ -1029,12 +1027,6 @@ void pinGnssUartTask(void *pvParameters)
     if (settings.printTaskStartStop)
         systemPrintln("Task pinGnssUartTask started");
 
-    if (productVariant == RTK_TORCH)
-    {
-        // Override user setting. Required because beginGnssUart() is called before beginBoard().
-        settings.dataPortBaud = 115200;
-    }
-
     if (serialGNSS == nullptr)
         serialGNSS = new HardwareSerial(2); // Use UART2 on the ESP32 for communication with the GNSS module
 
@@ -1044,9 +1036,24 @@ void pinGnssUartTask(void *pvParameters)
     if (pin_GnssUart_RX == -1 || pin_GnssUart_TX == -1)
         reportFatalError("Illegal UART pin assignment.");
 
-    serialGNSS->begin(settings.dataPortBaud, SERIAL_8N1, pin_GnssUart_RX,
-                      pin_GnssUart_TX); // Start UART on platform depedent pins for SPP. The GNSS will be configured
-                                        // to output NMEA over its UART at the same rate.
+    uint32_t platformGnssCommunicationRate =
+        settings.dataPortBaud; // Default to 230400bps for ZED. This limits GNSS fixes at 4Hz but allows SD buffer to be
+                               // reduced to 6k.
+
+    if (productVariant == RTK_TORCH)
+    {
+        // Override user setting. Required because beginGnssUart() is called before beginBoard().
+        platformGnssCommunicationRate = 115200;
+    }
+    else if (productVariant == RTK_POSTCARD)
+    {
+        // LG290P communicates at 460800bps.
+        platformGnssCommunicationRate = 115200 * 4;
+    }
+
+    serialGNSS->begin(platformGnssCommunicationRate, SERIAL_8N1, pin_GnssUart_RX,
+                      pin_GnssUart_TX); // Start UART on platform dependent pins for SPP. The GNSS will be
+                                        // configured to output NMEA over its UART at the same rate.
 
     // Reduce threshold value above which RX FIFO full interrupt is generated
     // Allows more time between when the UART interrupt occurs and when the FIFO buffer overruns

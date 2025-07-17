@@ -47,6 +47,17 @@ class GNSS_None : public GNSS
     {
     }
 
+    // Check if a given baud rate is supported by this module
+    bool baudIsAllowed(uint32_t baudRate) {
+        return false;
+    }
+    uint32_t baudGetMinimum() {
+        return 0;
+    }
+    uint32_t baudGetMaximum() {
+        return 0;
+    }
+
     // Connect to GNSS and identify particulars
     void begin()
     {

@@ -135,7 +135,7 @@ To get millimeter accuracy we need to provide the RTK unit with correction value
 1. Create an account on [PointOneNav](https://app.pointonenav.com/trial?src=sparkfun).
 
 	!!! note
-		This service costs $50 per month at the time of writing.
+		This service costs $125/month for "True RTK" at the time of writing.
 
 2. Open SW Maps and connect to the RTK device over Bluetooth.
 

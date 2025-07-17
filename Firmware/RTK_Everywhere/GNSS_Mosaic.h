@@ -618,6 +618,11 @@ class GNSS_MOSAIC : GNSS
     // Reset to Low Bandwidth Link (MSM4 0.5Hz & 1005/1033 0.1Hz)
     void baseRtcmLowDataRate();
 
+    // Check if a given baud rate is supported by this module
+    bool baudIsAllowed(uint32_t baudRate);
+    uint32_t baudGetMinimum();
+    uint32_t baudGetMaximum();
+    
     // Connect to GNSS and identify particulars
     void begin();
 

@@ -89,12 +89,11 @@ void menuPortsNoMux()
 
         if (incoming == 1)
         {
-            systemPrint("Enter baud rate (4800 to 921600) for Radio Port: ");
+            systemPrintf("Enter baud rate (%d to %d) for Radio Port: ", gnss->baudGetMinimum(), gnss->baudGetMaximum());
             int newBaud = getUserInputNumber(); // Returns EXIT, TIMEOUT, or long
             if ((newBaud != INPUT_RESPONSE_GETNUMBER_EXIT) && (newBaud != INPUT_RESPONSE_GETNUMBER_TIMEOUT))
             {
-                if (newBaud == 4800 || newBaud == 9600 || newBaud == 19200 || newBaud == 38400 || newBaud == 57600 ||
-                    newBaud == 115200 || newBaud == 230400 || newBaud == 460800 || newBaud == 921600)
+                if (gnss->baudIsAllowed(newBaud))
                 {
                     settings.radioPortBaud = newBaud;
                     if (online.gnss == true)
@@ -108,12 +107,11 @@ void menuPortsNoMux()
         }
         else if (incoming == 2)
         {
-            systemPrint("Enter baud rate (4800 to 921600) for Data Port: ");
+            systemPrintf("Enter baud rate (%d to %d) for Data Port: ", gnss->baudGetMinimum(), gnss->baudGetMaximum());
             int newBaud = getUserInputNumber(); // Returns EXIT, TIMEOUT, or long
             if ((newBaud != INPUT_RESPONSE_GETNUMBER_EXIT) && (newBaud != INPUT_RESPONSE_GETNUMBER_TIMEOUT))
             {
-                if (newBaud == 4800 || newBaud == 9600 || newBaud == 19200 || newBaud == 38400 || newBaud == 57600 ||
-                    newBaud == 115200 || newBaud == 230400 || newBaud == 460800 || newBaud == 921600)
+                if (gnss->baudIsAllowed(newBaud))
                 {
                     settings.dataPortBaud = newBaud;
                     if (online.gnss == true)
@@ -166,7 +164,7 @@ void menuPortsNoMux()
         else
             restartBase = true;
     }
-#endif // COMPILE_MOSAICX5
+#endif // COMPILE_LG290P
 
     clearBuffer(); // Empty buffer of any newline chars
 }
@@ -229,12 +227,11 @@ void menuPortsMultiplexed()
 
         if (incoming == 1)
         {
-            systemPrint("Enter baud rate (4800 to 921600) for Radio Port: ");
+            systemPrintf("Enter baud rate (%d to %d) for Radio Port: ", gnss->baudGetMinimum(), gnss->baudGetMaximum());
             int newBaud = getUserInputNumber(); // Returns EXIT, TIMEOUT, or long
             if ((newBaud != INPUT_RESPONSE_GETNUMBER_EXIT) && (newBaud != INPUT_RESPONSE_GETNUMBER_TIMEOUT))
             {
-                if (newBaud == 4800 || newBaud == 9600 || newBaud == 19200 || newBaud == 38400 || newBaud == 57600 ||
-                    newBaud == 115200 || newBaud == 230400 || newBaud == 460800 || newBaud == 921600)
+                if (gnss->baudIsAllowed(newBaud))
                 {
                     settings.radioPortBaud = newBaud;
                     if (online.gnss == true)
@@ -267,12 +264,11 @@ void menuPortsMultiplexed()
         }
         else if (incoming == 3 && settings.dataPortChannel == MUX_GNSS_UART)
         {
-            systemPrint("Enter baud rate (4800 to 921600) for Data Port: ");
+            systemPrintf("Enter baud rate (%d to %d) for Data Port: ", gnss->baudGetMinimum(), gnss->baudGetMaximum());
             int newBaud = getUserInputNumber(); // Returns EXIT, TIMEOUT, or long
             if ((newBaud != INPUT_RESPONSE_GETNUMBER_EXIT) && (newBaud != INPUT_RESPONSE_GETNUMBER_TIMEOUT))
             {
-                if (newBaud == 4800 || newBaud == 9600 || newBaud == 19200 || newBaud == 38400 || newBaud == 57600 ||
-                    newBaud == 115200 || newBaud == 230400 || newBaud == 460800 || newBaud == 921600)
+                if (gnss->baudIsAllowed(newBaud))
                 {
                     settings.dataPortBaud = newBaud;
                     if (online.gnss == true)

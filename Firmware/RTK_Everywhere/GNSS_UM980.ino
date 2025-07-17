@@ -1904,6 +1904,31 @@ bool GNSS_UM980::surveyInStart()
 }
 
 //----------------------------------------
+// Check if given baud rate is allowed
+//----------------------------------------
+const uint32_t um980AllowedRates[] = {9600, 19200, 38400, 57600, 115200, 230400, 460800, 921600};
+const int um980AllowedRatesCount = sizeof(um980AllowedRates) / sizeof(um980AllowedRates[0]);
+
+bool GNSS_UM980::baudIsAllowed(uint32_t baudRate)
+{
+    for (int x = 0; x < um980AllowedRatesCount; x++)
+        if (um980AllowedRates[x] == baudRate)
+            return (true);
+    return (false);
+}
+
+uint32_t GNSS_UM980::baudGetMinimum()
+{
+    return (um980AllowedRates[0]);
+}
+
+uint32_t GNSS_UM980::baudGetMaximum()
+{
+    return (um980AllowedRates[um980AllowedRatesCount - 1]);
+}
+
+
+//----------------------------------------
 // If we have received serial data from the UM980 outside of the Unicore library (ie, from processUart1Message task)
 // we can pass data back into the Unicore library to allow it to update its own variables
 //----------------------------------------

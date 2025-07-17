@@ -175,6 +175,7 @@ void webServerStop() {}
 void webServerUpdate()  {}
 void webServerVerifyTables() {}
 void wifiSettingsClone() {}
+bool webServerIsRunning() {return false;}
 
 #endif  // COMPILE_AP
 

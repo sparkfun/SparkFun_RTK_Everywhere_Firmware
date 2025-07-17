@@ -395,6 +395,11 @@ class GNSS_ZED : GNSS
     // Reset to Low Bandwidth Link (1074/1084/1094/1124 0.5Hz & 1005/1230 0.1Hz)
     virtual void baseRtcmLowDataRate();
 
+    // Check if a given baud rate is supported by this module
+    bool baudIsAllowed(uint32_t baudRate);
+    uint32_t baudGetMinimum();
+    uint32_t baudGetMaximum();
+
     // Connect to GNSS and identify particulars
     void begin();
 

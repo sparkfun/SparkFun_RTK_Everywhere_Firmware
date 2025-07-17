@@ -212,6 +212,9 @@ function parseIncoming(msg) {
                 hide("ethernetConfig");
                 hide("ntpConfig");
                 show("portsConfig");
+
+                // No RADIO port on Torch
+                // No DATA port on Torch
                 hide("externalPortOptions");
 
                 hide("logToSDCard");
@@ -275,6 +278,33 @@ function parseIncoming(msg) {
                 let newOption = new Option('Disabled', '0');
                 select.add(newOption, undefined);
                 newOption = new Option('Flex NTRIP/RTCM', '1');
+                select.add(newOption, undefined);
+
+                console.log("Change baud list");
+                ge("radioPortBaud").options.length = 0; //Remove all from list
+                select = ge("radioPortBaud");
+                newOption = new Option('9600', '9600');
+                select.add(newOption, undefined);
+                newOption = new Option('115200', '115200');
+                select.add(newOption, undefined);
+                newOption = new Option('230400', '230400');
+                select.add(newOption, undefined);
+                newOption = new Option('460800', '460800');
+                select.add(newOption, undefined);
+                newOption = new Option('921600', '921600');
+                select.add(newOption, undefined);
+
+                ge("dataPortBaud").options.length = 0; //Remove all from list
+                select = ge("dataPortBaud");
+                newOption = new Option('9600', '9600');
+                select.add(newOption, undefined);
+                newOption = new Option('115200', '115200');
+                select.add(newOption, undefined);
+                newOption = new Option('230400', '230400');
+                select.add(newOption, undefined);
+                newOption = new Option('460800', '460800');
+                select.add(newOption, undefined);
+                newOption = new Option('921600', '921600');
                 select.add(newOption, undefined);
             }
         }

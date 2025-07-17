@@ -12,8 +12,9 @@ Compatibility Icons
 <div class="grid cards fill" markdown>
 
 - EVK: :material-radiobox-marked:{ .support-full title="Feature Supported" }
+- Facet mosaic: :material-radiobox-marked:{ .support-full title="Feature Supported" }
 - Postcard: :material-radiobox-marked:{ .support-full title="Feature Supported" }
-- Torch: [:material-radiobox-blank:{ .support-none }]( title ="Feature Not Supported" )
+- Torch: :material-radiobox-blank:{ .support-none title="Feature Not Supported" }
 
 </div>
 
@@ -151,8 +152,9 @@ Compatibility Icons
 <div class="grid cards fill" markdown>
 
 - EVK: :material-radiobox-marked:{ .support-full title="Feature Supported" }
-- Postcard: [:material-radiobox-blank:{ .support-none }]( title ="Feature Not Supported" )
-- Torch: [:material-radiobox-blank:{ .support-none }]( title ="Feature Not Supported" )
+- Facet mosaic: :material-radiobox-marked:{ .support-full title="Feature Supported" }
+- Postcard: :material-radiobox-blank:{ .support-none title="Feature Not Supported" }
+- Torch: :material-radiobox-blank:{ .support-none title="Feature Not Supported" }
 
 </div>
 
@@ -197,8 +199,9 @@ Compatibility Icons
 <div class="grid cards fill" markdown>
 
 - EVK: :material-radiobox-marked:{ .support-full title="Feature Supported" }
-- Postcard: [:material-radiobox-blank:{ .support-none }]( title ="Feature Not Supported" )
-- Torch: [:material-radiobox-blank:{ .support-none }]( title ="Feature Not Supported" )
+- Facet mosaic: :material-radiobox-indeterminate-variant:{ .support-partial title="Feature Partially Supported" }
+- Postcard: :material-radiobox-blank:{ .support-none title="Feature Not Supported" }
+- Torch: :material-radiobox-blank:{ .support-none title="Feature Not Supported" }
 
 </div>
 
@@ -215,5 +218,51 @@ RTK EVK with the GNSS antenna disconnected (open circuit)
 ![RTK EVK indicating antenna short circuit](./img/Displays/SparkFun-RTK-EVK-OLED_Antenna_Short_Highlighted.jpg)
 <figcaption markdown>
 RTK EVK with a GNSS antenna cable fault (short circuit)
+</figcaption>
+</figure>
+
+The RTK Facet mosaic hardware supports antenna detection, however, at the time of writing, the RTK Everywhere firmware does not. We plan to add this feature in the near future.
+
+## Corrections Source Icons
+
+The RTK Everywhere Firmware will display an additional icon to show which corrections source is currently providing RTK corrections. If multiple corrections sources are active, the icon shows which source has priority. Please see [Corrections Priorities](./menu_corrections_priorities.md) for more information on how to prioritise the corrections sources.
+
+The corrections source icon will appear on the bottom row of the OLED display, just left of the logging icon.
+
+In the 1.3" screenshot below, RTK corrections are being delivered by PointPerfect over IP / MQTT:
+
+<figure markdown>
+![RTK Everywhere corrections source icon](./img/Corrections/SparkFun%20RTK%20Corrections%20Source%20Icon.png)
+<figcaption markdown>
+RTK Everywhere - with PointPerfect (IP / MQTT) corrections
+</figcaption>
+</figure>
+
+In the 0.96" screenshot below, RTK corrections are being delivered by NTRIP (RTK2go / SNIP):
+
+<figure markdown>
+![RTK Everywhere corrections source icon](./img/Corrections/SparkFun%20RTK%20Corrections%20Source%20Icon%2064x48.png)
+<figcaption markdown>
+RTK Everywhere - with NTRIP (RTK2go / SNIP) corrections
+</figcaption>
+</figure>
+
+Each corrections source has a unique icon:
+
+From left to right: External Radio; ESP-Now; LoRa Radio; Bluetooth
+
+<figure markdown>
+![RTK Everywhere corrections source icons](./img/Corrections/SparkFun%20RTK%20Corrections%20Source%20Icons%201.png)
+<figcaption markdown>
+RTK Everywhere corrections source icons
+</figcaption>
+</figure>
+
+From left to right: USB Serial; TCP (NTRIP); L-Band; IP (PointPerfect/MQTT)
+
+<figure markdown>
+![RTK Everywhere corrections source icons](./img/Corrections/SparkFun%20RTK%20Corrections%20Source%20Icons%202.png)
+<figcaption markdown>
+RTK Everywhere corrections source icons
 </figcaption>
 </figure>
