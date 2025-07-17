@@ -11,7 +11,7 @@ HTTP_Client.ino
 ------------------------------------------------------------------------------*/
 
 ZtpResponse ztpResponse =
-    ZTP_NOT_STARTED; // Used in menuPP. This is the overall result of the ZTP process of testing multiple tokens
+    ZTP_NOT_STARTED; // Used in menuPointPerfect(). This is the overall result of the ZTP process of testing multiple tokens
 
 #ifdef COMPILE_HTTP_CLIENT
 
