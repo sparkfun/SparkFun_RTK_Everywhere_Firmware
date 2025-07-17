@@ -328,7 +328,8 @@ int startCurrentLogTime_minutes;
 
 // System crashes if two tasks access a file at the same time
 // So we use a semaphore to see if the file system is available
-SemaphoreHandle_t sdCardSemaphore;
+// https://github.com/espressif/arduino-esp32/blob/master/libraries/ESP32/examples/FreeRTOS/Mutex/Mutex.ino#L11
+SemaphoreHandle_t sdCardSemaphore = NULL;
 TickType_t loggingSemaphoreWait_ms = 10 / portTICK_PERIOD_MS;
 const TickType_t fatSemaphore_shortWait_ms = 10 / portTICK_PERIOD_MS;
 const TickType_t fatSemaphore_longWait_ms = 200 / portTICK_PERIOD_MS;

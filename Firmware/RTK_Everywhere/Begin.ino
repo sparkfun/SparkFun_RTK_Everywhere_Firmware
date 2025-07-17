@@ -846,7 +846,7 @@ void beginSD()
     while (settings.enableSD == true)
     {
         // Setup SD card access semaphore
-        if (sdCardSemaphore == nullptr)
+        if (sdCardSemaphore == NULL)
             sdCardSemaphore = xSemaphoreCreateMutex();
         else if (xSemaphoreTake(sdCardSemaphore, fatSemaphore_shortWait_ms) != pdPASS)
         {
