@@ -1493,43 +1493,46 @@ void logUpdate()
         // Record any pending trigger events
         if (newEventToRecord == true)
         {
-            if (settings.enablePrintLogFileStatus)
-                systemPrintln("Log file: recording event");
-
-            // Record trigger count with Time Of Week of rising edge (ms), Millisecond fraction of Time Of Week of
-            // rising edge (ns), and accuracy estimate (ns)
-            char eventData[82]; // Max NMEA sentence length is 82
-            snprintf(eventData, sizeof(eventData), "%d,%d,%d,%d", triggerCount, triggerTowMsR, triggerTowSubMsR,
-                     triggerAccEst);
-
-            char nmeaMessage[82]; // Max NMEA sentence length is 82
-            createNMEASentence(CUSTOM_NMEA_TYPE_EVENT, nmeaMessage, sizeof(nmeaMessage),
-                               eventData); // textID, buffer, sizeOfBuffer, text
-
-            if (xSemaphoreTake(sdCardSemaphore, fatSemaphore_shortWait_ms) == pdPASS)
+            if (webServerIsRunning() == false) // Don't try to access the SD if the web server is running
             {
-                markSemaphore(FUNCTION_EVENT);
+                if (settings.enablePrintLogFileStatus)
+                    systemPrintln("Log file: recording event");
 
-                if (logFile)
+                // Record trigger count with Time Of Week of rising edge (ms), Millisecond fraction of Time Of Week of
+                // rising edge (ns), and accuracy estimate (ns)
+                char eventData[82]; // Max NMEA sentence length is 82
+                snprintf(eventData, sizeof(eventData), "%d,%d,%d,%d", triggerCount, triggerTowMsR, triggerTowSubMsR,
+                        triggerAccEst);
+
+                char nmeaMessage[82]; // Max NMEA sentence length is 82
+                createNMEASentence(CUSTOM_NMEA_TYPE_EVENT, nmeaMessage, sizeof(nmeaMessage),
+                                eventData); // textID, buffer, sizeOfBuffer, text
+
+                if (xSemaphoreTake(sdCardSemaphore, fatSemaphore_shortWait_ms) == pdPASS)
                 {
-                    logFile->sync(); // Sync any partially written data
-                    logFile->println(nmeaMessage);
-                    logFile->sync();
+                    markSemaphore(FUNCTION_EVENT);
+
+                    if (logFile)
+                    {
+                        logFile->sync(); // Sync any partially written data
+                        logFile->println(nmeaMessage);
+                        logFile->sync();
+                    }
+
+                    xSemaphoreGive(sdCardSemaphore);
+                    newEventToRecord = false;
                 }
+                else
+                {
+                    char semaphoreHolder[50];
+                    getSemaphoreFunction(semaphoreHolder);
 
-                xSemaphoreGive(sdCardSemaphore);
-                newEventToRecord = false;
-            }
-            else
-            {
-                char semaphoreHolder[50];
-                getSemaphoreFunction(semaphoreHolder);
-
-                // While a retry does occur during the next loop, it is possible to lose
-                // trigger events if they occur too rapidly or if the log file is closed
-                // before the trigger event is written!
-                log_w("sdCardSemaphore failed to yield, held by %s, RTK_Everywhere.ino line %d", semaphoreHolder,
-                      __LINE__);
+                    // While a retry does occur during the next loop, it is possible to lose
+                    // trigger events if they occur too rapidly or if the log file is closed
+                    // before the trigger event is written!
+                    log_w("sdCardSemaphore failed to yield, held by %s, RTK_Everywhere.ino line %d", semaphoreHolder,
+                        __LINE__);
+                }
             }
         }
 
@@ -1538,46 +1541,49 @@ void logUpdate()
             ((millis() - lastARPLog) > (settings.ARPLoggingInterval_s * 1000)))
         {
             lastARPLog = millis();
-            newARPAvailable = false;
+            newARPAvailable = false; // Clear flag. It doesn't matter if the ARP cannot be logged
 
-            double x = ARPECEFX;
-            x /= 10000.0; // Convert to m
-            double y = ARPECEFY;
-            y /= 10000.0; // Convert to m
-            double z = ARPECEFZ;
-            z /= 10000.0; // Convert to m
-            double h = ARPECEFH;
-            h /= 10000.0;     // Convert to m
-            char ARPData[82]; // Max NMEA sentence length is 82
-            snprintf(ARPData, sizeof(ARPData), "%.4f,%.4f,%.4f,%.4f", x, y, z, h);
-
-            if (settings.enablePrintLogFileStatus)
-                systemPrintf("Log file: recording Antenna Reference Position %s\r\n", ARPData);
-
-            char nmeaMessage[82]; // Max NMEA sentence length is 82
-            createNMEASentence(CUSTOM_NMEA_TYPE_ARP_ECEF_XYZH, nmeaMessage, sizeof(nmeaMessage),
-                               ARPData); // textID, buffer, sizeOfBuffer, text
-
-            if (xSemaphoreTake(sdCardSemaphore, fatSemaphore_shortWait_ms) == pdPASS)
+            if (webServerIsRunning() == false)
             {
-                markSemaphore(FUNCTION_ARPWRITE);
+                double x = ARPECEFX;
+                x /= 10000.0; // Convert to m
+                double y = ARPECEFY;
+                y /= 10000.0; // Convert to m
+                double z = ARPECEFZ;
+                z /= 10000.0; // Convert to m
+                double h = ARPECEFH;
+                h /= 10000.0;     // Convert to m
+                char ARPData[82]; // Max NMEA sentence length is 82
+                snprintf(ARPData, sizeof(ARPData), "%.4f,%.4f,%.4f,%.4f", x, y, z, h);
 
-                if (logFile)
+                if (settings.enablePrintLogFileStatus)
+                    systemPrintf("Log file: recording Antenna Reference Position %s\r\n", ARPData);
+
+                char nmeaMessage[82]; // Max NMEA sentence length is 82
+                createNMEASentence(CUSTOM_NMEA_TYPE_ARP_ECEF_XYZH, nmeaMessage, sizeof(nmeaMessage),
+                                ARPData); // textID, buffer, sizeOfBuffer, text
+
+                if (xSemaphoreTake(sdCardSemaphore, fatSemaphore_shortWait_ms) == pdPASS)
                 {
-                    // See #695. This seems to cause the rare ntripClient->read "(pbuf_free: p->ref > 0)" error
-                    logFile->sync(); // Sync any partially written data
-                    logFile->println(nmeaMessage);
-                    logFile->sync();
-                }
+                    markSemaphore(FUNCTION_ARPWRITE);
 
-                xSemaphoreGive(sdCardSemaphore);
-            }
-            else
-            {
-                char semaphoreHolder[50];
-                getSemaphoreFunction(semaphoreHolder);
-                log_w("sdCardSemaphore failed to yield, held by %s, RTK_Everywhere.ino line %d", semaphoreHolder,
-                      __LINE__);
+                    if (logFile)
+                    {
+                        // See #695. This seems to cause the rare ntripClient->read "(pbuf_free: p->ref > 0)" error
+                        logFile->sync(); // Sync any partially written data
+                        logFile->println(nmeaMessage);
+                        logFile->sync();
+                    }
+
+                    xSemaphoreGive(sdCardSemaphore);
+                }
+                else
+                {
+                    char semaphoreHolder[50];
+                    getSemaphoreFunction(semaphoreHolder);
+                    log_w("sdCardSemaphore failed to yield, held by %s, RTK_Everywhere.ino line %d", semaphoreHolder,
+                        __LINE__);
+                }
             }
         }
 

@@ -378,6 +378,8 @@ bool beginLogging(const char *customFileName)
                                    currentDate); // textID, buffer, sizeOfBuffer, text
                 logFile->println(nmeaMessage);
 
+                logFile->sync(); // Sync any partially written data
+
                 if (reuseLastLog == true)
                 {
                     systemPrintln("Appending last available log");
