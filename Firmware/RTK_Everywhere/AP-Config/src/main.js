@@ -1012,10 +1012,10 @@ function validateFields() {
     }
 
     if (ge("enableARPLogging").checked == true) {
-        checkElementValue("ARPLoggingInterval", 1, 600, "Must be 1 to 600", "collapseSystemConfig");
+        checkElementValue("ARPLoggingInterval", 15, 600, "Must be 15 to 600", "collapseSystemConfig");
     }
     else {
-        clearElement("ARPLoggingInterval", 10);
+        clearElement("ARPLoggingInterval", 60);
     }
 
     if (ge("enableAutoFirmwareUpdate").checked == true) {
