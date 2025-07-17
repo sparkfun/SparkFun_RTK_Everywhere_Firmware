@@ -1063,7 +1063,7 @@ void handleGnssDataTask(void *e)
     uint32_t deltaMillis;
     int32_t freeSpace;
     static uint32_t maxMillis[RBC_MAX];
-    uint32_t startMillis;
+    unsigned long startMillis;
     int32_t usedSpace;
 
     // Start notification
@@ -1293,10 +1293,6 @@ void handleGnssDataTask(void *e)
                 {
                     markSemaphore(FUNCTION_WRITESD);
 
-                    // Reduce bytes to record if we have more then the end of the buffer
-                    if ((sdRingBufferTail + bytesToSend) > settings.gnssHandlerBufferSize)
-                        bytesToSend = settings.gnssHandlerBufferSize - sdRingBufferTail;
-
                     if (settings.enablePrintSDBuffers && (!inMainMenu))
                     {
                         int bufferAvailable = serialGNSS->available();
@@ -1309,12 +1305,46 @@ void handleGnssDataTask(void *e)
                                      bufferOverruns);
                     }
 
-                    // Write the data to the file
-                    long startTime = millis();
+                    // For the SD card, we need to write everything we've got
+                    // to prevent the ARP Write and Events from gatecrashing...
+                    
+                    int32_t sendTheseBytes = bytesToSend;
+
+                    // Reduce bytes to record if we have more then the end of the buffer
+                    if ((sdRingBufferTail + sendTheseBytes) > settings.gnssHandlerBufferSize)
+                        sendTheseBytes = settings.gnssHandlerBufferSize - sdRingBufferTail;
+
                     startMillis = millis();
 
-                    bytesToSend = logFile->write(&ringBuffer[sdRingBufferTail], bytesToSend);
-                    if (PERIODIC_DISPLAY(PD_SD_LOG_WRITE) && (bytesToSend > 0))
+                    // Write the data to the file
+                    int32_t bytesSent = logFile->write(&ringBuffer[sdRingBufferTail], sendTheseBytes);
+
+                    if (bytesSent != sendTheseBytes)
+                        systemPrintf("SD write mismatch: wrote %d bytes of %d\r\n", bytesSent, sendTheseBytes);
+
+                    // Account for the sent data or dropped
+                    sdRingBufferTail += sendTheseBytes; // Use sendTheseBytes, not bytesSent. It's the best we can do
+                    if (sdRingBufferTail >= settings.gnssHandlerBufferSize)
+                        sdRingBufferTail -= settings.gnssHandlerBufferSize;
+
+                    // If we have more data to write
+                    if (bytesToSend > sendTheseBytes)
+                    {
+                        sendTheseBytes = bytesToSend - sendTheseBytes;
+
+                        bytesSent = logFile->write(&ringBuffer[sdRingBufferTail], sendTheseBytes);
+
+                        if (bytesSent != sendTheseBytes)
+                            systemPrintf("SD write mismatch: wrote %d bytes of %d\r\n", bytesSent, sendTheseBytes);
+
+                        // Account for the sent data or dropped
+                        sdRingBufferTail += sendTheseBytes; // Use sendTheseBytes, not bytesSent. It's the best we can do
+                        if (sdRingBufferTail >= settings.gnssHandlerBufferSize) // Should be redundant
+                            sdRingBufferTail -= settings.gnssHandlerBufferSize;
+
+                    }
+
+                    if (PERIODIC_DISPLAY(PD_SD_LOG_WRITE) && (bytesSent > 0))
                     {
                         PERIODIC_CLEAR(PD_SD_LOG_WRITE);
                         systemPrintf("SD %d bytes written to log file\r\n", bytesToSend);
@@ -1341,25 +1371,16 @@ void handleGnssDataTask(void *e)
                     deltaMillis = millis() - startMillis;
                     if (maxMillis[RBC_SD_CARD] < deltaMillis)
                         maxMillis[RBC_SD_CARD] = deltaMillis;
-                    long endTime = millis();
 
                     if (settings.enablePrintBufferOverrun)
                     {
-                        if (endTime - startTime > 150)
+                        if (deltaMillis > 150)
                             systemPrintf("Long Write! Time: %ld ms / Location: %ld / Recorded %d bytes / "
                                          "spaceRemaining %d bytes\r\n",
-                                         endTime - startTime, logFileSize, bytesToSend, combinedSpaceRemaining);
+                                         deltaMillis, logFileSize, bytesToSend, combinedSpaceRemaining);
                     }
 
                     xSemaphoreGive(sdCardSemaphore);
-
-                    // Account for the sent data or dropped
-                    if (bytesToSend > 0)
-                    {
-                        sdRingBufferTail += bytesToSend;
-                        if (sdRingBufferTail >= settings.gnssHandlerBufferSize)
-                            sdRingBufferTail -= settings.gnssHandlerBufferSize;
-                    }
                 } // End sdCardSemaphore
                 else
                 {
