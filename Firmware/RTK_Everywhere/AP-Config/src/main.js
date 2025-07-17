@@ -118,7 +118,6 @@ function parseIncoming(msg) {
                 hide("mosaicNMEAStreamDropdowns");
                 show("surveyInSettings");
 
-                show("useLocalizedDistributionCheckbox");
                 show("useEnableExtCorrRadio");
                 show("extCorrRadioSPARTNSourceDropdown");
                 hide("enableNmeaOnRadio");
@@ -149,7 +148,6 @@ function parseIncoming(msg) {
                 show("measurementRateInput");
                 hide("mosaicNMEAStreamDropdowns");
                 show("surveyInSettings");
-                show("useLocalizedDistributionCheckbox");
                 show("useEnableExtCorrRadio");
                 show("extCorrRadioSPARTNSourceDropdown");
                 hide("enableNmeaOnRadio");
@@ -171,7 +169,6 @@ function parseIncoming(msg) {
                 show("mosaicNMEAStreamDropdowns");
                 hide("surveyInSettings");
 
-                hide("useLocalizedDistributionCheckbox");
                 show("useEnableExtCorrRadio");
                 hide("extCorrRadioSPARTNSourceDropdown");
                 show("enableNmeaOnRadio");
@@ -258,7 +255,6 @@ function parseIncoming(msg) {
                 show("measurementRateInput");
                 hide("mosaicNMEAStreamDropdowns");
                 show("surveyInSettings");
-                show("useLocalizedDistributionCheckbox");
                 show("useEnableExtCorrRadio");
                 hide("extCorrRadioSPARTNSourceDropdown");
                 show("enableNmeaOnRadio");
