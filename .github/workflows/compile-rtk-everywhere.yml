@@ -89,12 +89,12 @@ jobs:
           "SparkFun u-blox GNSS v3"@3.1.8
           "SparkFun Qwiic OLED Arduino Library"@1.0.13
           SSLClientESP32@2.0.0
-          "SparkFun Extensible Message Parser"@1.0.2
+          "SparkFun Extensible Message Parser"@1.0.4
           "SparkFun BQ40Z50 Battery Manager Arduino Library"@1.0.0
           "ArduinoMqttClient"@0.1.8
           "SparkFun u-blox PointPerfect Library"@1.11.4
           "SparkFun IM19 IMU Arduino Library"@1.0.1
-          "SparkFun UM980 Triband RTK GNSS Arduino Library"@1.0.4
+          "SparkFun UM980 Triband RTK GNSS Arduino Library"@1.0.5
           "SparkFun LG290P Quadband RTK GNSS Arduino Library"@1.0.8
           "SparkFun I2C Expander Arduino Library"@1.0.1
 
