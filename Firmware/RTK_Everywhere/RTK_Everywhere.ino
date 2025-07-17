@@ -1242,6 +1242,9 @@ void setup()
     DMW_b("gnss->begin");
     gnss->begin(); // Requires settings. Connect to GNSS to get module type
 
+    DMW_b("beginButtons");
+    beginButtons(); // Start task for button monitoring. Needed for beginSD (gpioExpander)
+
     DMW_b("beginSD");
     beginSD(); // Requires settings. Test if SD is present
 
@@ -1285,9 +1288,6 @@ void setup()
 
     DMW_b("beginInterrupts");
     beginInterrupts(); // Begin the TP interrupts
-
-    DMW_b("beginButtons");
-    beginButtons(); // Start task for button monitoring.
 
     DMW_b("beginSystemState");
     beginSystemState(); // Determine initial system state.
@@ -1509,7 +1509,11 @@ void logUpdate()
             {
                 markSemaphore(FUNCTION_EVENT);
 
-                logFile->println(nmeaMessage);
+                if (logFile)
+                {
+                    logFile->println(nmeaMessage);
+                    logFile->sync();
+                }
 
                 xSemaphoreGive(sdCardSemaphore);
                 newEventToRecord = false;
@@ -1556,7 +1560,12 @@ void logUpdate()
             {
                 markSemaphore(FUNCTION_ARPWRITE);
 
-                logFile->println(nmeaMessage);
+                if (logFile)
+                {
+                    // See #695. This seems to cause the rare ntripClient->read "(pbuf_free: p->ref > 0)" error
+                    logFile->println(nmeaMessage);
+                    logFile->sync();
+                }
 
                 xSemaphoreGive(sdCardSemaphore);
             }
