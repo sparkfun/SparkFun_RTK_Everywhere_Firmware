@@ -422,6 +422,7 @@ void endLogging(bool gotSemaphore, bool releaseSemaphore)
             char nmeaMessage[82]; // Max NMEA sentence length is 82
             createNMEASentence(CUSTOM_NMEA_TYPE_PARSER_STATS, nmeaMessage, sizeof(nmeaMessage),
                                parserStats); // textID, buffer, sizeOfBuffer, text
+            logFile->sync(); // Sync any partially written data
             logFile->println(nmeaMessage);
             logFile->sync();
 

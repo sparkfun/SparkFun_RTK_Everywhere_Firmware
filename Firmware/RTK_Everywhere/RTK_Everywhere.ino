@@ -1512,6 +1512,7 @@ void logUpdate()
 
                 if (logFile)
                 {
+                    logFile->sync(); // Sync any partially written data
                     logFile->println(nmeaMessage);
                     logFile->sync();
                 }
@@ -1564,6 +1565,7 @@ void logUpdate()
                 if (logFile)
                 {
                     // See #695. This seems to cause the rare ntripClient->read "(pbuf_free: p->ref > 0)" error
+                    logFile->sync(); // Sync any partially written data
                     logFile->println(nmeaMessage);
                     logFile->sync();
                 }
