@@ -1554,7 +1554,7 @@ void logUpdate()
 
             if (xSemaphoreTake(sdCardSemaphore, fatSemaphore_shortWait_ms) == pdPASS)
             {
-                markSemaphore(FUNCTION_EVENT);
+                markSemaphore(FUNCTION_ARPWRITE);
 
                 logFile->println(nmeaMessage);
 
@@ -1814,6 +1814,9 @@ void getSemaphoreFunction(char *functionName)
         break;
     case FUNCTION_NTPEVENT:
         strcpy(functionName, "NTP Event");
+        break;
+    case FUNCTION_ARPWRITE:
+        strcpy(functionName, "ARP Write");
         break;
     }
 }
