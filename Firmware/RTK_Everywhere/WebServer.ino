@@ -590,8 +590,12 @@ void notFound()
 {
     if (settings.enableCaptivePortal == true && knownCaptiveUrl(webServer->uri()) == true)
     {
-        String logmessage = "Known captive URI: " + webServer->client().remoteIP().toString() + " " + webServer->uri();
-        systemPrintln(logmessage);
+        if (settings.debugWebServer == true)
+        {
+            String logmessage =
+                "Known captive URI: " + webServer->client().remoteIP().toString() + " " + webServer->uri();
+            systemPrintln(logmessage);
+        }
         webServer->sendHeader("Location", "/");
         webServer->send(302, "text/plain", "Redirect to Web Config");
         return;

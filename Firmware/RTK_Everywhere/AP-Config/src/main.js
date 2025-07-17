@@ -280,7 +280,6 @@ function parseIncoming(msg) {
                 newOption = new Option('Flex NTRIP/RTCM', '1');
                 select.add(newOption, undefined);
 
-                console.log("Change baud list");
                 ge("radioPortBaud").options.length = 0; //Remove all from list
                 select = ge("radioPortBaud");
                 newOption = new Option('9600', '9600');
