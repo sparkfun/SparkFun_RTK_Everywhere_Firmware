@@ -138,7 +138,7 @@ static const uint32_t NTRIP_CLIENT_RESPONSE_TIMEOUT = 10 * 1000; // Milliseconds
 static const uint32_t NTRIP_CLIENT_RECEIVE_DATA_TIMEOUT = 30 * 1000; // Milliseconds
 
 // Most incoming data is around 500 bytes but may be larger
-static const int RTCM_DATA_SIZE = 512 * 4;
+static const size_t RTCM_DATA_SIZE = 512 * 4;
 
 // NTRIP client server request buffer size
 static const int SERVER_BUFFER_SIZE = CREDENTIALS_BUFFER_SIZE + 3;
@@ -248,7 +248,7 @@ bool ntripClientConnect()
     length = strlen(serverRequest);
     serverRequest[length++] = '\r';
     serverRequest[length++] = '\n';
-    serverRequest[length++] = 0;
+    serverRequest[length] = 0;
 
     // Set up the credentials
     char credentials[CREDENTIALS_BUFFER_SIZE];
@@ -657,7 +657,8 @@ void ntripClientUpdate()
         {
             // Allocate the ntripClient structure
             networkUseDefaultInterface();
-            ntripClient = new NetworkClient();
+            if (!ntripClient)
+                ntripClient = new NetworkClient();
             if (!ntripClient)
             {
                 // Failed to allocate the ntripClient structure
@@ -897,49 +898,47 @@ void ntripClientUpdate()
             else
             {
                 // Receive data from the NTRIP Caster
-                static uint8_t rtcmData[RTCM_DATA_SIZE];
-                static size_t rtcmCount = 0;
+                uint8_t rtcmData[RTCM_DATA_SIZE];
 
-                // Collect any available RTCM data
-                if (ntripClientReceiveDataAvailable() > 0)
+                // See #695
+                // Rare LWIP ASSERT "(pbuf_free: p->ref > 0)" errors have been seen here
+                // - which trigger an esp_system_abort
+                int rtcmCount = ntripClient->read(rtcmData, RTCM_DATA_SIZE);
+                if (rtcmCount > 0)
                 {
-                    rtcmCount = ntripClient->read(rtcmData, sizeof(rtcmData));
-                    if (rtcmCount)
+                    // Restart the NTRIP receive data timer
+                    ntripClientTimer = millis();
+
+                    // Record the arrival of RTCM from the WiFi connection. This resets the RTCM timeout used on the
+                    // L-Band.
+                    rtcmLastPacketReceived = millis();
+
+                    netIncomingRTCM = true;
+
+                    if (correctionLastSeen(CORR_TCP))
                     {
-                        // Restart the NTRIP receive data timer
-                        ntripClientTimer = millis();
+                        // Push RTCM to GNSS module over I2C / SPI
+                        gnss->pushRawData(rtcmData, rtcmCount);
+                        sempParseNextBytes(rtcmParse, rtcmData, rtcmCount); // Parse the data for RTCM1005/1006
 
-                        // Record the arrival of RTCM from the WiFi connection. This resets the RTCM timeout used on the
-                        // L-Band.
-                        rtcmLastPacketReceived = millis();
-
-                        netIncomingRTCM = true;
-
-                        if (correctionLastSeen(CORR_TCP))
+                        if ((settings.debugCorrections || settings.debugNtripClientRtcm ||
+                                PERIODIC_DISPLAY(PD_NTRIP_CLIENT_DATA)) &&
+                            (!inMainMenu))
                         {
-                            // Push RTCM to GNSS module over I2C / SPI
-                            gnss->pushRawData(rtcmData, rtcmCount);
-                            sempParseNextBytes(rtcmParse, rtcmData, rtcmCount); // Parse the data for RTCM1005/1006
-
-                            if ((settings.debugCorrections || settings.debugNtripClientRtcm ||
-                                 PERIODIC_DISPLAY(PD_NTRIP_CLIENT_DATA)) &&
-                                (!inMainMenu))
-                            {
-                                PERIODIC_CLEAR(PD_NTRIP_CLIENT_DATA);
-                                systemPrintf("NTRIP Client received %d RTCM bytes, pushed to GNSS\r\n", rtcmCount);
-                            }
+                            PERIODIC_CLEAR(PD_NTRIP_CLIENT_DATA);
+                            systemPrintf("NTRIP Client received %d RTCM bytes, pushed to GNSS\r\n", rtcmCount);
                         }
-                        else
+                    }
+                    else
+                    {
+                        if ((settings.debugCorrections || settings.debugNtripClientRtcm ||
+                                PERIODIC_DISPLAY(PD_NTRIP_CLIENT_DATA)) &&
+                            (!inMainMenu))
                         {
-                            if ((settings.debugCorrections || settings.debugNtripClientRtcm ||
-                                 PERIODIC_DISPLAY(PD_NTRIP_CLIENT_DATA)) &&
-                                (!inMainMenu))
-                            {
-                                PERIODIC_CLEAR(PD_NTRIP_CLIENT_DATA);
-                                systemPrintf(
-                                    "NTRIP Client received %d RTCM bytes, NOT pushed to GNSS due to priority\r\n",
-                                    rtcmCount);
-                            }
+                            PERIODIC_CLEAR(PD_NTRIP_CLIENT_DATA);
+                            systemPrintf(
+                                "NTRIP Client received %d RTCM bytes, NOT pushed to GNSS due to priority\r\n",
+                                rtcmCount);
                         }
                     }
                 }
