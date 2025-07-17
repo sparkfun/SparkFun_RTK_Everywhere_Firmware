@@ -1279,12 +1279,14 @@ void menuPeriodicPrint()
 
         else if (incoming == 20)
         {
+            systemPrint("Enter the new periodic print mask: ");
             int value = getUserInputNumber();
             if ((value != INPUT_RESPONSE_GETNUMBER_EXIT) && (value != INPUT_RESPONSE_GETNUMBER_TIMEOUT))
                 settings.periodicDisplay = value;
         }
         else if (incoming == 21)
         {
+            systemPrint("Enter the new periodic display interval (s): ");
             int seconds = getUserInputNumber();
             if ((seconds != INPUT_RESPONSE_GETNUMBER_EXIT) && (seconds != INPUT_RESPONSE_GETNUMBER_TIMEOUT))
                 settings.periodicDisplayInterval = seconds * 1000;
