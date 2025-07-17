@@ -52,8 +52,8 @@ You are welcome to use any correction service! The SparkFun RTK devices are comp
 
 PointPerfect corrections are obtained by two methods:
 
-- **IP**: Corrections are transmitted over the internet. The RTK device will need access to a WiFi (or optionally an Ethernet/Cellular network on the RTK EVK). For WiFi, this is most commonly a hotspot on a cell phone so this delivery method is generally most common for areas with cellular and/or other WiFi coverage.
-- **L-Band**: Corrections are transmitted from a geosynchronous satellite. Coverage is limited to the US contiguous 48 states. This delivery method requires special equipment thus this method is only compatible with the the [RTK EVK](https://www.sparkfun.com/products/24342) and [RTK Facet mosaic](https://www.sparkfun.com/sparkpnt-rtk-facet-mosaic-l-band.html). No cellular or internet connection is required.
+- **IP**: Corrections are transmitted over the internet. The RTK device will need access to a WiFi (or optionally an Ethernet/Cellular network on the RTK EVK). For WiFi, this is most commonly a hotspot on a cell phone so this delivery method is used in areas with cellular and/or other WiFi coverage.
+- **L-Band**: Corrections are transmitted from a geosynchronous satellite. Coverage is limited to the US contiguous 48 states. This delivery method requires special equipment thus this method is only compatible with the the [RTK EVK](https://www.sparkfun.com/products/24342) and [RTK Facet mosaic](https://www.sparkfun.com/sparkpnt-rtk-facet-mosaic-l-band.html). This delivery method is most useful in areas with no cellular or internet coverage.
     - Sadly, u-blox is suspending the North American L-Band service on December 31st, 2025. A global L-Band service has been announced but with no set availability date at this time.
 
 PointPerfect has the following benefits and challenges:
@@ -89,7 +89,7 @@ In the above image we see the WiFi symbol indicating a high signal strength. The
 
 PointPerfect Flex RTCM/NTRIP service uses a standard NTRIP interface to obtain corrections. Once registered, to gain access to the PointPerfect system, the device must be given WiFi. The RTK device will automatically obtain **credentials**. These credentials will be copied into the NTRIP Client, and the NTRIP Client will be turned on. The device will then use WiFi (usually a cellular hot spot) to connect to the PointPerfect NTRIP Caster and begin providing the SparkFun RTK device with corrections. Within a few seconds, the device should change from RTK Float to RTK Fix.
 
-### PointPerfect L-Band
+### PointPerfect Flex L-Band
 
 When this service is enabled, the device will attempt to connect to WiFi. If registration has been completed through SparkFun (see above), the device will be issued L-Band specific keys and will obtain corrections over an extra signal broadcast by a geosynchronous satellite. The encrypted SPARTN packets are sent through the PointPerfectLibrary (PPL) and RTCM corrections are produced after ~60 seconds. The device will enter RTK Float, the RTK Fix states. Users report variable fix times with ok accuracy (not as good as RTCM service).
 
@@ -136,7 +136,7 @@ On devices that have a display, upon successful reception and decryption of Poin
 
 ### PointPerfect Flex MQTT (Deprecated)
 
-This service has been discontinued by PointPerfect and is still available for legacy devices. It is recommended to use PointPerfect Flex RTCM/NTRIP for a better experience. When this service is enabled, the device will attempt to connect to WiFi. If registration has been completed through SparkFun (see above), the device will be issued MQTT specific keys and will obtain corrections over an MQTT client. The encrypted SPARTN packets are sent through the PointPerfectLibrary (PPL) and RTCM corrections are produced after ~60 seconds. The device will enter RTK Float, the RTK Fix states. Users report variable fix times with ok accuracy (not as good as RTCM service). 
+This service has been discontinued by PointPerfect and is still available for legacy devices. It is recommended to use [PointPerfect Flex RTCM/NTRIP](#pointperfect-flex-rtcmntrip) for a better experience. When this service is enabled, the device will attempt to connect to WiFi. If [registration](#registration) has been completed through SparkFun, the device will be issued MQTT specific keys and will obtain corrections over an MQTT client. The encrypted SPARTN packets are sent through the PointPerfectLibrary (PPL) and RTCM corrections are produced after ~60 seconds. The device will enter RTK Float, the RTK Fix states. Users report variable fix times with ok accuracy (not as good as RTCM service). 
 
 #### Localized Corrections
 
@@ -169,16 +169,17 @@ Configuring PointPerfect settings over serial
 
 ## Coverage
 
-[<figure markdown>
+<figure markdown>
 
-![PointPerfect Coverage map including L-Band and IP delivery methods](<./img/PointPerfect/SparkFun RTK Everywhere - PointPerfect Coverage Map Small.png>)](https://www.u-blox.com/en/pointperfect-service-coverage)
+[![PointPerfect Coverage map including L-Band and IP delivery methods](<./img/PointPerfect/SparkFun RTK Everywhere - PointPerfect Coverage Map Small.png>)](https://www.u-blox.com/en/pointperfect-service-coverage)
+
 <figcaption markdown>
-PointPerfect Coverage map including L-Band and IP delivery methods
+[PointPerfect Coverage map](https://www.u-blox.com/en/pointperfect-service-coverage) including L-Band and IP delivery methods
 </figcaption>
 </figure>
 
-	!!! note
-		 L-Band coverage is currently limited to North America and u-blox has announced L-Band North America service will be discontinued on December 31st, 2025.
+!!! note
+	L-Band coverage is currently limited to North America and u-blox has announced L-Band North America service will be discontinued on December 31st, 2025.
 
 ## Registration
 
