@@ -461,7 +461,7 @@ uint32_t timTpEpoch;
 uint32_t timTpMicros;
 
 unsigned long lastARPLog; // Time of the last ARP log event
-bool newARPAvailable;
+bool newARPAvailable = false;
 int64_t ARPECEFX; // ARP ECEF is 38-bit signed
 int64_t ARPECEFY;
 int64_t ARPECEFZ;
@@ -1569,7 +1569,6 @@ void logUpdate()
 
                     if (logFile)
                     {
-                        // See #695. This seems to cause the rare ntripClient->read "(pbuf_free: p->ref > 0)" error
                         logFile->sync(); // Sync any partially written data
                         logFile->println(nmeaMessage);
                         logFile->sync();
