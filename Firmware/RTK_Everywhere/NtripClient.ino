@@ -228,7 +228,7 @@ bool ntripClientConnect()
         systemPrintf("NTRIP Client connecting to %s:%d\r\n", settings.ntripClient_CasterHost,
                      settings.ntripClient_CasterPort);
 
-    int connectResponse = ntripClient->connect(settings.ntripClient_CasterHost, settings.ntripClient_CasterPort);
+    int connectResponse = ntripClient->connect(settings.ntripClient_CasterHost, settings.ntripClient_CasterPort, NTRIP_CLIENT_RESPONSE_TIMEOUT);
 
     if (connectResponse < 1)
     {
@@ -804,6 +804,7 @@ void ntripClientUpdate()
                     // We don't use a task because we use I2C hardware (and don't have a semaphore).
                     online.ntripClient = true;
                     ntripClientStartTime = millis();
+                    ntripClient->setConnectionTimeout(NTRIP_CLIENT_RECEIVE_DATA_TIMEOUT);
                     ntripClientSetState(NTRIP_CLIENT_CONNECTED);
                 }
             }
