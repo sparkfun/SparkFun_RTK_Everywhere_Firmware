@@ -871,7 +871,8 @@ void ntripClientUpdate()
             }
 
             // Check for timeout receiving NTRIP data
-            if (ntripClientReceiveDataAvailable() == 0)
+            int avail = ntripClientReceiveDataAvailable();
+            if (avail <= 0)
             {
                 // Don't fail during retransmission attempts
                 if ((millis() - ntripClientTimer) > NTRIP_CLIENT_RECEIVE_DATA_TIMEOUT)
@@ -904,7 +905,7 @@ void ntripClientUpdate()
                 // See #695
                 // Rare LWIP ASSERT "(pbuf_free: p->ref > 0)" errors have been seen here
                 // - which trigger an esp_system_abort
-                int rtcmCount = ntripClient->read(rtcmData, RTCM_DATA_SIZE);
+                int rtcmCount = ntripClient->readBytes(rtcmData, avail < RTCM_DATA_SIZE ? avail : RTCM_DATA_SIZE);
                 if (rtcmCount > 0)
                 {
                     // Restart the NTRIP receive data timer
