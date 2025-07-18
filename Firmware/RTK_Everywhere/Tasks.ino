@@ -2256,7 +2256,7 @@ void processRTCMMessage(SEMP_PARSE_STATE *parse, uint16_t type)
         newARPAvailable = true;
     }
 
-    if (sempRtcmGetMessageNumber(parse) == 1005)
+    if (sempRtcmGetMessageNumber(parse) == 1006)
     {
         ARPECEFX = sempRtcmGetSignedBits(parse, 34, 38);
         ARPECEFY = sempRtcmGetSignedBits(parse, 74, 38);
