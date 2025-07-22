@@ -1445,6 +1445,22 @@ void loopDelay()
         delay(10);
 }
 
+bool logTimeExceeded()
+{
+    if (settings.maxLogTime_minutes == 0)
+        return false;
+
+    return ((systemTime_minutes - startLogTime_minutes) >= settings.maxLogTime_minutes);
+}
+
+bool logLengthExceeded()
+{
+    if (settings.maxLogLength_minutes == 0)
+        return false;
+
+    return ((systemTime_minutes - startCurrentLogTime_minutes) >= settings.maxLogLength_minutes);
+}
+
 // Create or close files as needed (startup or as the user changes settings)
 // Push new data to log as needed
 void logUpdate()
@@ -1482,8 +1498,7 @@ void logUpdate()
         // Close down file
         endSD(false, true);
     }
-    else if (online.logging == true && settings.enableLogging == true &&
-             (systemTime_minutes - startCurrentLogTime_minutes) >= settings.maxLogLength_minutes)
+    else if (online.logging == true && settings.enableLogging == true && logLengthExceeded())
     {
         endSD(false, true); // Close down file. A new one will be created at the next calling of updateLogs().
     }
@@ -1597,7 +1612,7 @@ void logUpdate()
                 {
                     systemPrintf("Log file size: %lld", logFileSize);
 
-                    if ((systemTime_minutes - startLogTime_minutes) < settings.maxLogTime_minutes)
+                    if (!logTimeExceeded())
                     {
                         // Calculate generation and write speeds every 5 seconds
                         uint64_t fileSizeDelta = logFileSize - lastLogSize;

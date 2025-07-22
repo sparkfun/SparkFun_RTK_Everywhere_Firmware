@@ -730,7 +730,7 @@ struct Settings
     bool enablePrintLogFileMessages = false;
     bool enablePrintLogFileStatus = true;
     int maxLogLength_minutes = 60 * 24; // Default to 24 hours
-    int maxLogTime_minutes = 60 * 24;        // Default to 24 hours
+    int maxLogTime_minutes = 60 * 24;   // Default to 24 hours
 
     // MQTT
     bool debugMqttClientData = false;  // Debug the MQTT SPARTAN data flow

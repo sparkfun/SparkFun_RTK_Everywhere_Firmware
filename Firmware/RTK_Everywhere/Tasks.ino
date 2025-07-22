@@ -1268,7 +1268,7 @@ void handleGnssDataTask(void *e)
         //----------------------------------------------------------------------
 
         // Determine if the SD card is enabled for logging
-        connected = online.logging && ((systemTime_minutes - startLogTime_minutes) < settings.maxLogTime_minutes);
+        connected = online.logging && (!logTimeExceeded());
 
         // Block logging during Web Config to avoid SD collisions
         // See issue: https://github.com/sparkfun/SparkFun_RTK_Everywhere_Firmware/issues/693
