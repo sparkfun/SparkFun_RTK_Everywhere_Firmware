@@ -904,7 +904,8 @@ void ntripClientUpdate()
 
                 // See #695
                 // Rare LWIP ASSERT "(pbuf_free: p->ref > 0)" errors have been seen here
-                // - which trigger an esp_system_abort
+                // - which trigger an esp_system_abort (unless CONFIG_LWIP_ESP_LWIP_ASSERT is disabled)
+                // readBytes seems to perform better and cause fewer crashes than ->read
                 int rtcmCount = ntripClient->readBytes(rtcmData, avail < RTCM_DATA_SIZE ? avail : RTCM_DATA_SIZE);
                 if (rtcmCount > 0)
                 {
