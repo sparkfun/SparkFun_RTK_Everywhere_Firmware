@@ -1445,7 +1445,7 @@ void loopDelay()
         delay(10);
 }
 
-bool logTimeExceeded()
+bool logTimeExceeded() // Limit total logging time to maxLogTime_minutes
 {
     if (settings.maxLogTime_minutes == 0)
         return false;
@@ -1453,7 +1453,7 @@ bool logTimeExceeded()
     return ((systemTime_minutes - startLogTime_minutes) >= settings.maxLogTime_minutes);
 }
 
-bool logLengthExceeded()
+bool logLengthExceeded() // Limit individual files to maxLogLength_minutes
 {
     if (settings.maxLogLength_minutes == 0)
         return false;
