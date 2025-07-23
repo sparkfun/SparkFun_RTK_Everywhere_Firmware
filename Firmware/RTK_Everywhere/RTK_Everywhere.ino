@@ -1545,6 +1545,7 @@ void logUpdate()
                         logFile->sync(); // Sync any partially written data
                         logFile->println(nmeaMessage);
                         logFile->sync();
+                        lastUBXLogSyncTime = millis();
                     }
 
                     xSemaphoreGive(sdCardSemaphore);
@@ -1600,6 +1601,7 @@ void logUpdate()
                         logFile->sync(); // Sync any partially written data
                         logFile->println(nmeaMessage);
                         logFile->sync();
+                        lastUBXLogSyncTime = millis();
                     }
 
                     xSemaphoreGive(sdCardSemaphore);
