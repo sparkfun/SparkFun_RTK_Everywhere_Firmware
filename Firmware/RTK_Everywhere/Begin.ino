@@ -843,7 +843,7 @@ void beginSD()
 
     gotSemaphore = false;
 
-    while (settings.enableSD == true)
+    while (settings.enableSD == true) // Note: settings.enableSD is never set to false
     {
         // Setup SD card access semaphore
         if (sdCardSemaphore == NULL)

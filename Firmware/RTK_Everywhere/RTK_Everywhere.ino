@@ -315,6 +315,8 @@ unsigned long syncRTCInterval = 1000; // To begin, sync RTC every second. Interv
 
 void beginSPI(bool force = false); // Header
 
+// Important note: the firmware currently requires SdFat v2.1.1
+// sd->begin will crash second time around with ~v2.2.3
 #include "SdFat.h" //http://librarymanager/All#sdfat_exfat by Bill Greiman.
 SdFat *sd;
 
@@ -1482,7 +1484,7 @@ void logUpdate()
     if (outOfSDSpace == true)
         return; // We can't log if we are out of SD space
 
-    if (online.logging == false && settings.enableLogging == true && blockLogging == false)
+    if (online.logging == false && settings.enableLogging == true && blockLogging == false && !logTimeExceeded())
     {
         if (beginLogging() == false)
         {
@@ -1498,9 +1500,16 @@ void logUpdate()
         // Close down file
         endSD(false, true);
     }
-    else if (online.logging == true && settings.enableLogging == true && logLengthExceeded())
+    else if (online.logging == true && settings.enableLogging == true && (logLengthExceeded() || logTimeExceeded()))
     {
-        endSD(false, true); // Close down file. A new one will be created at the next calling of updateLogs().
+        if (logTimeExceeded())
+            endSD(false, true); // Close down SD.
+        else
+        {
+            endLogging(false, true); //(gotSemaphore, releaseSemaphore) Close file. Reset parser stats.
+            beginLogging();          // Create new file based on current RTC.
+            setLoggingType();        // Determine if we are standard, PPP, or custom. Changes logging icon accordingly.
+        }
     }
 
     if (online.logging == true)
