@@ -1466,17 +1466,17 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#pointperfect-flex-l-band" class="md-nav__link">
+  <a href="#pointperfect-flex-l-band-deprecated" class="md-nav__link">
     <span class="md-ellipsis">
       
         <span class="md-typeset">
-          PointPerfect Flex L-Band<a class="headerlink" href="#pointperfect-flex-l-band" title="Permanent link"></a>
+          PointPerfect Flex L-Band (Deprecated)<a class="headerlink" href="#pointperfect-flex-l-band-deprecated" title="Permanent link"></a>
         </span>
       
     </span>
   </a>
   
-    <nav class="md-nav" aria-label="PointPerfect Flex L-Band">
+    <nav class="md-nav" aria-label="PointPerfect Flex L-Band (Deprecated)">
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
@@ -2910,17 +2910,17 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#pointperfect-flex-l-band" class="md-nav__link">
+  <a href="#pointperfect-flex-l-band-deprecated" class="md-nav__link">
     <span class="md-ellipsis">
       
         <span class="md-typeset">
-          PointPerfect Flex L-Band<a class="headerlink" href="#pointperfect-flex-l-band" title="Permanent link"></a>
+          PointPerfect Flex L-Band (Deprecated)<a class="headerlink" href="#pointperfect-flex-l-band-deprecated" title="Permanent link"></a>
         </span>
       
     </span>
   </a>
   
-    <nav class="md-nav" aria-label="PointPerfect Flex L-Band">
+    <nav class="md-nav" aria-label="PointPerfect Flex L-Band (Deprecated)">
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
@@ -3263,7 +3263,8 @@ Compatibility Icons
 <p>In the above image we see the WiFi symbol indicating a high signal strength. The down arrow indicates the arrival of new data. The double cross hair indicates the device has an RTK Fix with a reported 5mm horizontal accuracy. 39 satellites are in view. The IP address of the device is shown. In the lower right corner the SNIP icon indicates the corrections source is NTRIP, and the page icon updates to indicate active logging. The <strong>A4D2</strong> indicates the device's Bluetooth MAC.</p>
 <h4 id="credentials">Credentials<a class="headerlink" href="#credentials" title="Permanent link"></a></h4>
 <p>PointPerfect Flex RTCM/NTRIP service uses a standard NTRIP interface to obtain corrections. Once <a href="#registration">registered</a>, to gain access to the PointPerfect system, the device must be given WiFi. The RTK device will automatically obtain <strong>credentials</strong>. These credentials will be copied into the NTRIP Client, and the NTRIP Client will be turned on. The device will then use WiFi (usually a cellular hot spot) to connect to the PointPerfect NTRIP Caster and begin providing the SparkFun RTK device with corrections. Within a few seconds, the device should change from RTK Float to RTK Fix.</p>
-<h3 id="pointperfect-flex-l-band">PointPerfect Flex L-Band<a class="headerlink" href="#pointperfect-flex-l-band" title="Permanent link"></a></h3>
+<h3 id="pointperfect-flex-l-band-deprecated">PointPerfect Flex L-Band (Deprecated)<a class="headerlink" href="#pointperfect-flex-l-band-deprecated" title="Permanent link"></a></h3>
+<p><strong>Note:</strong> In July of 2025 u-blox announced the L-Band service to North America would be discontinued on December 31st, 2025. RTK Facet mosaic units, with a paid subscription to the L-Band service, can still use this signal up to December 31st, 2025, but afterward they will need to switch to an internet based correction services to obtain an RTK Fix.</p>
 <p>When this service is enabled, the device will attempt to connect to WiFi. If <a href="#registration">registration</a> has been completed through SparkFun, the device will be issued L-Band specific keys and will obtain corrections over an extra signal broadcast by a geosynchronous satellite. The encrypted SPARTN packets are sent through the PointPerfectLibrary (PPL) and RTCM corrections are produced after ~60 seconds. The device will enter RTK Float, the RTK Fix states. Users report variable fix times with ok accuracy (not as good as RTCM service).</p>
 <h4 id="keys">Keys<a class="headerlink" href="#keys" title="Permanent link"></a></h4>
 <p>Once registered, to gain access to the PointPerfect L-Band system, the device must be given WiFi. The RTK device will automatically obtain <strong>keys</strong>. These keys allow the decryption of L-Band based corrections. </p>
@@ -3423,7 +3424,7 @@ Compatibility Icons
     <span class="md-icon" title="Last update">
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M21 13.1c-.1 0-.3.1-.4.2l-1 1 2.1 2.1 1-1c.2-.2.2-.6 0-.8l-1.3-1.3c-.1-.1-.2-.2-.4-.2m-1.9 1.8-6.1 6V23h2.1l6.1-6.1zM12.5 7v5.2l4 2.4-1 1L11 13V7zM11 21.9c-5.1-.5-9-4.8-9-9.9C2 6.5 6.5 2 12 2c5.3 0 9.6 4.1 10 9.3-.3-.1-.6-.2-1-.2s-.7.1-1 .2C19.6 7.2 16.2 4 12 4c-4.4 0-8 3.6-8 8 0 4.1 3.1 7.5 7.1 7.9l-.1.2z"/></svg>
     </span>
-    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-timeago" title="July 17, 2025 16:21:35 UTC"><span class="timeago" datetime="2025-07-17T16:21:35+00:00" locale="en"></span></span><span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-iso_date" title="July 17, 2025 16:21:35 UTC">2025-07-17</span>
+    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-timeago" title="July 23, 2025 21:00:52 UTC"><span class="timeago" datetime="2025-07-23T21:00:52+00:00" locale="en"></span></span><span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-iso_date" title="July 23, 2025 21:00:52 UTC">2025-07-23</span>
   </span>
 
     
