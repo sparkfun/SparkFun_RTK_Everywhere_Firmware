@@ -2194,15 +2194,20 @@ class RTK_WIFI
                 const char * fileName,
                 int lineNumber);
 
-    // Get the ESP-NOW status
+    // Get the ESP-NOW channel
     // Outputs:
-    //   Returns true when ESP-NOW is online and ready for use
-    bool espNowOnline();
+    //   Returns the requested ESP-NOW channel
+    WIFI_CHANNEL_t espNowChannelGet();
 
     // Set the ESP-NOW channel
     // Inputs:
     //   channel: New ESP-NOW channel number
-    void espNowSetChannel(WIFI_CHANNEL_t channel);
+    void espNowChannelSet(WIFI_CHANNEL_t channel);
+
+    // Get the ESP-NOW status
+    // Outputs:
+    //   Returns true when ESP-NOW is online and ready for use
+    bool espNowOnline();
 
     // Handle the WiFi event
     // Inputs:
@@ -2216,6 +2221,16 @@ class RTK_WIFI
     // Outputs:
     //   Returns the current WiFi channel number
     WIFI_CHANNEL_t getChannel();
+
+    // Get the soft AP channel
+    // Outputs:
+    //   Returns the requested soft AP channel
+    WIFI_CHANNEL_t softApChannelGet();
+
+    // Set the soft AP channel
+    // Inputs:
+    //   channel: Request the channel for WiFi soft AP
+    void softApChannelSet(WIFI_CHANNEL_t channel);
 
     // Configure the soft AP
     // Inputs:
@@ -2254,6 +2269,16 @@ class RTK_WIFI
     //    Returns true if the soft AP was started successfully and false
     //    otherwise
     bool startAp(bool forceAP);
+
+    // Get the station channel
+    // Outputs:
+    //   Returns the requested station channel
+    WIFI_CHANNEL_t stationChannelGet();
+
+    // Set the station channel
+    // Inputs:
+    //   channel: Request the channel for WiFi station
+    void stationChannelSet(WIFI_CHANNEL_t channel);
 
     // Get the WiFi station IP address
     // Returns the IP address of the WiFi station
