@@ -9,6 +9,12 @@ Which device are you using?
 - [RTK EVK Quick Start](quickstart-evk.md)
 - [RTK EVK Hookup Guide](https://docs.sparkfun.com/SparkFun_RTK_EVK/)
 
+
+[![RTK Facet mosaic](<img/Facet/SparkPNT Facet mosaic - small.png>)](quickstart-facet-mosaic.md)
+
+- [RTK Facet mosaic Quick Start](quickstart-facet-mosaic.md)
+- [RTK Facet mosaic Hookup Guide](https://docs.sparkfun.com/SparkFun_RTK_Facet_mosaic/introduction/)
+
 [![RTK Postcard](img/SparkFun_RTK_Postcard_Small.png)](quickstart-postcard.md)
 
 - [RTK Postcard Quick Start](quickstart-evk.md)
