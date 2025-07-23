@@ -90,11 +90,10 @@ void menuLog()
         {
             settings.enableLogging ^= 1;
 
-            // Reset the maximum logging time when logging is disabled to ensure that
-            // the next time logging is enabled that the maximum amount of data can be
-            // captured.
-            if (settings.enableLogging == false)
-                startLogTime_minutes = 0;
+            // Reset the start logging time when logging is enabled to ensure that
+            // data can be captured.
+            if (settings.enableLogging == true)
+                startLogTime_minutes = millis() / 1000L / 60;
         }
         else if (incoming == 2 && settings.enableLogging == true)
         {
@@ -290,10 +289,6 @@ bool beginLogging(const char *customFileName)
                 sdUpdateFileCreateTimestamp(logFile); // Update the file to create time & date
 
                 startCurrentLogTime_minutes = millis() / 1000L / 60; // Mark now as start of logging
-
-                // If it hasn't been done before, mark the initial start of logging for total run time
-                if (startLogTime_minutes == 0)
-                    startLogTime_minutes = millis() / 1000L / 60;
 
                 // Add NMEA txt message with restart reason
                 char rstReason[30];

@@ -1449,7 +1449,7 @@ void loopDelay()
 
 bool logTimeExceeded() // Limit total logging time to maxLogTime_minutes
 {
-    if (settings.maxLogTime_minutes == 0)
+    if (settings.maxLogTime_minutes == 0) // No limit if maxLogTime_minutes is zero
         return false;
 
     return ((systemTime_minutes - startLogTime_minutes) >= settings.maxLogTime_minutes);
@@ -1457,7 +1457,7 @@ bool logTimeExceeded() // Limit total logging time to maxLogTime_minutes
 
 bool logLengthExceeded() // Limit individual files to maxLogLength_minutes
 {
-    if (settings.maxLogLength_minutes == 0)
+    if (settings.maxLogLength_minutes == 0) // No limit if maxLogLength_minutes is zero
         return false;
 
     return ((systemTime_minutes - startCurrentLogTime_minutes) >= settings.maxLogLength_minutes);
@@ -1503,9 +1503,13 @@ void logUpdate()
     else if (online.logging == true && settings.enableLogging == true && (logLengthExceeded() || logTimeExceeded()))
     {
         if (logTimeExceeded())
+        {
+            systemPrintln("Log file: maximum logging time reached");
             endSD(false, true); // Close down SD.
+        }
         else
         {
+            systemPrintln("Log file: log length reached");
             endLogging(false, true); //(gotSemaphore, releaseSemaphore) Close file. Reset parser stats.
             beginLogging();          // Create new file based on current RTC.
             setLoggingType();        // Determine if we are standard, PPP, or custom. Changes logging icon accordingly.
