@@ -620,12 +620,12 @@ typedef uint16_t NETCONSUMER_MASK_t;
 enum PP_NickName
 {
     PP_NICKNAME_DISABLED = 0,
-    PP_NICKNAME_FLEX_RTCM,
-    PP_NICKNAME_FLEX_LBAND_NA,
-    PP_NICKNAME_GLOBAL,
-    PP_NICKNAME_LIVE,
-    PP_NICKNAME_IP_MQTT,
-    PP_NICKNAME_MAX,
+    PP_NICKNAME_FLEX_RTCM, // 1
+    PP_NICKNAME_FLEX_LBAND_NA, // 2
+    PP_NICKNAME_GLOBAL, // 3
+    PP_NICKNAME_LIVE, // 4
+    PP_NICKNAME_IP_MQTT, // 5
+    PP_NICKNAME_MAX, // 6
 };
 
 // This is all the settings that can be set on RTK Product. It's recorded to NVM and the config file.
