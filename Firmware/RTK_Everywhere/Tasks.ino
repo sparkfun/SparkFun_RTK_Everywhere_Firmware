@@ -1285,7 +1285,7 @@ void handleGnssDataTask(void *e)
             bytesToSend = dataHead - sdRingBufferTail;
             if (bytesToSend < 0)
                 bytesToSend += settings.gnssHandlerBufferSize;
-            if (bytesToSend > 0)
+            if ((bytesToSend > 0) && (logFile))
             {
                 // Attempt to gain access to the SD card, avoids collisions with file
                 // writing from other functions like recordSystemSettingsToFile()
