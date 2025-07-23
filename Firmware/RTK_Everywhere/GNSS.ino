@@ -85,7 +85,7 @@ void pushGPGGA(char *ggaData)
             {
                 lastGGAPush = millis();
 
-                if (settings.debugNtripClientRtcm || PERIODIC_DISPLAY(PD_NTRIP_CLIENT_GGA))
+                if ((settings.debugNtripClientRtcm || PERIODIC_DISPLAY(PD_NTRIP_CLIENT_GGA)) && !inMainMenu)
                 {
                     PERIODIC_CLEAR(PD_NTRIP_CLIENT_GGA);
                     systemPrintf("NTRIP Client pushing GGA to server: %s", (const char *)ggaData);
