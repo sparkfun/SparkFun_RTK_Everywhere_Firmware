@@ -75,7 +75,7 @@ MQTT_Client.ino
 // When the dict is received, we subscribe to the nearest localized topic and unsubscribe from the continental topic
 // When the AssistNow MGA data arrives, we unsubscribe and subscribe to AssistNow updates
 
-String localizedDistributionDictTopic = ""; // Used in menuPP
+String localizedDistributionDictTopic = ""; // Used in menuPointPerfect()
 String localizedDistributionTileTopic = "";
 
 #ifdef COMPILE_MQTT_CLIENT

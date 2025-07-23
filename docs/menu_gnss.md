@@ -18,21 +18,13 @@ Compatibility Icons
 
 </div>
 
-The SparkFun RTK product line is immensely configurable. The RTK device will, by default, put the GNSS receiver into the most common configuration for rover/base RTK for use with *SW Maps* and other GIS applications.
+The SparkFun RTK product line is immensely configurable. The RTK device will, by default, put the GNSS receiver into the most common configuration for rover/base RTK for use with most GIS applications.
 
 The GNSS Configuration menu allows a user to change the report rate, dynamic model, and select which constellations should be used for fix calculations.
 
 <figure markdown>
-![RTK Everywhere Main Menu](./img/Terminal/SparkFun RTK Everywhere - Main Menu.png)
-<figcaption markdown>
-RTK Everywhere main menu
-</figcaption>
-</figure>
 
-Pressing any key will show the *Main Menu*. From the main menu, pressing 1 will bring up the *GNSS Receiver* configuration menu.
-
-<figure markdown>
-![GNSS menu showing measurement rates and dynamic model](./img/Terminal/SparkFun RTK Everywhere - GNSS Receiver.png)
+![GNSS menu showing measurement rates and dynamic model](<./img/Terminal/SparkFun RTK Everywhere - GNSS Receiver.png>)
 <figcaption markdown>
 GNSS menu showing measurement rates and dynamic model
 </figcaption>
@@ -52,7 +44,8 @@ The Dynamic Model can be changed but it is recommended to leave it as *Survey*. 
 ## Min SV Elevation and C/N0
 
 <figure markdown>
-![Elevation and C/N0](./img/Terminal/SparkFun RTK Everywhere - GNSS Receiver.png)
+
+![Elevation and C/N0](<./img/Terminal/SparkFun RTK Everywhere - GNSS Receiver.png>)
 <figcaption markdown>
 GNSS menu showing Minimum SV Elevation and C/N0
 </figcaption>
@@ -65,7 +58,8 @@ A minimum C/N0 is set in dB. If a satellite is detected that is below this signa
 ## Constellations Menu
 
 <figure markdown>
-![Enable or disable the constellations used for fixes](./img/Terminal/SparkFun RTK Everywhere - GNSS Menu Constellations.png)
+
+![Enable or disable the constellations used for fixes](<./img/Terminal/SparkFun RTK Everywhere - GNSS Menu Constellations.png>)
 <figcaption markdown>
 Enable or disable the constellations used for fixes
 </figcaption>
@@ -80,7 +74,8 @@ If supported by hardware, Galileo E6 corrections are enabled by default to suppo
 ## NTRIP Client
 
 <figure markdown>
-![NTRIP Client enabled showing settings](./img/Terminal/SparkFun RTK Everywhere - GNSS Receiver.png)
+
+![NTRIP Client enabled showing settings](<./img/Terminal/SparkFun RTK Everywhere - GNSS Receiver.png>)
 <figcaption markdown>
 NTRIP Client enabled showing settings
 </figcaption>
@@ -116,12 +111,14 @@ Compatibility Icons
 
 - EVK: :material-radiobox-blank:{ .support-none title="Feature Not Supported" }
 - Facet mosaic: :material-radiobox-indeterminate-variant:{ .support-partial title="Feature Partially Supported" }
+- Postcard: :material-radiobox-blank:{ .support-none title="Feature Not Supported" }
 - Torch: :material-radiobox-marked:{ .support-full title="Feature Supported" }
 
 </div>
 
 <figure markdown>
-![Menu for controlling Multipath Mitigation](./img/Terminal/SparkFun RTK Everywhere - GNSS Multipath Mitigation.png)
+
+![Menu for controlling Multipath Mitigation](<./img/Terminal/SparkFun RTK Everywhere - GNSS Multipath Mitigation.png>)
 <figcaption markdown>
 Menu for controlling Multipath Mitigation
 </figcaption>

@@ -151,8 +151,6 @@ void menuPointPerfect()
         //     We also receive the full list of regional correction topics: /pp/ip/us , /pp/ip/eu , etc.
         //     We need to subscribe to our regional correction topic and push the data to the PPL
         //     RTCM from the PPL is pushed to the GNSS receiver (ie, UM980, LG290P)
-        //   We do not need the user to tell us which pointPerfectCorrectionsSource to use.
-        //   We identify the service level during ZTP and record it to settings (pointPerfectService)
 
         systemPrintf("1) Select PointPerfect Service: %s\r\n", ppServices[settings.pointPerfectService].serviceName);
 
@@ -181,26 +179,31 @@ void menuPointPerfect()
                     systemPrintln("Requested");
                 else
                     systemPrintln("Not requested");
-                systemPrint("5) Use localized distribution: ");
-                if (settings.useLocalizedDistribution == true)
-                    systemPrintln("Enabled");
-                else
-                    systemPrintln("Disabled");
-                if (settings.useLocalizedDistribution)
+
+                // Avoid showing features that are only available for the MQTT service
+                if (pointPerfectMqttNeeded())
                 {
-                    systemPrint("6) Localized distribution tile level: ");
-                    systemPrint(settings.localizedDistributionTileLevel);
-                    systemPrint(" (");
-                    systemPrint(localizedDistributionTileLevelNames[settings.localizedDistributionTileLevel]);
-                    systemPrintln(")");
-                }
-                if (productVariantSupportsAssistNow())
-                {
-                    systemPrint("a) Use AssistNow: ");
-                    if (settings.useAssistNow == true)
+                    systemPrint("5) Use localized distribution: ");
+                    if (settings.useLocalizedDistribution == true)
                         systemPrintln("Enabled");
                     else
                         systemPrintln("Disabled");
+                    if (settings.useLocalizedDistribution)
+                    {
+                        systemPrint("6) Localized distribution tile level: ");
+                        systemPrint(settings.localizedDistributionTileLevel);
+                        systemPrint(" (");
+                        systemPrint(localizedDistributionTileLevelNames[settings.localizedDistributionTileLevel]);
+                        systemPrintln(")");
+                    }
+                    if (productVariantSupportsAssistNow())
+                    {
+                        systemPrint("a) Use AssistNow: ");
+                        if (settings.useAssistNow == true)
+                            systemPrintln("Enabled");
+                        else
+                            systemPrintln("Disabled");
+                    }
                 }
 
                 systemPrintln("c) Clear the Keys");
@@ -859,7 +862,7 @@ bool pointPerfectNtripNeeded(uint8_t pointPerfectService)
 bool productVariantSupportsAssistNow()
 {
     if (productVariant == RTK_EVK)
-        return true;
+        return true; //This is the only platform with a u-blox based/assistNow capable receiver
     if (productVariant == RTK_FACET_V2)
         return false; // TODO - will require specific module lookup
     if (productVariant == RTK_FACET_MOSAIC)

@@ -17,17 +17,14 @@ Compatibility Icons
 
 <div class="grid cards fill" markdown>
 
-- EVK: :material-radiobox-blank:{ .support-none title="Feature Not Supported" }
+- EVK: :material-radiobox-marked:{ .support-full title="Feature Supported" }
 - Facet mosaic: :material-radiobox-blank:{ .support-none title="Feature Not Supported" }
 - Postcard: :material-radiobox-blank:{ .support-none title="Feature Not Supported" }
 - Torch: :material-radiobox-blank:{ .support-none title="Feature Not Supported" }
 
 </div>
 
-The RTK EVK has built-in cellular via a u-blox LARA-R6001D. However, the RTK Everywhere firmware does not yet support cellular. Adding it is on our roadmap. Stay tuned for updates! Meanwhile, we do have a stand-alone EVK code example which will connect to PointPerfect localized distribution via cellular:
-
-- [EVK example 8_5_PointPerfect_MQTT](https://github.com/sparkfun/SparkFun_RTK_EVK/tree/main/Example_Sketches/8_5_PointPerfect_MQTT)
-- [EVK example 8_6_PointPerfect_MQTT_WiFi_ETH_Cellular](https://github.com/sparkfun/SparkFun_RTK_EVK/tree/main/Example_Sketches/8_6_PointPerfect_MQTT_WiFi_ETH_Cellular)
+The RTK EVK has built-in cellular via a u-blox LARA-R6001D. Insert a nano SIM card, attach the cellular antennas, and the device will attempt to connect to a local cell tower. The RTK EVK will automatically switch to WiFi or Ethernet if it is available, shutting down the cellular connection to save on costs as much as possible. If the Ethernet or WiFi connections are lost, cellular will automatically be re-started.
 
 ## Cellular - Via Cellphone
 

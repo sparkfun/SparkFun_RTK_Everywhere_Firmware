@@ -12,7 +12,7 @@ void menuPorts()
     }
     else
     {
-        // RTK EVK, Postcard
+        // RTK EVK, Postcard, Facet mosaic
         menuPortsNoMux();
     }
 }
@@ -68,19 +68,19 @@ void menuPortsNoMux()
                      settings.enableGnssToUsbSerial ? "Enabled" : "Disabled");
 
         // EVK has no mux. LG290P has no mux.
-        if (present.gnss_zedf9p)
+        if (productVariant == RTK_EVK)
         {
-            systemPrintf("4) Toggle use of external corrections radio on UART2: %s\r\n",
+            systemPrintf("4) Allow incoming corrections on UART2: %s\r\n",
                          settings.enableExtCorrRadio ? "Enabled" : "Disabled");
             systemPrintf("5) Source of SPARTN corrections radio on UART2: %s\r\n",
                          settings.extCorrRadioSPARTNSource == 0 ? "IP" : "L-Band");
         }
-        else if (present.gnss_lg290p)
+        else if (productVariant == RTK_POSTCARD)
         {
-            systemPrintf("4) Toggle use of external corrections radio on UART3: %s\r\n",
+            systemPrintf("4) Allow incoming corrections on RADIO port: %s\r\n",
                          settings.enableExtCorrRadio ? "Enabled" : "Disabled");
-            systemPrintf("5) NMEA output on radio UART3: %s\r\n",
-                         settings.enableNmeaOnRadio ? "Enabled" : "Disabled");
+            systemPrintf("5) Limit RADIO port output to RTCM: %s\r\n",
+                         settings.enableNmeaOnRadio ? "Disabled" : "Enabled"); //Reverse disabled/enabled to align with prompt
         }
 
         systemPrintln("x) Exit");

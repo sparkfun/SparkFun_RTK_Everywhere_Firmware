@@ -114,14 +114,14 @@ function parseIncoming(msg) {
                 hide("galileoHasSetting");
                 hide("tiltConfig");
                 hide("beeperControl");
-                show("useAssistNowCheckbox");
                 show("measurementRateInput");
                 hide("mosaicNMEAStreamDropdowns");
                 show("surveyInSettings");
-                show("useLocalizedDistributionCheckbox");
+
                 show("useEnableExtCorrRadio");
                 show("extCorrRadioSPARTNSourceDropdown");
                 hide("enableNmeaOnRadio");
+
                 hide("shutdownNoChargeTimeoutMinutesCheckboxDetail");
 
                 hide("constellationNavic"); //Not supported on ZED
@@ -145,11 +145,9 @@ function parseIncoming(msg) {
                 hide("galileoHasSetting");
                 hide("tiltConfig");
                 hide("beeperControl");
-                show("useAssistNowCheckbox");
                 show("measurementRateInput");
                 hide("mosaicNMEAStreamDropdowns");
                 show("surveyInSettings");
-                show("useLocalizedDistributionCheckbox");
                 show("useEnableExtCorrRadio");
                 show("extCorrRadioSPARTNSourceDropdown");
                 hide("enableNmeaOnRadio");
@@ -167,11 +165,10 @@ function parseIncoming(msg) {
                 hide("galileoHasSetting");
                 hide("tiltConfig");
                 hide("beeperControl");
-                hide("useAssistNowCheckbox");
                 hide("measurementRateInput");
                 show("mosaicNMEAStreamDropdowns");
                 hide("surveyInSettings");
-                hide("useLocalizedDistributionCheckbox");
+
                 show("useEnableExtCorrRadio");
                 hide("extCorrRadioSPARTNSourceDropdown");
                 show("enableNmeaOnRadio");
@@ -222,7 +219,6 @@ function parseIncoming(msg) {
                 hide("constellationSbas"); //Not supported on UM980
                 hide("constellationNavic"); //Not supported on UM980
 
-                show("useAssistNowCheckbox"); //Does the PPL use MGA? Not sure...
                 show("measurementRateInput");
 
                 show("loraConfig");
@@ -256,11 +252,9 @@ function parseIncoming(msg) {
                 hide("tiltConfig");
                 hide("beeperControl");
 
-                show("useAssistNowCheckbox");
                 show("measurementRateInput");
                 hide("mosaicNMEAStreamDropdowns");
                 show("surveyInSettings");
-                show("useLocalizedDistributionCheckbox");
                 show("useEnableExtCorrRadio");
                 hide("extCorrRadioSPARTNSourceDropdown");
                 show("enableNmeaOnRadio");
@@ -280,7 +274,6 @@ function parseIncoming(msg) {
                 newOption = new Option('Flex NTRIP/RTCM', '1');
                 select.add(newOption, undefined);
 
-                console.log("Change baud list");
                 ge("radioPortBaud").options.length = 0; //Remove all from list
                 select = ge("radioPortBaud");
                 newOption = new Option('9600', '9600');

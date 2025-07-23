@@ -19,9 +19,19 @@ Compatibility Icons
 </div>
 
 <figure markdown>
-![List of user profiles](./img/Terminal/SparkFun RTK Everywhere - User Profiles Menu.png)
+
+![List of user profiles](<./img/Terminal/SparkFun RTK Everywhere - User Profiles Menu.png>)
 <figcaption markdown>
-User Profiles Menu
+User Profiles Menu in the serial interface
+</figcaption>
+</figure>
+
+
+<figure markdown>
+
+![List of user profiles](<./img/WiFi Config/SparkFun RTK Profiles Menu.png>)
+<figcaption markdown>
+User Profiles Menu in the Web Config interface
 </figcaption>
 </figure>
 
@@ -32,10 +42,23 @@ Profiles can be selected, renamed, reset to defaults, and completely erased from
 ## User Profile Selection via Display
 
 <figure markdown>
-![Multiple Profiles on Menu](./img/SparkFun_RTK_Facet_Profile.jpg)
+
+![Multiple Profiles on Menu](<./img/SparkFun_RTK_Facet_Profile.jpg>)
 <figcaption markdown>
 Multiple Profiles on Menu
 </figcaption>
 </figure>
 
 On devices that have a display, if more than one profile is defined, the profiles will be displayed and selectable by using the **Power/Setup** button. Only the first 7 characters of a profile's name will be shown on the menu. Once a profile has been selected, the device will reboot using that profile.
+
+## Print Profile
+
+A profile can be printed to the terminal. This dumps the entire settings file and can be helpful for debugging or getting support.
+
+<figure markdown>
+
+![Printing a profile](<./img/Terminal/SparkFun RTK Profiles Print.png>)
+<figcaption markdown>
+Printing a Profile
+</figcaption>
+</figure>
