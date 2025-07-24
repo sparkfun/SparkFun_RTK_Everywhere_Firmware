@@ -627,11 +627,23 @@ void processUart1Message(SEMP_PARSE_STATE *parse, uint16_t type)
     if ((online.authenticationCoPro) && (type == RTK_NMEA_PARSER_INDEX))
     {
         if (strstr(sempNmeaGetSentenceName(parse), "GGA") != nullptr)
+        {
             strncpy(latestGPGGA, (const char *)parse->buffer, sizeof(latestGPGGA));
-        if (strstr(sempNmeaGetSentenceName(parse), "RMC") != nullptr)
+            if ((strlen(latestGPGGA) > 10) && (latestGPGGA[strlen(latestGPGGA) - 2] == '\r'))
+                latestGPGGA[strlen(latestGPGGA) - 2] = 0; // Truncate the \r\n
+        }
+        else if (strstr(sempNmeaGetSentenceName(parse), "RMC") != nullptr)
+        {
             strncpy(latestGPRMC, (const char *)parse->buffer, sizeof(latestGPRMC));
-        if (strstr(sempNmeaGetSentenceName(parse), "GST") != nullptr)
+            if ((strlen(latestGPRMC) > 10) && (latestGPRMC[strlen(latestGPRMC) - 2] == '\r'))
+                latestGPRMC[strlen(latestGPRMC) - 2] = 0; // Truncate the \r\n
+        }
+        else if (strstr(sempNmeaGetSentenceName(parse), "GST") != nullptr)
+        {
             strncpy(latestGPGST, (const char *)parse->buffer, sizeof(latestGPGST));
+            if ((strlen(latestGPGST) > 10) && (latestGPGST[strlen(latestGPGST) - 2] == '\r'))
+                latestGPGST[strlen(latestGPGST) - 2] = 0; // Truncate the \r\n
+        }
     }
 
     // Determine if this message should be processed by the Unicore library
