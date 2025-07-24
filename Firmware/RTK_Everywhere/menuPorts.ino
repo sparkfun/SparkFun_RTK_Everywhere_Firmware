@@ -12,7 +12,7 @@ void menuPorts()
     }
     else
     {
-        // RTK EVK, Postcard, Facet mosaic
+        // RTK EVK, Postcard
         menuPortsNoMux();
     }
 }
@@ -206,19 +206,19 @@ void menuPortsMultiplexed()
         // Facet mosaic has a mux. Radio Ext is COM2. Data port (COM3) is mux'd.
         if (present.gnss_zedf9p)
         {
-            systemPrintf("4) Toggle use of external corrections radio on UART2: %s\r\n",
+            systemPrintf("4) Allow Incoming Corrections on UART2: %s\r\n",
                          settings.enableExtCorrRadio ? "Enabled" : "Disabled");
             systemPrintf("5) Source of SPARTN corrections radio on UART2: %s\r\n",
                          settings.extCorrRadioSPARTNSource == 0 ? "IP" : "L-Band");
         }
-        else if (present.gnss_mosaicX5)
+        else if (productVariant == RTK_FACET_MOSAIC)
         {
-            systemPrintf("4) Toggle use of external RTCMv3 corrections radio on COM2: %s\r\n",
+            systemPrintf("4) Allow Incoming Corrections on COM2: %s\r\n",
                          settings.enableExtCorrRadio ? "Enabled" : "Disabled");
             systemPrintf("5) Output GNSS data to USB1 serial: %s\r\n",
                          settings.enableGnssToUsbSerial ? "Enabled" : "Disabled");
-            systemPrintf("6) NMEA output on radio COM2: %s\r\n",
-                         settings.enableNmeaOnRadio ? "Enabled" : "Disabled");
+            systemPrintf("6) Limit RADIO port output to RTCM: %s\r\n",
+                         settings.enableNmeaOnRadio ? "Disabled" : "Enabled"); //Reverse disabled/enabled to align with prompt
         }
 
         systemPrintln("x) Exit");

@@ -44,7 +44,7 @@ enum PP_DeliveryMethod
 {
     PP_DELIVERY_NTRIP = 0,    // Delivery over an internet connection (essentially TCP)
     PP_DELIVERY_MQTT,         // Delivery over an internet connection using MQTT (deprecated)
-    PP_DELIVERY_LBAND_NA,     // Delivery over L-Band signal, North America coverage
+    PP_DELIVERY_LBAND_NA,     // Delivery over L-Band signal, North America coverage (deprecated)
     PP_DELIVERY_LBAND_GLOBAL, // Delivery over L-Band signal, global coverage
     PP_DELIVERY_NONE,
 };
@@ -60,7 +60,7 @@ enum PP_Encoding
 // Each service will have a printable name, delivery method, and encoding
 typedef struct
 {
-    const char serviceName[30];
+    const char serviceName[40];
     PP_ModelType modelType;
     PP_DeliveryMethod deliveryMethod;
     PP_Encoding encoding;
@@ -70,7 +70,7 @@ typedef struct
 const PP_Service ppServices[] = {
     {"Disabled", PP_MODEL_NONE, PP_DELIVERY_NONE, PP_ENCODING_NONE},        // Do not use PointPerfect corrections
     {"Flex NTRIP/RTCM", PP_MODEL_SSR, PP_DELIVERY_NTRIP, PP_ENCODING_RTCM}, // Uses "ZTP-RTCM-100" profile
-    {"Flex L-Band North America", PP_MODEL_SSR, PP_DELIVERY_LBAND_NA, PP_ENCODING_SPARTN}, // Uses "ZTP-LBand" profile
+    {"Flex L-Band North America (Deprecated)", PP_MODEL_SSR, PP_DELIVERY_LBAND_NA, PP_ENCODING_SPARTN}, // Uses "ZTP-LBand" profile
     {"Global", PP_MODEL_SSR, PP_DELIVERY_LBAND_GLOBAL, PP_ENCODING_SPARTN},                // Uses "ZTP-Global" profile
     {"Live", PP_MODEL_OSR, PP_DELIVERY_NTRIP, PP_ENCODING_RTCM},                           // Uses "ZTP-Live" profile
     {"Flex MQTT (Deprecated)", PP_MODEL_SSR, PP_DELIVERY_MQTT,

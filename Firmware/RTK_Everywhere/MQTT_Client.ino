@@ -954,6 +954,16 @@ void mqttClientUpdate()
         // Attempt connection to the MQTT broker
         if (!mqttClient->connect(settings.pointPerfectBrokerHost, 8883))
         {
+            // Failed to connect to the server
+            int length = 1024;
+            char * errMessage = (char *)rtkMalloc(length, "HTTP error message");
+            if (errMessage)
+            {
+                memset(errMessage, 0, length);
+                mqttSecureClient->lastError(errMessage, length - 1);
+                systemPrintf("MQTT Error: %s\r\n", errMessage);
+                rtkFree(errMessage, "HTTP error message");
+            }
             systemPrintf("Failed to connect to MQTT broker %s\r\n", settings.pointPerfectBrokerHost);
             mqttClientRestart();
             break;

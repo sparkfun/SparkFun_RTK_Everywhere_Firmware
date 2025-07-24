@@ -131,7 +131,9 @@ function parseIncoming(msg) {
                 select.add(newOption, undefined);
                 newOption = new Option('Flex NTRIP/RTCM', '1');
                 select.add(newOption, undefined);
-                newOption = new Option('Flex L-Band North America', '2');
+                newOption = new Option('Flex L-Band North America (Deprecated)', '2');
+                select.add(newOption, undefined);
+                newOption = new Option('Flex MQTT (Deprecated)', '5');
                 select.add(newOption, undefined);
             }
             else if ((platformPrefix == "Facet v2") || (platformPrefix == "Facet v2 LBand")) {
@@ -200,7 +202,9 @@ function parseIncoming(msg) {
                 select.add(newOption, undefined);
                 newOption = new Option('Flex NTRIP/RTCM', '1');
                 select.add(newOption, undefined);
-                newOption = new Option('Flex L-Band North America', '2');
+                newOption = new Option('Flex L-Band North America (Deprecated)', '2');
+                select.add(newOption, undefined);
+                newOption = new Option('Flex MQTT (Deprecated)', '5');
                 select.add(newOption, undefined);
             }
             else if (platformPrefix == "Torch") {
@@ -238,6 +242,8 @@ function parseIncoming(msg) {
                 select.add(newOption, undefined);
                 newOption = new Option('Flex NTRIP/RTCM', '1');
                 select.add(newOption, undefined);
+                newOption = new Option('Flex MQTT (Deprecated)', '5');
+                select.add(newOption, undefined);
             }
             else if (platformPrefix == "Postcard") {
                 show("baseConfig");
@@ -272,6 +278,8 @@ function parseIncoming(msg) {
                 let newOption = new Option('Disabled', '0');
                 select.add(newOption, undefined);
                 newOption = new Option('Flex NTRIP/RTCM', '1');
+                select.add(newOption, undefined);
+                newOption = new Option('Flex MQTT (Deprecated)', '5');
                 select.add(newOption, undefined);
 
                 ge("radioPortBaud").options.length = 0; //Remove all from list
