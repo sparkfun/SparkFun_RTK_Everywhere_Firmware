@@ -623,6 +623,17 @@ void processUart1Message(SEMP_PARSE_STATE *parse, uint16_t type)
         }
     }
 
+    // Save GGA / RMC / GST for the authentication coprocessor
+    if ((online.authenticationCoPro) && (type == RTK_NMEA_PARSER_INDEX))
+    {
+        if (strstr(sempNmeaGetSentenceName(parse), "GGA") != nullptr)
+            strncpy(latestGPGGA, (const char *)parse->buffer, sizeof(latestGPGGA));
+        if (strstr(sempNmeaGetSentenceName(parse), "RMC") != nullptr)
+            strncpy(latestGPRMC, (const char *)parse->buffer, sizeof(latestGPRMC));
+        if (strstr(sempNmeaGetSentenceName(parse), "GST") != nullptr)
+            strncpy(latestGPGST, (const char *)parse->buffer, sizeof(latestGPGST));
+    }
+
     // Determine if this message should be processed by the Unicore library
     // Pass NMEA to um980 before applying compensation
     if (present.gnss_um980)

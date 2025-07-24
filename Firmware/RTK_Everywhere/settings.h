@@ -1844,6 +1844,7 @@ struct struct_online
     bool tcpServer = false;
     bool udpServer = false;
     bool webServer = false;
+    bool authenticationCoPro = false; // MFi authentication
 } online;
 
 typedef uint8_t NetIndex_t;     // Index into the networkInterfaceTable

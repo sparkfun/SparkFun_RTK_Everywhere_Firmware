@@ -1592,6 +1592,12 @@ bool i2cBusInitialization(TwoWire *i2cBus, int sda, int scl, int clockKHz)
                 break;
             }
 
+            case 0x10: {
+                systemPrintf("  0x%02X - MFI343S00177 Authenication Coprocessor\r\n", addr);
+                i2cAuthCoPro = i2cBus; // Record the bus
+                break;
+            }
+
             case 0x18: {
                 systemPrintf("  0x%02X - PCA9557 GPIO Expander with Reset\r\n", addr);
                 break;

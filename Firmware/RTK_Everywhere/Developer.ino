@@ -308,3 +308,13 @@ void convertGnssTimeToEpoch(uint32_t *epochSecs, uint32_t *epochMicros) {
 }
 
 #endif // COMPILE_ZED
+
+//----------------------------------------
+// MFi authentication coprocessor
+//----------------------------------------
+
+#ifndef COMPILE_AUTHENTICATION
+
+void beginAuthCoPro(TwoWire *i2cBus) {systemPrintln("**MFi Authentication Not Compiled**");}
+
+#endif // COMPILE_AUTHENTICATION

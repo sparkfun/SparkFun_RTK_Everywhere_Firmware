@@ -81,9 +81,13 @@
 // To reduce compile times, various parts of the firmware can be disabled/removed if they are not
 // needed during development
 #define COMPILE_BT       // Comment out to remove Bluetooth functionality
-#define COMPILE_WIFI     // Comment out to remove WiFi functionality
-#define COMPILE_ETHERNET // Comment out to remove Ethernet (W5500) support
-#define COMPILE_CELLULAR // Comment out to remove cellular modem support
+//#define COMPILE_WIFI     // Comment out to remove WiFi functionality
+//#define COMPILE_ETHERNET // Comment out to remove Ethernet (W5500) support
+//#define COMPILE_CELLULAR // Comment out to remove cellular modem support
+
+#ifdef COMPILE_BT
+#define COMPILE_AUTHENTICATION // Comment out to disable MFi authentication
+#endif
 
 #ifdef COMPILE_WIFI
 #define COMPILE_AP     // Requires WiFi. Comment out to remove Access Point functionality
@@ -91,17 +95,17 @@
 #endif                 // COMPILE_WIFI
 
 #define COMPILE_LG290P   // Comment out to remove LG290P functionality
-#define COMPILE_MOSAICX5 // Comment out to remove mosaic-X5 functionality
-#define COMPILE_UM980 // Comment out to remove UM980 functionality
-#define COMPILE_ZED      // Comment out to remove ZED-F9x functionality
+//#define COMPILE_MOSAICX5 // Comment out to remove mosaic-X5 functionality
+//#define COMPILE_UM980 // Comment out to remove UM980 functionality
+//#define COMPILE_ZED      // Comment out to remove ZED-F9x functionality
 
 #ifdef  COMPILE_ZED
 #define COMPILE_L_BAND   // Comment out to remove L-Band functionality
 #endif                   // COMPILE_ZED
 
-#define COMPILE_IM19_IMU             // Comment out to remove IM19_IMU functionality
-#define COMPILE_POINTPERFECT_LIBRARY // Comment out to remove PPL support
-#define COMPILE_BQ40Z50              // Comment out to remove BQ40Z50 functionality
+//#define COMPILE_IM19_IMU             // Comment out to remove IM19_IMU functionality
+//#define COMPILE_POINTPERFECT_LIBRARY // Comment out to remove PPL support
+//#define COMPILE_BQ40Z50              // Comment out to remove BQ40Z50 functionality
 
 #if defined(COMPILE_WIFI) || defined(COMPILE_ETHERNET) || defined(COMPILE_CELLULAR)
 #define COMPILE_NETWORK
@@ -283,6 +287,7 @@ int gpioExpander_cardDetect = 5;
 TwoWire *i2c_0 = nullptr;
 TwoWire *i2c_1 = nullptr;
 TwoWire *i2cDisplay = nullptr;
+TwoWire *i2cAuthCoPro = nullptr;
 //-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 
 // LittleFS for storing settings for different user profiles
@@ -760,6 +765,24 @@ uint8_t gpioExpander_lastReleased = 255;
 
 //=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 
+// MFi Authentication Coprocessor
+//=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
+#ifdef COMPILE_AUTHENTICATION
+
+#include <SparkFun_Apple_Accessory.h> // Click here to get the library: http://librarymanager/All#SparkFun_Apple_Accessory_Arduino_Library
+
+SparkFunAppleAccessoryDriver *appleAccessory; // Instantiated by beginAuthCoPro
+
+static const uint8_t  UUID_IAP2[] = {0x00, 0x00, 0x00, 0x00, 0xDE, 0xCA, 0xFA, 0xDE, 0xDE, 0xCA, 0xDE, 0xAF, 0xDE, 0xCA, 0xCA, 0xFF};
+
+#endif
+
+char *latestGPGGA;
+char *latestGPRMC;
+char *latestGPGST;
+
+//=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
+
 // Global variables
 //-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 uint8_t wifiMACAddress[6];     // Display this address in the system menu
@@ -1216,6 +1239,9 @@ void setup()
 
     DMW_b("beginDisplay");
     beginDisplay(i2cDisplay); // Start display to be able to display any errors
+
+    DMW_b("beginAuthCoPro");
+    beginAuthCoPro(i2cAuthCoPro); // Discover and start authentication coprocessor
 
     DMW_b("verifyTables");
     verifyTables(); // Verify the consistency of the internal tables
