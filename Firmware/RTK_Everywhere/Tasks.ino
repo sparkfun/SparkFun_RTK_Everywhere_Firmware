@@ -786,16 +786,29 @@ void processUart1Message(SEMP_PARSE_STATE *parse, uint16_t type)
         parse->length = 0;
     }
 
+    // If parse->length is zero, we should exit now.
+    // Previously, the code would continue past here and fill rbOffsetArray with 'empty' entries.
+    // E.g. RTCM1019/1042/1046 suppressed above
+    if (parse->length == 0)
+        return;
+
+    // We need to be careful with availableHandlerSpace because it is possible for handleGnssDataTask
+    // to execute and update availableHandlerSpace while this code is executing...
+    // To see this happening, enable printing of the ring buffer offsets (s d 10) and
+    // the SD buffer sizes (s h 7). You will see the "SD Incoming Serial" from handleGnssDataTask
+    // gatecrash the "DH:" prints here.
+    // Strictly, we should have a sempahore controlling access to the ring buffer.
+
     // Determine if this message will fit into the ring buffer
+    int32_t discardedBytes = 0;
     bytesToCopy = parse->length;
-    space = availableHandlerSpace;
+    space = availableHandlerSpace; // Take a copy of availableHandlerSpace here
     use = settings.gnssHandlerBufferSize - space;
     consumer = (char *)slowConsumer;
-    if ((bytesToCopy > space) && (!inMainMenu))
+    if (bytesToCopy > space) // Paul removed the && (!inMainMenu)) check 7-25-25
     {
         int32_t bufferedData;
         int32_t bytesToDiscard;
-        int32_t discardedBytes;
         int32_t listEnd;
         int32_t messageLength;
         int32_t previousTail;
@@ -909,7 +922,6 @@ void processUart1Message(SEMP_PARSE_STATE *parse, uint16_t type)
         //                      +-----------+ <-- rbOffsetHead
         //                      |           |
         //
-        discardedBytes = 0;
         if (bufferedData < use)
             discardedBytes = use - bufferedData;
 
@@ -961,31 +973,44 @@ void processUart1Message(SEMP_PARSE_STATE *parse, uint16_t type)
         // Printing the slow consumer is not that useful as any consumer will be
         // considered 'slow' if its data wraps over the end of the buffer and
         // needs a second write to clear...
-        if (consumer)
-            systemPrintf("Ring buffer full: discarding %d bytes, %s could be slow\r\n", discardedBytes, consumer);
-        else
-            systemPrintf("Ring buffer full: discarding %d bytes\r\n", discardedBytes);
+        if (!inMainMenu)
+        {
+            if (consumer)
+                systemPrintf("Ring buffer full: discarding %d bytes, %s could be slow\r\n", discardedBytes, consumer);
+            else
+                systemPrintf("Ring buffer full: discarding %d bytes\r\n", discardedBytes);
+        }
+
+        // Update the tails. Strictly this needs semaphore protection
         updateRingBufferTails(previousTail, rbOffsetArray[rbOffsetTail]);
-        availableHandlerSpace = availableHandlerSpace + discardedBytes;
     }
 
+    if (bytesToCopy > (space + discardedBytes - 1)) // Sanity check
+        systemPrintf("Ring buffer update error: bytesToCopy (%d) is > space (%d) + discardedBytes (%d) - 1\r\n",
+                      bytesToCopy, space, discardedBytes);
+    
     // Add another message to the ring buffer
     // Account for this message
-    availableHandlerSpace = availableHandlerSpace - bytesToCopy;
+    // Diagnostic prints are provided by settings.enablePrintSDBuffers and the handleGnssDataTask
+    // availableHandlerSpace may have been updated by handleGnssDataTask
+    availableHandlerSpace = availableHandlerSpace + discardedBytes - bytesToCopy;
+
+    // Copy dataHead so we can update with a single write
+    RING_BUFFER_OFFSET newDataHead = dataHead;
 
     // Fill the buffer to the end and then start at the beginning
-    if ((dataHead + bytesToCopy) > settings.gnssHandlerBufferSize)
-        bytesToCopy = settings.gnssHandlerBufferSize - dataHead;
+    if ((newDataHead + bytesToCopy) > settings.gnssHandlerBufferSize)
+        bytesToCopy = settings.gnssHandlerBufferSize - newDataHead;
 
     // Display the dataHead offset
     if (settings.enablePrintRingBufferOffsets && (!inMainMenu))
-        systemPrintf("DH: %4d --> ", dataHead);
+        systemPrintf("DH: %4d --> ", newDataHead);
 
     // Copy the data into the ring buffer
-    memcpy(&ringBuffer[dataHead], parse->buffer, bytesToCopy);
-    dataHead = dataHead + bytesToCopy;
-    if (dataHead >= settings.gnssHandlerBufferSize)
-        dataHead = dataHead - settings.gnssHandlerBufferSize;
+    memcpy(&ringBuffer[newDataHead], parse->buffer, bytesToCopy);
+    newDataHead = newDataHead + bytesToCopy;
+    if (newDataHead >= settings.gnssHandlerBufferSize)
+        newDataHead = newDataHead - settings.gnssHandlerBufferSize;
 
     // Determine the remaining bytes
     remainingBytes = parse->length - bytesToCopy;
@@ -993,18 +1018,21 @@ void processUart1Message(SEMP_PARSE_STATE *parse, uint16_t type)
     {
         // Copy the remaining bytes into the beginning of the ring buffer
         memcpy(ringBuffer, &parse->buffer[bytesToCopy], remainingBytes);
-        dataHead = dataHead + remainingBytes;
-        if (dataHead >= settings.gnssHandlerBufferSize)
-            dataHead = dataHead - settings.gnssHandlerBufferSize;
+        newDataHead = newDataHead + remainingBytes;
+        if (newDataHead >= settings.gnssHandlerBufferSize)
+            newDataHead = newDataHead - settings.gnssHandlerBufferSize;
     }
 
     // Add the head offset to the offset array
     WRAP_OFFSET(rbOffsetHead, 1, rbOffsetEntries);
-    rbOffsetArray[rbOffsetHead] = dataHead;
+    rbOffsetArray[rbOffsetHead] = newDataHead;
 
     // Display the dataHead offset
     if (settings.enablePrintRingBufferOffsets && (!inMainMenu))
-        systemPrintf("%4d\r\n", dataHead);
+        systemPrintf("%4d\r\n", newDataHead);
+
+    // Update dataHead in a single write - handleGnssDataTask will use it as soon as it updates
+    dataHead = newDataHead;
 }
 
 // Remove previous messages from the ring buffer
