@@ -146,7 +146,7 @@ void beginDisplay(TwoWire *i2cBus)
         oled->setVcomDeselect(kOLEDMicroVCOM);
     }
 
-    if (present.display_type == DISPLAY_128x64)
+    if (present.display_type == DISPLAY_128x64 || present.display_type == DISPLAY_128x64_INVERTED)
     {
         i2cAddress = kOLEDMicroDefaultAddress;
         if (oled == nullptr)
@@ -165,6 +165,13 @@ void beginDisplay(TwoWire *i2cBus)
         oled->setPreCharge(0xF1);    // Set Pre-charge Period (D9h)
         oled->setVcomDeselect(0x40); // Set VCOMH Deselect Level (DBh)
         oled->setContrast(0xCF);     // Set Contrast Control for BANK0 (81h)
+
+        if(present.display_type == DISPLAY_128x64_INVERTED)
+        {
+            oled->flipVertical(true);
+            oled->flipHorizontal(true);
+        }
+
     }
 
     // Display may still be powering up
@@ -735,7 +742,7 @@ void setRadioIcons(std::vector<iconPropertyBlinking> *iconList)
                 }
             }
         }
-        else if (present.display_type == DISPLAY_128x64)
+        else if (present.display_type == DISPLAY_128x64 || present.display_type == DISPLAY_128x64_INVERTED)
         {
             paintMACAddress4digit(0, 3); // Columns 0 to 22
 
@@ -1605,7 +1612,7 @@ void displayBaseSiv(std::vector<iconPropertyBlinking> *iconList)
 {
     // Display SIV during Base - but only on 128x64 displays. 64x48 has no room.
     // No support for short / open.
-    if (present.display_type == DISPLAY_128x64)
+    if (present.display_type == DISPLAY_128x64 || present.display_type == DISPLAY_128x64_INVERTED)
     {
         displayCoords textCoords = paintSIVIcon(iconList, &BaseSIVIconProperties, 0b11111111);
         paintSIVText(textCoords);
@@ -2015,7 +2022,7 @@ void displayFullIPAddress(std::vector<iconPropertyBlinking> *iconList) // Bottom
     static NetPriority_t previousPriority;
 
     // Max width: 15*6 = 90 pixels (6 pixels per character, nnn.nnn.nnn.nnn)
-    if (present.display_type == DISPLAY_128x64)
+    if (present.display_type == DISPLAY_128x64 || present.display_type == DISPLAY_128x64_INVERTED)
     {
         char myAddress[16];
 
@@ -2657,7 +2664,7 @@ void paintDisplaySetup()
 {
     constructSetupDisplay(&setupButtons); // Construct the vector (linked list) of buttons
 
-    uint8_t maxButtons = ((present.display_type == DISPLAY_128x64) ? 5 : 4);
+    uint8_t maxButtons = ((present.display_type == DISPLAY_128x64 || present.display_type == DISPLAY_128x64_INVERTED) ? 5 : 4);
 
     uint8_t printedButtons = 0;
 
@@ -2672,7 +2679,7 @@ void paintDisplaySetup()
             {
                 if (it->newState == STATE_PROFILE)
                 {
-                    int nameWidth = ((present.display_type == DISPLAY_128x64) ? 17 : 9);
+                    int nameWidth = ((present.display_type == DISPLAY_128x64 || present.display_type == DISPLAY_128x64_INVERTED) ? 17 : 9);
                     char miniProfileName[nameWidth] = {0};
                     snprintf(miniProfileName, sizeof(miniProfileName), "%d_%s", it->newProfile,
                              it->name); // Prefix with index #
@@ -2838,7 +2845,7 @@ void paintResets()
             else
                 oled->print(settings.resetCount + bufferOverruns);
         }
-        else // if (present.display_type == DISPLAY_128x64)
+        else // if (present.display_type == DISPLAY_128x64 || present.display_type == DISPLAY_128x64_INVERTED)
         {
             oled->setFont(QW_FONT_5X7);                 // Small font
             oled->setCursor(0, oled->getHeight() - 10); // x, y
