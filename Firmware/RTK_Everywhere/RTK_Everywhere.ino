@@ -307,6 +307,7 @@ const int COMMON_COORDINATES_MAX_STATIONS = 50; // Record up to 50 ECEF and Geod
 #include <ESP32Time.h> //http://librarymanager/All#ESP32Time by FBiego
 ESP32Time rtc;
 unsigned long syncRTCInterval = 1000; // To begin, sync RTC every second. Interval can be increased once sync'd.
+void printTimeStamp(bool always = false); // Header
 //-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 
 // microSD Interface
@@ -335,6 +336,11 @@ SemaphoreHandle_t sdCardSemaphore = NULL;
 TickType_t loggingSemaphoreWait_ms = 10 / portTICK_PERIOD_MS;
 const TickType_t fatSemaphore_shortWait_ms = 10 / portTICK_PERIOD_MS;
 const TickType_t fatSemaphore_longWait_ms = 200 / portTICK_PERIOD_MS;
+
+// ringBuffer semaphore - prevent processUart1Message (gnssReadTask) and handleGnssDataTask
+// from gatecrashing each other.
+SemaphoreHandle_t ringBufferSemaphore = NULL;
+const char *ringBufferSemaphoreHolder = "None";
 
 // Display used/free space in menu and config page
 uint64_t sdCardSize;

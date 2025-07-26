@@ -862,7 +862,7 @@ void beginSD()
             break; // Give up on loop
 
         // If an SD card is present, allow SdFat to take over
-        log_d("SD card detected");
+        systemPrintf("SD card detected @ %s\r\n", getTimeStamp());
 
         // Allocate the data structure that manages the microSD card
         if (!sd)
@@ -930,7 +930,7 @@ void beginSD()
         sdCardSize = 0;
         outOfSDSpace = true;
 
-        systemPrintln("microSD: Online");
+        systemPrintf("microSD: Online @ %s\r\n", getTimeStamp());
         online.microSD = true;
         break;
     }
@@ -951,7 +951,7 @@ void endSD(bool alreadyHaveSemaphore, bool releaseSemaphore)
         sd->end();
 
         online.microSD = false;
-        systemPrintln("microSD: Offline");
+        systemPrintf("microSD: Offline @ %s\r\n", getTimeStamp());
     }
 
     // Free the caches for the microSD card

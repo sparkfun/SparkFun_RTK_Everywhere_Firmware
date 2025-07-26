@@ -425,14 +425,7 @@ void ntripServerProcessRTCM(int serverIndex, uint8_t incoming)
                 (!settings.enableRtcmMessageChecking) && (!inMainMenu) && ntripServer->bytesSent)
             {
                 PERIODIC_CLEAR(PD_NTRIP_SERVER_DATA);
-                printTimeStamp();
-                //         1         2         3
-                // 123456789012345678901234567890
-                // YYYY-mm-dd HH:MM:SS.xxxrn0
-                struct tm timeinfo = rtc.getTimeStruct();
-                char timestamp[30];
-                strftime(timestamp, sizeof(timestamp), "%Y-%m-%d %H:%M:%S", &timeinfo);
-                systemPrintf("    Tx%d RTCM: %s.%03ld, %d bytes sent\r\n", serverIndex, timestamp, rtc.getMillis(),
+                systemPrintf("    Tx%d RTCM: %s, %d bytes sent\r\n", serverIndex, getTimeStamp(),
                              ntripServer->rtcmBytesSent);
                 ntripServer->rtcmBytesSent = 0;
             }

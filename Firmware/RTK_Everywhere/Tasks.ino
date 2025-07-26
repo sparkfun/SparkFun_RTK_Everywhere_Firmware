@@ -792,247 +792,265 @@ void processUart1Message(SEMP_PARSE_STATE *parse, uint16_t type)
     if (parse->length == 0)
         return;
 
-    // We need to be careful with availableHandlerSpace because it is possible for handleGnssDataTask
-    // to execute and update availableHandlerSpace while this code is executing...
-    // To see this happening, enable printing of the ring buffer offsets (s d 10) and
-    // the SD buffer sizes (s h 7). You will see the "SD Incoming Serial" from handleGnssDataTask
-    // gatecrash the "DH:" prints here.
-    // Strictly, we should have a sempahore controlling access to the ring buffer.
-
-    // Determine if this message will fit into the ring buffer
-    int32_t discardedBytes = 0;
-    bytesToCopy = parse->length;
-    space = availableHandlerSpace; // Take a copy of availableHandlerSpace here
-    use = settings.gnssHandlerBufferSize - space;
-    consumer = (char *)slowConsumer;
-    if (bytesToCopy > space) // Paul removed the && (!inMainMenu)) check 7-25-25
+    // Use a semaphore to prevent handleGnssDataTask from gatecrashing
+    if (ringBufferSemaphore == NULL)
+        ringBufferSemaphore = xSemaphoreCreateMutex();  // Create the mutex
+    
+    // Take the semaphore. Long wait. handleGnssDataTask could block
+    // Enable printing of the ring buffer offsets (s d 10) and the SD buffer sizes (s h 7)
+    // to see this in action. No more gatecrashing!
+    if (xSemaphoreTake(ringBufferSemaphore, fatSemaphore_longWait_ms) == pdPASS)
     {
-        int32_t bufferedData;
-        int32_t bytesToDiscard;
-        int32_t listEnd;
-        int32_t messageLength;
-        int32_t previousTail;
-        int32_t rbOffsetTail;
+        ringBufferSemaphoreHolder = "processUart1Message";
 
-        // Determine the tail of the ring buffer
-        previousTail = dataHead + space + 1;
-        if (previousTail >= settings.gnssHandlerBufferSize)
-            previousTail -= settings.gnssHandlerBufferSize;
-
-        /*  The rbOffsetArray holds the offsets into the ring buffer of the
-         *  start of each of the parsed messages.  A head (rbOffsetHead) and
-         *  tail (rbOffsetTail) offsets are used for this array to insert and
-         *  remove entries.  Typically this task only manipulates the head as
-         *  new messages are placed into the ring buffer.  The handleGnssDataTask
-         *  normally manipulates the tail as data is removed from the buffer.
-         *  However this task will manipulate the tail under two conditions:
-         *
-         *  1.  The ring buffer gets full and data must be discarded
-         *
-         *  2.  The rbOffsetArray is too small to hold all of the message
-         *      offsets for the data in the ring buffer.  The array is full
-         *      when (Head + 1) == Tail
-         *
-         *  Notes:
-         *      The rbOffsetArray is allocated along with the ring buffer in
-         *      Begin.ino
-         *
-         *      The first entry rbOffsetArray[0] is initialized to zero (0)
-         *      in Begin.ino
-         *
-         *      The array always has one entry in it containing the head offset
-         *      which contains a valid offset into the ringBuffer, handled below
-         *
-         *      The empty condition is Tail == Head
-         *
-         *      The amount of data described by the rbOffsetArray is
-         *      rbOffsetArray[Head] - rbOffsetArray[Tail]
-         *
-         *              rbOffsetArray                  ringBuffer
-         *           .-----------------.           .-----------------.
-         *           |                 |           |                 |
-         *           +-----------------+           |                 |
-         *  Tail --> |   Msg 1 Offset  |---------->+-----------------+ <-- Tail n
-         *           +-----------------+           |      Msg 1      |
-         *           |   Msg 2 Offset  |--------.  |                 |
-         *           +-----------------+        |  |                 |
-         *           |   Msg 3 Offset  |------. '->+-----------------+
-         *           +-----------------+      |    |      Msg 2      |
-         *  Head --> |   Head Offset   |--.   |    |                 |
-         *           +-----------------+  |   |    |                 |
-         *           |                 |  |   |    |                 |
-         *           +-----------------+  |   |    |                 |
-         *           |                 |  |   '--->+-----------------+
-         *           +-----------------+  |        |      Msg 3      |
-         *           |                 |  |        |                 |
-         *           +-----------------+  '------->+-----------------+ <-- dataHead
-         *           |                 |           |                 |
-         */
-
-        // Determine the index for the end of the circular ring buffer
-        // offset list
-        listEnd = rbOffsetHead;
-        WRAP_OFFSET(listEnd, 1, rbOffsetEntries);
-
-        // Update the tail, walk newest message to oldest message
-        rbOffsetTail = rbOffsetHead;
-        bufferedData = 0;
-        messageLength = 0;
-        while ((rbOffsetTail != listEnd) && (bufferedData < use))
+        // Determine if this message will fit into the ring buffer
+        int32_t discardedBytes = 0;
+        bytesToCopy = parse->length;
+        space = availableHandlerSpace; // Take a copy of availableHandlerSpace here
+        use = settings.gnssHandlerBufferSize - space;
+        consumer = (char *)slowConsumer;
+        if (bytesToCopy > space) // Paul removed the && (!inMainMenu)) check 7-25-25
         {
-            // Determine the amount of data in the ring buffer up until
-            // either the tail or the end of the rbOffsetArray
+            int32_t bufferedData;
+            int32_t bytesToDiscard;
+            int32_t listEnd;
+            int32_t messageLength;
+            int32_t previousTail;
+            int32_t rbOffsetTail;
+
+            // Determine the tail of the ring buffer
+            previousTail = dataHead + space + 1;
+            if (previousTail >= settings.gnssHandlerBufferSize)
+                previousTail -= settings.gnssHandlerBufferSize;
+
+            /*  The rbOffsetArray holds the offsets into the ring buffer of the
+            *  start of each of the parsed messages.  A head (rbOffsetHead) and
+            *  tail (rbOffsetTail) offsets are used for this array to insert and
+            *  remove entries.  Typically this task only manipulates the head as
+            *  new messages are placed into the ring buffer.  The handleGnssDataTask
+            *  normally manipulates the tail as data is removed from the buffer.
+            *  However this task will manipulate the tail under two conditions:
+            *
+            *  1.  The ring buffer gets full and data must be discarded
+            *
+            *  2.  The rbOffsetArray is too small to hold all of the message
+            *      offsets for the data in the ring buffer.  The array is full
+            *      when (Head + 1) == Tail
+            *
+            *  Notes:
+            *      The rbOffsetArray is allocated along with the ring buffer in
+            *      Begin.ino
+            *
+            *      The first entry rbOffsetArray[0] is initialized to zero (0)
+            *      in Begin.ino
+            *
+            *      The array always has one entry in it containing the head offset
+            *      which contains a valid offset into the ringBuffer, handled below
+            *
+            *      The empty condition is Tail == Head
+            *
+            *      The amount of data described by the rbOffsetArray is
+            *      rbOffsetArray[Head] - rbOffsetArray[Tail]
+            *
+            *              rbOffsetArray                  ringBuffer
+            *           .-----------------.           .-----------------.
+            *           |                 |           |                 |
+            *           +-----------------+           |                 |
+            *  Tail --> |   Msg 1 Offset  |---------->+-----------------+ <-- Tail n
+            *           +-----------------+           |      Msg 1      |
+            *           |   Msg 2 Offset  |--------.  |                 |
+            *           +-----------------+        |  |                 |
+            *           |   Msg 3 Offset  |------. '->+-----------------+
+            *           +-----------------+      |    |      Msg 2      |
+            *  Head --> |   Head Offset   |--.   |    |                 |
+            *           +-----------------+  |   |    |                 |
+            *           |                 |  |   |    |                 |
+            *           +-----------------+  |   |    |                 |
+            *           |                 |  |   '--->+-----------------+
+            *           +-----------------+  |        |      Msg 3      |
+            *           |                 |  |        |                 |
+            *           +-----------------+  '------->+-----------------+ <-- dataHead
+            *           |                 |           |                 |
+            */
+
+            // Determine the index for the end of the circular ring buffer
+            // offset list
+            listEnd = rbOffsetHead;
+            WRAP_OFFSET(listEnd, 1, rbOffsetEntries);
+
+            // Update the tail, walk newest message to oldest message
+            rbOffsetTail = rbOffsetHead;
+            bufferedData = 0;
+            messageLength = 0;
+            while ((rbOffsetTail != listEnd) && (bufferedData < use))
+            {
+                // Determine the amount of data in the ring buffer up until
+                // either the tail or the end of the rbOffsetArray
+                //
+                //                      |           |
+                //                      |           | Valid, still in ring buffer
+                //                      |  Newest   |
+                //                      +-----------+ <-- rbOffsetHead
+                //                      |           |
+                //                      |           | free space
+                //                      |           |
+                //     rbOffsetTail --> +-----------+ <-- bufferedData
+                //                      |   ring    |
+                //                      |  buffer   | <-- used
+                //                      |   data    |
+                //                      +-----------+ Valid, still in ring buffer
+                //                      |           |
+                //
+                messageLength = rbOffsetArray[rbOffsetTail];
+                WRAP_OFFSET(rbOffsetTail, rbOffsetEntries - 1, rbOffsetEntries);
+                messageLength -= rbOffsetArray[rbOffsetTail];
+                if (messageLength < 0)
+                    messageLength += settings.gnssHandlerBufferSize;
+                bufferedData += messageLength;
+            }
+
+            // Account for any data in the ring buffer not described by the array
             //
             //                      |           |
-            //                      |           | Valid, still in ring buffer
-            //                      |  Newest   |
-            //                      +-----------+ <-- rbOffsetHead
+            //                      +-----------+
+            //                      |  Oldest   |
             //                      |           |
-            //                      |           | free space
-            //                      |           |
-            //     rbOffsetTail --> +-----------+ <-- bufferedData
             //                      |   ring    |
             //                      |  buffer   | <-- used
             //                      |   data    |
             //                      +-----------+ Valid, still in ring buffer
             //                      |           |
+            //     rbOffsetTail --> +-----------+ <-- bufferedData
+            //                      |           |
+            //                      |  Newest   |
+            //                      +-----------+ <-- rbOffsetHead
+            //                      |           |
             //
-            messageLength = rbOffsetArray[rbOffsetTail];
-            WRAP_OFFSET(rbOffsetTail, rbOffsetEntries - 1, rbOffsetEntries);
-            messageLength -= rbOffsetArray[rbOffsetTail];
-            if (messageLength < 0)
-                messageLength += settings.gnssHandlerBufferSize;
-            bufferedData += messageLength;
+            if (bufferedData < use)
+                discardedBytes = use - bufferedData;
+
+            // Writing to the SD card, the network or Bluetooth, a partial
+            // message may be written leaving the tail pointer mid-message
+            //
+            //                      |           |
+            //     rbOffsetTail --> +-----------+
+            //                      |  Oldest   |
+            //                      |           |
+            //                      |   ring    |
+            //                      |  buffer   | <-- used
+            //                      |   data    | Valid, still in ring buffer
+            //                      +-----------+ <--
+            //                      |           |
+            //                      +-----------+
+            //                      |           |
+            //                      |  Newest   |
+            //                      +-----------+ <-- rbOffsetHead
+            //                      |           |
+            //
+            else if (bufferedData > use)
+            {
+                // Remove the remaining portion of the oldest entry in the array
+                discardedBytes = messageLength + use - bufferedData;
+                WRAP_OFFSET(rbOffsetTail, 1, rbOffsetEntries);
+            }
+
+            // rbOffsetTail now points to the beginning of a message in the
+            // ring buffer
+            // Determine the amount of data to discard
+            bytesToDiscard = discardedBytes;
+            if (bytesToDiscard < bytesToCopy)
+                bytesToDiscard = bytesToCopy;
+            if (bytesToDiscard < AMOUNT_OF_RING_BUFFER_DATA_TO_DISCARD)
+                bytesToDiscard = AMOUNT_OF_RING_BUFFER_DATA_TO_DISCARD;
+
+            // Walk the ring buffer messages from oldest to newest
+            while ((discardedBytes < bytesToDiscard) && (rbOffsetTail != rbOffsetHead))
+            {
+                // Determine the length of the oldest message
+                WRAP_OFFSET(rbOffsetTail, 1, rbOffsetEntries);
+                discardedBytes = rbOffsetArray[rbOffsetTail] - previousTail;
+                if (discardedBytes < 0)
+                    discardedBytes += settings.gnssHandlerBufferSize;
+            }
+
+            // Discard the oldest data from the ring buffer
+            // Printing the slow consumer is not that useful as any consumer will be
+            // considered 'slow' if its data wraps over the end of the buffer and
+            // needs a second write to clear...
+            if (!inMainMenu)
+            {
+                if (consumer)
+                    systemPrintf("Ring buffer full: discarding %d bytes, %s could be slow\r\n", discardedBytes, consumer);
+                else
+                    systemPrintf("Ring buffer full: discarding %d bytes\r\n", discardedBytes);
+                Serial.flush(); // TODO - delete me!
+            }
+
+            // Update the tails. This needs semaphore protection
+            updateRingBufferTails(previousTail, rbOffsetArray[rbOffsetTail]);
         }
 
-        // Account for any data in the ring buffer not described by the array
-        //
-        //                      |           |
-        //                      +-----------+
-        //                      |  Oldest   |
-        //                      |           |
-        //                      |   ring    |
-        //                      |  buffer   | <-- used
-        //                      |   data    |
-        //                      +-----------+ Valid, still in ring buffer
-        //                      |           |
-        //     rbOffsetTail --> +-----------+ <-- bufferedData
-        //                      |           |
-        //                      |  Newest   |
-        //                      +-----------+ <-- rbOffsetHead
-        //                      |           |
-        //
-        if (bufferedData < use)
-            discardedBytes = use - bufferedData;
-
-        // Writing to the SD card, the network or Bluetooth, a partial
-        // message may be written leaving the tail pointer mid-message
-        //
-        //                      |           |
-        //     rbOffsetTail --> +-----------+
-        //                      |  Oldest   |
-        //                      |           |
-        //                      |   ring    |
-        //                      |  buffer   | <-- used
-        //                      |   data    | Valid, still in ring buffer
-        //                      +-----------+ <--
-        //                      |           |
-        //                      +-----------+
-        //                      |           |
-        //                      |  Newest   |
-        //                      +-----------+ <-- rbOffsetHead
-        //                      |           |
-        //
-        else if (bufferedData > use)
+        if (bytesToCopy > (space + discardedBytes - 1)) // Sanity check
         {
-            // Remove the remaining portion of the oldest entry in the array
-            discardedBytes = messageLength + use - bufferedData;
-            WRAP_OFFSET(rbOffsetTail, 1, rbOffsetEntries);
+            systemPrintf("Ring buffer update error %s: bytesToCopy (%d) is > space (%d) + discardedBytes (%d) - 1\r\n",
+                        getTimeStamp(), bytesToCopy, space, discardedBytes);
+            Serial.flush(); // Flush Serial - the code is about to go bang...!
         }
+        
+        // Add another message to the ring buffer
+        // Account for this message
+        // Diagnostic prints are provided by settings.enablePrintSDBuffers and the handleGnssDataTask
+        // The semaphore prevents badness here. Previously availableHandlerSpace may have been updated
+        // by handleGnssDataTask
+        availableHandlerSpace = availableHandlerSpace + discardedBytes - bytesToCopy;
 
-        // rbOffsetTail now points to the beginning of a message in the
-        // ring buffer
-        // Determine the amount of data to discard
-        bytesToDiscard = discardedBytes;
-        if (bytesToDiscard < bytesToCopy)
-            bytesToDiscard = bytesToCopy;
-        if (bytesToDiscard < AMOUNT_OF_RING_BUFFER_DATA_TO_DISCARD)
-            bytesToDiscard = AMOUNT_OF_RING_BUFFER_DATA_TO_DISCARD;
+        // Copy dataHead so we can update with a single write - redundant with the semaphore
+        RING_BUFFER_OFFSET newDataHead = dataHead;
 
-        // Walk the ring buffer messages from oldest to newest
-        while ((discardedBytes < bytesToDiscard) && (rbOffsetTail != rbOffsetHead))
-        {
-            // Determine the length of the oldest message
-            WRAP_OFFSET(rbOffsetTail, 1, rbOffsetEntries);
-            discardedBytes = rbOffsetArray[rbOffsetTail] - previousTail;
-            if (discardedBytes < 0)
-                discardedBytes += settings.gnssHandlerBufferSize;
-        }
+        // Fill the buffer to the end and then start at the beginning
+        if ((newDataHead + bytesToCopy) > settings.gnssHandlerBufferSize)
+            bytesToCopy = settings.gnssHandlerBufferSize - newDataHead;
 
-        // Discard the oldest data from the ring buffer
-        // Printing the slow consumer is not that useful as any consumer will be
-        // considered 'slow' if its data wraps over the end of the buffer and
-        // needs a second write to clear...
-        if (!inMainMenu)
-        {
-            if (consumer)
-                systemPrintf("Ring buffer full: discarding %d bytes, %s could be slow\r\n", discardedBytes, consumer);
-            else
-                systemPrintf("Ring buffer full: discarding %d bytes\r\n", discardedBytes);
-        }
+        // Display the dataHead offset
+        if (settings.enablePrintRingBufferOffsets && (!inMainMenu))
+            systemPrintf("DH: %4d --> ", newDataHead);
 
-        // Update the tails. Strictly this needs semaphore protection
-        updateRingBufferTails(previousTail, rbOffsetArray[rbOffsetTail]);
-    }
-
-    if (bytesToCopy > (space + discardedBytes - 1)) // Sanity check
-        systemPrintf("Ring buffer update error: bytesToCopy (%d) is > space (%d) + discardedBytes (%d) - 1\r\n",
-                      bytesToCopy, space, discardedBytes);
-    
-    // Add another message to the ring buffer
-    // Account for this message
-    // Diagnostic prints are provided by settings.enablePrintSDBuffers and the handleGnssDataTask
-    // availableHandlerSpace may have been updated by handleGnssDataTask
-    availableHandlerSpace = availableHandlerSpace + discardedBytes - bytesToCopy;
-
-    // Copy dataHead so we can update with a single write
-    RING_BUFFER_OFFSET newDataHead = dataHead;
-
-    // Fill the buffer to the end and then start at the beginning
-    if ((newDataHead + bytesToCopy) > settings.gnssHandlerBufferSize)
-        bytesToCopy = settings.gnssHandlerBufferSize - newDataHead;
-
-    // Display the dataHead offset
-    if (settings.enablePrintRingBufferOffsets && (!inMainMenu))
-        systemPrintf("DH: %4d --> ", newDataHead);
-
-    // Copy the data into the ring buffer
-    memcpy(&ringBuffer[newDataHead], parse->buffer, bytesToCopy);
-    newDataHead = newDataHead + bytesToCopy;
-    if (newDataHead >= settings.gnssHandlerBufferSize)
-        newDataHead = newDataHead - settings.gnssHandlerBufferSize;
-
-    // Determine the remaining bytes
-    remainingBytes = parse->length - bytesToCopy;
-    if (remainingBytes)
-    {
-        // Copy the remaining bytes into the beginning of the ring buffer
-        memcpy(ringBuffer, &parse->buffer[bytesToCopy], remainingBytes);
-        newDataHead = newDataHead + remainingBytes;
+        // Copy the data into the ring buffer
+        memcpy(&ringBuffer[newDataHead], parse->buffer, bytesToCopy);
+        newDataHead = newDataHead + bytesToCopy;
         if (newDataHead >= settings.gnssHandlerBufferSize)
             newDataHead = newDataHead - settings.gnssHandlerBufferSize;
+
+        // Determine the remaining bytes
+        remainingBytes = parse->length - bytesToCopy;
+        if (remainingBytes)
+        {
+            // Copy the remaining bytes into the beginning of the ring buffer
+            memcpy(ringBuffer, &parse->buffer[bytesToCopy], remainingBytes);
+            newDataHead = newDataHead + remainingBytes;
+            if (newDataHead >= settings.gnssHandlerBufferSize)
+                newDataHead = newDataHead - settings.gnssHandlerBufferSize;
+        }
+
+        // Add the head offset to the offset array
+        WRAP_OFFSET(rbOffsetHead, 1, rbOffsetEntries);
+        rbOffsetArray[rbOffsetHead] = newDataHead;
+
+        // Display the dataHead offset
+        if (settings.enablePrintRingBufferOffsets && (!inMainMenu))
+            systemPrintf("%4d @ %s\r\n", newDataHead, getTimeStamp());
+
+        // Update dataHead in a single write - redundant with the semaphore
+        // handleGnssDataTask will use it as soon as it updates
+        dataHead = newDataHead;
+
+        // handleGnssDataTask will be chomping at the bit. Let it fly!
+        xSemaphoreGive(ringBufferSemaphore);
     }
-
-    // Add the head offset to the offset array
-    WRAP_OFFSET(rbOffsetHead, 1, rbOffsetEntries);
-    rbOffsetArray[rbOffsetHead] = newDataHead;
-
-    // Display the dataHead offset
-    if (settings.enablePrintRingBufferOffsets && (!inMainMenu))
-        systemPrintf("%4d\r\n", newDataHead);
-
-    // Update dataHead in a single write - handleGnssDataTask will use it as soon as it updates
-    dataHead = newDataHead;
+    else
+    {
+        systemPrintf("processUart1Message could not get ringBuffer semaphore - held by %s\r\n", ringBufferSemaphoreHolder);
+    }
 }
 
 // Remove previous messages from the ring buffer
@@ -1124,423 +1142,445 @@ void handleGnssDataTask(void *e)
 
         usedSpace = 0;
 
-        //----------------------------------------------------------------------
-        // Send data over Bluetooth
-        //----------------------------------------------------------------------
-
-        startMillis = millis();
-
-        // Determine BT connection state
-        bool connected = (bluetoothGetState() == BT_CONNECTED);
-
-        if (!connected)
-            // Discard the data
-            btRingBufferTail = dataHead;
-        else
+        // Use a semaphore to prevent handleGnssDataTask from gatecrashing
+        if (ringBufferSemaphore == NULL)
+            ringBufferSemaphore = xSemaphoreCreateMutex();  // Create the mutex
+        
+        // Take the semaphore. Short wait. processUart1Message shouldn't block
+        if (xSemaphoreTake(ringBufferSemaphore, fatSemaphore_shortWait_ms) == pdPASS)
         {
-            // Determine the amount of Bluetooth data in the buffer
-            bytesToSend = dataHead - btRingBufferTail;
-            if (bytesToSend < 0)
-                bytesToSend += settings.gnssHandlerBufferSize;
-            if (bytesToSend > 0)
+            ringBufferSemaphoreHolder = "handleGnssDataTask";
+
+            //----------------------------------------------------------------------
+            // Send data over Bluetooth
+            //----------------------------------------------------------------------
+
+            startMillis = millis();
+
+            // Determine BT connection state
+            bool connected = (bluetoothGetState() == BT_CONNECTED);
+
+            if (!connected)
+                // Discard the data
+                btRingBufferTail = dataHead;
+            else
             {
-                // Reduce bytes to send if we have more to send then the end of
-                // the buffer, we'll wrap next loop
-                if ((btRingBufferTail + bytesToSend) > settings.gnssHandlerBufferSize)
-                    bytesToSend = settings.gnssHandlerBufferSize - btRingBufferTail;
-
-                // If we are in the config menu, suppress data flowing from GNSS to cell phone
-                if (btPrintEcho == false)
-                {
-                    // Push new data over Bluetooth
-                    bytesToSend = bluetoothWrite(&ringBuffer[btRingBufferTail], bytesToSend);
-                }
-
-                // Account for the data that was sent
-                if (bytesToSend > 0)
-                {
-                    // If we are in base mode, assume part of the outgoing data is RTCM
-                    if (inBaseMode() == true)
-                        bluetoothOutgoingRTCM = true;
-
-                    // Account for the sent or dropped data
-                    btRingBufferTail += bytesToSend;
-                    if (btRingBufferTail >= settings.gnssHandlerBufferSize)
-                        btRingBufferTail -= settings.gnssHandlerBufferSize;
-
-                    // Remember the maximum transfer time
-                    deltaMillis = millis() - startMillis;
-                    if (maxMillis[RBC_BLUETOOTH] < deltaMillis)
-                        maxMillis[RBC_BLUETOOTH] = deltaMillis;
-
-                    // Display the data movement
-                    if (PERIODIC_DISPLAY(PD_BLUETOOTH_DATA_TX))
-                    {
-                        PERIODIC_CLEAR(PD_BLUETOOTH_DATA_TX);
-                        systemPrintf("Bluetooth: %d bytes written\r\n", bytesToSend);
-                    }
-                }
-                else
-                    log_w("BT failed to send");
-
-                // Determine the amount of data that remains in the buffer
+                // Determine the amount of Bluetooth data in the buffer
                 bytesToSend = dataHead - btRingBufferTail;
                 if (bytesToSend < 0)
                     bytesToSend += settings.gnssHandlerBufferSize;
-                if (usedSpace < bytesToSend)
-                {
-                    usedSpace = bytesToSend;
-                    slowConsumer = "Bluetooth";
-                }
-            }
-        }
-
-        //----------------------------------------------------------------------
-        // Send data over USB serial
-        //----------------------------------------------------------------------
-
-        startMillis = millis();
-
-        // Determine USB serial connection state
-        if (!forwardGnssDataToUsbSerial)
-            // Discard the data
-            usbRingBufferTail = dataHead;
-        else
-        {
-            // Determine the amount of USB serial data in the buffer
-            bytesToSend = dataHead - usbRingBufferTail;
-            if (bytesToSend < 0)
-                bytesToSend += settings.gnssHandlerBufferSize;
-            if (bytesToSend > 0)
-            {
-                // Reduce bytes to send if we have more to send then the end of
-                // the buffer, we'll wrap next loop
-                if ((usbRingBufferTail + bytesToSend) > settings.gnssHandlerBufferSize)
-                    bytesToSend = settings.gnssHandlerBufferSize - usbRingBufferTail;
-
-                // Send data over USB serial to the PC
-                bytesToSend = systemWriteGnssDataToUsbSerial(&ringBuffer[usbRingBufferTail], bytesToSend);
-
-                // Account for the data that was sent
                 if (bytesToSend > 0)
                 {
-                    // Account for the sent or dropped data
-                    usbRingBufferTail += bytesToSend;
-                    if (usbRingBufferTail >= settings.gnssHandlerBufferSize)
-                        usbRingBufferTail -= settings.gnssHandlerBufferSize;
+                    // Reduce bytes to send if we have more to send then the end of
+                    // the buffer, we'll wrap next loop
+                    if ((btRingBufferTail + bytesToSend) > settings.gnssHandlerBufferSize)
+                        bytesToSend = settings.gnssHandlerBufferSize - btRingBufferTail;
 
-                    // Remember the maximum transfer time
-                    deltaMillis = millis() - startMillis;
-                    if (maxMillis[RBC_USB_SERIAL] < deltaMillis)
-                        maxMillis[RBC_USB_SERIAL] = deltaMillis;
+                    // If we are in the config menu, suppress data flowing from GNSS to cell phone
+                    if (btPrintEcho == false)
+                    {
+                        // Push new data over Bluetooth
+                        bytesToSend = bluetoothWrite(&ringBuffer[btRingBufferTail], bytesToSend);
+                    }
+
+                    // Account for the data that was sent
+                    if (bytesToSend > 0)
+                    {
+                        // If we are in base mode, assume part of the outgoing data is RTCM
+                        if (inBaseMode() == true)
+                            bluetoothOutgoingRTCM = true;
+
+                        // Account for the sent or dropped data
+                        btRingBufferTail += bytesToSend;
+                        if (btRingBufferTail >= settings.gnssHandlerBufferSize)
+                            btRingBufferTail -= settings.gnssHandlerBufferSize;
+
+                        // Remember the maximum transfer time
+                        deltaMillis = millis() - startMillis;
+                        if (maxMillis[RBC_BLUETOOTH] < deltaMillis)
+                            maxMillis[RBC_BLUETOOTH] = deltaMillis;
+
+                        // Display the data movement
+                        if (PERIODIC_DISPLAY(PD_BLUETOOTH_DATA_TX))
+                        {
+                            PERIODIC_CLEAR(PD_BLUETOOTH_DATA_TX);
+                            systemPrintf("Bluetooth: %d bytes written\r\n", bytesToSend);
+                        }
+                    }
+                    else
+                        log_w("BT failed to send");
+
+                    // Determine the amount of data that remains in the buffer
+                    bytesToSend = dataHead - btRingBufferTail;
+                    if (bytesToSend < 0)
+                        bytesToSend += settings.gnssHandlerBufferSize;
+                    if (usedSpace < bytesToSend)
+                    {
+                        usedSpace = bytesToSend;
+                        slowConsumer = "Bluetooth";
+                    }
                 }
+            }
 
-                // Determine the amount of data that remains in the buffer
+            //----------------------------------------------------------------------
+            // Send data over USB serial
+            //----------------------------------------------------------------------
+
+            startMillis = millis();
+
+            // Determine USB serial connection state
+            if (!forwardGnssDataToUsbSerial)
+                // Discard the data
+                usbRingBufferTail = dataHead;
+            else
+            {
+                // Determine the amount of USB serial data in the buffer
                 bytesToSend = dataHead - usbRingBufferTail;
                 if (bytesToSend < 0)
                     bytesToSend += settings.gnssHandlerBufferSize;
-                if (usedSpace < bytesToSend)
+                if (bytesToSend > 0)
                 {
-                    usedSpace = bytesToSend;
-                    slowConsumer = "USB Serial";
+                    // Reduce bytes to send if we have more to send then the end of
+                    // the buffer, we'll wrap next loop
+                    if ((usbRingBufferTail + bytesToSend) > settings.gnssHandlerBufferSize)
+                        bytesToSend = settings.gnssHandlerBufferSize - usbRingBufferTail;
+
+                    // Send data over USB serial to the PC
+                    bytesToSend = systemWriteGnssDataToUsbSerial(&ringBuffer[usbRingBufferTail], bytesToSend);
+
+                    // Account for the data that was sent
+                    if (bytesToSend > 0)
+                    {
+                        // Account for the sent or dropped data
+                        usbRingBufferTail += bytesToSend;
+                        if (usbRingBufferTail >= settings.gnssHandlerBufferSize)
+                            usbRingBufferTail -= settings.gnssHandlerBufferSize;
+
+                        // Remember the maximum transfer time
+                        deltaMillis = millis() - startMillis;
+                        if (maxMillis[RBC_USB_SERIAL] < deltaMillis)
+                            maxMillis[RBC_USB_SERIAL] = deltaMillis;
+                    }
+
+                    // Determine the amount of data that remains in the buffer
+                    bytesToSend = dataHead - usbRingBufferTail;
+                    if (bytesToSend < 0)
+                        bytesToSend += settings.gnssHandlerBufferSize;
+                    if (usedSpace < bytesToSend)
+                    {
+                        usedSpace = bytesToSend;
+                        slowConsumer = "USB Serial";
+                    }
                 }
             }
-        }
 
-        //----------------------------------------------------------------------
-        // Send data to the network clients
-        //----------------------------------------------------------------------
+            //----------------------------------------------------------------------
+            // Send data to the network clients
+            //----------------------------------------------------------------------
 
-        startMillis = millis();
+            startMillis = millis();
 
-        // Update space available for use in UART task
-        bytesToSend = tcpClientSendData(dataHead);
-        if (usedSpace < bytesToSend)
-        {
-            usedSpace = bytesToSend;
-            slowConsumer = "TCP client";
-        }
-
-        // Remember the maximum transfer time
-        deltaMillis = millis() - startMillis;
-        if (maxMillis[RBC_TCP_CLIENT] < deltaMillis)
-            maxMillis[RBC_TCP_CLIENT] = deltaMillis;
-
-        startMillis = millis();
-
-        // Update space available for use in UART task
-        bytesToSend = tcpServerSendData(dataHead);
-        if (usedSpace < bytesToSend)
-        {
-            usedSpace = bytesToSend;
-            slowConsumer = "TCP server";
-        }
-
-        // Remember the maximum transfer time
-        deltaMillis = millis() - startMillis;
-        if (maxMillis[RBC_TCP_SERVER] < deltaMillis)
-            maxMillis[RBC_TCP_SERVER] = deltaMillis;
-
-        startMillis = millis();
-
-        // Update space available for use in UART task
-        bytesToSend = udpServerSendData(dataHead);
-        if (usedSpace < bytesToSend)
-        {
-            usedSpace = bytesToSend;
-            slowConsumer = "UDP server";
-        }
-
-        // Remember the maximum transfer time
-        deltaMillis = millis() - startMillis;
-        if (maxMillis[RBC_UDP_SERVER] < deltaMillis)
-            maxMillis[RBC_UDP_SERVER] = deltaMillis;
-
-        //----------------------------------------------------------------------
-        // Log data to the SD card
-        //----------------------------------------------------------------------
-
-        // Determine if the SD card is enabled for logging
-        connected = online.logging && (!logTimeExceeded());
-
-        // Block logging during Web Config to avoid SD collisions
-        // See issue: https://github.com/sparkfun/SparkFun_RTK_Everywhere_Firmware/issues/693
-        if(webServerIsRunning() == true)
-            connected = false;
-
-        // If user wants to log, record to SD
-        if (!connected)
-            // Discard the data
-            sdRingBufferTail = dataHead;
-        else
-        {
-            // Determine the amount of microSD card logging data in the buffer
-            bytesToSend = dataHead - sdRingBufferTail;
-            if (bytesToSend < 0)
-                bytesToSend += settings.gnssHandlerBufferSize;
-            if (bytesToSend > 0)
+            // Update space available for use in UART task
+            bytesToSend = tcpClientSendData(dataHead);
+            if (usedSpace < bytesToSend)
             {
-                // Attempt to gain access to the SD card, avoids collisions with file
-                // writing from other functions like recordSystemSettingsToFile()
-                if (xSemaphoreTake(sdCardSemaphore, loggingSemaphoreWait_ms) == pdPASS)
+                usedSpace = bytesToSend;
+                slowConsumer = "TCP client";
+            }
+
+            // Remember the maximum transfer time
+            deltaMillis = millis() - startMillis;
+            if (maxMillis[RBC_TCP_CLIENT] < deltaMillis)
+                maxMillis[RBC_TCP_CLIENT] = deltaMillis;
+
+            startMillis = millis();
+
+            // Update space available for use in UART task
+            bytesToSend = tcpServerSendData(dataHead);
+            if (usedSpace < bytesToSend)
+            {
+                usedSpace = bytesToSend;
+                slowConsumer = "TCP server";
+            }
+
+            // Remember the maximum transfer time
+            deltaMillis = millis() - startMillis;
+            if (maxMillis[RBC_TCP_SERVER] < deltaMillis)
+                maxMillis[RBC_TCP_SERVER] = deltaMillis;
+
+            startMillis = millis();
+
+            // Update space available for use in UART task
+            bytesToSend = udpServerSendData(dataHead);
+            if (usedSpace < bytesToSend)
+            {
+                usedSpace = bytesToSend;
+                slowConsumer = "UDP server";
+            }
+
+            // Remember the maximum transfer time
+            deltaMillis = millis() - startMillis;
+            if (maxMillis[RBC_UDP_SERVER] < deltaMillis)
+                maxMillis[RBC_UDP_SERVER] = deltaMillis;
+
+            //----------------------------------------------------------------------
+            // Log data to the SD card
+            //----------------------------------------------------------------------
+
+            // Determine if the SD card is enabled for logging
+            connected = online.logging && (!logTimeExceeded());
+
+            // Block logging during Web Config to avoid SD collisions
+            // See issue: https://github.com/sparkfun/SparkFun_RTK_Everywhere_Firmware/issues/693
+            if(webServerIsRunning() == true)
+                connected = false;
+
+            // If user wants to log, record to SD
+            if (!connected)
+                // Discard the data
+                sdRingBufferTail = dataHead;
+            else
+            {
+                // Determine the amount of microSD card logging data in the buffer
+                bytesToSend = dataHead - sdRingBufferTail;
+                if (bytesToSend < 0)
+                    bytesToSend += settings.gnssHandlerBufferSize;
+                if (bytesToSend > 0)
                 {
-                    markSemaphore(FUNCTION_WRITESD);
-
-                    do // Do the SD write in a do loop so we can break out if needed
+                    // Attempt to gain access to the SD card, avoids collisions with file
+                    // writing from other functions like recordSystemSettingsToFile()
+                    if (xSemaphoreTake(sdCardSemaphore, loggingSemaphoreWait_ms) == pdPASS)
                     {
-                        if (settings.enablePrintSDBuffers && (!inMainMenu))
+                        markSemaphore(FUNCTION_WRITESD);
+
+                        do // Do the SD write in a do loop so we can break out if needed
                         {
-                            int bufferAvailable = serialGNSS->available();
+                            if (settings.enablePrintSDBuffers && (!inMainMenu))
+                            {
+                                int bufferAvailable = serialGNSS->available();
 
-                            int availableUARTSpace = settings.uartReceiveBufferSize - bufferAvailable;
+                                int availableUARTSpace = settings.uartReceiveBufferSize - bufferAvailable;
 
-                            systemPrintf("SD Incoming Serial: %04d\tToRead: %04d\tMovedToBuffer: %04d\tavailableUARTSpace: "
-                                        "%04d\tavailableHandlerSpace: %04d\tToRecord: %04d\tRecorded: %04d\tBO: %d\r\n",
-                                        bufferAvailable, 0, 0, availableUARTSpace, availableHandlerSpace, bytesToSend, 0,
-                                        bufferOverruns);
-                        }
+                                systemPrintf("SD Incoming Serial @ %s: %04d\tToRead: %04d\tMovedToBuffer: %04d\tavailableUARTSpace: "
+                                            "%04d\tavailableHandlerSpace: %04d\tToRecord: %04d\tRecorded: %04d\tBO: %d\r\n",
+                                            getTimeStamp(), bufferAvailable, 0, 0, availableUARTSpace, availableHandlerSpace,
+                                            bytesToSend, 0, bufferOverruns);
+                            }
 
-                        // For the SD card, we need to write everything we've got
-                        // to prevent the ARP Write and Events from gatecrashing...
-                        
-                        int32_t sendTheseBytes = bytesToSend;
+                            // For the SD card, we need to write everything we've got
+                            // to prevent the ARP Write and Events from gatecrashing...
+                            
+                            int32_t sendTheseBytes = bytesToSend;
 
-                        // Reduce bytes to record if we have more then the end of the buffer
-                        if ((sdRingBufferTail + sendTheseBytes) > settings.gnssHandlerBufferSize)
-                            sendTheseBytes = settings.gnssHandlerBufferSize - sdRingBufferTail;
+                            // Reduce bytes to record if we have more then the end of the buffer
+                            if ((sdRingBufferTail + sendTheseBytes) > settings.gnssHandlerBufferSize)
+                                sendTheseBytes = settings.gnssHandlerBufferSize - sdRingBufferTail;
 
-                        startMillis = millis();
+                            startMillis = millis();
 
-                        // Write the data to the file
-                        int32_t bytesSent = logFile->write(&ringBuffer[sdRingBufferTail], sendTheseBytes);
-
-                        // Account for the sent data or dropped
-                        sdRingBufferTail += bytesSent;
-                        if (sdRingBufferTail >= settings.gnssHandlerBufferSize)
-                            sdRingBufferTail -= settings.gnssHandlerBufferSize;
-
-                        if (bytesSent != sendTheseBytes)
-                        {
-                            systemPrintf("SD write mismatch (1): wrote %d bytes of %d\r\n", bytesSent, sendTheseBytes);
-                            break; // Exit the do loop
-                        }
-
-                        // If we have more data to write - and the first write was successful
-                        if (bytesToSend > sendTheseBytes)
-                        {
-                            sendTheseBytes = bytesToSend - sendTheseBytes;
-
-                            bytesSent = logFile->write(&ringBuffer[sdRingBufferTail], sendTheseBytes);
+                            // Write the data to the file
+                            int32_t bytesSent = logFile->write(&ringBuffer[sdRingBufferTail], sendTheseBytes);
 
                             // Account for the sent data or dropped
                             sdRingBufferTail += bytesSent;
-                            if (sdRingBufferTail >= settings.gnssHandlerBufferSize) // Should be redundant
+                            if (sdRingBufferTail >= settings.gnssHandlerBufferSize)
                                 sdRingBufferTail -= settings.gnssHandlerBufferSize;
 
                             if (bytesSent != sendTheseBytes)
                             {
-                                systemPrintf("SD write mismatch (2): wrote %d bytes of %d\r\n", bytesSent, sendTheseBytes);
+                                systemPrintf("SD write mismatch (1) @ %s: wrote %d bytes of %d\r\n",
+                                             getTimeStamp(), bytesSent, sendTheseBytes);
                                 break; // Exit the do loop
                             }
-                        }
 
-                        if (PERIODIC_DISPLAY(PD_SD_LOG_WRITE) && (bytesSent > 0))
-                        {
-                            PERIODIC_CLEAR(PD_SD_LOG_WRITE);
-                            systemPrintf("SD %d bytes written to log file\r\n", bytesToSend);
-                        }
+                            // If we have more data to write - and the first write was successful
+                            if (bytesToSend > sendTheseBytes)
+                            {
+                                sendTheseBytes = bytesToSend - sendTheseBytes;
 
-                        sdFreeSpace -= bytesToSend; // Update remaining space on SD
+                                bytesSent = logFile->write(&ringBuffer[sdRingBufferTail], sendTheseBytes);
 
-                        // Record any pending trigger events
-                        if (newEventToRecord == true)
-                        {
-                            newEventToRecord = false;
+                                // Account for the sent data or dropped
+                                sdRingBufferTail += bytesSent;
+                                if (sdRingBufferTail >= settings.gnssHandlerBufferSize) // Should be redundant
+                                    sdRingBufferTail -= settings.gnssHandlerBufferSize;
 
-                            if (settings.enablePrintLogFileStatus)
-                                systemPrintln("Log file: recording event");
+                                if (bytesSent != sendTheseBytes)
+                                {
+                                    systemPrintf("SD write mismatch (2) @ %s: wrote %d bytes of %d\r\n",
+                                                 getTimeStamp(), bytesSent, sendTheseBytes);
+                                    break; // Exit the do loop
+                                }
+                            }
 
-                            // Record trigger count with Time Of Week of rising edge (ms), Millisecond fraction of Time Of Week of
-                            // rising edge (ns), and accuracy estimate (ns)
-                            char eventData[82]; // Max NMEA sentence length is 82
-                            snprintf(eventData, sizeof(eventData), "%d,%d,%d,%d", triggerCount, triggerTowMsR, triggerTowSubMsR,
-                                    triggerAccEst);
+                            if (PERIODIC_DISPLAY(PD_SD_LOG_WRITE) && (bytesSent > 0))
+                            {
+                                PERIODIC_CLEAR(PD_SD_LOG_WRITE);
+                                systemPrintf("SD %d bytes written to log file\r\n", bytesToSend);
+                            }
 
-                            char nmeaMessage[82]; // Max NMEA sentence length is 82
-                            createNMEASentence(CUSTOM_NMEA_TYPE_EVENT, nmeaMessage, sizeof(nmeaMessage),
-                                            eventData); // textID, buffer, sizeOfBuffer, text
+                            sdFreeSpace -= bytesToSend; // Update remaining space on SD
 
-                            logFile->write(nmeaMessage, strlen(nmeaMessage));
-                            const char *crlf = "\r\n";
-                            logFile->write(crlf, 2);
+                            // Record any pending trigger events
+                            if (newEventToRecord == true)
+                            {
+                                newEventToRecord = false;
 
-                            sdFreeSpace -= strlen(nmeaMessage) + 2; // Update remaining space on SD
-                        }
+                                if (settings.enablePrintLogFileStatus)
+                                    systemPrintln("Log file: recording event");
 
-                        // Record the Antenna Reference Position - if available
-                        if (newARPAvailable == true && settings.enableARPLogging &&
-                            ((millis() - lastARPLog) > (settings.ARPLoggingInterval_s * 1000)))
-                        {
-                            lastARPLog = millis();
-                            newARPAvailable = false; // Clear flag. It doesn't matter if the ARP cannot be logged
+                                // Record trigger count with Time Of Week of rising edge (ms), Millisecond fraction of Time Of Week of
+                                // rising edge (ns), and accuracy estimate (ns)
+                                char eventData[82]; // Max NMEA sentence length is 82
+                                snprintf(eventData, sizeof(eventData), "%d,%d,%d,%d", triggerCount, triggerTowMsR, triggerTowSubMsR,
+                                        triggerAccEst);
 
-                            double x = ARPECEFX;
-                            x /= 10000.0; // Convert to m
-                            double y = ARPECEFY;
-                            y /= 10000.0; // Convert to m
-                            double z = ARPECEFZ;
-                            z /= 10000.0; // Convert to m
-                            double h = ARPECEFH;
-                            h /= 10000.0;     // Convert to m
-                            char ARPData[82]; // Max NMEA sentence length is 82
-                            snprintf(ARPData, sizeof(ARPData), "%.4f,%.4f,%.4f,%.4f", x, y, z, h);
+                                char nmeaMessage[82]; // Max NMEA sentence length is 82
+                                createNMEASentence(CUSTOM_NMEA_TYPE_EVENT, nmeaMessage, sizeof(nmeaMessage),
+                                                eventData); // textID, buffer, sizeOfBuffer, text
 
-                            if (settings.enablePrintLogFileStatus)
-                                systemPrintf("Log file: recording Antenna Reference Position %s\r\n", ARPData);
+                                logFile->write(nmeaMessage, strlen(nmeaMessage));
+                                const char *crlf = "\r\n";
+                                logFile->write(crlf, 2);
 
-                            char nmeaMessage[82]; // Max NMEA sentence length is 82
-                            createNMEASentence(CUSTOM_NMEA_TYPE_ARP_ECEF_XYZH, nmeaMessage, sizeof(nmeaMessage),
-                                            ARPData); // textID, buffer, sizeOfBuffer, text
+                                sdFreeSpace -= strlen(nmeaMessage) + 2; // Update remaining space on SD
+                            }
 
-                            logFile->write(nmeaMessage, strlen(nmeaMessage));
-                            const char *crlf = "\r\n";
-                            logFile->write(crlf, 2);
+                            // Record the Antenna Reference Position - if available
+                            if (newARPAvailable == true && settings.enableARPLogging &&
+                                ((millis() - lastARPLog) > (settings.ARPLoggingInterval_s * 1000)))
+                            {
+                                lastARPLog = millis();
+                                newARPAvailable = false; // Clear flag. It doesn't matter if the ARP cannot be logged
 
-                            sdFreeSpace -= strlen(nmeaMessage) + 2; // Update remaining space on SD
-                        }
+                                double x = ARPECEFX;
+                                x /= 10000.0; // Convert to m
+                                double y = ARPECEFY;
+                                y /= 10000.0; // Convert to m
+                                double z = ARPECEFZ;
+                                z /= 10000.0; // Convert to m
+                                double h = ARPECEFH;
+                                h /= 10000.0;     // Convert to m
+                                char ARPData[82]; // Max NMEA sentence length is 82
+                                snprintf(ARPData, sizeof(ARPData), "%.4f,%.4f,%.4f,%.4f", x, y, z, h);
 
-                        logFileSize = logFile->fileSize(); // Update file size
+                                if (settings.enablePrintLogFileStatus)
+                                    systemPrintf("Log file: recording Antenna Reference Position %s\r\n", ARPData);
 
-                        // Force file sync every 60s
-                        if (millis() - lastUBXLogSyncTime > 60000)
-                        {
-                            baseStatusLedBlink(); // Blink LED to indicate logging activity
+                                char nmeaMessage[82]; // Max NMEA sentence length is 82
+                                createNMEASentence(CUSTOM_NMEA_TYPE_ARP_ECEF_XYZH, nmeaMessage, sizeof(nmeaMessage),
+                                                ARPData); // textID, buffer, sizeOfBuffer, text
 
-                            logFile->sync();
-                            sdUpdateFileAccessTimestamp(logFile); // Update the file access time & date
+                                logFile->write(nmeaMessage, strlen(nmeaMessage));
+                                const char *crlf = "\r\n";
+                                logFile->write(crlf, 2);
 
-                            baseStatusLedBlink(); // Blink LED to indicate logging activity
+                                sdFreeSpace -= strlen(nmeaMessage) + 2; // Update remaining space on SD
+                            }
 
-                            lastUBXLogSyncTime = millis();
-                        }
+                            logFileSize = logFile->fileSize(); // Update file size
 
-                        // Remember the maximum transfer time
-                        deltaMillis = millis() - startMillis;
-                        if (maxMillis[RBC_SD_CARD] < deltaMillis)
-                            maxMillis[RBC_SD_CARD] = deltaMillis;
+                            // Force file sync every 60s
+                            if (millis() - lastUBXLogSyncTime > 60000)
+                            {
+                                baseStatusLedBlink(); // Blink LED to indicate logging activity
 
-                        if (settings.enablePrintBufferOverrun)
-                        {
-                            if (deltaMillis > 150)
-                                systemPrintf("Long Write! Time: %ld ms / Location: %ld / Recorded %d bytes / "
-                                            "spaceRemaining %d bytes\r\n",
-                                            deltaMillis, logFileSize, bytesToSend, combinedSpaceRemaining);
-                        }
-                    } while(0);
+                                logFile->sync();
+                                sdUpdateFileAccessTimestamp(logFile); // Update the file access time & date
 
-                    xSemaphoreGive(sdCardSemaphore);
-                } // End sdCardSemaphore
-                else
-                {
-                    char semaphoreHolder[50];
-                    getSemaphoreFunction(semaphoreHolder);
-                    log_w("sdCardSemaphore failed to yield for SD write, held by %s, Tasks.ino line %d",
-                          semaphoreHolder, __LINE__);
+                                baseStatusLedBlink(); // Blink LED to indicate logging activity
 
-                    delay(1); // Needed to prevent WDT resets during long Record Settings locks
-                    taskYIELD();
-                }
+                                lastUBXLogSyncTime = millis();
+                            }
 
-                // Update space available for use in UART task
-                bytesToSend = dataHead - sdRingBufferTail;
-                if (bytesToSend < 0)
-                    bytesToSend += settings.gnssHandlerBufferSize;
-                if (usedSpace < bytesToSend)
-                {
-                    usedSpace = bytesToSend;
-                    slowConsumer = "SD card";
-                }
-            } // bytesToSend
-        } // End connected
+                            // Remember the maximum transfer time
+                            deltaMillis = millis() - startMillis;
+                            if (maxMillis[RBC_SD_CARD] < deltaMillis)
+                                maxMillis[RBC_SD_CARD] = deltaMillis;
 
-        //----------------------------------------------------------------------
-        // Update the available space in the ring buffer
-        //----------------------------------------------------------------------
+                            if (settings.enablePrintBufferOverrun)
+                            {
+                                if (deltaMillis > 150)
+                                    systemPrintf("Long Write! Time: %ld ms / Location: %ld / Recorded %d bytes / "
+                                                "spaceRemaining %d bytes\r\n",
+                                                deltaMillis, logFileSize, bytesToSend, combinedSpaceRemaining);
+                            }
+                        } while(0);
 
-        freeSpace = settings.gnssHandlerBufferSize - usedSpace;
+                        xSemaphoreGive(sdCardSemaphore);
+                    } // End sdCardSemaphore
+                    else
+                    {
+                        char semaphoreHolder[50];
+                        getSemaphoreFunction(semaphoreHolder);
+                        log_w("sdCardSemaphore failed to yield for SD write, held by %s, Tasks.ino line %d",
+                            semaphoreHolder, __LINE__);
 
-        // Don't fill the last byte to prevent buffer overflow
-        if (freeSpace)
-            freeSpace -= 1;
-        availableHandlerSpace = freeSpace;
+                        feedWdt();
+                        taskYIELD();
+                    }
 
-        //----------------------------------------------------------------------
-        // Display the millisecond values for the different ring buffer consumers
-        //----------------------------------------------------------------------
+                    // Update space available for use in UART task
+                    bytesToSend = dataHead - sdRingBufferTail;
+                    if (bytesToSend < 0)
+                        bytesToSend += settings.gnssHandlerBufferSize;
+                    if (usedSpace < bytesToSend)
+                    {
+                        usedSpace = bytesToSend;
+                        slowConsumer = "SD card";
+                    }
+                } // bytesToSend
+            } // End connected
 
-        if (PERIODIC_DISPLAY(PD_RING_BUFFER_MILLIS))
-        {
-            int milliseconds;
-            int seconds;
+            //----------------------------------------------------------------------
+            // Update the available space in the ring buffer
+            //----------------------------------------------------------------------
 
-            PERIODIC_CLEAR(PD_RING_BUFFER_MILLIS);
-            for (int index = 0; index < RBC_MAX; index++)
+            freeSpace = settings.gnssHandlerBufferSize - usedSpace;
+
+            // Don't fill the last byte to prevent buffer overflow
+            if (freeSpace)
+                freeSpace -= 1;
+            availableHandlerSpace = freeSpace;
+
+            //----------------------------------------------------------------------
+            // Display the millisecond values for the different ring buffer consumers
+            //----------------------------------------------------------------------
+
+            if (PERIODIC_DISPLAY(PD_RING_BUFFER_MILLIS))
             {
-                milliseconds = maxMillis[index];
-                if (milliseconds > 1)
+                int milliseconds;
+                int seconds;
+
+                PERIODIC_CLEAR(PD_RING_BUFFER_MILLIS);
+                for (int index = 0; index < RBC_MAX; index++)
                 {
-                    seconds = milliseconds / MILLISECONDS_IN_A_SECOND;
-                    milliseconds %= MILLISECONDS_IN_A_SECOND;
-                    systemPrintf("%s: %d:%03d Sec\r\n", ringBufferConsumer[index], seconds, milliseconds);
+                    milliseconds = maxMillis[index];
+                    if (milliseconds > 1)
+                    {
+                        seconds = milliseconds / MILLISECONDS_IN_A_SECOND;
+                        milliseconds %= MILLISECONDS_IN_A_SECOND;
+                        systemPrintf("%s: %d:%03d Sec\r\n", ringBufferConsumer[index], seconds, milliseconds);
+                    }
                 }
             }
+
+            //----------------------------------------------------------------------
+            // processUart1Message will be chomping at the bit. Let it fly!
+            //----------------------------------------------------------------------
+
+            xSemaphoreGive(ringBufferSemaphore);
+        }
+        else
+        {
+            systemPrintf("handleGnssDataTask could not get ringBuffer semaphore - held by %s\r\n", ringBufferSemaphoreHolder);
         }
 
         //----------------------------------------------------------------------
         // Let other tasks run, prevent watch dog timer (WDT) resets
         //----------------------------------------------------------------------
 
-        delay(1);
+        feedWdt();
         taskYIELD();
     }
 
@@ -2249,7 +2289,7 @@ void sdSizeCheckTask(void *e)
             }
         }
 
-        delay(1);
+        feedWdt();
         taskYIELD(); // Let other tasks run
     }
 
@@ -2338,6 +2378,8 @@ void beginRtcmParse()
     if (!rtcmParse)
         reportFatalError("Failed to initialize the RTCM parser");
 
+    //sempEnableDebugOutput(rtcmParse);
+    //sempPrintParserConfiguration(rtcmParse);
 }
 
 // Check and record the base location in RTCM1005/1006

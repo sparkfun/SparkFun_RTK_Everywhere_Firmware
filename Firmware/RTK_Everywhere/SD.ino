@@ -27,7 +27,7 @@ void sdUpdate()
         }
         else if (sdCardPresent() == true) // Poll card to see if a card is inserted
         {
-            systemPrintln("SD inserted");
+            systemPrintf("SD inserted @ %s\r\n", getTimeStamp());
             beginSD(); // Attempt to start SD
         }
     }
@@ -35,7 +35,7 @@ void sdUpdate()
     if (online.logging == true && sdCardSize > 0 &&
         sdFreeSpace < sdMinAvailableSpace) // Stop logging if we are below the min
     {
-        log_d("Logging stopped. SD full.");
+        systemPrintf("Logging stopped. SD full @ %s\r\n", getTimeStamp());
         outOfSDSpace = true;
         endSD(false, true); //(alreadyHaveSemaphore, releaseSemaphore) Close down file.
         return;
@@ -50,7 +50,7 @@ void sdUpdate()
     // Check if SD card is still present
     if (sdCardPresent() == false)
     {
-        systemPrintln("SD removed");
+        systemPrintf("SD removed @ %s\r\n", getTimeStamp());
         endSD(false, true); //(alreadyHaveSemaphore, releaseSemaphore) Close down SD.
     }
 }

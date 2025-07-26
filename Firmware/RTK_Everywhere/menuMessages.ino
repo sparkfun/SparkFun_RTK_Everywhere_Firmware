@@ -434,7 +434,7 @@ void endLogging(bool gotSemaphore, bool releaseSemaphore)
             delete logFile;
             logFile = nullptr;
 
-            systemPrintln("Log file closed");
+            systemPrintf("Log file closed @ %s\r\n", getTimeStamp());
 
             // Release the semaphore if requested
             if (releaseSemaphore)

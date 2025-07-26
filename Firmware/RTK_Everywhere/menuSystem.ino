@@ -8,7 +8,7 @@ void menuSystem()
         systemPrintln();
         systemPrintln("System Status");
 
-        printTimeStamp();
+        printTimeStamp(true);
 
         systemPrint("GNSS: ");
         if (online.gnss == true)

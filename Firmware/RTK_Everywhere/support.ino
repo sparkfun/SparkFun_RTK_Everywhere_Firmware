@@ -475,23 +475,33 @@ void printElapsedTime(const char *title)
 
 #define TIMESTAMP_INTERVAL 1000 // Milliseconds
 
+// Get the timestamp
+const char *getTimeStamp()
+{
+    static char theTime[30];
+
+    //         1         2         3
+    // 123456789012345678901234567890
+    // YYYY-mm-dd HH:MM:SS.xxxrn0
+    struct tm timeinfo = rtc.getTimeStruct();
+    char timestamp[30];
+    strftime(timestamp, sizeof(timestamp), "%Y-%m-%d %H:%M:%S", &timeinfo);
+    snprintf(theTime, sizeof(theTime), "%s.%03ld", timestamp, rtc.getMillis());
+
+    return (const char *)theTime;
+}
+
 // Print the timestamp
-void printTimeStamp()
+void printTimeStamp(bool always)
 {
     uint32_t currentMilliseconds;
     static uint32_t previousMilliseconds;
 
     // Timestamp the messages
     currentMilliseconds = millis();
-    if ((currentMilliseconds - previousMilliseconds) >= TIMESTAMP_INTERVAL)
+    if (always || ((currentMilliseconds - previousMilliseconds) >= TIMESTAMP_INTERVAL))
     {
-        //         1         2         3
-        // 123456789012345678901234567890
-        // YYYY-mm-dd HH:MM:SS.xxxrn0
-        struct tm timeinfo = rtc.getTimeStruct();
-        char timestamp[30];
-        strftime(timestamp, sizeof(timestamp), "%Y-%m-%d %H:%M:%S", &timeinfo);
-        systemPrintf("%s.%03ld\r\n", timestamp, rtc.getMillis());
+        systemPrintln(getTimeStamp());
 
         // Select the next time to display the timestamp
         previousMilliseconds = currentMilliseconds;
