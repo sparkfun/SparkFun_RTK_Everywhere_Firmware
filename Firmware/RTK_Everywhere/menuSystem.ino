@@ -858,7 +858,7 @@ void menuDebugSoftware()
 
         else if (incoming == 40)
             settings.debugSettings ^= 1;
-        else if (incoming == 40)
+        else if (incoming == 41)
             settings.haltOnPanic ^= 1;
 
         else if (incoming == 50)
