@@ -1699,7 +1699,7 @@ void tpISR()
     {
         if (online.rtc) // Only sync if the RTC has been set via PVT first
         {
-            if (timTpUpdated) // Only sync if timTpUpdated is true
+            if (timTpUpdated) // Only sync if timTpUpdated is true - set by storeTIMTPdata on ZED platforms only
             {
                 if (millisNow - lastRTCSync >
                     syncRTCInterval) // Only sync if it is more than syncRTCInterval since the last sync
