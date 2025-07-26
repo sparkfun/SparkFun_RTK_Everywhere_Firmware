@@ -344,6 +344,11 @@ const TickType_t ringBuffer_longWait_ms = 300 / portTICK_PERIOD_MS;
 SemaphoreHandle_t ringBufferSemaphore = NULL;
 const char *ringBufferSemaphoreHolder = "None";
 
+// tcpServer semaphore - prevent tcpServerClientSendData (handleGnssDataTask) and tcpServerUpdate
+// from gatecrashing each other. See #695 for why this is needed.
+SemaphoreHandle_t tcpServerSemaphore = NULL;
+const char *tcpServerSemaphoreHolder = "None";
+
 // Display used/free space in menu and config page
 uint64_t sdCardSize;
 uint64_t sdFreeSpace;
