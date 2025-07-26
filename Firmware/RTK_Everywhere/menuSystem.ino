@@ -801,6 +801,8 @@ void menuDebugSoftware()
 
         systemPrintf("40) Print LittleFS and settings management: %s\r\n",
                      settings.debugSettings ? "Enabled" : "Disabled");
+        systemPrintf("41) Halt on ESP_RST_PANIC: %s\r\n",
+                     settings.haltOnPanic ? "Enabled" : "Disabled");
 
         // Tasks
         systemPrint("50) Task Highwater Reporting: ");
@@ -856,6 +858,8 @@ void menuDebugSoftware()
 
         else if (incoming == 40)
             settings.debugSettings ^= 1;
+        else if (incoming == 40)
+            settings.haltOnPanic ^= 1;
 
         else if (incoming == 50)
             settings.enableTaskReports ^= 1;

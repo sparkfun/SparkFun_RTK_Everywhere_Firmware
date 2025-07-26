@@ -336,6 +336,8 @@ SemaphoreHandle_t sdCardSemaphore = NULL;
 TickType_t loggingSemaphoreWait_ms = 10 / portTICK_PERIOD_MS;
 const TickType_t fatSemaphore_shortWait_ms = 10 / portTICK_PERIOD_MS;
 const TickType_t fatSemaphore_longWait_ms = 200 / portTICK_PERIOD_MS;
+const TickType_t ringBuffer_shortWait_ms = 20 / portTICK_PERIOD_MS;
+const TickType_t ringBuffer_longWait_ms = 300 / portTICK_PERIOD_MS;
 
 // ringBuffer semaphore - prevent processUart1Message (gnssReadTask) and handleGnssDataTask
 // from gatecrashing each other.
@@ -481,6 +483,7 @@ unsigned long rtcmLastPacketReceived; // Time stamp of RTCM coming in (from BT, 
 
 bool usbSerialIncomingRtcm; // Incoming RTCM over the USB serial port
 #define RTCM_CORRECTION_INPUT_TIMEOUT (2 * 1000)
+
 //=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 
 // Extensible Message Parser
@@ -1232,8 +1235,8 @@ void setup()
 
     beginVersion(); // Assemble platform name. Requires settings/LFS.
 
-    //if (esp_reset_reason() == ESP_RST_PANIC) // Halt on PANIC - to trap rare crashes
-    //    reportFatalError("ESP_RST_PANIC");
+    if ((settings.haltOnPanic) && (esp_reset_reason() == ESP_RST_PANIC)) // Halt on PANIC - to trap rare crashes
+        reportFatalError("ESP_RST_PANIC");
 
     DMW_b("beginGnssUart");
     beginGnssUart(); // Requires settings. Start the UART connected to the GNSS receiver on core 0. Start before

@@ -799,7 +799,7 @@ void processUart1Message(SEMP_PARSE_STATE *parse, uint16_t type)
     // Take the semaphore. Long wait. handleGnssDataTask could block
     // Enable printing of the ring buffer offsets (s d 10) and the SD buffer sizes (s h 7)
     // to see this in action. No more gatecrashing!
-    if (xSemaphoreTake(ringBufferSemaphore, fatSemaphore_longWait_ms) == pdPASS)
+    if (xSemaphoreTake(ringBufferSemaphore, ringBuffer_longWait_ms) == pdPASS)
     {
         ringBufferSemaphoreHolder = "processUart1Message";
 
@@ -1146,8 +1146,8 @@ void handleGnssDataTask(void *e)
         if (ringBufferSemaphore == NULL)
             ringBufferSemaphore = xSemaphoreCreateMutex();  // Create the mutex
         
-        // Take the semaphore. Short wait. processUart1Message shouldn't block
-        if (xSemaphoreTake(ringBufferSemaphore, fatSemaphore_shortWait_ms) == pdPASS)
+        // Take the semaphore. Short wait. processUart1Message shouldn't block for long
+        if (xSemaphoreTake(ringBufferSemaphore, ringBuffer_shortWait_ms) == pdPASS)
         {
             ringBufferSemaphoreHolder = "handleGnssDataTask";
 
@@ -2378,8 +2378,11 @@ void beginRtcmParse()
     if (!rtcmParse)
         reportFatalError("Failed to initialize the RTCM parser");
 
-    //sempEnableDebugOutput(rtcmParse);
-    //sempPrintParserConfiguration(rtcmParse);
+    if (settings.debugNtripClientRtcm)
+    {
+        sempEnableDebugOutput(rtcmParse);
+        sempPrintParserConfiguration(rtcmParse);
+    }
 }
 
 // Check and record the base location in RTCM1005/1006
