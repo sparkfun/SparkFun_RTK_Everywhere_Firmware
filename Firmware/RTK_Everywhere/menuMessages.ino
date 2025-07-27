@@ -98,6 +98,9 @@ void menuLog()
         else if (incoming == 2 && settings.enableLogging == true)
         {
             // Arbitrary 2 year limit. See https://github.com/sparkfun/SparkFun_RTK_Firmware/issues/86
+            // Note: the 2 year limit is fine. But systemTime_minutes is based on millis(), and millis()
+            //       will roll over every 2^32ms = ~50 days...
+            //       TODO: use the GNSS epoch (uint32_t seconds plus uint32_t microseconds) to resolve this.
             getNewSetting("Enter max minutes before logging stops", 0, 60 * 24 * 365 * 2, &settings.maxLogTime_minutes);
         }
         else if (incoming == 3 && settings.enableLogging == true)
@@ -288,7 +291,24 @@ bool beginLogging(const char *customFileName)
 
                 sdUpdateFileCreateTimestamp(logFile); // Update the file to create time & date
 
-                startCurrentLogTime_minutes = millis() / 1000L / 60; // Mark now as start of logging
+                // Calculate the time of the next log file change
+                nextLogTime_ms = 0; // Default to no limit
+                if ((settings.alignedLogFiles) && (settings.maxLogLength_minutes > 0))
+                {
+                    // Aligned logging is only possible if the interval is an integral fraction of 24 hours
+                    if ((24 * 60 * 2) % settings.maxLogLength_minutes == 0)
+                    {
+                        // Calculate when the next log file should be opened - in millis()
+                        unsigned long hoursAsMillis = rtc.getMillis() + (rtc.getSecond() * 1000)
+                                                      + (rtc.getMinute() * 1000 * 60) + (rtc.getHour(true) * 1000 * 60 * 60);
+                        unsigned long maxLogLength_ms = (unsigned long)settings.maxLogLength_minutes * 60 * 1000;
+                        unsigned long millisFromPreviousLog = hoursAsMillis % maxLogLength_ms;
+                        unsigned long millisToNextLog = maxLogLength_ms - millisFromPreviousLog;
+                        nextLogTime_ms = millis() + millisToNextLog;
+                    }
+                }
+                if ((nextLogTime_ms == 0) && (settings.maxLogLength_minutes > 0)) // Non-aligned logging
+                    nextLogTime_ms = millis() + ((unsigned long)settings.maxLogLength_minutes * 60 * 1000);
 
                 // Add NMEA txt message with restart reason
                 char rstReason[30];

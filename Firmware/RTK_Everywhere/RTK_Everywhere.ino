@@ -325,9 +325,8 @@ SdFat *sd;
 
 SdFile *logFile;                  // File that all GNSS messages sentences are written to
 unsigned long lastUBXLogSyncTime; // Used to record to SD every half second
-int startLogTime_minutes;         // Mark when we start any logging so we can stop logging after maxLogTime_minutes
-int startCurrentLogTime_minutes;
-// Mark when we start this specific log file so we can close it after x minutes and start a new one
+int startLogTime_minutes;         // Mark when we (re)start any logging so we can stop logging after maxLogTime_minutes
+unsigned long nextLogTime_ms;     // Open the next log file at this many millis()
 
 // System crashes if two tasks access a file at the same time
 // So we use a semaphore to see if the file system is available
@@ -1474,7 +1473,10 @@ bool logLengthExceeded() // Limit individual files to maxLogLength_minutes
     if (settings.maxLogLength_minutes == 0) // No limit if maxLogLength_minutes is zero
         return false;
 
-    return ((systemTime_minutes - startCurrentLogTime_minutes) >= settings.maxLogLength_minutes);
+    if (nextLogTime_ms == 0) // Keep logging if nextLogTime_ms has not been set
+        return false;
+    
+    return (millis() >= nextLogTime_ms); // Note: this will roll over every ~50 days...
 }
 
 // Create or close files as needed (startup or as the user changes settings)

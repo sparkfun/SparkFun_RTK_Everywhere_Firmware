@@ -726,7 +726,8 @@ struct Settings
     bool debugHttpClientState = false; // Debug the HTTP Client state machine
 
     // Log file
-    bool enableLogging = true;         // If an SD card is present, log default sentences
+    bool alignedLogFiles = false; // If true, align log files as per #630
+    bool enableLogging = true;    // If an SD card is present, log default sentences
     bool enablePrintLogFileMessages = false;
     bool enablePrintLogFileStatus = true;
     int maxLogLength_minutes = 60 * 24; // Default to 24 hours
@@ -1338,6 +1339,7 @@ const RTK_Settings_Entry rtkSettingsEntries[] =
 //    g  s  x  k  2  c  h  d  d  Type    Qual  Variable                  Name
 
     // Log file
+    { 1, 1, 0, 1, 1, 1, 0, 1, 1, _bool,     0, & settings.alignedLogFiles, "alignedLogFiles",  },
     { 1, 1, 0, 1, 1, 1, 0, 1, 1, _bool,     0, & settings.enableLogging, "enableLogging",  },
     { 0, 0, 0, 1, 1, 1, 0, 1, 1, _bool,     0, & settings.enablePrintLogFileMessages, "enablePrintLogFileMessages",  },
     { 0, 0, 0, 1, 1, 1, 0, 1, 1, _bool,     0, & settings.enablePrintLogFileStatus, "enablePrintLogFileStatus",  },
