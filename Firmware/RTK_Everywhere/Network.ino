@@ -229,6 +229,9 @@ void menuTcpUdp()
         systemPrint("a) Broadcast TCP/UDP Server packets over local WiFi or act as Access Point: ");
         systemPrintf("%s\r\n", settings.tcpUdpOverWiFiStation ? "WiFi" : "AP");
 
+        systemPrint("u) Broadcast UDP Server packets over local WiFi or act as Access Point: ");
+        systemPrintf("%s\r\n", settings.udpOverWiFiStation ? "WiFi" : "AP");
+
         //------------------------------
         // Finish the menu and get the input
         //------------------------------
@@ -328,6 +331,13 @@ void menuTcpUdp()
             settings.tcpUdpOverWiFiStation ^= 1;
             wifiUpdateSettings();
         }
+
+        else if (incoming == 'u')
+        {
+            settings.udpOverWiFiStation ^= 1;
+            wifiUpdateSettings();
+        }
+
         //------------------------------
         // Handle exit and invalid input
         //------------------------------

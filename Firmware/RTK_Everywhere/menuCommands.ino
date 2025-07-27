@@ -1973,6 +1973,11 @@ void createSettingsString(char *newSettings)
     else
         stringRecord(newSettings, "tcpUdpOverWiFiStation", 0); // 1 = WiFi mode, 0 = AP
 
+    if (settings.udpOverWiFiStation == true)
+        stringRecord(newSettings, "udpOverWiFiStation", 1); // 1 = WiFi mode, 0 = AP
+    else
+        stringRecord(newSettings, "udpOverWiFiStation", 0); // 1 = WiFi mode, 0 = AP
+
     // Single variables needed on Config page
     stringRecord(newSettings, "minCNO", gnss->getMinCno());
     stringRecord(newSettings, "enableRCFirmware", enableRCFirmware);
