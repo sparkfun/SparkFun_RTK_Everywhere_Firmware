@@ -1335,6 +1335,8 @@ static esp_err_t ws_handler(httpd_req_t *req)
             for (int i = 0; i < ws_pkt.len; i++)
             {
                 incomingSettings[incomingSettingsSpot++] = ws_pkt.payload[i];
+                if (incomingSettingsSpot == AP_CONFIG_SETTING_SIZE)
+                    systemPrintln("incomingSettings wrap-around. Increase AP_CONFIG_SETTING_SIZE");
                 incomingSettingsSpot %= AP_CONFIG_SETTING_SIZE;
             }
             timeSinceLastIncomingSetting = millis();
