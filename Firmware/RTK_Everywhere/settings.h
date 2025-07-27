@@ -358,12 +358,12 @@ enum PeriodDisplayValues
 
 #ifdef  COMPILE_NETWORK
 
-// NTRIP Server data
-typedef struct _NTRIP_SERVER_DATA
+// NTRIP Server data - the array is declared volatile in NtripServer.ino
+typedef struct
 {
     // Network connection used to push RTCM to NTRIP caster
     NetworkClient *networkClient;
-    volatile uint8_t state;
+    uint8_t state;
 
     // Count of bytes sent by the NTRIP server to the NTRIP caster
     uint32_t bytesSent;
