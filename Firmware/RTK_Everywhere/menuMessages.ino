@@ -82,6 +82,15 @@ void menuLog()
                 systemPrintln("Disabled");
         }
 
+        if (settings.enableLogging == true)
+        {
+            systemPrint("9) Log file length alignment: ");
+            if (settings.alignedLogFiles == true)
+                systemPrintln("Enabled");
+            else
+                systemPrintln("Disabled");
+        }
+
         systemPrintln("x) Exit");
 
         int incoming = getUserInputNumber(); // Returns EXIT, TIMEOUT, or long
@@ -131,6 +140,10 @@ void menuLog()
         else if ((present.ethernet_ws5500 == true) && (incoming == 8))
         {
             settings.enableNTPFile ^= 1;
+        }
+        else if (incoming == 9 && settings.enableLogging == true)
+        {
+            settings.alignedLogFiles ^= 1;
         }
         else if (incoming == 'x')
             break;
@@ -300,7 +313,8 @@ bool beginLogging(const char *customFileName)
                     {
                         // Calculate when the next log file should be opened - in millis()
                         unsigned long hoursAsMillis = rtc.getMillis() + (rtc.getSecond() * 1000)
-                                                      + (rtc.getMinute() * 1000 * 60) + (rtc.getHour(true) * 1000 * 60 * 60);
+                                                      + (rtc.getMinute() * 1000 * 60)
+                                                      + (rtc.getHour(true) * 1000 * 60 * 60);
                         unsigned long maxLogLength_ms = (unsigned long)settings.maxLogLength_minutes * 60 * 1000;
                         unsigned long millisFromPreviousLog = hoursAsMillis % maxLogLength_ms;
                         unsigned long millisToNextLog = maxLogLength_ms - millisFromPreviousLog;
