@@ -173,7 +173,7 @@ const RtkMode_t ntripServerMode = RTK_MODE_BASE_FIXED;
 //----------------------------------------
 
 // NTRIP Servers
-static NTRIP_SERVER_DATA ntripServerArray[NTRIP_SERVER_MAX];
+volatile static NTRIP_SERVER_DATA ntripServerArray[NTRIP_SERVER_MAX];
 
 //----------------------------------------
 // NTRIP Server Routines
@@ -184,7 +184,7 @@ static NTRIP_SERVER_DATA ntripServerArray[NTRIP_SERVER_MAX];
 //----------------------------------------
 bool ntripServerConnectCaster(int serverIndex)
 {
-    NTRIP_SERVER_DATA *ntripServer = &ntripServerArray[serverIndex];
+    volatile NTRIP_SERVER_DATA *ntripServer = &ntripServerArray[serverIndex];
     const int SERVER_BUFFER_SIZE = 512;
     char serverBuffer[SERVER_BUFFER_SIZE];
 
@@ -239,7 +239,7 @@ bool ntripServerConnectLimitReached(int serverIndex)
 {
     bool limitReached;
     int minutes;
-    NTRIP_SERVER_DATA *ntripServer = &ntripServerArray[serverIndex];
+    volatile NTRIP_SERVER_DATA *ntripServer = &ntripServerArray[serverIndex];
     int seconds;
 
     // Retry the connection a few times
@@ -249,8 +249,8 @@ bool ntripServerConnectLimitReached(int serverIndex)
     // Shutdown the NTRIP server
     ntripServerStop(serverIndex, limitReached || (!ntripServerEnabled(serverIndex, nullptr)));
 
-    ntripServer->connectionAttempts++;
-    ntripServer->connectionAttemptsTotal++;
+    ntripServer->connectionAttempts = ntripServer->connectionAttempts + 1;
+    ntripServer->connectionAttemptsTotal = ntripServer->connectionAttemptsTotal + 1;
     if (settings.debugNtripServerState)
         ntripServerPrintStatus(serverIndex);
 
@@ -334,7 +334,7 @@ bool ntripServerEnabled(int serverIndex, const char ** line)
 //----------------------------------------
 void ntripServerPrintStateSummary(int serverIndex)
 {
-    NTRIP_SERVER_DATA *ntripServer = &ntripServerArray[serverIndex];
+    volatile NTRIP_SERVER_DATA *ntripServer = &ntripServerArray[serverIndex];
 
     switch (ntripServer->state)
     {
@@ -362,7 +362,7 @@ void ntripServerPrintStateSummary(int serverIndex)
 //----------------------------------------
 void ntripServerPrintStatus(int serverIndex)
 {
-    NTRIP_SERVER_DATA *ntripServer = &ntripServerArray[serverIndex];
+    volatile NTRIP_SERVER_DATA *ntripServer = &ntripServerArray[serverIndex];
     uint64_t milliseconds;
     uint32_t days;
     byte hours;
@@ -410,7 +410,7 @@ void ntripServerPrintStatus(int serverIndex)
 //----------------------------------------
 void ntripServerProcessRTCM(int serverIndex, uint8_t incoming)
 {
-    NTRIP_SERVER_DATA *ntripServer = &ntripServerArray[serverIndex];
+    volatile NTRIP_SERVER_DATA *ntripServer = &ntripServerArray[serverIndex];
 
     if (ntripServer->state == NTRIP_SERVER_CASTING)
     {
@@ -425,14 +425,7 @@ void ntripServerProcessRTCM(int serverIndex, uint8_t incoming)
                 (!settings.enableRtcmMessageChecking) && (!inMainMenu) && ntripServer->bytesSent)
             {
                 PERIODIC_CLEAR(PD_NTRIP_SERVER_DATA);
-                printTimeStamp();
-                //         1         2         3
-                // 123456789012345678901234567890
-                // YYYY-mm-dd HH:MM:SS.xxxrn0
-                struct tm timeinfo = rtc.getTimeStruct();
-                char timestamp[30];
-                strftime(timestamp, sizeof(timestamp), "%Y-%m-%d %H:%M:%S", &timeinfo);
-                systemPrintf("    Tx%d RTCM: %s.%03ld, %d bytes sent\r\n", serverIndex, timestamp, rtc.getMillis(),
+                systemPrintf("    Tx%d RTCM: %s, %d bytes sent\r\n", serverIndex, getTimeStamp(),
                              ntripServer->rtcmBytesSent);
                 ntripServer->rtcmBytesSent = 0;
             }
@@ -452,8 +445,8 @@ void ntripServerProcessRTCM(int serverIndex, uint8_t incoming)
         if (ntripServer->networkClient && ntripServer->networkClient->connected())
         {
             ntripServer->networkClient->write(incoming); // Send this byte to socket
-            ntripServer->bytesSent++;
-            ntripServer->rtcmBytesSent++;
+            ntripServer->bytesSent = ntripServer->bytesSent + 1;
+            ntripServer->rtcmBytesSent = ntripServer->rtcmBytesSent + 1;
             ntripServer->timer = millis();
             netOutgoingRTCM = true;
         }
@@ -471,7 +464,7 @@ void ntripServerProcessRTCM(int serverIndex, uint8_t incoming)
 //----------------------------------------
 void ntripServerResponse(int serverIndex, char *response, size_t maxLength)
 {
-    NTRIP_SERVER_DATA *ntripServer = &ntripServerArray[serverIndex];
+    volatile NTRIP_SERVER_DATA *ntripServer = &ntripServerArray[serverIndex];
     char *responseEnd;
 
     // Make sure that we can zero terminate the response
@@ -490,7 +483,7 @@ void ntripServerResponse(int serverIndex, char *response, size_t maxLength)
 //----------------------------------------
 void ntripServerRestart(int serverIndex)
 {
-    NTRIP_SERVER_DATA *ntripServer = &ntripServerArray[serverIndex];
+    volatile NTRIP_SERVER_DATA *ntripServer = &ntripServerArray[serverIndex];
 
     // Save the previous uptime value
     if (ntripServer->state == NTRIP_SERVER_CASTING)
@@ -503,7 +496,7 @@ void ntripServerRestart(int serverIndex)
 //----------------------------------------
 void ntripServerSetState(int serverIndex, uint8_t newState)
 {
-    NTRIP_SERVER_DATA * ntripServer;
+    volatile NTRIP_SERVER_DATA * ntripServer;
 
     ntripServer = &ntripServerArray[serverIndex];
     if (settings.debugNtripServerState)
@@ -555,7 +548,7 @@ void ntripServerStop(int serverIndex, bool shutdown)
 {
     bool enabled;
     int index;
-    NTRIP_SERVER_DATA *ntripServer = &ntripServerArray[serverIndex];
+    volatile NTRIP_SERVER_DATA *ntripServer = &ntripServerArray[serverIndex];
 
     if (ntripServer->networkClient)
     {
@@ -619,7 +612,7 @@ void ntripServerUpdate(int serverIndex)
     const char * line = "";
 
     // Get the NTRIP data structure
-    NTRIP_SERVER_DATA *ntripServer = &ntripServerArray[serverIndex];
+    volatile NTRIP_SERVER_DATA *ntripServer = &ntripServerArray[serverIndex];
 
     // Shutdown the NTRIP server when the mode or setting changes
     DMW_if

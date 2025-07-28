@@ -302,6 +302,14 @@ InputResponse getUserInputString(char *userString, uint16_t stringSize, bool loc
 
         gnss->update(); // Regularly poll to get latest data
 
+        // Keep the ntripClient alive by pushing GPGGA.
+        // I'm not sure if we want / need to do this, but that's how it was when
+        // the GPGGA push was performed from processUart1Message from gnssReadTask.
+        // Doing it here keeps the user experience the same. It is safe to do it here
+        // because the loop is suspended and networkUpdate / ntripClientUpdate aren't
+        // being called. Maybe we _should_ call networkUpdate() here? Just sayin'...
+        pushGPGGA(nullptr);
+
         // Keep processing NTP requests
         if (online.ethernetNTPServer)
         {
@@ -475,23 +483,33 @@ void printElapsedTime(const char *title)
 
 #define TIMESTAMP_INTERVAL 1000 // Milliseconds
 
+// Get the timestamp
+const char *getTimeStamp()
+{
+    static char theTime[30];
+
+    //         1         2         3
+    // 123456789012345678901234567890
+    // YYYY-mm-dd HH:MM:SS.xxxrn0
+    struct tm timeinfo = rtc.getTimeStruct();
+    char timestamp[30];
+    strftime(timestamp, sizeof(timestamp), "%Y-%m-%d %H:%M:%S", &timeinfo);
+    snprintf(theTime, sizeof(theTime), "%s.%03ld", timestamp, rtc.getMillis());
+
+    return (const char *)theTime;
+}
+
 // Print the timestamp
-void printTimeStamp()
+void printTimeStamp(bool always)
 {
     uint32_t currentMilliseconds;
     static uint32_t previousMilliseconds;
 
     // Timestamp the messages
     currentMilliseconds = millis();
-    if ((currentMilliseconds - previousMilliseconds) >= TIMESTAMP_INTERVAL)
+    if (always || ((currentMilliseconds - previousMilliseconds) >= TIMESTAMP_INTERVAL))
     {
-        //         1         2         3
-        // 123456789012345678901234567890
-        // YYYY-mm-dd HH:MM:SS.xxxrn0
-        struct tm timeinfo = rtc.getTimeStruct();
-        char timestamp[30];
-        strftime(timestamp, sizeof(timestamp), "%Y-%m-%d %H:%M:%S", &timeinfo);
-        systemPrintf("%s.%03ld\r\n", timestamp, rtc.getMillis());
+        systemPrintln(getTimeStamp());
 
         // Select the next time to display the timestamp
         previousMilliseconds = currentMilliseconds;

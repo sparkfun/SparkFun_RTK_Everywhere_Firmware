@@ -358,12 +358,12 @@ enum PeriodDisplayValues
 
 #ifdef  COMPILE_NETWORK
 
-// NTRIP Server data
-typedef struct _NTRIP_SERVER_DATA
+// NTRIP Server data - the array is declared volatile in NtripServer.ino
+typedef struct
 {
     // Network connection used to push RTCM to NTRIP caster
     NetworkClient *networkClient;
-    volatile uint8_t state;
+    uint8_t state;
 
     // Count of bytes sent by the NTRIP server to the NTRIP caster
     uint32_t bytesSent;
@@ -495,6 +495,7 @@ typedef enum
     FUNCTION_LOG_CLOSURE,
     FUNCTION_PRINT_FILE_LIST,
     FUNCTION_NTPEVENT,
+    FUNCTION_ARPWRITE,
 } SemaphoreFunction;
 
 // Print the base coordinates in different formats, depending on the type the user has entered
@@ -725,11 +726,12 @@ struct Settings
     bool debugHttpClientState = false; // Debug the HTTP Client state machine
 
     // Log file
-    bool enableLogging = true;         // If an SD card is present, log default sentences
+    bool alignedLogFiles = false; // If true, align log files as per #630
+    bool enableLogging = true;    // If an SD card is present, log default sentences
     bool enablePrintLogFileMessages = false;
     bool enablePrintLogFileStatus = true;
     int maxLogLength_minutes = 60 * 24; // Default to 24 hours
-    int maxLogTime_minutes = 60 * 24;        // Default to 24 hours
+    int maxLogTime_minutes = 60 * 24;   // Default to 24 hours
 
     // MQTT
     bool debugMqttClientData = false;  // Debug the MQTT SPARTAN data flow
@@ -832,6 +834,7 @@ struct Settings
         1; // Read from GNSS and Write to circular buffer (SD, TCP, BT). 3 being the highest, and 0 being the lowest
     uint8_t gnssUartInterruptsCore =
         1; // Core where hardware is started and interrupts are assigned to, 0=core, 1=Arduino
+    bool haltOnPanic = false; // Halt after beginVersion if the reset reason was panic
     uint8_t handleGnssDataTaskCore = 1;     // Core where task should run, 0=core, 1=Arduino
     uint8_t handleGnssDataTaskPriority = 1; // Read from the circular buffer and dole out to end points (SD, TCP, BT).
     uint8_t i2cInterruptsCore = 1; // Core where hardware is started and interrupts are assigned to, 0=core, 1=Arduino
@@ -1336,6 +1339,7 @@ const RTK_Settings_Entry rtkSettingsEntries[] =
 //    g  s  x  k  2  c  h  d  d  Type    Qual  Variable                  Name
 
     // Log file
+    { 1, 1, 0, 1, 1, 1, 0, 1, 1, _bool,     0, & settings.alignedLogFiles, "alignedLogFiles",  },
     { 1, 1, 0, 1, 1, 1, 0, 1, 1, _bool,     0, & settings.enableLogging, "enableLogging",  },
     { 0, 0, 0, 1, 1, 1, 0, 1, 1, _bool,     0, & settings.enablePrintLogFileMessages, "enablePrintLogFileMessages",  },
     { 0, 0, 0, 1, 1, 1, 0, 1, 1, _bool,     0, & settings.enablePrintLogFileStatus, "enablePrintLogFileStatus",  },
@@ -1419,6 +1423,21 @@ const RTK_Settings_Entry rtkSettingsEntries[] =
     { 1, 1, 1, 1, 1, 1, 1, 1, 1, tNSMtPt,   NTRIP_SERVER_MAX, & settings.ntripServer_MountPoint[0], "ntripServerMountPoint_",  },
     { 1, 1, 1, 1, 1, 1, 1, 1, 1, tNSMtPtPw, NTRIP_SERVER_MAX, & settings.ntripServer_MountPointPW[0], "ntripServerMountPointPW_",  },
 
+//                         F
+//                         a
+//                   F     c
+//    i              a     e
+//    n  i           c     t
+//    W  n  u        e
+//    e  C  s     F  t     V  P
+//    b  o  e     a        2  o
+//    C  m  S     c  M        s
+//    o  m  u     e  o  T  L  t
+//    n  a  f     t  s  o  B  c
+//    f  n  f  E     a  r  a  a
+//    i  d  i  v  V  i  c  n  r
+//    g  s  x  k  2  c  h  d  d  Type    Qual  Variable                  Name
+
     // OS
     { 0, 0, 0, 1, 1, 1, 1, 1, 1, _uint8_t,  0, & settings.bluetoothInterruptsCore, "bluetoothInterruptsCore",  },
     { 0, 0, 0, 1, 1, 1, 1, 1, 1, _uint8_t,  0, & settings.btReadTaskCore, "btReadTaskCore",  },
@@ -1431,6 +1450,7 @@ const RTK_Settings_Entry rtkSettingsEntries[] =
     { 0, 0, 0, 1, 1, 1, 1, 1, 1, _uint8_t,  0, & settings.gnssReadTaskCore, "gnssReadTaskCore",  },
     { 0, 0, 0, 1, 1, 1, 1, 1, 1, _uint8_t,  0, & settings.gnssReadTaskPriority, "gnssReadTaskPriority",  },
     { 0, 0, 0, 1, 1, 1, 1, 1, 1, _uint8_t,  0, & settings.gnssUartInterruptsCore, "gnssUartInterruptsCore",  },
+    { 0, 1, 0, 1, 1, 1, 1, 1, 1, _bool,     0, & settings.haltOnPanic, "haltOnPanic",  },
     { 0, 0, 0, 1, 1, 1, 1, 1, 1, _uint8_t,  0, & settings.handleGnssDataTaskCore, "handleGnssDataTaskCore",  },
     { 0, 0, 0, 1, 1, 1, 1, 1, 1, _uint8_t,  0, & settings.handleGnssDataTaskPriority, "handleGnssDataTaskPriority",  },
     { 0, 0, 0, 1, 1, 1, 1, 1, 1, _uint8_t,  0, & settings.i2cInterruptsCore, "i2cInterruptsCore",  },

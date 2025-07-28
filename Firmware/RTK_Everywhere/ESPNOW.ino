@@ -161,6 +161,7 @@ void espNowOnDataReceived(const esp_now_recv_info *mac, const uint8_t *incomingD
         {
             // Pass RTCM bytes (presumably) from ESP NOW out ESP32-UART to GNSS
             gnss->pushRawData((uint8_t *)incomingData, len);
+            sempParseNextBytes(rtcmParse, (uint8_t *)incomingData, len); // Parse the data for RTCM1005/1006
 
             if ((settings.debugEspNow == true || settings.debugCorrections == true) && !inMainMenu)
                 systemPrintf("ESPNOW received %d RTCM bytes, pushed to GNSS, RSSI: %d\r\n", len, espNowRSSI);

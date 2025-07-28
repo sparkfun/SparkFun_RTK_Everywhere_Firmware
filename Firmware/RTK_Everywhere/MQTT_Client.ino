@@ -514,6 +514,7 @@ int mqttClientProcessZedMessage(uint8_t *mqttData, uint16_t mqttCount, int bytes
             zed->updateCorrectionsSource(0); // Set SOURCE to 0 (IP) if needed
 
             gnss->pushRawData(mqttData, mqttCount);
+            // Corrections are SPARTN. No point in pushing them to rtcmParse
             bytesPushed += mqttCount;
 
             mqttClientDataReceived = true;
@@ -542,6 +543,7 @@ int mqttClientProcessZedMessage(uint8_t *mqttData, uint16_t mqttCount, int bytes
         }
 
         gnss->pushRawData(mqttData, mqttCount);
+        // No point in pushing keys / MGA to rtcmParse
         bytesPushed += mqttCount;
     }
 #endif // COMPILE_ZED

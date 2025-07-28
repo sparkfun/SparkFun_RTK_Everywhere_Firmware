@@ -2016,7 +2016,7 @@
                             <label for="maxLogTime" class="box-margin40 col-sm-3 col-7 col-form-label">Max Logging
                                 Time (min):
                                 <span class="tt" data-bs-placement="right"
-                                    title="Once the max log time is achieved, logging will cease. This is useful for limiting long term, overnight, static surveys to a certain length of time. Default: 1440 minutes. Limits: 1 to 2880 minutes.">
+                                    title="Once the max log time is achieved, logging will cease. This is useful for limiting long term, overnight, static surveys to a certain length of time. Default: 1440 minutes. Limits: 0 to 1,051,200 minutes. 0 = no limit.">
                                     <span class="icon-info-circle text-primary ms-2"></span>
                                 </span>
                             </label>
@@ -2027,13 +2027,21 @@
                         <div class="form-group row">
                             <label for="maxLogLength" class="box-margin40 col-sm-3 col-7 col-form-label">Max Log
                                 File Length (min):<span class="tt" data-bs-placement="right"
-                                    title="Once this length of time is achieved, a new log will be created. This is useful for creating multiple logs over a long survey. Default: 1440 minutes. Limits: 1 to 2880 minutes.">
+                                    title="Once this length of time is achieved, a new log will be created. This is useful for creating multiple logs over a long survey. Default: 1440 minutes. Limits: 0 to 2880 minutes. 0 = no limit.">
                                     <span class="icon-info-circle text-primary ms-2"></span>
                                 </span>
                             </label>
-
                             <input type="number" class="form-control box-small" id="maxLogLength">
                             <p id="maxLogLengthError" class="inlineError"></p>
+                        </div>
+
+                        <div class="form-check mt-1 box-margin20">
+                            <label class="form-check-label" for="alignedLogFiles">Aligned Log Files</label>
+                            <input class="form-check-input" type="checkbox" value="" id="alignedLogFiles" unchecked>
+                            <span class="tt" data-bs-placement="right"
+                                title="If enabled, log files will be aligned to the Max Log File Length. Only possible if the Max Log Length is an integral fraction of 24 hours.">
+                                <span class="icon-info-circle text-primary ms-2"></span>
+                            </span>
                         </div>
 
                         <div id="logFile" class="row">
@@ -2069,7 +2077,7 @@
                                 <label for="ARPLoggingInterval" class="box-margin40 col-sm-3 col-7 col-form-label">ARP
                                     Logging Interval (s):
                                     <span class="tt" data-bs-placement="right"
-                                        title="If ARP logging is enabled, the Antenna Reference Position will be logged at intervals of this many seconds.">
+                                        title="If ARP logging is enabled, the Antenna Reference Position will be logged at intervals of this many seconds. Min: 1. Max 600. Default: 10.">
                                         <span class="icon-info-circle text-primary ms-2"></span>
                                     </span>
                                 </label>

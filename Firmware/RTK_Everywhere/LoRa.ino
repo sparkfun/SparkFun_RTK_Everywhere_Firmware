@@ -175,6 +175,9 @@ void updateLora()
                 // Pass RTCM bytes (presumably) from LoRa out ESP32-UART to GNSS
                 gnss->pushRawData(rtcmData, rtcmCount); // Push RTCM to GNSS module
 
+                // Parse the data for RTCM1005/1006
+                sempParseNextBytes(rtcmParse, rtcmData, rtcmCount);
+
                 if (((settings.debugCorrections == true) || (settings.debugLora == true)) && !inMainMenu)
                 {
                     systemFlush();  // Complete prints
@@ -253,6 +256,9 @@ void updateLora()
             {
                 // Pass RTCM bytes (presumably) from LoRa out ESP32-UART to GNSS
                 gnss->pushRawData(rtcmData, rtcmCount); // Push RTCM to GNSS module
+
+                // Parse the data for RTCM1005/1006
+                sempParseNextBytes(rtcmParse, rtcmData, rtcmCount);
 
                 if (((settings.debugCorrections == true) || (settings.debugLora == true)) && !inMainMenu)
                 {
