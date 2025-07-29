@@ -139,42 +139,26 @@ int32_t tcpServerClientSendData(int index, uint8_t *data, uint16_t length)
 {
     if (tcpServerClient[index])
     {
-        // Use a semaphore to prevent tcpServerUpdate from gatecrashing
-        if (tcpServerSemaphore == NULL)
-            tcpServerSemaphore = xSemaphoreCreateMutex();  // Create the mutex
-        
-        // Take the semaphore
-        if (xSemaphoreTake(tcpServerSemaphore, 50 / portTICK_PERIOD_MS) == pdPASS)
+        length = tcpServerClient[index]->write(data, length);
+        if (length > 0)
         {
-            tcpServerSemaphoreHolder = "tcpServerClientSendData";
-
-            length = tcpServerClient[index]->write(data, length);
+            // Update the data sent flag when data successfully sent
             if (length > 0)
+                tcpServerClientDataSent = tcpServerClientDataSent | (1 << index);
+            if ((settings.debugTcpServer || PERIODIC_DISPLAY(PD_TCP_SERVER_CLIENT_DATA)) && (!inMainMenu))
             {
-                // Update the data sent flag when data successfully sent
-                if (length > 0)
-                    tcpServerClientDataSent = tcpServerClientDataSent | (1 << index);
-                if ((settings.debugTcpServer || PERIODIC_DISPLAY(PD_TCP_SERVER_CLIENT_DATA)) && (!inMainMenu))
-                {
-                    PERIODIC_CLEAR(PD_TCP_SERVER_CLIENT_DATA);
-                    systemPrintf("TCP server wrote %d bytes to %s\r\n", length,
-                                tcpServerClientIpAddress[index].toString().c_str());
-                }
+                PERIODIC_CLEAR(PD_TCP_SERVER_CLIENT_DATA);
+                systemPrintf("TCP server wrote %d bytes to %s\r\n", length,
+                             tcpServerClientIpAddress[index].toString().c_str());
             }
-
-            // Failed to write the data
-            else
-            {
-                // Done with this client connection
-                tcpServerStopClient(index);
-                length = 0;
-            }
-
-            xSemaphoreGive(tcpServerSemaphore);
         }
+
+        // Failed to write the data
         else
         {
-            systemPrintf("tcpServerClientSendData could not get semaphore - held by %s\r\n", tcpServerSemaphoreHolder);
+            // Done with this client connection
+            tcpServerStopClient(index);
+            length = 0;
         }
     }
     return length;
@@ -569,62 +553,46 @@ void tcpServerUpdate()
                 //  and respond accordingly
                 if (settings.enableNtripCaster || settings.baseCasterOverride)
                 {
-                    // Use a semaphore to prevent tcpServerClientSendData from gatecrashing
-                    if (tcpServerSemaphore == NULL)
-                        tcpServerSemaphore = xSemaphoreCreateMutex();  // Create the mutex
-                    
-                    // Take the semaphore
-                    if (xSemaphoreTake(tcpServerSemaphore, 50 / portTICK_PERIOD_MS) == pdPASS)
+                    // Read response from client
+                    char response[512];
+                    int spot = 0;
+                    while (tcpServerClient[index]->available())
                     {
-                        tcpServerSemaphoreHolder = "tcpServerUpdate";
+                        response[spot++] = tcpServerClient[index]->read();
+                        if (spot == sizeof(response))
+                            spot = 0; // Wrap
+                    }
+                    response[spot] = '\0'; // Terminate string
 
-                        // Read response from client
-                        char response[512];
-                        int spot = 0;
-                        while (tcpServerClient[index]->available())
-                        {
-                            response[spot++] = tcpServerClient[index]->read();
-                            if (spot == sizeof(response))
-                                spot = 0; // Wrap
-                        }
-                        response[spot] = '\0'; // Terminate string
+                    if (strnstr(response, "GET / ", sizeof(response)) != NULL) // No mount point in header
+                    {
+                        if (settings.debugTcpServer)
+                            systemPrintln("Mount point table requested.");
 
-                        if (strnstr(response, "GET / ", sizeof(response)) != NULL) // No mount point in header
-                        {
-                            if (settings.debugTcpServer)
-                                systemPrintln("Mount point table requested.");
+                        // Respond with a single mountpoint
+                        const char fakeSourceTable[] =
+                            "SOURCETABLE 200 OK\r\nServer: SparkPNT Caster/1.0\r\nContent-Type: "
+                            "text/plain\r\nContent-Length: 96\r\n\r\nSTR;SparkBase;none;RTCM "
+                            "3.0;none;none;none;none;none;none;none;none;none;none;none;B;N;none;none";
 
-                            // Respond with a single mountpoint
-                            const char fakeSourceTable[] =
-                                "SOURCETABLE 200 OK\r\nServer: SparkPNT Caster/1.0\r\nContent-Type: "
-                                "text/plain\r\nContent-Length: 96\r\n\r\nSTR;SparkBase;none;RTCM "
-                                "3.0;none;none;none;none;none;none;none;none;none;none;none;B;N;none;none";
+                        tcpServerClient[index]->write(fakeSourceTable, strlen(fakeSourceTable));
 
-                            tcpServerClient[index]->write(fakeSourceTable, strlen(fakeSourceTable));
+                        tcpServerStopClient(index); // Disconnect from client
+                    }
+                    else if (strnstr(response, "GET /", sizeof(response)) != NULL) // Mount point in header
+                    {
+                        // NTRIP Client is sending us their mount point. Begin sending RTCM.
+                        if (settings.debugTcpServer)
+                            systemPrintln("NTRIP Client connected - Sending ICY 200 OK");
 
-                            tcpServerStopClient(index); // Disconnect from client
-                        }
-                        else if (strnstr(response, "GET /", sizeof(response)) != NULL) // Mount point in header
-                        {
-                            // NTRIP Client is sending us their mount point. Begin sending RTCM.
-                            if (settings.debugTcpServer)
-                                systemPrintln("NTRIP Client connected - Sending ICY 200 OK");
-
-                            char confirmConnection[] = "ICY 200 OK\r\n";
-                            tcpServerClient[index]->write(confirmConnection, strlen(confirmConnection));
-                        }
-                        else
-                        {
-                            // Unknown response
-                            if (settings.debugTcpServer)
-                                systemPrintf("Unknown response: %s\r\n", response);
-                        }
-
-                        xSemaphoreGive(tcpServerSemaphore);
+                        char confirmConnection[] = "ICY 200 OK\r\n";
+                        tcpServerClient[index]->write(confirmConnection, strlen(confirmConnection));
                     }
                     else
                     {
-                        systemPrintf("tcpServerUpdate could not get semaphore - held by %s\r\n", tcpServerSemaphoreHolder);
+                        // Unknown response
+                        if (settings.debugTcpServer)
+                            systemPrintf("Unknown response: %s\r\n", response);
                     }
                 } // settings.enableNtripCaster == true || settings.baseCasterOverride == true
 
