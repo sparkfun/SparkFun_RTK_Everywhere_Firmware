@@ -324,9 +324,9 @@ bool GNSS_UM980::configureGNSS()
         // If we fail, reset UM980
         systemPrintln("Resetting UM980 to complete configuration");
 
-        um980Reset();
+        gnssReset();
         delay(500);
-        um980Boot();
+        gnssBoot();
         delay(500);
     }
 
@@ -1958,10 +1958,6 @@ void GNSS_UM980::update()
 #endif // COMPILE_UM980
 
 //----------------------------------------
-void um980Boot()
-{
-    digitalWrite(pin_GNSS_DR_Reset, HIGH); // Tell UM980 and DR to boot
-}
 
 //----------------------------------------
 // Force UART connection to UM980 for firmware update on the next boot by creating updateUm980Firmware.txt in
@@ -2042,9 +2038,9 @@ void um980FirmwareBeginUpdate()
                 if (nextIncoming == '@')
                 {
                     // Reset UM980
-                    um980Reset();
+                    gnssReset();
                     delay(25);
-                    um980Boot();
+                    gnssBoot();
 
                     inBootMode = true;
                 }
@@ -2115,7 +2111,3 @@ void um980FirmwareRemoveUpdate()
 }
 
 //----------------------------------------
-void um980Reset()
-{
-    digitalWrite(pin_GNSS_DR_Reset, LOW); // Tell UM980 and DR to reset
-}

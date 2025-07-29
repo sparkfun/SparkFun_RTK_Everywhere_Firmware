@@ -858,6 +858,9 @@ class GNSS_MOSAIC : GNSS
 
     bool isPppConverging();
 
+    // Send commands out the UART to see if a mosaic module is present
+    bool isPresent();
+
     // Some functions (L-Band area frequency determination) merely need
     // to know if we have an RTK Fix.  This function checks to see if the
     // given platform has reached sufficient fix type to be considered valid

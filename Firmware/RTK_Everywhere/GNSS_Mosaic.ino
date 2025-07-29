@@ -211,45 +211,11 @@ void GNSS_MOSAIC::begin()
         return;
     }
 
-    // Mosaic could still be starting up, so allow many retries
+    if(isPresent() == false) //Detect if the module is present
+        return;
+
     int retries = 0;
-    int retryLimit = 20;
-
-    // Set COM4 to: CMD input (only), SBF output (only)
-    while (!sendWithResponse("sdio,COM4,CMD,SBF\n\r", "DataInOut"))
-    {
-        if (retries == retryLimit)
-            break;
-        retries++;
-        sendWithResponse("SSSSSSSSSSSSSSSSSSSS\n\r", "COM4>"); // Send escape sequence
-    }
-
-    if (retries == retryLimit)
-    {
-        systemPrintln("Could not communicate with mosaic-X5! Attempting a soft reset...");
-
-        sendWithResponse("erst,soft,none\n\r", "ResetReceiver");
-
-        retries = 0;
-
-        // Set COM4 to: CMD input (only), SBF output (only)
-        while (!sendWithResponse("sdio,COM4,CMD,SBF\n\r", "DataInOut"))
-        {
-            if (retries == retryLimit)
-                break;
-            retries++;
-            sendWithResponse("SSSSSSSSSSSSSSSSSSSS\n\r", "COM4>"); // Send escape sequence
-        }
-
-        if (retries == retryLimit)
-        {
-            systemPrintln("Could not communicate with mosaic-X5!");
-            return;
-        }
-    }
-
-    retries = 0;
-    retryLimit = 3;
+    int retryLimit = 3;
 
     // Set COM1 baud rate
     while (!setBaudRateCOM(1, settings.dataPortBaud))
@@ -528,13 +494,11 @@ bool GNSS_MOSAIC::configureLBand(bool enableLBand, uint32_t LBandFreq)
 
     // US SPARTN 1.8 service is on 1556290000 Hz
     // EU SPARTN 1.8 service is on 1545260000 Hz
-    result &=
-        sendWithResponse(String("slbb,User1," + String(storedLBandFreq) + ",baud2400,PPerfect,EU,Enabled\n\r"),
-                                    "LBandBeams"); // Set Freq, baud rate
-    result &=
-        sendWithResponse("slcs,5555,6959\n\r", "LBandCustomServiceID"); // 21845 = 0x5555; 26969 = 0x6959
+    result &= sendWithResponse(String("slbb,User1," + String(storedLBandFreq) + ",baud2400,PPerfect,EU,Enabled\n\r"),
+                               "LBandBeams");                                 // Set Freq, baud rate
+    result &= sendWithResponse("slcs,5555,6959\n\r", "LBandCustomServiceID"); // 21845 = 0x5555; 26969 = 0x6959
     result &= sendWithResponse("slsm,manual,Inmarsat,User1,\n\r",
-                                        "LBandSelectMode"); // Set L-Band demodulator to manual
+                               "LBandSelectMode"); // Set L-Band demodulator to manual
 
     return result;
 }
@@ -575,7 +539,8 @@ bool GNSS_MOSAIC::configureOnce()
     // Output SBF PVTGeodetic and ReceiverTime on their own stream - on COM1 only
     // TODO : make the interval adjustable
     // TODO : do we need to enable SBF LBandTrackerStatus so we can get CN0 ?
-    String setting = String("sso,Stream" + String(MOSAIC_SBF_PVT_STREAM) + ",COM1,PVTGeodetic+ReceiverTime,msec500\n\r");
+    String setting =
+        String("sso,Stream" + String(MOSAIC_SBF_PVT_STREAM) + ",COM1,PVTGeodetic+ReceiverTime,msec500\n\r");
     response &= sendWithResponse(setting, "SBFOutput");
 
     // Output SBF InputLink on its own stream - at 1Hz - on COM1 only
@@ -585,7 +550,8 @@ bool GNSS_MOSAIC::configureOnce()
     // Output SBF ChannelStatus, ReceiverStatus and DiskStatus on their own stream - at 0.5Hz - on COM1 only
     // For ChannelStatus: OnChange is too often. The message is typically 1000 bytes in size.
     // For DiskStatus: DiskUsage is slow to update. 0.5Hz is plenty fast enough.
-    setting = String("sso,Stream" + String(MOSAIC_SBF_STATUS_STREAM) + ",COM1,ChannelStatus+ReceiverStatus+DiskStatus,sec2\n\r");
+    setting = String("sso,Stream" + String(MOSAIC_SBF_STATUS_STREAM) +
+                     ",COM1,ChannelStatus+ReceiverStatus+DiskStatus,sec2\n\r");
     response &= sendWithResponse(setting, "SBFOutput");
 
     // Mark L5 as healthy
@@ -712,8 +678,8 @@ void GNSS_MOSAIC::createMessageList(String &returnText)
     }
     for (int messageNumber = 0; messageNumber < MAX_MOSAIC_RTCM_V3_INTERVAL_GROUPS; messageNumber++)
     {
-        returnText += "messageIntervalRTCMRover_" + String(mosaicRTCMv3MsgIntervalGroups[messageNumber].name) +
-                      "," + String(settings.mosaicMessageIntervalsRTCMv3Rover[messageNumber]) + ",";
+        returnText += "messageIntervalRTCMRover_" + String(mosaicRTCMv3MsgIntervalGroups[messageNumber].name) + "," +
+                      String(settings.mosaicMessageIntervalsRTCMv3Rover[messageNumber]) + ",";
     }
     for (int messageNumber = 0; messageNumber < MAX_MOSAIC_RTCM_V3_MSG; messageNumber++)
     {
@@ -855,7 +821,7 @@ bool GNSS_MOSAIC::enableNMEA()
 
         if (settings.enableNmeaOnRadio)
             setting = String("sno,Stream" + String(stream + MOSAIC_NUM_NMEA_STREAMS + 1) + ",COM2," + streams[stream] +
-                            "," + String(mosaicMsgRates[settings.mosaicStreamIntervalsNMEA[stream]].name) + "\n\r");
+                             "," + String(mosaicMsgRates[settings.mosaicStreamIntervalsNMEA[stream]].name) + "\n\r");
         else
             setting = String("sno,Stream" + String(stream + MOSAIC_NUM_NMEA_STREAMS + 1) + ",COM2,none,off\n\r");
         response &= sendWithResponse(setting, "NMEAOutput");
@@ -1073,12 +1039,14 @@ void GNSS_MOSAIC::factoryReset()
     unsigned long start = millis();
     bool result = sendWithResponse("eccf,RxDefault,Boot\n\r", "CopyConfigFile", 5000);
     if (settings.debugGnss)
-        systemPrintf("factoryReset: sendWithResponse eccf,RxDefault,Boot returned %s after %d ms\r\n", result ? "true" : "false", millis() - start);
+        systemPrintf("factoryReset: sendWithResponse eccf,RxDefault,Boot returned %s after %d ms\r\n",
+                     result ? "true" : "false", millis() - start);
 
     start = millis();
     result = sendWithResponse("eccf,RxDefault,Current\n\r", "CopyConfigFile", 5000);
     if (settings.debugGnss)
-        systemPrintf("factoryReset: sendWithResponse eccf,RxDefault,Current returned %s after %d ms\r\n", result ? "true" : "false", millis() - start);
+        systemPrintf("factoryReset: sendWithResponse eccf,RxDefault,Current returned %s after %d ms\r\n",
+                     result ? "true" : "false", millis() - start);
 }
 
 //----------------------------------------
@@ -2019,7 +1987,8 @@ bool GNSS_MOSAIC::saveConfiguration()
     unsigned long start = millis();
     bool result = sendWithResponse("eccf,Current,Boot\n\r", "CopyConfigFile", 5000);
     if (settings.debugGnss)
-        systemPrintf("saveConfiguration: sendWithResponse returned %s after %d ms\r\n", result ? "true" : "false", millis() - start);
+        systemPrintf("saveConfiguration: sendWithResponse returned %s after %d ms\r\n", result ? "true" : "false",
+                     millis() - start);
     return result;
 }
 
@@ -2460,7 +2429,7 @@ void GNSS_MOSAIC::storeBlock4007(SEMP_PARSE_STATE *parse)
 
     // NrSV is the total number of satellites used in the PVT computation.
     //_satellitesInView = sempSbfGetU1(parse, 74);
-    //if (_satellitesInView == 255) // 255 indicates "Do-Not-Use"
+    // if (_satellitesInView == 255) // 255 indicates "Do-Not-Use"
     //    _satellitesInView = 0;
 
     _fixType = sempSbfGetU1(parse, 14) & 0x0F;
@@ -2501,16 +2470,14 @@ void GNSS_MOSAIC::storeBlock4013(SEMP_PARSE_STATE *parse)
             if (Tracking)
             {
                 // SV is being tracked. If it is not in svInTracking, add it
-                std::vector<uint8_t>::iterator pos =
-                    std::find(svInTracking.begin(), svInTracking.end(), SVID);
+                std::vector<uint8_t>::iterator pos = std::find(svInTracking.begin(), svInTracking.end(), SVID);
                 if (pos == svInTracking.end())
                     svInTracking.push_back(SVID);
             }
             else
             {
                 // SV is not being tracked. If it is in svInTracking, remove it
-                std::vector<uint8_t>::iterator pos =
-                    std::find(svInTracking.begin(), svInTracking.end(), SVID);
+                std::vector<uint8_t>::iterator pos = std::find(svInTracking.begin(), svInTracking.end(), SVID);
                 if (pos != svInTracking.end())
                     svInTracking.erase(pos);
             }
@@ -2542,7 +2509,6 @@ void GNSS_MOSAIC::storeBlock4013(SEMP_PARSE_STATE *parse)
             //     if (pos != svInPVT.end())
             //         svInPVT.erase(pos);
             // }
-
         }
 
         ChannelInfoBytes += SB1Length + (N2 * SB2Length);
@@ -2555,7 +2521,6 @@ void GNSS_MOSAIC::storeBlock4013(SEMP_PARSE_STATE *parse)
     //     uint8_t _inPVT = (uint8_t)std::distance(svInPVT.begin(), svInPVT.end());
     //     systemPrintf("ChannelStatus: InTracking %d, InPVT %d\r\n", _satellitesInView, _inPVT);
     // }
-
 }
 
 //----------------------------------------
@@ -2751,7 +2716,7 @@ void GNSS_MOSAIC::update()
         }
 
         sdCardSizeLastCheck = millis(); // Update the timer
-        _diskStatusSeen = false; // Clear the flag
+        _diskStatusSeen = false;        // Clear the flag
     }
 
     // Update spartnCorrectionsReceived
@@ -2850,7 +2815,8 @@ void GNSS_MOSAIC::waitSBFReceiverSetup(unsigned long timeout)
 bool GNSS_MOSAIC::baudIsAllowed(uint32_t baudRate)
 {
     for (int x = 0; x < MAX_MOSAIC_COM_RATES; x++)
-        if (mosaicComRates[x].rate == baudRate) return (true);
+        if (mosaicComRates[x].rate == baudRate)
+            return (true);
     return (false);
 }
 
@@ -2862,6 +2828,50 @@ uint32_t GNSS_MOSAIC::baudGetMinimum()
 uint32_t GNSS_MOSAIC::baudGetMaximum()
 {
     return (mosaicComRates[MAX_MOSAIC_COM_RATES - 1].rate);
+}
+
+//Return true if the receiver is detected
+bool GNSS_MOSAIC::isPresent()
+{
+    // Mosaic could still be starting up, so allow many retries
+    int retries = 0;
+    int retryLimit = 20;
+
+    // Set COM4 to: CMD input (only), SBF output (only)
+    while (!sendWithResponse("sdio,COM4,CMD,SBF\n\r", "DataInOut"))
+    {
+        if (retries == retryLimit)
+            break;
+        retries++;
+        sendWithResponse("SSSSSSSSSSSSSSSSSSSS\n\r", "COM4>"); // Send escape sequence
+    }
+
+    if (retries == retryLimit)
+    {
+        systemPrintln("Could not communicate with mosaic-X5! Attempting a soft reset...");
+
+        sendWithResponse("erst,soft,none\n\r", "ResetReceiver");
+
+        retries = 0;
+
+        // Set COM4 to: CMD input (only), SBF output (only)
+        while (!sendWithResponse("sdio,COM4,CMD,SBF\n\r", "DataInOut"))
+        {
+            if (retries == retryLimit)
+                break;
+            retries++;
+            sendWithResponse("SSSSSSSSSSSSSSSSSSSS\n\r", "COM4>"); // Send escape sequence
+        }
+
+        if (retries == retryLimit)
+        {
+            systemPrintln("Could not communicate with mosaic-X5!");
+            return(false);
+        }
+    }
+
+    // Module responded correctly!
+    return (true);
 }
 
 //==========================================================================
@@ -3116,3 +3126,22 @@ bool mosaicX5waitCR(unsigned long timeout)
 */
 
 #endif // COMPILE_MOSAICX5
+
+// Test for mosaic on UART1 of the ESP32 on Flex
+bool mosaicIsPresent()
+{
+    // Locally instantiate the library so it will release on exit
+    GNSS_MOSAIC mosaic;
+  
+    if (mosaic.isPresent() == true)
+    {
+        if (settings.debugGnss)
+            systemPrintln("mosaic-X5 detected");
+        return true;
+    }
+
+    if (settings.debugGnss)
+        systemPrintln("mosaic-X5 not detected. Moving on.");
+
+    return false;
+}

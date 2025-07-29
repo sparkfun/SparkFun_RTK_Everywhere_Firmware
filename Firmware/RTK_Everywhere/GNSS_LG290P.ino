@@ -192,9 +192,9 @@ bool GNSS_LG290P::configureGNSS()
         // If we fail, reset LG290P
         systemPrintln("Resetting LG290P to complete configuration");
 
-        lg290pReset();
+        gnssReset();
         delay(500);
-        lg290pBoot();
+        gnssBoot();
     }
 
     systemPrintln("LG290P failed to configure");
@@ -2329,15 +2329,6 @@ uint32_t GNSS_LG290P::baudGetMaximum()
 }
 
 //----------------------------------------
-void lg290pBoot()
-{
-    digitalWrite(pin_GNSS_Reset, HIGH); // Tell LG290P to boot
-}
-
-void lg290pReset()
-{
-    digitalWrite(pin_GNSS_Reset, LOW);
-}
 
 // Given a NMEA or PQTM sentence, determine if it is enabled in settings
 // This is used to signal to the processUart1Message() task to remove messages that are needed
@@ -2390,6 +2381,38 @@ bool lg290pMessageEnabled(char *nmeaSentence, int sentenceLength)
 
     // If we can't ID this message, allow it by default. The device configuration should control most message flow.
     return (true);
+}
+
+// Return true if we detect this receiver type
+bool lg290pIsPresent()
+{
+    // Locally instantiate the hardware and library so it will release on exit
+
+    HardwareSerial serialTestGNSS(2);
+
+    // LG290P communicates at 460800bps.
+    uint32_t platformGnssCommunicationRate = 115200 * 4;
+
+    // systemPrintf("Starting GNSS primary UART at %d on pins RX: %d TX: %d\r\n", platformGnssCommunicationRate,
+    //              pin_GnssUart_RX, pin_GnssUart_TX);
+
+    serialTestGNSS.begin(platformGnssCommunicationRate, SERIAL_8N1, pin_GnssUart_RX, pin_GnssUart_TX);
+
+    LG290P lg290p;
+
+    if (lg290p.begin(serialTestGNSS) == true) // Give the serial port over to the library
+    {
+        // if (settings.debugGnss)
+        systemPrintln("LG290P detected");
+        serialTestGNSS.end();
+        return true;
+    }
+
+    if (settings.debugGnss)
+        systemPrintln("LG290P not detected. Moving on.");
+
+    serialTestGNSS.end();
+    return false;
 }
 
 #endif // COMPILE_LG290P

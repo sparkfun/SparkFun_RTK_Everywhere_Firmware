@@ -46,12 +46,18 @@ float GNSS::getSurveyInStartingAccuracy()
 //----------------------------------------
 // Returns true if the antenna is shorted
 //----------------------------------------
-bool GNSS::isAntennaShorted() { return false; }
+bool GNSS::isAntennaShorted()
+{
+    return false;
+}
 
 //----------------------------------------
 // Returns true if the antenna is shorted
 //----------------------------------------
-bool GNSS::isAntennaOpen() { return false; }
+bool GNSS::isAntennaOpen()
+{
+    return false;
+}
 
 //----------------------------------------
 // Set the minimum satellite signal level for navigation.
@@ -97,4 +103,107 @@ void pushGPGGA(char *ggaData)
         }
     }
 #endif // COMPILE_NETWORK
+}
+
+// Detect what type of GNSS receiver module is installed
+// using serial or other begin() methods
+// To reduce potential false ID's, record the ID to NVM
+// If we have a previous ID, use it
+void gnssDetectReceiverType()
+{
+    // Currently only the Flex requires GNSS receiver detection
+    if (productVariant != RTK_FLEX)
+        return;
+
+    // settings.detectedGnssReceiver = GNSS_RECEIVER_LG290P;
+    // gnss = (GNSS *)new GNSS_LG290P();
+    // systemPrintln("Starting GNSS receiver: LG290P");
+    // return;
+
+    gnssBoot(); // Tell GNSS to run
+
+    // TODO remove after testing, force retest on each boot
+    settings.detectedGnssReceiver = GNSS_RECEIVER_UNKNOWN;
+
+    // Start auto-detect if NVM is not yet set
+    if (settings.detectedGnssReceiver == GNSS_RECEIVER_UNKNOWN)
+    {
+#ifdef COMPILE_LG290P
+        if (lg290pIsPresent() == true)
+        {
+            settings.detectedGnssReceiver = GNSS_RECEIVER_LG290P;
+            recordSystemSettings(); // Record the detected GNSS receiver and avoid this test in the future
+        }
+#else  // COMPILE_LGP290P
+        systemPrintln("<<<<<<<<<< !!!!!!!!!! LG290P NOT COMPILED !!!!!!!!!! >>>>>>>>>>");
+#endif // COMPILE_LGP290P
+
+#ifdef COMPILE_MOSAICX5
+// TODO - this uses UART2, but Flex is UART1. We need to make the mosaic send routines flexible to use
+// whichever UART we specify.
+// if (mosaicIsPresent() == true)
+//     settings.detectedGnssReceiver = GNSS_RECEIVER_MOSAIC_X5;
+// recordSystemSettings(); // Record the detected GNSS receiver and avoid this test in the future
+#else  // COMPILE_MOSAICX5
+        systemPrintln("<<<<<<<<<< !!!!!!!!!! MOSAICX5 NOT COMPILED !!!!!!!!!! >>>>>>>>>>");
+#endif // COMPILE_MOSAICX5
+    }
+
+    // Start the detected receiver
+    if (settings.detectedGnssReceiver == GNSS_RECEIVER_LG290P)
+    {
+#ifdef COMPILE_LG290P
+        gnss = (GNSS *)new GNSS_LG290P();
+        present.gnss_lg290p = true;
+        systemPrintln("Starting GNSS receiver: LG290P");
+#endif // COMPILE_LGP290P
+    }
+    else if (settings.detectedGnssReceiver == GNSS_RECEIVER_MOSAIC_X5)
+    {
+#ifdef COMPILE_MOSAICX5
+        gnss = (GNSS *)new GNSS_MOSAIC();
+        present.gnss_mosaicX5 = true;
+        systemPrintln("Starting GNSS receiver: mosaic-X5");
+#endif // COMPILE_MOSAICX5
+    }
+
+    // Auto ID failed, mark everything as unknown
+    else if (settings.detectedGnssReceiver == GNSS_RECEIVER_UNKNOWN)
+    {
+        gnss = (GNSS *)new GNSS_None();
+    }
+}
+
+// Based on the platform, put the GNSS receiver into run mode
+void gnssBoot()
+{
+    if (productVariant == RTK_TORCH)
+    {
+        digitalWrite(pin_GNSS_DR_Reset, HIGH); // Tell UM980 and DR to boot
+    }
+    else if (productVariant == RTK_FLEX)
+    {
+        gpioExpanderGnssBoot(); // Drive the GNSS reset pin high
+    }
+    else if (productVariant == RTK_POSTCARD)
+    {
+        digitalWrite(pin_GNSS_Reset, HIGH); // Tell LG290P to boot
+    }
+}
+
+// Based on the platform, put the GNSS receiver into reset
+void gnssReset()
+{
+    if (productVariant == RTK_TORCH)
+    {
+        digitalWrite(pin_GNSS_DR_Reset, LOW); // Tell UM980 and DR to reset
+    }
+    else if (productVariant == RTK_FLEX)
+    {
+        gpioExpanderGnssReset(); // Drive the GNSS reset pin low
+    }
+    else if (productVariant == RTK_POSTCARD)
+    {
+        digitalWrite(pin_GNSS_Reset, LOW); // Tell LG290P to reset
+    }
 }
