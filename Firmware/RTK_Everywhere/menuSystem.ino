@@ -558,9 +558,9 @@ void menuDebugHardware()
             {
                 systemPrintln();
                 systemPrintln("QGNSS must be connected to CH342 Port B at 460800bps. Begin firmware update from QGNSS (hit the play button) then reset the LG290P.");
-                lg290pReset();
+                gnssReset();
                 delay(100);
-                lg290pBoot();
+                gnssBoot();
                 systemPrintln("LG290P reset complete.");
             }
         }
