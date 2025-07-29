@@ -1114,7 +1114,12 @@ void handleGnssDataTask(void *e)
         startMillis = millis();
 
         // Determine BT connection state
-        bool connected = (bluetoothGetState() == BT_CONNECTED);
+        //bool connected = (bluetoothGetState() == BT_CONNECTED);
+
+        bool connected = false;
+
+        if (settings.bluetoothRadioType != BLUETOOTH_RADIO_SPP_ACCESSORY_MODE)
+            connected = (bluetoothGetState() == BT_CONNECTED);
 
         if (!connected)
             // Discard the data

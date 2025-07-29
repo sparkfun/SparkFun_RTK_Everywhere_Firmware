@@ -114,6 +114,9 @@ public:
   bool deleteBondedDevice(uint8_t *remoteAddress);
   void deleteAllBondedDevices();
 
+  bool aclConnected();
+  uint8_t *aclGetAddress();
+
 private:
   String local_name;
   int timeoutTicks = 0;

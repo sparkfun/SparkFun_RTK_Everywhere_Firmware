@@ -773,6 +773,8 @@ uint8_t gpioExpander_lastReleased = 255;
 
 SparkFunAppleAccessoryDriver *appleAccessory; // Instantiated by beginAuthCoPro
 
+const char *sdp_service_name = "iAP2";
+
 static const uint8_t  UUID_IAP2[] = {0x00, 0x00, 0x00, 0x00, 0xDE, 0xCA, 0xFA, 0xDE, 0xDE, 0xCA, 0xDE, 0xAF, 0xDE, 0xCA, 0xCA, 0xFF};
 
 #endif
@@ -789,6 +791,8 @@ uint8_t wifiMACAddress[6];     // Display this address in the system menu
 uint8_t btMACAddress[6];       // Display this address when Bluetooth is enabled, otherwise display wifiMACAddress
 uint8_t ethernetMACAddress[6]; // Display this address when Ethernet is enabled, otherwise display wifiMACAddress
 char deviceName[70];           // The serial string that is broadcast. Ex: 'EVK Base-BC61'
+char serialNumber[5];          // The serial number for MFi. Ex: 'BC61'
+char deviceFirmware[9];        // The firmware version for MFi. Ex: 'v2.2'
 const uint16_t menuTimeout = 60 * 10; // Menus will exit/timeout after this number of seconds
 int systemTime_minutes;               // Used to test if logging is less than max minutes
 uint32_t powerPressedStartTime;       // Times how long the user has been holding the power button, used for power down
@@ -1421,6 +1425,9 @@ void loop()
 
     DMW_c("networkUpdate");
     networkUpdate(); // Maintain the network connections
+
+    DMW_c("updateAuthCoPro");
+    updateAuthCoPro(); // Update the Apple Accessory
 
     DMW_c("updateLBand");
     updateLBand(); // Update L-Band

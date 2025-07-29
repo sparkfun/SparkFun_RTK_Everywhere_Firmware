@@ -87,6 +87,9 @@ static std::map<int, std::string> sdpRecords;
 static BTScanResultsSet scanResults;
 static BTAdvertisedDeviceCb advertisedDeviceCb = nullptr;
 
+static bool _aclConnected;
+static uint8_t _aclAddress[ESP_BD_ADDR_LEN];
+
 // _spp_event_group
 #define SPP_RUNNING   0x01
 #define SPP_CONNECTED 0x02
@@ -235,7 +238,7 @@ static void _spp_tx_task(void *arg) {
         packet = NULL;
       }
     } else {
-      log_e("Something went horribly wrong");
+      log_e("BluetoothSerial _spp_tx_task: something went horribly wrong");
     }
   }
   vTaskDelete(NULL);
@@ -347,7 +350,7 @@ static void esp_spp_cb(esp_spp_cb_event_t event, esp_spp_cb_param_t *param) {
       } else if (_spp_rx_queue != NULL) {
         for (int i = 0; i < param->data_ind.len; i++) {
           if (xQueueSend(_spp_rx_queue, param->data_ind.data + i, (TickType_t)0) != pdTRUE) {
-            Serial.printf("RX Full! Discarding %u bytes\r\n", param->data_ind.len - i);
+            Serial.printf("BluetoothSerial RX Full! Discarding %u bytes\r\n", param->data_ind.len - i);
             break;
           }
         }
@@ -517,12 +520,12 @@ static void esp_bt_gap_cb(esp_bt_gap_cb_event_t event, esp_bt_gap_cb_param_t *pa
 
     case ESP_BT_GAP_AUTH_CMPL_EVT:  // Enum 4 - Authentication complete event
       if (param->auth_cmpl.stat == ESP_BT_STATUS_SUCCESS) {
-        log_v("authentication success: %s", param->auth_cmpl.device_name);
+        log_v("ESP_BT_GAP_AUTH_CMPL_EVT authentication success: %s", param->auth_cmpl.device_name);
         if (auth_complete_callback) {
           auth_complete_callback(true);
         }
       } else {
-        log_e("authentication failed, status:%d", param->auth_cmpl.stat);
+        log_e("ESP_BT_GAP_AUTH_CMPL_EVT authentication failed, status:%d", param->auth_cmpl.stat);
         if (auth_complete_callback) {
           auth_complete_callback(false);
         }
@@ -545,8 +548,10 @@ static void esp_bt_gap_cb(esp_bt_gap_cb_event_t event, esp_bt_gap_cb_param_t *pa
         memcpy(current_bd_addr, param->cfm_req.bda, sizeof(esp_bd_addr_t));
         confirm_request_callback(param->cfm_req.num_val);
       } else {
-        log_w("ESP_BT_GAP_CFM_REQ_EVT: confirm_request_callback does not exist - refusing pairing");
-        esp_bt_gap_ssp_confirm_reply(param->cfm_req.bda, false);
+        //log_w("ESP_BT_GAP_CFM_REQ_EVT: confirm_request_callback does not exist - refusing pairing");
+        //esp_bt_gap_ssp_confirm_reply(param->cfm_req.bda, false);
+        log_w("ESP_BT_GAP_CFM_REQ_EVT: confirming reply");
+        esp_bt_gap_ssp_confirm_reply(param->cfm_req.bda, true);
       }
       break;
 #endif
@@ -602,7 +607,16 @@ static void esp_bt_gap_cb(esp_bt_gap_cb_event_t event, esp_bt_gap_cb_param_t *pa
       break;
 
     case ESP_BT_GAP_ACL_CONN_CMPL_STAT_EVT:  // Enum 16 - ACL connection complete status event
-      log_i("ESP_BT_GAP_ACL_CONN_CMPL_STAT_EVT ACL connection complete status event");
+      {
+#if (ARDUHAL_LOG_LEVEL >= ARDUHAL_LOG_LEVEL_INFO)
+          char bda_str[18];
+          log_i("ESP_BT_GAP_ACL_CONN_CMPL_STAT_EVT ACL connection from: %s", bda2str(param->acl_conn_cmpl_stat.bda, bda_str, 18));
+#endif
+
+          memcpy(_aclAddress, param->acl_conn_cmpl_stat.bda, ESP_BD_ADDR_LEN);
+
+          _aclConnected = true;
+      }
       break;
 
     case ESP_BT_GAP_ACL_DISCONN_CMPL_STAT_EVT:  // Enum 17 - ACL disconnection complete status event
@@ -611,6 +625,12 @@ static void esp_bt_gap_cb(esp_bt_gap_cb_event_t event, esp_bt_gap_cb_param_t *pa
         param->acl_disconn_cmpl_stat.handle
       );
       break;
+
+#if false
+    case ESP_BT_GAP_ENC_CHG_EVT: // Enum 21
+        log_i("ESP_BT_GAP_ENC_CHG_EVT");
+        break;
+#endif
 
     default: log_i("ESP-BT_GAP_* unknown message: %d", event); break;
   }
@@ -676,10 +696,25 @@ static bool _init_bt(const char *deviceName, bt_mode mode, uint16_t rxQueueSize,
 
   esp_bluedroid_status_t bt_state = esp_bluedroid_get_status();
   if (bt_state == ESP_BLUEDROID_STATUS_UNINITIALIZED) {
-    if (esp_bluedroid_init()) {
-      log_e("initialize bluedroid failed");
-      return false;
-    }
+//#ifdef CONFIG_BT_SSP_ENABLED
+#if false
+        // Start with SSP
+        esp_bluedroid_config_t bluedroid_cfg = BT_BLUEDROID_INIT_CONFIG_DEFAULT();
+        if (_enableSSP == false)
+            bluedroid_cfg.ssp_en = false;
+
+        if (esp_bluedroid_init_with_cfg(&bluedroid_cfg)) // Not supported by IDF5.1
+        {
+            log_e("initialize bluedroid failed");
+            return false;
+        }
+#else
+        if (esp_bluedroid_init())
+        {
+            log_e("initialize bluedroid failed");
+            return false;
+        }
+#endif
   }
 
   if (bt_state != ESP_BLUEDROID_STATUS_ENABLED) {
@@ -708,6 +743,8 @@ static bool _init_bt(const char *deviceName, bt_mode mode, uint16_t rxQueueSize,
 
   log_i("device name set");
   esp_bt_dev_set_device_name(deviceName);
+  // Note: in later cores, this changes to:
+  //esp_bt_gap_set_device_name(deviceName);
 
 #ifdef CONFIG_BT_SSP_ENABLED
   if (_enableSSP) {
@@ -726,6 +763,8 @@ static bool _init_bt(const char *deviceName, bt_mode mode, uint16_t rxQueueSize,
     esp_bt_gap_set_security_param(param_type, &iocap, sizeof(uint8_t));
   }
 #endif
+
+  _aclConnected = false;
 
   // the default BTA_DM_COD_LOUDSPEAKER does not work with the macOS BT stack
   esp_bt_cod_t cod;
@@ -804,6 +843,7 @@ static bool waitForDiscovered(int timeout) {
 }
 
 static bool waitForSDPRecord(int timeout) {
+  log_i("waiting for SDP record");
   TickType_t xTicksToWait = timeout / portTICK_PERIOD_MS;
   return (xEventGroupWaitBits(_bt_event_group, BT_SDP_COMPLETED, pdFALSE, pdTRUE, xTicksToWait) & BT_SDP_COMPLETED) != 0;
 }
@@ -1376,4 +1416,20 @@ void BluetoothSerial::deleteAllBondedDevices() {
     log_w("Function esp_bt_gap_get_bond_device_list() returned code %d", ret);
   }
 }
+
+bool BluetoothSerial::aclConnected()
+{
+    if (_aclConnected == true)
+    {
+        _aclConnected = false;
+        return (true);
+    }
+    return (false);
+}
+
+uint8_t* BluetoothSerial::aclGetAddress()
+{
+    return (_aclAddress);
+}
+
 #endif  // defined(CONFIG_BT_ENABLED) && defined(CONFIG_BLUEDROID_ENABLED)
