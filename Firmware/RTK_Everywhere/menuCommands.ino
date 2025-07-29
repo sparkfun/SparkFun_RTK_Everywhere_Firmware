@@ -1102,6 +1102,13 @@ SettingValueResponse updateSettingWithValue(bool inCommands, const char *setting
         }
         break;
 #endif // COMPILE_LG290P
+
+        case tGnssReceiver: {
+            gnssReceiverType_e *ptr = (gnssReceiverType_e *)var;
+            *ptr = (gnssReceiverType_e)settingValue;
+            knownSetting = true;
+        }
+        break;
         }
     }
 
@@ -1908,6 +1915,12 @@ void createSettingsString(char *newSettings)
             }
             break;
 #endif // COMPILE_LG290P
+
+            case tGnssReceiver: {
+                gnssReceiverType_e *ptr = (gnssReceiverType_e *)rtkSettingsEntries[i].var;
+                stringRecord(newSettings, rtkSettingsEntries[i].name, (int)*ptr);
+            }
+            break;
             }
         }
     }
@@ -2792,6 +2805,13 @@ SettingValueResponse getSettingValue(bool inCommands, const char *settingName, c
         }
         break;
 #endif // COMPILE_LG290P
+
+        case tGnssReceiver: {
+            gnssReceiverType_e *ptr = (gnssReceiverType_e *)var;
+            writeToString(settingValueStr, (int)*ptr);
+            knownSetting = true;
+        }
+        break;
         }
     }
 
@@ -3345,6 +3365,12 @@ void commandList(bool inCommands, int i)
     }
     break;
 #endif // COMPILE_LG290P
+
+    case tGnssReceiver: {
+        getSettingValue(inCommands, rtkSettingsEntries[i].name, settingValue);
+        commandSendExecuteListResponse(rtkSettingsEntries[i].name, "gnssReceiverType_e", settingValue);
+    }
+    break;
     }
 }
 

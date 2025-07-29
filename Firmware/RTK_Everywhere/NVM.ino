@@ -647,6 +647,12 @@ void recordSystemSettingsToFile(File *settingsFile)
         }
         break;
 #endif // COMPILE_LG290P
+
+        case tGnssReceiver: {
+            gnssReceiverType_e *ptr = (gnssReceiverType_e *)rtkSettingsEntries[i].var;
+            settingsFile->printf("%s=%d\r\n", rtkSettingsEntries[i].name, (int)*ptr);
+        }
+        break;
         }
     }
 
@@ -1066,8 +1072,7 @@ bool parseLine(char *str)
     else
     {
         const char *table[] = {
-            "gnssFirmwareVersion", "gnssUniqueId",  "neoFirmwareVersion",
-            "rtkFirmwareVersion",  "rtkIdentifier",
+            "gnssFirmwareVersion", "gnssUniqueId", "neoFirmwareVersion", "rtkFirmwareVersion", "rtkIdentifier",
         };
         const int tableEntries = sizeof(table) / sizeof(table[0]);
 
@@ -1590,6 +1595,13 @@ bool parseLine(char *str)
             }
             break;
 #endif // COMPILE_LG290P
+
+            case tGnssReceiver: {
+                gnssReceiverType_e *ptr = (gnssReceiverType_e *)var;
+                *ptr = (gnssReceiverType_e)d;
+                knownSetting = true;
+            }
+            break;
             }
         }
     }
