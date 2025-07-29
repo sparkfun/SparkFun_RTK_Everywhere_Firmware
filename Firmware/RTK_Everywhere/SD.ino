@@ -94,7 +94,7 @@ bool sdCardPresent(void)
             return (true); // Card detect high = SD in place
         return (false);    // Card detect low = No SD
     }
-    else if (present.microSdCardDetectGpioExpanderHigh == true && online.gpioExpander == true)
+    else if (present.microSdCardDetectGpioExpanderHigh == true && online.gpioExpanderButtons == true)
     {
         if (io.digitalRead(gpioExpander_cardDetect) == GPIO_EXPANDER_CARD_INSERTED)
             return (true); // Card detect high = SD in place

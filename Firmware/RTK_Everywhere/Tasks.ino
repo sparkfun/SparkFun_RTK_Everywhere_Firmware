@@ -1825,7 +1825,7 @@ void buttonCheckTask(void *e)
 
                     forceDisplayUpdate = true; // User is interacting so repaint display quickly
 
-                    if (online.gpioExpander == true)
+                    if (online.gpioExpanderButtons == true)
                     {
                         // React to five different buttons
                         if (buttonLastPressed() == gpioExpander_up || buttonLastPressed() == gpioExpander_left)
