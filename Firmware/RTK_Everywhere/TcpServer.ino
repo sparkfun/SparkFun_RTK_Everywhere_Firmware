@@ -698,7 +698,7 @@ void tcpServerUpdate()
         {
             if (settings.debugTcpServer && (!inMainMenu))
                 systemPrintf("%s start/r/n", tcpServerName);
-            if (settings.tcpUdpOverWiFiStation == true)
+            if (settings.tcpOverWiFiStation == true)
                 networkConsumerAdd(NETCONSUMER_TCP_SERVER, NETWORK_ANY, __FILE__, __LINE__);
             else
                 networkSoftApConsumerAdd(NETCONSUMER_TCP_SERVER, __FILE__, __LINE__);
