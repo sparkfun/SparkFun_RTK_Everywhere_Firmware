@@ -779,6 +779,9 @@ static const uint8_t  UUID_IAP2[] = {0x00, 0x00, 0x00, 0x00, 0xDE, 0xCA, 0xFA, 0
 
 #endif
 
+// Storage for the latest NMEA GPGGA/GPRMC/GPGST - to be passed to the MFi Apple device
+// We should optimse this with a Lee table... TODO
+const size_t latestNmeaMaxLen = 100;
 char *latestGPGGA;
 char *latestGPRMC;
 char *latestGPGST;

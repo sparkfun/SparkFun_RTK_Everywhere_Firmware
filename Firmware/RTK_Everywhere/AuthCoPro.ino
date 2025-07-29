@@ -51,9 +51,9 @@ void beginAuthCoPro(TwoWire *i2cBus)
     appleAccessory->setProductPlanUID(productPlanUID);
 
     // Pass the pointers for the latest NMEA data into the Accessory driver
-    latestGPGGA = (char *)rtkMalloc(100, "AuthCoPro");
-    latestGPRMC = (char *)rtkMalloc(100, "AuthCoPro");
-    latestGPGST = (char *)rtkMalloc(100, "AuthCoPro");
+    latestGPGGA = (char *)rtkMalloc(latestNmeaMaxLen, "AuthCoPro");
+    latestGPRMC = (char *)rtkMalloc(latestNmeaMaxLen, "AuthCoPro");
+    latestGPGST = (char *)rtkMalloc(latestNmeaMaxLen, "AuthCoPro");
     appleAccessory->setNMEApointers(latestGPGGA, latestGPRMC, latestGPGST);
 
     // Pass the transport connected and disconnect methods into the accessory driver
