@@ -213,6 +213,7 @@ bool wifiEspNowOn(const char * fileName, uint32_t lineNumber) {return false;}
 void wifiEspNowChannelSet(WIFI_CHANNEL_t channel) {}
 int wifiNetworkCount()                          {return 0;}
 void wifiResetTimeout()                         {}
+IPAddress wifiSoftApGetBroadcastIpAddress()     {return IPAddress((uint32_t)0);}
 IPAddress wifiSoftApGetIpAddress()              {return IPAddress((uint32_t)0);}
 const char * wifiSoftApGetSsid()                {return "";}
 bool wifiSoftApOff(const char * fileName, uint32_t lineNumber) {return true;}

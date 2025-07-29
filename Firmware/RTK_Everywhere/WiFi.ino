@@ -711,6 +711,16 @@ void wifiSoftApChannelSet(WIFI_CHANNEL_t channel)
 }
 
 //*********************************************************************
+// Get the broadcast IP address being used for the software access point (AP)
+// Outputs:
+//   Returns an IPAddress object containing the IP address used by the
+//   soft AP
+IPAddress wifiSoftApGetBroadcastIpAddress()
+{
+    return wifi.softApOnline() ? WiFi.AP.broadcastIP() : IPAddress((uint32_t)0);
+}
+
+//*********************************************************************
 // Get the IP address being used for the software access point (AP)
 // Outputs:
 //   Returns an IPAddress object containing the IP address used by the
