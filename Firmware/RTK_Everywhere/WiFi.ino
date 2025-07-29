@@ -773,6 +773,12 @@ bool wifiSoftApOn(const char *fileName, uint32_t lineNumber)
     if (settings.debugWifiState)
         systemPrintf("wifiSoftApOn called in %s at line %d\r\n", fileName, lineNumber);
 
+    // Select the AP name
+    if (inWebConfigMode())
+        wifiSoftApSsid = "RTK Config";
+    else
+        wifiSoftApSsid = "RTK";
+
     return wifi.enable(wifiEspNowRunning, true, wifiStationRunning, __FILE__, __LINE__);
 }
 
@@ -1418,7 +1424,7 @@ bool RTK_WIFI::enable(bool enableESPNow, bool enableSoftAP, bool enableStation, 
             // Allocate the soft AP SSID
             if (!_apSsid)
             {
-                _apSsid = (char *)rtkMalloc(strlen(wifiSoftApSsid) + 1, "SSID string (_apSsid)");
+                _apSsid = (char *)rtkMalloc(SSID_LENGTH + 1 + 4 + 1, "SSID string (_apSsid)");
                 if (_apSsid)
                     _apSsid[0] = 0;
                 else

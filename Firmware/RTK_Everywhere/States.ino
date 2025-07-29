@@ -208,7 +208,6 @@ void stateUpdate()
         case (STATE_BASE_CASTER_NOT_STARTED): {
             baseCasterEnableOverride();
 
-            wifiSoftApSsid = "RTK Caster";
             changeState(STATE_BASE_NOT_STARTED);
         }
         break;
@@ -431,7 +430,6 @@ void stateUpdate()
             for (int serverIndex = 0; serverIndex < NTRIP_SERVER_MAX; serverIndex++)
                 ntripServerStop(serverIndex, true); // Do not allocate new wifiClient
 
-            wifiSoftApSsid = "RTK Config";
             webServerStart(); // Start the webserver state machine for web config
 
             RTK_MODE(RTK_MODE_WEB_CONFIG);
@@ -458,9 +456,9 @@ void stateUpdate()
                     //Create temporary copy of Settings, so that we can check if they change while parsing
                     //Useful for detecting when we need to change WiFi station settings
                     wifiSettingsClone();
-                    
+
                     parseIncomingSettings();
-                    
+
                     settings.gnssConfiguredOnce = false; // On the next boot, reapply all settings
                     settings.gnssConfiguredBase = false;
                     settings.gnssConfiguredRover = false;
