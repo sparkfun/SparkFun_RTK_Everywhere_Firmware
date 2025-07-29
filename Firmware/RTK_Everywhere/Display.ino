@@ -165,12 +165,6 @@ void beginDisplay(TwoWire *i2cBus)
         oled->setPreCharge(0xF1);    // Set Pre-charge Period (D9h)
         oled->setVcomDeselect(0x40); // Set VCOMH Deselect Level (DBh)
         oled->setContrast(0xCF);     // Set Contrast Control for BANK0 (81h)
-
-        if (present.display_type == DISPLAY_128x64_INVERTED)
-        {
-            oled->flipVertical(true);
-            oled->flipHorizontal(true);
-        }
     }
 
     // Display may still be powering up
@@ -183,6 +177,12 @@ void beginDisplay(TwoWire *i2cBus)
             online.display = true;
 
             systemPrintln("Display started");
+
+            if (present.display_type == DISPLAY_128x64_INVERTED)
+            {
+                oled->flipVertical(true);
+                oled->flipHorizontal(true);
+            }
 
             // Display the brand LOGO
             RTKBrandAttribute *brandAttribute = getBrandAttributeFromBrand(present.brand);
