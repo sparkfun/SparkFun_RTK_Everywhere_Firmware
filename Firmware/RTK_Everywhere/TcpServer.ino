@@ -229,7 +229,7 @@ bool tcpServerEnabled(const char ** line)
             casterMode = true;
 
             // Select the base caster WiFi mode and port number
-            if (settings.baseCasterOverride)
+            if (settings.baseCasterOverride || (settings.tcpOverWiFiStation == false))
             {
                 // Using soft AP
                 name = "Base Caster";
@@ -698,10 +698,10 @@ void tcpServerUpdate()
         {
             if (settings.debugTcpServer && (!inMainMenu))
                 systemPrintf("%s start/r/n", tcpServerName);
-            if (settings.tcpOverWiFiStation == true)
-                networkConsumerAdd(NETCONSUMER_TCP_SERVER, NETWORK_ANY, __FILE__, __LINE__);
-            else
+            if (tcpServerWiFiSoftAp)
                 networkSoftApConsumerAdd(NETCONSUMER_TCP_SERVER, __FILE__, __LINE__);
+            else
+                networkConsumerAdd(NETCONSUMER_TCP_SERVER, NETWORK_ANY, __FILE__, __LINE__);
             tcpServerSetState(TCP_SERVER_STATE_WAIT_FOR_NETWORK);
         }
         break;
