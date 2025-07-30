@@ -850,10 +850,10 @@ void beginSD()
 
     gotSemaphore = false;
 
-    while (settings.enableSD == true)
+    while (settings.enableSD == true) // Note: settings.enableSD is never set to false
     {
         // Setup SD card access semaphore
-        if (sdCardSemaphore == nullptr)
+        if (sdCardSemaphore == NULL)
             sdCardSemaphore = xSemaphoreCreateMutex();
         else if (xSemaphoreTake(sdCardSemaphore, fatSemaphore_shortWait_ms) != pdPASS)
         {
@@ -869,7 +869,7 @@ void beginSD()
             break; // Give up on loop
 
         // If an SD card is present, allow SdFat to take over
-        log_d("SD card detected");
+        systemPrintf("SD card detected @ %s\r\n", getTimeStamp());
 
         // Allocate the data structure that manages the microSD card
         if (!sd)
@@ -937,7 +937,7 @@ void beginSD()
         sdCardSize = 0;
         outOfSDSpace = true;
 
-        systemPrintln("microSD: Online");
+        systemPrintf("microSD: Online @ %s\r\n", getTimeStamp());
         online.microSD = true;
         break;
     }
@@ -958,7 +958,7 @@ void endSD(bool alreadyHaveSemaphore, bool releaseSemaphore)
         sd->end();
 
         online.microSD = false;
-        systemPrintln("microSD: Offline");
+        systemPrintf("microSD: Offline @ %s\r\n", getTimeStamp());
     }
 
     // Free the caches for the microSD card
@@ -1712,7 +1712,7 @@ void tpISR()
     {
         if (online.rtc) // Only sync if the RTC has been set via PVT first
         {
-            if (timTpUpdated) // Only sync if timTpUpdated is true
+            if (timTpUpdated) // Only sync if timTpUpdated is true - set by storeTIMTPdata on ZED platforms only
             {
                 if (millisNow - lastRTCSync >
                     syncRTCInterval) // Only sync if it is more than syncRTCInterval since the last sync

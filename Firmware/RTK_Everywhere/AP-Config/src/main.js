@@ -1004,8 +1004,8 @@ function validateFields() {
 
     //System Config
     if (ge("enableLogging").checked == true) {
-        checkElementValue("maxLogTime", 1, 1051200, "Must be 1 to 1,051,200", "collapseSystemConfig");
-        checkElementValue("maxLogLength", 1, 1051200, "Must be 1 to 1,051,200", "collapseSystemConfig");
+        checkElementValue("maxLogTime", 0, 1051200, "Must be 0 to 1,051,200", "collapseSystemConfig");
+        checkElementValue("maxLogLength", 0, 2880, "Must be 0 to 2880", "collapseSystemConfig");
     }
     else {
         clearElement("maxLogTime", 60 * 24);

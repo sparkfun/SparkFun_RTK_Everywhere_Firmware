@@ -1968,10 +1968,15 @@ void createSettingsString(char *newSettings)
     else
         stringRecord(newSettings, "wifiConfigOverAP", 0); // 1 = AP mode, 0 = WiFi
 
-    if (settings.tcpUdpOverWiFiStation == true)
-        stringRecord(newSettings, "tcpUdpOverWiFiStation", 1); // 1 = WiFi mode, 0 = AP
+    if (settings.tcpOverWiFiStation == true)
+        stringRecord(newSettings, "tcpOverWiFiStation", 1); // 1 = WiFi mode, 0 = AP
     else
-        stringRecord(newSettings, "tcpUdpOverWiFiStation", 0); // 1 = WiFi mode, 0 = AP
+        stringRecord(newSettings, "tcpOverWiFiStation", 0); // 1 = WiFi mode, 0 = AP
+
+    if (settings.udpOverWiFiStation == true)
+        stringRecord(newSettings, "udpOverWiFiStation", 1); // 1 = WiFi mode, 0 = AP
+    else
+        stringRecord(newSettings, "udpOverWiFiStation", 0); // 1 = WiFi mode, 0 = AP
 
     // Single variables needed on Config page
     stringRecord(newSettings, "minCNO", gnss->getMinCno());

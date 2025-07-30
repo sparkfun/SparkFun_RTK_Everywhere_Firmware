@@ -32,7 +32,11 @@ void terminalUpdate()
 
             // Push RTCM to GNSS module over I2C / SPI
             if (correctionLastSeen(CORR_USB))
+            {
                 gnss->pushRawData((uint8_t *)buffer, length);
+                sempParseNextBytes(rtcmParse, (uint8_t *)buffer, length); // Parse the data for RTCM1005/1006
+            }
+
         }
 
         // Does incoming data consist of RTCM correction messages
@@ -51,7 +55,10 @@ void terminalUpdate()
 
             // Push RTCM to GNSS module over I2C / SPI
             if (correctionLastSeen(CORR_USB))
+            {
                 gnss->pushRawData((uint8_t *)buffer, length);
+                sempParseNextBytes(rtcmParse, (uint8_t *)buffer, length); // Parse the data for RTCM1005/1006
+            }
         }
         else
         {

@@ -48,6 +48,7 @@ void updatePplTask(void *e)
                         }
 
                         gnss->pushRawData(pplRtcmBuffer, rtcmLength);
+                        sempParseNextBytes(rtcmParse, pplRtcmBuffer, rtcmLength); // Parse the data for RTCM1005/1006
 
                         if (settings.debugCorrections == true && !inMainMenu)
                             systemPrintf("Received %d RTCM bytes from PPL. Pushed to the GNSS.\r\n", rtcmLength);
