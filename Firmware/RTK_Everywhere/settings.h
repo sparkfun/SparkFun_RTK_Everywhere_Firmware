@@ -1087,6 +1087,7 @@ struct Settings
     //ProductVariant previouslyDetectedPlatform = RTK_UNKNOWN; //Because LFS is started after deviceID, this is mute
     gnssReceiverType_e detectedGnssReceiver = GNSS_RECEIVER_UNKNOWN;
     bool detectedTilt = false;
+    bool testedTilt = false;
 
     // Add new settings to appropriate group above or create new group
     // Then also add to the same group in rtkSettingsEntries below
@@ -1709,6 +1710,7 @@ const RTK_Settings_Entry rtkSettingsEntries[] =
 
     { 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, tGnssReceiver,     0, & settings.detectedGnssReceiver, "detectedGnssReceiver",  },
     { 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, _bool,     0, & settings.detectedTilt, "detectedTilt",  },
+    { 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, _bool,     0, & settings.testedTilt, "testedTilt",  },
 
     // Add new settings to appropriate group above or create new group
     // Then also add to the same group in settings above

@@ -1020,6 +1020,10 @@ void tiltDetect()
     if (settings.detectedTilt == true)
         return;
 
+    // Test for tilt only once
+    if (settings.testedTilt == true)
+        return;
+
 #ifdef COMPILE_IM19_IMU
     // Locally instantiate the library and hardware so it will release on exit
     IM19 *tiltSensor;
@@ -1048,9 +1052,14 @@ void tiltDetect()
 
             present.imu_im19 = true; // Allow tiltUpdate() to run
             settings.detectedTilt = true;
-            recordSystemSettings();
-            return;
         }
     }
 #endif // COMPILE_IM19_IMU
+
+    // if (settings.enableImuDebug == true && settings.detectedTilt == false)
+    systemPrintln("Tilt sensor not detected");
+
+    settings.testedTilt = true;
+    recordSystemSettings();
+    return;
 }
