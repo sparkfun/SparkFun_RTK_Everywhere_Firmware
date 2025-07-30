@@ -2393,17 +2393,14 @@ bool lg290pIsPresent()
     // LG290P communicates at 460800bps.
     uint32_t platformGnssCommunicationRate = 115200 * 4;
 
-    // systemPrintf("Starting GNSS primary UART at %d on pins RX: %d TX: %d\r\n", platformGnssCommunicationRate,
-    //              pin_GnssUart_RX, pin_GnssUart_TX);
-
     serialTestGNSS.begin(platformGnssCommunicationRate, SERIAL_8N1, pin_GnssUart_RX, pin_GnssUart_TX);
 
     LG290P lg290p;
 
     if (lg290p.begin(serialTestGNSS) == true) // Give the serial port over to the library
     {
-        // if (settings.debugGnss)
-        systemPrintln("LG290P detected");
+         if (settings.debugGnss)
+            systemPrintln("LG290P detected");
         serialTestGNSS.end();
         return true;
     }

@@ -923,7 +923,6 @@ void gpioExpanderGnssReset()
     {
         if (settings.detectedGnssReceiver != GNSS_RECEIVER_LG290P)
         {
-            Serial.println("Driving GNSS reset LOW");
             gpioExpanderSwitches->digitalWrite(gpioExpanderSwitch_GNSS_Reset, LOW);
         }
         else

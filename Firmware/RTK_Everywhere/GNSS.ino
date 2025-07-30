@@ -115,11 +115,6 @@ void gnssDetectReceiverType()
     if (productVariant != RTK_FLEX)
         return;
 
-    // settings.detectedGnssReceiver = GNSS_RECEIVER_LG290P;
-    // gnss = (GNSS *)new GNSS_LG290P();
-    // systemPrintln("Starting GNSS receiver: LG290P");
-    // return;
-
     gnssBoot(); // Tell GNSS to run
 
     // TODO remove after testing, force retest on each boot
@@ -131,6 +126,7 @@ void gnssDetectReceiverType()
 #ifdef COMPILE_LG290P
         if (lg290pIsPresent() == true)
         {
+            systemPrintln("Auto-detected GNSS receiver: LG290P");
             settings.detectedGnssReceiver = GNSS_RECEIVER_LG290P;
             recordSystemSettings(); // Record the detected GNSS receiver and avoid this test in the future
         }
@@ -142,6 +138,7 @@ void gnssDetectReceiverType()
 // TODO - this uses UART2, but Flex is UART1. We need to make the mosaic send routines flexible to use
 // whichever UART we specify.
 // if (mosaicIsPresent() == true)
+            // systemPrintln("Auto-detected GNSS receiver: mosaic-X5");
 //     settings.detectedGnssReceiver = GNSS_RECEIVER_MOSAIC_X5;
 // recordSystemSettings(); // Record the detected GNSS receiver and avoid this test in the future
 #else  // COMPILE_MOSAICX5
@@ -155,7 +152,6 @@ void gnssDetectReceiverType()
 #ifdef COMPILE_LG290P
         gnss = (GNSS *)new GNSS_LG290P();
         present.gnss_lg290p = true;
-        systemPrintln("Starting GNSS receiver: LG290P");
 #endif // COMPILE_LGP290P
     }
     else if (settings.detectedGnssReceiver == GNSS_RECEIVER_MOSAIC_X5)
@@ -163,7 +159,6 @@ void gnssDetectReceiverType()
 #ifdef COMPILE_MOSAICX5
         gnss = (GNSS *)new GNSS_MOSAIC();
         present.gnss_mosaicX5 = true;
-        systemPrintln("Starting GNSS receiver: mosaic-X5");
 #endif // COMPILE_MOSAICX5
     }
 
