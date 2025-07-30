@@ -1703,6 +1703,8 @@ void GNSS_LG290P::menuMessages()
         systemPrintln("4) Set PQTM Messages");
 
         systemPrintln("10) Reset to Defaults");
+        systemPrintln("11) Reset to PPP Logging (NMEAx1 / RTCMx8 - 30 second decimation)");
+        systemPrintln("12) Reset to High-rate PPP Logging (NMEAx1 / RTCMx8 - 1Hz)");
 
         systemPrintln("x) Exit");
 
@@ -1735,6 +1737,35 @@ void GNSS_LG290P::menuMessages()
                 settings.lg290pMessageRatesPQTM[x] = lgMessagesPQTM[x].msgDefaultRate;
 
             systemPrintln("Reset to Defaults");
+        }
+        else if (incoming == 11 || incoming == 12)
+        {
+            // setMessageRate() on the LG290P sets the output of a message
+            // 'Output once every N position fixes'
+
+            setNmeaMessageRates(0); // Turn off all NMEA messages
+            setNmeaMessageRateByName("GGA", 1);
+
+            setRtcmRoverMessageRates(0); // Turn off all RTCM messages
+            setRtcmRoverMessageRateByName("RTCM3-1019", 1);
+            setRtcmRoverMessageRateByName("RTCM3-1020", 1);
+            setRtcmRoverMessageRateByName("RTCM3-1042", 1);
+            setRtcmRoverMessageRateByName("RTCM3-1046", 1);
+            setRtcmRoverMessageRateByName("RTCM3-107X", 1);
+            setRtcmRoverMessageRateByName("RTCM3-108X", 1);
+            setRtcmRoverMessageRateByName("RTCM3-109X", 1);
+            setRtcmRoverMessageRateByName("RTCM3-112X", 1);
+
+            if (incoming == 12)
+            {
+                setRate(1); // Go to 1 second between desired solution reports
+                systemPrintln("Reset to High-rate PPP Logging Defaults (NMEAx1 / RTCMx8 - 1Hz)");
+            }
+            else
+            {
+                setRate(30); // Go to 30 seconds between desired solution reports
+                systemPrintln("Reset to PPP Logging Defaults (NMEAx1 / RTCMx8 - 30 second decimation)");
+            }
         }
 
         else if (incoming == INPUT_RESPONSE_GETNUMBER_EXIT)
@@ -2326,6 +2357,50 @@ uint32_t GNSS_LG290P::baudGetMinimum()
 uint32_t GNSS_LG290P::baudGetMaximum()
 {
     return (lg290pAllowedRates[lg290pAllowedRatesCount - 1]);
+}
+
+// Set all NMEA message report rates to one value
+void GNSS_LG290P::setNmeaMessageRates(uint8_t msgRate)
+{
+    for (int x = 0; x < MAX_LG290P_NMEA_MSG; x++)
+        settings.lg290pMessageRatesNMEA[x] = msgRate;
+}
+
+// Set all RTCM Rover message report rates to one value
+void GNSS_LG290P::setRtcmRoverMessageRates(uint8_t msgRate)
+{
+    for (int x = 0; x < MAX_LG290P_RTCM_MSG; x++)
+        settings.lg290pMessageRatesRTCMRover[x] = msgRate;
+}
+
+// Given the name of a message, find it, and set the rate
+bool GNSS_LG290P::setNmeaMessageRateByName(const char *msgName, uint8_t msgRate)
+{
+    for (int x = 0; x < MAX_LG290P_NMEA_MSG; x++)
+    {
+        if (strcmp(lgMessagesNMEA[x].msgTextName, msgName) == 0)
+        {
+            settings.lg290pMessageRatesNMEA[x] = msgRate;
+            return (true);
+        }
+    }
+    systemPrintf("setNmeaMessageRateByName: %s not found\r\n", msgName);
+    return (false);
+}
+
+// Given the name of a message, find it, and set the rate
+bool GNSS_LG290P::setRtcmRoverMessageRateByName(const char *msgName, uint8_t msgRate)
+{
+    for (int x = 0; x < MAX_LG290P_RTCM_MSG; x++)
+    {
+        if (strcmp(lgMessagesRTCM[x].msgTextName, msgName) == 0)
+        {
+            settings.lg290pMessageRatesRTCMRover[x] = msgRate;
+            return (true);
+        }
+    }
+    systemPrintf("setRtcmRoverMessageRateByName: %s not found\r\n", msgName);
+    return (false);
 }
 
 //----------------------------------------

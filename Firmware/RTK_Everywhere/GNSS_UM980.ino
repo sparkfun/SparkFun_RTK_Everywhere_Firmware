@@ -1331,6 +1331,8 @@ void GNSS_UM980::menuMessages()
         systemPrintln("3) Set Base RTCM Messages");
 
         systemPrintln("10) Reset to Defaults");
+        systemPrintln("11) Reset to PPP Logging (NMEAx1 / RTCMx8 - 30 second decimation)");
+        systemPrintln("12) Reset to High-rate PPP Logging (NMEAx1 / RTCMx8 - 1Hz)");
 
         systemPrintln("x) Exit");
 
@@ -1357,6 +1359,38 @@ void GNSS_UM980::menuMessages()
                 settings.um980MessageRatesRTCMBase[x] = umMessagesRTCM[x].msgDefaultRate;
 
             systemPrintln("Reset to Defaults");
+        }
+        else if (incoming == 11 || incoming == 12)
+        {
+            // setMessageRate() on the UM980 sets the seconds between reported messages
+            // 1, 0.5, 0.2, 0.1 corresponds to 1Hz, 2Hz, 5Hz, 10Hz respectively.
+            // Ex: RTCM1005 0.5 <- 2 times per second
+
+            int reportRate = 30; // Default to 30 seconds between reports
+            if (incoming == 12)
+                reportRate = 1;
+
+            setNmeaMessageRates(0); // Turn off all NMEA messages
+            setNmeaMessageRateByName("GPGGA", reportRate);
+
+            setRtcmRoverMessageRates(0); // Turn off all RTCM messages
+            setRtcmRoverMessageRateByName("RTCM31019", reportRate);
+            setRtcmRoverMessageRateByName("RTCM31020", reportRate);
+            setRtcmRoverMessageRateByName("RTCM31042", reportRate);
+            setRtcmRoverMessageRateByName("RTCM31046", reportRate);
+            setRtcmRoverMessageRateByName("RTCM31074", reportRate);
+            setRtcmRoverMessageRateByName("RTCM31084", reportRate);
+            setRtcmRoverMessageRateByName("RTCM31094", reportRate);
+            setRtcmRoverMessageRateByName("RTCM31124", reportRate);
+
+            if (incoming == 12)
+            {
+                systemPrintln("Reset to High-rate PPP Logging (NMEAx1 / RTCMx8 - 1Hz)");
+            }
+            else
+            {
+                systemPrintln("Reset to PPP Logging (NMEAx1 / RTCMx8 - 30 second decimation)");
+            }
         }
 
         else if (incoming == INPUT_RESPONSE_GETNUMBER_EXIT)
@@ -1927,7 +1961,6 @@ uint32_t GNSS_UM980::baudGetMaximum()
     return (um980AllowedRates[um980AllowedRatesCount - 1]);
 }
 
-
 //----------------------------------------
 // If we have received serial data from the UM980 outside of the Unicore library (ie, from processUart1Message task)
 // we can pass data back into the Unicore library to allow it to update its own variables
@@ -1953,6 +1986,50 @@ void GNSS_UM980::unicoreHandler(uint8_t *buffer, int length)
 void GNSS_UM980::update()
 {
     // We don't check serial data here; the gnssReadTask takes care of serial consumption
+}
+
+// Set all NMEA message report rates to one value
+void GNSS_UM980::setNmeaMessageRates(uint8_t msgRate)
+{
+    for (int x = 0; x < MAX_UM980_NMEA_MSG; x++)
+        settings.um980MessageRatesNMEA[x] = msgRate;
+}
+
+// Set all RTCM Rover message report rates to one value
+void GNSS_UM980::setRtcmRoverMessageRates(uint8_t msgRate)
+{
+    for (int x = 0; x < MAX_UM980_RTCM_MSG; x++)
+        settings.um980MessageRatesRTCMRover[x] = msgRate;
+}
+
+// Given the name of a message, find it, and set the rate
+bool GNSS_UM980::setNmeaMessageRateByName(const char *msgName, uint8_t msgRate)
+{
+    for (int x = 0; x < MAX_UM980_NMEA_MSG; x++)
+    {
+        if (strcmp(umMessagesNMEA[x].msgTextName, msgName) == 0)
+        {
+            settings.um980MessageRatesNMEA[x] = msgRate;
+            return (true);
+        }
+    }
+    systemPrintf("setNmeaMessageRateByName: %s not found\r\n", msgName);
+    return (false);
+}
+
+// Given the name of a message, find it, and set the rate
+bool GNSS_UM980::setRtcmRoverMessageRateByName(const char *msgName, uint8_t msgRate)
+{
+    for (int x = 0; x < MAX_UM980_RTCM_MSG; x++)
+    {
+        if (strcmp(umMessagesRTCM[x].msgTextName, msgName) == 0)
+        {
+            settings.um980MessageRatesRTCMRover[x] = msgRate;
+            return (true);
+        }
+    }
+    systemPrintf("setRtcmRoverMessageRateByName: %s not found\r\n", msgName);
+    return (false);
 }
 
 #endif // COMPILE_UM980

@@ -166,7 +166,7 @@ void menuMessagesBaseRTCM()
         systemPrintln();
         systemPrintln("Menu: GNSS Messages - Base RTCM");
 
-        systemPrintln("1) Set RXM Messages for Base Mode");
+        systemPrintln("1) Set RTCM Messages for Base Mode");
 
         systemPrintf("2) Reset to Defaults (%s)\r\n", gnss->getRtcmDefaultString());
         systemPrintf("3) Reset to Low Bandwidth Link (%s)\r\n", gnss->getRtcmLowDataRateString());
