@@ -3417,6 +3417,8 @@ bool settingAvailableOnPlatform(int i)
             break;
         if ((productVariant == RTK_POSTCARD) && rtkSettingsEntries[i].platPostcard)
             break;
+        if ((productVariant == RTK_FLEX) && rtkSettingsEntries[i].platFlex)
+            break;
         return false;
     } while (0);
     return true;
