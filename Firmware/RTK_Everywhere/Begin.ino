@@ -772,13 +772,6 @@ void beginBoard()
 
     else if (productVariant == RTK_FLEX)
     {
-// #ifdef COMPILE_LG290P
-//         gnss = (GNSS *)new GNSS_LG290P();
-// #else  // COMPILE_LGP290P
-//         gnss = (GNSS *)new GNSS_None();
-//         systemPrintln("<<<<<<<<<< !!!!!!!!!! LG290P NOT COMPILED !!!!!!!!!! >>>>>>>>>>");
-// #endif // COMPILE_LGP290P
-
         present.brand = BRAND_SPARKPNT;
         present.psram_2mb = true;
 
@@ -791,7 +784,8 @@ void beginBoard()
 
         // TODO Change to MFi present.encryption_atecc608a = true;
 
-        present.button_powerHigh = true; // Button is pressed when high
+        present.button_powerLow = true; // Button is pressed when high
+        //present.button_mode = true;  //TODO remove comment. This won't be available until v1.1 of hardware
         present.beeper = true;
         present.gnss_to_uart = true;
         present.needsExternalPpl = true; // Uses the PointPerfect Library
@@ -802,9 +796,10 @@ void beginBoard()
         present.dynamicModel = true;
 
         present.gpioExpanderSwitches = true;
+        present.microSd = true;
 
         present.display_i2c0 = true;
-        //present.i2c0BusSpeed_400 = true; // Run display bus at higher speed
+        // present.i2c0BusSpeed_400 = true; // Run display bus at higher speed
         present.display_type = DISPLAY_128x64_INVERTED;
         present.tiltPossible = true;
 
@@ -814,7 +809,8 @@ void beginBoard()
         pin_GnssUart_RX = 26;
         pin_GnssUart_TX = 27;
 
-        pin_powerButton = 34;
+        pin_powerSenseAndControl = 34;
+        //pin_modeButton = 25; //TODO remove comment. This won't be available until v1.1 of hardware
 
         pin_IMU_RX = 14; // ESP32 UART2
         pin_IMU_TX = 17;
@@ -826,6 +822,12 @@ void beginBoard()
 
         pin_beeper = 33;
 
+        pin_microSD_CS = 22;
+        pin_microSD_CardDetect = 39;
+        // D18 : SPI SCK --> microSD card
+        // D19 : SPI POCI --> microSD card
+        // D21 : SPI PICO --> microSD card
+
         pin_gpioExpanderInterrupt = 2; // Not used since all GPIO expanded pins are outputs
 
         DMW_if systemPrintf("pin_bluetoothStatusLED: %d\r\n", pin_bluetoothStatusLED);
@@ -834,6 +836,12 @@ void beginBoard()
         DMW_if systemPrintf("pin_gnssStatusLED: %d\r\n", pin_gnssStatusLED);
         pinMode(pin_gnssStatusLED, OUTPUT);
 
+        pinMode(pin_microSD_CardDetect, INPUT_PULLUP);
+
+        // Disable the microSD card
+        pinMode(pin_microSD_CS, OUTPUT);
+        sdDeselectCard();
+
         // Turn on Bluetooth, GNSS, and Battery LEDs to indicate power on
         bluetoothLedOn();
         gnssStatusLedOn();
@@ -841,7 +849,7 @@ void beginBoard()
         pinMode(pin_beeper, OUTPUT);
         beepOff();
 
-        pinMode(pin_powerButton, INPUT);
+        pinMode(pin_powerSenseAndControl, INPUT);
 
         pinMode(pin_powerAdapterDetect, INPUT); // Has 10k pullup
 
@@ -1161,10 +1169,8 @@ void pinGnssUartTask(void *pvParameters)
     }
     else if (productVariant == RTK_FLEX)
     {
-        Serial.println("Starting UART for flex");
         if (settings.detectedGnssReceiver == GNSS_RECEIVER_LG290P)
         {
-            Serial.println("Starting UART for LG290P");
             // LG290P communicates at 460800bps.
             platformGnssCommunicationRate = 115200 * 4;
         }
@@ -1447,7 +1453,7 @@ void beginButtons()
             userBtn = new Button(pin_powerButton, 25, true,
                                  false); // Turn off inversion. Needed for buttons that are high when pressed.
 
-        // EVK mode button
+        // EVK/Flex user button (Mode or Fn)
         if (present.button_mode == true)
             userBtn = new Button(pin_modeButton);
 
