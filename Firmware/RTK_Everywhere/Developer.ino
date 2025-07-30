@@ -171,6 +171,8 @@ bool webServerStart(int httpPort = 80)
 bool parseIncomingSettings() {return false;}
 void sendStringToWebsocket(const char* stringToSend) {}
 void stopWebServer() {}
+bool webServerSettingsCheckAndFree()    {return false;}
+void webServerSettingsClone()   {}
 void webServerStop() {}
 void webServerUpdate()  {}
 void webServerVerifyTables() {}
