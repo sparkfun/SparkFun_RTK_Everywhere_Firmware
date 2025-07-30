@@ -149,6 +149,10 @@ void beginDisplay(TwoWire *i2cBus)
     if (present.display_type == DISPLAY_128x64 || present.display_type == DISPLAY_128x64_INVERTED)
     {
         i2cAddress = kOLEDMicroDefaultAddress;
+
+        if (productVariant == RTK_FLEX)
+            i2cAddress = 0x3C;
+
         if (oled == nullptr)
             oled = new QwiicCustomOLED;
         if (!oled)
