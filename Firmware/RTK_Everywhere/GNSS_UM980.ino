@@ -519,7 +519,7 @@ bool GNSS_UM980::enableNMEA()
 
             // If we are using IP based corrections, we need to send local data to the PPL
             // The PPL requires being fed GPGGA/ZDA, and RTCM1019/1020/1042/1046
-            if (pointPerfectIsEnabled())
+            if (pointPerfectServiceUsesKeys())
             {
                 // Mark PPL required messages as enabled if rate > 0
                 if (settings.um980MessageRatesNMEA[messageNumber] > 0)
@@ -533,7 +533,7 @@ bool GNSS_UM980::enableNMEA()
         }
     }
 
-    if (pointPerfectIsEnabled())
+    if (pointPerfectServiceUsesKeys())
     {
         // Force on any messages that are needed for PPL
         if (gpggaEnabled == false)
@@ -599,7 +599,7 @@ bool GNSS_UM980::enableRTCMRover()
 
             // If we are using IP based corrections, we need to send local data to the PPL
             // The PPL requires being fed GPGGA/ZDA, and RTCM1019/1020/1042/1046
-            if (pointPerfectIsEnabled())
+            if (pointPerfectServiceUsesKeys())
             {
                 // Mark PPL required messages as enabled if rate > 0
                 if (settings.um980MessageRatesRTCMRover[messageNumber] > 0)
@@ -617,7 +617,7 @@ bool GNSS_UM980::enableRTCMRover()
         }
     }
 
-    if (pointPerfectIsEnabled())
+    if (pointPerfectServiceUsesKeys())
     {
         // Force on any messages that are needed for PPL
         if (rtcm1019Enabled == false)

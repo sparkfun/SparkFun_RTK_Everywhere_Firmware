@@ -670,7 +670,7 @@ bool GNSS_LG290P::enableNMEA()
 
                 // If we are using IP based corrections, we need to send local data to the PPL
                 // The PPL requires being fed GPGGA/ZDA, and RTCM1019/1020/1042/1046
-                if (pointPerfectIsEnabled())
+                if (pointPerfectServiceUsesKeys())
                 {
                     // Mark PPL required messages as enabled if rate > 0
                     if (settings.lg290pMessageRatesNMEA[messageNumber] > 0)
@@ -693,7 +693,7 @@ bool GNSS_LG290P::enableNMEA()
             break; // Don't step through portNumbers
     }
 
-    if (pointPerfectIsEnabled())
+    if (pointPerfectServiceUsesKeys())
     {
         // Force on any messages that are needed for PPL
         // If firmware is 4 or higher, use setMessageRateOnPort, otherwise setMessageRate
@@ -873,7 +873,7 @@ bool GNSS_LG290P::enableRTCMRover()
 
                 // If we are using IP based corrections, we need to send local data to the PPL
                 // The PPL requires being fed GPGGA/ZDA, and RTCM1019/1020/1042/1046
-                if (pointPerfectIsEnabled())
+                if (pointPerfectServiceUsesKeys())
                 {
                     // Mark PPL required messages as enabled if rate > 0
                     if (settings.lg290pMessageRatesRTCMRover[messageNumber] > 0)
@@ -898,7 +898,7 @@ bool GNSS_LG290P::enableRTCMRover()
             break; // Don't step through portNumbers
     }
 
-    if (pointPerfectIsEnabled())
+    if (pointPerfectServiceUsesKeys())
     {
         enableMSM = true; // Force enable MSM output
 
