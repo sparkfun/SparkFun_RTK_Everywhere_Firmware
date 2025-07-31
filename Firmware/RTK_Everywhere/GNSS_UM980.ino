@@ -1370,18 +1370,19 @@ void GNSS_UM980::menuMessages()
             if (incoming == 12)
                 reportRate = 1;
 
-            setNmeaMessageRates(0); // Turn off all NMEA messages
-            setNmeaMessageRateByName("GPGGA", reportRate);
+            // Reset NMEA rates to defaults
+            for (int x = 0; x < MAX_UM980_NMEA_MSG; x++)
+                settings.um980MessageRatesNMEA[x] = umMessagesNMEA[x].msgDefaultRate;
 
             setRtcmRoverMessageRates(0); // Turn off all RTCM messages
-            setRtcmRoverMessageRateByName("RTCM31019", reportRate);
-            setRtcmRoverMessageRateByName("RTCM31020", reportRate);
-            setRtcmRoverMessageRateByName("RTCM31042", reportRate);
-            setRtcmRoverMessageRateByName("RTCM31046", reportRate);
-            setRtcmRoverMessageRateByName("RTCM31074", reportRate);
-            setRtcmRoverMessageRateByName("RTCM31084", reportRate);
-            setRtcmRoverMessageRateByName("RTCM31094", reportRate);
-            setRtcmRoverMessageRateByName("RTCM31124", reportRate);
+            setRtcmRoverMessageRateByName("RTCM1019", reportRate);
+            setRtcmRoverMessageRateByName("RTCM1020", reportRate);
+            setRtcmRoverMessageRateByName("RTCM1042", reportRate);
+            setRtcmRoverMessageRateByName("RTCM1046", reportRate);
+            setRtcmRoverMessageRateByName("RTCM1074", reportRate);
+            setRtcmRoverMessageRateByName("RTCM1084", reportRate);
+            setRtcmRoverMessageRateByName("RTCM1094", reportRate);
+            setRtcmRoverMessageRateByName("RTCM1124", reportRate);
 
             if (incoming == 12)
             {
