@@ -39,7 +39,7 @@ void GNSS_LG290P::baseRtcmLowDataRate()
         settings.lg290pMessageRatesRTCMBase[x] = 0;
 
     settings.lg290pMessageRatesRTCMBase[getRtcmMessageNumberByName("RTCM3-1005")] =
-        10; // 1005 0.1Hz - Exclude antenna height
+        10;                                                                            // 1005 0.1Hz - Exclude antenna height
     settings.lg290pMessageRatesRTCMBase[getRtcmMessageNumberByName("RTCM3-107X")] = 2; // 1074 0.5Hz
     settings.lg290pMessageRatesRTCMBase[getRtcmMessageNumberByName("RTCM3-108X")] = 2; // 1084 0.5Hz
     settings.lg290pMessageRatesRTCMBase[getRtcmMessageNumberByName("RTCM3-109X")] = 2; // 1094 0.5Hz
@@ -726,7 +726,7 @@ bool GNSS_LG290P::enableNMEA()
 bool GNSS_LG290P::enableRTCMBase()
 {
     bool response = true;
-    bool enableMSM = false; // Goes true if we need to enable MSM output reporting
+    bool enableRTCM = false; // Goes true if we need to enable RTCM output reporting
 
     int portNumber = 1;
 
@@ -778,9 +778,9 @@ bool GNSS_LG290P::enableRTCMBase()
                                      lgMessagesRTCM[messageNumber].msgTextName);
                 }
 
-                // If any message is enabled, enable MSM output
+                // If any message is enabled, enable RTCM output
                 if (settings.lg290pMessageRatesRTCMBase[messageNumber] > 0)
-                    enableMSM = true;
+                    enableRTCM = true;
             }
         }
 
@@ -791,14 +791,14 @@ bool GNSS_LG290P::enableRTCMBase()
             break; // Don't step through portNumbers
     }
 
-    if (enableMSM == true)
+    if (enableRTCM == true)
     {
         if (settings.debugGnss)
-            systemPrintln("Enabling Base RTCM MSM output");
+            systemPrintln("Enabling Base RTCM output");
 
         // PQTMCFGRTCM fails to respond with OK over UART2 of LG290P, so don't look for it
         _lg290p->sendOkCommand(
-            "PQTMCFGRTCM,W,7,0,-90,07,06,2,1"); // Enable MSM7, output regular intervals, interval (seconds)
+            "PQTMCFGRTCM,W,4,0,-90,07,06,2,1"); // Enable MSM4, output regular intervals, interval (seconds)
     }
 
     return (response);
@@ -814,14 +814,29 @@ bool GNSS_LG290P::enableRTCMRover()
     bool rtcm1020Enabled = false;
     bool rtcm1042Enabled = false;
     bool rtcm1046Enabled = false;
-    bool enableMSM = false; // Goes true if we need to enable MSM output reporting
+    bool enableRTCM = false; // Goes true if we need to enable RTCM output reporting
 
     int portNumber = 1;
+
+    int minimumRtcmRate = 1000;
 
     while (portNumber < 4)
     {
         for (int messageNumber = 0; messageNumber < MAX_LG290P_RTCM_MSG; messageNumber++)
         {
+            // 1019 to 1046 can only be set to 1 fix per report
+            // 107x to 112x can be set to 1-1200 fixes between reports
+            // So we set all RTCM to 1, and set PQTMCFGRTCM to the lowest value found
+
+            // Capture the message with the lowest rate
+            if (settings.lg290pMessageRatesRTCMRover[messageNumber] > 0 && settings.lg290pMessageRatesRTCMRover[messageNumber] < minimumRtcmRate)
+                minimumRtcmRate = settings.lg290pMessageRatesRTCMRover[messageNumber];
+
+            // Force all RTCM messages to 1 or 0. See above for reasoning.
+            int rate = settings.lg290pMessageRatesRTCMRover[messageNumber];
+            if (rate > 1)
+                rate = 1;
+
             // Check if this RTCM message is supported by the current LG290P firmware
             if (lg290pFirmwareVersion >= lgMessagesRTCM[messageNumber].firmwareVersionSupported)
             {
@@ -836,12 +851,12 @@ bool GNSS_LG290P::enableRTCMRover()
                     {
                         // If any one of the commands fails, report failure overall
                         response &= _lg290p->setMessageRateOnPort(lgMessagesRTCM[messageNumber].msgTextName,
-                                                                  settings.lg290pMessageRatesRTCMRover[messageNumber],
+                                                                  rate,
                                                                   portNumber);
                     }
                     else
                         response &= _lg290p->setMessageRate(lgMessagesRTCM[messageNumber].msgTextName,
-                                                            settings.lg290pMessageRatesRTCMRover[messageNumber]);
+                                                            rate);
 
                     if (response == false && settings.debugGnss)
                         systemPrintf("Enable RTCM failed at messageNumber %d %s\r\n", messageNumber,
@@ -850,6 +865,8 @@ bool GNSS_LG290P::enableRTCMRover()
                 else
                 {
                     // X found. This is RTCM-1??X message. Assign 'offset' of 0
+
+                    // The rate of these type of messages can be 1 to 1200, so we allow the full rate
 
                     // If firmware is 4 or higher, use setMessageRateOnPort, otherwise setMessageRate
                     if (lg290pFirmwareVersion >= 4)
@@ -860,16 +877,17 @@ bool GNSS_LG290P::enableRTCMRover()
                     }
                     else
                         response &= _lg290p->setMessageRate(lgMessagesRTCM[messageNumber].msgTextName,
-                                                            settings.lg290pMessageRatesRTCMRover[messageNumber], 0);
+                                                            settings.lg290pMessageRatesRTCMRover[messageNumber],
+                                                            0);
 
                     if (response == false && settings.debugGnss)
                         systemPrintf("Enable RTCM failed at messageNumber %d %s\r\n", messageNumber,
                                      lgMessagesRTCM[messageNumber].msgTextName);
                 }
 
-                // If any message is enabled, enable MSM output
+                // If any message is enabled, enable RTCM output
                 if (settings.lg290pMessageRatesRTCMRover[messageNumber] > 0)
-                    enableMSM = true;
+                    enableRTCM = true;
 
                 // If we are using IP based corrections, we need to send local data to the PPL
                 // The PPL requires being fed GPGGA/ZDA, and RTCM1019/1020/1042/1046
@@ -900,7 +918,7 @@ bool GNSS_LG290P::enableRTCMRover()
 
     if (pointPerfectServiceUsesKeys())
     {
-        enableMSM = true; // Force enable MSM output
+        enableRTCM = true; // Force enable RTCM output
 
         // Force on any messages that are needed for PPL
         if (rtcm1019Enabled == false)
@@ -931,14 +949,22 @@ bool GNSS_LG290P::enableRTCMRover()
         }
     }
 
-    if (enableMSM == true)
+    // If any RTCM message is enabled, send CFGRTCM
+    // PQTMCFGRTCM only controls RTCM-1005 type messages, not RTCM-107x MSM messages (confusingly)
+    if (enableRTCM == true)
     {
         if (settings.debugCorrections)
-            systemPrintln("Enabling Rover RTCM MSM output");
+            systemPrintf("Enabling Rover RTCM MSM output with rate of %d\r\n", minimumRtcmRate);
+
+        // Enable MSM4, output at a rate equal to the minimum RTCM rate (EPH Mode = 2)
+        // PQTMCFGRTCM, W, <MSM_Type>, <MSM_Mode>, <MSM_ElevThd>, <Reserved>, <Reserved>, <EPH_Mode>, <EPH_Interval>
+        // We could set the MSM_ElevThd to (settings.minElev * -1) but there may be unintended consequences
+
+        char msmCommand[40] = {0};
+        snprintf(msmCommand, sizeof(msmCommand), "PQTMCFGRTCM,W,4,0,-90,07,06,2,%d", minimumRtcmRate);
 
         // PQTMCFGRTCM fails to respond with OK over UART2 of LG290P, so don't look for it
-        _lg290p->sendOkCommand(
-            "PQTMCFGRTCM,W,7,0,-90,07,06,2,1"); // Enable MSM7, output regular intervals, interval (seconds)
+        _lg290p->sendOkCommand(msmCommand);
     }
 
     return (response);
@@ -1267,15 +1293,17 @@ uint8_t GNSS_LG290P::getLoggingType()
         // GST is not available/default
         if (getActiveNmeaMessageCount() == 6 && getActiveRtcmMessageCount() == 0)
             logType = LOGGING_STANDARD;
+        else if (getActiveNmeaMessageCount() == 1 && getActiveRtcmMessageCount() == 8)
+            logType = LOGGING_PPP;
     }
     else
     {
         // GST *is* available/default
         if (getActiveNmeaMessageCount() == 7 && getActiveRtcmMessageCount() == 0)
             logType = LOGGING_STANDARD;
+        else if (getActiveNmeaMessageCount() == 1 && getActiveRtcmMessageCount() == 8)
+            logType = LOGGING_PPP;
     }
-
-    // What RTCM messages need to be logged to reach LOGGING_PPP?
 
     return ((uint8_t)logType);
 }
@@ -1742,28 +1770,33 @@ void GNSS_LG290P::menuMessages()
         {
             // setMessageRate() on the LG290P sets the output of a message
             // 'Output once every N position fixes'
+            // Slowest update rate of LG290P is an update per second, (0.5Hz not allowed)
+
+            int rtcmReportRate = 1;
+            if (incoming == 11)
+                rtcmReportRate = 30;
 
             setNmeaMessageRates(0); // Turn off all NMEA messages
             setNmeaMessageRateByName("GGA", 1);
 
             setRtcmRoverMessageRates(0); // Turn off all RTCM messages
-            setRtcmRoverMessageRateByName("RTCM3-1019", 1);
-            setRtcmRoverMessageRateByName("RTCM3-1020", 1);
-            setRtcmRoverMessageRateByName("RTCM3-1042", 1);
-            setRtcmRoverMessageRateByName("RTCM3-1046", 1);
-            setRtcmRoverMessageRateByName("RTCM3-107X", 1);
-            setRtcmRoverMessageRateByName("RTCM3-108X", 1);
-            setRtcmRoverMessageRateByName("RTCM3-109X", 1);
-            setRtcmRoverMessageRateByName("RTCM3-112X", 1);
+            setRtcmRoverMessageRateByName("RTCM3-1019", rtcmReportRate);
+            setRtcmRoverMessageRateByName("RTCM3-1020", rtcmReportRate);
+            setRtcmRoverMessageRateByName("RTCM3-1042", rtcmReportRate);
+            setRtcmRoverMessageRateByName("RTCM3-1046", rtcmReportRate);
+            setRtcmRoverMessageRateByName("RTCM3-107X", rtcmReportRate);
+            setRtcmRoverMessageRateByName("RTCM3-108X", rtcmReportRate);
+            setRtcmRoverMessageRateByName("RTCM3-109X", rtcmReportRate);
+            setRtcmRoverMessageRateByName("RTCM3-112X", rtcmReportRate);
+
+            setRate(1); // Go to 1 Hz
 
             if (incoming == 12)
             {
-                setRate(1); // Go to 1 second between desired solution reports
                 systemPrintln("Reset to High-rate PPP Logging Defaults (NMEAx1 / RTCMx8 - 1Hz)");
             }
             else
             {
-                setRate(30); // Go to 30 seconds between desired solution reports
                 systemPrintln("Reset to PPP Logging Defaults (NMEAx1 / RTCMx8 - 30 second decimation)");
             }
         }
