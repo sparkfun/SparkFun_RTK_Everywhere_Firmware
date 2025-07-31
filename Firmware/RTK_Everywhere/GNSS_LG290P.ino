@@ -1731,8 +1731,8 @@ void GNSS_LG290P::menuMessages()
         systemPrintln("4) Set PQTM Messages");
 
         systemPrintln("10) Reset to Defaults");
-        systemPrintln("11) Reset to PPP Logging (NMEAx1 / RTCMx8 - 30 second decimation)");
-        systemPrintln("12) Reset to High-rate PPP Logging (NMEAx1 / RTCMx8 - 1Hz)");
+        systemPrintln("11) Reset to PPP Logging (NMEAx7 / RTCMx8 - 30 second decimation)");
+        systemPrintln("12) Reset to High-rate PPP Logging (NMEAx7 / RTCMx8 - 1Hz)");
 
         systemPrintln("x) Exit");
 

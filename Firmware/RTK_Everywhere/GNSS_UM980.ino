@@ -1373,6 +1373,7 @@ void GNSS_UM980::menuMessages()
             // Reset NMEA rates to defaults
             for (int x = 0; x < MAX_UM980_NMEA_MSG; x++)
                 settings.um980MessageRatesNMEA[x] = umMessagesNMEA[x].msgDefaultRate;
+            setNmeaMessageRateByName("GPGSV", 5); //Limit GSV updates to 1 every 5 seconds
 
             setRtcmRoverMessageRates(0); // Turn off all RTCM messages
             setRtcmRoverMessageRateByName("RTCM1019", reportRate);
@@ -1386,11 +1387,11 @@ void GNSS_UM980::menuMessages()
 
             if (incoming == 12)
             {
-                systemPrintln("Reset to High-rate PPP Logging (NMEAx1 / RTCMx8 - 1Hz)");
+                systemPrintln("Reset to High-rate PPP Logging (NMEAx5 / RTCMx8 - 1Hz)");
             }
             else
             {
-                systemPrintln("Reset to PPP Logging (NMEAx1 / RTCMx8 - 30 second decimation)");
+                systemPrintln("Reset to PPP Logging (NMEAx5 / RTCMx8 - 30 second decimation)");
             }
         }
 
