@@ -1293,7 +1293,7 @@ uint8_t GNSS_LG290P::getLoggingType()
         // GST is not available/default
         if (getActiveNmeaMessageCount() == 6 && getActiveRtcmMessageCount() == 0)
             logType = LOGGING_STANDARD;
-        else if (getActiveNmeaMessageCount() == 1 && getActiveRtcmMessageCount() == 8)
+        else if (getActiveNmeaMessageCount() == 6 && getActiveRtcmMessageCount() == 8)
             logType = LOGGING_PPP;
     }
     else
@@ -1301,7 +1301,7 @@ uint8_t GNSS_LG290P::getLoggingType()
         // GST *is* available/default
         if (getActiveNmeaMessageCount() == 7 && getActiveRtcmMessageCount() == 0)
             logType = LOGGING_STANDARD;
-        else if (getActiveNmeaMessageCount() == 1 && getActiveRtcmMessageCount() == 8)
+        else if (getActiveNmeaMessageCount() == 7 && getActiveRtcmMessageCount() == 8)
             logType = LOGGING_PPP;
     }
 
@@ -1776,8 +1776,9 @@ void GNSS_LG290P::menuMessages()
             if (incoming == 11)
                 rtcmReportRate = 30;
 
-            setNmeaMessageRates(0); // Turn off all NMEA messages
-            setNmeaMessageRateByName("GGA", 1);
+            // Reset NMEA rates to defaults
+            for (int x = 0; x < MAX_LG290P_NMEA_MSG; x++)
+                settings.lg290pMessageRatesNMEA[x] = lgMessagesNMEA[x].msgDefaultRate;
 
             setRtcmRoverMessageRates(0); // Turn off all RTCM messages
             setRtcmRoverMessageRateByName("RTCM3-1019", rtcmReportRate);
