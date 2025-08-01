@@ -754,7 +754,7 @@ void processUart1Message(SEMP_PARSE_STATE *parse, uint16_t type)
     // If BaseCasterOverride is enabled, remove everything but RTCM from the circular buffer
     // to avoid saturating the downstream radio link that is consuming over a TCP (NTRIP Caster) connection
     // Remove NMEA, etc after passing to the GNSS receiver library so that we still have SIV and other stats available
-    if (settings.baseCasterOverride == true)
+    if (tcpServerInCasterMode)
     {
         if (type != RTK_RTCM_PARSER_INDEX)
         {
