@@ -169,7 +169,7 @@ jobs:
           mv RTK_Everywhere.ino.bin ${{ env.ARTIFACT }}
 
       - name: Upload artifact directory to action - avoid double-zip
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: ${{ env.ARTIFACT }}
           path: Firmware/RTK_Everywhere/build/esp32.esp32.esp32/${{ env.ARTIFACT }}
