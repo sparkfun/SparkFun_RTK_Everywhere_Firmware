@@ -79,7 +79,7 @@ void updateAuthCoPro()
     // bluetoothStart is called during STATE_ROVER_NOT_STARTED and STATE_BASE_NOT_STARTED
     // appleAccessory.update() will use &transportConnected to learn if BT SPP is running
 
-    if (online.authenticationCoPro) // Coprocessor muust be present and online
+    if (online.authenticationCoPro) // Coprocessor must be present and online
     {
         if (settings.bluetoothRadioType == BLUETOOTH_RADIO_SPP_ACCESSORY_MODE)
         {
