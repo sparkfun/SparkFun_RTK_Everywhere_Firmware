@@ -39,7 +39,7 @@ void GNSS_LG290P::baseRtcmLowDataRate()
         settings.lg290pMessageRatesRTCMBase[x] = 0;
 
     settings.lg290pMessageRatesRTCMBase[getRtcmMessageNumberByName("RTCM3-1005")] =
-        10; // 1005 0.1Hz - Exclude antenna height
+        10;                                                                            // 1005 0.1Hz - Exclude antenna height
     settings.lg290pMessageRatesRTCMBase[getRtcmMessageNumberByName("RTCM3-107X")] = 2; // 1074 0.5Hz
     settings.lg290pMessageRatesRTCMBase[getRtcmMessageNumberByName("RTCM3-108X")] = 2; // 1084 0.5Hz
     settings.lg290pMessageRatesRTCMBase[getRtcmMessageNumberByName("RTCM3-109X")] = 2; // 1094 0.5Hz
@@ -2397,9 +2397,15 @@ bool lg290pIsPresent()
 
     LG290P lg290p;
 
+    if (settings.debugGnss)
+    {
+        lg290p.enableDebugging();       // Print all debug to Serial
+        lg290p.enablePrintRxMessages(); // Print incoming processed messages from SEMP
+    }
+    
     if (lg290p.begin(serialTestGNSS) == true) // Give the serial port over to the library
     {
-         if (settings.debugGnss)
+        if (settings.debugGnss)
             systemPrintln("LG290P detected");
         serialTestGNSS.end();
         return true;
