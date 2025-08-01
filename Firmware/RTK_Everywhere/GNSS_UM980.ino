@@ -519,7 +519,7 @@ bool GNSS_UM980::enableNMEA()
 
             // If we are using IP based corrections, we need to send local data to the PPL
             // The PPL requires being fed GPGGA/ZDA, and RTCM1019/1020/1042/1046
-            if (pointPerfectIsEnabled())
+            if (pointPerfectServiceUsesKeys())
             {
                 // Mark PPL required messages as enabled if rate > 0
                 if (settings.um980MessageRatesNMEA[messageNumber] > 0)
@@ -533,7 +533,7 @@ bool GNSS_UM980::enableNMEA()
         }
     }
 
-    if (pointPerfectIsEnabled())
+    if (pointPerfectServiceUsesKeys())
     {
         // Force on any messages that are needed for PPL
         if (gpggaEnabled == false)
@@ -599,7 +599,7 @@ bool GNSS_UM980::enableRTCMRover()
 
             // If we are using IP based corrections, we need to send local data to the PPL
             // The PPL requires being fed GPGGA/ZDA, and RTCM1019/1020/1042/1046
-            if (pointPerfectIsEnabled())
+            if (pointPerfectServiceUsesKeys())
             {
                 // Mark PPL required messages as enabled if rate > 0
                 if (settings.um980MessageRatesRTCMRover[messageNumber] > 0)
@@ -617,7 +617,7 @@ bool GNSS_UM980::enableRTCMRover()
         }
     }
 
-    if (pointPerfectIsEnabled())
+    if (pointPerfectServiceUsesKeys())
     {
         // Force on any messages that are needed for PPL
         if (rtcm1019Enabled == false)
@@ -1331,6 +1331,8 @@ void GNSS_UM980::menuMessages()
         systemPrintln("3) Set Base RTCM Messages");
 
         systemPrintln("10) Reset to Defaults");
+        systemPrintln("11) Reset to PPP Logging (NMEAx1 / RTCMx8 - 30 second decimation)");
+        systemPrintln("12) Reset to High-rate PPP Logging (NMEAx1 / RTCMx8 - 1Hz)");
 
         systemPrintln("x) Exit");
 
@@ -1357,6 +1359,40 @@ void GNSS_UM980::menuMessages()
                 settings.um980MessageRatesRTCMBase[x] = umMessagesRTCM[x].msgDefaultRate;
 
             systemPrintln("Reset to Defaults");
+        }
+        else if (incoming == 11 || incoming == 12)
+        {
+            // setMessageRate() on the UM980 sets the seconds between reported messages
+            // 1, 0.5, 0.2, 0.1 corresponds to 1Hz, 2Hz, 5Hz, 10Hz respectively.
+            // Ex: RTCM1005 0.5 <- 2 times per second
+
+            int reportRate = 30; // Default to 30 seconds between reports
+            if (incoming == 12)
+                reportRate = 1;
+
+            // Reset NMEA rates to defaults
+            for (int x = 0; x < MAX_UM980_NMEA_MSG; x++)
+                settings.um980MessageRatesNMEA[x] = umMessagesNMEA[x].msgDefaultRate;
+            setNmeaMessageRateByName("GPGSV", 5); //Limit GSV updates to 1 every 5 seconds
+
+            setRtcmRoverMessageRates(0); // Turn off all RTCM messages
+            setRtcmRoverMessageRateByName("RTCM1019", reportRate);
+            setRtcmRoverMessageRateByName("RTCM1020", reportRate);
+            setRtcmRoverMessageRateByName("RTCM1042", reportRate);
+            setRtcmRoverMessageRateByName("RTCM1046", reportRate);
+            setRtcmRoverMessageRateByName("RTCM1074", reportRate);
+            setRtcmRoverMessageRateByName("RTCM1084", reportRate);
+            setRtcmRoverMessageRateByName("RTCM1094", reportRate);
+            setRtcmRoverMessageRateByName("RTCM1124", reportRate);
+
+            if (incoming == 12)
+            {
+                systemPrintln("Reset to High-rate PPP Logging (NMEAx5 / RTCMx8 - 1Hz)");
+            }
+            else
+            {
+                systemPrintln("Reset to PPP Logging (NMEAx5 / RTCMx8 - 30 second decimation)");
+            }
         }
 
         else if (incoming == INPUT_RESPONSE_GETNUMBER_EXIT)
@@ -1927,7 +1963,6 @@ uint32_t GNSS_UM980::baudGetMaximum()
     return (um980AllowedRates[um980AllowedRatesCount - 1]);
 }
 
-
 //----------------------------------------
 // If we have received serial data from the UM980 outside of the Unicore library (ie, from processUart1Message task)
 // we can pass data back into the Unicore library to allow it to update its own variables
@@ -1953,6 +1988,50 @@ void GNSS_UM980::unicoreHandler(uint8_t *buffer, int length)
 void GNSS_UM980::update()
 {
     // We don't check serial data here; the gnssReadTask takes care of serial consumption
+}
+
+// Set all NMEA message report rates to one value
+void GNSS_UM980::setNmeaMessageRates(uint8_t msgRate)
+{
+    for (int x = 0; x < MAX_UM980_NMEA_MSG; x++)
+        settings.um980MessageRatesNMEA[x] = msgRate;
+}
+
+// Set all RTCM Rover message report rates to one value
+void GNSS_UM980::setRtcmRoverMessageRates(uint8_t msgRate)
+{
+    for (int x = 0; x < MAX_UM980_RTCM_MSG; x++)
+        settings.um980MessageRatesRTCMRover[x] = msgRate;
+}
+
+// Given the name of a message, find it, and set the rate
+bool GNSS_UM980::setNmeaMessageRateByName(const char *msgName, uint8_t msgRate)
+{
+    for (int x = 0; x < MAX_UM980_NMEA_MSG; x++)
+    {
+        if (strcmp(umMessagesNMEA[x].msgTextName, msgName) == 0)
+        {
+            settings.um980MessageRatesNMEA[x] = msgRate;
+            return (true);
+        }
+    }
+    systemPrintf("setNmeaMessageRateByName: %s not found\r\n", msgName);
+    return (false);
+}
+
+// Given the name of a message, find it, and set the rate
+bool GNSS_UM980::setRtcmRoverMessageRateByName(const char *msgName, uint8_t msgRate)
+{
+    for (int x = 0; x < MAX_UM980_RTCM_MSG; x++)
+    {
+        if (strcmp(umMessagesRTCM[x].msgTextName, msgName) == 0)
+        {
+            settings.um980MessageRatesRTCMRover[x] = msgRate;
+            return (true);
+        }
+    }
+    systemPrintf("setRtcmRoverMessageRateByName: %s not found\r\n", msgName);
+    return (false);
 }
 
 #endif // COMPILE_UM980
