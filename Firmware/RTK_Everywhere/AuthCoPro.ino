@@ -2,9 +2,9 @@
 
 const char *manufacturer = "SparkFun Electronics";
 const char *hardwareVersion = "1.0.0";
-const char *EAProtocol = "com.bad-elf.gps"; // Emulate the Bad Elf GPS Pro. Thank you Bad Elf
+const char *EAProtocol = "com.sparkfun.rtk";
 const char *BTTransportName = "com.sparkfun.bt";
-const char *LIComponentName = "com.sparkfun.rtk";
+const char *LIComponentName = "com.sparkfun.li";
 const char *productPlanUID = "0123456789ABCDEF"; // This comes from the MFi Portal, when you register the product with Apple
 
 extern BTSerialInterface *bluetoothSerialSpp;
