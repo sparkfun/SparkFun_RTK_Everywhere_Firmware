@@ -111,6 +111,18 @@ class GNSS_LG290P : GNSS
     // Set the minimum satellite signal level for navigation.
     bool setMinCnoRadio(uint8_t cnoValue);
 
+    // Set all NMEA message report rates to one value
+    void setNmeaMessageRates(uint8_t msgRate);
+
+    // Given the name of a message, find it, and set the rate
+    bool setNmeaMessageRateByName(const char *msgName, uint8_t msgRate);
+
+    // Set all RTCM Rover message report rates to one value
+    void setRtcmRoverMessageRates(uint8_t msgRate);
+
+    // Given the name of a message, find it, and set the rate
+    bool setRtcmRoverMessageRateByName(const char *msgName, uint8_t msgRate);
+
   public:
     // Constructor
     GNSS_LG290P() : GNSS()
