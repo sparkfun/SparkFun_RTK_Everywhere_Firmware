@@ -420,8 +420,6 @@ public:
   //   Returns true when the configuration was saved and false upon failure
   bool saveConfiguration();
 
-  bool setBaudrate(uint32_t baudRate);
-
   bool setBaudRate(uint8_t uartNumber, uint32_t baudRate);
 
   bool setCommBaudrate(uint32_t baud);

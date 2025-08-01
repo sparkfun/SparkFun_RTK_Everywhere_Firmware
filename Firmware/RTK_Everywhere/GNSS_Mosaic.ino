@@ -2199,18 +2199,6 @@ bool GNSS_MOSAIC::sendWithResponse(String message, const char *reply, unsigned l
 }
 
 //----------------------------------------
-// Set the baud rate on the GNSS port that interfaces between the ESP32 and the GNSS
-// This just sets the GNSS side
-// Used during Bluetooth testing
-// Inputs:
-//   baudRate: The desired baudrate
-//----------------------------------------
-bool GNSS_MOSAIC::setBaudrate(uint32_t baudRate)
-{
-    return setBaudRateCOM(1, baudRate);
-}
-
-//----------------------------------------
 // Set the baud rate of mosaic-X5 COM1
 // This is used during the Bluetooth test
 // Inputs:

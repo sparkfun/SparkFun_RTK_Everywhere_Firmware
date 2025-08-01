@@ -1145,12 +1145,6 @@ bool GNSS_LG290P::setBaudRate(uint8_t uartNumber, uint32_t baudRate)
     return (_lg290p->setPortBaudrate(uartNumber, baudRate, 250));
 }
 
-// Used only for Bluetooth test
-bool GNSS_LG290P::setBaudrate(uint32_t baudRate)
-{
-    return (setBaudRate(2, baudRate));
-}
-
 //----------------------------------------
 // Return the baud rate of port nicknamed DATA
 //----------------------------------------

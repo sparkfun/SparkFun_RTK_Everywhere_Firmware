@@ -2025,19 +2025,6 @@ bool GNSS_ZED::saveConfiguration()
 }
 
 //----------------------------------------
-// Set the baud rate on the GNSS port that interfaces between the ESP32 and the GNSS
-// This just sets the GNSS side
-// Used during Bluetooth testing
-//----------------------------------------
-bool GNSS_ZED::setBaudrate(uint32_t baudRate)
-{
-    if (online.gnss)
-        return _zed->setVal32(UBLOX_CFG_UART1_BAUDRATE,
-                              (115200 * 2), VAL_LAYER_ALL); // Defaults to 230400 to maximize message output support
-    return false;
-}
-
-//----------------------------------------
 // Enable all the valid constellations and bands for this platform
 // Band support varies between platforms and firmware versions
 // We open/close a complete set of 19 messages

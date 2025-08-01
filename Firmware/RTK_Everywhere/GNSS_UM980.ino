@@ -1561,19 +1561,6 @@ bool GNSS_UM980::saveConfiguration()
 
 //----------------------------------------
 // Set the baud rate on the GNSS port that interfaces between the ESP32 and the GNSS
-// This just sets the GNSS side
-// Used during Bluetooth testing
-//----------------------------------------
-bool GNSS_UM980::setBaudrate(uint32_t baudRate)
-{
-    if (online.gnss)
-        // Set the baud rate on COM3 of the UM980
-        return setBaudRateCOM3(baudRate);
-    return false;
-}
-
-//----------------------------------------
-// Set the baud rate on the GNSS port that interfaces between the ESP32 and the GNSS
 //----------------------------------------
 bool GNSS_UM980::setBaudRateCOM3(uint32_t baudRate)
 {
