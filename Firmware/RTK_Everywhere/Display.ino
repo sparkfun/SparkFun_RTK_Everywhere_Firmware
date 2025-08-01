@@ -217,8 +217,9 @@ void displayUpdate()
             lastDisplayUpdate = millis();
             forceDisplayUpdate = false;
 
-            oled->reset(false); // Incase of previous corruption, force re-alignment of CGRAM. Do not init buffers as it
-                                // takes time and causes screen to blink.
+            if (present.displayInverted == false)
+                oled->reset(false); // Incase of previous corruption, force re-alignment of CGRAM. Do not init buffers as it
+            //  takes time and causes screen to blink.
 
             oled->erase();
 
