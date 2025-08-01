@@ -337,13 +337,15 @@ public:
   // Inputs:
   //   baudRate: The desired baudrate
   virtual bool setBaudrate(uint32_t baudRate);
-
+  
   // Enable all the valid constellations and bands for this platform
   virtual bool setConstellations();
 
   // Enable / disable corrections protocol(s) on the Radio External port
   // Always update if force is true. Otherwise, only update if enable has changed state
   virtual bool setCorrRadioExtPort(bool enable, bool force);
+
+  virtual bool setBaudRate(uint8_t uartNumber, uint32_t baudRate);
 
   virtual bool setDataBaudRate(uint32_t baud);
 

@@ -237,8 +237,12 @@ public:
   //   Returns the altitude in meters or zero if the GNSS is offline
   double getAltitude();
 
+  uint32_t getBaudRate(uint8_t uartNumber);
+
   // Returns the carrier solution or zero if not online
   uint8_t getCarrierSolution();
+
+  uint32_t getCommBaudRate();
 
   uint32_t getDataBaudRate();
 
@@ -416,12 +420,11 @@ public:
   //   Returns true when the configuration was saved and false upon failure
   bool saveConfiguration();
 
-  // Set the baud rate on the GNSS port that interfaces between the ESP32 and the GNSS
-  // This just sets the GNSS side
-  // Used during Bluetooth testing
-  // Inputs:
-  //   baudRate: The desired baudrate
   bool setBaudrate(uint32_t baudRate);
+
+  bool setBaudRate(uint8_t uartNumber, uint32_t baudRate);
+
+  bool setCommBaudrate(uint32_t baud);
 
   // Enable all the valid constellations and bands for this platform
   bool setConstellations();
@@ -479,9 +482,6 @@ public:
   // If we have received serial data from the LG290P outside of the library (ie, from processUart1Message task)
   // we can pass data back into the LG290P library to allow it to update its own variables
   void lg290pUpdate(uint8_t *incomingBuffer, int bufferLength);
-
-  // Return the baud rate of UART2, connected to the ESP32 UART1
-  uint32_t getCommBaudRate();
 
   // Poll routine to update the GNSS state
   void update();
