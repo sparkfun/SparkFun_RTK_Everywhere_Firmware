@@ -146,7 +146,7 @@ void beginDisplay(TwoWire *i2cBus)
         oled->setVcomDeselect(kOLEDMicroVCOM);
     }
 
-    if (present.display_type == DISPLAY_128x64 || present.display_type == DISPLAY_128x64_INVERTED)
+    if (present.display_type == DISPLAY_128x64)
     {
         i2cAddress = kOLEDMicroDefaultAddress;
 
@@ -182,7 +182,7 @@ void beginDisplay(TwoWire *i2cBus)
 
             systemPrintln("Display started");
 
-            if (present.display_type == DISPLAY_128x64_INVERTED)
+            if (present.displayInverted == true)
             {
                 oled->flipVertical(true);
                 oled->flipHorizontal(true);
@@ -377,7 +377,8 @@ void displayUpdate()
                 break;
 
             case (STATE_NTPSERVER_NOT_STARTED):
-            case (STATE_NTPSERVER_NO_SYNC): {
+            case (STATE_NTPSERVER_NO_SYNC):
+            {
                 paintClock(&iconPropertyList, true); // Blink
                 displaySivVsOpenShort(&iconPropertyList);
 
@@ -398,7 +399,8 @@ void displayUpdate()
             }
             break;
 
-            case (STATE_NTPSERVER_SYNC): {
+            case (STATE_NTPSERVER_SYNC):
+            {
                 paintClock(&iconPropertyList, false); // No blink
                 displaySivVsOpenShort(&iconPropertyList);
                 paintLogging(&iconPropertyList, false, true); // No pulse, NTP
@@ -745,7 +747,7 @@ void setRadioIcons(std::vector<iconPropertyBlinking> *iconList)
                 }
             }
         }
-        else if (present.display_type == DISPLAY_128x64 || present.display_type == DISPLAY_128x64_INVERTED)
+        else if (present.display_type == DISPLAY_128x64)
         {
             paintMACAddress4digit(0, 3); // Columns 0 to 22
 
@@ -914,19 +916,22 @@ void setRadioIcons(std::vector<iconPropertyBlinking> *iconList)
                 paintDynamicModel(iconList);
                 break;
             case (STATE_BASE_TEMP_SETTLE):
-            case (STATE_BASE_TEMP_SURVEY_STARTED): {
+            case (STATE_BASE_TEMP_SURVEY_STARTED):
+            {
                 prop.duty = 0b00001111;
                 prop.icon = BaseTemporaryProperties.iconDisplay[present.display_type];
                 iconList->push_back(prop);
             }
             break;
-            case (STATE_BASE_TEMP_TRANSMITTING): {
+            case (STATE_BASE_TEMP_TRANSMITTING):
+            {
                 prop.duty = 0b11111111;
                 prop.icon = BaseTemporaryProperties.iconDisplay[present.display_type];
                 iconList->push_back(prop);
             }
             break;
-            case (STATE_BASE_FIXED_TRANSMITTING): {
+            case (STATE_BASE_FIXED_TRANSMITTING):
+            {
                 prop.duty = 0b11111111;
                 prop.icon = BaseFixedProperties.iconDisplay[present.display_type];
                 iconList->push_back(prop);
@@ -1264,21 +1269,24 @@ void setModeIcon(std::vector<iconPropertyBlinking> *iconList)
     case (STATE_BASE_NOT_STARTED):
         // Do nothing. Static display shown during state change.
         break;
-    case (STATE_BASE_TEMP_SETTLE): {
+    case (STATE_BASE_TEMP_SETTLE):
+    {
         iconPropertyBlinking prop;
         prop.duty = 0b00001111;
         prop.icon = BaseTemporaryProperties.iconDisplay[present.display_type];
         iconList->push_back(prop);
     }
     break;
-    case (STATE_BASE_TEMP_SURVEY_STARTED): {
+    case (STATE_BASE_TEMP_SURVEY_STARTED):
+    {
         iconPropertyBlinking prop;
         prop.duty = 0b00001111;
         prop.icon = BaseTemporaryProperties.iconDisplay[present.display_type];
         iconList->push_back(prop);
     }
     break;
-    case (STATE_BASE_TEMP_TRANSMITTING): {
+    case (STATE_BASE_TEMP_TRANSMITTING):
+    {
         iconPropertyBlinking prop;
         prop.duty = 0b11111111;
         prop.icon = BaseTemporaryProperties.iconDisplay[present.display_type];
@@ -1288,7 +1296,8 @@ void setModeIcon(std::vector<iconPropertyBlinking> *iconList)
     case (STATE_BASE_FIXED_NOT_STARTED):
         // Do nothing. Static display shown during state change.
         break;
-    case (STATE_BASE_FIXED_TRANSMITTING): {
+    case (STATE_BASE_FIXED_TRANSMITTING):
+    {
         iconPropertyBlinking prop;
         prop.duty = 0b11111111;
         prop.icon = BaseFixedProperties.iconDisplay[present.display_type];
@@ -1615,7 +1624,7 @@ void displayBaseSiv(std::vector<iconPropertyBlinking> *iconList)
 {
     // Display SIV during Base - but only on 128x64 displays. 64x48 has no room.
     // No support for short / open.
-    if (present.display_type == DISPLAY_128x64 || present.display_type == DISPLAY_128x64_INVERTED)
+    if (present.display_type == DISPLAY_128x64)
     {
         displayCoords textCoords = paintSIVIcon(iconList, &BaseSIVIconProperties, 0b11111111);
         paintSIVText(textCoords);
@@ -2025,7 +2034,7 @@ void displayFullIPAddress(std::vector<iconPropertyBlinking> *iconList) // Bottom
     static NetPriority_t previousPriority;
 
     // Max width: 15*6 = 90 pixels (6 pixels per character, nnn.nnn.nnn.nnn)
-    if (present.display_type == DISPLAY_128x64 || present.display_type == DISPLAY_128x64_INVERTED)
+    if (present.display_type == DISPLAY_128x64)
     {
         char myAddress[16];
 
@@ -2663,7 +2672,7 @@ void paintDisplaySetup()
     constructSetupDisplay(&setupButtons); // Construct the vector (linked list) of buttons
 
     uint8_t maxButtons =
-        ((present.display_type == DISPLAY_128x64 || present.display_type == DISPLAY_128x64_INVERTED) ? 5 : 4);
+        ((present.display_type == DISPLAY_128x64) ? 5 : 4);
 
     uint8_t printedButtons = 0;
 
@@ -2679,7 +2688,7 @@ void paintDisplaySetup()
                 if (it->newState == STATE_PROFILE)
                 {
                     int nameWidth =
-                        ((present.display_type == DISPLAY_128x64 || present.display_type == DISPLAY_128x64_INVERTED)
+                        ((present.display_type == DISPLAY_128x64)
                              ? 17
                              : 9);
                     char miniProfileName[nameWidth] = {0};
@@ -2847,7 +2856,7 @@ void paintResets()
             else
                 oled->print(settings.resetCount + bufferOverruns);
         }
-        else // if (present.display_type == DISPLAY_128x64 || present.display_type == DISPLAY_128x64_INVERTED)
+        else // if (present.display_type == DISPLAY_128x64)
         {
             oled->setFont(QW_FONT_5X7);                 // Small font
             oled->setCursor(0, oled->getHeight() - 10); // x, y

@@ -227,7 +227,6 @@ typedef enum
 {
     DISPLAY_64x48,
     DISPLAY_128x64,
-    DISPLAY_128x64_INVERTED,
     // Add new displays above this line
     DISPLAY_MAX_NONE // This represents the maximum numbers of display and also "no display"
 } DisplayType;
@@ -1814,6 +1813,7 @@ struct struct_present
     bool display_i2c0 = false;
     bool display_i2c1 = false;
     DisplayType display_type = DISPLAY_MAX_NONE;
+    bool displayInverted = false;
 
     bool fuelgauge_max17048 = false;
     bool fuelgauge_bq40z50 = false;
