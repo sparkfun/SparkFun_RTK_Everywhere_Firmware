@@ -387,12 +387,12 @@ void beginBoard()
         pin_Cellular_RX = 14;
 
         // 30, D18 : SPI SCK --> Ethernet, microSD card
-        // 31, D19 : SPI POCI
+        // 31, D19 : SPI POCI --> microSD card SDO
         // 33, D21 : I2C0 SDA --> ZED, NEO, USB2514B, TP, I/O connector
         pin_I2C0_SDA = 21;
         // 36, D22 : I2C0 SCL
         pin_I2C0_SCL = 22;
-        // 37, D23 : SPI PICO
+        // 37, D23 : SPI PICO --> microSD card SDI
         // 10, D25 : GNSS RX --> ZED UART1 TXO
         pin_GnssUart_RX = 25;
         // 11, D26 : LARA_PWR_ON
@@ -415,8 +415,8 @@ void beginBoard()
         //  5, A39 : Ethernet Interrupt
         pin_Ethernet_Interrupt = 39;
 
-        pin_PICO = 23;
-        pin_POCI = 19;
+        pin_PICO = 23; // SPI PICO --> microSD card SDI
+        pin_POCI = 19; // SPI POCI --> microSD card SDO
         pin_SCK = 18;
 
         // Disable the Ethernet controller
@@ -495,10 +495,10 @@ void beginBoard()
         pin_GnssUart_RX = 14;
         pin_microSD_CardDetect = 15;
         // 30, D18 : SPI SCK --> microSD card
-        // 31, D19 : SPI POCI --> microSD card
+        // 31, D19 : SPI POCI --> microSD card SDO
         pin_I2C0_SDA = 21;
         pin_I2C0_SCL = 22;
-        // 37, D23 : SPI PICO --> microSD card
+        // 37, D23 : SPI PICO --> microSD card SDI
         pin_microSD_CS = 25;
         pin_muxDAC = 26;
         pin_peripheralPowerControl = 27;
@@ -507,8 +507,8 @@ void beginBoard()
         pin_chargerLED = 34;
         pin_chargerLED2 = 36;
         pin_muxADC = 39;
-        pin_PICO = 23;
-        pin_POCI = 19;
+        pin_PICO = 23; // SPI PICO --> microSD card SDI
+        pin_POCI = 19; // SPI POCI --> microSD card SDO
         pin_SCK = 18;
 
         pinMode(pin_muxA, OUTPUT);
@@ -574,11 +574,11 @@ void beginBoard()
         pin_GnssUart_TX = 13;
         pin_GnssUart_RX = 14;
         pin_microSD_CardDetect = 15;
-        // 30, D18 : SPI SCK --> microSD card
-        // 31, D19 : SPI POCI --> microSD card
+        // 30, D18 : SPI SCK --> microSD card SCK
+        // 31, D19 : SPI POCI --> microSD card SDO
         pin_I2C0_SDA = 21;
         pin_I2C0_SCL = 22;
-        // 37, D23 : SPI PICO --> microSD card
+        // 37, D23 : SPI PICO --> microSD card SDI
         pin_microSD_CS = 25;
         pin_muxDAC = 26;
         pin_peripheralPowerControl = 27;
@@ -587,8 +587,8 @@ void beginBoard()
         pin_chargerLED = 34;
         pin_chargerLED2 = 36;
         pin_muxADC = 39;
-        pin_PICO = 23;
-        pin_POCI = 19;
+        pin_PICO = 23; // SPI PICO --> microSD card SDI
+        pin_POCI = 19; // SPI POCI --> microSD card SDO
         pin_SCK = 18;
 
         pinMode(pin_muxA, OUTPUT);
@@ -744,9 +744,9 @@ void beginBoard()
         pin_GNSS_Reset = 33;
         pin_GNSS_TimePulse = 36; // PPS on LG290P
 
+        pin_PICO = 26; // SPI PICO --> microSD card SDI
+        pin_POCI = 25; // SPI POCI --> microSD card SDO
         pin_SCK = 32;
-        pin_POCI = 25;
-        pin_PICO = 26;
         pin_microSD_CS = 27;
 
         pin_gpioExpanderInterrupt = 14; // Pin 'AOI' (Analog Output Input) on Portability Shield
@@ -785,7 +785,7 @@ void beginBoard()
         // TODO Change to MFi present.encryption_atecc608a = true;
 
         present.button_powerLow = true; // Button is pressed when high
-        //present.button_mode = true;  //TODO remove comment. This won't be available until v1.1 of hardware
+        // present.button_mode = true;  //TODO remove comment. This won't be available until v1.1 of hardware
         present.beeper = true;
         present.gnss_to_uart = true;
         present.needsExternalPpl = true; // Uses the PointPerfect Library
@@ -811,7 +811,7 @@ void beginBoard()
         pin_GnssUart_TX = 27;
 
         pin_powerSenseAndControl = 34;
-        //pin_modeButton = 25; //TODO remove comment. This won't be available until v1.1 of hardware
+        // pin_modeButton = 25; //TODO remove comment. This won't be available until v1.1 of hardware
 
         pin_IMU_RX = 14; // ESP32 UART2
         pin_IMU_TX = 17;
@@ -823,13 +823,13 @@ void beginBoard()
 
         pin_beeper = 33;
 
+        pin_PICO = 21; // SPI PICO --> microSD card SDI
+        pin_POCI = 19; // SPI POCI --> microSD card SDO
+        pin_SCK = 18;  // SPI SCK --> microSD card SCK
         pin_microSD_CS = 22;
         pin_microSD_CardDetect = 39;
-        // D18 : SPI SCK --> microSD card
-        // D19 : SPI POCI --> microSD card
-        // D21 : SPI PICO --> microSD card
 
-        pin_gpioExpanderInterrupt = 2; // Not used since all GPIO expanded pins are outputs
+        pin_gpioExpanderInterrupt = 2; // TODO remove on v1.1 hardware. Not used since all GPIO expanded pins are outputs
 
         DMW_if systemPrintf("pin_bluetoothStatusLED: %d\r\n", pin_bluetoothStatusLED);
         pinMode(pin_bluetoothStatusLED, OUTPUT);
@@ -1124,11 +1124,11 @@ void beginGnssUart()
 
             xTaskCreatePinnedToCore(
                 pinGnssUartTask,
-                "GnssUartStart", // Just for humans
-                2000,            // Stack Size
-                nullptr,         // Task input parameter
-                0,           // Priority, with 3 (configMAX_PRIORITIES - 1) being the highest, and 0 being the lowest
-                &taskHandle, // Task handle
+                "GnssUartStart",                  // Just for humans
+                2000,                             // Stack Size
+                nullptr,                          // Task input parameter
+                0,                                // Priority, with 3 (configMAX_PRIORITIES - 1) being the highest, and 0 being the lowest
+                &taskHandle,                      // Task handle
                 settings.gnssUartInterruptsCore); // Core where task should run, 0=core, 1=Arduino
         }
 
@@ -1570,10 +1570,10 @@ void beginIdleTasks()
             if (idleTaskHandle[index] == nullptr)
                 xTaskCreatePinnedToCore(
                     idleTask,
-                    taskName, // Just for humans
-                    2000,     // Stack Size
-                    nullptr,  // Task input parameter
-                    0,        // Priority, with 3 (configMAX_PRIORITIES - 1) being the highest, and 0 being the lowest
+                    taskName,               // Just for humans
+                    2000,                   // Stack Size
+                    nullptr,                // Task input parameter
+                    0,                      // Priority, with 3 (configMAX_PRIORITIES - 1) being the highest, and 0 being the lowest
                     &idleTaskHandle[index], // Task handle
                     index);                 // Core where task should run, 0=core, 1=Arduino
         }
@@ -1629,11 +1629,11 @@ void beginI2C()
     {
         xTaskCreatePinnedToCore(
             pinI2CTask,
-            "I2CStart",  // Just for humans
-            2000,        // Stack Size
-            nullptr,     // Task input parameter
-            0,           // Priority, with 3 (configMAX_PRIORITIES - 1) being the highest, and 0 being the lowest
-            &taskHandle, // Task handle
+            "I2CStart",                  // Just for humans
+            2000,                        // Stack Size
+            nullptr,                     // Task input parameter
+            0,                           // Priority, with 3 (configMAX_PRIORITIES - 1) being the highest, and 0 being the lowest
+            &taskHandle,                 // Task handle
             settings.i2cInterruptsCore); // Core where task should run, 0=core, 1=Arduino
 
         // Wait for task to start running
@@ -1717,82 +1717,98 @@ bool i2cBusInitialization(TwoWire *i2cBus, int sda, int scl, int clockKHz)
 
             switch (addr)
             {
-            default: {
+            default:
+            {
                 systemPrintf("  0x%02X\r\n", addr);
                 break;
             }
 
-            case 0x08: {
+            case 0x08:
+            {
                 systemPrintf("  0x%02X - HUSB238 Power Delivery Sink Controller\r\n", addr);
                 break;
             }
 
-            case 0x0B: {
+            case 0x0B:
+            {
                 systemPrintf("  0x%02X - BQ40Z50 Battery Pack Manager / Fuel gauge\r\n", addr);
                 break;
             }
 
-            case 0x10: {
+            case 0x10:
+            {
                 systemPrintf("  0x%02X - MFi Authentication Coprocessor\r\n", addr);
                 break;
             }
 
-            case 0x18: {
+            case 0x18:
+            {
                 systemPrintf("  0x%02X - PCA9557 GPIO Expander with Reset\r\n", addr);
                 break;
             }
 
-            case 0x19: {
+            case 0x19:
+            {
                 systemPrintf("  0x%02X - LIS2DH12 Accelerometer\r\n", addr);
                 break;
             }
 
-            case 0x20: {
+            case 0x20:
+            {
                 systemPrintf("  0x%02X - PCA9554 GPIO Expander with Interrupt (Postcard)\r\n", addr);
                 break;
             }
 
-            case 0x21: {
+            case 0x21:
+            {
                 systemPrintf("  0x%02X - PCA9554 GPIO Expander with Interrupt (Flex)\r\n", addr);
                 break;
             }
 
-            case 0x2C: {
+            case 0x2C:
+            {
                 systemPrintf("  0x%02X - USB251xB USB Hub\r\n", addr);
                 break;
             }
 
-            case 0x36: {
+            case 0x36:
+            {
                 systemPrintf("  0x%02X - MAX17048 Fuel Gauge\r\n", addr);
                 break;
             }
 
-            case 0x3C: {
+            case 0x3C:
+            {
                 systemPrintf("  0x%02X - SSD1306 OLED Driver (Flex)\r\n", addr);
                 break;
             }
 
-            case 0x3D: {
+            case 0x3D:
+            {
                 systemPrintf("  0x%02X - SSD1306 OLED Driver (Postcard/EVK/mosaic)\r\n", addr);
                 break;
             }
 
-            case 0x42: {
+            case 0x42:
+            {
                 systemPrintf("  0x%02X - u-blox GNSS Receiver\r\n", addr);
                 break;
             }
 
-            case 0x43: {
+            case 0x43:
+            {
                 systemPrintf("  0x%02X - u-blox NEO-D9S Correction Data Receiver\r\n", addr);
                 break;
             }
 
-            case 0x5C: {
+            case 0x5C:
+            {
                 systemPrintf("  0x%02X - MP27692A Power Management / Charger\r\n", addr);
                 break;
             }
 
-            case 0x60: {
+            case 0x60:
+            {
                 systemPrintf("  0x%02X - ATECC608A Cryptographic Coprocessor\r\n", addr);
                 break;
             }
