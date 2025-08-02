@@ -775,32 +775,22 @@ void beginBoard()
         present.brand = BRAND_SPARKPNT;
         present.psram_2mb = true;
 
-        present.gnss_lg290p = true;
-
         present.antennaPhaseCenter_mm = 42.0; // Default to SPK6618H APC, average of L1/L2
         present.radio_lora = true;
         present.fuelgauge_bq40z50 = true;
         present.charger_mp2762a = true;
 
-        // TODO Change to MFi present.encryption_atecc608a = true;
-
         present.button_powerLow = true; // Button is pressed when high
         // present.button_mode = true;  //TODO remove comment. This won't be available until v1.1 of hardware
         present.beeper = true;
         present.gnss_to_uart = true;
-        present.needsExternalPpl = true; // Uses the PointPerfect Library
-
-        // TODO this will need to be based on module ID
-        present.minCno = true;
-        present.minElevation = true;
-        present.dynamicModel = true;
 
         present.gpioExpanderSwitches = true;
         present.microSd = true;
         present.microSdCardDetectLow = true;
 
         present.display_i2c0 = true;
-        // present.i2c0BusSpeed_400 = true; // Run display bus at higher speed
+        present.i2c0BusSpeed_400 = true; // Run display bus at higher speed
         present.display_type = DISPLAY_128x64;
         present.displayInverted = true;
         present.tiltPossible = true;

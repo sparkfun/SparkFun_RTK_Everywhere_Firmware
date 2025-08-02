@@ -127,6 +127,12 @@ void gnssDetectReceiverType()
         if (lg290pIsPresent() == true)
         {
             systemPrintln("Auto-detected GNSS receiver: LG290P");
+
+            present.gnss_lg290p = true;
+            present.minCno = true;
+            present.minElevation = true;
+            present.needsExternalPpl = true; // Uses the PointPerfect Library
+
             settings.detectedGnssReceiver = GNSS_RECEIVER_LG290P;
             recordSystemSettings(); // Record the detected GNSS receiver and avoid this test in the future
         }
@@ -140,6 +146,13 @@ void gnssDetectReceiverType()
         // else if (mosaicIsPresent() == true)
         // {
         //     systemPrintln("Auto-detected GNSS receiver: mosaic-X5");
+
+        //     present.gnss_mosaicX5 = true;
+        //     present.minCno = true;
+        //     present.minElevation = true;
+        //     present.dynamicModel = true;
+        //     present.needsExternalPpl = true; // Uses the PointPerfect Library
+
         //     settings.detectedGnssReceiver = GNSS_RECEIVER_MOSAIC_X5;
         //     recordSystemSettings(); // Record the detected GNSS receiver and avoid this test in the future
         // }
