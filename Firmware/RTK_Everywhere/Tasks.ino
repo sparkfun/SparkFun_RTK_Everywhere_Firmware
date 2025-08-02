@@ -38,11 +38,11 @@ Tasks.ino
 // Macros
 //----------------------------------------
 
-#define WRAP_OFFSET(offset, increment, arraySize)                                                                      \
-    {                                                                                                                  \
-        offset += increment;                                                                                           \
-        if (offset >= arraySize)                                                                                       \
-            offset -= arraySize;                                                                                       \
+#define WRAP_OFFSET(offset, increment, arraySize) \
+    {                                             \
+        offset += increment;                      \
+        if (offset >= arraySize)                  \
+            offset -= arraySize;                  \
     }
 
 //----------------------------------------
@@ -62,7 +62,12 @@ enum RingBufferConsumers
 };
 
 const char *const ringBufferConsumer[] = {
-    "Bluetooth", "TCP Client", "TCP Server", "SD Card", "UDP Server", "USB Serial",
+    "Bluetooth",
+    "TCP Client",
+    "TCP Server",
+    "SD Card",
+    "UDP Server",
+    "USB Serial",
 };
 
 const int ringBufferConsumerEntries = sizeof(ringBufferConsumer) / sizeof(ringBufferConsumer[0]);
@@ -76,13 +81,21 @@ const int ringBufferConsumerEntries = sizeof(ringBufferConsumer) / sizeof(ringBu
 
 // List the parsers to be included
 SEMP_PARSE_ROUTINE const parserTable[] = {
-    sempNmeaPreamble, sempUnicoreHashPreamble, sempRtcmPreamble, sempUbloxPreamble, sempUnicoreBinaryPreamble,
+    sempNmeaPreamble,
+    sempUnicoreHashPreamble,
+    sempRtcmPreamble,
+    sempUbloxPreamble,
+    sempUnicoreBinaryPreamble,
 };
 const int parserCount = sizeof(parserTable) / sizeof(parserTable[0]);
 
 // List the names of the parsers
 const char *const parserNames[] = {
-    "NMEA", "Unicore Hash_(#)", "RTCM", "u-Blox", "Unicore Binary",
+    "NMEA",
+    "Unicore Hash_(#)",
+    "RTCM",
+    "u-Blox",
+    "Unicore Binary",
 };
 const int parserNameCount = sizeof(parserNames) / sizeof(parserNames[0]);
 
@@ -134,7 +147,7 @@ void btReadTask(void *e)
 
     unsigned long btLastByteReceived = 0; // Track when the last BT transmission was received.
     const long btMinEscapeTime =
-        2000; // Bluetooth serial traffic must stop this amount before an escape char is recognized
+        2000;                          // Bluetooth serial traffic must stop this amount before an escape char is recognized
     uint8_t btEscapeCharsReceived = 0; // Used to enter remote command mode
 
     uint8_t btAppCommandCharsReceived = 0; // Used to enter app command mode
@@ -1265,7 +1278,7 @@ void handleGnssDataTask(void *e)
 
         // Block logging during Web Config to avoid SD collisions
         // See issue: https://github.com/sparkfun/SparkFun_RTK_Everywhere_Firmware/issues/693
-        if(webServerIsRunning() == true)
+        if (webServerIsRunning() == true)
             connected = false;
 
         // If user wants to log, record to SD
@@ -1878,7 +1891,8 @@ void buttonCheckTask(void *e)
             {
                 switch (systemState)
                 {
-                case STATE_DISPLAY_SETUP: {
+                case STATE_DISPLAY_SETUP:
+                {
                     // If we are displaying the setup menu, a single tap will cycle through possible system states - see
                     // above Exit into new system state on double tap Exit display setup into previous state after ~10s
                     // - see updateSystemState()
