@@ -797,6 +797,7 @@ void beginBoard()
 
         present.gpioExpanderSwitches = true;
         present.microSd = true;
+        present.microSdCardDetectLow = true;
 
         present.display_i2c0 = true;
         // present.i2c0BusSpeed_400 = true; // Run display bus at higher speed
