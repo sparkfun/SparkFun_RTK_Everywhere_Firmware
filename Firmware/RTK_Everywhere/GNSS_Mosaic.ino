@@ -2114,8 +2114,8 @@ bool GNSS_MOSAIC::sendAndWaitForIdle(HardwareSerial *serialPort, const char *mes
         if (serialPort->available()) // If a char is available
         {
             uint8_t c = serialPort->read(); // Read it
-            if (debug && (settings.debugGnss == true) && (!inMainMenu))
-                systemPrintf("%c", (char)c);
+            //if (debug && (settings.debugGnss == true) && (!inMainMenu))
+            //    systemPrintf("%c", (char)c);
             if (c == *(reply + replySeen)) // Is it a char from reply?
             {
                 if (response && (replySeen < (responseSize - 1)))
@@ -2138,8 +2138,8 @@ bool GNSS_MOSAIC::sendAndWaitForIdle(HardwareSerial *serialPort, const char *mes
             if (serialPort->available())
             {
                 uint8_t c = serialPort->read();
-                if (debug && (settings.debugGnss == true) && (!inMainMenu))
-                    systemPrintf("%c", (char)c);
+                //if (debug && (settings.debugGnss == true) && (!inMainMenu))
+                //    systemPrintf("%c", (char)c);
                 if (response && (replySeen < (responseSize - 1)))
                 {
                     *(response + replySeen) = c;
@@ -2228,8 +2228,8 @@ bool GNSS_MOSAIC::sendWithResponse(HardwareSerial *serialPort, const char *messa
         if (serialPort->available()) // If a char is available
         {
             uint8_t c = serialPort->read(); // Read it
-            if ((settings.debugGnss == true) && (!inMainMenu))
-                systemPrintf("%c", (char)c);
+            //if ((settings.debugGnss == true) && (!inMainMenu))
+            //    systemPrintf("%c", (char)c);
             if (c == *(reply + replySeen)) // Is it a char from reply?
             {
                 if (response && (replySeen < (responseSize - 1)))
@@ -2260,8 +2260,8 @@ bool GNSS_MOSAIC::sendWithResponse(HardwareSerial *serialPort, const char *messa
             if (serialPort->available())
             {
                 uint8_t c = serialPort->read();
-                if ((settings.debugGnss == true) && (!inMainMenu))
-                    systemPrintf("%c", (char)c);
+                //if ((settings.debugGnss == true) && (!inMainMenu))
+                //    systemPrintf("%c", (char)c);
                 if (response && (replySeen < (responseSize - 1)))
                 {
                     *(response + replySeen) = c;
