@@ -105,7 +105,14 @@ void updateAuthCoPro()
                 char bda_str[18];
                 bda2str(bluetoothSerialSpp->aclGetAddress(), bda_str, 18);
 
-                systemPrintf("Apple Device %s found, connecting on channel %d\r\n", bda_str, channel);
+                systemPrintf("Apple Device %s found, moving to master mode\r\n", bda_str);
+
+                if(bluetoothSerialSpp->begin(
+                    deviceName, true, true, settings.sppRxQueueSize, settings.sppTxQueueSize, 0, 0,
+                    0) == false) // localName, isMaster, disableBLE, rxBufferSize, txBufferSize, serviceID, rxID, txID
+                    systemPrintf("Failed to begin SPP in Master Mode");
+
+                systemPrintf("Connecting on channel %d\r\n", channel);
 
                 bluetoothSerialSpp->connect(bluetoothSerialSpp->aclGetAddress(), channel);
 

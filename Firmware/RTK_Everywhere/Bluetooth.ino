@@ -512,11 +512,8 @@ void bluetoothStart()
 
             bluetoothSerialSpp->enableSSP(false, false); //Enable secure pairing, authenticate without displaying anything
 
-            beginSuccess &= bluetoothSerialSpp->begin(
-                deviceName, true, true, settings.sppRxQueueSize, settings.sppTxQueueSize, 0, 0,
-                0); // localName, isMaster, disableBLE, rxBufferSize, txBufferSize, serviceID, rxID, txID
-
-            if (beginSuccess)
+            // If MFi Authentication Coprocessor is present, broadcast capability over SDP
+            if (beginSuccess && online.authenticationCoPro == true)
             {
                 //bluetoothSerialSpp.getBtAddress(btMACAddress); // Read the ESP32 BT MAC Address
 
