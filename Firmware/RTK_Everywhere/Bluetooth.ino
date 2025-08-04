@@ -129,6 +129,9 @@ int bluetoothRead(uint8_t *buffer, int length)
 #ifdef COMPILE_BT
     if (settings.bluetoothRadioType == BLUETOOTH_RADIO_SPP_AND_BLE)
     {
+        if (online.iap2Accessory == true)
+            return 0; // Nothing to do here. iAP2 link handles everything...
+
         int bytesRead = 0;
 
         // Give incoming BLE the priority
@@ -142,7 +145,12 @@ int bluetoothRead(uint8_t *buffer, int length)
         return (bytesRead);
     }
     else if (settings.bluetoothRadioType == BLUETOOTH_RADIO_SPP)
+    {
+        if (online.iap2Accessory == true)
+            return 0; // Nothing to do here. iAP2 link handles everything...
+
         return bluetoothSerialSpp->readBytes(buffer, length);
+    }
     else if (settings.bluetoothRadioType == BLUETOOTH_RADIO_BLE)
         return bluetoothSerialBle->readBytes(buffer, length);
 
@@ -176,6 +184,9 @@ uint8_t bluetoothRead()
 #ifdef COMPILE_BT
     if (settings.bluetoothRadioType == BLUETOOTH_RADIO_SPP_AND_BLE)
     {
+        if (online.iap2Accessory == true)
+            return 0; // Nothing to do here. iAP2 link handles everything...
+
         // Give incoming BLE the priority
         if (bluetoothSerialBle->available())
             return (bluetoothSerialBle->read());
@@ -183,7 +194,12 @@ uint8_t bluetoothRead()
         return (bluetoothSerialSpp->read());
     }
     else if (settings.bluetoothRadioType == BLUETOOTH_RADIO_SPP)
+    {
+        if (online.iap2Accessory == true)
+            return 0; // Nothing to do here. iAP2 link handles everything...
+
         return bluetoothSerialSpp->read();
+    }
     else if (settings.bluetoothRadioType == BLUETOOTH_RADIO_BLE)
         return bluetoothSerialBle->read();
 
@@ -212,6 +228,9 @@ int bluetoothRxDataAvailable()
 #ifdef COMPILE_BT
     if (settings.bluetoothRadioType == BLUETOOTH_RADIO_SPP_AND_BLE)
     {
+        if (online.iap2Accessory == true)
+            return 0; // Nothing to do here. iAP2 link handles everything...
+
         // Give incoming BLE the priority
         if (bluetoothSerialBle->available())
             return (bluetoothSerialBle->available());
@@ -219,7 +238,12 @@ int bluetoothRxDataAvailable()
         return (bluetoothSerialSpp->available());
     }
     else if (settings.bluetoothRadioType == BLUETOOTH_RADIO_SPP)
+    {
+        if (online.iap2Accessory == true)
+            return 0; // Nothing to do here. iAP2 link handles everything...
+
         return bluetoothSerialSpp->available();
+    }
     else if (settings.bluetoothRadioType == BLUETOOTH_RADIO_BLE)
         return bluetoothSerialBle->available();
 
@@ -264,6 +288,9 @@ int bluetoothWrite(const uint8_t *buffer, int length)
 #ifdef COMPILE_BT
     if (settings.bluetoothRadioType == BLUETOOTH_RADIO_SPP_AND_BLE)
     {
+        if (online.iap2Accessory == true)
+            return length; // Nothing to do here. iAP2 link handles everything...
+
         // Write to both interfaces
         int bleWrite = bluetoothSerialBle->write(buffer, length);
         int sppWrite = bluetoothSerialSpp->write(buffer, length);
@@ -277,6 +304,9 @@ int bluetoothWrite(const uint8_t *buffer, int length)
     }
     else if (settings.bluetoothRadioType == BLUETOOTH_RADIO_SPP)
     {
+        if (online.iap2Accessory == true)
+            return length; // Nothing to do here. iAP2 link handles everything...
+
         return bluetoothSerialSpp->write(buffer, length);
     }
     else if (settings.bluetoothRadioType == BLUETOOTH_RADIO_BLE)
@@ -299,6 +329,9 @@ int bluetoothCommandWrite(const uint8_t *buffer, int length)
 #ifdef COMPILE_BT
     if (settings.bluetoothRadioType == BLUETOOTH_RADIO_SPP_AND_BLE)
     {
+        if (online.iap2Accessory == true)
+            return length; // Nothing to do here. iAP2 link handles everything...
+
         return (bluetoothSerialBleCommands->write(buffer, length));
     }
     else if (settings.bluetoothRadioType == BLUETOOTH_RADIO_SPP)
@@ -326,6 +359,9 @@ int bluetoothWrite(uint8_t value)
 #ifdef COMPILE_BT
     if (settings.bluetoothRadioType == BLUETOOTH_RADIO_SPP_AND_BLE)
     {
+        if (online.iap2Accessory == true)
+            return 1; // Nothing to do here. iAP2 link handles everything...
+
         // Write to both interfaces
         int bleWrite = bluetoothSerialBle->write(value);
         int sppWrite = bluetoothSerialSpp->write(value);
@@ -339,6 +375,9 @@ int bluetoothWrite(uint8_t value)
     }
     else if (settings.bluetoothRadioType == BLUETOOTH_RADIO_SPP)
     {
+        if (online.iap2Accessory == true)
+            return 1; // Nothing to do here. iAP2 link handles everything...
+
         return bluetoothSerialSpp->write(value);
     }
     else if (settings.bluetoothRadioType == BLUETOOTH_RADIO_BLE)
@@ -365,9 +404,9 @@ void bluetoothFlush()
         bluetoothSerialSpp->flush();
     else if (settings.bluetoothRadioType == BLUETOOTH_RADIO_BLE)
         bluetoothSerialBle->flush();
-#else                                // COMPILE_BT
+#else  // COMPILE_BT
     return;
-#endif                               // COMPILE_BT
+#endif // COMPILE_BT
 }
 
 // Get MAC, start radio
@@ -491,8 +530,8 @@ void bluetoothStart()
         {
             // Support Apple Accessory
 
-            // bluetoothSerialSpp->enableSSP(false, false); //Enable secure pairing, authenticate without displaying
-            // anything
+            bluetoothSerialSpp->enableSSP(false,
+                                          false); // Enable secure pairing, authenticate without displaying anything
 
             // If MFi Authentication Coprocessor is present, broadcast capability over SDP
             if (beginSuccess && online.authenticationCoPro == true)
