@@ -1314,7 +1314,7 @@ void beginButtons()
     {
         if (beginGpioExpander(0x20) == false)
         {
-            systemPrintln("Directional pad not detected");
+            systemPrintln("Portability Shield not detected");
 
             // If there is no gpioExpander, there is no Portability shield, and microSD is not present
             present.microSd = false;
@@ -1604,7 +1604,7 @@ bool i2cBusInitialization(TwoWire *i2cBus, int sda, int scl, int clockKHz)
             }
 
             case 0x10: {
-                systemPrintf("  0x%02X - MFI343S00177 Authenication Coprocessor\r\n", addr);
+                systemPrintf("  0x%02X - MFI343S00177 Authentication Coprocessor\r\n", addr);
                 i2cAuthCoPro = i2cBus; // Record the bus
                 break;
             }
