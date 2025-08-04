@@ -5,7 +5,8 @@ const char *hardwareVersion = "1.0.0";
 const char *EAProtocol = "com.sparkfun.rtk";
 const char *BTTransportName = "com.sparkfun.bt";
 const char *LIComponentName = "com.sparkfun.li";
-const char *productPlanUID = "0123456789ABCDEF"; // This comes from the MFi Portal, when you register the product with Apple
+const char *productPlanUID =
+    "0123456789ABCDEF"; // This comes from the MFi Portal, when you register the product with Apple
 
 extern BTSerialInterface *bluetoothSerialSpp;
 
@@ -28,7 +29,7 @@ void beginAuthCoPro(TwoWire *i2cBus)
 
     appleAccessory->usePSRAM(online.psram);
 
-    if(!appleAccessory->begin(*i2cBus))
+    if (!appleAccessory->begin(*i2cBus))
     {
         systemPrintln("Could not initialize the authentication coprocessor");
         return;
@@ -64,14 +65,16 @@ void beginAuthCoPro(TwoWire *i2cBus)
     systemPrintln("Authentication coprocessor online");
 }
 
-static char *bda2str(esp_bd_addr_t bda, char *str, size_t size) {
-  if (bda == NULL || str == NULL || size < 18) {
-    return NULL;
-  }
+static char *bda2str(esp_bd_addr_t bda, char *str, size_t size)
+{
+    if (bda == NULL || str == NULL || size < 18)
+    {
+        return NULL;
+    }
 
-  uint8_t *p = bda;
-  snprintf(str, size, "%02x:%02x:%02x:%02x:%02x:%02x", p[0], p[1], p[2], p[3], p[4], p[5]);
-  return str;
+    uint8_t *p = bda;
+    snprintf(str, size, "%02x:%02x:%02x:%02x:%02x:%02x", p[0], p[1], p[2], p[3], p[4], p[5]);
+    return str;
 }
 
 void updateAuthCoPro()
@@ -88,8 +91,10 @@ void updateAuthCoPro()
             // Check for a new device connection
             if (bluetoothSerialSpp->aclConnected() == true)
             {
-                // // https://github.com/espressif/arduino-esp32/blob/master/libraries/BluetoothSerial/examples/DiscoverConnect/DiscoverConnect.ino
-                // std::map<int, std::string> channels = bluetoothSerialSpp->getChannels(bluetoothSerialSpp->aclGetAddress());
+                // //
+                // https://github.com/espressif/arduino-esp32/blob/master/libraries/BluetoothSerial/examples/DiscoverConnect/DiscoverConnect.ino
+                // std::map<int, std::string> channels =
+                // bluetoothSerialSpp->getChannels(bluetoothSerialSpp->aclGetAddress());
 
                 // int channel = 0; // Channel 0 for auto-detect
                 // if (channels.size() > 0)
@@ -100,8 +105,7 @@ void updateAuthCoPro()
                 char bda_str[18];
                 bda2str(bluetoothSerialSpp->aclGetAddress(), bda_str, 18);
 
-                systemPrintf("Apple Device %s found, connecting on channel %d\r\n",
-                             bda_str, channel);
+                systemPrintf("Apple Device %s found, connecting on channel %d\r\n", bda_str, channel);
 
                 bluetoothSerialSpp->connect(bluetoothSerialSpp->aclGetAddress(), channel);
 
