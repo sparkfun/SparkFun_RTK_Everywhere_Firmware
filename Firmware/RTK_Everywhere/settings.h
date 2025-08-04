@@ -407,7 +407,6 @@ typedef enum
     BLUETOOTH_RADIO_SPP = 0,
     BLUETOOTH_RADIO_BLE,
     BLUETOOTH_RADIO_SPP_AND_BLE,
-    BLUETOOTH_RADIO_SPP_ACCESSORY_MODE,
     BLUETOOTH_RADIO_OFF,
 } BluetoothRadioType_e;
 
@@ -1868,6 +1867,7 @@ struct struct_online
     bool udpServer = false;
     bool webServer = false;
     bool authenticationCoPro = false; // MFi authentication
+    bool iap2Accessory = false;
 } online;
 
 typedef uint8_t NetIndex_t;     // Index into the networkInterfaceTable

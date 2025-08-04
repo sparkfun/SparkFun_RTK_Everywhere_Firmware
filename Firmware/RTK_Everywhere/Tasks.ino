@@ -1319,9 +1319,9 @@ void handleGnssDataTask(void *e)
 
             startMillis = millis();
 
-            // Determine BT connection state. Discard the data if in BLUETOOTH_RADIO_SPP_ACCESSORY_MODE
+            // Determine BT connection state. Discard the data if an Apple accessory is online (the Apple library handles Bluetooth transmissions)
             bool connected = false;
-            if (settings.bluetoothRadioType != BLUETOOTH_RADIO_SPP_ACCESSORY_MODE)
+            if (online.iap2Accessory == false)
                 connected = (bluetoothGetState() == BT_CONNECTED);
 
             if (!connected)

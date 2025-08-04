@@ -84,9 +84,13 @@ void updateAuthCoPro()
 
     if (online.authenticationCoPro) // Coprocessor must be present and online
     {
-        if (settings.bluetoothRadioType == BLUETOOTH_RADIO_SPP_ACCESSORY_MODE)
+        if (settings.bluetoothRadioType == BLUETOOTH_RADIO_SPP_AND_BLE || settings.bluetoothRadioType == BLUETOOTH_RADIO_SPP)
         {
             appleAccessory->update(); // Update the Accessory driver
+
+            // TODO add isOnline
+            // if(appleAccessory->isOnline())
+            //     online.iap2Accessory;
 
             // Check for a new device connection
             if (bluetoothSerialSpp->aclConnected() == true)
@@ -119,6 +123,9 @@ void updateAuthCoPro()
                 if (bluetoothSerialSpp->connected())
                 {
                     appleAccessory->startHandshake((Stream *)bluetoothSerialSpp);
+
+                    //Assume IAP2 is up and running
+                    online.iap2Accessory = true;
                 }
             }
 
