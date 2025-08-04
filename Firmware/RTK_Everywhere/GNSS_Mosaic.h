@@ -559,6 +559,8 @@ class GNSS_MOSAIC : GNSS
   // and add a private library class instance here.
 
   protected:
+    // Flag which indicates GNSS is blocking (needs exclusive access to the UART)
+    bool _isBlocking = false;
 
     // These globals are updated regularly via the SBF parser
     double _clkBias_ms; // PVTGeodetic RxClkBias (will be sawtooth unless clock steering is enabled)

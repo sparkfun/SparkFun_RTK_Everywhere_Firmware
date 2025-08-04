@@ -78,6 +78,7 @@ const int ringBufferConsumerEntries = sizeof(ringBufferConsumer) / sizeof(ringBu
 #define RTK_RTCM_PARSER_INDEX 2
 #define RTK_UBLOX_PARSER_INDEX 3
 #define RTK_UNICORE_BINARY_PARSER_INDEX 4
+#define RTK_SBF_PARSER_INDEX 5
 
 // List the parsers to be included
 SEMP_PARSE_ROUTINE const parserTable[] = {
@@ -86,6 +87,7 @@ SEMP_PARSE_ROUTINE const parserTable[] = {
     sempRtcmPreamble,
     sempUbloxPreamble,
     sempUnicoreBinaryPreamble,
+    sempSbfPreamble,
 };
 const int parserCount = sizeof(parserTable) / sizeof(parserTable[0]);
 
@@ -96,6 +98,7 @@ const char *const parserNames[] = {
     "RTCM",
     "u-Blox",
     "Unicore Binary",
+    "SBF",
 };
 const int parserNameCount = sizeof(parserNames) / sizeof(parserNames[0]);
 
@@ -391,7 +394,9 @@ void gnssReadTask(void *e)
     if (settings.debugGnss)
         sempEnableDebugOutput(rtkParse);
 
-    if (present.gnss_mosaicX5 && (productVariant != RTK_FLEX))
+    bool sbfParserNeeded = present.gnss_mosaicX5 && (productVariant != RTK_FLEX);
+
+    if (sbfParserNeeded)
     {
         // Initialize the SBF parser for the mosaic-X5
         sbfParse = sempBeginParser(sbfParserTable, sbfParserCount, sbfParserNames, sbfParserNameCount,
@@ -481,11 +486,11 @@ void gnssReadTask(void *e)
                 {
                     // Update the parser state based on the incoming byte
                     // On mosaic-X5, pass the byte to sbfParse. On all other platforms, pass it straight to rtkParse
-                    sempParseNextByte(present.gnss_mosaicX5 ? sbfParse : rtkParse, incomingData[x]);
+                    sempParseNextByte(sbfParserNeeded ? sbfParse : rtkParse, incomingData[x]);
 
                     // See notes above. On the mosaic-X5, check that the incoming SBF blocks have expected IDs and
                     // lengths to help prevent raw L-Band data being misidentified as SBF
-                    if (present.gnss_mosaicX5)
+                    if (sbfParserNeeded)
                     {
                         SEMP_SCRATCH_PAD *scratchPad = (SEMP_SCRATCH_PAD *)sbfParse->scratchPad;
 
@@ -633,6 +638,12 @@ void processUart1Message(SEMP_PARSE_STATE *parse, uint16_t type)
             systemPrintf("%s %s, 0x%04x (%d) bytes\r\n", parse->parserName, parserNames[type], parse->length,
                          parse->length);
             break;
+
+        case RTK_SBF_PARSER_INDEX:
+            message = sempSbfGetBlockNumber(parse);
+            systemPrintf("%s %s %d, 0x%04x (%d) bytes\r\n", parse->parserName, parserNames[type], message,
+                         parse->length, parse->length);
+            break;
         }
     }
 
@@ -678,6 +689,12 @@ void processUart1Message(SEMP_PARSE_STATE *parse, uint16_t type)
         nmeaExtractStdDeviations((char *)parse->buffer, parse->length);
     }
 
+    // Facet Flex mosaic - pass the SBF to processUart1SBF
+    if ((present.gnss_mosaicX5) && (productVariant == RTK_FLEX) && (type == RTK_SBF_PARSER_INDEX))
+    {
+        processUart1SBF(parse, type);
+    }        
+
     // Determine where to send RTCM data
     if (inBaseMode() && type == RTK_RTCM_PARSER_INDEX)
     {
@@ -694,7 +711,7 @@ void processUart1Message(SEMP_PARSE_STATE *parse, uint16_t type)
     if ((present.gnss_lg290p) && (pointPerfectIsEnabled()) && (mqttClientIsConnected() == true))
         usingPPL = true;
     // mosaic-X5 : Determine if we want to use corrections
-    if ((present.gnss_mosaicX5) && (pointPerfectIsEnabled()))
+    if ((present.gnss_mosaicX5) && (pointPerfectLbandNeeded()))
         usingPPL = true;
 
     if (usingPPL)
@@ -786,6 +803,14 @@ void processUart1Message(SEMP_PARSE_STATE *parse, uint16_t type)
 
     // Suppress binary messages from UM980. Not needed by end GIS apps.
     if (type == RTK_UNICORE_BINARY_PARSER_INDEX)
+    {
+        // Erase buffer
+        parse->buffer[0] = 0;
+        parse->length = 0;
+    }
+
+    // Suppress SBF messages from mosaic. Not needed by end GIS apps.
+    if (type == RTK_SBF_PARSER_INDEX)
     {
         // Erase buffer
         parse->buffer[0] = 0;

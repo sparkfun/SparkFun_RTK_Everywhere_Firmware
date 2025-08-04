@@ -310,12 +310,16 @@ void GNSS_MOSAIC::begin()
 
         _receiverSetupSeen = false;
 
+        _isBlocking = true;
+
         // Request the ReceiverSetup SBF block using a esoc (exeSBFOnce) command on COM1
         String request = "esoc,COM1,ReceiverSetup\n\r";
         serialGNSS->write(request.c_str(), request.length());
 
         // Wait for up to 5 seconds for the Receiver Setup
         waitSBFReceiverSetup(serialGNSS, 5000);
+
+        _isBlocking = false;
 
         if (_receiverSetupSeen) // Check 5902 ReceiverSetup was seen
         {
@@ -1571,7 +1575,9 @@ bool GNSS_MOSAIC::isAntennaOpen()
 //----------------------------------------
 bool GNSS_MOSAIC::isBlocking()
 {
-    return false;
+    // Facet mosaic is non-blocking. It has exclusive access to COM4
+    // Facet Flex (mosaic) is blocking. Suspend the GNSS read task only if needed
+    return _isBlocking && (productVariant == RTK_FLEX);
 }
 
 //----------------------------------------
@@ -2092,6 +2098,8 @@ bool GNSS_MOSAIC::sendAndWaitForIdle(HardwareSerial *serialPort, const char *mes
     if (strlen(reply) == 0) // Reply can't be zero-length
         return false;
 
+    _isBlocking = true;
+
     if (debug && (settings.debugGnss == true) && (!inMainMenu))
         systemPrintf("sendAndWaitForIdle: sending %s\r\n", message);
 
@@ -2142,8 +2150,12 @@ bool GNSS_MOSAIC::sendAndWaitForIdle(HardwareSerial *serialPort, const char *mes
             }
         }
 
+        _isBlocking = false;
+
         return true;
     }
+
+    _isBlocking = false;
 
     return false;
 }
@@ -2198,6 +2210,8 @@ bool GNSS_MOSAIC::sendWithResponse(HardwareSerial *serialPort, const char *messa
 {
     if (strlen(reply) == 0) // Reply can't be zero-length
         return false;
+
+    _isBlocking = true;
 
     if ((settings.debugGnss == true) && (!inMainMenu))
         systemPrintf("sendWithResponse: sending %s\r\n", message);
@@ -2257,8 +2271,12 @@ bool GNSS_MOSAIC::sendWithResponse(HardwareSerial *serialPort, const char *messa
             }
         }
 
+        _isBlocking = false;
+
         return true;
     }
+
+    _isBlocking = false;
 
     return false;
 }
@@ -3349,8 +3367,10 @@ bool mosaicIsPresentOnFlex()
                         millis() - start);
         if (settings.debugGnss)
             systemPrintf("mosaic-X5 baud rate %supdated\r\n", result ? "" : "NOT ");
+        serialTestGNSS.end();
         return result;
     }
 
+    serialTestGNSS.end();
     return false;
 }
