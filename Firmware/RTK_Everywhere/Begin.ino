@@ -1315,6 +1315,10 @@ void beginButtons()
         if (beginGpioExpander(0x20) == false)
         {
             systemPrintln("Directional pad not detected");
+
+            // If there is no gpioExpander, there is no Portability shield, and microSD is not present
+            present.microSd = false;
+
             return;
         }
     }

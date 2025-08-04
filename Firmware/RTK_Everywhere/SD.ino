@@ -107,7 +107,7 @@ bool sdCardPresent(void)
         }
         else
         {
-            reportFatalError("sdCardPresent: gpioExpander not online.");
+            // Portability shield may not be mounted. Continue booting.
             return (false);
         }
     }
