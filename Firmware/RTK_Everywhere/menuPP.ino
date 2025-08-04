@@ -888,6 +888,8 @@ bool productVariantSupportsLbandNA()
         return false;
     if (productVariant == RTK_POSTCARD)
         return false;
+    if (productVariant == RTK_FLEX)
+        return false;
 
     systemPrintln("Uncaught productVariantSupportsLbandNA()");
     return false;
@@ -936,11 +938,6 @@ bool productVariantSupportsService(uint8_t ppNickName)
 {
     if (ppNickName == PP_NICKNAME_DISABLED)
         return true;
-    else if (ppNickName == PP_NICKNAME_FLEX_RTCM)
-    {
-        // All platforms support RTCM over NTRIP/TCP
-        return true;
-    }
     else if (ppNickName == PP_NICKNAME_FLEX_RTCM)
     {
         // All platforms support RTCM over NTRIP/TCP

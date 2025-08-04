@@ -334,6 +334,7 @@ void beginBoard()
         gnss = (GNSS *)new GNSS_ZED();
 #else  // COMPILE_ZED
         gnss = (GNSS *)new GNSS_None();
+        systemPrintln("<<<<<<<<<< !!!!!!!!!! ZED NOT COMPILED !!!!!!!!!! >>>>>>>>>>");
 #endif // COMPILE_ZED
 
         present.brand = BRAND_SPARKFUN;
@@ -464,6 +465,7 @@ void beginBoard()
         gnss = (GNSS *)new GNSS_ZED();
 #else  // COMPILE_ZED
         gnss = (GNSS *)new GNSS_None();
+        systemPrintln("<<<<<<<<<< !!!!!!!!!! ZED NOT COMPILED !!!!!!!!!! >>>>>>>>>>");
 #endif // COMPILE_ZED
 
         present.brand = BRAND_SPARKPNT;
@@ -546,6 +548,7 @@ void beginBoard()
         gnss = (GNSS *)new GNSS_ZED();
 #else  // COMPILE_ZED
         gnss = (GNSS *)new GNSS_None();
+        systemPrintln("<<<<<<<<<< !!!!!!!!!! ZED NOT COMPILED !!!!!!!!!! >>>>>>>>>>");
 #endif // COMPILE_ZED
 
         present.brand = BRAND_SPARKPNT;
@@ -634,6 +637,8 @@ void beginBoard()
         // mosaic COM2 input is "auto" - it will accept RTCMv3 corrections
         // mosaic COM3 is connected to the Data connector - via the multiplexer
         // mosaic COM3 is available as a generic COM port. The firmware configures the baud. Nothing else.
+
+        // NOTE: Facet Flex with mosaic-X5 is VERY different!
 
         // Specify the GNSS radio
 #ifdef COMPILE_MOSAICX5
@@ -1164,6 +1169,11 @@ void pinGnssUartTask(void *pvParameters)
         if (settings.detectedGnssReceiver == GNSS_RECEIVER_LG290P)
         {
             // LG290P communicates at 460800bps.
+            platformGnssCommunicationRate = 115200 * 4;
+        }
+        else if (settings.detectedGnssReceiver == GNSS_RECEIVER_MOSAIC_X5)
+        {
+            // Mosaic defaults to 115200, but mosaicIsPresentOnFlex() increases to 460800bps
             platformGnssCommunicationRate = 115200 * 4;
         }
         else

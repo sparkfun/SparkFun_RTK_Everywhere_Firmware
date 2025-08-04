@@ -141,26 +141,21 @@ void gnssDetectReceiverType()
 #endif // COMPILE_LGP290P
 
 #ifdef COMPILE_MOSAICX5
-        // TODO - this uses UART2, but Flex is UART1. We need to make the mosaic send routines flexible to use
-        // whichever UART we specify.
-        // else if (mosaicIsPresent() == true)
-        // {
-        //     systemPrintln("Auto-detected GNSS receiver: mosaic-X5");
-
-        //     present.gnss_mosaicX5 = true;
-        //     present.minCno = true;
-        //     present.minElevation = true;
-        //     present.dynamicModel = true;
-        //     present.needsExternalPpl = true; // Uses the PointPerfect Library
-
-        //     settings.detectedGnssReceiver = GNSS_RECEIVER_MOSAIC_X5;
-        //     recordSystemSettings(); // Record the detected GNSS receiver and avoid this test in the future
-        // }
-#else  // COMPILE_MOSAICX5
-        else
+        if (mosaicIsPresentOnFlex() == true)
         {
-            systemPrintln("<<<<<<<<<< !!!!!!!!!! MOSAICX5 NOT COMPILED !!!!!!!!!! >>>>>>>>>>");
+            systemPrintln("Auto-detected GNSS receiver: mosaic-X5");
+
+            present.gnss_mosaicX5 = true;
+            present.minCno = true;
+            present.minElevation = true;
+            present.dynamicModel = true;
+            present.needsExternalPpl = true; // Uses the PointPerfect Library
+
+            settings.detectedGnssReceiver = GNSS_RECEIVER_MOSAIC_X5;
+            recordSystemSettings(); // Record the detected GNSS receiver and avoid this test in the future
         }
+#else  // COMPILE_MOSAICX5
+            systemPrintln("<<<<<<<<<< !!!!!!!!!! MOSAICX5 NOT COMPILED !!!!!!!!!! >>>>>>>>>>");
 #endif // COMPILE_MOSAICX5
     }
 
@@ -169,14 +164,12 @@ void gnssDetectReceiverType()
     {
 #ifdef COMPILE_LG290P
         gnss = (GNSS *)new GNSS_LG290P();
-        present.gnss_lg290p = true;
 #endif // COMPILE_LGP290P
     }
     else if (settings.detectedGnssReceiver == GNSS_RECEIVER_MOSAIC_X5)
     {
 #ifdef COMPILE_MOSAICX5
         gnss = (GNSS *)new GNSS_MOSAIC();
-        present.gnss_mosaicX5 = true;
 #endif // COMPILE_MOSAICX5
     }
 

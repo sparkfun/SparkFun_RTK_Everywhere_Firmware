@@ -391,7 +391,7 @@ void gnssReadTask(void *e)
     if (settings.debugGnss)
         sempEnableDebugOutput(rtkParse);
 
-    if (present.gnss_mosaicX5)
+    if (present.gnss_mosaicX5 && (productVariant != RTK_FLEX))
     {
         // Initialize the SBF parser for the mosaic-X5
         sbfParse = sempBeginParser(sbfParserTable, sbfParserCount, sbfParserNames, sbfParserNameCount,
