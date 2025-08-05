@@ -88,10 +88,6 @@ void updateAuthCoPro()
         {
             appleAccessory->update(); // Update the Accessory driver
 
-            // TODO add isOnline
-            // if(appleAccessory->isOnline())
-            //     online.iap2Accessory;
-
             // Check for a new device connection
             if (bluetoothSerialSpp->aclConnected() == true)
             {
@@ -122,15 +118,22 @@ void updateAuthCoPro()
 
                 if (bluetoothSerialSpp->connected())
                 {
-                    appleAccessory->startHandshake((Stream *)bluetoothSerialSpp);
-
-                    //Assume IAP2 is up and running
+                    //IAP2 accessory needs control of the Bluetooth SPP link from now on
                     online.iap2Accessory = true;
+
+                    appleAccessory->startHandshake((Stream *)bluetoothSerialSpp);
                 }
             }
 
             // That's all folks!
             // Everything else is handled by the Apple Accessory Library
+
+            // Handle link closure
+            if(bluetoothSerialSpp->isConnected() == false && online.iap2Accessory == true)
+            {
+                online.iap2Accessory = false;
+            }
+
         }
     }
 }
