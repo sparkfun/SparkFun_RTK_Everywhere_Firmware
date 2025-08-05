@@ -218,11 +218,8 @@ void GNSS_MOSAIC::begin()
     //   COM3 can be connected to ESP32 UART2 (switched by SW3)
     //   COM4 can be connected to ESP32 UART0 (switched by SW2)
     // We need to do everything through COM1: configure, transfer RTCM, receive NMEA
-    // To make life easier for ourselves, we should:
-    //   Not support L-Band
-    //   Not encapsulate RTCMv3 and NMEA in SBF format
-    //   Configure the rtkParse accordingly
-    // TODO: increase the COM1 baud rate to help. For now, leave it at 115200
+    // We need to Encapsulate RTCMv3 and NMEA in SBF format. Both SBF and NMEA messages start with "$".
+    // The alternative would be to add a 'hybrid' parser to the SEMP which can disambiguate SBF and NMEA
 
     // On Facet Flex (with IMU):
     //   COM1 is connected to the ESP32 UART1
@@ -542,10 +539,8 @@ bool GNSS_MOSAIC::configureNtpMode()
 //----------------------------------------
 bool GNSS_MOSAIC::configureGNSSCOM(bool enableLBand)
 {
-    // Configure COM1. NMEA and RTCMv3 will be encapsulated in SBF format on Facet mosaic
-    String setting = String("sdio,COM1,auto,RTCMv3+SBF+NMEA");
-    if (productVariant == RTK_FACET_MOSAIC)
-        setting + String("+Encapsulate");
+    // Configure COM1. NMEA and RTCMv3 will be encapsulated in SBF format
+    String setting = String("sdio,COM1,auto,RTCMv3+SBF+NMEA+Encapsulate");
     if (enableLBand)
         setting += String("+LBandBeam1");
     setting += String("\n\r");
@@ -2949,96 +2944,23 @@ bool GNSS_MOSAIC::isPresent()
 {
     if (productVariant != RTK_FLEX) // productVariant == RTK_FACET_MOSAIC
     {
-        // Mosaic could still be starting up, so allow many retries
-        int retries = 0;
-        int retryLimit = 20;
-
         // Set COM4 to: CMD input (only), SBF output (only)
-        while (!sendWithResponse(serial2GNSS, "sdio,COM4,CMD,SBF\n\r", "DataInOut"))
-        {
-            if (retries == retryLimit)
-                break;
-            retries++;
-            sendWithResponse(serial2GNSS, "SSSSSSSSSSSSSSSSSSSS\n\r", "COM4>"); // Send escape sequence
-        }
-
-        if (retries == retryLimit)
-        {
-            systemPrintln("Could not communicate with mosaic-X5! Attempting a soft reset...");
-
-            sendWithResponse(serial2GNSS, "erst,soft,none\n\r", "ResetReceiver");
-
-            retries = 0;
-
-            // Set COM4 to: CMD input (only), SBF output (only)
-            while (!sendWithResponse(serial2GNSS, "sdio,COM4,CMD,SBF\n\r", "DataInOut"))
-            {
-                if (retries == retryLimit)
-                    break;
-                retries++;
-                sendWithResponse(serial2GNSS, "SSSSSSSSSSSSSSSSSSSS\n\r", "COM4>"); // Send escape sequence
-            }
-
-            if (retries == retryLimit)
-            {
-                systemPrintln("Could not communicate with mosaic-X5!");
-                return(false);
-            }
-        }
-
-        // Module responded correctly!
-        return (true);
+        // Mosaic could still be starting up, so allow many retries
+        return isPresentOnSerial(serial2GNSS, "sdio,COM4,CMD,SBF\n\r", "DataInOut", "COM4>", 20);
     }
     else // productVariant == RTK_FLEX
     {
+        // Set COM1 to: auto input, RTCMv3+SBF+NMEA+Encapsulate output
         // Mosaic could still be starting up, so allow many retries
-        int retries = 0;
-        int retryLimit = 20;
-
-        // Set COM1 to: auto input, RTCMv3+SBF+NMEA output
-        while (!sendWithResponse(serialGNSS, "sdio,COM1,auto,RTCMv3+SBF+NMEA\n\r", "DataInOut"))
-        {
-            if (retries == retryLimit)
-                break;
-            retries++;
-            sendWithResponse(serialGNSS, "SSSSSSSSSSSSSSSSSSSS\n\r", "COM1>"); // Send escape sequence
-        }
-
-        if (retries == retryLimit)
-        {
-            systemPrintln("Could not communicate with mosaic-X5! Attempting a soft reset...");
-
-            sendWithResponse(serialGNSS, "erst,soft,none\n\r", "ResetReceiver");
-
-            retries = 0;
-
-            // Set COM1 to: auto input, RTCMv3+SBF+NMEA output
-            while (!sendWithResponse(serialGNSS, "sdio,COM1,auto,RTCMv3+SBF+NMEA\n\r", "DataInOut"))
-            {
-                if (retries == retryLimit)
-                    break;
-                retries++;
-                sendWithResponse(serialGNSS, "SSSSSSSSSSSSSSSSSSSS\n\r", "COM1>"); // Send escape sequence
-            }
-
-            if (retries == retryLimit)
-            {
-                systemPrintln("Could not communicate with mosaic-X5!");
-                return(false);
-            }
-        }
-
-        // Module responded correctly!
-        return (true);
+        return isPresentOnSerial(serialGNSS, "sdio,COM1,auto,RTCMv3+SBF+NMEA+Encapsulate\n\r", "DataInOut", "COM1>", 20);
     }
 }
 
 //Return true if the receiver is detected
-bool GNSS_MOSAIC::isPresentOnSerial(HardwareSerial *serialPort, const char *command, const char *response, const char *console)
+bool GNSS_MOSAIC::isPresentOnSerial(HardwareSerial *serialPort, const char *command, const char *response, const char *console, int retryLimit)
 {
     // Mosaic could still be starting up, so allow many retries
     int retries = 0;
-    int retryLimit = 20;
 
     while (!sendWithResponse(serialPort, command, response))
     {
@@ -3338,7 +3260,8 @@ bool mosaicIsPresentOnFlex()
     // Check with 115200 initially. If that succeeds, increase to 460800
     serialTestGNSS.begin(115200, SERIAL_8N1, pin_GnssUart_RX, pin_GnssUart_TX);
 
-    if (mosaic.isPresentOnSerial(&serialTestGNSS, "sdio,COM1,auto,RTCMv3+SBF+NMEA\n\r", "DataInOut", "COM1>") == true)
+    // Only try 3 times. LG290P detection will have been done first. X5 should have booted. Baud rate could be wrong.
+    if (mosaic.isPresentOnSerial(&serialTestGNSS, "sdio,COM1,auto,RTCMv3+SBF+NMEA+Encapsulate\n\r", "DataInOut", "COM1>", 3) == true)
     {
         if (settings.debugGnss)
             systemPrintln("mosaic-X5 detected at 115200 baud");
@@ -3357,7 +3280,8 @@ bool mosaicIsPresentOnFlex()
     serialTestGNSS.end();
     serialTestGNSS.begin(460800, SERIAL_8N1, pin_GnssUart_RX, pin_GnssUart_TX);
 
-    if (mosaic.isPresentOnSerial(&serialTestGNSS, "sdio,COM1,auto,RTCMv3+SBF+NMEA\n\r", "DataInOut", "COM1>") == true)
+    // Only try 3 times, so we fail and pass on to the next Facet GNSS detection
+    if (mosaic.isPresentOnSerial(&serialTestGNSS, "sdio,COM1,auto,RTCMv3+SBF+NMEA+Encapsulate\n\r", "DataInOut", "COM1>", 3) == true)
     {
         // serialGNSS and serial2GNSS have not yet been begun. We need to saveConfiguration manually
         unsigned long start = millis();

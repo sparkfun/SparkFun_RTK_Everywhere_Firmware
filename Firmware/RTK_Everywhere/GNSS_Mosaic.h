@@ -862,7 +862,7 @@ class GNSS_MOSAIC : GNSS
 
     // Send commands out the UART to see if a mosaic module is present
     bool isPresent();
-    bool isPresentOnSerial(HardwareSerial *serialPort, const char *command, const char *response, const char *console);
+    bool isPresentOnSerial(HardwareSerial *serialPort, const char *command, const char *response, const char *console, int retryLimit = 20);
     bool mosaicIsPresentOnFlex();
 
     // Some functions (L-Band area frequency determination) merely need

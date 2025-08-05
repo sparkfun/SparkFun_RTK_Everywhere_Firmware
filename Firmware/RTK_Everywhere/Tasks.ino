@@ -78,7 +78,6 @@ const int ringBufferConsumerEntries = sizeof(ringBufferConsumer) / sizeof(ringBu
 #define RTK_RTCM_PARSER_INDEX 2
 #define RTK_UBLOX_PARSER_INDEX 3
 #define RTK_UNICORE_BINARY_PARSER_INDEX 4
-#define RTK_SBF_PARSER_INDEX 5
 
 // List the parsers to be included
 SEMP_PARSE_ROUTINE const parserTable[] = {
@@ -87,7 +86,6 @@ SEMP_PARSE_ROUTINE const parserTable[] = {
     sempRtcmPreamble,
     sempUbloxPreamble,
     sempUnicoreBinaryPreamble,
-    sempSbfPreamble,
 };
 const int parserCount = sizeof(parserTable) / sizeof(parserTable[0]);
 
@@ -98,7 +96,6 @@ const char *const parserNames[] = {
     "RTCM",
     "u-Blox",
     "Unicore Binary",
-    "SBF",
 };
 const int parserNameCount = sizeof(parserNames) / sizeof(parserNames[0]);
 
@@ -394,7 +391,7 @@ void gnssReadTask(void *e)
     if (settings.debugGnss)
         sempEnableDebugOutput(rtkParse);
 
-    bool sbfParserNeeded = present.gnss_mosaicX5 && (productVariant != RTK_FLEX);
+    bool sbfParserNeeded = present.gnss_mosaicX5;
 
     if (sbfParserNeeded)
     {
@@ -407,25 +404,30 @@ void gnssReadTask(void *e)
         if (!sbfParse)
             reportFatalError("Failed to initialize the SBF parser");
 
-        // Any data which is not SBF will be passed to the SPARTN parser via the invalid data callback
-        sempSbfSetInvalidDataCallback(sbfParse, processNonSBFData);
-
         // Uncomment the next line to enable SBF parser debug
         // But be careful - you get a lot of "SEMP: Sbf SBF, 0x0002 (2) bytes, invalid preamble2"
         // if (settings.debugGnss) sempEnableDebugOutput(sbfParse);
 
-        // Initialize the SPARTN parser for the mosaic-X5
-        spartnParse = sempBeginParser(spartnParserTable, spartnParserCount, spartnParserNames, spartnParserNameCount,
-                                      0,                  // Scratchpad bytes
-                                      1200,               // Buffer length - SPARTN payload is 1024 bytes max
-                                      processUart1SPARTN, // eom Call Back - in mosaic.ino
-                                      "spartnParse");     // Parser Name
-        if (!spartnParse)
-            reportFatalError("Failed to initialize the SPARTN parser");
+        bool spartnParserNeeded = present.gnss_mosaicX5 && (productVariant != RTK_FLEX);
 
-        // Uncomment the next line to enable SPARTN parser debug
-        // But be careful - you get a lot of "SEMP: Spartn SPARTN 0 0, 0x00f4 (244) bytes, bad CRC"
-        // if (settings.debugGnss) sempEnableDebugOutput(spartnParse);
+        if (spartnParserNeeded)
+        {
+            // Any data which is not SBF will be passed to the SPARTN parser via the invalid data callback
+            sempSbfSetInvalidDataCallback(sbfParse, processNonSBFData);
+
+            // Initialize the SPARTN parser for the mosaic-X5
+            spartnParse = sempBeginParser(spartnParserTable, spartnParserCount, spartnParserNames, spartnParserNameCount,
+                                        0,                  // Scratchpad bytes
+                                        1200,               // Buffer length - SPARTN payload is 1024 bytes max
+                                        processUart1SPARTN, // eom Call Back - in mosaic.ino
+                                        "spartnParse");     // Parser Name
+            if (!spartnParse)
+                reportFatalError("Failed to initialize the SPARTN parser");
+
+            // Uncomment the next line to enable SPARTN parser debug
+            // But be careful - you get a lot of "SEMP: Spartn SPARTN 0 0, 0x00f4 (244) bytes, bad CRC"
+            // if (settings.debugGnss) sempEnableDebugOutput(spartnParse);
+        }
     }
 
     // Run task until a request is raised
@@ -455,7 +457,7 @@ void gnssReadTask(void *e)
         // device) To allow the Unicore library to send/receive serial commands, we need to block the gnssReadTask
         // If the Unicore library does not need lone access, then read from serial port
 
-        // For the mosaic-X5, things are different. The mosaic-X5 outputs a raw stream of L-Band bytes,
+        // For the Facet mosaic-X5, things are different. The mosaic-X5 outputs a raw stream of L-Band bytes,
         // interspersed with periodic SBF blocks. The SBF blocks can contain encapsulated NMEA and RTCMv3.
         // We need to pass each incoming byte to a SBF parser first, so it can pick out any SBF blocks.
         // The SBF parser needs to 'give up' (return) any bytes which are not SBF. We do that using the
@@ -471,6 +473,8 @@ void gnssReadTask(void *e)
         // from being parsed from valid SBF blocks and causes the NTRIP server connection to break. We need
         // to add extra checks, above and beyond the invalidDataCallback, to make sure that doesn't happen.
         // Here we check that the SBF ID and length are expected / valid too.
+        //
+        // For Facet Flex mosaic, we need the SBF parser but not the SPARTN parser
 
         if (gnss->isBlocking() == false)
         {
@@ -638,12 +642,6 @@ void processUart1Message(SEMP_PARSE_STATE *parse, uint16_t type)
             systemPrintf("%s %s, 0x%04x (%d) bytes\r\n", parse->parserName, parserNames[type], parse->length,
                          parse->length);
             break;
-
-        case RTK_SBF_PARSER_INDEX:
-            message = sempSbfGetBlockNumber(parse);
-            systemPrintf("%s %s %d, 0x%04x (%d) bytes\r\n", parse->parserName, parserNames[type], message,
-                         parse->length, parse->length);
-            break;
         }
     }
 
@@ -688,12 +686,6 @@ void processUart1Message(SEMP_PARSE_STATE *parse, uint16_t type)
     {
         nmeaExtractStdDeviations((char *)parse->buffer, parse->length);
     }
-
-    // Facet Flex mosaic - pass the SBF to processUart1SBF
-    if ((present.gnss_mosaicX5) && (productVariant == RTK_FLEX) && (type == RTK_SBF_PARSER_INDEX))
-    {
-        processUart1SBF(parse, type);
-    }        
 
     // Determine where to send RTCM data
     if (inBaseMode() && type == RTK_RTCM_PARSER_INDEX)
@@ -803,14 +795,6 @@ void processUart1Message(SEMP_PARSE_STATE *parse, uint16_t type)
 
     // Suppress binary messages from UM980. Not needed by end GIS apps.
     if (type == RTK_UNICORE_BINARY_PARSER_INDEX)
-    {
-        // Erase buffer
-        parse->buffer[0] = 0;
-        parse->length = 0;
-    }
-
-    // Suppress SBF messages from mosaic. Not needed by end GIS apps.
-    if (type == RTK_SBF_PARSER_INDEX)
     {
         // Erase buffer
         parse->buffer[0] = 0;
