@@ -653,6 +653,12 @@ struct Settings
     int sizeOfSettings = 0;             // sizeOfSettings **must** be the first entry and must be int
     int rtkIdentifier = RTK_IDENTIFIER; // rtkIdentifier **must** be the second entry
 
+    //Once we detect the platform or receiver, no need to re-detect
+    //ProductVariant previouslyDetectedPlatform = RTK_UNKNOWN; //Because LFS is started after deviceID, this is mute
+    gnssReceiverType_e detectedGnssReceiver = GNSS_RECEIVER_UNKNOWN;
+    bool detectedTilt = false;
+    bool testedTilt = false;
+
     // Antenna
     int16_t antennaHeight_mm = 1800;    // Aka Pole length
     float antennaPhaseCenter_mm = 0.0;  // Aka ARP
@@ -1082,12 +1088,6 @@ struct Settings
 
     bool debugMalloc = false;
 
-    //Once we detect the platform or receiver, no need to re-detect
-    //ProductVariant previouslyDetectedPlatform = RTK_UNKNOWN; //Because LFS is started after deviceID, this is mute
-    gnssReceiverType_e detectedGnssReceiver = GNSS_RECEIVER_UNKNOWN;
-    bool detectedTilt = false;
-    bool testedTilt = false;
-
     // Add new settings to appropriate group above or create new group
     // Then also add to the same group in rtkSettingsEntries below
 } settings;
@@ -1226,6 +1226,11 @@ const RTK_Settings_Entry rtkSettingsEntries[] =
 //    f  n  f  E     a  r  a  a  l
 //    i  d  i  v  V  i  c  n  r  e
 //    g  s  x  k  2  c  h  d  d  x    Type    Qual  Variable                  Name
+
+    // Detected GNSS Receiver (for Flex). Save / load first so Flex settting availability can be correctly validated
+    { 0, 0, 0, 0, 0, 0, 0, 0, 0, FFA, tGnssReceiver,     0, & settings.detectedGnssReceiver, "detectedGnssReceiver",  },
+    { 0, 0, 0, 0, 0, 0, 0, 0, 0, FFA, _bool,     0, & settings.detectedTilt, "detectedTilt",  },
+    { 0, 0, 0, 0, 0, 0, 0, 0, 0, FFA, _bool,     0, & settings.testedTilt, "testedTilt",  },
 
     // Antenna
     { 1, 1, 0, 1, 1, 1, 1, 1, 1, FFA, _int16_t,  0, & settings.antennaHeight_mm, "antennaHeight_mm",  },
@@ -1718,10 +1723,6 @@ const RTK_Settings_Entry rtkSettingsEntries[] =
     { 1, 1, 0, 1, 1, 1, 1, 1, 1, FFA, _bool,     0, & settings.enableNtripCaster, "enableNtripCaster",  },
     { 0, 1, 0, 1, 1, 1, 1, 1, 1, FFA, _bool,     0, & settings.baseCasterOverride, "baseCasterOverride",  },
 
-
-    { 0, 0, 0, 0, 0, 0, 0, 0, 0, FFA, tGnssReceiver,     0, & settings.detectedGnssReceiver, "detectedGnssReceiver",  },
-    { 0, 0, 0, 0, 0, 0, 0, 0, 0, FFA, _bool,     0, & settings.detectedTilt, "detectedTilt",  },
-    { 0, 0, 0, 0, 0, 0, 0, 0, 0, FFA, _bool,     0, & settings.testedTilt, "testedTilt",  },
 
     // Add new settings to appropriate group above or create new group
     // Then also add to the same group in settings above
