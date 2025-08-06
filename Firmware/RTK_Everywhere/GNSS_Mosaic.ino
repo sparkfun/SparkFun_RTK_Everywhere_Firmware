@@ -213,7 +213,7 @@ void GNSS_MOSAIC::begin()
     //   (The comments on the schematic are out of date)
 
     // On Facet Flex (with Ethernet):
-    //   COM1 is connected to the ESP32 UART1
+    //   COM1 is connected to the ESP32 UART1 for: Encapsulated RTCMv3 + SBF + NMEA
     //   COM2 is connected to LoRa or 4-pin JST (switched by SW4)
     //   COM3 can be connected to ESP32 UART2 (switched by SW3)
     //   COM4 can be connected to ESP32 UART0 (switched by SW2)
@@ -222,7 +222,7 @@ void GNSS_MOSAIC::begin()
     // The alternative would be to add a 'hybrid' parser to the SEMP which can disambiguate SBF and NMEA
 
     // On Facet Flex (with IMU):
-    //   COM1 is connected to the ESP32 UART1
+    //   COM1 is connected to the ESP32 UART1 for: Encapsulated RTCMv3 + SBF + NMEA
     //   COM2 is connected to LoRa or 4-pin JST (switched by SW4)
     //   COM3 is N/C (ESP32 UART2 is connected to the IMU)
     //   COM4 TX provides data to the IMU - TODO
@@ -298,7 +298,7 @@ void GNSS_MOSAIC::begin()
 
         // Set COM2 (Radio) and COM3 (Data) baud rates
         setRadioBaudRate(settings.radioPortBaud);
-        setDataBaudRate(settings.dataPortBaud);
+        setDataBaudRate(settings.dataPortBaud); // Probably redundant
 
         // Set COM2 (Radio) protocol(s)
         setCorrRadioExtPort(settings.enableExtCorrRadio, true); // Force the setting
@@ -307,7 +307,7 @@ void GNSS_MOSAIC::begin()
 
         _receiverSetupSeen = false;
 
-        _isBlocking = true;
+        _isBlocking = true; // Suspend the GNSS read task
 
         // Request the ReceiverSetup SBF block using a esoc (exeSBFOnce) command on COM1
         String request = "esoc,COM1,ReceiverSetup\n\r";
@@ -2093,7 +2093,7 @@ bool GNSS_MOSAIC::sendAndWaitForIdle(HardwareSerial *serialPort, const char *mes
     if (strlen(reply) == 0) // Reply can't be zero-length
         return false;
 
-    _isBlocking = true;
+    _isBlocking = true; // Suspend the GNSS read task
 
     if (debug && (settings.debugGnss == true) && (!inMainMenu))
         systemPrintf("sendAndWaitForIdle: sending %s\r\n", message);
@@ -2206,7 +2206,7 @@ bool GNSS_MOSAIC::sendWithResponse(HardwareSerial *serialPort, const char *messa
     if (strlen(reply) == 0) // Reply can't be zero-length
         return false;
 
-    _isBlocking = true;
+    _isBlocking = true; // Suspend the GNSS read task
 
     if ((settings.debugGnss == true) && (!inMainMenu))
         systemPrintf("sendWithResponse: sending %s\r\n", message);
@@ -2887,6 +2887,8 @@ void GNSS_MOSAIC::updateSD()
 //----------------------------------------
 void GNSS_MOSAIC::waitSBFReceiverSetup(HardwareSerial *serialPort, unsigned long timeout)
 {
+    // Note: _isBlocking should be set externally - if needed
+
     SEMP_PARSE_ROUTINE const sbfParserTable[] = {sempSbfPreamble};
     const int sbfParserCount = sizeof(sbfParserTable) / sizeof(sbfParserTable[0]);
     const char *const sbfParserNames[] = {
