@@ -1173,7 +1173,7 @@ void pinGnssUartTask(void *pvParameters)
         }
         else if (settings.detectedGnssReceiver == GNSS_RECEIVER_MOSAIC_X5)
         {
-            // Mosaic defaults to 115200, but mosaicIsPresentOnFlex() increases to 460800bps
+            // Mosaic defaults to 115200, but mosaicIsPresentOnFlex() increases COM1 to 460800bps
             platformGnssCommunicationRate = 115200 * 4;
         }
         else
