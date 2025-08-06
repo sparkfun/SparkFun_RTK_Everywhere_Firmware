@@ -3436,8 +3436,33 @@ bool settingAvailableOnPlatform(int i)
     return true;
 }
 
+// Determine if the setting is possible on this platform
+bool settingPossibleOnPlatform(int i)
+{
+    do
+    {
+        // Verify that the command is available on the platform
+        if ((productVariant == RTK_EVK) && rtkSettingsEntries[i].platEvk)
+            break;
+        if ((productVariant == RTK_FACET_V2) && rtkSettingsEntries[i].platFacetV2)
+            break;
+        if ((productVariant == RTK_FACET_V2_LBAND) && rtkSettingsEntries[i].platFacetV2LBand)
+            break;
+        if ((productVariant == RTK_FACET_MOSAIC) && rtkSettingsEntries[i].platFacetMosaic)
+            break;
+        if ((productVariant == RTK_TORCH) && rtkSettingsEntries[i].platTorch)
+            break;
+        if ((productVariant == RTK_POSTCARD) && rtkSettingsEntries[i].platPostcard)
+            break;
+        if ((productVariant == RTK_FLEX) && (rtkSettingsEntries[i].platFlex > FFN))
+            break;
+        return false;
+    } while (0);
+    return true;
+}
+
 // Allocate and fill the commandIndex table
-bool commandIndexFill()
+bool commandIndexFill(bool usePossibleSettings)
 {
     int i;
     const char *iCommandName;
@@ -3450,14 +3475,26 @@ bool commandIndexFill()
     commandCount = 0;
     for (i = 0; i < numRtkSettingsEntries; i++)
     {
-        if (settingAvailableOnPlatform(i))
-            commandCount += 1;
+        if (usePossibleSettings)
+        {
+            // commandIndexFill is called after identifyBoard. On Flex, we don't yet know
+            // the detectedGnssReceiver, so we have to use settingPossibleOnPlatform
+            if (settingPossibleOnPlatform(i))
+                commandCount += 1;
+        }
+        else
+        {
+            if (settingAvailableOnPlatform(i))
+                commandCount += 1;
+        }
     }
     commandCount += COMMAND_COUNT - 1;
 
     // Allocate the command array. Never freed
     length = commandCount * sizeof(*commandIndex);
 
+    if (commandIndex)
+        rtkFree(commandIndex, "Command index array (commandIndex)");
     commandIndex = (int16_t *)rtkMalloc(length, "Command index array (commandIndex)");
     if (!commandIndex)
     {
@@ -3469,8 +3506,18 @@ bool commandIndexFill()
     // Initialize commandIndex with index values into rtkSettingsEntries
     commandCount = 0;
     for (i = 0; i < numRtkSettingsEntries; i++)
-        if (settingAvailableOnPlatform(i))
-            commandIndex[commandCount++] = i;
+    {
+        if (usePossibleSettings)
+        {
+            if (settingPossibleOnPlatform(i))
+                commandIndex[commandCount++] = i;
+        }
+        else
+        {
+            if (settingAvailableOnPlatform(i))
+                commandIndex[commandCount++] = i;
+        }
+    }
 
     // Add the man-machine interface commands to the list
     for (i = 1; i < COMMAND_COUNT; i++)

@@ -1739,7 +1739,8 @@ void GNSS_MOSAIC::menuConstellations()
 
         for (int x = 0; x < MAX_MOSAIC_CONSTELLATIONS; x++)
         {
-            systemPrintf("%d) Constellation %s: ", x + 1, mosaicSignalConstellations[x].name);
+            const char *ptr = mosaicSignalConstellations[x].configName;
+            systemPrintf("%d) Constellation %s: ", x + 1, ptr);
             if (settings.mosaicConstellations[x] > 0)
                 systemPrint("Enabled");
             else

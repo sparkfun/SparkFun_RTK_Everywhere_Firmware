@@ -892,7 +892,7 @@ unsigned long loraLastIncomingSerial; // Last time a user sent a serial command.
 
 // Display boot times
 //-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
-#define MAX_BOOT_TIME_ENTRIES 42
+#define MAX_BOOT_TIME_ENTRIES 43
 uint8_t bootTimeIndex;
 uint32_t bootTime[MAX_BOOT_TIME_ENTRIES];
 const char *bootTimeString[MAX_BOOT_TIME_ENTRIES];
@@ -1190,7 +1190,7 @@ void setup()
     identifyBoard(); // Determine what hardware platform we are running on.
 
     DMW_b("commandIndexFill");
-    if (!commandIndexFill()) // Initialize the command table index
+    if (!commandIndexFill(true)) // Initialize the command table index using possible settings
         reportFatalError("Failed to allocate and fill the commandIndex!");
 
     DMW_b("beginBoard");
@@ -1238,6 +1238,7 @@ void setup()
     DMW_b("verifyTables");
     verifyTables(); // Verify the consistency of the internal tables
 
+    DMW_b("beginVersion");
     beginVersion(); // Assemble platform name. Requires settings/LFS.
 
     DMW_b("displaySplash");
@@ -1249,7 +1250,13 @@ void setup()
     DMW_b("loadSettings");
     loadSettings(); // Attempt to load settings after SD is started so we can read the settings file if available
 
+    DMW_b("gnssDetectReceiverType");
     gnssDetectReceiverType(); // If we don't know the receiver from the platform, auto-detect it. Uses settings.
+
+    DMW_b("commandIndexFill (2)");
+    commandIndexFill(false); // Shrink the commandIndex table now we're certain what GNSS we have
+    loadSettings();
+    recordSystemSettings();
 
     DMW_b("beginGnssUart");
     beginGnssUart(); // Requires settings. Start the UART connected to the GNSS receiver on core 0. Start before
