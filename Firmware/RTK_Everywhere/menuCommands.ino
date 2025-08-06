@@ -3420,8 +3420,17 @@ bool settingAvailableOnPlatform(int i)
             break;
         if ((productVariant == RTK_POSTCARD) && rtkSettingsEntries[i].platPostcard)
             break;
-        if ((productVariant == RTK_FLEX) && rtkSettingsEntries[i].platFlex)
-            break;
+        if (productVariant == RTK_FLEX)
+        {
+            // TODO: check if we need to tighten up the logic here
+            // Maybe settings.detectedGnssReceiver and Facet_Flex_Variant should be amalgamated somehow?
+            if (rtkSettingsEntries[i].platFlex == FFA) // All
+                break;
+            if ((rtkSettingsEntries[i].platFlex == FFL) && (settings.detectedGnssReceiver == GNSS_RECEIVER_LG290P))
+                break;
+            if ((rtkSettingsEntries[i].platFlex == FFM) && (settings.detectedGnssReceiver == GNSS_RECEIVER_MOSAIC_X5))
+                break;
+        }
         return false;
     } while (0);
     return true;
