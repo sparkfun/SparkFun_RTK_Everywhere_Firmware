@@ -262,7 +262,8 @@ void beginTilt()
 {
     tiltSensor = new IM19();
 
-    SerialForTilt = new HardwareSerial(1); // Use UART1 on the ESP32 to receive IMU corrections
+    if (SerialForTilt == nullptr)
+        SerialForTilt = new HardwareSerial(1); // Use UART1 on the ESP32 to receive IMU corrections
 
     SerialForTilt->setRxBufferSize(1024 * 1);
 
