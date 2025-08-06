@@ -664,10 +664,11 @@ void beginBoard()
         present.invertedFastPowerOff = true;
         present.gnss_to_uart = true;
         present.gnss_to_uart2 = true;
-        present.needsExternalPpl = true;     // Uses the PointPerfect Library
         present.microSdCardDetectLow = true; // Except microSD is connected to mosaic... present.microSd is false
+
         present.minCno = true;
         present.minElevation = true;
+        present.needsExternalPpl = true; // Uses the PointPerfect Library for L-Band
         present.dynamicModel = true;
 
         pin_muxA = 2;
