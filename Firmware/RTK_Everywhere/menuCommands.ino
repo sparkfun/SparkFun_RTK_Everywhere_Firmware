@@ -3220,6 +3220,8 @@ void commandList(bool inCommands, int i)
         }
     }
     break;
+
+#ifdef COMPILE_MOSAICX5
     case tMosaicConst: {
         // Record Mosaic Constellations
         for (int x = 0; x < rtkSettingsEntries[i].qualifier; x++)
@@ -3303,6 +3305,7 @@ void commandList(bool inCommands, int i)
         }
     }
     break;
+#endif // COMPILE_MOSAICX5
 
 #ifdef COMPILE_LG290P
     case tLgMRNmea: {
