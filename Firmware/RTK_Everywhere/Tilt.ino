@@ -1032,7 +1032,7 @@ void tiltDetect()
     tiltSensor = new IM19();
 
     // On Flex, ESP UART2 is connected to SW3, then UART3 of the GNSS (where a tilt module resides, if populated)
-    HardwareSerial SerialTiltTest(2); // Use UART2 on the ESP32 to communicate with IMU
+    HardwareSerial SerialTiltTest(1); // Use UART1 on the ESP32 to communicate with IMU
 
     // Confirm SW3 is in the correct position
     gpioExpanderSelectImu();
@@ -1055,10 +1055,13 @@ void tiltDetect()
             settings.detectedTilt = true;
         }
     }
+
+    SerialTiltTest.end(); // Release UART1 for reuse
+
 #endif // COMPILE_IM19_IMU
 
-    // if (settings.enableImuDebug == true && settings.detectedTilt == false)
-    systemPrintln("Tilt sensor not detected");
+    // if (settings.enableImuDebug == true)
+    systemPrintf("Tilt sensor %sdetected\r\n",  settings.detectedTilt ? "" : "not ");
 
     settings.testedTilt = true;
     recordSystemSettings();
