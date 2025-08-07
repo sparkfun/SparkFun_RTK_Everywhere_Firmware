@@ -1315,6 +1315,9 @@ void beginButtons()
         if (beginGpioExpander(0x20) == false)
         {
             systemPrintln("Directional pad not detected");
+
+            present.microSd = false;
+
             return;
         }
     }
