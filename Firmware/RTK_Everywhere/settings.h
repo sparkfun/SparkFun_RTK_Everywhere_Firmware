@@ -1211,11 +1211,6 @@ typedef enum
     CLI_LIST,
 } t_cliResult;
 
-// commandIndex is sorted alphabetically by commandIndexFill
-// We need to prevent the first this many entries from being sorted
-// Otherwise the prioritisation of the common settings fails
-const int doNotSortTheFirstThisManySettings = 7; // TODO: figure out how to calculate this during compilation
-
 const RTK_Settings_Entry rtkSettingsEntries[] =
 {
 // inWebConfig = Should this setting be sent to the WiFi/Eth Config page
@@ -1259,8 +1254,12 @@ const RTK_Settings_Entry rtkSettingsEntries[] =
     { 0, 0, 1, 1, 1, 1, 1, 1, 1, ALL, tCnRtRtB,  0, nullptr, "messageRateRTCMBase_",  },
     { 0, 0, 1, 1, 1, 1, 1, 1, 1, ALL, tCnRtRtR,  0, nullptr, "messageRateRTCMRover_",  },
 
+    // <--- Insert any new essential "priority" (non-sorted) settings above this line --->
+
+    { 0, 0, 0, 0, 0, 0, 0, 0, 0, NON, _bool,     0, nullptr, "endOfPrioritySettings",  },
+
     // =======================================================================================================
-    // Everything below here (doNotSortTheFirstThisManySettings onwards) will be sorted in commandIndex
+    // Everything below here will be sorted (alphabetised) in commandIndex
     // =======================================================================================================
 
     // Antenna

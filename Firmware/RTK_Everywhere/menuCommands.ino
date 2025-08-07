@@ -3602,8 +3602,24 @@ bool commandIndexFill(bool usePossibleSettings)
     for (i = 1; i < COMMAND_COUNT; i++)
         commandIndex[commandCount++] = -i;
 
-    // Sort the commands - but not the first doNotSortTheFirstThisManySettings
-    for (i = doNotSortTheFirstThisManySettings; i < commandCount - 1; i++)
+    
+    // Find "endOfPrioritySettings"
+    int prioritySettingsEnd = 0;
+    for (i = 0; i < numRtkSettingsEntries; i++)
+    {
+        if (strcmp(rtkSettingsEntries[i].name, "endOfPrioritySettings") == 0)
+        {
+            prioritySettingsEnd = i;
+            if (settings.debugSettings)
+                systemPrintf("endOfPrioritySettings found at entry %d\r\n", prioritySettingsEnd);
+            break;
+        }
+    }
+    // If "endOfPrioritySettings" is not found, prioritySettingsEnd will be zero
+    // and all settings will be sorted. Just like the good old days...
+
+    // Sort the commands - starting at 
+    for (i = prioritySettingsEnd; i < commandCount - 1; i++)
     {
         iCommandName = commandGetName(0, commandIndex[i]);
         for (j = i + 1; j < commandCount; j++)
