@@ -96,6 +96,9 @@ jobs:
           "SparkFun UM980 Triband RTK GNSS Arduino Library"@1.0.5
           "SparkFun LG290P Quadband RTK GNSS Arduino Library"@1.0.8
           "SparkFun I2C Expander Arduino Library"@1.0.1
+          "SparkFun Apple Accessory Arduino Library"@1.0.0
+          "SparkFun Authentication Coprocessor Arduino Library"@1.0.0
+          "SparkFun Toolkit"@1.0.6
 
       - name: Patch libmbedtls
         run: |
@@ -109,6 +112,11 @@ jobs:
         run: |
           cd Firmware/RTK_Everywhere/Patch/
           cp NetworkEvents.* /home/runner/.arduino15/packages/esp32/hardware/esp32/${{ env.CORE_VERSION }}/libraries/Network/src/
+
+      - name: Patch libbt
+        run: |
+          cd Firmware/RTK_Everywhere/Patch/
+          cp libbt.a /home/runner/.arduino15/packages/esp32/tools/esp32-arduino-libs/${{ env.ESP_IDF }}/esp32/lib/libbt.a
 
       - name: Setup Python
         uses: actions/setup-python@v4
@@ -161,7 +169,7 @@ jobs:
           mv RTK_Everywhere.ino.bin ${{ env.ARTIFACT }}
 
       - name: Upload artifact directory to action - avoid double-zip
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: ${{ env.ARTIFACT }}
           path: Firmware/RTK_Everywhere/build/esp32.esp32.esp32/${{ env.ARTIFACT }}

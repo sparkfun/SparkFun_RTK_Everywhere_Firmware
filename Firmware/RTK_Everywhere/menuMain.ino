@@ -153,6 +153,11 @@ void menuMain()
             systemPrint("** Bluetooth Low-Energy broadcasting as: ");
             systemPrint(deviceName);
         }
+        else if (settings.bluetoothRadioType == BLUETOOTH_RADIO_SPP_ACCESSORY_MODE)
+        {
+            systemPrint("** Bluetooth SPP (Accessory Mode) broadcasting as: ");
+            systemPrint(deviceName);
+        }
         else if (settings.bluetoothRadioType == BLUETOOTH_RADIO_OFF)
         {
             systemPrint("** Bluetooth Turned Off");
@@ -563,6 +568,8 @@ void mmDisplayBluetoothRadioMenu(char menuChar, BluetoothRadioType_e bluetoothUs
         systemPrintln("Classic");
     else if (bluetoothUserChoice == BLUETOOTH_RADIO_BLE)
         systemPrintln("BLE");
+    else if (bluetoothUserChoice == BLUETOOTH_RADIO_SPP_ACCESSORY_MODE)
+        systemPrintln("Classic - Accessory Mode");
     else
         systemPrintln("Off");
 }
@@ -576,6 +583,8 @@ BluetoothRadioType_e mmChangeBluetoothProtocol(BluetoothRadioType_e bluetoothUse
     else if (bluetoothUserChoice == BLUETOOTH_RADIO_SPP)
         bluetoothUserChoice = BLUETOOTH_RADIO_BLE;
     else if (bluetoothUserChoice == BLUETOOTH_RADIO_BLE)
+        bluetoothUserChoice = BLUETOOTH_RADIO_SPP_ACCESSORY_MODE;
+    else if (bluetoothUserChoice == BLUETOOTH_RADIO_SPP_ACCESSORY_MODE)
         bluetoothUserChoice = BLUETOOTH_RADIO_OFF;
     else if (bluetoothUserChoice == BLUETOOTH_RADIO_OFF)
         bluetoothUserChoice = BLUETOOTH_RADIO_SPP_AND_BLE;

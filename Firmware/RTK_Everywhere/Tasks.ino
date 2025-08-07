@@ -576,6 +576,121 @@ void gnssReadTask(void *e)
     vTaskDelete(NULL);
 }
 
+// Force the NMEA Talker ID - if needed
+void forceTalkerId(const char *Id, char *msg, size_t maxLen)
+{
+    if (msg[2] == *Id)
+        return; // Nothing to do
+
+    char oldTalker = msg[2];
+    msg[2] = *Id; // Force the Talker ID
+    
+    // Update the checksum: XOR chars between '$' and '*'
+    size_t len = 1;
+    uint8_t csum = 0;
+    while ((len < maxLen) && (msg[len] != '*'))
+        csum = csum ^ msg[len++]; 
+
+    if (len >= (maxLen - 3))
+    {
+        // Something went horribly wrong. Restore the Talker ID
+        msg[2] = oldTalker;
+        return;
+    }
+
+    len++; // Point at the checksum and update it
+    sprintf(&msg[len], "%02X", csum);
+}
+
+// Force the RMC COG entry - if needed
+void forceRmcCog(char *msg, size_t maxLen)
+{
+    const char *noCog = "0.0";
+
+    if (strstr(msg, "RMC") == nullptr)
+        return; // Nothing to do
+
+    if (maxLen < (strlen(msg) + strlen(noCog)))
+        return; // No room for the COG!
+
+    // Find the start of COG ("Track made good") - after the 8th comma
+    int numCommas = 0;
+    size_t len = 0;
+    while ((numCommas < 8) && (len < maxLen))
+    {
+        if (msg[len++] == ',')
+            numCommas++;
+    }
+
+    if (len >= maxLen) // Something went horribly wrong
+        return;
+
+    // If the next char is not a ',' - there's nothing to do
+    if (msg[len] != ',')
+        return;
+
+    // If the next char is a ',' - add "0.0" manually
+    // Start by creating space for the "0.0"
+    for (size_t i = strlen(msg); i > len; i--) // Work backwards from the NULL
+        msg[i + strlen(noCog)] = msg[i];
+
+    // Now insert the "0.0"
+    memcpy(&msg[len], noCog, strlen(noCog));
+
+    // Update the checksum: XOR chars between '$' and '*'
+    len = 1;
+    uint8_t csum = 0;
+    while ((len < maxLen) && (msg[len] != '*'))
+        csum = csum ^ msg[len++]; 
+    len++; // Point at the checksum and update it
+    sprintf(&msg[len], "%02X", csum);
+}
+
+// Remove the RMC Navigational Status field - if needed
+void removeRmcNavStat(char *msg, size_t maxLen)
+{
+    if (strstr(msg, "RMC") == nullptr)
+        return; // Nothing to do
+
+    // Find the start of Nav Stat - at the 13th comma
+    int numCommas = 0;
+    size_t len = 0;
+    while ((numCommas < 13) && (msg[len] != '*') && (len < maxLen))
+    {
+        if (msg[len++] == ',')
+            numCommas++;
+    }
+
+    if (len >= (maxLen - 3)) // Something went horribly wrong
+        return;
+
+    // If the next char is '*' - there's nothing to do
+    if ((msg[len] == '*') || (numCommas < 13))
+        return;
+
+    // Find the asterix. (NavStatus should be a single char)
+    size_t asterix = len;
+    len--;
+
+    while ((msg[asterix] != '*') && (asterix < maxLen))
+        asterix++;
+
+    if (msg[asterix] != '*') // Something went horribly wrong
+        return;
+
+    // Delete the NavStat
+    for (size_t i = 0; i < (strlen(msg) + 1 - asterix); i++) // Copy the * CSUM NULL
+        msg[len + i] = msg[asterix + i];
+
+    // Update the checksum: XOR chars between '$' and '*'
+    len = 1;
+    uint8_t csum = 0;
+    while ((len < maxLen) && (msg[len] != '*'))
+        csum = csum ^ msg[len++]; 
+    len++; // Point at the checksum and update it
+    sprintf(&msg[len], "%02X", csum);
+}
+
 // Call back from within parser, for end of message
 // Process a complete message incoming from parser
 // If we get a complete NMEA/UBX/RTCM message, pass on to SD/BT/TCP/UDP interfaces
@@ -627,6 +742,53 @@ void processUart1Message(SEMP_PARSE_STATE *parse, uint16_t type)
             systemPrintf("%s %s, 0x%04x (%d) bytes\r\n", parse->parserName, parserNames[type], parse->length,
                          parse->length);
             break;
+        }
+    }
+
+    // Save GGA / RMC / GST for the Apple device
+    // We should optimse this with a Lee table... TODO
+    if ((online.authenticationCoPro) && (type == RTK_NMEA_PARSER_INDEX))
+    {
+        if (strstr(sempNmeaGetSentenceName(parse), "GGA") != nullptr)
+        {
+            if (parse->length < latestNmeaMaxLen)
+            {
+                memcpy(latestGPGGA, parse->buffer, parse->length);
+                latestGPGGA[parse->length] = 0; // NULL terminate
+                if ((strlen(latestGPGGA) > 10) && (latestGPGGA[strlen(latestGPGGA) - 2] == '\r'))
+                    latestGPGGA[strlen(latestGPGGA) - 2] = 0; // Truncate the \r\n
+                forceTalkerId("P",latestGPGGA,latestNmeaMaxLen);
+            }
+            else
+                systemPrintf("Increase latestNmeaMaxLen to > %d\r\n", parse->length);
+        }
+        else if (strstr(sempNmeaGetSentenceName(parse), "RMC") != nullptr)
+        {
+            if (parse->length < latestNmeaMaxLen)
+            {
+                memcpy(latestGPRMC, parse->buffer, parse->length);
+                latestGPRMC[parse->length] = 0; // NULL terminate
+                if ((strlen(latestGPRMC) > 10) && (latestGPRMC[strlen(latestGPRMC) - 2] == '\r'))
+                    latestGPRMC[strlen(latestGPRMC) - 2] = 0; // Truncate the \r\n
+                forceTalkerId("P",latestGPRMC,latestNmeaMaxLen);
+                forceRmcCog(latestGPRMC,latestNmeaMaxLen);
+                removeRmcNavStat(latestGPRMC,latestNmeaMaxLen);
+            }
+            else
+                systemPrintf("Increase latestNmeaMaxLen to > %d\r\n", parse->length);
+        }
+        else if (strstr(sempNmeaGetSentenceName(parse), "GST") != nullptr)
+        {
+            if (parse->length < latestNmeaMaxLen)
+            {
+                memcpy(latestGPGST, parse->buffer, parse->length);
+                latestGPGST[parse->length] = 0; // NULL terminate
+                if ((strlen(latestGPGST) > 10) && (latestGPGST[strlen(latestGPGST) - 2] == '\r'))
+                    latestGPGST[strlen(latestGPGST) - 2] = 0; // Truncate the \r\n
+                forceTalkerId("P",latestGPGST,latestNmeaMaxLen);
+            }
+            else
+                systemPrintf("Increase latestNmeaMaxLen to > %d\r\n", parse->length);
         }
     }
 
@@ -1157,8 +1319,10 @@ void handleGnssDataTask(void *e)
 
             startMillis = millis();
 
-            // Determine BT connection state
-            bool connected = (bluetoothGetState() == BT_CONNECTED);
+            // Determine BT connection state. Discard the data if in BLUETOOTH_RADIO_SPP_ACCESSORY_MODE
+            bool connected = false;
+            if (settings.bluetoothRadioType != BLUETOOTH_RADIO_SPP_ACCESSORY_MODE)
+                connected = (bluetoothGetState() == BT_CONNECTED);
 
             if (!connected)
                 // Discard the data

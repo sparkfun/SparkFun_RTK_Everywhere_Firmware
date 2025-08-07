@@ -7,7 +7,9 @@
 
 #include <BleSerial.h> //Click here to get the library: http://librarymanager/All#ESP32_BleSerial by Avinab Malla
 
-class BTSerialInterface
+#include "esp_sdp_api.h"
+
+class BTSerialInterface : public virtual Stream
 {
   public:
     virtual bool begin(String deviceName, bool isMaster, bool disableBLE, uint16_t rxQueueSize, uint16_t txQueueSize,
@@ -21,12 +23,20 @@ class BTSerialInterface
     virtual int available() = 0;
     virtual size_t readBytes(uint8_t *buffer, size_t bufferSize) = 0;
     virtual int read() = 0;
+    virtual int peek() = 0;
 
     // virtual bool isCongested() = 0;
     virtual size_t write(const uint8_t *buffer, size_t size) = 0;
     virtual size_t write(uint8_t value) = 0;
     virtual void flush() = 0;
+    virtual bool connect(uint8_t remoteAddress[], int channel,
+                         esp_spp_sec_t sec_mask = (ESP_SPP_SEC_ENCRYPT | ESP_SPP_SEC_AUTHENTICATE),
+                         esp_spp_role_t role = ESP_SPP_ROLE_MASTER) = 0; // Needed for Apple Accessory
     virtual bool connected() = 0;
+    virtual void enableSSP(bool inputCapability, bool outputCapability) = 0;
+    virtual bool aclConnected() = 0;
+    virtual uint8_t *aclGetAddress() = 0;
+    virtual std::map<int, std::string> getChannels(const BTAddress &remoteAddress) = 0;
 };
 
 class BTClassicSerial : public virtual BTSerialInterface, public BluetoothSerial
@@ -75,6 +85,11 @@ class BTClassicSerial : public virtual BTSerialInterface, public BluetoothSerial
         return BluetoothSerial::read();
     }
 
+    int peek()
+    {
+        return BluetoothSerial::peek();
+    }
+
     size_t write(const uint8_t *buffer, size_t size)
     {
         return BluetoothSerial::write(buffer, size);
@@ -90,9 +105,36 @@ class BTClassicSerial : public virtual BTSerialInterface, public BluetoothSerial
         BluetoothSerial::flush();
     }
 
+    bool connect(uint8_t remoteAddress[], int channel,
+                 esp_spp_sec_t sec_mask = (ESP_SPP_SEC_ENCRYPT | ESP_SPP_SEC_AUTHENTICATE),
+                 esp_spp_role_t role = ESP_SPP_ROLE_MASTER)
+    {
+        return (BluetoothSerial::connect(remoteAddress, channel, sec_mask, role));
+    }
+
     bool connected()
     {
         return (BluetoothSerial::connected());
+    }
+
+    void enableSSP(bool inputCapability, bool outputCapability)
+    {
+        return (BluetoothSerial::enableSSP(inputCapability, outputCapability));
+    }
+
+    bool aclConnected()
+    {
+        return (BluetoothSerial::aclConnected());
+    }
+
+    uint8_t *aclGetAddress()
+    {
+        return (BluetoothSerial::aclGetAddress());
+    }
+
+    std::map<int, std::string> getChannels(const BTAddress &remoteAddress)
+    {
+        return (BluetoothSerial::getChannels(remoteAddress));
     }
 };
 
@@ -144,6 +186,11 @@ class BTLESerial : public virtual BTSerialInterface, public BleSerial
         return BleSerial::read();
     }
 
+    int peek()
+    {
+        return BleSerial::peek();
+    }
+
     size_t write(const uint8_t *buffer, size_t size)
     {
         return BleSerial::write(buffer, size);
@@ -159,9 +206,32 @@ class BTLESerial : public virtual BTSerialInterface, public BleSerial
         BleSerial::flush();
     }
 
+    bool connect(uint8_t remoteAddress[], int channel, esp_spp_sec_t sec_mask, esp_spp_role_t role)
+    {
+        return false;
+    }
+
     bool connected()
     {
         return (BleSerial::connected());
+    }
+
+    void enableSSP(bool inputCapability, bool outputCapability) {}
+
+    bool aclConnected()
+    {
+        return false;
+    }
+
+    uint8_t *aclGetAddress()
+    {
+        return nullptr;
+    }
+
+    std::map<int, std::string> getChannels(const BTAddress &remoteAddress)
+    {
+        std::map<int, std::string> empty;
+        return empty;
     }
 
     // Callbacks removed in v2 of BleSerial. Using polled connected() in bluetoothUpdate()

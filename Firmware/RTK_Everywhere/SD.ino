@@ -107,7 +107,7 @@ bool sdCardPresent(void)
         }
         else
         {
-            reportFatalError("sdCardPresent: gpioExpander not online.");
+            //reportFatalError("sdCardPresent: gpioExpander not online.");
             return (false);
         }
     }

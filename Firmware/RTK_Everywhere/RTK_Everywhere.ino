@@ -85,6 +85,10 @@
 #define COMPILE_ETHERNET // Comment out to remove Ethernet (W5500) support
 #define COMPILE_CELLULAR // Comment out to remove cellular modem support
 
+#ifdef COMPILE_BT
+#define COMPILE_AUTHENTICATION // Comment out to disable MFi authentication
+#endif
+
 #ifdef COMPILE_WIFI
 #define COMPILE_AP     // Requires WiFi. Comment out to remove Access Point functionality
 #define COMPILE_ESPNOW // Requires WiFi. Comment out to remove ESP-Now functionality.
@@ -283,6 +287,7 @@ int gpioExpander_cardDetect = 5;
 TwoWire *i2c_0 = nullptr;
 TwoWire *i2c_1 = nullptr;
 TwoWire *i2cDisplay = nullptr;
+TwoWire *i2cAuthCoPro = nullptr;
 //-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 
 // LittleFS for storing settings for different user profiles
@@ -773,12 +778,37 @@ uint8_t gpioExpander_lastReleased = 255;
 
 //=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 
+// MFi Authentication Coprocessor
+//=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
+#ifdef COMPILE_AUTHENTICATION
+
+#include <SparkFun_Apple_Accessory.h> // Click here to get the library: http://librarymanager/All#SparkFun_Apple_Accessory_Arduino_Library
+
+SparkFunAppleAccessoryDriver *appleAccessory; // Instantiated by beginAuthCoPro
+
+const char *sdp_service_name = "iAP2";
+
+static const uint8_t  UUID_IAP2[] = {0x00, 0x00, 0x00, 0x00, 0xDE, 0xCA, 0xFA, 0xDE, 0xDE, 0xCA, 0xDE, 0xAF, 0xDE, 0xCA, 0xCA, 0xFF};
+
+#endif
+
+// Storage for the latest NMEA GPGGA/GPRMC/GPGST - to be passed to the MFi Apple device
+// We should optimse this with a Lee table... TODO
+const size_t latestNmeaMaxLen = 100;
+char *latestGPGGA;
+char *latestGPRMC;
+char *latestGPGST;
+
+//=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
+
 // Global variables
 //-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 uint8_t wifiMACAddress[6];     // Display this address in the system menu
 uint8_t btMACAddress[6];       // Display this address when Bluetooth is enabled, otherwise display wifiMACAddress
 uint8_t ethernetMACAddress[6]; // Display this address when Ethernet is enabled, otherwise display wifiMACAddress
 char deviceName[70];           // The serial string that is broadcast. Ex: 'EVK Base-BC61'
+char serialNumber[5];          // The serial number for MFi. Ex: 'BC61'
+char deviceFirmware[9];        // The firmware version for MFi. Ex: 'v2.2'
 const uint16_t menuTimeout = 60 * 10; // Menus will exit/timeout after this number of seconds
 int systemTime_minutes;               // Used to test if logging is less than max minutes
 uint32_t powerPressedStartTime;       // Times how long the user has been holding the power button, used for power down
@@ -1230,6 +1260,9 @@ void setup()
     DMW_b("beginDisplay");
     beginDisplay(i2cDisplay); // Start display to be able to display any errors
 
+    DMW_b("beginAuthCoPro");
+    beginAuthCoPro(i2cAuthCoPro); // Discover and start authentication coprocessor
+
     DMW_b("verifyTables");
     verifyTables(); // Verify the consistency of the internal tables
 
@@ -1414,6 +1447,9 @@ void loop()
 
     DMW_c("networkUpdate");
     networkUpdate(); // Maintain the network connections
+
+    DMW_c("updateAuthCoPro");
+    updateAuthCoPro(); // Update the Apple Accessory
 
     DMW_c("updateLBand");
     updateLBand(); // Update L-Band

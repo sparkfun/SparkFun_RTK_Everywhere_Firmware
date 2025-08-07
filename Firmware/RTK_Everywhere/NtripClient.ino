@@ -760,6 +760,7 @@ void ntripClientUpdate()
                 {
                     systemPrintf("Caster may not have mountpoint %s. Caster responded with problem: %s\r\n",
                                  settings.ntripClient_MountPoint, response);
+                    systemPrintln("ntripClient shutdown. Please update the mountpoint and reconnect");
 
                     // Stop NTRIP client operations
                     ntripClientForceShutdown();

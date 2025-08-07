@@ -72,6 +72,7 @@ void identifyBoard()
     getMacAddresses(wifiMACAddress, "wifiMACAddress", ESP_MAC_WIFI_STA, true);
     getMacAddresses(btMACAddress, "btMACAddress", ESP_MAC_BT, true);
     getMacAddresses(ethernetMACAddress, "ethernetMACAddress", ESP_MAC_ETH, true);
+    snprintf(serialNumber, sizeof(serialNumber), "%02X%02X", btMACAddress[4], btMACAddress[5]);
 
     // First, test for devices that do not have ID resistors
     if (productVariant == RTK_UNKNOWN)
@@ -697,6 +698,7 @@ void beginBoard()
         present.fuelgauge_max17048 = true;
         present.display_i2c0 = true;
         present.i2c0BusSpeed_400 = true; // Run display bus at higher speed
+        present.i2c1 = true; // Qwiic bus
         present.display_type = DISPLAY_128x64;
         present.microSd = true;
         present.gpioExpander = true;
@@ -708,6 +710,9 @@ void beginBoard()
 
         pin_I2C0_SDA = 7;
         pin_I2C0_SCL = 20;
+
+        pin_I2C1_SDA = 13;
+        pin_I2C1_SCL = 19;
 
         pin_GnssUart_RX = 21;
         pin_GnssUart_TX = 22;
@@ -744,6 +749,8 @@ void beginBoard()
 
 void beginVersion()
 {
+    firmwareVersionGet(deviceFirmware, sizeof(deviceFirmware), false);
+
     char versionString[21];
     firmwareVersionGet(versionString, sizeof(versionString), true);
 
@@ -1307,7 +1314,10 @@ void beginButtons()
     {
         if (beginGpioExpander(0x20) == false)
         {
-            systemPrintln("Directional pad not detected");
+            systemPrintln("Portability Shield not detected");
+
+            present.microSd = false;
+
             return;
         }
     }
@@ -1589,6 +1599,12 @@ bool i2cBusInitialization(TwoWire *i2cBus, int sda, int scl, int clockKHz)
 
             case 0x0B: {
                 systemPrintf("  0x%02X - BQ40Z50 Battery Pack Manager / Fuel gauge\r\n", addr);
+                break;
+            }
+
+            case 0x10: {
+                systemPrintf("  0x%02X - MFI343S00177 Authentication Coprocessor\r\n", addr);
+                i2cAuthCoPro = i2cBus; // Record the bus
                 break;
             }
 
