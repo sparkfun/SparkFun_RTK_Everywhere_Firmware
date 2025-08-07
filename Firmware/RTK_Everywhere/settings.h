@@ -1153,19 +1153,24 @@ typedef enum {
     tLgMRPqtm,
     tLgConst,
     tGnssReceiver,
+
+    tCmnCnst,
+    tCmnRtNm,
+    tCnRtRtB,
+    tCnRtRtR,
     // Add new settings types above <---------------->
     // (Maintain the enum of existing settings types!)
 } RTK_Settings_Types;
 
 typedef enum
 {
-    FFN = 0, // NONE
+    FFN = 0, // NONE - must be first
     FFL, // LG290P - No Tilt
     FFM, // mosaic-X5 - No Tilt
-    FFZ, // ZED-X20P - Tilt TBC
     FFU, // UM980 - Tilt TBC
+    FFZ, // ZED-X20P - Tilt TBC
     // <-- ADD NEW VARIANTS ABOVE THIS LINE -->
-    FFA, // ALL
+    FFA, // ALL - must be last
 } Facet_Flex_Variant;
 
 typedef struct
@@ -1205,6 +1210,11 @@ typedef enum
     CLI_LIST,
 } t_cliResult;
 
+// commandIndex is sorted alphabetically by commandIndexFill
+// We need to prevent the first this many entries from being sorted
+// Otherwise the prioritisation of the common settings fails
+const int doNotSortTheFirstThisManySettings = 7; // TODO: figure out how to calculate this during compilation
+
 const RTK_Settings_Entry rtkSettingsEntries[] =
 {
 // inWebConfig = Should this setting be sent to the WiFi/Eth Config page
@@ -1227,10 +1237,30 @@ const RTK_Settings_Entry rtkSettingsEntries[] =
 //    i  d  i  v  V  i  c  n  r  e
 //    g  s  x  k  2  c  h  d  d  x    Type    Qual  Variable                  Name
 
-    // Detected GNSS Receiver (for Flex). Save / load first so Flex settting availability can be correctly validated
+    // Detected GNSS Receiver - for Flex. Save / load first so settingAvailableOnPlatform is correct on Flex
     { 0, 0, 0, 0, 0, 0, 0, 0, 0, FFA, tGnssReceiver,     0, & settings.detectedGnssReceiver, "detectedGnssReceiver",  },
     { 0, 0, 0, 0, 0, 0, 0, 0, 0, FFA, _bool,     0, & settings.detectedTilt, "detectedTilt",  },
     { 0, 0, 0, 0, 0, 0, 0, 0, 0, FFA, _bool,     0, & settings.testedTilt, "testedTilt",  },
+
+    // Common settings which use the same name on multiple Facet Flex platforms
+    // We need these - for Facet Flex - because:
+    //   During setup, the settings are loaded before we know which GNSS is present
+    //   Previously, the setting would be applied to whichever GNSS is matched first alphabetically
+    //   We need to apply these settings to all GNSS initially so that when we 
+    //   write the actual settings (vs the possible settings), the settings for
+    //   that GNSS are correct
+    //   (recordSystemSettings is called in multiple places: beginVersion, gnssDetectReceiverType, etc.)
+    // constellation_ is common to all GNSS, but not all support (e.g.) NavIC
+    // messageRateNMEA_, messageRateRTCMBase_, and messageRateRTCMRover_ are common to UM980 and LG290P
+    // The qualifier is defined inside updateSettingWithValue, parseLine
+    { 0, 0, 1, 1, 1, 1, 1, 1, 1, FFA, tCmnCnst,  0, nullptr, "constellation_",  },
+    { 0, 0, 1, 1, 1, 1, 1, 1, 1, FFA, tCmnRtNm,  0, nullptr, "messageRateNMEA_",  },
+    { 0, 0, 1, 1, 1, 1, 1, 1, 1, FFA, tCnRtRtB,  0, nullptr, "messageRateRTCMBase_",  },
+    { 0, 0, 1, 1, 1, 1, 1, 1, 1, FFA, tCnRtRtR,  0, nullptr, "messageRateRTCMRover_",  },
+
+    // =======================================================================================================
+    // Everything below here (doNotSortTheFirstThisManySettings onwards) will be sorted in commandIndex
+    // =======================================================================================================
 
     // Antenna
     { 1, 1, 0, 1, 1, 1, 1, 1, 1, FFA, _int16_t,  0, & settings.antennaHeight_mm, "antennaHeight_mm",  },
