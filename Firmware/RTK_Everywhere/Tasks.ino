@@ -392,6 +392,7 @@ void gnssReadTask(void *e)
         sempEnableDebugOutput(rtkParse);
 
     bool sbfParserNeeded = present.gnss_mosaicX5;
+    bool spartnParserNeeded = present.gnss_mosaicX5 && (productVariant != RTK_FLEX);
 
     if (sbfParserNeeded)
     {
@@ -407,8 +408,6 @@ void gnssReadTask(void *e)
         // Uncomment the next line to enable SBF parser debug
         // But be careful - you get a lot of "SEMP: Sbf SBF, 0x0002 (2) bytes, invalid preamble2"
         // if (settings.debugGnss) sempEnableDebugOutput(sbfParse);
-
-        bool spartnParserNeeded = present.gnss_mosaicX5 && (productVariant != RTK_FLEX);
 
         if (spartnParserNeeded)
         {
@@ -519,7 +518,8 @@ void gnssReadTask(void *e)
                             if (!expected) // SBF is not expected so restart the parsers
                             {
                                 sbfParse->state = sempFirstByte;
-                                spartnParse->state = sempFirstByte;
+                                if (spartnParserNeeded)                                
+                                    spartnParse->state = sempFirstByte;
                                 if (settings.debugGnss)
                                     systemPrintf("Unexpected SBF block %d - rejected on ID or length\r\n",
                                                  scratchPad->sbf.sbfID);
@@ -559,7 +559,8 @@ void gnssReadTask(void *e)
                             if (!expected) // SBF is not expected so restart the parsers
                             {
                                 sbfParse->state = sempFirstByte;
-                                spartnParse->state = sempFirstByte;
+                                if (spartnParserNeeded)                                
+                                    spartnParse->state = sempFirstByte;
                                 if (settings.debugGnss)
                                     systemPrintf("Unexpected EncapsulatedOutput block - rejected\r\n");
                                 // We could pass the rejected bytes to the SPARTN parser but this is ~risky
