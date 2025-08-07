@@ -3495,11 +3495,11 @@ bool settingAvailableOnPlatform(int i)
         {
             // TODO: check if we need to tighten up the logic here
             // Maybe settings.detectedGnssReceiver and Facet_Flex_Variant should be amalgamated somehow?
-            if (rtkSettingsEntries[i].platFlex == FFA) // All
+            if (rtkSettingsEntries[i].platFlex == ALL) // All
                 break;
-            if ((rtkSettingsEntries[i].platFlex == FFL) && (settings.detectedGnssReceiver == GNSS_RECEIVER_LG290P))
+            if ((rtkSettingsEntries[i].platFlex == L29) && (settings.detectedGnssReceiver == GNSS_RECEIVER_LG290P))
                 break;
-            if ((rtkSettingsEntries[i].platFlex == FFM) && (settings.detectedGnssReceiver == GNSS_RECEIVER_MOSAIC_X5))
+            if ((rtkSettingsEntries[i].platFlex == MX5) && (settings.detectedGnssReceiver == GNSS_RECEIVER_MOSAIC_X5))
                 break;
         }
         return false;
@@ -3525,7 +3525,7 @@ bool settingPossibleOnPlatform(int i)
             break;
         if ((productVariant == RTK_POSTCARD) && rtkSettingsEntries[i].platPostcard)
             break;
-        if ((productVariant == RTK_FLEX) && (rtkSettingsEntries[i].platFlex > FFN))
+        if ((productVariant == RTK_FLEX) && (rtkSettingsEntries[i].platFlex > NON))
             break;
         return false;
     } while (0);
