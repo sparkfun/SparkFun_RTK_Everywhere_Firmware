@@ -380,6 +380,11 @@ static void esp_spp_cb(esp_spp_cb_event_t event, esp_spp_cb_param_t *param)
         {
             log_e("ESP_SPP_CLOSE_EVT failed!, status:%d", param->close.status);
         }
+
+        //The ESP_BT_GAP_ACL_DISCONN_CMPL_STAT_EVT event can take awhile. Mark ACL disconnected here as well.
+        memset(_aclAddress, 0, ESP_BD_ADDR_LEN);
+        _aclConnected = false;
+
         break;
 
     case ESP_SPP_START_EVT: // Enum 28 - When SPP server started
@@ -744,6 +749,9 @@ static void esp_bt_gap_cb(esp_bt_gap_cb_event_t event, esp_bt_gap_cb_param_t *pa
     case ESP_BT_GAP_ACL_DISCONN_CMPL_STAT_EVT: // Enum 17 - ACL disconnection complete status event
         log_i("ESP_BT_GAP_ACL_DISCONN_CMPL_STAT_EVT ACL disconnection complete status event: reason %d, handle %d",
               param->acl_disconn_cmpl_stat.reason, param->acl_disconn_cmpl_stat.handle);
+
+        memset(_aclAddress, 0, ESP_BD_ADDR_LEN);
+        _aclConnected = false;
         break;
 
 #if false
@@ -1713,12 +1721,7 @@ void BluetoothSerial::deleteAllBondedDevices()
 
 bool BluetoothSerial::aclConnected()
 {
-    if (_aclConnected == true)
-    {
-        _aclConnected = false;
-        return (true);
-    }
-    return (false);
+    return (_aclConnected);
 }
 
 uint8_t *BluetoothSerial::aclGetAddress()

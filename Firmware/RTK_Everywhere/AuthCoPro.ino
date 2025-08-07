@@ -89,7 +89,7 @@ void updateAuthCoPro()
             appleAccessory->update(); // Update the Accessory driver
 
             // Check for a new device connection
-            if (bluetoothSerialSpp->aclConnected() == true)
+            if (bluetoothSerialSpp->aclConnected() == true && bluetoothSerialSpp->connected() == false)
             {
                 // //
                 // https://github.com/espressif/arduino-esp32/blob/master/libraries/BluetoothSerial/examples/DiscoverConnect/DiscoverConnect.ino
