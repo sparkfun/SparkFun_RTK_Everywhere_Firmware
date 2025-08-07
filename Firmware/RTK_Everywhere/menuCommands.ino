@@ -3462,6 +3462,14 @@ bool settingPossibleOnPlatform(int i)
 }
 
 // Allocate and fill the commandIndex table
+bool commandIndexFillPossible()
+{
+    return commandIndexFill(true);
+}
+bool commandIndexFillActual()
+{
+    return commandIndexFill(false);
+}
 bool commandIndexFill(bool usePossibleSettings)
 {
     int i;

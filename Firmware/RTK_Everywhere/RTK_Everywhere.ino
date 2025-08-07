@@ -1189,8 +1189,8 @@ void setup()
     DMW_b("identifyBoard");
     identifyBoard(); // Determine what hardware platform we are running on.
 
-    DMW_b("commandIndexFill");
-    if (!commandIndexFill(true)) // Initialize the command table index using possible settings
+    DMW_b("commandIndexFillPossible");
+    if (!commandIndexFillPossible()) // Initialize the command table index using possible settings
         reportFatalError("Failed to allocate and fill the commandIndex!");
 
     DMW_b("beginBoard");
@@ -1253,10 +1253,9 @@ void setup()
     DMW_b("gnssDetectReceiverType");
     gnssDetectReceiverType(); // If we don't know the receiver from the platform, auto-detect it. Uses settings.
 
-    DMW_b("commandIndexFill (2)");
-    commandIndexFill(false); // Shrink the commandIndex table now we're certain what GNSS we have
-    loadSettings();
-    recordSystemSettings();
+    DMW_b("commandIndexFillActual");
+    commandIndexFillActual(); // Shrink the commandIndex table now we're certain what GNSS we have
+    recordSystemSettings();   // Save the reduced settings now we're certain what GNSS we have
 
     DMW_b("beginGnssUart");
     beginGnssUart(); // Requires settings. Start the UART connected to the GNSS receiver on core 0. Start before
