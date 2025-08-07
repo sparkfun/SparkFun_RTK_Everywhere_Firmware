@@ -1255,6 +1255,7 @@ void setup()
 
     DMW_b("commandIndexFillActual");
     commandIndexFillActual(); // Shrink the commandIndex table now we're certain what GNSS we have
+    loadSettings();           // Reload the settings after shrinking commandIndex
     recordSystemSettings();   // Save the reduced settings now we're certain what GNSS we have
 
     DMW_b("beginGnssUart");
@@ -1493,6 +1494,7 @@ void logUpdate()
         if (beginLogging() == false)
         {
             // Failed to create file, block future logging attempts
+            systemPrintln("beginLogging failed. Blocking further attempts");
             blockLogging = true;
             return;
         }
