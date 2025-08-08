@@ -1313,9 +1313,7 @@ void setup()
     gnssDetectReceiverType(); // If we don't know the receiver from the platform, auto-detect it. Uses settings.
 
     DMW_b("commandIndexFillActual");
-    recordSystemSettings();   // Ensure the possible settings are saved - before we call commandIndexFillActual
     commandIndexFillActual(); // Shrink the commandIndex table now we're certain what GNSS we have
-    loadSettings();           // Reload the settings after shrinking commandIndex
     recordSystemSettings();   // Save the reduced settings now we're certain what GNSS we have
 
     DMW_b("beginGnssUart");
