@@ -124,13 +124,6 @@ void identifyBoard()
 
     if (productVariant == RTK_UNKNOWN)
     {
-        // TODO remove once v1.1 Flex has ID resistors
-        if (i2c_0 == nullptr)
-            i2c_0 = new TwoWire(0);
-        int pin_SDA = 15;
-        int pin_SCL = 4;
-        i2c_0->begin(pin_SDA, pin_SCL); // SDA, SCL
-
         // Use ADC to check the resistor divider
         int pin_deviceID = 35;
         uint16_t idValue = analogReadMilliVolts(pin_deviceID);
@@ -163,19 +156,13 @@ void identifyBoard()
         else if (idWithAdc(idValue, 10.0, 20.0, 8.5))
             productVariant = RTK_FLEX;
 
-        // 0x3C - SSD1306 OLED Driver found in RTK Flex
-        // TODO remove once v1.1 hardware has ID resistors
-        // else if (i2cIsDevicePresent(i2c_0, 0x3C) == true || i2cIsDevicePresent(i2c_0, 0x10) == true)
-        // productVariant = RTK_FLEX;
-
         // Postcard: 3.3/10  -->  2371mV < 2481mV < 2582mV (8.5% tolerance)
         else if (idWithAdc(idValue, 3.3, 10, 8.5))
             productVariant = RTK_POSTCARD;
-
-        productVariant = RTK_FLEX; // TODO remove hard override
-
-        // TODO remove once v1.1 Flex has ID resistors
-        i2c_0->end();
+  
+#ifndef NOT_FACET_FLEX
+        productVariant = RTK_FLEX; // TODO remove once v1.1 Flex has ID resistors
+#endif
     }
 
     if (ENABLE_DEVELOPER)
@@ -1445,7 +1432,7 @@ void beginButtons()
     // Avoid using the button library
     if (present.gpioExpanderButtons == true)
     {
-        if (beginGpioExpanderButtons(0x20) == false)
+        if (beginGpioExpanderButtons(0x20) == false) // This updates online.gpioExpanderButtons
         {
             systemPrintln("Portability Shield not detected");
 

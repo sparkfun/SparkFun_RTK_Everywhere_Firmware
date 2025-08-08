@@ -78,6 +78,9 @@
 
 */
 
+// While we wait for the next hardware revision, Facet Flex needs to be manually forced:
+#define NOT_FACET_FLEX // Comment to force support for Facet Flex
+
 // To reduce compile times, various parts of the firmware can be disabled/removed if they are not
 // needed during development
 #define COMPILE_BT       // Comment out to remove Bluetooth functionality
@@ -1264,7 +1267,7 @@ void setup()
     beginPsram(); // Initialize PSRAM (if available). Needs to occur before beginGnssUart and other malloc users.
 
     DMW_b("beginMux");
-    beginMux(); // Must come before I2C activity to avoid external devices from corrupting the bus. See issue #474:
+    beginMux(); // Must come before I2C activity to avoid external devices from corrupting the bus. See issue 474
     //  https://github.com/sparkfun/SparkFun_RTK_Firmware/issues/474
 
     DMW_b("peripheralsOn");
@@ -1273,6 +1276,7 @@ void setup()
     DMW_b("beginI2C");
     beginI2C(); // Requires settings and peripheral power (if applicable).
 
+    DMW_b("beginGpioExpanderSwitches");
     beginGpioExpanderSwitches(); // Start the GPIO expander for switch control
 
     DMW_b("beginDisplay");
@@ -1323,6 +1327,7 @@ void setup()
     DMW_b("beginRtcmParse");
     beginRtcmParse();
 
+    DMW_b("tiltDetect");
     tiltDetect(); // If we don't know if there is a tilt compensation sensor, auto-detect it. Uses settings.
 
     // DEBUG_NEARLY_EVERYTHING // Debug nearly all the things
