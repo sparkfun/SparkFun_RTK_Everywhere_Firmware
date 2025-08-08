@@ -850,7 +850,8 @@ struct Settings
         1;                         // Core where hardware is started and interrupts are assigned to, 0=core, 1=Arduino
     uint8_t btReadTaskCore = 1;             // Core where task should run, 0=core, 1=Arduino
     uint8_t btReadTaskPriority = 1; // Read from BT SPP and Write to GNSS. 3 being the highest, and 0 being the lowest
-    bool enableHeapReport = false;                        // Turn on to display free heap
+    bool debugMalloc = false;
+    bool enableHeapReport = false; // Turn on to display free heap
     bool enablePrintIdleTime = false;
     bool enablePsram = true; // Control the use on onboard PSRAM. Used for testing behavior when PSRAM is not available.
     bool enableTaskReports = false;                       // Turn on to display task high water marks
@@ -1090,8 +1091,6 @@ struct Settings
     bool debugSettings = false;
     bool enableNtripCaster = false; //When true, respond as a faux NTRIP Caster to incoming TCP connections
     bool baseCasterOverride = false; //When true, user has put device into 'BaseCast' mode. Change settings, but don't save to NVM.
-
-    bool debugMalloc = false;
 
     // Add new settings to appropriate group above or create new group
     // Then also add to the same group in rtkSettingsEntries below
@@ -1732,7 +1731,7 @@ const RTK_Settings_Entry rtkSettingsEntries[] =
     { 1, 1, 1, 1, 1, 1, 1, 1, 1, ALL, tWiFiNet,  MAX_WIFI_NETWORKS, & settings.wifiNetworks, "wifiNetwork_",  },
     { 0, 1, 0, 1, 1, 1, 1, 1, 1, ALL, _uint32_t, 0, & settings.wifiConnectTimeoutMs, "wifiConnectTimeoutMs",  },
 
-    { 0, 1, 0, 1, 1, 1, 1, 1, 1, ALL, _uint32_t, 0, & settings.outputTipAltitude, "outputTipAltitude",  },
+    { 0, 1, 0, 1, 1, 1, 1, 1, 1, ALL, _bool,     0, & settings.outputTipAltitude, "outputTipAltitude",  },
 
     // Localized distribution
     { 1, 1, 0, 1, 1, 0, 1, 1, 1, ALL, _bool,     0, & settings.useLocalizedDistribution, "useLocalizedDistribution",  },
