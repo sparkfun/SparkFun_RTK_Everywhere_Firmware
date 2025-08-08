@@ -82,6 +82,15 @@ void menuLog()
                 systemPrintln("Disabled");
         }
 
+        if (settings.enableLogging == true)
+        {
+            systemPrint("9) Log file length alignment: ");
+            if (settings.alignedLogFiles == true)
+                systemPrintln("Enabled");
+            else
+                systemPrintln("Disabled");
+        }
+
         systemPrintln("x) Exit");
 
         int incoming = getUserInputNumber(); // Returns EXIT, TIMEOUT, or long
@@ -90,15 +99,17 @@ void menuLog()
         {
             settings.enableLogging ^= 1;
 
-            // Reset the maximum logging time when logging is disabled to ensure that
-            // the next time logging is enabled that the maximum amount of data can be
-            // captured.
-            if (settings.enableLogging == false)
-                startLogTime_minutes = 0;
+            // Reset the start logging time when logging is enabled to ensure that
+            // data can be captured.
+            if (settings.enableLogging == true)
+                startLogTime_minutes = millis() / 1000L / 60;
         }
         else if (incoming == 2 && settings.enableLogging == true)
         {
             // Arbitrary 2 year limit. See https://github.com/sparkfun/SparkFun_RTK_Firmware/issues/86
+            // Note: the 2 year limit is fine. But systemTime_minutes is based on millis(), and millis()
+            //       will roll over every 2^32ms = ~50 days...
+            //       TODO: use the GNSS epoch (uint32_t seconds plus uint32_t microseconds) to resolve this.
             getNewSetting("Enter max minutes before logging stops", 0, 60 * 24 * 365 * 2, &settings.maxLogTime_minutes);
         }
         else if (incoming == 3 && settings.enableLogging == true)
@@ -120,7 +131,7 @@ void menuLog()
         else if (incoming == 6 && settings.enableLogging == true && settings.enableARPLogging == true)
         {
             // Arbitrary 10 minute limit
-            getNewSetting("Enter the ARP logging interval in seconds", 0, 60 * 10, &settings.ARPLoggingInterval_s);
+            getNewSetting("Enter the ARP logging interval in seconds", 1, 60 * 10, &settings.ARPLoggingInterval_s);
         }
         else if (incoming == 7)
         {
@@ -129,6 +140,10 @@ void menuLog()
         else if ((present.ethernet_ws5500 == true) && (incoming == 8))
         {
             settings.enableNTPFile ^= 1;
+        }
+        else if (incoming == 9 && settings.enableLogging == true)
+        {
+            settings.alignedLogFiles ^= 1;
         }
         else if (incoming == 'x')
             break;
@@ -151,7 +166,7 @@ void menuMessagesBaseRTCM()
         systemPrintln();
         systemPrintln("Menu: GNSS Messages - Base RTCM");
 
-        systemPrintln("1) Set RXM Messages for Base Mode");
+        systemPrintln("1) Set RTCM Messages for Base Mode");
 
         systemPrintf("2) Reset to Defaults (%s)\r\n", gnss->getRtcmDefaultString());
         systemPrintf("3) Reset to Low Bandwidth Link (%s)\r\n", gnss->getRtcmLowDataRateString());
@@ -289,11 +304,25 @@ bool beginLogging(const char *customFileName)
 
                 sdUpdateFileCreateTimestamp(logFile); // Update the file to create time & date
 
-                startCurrentLogTime_minutes = millis() / 1000L / 60; // Mark now as start of logging
-
-                // If it hasn't been done before, mark the initial start of logging for total run time
-                if (startLogTime_minutes == 0)
-                    startLogTime_minutes = millis() / 1000L / 60;
+                // Calculate the time of the next log file change
+                nextLogTime_ms = 0; // Default to no limit
+                if ((settings.alignedLogFiles) && (settings.maxLogLength_minutes > 0))
+                {
+                    // Aligned logging is only possible if the interval is an integral fraction of 24 hours
+                    if ((24 * 60 * 2) % settings.maxLogLength_minutes == 0)
+                    {
+                        // Calculate when the next log file should be opened - in millis()
+                        unsigned long hoursAsMillis = rtc.getMillis() + (rtc.getSecond() * 1000)
+                                                      + (rtc.getMinute() * 1000 * 60)
+                                                      + (rtc.getHour(true) * 1000 * 60 * 60);
+                        unsigned long maxLogLength_ms = (unsigned long)settings.maxLogLength_minutes * 60 * 1000;
+                        unsigned long millisFromPreviousLog = hoursAsMillis % maxLogLength_ms;
+                        unsigned long millisToNextLog = maxLogLength_ms - millisFromPreviousLog;
+                        nextLogTime_ms = millis() + millisToNextLog;
+                    }
+                }
+                if ((nextLogTime_ms == 0) && (settings.maxLogLength_minutes > 0)) // Non-aligned logging
+                    nextLogTime_ms = millis() + ((unsigned long)settings.maxLogLength_minutes * 60 * 1000);
 
                 // Add NMEA txt message with restart reason
                 char rstReason[30];
@@ -378,6 +407,8 @@ bool beginLogging(const char *customFileName)
                                    currentDate); // textID, buffer, sizeOfBuffer, text
                 logFile->println(nmeaMessage);
 
+                logFile->sync(); // Sync any partially written data
+
                 if (reuseLastLog == true)
                 {
                     systemPrintln("Appending last available log");
@@ -422,6 +453,7 @@ void endLogging(bool gotSemaphore, bool releaseSemaphore)
             char nmeaMessage[82]; // Max NMEA sentence length is 82
             createNMEASentence(CUSTOM_NMEA_TYPE_PARSER_STATS, nmeaMessage, sizeof(nmeaMessage),
                                parserStats); // textID, buffer, sizeOfBuffer, text
+            logFile->sync(); // Sync any partially written data
             logFile->println(nmeaMessage);
             logFile->sync();
 
@@ -436,7 +468,7 @@ void endLogging(bool gotSemaphore, bool releaseSemaphore)
             delete logFile;
             logFile = nullptr;
 
-            systemPrintln("Log file closed");
+            systemPrintf("Log file closed @ %s\r\n", getTimeStamp());
 
             // Release the semaphore if requested
             if (releaseSemaphore)

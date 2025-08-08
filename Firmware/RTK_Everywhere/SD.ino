@@ -27,7 +27,7 @@ void sdUpdate()
         }
         else if (sdCardPresent() == true) // Poll card to see if a card is inserted
         {
-            systemPrintln("SD inserted");
+            systemPrintf("SD inserted @ %s\r\n", getTimeStamp());
             beginSD(); // Attempt to start SD
         }
     }
@@ -35,7 +35,7 @@ void sdUpdate()
     if (online.logging == true && sdCardSize > 0 &&
         sdFreeSpace < sdMinAvailableSpace) // Stop logging if we are below the min
     {
-        log_d("Logging stopped. SD full.");
+        systemPrintf("Logging stopped. SD full @ %s\r\n", getTimeStamp());
         outOfSDSpace = true;
         endSD(false, true); //(alreadyHaveSemaphore, releaseSemaphore) Close down file.
         return;
@@ -49,7 +49,10 @@ void sdUpdate()
 
     // Check if SD card is still present
     if (sdCardPresent() == false)
+    {
+        systemPrintf("SD removed @ %s\r\n", getTimeStamp());
         endSD(false, true); //(alreadyHaveSemaphore, releaseSemaphore) Close down SD.
+    }
 }
 
 /*
@@ -94,44 +97,76 @@ bool sdCardPresent(void)
             return (true); // Card detect high = SD in place
         return (false);    // Card detect low = No SD
     }
+    // TODO: check this. Do we have a conflict with online.gpioExpanderButtons vs online.gpioExpander?
     else if (present.microSdCardDetectGpioExpanderHigh == true && online.gpioExpanderButtons == true)
     {
-        if (io.digitalRead(gpioExpander_cardDetect) == GPIO_EXPANDER_CARD_INSERTED)
-            return (true); // Card detect high = SD in place
-        return (false);    // Card detect low = No SD
+        if (online.gpioExpander == true)
+        {
+            if (io.digitalRead(gpioExpander_cardDetect) == GPIO_EXPANDER_CARD_INSERTED)
+                return (true); // Card detect high = SD in place
+            return (false);    // Card detect low = No SD
+        }
+        else
+        {
+            //reportFatalError("sdCardPresent: gpioExpander not online.");
+            return (false);
+        }
     }
 
     // else - no card detect pin. Use software detect
 
-    // Use software to detect a card
-    DMW_if systemPrintf("pin_microSD_CS: %d\r\n", pin_microSD_CS);
-    if (pin_microSD_CS == -1)
-        reportFatalError("Illegal SD CS pin assignment.");
+    // Note: even though this is protected by the semaphore,
+    //       this will probably cause issues / corruption if
+    //       a SdFile is open for writing...?
 
-    byte response = 0;
+    static bool previousCardPresentBySW = false;
 
-    beginSPI(false);
-    SPI.setClockDivider(SPI_CLOCK_DIV2);
-    SPI.setDataMode(SPI_MODE0);
-    SPI.setBitOrder(MSBFIRST);
-    pinMode(pin_microSD_CS, OUTPUT);
-
-    // Sending clocks while card power stabilizes...
-    sdDeselectCard();             // always make sure
-    for (byte i = 0; i < 30; i++) // send several clocks while card power stabilizes
-        xchg(0xff);
-
-    // Sending CMD0 - GO IDLE...
-    for (byte i = 0; i < 0x10; i++) // Attempt to go idle
+    if (xSemaphoreTake(sdCardSemaphore, fatSemaphore_longWait_ms) == pdPASS)
     {
-        response = sdSendCommand(SD_GO_IDLE, 0); // send CMD0 - go to idle state
-        if (response == 1)
-            break;
-    }
-    if (response != 1)
-        return (false); // Card failed to respond to idle
+        markSemaphore(FUNCTION_RECORDSETTINGS);
 
-    return (true); // Card detected
+        // Use software to detect a card
+        DMW_if systemPrintf("pin_microSD_CS: %d\r\n", pin_microSD_CS);
+        if (pin_microSD_CS == -1)
+            reportFatalError("Illegal SD CS pin assignment.");
+
+        byte response = 0;
+
+        beginSPI(false);
+        SPI.setClockDivider(SPI_CLOCK_DIV2);
+        SPI.setDataMode(SPI_MODE0);
+        SPI.setBitOrder(MSBFIRST);
+        pinMode(pin_microSD_CS, OUTPUT);
+
+        // Sending clocks while card power stabilizes...
+        sdDeselectCard();             // always make sure
+        for (byte i = 0; i < 30; i++) // send several clocks while card power stabilizes
+            xchg(0xff);
+
+        // Sending CMD0 - GO IDLE...
+        for (byte i = 0; i < 0x10; i++) // Attempt to go idle
+        {
+            response = sdSendCommand(SD_GO_IDLE, 0); // send CMD0 - go to idle state
+            if (response == 1)
+                break;
+        }
+
+        xSemaphoreGive(sdCardSemaphore);
+        
+        if (response != 1)
+        {
+            previousCardPresentBySW = false;
+            return (false); // Card failed to respond to idle
+        }
+
+        previousCardPresentBySW = true;
+        return (true); // Card detected
+    }
+    else
+    {
+        // Could not get semaphore. Return previous state
+        return previousCardPresentBySW;
+    }
 }
 
 /*

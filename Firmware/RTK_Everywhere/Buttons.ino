@@ -119,7 +119,7 @@ void buttonRead()
         gpioChanged = false;
 
         // Get all the pins in one read
-        uint8_t currentState = io.getInputRegister() & 0b00111111; // Ignore unconnected GPIO6/7
+        uint8_t currentState = io.getInputRegister() & 0b00011111; // Mask the five buttons. Ignore SD detect
 
         if (currentState != gpioExpander_previousState)
         {

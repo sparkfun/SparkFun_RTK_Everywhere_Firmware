@@ -199,13 +199,20 @@ int32_t udpServerSendData(uint16_t dataHead)
 //----------------------------------------
 int32_t udpServerSendDataBroadcast(uint8_t *data, uint16_t length)
 {
+    IPAddress broadcastAddress;
+
     if (!length)
         return 0;
 
     // Send the data as broadcast
-    if (settings.enableUdpServer && online.udpServer && networkConsumerIsConnected(NETCONSUMER_UDP_SERVER))
+    if (settings.enableUdpServer && online.udpServer
+        && ((settings.udpOverWiFiStation == false)
+            || networkConsumerIsConnected(NETCONSUMER_UDP_SERVER)))
     {
-        IPAddress broadcastAddress = networkGetBroadcastIpAddress();
+        if (settings.udpOverWiFiStation)
+            broadcastAddress = networkGetBroadcastIpAddress();
+        else
+            broadcastAddress = wifiSoftApGetBroadcastIpAddress();
         udpServer->beginPacket(broadcastAddress, settings.udpServerPort);
         udpServer->write(data, length);
         if (udpServer->endPacket())
@@ -263,19 +270,24 @@ void udpServerSetState(uint8_t newState)
 //----------------------------------------
 bool udpServerStart()
 {
-    IPAddress localIp;
+    IPAddress ipAddress;
 
     if (settings.debugUdpServer && (!inMainMenu))
         systemPrintln("UDP server starting");
 
     // Start the UDP server
+    if (settings.udpOverWiFiStation == false)
+        ipAddress = wifiSoftApGetIpAddress();
+    else
+        ipAddress = networkGetIpAddress();
     udpServer = new NetworkUDP;
     if (!udpServer)
         return false;
 
-    udpServer->begin(settings.udpServerPort);
+    udpServer->begin(ipAddress, settings.udpServerPort);
     online.udpServer = true;
-    systemPrintf("UDP server online, broadcasting to port %d\r\n", settings.udpServerPort);
+    systemPrintf("UDP server online, broadcasting on %s:%d\r\n",
+                 ipAddress.toString().c_str(), settings.udpServerPort);
     return true;
 }
 
@@ -360,7 +372,7 @@ void udpServerUpdate()
         {
             if (settings.debugUdpServer && (!inMainMenu))
                 systemPrintln("UDP server starting the network");
-            if (settings.tcpUdpOverWiFiStation == true)
+            if (settings.udpOverWiFiStation == true)
                 networkConsumerAdd(NETCONSUMER_UDP_SERVER, NETWORK_ANY, __FILE__, __LINE__);
             else
                 networkSoftApConsumerAdd(NETCONSUMER_UDP_SERVER, __FILE__, __LINE__);

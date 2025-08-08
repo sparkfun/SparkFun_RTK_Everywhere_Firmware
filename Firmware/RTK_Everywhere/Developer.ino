@@ -171,6 +171,8 @@ bool webServerStart(int httpPort = 80)
 bool parseIncomingSettings() {return false;}
 void sendStringToWebsocket(const char* stringToSend) {}
 void stopWebServer() {}
+bool webServerSettingsCheckAndFree()    {return false;}
+void webServerSettingsClone()   {}
 void webServerStop() {}
 void webServerUpdate()  {}
 void webServerVerifyTables() {}
@@ -213,6 +215,7 @@ bool wifiEspNowOn(const char * fileName, uint32_t lineNumber) {return false;}
 void wifiEspNowChannelSet(WIFI_CHANNEL_t channel) {}
 int wifiNetworkCount()                          {return 0;}
 void wifiResetTimeout()                         {}
+IPAddress wifiSoftApGetBroadcastIpAddress()     {return IPAddress((uint32_t)0);}
 IPAddress wifiSoftApGetIpAddress()              {return IPAddress((uint32_t)0);}
 const char * wifiSoftApGetSsid()                {return "";}
 bool wifiSoftApOff(const char * fileName, uint32_t lineNumber) {return true;}
@@ -306,3 +309,14 @@ void convertGnssTimeToEpoch(uint32_t *epochSecs, uint32_t *epochMicros) {
 }
 
 #endif // COMPILE_ZED
+
+//----------------------------------------
+// MFi authentication coprocessor
+//----------------------------------------
+
+#ifndef COMPILE_AUTHENTICATION
+
+void beginAuthCoPro(TwoWire *i2cBus) {systemPrintln("**MFi Authentication Not Compiled**");}
+void updateAuthCoPro() {}
+
+#endif // COMPILE_AUTHENTICATION

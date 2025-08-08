@@ -8,7 +8,7 @@ void menuSystem()
         systemPrintln();
         systemPrintln("System Status");
 
-        printTimeStamp();
+        printTimeStamp(true);
 
         systemPrint("GNSS: ");
         if (online.gnss == true)
@@ -796,6 +796,8 @@ void menuDebugSoftware()
 
         systemPrintf("40) Print LittleFS and settings management: %s\r\n",
                      settings.debugSettings ? "Enabled" : "Disabled");
+        systemPrintf("41) Halt on ESP_RST_PANIC: %s\r\n",
+                     settings.haltOnPanic ? "Enabled" : "Disabled");
 
         // Tasks
         systemPrint("50) Task Highwater Reporting: ");
@@ -851,6 +853,8 @@ void menuDebugSoftware()
 
         else if (incoming == 40)
             settings.debugSettings ^= 1;
+        else if (incoming == 41)
+            settings.haltOnPanic ^= 1;
 
         else if (incoming == 50)
             settings.enableTaskReports ^= 1;
@@ -1274,12 +1278,14 @@ void menuPeriodicPrint()
 
         else if (incoming == 20)
         {
+            systemPrint("Enter the new periodic print mask: ");
             int value = getUserInputNumber();
             if ((value != INPUT_RESPONSE_GETNUMBER_EXIT) && (value != INPUT_RESPONSE_GETNUMBER_TIMEOUT))
                 settings.periodicDisplay = value;
         }
         else if (incoming == 21)
         {
+            systemPrint("Enter the new periodic display interval (s): ");
             int seconds = getUserInputNumber();
             if ((seconds != INPUT_RESPONSE_GETNUMBER_EXIT) && (seconds != INPUT_RESPONSE_GETNUMBER_TIMEOUT))
                 settings.periodicDisplayInterval = seconds * 1000;

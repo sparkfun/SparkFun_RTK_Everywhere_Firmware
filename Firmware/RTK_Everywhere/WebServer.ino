@@ -1093,16 +1093,8 @@ void webServerSetState(uint8_t newState)
         if (!online.rtc)
             systemPrintf("%s%s%s%s\r\n", asterisk, initialState, arrow, endingState);
         else
-        {
             // Timestamp the state change
-            //          1         2
-            // 12345678901234567890123456
-            // YYYY-mm-dd HH:MM:SS.xxxrn0
-            struct tm timeinfo = rtc.getTimeStruct();
-            char s[30];
-            strftime(s, sizeof(s), "%Y-%m-%d %H:%M:%S", &timeinfo);
-            systemPrintf("%s%s%s%s, %s.%03ld\r\n", asterisk, initialState, arrow, endingState, s, rtc.getMillis());
-        }
+            systemPrintf("%s%s%s%s, %s\r\n", asterisk, initialState, arrow, endingState, getTimeStamp());
     }
 
     // Validate the state
@@ -1343,6 +1335,8 @@ static esp_err_t ws_handler(httpd_req_t *req)
             for (int i = 0; i < ws_pkt.len; i++)
             {
                 incomingSettings[incomingSettingsSpot++] = ws_pkt.payload[i];
+                if (incomingSettingsSpot == AP_CONFIG_SETTING_SIZE)
+                    systemPrintln("incomingSettings wrap-around. Increase AP_CONFIG_SETTING_SIZE");
                 incomingSettingsSpot %= AP_CONFIG_SETTING_SIZE;
             }
             timeSinceLastIncomingSetting = millis();

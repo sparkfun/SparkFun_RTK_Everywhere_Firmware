@@ -72,6 +72,7 @@ void identifyBoard()
     getMacAddresses(wifiMACAddress, "wifiMACAddress", ESP_MAC_WIFI_STA, true);
     getMacAddresses(btMACAddress, "btMACAddress", ESP_MAC_BT, true);
     getMacAddresses(ethernetMACAddress, "ethernetMACAddress", ESP_MAC_ETH, true);
+    snprintf(serialNumber, sizeof(serialNumber), "%02X%02X", btMACAddress[4], btMACAddress[5]);
 
     // First, test for devices that do not have ID resistors
     if (productVariant == RTK_UNKNOWN)
@@ -732,6 +733,7 @@ void beginBoard()
         present.fuelgauge_max17048 = true;
         present.display_i2c0 = true;
         present.i2c0BusSpeed_400 = true; // Run display bus at higher speed
+        present.i2c1 = true; // Qwiic bus
         present.display_type = DISPLAY_128x64;
         present.microSd = true;
         present.gpioExpanderButtons = true;
@@ -743,6 +745,9 @@ void beginBoard()
 
         pin_I2C0_SDA = 7;
         pin_I2C0_SCL = 20;
+
+        pin_I2C1_SDA = 13;
+        pin_I2C1_SCL = 19;
 
         pin_GnssUart_RX = 21;
         pin_GnssUart_TX = 22;
@@ -859,6 +864,8 @@ void beginBoard()
 
 void beginVersion()
 {
+    firmwareVersionGet(deviceFirmware, sizeof(deviceFirmware), false);
+
     char versionString[21];
     firmwareVersionGet(versionString, sizeof(versionString), true);
 
@@ -958,10 +965,10 @@ void beginSD()
 
     gotSemaphore = false;
 
-    while (settings.enableSD == true)
+    while (settings.enableSD == true) // Note: settings.enableSD is never set to false
     {
         // Setup SD card access semaphore
-        if (sdCardSemaphore == nullptr)
+        if (sdCardSemaphore == NULL)
             sdCardSemaphore = xSemaphoreCreateMutex();
         else if (xSemaphoreTake(sdCardSemaphore, fatSemaphore_shortWait_ms) != pdPASS)
         {
@@ -977,7 +984,7 @@ void beginSD()
             break; // Give up on loop
 
         // If an SD card is present, allow SdFat to take over
-        log_d("SD card detected");
+        systemPrintf("SD card detected @ %s\r\n", getTimeStamp());
 
         // Allocate the data structure that manages the microSD card
         if (!sd)
@@ -1045,7 +1052,7 @@ void beginSD()
         sdCardSize = 0;
         outOfSDSpace = true;
 
-        systemPrintln("microSD: Online");
+        systemPrintf("microSD: Online @ %s\r\n", getTimeStamp());
         online.microSD = true;
         break;
     }
@@ -1066,7 +1073,7 @@ void endSD(bool alreadyHaveSemaphore, bool releaseSemaphore)
         sd->end();
 
         online.microSD = false;
-        systemPrintln("microSD: Offline");
+        systemPrintf("microSD: Offline @ %s\r\n", getTimeStamp());
     }
 
     // Free the caches for the microSD card
@@ -1440,7 +1447,10 @@ void beginButtons()
     {
         if (beginGpioExpanderButtons(0x20) == false)
         {
-            systemPrintln("Directional pad not detected");
+            systemPrintln("Portability Shield not detected");
+
+            present.microSd = false;
+
             return;
         }
     }
@@ -1737,14 +1747,13 @@ bool i2cBusInitialization(TwoWire *i2cBus, int sda, int scl, int clockKHz)
                 break;
             }
 
-            case 0x10:
-            {
-                systemPrintf("  0x%02X - MFi Authentication Coprocessor\r\n", addr);
+            case 0x10: {
+                systemPrintf("  0x%02X - MFI343S00177 Authentication Coprocessor\r\n", addr);
+                i2cAuthCoPro = i2cBus; // Record the bus
                 break;
             }
 
-            case 0x18:
-            {
+            case 0x18: {
                 systemPrintf("  0x%02X - PCA9557 GPIO Expander with Reset\r\n", addr);
                 break;
             }
@@ -1872,7 +1881,7 @@ void tpISR()
     {
         if (online.rtc) // Only sync if the RTC has been set via PVT first
         {
-            if (timTpUpdated) // Only sync if timTpUpdated is true
+            if (timTpUpdated) // Only sync if timTpUpdated is true - set by storeTIMTPdata on ZED platforms only
             {
                 if (millisNow - lastRTCSync >
                     syncRTCInterval) // Only sync if it is more than syncRTCInterval since the last sync

@@ -85,6 +85,10 @@
 #define COMPILE_ETHERNET // Comment out to remove Ethernet (W5500) support
 #define COMPILE_CELLULAR // Comment out to remove cellular modem support
 
+#ifdef COMPILE_BT
+#define COMPILE_AUTHENTICATION // Comment out to disable MFi authentication
+#endif
+
 #ifdef COMPILE_WIFI
 #define COMPILE_AP     // Requires WiFi. Comment out to remove Access Point functionality
 #define COMPILE_ESPNOW // Requires WiFi. Comment out to remove ESP-Now functionality.
@@ -297,6 +301,7 @@ int gpioExpanderSwitch_PowerFastOff = 7; // PWRKILL
 TwoWire *i2c_0 = nullptr;
 TwoWire *i2c_1 = nullptr;
 TwoWire *i2cDisplay = nullptr;
+TwoWire *i2cAuthCoPro = nullptr;
 //-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 
 // LittleFS for storing settings for different user profiles
@@ -321,6 +326,7 @@ const int COMMON_COORDINATES_MAX_STATIONS = 50; // Record up to 50 ECEF and Geod
 #include <ESP32Time.h> //http://librarymanager/All#ESP32Time by FBiego
 ESP32Time rtc;
 unsigned long syncRTCInterval = 1000; // To begin, sync RTC every second. Interval can be increased once sync'd.
+void printTimeStamp(bool always = false); // Header
 //-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 
 // microSD Interface
@@ -329,6 +335,8 @@ unsigned long syncRTCInterval = 1000; // To begin, sync RTC every second. Interv
 
 void beginSPI(bool force = false); // Header
 
+// Important note: the firmware currently requires SdFat v2.1.1
+// sd->begin will crash second time around with ~v2.2.3
 #include "SdFat.h" //http://librarymanager/All#sdfat_exfat by Bill Greiman.
 SdFat *sd;
 
@@ -336,16 +344,23 @@ SdFat *sd;
 
 SdFile *logFile;                  // File that all GNSS messages sentences are written to
 unsigned long lastUBXLogSyncTime; // Used to record to SD every half second
-int startLogTime_minutes;         // Mark when we start any logging so we can stop logging after maxLogTime_minutes
-int startCurrentLogTime_minutes;
-// Mark when we start this specific log file so we can close it after x minutes and start a new one
+int startLogTime_minutes;         // Mark when we (re)start any logging so we can stop logging after maxLogTime_minutes
+unsigned long nextLogTime_ms;     // Open the next log file at this many millis()
 
 // System crashes if two tasks access a file at the same time
 // So we use a semaphore to see if the file system is available
-SemaphoreHandle_t sdCardSemaphore;
+// https://github.com/espressif/arduino-esp32/blob/master/libraries/ESP32/examples/FreeRTOS/Mutex/Mutex.ino#L11
+SemaphoreHandle_t sdCardSemaphore = NULL;
 TickType_t loggingSemaphoreWait_ms = 10 / portTICK_PERIOD_MS;
 const TickType_t fatSemaphore_shortWait_ms = 10 / portTICK_PERIOD_MS;
 const TickType_t fatSemaphore_longWait_ms = 200 / portTICK_PERIOD_MS;
+const TickType_t ringBuffer_shortWait_ms = 20 / portTICK_PERIOD_MS;
+const TickType_t ringBuffer_longWait_ms = 300 / portTICK_PERIOD_MS;
+
+// ringBuffer semaphore - prevent processUart1Message (gnssReadTask) and handleGnssDataTask
+// from gatecrashing each other.
+SemaphoreHandle_t ringBufferSemaphore = NULL;
+const char *ringBufferSemaphoreHolder = "None";
 
 // Display used/free space in menu and config page
 uint64_t sdCardSize;
@@ -443,6 +458,7 @@ bool otaRequestFirmwareUpdate = false;
 
 bool enableRCFirmware;     // Goes true from AP config page
 bool currentlyParsingData; // Goes true when we hit 750ms timeout with new data
+bool tcpServerInCasterMode;// True when TCP server is running in caster mode
 
 // Give up connecting after this number of attempts
 // Connection attempts are throttled to increase the time between attempts
@@ -474,7 +490,7 @@ uint32_t timTpEpoch;
 uint32_t timTpMicros;
 
 unsigned long lastARPLog; // Time of the last ARP log event
-bool newARPAvailable;
+bool newARPAvailable = false;
 int64_t ARPECEFX; // ARP ECEF is 38-bit signed
 int64_t ARPECEFY;
 int64_t ARPECEFZ;
@@ -486,6 +502,7 @@ unsigned long rtcmLastPacketReceived; // Time stamp of RTCM coming in (from BT, 
 
 bool usbSerialIncomingRtcm; // Incoming RTCM over the USB serial port
 #define RTCM_CORRECTION_INPUT_TIMEOUT (2 * 1000)
+
 //=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 
 // Extensible Message Parser
@@ -494,6 +511,7 @@ bool usbSerialIncomingRtcm; // Incoming RTCM over the USB serial port
 SEMP_PARSE_STATE *rtkParse = nullptr;
 SEMP_PARSE_STATE *sbfParse = nullptr;    // mosaic-X5
 SEMP_PARSE_STATE *spartnParse = nullptr; // mosaic-X5
+SEMP_PARSE_STATE *rtcmParse = nullptr; // Parse incoming corrections for RTCM1005 / 1006 base locations
 
 //=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 
@@ -776,12 +794,37 @@ SFE_PCA95XX *gpioExpanderSwitches = nullptr;
 
 //=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 
+// MFi Authentication Coprocessor
+//=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
+#ifdef COMPILE_AUTHENTICATION
+
+#include <SparkFun_Apple_Accessory.h> // Click here to get the library: http://librarymanager/All#SparkFun_Apple_Accessory_Arduino_Library
+
+SparkFunAppleAccessoryDriver *appleAccessory; // Instantiated by beginAuthCoPro
+
+const char *sdp_service_name = "iAP2";
+
+static const uint8_t  UUID_IAP2[] = {0x00, 0x00, 0x00, 0x00, 0xDE, 0xCA, 0xFA, 0xDE, 0xDE, 0xCA, 0xDE, 0xAF, 0xDE, 0xCA, 0xCA, 0xFF};
+
+#endif
+
+// Storage for the latest NMEA GPGGA/GPRMC/GPGST - to be passed to the MFi Apple device
+// We should optimse this with a Lee table... TODO
+const size_t latestNmeaMaxLen = 100;
+char *latestGPGGA;
+char *latestGPRMC;
+char *latestGPGST;
+
+//=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
+
 // Global variables
 //-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 uint8_t wifiMACAddress[6];     // Display this address in the system menu
 uint8_t btMACAddress[6];       // Display this address when Bluetooth is enabled, otherwise display wifiMACAddress
 uint8_t ethernetMACAddress[6]; // Display this address when Ethernet is enabled, otherwise display wifiMACAddress
 char deviceName[70];           // The serial string that is broadcast. Ex: 'EVK Base-BC61'
+char serialNumber[5];          // The serial number for MFi. Ex: 'BC61'
+char deviceFirmware[9];        // The firmware version for MFi. Ex: 'v2.2'
 const uint16_t menuTimeout = 60 * 10; // Menus will exit/timeout after this number of seconds
 int systemTime_minutes;               // Used to test if logging is less than max minutes
 uint32_t powerPressedStartTime;       // Times how long the user has been holding the power button, used for power down
@@ -822,7 +865,7 @@ std::vector<setupButton> setupButtons; // A vector (linked list) of the setup 'b
 
 bool firstRoverStart; // Used to detect if the user is toggling the power button at POR to enter the test menu
 
-bool newEventToRecord;     // Goes true when INT pin goes high
+bool newEventToRecord;     // Goes true when INT pin goes high. Currently this is ZED-specific.
 uint32_t triggerCount;     // Global copy - TM2 event counter
 uint32_t triggerTowMsR;    // Global copy - Time Of Week of rising edge (ms)
 uint32_t triggerTowSubMsR; // Global copy - Millisecond fraction of Time Of Week of rising edge in nanoseconds
@@ -1235,14 +1278,23 @@ void setup()
     DMW_b("beginDisplay");
     beginDisplay(i2cDisplay); // Start display to be able to display any errors
 
+    DMW_b("beginAuthCoPro");
+    beginAuthCoPro(i2cAuthCoPro); // Discover and start authentication coprocessor
+
     DMW_b("verifyTables");
     verifyTables(); // Verify the consistency of the internal tables
 
     DMW_b("beginVersion");
     beginVersion(); // Assemble platform name. Requires settings/LFS.
 
+    if ((settings.haltOnPanic) && (esp_reset_reason() == ESP_RST_PANIC)) // Halt on PANIC - to trap rare crashes
+        reportFatalError("ESP_RST_PANIC");
+
     DMW_b("displaySplash");
     displaySplash(); // Display the RTK product name and firmware version
+
+    DMW_b("beginButtons");
+    beginButtons(); // Start task for button monitoring. Needed for beginSD (gpioExpander)
 
     DMW_b("beginSD");
     beginSD(); // Requires settings. Test if SD is present
@@ -1268,6 +1320,8 @@ void setup()
     DMW_b("gnss->begin");
     gnss->begin(); // Requires settings. Connect to GNSS to get module type
 
+    DMW_b("beginRtcmParse");
+    beginRtcmParse();
 
     tiltDetect(); // If we don't know if there is a tilt compensation sensor, auto-detect it. Uses settings.
 
@@ -1308,9 +1362,6 @@ void setup()
 
     DMW_b("beginInterrupts");
     beginInterrupts(); // Begin the TP interrupts
-
-    DMW_b("beginButtons");
-    beginButtons(); // Start task for button monitoring.
 
     DMW_b("beginSystemState");
     beginSystemState(); // Determine initial system state.
@@ -1427,6 +1478,9 @@ void loop()
     DMW_c("networkUpdate");
     networkUpdate(); // Maintain the network connections
 
+    DMW_c("updateAuthCoPro");
+    updateAuthCoPro(); // Update the Apple Accessory
+
     DMW_c("updateLBand");
     updateLBand(); // Update L-Band
 
@@ -1468,6 +1522,25 @@ void loopDelay()
         delay(10);
 }
 
+bool logTimeExceeded() // Limit total logging time to maxLogTime_minutes
+{
+    if (settings.maxLogTime_minutes == 0) // No limit if maxLogTime_minutes is zero
+        return false;
+
+    return ((systemTime_minutes - startLogTime_minutes) >= settings.maxLogTime_minutes);
+}
+
+bool logLengthExceeded() // Limit individual files to maxLogLength_minutes
+{
+    if (settings.maxLogLength_minutes == 0) // No limit if maxLogLength_minutes is zero
+        return false;
+
+    if (nextLogTime_ms == 0) // Keep logging if nextLogTime_ms has not been set
+        return false;
+    
+    return (millis() >= nextLogTime_ms); // Note: this will roll over every ~50 days...
+}
+
 // Create or close files as needed (startup or as the user changes settings)
 // Push new data to log as needed
 void logUpdate()
@@ -1489,7 +1562,7 @@ void logUpdate()
     if (outOfSDSpace == true)
         return; // We can't log if we are out of SD space
 
-    if (online.logging == false && settings.enableLogging == true && blockLogging == false)
+    if (online.logging == false && settings.enableLogging == true && blockLogging == false && !logTimeExceeded())
     {
         if (beginLogging() == false)
         {
@@ -1506,93 +1579,24 @@ void logUpdate()
         // Close down file
         endSD(false, true);
     }
-    else if (online.logging == true && settings.enableLogging == true &&
-             (systemTime_minutes - startCurrentLogTime_minutes) >= settings.maxLogLength_minutes)
+    else if (online.logging == true && settings.enableLogging == true && (logLengthExceeded() || logTimeExceeded()))
     {
-        endSD(false, true); // Close down file. A new one will be created at the next calling of updateLogs().
+        if (logTimeExceeded())
+        {
+            systemPrintln("Log file: maximum logging time reached");
+            endSD(false, true); // Close down SD.
+        }
+        else
+        {
+            systemPrintln("Log file: log length reached");
+            endLogging(false, true); //(gotSemaphore, releaseSemaphore) Close file. Reset parser stats.
+            beginLogging();          // Create new file based on current RTC.
+            setLoggingType();        // Determine if we are standard, PPP, or custom. Changes logging icon accordingly.
+        }
     }
 
     if (online.logging == true)
     {
-        // Record any pending trigger events
-        if (newEventToRecord == true)
-        {
-            systemPrintln("Recording event");
-
-            // Record trigger count with Time Of Week of rising edge (ms), Millisecond fraction of Time Of Week of
-            // rising edge (ns), and accuracy estimate (ns)
-            char eventData[82]; // Max NMEA sentence length is 82
-            snprintf(eventData, sizeof(eventData), "%d,%d,%d,%d", triggerCount, triggerTowMsR, triggerTowSubMsR,
-                     triggerAccEst);
-
-            char nmeaMessage[82]; // Max NMEA sentence length is 82
-            createNMEASentence(CUSTOM_NMEA_TYPE_EVENT, nmeaMessage, sizeof(nmeaMessage),
-                               eventData); // textID, buffer, sizeOfBuffer, text
-
-            if (xSemaphoreTake(sdCardSemaphore, fatSemaphore_shortWait_ms) == pdPASS)
-            {
-                markSemaphore(FUNCTION_EVENT);
-
-                logFile->println(nmeaMessage);
-
-                xSemaphoreGive(sdCardSemaphore);
-                newEventToRecord = false;
-            }
-            else
-            {
-                char semaphoreHolder[50];
-                getSemaphoreFunction(semaphoreHolder);
-
-                // While a retry does occur during the next loop, it is possible to lose
-                // trigger events if they occur too rapidly or if the log file is closed
-                // before the trigger event is written!
-                log_w("sdCardSemaphore failed to yield, held by %s, RTK_Everywhere.ino line %d", semaphoreHolder,
-                      __LINE__);
-            }
-        }
-
-        // Record the Antenna Reference Position - if available
-        if (newARPAvailable == true && settings.enableARPLogging &&
-            ((millis() - lastARPLog) > (settings.ARPLoggingInterval_s * 1000)))
-        {
-            systemPrintln("Recording Antenna Reference Position");
-
-            lastARPLog = millis();
-            newARPAvailable = false;
-
-            double x = ARPECEFX;
-            x /= 10000.0; // Convert to m
-            double y = ARPECEFY;
-            y /= 10000.0; // Convert to m
-            double z = ARPECEFZ;
-            z /= 10000.0; // Convert to m
-            double h = ARPECEFH;
-            h /= 10000.0;     // Convert to m
-            char ARPData[82]; // Max NMEA sentence length is 82
-            snprintf(ARPData, sizeof(ARPData), "%.4f,%.4f,%.4f,%.4f", x, y, z, h);
-
-            char nmeaMessage[82]; // Max NMEA sentence length is 82
-            createNMEASentence(CUSTOM_NMEA_TYPE_ARP_ECEF_XYZH, nmeaMessage, sizeof(nmeaMessage),
-                               ARPData); // textID, buffer, sizeOfBuffer, text
-
-            if (xSemaphoreTake(sdCardSemaphore, fatSemaphore_shortWait_ms) == pdPASS)
-            {
-                markSemaphore(FUNCTION_EVENT);
-
-                logFile->println(nmeaMessage);
-
-                xSemaphoreGive(sdCardSemaphore);
-                newEventToRecord = false;
-            }
-            else
-            {
-                char semaphoreHolder[50];
-                getSemaphoreFunction(semaphoreHolder);
-                log_w("sdCardSemaphore failed to yield, held by %s, RTK_Everywhere.ino line %d", semaphoreHolder,
-                      __LINE__);
-            }
-        }
-
         // Report file sizes to show recording is working
         if ((millis() - lastFileReport) > 5000)
         {
@@ -1604,7 +1608,7 @@ void logUpdate()
                 {
                     systemPrintf("Log file size: %lld", logFileSize);
 
-                    if ((systemTime_minutes - startLogTime_minutes) < settings.maxLogTime_minutes)
+                    if (!logTimeExceeded())
                     {
                         // Calculate generation and write speeds every 5 seconds
                         uint64_t fileSizeDelta = logFileSize - lastLogSize;
@@ -1838,6 +1842,9 @@ void getSemaphoreFunction(char *functionName)
         break;
     case FUNCTION_NTPEVENT:
         strcpy(functionName, "NTP Event");
+        break;
+    case FUNCTION_ARPWRITE:
+        strcpy(functionName, "ARP Write");
         break;
     }
 }
