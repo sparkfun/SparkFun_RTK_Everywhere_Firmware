@@ -1822,7 +1822,7 @@ bool i2cBusInitialization(TwoWire *i2cBus, int sda, int scl, int clockKHz)
     // Determine if any devices are on the bus
     if (deviceFound == false)
     {
-        systemPrintln("No devices found on the I2C bus");
+        systemPrintln("No devices found on this I2C bus");
         return false;
     }
     return true;
