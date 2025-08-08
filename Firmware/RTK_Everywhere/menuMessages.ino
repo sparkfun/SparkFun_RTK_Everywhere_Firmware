@@ -553,10 +553,16 @@ void checkGNSSArrayDefaults()
     if (present.gnss_zedf9p)
     {
         if (settings.dynamicModel == 254)
+        {
+            defaultsApplied = true;
             settings.dynamicModel = DYN_MODEL_PORTABLE;
+        }
 
         if (settings.enableExtCorrRadio == 254)
+        {
+            defaultsApplied = true;
             settings.enableExtCorrRadio = true;
+        }
 
         if (settings.ubxMessageRates[0] == 254)
         {
@@ -593,10 +599,16 @@ void checkGNSSArrayDefaults()
     else if (present.gnss_um980)
     {
         if (settings.dynamicModel == 254)
+        {
+            defaultsApplied = true;
             settings.dynamicModel = UM980_DYN_MODEL_SURVEY;
+        }
 
         if (settings.enableExtCorrRadio == 254)
+        {
+            defaultsApplied = true;
             settings.enableExtCorrRadio = false;
+        }
 
         if (settings.um980Constellations[0] == 254)
         {
@@ -640,10 +652,16 @@ void checkGNSSArrayDefaults()
     else if (present.gnss_mosaicX5)
     {
         if (settings.dynamicModel == 254)
+        {
+            defaultsApplied = true;
             settings.dynamicModel = MOSAIC_DYN_MODEL_QUASISTATIC;
+        }
 
         if (settings.enableExtCorrRadio == 254)
+        {
+            defaultsApplied = true;
             settings.enableExtCorrRadio = true;
+        }
 
         if (settings.mosaicConstellations[0] == 254)
         {
@@ -701,7 +719,10 @@ void checkGNSSArrayDefaults()
     else if (present.gnss_lg290p)
     {
         if (settings.enableExtCorrRadio == 254)
+        {
+            defaultsApplied = true;
             settings.enableExtCorrRadio = false;
+        }
 
         if (settings.lg290pConstellations[0] == 254)
         {
