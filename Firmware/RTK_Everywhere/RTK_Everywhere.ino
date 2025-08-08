@@ -390,6 +390,9 @@ const int sdSizeCheckStackSize = 3000;
 bool sdSizeCheckTaskComplete;
 
 char logFileName[sizeof("SFE_Reference_Station_230101_120101.ubx_plusExtraSpace")] = {0};
+
+bool savePossibleSettings = true; // Save possible vs. available settings. See recordSystemSettingsToFile for details
+
 //-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 
 // WiFi support
@@ -1589,12 +1592,14 @@ void logUpdate()
     {
         if (logTimeExceeded())
         {
-            systemPrintln("Log file: maximum logging time reached");
+            if (!inMainMenu)
+                systemPrintln("Log file: maximum logging time reached");
             endSD(false, true); // Close down SD.
         }
         else
         {
-            systemPrintln("Log file: log length reached");
+            if (!inMainMenu)
+                systemPrintln("Log file: log length reached");
             endLogging(false, true); //(gotSemaphore, releaseSemaphore) Close file. Reset parser stats.
             beginLogging();          // Create new file based on current RTC.
             setLoggingType();        // Determine if we are standard, PPP, or custom. Changes logging icon accordingly.
@@ -1610,7 +1615,7 @@ void logUpdate()
             {
                 lastFileReport = millis();
 
-                if (settings.enablePrintLogFileStatus)
+                if ((settings.enablePrintLogFileStatus) && (!inMainMenu))
                 {
                     systemPrintf("Log file size: %lld", logFileSize);
 

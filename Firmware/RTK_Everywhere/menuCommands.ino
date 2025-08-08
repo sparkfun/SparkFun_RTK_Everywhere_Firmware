@@ -3548,6 +3548,8 @@ bool commandIndexFillActual()
 }
 bool commandIndexFill(bool usePossibleSettings)
 {
+    savePossibleSettings = usePossibleSettings; // Update savePossibleSettings
+
     int i;
     const char *iCommandName;
     int j;
