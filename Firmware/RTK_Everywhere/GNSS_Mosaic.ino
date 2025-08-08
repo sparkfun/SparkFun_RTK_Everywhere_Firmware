@@ -31,25 +31,54 @@ GNSS_Mosaic.ino
 //----------------------------------------
 void menuLogMosaic()
 {
+    if (!present.mosaicMicroSd) // This may be needed for the G5 P3 ?
+        return;
+
     bool applyChanges = false;
 
     while (1)
     {
         systemPrintln();
         systemPrintln("Menu: Logging");
+        systemPrintln();
 
         char sdCardSizeChar[20];
         String cardSize;
-        stringHumanReadableSize(cardSize, sdCardSize);
+        stringHumanReadableSize(cardSize, mosaicSdCardSize);
         cardSize.toCharArray(sdCardSizeChar, sizeof(sdCardSizeChar));
         char sdFreeSpaceChar[20];
         String freeSpace;
-        stringHumanReadableSize(freeSpace, sdFreeSpace);
+        stringHumanReadableSize(freeSpace, mosaicSdFreeSpace);
         freeSpace.toCharArray(sdFreeSpaceChar, sizeof(sdFreeSpaceChar));
 
+        // On Facet mosaic, the SD is connected directly to the X5 and is accessible
+        // On Facet Flex X5, the internal mosaic SD card is not accessible
         char myString[70];
-        snprintf(myString, sizeof(myString), "SD card size: %s / Free space: %s", sdCardSizeChar, sdFreeSpaceChar);
+        snprintf(myString, sizeof(myString), "Mosaic SD card size: %s / Free space: %s", sdCardSizeChar, sdFreeSpaceChar);
         systemPrintln(myString);
+        systemPrintln();
+
+        if (settings.enableSD && online.microSD)
+        {
+            char sdCardSizeChar[20];
+            String cardSize;
+            stringHumanReadableSize(cardSize, sdCardSize);
+            cardSize.toCharArray(sdCardSizeChar, sizeof(sdCardSizeChar));
+            char sdFreeSpaceChar[20];
+            String freeSpace;
+            stringHumanReadableSize(freeSpace, sdFreeSpace);
+            freeSpace.toCharArray(sdFreeSpaceChar, sizeof(sdFreeSpaceChar));
+
+            char myString[70];
+            snprintf(myString, sizeof(myString), "Accessible SD card size: %s / Free space: %s", sdCardSizeChar, sdFreeSpaceChar);
+            systemPrintln(myString);
+
+            if (online.logging)
+            {
+                systemPrintf("Accessible SD current log file name: %s\r\n", logFileName);
+            }
+            systemPrintln();
+        }
 
         systemPrint("1) Log NMEA to microSD: ");
         if (settings.enableLogging == true)
@@ -2651,6 +2680,9 @@ void GNSS_MOSAIC::storeBlock4014(SEMP_PARSE_STATE *parse)
 //----------------------------------------
 void GNSS_MOSAIC::storeBlock4059(SEMP_PARSE_STATE *parse)
 {
+    if (!present.mosaicMicroSd)
+        return;
+    
     if (sempSbfGetU1(parse, 14) < 1) // Check N is at least 1
         return;
 
@@ -2670,9 +2702,15 @@ void GNSS_MOSAIC::storeBlock4059(SEMP_PARSE_STATE *parse)
 
     uint64_t diskUsage = (diskUsageMSB * 4294967296) + diskUsageLSB;
 
-    sdCardSize = diskSizeMB * 1048576; // Convert to bytes
+    mosaicSdCardSize = diskSizeMB * 1048576; // Convert to bytes
 
-    sdFreeSpace = sdCardSize - diskUsage;
+    mosaicSdFreeSpace = mosaicSdCardSize - diskUsage;
+
+    if (!present.microSd) // Overwrite - if this is the only SD card
+    {
+        sdCardSize = mosaicSdCardSize;
+        sdFreeSpace = mosaicSdFreeSpace;
+    }
 
     _diskStatusSeen = true;
 }

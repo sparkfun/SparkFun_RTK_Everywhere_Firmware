@@ -1871,6 +1871,7 @@ struct struct_present
     bool imu_zedf9r = false;
 
     bool microSd = false;
+    bool mosaicMicroSd = false;
     bool microSdCardDetectLow = false; // Card detect low = SD in place
     bool microSdCardDetectHigh = false; // Card detect high = SD in place
     bool microSdCardDetectGpioExpanderHigh = false; // Card detect on GPIO5, high = SD in place

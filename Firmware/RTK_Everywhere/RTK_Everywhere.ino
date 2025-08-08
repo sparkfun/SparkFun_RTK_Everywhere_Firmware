@@ -368,6 +368,8 @@ const char *ringBufferSemaphoreHolder = "None";
 // Display used/free space in menu and config page
 uint64_t sdCardSize;
 uint64_t sdFreeSpace;
+uint64_t mosaicSdCardSize;
+uint64_t mosaicSdFreeSpace;
 bool outOfSDSpace;
 const uint32_t sdMinAvailableSpace = 10000000; // Minimum available bytes before SD is marked as out of space
 
