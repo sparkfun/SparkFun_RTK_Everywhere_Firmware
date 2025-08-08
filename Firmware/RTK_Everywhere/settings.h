@@ -1318,7 +1318,7 @@ const RTK_Settings_Entry rtkSettingsEntries[] =
     { 1, 1, 0, 1, 1, 1, 1, 1, 1, ALL, _int,      0, & settings.correctionsSourcesLifetime_s, "correctionsSourcesLifetime",  },
     { 1, 1, 1, 1, 1, 1, 1, 1, 1, ALL, tCorrSPri, CORR_NUM, & settings.correctionsSourcesPriority, "correctionsPriority_",  },
     { 0, 0, 0, 1, 1, 1, 1, 1, 1, ALL, _bool,     0, & settings.debugCorrections, "debugCorrections",  },
-    { 1, 1, 0, 1, 1, 1, 0, 1, 1, ALL, _bool,     0, & settings.enableExtCorrRadio, "enableExtCorrRadio",  },
+    { 1, 1, 0, 1, 1, 1, 0, 1, 1, ALL, _uint8_t,  0, & settings.enableExtCorrRadio, "enableExtCorrRadio",  }, // uint8_t needed for 254
     { 1, 1, 0, 1, 1, 0, 0, 1, 0, NON, _uint8_t,  0, & settings.extCorrRadioSPARTNSource, "extCorrRadioSPARTNSource",  },
 
 //                         F
@@ -1588,7 +1588,7 @@ const RTK_Settings_Entry rtkSettingsEntries[] =
     { 0, 0, 0, 1, 1, 1, 1, 1, 1, ALL, _int,      0, & settings.gnssHandlerBufferSize, "gnssHandlerBufferSize",  },
 
     // Rover operation
-    { 1, 1, 0, 1, 1, 1, 1, 1, 1, ALL, _uint8_t,  0, & settings.dynamicModel, "dynamicModel",  },
+    { 1, 1, 0, 1, 1, 1, 1, 1, 0, ALL, _uint8_t,  0, & settings.dynamicModel, "dynamicModel",  },
     { 0, 0, 0, 1, 1, 1, 1, 1, 1, ALL, _bool,     0, & settings.enablePrintRoverAccuracy, "enablePrintRoverAccuracy",  },
     { 1, 1, 0, 1, 1, 1, 1, 1, 1, ALL, _int16_t,  0, & settings.minCNO, "minCNO",  },
     { 1, 1, 0, 1, 1, 1, 1, 1, 1, ALL, _uint8_t,  0, & settings.minElev, "minElev",  },
