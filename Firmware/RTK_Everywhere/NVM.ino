@@ -1688,7 +1688,7 @@ bool parseLine(char *str)
     // Last catch
     if (knownSetting == false)
     {
-        log_d("Unknown setting %s", settingName);
+        log_d("Unknown / unwanted setting %s", settingName);
     }
 
     return (true);
