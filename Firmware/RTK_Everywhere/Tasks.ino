@@ -1600,7 +1600,7 @@ void handleGnssDataTask(void *e)
                                 }
                             }
 
-                            if (PERIODIC_DISPLAY(PD_SD_LOG_WRITE) && (bytesSent > 0))
+                            if (PERIODIC_DISPLAY(PD_SD_LOG_WRITE) && (bytesSent > 0) && (!inMainMenu))
                             {
                                 PERIODIC_CLEAR(PD_SD_LOG_WRITE);
                                 systemPrintf("SD %d bytes written to log file\r\n", bytesToSend);
@@ -1613,7 +1613,7 @@ void handleGnssDataTask(void *e)
                             {
                                 newEventToRecord = false;
 
-                                if (settings.enablePrintLogFileStatus)
+                                if ((settings.enablePrintLogFileStatus) && (!inMainMenu))
                                     systemPrintln("Log file: recording event");
 
                                 // Record trigger count with Time Of Week of rising edge (ms), Millisecond fraction of Time Of Week of
@@ -1651,7 +1651,7 @@ void handleGnssDataTask(void *e)
                                 char ARPData[82]; // Max NMEA sentence length is 82
                                 snprintf(ARPData, sizeof(ARPData), "%.4f,%.4f,%.4f,%.4f", x, y, z, h);
 
-                                if (settings.enablePrintLogFileStatus)
+                                if ((settings.enablePrintLogFileStatus) && (!inMainMenu))
                                     systemPrintf("Log file: recording Antenna Reference Position %s\r\n", ARPData);
 
                                 char nmeaMessage[82]; // Max NMEA sentence length is 82
