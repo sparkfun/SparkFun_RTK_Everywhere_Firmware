@@ -95,23 +95,42 @@ void identifyBoard()
         // 0x08 - HUSB238 - USB C PD Sink Controller
         bool husb238Present = i2cIsDevicePresent(i2c_0, 0x08);
 
+        // Flex has everything a Torch does and a display
+        // 0x3C - SSD1306 OLED Driver
+        // If a display is present, it's not a Torch
+        // bool displayPresent = i2cIsDevicePresent(i2c_0, 0x3C);
+        bool displayPresent = i2cIsDevicePresent(i2c_0, 0x10);
+
         i2c_0->end();
 
-        if (bq40z50Present || mp2762aPresent || husb238Present)
-            productVariant = RTK_TORCH;
+        // Proceed with Torch ID only if display is absent
+        if (displayPresent == false)
+        {
+            if (bq40z50Present || mp2762aPresent || husb238Present)
+            {
+                productVariant = RTK_TORCH;
+            }
 
-        if (productVariant == RTK_TORCH && bq40z50Present == false)
-            systemPrintln("Error: Torch ID'd with no BQ40Z50 present");
+            if (productVariant == RTK_TORCH && bq40z50Present == false)
+                systemPrintln("Error: Torch ID'd with no BQ40Z50 present");
 
-        if (productVariant == RTK_TORCH && mp2762aPresent == false)
-            systemPrintln("Error: Torch ID'd with no MP2762A present");
+            if (productVariant == RTK_TORCH && mp2762aPresent == false)
+                systemPrintln("Error: Torch ID'd with no MP2762A present");
 
-        if (productVariant == RTK_TORCH && husb238Present == false)
-            systemPrintln("Error: Torch ID'd with no HUSB238 present");
+            if (productVariant == RTK_TORCH && husb238Present == false)
+                systemPrintln("Error: Torch ID'd with no HUSB238 present");
+        }
     }
 
     if (productVariant == RTK_UNKNOWN)
     {
+        // TODO remove once v1.1 Flex has ID resistors
+        if (i2c_0 == nullptr)
+            i2c_0 = new TwoWire(0);
+        int pin_SDA = 15;
+        int pin_SCL = 4;
+        i2c_0->begin(pin_SDA, pin_SCL); // SDA, SCL
+
         // Use ADC to check the resistor divider
         int pin_deviceID = 35;
         uint16_t idValue = analogReadMilliVolts(pin_deviceID);
@@ -140,13 +159,23 @@ void identifyBoard()
         else if (idWithAdc(idValue, 12.1, 1.5, 8.5))
             productVariant = RTK_FACET_V2_LBAND;
 
-        // Facet v2: 10.0/2.7  -->  612mV < 702mV < 801mV (8.5% tolerance)
-        else if (idWithAdc(idValue, 10.0, 2.7, 8.5))
-            productVariant = RTK_FACET_V2;
+        // Facet Flex: 10.0/20.0  -->  2071mV < 2200mV < 2322mV (8.5% tolerance)
+        else if (idWithAdc(idValue, 10.0, 20.0, 8.5))
+            productVariant = RTK_FLEX;
+
+        // 0x3C - SSD1306 OLED Driver found in RTK Flex
+        // TODO remove once v1.1 hardware has ID resistors
+        // else if (i2cIsDevicePresent(i2c_0, 0x3C) == true || i2cIsDevicePresent(i2c_0, 0x10) == true)
+        // productVariant = RTK_FLEX;
 
         // Postcard: 3.3/10  -->  2371mV < 2481mV < 2582mV (8.5% tolerance)
         else if (idWithAdc(idValue, 3.3, 10, 8.5))
             productVariant = RTK_POSTCARD;
+
+        productVariant = RTK_FLEX; // TODO remove hard override
+
+        // TODO remove once v1.1 Flex has ID resistors
+        i2c_0->end();
     }
 
     if (ENABLE_DEVELOPER)
@@ -274,7 +303,7 @@ void beginBoard()
         pinMode(pin_GNSS_TimePulse, INPUT);
 
         pinMode(pin_GNSS_DR_Reset, OUTPUT);
-        um980Boot(); // Tell UM980 and DR to boot
+        gnssBoot(); // Tell UM980 and DR to boot
 
         pinMode(pin_powerAdapterDetect, INPUT); // Has 10k pullup
 
@@ -306,6 +335,7 @@ void beginBoard()
         gnss = (GNSS *)new GNSS_ZED();
 #else  // COMPILE_ZED
         gnss = (GNSS *)new GNSS_None();
+        systemPrintln("<<<<<<<<<< !!!!!!!!!! ZED NOT COMPILED !!!!!!!!!! >>>>>>>>>>");
 #endif // COMPILE_ZED
 
         present.brand = BRAND_SPARKFUN;
@@ -359,12 +389,12 @@ void beginBoard()
         pin_Cellular_RX = 14;
 
         // 30, D18 : SPI SCK --> Ethernet, microSD card
-        // 31, D19 : SPI POCI
+        // 31, D19 : SPI POCI --> microSD card SDO
         // 33, D21 : I2C0 SDA --> ZED, NEO, USB2514B, TP, I/O connector
         pin_I2C0_SDA = 21;
         // 36, D22 : I2C0 SCL
         pin_I2C0_SCL = 22;
-        // 37, D23 : SPI PICO
+        // 37, D23 : SPI PICO --> microSD card SDI
         // 10, D25 : GNSS RX --> ZED UART1 TXO
         pin_GnssUart_RX = 25;
         // 11, D26 : LARA_PWR_ON
@@ -387,8 +417,8 @@ void beginBoard()
         //  5, A39 : Ethernet Interrupt
         pin_Ethernet_Interrupt = 39;
 
-        pin_PICO = 23;
-        pin_POCI = 19;
+        pin_PICO = 23; // SPI PICO --> microSD card SDI
+        pin_POCI = 19; // SPI POCI --> microSD card SDO
         pin_SCK = 18;
 
         // Disable the Ethernet controller
@@ -436,6 +466,7 @@ void beginBoard()
         gnss = (GNSS *)new GNSS_ZED();
 #else  // COMPILE_ZED
         gnss = (GNSS *)new GNSS_None();
+        systemPrintln("<<<<<<<<<< !!!!!!!!!! ZED NOT COMPILED !!!!!!!!!! >>>>>>>>>>");
 #endif // COMPILE_ZED
 
         present.brand = BRAND_SPARKPNT;
@@ -467,10 +498,10 @@ void beginBoard()
         pin_GnssUart_RX = 14;
         pin_microSD_CardDetect = 15;
         // 30, D18 : SPI SCK --> microSD card
-        // 31, D19 : SPI POCI --> microSD card
+        // 31, D19 : SPI POCI --> microSD card SDO
         pin_I2C0_SDA = 21;
         pin_I2C0_SCL = 22;
-        // 37, D23 : SPI PICO --> microSD card
+        // 37, D23 : SPI PICO --> microSD card SDI
         pin_microSD_CS = 25;
         pin_muxDAC = 26;
         pin_peripheralPowerControl = 27;
@@ -479,8 +510,8 @@ void beginBoard()
         pin_chargerLED = 34;
         pin_chargerLED2 = 36;
         pin_muxADC = 39;
-        pin_PICO = 23;
-        pin_POCI = 19;
+        pin_PICO = 23; // SPI PICO --> microSD card SDI
+        pin_POCI = 19; // SPI POCI --> microSD card SDO
         pin_SCK = 18;
 
         pinMode(pin_muxA, OUTPUT);
@@ -518,6 +549,7 @@ void beginBoard()
         gnss = (GNSS *)new GNSS_ZED();
 #else  // COMPILE_ZED
         gnss = (GNSS *)new GNSS_None();
+        systemPrintln("<<<<<<<<<< !!!!!!!!!! ZED NOT COMPILED !!!!!!!!!! >>>>>>>>>>");
 #endif // COMPILE_ZED
 
         present.brand = BRAND_SPARKPNT;
@@ -546,11 +578,11 @@ void beginBoard()
         pin_GnssUart_TX = 13;
         pin_GnssUart_RX = 14;
         pin_microSD_CardDetect = 15;
-        // 30, D18 : SPI SCK --> microSD card
-        // 31, D19 : SPI POCI --> microSD card
+        // 30, D18 : SPI SCK --> microSD card SCK
+        // 31, D19 : SPI POCI --> microSD card SDO
         pin_I2C0_SDA = 21;
         pin_I2C0_SCL = 22;
-        // 37, D23 : SPI PICO --> microSD card
+        // 37, D23 : SPI PICO --> microSD card SDI
         pin_microSD_CS = 25;
         pin_muxDAC = 26;
         pin_peripheralPowerControl = 27;
@@ -559,8 +591,8 @@ void beginBoard()
         pin_chargerLED = 34;
         pin_chargerLED2 = 36;
         pin_muxADC = 39;
-        pin_PICO = 23;
-        pin_POCI = 19;
+        pin_PICO = 23; // SPI PICO --> microSD card SDI
+        pin_POCI = 19; // SPI POCI --> microSD card SDO
         pin_SCK = 18;
 
         pinMode(pin_muxA, OUTPUT);
@@ -607,6 +639,8 @@ void beginBoard()
         // mosaic COM3 is connected to the Data connector - via the multiplexer
         // mosaic COM3 is available as a generic COM port. The firmware configures the baud. Nothing else.
 
+        // NOTE: Facet Flex with mosaic-X5 is VERY different!
+
         // Specify the GNSS radio
 #ifdef COMPILE_MOSAICX5
         gnss = (GNSS *)new GNSS_MOSAIC();
@@ -631,10 +665,11 @@ void beginBoard()
         present.invertedFastPowerOff = true;
         present.gnss_to_uart = true;
         present.gnss_to_uart2 = true;
-        present.needsExternalPpl = true;     // Uses the PointPerfect Library
         present.microSdCardDetectLow = true; // Except microSD is connected to mosaic... present.microSd is false
+
         present.minCno = true;
         present.minElevation = true;
+        present.needsExternalPpl = true; // Uses the PointPerfect Library for L-Band
         present.dynamicModel = true;
 
         pin_muxA = 2;
@@ -701,7 +736,7 @@ void beginBoard()
         present.i2c1 = true; // Qwiic bus
         present.display_type = DISPLAY_128x64;
         present.microSd = true;
-        present.gpioExpander = true;
+        present.gpioExpanderButtons = true;
         present.microSdCardDetectGpioExpanderHigh = true; // CD is on GPIO 5 of expander. High = SD in place.
 
         // We can't enable here because we don't know if lg290pFirmwareVersion is >= v05
@@ -720,9 +755,9 @@ void beginBoard()
         pin_GNSS_Reset = 33;
         pin_GNSS_TimePulse = 36; // PPS on LG290P
 
+        pin_PICO = 26; // SPI PICO --> microSD card SDI
+        pin_POCI = 25; // SPI POCI --> microSD card SDO
         pin_SCK = 32;
-        pin_POCI = 25;
-        pin_PICO = 26;
         pin_microSD_CS = 27;
 
         pin_gpioExpanderInterrupt = 14; // Pin 'AOI' (Analog Output Input) on Portability Shield
@@ -739,11 +774,91 @@ void beginBoard()
         pinMode(pin_GNSS_TimePulse, INPUT);
 
         pinMode(pin_GNSS_Reset, OUTPUT);
-        lg290pBoot(); // Tell LG290P to boot
+        gnssBoot(); // Tell LG290P to boot
 
         // Disable the microSD card
         pinMode(pin_microSD_CS, OUTPUT);
         sdDeselectCard();
+    }
+
+    else if (productVariant == RTK_FLEX)
+    {
+        present.brand = BRAND_SPARKPNT;
+        present.psram_2mb = true;
+
+        present.antennaPhaseCenter_mm = 42.0; // Default to SPK6618H APC, average of L1/L2
+        present.radio_lora = true;
+        present.fuelgauge_bq40z50 = true;
+        present.charger_mp2762a = true;
+
+        present.button_powerLow = true; // Button is pressed when high
+        // present.button_mode = true;  //TODO remove comment. This won't be available until v1.1 of hardware
+        present.beeper = true;
+        present.gnss_to_uart = true;
+
+        present.gpioExpanderSwitches = true;
+        present.microSd = true;
+        present.microSdCardDetectLow = true;
+
+        present.display_i2c0 = true;
+        present.i2c0BusSpeed_400 = true; // Run display bus at higher speed
+        present.display_type = DISPLAY_128x64;
+        present.displayInverted = true;
+        present.tiltPossible = true;
+
+        pin_I2C0_SDA = 15;
+        pin_I2C0_SCL = 4;
+
+        pin_GnssUart_RX = 26;
+        pin_GnssUart_TX = 27;
+
+        pin_powerSenseAndControl = 34;
+        // pin_modeButton = 25; //TODO remove comment. This won't be available until v1.1 of hardware
+
+        pin_IMU_RX = 14; // ESP32 UART2
+        pin_IMU_TX = 17;
+
+        pin_powerAdapterDetect = 36; // Goes low when USB cable is plugged in
+
+        pin_bluetoothStatusLED = 32;
+        pin_gnssStatusLED = 13;
+
+        pin_beeper = 33;
+
+        pin_PICO = 21; // SPI PICO --> microSD card SDI
+        pin_POCI = 19; // SPI POCI --> microSD card SDO
+        pin_SCK = 18;  // SPI SCK --> microSD card SCK
+        pin_microSD_CS = 22;
+        pin_microSD_CardDetect = 39;
+
+        pin_gpioExpanderInterrupt = 2; // TODO remove on v1.1 hardware. Not used since all GPIO expanded pins are outputs
+
+        DMW_if systemPrintf("pin_bluetoothStatusLED: %d\r\n", pin_bluetoothStatusLED);
+        pinMode(pin_bluetoothStatusLED, OUTPUT);
+
+        DMW_if systemPrintf("pin_gnssStatusLED: %d\r\n", pin_gnssStatusLED);
+        pinMode(pin_gnssStatusLED, OUTPUT);
+
+        pinMode(pin_microSD_CardDetect, INPUT_PULLUP);
+
+        // Disable the microSD card
+        pinMode(pin_microSD_CS, OUTPUT);
+        sdDeselectCard();
+
+        // Turn on Bluetooth, GNSS, and Battery LEDs to indicate power on
+        bluetoothLedOn();
+        gnssStatusLedOn();
+
+        pinMode(pin_beeper, OUTPUT);
+        beepOff();
+
+        pinMode(pin_powerSenseAndControl, INPUT);
+
+        pinMode(pin_powerAdapterDetect, INPUT); // Has 10k pullup
+
+        // We don't disable peripherals (aka set pins on the GPIO expander) here because I2C has not yet been started
+
+        // GNSS receiver type is determined later in gnssDetectReceiverType()
     }
 }
 
@@ -1013,11 +1128,11 @@ void beginGnssUart()
 
             xTaskCreatePinnedToCore(
                 pinGnssUartTask,
-                "GnssUartStart", // Just for humans
-                2000,            // Stack Size
-                nullptr,         // Task input parameter
-                0,           // Priority, with 3 (configMAX_PRIORITIES - 1) being the highest, and 0 being the lowest
-                &taskHandle, // Task handle
+                "GnssUartStart",                  // Just for humans
+                2000,                             // Stack Size
+                nullptr,                          // Task input parameter
+                0,                                // Priority, with 3 (configMAX_PRIORITIES - 1) being the highest, and 0 being the lowest
+                &taskHandle,                      // Task handle
                 settings.gnssUartInterruptsCore); // Core where task should run, 0=core, 1=Arduino
         }
 
@@ -1056,6 +1171,24 @@ void pinGnssUartTask(void *pvParameters)
     {
         // LG290P communicates at 460800bps.
         platformGnssCommunicationRate = 115200 * 4;
+    }
+    else if (productVariant == RTK_FLEX)
+    {
+        if (settings.detectedGnssReceiver == GNSS_RECEIVER_LG290P)
+        {
+            // LG290P communicates at 460800bps.
+            platformGnssCommunicationRate = 115200 * 4;
+        }
+        else if (settings.detectedGnssReceiver == GNSS_RECEIVER_MOSAIC_X5)
+        {
+            // Mosaic defaults to 115200, but mosaicIsPresentOnFlex() increases COM1 to 460800bps
+            platformGnssCommunicationRate = 115200 * 4;
+        }
+        else
+        {
+            // If we don't know the GNSS receiver, default to 115200
+            platformGnssCommunicationRate = 115200;
+        }
     }
 
     serialGNSS->begin(platformGnssCommunicationRate, SERIAL_8N1, pin_GnssUart_RX,
@@ -1290,7 +1423,7 @@ void beginCharger()
 void beginButtons()
 {
     if (present.button_powerHigh == false && present.button_powerLow == false && present.button_mode == false &&
-        present.gpioExpander == false)
+        present.gpioExpanderButtons == false)
         return;
 
     TaskHandle_t taskHandle;
@@ -1303,16 +1436,16 @@ void beginButtons()
         buttonCount++;
     if (present.button_mode == true)
         buttonCount++;
-    if (present.gpioExpander == true)
+    if (present.gpioExpanderButtons == true)
         buttonCount++;
     if (buttonCount > 1)
         reportFatalError("Illegal button assignment.");
 
     // Postcard button uses an I2C expander
     // Avoid using the button library
-    if (present.gpioExpander == true)
+    if (present.gpioExpanderButtons == true)
     {
-        if (beginGpioExpander(0x20) == false)
+        if (beginGpioExpanderButtons(0x20) == false)
         {
             systemPrintln("Portability Shield not detected");
 
@@ -1333,7 +1466,7 @@ void beginButtons()
             userBtn = new Button(pin_powerButton, 25, true,
                                  false); // Turn off inversion. Needed for buttons that are high when pressed.
 
-        // EVK mode button
+        // EVK/Flex user button (Mode or Fn)
         if (present.button_mode == true)
             userBtn = new Button(pin_modeButton);
 
@@ -1347,7 +1480,7 @@ void beginButtons()
         online.button = true;
     }
 
-    if (online.button == true || online.gpioExpander == true)
+    if (online.button == true || online.gpioExpanderButtons == true)
     {
         // Starts task for monitoring button presses
         if (!task.buttonCheckTaskRunning)
@@ -1422,6 +1555,15 @@ void beginSystemState()
         if (systemState == STATE_BASE_NOT_STARTED)
             firstRoverStart = false;
     }
+    else if (productVariant == RTK_FLEX)
+    {
+        // Return to either Rover or Base Not Started. The last state previous to power down.
+        systemState = settings.lastState;
+
+        firstRoverStart = true; // Allow user to enter test screen during first rover start
+        if (systemState == STATE_BASE_NOT_STARTED)
+            firstRoverStart = false;
+    }
     else
     {
         systemPrintf("beginSystemState: Unknown product variant: %d\r\n", productVariant);
@@ -1440,10 +1582,10 @@ void beginIdleTasks()
             if (idleTaskHandle[index] == nullptr)
                 xTaskCreatePinnedToCore(
                     idleTask,
-                    taskName, // Just for humans
-                    2000,     // Stack Size
-                    nullptr,  // Task input parameter
-                    0,        // Priority, with 3 (configMAX_PRIORITIES - 1) being the highest, and 0 being the lowest
+                    taskName,               // Just for humans
+                    2000,                   // Stack Size
+                    nullptr,                // Task input parameter
+                    0,                      // Priority, with 3 (configMAX_PRIORITIES - 1) being the highest, and 0 being the lowest
                     &idleTaskHandle[index], // Task handle
                     index);                 // Core where task should run, 0=core, 1=Arduino
         }
@@ -1499,11 +1641,11 @@ void beginI2C()
     {
         xTaskCreatePinnedToCore(
             pinI2CTask,
-            "I2CStart",  // Just for humans
-            2000,        // Stack Size
-            nullptr,     // Task input parameter
-            0,           // Priority, with 3 (configMAX_PRIORITIES - 1) being the highest, and 0 being the lowest
-            &taskHandle, // Task handle
+            "I2CStart",                  // Just for humans
+            2000,                        // Stack Size
+            nullptr,                     // Task input parameter
+            0,                           // Priority, with 3 (configMAX_PRIORITIES - 1) being the highest, and 0 being the lowest
+            &taskHandle,                 // Task handle
             settings.i2cInterruptsCore); // Core where task should run, 0=core, 1=Arduino
 
         // Wait for task to start running
@@ -1587,17 +1729,20 @@ bool i2cBusInitialization(TwoWire *i2cBus, int sda, int scl, int clockKHz)
 
             switch (addr)
             {
-            default: {
+            default:
+            {
                 systemPrintf("  0x%02X\r\n", addr);
                 break;
             }
 
-            case 0x08: {
+            case 0x08:
+            {
                 systemPrintf("  0x%02X - HUSB238 Power Delivery Sink Controller\r\n", addr);
                 break;
             }
 
-            case 0x0B: {
+            case 0x0B:
+            {
                 systemPrintf("  0x%02X - BQ40Z50 Battery Pack Manager / Fuel gauge\r\n", addr);
                 break;
             }
@@ -1613,47 +1758,68 @@ bool i2cBusInitialization(TwoWire *i2cBus, int sda, int scl, int clockKHz)
                 break;
             }
 
-            case 0x19: {
+            case 0x19:
+            {
                 systemPrintf("  0x%02X - LIS2DH12 Accelerometer\r\n", addr);
                 break;
             }
 
-            case 0x20: {
-                systemPrintf("  0x%02X - PCA9554 GPIO Expander with Interrupt\r\n", addr);
+            case 0x20:
+            {
+                systemPrintf("  0x%02X - PCA9554 GPIO Expander with Interrupt (Postcard)\r\n", addr);
                 break;
             }
 
-            case 0x2C: {
+            case 0x21:
+            {
+                systemPrintf("  0x%02X - PCA9554 GPIO Expander with Interrupt (Flex)\r\n", addr);
+                break;
+            }
+
+            case 0x2C:
+            {
                 systemPrintf("  0x%02X - USB251xB USB Hub\r\n", addr);
                 break;
             }
 
-            case 0x36: {
+            case 0x36:
+            {
                 systemPrintf("  0x%02X - MAX17048 Fuel Gauge\r\n", addr);
                 break;
             }
 
-            case 0x3D: {
-                systemPrintf("  0x%02X - SSD1306 OLED Driver\r\n", addr);
+            case 0x3C:
+            {
+                systemPrintf("  0x%02X - SSD1306 OLED Driver (Flex)\r\n", addr);
                 break;
             }
 
-            case 0x42: {
-                systemPrintf("  0x%02X - u-blox ZED-F9P GNSS Receiver\r\n", addr);
+            case 0x3D:
+            {
+                systemPrintf("  0x%02X - SSD1306 OLED Driver (Postcard/EVK/mosaic)\r\n", addr);
                 break;
             }
 
-            case 0x43: {
+            case 0x42:
+            {
+                systemPrintf("  0x%02X - u-blox GNSS Receiver\r\n", addr);
+                break;
+            }
+
+            case 0x43:
+            {
                 systemPrintf("  0x%02X - u-blox NEO-D9S Correction Data Receiver\r\n", addr);
                 break;
             }
 
-            case 0x5C: {
+            case 0x5C:
+            {
                 systemPrintf("  0x%02X - MP27692A Power Management / Charger\r\n", addr);
                 break;
             }
 
-            case 0x60: {
+            case 0x60:
+            {
                 systemPrintf("  0x%02X - ATECC608A Cryptographic Coprocessor\r\n", addr);
                 break;
             }

@@ -97,7 +97,8 @@ bool sdCardPresent(void)
             return (true); // Card detect high = SD in place
         return (false);    // Card detect low = No SD
     }
-    else if (present.microSdCardDetectGpioExpanderHigh == true)
+    // TODO: check this. Do we have a conflict with online.gpioExpanderButtons vs online.gpioExpander?
+    else if (present.microSdCardDetectGpioExpanderHigh == true && online.gpioExpanderButtons == true)
     {
         if (online.gpioExpander == true)
         {

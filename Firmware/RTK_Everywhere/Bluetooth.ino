@@ -598,7 +598,7 @@ void bluetoothStart()
 
         if (pin_bluetoothStatusLED != PIN_UNDEFINED)
         {
-            bluetoothLedTask.detach(); // Reset BT LED blinker task rate to 2Hz
+            bluetoothLedTask.detach();                                                  // Reset BT LED blinker task rate to 2Hz
             bluetoothLedTask.attach(bluetoothLedTaskPace2Hz, tickerBluetoothLedUpdate); // Rate in seconds, callback
         }
 
@@ -608,11 +608,11 @@ void bluetoothStart()
         {
             if (bluetoothCommandTaskHandle == nullptr)
                 xTaskCreatePinnedToCore(
-                    bluetoothCommandTask,   // Function to run
-                    "BluetoothCommandTask", // Just for humans
-                    4000,                   // Stack Size - must be ~4000
-                    nullptr,                // Task input parameter
-                    0, // Priority, with 3 (configMAX_PRIORITIES - 1) being the highest, and 0 being the lowest
+                    bluetoothCommandTask,              // Function to run
+                    "BluetoothCommandTask",            // Just for humans
+                    4000,                              // Stack Size - must be ~4000
+                    nullptr,                           // Task input parameter
+                    0,                                 // Priority, with 3 (configMAX_PRIORITIES - 1) being the highest, and 0 being the lowest
                     &bluetoothCommandTaskHandle,       // Task handle
                     settings.bluetoothInterruptsCore); // Core where task should run, 0 = core, 1 = Arduino
         }
@@ -696,53 +696,10 @@ void bluetoothStop()
     bluetoothIncomingRTCM = false;
 }
 
-// Test the bidirectional communication through UART connected to GNSS
-// TODO Make this not ZED centric
-void bluetoothTest(bool runTest)
+// Print the current Bluetooth radio configuration and connection status
+void bluetoothPrintStatus()
 {
-    // Verify the ESP UART can communicate TX/RX to ZED UART1
-    const char *bluetoothStatusText;
-
-    if (online.gnss == true)
-    {
-        if (runTest && (zedUartPassed == false))
-        {
-            tasksStopGnssUart(); // Stop absorbing serial via task from GNSS receiver
-
-            gnss->setBaudrate(115200 * 2);
-
-            serialGNSS->begin(115200 * 2, SERIAL_8N1, pin_GnssUart_RX,
-                              pin_GnssUart_TX); // Start UART on platform depedent pins for SPP. The GNSS will be
-                                                // configured to output NMEA over its UART at the same rate.
-
-#ifdef COMPILE_ZED
-            SFE_UBLOX_GNSS_SERIAL myGNSS;
-            if (myGNSS.begin(*serialGNSS) == true) // begin() attempts 3 connections
-            {
-                zedUartPassed = true;
-                bluetoothStatusText = (settings.bluetoothRadioType == BLUETOOTH_RADIO_OFF) ? "Off" : "Online";
-            }
-            else
-                bluetoothStatusText = "Offline";
-#endif // COMPILE_ZED
-
-            gnss->setBaudrate(settings.dataPortBaud);
-
-            serialGNSS->begin(settings.dataPortBaud, SERIAL_8N1, pin_GnssUart_RX,
-                              pin_GnssUart_TX); // Start UART on platform depedent pins for SPP. The GNSS will be
-                                                // configured to output NMEA over its UART at the same rate.
-
-            tasksStartGnssUart(); // Return to normal operation
-        }
-        else
-            bluetoothStatusText = (settings.bluetoothRadioType == BLUETOOTH_RADIO_OFF) ? "Off" : "Online";
-    }
-    else
-        bluetoothStatusText = "GNSS Offline";
-
     // Display Bluetooth MAC address and test results
-    char macAddress[5];
-    snprintf(macAddress, sizeof(macAddress), "%02X%02X", btMACAddress[4], btMACAddress[5]);
     systemPrint("Bluetooth ");
     if (settings.bluetoothRadioType == BLUETOOTH_RADIO_SPP_AND_BLE)
         systemPrint("SPP and Low Energy ");
@@ -755,8 +712,19 @@ void bluetoothTest(bool runTest)
     else if (settings.bluetoothRadioType == BLUETOOTH_RADIO_OFF)
         systemPrint("Off ");
 
+    char macAddress[5];
+    snprintf(macAddress, sizeof(macAddress), "%02X%02X", btMACAddress[4], btMACAddress[5]);
     systemPrint("(");
     systemPrint(macAddress);
-    systemPrint("): ");
-    systemPrintln(bluetoothStatusText);
+    systemPrint(")");
+
+    if (settings.bluetoothRadioType != BLUETOOTH_RADIO_OFF)
+    {
+        systemPrint(": ");
+        if (bluetoothIsConnected() == false)
+            systemPrint("Not ");
+        systemPrint("Connected");
+    }
+
+    systemPrintln();
 }

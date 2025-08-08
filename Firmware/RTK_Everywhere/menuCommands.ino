@@ -717,9 +717,21 @@ SettingValueResponse updateSettingWithValue(bool inCommands, const char *setting
         }
         break;
 
+        case tCmnCnst: {
+#ifdef COMPILE_MOSAICX5
+            for (int x = 0; x < MAX_MOSAIC_CONSTELLATIONS; x++)
+            {
+                if ((suffix[0] == mosaicSignalConstellations[x].configName[0]) &&
+                    (strcmp(suffix, mosaicSignalConstellations[x].configName) == 0))
+                {
+                    settings.mosaicConstellations[x] = settingValue;
+                    knownSetting = true;
+                    break;
+                }
+            }
+#endif
 #ifdef COMPILE_ZED
-        case tUbxConst: {
-            for (int x = 0; x < qualifier; x++)
+            for (int x = 0; x < MAX_UBX_CONSTELLATIONS; x++)
             {
                 if ((suffix[0] == settings.ubxConstellations[x].textName[0]) &&
                     (strcmp(suffix, settings.ubxConstellations[x].textName) == 0))
@@ -729,6 +741,118 @@ SettingValueResponse updateSettingWithValue(bool inCommands, const char *setting
                     break;
                 }
             }
+#endif
+#ifdef COMPILE_UM980
+            for (int x = 0; x < MAX_UM980_CONSTELLATIONS; x++)
+            {
+                if ((suffix[0] == um980ConstellationCommands[x].textName[0]) &&
+                    (strcmp(suffix, um980ConstellationCommands[x].textName) == 0))
+                {
+                    settings.um980Constellations[x] = settingValue;
+                    knownSetting = true;
+                    break;
+                }
+            }
+#endif
+#ifdef COMPILE_LG290P
+            for (int x = 0; x < MAX_LG290P_CONSTELLATIONS; x++)
+            {
+                if ((suffix[0] == lg290pConstellationNames[x][0]) &&
+                    (strcmp(suffix, lg290pConstellationNames[x]) == 0))
+                {
+                    settings.lg290pConstellations[x] = settingValue;
+                    knownSetting = true;
+                    break;
+                }
+            }
+#endif // COMPILE_LG290P
+        }
+        break;
+        case tCmnRtNm: {
+#ifdef COMPILE_UM980
+            for (int x = 0; x < MAX_UM980_NMEA_MSG; x++)
+            {
+                if ((suffix[0] == umMessagesNMEA[x].msgTextName[0]) &&
+                    (strcmp(suffix, umMessagesNMEA[x].msgTextName) == 0))
+                {
+                    settings.um980MessageRatesNMEA[x] = settingValue;
+                    knownSetting = true;
+                    break;
+                }
+            }
+#endif
+#ifdef COMPILE_LG290P
+            for (int x = 0; x < MAX_LG290P_NMEA_MSG; x++)
+            {
+                if ((suffix[0] == lgMessagesNMEA[x].msgTextName[0]) &&
+                    (strcmp(suffix, lgMessagesNMEA[x].msgTextName) == 0))
+                {
+                    settings.lg290pMessageRatesNMEA[x] = settingValue;
+                    knownSetting = true;
+                    break;
+                }
+            }
+        }
+#endif
+        break;
+        case tCnRtRtB: {
+#ifdef COMPILE_UM980
+            for (int x = 0; x < MAX_UM980_RTCM_MSG; x++)
+            {
+                if ((suffix[0] == umMessagesRTCM[x].msgTextName[0]) &&
+                    (strcmp(suffix, umMessagesRTCM[x].msgTextName) == 0))
+                {
+                    settings.um980MessageRatesRTCMBase[x] = settingValue;
+                    knownSetting = true;
+                    break;
+                }
+            }
+#endif
+#ifdef COMPILE_LG290P
+            for (int x = 0; x < MAX_LG290P_RTCM_MSG; x++)
+            {
+                if ((suffix[0] == lgMessagesRTCM[x].msgTextName[0]) &&
+                    (strcmp(suffix, lgMessagesRTCM[x].msgTextName) == 0))
+                {
+                    settings.lg290pMessageRatesRTCMBase[x] = settingValue;
+                    knownSetting = true;
+                    break;
+                }
+            }
+        }
+#endif
+        break;
+        case tCnRtRtR: {
+#ifdef COMPILE_UM980
+            for (int x = 0; x < MAX_UM980_RTCM_MSG; x++)
+            {
+                if ((suffix[0] == umMessagesRTCM[x].msgTextName[0]) &&
+                    (strcmp(suffix, umMessagesRTCM[x].msgTextName) == 0))
+                {
+                    settings.um980MessageRatesRTCMRover[x] = settingValue;
+                    knownSetting = true;
+                    break;
+                }
+            }
+#endif
+#ifdef COMPILE_LG290P
+            for (int x = 0; x < MAX_LG290P_RTCM_MSG; x++)
+            {
+                if ((suffix[0] == lgMessagesRTCM[x].msgTextName[0]) &&
+                    (strcmp(suffix, lgMessagesRTCM[x].msgTextName) == 0))
+                {
+                    settings.lg290pMessageRatesRTCMRover[x] = settingValue;
+                    knownSetting = true;
+                    break;
+                }
+            }
+        }
+#endif
+        break;
+
+#ifdef COMPILE_ZED
+        case tUbxConst: {
+            // Covered by ttCmnCnst
         }
         break;
         case tUbxMsgRt: {
@@ -869,55 +993,19 @@ SettingValueResponse updateSettingWithValue(bool inCommands, const char *setting
 
 #ifdef COMPILE_UM980
         case tUmMRNmea: {
-            for (int x = 0; x < qualifier; x++)
-            {
-                if ((suffix[0] == umMessagesNMEA[x].msgTextName[0]) &&
-                    (strcmp(suffix, umMessagesNMEA[x].msgTextName) == 0))
-                {
-                    settings.um980MessageRatesNMEA[x] = settingValue;
-                    knownSetting = true;
-                    break;
-                }
-            }
+            // Covered by tCmnRtNm
         }
         break;
         case tUmMRRvRT: {
-            for (int x = 0; x < qualifier; x++)
-            {
-                if ((suffix[0] == umMessagesRTCM[x].msgTextName[0]) &&
-                    (strcmp(suffix, umMessagesRTCM[x].msgTextName) == 0))
-                {
-                    settings.um980MessageRatesRTCMRover[x] = settingValue;
-                    knownSetting = true;
-                    break;
-                }
-            }
+            // Covered by tCnRtRtR
         }
         break;
         case tUmMRBaRT: {
-            for (int x = 0; x < qualifier; x++)
-            {
-                if ((suffix[0] == umMessagesRTCM[x].msgTextName[0]) &&
-                    (strcmp(suffix, umMessagesRTCM[x].msgTextName) == 0))
-                {
-                    settings.um980MessageRatesRTCMBase[x] = settingValue;
-                    knownSetting = true;
-                    break;
-                }
-            }
+            // Covered by tCnRtRtB
         }
         break;
         case tUmConst: {
-            for (int x = 0; x < qualifier; x++)
-            {
-                if ((suffix[0] == um980ConstellationCommands[x].textName[0]) &&
-                    (strcmp(suffix, um980ConstellationCommands[x].textName) == 0))
-                {
-                    settings.um980Constellations[x] = settingValue;
-                    knownSetting = true;
-                    break;
-                }
-            }
+            // Covered by tCmnCnst
         }
         break;
 #endif // COMPILE_UM980
@@ -947,16 +1035,7 @@ SettingValueResponse updateSettingWithValue(bool inCommands, const char *setting
 
 #ifdef COMPILE_MOSAICX5
         case tMosaicConst: {
-            for (int x = 0; x < qualifier; x++)
-            {
-                if ((suffix[0] == mosaicSignalConstellations[x].configName[0]) &&
-                    (strcmp(suffix, mosaicSignalConstellations[x].configName) == 0))
-                {
-                    settings.mosaicConstellations[x] = settingValue;
-                    knownSetting = true;
-                    break;
-                }
-            }
+            // Covered by tCmnCnst
         }
         break;
         case tMosaicMSNmea: {
@@ -1038,42 +1117,15 @@ SettingValueResponse updateSettingWithValue(bool inCommands, const char *setting
 
 #ifdef COMPILE_LG290P
         case tLgMRNmea: {
-            for (int x = 0; x < qualifier; x++)
-            {
-                if ((suffix[0] == lgMessagesNMEA[x].msgTextName[0]) &&
-                    (strcmp(suffix, lgMessagesNMEA[x].msgTextName) == 0))
-                {
-                    settings.lg290pMessageRatesNMEA[x] = settingValue;
-                    knownSetting = true;
-                    break;
-                }
-            }
+            // Covered by tCmnRtNm
         }
         break;
         case tLgMRRvRT: {
-            for (int x = 0; x < qualifier; x++)
-            {
-                if ((suffix[0] == lgMessagesRTCM[x].msgTextName[0]) &&
-                    (strcmp(suffix, lgMessagesRTCM[x].msgTextName) == 0))
-                {
-                    settings.lg290pMessageRatesRTCMRover[x] = settingValue;
-                    knownSetting = true;
-                    break;
-                }
-            }
+            // Covered by tCnRtRtR
         }
         break;
         case tLgMRBaRT: {
-            for (int x = 0; x < qualifier; x++)
-            {
-                if ((suffix[0] == lgMessagesRTCM[x].msgTextName[0]) &&
-                    (strcmp(suffix, lgMessagesRTCM[x].msgTextName) == 0))
-                {
-                    settings.lg290pMessageRatesRTCMBase[x] = settingValue;
-                    knownSetting = true;
-                    break;
-                }
-            }
+            // Covered by tCnRtRtB
         }
         break;
         case tLgMRPqtm: {
@@ -1090,18 +1142,17 @@ SettingValueResponse updateSettingWithValue(bool inCommands, const char *setting
         }
         break;
         case tLgConst: {
-            for (int x = 0; x < qualifier; x++)
-            {
-                if ((suffix[0] == lg290pConstellationNames[x][0]) && (strcmp(suffix, lg290pConstellationNames[x]) == 0))
-                {
-                    settings.lg290pConstellations[x] = settingValue;
-                    knownSetting = true;
-                    break;
-                }
-            }
+            // Covered by tCmnCnst
         }
         break;
 #endif // COMPILE_LG290P
+
+        case tGnssReceiver: {
+            gnssReceiverType_e *ptr = (gnssReceiverType_e *)var;
+            *ptr = (gnssReceiverType_e)settingValue;
+            knownSetting = true;
+        }
+        break;
         }
     }
 
@@ -1562,7 +1613,16 @@ void createSettingsString(char *newSettings)
             }
             break;
 
-#ifdef COMPILE_ZED
+            case tCmnCnst:
+            break; // Nothing to do here. Let each GNSS add its settings
+            case tCmnRtNm:
+            break; // Nothing to do here. Let each GNSS add its settings
+            case tCnRtRtB:
+            break; // Nothing to do here. Let each GNSS add its settings
+            case tCnRtRtR:
+            break; // Nothing to do here. Let each GNSS add its settings
+
+    #ifdef COMPILE_ZED
             case tUbxConst: {
                 // Record constellation settings
                 for (int x = 0; x < rtkSettingsEntries[i].qualifier; x++)
@@ -1908,6 +1968,12 @@ void createSettingsString(char *newSettings)
             }
             break;
 #endif // COMPILE_LG290P
+
+            case tGnssReceiver: {
+                gnssReceiverType_e *ptr = (gnssReceiverType_e *)rtkSettingsEntries[i].var;
+                stringRecord(newSettings, rtkSettingsEntries[i].name, (int)*ptr);
+            }
+            break;
             }
         }
     }
@@ -2420,6 +2486,15 @@ SettingValueResponse getSettingValue(bool inCommands, const char *settingName, c
         }
         break;
 
+        case tCmnCnst:
+        break; // Nothing to do here. Let each GNSS add its settings
+        case tCmnRtNm:
+        break; // Nothing to do here. Let each GNSS add its settings
+        case tCnRtRtB:
+        break; // Nothing to do here. Let each GNSS add its settings
+        case tCnRtRtR:
+        break; // Nothing to do here. Let each GNSS add its settings
+
 #ifdef COMPILE_ZED
         case tUbxConst: {
             for (int x = 0; x < qualifier; x++)
@@ -2797,6 +2872,13 @@ SettingValueResponse getSettingValue(bool inCommands, const char *settingName, c
         }
         break;
 #endif // COMPILE_LG290P
+
+        case tGnssReceiver: {
+            gnssReceiverType_e *ptr = (gnssReceiverType_e *)var;
+            writeToString(settingValueStr, (int)*ptr);
+            knownSetting = true;
+        }
+        break;
         }
     }
 
@@ -2994,6 +3076,15 @@ void commandList(bool inCommands, int i)
         commandSendExecuteListResponse(rtkSettingsEntries[i].name, "IPAddress", settingValue);
     }
     break;
+
+    case tCmnCnst:
+    break; // Nothing to do here. Let each GNSS add its commands
+    case tCmnRtNm:
+    break; // Nothing to do here. Let each GNSS add its commands
+    case tCnRtRtB:
+    break; // Nothing to do here. Let each GNSS add its commands
+    case tCnRtRtR:
+    break; // Nothing to do here. Let each GNSS add its commands
 
 #ifdef COMPILE_ZED
     case tUbxConst: {
@@ -3205,6 +3296,8 @@ void commandList(bool inCommands, int i)
         }
     }
     break;
+
+#ifdef COMPILE_MOSAICX5
     case tMosaicConst: {
         // Record Mosaic Constellations
         for (int x = 0; x < rtkSettingsEntries[i].qualifier; x++)
@@ -3288,6 +3381,7 @@ void commandList(bool inCommands, int i)
         }
     }
     break;
+#endif // COMPILE_MOSAICX5
 
 #ifdef COMPILE_LG290P
     case tLgMRNmea: {
@@ -3350,6 +3444,12 @@ void commandList(bool inCommands, int i)
     }
     break;
 #endif // COMPILE_LG290P
+
+    case tGnssReceiver: {
+        getSettingValue(inCommands, rtkSettingsEntries[i].name, settingValue);
+        commandSendExecuteListResponse(rtkSettingsEntries[i].name, "gnssReceiverType_e", settingValue);
+    }
+    break;
     }
 }
 
@@ -3396,13 +3496,57 @@ bool settingAvailableOnPlatform(int i)
             break;
         if ((productVariant == RTK_POSTCARD) && rtkSettingsEntries[i].platPostcard)
             break;
+        if (productVariant == RTK_FLEX)
+        {
+            // TODO: check if we need to tighten up the logic here
+            // Maybe settings.detectedGnssReceiver and Facet_Flex_Variant should be amalgamated somehow?
+            if (rtkSettingsEntries[i].platFlex == ALL) // All
+                break;
+            if ((rtkSettingsEntries[i].platFlex == L29) && (settings.detectedGnssReceiver == GNSS_RECEIVER_LG290P))
+                break;
+            if ((rtkSettingsEntries[i].platFlex == MX5) && (settings.detectedGnssReceiver == GNSS_RECEIVER_MOSAIC_X5))
+                break;
+        }
+        return false;
+    } while (0);
+    return true;
+}
+
+// Determine if the setting is possible on this platform
+bool settingPossibleOnPlatform(int i)
+{
+    do
+    {
+        // Verify that the command is available on the platform
+        if ((productVariant == RTK_EVK) && rtkSettingsEntries[i].platEvk)
+            break;
+        if ((productVariant == RTK_FACET_V2) && rtkSettingsEntries[i].platFacetV2)
+            break;
+        if ((productVariant == RTK_FACET_V2_LBAND) && rtkSettingsEntries[i].platFacetV2LBand)
+            break;
+        if ((productVariant == RTK_FACET_MOSAIC) && rtkSettingsEntries[i].platFacetMosaic)
+            break;
+        if ((productVariant == RTK_TORCH) && rtkSettingsEntries[i].platTorch)
+            break;
+        if ((productVariant == RTK_POSTCARD) && rtkSettingsEntries[i].platPostcard)
+            break;
+        if ((productVariant == RTK_FLEX) && (rtkSettingsEntries[i].platFlex > NON))
+            break;
         return false;
     } while (0);
     return true;
 }
 
 // Allocate and fill the commandIndex table
-bool commandIndexFill()
+bool commandIndexFillPossible()
+{
+    return commandIndexFill(true);
+}
+bool commandIndexFillActual()
+{
+    return commandIndexFill(false);
+}
+bool commandIndexFill(bool usePossibleSettings)
 {
     int i;
     const char *iCommandName;
@@ -3415,14 +3559,26 @@ bool commandIndexFill()
     commandCount = 0;
     for (i = 0; i < numRtkSettingsEntries; i++)
     {
-        if (settingAvailableOnPlatform(i))
-            commandCount += 1;
+        if (usePossibleSettings)
+        {
+            // commandIndexFill is called after identifyBoard. On Flex, we don't yet know
+            // the detectedGnssReceiver, so we have to use settingPossibleOnPlatform
+            if (settingPossibleOnPlatform(i))
+                commandCount += 1;
+        }
+        else
+        {
+            if (settingAvailableOnPlatform(i))
+                commandCount += 1;
+        }
     }
     commandCount += COMMAND_COUNT - 1;
 
     // Allocate the command array. Never freed
     length = commandCount * sizeof(*commandIndex);
 
+    if (commandIndex)
+        rtkFree(commandIndex, "Command index array (commandIndex)");
     commandIndex = (int16_t *)rtkMalloc(length, "Command index array (commandIndex)");
     if (!commandIndex)
     {
@@ -3434,15 +3590,41 @@ bool commandIndexFill()
     // Initialize commandIndex with index values into rtkSettingsEntries
     commandCount = 0;
     for (i = 0; i < numRtkSettingsEntries; i++)
-        if (settingAvailableOnPlatform(i))
-            commandIndex[commandCount++] = i;
+    {
+        if (usePossibleSettings)
+        {
+            if (settingPossibleOnPlatform(i))
+                commandIndex[commandCount++] = i;
+        }
+        else
+        {
+            if (settingAvailableOnPlatform(i))
+                commandIndex[commandCount++] = i;
+        }
+    }
 
     // Add the man-machine interface commands to the list
     for (i = 1; i < COMMAND_COUNT; i++)
         commandIndex[commandCount++] = -i;
 
-    // Sort the commands
-    for (i = 0; i < commandCount - 1; i++)
+    
+    // Find "endOfPrioritySettings"
+    int prioritySettingsEnd = 0;
+    for (i = 0; i < numRtkSettingsEntries; i++)
+    {
+        if (strcmp(rtkSettingsEntries[i].name, "endOfPrioritySettings") == 0)
+        {
+            prioritySettingsEnd = i;
+            if (settings.debugSettings)
+                systemPrintf("endOfPrioritySettings found at entry %d\r\n", prioritySettingsEnd);
+            break;
+        }
+    }
+    // If "endOfPrioritySettings" is not found, prioritySettingsEnd will be zero
+    // and all settings will be sorted. Just like the good old days...
+
+    // Sort the commands - starting at 
+    for (i = prioritySettingsEnd; i < commandCount - 1; i++)
     {
         iCommandName = commandGetName(0, commandIndex[i]);
         for (j = i + 1; j < commandCount; j++)

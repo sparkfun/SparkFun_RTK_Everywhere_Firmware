@@ -324,9 +324,9 @@ bool GNSS_UM980::configureGNSS()
         // If we fail, reset UM980
         systemPrintln("Resetting UM980 to complete configuration");
 
-        um980Reset();
+        gnssReset();
         delay(500);
-        um980Boot();
+        gnssBoot();
         delay(500);
     }
 
@@ -1596,16 +1596,17 @@ bool GNSS_UM980::saveConfiguration()
 }
 
 //----------------------------------------
-// Set the baud rate on the GNSS port that interfaces between the ESP32 and the GNSS
-// This just sets the GNSS side
-// Used during Bluetooth testing
+// Set the baud rate on the designated port - from the super class
 //----------------------------------------
-bool GNSS_UM980::setBaudrate(uint32_t baudRate)
+bool GNSS_UM980::setBaudRate(uint8_t uartNumber, uint32_t baudRate)
 {
-    if (online.gnss)
-        // Set the baud rate on COM3 of the UM980
-        return setBaudRateCOM3(baudRate);
-    return false;
+    if (uartNumber != 3)
+    {
+        systemPrintln("setBaudRate error: out of range");
+        return (false);
+    }
+
+    return setBaudRateCOM3(baudRate);
 }
 
 //----------------------------------------
@@ -2037,10 +2038,6 @@ bool GNSS_UM980::setRtcmRoverMessageRateByName(const char *msgName, uint8_t msgR
 #endif // COMPILE_UM980
 
 //----------------------------------------
-void um980Boot()
-{
-    digitalWrite(pin_GNSS_DR_Reset, HIGH); // Tell UM980 and DR to boot
-}
 
 //----------------------------------------
 // Force UART connection to UM980 for firmware update on the next boot by creating updateUm980Firmware.txt in
@@ -2121,9 +2118,9 @@ void um980FirmwareBeginUpdate()
                 if (nextIncoming == '@')
                 {
                     // Reset UM980
-                    um980Reset();
+                    gnssReset();
                     delay(25);
-                    um980Boot();
+                    gnssBoot();
 
                     inBootMode = true;
                 }
@@ -2194,7 +2191,3 @@ void um980FirmwareRemoveUpdate()
 }
 
 //----------------------------------------
-void um980Reset()
-{
-    digitalWrite(pin_GNSS_DR_Reset, LOW); // Tell UM980 and DR to reset
-}

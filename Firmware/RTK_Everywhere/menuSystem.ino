@@ -104,7 +104,7 @@ void menuSystem()
         }
 
         // Display the Bluetooth status
-        bluetoothTest(false);
+        bluetoothPrintStatus();
 
 #ifdef COMPILE_NETWORK
         networkDisplayStatus();
@@ -435,9 +435,6 @@ void menuDebugHardware()
         systemPrint("1) Print battery status messages: ");
         systemPrintf("%s\r\n", settings.enablePrintBatteryMessages ? "Enabled" : "Disabled");
 
-        // Bluetooth
-        systemPrintln("2) Run Bluetooth Test");
-
         // RTC
         systemPrint("3) Print RTC resyncs: ");
         systemPrintf("%s\r\n", settings.enablePrintRtcSync ? "Enabled" : "Disabled");
@@ -508,8 +505,6 @@ void menuDebugHardware()
 
         if (incoming == 1)
             settings.enablePrintBatteryMessages ^= 1;
-        else if (incoming == 2)
-            bluetoothTest(true);
         else if (incoming == 3)
             settings.enablePrintRtcSync ^= 1;
         else if (incoming == 4)
@@ -558,9 +553,9 @@ void menuDebugHardware()
             {
                 systemPrintln();
                 systemPrintln("QGNSS must be connected to CH342 Port B at 460800bps. Begin firmware update from QGNSS (hit the play button) then reset the LG290P.");
-                lg290pReset();
+                gnssReset();
                 delay(100);
-                lg290pBoot();
+                gnssBoot();
                 systemPrintln("LG290P reset complete.");
             }
         }

@@ -2008,6 +2008,28 @@ uint16_t GNSS_ZED::rtcmRead(uint8_t *rtcmBuffer, int rtcmBytesToRead)
 }
 
 //----------------------------------------
+// Set the baud rate of mosaic-X5 COMn - from the super class
+// Inputs:
+//   port: COM port number
+//   baudRate: New baud rate for the COM port
+// Outputs:
+//   Returns true if the baud rate was set and false upon failure
+//----------------------------------------
+bool GNSS_ZED::setBaudRate(uint8_t port, uint32_t baudRate)
+{
+    if (port < 1 || port > 2)
+    {
+        systemPrintln("setBaudRate error: out of range");
+        return (false);
+    }
+
+    if (port == 1)
+        return setDataBaudRate(baudRate);
+    else
+        return setRadioBaudRate(baudRate);
+}
+
+//----------------------------------------
 // Save the current configuration
 // Returns true when the configuration was saved and false upon failure
 //----------------------------------------
@@ -2018,19 +2040,6 @@ bool GNSS_ZED::saveConfiguration()
 
     _zed->saveConfiguration(); // Save the current settings to flash and BBR on the ZED-F9P
     return true;
-}
-
-//----------------------------------------
-// Set the baud rate on the GNSS port that interfaces between the ESP32 and the GNSS
-// This just sets the GNSS side
-// Used during Bluetooth testing
-//----------------------------------------
-bool GNSS_ZED::setBaudrate(uint32_t baudRate)
-{
-    if (online.gnss)
-        return _zed->setVal32(UBLOX_CFG_UART1_BAUDRATE,
-                              (115200 * 2), VAL_LAYER_ALL); // Defaults to 230400 to maximize message output support
-    return false;
 }
 
 //----------------------------------------

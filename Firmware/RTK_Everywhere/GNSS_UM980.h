@@ -143,6 +143,8 @@ class GNSS_UM980 : GNSS
     // Controls the messages that get broadcast over Bluetooth and logged (if enabled)
     void menuMessagesSubtype(float *localMessageRate, const char *messageType);
 
+    bool setBaudRate(uint8_t uartNumber, uint32_t baudRate); // From the super class
+
     // Set the baud rate on the GNSS port that interfaces between the ESP32 and the GNSS
     // Inputs:
     //   baudRate: The desired baudrate
@@ -430,13 +432,6 @@ class GNSS_UM980 : GNSS
     // Outputs:
     //   Returns true when the configuration was saved and false upon failure
     bool saveConfiguration();
-
-    // Set the baud rate on the GNSS port that interfaces between the ESP32 and the GNSS
-    // This just sets the GNSS side
-    // Used during Bluetooth testing
-    // Inputs:
-    //   baudRate: The desired baudrate
-    bool setBaudrate(uint32_t baudRate);
 
     // Enable all the valid constellations and bands for this platform
     bool setConstellations();

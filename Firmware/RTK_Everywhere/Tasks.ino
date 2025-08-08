@@ -38,11 +38,11 @@ Tasks.ino
 // Macros
 //----------------------------------------
 
-#define WRAP_OFFSET(offset, increment, arraySize)                                                                      \
-    {                                                                                                                  \
-        offset += increment;                                                                                           \
-        if (offset >= arraySize)                                                                                       \
-            offset -= arraySize;                                                                                       \
+#define WRAP_OFFSET(offset, increment, arraySize) \
+    {                                             \
+        offset += increment;                      \
+        if (offset >= arraySize)                  \
+            offset -= arraySize;                  \
     }
 
 //----------------------------------------
@@ -62,7 +62,12 @@ enum RingBufferConsumers
 };
 
 const char *const ringBufferConsumer[] = {
-    "Bluetooth", "TCP Client", "TCP Server", "SD Card", "UDP Server", "USB Serial",
+    "Bluetooth",
+    "TCP Client",
+    "TCP Server",
+    "SD Card",
+    "UDP Server",
+    "USB Serial",
 };
 
 const int ringBufferConsumerEntries = sizeof(ringBufferConsumer) / sizeof(ringBufferConsumer[0]);
@@ -76,13 +81,21 @@ const int ringBufferConsumerEntries = sizeof(ringBufferConsumer) / sizeof(ringBu
 
 // List the parsers to be included
 SEMP_PARSE_ROUTINE const parserTable[] = {
-    sempNmeaPreamble, sempUnicoreHashPreamble, sempRtcmPreamble, sempUbloxPreamble, sempUnicoreBinaryPreamble,
+    sempNmeaPreamble,
+    sempUnicoreHashPreamble,
+    sempRtcmPreamble,
+    sempUbloxPreamble,
+    sempUnicoreBinaryPreamble,
 };
 const int parserCount = sizeof(parserTable) / sizeof(parserTable[0]);
 
 // List the names of the parsers
 const char *const parserNames[] = {
-    "NMEA", "Unicore Hash_(#)", "RTCM", "u-Blox", "Unicore Binary",
+    "NMEA",
+    "Unicore Hash_(#)",
+    "RTCM",
+    "u-Blox",
+    "Unicore Binary",
 };
 const int parserNameCount = sizeof(parserNames) / sizeof(parserNames[0]);
 
@@ -140,7 +153,7 @@ void btReadTask(void *e)
 
     unsigned long btLastByteReceived = 0; // Track when the last BT transmission was received.
     const long btMinEscapeTime =
-        2000; // Bluetooth serial traffic must stop this amount before an escape char is recognized
+        2000;                          // Bluetooth serial traffic must stop this amount before an escape char is recognized
     uint8_t btEscapeCharsReceived = 0; // Used to enter remote command mode
 
     uint8_t btAppCommandCharsReceived = 0; // Used to enter app command mode
@@ -385,7 +398,10 @@ void gnssReadTask(void *e)
     if (settings.debugGnss)
         sempEnableDebugOutput(rtkParse);
 
-    if (present.gnss_mosaicX5)
+    bool sbfParserNeeded = present.gnss_mosaicX5;
+    bool spartnParserNeeded = present.gnss_mosaicX5 && (productVariant != RTK_FLEX);
+
+    if (sbfParserNeeded)
     {
         // Initialize the SBF parser for the mosaic-X5
         sbfParse = sempBeginParser(sbfParserTable, sbfParserCount, sbfParserNames, sbfParserNameCount,
@@ -396,25 +412,28 @@ void gnssReadTask(void *e)
         if (!sbfParse)
             reportFatalError("Failed to initialize the SBF parser");
 
-        // Any data which is not SBF will be passed to the SPARTN parser via the invalid data callback
-        sempSbfSetInvalidDataCallback(sbfParse, processNonSBFData);
-
         // Uncomment the next line to enable SBF parser debug
         // But be careful - you get a lot of "SEMP: Sbf SBF, 0x0002 (2) bytes, invalid preamble2"
         // if (settings.debugGnss) sempEnableDebugOutput(sbfParse);
 
-        // Initialize the SPARTN parser for the mosaic-X5
-        spartnParse = sempBeginParser(spartnParserTable, spartnParserCount, spartnParserNames, spartnParserNameCount,
-                                      0,                  // Scratchpad bytes
-                                      1200,               // Buffer length - SPARTN payload is 1024 bytes max
-                                      processUart1SPARTN, // eom Call Back - in mosaic.ino
-                                      "spartnParse");     // Parser Name
-        if (!spartnParse)
-            reportFatalError("Failed to initialize the SPARTN parser");
+        if (spartnParserNeeded)
+        {
+            // Any data which is not SBF will be passed to the SPARTN parser via the invalid data callback
+            sempSbfSetInvalidDataCallback(sbfParse, processNonSBFData);
 
-        // Uncomment the next line to enable SPARTN parser debug
-        // But be careful - you get a lot of "SEMP: Spartn SPARTN 0 0, 0x00f4 (244) bytes, bad CRC"
-        // if (settings.debugGnss) sempEnableDebugOutput(spartnParse);
+            // Initialize the SPARTN parser for the mosaic-X5
+            spartnParse = sempBeginParser(spartnParserTable, spartnParserCount, spartnParserNames, spartnParserNameCount,
+                                        0,                  // Scratchpad bytes
+                                        1200,               // Buffer length - SPARTN payload is 1024 bytes max
+                                        processUart1SPARTN, // eom Call Back - in mosaic.ino
+                                        "spartnParse");     // Parser Name
+            if (!spartnParse)
+                reportFatalError("Failed to initialize the SPARTN parser");
+
+            // Uncomment the next line to enable SPARTN parser debug
+            // But be careful - you get a lot of "SEMP: Spartn SPARTN 0 0, 0x00f4 (244) bytes, bad CRC"
+            // if (settings.debugGnss) sempEnableDebugOutput(spartnParse);
+        }
     }
 
     // Run task until a request is raised
@@ -444,7 +463,7 @@ void gnssReadTask(void *e)
         // device) To allow the Unicore library to send/receive serial commands, we need to block the gnssReadTask
         // If the Unicore library does not need lone access, then read from serial port
 
-        // For the mosaic-X5, things are different. The mosaic-X5 outputs a raw stream of L-Band bytes,
+        // For the Facet mosaic-X5, things are different. The mosaic-X5 outputs a raw stream of L-Band bytes,
         // interspersed with periodic SBF blocks. The SBF blocks can contain encapsulated NMEA and RTCMv3.
         // We need to pass each incoming byte to a SBF parser first, so it can pick out any SBF blocks.
         // The SBF parser needs to 'give up' (return) any bytes which are not SBF. We do that using the
@@ -460,6 +479,8 @@ void gnssReadTask(void *e)
         // from being parsed from valid SBF blocks and causes the NTRIP server connection to break. We need
         // to add extra checks, above and beyond the invalidDataCallback, to make sure that doesn't happen.
         // Here we check that the SBF ID and length are expected / valid too.
+        //
+        // For Facet Flex mosaic, we need the SBF parser but not the SPARTN parser
 
         if (gnss->isBlocking() == false)
         {
@@ -475,11 +496,11 @@ void gnssReadTask(void *e)
                 {
                     // Update the parser state based on the incoming byte
                     // On mosaic-X5, pass the byte to sbfParse. On all other platforms, pass it straight to rtkParse
-                    sempParseNextByte(present.gnss_mosaicX5 ? sbfParse : rtkParse, incomingData[x]);
+                    sempParseNextByte(sbfParserNeeded ? sbfParse : rtkParse, incomingData[x]);
 
                     // See notes above. On the mosaic-X5, check that the incoming SBF blocks have expected IDs and
                     // lengths to help prevent raw L-Band data being misidentified as SBF
-                    if (present.gnss_mosaicX5)
+                    if (sbfParserNeeded)
                     {
                         SEMP_SCRATCH_PAD *scratchPad = (SEMP_SCRATCH_PAD *)sbfParse->scratchPad;
 
@@ -504,7 +525,8 @@ void gnssReadTask(void *e)
                             if (!expected) // SBF is not expected so restart the parsers
                             {
                                 sbfParse->state = sempFirstByte;
-                                spartnParse->state = sempFirstByte;
+                                if (spartnParserNeeded)                                
+                                    spartnParse->state = sempFirstByte;
                                 if (settings.debugGnss)
                                     systemPrintf("Unexpected SBF block %d - rejected on ID or length\r\n",
                                                  scratchPad->sbf.sbfID);
@@ -544,7 +566,8 @@ void gnssReadTask(void *e)
                             if (!expected) // SBF is not expected so restart the parsers
                             {
                                 sbfParse->state = sempFirstByte;
-                                spartnParse->state = sempFirstByte;
+                                if (spartnParserNeeded)                                
+                                    spartnParse->state = sempFirstByte;
                                 if (settings.debugGnss)
                                     systemPrintf("Unexpected EncapsulatedOutput block - rejected\r\n");
                                 // We could pass the rejected bytes to the SPARTN parser but this is ~risky
@@ -850,7 +873,7 @@ void processUart1Message(SEMP_PARSE_STATE *parse, uint16_t type)
     if ((present.gnss_lg290p) && (pointPerfectIsEnabled()) && (mqttClientIsConnected() == true))
         usingPPL = true;
     // mosaic-X5 : Determine if we want to use corrections
-    if ((present.gnss_mosaicX5) && (pointPerfectIsEnabled()))
+    if ((present.gnss_mosaicX5) && (pointPerfectLbandNeeded()))
         usingPPL = true;
 
     if (usingPPL)
@@ -2155,7 +2178,7 @@ void buttonCheckTask(void *e)
 
                     forceDisplayUpdate = true; // User is interacting so repaint display quickly
 
-                    if (online.gpioExpander == true)
+                    if (online.gpioExpanderButtons == true)
                     {
                         // React to five different buttons
                         if (buttonLastPressed() == gpioExpander_up || buttonLastPressed() == gpioExpander_left)
@@ -2208,7 +2231,8 @@ void buttonCheckTask(void *e)
             {
                 switch (systemState)
                 {
-                case STATE_DISPLAY_SETUP: {
+                case STATE_DISPLAY_SETUP:
+                {
                     // If we are displaying the setup menu, a single tap will cycle through possible system states - see
                     // above Exit into new system state on double tap Exit display setup into previous state after ~10s
                     // - see updateSystemState()

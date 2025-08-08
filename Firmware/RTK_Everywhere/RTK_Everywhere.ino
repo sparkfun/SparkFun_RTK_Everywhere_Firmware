@@ -206,6 +206,10 @@ int pin_gnssStatusLED = PIN_UNDEFINED;      // LED on Torch
 
 int pin_muxA = PIN_UNDEFINED;
 int pin_muxB = PIN_UNDEFINED;
+int pin_mux1 = PIN_UNDEFINED;
+int pin_mux2 = PIN_UNDEFINED;
+int pin_mux3 = PIN_UNDEFINED;
+int pin_mux4 = PIN_UNDEFINED;
 int pin_powerSenseAndControl = PIN_UNDEFINED; // Power button and power down I/O on Facet
 int pin_modeButton = PIN_UNDEFINED;           // Mode button on EVK
 int pin_powerButton = PIN_UNDEFINED;          // Power and general purpose button on Torch
@@ -277,6 +281,16 @@ int gpioExpander_right = 2;
 int gpioExpander_left = 3;
 int gpioExpander_center = 4;
 int gpioExpander_cardDetect = 5;
+
+int gpioExpanderSwitch_S1 = 0; // Controls U16 switch 1: connect ESP UART0 to CH342 or SW2
+int gpioExpanderSwitch_S2 = 1; // Controls U17 switch 2: connect SW1 to RS232 Output or GNSS UART4
+int gpioExpanderSwitch_S3 = 2; // Controls U18 switch 3: connect ESP UART2 to GNSS UART3 or LoRa UART2
+int gpioExpanderSwitch_S4 = 3; // Controls U19 switch 4: connect GNSS UART2 to 4-pin JST TTL Serial or LoRa UART0
+int gpioExpanderSwitch_LoraEnable = 4;   // LoRa_EN
+int gpioExpanderSwitch_GNSS_Reset = 5;   // RST_GNSS
+int gpioExpanderSwitch_LoraBoot = 6;     // LoRa_BOOT0 - Used for bootloading the STM32 radio IC
+int gpioExpanderSwitch_PowerFastOff = 7; // PWRKILL
+
 //=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 
 // I2C for GNSS, battery gauge, display
@@ -389,7 +403,7 @@ bool wifiEspNowRunning;         // False: stopped, True: starting, running, stop
 uint32_t wifiReconnectionTimer; // Delay before reconnection, timer running when non-zero
 bool wifiSoftApOnline;          // WiFi soft AP started successfully
 bool wifiSoftApRunning;         // False: stopped, True: starting, running, stopping
-bool wifiSoftApConnected;         // False: no client connected, True: client connected
+bool wifiSoftApConnected;       // False: no client connected, True: client connected
 bool wifiStationOnline;         // WiFi station started successfully
 bool wifiStationRunning;        // False: stopped, True: starting, running, stopping
 
@@ -776,6 +790,8 @@ uint8_t gpioExpander_lastReleased = 255;
 #define GPIO_EXPANDER_CARD_INSERTED 1
 #define GPIO_EXPANDER_CARD_REMOVED 0
 
+SFE_PCA95XX *gpioExpanderSwitches = nullptr;
+
 //=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 
 // MFi Authentication Coprocessor
@@ -919,7 +935,7 @@ unsigned long loraLastIncomingSerial; // Last time a user sent a serial command.
 
 // Display boot times
 //-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
-#define MAX_BOOT_TIME_ENTRIES 42
+#define MAX_BOOT_TIME_ENTRIES 43
 uint8_t bootTimeIndex;
 uint32_t bootTime[MAX_BOOT_TIME_ENTRIES];
 const char *bootTimeString[MAX_BOOT_TIME_ENTRIES];
@@ -1216,8 +1232,8 @@ void setup()
     DMW_b("identifyBoard");
     identifyBoard(); // Determine what hardware platform we are running on.
 
-    DMW_b("commandIndexFill");
-    if (!commandIndexFill()) // Initialize the command table index
+    DMW_b("commandIndexFillPossible");
+    if (!commandIndexFillPossible()) // Initialize the command table index using possible settings
         reportFatalError("Failed to allocate and fill the commandIndex!");
 
     DMW_b("beginBoard");
@@ -1249,13 +1265,15 @@ void setup()
 
     DMW_b("beginMux");
     beginMux(); // Must come before I2C activity to avoid external devices from corrupting the bus. See issue #474:
-                // https://github.com/sparkfun/SparkFun_RTK_Firmware/issues/474
+    //  https://github.com/sparkfun/SparkFun_RTK_Firmware/issues/474
 
     DMW_b("peripheralsOn");
     peripheralsOn(); // Enable power for the display, SD, etc
 
     DMW_b("beginI2C");
     beginI2C(); // Requires settings and peripheral power (if applicable).
+
+    beginGpioExpanderSwitches(); // Start the GPIO expander for switch control
 
     DMW_b("beginDisplay");
     beginDisplay(i2cDisplay); // Start display to be able to display any errors
@@ -1266,26 +1284,14 @@ void setup()
     DMW_b("verifyTables");
     verifyTables(); // Verify the consistency of the internal tables
 
+    DMW_b("beginVersion");
     beginVersion(); // Assemble platform name. Requires settings/LFS.
 
     if ((settings.haltOnPanic) && (esp_reset_reason() == ESP_RST_PANIC)) // Halt on PANIC - to trap rare crashes
         reportFatalError("ESP_RST_PANIC");
 
-    DMW_b("beginGnssUart");
-    beginGnssUart(); // Requires settings. Start the UART connected to the GNSS receiver on core 0. Start before
-                     // gnssBegin in case it is needed (Torch).
-
-    DMW_b("beginGnssUart2");
-    beginGnssUart2();
-
-    DMW_b("beginRtcmParse");
-    beginRtcmParse();
-
     DMW_b("displaySplash");
     displaySplash(); // Display the RTK product name and firmware version
-
-    DMW_b("gnss->begin");
-    gnss->begin(); // Requires settings. Connect to GNSS to get module type
 
     DMW_b("beginButtons");
     beginButtons(); // Start task for button monitoring. Needed for beginSD (gpioExpander)
@@ -1295,6 +1301,29 @@ void setup()
 
     DMW_b("loadSettings");
     loadSettings(); // Attempt to load settings after SD is started so we can read the settings file if available
+
+    DMW_b("gnssDetectReceiverType");
+    gnssDetectReceiverType(); // If we don't know the receiver from the platform, auto-detect it. Uses settings.
+
+    DMW_b("commandIndexFillActual");
+    commandIndexFillActual(); // Shrink the commandIndex table now we're certain what GNSS we have
+    loadSettings();           // Reload the settings after shrinking commandIndex
+    recordSystemSettings();   // Save the reduced settings now we're certain what GNSS we have
+
+    DMW_b("beginGnssUart");
+    beginGnssUart(); // Requires settings. Start the UART connected to the GNSS receiver on core 0. Start before
+                     // gnssBegin in case it is needed (Torch).
+
+    DMW_b("beginGnssUart2");
+    beginGnssUart2();
+
+    DMW_b("gnss->begin");
+    gnss->begin(); // Requires settings. Connect to GNSS to get module type
+
+    DMW_b("beginRtcmParse");
+    beginRtcmParse();
+
+    tiltDetect(); // If we don't know if there is a tilt compensation sensor, auto-detect it. Uses settings.
 
     // DEBUG_NEARLY_EVERYTHING // Debug nearly all the things
     // DEBUG_THE_ESSENTIALS // Debug the essentials - handy for measuring the boot time after a factory reset
@@ -1338,7 +1367,8 @@ void setup()
     beginSystemState(); // Determine initial system state.
 
     DMW_b("rtcUpdate");
-    rtcUpdate(); // The GNSS likely has a time/date. Update ESP32 RTC to match. Needed for PointPerfect key expiration.
+    rtcUpdate(); // The GNSS likely has a time/date. Update ESP32 RTC to match. Needed for PointPerfect key
+                 // expiration.
 
     systemFlush(); // Complete any previous prints
 
@@ -1537,6 +1567,7 @@ void logUpdate()
         if (beginLogging() == false)
         {
             // Failed to create file, block future logging attempts
+            systemPrintln("beginLogging failed. Blocking further attempts");
             blockLogging = true;
             return;
         }

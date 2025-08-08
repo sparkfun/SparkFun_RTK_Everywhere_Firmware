@@ -192,9 +192,9 @@ bool GNSS_LG290P::configureGNSS()
         // If we fail, reset LG290P
         systemPrintln("Resetting LG290P to complete configuration");
 
-        lg290pReset();
+        gnssReset();
         delay(500);
-        lg290pBoot();
+        gnssBoot();
     }
 
     systemPrintln("LG290P failed to configure");
@@ -255,15 +255,12 @@ bool GNSS_LG290P::configureOnce()
     // Set the baud rate for the three UARTs
     if (response == true)
     {
-        if (getDataBaudRate() != settings.dataPortBaud)
-            response &= setDataBaudRate(settings.dataPortBaud); // LG290P UART1 is connected to CH342 (Port B)
+        response &= setDataBaudRate(settings.dataPortBaud); // If available, set baud of DATA port
 
-        if (getCommBaudRate() != (115200 * 4))
-            response &= setBaudrate(115200 * 4); // LG290P UART2 is connected to the ESP32 UART1
+        // This is redundant because to get this far, the comm interface must already be working
+        // response &= setCommBaudrate(115200 * 4); // Set baud for main comm channel
 
-        if (getRadioBaudRate() != settings.radioPortBaud)
-            response &=
-                setRadioBaudRate(settings.radioPortBaud); // LG290P UART3 is connected to the locking JST connector
+        response &= setRadioBaudRate(settings.radioPortBaud); // If available, set baud of RADIO port
 
         if (response == false && settings.debugGnss)
             systemPrintln("configureOnce: setBauds failed.");
@@ -1104,7 +1101,7 @@ uint8_t GNSS_LG290P::getActiveRtcmMessageCount()
 }
 
 //----------------------------------------
-//   Returns the altitude in meters or zero if the GNSS is offline
+// Returns the altitude in meters or zero if the GNSS is offline
 //----------------------------------------
 double GNSS_LG290P::getAltitude()
 {
@@ -1140,55 +1137,127 @@ uint8_t GNSS_LG290P::getCarrierSolution()
 }
 
 //----------------------------------------
-// UART1 of the LG290P is connected to USB CH342 (Port B)
-// This is nicknamed the DATA port
-// Return the baud rate of UART1
+// Return the baud rate of a given UART
 //----------------------------------------
-uint32_t GNSS_LG290P::getDataBaudRate()
+uint32_t GNSS_LG290P::getBaudRate(uint8_t uartNumber)
 {
+    if (uartNumber < 1 || uartNumber > 3)
+    {
+        systemPrintln("getBaudRate error: out of range");
+        return (0);
+    }
+
     uint32_t baud = 0;
     if (online.gnss)
     {
         uint8_t dataBits, parity, stop, flowControl;
 
-        _lg290p->getPortInfo(1, baud, dataBits, parity, stop, flowControl, 250);
+        _lg290p->getPortInfo(uartNumber, baud, dataBits, parity, stop, flowControl, 250);
     }
     return (baud);
 }
 
 //----------------------------------------
-// UART1 of the LG290P is connected to USB CH342 (Port B)
-// This is nicknamed the DATA port
-// Return the baud rate of UART1
+// Set the baud rate of a given UART
+//----------------------------------------
+bool GNSS_LG290P::setBaudRate(uint8_t uartNumber, uint32_t baudRate)
+{
+    if (uartNumber < 1 || uartNumber > 3)
+    {
+        systemPrintln("setBaudRate error: out of range");
+        return (false);
+    }
+
+    return (_lg290p->setPortBaudrate(uartNumber, baudRate, 250));
+}
+
+//----------------------------------------
+// Return the baud rate of port nicknamed DATA
+//----------------------------------------
+uint32_t GNSS_LG290P::getDataBaudRate()
+{
+    uint8_t dataUart = 0;
+    if (productVariant == RTK_POSTCARD)
+    {
+        // UART1 of the LG290P is connected to USB CH342 (Port B)
+        // This is nicknamed the DATA port
+        dataUart = 1;
+    }
+    return (getBaudRate(dataUart));
+}
+
+//----------------------------------------
+// Set the baud rate of port nicknamed DATA
 //----------------------------------------
 bool GNSS_LG290P::setDataBaudRate(uint32_t baud)
 {
     if (online.gnss)
     {
-        return (_lg290p->setPortBaudrate(1, baud, 250));
+        if (productVariant == RTK_POSTCARD)
+        {
+            if (getDataBaudRate() != baud)
+            {
+                // UART1 of the LG290P is connected to USB CH342 (Port B)
+                // This is nicknamed the DATA port
+                return (setBaudRate(1, baud));
+            }
+        }
+        else
+        {
+            // On products that don't have a DATA port (Flex), act as if we have set the baud successfully
+            return (true);
+        }
     }
-    return (0);
+    return (false);
 }
 
-// Return the baud rate of UART3, connected to the locking JST connector
+//----------------------------------------
+// Return the baud rate of interface where a radio is connected
 //----------------------------------------
 uint32_t GNSS_LG290P::getRadioBaudRate()
 {
-    uint32_t baud = 0;
-    if (online.gnss)
+    uint8_t radioUart = 0;
+    if (productVariant == RTK_POSTCARD)
     {
-        uint8_t dataBits, parity, stop, flowControl;
-
-        _lg290p->getPortInfo(3, baud, dataBits, parity, stop, flowControl, 250);
+        // UART3 of the LG290P is connected to the locking JST connector labled RADIO
+        radioUart = 3;
     }
-    return (baud);
+    else if (productVariant == RTK_FLEX)
+    {
+        // UART2 of the LG290P is connected to SW4, which is connected to LoRa UART0
+        radioUart = 2;
+    }
+    return (getBaudRate(radioUart));
 }
 
-// Set the baud rate for UART3, connected to the locking JST connector
+//----------------------------------------
+// Set the baud rate for the Radio connection
 //----------------------------------------
 bool GNSS_LG290P::setRadioBaudRate(uint32_t baud)
 {
-    return (_lg290p->setPortBaudrate(3, baud, 250));
+    if (online.gnss)
+    {
+        if (getRadioBaudRate() == baud)
+        {
+            return (true); // Baud is set!
+        }
+        else
+        {
+            uint8_t radioUart = 0;
+            if (productVariant == RTK_POSTCARD)
+            {
+                // UART3 of the LG290P is connected to the locking JST connector labled RADIO
+                radioUart = 3;
+            }
+            else if (productVariant == RTK_FLEX)
+            {
+                // UART2 of the LG290P is connected to SW4, which is connected to LoRa UART0
+                radioUart = 2;
+            }
+            return (setBaudRate(radioUart, baud));
+        }
+    }
+    return (false);
 }
 
 //----------------------------------------
@@ -1248,6 +1317,8 @@ uint8_t GNSS_LG290P::getHour()
     return 0;
 }
 
+//----------------------------------------
+// Return the serial number of the LG290P
 //----------------------------------------
 const char *GNSS_LG290P::getId()
 {
@@ -2037,27 +2108,50 @@ bool GNSS_LG290P::saveConfiguration()
 // Set the baud rate on the GNSS port that interfaces between the ESP32 and the GNSS
 // This just sets the GNSS side
 //----------------------------------------
-bool GNSS_LG290P::setBaudrate(uint32_t baud)
+bool GNSS_LG290P::setCommBaudrate(uint32_t baud)
 {
     if (online.gnss)
-        // Set the baud rate on UART2 of the LG290P
-        return (_lg290p->setPortBaudrate(2, baud, 250));
-    return false;
+    {
+        if (getCommBaudRate() == baud)
+        {
+            return (true); // Baud is set!
+        }
+        else
+        {
+            uint8_t commUart = 0;
+            if (productVariant == RTK_POSTCARD)
+            {
+                // UART2 of the LG290P is connected to the ESP32 for the main config/comm
+                commUart = 2;
+            }
+            else if (productVariant == RTK_FLEX)
+            {
+                // UART1 of the LG290P is connected to the ESP32 for the main config/comm
+                commUart = 1;
+            }
+            return (setBaudRate(commUart, baud));
+        }
+    }
+    return (false);
 }
 
 //----------------------------------------
-// Return the baud rate of UART2, connected to the ESP32 UART1
+// Return the baud rate of the UART connected to the ESP32 UART1
 //----------------------------------------
 uint32_t GNSS_LG290P::getCommBaudRate()
 {
-    uint32_t baud = 0;
-    if (online.gnss)
+    uint8_t commUart = 0;
+    if (productVariant == RTK_POSTCARD)
     {
-        uint8_t dataBits, parity, stop, flowControl;
-
-        _lg290p->getPortInfo(2, baud, dataBits, parity, stop, flowControl, 250);
+        // On the Postcard, the ESP32 UART1 is connected to LG290P UART2
+        commUart = 2;
     }
-    return (baud);
+    else if (productVariant == RTK_FLEX)
+    {
+        // On the Flex, the ESP32 UART1 is connected to LG290P UART1
+        commUart = 1;
+    }
+    return (getBaudRate(commUart));
 }
 
 //----------------------------------------
@@ -2438,15 +2532,6 @@ bool GNSS_LG290P::setRtcmRoverMessageRateByName(const char *msgName, uint8_t msg
 }
 
 //----------------------------------------
-void lg290pBoot()
-{
-    digitalWrite(pin_GNSS_Reset, HIGH); // Tell LG290P to boot
-}
-
-void lg290pReset()
-{
-    digitalWrite(pin_GNSS_Reset, LOW);
-}
 
 // Given a NMEA or PQTM sentence, determine if it is enabled in settings
 // This is used to signal to the processUart1Message() task to remove messages that are needed
@@ -2499,6 +2584,41 @@ bool lg290pMessageEnabled(char *nmeaSentence, int sentenceLength)
 
     // If we can't ID this message, allow it by default. The device configuration should control most message flow.
     return (true);
+}
+
+// Return true if we detect this receiver type
+bool lg290pIsPresent()
+{
+    // Locally instantiate the hardware and library so it will release on exit
+
+    HardwareSerial serialTestGNSS(2);
+
+    // LG290P communicates at 460800bps.
+    uint32_t platformGnssCommunicationRate = 115200 * 4;
+
+    serialTestGNSS.begin(platformGnssCommunicationRate, SERIAL_8N1, pin_GnssUart_RX, pin_GnssUart_TX);
+
+    LG290P lg290p;
+
+    if (settings.debugGnss)
+    {
+        lg290p.enableDebugging();       // Print all debug to Serial
+        lg290p.enablePrintRxMessages(); // Print incoming processed messages from SEMP
+    }
+
+    if (lg290p.begin(serialTestGNSS) == true) // Give the serial port over to the library
+    {
+        if (settings.debugGnss)
+            systemPrintln("LG290P detected");
+        serialTestGNSS.end();
+        return true;
+    }
+
+    if (settings.debugGnss)
+        systemPrintln("LG290P not detected. Moving on.");
+
+    serialTestGNSS.end();
+    return false;
 }
 
 #endif // COMPILE_LG290P

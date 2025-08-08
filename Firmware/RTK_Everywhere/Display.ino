@@ -84,10 +84,10 @@ enum ICON_POSITION_t
 };
 
 // WiFi icons
-const iconProperty * wifiIconTable[ICON_POSITION_MAX][4]
-{   //          0                       1                       2                       3
-    {&WiFiSymbol0Left64x48,  &WiFiSymbol1Left64x48,  &WiFiSymbol2Left64x48,  &WiFiSymbol3Left64x48},
-    {&WiFiSymbol0128x64,     &WiFiSymbol1128x64,     &WiFiSymbol2128x64,     &WiFiSymbol3128x64},
+const iconProperty *wifiIconTable[ICON_POSITION_MAX][4]{
+    //          0                       1                       2                       3
+    {&WiFiSymbol0Left64x48, &WiFiSymbol1Left64x48, &WiFiSymbol2Left64x48, &WiFiSymbol3Left64x48},
+    {&WiFiSymbol0128x64, &WiFiSymbol1128x64, &WiFiSymbol2128x64, &WiFiSymbol3128x64},
     {&WiFiSymbol0Right64x48, &WiFiSymbol1Right64x48, &WiFiSymbol2Right64x48, &WiFiSymbol3Right64x48},
 };
 //----------------------------------------
@@ -97,9 +97,9 @@ const iconProperty * wifiIconTable[ICON_POSITION_MAX][4]
 static QwiicCustomOLED *oled = nullptr;
 
 // Fonts
+#include <res/qw_fnt_31x48.h>
 #include <res/qw_fnt_5x7.h>
 #include <res/qw_fnt_8x16.h>
-#include <res/qw_fnt_31x48.h>
 #include <res/qw_fnt_largenum.h>
 
 // Icons
@@ -149,6 +149,10 @@ void beginDisplay(TwoWire *i2cBus)
     if (present.display_type == DISPLAY_128x64)
     {
         i2cAddress = kOLEDMicroDefaultAddress;
+
+        if (productVariant == RTK_FLEX)
+            i2cAddress = 0x3C;
+
         if (oled == nullptr)
             oled = new QwiicCustomOLED;
         if (!oled)
@@ -177,6 +181,12 @@ void beginDisplay(TwoWire *i2cBus)
             online.display = true;
 
             systemPrintln("Display started");
+
+            if (present.displayInverted == true)
+            {
+                oled->flipVertical(true);
+                oled->flipHorizontal(true);
+            }
 
             // Display the brand LOGO
             RTKBrandAttribute *brandAttribute = getBrandAttributeFromBrand(present.brand);
@@ -207,12 +217,13 @@ void displayUpdate()
             lastDisplayUpdate = millis();
             forceDisplayUpdate = false;
 
-            oled->reset(false); // Incase of previous corruption, force re-alignment of CGRAM. Do not init buffers as it
-                                // takes time and causes screen to blink.
+            if (present.displayInverted == false)
+                oled->reset(false); // Incase of previous corruption, force re-alignment of CGRAM. Do not init buffers as it
+            //  takes time and causes screen to blink.
 
             oled->erase();
 
-            iconPropertyList.clear();                           // Redundant?
+            iconPropertyList.clear(); // Redundant?
 
             switch (systemState)
             {
@@ -367,7 +378,8 @@ void displayUpdate()
                 break;
 
             case (STATE_NTPSERVER_NOT_STARTED):
-            case (STATE_NTPSERVER_NO_SYNC): {
+            case (STATE_NTPSERVER_NO_SYNC):
+            {
                 paintClock(&iconPropertyList, true); // Blink
                 displaySivVsOpenShort(&iconPropertyList);
 
@@ -388,7 +400,8 @@ void displayUpdate()
             }
             break;
 
-            case (STATE_NTPSERVER_SYNC): {
+            case (STATE_NTPSERVER_SYNC):
+            {
                 paintClock(&iconPropertyList, false); // No blink
                 displaySivVsOpenShort(&iconPropertyList);
                 paintLogging(&iconPropertyList, false, true); // No pulse, NTP
@@ -750,7 +763,7 @@ void setRadioIcons(std::vector<iconPropertyBlinking> *iconList)
             // WiFi : Columns 34 - 46
             if (wifiStationRunning && networkInterfaceHasInternet(NETWORK_WIFI_STATION))
             {
-                //Display solid icon based on RSSI
+                // Display solid icon based on RSSI
                 displayWiFiIcon(iconList, prop, ICON_POSITION_CENTER, 0b11111111);
             }
             else if (wifiStationRunning && (networkInterfaceHasInternet(NETWORK_WIFI_STATION) == false))
@@ -758,7 +771,7 @@ void setRadioIcons(std::vector<iconPropertyBlinking> *iconList)
                 // We are not connected, blink icon
                 displayWiFiFullIcon(iconList, prop, ICON_POSITION_CENTER, 0b01010101);
             }
-            else if(wifiSoftApRunning)
+            else if (wifiSoftApRunning)
             {
                 // We are in AP mode, solid WiFi icon
                 displayWiFiIcon(iconList, prop, ICON_POSITION_CENTER, 0b11111111);
@@ -904,19 +917,22 @@ void setRadioIcons(std::vector<iconPropertyBlinking> *iconList)
                 paintDynamicModel(iconList);
                 break;
             case (STATE_BASE_TEMP_SETTLE):
-            case (STATE_BASE_TEMP_SURVEY_STARTED): {
+            case (STATE_BASE_TEMP_SURVEY_STARTED):
+            {
                 prop.duty = 0b00001111;
                 prop.icon = BaseTemporaryProperties.iconDisplay[present.display_type];
                 iconList->push_back(prop);
             }
             break;
-            case (STATE_BASE_TEMP_TRANSMITTING): {
+            case (STATE_BASE_TEMP_TRANSMITTING):
+            {
                 prop.duty = 0b11111111;
                 prop.icon = BaseTemporaryProperties.iconDisplay[present.display_type];
                 iconList->push_back(prop);
             }
             break;
-            case (STATE_BASE_FIXED_TRANSMITTING): {
+            case (STATE_BASE_FIXED_TRANSMITTING):
+            {
                 prop.duty = 0b11111111;
                 prop.icon = BaseFixedProperties.iconDisplay[present.display_type];
                 iconList->push_back(prop);
@@ -1254,21 +1270,24 @@ void setModeIcon(std::vector<iconPropertyBlinking> *iconList)
     case (STATE_BASE_NOT_STARTED):
         // Do nothing. Static display shown during state change.
         break;
-    case (STATE_BASE_TEMP_SETTLE): {
+    case (STATE_BASE_TEMP_SETTLE):
+    {
         iconPropertyBlinking prop;
         prop.duty = 0b00001111;
         prop.icon = BaseTemporaryProperties.iconDisplay[present.display_type];
         iconList->push_back(prop);
     }
     break;
-    case (STATE_BASE_TEMP_SURVEY_STARTED): {
+    case (STATE_BASE_TEMP_SURVEY_STARTED):
+    {
         iconPropertyBlinking prop;
         prop.duty = 0b00001111;
         prop.icon = BaseTemporaryProperties.iconDisplay[present.display_type];
         iconList->push_back(prop);
     }
     break;
-    case (STATE_BASE_TEMP_TRANSMITTING): {
+    case (STATE_BASE_TEMP_TRANSMITTING):
+    {
         iconPropertyBlinking prop;
         prop.duty = 0b11111111;
         prop.icon = BaseTemporaryProperties.iconDisplay[present.display_type];
@@ -1278,7 +1297,8 @@ void setModeIcon(std::vector<iconPropertyBlinking> *iconList)
     case (STATE_BASE_FIXED_NOT_STARTED):
         // Do nothing. Static display shown during state change.
         break;
-    case (STATE_BASE_FIXED_TRANSMITTING): {
+    case (STATE_BASE_FIXED_TRANSMITTING):
+    {
         iconPropertyBlinking prop;
         prop.duty = 0b11111111;
         prop.icon = BaseFixedProperties.iconDisplay[present.display_type];
@@ -1728,7 +1748,7 @@ void nudgeAndPrintSIV(displayCoords textCoords, uint8_t siv)
     {
         // On 128x64, there's no need to nudge
         oled->setCursor(textCoords.x, textCoords.y); // x, y
-        oled->print(siv); // 1 or 2 digits
+        oled->print(siv);                            // 1 or 2 digits
     }
 }
 
@@ -1904,7 +1924,7 @@ void paintRTCM(std::vector<iconPropertyBlinking> *iconList)
     if (present.display_type == DISPLAY_64x48)
         yPos = yPos - 1; // Move text up by 1 pixel on 64x48. Note: this is brittle.
 
-    if(settings.baseCasterOverride == true)
+    if (settings.baseCasterOverride == true)
         printTextAt("BaseCast", xPos + 4, yPos, QW_FONT_8X16, 1); // text, y, font type, kerning
     else if (casting)
         printTextAt("Casting", xPos + 4, yPos, QW_FONT_8X16, 1); // text, y, font type, kerning
@@ -2315,9 +2335,7 @@ void displaySDFail(uint16_t displayTime)
 }
 
 // Display the full WiFi icon
-void displayWiFiFullIcon(std::vector<iconPropertyBlinking> *iconList,
-                         iconPropertyBlinking prop,
-                         uint8_t position,
+void displayWiFiFullIcon(std::vector<iconPropertyBlinking> *iconList, iconPropertyBlinking prop, uint8_t position,
                          uint8_t dutyCycle)
 {
     prop.duty = dutyCycle;
@@ -2326,9 +2344,7 @@ void displayWiFiFullIcon(std::vector<iconPropertyBlinking> *iconList,
 }
 
 // Display the WiFi icon based upon RSSI value
-void displayWiFiIcon(std::vector<iconPropertyBlinking> *iconList,
-                     iconPropertyBlinking prop,
-                     uint8_t position,
+void displayWiFiIcon(std::vector<iconPropertyBlinking> *iconList, iconPropertyBlinking prop, uint8_t position,
                      uint8_t dutyCycle)
 {
 #ifdef COMPILE_WIFI
@@ -2403,10 +2419,9 @@ void displayHalt()
     {
         oled->erase(); // Clear the display's internal buffer
         int yPos = (oled->getHeight() - 16) / 2;
-        QwiicFont * font = (oled->getWidth() > 64) ? (QwiicFont *)&QW_FONT_31X48
-                                                   : (QwiicFont *)&QW_FONT_8X16;
+        QwiicFont *font = (oled->getWidth() > 64) ? (QwiicFont *)&QW_FONT_31X48 : (QwiicFont *)&QW_FONT_8X16;
         printTextCenter("Halt", yPos, *font, 1, false); // text, y, font type, kerning, inverted
-        oled->display(); // Push internal buffer to display
+        oled->display();                                // Push internal buffer to display
     }
 }
 
@@ -2496,7 +2511,7 @@ void paintSystemTest()
 
             drawFrame(); // Outside edge
 
-            oled->setFont(QW_FONT_5X7);        // Set font to smallest
+            oled->setFont(QW_FONT_5X7); // Set font to smallest
 
             if (present.microSd)
             {
@@ -2657,7 +2672,8 @@ void paintDisplaySetup()
 {
     constructSetupDisplay(&setupButtons); // Construct the vector (linked list) of buttons
 
-    uint8_t maxButtons = ((present.display_type == DISPLAY_128x64) ? 5 : 4);
+    uint8_t maxButtons =
+        ((present.display_type == DISPLAY_128x64) ? 5 : 4);
 
     uint8_t printedButtons = 0;
 
@@ -2672,7 +2688,10 @@ void paintDisplaySetup()
             {
                 if (it->newState == STATE_PROFILE)
                 {
-                    int nameWidth = ((present.display_type == DISPLAY_128x64) ? 17 : 9);
+                    int nameWidth =
+                        ((present.display_type == DISPLAY_128x64)
+                             ? 17
+                             : 9);
                     char miniProfileName[nameWidth] = {0};
                     snprintf(miniProfileName, sizeof(miniProfileName), "%d_%s", it->newProfile,
                              it->name); // Prefix with index #
@@ -3198,8 +3217,8 @@ void displayWebConfig(std::vector<iconPropertyBlinking> &iconPropertyList)
 #ifndef COMPILE_ETHERNET
     strcpy(mySSID, "!Compiled");
     strcpy(myIP, "0.0.0.0");
-#endif  // COMPILE_ETHERNET
-#else   // COMPILE_WIFI
+#endif // COMPILE_ETHERNET
+#else  // COMPILE_WIFI
     if (wifi.softApOnline())
     {
         setWiFiIcon(&iconPropertyList); // Blink WiFi in center
@@ -3218,10 +3237,10 @@ void displayWebConfig(std::vector<iconPropertyBlinking> &iconPropertyList)
         strcpy(mySSID, "Error");
         strcpy(myIP, "0.0.0.0");
     }
-#endif  // COMPILE_ETHERNET
-#endif  // COMPILE_WIFI
+#endif // COMPILE_ETHERNET
+#endif // COMPILE_WIFI
 
-#ifdef  COMPILE_ETHERNET
+#ifdef COMPILE_ETHERNET
     if (networkInterfaceHasInternet(NETWORK_ETHERNET))
     {
         yPos = displayEthernetIcon();
@@ -3233,13 +3252,13 @@ void displayWebConfig(std::vector<iconPropertyBlinking> &iconPropertyList)
 #ifdef COMPILE_WIFI
         setWiFiIcon(&iconPropertyList); // Blink WiFi in center
         displaySsid = false;
-#else   // COMPILE_WIFI
+#else  // COMPILE_WIFI
         yPos = displayEthernetIcon();
-#endif  // COMPILE_WIFI
+#endif // COMPILE_WIFI
         strcpy(mySSID, "Error");
         strcpy(myIP, "0.0.0.0");
     }
-#endif  // COMPILE_ETHERNET
+#endif // COMPILE_ETHERNET
 
     // Trim SSID to a max length
     mySSID[SSID_LENGTH] = 0;

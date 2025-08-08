@@ -559,6 +559,8 @@ class GNSS_MOSAIC : GNSS
   // and add a private library class instance here.
 
   protected:
+    // Flag which indicates GNSS is blocking (needs exclusive access to the UART)
+    bool _isBlocking = false;
 
     // These globals are updated regularly via the SBF parser
     double _clkBias_ms; // PVTGeodetic RxClkBias (will be sawtooth unless clock steering is enabled)
@@ -858,6 +860,11 @@ class GNSS_MOSAIC : GNSS
 
     bool isPppConverging();
 
+    // Send commands out the UART to see if a mosaic module is present
+    bool isPresent();
+    bool isPresentOnSerial(HardwareSerial *serialPort, const char *command, const char *response, const char *console, int retryLimit = 20);
+    bool mosaicIsPresentOnFlex();
+
     // Some functions (L-Band area frequency determination) merely need
     // to know if we have an RTK Fix.  This function checks to see if the
     // given platform has reached sufficient fix type to be considered valid
@@ -940,6 +947,14 @@ class GNSS_MOSAIC : GNSS
                             char *response = nullptr,
                             size_t responseSize = 0,
                             bool debug = true);
+    bool sendAndWaitForIdle(HardwareSerial *serialPort,
+                            const char *message,
+                            const char *reply,
+                            unsigned long timeout = 1000,
+                            unsigned long idle = 25,
+                            char *response = nullptr,
+                            size_t responseSize = 0,
+                            bool debug = true);
 
     // Send message. Wait for up to timeout millis for reply to arrive
     // If the reply is received, keep reading bytes until the serial port has
@@ -982,6 +997,13 @@ class GNSS_MOSAIC : GNSS
                           unsigned long wait = 25,
                           char *response = nullptr,
                           size_t responseSize = 0);
+    bool sendWithResponse(HardwareSerial *serialPort,
+                          const char *message,
+                          const char *reply,
+                          unsigned long timeout = 1000,
+                          unsigned long wait = 25,
+                          char *response = nullptr,
+                          size_t responseSize = 0);
 
     // Send message. Wait for up to timeout millis for reply to arrive
     // If the reply has started to be received when timeout is reached, wait for a further wait millis
@@ -1003,13 +1025,6 @@ class GNSS_MOSAIC : GNSS
                           char *response = nullptr,
                           size_t responseSize = 0);
 
-    // Set the baud rate on the GNSS port that interfaces between the ESP32 and the GNSS
-    // This just sets the GNSS side
-    // Used during Bluetooth testing
-    // Inputs:
-    //   baudRate: The desired baudrate
-    bool setBaudrate(uint32_t baudRate);
-
     // Set the baud rate of mosaic-X5 COM1
     // This is used during the Bluetooth test
     // Inputs:
@@ -1017,7 +1032,8 @@ class GNSS_MOSAIC : GNSS
     //   baudRate: New baud rate for the COM port
     // Outputs:
     //   Returns true if the baud rate was set and false upon failure
-    bool setBaudRateCOM(uint8_t port, uint32_t baudRate);
+    bool setBaudRate(uint8_t uartNumber, uint32_t baudRate); // From the super class
+    bool setBaudRateCOM(uint8_t port, uint32_t baudRate);    // Original X5 implementation
 
     // Enable all the valid constellations and bands for this platform
     bool setConstellations();
@@ -1098,7 +1114,7 @@ class GNSS_MOSAIC : GNSS
 
     void updateSD();
 
-    void waitSBFReceiverSetup(unsigned long timeout);
+    void waitSBFReceiverSetup(HardwareSerial *serialPort, unsigned long timeout);
 };
 
 #endif  // __GNSS_MOSAIC_H__

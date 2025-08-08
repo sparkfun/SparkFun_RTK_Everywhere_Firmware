@@ -262,7 +262,8 @@ void beginTilt()
 {
     tiltSensor = new IM19();
 
-    SerialForTilt = new HardwareSerial(1); // Use UART1 on the ESP32 to receive IMU corrections
+    if (SerialForTilt == nullptr)
+        SerialForTilt = new HardwareSerial(1); // Use UART1 on the ESP32 to receive IMU corrections
 
     SerialForTilt->setRxBufferSize(1024 * 1);
 
@@ -1007,3 +1008,62 @@ void applyCompensationGGA(char *nmeaSentence, int sentenceLength)
 }
 
 #endif // COMPILE_IM19_IMU
+
+// Determine if a tilt sensor is available or not
+// Records outcome to NVM
+void tiltDetect()
+{
+    // Only test platforms that may have a tilt sensor on board
+    if (present.tiltPossible == false)
+        return;
+
+    // Start test if not previously detected
+    if (settings.detectedTilt == true)
+        return;
+
+    // Test for tilt only once
+    if (settings.testedTilt == true)
+        return;
+
+#ifdef COMPILE_IM19_IMU
+    // Locally instantiate the library and hardware so it will release on exit
+    IM19 *tiltSensor;
+
+    tiltSensor = new IM19();
+
+    // On Flex, ESP UART2 is connected to SW3, then UART3 of the GNSS (where a tilt module resides, if populated)
+    HardwareSerial SerialTiltTest(1); // Use UART1 on the ESP32 to communicate with IMU
+
+    // Confirm SW3 is in the correct position
+    gpioExpanderSelectImu();
+
+    // We must start the serial port before handing it over to the library
+    SerialTiltTest.begin(115200, SERIAL_8N1, pin_IMU_RX, pin_IMU_TX);
+
+    if (settings.enableImuDebug == true)
+        tiltSensor->enableDebugging(); // Print all debug to Serial
+
+    // Try multiple times to configure the IM19
+    for (int x = 0; x < 3; x++)
+    {
+        if (tiltSensor->begin(SerialTiltTest) == true)
+        {
+            if (settings.enableImuDebug == true)
+                systemPrintln("Tilt sensor detected");
+
+            present.imu_im19 = true; // Allow tiltUpdate() to run
+            settings.detectedTilt = true;
+        }
+    }
+
+    SerialTiltTest.end(); // Release UART1 for reuse
+
+#endif // COMPILE_IM19_IMU
+
+    // if (settings.enableImuDebug == true)
+    systemPrintf("Tilt sensor %sdetected\r\n",  settings.detectedTilt ? "" : "not ");
+
+    settings.testedTilt = true;
+    recordSystemSettings();
+    return;
+}
