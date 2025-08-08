@@ -2975,7 +2975,7 @@ bool GNSS_MOSAIC::isPresentOnSerial(HardwareSerial *serialPort, const char *comm
 
     if (retries == retryLimit)
     {
-        systemPrintln("Could not communicate with mosaic-X5! Attempting a soft reset...");
+        systemPrintln("Could not communicate with mosaic-X5 at selected baud rate. Attempting a soft reset...");
 
         sendWithResponse(serialPort, "erst,soft,none\n\r", "ResetReceiver");
 
@@ -2991,7 +2991,7 @@ bool GNSS_MOSAIC::isPresentOnSerial(HardwareSerial *serialPort, const char *comm
 
         if (retries == retryLimit)
         {
-            systemPrintln("Could not communicate with mosaic-X5!");
+            systemPrintln("Could not communicate with mosaic-X5 at selected baud rate");
             return(false);
         }
     }
