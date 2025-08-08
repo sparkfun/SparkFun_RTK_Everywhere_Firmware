@@ -77,12 +77,21 @@ void sdUpdate()
 #define SD_READ_OCR (0x40 + 58)    // read OCR
 #define SD_ADV_INIT (0xc0 + 41)    // ACMD41, for SDHC cards - advanced start initialization
 
-// Begin initialization by sending CMD0 and waiting until SD card
-// responds with In Idle Mode (0x01). If the response is not 0x01
-// within a reasonable amount of time, there is no SD card on the bus.
-// Returns false if not card is detected
-// Returns true if a card responds
-// This test takes approximately 13ms to complete
+// How this works:
+// Some variants have the SD socket card detect pin connected directly to GPIO
+// Of those, some are low when the card is present, some are high
+// On some variants the card detection is performed via a GPIO expander
+// On Postcard:     on the Portability Shield, SD DET (SD_CD) is connected to
+//                  IO5 of a PCA9554 I2C GPIO expander (address 0x20)
+//                  IO5 is high when the card is present
+// On Facet Flex:   SD_#CD is connected to ESP32 GPIO39
+// Torch:           has no SD card
+// On Facet mosaic: the SD card is connected directly to the X5 but
+//                  SD_!DET is connected to ESP32 GPIO15
+//
+// More generally:
+// The GPIO expander on Postcard is known as gpioExpanderButtons (0x20)
+// Facet Flex also has a GPIO expander, known as gpioExpanderSwitches (0x21)
 bool sdCardPresent(void)
 {
     if (present.microSdCardDetectLow == true)
@@ -98,9 +107,9 @@ bool sdCardPresent(void)
         return (false);    // Card detect low = No SD
     }
     // TODO: check this. Do we have a conflict with online.gpioExpanderButtons vs online.gpioExpander?
-    else if (present.microSdCardDetectGpioExpanderHigh == true && online.gpioExpanderButtons == true)
+    else if (present.microSdCardDetectGpioExpanderHigh == true)
     {
-        if (online.gpioExpander == true)
+        if (online.gpioExpanderButtons == true)
         {
             if (io.digitalRead(gpioExpander_cardDetect) == GPIO_EXPANDER_CARD_INSERTED)
                 return (true); // Card detect high = SD in place
@@ -114,6 +123,13 @@ bool sdCardPresent(void)
     }
 
     // else - no card detect pin. Use software detect
+
+    // Begin initialization by sending CMD0 and waiting until SD card
+    // responds with In Idle Mode (0x01). If the response is not 0x01
+    // within a reasonable amount of time, there is no SD card on the bus.
+    // Returns false if not card is detected
+    // Returns true if a card responds
+    // This test takes approximately 13ms to complete
 
     // Note: even though this is protected by the semaphore,
     //       this will probably cause issues / corruption if
