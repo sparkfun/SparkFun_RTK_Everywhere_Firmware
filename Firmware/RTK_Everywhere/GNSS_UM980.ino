@@ -1560,6 +1560,20 @@ bool GNSS_UM980::saveConfiguration()
 }
 
 //----------------------------------------
+// Set the baud rate on the designated port - from the super class
+//----------------------------------------
+bool GNSS_UM980::setBaudRate(uint8_t uartNumber, uint32_t baudRate)
+{
+    if (uartNumber != 3)
+    {
+        systemPrintln("setBaudRate error: out of range");
+        return (false);
+    }
+
+    return setBaudRateCOM3(baudRate);
+}
+
+//----------------------------------------
 // Set the baud rate on the GNSS port that interfaces between the ESP32 and the GNSS
 //----------------------------------------
 bool GNSS_UM980::setBaudRateCOM3(uint32_t baudRate)

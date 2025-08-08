@@ -2012,6 +2012,28 @@ uint16_t GNSS_ZED::rtcmRead(uint8_t *rtcmBuffer, int rtcmBytesToRead)
 }
 
 //----------------------------------------
+// Set the baud rate of mosaic-X5 COMn - from the super class
+// Inputs:
+//   port: COM port number
+//   baudRate: New baud rate for the COM port
+// Outputs:
+//   Returns true if the baud rate was set and false upon failure
+//----------------------------------------
+bool GNSS_ZED::setBaudRate(uint8_t port, uint32_t baudRate)
+{
+    if (port < 1 || port > 2)
+    {
+        systemPrintln("setBaudRate error: out of range");
+        return (false);
+    }
+
+    if (port == 1)
+        return setDataBaudRate(baudRate);
+    else
+        return setRadioBaudRate(baudRate);
+}
+
+//----------------------------------------
 // Save the current configuration
 // Returns true when the configuration was saved and false upon failure
 //----------------------------------------

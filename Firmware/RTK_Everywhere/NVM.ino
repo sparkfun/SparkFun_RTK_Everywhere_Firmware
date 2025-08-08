@@ -326,6 +326,15 @@ void recordSystemSettingsToFile(File *settingsFile)
         }
         break;
 
+        case tCmnCnst:
+        break; // Nothing to do here. Let each GNSS add its settings
+        case tCmnRtNm:
+        break; // Nothing to do here. Let each GNSS add its settings
+        case tCnRtRtB:
+        break; // Nothing to do here. Let each GNSS add its settings
+        case tCnRtRtR:
+        break; // Nothing to do here. Let each GNSS add its settings
+
         case tEspNowPr: {
             // Record ESP-Now peer MAC addresses
             for (int x = 0; x < rtkSettingsEntries[i].qualifier; x++)
@@ -1089,8 +1098,6 @@ bool parseLine(char *str)
         RTK_Settings_Types type;
         void *var;
 
-        double settingValue;
-
         // Loop through the valid command entries
         i = commandLookupSettingName(false, settingName, truncatedName, sizeof(truncatedName), suffix, sizeof(suffix));
 
@@ -1215,9 +1222,21 @@ bool parseLine(char *str)
             }
             break;
 
+            case tCmnCnst: {
+#ifdef COMPILE_MOSAICX5
+                for (int x = 0; x < MAX_MOSAIC_CONSTELLATIONS; x++)
+                {
+                    if ((suffix[0] == mosaicSignalConstellations[x].configName[0]) &&
+                        (strcmp(suffix, mosaicSignalConstellations[x].configName) == 0))
+                    {
+                        settings.mosaicConstellations[x] = d;
+                        knownSetting = true;
+                        break;
+                    }
+                }
+#endif
 #ifdef COMPILE_ZED
-            case tUbxConst: {
-                for (int x = 0; x < qualifier; x++)
+                for (int x = 0; x < MAX_UBX_CONSTELLATIONS; x++)
                 {
                     if ((suffix[0] == settings.ubxConstellations[x].textName[0]) &&
                         (strcmp(suffix, settings.ubxConstellations[x].textName) == 0))
@@ -1227,6 +1246,118 @@ bool parseLine(char *str)
                         break;
                     }
                 }
+#endif
+#ifdef COMPILE_UM980
+                for (int x = 0; x < MAX_UM980_CONSTELLATIONS; x++)
+                {
+                    if ((suffix[0] == um980ConstellationCommands[x].textName[0]) &&
+                        (strcmp(suffix, um980ConstellationCommands[x].textName) == 0))
+                    {
+                        settings.um980Constellations[x] = d;
+                        knownSetting = true;
+                        break;
+                    }
+                }
+#endif
+#ifdef COMPILE_LG290P
+                for (int x = 0; x < MAX_LG290P_CONSTELLATIONS; x++)
+                {
+                    if ((suffix[0] == lg290pConstellationNames[x][0]) &&
+                        (strcmp(suffix, lg290pConstellationNames[x]) == 0))
+                    {
+                        settings.lg290pConstellations[x] = d;
+                        knownSetting = true;
+                        break;
+                    }
+                }
+#endif // COMPILE_LG290P
+            }
+            break;
+            case tCmnRtNm: {
+#ifdef COMPILE_UM980
+                for (int x = 0; x < MAX_UM980_NMEA_MSG; x++)
+                {
+                    if ((suffix[0] == umMessagesNMEA[x].msgTextName[0]) &&
+                        (strcmp(suffix, umMessagesNMEA[x].msgTextName) == 0))
+                    {
+                        settings.um980MessageRatesNMEA[x] = d;
+                        knownSetting = true;
+                        break;
+                    }
+                }
+#endif
+#ifdef COMPILE_LG290P
+                for (int x = 0; x < MAX_LG290P_NMEA_MSG; x++)
+                {
+                    if ((suffix[0] == lgMessagesNMEA[x].msgTextName[0]) &&
+                        (strcmp(suffix, lgMessagesNMEA[x].msgTextName) == 0))
+                    {
+                        settings.lg290pMessageRatesNMEA[x] = d;
+                        knownSetting = true;
+                        break;
+                    }
+                }
+            }
+#endif
+            break;
+            case tCnRtRtB: {
+#ifdef COMPILE_UM980
+                for (int x = 0; x < MAX_UM980_RTCM_MSG; x++)
+                {
+                    if ((suffix[0] == umMessagesRTCM[x].msgTextName[0]) &&
+                        (strcmp(suffix, umMessagesRTCM[x].msgTextName) == 0))
+                    {
+                        settings.um980MessageRatesRTCMBase[x] = d;
+                        knownSetting = true;
+                        break;
+                    }
+                }
+#endif
+#ifdef COMPILE_LG290P
+                for (int x = 0; x < MAX_LG290P_RTCM_MSG; x++)
+                {
+                    if ((suffix[0] == lgMessagesRTCM[x].msgTextName[0]) &&
+                        (strcmp(suffix, lgMessagesRTCM[x].msgTextName) == 0))
+                    {
+                        settings.lg290pMessageRatesRTCMBase[x] = d;
+                        knownSetting = true;
+                        break;
+                    }
+                }
+            }
+#endif
+            break;
+            case tCnRtRtR: {
+#ifdef COMPILE_UM980
+                for (int x = 0; x < MAX_UM980_RTCM_MSG; x++)
+                {
+                    if ((suffix[0] == umMessagesRTCM[x].msgTextName[0]) &&
+                        (strcmp(suffix, umMessagesRTCM[x].msgTextName) == 0))
+                    {
+                        settings.um980MessageRatesRTCMRover[x] = d;
+                        knownSetting = true;
+                        break;
+                    }
+                }
+#endif
+#ifdef COMPILE_LG290P
+                for (int x = 0; x < MAX_LG290P_RTCM_MSG; x++)
+                {
+                    if ((suffix[0] == lgMessagesRTCM[x].msgTextName[0]) &&
+                        (strcmp(suffix, lgMessagesRTCM[x].msgTextName) == 0))
+                    {
+                        settings.lg290pMessageRatesRTCMRover[x] = d;
+                        knownSetting = true;
+                        break;
+                    }
+                }
+            }
+#endif
+            break;
+
+#ifdef COMPILE_ZED
+            case tUbxConst: {
+                // Covered by ttCmnCnst
             }
             break;
             case tUbxMsgRt: {
@@ -1361,55 +1492,19 @@ bool parseLine(char *str)
 
 #ifdef COMPILE_UM980
             case tUmMRNmea: {
-                for (int x = 0; x < qualifier; x++)
-                {
-                    if ((suffix[0] == umMessagesNMEA[x].msgTextName[0]) &&
-                        (strcmp(suffix, umMessagesNMEA[x].msgTextName) == 0))
-                    {
-                        settings.um980MessageRatesNMEA[x] = d;
-                        knownSetting = true;
-                        break;
-                    }
-                }
+                // Covered by tCmnRtNm
             }
             break;
             case tUmMRRvRT: {
-                for (int x = 0; x < qualifier; x++)
-                {
-                    if ((suffix[0] == umMessagesRTCM[x].msgTextName[0]) &&
-                        (strcmp(suffix, umMessagesRTCM[x].msgTextName) == 0))
-                    {
-                        settings.um980MessageRatesRTCMRover[x] = d;
-                        knownSetting = true;
-                        break;
-                    }
-                }
+                // Covered by tCnRtRtR
             }
             break;
             case tUmMRBaRT: {
-                for (int x = 0; x < qualifier; x++)
-                {
-                    if ((suffix[0] == umMessagesRTCM[x].msgTextName[0]) &&
-                        (strcmp(suffix, umMessagesRTCM[x].msgTextName) == 0))
-                    {
-                        settings.um980MessageRatesRTCMBase[x] = d;
-                        knownSetting = true;
-                        break;
-                    }
-                }
+                // Covered by tCnRtRtB
             }
             break;
             case tUmConst: {
-                for (int x = 0; x < qualifier; x++)
-                {
-                    if ((suffix[0] == um980ConstellationCommands[x].textName[0]) &&
-                        (strcmp(suffix, um980ConstellationCommands[x].textName) == 0))
-                    {
-                        settings.um980Constellations[x] = d;
-                        knownSetting = true;
-                        break;
-                    }
-                }
+                // Covered by tCmnCnst
             }
             break;
 #endif // COMPILE_UM980
@@ -1439,16 +1534,7 @@ bool parseLine(char *str)
 
 #ifdef COMPILE_MOSAICX5
             case tMosaicConst: {
-                for (int x = 0; x < qualifier; x++)
-                {
-                    if ((suffix[0] == mosaicSignalConstellations[x].configName[0]) &&
-                        (strcmp(suffix, mosaicSignalConstellations[x].configName) == 0))
-                    {
-                        settings.mosaicConstellations[x] = d;
-                        knownSetting = true;
-                        break;
-                    }
-                }
+                // Covered by tCmnCnst
             }
             break;
             case tMosaicMSNmea: {
@@ -1530,42 +1616,15 @@ bool parseLine(char *str)
 
 #ifdef COMPILE_LG290P
             case tLgMRNmea: {
-                for (int x = 0; x < qualifier; x++)
-                {
-                    if ((suffix[0] == lgMessagesNMEA[x].msgTextName[0]) &&
-                        (strcmp(suffix, lgMessagesNMEA[x].msgTextName) == 0))
-                    {
-                        settings.lg290pMessageRatesNMEA[x] = d;
-                        knownSetting = true;
-                        break;
-                    }
-                }
+                // Covered by tCmnRtNm
             }
             break;
             case tLgMRRvRT: {
-                for (int x = 0; x < qualifier; x++)
-                {
-                    if ((suffix[0] == lgMessagesRTCM[x].msgTextName[0]) &&
-                        (strcmp(suffix, lgMessagesRTCM[x].msgTextName) == 0))
-                    {
-                        settings.lg290pMessageRatesRTCMRover[x] = d;
-                        knownSetting = true;
-                        break;
-                    }
-                }
+                // Covered by tCnRtRtR
             }
             break;
             case tLgMRBaRT: {
-                for (int x = 0; x < qualifier; x++)
-                {
-                    if ((suffix[0] == lgMessagesRTCM[x].msgTextName[0]) &&
-                        (strcmp(suffix, lgMessagesRTCM[x].msgTextName) == 0))
-                    {
-                        settings.lg290pMessageRatesRTCMBase[x] = d;
-                        knownSetting = true;
-                        break;
-                    }
-                }
+                // Covered by tCnRtRtB
             }
             break;
             case tLgMRPqtm: {
@@ -1582,16 +1641,7 @@ bool parseLine(char *str)
             }
             break;
             case tLgConst: {
-                for (int x = 0; x < qualifier; x++)
-                {
-                    if ((suffix[0] == lg290pConstellationNames[x][0]) &&
-                        (strcmp(suffix, lg290pConstellationNames[x]) == 0))
-                    {
-                        settings.lg290pConstellations[x] = d;
-                        knownSetting = true;
-                        break;
-                    }
-                }
+                // Covered by tCmnCnst
             }
             break;
 #endif // COMPILE_LG290P

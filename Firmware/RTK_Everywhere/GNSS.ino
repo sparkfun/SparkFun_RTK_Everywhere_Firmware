@@ -118,50 +118,39 @@ void gnssDetectReceiverType()
     gnssBoot(); // Tell GNSS to run
 
     // TODO remove after testing, force retest on each boot
+    // Note: with this in place, the X5 detection will take a lot longer due to the baud rate change
     settings.detectedGnssReceiver = GNSS_RECEIVER_UNKNOWN;
 
     // Start auto-detect if NVM is not yet set
     if (settings.detectedGnssReceiver == GNSS_RECEIVER_UNKNOWN)
     {
+        // The COMPILE guards prevent else if
+        // Use a do while (0) so we can break when GNSS is detected
+        do {
 #ifdef COMPILE_LG290P
-        if (lg290pIsPresent() == true)
-        {
-            systemPrintln("Auto-detected GNSS receiver: LG290P");
-
-            present.gnss_lg290p = true;
-            present.minCno = true;
-            present.minElevation = true;
-            present.needsExternalPpl = true; // Uses the PointPerfect Library
-
-            settings.detectedGnssReceiver = GNSS_RECEIVER_LG290P;
-            recordSystemSettings(); // Record the detected GNSS receiver and avoid this test in the future
-        }
+            if (lg290pIsPresent() == true)
+            {
+                systemPrintln("Auto-detected GNSS receiver: LG290P");
+                settings.detectedGnssReceiver = GNSS_RECEIVER_LG290P;
+                recordSystemSettings(); // Record the detected GNSS receiver and avoid this test in the future
+                break;
+            }
 #else  // COMPILE_LGP290P
-        systemPrintln("<<<<<<<<<< !!!!!!!!!! LG290P NOT COMPILED !!!!!!!!!! >>>>>>>>>>");
+            systemPrintln("<<<<<<<<<< !!!!!!!!!! LG290P NOT COMPILED !!!!!!!!!! >>>>>>>>>>");
 #endif // COMPILE_LGP290P
 
 #ifdef COMPILE_MOSAICX5
-        // TODO - this uses UART2, but Flex is UART1. We need to make the mosaic send routines flexible to use
-        // whichever UART we specify.
-        // else if (mosaicIsPresent() == true)
-        // {
-        //     systemPrintln("Auto-detected GNSS receiver: mosaic-X5");
-
-        //     present.gnss_mosaicX5 = true;
-        //     present.minCno = true;
-        //     present.minElevation = true;
-        //     present.dynamicModel = true;
-        //     present.needsExternalPpl = true; // Uses the PointPerfect Library
-
-        //     settings.detectedGnssReceiver = GNSS_RECEIVER_MOSAIC_X5;
-        //     recordSystemSettings(); // Record the detected GNSS receiver and avoid this test in the future
-        // }
+            if (mosaicIsPresentOnFlex() == true) // Note: this changes the COM1 baud from 115200 to 460800
+            {
+                systemPrintln("Auto-detected GNSS receiver: mosaic-X5");
+                settings.detectedGnssReceiver = GNSS_RECEIVER_MOSAIC_X5;
+                recordSystemSettings(); // Record the detected GNSS receiver and avoid this test in the future
+                break;
+            }
 #else  // COMPILE_MOSAICX5
-        else
-        {
-            systemPrintln("<<<<<<<<<< !!!!!!!!!! MOSAICX5 NOT COMPILED !!!!!!!!!! >>>>>>>>>>");
-        }
+                systemPrintln("<<<<<<<<<< !!!!!!!!!! MOSAICX5 NOT COMPILED !!!!!!!!!! >>>>>>>>>>");
 #endif // COMPILE_MOSAICX5
+        } while (0);
     }
 
     // Start the detected receiver
@@ -169,14 +158,25 @@ void gnssDetectReceiverType()
     {
 #ifdef COMPILE_LG290P
         gnss = (GNSS *)new GNSS_LG290P();
+
         present.gnss_lg290p = true;
+        present.minCno = true;
+        present.minElevation = true;
+        present.needsExternalPpl = true; // Uses the PointPerfect Library
+
 #endif // COMPILE_LGP290P
     }
     else if (settings.detectedGnssReceiver == GNSS_RECEIVER_MOSAIC_X5)
     {
 #ifdef COMPILE_MOSAICX5
         gnss = (GNSS *)new GNSS_MOSAIC();
+
         present.gnss_mosaicX5 = true;
+        present.minCno = true;
+        present.minElevation = true;
+        present.dynamicModel = true;
+        // present.needsExternalPpl = true; // Nope. No L-Band support...
+
 #endif // COMPILE_MOSAICX5
     }
 
