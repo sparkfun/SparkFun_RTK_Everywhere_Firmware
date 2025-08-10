@@ -2592,10 +2592,16 @@ void GNSS_MOSAIC::storeBlock4013(SEMP_PARSE_STATE *parse)
 
             if (Tracking)
             {
-                // SV is being tracked. If it is not in svInTracking, add it
+                // SV is being tracked
                 std::vector<svTracking_t>::iterator pos = std::find_if(svInTracking.begin(), svInTracking.end(), find_sv(SVID));
-                if (pos == svInTracking.end())
+                if (pos == svInTracking.end()) // If it is not in svInTracking, add it
                     svInTracking.push_back({SVID, millis()});
+                else // Update lastSeen
+                {
+                    svTracking_t sv = *pos;
+                    sv.lastSeen = millis();
+                    *pos = sv;
+                }
             }
             else
             {

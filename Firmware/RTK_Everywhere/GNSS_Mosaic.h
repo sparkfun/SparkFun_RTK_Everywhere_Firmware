@@ -613,9 +613,10 @@ class GNSS_MOSAIC : GNSS
             return m.SVID == findThisSv;
         }
     };
+    // Check if SV is stale based on its lastSeen
     struct find_stale_sv
     {
-        const unsigned long expireAfter_millis = 20000; // 10000 is too short
+        const unsigned long expireAfter_millis = 2000;
         unsigned long millisNow;
         find_stale_sv(unsigned long now) : millisNow(now) {}
         bool operator () (const svTracking_t& m) const
@@ -631,7 +632,7 @@ class GNSS_MOSAIC : GNSS
         _antennaIsOpen(false), _antennaIsShorted(false),
          GNSS()
     {
-            svInTracking.clear();
+        svInTracking.clear();
     }
 
     // If we have decryption keys, configure module
