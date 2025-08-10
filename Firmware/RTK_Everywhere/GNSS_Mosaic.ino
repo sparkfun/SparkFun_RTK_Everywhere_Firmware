@@ -2593,57 +2593,37 @@ void GNSS_MOSAIC::storeBlock4013(SEMP_PARSE_STATE *parse)
             if (Tracking)
             {
                 // SV is being tracked. If it is not in svInTracking, add it
-                std::vector<uint8_t>::iterator pos = std::find(svInTracking.begin(), svInTracking.end(), SVID);
+                std::vector<svTracking_t>::iterator pos = std::find_if(svInTracking.begin(), svInTracking.end(), find_sv(SVID));
                 if (pos == svInTracking.end())
-                    svInTracking.push_back(SVID);
+                    svInTracking.push_back({SVID, millis()});
             }
             else
             {
                 // SV is not being tracked. If it is in svInTracking, remove it
-                std::vector<uint8_t>::iterator pos = std::find(svInTracking.begin(), svInTracking.end(), SVID);
+                std::vector<svTracking_t>::iterator pos = std::find_if(svInTracking.begin(), svInTracking.end(), find_sv(SVID));
                 if (pos != svInTracking.end())
                     svInTracking.erase(pos);
             }
-
-            // uint16_t PVTStatus = sempSbfGetU2(parse, 20 + ChannelInfoBytes + SB1Length + (j * SB2Length) + 4);
-
-            // bool Used = false;
-            // for (uint16_t shift = 0; shift < 16; shift += 2) // Step through each 2-bit status field
-            // {
-            //     if ((PVTStatus & (0x0003 << shift)) == (0x0002 << shift)) // 2 : Used
-            //     {
-            //         Used = true;
-            //     }
-            // }
-
-            // if (Used)
-            // {
-            //     // SV is being used for PVT. If it is not in svInPVT, add it
-            //     std::vector<uint8_t>::iterator pos =
-            //         std::find(svInPVT.begin(), svInPVT.end(), SVID);
-            //     if (pos == svInPVT.end())
-            //         svInPVT.push_back(SVID);
-            // }
-            // else
-            // {
-            //     // SV is not being used for PVT. If it is in svInPVT, remove it
-            //     std::vector<uint8_t>::iterator pos =
-            //         std::find(svInPVT.begin(), svInPVT.end(), SVID);
-            //     if (pos != svInPVT.end())
-            //         svInPVT.erase(pos);
-            // }
         }
 
         ChannelInfoBytes += SB1Length + (N2 * SB2Length);
     }
 
+    // Erase stale SVs
+    bool keepGoing = true;
+    while (keepGoing)
+    {
+        std::vector<svTracking_t>::iterator pos = std::find_if(svInTracking.begin(), svInTracking.end(), find_stale_sv(millis()));
+        if (pos != svInTracking.end())
+            svInTracking.erase(pos);
+        else
+            keepGoing = false;
+    }
+
     _satellitesInView = (uint8_t)std::distance(svInTracking.begin(), svInTracking.end());
 
     // if (settings.debugGnss && !inMainMenu)
-    // {
-    //     uint8_t _inPVT = (uint8_t)std::distance(svInPVT.begin(), svInPVT.end());
-    //     systemPrintf("ChannelStatus: InTracking %d, InPVT %d\r\n", _satellitesInView, _inPVT);
-    // }
+    //     systemPrintf("ChannelStatus: InTracking %d\r\n", _satellitesInView);
 }
 
 //----------------------------------------
