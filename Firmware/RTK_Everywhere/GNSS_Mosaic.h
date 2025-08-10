@@ -615,7 +615,7 @@ class GNSS_MOSAIC : GNSS
     };
     struct find_stale_sv
     {
-        const unsigned long expireAfter_millis = 10000;
+        const unsigned long expireAfter_millis = 20000; // 10000 is too short
         unsigned long millisNow;
         find_stale_sv(unsigned long now) : millisNow(now) {}
         bool operator () (const svTracking_t& m) const
