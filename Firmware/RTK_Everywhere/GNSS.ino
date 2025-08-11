@@ -198,6 +198,7 @@ void gnssDetectReceiverType()
         present.minCno = true;
         present.minElevation = true;
         present.dynamicModel = true;
+        present.mosaicMicroSd = true;
         // present.needsExternalPpl = true; // Nope. No L-Band support...
 
 #endif // COMPILE_MOSAICX5

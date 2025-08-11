@@ -1,3 +1,82 @@
+// Menu of Logging Menus
+void menuLogSelection()
+{
+    if (present.microSd && !present.mosaicMicroSd)
+        menuLog();
+    if (!present.microSd && present.mosaicMicroSd)
+        menuLogMosaic();
+    if (present.microSd && present.mosaicMicroSd)
+    {
+        while (1)
+        {
+            systemPrintln();
+            systemPrintln("Menu: Logging");
+            systemPrintln();
+
+            systemPrintln("Accessible microSD:");
+            printMicroSdInfo();
+            systemPrintln();
+#ifdef COMPILE_MOSAICX5
+            systemPrintln("Internal mosaic microSD:");
+            printMosaicCardSpace();
+            systemPrintln();
+#endif
+            systemPrintln("1) Accessible microSD logging");
+            systemPrintln("2) Internal mosaic microSD logging");
+
+            systemPrintln("x) Exit");
+
+            int incoming = getUserInputNumber(); // Returns EXIT, TIMEOUT, or long
+
+            if (incoming == 1)
+                menuLog();
+#ifdef COMPILE_MOSAICX5
+            else if (incoming == 2)
+                menuLogMosaic();
+#endif
+            else if (incoming == 'x')
+                break;
+            else if (incoming == INPUT_RESPONSE_GETNUMBER_EXIT)
+                break;
+            else if (incoming == INPUT_RESPONSE_GETNUMBER_TIMEOUT)
+                break;
+            else
+                printUnknown(incoming);
+        }
+    clearBuffer(); // Empty buffer of any newline chars
+    }
+}
+
+// Print accessible microSd size and free space
+void printMicroSdInfo()
+{
+    if (settings.enableSD && online.microSD)
+    {
+        char sdCardSizeChar[20];
+        String cardSize;
+        stringHumanReadableSize(cardSize, sdCardSize);
+        cardSize.toCharArray(sdCardSizeChar, sizeof(sdCardSizeChar));
+        char sdFreeSpaceChar[20];
+        String freeSpace;
+        stringHumanReadableSize(freeSpace, sdFreeSpace);
+        freeSpace.toCharArray(sdFreeSpaceChar, sizeof(sdFreeSpaceChar));
+
+        char myString[70];
+        snprintf(myString, sizeof(myString), "SD card size: %s / Free space: %s", sdCardSizeChar, sdFreeSpaceChar);
+        systemPrintln(myString);
+
+        if (online.logging)
+        {
+            systemPrintf("Current log file name: %s\r\n", logFileName);
+        }
+    }
+    else
+        systemPrintln("No microSD card is detected");
+
+    if (bufferOverruns)
+        systemPrintf("Buffer overruns: %d\r\n", bufferOverruns);
+}
+
 // Control the messages that get logged to SD
 // Control max logging time (limit to a certain number of minutes)
 // The main use case is the setup for a base station to log RAW sentences that then get post processed
@@ -7,32 +86,10 @@ void menuLog()
     {
         systemPrintln();
         systemPrintln("Menu: Logging");
+        systemPrintln();
 
-        if (settings.enableSD && online.microSD)
-        {
-            char sdCardSizeChar[20];
-            String cardSize;
-            stringHumanReadableSize(cardSize, sdCardSize);
-            cardSize.toCharArray(sdCardSizeChar, sizeof(sdCardSizeChar));
-            char sdFreeSpaceChar[20];
-            String freeSpace;
-            stringHumanReadableSize(freeSpace, sdFreeSpace);
-            freeSpace.toCharArray(sdFreeSpaceChar, sizeof(sdFreeSpaceChar));
-
-            char myString[70];
-            snprintf(myString, sizeof(myString), "SD card size: %s / Free space: %s", sdCardSizeChar, sdFreeSpaceChar);
-            systemPrintln(myString);
-
-            if (online.logging)
-            {
-                systemPrintf("Current log file name: %s\r\n", logFileName);
-            }
-        }
-        else
-            systemPrintln("No microSD card is detected");
-
-        if (bufferOverruns)
-            systemPrintf("Buffer overruns: %d\r\n", bufferOverruns);
+        printMicroSdInfo();
+        systemPrintln();
 
         systemPrint("1) Log to microSD: ");
         if (settings.enableLogging == true)

@@ -26,30 +26,46 @@ GNSS_Mosaic.ino
 //   File type "1" is NMEA
 //==============================================================================
 
+void printMosaicCardSpace()
+{
+    // mosaicSdCardSize and mosaicSdFreeSpace are updated via the SBF 4059 (storeBlock4059)
+    if (present.mosaicMicroSd)
+    {
+        char sdCardSizeChar[20];
+        String cardSize;
+        stringHumanReadableSize(cardSize, mosaicSdCardSize);
+        cardSize.toCharArray(sdCardSizeChar, sizeof(sdCardSizeChar));
+        char sdFreeSpaceChar[20];
+        String freeSpace;
+        stringHumanReadableSize(freeSpace, mosaicSdFreeSpace);
+        freeSpace.toCharArray(sdFreeSpaceChar, sizeof(sdFreeSpaceChar));
+
+        // On Facet mosaic, the SD is connected directly to the X5 and is accessible
+        // On Facet Flex X5, the internal mosaic SD card is not accessible
+        char myString[70];
+        snprintf(myString, sizeof(myString), "SD card size: %s / Free space: %s", sdCardSizeChar, sdFreeSpaceChar);
+        systemPrintln(myString);
+    }
+}
+
 //----------------------------------------
 // Control the messages that get logged to SD
 //----------------------------------------
 void menuLogMosaic()
 {
+    if (!present.mosaicMicroSd) // This may be needed for the G5 P3 ?
+        return;
+
     bool applyChanges = false;
 
     while (1)
     {
         systemPrintln();
-        systemPrintln("Menu: Logging");
+        systemPrintln("Menu: Mosaic Logging");
+        systemPrintln();
 
-        char sdCardSizeChar[20];
-        String cardSize;
-        stringHumanReadableSize(cardSize, sdCardSize);
-        cardSize.toCharArray(sdCardSizeChar, sizeof(sdCardSizeChar));
-        char sdFreeSpaceChar[20];
-        String freeSpace;
-        stringHumanReadableSize(freeSpace, sdFreeSpace);
-        freeSpace.toCharArray(sdFreeSpaceChar, sizeof(sdFreeSpaceChar));
-
-        char myString[70];
-        snprintf(myString, sizeof(myString), "SD card size: %s / Free space: %s", sdCardSizeChar, sdFreeSpaceChar);
-        systemPrintln(myString);
+        printMosaicCardSpace();
+        systemPrintln();
 
         systemPrint("1) Log NMEA to microSD: ");
         if (settings.enableLogging == true)
@@ -2576,58 +2592,44 @@ void GNSS_MOSAIC::storeBlock4013(SEMP_PARSE_STATE *parse)
 
             if (Tracking)
             {
-                // SV is being tracked. If it is not in svInTracking, add it
-                std::vector<uint8_t>::iterator pos = std::find(svInTracking.begin(), svInTracking.end(), SVID);
-                if (pos == svInTracking.end())
-                    svInTracking.push_back(SVID);
+                // SV is being tracked
+                std::vector<svTracking_t>::iterator pos = std::find_if(svInTracking.begin(), svInTracking.end(), find_sv(SVID));
+                if (pos == svInTracking.end()) // If it is not in svInTracking, add it
+                    svInTracking.push_back({SVID, millis()});
+                else // Update lastSeen
+                {
+                    svTracking_t sv = *pos;
+                    sv.lastSeen = millis();
+                    *pos = sv;
+                }
             }
             else
             {
                 // SV is not being tracked. If it is in svInTracking, remove it
-                std::vector<uint8_t>::iterator pos = std::find(svInTracking.begin(), svInTracking.end(), SVID);
+                std::vector<svTracking_t>::iterator pos = std::find_if(svInTracking.begin(), svInTracking.end(), find_sv(SVID));
                 if (pos != svInTracking.end())
                     svInTracking.erase(pos);
             }
-
-            // uint16_t PVTStatus = sempSbfGetU2(parse, 20 + ChannelInfoBytes + SB1Length + (j * SB2Length) + 4);
-
-            // bool Used = false;
-            // for (uint16_t shift = 0; shift < 16; shift += 2) // Step through each 2-bit status field
-            // {
-            //     if ((PVTStatus & (0x0003 << shift)) == (0x0002 << shift)) // 2 : Used
-            //     {
-            //         Used = true;
-            //     }
-            // }
-
-            // if (Used)
-            // {
-            //     // SV is being used for PVT. If it is not in svInPVT, add it
-            //     std::vector<uint8_t>::iterator pos =
-            //         std::find(svInPVT.begin(), svInPVT.end(), SVID);
-            //     if (pos == svInPVT.end())
-            //         svInPVT.push_back(SVID);
-            // }
-            // else
-            // {
-            //     // SV is not being used for PVT. If it is in svInPVT, remove it
-            //     std::vector<uint8_t>::iterator pos =
-            //         std::find(svInPVT.begin(), svInPVT.end(), SVID);
-            //     if (pos != svInPVT.end())
-            //         svInPVT.erase(pos);
-            // }
         }
 
         ChannelInfoBytes += SB1Length + (N2 * SB2Length);
     }
 
+    // Erase stale SVs
+    bool keepGoing = true;
+    while (keepGoing)
+    {
+        std::vector<svTracking_t>::iterator pos = std::find_if(svInTracking.begin(), svInTracking.end(), find_stale_sv(millis()));
+        if (pos != svInTracking.end())
+            svInTracking.erase(pos);
+        else
+            keepGoing = false;
+    }
+
     _satellitesInView = (uint8_t)std::distance(svInTracking.begin(), svInTracking.end());
 
     // if (settings.debugGnss && !inMainMenu)
-    // {
-    //     uint8_t _inPVT = (uint8_t)std::distance(svInPVT.begin(), svInPVT.end());
-    //     systemPrintf("ChannelStatus: InTracking %d, InPVT %d\r\n", _satellitesInView, _inPVT);
-    // }
+    //     systemPrintf("ChannelStatus: InTracking %d\r\n", _satellitesInView);
 }
 
 //----------------------------------------
@@ -2651,6 +2653,9 @@ void GNSS_MOSAIC::storeBlock4014(SEMP_PARSE_STATE *parse)
 //----------------------------------------
 void GNSS_MOSAIC::storeBlock4059(SEMP_PARSE_STATE *parse)
 {
+    if (!present.mosaicMicroSd)
+        return;
+    
     if (sempSbfGetU1(parse, 14) < 1) // Check N is at least 1
         return;
 
@@ -2670,9 +2675,15 @@ void GNSS_MOSAIC::storeBlock4059(SEMP_PARSE_STATE *parse)
 
     uint64_t diskUsage = (diskUsageMSB * 4294967296) + diskUsageLSB;
 
-    sdCardSize = diskSizeMB * 1048576; // Convert to bytes
+    mosaicSdCardSize = diskSizeMB * 1048576; // Convert to bytes
 
-    sdFreeSpace = sdCardSize - diskUsage;
+    mosaicSdFreeSpace = mosaicSdCardSize - diskUsage;
+
+    if (!present.microSd) // Overwrite - if this is the only SD card
+    {
+        sdCardSize = mosaicSdCardSize;
+        sdFreeSpace = mosaicSdFreeSpace;
+    }
 
     _diskStatusSeen = true;
 }
@@ -2975,7 +2986,7 @@ bool GNSS_MOSAIC::isPresentOnSerial(HardwareSerial *serialPort, const char *comm
 
     if (retries == retryLimit)
     {
-        systemPrintln("Could not communicate with mosaic-X5! Attempting a soft reset...");
+        systemPrintln("Could not communicate with mosaic-X5 at selected baud rate. Attempting a soft reset...");
 
         sendWithResponse(serialPort, "erst,soft,none\n\r", "ResetReceiver");
 
@@ -2991,7 +3002,7 @@ bool GNSS_MOSAIC::isPresentOnSerial(HardwareSerial *serialPort, const char *comm
 
         if (retries == retryLimit)
         {
-            systemPrintln("Could not communicate with mosaic-X5!");
+            systemPrintln("Could not communicate with mosaic-X5 at selected baud rate");
             return(false);
         }
     }

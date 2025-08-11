@@ -227,8 +227,21 @@ void recordSystemSettingsToFile(File *settingsFile)
     for (int i = 0; i < numRtkSettingsEntries; i++)
     {
         // Do not record this setting if it is not supported by the current platform
-        if (settingAvailableOnPlatform(i) == false)
-            continue;
+        // But oh what a tangled web we weave...
+        // Thanks to Facet Flex, initially we should be saving all possible settings.
+        // Later, once we know what Flex GNSS is present, we save only the available
+        // settings for that platform. Passing usePossibleSettings in as a parameter
+        // would be messy. So, we'll use a global flag which is updated by commandIndexFill
+        if (savePossibleSettings)
+        {
+            if (settingPossibleOnPlatform(i) == false)
+                continue;
+        }
+        else
+        {
+            if (settingAvailableOnPlatform(i) == false)
+                continue;
+        }
 
         switch (rtkSettingsEntries[i].type)
         {
@@ -1675,7 +1688,7 @@ bool parseLine(char *str)
     // Last catch
     if (knownSetting == false)
     {
-        log_d("Unknown setting %s", settingName);
+        log_d("Unknown / unwanted setting %s", settingName);
     }
 
     return (true);

@@ -368,6 +368,8 @@ const char *ringBufferSemaphoreHolder = "None";
 // Display used/free space in menu and config page
 uint64_t sdCardSize;
 uint64_t sdFreeSpace;
+uint64_t mosaicSdCardSize;
+uint64_t mosaicSdFreeSpace;
 bool outOfSDSpace;
 const uint32_t sdMinAvailableSpace = 10000000; // Minimum available bytes before SD is marked as out of space
 
@@ -390,6 +392,9 @@ const int sdSizeCheckStackSize = 3000;
 bool sdSizeCheckTaskComplete;
 
 char logFileName[sizeof("SFE_Reference_Station_230101_120101.ubx_plusExtraSpace")] = {0};
+
+bool savePossibleSettings = true; // Save possible vs. available settings. See recordSystemSettingsToFile for details
+
 //-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 
 // WiFi support
@@ -1310,9 +1315,7 @@ void setup()
     gnssDetectReceiverType(); // If we don't know the receiver from the platform, auto-detect it. Uses settings.
 
     DMW_b("commandIndexFillActual");
-    recordSystemSettings();   // Ensure the possible settings are saved - before we call commandIndexFillActual
     commandIndexFillActual(); // Shrink the commandIndex table now we're certain what GNSS we have
-    loadSettings();           // Reload the settings after shrinking commandIndex
     recordSystemSettings();   // Save the reduced settings now we're certain what GNSS we have
 
     DMW_b("beginGnssUart");
@@ -1589,12 +1592,14 @@ void logUpdate()
     {
         if (logTimeExceeded())
         {
-            systemPrintln("Log file: maximum logging time reached");
+            if (!inMainMenu)
+                systemPrintln("Log file: maximum logging time reached");
             endSD(false, true); // Close down SD.
         }
         else
         {
-            systemPrintln("Log file: log length reached");
+            if (!inMainMenu)
+                systemPrintln("Log file: log length reached");
             endLogging(false, true); //(gotSemaphore, releaseSemaphore) Close file. Reset parser stats.
             beginLogging();          // Create new file based on current RTC.
             setLoggingType();        // Determine if we are standard, PPP, or custom. Changes logging icon accordingly.
@@ -1610,7 +1615,7 @@ void logUpdate()
             {
                 lastFileReport = millis();
 
-                if (settings.enablePrintLogFileStatus)
+                if ((settings.enablePrintLogFileStatus) && (!inMainMenu))
                 {
                     systemPrintf("Log file size: %lld", logFileSize);
 

@@ -658,8 +658,6 @@ struct Settings
     //Once we detect the platform or receiver, no need to re-detect
     //ProductVariant previouslyDetectedPlatform = RTK_UNKNOWN; //Because LFS is started after deviceID, this is mute
     gnssReceiverType_e detectedGnssReceiver = GNSS_RECEIVER_UNKNOWN;
-    bool detectedTilt = false;
-    bool testedTilt = false;
 
     // Antenna
     int16_t antennaHeight_mm = 1800;    // Aka Pole length
@@ -749,6 +747,10 @@ struct Settings
     // HTTP
     bool debugHttpClientData = false;  // Debug the HTTP Client (ZTP) data flow
     bool debugHttpClientState = false; // Debug the HTTP Client state machine
+
+    // IMU
+    bool detectedTilt = false;
+    bool testedTilt = false;
 
     // Log file
     bool alignedLogFiles = false; // If true, align log files as per #630
@@ -1239,8 +1241,6 @@ const RTK_Settings_Entry rtkSettingsEntries[] =
 
     // Detected GNSS Receiver - for Flex. Save / load first so settingAvailableOnPlatform is correct on Flex
     { 0, 0, 0, 0, 0, 0, 0, 0, 0, ALL, tGnssReceiver,     0, & settings.detectedGnssReceiver, "detectedGnssReceiver",  },
-    { 0, 0, 0, 0, 0, 0, 0, 0, 0, ALL, _bool,     0, & settings.detectedTilt, "detectedTilt",  },
-    { 0, 0, 0, 0, 0, 0, 0, 0, 0, ALL, _bool,     0, & settings.testedTilt, "testedTilt",  },
 
     // Common settings which use the same name on multiple Facet Flex platforms
     // We need these - for Facet Flex - because:
@@ -1395,6 +1395,10 @@ const RTK_Settings_Entry rtkSettingsEntries[] =
     // HTTP
     { 0, 0, 0, 1, 1, 1, 1, 1, 1, ALL, _bool,     0, & settings.debugHttpClientData, "debugHttpClientData",  },
     { 0, 0, 0, 1, 1, 1, 1, 1, 1, ALL, _bool,     0, & settings.debugHttpClientState, "debugHttpClientState",  },
+
+    // IMU
+    { 0, 0, 0, 0, 0, 0, 0, 0, 0, ALL, _bool,     0, & settings.detectedTilt, "detectedTilt",  },
+    { 0, 0, 0, 0, 0, 0, 0, 0, 0, ALL, _bool,     0, & settings.testedTilt, "testedTilt",  },
 
 //                         F
 //                         a
@@ -1867,6 +1871,7 @@ struct struct_present
     bool imu_zedf9r = false;
 
     bool microSd = false;
+    bool mosaicMicroSd = false;
     bool microSdCardDetectLow = false; // Card detect low = SD in place
     bool microSdCardDetectHigh = false; // Card detect high = SD in place
     bool microSdCardDetectGpioExpanderHigh = false; // Card detect on GPIO5, high = SD in place

@@ -596,8 +596,34 @@ class GNSS_MOSAIC : GNSS
     float  _lonStdDev;
     bool   _receiverSetupSeen;
     bool   _diskStatusSeen;
-    std::vector<uint8_t> svInTracking;
-    //std::vector<uint8_t> svInPVT;
+    struct svTracking_t
+    {
+        uint8_t SVID;
+        unsigned long lastSeen;
+    };
+    std::vector<svTracking_t> svInTracking;
+    // Find sv in the vector of svTracking_t
+    // https://stackoverflow.com/a/590005
+    struct find_sv
+    {
+        uint8_t findThisSv;
+        find_sv(uint8_t sv) : findThisSv(sv) {}
+        bool operator () (const svTracking_t& m) const
+        {
+            return m.SVID == findThisSv;
+        }
+    };
+    // Check if SV is stale based on its lastSeen
+    struct find_stale_sv
+    {
+        const unsigned long expireAfter_millis = 2000;
+        unsigned long millisNow;
+        find_stale_sv(unsigned long now) : millisNow(now) {}
+        bool operator () (const svTracking_t& m) const
+        {
+            return (millisNow > (m.lastSeen + expireAfter_millis));
+        }
+    };
 
     // Constructor
     GNSS_MOSAIC() : _determiningFixedPosition(true), _clkBias_ms(0),
@@ -606,8 +632,7 @@ class GNSS_MOSAIC : GNSS
         _antennaIsOpen(false), _antennaIsShorted(false),
          GNSS()
     {
-            svInTracking.clear();
-            //svInPVT.clear();
+        svInTracking.clear();
     }
 
     // If we have decryption keys, configure module
