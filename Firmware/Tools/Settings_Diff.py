@@ -55,8 +55,7 @@ class RTK_Settings_Diff():
                 if isFirstThing:
                     if firstThing in things.keys(): # Seen it before?
                         print('Duplicate setting: {},{} : {}'.format(firstThing, things[firstThing], secondThing))
-                    else:
-                        things[firstThing] = secondThing
+                    things[firstThing] = secondThing
                     firstThing = ''
                     secondThing = ''
                     #print(firstThing, secondThing)
