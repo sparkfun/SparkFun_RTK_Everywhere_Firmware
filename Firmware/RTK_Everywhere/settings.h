@@ -1649,7 +1649,7 @@ const RTK_Settings_Entry rtkSettingsEntries[] =
     // State
     { 0, 0, 0, 1, 1, 1, 1, 1, 1, ALL, _bool,     0, & settings.enablePrintDuplicateStates, "enablePrintDuplicateStates",  },
     { 0, 0, 0, 1, 1, 1, 1, 1, 1, ALL, _bool,     0, & settings.enablePrintStates, "enablePrintStates",  },
-    { 1, 1, 0, 1, 1, 1, 1, 1, 1, ALL, tSysState, 0, & settings.lastState, "lastState",  },
+    { 0, 1, 0, 1, 1, 1, 1, 1, 1, ALL, tSysState, 0, & settings.lastState, "lastState",  }, // Not inWebConfig - must be changed to 0:3 by createSettingsString
 
     // TCP Client
     { 0, 0, 0, 1, 1, 1, 1, 1, 1, ALL, _bool,     0, & settings.debugTcpClient, "debugTcpClient",  },
