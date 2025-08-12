@@ -391,6 +391,9 @@ void settingsToDefaults()
 {
     static const Settings defaultSettings;
     settings = defaultSettings;
+
+    checkArrayDefaults(); // This does not call recordSystemSettings
+    checkGNSSArrayDefaults(); // This calls recordSystemSettings if any GNSS defaults are applied
 }
 
 // Periodically print information if enabled
