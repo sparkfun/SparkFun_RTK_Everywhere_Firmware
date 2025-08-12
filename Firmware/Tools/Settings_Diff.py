@@ -57,9 +57,9 @@ class RTK_Settings_Diff():
                         print('Duplicate setting: {},{} : {}'.format(firstThing, secondThing, things[firstThing]))
                     else:
                         things[firstThing] = secondThing
-                        firstThing = ''
-                        secondThing = ''
-                        #print(firstThing, secondThing)
+                    firstThing = ''
+                    secondThing = ''
+                    #print(firstThing, secondThing)
             elif c == '\r':
                 pass
             elif c == '\n':
