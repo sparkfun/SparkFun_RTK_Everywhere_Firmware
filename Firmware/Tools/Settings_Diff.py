@@ -90,13 +90,13 @@ class RTK_Settings_Diff():
 
         for thing1 in things1.keys():
             if thing1 not in things2.keys():
-                print('{},{} : only found in file 1'.format(thing1,things1[thing1]))
+                print('Only found in file 1 : {},{}'.format(thing1,things1[thing1]))
 
         print()
 
         for thing2 in things2.keys():
             if thing2 not in things1.keys():
-                print('{},{} : only found in file 2'.format(thing2,things2[thing2]))
+                print('Only found in file 2 : {},{}'.format(thing2,things2[thing2]))
 
         print()
 
@@ -109,7 +109,7 @@ if __name__ == '__main__':
 
     import argparse
 
-    parser = argparse.ArgumentParser(description='SparkFun RTK Firmware Settings Diff')
+    parser = argparse.ArgumentParser(description='SparkFun RTK Firmware Settings CSV Diff')
     parser.add_argument('File1', metavar='File1', type=str, help='The path to the first settings CSV file')
     parser.add_argument('File2', metavar='File2', type=str, help='The path to the second settings CSV file')
     args = parser.parse_args()
