@@ -835,13 +835,13 @@ void checkGNSSArrayDefaults()
     {
         if (present.gnss_um980)
         {
-            settings.minCNO = 10;                    // Default 10 degrees
+            settings.minCNO = 10;                    // Default 10 dBHz
             settings.surveyInStartingAccuracy = 2.0; // Default 2m
             settings.measurementRateMs = 500;        // Default 2Hz.
         }
         else if (present.gnss_zedf9p)
         {
-            settings.minCNO = 6;                     // Default 6 degrees
+            settings.minCNO = 6;                     // Default 6 dBHz
             settings.surveyInStartingAccuracy = 1.0; // Default 1m
             settings.measurementRateMs = 250;        // Default 4Hz.
         }
