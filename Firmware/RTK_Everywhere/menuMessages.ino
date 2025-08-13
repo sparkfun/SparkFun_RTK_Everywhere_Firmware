@@ -655,6 +655,13 @@ void checkGNSSArrayDefaults()
 #ifdef COMPILE_UM980
     else if (present.gnss_um980)
     {
+        if (settings.dataPortBaud != 115200)
+        {
+            // Belt and suspenders... Let's make really sure COM3 only ever runs at 115200
+            defaultsApplied = true;
+            settings.dataPortBaud = 115200;
+        }
+
         if (settings.dynamicModel == 254)
         {
             defaultsApplied = true;

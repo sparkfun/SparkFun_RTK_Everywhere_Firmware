@@ -252,8 +252,14 @@ bool GNSS_UM980::configureOnce()
     response &= _um980->setPortBaudrate("COM2", 115200); // COM2 is connected to the IMU
     response &= _um980->setPortBaudrate("COM3", 115200); // COM3 is connected to the switch, then ESP32
 
-    // For now, let's not change the baud rate of the interface. We'll be using the default 115200 for now.
-    response &= setBaudRateCOM3(settings.dataPortBaud); // COM3 is connected to ESP UART2
+    // TODO: delete Paul's little rant, once you've read it
+    // Why would you change the COM3 baud rate here? It's connected to the ESP32 serialGNSS. You can't
+    // change the COM3 baud rate without changing the serialGNSS baud to match... I think this only works
+    // because there is a "settings.dataPortBaud = 115200; // Override settings. Use UM980 at 115200bps."
+    // in beginBoard. It causes badness when profile defaults are applied via web config, because that
+    // sets settings.dataPortBaud back to its default of 230400!
+    //  // For now, let's not change the baud rate of the interface. We'll be using the default 115200 for now.
+    //  response &= setBaudRateCOM3(settings.dataPortBaud); // COM3 is connected to ESP UART2
 
     // Enable PPS signal with a width of 200ms, and a period of 1 second
     response &= _um980->enablePPS(200000, 1000); // widthMicroseconds, periodMilliseconds
