@@ -836,11 +836,10 @@ void checkGNSSArrayDefaults()
     }
 #endif  // COMPILE_LG290P
 
-    // If the antennaPhaseCenter_mm is not set, override with default
+    // If defaults have been applied, override antennaPhaseCenter_mm with default
     // (This was in beginSystemState - for the Torch / UM980 only. Weird...)
-    if (settings.antennaPhaseCenter_mm == 0.0)
+    if (defaultsApplied)
     {
-        defaultsApplied = true;
         settings.antennaPhaseCenter_mm = present.antennaPhaseCenter_mm;
     }
 
