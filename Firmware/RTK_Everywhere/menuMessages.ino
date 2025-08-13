@@ -655,6 +655,13 @@ void checkGNSSArrayDefaults()
 #ifdef COMPILE_UM980
     else if (present.gnss_um980)
     {
+        if (settings.dataPortBaud != 115200)
+        {
+            // Belt and suspenders... Let's make really sure COM3 only ever runs at 115200
+            defaultsApplied = true;
+            settings.dataPortBaud = 115200;
+        }
+
         if (settings.dynamicModel == 254)
         {
             defaultsApplied = true;
@@ -829,19 +836,25 @@ void checkGNSSArrayDefaults()
     }
 #endif  // COMPILE_LG290P
 
+    // If defaults have been applied, override antennaPhaseCenter_mm with default
+    // (This was in beginSystemState - for the Torch / UM980 only. Weird...)
+    if (defaultsApplied)
+    {
+        settings.antennaPhaseCenter_mm = present.antennaPhaseCenter_mm;
+    }
 
     // If defaults were applied, also default the non-array settings for this particular GNSS receiver
     if (defaultsApplied == true)
     {
         if (present.gnss_um980)
         {
-            settings.minCNO = 10;                    // Default 10 degrees
+            settings.minCNO = 10;                    // Default 10 dBHz
             settings.surveyInStartingAccuracy = 2.0; // Default 2m
             settings.measurementRateMs = 500;        // Default 2Hz.
         }
         else if (present.gnss_zedf9p)
         {
-            settings.minCNO = 6;                     // Default 6 degrees
+            settings.minCNO = 6;                     // Default 6 dBHz
             settings.surveyInStartingAccuracy = 1.0; // Default 1m
             settings.measurementRateMs = 250;        // Default 4Hz.
         }

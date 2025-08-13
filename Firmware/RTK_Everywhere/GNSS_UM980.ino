@@ -252,8 +252,8 @@ bool GNSS_UM980::configureOnce()
     response &= _um980->setPortBaudrate("COM2", 115200); // COM2 is connected to the IMU
     response &= _um980->setPortBaudrate("COM3", 115200); // COM3 is connected to the switch, then ESP32
 
-    // For now, let's not change the baud rate of the interface. We'll be using the default 115200 for now.
-    response &= setBaudRateCOM3(settings.dataPortBaud); // COM3 is connected to ESP UART2
+    //  // For now, let's not change the baud rate of the interface. We'll be using the default 115200 for now.
+    //  response &= setBaudRateCOM3(settings.dataPortBaud); // COM3 is connected to ESP UART2
 
     // Enable PPS signal with a width of 200ms, and a period of 1 second
     response &= _um980->enablePPS(200000, 1000); // widthMicroseconds, periodMilliseconds

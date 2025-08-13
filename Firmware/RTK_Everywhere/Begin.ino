@@ -1529,10 +1529,6 @@ void beginSystemState()
 
         // Return to either Base or Rover Not Started. The last state previous to power down.
         systemState = settings.lastState;
-
-        // If the setting is not set, override with default
-        if (settings.antennaPhaseCenter_mm == 0.0)
-            settings.antennaPhaseCenter_mm = present.antennaPhaseCenter_mm;
     }
     else if (productVariant == RTK_POSTCARD)
     {

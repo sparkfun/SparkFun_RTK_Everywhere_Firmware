@@ -926,7 +926,7 @@ struct Settings
     // Rover operation
     uint8_t dynamicModel = 254; // Default will be applied by checkGNSSArrayDefaults
     bool enablePrintRoverAccuracy = true;
-    int16_t minCNO = 6;                 // Minimum satellite signal level for navigation. ZED-F9P default is 6 dBHz
+    int16_t minCNO = 6;   // Minimum satellite signal level for navigation. ZED-F9P default is 6 dBHz
     uint8_t minElev = 10; // Minimum elevation (in deg) for a GNSS satellite to be used in NAV
 
     // RTC (Real Time Clock)
@@ -1593,7 +1593,7 @@ const RTK_Settings_Entry rtkSettingsEntries[] =
     // Rover operation
     { 1, 1, 0, 1, 1, 1, 1, 1, 0, ALL, _uint8_t,  0, & settings.dynamicModel, "dynamicModel",  },
     { 0, 0, 0, 1, 1, 1, 1, 1, 1, ALL, _bool,     0, & settings.enablePrintRoverAccuracy, "enablePrintRoverAccuracy",  },
-    { 1, 1, 0, 1, 1, 1, 1, 1, 1, ALL, _int16_t,  0, & settings.minCNO, "minCNO",  },
+    { 0, 1, 0, 1, 1, 1, 1, 1, 1, ALL, _int16_t,  0, & settings.minCNO, "minCNO",  }, // Not inWebConfig - createSettingsString gets from GNSS
     { 1, 1, 0, 1, 1, 1, 1, 1, 1, ALL, _uint8_t,  0, & settings.minElev, "minElev",  },
 
     // RTC (Real Time Clock)
@@ -1649,7 +1649,7 @@ const RTK_Settings_Entry rtkSettingsEntries[] =
     // State
     { 0, 0, 0, 1, 1, 1, 1, 1, 1, ALL, _bool,     0, & settings.enablePrintDuplicateStates, "enablePrintDuplicateStates",  },
     { 0, 0, 0, 1, 1, 1, 1, 1, 1, ALL, _bool,     0, & settings.enablePrintStates, "enablePrintStates",  },
-    { 1, 1, 0, 1, 1, 1, 1, 1, 1, ALL, tSysState, 0, & settings.lastState, "lastState",  },
+    { 0, 1, 0, 1, 1, 1, 1, 1, 1, ALL, tSysState, 0, & settings.lastState, "lastState",  }, // Not inWebConfig - must be changed to 0:3 by createSettingsString
 
     // TCP Client
     { 0, 0, 0, 1, 1, 1, 1, 1, 1, ALL, _bool,     0, & settings.debugTcpClient, "debugTcpClient",  },
