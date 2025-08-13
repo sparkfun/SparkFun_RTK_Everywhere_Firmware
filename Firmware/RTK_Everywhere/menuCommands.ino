@@ -2016,11 +2016,6 @@ void createSettingsString(char *newSettings)
     }
     stringRecord(newSettings, "lastState", lastState);
 
-    /* This is a duplicate - from olden times? See #719 It's probably not doing any harm. But still... TODO: remove it
-    stringRecord(
-        newSettings, "profileName",
-        profileNames[profileNumber]); // Must come before profile number so AP config page JS has name before number
-    */
     stringRecord(newSettings, "profileNumber", profileNumber);
     for (int index = 0; index < MAX_PROFILE_COUNT; index++)
     {
