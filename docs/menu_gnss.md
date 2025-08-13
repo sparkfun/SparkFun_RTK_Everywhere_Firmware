@@ -39,7 +39,7 @@ Measurement Frequency can be set by either Hz or by seconds between measurements
 
 ## Dynamic Model
 
-The Dynamic Model can be changed but it is recommended to leave it as *Survey*. For more information, please see the list of [reference documents](reference_documents.md) for your platform.
+The Dynamic Model can be changed but it is recommended to leave it as *Portable*. For more information, please see the list of [reference documents](reference_documents.md) for your platform.
 
 ## Min SV Elevation and C/N0
 
