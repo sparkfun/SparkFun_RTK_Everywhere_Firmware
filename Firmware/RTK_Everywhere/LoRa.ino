@@ -76,7 +76,7 @@ static volatile uint8_t loraState = LORA_OFF;
 char loraFirmwareVersion[25] = {'\0'};
 int loraBytesSent = 0;
 
-HardwareSerial *SerialForLoRa; // Don't instantiate until we know the platform. May compete with SerialForTile
+HardwareSerial *SerialForLoRa; // Don't instantiate until we know the platform. May compete with SerialForTilt
 
 // Called from main loop
 // Control incoming/outgoing RTCM data from STM32 based LoRa radio (if supported by platform)

@@ -908,7 +908,7 @@ void beginGpioExpanderSwitches()
         // PWRKILL is on pin 7. Driving it low will turn off the system
         for (int i = 0; i < 8; i++)
         {
-            // Set all pins to low expect GNSS RESET and PWRKILL
+            // Set all pins to low except GNSS RESET and PWRKILL
             if (i == 5 || i == 7)
                 gpioExpanderSwitches->digitalWrite(i, HIGH);
             else
