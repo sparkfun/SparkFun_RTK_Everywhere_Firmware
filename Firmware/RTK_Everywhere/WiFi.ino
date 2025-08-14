@@ -1327,10 +1327,7 @@ bool RTK_WIFI::connect(unsigned long timeout, bool startAP)
 
     // Enable WiFi station if necessary
     if (wifiStationRunning == false)
-    {
-        displayWiFiConnect();
         started = enable(wifiEspNowRunning, wifiSoftApRunning, true, __FILE__, __LINE__);
-    }
     else if (startAP && !wifiSoftApRunning)
         started = enable(wifiEspNowRunning, true, wifiStationRunning, __FILE__, __LINE__);
 
@@ -2827,6 +2824,7 @@ bool RTK_WIFI::stopStart(WIFI_ACTION_t stopping, WIFI_ACTION_t starting)
                 systemPrintf("channel: %d\r\n", channel);
             _started = _started | WIFI_STA_START_SCAN;
 
+            systemPrintln("Scanning for WiFi...");
             displayWiFiConnect();
 
             // Determine if WiFi scan failed, stop WiFi station startup
@@ -3181,7 +3179,7 @@ bool RTK_WIFI::stopStart(WIFI_ACTION_t stopping, WIFI_ACTION_t starting)
 
     // Return the enable status
     bool enabled = ((_started & allOnline) == expected);
-    if (!enabled)
+    if (settings.debugWifiState && !enabled)
         systemPrintf("ERROR: RTK_WIFI::stopStart failed!\r\n");
     if (settings.debugWifiState && _verbose)
     {
