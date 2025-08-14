@@ -2588,7 +2588,12 @@ void networkUserAdd(NETCONSUMER_t consumer, const char *fileName, uint32_t lineN
 
     // Display the user
     if (settings.debugNetworkLayer)
-        systemPrintf("%s adding user %s\r\n", networkInterfaceTable[index].name, networkConsumerTable[consumer]);
+    {
+        if (index < NETWORK_OFFLINE)
+            systemPrintf("%s adding user %s\r\n", networkInterfaceTable[index].name, networkConsumerTable[consumer]);
+        else
+            systemPrintf("NETWORK_ANY adding user %s\r\n", networkConsumerTable[consumer]);
+    }
 
     // Remember this network interface
     networkConsumerIndexLast[consumer] = index;
