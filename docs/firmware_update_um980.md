@@ -78,6 +78,11 @@ The UM980 is the GNSS receiver inside the RTK Torch. The following describes how
 
 7. The update process can take multiple minutes. Once completed, close UPrecise, and press the Torch Power Button to exit the direct-connect mode.
 
+	!!! note
+		Once in the special UM980 direct connect mode, the firmware will stay in that mode until you give the Torch Power Button a single press. If you power-cycle the Torch while it is in direct connect mode, it returns to direct connect mode on power-up. Give the button a single press to exit.
+
+8. After a restart, you will find the firmware updated. Open the System Menu to confirm the firmware version.
+
 	<figure markdown>
 	![UM980 Firmware version shown in System Menu](./img/Terminal/SparkFun RTK Everywhere - System Menu UM980 Firmware.png)
 	<figcaption markdown>
@@ -85,7 +90,3 @@ The UM980 is the GNSS receiver inside the RTK Torch. The following describes how
 	</figcaption>
 	</figure>
 
-!!! note
-	Once in the special UM980 direct connect mode, the firmware will stay in that mode until you give the Torch Power Button a single press. If you power-cycle the Torch while it is in direct connect mode, it returns to direct connect mode on power-up. Give the button a single press to exit.
-
-8. After a restart, you will find the firmware updated. Open the System Menu to confirm the firmware version.
