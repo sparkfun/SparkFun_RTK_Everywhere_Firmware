@@ -2016,9 +2016,6 @@ void createSettingsString(char *newSettings)
     }
     stringRecord(newSettings, "lastState", lastState);
 
-    stringRecord(
-        newSettings, "profileName",
-        profileNames[profileNumber]); // Must come before profile number so AP config page JS has name before number
     stringRecord(newSettings, "profileNumber", profileNumber);
     for (int index = 0; index < MAX_PROFILE_COUNT; index++)
     {
