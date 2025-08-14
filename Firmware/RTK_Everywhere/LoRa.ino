@@ -377,7 +377,7 @@ void loraEnterBootloader()
     if (productVariant == RTK_TORCH)
         digitalWrite(pin_loraRadio_boot, HIGH); // Enter bootload mode
     else if (productVariant == RTK_FLEX)
-        gpioExpanderEnableLoraBoot();
+        gpioExpanderLoraBootEnable();
 
     loraReset();
 }
@@ -387,7 +387,7 @@ void loraExitBootloader()
     if (productVariant == RTK_TORCH)
         digitalWrite(pin_loraRadio_boot, LOW); // Exit bootload mode
     else if (productVariant == RTK_FLEX)
-        gpioExpanderDisableLoraBoot();
+        gpioExpanderLoraBootDisable();
 
     loraReset();
 }
@@ -403,9 +403,9 @@ void loraReset()
     }
     else if (productVariant == RTK_FLEX)
     {
-        gpioExpanderDisableLora();
+        gpioExpanderLoraDisable();
         delay(15);
-        gpioExpanderEnableLora();
+        gpioExpanderLoraEnable();
         delay(15);
     }
 }
@@ -415,7 +415,7 @@ void loraPowerOn()
     if (productVariant == RTK_TORCH)
         digitalWrite(pin_loraRadio_power, HIGH); // Power STM32/radio
     else if (productVariant == RTK_FLEX)
-        gpioExpanderEnableLora();
+        gpioExpanderLoraEnable();
 }
 
 void loraPowerOff()
@@ -423,7 +423,7 @@ void loraPowerOff()
     if (productVariant == RTK_TORCH)
         digitalWrite(pin_loraRadio_power, LOW); // Power off STM32/radio
     else if (productVariant == RTK_FLEX)
-        gpioExpanderDisableLora();
+        gpioExpanderLoraDisable();
 }
 
 bool loraIsOn()
@@ -802,7 +802,7 @@ void loraWrite(uint8_t *data, uint16_t dataLength)
     if (productVariant == RTK_TORCH)
         Serial.write(data, dataLength);
     else if (productVariant == RTK_FLEX)
-        SerialForLoRa.write(data, dataLength);
+        SerialForLoRa->write(data, dataLength);
 }
 
 void loraPrint(const char *data)
@@ -810,7 +810,7 @@ void loraPrint(const char *data)
     if (productVariant == RTK_TORCH)
         Serial.print(data);
     else if (productVariant == RTK_FLEX)
-        SerialForLoRa.print(data);
+        SerialForLoRa->print(data);
 }
 
 void loraPrintf(const char *format, ...)
@@ -827,7 +827,7 @@ void loraPrintf(const char *format, ...)
     if (productVariant == RTK_TORCH)
         Serial.printf(buf);
     else if (productVariant == RTK_FLEX)
-        SerialForLoRa.printf(buf);
+        SerialForLoRa->printf(buf);
 
     va_end(args);
     va_end(args2);
@@ -838,7 +838,10 @@ uint16_t loraAvailable()
     if (productVariant == RTK_TORCH)
         return (Serial.available());
     else if (productVariant == RTK_FLEX)
-        return (SerialForLoRa.available());
+        return (SerialForLoRa->available());
+    
+    systemPrintln("loraAvailable - invalid ProductVariant");
+    return 0;
 }
 
 uint16_t loraRead()
@@ -846,5 +849,8 @@ uint16_t loraRead()
     if (productVariant == RTK_TORCH)
         return (Serial.read());
     else if (productVariant == RTK_FLEX)
-        return (SerialForLoRa.read());
+        return (SerialForLoRa->read());
+
+    systemPrintln("loraRead - invalid ProductVariant");
+    return 0;
 }

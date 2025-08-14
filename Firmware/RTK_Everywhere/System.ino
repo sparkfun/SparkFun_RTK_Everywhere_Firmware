@@ -906,10 +906,10 @@ void beginGpioExpanderSwitches()
         // SW1 is on pin 0. Driving it high will disconnect the ESP32 from USB
         // GNSS_RST is on pin 5. Driving it low when an LG290P is connected will kill the I2C bus.
         // PWRKILL is on pin 7. Driving it low will turn off the system
-        for (int i = 0; i < 8; i++)
+        for (int i = 0; i <= gpioExpanderNumSwitches; i++)
         {
             // Set all pins to low except GNSS RESET and PWRKILL
-            if (i == 5 || i == 7)
+            if (i == gpioExpanderSwitch_GNSS_Reset || i == gpioExpanderSwitch_PowerFastOff)
                 gpioExpanderSwitches->digitalWrite(i, HIGH);
             else
                 gpioExpanderSwitches->digitalWrite(i, LOW);
@@ -965,13 +965,20 @@ void gpioExpanderSelectLoraCommunication()
         gpioExpanderSwitches->digitalWrite(gpioExpanderSwitch_S4, HIGH);
 }
 
+// Connect Flex GNSS UART2 to 4-pin JST RADIO port
+void gpioExpanderSelectRadioPort()
+{
+    if (online.gpioExpanderSwitches == true)
+        gpioExpanderSwitches->digitalWrite(gpioExpanderSwitch_S4, LOW);
+}
+
 // Drive GPIO pin high to enable LoRa Radio
-void gpioExpanderEnableLora()
+void gpioExpanderLoraEnable()
 {
     if (online.gpioExpanderSwitches == true)
         gpioExpanderSwitches->digitalWrite(gpioExpanderSwitch_LoraEnable, HIGH);
 }
-void gpioExpanderDisableLora()
+void gpioExpanderLoraDisable()
 {
     if (online.gpioExpanderSwitches == true)
         gpioExpanderSwitches->digitalWrite(gpioExpanderSwitch_LoraEnable, LOW);
@@ -985,12 +992,12 @@ bool gpioExpanderLoraIsOn()
     }
     return(false);
 }
-void gpioExpanderEnableLoraBoot()
+void gpioExpanderLoraBootEnable()
 {
     if (online.gpioExpanderSwitches == true)
         gpioExpanderSwitches->digitalWrite(gpioExpanderSwitch_LoraBoot, HIGH);
 }
-void gpioExpanderDisableLoraBoot()
+void gpioExpanderLoraBootDisable()
 {
     if (online.gpioExpanderSwitches == true)
         gpioExpanderSwitches->digitalWrite(gpioExpanderSwitch_LoraBoot, LOW);

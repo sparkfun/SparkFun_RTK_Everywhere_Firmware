@@ -79,14 +79,14 @@
 */
 
 // While we wait for the next hardware revision, Facet Flex needs to be manually forced:
-#define NOT_FACET_FLEX // Comment to force support for Facet Flex
+//#define NOT_FACET_FLEX // Comment to force support for Facet Flex
 
 // To reduce compile times, various parts of the firmware can be disabled/removed if they are not
 // needed during development
-#define COMPILE_BT       // Comment out to remove Bluetooth functionality
-#define COMPILE_WIFI     // Comment out to remove WiFi functionality
-#define COMPILE_ETHERNET // Comment out to remove Ethernet (W5500) support
-#define COMPILE_CELLULAR // Comment out to remove cellular modem support
+//#define COMPILE_BT       // Comment out to remove Bluetooth functionality
+//#define COMPILE_WIFI     // Comment out to remove WiFi functionality
+//#define COMPILE_ETHERNET // Comment out to remove Ethernet (W5500) support
+//#define COMPILE_CELLULAR // Comment out to remove cellular modem support
 
 #ifdef COMPILE_BT
 #define COMPILE_AUTHENTICATION // Comment out to disable MFi authentication
@@ -98,9 +98,9 @@
 #endif                 // COMPILE_WIFI
 
 #define COMPILE_LG290P   // Comment out to remove LG290P functionality
-#define COMPILE_MOSAICX5 // Comment out to remove mosaic-X5 functionality
-#define COMPILE_UM980 // Comment out to remove UM980 functionality
-#define COMPILE_ZED      // Comment out to remove ZED-F9x functionality
+//#define COMPILE_MOSAICX5 // Comment out to remove mosaic-X5 functionality
+//#define COMPILE_UM980 // Comment out to remove UM980 functionality
+//#define COMPILE_ZED      // Comment out to remove ZED-F9x functionality
 
 #ifdef  COMPILE_ZED
 #define COMPILE_L_BAND   // Comment out to remove L-Band functionality
@@ -285,14 +285,15 @@ int gpioExpander_left = 3;
 int gpioExpander_center = 4;
 int gpioExpander_cardDetect = 5;
 
-int gpioExpanderSwitch_S1 = 0; // Controls U16 switch 1: connect ESP UART0 to CH342 or SW2
-int gpioExpanderSwitch_S2 = 1; // Controls U17 switch 2: connect SW1 to RS232 Output or GNSS UART4
-int gpioExpanderSwitch_S3 = 2; // Controls U18 switch 3: connect ESP UART2 to GNSS UART3 or LoRa UART2
-int gpioExpanderSwitch_S4 = 3; // Controls U19 switch 4: connect GNSS UART2 to 4-pin JST TTL Serial or LoRa UART0
-int gpioExpanderSwitch_LoraEnable = 4;   // LoRa_EN
-int gpioExpanderSwitch_GNSS_Reset = 5;   // RST_GNSS
-int gpioExpanderSwitch_LoraBoot = 6;     // LoRa_BOOT0 - Used for bootloading the STM32 radio IC
-int gpioExpanderSwitch_PowerFastOff = 7; // PWRKILL
+const int gpioExpanderSwitch_S1 = 0; // Controls U16 switch 1: connect ESP UART0 to CH342 or SW2
+const int gpioExpanderSwitch_S2 = 1; // Controls U17 switch 2: connect SW1 to RS232 Output or GNSS UART4
+const int gpioExpanderSwitch_S3 = 2; // Controls U18 switch 3: connect ESP UART2 to GNSS UART3 or LoRa UART2
+const int gpioExpanderSwitch_S4 = 3; // Controls U19 switch 4: connect GNSS UART2 to 4-pin JST TTL Serial or LoRa UART0
+const int gpioExpanderSwitch_LoraEnable = 4;   // LoRa_EN
+const int gpioExpanderSwitch_GNSS_Reset = 5;   // RST_GNSS
+const int gpioExpanderSwitch_LoraBoot = 6;     // LoRa_BOOT0 - Used for bootloading the STM32 radio IC
+const int gpioExpanderSwitch_PowerFastOff = 7; // PWRKILL
+const int gpioExpanderNumSwitches = gpioExpanderSwitch_PowerFastOff;
 
 //=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 
