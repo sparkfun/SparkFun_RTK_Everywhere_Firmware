@@ -83,10 +83,10 @@
 
 // To reduce compile times, various parts of the firmware can be disabled/removed if they are not
 // needed during development
-//#define COMPILE_BT       // Comment out to remove Bluetooth functionality
-//#define COMPILE_WIFI     // Comment out to remove WiFi functionality
-//#define COMPILE_ETHERNET // Comment out to remove Ethernet (W5500) support
-//#define COMPILE_CELLULAR // Comment out to remove cellular modem support
+#define COMPILE_BT       // Comment out to remove Bluetooth functionality
+#define COMPILE_WIFI     // Comment out to remove WiFi functionality
+#define COMPILE_ETHERNET // Comment out to remove Ethernet (W5500) support
+#define COMPILE_CELLULAR // Comment out to remove cellular modem support
 
 #ifdef COMPILE_BT
 #define COMPILE_AUTHENTICATION // Comment out to disable MFi authentication
@@ -98,9 +98,9 @@
 #endif                 // COMPILE_WIFI
 
 #define COMPILE_LG290P   // Comment out to remove LG290P functionality
-//#define COMPILE_MOSAICX5 // Comment out to remove mosaic-X5 functionality
-//#define COMPILE_UM980 // Comment out to remove UM980 functionality
-//#define COMPILE_ZED      // Comment out to remove ZED-F9x functionality
+#define COMPILE_MOSAICX5 // Comment out to remove mosaic-X5 functionality
+#define COMPILE_UM980 // Comment out to remove UM980 functionality
+#define COMPILE_ZED      // Comment out to remove ZED-F9x functionality
 
 #ifdef  COMPILE_ZED
 #define COMPILE_L_BAND   // Comment out to remove L-Band functionality
@@ -293,7 +293,7 @@ const int gpioExpanderSwitch_LoraEnable = 4;   // LoRa_EN
 const int gpioExpanderSwitch_GNSS_Reset = 5;   // RST_GNSS
 const int gpioExpanderSwitch_LoraBoot = 6;     // LoRa_BOOT0 - Used for bootloading the STM32 radio IC
 const int gpioExpanderSwitch_PowerFastOff = 7; // PWRKILL
-const int gpioExpanderNumSwitches = gpioExpanderSwitch_PowerFastOff;
+const int gpioExpanderNumSwitches = 8;
 
 //=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 
@@ -588,6 +588,8 @@ volatile bool forwardGnssDataToUsbSerial;
 
 HardwareSerial *serialGNSS = nullptr;  // Don't instantiate until we know what gnssPlatform we're on
 HardwareSerial *serial2GNSS = nullptr; // Don't instantiate until we know what gnssPlatform we're on
+
+volatile bool inDirectConnectMode = false; // Global state to indicate if GNSS/LoRa has direct connection for update
 
 #define SERIAL_SIZE_TX 512
 uint8_t wBuffer[SERIAL_SIZE_TX]; // Buffer for writing from incoming SPP to F9P
@@ -944,7 +946,7 @@ unsigned long loraLastIncomingSerial; // Last time a user sent a serial command.
 
 // Display boot times
 //-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
-#define MAX_BOOT_TIME_ENTRIES 47
+#define MAX_BOOT_TIME_ENTRIES 50
 uint8_t bootTimeIndex;
 uint32_t bootTime[MAX_BOOT_TIME_ENTRIES];
 const char *bootTimeString[MAX_BOOT_TIME_ENTRIES];
@@ -1261,14 +1263,6 @@ void setup()
     DMW_b("tickerBegin");
     tickerBegin(); // Start ticker tasks for LEDs and beeper
 
-    DMW_b("checkUpdateLoraFirmware");
-    if (checkUpdateLoraFirmware() == true) // Check if updateLoraFirmware.txt exists
-        beginLoraFirmwareUpdate();
-
-    DMW_b("um980FirmwareCheckUpdate");
-    if (um980FirmwareCheckUpdate() == true) // Check if updateUm980Firmware.txt exists
-        um980FirmwareBeginUpdate();
-
     DMW_b("beginPsram");
     beginPsram(); // Initialize PSRAM (if available). Needs to occur before beginGnssUart and other malloc users.
 
@@ -1314,6 +1308,18 @@ void setup()
 
     DMW_b("gnssDetectReceiverType");
     gnssDetectReceiverType(); // If we don't know the receiver from the platform, auto-detect it. Uses settings.
+
+    DMW_b("checkUpdateLoraFirmware");
+    if (checkUpdateLoraFirmware() == true) // Check if updateLoraFirmware.txt exists
+        beginLoraFirmwareUpdate(); // Needs I2C, GPIO Expander Switches, display, buttons, etc.
+
+    DMW_b("um980FirmwareCheckUpdate");
+    if (um980FirmwareCheckUpdate() == true) // UM980 needs special treatment
+        um980FirmwareBeginUpdate(); // Needs Flex GNSS, I2C, GPIO Expander Switches, display, buttons, etc.
+
+    DMW_b("gnssFirmwareCheckUpdate");
+    if (gnssFirmwareCheckUpdate() == true) // Check if updateGnssFirmware.txt exists
+        gnssFirmwareBeginUpdate(); // Needs Flex GNSS, I2C, GPIO Expander Switches, display, buttons, etc.
 
     DMW_b("commandIndexFillActual");
     commandIndexFillActual(); // Shrink the commandIndex table now we're certain what GNSS we have

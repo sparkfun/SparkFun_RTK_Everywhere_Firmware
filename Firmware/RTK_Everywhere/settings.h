@@ -1861,6 +1861,7 @@ struct struct_present
     bool gnss_zedf9p = false;
     bool gnss_mosaicX5 = false; // L-Band is implicit
     bool gnss_lg290p = false;
+    bool gnss_zedx20p = false;
 
     // A GNSS TP interrupt - for accurate clock setting
     // The GNSS UBX PVT message is sent ahead of the top-of-second

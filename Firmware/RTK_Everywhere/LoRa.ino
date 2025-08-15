@@ -333,7 +333,9 @@ void loraStop()
 
 void muxSelectUm980()
 {
-    digitalWrite(pin_muxA, LOW); // Connect ESP UART1 to UM980
+    // On a possible Flex UM980 variant, UM980 UART1 will be hardwired to ESP32 UART0. No muxes to change
+    if (productVariant == RTK_TORCH)
+        digitalWrite(pin_muxA, LOW); // Connect ESP UART1 to UM980
 }
 
 void muxSelectUsb()
@@ -499,6 +501,15 @@ bool createLoRaPassthrough()
 
 void beginLoraFirmwareUpdate()
 {
+    // Flag that we are in direct connect mode. Button task will removeUpdateLoraFirmware and exit
+    inDirectConnectMode = true;
+
+    // Paint GNSS Update
+    paintLoRaUpdate();
+
+    // Stop all UART tasks. Redundant
+    tasksStopGnssUart();
+
     systemPrintln();
     systemPrintln("Entering STM32 direct connect for firmware update. Disconnect this terminal connection. Use "
                   "'STM32CubeProgrammer' to update the "
@@ -517,6 +528,10 @@ void beginLoraFirmwareUpdate()
     if (serialGNSS == nullptr)
         serialGNSS = new HardwareSerial(2); // Use UART2 on the ESP32 for communication with the LoRa radio
 
+    serialGNSS->setRxBufferSize(settings.uartReceiveBufferSize);
+    serialGNSS->setTimeout(settings.serialTimeoutGNSS); // Requires serial traffic on the UART pins for detection
+
+    // TODO: pins are different on Flex
     serialGNSS->begin(115200, SERIAL_8N1, pin_GnssUart_RX, pin_GnssUart_TX); // Keep this at 115200
 
     // Make sure ESP32 is connected to LoRa STM32 UART
@@ -533,30 +548,37 @@ void beginLoraFirmwareUpdate()
     // Infinite loop until button is pressed
     while (1)
     {
-        while (Serial.available())
-            serialGNSS->write(Serial.read());
+        static unsigned long lastSerial = millis(); // Temporary fix for buttonless Flex
 
-        while (serialGNSS->available())
+        if (Serial.available()) // Note: use if, not while
+        {
+            serialGNSS->write(Serial.read());
+            lastSerial = millis();
+        }
+
+        if (serialGNSS->available()) // Note: use if, not while
             Serial.write(serialGNSS->read());
 
-        if (readAnalogPinAsDigital(pin_powerButton) == HIGH)
+        // Button task will removeUpdateLoraFirmware and restart
+
+        // Temporary fix for buttonless Flex. TODO - remove
+        if ((productVariant == RTK_FLEX) && (millis() > (lastSerial + 30000)))
         {
-            while (readAnalogPinAsDigital(pin_powerButton) == HIGH)
+                // Beep to indicate exit
+                beepOn();
+                delay(300);
+                beepOff();
                 delay(100);
+                beepOn();
+                delay(300);
+                beepOff();
 
-            // Remove file and reset to exit LoRa update pass-through mode
-            removeUpdateLoraFirmware();
+                removeUpdateLoraFirmware();
 
-            // Beep to indicate exit
-            beepOn();
-            delay(300);
-            beepOff();
-            delay(100);
-            beepOn();
-            delay(300);
-            beepOff();
+                systemPrintln("Exiting direct connection (passthrough) mode");
+                systemFlush(); // Complete prints
 
-            ESP.restart();
+                ESP.restart();
         }
     }
 }
