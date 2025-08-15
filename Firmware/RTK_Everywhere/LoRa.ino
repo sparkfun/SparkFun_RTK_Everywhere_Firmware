@@ -531,8 +531,12 @@ void beginLoraFirmwareUpdate()
     serialGNSS->setRxBufferSize(settings.uartReceiveBufferSize);
     serialGNSS->setTimeout(settings.serialTimeoutGNSS); // Requires serial traffic on the UART pins for detection
 
-    // TODO: pins are different on Flex
-    serialGNSS->begin(115200, SERIAL_8N1, pin_GnssUart_RX, pin_GnssUart_TX); // Keep this at 115200
+    if (productVariant == RTK TORCH)
+        serialGNSS->begin(115200, SERIAL_8N1, pin_GnssUart_RX, pin_GnssUart_TX); // Keep this at 115200
+    else if (productVariant == RTK_FLEX)
+        serialGNSS->begin(115200, SERIAL_8N1, pin_IMU_RX, pin_IMU_TX); // Keep this at 115200
+    else
+        systemPrintln("ERROR: productVariant does not support LoRa");
 
     // Make sure ESP32 is connected to LoRa STM32 UART
     muxSelectLoRaConfigure();
