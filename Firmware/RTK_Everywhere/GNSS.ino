@@ -290,6 +290,13 @@ void gnssFirmwareBeginUpdate()
 
     // NOTE: X20P may expect a baud rate change during the update. We may need to force 9600 baud. TODO
 
+    // TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO 
+    //
+    // This current does not work on LG290P. I suspect QGNSS is doing a baud rate change at the start of
+    // the update. I need to get a logic analyzer on there to be sure.
+    //
+    // TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO 
+
     // Flag that we are in direct connect mode. Button task will gnssFirmwareRemoveUpdate and exit
     inDirectConnectMode = true;
 
