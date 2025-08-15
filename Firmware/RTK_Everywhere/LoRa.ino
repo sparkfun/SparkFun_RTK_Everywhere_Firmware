@@ -531,7 +531,7 @@ void beginLoraFirmwareUpdate()
     serialGNSS->setRxBufferSize(settings.uartReceiveBufferSize);
     serialGNSS->setTimeout(settings.serialTimeoutGNSS); // Requires serial traffic on the UART pins for detection
 
-    if (productVariant == RTK TORCH)
+    if (productVariant == RTK_TORCH)
         serialGNSS->begin(115200, SERIAL_8N1, pin_GnssUart_RX, pin_GnssUart_TX); // Keep this at 115200
     else if (productVariant == RTK_FLEX)
         serialGNSS->begin(115200, SERIAL_8N1, pin_IMU_RX, pin_IMU_TX); // Keep this at 115200
@@ -548,7 +548,7 @@ void beginLoraFirmwareUpdate()
     while (Serial.available())
         Serial.read();
 
-    // Push any incoming ESP32 UART0 to UART1 and vice versa
+    // Push any incoming ESP32 UART0 to UART1 or UART2 and vice versa
     // Infinite loop until button is pressed
     while (1)
     {
