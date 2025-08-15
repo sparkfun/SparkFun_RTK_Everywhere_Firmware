@@ -547,7 +547,7 @@ void factoryReset(bool alreadyHasSemaphore)
         gnss->factoryReset();
     }
     else
-        systemPrintln("GNSS not online. Unable to factoryReset...");
+        systemPrintln("GNSS not online: Unable to factory reset.");
 
     systemPrintln("Settings erased successfully. Rebooting. Goodbye!");
     delay(2000);
