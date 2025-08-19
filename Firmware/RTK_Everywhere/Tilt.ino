@@ -1019,7 +1019,10 @@ void tiltDetect()
 
     // Start test if not previously detected
     if (settings.detectedTilt == true)
+    {
+        present.imu_im19 = true; // Allow tiltUpdate() to run
         return;
+    }
 
     // Test for tilt only once
     if (settings.testedTilt == true)
@@ -1048,9 +1051,6 @@ void tiltDetect()
     {
         if (tiltSensor->begin(SerialTiltTest) == true)
         {
-            if (settings.enableImuDebug == true)
-                systemPrintln("Tilt sensor detected");
-
             present.imu_im19 = true; // Allow tiltUpdate() to run
             settings.detectedTilt = true;
             break;
@@ -1061,8 +1061,8 @@ void tiltDetect()
 
 #endif // COMPILE_IM19_IMU
 
-    // if (settings.enableImuDebug == true)
-    systemPrintf("Tilt sensor %sdetected\r\n",  settings.detectedTilt ? "" : "not ");
+    if (settings.enableImuDebug == true)
+        systemPrintf("Tilt sensor %sdetected\r\n", settings.detectedTilt ? "" : "not ");
 
     settings.testedTilt = true;
     recordSystemSettings();

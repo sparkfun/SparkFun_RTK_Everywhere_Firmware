@@ -142,7 +142,10 @@ void gnssDetectReceiverType()
 
     // TODO remove after testing, force retest on each boot
     // Note: with this in place, the X5 detection will take a lot longer due to the baud rate change
-    settings.detectedGnssReceiver = GNSS_RECEIVER_UNKNOWN;
+#ifndef NOT_FACET_FLEX
+    systemPrintln("<<<<<<<<<< !!!!!!!!!! FLEX FORCED !!!!!!!!!! >>>>>>>>>>");
+    //settings.detectedGnssReceiver = GNSS_RECEIVER_UNKNOWN; // This may be causing weirdness on the LG290P. Commenting for now
+#endif
 
     // Start auto-detect if NVM is not yet set
     if (settings.detectedGnssReceiver == GNSS_RECEIVER_UNKNOWN)
@@ -244,3 +247,173 @@ void gnssReset()
         digitalWrite(pin_GNSS_Reset, LOW); // Tell LG290P to reset
     }
 }
+
+//----------------------------------------
+// Force UART connection to GNSS for firmware update on the next boot by special file in
+// LittleFS
+//----------------------------------------
+bool createGNSSPassthrough()
+{
+    return createPassthrough("/updateGnssFirmware.txt");
+}
+bool createPassthrough(const char *filename)
+{
+    if (online.fs == false)
+        return false;
+
+    if (LittleFS.exists(filename))
+    {
+        if (settings.debugGnss)
+            systemPrintf("LittleFS %s already exists\r\n", filename);
+        return true;
+    }
+
+    File updateUm980Firmware = LittleFS.open(filename, FILE_WRITE);
+    updateUm980Firmware.close();
+
+    if (LittleFS.exists(filename))
+        return true;
+
+    if (settings.debugGnss)
+        systemPrintf("Unable to create %s on LittleFS\r\n", filename);
+    return false;
+}
+
+//----------------------------------------
+void gnssFirmwareBeginUpdate()
+{
+    // Note: UM980 needs its own dedicated update function, due to the T@ and bootloader trigger
+
+    // Note: gnssFirmwareBeginUpdate is called during setup, after identify board. I2C, gpio expanders, buttons
+    //  and display have all been initialized. But, importantly, the UARTs have not yet been started.
+    //  This makes our job much easier...
+
+    // NOTE: QGNSS firmware update fails on LG290P due, I think, to QGNSS doing some kind of autobaud
+    //  detection at the start of the update. I think the delays introduced by serialGNSS->write(Serial.read())
+    //  and Serial.write(serialGNSS->read()) cause the failure, but I'm not sure.
+    //  It seems that LG290P needs a dedicated hardware link from USB to GNSS UART for a successful update.
+    //  This will be added in the next rev of the Flex motherboard.
+
+    // NOTE: X20P will expect a baud rate change during the update, unless we force 9600 baud.
+    //  The dedicated hardware link will make X20P firmware updates easy.
+
+    // Flag that we are in direct connect mode. Button task will gnssFirmwareRemoveUpdate and exit
+    inDirectConnectMode = true;
+
+    // Note: we can't call gnssFirmwareRemoveUpdate() here as closing Tera Term will reset the ESP32,
+    //       returning the firmware to normal operation...
+
+    // Paint GNSS Update
+    paintGnssUpdate();
+
+    // Stop all UART tasks. Redundant
+    tasksStopGnssUart();
+
+    uint32_t serialBaud = 115200;
+
+    forceGnssCommunicationRate(serialBaud); // On Flex, must be called after gnssDetectReceiverType
+
+    systemPrintln();
+    systemPrintf("Entering GNSS direct connect for firmware update and configuration. Disconnect this terminal "
+                  "connection. Use the GNSS manufacturer software "
+                  "to update the firmware. Baudrate: %dbps. Press the %s button to return "
+                  "to normal operation.\r\n", serialBaud, present.button_mode ? "mode" : "power");
+    systemFlush();
+
+    Serial.end(); // We must end before we begin otherwise the UART settings are corrupted
+    Serial.begin(serialBaud);
+
+    if (serialGNSS == nullptr)
+        serialGNSS = new HardwareSerial(2); // Use UART2 on the ESP32 for communication with the GNSS module
+
+    serialGNSS->setRxBufferSize(settings.uartReceiveBufferSize);
+    serialGNSS->setTimeout(settings.serialTimeoutGNSS); // Requires serial traffic on the UART pins for detection
+
+    // This is OK for Flex too. We're using the main GNSS pins.
+    serialGNSS->begin(serialBaud, SERIAL_8N1, pin_GnssUart_RX, pin_GnssUart_TX);
+
+    // Echo everything to/from GNSS
+    while (1)
+    {
+        static unsigned long lastSerial = millis(); // Temporary fix for buttonless Flex
+
+        if (Serial.available()) // Note: use if, not while
+        {
+            serialGNSS->write(Serial.read());
+            lastSerial = millis();
+        }
+
+        if (serialGNSS->available()) // Note: use if, not while
+            Serial.write(serialGNSS->read());
+
+        // Button task will gnssFirmwareRemoveUpdate and restart
+        
+        // Temporary fix for buttonless Flex. TODO - remove
+        if ((productVariant == RTK_FLEX) && (millis() > (lastSerial + 30000)))
+        {
+                // Beep to indicate exit
+                beepOn();
+                delay(300);
+                beepOff();
+                delay(100);
+                beepOn();
+                delay(300);
+                beepOff();
+
+                gnssFirmwareRemoveUpdate();
+
+                systemPrintln("Exiting direct connection (passthrough) mode");
+                systemFlush(); // Complete prints
+
+                ESP.restart();
+        }
+    }
+}
+
+//----------------------------------------
+// Check if direct connection file exists
+//----------------------------------------
+bool gnssFirmwareCheckUpdate()
+{
+    return gnssFirmwareCheckUpdateFile("/updateGnssFirmware.txt");
+}
+bool gnssFirmwareCheckUpdateFile(const char *filename)
+{
+    if (online.fs == false)
+        return false;
+
+    if (LittleFS.exists(filename))
+    {
+        if (settings.debugGnss)
+            systemPrintf("LittleFS %s exists\r\n", filename);
+
+        // We do not remove the file here. See removeupdateUm980Firmware().
+
+        return true;
+    }
+
+    return false;
+}
+
+//----------------------------------------
+// Remove direct connection file
+//----------------------------------------
+void gnssFirmwareRemoveUpdate()
+{
+    return gnssFirmwareRemoveUpdateFile("/updateGnssFirmware.txt");
+}
+void gnssFirmwareRemoveUpdateFile(const char *filename)
+{
+    if (online.fs == false)
+        return;
+
+    if (LittleFS.exists(filename))
+    {
+        if (settings.debugGnss)
+            systemPrintf("Removing %s\r\n", filename);
+
+        LittleFS.remove(filename);
+    }
+}
+
+//----------------------------------------

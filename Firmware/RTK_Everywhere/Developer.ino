@@ -267,6 +267,7 @@ void nmeaExtractStdDeviations(char *nmeaSentence, int arraySize) {}
 void processNonSBFData(SEMP_PARSE_STATE *parse) {}
 void processUart1SBF(SEMP_PARSE_STATE *parse, uint16_t type) {}
 void processUart1SPARTN(SEMP_PARSE_STATE *parse, uint16_t type) {}
+void menuLogMosaic() {}
 
 #endif  // COMPILE_MOSAICX5
 
