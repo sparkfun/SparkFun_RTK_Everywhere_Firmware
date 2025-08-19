@@ -288,14 +288,14 @@ void gnssFirmwareBeginUpdate()
     //  and display have all been initialized. But, importantly, the UARTs have not yet been started.
     //  This makes our job much easier...
 
-    // NOTE: X20P may expect a baud rate change during the update. We may need to force 9600 baud. TODO
+    // NOTE: QGNSS firmware update fails on LG290P due, I think, to QGNSS doing some kind of autobaud
+    //  detection at the start of the update. I think the delays introduced by serialGNSS->write(Serial.read())
+    //  and Serial.write(serialGNSS->read()) cause the failure, but I'm not sure.
+    //  It seems that LG290P needs a dedicated hardware link from USB to GNSS UART for a successful update.
+    //  This will be added in the next rev of the Flex motherboard.
 
-    // TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO 
-    //
-    // This current does not work on LG290P. I suspect QGNSS is doing a baud rate change at the start of
-    // the update. I need to get a logic analyzer on there to be sure.
-    //
-    // TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO 
+    // NOTE: X20P will expect a baud rate change during the update, unless we force 9600 baud.
+    //  The dedicated hardware link will make X20P firmware updates easy.
 
     // Flag that we are in direct connect mode. Button task will gnssFirmwareRemoveUpdate and exit
     inDirectConnectMode = true;
@@ -331,18 +331,6 @@ void gnssFirmwareBeginUpdate()
 
     // This is OK for Flex too. We're using the main GNSS pins.
     serialGNSS->begin(serialBaud, SERIAL_8N1, pin_GnssUart_RX, pin_GnssUart_TX);
-
-    // // On Flex with the LG290P, it may be wise to disable message output on UART1 first?
-    // if ((productVariant == RTK_FLEX) && present.gnss_lg290p)
-    // {
-    //     // GNSS has not been begun, so we need to send the command manually
-    //     serialGNSS->println("$PQTMCFGPROT,W,1,1,00000000,00000000*38");
-    //     delay(100);
-    //     serialGNSS->println("$PQTMCFGPROT,W,1,1,00000000,00000000*38");
-    //     delay(100);
-    //     while (serialGNSS->available())
-    //         serialGNSS->read(); // Soak up any residual messages
-    // }
 
     // Echo everything to/from GNSS
     while (1)

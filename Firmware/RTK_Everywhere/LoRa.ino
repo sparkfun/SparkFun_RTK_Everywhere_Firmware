@@ -501,6 +501,10 @@ bool createLoRaPassthrough()
 
 void beginLoraFirmwareUpdate()
 {
+    // NOTE: this currently fails on Flex due to the way LoRa_EN and LoRa_NRST are interconnected.
+    //  This will be resolved with the next Flex motherboard rev.
+    //  TODO: delete this comment once new hardware is available.
+
     // Flag that we are in direct connect mode. Button task will removeUpdateLoraFirmware and exit
     inDirectConnectMode = true;
 
