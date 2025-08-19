@@ -3,8 +3,10 @@ void menuLogSelection()
 {
     if (present.microSd && !present.mosaicMicroSd)
         menuLog();
+#ifdef COMPILE_MOSAICX5
     if (!present.microSd && present.mosaicMicroSd)
         menuLogMosaic();
+#endif
     if (present.microSd && present.mosaicMicroSd)
     {
         while (1)

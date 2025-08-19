@@ -2035,7 +2035,35 @@ void buttonCheckTask(void *e)
 
         // End button checking
 
-        if (present.imu_im19 && (present.display_type == DISPLAY_MAX_NONE))
+        // If in direct connect mode. Note: this is just a flag not a STATE. 
+        if (inDirectConnectMode)
+        {
+            // TODO: check if this works on both Torch and Flex. Note: Flex does not yet support buttons
+            if (singleTap || doubleTap)
+            {
+                // Beep to indicate exit
+                beepOn();
+                delay(300);
+                beepOff();
+                delay(100);
+                beepOn();
+                delay(300);
+                beepOff();
+
+                // Remove all the special files
+                removeUpdateLoraFirmware();
+                um980FirmwareRemoveUpdate();
+                gnssFirmwareRemoveUpdate();
+
+                systemPrintln("Exiting direct connection (passthrough) mode");
+                systemFlush(); // Complete prints
+
+                ESP.restart();
+            }
+        }
+        // Torch is a special case. Handle tilt stop and web config mode
+        else if (productVariant == RTK_TORCH)
+        //else if (present.imu_im19 && (present.display_type == DISPLAY_MAX_NONE)) // TODO delete me
         {
             // Platform has no display and tilt corrections, ie RTK Torch
 

@@ -112,14 +112,24 @@ void beepOn()
 {
     // Disallow beeper if setting is turned off
     if ((pin_beeper != PIN_UNDEFINED) && (settings.enableBeeper == true))
-        digitalWrite(pin_beeper, HIGH);
+    {
+        if (productVariant == RTK_TORCH)
+            digitalWrite(pin_beeper, HIGH);
+        else if (productVariant == RTK_FLEX)
+            tone(pin_beeper, 523); // NOTE_C5
+    }
 }
 
 void beepOff()
 {
     // Disallow beeper if setting is turned off
     if ((pin_beeper != PIN_UNDEFINED) && (settings.enableBeeper == true))
-        digitalWrite(pin_beeper, LOW);
+    {
+        if (productVariant == RTK_TORCH)
+            digitalWrite(pin_beeper, LOW);
+        else if (productVariant == RTK_FLEX)
+            noTone(pin_beeper);
+    }
 }
 
 // Only useful for pin_chargerLED on Facet mosaic
@@ -896,15 +906,15 @@ void beginGpioExpanderSwitches()
         // SW1 is on pin 0. Driving it high will disconnect the ESP32 from USB
         // GNSS_RST is on pin 5. Driving it low when an LG290P is connected will kill the I2C bus.
         // PWRKILL is on pin 7. Driving it low will turn off the system
-        for (int i = 0; i < 8; i++)
+        for (int i = 0; i < gpioExpanderNumSwitches; i++)
         {
-            //Set all pins to low expect GNSS RESET and PWRKILL
-            if (i == 5 || i == 7)
+            // Set all pins to low except GNSS RESET and PWRKILL
+            if (i == gpioExpanderSwitch_GNSS_Reset || i == gpioExpanderSwitch_PowerFastOff)
                 gpioExpanderSwitches->digitalWrite(i, HIGH);
             else
                 gpioExpanderSwitches->digitalWrite(i, LOW);
 
-                gpioExpanderSwitches->pinMode(i, OUTPUT);
+            gpioExpanderSwitches->pinMode(i, OUTPUT);
         }
 
         online.gpioExpanderSwitches = true;
@@ -941,8 +951,54 @@ void gpioExpanderSelectImu()
         gpioExpanderSwitches->digitalWrite(gpioExpanderSwitch_S3, LOW);
 }
 
-void gpioExpanderSelectLora()
+//Connect ESP32 UART2 to LoRa UART2 for configuration and bootloading/firmware updates
+void gpioExpanderSelectLoraConfigure()
 {
     if (online.gpioExpanderSwitches == true)
         gpioExpanderSwitches->digitalWrite(gpioExpanderSwitch_S3, HIGH);
+}
+
+// Connect Flex GNSS UART2 to LoRa UART0 for normal TX/RX of corrections and data
+void gpioExpanderSelectLoraCommunication()
+{
+    if (online.gpioExpanderSwitches == true)
+        gpioExpanderSwitches->digitalWrite(gpioExpanderSwitch_S4, HIGH);
+}
+
+// Connect Flex GNSS UART2 to 4-pin JST RADIO port
+void gpioExpanderSelectRadioPort()
+{
+    if (online.gpioExpanderSwitches == true)
+        gpioExpanderSwitches->digitalWrite(gpioExpanderSwitch_S4, LOW);
+}
+
+// Drive GPIO pin high to enable LoRa Radio
+void gpioExpanderLoraEnable()
+{
+    if (online.gpioExpanderSwitches == true)
+        gpioExpanderSwitches->digitalWrite(gpioExpanderSwitch_LoraEnable, HIGH);
+}
+void gpioExpanderLoraDisable()
+{
+    if (online.gpioExpanderSwitches == true)
+        gpioExpanderSwitches->digitalWrite(gpioExpanderSwitch_LoraEnable, LOW);
+}
+bool gpioExpanderLoraIsOn()
+{
+    if (online.gpioExpanderSwitches == true)
+    {
+        if (gpioExpanderSwitches->digitalRead(gpioExpanderSwitch_LoraEnable) == HIGH)
+            return (true);
+    }
+    return(false);
+}
+void gpioExpanderLoraBootEnable()
+{
+    if (online.gpioExpanderSwitches == true)
+        gpioExpanderSwitches->digitalWrite(gpioExpanderSwitch_LoraBoot, HIGH);
+}
+void gpioExpanderLoraBootDisable()
+{
+    if (online.gpioExpanderSwitches == true)
+        gpioExpanderSwitches->digitalWrite(gpioExpanderSwitch_LoraBoot, LOW);
 }

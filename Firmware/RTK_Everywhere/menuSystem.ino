@@ -462,8 +462,24 @@ void menuDebugHardware()
         systemPrint("12) Print Tilt/IMU Compensation Debugging: ");
         systemPrintf("%s\r\n", settings.enableImuCompensationDebug ? "Enabled" : "Disabled");
 
+        // GNSS Firmware upgrades:
+        // On Torch:    we need a direct connection (passthrough) from USB to CH342 B to 
+        //              ESP32 UART0 to ESP32 UART1 to UM980 UART3 for firmware upgrade.
+        // On Postcard: firmware can be updated over USB and the CH342 B connection to GNSS
+        //              UART1. A hardware GNSS reset may be beneficial, but it is possible
+        //              to reset over USB / UART too ($PQTMSRR*4B).
+        // On Flex:     mosaic-X5 can be updated over USB via the USB Hub.
+        //              A direct connection can be created from USB to USB Hub to CH342 B to
+        //              ESP32 UART0 to ESP32 UART1 to GNSS UART1.
+        //              ZED-X20P will need a direct connection. Update via USB is not possible.
+        //              LG290P needs a direct connection.
+        //              A future UM980 variant will also need a direct connection.
+        //              Updates via the 4-pin JST RADIO connector and GNSS UART2 may also be possible.
+
         if (present.gnss_um980)
-            systemPrintln("13) UM980 direct connect");
+            systemPrintln("13) UM980 direct connect for firmware upgrade");
+        else if ((productVariant == RTK_FLEX) && (present.gnss_lg290p || present.gnss_zedx20p))
+            systemPrintln("13) GNSS direct connect for firmware update");
         else if (present.gnss_lg290p)
             systemPrintln("13) LG290P reset for firmware update");
 
@@ -488,8 +504,15 @@ void menuDebugHardware()
         systemPrint("16) Print LoRa Debugging: ");
         systemPrintf("%s\r\n", settings.debugLora ? "Enabled" : "Disabled");
 
+        // LoRa Firmware upgrades:
+        // On Torch: we need a direct connection from USB to CH342 B to ESP32 UART0 to
+        //           ESP32 UART1 to LoRa UART0.
+        // On Flex:  we need a direct connection from USB to USB Hub to ESP32 UART0 to
+        //           ESP32 UART2 to LoRa UART2.
+        //           TODO: check STM32 can be updated via UART2!!
+
         if (present.radio_lora)
-            systemPrintln("17) STM32 direct connect");
+            systemPrintln("17) STM32 direct connect for LoRa firmware upgrade");
 
         systemPrintln("18) Display littleFS stats");
 
@@ -544,6 +567,18 @@ void menuDebugHardware()
                 {
                     systemPrintln();
                     systemPrintln("UM980 passthrough mode has been recorded to LittleFS. Device will now reset.");
+                    systemFlush(); // Complete prints
+
+                    ESP.restart();
+                }
+            }
+            else if ((productVariant == RTK_FLEX) && (present.gnss_lg290p || present.gnss_zedx20p))
+            {
+                // Create a file in LittleFS
+                if (createGNSSPassthrough() == true)
+                {
+                    systemPrintln();
+                    systemPrintln("GNSS passthrough mode has been recorded to LittleFS. Device will now reset.");
                     systemFlush(); // Complete prints
 
                     ESP.restart();
