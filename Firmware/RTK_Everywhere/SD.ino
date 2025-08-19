@@ -117,7 +117,7 @@ bool sdCardPresent(void)
         }
         else
         {
-            //reportFatalError("sdCardPresent: gpioExpander not online.");
+            // reportFatalError("sdCardPresent: gpioExpander not online.");
             return (false);
         }
     }
@@ -168,7 +168,7 @@ bool sdCardPresent(void)
         }
 
         xSemaphoreGive(sdCardSemaphore);
-        
+
         if (response != 1)
         {
             previousCardPresentBySW = false;
