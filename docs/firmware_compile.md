@@ -23,7 +23,7 @@ The SparkFun RTK Everywhere Firmware is compiled using Arduino CLI (currently [v
 4. RTK Everywhere uses a custom partition file. Download the [RTKEverywhere.csv](https://github.com/sparkfun/SparkFun_RTK_Everywhere_Firmware/blob/main/Firmware/RTKEverywhere.csv) or [RTKEverywhere_8MB.csv](https://github.com/sparkfun/SparkFun_RTK_Everywhere_Firmware/blob/main/Firmware/RTKEverywhere_8MB.csv) for the RTK Postcard.
 5. Add *RTKEverywhere.csv* partition table to the Arduino partitions folder. It should look something like
 
-		C:\Users\\[user name]\AppData\Local\Arduino15\packages\esp32\hardware\esp32\3.0.1\tools\partitions\RTKEverywhere.csv
+		C:\Users\\[user name]\AppData\Local\Arduino15\packages\esp32\hardware\esp32\3.0.7\tools\partitions\RTKEverywhere.csv
 
 	This will increase the program partitions, as well as the SPIFFs partition to utilize the full 16MB of flash (8MB in the case of the Postcard).
 
