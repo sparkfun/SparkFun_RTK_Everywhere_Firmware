@@ -112,14 +112,24 @@ void beepOn()
 {
     // Disallow beeper if setting is turned off
     if ((pin_beeper != PIN_UNDEFINED) && (settings.enableBeeper == true))
-        digitalWrite(pin_beeper, HIGH);
+    {
+        if (productVariant == RTK_TORCH)
+            digitalWrite(pin_beeper, HIGH);
+        else if (productVariant == RTK_FLEX)
+            tone(pin_beeper, 523); // NOTE_C5
+    }
 }
 
 void beepOff()
 {
     // Disallow beeper if setting is turned off
     if ((pin_beeper != PIN_UNDEFINED) && (settings.enableBeeper == true))
-        digitalWrite(pin_beeper, LOW);
+    {
+        if (productVariant == RTK_TORCH)
+            digitalWrite(pin_beeper, LOW);
+        else if (productVariant == RTK_FLEX)
+            noTone(pin_beeper);
+    }
 }
 
 // Only useful for pin_chargerLED on Facet mosaic
@@ -392,7 +402,7 @@ void settingsToDefaults()
     static const Settings defaultSettings;
     settings = defaultSettings;
 
-    checkArrayDefaults(); // This does not call recordSystemSettings
+    checkArrayDefaults();     // This does not call recordSystemSettings
     checkGNSSArrayDefaults(); // This calls recordSystemSettings if any GNSS defaults are applied
 }
 
@@ -898,13 +908,13 @@ void beginGpioExpanderSwitches()
         // PWRKILL is on pin 7. Driving it low will turn off the system
         for (int i = 0; i < 8; i++)
         {
-            //Set all pins to low expect GNSS RESET and PWRKILL
+            // Set all pins to low expect GNSS RESET and PWRKILL
             if (i == 5 || i == 7)
                 gpioExpanderSwitches->digitalWrite(i, HIGH);
             else
                 gpioExpanderSwitches->digitalWrite(i, LOW);
 
-                gpioExpanderSwitches->pinMode(i, OUTPUT);
+            gpioExpanderSwitches->pinMode(i, OUTPUT);
         }
 
         online.gpioExpanderSwitches = true;

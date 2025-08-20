@@ -299,10 +299,10 @@ void beginTilt()
         result &= tiltSensor->sendCommand("LEVER_ARM=-0.00678,-0.01073,-0.0314"); // From stock firmware
     else if (productVariant == RTK_FLEX)
     {
-        result &= tiltSensor->sendCommand("LEVER_ARM=-0.0282,-0.000,-0.0237"); // -28.2, 0. -23.7mm
+        result &= tiltSensor->sendCommand("LEVER_ARM=0.03391,0.00272,0.02370"); // -28.2, 0. -23.7mm
 
         //Send AT+INSTALL_ANGLE=180,0,0 if the IM19 module is mounted on the back of the GNSS receiver (so the IM19 faces downward instead of upward), before sending the save command.
-        result &= tiltSensor->sendCommand("INSTALL_ANGLE=180,0,0"); //IMU is mounted facing down
+        result &= tiltSensor->sendCommand("INSTALL_ANGLE=180,0,-90"); //IMU is mounted facing down
     }
 
     // Set the overall length of the GNSS setup in meters: rod length 1800mm + internal length 96.45mm + antenna
