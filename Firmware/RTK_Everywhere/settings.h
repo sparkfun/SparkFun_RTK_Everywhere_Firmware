@@ -1250,8 +1250,8 @@ const RTK_Settings_Entry rtkSettingsEntries[] =
     // Detected GNSS Receiver - for Flex. Save / load first so settingAvailableOnPlatform is correct on Flex
     { 0, 0, 0, 0, 0, 0, 0, 0, 0, ALL, 0, tGnssReceiver,     0, & settings.detectedGnssReceiver, "detectedGnssReceiver",  },
 
-    // Common settings which use the same name on multiple Facet Flex platforms
-    // We need these - for Facet Flex - because:
+    // Common settings which use the same name on multiple Flex platforms
+    // We need these - for Flex - because:
     //   During setup, the settings are loaded before we know which GNSS is present
     //   Previously, the setting would be applied to whichever GNSS is matched first alphabetically
     //   We need to apply these settings to all GNSS initially so that when we 

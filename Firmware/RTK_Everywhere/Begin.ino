@@ -147,7 +147,7 @@ void identifyBoard()
         else if (idWithAdc(idValue, 12.1, 1.5, 8.5))
             productVariant = RTK_FACET_V2_LBAND;
 
-        // Facet Flex: 10.0/20.0  -->  2071mV < 2200mV < 2322mV (8.5% tolerance)
+        // Flex: 10.0/20.0  -->  2071mV < 2200mV < 2322mV (8.5% tolerance)
         else if (idWithAdc(idValue, 10.0, 20.0, 8.5))
             productVariant = RTK_FLEX;
 
@@ -159,13 +159,13 @@ void identifyBoard()
         else if (idWithAdc(idValue, 8.2, 3.3, 8.5))
             productVariant = RTK_TORCH_X2;
 
-#ifndef NOT_FACET_FLEX
-        systemPrintln("<<<<<<<<<< !!!!!!!!!! FLEX FORCED !!!!!!!!!! >>>>>>>>>>");
+#ifndef FLEX_OVERRIDE
+        systemPrintln("<<<<<<<<<< !!!!!!!!!! FLEX OVERRIDE !!!!!!!!!! >>>>>>>>>>");
         productVariant = RTK_FLEX; // TODO remove once v1.1 Flex has ID resistors
 #endif
 
-#ifndef NOT_TORCH_X2
-        systemPrintln("<<<<<<<<<< !!!!!!!!!! TORCH X2 FORCED !!!!!!!!!! >>>>>>>>>>");
+#ifndef TORCH_X2_OVERRIDE
+        systemPrintln("<<<<<<<<<< !!!!!!!!!! TORCH X2 OVERRIDE !!!!!!!!!! >>>>>>>>>>");
         productVariant = RTK_TORCH_X2; // TODO remove once v1.1 Torch X2 has ID resistors
 #endif
     }
@@ -631,7 +631,7 @@ void beginBoard()
         // mosaic COM3 is connected to the Data connector - via the multiplexer
         // mosaic COM3 is available as a generic COM port. The firmware configures the baud. Nothing else.
 
-        // NOTE: Facet Flex with mosaic-X5 is VERY different!
+        // NOTE: Flex with mosaic-X5 is VERY different!
 
         // Specify the GNSS radio
 #ifdef COMPILE_MOSAICX5
