@@ -888,7 +888,6 @@ void beginBoard()
 
         pin_GNSS_TimePulse = 39; // PPS on UM980
 
-        pin_muxB = 12;
         pin_usbSelect = 12;          // Controls U18 switch between ESP UART0 to USB or GNSS UART1
         pin_powerAdapterDetect = 36; // Goes low when USB cable is plugged in
 
