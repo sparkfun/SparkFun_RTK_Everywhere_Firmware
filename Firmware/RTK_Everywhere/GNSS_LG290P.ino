@@ -67,6 +67,7 @@ const char *GNSS_LG290P::getRtcmLowDataRateString()
 void GNSS_LG290P::begin()
 {
     // During identifyBoard(), the GNSS UART and DR pins are set
+    Serial.println("LG begin");
 
     // The GNSS UART is already started. We can now pass it to the library.
     if (serialGNSS == nullptr)
@@ -85,13 +86,13 @@ void GNSS_LG290P::begin()
     if (_lg290p->begin(*serialGNSS) == false) // Give the serial port over to the library
     {
         if (settings.debugGnss)
-            systemPrintln("GNSS Failed to begin. Trying again.");
+            systemPrintln("GNSS LG290P failed to begin. Trying again.");
 
         // Try again with power on delay
         delay(1000);
         if (_lg290p->begin(*serialGNSS) == false)
         {
-            systemPrintln("GNSS offline");
+            systemPrintln("GNSS LG290P offline");
             displayGNSSFail(1000);
             return;
         }

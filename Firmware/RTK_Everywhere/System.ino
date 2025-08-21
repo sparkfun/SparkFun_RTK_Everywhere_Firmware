@@ -113,7 +113,7 @@ void beepOn()
     // Disallow beeper if setting is turned off
     if ((pin_beeper != PIN_UNDEFINED) && (settings.enableBeeper == true))
     {
-        if (productVariant == RTK_TORCH)
+        if (productVariant == RTK_TORCH || productVariant == RTK_TORCH_X2)
             digitalWrite(pin_beeper, HIGH);
         else if (productVariant == RTK_FLEX)
             tone(pin_beeper, 523); // NOTE_C5
@@ -125,7 +125,7 @@ void beepOff()
     // Disallow beeper if setting is turned off
     if ((pin_beeper != PIN_UNDEFINED) && (settings.enableBeeper == true))
     {
-        if (productVariant == RTK_TORCH)
+        if (productVariant == RTK_TORCH || productVariant == RTK_TORCH_X2)
             digitalWrite(pin_beeper, LOW);
         else if (productVariant == RTK_FLEX)
             noTone(pin_beeper);

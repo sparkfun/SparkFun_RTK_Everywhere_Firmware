@@ -3504,6 +3504,8 @@ bool settingAvailableOnPlatform(int i)
             if ((rtkSettingsEntries[i].platFlex == MX5) && (settings.detectedGnssReceiver == GNSS_RECEIVER_MOSAIC_X5))
                 break;
         }
+        if ((productVariant == RTK_TORCH_X2) && rtkSettingsEntries[i].platTorchX2)
+            break;
         return false;
     } while (0);
     return true;
@@ -3528,6 +3530,8 @@ bool settingPossibleOnPlatform(int i)
         if ((productVariant == RTK_POSTCARD) && rtkSettingsEntries[i].platPostcard)
             break;
         if ((productVariant == RTK_FLEX) && (rtkSettingsEntries[i].platFlex > NON))
+            break;
+        if ((productVariant == RTK_TORCH_X2) && rtkSettingsEntries[i].platTorchX2)
             break;
         return false;
     } while (0);

@@ -1821,7 +1821,7 @@ void tickerGnssLedUpdate()
     ledCallCounter++;
     ledCallCounter %= gnssTaskUpdatesHz; // Wrap to X calls per 1 second
 
-    if (productVariant == RTK_TORCH)
+    if (productVariant == RTK_TORCH || productVariant == RTK_TORCH_X2)
     {
         // Update the GNSS LED according to our state
 
@@ -1845,7 +1845,7 @@ void tickerBatteryLedUpdate()
     batteryCallCounter++;
     batteryCallCounter %= batteryTaskUpdatesHz; // Wrap to X calls per 1 second
 
-    if (productVariant == RTK_TORCH)
+    if (productVariant == RTK_TORCH || productVariant == RTK_TORCH_X2)
     {
         // Update the Battery LED according to the battery level
 

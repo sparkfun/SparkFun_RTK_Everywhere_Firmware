@@ -79,7 +79,8 @@
 */
 
 // While we wait for the next hardware revision, Facet Flex needs to be manually forced:
-#define NOT_FACET_FLEX // Comment to force support for Facet Flex
+#define NOT_FACET_FLEX // Comment out to force support for Facet Flex
+//#define NOT_TORCH_X2 // Comment out to force support for Torch X2
 
 // To reduce compile times, various parts of the firmware can be disabled/removed if they are not
 // needed during development
