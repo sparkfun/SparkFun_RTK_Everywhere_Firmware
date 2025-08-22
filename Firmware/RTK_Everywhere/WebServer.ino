@@ -37,7 +37,7 @@ static const char *const webServerStateNames[] = {
     webServer->on(page, HTTP_GET, []() {                                                                               \
         String length;                                                                                                 \
         if (settings.debugWebServer == true)                                                                           \
-            Serial.printf("WebServer: Sending %s (%p, %d bytes)\r\n", page, (void *)data, sizeof(data));               \
+            systemPrintf("WebServer: Sending %s (%p, %d bytes)\r\n", page, (void *)data, sizeof(data));               \
         webServer->sendHeader("Content-Encoding", "gzip");                                                             \
         length = String(sizeof(data));                                                                                 \
         webServer->sendHeader("Content-Length", length.c_str());                                                       \

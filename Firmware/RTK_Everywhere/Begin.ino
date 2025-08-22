@@ -77,7 +77,6 @@ void identifyBoard()
     // First, test for devices that do not have ID resistors
     if (productVariant == RTK_UNKNOWN)
     {
-        // Torch
         // Check if unique ICs are on the I2C bus
         if (i2c_0 == nullptr)
             i2c_0 = new TwoWire(0);
@@ -95,30 +94,26 @@ void identifyBoard()
         // 0x08 - HUSB238 - USB C PD Sink Controller
         bool husb238Present = i2cIsDevicePresent(i2c_0, 0x08);
 
-        // Flex has everything a Torch does and a display
-        // 0x3C - SSD1306 OLED Driver
-        // If a display is present, it's not a Torch
-        // bool displayPresent = i2cIsDevicePresent(i2c_0, 0x3C);
-        bool displayPresent = i2cIsDevicePresent(i2c_0, 0x10);
+        // 0x10 -MFI343S00177 Authentication Coprocessor
+        bool mfiPresent = i2cIsDevicePresent(i2c_0, 0x10);
 
         i2c_0->end();
 
-        // Proceed with Torch ID only if display is absent
-        if (displayPresent == false)
+        // Proceed with Torch ID only if MFi is absent (Torch X2 has MFi, and ID resistors)
+        if (mfiPresent == false)
         {
             if (bq40z50Present || mp2762aPresent || husb238Present)
             {
                 productVariant = RTK_TORCH;
+                if (bq40z50Present == false)
+                    systemPrintln("Error: Torch ID'd with no BQ40Z50 present");
+
+                if (mp2762aPresent == false)
+                    systemPrintln("Error: Torch ID'd with no MP2762A present");
+
+                if (husb238Present == false)
+                    systemPrintln("Error: Torch ID'd with no HUSB238 present");
             }
-
-            if (productVariant == RTK_TORCH && bq40z50Present == false)
-                systemPrintln("Error: Torch ID'd with no BQ40Z50 present");
-
-            if (productVariant == RTK_TORCH && mp2762aPresent == false)
-                systemPrintln("Error: Torch ID'd with no MP2762A present");
-
-            if (productVariant == RTK_TORCH && husb238Present == false)
-                systemPrintln("Error: Torch ID'd with no HUSB238 present");
         }
     }
 
@@ -152,17 +147,26 @@ void identifyBoard()
         else if (idWithAdc(idValue, 12.1, 1.5, 8.5))
             productVariant = RTK_FACET_V2_LBAND;
 
-        // Facet Flex: 10.0/20.0  -->  2071mV < 2200mV < 2322mV (8.5% tolerance)
+        // Flex: 10.0/20.0  -->  2071mV < 2200mV < 2322mV (8.5% tolerance)
         else if (idWithAdc(idValue, 10.0, 20.0, 8.5))
             productVariant = RTK_FLEX;
 
         // Postcard: 3.3/10  -->  2371mV < 2481mV < 2582mV (8.5% tolerance)
         else if (idWithAdc(idValue, 3.3, 10, 8.5))
             productVariant = RTK_POSTCARD;
-  
-#ifndef NOT_FACET_FLEX
-        systemPrintln("<<<<<<<<<< !!!!!!!!!! FLEX FORCED !!!!!!!!!! >>>>>>>>>>");
+
+        // Torch X2: 8.2/3.3  -->  836mV < 947mV < 1067mV (8.5% tolerance)
+        else if (idWithAdc(idValue, 8.2, 3.3, 8.5))
+            productVariant = RTK_TORCH_X2;
+
+#ifdef FLEX_OVERRIDE
+        systemPrintln("<<<<<<<<<< !!!!!!!!!! FLEX OVERRIDE !!!!!!!!!! >>>>>>>>>>");
         productVariant = RTK_FLEX; // TODO remove once v1.1 Flex has ID resistors
+#endif
+
+#ifdef TORCH_X2_OVERRIDE
+        systemPrintln("<<<<<<<<<< !!!!!!!!!! TORCH X2 OVERRIDE !!!!!!!!!! >>>>>>>>>>");
+        productVariant = RTK_TORCH_X2; // TODO remove once v1.1 Torch X2 has ID resistors
 #endif
     }
 
@@ -627,7 +631,7 @@ void beginBoard()
         // mosaic COM3 is connected to the Data connector - via the multiplexer
         // mosaic COM3 is available as a generic COM port. The firmware configures the baud. Nothing else.
 
-        // NOTE: Facet Flex with mosaic-X5 is VERY different!
+        // NOTE: Flex with mosaic-X5 is VERY different!
 
         // Specify the GNSS radio
 #ifdef COMPILE_MOSAICX5
@@ -722,7 +726,7 @@ void beginBoard()
         present.fuelgauge_max17048 = true;
         present.display_i2c0 = true;
         present.i2c0BusSpeed_400 = true; // Run display bus at higher speed
-        present.i2c1 = true; // Qwiic bus
+        present.i2c1 = true;             // Qwiic bus
         present.display_type = DISPLAY_128x64;
         present.microSd = true;
         present.gpioExpanderButtons = true;
@@ -820,7 +824,8 @@ void beginBoard()
         pin_microSD_CS = 22;
         pin_microSD_CardDetect = 39;
 
-        pin_gpioExpanderInterrupt = 2; // TODO remove on v1.1 hardware. Not used since all GPIO expanded pins are outputs
+        pin_gpioExpanderInterrupt =
+            2; // TODO remove on v1.1 hardware. Not used since all GPIO expanded pins are outputs
 
         DMW_if systemPrintf("pin_bluetoothStatusLED: %d\r\n", pin_bluetoothStatusLED);
         pinMode(pin_bluetoothStatusLED, OUTPUT);
@@ -848,6 +853,90 @@ void beginBoard()
         // We don't disable peripherals (aka set pins on the GPIO expander) here because I2C has not yet been started
 
         // GNSS receiver type is determined later in gnssDetectReceiverType()
+    }
+
+    else if (productVariant == RTK_TORCH_X2)
+    {
+        // Specify the GNSS radio
+#ifdef COMPILE_LG290P
+        gnss = (GNSS *)new GNSS_LG290P();
+#else  // COMPILE_UM980
+        gnss = (GNSS *)new GNSS_None();
+        systemPrintln("<<<<<<<<<< !!!!!!!!!! LG290P NOT COMPILED !!!!!!!!!! >>>>>>>>>>");
+#endif // COMPILE_UM980
+
+        present.brand = BRAND_SPARKPNT;
+        present.psram_2mb = true;
+        present.gnss_lg290p = true;
+        present.antennaPhaseCenter_mm = 116.5; // Default to Torch helical APC, average of L1/L2
+        present.fuelgauge_bq40z50 = true;
+        present.charger_mp2762a = true;
+        present.button_powerHigh = true; // Button is pressed when high
+        present.beeper = true;
+        present.gnss_to_uart = true;
+        present.needsExternalPpl = true; // Uses the PointPerfect Library
+
+        // We can't enable GNSS features here because we don't know if lg290pFirmwareVersion is >= v05
+        // present.minElevation = true;
+        // present.minCno = true;
+
+        pin_I2C0_SDA = 15;
+        pin_I2C0_SCL = 4;
+
+        pin_GnssUart_RX = 14; // Torch X2 uses UART2 of ESP32 to communicate with LG290P
+        pin_GnssUart_TX = 17;
+        pin_GNSS_DR_Reset = 22; // Push low to reset GNSS/DR.
+
+        pin_GNSS_TimePulse = 39; // PPS on UM980
+
+        pin_usbSelect = 12;          // Controls U18 switch between ESP UART0 to USB or GNSS UART1
+        pin_powerAdapterDetect = 36; // Goes low when USB cable is plugged in
+
+        pin_batteryStatusLED = 0;
+        pin_bluetoothStatusLED = 32;
+        pin_gnssStatusLED = 13;
+
+        pin_beeper = 33;
+
+        pin_powerButton = 34;
+        // pin_powerSenseAndControl = 18; // PWRKILL
+
+        pin_loraRadio_power = 19; // LoRa_EN
+        // pin_loraRadio_boot = 23;  // LoRa_BOOT0
+        // pin_loraRadio_reset = 5;  // LoRa_NRST
+
+        DMW_if systemPrintf("pin_bluetoothStatusLED: %d\r\n", pin_bluetoothStatusLED);
+        pinMode(pin_bluetoothStatusLED, OUTPUT);
+
+        DMW_if systemPrintf("pin_gnssStatusLED: %d\r\n", pin_gnssStatusLED);
+        pinMode(pin_gnssStatusLED, OUTPUT);
+
+        DMW_if systemPrintf("pin_batteryStatusLED: %d\r\n", pin_batteryStatusLED);
+        pinMode(pin_batteryStatusLED, OUTPUT);
+
+        // Turn on Bluetooth, GNSS, and Battery LEDs to indicate power on
+        bluetoothLedOn();
+        gnssStatusLedOn();
+        batteryStatusLedOn();
+
+        pinMode(pin_beeper, OUTPUT);
+        beepOff();
+
+        pinMode(pin_powerButton, INPUT);
+
+        pinMode(pin_GNSS_TimePulse, INPUT);
+
+        pinMode(pin_GNSS_DR_Reset, OUTPUT);
+        gnssBoot(); // Tell GNSS to boot
+
+        pinMode(pin_powerAdapterDetect, INPUT); // Has 10k pullup
+
+        pinMode(pin_usbSelect, OUTPUT);
+        digitalWrite(pin_usbSelect, LOW); // Keep ESP32 connected to CH342 (not GNSS UART1)
+
+        // LoRa not mounted in X2, but power down to be sure
+        pinMode(pin_loraRadio_power, OUTPUT);
+        loraPowerOff(); // Keep LoRa powered down for now
     }
 }
 
@@ -1117,11 +1206,11 @@ void beginGnssUart()
 
             xTaskCreatePinnedToCore(
                 pinGnssUartTask,
-                "GnssUartStart",                  // Just for humans
-                2000,                             // Stack Size
-                nullptr,                          // Task input parameter
-                0,                                // Priority, with 3 (configMAX_PRIORITIES - 1) being the highest, and 0 being the lowest
-                &taskHandle,                      // Task handle
+                "GnssUartStart", // Just for humans
+                2000,            // Stack Size
+                nullptr,         // Task input parameter
+                0,           // Priority, with 3 (configMAX_PRIORITIES - 1) being the highest, and 0 being the lowest
+                &taskHandle, // Task handle
                 settings.gnssUartInterruptsCore); // Core where task should run, 0=core, 1=Arduino
         }
 
@@ -1137,7 +1226,7 @@ void forceGnssCommunicationRate(uint32_t &platformGnssCommunicationRate)
         // Override user setting. Required because beginGnssUart() is called before beginBoard().
         platformGnssCommunicationRate = 115200;
     }
-    else if (productVariant == RTK_POSTCARD)
+    else if (productVariant == RTK_POSTCARD || productVariant == RTK_TORCH_X2)
     {
         // LG290P communicates at 460800bps.
         platformGnssCommunicationRate = 115200 * 4;
@@ -1553,6 +1642,14 @@ void beginSystemState()
         if (systemState == STATE_BASE_NOT_STARTED)
             firstRoverStart = false;
     }
+    else if (productVariant == RTK_TORCH_X2)
+    {
+        // Do not allow user to enter test screen during first rover start because there is no screen
+        firstRoverStart = false;
+
+        // Return to either Base or Rover Not Started. The last state previous to power down.
+        systemState = settings.lastState;
+    }
     else
     {
         systemPrintf("beginSystemState: Unknown product variant: %d\r\n", productVariant);
@@ -1571,10 +1668,10 @@ void beginIdleTasks()
             if (idleTaskHandle[index] == nullptr)
                 xTaskCreatePinnedToCore(
                     idleTask,
-                    taskName,               // Just for humans
-                    2000,                   // Stack Size
-                    nullptr,                // Task input parameter
-                    0,                      // Priority, with 3 (configMAX_PRIORITIES - 1) being the highest, and 0 being the lowest
+                    taskName, // Just for humans
+                    2000,     // Stack Size
+                    nullptr,  // Task input parameter
+                    0,        // Priority, with 3 (configMAX_PRIORITIES - 1) being the highest, and 0 being the lowest
                     &idleTaskHandle[index], // Task handle
                     index);                 // Core where task should run, 0=core, 1=Arduino
         }
@@ -1630,11 +1727,11 @@ void beginI2C()
     {
         xTaskCreatePinnedToCore(
             pinI2CTask,
-            "I2CStart",                  // Just for humans
-            2000,                        // Stack Size
-            nullptr,                     // Task input parameter
-            0,                           // Priority, with 3 (configMAX_PRIORITIES - 1) being the highest, and 0 being the lowest
-            &taskHandle,                 // Task handle
+            "I2CStart",  // Just for humans
+            2000,        // Stack Size
+            nullptr,     // Task input parameter
+            0,           // Priority, with 3 (configMAX_PRIORITIES - 1) being the highest, and 0 being the lowest
+            &taskHandle, // Task handle
             settings.i2cInterruptsCore); // Core where task should run, 0=core, 1=Arduino
 
         // Wait for task to start running
@@ -1718,20 +1815,17 @@ bool i2cBusInitialization(TwoWire *i2cBus, int sda, int scl, int clockKHz)
 
             switch (addr)
             {
-            default:
-            {
+            default: {
                 systemPrintf("  0x%02X\r\n", addr);
                 break;
             }
 
-            case 0x08:
-            {
+            case 0x08: {
                 systemPrintf("  0x%02X - HUSB238 Power Delivery Sink Controller\r\n", addr);
                 break;
             }
 
-            case 0x0B:
-            {
+            case 0x0B: {
                 systemPrintf("  0x%02X - BQ40Z50 Battery Pack Manager / Fuel gauge\r\n", addr);
                 break;
             }
@@ -1747,68 +1841,57 @@ bool i2cBusInitialization(TwoWire *i2cBus, int sda, int scl, int clockKHz)
                 break;
             }
 
-            case 0x19:
-            {
+            case 0x19: {
                 systemPrintf("  0x%02X - LIS2DH12 Accelerometer\r\n", addr);
                 break;
             }
 
-            case 0x20:
-            {
+            case 0x20: {
                 systemPrintf("  0x%02X - PCA9554 GPIO Expander with Interrupt (Postcard)\r\n", addr);
                 break;
             }
 
-            case 0x21:
-            {
+            case 0x21: {
                 systemPrintf("  0x%02X - PCA9554 GPIO Expander with Interrupt (Flex)\r\n", addr);
                 break;
             }
 
-            case 0x2C:
-            {
+            case 0x2C: {
                 systemPrintf("  0x%02X - USB251xB USB Hub\r\n", addr);
                 break;
             }
 
-            case 0x36:
-            {
+            case 0x36: {
                 systemPrintf("  0x%02X - MAX17048 Fuel Gauge\r\n", addr);
                 break;
             }
 
-            case 0x3C:
-            {
+            case 0x3C: {
                 systemPrintf("  0x%02X - SSD1306 OLED Driver (Flex)\r\n", addr);
                 break;
             }
 
-            case 0x3D:
-            {
+            case 0x3D: {
                 systemPrintf("  0x%02X - SSD1306 OLED Driver (Postcard/EVK/mosaic)\r\n", addr);
                 break;
             }
 
-            case 0x42:
-            {
+            case 0x42: {
                 systemPrintf("  0x%02X - u-blox GNSS Receiver\r\n", addr);
                 break;
             }
 
-            case 0x43:
-            {
+            case 0x43: {
                 systemPrintf("  0x%02X - u-blox NEO-D9S Correction Data Receiver\r\n", addr);
                 break;
             }
 
-            case 0x5C:
-            {
+            case 0x5C: {
                 systemPrintf("  0x%02X - MP27692A Power Management / Charger\r\n", addr);
                 break;
             }
 
-            case 0x60:
-            {
+            case 0x60: {
                 systemPrintf("  0x%02X - ATECC608A Cryptographic Coprocessor\r\n", addr);
                 break;
             }

@@ -228,7 +228,7 @@ void recordSystemSettingsToFile(File *settingsFile)
     {
         // Do not record this setting if it is not supported by the current platform
         // But oh what a tangled web we weave...
-        // Thanks to Facet Flex, initially we should be saving all possible settings.
+        // Thanks to Flex, initially we should be saving all possible settings.
         // Later, once we know what Flex GNSS is present, we save only the available
         // settings for that platform. Passing usePossibleSettings in as a parameter
         // would be messy. So, we'll use a global flag which is updated by commandIndexFill

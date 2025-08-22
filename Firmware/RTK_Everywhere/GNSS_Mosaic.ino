@@ -41,7 +41,7 @@ void printMosaicCardSpace()
         freeSpace.toCharArray(sdFreeSpaceChar, sizeof(sdFreeSpaceChar));
 
         // On Facet mosaic, the SD is connected directly to the X5 and is accessible
-        // On Facet Flex X5, the internal mosaic SD card is not accessible
+        // On Flex mosaic-X5, the internal mosaic SD card is not accessible
         char myString[70];
         snprintf(myString, sizeof(myString), "SD card size: %s / Free space: %s", sdCardSizeChar, sdFreeSpaceChar);
         systemPrintln(myString);
@@ -228,7 +228,7 @@ void GNSS_MOSAIC::begin()
     //   COM4 is connected to the ESP32 for config
     //   (The comments on the schematic are out of date)
 
-    // On Facet Flex (with Ethernet):
+    // On Flex (with Ethernet):
     //   COM1 is connected to the ESP32 UART1 for: Encapsulated RTCMv3 + SBF + NMEA
     //   COM2 is connected to LoRa or 4-pin JST (switched by SW4)
     //   COM3 can be connected to ESP32 UART2 (switched by SW3)
@@ -237,7 +237,7 @@ void GNSS_MOSAIC::begin()
     // We need to Encapsulate RTCMv3 and NMEA in SBF format. Both SBF and NMEA messages start with "$".
     // The alternative would be to add a 'hybrid' parser to the SEMP which can disambiguate SBF and NMEA
 
-    // On Facet Flex (with IMU):
+    // On Flex (with IMU):
     //   COM1 is connected to the ESP32 UART1 for: Encapsulated RTCMv3 + SBF + NMEA
     //   COM2 is connected to LoRa or 4-pin JST (switched by SW4)
     //   COM3 is N/C (ESP32 UART2 is connected to the IMU)
@@ -1587,7 +1587,7 @@ bool GNSS_MOSAIC::isAntennaOpen()
 bool GNSS_MOSAIC::isBlocking()
 {
     // Facet mosaic is non-blocking. It has exclusive access to COM4
-    // Facet Flex (mosaic) is blocking. Suspend the GNSS read task only if needed
+    // Flex (mosaic) is blocking. Suspend the GNSS read task only if needed
     return _isBlocking && (productVariant == RTK_FLEX);
 }
 

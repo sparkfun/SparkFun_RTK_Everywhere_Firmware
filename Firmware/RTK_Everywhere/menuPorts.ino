@@ -5,9 +5,9 @@ void menuPorts()
         // RTK Facet mosaic, Facet v2 L-Band, Facet v2
         menuPortsMultiplexed();
     }
-    else if (productVariant == RTK_TORCH)
+    else if (productVariant == RTK_TORCH || productVariant == RTK_TORCH_X2)
     {
-        // RTK Torch
+        // RTK Torch, RTK Torch X2
         menuPortsUsb();
     }
     else

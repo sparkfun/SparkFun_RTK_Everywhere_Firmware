@@ -85,13 +85,13 @@ void GNSS_LG290P::begin()
     if (_lg290p->begin(*serialGNSS) == false) // Give the serial port over to the library
     {
         if (settings.debugGnss)
-            systemPrintln("GNSS Failed to begin. Trying again.");
+            systemPrintln("GNSS LG290P failed to begin. Trying again.");
 
         // Try again with power on delay
         delay(1000);
         if (_lg290p->begin(*serialGNSS) == false)
         {
-            systemPrintln("GNSS offline");
+            systemPrintln("GNSS LG290P offline");
             displayGNSSFail(1000);
             return;
         }
@@ -1183,6 +1183,12 @@ uint32_t GNSS_LG290P::getDataBaudRate()
         // This is nicknamed the DATA port
         dataUart = 1;
     }
+    else if (productVariant == RTK_TORCH_X2)
+    {
+        // UART3 of the LG290P is connected to USB CH342 (Port A)
+        // This is nicknamed the DATA port
+        dataUart = 3;
+    }
     return (getBaudRate(dataUart));
 }
 
@@ -1200,6 +1206,15 @@ bool GNSS_LG290P::setDataBaudRate(uint32_t baud)
                 // UART1 of the LG290P is connected to USB CH342 (Port B)
                 // This is nicknamed the DATA port
                 return (setBaudRate(1, baud));
+            }
+        }
+        else if (productVariant == RTK_TORCH_X2)
+        {
+            if (getDataBaudRate() != baud)
+            {
+                // UART3 of the LG290P is connected to USB CH342 (Port A)
+                // This is nicknamed the DATA port
+                return (setBaudRate(3, baud));
             }
         }
         else
@@ -1227,6 +1242,12 @@ uint32_t GNSS_LG290P::getRadioBaudRate()
         // UART2 of the LG290P is connected to SW4, which is connected to LoRa UART0
         radioUart = 2;
     }
+    else if (productVariant == RTK_TORCH_X2)
+    {
+        // UART1 of the LG290P is connected to SW, which is connected to ESP32 UART0
+        // Not really used at this time but available for configuration
+        radioUart = 1;
+    }
     return (getBaudRate(radioUart));
 }
 
@@ -1253,6 +1274,12 @@ bool GNSS_LG290P::setRadioBaudRate(uint32_t baud)
             {
                 // UART2 of the LG290P is connected to SW4, which is connected to LoRa UART0
                 radioUart = 2;
+            }
+            else if (productVariant == RTK_TORCH_X2)
+            {
+                // UART1 of the LG290P is connected to SW, which is connected to ESP32 UART0
+                // Not really used at this time but available for configuration
+                radioUart = 1;
             }
             return (setBaudRate(radioUart, baud));
         }

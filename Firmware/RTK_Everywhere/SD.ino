@@ -84,14 +84,14 @@ void sdUpdate()
 // On Postcard:     on the Portability Shield, SD DET (SD_CD) is connected to
 //                  IO5 of a PCA9554 I2C GPIO expander (address 0x20)
 //                  IO5 is high when the card is present
-// On Facet Flex:   SD_#CD is connected to ESP32 GPIO39
+// On Flex:         SD_#CD is connected to ESP32 GPIO39
 // Torch:           has no SD card
 // On Facet mosaic: the SD card is connected directly to the X5 but
 //                  SD_!DET is connected to ESP32 GPIO15
 //
 // More generally:
 // The GPIO expander on Postcard is known as gpioExpanderButtons (0x20)
-// Facet Flex also has a GPIO expander, known as gpioExpanderSwitches (0x21)
+// Flex also has a GPIO expander, known as gpioExpanderSwitches (0x21)
 bool sdCardPresent(void)
 {
     if (present.microSdCardDetectLow == true)

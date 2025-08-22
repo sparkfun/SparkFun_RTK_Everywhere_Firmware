@@ -461,7 +461,7 @@ void tcpServerClientUpdate(uint8_t index)
             if(tcpServerClient[index] == nullptr)
             {
                 if (settings.debugTcpServer)
-                    Serial.printf("ERROR: Failed to allocate %s client!\r\n", tcpServerName);
+                    systemPrintf("ERROR: Failed to allocate %s client!\r\n", tcpServerName);
                 break;
             }
         }

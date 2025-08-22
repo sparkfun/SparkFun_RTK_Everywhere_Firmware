@@ -68,11 +68,11 @@ typedef struct
 
 // The various services offered by PointPerfect
 const PP_Service ppServices[] = {
-    {"Disabled", PP_MODEL_NONE, PP_DELIVERY_NONE, PP_ENCODING_NONE},        // Do not use PointPerfect corrections
-    {"Flex NTRIP/RTCM", PP_MODEL_SSR, PP_DELIVERY_NTRIP, PP_ENCODING_RTCM}, // Uses "ZTP-RTCM-100" profile
+    {"Disabled", PP_MODEL_NONE, PP_DELIVERY_NONE, PP_ENCODING_NONE},                                    // Do not use PointPerfect corrections
+    {"Flex NTRIP/RTCM", PP_MODEL_SSR, PP_DELIVERY_NTRIP, PP_ENCODING_RTCM},                             // Uses "ZTP-RTCM-100" profile
     {"Flex L-Band North America (Deprecated)", PP_MODEL_SSR, PP_DELIVERY_LBAND_NA, PP_ENCODING_SPARTN}, // Uses "ZTP-LBand" profile
-    {"Global", PP_MODEL_SSR, PP_DELIVERY_LBAND_GLOBAL, PP_ENCODING_SPARTN},                // Uses "ZTP-Global" profile
-    {"Live", PP_MODEL_OSR, PP_DELIVERY_NTRIP, PP_ENCODING_RTCM},                           // Uses "ZTP-Live" profile
+    {"Global", PP_MODEL_SSR, PP_DELIVERY_LBAND_GLOBAL, PP_ENCODING_SPARTN},                             // Uses "ZTP-Global" profile
+    {"Live", PP_MODEL_OSR, PP_DELIVERY_NTRIP, PP_ENCODING_RTCM},                                        // Uses "ZTP-Live" profile
     {"Flex MQTT (Deprecated)", PP_MODEL_SSR, PP_DELIVERY_MQTT,
      PP_ENCODING_SPARTN}, // Uses "ZTP-IP" profile, now deprecated
     // "ZTP-RTCM-100-Trial" profile deprecated
@@ -861,75 +861,42 @@ bool pointPerfectNtripNeeded(uint8_t pointPerfectService)
 
 bool productVariantSupportsAssistNow()
 {
-    if (productVariant == RTK_EVK)
-        return true; //This is the only platform with a u-blox based/assistNow capable receiver
-    if (productVariant == RTK_FACET_V2)
-        return false; // TODO - will require specific module lookup
-    if (productVariant == RTK_FACET_MOSAIC)
-        return false;
-    if (productVariant == RTK_TORCH)
-        return false;
-    if (productVariant == RTK_POSTCARD)
-        return false;
+    // Of all GNSS receiver types, only ZED-F9P supports Assist Now
+    // gnss_um980, gnss_zedf9p, gnss_mosaicX5, gnss_lg290p, gnss_zedx20p
 
-    systemPrintln("Uncaught productVariantSupportsAssistNow()");
+    if (present.gnss_zedf9p)
+        return true;
     return false;
 }
 
 bool productVariantSupportsLbandNA()
 {
-    if (productVariant == RTK_EVK)
-        return true;
-    if (productVariant == RTK_FACET_V2)
-        return false; // TODO - will require specific module lookup
-    if (productVariant == RTK_FACET_MOSAIC)
-        return true;
-    if (productVariant == RTK_TORCH)
-        return false;
-    if (productVariant == RTK_POSTCARD)
-        return false;
-    if (productVariant == RTK_FLEX)
-        return false;
+    // Of all GNSS receiver types, only ZED-F9P and mosaic-X5 support LBand North America
+    // gnss_um980, gnss_zedf9p, gnss_mosaicX5, gnss_lg290p, gnss_zedx20p
 
-    systemPrintln("Uncaught productVariantSupportsLbandNA()");
+    if (present.gnss_zedf9p || present.gnss_mosaicX5)
+        return true;
     return false;
 }
 
 bool productVariantSupportsLbandGlobal()
 {
-    return false; // As of June 2025, LBand Global is not yet available
-
-    if (productVariant == RTK_EVK)
-        return false;
-    if (productVariant == RTK_FACET_V2)
-        return false; // TODO - will require specific module lookup
-    if (productVariant == RTK_FACET_MOSAIC)
+    // Of all GNSS receiver types, only ZED-X20P supports LBand Global
+    // gnss_um980, gnss_zedf9p, gnss_mosaicX5, gnss_lg290p, gnss_zedx20p
+    if (present.gnss_zedx20p)
         return true;
-    if (productVariant == RTK_TORCH)
-        return false;
-    if (productVariant == RTK_POSTCARD)
-        return false;
-
-    systemPrintln("Uncaught productVariantSupportsLbandGlobal()");
     return false;
 }
 
 // Returns true if this platform requires the PointPerfect Library to run to use the corrections from PointPerfect
 bool productVariantNeedsPpl()
 {
-    if (productVariant == RTK_EVK)
-        return false;
-    if (productVariant == RTK_FACET_V2)
-        return false; // TODO - will require specific module lookup
-    if (productVariant == RTK_FACET_MOSAIC)
-        return true;
-    if (productVariant == RTK_TORCH)
-        return true;
-    if (productVariant == RTK_POSTCARD)
-        return true;
+    // Of all GNSS receiver types, all require PPL except ZED units
+    // gnss_um980, gnss_zedf9p, gnss_mosaicX5, gnss_lg290p, gnss_zedx20p
 
-    systemPrintln("Uncaught productVariantNeedsPpl()");
-    return false;
+    if (present.gnss_zedf9p || present.gnss_zedx20p)
+        return (false);
+    return (true);
 }
 
 // Given a service nick name, return whether this platform supports it
@@ -1506,13 +1473,15 @@ void provisioningUpdate()
     switch (provisioningState)
     {
     default:
-    case PROVISIONING_OFF: {
+    case PROVISIONING_OFF:
+    {
         // If RTC is not online after provisioningTimeout_ms, try to provision anyway
         if (enabled && rtcOnline)
             provisioningSetState(PROVISIONING_CHECK_REMAINING);
     }
     break;
-    case PROVISIONING_CHECK_REMAINING: {
+    case PROVISIONING_CHECK_REMAINING:
+    {
         if (provisioningKeysNeeded() == false)
             provisioningSetState(PROVISIONING_KEYS_REMAINING);
         else
@@ -1525,7 +1494,8 @@ void provisioningUpdate()
     break;
 
     // Wait for connection to the network
-    case PROVISIONING_WAIT_FOR_NETWORK: {
+    case PROVISIONING_WAIT_FOR_NETWORK:
+    {
         // Stop waiting if PointPerfect has been disabled
         if (enabled == false)
             provisioningStop(__FILE__, __LINE__);
@@ -1550,7 +1520,8 @@ void provisioningUpdate()
     }
     break;
 
-    case PROVISIONING_STARTED: {
+    case PROVISIONING_STARTED:
+    {
         // Only leave this state if we timeout or ZTP is complete
         if (millis() > (provisioningStartTime_millis + provisioningTimeout_ms))
         {
@@ -1616,7 +1587,8 @@ void provisioningUpdate()
         }
     }
     break;
-    case PROVISIONING_KEYS_REMAINING: {
+    case PROVISIONING_KEYS_REMAINING:
+    {
 
         // Report expiration of keys if this PointPerfect service uses them
         if (pointPerfectServiceUsesKeys() == true)
