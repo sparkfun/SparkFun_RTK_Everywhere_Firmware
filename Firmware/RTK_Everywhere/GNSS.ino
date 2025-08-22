@@ -142,7 +142,7 @@ void gnssDetectReceiverType()
 
     // TODO remove after testing, force retest on each boot
     // Note: with this in place, the X5 detection will take a lot longer due to the baud rate change
-#ifndef FLEX_OVERRIDE
+#ifdef FLEX_OVERRIDE
     systemPrintln("<<<<<<<<<< !!!!!!!!!! FLEX FORCED !!!!!!!!!! >>>>>>>>>>");
     // settings.detectedGnssReceiver = GNSS_RECEIVER_UNKNOWN; // This may be causing weirdness on the LG290P. Commenting for now
 #endif

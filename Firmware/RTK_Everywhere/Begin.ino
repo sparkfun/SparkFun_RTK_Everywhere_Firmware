@@ -159,12 +159,12 @@ void identifyBoard()
         else if (idWithAdc(idValue, 8.2, 3.3, 8.5))
             productVariant = RTK_TORCH_X2;
 
-#ifndef FLEX_OVERRIDE
+#ifdef FLEX_OVERRIDE
         systemPrintln("<<<<<<<<<< !!!!!!!!!! FLEX OVERRIDE !!!!!!!!!! >>>>>>>>>>");
         productVariant = RTK_FLEX; // TODO remove once v1.1 Flex has ID resistors
 #endif
 
-#ifndef TORCH_X2_OVERRIDE
+#ifdef TORCH_X2_OVERRIDE
         systemPrintln("<<<<<<<<<< !!!!!!!!!! TORCH X2 OVERRIDE !!!!!!!!!! >>>>>>>>>>");
         productVariant = RTK_TORCH_X2; // TODO remove once v1.1 Torch X2 has ID resistors
 #endif
@@ -824,7 +824,8 @@ void beginBoard()
         pin_microSD_CS = 22;
         pin_microSD_CardDetect = 39;
 
-        pin_gpioExpanderInterrupt = 2; // TODO remove on v1.1 hardware. Not used since all GPIO expanded pins are outputs
+        pin_gpioExpanderInterrupt =
+            2; // TODO remove on v1.1 hardware. Not used since all GPIO expanded pins are outputs
 
         DMW_if systemPrintf("pin_bluetoothStatusLED: %d\r\n", pin_bluetoothStatusLED);
         pinMode(pin_bluetoothStatusLED, OUTPUT);
@@ -882,7 +883,7 @@ void beginBoard()
         pin_I2C0_SDA = 15;
         pin_I2C0_SCL = 4;
 
-        pin_GnssUart_RX = 14; //Torch X2 uses UART2 of ESP32 to communicate with LG290P
+        pin_GnssUart_RX = 14; // Torch X2 uses UART2 of ESP32 to communicate with LG290P
         pin_GnssUart_TX = 17;
         pin_GNSS_DR_Reset = 22; // Push low to reset GNSS/DR.
 
@@ -898,7 +899,7 @@ void beginBoard()
         pin_beeper = 33;
 
         pin_powerButton = 34;
-        pin_powerSenseAndControl = 18; // PWRKILL
+        // pin_powerSenseAndControl = 18; // PWRKILL
 
         pin_loraRadio_power = 19; // LoRa_EN
         // pin_loraRadio_boot = 23;  // LoRa_BOOT0
@@ -1205,11 +1206,11 @@ void beginGnssUart()
 
             xTaskCreatePinnedToCore(
                 pinGnssUartTask,
-                "GnssUartStart",                  // Just for humans
-                2000,                             // Stack Size
-                nullptr,                          // Task input parameter
-                0,                                // Priority, with 3 (configMAX_PRIORITIES - 1) being the highest, and 0 being the lowest
-                &taskHandle,                      // Task handle
+                "GnssUartStart", // Just for humans
+                2000,            // Stack Size
+                nullptr,         // Task input parameter
+                0,           // Priority, with 3 (configMAX_PRIORITIES - 1) being the highest, and 0 being the lowest
+                &taskHandle, // Task handle
                 settings.gnssUartInterruptsCore); // Core where task should run, 0=core, 1=Arduino
         }
 
@@ -1667,10 +1668,10 @@ void beginIdleTasks()
             if (idleTaskHandle[index] == nullptr)
                 xTaskCreatePinnedToCore(
                     idleTask,
-                    taskName,               // Just for humans
-                    2000,                   // Stack Size
-                    nullptr,                // Task input parameter
-                    0,                      // Priority, with 3 (configMAX_PRIORITIES - 1) being the highest, and 0 being the lowest
+                    taskName, // Just for humans
+                    2000,     // Stack Size
+                    nullptr,  // Task input parameter
+                    0,        // Priority, with 3 (configMAX_PRIORITIES - 1) being the highest, and 0 being the lowest
                     &idleTaskHandle[index], // Task handle
                     index);                 // Core where task should run, 0=core, 1=Arduino
         }
@@ -1726,11 +1727,11 @@ void beginI2C()
     {
         xTaskCreatePinnedToCore(
             pinI2CTask,
-            "I2CStart",                  // Just for humans
-            2000,                        // Stack Size
-            nullptr,                     // Task input parameter
-            0,                           // Priority, with 3 (configMAX_PRIORITIES - 1) being the highest, and 0 being the lowest
-            &taskHandle,                 // Task handle
+            "I2CStart",  // Just for humans
+            2000,        // Stack Size
+            nullptr,     // Task input parameter
+            0,           // Priority, with 3 (configMAX_PRIORITIES - 1) being the highest, and 0 being the lowest
+            &taskHandle, // Task handle
             settings.i2cInterruptsCore); // Core where task should run, 0=core, 1=Arduino
 
         // Wait for task to start running
@@ -1814,99 +1815,83 @@ bool i2cBusInitialization(TwoWire *i2cBus, int sda, int scl, int clockKHz)
 
             switch (addr)
             {
-            default:
-            {
+            default: {
                 systemPrintf("  0x%02X\r\n", addr);
                 break;
             }
 
-            case 0x08:
-            {
+            case 0x08: {
                 systemPrintf("  0x%02X - HUSB238 Power Delivery Sink Controller\r\n", addr);
                 break;
             }
 
-            case 0x0B:
-            {
+            case 0x0B: {
                 systemPrintf("  0x%02X - BQ40Z50 Battery Pack Manager / Fuel gauge\r\n", addr);
                 break;
             }
 
-            case 0x10:
-            {
+            case 0x10: {
                 systemPrintf("  0x%02X - MFI343S00177 Authentication Coprocessor\r\n", addr);
                 i2cAuthCoPro = i2cBus; // Record the bus
                 break;
             }
 
-            case 0x18:
-            {
+            case 0x18: {
                 systemPrintf("  0x%02X - PCA9557 GPIO Expander with Reset\r\n", addr);
                 break;
             }
 
-            case 0x19:
-            {
+            case 0x19: {
                 systemPrintf("  0x%02X - LIS2DH12 Accelerometer\r\n", addr);
                 break;
             }
 
-            case 0x20:
-            {
+            case 0x20: {
                 systemPrintf("  0x%02X - PCA9554 GPIO Expander with Interrupt (Postcard)\r\n", addr);
                 break;
             }
 
-            case 0x21:
-            {
+            case 0x21: {
                 systemPrintf("  0x%02X - PCA9554 GPIO Expander with Interrupt (Flex)\r\n", addr);
                 break;
             }
 
-            case 0x2C:
-            {
+            case 0x2C: {
                 systemPrintf("  0x%02X - USB251xB USB Hub\r\n", addr);
                 break;
             }
 
-            case 0x36:
-            {
+            case 0x36: {
                 systemPrintf("  0x%02X - MAX17048 Fuel Gauge\r\n", addr);
                 break;
             }
 
-            case 0x3C:
-            {
+            case 0x3C: {
                 systemPrintf("  0x%02X - SSD1306 OLED Driver (Flex)\r\n", addr);
                 break;
             }
 
-            case 0x3D:
-            {
+            case 0x3D: {
                 systemPrintf("  0x%02X - SSD1306 OLED Driver (Postcard/EVK/mosaic)\r\n", addr);
                 break;
             }
 
-            case 0x42:
-            {
+            case 0x42: {
                 systemPrintf("  0x%02X - u-blox GNSS Receiver\r\n", addr);
                 break;
             }
 
-            case 0x43:
-            {
+            case 0x43: {
                 systemPrintf("  0x%02X - u-blox NEO-D9S Correction Data Receiver\r\n", addr);
                 break;
             }
 
-            case 0x5C:
-            {
+            case 0x5C: {
                 systemPrintf("  0x%02X - MP27692A Power Management / Charger\r\n", addr);
                 break;
             }
 
-            case 0x60:
-            {
+            case 0x60: {
                 systemPrintf("  0x%02X - ATECC608A Cryptographic Coprocessor\r\n", addr);
                 break;
             }
