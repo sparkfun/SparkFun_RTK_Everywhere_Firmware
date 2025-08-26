@@ -55,7 +55,12 @@ void beginAuthCoPro(TwoWire *i2cBus)
     latestGPGGA = (char *)rtkMalloc(latestNmeaMaxLen, "AuthCoPro");
     latestGPRMC = (char *)rtkMalloc(latestNmeaMaxLen, "AuthCoPro");
     latestGPGST = (char *)rtkMalloc(latestNmeaMaxLen, "AuthCoPro");
-    appleAccessory->setNMEApointers(latestGPGGA, latestGPRMC, latestGPGST);
+    latestGPVTG = (char *)rtkMalloc(latestNmeaMaxLen, "AuthCoPro");
+    appleAccessory->setNMEApointers(latestGPGGA, latestGPRMC, latestGPGST, latestGPVTG);
+
+    // Pass the pointer for additional GSA / GSV EA Session data
+    latestEASessionData = (char *)rtkMalloc(latestEASessionDataMaxLen, "AuthCoPro");
+    appleAccessory->setEASessionPointer(latestEASessionData);
 
     // Pass the transport connected and disconnect methods into the accessory driver
     appleAccessory->setTransportConnectedMethod(&transportConnected);

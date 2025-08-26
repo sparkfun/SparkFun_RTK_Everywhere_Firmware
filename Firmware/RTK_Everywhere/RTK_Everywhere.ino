@@ -825,6 +825,9 @@ const size_t latestNmeaMaxLen = 100;
 char *latestGPGGA;
 char *latestGPRMC;
 char *latestGPGST;
+char *latestGPVTG;
+const size_t latestEASessionDataMaxLen = 4001; // 1000 * 4 plus NULL
+char *latestEASessionData;
 
 //=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 

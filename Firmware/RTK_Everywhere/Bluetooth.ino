@@ -54,8 +54,8 @@ TaskHandle_t bluetoothCommandTaskHandle = nullptr; // Task to monitor incoming C
 void bluetoothUpdate()
 {
 #ifdef COMPILE_BT
-    static uint32_t lastCheck = millis(); // Check if connected every 100ms
-    if (millis() > (lastCheck + 100))
+    static uint32_t lastCheck = millis(); // Check if connected every 50ms
+    if (millis() > (lastCheck + 50))
     {
         lastCheck = millis();
 
@@ -530,7 +530,7 @@ void bluetoothStart()
                 //record.service_name = (char *)sdp_service_name;
                 record.service_name_length = strlen(deviceName) + 1;
                 record.service_name = (char *)deviceName;
-                record.rfcomm_channel_number = 1;
+                //record.rfcomm_channel_number = 1;
                 esp_sdp_create_record((esp_bluetooth_sdp_record_t *)&record);
             }
         }
