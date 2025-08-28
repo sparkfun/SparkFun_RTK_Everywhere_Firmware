@@ -33,7 +33,6 @@ class BTSerialInterface : public virtual Stream
                          esp_spp_sec_t sec_mask = (ESP_SPP_SEC_ENCRYPT | ESP_SPP_SEC_AUTHENTICATE),
                          esp_spp_role_t role = ESP_SPP_ROLE_MASTER) = 0; // Needed for Apple Accessory
     virtual bool connected() = 0;
-    virtual bool isClosed() = 0;
     virtual void enableSSP(bool inputCapability, bool outputCapability) = 0;
     virtual bool aclConnected() = 0;
     virtual uint8_t *aclGetAddress() = 0;
@@ -116,11 +115,6 @@ class BTClassicSerial : public virtual BTSerialInterface, public BluetoothSerial
     bool connected()
     {
         return (BluetoothSerial::connected());
-    }
-
-    bool isClosed()
-    {
-        return (BluetoothSerial::isClosed());
     }
 
     void enableSSP(bool inputCapability, bool outputCapability)
@@ -220,11 +214,6 @@ class BTLESerial : public virtual BTSerialInterface, public BleSerial
     bool connected()
     {
         return (BleSerial::connected());
-    }
-
-    bool isClosed()
-    {
-        return false;
     }
 
     void enableSSP(bool inputCapability, bool outputCapability) {}
