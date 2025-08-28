@@ -835,7 +835,8 @@ void processUart1Message(SEMP_PARSE_STATE *parse, uint16_t type)
             if (appleAccessory->latestEASessionDataIsBlocking() == false)
             {
                 size_t spaceAvailable = latestEASessionDataMaxLen - strlen(latestEASessionData);
-                spaceAvailable -= 3; // Leave room for the CR, LF and NULL
+                if (spaceAvailable >= 3)
+                    spaceAvailable -= 3; // Leave room for the CR, LF and NULL
                 while (spaceAvailable < parse->length) // If the buffer is full, delete the oldest message(s)
                 {
                     const char *lfPtr = strstr(latestEASessionData, "\n"); // Find the first LF
