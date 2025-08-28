@@ -54,8 +54,8 @@ TaskHandle_t bluetoothCommandTaskHandle = nullptr; // Task to monitor incoming C
 void bluetoothUpdate()
 {
 #ifdef COMPILE_BT
-    static uint32_t lastCheck = millis(); // Check if connected every 50ms
-    if (millis() > (lastCheck + 50))
+    static uint32_t lastCheck = millis(); // Check if connected every 100ms
+    if (millis() > (lastCheck + 100))
     {
         lastCheck = millis();
 
