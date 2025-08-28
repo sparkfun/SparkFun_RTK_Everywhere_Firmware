@@ -1283,6 +1283,7 @@ void wifiVerifyTables()
 // Constructor
 // Inputs:
 //   verbose: Set to true to display additional WiFi debug data
+// For AP on RTK Firmware, we set the Gateway to 192.168.4.1, not 0.0.0.0. Let's do the same here.
 RTK_WIFI::RTK_WIFI(bool verbose)
     : _apChannel{0}, _apCount{0}, _apDnsAddress{IPAddress((uint32_t)0)}, _apFirstDhcpAddress{IPAddress("192.168.4.32")},
       _apGatewayAddress{IPAddress("192.168.4.1")}, _apIpAddress{IPAddress("192.168.4.1")}, _apMacAddress{0, 0, 0, 0, 0, 0},
