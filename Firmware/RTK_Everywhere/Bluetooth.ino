@@ -528,6 +528,9 @@ void bluetoothStart()
                 memcpy(record.uuid.uuid.uuid128, UUID_IAP2, sizeof(UUID_IAP2));
                 record.service_name_length = strlen(sdp_service_name) + 1;
                 record.service_name = (char *)sdp_service_name;
+                //record.service_name_length = strlen(deviceName) + 1; // Doesn't seem to help the failed connects
+                //record.service_name = (char *)deviceName;
+                //record.rfcomm_channel_number = 1; // Doesn't seem to help the failed connects
                 esp_sdp_create_record((esp_bluetooth_sdp_record_t *)&record);
             }
         }
