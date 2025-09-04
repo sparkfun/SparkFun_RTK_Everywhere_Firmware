@@ -110,7 +110,7 @@ void stateUpdate()
 
             setMuxport(settings.dataPortChannel); // Return mux to original channel
 
-            bluetoothStart(); // Turn on Bluetooth with 'Rover' name
+            bluetoothStart(); // Start Bluetooth if it is not already started
 
             webServerStop();             // Stop the web config server
             baseCasterDisableOverride(); // Disable casting overrides
@@ -223,8 +223,7 @@ void stateUpdate()
 
             displayBaseStart(0); // Show 'Base'
 
-            bluetoothStop();
-            bluetoothStart(); // Restart Bluetooth with 'Base' identifier
+            bluetoothStart(); // Start Bluetooth if it is not already started
 
             webServerStop(); // Stop the web config server
 
