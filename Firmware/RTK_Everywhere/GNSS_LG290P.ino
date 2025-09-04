@@ -39,7 +39,7 @@ void GNSS_LG290P::baseRtcmLowDataRate()
         settings.lg290pMessageRatesRTCMBase[x] = 0;
 
     settings.lg290pMessageRatesRTCMBase[getRtcmMessageNumberByName("RTCM3-1005")] =
-        10;                                                                            // 1005 0.1Hz - Exclude antenna height
+        10; // 1005 0.1Hz - Exclude antenna height
     settings.lg290pMessageRatesRTCMBase[getRtcmMessageNumberByName("RTCM3-107X")] = 2; // 1074 0.5Hz
     settings.lg290pMessageRatesRTCMBase[getRtcmMessageNumberByName("RTCM3-108X")] = 2; // 1084 0.5Hz
     settings.lg290pMessageRatesRTCMBase[getRtcmMessageNumberByName("RTCM3-109X")] = 2; // 1094 0.5Hz
@@ -114,6 +114,14 @@ void GNSS_LG290P::begin()
             "update the "
             "firmware on your LG290P to allow for these features. Please see https://bit.ly/sfe-rtk-lg290p-update\r\n",
             lg290pFirmwareVersion, gnssFirmwareVersion);
+
+        // Determine if the "LG290P03AANR01A03S_PPP_TEMP0812 2025/08/12" firmware is present
+        // This version has support for testing out E6/HAS PPP, but confusingly was released after v05.
+        if (strstr(gnssFirmwareVersion, "PPP_TEMP") != nullptr)
+        {
+            present.galileoHasCapable = true;
+            systemPrintln("PPP trial firmware detected. HAS settings will now be available.");
+        }
     }
     if (lg290pFirmwareVersion < 5)
     {
@@ -362,6 +370,8 @@ bool GNSS_LG290P::configureRover()
     if (settings.debugGnss && response == false)
         systemPrintln("configureRover: Set rate failed");
 
+    response &= setHighAccuracyService(settings.enableGalileoHas);
+
     response &= enableRTCMRover();
     if (settings.debugGnss && response == false)
         systemPrintln("configureRover: Enable RTCM failed");
@@ -475,6 +485,8 @@ bool GNSS_LG290P::configureBase()
     response &= setElevation(settings.minElev);
 
     response &= setMinCnoRadio(settings.minCNO);
+
+    response &= setHighAccuracyService(settings.enableGalileoHas);
 
     response &= enableRTCMBase(); // Set RTCM messages
     if (settings.debugGnss && response == false)
@@ -826,7 +838,8 @@ bool GNSS_LG290P::enableRTCMRover()
             // So we set all RTCM to 1, and set PQTMCFGRTCM to the lowest value found
 
             // Capture the message with the lowest rate
-            if (settings.lg290pMessageRatesRTCMRover[messageNumber] > 0 && settings.lg290pMessageRatesRTCMRover[messageNumber] < minimumRtcmRate)
+            if (settings.lg290pMessageRatesRTCMRover[messageNumber] > 0 &&
+                settings.lg290pMessageRatesRTCMRover[messageNumber] < minimumRtcmRate)
                 minimumRtcmRate = settings.lg290pMessageRatesRTCMRover[messageNumber];
 
             // Force all RTCM messages to 1 or 0. See above for reasoning.
@@ -847,13 +860,11 @@ bool GNSS_LG290P::enableRTCMRover()
                     if (lg290pFirmwareVersion >= 4)
                     {
                         // If any one of the commands fails, report failure overall
-                        response &= _lg290p->setMessageRateOnPort(lgMessagesRTCM[messageNumber].msgTextName,
-                                                                  rate,
-                                                                  portNumber);
+                        response &=
+                            _lg290p->setMessageRateOnPort(lgMessagesRTCM[messageNumber].msgTextName, rate, portNumber);
                     }
                     else
-                        response &= _lg290p->setMessageRate(lgMessagesRTCM[messageNumber].msgTextName,
-                                                            rate);
+                        response &= _lg290p->setMessageRate(lgMessagesRTCM[messageNumber].msgTextName, rate);
 
                     if (response == false && settings.debugGnss)
                         systemPrintf("Enable RTCM failed at messageNumber %d %s\r\n", messageNumber,
@@ -874,8 +885,7 @@ bool GNSS_LG290P::enableRTCMRover()
                     }
                     else
                         response &= _lg290p->setMessageRate(lgMessagesRTCM[messageNumber].msgTextName,
-                                                            settings.lg290pMessageRatesRTCMRover[messageNumber],
-                                                            0);
+                                                            settings.lg290pMessageRatesRTCMRover[messageNumber], 0);
 
                     if (response == false && settings.debugGnss)
                         systemPrintf("Enable RTCM failed at messageNumber %d %s\r\n", messageNumber,
@@ -1754,6 +1764,12 @@ void GNSS_LG290P::menuConstellations()
             systemPrintln();
         }
 
+        if (present.galileoHasCapable)
+        {
+            systemPrintf("%d) Galileo E6 Corrections: %s\r\n", MAX_LG290P_CONSTELLATIONS + 1,
+                         settings.enableGalileoHas ? "Enabled" : "Disabled");
+        }
+
         systemPrintln("x) Exit");
 
         int incoming = getUserInputNumber(); // Returns EXIT, TIMEOUT, or long
@@ -1763,6 +1779,10 @@ void GNSS_LG290P::menuConstellations()
             incoming--; // Align choice to constellation array of 0 to 5
 
             settings.lg290pConstellations[incoming] ^= 1;
+        }
+        else if ((incoming == MAX_LG290P_CONSTELLATIONS + 1) && present.galileoHasCapable)
+        {
+            settings.enableGalileoHas ^= 1;
         }
         else if (incoming == INPUT_RESPONSE_GETNUMBER_EXIT)
             break;
@@ -1774,6 +1794,8 @@ void GNSS_LG290P::menuConstellations()
 
     // Apply current settings to module
     gnss->setConstellations();
+
+    setHighAccuracyService(settings.enableGalileoHas);
 
     clearBuffer(); // Empty buffer of any newline chars
 }
@@ -2219,6 +2241,49 @@ bool GNSS_LG290P::setElevation(uint8_t elevationDegrees)
 
     // Because we call this during module setup we rely on a positive result
     return true;
+}
+
+//----------------------------------------
+bool GNSS_LG290P::setHighAccuracyService(bool enableGalileoHas)
+{
+    bool result = true;
+
+    // E6 reception requires version v03 with 'PPP_TEMP' in firmware title
+    // Present is set during LG290P begin()
+    if (present.galileoHasCapable == false)
+        return (result); // We are unable to set this setting to report success
+
+    // Enable E6 and PPP if enabled
+    if (settings.enableGalileoHas)
+    {
+        // $PQTMCFGPPP,W,2,1,120,0.10,0.15*68
+        // Enable E6 HAS, WGS84, 120 timeout, 0.10m Horizontal convergence accuracy threshold, 0.15m Vertical threshold
+        if (_lg290p->sendOkCommand("$PQTMCFGPPP", ",W,2,1,120,0.10,0.15") == true)
+        {
+            systemPrintln("Galileo E6 HAS service enabled");
+        }
+        else
+        {
+            systemPrintln("Galileo E6 HAS service failed to enable");
+            result = false;
+        }
+    }
+    else
+    {
+        // Turn off HAS/E6
+        // $PQTMCFGPPP,W,0*
+        if (_lg290p->sendOkCommand("$PQTMCFGPPP", ",W,0") == true)
+        {
+            systemPrintln("Galileo E6 HAS service disabled");
+        }
+        else
+        {
+            systemPrintln("Galileo E6 HAS service failed to disable");
+            result = false;
+        }
+    }
+
+    return (result);
 }
 
 //----------------------------------------

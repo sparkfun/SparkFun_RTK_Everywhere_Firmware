@@ -1712,7 +1712,7 @@ const RTK_Settings_Entry rtkSettingsEntries[] =
 //    g  s  x  k  2  c  h  d  d  x    Type    Qual  Variable                  Name
 
     // UM980 GNSS Receiver - TODO these apply to more than UM980
-    { 1, 1, 0, 0, 0, 0, 1, 0, 0, NON, _bool,     0, & settings.enableGalileoHas, "enableGalileoHas",  },
+    { 1, 1, 0, 0, 0, 0, 1, 0, 1, NON, _bool,     0, & settings.enableGalileoHas, "enableGalileoHas",  },
     { 0, 0, 0, 0, 0, 0, 1, 0, 0, ALL, _bool,     0, & settings.enableImuCompensationDebug, "enableImuCompensationDebug",  },
     { 0, 0, 0, 0, 0, 0, 1, 0, 0, ALL, _bool,     0, & settings.enableImuDebug, "enableImuDebug",  },
     { 1, 1, 0, 0, 0, 0, 1, 0, 0, ALL, _bool,     0, & settings.enableTiltCompensation, "enableTiltCompensation",  },
