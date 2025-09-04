@@ -1686,10 +1686,10 @@ bool GNSS_UM980::setHighAccuracyService(bool enableGalileoHas)
             if (_um980->isConfigurationPresent("CONFIG PPP ENABLE E6-HAS") == false)
             {
                 if (_um980->sendCommand("CONFIG PPP ENABLE E6-HAS"))
-                    systemPrintln("Galileo E6 service enabled");
+                    systemPrintln("Galileo E6 HAS service enabled");
                 else
                 {
-                    systemPrintln("Galileo E6 service failed to enable");
+                    systemPrintln("Galileo E6 HAS service failed to enable");
                     result = false;
                 }
 
@@ -1717,10 +1717,10 @@ bool GNSS_UM980::setHighAccuracyService(bool enableGalileoHas)
         if (_um980->isConfigurationPresent("CONFIG PPP ENABLE E6-HAS"))
         {
             if (_um980->sendCommand("CONFIG PPP DISABLE"))
-                systemPrintln("Galileo E6 service disabled");
+                systemPrintln("Galileo E6 HAS service disabled");
             else
             {
-                systemPrintln("Galileo E6 service failed to disable");
+                systemPrintln("Galileo E6 HAS service failed to disable");
                 result = false;
             }
         }
