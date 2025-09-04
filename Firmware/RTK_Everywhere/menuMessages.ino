@@ -797,6 +797,8 @@ void checkGNSSArrayDefaults()
             // Reset constellations to defaults
             for (int x = 0; x < MAX_LG290P_CONSTELLATIONS; x++)
                 settings.lg290pConstellations[x] = 1;
+
+            settings.enableGalileoHas = false; // The default is true. Move to false so user must opt to turn it on.
         }
 
         if (settings.lg290pMessageRatesNMEA[0] == 254)
