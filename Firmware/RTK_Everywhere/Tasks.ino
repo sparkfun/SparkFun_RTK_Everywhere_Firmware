@@ -832,6 +832,7 @@ void processUart1Message(SEMP_PARSE_STATE *parse, uint16_t type)
             // If the Apple Accessory is sending the data to the EA Session,
             // discard this GSA / GSV. Bad things would happen if we were to
             // manipulate latestEASessionData while appleAccessory is using it.
+#ifdef COMPILE_AUTHENTICATION
             if (appleAccessory->latestEASessionDataIsBlocking() == false)
             {
                 size_t spaceAvailable = latestEASessionDataMaxLen - strlen(latestEASessionData);
@@ -862,6 +863,7 @@ void processUart1Message(SEMP_PARSE_STATE *parse, uint16_t type)
             }
             else if (settings.debugNetworkLayer)
                 systemPrintf("Discarding %d GSA/GSV bytes - latestEASessionDataIsBlocking\r\n", parse->length);
+#endif //COMPILE_AUTHENTICATION
         }
     }
 
