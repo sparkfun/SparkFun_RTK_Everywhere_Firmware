@@ -265,8 +265,8 @@ bool GNSS_LG290P::configureOnce()
     {
         response &= setDataBaudRate(settings.dataPortBaud); // If available, set baud of DATA port
 
-        // This is redundant because to get this far, the comm interface must already be working
-        // response &= setCommBaudrate(115200 * 4); // Set baud for main comm channel
+        // The following setCommBaudrate() is redundant because to get this far, the comm interface must already be
+        // working response &= setCommBaudrate(115200 * 4); // Set baud for main comm channel
 
         response &= setRadioBaudRate(settings.radioPortBaud); // If available, set baud of RADIO port
 
@@ -1246,19 +1246,23 @@ bool GNSS_LG290P::setDataBaudRate(uint32_t baud)
 {
     if (online.gnss)
     {
-        if (productVariant == RTK_POSTCARD)
+        if (getDataBaudRate() == baud)
         {
-            if (getDataBaudRate() != baud)
+            return (true); // Baud is set!
+        }
+        else
+        {
+            if (productVariant == RTK_POSTCARD)
             {
                 // UART1 of the LG290P is connected to USB CH342 (Port B)
                 // This is nicknamed the DATA port
                 return (setBaudRate(1, baud));
             }
-        }
-        else
-        {
-            // On products that don't have a DATA port (Flex), act as if we have set the baud successfully
-            return (true);
+            else
+            {
+                // On products that don't have a DATA port (Flex), act as if we have set the baud successfully
+                return (true);
+            }
         }
     }
     return (false);
