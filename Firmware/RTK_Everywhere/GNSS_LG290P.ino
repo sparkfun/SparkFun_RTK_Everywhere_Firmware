@@ -1921,9 +1921,9 @@ void GNSS_LG290P::menuMessages()
 
             setRtcmRoverMessageRates(0); // Turn off all RTCM messages
             setRtcmRoverMessageRateByName("RTCM3-1019", rtcmReportRate);
-            // setRtcmRoverMessageRateByName("RTCM3-1020", rtcmReportRate); //Not needed when MSM7 is used
+            setRtcmRoverMessageRateByName("RTCM3-1020", rtcmReportRate); //Not needed when MSM7 is used
             // setRtcmRoverMessageRateByName("RTCM3-1042", rtcmReportRate); //BeiDou not used by CSRS-PPP
-            // setRtcmRoverMessageRateByName("RTCM3-1046", rtcmReportRate); //Not needed when MSM7 is used
+            setRtcmRoverMessageRateByName("RTCM3-1046", rtcmReportRate); //Not needed when MSM7 is used
             setRtcmRoverMessageRateByName("RTCM3-107X", rtcmReportRate);
             setRtcmRoverMessageRateByName("RTCM3-108X", rtcmReportRate);
             setRtcmRoverMessageRateByName("RTCM3-109X", rtcmReportRate);
