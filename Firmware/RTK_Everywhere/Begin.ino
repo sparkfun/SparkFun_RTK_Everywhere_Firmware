@@ -161,6 +161,7 @@ void identifyBoard()
             productVariant = RTK_POSTCARD;
   
 #ifndef NOT_FACET_FLEX
+        systemPrintln("<<<<<<<<<< !!!!!!!!!! FLEX FORCED !!!!!!!!!! >>>>>>>>>>");
         productVariant = RTK_FLEX; // TODO remove once v1.1 Flex has ID resistors
 #endif
     }
@@ -1129,27 +1130,8 @@ void beginGnssUart()
     }
 }
 
-// Assign GNSS UART interrupts to the core that started the task. See:
-// https://github.com/espressif/arduino-esp32/issues/3386
-void pinGnssUartTask(void *pvParameters)
+void forceGnssCommunicationRate(uint32_t &platformGnssCommunicationRate)
 {
-    // Start notification
-    if (settings.printTaskStartStop)
-        systemPrintln("Task pinGnssUartTask started");
-
-    if (serialGNSS == nullptr)
-        serialGNSS = new HardwareSerial(2); // Use UART2 on the ESP32 for communication with the GNSS module
-
-    serialGNSS->setRxBufferSize(settings.uartReceiveBufferSize);
-    serialGNSS->setTimeout(settings.serialTimeoutGNSS); // Requires serial traffic on the UART pins for detection
-
-    if (pin_GnssUart_RX == -1 || pin_GnssUart_TX == -1)
-        reportFatalError("Illegal UART pin assignment.");
-
-    uint32_t platformGnssCommunicationRate =
-        settings.dataPortBaud; // Default to 230400bps for ZED. This limits GNSS fixes at 4Hz but allows SD buffer to be
-                               // reduced to 6k.
-
     if (productVariant == RTK_TORCH)
     {
         // Override user setting. Required because beginGnssUart() is called before beginBoard().
@@ -1178,6 +1160,29 @@ void pinGnssUartTask(void *pvParameters)
             platformGnssCommunicationRate = 115200;
         }
     }
+}
+// Assign GNSS UART interrupts to the core that started the task. See:
+// https://github.com/espressif/arduino-esp32/issues/3386
+void pinGnssUartTask(void *pvParameters)
+{
+    // Start notification
+    if (settings.printTaskStartStop)
+        systemPrintln("Task pinGnssUartTask started");
+
+    if (serialGNSS == nullptr)
+        serialGNSS = new HardwareSerial(2); // Use UART2 on the ESP32 for communication with the GNSS module
+
+    serialGNSS->setRxBufferSize(settings.uartReceiveBufferSize);
+    serialGNSS->setTimeout(settings.serialTimeoutGNSS); // Requires serial traffic on the UART pins for detection
+
+    if (pin_GnssUart_RX == -1 || pin_GnssUart_TX == -1)
+        reportFatalError("Illegal UART pin assignment.");
+
+    uint32_t platformGnssCommunicationRate =
+        settings.dataPortBaud; // Default to 230400bps for ZED. This limits GNSS fixes at 4Hz but allows SD buffer to be
+                               // reduced to 6k.
+
+    forceGnssCommunicationRate(platformGnssCommunicationRate);
 
     serialGNSS->begin(platformGnssCommunicationRate, SERIAL_8N1, pin_GnssUart_RX,
                       pin_GnssUart_TX); // Start UART on platform dependent pins for SPP. The GNSS will be

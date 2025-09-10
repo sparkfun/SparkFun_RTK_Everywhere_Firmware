@@ -48,7 +48,7 @@ void sdUpdate()
         deleteSDSizeCheckTask();
 
     // Check if SD card is still present
-    if (sdCardPresent() == false)
+    if (sdCardPresent() == false && online.microSD == true)
     {
         systemPrintf("SD removed @ %s\r\n", getTimeStamp());
         endSD(false, true); //(alreadyHaveSemaphore, releaseSemaphore) Close down SD.

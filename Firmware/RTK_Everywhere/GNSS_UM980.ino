@@ -1331,8 +1331,8 @@ void GNSS_UM980::menuMessages()
         systemPrintln("3) Set Base RTCM Messages");
 
         systemPrintln("10) Reset to Defaults");
-        systemPrintln("11) Reset to PPP Logging (NMEAx1 / RTCMx8 - 30 second decimation)");
-        systemPrintln("12) Reset to High-rate PPP Logging (NMEAx1 / RTCMx8 - 1Hz)");
+        systemPrintln("11) Reset to PPP Logging (NMEAx5 / RTCMx4 - 30 second decimation)");
+        systemPrintln("12) Reset to High-rate PPP Logging (NMEAx5 / RTCMx4 - 1Hz)");
 
         systemPrintln("x) Exit");
 
@@ -1373,25 +1373,25 @@ void GNSS_UM980::menuMessages()
             // Reset NMEA rates to defaults
             for (int x = 0; x < MAX_UM980_NMEA_MSG; x++)
                 settings.um980MessageRatesNMEA[x] = umMessagesNMEA[x].msgDefaultRate;
-            setNmeaMessageRateByName("GPGSV", 5); //Limit GSV updates to 1 every 5 seconds
+            setNmeaMessageRateByName("GPGSV", 5); // Limit GSV updates to 1 every 5 seconds
 
             setRtcmRoverMessageRates(0); // Turn off all RTCM messages
             setRtcmRoverMessageRateByName("RTCM1019", reportRate);
-            setRtcmRoverMessageRateByName("RTCM1020", reportRate);
-            setRtcmRoverMessageRateByName("RTCM1042", reportRate);
-            setRtcmRoverMessageRateByName("RTCM1046", reportRate);
-            setRtcmRoverMessageRateByName("RTCM1074", reportRate);
-            setRtcmRoverMessageRateByName("RTCM1084", reportRate);
-            setRtcmRoverMessageRateByName("RTCM1094", reportRate);
-            setRtcmRoverMessageRateByName("RTCM1124", reportRate);
+            // setRtcmRoverMessageRateByName("RTCM1020", reportRate); //Not needed when MSM7 is used
+            // setRtcmRoverMessageRateByName("RTCM1042", reportRate); //BeiDou not used by CSRS-PPP
+            // setRtcmRoverMessageRateByName("RTCM1046", reportRate); //Not needed when MSM7 is used
+            setRtcmRoverMessageRateByName("RTCM1077", reportRate);
+            setRtcmRoverMessageRateByName("RTCM1087", reportRate);
+            setRtcmRoverMessageRateByName("RTCM1097", reportRate);
+            // setRtcmRoverMessageRateByName("RTCM1124", reportRate); //BeiDou not used by CSRS-PPP
 
             if (incoming == 12)
             {
-                systemPrintln("Reset to High-rate PPP Logging (NMEAx5 / RTCMx8 - 1Hz)");
+                systemPrintln("Reset to High-rate PPP Logging (NMEAx5 / RTCMx4 - 1Hz)");
             }
             else
             {
-                systemPrintln("Reset to PPP Logging (NMEAx5 / RTCMx8 - 30 second decimation)");
+                systemPrintln("Reset to PPP Logging (NMEAx5 / RTCMx4 - 30 second decimation)");
             }
         }
 
@@ -1686,10 +1686,10 @@ bool GNSS_UM980::setHighAccuracyService(bool enableGalileoHas)
             if (_um980->isConfigurationPresent("CONFIG PPP ENABLE E6-HAS") == false)
             {
                 if (_um980->sendCommand("CONFIG PPP ENABLE E6-HAS"))
-                    systemPrintln("Galileo E6 service enabled");
+                    systemPrintln("Galileo E6 HAS service enabled");
                 else
                 {
-                    systemPrintln("Galileo E6 service failed to enable");
+                    systemPrintln("Galileo E6 HAS service failed to enable");
                     result = false;
                 }
 
@@ -1717,10 +1717,10 @@ bool GNSS_UM980::setHighAccuracyService(bool enableGalileoHas)
         if (_um980->isConfigurationPresent("CONFIG PPP ENABLE E6-HAS"))
         {
             if (_um980->sendCommand("CONFIG PPP DISABLE"))
-                systemPrintln("Galileo E6 service disabled");
+                systemPrintln("Galileo E6 HAS service disabled");
             else
             {
-                systemPrintln("Galileo E6 service failed to disable");
+                systemPrintln("Galileo E6 HAS service failed to disable");
                 result = false;
             }
         }
@@ -2040,30 +2040,12 @@ bool GNSS_UM980::setRtcmRoverMessageRateByName(const char *msgName, uint8_t msgR
 //----------------------------------------
 
 //----------------------------------------
-// Force UART connection to UM980 for firmware update on the next boot by creating updateUm980Firmware.txt in
+// Force UART connection to GNSS for firmware update on the next boot by special file in
 // LittleFS
 //----------------------------------------
 bool createUm980Passthrough()
 {
-    if (online.fs == false)
-        return false;
-
-    if (LittleFS.exists("/updateUm980Firmware.txt"))
-    {
-        if (settings.debugGnss)
-            systemPrintln("LittleFS updateUm980Firmware.txt already exists");
-        return true;
-    }
-
-    File updateUm980Firmware = LittleFS.open("/updateUm980Firmware.txt", FILE_WRITE);
-    updateUm980Firmware.close();
-
-    if (LittleFS.exists("/updateUm980Firmware.txt"))
-        return true;
-
-    if (settings.debugGnss)
-        systemPrintln("Unable to create updateUm980Firmware.txt on LittleFS");
-    return false;
+    return createPassthrough("/updateUm980Firmware.txt");
 }
 
 //----------------------------------------
@@ -2076,22 +2058,42 @@ void um980FirmwareBeginUpdate()
     //  then reconfigures the UM980 to 115200bps, then resets, but autobaud detection in the UM980 library is
     //  not yet supported.
 
-    // Stop all UART tasks
+    // Note: UM980 needs its own dedicated update function, due to the T@ and bootloader trigger
+
+    // Note: UM980 is cuurrently only available on Torch.
+    //  But um980FirmwareBeginUpdate has been reworked so it will work on Facet too.
+
+    // Note: um980FirmwareBeginUpdate is called during setup, after identify board. I2C, gpio expanders, buttons
+    //  and display have all been initialized. But, importantly, the UARTs have not yet been started.
+    //  This makes our job much easier...
+
+    // Flag that we are in direct connect mode. Button task will um980FirmwareRemoveUpdate and exit
+    inDirectConnectMode = true;
+
+    // Paint GNSS Update
+    paintGnssUpdate();
+
+    // Stop all UART tasks. Redundant
     tasksStopGnssUart();
 
     systemPrintln();
-    systemPrintln("Entering UM980 direct connect for firmware update and configuration. Disconnect this terminal "
-                  "connection. Use "
-                  "UPrecise to update the firmware. Baudrate: 115200bps. Press the power button to return "
-                  "to normal operation.");
+    systemPrintf("Entering UM980 direct connect for firmware update and configuration. Disconnect this terminal "
+                 "connection. Use "
+                 "UPrecise to update the firmware. Baudrate: 115200bps. Press the %s button to return "
+                 "to normal operation.\r\n",
+                 present.button_mode ? "mode" : "power");
     systemFlush();
 
-    // Make sure ESP-UART1 is connected to UM980
+    // Make sure ESP-UART is connected to UM980
     muxSelectUm980();
 
     if (serialGNSS == nullptr)
         serialGNSS = new HardwareSerial(2); // Use UART2 on the ESP32 for communication with the GNSS module
 
+    serialGNSS->setRxBufferSize(settings.uartReceiveBufferSize);
+    serialGNSS->setTimeout(settings.serialTimeoutGNSS); // Requires serial traffic on the UART pins for detection
+
+    // This is OK for Flex too. We're using the main GNSS pins.
     serialGNSS->begin(115200, SERIAL_8N1, pin_GnssUart_RX, pin_GnssUart_TX);
 
     // UPrecise needs to query the device before entering bootload mode
@@ -2102,11 +2104,11 @@ void um980FirmwareBeginUpdate()
     while (1)
     {
         // Data coming from UM980 to external USB
-        if (serialGNSS->available())
+        if (serialGNSS->available()) // Note: use if, not while
             Serial.write(serialGNSS->read());
 
         // Data coming from external USB to UM980
-        if (Serial.available())
+        if (Serial.available()) // Note: use if, not while
         {
             byte incoming = Serial.read();
             serialGNSS->write(incoming);
@@ -2127,67 +2129,24 @@ void um980FirmwareBeginUpdate()
             }
         }
 
-        if (readAnalogPinAsDigital(pin_powerButton) == HIGH)
-        {
-            while (readAnalogPinAsDigital(pin_powerButton) == HIGH)
-                delay(100);
-
-            // Remove file and reset to exit pass-through mode
-            um980FirmwareRemoveUpdate();
-
-            // Beep to indicate exit
-            beepOn();
-            delay(300);
-            beepOff();
-            delay(100);
-            beepOn();
-            delay(300);
-            beepOff();
-
-            systemPrintln("Exiting UM980 passthrough mode");
-            systemFlush(); // Complete prints
-
-            ESP.restart();
-        }
+        // Button task will um980FirmwareRemoveUpdate and restart
     }
-
-    systemFlush(); // Complete prints
 }
 
 //----------------------------------------
-// Check if updateUm980Firmware.txt exists
+// Check if direct connection file exists
 //----------------------------------------
 bool um980FirmwareCheckUpdate()
 {
-    if (online.fs == false)
-        return false;
-
-    if (LittleFS.exists("/updateUm980Firmware.txt"))
-    {
-        if (settings.debugGnss)
-            systemPrintln("LittleFS updateUm980Firmware.txt exists");
-
-        // We do not remove the file here. See removeupdateUm980Firmware().
-
-        return true;
-    }
-
-    return false;
+    return gnssFirmwareCheckUpdateFile("/updateUm980Firmware.txt");
 }
 
 //----------------------------------------
+// Remove direct connection file
+//----------------------------------------
 void um980FirmwareRemoveUpdate()
 {
-    if (online.fs == false)
-        return;
-
-    if (LittleFS.exists("/updateUm980Firmware.txt"))
-    {
-        if (settings.debugGnss)
-            systemPrintln("Removing updateUm980Firmware.txt ");
-
-        LittleFS.remove("/updateUm980Firmware.txt");
-    }
+    return gnssFirmwareRemoveUpdateFile("/updateUm980Firmware.txt");
 }
 
 //----------------------------------------

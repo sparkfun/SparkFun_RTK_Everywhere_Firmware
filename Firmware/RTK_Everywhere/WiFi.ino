@@ -1283,9 +1283,10 @@ void wifiVerifyTables()
 // Constructor
 // Inputs:
 //   verbose: Set to true to display additional WiFi debug data
+// For AP on RTK Firmware, we set the Gateway to 192.168.4.1, not 0.0.0.0. Let's do the same here.
 RTK_WIFI::RTK_WIFI(bool verbose)
     : _apChannel{0}, _apCount{0}, _apDnsAddress{IPAddress((uint32_t)0)}, _apFirstDhcpAddress{IPAddress("192.168.4.32")},
-      _apGatewayAddress{(uint32_t)0}, _apIpAddress{IPAddress("192.168.4.1")}, _apMacAddress{0, 0, 0, 0, 0, 0},
+      _apGatewayAddress{IPAddress("192.168.4.1")}, _apIpAddress{IPAddress("192.168.4.1")}, _apMacAddress{0, 0, 0, 0, 0, 0},
       _apSubnetMask{IPAddress("255.255.255.0")}, _espNowChannel{0}, _scanRunning{false},
       _staIpAddress{IPAddress((uint32_t)0)}, _staIpType{0}, _staMacAddress{0, 0, 0, 0, 0, 0}, _staRemoteApSsid{nullptr},
       _staRemoteApPassword{nullptr}, _started{false}, _stationChannel{0}, _usingDefaultChannel{true}, _verbose{verbose}
@@ -2715,7 +2716,8 @@ bool RTK_WIFI::stopStart(WIFI_ACTION_t stopping, WIFI_ACTION_t starting)
         }
 
         // Stop the DNS server
-        if (stopping & _started & WIFI_AP_START_DNS_SERVER)
+        // if (stopping & _started & WIFI_AP_START_DNS_SERVER) ???
+        if (stopping & WIFI_AP_START_DNS_SERVER)
         {
             if (settings.debugWifiState && _verbose)
                 systemPrintf("Calling dnsServer.stop for soft AP\r\n");
@@ -2858,8 +2860,8 @@ bool RTK_WIFI::stopStart(WIFI_ACTION_t stopping, WIFI_ACTION_t starting)
         // Finish the channel selection
         if (starting & WIFI_SELECT_CHANNEL)
         {
-            _started = _started | starting & WIFI_SELECT_CHANNEL;
-            if (channel & (starting & WIFI_STA_START_SCAN))
+            _started = _started | (starting & WIFI_SELECT_CHANNEL);
+            if (channel && (starting & WIFI_STA_START_SCAN))
             {
                 if (settings.debugWifiState && _verbose)
                     systemPrintf("Channel: %d, determined by remote AP scan\r\n", channel);
@@ -2882,12 +2884,12 @@ bool RTK_WIFI::stopStart(WIFI_ACTION_t stopping, WIFI_ACTION_t starting)
         // Set the soft AP subnet mask, IP, gateway, DNS, and first DHCP addresses
         if (starting & WIFI_AP_SET_IP_ADDR)
         {
-            // if (!softApSetIpAddress(_apIpAddress.toString().c_str(), _apSubnetMask.toString().c_str(),
-            //                         _apGatewayAddress.toString().c_str(), _apDnsAddress.toString().c_str(),
-            //                         _apFirstDhcpAddress.toString().c_str()))
-            // {
-            //     break;
-            // }
+            if (!softApSetIpAddress(_apIpAddress.toString().c_str(), _apSubnetMask.toString().c_str(),
+                                    _apGatewayAddress.toString().c_str(), _apDnsAddress.toString().c_str(),
+                                    _apFirstDhcpAddress.toString().c_str()))
+            {
+                break;
+            }
             _started = _started | WIFI_AP_SET_IP_ADDR;
         }
 

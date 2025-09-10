@@ -86,7 +86,7 @@ jobs:
           "SdFat"@2.1.1
           "SparkFun LIS2DH12 Arduino Library"@1.0.3
           "SparkFun MAX1704x Fuel Gauge Arduino Library"@1.0.4
-          "SparkFun u-blox GNSS v3"@3.1.8
+          "SparkFun u-blox GNSS v3"@3.1.10
           "SparkFun Qwiic OLED Arduino Library"@1.0.13
           SSLClientESP32@2.0.0
           "SparkFun Extensible Message Parser"@1.0.4
@@ -97,7 +97,7 @@ jobs:
           "SparkFun UM980 Triband RTK GNSS Arduino Library"@1.0.5
           "SparkFun LG290P Quadband RTK GNSS Arduino Library"@1.0.8
           "SparkFun I2C Expander Arduino Library"@1.0.1
-          "SparkFun Apple Accessory Arduino Library"@1.0.1
+          "SparkFun Apple Accessory Arduino Library"@3.0.8
           "SparkFun Authentication Coprocessor Arduino Library"@1.0.0
           "SparkFun Toolkit"@1.0.6
 

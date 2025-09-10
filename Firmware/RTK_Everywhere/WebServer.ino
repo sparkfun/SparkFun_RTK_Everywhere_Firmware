@@ -820,6 +820,8 @@ bool webServerAssignResources(int httpPort = 80)
         /* https://github.com/espressif/arduino-esp32/blob/master/libraries/DNSServer/examples/CaptivePortal/CaptivePortal.ino
          */
 
+        // Note: MDNS should probably be begun by networkMulticastDNSUpdate, but that doesn't seem to be happening...
+        //       Is the networkInterface aware that AP needs it? Let's start it manually...
         if (MDNS.begin(&settings.mdnsHostName[0]) == false)
         {
             systemPrintln("Error setting up MDNS responder!");

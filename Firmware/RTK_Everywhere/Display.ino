@@ -3288,3 +3288,30 @@ void displayWebConfig(std::vector<iconPropertyBlinking> &iconPropertyList)
 
     printTextCenter(myIP, yPos, QW_FONT_5X7, 1, false);
 }
+
+// Show GNSS update - button exit
+void paintGnssUpdate()
+{
+    paintGenericUpdate("GNSS");
+}
+void paintLoRaUpdate()
+{
+    paintGenericUpdate("LoRa");
+}
+void paintGenericUpdate(const char *device)
+{
+    if (online.display)
+    {
+        oled->erase(); // Clear the display's internal buffer
+        int yPos = (oled->getHeight() - 38) / 2;
+        uint8_t fontHeight = 8;
+        printTextCenter(device, yPos, QW_FONT_5X7, 1, false); // text, y, font type, kerning, inverted
+        yPos = yPos + fontHeight + 1;
+        printTextCenter("Update", yPos, QW_FONT_5X7, 1, false);
+        yPos = yPos + fontHeight + 3;
+        printTextCenter("Button", yPos, QW_FONT_5X7, 1, true); // text, y, font type, kerning, inverted
+        yPos = yPos + fontHeight + 1;
+        printTextCenter("To Exit", yPos, QW_FONT_5X7, 1, true);
+        oled->display(); // Push internal buffer to display
+    }
+}

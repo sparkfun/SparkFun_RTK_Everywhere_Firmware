@@ -1712,7 +1712,7 @@ const RTK_Settings_Entry rtkSettingsEntries[] =
 //    g  s  x  k  2  c  h  d  d  x    Type    Qual  Variable                  Name
 
     // UM980 GNSS Receiver - TODO these apply to more than UM980
-    { 1, 1, 0, 0, 0, 0, 1, 0, 0, NON, _bool,     0, & settings.enableGalileoHas, "enableGalileoHas",  },
+    { 1, 1, 0, 0, 0, 0, 1, 0, 1, NON, _bool,     0, & settings.enableGalileoHas, "enableGalileoHas",  },
     { 0, 0, 0, 0, 0, 0, 1, 0, 0, ALL, _bool,     0, & settings.enableImuCompensationDebug, "enableImuCompensationDebug",  },
     { 0, 0, 0, 0, 0, 0, 1, 0, 0, ALL, _bool,     0, & settings.enableImuDebug, "enableImuDebug",  },
     { 1, 1, 0, 0, 0, 0, 1, 0, 0, ALL, _bool,     0, & settings.enableTiltCompensation, "enableTiltCompensation",  },
@@ -1861,6 +1861,7 @@ struct struct_present
     bool gnss_zedf9p = false;
     bool gnss_mosaicX5 = false; // L-Band is implicit
     bool gnss_lg290p = false;
+    bool gnss_zedx20p = false;
 
     // A GNSS TP interrupt - for accurate clock setting
     // The GNSS UBX PVT message is sent ahead of the top-of-second

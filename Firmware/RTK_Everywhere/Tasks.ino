@@ -813,6 +813,58 @@ void processUart1Message(SEMP_PARSE_STATE *parse, uint16_t type)
             else
                 systemPrintf("Increase latestNmeaMaxLen to > %d\r\n", parse->length);
         }
+        else if (strstr(sempNmeaGetSentenceName(parse), "VTG") != nullptr)
+        {
+            if (parse->length < latestNmeaMaxLen)
+            {
+                memcpy(latestGPVTG, parse->buffer, parse->length);
+                latestGPVTG[parse->length] = 0; // NULL terminate
+                if ((strlen(latestGPVTG) > 10) && (latestGPVTG[strlen(latestGPVTG) - 2] == '\r'))
+                    latestGPVTG[strlen(latestGPVTG) - 2] = 0; // Truncate the \r\n
+                forceTalkerId("P",latestGPVTG,latestNmeaMaxLen);
+            }
+            else
+                systemPrintf("Increase latestNmeaMaxLen to > %d\r\n", parse->length);
+        }
+        else if ((strstr(sempNmeaGetSentenceName(parse), "GSA") != nullptr)
+                 || (strstr(sempNmeaGetSentenceName(parse), "GSV") != nullptr))
+        {
+            // If the Apple Accessory is sending the data to the EA Session,
+            // discard this GSA / GSV. Bad things would happen if we were to
+            // manipulate latestEASessionData while appleAccessory is using it.
+#ifdef COMPILE_AUTHENTICATION
+            if (appleAccessory->latestEASessionDataIsBlocking() == false)
+            {
+                size_t spaceAvailable = latestEASessionDataMaxLen - strlen(latestEASessionData);
+                if (spaceAvailable >= 3)
+                    spaceAvailable -= 3; // Leave room for the CR, LF and NULL
+                while (spaceAvailable < parse->length) // If the buffer is full, delete the oldest message(s)
+                {
+                    const char *lfPtr = strstr(latestEASessionData, "\n"); // Find the first LF
+                    if (lfPtr == nullptr)
+                        break; // Something has gone badly wrong...
+                    lfPtr++; // Point at the byte after the LF
+                    size_t oldLen = lfPtr - latestEASessionData; // This much data is old
+                    size_t newLen = strlen(latestEASessionData) - oldLen; // This much is new (not old)
+                    for (size_t i = 0; i <= newLen; i++) // Move the new data over the old. Include the NULL
+                        latestEASessionData[i] = latestEASessionData[oldLen + i];
+                    spaceAvailable += oldLen;
+                }
+                size_t dataLen = strlen(latestEASessionData);
+                memcpy(&latestEASessionData[dataLen], parse->buffer, parse->length); // Add the new NMEA data
+                dataLen += parse->length;
+                latestEASessionData[dataLen] = 0; // NULL terminate
+                if (latestEASessionData[dataLen - 1] != '\n')
+                {
+                    latestEASessionData[dataLen] = '\r'; // Add CR
+                    latestEASessionData[dataLen + 1] = '\n'; // Add LF
+                    latestEASessionData[dataLen + 2] = 0; // NULL terminate
+                }
+            }
+            else if (settings.debugNetworkLayer)
+                systemPrintf("Discarding %d GSA/GSV bytes - latestEASessionDataIsBlocking\r\n", parse->length);
+#endif //COMPILE_AUTHENTICATION
+        }
     }
 
     // Determine if this message should be processed by the Unicore library
@@ -2035,7 +2087,35 @@ void buttonCheckTask(void *e)
 
         // End button checking
 
-        if (present.imu_im19 && (present.display_type == DISPLAY_MAX_NONE))
+        // If in direct connect mode. Note: this is just a flag not a STATE. 
+        if (inDirectConnectMode)
+        {
+            // TODO: check if this works on both Torch and Flex. Note: Flex does not yet support buttons
+            if (singleTap || doubleTap)
+            {
+                // Beep to indicate exit
+                beepOn();
+                delay(300);
+                beepOff();
+                delay(100);
+                beepOn();
+                delay(300);
+                beepOff();
+
+                // Remove all the special files
+                removeUpdateLoraFirmware();
+                um980FirmwareRemoveUpdate();
+                gnssFirmwareRemoveUpdate();
+
+                systemPrintln("Exiting direct connection (passthrough) mode");
+                systemFlush(); // Complete prints
+
+                ESP.restart();
+            }
+        }
+        // Torch is a special case. Handle tilt stop and web config mode
+        else if (productVariant == RTK_TORCH)
+        //else if (present.imu_im19 && (present.display_type == DISPLAY_MAX_NONE)) // TODO delete me
         {
             // Platform has no display and tilt corrections, ie RTK Torch
 
