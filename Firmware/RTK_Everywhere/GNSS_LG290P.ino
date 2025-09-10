@@ -365,13 +365,13 @@ bool GNSS_LG290P::configureRover()
 
     response &= setMinCnoRadio(settings.minCNO);
 
-    //If we are on a platform that supports tilt
+    // If we are on a platform that supports tilt
     if (present.tiltPossible == true)
     {
-        //And tilt is present and enabled
+        // And tilt is present and enabled
         if (present.imu_im19 == true && settings.enableTiltCompensation == true)
         {
-            //Configure GNSS to support the tilt sensor
+            // Configure GNSS to support the tilt sensor
 
             // Tilt sensor requires 5Hz at a minimum
             if (settings.measurementRateMs > 200)
@@ -1000,18 +1000,17 @@ bool GNSS_LG290P::enableRTCMRover()
     }
 
     // If any RTCM message is enabled, send CFGRTCM
-    // PQTMCFGRTCM only controls RTCM-1005 type messages, not RTCM-107x MSM messages (confusingly)
     if (enableRTCM == true)
     {
         if (settings.debugCorrections)
             systemPrintf("Enabling Rover RTCM MSM output with rate of %d\r\n", minimumRtcmRate);
 
-        // Enable MSM4, output at a rate equal to the minimum RTCM rate (EPH Mode = 2)
+        // Enable MSM7 (for faster PPP CSRS results), output at a rate equal to the minimum RTCM rate (EPH Mode = 2)
         // PQTMCFGRTCM, W, <MSM_Type>, <MSM_Mode>, <MSM_ElevThd>, <Reserved>, <Reserved>, <EPH_Mode>, <EPH_Interval>
-        // We could set the MSM_ElevThd to (settings.minElev * -1) but there may be unintended consequences
+        // Set MSM_ElevThd to 15 degrees from rftop suggestion
 
         char msmCommand[40] = {0};
-        snprintf(msmCommand, sizeof(msmCommand), "PQTMCFGRTCM,W,4,0,-90,07,06,2,%d", minimumRtcmRate);
+        snprintf(msmCommand, sizeof(msmCommand), "PQTMCFGRTCM,W,7,0,15,07,06,2,%d", minimumRtcmRate);
 
         // PQTMCFGRTCM fails to respond with OK over UART2 of LG290P, so don't look for it
         _lg290p->sendOkCommand(msmCommand);
@@ -1930,8 +1929,7 @@ void GNSS_LG290P::menuMessages()
             setRtcmRoverMessageRateByName("RTCM3-109X", rtcmReportRate);
             // setRtcmRoverMessageRateByName("RTCM3-112X", rtcmReportRate); //BeiDou not used by CSRS-PPP
 
-            // Default is MSM4. Change to MSM7 to aid in faster PPP CSRS results.
-            _lg290p->sendOkCommand("$PQTMCFGRTCM","W,7,0,15,07,06,1,0"); // Enable MSM7, 15 degree requirement on satellites
+            // MSM7 is set during enableRTCMRover()
 
             // Override settings for PPP logging
             setElevation(15);
