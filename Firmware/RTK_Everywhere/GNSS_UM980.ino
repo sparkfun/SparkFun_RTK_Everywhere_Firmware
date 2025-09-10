@@ -1331,8 +1331,8 @@ void GNSS_UM980::menuMessages()
         systemPrintln("3) Set Base RTCM Messages");
 
         systemPrintln("10) Reset to Defaults");
-        systemPrintln("11) Reset to PPP Logging (NMEAx1 / RTCMx8 - 30 second decimation)");
-        systemPrintln("12) Reset to High-rate PPP Logging (NMEAx1 / RTCMx8 - 1Hz)");
+        systemPrintln("11) Reset to PPP Logging (NMEAx5 / RTCMx4 - 30 second decimation)");
+        systemPrintln("12) Reset to High-rate PPP Logging (NMEAx5 / RTCMx4 - 1Hz)");
 
         systemPrintln("x) Exit");
 
@@ -1373,25 +1373,25 @@ void GNSS_UM980::menuMessages()
             // Reset NMEA rates to defaults
             for (int x = 0; x < MAX_UM980_NMEA_MSG; x++)
                 settings.um980MessageRatesNMEA[x] = umMessagesNMEA[x].msgDefaultRate;
-            setNmeaMessageRateByName("GPGSV", 5); //Limit GSV updates to 1 every 5 seconds
+            setNmeaMessageRateByName("GPGSV", 5); // Limit GSV updates to 1 every 5 seconds
 
             setRtcmRoverMessageRates(0); // Turn off all RTCM messages
             setRtcmRoverMessageRateByName("RTCM1019", reportRate);
-            setRtcmRoverMessageRateByName("RTCM1020", reportRate);
-            setRtcmRoverMessageRateByName("RTCM1042", reportRate);
-            setRtcmRoverMessageRateByName("RTCM1046", reportRate);
-            setRtcmRoverMessageRateByName("RTCM1074", reportRate);
-            setRtcmRoverMessageRateByName("RTCM1084", reportRate);
-            setRtcmRoverMessageRateByName("RTCM1094", reportRate);
-            setRtcmRoverMessageRateByName("RTCM1124", reportRate);
+            // setRtcmRoverMessageRateByName("RTCM1020", reportRate); //Not needed when MSM7 is used
+            // setRtcmRoverMessageRateByName("RTCM1042", reportRate); //BeiDou not used by CSRS-PPP
+            // setRtcmRoverMessageRateByName("RTCM1046", reportRate); //Not needed when MSM7 is used
+            setRtcmRoverMessageRateByName("RTCM1077", reportRate);
+            setRtcmRoverMessageRateByName("RTCM1087", reportRate);
+            setRtcmRoverMessageRateByName("RTCM1097", reportRate);
+            // setRtcmRoverMessageRateByName("RTCM1124", reportRate); //BeiDou not used by CSRS-PPP
 
             if (incoming == 12)
             {
-                systemPrintln("Reset to High-rate PPP Logging (NMEAx5 / RTCMx8 - 1Hz)");
+                systemPrintln("Reset to High-rate PPP Logging (NMEAx5 / RTCMx4 - 1Hz)");
             }
             else
             {
-                systemPrintln("Reset to PPP Logging (NMEAx5 / RTCMx8 - 30 second decimation)");
+                systemPrintln("Reset to PPP Logging (NMEAx5 / RTCMx4 - 30 second decimation)");
             }
         }
 
@@ -2078,9 +2078,10 @@ void um980FirmwareBeginUpdate()
 
     systemPrintln();
     systemPrintf("Entering UM980 direct connect for firmware update and configuration. Disconnect this terminal "
-                  "connection. Use "
-                  "UPrecise to update the firmware. Baudrate: 115200bps. Press the %s button to return "
-                  "to normal operation.\r\n", present.button_mode ? "mode" : "power");
+                 "connection. Use "
+                 "UPrecise to update the firmware. Baudrate: 115200bps. Press the %s button to return "
+                 "to normal operation.\r\n",
+                 present.button_mode ? "mode" : "power");
     systemFlush();
 
     // Make sure ESP-UART is connected to UM980

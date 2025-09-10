@@ -1374,7 +1374,7 @@ uint8_t GNSS_LG290P::getLoggingType()
         // GST is not available/default
         if (getActiveNmeaMessageCount() == 6 && getActiveRtcmMessageCount() == 0)
             logType = LOGGING_STANDARD;
-        else if (getActiveNmeaMessageCount() == 6 && getActiveRtcmMessageCount() == 8)
+        else if (getActiveNmeaMessageCount() == 6 && getActiveRtcmMessageCount() == 4)
             logType = LOGGING_PPP;
     }
     else
@@ -1382,7 +1382,7 @@ uint8_t GNSS_LG290P::getLoggingType()
         // GST *is* available/default
         if (getActiveNmeaMessageCount() == 7 && getActiveRtcmMessageCount() == 0)
             logType = LOGGING_STANDARD;
-        else if (getActiveNmeaMessageCount() == 7 && getActiveRtcmMessageCount() == 8)
+        else if (getActiveNmeaMessageCount() == 7 && getActiveRtcmMessageCount() == 4)
             logType = LOGGING_PPP;
     }
 
@@ -1824,8 +1824,8 @@ void GNSS_LG290P::menuMessages()
         systemPrintln("4) Set PQTM Messages");
 
         systemPrintln("10) Reset to Defaults");
-        systemPrintln("11) Reset to PPP Logging (NMEAx7 / RTCMx8 - 30 second decimation)");
-        systemPrintln("12) Reset to High-rate PPP Logging (NMEAx7 / RTCMx8 - 1Hz)");
+        systemPrintln("11) Reset to PPP Logging (NMEAx7 / RTCMx4 - 30 second decimation)");
+        systemPrintln("12) Reset to High-rate PPP Logging (NMEAx7 / RTCMx4 - 1Hz)");
 
         systemPrintln("x) Exit");
 
@@ -1875,23 +1875,30 @@ void GNSS_LG290P::menuMessages()
 
             setRtcmRoverMessageRates(0); // Turn off all RTCM messages
             setRtcmRoverMessageRateByName("RTCM3-1019", rtcmReportRate);
-            setRtcmRoverMessageRateByName("RTCM3-1020", rtcmReportRate);
-            setRtcmRoverMessageRateByName("RTCM3-1042", rtcmReportRate);
-            setRtcmRoverMessageRateByName("RTCM3-1046", rtcmReportRate);
+            // setRtcmRoverMessageRateByName("RTCM3-1020", rtcmReportRate); //Not needed when MSM7 is used
+            // setRtcmRoverMessageRateByName("RTCM3-1042", rtcmReportRate); //BeiDou not used by CSRS-PPP
+            // setRtcmRoverMessageRateByName("RTCM3-1046", rtcmReportRate); //Not needed when MSM7 is used
             setRtcmRoverMessageRateByName("RTCM3-107X", rtcmReportRate);
             setRtcmRoverMessageRateByName("RTCM3-108X", rtcmReportRate);
             setRtcmRoverMessageRateByName("RTCM3-109X", rtcmReportRate);
-            setRtcmRoverMessageRateByName("RTCM3-112X", rtcmReportRate);
+            // setRtcmRoverMessageRateByName("RTCM3-112X", rtcmReportRate); //BeiDou not used by CSRS-PPP
+
+            // Default is MSM4. Change to MSM7 to aid in faster PPP CSRS results.
+            _lg290p->sendOkCommand("$PQTMCFGRTCM","W,7,0,15,07,06,1,0"); // Enable MSM7, 15 degree requirement on satellites
+
+            // Override settings for PPP logging
+            setElevation(15);
+            setMinCnoRadio(30);
 
             setRate(1); // Go to 1 Hz
 
             if (incoming == 12)
             {
-                systemPrintln("Reset to High-rate PPP Logging Defaults (NMEAx1 / RTCMx8 - 1Hz)");
+                systemPrintln("Reset to High-rate PPP Logging Defaults (NMEAx7 / RTCMx4 - 1Hz)");
             }
             else
             {
-                systemPrintln("Reset to PPP Logging Defaults (NMEAx1 / RTCMx8 - 30 second decimation)");
+                systemPrintln("Reset to PPP Logging Defaults (NMEAx7 / RTCMx4 - 30 second decimation)");
             }
         }
 
@@ -1910,6 +1917,8 @@ void GNSS_LG290P::menuMessages()
         restartRover = true;
     else
         restartBase = true;
+
+    setLoggingType(); // Determine if we are standard, PPP, or custom. Changes logging icon accordingly.
 }
 
 //----------------------------------------
