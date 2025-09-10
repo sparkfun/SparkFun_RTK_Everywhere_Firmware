@@ -115,7 +115,7 @@ void stateUpdate()
             webServerStop();             // Stop the web config server
             baseCasterDisableOverride(); // Disable casting overrides
 
-            // Start the UART connected to the GNSS receiver for NMEA and UBX data (enables logging)
+            // Start the UART connected to the GNSS receiver for NMEA data (enables logging)
             if (tasksStartGnssUart() == false)
                 displayRoverFail(1000);
             else
@@ -228,7 +228,7 @@ void stateUpdate()
 
             webServerStop(); // Stop the web config server
 
-            // Start the UART connected to the GNSS receiver for NMEA and UBX data (enables logging)
+            // Start the UART connected to the GNSS receiver for NMEA data (enables logging)
             if (tasksStartGnssUart() && gnss->configureBase())
             {
                 // settings.gnssConfiguredBase is set by gnss->configureBase()
@@ -575,7 +575,7 @@ void stateUpdate()
 
             displayNtpStart(500); // Show 'NTP'
 
-            // Start UART connected to the GNSS receiver for NMEA and UBX data (enables logging)
+            // Start UART connected to the GNSS receiver for NMEA data (enables logging)
             if (tasksStartGnssUart() && ntpConfigureUbloxModule())
             {
                 settings.lastState = STATE_NTPSERVER_NOT_STARTED; // Record this state for next POR

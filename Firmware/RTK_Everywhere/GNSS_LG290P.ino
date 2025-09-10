@@ -365,6 +365,31 @@ bool GNSS_LG290P::configureRover()
 
     response &= setMinCnoRadio(settings.minCNO);
 
+    //If we are on a platform that supports tilt
+    if (present.tiltPossible == true)
+    {
+        //And tilt is present and enabled
+        if (present.imu_im19 == true && settings.enableTiltCompensation == true)
+        {
+            //Configure GNSS to support the tilt sensor
+
+            // Tilt sensor requires 5Hz at a minimum
+            if (settings.measurementRateMs > 200)
+            {
+                systemPrintln("Increasing GNSS measurement rate to 5Hz for tilt support");
+                settings.measurementRateMs = 200;
+            }
+
+            // On the LG290P Flex module, UART 3 of the GNSS is connected to the IMU UART 1
+            response &= setBaudRate(3, 115200);
+
+            if (response == false && settings.debugGnss)
+                systemPrintln("configureRover: setBaud failed.");
+
+            // Enable of GGA, RMC, GST for tilt sensor is done in enableNMEA()
+        }
+    }
+
     // Set the fix rate. Default on LG290P is 10Hz so set accordingly.
     response &= setRate(settings.measurementRateMs / 1000.0); // May require save/reset
     if (settings.debugGnss && response == false)
@@ -649,7 +674,6 @@ bool GNSS_LG290P::enableNMEA()
 {
     bool response = true;
     bool gpggaEnabled = false;
-    bool gpzdaEnabled = false;
 
     int portNumber = 1;
 
@@ -686,10 +710,6 @@ bool GNSS_LG290P::enableNMEA()
                     {
                         if (strcmp(lgMessagesNMEA[messageNumber].msgTextName, "GGA") == 0)
                             gpggaEnabled = true;
-
-                        // ZDA not supported on LG290P
-                        // if (strcmp(lgMessagesNMEA[messageNumber].msgTextName, "ZDA") == 0)
-                        // gpzdaEnabled = true;
                     }
                 }
             }
@@ -708,24 +728,47 @@ bool GNSS_LG290P::enableNMEA()
         // If firmware is 4 or higher, use setMessageRateOnPort, otherwise setMessageRate
         if (lg290pFirmwareVersion >= 4)
         {
-            // Enable GGA / ZDA on port 2 (ESP32) only
+            // Enable GGA on UART 2 (connected to ESP32) only
             if (gpggaEnabled == false)
                 response &= _lg290p->setMessageRateOnPort("GGA", 1, 2);
-
-            // if (gpggaEnabled == false)
-            //     response &= _lg290p->setMessageRateOnPort("GGA", 1, 1);
         }
         else
         {
-            // Enable GGA / ZDA on all ports. It's the best we can do.
+            // Enable GGA on all UARTs. It's the best we can do.
             if (gpggaEnabled == false)
                 response &= _lg290p->setMessageRate("GGA", 1);
-
-            // if (gpzdaEnabled == false)
-            //     response &= _lg290p->setMessageRate("ZDA", 1);
         }
     }
 
+    // If this is Flex, we may need to enable NMEA for Tilt IMU
+    if (present.tiltPossible == true)
+    {
+        if (present.imu_im19 == true && settings.enableTiltCompensation == true)
+        {
+            // Regardless of user settings, enable GGA, RMC, GST on UART3
+            // If firmware is 4 or higher, use setMessageRateOnPort, otherwise setMessageRate
+            if (lg290pFirmwareVersion >= 4)
+            {
+                // Enable GGA/RMS/GST on UART 3 (connected to the IMU) only
+                response &= _lg290p->setMessageRateOnPort("GGA", 1, 3);
+                response &= _lg290p->setMessageRateOnPort("RMC", 1, 3);
+                response &= _lg290p->setMessageRateOnPort("GST", 1, 3);
+            }
+            else
+            {
+                // GST not supported below 4
+                systemPrintf(
+                    "Current LG290P firmware: v%d (full form: %s). Tilt compensation requires GST on firmware v4 "
+                    "or newer. Please "
+                    "update the "
+                    "firmware on your LG290P to allow for these features. Please see "
+                    "https://bit.ly/sfe-rtk-lg290p-update\r\n Marking tilt compensation offline.",
+                    lg290pFirmwareVersion, gnssFirmwareVersion);
+
+                present.imu_im19 = false;
+            }
+        }
+    }
     return (response);
 }
 

@@ -713,7 +713,7 @@ void beginBoard()
         present.brand = BRAND_SPARKPNT;
         present.psram_2mb = true;
         present.gnss_lg290p = true;
-        present.antennaPhaseCenter_mm = 42.0; // Default to SPK6618H APC, average of L1/L2
+        present.antennaPhaseCenter_mm = 37.5; // APC of SPK-6E helical L1/L2/L5 antenna
         present.needsExternalPpl = true;      // Uses the PointPerfect Library
         present.gnss_to_uart = true;
 
@@ -775,7 +775,7 @@ void beginBoard()
         present.brand = BRAND_SPARKPNT;
         present.psram_2mb = true;
 
-        present.antennaPhaseCenter_mm = 42.0; // Default to SPK6618H APC, average of L1/L2
+        present.antennaPhaseCenter_mm = 62.0; // APC from drawings
         present.radio_lora = true;
         present.fuelgauge_bq40z50 = true;
         present.charger_mp2762a = true;
@@ -786,7 +786,7 @@ void beginBoard()
         present.gnss_to_uart = true;
 
         present.gpioExpanderSwitches = true;
-        present.microSd = true;
+        // present.microSd = true; // TODO remove comment out - v1.0 hardware does not have pullup on #CD so card detection does not work
         present.microSdCardDetectLow = true;
 
         present.display_i2c0 = true;

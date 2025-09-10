@@ -60,7 +60,10 @@ void tiltUpdate()
         }
 
         if (tiltState != TILT_STARTED) // If we failed to begin, disable future attempts
+        {
             tiltFailedBegin = true;
+            tiltState = TILT_DISABLED;
+        }
         break;
 
     case TILT_STARTED:
@@ -260,8 +263,8 @@ void printTiltDebug()
 // Start communication with the IM19 IMU
 void beginTilt()
 {
-    tiltSensor = new IM19();
 
+    tiltSensor = new IM19();
     if (SerialForTilt == nullptr)
         SerialForTilt = new HardwareSerial(1); // Use UART1 on the ESP32 to receive IMU corrections
 
@@ -292,8 +295,15 @@ void beginTilt()
     result &= tiltSensor->sendCommand("NAVI_OUTPUT=UART1,ON");
 
     // Set the distance of the IMU from the center line - x:6.78mm y:10.73mm z:19.25mm
-    if (present.imu_im19 == true)
+    if (productVariant == RTK_TORCH)
         result &= tiltSensor->sendCommand("LEVER_ARM=-0.00678,-0.01073,-0.0314"); // From stock firmware
+    else if (productVariant == RTK_FLEX)
+    {
+        result &= tiltSensor->sendCommand("LEVER_ARM=0.03391,0.00272,0.02370"); // -28.2, 0. -23.7mm
+
+        //Send AT+INSTALL_ANGLE=180,0,0 if the IM19 module is mounted on the back of the GNSS receiver (so the IM19 faces downward instead of upward), before sending the save command.
+        result &= tiltSensor->sendCommand("INSTALL_ANGLE=180,0,-90"); //IMU is mounted facing down
+    }
 
     // Set the overall length of the GNSS setup in meters: rod length 1800mm + internal length 96.45mm + antenna
     // POC 19.25mm = 1915.7mm
@@ -309,7 +319,10 @@ void beginTilt()
     result &= tiltSensor->sendCommand(clubVector);
 
     // Configure interface type. This allows IM19 to receive Unicore-style binary messages
-    result &= tiltSensor->sendCommand("GNSS_CARD=UNICORE");
+    if (productVariant == RTK_TORCH)
+        result &= tiltSensor->sendCommand("GNSS_CARD=UNICORE");
+    else if (productVariant == RTK_FLEX)
+        result &= tiltSensor->sendCommand("GNSS_CARD=OEM");
 
     // Configure as tilt measurement mode
     result &= tiltSensor->sendCommand("WORK_MODE=408"); // From stock firmware
@@ -324,7 +337,7 @@ void beginTilt()
     // Unknown new command for v2
     result &= tiltSensor->sendCommand("CORRECT_HOLDER=ENABLE"); // From stock firmware
 
-    // Trigger IMU on PPS from UM980
+    // Trigger IMU on PPS from GNSS
     result &= tiltSensor->sendCommand("SET_PPS_EDGE=RISING");
 
     // Enable magnetic field mode
@@ -1017,7 +1030,7 @@ void tiltDetect()
     if (present.tiltPossible == false)
         return;
 
-    // Start test if not previously detected
+    // Skip test if previously detected as present
     if (settings.detectedTilt == true)
     {
         present.imu_im19 = true; // Allow tiltUpdate() to run
@@ -1053,6 +1066,7 @@ void tiltDetect()
         {
             present.imu_im19 = true; // Allow tiltUpdate() to run
             settings.detectedTilt = true;
+            settings.gnssConfiguredRover = false; // Update rover settings
             break;
         }
     }
@@ -1061,10 +1075,8 @@ void tiltDetect()
 
 #endif // COMPILE_IM19_IMU
 
-    if (settings.enableImuDebug == true)
-        systemPrintf("Tilt sensor %sdetected\r\n", settings.detectedTilt ? "" : "not ");
-
-    settings.testedTilt = true;
+    systemPrintf("Tilt sensor %sdetected\r\n", settings.detectedTilt ? "" : "not ");
+    settings.testedTilt = true; //Record this test so we don't do it again
     recordSystemSettings();
     return;
 }
