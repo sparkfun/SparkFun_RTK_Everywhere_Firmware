@@ -1310,8 +1310,8 @@ bool parseLine(char *str)
                         break;
                     }
                 }
+#endif // COMPILE_LG290P
             }
-#endif
             break;
             case tCnRtRtB: {
 #ifdef COMPILE_UM980
@@ -1337,8 +1337,8 @@ bool parseLine(char *str)
                         break;
                     }
                 }
+#endif // COMPILE_LG290P
             }
-#endif
             break;
             case tCnRtRtR: {
 #ifdef COMPILE_UM980
@@ -1364,8 +1364,8 @@ bool parseLine(char *str)
                         break;
                     }
                 }
+#endif // COMPILE_LG290P
             }
-#endif
             break;
 
 #ifdef COMPILE_ZED

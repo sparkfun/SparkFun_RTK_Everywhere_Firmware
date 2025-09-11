@@ -768,6 +768,7 @@ SettingValueResponse updateSettingWithValue(bool inCommands, const char *setting
 #endif // COMPILE_LG290P
         }
         break;
+        
         case tCmnRtNm: {
 #ifdef COMPILE_UM980
             for (int x = 0; x < MAX_UM980_NMEA_MSG; x++)
@@ -792,8 +793,8 @@ SettingValueResponse updateSettingWithValue(bool inCommands, const char *setting
                     break;
                 }
             }
-        }
 #endif
+        }
         break;
         case tCnRtRtB: {
 #ifdef COMPILE_UM980
@@ -819,8 +820,8 @@ SettingValueResponse updateSettingWithValue(bool inCommands, const char *setting
                     break;
                 }
             }
-        }
 #endif
+        }
         break;
         case tCnRtRtR: {
 #ifdef COMPILE_UM980
@@ -846,8 +847,8 @@ SettingValueResponse updateSettingWithValue(bool inCommands, const char *setting
                     break;
                 }
             }
-        }
 #endif
+        }
         break;
 
 #ifdef COMPILE_ZED
