@@ -757,8 +757,7 @@ SettingValueResponse updateSettingWithValue(bool inCommands, const char *setting
 #ifdef COMPILE_LG290P
             for (int x = 0; x < MAX_LG290P_CONSTELLATIONS; x++)
             {
-                if ((suffix[0] == lg290pConstellationNames[x][0]) &&
-                    (strcmp(suffix, lg290pConstellationNames[x]) == 0))
+                if ((suffix[0] == lg290pConstellationNames[x][0]) && (strcmp(suffix, lg290pConstellationNames[x]) == 0))
                 {
                     settings.lg290pConstellations[x] = settingValue;
                     knownSetting = true;
@@ -768,7 +767,7 @@ SettingValueResponse updateSettingWithValue(bool inCommands, const char *setting
 #endif // COMPILE_LG290P
         }
         break;
-        
+
         case tCmnRtNm: {
 #ifdef COMPILE_UM980
             for (int x = 0; x < MAX_UM980_NMEA_MSG; x++)
@@ -793,7 +792,7 @@ SettingValueResponse updateSettingWithValue(bool inCommands, const char *setting
                     break;
                 }
             }
-#endif
+#endif // COMPILE_LG290P
         }
         break;
         case tCnRtRtB: {
@@ -820,7 +819,7 @@ SettingValueResponse updateSettingWithValue(bool inCommands, const char *setting
                     break;
                 }
             }
-#endif
+#endif // COMPILE_LG290P
         }
         break;
         case tCnRtRtR: {
@@ -847,7 +846,7 @@ SettingValueResponse updateSettingWithValue(bool inCommands, const char *setting
                     break;
                 }
             }
-#endif
+#endif // COMPILE_LG290P
         }
         break;
 
@@ -1615,15 +1614,15 @@ void createSettingsString(char *newSettings)
             break;
 
             case tCmnCnst:
-            break; // Nothing to do here. Let each GNSS add its settings
+                break; // Nothing to do here. Let each GNSS add its settings
             case tCmnRtNm:
-            break; // Nothing to do here. Let each GNSS add its settings
+                break; // Nothing to do here. Let each GNSS add its settings
             case tCnRtRtB:
-            break; // Nothing to do here. Let each GNSS add its settings
+                break; // Nothing to do here. Let each GNSS add its settings
             case tCnRtRtR:
-            break; // Nothing to do here. Let each GNSS add its settings
+                break; // Nothing to do here. Let each GNSS add its settings
 
-    #ifdef COMPILE_ZED
+#ifdef COMPILE_ZED
             case tUbxConst: {
                 // Record constellation settings
                 for (int x = 0; x < rtkSettingsEntries[i].qualifier; x++)
@@ -2485,13 +2484,13 @@ SettingValueResponse getSettingValue(bool inCommands, const char *settingName, c
         break;
 
         case tCmnCnst:
-        break; // Nothing to do here. Let each GNSS add its settings
+            break; // Nothing to do here. Let each GNSS add its settings
         case tCmnRtNm:
-        break; // Nothing to do here. Let each GNSS add its settings
+            break; // Nothing to do here. Let each GNSS add its settings
         case tCnRtRtB:
-        break; // Nothing to do here. Let each GNSS add its settings
+            break; // Nothing to do here. Let each GNSS add its settings
         case tCnRtRtR:
-        break; // Nothing to do here. Let each GNSS add its settings
+            break; // Nothing to do here. Let each GNSS add its settings
 
 #ifdef COMPILE_ZED
         case tUbxConst: {
@@ -3076,13 +3075,13 @@ void commandList(bool inCommands, int i)
     break;
 
     case tCmnCnst:
-    break; // Nothing to do here. Let each GNSS add its commands
+        break; // Nothing to do here. Let each GNSS add its commands
     case tCmnRtNm:
-    break; // Nothing to do here. Let each GNSS add its commands
+        break; // Nothing to do here. Let each GNSS add its commands
     case tCnRtRtB:
-    break; // Nothing to do here. Let each GNSS add its commands
+        break; // Nothing to do here. Let each GNSS add its commands
     case tCnRtRtR:
-    break; // Nothing to do here. Let each GNSS add its commands
+        break; // Nothing to do here. Let each GNSS add its commands
 
 #ifdef COMPILE_ZED
     case tUbxConst: {
@@ -3611,7 +3610,6 @@ bool commandIndexFill(bool usePossibleSettings)
     for (i = 1; i < COMMAND_COUNT; i++)
         commandIndex[commandCount++] = -i;
 
-    
     // Find "endOfPrioritySettings"
     int prioritySettingsEnd = 0;
     for (i = 0; i < numRtkSettingsEntries; i++)
@@ -3627,7 +3625,7 @@ bool commandIndexFill(bool usePossibleSettings)
     // If "endOfPrioritySettings" is not found, prioritySettingsEnd will be zero
     // and all settings will be sorted. Just like the good old days...
 
-    // Sort the commands - starting at 
+    // Sort the commands - starting at
     for (i = prioritySettingsEnd; i < commandCount - 1; i++)
     {
         iCommandName = commandGetName(0, commandIndex[i]);
