@@ -42,6 +42,8 @@ t_cliResult processCommand(char *cmdBuffer)
     // These commands are not part of the CLI and allow quick testing without validity check
     if ((strcmp(cmdBuffer, "x") == 0) || (strcmp(cmdBuffer, "exit") == 0))
     {
+        if (settings.debugCLI == true)
+            systemPrintln("Exiting CLI...");
         return (CLI_EXIT); // Exit command mode
     }
     else if (strcmp(cmdBuffer, "list") == 0)
@@ -536,6 +538,9 @@ int commandLookupSettingName(bool inCommands, const char *settingName, char *tru
     }
 
     // Command not found
+    if (settings.debugCLI == true)
+        systemPrintf("commandLookupSettingName: Command not found: %s\r\n", settingName);
+
     return COMMAND_UNKNOWN;
 }
 
@@ -852,7 +857,7 @@ SettingValueResponse updateSettingWithValue(bool inCommands, const char *setting
 
 #ifdef COMPILE_ZED
         case tUbxConst: {
-            // Covered by ttCmnCnst
+            // Covered by tCmnCnst
         }
         break;
         case tUbxMsgRt: {
@@ -2368,6 +2373,7 @@ SettingValueResponse getSettingValue(bool inCommands, const char *settingName, c
         qualifier = rtkSettingsEntries[i].qualifier;
         type = rtkSettingsEntries[i].type;
         var = rtkSettingsEntries[i].var;
+
         switch (type)
         {
         default:
@@ -2483,18 +2489,23 @@ SettingValueResponse getSettingValue(bool inCommands, const char *settingName, c
         }
         break;
 
-        case tCmnCnst:
-            break; // Nothing to do here. Let each GNSS add its settings
-        case tCmnRtNm:
-            break; // Nothing to do here. Let each GNSS add its settings
-        case tCnRtRtB:
-            break; // Nothing to do here. Let each GNSS add its settings
-        case tCnRtRtR:
-            break; // Nothing to do here. Let each GNSS add its settings
+        case tCmnCnst: {
+
+#ifdef COMPILE_MOSAICX5
+            for (int x = 0; x < MAX_MOSAIC_CONSTELLATIONS; x++)
+            {
+                if ((suffix[0] == mosaicSignalConstellations[x].configName[0]) &&
+                    (strcmp(suffix, mosaicSignalConstellations[x].configName) == 0))
+                {
+                    writeToString(settingValueStr, settings.mosaicConstellations[x]);
+                    knownSetting = true;
+                    break;
+                }
+            }
+#endif // COMPILE_MOSAICX5
 
 #ifdef COMPILE_ZED
-        case tUbxConst: {
-            for (int x = 0; x < qualifier; x++)
+            for (int x = 0; x < MAX_UBX_CONSTELLATIONS; x++)
             {
                 if ((suffix[0] == settings.ubxConstellations[x].textName[0]) &&
                     (strcmp(suffix, settings.ubxConstellations[x].textName) == 0))
@@ -2504,8 +2515,42 @@ SettingValueResponse getSettingValue(bool inCommands, const char *settingName, c
                     break;
                 }
             }
+#endif // COMPILE_ZED
+
+#ifdef COMPILE_UM980
+            for (int x = 0; x < MAX_UM980_CONSTELLATIONS; x++)
+            {
+                if ((suffix[0] == um980ConstellationCommands[x].textName[0]) &&
+                    (strcmp(suffix, um980ConstellationCommands[x].textName) == 0))
+                {
+                    writeToString(settingValueStr, settings.um980Constellations[x]);
+                    knownSetting = true;
+                    break;
+                }
+            }
+#endif // COMPILE_UM980
+
+#ifdef COMPILE_LG290P
+            for (int x = 0; x < qualifier; x++)
+            {
+                if ((suffix[0] == lg290pConstellationNames[x][0]) && (strcmp(suffix, lg290pConstellationNames[x]) == 0))
+                {
+                    writeToString(settingValueStr, settings.lg290pConstellations[x]);
+                    knownSetting = true;
+                    break;
+                }
+            }
+#endif // COMPILE_LG290P
         }
-        break;
+        break; // Nothing to do here. Let each GNSS add its settings
+        case tCmnRtNm:
+            break; // Nothing to do here. Let each GNSS add its settings
+        case tCnRtRtB:
+            break; // Nothing to do here. Let each GNSS add its settings
+        case tCnRtRtR:
+            break; // Nothing to do here. Let each GNSS add its settings
+
+#ifdef COMPILE_ZED
         case tUbxMsgRt: {
             for (int x = 0; x < qualifier; x++)
             {
@@ -2674,19 +2719,6 @@ SettingValueResponse getSettingValue(bool inCommands, const char *settingName, c
             }
         }
         break;
-        case tUmConst: {
-            for (int x = 0; x < qualifier; x++)
-            {
-                if ((suffix[0] == um980ConstellationCommands[x].textName[0]) &&
-                    (strcmp(suffix, um980ConstellationCommands[x].textName) == 0))
-                {
-                    writeToString(settingValueStr, settings.um980Constellations[x]);
-                    knownSetting = true;
-                    break;
-                }
-            }
-        }
-        break;
 #endif // COMPILE_UM980
 
         case tCorrSPri: {
@@ -2713,19 +2745,6 @@ SettingValueResponse getSettingValue(bool inCommands, const char *settingName, c
         break;
 
 #ifdef COMPILE_MOSAICX5
-        case tMosaicConst: {
-            for (int x = 0; x < qualifier; x++)
-            {
-                if ((suffix[0] == mosaicSignalConstellations[x].configName[0]) &&
-                    (strcmp(suffix, mosaicSignalConstellations[x].configName) == 0))
-                {
-                    writeToString(settingValueStr, settings.mosaicConstellations[x]);
-                    knownSetting = true;
-                    break;
-                }
-            }
-        }
-        break;
         case tMosaicMSNmea: {
             for (int x = 0; x < qualifier; x++)
             {
@@ -2856,18 +2875,7 @@ SettingValueResponse getSettingValue(bool inCommands, const char *settingName, c
             }
         }
         break;
-        case tLgConst: {
-            for (int x = 0; x < qualifier; x++)
-            {
-                if ((suffix[0] == lg290pConstellationNames[x][0]) && (strcmp(suffix, lg290pConstellationNames[x]) == 0))
-                {
-                    writeToString(settingValueStr, settings.lg290pConstellations[x]);
-                    knownSetting = true;
-                    break;
-                }
-            }
-        }
-        break;
+
 #endif // COMPILE_LG290P
 
         case tGnssReceiver: {
@@ -2958,7 +2966,7 @@ SettingValueResponse getSettingValue(bool inCommands, const char *settingName, c
 
     if (knownSetting == false)
     {
-        if (settings.debugWebServer)
+        if (settings.debugWebServer || settings.debugCLI)
             systemPrintf("getSettingValue() Unknown setting: %s\r\n", settingName);
     }
 
