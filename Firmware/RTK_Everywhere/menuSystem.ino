@@ -463,7 +463,7 @@ void menuDebugHardware()
         systemPrintf("%s\r\n", settings.enableImuCompensationDebug ? "Enabled" : "Disabled");
 
         // GNSS Firmware upgrades:
-        // On Torch:    we need a direct connection (passthrough) from USB to CH342 B to 
+        // On Torch:    we need a direct connection (passthrough) from USB to CH342 B to
         //              ESP32 UART0 to ESP32 UART1 to UM980 UART3 for firmware upgrade.
         // On Postcard: firmware can be updated over USB and the CH342 B connection to GNSS
         //              UART1. A hardware GNSS reset may be beneficial, but it is possible
@@ -515,6 +515,9 @@ void menuDebugHardware()
             systemPrintln("17) STM32 direct connect for LoRa firmware upgrade");
 
         systemPrintln("18) Display littleFS stats");
+
+        systemPrint("19) Print CLI Debugging: ");
+        systemPrintf("%s\r\n", settings.debugCLI ? "Enabled" : "Disabled");
 
         systemPrintln("e) Erase LittleFS");
 
@@ -587,7 +590,8 @@ void menuDebugHardware()
             else if (present.gnss_lg290p)
             {
                 systemPrintln();
-                systemPrintln("QGNSS must be connected to CH342 Port B at 460800bps. Begin firmware update from QGNSS (hit the play button) then reset the LG290P.");
+                systemPrintln("QGNSS must be connected to CH342 Port B at 460800bps. Begin firmware update from QGNSS "
+                              "(hit the play button) then reset the LG290P.");
                 gnssReset();
                 delay(100);
                 gnssBoot();
@@ -621,6 +625,10 @@ void menuDebugHardware()
         {
             systemPrintf("LittleFS total bytes: %d\r\n", LittleFS.totalBytes());
             systemPrintf("LittleFS used bytes: %d\r\n", LittleFS.usedBytes());
+        }
+        else if (incoming == 19)
+        {
+            settings.debugCLI ^= 1;
         }
 
         else if (incoming == 'e')
@@ -831,8 +839,7 @@ void menuDebugSoftware()
 
         systemPrintf("40) Print LittleFS and settings management: %s\r\n",
                      settings.debugSettings ? "Enabled" : "Disabled");
-        systemPrintf("41) Halt on ESP_RST_PANIC: %s\r\n",
-                     settings.haltOnPanic ? "Enabled" : "Disabled");
+        systemPrintf("41) Halt on ESP_RST_PANIC: %s\r\n", settings.haltOnPanic ? "Enabled" : "Disabled");
 
         // Tasks
         systemPrint("50) Task Highwater Reporting: ");

@@ -1100,6 +1100,7 @@ struct Settings
     bool debugSettings = false;
     bool enableNtripCaster = false; //When true, respond as a faux NTRIP Caster to incoming TCP connections
     bool baseCasterOverride = false; //When true, user has put device into 'BaseCast' mode. Change settings, but don't save to NVM.
+    bool debugCLI = false; //When true, output BLE CLI interactions over serial
 
     // Add new settings to appropriate group above or create new group
     // Then also add to the same group in rtkSettingsEntries below
@@ -1794,6 +1795,7 @@ const RTK_Settings_Entry rtkSettingsEntries[] =
     { 0, 0, 0, 1, 1, 1, 1, 1, 1, ALL, 1, _bool,     0, & settings.debugSettings, "debugSettings",  },
     { 1, 1, 0, 1, 1, 1, 1, 1, 1, ALL, 1, _bool,     0, & settings.enableNtripCaster, "enableNtripCaster",  },
     { 0, 1, 0, 1, 1, 1, 1, 1, 1, ALL, 1, _bool,     0, & settings.baseCasterOverride, "baseCasterOverride",  },
+    { 0, 1, 0, 1, 1, 1, 1, 1, 1, ALL, 1, _bool,     0, & settings.debugCLI, "debugCLI",  },
 
 
     // Add new settings to appropriate group above or create new group

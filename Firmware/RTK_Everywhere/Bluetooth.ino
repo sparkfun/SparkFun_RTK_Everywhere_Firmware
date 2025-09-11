@@ -261,6 +261,11 @@ void bluetoothProcessCommand(char *rxData)
     PrintEndpoint originalPrintEndpoint = printEndpoint;
 
     printEndpoint = PRINT_ENDPOINT_BLUETOOTH_COMMAND;
+    if (settings.debugCLI == true)
+        printEndpoint = PRINT_ENDPOINT_ALL;
+    else
+        printEndpoint = PRINT_ENDPOINT_BLUETOOTH_COMMAND;
+
     processCommand(rxData); // Send command proccesor output to BLE
     printEndpoint = originalPrintEndpoint;
 
@@ -384,9 +389,9 @@ void bluetoothFlush()
         bluetoothSerialBle->flush();
     else if (settings.bluetoothRadioType == BLUETOOTH_RADIO_SPP_ACCESSORY_MODE)
         bluetoothSerialSpp->flush(); // Needed? Not sure... TODO
-#else  // COMPILE_BT
+#else                                // COMPILE_BT
     return;
-#endif // COMPILE_BT
+#endif                               // COMPILE_BT
 }
 
 // Get MAC, start radio
@@ -510,7 +515,8 @@ void bluetoothStart()
         {
             // Support Apple Accessory
 
-            bluetoothSerialSpp->enableSSP(false, false); //Enable secure pairing, authenticate without displaying anything
+            bluetoothSerialSpp->enableSSP(false,
+                                          false); // Enable secure pairing, authenticate without displaying anything
 
             beginSuccess &= bluetoothSerialSpp->begin(
                 deviceName, true, true, settings.sppRxQueueSize, settings.sppTxQueueSize, 0, 0,
@@ -518,7 +524,7 @@ void bluetoothStart()
 
             if (beginSuccess)
             {
-                //bluetoothSerialSpp.getBtAddress(btMACAddress); // Read the ESP32 BT MAC Address
+                // bluetoothSerialSpp.getBtAddress(btMACAddress); // Read the ESP32 BT MAC Address
 
                 esp_sdp_init();
 
@@ -598,7 +604,7 @@ void bluetoothStart()
 
         if (pin_bluetoothStatusLED != PIN_UNDEFINED)
         {
-            bluetoothLedTask.detach();                                                  // Reset BT LED blinker task rate to 2Hz
+            bluetoothLedTask.detach(); // Reset BT LED blinker task rate to 2Hz
             bluetoothLedTask.attach(bluetoothLedTaskPace2Hz, tickerBluetoothLedUpdate); // Rate in seconds, callback
         }
 
@@ -608,11 +614,11 @@ void bluetoothStart()
         {
             if (bluetoothCommandTaskHandle == nullptr)
                 xTaskCreatePinnedToCore(
-                    bluetoothCommandTask,              // Function to run
-                    "BluetoothCommandTask",            // Just for humans
-                    4000,                              // Stack Size - must be ~4000
-                    nullptr,                           // Task input parameter
-                    0,                                 // Priority, with 3 (configMAX_PRIORITIES - 1) being the highest, and 0 being the lowest
+                    bluetoothCommandTask,   // Function to run
+                    "BluetoothCommandTask", // Just for humans
+                    4000,                   // Stack Size - must be ~4000
+                    nullptr,                // Task input parameter
+                    0, // Priority, with 3 (configMAX_PRIORITIES - 1) being the highest, and 0 being the lowest
                     &bluetoothCommandTaskHandle,       // Task handle
                     settings.bluetoothInterruptsCore); // Core where task should run, 0 = core, 1 = Arduino
         }
