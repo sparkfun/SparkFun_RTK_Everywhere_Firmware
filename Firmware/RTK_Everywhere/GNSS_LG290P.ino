@@ -1241,6 +1241,10 @@ uint32_t GNSS_LG290P::getDataBaudRate()
         // This is nicknamed the DATA port
         dataUart = 3;
     }
+    else
+    {
+        systemPrintln("getDataBaudRate: Uncaught platform");
+    }
     return (getBaudRate(dataUart));
 }
 
@@ -1263,20 +1267,20 @@ bool GNSS_LG290P::setDataBaudRate(uint32_t baud)
                 // This is nicknamed the DATA port
                 return (setBaudRate(1, baud));
             }
-        }
-        else if (productVariant == RTK_TORCH_X2)
-        {
-            if (getDataBaudRate() != baud)
+            else if (productVariant == RTK_TORCH_X2)
             {
-                // UART3 of the LG290P is connected to USB CH342 (Port A)
-                // This is nicknamed the DATA port
-                return (setBaudRate(3, baud));
+                if (getDataBaudRate() != baud)
+                {
+                    // UART3 of the LG290P is connected to USB CH342 (Port A)
+                    // This is nicknamed the DATA port
+                    return (setBaudRate(3, baud));
+                }
             }
-        }
-        else
-        {
-            // On products that don't have a DATA port (Flex), act as if we have set the baud successfully
-            return (true);
+            else
+            {
+                // On products that don't have a DATA port (Flex), act as if we have set the baud successfully
+                return (true);
+            }
         }
     }
     return (false);
@@ -1948,9 +1952,9 @@ void GNSS_LG290P::menuMessages()
 
             setRtcmRoverMessageRates(0); // Turn off all RTCM messages
             setRtcmRoverMessageRateByName("RTCM3-1019", rtcmReportRate);
-            setRtcmRoverMessageRateByName("RTCM3-1020", rtcmReportRate); //Not needed when MSM7 is used
+            // setRtcmRoverMessageRateByName("RTCM3-1020", rtcmReportRate); //Not needed when MSM7 is used
             // setRtcmRoverMessageRateByName("RTCM3-1042", rtcmReportRate); //BeiDou not used by CSRS-PPP
-            setRtcmRoverMessageRateByName("RTCM3-1046", rtcmReportRate); //Not needed when MSM7 is used
+            // setRtcmRoverMessageRateByName("RTCM3-1046", rtcmReportRate); //Not needed when MSM7 is used
             setRtcmRoverMessageRateByName("RTCM3-107X", rtcmReportRate);
             setRtcmRoverMessageRateByName("RTCM3-108X", rtcmReportRate);
             setRtcmRoverMessageRateByName("RTCM3-109X", rtcmReportRate);
