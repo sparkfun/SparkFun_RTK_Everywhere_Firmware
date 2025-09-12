@@ -376,7 +376,7 @@ void muxSelectLoRaConfigure()
 
 void loraEnterBootloader()
 {
-    if (productVariant == RTK_TORCH)
+    if (productVariant == RTK_TORCH || productVariant == RTK_TORCH_X2)
         digitalWrite(pin_loraRadio_boot, HIGH); // Enter bootload mode
     else if (productVariant == RTK_FLEX)
         gpioExpanderLoraBootEnable();
@@ -386,7 +386,7 @@ void loraEnterBootloader()
 
 void loraExitBootloader()
 {
-    if (productVariant == RTK_TORCH)
+    if (productVariant == RTK_TORCH || productVariant == RTK_TORCH_X2)
         digitalWrite(pin_loraRadio_boot, LOW); // Exit bootload mode
     else if (productVariant == RTK_FLEX)
         gpioExpanderLoraBootDisable();
@@ -396,7 +396,7 @@ void loraExitBootloader()
 
 void loraReset()
 {
-    if (productVariant == RTK_TORCH)
+    if (productVariant == RTK_TORCH || productVariant == RTK_TORCH_X2)
     {
         digitalWrite(pin_loraRadio_reset, LOW); // Reset STM32/radio
         delay(15);
@@ -422,7 +422,7 @@ void loraPowerOn()
 
 void loraPowerOff()
 {
-    if (productVariant == RTK_TORCH)
+    if (productVariant == RTK_TORCH || productVariant == RTK_TORCH_X2)
         digitalWrite(pin_loraRadio_power, LOW); // Power off STM32/radio
     else if (productVariant == RTK_FLEX)
         gpioExpanderLoraDisable();
@@ -430,7 +430,7 @@ void loraPowerOff()
 
 bool loraIsOn()
 {
-    if (productVariant == RTK_TORCH)
+    if (productVariant == RTK_TORCH || productVariant == RTK_TORCH_X2)
     {
         if (digitalRead(pin_loraRadio_power) == HIGH)
             return (true);
@@ -809,7 +809,7 @@ void loraProcessRTCM(uint8_t *rtcmData, uint16_t dataLength)
     if (loraState == LORA_TX)
     {
         // Only needed for Torch. Flex has GNSS tied directly to LoRa.
-        if (productVariant == RTK_TORCH)
+        if (productVariant == RTK_TORCH || productVariant == RTK_TORCH_X2)
         {
             // Send this data to the LoRa radio
 

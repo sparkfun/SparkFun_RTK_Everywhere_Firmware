@@ -480,7 +480,7 @@ void gnssReadTask(void *e)
         // to add extra checks, above and beyond the invalidDataCallback, to make sure that doesn't happen.
         // Here we check that the SBF ID and length are expected / valid too.
         //
-        // For Facet Flex mosaic, we need the SBF parser but not the SPARTN parser
+        // For Flex mosaic, we need the SBF parser but not the SPARTN parser
 
         if (gnss->isBlocking() == false)
         {
@@ -1873,7 +1873,7 @@ void tickerGnssLedUpdate()
     ledCallCounter++;
     ledCallCounter %= gnssTaskUpdatesHz; // Wrap to X calls per 1 second
 
-    if (productVariant == RTK_TORCH)
+    if (productVariant == RTK_TORCH || productVariant == RTK_TORCH_X2)
     {
         // Update the GNSS LED according to our state
 
@@ -1897,7 +1897,7 @@ void tickerBatteryLedUpdate()
     batteryCallCounter++;
     batteryCallCounter %= batteryTaskUpdatesHz; // Wrap to X calls per 1 second
 
-    if (productVariant == RTK_TORCH)
+    if (productVariant == RTK_TORCH || productVariant == RTK_TORCH_X2)
     {
         // Update the Battery LED according to the battery level
 

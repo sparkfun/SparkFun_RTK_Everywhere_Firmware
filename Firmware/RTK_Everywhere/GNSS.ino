@@ -88,7 +88,7 @@ static void pushGPGGA(char *ggaData)
 {
     static char storedGPGGA[100];
 
-    static SemaphoreHandle_t reentrant = xSemaphoreCreateMutex();  // Create the mutex
+    static SemaphoreHandle_t reentrant = xSemaphoreCreateMutex(); // Create the mutex
 
     if (xSemaphoreTake(reentrant, 10 / portTICK_PERIOD_MS) == pdPASS)
     {
@@ -142,9 +142,9 @@ void gnssDetectReceiverType()
 
     // TODO remove after testing, force retest on each boot
     // Note: with this in place, the X5 detection will take a lot longer due to the baud rate change
-#ifndef NOT_FACET_FLEX
+#ifdef FLEX_OVERRIDE
     systemPrintln("<<<<<<<<<< !!!!!!!!!! FLEX FORCED !!!!!!!!!! >>>>>>>>>>");
-    //settings.detectedGnssReceiver = GNSS_RECEIVER_UNKNOWN; // This may be causing weirdness on the LG290P. Commenting for now
+    // settings.detectedGnssReceiver = GNSS_RECEIVER_UNKNOWN; // This may be causing weirdness on the LG290P. Commenting for now
 #endif
 
     // Start auto-detect if NVM is not yet set
@@ -152,7 +152,8 @@ void gnssDetectReceiverType()
     {
         // The COMPILE guards prevent else if
         // Use a do while (0) so we can break when GNSS is detected
-        do {
+        do
+        {
 #ifdef COMPILE_LG290P
             if (lg290pIsPresent() == true)
             {
@@ -174,7 +175,7 @@ void gnssDetectReceiverType()
                 break;
             }
 #else  // COMPILE_MOSAICX5
-                systemPrintln("<<<<<<<<<< !!!!!!!!!! MOSAICX5 NOT COMPILED !!!!!!!!!! >>>>>>>>>>");
+            systemPrintln("<<<<<<<<<< !!!!!!!!!! MOSAICX5 NOT COMPILED !!!!!!!!!! >>>>>>>>>>");
 #endif // COMPILE_MOSAICX5
         } while (0);
     }
@@ -221,6 +222,10 @@ void gnssBoot()
     {
         digitalWrite(pin_GNSS_DR_Reset, HIGH); // Tell UM980 and DR to boot
     }
+    else if (productVariant == RTK_TORCH_X2)
+    {
+        digitalWrite(pin_GNSS_DR_Reset, HIGH); // Tell LG290P to boot
+    }
     else if (productVariant == RTK_FLEX)
     {
         gpioExpanderGnssBoot(); // Drive the GNSS reset pin high
@@ -237,6 +242,10 @@ void gnssReset()
     if (productVariant == RTK_TORCH)
     {
         digitalWrite(pin_GNSS_DR_Reset, LOW); // Tell UM980 and DR to reset
+    }
+    else if (productVariant == RTK_TORCH_X2)
+    {
+        digitalWrite(pin_GNSS_Reset, LOW); // Tell LG290P to reset
     }
     else if (productVariant == RTK_FLEX)
     {
@@ -315,9 +324,10 @@ void gnssFirmwareBeginUpdate()
 
     systemPrintln();
     systemPrintf("Entering GNSS direct connect for firmware update and configuration. Disconnect this terminal "
-                  "connection. Use the GNSS manufacturer software "
-                  "to update the firmware. Baudrate: %dbps. Press the %s button to return "
-                  "to normal operation.\r\n", serialBaud, present.button_mode ? "mode" : "power");
+                 "connection. Use the GNSS manufacturer software "
+                 "to update the firmware. Baudrate: %dbps. Press the %s button to return "
+                 "to normal operation.\r\n",
+                 serialBaud, present.button_mode ? "mode" : "power");
     systemFlush();
 
     Serial.end(); // We must end before we begin otherwise the UART settings are corrupted
@@ -347,25 +357,25 @@ void gnssFirmwareBeginUpdate()
             Serial.write(serialGNSS->read());
 
         // Button task will gnssFirmwareRemoveUpdate and restart
-        
+
         // Temporary fix for buttonless Flex. TODO - remove
         if ((productVariant == RTK_FLEX) && (millis() > (lastSerial + 30000)))
         {
-                // Beep to indicate exit
-                beepOn();
-                delay(300);
-                beepOff();
-                delay(100);
-                beepOn();
-                delay(300);
-                beepOff();
+            // Beep to indicate exit
+            beepOn();
+            delay(300);
+            beepOff();
+            delay(100);
+            beepOn();
+            delay(300);
+            beepOff();
 
-                gnssFirmwareRemoveUpdate();
+            gnssFirmwareRemoveUpdate();
 
-                systemPrintln("Exiting direct connection (passthrough) mode");
-                systemFlush(); // Complete prints
+            systemPrintln("Exiting direct connection (passthrough) mode");
+            systemFlush(); // Complete prints
 
-                ESP.restart();
+            ESP.restart();
         }
     }
 }

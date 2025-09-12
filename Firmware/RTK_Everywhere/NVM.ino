@@ -228,7 +228,7 @@ void recordSystemSettingsToFile(File *settingsFile)
     {
         // Do not record this setting if it is not supported by the current platform
         // But oh what a tangled web we weave...
-        // Thanks to Facet Flex, initially we should be saving all possible settings.
+        // Thanks to Flex, initially we should be saving all possible settings.
         // Later, once we know what Flex GNSS is present, we save only the available
         // settings for that platform. Passing usePossibleSettings in as a parameter
         // would be messy. So, we'll use a global flag which is updated by commandIndexFill
@@ -1247,7 +1247,7 @@ bool parseLine(char *str)
                         break;
                     }
                 }
-#endif
+#endif // COMPILE_MOSAICX5
 #ifdef COMPILE_ZED
                 for (int x = 0; x < MAX_UBX_CONSTELLATIONS; x++)
                 {
@@ -1259,7 +1259,7 @@ bool parseLine(char *str)
                         break;
                     }
                 }
-#endif
+#endif // COMPILE_ZED
 #ifdef COMPILE_UM980
                 for (int x = 0; x < MAX_UM980_CONSTELLATIONS; x++)
                 {
@@ -1271,7 +1271,7 @@ bool parseLine(char *str)
                         break;
                     }
                 }
-#endif
+#endif // COMPILE_UM980
 #ifdef COMPILE_LG290P
                 for (int x = 0; x < MAX_LG290P_CONSTELLATIONS; x++)
                 {
@@ -1310,8 +1310,8 @@ bool parseLine(char *str)
                         break;
                     }
                 }
+#endif // COMPILE_LG290P
             }
-#endif
             break;
             case tCnRtRtB: {
 #ifdef COMPILE_UM980
@@ -1337,8 +1337,8 @@ bool parseLine(char *str)
                         break;
                     }
                 }
+#endif // COMPILE_LG290P
             }
-#endif
             break;
             case tCnRtRtR: {
 #ifdef COMPILE_UM980
@@ -1364,8 +1364,8 @@ bool parseLine(char *str)
                         break;
                     }
                 }
+#endif // COMPILE_LG290P
             }
-#endif
             break;
 
 #ifdef COMPILE_ZED

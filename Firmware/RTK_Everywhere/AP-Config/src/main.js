@@ -308,6 +308,47 @@ function parseIncoming(msg) {
                 newOption = new Option('921600', '921600');
                 select.add(newOption, undefined);
             }
+            else if (platformPrefix == "Torch X2") {
+                show("baseConfig");
+                show("ppConfig");
+                hide("ethernetConfig");
+                hide("ntpConfig");
+                show("portsConfig");
+
+                // No RADIO port on Torch X2
+                // No DATA port on Torch X2
+                hide("externalPortOptions");
+
+                hide("logToSDCard"); //No SD card on Torch
+
+                hide("constellationSbas"); //Not supported on LG290P
+                show("constellationNavic"); 
+                hide("galileoHasSetting"); //Not supported on LG290P
+                hide("tiltConfig"); //Not supported on Torch X2
+
+                show("measurementRateInput");
+
+                hide("mosaicNMEAStreamDropdowns");
+                show("surveyInSettings");
+
+                hide("useEnableExtCorrRadio"); //No External Radio connector on Torch X2
+                hide("extCorrRadioSPARTNSourceDropdown");
+                hide("enableNmeaOnRadio");
+
+                hide("dynamicModelDropdown"); //Not supported on LG290P
+                hide("minElevConfig"); //Not supported on LG290P
+                hide("minCNOConfig"); //Not supported on LG290P
+
+                ge("rtcmRateInfoText").setAttribute('data-bs-original-title', 'RTCM is transmitted by the base at a default of 1Hz for messages 1005, 1074, 1084, 1094, 1124, and 0.1Hz for 1033. This can be lowered for radios with low bandwidth or tailored to transmit any/all RTCM messages. Limits: 0 to 20. Note: The measurement rate is overridden to 1Hz when in Base mode.');
+
+                select = ge("pointPerfectService");
+                newOption = new Option('Disabled', '0');
+                select.add(newOption, undefined);
+                newOption = new Option('Flex NTRIP/RTCM', '1');
+                select.add(newOption, undefined);
+                newOption = new Option('Flex MQTT (Deprecated)', '5');
+                select.add(newOption, undefined);
+            }
         }
         else if (id.includes("gnssFirmwareVersionInt")) {
             //Modify settings due to firmware limitations

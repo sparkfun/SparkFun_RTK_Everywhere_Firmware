@@ -42,6 +42,8 @@ t_cliResult processCommand(char *cmdBuffer)
     // These commands are not part of the CLI and allow quick testing without validity check
     if ((strcmp(cmdBuffer, "x") == 0) || (strcmp(cmdBuffer, "exit") == 0))
     {
+        if (settings.debugCLI == true)
+            systemPrintln("Exiting CLI...");
         return (CLI_EXIT); // Exit command mode
     }
     else if (strcmp(cmdBuffer, "list") == 0)
@@ -492,13 +494,29 @@ void commandSplitName(const char *settingName, char *truncatedName, int truncate
 }
 
 // Using the settingName string, return the index of the setting within command array
+int commandLookupSettingNameAfterPriority(bool inCommands, const char *settingName, char *truncatedName, int truncatedNameLen,
+                             char *suffix, int suffixLen)
+{
+    return commandLookupSettingNameSelective(inCommands, settingName, truncatedName, truncatedNameLen, suffix, suffixLen, true);
+}
 int commandLookupSettingName(bool inCommands, const char *settingName, char *truncatedName, int truncatedNameLen,
                              char *suffix, int suffixLen)
 {
+    return commandLookupSettingNameSelective(inCommands, settingName, truncatedName, truncatedNameLen, suffix, suffixLen, false);
+}
+int commandLookupSettingNameSelective(bool inCommands, const char *settingName, char *truncatedName, int truncatedNameLen,
+                             char *suffix, int suffixLen, bool usePrioritySettingsEnd)
+{
     const char *command;
 
-    // Loop through the valid command entries
-    for (int i = 0; i < commandCount; i++)
+    int prioritySettingsEnd = 0;
+    if (usePrioritySettingsEnd)
+        // Find "endOfPrioritySettings"
+        prioritySettingsEnd = findEndOfPrioritySettings();
+        // If "endOfPrioritySettings" is not found, prioritySettingsEnd will be zero
+
+    // Loop through the valid command entries - starting at prioritySettingsEnd
+    for (int i = prioritySettingsEnd; i < commandCount; i++)
     {
         // Verify that this command does not get split
         if ((commandIndex[i] >= 0) && (!rtkSettingsEntries[commandIndex[i]].useSuffix) &&
@@ -518,9 +536,10 @@ int commandLookupSettingName(bool inCommands, const char *settingName, char *tru
     commandSplitName(settingName, truncatedName, truncatedNameLen, suffix, suffixLen);
 
     // Loop through the settings entries
+    // This could be speeded up by
     // E.g. by storing the previous value of i and starting there.
     // Most of the time, the match will be i+1.
-    for (int i = 0; i < commandCount; i++)
+    for (int i = prioritySettingsEnd; i < commandCount; i++)
     {
         // Verify that this command gets split
         if ((commandIndex[i] >= 0) && rtkSettingsEntries[commandIndex[i]].useSuffix)
@@ -536,6 +555,9 @@ int commandLookupSettingName(bool inCommands, const char *settingName, char *tru
     }
 
     // Command not found
+    if (settings.debugCLI == true)
+        systemPrintf("commandLookupSettingName: Command not found: %s\r\n", settingName);
+
     return COMMAND_UNKNOWN;
 }
 
@@ -729,7 +751,7 @@ SettingValueResponse updateSettingWithValue(bool inCommands, const char *setting
                     break;
                 }
             }
-#endif
+#endif // COMPILE_MOSAICX5
 #ifdef COMPILE_ZED
             for (int x = 0; x < MAX_UBX_CONSTELLATIONS; x++)
             {
@@ -741,7 +763,7 @@ SettingValueResponse updateSettingWithValue(bool inCommands, const char *setting
                     break;
                 }
             }
-#endif
+#endif // COMPILE_ZED
 #ifdef COMPILE_UM980
             for (int x = 0; x < MAX_UM980_CONSTELLATIONS; x++)
             {
@@ -753,12 +775,11 @@ SettingValueResponse updateSettingWithValue(bool inCommands, const char *setting
                     break;
                 }
             }
-#endif
+#endif // COMPILE_UM980
 #ifdef COMPILE_LG290P
             for (int x = 0; x < MAX_LG290P_CONSTELLATIONS; x++)
             {
-                if ((suffix[0] == lg290pConstellationNames[x][0]) &&
-                    (strcmp(suffix, lg290pConstellationNames[x]) == 0))
+                if ((suffix[0] == lg290pConstellationNames[x][0]) && (strcmp(suffix, lg290pConstellationNames[x]) == 0))
                 {
                     settings.lg290pConstellations[x] = settingValue;
                     knownSetting = true;
@@ -768,6 +789,7 @@ SettingValueResponse updateSettingWithValue(bool inCommands, const char *setting
 #endif // COMPILE_LG290P
         }
         break;
+
         case tCmnRtNm: {
 #ifdef COMPILE_UM980
             for (int x = 0; x < MAX_UM980_NMEA_MSG; x++)
@@ -780,7 +802,7 @@ SettingValueResponse updateSettingWithValue(bool inCommands, const char *setting
                     break;
                 }
             }
-#endif
+#endif // COMPILE_UM980
 #ifdef COMPILE_LG290P
             for (int x = 0; x < MAX_LG290P_NMEA_MSG; x++)
             {
@@ -792,8 +814,8 @@ SettingValueResponse updateSettingWithValue(bool inCommands, const char *setting
                     break;
                 }
             }
+#endif // COMPILE_LG290P
         }
-#endif
         break;
         case tCnRtRtB: {
 #ifdef COMPILE_UM980
@@ -807,7 +829,7 @@ SettingValueResponse updateSettingWithValue(bool inCommands, const char *setting
                     break;
                 }
             }
-#endif
+#endif // COMPILE_UM980
 #ifdef COMPILE_LG290P
             for (int x = 0; x < MAX_LG290P_RTCM_MSG; x++)
             {
@@ -819,8 +841,8 @@ SettingValueResponse updateSettingWithValue(bool inCommands, const char *setting
                     break;
                 }
             }
+#endif // COMPILE_LG290P
         }
-#endif
         break;
         case tCnRtRtR: {
 #ifdef COMPILE_UM980
@@ -834,7 +856,7 @@ SettingValueResponse updateSettingWithValue(bool inCommands, const char *setting
                     break;
                 }
             }
-#endif
+#endif // COMPILE_UM980
 #ifdef COMPILE_LG290P
             for (int x = 0; x < MAX_LG290P_RTCM_MSG; x++)
             {
@@ -846,13 +868,13 @@ SettingValueResponse updateSettingWithValue(bool inCommands, const char *setting
                     break;
                 }
             }
+#endif // COMPILE_LG290P
         }
-#endif
         break;
 
 #ifdef COMPILE_ZED
         case tUbxConst: {
-            // Covered by ttCmnCnst
+            // Covered by tCmnCnst
         }
         break;
         case tUbxMsgRt: {
@@ -1614,15 +1636,15 @@ void createSettingsString(char *newSettings)
             break;
 
             case tCmnCnst:
-            break; // Nothing to do here. Let each GNSS add its settings
+                break; // Nothing to do here. Let each GNSS add its settings
             case tCmnRtNm:
-            break; // Nothing to do here. Let each GNSS add its settings
+                break; // Nothing to do here. Let each GNSS add its settings
             case tCnRtRtB:
-            break; // Nothing to do here. Let each GNSS add its settings
+                break; // Nothing to do here. Let each GNSS add its settings
             case tCnRtRtR:
-            break; // Nothing to do here. Let each GNSS add its settings
+                break; // Nothing to do here. Let each GNSS add its settings
 
-    #ifdef COMPILE_ZED
+#ifdef COMPILE_ZED
             case tUbxConst: {
                 // Record constellation settings
                 for (int x = 0; x < rtkSettingsEntries[i].qualifier; x++)
@@ -2359,8 +2381,8 @@ SettingValueResponse getSettingValue(bool inCommands, const char *settingName, c
     bool settingIsString = false; // Goes true when setting needs to be surrounded by quotes during command response.
                                   // Generally char arrays but some others.
 
-    // Loop through the valid command entries
-    i = commandLookupSettingName(inCommands, settingName, truncatedName, sizeof(truncatedName), suffix, sizeof(suffix));
+    // Loop through the valid command entries - but skip the priority settings and use the GNSS-specific types
+    i = commandLookupSettingNameAfterPriority(inCommands, settingName, truncatedName, sizeof(truncatedName), suffix, sizeof(suffix));
 
     // Determine if settingName is in the command table
     if (i >= 0)
@@ -2368,6 +2390,7 @@ SettingValueResponse getSettingValue(bool inCommands, const char *settingName, c
         qualifier = rtkSettingsEntries[i].qualifier;
         type = rtkSettingsEntries[i].type;
         var = rtkSettingsEntries[i].var;
+
         switch (type)
         {
         default:
@@ -2483,14 +2506,14 @@ SettingValueResponse getSettingValue(bool inCommands, const char *settingName, c
         }
         break;
 
-        case tCmnCnst:
-        break; // Nothing to do here. Let each GNSS add its settings
+         case tCmnCnst:
+            break; // Nothing to do here. Let each GNSS add its settings
         case tCmnRtNm:
-        break; // Nothing to do here. Let each GNSS add its settings
+            break; // Nothing to do here. Let each GNSS add its settings
         case tCnRtRtB:
-        break; // Nothing to do here. Let each GNSS add its settings
+            break; // Nothing to do here. Let each GNSS add its settings
         case tCnRtRtR:
-        break; // Nothing to do here. Let each GNSS add its settings
+            break; // Nothing to do here. Let each GNSS add its settings
 
 #ifdef COMPILE_ZED
         case tUbxConst: {
@@ -2958,7 +2981,7 @@ SettingValueResponse getSettingValue(bool inCommands, const char *settingName, c
 
     if (knownSetting == false)
     {
-        if (settings.debugWebServer)
+        if (settings.debugWebServer || settings.debugCLI)
             systemPrintf("getSettingValue() Unknown setting: %s\r\n", settingName);
     }
 
@@ -3075,13 +3098,13 @@ void commandList(bool inCommands, int i)
     break;
 
     case tCmnCnst:
-    break; // Nothing to do here. Let each GNSS add its commands
+        break; // Nothing to do here. Let each GNSS add its commands
     case tCmnRtNm:
-    break; // Nothing to do here. Let each GNSS add its commands
+        break; // Nothing to do here. Let each GNSS add its commands
     case tCnRtRtB:
-    break; // Nothing to do here. Let each GNSS add its commands
+        break; // Nothing to do here. Let each GNSS add its commands
     case tCnRtRtR:
-    break; // Nothing to do here. Let each GNSS add its commands
+        break; // Nothing to do here. Let each GNSS add its commands
 
 #ifdef COMPILE_ZED
     case tUbxConst: {
@@ -3504,6 +3527,8 @@ bool settingAvailableOnPlatform(int i)
             if ((rtkSettingsEntries[i].platFlex == MX5) && (settings.detectedGnssReceiver == GNSS_RECEIVER_MOSAIC_X5))
                 break;
         }
+        if ((productVariant == RTK_TORCH_X2) && rtkSettingsEntries[i].platTorchX2)
+            break;
         return false;
     } while (0);
     return true;
@@ -3529,9 +3554,27 @@ bool settingPossibleOnPlatform(int i)
             break;
         if ((productVariant == RTK_FLEX) && (rtkSettingsEntries[i].platFlex > NON))
             break;
+        if ((productVariant == RTK_TORCH_X2) && rtkSettingsEntries[i].platTorchX2)
+            break;
         return false;
     } while (0);
     return true;
+}
+
+int findEndOfPrioritySettings()
+{
+    // Find "endOfPrioritySettings"
+    int prioritySettingsEnd = 0;
+    for (int i = 0; i < numRtkSettingsEntries; i++)
+    {
+        if (strcmp(rtkSettingsEntries[i].name, "endOfPrioritySettings") == 0)
+        {
+            prioritySettingsEnd = i;
+            break;
+        }
+    }
+    // If "endOfPrioritySettings" is not found, prioritySettingsEnd will be zero
+    return prioritySettingsEnd;
 }
 
 // Allocate and fill the commandIndex table
@@ -3606,23 +3649,20 @@ bool commandIndexFill(bool usePossibleSettings)
     for (i = 1; i < COMMAND_COUNT; i++)
         commandIndex[commandCount++] = -i;
 
-    
     // Find "endOfPrioritySettings"
-    int prioritySettingsEnd = 0;
-    for (i = 0; i < numRtkSettingsEntries; i++)
-    {
-        if (strcmp(rtkSettingsEntries[i].name, "endOfPrioritySettings") == 0)
-        {
-            prioritySettingsEnd = i;
-            if (settings.debugSettings)
-                systemPrintf("endOfPrioritySettings found at entry %d\r\n", prioritySettingsEnd);
-            break;
-        }
-    }
+    int prioritySettingsEnd = findEndOfPrioritySettings();
     // If "endOfPrioritySettings" is not found, prioritySettingsEnd will be zero
     // and all settings will be sorted. Just like the good old days...
 
-    // Sort the commands - starting at 
+    if (settings.debugSettings)
+    {
+        if (prioritySettingsEnd > 0)
+            systemPrintf("endOfPrioritySettings found at entry %d\r\n", prioritySettingsEnd);
+        else
+            systemPrintln("endOfPrioritySettings not found!");
+    }
+
+    // Sort the commands - starting at prioritySettingsEnd
     for (i = prioritySettingsEnd; i < commandCount - 1; i++)
     {
         iCommandName = commandGetName(0, commandIndex[i]);
