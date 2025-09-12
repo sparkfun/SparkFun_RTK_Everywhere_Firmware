@@ -751,7 +751,7 @@ SettingValueResponse updateSettingWithValue(bool inCommands, const char *setting
                     break;
                 }
             }
-#endif
+#endif // COMPILE_MOSAICX5
 #ifdef COMPILE_ZED
             for (int x = 0; x < MAX_UBX_CONSTELLATIONS; x++)
             {
@@ -763,7 +763,7 @@ SettingValueResponse updateSettingWithValue(bool inCommands, const char *setting
                     break;
                 }
             }
-#endif
+#endif // COMPILE_ZED
 #ifdef COMPILE_UM980
             for (int x = 0; x < MAX_UM980_CONSTELLATIONS; x++)
             {
@@ -775,7 +775,7 @@ SettingValueResponse updateSettingWithValue(bool inCommands, const char *setting
                     break;
                 }
             }
-#endif
+#endif // COMPILE_UM980
 #ifdef COMPILE_LG290P
             for (int x = 0; x < MAX_LG290P_CONSTELLATIONS; x++)
             {
@@ -802,7 +802,7 @@ SettingValueResponse updateSettingWithValue(bool inCommands, const char *setting
                     break;
                 }
             }
-#endif
+#endif // COMPILE_UM980
 #ifdef COMPILE_LG290P
             for (int x = 0; x < MAX_LG290P_NMEA_MSG; x++)
             {
@@ -829,7 +829,7 @@ SettingValueResponse updateSettingWithValue(bool inCommands, const char *setting
                     break;
                 }
             }
-#endif
+#endif // COMPILE_UM980
 #ifdef COMPILE_LG290P
             for (int x = 0; x < MAX_LG290P_RTCM_MSG; x++)
             {
@@ -856,7 +856,7 @@ SettingValueResponse updateSettingWithValue(bool inCommands, const char *setting
                     break;
                 }
             }
-#endif
+#endif // COMPILE_UM980
 #ifdef COMPILE_LG290P
             for (int x = 0; x < MAX_LG290P_RTCM_MSG; x++)
             {
