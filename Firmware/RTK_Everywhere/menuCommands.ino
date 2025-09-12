@@ -515,6 +515,9 @@ int commandLookupSettingNameSelective(bool inCommands, const char *settingName, 
         prioritySettingsEnd = findEndOfPrioritySettings();
         // If "endOfPrioritySettings" is not found, prioritySettingsEnd will be zero
 
+    // Remove one because while rtkSettingsEntries[] contains detectedGnssReceiver, the command table does not
+    prioritySettingsEnd--;
+
     // Loop through the valid command entries - starting at prioritySettingsEnd
     for (int i = prioritySettingsEnd; i < commandCount; i++)
     {
