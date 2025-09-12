@@ -1353,7 +1353,7 @@ SettingValueResponse updateSettingWithValue(bool inCommands, const char *setting
     }
     else if (strcmp(settingName, "forgetEspNowPeers") == 0)
     {
-        // Forget all ESP-Now Peers
+        // Forget all ESP-NOW Peers
         for (int x = 0; x < settings.espnowPeerCount; x++)
             espNowRemovePeer(settings.espnowPeers[x]);
         settings.espnowPeerCount = 0;
@@ -1691,7 +1691,7 @@ void createSettingsString(char *newSettings)
 #endif // COMPILE_ZED
 
             case tEspNowPr: {
-                // Record ESP-Now peer MAC addresses
+                // Record ESP-NOW peer MAC addresses
                 for (int x = 0; x < rtkSettingsEntries[i].qualifier; x++)
                 {
                     char tempString[50]; // espnowPeers_1=B4:C1:33:42:DE:01,
@@ -2116,7 +2116,7 @@ void createSettingsString(char *newSettings)
     stringRecord(newSettings, "ecefY", ecefY, 3);
     stringRecord(newSettings, "ecefZ", ecefZ, 3);
 
-    // Radio / ESP-Now settings
+    // Radio / ESP-NOW settings
     char radioMAC[18]; // Send radio MAC
     snprintf(radioMAC, sizeof(radioMAC), "%02X:%02X:%02X:%02X:%02X:%02X", wifiMACAddress[0], wifiMACAddress[1],
              wifiMACAddress[2], wifiMACAddress[3], wifiMACAddress[4], wifiMACAddress[5]);
@@ -3154,7 +3154,7 @@ void commandList(bool inCommands, int i)
 #endif // COMPILE_ZED
 
     case tEspNowPr: {
-        // Record ESP-Now peer MAC addresses
+        // Record ESP-NOW peer MAC addresses
         for (int x = 0; x < rtkSettingsEntries[i].qualifier; x++)
         {
             snprintf(settingType, sizeof(settingType), "uint8_t[%d]", sizeof(settings.espnowPeers[0]));

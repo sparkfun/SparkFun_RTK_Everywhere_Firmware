@@ -662,7 +662,7 @@ class GNSS_ZED : GNSS
 
     uint16_t rtcmBufferAvailable();
 
-    // If L-Band is available, but encrypted, allow RTCM through other sources (radio, ESP-Now) to GNSS receiver
+    // If L-Band is available, but encrypted, allow RTCM through other sources (radio, ESP-NOW) to GNSS receiver
     void rtcmOnGnssDisable();
 
     // If LBand is being used, ignore any RTCM that may come in from the GNSS

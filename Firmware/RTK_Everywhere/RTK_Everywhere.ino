@@ -95,7 +95,7 @@
 
 #ifdef COMPILE_WIFI
 #define COMPILE_AP     // Requires WiFi. Comment out to remove Access Point functionality
-#define COMPILE_ESPNOW // Requires WiFi. Comment out to remove ESP-Now functionality.
+#define COMPILE_ESPNOW // Requires WiFi. Comment out to remove ESP-NOW functionality.
 #endif                 // COMPILE_WIFI
 
 #define COMPILE_LG290P   // Comment out to remove LG290P functionality
@@ -408,7 +408,7 @@ RTK_WIFI wifi(false);
 
 // WiFi Globals - For other module direct access
 WIFI_CHANNEL_t wifiChannel;     // Current WiFi channel number
-bool wifiEspNowOnline;          // ESP-Now started successfully
+bool wifiEspNowOnline;          // ESP-NOW started successfully
 bool wifiEspNowRunning;         // False: stopped, True: starting, running, stopping
 uint32_t wifiReconnectionTimer; // Delay before reconnection, timer running when non-zero
 bool wifiSoftApOnline;          // WiFi soft AP started successfully

@@ -666,15 +666,15 @@ void setRadioIcons(std::vector<iconPropertyBlinking> *iconList)
         if (present.display_type == DISPLAY_64x48)
         {
             // There are three spots for icons in the Wireless area, left/center/right
-            // There are three radios that could be active: Bluetooth (always indicated), WiFi (if enabled), ESP-Now (if
+            // There are three radios that could be active: Bluetooth (always indicated), WiFi (if enabled), ESP-NOW (if
             // enabled) Because of lack of space we will indicate the Base/Rover if only two radios or less are active
             //
             // Top left corner - Radio icon indicators take three spots (left/center/right)
             // Allowed icon combinations:
             // Bluetooth + Rover/Base
             // WiFi + Bluetooth + Rover/Base
-            // ESP-Now + Bluetooth + Rover/Base
-            // ESP-Now + Bluetooth + WiFi
+            // ESP-NOW + Bluetooth + Rover/Base
+            // ESP-NOW + Bluetooth + WiFi
 
             // Count the number of radios in use
             uint8_t numberOfRadios = 1; // Bluetooth always indicated.
@@ -3091,14 +3091,14 @@ void paintKeyProvisionFail(uint16_t displayTime)
     }
 }
 
-// Show screen while ESP-Now is pairing
+// Show screen while ESP-NOW is pairing
 void paintEspNowPairing()
 {
-    displayMessage("ESP-Now Pairing", 0);
+    displayMessage("ESP-NOW Pairing", 0);
 }
 void paintEspNowPaired()
 {
-    displayMessage("ESP-Now Paired", 2000);
+    displayMessage("ESP-NOW Paired", 2000);
 }
 
 void displayNtpStart(uint16_t displayTime)

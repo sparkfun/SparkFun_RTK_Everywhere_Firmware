@@ -196,7 +196,7 @@ const char * const correctionsSourceNames[CORR_NUM] =
 {
     // These must match correctionsSource above
     "External Radio",
-    "ESP-Now",
+    "ESP-NOW",
     "LoRa Radio",
     "Bluetooth",
     "USB Serial",
