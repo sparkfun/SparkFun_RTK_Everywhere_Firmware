@@ -527,8 +527,7 @@ SEMP_PARSE_STATE *rtcmParse = nullptr; // Parse incoming corrections for RTCM100
 
 // Share GNSS variables
 //=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
-// Note: GnssPlatform gnssPlatform has been replaced by present.gnss_zedf9p etc.
-char gnssFirmwareVersion[21]; // mosaic-X5 could be 20 digits
+char gnssFirmwareVersion[32]; // mosaic-X5 could be 20 digits. LG290P could be 31 characters.
 int gnssFirmwareVersionInt;
 char gnssUniqueId[21]; // um980 ID is 16 digits. mosaic-X5 could be 20 digits
 //=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
@@ -826,6 +825,9 @@ const size_t latestNmeaMaxLen = 100;
 char *latestGPGGA;
 char *latestGPRMC;
 char *latestGPGST;
+char *latestGPVTG;
+const size_t latestEASessionDataMaxLen = 4001; // 1000 * 4 plus NULL
+char *latestEASessionData;
 
 //=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 

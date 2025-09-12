@@ -590,8 +590,7 @@ void menuDebugHardware()
             else if (present.gnss_lg290p)
             {
                 systemPrintln();
-                systemPrintln("QGNSS must be connected to CH342 Port B at 460800bps. Begin firmware update from QGNSS "
-                              "(hit the play button) then reset the LG290P.");
+                systemPrintf("QGNSS must be connected to CH342 Port B at %dbps. Begin firmware update from QGNSS (hit the play button) then reset the LG290P.\r\n", settings.dataPortBaud);
                 gnssReset();
                 delay(100);
                 gnssBoot();
@@ -1436,7 +1435,7 @@ void menuInstrument()
         systemPrintf("1) Set Antenna Height (a.k.a. Pole Length): %0.3lfm\r\n",
                      settings.antennaHeight_mm / (double)1000.0);
 
-        systemPrintf("2) Set Antenna Phase Center (a.k.a. ARP): %0.1fmm\r\n", settings.antennaPhaseCenter_mm);
+        systemPrintf("2) Set Antenna Phase Center: %0.1fmm\r\n", settings.antennaPhaseCenter_mm);
 
         systemPrint("3) Report Tip Altitude: ");
         systemPrintf("%s\r\n", settings.outputTipAltitude ? "Enabled" : "Disabled");

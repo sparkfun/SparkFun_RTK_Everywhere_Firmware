@@ -114,7 +114,7 @@ public:
   bool deleteBondedDevice(uint8_t *remoteAddress);
   void deleteAllBondedDevices();
 
-  bool aclConnected();
+  bool aclConnected(); // One-shot
   uint8_t *aclGetAddress();
 
 private:

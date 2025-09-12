@@ -45,7 +45,7 @@ void menuLogSelection()
             else
                 printUnknown(incoming);
         }
-    clearBuffer(); // Empty buffer of any newline chars
+        clearBuffer(); // Empty buffer of any newline chars
     }
 }
 
@@ -268,7 +268,7 @@ void menuMessagesBaseRTCM()
 // Based on GPS data/time, create a log file in the format SFE_Everywhere_YYMMDD_HHMMSS.ubx
 bool beginLogging()
 {
-    return(beginLogging(nullptr));
+    return (beginLogging(nullptr));
 }
 
 bool beginLogging(const char *customFileName)
@@ -308,9 +308,9 @@ bool beginLogging(const char *customFileName)
 
                 if (strlen(logFileName) == 0)
                 {
-                    //u-blox platforms use ubx file extension for logs, all others use TXT
+                    // u-blox platforms use ubx file extension for logs, all others use TXT
                     char fileExtension[4] = "ubx";
-                    if(present.gnss_zedf9p == false)
+                    if (present.gnss_zedf9p == false)
                         strncpy(fileExtension, "txt", sizeof(fileExtension));
 
                     snprintf(logFileName, sizeof(logFileName), "/%s_%02d%02d%02d_%02d%02d%02d.%s", // SdFat library
@@ -318,8 +318,7 @@ bool beginLogging(const char *customFileName)
                              rtc.getDay(), // ESP32Time returns month:0-11
                              rtc.getHour(true), rtc.getMinute(),
                              rtc.getSecond(), // ESP32Time getHour(true) returns hour:0-23
-                             fileExtension
-                    );
+                             fileExtension);
                 }
             }
             else
@@ -335,7 +334,7 @@ bool beginLogging(const char *customFileName)
                 if (!logFile)
                 {
                     systemPrintln("Failed to allocate logFile!");
-                    return(false);
+                    return (false);
                 }
             }
 
@@ -352,11 +351,11 @@ bool beginLogging(const char *customFileName)
                     systemPrintf("Failed to create GNSS log file: %s\r\n", logFileName);
                     online.logging = false;
                     xSemaphoreGive(sdCardSemaphore);
-                    return(false);
+                    return (false);
                 }
 
                 logFileSize = 0;
-                lastLogSize = 0; // Reset counter - used for displaying active logging icon
+                lastLogSize = 0;           // Reset counter - used for displaying active logging icon
                 lastFileReport = millis(); // Fake last file report to avoid an immediate timeout
 
                 bufferOverruns = 0; // Reset counter
@@ -371,9 +370,9 @@ bool beginLogging(const char *customFileName)
                     if ((24 * 60 * 2) % settings.maxLogLength_minutes == 0)
                     {
                         // Calculate when the next log file should be opened - in millis()
-                        unsigned long hoursAsMillis = rtc.getMillis() + (rtc.getSecond() * 1000)
-                                                      + (rtc.getMinute() * 1000 * 60)
-                                                      + (rtc.getHour(true) * 1000 * 60 * 60);
+                        unsigned long hoursAsMillis = rtc.getMillis() + (rtc.getSecond() * 1000) +
+                                                      (rtc.getMinute() * 1000 * 60) +
+                                                      (rtc.getHour(true) * 1000 * 60 * 60);
                         unsigned long maxLogLength_ms = (unsigned long)settings.maxLogLength_minutes * 60 * 1000;
                         unsigned long millisFromPreviousLog = hoursAsMillis % maxLogLength_ms;
                         unsigned long millisToNextLog = maxLogLength_ms - millisFromPreviousLog;
@@ -480,7 +479,7 @@ bool beginLogging(const char *customFileName)
                 // A retry will happen during the next loop, the log will eventually be opened
                 log_d("Failed to get file system lock to create GNSS log file");
                 online.logging = false;
-                return(false);
+                return (false);
             }
 
             systemPrintf("Log file name: %s\r\n", logFileName);
@@ -512,7 +511,7 @@ void endLogging(bool gotSemaphore, bool releaseSemaphore)
             char nmeaMessage[82]; // Max NMEA sentence length is 82
             createNMEASentence(CUSTOM_NMEA_TYPE_PARSER_STATS, nmeaMessage, sizeof(nmeaMessage),
                                parserStats); // textID, buffer, sizeOfBuffer, text
-            logFile->sync(); // Sync any partially written data
+            logFile->sync();                 // Sync any partially written data
             logFile->println(nmeaMessage);
             logFile->sync();
 
@@ -643,15 +642,16 @@ void checkGNSSArrayDefaults()
             defaultsApplied = true;
 
             // Reset Base rates to defaults
-            GNSS_ZED * zed = (GNSS_ZED *)gnss;
+            GNSS_ZED *zed = (GNSS_ZED *)gnss;
             int firstRTCMRecord = zed->getMessageNumberByName("RTCM_1005");
             for (int x = 0; x < MAX_UBX_MSG_RTCM; x++)
                 settings.ubxMessageRatesBase[x] = ubxMessages[firstRTCMRecord + x].msgDefaultRate;
         }
     }
 #else
-    if(false)
-    {}
+    if (false)
+    {
+    }
 #endif // COMPILE_ZED
 
 #ifdef COMPILE_UM980
@@ -797,6 +797,8 @@ void checkGNSSArrayDefaults()
             // Reset constellations to defaults
             for (int x = 0; x < MAX_LG290P_CONSTELLATIONS; x++)
                 settings.lg290pConstellations[x] = 1;
+
+            settings.enableGalileoHas = false; // The default is true. Move to false so user must opt to turn it on.
         }
 
         if (settings.lg290pMessageRatesNMEA[0] == 254)
@@ -834,9 +836,8 @@ void checkGNSSArrayDefaults()
             for (int x = 0; x < MAX_LG290P_PQTM_MSG; x++)
                 settings.lg290pMessageRatesPQTM[x] = lgMessagesPQTM[x].msgDefaultRate;
         }
-
     }
-#endif  // COMPILE_LG290P
+#endif // COMPILE_LG290P
 
     // If defaults have been applied, override antennaPhaseCenter_mm with default
     // (This was in beginSystemState - for the Torch / UM980 only. Weird...)
@@ -862,7 +863,7 @@ void checkGNSSArrayDefaults()
         }
         else if (present.gnss_lg290p)
         {
-            //settings.minCNO = 10;                     // Not yet supported
+            // settings.minCNO = 10;                     // Not yet supported
             settings.surveyInStartingAccuracy = 2.0; // Default 2m
             settings.measurementRateMs = 500;        // Default 2Hz.
         }

@@ -48,7 +48,7 @@ void sdUpdate()
         deleteSDSizeCheckTask();
 
     // Check if SD card is still present
-    if (sdCardPresent() == false)
+    if (sdCardPresent() == false && online.microSD == true)
     {
         systemPrintf("SD removed @ %s\r\n", getTimeStamp());
         endSD(false, true); //(alreadyHaveSemaphore, releaseSemaphore) Close down SD.
@@ -117,7 +117,7 @@ bool sdCardPresent(void)
         }
         else
         {
-            //reportFatalError("sdCardPresent: gpioExpander not online.");
+            // reportFatalError("sdCardPresent: gpioExpander not online.");
             return (false);
         }
     }
@@ -168,7 +168,7 @@ bool sdCardPresent(void)
         }
 
         xSemaphoreGive(sdCardSemaphore);
-        
+
         if (response != 1)
         {
             previousCardPresentBySW = false;

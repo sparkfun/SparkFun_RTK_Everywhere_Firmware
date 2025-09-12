@@ -838,7 +838,7 @@ bool GNSS_MOSAIC::enableNMEA()
             // The PPL requires being fed GPGGA/ZDA, and RTCM1019/1020/1042/1046
             if (strstr(settings.pointPerfectKeyDistributionTopic, "/ip") != nullptr)
             {
-                // Mark PPL requied messages as enabled if stream > 0
+                // Mark PPL required messages as enabled if stream > 0
                 if (strcmp(mosaicMessagesNMEA[messageNumber].msgTextName, "GGA") == 0)
                     gpggaEnabled = true;
                 if (strcmp(mosaicMessagesNMEA[messageNumber].msgTextName, "ZDA") == 0)
