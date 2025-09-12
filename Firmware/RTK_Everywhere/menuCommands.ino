@@ -494,18 +494,20 @@ void commandSplitName(const char *settingName, char *truncatedName, int truncate
 }
 
 // Using the settingName string, return the index of the setting within command array
-int commandLookupSettingNameAfterPriority(bool inCommands, const char *settingName, char *truncatedName, int truncatedNameLen,
-                             char *suffix, int suffixLen)
+int commandLookupSettingNameAfterPriority(bool inCommands, const char *settingName, char *truncatedName,
+                                          int truncatedNameLen, char *suffix, int suffixLen)
 {
-    return commandLookupSettingNameSelective(inCommands, settingName, truncatedName, truncatedNameLen, suffix, suffixLen, true);
+    return commandLookupSettingNameSelective(inCommands, settingName, truncatedName, truncatedNameLen, suffix,
+                                             suffixLen, true);
 }
 int commandLookupSettingName(bool inCommands, const char *settingName, char *truncatedName, int truncatedNameLen,
                              char *suffix, int suffixLen)
 {
-    return commandLookupSettingNameSelective(inCommands, settingName, truncatedName, truncatedNameLen, suffix, suffixLen, false);
+    return commandLookupSettingNameSelective(inCommands, settingName, truncatedName, truncatedNameLen, suffix,
+                                             suffixLen, false);
 }
-int commandLookupSettingNameSelective(bool inCommands, const char *settingName, char *truncatedName, int truncatedNameLen,
-                             char *suffix, int suffixLen, bool usePrioritySettingsEnd)
+int commandLookupSettingNameSelective(bool inCommands, const char *settingName, char *truncatedName,
+                                      int truncatedNameLen, char *suffix, int suffixLen, bool usePrioritySettingsEnd)
 {
     const char *command;
 
@@ -513,7 +515,7 @@ int commandLookupSettingNameSelective(bool inCommands, const char *settingName, 
     if (usePrioritySettingsEnd)
         // Find "endOfPrioritySettings"
         prioritySettingsEnd = findEndOfPrioritySettings();
-        // If "endOfPrioritySettings" is not found, prioritySettingsEnd will be zero
+    // If "endOfPrioritySettings" is not found, prioritySettingsEnd will be zero
 
     // Remove one because while rtkSettingsEntries[] contains detectedGnssReceiver, the command table does not
     prioritySettingsEnd--;
@@ -2385,7 +2387,8 @@ SettingValueResponse getSettingValue(bool inCommands, const char *settingName, c
                                   // Generally char arrays but some others.
 
     // Loop through the valid command entries - but skip the priority settings and use the GNSS-specific types
-    i = commandLookupSettingNameAfterPriority(inCommands, settingName, truncatedName, sizeof(truncatedName), suffix, sizeof(suffix));
+    i = commandLookupSettingNameAfterPriority(inCommands, settingName, truncatedName, sizeof(truncatedName), suffix,
+                                              sizeof(suffix));
 
     // Determine if settingName is in the command table
     if (i >= 0)
@@ -2509,7 +2512,7 @@ SettingValueResponse getSettingValue(bool inCommands, const char *settingName, c
         }
         break;
 
-         case tCmnCnst:
+        case tCmnCnst:
             break; // Nothing to do here. Let each GNSS add its settings
         case tCmnRtNm:
             break; // Nothing to do here. Let each GNSS add its settings
