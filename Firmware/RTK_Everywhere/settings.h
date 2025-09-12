@@ -1208,10 +1208,10 @@ typedef struct
 } RTK_Settings_Entry;
 
 #define COMMAND_PROFILE_0_INDEX     -1
-#define COMMAND_PROFILE_NUMBER      (COMMAND_PROFILE_0_INDEX - MAX_PROFILE_COUNT)
-#define COMMAND_DEVICE_ID           (COMMAND_PROFILE_NUMBER - 1)
-#define COMMAND_UNKNOWN             (COMMAND_DEVICE_ID - 1)
-#define COMMAND_COUNT               (-(COMMAND_UNKNOWN))
+#define COMMAND_PROFILE_NUMBER      (COMMAND_PROFILE_0_INDEX - MAX_PROFILE_COUNT) // -1 - 8 = -9
+#define COMMAND_DEVICE_ID           (COMMAND_PROFILE_NUMBER - 1) // -9 - 1 = -10
+#define COMMAND_UNKNOWN             (COMMAND_DEVICE_ID - 1) // -10 - 1 = -11
+#define COMMAND_COUNT               (-(COMMAND_UNKNOWN)) // 11
 
 // Exit types for processCommand
 typedef enum
@@ -1272,7 +1272,7 @@ const RTK_Settings_Entry rtkSettingsEntries[] =
     { 0, 0, 0, 0, 0, 0, 0, 0, 0, NON, 0, _bool,     0, nullptr, "endOfPrioritySettings",  },
 
     // =======================================================================================================
-    // Everything below here will be sorted (alphabetised) in commandIndex
+    // Everything below here will be sorted (alphabetized) in commandIndex
     // =======================================================================================================
 
     // Antenna
