@@ -258,6 +258,13 @@ t_cliResult processCommand(char *cmdBuffer)
                 commandSendExecuteOkResponse(tokens[0], tokens[1]);
                 return (CLI_OK);
             }
+            else if (strcmp(tokens[1], "FACTORYRESET") == 0)
+            {
+                // Apply factory defaults, then reset
+                commandSendExecuteOkResponse(tokens[0], tokens[1]);
+                factoryReset(false); // We do not have the SD semaphore
+                return (CLI_OK); //We should never get this far.
+            }
             else
             {
                 commandSendErrorResponse(tokens[0], tokens[1], (char *)"Unknown command");
