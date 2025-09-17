@@ -1068,7 +1068,7 @@ struct Settings
         {"", ""},
         {"", ""},
     };
-    uint32_t wifiConnectTimeoutMs = 20000; // Wait this long for a WiFiMulti connection
+    uint32_t wifiConnectTimeoutMs = 10000; // Wait this long for a WiFiMulti connection
 
     bool outputTipAltitude = false; // If enabled, subtract the pole length and APC from the GNSS receiver's reported altitude
 
@@ -1211,9 +1211,12 @@ typedef struct
 #define COMMAND_PROFILE_NUMBER             (COMMAND_PROFILE_0_INDEX - MAX_PROFILE_COUNT) // -1 - 8 = -9
 #define COMMAND_FIRMWARE_VERSION           (COMMAND_PROFILE_NUMBER - 1) // -9 - 1 = -10
 #define COMMAND_REMOTE_FIRMWARE_VERSION    (COMMAND_FIRMWARE_VERSION - 1) // -10 - 1 = -11
-#define COMMAND_DEVICE_ID                  (COMMAND_REMOTE_FIRMWARE_VERSION - 1) // -11 - 1 = -12
-#define COMMAND_UNKNOWN                    (COMMAND_DEVICE_ID - 1) // -12 - 1 = -13
-#define COMMAND_COUNT                      (-(COMMAND_UNKNOWN)) // 13
+#define COMMAND_ENABLE_RC_FIRMWARE         (COMMAND_REMOTE_FIRMWARE_VERSION - 1) // -11 - 1 = -12
+#define COMMAND_GNSS_MODULE_INFO           (COMMAND_ENABLE_RC_FIRMWARE - 1) // -12 - 1 = -13
+#define COMMAND_BLUETOOTH_ID               (COMMAND_GNSS_MODULE_INFO - 1) // -13 - 1 = -14
+#define COMMAND_DEVICE_ID                  (COMMAND_BLUETOOTH_ID - 1) // -14 - 1 = -15
+#define COMMAND_UNKNOWN                    (COMMAND_DEVICE_ID - 1) // -15 - 1 = -16
+#define COMMAND_COUNT                      (-(COMMAND_UNKNOWN)) // 16
 
 // Exit types for processCommand
 typedef enum
@@ -1534,7 +1537,7 @@ const RTK_Settings_Entry rtkSettingsEntries[] =
     { 0, 0, 0, 1, 1, 1, 1, 1, 1, ALL, 1, _uint8_t,  0, & settings.bluetoothInterruptsCore, "bluetoothInterruptsCore",  },
     { 0, 0, 0, 1, 1, 1, 1, 1, 1, ALL, 1, _uint8_t,  0, & settings.btReadTaskCore, "btReadTaskCore",  },
     { 0, 0, 0, 1, 1, 1, 1, 1, 1, ALL, 1, _uint8_t,  0, & settings.btReadTaskPriority, "btReadTaskPriority",  },
-    { 0, 1, 0, 1, 1, 1, 1, 1, 1, ALL, 1, _bool,     0, & settings.debugMalloc, "debugMalloc",  },
+    { 0, 0, 0, 1, 1, 1, 1, 1, 1, ALL, 1, _bool,     0, & settings.debugMalloc, "debugMalloc",  },
     { 0, 0, 0, 1, 1, 1, 1, 1, 1, ALL, 1, _bool,     0, & settings.enableHeapReport, "enableHeapReport",  },
     { 0, 0, 0, 1, 1, 1, 1, 1, 1, ALL, 1, _bool,     0, & settings.enablePrintIdleTime, "enablePrintIdleTime",  },
     { 0, 0, 0, 1, 1, 1, 1, 1, 1, ALL, 1, _bool,     0, & settings.enablePsram, "enablePsram",  },
@@ -1542,7 +1545,7 @@ const RTK_Settings_Entry rtkSettingsEntries[] =
     { 0, 0, 0, 1, 1, 1, 1, 1, 1, ALL, 1, _uint8_t,  0, & settings.gnssReadTaskCore, "gnssReadTaskCore",  },
     { 0, 0, 0, 1, 1, 1, 1, 1, 1, ALL, 1, _uint8_t,  0, & settings.gnssReadTaskPriority, "gnssReadTaskPriority",  },
     { 0, 0, 0, 1, 1, 1, 1, 1, 1, ALL, 1, _uint8_t,  0, & settings.gnssUartInterruptsCore, "gnssUartInterruptsCore",  },
-    { 0, 1, 0, 1, 1, 1, 1, 1, 1, ALL, 1, _bool,     0, & settings.haltOnPanic, "haltOnPanic",  },
+    { 0, 0, 0, 1, 1, 1, 1, 1, 1, ALL, 1, _bool,     0, & settings.haltOnPanic, "haltOnPanic",  },
     { 0, 0, 0, 1, 1, 1, 1, 1, 1, ALL, 1, _uint8_t,  0, & settings.handleGnssDataTaskCore, "handleGnssDataTaskCore",  },
     { 0, 0, 0, 1, 1, 1, 1, 1, 1, ALL, 1, _uint8_t,  0, & settings.handleGnssDataTaskPriority, "handleGnssDataTaskPriority",  },
     { 0, 0, 0, 1, 1, 1, 1, 1, 1, ALL, 1, _uint8_t,  0, & settings.i2cInterruptsCore, "i2cInterruptsCore",  },
@@ -1561,7 +1564,7 @@ const RTK_Settings_Entry rtkSettingsEntries[] =
     // Point Perfect
     { 1, 1, 0, 1, 1, 1, 1, 1, 1, ALL, 1, _bool,     0, & settings.autoKeyRenewal, "autoKeyRenewal",  },
     { 0, 0, 0, 1, 1, 1, 1, 1, 1, ALL, 1, _bool,     0, & settings.debugPpCertificate, "debugPpCertificate",  },
-    { 1, 1, 0, 1, 1, 1, 1, 1, 1, ALL, 1, _int,      0, & settings.geographicRegion, "geographicRegion",  },
+    { 1, 0, 0, 1, 1, 1, 1, 1, 1, ALL, 1, _int,      0, & settings.geographicRegion, "geographicRegion",  },
     { 0, 0, 0, 1, 1, 1, 1, 1, 1, ALL, 1, _uint64_t, 0, & settings.lastKeyAttempt, "lastKeyAttempt",  },
     { 0, 1, 0, 1, 1, 1, 1, 1, 1, ALL, 1, _uint16_t, 0, & settings.lbandFixTimeout_seconds, "lbandFixTimeout",  },
     { 0, 0, 0, 1, 1, 1, 1, 1, 1, ALL, 1, tCharArry, sizeof(settings.pointPerfectBrokerHost), & settings.pointPerfectBrokerHost, "pointPerfectBrokerHost",  },
@@ -1683,9 +1686,9 @@ const RTK_Settings_Entry rtkSettingsEntries[] =
     { 1, 1, 0, 1, 1, 1, 1, 1, 1, ALL, 1, _bool,     0, & settings.tcpOverWiFiStation, "tcpOverWiFiStation",  },
 
     // Time Zone
-    { 0, 1, 0, 1, 1, 1, 1, 1, 1, ALL, 1, _int8_t,   0, & settings.timeZoneHours, "timeZoneHours",  },
-    { 0, 1, 0, 1, 1, 1, 1, 1, 1, ALL, 1, _int8_t,   0, & settings.timeZoneMinutes, "timeZoneMinutes",  },
-    { 0, 1, 0, 1, 1, 1, 1, 1, 1, ALL, 1, _int8_t,   0, & settings.timeZoneSeconds, "timeZoneSeconds",  },
+    { 0, 0, 0, 1, 1, 1, 1, 1, 1, ALL, 1, _int8_t,   0, & settings.timeZoneHours, "timeZoneHours",  },
+    { 0, 0, 0, 1, 1, 1, 1, 1, 1, ALL, 1, _int8_t,   0, & settings.timeZoneMinutes, "timeZoneMinutes",  },
+    { 0, 0, 0, 1, 1, 1, 1, 1, 1, ALL, 1, _int8_t,   0, & settings.timeZoneSeconds, "timeZoneSeconds",  },
 
 //                         F
 //                         a
@@ -1755,14 +1758,14 @@ const RTK_Settings_Entry rtkSettingsEntries[] =
     { 0, 0, 0, 1, 1, 1, 1, 1, 1, ALL, 1, _uint8_t,  0, & settings.wifiChannel, "wifiChannel",  },
     { 1, 0, 0, 1, 1, 1, 1, 1, 1, ALL, 1, _bool,     0, & settings.wifiConfigOverAP, "wifiConfigOverAP",  },
     { 1, 1, 1, 1, 1, 1, 1, 1, 1, ALL, 1, tWiFiNet,  MAX_WIFI_NETWORKS, & settings.wifiNetworks, "wifiNetwork_",  },
-    { 0, 1, 0, 1, 1, 1, 1, 1, 1, ALL, 1, _uint32_t, 0, & settings.wifiConnectTimeoutMs, "wifiConnectTimeoutMs",  },
+    { 0, 0, 0, 1, 1, 1, 1, 1, 1, ALL, 1, _uint32_t, 0, & settings.wifiConnectTimeoutMs, "wifiConnectTimeoutMs",  },
 
     { 0, 1, 0, 1, 1, 1, 1, 1, 1, ALL, 1, _bool,     0, & settings.outputTipAltitude, "outputTipAltitude",  },
 
     // Localized distribution
-    { 1, 1, 0, 1, 1, 0, 1, 1, 1, ALL, 1, _bool,     0, & settings.useLocalizedDistribution, "useLocalizedDistribution",  },
-    { 1, 1, 0, 1, 1, 0, 1, 1, 1, ALL, 1, _uint8_t,  0, & settings.localizedDistributionTileLevel, "localizedDistributionTileLevel",  },
-    { 1, 1, 0, 1, 1, 0, 1, 1, 1, ALL, 1, _bool,     0, & settings.useAssistNow, "useAssistNow",  },
+    { 1, 0, 0, 1, 1, 0, 1, 1, 1, ALL, 1, _bool,     0, & settings.useLocalizedDistribution, "useLocalizedDistribution",  },
+    { 1, 0, 0, 1, 1, 0, 1, 1, 1, ALL, 1, _uint8_t,  0, & settings.localizedDistributionTileLevel, "localizedDistributionTileLevel",  },
+    { 1, 0, 0, 1, 1, 0, 1, 1, 1, ALL, 1, _bool,     0, & settings.useAssistNow, "useAssistNow",  },
 
     { 1, 1, 0, 1, 1, 1, 1, 1, 1, ALL, 1, _bool,     0, & settings.requestKeyUpdate, "requestKeyUpdate",  },
 
@@ -1798,7 +1801,7 @@ const RTK_Settings_Entry rtkSettingsEntries[] =
     { 0, 0, 0, 1, 1, 1, 1, 1, 1, ALL, 1, _bool,     0, & settings.debugSettings, "debugSettings",  },
     { 1, 1, 0, 1, 1, 1, 1, 1, 1, ALL, 1, _bool,     0, & settings.enableNtripCaster, "enableNtripCaster",  },
     { 0, 1, 0, 1, 1, 1, 1, 1, 1, ALL, 1, _bool,     0, & settings.baseCasterOverride, "baseCasterOverride",  },
-    { 0, 1, 0, 1, 1, 1, 1, 1, 1, ALL, 1, _bool,     0, & settings.debugCLI, "debugCLI",  },
+    { 0, 0, 0, 1, 1, 1, 1, 1, 1, ALL, 1, _bool,     0, & settings.debugCLI, "debugCLI",  },
 
 
     // Add new settings to appropriate group above or create new group

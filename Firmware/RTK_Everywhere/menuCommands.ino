@@ -1547,29 +1547,7 @@ void createSettingsString(char *newSettings)
     stringRecord(newSettings, "platformPrefix", apPlatformPrefix);
 
     stringRecord(newSettings, "rtkFirmwareVersion", (char *)printRtkFirmwareVersion());
-
-    char apGNSSFirmwareVersion[80];
-    if (present.gnss_zedf9p)
-    {
-        snprintf(apGNSSFirmwareVersion, sizeof(apGNSSFirmwareVersion), "ZED-F9P Firmware: %s ID: %s",
-                 gnssFirmwareVersion, gnssUniqueId);
-    }
-    else if (present.gnss_um980)
-    {
-        snprintf(apGNSSFirmwareVersion, sizeof(apGNSSFirmwareVersion), "UM980 Firmware: %s ID: %s", gnssFirmwareVersion,
-                 gnssUniqueId);
-    }
-    else if (present.gnss_mosaicX5)
-    {
-        snprintf(apGNSSFirmwareVersion, sizeof(apGNSSFirmwareVersion), "mosaic-X5 Firmware: %s ID: %s",
-                 gnssFirmwareVersion, gnssUniqueId);
-    }
-    else if (present.gnss_lg290p)
-    {
-        snprintf(apGNSSFirmwareVersion, sizeof(apGNSSFirmwareVersion), "LG290P Firmware: %s ID: %s",
-                 gnssFirmwareVersion, gnssUniqueId);
-    }
-    stringRecord(newSettings, "gnssFirmwareVersion", apGNSSFirmwareVersion);
+    stringRecord(newSettings, "gnssFirmwareVersion", (char *)printGnssModuleInfo());
     stringRecord(newSettings, "gnssFirmwareVersionInt", gnssFirmwareVersionInt);
 
     char apDeviceBTID[30];
@@ -2964,7 +2942,8 @@ SettingValueResponse getSettingValue(bool inCommands, const char *settingName, c
     }
     else if (strcmp(settingName, "rtkRemoteFirmwareVersion") == 0)
     {
-        // otaUpdate() is synchronous and called from loop() so we respond here with OK, then go check the firmware version
+        // otaUpdate() is synchronous and called from loop() so we respond here with OK, then go check the firmware
+        // version
         writeToString(settingValueStr, (char *)"OK");
         knownSetting = true;
 
@@ -2980,6 +2959,13 @@ SettingValueResponse getSettingValue(bool inCommands, const char *settingName, c
         writeToString(settingValueStr, enableRCFirmware);
         knownSetting = true;
     }
+    else if (strcmp(settingName, "gnssModuleInfo") == 0)
+    {
+        writeToString(settingValueStr, (char *)printGnssModuleInfo());
+        knownSetting = true;
+        settingIsString = true;
+    }
+
     else if (strcmp(settingName, "batteryLevelPercent") == 0)
     {
         checkBatteryLevels();
@@ -3560,6 +3546,18 @@ const char *commandGetName(int stringIndex, int rtkIndex)
     else if (rtkIndex == COMMAND_REMOTE_FIRMWARE_VERSION)
         return "rtkRemoteFirmwareVersion";
 
+    // Allow release candidate firmware to be installed
+    else if (rtkIndex == COMMAND_ENABLE_RC_FIRMWARE)
+        return "enableRCFirmware";
+
+    // Display the current GNSS firmware version number
+    else if (rtkIndex == COMMAND_GNSS_MODULE_INFO)
+        return "gnssModuleInfo";
+
+    // Display the last four characters of the Bluetooth MAC address
+    else if (rtkIndex == COMMAND_BLUETOOTH_ID)
+        return "bluetoothId";
+
     // Display the device ID - used in PointPerfect
     else if (rtkIndex == COMMAND_DEVICE_ID)
         return "deviceId";
@@ -3805,11 +3803,44 @@ void printAvailableSettings()
             commandSendExecuteListResponse("rtkFirmwareVersion", settingType, printRtkFirmwareVersion());
         }
 
-        // Display the current RTK Firmware version
+        // Display the latest remote RTK Firmware version
         else if (commandIndex[i] == COMMAND_REMOTE_FIRMWARE_VERSION)
         {
-            // Report the avialable command but without data. That requires the user issue separate SPGET.
+            // Report the available command but without data. That requires the user issue separate SPGET.
             commandSendExecuteListResponse("rtkRemoteFirmwareVersion", "char[21]", "NotYetRetreived");
+        }
+
+        // Allow beta firmware release candidates
+        else if (commandIndex[i] == COMMAND_ENABLE_RC_FIRMWARE)
+        {
+            if (enableRCFirmware)
+                commandSendExecuteListResponse("enableRCFirmware", "bool", "true");
+            else
+                commandSendExecuteListResponse("enableRCFirmware", "bool", "false");
+        }
+
+        // Display the current RTK Firmware version
+        else if (commandIndex[i] == COMMAND_GNSS_MODULE_INFO)
+        {
+            // Create the settingType based on the length of the firmware version
+            char settingType[100];
+            snprintf(settingType, sizeof(settingType), "char[%d]", strlen(printGnssModuleInfo()));
+
+            commandSendExecuteListResponse("gnssModuleInfo", settingType, printGnssModuleInfo());
+        }
+
+        // Display the current RTK Firmware version
+        else if (commandIndex[i] == COMMAND_BLUETOOTH_ID)
+        {
+            // Get the last two digits of Bluetooth MAC
+            char macAddress[5];
+            snprintf(macAddress, sizeof(macAddress), "%02X%02X", btMACAddress[4], btMACAddress[5]);
+
+            // Create the settingType based on the length of the MAC
+            char settingType[100];
+            snprintf(settingType, sizeof(settingType), "char[%d]", strlen(macAddress));
+
+            commandSendExecuteListResponse("bluetoothId", settingType, macAddress);
         }
 
         // Display the device ID - used in PointPerfect

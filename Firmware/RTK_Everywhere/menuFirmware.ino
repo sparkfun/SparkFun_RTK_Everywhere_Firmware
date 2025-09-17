@@ -176,6 +176,26 @@ const char *printRtkFirmwareVersion()
     return ((const char *)rtkFirmwareVersion);
 }
 
+// Returns a string containing the module model, firmware, and ID. Similar to gnss->printModuleInfo()
+const char *printGnssModuleInfo()
+{
+    static char gnssModuleInfo[80];
+    char gnssMfg[10];
+    if (present.gnss_zedf9p)
+        strncpy(gnssMfg, "ZED-F9P", sizeof(gnssMfg));
+    else if (present.gnss_um980)
+        strncpy(gnssMfg, "UM980", sizeof(gnssMfg));
+    else if (present.gnss_mosaicX5)
+        strncpy(gnssMfg, "mosaic-X5", sizeof(gnssMfg));
+    else if (present.gnss_lg290p)
+        strncpy(gnssMfg, "LG290P", sizeof(gnssMfg));
+
+    snprintf(gnssModuleInfo, sizeof(gnssModuleInfo), "%s Firmware: %s ID: %s", gnssMfg, gnssFirmwareVersion,
+             gnssUniqueId);
+
+    return ((const char *)gnssModuleInfo);
+}
+
 //----------------------------------------
 // Returns true if otaReportedVersion is newer than currentVersion
 // Version number comes in as v2.7-Jan 5 2023
@@ -854,7 +874,7 @@ void otaUpdate()
                 otaSetState(OTA_STATE_GET_FIRMWARE_VERSION);
             }
 
-            else if ((millis() - connectTimer) > (10 * MILLISECONDS_IN_A_SECOND))
+            else if ((millis() - connectTimer) > settings.wifiConnectTimeoutMs)
             {
                 if (settings.debugFirmwareUpdate)
                     systemPrintln("Firmware update failed to connect to network");
@@ -873,14 +893,14 @@ void otaUpdate()
                 if (bluetoothCommandIsConnected())
                 {
                     // Report failure to  the CLI
-                    if(otaRequestFirmwareUpdate)
-                        commandSendExecuteErrorResponse((char *)"SPEXE", (char *)"UPDATEFIRMWARE", (char *)"No Internet");
-                    else if(otaRequestFirmwareVersionCheck)
-                        commandSendErrorResponse((char *)"SPGET", (char *)"rtkRemoteFirmwareVersion", (char *)"No Internet");
+                    if (otaRequestFirmwareUpdate)
+                        commandSendExecuteErrorResponse((char *)"SPEXE", (char *)"UPDATEFIRMWARE",
+                                                        (char *)"No Internet");
+                    else if (otaRequestFirmwareVersionCheck)
+                        commandSendErrorResponse((char *)"SPGET", (char *)"rtkRemoteFirmwareVersion",
+                                                 (char *)"No Internet");
                     otaUpdateStop();
                 }
-
-
             }
             break;
 
