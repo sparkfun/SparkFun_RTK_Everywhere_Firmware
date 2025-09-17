@@ -450,7 +450,8 @@ void commandSendResponse(const char *innerBuffer)
 
     sprintf(responseBuffer, "$%s*%02X\r\n", innerBuffer, calculatedChecksum);
 
-    systemPrint(responseBuffer);
+    // CLI interactions may come from BLE or serial, respond to both interfaces
+    bluetoothSendCommand(responseBuffer);
 }
 
 // Checks structure of command and checksum
