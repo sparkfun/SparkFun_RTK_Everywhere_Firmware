@@ -263,7 +263,7 @@ t_cliResult processCommand(char *cmdBuffer)
                 // Apply factory defaults, then reset
                 commandSendExecuteOkResponse(tokens[0], tokens[1]);
                 factoryReset(false); // We do not have the SD semaphore
-                return (CLI_OK); //We should never get this far.
+                return (CLI_OK);     // We should never get this far.
             }
             else
             {
@@ -1516,9 +1516,7 @@ void createSettingsString(char *newSettings)
     strncpy(apPlatformPrefix, platformPrefixTable[productVariant], sizeof(apPlatformPrefix));
     stringRecord(newSettings, "platformPrefix", apPlatformPrefix);
 
-    char apRtkFirmwareVersion[86];
-    firmwareVersionGet(apRtkFirmwareVersion, sizeof(apRtkFirmwareVersion), true);
-    stringRecord(newSettings, "rtkFirmwareVersion", apRtkFirmwareVersion);
+    stringRecord(newSettings, "rtkFirmwareVersion", (char *)printRtkFirmwareVersion());
 
     char apGNSSFirmwareVersion[80];
     if (present.gnss_zedf9p)
@@ -2921,10 +2919,16 @@ SettingValueResponse getSettingValue(bool inCommands, const char *settingName, c
     else if (knownSetting == true)
         return (SETTING_KNOWN);
 
-    // Report deviceID over CLI - Useful for label generation
+    // Report special human-machine-interface settings
     if (strcmp(settingName, "deviceId") == 0)
     {
         writeToString(settingValueStr, (char *)printDeviceId());
+        knownSetting = true;
+        settingIsString = true;
+    }
+    else if (strcmp(settingName, "rtkFirmwareVersion") == 0)
+    {
+        writeToString(settingValueStr, (char *)printRtkFirmwareVersion());
         knownSetting = true;
         settingIsString = true;
     }
@@ -3507,8 +3511,16 @@ const char *commandGetName(int stringIndex, int rtkIndex)
     else if (rtkIndex == COMMAND_PROFILE_NUMBER)
         return "profileNumber";
 
+    // Display the current firmware version number
+    else if (rtkIndex == COMMAND_FIRMWARE_VERSION)
+        return "rtkFirmwareVersion";
+
     // Display the device ID - used in PointPerfect
-    return "deviceId";
+    else if (rtkIndex == COMMAND_DEVICE_ID)
+        return "deviceId";
+
+    systemPrintln("commandGetName Error: Uncaught command type");
+    return "unknown";
 }
 
 // Determine if the setting is available on this platform
@@ -3658,7 +3670,7 @@ bool commandIndexFill(bool usePossibleSettings)
         }
     }
 
-    // Add the man-machine interface commands to the list
+    // Add the human-machine-interface commands to the list
     for (i = 1; i < COMMAND_COUNT; i++)
         commandIndex[commandCount++] = -i;
 
@@ -3667,8 +3679,10 @@ bool commandIndexFill(bool usePossibleSettings)
     // If "endOfPrioritySettings" is not found, prioritySettingsEnd will be zero
     // and all settings will be sorted. Just like the good old days...
 
-    if (settings.debugSettings)
+    if (settings.debugSettings || settings.debugCLI)
     {
+        systemPrintf("commandCount %d\r\n", commandCount);
+
         if (prioritySettingsEnd > 0)
             systemPrintf("endOfPrioritySettings found at entry %d\r\n", prioritySettingsEnd);
         else
@@ -3714,7 +3728,7 @@ void printAvailableSettings()
                 commandList(false, commandIndex[i]);
         }
 
-        // Below are commands formed specifically for the Man-Machine-Interface
+        // Below are commands formed specifically for the Human-Machine-Interface
         // Display the profile name - used in Profiles
         else if (commandIndex[i] >= -MAX_PROFILE_COUNT)
         {
@@ -3734,6 +3748,16 @@ void printAvailableSettings()
             char settingValue[100];
             snprintf(settingValue, sizeof(settingValue), "%d", profileNumber);
             commandSendExecuteListResponse("profileNumber", "uint8_t", settingValue);
+        }
+
+        // Display the current RTK Firmware version
+        else if (commandIndex[i] == COMMAND_FIRMWARE_VERSION)
+        {
+            // Create the settingType based on the length of the firmware version
+            char settingType[100];
+            snprintf(settingType, sizeof(settingType), "char[%d]", strlen(printRtkFirmwareVersion()));
+
+            commandSendExecuteListResponse("rtkFirmwareVersion", settingType, printRtkFirmwareVersion());
         }
 
         // Display the device ID - used in PointPerfect

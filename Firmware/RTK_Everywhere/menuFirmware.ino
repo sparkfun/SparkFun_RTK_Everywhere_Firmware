@@ -166,6 +166,16 @@ void firmwareVersionGet(char *buffer, int bufferLength, bool includeDate)
     firmwareVersionFormat(FIRMWARE_VERSION_MAJOR, FIRMWARE_VERSION_MINOR, buffer, bufferLength, includeDate);
 }
 
+// Returns string containing the current version number - ie "v2.0"
+const char *printRtkFirmwareVersion()
+{
+    // Create the firmware version string
+    static char rtkFirmwareVersion[86];
+    firmwareVersionGet(rtkFirmwareVersion, sizeof(rtkFirmwareVersion), true);
+
+    return ((const char *)rtkFirmwareVersion);
+}
+
 //----------------------------------------
 // Returns true if otaReportedVersion is newer than currentVersion
 // Version number comes in as v2.7-Jan 5 2023
@@ -885,7 +895,7 @@ void otaUpdate()
                     if (otaRequestFirmwareVersionCheck == true)
                     {
                         otaRequestFirmwareVersionCheck = false;
-                        
+
                         if (websocketConnected)
                         {
                             char newVersionCSV[40];

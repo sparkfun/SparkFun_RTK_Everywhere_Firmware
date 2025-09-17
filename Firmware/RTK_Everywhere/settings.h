@@ -1209,9 +1209,10 @@ typedef struct
 
 #define COMMAND_PROFILE_0_INDEX     -1
 #define COMMAND_PROFILE_NUMBER      (COMMAND_PROFILE_0_INDEX - MAX_PROFILE_COUNT) // -1 - 8 = -9
-#define COMMAND_DEVICE_ID           (COMMAND_PROFILE_NUMBER - 1) // -9 - 1 = -10
-#define COMMAND_UNKNOWN             (COMMAND_DEVICE_ID - 1) // -10 - 1 = -11
-#define COMMAND_COUNT               (-(COMMAND_UNKNOWN)) // 11
+#define COMMAND_FIRMWARE_VERSION    (COMMAND_PROFILE_NUMBER - 1) // -9 - 1 = -10
+#define COMMAND_DEVICE_ID           (COMMAND_FIRMWARE_VERSION - 1) // -10 - 1 = -11
+#define COMMAND_UNKNOWN             (COMMAND_DEVICE_ID - 1) // -11 - 1 = -12
+#define COMMAND_COUNT               (-(COMMAND_UNKNOWN)) // 12
 
 // Exit types for processCommand
 typedef enum
