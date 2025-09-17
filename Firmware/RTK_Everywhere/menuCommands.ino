@@ -585,7 +585,7 @@ int commandLookupSettingNameSelective(bool inCommands, const char *settingName, 
 
     // Command not found
     if (settings.debugCLI == true)
-        systemPrintf("commandLookupSettingName: Command not found: %s\r\n", settingName);
+        systemPrintf("commandLookupSettingName: Setting not found: %s\r\n", settingName);
 
     return COMMAND_UNKNOWN;
 }
