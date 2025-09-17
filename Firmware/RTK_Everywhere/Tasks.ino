@@ -2610,7 +2610,7 @@ void bluetoothCommandTask(void *pvParameters)
             if (rxSpot > 2 && rxData[rxSpot - 1] == '\n' && rxData[rxSpot - 2] == '\r')
             {
                 rxData[rxSpot - 2] = '\0'; // Remove \r\n
-                bluetoothProcessCommand(rxData);
+                processCommand(rxData);
                 rxSpot = 0; // Reset
             }
         }
