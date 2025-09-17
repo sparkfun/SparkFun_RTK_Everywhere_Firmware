@@ -180,7 +180,7 @@ t_cliResult processCommand(char *cmdBuffer)
             }
             else
             {
-                commandSendErrorResponse(tokens[0], tokens[1], (char *)"Unknown setting");
+                commandSendErrorResponse(tokens[0], field, (char *)"Unknown setting");
                 return (CLI_UNKNOWN_SETTING);
             }
         }
@@ -189,8 +189,13 @@ t_cliResult processCommand(char *cmdBuffer)
     {
         if (tokenCount != 3)
         {
-            commandSendErrorResponse(tokens[0],
-                                     (char *)"Incorrect number of arguments"); // Incorrect number of arguments
+            if (tokenCount == 2)
+                commandSendErrorResponse(tokens[0], tokens[1],
+                                         (char *)"Incorrect number of arguments"); // Incorrect number of arguments
+            else
+                commandSendErrorResponse(tokens[0],
+                                         (char *)"Incorrect number of arguments"); // Incorrect number of arguments
+
             return (CLI_BAD_FORMAT);
         }
         else
@@ -213,7 +218,7 @@ t_cliResult processCommand(char *cmdBuffer)
             }
             else
             {
-                commandSendErrorResponse(tokens[0], (char *)"Unknown setting");
+                commandSendErrorResponse(tokens[0], field, (char *)"Unknown setting");
                 return (CLI_UNKNOWN_SETTING);
             }
         }
