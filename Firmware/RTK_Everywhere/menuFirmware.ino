@@ -847,7 +847,7 @@ void otaUpdate()
                 otaSetState(OTA_STATE_GET_FIRMWARE_VERSION);
             }
 
-            else if ((millis() - connectTimer) > (5 * MILLISECONDS_IN_A_SECOND))
+            else if ((millis() - connectTimer) > (10 * MILLISECONDS_IN_A_SECOND))
             {
                 // Report failed connection to web client
                 if (websocketConnected)
