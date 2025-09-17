@@ -581,8 +581,15 @@ void otaDisplayPercentage(int bytesWritten, int totalLength, bool alwaysDisplay)
         if (bytesWritten == totalLength)
             systemPrintln("]");
 
+        // Display progress on the display
         displayFirmwareUpdateProgress(percent);
 
+        // Report progress over the BLE Command Channel
+        char stringPercent[5];
+        snprintf(stringPercent, sizeof(stringPercent), "%d", percent);
+        commandSendStringOkResponse((char *)"SPEXE", (char *)"UPDATEPROGRESS", stringPercent);
+
+        // Report progress to the Web Config socket
         if (apConfigFirmwareUpdateInProcess == true)
         {
             char myProgress[50];
@@ -819,7 +826,7 @@ void otaUpdate()
             otaUpdateStop();
             break;
 
-        // Wait for a request from a user or from the scheduler
+        // Wait for a request from a user, the Web Config, CLI, or from the scheduler
         case OTA_STATE_OFF:
             if (otaRequestFirmwareVersionCheck || otaRequestFirmwareUpdate)
             {
@@ -849,14 +856,31 @@ void otaUpdate()
 
             else if ((millis() - connectTimer) > (10 * MILLISECONDS_IN_A_SECOND))
             {
-                // Report failed connection to web client
+                if (settings.debugFirmwareUpdate)
+                    systemPrintln("Firmware update failed to connect to network");
+
+                // If we are connected to the Web Config or BLE CLI, then we assume the user
+                // is requesting the firmware update via those interfaces, thus we attempt an update
+                // only once, stopping the state machine on failure
+
                 if (websocketConnected)
                 {
-                    if (settings.debugFirmwareUpdate)
-                        systemPrintln("Firmware update failed to connect to network");
+                    // Report failed connection to web client
                     sendStringToWebsocket((char *)"newFirmwareVersion,NO_INTERNET,");
                     otaUpdateStop();
                 }
+
+                if (bluetoothCommandIsConnected())
+                {
+                    // Report failure to  the CLI
+                    if(otaRequestFirmwareUpdate)
+                        commandSendExecuteErrorResponse((char *)"SPEXE", (char *)"UPDATEFIRMWARE", (char *)"No Internet");
+                    else if(otaRequestFirmwareVersionCheck)
+                        commandSendErrorResponse((char *)"SPGET", (char *)"rtkRemoteFirmwareVersion", (char *)"No Internet");
+                    otaUpdateStop();
+                }
+
+
             }
             break;
 
@@ -904,6 +928,12 @@ void otaUpdate()
                             sendStringToWebsocket(newVersionCSV);
                         }
 
+                        if (bluetoothCommandIsConnected())
+                        {
+                            // Report value over the CLI
+                            commandSendStringResponse((char *)"SPGET", (char *)"rtkRemoteVersion", otaReportedVersion);
+                        }
+
                         otaUpdateStop();
                         return;
                     }
@@ -927,6 +957,12 @@ void otaUpdate()
                 systemPrintln("Failed to get version number from server.");
                 if (websocketConnected)
                     sendStringToWebsocket((char *)"newFirmwareVersion,NO_SERVER,");
+
+                // Report failure over the CLI
+                if (bluetoothCommandIsConnected())
+                    commandSendExecuteErrorResponse((char *)"SPGET", (char *)"rtkRemoteFimrwareVersion",
+                                                    (char *)"No Server");
+
                 otaUpdateStop();
             }
             break;
@@ -940,6 +976,11 @@ void otaUpdate()
 
                 if (websocketConnected)
                     sendStringToWebsocket((char *)"gettingNewFirmware,ERROR,");
+
+                // Report failure over the CLI
+                if (bluetoothCommandIsConnected())
+                    commandSendExecuteErrorResponse((char *)"SPEXE", (char *)"UPDATEFIRMWARE",
+                                                    (char *)"Connection Error");
             }
             else
             {
@@ -949,6 +990,10 @@ void otaUpdate()
                 // Update triggers ESP.restart(). If we get this far, the firmware update has failed
                 if (websocketConnected)
                     sendStringToWebsocket((char *)"gettingNewFirmware,ERROR,");
+
+                // Report failure over the CLI
+                if (bluetoothCommandIsConnected())
+                    commandSendExecuteErrorResponse((char *)"SPEXE", (char *)"UPDATEFIRMWARE", (char *)"OTA Error");
 
                 otaUpdateStop();
             }

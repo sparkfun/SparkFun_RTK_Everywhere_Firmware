@@ -1,3 +1,5 @@
+char otaOutcome[21] = {0}; // Modified by otaUpdate(), used to respond to rtkRemoteFirmwareVersion commands
+
 void menuCommands()
 {
     char cmdBuffer[200];
@@ -270,6 +272,16 @@ t_cliResult processCommand(char *cmdBuffer)
                 factoryReset(false); // We do not have the SD semaphore
                 return (CLI_OK);     // We should never get this far.
             }
+            else if (strcmp(tokens[1], "UPDATEFIRMWARE") == 0)
+            {
+                // Begin a firmware update. WiFi networks and enableRCFirmware should previously be set.
+                commandSendExecuteOkResponse(tokens[0], tokens[1]);
+                otaRequestFirmwareUpdate = true;
+
+                // Force exit all config menus and/or command modes to allow OTA state machine to run
+                btPrintEchoExit = true;
+                return (CLI_EXIT); // Exit the CLI to allow OTA state machine to run
+            }
             else
             {
                 commandSendErrorResponse(tokens[0], tokens[1], (char *)"Unknown command");
@@ -427,6 +439,7 @@ void commandSendErrorResponse(const char *command, const char *settingName, cons
     snprintf(innerBuffer, sizeof(innerBuffer), "%s,%s,,ERROR,%s", command, settingName, errorVerbose);
     commandSendResponse(innerBuffer);
 }
+
 // Given a command, send structured ERROR response
 // Response format: $SPxET,,,ERROR,[Verbose error description]*FF<CR><LF>
 // Ex: SPGET, 'Incorrect number of arguments' = "$SPGET,ERROR,Incorrect number of arguments*1E"
@@ -2949,6 +2962,17 @@ SettingValueResponse getSettingValue(bool inCommands, const char *settingName, c
         knownSetting = true;
         settingIsString = true;
     }
+    else if (strcmp(settingName, "rtkRemoteFirmwareVersion") == 0)
+    {
+        // otaUpdate() is synchronous and called from loop() so we respond here with OK, then go check the firmware version
+        writeToString(settingValueStr, (char *)"OK");
+        knownSetting = true;
+
+        otaRequestFirmwareVersionCheck = true;
+
+        // Force exit all config menus and/or command modes to allow OTA state machine to run
+        btPrintEchoExit = true;
+    }
 
     // Special actions
     else if (strcmp(settingName, "enableRCFirmware") == 0)
@@ -3532,6 +3556,10 @@ const char *commandGetName(int stringIndex, int rtkIndex)
     else if (rtkIndex == COMMAND_FIRMWARE_VERSION)
         return "rtkFirmwareVersion";
 
+    // Connect to the internet and retrieve the remote firmware version
+    else if (rtkIndex == COMMAND_REMOTE_FIRMWARE_VERSION)
+        return "rtkRemoteFirmwareVersion";
+
     // Display the device ID - used in PointPerfect
     else if (rtkIndex == COMMAND_DEVICE_ID)
         return "deviceId";
@@ -3775,6 +3803,13 @@ void printAvailableSettings()
             snprintf(settingType, sizeof(settingType), "char[%d]", strlen(printRtkFirmwareVersion()));
 
             commandSendExecuteListResponse("rtkFirmwareVersion", settingType, printRtkFirmwareVersion());
+        }
+
+        // Display the current RTK Firmware version
+        else if (commandIndex[i] == COMMAND_REMOTE_FIRMWARE_VERSION)
+        {
+            // Report the avialable command but without data. That requires the user issue separate SPGET.
+            commandSendExecuteListResponse("rtkRemoteFirmwareVersion", "char[21]", "NotYetRetreived");
         }
 
         // Display the device ID - used in PointPerfect
