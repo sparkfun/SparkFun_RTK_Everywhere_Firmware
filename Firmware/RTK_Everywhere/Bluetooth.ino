@@ -118,6 +118,36 @@ bool bluetoothIsConnected()
     return (false);
 }
 
+// Return true if the BLE Command channel is connected
+bool bluetoothCommandIsConnected()
+{
+#ifdef COMPILE_BT
+    if (bluetoothGetState() == BT_OFF)
+        return (false);
+
+    if (settings.bluetoothRadioType == BLUETOOTH_RADIO_SPP_AND_BLE)
+    {
+        if (bluetoothSerialBleCommands->connected() == true)
+            return (true);
+    }
+    else if (settings.bluetoothRadioType == BLUETOOTH_RADIO_SPP)
+    {
+        return (false);
+    }
+    else if (settings.bluetoothRadioType == BLUETOOTH_RADIO_BLE)
+    {
+        if (bluetoothSerialBleCommands->connected() == true)
+            return (true);
+    }
+    else if (settings.bluetoothRadioType == BLUETOOTH_RADIO_SPP_ACCESSORY_MODE)
+    {
+        return (false);
+    }
+#endif // COMPILE_BT
+
+    return (false);
+}
+
 // Return the Bluetooth state
 byte bluetoothGetState()
 {
