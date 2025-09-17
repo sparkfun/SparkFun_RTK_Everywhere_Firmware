@@ -180,7 +180,7 @@ t_cliResult processCommand(char *cmdBuffer)
             }
             else
             {
-                commandSendErrorResponse(tokens[0], (char *)"Unknown setting");
+                commandSendErrorResponse(tokens[0], tokens[1], (char *)"Unknown setting");
                 return (CLI_UNKNOWN_SETTING);
             }
         }
