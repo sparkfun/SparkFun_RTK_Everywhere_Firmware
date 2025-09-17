@@ -306,6 +306,17 @@ void commandSendExecuteOkResponse(const char *command, const char *settingName)
     commandSendResponse(innerBuffer);
 }
 
+// Given a command, send structured ERROR response
+// Response format: $SPEXE,[setting name],ERROR,[Verbose error description]*FF<CR><LF>
+// Ex: $SPEXE,UPDATEFIRMWARE*77 = $SPEXE,UPDATEFIRMWARE,ERROR,No Internet*15
+void commandSendExecuteErrorResponse(const char *command, const char *settingName, const char *errorVerbose)
+{
+    // Create string between $ and * for checksum calculation
+    char innerBuffer[200];
+    snprintf(innerBuffer, sizeof(innerBuffer), "%s,%s,ERROR,%s", command, settingName, errorVerbose);
+    commandSendResponse(innerBuffer);
+}
+
 // Given a command, and a value, send response sentence with OK and checksum and <CR><LR>
 // Ex: SPSET,ntripClientCasterUserPW,thePassword = $SPSET,ntripClientCasterUserPW,"thePassword",OK*2F
 void commandSendStringOkResponse(char *command, char *settingName, char *valueBuffer)
