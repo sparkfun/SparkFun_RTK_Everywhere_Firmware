@@ -1305,7 +1305,7 @@ SettingValueResponse updateSettingWithValue(bool inCommands, const char *setting
         knownSetting = true;
     }
 
-    // Special actions
+    // Special human-machine-interface commands/actions
     else if (strcmp(settingName, "enableRCFirmware") == 0)
     {
         enableRCFirmware = settingValue;
@@ -1387,6 +1387,18 @@ SettingValueResponse updateSettingWithValue(bool inCommands, const char *setting
 
         sendStringToWebsocket(settingsCSV);
         knownSetting = true;
+    }
+    
+    // Is this a profile name change request? ie, 'profile2Name'
+    // Search by first letter first to speed up search
+    else if ((settingName[0] == 'p') && (strstr(settingName, "profile") != nullptr) && (strcmp(&settingName[8], "Name") == 0))
+    {
+        int profileNumber = settingName[7] - '0';
+        if (profileNumber >= 0 && profileNumber <= MAX_PROFILE_COUNT)
+        {
+            strncpy(profileNames[profileNumber], settingValueStr, sizeof(profileNames[0]));
+            knownSetting = true;
+        }
     }
     else if (strcmp(settingName, "forgetEspNowPeers") == 0)
     {
@@ -2928,7 +2940,20 @@ SettingValueResponse getSettingValue(bool inCommands, const char *settingName, c
         return (SETTING_KNOWN);
 
     // Report special human-machine-interface settings
-    if (strcmp(settingName, "deviceId") == 0)
+
+    // Is this a profile name request? profile2Name
+    // Search by first letter first to speed up search
+    if ((settingName[0] == 'p') && (strstr(settingName, "profile") != nullptr) && (strcmp(&settingName[8], "Name") == 0))
+    {
+        int profileNumber = settingName[7] - '0';
+        if (profileNumber >= 0 && profileNumber <= MAX_PROFILE_COUNT)
+        {
+            writeToString(settingValueStr, profileNames[profileNumber]);
+            knownSetting = true;
+            settingIsString = true;
+        }
+    }
+    else if (strcmp(settingName, "deviceId") == 0)
     {
         writeToString(settingValueStr, (char *)printDeviceId());
         knownSetting = true;
