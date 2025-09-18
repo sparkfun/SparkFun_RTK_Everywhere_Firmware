@@ -1341,6 +1341,8 @@ SettingValueResponse updateSettingWithValue(bool inCommands, const char *setting
 
         ESP.restart();
     }
+    
+    //setProfile was used in the original Web Config interface
     else if (strcmp(settingName, "setProfile") == 0)
     {
         // Change to new profile
@@ -1365,6 +1367,21 @@ SettingValueResponse updateSettingWithValue(bool inCommands, const char *setting
         sendStringToWebsocket(settingsCSV);
         knownSetting = true;
     }
+
+    //profileNumber is used in the newer CLI with get/set capabilities
+    else if (strcmp(settingName, "profileNumber") == 0)
+    {
+        // Change to new profile
+        if (settings.debugCLI == true)
+            systemPrintf("Changing to profile number %d\r\n", settingValue);
+        changeProfileNumber(settingValue);
+
+        // Load new profile into system
+        loadSettings();
+
+        knownSetting = true;
+    }
+
     else if (strcmp(settingName, "resetProfile") == 0)
     {
         settingsToDefaults(); // Overwrite our current settings with defaults
