@@ -284,7 +284,7 @@ t_cliResult processCommand(char *cmdBuffer)
             }
             else
             {
-                commandSendErrorResponse(tokens[0], tokens[1], (char *)"Unknown command");
+                commandSendExecuteErrorResponse(tokens[0], tokens[1], (char *)"Unknown command");
                 return (CLI_UNKNOWN_COMMAND);
             }
         }
