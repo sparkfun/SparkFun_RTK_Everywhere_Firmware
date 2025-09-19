@@ -619,9 +619,6 @@ int bufferOverruns;                         // Running count of possible data lo
 bool zedUartPassed; // Goes true during testing if ESP can communicate with ZED over UART
 const uint8_t btEscapeCharacter = '+';
 const uint8_t btMaxEscapeCharacters = 3; // Number of characters needed to enter remote command mode over Bluetooth
-const uint8_t btAppCommandCharacter = '-';
-const uint8_t btMaxAppCommandCharacters = 10; // Number of characters needed to enter app command mode over Bluetooth
-bool runCommandMode; // Goes true when user or remote app enters ---------- command mode sequence
 
 //=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 

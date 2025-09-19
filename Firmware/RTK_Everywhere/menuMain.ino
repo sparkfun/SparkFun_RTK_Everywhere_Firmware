@@ -120,14 +120,6 @@ void menuMain()
         gnss->debuggingDisable();
     }
 
-    // Check for remote app config entry into command mode
-    if (runCommandMode == true)
-    {
-        runCommandMode = false;
-        menuCommands();
-        return;
-    }
-
     while (1)
     {
         systemPrintln();
