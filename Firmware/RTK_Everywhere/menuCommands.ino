@@ -218,6 +218,11 @@ t_cliResult processCommand(char *cmdBuffer)
                                             value); // Wrap the string setting in quotes in the response, add OK
                 return (CLI_OK);
             }
+            else if (response == SETTING_KNOWN_READ_ONLY)
+            {
+                commandSendErrorResponse(tokens[0], field, (char *)"Setting is read only");
+                return (CLI_SETTING_READ_ONLY);
+            }
             else
             {
                 commandSendErrorResponse(tokens[0], field, (char *)"Unknown setting");
@@ -604,7 +609,7 @@ int commandLookupSettingNameSelective(bool inCommands, const char *settingName, 
 }
 
 // Check for unknown variables
-bool commandCheckForUnknownVariable(const char *settingName, const char **entry, int tableEntries)
+bool commandCheckListForVariable(const char *settingName, const char **entry, int tableEntries)
 {
     const char **tableEnd;
 
@@ -1341,8 +1346,8 @@ SettingValueResponse updateSettingWithValue(bool inCommands, const char *setting
 
         ESP.restart();
     }
-    
-    //setProfile was used in the original Web Config interface
+
+    // setProfile was used in the original Web Config interface
     else if (strcmp(settingName, "setProfile") == 0)
     {
         // Change to new profile
@@ -1368,7 +1373,7 @@ SettingValueResponse updateSettingWithValue(bool inCommands, const char *setting
         knownSetting = true;
     }
 
-    //profileNumber is used in the newer CLI with get/set capabilities
+    // profileNumber is used in the newer CLI with get/set capabilities
     else if (strcmp(settingName, "profileNumber") == 0)
     {
         // Change to new profile
@@ -1405,10 +1410,11 @@ SettingValueResponse updateSettingWithValue(bool inCommands, const char *setting
         sendStringToWebsocket(settingsCSV);
         knownSetting = true;
     }
-    
+
     // Is this a profile name change request? ie, 'profile2Name'
     // Search by first letter first to speed up search
-    else if ((settingName[0] == 'p') && (strstr(settingName, "profile") != nullptr) && (strcmp(&settingName[8], "Name") == 0))
+    else if ((settingName[0] == 'p') && (strstr(settingName, "profile") != nullptr) &&
+             (strcmp(&settingName[8], "Name") == 0))
     {
         int profileNumber = settingName[7] - '0';
         if (profileNumber >= 0 && profileNumber <= MAX_PROFILE_COUNT)
@@ -1475,7 +1481,7 @@ SettingValueResponse updateSettingWithValue(bool inCommands, const char *setting
         knownSetting = true;
     }
 
-    // Unused variables - read to avoid errors
+    // Unused variables from the Web Config interface - read to avoid errors
     else
     {
         const char *table[] = {
@@ -1495,7 +1501,27 @@ SettingValueResponse updateSettingWithValue(bool inCommands, const char *setting
         };
         const int tableEntries = sizeof(table) / sizeof(table[0]);
 
-        knownSetting = commandCheckForUnknownVariable(settingName, table, tableEntries);
+        knownSetting = commandCheckListForVariable(settingName, table, tableEntries);
+    }
+
+    // Check if this setting is read only
+    if(knownSetting == false)
+    {
+        const char *table[] = {
+            "batteryLevelPercent",
+            "batteryVoltage",
+            "batteryChargingPercentPerHour",
+            "bluetoothId",
+            "deviceId",
+            "deviceName",
+            "gnssModuleInfo",
+            "rtkFirmwareVersion",
+            "rtkRemoteFirmwareVersion",
+        };
+        const int tableEntries = sizeof(table) / sizeof(table[0]);
+
+        if(commandCheckListForVariable(settingName, table, tableEntries))
+            return (SETTING_KNOWN_READ_ONLY);
     }
 
     // If we've received a setting update for a setting that is not valid to this platform,
@@ -1539,7 +1565,7 @@ SettingValueResponse updateSettingWithValue(bool inCommands, const char *setting
             }
 
             if (rtkIndex >= numRtkSettingsEntries)
-                systemPrintf("ERROR: Unknown '%s': %0.3lf\r\n", settingName, settingValue);
+                systemPrintf("updateSettingWithValue: Unknown '%s': %0.3lf\r\n", settingName, settingValue);
             else
             {
                 // Display the warning
@@ -2960,7 +2986,8 @@ SettingValueResponse getSettingValue(bool inCommands, const char *settingName, c
 
     // Is this a profile name request? profile2Name
     // Search by first letter first to speed up search
-    if ((settingName[0] == 'p') && (strstr(settingName, "profile") != nullptr) && (strcmp(&settingName[8], "Name") == 0))
+    if ((settingName[0] == 'p') && (strstr(settingName, "profile") != nullptr) &&
+        (strcmp(&settingName[8], "Name") == 0))
     {
         int profileNumber = settingName[7] - '0';
         if (profileNumber >= 0 && profileNumber <= MAX_PROFILE_COUNT)
@@ -3079,7 +3106,7 @@ SettingValueResponse getSettingValue(bool inCommands, const char *settingName, c
         };
         const int tableEntries = sizeof(table) / sizeof(table[0]);
 
-        knownSetting = commandCheckForUnknownVariable(settingName, table, tableEntries);
+        knownSetting = commandCheckListForVariable(settingName, table, tableEntries);
     }
 
     if (knownSetting == false)
@@ -3894,7 +3921,7 @@ void printAvailableSettings()
                 commandSendExecuteListResponse("enableRCFirmware", "bool", "false");
         }
 
-        // Display the current RTK Firmware version
+        // Display the GNSS receiver info
         else if (commandIndex[i] == COMMAND_GNSS_MODULE_INFO)
         {
             // Create the settingType based on the length of the firmware version

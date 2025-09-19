@@ -1098,7 +1098,7 @@ bool parseLine(char *str)
         };
         const int tableEntries = sizeof(table) / sizeof(table[0]);
 
-        knownSetting = commandCheckForUnknownVariable(settingName, table, tableEntries);
+        knownSetting = commandCheckListForVariable(settingName, table, tableEntries);
     }
 
     if (knownSetting == false)

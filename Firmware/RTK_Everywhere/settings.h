@@ -549,6 +549,7 @@ typedef enum
     SETTING_UNKNOWN = 0,
     SETTING_KNOWN,
     SETTING_KNOWN_STRING,
+    SETTING_KNOWN_READ_ONLY,
 } SettingValueResponse;
 
 #define INCHES_IN_A_METER   39.37007874
@@ -1230,6 +1231,7 @@ typedef enum
     CLI_OK,    // 2
     CLI_BAD_FORMAT,
     CLI_UNKNOWN_SETTING,
+    CLI_SETTING_READ_ONLY,
     CLI_UNKNOWN_COMMAND,
     CLI_EXIT,
     CLI_LIST,
