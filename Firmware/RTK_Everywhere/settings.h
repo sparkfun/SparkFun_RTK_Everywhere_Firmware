@@ -1213,10 +1213,14 @@ typedef struct
 #define COMMAND_REMOTE_FIRMWARE_VERSION    (COMMAND_FIRMWARE_VERSION - 1) // -10 - 1 = -11
 #define COMMAND_ENABLE_RC_FIRMWARE         (COMMAND_REMOTE_FIRMWARE_VERSION - 1) // -11 - 1 = -12
 #define COMMAND_GNSS_MODULE_INFO           (COMMAND_ENABLE_RC_FIRMWARE - 1) // -12 - 1 = -13
-#define COMMAND_BLUETOOTH_ID               (COMMAND_GNSS_MODULE_INFO - 1) // -13 - 1 = -14
-#define COMMAND_DEVICE_ID                  (COMMAND_BLUETOOTH_ID - 1) // -14 - 1 = -15
-#define COMMAND_UNKNOWN                    (COMMAND_DEVICE_ID - 1) // -15 - 1 = -16
-#define COMMAND_COUNT                      (-(COMMAND_UNKNOWN)) // 16
+#define COMMAND_BATTERY_LEVEL_PERCENT      (COMMAND_GNSS_MODULE_INFO - 1) // -13 - 1 = -14
+#define COMMAND_BATTERY_VOLTAGE            (COMMAND_BATTERY_LEVEL_PERCENT - 1) // -13 - 1 = -14
+#define COMMAND_BATTERY_CHARGING_PERCENT   (COMMAND_BATTERY_VOLTAGE - 1) // -13 - 1 = -14
+#define COMMAND_BLUETOOTH_ID               (COMMAND_BATTERY_CHARGING_PERCENT - 1) // -13 - 1 = -14
+#define COMMAND_DEVICE_NAME                (COMMAND_BLUETOOTH_ID - 1) // -14 - 1 = -15
+#define COMMAND_DEVICE_ID                  (COMMAND_DEVICE_NAME - 1) // -15 - 1 = -16
+#define COMMAND_UNKNOWN                    (COMMAND_DEVICE_ID - 1) // -16 - 1 = -17
+#define COMMAND_COUNT                      (-(COMMAND_UNKNOWN)) // 17
 
 // Exit types for processCommand
 typedef enum

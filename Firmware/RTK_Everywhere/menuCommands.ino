@@ -2970,6 +2970,22 @@ SettingValueResponse getSettingValue(bool inCommands, const char *settingName, c
             settingIsString = true;
         }
     }
+    else if (strcmp(settingName, "bluetoothId") == 0)
+    {
+        // Get the last two digits of Bluetooth MAC
+        char macAddress[5];
+        snprintf(macAddress, sizeof(macAddress), "%02X%02X", btMACAddress[4], btMACAddress[5]);
+
+        writeToString(settingValueStr, macAddress);
+        knownSetting = true;
+        settingIsString = true;
+    }
+    else if (strcmp(settingName, "deviceName") == 0)
+    {
+        writeToString(settingValueStr, (char *)productDisplayNames[productVariant]);
+        knownSetting = true;
+        settingIsString = true;
+    }
     else if (strcmp(settingName, "deviceId") == 0)
     {
         writeToString(settingValueStr, (char *)printDeviceId());
@@ -3011,19 +3027,20 @@ SettingValueResponse getSettingValue(bool inCommands, const char *settingName, c
     else if (strcmp(settingName, "batteryLevelPercent") == 0)
     {
         checkBatteryLevels();
-        writeToString(settingValueStr, batteryLevelPercent);
+        writeToString(settingValueStr, batteryLevelPercent, 0);
         knownSetting = true;
+        settingIsString = true;
     }
     else if (strcmp(settingName, "batteryVoltage") == 0)
     {
         checkBatteryLevels();
-        writeToString(settingValueStr, batteryVoltage);
+        writeToString(settingValueStr, batteryVoltage, 2);
         knownSetting = true;
     }
     else if (strcmp(settingName, "batteryChargingPercentPerHour") == 0)
     {
         checkBatteryLevels();
-        writeToString(settingValueStr, batteryChargingPercentPerHour);
+        writeToString(settingValueStr, batteryChargingPercentPerHour, 0);
         knownSetting = true;
     }
 
@@ -3596,11 +3613,27 @@ const char *commandGetName(int stringIndex, int rtkIndex)
     else if (rtkIndex == COMMAND_GNSS_MODULE_INFO)
         return "gnssModuleInfo";
 
+    // Display the current battery level as a percent
+    else if (rtkIndex == COMMAND_BATTERY_LEVEL_PERCENT)
+        return "batteryLevelPercent";
+
+    // Display the current battery level as a percent
+    else if (rtkIndex == COMMAND_BATTERY_VOLTAGE)
+        return "batteryVoltage";
+
+    // Display the current battery charging percent per hour
+    else if (rtkIndex == COMMAND_BATTERY_CHARGING_PERCENT)
+        return "batteryChargingPercentPerHour";
+
     // Display the last four characters of the Bluetooth MAC address
     else if (rtkIndex == COMMAND_BLUETOOTH_ID)
         return "bluetoothId";
 
-    // Display the device ID - used in PointPerfect
+    // Display the device Name
+    else if (rtkIndex == COMMAND_DEVICE_NAME)
+        return "deviceName";
+
+    // Display the device ID
     else if (rtkIndex == COMMAND_DEVICE_ID)
         return "deviceId";
 
@@ -3871,7 +3904,55 @@ void printAvailableSettings()
             commandSendExecuteListResponse("gnssModuleInfo", settingType, printGnssModuleInfo());
         }
 
-        // Display the current RTK Firmware version
+        // Display the current battery level as a percent
+        else if (commandIndex[i] == COMMAND_BATTERY_LEVEL_PERCENT)
+        {
+            checkBatteryLevels();
+
+            // Convert int to string
+            char batteryLvlStr[4] = {0}; //104
+            snprintf(batteryLvlStr, sizeof(batteryLvlStr), "%d", batteryLevelPercent);
+
+            // Create the settingType based on the length of the firmware version
+            char settingType[100];
+            snprintf(settingType, sizeof(settingType), "char[%d]", strlen(batteryLvlStr));
+
+            commandSendExecuteListResponse("batteryLevelPercent", settingType, batteryLvlStr);
+        }
+
+        // Display the current battery voltage
+        else if (commandIndex[i] == COMMAND_BATTERY_VOLTAGE)
+        {
+            checkBatteryLevels();
+
+            // Convert int to string
+            char batteryVoltageStr[6] = {0}; // 11.25
+            snprintf(batteryVoltageStr, sizeof(batteryVoltageStr), "%0.2f", batteryVoltage);
+
+            // Create the settingType based on the length of the firmware version
+            char settingType[100];
+            snprintf(settingType, sizeof(settingType), "char[%d]", strlen(batteryVoltageStr));
+
+            commandSendExecuteListResponse("batteryVoltage", settingType, batteryVoltageStr);
+        }
+
+                // Display the current battery charging percent per hour
+        else if (commandIndex[i] == COMMAND_BATTERY_CHARGING_PERCENT)
+        {
+            checkBatteryLevels();
+
+            // Convert int to string
+            char batteryChargingPercentStr[3] = {0}; // 45
+            snprintf(batteryChargingPercentStr, sizeof(batteryChargingPercentStr), "%0.0f", batteryChargingPercentStr);
+
+            // Create the settingType based on the length of the firmware version
+            char settingType[100];
+            snprintf(settingType, sizeof(settingType), "char[%d]", strlen(batteryChargingPercentStr));
+
+            commandSendExecuteListResponse("batteryChargingPercentPerHour", settingType, batteryChargingPercentStr);
+        }
+
+        // Display the last four characters of the Bluetooth MAC
         else if (commandIndex[i] == COMMAND_BLUETOOTH_ID)
         {
             // Get the last two digits of Bluetooth MAC
@@ -3885,7 +3966,15 @@ void printAvailableSettings()
             commandSendExecuteListResponse("bluetoothId", settingType, macAddress);
         }
 
-        // Display the device ID - used in PointPerfect
+        // Display the device name
+        else if (commandIndex[i] == COMMAND_DEVICE_NAME)
+        {
+            char settingType[100];
+            snprintf(settingType, sizeof(settingType), "char[%d]", strlen(productDisplayNames[productVariant]));
+            commandSendExecuteListResponse("deviceName", settingType, productDisplayNames[productVariant]);
+        }
+
+        // Display the device ID
         else if (commandIndex[i] == COMMAND_DEVICE_ID)
         {
             char settingType[100];
