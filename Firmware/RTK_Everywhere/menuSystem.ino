@@ -498,7 +498,7 @@ void menuDebugHardware()
         systemPrint("): ");
         systemPrintf("%s\r\n", settings.enablePsram ? "Enabled" : "Disabled");
 
-        systemPrint("15) Print ESP-Now Debugging: ");
+        systemPrint("15) Print ESP-NOW Debugging: ");
         systemPrintf("%s\r\n", settings.debugEspNow ? "Enabled" : "Disabled");
 
         systemPrint("16) Print LoRa Debugging: ");

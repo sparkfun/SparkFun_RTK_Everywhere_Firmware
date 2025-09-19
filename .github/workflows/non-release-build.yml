@@ -51,7 +51,7 @@ jobs:
               echo "JSON_ENDING=-${{ steps.dateNoScores.outputs.dateNoScores }}" >> "$GITHUB_ENV"
               echo "JSON_FILE_NAME=RTK-Everywhere-RC-Firmware.json" >> "$GITHUB_ENV"
               echo "ENABLE_DEVELOPER=true" >> "$GITHUB_ENV"
-              echo "DEBUG_LEVEL=debug" >> "$GITHUB_ENV"
+              echo "DEBUG_LEVEL=error" >> "$GITHUB_ENV"
           fi
 
       - name: Setup Arduino CLI

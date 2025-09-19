@@ -1,3 +1,5 @@
+char otaOutcome[21] = {0}; // Modified by otaUpdate(), used to respond to rtkRemoteFirmwareVersion commands
+
 void menuCommands()
 {
     char cmdBuffer[200];
@@ -180,7 +182,7 @@ t_cliResult processCommand(char *cmdBuffer)
             }
             else
             {
-                commandSendErrorResponse(tokens[0], (char *)"Unknown setting");
+                commandSendErrorResponse(tokens[0], field, (char *)"Unknown setting");
                 return (CLI_UNKNOWN_SETTING);
             }
         }
@@ -189,8 +191,13 @@ t_cliResult processCommand(char *cmdBuffer)
     {
         if (tokenCount != 3)
         {
-            commandSendErrorResponse(tokens[0],
-                                     (char *)"Incorrect number of arguments"); // Incorrect number of arguments
+            if (tokenCount == 2)
+                commandSendErrorResponse(tokens[0], tokens[1],
+                                         (char *)"Incorrect number of arguments"); // Incorrect number of arguments
+            else
+                commandSendErrorResponse(tokens[0],
+                                         (char *)"Incorrect number of arguments"); // Incorrect number of arguments
+
             return (CLI_BAD_FORMAT);
         }
         else
@@ -211,9 +218,14 @@ t_cliResult processCommand(char *cmdBuffer)
                                             value); // Wrap the string setting in quotes in the response, add OK
                 return (CLI_OK);
             }
+            else if (response == SETTING_KNOWN_READ_ONLY)
+            {
+                commandSendErrorResponse(tokens[0], field, (char *)"Setting is read only");
+                return (CLI_SETTING_READ_ONLY);
+            }
             else
             {
-                commandSendErrorResponse(tokens[0], (char *)"Unknown setting");
+                commandSendErrorResponse(tokens[0], field, (char *)"Unknown setting");
                 return (CLI_UNKNOWN_SETTING);
             }
         }
@@ -258,9 +270,26 @@ t_cliResult processCommand(char *cmdBuffer)
                 commandSendExecuteOkResponse(tokens[0], tokens[1]);
                 return (CLI_OK);
             }
+            else if (strcmp(tokens[1], "FACTORYRESET") == 0)
+            {
+                // Apply factory defaults, then reset
+                commandSendExecuteOkResponse(tokens[0], tokens[1]);
+                factoryReset(false); // We do not have the SD semaphore
+                return (CLI_OK);     // We should never get this far.
+            }
+            else if (strcmp(tokens[1], "UPDATEFIRMWARE") == 0)
+            {
+                // Begin a firmware update. WiFi networks and enableRCFirmware should previously be set.
+                commandSendExecuteOkResponse(tokens[0], tokens[1]);
+                otaRequestFirmwareUpdate = true;
+
+                // Force exit all config menus and/or command modes to allow OTA state machine to run
+                btPrintEchoExit = true;
+                return (CLI_EXIT); // Exit the CLI to allow OTA state machine to run
+            }
             else
             {
-                commandSendErrorResponse(tokens[0], tokens[1], (char *)"Unknown command");
+                commandSendExecuteErrorResponse(tokens[0], tokens[1], (char *)"Unknown command");
                 return (CLI_UNKNOWN_COMMAND);
             }
         }
@@ -291,6 +320,17 @@ void commandSendExecuteOkResponse(const char *command, const char *settingName)
     // Create string between $ and * for checksum calculation
     char innerBuffer[200];
     sprintf(innerBuffer, "%s,%s,OK", command, settingName);
+    commandSendResponse(innerBuffer);
+}
+
+// Given a command, send structured ERROR response
+// Response format: $SPEXE,[setting name],ERROR,[Verbose error description]*FF<CR><LF>
+// Ex: $SPEXE,UPDATEFIRMWARE*77 = $SPEXE,UPDATEFIRMWARE,ERROR,No Internet*15
+void commandSendExecuteErrorResponse(const char *command, const char *settingName, const char *errorVerbose)
+{
+    // Create string between $ and * for checksum calculation
+    char innerBuffer[200];
+    snprintf(innerBuffer, sizeof(innerBuffer), "%s,%s,ERROR,%s", command, settingName, errorVerbose);
     commandSendResponse(innerBuffer);
 }
 
@@ -404,6 +444,7 @@ void commandSendErrorResponse(const char *command, const char *settingName, cons
     snprintf(innerBuffer, sizeof(innerBuffer), "%s,%s,,ERROR,%s", command, settingName, errorVerbose);
     commandSendResponse(innerBuffer);
 }
+
 // Given a command, send structured ERROR response
 // Response format: $SPxET,,,ERROR,[Verbose error description]*FF<CR><LF>
 // Ex: SPGET, 'Incorrect number of arguments' = "$SPGET,ERROR,Incorrect number of arguments*1E"
@@ -427,7 +468,8 @@ void commandSendResponse(const char *innerBuffer)
 
     sprintf(responseBuffer, "$%s*%02X\r\n", innerBuffer, calculatedChecksum);
 
-    systemPrint(responseBuffer);
+    // CLI interactions may come from BLE or serial, respond to both interfaces
+    bluetoothSendCommand(responseBuffer);
 }
 
 // Checks structure of command and checksum
@@ -494,18 +536,20 @@ void commandSplitName(const char *settingName, char *truncatedName, int truncate
 }
 
 // Using the settingName string, return the index of the setting within command array
-int commandLookupSettingNameAfterPriority(bool inCommands, const char *settingName, char *truncatedName, int truncatedNameLen,
-                             char *suffix, int suffixLen)
+int commandLookupSettingNameAfterPriority(bool inCommands, const char *settingName, char *truncatedName,
+                                          int truncatedNameLen, char *suffix, int suffixLen)
 {
-    return commandLookupSettingNameSelective(inCommands, settingName, truncatedName, truncatedNameLen, suffix, suffixLen, true);
+    return commandLookupSettingNameSelective(inCommands, settingName, truncatedName, truncatedNameLen, suffix,
+                                             suffixLen, true);
 }
 int commandLookupSettingName(bool inCommands, const char *settingName, char *truncatedName, int truncatedNameLen,
                              char *suffix, int suffixLen)
 {
-    return commandLookupSettingNameSelective(inCommands, settingName, truncatedName, truncatedNameLen, suffix, suffixLen, false);
+    return commandLookupSettingNameSelective(inCommands, settingName, truncatedName, truncatedNameLen, suffix,
+                                             suffixLen, false);
 }
-int commandLookupSettingNameSelective(bool inCommands, const char *settingName, char *truncatedName, int truncatedNameLen,
-                             char *suffix, int suffixLen, bool usePrioritySettingsEnd)
+int commandLookupSettingNameSelective(bool inCommands, const char *settingName, char *truncatedName,
+                                      int truncatedNameLen, char *suffix, int suffixLen, bool usePrioritySettingsEnd)
 {
     const char *command;
 
@@ -513,7 +557,10 @@ int commandLookupSettingNameSelective(bool inCommands, const char *settingName, 
     if (usePrioritySettingsEnd)
         // Find "endOfPrioritySettings"
         prioritySettingsEnd = findEndOfPrioritySettings();
-        // If "endOfPrioritySettings" is not found, prioritySettingsEnd will be zero
+    // If "endOfPrioritySettings" is not found, prioritySettingsEnd will be zero
+
+    // Remove one because while rtkSettingsEntries[] contains detectedGnssReceiver, the command table does not
+    prioritySettingsEnd--;
 
     // Loop through the valid command entries - starting at prioritySettingsEnd
     for (int i = prioritySettingsEnd; i < commandCount; i++)
@@ -556,13 +603,13 @@ int commandLookupSettingNameSelective(bool inCommands, const char *settingName, 
 
     // Command not found
     if (settings.debugCLI == true)
-        systemPrintf("commandLookupSettingName: Command not found: %s\r\n", settingName);
+        systemPrintf("commandLookupSettingName: Setting not found: %s\r\n", settingName);
 
     return COMMAND_UNKNOWN;
 }
 
 // Check for unknown variables
-bool commandCheckForUnknownVariable(const char *settingName, const char **entry, int tableEntries)
+bool commandCheckListForVariable(const char *settingName, const char **entry, int tableEntries)
 {
     const char **tableEnd;
 
@@ -1263,7 +1310,7 @@ SettingValueResponse updateSettingWithValue(bool inCommands, const char *setting
         knownSetting = true;
     }
 
-    // Special actions
+    // Special human-machine-interface commands/actions
     else if (strcmp(settingName, "enableRCFirmware") == 0)
     {
         enableRCFirmware = settingValue;
@@ -1299,6 +1346,8 @@ SettingValueResponse updateSettingWithValue(bool inCommands, const char *setting
 
         ESP.restart();
     }
+
+    // setProfile was used in the original Web Config interface
     else if (strcmp(settingName, "setProfile") == 0)
     {
         // Change to new profile
@@ -1323,6 +1372,21 @@ SettingValueResponse updateSettingWithValue(bool inCommands, const char *setting
         sendStringToWebsocket(settingsCSV);
         knownSetting = true;
     }
+
+    // profileNumber is used in the newer CLI with get/set capabilities
+    else if (strcmp(settingName, "profileNumber") == 0)
+    {
+        // Change to new profile
+        if (settings.debugCLI == true)
+            systemPrintf("Changing to profile number %d\r\n", settingValue);
+        changeProfileNumber(settingValue);
+
+        // Load new profile into system
+        loadSettings();
+
+        knownSetting = true;
+    }
+
     else if (strcmp(settingName, "resetProfile") == 0)
     {
         settingsToDefaults(); // Overwrite our current settings with defaults
@@ -1346,9 +1410,22 @@ SettingValueResponse updateSettingWithValue(bool inCommands, const char *setting
         sendStringToWebsocket(settingsCSV);
         knownSetting = true;
     }
+
+    // Is this a profile name change request? ie, 'profile2Name'
+    // Search by first letter first to speed up search
+    else if ((settingName[0] == 'p') && (strstr(settingName, "profile") != nullptr) &&
+             (strcmp(&settingName[8], "Name") == 0))
+    {
+        int profileNumber = settingName[7] - '0';
+        if (profileNumber >= 0 && profileNumber <= MAX_PROFILE_COUNT)
+        {
+            strncpy(profileNames[profileNumber], settingValueStr, sizeof(profileNames[0]));
+            knownSetting = true;
+        }
+    }
     else if (strcmp(settingName, "forgetEspNowPeers") == 0)
     {
-        // Forget all ESP-Now Peers
+        // Forget all ESP-NOW Peers
         for (int x = 0; x < settings.espnowPeerCount; x++)
             espNowRemovePeer(settings.espnowPeers[x]);
         settings.espnowPeerCount = 0;
@@ -1404,7 +1481,7 @@ SettingValueResponse updateSettingWithValue(bool inCommands, const char *setting
         knownSetting = true;
     }
 
-    // Unused variables - read to avoid errors
+    // Unused variables from the Web Config interface - read to avoid errors
     else
     {
         const char *table[] = {
@@ -1424,7 +1501,27 @@ SettingValueResponse updateSettingWithValue(bool inCommands, const char *setting
         };
         const int tableEntries = sizeof(table) / sizeof(table[0]);
 
-        knownSetting = commandCheckForUnknownVariable(settingName, table, tableEntries);
+        knownSetting = commandCheckListForVariable(settingName, table, tableEntries);
+    }
+
+    // Check if this setting is read only
+    if(knownSetting == false)
+    {
+        const char *table[] = {
+            "batteryLevelPercent",
+            "batteryVoltage",
+            "batteryChargingPercentPerHour",
+            "bluetoothId",
+            "deviceId",
+            "deviceName",
+            "gnssModuleInfo",
+            "rtkFirmwareVersion",
+            "rtkRemoteFirmwareVersion",
+        };
+        const int tableEntries = sizeof(table) / sizeof(table[0]);
+
+        if(commandCheckListForVariable(settingName, table, tableEntries))
+            return (SETTING_KNOWN_READ_ONLY);
     }
 
     // If we've received a setting update for a setting that is not valid to this platform,
@@ -1468,7 +1565,7 @@ SettingValueResponse updateSettingWithValue(bool inCommands, const char *setting
             }
 
             if (rtkIndex >= numRtkSettingsEntries)
-                systemPrintf("ERROR: Unknown '%s': %0.3lf\r\n", settingName, settingValue);
+                systemPrintf("updateSettingWithValue: Unknown '%s': %0.3lf\r\n", settingName, settingValue);
             else
             {
                 // Display the warning
@@ -1504,32 +1601,8 @@ void createSettingsString(char *newSettings)
     strncpy(apPlatformPrefix, platformPrefixTable[productVariant], sizeof(apPlatformPrefix));
     stringRecord(newSettings, "platformPrefix", apPlatformPrefix);
 
-    char apRtkFirmwareVersion[86];
-    firmwareVersionGet(apRtkFirmwareVersion, sizeof(apRtkFirmwareVersion), true);
-    stringRecord(newSettings, "rtkFirmwareVersion", apRtkFirmwareVersion);
-
-    char apGNSSFirmwareVersion[80];
-    if (present.gnss_zedf9p)
-    {
-        snprintf(apGNSSFirmwareVersion, sizeof(apGNSSFirmwareVersion), "ZED-F9P Firmware: %s ID: %s",
-                 gnssFirmwareVersion, gnssUniqueId);
-    }
-    else if (present.gnss_um980)
-    {
-        snprintf(apGNSSFirmwareVersion, sizeof(apGNSSFirmwareVersion), "UM980 Firmware: %s ID: %s", gnssFirmwareVersion,
-                 gnssUniqueId);
-    }
-    else if (present.gnss_mosaicX5)
-    {
-        snprintf(apGNSSFirmwareVersion, sizeof(apGNSSFirmwareVersion), "mosaic-X5 Firmware: %s ID: %s",
-                 gnssFirmwareVersion, gnssUniqueId);
-    }
-    else if (present.gnss_lg290p)
-    {
-        snprintf(apGNSSFirmwareVersion, sizeof(apGNSSFirmwareVersion), "LG290P Firmware: %s ID: %s",
-                 gnssFirmwareVersion, gnssUniqueId);
-    }
-    stringRecord(newSettings, "gnssFirmwareVersion", apGNSSFirmwareVersion);
+    stringRecord(newSettings, "rtkFirmwareVersion", (char *)printRtkFirmwareVersion());
+    stringRecord(newSettings, "gnssFirmwareVersion", (char *)printGnssModuleInfo());
     stringRecord(newSettings, "gnssFirmwareVersionInt", gnssFirmwareVersionInt);
 
     char apDeviceBTID[30];
@@ -1686,7 +1759,7 @@ void createSettingsString(char *newSettings)
 #endif // COMPILE_ZED
 
             case tEspNowPr: {
-                // Record ESP-Now peer MAC addresses
+                // Record ESP-NOW peer MAC addresses
                 for (int x = 0; x < rtkSettingsEntries[i].qualifier; x++)
                 {
                     char tempString[50]; // espnowPeers_1=B4:C1:33:42:DE:01,
@@ -2111,7 +2184,7 @@ void createSettingsString(char *newSettings)
     stringRecord(newSettings, "ecefY", ecefY, 3);
     stringRecord(newSettings, "ecefZ", ecefZ, 3);
 
-    // Radio / ESP-Now settings
+    // Radio / ESP-NOW settings
     char radioMAC[18]; // Send radio MAC
     snprintf(radioMAC, sizeof(radioMAC), "%02X:%02X:%02X:%02X:%02X:%02X", wifiMACAddress[0], wifiMACAddress[1],
              wifiMACAddress[2], wifiMACAddress[3], wifiMACAddress[4], wifiMACAddress[5]);
@@ -2382,7 +2455,8 @@ SettingValueResponse getSettingValue(bool inCommands, const char *settingName, c
                                   // Generally char arrays but some others.
 
     // Loop through the valid command entries - but skip the priority settings and use the GNSS-specific types
-    i = commandLookupSettingNameAfterPriority(inCommands, settingName, truncatedName, sizeof(truncatedName), suffix, sizeof(suffix));
+    i = commandLookupSettingNameAfterPriority(inCommands, settingName, truncatedName, sizeof(truncatedName), suffix,
+                                              sizeof(suffix));
 
     // Determine if settingName is in the command table
     if (i >= 0)
@@ -2506,7 +2580,7 @@ SettingValueResponse getSettingValue(bool inCommands, const char *settingName, c
         }
         break;
 
-         case tCmnCnst:
+        case tCmnCnst:
             break; // Nothing to do here. Let each GNSS add its settings
         case tCmnRtNm:
             break; // Nothing to do here. Let each GNSS add its settings
@@ -2908,12 +2982,60 @@ SettingValueResponse getSettingValue(bool inCommands, const char *settingName, c
     else if (knownSetting == true)
         return (SETTING_KNOWN);
 
-    // Report deviceID over CLI - Useful for label generation
-    if (strcmp(settingName, "deviceId") == 0)
+    // Report special human-machine-interface settings
+
+    // Is this a profile name request? profile2Name
+    // Search by first letter first to speed up search
+    if ((settingName[0] == 'p') && (strstr(settingName, "profile") != nullptr) &&
+        (strcmp(&settingName[8], "Name") == 0))
+    {
+        int profileNumber = settingName[7] - '0';
+        if (profileNumber >= 0 && profileNumber <= MAX_PROFILE_COUNT)
+        {
+            writeToString(settingValueStr, profileNames[profileNumber]);
+            knownSetting = true;
+            settingIsString = true;
+        }
+    }
+    else if (strcmp(settingName, "bluetoothId") == 0)
+    {
+        // Get the last two digits of Bluetooth MAC
+        char macAddress[5];
+        snprintf(macAddress, sizeof(macAddress), "%02X%02X", btMACAddress[4], btMACAddress[5]);
+
+        writeToString(settingValueStr, macAddress);
+        knownSetting = true;
+        settingIsString = true;
+    }
+    else if (strcmp(settingName, "deviceName") == 0)
+    {
+        writeToString(settingValueStr, (char *)productDisplayNames[productVariant]);
+        knownSetting = true;
+        settingIsString = true;
+    }
+    else if (strcmp(settingName, "deviceId") == 0)
     {
         writeToString(settingValueStr, (char *)printDeviceId());
         knownSetting = true;
         settingIsString = true;
+    }
+    else if (strcmp(settingName, "rtkFirmwareVersion") == 0)
+    {
+        writeToString(settingValueStr, (char *)printRtkFirmwareVersion());
+        knownSetting = true;
+        settingIsString = true;
+    }
+    else if (strcmp(settingName, "rtkRemoteFirmwareVersion") == 0)
+    {
+        // otaUpdate() is synchronous and called from loop() so we respond here with OK, then go check the firmware
+        // version
+        writeToString(settingValueStr, (char *)"OK");
+        knownSetting = true;
+
+        otaRequestFirmwareVersionCheck = true;
+
+        // Force exit all config menus and/or command modes to allow OTA state machine to run
+        btPrintEchoExit = true;
     }
 
     // Special actions
@@ -2922,22 +3044,30 @@ SettingValueResponse getSettingValue(bool inCommands, const char *settingName, c
         writeToString(settingValueStr, enableRCFirmware);
         knownSetting = true;
     }
+    else if (strcmp(settingName, "gnssModuleInfo") == 0)
+    {
+        writeToString(settingValueStr, (char *)printGnssModuleInfo());
+        knownSetting = true;
+        settingIsString = true;
+    }
+
     else if (strcmp(settingName, "batteryLevelPercent") == 0)
     {
         checkBatteryLevels();
-        writeToString(settingValueStr, batteryLevelPercent);
+        writeToString(settingValueStr, batteryLevelPercent, 0);
         knownSetting = true;
+        settingIsString = true;
     }
     else if (strcmp(settingName, "batteryVoltage") == 0)
     {
         checkBatteryLevels();
-        writeToString(settingValueStr, batteryVoltage);
+        writeToString(settingValueStr, batteryVoltage, 2);
         knownSetting = true;
     }
     else if (strcmp(settingName, "batteryChargingPercentPerHour") == 0)
     {
         checkBatteryLevels();
-        writeToString(settingValueStr, batteryChargingPercentPerHour);
+        writeToString(settingValueStr, batteryChargingPercentPerHour, 0);
         knownSetting = true;
     }
 
@@ -2976,7 +3106,7 @@ SettingValueResponse getSettingValue(bool inCommands, const char *settingName, c
         };
         const int tableEntries = sizeof(table) / sizeof(table[0]);
 
-        knownSetting = commandCheckForUnknownVariable(settingName, table, tableEntries);
+        knownSetting = commandCheckListForVariable(settingName, table, tableEntries);
     }
 
     if (knownSetting == false)
@@ -3148,7 +3278,7 @@ void commandList(bool inCommands, int i)
 #endif // COMPILE_ZED
 
     case tEspNowPr: {
-        // Record ESP-Now peer MAC addresses
+        // Record ESP-NOW peer MAC addresses
         for (int x = 0; x < rtkSettingsEntries[i].qualifier; x++)
         {
             snprintf(settingType, sizeof(settingType), "uint8_t[%d]", sizeof(settings.espnowPeers[0]));
@@ -3494,8 +3624,48 @@ const char *commandGetName(int stringIndex, int rtkIndex)
     else if (rtkIndex == COMMAND_PROFILE_NUMBER)
         return "profileNumber";
 
-    // Display the device ID - used in PointPerfect
-    return "deviceId";
+    // Display the current firmware version number
+    else if (rtkIndex == COMMAND_FIRMWARE_VERSION)
+        return "rtkFirmwareVersion";
+
+    // Connect to the internet and retrieve the remote firmware version
+    else if (rtkIndex == COMMAND_REMOTE_FIRMWARE_VERSION)
+        return "rtkRemoteFirmwareVersion";
+
+    // Allow release candidate firmware to be installed
+    else if (rtkIndex == COMMAND_ENABLE_RC_FIRMWARE)
+        return "enableRCFirmware";
+
+    // Display the current GNSS firmware version number
+    else if (rtkIndex == COMMAND_GNSS_MODULE_INFO)
+        return "gnssModuleInfo";
+
+    // Display the current battery level as a percent
+    else if (rtkIndex == COMMAND_BATTERY_LEVEL_PERCENT)
+        return "batteryLevelPercent";
+
+    // Display the current battery level as a percent
+    else if (rtkIndex == COMMAND_BATTERY_VOLTAGE)
+        return "batteryVoltage";
+
+    // Display the current battery charging percent per hour
+    else if (rtkIndex == COMMAND_BATTERY_CHARGING_PERCENT)
+        return "batteryChargingPercentPerHour";
+
+    // Display the last four characters of the Bluetooth MAC address
+    else if (rtkIndex == COMMAND_BLUETOOTH_ID)
+        return "bluetoothId";
+
+    // Display the device Name
+    else if (rtkIndex == COMMAND_DEVICE_NAME)
+        return "deviceName";
+
+    // Display the device ID
+    else if (rtkIndex == COMMAND_DEVICE_ID)
+        return "deviceId";
+
+    systemPrintln("commandGetName Error: Uncaught command type");
+    return "unknown";
 }
 
 // Determine if the setting is available on this platform
@@ -3645,7 +3815,7 @@ bool commandIndexFill(bool usePossibleSettings)
         }
     }
 
-    // Add the man-machine interface commands to the list
+    // Add the human-machine-interface commands to the list
     for (i = 1; i < COMMAND_COUNT; i++)
         commandIndex[commandCount++] = -i;
 
@@ -3654,8 +3824,10 @@ bool commandIndexFill(bool usePossibleSettings)
     // If "endOfPrioritySettings" is not found, prioritySettingsEnd will be zero
     // and all settings will be sorted. Just like the good old days...
 
-    if (settings.debugSettings)
+    if (settings.debugSettings || settings.debugCLI)
     {
+        systemPrintf("commandCount %d\r\n", commandCount);
+
         if (prioritySettingsEnd > 0)
             systemPrintf("endOfPrioritySettings found at entry %d\r\n", prioritySettingsEnd);
         else
@@ -3701,7 +3873,7 @@ void printAvailableSettings()
                 commandList(false, commandIndex[i]);
         }
 
-        // Below are commands formed specifically for the Man-Machine-Interface
+        // Below are commands formed specifically for the Human-Machine-Interface
         // Display the profile name - used in Profiles
         else if (commandIndex[i] >= -MAX_PROFILE_COUNT)
         {
@@ -3723,7 +3895,113 @@ void printAvailableSettings()
             commandSendExecuteListResponse("profileNumber", "uint8_t", settingValue);
         }
 
-        // Display the device ID - used in PointPerfect
+        // Display the current RTK Firmware version
+        else if (commandIndex[i] == COMMAND_FIRMWARE_VERSION)
+        {
+            // Create the settingType based on the length of the firmware version
+            char settingType[100];
+            snprintf(settingType, sizeof(settingType), "char[%d]", strlen(printRtkFirmwareVersion()));
+
+            commandSendExecuteListResponse("rtkFirmwareVersion", settingType, printRtkFirmwareVersion());
+        }
+
+        // Display the latest remote RTK Firmware version
+        else if (commandIndex[i] == COMMAND_REMOTE_FIRMWARE_VERSION)
+        {
+            // Report the available command but without data. That requires the user issue separate SPGET.
+            commandSendExecuteListResponse("rtkRemoteFirmwareVersion", "char[21]", "NotYetRetreived");
+        }
+
+        // Allow beta firmware release candidates
+        else if (commandIndex[i] == COMMAND_ENABLE_RC_FIRMWARE)
+        {
+            if (enableRCFirmware)
+                commandSendExecuteListResponse("enableRCFirmware", "bool", "true");
+            else
+                commandSendExecuteListResponse("enableRCFirmware", "bool", "false");
+        }
+
+        // Display the GNSS receiver info
+        else if (commandIndex[i] == COMMAND_GNSS_MODULE_INFO)
+        {
+            // Create the settingType based on the length of the firmware version
+            char settingType[100];
+            snprintf(settingType, sizeof(settingType), "char[%d]", strlen(printGnssModuleInfo()));
+
+            commandSendExecuteListResponse("gnssModuleInfo", settingType, printGnssModuleInfo());
+        }
+
+        // Display the current battery level as a percent
+        else if (commandIndex[i] == COMMAND_BATTERY_LEVEL_PERCENT)
+        {
+            checkBatteryLevels();
+
+            // Convert int to string
+            char batteryLvlStr[4] = {0}; //104
+            snprintf(batteryLvlStr, sizeof(batteryLvlStr), "%d", batteryLevelPercent);
+
+            // Create the settingType based on the length of the firmware version
+            char settingType[100];
+            snprintf(settingType, sizeof(settingType), "char[%d]", strlen(batteryLvlStr));
+
+            commandSendExecuteListResponse("batteryLevelPercent", settingType, batteryLvlStr);
+        }
+
+        // Display the current battery voltage
+        else if (commandIndex[i] == COMMAND_BATTERY_VOLTAGE)
+        {
+            checkBatteryLevels();
+
+            // Convert int to string
+            char batteryVoltageStr[6] = {0}; // 11.25
+            snprintf(batteryVoltageStr, sizeof(batteryVoltageStr), "%0.2f", batteryVoltage);
+
+            // Create the settingType based on the length of the firmware version
+            char settingType[100];
+            snprintf(settingType, sizeof(settingType), "char[%d]", strlen(batteryVoltageStr));
+
+            commandSendExecuteListResponse("batteryVoltage", settingType, batteryVoltageStr);
+        }
+
+                // Display the current battery charging percent per hour
+        else if (commandIndex[i] == COMMAND_BATTERY_CHARGING_PERCENT)
+        {
+            checkBatteryLevels();
+
+            // Convert int to string
+            char batteryChargingPercentStr[3] = {0}; // 45
+            snprintf(batteryChargingPercentStr, sizeof(batteryChargingPercentStr), "%0.0f", batteryChargingPercentStr);
+
+            // Create the settingType based on the length of the firmware version
+            char settingType[100];
+            snprintf(settingType, sizeof(settingType), "char[%d]", strlen(batteryChargingPercentStr));
+
+            commandSendExecuteListResponse("batteryChargingPercentPerHour", settingType, batteryChargingPercentStr);
+        }
+
+        // Display the last four characters of the Bluetooth MAC
+        else if (commandIndex[i] == COMMAND_BLUETOOTH_ID)
+        {
+            // Get the last two digits of Bluetooth MAC
+            char macAddress[5];
+            snprintf(macAddress, sizeof(macAddress), "%02X%02X", btMACAddress[4], btMACAddress[5]);
+
+            // Create the settingType based on the length of the MAC
+            char settingType[100];
+            snprintf(settingType, sizeof(settingType), "char[%d]", strlen(macAddress));
+
+            commandSendExecuteListResponse("bluetoothId", settingType, macAddress);
+        }
+
+        // Display the device name
+        else if (commandIndex[i] == COMMAND_DEVICE_NAME)
+        {
+            char settingType[100];
+            snprintf(settingType, sizeof(settingType), "char[%d]", strlen(productDisplayNames[productVariant]));
+            commandSendExecuteListResponse("deviceName", settingType, productDisplayNames[productVariant]);
+        }
+
+        // Display the device ID
         else if (commandIndex[i] == COMMAND_DEVICE_ID)
         {
             char settingType[100];

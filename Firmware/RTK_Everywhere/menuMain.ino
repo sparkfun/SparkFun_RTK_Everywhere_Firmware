@@ -120,14 +120,6 @@ void menuMain()
         gnss->debuggingDisable();
     }
 
-    // Check for remote app config entry into command mode
-    if (runCommandMode == true)
-    {
-        runCommandMode = false;
-        menuCommands();
-        return;
-    }
-
     while (1)
     {
         systemPrintln();
@@ -609,7 +601,7 @@ void menuRadio()
         systemPrintln("Menu: Radios");
 
 #ifndef COMPILE_ESPNOW
-        systemPrintln("1) **ESP-Now Not Compiled**");
+        systemPrintln("1) **ESP-NOW Not Compiled**");
 #else  // COMPILE_ESPNOW
         if (settings.enableEspNow == false)
             systemPrintln("1) ESP-NOW Radio: Disabled");

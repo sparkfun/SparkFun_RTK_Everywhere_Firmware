@@ -83,7 +83,7 @@ esp_err_t espNowAddPeer(const uint8_t *peerMac)
 }
 
 //*********************************************************************
-// Start ESP-Now if needed, put ESP-Now into broadcast state
+// Start ESP-NOW if needed, put ESP-NOW into broadcast state
 void espNowBeginPairing()
 {
     if (settings.enableEspNow == false)
@@ -155,7 +155,7 @@ void espNowOnDataReceived(const esp_now_recv_info *mac, const uint8_t *incomingD
     {
         espNowRSSI = packetRSSI; // Record this packet's RSSI as an ESP NOW packet
 
-        // We've just received ESP-Now data. We assume this is RTCM and push it directly to the GNSS.
+        // We've just received ESP-NOW data. We assume this is RTCM and push it directly to the GNSS.
         // Determine if ESPNOW is the correction source
         if (correctionLastSeen(CORR_ESPNOW))
         {
@@ -492,7 +492,7 @@ void espNowStaticPairing()
 {
     systemPrintln("Begin ESP NOW Pairing");
 
-    // Start ESP-Now if needed, put ESP-Now into broadcast state
+    // Start ESP-NOW if needed, put ESP-NOW into broadcast state
     espNowBeginPairing();
 
     // Begin sending our MAC every 250ms until a remote device sends us there info

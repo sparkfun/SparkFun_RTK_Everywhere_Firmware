@@ -3,7 +3,7 @@ Describe your issue here. Additionally, screenshots are easy to paste into githu
 
 ### Your workbench
 - What version of RTK firmware are you running? This can be found when the serial menu is opened (also in the settings.txt file, and in the serial output at power up).
-- What radios are you using: Bluetooth, WiFi, and/or ESP-Now? What app are you using to connect over Bluetooth? Are you transmitting NTRIP back to the device?
+- What radios are you using: Bluetooth, WiFi, and/or ESP-NOW? What app are you using to connect over Bluetooth? Are you transmitting NTRIP back to the device?
 - Are there any additional details that may help us help you?
 
 ### Steps to reproduce

@@ -118,6 +118,36 @@ bool bluetoothIsConnected()
     return (false);
 }
 
+// Return true if the BLE Command channel is connected
+bool bluetoothCommandIsConnected()
+{
+#ifdef COMPILE_BT
+    if (bluetoothGetState() == BT_OFF)
+        return (false);
+
+    if (settings.bluetoothRadioType == BLUETOOTH_RADIO_SPP_AND_BLE)
+    {
+        if (bluetoothSerialBleCommands->connected() == true)
+            return (true);
+    }
+    else if (settings.bluetoothRadioType == BLUETOOTH_RADIO_SPP)
+    {
+        return (false);
+    }
+    else if (settings.bluetoothRadioType == BLUETOOTH_RADIO_BLE)
+    {
+        if (bluetoothSerialBleCommands->connected() == true)
+            return (true);
+    }
+    else if (settings.bluetoothRadioType == BLUETOOTH_RADIO_SPP_ACCESSORY_MODE)
+    {
+        return (false);
+    }
+#endif // COMPILE_BT
+
+    return (false);
+}
+
 // Return the Bluetooth state
 byte bluetoothGetState()
 {
@@ -254,23 +284,19 @@ int bluetoothCommandAvailable()
 }
 
 // Pass a command string to the BLE Serial interface
-void bluetoothProcessCommand(char *rxData)
+void bluetoothSendCommand(char *rxData)
 {
 #ifdef COMPILE_BT
     // Direct output to Bluetooth Command
     PrintEndpoint originalPrintEndpoint = printEndpoint;
 
-    printEndpoint = PRINT_ENDPOINT_BLUETOOTH_COMMAND;
-    if (settings.debugCLI == true)
-        printEndpoint = PRINT_ENDPOINT_ALL;
-    else
-        printEndpoint = PRINT_ENDPOINT_BLUETOOTH_COMMAND;
+    printEndpoint = PRINT_ENDPOINT_ALL;
 
-    processCommand(rxData); // Send command proccesor output to BLE
+    systemPrint(rxData); // Send command output to BLE, SPP, and Serial
     printEndpoint = originalPrintEndpoint;
 
 #else  // COMPILE_BT
-    processCommand(rxData); // Send command proccesor output to Serial
+    systemPrint(rxData); // Send command output to Serial
 #endif // COMPILE_BT
 }
 
@@ -534,9 +560,9 @@ void bluetoothStart()
                 memcpy(record.uuid.uuid.uuid128, UUID_IAP2, sizeof(UUID_IAP2));
                 record.service_name_length = strlen(sdp_service_name) + 1;
                 record.service_name = (char *)sdp_service_name;
-                //record.service_name_length = strlen(deviceName) + 1; // Doesn't seem to help the failed connects
-                //record.service_name = (char *)deviceName;
-                //record.rfcomm_channel_number = 1; // Doesn't seem to help the failed connects
+                // record.service_name_length = strlen(deviceName) + 1; // Doesn't seem to help the failed connects
+                // record.service_name = (char *)deviceName;
+                // record.rfcomm_channel_number = 1; // Doesn't seem to help the failed connects
                 esp_sdp_create_record((esp_bluetooth_sdp_record_t *)&record);
             }
         }

@@ -349,7 +349,7 @@ void recordSystemSettingsToFile(File *settingsFile)
         break; // Nothing to do here. Let each GNSS add its settings
 
         case tEspNowPr: {
-            // Record ESP-Now peer MAC addresses
+            // Record ESP-NOW peer MAC addresses
             for (int x = 0; x < rtkSettingsEntries[i].qualifier; x++)
             {
                 char tempString[50]; // espnowPeer_1=B4:C1:33:42:DE:01,
@@ -1098,7 +1098,7 @@ bool parseLine(char *str)
         };
         const int tableEntries = sizeof(table) / sizeof(table[0]);
 
-        knownSetting = commandCheckForUnknownVariable(settingName, table, tableEntries);
+        knownSetting = commandCheckListForVariable(settingName, table, tableEntries);
     }
 
     if (knownSetting == false)

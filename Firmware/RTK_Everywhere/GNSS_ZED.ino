@@ -1991,7 +1991,7 @@ void GNSS_ZED::rtcmOnGnssDisable()
 }
 
 //----------------------------------------
-// If L-Band is available, but encrypted, allow RTCM through other sources (radio, ESP-Now) to GNSS receiver
+// If L-Band is available, but encrypted, allow RTCM through other sources (radio, ESP-NOW) to GNSS receiver
 //----------------------------------------
 void GNSS_ZED::rtcmOnGnssEnable()
 {

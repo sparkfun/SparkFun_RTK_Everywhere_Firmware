@@ -542,7 +542,7 @@ void stateUpdate()
 #ifdef COMPILE_ESPNOW
             paintEspNowPairing();
 
-            // Start ESP-Now if needed, put ESP-Now into broadcast state
+            // Start ESP-NOW if needed, put ESP-NOW into broadcast state
             espNowBeginPairing();
 
             changeState(STATE_ESPNOW_PAIRING);

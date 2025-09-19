@@ -156,8 +156,6 @@ void btReadTask(void *e)
         2000;                          // Bluetooth serial traffic must stop this amount before an escape char is recognized
     uint8_t btEscapeCharsReceived = 0; // Used to enter remote command mode
 
-    uint8_t btAppCommandCharsReceived = 0; // Used to enter app command mode
-
     // Start notification
     task.btReadTaskRunning = true;
     if (settings.printTaskStartStop)
@@ -207,25 +205,7 @@ void btReadTask(void *e)
                         addToGnssBuffer(btEscapeCharacter);
                     }
                 }
-                else if (incoming == btAppCommandCharacter)
-                {
-                    btAppCommandCharsReceived++;
-                    if (btAppCommandCharsReceived == btMaxAppCommandCharacters)
-                    {
-                        sendGnssBuffer(); // Finish sending whatever is left in the buffer
 
-                        // Discard any bluetooth data in the circular buffer
-                        btRingBufferTail = dataHead;
-
-                        systemPrintln("Device has entered config mode over Bluetooth");
-                        printEndpoint = PRINT_ENDPOINT_ALL;
-                        btPrintEcho = true;
-                        runCommandMode = true;
-
-                        btAppCommandCharsReceived = 0;
-                        btLastByteReceived = millis();
-                    }
-                }
 
                 else // This character is not a command character, pass along to GNSS
                 {
@@ -233,10 +213,6 @@ void btReadTask(void *e)
                     while (btEscapeCharsReceived-- > 0)
                     {
                         addToGnssBuffer(btEscapeCharacter);
-                    }
-                    while (btAppCommandCharsReceived-- > 0)
-                    {
-                        addToGnssBuffer(btAppCommandCharacter);
                     }
 
                     // Pass byte to GNSS receiver or to system
@@ -249,8 +225,6 @@ void btReadTask(void *e)
 
                     btLastByteReceived = millis();
                     btEscapeCharsReceived = 0; // Update timeout check for escape char and partial frame
-
-                    btAppCommandCharsReceived = 0;
 
                     bluetoothIncomingRTCM = true;
 
@@ -2610,7 +2584,7 @@ void bluetoothCommandTask(void *pvParameters)
             if (rxSpot > 2 && rxData[rxSpot - 1] == '\n' && rxData[rxSpot - 2] == '\r')
             {
                 rxData[rxSpot - 2] = '\0'; // Remove \r\n
-                bluetoothProcessCommand(rxData);
+                processCommand(rxData);
                 rxSpot = 0; // Reset
             }
         }
