@@ -156,6 +156,8 @@ void updateBattery()
 
             checkBatteryLevels();
 
+            bluetoothSendBatteryPercent(batteryLevelPercent); // Send over dedicated BLE service
+
             // Display the battery data
             if (settings.enablePrintBatteryMessages)
             {
@@ -951,7 +953,7 @@ void gpioExpanderSelectImu()
         gpioExpanderSwitches->digitalWrite(gpioExpanderSwitch_S3, LOW);
 }
 
-//Connect ESP32 UART2 to LoRa UART2 for configuration and bootloading/firmware updates
+// Connect ESP32 UART2 to LoRa UART2 for configuration and bootloading/firmware updates
 void gpioExpanderSelectLoraConfigure()
 {
     if (online.gpioExpanderSwitches == true)
@@ -990,7 +992,7 @@ bool gpioExpanderLoraIsOn()
         if (gpioExpanderSwitches->digitalRead(gpioExpanderSwitch_LoraEnable) == HIGH)
             return (true);
     }
-    return(false);
+    return (false);
 }
 void gpioExpanderLoraBootEnable()
 {
