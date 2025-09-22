@@ -283,23 +283,6 @@ int bluetoothCommandAvailable()
 #endif // COMPILE_BT
 }
 
-// Pass a command string to the BLE Serial interface
-void bluetoothSendCommand(char *rxData)
-{
-#ifdef COMPILE_BT
-    // Direct output to Bluetooth Command
-    PrintEndpoint originalPrintEndpoint = printEndpoint;
-
-    printEndpoint = PRINT_ENDPOINT_ALL;
-
-    systemPrint(rxData); // Send command output to BLE, SPP, and Serial
-    printEndpoint = originalPrintEndpoint;
-
-#else  // COMPILE_BT
-    systemPrint(rxData); // Send command output to Serial
-#endif // COMPILE_BT
-}
-
 // Write data to the Bluetooth device
 int bluetoothWrite(const uint8_t *buffer, int length)
 {
@@ -407,12 +390,16 @@ void bluetoothFlush()
     if (settings.bluetoothRadioType == BLUETOOTH_RADIO_SPP_AND_BLE)
     {
         bluetoothSerialBle->flush();
+        bluetoothSerialBleCommands->flush(); // Complete any transfers
         bluetoothSerialSpp->flush();
     }
     else if (settings.bluetoothRadioType == BLUETOOTH_RADIO_SPP)
         bluetoothSerialSpp->flush();
     else if (settings.bluetoothRadioType == BLUETOOTH_RADIO_BLE)
+    {
         bluetoothSerialBle->flush();
+        bluetoothSerialBleCommands->flush(); // Complete any transfers
+    }
     else if (settings.bluetoothRadioType == BLUETOOTH_RADIO_SPP_ACCESSORY_MODE)
         bluetoothSerialSpp->flush(); // Needed? Not sure... TODO
 #else                                // COMPILE_BT
