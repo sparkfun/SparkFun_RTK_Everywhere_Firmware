@@ -1,4 +1,5 @@
 char otaOutcome[21] = {0}; // Modified by otaUpdate(), used to respond to rtkRemoteFirmwareVersion commands
+int systemWriteLength = 0; // Modified by systemWrite(), used to calculate the size of LIST command for CLI
 
 void menuCommands()
 {
