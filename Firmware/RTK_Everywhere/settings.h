@@ -1260,7 +1260,12 @@ const RTK_Settings_Entry rtkSettingsEntries[] =
 //    i  d  i  v  V  i  c  n  r  e    X
 //    g  s  x  k  2  c  h  d  d  x    2  Type       Qual                Variable                  Name
 
-    // Detected GNSS Receiver - for Flex. Save / load first so settingAvailableOnPlatform is correct on Flex
+
+    // =======================================================================================================
+    // Priority Settings which are not alphabetized in commandIndex
+    // =======================================================================================================
+
+    // Detected GNSS Receiver - only for Flex. Save / load first so settingAvailableOnPlatform is correct on Flex
     { 0, 0, 0, 0, 0, 0, 0, 0, 0, ALL, 0, tGnssReceiver,     0, & settings.detectedGnssReceiver, "detectedGnssReceiver",  },
 
     // Common settings which use the same name on multiple Flex platforms
@@ -1281,6 +1286,7 @@ const RTK_Settings_Entry rtkSettingsEntries[] =
 
     // <--- Insert any new essential "priority" (non-sorted) settings above this line --->
 
+    // endOfPrioritySettings is a special 'null' entry which does not appear in commandIndex
     { 0, 0, 0, 0, 0, 0, 0, 0, 0, NON, 0, _bool,     0, nullptr, "endOfPrioritySettings",  },
 
     // =======================================================================================================
