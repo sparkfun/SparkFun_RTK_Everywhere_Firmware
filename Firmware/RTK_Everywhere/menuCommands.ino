@@ -3789,15 +3789,17 @@ int adjustEndOfPrioritySettings(int prioritySettingsEnd)
     if (prioritySettingsEnd == 0)
         return 0;
 
+    int adjustedPrioritySettingsEnd = prioritySettingsEnd;
+
     // Check which of the priority settings are possible on this platform
     // Deduct the ones which are not
     for (int i = 0; i < prioritySettingsEnd; i++)
     {
         if (!settingPossibleOnPlatform(i))
-            prioritySettingsEnd--;
+            adjustedPrioritySettingsEnd--;
     }
 
-    return prioritySettingsEnd;
+    return adjustedPrioritySettingsEnd;
 }
 
 // Allocate and fill the commandIndex table
