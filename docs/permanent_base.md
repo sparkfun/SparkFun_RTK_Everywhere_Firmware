@@ -52,3 +52,29 @@ The base station at SparkFun
 </figure>
 
 If you're looking to build a base station on the cheap, or if you're more of a DIYer, checkout our [How to Build a DIY GNSS Reference Station](https://learn.sparkfun.com/tutorials/how-to-build-a-diy-gnss-reference-station/all). This will go into depth about how to bring various pieces together to build your own continously operating GNSS reference station (CORS).
+
+## Temporary Base
+
+A site survey temporary base is when a RTK device is deployed over a position, commonly a stake in the ground, raw data is logged for a few hours, then submitted to a processing service to remove as many ambiguities and increase the location accuracy as much possible. With a few hours of logging, location accuracies can be better than 10mm. Once the staked location is known, a base can be quickly deployed over that point during future site visits. This is similar to a base+rover setup in that it removes the need to connect to a corrections network. The benefit of this longer, logged site survey over a 'Survey-In' style base is the increase in relative accuracy. Whereas a Survey-In style base can have over 1000mm of inaccuracy in its absolute location that translates to rover inaccuracies, a site surveyed temporary base has absolute location accuracy that can be 10mm or better, which translates to absolute rover accuracy.
+
+### How to Complete a Site Survey Temporary Base
+
+Any of the SparkPNT products can be used to do site survey of a location. For products that have a microSD interface, the raw satellite data is recorded to the log file. For products that don't have a microSD interface, the device must be connected over USB to an external device capable of logging - this is most often a computer.
+
+For the RTK Postcard and RTK EVK, raw logging must be enabled and a microSD card inserted. Once enabled, the logging icon should show a 'P'.
+
+For the RTK Torch, raw logging must be enabled, then the USB port must be connected for GNSS output. Once complete, you will see a stream of NMEA sentences in normal characters, as well as a mix of non-visible binary characters.
+
+For the RTK Facet mosaic, a RINEX output stream must be created and a microSD card inserted.
+
+Logging of data should run for as many hours as is possible. 4 hours is generally considered a minimum, with diminishing returns after 12 hours. Once a site log is obtained, it needs to be processed with RTKCONV. 
+
+Note: RTK Facet mosaic users can skip the RTKCONV step because a RINEX file was directly recorded and can be used with most post processing services.
+
+Next we must convert the RTCM contained in the log files to RINEX data the post processing services understand.
+Download RTKLIB. This is a collection of tools commonly used to manipulate raw GNSS data. Open RTKCONV and select the log file. Press the **Options** button and be sure all constellations are selected. 
+
+If you used a SparkFun SPK6618H (antenna code `SFESPK6618H`) or TOP106 antenna (antenna code `SFETOP106`), you can include an antenna code for additional ambiguity resolution. 
+
+If you want to reduce the time window of the log (ie, split out a 1 hour chunk) use the Time Start and Time Stop 
+Press convert. When the Start Time window opens, assigned a time and data that starts *before* your log. 
