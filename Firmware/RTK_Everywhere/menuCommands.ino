@@ -594,8 +594,8 @@ int commandLookupSettingNameSelective(bool inCommands, const char *settingName, 
         prioritySettingsEnd = findEndOfPrioritySettings();
     // If "endOfPrioritySettings" is not found, prioritySettingsEnd will be zero
 
-    // Remove one because while rtkSettingsEntries[] contains detectedGnssReceiver, the command table does not
-    prioritySettingsEnd--;
+    // Adjust prioritySettingsEnd if needed - depending on platform type
+    prioritySettingsEnd = adjustEndOfPrioritySettings(prioritySettingsEnd);
 
     // Loop through the valid command entries - starting at prioritySettingsEnd
     for (int i = prioritySettingsEnd; i < commandCount; i++)
@@ -3783,6 +3783,25 @@ int findEndOfPrioritySettings()
     return prioritySettingsEnd;
 }
 
+int adjustEndOfPrioritySettings(int prioritySettingsEnd)
+{
+    // If prioritySettingsEnd is zero, don't adjust
+    if (prioritySettingsEnd == 0)
+        return 0;
+
+    int adjustedPrioritySettingsEnd = prioritySettingsEnd;
+
+    // Check which of the priority settings are possible on this platform
+    // Deduct the ones which are not
+    for (int i = 0; i < prioritySettingsEnd; i++)
+    {
+        if (!settingPossibleOnPlatform(i))
+            adjustedPrioritySettingsEnd--;
+    }
+
+    return adjustedPrioritySettingsEnd;
+}
+
 // Allocate and fill the commandIndex table
 bool commandIndexFillPossible()
 {
@@ -3859,6 +3878,9 @@ bool commandIndexFill(bool usePossibleSettings)
     int prioritySettingsEnd = findEndOfPrioritySettings();
     // If "endOfPrioritySettings" is not found, prioritySettingsEnd will be zero
     // and all settings will be sorted. Just like the good old days...
+
+    // Adjust prioritySettingsEnd if needed - depending on platform type
+    prioritySettingsEnd = adjustEndOfPrioritySettings(prioritySettingsEnd);
 
     if (settings.debugSettings || settings.debugCLI)
     {
