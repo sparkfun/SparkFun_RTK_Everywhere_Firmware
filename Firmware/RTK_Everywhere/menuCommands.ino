@@ -1,4 +1,5 @@
 char otaOutcome[21] = {0}; // Modified by otaUpdate(), used to respond to rtkRemoteFirmwareVersion commands
+int systemWriteLength = 0; // Modified by systemWrite(), used to calculate the size of LIST command for CLI
 
 void menuCommands()
 {
@@ -266,6 +267,26 @@ t_cliResult processCommand(char *cmdBuffer)
             else if (strcmp(tokens[1], "LIST") == 0)
             {
                 // Respond with a list of variables, types, and current value
+
+                // First calculate the size of the LIST response
+                PrintEndpoint originalPrintEndpoint = printEndpoint;
+                printEndpoint = PRINT_ENDPOINT_COUNT;
+                systemWriteLength = 0;
+                printAvailableSettings();
+                printEndpoint = originalPrintEndpoint;
+
+                // Use log10 to find the number of digits in systemWriteLength
+                int systemWriteLengthDigits = floor(log10(systemWriteLength)) + 1;
+
+                // Adjust systemWriteLength to include the length of the list entry
+                systemWriteLength = systemWriteLength + sizeof("$SPLST,list,int,*2A") + systemWriteLengthDigits;
+
+                // Print the list entry
+                char settingValue[6]; // 12345
+                snprintf(settingValue, sizeof(settingValue), "%d", systemWriteLength);
+                commandSendExecuteListResponse("list", "int", settingValue);
+
+                // Now actually print the list
                 printAvailableSettings();
                 commandSendExecuteOkResponse(tokens[0], tokens[1]);
                 return (CLI_OK);
@@ -468,8 +489,22 @@ void commandSendResponse(const char *innerBuffer)
 
     sprintf(responseBuffer, "$%s*%02X\r\n", innerBuffer, calculatedChecksum);
 
-    // CLI interactions may come from BLE or serial, respond to both interfaces
-    bluetoothSendCommand(responseBuffer);
+    // CLI interactions may come from BLE or serial, respond to all interfaces
+    commandSendAllInterfaces(responseBuffer);
+}
+
+// Pass a command string to the all interfaces
+void commandSendAllInterfaces(char *rxData)
+{
+    // Direct output to Bluetooth Command
+    PrintEndpoint originalPrintEndpoint = printEndpoint;
+
+    // Don't re-direct if we're doing a count of the print output
+    if (printEndpoint != PRINT_ENDPOINT_COUNT)
+        printEndpoint = PRINT_ENDPOINT_ALL;
+
+    systemPrint(rxData); // Send command output to BLE, SPP, and Serial
+    printEndpoint = originalPrintEndpoint;
 }
 
 // Checks structure of command and checksum
@@ -559,8 +594,8 @@ int commandLookupSettingNameSelective(bool inCommands, const char *settingName, 
         prioritySettingsEnd = findEndOfPrioritySettings();
     // If "endOfPrioritySettings" is not found, prioritySettingsEnd will be zero
 
-    // Remove one because while rtkSettingsEntries[] contains detectedGnssReceiver, the command table does not
-    prioritySettingsEnd--;
+    // Adjust prioritySettingsEnd if needed - depending on platform type
+    prioritySettingsEnd = adjustEndOfPrioritySettings(prioritySettingsEnd);
 
     // Loop through the valid command entries - starting at prioritySettingsEnd
     for (int i = prioritySettingsEnd; i < commandCount; i++)
@@ -1505,7 +1540,7 @@ SettingValueResponse updateSettingWithValue(bool inCommands, const char *setting
     }
 
     // Check if this setting is read only
-    if(knownSetting == false)
+    if (knownSetting == false)
     {
         const char *table[] = {
             "batteryLevelPercent",
@@ -1515,12 +1550,13 @@ SettingValueResponse updateSettingWithValue(bool inCommands, const char *setting
             "deviceId",
             "deviceName",
             "gnssModuleInfo",
+            "list",
             "rtkFirmwareVersion",
             "rtkRemoteFirmwareVersion",
         };
         const int tableEntries = sizeof(table) / sizeof(table[0]);
 
-        if(commandCheckListForVariable(settingName, table, tableEntries))
+        if (commandCheckListForVariable(settingName, table, tableEntries))
             return (SETTING_KNOWN_READ_ONLY);
     }
 
@@ -3747,6 +3783,25 @@ int findEndOfPrioritySettings()
     return prioritySettingsEnd;
 }
 
+int adjustEndOfPrioritySettings(int prioritySettingsEnd)
+{
+    // If prioritySettingsEnd is zero, don't adjust
+    if (prioritySettingsEnd == 0)
+        return 0;
+
+    int adjustedPrioritySettingsEnd = prioritySettingsEnd;
+
+    // Check which of the priority settings are possible on this platform
+    // Deduct the ones which are not
+    for (int i = 0; i < prioritySettingsEnd; i++)
+    {
+        if (!settingPossibleOnPlatform(i))
+            adjustedPrioritySettingsEnd--;
+    }
+
+    return adjustedPrioritySettingsEnd;
+}
+
 // Allocate and fill the commandIndex table
 bool commandIndexFillPossible()
 {
@@ -3823,6 +3878,9 @@ bool commandIndexFill(bool usePossibleSettings)
     int prioritySettingsEnd = findEndOfPrioritySettings();
     // If "endOfPrioritySettings" is not found, prioritySettingsEnd will be zero
     // and all settings will be sorted. Just like the good old days...
+
+    // Adjust prioritySettingsEnd if needed - depending on platform type
+    prioritySettingsEnd = adjustEndOfPrioritySettings(prioritySettingsEnd);
 
     if (settings.debugSettings || settings.debugCLI)
     {
@@ -3937,7 +3995,7 @@ void printAvailableSettings()
             checkBatteryLevels();
 
             // Convert int to string
-            char batteryLvlStr[4] = {0}; //104
+            char batteryLvlStr[4] = {0}; // 104
             snprintf(batteryLvlStr, sizeof(batteryLvlStr), "%d", batteryLevelPercent);
 
             // Create the settingType based on the length of the firmware version
@@ -3963,7 +4021,7 @@ void printAvailableSettings()
             commandSendExecuteListResponse("batteryVoltage", settingType, batteryVoltageStr);
         }
 
-                // Display the current battery charging percent per hour
+        // Display the current battery charging percent per hour
         else if (commandIndex[i] == COMMAND_BATTERY_CHARGING_PERCENT)
         {
             checkBatteryLevels();
@@ -4009,5 +4067,4 @@ void printAvailableSettings()
             commandSendExecuteListResponse("deviceId", settingType, printDeviceId());
         }
     }
-    systemPrintln();
 }

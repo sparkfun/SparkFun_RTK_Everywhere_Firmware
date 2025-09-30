@@ -60,6 +60,12 @@ void systemWrite(const uint8_t *buffer, uint16_t length)
     {
         bluetoothCommandWrite(buffer, length);
     }
+
+    // We're just adding up the size of the list, don't pass along to serial port
+    else if (printEndpoint == PRINT_ENDPOINT_COUNT)
+    {
+        systemWriteLength += length;
+    }
 }
 
 // Forward GNSS data to the USB serial port
@@ -1202,4 +1208,3 @@ void WeekToWToUnixEpoch(uint64_t *unixEpoch, uint16_t GPSWeek, uint32_t GPSToW)
     *unixEpoch += GPSToW;                          // 518400
     *unixEpoch += 315964800;
 }
-

@@ -80,7 +80,7 @@
 
 // While we wait for the next hardware revisions, Flex and Torch can be manually enabled:
 //#define FLEX_OVERRIDE // Uncomment to force support for Flex
-#define TORCH_X2_OVERRIDE // Uncomment to force support for Torch X2
+//#define TORCH_X2_OVERRIDE // Uncomment to force support for Torch X2
 
 // To reduce compile times, various parts of the firmware can be disabled/removed if they are not
 // needed during development
@@ -812,7 +812,10 @@ SparkFunAppleAccessoryDriver *appleAccessory; // Instantiated by beginAuthCoPro
 
 const char *sdp_service_name = "iAP2";
 
+// UUID: Big-Endian
 static const uint8_t  UUID_IAP2[] = {0x00, 0x00, 0x00, 0x00, 0xDE, 0xCA, 0xFA, 0xDE, 0xDE, 0xCA, 0xDE, 0xAF, 0xDE, 0xCA, 0xCA, 0xFF};
+// UUID: Little-Endian
+//static const uint8_t  UUID_IAP2[] = {0xFF, 0xCA, 0xCA, 0xDE, 0xAF, 0xDE, 0xCA, 0xDE, 0xDE, 0xFA, 0xCA, 0xDE, 0x00, 0x00, 0x00, 0x00};
 
 #endif
 

@@ -30,9 +30,13 @@
 static volatile BTState bluetoothState = BT_OFF;
 
 #ifdef COMPILE_BT
+
+#include <BleBatteryService.h>
+
 BTSerialInterface *bluetoothSerialSpp;
 BTSerialInterface *bluetoothSerialBle;
 BTSerialInterface *bluetoothSerialBleCommands; // Second BLE serial for CLI interface to mobile app
+BleBatteryService bluetoothBatteryService;
 
 #define BLE_SERVICE_UUID "6e400001-b5a3-f393-e0a9-e50e24dcca9e"
 #define BLE_RX_UUID "6e400002-b5a3-f393-e0a9-e50e24dcca9e"
@@ -283,23 +287,6 @@ int bluetoothCommandAvailable()
 #endif // COMPILE_BT
 }
 
-// Pass a command string to the BLE Serial interface
-void bluetoothSendCommand(char *rxData)
-{
-#ifdef COMPILE_BT
-    // Direct output to Bluetooth Command
-    PrintEndpoint originalPrintEndpoint = printEndpoint;
-
-    printEndpoint = PRINT_ENDPOINT_ALL;
-
-    systemPrint(rxData); // Send command output to BLE, SPP, and Serial
-    printEndpoint = originalPrintEndpoint;
-
-#else  // COMPILE_BT
-    systemPrint(rxData); // Send command output to Serial
-#endif // COMPILE_BT
-}
-
 // Write data to the Bluetooth device
 int bluetoothWrite(const uint8_t *buffer, int length)
 {
@@ -407,12 +394,16 @@ void bluetoothFlush()
     if (settings.bluetoothRadioType == BLUETOOTH_RADIO_SPP_AND_BLE)
     {
         bluetoothSerialBle->flush();
+        bluetoothSerialBleCommands->flush(); // Complete any transfers
         bluetoothSerialSpp->flush();
     }
     else if (settings.bluetoothRadioType == BLUETOOTH_RADIO_SPP)
         bluetoothSerialSpp->flush();
     else if (settings.bluetoothRadioType == BLUETOOTH_RADIO_BLE)
+    {
         bluetoothSerialBle->flush();
+        bluetoothSerialBleCommands->flush(); // Complete any transfers
+    }
     else if (settings.bluetoothRadioType == BLUETOOTH_RADIO_SPP_ACCESSORY_MODE)
         bluetoothSerialSpp->flush(); // Needed? Not sure... TODO
 #else                                // COMPILE_BT
@@ -516,6 +507,7 @@ void bluetoothStart()
                 deviceName, false, false, settings.sppRxQueueSize, settings.sppTxQueueSize, BLE_COMMAND_SERVICE_UUID,
                 BLE_COMMAND_RX_UUID, BLE_COMMAND_TX_UUID); // localName, isMaster, disableBLE, rxBufferSize,
                                                            // txBufferSize, serviceID, rxID, txID
+            bluetoothBatteryService.begin();
         }
         else if (settings.bluetoothRadioType == BLUETOOTH_RADIO_SPP)
         {
@@ -535,7 +527,9 @@ void bluetoothStart()
             beginSuccess &= bluetoothSerialBleCommands->begin(
                 deviceName, false, false, settings.sppRxQueueSize, settings.sppTxQueueSize, BLE_COMMAND_SERVICE_UUID,
                 BLE_COMMAND_RX_UUID, BLE_COMMAND_TX_UUID); // localName, isMaster, disableBLE, rxBufferSize,
-                                                           // txBufferSize, serviceID, rxID, txID
+            // txBufferSize, serviceID, rxID, txID
+
+            bluetoothBatteryService.begin();
         }
         else if (settings.bluetoothRadioType == BLUETOOTH_RADIO_SPP_ACCESSORY_MODE)
         {
@@ -762,4 +756,12 @@ void bluetoothPrintStatus()
     }
 
     systemPrintln();
+}
+
+// Send over dedicated BLE service
+void bluetoothSendBatteryPercent(int batteryLevelPercent)
+{
+#ifdef COMPILE_BT
+    bluetoothBatteryService.reportBatteryPercent(batteryLevelPercent);
+#endif // COMPILE_BT
 }
