@@ -1,5 +1,6 @@
 char otaOutcome[21] = {0}; // Modified by otaUpdate(), used to respond to rtkRemoteFirmwareVersion commands
-int systemWriteLength = 0; // Modified by systemWrite(), used to calculate the size of LIST command for CLI
+int systemWriteCounts =
+    0; // Modified by systemWrite(), used to calculate the number of items in the LIST command for CLI
 
 void menuCommands()
 {
@@ -268,22 +269,16 @@ t_cliResult processCommand(char *cmdBuffer)
             {
                 // Respond with a list of variables, types, and current value
 
-                // First calculate the size of the LIST response
+                // First calculate the lines in the LIST response
                 PrintEndpoint originalPrintEndpoint = printEndpoint;
                 printEndpoint = PRINT_ENDPOINT_COUNT;
-                systemWriteLength = 0;
+                systemWriteCounts = 0;
                 printAvailableSettings();
                 printEndpoint = originalPrintEndpoint;
 
-                // Use log10 to find the number of digits in systemWriteLength
-                int systemWriteLengthDigits = floor(log10(systemWriteLength)) + 1;
-
-                // Adjust systemWriteLength to include the length of the list entry
-                systemWriteLength = systemWriteLength + sizeof("$SPLST,list,int,*2A") + systemWriteLengthDigits;
-
-                // Print the list entry
-                char settingValue[6]; // 12345
-                snprintf(settingValue, sizeof(settingValue), "%d", systemWriteLength);
+                // Print the list entry with the number of items in the list, including the list entry
+                char settingValue[6];                                                      // 12345
+                snprintf(settingValue, sizeof(settingValue), "%d", systemWriteCounts + 1); // Add list command
                 commandSendExecuteListResponse("list", "int", settingValue);
 
                 // Now actually print the list
@@ -679,8 +674,8 @@ SettingValueResponse updateSettingWithValue(bool inCommands, const char *setting
         settingValue = 0;
 
     bool knownSetting = false;
-    bool settingIsString = false; // Goes true when setting needs to be surrounded by quotes during command response.
-                                  // Generally char arrays but some others.
+    bool settingIsString = false; // Goes true when setting needs to be surrounded by quotes during command
+                                  // response. Generally char arrays but some others.
 
     // Loop through the valid command entries
     i = commandLookupSettingName(inCommands, settingName, truncatedName, sizeof(truncatedName), suffix, sizeof(suffix));
@@ -807,8 +802,8 @@ SettingValueResponse updateSettingWithValue(bool inCommands, const char *setting
 
             // Update the profile name in the file system if necessary
             if (strcmp(settingName, "profileName") == 0)
-                setProfileName(profileNumber); // Copy the current settings.profileName into the array of profile names
-                                               // at location profileNumber
+                setProfileName(profileNumber); // Copy the current settings.profileName into the array of profile
+                                               // names at location profileNumber
             settingIsString = true;
         }
         break;
@@ -1919,9 +1914,9 @@ void createSettingsString(char *newSettings)
             break;
             case tUmConst: {
                 // Record UM980 Constellations
-                // um980Constellations are uint8_t, but here we have to convert to bool (true / false) so the web page
-                // check boxes are populated correctly. (We can't make it bool, otherwise the 254 initializer will
-                // probably fail...)
+                // um980Constellations are uint8_t, but here we have to convert to bool (true / false) so the web
+                // page check boxes are populated correctly. (We can't make it bool, otherwise the 254 initializer
+                // will probably fail...)
                 for (int x = 0; x < rtkSettingsEntries[i].qualifier; x++)
                 {
                     char tempString[50]; // um980Constellations.GLONASS=true
@@ -2086,9 +2081,9 @@ void createSettingsString(char *newSettings)
             break;
             case tLgConst: {
                 // Record LG290P Constellations
-                // lg290pConstellations are uint8_t, but here we have to convert to bool (true / false) so the web page
-                // check boxes are populated correctly. (We can't make it bool, otherwise the 254 initializer will
-                // probably fail...)
+                // lg290pConstellations are uint8_t, but here we have to convert to bool (true / false) so the web
+                // page check boxes are populated correctly. (We can't make it bool, otherwise the 254 initializer
+                // will probably fail...)
                 for (int x = 0; x < rtkSettingsEntries[i].qualifier; x++)
                 {
                     char tempString[50]; // lg290pConstellations.GLONASS=true
@@ -2487,8 +2482,8 @@ SettingValueResponse getSettingValue(bool inCommands, const char *settingName, c
     void *var;
 
     bool knownSetting = false;
-    bool settingIsString = false; // Goes true when setting needs to be surrounded by quotes during command response.
-                                  // Generally char arrays but some others.
+    bool settingIsString = false; // Goes true when setting needs to be surrounded by quotes during command
+                                  // response. Generally char arrays but some others.
 
     // Loop through the valid command entries - but skip the priority settings and use the GNSS-specific types
     i = commandLookupSettingNameAfterPriority(inCommands, settingName, truncatedName, sizeof(truncatedName), suffix,

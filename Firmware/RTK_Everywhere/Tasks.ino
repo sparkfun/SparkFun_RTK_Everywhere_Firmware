@@ -2423,7 +2423,7 @@ bool tasksStartGnssUart()
 
     availableHandlerSpace = settings.gnssHandlerBufferSize;
 
-    // Reads data from ZED and stores data into circular buffer
+    // Reads data from GNSS and stores data into circular buffer
     if (!task.gnssReadTaskRunning)
         xTaskCreatePinnedToCore(gnssReadTask,                  // Function to call
                                 "gnssRead",                    // Just for humans
