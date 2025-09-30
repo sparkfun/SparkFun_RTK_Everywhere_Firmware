@@ -496,7 +496,20 @@ void commandSendAllInterfaces(char *rxData)
 
     // Don't re-direct if we're doing a count of the print output
     if (printEndpoint != PRINT_ENDPOINT_COUNT)
+    {
         printEndpoint = PRINT_ENDPOINT_ALL;
+
+        // The LIST command dumps a large amount of data across the BLE link causing "esp_ble_gatts_send_ notify: rc=-1"
+        // errors
+
+        // With debug=debug, 788 characters are printed locally that slow down the interface enough to avoid errors,
+        // or 68.4ms at 115200 
+        // With debug=error, can we delay 70ms after every line print and avoid errors? Yes! Works
+        // well. 50ms is good, 25ms works sometimes without error, 5 is bad.
+
+        if (bluetoothCommandIsConnected())
+            delay(settings.cliBlePrintDelay_ms);
+    }
 
     systemPrint(rxData); // Send command output to BLE, SPP, and Serial
     printEndpoint = originalPrintEndpoint;
