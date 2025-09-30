@@ -22,8 +22,6 @@ uint8_t broadcastMac[] = {0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF};
 uint8_t remoteMac[] = {0xB8, 0xD6, 0x1A, 0x0C, 0xA3, 0xDC}; //Modify this with the MAC address of the remote unit you want to transmit to
 uint8_t mockMac[] = {0xAA, 0xBB, 0xCC, 0xDD, 0xEE, 0xFF}; //Dummy MAC for testing
 
-esp_now_peer_info_t peerInfo;
-
 unsigned long lastSend = 0;
 
 int channelNumber = 0;
