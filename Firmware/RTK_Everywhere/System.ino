@@ -411,6 +411,9 @@ void settingsToDefaults()
 // Periodically print information if enabled
 void printReports()
 {
+    if (bluetoothCommandIsConnected() == true)
+        return;
+
     // Periodically print the position
     if (settings.enablePrintPosition && ((millis() - lastPrintPosition) > 15000))
     {
