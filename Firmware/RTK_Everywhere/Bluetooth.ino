@@ -72,6 +72,14 @@ void bluetoothUpdate()
             // LED is controlled by tickerBluetoothLedUpdate()
 
             btPrintEchoExit = false; // Reset the exiting of config menus and/or command modes
+
+#ifdef COMPILE_AUTHENTICATION
+            if (sendAccessoryHandshakeOnBtConnect)
+            {
+                appleAccessory->startHandshake((Stream *)bluetoothSerialSpp);
+                sendAccessoryHandshakeOnBtConnect = false; // One-shot
+            }
+#endif
         }
 
         else if ((bluetoothState == BT_CONNECTED) && (!bluetoothIsConnected()))
@@ -411,6 +419,12 @@ void bluetoothFlush()
 #endif                               // COMPILE_BT
 }
 
+void BTConfirmRequestCallback(uint32_t numVal) {
+    systemPrintf("Device sent PIN: %06lu. Sending confirmation\r\n", numVal);
+    bluetoothSerialSpp->confirmReply(true); // AUTO_PAIR - equivalent to enableSSP(false, true);
+    // TODO: if the RTK device has an OLED, we should display the PIN so user can confirm
+}
+
 // Get MAC, start radio
 // Tack device's MAC address to end of friendly broadcast name
 // This allows multiple units to be on at same time
@@ -533,10 +547,23 @@ void bluetoothStart()
         }
         else if (settings.bluetoothRadioType == BLUETOOTH_RADIO_SPP_ACCESSORY_MODE)
         {
-            // Support Apple Accessory
+            // Uncomment the next line to force deletion of all paired (bonded) devices
+            // (This should only be necessary if you have changed the SSP pairing type)
+            //settings.clearBtPairings = true;
+            
+            // Enable secure pairing without PIN :
+            // iPhone displays Connection Unsuccessful - but then connects anyway...
+            //bluetoothSerialSpp->enableSSP(false, false);
 
-            bluetoothSerialSpp->enableSSP(false,
-                                          false); // Enable secure pairing, authenticate without displaying anything
+            // Enable secure pairing with PIN :
+            //bluetoothSerialSpp->enableSSP(false, true);
+
+            // Accessory Protocol recommends using a PIN
+            // Support Apple Accessory: Device to Accessory
+            // 1. Search for an accessory from the device and initiate pairing.
+            // 2. Verify pairing is successful after exchanging a pin code.
+            bluetoothSerialSpp->enableSSP(true, true); // Enable secure pairing with PIN
+            bluetoothSerialSpp->onConfirmRequest(&BTConfirmRequestCallback); // Callback to verify the PIN
 
             beginSuccess &= bluetoothSerialSpp->begin(
                 deviceName, true, true, settings.sppRxQueueSize, settings.sppTxQueueSize, 0, 0,
@@ -546,16 +573,32 @@ void bluetoothStart()
             {
                 // bluetoothSerialSpp.getBtAddress(btMACAddress); // Read the ESP32 BT MAC Address
 
+                if (settings.clearBtPairings)
+                {
+                    // Paired / bonded devices are stored in flash. Only a full flash erase
+                    // or deleteAllBondedDevices() will clear them all. They can be deleted
+                    // individually, but that would need a menu and more functions added to
+                    // the BT classes.
+                    // Deleting all bonded devices after a factory reset seems sensible.
+                    // TODO: test all the possibilities / overlap of this and "Forget Device"
+                    if (settings.debugNetworkLayer)
+                        systemPrintln("Deleting all bonded devices");
+                    bluetoothSerialSpp->deleteAllBondedDevices(); // Must be called after begin
+                    settings.clearBtPairings = false;
+                    recordSystemSettings();
+                }
+
                 esp_sdp_init();
 
                 esp_bluetooth_sdp_hdr_overlay_t record = {(esp_bluetooth_sdp_types_t)0};
                 record.type = ESP_SDP_TYPE_RAW;
                 record.uuid.len = sizeof(UUID_IAP2);
                 memcpy(record.uuid.uuid.uuid128, UUID_IAP2, sizeof(UUID_IAP2));
-                record.service_name_length = strlen(sdp_service_name) + 1;
-                record.service_name = (char *)sdp_service_name;
-                // record.service_name_length = strlen(deviceName) + 1; // Doesn't seem to help the failed connects
-                // record.service_name = (char *)deviceName;
+                //record.service_name_length = strlen(sdp_service_name) + 1;
+                //record.service_name = (char *)sdp_service_name;
+                // Use the same EIR Local Name parameter as the Name in the IdentificationInformation
+                record.service_name_length = strlen(deviceName) + 1;
+                record.service_name = (char *)deviceName;
                 // record.rfcomm_channel_number = 1; // Doesn't seem to help the failed connects
                 esp_sdp_create_record((esp_bluetooth_sdp_record_t *)&record);
             }
