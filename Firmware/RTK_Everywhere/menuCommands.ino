@@ -242,28 +242,23 @@ t_cliResult processCommand(char *cmdBuffer)
         }
         else
         {
-            if (strcmp(tokens[1], "EXIT") == 0)
-            {
-                commandSendExecuteOkResponse(tokens[0], tokens[1]);
-                return (CLI_EXIT);
-            }
-            else if (strcmp(tokens[1], "APPLY") == 0)
+            if (strcmp(tokens[1], "APPLY") == 0)
             {
                 commandSendExecuteOkResponse(tokens[0], tokens[1]);
                 // TODO - Do an apply...
                 return (CLI_OK);
             }
-            else if (strcmp(tokens[1], "SAVE") == 0)
+            else if (strcmp(tokens[1], "EXIT") == 0)
             {
-                recordSystemSettings();
                 commandSendExecuteOkResponse(tokens[0], tokens[1]);
-                return (CLI_OK);
+                return (CLI_EXIT);
             }
-            else if (strcmp(tokens[1], "REBOOT") == 0)
+            else if (strcmp(tokens[1], "FACTORYRESET") == 0)
             {
+                // Apply factory defaults, then reset
                 commandSendExecuteOkResponse(tokens[0], tokens[1]);
-                delay(50); // Allow for final print
-                ESP.restart();
+                factoryReset(false); // We do not have the SD semaphore
+                return (CLI_OK);     // We should never get this far.
             }
             else if (strcmp(tokens[1], "LIST") == 0)
             {
@@ -286,12 +281,17 @@ t_cliResult processCommand(char *cmdBuffer)
                 commandSendExecuteOkResponse(tokens[0], tokens[1]);
                 return (CLI_OK);
             }
-            else if (strcmp(tokens[1], "FACTORYRESET") == 0)
+            else if (strcmp(tokens[1], "REBOOT") == 0)
             {
-                // Apply factory defaults, then reset
                 commandSendExecuteOkResponse(tokens[0], tokens[1]);
-                factoryReset(false); // We do not have the SD semaphore
-                return (CLI_OK);     // We should never get this far.
+                delay(50); // Allow for final print
+                ESP.restart();
+            }
+            else if (strcmp(tokens[1], "SAVE") == 0)
+            {
+                recordSystemSettings();
+                commandSendExecuteOkResponse(tokens[0], tokens[1]);
+                return (CLI_OK);
             }
             else if (strcmp(tokens[1], "UPDATEFIRMWARE") == 0)
             {
