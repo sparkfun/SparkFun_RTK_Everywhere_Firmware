@@ -6,12 +6,10 @@
   A receiver does not need to have the broadcastMac added to its peer list. It will receive a broadcast
   no matter what.
 
-  If desired, onDataRecieve should check the received MAC against the list of friendly/paired MACs
-  in order to throw out broadcasted packets that may not be valid data.
+  Interestingly, the receiver does not have peers added. It will 'receive' packets that either have 
+  its MAC address or the broadcast MAC address in the packet.
 
-  Add peers
-  Add callback to deal with allowed incoming data
-  Update test sketches
+  The transmitter needs to have either this remote's MAC address added as a peer, or the broadcast MAC added as a peer.
 */
 
 #include <esp_now.h>
@@ -42,7 +40,7 @@ void setup()
 {
   Serial.begin(115200);
   delay(250);
-  Serial.println("Remote to Central - This is Central");
+  Serial.println("ESP-NOW Example - This device is the receiver");
 
   uint8_t unitMACAddress[6];
   esp_read_mac(unitMACAddress, ESP_MAC_WIFI_STA);
@@ -57,7 +55,7 @@ void setup()
   else
     Serial.println("ESP-NOW started");
 
-  esp_now_register_recv_cb(onDataReceive);
+  esp_now_register_recv_cb((esp_now_recv_cb_t)onDataReceive);
 }
 
 void loop()
@@ -71,23 +69,4 @@ void loop()
       ESP.restart();
     }
   }
-}
-
-// Add a given MAC address to the peer list
-esp_err_t espnowAddPeer(uint8_t *peerMac)
-{
-  esp_now_peer_info_t peerInfo;
-
-  memcpy(peerInfo.peer_addr, peerMac, 6);
-  peerInfo.channel = 0;
-  peerInfo.ifidx = WIFI_IF_STA;
-  peerInfo.encrypt = false;
-
-  esp_err_t result = esp_now_add_peer(&peerInfo);
-  if (result != ESP_OK)
-    Serial.printf("Failed to add peer: 0x%02X%02X%02X%02X%02X%02X\r\n", peerMac[0], peerMac[1], peerMac[2], peerMac[3], peerMac[4], peerMac[5]);
-  else
-    Serial.printf("Added peer: 0x%02X%02X%02X%02X%02X%02X\r\n", peerMac[0], peerMac[1], peerMac[2], peerMac[3], peerMac[4], peerMac[5]);
-
-  return (result);
 }
