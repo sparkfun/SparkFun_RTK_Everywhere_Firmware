@@ -97,7 +97,7 @@ jobs:
           "SparkFun UM980 Triband RTK GNSS Arduino Library"@1.0.5
           "SparkFun LG290P Quadband RTK GNSS Arduino Library"@1.0.8
           "SparkFun I2C Expander Arduino Library"@1.0.1
-          "SparkFun Apple Accessory Arduino Library"@3.0.8
+          "SparkFun Apple Accessory Arduino Library"@3.0.9
           "SparkFun Authentication Coprocessor Arduino Library"@1.0.0
           "SparkFun Toolkit"@1.0.6
 

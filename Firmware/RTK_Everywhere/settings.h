@@ -699,6 +699,7 @@ struct Settings
     BluetoothRadioType_e bluetoothRadioType = BLUETOOTH_RADIO_SPP_AND_BLE;
     uint16_t sppRxQueueSize = 512 * 4;
     uint16_t sppTxQueueSize = 32;
+    bool clearBtPairings = true; // Clear MFi Accessory SSP pairings
 
     // Corrections
     int correctionsSourcesLifetime_s = 30; // Expire a corrections source if no data is seen for this many seconds
@@ -1341,6 +1342,7 @@ const RTK_Settings_Entry rtkSettingsEntries[] =
     { 1, 1, 0, 1, 1, 1, 1, 1, 1, ALL, 1, tBtRadio,  0, & settings.bluetoothRadioType, "bluetoothRadioType",  },
     { 0, 0, 0, 1, 1, 1, 1, 1, 1, ALL, 1, _uint16_t, 0, & settings.sppRxQueueSize, "sppRxQueueSize",  },
     { 0, 0, 0, 1, 1, 1, 1, 1, 1, ALL, 1, _uint16_t, 0, & settings.sppTxQueueSize, "sppTxQueueSize",  },
+    { 0, 1, 0, 1, 1, 1, 1, 1, 1, ALL, 1, _bool,     0, & settings.clearBtPairings, "clearBtPairings",  },
 
     // Corrections
     { 1, 1, 0, 1, 1, 1, 1, 1, 1, ALL, 1, _int,      0, & settings.correctionsSourcesLifetime_s, "correctionsSourcesLifetime",  },
