@@ -14,7 +14,7 @@ int systemAvailable()
     return (Serial.available());
 }
 
-// If we are printing to all endpoints, BT gets priority
+// If we are reading from all endpoints, BT gets priority
 int systemRead()
 {
     if (printEndpoint == PRINT_ENDPOINT_BLUETOOTH || printEndpoint == PRINT_ENDPOINT_ALL)
