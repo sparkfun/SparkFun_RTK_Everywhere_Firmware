@@ -730,7 +730,7 @@ void espNowUpdate()
         espNowSendPairMessage(espNowReceivedMAC);
 
         // Report success to the CLI
-        commandSendStringOkResponse((char *)"SPEXE", (char *)"UPDATEPAIR", "SUCCESS");
+        commandSendStringOkResponse((char *)"SPEXE", (char *)"UPDATEPAIR", (char *)"SUCCESS");
 
         // Record enableEspNow setting and espnowPeerCount to NVM
         recordSystemSettings();
