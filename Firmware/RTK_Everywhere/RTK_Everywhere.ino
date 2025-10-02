@@ -8,7 +8,7 @@
 
   Compiled using Arduino CLI and ESP32 core v3.0.7.
 
-  For compilation instructions see https://docs.sparkfun.com/SparkFun_RTK_Firmware/firmware_update/#compiling-source
+  For compilation instructions see https://docs.sparkfun.com/SparkFun_RTK_Everywhere_Firmware/firmware_compile/
 
   Special thanks to Avinab Malla for guidance on getting xTasks implemented.
 
