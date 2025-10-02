@@ -680,6 +680,7 @@ char *incomingSettings;
 int incomingSettingsSpot;
 unsigned long timeSinceLastIncomingSetting;
 unsigned long lastDynamicDataUpdate;
+bool websocketConnected = false;
 
 #ifdef COMPILE_WIFI
 #ifdef COMPILE_AP
@@ -688,8 +689,6 @@ unsigned long lastDynamicDataUpdate;
 #include <DNSServer.h>       // Needed for the captive portal
 #include <WebServer.h>       // Port 80
 #include <esp_http_server.h> // Needed for web sockets only - on port 81
-
-bool websocketConnected = false;
 
 #endif // COMPILE_AP
 #endif // COMPILE_WIFI

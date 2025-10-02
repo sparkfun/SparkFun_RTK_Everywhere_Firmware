@@ -101,7 +101,7 @@ void stateUpdate()
             if (gnss->configureRover() == false)
             {
                 settings.gnssConfiguredRover = false; // On the next boot, reapply all settings
-                recordSystemSettings();           // Record this state for next POR
+                recordSystemSettings();               // Record this state for next POR
 
                 systemPrintln("Rover config failed");
                 displayRoverFail(1000);
@@ -232,9 +232,9 @@ void stateUpdate()
             if (tasksStartGnssUart() && gnss->configureBase())
             {
                 // settings.gnssConfiguredBase is set by gnss->configureBase()
-                settings.gnssConfiguredRover = false; // When the mode changes, reapply all settings
+                settings.gnssConfiguredRover = false;        // When the mode changes, reapply all settings
                 settings.lastState = STATE_BASE_NOT_STARTED; // Record this state for next POR
-                recordSystemSettings(); // Record this state for next POR
+                recordSystemSettings();                      // Record this state for next POR
 
                 displayBaseSuccess(500); // Show 'Base Started'
 
@@ -246,7 +246,7 @@ void stateUpdate()
             else
             {
                 settings.gnssConfiguredBase = false; // On the next boot, reapply all settings
-                recordSystemSettings();          // Record this state for next POR
+                recordSystemSettings();              // Record this state for next POR
 
                 displayBaseFail(1000);
             }
@@ -453,8 +453,8 @@ void stateUpdate()
                         systemWrite(incomingSettings[x]);
                     systemPrintln();
 
-                    //Create temporary copy of Settings, so that we can check if they change while parsing
-                    //Useful for detecting when we need to change WiFi station settings
+                    // Create temporary copy of Settings, so that we can check if they change while parsing
+                    // Useful for detecting when we need to change WiFi station settings
                     wifiSettingsClone();
 
                     parseIncomingSettings();
@@ -540,10 +540,11 @@ void stateUpdate()
 
         case (STATE_ESPNOW_PAIRING_NOT_STARTED): {
 #ifdef COMPILE_ESPNOW
+
             paintEspNowPairing();
 
-            // Start ESP-NOW if needed, put ESP-NOW into broadcast state
-            espNowBeginPairing();
+            // Let the ESP-NOW state machine know we want to start pairing
+            espnowRequestPair = true;
 
             changeState(STATE_ESPNOW_PAIRING);
 #else  // COMPILE_ESPNOW
@@ -553,15 +554,11 @@ void stateUpdate()
         break;
 
         case (STATE_ESPNOW_PAIRING): {
-            if (espNowProcessRxPairedMessage() == true)
-            {
-                paintEspNowPaired();
-
+            // The ESP-NOW state machine handles the pairing process
+            // Once it exits the pairing process, return to last system state
+            if (espNowIsPairing)
                 // Return to the previous state
                 changeState(lastSystemState);
-            }
-            else
-                espNowSendPairMessage(espNowBroadcastAddr); // Send unit's MAC address over broadcast, no ack, no encryption
         }
         break;
 
@@ -579,7 +576,7 @@ void stateUpdate()
             if (tasksStartGnssUart() && ntpConfigureUbloxModule())
             {
                 settings.lastState = STATE_NTPSERVER_NOT_STARTED; // Record this state for next POR
-                settings.gnssConfiguredBase = false; // On the next boot, reapply all settings
+                settings.gnssConfiguredBase = false;              // On the next boot, reapply all settings
                 settings.gnssConfiguredRover = false;
                 recordSystemSettings();
 

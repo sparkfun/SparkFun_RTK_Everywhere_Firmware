@@ -665,11 +665,8 @@ void otaMenuDisplay(char *currentVersion)
     if (firmwareVersionIsReportedNewer(otaReportedVersion, &currentVersion[1]) == true ||
         settings.debugFirmwareUpdate == true)
     {
-        systemPrintf("u) Update to new firmware: v%s - ", otaReportedVersion);
-        if (otaRequestFirmwareUpdate == true)
-            systemPrintln("Requested");
-        else
-            systemPrintln("Not requested");
+        systemPrintf("u) Update to new firmware: v%s - %s\r\n", otaReportedVersion,
+                     otaRequestFirmwareUpdate ? "Requested" : "Not Requested");
     }
 }
 
@@ -892,7 +889,7 @@ void otaUpdate()
 
                 if (bluetoothCommandIsConnected())
                 {
-                    // Report failure to  the CLI
+                    // Report failure to the CLI
                     if (otaRequestFirmwareUpdate)
                         commandSendExecuteErrorResponse((char *)"SPEXE", (char *)"UPDATEFIRMWARE",
                                                         (char *)"No Internet");

@@ -3094,7 +3094,7 @@ void paintKeyProvisionFail(uint16_t displayTime)
 // Show screen while ESP-NOW is pairing
 void paintEspNowPairing()
 {
-    displayMessage("ESP-NOW Pairing", 0);
+    displayMessage("ESP-NOW Pairing", 2000);
 }
 void paintEspNowPaired()
 {
