@@ -281,6 +281,22 @@ t_cliResult processCommand(char *cmdBuffer)
                 commandSendExecuteOkResponse(tokens[0], tokens[1]);
                 return (CLI_OK);
             }
+            else if (strcmp(tokens[1], "PAIR") == 0)
+            {
+                commandSendExecuteOkResponse(tokens[0], tokens[1]);
+                espnowRequestPair = true; // Start ESP-NOW pairing process
+                // Force exit all config menus and/or command modes to allow OTA state machine to run
+                btPrintEchoExit = true;
+                return (CLI_EXIT); // Exit the CLI to allow OTA state machine to run
+            }
+            else if (strcmp(tokens[1], "PAIRSTOP") == 0)
+            {
+                commandSendExecuteOkResponse(tokens[0], tokens[1]);
+                espnowRequestPair = false; // Stop ESP-NOW pairing process
+                // Force exit all config menus and/or command modes to allow OTA state machine to run
+                btPrintEchoExit = true;
+                return (CLI_EXIT); // Exit the CLI to allow OTA state machine to run
+            }
             else if (strcmp(tokens[1], "REBOOT") == 0)
             {
                 commandSendExecuteOkResponse(tokens[0], tokens[1]);
