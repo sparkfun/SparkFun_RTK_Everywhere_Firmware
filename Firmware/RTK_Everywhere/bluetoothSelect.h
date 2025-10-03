@@ -37,6 +37,12 @@ class BTSerialInterface : public virtual Stream
     virtual bool aclConnected() = 0;
     virtual uint8_t *aclGetAddress() = 0;
     virtual std::map<int, std::string> getChannels(const BTAddress &remoteAddress) = 0;
+
+    virtual void onConfirmRequest(void (*cbPtr)(uint32_t)) = 0;
+    virtual void confirmReply(bool confirm) = 0;
+    virtual void respondPasskey(uint32_t passkey) = 0;
+
+    virtual void deleteAllBondedDevices() = 0;
 };
 
 class BTClassicSerial : public virtual BTSerialInterface, public BluetoothSerial
@@ -119,7 +125,7 @@ class BTClassicSerial : public virtual BTSerialInterface, public BluetoothSerial
 
     void enableSSP(bool inputCapability, bool outputCapability)
     {
-        return (BluetoothSerial::enableSSP(inputCapability, outputCapability));
+        BluetoothSerial::enableSSP(inputCapability, outputCapability);
     }
 
     bool aclConnected()
@@ -135,6 +141,26 @@ class BTClassicSerial : public virtual BTSerialInterface, public BluetoothSerial
     std::map<int, std::string> getChannels(const BTAddress &remoteAddress)
     {
         return (BluetoothSerial::getChannels(remoteAddress));
+    }
+
+    void onConfirmRequest(void (*cbPtr)(uint32_t))
+    {
+        BluetoothSerial::onConfirmRequest(cbPtr);
+    }
+
+    void confirmReply(bool confirm)
+    {
+        BluetoothSerial::confirmReply((boolean)confirm);
+    }
+
+    void respondPasskey(uint32_t passkey)
+    {
+        BluetoothSerial::respondPasskey(passkey);
+    }
+
+    void deleteAllBondedDevices()
+    {
+        BluetoothSerial::deleteAllBondedDevices();
     }
 };
 
@@ -233,6 +259,14 @@ class BTLESerial : public virtual BTSerialInterface, public BleSerial
         std::map<int, std::string> empty;
         return empty;
     }
+
+    void onConfirmRequest(void (*cbPtr)(uint32_t)) {}
+
+    void confirmReply(bool confirm) {}
+
+    void respondPasskey(uint32_t passkey) {}
+
+    void deleteAllBondedDevices() {}
 
     // Callbacks removed in v2 of BleSerial. Using polled connected() in bluetoothUpdate()
     // override BLEServerCallbacks

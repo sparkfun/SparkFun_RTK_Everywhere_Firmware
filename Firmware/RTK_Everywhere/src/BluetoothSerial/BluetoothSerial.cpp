@@ -112,8 +112,7 @@ typedef struct
     uint8_t data[];
 } spp_packet_t;
 
-#if (ARDUHAL_LOG_LEVEL >= ARDUHAL_LOG_LEVEL_INFO)
-static char *bda2str(esp_bd_addr_t bda, char *str, size_t size)
+char *bda2str(esp_bd_addr_t bda, char *str, size_t size)
 {
     if (bda == NULL || str == NULL || size < 18)
     {
@@ -124,7 +123,6 @@ static char *bda2str(esp_bd_addr_t bda, char *str, size_t size)
     snprintf(str, size, "%02x:%02x:%02x:%02x:%02x:%02x", p[0], p[1], p[2], p[3], p[4], p[5]);
     return str;
 }
-#endif
 
 static bool get_name_from_eir(uint8_t *eir, char *bdname, uint8_t *bdname_len)
 {
@@ -655,7 +653,11 @@ static void esp_bt_gap_cb(esp_bt_gap_cb_event_t event, esp_bt_gap_cb_param_t *pa
         break;
 #ifdef CONFIG_BT_SSP_ENABLED
     case ESP_BT_GAP_CFM_REQ_EVT: // Enum 6 - Security Simple Pairing User Confirmation request.
-        log_i("ESP_BT_GAP_CFM_REQ_EVT Please compare the numeric value: %d", param->cfm_req.num_val);
+#if (ARDUHAL_LOG_LEVEL >= ARDUHAL_LOG_LEVEL_INFO)
+        char bda_str[18];
+        log_i("ESP_BT_GAP_CFM_REQ_EVT from %s. Please compare the numeric value: %d",
+              bda2str(param->cfm_req.bda, bda_str, 18), param->cfm_req.num_val);
+#endif
         if (confirm_request_callback)
         {
             memcpy(current_bd_addr, param->cfm_req.bda, sizeof(esp_bd_addr_t));
@@ -841,7 +843,7 @@ static bool _init_bt(const char *deviceName, bt_mode mode, uint16_t rxQueueSize,
         if (_enableSSP == false)
             bluedroid_cfg.ssp_en = false;
 
-        if (esp_bluedroid_init_with_cfg(&bluedroid_cfg)) // Not supported by IDF5.1
+        if (esp_bluedroid_init_with_cfg(&bluedroid_cfg)) // *** Not supported by IDF5.1 ***
         {
             log_e("initialize bluedroid failed");
             return false;
@@ -1154,6 +1156,11 @@ void BluetoothSerial::onAuthComplete(AuthCompleteCb cb)
 
 void BluetoothSerial::confirmReply(boolean confirm)
 {
+#if (ARDUHAL_LOG_LEVEL >= ARDUHAL_LOG_LEVEL_INFO)
+    char bda_str[18];
+    log_i("BluetoothSerial::confirmReply : %s : %s",
+            bda2str(current_bd_addr, bda_str, 18), confirm ? "true" : "false");
+#endif
     esp_bt_gap_ssp_confirm_reply(current_bd_addr, confirm);
 }
 
@@ -1726,7 +1733,7 @@ bool BluetoothSerial::aclConnected()
 
 uint8_t *BluetoothSerial::aclGetAddress()
 {
-    return (_aclAddress);
+    return (&_aclAddress[0]);
 }
 
 #endif // defined(CONFIG_BT_ENABLED) && defined(CONFIG_BLUEDROID_ENABLED)

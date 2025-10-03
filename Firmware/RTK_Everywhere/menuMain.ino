@@ -580,12 +580,14 @@ BluetoothRadioType_e mmChangeBluetoothProtocol(BluetoothRadioType_e bluetoothUse
 }
 
 // Restart Bluetooth radio if settings have changed
-void mmSetBluetoothProtocol(BluetoothRadioType_e bluetoothUserChoice)
+void mmSetBluetoothProtocol(BluetoothRadioType_e bluetoothUserChoice, bool clearBtPairings)
 {
-    if (bluetoothUserChoice != settings.bluetoothRadioType)
+    if ((bluetoothUserChoice != settings.bluetoothRadioType) 
+        || (clearBtPairings != settings.clearBtPairings))
     {
         bluetoothStop();
         settings.bluetoothRadioType = bluetoothUserChoice;
+        settings.clearBtPairings = clearBtPairings;
         bluetoothStart();
     }
 }
@@ -594,6 +596,7 @@ void mmSetBluetoothProtocol(BluetoothRadioType_e bluetoothUserChoice)
 void menuRadio()
 {
     BluetoothRadioType_e bluetoothUserChoice = settings.bluetoothRadioType;
+    bool clearBtPairings = settings.clearBtPairings;
 
     while (1)
     {
@@ -677,6 +680,12 @@ void menuRadio()
         // Display Bluetooth menu
         mmDisplayBluetoothRadioMenu('b', bluetoothUserChoice);
 
+        // If in BLUETOOTH_RADIO_SPP_ACCESSORY_MODE, allow user to delete all pairings
+        if (bluetoothUserChoice == BLUETOOTH_RADIO_SPP_ACCESSORY_MODE)
+        {
+            systemPrintf("c) Clear BT pairings: %s\r\n", clearBtPairings ? "Yes" : "No");
+        }
+
         systemPrintln("x) Exit");
 
         byte incoming = getUserInputCharacterNumber();
@@ -684,6 +693,10 @@ void menuRadio()
         // Select the bluetooth radio
         if (incoming == 'b')
             bluetoothUserChoice = mmChangeBluetoothProtocol(bluetoothUserChoice);
+
+        // Allow user to clear BT pairings - when BTClassicSerial is next begun
+        else if ((incoming == 'c') && (bluetoothUserChoice == BLUETOOTH_RADIO_SPP_ACCESSORY_MODE))
+            clearBtPairings ^= 1;
 
         else if (incoming == 1)
         {
@@ -826,7 +839,7 @@ void menuRadio()
     wifiEspNowOn(__FILE__, __LINE__); // Turn on the hardware if settings.enableEspNow is true
 
     // Restart Bluetooth radio if settings have changed
-    mmSetBluetoothProtocol(bluetoothUserChoice);
+    mmSetBluetoothProtocol(bluetoothUserChoice, clearBtPairings);
 
     // LoRa radio state machine will start/stop radio upon next updateLora in loop()
 

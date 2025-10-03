@@ -417,8 +417,8 @@ void menuSystem()
             printUnknown(incoming);
     }
 
-    // Restart Bluetooth radio if settings have changed
-    mmSetBluetoothProtocol(bluetoothUserChoice);
+    // Restart Bluetooth radio if settings have changed (ignore clearBtPairings)
+    mmSetBluetoothProtocol(bluetoothUserChoice, settings.clearBtPairings);
 
     clearBuffer(); // Empty buffer of any newline chars
 }
@@ -519,6 +519,8 @@ void menuDebugHardware()
         systemPrint("19) Print CLI Debugging: ");
         systemPrintf("%s\r\n", settings.debugCLI ? "Enabled" : "Disabled");
 
+        systemPrintf("20) Delay between CLI LIST prints over BLE: %d\r\n", settings.cliBlePrintDelay_ms);
+
         systemPrintln("e) Erase LittleFS");
 
         systemPrintln("t) Test Screen");
@@ -590,7 +592,9 @@ void menuDebugHardware()
             else if (present.gnss_lg290p)
             {
                 systemPrintln();
-                systemPrintf("QGNSS must be connected to CH342 Port B at %dbps. Begin firmware update from QGNSS (hit the play button) then reset the LG290P.\r\n", settings.dataPortBaud);
+                systemPrintf("QGNSS must be connected to CH342 Port B at %dbps. Begin firmware update from QGNSS (hit "
+                             "the play button) then reset the LG290P.\r\n",
+                             settings.dataPortBaud);
                 gnssReset();
                 delay(100);
                 gnssBoot();
@@ -628,6 +632,15 @@ void menuDebugHardware()
         else if (incoming == 19)
         {
             settings.debugCLI ^= 1;
+        }
+        else if (incoming == 20)
+        {
+            systemPrintf("Enter millisecond delay (%d to %d) for CLI LIST command over BLE: ", 0, 1000);
+            int newDelay = getUserInputNumber(); // Returns EXIT, TIMEOUT, or long
+            if ((newDelay != INPUT_RESPONSE_GETNUMBER_EXIT) && (newDelay != INPUT_RESPONSE_GETNUMBER_TIMEOUT))
+            {
+                settings.cliBlePrintDelay_ms = newDelay;
+            }
         }
 
         else if (incoming == 'e')

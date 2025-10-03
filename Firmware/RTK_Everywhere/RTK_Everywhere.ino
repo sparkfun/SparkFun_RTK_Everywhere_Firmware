@@ -811,10 +811,10 @@ SparkFunAppleAccessoryDriver *appleAccessory; // Instantiated by beginAuthCoPro
 
 const char *sdp_service_name = "iAP2";
 
-// UUID: Big-Endian
-static const uint8_t  UUID_IAP2[] = {0x00, 0x00, 0x00, 0x00, 0xDE, 0xCA, 0xFA, 0xDE, 0xDE, 0xCA, 0xDE, 0xAF, 0xDE, 0xCA, 0xCA, 0xFF};
-// UUID: Little-Endian
-//static const uint8_t  UUID_IAP2[] = {0xFF, 0xCA, 0xCA, 0xDE, 0xAF, 0xDE, 0xCA, 0xDE, 0xDE, 0xFA, 0xCA, 0xDE, 0x00, 0x00, 0x00, 0x00};
+// UUID : Big-Endian
+//static const uint8_t  UUID_IAP2[] = {0x00, 0x00, 0x00, 0x00, 0xDE, 0xCA, 0xFA, 0xDE, 0xDE, 0xCA, 0xDE, 0xAF, 0xDE, 0xCA, 0xCA, 0xFF};
+// UUID : Little-Endian
+static const uint8_t  UUID_IAP2[] = {0xFF, 0xCA, 0xCA, 0xDE, 0xAF, 0xDE, 0xCA, 0xDE, 0xDE, 0xFA, 0xCA, 0xDE, 0x00, 0x00, 0x00, 0x00};
 
 #endif
 
@@ -844,6 +844,7 @@ uint32_t powerPressedStartTime;       // Times how long the user has been holdin
 bool inMainMenu;                      // Set true when in the serial config menu system.
 bool btPrintEcho;                     // Set true when in the serial config menu system via Bluetooth.
 bool btPrintEchoExit;                 // When true, exit all config menus.
+bool sendAccessoryHandshakeOnBtConnect = false; // Send accessory handshake on BT connect
 
 bool forceDisplayUpdate = true; // Goes true when setup is pressed, causes the display to refresh in real-time
 uint32_t lastSystemStateUpdate;

@@ -3,7 +3,8 @@
 const char *manufacturer = "SparkFun Electronics";
 const char *hardwareVersion = "1.0.0";
 const char *EAProtocol = "com.sparkfun.rtk";
-const char *BTTransportName = "com.sparkfun.bt";
+//const char *BTTransportName = "com.sparkfun.bt";
+const char *BTTransportName = "Bluetooth";
 const char *LIComponentName = "com.sparkfun.li";
 const char *productPlanUID =
     "0123456789ABCDEF"; // This comes from the MFi Portal, when you register the product with Apple
@@ -70,17 +71,7 @@ void beginAuthCoPro(TwoWire *i2cBus)
     systemPrintln("Authentication coprocessor online");
 }
 
-static char *bda2str(esp_bd_addr_t bda, char *str, size_t size)
-{
-    if (bda == NULL || str == NULL || size < 18)
-    {
-        return NULL;
-    }
-
-    uint8_t *p = bda;
-    snprintf(str, size, "%02x:%02x:%02x:%02x:%02x:%02x", p[0], p[1], p[2], p[3], p[4], p[5]);
-    return str;
-}
+extern char *bda2str(esp_bd_addr_t bda, char *str, size_t size);
 
 void updateAuthCoPro()
 {
@@ -98,31 +89,36 @@ void updateAuthCoPro()
             //       The internal flag is automatically cleared when aclConnected returns true
             if (bluetoothSerialSpp->aclConnected() == true)
             {
-                // //
-                // https://github.com/espressif/arduino-esp32/blob/master/libraries/BluetoothSerial/examples/DiscoverConnect/DiscoverConnect.ino
-                // std::map<int, std::string> channels =
-                // bluetoothSerialSpp->getChannels(bluetoothSerialSpp->aclGetAddress());
+                char bda_str[18];
+                systemPrintf("Apple Device %s found\r\n", bda2str(bluetoothSerialSpp->aclGetAddress(), bda_str, 18));
 
-                // int channel = 0; // Channel 0 for auto-detect
-                // if (channels.size() > 0)
-                //     channel = channels.begin()->first;
+                // We need to connect _almost_ immediately for a successful pairing
+                // This is really brittle.
+                // Having core debug enabled adds enough delay to make this work.
+                // With debug set to none, we need to insert a _small_ delay...
+                // Too much delay and we get Connection Unsuccessful.
+                delay(2);
 
                 int channel = 1;
+                if (settings.debugNetworkLayer)
+                    systemPrintf("Connecting on channel %d\r\n", channel);
 
-                char bda_str[18];
-                bda2str(bluetoothSerialSpp->aclGetAddress(), bda_str, 18);
-
-                systemPrintf("Apple Device %s found, connecting on channel %d\r\n", bda_str, channel);
-
-                bluetoothSerialSpp->connect(bluetoothSerialSpp->aclGetAddress(), channel);
+                bluetoothSerialSpp->connect(bluetoothSerialSpp->aclGetAddress(), channel); // Blocking for READY_TIMEOUT
 
                 if (bluetoothSerialSpp->connected())
                 {
+                    systemPrintln("Connected. Sending handshake...");
                     appleAccessory->startHandshake((Stream *)bluetoothSerialSpp);
+                }
+                else
+                {
+                    systemPrintln("Connection failed / timed out! Handshake will be sent if device connects...");
+                    sendAccessoryHandshakeOnBtConnect = true;
                 }
             }
 
             // That's all folks!
+            // If a timeout occurred, Handshake is sent by bluetoothUpdate()
             // Everything else is handled by the Apple Accessory Library
         }
     }
