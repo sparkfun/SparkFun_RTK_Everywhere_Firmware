@@ -731,7 +731,8 @@ void beginBoard()
         present.microSd = true;
         present.gpioExpanderButtons = true;
         present.microSdCardDetectGpioExpanderHigh = true; // CD is on GPIO 5 of expander. High = SD in place.
-
+        present.msmFormat = true; // Can control different RTCM formats, ie MSM4 vs MSM7
+         
         // We can't enable here because we don't know if lg290pFirmwareVersion is >= v05
         // present.minElevation = true;
         // present.minCno = true;

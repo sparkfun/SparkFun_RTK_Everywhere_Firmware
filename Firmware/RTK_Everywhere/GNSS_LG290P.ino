@@ -39,7 +39,7 @@ void GNSS_LG290P::baseRtcmLowDataRate()
         settings.lg290pMessageRatesRTCMBase[x] = 0;
 
     settings.lg290pMessageRatesRTCMBase[getRtcmMessageNumberByName("RTCM3-1005")] =
-        10; // 1005 0.1Hz - Exclude antenna height
+        10;                                                                            // 1005 0.1Hz - Exclude antenna height
     settings.lg290pMessageRatesRTCMBase[getRtcmMessageNumberByName("RTCM3-107X")] = 2; // 1074 0.5Hz
     settings.lg290pMessageRatesRTCMBase[getRtcmMessageNumberByName("RTCM3-108X")] = 2; // 1084 0.5Hz
     settings.lg290pMessageRatesRTCMBase[getRtcmMessageNumberByName("RTCM3-109X")] = 2; // 1094 0.5Hz
@@ -845,12 +845,17 @@ bool GNSS_LG290P::enableRTCMBase()
 
     if (enableRTCM == true)
     {
-        if (settings.debugGnss)
-            systemPrintln("Enabling Base RTCM output");
+        int minimumRtcmRate = 1; // Set base RTCM output to 1 second interval
+
+        if (settings.debugCorrections)
+            systemPrintf("Enabling Base RTCM MSM%d output with rate of %d\r\n", settings.rtcmMsmFormat, minimumRtcmRate);
+
+        // Enable RTCM MSM7 (for faster PPP CSRS results), output at a rate equal to the minimum RTCM rate (EPH Mode = 2)
+        // PQTMCFGRTCM, W, <MSM_Type>, <MSM_Mode>, <MSM_ElevThd>, <Reserved>, <Reserved>, <EPH_Mode>, <EPH_Interval>
 
         // PQTMCFGRTCM fails to respond with OK over UART2 of LG290P, so don't look for it
-        _lg290p->sendOkCommand(
-            "PQTMCFGRTCM,W,4,0,-90,07,06,2,1"); // Enable MSM4, output regular intervals, interval (seconds)
+        char msmCommand[40] = {0};
+        snprintf(msmCommand, sizeof(msmCommand), "PQTMCFGRTCM,W,%d,0,%d,07,06,2,%d", settings.rtcmMsmFormat, settings.minElev, minimumRtcmRate);
     }
 
     return (response);
@@ -1003,14 +1008,13 @@ bool GNSS_LG290P::enableRTCMRover()
     if (enableRTCM == true)
     {
         if (settings.debugCorrections)
-            systemPrintf("Enabling Rover RTCM MSM output with rate of %d\r\n", minimumRtcmRate);
+            systemPrintf("Enabling Rover RTCM MSM%d output with rate of %d, min elevation of %d degrees\r\n", settings.rtcmMsmFormat, minimumRtcmRate, settings.minElev);
 
-        // Enable MSM7 (for faster PPP CSRS results), output at a rate equal to the minimum RTCM rate (EPH Mode = 2)
+        // Enable RTCM MSM7 (for faster PPP CSRS results), output at a rate equal to the minimum RTCM rate (EPH Mode = 2)
         // PQTMCFGRTCM, W, <MSM_Type>, <MSM_Mode>, <MSM_ElevThd>, <Reserved>, <Reserved>, <EPH_Mode>, <EPH_Interval>
-        // Set MSM_ElevThd to 15 degrees from rftop suggestion
 
         char msmCommand[40] = {0};
-        snprintf(msmCommand, sizeof(msmCommand), "PQTMCFGRTCM,W,7,0,15,07,06,2,%d", minimumRtcmRate);
+        snprintf(msmCommand, sizeof(msmCommand), "PQTMCFGRTCM,W,%d,0,%d,07,06,2,%d", settings.rtcmMsmFormat, settings.minElev, minimumRtcmRate);
 
         // PQTMCFGRTCM fails to respond with OK over UART2 of LG290P, so don't look for it
         _lg290p->sendOkCommand(msmCommand);
