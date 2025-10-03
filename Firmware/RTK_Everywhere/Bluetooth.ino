@@ -421,7 +421,9 @@ void bluetoothFlush()
 
 void BTConfirmRequestCallback(uint32_t numVal) {
     systemPrintf("Device sent PIN: %06lu. Sending confirmation\r\n", numVal);
+#ifdef COMPILE_BT
     bluetoothSerialSpp->confirmReply(true); // AUTO_PAIR - equivalent to enableSSP(false, true);
+#endif                                      // COMPILE_BT
     // TODO: if the RTK device has an OLED, we should display the PIN so user can confirm
 }
 
