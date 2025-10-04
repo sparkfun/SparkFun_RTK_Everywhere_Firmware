@@ -438,3 +438,14 @@ bool gnssCmdUpdateConstellations(int commandIndex)
 }
 
 //----------------------------------------
+// Update the message rates following a set command
+//----------------------------------------
+bool gnssCmdUpdateMessageRates(int commandIndex)
+{
+    if (gnss == nullptr)
+        return false;
+
+    return gnss->setMessages(MAX_SET_MESSAGES_RETRIES);
+}
+
+//----------------------------------------

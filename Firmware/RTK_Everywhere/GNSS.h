@@ -399,4 +399,7 @@ public:
 // Update the constellations following a set command
 bool gnssCmdUpdateConstellations(int commandIndex);
 
+// Update the message rates following a set command
+bool gnssCmdUpdateMessageRates(int commandIndex);
+
 #endif // __GNSS_H__
