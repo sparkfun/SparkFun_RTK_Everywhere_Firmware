@@ -519,7 +519,7 @@ void commandSendAllInterfaces(char *rxData)
         // errors
 
         // With debug=debug, 788 characters are printed locally that slow down the interface enough to avoid errors,
-        // or 68.4ms at 115200 
+        // or 68.4ms at 115200
         // With debug=error, can we delay 70ms after every line print and avoid errors? Yes! Works
         // well. 50ms is good, 25ms works sometimes without error, 5 is bad.
 
@@ -1282,13 +1282,23 @@ SettingValueResponse updateSettingWithValue(bool inCommands, const char *setting
         }
         break;
         }
-    }
 
-    // Done when the setting is found
-    if (knownSetting == true && settingIsString == true)
-        return (SETTING_KNOWN_STRING);
-    else if (knownSetting == true)
-        return (SETTING_KNOWN);
+        // Done when the setting is found
+        if (knownSetting == true && settingIsString == true)
+        {
+            // Determine if extra work needs to be done when the setting changes
+            if (rtkSettingsEntries[i].afterSetCmd)
+                rtkSettingsEntries[i].afterSetCmd(i);
+            return (SETTING_KNOWN_STRING);
+        }
+        else if (knownSetting == true)
+        {
+            // Determine if extra work needs to be done when the setting changes
+            if (rtkSettingsEntries[i].afterSetCmd)
+                rtkSettingsEntries[i].afterSetCmd(i);
+            return (SETTING_KNOWN);
+        }
+    }
 
     if (strcmp(settingName, "fixedLatText") == 0)
     {
