@@ -427,3 +427,14 @@ void gnssFirmwareRemoveUpdateFile(const char *filename)
 }
 
 //----------------------------------------
+// Update the constellations following a set command
+//----------------------------------------
+bool gnssCmdUpdateConstellations(int commandIndex)
+{
+    if (gnss == nullptr)
+        return false;
+
+    return gnss->setConstellations();
+}
+
+//----------------------------------------
