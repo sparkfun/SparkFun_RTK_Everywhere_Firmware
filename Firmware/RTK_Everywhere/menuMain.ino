@@ -148,7 +148,7 @@ void menuMain()
         else if (settings.bluetoothRadioType == BLUETOOTH_RADIO_SPP_ACCESSORY_MODE)
         {
             systemPrint("** Bluetooth SPP (Accessory Mode) broadcasting as: ");
-            systemPrint(deviceName);
+            systemPrint(accessoryName);
         }
         else if (settings.bluetoothRadioType == BLUETOOTH_RADIO_OFF)
         {

@@ -566,7 +566,7 @@ void bluetoothStart()
             //bluetoothSerialSpp->onConfirmRequest(&BTConfirmRequestCallback); // Callback to verify the PIN
 
             beginSuccess &= bluetoothSerialSpp->begin(
-                deviceName, true, true, settings.sppRxQueueSize, settings.sppTxQueueSize, 0, 0,
+                accessoryName, true, true, settings.sppRxQueueSize, settings.sppTxQueueSize, 0, 0,
                 0); // localName, isMaster, disableBLE, rxBufferSize, txBufferSize, serviceID, rxID, txID
 
             if (beginSuccess)
@@ -658,15 +658,13 @@ void bluetoothStart()
         }
 
         if (settings.bluetoothRadioType == BLUETOOTH_RADIO_SPP_AND_BLE)
-            systemPrint("Bluetooth SPP and BLE broadcasting as: ");
+            systemPrintf("Bluetooth SPP and BLE broadcasting as: %s\r\n", deviceName);
         else if (settings.bluetoothRadioType == BLUETOOTH_RADIO_SPP)
-            systemPrint("Bluetooth SPP broadcasting as: ");
+            systemPrintf("Bluetooth SPP broadcasting as: %s\r\n", deviceName);
         else if (settings.bluetoothRadioType == BLUETOOTH_RADIO_BLE)
-            systemPrint("Bluetooth Low-Energy broadcasting as: ");
+            systemPrintf("Bluetooth Low-Energy broadcasting as: %s\r\n", deviceName);
         else if (settings.bluetoothRadioType == BLUETOOTH_RADIO_SPP_ACCESSORY_MODE)
-            systemPrint("Bluetooth SPP (Accessory Mode) broadcasting as: ");
-
-        systemPrintln(deviceName);
+            systemPrintf("Bluetooth SPP (Accessory Mode) broadcasting as: %s\r\n", accessoryName);
 
         if (pin_bluetoothStatusLED != PIN_UNDEFINED)
         {

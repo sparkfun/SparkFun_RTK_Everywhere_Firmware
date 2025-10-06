@@ -1,13 +1,18 @@
 #ifdef COMPILE_AUTHENTICATION
 
+const char *accessoryName = "Test Mode";
 const char *manufacturer = "SparkFun Electronics";
 const char *hardwareVersion = "1.0.0";
 const char *EAProtocol = "com.sparkfun.rtk";
 //const char *BTTransportName = "com.sparkfun.bt";
 const char *BTTransportName = "Bluetooth";
 const char *LIComponentName = "com.sparkfun.li";
-const char *productPlanUID =
-    "0123456789ABCDEF"; // This comes from the MFi Portal, when you register the product with Apple
+
+// The Product Plan UID is a 16 character unique identifier for the product plan associated with the
+// accessory. The value is available in the product plan header in the MFi Portal and is different from the
+// Product Plan ID. Click on the blue "information" icon to the right of your blue MFi Account number on
+// the top-left of a Product Plan form.
+const char *productPlanUID = "2c724e9b4fad4eba";
 
 extern BTSerialInterface *bluetoothSerialSpp;
 
@@ -40,7 +45,7 @@ void beginAuthCoPro(TwoWire *i2cBus)
         appleAccessory->enableDebug(&Serial); // Enable debug prints to Serial
 
     // Pass Identity Information, Protocols and Names into the accessory driver
-    appleAccessory->setAccessoryName(deviceName);
+    appleAccessory->setAccessoryName(accessoryName);
     appleAccessory->setModelIdentifier(platformPrefix);
     appleAccessory->setManufacturer(manufacturer);
     appleAccessory->setSerialNumber(serialNumber);
