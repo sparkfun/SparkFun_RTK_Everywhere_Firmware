@@ -2121,7 +2121,7 @@ bool GNSS_MOSAIC::sendAndWaitForIdle(HardwareSerial *serialPort, const char *mes
     unsigned long startTime = millis();
     size_t replySeen = 0;
 
-    while ((millis() < (startTime + timeout)) && (replySeen < strlen(reply))) // While not timed out and reply not seen
+    while (((millis() - startTime) < timeout) && (replySeen < strlen(reply))) // While not timed out and reply not seen
     {
         if (serialPort->available()) // If a char is available
         {
@@ -2145,7 +2145,7 @@ bool GNSS_MOSAIC::sendAndWaitForIdle(HardwareSerial *serialPort, const char *mes
     if (replySeen == strlen(reply)) // If the reply was seen
     {
         startTime = millis();
-        while (millis() < (startTime + idle))
+        while ((millis() - startTime) < idle)
         {
             if (serialPort->available())
             {
@@ -2256,18 +2256,18 @@ bool GNSS_MOSAIC::sendWithResponse(HardwareSerial *serialPort, const char *messa
         }
 
         // If the reply has started to arrive at the timeout, allow extra time
-        if (millis() > (startTime + timeout)) // Have we timed out?
+        if ((millis() - startTime) > timeout) // Have we timed out?
             if (replySeen == 0)               // If replySeen is zero, don't keepGoing
                 keepGoing = false;
 
-        if (millis() > (startTime + timeout + wait)) // Have we really timed out?
+        if ((millis() - startTime) > (timeout + wait)) // Have we really timed out?
             keepGoing = false;                       // Don't keepGoing
     }
 
     if (replySeen == strlen(reply)) // If the reply was seen
     {
         startTime = millis();
-        while (millis() < (startTime + wait))
+        while ((millis() - startTime) < wait)
         {
             if (serialPort->available())
             {
@@ -2795,7 +2795,7 @@ void GNSS_MOSAIC::update()
     const unsigned long sdCardSizeCheckInterval = 5000;   // Matches the interval in logUpdate
     static unsigned long sdCardLastFreeChange = millis(); // X5 is slow to update free. Seems to be about every ~20s?
     static uint64_t previousFreeSpace = 0;
-    if (millis() > (sdCardSizeLastCheck + sdCardSizeCheckInterval))
+    if ((millis() - sdCardSizeLastCheck) > sdCardSizeCheckInterval)
     {
         updateSD(); // Check if the card has been removed / inserted
 
@@ -2817,7 +2817,7 @@ void GNSS_MOSAIC::update()
                 // The free space has not changed
                 // X5 is slow to update free. Seems to be about every ~20s?
                 // So only set logIncreasing to false after 30s
-                if (millis() > (sdCardLastFreeChange + 30000))
+                if ((millis() - sdCardLastFreeChange) > 30000)
                     logIncreasing = false;
             }
             else // if (sdFreeSpace > previousFreeSpace)
@@ -2839,7 +2839,7 @@ void GNSS_MOSAIC::update()
 
     // Update spartnCorrectionsReceived
     // Does this need if(online.lband_gnss) ? Not sure... TODO
-    if (millis() > (lastSpartnReception + (settings.correctionsSourcesLifetime_s * 1000))) // Timeout
+    if ((millis() - lastSpartnReception) > (settings.correctionsSourcesLifetime_s * 1000)) // Timeout
     {
         if (spartnCorrectionsReceived) // If corrections were being received
         {
@@ -2920,7 +2920,7 @@ void GNSS_MOSAIC::waitSBFReceiverSetup(HardwareSerial *serialPort, unsigned long
         reportFatalError("Failed to initialize the SBF parser");
 
     unsigned long startTime = millis();
-    while ((millis() < (startTime + timeout)) && (_receiverSetupSeen == false))
+    while (((millis() - startTime) < timeout) && (_receiverSetupSeen == false))
     {
         if (serialPort->available())
         {
@@ -3223,7 +3223,7 @@ void mosaicX5flushRX(unsigned long timeout)
     if (timeout > 0)
     {
         unsigned long startTime = millis();
-        while (millis() < (startTime + timeout))
+        while ((millis() - startTime) < timeout)
         {
             if (serial2GNSS->available())
             {
@@ -3247,7 +3247,7 @@ void mosaicX5flushRX(unsigned long timeout)
 bool mosaicX5waitCR(unsigned long timeout)
 {
     unsigned long startTime = millis();
-    while (millis() < (startTime + timeout))
+    while ((millis() - startTime) < timeout)
     {
         if (serial2GNSS->available())
         {

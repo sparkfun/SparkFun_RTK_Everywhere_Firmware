@@ -598,7 +598,7 @@ bool GNSS_LG290P::enterConfigMode(unsigned long waitForSemaphoreTimeout_millis)
         do
         { // Wait for up to waitForSemaphoreTimeout for library to stop blocking
             isBlocking = _lg290p->isBlocking();
-        } while (isBlocking && (millis() < (start + waitForSemaphoreTimeout_millis)));
+        } while (isBlocking && ((millis() - start) < waitForSemaphoreTimeout_millis));
 
         // This will fail if the library is still blocking, but it is worth a punt...
         return (_lg290p->sendOkCommand("$PQTMCFGPROT",

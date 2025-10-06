@@ -678,7 +678,7 @@ void ntripServerUpdate(int serverIndex)
             ntripServerRestart(serverIndex);
 
         else if (settings.enableNtripServer &&
-                 (millis() - ntripServer->lastConnectionAttempt > ntripServer->connectionAttemptTimeout))
+                 ((millis() - ntripServer->lastConnectionAttempt) > ntripServer->connectionAttemptTimeout))
         {
             // No RTCM correction data sent yet
             rtcmPacketsSent = 0;
@@ -723,7 +723,7 @@ void ntripServerUpdate(int serverIndex)
                  strlen("ICY 200 OK")) // Wait until at least a few bytes have arrived
         {
             // Check for response timeout
-            if (millis() - ntripServer->timer > 10000)
+            if ((millis() - ntripServer->timer) > 10000)
             {
                 if (ntripServerConnectLimitReached(serverIndex))
                     systemPrintf(

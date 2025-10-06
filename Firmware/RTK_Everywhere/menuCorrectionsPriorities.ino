@@ -597,7 +597,7 @@ void correctionUpdateSource()
     uint32_t radioCheckIntervalMsec = settings.correctionsSourcesLifetime_s * 500; // Check twice per lifetime
     bool setCorrRadioPort = false;
 
-    if (millis() > (lastRadioExtCheck + radioCheckIntervalMsec))
+    if ((millis() - lastRadioExtCheck) > radioCheckIntervalMsec)
     {
         // LG290P will return settings.enableExtCorrRadio.
         // ZED / mosaic will return true if settings.enableExtCorrRadio is

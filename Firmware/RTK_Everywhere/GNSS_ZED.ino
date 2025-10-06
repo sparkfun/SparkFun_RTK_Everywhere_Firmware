@@ -1375,7 +1375,7 @@ float GNSS_ZED::getSurveyInMeanAccuracy()
 
     // Use a local static so we don't have to request these values multiple times (ZED takes many ms to respond
     // to this command)
-    if (millis() - lastCheck > 1000)
+    if ((millis() - lastCheck) > 1000)
     {
         lastCheck = millis();
         svinMeanAccuracy = _zed->getSurveyInMeanAccuracy(50);
@@ -1396,7 +1396,7 @@ int GNSS_ZED::getSurveyInObservationTime()
 
     // Use a local static so we don't have to request these values multiple times (ZED takes many ms to respond
     // to this command)
-    if (millis() - lastCheck > 1000)
+    if ((millis() - lastCheck) > 1000)
     {
         lastCheck = millis();
         svinObservationTime = _zed->getSurveyInObservationTime(50);
@@ -2668,7 +2668,7 @@ bool GNSS_ZED::surveyInReset()
     while (_zed->getSurveyInActive(100) || _zed->getSurveyInValid(100))
     {
         delay(100);
-        if (millis() - startTime > maxTime)
+        if ((millis() - startTime) > maxTime)
             return (false); // Reset of survey failed
     }
 
@@ -2732,7 +2732,7 @@ bool GNSS_ZED::surveyInStart()
     while (_zed->getSurveyInActive(100) == false)
     {
         delay(100);
-        if (millis() - startTime > maxTime)
+        if ((millis() - startTime) > maxTime)
             return (false); // Reset of survey failed
     }
 

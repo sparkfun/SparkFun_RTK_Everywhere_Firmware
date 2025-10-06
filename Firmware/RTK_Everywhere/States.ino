@@ -11,7 +11,7 @@ static uint32_t lastStateTime = 0;
 // A user pressing the mode button (change between rover/base) is handled by buttonCheckTask()
 void stateUpdate()
 {
-    if (millis() - lastSystemStateUpdate > 500 || forceSystemStateUpdate == true)
+    if (((millis() - lastSystemStateUpdate) > 500) || (forceSystemStateUpdate == true))
     {
         lastSystemStateUpdate = millis();
         forceSystemStateUpdate = false;
@@ -256,7 +256,7 @@ void stateUpdate()
         // Wait for horz acc of 5m or less before starting survey in
         case (STATE_BASE_TEMP_SETTLE): {
             // Blink base LED slowly while we wait for first fix
-            if (millis() - lastBaseLEDupdate > 1000)
+            if ((millis() - lastBaseLEDupdate) > 1000)
             {
                 lastBaseLEDupdate = millis();
 
@@ -296,7 +296,7 @@ void stateUpdate()
         // Check survey status until it completes or 15 minutes elapses and we go back to rover
         case (STATE_BASE_TEMP_SURVEY_STARTED): {
             // Blink base LED quickly during survey in
-            if (millis() - lastBaseLEDupdate > 500)
+            if ((millis() - lastBaseLEDupdate) > 500)
             {
                 lastBaseLEDupdate = millis();
 
@@ -400,7 +400,7 @@ void stateUpdate()
         break;
 
         case (STATE_DISPLAY_SETUP): {
-            if (millis() - lastSetupMenuChange > 10000) // Exit Setup after 10s
+            if ((millis() - lastSetupMenuChange) > 10000) // Exit Setup after 10s
             {
                 firstButtonThrownOut = false;
                 changeState(lastSystemState); // Return to the last system state
@@ -441,7 +441,7 @@ void stateUpdate()
             if (incomingSettingsSpot > 0)
             {
                 // Allow for 750ms before we parse buffer for all data to arrive
-                if (millis() - timeSinceLastIncomingSetting > 750)
+                if ((millis() - timeSinceLastIncomingSetting) > 750)
                 {
                     bool changed;
 
@@ -478,7 +478,7 @@ void stateUpdate()
             if (websocketConnected == true)
             {
                 // Update the coordinates on the AP page
-                if (millis() - lastDynamicDataUpdate > 1000)
+                if ((millis() - lastDynamicDataUpdate) > 1000)
                 {
                     lastDynamicDataUpdate = millis();
                     createDynamicDataString(settingsCSV);
@@ -508,7 +508,7 @@ void stateUpdate()
         // Setup device for testing
         case (STATE_TEST): {
             // Debounce entry into test menu
-            if (millis() - lastTestMenuChange > 500)
+            if ((millis() - lastTestMenuChange) > 500)
             {
                 tasksStopGnssUart(); // Stop absoring GNSS serial via task
                 zedUartPassed = false;

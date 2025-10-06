@@ -751,7 +751,7 @@ void updateLBandCorrections()
         i2cLBand.checkCallbacks(); // Check if any L-Band callbacks are waiting to be processed.
 
         // If a certain amount of time has elapsed between last decryption, turn off L-Band icon
-        if (lbandCorrectionsReceived == true && millis() - lastLBandDecryption > (5 * MILLISECONDS_IN_A_SECOND))
+        if ((lbandCorrectionsReceived == true) && ((millis() - lastLBandDecryption) > (5 * MILLISECONDS_IN_A_SECOND)))
             lbandCorrectionsReceived = false;
 
         // If we don't get an L-Band fix within Timeout, hot-start ZED-F9x
@@ -760,7 +760,7 @@ void updateLBandCorrections()
             if (lbandTimeFloatStarted == 0)
                 lbandTimeFloatStarted = millis();
 
-            if (millis() - lbandLastReport > MILLISECONDS_IN_A_SECOND)
+            if ((millis() - lbandLastReport) > MILLISECONDS_IN_A_SECOND)
             {
                 lbandLastReport = millis();
 
@@ -1523,7 +1523,7 @@ void provisioningUpdate()
     case PROVISIONING_STARTED:
     {
         // Only leave this state if we timeout or ZTP is complete
-        if (millis() > (provisioningStartTime_millis + provisioningTimeout_ms))
+        if ((millis() - provisioningStartTime_millis) > provisioningTimeout_ms)
         {
             httpClientModeNeeded = false; // Tell HTTP_Client to give up. (But it probably already has...)
             paintKeyUpdateFail(5 * MILLISECONDS_IN_A_SECOND);
