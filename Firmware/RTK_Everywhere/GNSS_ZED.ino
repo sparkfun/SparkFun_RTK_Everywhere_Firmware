@@ -406,7 +406,9 @@ bool GNSS_ZED::configureBase()
                                            settings.ubxMessageRatesBase[x]); // UBLOX_CFG UART1 + 2 = USB
         }
 
-        response &= _zed->addCfgValset(UBLOX_CFG_NAVSPG_INFIL_MINELEV, settings.minElev); // Set minimum elevation
+        // Set minimum elevation
+        // Note: ZED supports negative elevations, but our firmware only allows 0-90
+        response &= _zed->addCfgValset(UBLOX_CFG_NAVSPG_INFIL_MINELEV, settings.minElev);
 
         response &= _zed->sendCfgValset(); // Closing value
 

@@ -2433,6 +2433,8 @@ bool GNSS_MOSAIC::setDataBaudRate(uint32_t baud)
 // Set the elevation in degrees
 // Inputs:
 //   elevationDegrees: The elevation value in degrees
+// Notes:
+//   mosaic supports negative elevations, but our firmware only support 0-90
 //----------------------------------------
 bool GNSS_MOSAIC::setElevation(uint8_t elevationDegrees)
 {

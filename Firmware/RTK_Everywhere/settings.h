@@ -937,7 +937,9 @@ struct Settings
     uint8_t dynamicModel = 254; // Default will be applied by checkGNSSArrayDefaults
     bool enablePrintRoverAccuracy = true;
     int16_t minCNO = 6;   // Minimum satellite signal level for navigation. ZED-F9P default is 6 dBHz
-    uint8_t minElev = 10; // Minimum elevation (in deg) for a GNSS satellite to be used in NAV
+    // Minimum elevation (in deg) for a GNSS satellite to be used in NAV
+    // Note: we use 8-bit unsigned here, but some platforms (ZED, mosaic-X5) support negative elevation limits
+    uint8_t minElev = 10;
 
     // RTC (Real Time Clock)
     bool enablePrintRtcSync = false;
