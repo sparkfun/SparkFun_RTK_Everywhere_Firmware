@@ -74,6 +74,7 @@ PARTITION_SRC_PATH=../$(PARTITION_CSV_FILE).csv
 PATCH_SRC_PATH=Patch/
 
 # Linux patch destination paths
+BT_LIB_DEST_PATH=$(ESP_IDF_PATH)/$(ESP_IDF_VERSION)/esp32/lib/
 MBED_LIB_DEST_PATH=$(ESP_IDF_PATH)/$(ESP_IDF_VERSION)/esp32/lib/
 NET_EVENT_PATCH_PATH=$(HOME_BOARD_PATH)/hardware/esp32/$(ESP_CORE_VERSION)/libraries/Network/src/
 PARTITION_DST_PATH=$(HOME_BOARD_PATH)/hardware/esp32/$(ESP_CORE_VERSION)/tools/partitions/$(PARTITION_CSV_FILE).csv
@@ -165,9 +166,13 @@ $(MBED_LIB_DEST_PATH)libmbedcrypto.a: 	$(PATCH_SRC_PATH)libmbedcrypto.a
 $(MBED_LIB_DEST_PATH)libmbedx509.a: 	$(PATCH_SRC_PATH)libmbedx509.a
 	$(COPY)  $<  $@
 
+$(BT_LIB_DEST_PATH)libbt.a: 	$(PATCH_SRC_PATH)libbt.a
+	$(COPY)  $<  $@
+
 .PHONY: patch
 
 patch:
+	touch   $(PATCH_SRC_PATH)libbt.a
 	touch   $(PATCH_SRC_PATH)libmbedtls.a
 	touch   $(PATCH_SRC_PATH)libmbedtls_2.a
 	touch   $(PATCH_SRC_PATH)libmbedcrypto.a
@@ -189,7 +194,7 @@ form.h:	AP-Config/* AP-Config/src/* AP-Config/src/fonts/*
 	python ../Tools/index_html_zipper.py AP-Config/index.html form.h
 	python ../Tools/main_js_zipper.py AP-Config/src/main.js form.h
 
-$(RTK_BIN_PATH):	RTK_Everywhere.ino   *.ino   *.h   makefile   $(PARTITION_DST_PATH)   $(MBED_LIB_DEST_PATH)libmbedtls.a   $(MBED_LIB_DEST_PATH)libmbedtls_2.a   $(MBED_LIB_DEST_PATH)libmbedcrypto.a   $(MBED_LIB_DEST_PATH)libmbedx509.a
+$(RTK_BIN_PATH):	RTK_Everywhere.ino   *.ino   *.h   makefile   $(PARTITION_DST_PATH)   $(MBED_LIB_DEST_PATH)libmbedtls.a   $(MBED_LIB_DEST_PATH)libmbedtls_2.a   $(MBED_LIB_DEST_PATH)libmbedcrypto.a   $(MBED_LIB_DEST_PATH)libmbedx509.a   $(BT_LIB_DEST_PATH)libbt.a
 	$(CLEAR)
 	arduino-cli compile --fqbn "esp32:esp32:esp32":DebugLevel=$(DEBUG_LEVEL),PSRAM=enabled RTK_Everywhere.ino \
 		--warnings default \
