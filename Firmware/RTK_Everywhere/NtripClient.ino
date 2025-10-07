@@ -718,7 +718,7 @@ void ntripClientUpdate()
         if (ntripClientReceiveDataAvailable() < strlen("ICY 200 OK")) // Wait until at least a few bytes have arrived
         {
             // Check for response timeout
-            if (millis() - ntripClientTimer > NTRIP_CLIENT_RESPONSE_TIMEOUT)
+            if ((millis() - ntripClientTimer) > NTRIP_CLIENT_RESPONSE_TIMEOUT)
             {
                 // NTRIP web service did not respond
                 if (ntripClientConnectLimitReached()) // Updates ntripClientConnectionAttemptTimeout

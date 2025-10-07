@@ -3774,6 +3774,27 @@ bool settingAvailableOnPlatform(int i)
     return true;
 }
 
+// Determine if the named setting is available on this platform
+// Note: this does a simple 1:1 comparison of settingName and
+//       rtkSettingsEntries[].name. It doesn't handle suffixes.
+bool namedSettingAvailableOnPlatform(const char *settingName)
+{
+    // Loop through the settings entries
+    int rtkIndex;
+    for (rtkIndex = 0; rtkIndex < numRtkSettingsEntries; rtkIndex++)
+    {
+        const char *command = rtkSettingsEntries[rtkIndex].name;
+
+        if (strcmp(command, settingName) == 0) // match found
+            break;
+    }
+
+    if (rtkIndex == numRtkSettingsEntries)
+        return false; // Not found
+
+    return settingAvailableOnPlatform(rtkIndex);
+}
+
 // Determine if the setting is possible on this platform
 bool settingPossibleOnPlatform(int i)
 {

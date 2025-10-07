@@ -638,7 +638,7 @@ void espNowUpdate()
 
         // If it's been longer than 50ms since we last added a byte to the buffer
         // then we've reached the end of the RTCM stream. Send partial buffer.
-        if (espNowOutgoingSpot > 0 && (millis() - espNowLastAdd) > 50)
+        if ((espNowOutgoingSpot > 0) && ((millis() - espNowLastAdd) > 50))
         {
             if (espNowState == ESPNOW_PAIRED)
                 esp_now_send(0, (uint8_t *)&espNowOutgoing, espNowOutgoingSpot); // Send partial packet to all peers
@@ -654,7 +654,7 @@ void espNowUpdate()
 
         // If we don't receive an ESP NOW packet after some time, set RSSI to very negative
         // This removes the ESPNOW icon from the display when the link goes down
-        if (millis() - espNowLastRssiUpdate > 5000 && espNowRSSI > -255)
+        if (((millis() - espNowLastRssiUpdate) > 5000) && (espNowRSSI > -255))
             espNowRSSI = -255;
 
         // The display menu, serial menu, or CLI may request pairing be started
@@ -682,7 +682,7 @@ void espNowUpdate()
             randomSeed(millis());
             static unsigned long lastMacSend = millis();
             static int timeout = 1000 + random(0, 100); // Pick a random number between 1000 to 1100ms
-            if (millis() - lastMacSend > timeout)
+            if ((millis() - lastMacSend) > timeout)
             {
                 lastMacSend = millis();
                 espNowSendPairMessage(

@@ -108,7 +108,7 @@ void tiltUpdate()
         tiltSensor->update(); // Check for the most recent incoming binary data
 
         // Check IMU state at 1Hz
-        if (millis() - lastTiltCheck > 1000)
+        if ((millis() - lastTiltCheck) > 1000)
         {
             lastTiltCheck = millis();
 
@@ -135,7 +135,7 @@ void tiltUpdate()
         tiltSensor->update(); // Check for the most recent incoming binary data
 
         // Check IMU state at 1Hz
-        if (millis() - lastTiltCheck > 1000)
+        if ((millis() - lastTiltCheck) > 1000)
         {
             lastTiltCheck = millis();
 
@@ -153,7 +153,7 @@ void tiltUpdate()
         }
 
         // If tilt compensation is active, play a short beep every 10 seconds
-        if (millis() - lastTiltBeepMs > 10000)
+        if ((millis() - lastTiltBeepMs) > 10000)
         {
             lastTiltBeepMs = millis();
             beepDurationMs(250);

@@ -106,7 +106,7 @@ static void pushGPGGA(char *ggaData)
             // Provide the caster with our current position as needed
             if (ntripClient->connected() && settings.ntripClient_TransmitGGA == true)
             {
-                if (millis() - lastGGAPush > NTRIPCLIENT_MS_BETWEEN_GGA)
+                if ((millis() - lastGGAPush) > NTRIPCLIENT_MS_BETWEEN_GGA)
                 {
                     lastGGAPush = millis();
 
@@ -359,7 +359,7 @@ void gnssFirmwareBeginUpdate()
         // Button task will gnssFirmwareRemoveUpdate and restart
 
         // Temporary fix for buttonless Flex. TODO - remove
-        if ((productVariant == RTK_FLEX) && (millis() > (lastSerial + 30000)))
+        if ((productVariant == RTK_FLEX) && ((millis() - lastSerial) > 30000))
         {
             // Beep to indicate exit
             beepOn();
