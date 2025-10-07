@@ -427,3 +427,25 @@ void gnssFirmwareRemoveUpdateFile(const char *filename)
 }
 
 //----------------------------------------
+// Update the constellations following a set command
+//----------------------------------------
+bool gnssCmdUpdateConstellations(int commandIndex)
+{
+    if (gnss == nullptr)
+        return false;
+
+    return gnss->setConstellations();
+}
+
+//----------------------------------------
+// Update the message rates following a set command
+//----------------------------------------
+bool gnssCmdUpdateMessageRates(int commandIndex)
+{
+    if (gnss == nullptr)
+        return false;
+
+    return gnss->setMessages(MAX_SET_MESSAGES_RETRIES);
+}
+
+//----------------------------------------
