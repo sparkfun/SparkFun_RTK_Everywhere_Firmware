@@ -112,6 +112,7 @@ function parseIncoming(msg) {
                 hide("externalPortOptions");
                 show("logToSDCard");
                 hide("galileoHasSetting");
+                hide("useMSM7Setting");
                 hide("tiltConfig");
                 hide("beeperControl");
                 show("measurementRateInput");
@@ -145,6 +146,7 @@ function parseIncoming(msg) {
                 show("externalPortOptions");
                 show("logToSDCard");
                 hide("galileoHasSetting");
+                hide("useMSM7Setting");
                 hide("tiltConfig");
                 hide("beeperControl");
                 show("measurementRateInput");
@@ -165,6 +167,7 @@ function parseIncoming(msg) {
                 show("externalPortOptions");
                 show("logToSDCard");
                 hide("galileoHasSetting");
+                hide("useMSM7Setting");
                 hide("tiltConfig");
                 hide("beeperControl");
                 hide("measurementRateInput");
@@ -255,6 +258,7 @@ function parseIncoming(msg) {
                 show("logToSDCard");
 
                 hide("galileoHasSetting");
+                show("useMSM7Setting");
                 hide("tiltConfig");
                 hide("beeperControl");
 
@@ -324,6 +328,7 @@ function parseIncoming(msg) {
                 hide("constellationSbas"); //Not supported on LG290P
                 show("constellationNavic"); 
                 hide("galileoHasSetting"); //Not supported on LG290P
+                show("useMSM7Setting");
                 hide("tiltConfig"); //Not supported on Torch X2
 
                 show("measurementRateInput");

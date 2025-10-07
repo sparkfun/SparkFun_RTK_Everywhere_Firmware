@@ -1955,10 +1955,10 @@ void tpISR()
         {
             if (timTpUpdated) // Only sync if timTpUpdated is true - set by storeTIMTPdata on ZED platforms only
             {
-                if (millisNow - lastRTCSync >
+                if ((millisNow - lastRTCSync) >
                     syncRTCInterval) // Only sync if it is more than syncRTCInterval since the last sync
                 {
-                    if (millisNow < (timTpArrivalMillis + 999)) // Only sync if the GNSS time is not stale
+                    if ((millisNow - timTpArrivalMillis) < 999) // Only sync if the GNSS time is not stale
                     {
                         if (gnss->isFullyResolved()) // Only sync if GNSS time is fully resolved
                         {

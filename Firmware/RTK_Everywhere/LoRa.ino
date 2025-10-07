@@ -160,7 +160,7 @@ void updateLora()
             if (settings.debugLora == true)
             {
                 static unsigned long lastReport = 0;
-                if (millis() - lastReport > 3000)
+                if ((millis() - lastReport) > 3000)
                 {
                     lastReport = millis();
                     systemPrintf("LoRa transmitted %d RTCM bytes\r\n", loraBytesSent);
@@ -233,7 +233,7 @@ void updateLora()
         break;
 
     case (LORA_RX_SHARED):
-        if ((millis() - loraLastIncomingSerial) / 1000 > settings.loraSerialInteractionTimeout_s)
+        if (((millis() - loraLastIncomingSerial) / 1000) > settings.loraSerialInteractionTimeout_s)
         {
             systemPrintln("LoRa shared port timeout expired. Moving to dedicated LoRa receive with no USB output.");
             systemFlush();                // Complete prints
@@ -570,7 +570,7 @@ void beginLoraFirmwareUpdate()
         // Button task will removeUpdateLoraFirmware and restart
 
         // Temporary fix for buttonless Flex. TODO - remove
-        if ((productVariant == RTK_FLEX) && (millis() > (lastSerial + 30000)))
+        if ((productVariant == RTK_FLEX) && ((millis() - lastSerial) > 30000))
         {
                 // Beep to indicate exit
                 beepOn();

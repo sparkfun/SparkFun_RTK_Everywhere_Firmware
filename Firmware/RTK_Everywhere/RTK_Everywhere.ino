@@ -1557,7 +1557,9 @@ bool logLengthExceeded() // Limit individual files to maxLogLength_minutes
     if (nextLogTime_ms == 0) // Keep logging if nextLogTime_ms has not been set
         return false;
     
-    return (millis() >= nextLogTime_ms); // Note: this will roll over every ~50 days...
+    // Note: this will roll over every 49.71 days...
+    // Solution: https://stackoverflow.com/a/3097744 - see issue #742
+    return (!((long)(nextLogTime_ms - millis()) > 0));
 }
 
 // Create or close files as needed (startup or as the user changes settings)
@@ -1668,7 +1670,7 @@ void rtcUpdate()
     {
         if (online.gnss == true) // Only do this if the GNSS is online
         {
-            if (millis() - lastRTCAttempt > syncRTCInterval) // Only attempt this once per second
+            if ((millis() - lastRTCAttempt) > syncRTCInterval) // Only attempt this once per second
             {
                 lastRTCAttempt = millis();
 
