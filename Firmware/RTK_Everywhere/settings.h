@@ -937,8 +937,7 @@ struct Settings
     uint8_t dynamicModel = 254; // Default will be applied by checkGNSSArrayDefaults
     bool enablePrintRoverAccuracy = true;
     int16_t minCNO = 6;   // Minimum satellite signal level for navigation. ZED-F9P default is 6 dBHz
-    uint8_t minElev = 10; // Minimum elevation (in deg) for a GNSS satellite to be used
-    uint8_t rtcmMsmFormat = 7; // Control between MSM4 and MSM7 RTCM formats.
+    uint8_t minElev = 10; // Minimum elevation (in deg) for a GNSS satellite to be used in NAV
 
     // RTC (Real Time Clock)
     bool enablePrintRtcSync = false;
@@ -1632,7 +1631,6 @@ const RTK_Settings_Entry rtkSettingsEntries[] =
     { 0, 0, 0, 1, 1, 1, 1, 1, 1, ALL, 1, _bool,     0, & settings.enablePrintRoverAccuracy, "enablePrintRoverAccuracy",  },
     { 0, 1, 0, 1, 1, 1, 1, 1, 1, ALL, 1, _int16_t,  0, & settings.minCNO, "minCNO",  }, // Not inWebConfig - createSettingsString gets from GNSS
     { 1, 1, 0, 1, 1, 1, 1, 1, 1, ALL, 1, _uint8_t,  0, & settings.minElev, "minElev",  },
-    { 1, 1, 0, 1, 1, 1, 1, 1, 1, ALL, 1, _uint8_t,  0, & settings.rtcmMsmFormat, "rtcmMsmFormat",  },
 
     // RTC (Real Time Clock)
     { 0, 0, 0, 1, 1, 1, 1, 1, 1, ALL, 1, _bool,     0, & settings.enablePrintRtcSync, "enablePrintRtcSync",  },
@@ -1955,7 +1953,6 @@ struct struct_present
     bool multipathMitigation = false; // UM980 has MPM, other platforms do not
     bool minCno = false; // ZED, mosaic, UM980 have minCN0. LG290P does on version >= v5.
     bool minElevation = false; // ZED, mosaic, UM980 have minElevation. LG290P does on versions >= v5.
-    bool msmFormat = false; // LG290P can output different RTCM MSM formats (ie, MSM4 vs MSM7) 
     bool dynamicModel = false; // ZED, mosaic, UM980 have dynamic models. LG290P does not.
     bool gpioExpanderSwitches = false; // Used on Flex
     bool tiltPossible = false; //Flex may have a tilt IMU

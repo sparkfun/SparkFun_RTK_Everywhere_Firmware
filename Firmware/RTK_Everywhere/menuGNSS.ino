@@ -171,11 +171,6 @@ void menuGNSS()
                          settings.enableMultipathMitigation ? "Enabled" : "Disabled");
         }
 
-        if (present.msmFormat)
-        {
-            systemPrintf("16) RTCM MSM format: MSM%d\r\n", settings.rtcmMsmFormat);
-        }
-
         systemPrintln("x) Exit");
 
         int incoming = getUserInputNumber(); // Returns EXIT, TIMEOUT, or long
@@ -392,13 +387,6 @@ void menuGNSS()
         {
             settings.enableMultipathMitigation ^= 1;
             restartRover = true;
-        }
-
-        else if ((incoming == 16) && present.msmFormat)
-        {
-            if (getNewSetting("Enter MSM format number", 1, 9, &settings.rtcmMsmFormat) ==
-                INPUT_RESPONSE_VALID)
-                restartRover = true;
         }
 
         else if (incoming == INPUT_RESPONSE_GETNUMBER_EXIT)
