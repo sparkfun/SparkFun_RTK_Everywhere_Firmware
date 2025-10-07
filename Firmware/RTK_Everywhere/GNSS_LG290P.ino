@@ -860,8 +860,10 @@ bool GNSS_LG290P::enableRTCMBase()
             systemPrintln("Enabling Base RTCM output");
 
         // PQTMCFGRTCM fails to respond with OK over UART2 of LG290P, so don't look for it
+        char cfgRtcm[40];
+        snprintf(cfgRtcm, sizeof(cfgRtcm), "PQTMCFGRTCM,W,%c,0,-90,07,06,2,1", settings.useMSM7 ? '7' : '4');
         _lg290p->sendOkCommand(
-            "PQTMCFGRTCM,W,4,0,-90,07,06,2,1"); // Enable MSM4, output regular intervals, interval (seconds)
+            cfgRtcm); // Enable MSM4/7, output regular intervals, interval (seconds)
     }
 
     return (response);
@@ -1016,12 +1018,13 @@ bool GNSS_LG290P::enableRTCMRover()
         if (settings.debugCorrections)
             systemPrintf("Enabling Rover RTCM MSM output with rate of %d\r\n", minimumRtcmRate);
 
-        // Enable MSM7 (for faster PPP CSRS results), output at a rate equal to the minimum RTCM rate (EPH Mode = 2)
+        // Enable MSM4/7 (for faster PPP CSRS results), output at a rate equal to the minimum RTCM rate (EPH Mode = 2)
         // PQTMCFGRTCM, W, <MSM_Type>, <MSM_Mode>, <MSM_ElevThd>, <Reserved>, <Reserved>, <EPH_Mode>, <EPH_Interval>
         // Set MSM_ElevThd to 15 degrees from rftop suggestion
 
         char msmCommand[40] = {0};
-        snprintf(msmCommand, sizeof(msmCommand), "PQTMCFGRTCM,W,7,0,15,07,06,2,%d", minimumRtcmRate);
+        snprintf(msmCommand, sizeof(msmCommand), "PQTMCFGRTCM,W,%c,0,15,07,06,2,%d",
+                 settings.useMSM7 ? '7' : '4', minimumRtcmRate);
 
         // PQTMCFGRTCM fails to respond with OK over UART2 of LG290P, so don't look for it
         _lg290p->sendOkCommand(msmCommand);
@@ -1915,6 +1918,10 @@ void GNSS_LG290P::menuMessages()
         systemPrintln("11) Reset to PPP Logging (NMEAx7 / RTCMx4 - 30 second decimation)");
         systemPrintln("12) Reset to High-rate PPP Logging (NMEAx7 / RTCMx4 - 1Hz)");
 
+        
+        if (namedSettingAvailableOnPlatform("useMSM7")) // Redundant - but good practice for code reuse
+            systemPrintf("13) MSM Selection: MSM%c\r\n", settings.useMSM7 ? '7' : '4');
+
         systemPrintln("x) Exit");
 
         int incoming = getUserInputNumber(); // Returns EXIT, TIMEOUT, or long
@@ -1988,6 +1995,8 @@ void GNSS_LG290P::menuMessages()
                 systemPrintln("Reset to PPP Logging Defaults (NMEAx7 / RTCMx4 - 30 second decimation)");
             }
         }
+        else if ((incoming == 13) && (namedSettingAvailableOnPlatform("useMSM7"))) // Redundant - but good practice for code reuse)
+            settings.useMSM7 ^= 1;
 
         else if (incoming == INPUT_RESPONSE_GETNUMBER_EXIT)
             break;
