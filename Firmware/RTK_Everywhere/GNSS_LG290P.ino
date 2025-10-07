@@ -601,8 +601,13 @@ bool GNSS_LG290P::enterConfigMode(unsigned long waitForSemaphoreTimeout_millis)
         } while (isBlocking && ((millis() - start) < waitForSemaphoreTimeout_millis));
 
         // This will fail if the library is still blocking, but it is worth a punt...
-        return (_lg290p->sendOkCommand("$PQTMCFGPROT",
-                                       ",W,1,2,00000000,00000000")); // Disable NMEA and RTCM on the LG290P UART2
+
+        if (lg290pFirmwareVersion >= 6) // See #747
+            // Disable NMEA and RTCM on the LG290P UART2, but leave the undocumented Bit 1 enabled
+            return (_lg290p->sendOkCommand("$PQTMCFGPROT", ",W,1,2,00000007,00000002"));
+
+        // Disable NMEA and RTCM on the LG290P UART2
+        return (_lg290p->sendOkCommand("$PQTMCFGPROT", ",W,1,2,00000000,00000000"));
     }
     return (false);
 }
@@ -613,8 +618,14 @@ bool GNSS_LG290P::enterConfigMode(unsigned long waitForSemaphoreTimeout_millis)
 bool GNSS_LG290P::exitConfigMode()
 {
     if (online.gnss)
-        return (_lg290p->sendOkCommand("$PQTMCFGPROT",
-                                       ",W,1,2,00000005,00000005")); // Enable NMEA and RTCM on the LG290P UART2
+    {
+        if (lg290pFirmwareVersion >= 6) // See #747
+            // Enable NMEA and RTCM on the LG290P UART2, plus the undocumented Bit 1
+            return (_lg290p->sendOkCommand("$PQTMCFGPROT", ",W,1,2,00000007,00000007"));
+
+        // Enable NMEA and RTCM on the LG290P UART2
+        return (_lg290p->sendOkCommand("$PQTMCFGPROT", ",W,1,2,00000005,00000005"));
+    }
     return (false);
 }
 
