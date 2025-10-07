@@ -406,7 +406,9 @@ bool GNSS_ZED::configureBase()
                                            settings.ubxMessageRatesBase[x]); // UBLOX_CFG UART1 + 2 = USB
         }
 
-        response &= _zed->addCfgValset(UBLOX_CFG_NAVSPG_INFIL_MINELEV, settings.minElev); // Set minimum elevation
+        // Set minimum elevation
+        // Note: ZED supports negative elevations, but our firmware only allows 0-90
+        response &= _zed->addCfgValset(UBLOX_CFG_NAVSPG_INFIL_MINELEV, settings.minElev);
 
         response &= _zed->sendCfgValset(); // Closing value
 
@@ -1375,7 +1377,7 @@ float GNSS_ZED::getSurveyInMeanAccuracy()
 
     // Use a local static so we don't have to request these values multiple times (ZED takes many ms to respond
     // to this command)
-    if (millis() - lastCheck > 1000)
+    if ((millis() - lastCheck) > 1000)
     {
         lastCheck = millis();
         svinMeanAccuracy = _zed->getSurveyInMeanAccuracy(50);
@@ -1396,7 +1398,7 @@ int GNSS_ZED::getSurveyInObservationTime()
 
     // Use a local static so we don't have to request these values multiple times (ZED takes many ms to respond
     // to this command)
-    if (millis() - lastCheck > 1000)
+    if ((millis() - lastCheck) > 1000)
     {
         lastCheck = millis();
         svinObservationTime = _zed->getSurveyInObservationTime(50);
@@ -2668,7 +2670,7 @@ bool GNSS_ZED::surveyInReset()
     while (_zed->getSurveyInActive(100) || _zed->getSurveyInValid(100))
     {
         delay(100);
-        if (millis() - startTime > maxTime)
+        if ((millis() - startTime) > maxTime)
             return (false); // Reset of survey failed
     }
 
@@ -2732,7 +2734,7 @@ bool GNSS_ZED::surveyInStart()
     while (_zed->getSurveyInActive(100) == false)
     {
         delay(100);
-        if (millis() - startTime > maxTime)
+        if ((millis() - startTime) > maxTime)
             return (false); // Reset of survey failed
     }
 

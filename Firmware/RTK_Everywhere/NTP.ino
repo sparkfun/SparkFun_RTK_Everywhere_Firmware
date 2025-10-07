@@ -957,7 +957,7 @@ void ntpServerUpdate()
             }
         }
 
-        if (millis() > (lastLoggedNTPRequest + 5000))
+        if ((millis() - lastLoggedNTPRequest) > 5000)
             ntpLogIncreasing = false;
         break;
     }

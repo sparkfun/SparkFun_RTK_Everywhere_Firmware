@@ -676,7 +676,7 @@ struct Settings
 
     // Base operation
     CoordinateInputType coordinateInputType = COORDINATE_INPUT_TYPE_DD; // Default DD.ddddddddd
-    double fixedAltitude = 1560.089;
+    double fixedAltitude = 1560.089; // m
     bool fixedBase = false;                  // Use survey-in by default
     bool fixedBaseCoordinateType = COORD_TYPE_ECEF;
     double fixedEcefX = -1280206.568;
@@ -687,6 +687,14 @@ struct Settings
     int observationSeconds = 60;             // Default survey in time of 60 seconds
     float observationPositionAccuracy = 5.0; // Default survey in pos accy of 5m
     float surveyInStartingAccuracy = 1.0; // Wait for this horizontal positional accuracy in meters before starting survey in
+    // Use MSM7 over MSM4: on platforms where that is possible and where it requires parameter selection
+    // Needed on:
+    //   LG290P (PQTMCFGRTCM)
+    // Not needed on:
+    //   mosaic-X5 (it has MSM4 and MSM7 message groups)
+    //   ZED (it has separate messages for MSM4 vs. MSM7)
+    //   UM980 (it has separate messages for MSM4 vs. MSM7)
+    bool useMSM7 = false;
 
     // Battery
     bool enablePrintBatteryMessages = true;
@@ -937,7 +945,9 @@ struct Settings
     uint8_t dynamicModel = 254; // Default will be applied by checkGNSSArrayDefaults
     bool enablePrintRoverAccuracy = true;
     int16_t minCNO = 6;   // Minimum satellite signal level for navigation. ZED-F9P default is 6 dBHz
-    uint8_t minElev = 10; // Minimum elevation (in deg) for a GNSS satellite to be used in NAV
+    // Minimum elevation (in deg) for a GNSS satellite to be used in NAV
+    // Note: we use 8-bit unsigned here, but some platforms (ZED, mosaic-X5) support negative elevation limits
+    uint8_t minElev = 10;
 
     // RTC (Real Time Clock)
     bool enablePrintRtcSync = false;
@@ -1190,6 +1200,7 @@ typedef enum
     ZX2 = (1 << 4),     // ZED-X20P - Tilt TBC
     ALL = (1 << 5) - 1, // ALL - must be the highest single variant
     ZED = ZF9 | ZX2,    // Hybrids are possible (enums don't have to be consecutive)
+    MSM = L29,          // Platforms which require parameter selection of MSM7 over MSM4
 } Facet_Flex_Variant;
 
 typedef struct
@@ -1262,7 +1273,6 @@ const RTK_Settings_Entry rtkSettingsEntries[] =
 //    i  d  i  v  V  i  c  n  r  e    X
 //    g  s  x  k  2  c  h  d  d  x    2  Type       Qual                Variable                  Name
 
-
     // =======================================================================================================
     // Priority Settings which are not alphabetized in commandIndex
     // =======================================================================================================
@@ -1295,6 +1305,21 @@ const RTK_Settings_Entry rtkSettingsEntries[] =
     // Everything below here will be sorted (alphabetized) in commandIndex
     // =======================================================================================================
 
+//                         F
+//                         a
+//                   F     c
+//    i              a     e
+//    n  i           c     t
+//    W  n  u        e
+//    e  C  s     F  t     V  P       T
+//    b  o  e     a        2  o       o
+//    C  m  S     c  M        s       r
+//    o  m  u     e  o  T  L  t       c
+//    n  a  f     t  s  o  B  c  F    h
+//    f  n  f  E     a  r  a  a  l
+//    i  d  i  v  V  i  c  n  r  e    X
+//    g  s  x  k  2  c  h  d  d  x    2  Type       Qual                Variable                  Name
+
     // Antenna
     { 1, 1, 0, 1, 1, 1, 1, 1, 1, ALL, 1, _int16_t,  0, & settings.antennaHeight_mm, "antennaHeight_mm",  },
     { 1, 1, 0, 1, 1, 1, 1, 1, 1, ALL, 1, _float,    2, & settings.antennaPhaseCenter_mm, "antennaPhaseCenter_mm" },
@@ -1314,6 +1339,7 @@ const RTK_Settings_Entry rtkSettingsEntries[] =
     { 1, 1, 0, 1, 1, 1, 1, 1, 1, ALL, 1, _int,      0, & settings.observationSeconds, "observationSeconds",  },
     { 1, 1, 0, 1, 1, 1, 1, 1, 1, ALL, 1, _float,    2, & settings.observationPositionAccuracy, "observationPositionAccuracy",  },
     { 0, 1, 0, 1, 1, 0, 1, 1, 1, ALL, 1, _float,    1, & settings.surveyInStartingAccuracy, "surveyInStartingAccuracy",  },
+    { 0, 1, 0, 0, 0, 0, 0, 0, 1, MSM, 1, _bool,     0, & settings.useMSM7, "useMSM7",  },
 
     // Battery
     { 0, 0, 0, 0, 1, 1, 1, 1, 1, ALL, 1, _bool,     0, & settings.enablePrintBatteryMessages, "enablePrintBatteryMessages",  },

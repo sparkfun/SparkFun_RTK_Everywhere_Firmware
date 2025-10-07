@@ -27,8 +27,8 @@ void menuBase()
         // Print the combined HAE APC if we are in the given mode
         if (settings.fixedBase == true && settings.fixedBaseCoordinateType == COORD_TYPE_GEODETIC)
         {
-            systemPrintf("Total Height Above Ellipsoid - Antenna Phase Center (HAE APC): %0.3fmm\r\n",
-                         (((settings.fixedAltitude * 1000) +
+            systemPrintf("Total Height Above Ellipsoid of Antenna Phase Center (HAE APC): %0.4fmm\r\n",
+                         ((settings.fixedAltitude +
                            (settings.antennaHeight_mm + settings.antennaPhaseCenter_mm) / 1000)));
         }
 

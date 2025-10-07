@@ -72,7 +72,8 @@ void updatePplTask(void *e)
         }
 
         // Check to see if our key has expired
-        if (millis() > pplKeyExpirationMs)
+        // https://stackoverflow.com/a/3097744 - see issue #742
+        if (!((long)(pplKeyExpirationMs - millis()) > 0))
         {
             if (settings.debugCorrections == true)
                 systemPrintln("Key has expired. Going to new key.");
@@ -252,7 +253,7 @@ void updatePPL()
 
         if (settings.debugCorrections == true)
         {
-            if (millis() - pplReport > 5000)
+            if ((millis() - pplReport) > 5000)
             {
                 pplReport = millis();
 
@@ -308,7 +309,7 @@ void updatePPL()
             if (rtkTimeToFixMs == 0)
                 rtkTimeToFixMs = millis();
 
-            if (millis() - pplReport > 5000)
+            if ((millis() - pplReport) > 5000)
             {
                 pplReport = millis();
 
@@ -370,6 +371,15 @@ bool getUsablePplKey(char *keyBuffer, int keyBufferSize)
 
     if (daysRemainingCurrent >= 0) // Use the current key
     {
+        // Notes:
+        //   pplKeyExpirationMs is unsigned long (32-bit unsigned)
+        //   settings.pointPerfectCurrentKeyStart is uint64_t (64-bit unsigned)
+        //   settings.pointPerfectCurrentKeyDuration is uint64_t (64-bit unsigned)
+        //   secondsFrom Epoch returns long (32-bit signed)
+        //   PP keys are valid for (typically) 4 weeks so key end (start + duration)
+        //   could be up to ~28 days away. I.e. well within the 2^32 millis (49.7 day)
+        //   wrap-around.
+
         pplKeyExpirationMs =
             secondsFromEpoch(settings.pointPerfectCurrentKeyStart + settings.pointPerfectCurrentKeyDuration) * 1000;
 

@@ -186,7 +186,7 @@ void btReadTask(void *e)
                 {
                     // Ignore escape characters received within 2 seconds of serial traffic
                     // Allow escape characters received within the first 2 seconds of power on
-                    if (millis() - btLastByteReceived > btMinEscapeTime || millis() < btMinEscapeTime)
+                    if (((millis() - btLastByteReceived) > btMinEscapeTime) || (millis() < btMinEscapeTime))
                     {
                         btEscapeCharsReceived++;
                         if (btEscapeCharsReceived == btMaxEscapeCharacters)
@@ -1694,7 +1694,7 @@ void handleGnssDataTask(void *e)
                             logFileSize = logFile->fileSize(); // Update file size
 
                             // Force file sync every 60s
-                            if (millis() - lastUBXLogSyncTime > 60000)
+                            if ((millis() - lastUBXLogSyncTime) > 60000)
                             {
                                 baseStatusLedBlink(); // Blink LED to indicate logging activity
 
@@ -1922,7 +1922,8 @@ void tickerBeepUpdate()
             break;
 
         case BEEP_ON:
-            if (millis() >= beepNextEventMs)
+            // https://stackoverflow.com/a/3097744 - see issue #742
+            if (!((long)(beepNextEventMs - millis()) > 0))
             {
                 if (beepCount == 1)
                 {
@@ -1940,7 +1941,7 @@ void tickerBeepUpdate()
             break;
 
         case BEEP_QUIET:
-            if (millis() >= beepNextEventMs)
+            if (!((long)(beepNextEventMs - millis()) > 0))
             {
                 beepCount--;
 
