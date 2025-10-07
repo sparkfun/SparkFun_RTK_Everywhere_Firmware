@@ -676,7 +676,7 @@ struct Settings
 
     // Base operation
     CoordinateInputType coordinateInputType = COORDINATE_INPUT_TYPE_DD; // Default DD.ddddddddd
-    double fixedAltitude = 1560.089;
+    double fixedAltitude = 1560.089; // m
     bool fixedBase = false;                  // Use survey-in by default
     bool fixedBaseCoordinateType = COORD_TYPE_ECEF;
     double fixedEcefX = -1280206.568;
