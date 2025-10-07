@@ -1295,9 +1295,9 @@ const RTK_Settings_Entry rtkSettingsEntries[] =
     // messageRateNMEA_, messageRateRTCMBase_, and messageRateRTCMRover_ are common to UM980 and LG290P
     // The qualifier is defined inside updateSettingWithValue, parseLine
     { 0, 0, 1, 1, 1, 1, 1, 1, 1, ALL, 1, tCmnCnst,  0, nullptr, "constellation_", gnssCmdUpdateConstellations, },
-    { 0, 0, 1, 1, 1, 1, 1, 1, 1, ALL, 1, tCmnRtNm,  0, nullptr, "messageRateNMEA_", nullptr, },
-    { 0, 0, 1, 1, 1, 1, 1, 1, 1, ALL, 1, tCnRtRtB,  0, nullptr, "messageRateRTCMBase_", nullptr, },
-    { 0, 0, 1, 1, 1, 1, 1, 1, 1, ALL, 1, tCnRtRtR,  0, nullptr, "messageRateRTCMRover_", nullptr, },
+    { 0, 0, 1, 1, 1, 1, 1, 1, 1, ALL, 1, tCmnRtNm,  0, nullptr, "messageRateNMEA_", gnssCmdUpdateMessageRates, },
+    { 0, 0, 1, 1, 1, 1, 1, 1, 1, ALL, 1, tCnRtRtB,  0, nullptr, "messageRateRTCMBase_", gnssCmdUpdateMessageRates, },
+    { 0, 0, 1, 1, 1, 1, 1, 1, 1, ALL, 1, tCnRtRtR,  0, nullptr, "messageRateRTCMRover_", gnssCmdUpdateMessageRates, },
 
     // <--- Insert any new essential "priority" (non-sorted) settings above this line --->
 
@@ -1489,12 +1489,12 @@ const RTK_Settings_Entry rtkSettingsEntries[] =
     // Mosaic
 #ifdef  COMPILE_MOSAICX5
     { 1, 1, 1, 0, 0, 1, 0, 0, 0, MX5, 0, tMosaicConst,  MAX_MOSAIC_CONSTELLATIONS, & settings.mosaicConstellations, "constellation_", gnssCmdUpdateConstellations, },
-    { 1, 1, 1, 0, 0, 1, 0, 0, 0, MX5, 0, tMosaicMSNmea, MAX_MOSAIC_NMEA_MSG, & settings.mosaicMessageStreamNMEA, "messageStreamNMEA_", nullptr, },
-    { 1, 1, 1, 0, 0, 1, 0, 0, 0, MX5, 0, tMosaicSINmea, MOSAIC_NUM_NMEA_STREAMS, & settings.mosaicStreamIntervalsNMEA, "streamIntervalNMEA_", nullptr, },
-    { 1, 1, 1, 0, 0, 1, 0, 0, 0, MX5, 0, tMosaicMIRvRT, MAX_MOSAIC_RTCM_V3_INTERVAL_GROUPS, & settings.mosaicMessageIntervalsRTCMv3Rover, "messageIntervalRTCMRover_", nullptr, },
-    { 1, 1, 1, 0, 0, 1, 0, 0, 0, MX5, 0, tMosaicMIBaRT, MAX_MOSAIC_RTCM_V3_INTERVAL_GROUPS, & settings.mosaicMessageIntervalsRTCMv3Base, "messageIntervalRTCMBase_", nullptr, },
-    { 1, 1, 1, 0, 0, 1, 0, 0, 0, MX5, 0, tMosaicMERvRT, MAX_MOSAIC_RTCM_V3_MSG, & settings.mosaicMessageEnabledRTCMv3Rover, "messageEnabledRTCMRover_", nullptr, },
-    { 1, 1, 1, 0, 0, 1, 0, 0, 0, MX5, 0, tMosaicMEBaRT, MAX_MOSAIC_RTCM_V3_MSG, & settings.mosaicMessageEnabledRTCMv3Base, "messageEnabledRTCMBase_", nullptr, },
+    { 1, 1, 1, 0, 0, 1, 0, 0, 0, MX5, 0, tMosaicMSNmea, MAX_MOSAIC_NMEA_MSG, & settings.mosaicMessageStreamNMEA, "messageStreamNMEA_", gnssCmdUpdateMessageRates, },
+    { 1, 1, 1, 0, 0, 1, 0, 0, 0, MX5, 0, tMosaicSINmea, MOSAIC_NUM_NMEA_STREAMS, & settings.mosaicStreamIntervalsNMEA, "streamIntervalNMEA_", gnssCmdUpdateMessageRates, },
+    { 1, 1, 1, 0, 0, 1, 0, 0, 0, MX5, 0, tMosaicMIRvRT, MAX_MOSAIC_RTCM_V3_INTERVAL_GROUPS, & settings.mosaicMessageIntervalsRTCMv3Rover, "messageIntervalRTCMRover_", gnssCmdUpdateMessageRates, },
+    { 1, 1, 1, 0, 0, 1, 0, 0, 0, MX5, 0, tMosaicMIBaRT, MAX_MOSAIC_RTCM_V3_INTERVAL_GROUPS, & settings.mosaicMessageIntervalsRTCMv3Base, "messageIntervalRTCMBase_", gnssCmdUpdateMessageRates, },
+    { 1, 1, 1, 0, 0, 1, 0, 0, 0, MX5, 0, tMosaicMERvRT, MAX_MOSAIC_RTCM_V3_MSG, & settings.mosaicMessageEnabledRTCMv3Rover, "messageEnabledRTCMRover_", gnssCmdUpdateMessageRates, },
+    { 1, 1, 1, 0, 0, 1, 0, 0, 0, MX5, 0, tMosaicMEBaRT, MAX_MOSAIC_RTCM_V3_MSG, & settings.mosaicMessageEnabledRTCMv3Base, "messageEnabledRTCMBase_", gnssCmdUpdateMessageRates, },
     { 1, 1, 0, 0, 0, 1, 0, 0, 0, MX5, 0, _bool,     0, & settings.enableLoggingRINEX, "enableLoggingRINEX", nullptr, },
     { 1, 1, 0, 0, 0, 1, 0, 0, 0, MX5, 0, _uint8_t,  0, & settings.RINEXFileDuration, "RINEXFileDuration", nullptr, },
     { 1, 1, 0, 0, 0, 1, 0, 0, 0, MX5, 0, _uint8_t,  0, & settings.RINEXObsInterval, "RINEXObsInterval", nullptr, },
@@ -1754,8 +1754,8 @@ const RTK_Settings_Entry rtkSettingsEntries[] =
     // ublox GNSS Receiver
 #ifdef COMPILE_ZED
     { 1, 1, 1, 1, 1, 0, 0, 1, 0, ZED, 0, tUbxConst, MAX_UBX_CONSTELLATIONS, & settings.ubxConstellations[0], "constellation_", gnssCmdUpdateConstellations, },
-    { 0, 1, 1, 1, 1, 0, 0, 1, 0, ZED, 0, tUbxMsgRt, MAX_UBX_MSG, & settings.ubxMessageRates[0], "ubxMessageRate_", nullptr, },
-    { 0, 1, 1, 1, 1, 0, 0, 1, 0, ZED, 0, tUbMsgRtb, MAX_UBX_MSG_RTCM, & settings.ubxMessageRatesBase[0], "ubxMessageRateBase_", nullptr, },
+    { 0, 1, 1, 1, 1, 0, 0, 1, 0, ZED, 0, tUbxMsgRt, MAX_UBX_MSG, & settings.ubxMessageRates[0], "ubxMessageRate_", gnssCmdUpdateMessageRates, },
+    { 0, 1, 1, 1, 1, 0, 0, 1, 0, ZED, 0, tUbMsgRtb, MAX_UBX_MSG_RTCM, & settings.ubxMessageRatesBase[0], "ubxMessageRateBase_", gnssCmdUpdateMessageRates, },
 #endif // COMPILE_ZED
 
     // UDP Server
@@ -1788,9 +1788,9 @@ const RTK_Settings_Entry rtkSettingsEntries[] =
 
 #ifdef  COMPILE_UM980
     { 1, 1, 1, 0, 0, 0, 1, 0, 0, U98, 0, tUmConst,  MAX_UM980_CONSTELLATIONS, & settings.um980Constellations, "constellation_", gnssCmdUpdateConstellations, },
-    { 0, 1, 1, 0, 0, 0, 1, 0, 0, U98, 0, tUmMRNmea, MAX_UM980_NMEA_MSG, & settings.um980MessageRatesNMEA, "messageRateNMEA_", nullptr, },
-    { 0, 1, 1, 0, 0, 0, 1, 0, 0, U98, 0, tUmMRBaRT, MAX_UM980_RTCM_MSG, & settings.um980MessageRatesRTCMBase, "messageRateRTCMBase_", nullptr, },
-    { 0, 1, 1, 0, 0, 0, 1, 0, 0, U98, 0, tUmMRRvRT, MAX_UM980_RTCM_MSG, & settings.um980MessageRatesRTCMRover, "messageRateRTCMRover_", nullptr, },
+    { 0, 1, 1, 0, 0, 0, 1, 0, 0, U98, 0, tUmMRNmea, MAX_UM980_NMEA_MSG, & settings.um980MessageRatesNMEA, "messageRateNMEA_", gnssCmdUpdateMessageRates, },
+    { 0, 1, 1, 0, 0, 0, 1, 0, 0, U98, 0, tUmMRBaRT, MAX_UM980_RTCM_MSG, & settings.um980MessageRatesRTCMBase, "messageRateRTCMBase_", gnssCmdUpdateMessageRates, },
+    { 0, 1, 1, 0, 0, 0, 1, 0, 0, U98, 0, tUmMRRvRT, MAX_UM980_RTCM_MSG, & settings.um980MessageRatesRTCMRover, "messageRateRTCMRover_", gnssCmdUpdateMessageRates, },
 #endif  // COMPILE_UM980
 
     // Web Server
@@ -1837,10 +1837,10 @@ const RTK_Settings_Entry rtkSettingsEntries[] =
 
 #ifdef  COMPILE_LG290P
     { 1, 1, 1, 0, 0, 0, 0, 0, 1, L29, 1, tLgConst,  MAX_LG290P_CONSTELLATIONS, & settings.lg290pConstellations, "constellation_", gnssCmdUpdateConstellations, },
-    { 0, 1, 1, 0, 0, 0, 0, 0, 1, L29, 1, tLgMRNmea, MAX_LG290P_NMEA_MSG, & settings.lg290pMessageRatesNMEA, "messageRateNMEA_", nullptr, },
-    { 0, 1, 1, 0, 0, 0, 0, 0, 1, L29, 1, tLgMRBaRT, MAX_LG290P_RTCM_MSG, & settings.lg290pMessageRatesRTCMBase, "messageRateRTCMBase_", nullptr, },
-    { 0, 1, 1, 0, 0, 0, 0, 0, 1, L29, 1, tLgMRRvRT, MAX_LG290P_RTCM_MSG, & settings.lg290pMessageRatesRTCMRover, "messageRateRTCMRover_", nullptr, },
-    { 0, 1, 1, 0, 0, 0, 0, 0, 1, L29, 1, tLgMRPqtm, MAX_LG290P_PQTM_MSG, & settings.lg290pMessageRatesPQTM, "messageRatePQTM_", nullptr, },
+    { 0, 1, 1, 0, 0, 0, 0, 0, 1, L29, 1, tLgMRNmea, MAX_LG290P_NMEA_MSG, & settings.lg290pMessageRatesNMEA, "messageRateNMEA_", gnssCmdUpdateMessageRates, },
+    { 0, 1, 1, 0, 0, 0, 0, 0, 1, L29, 1, tLgMRBaRT, MAX_LG290P_RTCM_MSG, & settings.lg290pMessageRatesRTCMBase, "messageRateRTCMBase_", gnssCmdUpdateMessageRates, },
+    { 0, 1, 1, 0, 0, 0, 0, 0, 1, L29, 1, tLgMRRvRT, MAX_LG290P_RTCM_MSG, & settings.lg290pMessageRatesRTCMRover, "messageRateRTCMRover_", gnssCmdUpdateMessageRates, },
+    { 0, 1, 1, 0, 0, 0, 0, 0, 1, L29, 1, tLgMRPqtm, MAX_LG290P_PQTM_MSG, & settings.lg290pMessageRatesPQTM, "messageRatePQTM_", gnssCmdUpdateMessageRates, },
 #endif  // COMPILE_LG290P
 
     { 0, 0, 0, 1, 1, 1, 1, 1, 1, ALL, 1, _bool,     0, & settings.debugSettings, "debugSettings", nullptr, },
