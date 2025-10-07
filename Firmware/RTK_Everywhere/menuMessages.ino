@@ -183,7 +183,7 @@ void menuLog()
             beginLogging();          // Create new file based on current RTC.
             setLoggingType();        // Determine if we are standard, PPP, or custom. Changes logging icon accordingly.
         }
-        else if (incoming == 5 && settings.enableLogging == true && online.logging == true)
+        else if (incoming == 5 && settings.enableLogging == true)
         {
             settings.enableARPLogging ^= 1;
         }
