@@ -150,7 +150,7 @@ void updateBattery()
     if (online.batteryFuelGauge == true)
     {
         static unsigned long lastBatteryFuelGaugeUpdate = 0;
-        if (millis() - lastBatteryFuelGaugeUpdate > 5000)
+        if ((millis() - lastBatteryFuelGaugeUpdate) > 5000)
         {
             lastBatteryFuelGaugeUpdate = millis();
 
@@ -199,7 +199,7 @@ void updateBattery()
     if (online.batteryCharger_mp2762a == true)
     {
         static unsigned long lastBatteryChargerUpdate = 0;
-        if (millis() - lastBatteryChargerUpdate > 5000)
+        if ((millis() - lastBatteryChargerUpdate) > 5000)
         {
             lastBatteryChargerUpdate = millis();
 
@@ -326,7 +326,7 @@ void reportHeap()
 {
     if (settings.enableHeapReport == true)
     {
-        if (millis() - lastHeapReport > 1000)
+        if ((millis() - lastHeapReport) > 1000)
         {
             reportHeapNow(false);
         }
@@ -421,7 +421,7 @@ void printReports()
         lastPrintPosition = millis();
     }
 
-    if (settings.enablePrintRoverAccuracy && (millis() - lastPrintRoverAccuracy > 2000))
+    if (settings.enablePrintRoverAccuracy && ((millis() - lastPrintRoverAccuracy) > 2000))
     {
         lastPrintRoverAccuracy = millis();
         if (online.gnss)

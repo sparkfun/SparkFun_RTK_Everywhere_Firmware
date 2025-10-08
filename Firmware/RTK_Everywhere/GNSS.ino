@@ -106,7 +106,7 @@ static void pushGPGGA(char *ggaData)
             // Provide the caster with our current position as needed
             if (ntripClient->connected() && settings.ntripClient_TransmitGGA == true)
             {
-                if (millis() - lastGGAPush > NTRIPCLIENT_MS_BETWEEN_GGA)
+                if ((millis() - lastGGAPush) > NTRIPCLIENT_MS_BETWEEN_GGA)
                 {
                     lastGGAPush = millis();
 
@@ -359,7 +359,7 @@ void gnssFirmwareBeginUpdate()
         // Button task will gnssFirmwareRemoveUpdate and restart
 
         // Temporary fix for buttonless Flex. TODO - remove
-        if ((productVariant == RTK_FLEX) && (millis() > (lastSerial + 30000)))
+        if ((productVariant == RTK_FLEX) && ((millis() - lastSerial) > 30000))
         {
             // Beep to indicate exit
             beepOn();
@@ -424,6 +424,28 @@ void gnssFirmwareRemoveUpdateFile(const char *filename)
 
         LittleFS.remove(filename);
     }
+}
+
+//----------------------------------------
+// Update the constellations following a set command
+//----------------------------------------
+bool gnssCmdUpdateConstellations(int commandIndex)
+{
+    if (gnss == nullptr)
+        return false;
+
+    return gnss->setConstellations();
+}
+
+//----------------------------------------
+// Update the message rates following a set command
+//----------------------------------------
+bool gnssCmdUpdateMessageRates(int commandIndex)
+{
+    if (gnss == nullptr)
+        return false;
+
+    return gnss->setMessages(MAX_SET_MESSAGES_RETRIES);
 }
 
 //----------------------------------------

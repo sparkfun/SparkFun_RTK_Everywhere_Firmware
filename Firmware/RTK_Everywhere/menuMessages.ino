@@ -183,7 +183,7 @@ void menuLog()
             beginLogging();          // Create new file based on current RTC.
             setLoggingType();        // Determine if we are standard, PPP, or custom. Changes logging icon accordingly.
         }
-        else if (incoming == 5 && settings.enableLogging == true && online.logging == true)
+        else if (incoming == 5 && settings.enableLogging == true)
         {
             settings.enableARPLogging ^= 1;
         }
@@ -230,6 +230,9 @@ void menuMessagesBaseRTCM()
         systemPrintf("2) Reset to Defaults (%s)\r\n", gnss->getRtcmDefaultString());
         systemPrintf("3) Reset to Low Bandwidth Link (%s)\r\n", gnss->getRtcmLowDataRateString());
 
+        if (namedSettingAvailableOnPlatform("useMSM7"))
+            systemPrintf("4) MSM Selection: MSM%c\r\n", settings.useMSM7 ? '7' : '4');
+
         systemPrintln("x) Exit");
 
         int incoming = getUserInputNumber(); // Returns EXIT, TIMEOUT, or long
@@ -253,6 +256,12 @@ void menuMessagesBaseRTCM()
             systemPrintf("Reset to Low Bandwidth Link (%s)\r\n", gnss->getRtcmLowDataRateString());
             restartBase = true;
         }
+        else if ((incoming == 4) && (namedSettingAvailableOnPlatform("useMSM7")))
+        {
+            settings.useMSM7 ^= 1;
+            restartBase = true;
+        }
+
         else if (incoming == INPUT_RESPONSE_GETNUMBER_EXIT)
             break;
         else if (incoming == INPUT_RESPONSE_GETNUMBER_TIMEOUT)

@@ -212,7 +212,7 @@ void displayUpdate()
     if (online.display == true)
     {
         static unsigned long lastDisplayUpdate = 0;
-        if (millis() - lastDisplayUpdate > 500 || forceDisplayUpdate == true) // Update display at 2Hz
+        if (((millis() - lastDisplayUpdate) > 500) || (forceDisplayUpdate == true)) // Update display at 2Hz
         {
             lastDisplayUpdate = millis();
             forceDisplayUpdate = false;
@@ -2493,7 +2493,7 @@ void paintSystemTest()
     if (online.display == true)
     {
         // Toggle between two displays
-        if (millis() - systemTestDisplayTime > 3000)
+        if ((millis() - systemTestDisplayTime) > 3000)
         {
             systemTestDisplayTime = millis();
             systemTestDisplayNumber++;
@@ -3094,7 +3094,7 @@ void paintKeyProvisionFail(uint16_t displayTime)
 // Show screen while ESP-NOW is pairing
 void paintEspNowPairing()
 {
-    displayMessage("ESP-NOW Pairing", 0);
+    displayMessage("ESP-NOW Pairing", 2000);
 }
 void paintEspNowPaired()
 {
@@ -3206,7 +3206,7 @@ void displayWebConfig(std::vector<iconPropertyBlinking> &iconPropertyList)
 
     // Toggle display back and forth for long SSIDs and IPs
     // Run the timer no matter what, but load firstHalf/lastHalf with the same thing if strlen < maxWidth
-    if (millis() - ssidDisplayTimer > 2000)
+    if ((millis() - ssidDisplayTimer) > 2000)
     {
         ssidDisplayTimer = millis();
         ssidDisplayFirstHalf = !ssidDisplayFirstHalf;

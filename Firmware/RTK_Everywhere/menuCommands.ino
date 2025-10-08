@@ -242,28 +242,23 @@ t_cliResult processCommand(char *cmdBuffer)
         }
         else
         {
-            if (strcmp(tokens[1], "EXIT") == 0)
-            {
-                commandSendExecuteOkResponse(tokens[0], tokens[1]);
-                return (CLI_EXIT);
-            }
-            else if (strcmp(tokens[1], "APPLY") == 0)
+            if (strcmp(tokens[1], "APPLY") == 0)
             {
                 commandSendExecuteOkResponse(tokens[0], tokens[1]);
                 // TODO - Do an apply...
                 return (CLI_OK);
             }
-            else if (strcmp(tokens[1], "SAVE") == 0)
+            else if (strcmp(tokens[1], "EXIT") == 0)
             {
-                recordSystemSettings();
                 commandSendExecuteOkResponse(tokens[0], tokens[1]);
-                return (CLI_OK);
+                return (CLI_EXIT);
             }
-            else if (strcmp(tokens[1], "REBOOT") == 0)
+            else if (strcmp(tokens[1], "FACTORYRESET") == 0)
             {
+                // Apply factory defaults, then reset
                 commandSendExecuteOkResponse(tokens[0], tokens[1]);
-                delay(50); // Allow for final print
-                ESP.restart();
+                factoryReset(false); // We do not have the SD semaphore
+                return (CLI_OK);     // We should never get this far.
             }
             else if (strcmp(tokens[1], "LIST") == 0)
             {
@@ -286,12 +281,33 @@ t_cliResult processCommand(char *cmdBuffer)
                 commandSendExecuteOkResponse(tokens[0], tokens[1]);
                 return (CLI_OK);
             }
-            else if (strcmp(tokens[1], "FACTORYRESET") == 0)
+            else if (strcmp(tokens[1], "PAIR") == 0)
             {
-                // Apply factory defaults, then reset
                 commandSendExecuteOkResponse(tokens[0], tokens[1]);
-                factoryReset(false); // We do not have the SD semaphore
-                return (CLI_OK);     // We should never get this far.
+                espnowRequestPair = true; // Start ESP-NOW pairing process
+                // Force exit all config menus and/or command modes to allow OTA state machine to run
+                btPrintEchoExit = true;
+                return (CLI_EXIT); // Exit the CLI to allow OTA state machine to run
+            }
+            else if (strcmp(tokens[1], "PAIRSTOP") == 0)
+            {
+                commandSendExecuteOkResponse(tokens[0], tokens[1]);
+                espnowRequestPair = false; // Stop ESP-NOW pairing process
+                // Force exit all config menus and/or command modes to allow OTA state machine to run
+                btPrintEchoExit = true;
+                return (CLI_EXIT); // Exit the CLI to allow OTA state machine to run
+            }
+            else if (strcmp(tokens[1], "REBOOT") == 0)
+            {
+                commandSendExecuteOkResponse(tokens[0], tokens[1]);
+                delay(50); // Allow for final print
+                ESP.restart();
+            }
+            else if (strcmp(tokens[1], "SAVE") == 0)
+            {
+                recordSystemSettings();
+                commandSendExecuteOkResponse(tokens[0], tokens[1]);
+                return (CLI_OK);
             }
             else if (strcmp(tokens[1], "UPDATEFIRMWARE") == 0)
             {
@@ -503,7 +519,7 @@ void commandSendAllInterfaces(char *rxData)
         // errors
 
         // With debug=debug, 788 characters are printed locally that slow down the interface enough to avoid errors,
-        // or 68.4ms at 115200 
+        // or 68.4ms at 115200
         // With debug=error, can we delay 70ms after every line print and avoid errors? Yes! Works
         // well. 50ms is good, 25ms works sometimes without error, 5 is bad.
 
@@ -1266,13 +1282,23 @@ SettingValueResponse updateSettingWithValue(bool inCommands, const char *setting
         }
         break;
         }
-    }
 
-    // Done when the setting is found
-    if (knownSetting == true && settingIsString == true)
-        return (SETTING_KNOWN_STRING);
-    else if (knownSetting == true)
-        return (SETTING_KNOWN);
+        // Done when the setting is found
+        if (knownSetting == true && settingIsString == true)
+        {
+            // Determine if extra work needs to be done when the setting changes
+            if (rtkSettingsEntries[i].afterSetCmd)
+                rtkSettingsEntries[i].afterSetCmd(i);
+            return (SETTING_KNOWN_STRING);
+        }
+        else if (knownSetting == true)
+        {
+            // Determine if extra work needs to be done when the setting changes
+            if (rtkSettingsEntries[i].afterSetCmd)
+                rtkSettingsEntries[i].afterSetCmd(i);
+            return (SETTING_KNOWN);
+        }
+    }
 
     if (strcmp(settingName, "fixedLatText") == 0)
     {
@@ -3746,6 +3772,27 @@ bool settingAvailableOnPlatform(int i)
         return false;
     } while (0);
     return true;
+}
+
+// Determine if the named setting is available on this platform
+// Note: this does a simple 1:1 comparison of settingName and
+//       rtkSettingsEntries[].name. It doesn't handle suffixes.
+bool namedSettingAvailableOnPlatform(const char *settingName)
+{
+    // Loop through the settings entries
+    int rtkIndex;
+    for (rtkIndex = 0; rtkIndex < numRtkSettingsEntries; rtkIndex++)
+    {
+        const char *command = rtkSettingsEntries[rtkIndex].name;
+
+        if (strcmp(command, settingName) == 0) // match found
+            break;
+    }
+
+    if (rtkIndex == numRtkSettingsEntries)
+        return false; // Not found
+
+    return settingAvailableOnPlatform(rtkIndex);
 }
 
 // Determine if the setting is possible on this platform

@@ -1025,7 +1025,7 @@ void mqttClientUpdate()
         mqttClient->poll();
 
         // Determine if a data timeout has occurred
-        if (millis() - mqttClientLastDataReceived >= MQTT_CLIENT_DATA_TIMEOUT)
+        if ((millis() - mqttClientLastDataReceived) >= MQTT_CLIENT_DATA_TIMEOUT)
         {
             systemPrintln("MQTT client data timeout. Disconnecting...");
             mqttClientRestart();

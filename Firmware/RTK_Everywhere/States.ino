@@ -11,7 +11,7 @@ static uint32_t lastStateTime = 0;
 // A user pressing the mode button (change between rover/base) is handled by buttonCheckTask()
 void stateUpdate()
 {
-    if (millis() - lastSystemStateUpdate > 500 || forceSystemStateUpdate == true)
+    if (((millis() - lastSystemStateUpdate) > 500) || (forceSystemStateUpdate == true))
     {
         lastSystemStateUpdate = millis();
         forceSystemStateUpdate = false;
@@ -101,7 +101,7 @@ void stateUpdate()
             if (gnss->configureRover() == false)
             {
                 settings.gnssConfiguredRover = false; // On the next boot, reapply all settings
-                recordSystemSettings();           // Record this state for next POR
+                recordSystemSettings();               // Record this state for next POR
 
                 systemPrintln("Rover config failed");
                 displayRoverFail(1000);
@@ -232,9 +232,9 @@ void stateUpdate()
             if (tasksStartGnssUart() && gnss->configureBase())
             {
                 // settings.gnssConfiguredBase is set by gnss->configureBase()
-                settings.gnssConfiguredRover = false; // When the mode changes, reapply all settings
+                settings.gnssConfiguredRover = false;        // When the mode changes, reapply all settings
                 settings.lastState = STATE_BASE_NOT_STARTED; // Record this state for next POR
-                recordSystemSettings(); // Record this state for next POR
+                recordSystemSettings();                      // Record this state for next POR
 
                 displayBaseSuccess(500); // Show 'Base Started'
 
@@ -246,7 +246,7 @@ void stateUpdate()
             else
             {
                 settings.gnssConfiguredBase = false; // On the next boot, reapply all settings
-                recordSystemSettings();          // Record this state for next POR
+                recordSystemSettings();              // Record this state for next POR
 
                 displayBaseFail(1000);
             }
@@ -256,7 +256,7 @@ void stateUpdate()
         // Wait for horz acc of 5m or less before starting survey in
         case (STATE_BASE_TEMP_SETTLE): {
             // Blink base LED slowly while we wait for first fix
-            if (millis() - lastBaseLEDupdate > 1000)
+            if ((millis() - lastBaseLEDupdate) > 1000)
             {
                 lastBaseLEDupdate = millis();
 
@@ -296,7 +296,7 @@ void stateUpdate()
         // Check survey status until it completes or 15 minutes elapses and we go back to rover
         case (STATE_BASE_TEMP_SURVEY_STARTED): {
             // Blink base LED quickly during survey in
-            if (millis() - lastBaseLEDupdate > 500)
+            if ((millis() - lastBaseLEDupdate) > 500)
             {
                 lastBaseLEDupdate = millis();
 
@@ -400,7 +400,7 @@ void stateUpdate()
         break;
 
         case (STATE_DISPLAY_SETUP): {
-            if (millis() - lastSetupMenuChange > 10000) // Exit Setup after 10s
+            if ((millis() - lastSetupMenuChange) > 10000) // Exit Setup after 10s
             {
                 firstButtonThrownOut = false;
                 changeState(lastSystemState); // Return to the last system state
@@ -441,7 +441,7 @@ void stateUpdate()
             if (incomingSettingsSpot > 0)
             {
                 // Allow for 750ms before we parse buffer for all data to arrive
-                if (millis() - timeSinceLastIncomingSetting > 750)
+                if ((millis() - timeSinceLastIncomingSetting) > 750)
                 {
                     bool changed;
 
@@ -453,8 +453,8 @@ void stateUpdate()
                         systemWrite(incomingSettings[x]);
                     systemPrintln();
 
-                    //Create temporary copy of Settings, so that we can check if they change while parsing
-                    //Useful for detecting when we need to change WiFi station settings
+                    // Create temporary copy of Settings, so that we can check if they change while parsing
+                    // Useful for detecting when we need to change WiFi station settings
                     wifiSettingsClone();
 
                     parseIncomingSettings();
@@ -478,7 +478,7 @@ void stateUpdate()
             if (websocketConnected == true)
             {
                 // Update the coordinates on the AP page
-                if (millis() - lastDynamicDataUpdate > 1000)
+                if ((millis() - lastDynamicDataUpdate) > 1000)
                 {
                     lastDynamicDataUpdate = millis();
                     createDynamicDataString(settingsCSV);
@@ -508,7 +508,7 @@ void stateUpdate()
         // Setup device for testing
         case (STATE_TEST): {
             // Debounce entry into test menu
-            if (millis() - lastTestMenuChange > 500)
+            if ((millis() - lastTestMenuChange) > 500)
             {
                 tasksStopGnssUart(); // Stop absoring GNSS serial via task
                 zedUartPassed = false;
@@ -540,10 +540,11 @@ void stateUpdate()
 
         case (STATE_ESPNOW_PAIRING_NOT_STARTED): {
 #ifdef COMPILE_ESPNOW
+
             paintEspNowPairing();
 
-            // Start ESP-NOW if needed, put ESP-NOW into broadcast state
-            espNowBeginPairing();
+            // Let the ESP-NOW state machine know we want to start pairing
+            espnowRequestPair = true;
 
             changeState(STATE_ESPNOW_PAIRING);
 #else  // COMPILE_ESPNOW
@@ -553,15 +554,11 @@ void stateUpdate()
         break;
 
         case (STATE_ESPNOW_PAIRING): {
-            if (espNowProcessRxPairedMessage() == true)
-            {
-                paintEspNowPaired();
-
+            // The ESP-NOW state machine handles the pairing process
+            // Once it exits the pairing process, return to last system state
+            if (espNowIsPairing)
                 // Return to the previous state
                 changeState(lastSystemState);
-            }
-            else
-                espNowSendPairMessage(espNowBroadcastAddr); // Send unit's MAC address over broadcast, no ack, no encryption
         }
         break;
 
@@ -579,7 +576,7 @@ void stateUpdate()
             if (tasksStartGnssUart() && ntpConfigureUbloxModule())
             {
                 settings.lastState = STATE_NTPSERVER_NOT_STARTED; // Record this state for next POR
-                settings.gnssConfiguredBase = false; // On the next boot, reapply all settings
+                settings.gnssConfiguredBase = false;              // On the next boot, reapply all settings
                 settings.gnssConfiguredRover = false;
                 recordSystemSettings();
 

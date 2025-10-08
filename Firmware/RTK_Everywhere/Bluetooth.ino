@@ -59,7 +59,7 @@ void bluetoothUpdate()
 {
 #ifdef COMPILE_BT
     static uint32_t lastCheck = millis(); // Check if connected every 100ms
-    if (millis() > (lastCheck + 100))
+    if ((millis() - lastCheck) > 100)
     {
         lastCheck = millis();
 

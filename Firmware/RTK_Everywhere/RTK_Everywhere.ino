@@ -680,6 +680,7 @@ char *incomingSettings;
 int incomingSettingsSpot;
 unsigned long timeSinceLastIncomingSetting;
 unsigned long lastDynamicDataUpdate;
+bool websocketConnected = false;
 
 #ifdef COMPILE_WIFI
 #ifdef COMPILE_AP
@@ -688,8 +689,6 @@ unsigned long lastDynamicDataUpdate;
 #include <DNSServer.h>       // Needed for the captive portal
 #include <WebServer.h>       // Port 80
 #include <esp_http_server.h> // Needed for web sockets only - on port 81
-
-bool websocketConnected = false;
 
 #endif // COMPILE_AP
 #endif // COMPILE_WIFI
@@ -1558,7 +1557,9 @@ bool logLengthExceeded() // Limit individual files to maxLogLength_minutes
     if (nextLogTime_ms == 0) // Keep logging if nextLogTime_ms has not been set
         return false;
     
-    return (millis() >= nextLogTime_ms); // Note: this will roll over every ~50 days...
+    // Note: this will roll over every 49.71 days...
+    // Solution: https://stackoverflow.com/a/3097744 - see issue #742
+    return (!((long)(nextLogTime_ms - millis()) > 0));
 }
 
 // Create or close files as needed (startup or as the user changes settings)
@@ -1669,7 +1670,7 @@ void rtcUpdate()
     {
         if (online.gnss == true) // Only do this if the GNSS is online
         {
-            if (millis() - lastRTCAttempt > syncRTCInterval) // Only attempt this once per second
+            if ((millis() - lastRTCAttempt) > syncRTCInterval) // Only attempt this once per second
             {
                 lastRTCAttempt = millis();
 
