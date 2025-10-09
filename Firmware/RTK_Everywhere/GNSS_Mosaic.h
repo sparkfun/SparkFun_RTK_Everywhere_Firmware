@@ -1085,6 +1085,9 @@ class GNSS_MOSAIC : GNSS
     //   modelNumber: Number of the model to use, provided by radio library
     bool setModel(uint8_t modelNumber);
 
+    // Given the name of a message, find it, and set the rate
+    bool setNmeaMessageRateByName(const char *msgName, uint8_t msgRate);
+
     bool setRadioBaudRate(uint32_t baud);
 
     // Specify the interval between solutions

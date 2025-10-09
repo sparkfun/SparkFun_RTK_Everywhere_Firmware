@@ -579,6 +579,12 @@ public:
         return true;
     }
 
+    // Given the name of a message, find it, and set the rate
+    bool setNmeaMessageRateByName(const char *msgName, uint8_t msgRate)
+    {
+        return (true);
+    }
+
     bool setRadioBaudRate(uint32_t baud)
     {
         return true;

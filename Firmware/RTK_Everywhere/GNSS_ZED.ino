@@ -2231,6 +2231,13 @@ bool GNSS_ZED::setMessageRateByName(const char *msgName, uint8_t msgRate)
     return (false);
 }
 
+// Given the name of a message, find it, and set the rate
+bool GNSS_ZED::setNmeaMessageRateByName(const char *msgName, uint8_t msgRate)
+{
+    // TODO
+    return (false);
+}
+
 //----------------------------------------
 // Enable all the valid messages for this platform
 // There are many messages so split into batches. VALSET is limited to 64 max per batch
