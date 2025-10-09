@@ -571,7 +571,7 @@ void tcpClientUpdate()
     }
 
     // Periodically display the TCP client state
-    if (PERIODIC_DISPLAY(PD_TCP_CLIENT_STATE))
+    if (PERIODIC_DISPLAY(PD_TCP_CLIENT_STATE) && !inMainMenu)
     {
         systemPrintf("TCP Client state: %s%s\r\n",
                      tcpClientStateName[tcpClientState], line);

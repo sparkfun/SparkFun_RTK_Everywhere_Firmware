@@ -963,7 +963,7 @@ void ntpServerUpdate()
     }
 
     // Periodically display the NTP server state
-    if (PERIODIC_DISPLAY(PD_NTP_SERVER_STATE))
+    if (PERIODIC_DISPLAY(PD_NTP_SERVER_STATE) && !inMainMenu)
     {
         const char * line = "";
         if (NEQ_RTK_MODE(ntpServerMode))

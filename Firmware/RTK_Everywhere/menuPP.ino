@@ -1626,7 +1626,7 @@ void provisioningUpdate()
     }
 
     // Periodically display the provisioning state
-    if (PERIODIC_DISPLAY(PD_PROVISIONING_STATE))
+    if (PERIODIC_DISPLAY(PD_PROVISIONING_STATE) && !inMainMenu)
     {
         systemPrintf("Provisioning state: %s%s\r\n", provisioningStateName[provisioningState], line);
         PERIODIC_CLEAR(PD_PROVISIONING_STATE);

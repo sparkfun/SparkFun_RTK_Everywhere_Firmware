@@ -232,6 +232,8 @@ void menuMessagesBaseRTCM()
 
         if (namedSettingAvailableOnPlatform("useMSM7"))
             systemPrintf("4) MSM Selection: MSM%c\r\n", settings.useMSM7 ? '7' : '4');
+        if (namedSettingAvailableOnPlatform("rtcmMinElev"))
+            systemPrintf("5) Minimum Elevation for RTCM: %d\r\n", settings.rtcmMinElev);
 
         systemPrintln("x) Exit");
 
@@ -260,6 +262,18 @@ void menuMessagesBaseRTCM()
         {
             settings.useMSM7 ^= 1;
             restartBase = true;
+        }
+        else if ((incoming == 5) && (namedSettingAvailableOnPlatform("rtcmMinElev")))
+        {
+            systemPrintf("Enter minimum elevation for RTCM: ");
+
+            int elevation = getUserInputNumber(); // Returns EXIT, TIMEOUT, or long
+
+            if (elevation >= -90 && elevation <= 90)
+            {
+                settings.rtcmMinElev = elevation;
+                restartBase = true;
+            }
         }
 
         else if (incoming == INPUT_RESPONSE_GETNUMBER_EXIT)
@@ -872,7 +886,7 @@ void checkGNSSArrayDefaults()
         }
         else if (present.gnss_lg290p)
         {
-            // settings.minCNO = 10;                     // Not yet supported
+            settings.minCNO = 10;                    // Default 10 dBHz
             settings.surveyInStartingAccuracy = 2.0; // Default 2m
             settings.measurementRateMs = 500;        // Default 2Hz.
         }

@@ -845,7 +845,7 @@ void ntripServerUpdate(int serverIndex)
     }
 
     // Periodically display the state
-    if (PERIODIC_DISPLAY(PD_NTRIP_SERVER_STATE))
+    if (PERIODIC_DISPLAY(PD_NTRIP_SERVER_STATE) && !inMainMenu)
     {
         systemPrintf("NTRIP Server %d state: %s%s\r\n", serverIndex,
                      ntripServerStateName[ntripServer->state], line);

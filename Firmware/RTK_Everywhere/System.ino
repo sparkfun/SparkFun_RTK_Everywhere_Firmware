@@ -414,6 +414,16 @@ void printReports()
     if (bluetoothCommandIsConnected() == true)
         return;
 
+    if (inMainMenu)
+        return;
+
+    // Periodically display the firmware mode
+    if (PERIODIC_DISPLAY(PD_FIRMWARE_MODE))
+    {
+        PERIODIC_CLEAR(PD_FIRMWARE_MODE);
+        systemPrintf("Firmware mode: %s\r\n", stateToRtkMode(systemState));
+    }
+
     // Periodically print the position
     if (settings.enablePrintPosition && ((millis() - lastPrintPosition) > 15000))
     {
