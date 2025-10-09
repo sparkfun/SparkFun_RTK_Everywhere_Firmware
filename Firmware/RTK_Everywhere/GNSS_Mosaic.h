@@ -9,7 +9,8 @@ GNSS_Mosaic.h
 
 #include <SparkFun_Extensible_Message_Parser.h> //http://librarymanager/All#SparkFun_Extensible_Message_Parser
 
-typedef struct {
+typedef struct
+{
     const uint16_t ID;
     const bool fixedLength;
     const uint16_t length; // Padded to modulo-4
@@ -17,13 +18,9 @@ typedef struct {
 } mosaicExpectedID;
 
 const mosaicExpectedID mosaicExpectedIDs[] = {
-    { 4007, true, 96, "PVTGeodetic" },
-    { 4013, false, 0, "ChannelStatus" },
-    { 4014, false, 0, "ReceiverStatus" },
-    { 4059, false, 0, "DiskStatus" },
-    { 4090, false, 0, "InputLink" },
-    { 4097, false, 0, "EncapsulatedOutput" },
-    { 5914, true, 24, "ReceiverTime" },
+    {4007, true, 96, "PVTGeodetic"},  {4013, false, 0, "ChannelStatus"}, {4014, false, 0, "ReceiverStatus"},
+    {4059, false, 0, "DiskStatus"},   {4090, false, 0, "InputLink"},     {4097, false, 0, "EncapsulatedOutput"},
+    {5914, true, 24, "ReceiverTime"},
 };
 
 #define MAX_MOSAIC_EXPECTED_SBF (sizeof(mosaicExpectedIDs) / sizeof(mosaicExpectedID))
@@ -34,7 +31,7 @@ const mosaicExpectedID mosaicExpectedIDs[] = {
 // We actually need four times this many as COM1, COM2, USB1 and DSK1 all need their own individual streams
 // COM1 uses streams 1 & 2; COM2 uses 3 & 4; USB1 uses 5 & 6; DSK1 uses 7 & 8
 #define MOSAIC_NUM_NMEA_STREAMS 2 // X5 supports 10 streams in total
-#define MOSAIC_DEFAULT_NMEA_STREAM_INTERVALS {MOSAIC_MSG_RATE_MSEC500,MOSAIC_MSG_RATE_SEC1}
+#define MOSAIC_DEFAULT_NMEA_STREAM_INTERVALS {MOSAIC_MSG_RATE_MSEC500, MOSAIC_MSG_RATE_SEC1}
 
 // Output SBF PVTGeodetic and ReceiverTime on this stream - on COM1 only
 // The SBFOutput streams are separate to the NMEAOutput streams. It is OK to start at Stream1.
@@ -64,7 +61,8 @@ const mosaicExpectedID mosaicExpectedIDs[] = {
 // eccf,RxDefault,Boot
 // eccf,RxDefault,Current
 
-enum mosaicFileDuration_e {
+enum mosaicFileDuration_e
+{
     MOSAIC_FILE_DURATION_HOUR1 = 0,
     MOSAIC_FILE_DURATION_HOUR6,
     MOSAIC_FILE_DURATION_HOUR24,
@@ -82,15 +80,16 @@ typedef struct
 } mosaicFileDuration;
 
 const mosaicFileDuration mosaicFileDurations[] = {
-    { "hour1", "IGS1H", "1h", 60 },
-    { "hour6", "IGS6H", "6h", 360 },
-    { "hour24", "IGS24H", "24h", 1440 },
-    { "minute15", "IGS15M", "15min", 15 },
+    {"hour1", "IGS1H", "1h", 60},
+    {"hour6", "IGS6H", "6h", 360},
+    {"hour24", "IGS24H", "24h", 1440},
+    {"minute15", "IGS15M", "15min", 15},
 };
 
 #define MAX_MOSAIC_FILE_DURATIONS (sizeof(mosaicFileDurations) / sizeof(mosaicFileDuration))
 
-enum mosaicObsInterval_e {
+enum mosaicObsInterval_e
+{
     MOSAIC_OBS_INTERVAL_SEC1 = 0,
     MOSAIC_OBS_INTERVAL_SEC2,
     MOSAIC_OBS_INTERVAL_SEC5,
@@ -110,18 +109,14 @@ typedef struct
 } mosaicObsInterval;
 
 const mosaicObsInterval mosaicObsIntervals[] = {
-    { "sec1", "1s", 1 },
-    { "sec2", "2s", 2 },
-    { "sec5", "5s", 5 },
-    { "sec10", "10s", 10 },
-    { "sec15", "15s", 15 },
-    { "sec30", "30s", 30 },
-    { "sec60", "60s", 60 },
+    {"sec1", "1s", 1},    {"sec2", "2s", 2},    {"sec5", "5s", 5},    {"sec10", "10s", 10},
+    {"sec15", "15s", 15}, {"sec30", "30s", 30}, {"sec60", "60s", 60},
 };
 
 #define MAX_MOSAIC_OBS_INTERVALS (sizeof(mosaicObsIntervals) / sizeof(mosaicObsInterval))
 
-enum mosaicCOMBaud {
+enum mosaicCOMBaud
+{
     MOSAIC_COM_RATE_BAUD4800 = 0,
     MOSAIC_COM_RATE_BAUD9600,
     MOSAIC_COM_RATE_BAUD19200,
@@ -143,20 +138,15 @@ typedef struct
 } mosaicComRate;
 
 const mosaicComRate mosaicComRates[] = {
-    { "baud4800", 4800 },
-    { "baud9600", 9600 },
-    { "baud19200", 19200 },
-    { "baud38400", 38400 },
-    { "baud57600", 57600 },
-    { "baud115200", 115200 },
-    { "baud230400", 230400 },
-    { "baud460800", 460800 },
-    { "baud921600", 921600 },
+    {"baud4800", 4800},     {"baud9600", 9600},     {"baud19200", 19200},
+    {"baud38400", 38400},   {"baud57600", 57600},   {"baud115200", 115200},
+    {"baud230400", 230400}, {"baud460800", 460800}, {"baud921600", 921600},
 };
 
 #define MAX_MOSAIC_COM_RATES (sizeof(mosaicComRates) / sizeof(mosaicComRate))
 
-enum mosaicPpsIntervals {
+enum mosaicPpsIntervals
+{
     // OFF is dealt with by settings.enableExternalPulse
     MOSAIC_PPS_INTERVAL_MSEC10 = 0,
     MOSAIC_PPS_INTERVAL_MSEC20,
@@ -185,25 +175,17 @@ typedef struct
 } mosaicPPSInterval;
 
 const mosaicPPSInterval mosaicPPSIntervals[] = {
-    { "msec10", "10ms", 10000 },
-    { "msec20", "20ms", 20000 },
-    { "msec50", "50ms", 50000 },
-    { "msec100", "100ms", 100000 },
-    { "msec200", "200ms", 200000 },
-    { "msec250", "250ms", 250000 },
-    { "msec500", "500ms", 500000 },
-    { "sec1", "1s", 1000000 },
-    { "sec2", "2s", 2000000 },
-    { "sec4", "4s", 4000000 },
-    { "sec5", "5s", 5000000 },
-    { "sec10", "10s", 10000000 },
-    { "sec30", "30s", 30000000 },
-    { "sec60", "60s", 60000000 },
+    {"msec10", "10ms", 10000},    {"msec20", "20ms", 20000},    {"msec50", "50ms", 50000},
+    {"msec100", "100ms", 100000}, {"msec200", "200ms", 200000}, {"msec250", "250ms", 250000},
+    {"msec500", "500ms", 500000}, {"sec1", "1s", 1000000},      {"sec2", "2s", 2000000},
+    {"sec4", "4s", 4000000},      {"sec5", "5s", 5000000},      {"sec10", "10s", 10000000},
+    {"sec30", "30s", 30000000},   {"sec60", "60s", 60000000},
 };
 
 #define MAX_MOSAIC_PPS_INTERVALS (sizeof(mosaicPPSIntervals) / sizeof(mosaicPPSInterval))
 
-enum mosaicConstellations {
+enum mosaicConstellations
+{
     MOSAIC_SIGNAL_CONSTELLATION_GPS = 0,
     MOSAIC_SIGNAL_CONSTELLATION_GLONASS,
     MOSAIC_SIGNAL_CONSTELLATION_GALILEO,
@@ -224,13 +206,8 @@ typedef struct
 
 // Constellations monitored/used for fix
 const mosaicSignalConstellation mosaicSignalConstellations[] = {
-    {"GPS","GPS"},
-    {"GLONASS","GLONASS"},
-    {"GALILEO","Galileo"},
-    {"SBAS","SBAS"},
-    {"BEIDOU","BeiDou"},
-    {"QZSS","QZSS"},
-    {"NAVIC","NavIC"},
+    {"GPS", "GPS"},       {"GLONASS", "GLONASS"}, {"GALILEO", "Galileo"}, {"SBAS", "SBAS"},
+    {"BEIDOU", "BeiDou"}, {"QZSS", "QZSS"},       {"NAVIC", "NavIC"},
 };
 
 #define MAX_MOSAIC_CONSTELLATIONS (sizeof(mosaicSignalConstellations) / sizeof(mosaicSignalConstellation))
@@ -238,7 +215,8 @@ const mosaicSignalConstellation mosaicSignalConstellations[] = {
 // Enum to define message output rates
 // Don't allow rate to be "off"
 // If the user wants to disable a message, the stream (mosaicStreamIntervalsNMEA etc.) should be set to 0 instead
-enum mosaicMessageRates {
+enum mosaicMessageRates
+{
     // MOSAIC_MSG_RATE_OFF = 0,
     // MOSAIC_MSG_RATE_ONCHANGE,
     MOSAIC_MSG_RATE_MSEC10 = 0,
@@ -276,26 +254,10 @@ typedef struct
 const mosaicMsgRate mosaicMsgRates[] = {
     // { "off"},
     // { "OnChange"},
-    { "msec10", "10ms" },
-    { "msec20", "20ms" },
-    { "msec40", "40ms" },
-    { "msec50", "50ms" },
-    { "msec100", "100ms" },
-    { "msec200", "200ms" },
-    { "msec500", "500ms" },
-    { "sec1", "1s" },
-    { "sec2", "2s" },
-    { "sec5", "5s" },
-    { "sec10", "10s" },
-    { "sec15", "15s" },
-    { "sec30", "30s" },
-    { "sec60", "60s" },
-    { "min2", "2min" },
-    { "min5", "5min" },
-    { "min10", "10min" },
-    { "min15", "15min" },
-    { "min30", "30min" },
-    { "min60", "60min" },
+    {"msec10", "10ms"},   {"msec20", "20ms"},   {"msec40", "40ms"}, {"msec50", "50ms"}, {"msec100", "100ms"},
+    {"msec200", "200ms"}, {"msec500", "500ms"}, {"sec1", "1s"},     {"sec2", "2s"},     {"sec5", "5s"},
+    {"sec10", "10s"},     {"sec15", "15s"},     {"sec30", "30s"},   {"sec60", "60s"},   {"min2", "2min"},
+    {"min5", "5min"},     {"min10", "10min"},   {"min15", "15min"}, {"min30", "30min"}, {"min60", "60min"},
 };
 
 // Check MAX_MOSAIC_MSG_RATES == MOSAIC_NUM_MSG_RATES
@@ -314,16 +276,10 @@ typedef struct
 // Stream 0 is off; stream 1 defaults to MSEC500; stream 2 defaults to SEC1
 const mosaicNMEAMsg mosaicMessagesNMEA[] = {
     // NMEA
-    {"ALM", 0}, {"AVR", 0}, {"DTM", 0},
-    {"GBS", 0}, {"GFA", 0}, {"GGA", 1},
-    {"GGK", 0}, {"GGQ", 0}, {"GLL", 0},
-    {"GMP", 0}, {"GNS", 0}, {"GRS", 0},
-    {"GSA", 1}, {"GST", 1}, {"GSV", 2},
-    {"HDT", 0}, {"HRP", 0}, {"LLK", 0},
-    {"LLQ", 0}, {"RBD", 0}, {"RBP", 0},
-    {"RBV", 0}, {"RMC", 1}, {"ROT", 0},
-    {"SNC", 0}, {"TFM", 0}, {"THS", 0},
-    {"TXTbase", 0}, {"VTG", 0}, {"ZDA", 0},
+    {"ALM", 0}, {"AVR", 0}, {"DTM", 0}, {"GBS", 0},     {"GFA", 0}, {"GGA", 1}, {"GGK", 0}, {"GGQ", 0},
+    {"GLL", 0}, {"GMP", 0}, {"GNS", 0}, {"GRS", 0},     {"GSA", 1}, {"GST", 1}, {"GSV", 2}, {"HDT", 0},
+    {"HRP", 0}, {"LLK", 0}, {"LLQ", 0}, {"RBD", 0},     {"RBP", 0}, {"RBV", 0}, {"RMC", 1}, {"ROT", 0},
+    {"SNC", 0}, {"TFM", 0}, {"THS", 0}, {"TXTbase", 0}, {"VTG", 0}, {"ZDA", 0},
 };
 
 #define MAX_MOSAIC_NMEA_MSG (sizeof(mosaicMessagesNMEA) / sizeof(mosaicNMEAMsg))
@@ -357,7 +313,8 @@ const mosaicRTCMv2Msg mosaicMessagesRTCMv2[] = {
 
 */
 
-enum mosaicRTCMv3IntervalGroups {
+enum mosaicRTCMv3IntervalGroups
+{
     MOSAIC_RTCM_V3_INTERVAL_GROUP_RTCM1001_2 = 0,
     MOSAIC_RTCM_V3_INTERVAL_GROUP_RTCM1003_4,
     MOSAIC_RTCM_V3_INTERVAL_GROUP_RTCM1005_6,
@@ -392,32 +349,15 @@ typedef struct
 } mosaicRTCMv3MsgIntervalGroup;
 
 const mosaicRTCMv3MsgIntervalGroup mosaicRTCMv3MsgIntervalGroups[] = {
-    { "RTCM1001|2", 1.0 },
-    { "RTCM1003|4", 1.0 },
-    { "RTCM1005|6", 1.0 },
-    { "RTCM1007|8", 1.0 },
-    { "RTCM1009|10", 1.0 },
-    { "RTCM1011|12", 1.0 },
-    { "RTCM1013", 1.0 },
-    { "RTCM1019", 1.0 },
-    { "RTCM1020", 1.0 },
-    { "RTCM1029", 1.0 },
-    { "RTCM1033", 10.0 },
-    { "RTCM1042", 1.0 },
-    { "RTCM1044", 1.0 },
-    { "RTCM1045", 1.0 },
-    { "RTCM1046", 1.0 },
-    { "MSM1", 1.0 },
-    { "MSM2", 1.0 },
-    { "MSM3", 1.0 },
-    { "MSM4", 1.0 },
-    { "MSM5", 1.0 },
-    { "MSM6", 1.0 },
-    { "MSM7", 1.0 },
-    { "RTCM1230", 1.0 },
+    {"RTCM1001|2", 1.0},  {"RTCM1003|4", 1.0}, {"RTCM1005|6", 1.0}, {"RTCM1007|8", 1.0}, {"RTCM1009|10", 1.0},
+    {"RTCM1011|12", 1.0}, {"RTCM1013", 1.0},   {"RTCM1019", 1.0},   {"RTCM1020", 1.0},   {"RTCM1029", 1.0},
+    {"RTCM1033", 10.0},   {"RTCM1042", 1.0},   {"RTCM1044", 1.0},   {"RTCM1045", 1.0},   {"RTCM1046", 1.0},
+    {"MSM1", 1.0},        {"MSM2", 1.0},       {"MSM3", 1.0},       {"MSM4", 1.0},       {"MSM5", 1.0},
+    {"MSM6", 1.0},        {"MSM7", 1.0},       {"RTCM1230", 1.0},
 };
 
-#define MAX_MOSAIC_RTCM_V3_INTERVAL_GROUPS (sizeof(mosaicRTCMv3MsgIntervalGroups) / sizeof(mosaicRTCMv3MsgIntervalGroup))
+#define MAX_MOSAIC_RTCM_V3_INTERVAL_GROUPS                                                                             \
+    (sizeof(mosaicRTCMv3MsgIntervalGroups) / sizeof(mosaicRTCMv3MsgIntervalGroup))
 
 typedef struct
 {
@@ -456,57 +396,57 @@ const mosaicRTCMv3Msg mosaicMessagesRTCMv3[] = {
     {"MSM5", MOSAIC_RTCM_V3_INTERVAL_GROUP_MSM5, false},
     {"MSM6", MOSAIC_RTCM_V3_INTERVAL_GROUP_MSM6, false},
     {"MSM7", MOSAIC_RTCM_V3_INTERVAL_GROUP_MSM7, false},
-/*
-    {"RTCM1071", MOSAIC_RTCM_V3_INTERVAL_GROUP_MSM1, false},
-    {"RTCM1072", MOSAIC_RTCM_V3_INTERVAL_GROUP_MSM2, false},
-    {"RTCM1073", MOSAIC_RTCM_V3_INTERVAL_GROUP_MSM3, false},
-    {"RTCM1074", MOSAIC_RTCM_V3_INTERVAL_GROUP_MSM4, false},
-    {"RTCM1075", MOSAIC_RTCM_V3_INTERVAL_GROUP_MSM5, false},
-    {"RTCM1076", MOSAIC_RTCM_V3_INTERVAL_GROUP_MSM6, false},
-    {"RTCM1077", MOSAIC_RTCM_V3_INTERVAL_GROUP_MSM7, false},
-    {"RTCM1081", MOSAIC_RTCM_V3_INTERVAL_GROUP_MSM1, false},
-    {"RTCM1082", MOSAIC_RTCM_V3_INTERVAL_GROUP_MSM2, false},
-    {"RTCM1083", MOSAIC_RTCM_V3_INTERVAL_GROUP_MSM3, false},
-    {"RTCM1084", MOSAIC_RTCM_V3_INTERVAL_GROUP_MSM4, false},
-    {"RTCM1085", MOSAIC_RTCM_V3_INTERVAL_GROUP_MSM5, false},
-    {"RTCM1086", MOSAIC_RTCM_V3_INTERVAL_GROUP_MSM6, false},
-    {"RTCM1087", MOSAIC_RTCM_V3_INTERVAL_GROUP_MSM7, false},
-    {"RTCM1091", MOSAIC_RTCM_V3_INTERVAL_GROUP_MSM1, false},
-    {"RTCM1092", MOSAIC_RTCM_V3_INTERVAL_GROUP_MSM2, false},
-    {"RTCM1093", MOSAIC_RTCM_V3_INTERVAL_GROUP_MSM3, false},
-    {"RTCM1094", MOSAIC_RTCM_V3_INTERVAL_GROUP_MSM4, false},
-    {"RTCM1095", MOSAIC_RTCM_V3_INTERVAL_GROUP_MSM5, false},
-    {"RTCM1096", MOSAIC_RTCM_V3_INTERVAL_GROUP_MSM6, false},
-    {"RTCM1097", MOSAIC_RTCM_V3_INTERVAL_GROUP_MSM7, false},
-    {"RTCM1101", MOSAIC_RTCM_V3_INTERVAL_GROUP_MSM1, false},
-    {"RTCM1102", MOSAIC_RTCM_V3_INTERVAL_GROUP_MSM2, false},
-    {"RTCM1103", MOSAIC_RTCM_V3_INTERVAL_GROUP_MSM3, false},
-    {"RTCM1104", MOSAIC_RTCM_V3_INTERVAL_GROUP_MSM4, false},
-    {"RTCM1105", MOSAIC_RTCM_V3_INTERVAL_GROUP_MSM5, false},
-    {"RTCM1106", MOSAIC_RTCM_V3_INTERVAL_GROUP_MSM6, false},
-    {"RTCM1107", MOSAIC_RTCM_V3_INTERVAL_GROUP_MSM7, false},
-    {"RTCM1111", MOSAIC_RTCM_V3_INTERVAL_GROUP_MSM1, false},
-    {"RTCM1112", MOSAIC_RTCM_V3_INTERVAL_GROUP_MSM2, false},
-    {"RTCM1113", MOSAIC_RTCM_V3_INTERVAL_GROUP_MSM3, false},
-    {"RTCM1114", MOSAIC_RTCM_V3_INTERVAL_GROUP_MSM4, false},
-    {"RTCM1115", MOSAIC_RTCM_V3_INTERVAL_GROUP_MSM5, false},
-    {"RTCM1116", MOSAIC_RTCM_V3_INTERVAL_GROUP_MSM6, false},
-    {"RTCM1117", MOSAIC_RTCM_V3_INTERVAL_GROUP_MSM7, false},
-    {"RTCM1121", MOSAIC_RTCM_V3_INTERVAL_GROUP_MSM1, false},
-    {"RTCM1122", MOSAIC_RTCM_V3_INTERVAL_GROUP_MSM2, false},
-    {"RTCM1123", MOSAIC_RTCM_V3_INTERVAL_GROUP_MSM3, false},
-    {"RTCM1124", MOSAIC_RTCM_V3_INTERVAL_GROUP_MSM4, false},
-    {"RTCM1125", MOSAIC_RTCM_V3_INTERVAL_GROUP_MSM5, false},
-    {"RTCM1126", MOSAIC_RTCM_V3_INTERVAL_GROUP_MSM6, false},
-    {"RTCM1127", MOSAIC_RTCM_V3_INTERVAL_GROUP_MSM7, false},
-    {"RTCM1131", MOSAIC_RTCM_V3_INTERVAL_GROUP_MSM1, false},
-    {"RTCM1132", MOSAIC_RTCM_V3_INTERVAL_GROUP_MSM2, false},
-    {"RTCM1133", MOSAIC_RTCM_V3_INTERVAL_GROUP_MSM3, false},
-    {"RTCM1134", MOSAIC_RTCM_V3_INTERVAL_GROUP_MSM4, false},
-    {"RTCM1135", MOSAIC_RTCM_V3_INTERVAL_GROUP_MSM5, false},
-    {"RTCM1136", MOSAIC_RTCM_V3_INTERVAL_GROUP_MSM6, false},
-    {"RTCM1137", MOSAIC_RTCM_V3_INTERVAL_GROUP_MSM7, false},
-*/
+    /*
+        {"RTCM1071", MOSAIC_RTCM_V3_INTERVAL_GROUP_MSM1, false},
+        {"RTCM1072", MOSAIC_RTCM_V3_INTERVAL_GROUP_MSM2, false},
+        {"RTCM1073", MOSAIC_RTCM_V3_INTERVAL_GROUP_MSM3, false},
+        {"RTCM1074", MOSAIC_RTCM_V3_INTERVAL_GROUP_MSM4, false},
+        {"RTCM1075", MOSAIC_RTCM_V3_INTERVAL_GROUP_MSM5, false},
+        {"RTCM1076", MOSAIC_RTCM_V3_INTERVAL_GROUP_MSM6, false},
+        {"RTCM1077", MOSAIC_RTCM_V3_INTERVAL_GROUP_MSM7, false},
+        {"RTCM1081", MOSAIC_RTCM_V3_INTERVAL_GROUP_MSM1, false},
+        {"RTCM1082", MOSAIC_RTCM_V3_INTERVAL_GROUP_MSM2, false},
+        {"RTCM1083", MOSAIC_RTCM_V3_INTERVAL_GROUP_MSM3, false},
+        {"RTCM1084", MOSAIC_RTCM_V3_INTERVAL_GROUP_MSM4, false},
+        {"RTCM1085", MOSAIC_RTCM_V3_INTERVAL_GROUP_MSM5, false},
+        {"RTCM1086", MOSAIC_RTCM_V3_INTERVAL_GROUP_MSM6, false},
+        {"RTCM1087", MOSAIC_RTCM_V3_INTERVAL_GROUP_MSM7, false},
+        {"RTCM1091", MOSAIC_RTCM_V3_INTERVAL_GROUP_MSM1, false},
+        {"RTCM1092", MOSAIC_RTCM_V3_INTERVAL_GROUP_MSM2, false},
+        {"RTCM1093", MOSAIC_RTCM_V3_INTERVAL_GROUP_MSM3, false},
+        {"RTCM1094", MOSAIC_RTCM_V3_INTERVAL_GROUP_MSM4, false},
+        {"RTCM1095", MOSAIC_RTCM_V3_INTERVAL_GROUP_MSM5, false},
+        {"RTCM1096", MOSAIC_RTCM_V3_INTERVAL_GROUP_MSM6, false},
+        {"RTCM1097", MOSAIC_RTCM_V3_INTERVAL_GROUP_MSM7, false},
+        {"RTCM1101", MOSAIC_RTCM_V3_INTERVAL_GROUP_MSM1, false},
+        {"RTCM1102", MOSAIC_RTCM_V3_INTERVAL_GROUP_MSM2, false},
+        {"RTCM1103", MOSAIC_RTCM_V3_INTERVAL_GROUP_MSM3, false},
+        {"RTCM1104", MOSAIC_RTCM_V3_INTERVAL_GROUP_MSM4, false},
+        {"RTCM1105", MOSAIC_RTCM_V3_INTERVAL_GROUP_MSM5, false},
+        {"RTCM1106", MOSAIC_RTCM_V3_INTERVAL_GROUP_MSM6, false},
+        {"RTCM1107", MOSAIC_RTCM_V3_INTERVAL_GROUP_MSM7, false},
+        {"RTCM1111", MOSAIC_RTCM_V3_INTERVAL_GROUP_MSM1, false},
+        {"RTCM1112", MOSAIC_RTCM_V3_INTERVAL_GROUP_MSM2, false},
+        {"RTCM1113", MOSAIC_RTCM_V3_INTERVAL_GROUP_MSM3, false},
+        {"RTCM1114", MOSAIC_RTCM_V3_INTERVAL_GROUP_MSM4, false},
+        {"RTCM1115", MOSAIC_RTCM_V3_INTERVAL_GROUP_MSM5, false},
+        {"RTCM1116", MOSAIC_RTCM_V3_INTERVAL_GROUP_MSM6, false},
+        {"RTCM1117", MOSAIC_RTCM_V3_INTERVAL_GROUP_MSM7, false},
+        {"RTCM1121", MOSAIC_RTCM_V3_INTERVAL_GROUP_MSM1, false},
+        {"RTCM1122", MOSAIC_RTCM_V3_INTERVAL_GROUP_MSM2, false},
+        {"RTCM1123", MOSAIC_RTCM_V3_INTERVAL_GROUP_MSM3, false},
+        {"RTCM1124", MOSAIC_RTCM_V3_INTERVAL_GROUP_MSM4, false},
+        {"RTCM1125", MOSAIC_RTCM_V3_INTERVAL_GROUP_MSM5, false},
+        {"RTCM1126", MOSAIC_RTCM_V3_INTERVAL_GROUP_MSM6, false},
+        {"RTCM1127", MOSAIC_RTCM_V3_INTERVAL_GROUP_MSM7, false},
+        {"RTCM1131", MOSAIC_RTCM_V3_INTERVAL_GROUP_MSM1, false},
+        {"RTCM1132", MOSAIC_RTCM_V3_INTERVAL_GROUP_MSM2, false},
+        {"RTCM1133", MOSAIC_RTCM_V3_INTERVAL_GROUP_MSM3, false},
+        {"RTCM1134", MOSAIC_RTCM_V3_INTERVAL_GROUP_MSM4, false},
+        {"RTCM1135", MOSAIC_RTCM_V3_INTERVAL_GROUP_MSM5, false},
+        {"RTCM1136", MOSAIC_RTCM_V3_INTERVAL_GROUP_MSM6, false},
+        {"RTCM1137", MOSAIC_RTCM_V3_INTERVAL_GROUP_MSM7, false},
+    */
     {"RTCM1230", MOSAIC_RTCM_V3_INTERVAL_GROUP_RTCM1230, false},
 };
 
@@ -533,14 +473,14 @@ typedef struct
 } mosaicReceiverDynamic;
 
 const mosaicReceiverDynamic mosaicReceiverDynamics[] = {
-    { "Static", "Static" },
-    { "Quasistatic","Quasistatic" },
-    { "Pedestrian","Pedestrian" },
-    { "Automotive", "Automotive" },
-    { "RaceCar", "Race Car" },
-    { "HeavyMachinery", "Heavy Machinery" },
-    { "UAV", "UAV" },
-    { "Unlimited", "Unlimited" },
+    {"Static", "Static"},
+    {"Quasistatic", "Quasistatic"},
+    {"Pedestrian", "Pedestrian"},
+    {"Automotive", "Automotive"},
+    {"RaceCar", "Race Car"},
+    {"HeavyMachinery", "Heavy Machinery"},
+    {"UAV", "UAV"},
+    {"Unlimited", "Unlimited"},
 };
 
 #define MAX_MOSAIC_RX_DYNAMICS (sizeof(mosaicReceiverDynamics) / sizeof(mosaicReceiverDynamic))
@@ -550,23 +490,23 @@ bool mosaicX5waitCR(unsigned long timeout = 25); // Header
 
 class GNSS_MOSAIC : GNSS
 {
-  // The mosaic-X5 does not have self-contained interface library.
-  // But the ZED-F9P, UM980 and LG290P all do.
-  // On the X5, we communicate manually over serial2GNSS using functions like
-  // sendWithResponse and sendAndWaitForIdle.
-  // In essence, the interface library is wholly contained in this class.
-  // TODO: consider breaking the mosaic comms functions out into their own library
-  // and add a private library class instance here.
+    // The mosaic-X5 does not have self-contained interface library.
+    // But the ZED-F9P, UM980 and LG290P all do.
+    // On the X5, we communicate manually over serial2GNSS using functions like
+    // sendWithResponse and sendAndWaitForIdle.
+    // In essence, the interface library is wholly contained in this class.
+    // TODO: consider breaking the mosaic comms functions out into their own library
+    // and add a private library class instance here.
 
   protected:
     // Flag which indicates GNSS is blocking (needs exclusive access to the UART)
     bool _isBlocking = false;
 
     // These globals are updated regularly via the SBF parser
-    double _clkBias_ms; // PVTGeodetic RxClkBias (will be sawtooth unless clock steering is enabled)
+    double _clkBias_ms;             // PVTGeodetic RxClkBias (will be sawtooth unless clock steering is enabled)
     bool _determiningFixedPosition; // PVTGeodetic Mode Bit 6
-    bool _antennaIsOpen; // ReceiverStatus RxState Bit 1 ACTIVEANTENNA indicates antenna current draw
-    bool _antennaIsShorted; // ReceiverStatus RxError Bit 5 ANTENNA indicates antenna overcurrent
+    bool _antennaIsOpen;            // ReceiverStatus RxState Bit 1 ACTIVEANTENNA indicates antenna current draw
+    bool _antennaIsShorted;         // ReceiverStatus RxError Bit 5 ANTENNA indicates antenna overcurrent
 
     // Record NrBytesReceived so we can tell if Radio Ext (COM2) is receiving correction data.
     // On the mosaic, we know that InputLink will arrive at 1Hz. But on the ZED, UBX-MON-COMMS
@@ -587,15 +527,14 @@ class GNSS_MOSAIC : GNSS
     bool configureGNSS();
 
     // Set the minimum satellite signal level for navigation.
-    bool setMinCnoRadio (uint8_t cnoValue);
+    bool setMinCnoRadio(uint8_t cnoValue);
 
   public:
-
     // Allow access from parser routines
-    float  _latStdDev;
-    float  _lonStdDev;
-    bool   _receiverSetupSeen;
-    bool   _diskStatusSeen;
+    float _latStdDev;
+    float _lonStdDev;
+    bool _receiverSetupSeen;
+    bool _diskStatusSeen;
     struct svTracking_t
     {
         uint8_t SVID;
@@ -607,8 +546,10 @@ class GNSS_MOSAIC : GNSS
     struct find_sv
     {
         uint8_t findThisSv;
-        find_sv(uint8_t sv) : findThisSv(sv) {}
-        bool operator () (const svTracking_t& m) const
+        find_sv(uint8_t sv) : findThisSv(sv)
+        {
+        }
+        bool operator()(const svTracking_t &m) const
         {
             return m.SVID == findThisSv;
         }
@@ -618,19 +559,20 @@ class GNSS_MOSAIC : GNSS
     {
         const unsigned long expireAfter_millis = 2000;
         unsigned long millisNow;
-        find_stale_sv(unsigned long now) : millisNow(now) {}
-        bool operator () (const svTracking_t& m) const
+        find_stale_sv(unsigned long now) : millisNow(now)
+        {
+        }
+        bool operator()(const svTracking_t &m) const
         {
             return (millisNow > (m.lastSeen + expireAfter_millis));
         }
     };
 
     // Constructor
-    GNSS_MOSAIC() : _determiningFixedPosition(true), _clkBias_ms(0),
-        _latStdDev(999.9), _lonStdDev(999.9), _receiverSetupSeen(false),
-        _radioExtBytesReceived_millis(0), _diskStatusSeen(false),
-        _antennaIsOpen(false), _antennaIsShorted(false),
-         GNSS()
+    GNSS_MOSAIC()
+        : _determiningFixedPosition(true), _clkBias_ms(0), _latStdDev(999.9), _lonStdDev(999.9),
+          _receiverSetupSeen(false), _radioExtBytesReceived_millis(0), _diskStatusSeen(false), _antennaIsOpen(false),
+          _antennaIsShorted(false), GNSS()
     {
         svInTracking.clear();
     }
@@ -649,7 +591,7 @@ class GNSS_MOSAIC : GNSS
     bool baudIsAllowed(uint32_t baudRate);
     uint32_t baudGetMinimum();
     uint32_t baudGetMaximum();
-    
+
     // Connect to GNSS and identify particulars
     void begin();
 
@@ -743,7 +685,10 @@ class GNSS_MOSAIC : GNSS
     uint8_t getActiveMessageCount();
 
     // Return the number of active/enabled RTCM messages
-    uint8_t getActiveRtcmMessageCount() {return(0);}
+    uint8_t getActiveRtcmMessageCount()
+    {
+        return (0);
+    }
 
     // Get the altitude
     // Outputs:
@@ -780,7 +725,7 @@ class GNSS_MOSAIC : GNSS
     //   Returns the horizontal position accuracy or zero if offline
     float getHorizontalAccuracy();
 
-    const char * getId();
+    const char *getId();
 
     // Get the latitude value
     // Outputs:
@@ -821,9 +766,9 @@ class GNSS_MOSAIC : GNSS
     // Returns the seconds between solutions
     double getRateS();
 
-    const char * getRtcmDefaultString();
+    const char *getRtcmDefaultString();
 
-    const char * getRtcmLowDataRateString();
+    const char *getRtcmLowDataRateString();
 
     // Given the name of a message, return the array number
     int getRtcmMessageNumberByName(const char *msgName);
@@ -887,7 +832,8 @@ class GNSS_MOSAIC : GNSS
 
     // Send commands out the UART to see if a mosaic module is present
     bool isPresent();
-    bool isPresentOnSerial(HardwareSerial *serialPort, const char *command, const char *response, const char *console, int retryLimit = 20);
+    bool isPresentOnSerial(HardwareSerial *serialPort, const char *command, const char *response, const char *console,
+                           int retryLimit = 20);
     bool mosaicIsPresentOnFlex();
 
     // Some functions (L-Band area frequency determination) merely need
@@ -965,21 +911,12 @@ class GNSS_MOSAIC : GNSS
     //   responseSize: Maximum number of bytes to copy
     // Outputs:
     //   Returns true if the response was received and false upon failure
-    bool sendAndWaitForIdle(const char *message,
-                            const char *reply,
-                            unsigned long timeout = 1000,
-                            unsigned long idle = 25,
-                            char *response = nullptr,
-                            size_t responseSize = 0,
+    bool sendAndWaitForIdle(const char *message, const char *reply, unsigned long timeout = 1000,
+                            unsigned long idle = 25, char *response = nullptr, size_t responseSize = 0,
                             bool debug = true);
-    bool sendAndWaitForIdle(HardwareSerial *serialPort,
-                            const char *message,
-                            const char *reply,
-                            unsigned long timeout = 1000,
-                            unsigned long idle = 25,
-                            char *response = nullptr,
-                            size_t responseSize = 0,
-                            bool debug = true);
+    bool sendAndWaitForIdle(HardwareSerial *serialPort, const char *message, const char *reply,
+                            unsigned long timeout = 1000, unsigned long idle = 25, char *response = nullptr,
+                            size_t responseSize = 0, bool debug = true);
 
     // Send message. Wait for up to timeout millis for reply to arrive
     // If the reply is received, keep reading bytes until the serial port has
@@ -994,13 +931,8 @@ class GNSS_MOSAIC : GNSS
     //   responseSize: Maximum number of bytes to copy
     // Outputs:
     //   Returns true if the response was received and false upon failure
-    bool sendAndWaitForIdle(String message,
-                            const char *reply,
-                            unsigned long timeout = 1000,
-                            unsigned long idle = 25,
-                            char *response = nullptr,
-                            size_t responseSize = 0,
-                            bool debug = true);
+    bool sendAndWaitForIdle(String message, const char *reply, unsigned long timeout = 1000, unsigned long idle = 25,
+                            char *response = nullptr, size_t responseSize = 0, bool debug = true);
 
     // Send message. Wait for up to timeout millis for reply to arrive
     // If the reply has started to be received when timeout is reached, wait for a further wait millis
@@ -1016,18 +948,10 @@ class GNSS_MOSAIC : GNSS
     //   responseSize: Maximum number of bytes to copy
     // Outputs:
     //   Returns true if the response was received and false upon failure
-    bool sendWithResponse(const char *message,
-                          const char *reply,
-                          unsigned long timeout = 1000,
-                          unsigned long wait = 25,
-                          char *response = nullptr,
-                          size_t responseSize = 0);
-    bool sendWithResponse(HardwareSerial *serialPort,
-                          const char *message,
-                          const char *reply,
-                          unsigned long timeout = 1000,
-                          unsigned long wait = 25,
-                          char *response = nullptr,
+    bool sendWithResponse(const char *message, const char *reply, unsigned long timeout = 1000, unsigned long wait = 25,
+                          char *response = nullptr, size_t responseSize = 0);
+    bool sendWithResponse(HardwareSerial *serialPort, const char *message, const char *reply,
+                          unsigned long timeout = 1000, unsigned long wait = 25, char *response = nullptr,
                           size_t responseSize = 0);
 
     // Send message. Wait for up to timeout millis for reply to arrive
@@ -1043,12 +967,8 @@ class GNSS_MOSAIC : GNSS
     //   responseSize: Maximum number of bytes to copy
     // Outputs:
     //   Returns true if the response was received and false upon failure
-    bool sendWithResponse(String message,
-                          const char *reply,
-                          unsigned long timeout = 1000,
-                          unsigned long wait = 25,
-                          char *response = nullptr,
-                          size_t responseSize = 0);
+    bool sendWithResponse(String message, const char *reply, unsigned long timeout = 1000, unsigned long wait = 25,
+                          char *response = nullptr, size_t responseSize = 0);
 
     // Set the baud rate of mosaic-X5 COM1
     // This is used during the Bluetooth test
@@ -1145,4 +1065,4 @@ class GNSS_MOSAIC : GNSS
     void waitSBFReceiverSetup(HardwareSerial *serialPort, unsigned long timeout);
 };
 
-#endif  // __GNSS_MOSAIC_H__
+#endif // __GNSS_MOSAIC_H__

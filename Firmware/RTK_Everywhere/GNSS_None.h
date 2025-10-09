@@ -9,7 +9,7 @@ GNSS_None.h
 
 class GNSS_None : public GNSS
 {
-protected:
+  protected:
     // Setup the general configuration of the GNSS
     // Not Rover or Base specific (ie, baud rates)
     // Outputs:
@@ -25,7 +25,7 @@ protected:
         return false;
     }
 
-public:
+  public:
     // Constructor
     GNSS_None() : GNSS()
     {
