@@ -1464,8 +1464,8 @@ void loop()
     DMW_c("periodicDisplay");
     updatePeriodicDisplay();
 
-    DMW_c("gnss->update");
-    gnss->update();
+    DMW_c("gnssUpdate");
+    gnssUpdate();
 
     DMW_c("stateUpdate");
     stateUpdate();

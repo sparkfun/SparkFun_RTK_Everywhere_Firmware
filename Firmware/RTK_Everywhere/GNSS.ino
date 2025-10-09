@@ -4,6 +4,27 @@ GNSS.ino
   GNSS layer implementation
 ------------------------------------------------------------------------------*/
 
+// We may receive a command or the user may change a setting that needs to modify the configuration of the GNSS receiver
+// Because this can take time, we group all the changes together and re-configure the receiver once the user has exited
+// the menu system, closed the Web Config, or the CLI is closed.
+enum
+{
+    UPDATE_NONE = 0,
+    UPDATE_ROVER = (1 << 0),
+    UPDATE_BASE = (1 << 1),                    // Fixed base or survey in, location, etc
+    UPDATE_CONSTELLATION = (1 << 2),           // Turn on/off a constellation
+    UPDATE_MESSAGE_RATE = (1 << 3),            // Update all message rates
+    UPDATE_MESSAGE_RATE_NMEA = (1 << 4),       // Update NMEA message rates
+    UPDATE_MESSAGE_RATE_RTCM_ROVER = (1 << 5), // Update RTCM Rover message rates
+    UPDATE_MESSAGE_RATE_RTCM_BASE = (1 << 6),  // Update RTCM Base message rates
+    UPDATE_HAS_E6 = (1 << 7),                  // Enable/disable HAS E6 capabilities
+    UPDATE_BAUD_RATE = (1 << 8),
+    UPDATE_MULTIPATH = (1 << 9),
+};
+
+uint16_t gnssConfigureRequest =
+    UPDATE_NONE; // Bitfield containing an update be made to various settings on the GNSS receiver
+
 extern int NTRIPCLIENT_MS_BETWEEN_GGA;
 
 #ifdef COMPILE_NETWORK
@@ -75,6 +96,93 @@ bool GNSS::setMinCno(uint8_t cnoValue)
 bool GNSS::supportsAntennaShortOpen()
 {
     return false;
+}
+
+void gnssUpdate()
+{
+    // Belt and suspender
+    if (gnss == nullptr)
+        return;
+
+    // Allow the GNSS platform to update itself
+    gnss->update();
+
+    // Handle any requested configuration changes
+    // Only update the GNSS receiver once the CLI, serial menu, and Web Config interfaces are disconnected
+    // This is to avoid multiple reconfigure delays when multiple commands are received, ie enable GPS, disable Galileo,
+    // should only trigger one GNSS reconfigure
+    if (gnssConfigureRequest != UPDATE_NONE && bluetoothCommandIsConnected() == false && inMainMenu == false &&
+        inWebConfigMode() == false)
+    {
+        // Test for individual changes as needed
+        if (gnssConfigureRequest & UPDATE_CONSTELLATION)
+        {
+            Serial.println("Update const");
+        }
+
+        // Here we need a table to determine if the given combination of setting requests trigger a GNSS's NVM save
+
+        // Here we need a table to determine if the given combination of setting requests require a GNSS reset to take
+        // effect
+
+        // For now we will maintain the previous approach of, if any setting gets changed, re-start in the current mode
+        // and use the settings currently in the ESP32 NVM
+
+        // Restart current state to reconfigure receiver
+        systemPrintln("Restarting GNSS receiver with new settings");
+        if (inBaseMode() == true)
+        {
+            settings.gnssConfiguredRover = false;       // Reapply configuration
+            requestChangeState(STATE_BASE_NOT_STARTED); // Restart base for latest changes to take effect
+        }
+        else if (inRoverMode() == true)
+        {
+            settings.gnssConfiguredRover = false; // Reapply configuration
+            // TODO when does GNSS configured rover go true?
+            requestChangeState(STATE_ROVER_NOT_STARTED); // Restart rover for latest changes to take effect
+        }
+        // else if (inWebConfigMode() == true) {}
+        // else if (inNtpMode() == true) {}
+        else
+        {
+            systemPrintln("gnssUpdate: Uncaught mode change");
+        }
+
+        gnssConfigureRequest = UPDATE_NONE; // Clear requests
+    }
+}
+
+//----------------------------------------
+// Update the constellations following a set command
+//----------------------------------------
+bool gnssCmdUpdateConstellations(const char *settingName, void *settingData, int settingType)
+{
+    gnssConfigureRequest |=
+        UPDATE_CONSTELLATION; // Once BLE Command, Web Config, and CLI are closed, reconfigure receiver
+
+    return (true);
+}
+
+//----------------------------------------
+// Update the message rates following a set command
+//----------------------------------------
+bool gnssCmdUpdateMessageRates(const char *settingName, void *settingData, int settingType)
+{
+    gnssConfigureRequest |=
+        UPDATE_MESSAGE_RATE; // Once BLE Command, Web Config, and CLI are closed, reconfigure receiver
+
+    return (true);
+}
+
+//----------------------------------------
+// Update the PointPerfect service following a set command
+//----------------------------------------
+// TODO move to PointPerfect once callback is in place
+bool pointPerfectCmdUpdateServiceType(const char *settingName, void *settingData, int settingType)
+{
+    // Require a rover restart to enable / disable RTCM for PPL
+    gnssConfigureRequest |= UPDATE_MESSAGE_RATE; // Request receiver to use new settings
+    return (true);
 }
 
 // Periodically push GGA sentence over NTRIP Client, to Caster, if enabled
