@@ -372,6 +372,8 @@ enum PeriodDisplayValues
     PD_WEB_SERVER_STATE,        // 39
 
     PD_OTA_STATE,               // 40
+
+    PD_FIRMWARE_MODE,           // 41
     // Add new values before this line
 };
 
