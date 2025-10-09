@@ -80,7 +80,8 @@ void menuPortsNoMux()
             systemPrintf("4) Allow incoming corrections on RADIO port: %s\r\n",
                          settings.enableExtCorrRadio ? "Enabled" : "Disabled");
             systemPrintf("5) Limit RADIO port output to RTCM: %s\r\n",
-                         settings.enableNmeaOnRadio ? "Disabled" : "Enabled"); //Reverse disabled/enabled to align with prompt
+                         settings.enableNmeaOnRadio ? "Disabled"
+                                                    : "Enabled"); // Reverse disabled/enabled to align with prompt
         }
 
         systemPrintln("x) Exit");
@@ -154,17 +155,12 @@ void menuPortsNoMux()
             printUnknown(incoming);
     }
 
-#ifdef COMPILE_LG290P
     if (present.gnss_lg290p)
     {
-        // Apply these changes at menu exit - to enable/disable NMEA on radio
-        GNSS_LG290P *aLG290P = (GNSS_LG290P *)gnss;
-        if (aLG290P->inRoverMode() == true)
-            restartRover = true;
-        else
-            restartBase = true;
+        // All platforms, except the LG290P can modify their baud rates immediately.
+        // The LG290P requires a reset for settings to take effect
+        gnssConfigureRequest |= UPDATE_BAUD_RATE; // Request receiver to use new settings
     }
-#endif // COMPILE_LG290P
 
     clearBuffer(); // Empty buffer of any newline chars
 }
@@ -218,7 +214,8 @@ void menuPortsMultiplexed()
             systemPrintf("5) Output GNSS data to USB1 serial: %s\r\n",
                          settings.enableGnssToUsbSerial ? "Enabled" : "Disabled");
             systemPrintf("6) Limit RADIO port output to RTCM: %s\r\n",
-                         settings.enableNmeaOnRadio ? "Disabled" : "Enabled"); //Reverse disabled/enabled to align with prompt
+                         settings.enableNmeaOnRadio ? "Disabled"
+                                                    : "Enabled"); // Reverse disabled/enabled to align with prompt
         }
 
         systemPrintln("x) Exit");
@@ -315,20 +312,14 @@ void menuPortsMultiplexed()
 
     clearBuffer(); // Empty buffer of any newline chars
 
-#ifdef COMPILE_MOSAICX5
     if (present.gnss_mosaicX5)
     {
         // Apply these changes at menu exit - to enable message output on USB1
         // and/or enable/disable NMEA on radio
-        GNSS_MOSAIC *mosaic = (GNSS_MOSAIC *)gnss;
-        if (mosaic->inRoverMode() == true)
-            restartRover = true;
-        else
-            restartBase = true;
+        gnssConfigureRequest |= UPDATE_BAUD_RATE; // Request receiver to use new settings
     }
-#endif // COMPILE_MOSAICX5
 
-    gnss->beginExternalEvent();         // Update with new settings
+    gnss->beginExternalEvent(); // Update with new settings
     gnss->beginPPS();
 }
 

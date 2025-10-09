@@ -268,30 +268,13 @@ void menuMain()
             printUnknown(incoming);
     }
 
-    // Reboot as base only if currently operating as a base station
-    if (restartBase == true && inBaseMode() == true)
-    {
-        restartBase = false;
-        settings.gnssConfiguredBase = false;        // Reapply configuration
-        requestChangeState(STATE_BASE_NOT_STARTED); // Restart base upon exit for latest changes to take effect
-    }
-
-    if (restartRover == true && inRoverMode() == true)
-    {
-        restartRover = false;
-        settings.gnssConfiguredRover = false;        // Reapply configuration
-        requestChangeState(STATE_ROVER_NOT_STARTED); // Restart rover upon exit for latest changes to take effect
-    }
-
-    gnss->saveConfiguration();
-
-    recordSystemSettings(); // Once all menus have exited, record the new settings to LittleFS and config file
-
     if (settings.debugGnss == true)
     {
         // Re-enable GNSS debug once we exit config menus
         gnss->debuggingEnable();
     }
+    
+    recordSystemSettings(); // Once all menus have exited, record the new settings to LittleFS and config file
 
     clearBuffer();           // Empty buffer of any newline chars
     btPrintEchoExit = false; // We are out of the menu system

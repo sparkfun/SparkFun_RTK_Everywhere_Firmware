@@ -1359,6 +1359,8 @@ void GNSS_UM980::menuMessages()
                 settings.um980MessageRatesRTCMBase[x] = umMessagesRTCM[x].msgDefaultRate;
 
             systemPrintln("Reset to Defaults");
+
+            gnssConfigureRequest |= UPDATE_MESSAGE_RATE; // Request receiver to use new settings
         }
         else if (incoming == 11 || incoming == 12)
         {
@@ -1393,6 +1395,8 @@ void GNSS_UM980::menuMessages()
             {
                 systemPrintln("Reset to PPP Logging (NMEAx5 / RTCMx4 - 30 second decimation)");
             }
+
+            gnssConfigureRequest |= UPDATE_MESSAGE_RATE; // Request receiver to use new settings
         }
 
         else if (incoming == INPUT_RESPONSE_GETNUMBER_EXIT)
@@ -1404,12 +1408,6 @@ void GNSS_UM980::menuMessages()
     }
 
     clearBuffer(); // Empty buffer of any newline chars
-
-    // Apply these changes at menu exit
-    if (inRoverMode())
-        restartRover = true;
-    else
-        restartBase = true;
 }
 
 //----------------------------------------
@@ -1508,6 +1506,8 @@ void GNSS_UM980::menuMessagesSubtype(float *localMessageRate, const char *messag
                     settings.um980MessageRatesRTCMRover[incoming] = (float)newSetting;
                 if (strcmp(messageType, "RTCMBase") == 0)
                     settings.um980MessageRatesRTCMBase[incoming] = (float)newSetting;
+
+                gnssConfigureRequest |= UPDATE_MESSAGE_RATE; // Request receiver to use new settings
             }
         }
         else if (incoming == INPUT_RESPONSE_GETNUMBER_EXIT)
@@ -1517,10 +1517,6 @@ void GNSS_UM980::menuMessagesSubtype(float *localMessageRate, const char *messag
         else
             printUnknown(incoming);
     }
-
-    settings.gnssConfiguredOnce = false; // Update the GNSS config at the next boot
-    settings.gnssConfiguredBase = false;
-    settings.gnssConfiguredRover = false;
 
     clearBuffer(); // Empty buffer of any newline chars
 }
@@ -1622,7 +1618,6 @@ bool GNSS_UM980::setBaudRateCOM3(uint32_t baudRate)
 //----------------------------------------
 // Enable all the valid constellations and bands for this platform
 // Band support varies between platforms and firmware versions
-// We open/close a complete set 19 messages
 //----------------------------------------
 bool GNSS_UM980::setConstellations()
 {

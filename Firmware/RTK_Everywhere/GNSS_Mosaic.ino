@@ -251,7 +251,7 @@ void GNSS_MOSAIC::begin()
             return;
         }
 
-        if(isPresent() == false) //Detect if the module is present
+        if (isPresent() == false) // Detect if the module is present
             return;
 
         int retries = 0;
@@ -309,7 +309,7 @@ void GNSS_MOSAIC::begin()
             return;
         }
 
-        if(isPresent() == false) //Detect if the module is present
+        if (isPresent() == false) // Detect if the module is present
             return;
 
         // Set COM2 (Radio) and COM3 (Data) baud rates
@@ -1833,6 +1833,8 @@ void GNSS_MOSAIC::menuMessagesNMEA()
             settings.mosaicMessageStreamNMEA[incoming] += 1;
             if (settings.mosaicMessageStreamNMEA[incoming] > MOSAIC_NUM_NMEA_STREAMS)
                 settings.mosaicMessageStreamNMEA[incoming] = 0; // Wrap around
+
+            gnssConfigureRequest |= UPDATE_MESSAGE_RATE; // Request receiver to use new settings
         }
         else if (incoming > MAX_MOSAIC_NMEA_MSG &&
                  incoming <= (MAX_MOSAIC_NMEA_MSG + MOSAIC_NUM_NMEA_STREAMS)) // Stream intervals
@@ -1851,6 +1853,7 @@ void GNSS_MOSAIC::menuMessagesNMEA()
             if (interval >= 1 && interval <= MAX_MOSAIC_MSG_RATES)
             {
                 settings.mosaicStreamIntervalsNMEA[incoming] = interval - 1;
+                gnssConfigureRequest |= UPDATE_MESSAGE_RATE; // Request receiver to use new settings
             }
         }
         else if (incoming == INPUT_RESPONSE_GETNUMBER_EXIT)
@@ -1860,9 +1863,6 @@ void GNSS_MOSAIC::menuMessagesNMEA()
         else
             printUnknown(incoming);
     }
-
-    settings.gnssConfiguredBase = false; // Update the GNSS config at the next boot
-    settings.gnssConfiguredRover = false;
 
     clearBuffer(); // Empty buffer of any newline chars
 }
@@ -1913,7 +1913,10 @@ void GNSS_MOSAIC::menuMessagesRTCM(bool rover)
             if (getUserInputDouble(&interval) == INPUT_RESPONSE_VALID) // Returns EXIT, TIMEOUT, or long
             {
                 if ((interval >= 0.1) && (interval <= 600.0))
+                {
                     intervalPtr[incoming] = interval;
+                    gnssConfigureRequest |= UPDATE_MESSAGE_RATE; // Request receiver to use new settings
+                }
                 else
                     systemPrintln("Invalid interval: Min 0.1; Max 600.0");
             }
@@ -1932,9 +1935,6 @@ void GNSS_MOSAIC::menuMessagesRTCM(bool rover)
         else
             printUnknown(incoming);
     }
-
-    settings.gnssConfiguredBase = false; // Update the GNSS config at the next boot
-    settings.gnssConfiguredRover = false;
 
     clearBuffer(); // Empty buffer of any newline chars
 }
@@ -1991,6 +1991,8 @@ void GNSS_MOSAIC::menuMessages()
             for (int x = 0; x < MAX_MOSAIC_RTCM_V3_MSG; x++)
                 settings.mosaicMessageEnabledRTCMv3Base[x] = mosaicMessagesRTCMv3[x].defaultEnabled;
 
+            gnssConfigureRequest |= UPDATE_MESSAGE_RATE; // Request receiver to use new settings
+
             systemPrintln("Reset to Defaults");
         }
 
@@ -2005,12 +2007,6 @@ void GNSS_MOSAIC::menuMessages()
     clearBuffer(); // Empty buffer of any newline chars
 
     setLoggingType(); // Update Standard, PPP, or custom for icon selection
-
-    // Apply these changes at menu exit
-    if (inRoverMode() == true)
-        restartRover = true;
-    else
-        restartBase = true;
 }
 
 //----------------------------------------
@@ -2097,15 +2093,16 @@ bool GNSS_MOSAIC::saveConfiguration()
 //   Returns true if the response was received and false upon failure
 //----------------------------------------
 bool GNSS_MOSAIC::sendAndWaitForIdle(const char *message, const char *reply, unsigned long timeout, unsigned long wait,
-                                   char *response, size_t responseSize, bool debug)
+                                     char *response, size_t responseSize, bool debug)
 {
     if (productVariant == RTK_FACET_MOSAIC)
         return sendAndWaitForIdle(serial2GNSS, message, reply, timeout, wait, response, responseSize, debug);
     else
         return sendAndWaitForIdle(serialGNSS, message, reply, timeout, wait, response, responseSize, debug);
 }
-bool GNSS_MOSAIC::sendAndWaitForIdle(HardwareSerial *serialPort, const char *message, const char *reply, unsigned long timeout, unsigned long idle,
-                                     char *response, size_t responseSize, bool debug)
+bool GNSS_MOSAIC::sendAndWaitForIdle(HardwareSerial *serialPort, const char *message, const char *reply,
+                                     unsigned long timeout, unsigned long idle, char *response, size_t responseSize,
+                                     bool debug)
 {
     if (strlen(reply) == 0) // Reply can't be zero-length
         return false;
@@ -2126,8 +2123,8 @@ bool GNSS_MOSAIC::sendAndWaitForIdle(HardwareSerial *serialPort, const char *mes
         if (serialPort->available()) // If a char is available
         {
             uint8_t c = serialPort->read(); // Read it
-            //if (debug && (settings.debugGnss == true) && (!inMainMenu))
-            //    systemPrintf("%c", (char)c);
+            // if (debug && (settings.debugGnss == true) && (!inMainMenu))
+            //     systemPrintf("%c", (char)c);
             if (c == *(reply + replySeen)) // Is it a char from reply?
             {
                 if (response && (replySeen < (responseSize - 1)))
@@ -2150,8 +2147,8 @@ bool GNSS_MOSAIC::sendAndWaitForIdle(HardwareSerial *serialPort, const char *mes
             if (serialPort->available())
             {
                 uint8_t c = serialPort->read();
-                //if (debug && (settings.debugGnss == true) && (!inMainMenu))
-                //    systemPrintf("%c", (char)c);
+                // if (debug && (settings.debugGnss == true) && (!inMainMenu))
+                //     systemPrintf("%c", (char)c);
                 if (response && (replySeen < (responseSize - 1)))
                 {
                     *(response + replySeen) = c;
@@ -2217,8 +2214,8 @@ bool GNSS_MOSAIC::sendWithResponse(const char *message, const char *reply, unsig
     else
         return sendWithResponse(serialGNSS, message, reply, timeout, wait, response, responseSize);
 }
-bool GNSS_MOSAIC::sendWithResponse(HardwareSerial *serialPort, const char *message, const char *reply, unsigned long timeout, unsigned long wait,
-                                   char *response, size_t responseSize)
+bool GNSS_MOSAIC::sendWithResponse(HardwareSerial *serialPort, const char *message, const char *reply,
+                                   unsigned long timeout, unsigned long wait, char *response, size_t responseSize)
 {
     if (strlen(reply) == 0) // Reply can't be zero-length
         return false;
@@ -2240,8 +2237,8 @@ bool GNSS_MOSAIC::sendWithResponse(HardwareSerial *serialPort, const char *messa
         if (serialPort->available()) // If a char is available
         {
             uint8_t c = serialPort->read(); // Read it
-            //if ((settings.debugGnss == true) && (!inMainMenu))
-            //    systemPrintf("%c", (char)c);
+            // if ((settings.debugGnss == true) && (!inMainMenu))
+            //     systemPrintf("%c", (char)c);
             if (c == *(reply + replySeen)) // Is it a char from reply?
             {
                 if (response && (replySeen < (responseSize - 1)))
@@ -2261,7 +2258,7 @@ bool GNSS_MOSAIC::sendWithResponse(HardwareSerial *serialPort, const char *messa
                 keepGoing = false;
 
         if ((millis() - startTime) > (timeout + wait)) // Have we really timed out?
-            keepGoing = false;                       // Don't keepGoing
+            keepGoing = false;                         // Don't keepGoing
     }
 
     if (replySeen == strlen(reply)) // If the reply was seen
@@ -2272,8 +2269,8 @@ bool GNSS_MOSAIC::sendWithResponse(HardwareSerial *serialPort, const char *messa
             if (serialPort->available())
             {
                 uint8_t c = serialPort->read();
-                //if ((settings.debugGnss == true) && (!inMainMenu))
-                //    systemPrintf("%c", (char)c);
+                // if ((settings.debugGnss == true) && (!inMainMenu))
+                //     systemPrintf("%c", (char)c);
                 if (response && (replySeen < (responseSize - 1)))
                 {
                     *(response + replySeen) = c;
@@ -2602,7 +2599,8 @@ void GNSS_MOSAIC::storeBlock4013(SEMP_PARSE_STATE *parse)
             if (Tracking)
             {
                 // SV is being tracked
-                std::vector<svTracking_t>::iterator pos = std::find_if(svInTracking.begin(), svInTracking.end(), find_sv(SVID));
+                std::vector<svTracking_t>::iterator pos =
+                    std::find_if(svInTracking.begin(), svInTracking.end(), find_sv(SVID));
                 if (pos == svInTracking.end()) // If it is not in svInTracking, add it
                     svInTracking.push_back({SVID, millis()});
                 else // Update lastSeen
@@ -2615,7 +2613,8 @@ void GNSS_MOSAIC::storeBlock4013(SEMP_PARSE_STATE *parse)
             else
             {
                 // SV is not being tracked. If it is in svInTracking, remove it
-                std::vector<svTracking_t>::iterator pos = std::find_if(svInTracking.begin(), svInTracking.end(), find_sv(SVID));
+                std::vector<svTracking_t>::iterator pos =
+                    std::find_if(svInTracking.begin(), svInTracking.end(), find_sv(SVID));
                 if (pos != svInTracking.end())
                     svInTracking.erase(pos);
             }
@@ -2628,7 +2627,8 @@ void GNSS_MOSAIC::storeBlock4013(SEMP_PARSE_STATE *parse)
     bool keepGoing = true;
     while (keepGoing)
     {
-        std::vector<svTracking_t>::iterator pos = std::find_if(svInTracking.begin(), svInTracking.end(), find_stale_sv(millis()));
+        std::vector<svTracking_t>::iterator pos =
+            std::find_if(svInTracking.begin(), svInTracking.end(), find_stale_sv(millis()));
         if (pos != svInTracking.end())
             svInTracking.erase(pos);
         else
@@ -2664,7 +2664,7 @@ void GNSS_MOSAIC::storeBlock4059(SEMP_PARSE_STATE *parse)
 {
     if (!present.mosaicMicroSd)
         return;
-    
+
     if (sempSbfGetU1(parse, 14) < 1) // Check N is at least 1
         return;
 
@@ -2962,7 +2962,7 @@ uint32_t GNSS_MOSAIC::baudGetMaximum()
     return (mosaicComRates[MAX_MOSAIC_COM_RATES - 1].rate);
 }
 
-//Return true if the receiver is detected
+// Return true if the receiver is detected
 bool GNSS_MOSAIC::isPresent()
 {
     if (productVariant != RTK_FLEX) // productVariant == RTK_FACET_MOSAIC
@@ -2975,12 +2975,14 @@ bool GNSS_MOSAIC::isPresent()
     {
         // Set COM1 to: auto input, RTCMv3+SBF+NMEA+Encapsulate output
         // Mosaic could still be starting up, so allow many retries
-        return isPresentOnSerial(serialGNSS, "sdio,COM1,auto,RTCMv3+SBF+NMEA+Encapsulate\n\r", "DataInOut", "COM1>", 20);
+        return isPresentOnSerial(serialGNSS, "sdio,COM1,auto,RTCMv3+SBF+NMEA+Encapsulate\n\r", "DataInOut", "COM1>",
+                                 20);
     }
 }
 
-//Return true if the receiver is detected
-bool GNSS_MOSAIC::isPresentOnSerial(HardwareSerial *serialPort, const char *command, const char *response, const char *console, int retryLimit)
+// Return true if the receiver is detected
+bool GNSS_MOSAIC::isPresentOnSerial(HardwareSerial *serialPort, const char *command, const char *response,
+                                    const char *console, int retryLimit)
 {
     // Mosaic could still be starting up, so allow many retries
     int retries = 0;
@@ -3012,7 +3014,7 @@ bool GNSS_MOSAIC::isPresentOnSerial(HardwareSerial *serialPort, const char *comm
         if (retries == retryLimit)
         {
             systemPrintln("Could not communicate with mosaic-X5 at selected baud rate");
-            return(false);
+            return (false);
         }
     }
 
@@ -3284,7 +3286,8 @@ bool mosaicIsPresentOnFlex()
     serialTestGNSS.begin(115200, SERIAL_8N1, pin_GnssUart_RX, pin_GnssUart_TX);
 
     // Only try 3 times. LG290P detection will have been done first. X5 should have booted. Baud rate could be wrong.
-    if (mosaic.isPresentOnSerial(&serialTestGNSS, "sdio,COM1,auto,RTCMv3+SBF+NMEA+Encapsulate\n\r", "DataInOut", "COM1>", 3) == true)
+    if (mosaic.isPresentOnSerial(&serialTestGNSS, "sdio,COM1,auto,RTCMv3+SBF+NMEA+Encapsulate\n\r", "DataInOut",
+                                 "COM1>", 3) == true)
     {
         if (settings.debugGnss)
             systemPrintln("mosaic-X5 detected at 115200 baud");
@@ -3304,14 +3307,15 @@ bool mosaicIsPresentOnFlex()
     serialTestGNSS.begin(460800, SERIAL_8N1, pin_GnssUart_RX, pin_GnssUart_TX);
 
     // Only try 3 times, so we fail and pass on to the next Facet GNSS detection
-    if (mosaic.isPresentOnSerial(&serialTestGNSS, "sdio,COM1,auto,RTCMv3+SBF+NMEA+Encapsulate\n\r", "DataInOut", "COM1>", 3) == true)
+    if (mosaic.isPresentOnSerial(&serialTestGNSS, "sdio,COM1,auto,RTCMv3+SBF+NMEA+Encapsulate\n\r", "DataInOut",
+                                 "COM1>", 3) == true)
     {
         // serialGNSS and serial2GNSS have not yet been begun. We need to saveConfiguration manually
         unsigned long start = millis();
         bool result = mosaic.sendWithResponse(&serialTestGNSS, "eccf,Current,Boot\n\r", "CopyConfigFile", 5000);
         if (settings.debugGnss)
             systemPrintf("saveConfiguration: sendWithResponse returned %s after %d ms\r\n", result ? "true" : "false",
-                        millis() - start);
+                         millis() - start);
         if (settings.debugGnss)
             systemPrintf("mosaic-X5 baud rate %supdated\r\n", result ? "" : "NOT ");
         serialTestGNSS.end();

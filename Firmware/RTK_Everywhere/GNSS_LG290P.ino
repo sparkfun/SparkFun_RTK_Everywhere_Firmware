@@ -862,8 +862,7 @@ bool GNSS_LG290P::enableRTCMBase()
         // PQTMCFGRTCM fails to respond with OK over UART2 of LG290P, so don't look for it
         char cfgRtcm[40];
         snprintf(cfgRtcm, sizeof(cfgRtcm), "PQTMCFGRTCM,W,%c,0,-90,07,06,2,1", settings.useMSM7 ? '7' : '4');
-        _lg290p->sendOkCommand(
-            cfgRtcm); // Enable MSM4/7, output regular intervals, interval (seconds)
+        _lg290p->sendOkCommand(cfgRtcm); // Enable MSM4/7, output regular intervals, interval (seconds)
     }
 
     return (response);
@@ -1023,8 +1022,8 @@ bool GNSS_LG290P::enableRTCMRover()
         // Set MSM_ElevThd to 15 degrees from rftop suggestion
 
         char msmCommand[40] = {0};
-        snprintf(msmCommand, sizeof(msmCommand), "PQTMCFGRTCM,W,%c,0,15,07,06,2,%d",
-                 settings.useMSM7 ? '7' : '4', minimumRtcmRate);
+        snprintf(msmCommand, sizeof(msmCommand), "PQTMCFGRTCM,W,%c,0,15,07,06,2,%d", settings.useMSM7 ? '7' : '4',
+                 minimumRtcmRate);
 
         // PQTMCFGRTCM fails to respond with OK over UART2 of LG290P, so don't look for it
         _lg290p->sendOkCommand(msmCommand);
@@ -1870,10 +1869,12 @@ void GNSS_LG290P::menuConstellations()
             incoming--; // Align choice to constellation array of 0 to 5
 
             settings.lg290pConstellations[incoming] ^= 1;
+            gnssConfigureRequest |= UPDATE_CONSTELLATION; // Reconfigure receiver
         }
         else if ((incoming == MAX_LG290P_CONSTELLATIONS + 1) && present.galileoHasCapable)
         {
             settings.enableGalileoHas ^= 1;
+            gnssConfigureRequest |= UPDATE_HAS_E6; // Reconfigure receiver
         }
         else if (incoming == INPUT_RESPONSE_GETNUMBER_EXIT)
             break;
@@ -1918,7 +1919,6 @@ void GNSS_LG290P::menuMessages()
         systemPrintln("11) Reset to PPP Logging (NMEAx7 / RTCMx4 - 30 second decimation)");
         systemPrintln("12) Reset to High-rate PPP Logging (NMEAx7 / RTCMx4 - 1Hz)");
 
-        
         if (namedSettingAvailableOnPlatform("useMSM7")) // Redundant - but good practice for code reuse
             systemPrintf("13) MSM Selection: MSM%c\r\n", settings.useMSM7 ? '7' : '4');
 
@@ -1951,6 +1951,8 @@ void GNSS_LG290P::menuMessages()
             // Reset PQTM rates to defaults
             for (int x = 0; x < MAX_LG290P_PQTM_MSG; x++)
                 settings.lg290pMessageRatesPQTM[x] = lgMessagesPQTM[x].msgDefaultRate;
+
+            gnssConfigureRequest |= UPDATE_MESSAGE_RATE; // Request update
 
             systemPrintln("Reset to Defaults");
         }
@@ -1994,9 +1996,15 @@ void GNSS_LG290P::menuMessages()
             {
                 systemPrintln("Reset to PPP Logging Defaults (NMEAx7 / RTCMx4 - 30 second decimation)");
             }
+
+            gnssConfigureRequest |= UPDATE_MESSAGE_RATE; // Request update
         }
-        else if ((incoming == 13) && (namedSettingAvailableOnPlatform("useMSM7"))) // Redundant - but good practice for code reuse)
+        else if ((incoming == 13) &&
+                 (namedSettingAvailableOnPlatform("useMSM7"))) // Redundant - but good practice for code reuse)
+        {
             settings.useMSM7 ^= 1;
+            gnssConfigureRequest |= UPDATE_MESSAGE_RATE; // Request update
+        }
 
         else if (incoming == INPUT_RESPONSE_GETNUMBER_EXIT)
             break;
@@ -2007,12 +2015,6 @@ void GNSS_LG290P::menuMessages()
     }
 
     clearBuffer(); // Empty buffer of any newline chars
-
-    // Apply these changes at menu exit
-    if (inRoverMode())
-        restartRover = true;
-    else
-        restartBase = true;
 
     setLoggingType(); // Determine if we are standard, PPP, or custom. Changes logging icon accordingly.
 }
@@ -2121,22 +2123,34 @@ void GNSS_LG290P::menuMessagesSubtype(int *localMessageRate, const char *message
             if (strcmp(messageType, "NMEA") == 0)
             {
                 if (getNewSetting(messageString, 0, 1, &newSetting) == INPUT_RESPONSE_VALID)
+                {
                     settings.lg290pMessageRatesNMEA[incoming] = newSetting;
+                    gnssConfigureRequest |= UPDATE_MESSAGE_RATE_NMEA;
+                }
             }
             if (strcmp(messageType, "RTCMRover") == 0)
             {
                 if (getNewSetting(messageString, 0, 1200, &newSetting) == INPUT_RESPONSE_VALID)
+                {
                     settings.lg290pMessageRatesRTCMRover[incoming] = newSetting;
+                    gnssConfigureRequest |= UPDATE_MESSAGE_RATE_RTCM_ROVER;
+                }
             }
             if (strcmp(messageType, "RTCMBase") == 0)
             {
                 if (getNewSetting(messageString, 0, 1200, &newSetting) == INPUT_RESPONSE_VALID)
+                {
                     settings.lg290pMessageRatesRTCMBase[incoming] = newSetting;
+                    gnssConfigureRequest |= UPDATE_MESSAGE_RATE_RTCM_BASE;
+                }
             }
             if (strcmp(messageType, "PQTM") == 0)
             {
                 if (getNewSetting(messageString, 0, 1, &newSetting) == INPUT_RESPONSE_VALID)
+                {
                     settings.lg290pMessageRatesPQTM[incoming] = newSetting;
+                    gnssConfigureRequest |= UPDATE_MESSAGE_RATE;
+                }
             }
         }
         else if (incoming == INPUT_RESPONSE_GETNUMBER_EXIT)
@@ -2146,10 +2160,6 @@ void GNSS_LG290P::menuMessagesSubtype(int *localMessageRate, const char *message
         else
             printUnknown(incoming);
     }
-
-    settings.gnssConfiguredOnce = false; // Update the GNSS config at the next boot
-    settings.gnssConfiguredBase = false;
-    settings.gnssConfiguredRover = false;
 
     clearBuffer(); // Empty buffer of any newline chars
 }

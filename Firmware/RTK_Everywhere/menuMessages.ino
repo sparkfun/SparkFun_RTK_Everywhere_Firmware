@@ -240,26 +240,25 @@ void menuMessagesBaseRTCM()
         if (incoming == 1)
         {
             gnss->menuMessageBaseRtcm();
-            restartBase = true;
         }
         else if (incoming == 2)
         {
             gnss->baseRtcmDefault();
+            gnssConfigureRequest |= UPDATE_MESSAGE_RATE_RTCM_BASE; // Request receiver to use new settings
 
             systemPrintf("Reset to Defaults (%s)\r\n", gnss->getRtcmDefaultString());
-            restartBase = true;
         }
         else if (incoming == 3)
         {
             gnss->baseRtcmLowDataRate();
+            gnssConfigureRequest |= UPDATE_MESSAGE_RATE_RTCM_BASE; // Request receiver to use new settings
 
             systemPrintf("Reset to Low Bandwidth Link (%s)\r\n", gnss->getRtcmLowDataRateString());
-            restartBase = true;
         }
         else if ((incoming == 4) && (namedSettingAvailableOnPlatform("useMSM7")))
         {
             settings.useMSM7 ^= 1;
-            restartBase = true;
+            gnssConfigureRequest |= UPDATE_MESSAGE_RATE; // Request receiver to use new settings
         }
 
         else if (incoming == INPUT_RESPONSE_GETNUMBER_EXIT)

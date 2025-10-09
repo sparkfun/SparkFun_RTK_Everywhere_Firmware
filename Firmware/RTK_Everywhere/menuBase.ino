@@ -27,9 +27,9 @@ void menuBase()
         // Print the combined HAE APC if we are in the given mode
         if (settings.fixedBase == true && settings.fixedBaseCoordinateType == COORD_TYPE_GEODETIC)
         {
-            systemPrintf("Total Height Above Ellipsoid of Antenna Phase Center (HAE APC): %0.4fmm\r\n",
-                         ((settings.fixedAltitude +
-                           (settings.antennaHeight_mm + settings.antennaPhaseCenter_mm) / 1000)));
+            systemPrintf(
+                "Total Height Above Ellipsoid of Antenna Phase Center (HAE APC): %0.4fmm\r\n",
+                ((settings.fixedAltitude + (settings.antennaHeight_mm + settings.antennaPhaseCenter_mm) / 1000)));
         }
 
         systemPrint("1) Toggle Base Mode: ");
@@ -142,12 +142,12 @@ void menuBase()
         if (incoming == 1)
         {
             settings.fixedBase ^= 1;
-            restartBase = true;
+            gnssConfigureRequest |= UPDATE_BASE; // Request receiver to use new settings
         }
         else if (settings.fixedBase == true && incoming == 2)
         {
             settings.fixedBaseCoordinateType ^= 1;
-            restartBase = true;
+            gnssConfigureRequest |= UPDATE_BASE; // Request receiver to use new settings
         }
 
         else if (settings.fixedBase == true && incoming == 3)
@@ -174,7 +174,10 @@ void menuBase()
                         systemPrint("\nECEF Z in meters (ex: 4086669.6393): ");
                         double fixedEcefZ;
                         if (getUserInputDouble(&fixedEcefZ) == INPUT_RESPONSE_VALID)
+                        {
                             settings.fixedEcefZ = fixedEcefZ;
+                            gnssConfigureRequest |= UPDATE_BASE; // Request receiver to use new settings
+                        }
                     }
                 }
             }
@@ -214,7 +217,10 @@ void menuBase()
                                     systemPrint("\r\nAltitude in meters (ex: 1560.2284): ");
                                     double fixedAltitude;
                                     if (getUserInputDouble(&fixedAltitude) == INPUT_RESPONSE_VALID)
+                                    {
                                         settings.fixedAltitude = fixedAltitude;
+                                        gnssConfigureRequest |= UPDATE_BASE; // Request receiver to use new settings
+                                    }
                                 }
                                 else
                                 {
@@ -233,36 +239,54 @@ void menuBase()
         }
         else if (settings.fixedBase == true && settings.fixedBaseCoordinateType == COORD_TYPE_GEODETIC && incoming == 5)
         {
-            getNewSetting("Enter the antenna height (a.k.a. pole length) in millimeters", -15000, 15000,
-                          &settings.antennaHeight_mm);
+            if (getNewSetting("Enter the antenna height (a.k.a. pole length) in millimeters", -15000, 15000,
+                              &settings.antennaHeight_mm) == INPUT_RESPONSE_VALID)
+            {
+                gnssConfigureRequest |= UPDATE_BASE; // Request receiver to use new settings
+                // TODO Does any other hardware need to be reconfigured after this setting change? Tilt sensor?
+            }
         }
         else if (settings.fixedBase == true && settings.fixedBaseCoordinateType == COORD_TYPE_GEODETIC && incoming == 6)
         {
-            getNewSetting("Enter the antenna phase center (the distance between the ARP and the APC) in millimeters. "
-                          "Common antennas "
-                          "Torch=116mm",
-                          -200.0, 200.0, &settings.antennaPhaseCenter_mm);
+            if (getNewSetting(
+                    "Enter the antenna phase center (the distance between the ARP and the APC) in millimeters. "
+                    "Common antennas "
+                    "Torch/X2=116.5, Facet mosaic=68.5, EVK=42.0, Postcard=37.5, Flex=62.5",
+                    -200.0, 200.0, &settings.antennaPhaseCenter_mm) == INPUT_RESPONSE_VALID)
+            {
+                gnssConfigureRequest |= UPDATE_BASE; // Request receiver to use new settings
+            }
         }
 
         else if (settings.fixedBase == false && incoming == 2 && (!present.gnss_mosaicX5))
         {
             // Arbitrary 10 minute limit
-            getNewSetting("Enter the number of seconds for survey-in observation time", 60, 60 * 10,
-                          &settings.observationSeconds);
+            if (getNewSetting("Enter the number of seconds for survey-in observation time", 60, 60 * 10,
+                              &settings.observationSeconds) == INPUT_RESPONSE_VALID)
+            {
+                gnssConfigureRequest |= UPDATE_BASE; // Request receiver to use new settings
+            }
         }
         else if (settings.fixedBase == false && incoming == 3 &&
                  present.gnss_zedf9p) // UM980 does not support survey in minimum deviation
         {
             // Arbitrary 1m minimum
-            getNewSetting("Enter the number of meters for survey-in required position accuracy", 1.0,
-                          (double)maxObservationPositionAccuracy, &settings.observationPositionAccuracy);
+            if (getNewSetting("Enter the number of meters for survey-in required position accuracy", 1.0,
+                              (double)maxObservationPositionAccuracy,
+                              &settings.observationPositionAccuracy) == INPUT_RESPONSE_VALID)
+            {
+                gnssConfigureRequest |= UPDATE_BASE; // Request receiver to use new settings
+            }
         }
         else if (settings.fixedBase == false && incoming == 4 && (!present.gnss_mosaicX5))
         {
             // Arbitrary 0.1m minimum
-
-            getNewSetting("Enter the positional accuracy required before Survey-In begins", 0.1,
-                          (double)maxSurveyInStartingAccuracy, &settings.surveyInStartingAccuracy);
+            if (getNewSetting("Enter the positional accuracy required before Survey-In begins", 0.1,
+                              (double)maxSurveyInStartingAccuracy,
+                              &settings.surveyInStartingAccuracy) == INPUT_RESPONSE_VALID)
+            {
+                gnssConfigureRequest |= UPDATE_BASE; // Request receiver to use new settings
+            }
         }
 
         else if (incoming == 7)
@@ -273,7 +297,6 @@ void menuBase()
         else if (incoming == 8)
         {
             settings.enableNtripServer ^= 1;
-            restartBase = true;
         }
 
         // NTRIP Server entries
@@ -290,8 +313,10 @@ void menuBase()
                 systemPrintf("Enter Caster Address for Server %d: ", serverNumber + 1);
                 if (getUserInputString(&settings.ntripServer_CasterHost[serverNumber][0], NTRIP_SERVER_STRING_SIZE) ==
                     INPUT_RESPONSE_VALID)
-                    restartBase = true;
-            }
+                    {
+                        // NTRIP Server state machine will update automatically
+                    }
+                }
             else if (incoming == 1)
             {
                 // Arbitrary 99k max port #
@@ -303,7 +328,9 @@ void menuBase()
 
                 if (getNewSetting(tempString, 1, 99999, &settings.ntripServer_CasterPort[serverNumber]) ==
                     INPUT_RESPONSE_VALID)
-                    restartBase = true;
+                    {
+                        // NTRIP Server state machine will update automatically
+                    }
             }
             else if (incoming == 2)
             {
@@ -314,7 +341,9 @@ void menuBase()
 
                 if (getUserInputString(&settings.ntripServer_CasterUser[serverNumber][0], NTRIP_SERVER_STRING_SIZE) ==
                     INPUT_RESPONSE_VALID)
-                    restartBase = true;
+                    {
+                        // NTRIP Server state machine will update automatically
+                    }
             }
             else if (incoming == 3)
             {
@@ -325,7 +354,9 @@ void menuBase()
 
                 if (getUserInputString(&settings.ntripServer_CasterUserPW[serverNumber][0], NTRIP_SERVER_STRING_SIZE) ==
                     INPUT_RESPONSE_VALID)
-                    restartBase = true;
+                    {
+                        // NTRIP Server state machine will update automatically
+                    }
             }
             else if (incoming == 4)
             {
@@ -336,7 +367,9 @@ void menuBase()
 
                 if (getUserInputString(&settings.ntripServer_MountPoint[serverNumber][0], NTRIP_SERVER_STRING_SIZE) ==
                     INPUT_RESPONSE_VALID)
-                    restartBase = true;
+                    {
+                        // NTRIP Server state machine will update automatically
+                    }
             }
             else if (incoming == 5)
             {
@@ -347,7 +380,9 @@ void menuBase()
 
                 if (getUserInputString(&settings.ntripServer_MountPointPW[serverNumber][0], NTRIP_SERVER_STRING_SIZE) ==
                     INPUT_RESPONSE_VALID)
-                    restartBase = true;
+                    {
+                        // NTRIP Server state machine will update automatically
+                    }
             }
         }
 
@@ -385,6 +420,7 @@ void menuBaseCoordinateType()
         if (incoming >= 1 && incoming < (COORDINATE_INPUT_TYPE_INVALID_UNKNOWN + 1))
         {
             settings.coordinateInputType = (CoordinateInputType)(incoming - 1); // Align from 1-9 to 0-8
+            // This setting does not affect the receiver configuration
         }
         else if (incoming == INPUT_RESPONSE_GETNUMBER_EXIT)
             break;
