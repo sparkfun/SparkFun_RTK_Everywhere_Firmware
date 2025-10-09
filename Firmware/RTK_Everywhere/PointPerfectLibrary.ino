@@ -13,7 +13,7 @@ void updatePplTask(void *e)
     while (task.updatePplTaskStopRequest == false)
     {
         // Display an alive message
-        if (PERIODIC_DISPLAY(PD_TASK_UPDATE_PPL))
+        if (PERIODIC_DISPLAY(PD_TASK_UPDATE_PPL) && !inMainMenu)
         {
             PERIODIC_CLEAR(PD_TASK_UPDATE_PPL);
             systemPrintln("UpdatePplTask running");

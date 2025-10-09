@@ -955,7 +955,7 @@ void ntripClientUpdate()
     }
 
     // Periodically display the NTRIP client state
-    if (PERIODIC_DISPLAY(PD_NTRIP_CLIENT_STATE))
+    if (PERIODIC_DISPLAY(PD_NTRIP_CLIENT_STATE) && !inMainMenu)
     {
         systemPrintf("NTRIP Client state: %s%s\r\n", ntripClientStateName[ntripClientState], line);
         PERIODIC_CLEAR(PD_NTRIP_CLIENT_STATE);
