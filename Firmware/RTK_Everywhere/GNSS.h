@@ -399,9 +399,9 @@ public:
 };
 
 // Update the constellations following a set command
-bool gnssCmdUpdateConstellations(int commandIndex);
+bool gnssCmdUpdateConstellations(const char *settingName, void *settingData, int settingType);
 
 // Update the message rates following a set command
-bool gnssCmdUpdateMessageRates(int commandIndex);
+bool gnssCmdUpdateMessageRates(const char *settingName, void *settingData, int settingType);
 
 #endif // __GNSS_H__

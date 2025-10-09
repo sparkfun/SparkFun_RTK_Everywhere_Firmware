@@ -1203,7 +1203,7 @@ typedef enum
     MSM = L29,          // Platforms which require parameter selection of MSM7 over MSM4
 } Facet_Flex_Variant;
 
-typedef bool (* AFTER_CMD)(int cmdIndex);
+typedef bool (* AFTER_CMD)(const char *settingName, void *settingData, int settingType);
 
 typedef struct
 {

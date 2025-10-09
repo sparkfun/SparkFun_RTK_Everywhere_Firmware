@@ -117,7 +117,6 @@ void gnssUpdate()
         // Test for individual changes as needed
         if (gnssConfigureRequest & UPDATE_CONSTELLATION)
         {
-            Serial.println("Update const");
         }
 
         // Here we need a table to determine if the given combination of setting requests trigger a GNSS's NVM save
@@ -252,7 +251,8 @@ void gnssDetectReceiverType()
     // Note: with this in place, the X5 detection will take a lot longer due to the baud rate change
 #ifdef FLEX_OVERRIDE
     systemPrintln("<<<<<<<<<< !!!!!!!!!! FLEX FORCED !!!!!!!!!! >>>>>>>>>>");
-    // settings.detectedGnssReceiver = GNSS_RECEIVER_UNKNOWN; // This may be causing weirdness on the LG290P. Commenting for now
+    // settings.detectedGnssReceiver = GNSS_RECEIVER_UNKNOWN; // This may be causing weirdness on the LG290P. Commenting
+    // for now
 #endif
 
     // Start auto-detect if NVM is not yet set
@@ -533,27 +533,3 @@ void gnssFirmwareRemoveUpdateFile(const char *filename)
         LittleFS.remove(filename);
     }
 }
-
-//----------------------------------------
-// Update the constellations following a set command
-//----------------------------------------
-bool gnssCmdUpdateConstellations(int commandIndex)
-{
-    if (gnss == nullptr)
-        return false;
-
-    return gnss->setConstellations();
-}
-
-//----------------------------------------
-// Update the message rates following a set command
-//----------------------------------------
-bool gnssCmdUpdateMessageRates(int commandIndex)
-{
-    if (gnss == nullptr)
-        return false;
-
-    return gnss->setMessages(MAX_SET_MESSAGES_RETRIES);
-}
-
-//----------------------------------------

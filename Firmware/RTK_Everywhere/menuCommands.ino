@@ -1288,14 +1288,14 @@ SettingValueResponse updateSettingWithValue(bool inCommands, const char *setting
         {
             // Determine if extra work needs to be done when the setting changes
             if (rtkSettingsEntries[i].afterSetCmd)
-                rtkSettingsEntries[i].afterSetCmd(i);
+                rtkSettingsEntries[i].afterSetCmd(settingName, (void *)settingValueStr, (int)type);
             return (SETTING_KNOWN_STRING);
         }
         else if (knownSetting == true)
         {
             // Determine if extra work needs to be done when the setting changes
             if (rtkSettingsEntries[i].afterSetCmd)
-                rtkSettingsEntries[i].afterSetCmd(i);
+                rtkSettingsEntries[i].afterSetCmd(settingName, &settingValue, (int)type);
             return (SETTING_KNOWN);
         }
     }
