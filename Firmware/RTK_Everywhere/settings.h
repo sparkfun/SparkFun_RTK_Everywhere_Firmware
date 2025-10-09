@@ -697,6 +697,7 @@ struct Settings
     //   ZED (it has separate messages for MSM4 vs. MSM7)
     //   UM980 (it has separate messages for MSM4 vs. MSM7)
     bool useMSM7 = false;
+    int rtcmMinElev = -90; // LG290P - minimum elevation for RTCM (PQTMCFGRTCM)
 
     // Battery
     bool enablePrintBatteryMessages = true;
@@ -1023,7 +1024,7 @@ struct Settings
     bool enableImuCompensationDebug = false;
     bool enableImuDebug = false; // Turn on to display IMU library debug messages
     bool enableTiltCompensation = true; // Allow user to disable tilt compensation on the models that have an IMU
-    bool enableGalileoHas = true; // Allow E6 corrections if possible
+    bool enableGalileoHas = true; // Allow E6 corrections if possible. Also needed on LG290P
 #ifdef COMPILE_UM980
     uint8_t um980Constellations[MAX_UM980_CONSTELLATIONS] = {254}; // Mark first record with key so defaults will be applied.
     float um980MessageRatesNMEA[MAX_UM980_NMEA_MSG] = {254}; // Mark first record with key so defaults will be applied.
@@ -1203,6 +1204,7 @@ typedef enum
     ALL = (1 << 5) - 1, // ALL - must be the highest single variant
     ZED = ZF9 | ZX2,    // Hybrids are possible (enums don't have to be consecutive)
     MSM = L29,          // Platforms which require parameter selection of MSM7 over MSM4
+    HAS = L29,          // Platforms which support Galileo HAS
 } Facet_Flex_Variant;
 
 typedef bool (* AFTER_CMD)(int cmdIndex);
@@ -1323,7 +1325,7 @@ const RTK_Settings_Entry rtkSettingsEntries[] =
 //    n  a  f     t  s  o  B  c  F    h
 //    f  n  f  E     a  r  a  a  l
 //    i  d  i  v  V  i  c  n  r  e    X
-//    g  s  x  k  2  c  h  d  d  x    2  Type       Qual                Variable                  Name
+//    g  s  x  k  2  c  h  d  d  x    2  Type       Qual                Variable                  Name              afterSetCmd
 
     // Antenna
     { 1, 1, 0, 1, 1, 1, 1, 1, 1, ALL, 1, _int16_t,  0, & settings.antennaHeight_mm, "antennaHeight_mm", nullptr, },
@@ -1345,6 +1347,7 @@ const RTK_Settings_Entry rtkSettingsEntries[] =
     { 1, 1, 0, 1, 1, 1, 1, 1, 1, ALL, 1, _float,    2, & settings.observationPositionAccuracy, "observationPositionAccuracy", nullptr, },
     { 0, 1, 0, 1, 1, 0, 1, 1, 1, ALL, 1, _float,    1, & settings.surveyInStartingAccuracy, "surveyInStartingAccuracy", nullptr, },
     { 0, 1, 0, 0, 0, 0, 0, 0, 1, MSM, 1, _bool,     0, & settings.useMSM7, "useMSM7",  nullptr, },
+    { 0, 1, 0, 0, 0, 0, 0, 0, 1, MSM, 1, _int,      0, & settings.rtcmMinElev, "rtcmMinElev",  nullptr, },
 
     // Battery
     { 0, 0, 0, 0, 1, 1, 1, 1, 1, ALL, 1, _bool,     0, & settings.enablePrintBatteryMessages, "enablePrintBatteryMessages", nullptr, },
@@ -1782,7 +1785,7 @@ const RTK_Settings_Entry rtkSettingsEntries[] =
 //    g  s  x  k  2  c  h  d  d  x    2  Type       Qual                Variable                  Name              afterSetCmd
 
     // UM980 GNSS Receiver - TODO these apply to more than UM980
-    { 1, 1, 0, 0, 0, 0, 1, 0, 1, NON, 1, _bool,     0, & settings.enableGalileoHas, "enableGalileoHas", nullptr, },
+    { 1, 1, 0, 0, 0, 0, 1, 0, 1, HAS, 1, _bool,     0, & settings.enableGalileoHas, "enableGalileoHas", nullptr, },
     { 1, 1, 0, 0, 0, 0, 1, 0, 0, ALL, 0, _bool,     3, & settings.enableMultipathMitigation, "enableMultipathMitigation", nullptr, },
     { 0, 0, 0, 0, 0, 0, 1, 0, 0, ALL, 0, _bool,     0, & settings.enableImuCompensationDebug, "enableImuCompensationDebug", nullptr, },
     { 0, 0, 0, 0, 0, 0, 1, 0, 0, ALL, 0, _bool,     0, & settings.enableImuDebug, "enableImuDebug", nullptr, },
