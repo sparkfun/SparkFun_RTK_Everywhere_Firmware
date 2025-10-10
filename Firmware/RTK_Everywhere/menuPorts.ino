@@ -159,7 +159,7 @@ void menuPortsNoMux()
     {
         // All platforms, except the LG290P can modify their baud rates immediately.
         // The LG290P requires a reset for settings to take effect
-        gnssConfigureRequest |= UPDATE_BAUD_RATE; // Request receiver to use new settings
+        gnssConfigure(GNSS_CONFIG_BAUD_RATE); // Request receiver to use new settings
     }
 
     clearBuffer(); // Empty buffer of any newline chars
@@ -316,7 +316,7 @@ void menuPortsMultiplexed()
     {
         // Apply these changes at menu exit - to enable message output on USB1
         // and/or enable/disable NMEA on radio
-        gnssConfigureRequest |= UPDATE_BAUD_RATE; // Request receiver to use new settings
+        gnssConfigure(GNSS_CONFIG_BAUD_RATE); // Request receiver to use new settings
     }
 
     gnss->beginExternalEvent(); // Update with new settings

@@ -9,23 +9,26 @@ GNSS.ino
 // the menu system, closed the Web Config, or the CLI is closed.
 enum
 {
-    UPDATE_NONE = 0,
-    UPDATE_ROVER = (1 << 0),
-    UPDATE_BASE = (1 << 1),                    // Fixed base or survey in, location, etc
-    UPDATE_CONSTELLATION = (1 << 2),           // Turn on/off a constellation
-    UPDATE_MESSAGE_RATE = (1 << 3),            // Update all message rates
-    UPDATE_MESSAGE_RATE_NMEA = (1 << 4),       // Update NMEA message rates
-    UPDATE_MESSAGE_RATE_RTCM_ROVER = (1 << 5), // Update RTCM Rover message rates
-    UPDATE_MESSAGE_RATE_RTCM_BASE = (1 << 6),  // Update RTCM Base message rates
-    UPDATE_HAS_E6 = (1 << 7),                  // Enable/disable HAS E6 capabilities
-    UPDATE_BAUD_RATE = (1 << 8),
-    UPDATE_MULTIPATH = (1 << 9),
-    UPDATE_SAVE = (1 << 10),  // Indicates current settings be saved to GNSS receiver NVM
-    UPDATE_RESET = (1 << 11), // Indicates receiver needs resetting
+    GNSS_CONFIG_ROVER,
+    GNSS_CONFIG_BASE,                    // Fixed base or survey in, location, etc
+    GNSS_CONFIG_CONSTELLATION,           // Turn on/off a constellation
+    GNSS_CONFIG_MESSAGE_RATE,            // Update all message rates
+    GNSS_CONFIG_MESSAGE_RATE_NMEA,       // Update NMEA message rates
+    GNSS_CONFIG_MESSAGE_RATE_RTCM_ROVER, // Update RTCM Rover message rates
+    GNSS_CONFIG_MESSAGE_RATE_RTCM_BASE,  // Update RTCM Base message rates
+    GNSS_CONFIG_HAS_E6,                  // Enable/disable HAS E6 capabilities
+    GNSS_CONFIG_BAUD_RATE,
+    GNSS_CONFIG_MULTIPATH,
+    GNSS_CONFIG_SAVE,  // Indicates current settings be saved to GNSS receiver NVM
+    GNSS_CONFIG_RESET, // Indicates receiver needs resetting
+
+    // Add new entries above here
+    GNSS_CONFIG_LAST,
+    GNSS_CONFIG_NONE,
 };
 
 uint16_t gnssConfigureRequest =
-    UPDATE_NONE; // Bitfield containing an update be made to various settings on the GNSS receiver
+    GNSS_CONFIG_NONE; // Bitfield containing an update be made to various settings on the GNSS receiver
 
 extern int NTRIPCLIENT_MS_BETWEEN_GGA;
 
@@ -116,24 +119,24 @@ void gnssUpdate()
     // Only update the GNSS receiver once the CLI, serial menu, and Web Config interfaces are disconnected
     // This is to avoid multiple reconfigure delays when multiple commands are received, ie enable GPS, disable Galileo,
     // should only trigger one GNSS reconfigure
-    if (gnssConfigureRequest != UPDATE_NONE && bluetoothCommandIsConnected() == false && inMainMenu == false &&
+    if (gnssConfigureRequest != GNSS_CONFIG_NONE && bluetoothCommandIsConnected() == false && inMainMenu == false &&
         inWebConfigMode() == false)
     {
         bool result = true;
 
         // Test for individual changes as needed
-        if (gnssConfigureRequest & UPDATE_CONSTELLATION)
+        if (gnssConfigureRequest & GNSS_CONFIG_CONSTELLATION)
         {
         }
-        if (gnssConfigureRequest & UPDATE_HAS_E6)
+        if (gnssConfigureRequest & GNSS_CONFIG_HAS_E6)
         {
             result &= gnss->setHighAccuracyService(settings.enableGalileoHas);
         }
 
-        // Platforms will set the UPDATE_SAVE and UPDATE_RESET bits appropriately for each command issued
+        // Platforms will set theGNSS_CONFIG_SAVE andGNSS_CONFIG_RESET bits appropriately for each command issued
 
         // If one of the previous configuration changes requested save to NVM, do so
-        if (gnssConfigureRequest & UPDATE_SAVE)
+        if (gnssConfigureRequest & GNSS_CONFIG_SAVE)
         {
             result &= gnss->saveConfiguration();
         }
@@ -164,8 +167,22 @@ void gnssUpdate()
             systemPrintln("gnssUpdate: Uncaught mode change");
         }
 
-        gnssConfigureRequest = UPDATE_NONE; // Clear requests
+        gnssConfigureRequest = GNSS_CONFIG_NONE; // Clear requests
     }
+}
+
+// Given a bit to configure, set that bit in the overall bitfield
+void gnssConfigure(uint16_t configureBit)
+{
+    uint16_t mask = (1 << configureBit);
+    gnssConfigureRequest |= mask;
+}
+
+// Set all bits in the request bitfield to cause the GNSS receiver to go through a full (re)configuration
+void gnssConfigureAll()
+{
+    for (int x = 0; x < GNSS_CONFIG_LAST; x++)
+        gnssConfigure(x);
 }
 
 //----------------------------------------
@@ -174,7 +191,7 @@ void gnssUpdate()
 bool gnssCmdUpdateConstellations(const char *settingName, void *settingData, int settingType)
 {
     gnssConfigureRequest |=
-        UPDATE_CONSTELLATION; // Once BLE Command, Web Config, and CLI are closed, reconfigure receiver
+        GNSS_CONFIG_CONSTELLATION; // Once BLE Command, Web Config, and CLI are closed, reconfigure receiver
 
     return (true);
 }
@@ -185,7 +202,7 @@ bool gnssCmdUpdateConstellations(const char *settingName, void *settingData, int
 bool gnssCmdUpdateMessageRates(const char *settingName, void *settingData, int settingType)
 {
     gnssConfigureRequest |=
-        UPDATE_MESSAGE_RATE; // Once BLE Command, Web Config, and CLI are closed, reconfigure receiver
+        GNSS_CONFIG_MESSAGE_RATE; // Once BLE Command, Web Config, and CLI are closed, reconfigure receiver
 
     return (true);
 }
@@ -197,7 +214,7 @@ bool gnssCmdUpdateMessageRates(const char *settingName, void *settingData, int s
 bool pointPerfectCmdUpdateServiceType(const char *settingName, void *settingData, int settingType)
 {
     // Require a rover restart to enable / disable RTCM for PPL
-    gnssConfigureRequest |= UPDATE_MESSAGE_RATE; // Request receiver to use new settings
+    gnssConfigure(GNSS_CONFIG_MESSAGE_RATE); // Request receiver to use new settings
     return (true);
 }
 

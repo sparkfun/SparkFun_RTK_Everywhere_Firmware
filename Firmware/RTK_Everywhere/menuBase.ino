@@ -142,12 +142,12 @@ void menuBase()
         if (incoming == 1)
         {
             settings.fixedBase ^= 1;
-            gnssConfigureRequest |= UPDATE_BASE; // Request receiver to use new settings
+            gnssConfigure(GNSS_CONFIG_BASE); // Request receiver to use new settings
         }
         else if (settings.fixedBase == true && incoming == 2)
         {
             settings.fixedBaseCoordinateType ^= 1;
-            gnssConfigureRequest |= UPDATE_BASE; // Request receiver to use new settings
+            gnssConfigure(GNSS_CONFIG_BASE); // Request receiver to use new settings
         }
 
         else if (settings.fixedBase == true && incoming == 3)
@@ -176,7 +176,7 @@ void menuBase()
                         if (getUserInputDouble(&fixedEcefZ) == INPUT_RESPONSE_VALID)
                         {
                             settings.fixedEcefZ = fixedEcefZ;
-                            gnssConfigureRequest |= UPDATE_BASE; // Request receiver to use new settings
+                            gnssConfigure(GNSS_CONFIG_BASE); // Request receiver to use new settings
                         }
                     }
                 }
@@ -219,7 +219,7 @@ void menuBase()
                                     if (getUserInputDouble(&fixedAltitude) == INPUT_RESPONSE_VALID)
                                     {
                                         settings.fixedAltitude = fixedAltitude;
-                                        gnssConfigureRequest |= UPDATE_BASE; // Request receiver to use new settings
+                                        gnssConfigure(GNSS_CONFIG_BASE); // Request receiver to use new settings
                                     }
                                 }
                                 else
@@ -242,7 +242,7 @@ void menuBase()
             if (getNewSetting("Enter the antenna height (a.k.a. pole length) in millimeters", -15000, 15000,
                               &settings.antennaHeight_mm) == INPUT_RESPONSE_VALID)
             {
-                gnssConfigureRequest |= UPDATE_BASE; // Request receiver to use new settings
+                gnssConfigure(GNSS_CONFIG_BASE); // Request receiver to use new settings
                 // TODO Does any other hardware need to be reconfigured after this setting change? Tilt sensor?
             }
         }
@@ -254,7 +254,7 @@ void menuBase()
                     "Torch/X2=116.5, Facet mosaic=68.5, EVK=42.0, Postcard=37.5, Flex=62.5",
                     -200.0, 200.0, &settings.antennaPhaseCenter_mm) == INPUT_RESPONSE_VALID)
             {
-                gnssConfigureRequest |= UPDATE_BASE; // Request receiver to use new settings
+                gnssConfigure(GNSS_CONFIG_BASE); // Request receiver to use new settings
             }
         }
 
@@ -264,7 +264,7 @@ void menuBase()
             if (getNewSetting("Enter the number of seconds for survey-in observation time", 60, 60 * 10,
                               &settings.observationSeconds) == INPUT_RESPONSE_VALID)
             {
-                gnssConfigureRequest |= UPDATE_BASE; // Request receiver to use new settings
+                gnssConfigure(GNSS_CONFIG_BASE); // Request receiver to use new settings
             }
         }
         else if (settings.fixedBase == false && incoming == 3 &&
@@ -275,7 +275,7 @@ void menuBase()
                               (double)maxObservationPositionAccuracy,
                               &settings.observationPositionAccuracy) == INPUT_RESPONSE_VALID)
             {
-                gnssConfigureRequest |= UPDATE_BASE; // Request receiver to use new settings
+                gnssConfigure(GNSS_CONFIG_BASE); // Request receiver to use new settings
             }
         }
         else if (settings.fixedBase == false && incoming == 4 && (!present.gnss_mosaicX5))
@@ -285,7 +285,7 @@ void menuBase()
                               (double)maxSurveyInStartingAccuracy,
                               &settings.surveyInStartingAccuracy) == INPUT_RESPONSE_VALID)
             {
-                gnssConfigureRequest |= UPDATE_BASE; // Request receiver to use new settings
+                gnssConfigure(GNSS_CONFIG_BASE); // Request receiver to use new settings
             }
         }
 

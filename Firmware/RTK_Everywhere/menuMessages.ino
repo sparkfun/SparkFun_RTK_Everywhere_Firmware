@@ -244,21 +244,21 @@ void menuMessagesBaseRTCM()
         else if (incoming == 2)
         {
             gnss->baseRtcmDefault();
-            gnssConfigureRequest |= UPDATE_MESSAGE_RATE_RTCM_BASE; // Request receiver to use new settings
+            gnssConfigure(GNSS_CONFIG_MESSAGE_RATE_RTCM_BASE); // Request receiver to use new settings
 
             systemPrintf("Reset to Defaults (%s)\r\n", gnss->getRtcmDefaultString());
         }
         else if (incoming == 3)
         {
             gnss->baseRtcmLowDataRate();
-            gnssConfigureRequest |= UPDATE_MESSAGE_RATE_RTCM_BASE; // Request receiver to use new settings
+            gnssConfigure(GNSS_CONFIG_MESSAGE_RATE_RTCM_BASE); // Request receiver to use new settings
 
             systemPrintf("Reset to Low Bandwidth Link (%s)\r\n", gnss->getRtcmLowDataRateString());
         }
         else if ((incoming == 4) && (namedSettingAvailableOnPlatform("useMSM7")))
         {
             settings.useMSM7 ^= 1;
-            gnssConfigureRequest |= UPDATE_MESSAGE_RATE; // Request receiver to use new settings
+            gnssConfigure(GNSS_CONFIG_MESSAGE_RATE); // Request receiver to use new settings
         }
 
         else if (incoming == INPUT_RESPONSE_GETNUMBER_EXIT)
@@ -878,7 +878,10 @@ void checkGNSSArrayDefaults()
     }
 
     if (defaultsApplied == true)
+    {
+        gnssConfigureAll(); //Request a full reconfigure of the GNSS receiver
         recordSystemSettings();
+    }
 }
 
 // Determine logging type based on the GNSS receiver

@@ -1360,7 +1360,7 @@ void GNSS_UM980::menuMessages()
 
             systemPrintln("Reset to Defaults");
 
-            gnssConfigureRequest |= UPDATE_MESSAGE_RATE; // Request receiver to use new settings
+            gnssConfigure(GNSS_CONFIG_MESSAGE_RATE); // Request receiver to use new settings
         }
         else if (incoming == 11 || incoming == 12)
         {
@@ -1396,7 +1396,7 @@ void GNSS_UM980::menuMessages()
                 systemPrintln("Reset to PPP Logging (NMEAx5 / RTCMx4 - 30 second decimation)");
             }
 
-            gnssConfigureRequest |= UPDATE_MESSAGE_RATE; // Request receiver to use new settings
+            gnssConfigure(GNSS_CONFIG_MESSAGE_RATE); // Request receiver to use new settings
         }
 
         else if (incoming == INPUT_RESPONSE_GETNUMBER_EXIT)
@@ -1507,7 +1507,7 @@ void GNSS_UM980::menuMessagesSubtype(float *localMessageRate, const char *messag
                 if (strcmp(messageType, "RTCMBase") == 0)
                     settings.um980MessageRatesRTCMBase[incoming] = (float)newSetting;
 
-                gnssConfigureRequest |= UPDATE_MESSAGE_RATE; // Request receiver to use new settings
+                gnssConfigure(GNSS_CONFIG_MESSAGE_RATE); // Request receiver to use new settings
             }
         }
         else if (incoming == INPUT_RESPONSE_GETNUMBER_EXIT)
@@ -1685,7 +1685,7 @@ bool GNSS_UM980::setHighAccuracyService(bool enableGalileoHas)
                 if (_um980->sendCommand("CONFIG PPP ENABLE E6-HAS"))
                 {
                     systemPrintln("Galileo E6 HAS service enabled");
-                    gnssConfigureRequest |= UPDATE_SAVE; // Request receiver commit this change to NVM
+                    gnssConfigure(GNSS_CONFIG_SAVE); // Request receiver commit this change to NVM
                 }
                 else
                 {
@@ -1696,7 +1696,7 @@ bool GNSS_UM980::setHighAccuracyService(bool enableGalileoHas)
                 if (_um980->sendCommand("CONFIG PPP DATUM WGS84"))
                 {
                     systemPrintln("WGS84 Datum applied");
-                    gnssConfigureRequest |= UPDATE_SAVE; // Request receiver commit this change to NVM
+                    gnssConfigure(GNSS_CONFIG_SAVE); // Request receiver commit this change to NVM
                 }
                 else
                 {
@@ -1722,7 +1722,7 @@ bool GNSS_UM980::setHighAccuracyService(bool enableGalileoHas)
             if (_um980->sendCommand("CONFIG PPP DISABLE"))
             {
                 systemPrintln("Galileo E6 HAS service disabled");
-                gnssConfigureRequest |= UPDATE_SAVE; // Request receiver commit this change to NVM
+                gnssConfigure(GNSS_CONFIG_SAVE); // Request receiver commit this change to NVM
             }
             else
             {

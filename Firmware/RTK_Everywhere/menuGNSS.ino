@@ -378,13 +378,13 @@ void menuGNSS()
             settings.ntripClient_TransmitGGA ^= 1;
             
             // We may need to enable the GGA message. Trigger GNSS receiver reconfigure.
-            gnssConfigureRequest |= UPDATE_MESSAGE_RATE; // Request update
+            gnssConfigure(GNSS_CONFIG_MESSAGE_RATE); // Request update
         }
 
         else if ((incoming == 15) && present.multipathMitigation)
         {
             settings.enableMultipathMitigation ^= 1;
-            gnssConfigureRequest |= UPDATE_MULTIPATH; // Request update
+            gnssConfigure(GNSS_CONFIG_MULTIPATH); // Request update
         }
 
         else if (incoming == INPUT_RESPONSE_GETNUMBER_EXIT)

@@ -1834,7 +1834,7 @@ void GNSS_MOSAIC::menuMessagesNMEA()
             if (settings.mosaicMessageStreamNMEA[incoming] > MOSAIC_NUM_NMEA_STREAMS)
                 settings.mosaicMessageStreamNMEA[incoming] = 0; // Wrap around
 
-            gnssConfigureRequest |= UPDATE_MESSAGE_RATE; // Request receiver to use new settings
+            gnssConfigure(GNSS_CONFIG_MESSAGE_RATE); // Request receiver to use new settings
         }
         else if (incoming > MAX_MOSAIC_NMEA_MSG &&
                  incoming <= (MAX_MOSAIC_NMEA_MSG + MOSAIC_NUM_NMEA_STREAMS)) // Stream intervals
@@ -1853,7 +1853,7 @@ void GNSS_MOSAIC::menuMessagesNMEA()
             if (interval >= 1 && interval <= MAX_MOSAIC_MSG_RATES)
             {
                 settings.mosaicStreamIntervalsNMEA[incoming] = interval - 1;
-                gnssConfigureRequest |= UPDATE_MESSAGE_RATE; // Request receiver to use new settings
+                gnssConfigure(GNSS_CONFIG_MESSAGE_RATE); // Request receiver to use new settings
             }
         }
         else if (incoming == INPUT_RESPONSE_GETNUMBER_EXIT)
@@ -1915,7 +1915,7 @@ void GNSS_MOSAIC::menuMessagesRTCM(bool rover)
                 if ((interval >= 0.1) && (interval <= 600.0))
                 {
                     intervalPtr[incoming] = interval;
-                    gnssConfigureRequest |= UPDATE_MESSAGE_RATE; // Request receiver to use new settings
+                    gnssConfigure(GNSS_CONFIG_MESSAGE_RATE); // Request receiver to use new settings
                 }
                 else
                     systemPrintln("Invalid interval: Min 0.1; Max 600.0");
@@ -1991,7 +1991,7 @@ void GNSS_MOSAIC::menuMessages()
             for (int x = 0; x < MAX_MOSAIC_RTCM_V3_MSG; x++)
                 settings.mosaicMessageEnabledRTCMv3Base[x] = mosaicMessagesRTCMv3[x].defaultEnabled;
 
-            gnssConfigureRequest |= UPDATE_MESSAGE_RATE; // Request receiver to use new settings
+            gnssConfigure(GNSS_CONFIG_MESSAGE_RATE); // Request receiver to use new settings
 
             systemPrintln("Reset to Defaults");
         }

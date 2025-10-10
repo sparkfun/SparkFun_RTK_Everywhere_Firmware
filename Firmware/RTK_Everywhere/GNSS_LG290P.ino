@@ -1869,12 +1869,12 @@ void GNSS_LG290P::menuConstellations()
             incoming--; // Align choice to constellation array of 0 to 5
 
             settings.lg290pConstellations[incoming] ^= 1;
-            gnssConfigureRequest |= UPDATE_CONSTELLATION; // Reconfigure receiver
+            gnssConfigure(GNSS_CONFIG_CONSTELLATION); // Request receiver to use new settings
         }
         else if ((incoming == MAX_LG290P_CONSTELLATIONS + 1) && present.galileoHasCapable)
         {
             settings.enableGalileoHas ^= 1;
-            gnssConfigureRequest |= UPDATE_HAS_E6; // Reconfigure receiver
+            gnssConfigure(GNSS_CONFIG_HAS_E6); // Request receiver to use new settings
         }
         else if (incoming == INPUT_RESPONSE_GETNUMBER_EXIT)
             break;
@@ -1949,7 +1949,7 @@ void GNSS_LG290P::menuMessages()
             for (int x = 0; x < MAX_LG290P_PQTM_MSG; x++)
                 settings.lg290pMessageRatesPQTM[x] = lgMessagesPQTM[x].msgDefaultRate;
 
-            gnssConfigureRequest |= UPDATE_MESSAGE_RATE; // Request update
+            gnssConfigure(GNSS_CONFIG_MESSAGE_RATE); // Request receiver to use new settings
 
             systemPrintln("Reset to Defaults");
         }
@@ -1994,13 +1994,13 @@ void GNSS_LG290P::menuMessages()
                 systemPrintln("Reset to PPP Logging Defaults (NMEAx7 / RTCMx4 - 30 second decimation)");
             }
 
-            gnssConfigureRequest |= UPDATE_MESSAGE_RATE; // Request update
+            gnssConfigure(GNSS_CONFIG_MESSAGE_RATE); // Request receiver to use new settings
         }
         else if ((incoming == 13) &&
                  (namedSettingAvailableOnPlatform("useMSM7"))) // Redundant - but good practice for code reuse)
         {
             settings.useMSM7 ^= 1;
-            gnssConfigureRequest |= UPDATE_MESSAGE_RATE; // Request update
+            gnssConfigure(GNSS_CONFIG_MESSAGE_RATE); // Request receiver to use new settings
         }
 
         else if (incoming == INPUT_RESPONSE_GETNUMBER_EXIT)
@@ -2122,7 +2122,7 @@ void GNSS_LG290P::menuMessagesSubtype(int *localMessageRate, const char *message
                 if (getNewSetting(messageString, 0, 1, &newSetting) == INPUT_RESPONSE_VALID)
                 {
                     settings.lg290pMessageRatesNMEA[incoming] = newSetting;
-                    gnssConfigureRequest |= UPDATE_MESSAGE_RATE_NMEA;
+                    gnssConfigure(GNSS_CONFIG_MESSAGE_RATE_NMEA); // Configure receiver to use new setting
                 }
             }
             if (strcmp(messageType, "RTCMRover") == 0)
@@ -2130,7 +2130,7 @@ void GNSS_LG290P::menuMessagesSubtype(int *localMessageRate, const char *message
                 if (getNewSetting(messageString, 0, 1200, &newSetting) == INPUT_RESPONSE_VALID)
                 {
                     settings.lg290pMessageRatesRTCMRover[incoming] = newSetting;
-                    gnssConfigureRequest |= UPDATE_MESSAGE_RATE_RTCM_ROVER;
+                    gnssConfigure(GNSS_CONFIG_MESSAGE_RATE_RTCM_ROVER); // Configure receiver to use new setting
                 }
             }
             if (strcmp(messageType, "RTCMBase") == 0)
@@ -2138,7 +2138,7 @@ void GNSS_LG290P::menuMessagesSubtype(int *localMessageRate, const char *message
                 if (getNewSetting(messageString, 0, 1200, &newSetting) == INPUT_RESPONSE_VALID)
                 {
                     settings.lg290pMessageRatesRTCMBase[incoming] = newSetting;
-                    gnssConfigureRequest |= UPDATE_MESSAGE_RATE_RTCM_BASE;
+                    gnssConfigure(GNSS_CONFIG_MESSAGE_RATE_RTCM_BASE); // Configure receiver to use new setting
                 }
             }
             if (strcmp(messageType, "PQTM") == 0)
@@ -2146,7 +2146,7 @@ void GNSS_LG290P::menuMessagesSubtype(int *localMessageRate, const char *message
                 if (getNewSetting(messageString, 0, 1, &newSetting) == INPUT_RESPONSE_VALID)
                 {
                     settings.lg290pMessageRatesPQTM[incoming] = newSetting;
-                    gnssConfigureRequest |= UPDATE_MESSAGE_RATE;
+                    gnssConfigure(GNSS_CONFIG_MESSAGE_RATE); // Configure receiver to use new setting
                 }
             }
         }
@@ -2375,7 +2375,7 @@ bool GNSS_LG290P::setHighAccuracyService(bool enableGalileoHas)
         if (_lg290p->sendOkCommand("$PQTMCFGPPP", ",W,2,1,120,0.10,0.15") == true)
         {
             systemPrintln("Galileo E6 HAS service enabled");
-            gnssConfigureRequest |= UPDATE_SAVE; // Request receiver commit this change to NVM
+            gnssConfigure(GNSS_CONFIG_SAVE); // Request receiver commit this change to NVM
         }
         else
         {
@@ -2390,7 +2390,7 @@ bool GNSS_LG290P::setHighAccuracyService(bool enableGalileoHas)
         if (_lg290p->sendOkCommand("$PQTMCFGPPP", ",W,0") == true)
         {
             systemPrintln("Galileo E6 HAS service disabled");
-            gnssConfigureRequest |= UPDATE_SAVE; // Request receiver commit this change to NVM
+            gnssConfigure(GNSS_CONFIG_SAVE); // Request receiver commit this change to NVM
         }
         else
         {
