@@ -559,6 +559,12 @@ class GNSS_None : public GNSS
         return true;
     }
 
+    // Control whether HAS E6 is used in location fixes or not
+    bool setHighAccuracyService(bool enableGalileoHas)
+    {
+        return true;
+    }
+
     // Enable all the valid messages for this platform
     bool setMessages(int maxRetries)
     {

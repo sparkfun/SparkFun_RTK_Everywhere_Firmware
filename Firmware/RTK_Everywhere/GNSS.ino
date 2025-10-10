@@ -20,6 +20,8 @@ enum
     UPDATE_HAS_E6 = (1 << 7),                  // Enable/disable HAS E6 capabilities
     UPDATE_BAUD_RATE = (1 << 8),
     UPDATE_MULTIPATH = (1 << 9),
+    UPDATE_SAVE = (1 << 10),  // Indicates current settings be saved to GNSS receiver NVM
+    UPDATE_RESET = (1 << 11), // Indicates receiver needs resetting
 };
 
 uint16_t gnssConfigureRequest =
@@ -107,6 +109,9 @@ void gnssUpdate()
     // Allow the GNSS platform to update itself
     gnss->update();
 
+    // In general, the GNSS configuration should only be modified here, not in menus, not in commands
+    // Those should trigger a request for modification
+
     // Handle any requested configuration changes
     // Only update the GNSS receiver once the CLI, serial menu, and Web Config interfaces are disconnected
     // This is to avoid multiple reconfigure delays when multiple commands are received, ie enable GPS, disable Galileo,
@@ -114,12 +119,24 @@ void gnssUpdate()
     if (gnssConfigureRequest != UPDATE_NONE && bluetoothCommandIsConnected() == false && inMainMenu == false &&
         inWebConfigMode() == false)
     {
+        bool result = true;
+
         // Test for individual changes as needed
         if (gnssConfigureRequest & UPDATE_CONSTELLATION)
         {
         }
+        if (gnssConfigureRequest & UPDATE_HAS_E6)
+        {
+            result &= gnss->setHighAccuracyService(settings.enableGalileoHas);
+        }
 
-        // Here we need a table to determine if the given combination of setting requests trigger a GNSS's NVM save
+        // Platforms will set the UPDATE_SAVE and UPDATE_RESET bits appropriately for each command issued
+
+        // If one of the previous configuration changes requested save to NVM, do so
+        if (gnssConfigureRequest & UPDATE_SAVE)
+        {
+            result &= gnss->saveConfiguration();
+        }
 
         // Here we need a table to determine if the given combination of setting requests require a GNSS reset to take
         // effect

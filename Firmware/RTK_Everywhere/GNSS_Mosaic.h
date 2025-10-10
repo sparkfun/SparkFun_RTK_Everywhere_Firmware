@@ -994,6 +994,9 @@ class GNSS_MOSAIC : GNSS
     //   elevationDegrees: The elevation value in degrees
     bool setElevation(uint8_t elevationDegrees);
 
+    // Enable or disable HAS E6 capability
+    bool setHighAccuracyService(bool enableGalileoHas);
+
     // Enable all the valid messages for this platform
     bool setMessages(int maxRetries);
 

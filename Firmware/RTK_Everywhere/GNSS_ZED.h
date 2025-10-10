@@ -692,6 +692,9 @@ class GNSS_ZED : GNSS
     //   elevationDegrees: The elevation value in degrees
     bool setElevation(uint8_t elevationDegrees);
 
+    // Enable or disable HAS E6 capability
+    bool setHighAccuracyService(bool enableGalileoHas);
+
     // Given a unique string, find first and last records containing that string in message array
     void setMessageOffsets(const ubxMsg *localMessage, const char *messageType, int &startOfBlock, int &endOfBlock);
 

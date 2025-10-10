@@ -2184,6 +2184,15 @@ bool GNSS_ZED::setElevation(uint8_t elevationDegrees)
 }
 
 //----------------------------------------
+// Control whether HAS E6 is used in location fixes or not
+//----------------------------------------
+bool GNSS_ZED::setHighAccuracyService(bool enableGalileoHas)
+{
+    // Not yet supported on this platform
+    return (false);
+}
+
+//----------------------------------------
 // Given a unique string, find first and last records containing that string in message array
 //----------------------------------------
 void GNSS_ZED::setMessageOffsets(const ubxMsg *localMessage, const char *messageType, int &startOfBlock,

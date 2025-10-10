@@ -347,6 +347,8 @@ public:
   //   elevationDegrees: The elevation value in degrees
   virtual bool setElevation(uint8_t elevationDegrees);
 
+  virtual bool setHighAccuracyService(bool enableGalileoHas);
+
   virtual bool setNmeaMessageRateByName(const char *msgName, uint8_t msgRate);
 
   // Enable all the valid messages for this platform

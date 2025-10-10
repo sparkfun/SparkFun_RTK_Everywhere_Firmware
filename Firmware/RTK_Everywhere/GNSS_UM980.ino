@@ -1667,6 +1667,8 @@ bool GNSS_UM980::setElevation(uint8_t elevationDegrees)
 }
 
 //----------------------------------------
+// Control whether HAS E6 is used in location fixes or not
+//----------------------------------------
 bool GNSS_UM980::setHighAccuracyService(bool enableGalileoHas)
 {
     bool result = true;
@@ -1681,7 +1683,10 @@ bool GNSS_UM980::setHighAccuracyService(bool enableGalileoHas)
             if (_um980->isConfigurationPresent("CONFIG PPP ENABLE E6-HAS") == false)
             {
                 if (_um980->sendCommand("CONFIG PPP ENABLE E6-HAS"))
+                {
                     systemPrintln("Galileo E6 HAS service enabled");
+                    gnssConfigureRequest |= UPDATE_SAVE; // Request receiver commit this change to NVM
+                }
                 else
                 {
                     systemPrintln("Galileo E6 HAS service failed to enable");
@@ -1689,7 +1694,10 @@ bool GNSS_UM980::setHighAccuracyService(bool enableGalileoHas)
                 }
 
                 if (_um980->sendCommand("CONFIG PPP DATUM WGS84"))
+                {
                     systemPrintln("WGS84 Datum applied");
+                    gnssConfigureRequest |= UPDATE_SAVE; // Request receiver commit this change to NVM
+                }
                 else
                 {
                     systemPrintln("WGS84 Datum failed to apply");
@@ -1712,7 +1720,10 @@ bool GNSS_UM980::setHighAccuracyService(bool enableGalileoHas)
         if (_um980->isConfigurationPresent("CONFIG PPP ENABLE E6-HAS"))
         {
             if (_um980->sendCommand("CONFIG PPP DISABLE"))
+            {
                 systemPrintln("Galileo E6 HAS service disabled");
+                gnssConfigureRequest |= UPDATE_SAVE; // Request receiver commit this change to NVM
+            }
             else
             {
                 systemPrintln("Galileo E6 HAS service failed to disable");
