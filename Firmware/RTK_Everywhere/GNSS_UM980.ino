@@ -248,8 +248,8 @@ bool GNSS_UM980::configureOnce()
     disableAllOutput(); // Disable COM1/2/3
 
     bool response = true;
-    response &= _um980->setPortBaudrate("COM1", 115200); // UM980 UART1 is connected to switch, then USB
-    response &= _um980->setPortBaudrate("COM2", 115200); // UM980 UART2 is connected to the IMU
+    response &= setBaudRateData(115200); // UM980 UART1 is connected to switch, then USB
+    response &= setBaudRate(2, 115200); // UM980 UART2 is connected to the IMU
 
     // Assume if we've made it this far, the UM980 UART3 is communicating
     // response &= setBaudRateComm(115200); // UM980 UART3 is connected to the switch, then ESP32
@@ -1601,29 +1601,40 @@ bool GNSS_UM980::saveConfiguration()
 //----------------------------------------
 bool GNSS_UM980::setBaudRate(uint8_t uartNumber, uint32_t baudRate)
 {
-    if (uartNumber != 3)
+    if (uartNumber < 1 || uartNumber > 3)
     {
         systemPrintln("setBaudRate error: out of range");
         return (false);
     }
 
-    return setBaudRateComm(baudRate);
+    // The UART on the UM980 is passed as a string with quotes, ie "COM2"
+    char comName[7]; // "COM3"
+    snprintf(comName, sizeof(comName), "\"COM%d\"", uartNumber);
+
+    // Read, modify, write
+    uint32_t currentBaudRate = _um980->getPortBaudrate(comName);
+    if (currentBaudRate == baudRate)
+        return (true); // No change needed
+
+    return _um980->setPortBaudrate(comName, baudRate); //("COM3", 115200)
 }
 
+// UM980 COM1 - (DATA) Connected to the USB CH342
+// UM980 COM2 - Connected To IMU
+// UM980 COM3 - (COMM) Connected to ESP32 for BT, configuration, and LoRa Radio.
+// No RADIO connection.
 //----------------------------------------
 // Set the baud rate on the GNSS port that interfaces between the ESP32 and the GNSS
 // This just sets the GNSS side
 //----------------------------------------
 bool GNSS_UM980::setBaudRateComm(uint32_t baudRate)
 {
-    if (online.gnss)
-        return _um980->setPortBaudrate("COM3", baudRate);
-    return false;
+    return (setBaudRate(3, baudRate));
 }
 
 bool GNSS_UM980::setBaudRateData(uint32_t baudRate)
 {
-    return false; // UM980 has DATA port
+    return (setBaudRate(1, baudRate)); // The DATA port on the Torch is the USB C connector
 }
 
 bool GNSS_UM980::setBaudRateRadio(uint32_t baudRate)
@@ -1719,7 +1730,8 @@ bool GNSS_UM980::setHighAccuracyService(bool enableGalileoHas)
         {
             systemPrintf(
                 "Current UM980 firmware: v%d. Galileo E6 reception requires v11833 or newer. Please update the "
-                "firmware on your UM980 to allow for HAS operation. Please see https://bit.ly/sfe-rtk-um980-update\r\n",
+                "firmware on your UM980 to allow for HAS operation. Please see "
+                "https://bit.ly/sfe-rtk-um980-update\r\n",
                 um980Version);
             // Don't fail the result. Module is still configured, just without HAS.
         }
