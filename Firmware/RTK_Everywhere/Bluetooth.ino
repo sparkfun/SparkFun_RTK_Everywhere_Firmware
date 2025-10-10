@@ -48,6 +48,8 @@ BleBatteryService bluetoothBatteryService;
 
 TaskHandle_t bluetoothCommandTaskHandle = nullptr; // Task to monitor incoming CLI from BLE
 
+BluetoothRadioType_e bluetoothRadioPreviousOnType = BLUETOOTH_RADIO_OFF;
+
 #endif // COMPILE_BT
 
 //----------------------------------------
@@ -309,7 +311,7 @@ int bluetoothWrite(const uint8_t *buffer, int length)
 {
 #ifdef COMPILE_BT
     if (bluetoothGetState() == BT_OFF)
-        return 0;
+        return length; // Avoid buffer full warnings
 
     if (settings.bluetoothRadioType == BLUETOOTH_RADIO_SPP_AND_BLE)
     {
@@ -378,7 +380,7 @@ int bluetoothWrite(uint8_t value)
 {
 #ifdef COMPILE_BT
     if (bluetoothGetState() == BT_OFF)
-        return 0;
+        return 1; // Avoid buffer full warnings
 
     if (settings.bluetoothRadioType == BLUETOOTH_RADIO_SPP_AND_BLE)
     {
@@ -446,36 +448,66 @@ void BTConfirmRequestCallback(uint32_t numVal) {
     // TODO: if the RTK device has an OLED, we should display the PIN so user can confirm
 }
 
+void deviceNameSpacesToUnderscores()
+{
+    for (size_t i = 0; i < strlen(deviceName); i++)
+    {
+        if (deviceName[i] == ' ')
+            deviceName[i] = '_';
+    }
+}
+
+void deviceNameUnderscoresToSpaces()
+{
+    for (size_t i = 0; i < strlen(deviceName); i++)
+    {
+        if (deviceName[i] == '_')
+            deviceName[i] = ' ';
+    }
+}
+
 // Begin Bluetooth with a broadcast name of 'SparkFun Postcard-XXXX' or 'SparkPNT Facet mosaicX5-XXXX'
 // Add 4 characters of device's MAC address to end of the broadcast name
 // This allows users to discern between multiple devices in the local area
 void bluetoothStart()
 {
+    bluetoothStart(false);
+}
+void bluetoothStartSkipOnlineCheck()
+{
+    bluetoothStart(true);
+}
+void bluetoothStart(bool skipOnlineCheck)
+{
     if (settings.bluetoothRadioType == BLUETOOTH_RADIO_OFF)
         return;
 
-    if (online.bluetooth)
+    if (!skipOnlineCheck)
     {
-        return;
+        if (online.bluetooth)
+        {
+            return;
+        }
     }
 
 #ifdef COMPILE_BT
     { // Maintain the indentation for now. TODO: delete the braces and correct indentation
-        bluetoothState = BT_OFF;
+        bluetoothState = BT_OFF; // Indicate to tasks that BT is unavailable
 
         char productName[50] = {0};
         strncpy(productName, platformPrefix, sizeof(productName));
 
-        // BLE is limited to ~28 characters in the device name. Shorten platformPrefix if needed.
-        if (settings.bluetoothRadioType == BLUETOOTH_RADIO_SPP_AND_BLE ||
-            settings.bluetoothRadioType == BLUETOOTH_RADIO_BLE)
-        {
-            // Longest platform prefix is currently "Facet mosaicX5". We are just OK.
-            if (strcmp(productName, "LONG PLATFORM PREFIX") == 0)
-            {
-                strncpy(productName, "SHORTER PREFIX", sizeof(productName));
-            }
-        }
+        // Longest platform prefix is currently "Facet mosaicX5". We are just OK.
+        // We currently don't need this:
+        // // BLE is limited to ~28 characters in the device name. Shorten platformPrefix if needed.
+        // if (settings.bluetoothRadioType == BLUETOOTH_RADIO_SPP_AND_BLE ||
+        //     settings.bluetoothRadioType == BLUETOOTH_RADIO_BLE)
+        // {
+        //     if (strcmp(productName, "LONG PLATFORM PREFIX") == 0)
+        //     {
+        //         strncpy(productName, "SHORTER PREFIX", sizeof(productName));
+        //     }
+        // }
 
         RTKBrandAttribute *brandAttributes = getBrandAttributeFromBrand(present.brand);
 
@@ -492,9 +524,7 @@ void bluetoothStart()
         }
 
         // Select Bluetooth setup
-        if (settings.bluetoothRadioType == BLUETOOTH_RADIO_OFF)
-            return;
-        else if (settings.bluetoothRadioType == BLUETOOTH_RADIO_SPP_AND_BLE)
+        if (settings.bluetoothRadioType == BLUETOOTH_RADIO_SPP_AND_BLE)
         {
             if (bluetoothSerialSpp == nullptr)
                 bluetoothSerialSpp = new BTClassicSerial();
@@ -722,6 +752,7 @@ void bluetoothStart()
         bluetoothState = BT_NOTCONNECTED;
         reportHeapNow(false);
         online.bluetooth = true;
+        bluetoothRadioPreviousOnType = settings.bluetoothRadioType;
     } // if (1)
 #endif // COMPILE_BT
 }
@@ -756,25 +787,37 @@ void bluetoothStop()
 
         bluetoothState = BT_OFF; // Indicate to tasks that BT is unavailable
 
+        // Stop BLE Command Task if BLE is enabled
+        if (settings.bluetoothRadioType == BLUETOOTH_RADIO_SPP_AND_BLE ||
+            settings.bluetoothRadioType == BLUETOOTH_RADIO_BLE)
+        {
+            task.bluetoothCommandTaskStopRequest = true;
+            while (task.bluetoothCommandTaskRunning == true)
+                delay(1);
+        }
+
+        // end and delete BT instances
         if (settings.bluetoothRadioType == BLUETOOTH_RADIO_SPP_AND_BLE)
         {
             bluetoothSerialBle->flush();      // Complete any transfers
             bluetoothSerialBle->disconnect(); // Drop any clients
             bluetoothSerialBle->end();        // Release resources
-            delete bluetoothSerialBle;
-            bluetoothSerialBle = nullptr;
+            //delete bluetoothSerialBle;
+            //bluetoothSerialBle = nullptr;
 
             bluetoothSerialBleCommands->flush();      // Complete any transfers
             bluetoothSerialBleCommands->disconnect(); // Drop any clients
             bluetoothSerialBleCommands->end();        // Release resources
-            delete bluetoothSerialBleCommands;
-            bluetoothSerialBleCommands = nullptr;
+            //delete bluetoothSerialBleCommands;
+            //bluetoothSerialBleCommands = nullptr;
 
             bluetoothSerialSpp->flush();      // Complete any transfers
             bluetoothSerialSpp->disconnect(); // Drop any clients
+            bluetoothSerialSpp->register_callback(nullptr);
             bluetoothSerialSpp->end();        // Release resources
-            delete bluetoothSerialSpp;
-            bluetoothSerialSpp = nullptr;
+            //bluetoothSerialSpp->memrelease(); // Release memory
+            //delete bluetoothSerialSpp;
+            //bluetoothSerialSpp = nullptr;
 
             bluetoothBatteryService.end();
         }
@@ -782,23 +825,25 @@ void bluetoothStop()
         {
             bluetoothSerialSpp->flush();      // Complete any transfers
             bluetoothSerialSpp->disconnect(); // Drop any clients
+            bluetoothSerialSpp->register_callback(nullptr);
             bluetoothSerialSpp->end();        // Release resources
-            delete bluetoothSerialSpp;
-            bluetoothSerialSpp = nullptr;
+            //bluetoothSerialSpp->memrelease(); // Release memory
+            //delete bluetoothSerialSpp;
+            //bluetoothSerialSpp = nullptr;
         }
         else if (settings.bluetoothRadioType == BLUETOOTH_RADIO_BLE)
         {
             bluetoothSerialBle->flush();      // Complete any transfers
             bluetoothSerialBle->disconnect(); // Drop any clients
             bluetoothSerialBle->end();        // Release resources
-            delete bluetoothSerialBle;
-            bluetoothSerialBle = nullptr;
+            //delete bluetoothSerialBle;
+            //bluetoothSerialBle = nullptr;
 
             bluetoothSerialBleCommands->flush();      // Complete any transfers
             bluetoothSerialBleCommands->disconnect(); // Drop any clients
             bluetoothSerialBleCommands->end();        // Release resources
-            delete bluetoothSerialBleCommands;
-            bluetoothSerialBleCommands = nullptr;
+            //delete bluetoothSerialBleCommands;
+            //bluetoothSerialBleCommands = nullptr;
 
             bluetoothBatteryService.end();
         }
@@ -806,9 +851,11 @@ void bluetoothStop()
         {
             bluetoothSerialSpp->flush();      // Complete any transfers
             bluetoothSerialSpp->disconnect(); // Drop any clients
+            bluetoothSerialSpp->register_callback(nullptr);
             bluetoothSerialSpp->end();        // Release resources
-            delete bluetoothSerialSpp;
-            bluetoothSerialSpp = nullptr;
+            //bluetoothSerialSpp->memrelease(); // Release memory
+            //delete bluetoothSerialSpp;
+            //bluetoothSerialSpp = nullptr;
         }
 
         if (settings.debugNetworkLayer)
