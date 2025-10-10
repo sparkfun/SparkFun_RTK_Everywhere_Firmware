@@ -258,7 +258,7 @@ void GNSS_MOSAIC::begin()
         int retryLimit = 3;
 
         // Set COM1 baud rate. X5 defaults to 115200. Settings default to 230400bps
-        while (!setBaudRateCOM(1, settings.dataPortBaud))
+        while (!setBaudRateComm(settings.dataPortBaud))
         {
             if (retries == retryLimit)
                 break;
@@ -273,8 +273,8 @@ void GNSS_MOSAIC::begin()
         }
 
         // Set COM2 (Radio) and COM3 (Data) baud rates
-        setRadioBaudRate(settings.radioPortBaud);
-        setDataBaudRate(settings.dataPortBaud);
+        setBaudRateRadio(settings.radioPortBaud);
+        setBaudRateData(settings.dataPortBaud);
 
         // Set COM2 (Radio) protocol(s)
         setCorrRadioExtPort(settings.enableExtCorrRadio, true); // Force the setting
@@ -313,8 +313,8 @@ void GNSS_MOSAIC::begin()
             return;
 
         // Set COM2 (Radio) and COM3 (Data) baud rates
-        setRadioBaudRate(settings.radioPortBaud);
-        setDataBaudRate(settings.dataPortBaud); // Probably redundant
+        setBaudRateRadio(settings.radioPortBaud);
+        setBaudRateData(settings.dataPortBaud); // Probably redundant
 
         // Set COM2 (Radio) protocol(s)
         setCorrRadioExtPort(settings.enableExtCorrRadio, true); // Force the setting
@@ -2330,6 +2330,21 @@ bool GNSS_MOSAIC::setBaudRate(uint8_t port, uint32_t baudRate)
     return setBaudRateCOM(port, baudRate);
 }
 
+bool GNSS_MOSAIC::setBaudRateComm(uint32_t baud)
+{
+    return setBaudRateCOM(1, baud);
+}
+
+bool GNSS_MOSAIC::setBaudRateData(uint32_t baud)
+{
+    return setBaudRateCOM(3, baud);
+}
+
+bool GNSS_MOSAIC::setBaudRateRadio(uint32_t baud)
+{
+    return setBaudRateCOM(2, baud);
+}
+
 //----------------------------------------
 // Set the baud rate of mosaic-X5 COM1
 // This is used during the Bluetooth test
@@ -2420,11 +2435,6 @@ bool GNSS_MOSAIC::setCorrRadioExtPort(bool enable, bool force)
     return false;
 }
 
-//----------------------------------------
-bool GNSS_MOSAIC::setDataBaudRate(uint32_t baud)
-{
-    return setBaudRateCOM(3, baud);
-}
 
 //----------------------------------------
 // Set the elevation in degrees
@@ -2505,12 +2515,6 @@ bool GNSS_MOSAIC::setNmeaMessageRateByName(const char *msgName, uint8_t msgRate)
 {
     // TODO
     return (false);
-}
-
-//----------------------------------------
-bool GNSS_MOSAIC::setRadioBaudRate(uint32_t baud)
-{
-    return setBaudRateCOM(2, baud);
 }
 
 //----------------------------------------

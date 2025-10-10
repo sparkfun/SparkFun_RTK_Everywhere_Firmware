@@ -98,7 +98,7 @@ void menuPortsNoMux()
                 {
                     settings.radioPortBaud = newBaud;
                     if (online.gnss == true)
-                        gnss->setRadioBaudRate(newBaud);
+                        gnss->setBaudRateRadio(newBaud);
                 }
                 else
                 {
@@ -116,7 +116,7 @@ void menuPortsNoMux()
                 {
                     settings.dataPortBaud = newBaud;
                     if (online.gnss == true)
-                        gnss->setDataBaudRate(newBaud);
+                        gnss->setBaudRateData(newBaud);
                 }
                 else
                 {
@@ -232,7 +232,7 @@ void menuPortsMultiplexed()
                 {
                     settings.radioPortBaud = newBaud;
                     if (online.gnss == true)
-                        gnss->setRadioBaudRate(newBaud);
+                        gnss->setBaudRateRadio(newBaud);
                 }
                 else
                 {
@@ -269,7 +269,7 @@ void menuPortsMultiplexed()
                 {
                     settings.dataPortBaud = newBaud;
                     if (online.gnss == true)
-                        gnss->setDataBaudRate(newBaud);
+                        gnss->setBaudRateData(newBaud);
                 }
                 else
                 {

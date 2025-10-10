@@ -980,14 +980,18 @@ class GNSS_MOSAIC : GNSS
     bool setBaudRate(uint8_t uartNumber, uint32_t baudRate); // From the super class
     bool setBaudRateCOM(uint8_t port, uint32_t baudRate);    // Original X5 implementation
 
+    bool setBaudRateComm(uint32_t baudRate);
+
+    bool setBaudRateData(uint32_t baudRate);
+
+    bool setBaudRateRadio(uint32_t baudRate);
+
     // Enable all the valid constellations and bands for this platform
     bool setConstellations();
 
     // Enable / disable corrections protocol(s) on the Radio External port
     // Always update if force is true. Otherwise, only update if enable has changed state
     bool setCorrRadioExtPort(bool enable, bool force);
-
-    bool setDataBaudRate(uint32_t baud);
 
     // Set the elevation in degrees
     // Inputs:
@@ -1010,8 +1014,6 @@ class GNSS_MOSAIC : GNSS
 
     // Given the name of a message, find it, and set the rate
     bool setNmeaMessageRateByName(const char *msgName, uint8_t msgRate);
-
-    bool setRadioBaudRate(uint32_t baud);
 
     // Specify the interval between solutions
     // Inputs:

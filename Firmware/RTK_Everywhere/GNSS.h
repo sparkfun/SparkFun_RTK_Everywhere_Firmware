@@ -340,7 +340,11 @@ public:
 
   virtual bool setBaudRate(uint8_t uartNumber, uint32_t baudRate);
 
-  virtual bool setDataBaudRate(uint32_t baud);
+  virtual bool setBaudRateComm(uint32_t baud);
+
+  virtual bool setBaudRateData(uint32_t baud);
+
+  virtual bool setBaudRateRadio(uint32_t baud);
 
   // Set the elevation in degrees
   // Inputs:
@@ -364,8 +368,6 @@ public:
   // Inputs:
   //   modelNumber: Number of the model to use, provided by radio library
   virtual bool setModel(uint8_t modelNumber);
-
-  virtual bool setRadioBaudRate(uint32_t baud);
 
   // Specify the interval between solutions
   // Inputs:

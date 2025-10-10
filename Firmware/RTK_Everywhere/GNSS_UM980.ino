@@ -248,12 +248,11 @@ bool GNSS_UM980::configureOnce()
     disableAllOutput(); // Disable COM1/2/3
 
     bool response = true;
-    response &= _um980->setPortBaudrate("COM1", 115200); // COM1 is connected to switch, then USB
-    response &= _um980->setPortBaudrate("COM2", 115200); // COM2 is connected to the IMU
-    response &= _um980->setPortBaudrate("COM3", 115200); // COM3 is connected to the switch, then ESP32
+    response &= _um980->setPortBaudrate("COM1", 115200); // UM980 UART1 is connected to switch, then USB
+    response &= _um980->setPortBaudrate("COM2", 115200); // UM980 UART2 is connected to the IMU
 
-    //  // For now, let's not change the baud rate of the interface. We'll be using the default 115200 for now.
-    //  response &= setBaudRateCOM3(settings.dataPortBaud); // COM3 is connected to ESP UART2
+    // Assume if we've made it this far, the UM980 UART3 is communicating
+    // response &= setBaudRateComm(115200); // UM980 UART3 is connected to the switch, then ESP32
 
     // Enable PPS signal with a width of 200ms, and a period of 1 second
     response &= _um980->enablePPS(200000, 1000); // widthMicroseconds, periodMilliseconds
@@ -542,6 +541,9 @@ bool GNSS_UM980::enableNMEA()
             response &= _um980->setNMEAPortMessage("GPZDA", "COM3", 1);
     }
 
+    if (response == true)
+        gnssConfigure(GNSS_CONFIG_SAVE); // Request receiver commit this change to NVM
+
     return (response);
 }
 
@@ -629,6 +631,9 @@ bool GNSS_UM980::enableRTCMRover()
         if (rtcm1046Enabled == false)
             response &= _um980->setRTCMPortMessage("RTCM1046", "COM3", 1);
     }
+
+    if (response == true)
+        gnssConfigure(GNSS_CONFIG_SAVE); // Request receiver commit this change to NVM
 
     return (response);
 }
@@ -1602,17 +1607,28 @@ bool GNSS_UM980::setBaudRate(uint8_t uartNumber, uint32_t baudRate)
         return (false);
     }
 
-    return setBaudRateCOM3(baudRate);
+    return setBaudRateComm(baudRate);
 }
 
 //----------------------------------------
 // Set the baud rate on the GNSS port that interfaces between the ESP32 and the GNSS
+// This just sets the GNSS side
 //----------------------------------------
-bool GNSS_UM980::setBaudRateCOM3(uint32_t baudRate)
+bool GNSS_UM980::setBaudRateComm(uint32_t baudRate)
 {
     if (online.gnss)
         return _um980->setPortBaudrate("COM3", baudRate);
     return false;
+}
+
+bool GNSS_UM980::setBaudRateData(uint32_t baudRate)
+{
+    return false; // UM980 has DATA port
+}
+
+bool GNSS_UM980::setBaudRateRadio(uint32_t baudRate)
+{
+    return false; // UM980 has no RADIO port
 }
 
 //----------------------------------------
@@ -1648,12 +1664,6 @@ bool GNSS_UM980::setConstellations()
     }
 
     return (response);
-}
-
-//----------------------------------------
-bool GNSS_UM980::setDataBaudRate(uint32_t baud)
-{
-    return false; // UM980 has no multiplexer
 }
 
 //----------------------------------------
@@ -1824,12 +1834,6 @@ bool GNSS_UM980::setMultipathMitigation(bool enableMultipathMitigation)
 }
 
 //----------------------------------------
-bool GNSS_UM980::setRadioBaudRate(uint32_t baud)
-{
-    return false; // UM980 has no multiplexer
-}
-
-//----------------------------------------
 // Given the number of seconds between desired solution reports, determine measurementRateMs and navigationRate
 //----------------------------------------
 bool GNSS_UM980::setRate(double secondsBetweenSolutions)
@@ -1842,17 +1846,44 @@ bool GNSS_UM980::setRate(double secondsBetweenSolutions)
     // ie, if a message != 0, then it will be output at the measurementRate.
     // All RTCM for a base will be based on a measurementRateMs of 1000 with messages
     // that can be reported more slowly than that (ie 1 per 10 seconds).
+
+    // Read/Modify/Write
+    // Determine if we need to modify the setting at all
+    bool changeRequired = false;
+
+    // Determine if the given setting different from our current settings
+    for (int messageNumber = 0; messageNumber < MAX_UM980_NMEA_MSG; messageNumber++)
+    {
+        if (settings.um980MessageRatesNMEA[messageNumber] > 0)
+            if (settings.um980MessageRatesNMEA[messageNumber] != secondsBetweenSolutions)
+                changeRequired = true;
+    }
+    for (int messageNumber = 0; messageNumber < MAX_UM980_RTCM_MSG; messageNumber++)
+    {
+        if (settings.um980MessageRatesRTCMRover[messageNumber] > 0)
+            if (settings.um980MessageRatesRTCMRover[messageNumber] != secondsBetweenSolutions)
+                changeRequired = true;
+    }
+
+    if (changeRequired == false)
+    {
+        if (settings.debugGnss)
+            systemPrintln("setRate: No change required");
+        return (true); // Success
+    }
+
+    if (settings.debugGnss)
+        systemPrintln("setRate: Modifying rates");
+
     bool response = true;
 
-    disableAllOutput();
+    disableAllOutput(); // Turn everything off, before we turn on specific messages
 
     // Overwrite any enabled messages with this rate
     for (int messageNumber = 0; messageNumber < MAX_UM980_NMEA_MSG; messageNumber++)
     {
         if (settings.um980MessageRatesNMEA[messageNumber] > 0)
-        {
             settings.um980MessageRatesNMEA[messageNumber] = secondsBetweenSolutions;
-        }
     }
     response &= enableNMEA(); // Enact these rates
 
@@ -1862,9 +1893,7 @@ bool GNSS_UM980::setRate(double secondsBetweenSolutions)
     for (int messageNumber = 0; messageNumber < MAX_UM980_RTCM_MSG; messageNumber++)
     {
         if (settings.um980MessageRatesRTCMRover[messageNumber] > 0)
-        {
             settings.um980MessageRatesRTCMRover[messageNumber] = secondsBetweenSolutions;
-        }
     }
     response &= enableRTCMRover(); // Enact these rates
 

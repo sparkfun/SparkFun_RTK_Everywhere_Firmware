@@ -534,6 +534,21 @@ class GNSS_None : public GNSS
         return false;
     }
 
+    bool setBaudRateData(uint32_t baud)
+    {
+        return true;
+    }
+
+    bool setBaudRateComm(uint32_t baud)
+    {
+        return true;
+    }
+
+    bool setBaudRateRadio(uint32_t baud)
+    {
+        return true;
+    }
+
     // Enable all the valid constellations and bands for this platform
     bool setConstellations()
     {
@@ -542,11 +557,6 @@ class GNSS_None : public GNSS
 
     // Enable / disable corrections protocol(s) on the Radio External port
     bool setCorrRadioExtPort(bool enable, bool force)
-    {
-        return true;
-    }
-
-    bool setDataBaudRate(uint32_t baud)
     {
         return true;
     }
@@ -589,11 +599,6 @@ class GNSS_None : public GNSS
     bool setNmeaMessageRateByName(const char *msgName, uint8_t msgRate)
     {
         return (true);
-    }
-
-    bool setRadioBaudRate(uint32_t baud)
-    {
-        return true;
     }
 
     // Specify the interval between solutions

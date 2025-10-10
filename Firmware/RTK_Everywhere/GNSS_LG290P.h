@@ -434,7 +434,11 @@ protected:
 
   bool setBaudRate(uint8_t uartNumber, uint32_t baudRate);
 
-  bool setCommBaudrate(uint32_t baud);
+  bool setBaudRateComm(uint32_t baudRate);
+
+  bool setBaudRateData(uint32_t baudRate);
+
+  bool setBaudRateRadio(uint32_t baudRate);
 
   // Enable all the valid constellations and bands for this platform
   bool setConstellations();
@@ -442,8 +446,6 @@ protected:
   // Enable / disable corrections protocol(s) on the Radio External port
   // Always update if force is true. Otherwise, only update if enable has changed state
   bool setCorrRadioExtPort(bool enable, bool force);
-
-  bool setDataBaudRate(uint32_t baud);
 
   // Set the elevation in degrees
   // Inputs:
@@ -462,8 +464,6 @@ protected:
   // Inputs:
   //   modelNumber: Number of the model to use, provided by radio library
   bool setModel(uint8_t modelNumber);
-
-  bool setRadioBaudRate(uint32_t baud);
 
   // Specify the interval between solutions
   // Inputs:

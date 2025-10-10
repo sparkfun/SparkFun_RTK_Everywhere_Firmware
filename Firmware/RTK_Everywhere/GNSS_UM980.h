@@ -143,13 +143,6 @@ class GNSS_UM980 : GNSS
     // Controls the messages that get broadcast over Bluetooth and logged (if enabled)
     void menuMessagesSubtype(float *localMessageRate, const char *messageType);
 
-    bool setBaudRate(uint8_t uartNumber, uint32_t baudRate); // From the super class
-
-    // Set the baud rate on the GNSS port that interfaces between the ESP32 and the GNSS
-    // Inputs:
-    //   baudRate: The desired baudrate
-    bool setBaudRateCOM3(uint32_t baudRate);
-
     bool setHighAccuracyService(bool enableGalileoHas);
 
     // Set the minimum satellite signal level for navigation.
@@ -433,6 +426,17 @@ class GNSS_UM980 : GNSS
     //   Returns true when the configuration was saved and false upon failure
     bool saveConfiguration();
 
+    bool setBaudRate(uint8_t uartNumber, uint32_t baudRate); // From the super class
+
+    // Set the baud rate on the GNSS port that interfaces between the ESP32 and the GNSS
+    // Inputs:
+    //   baudRate: The desired baudrate
+    bool setBaudRateComm(uint32_t baudRate);
+
+    bool setBaudRateData(uint32_t baudRate);
+    
+    bool setBaudRateRadio(uint32_t baudRate);
+
     // Enable all the valid constellations and bands for this platform
     bool setConstellations();
 
@@ -441,8 +445,6 @@ class GNSS_UM980 : GNSS
     {
         return true;
     }
-
-    bool setDataBaudRate(uint32_t baud);
 
     // Set the elevation in degrees
     // Inputs:
@@ -471,8 +473,6 @@ class GNSS_UM980 : GNSS
 
     // Given the name of a message, find it, and set the rate
     bool setRtcmRoverMessageRateByName(const char *msgName, uint8_t msgRate);
-
-    bool setRadioBaudRate(uint32_t baud);
 
     // Specify the interval between solutions
     // Inputs:

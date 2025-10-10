@@ -2026,11 +2026,30 @@ bool GNSS_ZED::setBaudRate(uint8_t port, uint32_t baudRate)
     }
 
     if (port == 1)
-        return setDataBaudRate(baudRate);
+        return setBaudRateData(baudRate);
     else
-        return setRadioBaudRate(baudRate);
+        return setBaudRateRadio(baudRate);
 }
 
+// With ZED modules, configuration communication is done over I2C. No 'Comm' UART exists.
+bool GNSS_ZED::setBaudRateComm(uint32_t baudRate)
+{
+    return false;
+}
+
+bool GNSS_ZED::setBaudRateData(uint32_t baudRate)
+{
+    if (online.gnss)
+        return _zed->setVal32(UBLOX_CFG_UART1_BAUDRATE, baudRate, VAL_LAYER_ALL);
+    return false;
+}
+
+bool GNSS_ZED::setBaudRateRadio(uint32_t baudRate)
+{
+    if (online.gnss)
+        return _zed->setVal32(UBLOX_CFG_UART2_BAUDRATE, baudRate, VAL_LAYER_ALL);
+    return false;
+}
 //----------------------------------------
 // Save the current configuration
 // Returns true when the configuration was saved and false upon failure
@@ -2162,13 +2181,6 @@ bool GNSS_ZED::setCorrRadioExtPort(bool enable, bool force)
     return false;
 }
 
-//----------------------------------------
-bool GNSS_ZED::setDataBaudRate(uint32_t baud)
-{
-    if (online.gnss)
-        return _zed->setVal32(UBLOX_CFG_UART1_BAUDRATE, baud, VAL_LAYER_ALL);
-    return false;
-}
 
 //----------------------------------------
 // Set the elevation in degrees
@@ -2370,14 +2382,6 @@ bool GNSS_ZED::setModel(uint8_t modelNumber)
         _zed->setVal8(UBLOX_CFG_NAVSPG_DYNMODEL, (dynModel)modelNumber, VAL_LAYER_ALL); // Set dynamic model
         return true;
     }
-    return false;
-}
-
-//----------------------------------------
-bool GNSS_ZED::setRadioBaudRate(uint32_t baud)
-{
-    if (online.gnss)
-        return _zed->setVal32(UBLOX_CFG_UART2_BAUDRATE, baud, VAL_LAYER_ALL);
     return false;
 }
 

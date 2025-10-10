@@ -263,12 +263,12 @@ bool GNSS_LG290P::configureOnce()
     // Set the baud rate for the three UARTs
     if (response == true)
     {
-        response &= setDataBaudRate(settings.dataPortBaud); // If available, set baud of DATA port
+        response &= setBaudRateData(settings.dataPortBaud); // If available, set baud of DATA port
 
-        // The following setCommBaudrate() is redundant because to get this far, the comm interface must already be
-        // working response &= setCommBaudrate(115200 * 4); // Set baud for main comm channel
+        // The following setBaudRateComm() is redundant because to get this far, the comm interface must already be
+        // working response &= setBaudRateComm(115200 * 4); // Set baud for main comm channel
 
-        response &= setRadioBaudRate(settings.radioPortBaud); // If available, set baud of RADIO port
+        response &= setBaudRateRadio(settings.radioPortBaud); // If available, set baud of RADIO port
 
         if (response == false && settings.debugGnss)
             systemPrintln("configureOnce: setBauds failed.");
@@ -1264,7 +1264,7 @@ uint32_t GNSS_LG290P::getDataBaudRate()
 //----------------------------------------
 // Set the baud rate of port nicknamed DATA
 //----------------------------------------
-bool GNSS_LG290P::setDataBaudRate(uint32_t baud)
+bool GNSS_LG290P::setBaudRateData(uint32_t baud)
 {
     if (online.gnss)
     {
@@ -1327,7 +1327,7 @@ uint32_t GNSS_LG290P::getRadioBaudRate()
 //----------------------------------------
 // Set the baud rate for the Radio connection
 //----------------------------------------
-bool GNSS_LG290P::setRadioBaudRate(uint32_t baud)
+bool GNSS_LG290P::setBaudRateRadio(uint32_t baud)
 {
     if (online.gnss)
     {
@@ -2242,7 +2242,7 @@ bool GNSS_LG290P::saveConfiguration()
 // Set the baud rate on the GNSS port that interfaces between the ESP32 and the GNSS
 // This just sets the GNSS side
 //----------------------------------------
-bool GNSS_LG290P::setCommBaudrate(uint32_t baud)
+bool GNSS_LG290P::setBaudRateComm(uint32_t baud)
 {
     if (online.gnss)
     {

@@ -10,14 +10,15 @@ GNSS.ino
 enum
 {
     GNSS_CONFIG_ROVER,
-    GNSS_CONFIG_BASE,                    // Fixed base or survey in, location, etc
+    GNSS_CONFIG_BASE, // Fixed base or survey in, location, etc
+    GNSS_CONFIG_BAUD_RATE,
+    GNSS_CONFIG_RATE,
     GNSS_CONFIG_CONSTELLATION,           // Turn on/off a constellation
     GNSS_CONFIG_MESSAGE_RATE,            // Update all message rates
     GNSS_CONFIG_MESSAGE_RATE_NMEA,       // Update NMEA message rates
     GNSS_CONFIG_MESSAGE_RATE_RTCM_ROVER, // Update RTCM Rover message rates
     GNSS_CONFIG_MESSAGE_RATE_RTCM_BASE,  // Update RTCM Base message rates
     GNSS_CONFIG_HAS_E6,                  // Enable/disable HAS E6 capabilities
-    GNSS_CONFIG_BAUD_RATE,
     GNSS_CONFIG_MULTIPATH,
     GNSS_CONFIG_SAVE,  // Indicates current settings be saved to GNSS receiver NVM
     GNSS_CONFIG_RESET, // Indicates receiver needs resetting
