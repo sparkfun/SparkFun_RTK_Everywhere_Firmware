@@ -111,6 +111,11 @@ void menuMain()
     forwardGnssDataToUsbSerial = false;
 
     inMainMenu = true;
+
+    // Clear btPrintEchoExit on entering the menu, to prevent dropping straight
+    // through if the BT connection was dropped while we had the menu closed
+    btPrintEchoExit = false;
+
     displaySerialConfig(); // Display 'Serial Config' while user is configuring
 
     if (settings.debugGnss == true)
