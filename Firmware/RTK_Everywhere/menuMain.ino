@@ -602,9 +602,9 @@ void mmSetBluetoothProtocol(BluetoothRadioType_e bluetoothUserChoice, bool clear
                  && (bluetoothUserChoice != BLUETOOTH_RADIO_OFF)
                  && (bluetoothRadioPreviousOnType == BLUETOOTH_RADIO_OFF))
         {
-            bluetoothStart();
             settings.bluetoothRadioType = bluetoothUserChoice;
             settings.clearBtPairings = clearBtPairings;
+            bluetoothStart();
             return;
         }
         // If Bluetooth was off, and the user has selected on, and Bluetooth has been started previously
@@ -622,12 +622,21 @@ void mmSetBluetoothProtocol(BluetoothRadioType_e bluetoothUserChoice, bool clear
             return;
         }
         // If Bluetooth was in Accessory Mode, and still is, and clearBtPairings is true
-        // then restart skipping the online check
+        // then (re)start Bluetooth skipping the online check
         else if ((settings.bluetoothRadioType == BLUETOOTH_RADIO_SPP_ACCESSORY_MODE)
                  && (bluetoothUserChoice == BLUETOOTH_RADIO_SPP_ACCESSORY_MODE)
                  && clearBtPairings)
         {
+            settings.clearBtPairings = clearBtPairings;
             bluetoothStartSkipOnlineCheck();
+            return;
+        }
+        // If Bluetooth was in Accessory Mode, and still is, and clearBtPairings is false
+        // then do nothing
+        else if ((settings.bluetoothRadioType == BLUETOOTH_RADIO_SPP_ACCESSORY_MODE)
+                 && (bluetoothUserChoice == BLUETOOTH_RADIO_SPP_ACCESSORY_MODE)
+                 && (!clearBtPairings))
+        {
             return;
         }
         // If Bluetooth was on, and the user has selected a different mode
@@ -643,7 +652,7 @@ void mmSetBluetoothProtocol(BluetoothRadioType_e bluetoothUserChoice, bool clear
             ESP.restart();
             return;
         }
-        // <--- Insert any new special cases here --->
+        // <--- Insert any new special cases here, or higher up if needed --->
 
         // Previous catch-all. Likely to cause connection failures...
         bluetoothStop();
