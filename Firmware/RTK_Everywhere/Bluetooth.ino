@@ -815,7 +815,7 @@ void bluetoothStop()
             bluetoothSerialSpp->disconnect(); // Drop any clients
             bluetoothSerialSpp->register_callback(nullptr);
             bluetoothSerialSpp->end();        // Release resources
-            //bluetoothSerialSpp->memrelease(); // Release memory
+            bluetoothSerialSpp->memrelease(); // Release memory
             //delete bluetoothSerialSpp;
             //bluetoothSerialSpp = nullptr;
 
@@ -827,7 +827,7 @@ void bluetoothStop()
             bluetoothSerialSpp->disconnect(); // Drop any clients
             bluetoothSerialSpp->register_callback(nullptr);
             bluetoothSerialSpp->end();        // Release resources
-            //bluetoothSerialSpp->memrelease(); // Release memory
+            bluetoothSerialSpp->memrelease(); // Release memory
             //delete bluetoothSerialSpp;
             //bluetoothSerialSpp = nullptr;
         }
@@ -853,7 +853,7 @@ void bluetoothStop()
             bluetoothSerialSpp->disconnect(); // Drop any clients
             bluetoothSerialSpp->register_callback(nullptr);
             bluetoothSerialSpp->end();        // Release resources
-            //bluetoothSerialSpp->memrelease(); // Release memory
+            bluetoothSerialSpp->memrelease(); // Release memory
             //delete bluetoothSerialSpp;
             //bluetoothSerialSpp = nullptr;
         }
