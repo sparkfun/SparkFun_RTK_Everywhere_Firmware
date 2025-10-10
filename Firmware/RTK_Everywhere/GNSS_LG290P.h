@@ -130,7 +130,7 @@ protected:
   void menuMessagesSubtype(int *localMessageRate, const char *messageType);
 
   // Set the minimum satellite signal level for navigation.
-  bool setMinCnoRadio(uint8_t cnoValue);
+  bool setMinCno(uint8_t cnoValue);
 
   // Given the name of a message, find it, and set the rate
   bool setNmeaMessageRateByName(const char *msgName, uint8_t msgRate);

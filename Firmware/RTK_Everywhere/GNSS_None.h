@@ -20,7 +20,7 @@ class GNSS_None : public GNSS
     }
 
     // Set the minimum satellite signal level for navigation.
-    bool setMinCnoRadio(uint8_t cnoValue)
+    bool setMinCno(uint8_t cnoValue)
     {
         return false;
     }

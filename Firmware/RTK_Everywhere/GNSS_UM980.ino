@@ -249,7 +249,7 @@ bool GNSS_UM980::configureOnce()
 
     bool response = true;
     response &= setBaudRateData(115200); // UM980 UART1 is connected to switch, then USB
-    response &= setBaudRate(2, 115200); // UM980 UART2 is connected to the IMU
+    response &= setBaudRate(2, 115200);  // UM980 UART2 is connected to the IMU
 
     // Assume if we've made it this far, the UM980 UART3 is communicating
     // response &= setBaudRateComm(115200); // UM980 UART3 is connected to the switch, then ESP32
@@ -257,9 +257,10 @@ bool GNSS_UM980::configureOnce()
     // Enable PPS signal with a width of 200ms, and a period of 1 second
     response &= _um980->enablePPS(200000, 1000); // widthMicroseconds, periodMilliseconds
 
-    response &= setElevation(settings.minElev); // UM980 default is 5 degrees. Our default is 10.
+    gnssConfigure(GNSS_CONFIG_ELEVATION); // Request receiver to use new settings
+    gnssConfigure(GNSS_CONFIG_CN0);
 
-    response &= setMinCnoRadio(settings.minCNO);
+    response &= setMinCno(settings.minCNO);
 
     response &= setConstellations();
 
@@ -1683,7 +1684,15 @@ bool GNSS_UM980::setConstellations()
 bool GNSS_UM980::setElevation(uint8_t elevationDegrees)
 {
     if (online.gnss)
+    {
+        // Read, modify, write
+        float currentElevation = _um980->getElevationAngle();
+        if (currentElevation == elevationDegrees)
+            return (true); // Nothing to change
+
+        gnssConfigure(GNSS_CONFIG_SAVE); // Request receiver commit this change to NVM
         return _um980->setElevationAngle(elevationDegrees);
+    }
     return false;
 }
 
@@ -1701,6 +1710,7 @@ bool GNSS_UM980::setHighAccuracyService(bool enableGalileoHas)
         int um980Version = String(_um980->getVersion()).toInt(); // Convert the string response to a value
         if (um980Version >= 11833)
         {
+            // Read, modify, write
             if (_um980->isConfigurationPresent("CONFIG PPP ENABLE E6-HAS") == false)
             {
                 if (_um980->sendCommand("CONFIG PPP ENABLE E6-HAS"))
@@ -1780,13 +1790,16 @@ bool GNSS_UM980::setMessagesUsb(int maxRetries)
 }
 
 //----------------------------------------
-// Set the minimum satellite signal level for navigation.
+// Set the minimum satellite signal level (carrier to noise ratio) for navigation.
 //----------------------------------------
-bool GNSS_UM980::setMinCnoRadio(uint8_t cnoValue)
+bool GNSS_UM980::setMinCno(uint8_t cn0Value)
 {
     if (online.gnss)
     {
-        _um980->setMinCNO(cnoValue);
+        // Read, modify, write
+        // The UM980 does not currently have a way to read the CN0, so we must write only
+        gnssConfigure(GNSS_CONFIG_SAVE); // Request receiver commit this change to NVM
+        _um980->setMinCNO(cn0Value);
         return true;
     }
     return false;
@@ -1799,6 +1812,8 @@ bool GNSS_UM980::setModel(uint8_t modelNumber)
 {
     if (online.gnss)
     {
+        gnssConfigure(GNSS_CONFIG_SAVE); // Request receiver commit this change to NVM
+
         if (modelNumber == UM980_DYN_MODEL_SURVEY)
             return (_um980->setModeRoverSurvey());
         else if (modelNumber == UM980_DYN_MODEL_UAV)
@@ -1820,7 +1835,10 @@ bool GNSS_UM980::setMultipathMitigation(bool enableMultipathMitigation)
         if (_um980->isConfigurationPresent("CONFIG MMP ENABLE") == false)
         {
             if (_um980->sendCommand("CONFIG MMP ENABLE"))
+            {
                 systemPrintln("Multipath Mitigation enabled");
+                gnssConfigure(GNSS_CONFIG_SAVE); // Request receiver commit this change to NVM
+            }
             else
             {
                 systemPrintln("Multipath Mitigation failed to enable");
@@ -1834,7 +1852,10 @@ bool GNSS_UM980::setMultipathMitigation(bool enableMultipathMitigation)
         if (_um980->isConfigurationPresent("CONFIG MMP ENABLE"))
         {
             if (_um980->sendCommand("CONFIG MMP DISABLE"))
+            {
                 systemPrintln("Multipath Mitigation disabled");
+                gnssConfigure(GNSS_CONFIG_SAVE); // Request receiver commit this change to NVM
+            }
             else
             {
                 systemPrintln("Multipath Mitigation failed to disable");
@@ -1914,6 +1935,7 @@ bool GNSS_UM980::setRate(double secondsBetweenSolutions)
     {
         uint16_t msBetweenSolutions = secondsBetweenSolutions * 1000;
         settings.measurementRateMs = msBetweenSolutions;
+        gnssConfigure(GNSS_CONFIG_SAVE); // Request receiver commit this change to NVM
     }
     else
     {

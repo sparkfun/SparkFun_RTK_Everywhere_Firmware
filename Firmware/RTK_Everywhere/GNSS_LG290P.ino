@@ -363,7 +363,7 @@ bool GNSS_LG290P::configureRover()
 
     response &= setElevation(settings.minElev);
 
-    response &= setMinCnoRadio(settings.minCNO);
+    response &= setMinCno(settings.minCNO);
 
     // If we are on a platform that supports tilt
     if (present.tiltPossible == true)
@@ -509,7 +509,7 @@ bool GNSS_LG290P::configureBase()
 
     response &= setElevation(settings.minElev);
 
-    response &= setMinCnoRadio(settings.minCNO);
+    response &= setMinCno(settings.minCNO);
 
     response &= setHighAccuracyService(settings.enableGalileoHas);
 
@@ -1981,7 +1981,7 @@ void GNSS_LG290P::menuMessages()
 
             // Override settings for PPP logging
             setElevation(15);
-            setMinCnoRadio(30);
+            setMinCno(30);
 
             setRate(1); // Go to 1 Hz
 
@@ -2426,7 +2426,7 @@ bool GNSS_LG290P::setMessagesUsb(int maxRetries)
 //----------------------------------------
 // Set the minimum satellite signal level for navigation.
 //----------------------------------------
-bool GNSS_LG290P::setMinCnoRadio(uint8_t cnoValue)
+bool GNSS_LG290P::setMinCno(uint8_t cnoValue)
 {
     // Present on >= v05
     if (lg290pFirmwareVersion >= 5)

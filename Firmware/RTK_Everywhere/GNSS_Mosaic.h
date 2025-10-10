@@ -527,7 +527,7 @@ class GNSS_MOSAIC : GNSS
     bool configureGNSS();
 
     // Set the minimum satellite signal level for navigation.
-    bool setMinCnoRadio(uint8_t cnoValue);
+    bool setMinCno(uint8_t cnoValue);
 
   public:
     // Allow access from parser routines

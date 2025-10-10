@@ -2362,7 +2362,7 @@ bool GNSS_ZED::setMessagesUsb(int maxRetries)
 //----------------------------------------
 // Set the minimum satellite signal level for navigation.
 //----------------------------------------
-bool GNSS_ZED::setMinCnoRadio(uint8_t cnoValue)
+bool GNSS_ZED::setMinCno(uint8_t cnoValue)
 {
     if (online.gnss)
     {

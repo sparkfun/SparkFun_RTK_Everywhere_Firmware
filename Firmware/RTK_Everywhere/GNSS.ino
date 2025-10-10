@@ -13,7 +13,9 @@ enum
     GNSS_CONFIG_BASE, // Fixed base or survey in, location, etc
     GNSS_CONFIG_BAUD_RATE,
     GNSS_CONFIG_RATE,
-    GNSS_CONFIG_CONSTELLATION,           // Turn on/off a constellation
+    GNSS_CONFIG_CONSTELLATION, // Turn on/off a constellation
+    GNSS_CONFIG_ELEVATION,
+    GNSS_CONFIG_CN0,
     GNSS_CONFIG_MESSAGE_RATE,            // Update all message rates
     GNSS_CONFIG_MESSAGE_RATE_NMEA,       // Update NMEA message rates
     GNSS_CONFIG_MESSAGE_RATE_RTCM_ROVER, // Update RTCM Rover message rates
@@ -28,7 +30,7 @@ enum
     GNSS_CONFIG_NONE,
 };
 
-uint16_t gnssConfigureRequest =
+uint32_t gnssConfigureRequest =
     GNSS_CONFIG_NONE; // Bitfield containing an update be made to various settings on the GNSS receiver
 
 extern int NTRIPCLIENT_MS_BETWEEN_GGA;
@@ -86,18 +88,6 @@ bool GNSS::isAntennaOpen()
     return false;
 }
 
-//----------------------------------------
-// Set the minimum satellite signal level for navigation.
-//----------------------------------------
-bool GNSS::setMinCno(uint8_t cnoValue)
-{
-    // Update the setting
-    settings.minCNO = cnoValue;
-
-    // Pass the value to the GNSS receiver
-    return gnss->setMinCnoRadio(cnoValue);
-}
-
 // Antenna Short / Open detection
 bool GNSS::supportsAntennaShortOpen()
 {
@@ -125,21 +115,38 @@ void gnssUpdate()
     {
         bool result = true;
 
-        // Test for individual changes as needed
+        // Service requests
+        // Clear the requests as they are completed successfully
+
         if (gnssConfigureRequest & GNSS_CONFIG_CONSTELLATION)
         {
         }
-        if (gnssConfigureRequest & GNSS_CONFIG_HAS_E6)
+
+        if (gnssConfigureRequest & GNSS_CONFIG_ELEVATION)
         {
-            result &= gnss->setHighAccuracyService(settings.enableGalileoHas);
+            if(gnss->setElevation(settings.minElev) == true)
+                gnssConfigureClear(GNSS_CONFIG_ELEVATION);
         }
 
-        // Platforms will set theGNSS_CONFIG_SAVE andGNSS_CONFIG_RESET bits appropriately for each command issued
+        if (gnssConfigureRequest & GNSS_CONFIG_CN0)
+        {
+            if(gnss->setMinCno(settings.minCNO) == true)
+                gnssConfigureClear(GNSS_CONFIG_CN0);
+        }
+
+        if (gnssConfigureRequest & GNSS_CONFIG_HAS_E6)
+        {
+            if(gnss->setHighAccuracyService(settings.enableGalileoHas) == true)
+                gnssConfigureClear(GNSS_CONFIG_HAS_E6);
+        }
+
+        // Platforms will set the GNSS_CONFIG_SAVE and GNSS_CONFIG_RESET bits appropriately for each command issued
 
         // If one of the previous configuration changes requested save to NVM, do so
         if (gnssConfigureRequest & GNSS_CONFIG_SAVE)
         {
-            result &= gnss->saveConfiguration();
+            if(gnss->saveConfiguration())
+                gnssConfigureClear(GNSS_CONFIG_SAVE);
         }
 
         // Here we need a table to determine if the given combination of setting requests require a GNSS reset to take
@@ -167,16 +174,21 @@ void gnssUpdate()
         {
             systemPrintln("gnssUpdate: Uncaught mode change");
         }
-
-        gnssConfigureRequest = GNSS_CONFIG_NONE; // Clear requests
     }
 }
 
 // Given a bit to configure, set that bit in the overall bitfield
-void gnssConfigure(uint16_t configureBit)
+void gnssConfigure(uint8_t configureBit)
 {
-    uint16_t mask = (1 << configureBit);
+    uint32_t mask = (1 << configureBit);
     gnssConfigureRequest |= mask;
+}
+
+// Given a bit to configure, clear that bit from the overall bitfield
+void gnssConfigureClear(uint8_t configureBit)
+{
+    uint32_t mask = ~(1 << configureBit);
+    gnssConfigureRequest &= mask;
 }
 
 // Set all bits in the request bitfield to cause the GNSS receiver to go through a full (re)configuration
@@ -191,8 +203,7 @@ void gnssConfigureAll()
 //----------------------------------------
 bool gnssCmdUpdateConstellations(const char *settingName, void *settingData, int settingType)
 {
-    gnssConfigureRequest |=
-        GNSS_CONFIG_CONSTELLATION; // Once BLE Command, Web Config, and CLI are closed, reconfigure receiver
+    gnssConfigure(GNSS_CONFIG_CONSTELLATION); // Request receiver to use new settings
 
     return (true);
 }
@@ -202,9 +213,7 @@ bool gnssCmdUpdateConstellations(const char *settingName, void *settingData, int
 //----------------------------------------
 bool gnssCmdUpdateMessageRates(const char *settingName, void *settingData, int settingType)
 {
-    gnssConfigureRequest |=
-        GNSS_CONFIG_MESSAGE_RATE; // Once BLE Command, Web Config, and CLI are closed, reconfigure receiver
-
+    gnssConfigure(GNSS_CONFIG_MESSAGE_RATE); // Request receiver to use new settings
     return (true);
 }
 

@@ -712,7 +712,7 @@ class GNSS_ZED : GNSS
     bool setMessagesUsb(int maxRetries);
 
     // Set the minimum satellite signal level for navigation.
-    bool setMinCnoRadio(uint8_t cnoValue);
+    bool setMinCno(uint8_t cnoValue);
 
     // Set the dynamic model to use for RTK
     // Inputs:

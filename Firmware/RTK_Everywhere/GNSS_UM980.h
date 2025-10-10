@@ -146,7 +146,7 @@ class GNSS_UM980 : GNSS
     bool setHighAccuracyService(bool enableGalileoHas);
 
     // Set the minimum satellite signal level for navigation.
-    bool setMinCnoRadio(uint8_t cnoValue);
+    bool setMinCno(uint8_t cnoValue);
 
     bool setMultipathMitigation(bool enableMultipathMitigation);
 

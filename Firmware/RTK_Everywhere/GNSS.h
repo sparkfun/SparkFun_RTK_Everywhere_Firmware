@@ -49,9 +49,6 @@ protected:
   //   Returns true if successfully configured and false upon failure
   virtual bool configureGNSS();
 
-  // Set the minimum satellite signal level for navigation.
-  virtual bool setMinCnoRadio(uint8_t cnoValue);
-
 public:
   // Constructor
   GNSS() : _leapSeconds(18), _pvtArrivalMillis(0), _pvtUpdated(0), _satellitesInView(0)
@@ -362,7 +359,7 @@ public:
   virtual bool setMessagesUsb(int maxRetries);
 
   // Set the minimum satellite signal level for navigation.
-  bool setMinCno(uint8_t cnoValue);
+  virtual bool setMinCno(uint8_t cnoValue);
 
   // Set the dynamic model to use for RTK
   // Inputs:
