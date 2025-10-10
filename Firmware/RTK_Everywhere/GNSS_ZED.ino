@@ -262,7 +262,7 @@ bool GNSS_ZED::beginExternalEvent()
 // This will be called once by setup and possibly multiple times by
 // menuPortsMultiplexed.
 //----------------------------------------
-bool GNSS_ZED::beginPPS()
+bool GNSS_ZED::setPPS()
 {
     if (online.gnss == false)
         return (false);
@@ -295,7 +295,7 @@ bool GNSS_ZED::beginPPS()
     }
 
     if (response == false)
-        systemPrintln("beginPPS failed");
+        systemPrintln("setPPS failed");
 
     return (response);
 }

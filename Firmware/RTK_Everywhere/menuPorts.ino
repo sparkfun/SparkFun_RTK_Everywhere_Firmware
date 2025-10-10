@@ -320,13 +320,13 @@ void menuPortsMultiplexed()
     }
 
     gnss->beginExternalEvent(); // Update with new settings
-    gnss->beginPPS();
+    gnssConfigure(GNSS_CONFIG_PPS); // Request receiver to use new settings
 }
 
 // Configure the behavior of the PPS and INT pins.
 // Most often used for logging events (inputs) and when external triggers (outputs) occur.
 // menuPortHardwareTriggers is only called by menuPortsMultiplexed.
-// Call gnss->beginExternalEvent() and gnss->beginPPS() in menuPortsMultiplexed, not here
+// Call gnss->beginExternalEvent() and gnss->setPPS() in menuPortsMultiplexed, not here
 // since menuPortsMultiplexed has control of the multiplexer
 void menuPortHardwareTriggers()
 {

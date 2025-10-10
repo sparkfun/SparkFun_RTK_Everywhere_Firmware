@@ -384,7 +384,7 @@ bool GNSS_MOSAIC::beginExternalEvent()
 //   Returns true if the pin was successfully setup and false upon
 //   failure
 //----------------------------------------
-bool GNSS_MOSAIC::beginPPS()
+bool GNSS_MOSAIC::setPPS()
 {
     if (online.gnss == false)
         return (false);

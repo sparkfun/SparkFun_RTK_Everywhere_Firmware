@@ -9,394 +9,391 @@ GNSS.h
 
 class GNSS
 {
-protected:
-  float _altitude;           // Altitude in meters
-  float _horizontalAccuracy; // Horizontal position accuracy in meters
-  double _latitude;          // Latitude in degrees
-  double _longitude;         // Longitude in degrees
-
-  uint8_t _day;   // Day number
-  uint8_t _month; // Month number
-  uint16_t _year;
-  uint8_t _hour; // Hours for 24 hour clock
-  uint8_t _minute;
-  uint8_t _second;
-  uint8_t _leapSeconds;
-  uint16_t _millisecond; // Limited to first two digits
-  uint32_t _nanosecond;
-
-  uint8_t _satellitesInView;
-  uint8_t _fixType;
-  uint8_t _carrierSolution;
-
-  bool _validDate; // True when date is valid
-  bool _validTime; // True when time is valid
-  bool _confirmedDate;
-  bool _confirmedTime;
-  bool _fullyResolved;
-  uint32_t _tAcc;
-
-  unsigned long _pvtArrivalMillis;
-  bool _pvtUpdated;
-
-  bool _corrRadioExtPortEnabled = false;
-
-  unsigned long _autoBaseStartTimer; // Tracks how long the base auto / averaging mode has been running
-
-  // Setup the general configuration of the GNSS
-  // Not Rover or Base specific (ie, baud rates)
-  // Outputs:
-  //   Returns true if successfully configured and false upon failure
-  virtual bool configureGNSS();
-
-public:
-  // Constructor
-  GNSS() : _leapSeconds(18), _pvtArrivalMillis(0), _pvtUpdated(0), _satellitesInView(0)
-  {
-  }
-
-  // If we have decryption keys, configure module
-  // Note: don't check online.lband_neo here. We could be using ip corrections
-  virtual void applyPointPerfectKeys();
-
-  // Set RTCM for base mode to defaults (1005/1074/1084/1094/1124 1Hz & 1230 0.1Hz)
-  virtual void baseRtcmDefault();
-
-  // Reset to Low Bandwidth Link (1074/1084/1094/1124 0.5Hz & 1005/1230 0.1Hz)
-  virtual void baseRtcmLowDataRate();
-
-  // Check if a given baud rate is supported by this module
-  virtual bool baudIsAllowed(uint32_t baudRate);
-  virtual uint32_t baudGetMinimum();
-  virtual uint32_t baudGetMaximum();
+  protected:
+    float _altitude;           // Altitude in meters
+    float _horizontalAccuracy; // Horizontal position accuracy in meters
+    double _latitude;          // Latitude in degrees
+    double _longitude;         // Longitude in degrees
+
+    uint8_t _day;   // Day number
+    uint8_t _month; // Month number
+    uint16_t _year;
+    uint8_t _hour; // Hours for 24 hour clock
+    uint8_t _minute;
+    uint8_t _second;
+    uint8_t _leapSeconds;
+    uint16_t _millisecond; // Limited to first two digits
+    uint32_t _nanosecond;
+
+    uint8_t _satellitesInView;
+    uint8_t _fixType;
+    uint8_t _carrierSolution;
+
+    bool _validDate; // True when date is valid
+    bool _validTime; // True when time is valid
+    bool _confirmedDate;
+    bool _confirmedTime;
+    bool _fullyResolved;
+    uint32_t _tAcc;
+
+    unsigned long _pvtArrivalMillis;
+    bool _pvtUpdated;
+
+    bool _corrRadioExtPortEnabled = false;
+
+    unsigned long _autoBaseStartTimer; // Tracks how long the base auto / averaging mode has been running
+
+    // Setup the general configuration of the GNSS
+    // Not Rover or Base specific (ie, baud rates)
+    // Outputs:
+    //   Returns true if successfully configured and false upon failure
+    virtual bool configureGNSS();
+
+  public:
+    // Constructor
+    GNSS() : _leapSeconds(18), _pvtArrivalMillis(0), _pvtUpdated(0), _satellitesInView(0)
+    {
+    }
+
+    // If we have decryption keys, configure module
+    // Note: don't check online.lband_neo here. We could be using ip corrections
+    virtual void applyPointPerfectKeys();
+
+    // Set RTCM for base mode to defaults (1005/1074/1084/1094/1124 1Hz & 1230 0.1Hz)
+    virtual void baseRtcmDefault();
 
-  // Connect to GNSS and identify particulars
-  virtual void begin();
+    // Reset to Low Bandwidth Link (1074/1084/1094/1124 0.5Hz & 1005/1230 0.1Hz)
+    virtual void baseRtcmLowDataRate();
 
-  // Setup TM2 time stamp input as need
-  // Outputs:
-  //   Returns true when an external event occurs and false if no event
-  virtual bool beginExternalEvent();
+    // Check if a given baud rate is supported by this module
+    virtual bool baudIsAllowed(uint32_t baudRate);
+    virtual uint32_t baudGetMinimum();
+    virtual uint32_t baudGetMaximum();
 
-  // Setup the timepulse output on the PPS pin for external triggering
-  // Outputs
-  //   Returns true if the pin was successfully setup and false upon
-  //   failure
-  virtual bool beginPPS();
+    // Connect to GNSS and identify particulars
+    virtual void begin();
 
-  virtual bool checkNMEARates();
+    // Setup TM2 time stamp input as need
+    // Outputs:
+    //   Returns true when an external event occurs and false if no event
+    virtual bool beginExternalEvent();
 
-  virtual bool checkPPPRates();
+    virtual bool checkNMEARates();
 
-  // Setup the general configuration of the GNSS
-  // Not Rover or Base specific (ie, baud rates)
-  // Outputs:
-  //   Returns true if successfully configured and false upon failure
-  bool configure();
+    virtual bool checkPPPRates();
 
-  // Configure the Base
-  // Outputs:
-  //   Returns true if successfully configured and false upon failure
-  virtual bool configureBase();
+    // Setup the general configuration of the GNSS
+    // Not Rover or Base specific (ie, baud rates)
+    // Outputs:
+    //   Returns true if successfully configured and false upon failure
+    bool configure();
 
-  // Configure specific aspects of the receiver for NTP mode
-  virtual bool configureNtpMode();
+    // Configure the Base
+    // Outputs:
+    //   Returns true if successfully configured and false upon failure
+    virtual bool configureBase();
 
-  // Configure the Rover
-  // Outputs:
-  //   Returns true if successfully configured and false upon failure
-  virtual bool configureRover();
+    // Configure specific aspects of the receiver for NTP mode
+    virtual bool configureNtpMode();
 
-  // Responds with the messages supported on this platform
-  // Inputs:
-  //   returnText: String to receive message names
-  // Returns message names in the returnText string
-  virtual void createMessageList(String &returnText);
+    // Configure the Rover
+    // Outputs:
+    //   Returns true if successfully configured and false upon failure
+    virtual bool configureRover();
 
-  // Responds with the RTCM/Base messages supported on this platform
-  // Inputs:
-  //   returnText: String to receive message names
-  // Returns message names in the returnText string
-  virtual void createMessageListBase(String &returnText);
+    // Responds with the messages supported on this platform
+    // Inputs:
+    //   returnText: String to receive message names
+    // Returns message names in the returnText string
+    virtual void createMessageList(String &returnText);
 
-  virtual void debuggingDisable();
+    // Responds with the RTCM/Base messages supported on this platform
+    // Inputs:
+    //   returnText: String to receive message names
+    // Returns message names in the returnText string
+    virtual void createMessageListBase(String &returnText);
 
-  virtual void debuggingEnable();
+    virtual void debuggingDisable();
 
-  virtual void enableGgaForNtrip();
+    virtual void debuggingEnable();
 
-  // Enable RTCM 1230. This is the GLONASS bias sentence and is transmitted
-  // even if there is no GPS fix. We use it to test serial output.
-  // Outputs:
-  //   Returns true if successfully started and false upon failure
-  virtual bool enableRTCMTest();
+    virtual void enableGgaForNtrip();
 
-  // Restore the GNSS to the factory settings
-  virtual void factoryReset();
+    // Enable RTCM 1230. This is the GLONASS bias sentence and is transmitted
+    // even if there is no GPS fix. We use it to test serial output.
+    // Outputs:
+    //   Returns true if successfully started and false upon failure
+    virtual bool enableRTCMTest();
 
-  virtual uint16_t fileBufferAvailable();
+    // Restore the GNSS to the factory settings
+    virtual void factoryReset();
 
-  virtual uint16_t fileBufferExtractData(uint8_t *fileBuffer, int fileBytesToRead);
+    virtual uint16_t fileBufferAvailable();
 
-  // Start the base using fixed coordinates
-  // Outputs:
-  //   Returns true if successfully started and false upon failure
-  virtual bool fixedBaseStart();
+    virtual uint16_t fileBufferExtractData(uint8_t *fileBuffer, int fileBytesToRead);
 
-  // Return the number of active/enabled messages
-  virtual uint8_t getActiveMessageCount();
+    // Start the base using fixed coordinates
+    // Outputs:
+    //   Returns true if successfully started and false upon failure
+    virtual bool fixedBaseStart();
 
-  // Return the number of active/enabled RTCM messages
-  virtual uint8_t getActiveRtcmMessageCount();
+    // Return the number of active/enabled messages
+    virtual uint8_t getActiveMessageCount();
 
-  // Get the altitude
-  // Outputs:
-  //   Returns the altitude in meters or zero if the GNSS is offline
-  virtual double getAltitude();
+    // Return the number of active/enabled RTCM messages
+    virtual uint8_t getActiveRtcmMessageCount();
 
-  // Returns the carrier solution or zero if not online
-  virtual uint8_t getCarrierSolution();
+    // Get the altitude
+    // Outputs:
+    //   Returns the altitude in meters or zero if the GNSS is offline
+    virtual double getAltitude();
 
-  virtual uint32_t getDataBaudRate();
+    // Returns the carrier solution or zero if not online
+    virtual uint8_t getCarrierSolution();
 
-  // Returns the day number or zero if not online
-  virtual uint8_t getDay();
+    virtual uint32_t getDataBaudRate();
 
-  // Return the number of milliseconds since GNSS data was last updated
-  virtual uint16_t getFixAgeMilliseconds();
+    // Returns the day number or zero if not online
+    virtual uint8_t getDay();
 
-  // Returns the fix type or zero if not online
-  virtual uint8_t getFixType();
+    // Return the number of milliseconds since GNSS data was last updated
+    virtual uint16_t getFixAgeMilliseconds();
 
-  // Returns the hours of 24 hour clock or zero if not online
-  virtual uint8_t getHour();
+    // Returns the fix type or zero if not online
+    virtual uint8_t getFixType();
 
-  // Get the horizontal position accuracy
-  // Outputs:
-  //   Returns the horizontal position accuracy or zero if offline
-  virtual float getHorizontalAccuracy();
+    // Returns the hours of 24 hour clock or zero if not online
+    virtual uint8_t getHour();
 
-  virtual const char *getId();
+    // Get the horizontal position accuracy
+    // Outputs:
+    //   Returns the horizontal position accuracy or zero if offline
+    virtual float getHorizontalAccuracy();
 
-  // Get the latitude value
-  // Outputs:
-  //   Returns the latitude value or zero if not online
-  virtual double getLatitude();
+    virtual const char *getId();
 
-  // Query GNSS for current leap seconds
-  virtual uint8_t getLeapSeconds();
+    // Get the latitude value
+    // Outputs:
+    //   Returns the latitude value or zero if not online
+    virtual double getLatitude();
 
-  // Return the type of logging that matches the enabled messages - drives the logging icon
-  virtual uint8_t getLoggingType();
+    // Query GNSS for current leap seconds
+    virtual uint8_t getLeapSeconds();
 
-  // Get the longitude value
-  // Outputs:
-  //   Returns the longitude value or zero if not online
-  virtual double getLongitude();
+    // Return the type of logging that matches the enabled messages - drives the logging icon
+    virtual uint8_t getLoggingType();
 
-  // Returns two digits of milliseconds or zero if not online
-  virtual uint8_t getMillisecond();
+    // Get the longitude value
+    // Outputs:
+    //   Returns the longitude value or zero if not online
+    virtual double getLongitude();
 
-  // Get the minimum satellite signal level for navigation.
-  uint8_t getMinCno();
+    // Returns two digits of milliseconds or zero if not online
+    virtual uint8_t getMillisecond();
 
-  // Returns minutes or zero if not online
-  virtual uint8_t getMinute();
+    // Get the minimum satellite signal level for navigation.
+    uint8_t getMinCno();
 
-  // Returns month number or zero if not online
-  virtual uint8_t getMonth();
+    // Returns minutes or zero if not online
+    virtual uint8_t getMinute();
 
-  // Returns nanoseconds or zero if not online
-  virtual uint32_t getNanosecond();
+    // Returns month number or zero if not online
+    virtual uint8_t getMonth();
 
-  virtual uint32_t getRadioBaudRate();
+    // Returns nanoseconds or zero if not online
+    virtual uint32_t getNanosecond();
 
-  // Returns the seconds between solutions
-  virtual double getRateS();
+    virtual uint32_t getRadioBaudRate();
 
-  virtual const char *getRtcmDefaultString();
+    // Returns the seconds between solutions
+    virtual double getRateS();
 
-  virtual const char *getRtcmLowDataRateString();
+    virtual const char *getRtcmDefaultString();
 
-  // Returns the number of satellites in view or zero if offline
-  virtual uint8_t getSatellitesInView();
+    virtual const char *getRtcmLowDataRateString();
 
-  // Returns seconds or zero if not online
-  virtual uint8_t getSecond();
+    // Returns the number of satellites in view or zero if offline
+    virtual uint8_t getSatellitesInView();
 
-  // Get the survey-in mean accuracy
-  // Outputs:
-  //   Returns the mean accuracy or zero (0)
-  virtual float getSurveyInMeanAccuracy();
+    // Returns seconds or zero if not online
+    virtual uint8_t getSecond();
 
-  // Return the number of seconds the survey-in process has been running
-  virtual int getSurveyInObservationTime();
+    // Get the survey-in mean accuracy
+    // Outputs:
+    //   Returns the mean accuracy or zero (0)
+    virtual float getSurveyInMeanAccuracy();
 
-  float getSurveyInStartingAccuracy();
+    // Return the number of seconds the survey-in process has been running
+    virtual int getSurveyInObservationTime();
 
-  // Returns timing accuracy or zero if not online
-  virtual uint32_t getTimeAccuracy();
+    float getSurveyInStartingAccuracy();
 
-  // Returns full year, ie 2023, not 23.
-  virtual uint16_t getYear();
+    // Returns timing accuracy or zero if not online
+    virtual uint32_t getTimeAccuracy();
 
-  // Antenna Short / Open detection
-  virtual bool isAntennaShorted();
-  virtual bool isAntennaOpen();
+    // Returns full year, ie 2023, not 23.
+    virtual uint16_t getYear();
 
-  virtual bool isBlocking();
+    // Antenna Short / Open detection
+    virtual bool isAntennaShorted();
+    virtual bool isAntennaOpen();
 
-  // Date is confirmed once we have GNSS fix
-  virtual bool isConfirmedDate();
+    virtual bool isBlocking();
 
-  // Date is confirmed once we have GNSS fix
-  virtual bool isConfirmedTime();
+    // Date is confirmed once we have GNSS fix
+    virtual bool isConfirmedDate();
 
-  // Returns true if data is arriving on the Radio Ext port
-  virtual bool isCorrRadioExtPortActive();
+    // Date is confirmed once we have GNSS fix
+    virtual bool isConfirmedTime();
 
-  // Return true if GNSS receiver has a higher quality DGPS fix than 3D
-  virtual bool isDgpsFixed();
+    // Returns true if data is arriving on the Radio Ext port
+    virtual bool isCorrRadioExtPortActive();
 
-  // Some functions (L-Band area frequency determination) merely need
-  // to know if we have a valid fix, not what type of fix
-  // This function checks to see if the given platform has reached
-  // sufficient fix type to be considered valid
-  virtual bool isFixed();
+    // Return true if GNSS receiver has a higher quality DGPS fix than 3D
+    virtual bool isDgpsFixed();
 
-  // Used in tpISR() for time pulse synchronization
-  virtual bool isFullyResolved();
+    // Some functions (L-Band area frequency determination) merely need
+    // to know if we have a valid fix, not what type of fix
+    // This function checks to see if the given platform has reached
+    // sufficient fix type to be considered valid
+    virtual bool isFixed();
 
-  virtual bool isPppConverged();
+    // Used in tpISR() for time pulse synchronization
+    virtual bool isFullyResolved();
 
-  virtual bool isPppConverging();
+    virtual bool isPppConverged();
 
-  // Some functions (L-Band area frequency determination) merely need
-  // to know if we have an RTK Fix.  This function checks to see if the
-  // given platform has reached sufficient fix type to be considered valid
-  virtual bool isRTKFix();
+    virtual bool isPppConverging();
 
-  // Some functions (L-Band area frequency determination) merely need
-  // to know if we have an RTK Float.  This function checks to see if
-  // the given platform has reached sufficient fix type to be considered
-  // valid
-  virtual bool isRTKFloat();
+    // Some functions (L-Band area frequency determination) merely need
+    // to know if we have an RTK Fix.  This function checks to see if the
+    // given platform has reached sufficient fix type to be considered valid
+    virtual bool isRTKFix();
 
-  // Determine if the survey-in operation is complete
-  // Outputs:
-  //   Returns true if the survey-in operation is complete and false
-  //   if the operation is still running
-  virtual bool isSurveyInComplete();
+    // Some functions (L-Band area frequency determination) merely need
+    // to know if we have an RTK Float.  This function checks to see if
+    // the given platform has reached sufficient fix type to be considered
+    // valid
+    virtual bool isRTKFloat();
 
-  // Date will be valid if the RTC is reporting (regardless of GNSS fix)
-  virtual bool isValidDate();
+    // Determine if the survey-in operation is complete
+    // Outputs:
+    //   Returns true if the survey-in operation is complete and false
+    //   if the operation is still running
+    virtual bool isSurveyInComplete();
 
-  // Time will be valid if the RTC is reporting (regardless of GNSS fix)
-  virtual bool isValidTime();
+    // Date will be valid if the RTC is reporting (regardless of GNSS fix)
+    virtual bool isValidDate();
 
-  // Controls the constellations that are used to generate a fix and logged
-  virtual void menuConstellations();
+    // Time will be valid if the RTC is reporting (regardless of GNSS fix)
+    virtual bool isValidTime();
 
-  virtual void menuMessageBaseRtcm();
+    // Controls the constellations that are used to generate a fix and logged
+    virtual void menuConstellations();
 
-  // Control the messages that get broadcast over Bluetooth and logged (if enabled)
-  virtual void menuMessages();
+    virtual void menuMessageBaseRtcm();
 
-  // Print the module type and firmware version
-  virtual void printModuleInfo();
+    // Control the messages that get broadcast over Bluetooth and logged (if enabled)
+    virtual void menuMessages();
 
-  // Send correction data to the GNSS
-  // Inputs:
-  //   dataToSend: Address of a buffer containing the data
-  //   dataLength: The number of valid data bytes in the buffer
-  // Outputs:
-  //   Returns the number of correction data bytes written
-  virtual int pushRawData(uint8_t *dataToSend, int dataLength);
+    // Print the module type and firmware version
+    virtual void printModuleInfo();
 
-  virtual uint16_t rtcmBufferAvailable();
+    // Send correction data to the GNSS
+    // Inputs:
+    //   dataToSend: Address of a buffer containing the data
+    //   dataLength: The number of valid data bytes in the buffer
+    // Outputs:
+    //   Returns the number of correction data bytes written
+    virtual int pushRawData(uint8_t *dataToSend, int dataLength);
 
-  // If LBand is being used, ignore any RTCM that may come in from the GNSS
-  virtual void rtcmOnGnssDisable();
+    virtual uint16_t rtcmBufferAvailable();
 
-  // If L-Band is available, but encrypted, allow RTCM through other sources (radio, ESP-NOW) to GNSS receiver
-  virtual void rtcmOnGnssEnable();
+    // If LBand is being used, ignore any RTCM that may come in from the GNSS
+    virtual void rtcmOnGnssDisable();
 
-  virtual uint16_t rtcmRead(uint8_t *rtcmBuffer, int rtcmBytesToRead);
+    // If L-Band is available, but encrypted, allow RTCM through other sources (radio, ESP-NOW) to GNSS receiver
+    virtual void rtcmOnGnssEnable();
 
-  // Save the current configuration
-  // Outputs:
-  //   Returns true when the configuration was saved and false upon failure
-  virtual bool saveConfiguration();
+    virtual uint16_t rtcmRead(uint8_t *rtcmBuffer, int rtcmBytesToRead);
 
-  // Enable all the valid constellations and bands for this platform
-  virtual bool setConstellations();
+    // Save the current configuration
+    // Outputs:
+    //   Returns true when the configuration was saved and false upon failure
+    virtual bool saveConfiguration();
 
-  // Enable / disable corrections protocol(s) on the Radio External port
-  // Always update if force is true. Otherwise, only update if enable has changed state
-  virtual bool setCorrRadioExtPort(bool enable, bool force);
+    // Enable all the valid constellations and bands for this platform
+    virtual bool setConstellations();
 
-  virtual bool setBaudRate(uint8_t uartNumber, uint32_t baudRate);
+    // Enable / disable corrections protocol(s) on the Radio External port
+    // Always update if force is true. Otherwise, only update if enable has changed state
+    virtual bool setCorrRadioExtPort(bool enable, bool force);
 
-  virtual bool setBaudRateComm(uint32_t baud);
+    virtual bool setBaudRate(uint8_t uartNumber, uint32_t baudRate);
 
-  virtual bool setBaudRateData(uint32_t baud);
+    virtual bool setBaudRateComm(uint32_t baud);
 
-  virtual bool setBaudRateRadio(uint32_t baud);
+    virtual bool setBaudRateData(uint32_t baud);
 
-  // Set the elevation in degrees
-  // Inputs:
-  //   elevationDegrees: The elevation value in degrees
-  virtual bool setElevation(uint8_t elevationDegrees);
+    virtual bool setBaudRateRadio(uint32_t baud);
 
-  virtual bool setHighAccuracyService(bool enableGalileoHas);
+    // Set the elevation in degrees
+    // Inputs:
+    //   elevationDegrees: The elevation value in degrees
+    virtual bool setElevation(uint8_t elevationDegrees);
 
-  virtual bool setNmeaMessageRateByName(const char *msgName, uint8_t msgRate);
+    virtual bool setHighAccuracyService(bool enableGalileoHas);
 
-  // Enable all the valid messages for this platform
-  virtual bool setMessages(int maxRetries);
+    virtual bool setNmeaMessageRateByName(const char *msgName, uint8_t msgRate);
 
-  // Enable all the valid messages for this platform over the USB port
-  virtual bool setMessagesUsb(int maxRetries);
+    // Enable all the valid messages for this platform
+    virtual bool setMessages(int maxRetries);
 
-  // Set the minimum satellite signal level for navigation.
-  virtual bool setMinCno(uint8_t cnoValue);
+    // Enable all the valid messages for this platform over the USB port
+    virtual bool setMessagesUsb(int maxRetries);
 
-  // Set the dynamic model to use for RTK
-  // Inputs:
-  //   modelNumber: Number of the model to use, provided by radio library
-  virtual bool setModel(uint8_t modelNumber);
+    // Set the minimum satellite signal level for navigation.
+    virtual bool setMinCno(uint8_t cnoValue);
 
-  // Specify the interval between solutions
-  // Inputs:
-  //   secondsBetweenSolutions: Number of seconds between solutions
-  // Outputs:
-  //   Returns true if the rate was successfully set and false upon
-  //   failure
-  virtual bool setRate(double secondsBetweenSolutions);
+    // Set the dynamic model to use for RTK
+    // Inputs:
+    //   modelNumber: Number of the model to use, provided by radio library
+    virtual bool setModel(uint8_t modelNumber);
 
-  virtual bool setTalkerGNGGA();
+    // Configure the Pulse-per-second pin based on user settings
+    virtual bool setPPS();
 
-  // Hotstart GNSS to try to get RTK lock
-  virtual bool softwareReset();
+    // Specify the interval between solutions
+    // Inputs:
+    //   secondsBetweenSolutions: Number of seconds between solutions
+    // Outputs:
+    //   Returns true if the rate was successfully set and false upon
+    //   failure
+    virtual bool setRate(double secondsBetweenSolutions);
 
-  virtual bool standby();
+    virtual bool setTalkerGNGGA();
 
-  // Antenna Short / Open detection
-  virtual bool supportsAntennaShortOpen();
+    // Hotstart GNSS to try to get RTK lock
+    virtual bool softwareReset();
 
-  // Reset the survey-in operation
-  // Outputs:
-  //   Returns true if the survey-in operation was reset successfully
-  //   and false upon failure
-  virtual bool surveyInReset();
+    virtual bool standby();
 
-  // Start the survey-in operation
-  // Outputs:
-  //   Return true if successful and false upon failure
-  virtual bool surveyInStart();
+    // Antenna Short / Open detection
+    virtual bool supportsAntennaShortOpen();
 
-  // Poll routine to update the GNSS state
-  virtual void update();
+    // Reset the survey-in operation
+    // Outputs:
+    //   Returns true if the survey-in operation was reset successfully
+    //   and false upon failure
+    virtual bool surveyInReset();
+
+    // Start the survey-in operation
+    // Outputs:
+    //   Return true if successful and false upon failure
+    virtual bool surveyInStart();
+
+    // Poll routine to update the GNSS state
+    virtual void update();
 };
 
 // Update the constellations following a set command

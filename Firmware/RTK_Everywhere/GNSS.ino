@@ -16,6 +16,7 @@ enum
     GNSS_CONFIG_CONSTELLATION, // Turn on/off a constellation
     GNSS_CONFIG_ELEVATION,
     GNSS_CONFIG_CN0,
+    GNSS_CONFIG_PPS,
     GNSS_CONFIG_MESSAGE_RATE,            // Update all message rates
     GNSS_CONFIG_MESSAGE_RATE_NMEA,       // Update NMEA message rates
     GNSS_CONFIG_MESSAGE_RATE_RTCM_ROVER, // Update RTCM Rover message rates
@@ -132,6 +133,12 @@ void gnssUpdate()
         {
             if(gnss->setMinCno(settings.minCNO) == true)
                 gnssConfigureClear(GNSS_CONFIG_CN0);
+        }
+
+        if (gnssConfigureRequest & GNSS_CONFIG_PPS)
+        {
+            if(gnss->setPPS() == true)
+                gnssConfigureClear(GNSS_CONFIG_PPS);
         }
 
         if (gnssConfigureRequest & GNSS_CONFIG_HAS_E6)

@@ -124,8 +124,6 @@ void GNSS_UM980::begin()
 }
 
 //----------------------------------------
-// Setup the timepulse output on the PPS pin for external triggering
-// Setup TM2 time stamp input as need
 //----------------------------------------
 bool GNSS_UM980::beginExternalEvent()
 {
@@ -133,13 +131,16 @@ bool GNSS_UM980::beginExternalEvent()
     return (false);
 }
 
-//----------------------------------------
-// Setup the timepulse output on the PPS pin for external triggering
-//----------------------------------------
-bool GNSS_UM980::beginPPS()
+// Configure the Pulse-per-second pin based on user settings
+bool GNSS_UM980::setPPS()
 {
-    // UM980 PPS signal not exposed
-    return (false);
+    // The PPS signal is not exposed on the Torch so we don't configure the PPS based on internal settings, but we do
+    // configure the PPS so that the GNSS LED blinks
+
+    gnssConfigure(GNSS_CONFIG_SAVE); // Request receiver commit this change to NVM
+
+    // Enable PPS signal with a width of 200ms, and a period of 1 second
+    return(_um980->enablePPS(settings.externalPulseLength_us, settings.externalPulseTimeBetweenPulse_us / 1000)); // widthMicroseconds, periodMilliseconds
 }
 
 //----------------------------------------
@@ -254,13 +255,9 @@ bool GNSS_UM980::configureOnce()
     // Assume if we've made it this far, the UM980 UART3 is communicating
     // response &= setBaudRateComm(115200); // UM980 UART3 is connected to the switch, then ESP32
 
-    // Enable PPS signal with a width of 200ms, and a period of 1 second
-    response &= _um980->enablePPS(200000, 1000); // widthMicroseconds, periodMilliseconds
-
     gnssConfigure(GNSS_CONFIG_ELEVATION); // Request receiver to use new settings
     gnssConfigure(GNSS_CONFIG_CN0);
-
-    response &= setMinCno(settings.minCNO);
+    gnssConfigure(GNSS_CONFIG_PPS);
 
     response &= setConstellations();
 

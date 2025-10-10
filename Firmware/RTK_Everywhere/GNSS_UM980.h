@@ -179,12 +179,6 @@ class GNSS_UM980 : GNSS
     //   Returns true when an external event occurs and false if no event
     bool beginExternalEvent();
 
-    // Setup the timepulse output on the PPS pin for external triggering
-    // Outputs
-    //   Returns true if the pin was successfully setup and false upon
-    //   failure
-    bool beginPPS();
-
     bool checkNMEARates();
 
     bool checkPPPRates();
@@ -434,7 +428,7 @@ class GNSS_UM980 : GNSS
     bool setBaudRateComm(uint32_t baudRate);
 
     bool setBaudRateData(uint32_t baudRate);
-    
+
     bool setBaudRateRadio(uint32_t baudRate);
 
     // Enable all the valid constellations and bands for this platform
@@ -464,6 +458,9 @@ class GNSS_UM980 : GNSS
 
     // Given the name of a message, find it, and set the rate
     bool setNmeaMessageRateByName(const char *msgName, uint8_t msgRate);
+
+    // Configure the Pulse-per-second pin based on user settings
+    bool setPPS();
 
     // Set all RTCM Rover message report rates to one value
     void setRtcmRoverMessageRates(uint8_t msgRate);

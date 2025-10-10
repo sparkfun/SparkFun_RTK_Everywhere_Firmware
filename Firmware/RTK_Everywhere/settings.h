@@ -932,7 +932,7 @@ struct Settings
 
     // Pulse
     bool enableExternalPulse = true;                           // Send pulse once lock is achieved
-    uint64_t externalPulseLength_us = 100000;                  // us length of pulse, max of 60s = 60 * 1000 * 1000
+    uint64_t externalPulseLength_us = 200000;                  // us length of pulse, max of 60s = 60 * 1000 * 1000
     pulseEdgeType_e externalPulsePolarity = PULSE_RISING_EDGE; // Pulse rises for pulse length, then falls
     uint64_t externalPulseTimeBetweenPulse_us = 1000000;       // us between pulses, max of 60s = 60 * 1000 * 1000
 

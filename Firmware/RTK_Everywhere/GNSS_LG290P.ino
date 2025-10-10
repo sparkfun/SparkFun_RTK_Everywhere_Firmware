@@ -158,7 +158,7 @@ bool GNSS_LG290P::beginExternalEvent()
 //----------------------------------------
 // Setup the timepulse output on the PPS pin for external triggering
 //----------------------------------------
-bool GNSS_LG290P::beginPPS()
+bool GNSS_LG290P::setPPS()
 {
     // TODO LG290P
     return (false);

@@ -315,7 +315,7 @@ void menuGNSS()
             // Arbitrary 90 degree max
             if (getNewSetting("Enter minimum elevation in degrees", 0, 90, &settings.minElev) == INPUT_RESPONSE_VALID)
             {
-                gnss->setElevation(settings.minElev);
+                gnssConfigure(GNSS_CONFIG_ELEVATION); // Request receiver to use new settings
             }
         }
         else if (incoming == 6 && present.minCno)
@@ -325,7 +325,7 @@ void menuGNSS()
             if (getNewSetting("Enter minimum satellite signal level for navigation in dBHz", 0,
                               present.gnss_mosaicX5 ? 60 : 90, &minCNO) == INPUT_RESPONSE_VALID)
             {
-                gnss->setMinCno(minCNO); // Set the setting and configure the GNSS receiver
+                gnssConfigure(GNSS_CONFIG_CN0);       // Request receiver to use new settings
             }
         }
 
@@ -346,7 +346,7 @@ void menuGNSS()
             if (getNewSetting("Enter new Caster Port", 1, 99999, &settings.ntripClient_CasterPort) ==
                 INPUT_RESPONSE_VALID)
             {
-            // No need to restart rover. NTRIP Client state machine will service the change.
+                // No need to restart rover. NTRIP Client state machine will service the change.
             }
         }
         else if ((incoming == 10) && settings.enableNtripClient == true)
@@ -376,7 +376,7 @@ void menuGNSS()
         else if ((incoming == 14) && settings.enableNtripClient == true)
         {
             settings.ntripClient_TransmitGGA ^= 1;
-            
+
             // We may need to enable the GGA message. Trigger GNSS receiver reconfigure.
             gnssConfigure(GNSS_CONFIG_MESSAGE_RATE); // Request update
         }

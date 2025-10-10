@@ -74,15 +74,6 @@ class GNSS_None : public GNSS
         return false;
     }
 
-    // Setup the timepulse output on the PPS pin for external triggering
-    // Outputs
-    //   Returns true if the pin was successfully setup and false upon
-    //   failure
-    bool beginPPS()
-    {
-        return false;
-    }
-
     bool checkNMEARates()
     {
         return false;
@@ -599,6 +590,12 @@ class GNSS_None : public GNSS
     bool setNmeaMessageRateByName(const char *msgName, uint8_t msgRate)
     {
         return (true);
+    }
+
+    // Configure the Pulse-per-second pin based on user settings
+    bool setPPS()
+    {
+        return false;
     }
 
     // Specify the interval between solutions

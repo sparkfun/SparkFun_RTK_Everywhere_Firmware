@@ -600,12 +600,6 @@ class GNSS_MOSAIC : GNSS
     //   Returns true when an external event occurs and false if no event
     bool beginExternalEvent();
 
-    // Setup the timepulse output on the PPS pin for external triggering
-    // Outputs
-    //   Returns true if the pin was successfully setup and false upon
-    //   failure
-    bool beginPPS();
-
     bool checkNMEARates();
 
     bool checkPPPRates();
@@ -1015,6 +1009,12 @@ class GNSS_MOSAIC : GNSS
     // Given the name of a message, find it, and set the rate
     bool setNmeaMessageRateByName(const char *msgName, uint8_t msgRate);
 
+        // Setup the timepulse output on the PPS pin for external triggering
+    // Outputs
+    //   Returns true if the pin was successfully setup and false upon
+    //   failure
+    bool setPPS();
+    
     // Specify the interval between solutions
     // Inputs:
     //   secondsBetweenSolutions: Number of seconds between solutions

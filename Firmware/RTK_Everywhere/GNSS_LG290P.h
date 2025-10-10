@@ -170,11 +170,8 @@ protected:
   //   Returns true when an external event occurs and false if no event
   bool beginExternalEvent();
 
-  // Setup the timepulse output on the PPS pin for external triggering
-  // Outputs
-  //   Returns true if the pin was successfully setup and false upon
-  //   failure
-  bool beginPPS();
+  // Setup the PPS pin for PPS LED
+  bool setPPS();
 
   bool checkNMEARates();
 
