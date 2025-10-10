@@ -131,6 +131,7 @@ void menuMain()
         firmwareVersionGet(versionString, sizeof(versionString), true);
         RTKBrandAttribute *brandAttributes = getBrandAttributeFromBrand(present.brand);
         systemPrintf("%s RTK %s %s\r\n", brandAttributes->name, platformPrefix, versionString);
+        systemPrintf("Mode: %s\r\n", stateToRtkMode(systemState));
 
 #ifdef COMPILE_BT
 

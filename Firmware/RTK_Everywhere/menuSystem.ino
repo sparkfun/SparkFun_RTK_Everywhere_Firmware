@@ -1224,6 +1224,9 @@ void menuPeriodicPrint()
         systemPrint("27) RTK correction source: ");
         systemPrintf("%s\r\n", PERIODIC_SETTING(PD_CORRECTION_SOURCE) ? "Enabled" : "Disabled");
 
+        systemPrint("28) Firmware mode: ");
+        systemPrintf("%s\r\n", PERIODIC_SETTING(PD_FIRMWARE_MODE) ? "Enabled" : "Disabled");
+
         systemPrintln("------  Clients  -----");
         systemPrint("40) NTP server data: ");
         systemPrintf("%s\r\n", PERIODIC_SETTING(PD_NTP_SERVER_DATA) ? "Enabled" : "Disabled");
@@ -1356,6 +1359,8 @@ void menuPeriodicPrint()
             settings.enablePrintStates ^= 1;
         else if (incoming == 27)
             PERIODIC_TOGGLE(PD_CORRECTION_SOURCE);
+        else if (incoming == 28)
+            PERIODIC_TOGGLE(PD_FIRMWARE_MODE);
 
         else if (incoming == 40)
             PERIODIC_TOGGLE(PD_NTP_SERVER_DATA);

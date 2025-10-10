@@ -112,7 +112,7 @@ function parseIncoming(msg) {
                 hide("externalPortOptions");
                 show("logToSDCard");
                 hide("galileoHasSetting");
-                hide("useMSM7Setting");
+                hide("lg290pGnssSettings");
                 hide("tiltConfig");
                 hide("beeperControl");
                 show("measurementRateInput");
@@ -146,7 +146,7 @@ function parseIncoming(msg) {
                 show("externalPortOptions");
                 show("logToSDCard");
                 hide("galileoHasSetting");
-                hide("useMSM7Setting");
+                hide("lg290pGnssSettings");
                 hide("tiltConfig");
                 hide("beeperControl");
                 show("measurementRateInput");
@@ -167,7 +167,7 @@ function parseIncoming(msg) {
                 show("externalPortOptions");
                 show("logToSDCard");
                 hide("galileoHasSetting");
-                hide("useMSM7Setting");
+                hide("lg290pGnssSettings");
                 hide("tiltConfig");
                 hide("beeperControl");
                 hide("measurementRateInput");
@@ -257,8 +257,8 @@ function parseIncoming(msg) {
                 show("externalPortOptions");
                 show("logToSDCard");
 
-                hide("galileoHasSetting");
-                show("useMSM7Setting");
+                show("galileoHasSetting");
+                show("lg290pGnssSettings");
                 hide("tiltConfig");
                 hide("beeperControl");
 
@@ -273,8 +273,8 @@ function parseIncoming(msg) {
                 show("constellationNavic");
 
                 hide("dynamicModelDropdown"); //Not supported on LG290P
-                hide("minElevConfig"); //Not supported on LG290P
-                hide("minCNOConfig"); //Not supported on LG290P
+                show("minElevConfig");
+                show("minCNOConfig");
 
                 ge("rtcmRateInfoText").setAttribute('data-bs-original-title', 'RTCM is transmitted by the base at a default of 1Hz for messages 1005, 1074, 1084, 1094, 1114, 1124, 1134. This can be lowered for radios with low bandwidth or tailored to transmit any/all RTCM messages. Limits: 0 to 20. Note: The measurement rate is overridden to 1Hz when in Base mode.');
 
@@ -327,8 +327,8 @@ function parseIncoming(msg) {
 
                 hide("constellationSbas"); //Not supported on LG290P
                 show("constellationNavic"); 
-                hide("galileoHasSetting"); //Not supported on LG290P
-                show("useMSM7Setting");
+                show("galileoHasSetting");
+                show("lg290pGnssSettings");
                 hide("tiltConfig"); //Not supported on Torch X2
 
                 show("measurementRateInput");
@@ -341,8 +341,8 @@ function parseIncoming(msg) {
                 hide("enableNmeaOnRadio");
 
                 hide("dynamicModelDropdown"); //Not supported on LG290P
-                hide("minElevConfig"); //Not supported on LG290P
-                hide("minCNOConfig"); //Not supported on LG290P
+                show("minElevConfig");
+                show("minCNOConfig");
 
                 ge("rtcmRateInfoText").setAttribute('data-bs-original-title', 'RTCM is transmitted by the base at a default of 1Hz for messages 1005, 1074, 1084, 1094, 1124, and 0.1Hz for 1033. This can be lowered for radios with low bandwidth or tailored to transmit any/all RTCM messages. Limits: 0 to 20. Note: The measurement rate is overridden to 1Hz when in Base mode.');
 
@@ -714,6 +714,13 @@ function show(id) {
     ge(id).style.display = "block";
 }
 
+function isElementShown(id) {
+    if (ge(id).style.display == "block") {
+        return (true);
+    }
+    return (false);
+}
+
 //Create CSV of all setting data
 function sendData() {
     var settingCSV = "";
@@ -841,6 +848,9 @@ function validateFields() {
 
     checkElementValue("minElev", 0, 90, "Must be between 0 and 90", "collapseGNSSConfig");
     checkElementValue("minCNO", 0, 90, "Must be between 0 and 90", "collapseGNSSConfig");
+    if (isElementShown("lg290pGnssSettings") == true) {
+        checkElementValue("rtcmMinElev", -90, 90, "Must be between -90 and 90", "collapseGNSSConfig");
+    }
 
     if (ge("enableNtripClient").checked == true) {
         checkElementString("ntripClientCasterHost", 1, 45, "Must be 1 to 45 characters", "collapseGNSSConfig");

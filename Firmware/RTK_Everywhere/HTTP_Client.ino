@@ -693,7 +693,7 @@ void httpClientUpdate()
     }
 
     // Periodically display the HTTP client state
-    if (PERIODIC_DISPLAY(PD_HTTP_CLIENT_STATE))
+    if (PERIODIC_DISPLAY(PD_HTTP_CLIENT_STATE) && !inMainMenu)
     {
         const char *line = "";
         httpClientEnabled(&line);

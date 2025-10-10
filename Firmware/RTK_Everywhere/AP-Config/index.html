@@ -363,7 +363,7 @@
                         </div>
                     </div>
 
-                    <div id="useMSM7Setting">
+                    <div id="lg290pGnssSettings">
                         <div class="form-check mt-3">
                             <label class="form-check-label" for="useMSM7">MSM7 RTCM Selection</label>
                             <input class="form-check-input" type="checkbox" value="" id="useMSM7">
@@ -371,6 +371,21 @@
                                 title="Use MSM7 format RTCM mesages. Default: Disabled (MSM4).">
                                 <span class="icon-info-circle text-primary ms-2"></span>
                             </span>
+                        </div>
+
+                        <div class="form-group row" id="rtcmMinElevConfig">
+                            <div class="form-group row">
+                                <label for="rtcmMinElev" class="col-sm-4 col-6 col-form-label">Min SV Elevation for RTCM:
+                                    <span class="tt" data-bs-placement="right"
+                                        title="Minimum elevation in degrees for a GNSS satellite to be used for RTCM corrections.">
+                                        <span class="icon-info-circle text-primary ms-2"></span>
+                                    </span>
+                                </label>
+                                <div class="col-sm-4 col-6">
+                                    <input type="number" class="form-control" id="rtcmMinElev">
+                                    <p id="rtcmMinElevError" class="inlineError"></p>
+                                </div>
+                            </div>
                         </div>
                     </div>
 

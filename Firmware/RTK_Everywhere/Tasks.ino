@@ -166,7 +166,7 @@ void btReadTask(void *e)
     while (task.btReadTaskStopRequest == false)
     {
         // Display an alive message
-        if (PERIODIC_DISPLAY(PD_TASK_BLUETOOTH_READ))
+        if (PERIODIC_DISPLAY(PD_TASK_BLUETOOTH_READ) && !inMainMenu)
         {
             PERIODIC_CLEAR(PD_TASK_BLUETOOTH_READ);
             systemPrintln("btReadTask running");
@@ -236,7 +236,7 @@ void btReadTask(void *e)
 
             } // End btPrintEcho == false && bluetoothRxDataAvailable()
 
-            if (PERIODIC_DISPLAY(PD_BLUETOOTH_DATA_RX))
+            if (PERIODIC_DISPLAY(PD_BLUETOOTH_DATA_RX) && !inMainMenu)
             {
                 PERIODIC_CLEAR(PD_BLUETOOTH_DATA_RX);
                 systemPrintf("Bluetooth received %d bytes\r\n", rxBytes);
@@ -415,7 +415,7 @@ void gnssReadTask(void *e)
     while (task.gnssReadTaskStopRequest == false)
     {
         // Display an alive message
-        if (PERIODIC_DISPLAY(PD_TASK_GNSS_READ))
+        if (PERIODIC_DISPLAY(PD_TASK_GNSS_READ) && !inMainMenu)
         {
             PERIODIC_CLEAR(PD_TASK_GNSS_READ);
             systemPrintln("gnssReadTask running");
@@ -426,7 +426,7 @@ void gnssReadTask(void *e)
 
         // Display the RX byte count
         static uint32_t totalRxByteCount = 0;
-        if (PERIODIC_DISPLAY(PD_GNSS_DATA_RX_BYTE_COUNT))
+        if (PERIODIC_DISPLAY(PD_GNSS_DATA_RX_BYTE_COUNT) && !inMainMenu)
         {
             PERIODIC_CLEAR(PD_GNSS_DATA_RX_BYTE_COUNT);
             systemPrintf("gnssReadTask total byte count: %d\r\n", totalRxByteCount);
@@ -1345,7 +1345,7 @@ void handleGnssDataTask(void *e)
     while (task.handleGnssDataTaskStopRequest == false)
     {
         // Display an alive message
-        if (PERIODIC_DISPLAY(PD_TASK_HANDLE_GNSS_DATA))
+        if (PERIODIC_DISPLAY(PD_TASK_HANDLE_GNSS_DATA) && !inMainMenu)
         {
             PERIODIC_CLEAR(PD_TASK_HANDLE_GNSS_DATA);
             systemPrintln("handleGnssDataTask running");
@@ -1414,7 +1414,7 @@ void handleGnssDataTask(void *e)
                             maxMillis[RBC_BLUETOOTH] = deltaMillis;
 
                         // Display the data movement
-                        if (PERIODIC_DISPLAY(PD_BLUETOOTH_DATA_TX))
+                        if (PERIODIC_DISPLAY(PD_BLUETOOTH_DATA_TX) && !inMainMenu)
                         {
                             PERIODIC_CLEAR(PD_BLUETOOTH_DATA_TX);
                             systemPrintf("Bluetooth: %d bytes written\r\n", bytesToSend);
@@ -1760,7 +1760,7 @@ void handleGnssDataTask(void *e)
             // Display the millisecond values for the different ring buffer consumers
             //----------------------------------------------------------------------
 
-            if (PERIODIC_DISPLAY(PD_RING_BUFFER_MILLIS))
+            if (PERIODIC_DISPLAY(PD_RING_BUFFER_MILLIS) && !inMainMenu)
             {
                 int milliseconds;
                 int seconds;
@@ -1991,7 +1991,7 @@ void buttonCheckTask(void *e)
     while (task.buttonCheckTaskStopRequest == false)
     {
         // Display an alive message
-        if (PERIODIC_DISPLAY(PD_TASK_BUTTON_CHECK))
+        if (PERIODIC_DISPLAY(PD_TASK_BUTTON_CHECK) && !inMainMenu)
         {
             PERIODIC_CLEAR(PD_TASK_BUTTON_CHECK);
             systemPrintln("ButtonCheckTask running");
@@ -2486,7 +2486,7 @@ void sdSizeCheckTask(void *e)
     while (task.sdSizeCheckTaskStopRequest == false)
     {
         // Display an alive message
-        if (PERIODIC_DISPLAY(PD_TASK_SD_SIZE_CHECK))
+        if (PERIODIC_DISPLAY(PD_TASK_SD_SIZE_CHECK) && !inMainMenu)
         {
             PERIODIC_CLEAR(PD_TASK_SD_SIZE_CHECK);
             systemPrintln("sdSizeCheckTask running");
@@ -2567,7 +2567,7 @@ void bluetoothCommandTask(void *pvParameters)
     while (task.bluetoothCommandTaskStopRequest == false)
     {
         // Display an alive message
-        if (PERIODIC_DISPLAY(PD_TASK_BLUETOOTH_READ))
+        if (PERIODIC_DISPLAY(PD_TASK_BLUETOOTH_READ) && !inMainMenu)
         {
             PERIODIC_CLEAR(PD_TASK_BLUETOOTH_READ);
             systemPrintln("bluetoothCommandTask running");
@@ -2590,7 +2590,7 @@ void bluetoothCommandTask(void *pvParameters)
             }
         }
 
-        if (PERIODIC_DISPLAY(PD_BLUETOOTH_DATA_RX))
+        if (PERIODIC_DISPLAY(PD_BLUETOOTH_DATA_RX) && !inMainMenu)
         {
             PERIODIC_CLEAR(PD_BLUETOOTH_DATA_RX);
             systemPrintf("Bluetooth received %d bytes\r\n", rxSpot);
