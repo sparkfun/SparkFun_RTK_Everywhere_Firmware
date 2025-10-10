@@ -360,6 +360,8 @@ class GNSS
     //   modelNumber: Number of the model to use, provided by radio library
     virtual bool setModel(uint8_t modelNumber);
 
+    virtual bool setMultipathMitigation(bool enableMultipathMitigation);
+
     // Configure the Pulse-per-second pin based on user settings
     virtual bool setPPS();
 

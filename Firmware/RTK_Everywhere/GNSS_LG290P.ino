@@ -2442,7 +2442,16 @@ bool GNSS_LG290P::setMinCno(uint8_t cnoValue)
 bool GNSS_LG290P::setModel(uint8_t modelNumber)
 {
     // Not a feature on LG290p
-    return (false);
+    return true;
+}
+
+//----------------------------------------
+// Configure multipath mitigation
+//----------------------------------------
+bool GNSS_LG290P::setMultipathMitigation(bool enableMultipathMitigation)
+{
+    // Does not exist on this platform
+    return true;
 }
 
 //----------------------------------------

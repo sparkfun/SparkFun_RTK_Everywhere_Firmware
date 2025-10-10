@@ -1006,15 +1006,17 @@ class GNSS_MOSAIC : GNSS
     //   modelNumber: Number of the model to use, provided by radio library
     bool setModel(uint8_t modelNumber);
 
+    bool setMultipathMitigation(bool enableMultipathMitigation);
+
     // Given the name of a message, find it, and set the rate
     bool setNmeaMessageRateByName(const char *msgName, uint8_t msgRate);
 
-        // Setup the timepulse output on the PPS pin for external triggering
+    // Setup the timepulse output on the PPS pin for external triggering
     // Outputs
     //   Returns true if the pin was successfully setup and false upon
     //   failure
     bool setPPS();
-    
+
     // Specify the interval between solutions
     // Inputs:
     //   secondsBetweenSolutions: Number of seconds between solutions

@@ -586,10 +586,15 @@ class GNSS_None : public GNSS
         return true;
     }
 
+    bool setMultipathMitigation(bool enableMultipathMitigation)
+    {
+        return true;
+    }
+
     // Given the name of a message, find it, and set the rate
     bool setNmeaMessageRateByName(const char *msgName, uint8_t msgRate)
     {
-        return (true);
+        return true;
     }
 
     // Configure the Pulse-per-second pin based on user settings

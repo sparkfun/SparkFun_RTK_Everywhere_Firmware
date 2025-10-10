@@ -2386,6 +2386,15 @@ bool GNSS_ZED::setModel(uint8_t modelNumber)
 }
 
 //----------------------------------------
+// Configure multipath mitigation
+//----------------------------------------
+bool GNSS_ZED::setMultipathMitigation(bool enableMultipathMitigation)
+{
+    // Does not exist on the ZED platform
+    return true;
+}
+
+//----------------------------------------
 // Given the number of seconds between desired solution reports, determine measurementRateMs and navigationRate
 // measurementRateS > 25 & <= 65535
 // navigationRate >= 1 && <= 127

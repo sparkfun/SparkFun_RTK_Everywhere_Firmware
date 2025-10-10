@@ -2510,6 +2510,15 @@ bool GNSS_MOSAIC::setModel(uint8_t modelNumber)
     return (sendWithResponse(setting, "ReceiverDynamics"));
 }
 
+//----------------------------------------
+// Configure multipath mitigation
+//----------------------------------------
+bool GNSS_MOSAIC::setMultipathMitigation(bool enableMultipathMitigation)
+{
+    // Does not exist on this platform
+    return true;
+}
+
 // Given the name of a message, find it, and set the rate
 bool GNSS_MOSAIC::setNmeaMessageRateByName(const char *msgName, uint8_t msgRate)
 {

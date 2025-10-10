@@ -17,6 +17,7 @@ enum
     GNSS_CONFIG_ELEVATION,
     GNSS_CONFIG_CN0,
     GNSS_CONFIG_PPS,
+    GNSS_CONFIG_MODEL,
     GNSS_CONFIG_MESSAGE_RATE,            // Update all message rates
     GNSS_CONFIG_MESSAGE_RATE_NMEA,       // Update NMEA message rates
     GNSS_CONFIG_MESSAGE_RATE_RTCM_ROVER, // Update RTCM Rover message rates
@@ -121,30 +122,65 @@ void gnssUpdate()
 
         if (gnssConfigureRequest & GNSS_CONFIG_CONSTELLATION)
         {
+            if (gnss->setConstellations() == true)
+            {
+                gnssConfigureClear(GNSS_CONFIG_CONSTELLATION);
+                gnssConfigure(GNSS_CONFIG_SAVE); // Request receiver commit this change to NVM
+            }
         }
 
         if (gnssConfigureRequest & GNSS_CONFIG_ELEVATION)
         {
-            if(gnss->setElevation(settings.minElev) == true)
+            if (gnss->setElevation(settings.minElev) == true)
+            {
                 gnssConfigureClear(GNSS_CONFIG_ELEVATION);
+                gnssConfigure(GNSS_CONFIG_SAVE); // Request receiver commit this change to NVM
+            }
         }
 
         if (gnssConfigureRequest & GNSS_CONFIG_CN0)
         {
-            if(gnss->setMinCno(settings.minCNO) == true)
+            if (gnss->setMinCno(settings.minCNO) == true)
+            {
                 gnssConfigureClear(GNSS_CONFIG_CN0);
+                gnssConfigure(GNSS_CONFIG_SAVE); // Request receiver commit this change to NVM
+            }
         }
 
         if (gnssConfigureRequest & GNSS_CONFIG_PPS)
         {
-            if(gnss->setPPS() == true)
+            if (gnss->setPPS() == true)
+            {
                 gnssConfigureClear(GNSS_CONFIG_PPS);
+                gnssConfigure(GNSS_CONFIG_SAVE); // Request receiver commit this change to NVM
+            }
+        }
+
+        if (gnssConfigureRequest & GNSS_CONFIG_MODEL)
+        {
+            if (gnss->setModel(settings.dynamicModel) == true)
+            {
+                gnssConfigureClear(GNSS_CONFIG_MODEL);
+                gnssConfigure(GNSS_CONFIG_SAVE); // Request receiver commit this change to NVM
+            }
         }
 
         if (gnssConfigureRequest & GNSS_CONFIG_HAS_E6)
         {
-            if(gnss->setHighAccuracyService(settings.enableGalileoHas) == true)
+            if (gnss->setHighAccuracyService(settings.enableGalileoHas) == true)
+            {
                 gnssConfigureClear(GNSS_CONFIG_HAS_E6);
+                gnssConfigure(GNSS_CONFIG_SAVE); // Request receiver commit this change to NVM
+            }
+        }
+
+        if (gnssConfigureRequest & GNSS_CONFIG_MULTIPATH)
+        {
+            if (gnss->setMultipathMitigation(settings.enableMultipathMitigation) == true)
+            {
+                gnssConfigureClear(GNSS_CONFIG_MULTIPATH);
+                gnssConfigure(GNSS_CONFIG_SAVE); // Request receiver commit this change to NVM
+            }
         }
 
         // Platforms will set the GNSS_CONFIG_SAVE and GNSS_CONFIG_RESET bits appropriately for each command issued
@@ -152,7 +188,7 @@ void gnssUpdate()
         // If one of the previous configuration changes requested save to NVM, do so
         if (gnssConfigureRequest & GNSS_CONFIG_SAVE)
         {
-            if(gnss->saveConfiguration())
+            if (gnss->saveConfiguration())
                 gnssConfigureClear(GNSS_CONFIG_SAVE);
         }
 
@@ -181,6 +217,9 @@ void gnssUpdate()
         {
             systemPrintln("gnssUpdate: Uncaught mode change");
         }
+
+        // We do not clear the request bits here. Instead, if bits are still set, the next update will attempt to
+        // service them.
     }
 }
 

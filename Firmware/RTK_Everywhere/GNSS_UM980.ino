@@ -137,10 +137,15 @@ bool GNSS_UM980::setPPS()
     // The PPS signal is not exposed on the Torch so we don't configure the PPS based on internal settings, but we do
     // configure the PPS so that the GNSS LED blinks
 
+    // Read, modify, write
+    // The UM980 does have the ability to read the current PPS settings in config, but this function
+    // gets called very rarely. Just do a write for now.
+
     gnssConfigure(GNSS_CONFIG_SAVE); // Request receiver commit this change to NVM
 
     // Enable PPS signal with a width of 200ms, and a period of 1 second
-    return(_um980->enablePPS(settings.externalPulseLength_us, settings.externalPulseTimeBetweenPulse_us / 1000)); // widthMicroseconds, periodMilliseconds
+    return (_um980->enablePPS(settings.externalPulseLength_us, settings.externalPulseTimeBetweenPulse_us /
+                                                                   1000)); // widthMicroseconds, periodMilliseconds
 }
 
 //----------------------------------------
@@ -191,11 +196,10 @@ bool GNSS_UM980::configureBase()
     // Set the dynamic mode. This will cancel any base averaging mode and is needed
     // to allow a freshly started device to settle in regular GNSS reception mode before issuing
     // um980BaseAverageStart().
-    response &= setModel(settings.dynamicModel);
 
-    response &= setMultipathMitigation(settings.enableMultipathMitigation);
-
-    response &= setHighAccuracyService(settings.enableGalileoHas);
+    gnssConfigure(GNSS_CONFIG_MODEL); // Request receiver to use new settings
+    gnssConfigure(GNSS_CONFIG_MULTIPATH);
+    gnssConfigure(GNSS_CONFIG_HAS_E6);
 
     response &= enableRTCMBase(); // Only turn on messages, do not turn off messages. We assume the caller has
                                   // UNLOG or similar.
@@ -258,8 +262,7 @@ bool GNSS_UM980::configureOnce()
     gnssConfigure(GNSS_CONFIG_ELEVATION); // Request receiver to use new settings
     gnssConfigure(GNSS_CONFIG_CN0);
     gnssConfigure(GNSS_CONFIG_PPS);
-
-    response &= setConstellations();
+    gnssConfigure(GNSS_CONFIG_CONSTELLATION);
 
     if (_um980->isConfigurationPresent("CONFIG SIGNALGROUP 2") == false)
     {
@@ -1642,11 +1645,13 @@ bool GNSS_UM980::setBaudRateRadio(uint32_t baudRate)
 
 //----------------------------------------
 // Enable all the valid constellations and bands for this platform
-// Band support varies between platforms and firmware versions
 //----------------------------------------
 bool GNSS_UM980::setConstellations()
 {
     bool response = true;
+
+    // Read, modify, write
+    // The UM980 does not have a way to read the currently enabled constellations so we do only a write
 
     for (int constellationNumber = 0; constellationNumber < MAX_UM980_CONSTELLATIONS; constellationNumber++)
     {
@@ -1687,7 +1692,6 @@ bool GNSS_UM980::setElevation(uint8_t elevationDegrees)
         if (currentElevation == elevationDegrees)
             return (true); // Nothing to change
 
-        gnssConfigure(GNSS_CONFIG_SAVE); // Request receiver commit this change to NVM
         return _um980->setElevationAngle(elevationDegrees);
     }
     return false;
@@ -1713,7 +1717,6 @@ bool GNSS_UM980::setHighAccuracyService(bool enableGalileoHas)
                 if (_um980->sendCommand("CONFIG PPP ENABLE E6-HAS"))
                 {
                     systemPrintln("Galileo E6 HAS service enabled");
-                    gnssConfigure(GNSS_CONFIG_SAVE); // Request receiver commit this change to NVM
                 }
                 else
                 {
@@ -1724,7 +1727,6 @@ bool GNSS_UM980::setHighAccuracyService(bool enableGalileoHas)
                 if (_um980->sendCommand("CONFIG PPP DATUM WGS84"))
                 {
                     systemPrintln("WGS84 Datum applied");
-                    gnssConfigure(GNSS_CONFIG_SAVE); // Request receiver commit this change to NVM
                 }
                 else
                 {
@@ -1751,7 +1753,6 @@ bool GNSS_UM980::setHighAccuracyService(bool enableGalileoHas)
             if (_um980->sendCommand("CONFIG PPP DISABLE"))
             {
                 systemPrintln("Galileo E6 HAS service disabled");
-                gnssConfigure(GNSS_CONFIG_SAVE); // Request receiver commit this change to NVM
             }
             else
             {
@@ -1795,7 +1796,6 @@ bool GNSS_UM980::setMinCno(uint8_t cn0Value)
     {
         // Read, modify, write
         // The UM980 does not currently have a way to read the CN0, so we must write only
-        gnssConfigure(GNSS_CONFIG_SAVE); // Request receiver commit this change to NVM
         _um980->setMinCNO(cn0Value);
         return true;
     }
@@ -1809,7 +1809,9 @@ bool GNSS_UM980::setModel(uint8_t modelNumber)
 {
     if (online.gnss)
     {
-        gnssConfigure(GNSS_CONFIG_SAVE); // Request receiver commit this change to NVM
+        // Read, modify, write
+        // #MODE,97,GPS,FINE,2387,501442000,0,0,18,511;MODE ROVER SURVEY,*10
+        // There is the ability to check the #MODE response, but for now, just write it
 
         if (modelNumber == UM980_DYN_MODEL_SURVEY)
             return (_um980->setModeRoverSurvey());
@@ -1821,6 +1823,8 @@ bool GNSS_UM980::setModel(uint8_t modelNumber)
     return (false);
 }
 
+//----------------------------------------
+// Configure multipath mitigation
 //----------------------------------------
 bool GNSS_UM980::setMultipathMitigation(bool enableMultipathMitigation)
 {

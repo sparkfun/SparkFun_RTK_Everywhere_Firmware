@@ -713,6 +713,8 @@ class GNSS_ZED : GNSS
     //   modelNumber: Number of the model to use, provided by radio library
     bool setModel(uint8_t modelNumber);
 
+    bool setMultipathMitigation(bool enableMultipathMitigation);
+
     // Given the name of a message, find it, and set the rate
     bool setNmeaMessageRateByName(const char *msgName, uint8_t msgRate);
 

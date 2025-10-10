@@ -148,8 +148,6 @@ class GNSS_UM980 : GNSS
     // Set the minimum satellite signal level for navigation.
     bool setMinCno(uint8_t cnoValue);
 
-    bool setMultipathMitigation(bool enableMultipathMitigation);
-
   public:
     // Constructor
     GNSS_UM980() : GNSS()
@@ -455,6 +453,8 @@ class GNSS_UM980 : GNSS
     // Inputs:
     //   modelNumber: Number of the model to use, provided by radio library
     bool setModel(uint8_t modelNumber);
+
+    bool setMultipathMitigation(bool enableMultipathMitigation);
 
     // Given the name of a message, find it, and set the rate
     bool setNmeaMessageRateByName(const char *msgName, uint8_t msgRate);
