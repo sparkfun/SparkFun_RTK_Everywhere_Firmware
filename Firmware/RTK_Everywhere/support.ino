@@ -299,7 +299,7 @@ InputResponse getUserInputString(char *userString, uint16_t stringSize, bool loc
     uint8_t spot = 0;
     bool echo = localEcho && settings.echoUserInput;
 
-    while ((millis() - startTime) / 1000 <= menuTimeout)
+    while (((millis() - startTime) / 1000) <= menuTimeout)
     {
         delay(1); // Yield to processor
 
