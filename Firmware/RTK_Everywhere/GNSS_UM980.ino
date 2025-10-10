@@ -2038,13 +2038,6 @@ void GNSS_UM980::update()
     // We don't check serial data here; the gnssReadTask takes care of serial consumption
 }
 
-// Set all NMEA message report rates to one value
-void GNSS_UM980::setNmeaMessageRates(uint8_t msgRate)
-{
-    for (int x = 0; x < MAX_UM980_NMEA_MSG; x++)
-        settings.um980MessageRatesNMEA[x] = msgRate;
-}
-
 // Set all RTCM Rover message report rates to one value
 void GNSS_UM980::setRtcmRoverMessageRates(uint8_t msgRate)
 {

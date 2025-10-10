@@ -2668,13 +2668,6 @@ uint32_t GNSS_LG290P::baudGetMaximum()
     return (lg290pAllowedRates[lg290pAllowedRatesCount - 1]);
 }
 
-// Set all NMEA message report rates to one value
-void GNSS_LG290P::setNmeaMessageRates(uint8_t msgRate)
-{
-    for (int x = 0; x < MAX_LG290P_NMEA_MSG; x++)
-        settings.lg290pMessageRatesNMEA[x] = msgRate;
-}
-
 // Set all RTCM Rover message report rates to one value
 void GNSS_LG290P::setRtcmRoverMessageRates(uint8_t msgRate)
 {
