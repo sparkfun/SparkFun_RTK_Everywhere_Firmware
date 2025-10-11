@@ -152,7 +152,7 @@ void menuLogMosaic()
         GNSS_MOSAIC *mosaic = (GNSS_MOSAIC *)gnss;
 
         mosaic->configureLogging();  // This will enable / disable RINEX logging
-        mosaic->enableNMEA();        // Enable NMEA messages - this will enable/disable the DSK1 streams
+        mosaic->setMessagesNMEA();        // Enable NMEA messages - this will enable/disable the DSK1 streams
         mosaic->saveConfiguration(); // Save the configuration
         setLoggingType();            // Update Standard, PPP, or custom for icon selection
     }
@@ -475,9 +475,9 @@ bool GNSS_MOSAIC::configureBase()
 
     response &= setConstellations();
 
-    response &= enableRTCMBase();
+    response &= setMessagesRTCMBase();
 
-    response &= enableNMEA();
+    response &= setMessagesNMEA();
 
     response &= configureLogging();
 
@@ -602,7 +602,7 @@ bool GNSS_MOSAIC::configureOnce()
     Set Constellations
 
     NMEA Messages are enabled by enableNMEA
-    RTCMv3 messages are enabled by enableRTCMRover / enableRTCMBase
+    RTCMv3 messages are enabled by setMessagesRTCMRover / setMessagesRTCMBase
     */
 
     if (settings.gnssConfiguredOnce)
@@ -722,9 +722,9 @@ bool GNSS_MOSAIC::configureRover()
 
     response &= setConstellations();
 
-    response &= enableRTCMRover();
+    response &= setMessagesRTCMRover();
 
-    response &= enableNMEA();
+    response &= setMessagesNMEA();
 
     response &= configureLogging();
 
@@ -809,278 +809,8 @@ void GNSS_MOSAIC::debuggingEnable()
 void GNSS_MOSAIC::enableGgaForNtrip()
 {
     // Set the talker ID to GP
-    // enableNMEA() will enable GGA if needed
+    // setMessagesNMEA() will enable GGA if needed
     sendWithResponse("snti,GP\n\r", "NMEATalkerID");
-}
-
-//----------------------------------------
-// Turn on all the enabled NMEA messages on COM1
-//----------------------------------------
-bool GNSS_MOSAIC::enableNMEA()
-{
-    bool gpggaEnabled = false;
-    bool gpzdaEnabled = false;
-    bool gpgstEnabled = false;
-
-    String streams[MOSAIC_NUM_NMEA_STREAMS];                                          // Build a string for each stream
-    for (int messageNumber = 0; messageNumber < MAX_MOSAIC_NMEA_MSG; messageNumber++) // For each NMEA message
-    {
-        int stream = settings.mosaicMessageStreamNMEA[messageNumber];
-        if (stream > 0)
-        {
-            stream--;
-
-            if (streams[stream].length() > 0)
-                streams[stream] += String("+");
-            streams[stream] += String(mosaicMessagesNMEA[messageNumber].msgTextName);
-
-            // If we are using IP based corrections, we need to send local data to the PPL
-            // The PPL requires being fed GPGGA/ZDA, and RTCM1019/1020/1042/1046
-            if (strstr(settings.pointPerfectKeyDistributionTopic, "/ip") != nullptr)
-            {
-                // Mark PPL required messages as enabled if stream > 0
-                if (strcmp(mosaicMessagesNMEA[messageNumber].msgTextName, "GGA") == 0)
-                    gpggaEnabled = true;
-                if (strcmp(mosaicMessagesNMEA[messageNumber].msgTextName, "ZDA") == 0)
-                    gpzdaEnabled = true;
-            }
-
-            if (strcmp(mosaicMessagesNMEA[messageNumber].msgTextName, "GST") == 0)
-                gpgstEnabled = true;
-        }
-    }
-
-    if (pointPerfectIsEnabled())
-    {
-        // Force on any messages that are needed for PPL
-        if (gpggaEnabled == false)
-        {
-            // Add GGA to Stream1 (streams[0])
-            // TODO: We may need to be cleverer about which stream we choose,
-            //       depending on the stream intervals
-            if (streams[0].length() > 0)
-                streams[0] += String("+");
-            streams[0] += String("GGA");
-            gpggaEnabled = true;
-        }
-        if (gpzdaEnabled == false)
-        {
-            if (streams[0].length() > 0)
-                streams[0] += String("+");
-            streams[0] += String("ZDA");
-            gpzdaEnabled = true;
-        }
-    }
-
-    if (settings.ntripClient_TransmitGGA == true)
-    {
-        // Force on GGA if needed for NTRIP
-        if (gpggaEnabled == false)
-        {
-            if (streams[0].length() > 0)
-                streams[0] += String("+");
-            streams[0] += String("GGA");
-            gpggaEnabled = true;
-        }
-    }
-
-    // Force GST on so we can extract the lat and lon standard deviations
-    if (gpgstEnabled == false)
-    {
-        if (streams[0].length() > 0)
-            streams[0] += String("+");
-        streams[0] += String("GST");
-        gpgstEnabled = true;
-    }
-
-    bool response = true;
-
-    for (int stream = 0; stream < MOSAIC_NUM_NMEA_STREAMS; stream++)
-    {
-        if (streams[stream].length() == 0)
-            streams[stream] = String("none");
-
-        String setting = String("sno,Stream" + String(stream + 1) + ",COM1," + streams[stream] + "," +
-                                String(mosaicMsgRates[settings.mosaicStreamIntervalsNMEA[stream]].name) + "\n\r");
-        response &= sendWithResponse(setting, "NMEAOutput");
-
-        if (settings.enableNmeaOnRadio)
-            setting = String("sno,Stream" + String(stream + MOSAIC_NUM_NMEA_STREAMS + 1) + ",COM2," + streams[stream] +
-                             "," + String(mosaicMsgRates[settings.mosaicStreamIntervalsNMEA[stream]].name) + "\n\r");
-        else
-            setting = String("sno,Stream" + String(stream + MOSAIC_NUM_NMEA_STREAMS + 1) + ",COM2,none,off\n\r");
-        response &= sendWithResponse(setting, "NMEAOutput");
-
-        if (settings.enableGnssToUsbSerial)
-        {
-            setting =
-                String("sno,Stream" + String(stream + (2 * MOSAIC_NUM_NMEA_STREAMS) + 1) + ",USB1," + streams[stream] +
-                       "," + String(mosaicMsgRates[settings.mosaicStreamIntervalsNMEA[stream]].name) + "\n\r");
-            response &= sendWithResponse(setting, "NMEAOutput");
-        }
-        else
-        {
-            // Disable the USB1 NMEA streams if settings.enableGnssToUsbSerial is not enabled
-            setting = String("sno,Stream" + String(stream + (2 * MOSAIC_NUM_NMEA_STREAMS) + 1) + ",USB1,none,off\n\r");
-            response &= sendWithResponse(setting, "NMEAOutput");
-        }
-
-        if (settings.enableLogging)
-        {
-            setting =
-                String("sno,Stream" + String(stream + (3 * MOSAIC_NUM_NMEA_STREAMS) + 1) + ",DSK1," + streams[stream] +
-                       "," + String(mosaicMsgRates[settings.mosaicStreamIntervalsNMEA[stream]].name) + "\n\r");
-            response &= sendWithResponse(setting, "NMEAOutput");
-        }
-        else
-        {
-            // Disable the DSK1 NMEA streams if settings.enableLogging is not enabled
-            setting = String("sno,Stream" + String(stream + (3 * MOSAIC_NUM_NMEA_STREAMS) + 1) + ",DSK1,none,off\n\r");
-            response &= sendWithResponse(setting, "NMEAOutput");
-        }
-    }
-
-    return (response);
-}
-
-//----------------------------------------
-// Turn on all the enabled RTCM Base messages on COM1, COM2 and USB1 (if enabled)
-//----------------------------------------
-bool GNSS_MOSAIC::enableRTCMBase()
-{
-    bool response = true;
-
-    // Set RTCMv3 Intervals
-    for (int group = 0; group < MAX_MOSAIC_RTCM_V3_INTERVAL_GROUPS; group++)
-    {
-        char flt[10];
-        snprintf(flt, sizeof(flt), "%.1f", settings.mosaicMessageIntervalsRTCMv3Base[group]);
-        String setting =
-            String("sr3i," + String(mosaicRTCMv3MsgIntervalGroups[group].name) + "," + String(flt) + "\n\r");
-        response &= sendWithResponse(setting, "RTCMv3Interval");
-    }
-
-    // Enable RTCMv3
-    String messages = String("");
-    for (int message = 0; message < MAX_MOSAIC_RTCM_V3_MSG; message++)
-    {
-        if (settings.mosaicMessageEnabledRTCMv3Base[message])
-        {
-            if (messages.length() > 0)
-                messages += String("+");
-            messages += String(mosaicMessagesRTCMv3[message].name);
-        }
-    }
-
-    if (messages.length() == 0)
-        messages = String("none");
-
-    String setting = String("sr3o,COM1+COM2");
-    if (settings.enableGnssToUsbSerial)
-        setting += String("+USB1");
-    setting += String("," + messages + "\n\r");
-    response &= sendWithResponse(setting, "RTCMv3Output");
-
-    if (!settings.enableGnssToUsbSerial)
-    {
-        response &= sendWithResponse("sr3o,USB1,none\n\r", "RTCMv3Output");
-    }
-
-    return (response);
-}
-
-//----------------------------------------
-// Turn on all the enabled RTCM Rover messages on COM1, COM2 and USB1 (if enabled)
-//----------------------------------------
-bool GNSS_MOSAIC::enableRTCMRover()
-{
-    bool response = true;
-    bool rtcm1019Enabled = false;
-    bool rtcm1020Enabled = false;
-    bool rtcm1042Enabled = false;
-    bool rtcm1046Enabled = false;
-
-    // Set RTCMv3 Intervals
-    for (int group = 0; group < MAX_MOSAIC_RTCM_V3_INTERVAL_GROUPS; group++)
-    {
-        char flt[10];
-        snprintf(flt, sizeof(flt), "%.1f", settings.mosaicMessageIntervalsRTCMv3Rover[group]);
-        String setting =
-            String("sr3i," + String(mosaicRTCMv3MsgIntervalGroups[group].name) + "," + String(flt) + "\n\r");
-        response &= sendWithResponse(setting, "RTCMv3Interval");
-    }
-
-    // Enable RTCMv3
-    String messages = String("");
-    for (int message = 0; message < MAX_MOSAIC_RTCM_V3_MSG; message++)
-    {
-        if (settings.mosaicMessageEnabledRTCMv3Rover[message])
-        {
-            if (messages.length() > 0)
-                messages += String("+");
-            messages += String(mosaicMessagesRTCMv3[message].name);
-
-            // If we are using IP based corrections, we need to send local data to the PPL
-            // The PPL requires being fed GPGGA/ZDA, and RTCM1019/1020/1042/1046
-            if (pointPerfectIsEnabled())
-            {
-                // Mark PPL required messages as enabled if rate > 0
-                if (strcmp(mosaicMessagesRTCMv3[message].name, "RTCM1019") == 0)
-                    rtcm1019Enabled = true;
-                if (strcmp(mosaicMessagesRTCMv3[message].name, "RTCM1020") == 0)
-                    rtcm1020Enabled = true;
-                if (strcmp(mosaicMessagesRTCMv3[message].name, "RTCM1042") == 0)
-                    rtcm1042Enabled = true;
-                if (strcmp(mosaicMessagesRTCMv3[message].name, "RTCM1046") == 0)
-                    rtcm1046Enabled = true;
-            }
-        }
-    }
-
-    if (pointPerfectIsEnabled())
-    {
-        // Force on any messages that are needed for PPL
-        if (rtcm1019Enabled == false)
-        {
-            if (messages.length() > 0)
-                messages += String("+");
-            messages += String("RTCM1019");
-        }
-        if (rtcm1020Enabled == false)
-        {
-            if (messages.length() > 0)
-                messages += String("+");
-            messages += String("RTCM1020");
-        }
-        if (rtcm1042Enabled == false)
-        {
-            if (messages.length() > 0)
-                messages += String("+");
-            messages += String("RTCM1042");
-        }
-        if (rtcm1046Enabled == false)
-        {
-            if (messages.length() > 0)
-                messages += String("+");
-            messages += String("RTCM1046");
-        }
-    }
-
-    if (messages.length() == 0)
-        messages = String("none");
-
-    String setting = String("sr3o,COM1+COM2");
-    if (settings.enableGnssToUsbSerial)
-        setting += String("+USB1");
-    setting += String("," + messages + "\n\r");
-    response &= sendWithResponse(setting, "RTCMv3Output");
-
-    if (!settings.enableGnssToUsbSerial)
-    {
-        response &= sendWithResponse("sr3o,USB1,none\n\r", "RTCMv3Output");
-    }
-
-    return (response);
 }
 
 //----------------------------------------
@@ -2462,24 +2192,6 @@ bool GNSS_MOSAIC::setHighAccuracyService(bool enableGalileoHas)
 }
 
 //----------------------------------------
-// Enable all the valid messages for this platform
-//----------------------------------------
-bool GNSS_MOSAIC::setMessages(int maxRetries)
-{
-    // TODO : do we need this?
-    return true;
-}
-
-//----------------------------------------
-// Enable all the valid messages for this platform over the USB port
-//----------------------------------------
-bool GNSS_MOSAIC::setMessagesUsb(int maxRetries)
-{
-    // TODO : do we need this?
-    return true;
-}
-
-//----------------------------------------
 // Set the minimum satellite signal level for navigation.
 //----------------------------------------
 bool GNSS_MOSAIC::setMinCno(uint8_t cnoValue)
@@ -2489,6 +2201,276 @@ bool GNSS_MOSAIC::setMinCno(uint8_t cnoValue)
     String cn0 = String(cnoValue);
     String setting = String("scm,all," + cn0 + "\n\r");
     return (sendWithResponse(setting, "CN0Mask", 1000, 200));
+}
+
+//----------------------------------------
+// Turn on all the enabled NMEA messages on COM1
+//----------------------------------------
+bool GNSS_MOSAIC::setMessagesNMEA()
+{
+    bool gpggaEnabled = false;
+    bool gpzdaEnabled = false;
+    bool gpgstEnabled = false;
+
+    String streams[MOSAIC_NUM_NMEA_STREAMS];                                          // Build a string for each stream
+    for (int messageNumber = 0; messageNumber < MAX_MOSAIC_NMEA_MSG; messageNumber++) // For each NMEA message
+    {
+        int stream = settings.mosaicMessageStreamNMEA[messageNumber];
+        if (stream > 0)
+        {
+            stream--;
+
+            if (streams[stream].length() > 0)
+                streams[stream] += String("+");
+            streams[stream] += String(mosaicMessagesNMEA[messageNumber].msgTextName);
+
+            // If we are using IP based corrections, we need to send local data to the PPL
+            // The PPL requires being fed GPGGA/ZDA, and RTCM1019/1020/1042/1046
+            if (strstr(settings.pointPerfectKeyDistributionTopic, "/ip") != nullptr)
+            {
+                // Mark PPL required messages as enabled if stream > 0
+                if (strcmp(mosaicMessagesNMEA[messageNumber].msgTextName, "GGA") == 0)
+                    gpggaEnabled = true;
+                if (strcmp(mosaicMessagesNMEA[messageNumber].msgTextName, "ZDA") == 0)
+                    gpzdaEnabled = true;
+            }
+
+            if (strcmp(mosaicMessagesNMEA[messageNumber].msgTextName, "GST") == 0)
+                gpgstEnabled = true;
+        }
+    }
+
+    if (pointPerfectIsEnabled())
+    {
+        // Force on any messages that are needed for PPL
+        if (gpggaEnabled == false)
+        {
+            // Add GGA to Stream1 (streams[0])
+            // TODO: We may need to be cleverer about which stream we choose,
+            //       depending on the stream intervals
+            if (streams[0].length() > 0)
+                streams[0] += String("+");
+            streams[0] += String("GGA");
+            gpggaEnabled = true;
+        }
+        if (gpzdaEnabled == false)
+        {
+            if (streams[0].length() > 0)
+                streams[0] += String("+");
+            streams[0] += String("ZDA");
+            gpzdaEnabled = true;
+        }
+    }
+
+    if (settings.ntripClient_TransmitGGA == true)
+    {
+        // Force on GGA if needed for NTRIP
+        if (gpggaEnabled == false)
+        {
+            if (streams[0].length() > 0)
+                streams[0] += String("+");
+            streams[0] += String("GGA");
+            gpggaEnabled = true;
+        }
+    }
+
+    // Force GST on so we can extract the lat and lon standard deviations
+    if (gpgstEnabled == false)
+    {
+        if (streams[0].length() > 0)
+            streams[0] += String("+");
+        streams[0] += String("GST");
+        gpgstEnabled = true;
+    }
+
+    bool response = true;
+
+    for (int stream = 0; stream < MOSAIC_NUM_NMEA_STREAMS; stream++)
+    {
+        if (streams[stream].length() == 0)
+            streams[stream] = String("none");
+
+        String setting = String("sno,Stream" + String(stream + 1) + ",COM1," + streams[stream] + "," +
+                                String(mosaicMsgRates[settings.mosaicStreamIntervalsNMEA[stream]].name) + "\n\r");
+        response &= sendWithResponse(setting, "NMEAOutput");
+
+        if (settings.enableNmeaOnRadio)
+            setting = String("sno,Stream" + String(stream + MOSAIC_NUM_NMEA_STREAMS + 1) + ",COM2," + streams[stream] +
+                             "," + String(mosaicMsgRates[settings.mosaicStreamIntervalsNMEA[stream]].name) + "\n\r");
+        else
+            setting = String("sno,Stream" + String(stream + MOSAIC_NUM_NMEA_STREAMS + 1) + ",COM2,none,off\n\r");
+        response &= sendWithResponse(setting, "NMEAOutput");
+
+        if (settings.enableGnssToUsbSerial)
+        {
+            setting =
+                String("sno,Stream" + String(stream + (2 * MOSAIC_NUM_NMEA_STREAMS) + 1) + ",USB1," + streams[stream] +
+                       "," + String(mosaicMsgRates[settings.mosaicStreamIntervalsNMEA[stream]].name) + "\n\r");
+            response &= sendWithResponse(setting, "NMEAOutput");
+        }
+        else
+        {
+            // Disable the USB1 NMEA streams if settings.enableGnssToUsbSerial is not enabled
+            setting = String("sno,Stream" + String(stream + (2 * MOSAIC_NUM_NMEA_STREAMS) + 1) + ",USB1,none,off\n\r");
+            response &= sendWithResponse(setting, "NMEAOutput");
+        }
+
+        if (settings.enableLogging)
+        {
+            setting =
+                String("sno,Stream" + String(stream + (3 * MOSAIC_NUM_NMEA_STREAMS) + 1) + ",DSK1," + streams[stream] +
+                       "," + String(mosaicMsgRates[settings.mosaicStreamIntervalsNMEA[stream]].name) + "\n\r");
+            response &= sendWithResponse(setting, "NMEAOutput");
+        }
+        else
+        {
+            // Disable the DSK1 NMEA streams if settings.enableLogging is not enabled
+            setting = String("sno,Stream" + String(stream + (3 * MOSAIC_NUM_NMEA_STREAMS) + 1) + ",DSK1,none,off\n\r");
+            response &= sendWithResponse(setting, "NMEAOutput");
+        }
+    }
+
+    return (response);
+}
+
+//----------------------------------------
+// Turn on all the enabled RTCM Base messages on COM1, COM2 and USB1 (if enabled)
+//----------------------------------------
+bool GNSS_MOSAIC::setMessagesRTCMBase()
+{
+    bool response = true;
+
+    // Set RTCMv3 Intervals
+    for (int group = 0; group < MAX_MOSAIC_RTCM_V3_INTERVAL_GROUPS; group++)
+    {
+        char flt[10];
+        snprintf(flt, sizeof(flt), "%.1f", settings.mosaicMessageIntervalsRTCMv3Base[group]);
+        String setting =
+            String("sr3i," + String(mosaicRTCMv3MsgIntervalGroups[group].name) + "," + String(flt) + "\n\r");
+        response &= sendWithResponse(setting, "RTCMv3Interval");
+    }
+
+    // Enable RTCMv3
+    String messages = String("");
+    for (int message = 0; message < MAX_MOSAIC_RTCM_V3_MSG; message++)
+    {
+        if (settings.mosaicMessageEnabledRTCMv3Base[message])
+        {
+            if (messages.length() > 0)
+                messages += String("+");
+            messages += String(mosaicMessagesRTCMv3[message].name);
+        }
+    }
+
+    if (messages.length() == 0)
+        messages = String("none");
+
+    String setting = String("sr3o,COM1+COM2");
+    if (settings.enableGnssToUsbSerial)
+        setting += String("+USB1");
+    setting += String("," + messages + "\n\r");
+    response &= sendWithResponse(setting, "RTCMv3Output");
+
+    if (!settings.enableGnssToUsbSerial)
+    {
+        response &= sendWithResponse("sr3o,USB1,none\n\r", "RTCMv3Output");
+    }
+
+    return (response);
+}
+
+//----------------------------------------
+// Turn on all the enabled RTCM Rover messages on COM1, COM2 and USB1 (if enabled)
+//----------------------------------------
+bool GNSS_MOSAIC::setMessagesRTCMRover()
+{
+    bool response = true;
+    bool rtcm1019Enabled = false;
+    bool rtcm1020Enabled = false;
+    bool rtcm1042Enabled = false;
+    bool rtcm1046Enabled = false;
+
+    // Set RTCMv3 Intervals
+    for (int group = 0; group < MAX_MOSAIC_RTCM_V3_INTERVAL_GROUPS; group++)
+    {
+        char flt[10];
+        snprintf(flt, sizeof(flt), "%.1f", settings.mosaicMessageIntervalsRTCMv3Rover[group]);
+        String setting =
+            String("sr3i," + String(mosaicRTCMv3MsgIntervalGroups[group].name) + "," + String(flt) + "\n\r");
+        response &= sendWithResponse(setting, "RTCMv3Interval");
+    }
+
+    // Enable RTCMv3
+    String messages = String("");
+    for (int message = 0; message < MAX_MOSAIC_RTCM_V3_MSG; message++)
+    {
+        if (settings.mosaicMessageEnabledRTCMv3Rover[message])
+        {
+            if (messages.length() > 0)
+                messages += String("+");
+            messages += String(mosaicMessagesRTCMv3[message].name);
+
+            // If we are using IP based corrections, we need to send local data to the PPL
+            // The PPL requires being fed GPGGA/ZDA, and RTCM1019/1020/1042/1046
+            if (pointPerfectIsEnabled())
+            {
+                // Mark PPL required messages as enabled if rate > 0
+                if (strcmp(mosaicMessagesRTCMv3[message].name, "RTCM1019") == 0)
+                    rtcm1019Enabled = true;
+                if (strcmp(mosaicMessagesRTCMv3[message].name, "RTCM1020") == 0)
+                    rtcm1020Enabled = true;
+                if (strcmp(mosaicMessagesRTCMv3[message].name, "RTCM1042") == 0)
+                    rtcm1042Enabled = true;
+                if (strcmp(mosaicMessagesRTCMv3[message].name, "RTCM1046") == 0)
+                    rtcm1046Enabled = true;
+            }
+        }
+    }
+
+    if (pointPerfectIsEnabled())
+    {
+        // Force on any messages that are needed for PPL
+        if (rtcm1019Enabled == false)
+        {
+            if (messages.length() > 0)
+                messages += String("+");
+            messages += String("RTCM1019");
+        }
+        if (rtcm1020Enabled == false)
+        {
+            if (messages.length() > 0)
+                messages += String("+");
+            messages += String("RTCM1020");
+        }
+        if (rtcm1042Enabled == false)
+        {
+            if (messages.length() > 0)
+                messages += String("+");
+            messages += String("RTCM1042");
+        }
+        if (rtcm1046Enabled == false)
+        {
+            if (messages.length() > 0)
+                messages += String("+");
+            messages += String("RTCM1046");
+        }
+    }
+
+    if (messages.length() == 0)
+        messages = String("none");
+
+    String setting = String("sr3o,COM1+COM2");
+    if (settings.enableGnssToUsbSerial)
+        setting += String("+USB1");
+    setting += String("," + messages + "\n\r");
+    response &= sendWithResponse(setting, "RTCMv3Output");
+
+    if (!settings.enableGnssToUsbSerial)
+    {
+        response &= sendWithResponse("sr3o,USB1,none\n\r", "RTCMv3Output");
+    }
+
+    return (response);
 }
 
 //----------------------------------------

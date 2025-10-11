@@ -712,7 +712,7 @@ bool GNSS_ZED::configureGNSS()
     response = true; // Reset
 
     // Make sure the appropriate messages are enabled
-    response &= setMessages(MAX_SET_MESSAGES_RETRIES); // Does a complete open/closed val set
+    response &= setMessagesNMEA(); // Does a complete open/closed val set
     if (response == false)
         systemPrintln("Module failed config block 2");
     success &= response;
@@ -1888,7 +1888,7 @@ void GNSS_ZED::menuMessages()
     clearBuffer(); // Empty buffer of any newline chars
 
     // Make sure the appropriate messages are enabled
-    bool response = setMessages(MAX_SET_MESSAGES_RETRIES); // Does a complete open/closed val set
+    bool response = setMessagesNMEA(); // Does a complete open/closed val set
     if (response == false)
         systemPrintf("menuMessages: Failed to enable messages - after %d tries", MAX_SET_MESSAGES_RETRIES);
     else
@@ -2260,12 +2260,15 @@ bool GNSS_ZED::setNmeaMessageRateByName(const char *msgName, uint8_t msgRate)
 }
 
 //----------------------------------------
-// Enable all the valid messages for this platform
+// Set the rate for all messages
+// The ZED has a lot more messages than just NMEA in ubxMessageRates[], but other platforms generally just have NMEA and RTCM
 // There are many messages so split into batches. VALSET is limited to 64 max per batch
 // Uses dummy newCfg and sendCfg values to be sure we open/close a complete set
 //----------------------------------------
-bool GNSS_ZED::setMessages(int maxRetries)
+bool GNSS_ZED::setMessagesNMEA()
 {
+    int maxRetries = MAX_SET_MESSAGES_RETRIES;
+
     bool success = false;
 
     if (online.gnss)
@@ -2315,48 +2318,21 @@ bool GNSS_ZED::setMessages(int maxRetries)
 }
 
 //----------------------------------------
-// Enable all the valid messages for this platform over the USB port
-// Add 2 to every UART1 key. This is brittle and non-perfect, but works.
+// Configure RTCM Base messages
 //----------------------------------------
-bool GNSS_ZED::setMessagesUsb(int maxRetries)
+bool GNSS_ZED::setMessagesRTCMBase()
 {
-    bool success = false;
+    //TODO
+    return(false);
+}
 
-    if (online.gnss)
-    {
-        int tryNo = -1;
-
-        // Try up to maxRetries times to configure the messages
-        // This corrects occasional failures seen on the Reference Station where the GNSS is connected via SPI
-        // instead of I2C and UART1. I believe the SETVAL ACK is occasionally missed due to the level of messages being
-        // processed.
-        while ((++tryNo < maxRetries) && !success)
-        {
-            bool response = true;
-            int messageNumber = 0;
-
-            while (messageNumber < MAX_UBX_MSG)
-            {
-                response &= _zed->newCfgValset(VAL_LAYER_ALL);
-
-                do
-                {
-                    if (messageSupported(messageNumber))
-                        response &= _zed->addCfgValset(ubxMessages[messageNumber].msgConfigKey + 2,
-                                                       settings.ubxMessageRates[messageNumber]);
-                    messageNumber++;
-                } while (((messageNumber % 43) < 42) &&
-                         (messageNumber < MAX_UBX_MSG)); // Limit 1st batch to 42. Batches after that will be (up to) 43
-                                                         // in size. It's a HHGTTG thing.
-
-                response &= _zed->sendCfgValset();
-            }
-
-            if (response)
-                success = true;
-        }
-    }
-    return (success);
+//----------------------------------------
+// Configure RTCM Base messages
+//----------------------------------------
+bool GNSS_ZED::setMessagesRTCMRover()
+{
+    //TODO
+    return(false);
 }
 
 //----------------------------------------

@@ -120,6 +120,15 @@ void gnssUpdate()
         // Service requests
         // Clear the requests as they are completed successfully
 
+        if (gnssConfigureRequest & GNSS_CONFIG_MESSAGE_RATE_RTCM_BASE)
+        {
+            if (gnss->setMessagesRTCMBase() == true)
+            {
+                gnssConfigureClear(GNSS_CONFIG_MESSAGE_RATE_RTCM_BASE);
+                gnssConfigure(GNSS_CONFIG_SAVE); // Request receiver commit this change to NVM
+            }
+        }
+
         if (gnssConfigureRequest & GNSS_CONFIG_CONSTELLATION)
         {
             if (gnss->setConstellations() == true)

@@ -699,14 +699,17 @@ class GNSS_ZED : GNSS
     // Given the name of a message, find it, and set the rate
     bool setMessageRateByName(const char *msgName, uint8_t msgRate);
 
-    // Enable all the valid messages for this platform
-    bool setMessages(int maxRetries);
-
-    // Enable all the valid messages for this platform over the USB port
-    bool setMessagesUsb(int maxRetries);
-
     // Set the minimum satellite signal level for navigation.
     bool setMinCno(uint8_t cnoValue);
+
+    // Set the NMEA messages
+    bool setMessagesNMEA();
+
+    // Set then RTCM Base messages
+    bool setMessagesRTCMBase();
+
+    // Set the RTCM Rover messages
+    bool setMessagesRTCMRover();
 
     // Set the dynamic model to use for RTK
     // Inputs:

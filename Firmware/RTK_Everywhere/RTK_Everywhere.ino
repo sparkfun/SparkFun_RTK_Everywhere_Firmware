@@ -1374,8 +1374,8 @@ void setup()
     DMW_b("beginExternalEvent");
     gnss->beginExternalEvent(); // Configure the event input
 
-    DMW_b("beginPPS");
-    gnss->beginPPS(); // Configure the time pulse output
+    DMW_b("setPPS");
+    gnss->setPPS(); // Configure the pulse per second pin
 
     DMW_b("beginInterrupts");
     beginInterrupts(); // Begin the TP interrupts

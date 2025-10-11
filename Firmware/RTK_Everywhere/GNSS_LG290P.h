@@ -84,15 +84,6 @@ class GNSS_LG290P : GNSS
     //   Returns true if successfully configured and false upon failure
     bool configureGNSS();
 
-    // Turn on all the enabled NMEA messages on COM3
-    bool enableNMEA();
-
-    // Turn on all the enabled RTCM Rover messages on COM3
-    bool enableRTCMRover();
-
-    // Turn on all the enabled RTCM Base messages on COM3
-    bool enableRTCMBase();
-
     uint8_t getActiveNmeaMessageCount();
 
     // Given the name of an NMEA message, return the array number
@@ -427,11 +418,14 @@ class GNSS_LG290P : GNSS
 
     bool setHighAccuracyService(bool enableGalileoHas);
 
-    // Enable all the valid messages for this platform
-    bool setMessages(int maxRetries);
+    // Set the NMEA messages
+    bool setMessagesNMEA();
 
-    // Enable all the valid messages for this platform over the USB port
-    bool setMessagesUsb(int maxRetries);
+    // Set then RTCM Base messages
+    bool setMessagesRTCMBase();
+
+    // Set the RTCM Rover messages
+    bool setMessagesRTCMRover();
 
     // Set the dynamic model to use for RTK
     // Inputs:

@@ -25,15 +25,19 @@ GNSS_UM980.h
 // Each constellation will have its config command text, enable, and a visible name
 typedef struct
 {
-    char textName[30];
-    char textCommand[5];
+  char textName[30];
+  char textCommand[5];
 } um980ConstellationCommand;
 
 // Constellations monitored/used for fix
 // Available constellations: GPS, BDS, GLO, GAL, QZSS
 // SBAS and IRNSS don't seem to be supported
 const um980ConstellationCommand um980ConstellationCommands[] = {
-    {"BeiDou", "BDS"}, {"Galileo", "GAL"}, {"GLONASS", "GLO"}, {"GPS", "GPS"}, {"QZSS", "QZSS"},
+    {"BeiDou", "BDS"},
+    {"Galileo", "GAL"},
+    {"GLONASS", "GLO"},
+    {"GPS", "GPS"},
+    {"QZSS", "QZSS"},
 };
 
 #define MAX_UM980_CONSTELLATIONS (sizeof(um980ConstellationCommands) / sizeof(um980ConstellationCommand))
@@ -42,51 +46,100 @@ const um980ConstellationCommand um980ConstellationCommands[] = {
 // Each message will have the serial command and its default value
 typedef struct
 {
-    const char msgTextName[9];
-    const float msgDefaultRate;
+  const char msgTextName[9];
+  const float msgDefaultRate;
 } um980Msg;
 
 // Static array containing all the compatible messages
 // Rate = Reports per second
 const um980Msg umMessagesNMEA[] = {
     // NMEA
-    {"GPDTM", 0}, {"GPGBS", 0},   {"GPGGA", 0.5}, {"GPGLL", 0}, {"GPGNS", 0},
+    {"GPDTM", 0},
+    {"GPGBS", 0},
+    {"GPGGA", 0.5},
+    {"GPGLL", 0},
+    {"GPGNS", 0},
 
-    {"GPGRS", 0}, {"GPGSA", 0.5}, {"GPGST", 0.5}, {"GPGSV", 1}, {"GPRMC", 0.5},
+    {"GPGRS", 0},
+    {"GPGSA", 0.5},
+    {"GPGST", 0.5},
+    {"GPGSV", 1},
+    {"GPRMC", 0.5},
 
-    {"GPROT", 0}, {"GPTHS", 0},   {"GPVTG", 0},   {"GPZDA", 0},
+    {"GPROT", 0},
+    {"GPTHS", 0},
+    {"GPVTG", 0},
+    {"GPZDA", 0},
 };
 
 const um980Msg umMessagesRTCM[] = {
 
     // RTCM
-    {"RTCM1001", 0},  {"RTCM1002", 0}, {"RTCM1003", 0}, {"RTCM1004", 0}, {"RTCM1005", 1},
-    {"RTCM1006", 0},  {"RTCM1007", 0}, {"RTCM1009", 0}, {"RTCM1010", 0},
+    {"RTCM1001", 0},
+    {"RTCM1002", 0},
+    {"RTCM1003", 0},
+    {"RTCM1004", 0},
+    {"RTCM1005", 1},
+    {"RTCM1006", 0},
+    {"RTCM1007", 0},
+    {"RTCM1009", 0},
+    {"RTCM1010", 0},
 
-    {"RTCM1011", 0},  {"RTCM1012", 0}, {"RTCM1013", 0}, {"RTCM1019", 0},
+    {"RTCM1011", 0},
+    {"RTCM1012", 0},
+    {"RTCM1013", 0},
+    {"RTCM1019", 0},
 
     {"RTCM1020", 0},
 
     {"RTCM1033", 10},
 
-    {"RTCM1042", 0},  {"RTCM1044", 0}, {"RTCM1045", 0}, {"RTCM1046", 0},
+    {"RTCM1042", 0},
+    {"RTCM1044", 0},
+    {"RTCM1045", 0},
+    {"RTCM1046", 0},
 
-    {"RTCM1071", 0},  {"RTCM1072", 0}, {"RTCM1073", 0}, {"RTCM1074", 1}, {"RTCM1075", 0},
-    {"RTCM1076", 0},  {"RTCM1077", 0},
+    {"RTCM1071", 0},
+    {"RTCM1072", 0},
+    {"RTCM1073", 0},
+    {"RTCM1074", 1},
+    {"RTCM1075", 0},
+    {"RTCM1076", 0},
+    {"RTCM1077", 0},
 
-    {"RTCM1081", 0},  {"RTCM1082", 0}, {"RTCM1083", 0}, {"RTCM1084", 1}, {"RTCM1085", 0},
-    {"RTCM1086", 0},  {"RTCM1087", 0},
+    {"RTCM1081", 0},
+    {"RTCM1082", 0},
+    {"RTCM1083", 0},
+    {"RTCM1084", 1},
+    {"RTCM1085", 0},
+    {"RTCM1086", 0},
+    {"RTCM1087", 0},
 
-    {"RTCM1091", 0},  {"RTCM1092", 0}, {"RTCM1093", 0}, {"RTCM1094", 1}, {"RTCM1095", 0},
-    {"RTCM1096", 0},  {"RTCM1097", 0},
+    {"RTCM1091", 0},
+    {"RTCM1092", 0},
+    {"RTCM1093", 0},
+    {"RTCM1094", 1},
+    {"RTCM1095", 0},
+    {"RTCM1096", 0},
+    {"RTCM1097", 0},
 
     {"RTCM1104", 0},
 
-    {"RTCM1111", 0},  {"RTCM1112", 0}, {"RTCM1113", 0}, {"RTCM1114", 0}, {"RTCM1115", 0},
-    {"RTCM1116", 0},  {"RTCM1117", 0},
+    {"RTCM1111", 0},
+    {"RTCM1112", 0},
+    {"RTCM1113", 0},
+    {"RTCM1114", 0},
+    {"RTCM1115", 0},
+    {"RTCM1116", 0},
+    {"RTCM1117", 0},
 
-    {"RTCM1121", 0},  {"RTCM1122", 0}, {"RTCM1123", 0}, {"RTCM1124", 1}, {"RTCM1125", 0},
-    {"RTCM1126", 0},  {"RTCM1127", 0},
+    {"RTCM1121", 0},
+    {"RTCM1122", 0},
+    {"RTCM1123", 0},
+    {"RTCM1124", 1},
+    {"RTCM1125", 0},
+    {"RTCM1126", 0},
+    {"RTCM1127", 0},
 };
 
 #define MAX_UM980_NMEA_MSG (sizeof(umMessagesNMEA) / sizeof(um980Msg))
@@ -94,412 +147,406 @@ const um980Msg umMessagesRTCM[] = {
 
 enum um980_Models
 {
-    UM980_DYN_MODEL_SURVEY = 0,
-    UM980_DYN_MODEL_UAV,
-    UM980_DYN_MODEL_AUTOMOTIVE,
+  UM980_DYN_MODEL_SURVEY = 0,
+  UM980_DYN_MODEL_UAV,
+  UM980_DYN_MODEL_AUTOMOTIVE,
 };
 
 class GNSS_UM980 : GNSS
 {
-  private:
-    UM980 *_um980; // Library class instance
+private:
+  UM980 *_um980; // Library class instance
 
-  protected:
-    bool configureOnce();
+protected:
+  bool configureOnce();
 
-    // Setup the general configuration of the GNSS
-    // Not Rover or Base specific (ie, baud rates)
-    // Outputs:
-    //   Returns true if successfully configured and false upon failure
-    bool configureGNSS();
+  // Setup the general configuration of the GNSS
+  // Not Rover or Base specific (ie, baud rates)
+  // Outputs:
+  //   Returns true if successfully configured and false upon failure
+  bool configureGNSS();
 
-    // Turn off all NMEA and RTCM
-    void disableAllOutput();
+  // Turn off all NMEA and RTCM
+  void disableAllOutput();
 
-    // Disable all output, then re-enable
-    void disableRTCM();
+  // Disable all output, then re-enable
+  void disableRTCM();
 
-    // Turn on all the enabled NMEA messages on COM3
-    bool enableNMEA();
+  uint8_t getActiveNmeaMessageCount();
 
-    // Turn on all the enabled RTCM Rover messages on COM3
-    bool enableRTCMRover();
+  // Given the name of an NMEA message, return the array number
+  uint8_t getNmeaMessageNumberByName(const char *msgName);
 
-    // Turn on all the enabled RTCM Base messages on COM3
-    bool enableRTCMBase();
+  // Given the name of an RTCM message, return the array number
+  uint8_t getRtcmMessageNumberByName(const char *msgName);
 
-    uint8_t getActiveNmeaMessageCount();
+  // Return true if the GPGGA message is active
+  bool isGgaActive();
 
-    // Given the name of an NMEA message, return the array number
-    uint8_t getNmeaMessageNumberByName(const char *msgName);
+  // Given a sub type (ie "RTCM", "NMEA") present menu showing messages with this subtype
+  // Controls the messages that get broadcast over Bluetooth and logged (if enabled)
+  void menuMessagesSubtype(float *localMessageRate, const char *messageType);
 
-    // Given the name of an RTCM message, return the array number
-    uint8_t getRtcmMessageNumberByName(const char *msgName);
+  bool setHighAccuracyService(bool enableGalileoHas);
 
-    // Return true if the GPGGA message is active
-    bool isGgaActive();
+  // Set the minimum satellite signal level for navigation.
+  bool setMinCno(uint8_t cnoValue);
 
-    // Given a sub type (ie "RTCM", "NMEA") present menu showing messages with this subtype
-    // Controls the messages that get broadcast over Bluetooth and logged (if enabled)
-    void menuMessagesSubtype(float *localMessageRate, const char *messageType);
+public:
+  // Constructor
+  GNSS_UM980() : GNSS()
+  {
+  }
 
-    bool setHighAccuracyService(bool enableGalileoHas);
+  // If we have decryption keys, configure module
+  // Note: don't check online.lband_neo here. We could be using ip corrections
+  void applyPointPerfectKeys();
 
-    // Set the minimum satellite signal level for navigation.
-    bool setMinCno(uint8_t cnoValue);
+  // Set RTCM for base mode to defaults (1005/1074/1084/1094/1124 1Hz & 1230 0.1Hz)
+  void baseRtcmDefault();
 
-  public:
-    // Constructor
-    GNSS_UM980() : GNSS()
-    {
-    }
+  // Reset to Low Bandwidth Link (1074/1084/1094/1124 0.5Hz & 1005/1230 0.1Hz)
+  void baseRtcmLowDataRate();
 
-    // If we have decryption keys, configure module
-    // Note: don't check online.lband_neo here. We could be using ip corrections
-    void applyPointPerfectKeys();
+  // Check if a given baud rate is supported by this module
+  bool baudIsAllowed(uint32_t baudRate);
+  uint32_t baudGetMinimum();
+  uint32_t baudGetMaximum();
 
-    // Set RTCM for base mode to defaults (1005/1074/1084/1094/1124 1Hz & 1230 0.1Hz)
-    void baseRtcmDefault();
+  // Connect to GNSS and identify particulars
+  void begin();
 
-    // Reset to Low Bandwidth Link (1074/1084/1094/1124 0.5Hz & 1005/1230 0.1Hz)
-    void baseRtcmLowDataRate();
+  // Setup TM2 time stamp input as need
+  // Outputs:
+  //   Returns true when an external event occurs and false if no event
+  bool beginExternalEvent();
 
-    // Check if a given baud rate is supported by this module
-    bool baudIsAllowed(uint32_t baudRate);
-    uint32_t baudGetMinimum();
-    uint32_t baudGetMaximum();
+  bool checkNMEARates();
 
-    // Connect to GNSS and identify particulars
-    void begin();
+  bool checkPPPRates();
 
-    // Setup TM2 time stamp input as need
-    // Outputs:
-    //   Returns true when an external event occurs and false if no event
-    bool beginExternalEvent();
+  // Configure the Base
+  // Outputs:
+  //   Returns true if successfully configured and false upon failure
+  bool configureBase();
 
-    bool checkNMEARates();
+  // Configure specific aspects of the receiver for NTP mode
+  bool configureNtpMode();
 
-    bool checkPPPRates();
+  // Configure the Rover
+  // Outputs:
+  //   Returns true if successfully configured and false upon failure
+  bool configureRover();
 
-    // Configure the Base
-    // Outputs:
-    //   Returns true if successfully configured and false upon failure
-    bool configureBase();
+  // Responds with the messages supported on this platform
+  // Inputs:
+  //   returnText: String to receive message names
+  // Returns message names in the returnText string
+  void createMessageList(String &returnText);
 
-    // Configure specific aspects of the receiver for NTP mode
-    bool configureNtpMode();
+  // Responds with the RTCM/Base messages supported on this platform
+  // Inputs:
+  //   returnText: String to receive message names
+  // Returns message names in the returnText string
+  void createMessageListBase(String &returnText);
 
-    // Configure the Rover
-    // Outputs:
-    //   Returns true if successfully configured and false upon failure
-    bool configureRover();
+  void debuggingDisable();
 
-    // Responds with the messages supported on this platform
-    // Inputs:
-    //   returnText: String to receive message names
-    // Returns message names in the returnText string
-    void createMessageList(String &returnText);
+  void debuggingEnable();
 
-    // Responds with the RTCM/Base messages supported on this platform
-    // Inputs:
-    //   returnText: String to receive message names
-    // Returns message names in the returnText string
-    void createMessageListBase(String &returnText);
+  void enableGgaForNtrip();
 
-    void debuggingDisable();
+  // Enable RTCM 1230. This is the GLONASS bias sentence and is transmitted
+  // even if there is no GPS fix. We use it to test serial output.
+  // Outputs:
+  //   Returns true if successfully started and false upon failure
+  bool enableRTCMTest();
 
-    void debuggingEnable();
+  // Restore the GNSS to the factory settings
+  void factoryReset();
 
-    void enableGgaForNtrip();
+  uint16_t fileBufferAvailable();
 
-    // Enable RTCM 1230. This is the GLONASS bias sentence and is transmitted
-    // even if there is no GPS fix. We use it to test serial output.
-    // Outputs:
-    //   Returns true if successfully started and false upon failure
-    bool enableRTCMTest();
+  uint16_t fileBufferExtractData(uint8_t *fileBuffer, int fileBytesToRead);
 
-    // Restore the GNSS to the factory settings
-    void factoryReset();
+  // Start the base using fixed coordinates
+  // Outputs:
+  //   Returns true if successfully started and false upon failure
+  bool fixedBaseStart();
 
-    uint16_t fileBufferAvailable();
+  // Return the number of active/enabled messages
+  uint8_t getActiveMessageCount();
 
-    uint16_t fileBufferExtractData(uint8_t *fileBuffer, int fileBytesToRead);
+  // Return the number of active/enabled RTCM messages
+  uint8_t getActiveRtcmMessageCount();
 
-    // Start the base using fixed coordinates
-    // Outputs:
-    //   Returns true if successfully started and false upon failure
-    bool fixedBaseStart();
+  // Get the altitude
+  // Outputs:
+  //   Returns the altitude in meters or zero if the GNSS is offline
+  double getAltitude();
 
-    // Return the number of active/enabled messages
-    uint8_t getActiveMessageCount();
+  // Returns the carrier solution or zero if not online
+  uint8_t getCarrierSolution();
 
-    // Return the number of active/enabled RTCM messages
-    uint8_t getActiveRtcmMessageCount();
+  uint32_t getDataBaudRate();
 
-    // Get the altitude
-    // Outputs:
-    //   Returns the altitude in meters or zero if the GNSS is offline
-    double getAltitude();
+  // Returns the day number or zero if not online
+  uint8_t getDay();
 
-    // Returns the carrier solution or zero if not online
-    uint8_t getCarrierSolution();
+  // Return the number of milliseconds since GNSS data was last updated
+  uint16_t getFixAgeMilliseconds();
 
-    uint32_t getDataBaudRate();
+  // Returns the fix type or zero if not online
+  uint8_t getFixType();
 
-    // Returns the day number or zero if not online
-    uint8_t getDay();
+  // Returns the hours of 24 hour clock or zero if not online
+  uint8_t getHour();
 
-    // Return the number of milliseconds since GNSS data was last updated
-    uint16_t getFixAgeMilliseconds();
+  // Get the horizontal position accuracy
+  // Outputs:
+  //   Returns the horizontal position accuracy or zero if offline
+  float getHorizontalAccuracy();
 
-    // Returns the fix type or zero if not online
-    uint8_t getFixType();
+  const char *getId();
 
-    // Returns the hours of 24 hour clock or zero if not online
-    uint8_t getHour();
+  // Get the latitude value
+  // Outputs:
+  //   Returns the latitude value or zero if not online
+  double getLatitude();
 
-    // Get the horizontal position accuracy
-    // Outputs:
-    //   Returns the horizontal position accuracy or zero if offline
-    float getHorizontalAccuracy();
+  // Query GNSS for current leap seconds
+  uint8_t getLeapSeconds();
 
-    const char *getId();
+  // Return the type of logging that matches the enabled messages - drives the logging icon
+  uint8_t getLoggingType();
 
-    // Get the latitude value
-    // Outputs:
-    //   Returns the latitude value or zero if not online
-    double getLatitude();
+  // Get the longitude value
+  // Outputs:
+  //   Returns the longitude value or zero if not online
+  double getLongitude();
 
-    // Query GNSS for current leap seconds
-    uint8_t getLeapSeconds();
+  // Returns two digits of milliseconds or zero if not online
+  uint8_t getMillisecond();
 
-    // Return the type of logging that matches the enabled messages - drives the logging icon
-    uint8_t getLoggingType();
+  // Get the minimum satellite signal level for navigation.
+  uint8_t getMinCno();
 
-    // Get the longitude value
-    // Outputs:
-    //   Returns the longitude value or zero if not online
-    double getLongitude();
+  // Returns minutes or zero if not online
+  uint8_t getMinute();
 
-    // Returns two digits of milliseconds or zero if not online
-    uint8_t getMillisecond();
+  // Returns month number or zero if not online
+  uint8_t getMonth();
 
-    // Get the minimum satellite signal level for navigation.
-    uint8_t getMinCno();
+  // Returns nanoseconds or zero if not online
+  uint32_t getNanosecond();
 
-    // Returns minutes or zero if not online
-    uint8_t getMinute();
+  uint32_t getRadioBaudRate();
 
-    // Returns month number or zero if not online
-    uint8_t getMonth();
+  // Returns the seconds between solutions
+  double getRateS();
 
-    // Returns nanoseconds or zero if not online
-    uint32_t getNanosecond();
+  const char *getRtcmDefaultString();
 
-    uint32_t getRadioBaudRate();
+  const char *getRtcmLowDataRateString();
 
-    // Returns the seconds between solutions
-    double getRateS();
+  // Returns the number of satellites in view or zero if offline
+  uint8_t getSatellitesInView();
 
-    const char *getRtcmDefaultString();
+  // Returns seconds or zero if not online
+  uint8_t getSecond();
 
-    const char *getRtcmLowDataRateString();
+  // Get the survey-in mean accuracy
+  // Outputs:
+  //   Returns the mean accuracy or zero (0)
+  float getSurveyInMeanAccuracy();
 
-    // Returns the number of satellites in view or zero if offline
-    uint8_t getSatellitesInView();
+  // Return the number of seconds the survey-in process has been running
+  int getSurveyInObservationTime();
 
-    // Returns seconds or zero if not online
-    uint8_t getSecond();
+  float getSurveyInStartingAccuracy();
 
-    // Get the survey-in mean accuracy
-    // Outputs:
-    //   Returns the mean accuracy or zero (0)
-    float getSurveyInMeanAccuracy();
+  // Returns timing accuracy or zero if not online
+  uint32_t getTimeAccuracy();
 
-    // Return the number of seconds the survey-in process has been running
-    int getSurveyInObservationTime();
+  // Returns full year, ie 2023, not 23.
+  uint16_t getYear();
 
-    float getSurveyInStartingAccuracy();
+  // Returns true if the device is in Rover mode
+  // Currently the only two modes are Rover or Base
+  bool inRoverMode();
 
-    // Returns timing accuracy or zero if not online
-    uint32_t getTimeAccuracy();
+  bool isBlocking();
 
-    // Returns full year, ie 2023, not 23.
-    uint16_t getYear();
+  // Date is confirmed once we have GNSS fix
+  bool isConfirmedDate();
 
-    // Returns true if the device is in Rover mode
-    // Currently the only two modes are Rover or Base
-    bool inRoverMode();
+  // Date is confirmed once we have GNSS fix
+  bool isConfirmedTime();
 
-    bool isBlocking();
+  // Returns true if data is arriving on the Radio Ext port
+  bool isCorrRadioExtPortActive()
+  {
+    return false;
+  }
 
-    // Date is confirmed once we have GNSS fix
-    bool isConfirmedDate();
+  // Return true if GNSS receiver has a higher quality DGPS fix than 3D
+  bool isDgpsFixed();
 
-    // Date is confirmed once we have GNSS fix
-    bool isConfirmedTime();
+  // Some functions (L-Band area frequency determination) merely need
+  // to know if we have a valid fix, not what type of fix
+  // This function checks to see if the given platform has reached
+  // sufficient fix type to be considered valid
+  bool isFixed();
 
-    // Returns true if data is arriving on the Radio Ext port
-    bool isCorrRadioExtPortActive()
-    {
-        return false;
-    }
+  // Used in tpISR() for time pulse synchronization
+  bool isFullyResolved();
 
-    // Return true if GNSS receiver has a higher quality DGPS fix than 3D
-    bool isDgpsFixed();
+  bool isPppConverged();
 
-    // Some functions (L-Band area frequency determination) merely need
-    // to know if we have a valid fix, not what type of fix
-    // This function checks to see if the given platform has reached
-    // sufficient fix type to be considered valid
-    bool isFixed();
+  bool isPppConverging();
 
-    // Used in tpISR() for time pulse synchronization
-    bool isFullyResolved();
+  // Some functions (L-Band area frequency determination) merely need
+  // to know if we have an RTK Fix.  This function checks to see if the
+  // given platform has reached sufficient fix type to be considered valid
+  bool isRTKFix();
 
-    bool isPppConverged();
+  // Some functions (L-Band area frequency determination) merely need
+  // to know if we have an RTK Float.  This function checks to see if
+  // the given platform has reached sufficient fix type to be considered
+  // valid
+  bool isRTKFloat();
 
-    bool isPppConverging();
+  // Determine if the survey-in operation is complete
+  // Outputs:
+  //   Returns true if the survey-in operation is complete and false
+  //   if the operation is still running
+  bool isSurveyInComplete();
 
-    // Some functions (L-Band area frequency determination) merely need
-    // to know if we have an RTK Fix.  This function checks to see if the
-    // given platform has reached sufficient fix type to be considered valid
-    bool isRTKFix();
+  // Date will be valid if the RTC is reporting (regardless of GNSS fix)
+  bool isValidDate();
 
-    // Some functions (L-Band area frequency determination) merely need
-    // to know if we have an RTK Float.  This function checks to see if
-    // the given platform has reached sufficient fix type to be considered
-    // valid
-    bool isRTKFloat();
+  // Time will be valid if the RTC is reporting (regardless of GNSS fix)
+  bool isValidTime();
 
-    // Determine if the survey-in operation is complete
-    // Outputs:
-    //   Returns true if the survey-in operation is complete and false
-    //   if the operation is still running
-    bool isSurveyInComplete();
+  // Controls the constellations that are used to generate a fix and logged
+  void menuConstellations();
 
-    // Date will be valid if the RTC is reporting (regardless of GNSS fix)
-    bool isValidDate();
+  void menuMessageBaseRtcm();
 
-    // Time will be valid if the RTC is reporting (regardless of GNSS fix)
-    bool isValidTime();
+  // Control the messages that get broadcast over Bluetooth and logged (if enabled)
+  void menuMessages();
 
-    // Controls the constellations that are used to generate a fix and logged
-    void menuConstellations();
+  // Print the module type and firmware version
+  void printModuleInfo();
 
-    void menuMessageBaseRtcm();
+  // Send correction data to the GNSS
+  // Inputs:
+  //   dataToSend: Address of a buffer containing the data
+  //   dataLength: The number of valid data bytes in the buffer
+  // Outputs:
+  //   Returns the number of correction data bytes written
+  int pushRawData(uint8_t *dataToSend, int dataLength);
 
-    // Control the messages that get broadcast over Bluetooth and logged (if enabled)
-    void menuMessages();
+  uint16_t rtcmBufferAvailable();
 
-    // Print the module type and firmware version
-    void printModuleInfo();
+  // If LBand is being used, ignore any RTCM that may come in from the GNSS
+  void rtcmOnGnssDisable();
 
-    // Send correction data to the GNSS
-    // Inputs:
-    //   dataToSend: Address of a buffer containing the data
-    //   dataLength: The number of valid data bytes in the buffer
-    // Outputs:
-    //   Returns the number of correction data bytes written
-    int pushRawData(uint8_t *dataToSend, int dataLength);
+  // If L-Band is available, but encrypted, allow RTCM through other sources (radio, ESP-NOW) to GNSS receiver
+  void rtcmOnGnssEnable();
 
-    uint16_t rtcmBufferAvailable();
+  uint16_t rtcmRead(uint8_t *rtcmBuffer, int rtcmBytesToRead);
 
-    // If LBand is being used, ignore any RTCM that may come in from the GNSS
-    void rtcmOnGnssDisable();
+  // Save the current configuration
+  // Outputs:
+  //   Returns true when the configuration was saved and false upon failure
+  bool saveConfiguration();
 
-    // If L-Band is available, but encrypted, allow RTCM through other sources (radio, ESP-NOW) to GNSS receiver
-    void rtcmOnGnssEnable();
+  bool setBaudRate(uint8_t uartNumber, uint32_t baudRate); // From the super class
 
-    uint16_t rtcmRead(uint8_t *rtcmBuffer, int rtcmBytesToRead);
+  // Set the baud rate on the GNSS port that interfaces between the ESP32 and the GNSS
+  // Inputs:
+  //   baudRate: The desired baudrate
+  bool setBaudRateComm(uint32_t baudRate);
 
-    // Save the current configuration
-    // Outputs:
-    //   Returns true when the configuration was saved and false upon failure
-    bool saveConfiguration();
+  bool setBaudRateData(uint32_t baudRate);
 
-    bool setBaudRate(uint8_t uartNumber, uint32_t baudRate); // From the super class
+  bool setBaudRateRadio(uint32_t baudRate);
 
-    // Set the baud rate on the GNSS port that interfaces between the ESP32 and the GNSS
-    // Inputs:
-    //   baudRate: The desired baudrate
-    bool setBaudRateComm(uint32_t baudRate);
+  // Enable all the valid constellations and bands for this platform
+  bool setConstellations();
 
-    bool setBaudRateData(uint32_t baudRate);
+  // Enable / disable corrections protocol(s) on the Radio External port
+  bool setCorrRadioExtPort(bool enable, bool force)
+  {
+    return true;
+  }
 
-    bool setBaudRateRadio(uint32_t baudRate);
+  // Set the elevation in degrees
+  // Inputs:
+  //   elevationDegrees: The elevation value in degrees
+  bool setElevation(uint8_t elevationDegrees);
 
-    // Enable all the valid constellations and bands for this platform
-    bool setConstellations();
+  // Turn on all the enabled NMEA messages on COM3
+  bool setMessagesNMEA();
 
-    // Enable / disable corrections protocol(s) on the Radio External port
-    bool setCorrRadioExtPort(bool enable, bool force)
-    {
-        return true;
-    }
+  // Turn on all the enabled RTCM Rover messages on COM3
+  bool setMessagesRTCMRover();
 
-    // Set the elevation in degrees
-    // Inputs:
-    //   elevationDegrees: The elevation value in degrees
-    bool setElevation(uint8_t elevationDegrees);
+  // Turn on all the enabled RTCM Base messages on COM3
+  bool setMessagesRTCMBase();
 
-    // Enable all the valid messages for this platform
-    bool setMessages(int maxRetries);
+  // Set the dynamic model to use for RTK
+  // Inputs:
+  //   modelNumber: Number of the model to use, provided by radio library
+  bool setModel(uint8_t modelNumber);
 
-    // Enable all the valid messages for this platform over the USB port
-    bool setMessagesUsb(int maxRetries);
+  bool setMultipathMitigation(bool enableMultipathMitigation);
 
-    // Set the dynamic model to use for RTK
-    // Inputs:
-    //   modelNumber: Number of the model to use, provided by radio library
-    bool setModel(uint8_t modelNumber);
+  // Given the name of a message, find it, and set the rate
+  bool setNmeaMessageRateByName(const char *msgName, uint8_t msgRate);
 
-    bool setMultipathMitigation(bool enableMultipathMitigation);
+  // Configure the Pulse-per-second pin based on user settings
+  bool setPPS();
 
-    // Given the name of a message, find it, and set the rate
-    bool setNmeaMessageRateByName(const char *msgName, uint8_t msgRate);
+  // Set all RTCM Rover message report rates to one value
+  void setRtcmRoverMessageRates(uint8_t msgRate);
 
-    // Configure the Pulse-per-second pin based on user settings
-    bool setPPS();
+  // Given the name of a message, find it, and set the rate
+  bool setRtcmRoverMessageRateByName(const char *msgName, uint8_t msgRate);
 
-    // Set all RTCM Rover message report rates to one value
-    void setRtcmRoverMessageRates(uint8_t msgRate);
+  // Specify the interval between solutions
+  // Inputs:
+  //   secondsBetweenSolutions: Number of seconds between solutions
+  // Outputs:
+  //   Returns true if the rate was successfully set and false upon
+  //   failure
+  bool setRate(double secondsBetweenSolutions);
 
-    // Given the name of a message, find it, and set the rate
-    bool setRtcmRoverMessageRateByName(const char *msgName, uint8_t msgRate);
+  bool setTalkerGNGGA();
 
-    // Specify the interval between solutions
-    // Inputs:
-    //   secondsBetweenSolutions: Number of seconds between solutions
-    // Outputs:
-    //   Returns true if the rate was successfully set and false upon
-    //   failure
-    bool setRate(double secondsBetweenSolutions);
+  // Hotstart GNSS to try to get RTK lock
+  bool softwareReset();
 
-    bool setTalkerGNGGA();
+  bool standby();
 
-    // Hotstart GNSS to try to get RTK lock
-    bool softwareReset();
+  // Reset the survey-in operation
+  // Outputs:
+  //   Returns true if the survey-in operation was reset successfully
+  //   and false upon failure
+  bool surveyInReset();
 
-    bool standby();
+  // Start the survey-in operation
+  // Outputs:
+  //   Return true if successful and false upon failure
+  bool surveyInStart();
 
-    // Reset the survey-in operation
-    // Outputs:
-    //   Returns true if the survey-in operation was reset successfully
-    //   and false upon failure
-    bool surveyInReset();
+  // If we have received serial data from the UM980 outside of the Unicore library (ie, from processUart1Message task)
+  // we can pass data back into the Unicore library to allow it to update its own variables
+  void unicoreHandler(uint8_t *buffer, int length);
 
-    // Start the survey-in operation
-    // Outputs:
-    //   Return true if successful and false upon failure
-    bool surveyInStart();
-
-    // If we have received serial data from the UM980 outside of the Unicore library (ie, from processUart1Message task)
-    // we can pass data back into the Unicore library to allow it to update its own variables
-    void unicoreHandler(uint8_t *buffer, int length);
-
-    // Poll routine to update the GNSS state
-    void update();
+  // Poll routine to update the GNSS state
+  void update();
 };
 
 #endif // COMPILE_UM980

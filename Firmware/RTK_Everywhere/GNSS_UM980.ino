@@ -201,11 +201,13 @@ bool GNSS_UM980::configureBase()
     gnssConfigure(GNSS_CONFIG_MULTIPATH);
     gnssConfigure(GNSS_CONFIG_HAS_E6);
 
-    response &= enableRTCMBase(); // Only turn on messages, do not turn off messages. We assume the caller has
-                                  // UNLOG or similar.
+    gnssConfigure(GNSS_CONFIG_MESSAGE_RATE_RTCM_BASE);
 
     // Only turn on messages, do not turn off messages. We assume the caller has UNLOG or similar.
-    response &= enableNMEA();
+    response &= setMessagesRTCMBase();
+
+    // Only turn on messages, do not turn off messages. We assume the caller has UNLOG or similar.
+    response &= setMessagesNMEA();
 
     // Save the current configuration into non-volatile memory (NVM)
     response &= _um980->saveConfiguration();
@@ -386,11 +388,11 @@ bool GNSS_UM980::configureRover()
     // interface port during config.
 
     // Only turn on messages, do not turn off messages. We assume the caller has UNLOG or similar.
-    response &= enableRTCMRover();
+    response &= setMessagesRTCMRover();
     // TODO consider reducing the GSV sentence to 1/4 of the GPGGA setting
 
     // Only turn on messages, do not turn off messages. We assume the caller has UNLOG or similar.
-    response &= enableNMEA();
+    response &= setMessagesNMEA();
 
     // Save the current configuration into non-volatile memory (NVM)
     response &= _um980->saveConfiguration();
@@ -485,158 +487,13 @@ void GNSS_UM980::disableAllOutput()
 void GNSS_UM980::disableRTCM()
 {
     disableAllOutput();
-    enableNMEA();
+    setMessagesNMEA();
 }
 
 //----------------------------------------
 void GNSS_UM980::enableGgaForNtrip()
 {
     // TODO um980EnableGgaForNtrip();
-}
-
-//----------------------------------------
-// Turn on all the enabled NMEA messages on COM3
-//----------------------------------------
-bool GNSS_UM980::enableNMEA()
-{
-    bool response = true;
-    bool gpggaEnabled = false;
-    bool gpzdaEnabled = false;
-
-    for (int messageNumber = 0; messageNumber < MAX_UM980_NMEA_MSG; messageNumber++)
-    {
-        // Only turn on messages, do not turn off messages set to 0. This saves on command sending. We assume the caller
-        // has UNLOG or similar.
-        if (settings.um980MessageRatesNMEA[messageNumber] > 0)
-        {
-            // If any one of the commands fails, report failure overall
-            response &= _um980->setNMEAPortMessage(umMessagesNMEA[messageNumber].msgTextName, "COM3",
-                                                   settings.um980MessageRatesNMEA[messageNumber]);
-
-            if (response == false && settings.debugGnss)
-                systemPrintf("Enable NMEA failed at messageNumber %d %s.\r\n", messageNumber,
-                             umMessagesNMEA[messageNumber].msgTextName);
-
-            // If we are using IP based corrections, we need to send local data to the PPL
-            // The PPL requires being fed GPGGA/ZDA, and RTCM1019/1020/1042/1046
-            if (pointPerfectServiceUsesKeys())
-            {
-                // Mark PPL required messages as enabled if rate > 0
-                if (settings.um980MessageRatesNMEA[messageNumber] > 0)
-                {
-                    if (strcmp(umMessagesNMEA[messageNumber].msgTextName, "GPGGA") == 0)
-                        gpggaEnabled = true;
-                    else if (strcmp(umMessagesNMEA[messageNumber].msgTextName, "GPZDA") == 0)
-                        gpzdaEnabled = true;
-                }
-            }
-        }
-    }
-
-    if (pointPerfectServiceUsesKeys())
-    {
-        // Force on any messages that are needed for PPL
-        if (gpggaEnabled == false)
-            response &= _um980->setNMEAPortMessage("GPGGA", "COM3", 1);
-        if (gpzdaEnabled == false)
-            response &= _um980->setNMEAPortMessage("GPZDA", "COM3", 1);
-    }
-
-    if (response == true)
-        gnssConfigure(GNSS_CONFIG_SAVE); // Request receiver commit this change to NVM
-
-    return (response);
-}
-
-//----------------------------------------
-// Turn on all the enabled RTCM Base messages on COM3
-//----------------------------------------
-bool GNSS_UM980::enableRTCMBase()
-{
-    bool response = true;
-
-    for (int messageNumber = 0; messageNumber < MAX_UM980_RTCM_MSG; messageNumber++)
-    {
-        // Only turn on messages, do not turn off messages set to 0. This saves on command sending. We assume the caller
-        // has UNLOG or similar.
-        if (settings.um980MessageRatesRTCMBase[messageNumber] > 0)
-        {
-            // If any one of the commands fails, report failure overall
-            response &= _um980->setRTCMPortMessage(umMessagesRTCM[messageNumber].msgTextName, "COM3",
-                                                   settings.um980MessageRatesRTCMBase[messageNumber]);
-
-            if (response == false && settings.debugGnss)
-                systemPrintf("Enable RTCM failed at messageNumber %d %s.", messageNumber,
-                             umMessagesRTCM[messageNumber].msgTextName);
-        }
-    }
-
-    return (response);
-}
-
-//----------------------------------------
-// Turn on all the enabled RTCM Rover messages on COM3
-//----------------------------------------
-bool GNSS_UM980::enableRTCMRover()
-{
-    bool response = true;
-    bool rtcm1019Enabled = false;
-    bool rtcm1020Enabled = false;
-    bool rtcm1042Enabled = false;
-    bool rtcm1046Enabled = false;
-
-    for (int messageNumber = 0; messageNumber < MAX_UM980_RTCM_MSG; messageNumber++)
-    {
-        // Only turn on messages, do not turn off messages set to 0. This saves on command sending. We assume the caller
-        // has UNLOG or similar.
-        if (settings.um980MessageRatesRTCMRover[messageNumber] > 0)
-        {
-            if (_um980->setRTCMPortMessage(umMessagesRTCM[messageNumber].msgTextName, "COM3",
-                                           settings.um980MessageRatesRTCMRover[messageNumber]) == false)
-            {
-                if (settings.debugGnss)
-                    systemPrintf("Enable RTCM failed at messageNumber %d %s.", messageNumber,
-                                 umMessagesRTCM[messageNumber].msgTextName);
-                response &= false; // If any one of the commands fails, report failure overall
-            }
-
-            // If we are using IP based corrections, we need to send local data to the PPL
-            // The PPL requires being fed GPGGA/ZDA, and RTCM1019/1020/1042/1046
-            if (pointPerfectServiceUsesKeys())
-            {
-                // Mark PPL required messages as enabled if rate > 0
-                if (settings.um980MessageRatesRTCMRover[messageNumber] > 0)
-                {
-                    if (strcmp(umMessagesNMEA[messageNumber].msgTextName, "RTCM1019") == 0)
-                        rtcm1019Enabled = true;
-                    else if (strcmp(umMessagesNMEA[messageNumber].msgTextName, "RTCM1020") == 0)
-                        rtcm1020Enabled = true;
-                    else if (strcmp(umMessagesNMEA[messageNumber].msgTextName, "RTCM1042") == 0)
-                        rtcm1042Enabled = true;
-                    else if (strcmp(umMessagesNMEA[messageNumber].msgTextName, "RTCM1046") == 0)
-                        rtcm1046Enabled = true;
-                }
-            }
-        }
-    }
-
-    if (pointPerfectServiceUsesKeys())
-    {
-        // Force on any messages that are needed for PPL
-        if (rtcm1019Enabled == false)
-            response &= _um980->setRTCMPortMessage("RTCM1019", "COM3", 1);
-        if (rtcm1020Enabled == false)
-            response &= _um980->setRTCMPortMessage("RTCM1020", "COM3", 1);
-        if (rtcm1042Enabled == false)
-            response &= _um980->setRTCMPortMessage("RTCM1042", "COM3", 1);
-        if (rtcm1046Enabled == false)
-            response &= _um980->setRTCMPortMessage("RTCM1046", "COM3", 1);
-    }
-
-    if (response == true)
-        gnssConfigure(GNSS_CONFIG_SAVE); // Request receiver commit this change to NVM
-
-    return (response);
 }
 
 //----------------------------------------
@@ -1765,29 +1622,6 @@ bool GNSS_UM980::setHighAccuracyService(bool enableGalileoHas)
 }
 
 //----------------------------------------
-// Enable all the valid messages for this platform
-// There are many messages so split into batches. VALSET is limited to 64 max per batch
-// Uses dummy newCfg and sendCfg values to be sure we open/close a complete set
-//----------------------------------------
-bool GNSS_UM980::setMessages(int maxRetries)
-{
-    // We probably don't need this for the UM980
-    //  TODO return(um980SetMessages(maxRetries));
-    return (true);
-}
-
-//----------------------------------------
-// Enable all the valid messages for this platform over the USB port
-// Add 2 to every UART1 key. This is brittle and non-perfect, but works.
-//----------------------------------------
-bool GNSS_UM980::setMessagesUsb(int maxRetries)
-{
-    // We probably don't need this for the UM980
-    //  TODO return(um980SetMessagesUsb(maxRetries));
-    return (true);
-}
-
-//----------------------------------------
 // Set the minimum satellite signal level (carrier to noise ratio) for navigation.
 //----------------------------------------
 bool GNSS_UM980::setMinCno(uint8_t cn0Value)
@@ -1800,6 +1634,146 @@ bool GNSS_UM980::setMinCno(uint8_t cn0Value)
         return true;
     }
     return false;
+}
+
+//----------------------------------------
+// Turn on all the enabled NMEA messages on COM3
+//----------------------------------------
+bool GNSS_UM980::setMessagesNMEA()
+{
+    bool response = true;
+    bool gpggaEnabled = false;
+    bool gpzdaEnabled = false;
+
+    for (int messageNumber = 0; messageNumber < MAX_UM980_NMEA_MSG; messageNumber++)
+    {
+        // Only turn on messages, do not turn off messages set to 0. This saves on command sending. We assume the caller
+        // has UNLOG or similar.
+        if (settings.um980MessageRatesNMEA[messageNumber] > 0)
+        {
+            // If any one of the commands fails, report failure overall
+            response &= _um980->setNMEAPortMessage(umMessagesNMEA[messageNumber].msgTextName, "COM3",
+                                                   settings.um980MessageRatesNMEA[messageNumber]);
+
+            if (response == false && settings.debugGnss)
+                systemPrintf("Enable NMEA failed at messageNumber %d %s.\r\n", messageNumber,
+                             umMessagesNMEA[messageNumber].msgTextName);
+
+            // If we are using IP based corrections, we need to send local data to the PPL
+            // The PPL requires being fed GPGGA/ZDA, and RTCM1019/1020/1042/1046
+            if (pointPerfectServiceUsesKeys())
+            {
+                // Mark PPL required messages as enabled if rate > 0
+                if (settings.um980MessageRatesNMEA[messageNumber] > 0)
+                {
+                    if (strcmp(umMessagesNMEA[messageNumber].msgTextName, "GPGGA") == 0)
+                        gpggaEnabled = true;
+                    else if (strcmp(umMessagesNMEA[messageNumber].msgTextName, "GPZDA") == 0)
+                        gpzdaEnabled = true;
+                }
+            }
+        }
+    }
+
+    if (pointPerfectServiceUsesKeys())
+    {
+        // Force on any messages that are needed for PPL
+        if (gpggaEnabled == false)
+            response &= _um980->setNMEAPortMessage("GPGGA", "COM3", 1);
+        if (gpzdaEnabled == false)
+            response &= _um980->setNMEAPortMessage("GPZDA", "COM3", 1);
+    }
+
+    if (response == true)
+        gnssConfigure(GNSS_CONFIG_SAVE); // Request receiver commit this change to NVM
+
+    return (response);
+}
+
+//----------------------------------------
+// Configure RTCM Base messages on COM3 (the connection between ESP32 and UM980)
+//----------------------------------------
+bool GNSS_UM980::setMessagesRTCMBase()
+{
+    bool response = true;
+
+    for (int messageNumber = 0; messageNumber < MAX_UM980_RTCM_MSG; messageNumber++)
+    {
+        // If any one of the commands fails, report failure overall
+        response &= _um980->setRTCMPortMessage(umMessagesRTCM[messageNumber].msgTextName, "COM3",
+                                               settings.um980MessageRatesRTCMBase[messageNumber]);
+
+        if (response == false && settings.debugGnss)
+            systemPrintf("setMessagesRTCMBase failed at messageNumber %d %s.", messageNumber,
+                         umMessagesRTCM[messageNumber].msgTextName);
+    }
+
+    return (response);
+}
+
+//----------------------------------------
+// Set the RTCM Rover messages on COM3
+//----------------------------------------
+bool GNSS_UM980::setMessagesRTCMRover()
+{
+    bool response = true;
+    bool rtcm1019Enabled = false;
+    bool rtcm1020Enabled = false;
+    bool rtcm1042Enabled = false;
+    bool rtcm1046Enabled = false;
+
+    for (int messageNumber = 0; messageNumber < MAX_UM980_RTCM_MSG; messageNumber++)
+    {
+        // Only turn on messages, do not turn off messages set to 0. This saves on command sending. We assume the caller
+        // has UNLOG or similar.
+        if (settings.um980MessageRatesRTCMRover[messageNumber] > 0)
+        {
+            if (_um980->setRTCMPortMessage(umMessagesRTCM[messageNumber].msgTextName, "COM3",
+                                           settings.um980MessageRatesRTCMRover[messageNumber]) == false)
+            {
+                if (settings.debugGnss)
+                    systemPrintf("Enable RTCM failed at messageNumber %d %s.", messageNumber,
+                                 umMessagesRTCM[messageNumber].msgTextName);
+                response &= false; // If any one of the commands fails, report failure overall
+            }
+
+            // If we are using IP based corrections, we need to send local data to the PPL
+            // The PPL requires being fed GPGGA/ZDA, and RTCM1019/1020/1042/1046
+            if (pointPerfectServiceUsesKeys())
+            {
+                // Mark PPL required messages as enabled if rate > 0
+                if (settings.um980MessageRatesRTCMRover[messageNumber] > 0)
+                {
+                    if (strcmp(umMessagesNMEA[messageNumber].msgTextName, "RTCM1019") == 0)
+                        rtcm1019Enabled = true;
+                    else if (strcmp(umMessagesNMEA[messageNumber].msgTextName, "RTCM1020") == 0)
+                        rtcm1020Enabled = true;
+                    else if (strcmp(umMessagesNMEA[messageNumber].msgTextName, "RTCM1042") == 0)
+                        rtcm1042Enabled = true;
+                    else if (strcmp(umMessagesNMEA[messageNumber].msgTextName, "RTCM1046") == 0)
+                        rtcm1046Enabled = true;
+                }
+            }
+        }
+    }
+
+    if (pointPerfectServiceUsesKeys())
+    {
+        // Force on any messages that are needed for PPL
+        if (rtcm1019Enabled == false)
+            response &= _um980->setRTCMPortMessage("RTCM1019", "COM3", 1);
+        if (rtcm1020Enabled == false)
+            response &= _um980->setRTCMPortMessage("RTCM1020", "COM3", 1);
+        if (rtcm1042Enabled == false)
+            response &= _um980->setRTCMPortMessage("RTCM1042", "COM3", 1);
+        if (rtcm1046Enabled == false)
+            response &= _um980->setRTCMPortMessage("RTCM1046", "COM3", 1);
+    }
+
+    if (response == true)
+        gnssConfigure(GNSS_CONFIG_SAVE); // Request receiver commit this change to NVM
+
+    return (response);
 }
 
 //----------------------------------------
@@ -1919,7 +1893,7 @@ bool GNSS_UM980::setRate(double secondsBetweenSolutions)
         if (settings.um980MessageRatesNMEA[messageNumber] > 0)
             settings.um980MessageRatesNMEA[messageNumber] = secondsBetweenSolutions;
     }
-    response &= enableNMEA(); // Enact these rates
+    response &= setMessagesNMEA(); // Enact these rates
 
     // TODO We don't know what state we are in, so we don't
     // know which RTCM settings to update. Assume we are
@@ -1929,7 +1903,7 @@ bool GNSS_UM980::setRate(double secondsBetweenSolutions)
         if (settings.um980MessageRatesRTCMRover[messageNumber] > 0)
             settings.um980MessageRatesRTCMRover[messageNumber] = secondsBetweenSolutions;
     }
-    response &= enableRTCMRover(); // Enact these rates
+    response &= setMessagesRTCMRover(); // Enact these rates
 
     // If we successfully set rates, only then record to settings
     if (response)

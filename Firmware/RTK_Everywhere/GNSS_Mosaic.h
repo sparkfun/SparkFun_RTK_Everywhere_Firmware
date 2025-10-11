@@ -648,15 +648,6 @@ class GNSS_MOSAIC : GNSS
 
     void enableGgaForNtrip();
 
-    // Turn on all the enabled NMEA messages on COM1
-    bool enableNMEA();
-
-    // Turn on all the enabled RTCM Base messages on COM1, COM2 and USB1 (if enabled)
-    bool enableRTCMBase();
-
-    // Turn on all the enabled RTCM Rover messages on COM1, COM2 and USB1 (if enabled)
-    bool enableRTCMRover();
-
     // Enable RTCM 1230. This is the GLONASS bias sentence and is transmitted
     // even if there is no GPS fix. We use it to test serial output.
     // Outputs:
@@ -995,11 +986,14 @@ class GNSS_MOSAIC : GNSS
     // Enable or disable HAS E6 capability
     bool setHighAccuracyService(bool enableGalileoHas);
 
-    // Enable all the valid messages for this platform
-    bool setMessages(int maxRetries);
+    // Turn on all the enabled NMEA messages on COM1
+    bool setMessagesNMEA();
 
-    // Enable all the valid messages for this platform over the USB port
-    bool setMessagesUsb(int maxRetries);
+    // Turn on all the enabled RTCM Base messages on COM1, COM2 and USB1 (if enabled)
+    bool setMessagesRTCMBase();
+
+    // Turn on all the enabled RTCM Rover messages on COM1, COM2 and USB1 (if enabled)
+    bool setMessagesRTCMRover();
 
     // Set the dynamic model to use for RTK
     // Inputs:

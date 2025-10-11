@@ -9,7 +9,7 @@ GNSS_None.h
 
 class GNSS_None : public GNSS
 {
-  protected:
+protected:
     // Setup the general configuration of the GNSS
     // Not Rover or Base specific (ie, baud rates)
     // Outputs:
@@ -25,7 +25,7 @@ class GNSS_None : public GNSS
         return false;
     }
 
-  public:
+public:
     // Constructor
     GNSS_None() : GNSS()
     {
@@ -566,14 +566,20 @@ class GNSS_None : public GNSS
         return true;
     }
 
-    // Enable all the valid messages for this platform
-    bool setMessages(int maxRetries)
+    // Configure NMEA messages
+    bool setMessagesNMEA()
     {
         return true;
     }
 
-    // Enable all the valid messages for this platform over the USB port
-    bool setMessagesUsb(int maxRetries)
+    // Configure RTCM Base messages
+    bool setMessagesRTCMBase()
+    {
+        return true;
+    }
+
+    // Configure RTCM Base messages
+    bool setMessagesRTCMRover()
     {
         return true;
     }
