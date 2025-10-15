@@ -571,6 +571,23 @@ function parseIncoming(msg) {
             savedCheckboxNames.push(messageName);
             savedCheckboxValues.push(val);
         }
+        else if (id.includes("messageRatePQTM")) {
+            // messageRatePQTM_EPE
+            var messageName = id;
+            var messageNameLabel = "";
+
+            var messageData = messageName.split('_');
+            messageNameLabel = messageData[1];
+
+            messageText += "<div class='form-check mt-3'>";
+            messageText += "<label class='form-check-label' for='" + messageName + "'>Enable " + messageNameLabel + "</label>";
+            messageText += "<input class='form-check-input' type='checkbox' id='" + messageName + "'>";
+            messageText += "</div>";
+
+            // Save the name and value as we can't set 'checked' yet. messageText has not yet been added to innerHTML
+            savedCheckboxNames.push(messageName);
+            savedCheckboxValues.push(val);
+        }
         else if (id.includes("correctionsPriority")) {
             var correctionName = id;
             var correctionPriority = parseInt(val);
@@ -812,6 +829,14 @@ function checkMessageValueUM980Base(id) {
     checkElementValue(id, 0, 65, "Must be between 0 and 65", "collapseGNSSConfigMsgBase");
 }
 
+function checkMessageValueLG290P01(id) {
+    checkElementValue(id, 0, 1, "Must be between 0 and 1", "collapseGNSSConfigMsg");
+}
+
+function checkMessageValueLG290P01200(id) {
+    checkElementValue(id, 0, 1200, "Must be between 0 and 1200", "collapseGNSSConfigMsg");
+}
+
 function collapseSection(section, caret) {
     ge(section).classList.remove('show');
     ge(caret).classList.remove('icon-caret-down');
@@ -915,6 +940,25 @@ function validateFields() {
         for (let x = 0; x < messages.length; x++) {
             var messageName = messages[x].id;
             checkElementValue(messageName, 0.1, 600.0, "Must be between 0.1 and 600.0", "collapseGNSSConfigMsgBase");
+        }
+    }
+
+    //Check all LG290P message boxes
+    else if ((platformPrefix == "Postcard") || (platformPrefix == "Torch X2")) {
+        var messages = document.querySelectorAll('input[id^=messageRateNMEA_]');
+        for (let x = 0; x < messages.length; x++) {
+            var messageName = messages[x].id;
+            checkMessageValueLG290P01(messageName);
+        }
+        var messages = document.querySelectorAll('input[id^=messageRateRTCMRover_]');
+        for (let x = 0; x < messages.length; x++) {
+            var messageName = messages[x].id;
+            checkMessageValueLG290P01200(messageName);
+        }
+        var messages = document.querySelectorAll('input[id^=messageRateRTCMBase_]');
+        for (let x = 0; x < messages.length; x++) {
+            var messageName = messages[x].id;
+            checkMessageValueLG290P01200(messageName);
         }
     }
 
@@ -1434,6 +1478,12 @@ function zeroMessages() {
         var messageName = messages[x].id;
         ge(messageName).checked = false;
     }
+    //match messageRatePQTM_
+    messages = document.querySelectorAll('input[id^=messageRatePQTM_]');
+    for (let x = 0; x < messages.length; x++) {
+        var messageName = messages[x].id;
+        ge(messageName).checked = false;
+    }
 }
 
 function zeroBaseMessages() {
@@ -1490,7 +1540,7 @@ function resetToSurveyingDefaults() {
 
         ge("messageIntervalRTCMRover_RTCM1033").value = 10.0;
     }
-    else if (platformPrefix == "Postcard") {
+    else if ((platformPrefix == "Postcard") || (platformPrefix == "Torch X2")) {
         ge("messageRateNMEA_GPRMC").value = 1;
         ge("messageRateNMEA_GPGGA").value = 1;
         ge("messageRateNMEA_GPGSV").value = 1;
@@ -1529,7 +1579,7 @@ function resetToLoggingDefaults() {
         ge("messageRateRTCMRover_RTCM1094").value = 30;
         ge("messageRateRTCMRover_RTCM1124").value = 30;
     }
-    else if (platformPrefix == "Postcard") {
+    else if ((platformPrefix == "Postcard") || (platformPrefix == "Torch X2")) {
         ge("messageRateNMEA_GPRMC").value = 1;
         ge("messageRateNMEA_GPGGA").value = 1;
         ge("messageRateNMEA_GPGSV").value = 1;
