@@ -508,6 +508,23 @@ function parseIncoming(msg) {
             messageText += "<p id='" + messageName + "Error' class='inlineError'></p>";
             messageText += "</div></div>";
         }
+        else if (id.includes("messageRatePQTM")) {
+            // messageRatePQTM_EPE
+            var messageName = id;
+            var messageNameLabel = "";
+
+            var messageData = messageName.split('_');
+            messageNameLabel = messageData[1];
+
+            messageText += "<div class='form-check mt-3'>";
+            messageText += "<label class='form-check-label' for='" + messageName + "'>Enable " + messageNameLabel + "</label>";
+            messageText += "<input class='form-check-input' type='checkbox' id='" + messageName + "'>";
+            messageText += "</div>";
+
+            // Save the name and value as we can't set 'checked' yet. messageText has not yet been added to innerHTML
+            savedCheckboxNames.push(messageName);
+            savedCheckboxValues.push(val);
+        }
         else if (id.includes("messageRate") || id.includes("messageIntervalRTCM")) {
             // messageRateNMEA_GPDTM
             // messageRateRTCMRover_RTCM1001
@@ -556,23 +573,6 @@ function parseIncoming(msg) {
         else if (id.includes("messageEnabledRTCM")) {
             // messageEnabledRTCMRover_RTCM1230
             // messageEnabledRTCMBase_RTCM1230
-            var messageName = id;
-            var messageNameLabel = "";
-
-            var messageData = messageName.split('_');
-            messageNameLabel = messageData[1];
-
-            messageText += "<div class='form-check mt-3'>";
-            messageText += "<label class='form-check-label' for='" + messageName + "'>Enable " + messageNameLabel + "</label>";
-            messageText += "<input class='form-check-input' type='checkbox' id='" + messageName + "'>";
-            messageText += "</div>";
-
-            // Save the name and value as we can't set 'checked' yet. messageText has not yet been added to innerHTML
-            savedCheckboxNames.push(messageName);
-            savedCheckboxValues.push(val);
-        }
-        else if (id.includes("messageRatePQTM")) {
-            // messageRatePQTM_EPE
             var messageName = id;
             var messageNameLabel = "";
 
