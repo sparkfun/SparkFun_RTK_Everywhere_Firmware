@@ -141,6 +141,22 @@ void GNSS_LG290P::begin()
         present.minCno = true;
     }
 
+    // Determine if PPP temp firmware is detected.
+    // "LG290P03AANR01A03S_PPP_TEMP0812"
+    // "LG290P03AANR01A06S_PPP_TEMP0829"
+    // There is also a v06 firmware that does not have PPP support.
+    // v07 is reportedly the first version to formally support PPP
+    if (strstr(gnssFirmwareVersion, "PPP_TEMP") != nullptr)
+    {
+        present.galileoHasCapable = true;
+        systemPrintln("PPP trial firmware detected. HAS settings will now be available.");
+    }
+
+    if (lg290pFirmwareVersion >= 7)
+    {
+        present.galileoHasCapable = true;
+    }
+
     printModuleInfo();
 
     snprintf(gnssUniqueId, sizeof(gnssUniqueId), "%s", getId());
@@ -892,16 +908,14 @@ bool GNSS_LG290P::enableRTCMBase()
     if (enableRTCM == true)
     {
         if (settings.debugGnss)
-            systemPrintf("Enabling Base RTCM MSM%c output with rate of %d\r\n",
-                         settings.useMSM7 ? '7' : '4', minimumRtcmRate);
+            systemPrintf("Enabling Base RTCM MSM%c output with rate of %d\r\n", settings.useMSM7 ? '7' : '4',
+                         minimumRtcmRate);
 
         // PQTMCFGRTCM fails to respond with OK over UART2 of LG290P, so don't look for it
         char cfgRtcm[40];
-        snprintf(cfgRtcm, sizeof(cfgRtcm), "PQTMCFGRTCM,W,%c,0,%d,07,06,2,%d",
-                                            settings.useMSM7 ? '7' : '4', settings.rtcmMinElev,
-                                            minimumRtcmRate);
-        _lg290p->sendOkCommand(
-            cfgRtcm); // Enable MSM4/7, output regular intervals, interval (seconds)
+        snprintf(cfgRtcm, sizeof(cfgRtcm), "PQTMCFGRTCM,W,%c,0,%d,07,06,2,%d", settings.useMSM7 ? '7' : '4',
+                 settings.rtcmMinElev, minimumRtcmRate);
+        _lg290p->sendOkCommand(cfgRtcm); // Enable MSM4/7, output regular intervals, interval (seconds)
     }
 
     return (response);
@@ -1054,16 +1068,16 @@ bool GNSS_LG290P::enableRTCMRover()
     if (enableRTCM == true)
     {
         if (settings.debugCorrections)
-            systemPrintf("Enabling Rover RTCM MSM%c output with rate of %d\r\n",
-                         settings.useMSM7 ? '7' : '4', minimumRtcmRate);
+            systemPrintf("Enabling Rover RTCM MSM%c output with rate of %d\r\n", settings.useMSM7 ? '7' : '4',
+                         minimumRtcmRate);
 
         // Enable MSM4/7 (for faster PPP CSRS results), output at a rate equal to the minimum RTCM rate (EPH Mode = 2)
         // PQTMCFGRTCM, W, <MSM_Type>, <MSM_Mode>, <MSM_ElevThd>, <Reserved>, <Reserved>, <EPH_Mode>, <EPH_Interval>
         // Set MSM_ElevThd to 15 degrees from rftop suggestion
 
         char msmCommand[40] = {0};
-        snprintf(msmCommand, sizeof(msmCommand), "PQTMCFGRTCM,W,%c,0,%d,07,06,2,%d",
-                 settings.useMSM7 ? '7' : '4', settings.rtcmMinElev, minimumRtcmRate);
+        snprintf(msmCommand, sizeof(msmCommand), "PQTMCFGRTCM,W,%c,0,%d,07,06,2,%d", settings.useMSM7 ? '7' : '4',
+                 settings.rtcmMinElev, minimumRtcmRate);
 
         // PQTMCFGRTCM fails to respond with OK over UART2 of LG290P, so don't look for it
         _lg290p->sendOkCommand(msmCommand);
@@ -1957,7 +1971,6 @@ void GNSS_LG290P::menuMessages()
         systemPrintln("11) Reset to PPP Logging (NMEAx7 / RTCMx4 - 30 second decimation)");
         systemPrintln("12) Reset to High-rate PPP Logging (NMEAx7 / RTCMx4 - 1Hz)");
 
-        
         if (namedSettingAvailableOnPlatform("useMSM7")) // Redundant - but good practice for code reuse
             systemPrintf("13) MSM Selection: MSM%c\r\n", settings.useMSM7 ? '7' : '4');
         if (namedSettingAvailableOnPlatform("rtcmMinElev")) // Redundant - but good practice for code reuse
@@ -2036,7 +2049,8 @@ void GNSS_LG290P::menuMessages()
                 systemPrintln("Reset to PPP Logging Defaults (NMEAx7 / RTCMx4 - 30 second decimation)");
             }
         }
-        else if ((incoming == 13) && (namedSettingAvailableOnPlatform("useMSM7"))) // Redundant - but good practice for code reuse)
+        else if ((incoming == 13) &&
+                 (namedSettingAvailableOnPlatform("useMSM7"))) // Redundant - but good practice for code reuse)
             settings.useMSM7 ^= 1;
         else if ((incoming == 14) && (namedSettingAvailableOnPlatform("rtcmMinElev")))
         {
