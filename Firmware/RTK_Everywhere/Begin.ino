@@ -714,7 +714,7 @@ void beginBoard()
         systemPrintln("<<<<<<<<<< !!!!!!!!!! LG290P NOT COMPILED !!!!!!!!!! >>>>>>>>>>");
 #endif // COMPILE_LGP290P
 
-        present.brand = BRAND_SPARKPNT;
+        present.brand = BRAND_SPARKFUN;
         present.psram_2mb = true;
         present.gnss_lg290p = true;
         present.antennaPhaseCenter_mm = 37.5; // APC of SPK-6E helical L1/L2/L5 antenna

@@ -111,6 +111,11 @@ void menuMain()
     forwardGnssDataToUsbSerial = false;
 
     inMainMenu = true;
+
+    // Clear btPrintEchoExit on entering the menu, to prevent dropping straight
+    // through if the BT connection was dropped while we had the menu closed
+    btPrintEchoExit = false;
+
     displaySerialConfig(); // Display 'Serial Config' while user is configuring
 
     if (settings.debugGnss == true)
@@ -580,12 +585,82 @@ BluetoothRadioType_e mmChangeBluetoothProtocol(BluetoothRadioType_e bluetoothUse
     return bluetoothUserChoice;
 }
 
-// Restart Bluetooth radio if settings have changed
+// Update Bluetooth radio if settings have changed
 void mmSetBluetoothProtocol(BluetoothRadioType_e bluetoothUserChoice, bool clearBtPairings)
 {
     if ((bluetoothUserChoice != settings.bluetoothRadioType) 
         || (clearBtPairings != settings.clearBtPairings))
     {
+        // To avoid connection failures, we may need to restart the ESP32
+
+        // If Bluetooth was on, and the user has selected OFF, then just stop
+        if ((settings.bluetoothRadioType != BLUETOOTH_RADIO_OFF)
+            && (bluetoothUserChoice == BLUETOOTH_RADIO_OFF))
+        {
+            bluetoothStop();
+            settings.bluetoothRadioType = bluetoothUserChoice;
+            settings.clearBtPairings = clearBtPairings;
+            return;
+        }
+        // If Bluetooth was off, and the user has selected on, and Bluetooth has not been started previously
+        // then just start
+        else if ((settings.bluetoothRadioType == BLUETOOTH_RADIO_OFF)
+                 && (bluetoothUserChoice != BLUETOOTH_RADIO_OFF)
+                 && (bluetoothRadioPreviousOnType == BLUETOOTH_RADIO_OFF))
+        {
+            settings.bluetoothRadioType = bluetoothUserChoice;
+            settings.clearBtPairings = clearBtPairings;
+            bluetoothStart();
+            return;
+        }
+        // If Bluetooth was off, and the user has selected on, and Bluetooth has been started previously
+        // then restart
+        else if ((settings.bluetoothRadioType == BLUETOOTH_RADIO_OFF)
+                 && (bluetoothUserChoice != BLUETOOTH_RADIO_OFF)
+                 && (bluetoothRadioPreviousOnType != BLUETOOTH_RADIO_OFF))
+        {
+            settings.bluetoothRadioType = bluetoothUserChoice;
+            settings.clearBtPairings = clearBtPairings;
+            recordSystemSettings();
+            systemPrintln("Rebooting to apply new Bluetooth choice. Goodbye!");
+            delay(1000);
+            ESP.restart();
+            return;
+        }
+        // If Bluetooth was in Accessory Mode, and still is, and clearBtPairings is true
+        // then (re)start Bluetooth skipping the online check
+        else if ((settings.bluetoothRadioType == BLUETOOTH_RADIO_SPP_ACCESSORY_MODE)
+                 && (bluetoothUserChoice == BLUETOOTH_RADIO_SPP_ACCESSORY_MODE)
+                 && clearBtPairings)
+        {
+            settings.clearBtPairings = clearBtPairings;
+            bluetoothStartSkipOnlineCheck();
+            return;
+        }
+        // If Bluetooth was in Accessory Mode, and still is, and clearBtPairings is false
+        // then do nothing
+        else if ((settings.bluetoothRadioType == BLUETOOTH_RADIO_SPP_ACCESSORY_MODE)
+                 && (bluetoothUserChoice == BLUETOOTH_RADIO_SPP_ACCESSORY_MODE)
+                 && (!clearBtPairings))
+        {
+            return;
+        }
+        // If Bluetooth was on, and the user has selected a different mode
+        // then restart
+        else if ((settings.bluetoothRadioType != BLUETOOTH_RADIO_OFF)
+                 && (bluetoothUserChoice != settings.bluetoothRadioType))
+        {
+            settings.bluetoothRadioType = bluetoothUserChoice;
+            settings.clearBtPairings = clearBtPairings;
+            recordSystemSettings();
+            systemPrintln("Rebooting to apply new Bluetooth choice. Goodbye!");
+            delay(1000);
+            ESP.restart();
+            return;
+        }
+        // <--- Insert any new special cases here, or higher up if needed --->
+
+        // Previous catch-all. Likely to cause connection failures...
         bluetoothStop();
         settings.bluetoothRadioType = bluetoothUserChoice;
         settings.clearBtPairings = clearBtPairings;
@@ -839,7 +914,7 @@ void menuRadio()
 
     wifiEspNowOn(__FILE__, __LINE__); // Turn on the hardware if settings.enableEspNow is true
 
-    // Restart Bluetooth radio if settings have changed
+    // Update Bluetooth radio if settings have changed
     mmSetBluetoothProtocol(bluetoothUserChoice, clearBtPairings);
 
     // LoRa radio state machine will start/stop radio upon next updateLora in loop()
