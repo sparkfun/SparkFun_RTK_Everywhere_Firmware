@@ -313,11 +313,12 @@
                     </div>
 
                     <div class="form-group mt-3" id="constellationCheckBoxes">
-                        <label for="gnssConstellations">Constellations:</label>
-                        <span class="tt" data-bs-placement="right"
-                            title="The receiver is capable of concurrently receiving signals from multiple satellites across multiple constellations. Some applications dictate the need to turn off certain constellation reception. Deselecting a given constellation will cause the receiver to ignore those signals preventing them from being used during position calculations. Default: All enabled.">
-                            <span class="icon-info-circle text-primary ms-2"></span>
-                        </span>
+                        <label>Constellations:
+                            <span class="tt" data-bs-placement="right"
+                                title="The receiver is capable of concurrently receiving signals from multiple satellites across multiple constellations. Some applications dictate the need to turn off certain constellation reception. Deselecting a given constellation will cause the receiver to ignore those signals preventing them from being used during position calculations. Default: All enabled.">
+                                <span class="icon-info-circle text-primary ms-2"></span>
+                            </span>
+                        </label>
                         <div id="constellationBeiDou" class="form-check mt-3 box-margin20">
                             <label class="form-check-label" for="constellation_BeiDou">BeiDou</label>
                             <input class="form-check-input" type="checkbox" value="" id="constellation_BeiDou">
@@ -1946,7 +1947,7 @@
             <div class="card card-body">
 
                 <div id="uploadNewFirmwareDiv" class="mb-2">
-                    <label class="form-check-label" for="uploadNewFirmware">System Firmware:</label>
+                    <label class="form-check-label">System Firmware:</label>
                     <span id="rtkFirmwareVersionUpgrade" style="display:inline;">v0.0</span>
                 </div>
 
@@ -2081,7 +2082,7 @@
 
                         <div id="logFile" class="row">
                             <div class="mb-2">
-                                <label for="logFile" class="form-group box-margin20">Log file name: <span
+                                <label class="form-group box-margin20">Log file name: <span
                                         id="logFileName" style="display:inline;">SFE_Log.ubx</span>
                                 </label>
                             </div>
