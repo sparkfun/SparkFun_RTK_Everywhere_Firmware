@@ -1346,8 +1346,8 @@ const RTK_Settings_Entry rtkSettingsEntries[] =
     { 1, 1, 0, 1, 1, 1, 1, 1, 1, ALL, 1, _int,      0, & settings.observationSeconds, "observationSeconds", nullptr, },
     { 1, 1, 0, 1, 1, 1, 1, 1, 1, ALL, 1, _float,    2, & settings.observationPositionAccuracy, "observationPositionAccuracy", nullptr, },
     { 0, 1, 0, 1, 1, 0, 1, 1, 1, ALL, 1, _float,    1, & settings.surveyInStartingAccuracy, "surveyInStartingAccuracy", nullptr, },
-    { 0, 1, 0, 0, 0, 0, 0, 0, 1, MSM, 1, _bool,     0, & settings.useMSM7, "useMSM7",  nullptr, },
-    { 0, 1, 0, 0, 0, 0, 0, 0, 1, MSM, 1, _int,      0, & settings.rtcmMinElev, "rtcmMinElev",  nullptr, },
+    { 1, 1, 0, 0, 0, 0, 0, 0, 1, MSM, 1, _bool,     0, & settings.useMSM7, "useMSM7",  nullptr, },
+    { 1, 1, 0, 0, 0, 0, 0, 0, 1, MSM, 1, _int,      0, & settings.rtcmMinElev, "rtcmMinElev",  nullptr, },
 
     // Battery
     { 0, 0, 0, 0, 1, 1, 1, 1, 1, ALL, 1, _bool,     0, & settings.enablePrintBatteryMessages, "enablePrintBatteryMessages", nullptr, },
