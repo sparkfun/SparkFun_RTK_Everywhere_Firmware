@@ -556,6 +556,25 @@ bool GNSS_LG290P::configureBase()
 //----------------------------------------
 void GNSS_LG290P::createMessageList(String &returnText)
 {
+    for (int messageNumber = 0; messageNumber < MAX_LG290P_NMEA_MSG; messageNumber++)
+    {
+        // Strictly, this should be bool true/false as only 0/1 values are allowed
+        // and a checkbox should be used to select. BUT other platforms permit
+        // rates higher than 1. It's way cleaner if we just use 0/1 here
+        returnText += "messageRateNMEA_" + String(lgMessagesNMEA[messageNumber].msgTextName) + "," +
+                      String(settings.lg290pMessageRatesNMEA[messageNumber]) + ",";
+    }
+    for (int messageNumber = 0; messageNumber < MAX_LG290P_RTCM_MSG; messageNumber++)
+    {
+        returnText += "messageRateRTCMRover_" + String(lgMessagesRTCM[messageNumber].msgTextName) + "," +
+                      String(settings.lg290pMessageRatesRTCMRover[messageNumber]) + ",";
+    }
+    for (int messageNumber = 0; messageNumber < MAX_LG290P_PQTM_MSG; messageNumber++)
+    {
+        // messageRatePQTM is unique to the LG290P. So we can use true/false and a checkbox
+        returnText += "messageRatePQTM_" + String(lgMessagesPQTM[messageNumber].msgTextName) + "," +
+                      String(settings.lg290pMessageRatesPQTM[messageNumber] ? "true" : "false") + ",";
+    }
 }
 
 //----------------------------------------
@@ -566,6 +585,14 @@ void GNSS_LG290P::createMessageList(String &returnText)
 //----------------------------------------
 void GNSS_LG290P::createMessageListBase(String &returnText)
 {
+    for (int messageNumber = 0; messageNumber < MAX_LG290P_RTCM_MSG; messageNumber++)
+    {
+        // Strictly, this should be bool true/false as only 0/1 values are allowed
+        // and a checkbox should be used to select. BUT other platforms permit
+        // rates higher than 1. It's way cleaner if we just use 0/1 here
+        returnText += "messageRateRTCMBase_" + String(lgMessagesRTCM[messageNumber].msgTextName) + "," +
+                      String(settings.lg290pMessageRatesRTCMBase[messageNumber]) + ",";
+    }
 }
 
 //----------------------------------------
