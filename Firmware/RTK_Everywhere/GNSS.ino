@@ -32,8 +32,32 @@ enum
     GNSS_CONFIG_NONE,
 };
 
-uint32_t gnssConfigureRequest =
-    GNSS_CONFIG_NONE; // Bitfield containing an update be made to various settings on the GNSS receiver
+static const char *gnssConfigDisplayNames[] = {
+    "ONCE",
+    "ROVER",
+    "BASE",
+    "BAUD_RATE_COMM",
+    "BAUD_RATE_RADIO",
+    "BAUD_RATE_DATA",
+    "RATE",
+    "CONSTELLATION",
+    "ELEVATION",
+    "CN0",
+    "PPS",
+    "MODEL",
+    "MESSAGE_RATE",
+    "MESSAGE_RATE_NMEA",
+    "MESSAGE_RATE_RTCM_ROVER",
+    "MESSAGE_RATE_RTCM_BASE",
+    "HAS_E6",
+    "MULTIPATH",
+    "TILT",
+    "DEBUG",
+    "SAVE",
+    "RESET",
+};
+
+static const int gnssConfigStateEntries = sizeof(gnssConfigDisplayNames) / sizeof(gnssConfigDisplayNames[0]);
 
 extern int NTRIPCLIENT_MS_BETWEEN_GGA;
 
@@ -227,9 +251,13 @@ void gnssUpdate()
             systemPrintln("gnssUpdate: Uncaught mode change");
         }
 
-        // We do not clear the request bits here. Instead, if bits are still set, the next update will attempt to
-        // service them.
-    }
+//----------------------------------------
+// Verify the GNSS tables
+//----------------------------------------
+void gnssVerifyTables()
+{
+    if (gnssConfigStateEntries != GNSS_CONFIG_MAX)
+        reportFatalError("Fix gnssConfigStateEntries to match GNSS Config Enum");
 }
 
 // Given a bit to configure, set that bit in the overall bitfield
