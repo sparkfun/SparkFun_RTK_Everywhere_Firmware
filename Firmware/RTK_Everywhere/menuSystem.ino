@@ -521,6 +521,9 @@ void menuDebugHardware()
 
         systemPrintf("20) Delay between CLI LIST prints over BLE: %d\r\n", settings.cliBlePrintDelay_ms);
 
+        systemPrint("21) Print GNSS Config Debugging: ");
+        systemPrintf("%s\r\n", settings.debugGnssConfig ? "Enabled" : "Disabled");
+
         systemPrintln("e) Erase LittleFS");
 
         systemPrintln("t) Test Screen");
@@ -641,6 +644,11 @@ void menuDebugHardware()
             {
                 settings.cliBlePrintDelay_ms = newDelay;
             }
+        }
+
+        else if (incoming == 21)
+        {
+            settings.debugGnssConfig ^= 1;
         }
 
         else if (incoming == 'e')

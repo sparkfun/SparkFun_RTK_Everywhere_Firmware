@@ -1117,6 +1117,8 @@ struct Settings
     bool baseCasterOverride = false; //When true, user has put device into 'BaseCast' mode. Change settings, but don't save to NVM.
     bool debugCLI = false; //When true, output BLE CLI interactions over serial
     uint16_t cliBlePrintDelay_ms = 50; // Time delayed between prints during a LIST command to avoid overwhelming the BLE connection
+    uint32_t gnssConfigureRequest = 0; // Bitfield containing the change requests for various settings on the GNSS receiver
+    bool debugGnssConfig = false; // Enable to print output during gnssUpdate
 
     // Add new settings to appropriate group above or create new group
     // Then also add to the same group in rtkSettingsEntries below
@@ -1445,6 +1447,7 @@ const RTK_Settings_Entry rtkSettingsEntries[] =
 
     // GNSS Receiver
     { 0, 0, 0, 1, 1, 1, 1, 1, 1, ALL, 1, _bool,     0, & settings.debugGnss, "debugGnss", nullptr, },
+    { 0, 0, 0, 1, 1, 1, 1, 1, 1, ALL, 1, _bool,     0, & settings.debugGnssConfig, "debugGnssConfig", nullptr, },
     { 0, 0, 0, 1, 1, 1, 1, 1, 1, ALL, 1, _bool,     0, & settings.enablePrintPosition, "enablePrintPosition", nullptr, },
     { 0, 1, 0, 1, 1, 1, 1, 1, 1, ALL, 1, _uint16_t, 0, & settings.measurementRateMs, "measurementRateMs", nullptr, },
     { 0, 1, 0, 1, 1, 1, 1, 1, 1, ALL, 1, _uint16_t, 0, & settings.navigationRate, "navigationRate", nullptr, },
@@ -1850,7 +1853,7 @@ const RTK_Settings_Entry rtkSettingsEntries[] =
     { 0, 1, 0, 1, 1, 1, 1, 1, 1, ALL, 1, _bool,     0, & settings.baseCasterOverride, "baseCasterOverride", nullptr, },
     { 0, 0, 0, 1, 1, 1, 1, 1, 1, ALL, 1, _bool,     0, & settings.debugCLI, "debugCLI", nullptr, },
     { 0, 0, 0, 1, 1, 1, 1, 1, 1, ALL, 1, _uint16_t, 0, & settings.cliBlePrintDelay_ms, "cliBlePrintDelay_ms", nullptr, },
-
+    { 0, 0, 0, 1, 1, 1, 1, 1, 1, ALL, 1, _uint32_t, 0, & settings.gnssConfigureRequest, "gnssConfigureRequest", nullptr, },
 
     // Add new settings to appropriate group above or create new group
     // Then also add to the same group in settings above
