@@ -9,9 +9,12 @@ GNSS.ino
 // the menu system, closed the Web Config, or the CLI is closed.
 enum
 {
+    GNSS_CONFIG_ONCE, // Settings specific to a receiver that don't fit into other setting categories
     GNSS_CONFIG_ROVER,
     GNSS_CONFIG_BASE, // Fixed base or survey in, location, etc
-    GNSS_CONFIG_BAUD_RATE,
+    GNSS_CONFIG_BAUD_RATE_COMM,
+    GNSS_CONFIG_BAUD_RATE_RADIO,
+    GNSS_CONFIG_BAUD_RATE_DATA,
     GNSS_CONFIG_RATE,
     GNSS_CONFIG_CONSTELLATION, // Turn on/off a constellation
     GNSS_CONFIG_ELEVATION,
@@ -24,12 +27,12 @@ enum
     GNSS_CONFIG_MESSAGE_RATE_RTCM_BASE,  // Update RTCM Base message rates
     GNSS_CONFIG_HAS_E6,                  // Enable/disable HAS E6 capabilities
     GNSS_CONFIG_MULTIPATH,
+    GNSS_CONFIG_TILT,  // Enable/disable any output needed for tilt compensation
     GNSS_CONFIG_SAVE,  // Indicates current settings be saved to GNSS receiver NVM
     GNSS_CONFIG_RESET, // Indicates receiver needs resetting
 
     // Add new entries above here
-    GNSS_CONFIG_LAST,
-    GNSS_CONFIG_NONE,
+    GNSS_CONFIG_MAX,
 };
 
 static const char *gnssConfigDisplayNames[] = {
@@ -112,22 +115,58 @@ void gnssUpdate()
     // Allow the GNSS platform to update itself
     gnss->update();
 
-    // In general, the GNSS configuration should only be modified here, not in menus, not in commands
-    // Those should trigger a request for modification
+    if (settings.gnssConfigureRequest == 0)
+        return; // No configuration requests
 
     // Handle any requested configuration changes
     // Only update the GNSS receiver once the CLI, serial menu, and Web Config interfaces are disconnected
     // This is to avoid multiple reconfigure delays when multiple commands are received, ie enable GPS, disable Galileo,
     // should only trigger one GNSS reconfigure
-    if (gnssConfigureRequest != GNSS_CONFIG_NONE && bluetoothCommandIsConnected() == false && inMainMenu == false &&
-        inWebConfigMode() == false)
+    if (bluetoothCommandIsConnected() == false && inMainMenu == false && inWebConfigMode() == false)
     {
         bool result = true;
 
         // Service requests
         // Clear the requests as they are completed successfully
+        // If a platform requires a device reset to complete the config (ie, LG290P changing constellations) then
+        // the platform specific function should call gnssConfigure(GNSS_CONFIG_RESET)
 
-        if (gnssConfigureRequest & GNSS_CONFIG_MESSAGE_RATE_RTCM_BASE)
+        if (gnssConfigureRequested(GNSS_CONFIG_ONCE))
+        {
+            if (gnss->configure() == true)
+            {
+                gnssConfigureClear(GNSS_CONFIG_ONCE);
+                gnssConfigure(GNSS_CONFIG_SAVE); // Request receiver commit this change to NVM
+            }
+        }
+
+        if (gnssConfigureRequested(GNSS_CONFIG_ROVER))
+        {
+            if (gnss->configureRover() == true)
+            {
+                gnssConfigureClear(GNSS_CONFIG_ROVER);
+                gnssConfigure(GNSS_CONFIG_SAVE); // Request receiver commit this change to NVM
+            }
+            else
+            {
+                systemPrintln("Rover config failed");
+            }
+        }
+
+        if (gnssConfigureRequested(GNSS_CONFIG_BASE))
+        {
+            if (gnss->configureBase() == true)
+            {
+                gnssConfigureClear(GNSS_CONFIG_BASE);
+                gnssConfigure(GNSS_CONFIG_SAVE); // Request receiver commit this change to NVM
+            }
+            else
+            {
+                systemPrintln("Base config failed");
+            }
+        }
+
+        if (gnssConfigureRequested(GNSS_CONFIG_MESSAGE_RATE_RTCM_BASE))
         {
             if (gnss->setMessagesRTCMBase() == true)
             {
@@ -136,7 +175,7 @@ void gnssUpdate()
             }
         }
 
-        if (gnssConfigureRequest & GNSS_CONFIG_CONSTELLATION)
+        if (gnssConfigureRequested(GNSS_CONFIG_CONSTELLATION))
         {
             if (gnss->setConstellations() == true)
             {
@@ -145,7 +184,7 @@ void gnssUpdate()
             }
         }
 
-        if (gnssConfigureRequest & GNSS_CONFIG_ELEVATION)
+        if (gnssConfigureRequested(GNSS_CONFIG_ELEVATION))
         {
             if (gnss->setElevation(settings.minElev) == true)
             {
@@ -154,7 +193,7 @@ void gnssUpdate()
             }
         }
 
-        if (gnssConfigureRequest & GNSS_CONFIG_CN0)
+        if (gnssConfigureRequested(GNSS_CONFIG_CN0))
         {
             if (gnss->setMinCno(settings.minCNO) == true)
             {
@@ -163,7 +202,7 @@ void gnssUpdate()
             }
         }
 
-        if (gnssConfigureRequest & GNSS_CONFIG_PPS)
+        if (gnssConfigureRequested(GNSS_CONFIG_PPS))
         {
             if (gnss->setPPS() == true)
             {
@@ -172,7 +211,7 @@ void gnssUpdate()
             }
         }
 
-        if (gnssConfigureRequest & GNSS_CONFIG_MODEL)
+        if (gnssConfigureRequested(GNSS_CONFIG_MODEL))
         {
             if (gnss->setModel(settings.dynamicModel) == true)
             {
@@ -181,7 +220,7 @@ void gnssUpdate()
             }
         }
 
-        if (gnssConfigureRequest & GNSS_CONFIG_HAS_E6)
+        if (gnssConfigureRequested(GNSS_CONFIG_HAS_E6))
         {
             if (gnss->setHighAccuracyService(settings.enableGalileoHas) == true)
             {
@@ -190,7 +229,7 @@ void gnssUpdate()
             }
         }
 
-        if (gnssConfigureRequest & GNSS_CONFIG_MULTIPATH)
+        if (gnssConfigureRequested(GNSS_CONFIG_MULTIPATH))
         {
             if (gnss->setMultipathMitigation(settings.enableMultipathMitigation) == true)
             {
@@ -199,40 +238,28 @@ void gnssUpdate()
             }
         }
 
-        // Platforms will set the GNSS_CONFIG_SAVE and GNSS_CONFIG_RESET bits appropriately for each command issued
+        if (gnssConfigureRequested(GNSS_CONFIG_TILT))
+        {
+            if (gnss->setTilt() == true)
+            {
+                gnssConfigureClear(GNSS_CONFIG_TILT);
+                gnssConfigure(GNSS_CONFIG_SAVE); // Request receiver commit this change to NVM
+            }
+        }
 
-        // If one of the previous configuration changes requested save to NVM, do so
-        if (gnssConfigureRequest & GNSS_CONFIG_SAVE)
+        // Save changes to NVM
+        if (gnssConfigureRequested(GNSS_CONFIG_SAVE))
         {
             if (gnss->saveConfiguration())
                 gnssConfigureClear(GNSS_CONFIG_SAVE);
         }
 
-        // Here we need a table to determine if the given combination of setting requests require a GNSS reset to take
-        // effect
+        // If gnssConfigureRequest bits are still set, the next update will attempt to service them.
 
-        // For now we will maintain the previous approach of, if any setting gets changed, re-start in the current mode
-        // and use the settings currently in the ESP32 NVM
-
-        // Restart current state to reconfigure receiver
-        systemPrintln("Restarting GNSS receiver with new settings");
-        if (inBaseMode() == true)
-        {
-            settings.gnssConfiguredRover = false;       // Reapply configuration
-            requestChangeState(STATE_BASE_NOT_STARTED); // Restart base for latest changes to take effect
-        }
-        else if (inRoverMode() == true)
-        {
-            settings.gnssConfiguredRover = false; // Reapply configuration
-            // TODO when does GNSS configured rover go true?
-            requestChangeState(STATE_ROVER_NOT_STARTED); // Restart rover for latest changes to take effect
-        }
-        // else if (inWebConfigMode() == true) {}
-        // else if (inNtpMode() == true) {}
-        else
-        {
-            systemPrintln("gnssUpdate: Uncaught mode change");
-        }
+        // settings.gnssConfigureRequest was likely changed. Record the current config state to ESP32 NVM
+        recordSystemSettings();
+    } // end bluetoothCommandIsConnected(), inMainMenu, inWebConfigMode()
+}
 
 //----------------------------------------
 // Verify the GNSS tables
@@ -247,21 +274,49 @@ void gnssVerifyTables()
 void gnssConfigure(uint8_t configureBit)
 {
     uint32_t mask = (1 << configureBit);
-    gnssConfigureRequest |= mask;
+    settings.gnssConfigureRequest |= mask;
 }
 
 // Given a bit to configure, clear that bit from the overall bitfield
 void gnssConfigureClear(uint8_t configureBit)
 {
     uint32_t mask = ~(1 << configureBit);
-    gnssConfigureRequest &= mask;
+
+    if (settings.debugGnssConfig && (settings.gnssConfigureRequest & mask))
+        systemPrintf("GNSS Config Clear: %s\r\n", gnssConfigDisplayNames[configureBit]);
+
+    settings.gnssConfigureRequest &= mask;
+}
+
+// Return true if a given bit is set
+bool gnssConfigureRequested(uint8_t configureBit)
+{
+    uint32_t mask = (1 << configureBit);
+
+    if (settings.debugGnssConfig && (settings.gnssConfigureRequest & mask))
+        systemPrintf("GNSS Config Request: %s\r\n", gnssConfigDisplayNames[configureBit]);
+
+    return (settings.gnssConfigureRequest & mask);
 }
 
 // Set all bits in the request bitfield to cause the GNSS receiver to go through a full (re)configuration
 void gnssConfigureAll()
 {
-    for (int x = 0; x < GNSS_CONFIG_LAST; x++)
+    for (int x = 0; x < GNSS_CONFIG_MAX; x++)
         gnssConfigure(x);
+
+    // After setting all bits, clear the base bits
+    // TODO make this a GNSS_CONFIG_MODEf
+    gnssConfigureClear(GNSS_CONFIG_BASE);
+    gnssConfigureClear(GNSS_CONFIG_MESSAGE_RATE_RTCM_BASE);
+}
+
+// Returns true once all configuration requests are cleared
+bool gnssConfigureComplete()
+{
+    if (settings.gnssConfigureRequest == 0)
+        return (true);
+    return (false);
 }
 
 //----------------------------------------

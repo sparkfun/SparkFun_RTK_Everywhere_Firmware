@@ -524,7 +524,7 @@ class GNSS_MOSAIC : GNSS
     // Not Rover or Base specific (ie, baud rates)
     // Outputs:
     //   Returns true if successfully configured and false upon failure
-    bool configureGNSS();
+    bool configure();
 
     // Set the minimum satellite signal level for navigation.
     bool setMinCno(uint8_t cnoValue);
@@ -1020,6 +1020,9 @@ class GNSS_MOSAIC : GNSS
     bool setRate(double secondsBetweenSolutions);
 
     bool setTalkerGNGGA();
+
+    // Enable/disable any output needed for tilt compensation
+    bool setTilt();
 
     // Hotstart GNSS to try to get RTK lock
     bool softwareReset();

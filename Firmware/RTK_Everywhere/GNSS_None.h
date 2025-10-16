@@ -9,23 +9,14 @@ GNSS_None.h
 
 class GNSS_None : public GNSS
 {
-protected:
-    // Setup the general configuration of the GNSS
-    // Not Rover or Base specific (ie, baud rates)
-    // Outputs:
-    //   Returns true if successfully configured and false upon failure
-    bool configureGNSS()
-    {
-        return false;
-    }
-
+  protected:
     // Set the minimum satellite signal level for navigation.
     bool setMinCno(uint8_t cnoValue)
     {
         return false;
     }
 
-public:
+  public:
     // Constructor
     GNSS_None() : GNSS()
     {
@@ -80,6 +71,15 @@ public:
     }
 
     bool checkPPPRates()
+    {
+        return false;
+    }
+
+    // Setup the general configuration of the GNSS
+    // Not Rover or Base specific (ie, baud rates)
+    // Outputs:
+    //   Returns true if successfully configured and false upon failure
+    bool configure()
     {
         return false;
     }
@@ -621,6 +621,11 @@ public:
     }
 
     bool setTalkerGNGGA()
+    {
+        return true;
+    }
+
+    bool setTilt()
     {
         return true;
     }

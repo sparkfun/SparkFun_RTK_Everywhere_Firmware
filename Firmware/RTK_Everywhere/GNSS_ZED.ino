@@ -520,7 +520,7 @@ bool GNSS_ZED::configureNtpMode()
 // In general we check if the setting is incorrect before writing it. Otherwise, the set commands have, on rare
 // occasion, become corrupt. The worst is when the I2C port gets turned off or the I2C address gets borked.
 //----------------------------------------
-bool GNSS_ZED::configureGNSS()
+bool GNSS_ZED::configure()
 {
     if (online.gnss == false)
         return (false);
@@ -2457,6 +2457,15 @@ bool GNSS_ZED::setTalkerGNGGA()
         success &= _zed->setNMEAGPGGAcallbackPtr(nullptr); // Remove callback
         return success;
     }
+    return false;
+}
+
+//----------------------------------------
+// Enable/disable any output needed for tilt compensation
+//----------------------------------------
+bool GNSS_ZED::setTilt()
+{
+    // Not yet available on this platform
     return false;
 }
 

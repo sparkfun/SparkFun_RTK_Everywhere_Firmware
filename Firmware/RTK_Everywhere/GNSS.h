@@ -43,12 +43,6 @@ class GNSS
 
     unsigned long _autoBaseStartTimer; // Tracks how long the base auto / averaging mode has been running
 
-    // Setup the general configuration of the GNSS
-    // Not Rover or Base specific (ie, baud rates)
-    // Outputs:
-    //   Returns true if successfully configured and false upon failure
-    virtual bool configureGNSS();
-
   public:
     // Constructor
     GNSS() : _leapSeconds(18), _pvtArrivalMillis(0), _pvtUpdated(0), _satellitesInView(0)
@@ -86,7 +80,7 @@ class GNSS
     // Not Rover or Base specific (ie, baud rates)
     // Outputs:
     //   Returns true if successfully configured and false upon failure
-    bool configure();
+    virtual bool configure();
 
     // Configure the Base
     // Outputs:
@@ -377,6 +371,9 @@ class GNSS
     virtual bool setRate(double secondsBetweenSolutions);
 
     virtual bool setTalkerGNGGA();
+
+    // Enable/disable any output needed for tilt compensation
+    virtual bool setTilt();
 
     // Hotstart GNSS to try to get RTK lock
     virtual bool softwareReset();

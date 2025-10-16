@@ -670,7 +670,7 @@ bool GNSS_MOSAIC::configureOnce()
 // Outputs:
 //   Returns true if successfully configured and false upon failure
 //----------------------------------------
-bool GNSS_MOSAIC::configureGNSS()
+bool GNSS_MOSAIC::configure()
 {
     // Attempt 3 tries on MOSAICX5 config
     for (int x = 0; x < 3; x++)
@@ -2533,6 +2533,16 @@ bool GNSS_MOSAIC::setTalkerGNGGA()
 {
     return sendWithResponse("snti,GN\n\r", "NMEATalkerID");
 }
+
+//----------------------------------------
+// Enable/disable any output needed for tilt compensation
+//----------------------------------------
+bool GNSS_MOSAIC::setTilt()
+{
+    // Not yet available on this platform
+    return false;
+}
+
 
 //----------------------------------------
 // Hotstart GNSS to try to get RTK lock

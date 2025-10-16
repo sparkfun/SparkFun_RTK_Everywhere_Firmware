@@ -180,7 +180,7 @@ bool GNSS_LG290P::checkPPPRates()
 // Setup the GNSS module for any setup (base or rover)
 // In general we check if the setting is different than setting stored in NVM before writing it.
 //----------------------------------------
-bool GNSS_LG290P::configureGNSS()
+bool GNSS_LG290P::configure()
 {
     for (int x = 0; x < 3; x++)
     {
@@ -2528,6 +2528,16 @@ bool GNSS_LG290P::setTalkerGNGGA()
     // TODO lg290pSetTalkerGNGGA();
     return false;
 }
+
+//----------------------------------------
+// Enable/disable any output needed for tilt compensation
+//----------------------------------------
+bool GNSS_LG290P::setTilt()
+{
+    // Not yet available on this platform
+    return false;
+}
+
 
 //----------------------------------------
 // Reset GNSS via software command
