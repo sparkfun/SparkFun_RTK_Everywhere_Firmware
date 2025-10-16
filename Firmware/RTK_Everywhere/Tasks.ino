@@ -2201,11 +2201,13 @@ void buttonCheckTask(void *e)
                 {
                 // If we are in any running state, change to STATE_DISPLAY_SETUP
                 case STATE_ROVER_NOT_STARTED:
+                case STATE_ROVER_CONFIG_WAIT:
                 case STATE_ROVER_NO_FIX:
                 case STATE_ROVER_FIX:
                 case STATE_ROVER_RTK_FLOAT:
                 case STATE_ROVER_RTK_FIX:
                 case STATE_BASE_NOT_STARTED:
+                case STATE_BASE_CONFIG_WAIT:
                 case STATE_BASE_TEMP_SETTLE:
                 case STATE_BASE_TEMP_SURVEY_STARTED:
                 case STATE_BASE_TEMP_TRANSMITTING:

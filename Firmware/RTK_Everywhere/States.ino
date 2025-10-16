@@ -94,19 +94,11 @@ void stateUpdate()
                 return;
             }
 
+            displayRoverStart(0);
+
             baseStatusLedOff();
 
-            // Configure for rover mode
-            displayRoverStart(0);
-            if (gnss->configureRover() == false)
-            {
-                settings.gnssConfiguredRover = false; // On the next boot, reapply all settings
-                recordSystemSettings();               // Record this state for next POR
-
-                systemPrintln("Rover config failed");
-                displayRoverFail(1000);
-                return;
-            }
+            gnssConfigure(GNSS_CONFIG_ROVER); // Request reconfigure to rover mode
 
             setMuxport(settings.dataPortChannel); // Return mux to original channel
 
@@ -116,19 +108,25 @@ void stateUpdate()
             baseCasterDisableOverride(); // Disable casting overrides
 
             // Start the UART connected to the GNSS receiver for NMEA data (enables logging)
-            if (tasksStartGnssUart() == false)
-                displayRoverFail(1000);
-            else
+            if (tasksStartGnssUart() == true)
             {
-                settings.gnssConfiguredBase = false; // When the mode changes, reapply all settings
                 settings.lastState = STATE_ROVER_NOT_STARTED;
                 recordSystemSettings(); // Record this state for next POR
 
-                displayRoverSuccess(500);
-
-                changeState(STATE_ROVER_NO_FIX);
+                changeState(STATE_ROVER_CONFIG_WAIT);
 
                 firstRoverStart = false; // Do not allow entry into test menu again
+            }
+        }
+        break;
+
+        case (STATE_ROVER_CONFIG_WAIT): {
+            if (gnssConfigureComplete())
+            {
+                systemPrintln("Rover configured");
+                displayRoverSuccess(500); // Show 'Rover Started'
+
+                changeState(STATE_ROVER_NO_FIX);
             }
         }
         break;
@@ -219,9 +217,11 @@ void stateUpdate()
             if (online.gnss == false)
                 return;
 
+            displayBaseStart(0); // Show 'Base'
+
             baseStatusLedOff();
 
-            displayBaseStart(0); // Show 'Base'
+            gnssConfigure(GNSS_CONFIG_BASE); // Request reconfigure to rover mode
 
             bluetoothStop();
             bluetoothStart(); // Restart Bluetooth with 'Base' identifier
@@ -229,26 +229,26 @@ void stateUpdate()
             webServerStop(); // Stop the web config server
 
             // Start the UART connected to the GNSS receiver for NMEA data (enables logging)
-            if (tasksStartGnssUart() && gnss->configureBase())
+            if (tasksStartGnssUart())
             {
-                // settings.gnssConfiguredBase is set by gnss->configureBase()
-                settings.gnssConfiguredRover = false;        // When the mode changes, reapply all settings
                 settings.lastState = STATE_BASE_NOT_STARTED; // Record this state for next POR
                 recordSystemSettings();                      // Record this state for next POR
 
+                changeState(STATE_BASE_CONFIG_WAIT);
+            }
+        }
+        break;
+
+        case (STATE_BASE_CONFIG_WAIT): {
+            if (gnssConfigureComplete())
+            {
+                systemPrintln("Base configured");
                 displayBaseSuccess(500); // Show 'Base Started'
 
                 if (settings.fixedBase == false)
                     changeState(STATE_BASE_TEMP_SETTLE);
                 else
                     changeState(STATE_BASE_FIXED_NOT_STARTED);
-            }
-            else
-            {
-                settings.gnssConfiguredBase = false; // On the next boot, reapply all settings
-                recordSystemSettings();              // Record this state for next POR
-
-                displayBaseFail(1000);
             }
         }
         break;
@@ -658,6 +658,8 @@ const char *getState(SystemState state, char *buffer)
     {
     case (STATE_ROVER_NOT_STARTED):
         return "STATE_ROVER_NOT_STARTED";
+    case (STATE_ROVER_CONFIG_WAIT):
+        return "STATE_ROVER_CONFIG_WAIT";
     case (STATE_ROVER_NO_FIX):
         return "STATE_ROVER_NO_FIX";
     case (STATE_ROVER_FIX):
@@ -670,6 +672,8 @@ const char *getState(SystemState state, char *buffer)
         return "STATE_BASE_CASTER_NOT_STARTED";
     case (STATE_BASE_NOT_STARTED):
         return "STATE_BASE_NOT_STARTED";
+    case (STATE_BASE_CONFIG_WAIT):
+        return "STATE_BASE_CONFIG_WAIT";
     case (STATE_BASE_TEMP_SETTLE):
         return "STATE_BASE_TEMP_SETTLE";
     case (STATE_BASE_TEMP_SURVEY_STARTED):

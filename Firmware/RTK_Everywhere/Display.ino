@@ -218,7 +218,8 @@ void displayUpdate()
             forceDisplayUpdate = false;
 
             if (present.displayInverted == false)
-                oled->reset(false); // Incase of previous corruption, force re-alignment of CGRAM. Do not init buffers as it
+                oled->reset(
+                    false); // Incase of previous corruption, force re-alignment of CGRAM. Do not init buffers as it
             //  takes time and causes screen to blink.
 
             oled->erase();
@@ -291,6 +292,15 @@ void displayUpdate()
                 displayFullIPAddress(&iconPropertyList); // Bottom left - 128x64 only
                 setRadioIcons(&iconPropertyList);
                 break;
+            case (STATE_ROVER_CONFIG_WAIT):
+                displayHorizontalAccuracy(&iconPropertyList, &CrossHairProperties,
+                                          0b11111111); // Single crosshair, no blink
+                paintLogging(&iconPropertyList);
+                displaySivVsOpenShort(&iconPropertyList);
+                displayBatteryVsEthernet(&iconPropertyList);
+                displayFullIPAddress(&iconPropertyList); // Bottom left - 128x64 only
+                setRadioIcons(&iconPropertyList);
+                break;
             case (STATE_ROVER_NO_FIX):
                 displayHorizontalAccuracy(&iconPropertyList, &CrossHairProperties,
                                           0b01010101); // Single crosshair, blink
@@ -332,6 +342,7 @@ void displayUpdate()
 
             case (STATE_BASE_CASTER_NOT_STARTED):
             case (STATE_BASE_NOT_STARTED):
+            case (STATE_BASE_CONFIG_WAIT):
                 // Do nothing. Static display shown during state change.
                 break;
 
@@ -378,8 +389,7 @@ void displayUpdate()
                 break;
 
             case (STATE_NTPSERVER_NOT_STARTED):
-            case (STATE_NTPSERVER_NO_SYNC):
-            {
+            case (STATE_NTPSERVER_NO_SYNC): {
                 paintClock(&iconPropertyList, true); // Blink
                 displaySivVsOpenShort(&iconPropertyList);
 
@@ -400,8 +410,7 @@ void displayUpdate()
             }
             break;
 
-            case (STATE_NTPSERVER_SYNC):
-            {
+            case (STATE_NTPSERVER_SYNC): {
                 paintClock(&iconPropertyList, false); // No blink
                 displaySivVsOpenShort(&iconPropertyList);
                 paintLogging(&iconPropertyList, false, true); // No pulse, NTP
@@ -917,22 +926,19 @@ void setRadioIcons(std::vector<iconPropertyBlinking> *iconList)
                 paintDynamicModel(iconList);
                 break;
             case (STATE_BASE_TEMP_SETTLE):
-            case (STATE_BASE_TEMP_SURVEY_STARTED):
-            {
+            case (STATE_BASE_TEMP_SURVEY_STARTED): {
                 prop.duty = 0b00001111;
                 prop.icon = BaseTemporaryProperties.iconDisplay[present.display_type];
                 iconList->push_back(prop);
             }
             break;
-            case (STATE_BASE_TEMP_TRANSMITTING):
-            {
+            case (STATE_BASE_TEMP_TRANSMITTING): {
                 prop.duty = 0b11111111;
                 prop.icon = BaseTemporaryProperties.iconDisplay[present.display_type];
                 iconList->push_back(prop);
             }
             break;
-            case (STATE_BASE_FIXED_TRANSMITTING):
-            {
+            case (STATE_BASE_FIXED_TRANSMITTING): {
                 prop.duty = 0b11111111;
                 prop.icon = BaseFixedProperties.iconDisplay[present.display_type];
                 iconList->push_back(prop);
@@ -1253,6 +1259,8 @@ void setModeIcon(std::vector<iconPropertyBlinking> *iconList)
     {
     case (STATE_ROVER_NOT_STARTED):
         break;
+    case (STATE_ROVER_CONFIG_WAIT):
+        break;
     case (STATE_ROVER_NO_FIX):
         paintDynamicModel(iconList);
         break;
@@ -1268,26 +1276,24 @@ void setModeIcon(std::vector<iconPropertyBlinking> *iconList)
 
     case (STATE_BASE_CASTER_NOT_STARTED):
     case (STATE_BASE_NOT_STARTED):
+    case (STATE_BASE_CONFIG_WAIT):
         // Do nothing. Static display shown during state change.
         break;
-    case (STATE_BASE_TEMP_SETTLE):
-    {
+    case (STATE_BASE_TEMP_SETTLE): {
         iconPropertyBlinking prop;
         prop.duty = 0b00001111;
         prop.icon = BaseTemporaryProperties.iconDisplay[present.display_type];
         iconList->push_back(prop);
     }
     break;
-    case (STATE_BASE_TEMP_SURVEY_STARTED):
-    {
+    case (STATE_BASE_TEMP_SURVEY_STARTED): {
         iconPropertyBlinking prop;
         prop.duty = 0b00001111;
         prop.icon = BaseTemporaryProperties.iconDisplay[present.display_type];
         iconList->push_back(prop);
     }
     break;
-    case (STATE_BASE_TEMP_TRANSMITTING):
-    {
+    case (STATE_BASE_TEMP_TRANSMITTING): {
         iconPropertyBlinking prop;
         prop.duty = 0b11111111;
         prop.icon = BaseTemporaryProperties.iconDisplay[present.display_type];
@@ -1297,8 +1303,7 @@ void setModeIcon(std::vector<iconPropertyBlinking> *iconList)
     case (STATE_BASE_FIXED_NOT_STARTED):
         // Do nothing. Static display shown during state change.
         break;
-    case (STATE_BASE_FIXED_TRANSMITTING):
-    {
+    case (STATE_BASE_FIXED_TRANSMITTING): {
         iconPropertyBlinking prop;
         prop.duty = 0b11111111;
         prop.icon = BaseFixedProperties.iconDisplay[present.display_type];
@@ -2672,8 +2677,7 @@ void paintDisplaySetup()
 {
     constructSetupDisplay(&setupButtons); // Construct the vector (linked list) of buttons
 
-    uint8_t maxButtons =
-        ((present.display_type == DISPLAY_128x64) ? 5 : 4);
+    uint8_t maxButtons = ((present.display_type == DISPLAY_128x64) ? 5 : 4);
 
     uint8_t printedButtons = 0;
 
@@ -2688,10 +2692,7 @@ void paintDisplaySetup()
             {
                 if (it->newState == STATE_PROFILE)
                 {
-                    int nameWidth =
-                        ((present.display_type == DISPLAY_128x64)
-                             ? 17
-                             : 9);
+                    int nameWidth = ((present.display_type == DISPLAY_128x64) ? 17 : 9);
                     char miniProfileName[nameWidth] = {0};
                     snprintf(miniProfileName, sizeof(miniProfileName), "%d_%s", it->newProfile,
                              it->name); // Prefix with index #

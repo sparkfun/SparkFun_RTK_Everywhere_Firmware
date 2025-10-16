@@ -15,39 +15,41 @@
 typedef enum
 {
     STATE_ROVER_NOT_STARTED = 0,        //  0
-    STATE_ROVER_NO_FIX,                 //  1
-    STATE_ROVER_FIX,                    //  2
-    STATE_ROVER_RTK_FLOAT,              //  3
-    STATE_ROVER_RTK_FIX,                //  4
+    STATE_ROVER_CONFIG_WAIT,            //  1
+    STATE_ROVER_NO_FIX,                 //  2
+    STATE_ROVER_FIX,                    //  3
+    STATE_ROVER_RTK_FLOAT,              //  4
+    STATE_ROVER_RTK_FIX,                //  5
 
-    STATE_BASE_CASTER_NOT_STARTED,      //  5, Set override flag
-    STATE_BASE_NOT_STARTED,             //  6
-    STATE_BASE_TEMP_SETTLE,             //  7, User has indicated base, but current pos accuracy is too low
-    STATE_BASE_TEMP_SURVEY_STARTED,     //  8
-    STATE_BASE_TEMP_TRANSMITTING,       //  9
-    STATE_BASE_FIXED_NOT_STARTED,       // 10
-    STATE_BASE_FIXED_TRANSMITTING,      // 11
+    STATE_BASE_CASTER_NOT_STARTED,      //  6, Set override flag
+    STATE_BASE_NOT_STARTED,             //  7
+    STATE_BASE_CONFIG_WAIT,             //  8
+    STATE_BASE_TEMP_SETTLE,             //  9, User has indicated base, but current pos accuracy is too low
+    STATE_BASE_TEMP_SURVEY_STARTED,     // 10
+    STATE_BASE_TEMP_TRANSMITTING,       // 11
+    STATE_BASE_FIXED_NOT_STARTED,       // 12
+    STATE_BASE_FIXED_TRANSMITTING,      // 13
 
-    STATE_DISPLAY_SETUP,                // 12
-    STATE_WEB_CONFIG_NOT_STARTED,       // 13
-    STATE_WEB_CONFIG_WAIT_FOR_NETWORK,  // 14
-    STATE_WEB_CONFIG,                   // 15
-    STATE_TEST,                         // 16
-    STATE_TESTING,                      // 17
-    STATE_PROFILE,                      // 18
+    STATE_DISPLAY_SETUP,                // 14
+    STATE_WEB_CONFIG_NOT_STARTED,       // 15
+    STATE_WEB_CONFIG_WAIT_FOR_NETWORK,  // 16
+    STATE_WEB_CONFIG,                   // 17
+    STATE_TEST,                         // 18
+    STATE_TESTING,                      // 19
+    STATE_PROFILE,                      // 20
 
-    STATE_KEYS_REQUESTED,               // 19
+    STATE_KEYS_REQUESTED,               // 21
 
-    STATE_ESPNOW_PAIRING_NOT_STARTED,   // 20
-    STATE_ESPNOW_PAIRING,               // 21
+    STATE_ESPNOW_PAIRING_NOT_STARTED,   // 22
+    STATE_ESPNOW_PAIRING,               // 23
 
-    STATE_NTPSERVER_NOT_STARTED,        // 22
-    STATE_NTPSERVER_NO_SYNC,            // 23
-    STATE_NTPSERVER_SYNC,               // 24
+    STATE_NTPSERVER_NOT_STARTED,        // 24
+    STATE_NTPSERVER_NO_SYNC,            // 25
+    STATE_NTPSERVER_SYNC,               // 26
 
-    STATE_SHUTDOWN,                     // 25
+    STATE_SHUTDOWN,                     // 27
 
-    STATE_NOT_SET,                      // 26, Must be last on list
+    STATE_NOT_SET,                      // 28, Must be last on list
 } SystemState;
 volatile SystemState systemState = STATE_NOT_SET;
 SystemState lastSystemState = STATE_NOT_SET;
