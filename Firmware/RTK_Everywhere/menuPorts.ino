@@ -115,8 +115,6 @@ void menuPortsNoMux()
                 if (gnss->baudIsAllowed(newBaud))
                 {
                     settings.dataPortBaud = newBaud;
-                    if (online.gnss == true)
-                        gnss->setBaudRateData(newBaud);
                 }
                 else
                 {
@@ -155,12 +153,8 @@ void menuPortsNoMux()
             printUnknown(incoming);
     }
 
-    if (present.gnss_lg290p)
-    {
-        // All platforms, except the LG290P can modify their baud rates immediately.
-        // The LG290P requires a reset for settings to take effect
-        gnssConfigure(GNSS_CONFIG_BAUD_RATE); // Request receiver to use new settings
-    }
+    gnssConfigure(GNSS_CONFIG_BAUD_RATE_RADIO); // Request receiver to use new settings
+    gnssConfigure(GNSS_CONFIG_BAUD_RATE_DATA);  // Request receiver to use new settings
 
     clearBuffer(); // Empty buffer of any newline chars
 }
@@ -268,8 +262,6 @@ void menuPortsMultiplexed()
                 if (gnss->baudIsAllowed(newBaud))
                 {
                     settings.dataPortBaud = newBaud;
-                    if (online.gnss == true)
-                        gnss->setBaudRateData(newBaud);
                 }
                 else
                 {
@@ -312,15 +304,11 @@ void menuPortsMultiplexed()
 
     clearBuffer(); // Empty buffer of any newline chars
 
-    if (present.gnss_mosaicX5)
-    {
-        // Apply these changes at menu exit - to enable message output on USB1
-        // and/or enable/disable NMEA on radio
-        gnssConfigure(GNSS_CONFIG_BAUD_RATE); // Request receiver to use new settings
-    }
-
     gnss->beginExternalEvent(); // Update with new settings
-    gnssConfigure(GNSS_CONFIG_PPS); // Request receiver to use new settings
+
+    gnssConfigure(GNSS_CONFIG_PPS);             // Request receiver to use new settings
+    gnssConfigure(GNSS_CONFIG_BAUD_RATE_RADIO); // Request receiver to use new settings
+    gnssConfigure(GNSS_CONFIG_BAUD_RATE_DATA);  // Request receiver to use new settings
 }
 
 // Configure the behavior of the PPS and INT pins.
