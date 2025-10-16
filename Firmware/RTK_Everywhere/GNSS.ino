@@ -68,23 +68,6 @@ extern NetworkClient *ntripClient;
 extern unsigned long lastGGAPush;
 
 //----------------------------------------
-// Setup the general configuration of the GNSS
-// Not Rover or Base specific (ie, baud rates)
-// Returns true if successfully configured and false otherwise
-//----------------------------------------
-bool GNSS::configure()
-{
-    if (online.gnss == false)
-        return (false);
-
-    // Check various setting arrays (message rates, etc) to see if they need to be reset to defaults
-    checkGNSSArrayDefaults();
-
-    // Configure the GNSS receiver
-    return configureGNSS();
-}
-
-//----------------------------------------
 // Get the minimum satellite signal level for navigation.
 //----------------------------------------
 uint8_t GNSS::getMinCno()

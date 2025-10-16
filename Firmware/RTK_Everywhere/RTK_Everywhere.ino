@@ -1349,6 +1349,9 @@ void setup()
     checkArrayDefaults(); // Check for uninitialized arrays that won't be initialized by gnssConfigure
                           // (checkGNSSArrayDefaults)
 
+    checkGNSSArrayDefaults(); // Check various setting arrays (message rates, etc) to see if they need to be reset to
+                              // defaults
+
     DMW_b("printPartitionTable");
     if (settings.printPartitionTable)
         printPartitionTable();
@@ -1368,8 +1371,8 @@ void setup()
     DMW_b("beginCharger");
     beginCharger(); // Configure battery charger
 
-    DMW_b("gnss->configure");
-    gnss->configure(); // Requires settings. Configure GNSS module
+    // DMW_b("gnss->configure");
+    // gnss->configure(); // Requires settings. Configure GNSS module
 
     DMW_b("beginExternalEvent");
     gnss->beginExternalEvent(); // Configure the event input
