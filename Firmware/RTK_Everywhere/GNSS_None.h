@@ -492,6 +492,12 @@ class GNSS_None : public GNSS
         return dataLength;
     }
 
+    // Hardware or software reset the GNSS receiver
+    bool reset()
+    {
+        return true;
+    }
+
     uint16_t rtcmBufferAvailable()
     {
         return 0;
@@ -626,12 +632,6 @@ class GNSS_None : public GNSS
     }
 
     bool setTilt()
-    {
-        return true;
-    }
-
-    // Hotstart GNSS to try to get RTK lock
-    bool softwareReset()
     {
         return true;
     }

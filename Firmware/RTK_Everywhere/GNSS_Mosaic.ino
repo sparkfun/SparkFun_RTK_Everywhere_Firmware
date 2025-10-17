@@ -152,7 +152,7 @@ void menuLogMosaic()
         GNSS_MOSAIC *mosaic = (GNSS_MOSAIC *)gnss;
 
         mosaic->configureLogging();  // This will enable / disable RINEX logging
-        mosaic->setMessagesNMEA();        // Enable NMEA messages - this will enable/disable the DSK1 streams
+        mosaic->setMessagesNMEA();   // Enable NMEA messages - this will enable/disable the DSK1 streams
         mosaic->saveConfiguration(); // Save the configuration
         setLoggingType();            // Update Standard, PPP, or custom for icon selection
     }
@@ -1564,7 +1564,7 @@ void GNSS_MOSAIC::menuMessagesNMEA()
             if (settings.mosaicMessageStreamNMEA[incoming] > MOSAIC_NUM_NMEA_STREAMS)
                 settings.mosaicMessageStreamNMEA[incoming] = 0; // Wrap around
 
-            gnssConfigure(GNSS_CONFIG_MESSAGE_RATE); // Request receiver to use new settings
+            gnssConfigure(GNSS_CONFIG_MESSAGE_RATE_NMEA); // Request receiver to use new settings
         }
         else if (incoming > MAX_MOSAIC_NMEA_MSG &&
                  incoming <= (MAX_MOSAIC_NMEA_MSG + MOSAIC_NUM_NMEA_STREAMS)) // Stream intervals
@@ -1583,7 +1583,7 @@ void GNSS_MOSAIC::menuMessagesNMEA()
             if (interval >= 1 && interval <= MAX_MOSAIC_MSG_RATES)
             {
                 settings.mosaicStreamIntervalsNMEA[incoming] = interval - 1;
-                gnssConfigure(GNSS_CONFIG_MESSAGE_RATE); // Request receiver to use new settings
+                gnssConfigure(GNSS_CONFIG_MESSAGE_RATE_NMEA); // Request receiver to use new settings
             }
         }
         else if (incoming == INPUT_RESPONSE_GETNUMBER_EXIT)
@@ -1645,7 +1645,10 @@ void GNSS_MOSAIC::menuMessagesRTCM(bool rover)
                 if ((interval >= 0.1) && (interval <= 600.0))
                 {
                     intervalPtr[incoming] = interval;
-                    gnssConfigure(GNSS_CONFIG_MESSAGE_RATE); // Request receiver to use new settings
+                    if (inBaseMode())
+                        gnssConfigure(GNSS_CONFIG_MESSAGE_RATE_RTCM_BASE); // Request receiver to use new settings
+                    else
+                        gnssConfigure(GNSS_CONFIG_MESSAGE_RATE_RTCM_ROVER); // Request receiver to use new settings
                 }
                 else
                     systemPrintln("Invalid interval: Min 0.1; Max 600.0");
@@ -1721,7 +1724,11 @@ void GNSS_MOSAIC::menuMessages()
             for (int x = 0; x < MAX_MOSAIC_RTCM_V3_MSG; x++)
                 settings.mosaicMessageEnabledRTCMv3Base[x] = mosaicMessagesRTCMv3[x].defaultEnabled;
 
-            gnssConfigure(GNSS_CONFIG_MESSAGE_RATE); // Request receiver to use new settings
+            gnssConfigure(GNSS_CONFIG_MESSAGE_RATE_NMEA); // Request receiver to use new settings
+            if (inBaseMode())
+                gnssConfigure(GNSS_CONFIG_MESSAGE_RATE_RTCM_BASE); // Request receiver to use new settings
+            else
+                gnssConfigure(GNSS_CONFIG_MESSAGE_RATE_RTCM_ROVER); // Request receiver to use new settings
 
             systemPrintln("Reset to Defaults");
         }
@@ -1766,6 +1773,16 @@ uint16_t GNSS_MOSAIC::rtcmBufferAvailable()
 {
     // TODO
     return 0;
+}
+
+//----------------------------------------
+// Hardware or software reset the GNSS receiver
+//----------------------------------------
+bool GNSS_MOSAIC::reset()
+{
+    // We could restart L-Band here if needed, but gnss->reset is never called on the X5
+    // Instead, update() does it when spartnCorrectionsReceived times out
+    return false;
 }
 
 //----------------------------------------
@@ -2165,7 +2182,6 @@ bool GNSS_MOSAIC::setCorrRadioExtPort(bool enable, bool force)
     return false;
 }
 
-
 //----------------------------------------
 // Set the elevation in degrees
 // Inputs:
@@ -2540,17 +2556,6 @@ bool GNSS_MOSAIC::setTalkerGNGGA()
 bool GNSS_MOSAIC::setTilt()
 {
     // Not yet available on this platform
-    return false;
-}
-
-
-//----------------------------------------
-// Hotstart GNSS to try to get RTK lock
-//----------------------------------------
-bool GNSS_MOSAIC::softwareReset()
-{
-    // We could restart L-Band here if needed, but gnss->softwareReset is never called on the X5
-    // Instead, update() does it when spartnCorrectionsReceived times out
     return false;
 }
 

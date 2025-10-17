@@ -654,6 +654,9 @@ class GNSS_ZED : GNSS
     //   Returns the number of correction data bytes written
     int pushRawData(uint8_t *dataToSend, int dataLength);
 
+    // Hardware or software reset the GNSS
+    bool reset();
+
     uint16_t rtcmBufferAvailable();
 
     // If L-Band is available, but encrypted, allow RTCM through other sources (radio, ESP-NOW) to GNSS receiver
@@ -739,9 +742,6 @@ class GNSS_ZED : GNSS
 
     // Enable/disable any output needed for tilt compensation
     bool setTilt();
-
-    // Hotstart GNSS to try to get RTK lock
-    bool softwareReset();
 
     bool standby();
 

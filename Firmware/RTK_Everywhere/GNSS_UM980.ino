@@ -283,10 +283,7 @@ bool GNSS_UM980::configure()
         // If we fail, reset UM980
         systemPrintln("Resetting UM980 to complete configuration");
 
-        gnssReset();
-        delay(500);
-        gnssBoot();
-        delay(500);
+        reset(); // Hardware reset the UM980
     }
 
     systemPrintln("UM980 failed to configure");
@@ -1867,8 +1864,20 @@ bool GNSS_UM980::setTilt()
 // Needed on ZED based products where RTK Float lock is seen using L-Band
 // Not used on UM980 based devices
 //----------------------------------------
-bool GNSS_UM980::softwareReset()
+bool GNSS_UM980::reset()
 {
+    // Hardware reset the Torch in case UM980 is unresponsive
+    if (productVariant == RTK_TORCH)
+    {
+        digitalWrite(pin_GNSS_DR_Reset, LOW); // Tell UM980 and DR to reset
+    }
+
+    delay(500);
+
+    if (productVariant == RTK_TORCH)
+    {
+        digitalWrite(pin_GNSS_DR_Reset, HIGH); // Tell UM980 and DR to boot
+    }
     return false;
 }
 
@@ -2091,10 +2100,7 @@ void um980FirmwareBeginUpdate()
                 if (nextIncoming == '@')
                 {
                     // Reset UM980
-                    gnssReset();
-                    delay(25);
-                    gnssBoot();
-
+                    gnss->reset();
                     inBootMode = true;
                 }
             }

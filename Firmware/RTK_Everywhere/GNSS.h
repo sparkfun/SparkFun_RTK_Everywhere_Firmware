@@ -301,6 +301,9 @@ class GNSS
     //   Returns the number of correction data bytes written
     virtual int pushRawData(uint8_t *dataToSend, int dataLength);
 
+    // Hardware or software reset the GNSS receiver
+    virtual bool reset();
+
     virtual uint16_t rtcmBufferAvailable();
 
     // If LBand is being used, ignore any RTCM that may come in from the GNSS
@@ -374,9 +377,6 @@ class GNSS
 
     // Enable/disable any output needed for tilt compensation
     virtual bool setTilt();
-
-    // Hotstart GNSS to try to get RTK lock
-    virtual bool softwareReset();
 
     virtual bool standby();
 

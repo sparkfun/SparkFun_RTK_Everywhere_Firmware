@@ -783,7 +783,7 @@ void updateLBandCorrections()
                         millis(); // Restart timer for L-Band. Don't immediately reset ZED to achieve fix.
 
                     // Hotstart GNSS to try to get RTK lock
-                    gnss->softwareReset();
+                    gnss->reset();
 
                     if (settings.debugCorrections == true)
                         systemPrintf("Restarting ZED. Number of Float lock restarts: %d\r\n", floatLockRestarts);

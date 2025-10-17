@@ -1976,6 +1976,18 @@ int GNSS_ZED::pushRawData(uint8_t *dataToSend, int dataLength)
 }
 
 //----------------------------------------
+// Hardware or software reset the GNSS receiver
+// Hotstart GNSS to try to get RTK lock
+//----------------------------------------
+bool GNSS_ZED::reset()
+{
+    if (online.gnss == false)
+        return false;
+    _zed->softwareResetGNSSOnly();
+    return true;
+}
+
+//----------------------------------------
 uint16_t GNSS_ZED::rtcmBufferAvailable()
 {
     if (online.gnss)
@@ -2467,17 +2479,6 @@ bool GNSS_ZED::setTilt()
 {
     // Not yet available on this platform
     return false;
-}
-
-//----------------------------------------
-// Hotstart GNSS to try to get RTK lock
-//----------------------------------------
-bool GNSS_ZED::softwareReset()
-{
-    if (online.gnss == false)
-        return false;
-    _zed->softwareResetGNSSOnly();
-    return true;
 }
 
 //----------------------------------------

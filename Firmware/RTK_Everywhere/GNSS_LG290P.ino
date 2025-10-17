@@ -1843,6 +1843,35 @@ int GNSS_LG290P::pushRawData(uint8_t *dataToSend, int dataLength)
 }
 
 //----------------------------------------
+// Hardware or software reset the GNSS receiver
+// Reset GNSS via software command
+// Poll for isConnected()
+//----------------------------------------
+bool GNSS_LG290P::reset()
+{
+    if (online.gnss)
+    {
+        _lg290p->reset();
+
+        // Poll for a limited amount of time before unit comes back
+        int x = 0;
+        while (x++ < 50)
+        {
+            delay(100); // Wait for device to reboot
+            if (_lg290p->isConnected() == true)
+                break;
+            else
+                systemPrintln("GNSS still rebooting");
+        }
+        if (x < 50)
+            return (true);
+
+        systemPrintln("GNSS failed to connect after reboot");
+    }
+    return (false);
+}
+
+//----------------------------------------
 uint16_t GNSS_LG290P::rtcmBufferAvailable()
 {
     // TODO return(lg290pRtcmBufferAvailable());

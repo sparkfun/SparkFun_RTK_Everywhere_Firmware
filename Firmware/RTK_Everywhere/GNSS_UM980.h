@@ -396,6 +396,9 @@ class GNSS_UM980 : GNSS
 
     uint16_t rtcmBufferAvailable();
 
+    // Hardware or software reset the GNSS
+    bool reset();
+
     // If LBand is being used, ignore any RTCM that may come in from the GNSS
     void rtcmOnGnssDisable();
 
@@ -474,9 +477,6 @@ class GNSS_UM980 : GNSS
 
     // Enable/disable any output needed for tilt compensation
     bool setTilt();
-
-    // Hotstart GNSS to try to get RTK lock
-    bool softwareReset();
 
     bool standby();
 
