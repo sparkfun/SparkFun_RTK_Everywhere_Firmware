@@ -1265,6 +1265,14 @@ void wifiUpdateSettings()
 }
 
 //*********************************************************************
+// Determine if any of the WiFi station SSID values are set
+bool wifiAfterCommand(int cmdIndex)
+{
+    wifiUpdateSettings();
+    return true;
+}
+
+//*********************************************************************
 // Verify the WiFi tables
 void wifiVerifyTables()
 {
