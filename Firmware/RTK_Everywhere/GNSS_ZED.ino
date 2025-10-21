@@ -1230,7 +1230,15 @@ double GNSS_ZED::getLongitude()
 //----------------------------------------
 uint8_t GNSS_ZED::getMessageNumberByName(const char *msgName)
 {
-    if (present.gnss_zedf9p)
+    return getMessageNumberByName(msgName, false);
+}
+uint8_t GNSS_ZED::getMessageNumberByNameSkipChecks(const char *msgName)
+{
+    return getMessageNumberByName(msgName, true);
+}
+uint8_t GNSS_ZED::getMessageNumberByName(const char *msgName, bool skipPlatformChecks)
+{
+    if (skipPlatformChecks || present.gnss_zedf9p)
     {
         for (int x = 0; x < MAX_UBX_MSG; x++)
         {
@@ -2977,7 +2985,7 @@ void inputMessageRate(uint8_t &localMessageRate, uint8_t messageNumber)
     if (rate == INPUT_RESPONSE_GETNUMBER_TIMEOUT || rate == INPUT_RESPONSE_GETNUMBER_EXIT)
         return;
 
-    while (rate < 0 || rate > 255) // 8 bit limit
+    while (rate < 0 || rate > 250) // 8 bit limit. Avoid 254!
     {
         systemPrintln("Error: Message rate out of range");
         systemPrintf("Enter %s message rate (0 to disable): ", ubxMessages[messageNumber].msgTextName);

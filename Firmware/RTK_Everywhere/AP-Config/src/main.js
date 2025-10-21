@@ -112,7 +112,7 @@ function parseIncoming(msg) {
                 hide("externalPortOptions");
                 show("logToSDCard");
                 hide("galileoHasSetting");
-                hide("useMSM7Setting");
+                hide("lg290pGnssSettings");
                 hide("tiltConfig");
                 hide("beeperControl");
                 show("measurementRateInput");
@@ -146,7 +146,7 @@ function parseIncoming(msg) {
                 show("externalPortOptions");
                 show("logToSDCard");
                 hide("galileoHasSetting");
-                hide("useMSM7Setting");
+                hide("lg290pGnssSettings");
                 hide("tiltConfig");
                 hide("beeperControl");
                 show("measurementRateInput");
@@ -167,7 +167,7 @@ function parseIncoming(msg) {
                 show("externalPortOptions");
                 show("logToSDCard");
                 hide("galileoHasSetting");
-                hide("useMSM7Setting");
+                hide("lg290pGnssSettings");
                 hide("tiltConfig");
                 hide("beeperControl");
                 hide("measurementRateInput");
@@ -257,8 +257,8 @@ function parseIncoming(msg) {
                 show("externalPortOptions");
                 show("logToSDCard");
 
-                hide("galileoHasSetting");
-                show("useMSM7Setting");
+                show("galileoHasSetting");
+                show("lg290pGnssSettings");
                 hide("tiltConfig");
                 hide("beeperControl");
 
@@ -273,8 +273,8 @@ function parseIncoming(msg) {
                 show("constellationNavic");
 
                 hide("dynamicModelDropdown"); //Not supported on LG290P
-                hide("minElevConfig"); //Not supported on LG290P
-                hide("minCNOConfig"); //Not supported on LG290P
+                show("minElevConfig");
+                show("minCNOConfig");
 
                 ge("rtcmRateInfoText").setAttribute('data-bs-original-title', 'RTCM is transmitted by the base at a default of 1Hz for messages 1005, 1074, 1084, 1094, 1114, 1124, 1134. This can be lowered for radios with low bandwidth or tailored to transmit any/all RTCM messages. Limits: 0 to 20. Note: The measurement rate is overridden to 1Hz when in Base mode.');
 
@@ -327,8 +327,8 @@ function parseIncoming(msg) {
 
                 hide("constellationSbas"); //Not supported on LG290P
                 show("constellationNavic"); 
-                hide("galileoHasSetting"); //Not supported on LG290P
-                show("useMSM7Setting");
+                show("galileoHasSetting");
+                show("lg290pGnssSettings");
                 hide("tiltConfig"); //Not supported on Torch X2
 
                 show("measurementRateInput");
@@ -341,8 +341,8 @@ function parseIncoming(msg) {
                 hide("enableNmeaOnRadio");
 
                 hide("dynamicModelDropdown"); //Not supported on LG290P
-                hide("minElevConfig"); //Not supported on LG290P
-                hide("minCNOConfig"); //Not supported on LG290P
+                show("minElevConfig");
+                show("minCNOConfig");
 
                 ge("rtcmRateInfoText").setAttribute('data-bs-original-title', 'RTCM is transmitted by the base at a default of 1Hz for messages 1005, 1074, 1084, 1094, 1124, and 0.1Hz for 1033. This can be lowered for radios with low bandwidth or tailored to transmit any/all RTCM messages. Limits: 0 to 20. Note: The measurement rate is overridden to 1Hz when in Base mode.');
 
@@ -507,6 +507,23 @@ function parseIncoming(msg) {
             messageText += " id='" + messageName + "' value='" + messageRate + "'>";
             messageText += "<p id='" + messageName + "Error' class='inlineError'></p>";
             messageText += "</div></div>";
+        }
+        else if (id.includes("messageRatePQTM")) {
+            // messageRatePQTM_EPE
+            var messageName = id;
+            var messageNameLabel = "";
+
+            var messageData = messageName.split('_');
+            messageNameLabel = messageData[1];
+
+            messageText += "<div class='form-check mt-3'>";
+            messageText += "<label class='form-check-label' for='" + messageName + "'>Enable " + messageNameLabel + "</label>";
+            messageText += "<input class='form-check-input' type='checkbox' id='" + messageName + "'>";
+            messageText += "</div>";
+
+            // Save the name and value as we can't set 'checked' yet. messageText has not yet been added to innerHTML
+            savedCheckboxNames.push(messageName);
+            savedCheckboxValues.push(val);
         }
         else if (id.includes("messageRate") || id.includes("messageIntervalRTCM")) {
             // messageRateNMEA_GPDTM
@@ -714,6 +731,13 @@ function show(id) {
     ge(id).style.display = "block";
 }
 
+function isElementShown(id) {
+    if (ge(id).style.display == "block") {
+        return (true);
+    }
+    return (false);
+}
+
 //Create CSV of all setting data
 function sendData() {
     var settingCSV = "";
@@ -805,6 +829,14 @@ function checkMessageValueUM980Base(id) {
     checkElementValue(id, 0, 65, "Must be between 0 and 65", "collapseGNSSConfigMsgBase");
 }
 
+function checkMessageValueLG290P01(id) {
+    checkElementValue(id, 0, 1, "Must be between 0 and 1", "collapseGNSSConfigMsg");
+}
+
+function checkMessageValueLG290P01200(id) {
+    checkElementValue(id, 0, 1200, "Must be between 0 and 1200", "collapseGNSSConfigMsg");
+}
+
 function collapseSection(section, caret) {
     ge(section).classList.remove('show');
     ge(caret).classList.remove('icon-caret-down');
@@ -841,6 +873,9 @@ function validateFields() {
 
     checkElementValue("minElev", 0, 90, "Must be between 0 and 90", "collapseGNSSConfig");
     checkElementValue("minCNO", 0, 90, "Must be between 0 and 90", "collapseGNSSConfig");
+    if (isElementShown("lg290pGnssSettings") == true) {
+        checkElementValue("rtcmMinElev", -90, 90, "Must be between -90 and 90", "collapseGNSSConfig");
+    }
 
     if (ge("enableNtripClient").checked == true) {
         checkElementString("ntripClientCasterHost", 1, 45, "Must be 1 to 45 characters", "collapseGNSSConfig");
@@ -905,6 +940,25 @@ function validateFields() {
         for (let x = 0; x < messages.length; x++) {
             var messageName = messages[x].id;
             checkElementValue(messageName, 0.1, 600.0, "Must be between 0.1 and 600.0", "collapseGNSSConfigMsgBase");
+        }
+    }
+
+    //Check all LG290P message boxes
+    else if ((platformPrefix == "Postcard") || (platformPrefix == "Torch X2")) {
+        var messages = document.querySelectorAll('input[id^=messageRateNMEA_]');
+        for (let x = 0; x < messages.length; x++) {
+            var messageName = messages[x].id;
+            checkMessageValueLG290P01(messageName);
+        }
+        var messages = document.querySelectorAll('input[id^=messageRateRTCMRover_]');
+        for (let x = 0; x < messages.length; x++) {
+            var messageName = messages[x].id;
+            checkMessageValueLG290P01200(messageName);
+        }
+        var messages = document.querySelectorAll('input[id^=messageRateRTCMBase_]');
+        for (let x = 0; x < messages.length; x++) {
+            var messageName = messages[x].id;
+            checkMessageValueLG290P01200(messageName);
         }
     }
 
@@ -1424,6 +1478,12 @@ function zeroMessages() {
         var messageName = messages[x].id;
         ge(messageName).checked = false;
     }
+    //match messageRatePQTM_
+    messages = document.querySelectorAll('input[id^=messageRatePQTM_]');
+    for (let x = 0; x < messages.length; x++) {
+        var messageName = messages[x].id;
+        ge(messageName).checked = false;
+    }
 }
 
 function zeroBaseMessages() {
@@ -1480,7 +1540,7 @@ function resetToSurveyingDefaults() {
 
         ge("messageIntervalRTCMRover_RTCM1033").value = 10.0;
     }
-    else if (platformPrefix == "Postcard") {
+    else if ((platformPrefix == "Postcard") || (platformPrefix == "Torch X2")) {
         ge("messageRateNMEA_GPRMC").value = 1;
         ge("messageRateNMEA_GPGGA").value = 1;
         ge("messageRateNMEA_GPGSV").value = 1;
@@ -1519,7 +1579,7 @@ function resetToLoggingDefaults() {
         ge("messageRateRTCMRover_RTCM1094").value = 30;
         ge("messageRateRTCMRover_RTCM1124").value = 30;
     }
-    else if (platformPrefix == "Postcard") {
+    else if ((platformPrefix == "Postcard") || (platformPrefix == "Torch X2")) {
         ge("messageRateNMEA_GPRMC").value = 1;
         ge("messageRateNMEA_GPGGA").value = 1;
         ge("messageRateNMEA_GPGSV").value = 1;

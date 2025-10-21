@@ -504,6 +504,25 @@ void commandSendResponse(const char *innerBuffer)
     commandSendAllInterfaces(responseBuffer);
 }
 
+// Given an inner buffer, send response sentence with checksum and <CR><LR>
+// Ex: SPGET,elvMask,0.25 = $SPGET,elvMask,0.25*07
+void commandSendResponseUnbuffered(const char *prefix, const char *innerBuffer)
+{
+    uint8_t calculatedChecksum = 0; // XOR chars between '$' and '*'
+    for (int x = 1; x < strlen(prefix); x++)
+        calculatedChecksum = calculatedChecksum ^ prefix[x];
+    for (int x = 0; x < strlen(innerBuffer); x++)
+        calculatedChecksum = calculatedChecksum ^ innerBuffer[x];
+
+    char suffix[6];
+    sprintf(suffix, "*%02X\r\n", calculatedChecksum);
+
+    // CLI interactions may come from BLE or serial, respond to all interfaces
+    commandSendAllInterfaces((char *)prefix);
+    commandSendAllInterfaces((char *)innerBuffer);
+    commandSendAllInterfaces(suffix);
+}
+
 // Pass a command string to the all interfaces
 void commandSendAllInterfaces(char *rxData)
 {
@@ -1183,7 +1202,24 @@ SettingValueResponse updateSettingWithValue(bool inCommands, const char *setting
             int stream;
             if (sscanf(suffix, "%d", &stream) == 1)
             {
-                settings.mosaicStreamIntervalsNMEA[stream] = settingValue;
+                double settingValue_d;
+                int x;
+
+                // Check if stream interval settingValue is text format ("10ms" etc.)
+                for (x = 0; x < MAX_MOSAIC_MSG_RATES; x++)
+                {
+                    if (strcmp(settingValueStr, mosaicMsgRates[x].humanName) == 0)
+                    {
+                        settingValue_d = x;
+                        break;
+                    }
+                }
+
+                // If stream interval is not text, x will be MAX_MOSAIC_MSG_RATES
+                if (x == MAX_MOSAIC_MSG_RATES)
+                    settingValue_d = settingValue;
+
+                settings.mosaicStreamIntervalsNMEA[stream] = settingValue_d;
                 knownSetting = true;
                 break;
             }
@@ -3315,7 +3351,7 @@ void commandList(bool inCommands, int i)
                      settings.ubxConstellations[x].textName);
 
             getSettingValue(inCommands, settingName, settingValue);
-            commandSendExecuteListResponse(settingName, "bool", settingValue);
+            commandSendExecuteListResponse(settingName, "tUbxConst", settingValue);
         }
     }
     break;
@@ -3326,7 +3362,7 @@ void commandList(bool inCommands, int i)
             snprintf(settingName, sizeof(settingName), "%s%s", rtkSettingsEntries[i].name, ubxMessages[x].msgTextName);
 
             getSettingValue(inCommands, settingName, settingValue);
-            commandSendExecuteListResponse(settingName, "uint8_t", settingValue);
+            commandSendExecuteListResponse(settingName, "tUbxMsgRt", settingValue);
         }
     }
     break;
@@ -3341,7 +3377,7 @@ void commandList(bool inCommands, int i)
                      ubxMessages[firstRTCMRecord + x].msgTextName);
 
             getSettingValue(inCommands, settingName, settingValue);
-            commandSendExecuteListResponse(settingName, "uint8_t", settingValue);
+            commandSendExecuteListResponse(settingName, "tUbMsgRtb", settingValue);
         }
     }
     break;
@@ -3452,7 +3488,7 @@ void commandList(bool inCommands, int i)
                      umMessagesNMEA[x].msgTextName);
 
             getSettingValue(inCommands, settingName, settingValue);
-            commandSendExecuteListResponse(settingName, "float", settingValue);
+            commandSendExecuteListResponse(settingName, "tUmMRNmea", settingValue);
         }
     }
     break;
@@ -3464,7 +3500,7 @@ void commandList(bool inCommands, int i)
                      umMessagesRTCM[x].msgTextName);
 
             getSettingValue(inCommands, settingName, settingValue);
-            commandSendExecuteListResponse(settingName, "float", settingValue);
+            commandSendExecuteListResponse(settingName, "tUmMRRvRT", settingValue);
         }
     }
     break;
@@ -3476,7 +3512,7 @@ void commandList(bool inCommands, int i)
                      umMessagesRTCM[x].msgTextName);
 
             getSettingValue(inCommands, settingName, settingValue);
-            commandSendExecuteListResponse(settingName, "float", settingValue);
+            commandSendExecuteListResponse(settingName, "tUmMRBaRT", settingValue);
         }
     }
     break;
@@ -3488,7 +3524,7 @@ void commandList(bool inCommands, int i)
                      um980ConstellationCommands[x].textName);
 
             getSettingValue(inCommands, settingName, settingValue);
-            commandSendExecuteListResponse(settingName, "uint8_t", settingValue);
+            commandSendExecuteListResponse(settingName, "tUmConst", settingValue);
         }
     }
     break;
@@ -3526,7 +3562,7 @@ void commandList(bool inCommands, int i)
                      mosaicSignalConstellations[x].configName);
 
             getSettingValue(inCommands, settingName, settingValue);
-            commandSendExecuteListResponse(settingName, "uint8_t", settingValue);
+            commandSendExecuteListResponse(settingName, "tMosaicConst", settingValue);
         }
     }
     break;
@@ -3538,7 +3574,7 @@ void commandList(bool inCommands, int i)
                      mosaicMessagesNMEA[x].msgTextName);
 
             getSettingValue(inCommands, settingName, settingValue);
-            commandSendExecuteListResponse(settingName, "uint8_t", settingValue);
+            commandSendExecuteListResponse(settingName, "tMosaicMSNmea", settingValue);
         }
     }
     break;
@@ -3549,7 +3585,7 @@ void commandList(bool inCommands, int i)
             snprintf(settingName, sizeof(settingName), "%s%d", rtkSettingsEntries[i].name, x);
 
             getSettingValue(inCommands, settingName, settingValue);
-            commandSendExecuteListResponse(settingName, "uint8_t", settingValue);
+            commandSendExecuteListResponse(settingName, "tMosaicSINmea", mosaicMsgRates[atoi(settingValue)].humanName);
         }
     }
     break;
@@ -3561,7 +3597,7 @@ void commandList(bool inCommands, int i)
                      mosaicRTCMv3MsgIntervalGroups[x].name);
 
             getSettingValue(inCommands, settingName, settingValue);
-            commandSendExecuteListResponse(settingName, "float", settingValue);
+            commandSendExecuteListResponse(settingName, "tMosaicMIRvRT", settingValue);
         }
     }
     break;
@@ -3573,7 +3609,7 @@ void commandList(bool inCommands, int i)
                      mosaicRTCMv3MsgIntervalGroups[x].name);
 
             getSettingValue(inCommands, settingName, settingValue);
-            commandSendExecuteListResponse(settingName, "float", settingValue);
+            commandSendExecuteListResponse(settingName, "tMosaicMIBaRT", settingValue);
         }
     }
     break;
@@ -3585,7 +3621,7 @@ void commandList(bool inCommands, int i)
                      mosaicMessagesRTCMv3[x].name);
 
             getSettingValue(inCommands, settingName, settingValue);
-            commandSendExecuteListResponse(settingName, "uint8_t", settingValue);
+            commandSendExecuteListResponse(settingName, "tMosaicMERvRT", settingValue);
         }
     }
     break;
@@ -3597,7 +3633,7 @@ void commandList(bool inCommands, int i)
                      mosaicMessagesRTCMv3[x].name);
 
             getSettingValue(inCommands, settingName, settingValue);
-            commandSendExecuteListResponse(settingName, "uint8_t", settingValue);
+            commandSendExecuteListResponse(settingName, "tMosaicMEBaRT", settingValue);
         }
     }
     break;
@@ -3612,7 +3648,7 @@ void commandList(bool inCommands, int i)
                      lgMessagesNMEA[x].msgTextName);
 
             getSettingValue(inCommands, settingName, settingValue);
-            commandSendExecuteListResponse(settingName, "uint8_t", settingValue);
+            commandSendExecuteListResponse(settingName, "tLgMRNmea", settingValue);
         }
     }
     break;
@@ -3624,7 +3660,7 @@ void commandList(bool inCommands, int i)
                      lgMessagesRTCM[x].msgTextName);
 
             getSettingValue(inCommands, settingName, settingValue);
-            commandSendExecuteListResponse(settingName, "uint8_t", settingValue);
+            commandSendExecuteListResponse(settingName, "tLgMRRvRT", settingValue);
         }
     }
     break;
@@ -3636,7 +3672,7 @@ void commandList(bool inCommands, int i)
                      lgMessagesRTCM[x].msgTextName);
 
             getSettingValue(inCommands, settingName, settingValue);
-            commandSendExecuteListResponse(settingName, "uint8_t", settingValue);
+            commandSendExecuteListResponse(settingName, "tLgMRBaRT", settingValue);
         }
     }
     break;
@@ -3648,7 +3684,7 @@ void commandList(bool inCommands, int i)
                      lgMessagesPQTM[x].msgTextName);
 
             getSettingValue(inCommands, settingName, settingValue);
-            commandSendExecuteListResponse(settingName, "uint8_t", settingValue);
+            commandSendExecuteListResponse(settingName, "tLgMRPqtm", settingValue);
         }
     }
     break;
@@ -3659,7 +3695,7 @@ void commandList(bool inCommands, int i)
             snprintf(settingName, sizeof(settingName), "%s%s", rtkSettingsEntries[i].name, lg290pConstellationNames[x]);
 
             getSettingValue(inCommands, settingName, settingValue);
-            commandSendExecuteListResponse(settingName, "bool", settingValue);
+            commandSendExecuteListResponse(settingName, "tLgConst", settingValue);
         }
     }
     break;
@@ -3972,9 +4008,19 @@ bool commandIndexFill(bool usePossibleSettings)
     return true;
 }
 
+void printSettingsCommandTypes()
+{
+    String json;
+    createCommandTypesJson(json);
+    commandSendResponseUnbuffered("$SPCTY,", json.c_str());
+}
+
 // List available settings, their type in CSV, and value
 void printAvailableSettings()
 {
+    // Print the command types JSON blob
+    printSettingsCommandTypes();
+
     // Display the commands
     for (int i = 0; i < commandCount; i++)
     {
@@ -4122,4 +4168,263 @@ void printAvailableSettings()
             commandSendExecuteListResponse("deviceId", settingType, printDeviceId());
         }
     }
+}
+
+void createCommandTypesJson(String &output)
+{
+    JsonDocument doc;
+
+    JsonArray command_types = doc["command types"].to<JsonArray>();
+
+#ifdef  COMPILE_LG290P
+    // LG290P
+
+    JsonObject command_types_tLgConst = command_types.add<JsonObject>();
+    command_types_tLgConst["name"] = "tLgConst";
+    command_types_tLgConst["description"] = "LG290P GNSS constellations";
+    command_types_tLgConst["instruction"] = "Enable / disable each GNSS constellation";
+    command_types_tLgConst["prefix"] = "constellation_";
+    JsonArray command_types_tLgConst_keys = command_types_tLgConst["keys"].to<JsonArray>();
+    for (int x = 0; x < MAX_LG290P_CONSTELLATIONS; x++)
+        command_types_tLgConst_keys.add(lg290pConstellationNames[x]);
+    JsonArray command_types_tLgConst_values = command_types_tLgConst["values"].to<JsonArray>();
+    command_types_tLgConst_values.add("0");
+    command_types_tLgConst_values.add("1");
+
+    JsonObject command_types_tLgMRNmea = command_types.add<JsonObject>();
+    command_types_tLgMRNmea["name"] = "tLgMRNmea";
+    command_types_tLgMRNmea["description"] = "LG290P NMEA message rates";
+    command_types_tLgMRNmea["instruction"] = "Enable / disable each NMEA message";
+    command_types_tLgMRNmea["prefix"] = "messageRateNMEA_";
+    JsonArray command_types_tLgMRNmea_keys = command_types_tLgMRNmea["keys"].to<JsonArray>();
+    for (int y = 0; y < MAX_LG290P_NMEA_MSG; y++)
+        command_types_tLgMRNmea_keys.add(lgMessagesNMEA[y].msgTextName);
+    JsonArray command_types_tLgMRNmea_values = command_types_tLgMRNmea["values"].to<JsonArray>();
+    command_types_tLgMRNmea_values.add("0");
+    command_types_tLgMRNmea_values.add("1");
+
+    JsonObject command_types_tLgMRBaRT = command_types.add<JsonObject>();
+    command_types_tLgMRBaRT["name"] = "tLgMRBaRT";
+    command_types_tLgMRBaRT["description"] = "LG290P RTCM message rates - Base";
+    command_types_tLgMRBaRT["instruction"] = "Set the RTCM message interval in seconds for Base (0 = Off)";
+    command_types_tLgMRBaRT["prefix"] = "messageRateRTCMBase_";
+    JsonArray command_types_tLgMRBaRT_keys = command_types_tLgMRBaRT["keys"].to<JsonArray>();
+    for (int x = 0; x < MAX_LG290P_RTCM_MSG; x++)
+        command_types_tLgMRBaRT_keys.add(lgMessagesRTCM[x].msgTextName);
+    command_types_tLgMRBaRT["type"] = "int";
+    command_types_tLgMRBaRT["value min"] = 0;
+    command_types_tLgMRBaRT["value max"] = 1200;
+
+    JsonObject command_types_tLgMRRvRT = command_types.add<JsonObject>();
+    command_types_tLgMRRvRT["name"] = "tLgMRRvRT";
+    command_types_tLgMRRvRT["description"] = "LG290P RTCM message rates - Rover";
+    command_types_tLgMRRvRT["instruction"] = "Set the RTCM message interval in seconds for Rover (0 = Off)";
+    command_types_tLgMRRvRT["prefix"] = "messageRateRTCMRover_";
+    JsonArray command_types_tLgMRRvRT_keys = command_types_tLgMRRvRT["keys"].to<JsonArray>();
+    for (int x = 0; x < MAX_LG290P_RTCM_MSG; x++)
+        command_types_tLgMRRvRT_keys.add(lgMessagesRTCM[x].msgTextName);
+    command_types_tLgMRRvRT["type"] = "int";
+    command_types_tLgMRRvRT["value min"] = 0;
+    command_types_tLgMRRvRT["value max"] = 1200;
+
+    JsonObject command_types_tLgMRPqtm = command_types.add<JsonObject>();
+    command_types_tLgMRPqtm["name"] = "tLgMRPqtm";
+    command_types_tLgMRPqtm["description"] = "LG290P PQTM message rates";
+    command_types_tLgMRPqtm["instruction"] = "Enable / disable each PQTM message";
+    command_types_tLgMRPqtm["prefix"] = "messageRatePQTM_";
+    JsonArray command_types_tLgMRPqtm_keys = command_types_tLgMRPqtm["keys"].to<JsonArray>();
+    for (int x = 0; x < MAX_LG290P_PQTM_MSG; x++)
+        command_types_tLgMRPqtm_keys.add(lgMessagesPQTM[x].msgTextName);
+    JsonArray command_types_tLgMRPqtm_values = command_types_tLgMRPqtm["values"].to<JsonArray>();
+    command_types_tLgMRPqtm_values.add("0");
+    command_types_tLgMRPqtm_values.add("1");
+#endif // COMPILE_LG290P
+
+#ifdef  COMPILE_MOSAICX5
+    // mosaic-X5
+
+    JsonObject command_types_tMosaicConst = command_types.add<JsonObject>();
+    command_types_tMosaicConst["name"] = "tMosaicConst";
+    command_types_tMosaicConst["description"] = "mosaic-X5 GNSS constellations";
+    command_types_tMosaicConst["instruction"] = "Enable / disable each GNSS constellation";
+    command_types_tMosaicConst["prefix"] = "constellation_";
+    JsonArray command_types_tMosaicConst_keys = command_types_tMosaicConst["keys"].to<JsonArray>();
+    for (int x = 0; x < MAX_MOSAIC_CONSTELLATIONS; x++)
+        command_types_tMosaicConst_keys.add(mosaicSignalConstellations[x].configName);
+    JsonArray command_types_tMosaicConst_values = command_types_tMosaicConst["values"].to<JsonArray>();
+    command_types_tMosaicConst_values.add("0");
+    command_types_tMosaicConst_values.add("1");
+
+    JsonObject command_types_tMosaicMSNmea = command_types.add<JsonObject>();
+    command_types_tMosaicMSNmea["name"] = "tMosaicMSNmea";
+    command_types_tMosaicMSNmea["description"] = "mosaic-X5 message stream for NMEA";
+    command_types_tMosaicMSNmea["instruction"] = "Select the message stream for each NMEA message (0 = Off)";
+    command_types_tMosaicMSNmea["prefix"] = "messageStreamNMEA_";
+    JsonArray command_types_tMosaicMSNmea_keys = command_types_tMosaicMSNmea["keys"].to<JsonArray>();
+    for (int x = 0; x < MAX_MOSAIC_NMEA_MSG; x++)
+        command_types_tMosaicMSNmea_keys.add(mosaicMessagesNMEA[x].msgTextName);
+    JsonArray command_types_tMosaicMSNmea_values = command_types_tMosaicMSNmea["values"].to<JsonArray>();
+    command_types_tMosaicMSNmea_values.add("0");
+    command_types_tMosaicMSNmea_values.add("1");
+    command_types_tMosaicMSNmea_values.add("2");
+
+    JsonObject command_types_tMosaicSINmea = command_types.add<JsonObject>();
+    command_types_tMosaicSINmea["name"] = "tMosaicSINmea";
+    command_types_tMosaicSINmea["description"] = "mosaic-X5 NMEA message intervals";
+    command_types_tMosaicSINmea["instruction"] = "Set the interval for each NMEA stream";
+    command_types_tMosaicSINmea["prefix"] = "streamIntervalNMEA_";
+    JsonArray command_types_tMosaicSINmea_keys = command_types_tMosaicSINmea["keys"].to<JsonArray>();
+    command_types_tMosaicSINmea_keys.add("1");
+    command_types_tMosaicSINmea_keys.add("2");
+    JsonArray command_types_tMosaicSINmea_values = command_types_tMosaicSINmea["values"].to<JsonArray>();
+    for (int y = 0; y < MAX_MOSAIC_MSG_RATES; y++)
+        command_types_tMosaicSINmea_values.add(mosaicMsgRates[y].humanName);
+
+    JsonObject command_types_tMosaicMIRvRT = command_types.add<JsonObject>();
+    command_types_tMosaicMIRvRT["name"] = "tMosaicMIRvRT";
+    command_types_tMosaicMIRvRT["description"] = "mosaic-X5 RTCM message intervals - Rover";
+    command_types_tMosaicMIRvRT["instruction"] = "Set the RTCM message interval in seconds for Rover";
+    command_types_tMosaicMIRvRT["prefix"] = "messageIntervalRTCMRover_";
+    JsonArray command_types_tMosaicMIRvRT_keys = command_types_tMosaicMIRvRT["keys"].to<JsonArray>();
+    for (int y = 0; y < MAX_MOSAIC_RTCM_V3_INTERVAL_GROUPS; y++)
+        command_types_tMosaicMIRvRT_keys.add(mosaicRTCMv3MsgIntervalGroups[y].name);
+    command_types_tMosaicMIRvRT["type"] = "float";
+    command_types_tMosaicMIRvRT["value min"] = 0.1;
+    command_types_tMosaicMIRvRT["value max"] = 600.0;
+
+    JsonObject command_types_tMosaicMIBaRT = command_types.add<JsonObject>();
+    command_types_tMosaicMIBaRT["name"] = "tMosaicMIBaRT";
+    command_types_tMosaicMIBaRT["description"] = "mosaic-X5 RTCM message intervals - Base";
+    command_types_tMosaicMIBaRT["instruction"] = "Set the RTCM message interval in seconds for Base";
+    command_types_tMosaicMIBaRT["prefix"] = "messageIntervalRTCMBase_";
+    JsonArray command_types_tMosaicMIBaRT_keys = command_types_tMosaicMIBaRT["keys"].to<JsonArray>();
+    for (int y = 0; y < MAX_MOSAIC_RTCM_V3_INTERVAL_GROUPS; y++)
+        command_types_tMosaicMIBaRT_keys.add(mosaicRTCMv3MsgIntervalGroups[y].name);
+    command_types_tMosaicMIBaRT["type"] = "float";
+    command_types_tMosaicMIBaRT["value min"] = 0.1;
+    command_types_tMosaicMIBaRT["value max"] = 600.0;
+
+    JsonObject command_types_tMosaicMERvRT = command_types.add<JsonObject>();
+    command_types_tMosaicMERvRT["name"] = "tMosaicMERvRT";
+    command_types_tMosaicMERvRT["description"] = "mosaic-X5 RTCM message enabled - Rover";
+    command_types_tMosaicMERvRT["instruction"] = "Enable / disable Rover RTCM messages";
+    command_types_tMosaicMERvRT["prefix"] = "messageEnabledRTCMRover_";
+    JsonArray command_types_tMosaicMERvRT_keys = command_types_tMosaicMERvRT["keys"].to<JsonArray>();
+    for (int y = 0; y < MAX_MOSAIC_RTCM_V3_MSG; y++)
+        command_types_tMosaicMERvRT_keys.add(mosaicMessagesRTCMv3[y].name);
+    JsonArray command_types_tMosaicMERvRT_values = command_types_tMosaicMERvRT["values"].to<JsonArray>();
+    command_types_tMosaicMERvRT_values.add("0");
+    command_types_tMosaicMERvRT_values.add("1");
+
+    JsonObject command_types_tMosaicMEBaRT = command_types.add<JsonObject>();
+    command_types_tMosaicMEBaRT["name"] = "tMosaicMEBaRT";
+    command_types_tMosaicMEBaRT["description"] = "mosaic-X5 RTCM message enabled - Base";
+    command_types_tMosaicMEBaRT["instruction"] = "Enable / disable Base RTCM messages";
+    command_types_tMosaicMEBaRT["prefix"] = "messageEnabledRTCMBase_";
+    JsonArray command_types_tMosaicMEBaRT_keys = command_types_tMosaicMEBaRT["keys"].to<JsonArray>();
+    for (int y = 0; y < MAX_MOSAIC_RTCM_V3_MSG; y++)
+        command_types_tMosaicMEBaRT_keys.add(mosaicMessagesRTCMv3[y].name);
+    JsonArray command_types_tMosaicMEBaRT_values = command_types_tMosaicMEBaRT["values"].to<JsonArray>();
+    command_types_tMosaicMEBaRT_values.add("0");
+    command_types_tMosaicMEBaRT_values.add("1");
+#endif // COMPILE_MOSAICX5
+
+#ifdef  COMPILE_UM980
+    // UM980
+
+    JsonObject command_types_tUmConst = command_types.add<JsonObject>();
+    command_types_tUmConst["name"] = "tUmConst";
+    command_types_tUmConst["description"] = "UM980 GNSS constellations";
+    command_types_tUmConst["instruction"] = "Enable / disable each GNSS constellation";
+    command_types_tUmConst["prefix"] = "constellation_";
+    JsonArray command_types_tUmConst_keys = command_types_tUmConst["keys"].to<JsonArray>();
+    for (int x = 0; x < MAX_UM980_CONSTELLATIONS; x++)
+        command_types_tUmConst_keys.add(um980ConstellationCommands[x].textName);
+    JsonArray command_types_tUmConst_values = command_types_tUmConst["values"].to<JsonArray>();
+    command_types_tUmConst_values.add("0");
+    command_types_tUmConst_values.add("1");
+
+    JsonObject command_types_tUmMRNmea = command_types.add<JsonObject>();
+    command_types_tUmMRNmea["name"] = "tUmMRNmea";
+    command_types_tUmMRNmea["description"] = "UM980 NMEA message rates";
+    command_types_tUmMRNmea["instruction"] = "Set the NMEA message interval in seconds (0 = Off)";
+    command_types_tUmMRNmea["prefix"] = "messageRateNMEA_";
+    JsonArray command_types_tUmMRNmea_keys = command_types_tUmMRNmea["keys"].to<JsonArray>();
+    for (int y = 0; y < MAX_UM980_NMEA_MSG; y++)
+        command_types_tUmMRNmea_keys.add(umMessagesNMEA[y].msgTextName);
+    command_types_tUmMRNmea["type"] = "float";
+    command_types_tUmMRNmea["value min"] = 0.0;
+    command_types_tUmMRNmea["value max"] = 65.0;
+
+    JsonObject command_types_tUmMRBaRT = command_types.add<JsonObject>();
+    command_types_tUmMRBaRT["name"] = "tUmMRBaRT";
+    command_types_tUmMRBaRT["description"] = "UM980 RTCM message rates - Base";
+    command_types_tUmMRBaRT["instruction"] = "Set the RTCM message interval in seconds for Base (0 = Off)";
+    command_types_tUmMRBaRT["prefix"] = "messageRateRTCMBase_";
+    JsonArray command_types_tUmMRBaRT_keys = command_types_tUmMRBaRT["keys"].to<JsonArray>();
+    for (int x = 0; x < MAX_UM980_RTCM_MSG; x++)
+        command_types_tUmMRBaRT_keys.add(umMessagesRTCM[x].msgTextName);
+    command_types_tUmMRBaRT["type"] = "float";
+    command_types_tUmMRBaRT["value min"] = 0.0;
+    command_types_tUmMRBaRT["value max"] = 65.0;
+
+    JsonObject command_types_tUmMRRvRT = command_types.add<JsonObject>();
+    command_types_tUmMRRvRT["name"] = "tUmMRRvRT";
+    command_types_tUmMRRvRT["description"] = "UM980 RTCM message rates - Rover";
+    command_types_tUmMRRvRT["instruction"] = "Set the RTCM message interval in seconds for Rover (0 = Off)";
+    command_types_tUmMRRvRT["prefix"] = "messageRateRTCMRover_";
+    JsonArray command_types_tUmMRRvRT_keys = command_types_tUmMRRvRT["keys"].to<JsonArray>();
+    for (int x = 0; x < MAX_UM980_RTCM_MSG; x++)
+        command_types_tUmMRRvRT_keys.add(umMessagesRTCM[x].msgTextName);
+    command_types_tUmMRRvRT["type"] = "float";
+    command_types_tUmMRRvRT["value min"] = 0.0;
+    command_types_tUmMRRvRT["value max"] = 65.0;
+#endif // COMPILE_UM980
+
+#ifdef COMPILE_ZED
+    // ublox GNSS Receiver
+
+    JsonObject command_types_tUbxConst = command_types.add<JsonObject>();
+    command_types_tUbxConst["name"] = "tUbxConst";
+    command_types_tUbxConst["description"] = "ZED GNSS constellations";
+    command_types_tUbxConst["instruction"] = "Enable / disable each GNSS constellation";
+    command_types_tUbxConst["prefix"] = "constellation_";
+    JsonArray command_types_tUbxConst_keys = command_types_tUbxConst["keys"].to<JsonArray>();
+    for (int x = 0; x < MAX_UBX_CONSTELLATIONS; x++)
+        command_types_tUbxConst_keys.add(settings.ubxConstellations[x].textName);
+    JsonArray command_types_tUbxConst_values = command_types_tUbxConst["values"].to<JsonArray>();
+    command_types_tUbxConst_values.add("0");
+    command_types_tUbxConst_values.add("1");
+
+    JsonObject command_types_tUbxMsgRt = command_types.add<JsonObject>();
+    command_types_tUbxMsgRt["name"] = "tUbxMsgRt";
+    command_types_tUbxMsgRt["description"] = "ZED message rates - Rover";
+    command_types_tUbxMsgRt["instruction"] = "Set the message interval in navigation cycles for Rover (0 = Off)";
+    command_types_tUbxMsgRt["prefix"] = "ubxMessageRate_";
+    JsonArray command_types_tUbxMsgRt_keys = command_types_tUbxMsgRt["keys"].to<JsonArray>();
+    for (int x = 0; x < MAX_UBX_MSG; x++)
+        command_types_tUbxMsgRt_keys.add(ubxMessages[x].msgTextName);
+    command_types_tUbxMsgRt["type"] = "int";
+    command_types_tUbxMsgRt["value min"] = 0;
+    command_types_tUbxMsgRt["value max"] = 250; // Avoid 254!
+
+    JsonObject command_types_tUbMsgRtb = command_types.add<JsonObject>();
+    command_types_tUbMsgRtb["name"] = "tUbMsgRtb";
+    command_types_tUbMsgRtb["description"] = "ZED message rates - Base";
+    command_types_tUbMsgRtb["instruction"] = "Set the message interval in navigation cycles for Base (0 = Off)";
+    command_types_tUbMsgRtb["prefix"] = "ubxMessageRateBase_";
+    JsonArray command_types_tUbMsgRtb_keys = command_types_tUbMsgRtb["keys"].to<JsonArray>();
+    GNSS_ZED zed;
+    int firstRTCMRecord = zed.getMessageNumberByNameSkipChecks("RTCM_1005");
+    for (int x = 0; x < MAX_UBX_MSG_RTCM; x++)
+        command_types_tUbMsgRtb_keys.add(ubxMessages[firstRTCMRecord + x].msgTextName);
+    command_types_tUbMsgRtb["type"] = "int";
+    command_types_tUbMsgRtb["value min"] = 0;
+    command_types_tUbMsgRtb["value max"] = 250; // Avoid 254!
+#endif // COMPILE_ZED
+
+    doc.shrinkToFit();  // optional
+
+    //serializeJsonPretty(doc, output); // Pretty formatting - useful for testing
+    serializeJson(doc, output); // Standard JSON format
 }

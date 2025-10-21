@@ -1169,7 +1169,7 @@ void mqttClientUpdate()
     }
 
     // Periodically display the MQTT client state
-    if (PERIODIC_DISPLAY(PD_MQTT_CLIENT_STATE))
+    if (PERIODIC_DISPLAY(PD_MQTT_CLIENT_STATE) && !inMainMenu)
     {
         const char *line = "";
         mqttClientEnabled(&line);

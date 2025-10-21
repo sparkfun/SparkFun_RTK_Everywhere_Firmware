@@ -85,7 +85,7 @@ void updateAuthCoPro()
 
     if (online.authenticationCoPro) // Coprocessor must be present and online
     {
-        if (settings.bluetoothRadioType == BLUETOOTH_RADIO_SPP_ACCESSORY_MODE)
+        if ((bluetoothGetState() > BT_OFF) && (settings.bluetoothRadioType == BLUETOOTH_RADIO_SPP_ACCESSORY_MODE))
         {
             appleAccessory->update(); // Update the Accessory driver
 
