@@ -678,13 +678,14 @@ void checkGNSSArrayDefaults()
             settings.dynamicModel = UM980_DYN_MODEL_SURVEY;
         }
 
-        if (settings.enableExtCorrRadio == 254)
-        {
-            Serial.printf("enableExtCorrRadio: %d\r\n", settings.enableExtCorrRadio);
-            defaultsApplied = true;
-            settings.enableExtCorrRadio = false;
-            Serial.printf("enableExtCorrRadio: %d\r\n", settings.enableExtCorrRadio);
-        }
+        // This setting is not supported on the UM980 nor is it in the command array
+        // so it does not get used nor recorded to NVM leading to the defaults being
+        // applied at every boot. Commented out to prevent this issue.
+        // if (settings.enableExtCorrRadio == 254)
+        // {
+        //     defaultsApplied = true;
+        //     settings.enableExtCorrRadio = false;
+        // }
 
         if (settings.um980Constellations[0] == 254)
         {
