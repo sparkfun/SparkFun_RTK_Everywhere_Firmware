@@ -278,6 +278,10 @@ class GNSS_UM980 : GNSS
     // Returns minutes or zero if not online
     uint8_t getMinute();
 
+    // Returns the current mode
+    // 0 - Unknown, 1 - Rover Survey, 2 - Rover UAV, 3 - Rover Auto, 4 - Base Survey-in, 5 - Base fixed
+    uint8_t getMode();
+
     // Returns month number or zero if not online
     uint8_t getMonth();
 

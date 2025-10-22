@@ -221,7 +221,7 @@ void stateUpdate()
 
             baseStatusLedOff();
 
-            gnssConfigure(GNSS_CONFIG_BASE); // Request reconfigure to rover mode
+            gnssConfigure(GNSS_CONFIG_BASE); // Request reconfigure to base mode
 
             bluetoothStop();
             bluetoothStart(); // Restart Bluetooth with 'Base' identifier

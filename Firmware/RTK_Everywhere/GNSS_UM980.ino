@@ -102,12 +102,9 @@ void GNSS_UM980::begin()
 
     systemPrintln("GNSS UM980 online");
 
-        // Turn on/off debug messages
+    // Turn on/off debug messages
     if (settings.debugGnss)
         debuggingEnable();
-
-    // Check firmware version and print info
-    printModuleInfo();
 
     // Shortly after reset, the UM980 responds to the VERSIONB command with OK but doesn't report version information
     snprintf(gnssFirmwareVersion, sizeof(gnssFirmwareVersion), "%s", _um980->getVersion());
@@ -117,10 +114,11 @@ void GNSS_UM980::begin()
         // Shortly after reset, the UM980 responds to the VERSIONB command with OK but doesn't report version
         // information
         delay(2000); // 1s fails, 2s ok
-
-        // Ask for the version again after a short delay
-        snprintf(gnssFirmwareVersion, sizeof(gnssFirmwareVersion), "%s", _um980->getVersion());
     }
+
+    // Ask for the version again after a short delay
+    // Check firmware version and print info
+    printModuleInfo();
 
     if (sscanf(gnssFirmwareVersion, "%d", &gnssFirmwareVersionInt) != 1)
         gnssFirmwareVersionInt = 99;
@@ -300,19 +298,15 @@ bool GNSS_UM980::configure()
 //----------------------------------------
 bool GNSS_UM980::configureRover()
 {
-    /*
-        Disable all message traffic
-        Cancel any survey-in modes
-        Set mode to Rover + dynamic model
-        Set minElevation
-        Enable RTCM messages on COM3
-        Enable NMEA on COM3
-    */
-    // Trusting the saved configuration does not seem to work on the UM980.
-    // It looks like the GPGGA NMEA output does not restart...?
-    // (Re)configuration is quick. Doing this every time is not much of an overhead.
-
-    bool response = true;
+    // Determine current mode. If we are already in Rover, no changes needed
+    //  0 - Unknown, 1 - Rover Survey, 2 - Rover UAV, 3 - Rover Auto, 4 - Base Survey-in, 5 - Base fixed
+    int currentMode = getMode();
+    if (settings.dynamicModel == UM980_DYN_MODEL_SURVEY && currentMode == 1)
+        return (true);
+    if (settings.dynamicModel == UM980_DYN_MODEL_UAV && currentMode == 2)
+        return (true);
+    if (settings.dynamicModel == UM980_DYN_MODEL_AUTOMOTIVE && currentMode == 3)
+        return (true);
 
     // Sets the dynamic model (Survey/UAV/Automotive) and puts the device into Rover mode
     gnssConfigure(GNSS_CONFIG_MODEL);
@@ -321,7 +315,7 @@ bool GNSS_UM980::configureRover()
     gnssConfigure(GNSS_CONFIG_MESSAGE_RATE_RTCM_ROVER);
     gnssConfigure(GNSS_CONFIG_MESSAGE_RATE_NMEA);
 
-    return (response);
+    return (true);
 }
 
 //----------------------------------------
@@ -708,6 +702,17 @@ uint8_t GNSS_UM980::getMinute()
     if (online.gnss)
         return (_um980->getMinute());
     return 0;
+}
+
+//----------------------------------------
+// Returns the current mode
+// 0 - Unknown, 1 - Rover Survey, 2 - Rover UAV, 3 - Rover Auto, 4 - Base Survey-in, 5 - Base fixed
+//----------------------------------------
+uint8_t GNSS_UM980::getMode()
+{
+    if (online.gnss)
+        return (_um980->getMode());
+    return (0);
 }
 
 //----------------------------------------
