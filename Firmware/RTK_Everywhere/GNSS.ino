@@ -340,7 +340,6 @@ void gnssUpdate()
         }
 
         // settings.gnssConfigureRequest was likely changed. Record the current config state to ESP32 NVM
-        Serial.printf("enableExtCorrRadio: %d\r\n", settings.enableExtCorrRadio);
         recordSystemSettings();
     } // end bluetoothCommandIsConnected(), inMainMenu, inWebConfigMode()
 }

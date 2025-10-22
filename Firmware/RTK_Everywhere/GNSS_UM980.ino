@@ -73,10 +73,6 @@ void GNSS_UM980::begin()
     // Instantiate the library
     _um980 = new UM980();
 
-    // Turn on/off debug messages
-    if (settings.debugGnss)
-        debuggingEnable();
-
     // In order to reduce UM980 configuration time, the UM980 library blocks the start of BESTNAV and RECTIME until 3D
     // fix is achieved. However, if all NMEA messages are disabled, the UM980 will never detect a 3D fix.
     if (isGgaActive())
@@ -101,7 +97,14 @@ void GNSS_UM980::begin()
             return;
         }
     }
+
+    online.gnss = true;
+
     systemPrintln("GNSS UM980 online");
+
+        // Turn on/off debug messages
+    if (settings.debugGnss)
+        debuggingEnable();
 
     // Check firmware version and print info
     printModuleInfo();
@@ -123,8 +126,6 @@ void GNSS_UM980::begin()
         gnssFirmwareVersionInt = 99;
 
     snprintf(gnssUniqueId, sizeof(gnssUniqueId), "%s", _um980->getID());
-
-    online.gnss = true;
 }
 
 //----------------------------------------
@@ -1864,26 +1865,6 @@ bool GNSS_UM980::setRate(double secondsBetweenSolutions)
         systemPrintln("setRate: Modifying rates");
 
     bool response = true;
-
-    // disableAllOutput(); // Turn everything off, before we turn on specific messages
-
-    // // Overwrite any enabled messages with this rate
-    // for (int messageNumber = 0; messageNumber < MAX_UM980_NMEA_MSG; messageNumber++)
-    // {
-    //     if (settings.um980MessageRatesNMEA[messageNumber] > 0)
-    //         settings.um980MessageRatesNMEA[messageNumber] = secondsBetweenSolutions;
-    // }
-    // response &= setMessagesNMEA(); // Enact these rates
-
-    // // TODO We don't know what state we are in, so we don't
-    // // know which RTCM settings to update. Assume we are
-    // // in rover for now
-    // for (int messageNumber = 0; messageNumber < MAX_UM980_RTCM_MSG; messageNumber++)
-    // {
-    //     if (settings.um980MessageRatesRTCMRover[messageNumber] > 0)
-    //         settings.um980MessageRatesRTCMRover[messageNumber] = secondsBetweenSolutions;
-    // }
-    // response &= setMessagesRTCMRover(); // Enact these rates
 
     gnssConfigure(GNSS_CONFIG_MESSAGE_RATE_NMEA);
     gnssConfigure(GNSS_CONFIG_MESSAGE_RATE_RTCM_ROVER);
