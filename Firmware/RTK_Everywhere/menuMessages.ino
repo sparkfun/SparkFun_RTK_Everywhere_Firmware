@@ -258,7 +258,7 @@ void menuMessagesBaseRTCM()
         else if ((incoming == 4) && (namedSettingAvailableOnPlatform("useMSM7")))
         {
             settings.useMSM7 ^= 1;
-            gnssConfigure(GNSS_CONFIG_MESSAGE_RATE); // Request receiver to use new settings
+            gnssConfigure(GNSS_CONFIG_MESSAGE_RATE_RTCM_ROVER); // Request receiver to use new settings
         }
 
         else if (incoming == INPUT_RESPONSE_GETNUMBER_EXIT)
@@ -680,8 +680,10 @@ void checkGNSSArrayDefaults()
 
         if (settings.enableExtCorrRadio == 254)
         {
+            Serial.printf("enableExtCorrRadio: %d\r\n", settings.enableExtCorrRadio);
             defaultsApplied = true;
             settings.enableExtCorrRadio = false;
+            Serial.printf("enableExtCorrRadio: %d\r\n", settings.enableExtCorrRadio);
         }
 
         if (settings.um980Constellations[0] == 254)
@@ -757,6 +759,7 @@ void checkGNSSArrayDefaults()
 
         if (settings.mosaicMessageIntervalsRTCMv3Rover[0] == 0.0)
         {
+
             defaultsApplied = true;
 
             for (int x = 0; x < MAX_MOSAIC_RTCM_V3_INTERVAL_GROUPS; x++)
@@ -879,7 +882,7 @@ void checkGNSSArrayDefaults()
 
     if (defaultsApplied == true)
     {
-        gnssConfigureAll(); //Request a full reconfigure of the GNSS receiver
+        gnssConfigureDefaults(); // Request a full reconfigure of the GNSS receiver
         recordSystemSettings();
     }
 }

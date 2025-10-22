@@ -12,7 +12,6 @@ enum
     GNSS_CONFIG_ONCE, // Settings specific to a receiver that don't fit into other setting categories
     GNSS_CONFIG_ROVER,
     GNSS_CONFIG_BASE, // Fixed base or survey in, location, etc
-    GNSS_CONFIG_BAUD_RATE_COMM,
     GNSS_CONFIG_BAUD_RATE_RADIO,
     GNSS_CONFIG_BAUD_RATE_DATA,
     GNSS_CONFIG_RATE,
@@ -21,10 +20,10 @@ enum
     GNSS_CONFIG_CN0,
     GNSS_CONFIG_PPS,
     GNSS_CONFIG_MODEL,
-    GNSS_CONFIG_MESSAGE_RATE,            // Update all message rates
     GNSS_CONFIG_MESSAGE_RATE_NMEA,       // Update NMEA message rates
     GNSS_CONFIG_MESSAGE_RATE_RTCM_ROVER, // Update RTCM Rover message rates
     GNSS_CONFIG_MESSAGE_RATE_RTCM_BASE,  // Update RTCM Base message rates
+    GNSS_CONFIG_MESSAGE_RATE_OTHER,      // Update any other messages (UBX, PQTM, etc)
     GNSS_CONFIG_HAS_E6,                  // Enable/disable HAS E6 capabilities
     GNSS_CONFIG_MULTIPATH,
     GNSS_CONFIG_TILT,  // Enable/disable any output needed for tilt compensation
@@ -39,7 +38,6 @@ static const char *gnssConfigDisplayNames[] = {
     "ONCE",
     "ROVER",
     "BASE",
-    "BAUD_RATE_COMM",
     "BAUD_RATE_RADIO",
     "BAUD_RATE_DATA",
     "RATE",
@@ -48,14 +46,13 @@ static const char *gnssConfigDisplayNames[] = {
     "CN0",
     "PPS",
     "MODEL",
-    "MESSAGE_RATE",
     "MESSAGE_RATE_NMEA",
     "MESSAGE_RATE_RTCM_ROVER",
     "MESSAGE_RATE_RTCM_BASE",
+    "MESSAGE_RATE_RTCM_OTHER",
     "HAS_E6",
     "MULTIPATH",
     "TILT",
-    "DEBUG",
     "SAVE",
     "RESET",
 };
@@ -166,11 +163,40 @@ void gnssUpdate()
             }
         }
 
-        if (gnssConfigureRequested(GNSS_CONFIG_MESSAGE_RATE_RTCM_BASE))
+        if (gnssConfigureRequested(GNSS_CONFIG_BAUD_RATE_RADIO))
         {
-            if (gnss->setMessagesRTCMBase() == true)
+            if (gnss->setBaudRateRadio(settings.radioPortBaud) == true)
             {
-                gnssConfigureClear(GNSS_CONFIG_MESSAGE_RATE_RTCM_BASE);
+                gnssConfigureClear(GNSS_CONFIG_BAUD_RATE_RADIO);
+                gnssConfigure(GNSS_CONFIG_SAVE); // Request receiver commit this change to NVM
+            }
+        }
+
+        if (gnssConfigureRequested(GNSS_CONFIG_BAUD_RATE_DATA))
+        {
+            if (gnss->setBaudRateData(settings.dataPortBaud) == true)
+            {
+                gnssConfigureClear(GNSS_CONFIG_BAUD_RATE_DATA);
+                gnssConfigure(GNSS_CONFIG_SAVE); // Request receiver commit this change to NVM
+            }
+        }
+
+        // For some receivers (ie, UM980) changing the model changes to Rover/Base.
+        // Configure model before setting message rates
+        if (gnssConfigureRequested(GNSS_CONFIG_MODEL))
+        {
+            if (gnss->setModel(settings.dynamicModel) == true)
+            {
+                gnssConfigureClear(GNSS_CONFIG_MODEL);
+                gnssConfigure(GNSS_CONFIG_SAVE); // Request receiver commit this change to NVM
+            }
+        }
+
+        if (gnssConfigureRequested(GNSS_CONFIG_RATE))
+        {
+            if (gnss->setRate(settings.measurementRateMs / 1000.0) == true)
+            {
+                gnssConfigureClear(GNSS_CONFIG_RATE);
                 gnssConfigure(GNSS_CONFIG_SAVE); // Request receiver commit this change to NVM
             }
         }
@@ -211,15 +237,6 @@ void gnssUpdate()
             }
         }
 
-        if (gnssConfigureRequested(GNSS_CONFIG_MODEL))
-        {
-            if (gnss->setModel(settings.dynamicModel) == true)
-            {
-                gnssConfigureClear(GNSS_CONFIG_MODEL);
-                gnssConfigure(GNSS_CONFIG_SAVE); // Request receiver commit this change to NVM
-            }
-        }
-
         if (gnssConfigureRequested(GNSS_CONFIG_HAS_E6))
         {
             if (gnss->setHighAccuracyService(settings.enableGalileoHas) == true)
@@ -238,6 +255,54 @@ void gnssUpdate()
             }
         }
 
+        if (gnssConfigureRequested(GNSS_CONFIG_MESSAGE_RATE_NMEA))
+        {
+            if (gnss->setMessagesNMEA() == true)
+            {
+                gnssConfigureClear(GNSS_CONFIG_MESSAGE_RATE_NMEA);
+                gnssConfigure(GNSS_CONFIG_SAVE); // Request receiver commit this change to NVM
+            }
+        }
+
+        if (gnssConfigureRequested(GNSS_CONFIG_MESSAGE_RATE_RTCM_ROVER))
+        {
+            if (inRoverMode() == false)
+            {
+                systemPrintln("Error: Change to RTCM Rover rates requested but not in Rover mode. Skipping.");
+            }
+            else
+            {
+                if (gnss->setMessagesRTCMRover() == true)
+                {
+                    gnssConfigureClear(GNSS_CONFIG_MESSAGE_RATE_RTCM_ROVER);
+                    gnssConfigure(GNSS_CONFIG_SAVE); // Request receiver commit this change to NVM
+                }
+            }
+        }
+
+        if (gnssConfigureRequested(GNSS_CONFIG_MESSAGE_RATE_RTCM_BASE))
+        {
+            if (inBaseMode() == false)
+            {
+                systemPrintln("Error: Change to RTCM Base rates requested but not in Base mode. Skipping.");
+            }
+            else
+            {
+                if (gnss->setMessagesRTCMBase() == true)
+                {
+                    gnssConfigureClear(GNSS_CONFIG_MESSAGE_RATE_RTCM_BASE);
+                    gnssConfigure(GNSS_CONFIG_SAVE); // Request receiver commit this change to NVM
+                }
+            }
+        }
+
+        if (gnssConfigureRequested(GNSS_CONFIG_MESSAGE_RATE_OTHER))
+        {
+            // TODO - It is not clear where LG290P PQTM messages are being enabled
+            gnssConfigureClear(GNSS_CONFIG_MESSAGE_RATE_OTHER);
+            gnssConfigure(GNSS_CONFIG_SAVE); // Request receiver commit this change to NVM
+        }
+
         if (gnssConfigureRequested(GNSS_CONFIG_TILT))
         {
             if (gnss->setTilt() == true)
@@ -254,9 +319,28 @@ void gnssUpdate()
                 gnssConfigureClear(GNSS_CONFIG_SAVE);
         }
 
+        if (gnssConfigureRequested(GNSS_CONFIG_RESET))
+        {
+            if (gnss->reset())
+                gnssConfigureClear(GNSS_CONFIG_RESET);
+        }
+
         // If gnssConfigureRequest bits are still set, the next update will attempt to service them.
 
+        if (settings.gnssConfigureRequest != 0 && settings.debugGnssConfig)
+        {
+            systemPrint("Remaining gnssConfigureRequest: ");
+
+            for (int x = 0; x < GNSS_CONFIG_MAX; x++)
+            {
+                if (gnssConfigureRequested(x))
+                    systemPrintf("%s ", gnssConfigDisplayNames[x]);
+            }
+            systemPrintln();
+        }
+
         // settings.gnssConfigureRequest was likely changed. Record the current config state to ESP32 NVM
+        Serial.printf("enableExtCorrRadio: %d\r\n", settings.enableExtCorrRadio);
         recordSystemSettings();
     } // end bluetoothCommandIsConnected(), inMainMenu, inWebConfigMode()
 }
@@ -300,15 +384,15 @@ bool gnssConfigureRequested(uint8_t configureBit)
 }
 
 // Set all bits in the request bitfield to cause the GNSS receiver to go through a full (re)configuration
-void gnssConfigureAll()
+void gnssConfigureDefaults()
 {
     for (int x = 0; x < GNSS_CONFIG_MAX; x++)
         gnssConfigure(x);
 
-    // After setting all bits, clear the base bits
-    // TODO make this a GNSS_CONFIG_MODEf
+    // Clear request bits that do not need to be set after a factory reset
     gnssConfigureClear(GNSS_CONFIG_BASE);
     gnssConfigureClear(GNSS_CONFIG_MESSAGE_RATE_RTCM_BASE);
+    gnssConfigureClear(GNSS_CONFIG_RESET);
 }
 
 // Returns true once all configuration requests are cleared
@@ -332,9 +416,10 @@ bool gnssCmdUpdateConstellations(const char *settingName, void *settingData, int
 //----------------------------------------
 // Update the message rates following a set command
 //----------------------------------------
+// TODO make RTCM and NMEA specific call backs
 bool gnssCmdUpdateMessageRates(const char *settingName, void *settingData, int settingType)
 {
-    gnssConfigure(GNSS_CONFIG_MESSAGE_RATE); // Request receiver to use new settings
+    gnssConfigure(GNSS_CONFIG_MESSAGE_RATE_RTCM_ROVER); // Request receiver to use new settings
     return (true);
 }
 
@@ -345,7 +430,8 @@ bool gnssCmdUpdateMessageRates(const char *settingName, void *settingData, int s
 bool pointPerfectCmdUpdateServiceType(const char *settingName, void *settingData, int settingType)
 {
     // Require a rover restart to enable / disable RTCM for PPL
-    gnssConfigure(GNSS_CONFIG_MESSAGE_RATE); // Request receiver to use new settings
+    gnssConfigure(GNSS_CONFIG_MESSAGE_RATE_NMEA);
+    gnssConfigure(GNSS_CONFIG_MESSAGE_RATE_RTCM_ROVER);
     return (true);
 }
 
@@ -507,6 +593,8 @@ void gnssBoot()
     {
         digitalWrite(pin_GNSS_Reset, HIGH); // Tell LG290P to boot
     }
+    else
+        systemPrintln("Uncaught gnssBoot()");
 }
 
 // Based on the platform, put the GNSS receiver into reset
@@ -528,6 +616,8 @@ void gnssReset()
     {
         digitalWrite(pin_GNSS_Reset, LOW); // Tell LG290P to reset
     }
+    else
+        systemPrintln("Uncaught gnssReset()");
 }
 
 //----------------------------------------

@@ -116,9 +116,6 @@ class GNSS_UM980 : GNSS
     // Turn off all NMEA and RTCM
     void disableAllOutput();
 
-    // Disable all output, then re-enable
-    void disableRTCM();
-
     uint8_t getActiveNmeaMessageCount();
 
     // Given the name of an NMEA message, return the array number

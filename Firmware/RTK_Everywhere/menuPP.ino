@@ -340,8 +340,9 @@ void menuPointPerfectSelectService()
             {
                 settings.pointPerfectService = incoming - 1; // Align incoming to array
 
-                // Require a rover restart to enable / disable RTCM for PPL
-                gnssConfigure(GNSS_CONFIG_MESSAGE_RATE); // Request receiver to use new settings
+                // Request re-config of RTCM Rover messages to enable / disable necessary RTCM messages for PPL
+                if(inRoverMode())
+                    gnssConfigure(GNSS_CONFIG_MESSAGE_RATE_RTCM_ROVER); // Request receiver to use new settings
 
                 settings.requestKeyUpdate =
                     settings.pointPerfectService != PP_NICKNAME_DISABLED; // Force a key update - or don't

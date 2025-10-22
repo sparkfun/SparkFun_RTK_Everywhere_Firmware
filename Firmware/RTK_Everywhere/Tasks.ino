@@ -2090,7 +2090,6 @@ void buttonCheckTask(void *e)
         }
         // Torch is a special case. Handle tilt stop and web config mode
         else if (productVariant == RTK_TORCH)
-        //else if (present.imu_im19 && (present.display_type == DISPLAY_MAX_NONE)) // TODO delete me
         {
             // Platform has no display and tilt corrections, ie RTK Torch
 
