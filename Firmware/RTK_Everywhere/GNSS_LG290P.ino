@@ -1370,8 +1370,6 @@ void GNSS_LG290P::menuConstellations()
             printUnknown(incoming);
     }
 
-    setHighAccuracyService(settings.enableGalileoHas);
-
     clearBuffer(); // Empty buffer of any newline chars
 }
 
@@ -1890,11 +1888,16 @@ bool GNSS_LG290P::setHighAccuracyService(bool enableGalileoHas)
     // E6 reception requires version v06 with 'PPP_TEMP' in firmware title
     // Present is set during LG290P begin()
     if (present.galileoHasCapable == false)
-        return (result); // We are unable to set this setting so report success
+        return (true); // We are unable to set this setting so report success
+
+    // TODO - We should read/modify/write on PQTMCFGPPP
 
     // Enable E6 and PPP if enabled
     if (enableGalileoHas)
     {
+        // $PQTMCFGPPP,R*68
+        // $PQTMCFGPPP,OK,00,2,120,0.10,0.15*0A
+
         // $PQTMCFGPPP,W,2,1,120,0.10,0.15*68
         // Enable E6 HAS, WGS84, 120 timeout, 0.10m Horizontal convergence accuracy threshold, 0.15m Vertical threshold
         if (_lg290p->sendOkCommand("$PQTMCFGPPP", ",W,2,1,120,0.10,0.15") == true)
