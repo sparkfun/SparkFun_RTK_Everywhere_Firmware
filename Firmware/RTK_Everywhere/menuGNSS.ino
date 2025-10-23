@@ -174,8 +174,8 @@ void menuGNSS()
         if ((incoming == 1) && (!present.gnss_mosaicX5))
         {
             float rateHz = 0.0;
-            float minRateHz = 1000.0 / gnss->fixRateGetMinimumMs(); // Convert ms to Hz
-            float maxRateHz = 1000.0 / gnss->fixRateGetMaximumMs();
+            float minRateHz = 1000.0 / gnss->fixRateGetMaximumMs(); // Convert ms to Hz
+            float maxRateHz = 1000.0 / gnss->fixRateGetMinimumMs(); //The minimum in milliseconds is the max in Hz
 
             if (getNewSetting("Enter GNSS measurement rate in Hz", minRateHz, maxRateHz, &rateHz) ==
                 INPUT_RESPONSE_VALID)
@@ -184,7 +184,7 @@ void menuGNSS()
                 if (gnss->fixRateIsAllowed(requestedRateMs))
                 {
                     settings.measurementRateMs = requestedRateMs;
-                    gnssConfigure(GNSS_CONFIG_RATE);
+                    gnssConfigure(GNSS_CONFIG_FIX_RATE);
                     // This will set settings.measurementRateMs, settings.navigationRate, and GSV message
                     // gnss->setRate(1.0 / rateHz); //TODO remove once all platforms are accounted for. Good: UM980,
                     // LG290P,
@@ -205,7 +205,7 @@ void menuGNSS()
                 if (gnss->fixRateIsAllowed(requestedRateS * 1000.0)) //Convert S to ms
                 {
                     settings.measurementRateMs = requestedRateS * 1000.0;
-                    gnssConfigure(GNSS_CONFIG_RATE);
+                    gnssConfigure(GNSS_CONFIG_FIX_RATE);
                     // This will set settings.measurementRateMs, settings.navigationRate, and GSV message
                     // gnss->setRate(1.0 / rateHz); //TODO remove once all platforms are accounted for. Good: UM980,
                     // LG290P,
@@ -260,7 +260,7 @@ void menuGNSS()
                         else
                             settings.dynamicModel = dynamicModel; // Recorded to NVM and file at main menu exit
 
-                        gnss->setModel(settings.dynamicModel);
+                        gnssConfigure(GNSS_CONFIG_MODEL); // Request receiver to use new settings
                     }
 #endif // COMPILE_ZED
                 }
@@ -273,7 +273,7 @@ void menuGNSS()
                         dynamicModel -= 1;                    // Align to 0 to 2
                         settings.dynamicModel = dynamicModel; // Recorded to NVM and file at main menu exit
 
-                        gnss->setModel(settings.dynamicModel);
+                        gnssConfigure(GNSS_CONFIG_MODEL); // Request receiver to use new settings
                     }
                 }
                 else if (present.gnss_mosaicX5)
@@ -285,7 +285,7 @@ void menuGNSS()
                         dynamicModel -= 1;                    // Align to 0 to MAX_MOSAIC_RX_DYNAMICS - 1
                         settings.dynamicModel = dynamicModel; // Recorded to NVM and file at main menu exit
 
-                        gnss->setModel(settings.dynamicModel);
+                        gnssConfigure(GNSS_CONFIG_MODEL); // Request receiver to use new settings
                     }
                 }
             }

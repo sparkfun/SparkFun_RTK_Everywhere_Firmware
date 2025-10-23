@@ -14,7 +14,7 @@ enum
     GNSS_CONFIG_BASE, // Fixed base or survey in, location, etc
     GNSS_CONFIG_BAUD_RATE_RADIO,
     GNSS_CONFIG_BAUD_RATE_DATA,
-    GNSS_CONFIG_RATE,
+    GNSS_CONFIG_FIX_RATE,
     GNSS_CONFIG_CONSTELLATION, // Turn on/off a constellation
     GNSS_CONFIG_ELEVATION,
     GNSS_CONFIG_CN0,
@@ -26,9 +26,10 @@ enum
     GNSS_CONFIG_MESSAGE_RATE_OTHER,      // Update any other messages (UBX, PQTM, etc)
     GNSS_CONFIG_HAS_E6,                  // Enable/disable HAS E6 capabilities
     GNSS_CONFIG_MULTIPATH,
-    GNSS_CONFIG_TILT,  // Enable/disable any output needed for tilt compensation
-    GNSS_CONFIG_SAVE,  // Indicates current settings be saved to GNSS receiver NVM
-    GNSS_CONFIG_RESET, // Indicates receiver needs resetting
+    GNSS_CONFIG_TILT,      // Enable/disable any output needed for tilt compensation
+    GNSS_CONFIG_EXT_CORRECTIONS, // Enable / disable corrections protocol(s) on the Radio External port
+    GNSS_CONFIG_SAVE,      // Indicates current settings be saved to GNSS receiver NVM
+    GNSS_CONFIG_RESET,     // Indicates receiver needs resetting
 
     // Add new entries above here
     GNSS_CONFIG_MAX,
@@ -53,6 +54,7 @@ static const char *gnssConfigDisplayNames[] = {
     "HAS_E6",
     "MULTIPATH",
     "TILT",
+    "EXT_CORRECTIONS",
     "SAVE",
     "RESET",
 };
@@ -204,11 +206,11 @@ void gnssUpdate()
             }
         }
 
-        if (gnssConfigureRequested(GNSS_CONFIG_RATE))
+        if (gnssConfigureRequested(GNSS_CONFIG_FIX_RATE))
         {
             if (gnss->setRate(settings.measurementRateMs / 1000.0) == true)
             {
-                gnssConfigureClear(GNSS_CONFIG_RATE);
+                gnssConfigureClear(GNSS_CONFIG_FIX_RATE);
                 gnssConfigure(GNSS_CONFIG_SAVE); // Request receiver commit this change to NVM
             }
         }
@@ -320,6 +322,15 @@ void gnssUpdate()
             if (gnss->setTilt() == true)
             {
                 gnssConfigureClear(GNSS_CONFIG_TILT);
+                gnssConfigure(GNSS_CONFIG_SAVE); // Request receiver commit this change to NVM
+            }
+        }
+
+        if (gnssConfigureRequested(GNSS_CONFIG_EXT_CORRECTIONS))
+        {
+            if (gnss->setCorrRadioExtPort(settings.enableExtCorrRadio, true) == true) // Force the setting
+            {
+                gnssConfigureClear(GNSS_CONFIG_EXT_CORRECTIONS);
                 gnssConfigure(GNSS_CONFIG_SAVE); // Request receiver commit this change to NVM
             }
         }

@@ -57,11 +57,11 @@ void menuPortsNoMux()
         systemPrintln("Menu: Ports");
 
         systemPrint("1) Set serial baud rate for Radio Port: ");
-        systemPrint(gnss->getRadioBaudRate());
+        systemPrint(settings.radioPortBaud);
         systemPrintln(" bps");
 
         systemPrint("2) Set serial baud rate for Data Port: ");
-        systemPrint(gnss->getDataBaudRate());
+        systemPrint(settings.dataPortBaud);
         systemPrintln(" bps");
 
         systemPrintf("3) Output GNSS data to USB serial: %s\r\n",
@@ -97,8 +97,7 @@ void menuPortsNoMux()
                 if (gnss->baudIsAllowed(newBaud))
                 {
                     settings.radioPortBaud = newBaud;
-                    if (online.gnss == true)
-                        gnss->setBaudRateRadio(newBaud);
+                    gnssConfigure(GNSS_CONFIG_BAUD_RATE_RADIO); // Request receiver to use new settings
                 }
                 else
                 {
@@ -115,6 +114,7 @@ void menuPortsNoMux()
                 if (gnss->baudIsAllowed(newBaud))
                 {
                     settings.dataPortBaud = newBaud;
+                    gnssConfigure(GNSS_CONFIG_BAUD_RATE_DATA); // Request receiver to use new settings
                 }
                 else
                 {
@@ -132,7 +132,7 @@ void menuPortsNoMux()
         {
             // Toggle the enable for the external corrections radio
             settings.enableExtCorrRadio ^= 1;
-            gnss->setCorrRadioExtPort(settings.enableExtCorrRadio, true); // Force the setting
+            gnssConfigure(GNSS_CONFIG_EXT_CORRECTIONS); // Request receiver to use new settings
         }
         else if ((incoming == 5) && (present.gnss_zedf9p))
         {
@@ -153,9 +153,6 @@ void menuPortsNoMux()
             printUnknown(incoming);
     }
 
-    gnssConfigure(GNSS_CONFIG_BAUD_RATE_RADIO); // Request receiver to use new settings
-    gnssConfigure(GNSS_CONFIG_BAUD_RATE_DATA);  // Request receiver to use new settings
-
     clearBuffer(); // Empty buffer of any newline chars
 }
 
@@ -168,7 +165,7 @@ void menuPortsMultiplexed()
         systemPrintln("Menu: Ports");
 
         systemPrint("1) Set Radio port serial baud rate: ");
-        systemPrint(gnss->getRadioBaudRate());
+        systemPrint(settings.radioPortBaud);
         systemPrintln(" bps");
 
         systemPrint("2) Set Data port connections: ");
@@ -184,7 +181,7 @@ void menuPortsMultiplexed()
         if (settings.dataPortChannel == MUX_GNSS_UART)
         {
             systemPrint("3) Set Data port serial baud rate: ");
-            systemPrint(gnss->getDataBaudRate());
+            systemPrint(settings.dataPortBaud);
             systemPrintln(" bps");
         }
         else if (settings.dataPortChannel == MUX_PPS_EVENTTRIGGER)
@@ -225,8 +222,7 @@ void menuPortsMultiplexed()
                 if (gnss->baudIsAllowed(newBaud))
                 {
                     settings.radioPortBaud = newBaud;
-                    if (online.gnss == true)
-                        gnss->setBaudRateRadio(newBaud);
+                    gnssConfigure(GNSS_CONFIG_BAUD_RATE_RADIO); // Request receiver to use new settings
                 }
                 else
                 {
@@ -251,6 +247,9 @@ void menuPortsMultiplexed()
             {
                 settings.dataPortChannel = (muxConnectionType_e)(muxPort - 1); // Adjust user input from 1-4 to 0-3
                 setMuxport(settings.dataPortChannel);
+
+                if (muxPort == 2)
+                    gnssConfigure(GNSS_CONFIG_PPS); // Request receiver to use new settings
             }
         }
         else if (incoming == 3 && settings.dataPortChannel == MUX_GNSS_UART)
@@ -262,6 +261,7 @@ void menuPortsMultiplexed()
                 if (gnss->baudIsAllowed(newBaud))
                 {
                     settings.dataPortBaud = newBaud;
+                    gnssConfigure(GNSS_CONFIG_BAUD_RATE_DATA); // Request receiver to use new settings
                 }
                 else
                 {
@@ -277,7 +277,7 @@ void menuPortsMultiplexed()
         {
             // Toggle the enable for the external corrections radio
             settings.enableExtCorrRadio ^= 1;
-            gnss->setCorrRadioExtPort(settings.enableExtCorrRadio, true); // Force the setting
+            gnssConfigure(GNSS_CONFIG_EXT_CORRECTIONS); // Request receiver to use new settings
         }
         else if ((incoming == 5) && (present.gnss_zedf9p))
         {
@@ -305,10 +305,6 @@ void menuPortsMultiplexed()
     clearBuffer(); // Empty buffer of any newline chars
 
     gnss->beginExternalEvent(); // Update with new settings
-
-    gnssConfigure(GNSS_CONFIG_PPS);             // Request receiver to use new settings
-    gnssConfigure(GNSS_CONFIG_BAUD_RATE_RADIO); // Request receiver to use new settings
-    gnssConfigure(GNSS_CONFIG_BAUD_RATE_DATA);  // Request receiver to use new settings
 }
 
 // Configure the behavior of the PPS and INT pins.

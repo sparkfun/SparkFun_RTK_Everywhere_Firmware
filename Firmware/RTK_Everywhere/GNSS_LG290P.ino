@@ -247,7 +247,7 @@ bool GNSS_LG290P::configureRover()
     bool response = _lg290p->setModeRover(false); // Don't wait for save and reset
     // Setting mode to rover should disable any survey-in
 
-    gnssConfigure(GNSS_CONFIG_RATE);
+    gnssConfigure(GNSS_CONFIG_FIX_RATE);
     gnssConfigure(GNSS_CONFIG_MESSAGE_RATE_RTCM_ROVER);
     gnssConfigure(GNSS_CONFIG_MESSAGE_RATE_NMEA);
     gnssConfigure(GNSS_CONFIG_RESET); // Mode change requires reset
@@ -270,13 +270,13 @@ bool GNSS_LG290P::configureBase()
         if (settings.fixedBase == true && surveyInMode == 2)
         {
             if (settings.debugGnssConfig)
-                systemPrintln("Skipping LG290P Fixed Base configuration");
+                systemPrintln("Skipping - LG290P is already in Fixed Base configuration");
             return (true); // No changes needed
         }
         if (settings.fixedBase == false && surveyInMode == 1)
         {
             if (settings.debugGnssConfig)
-                systemPrintln("Skipping LG290P Survey-in Base configuration");
+                systemPrintln("Skipping - LG290P is already in Survey-in Base configuration");
             return (true); // No changes needed
         }
     }
@@ -531,6 +531,26 @@ bool GNSS_LG290P::fixedBaseStart()
     if (online.gnss == false)
         return (false);
 
+    // Read, modify, write
+    int currentMode = getMode();
+    uint8_t surveyInMode = getSurveyInMode(); // 0 - Disabled, 1 - Survey-in mode, 2 - Fixed mode
+
+    if (currentMode == 2) // 0 - Unknown, 1 - Rover, 2 - Base
+    {
+        if (settings.fixedBase == true && surveyInMode == 2)
+        {
+            if (settings.debugGnssConfig)
+                systemPrintln("Skipping - LG290P is already in Fixed Base configuration");
+            return (true); // No changes needed
+        }
+        if (settings.fixedBase == false && surveyInMode == 1)
+        {
+            if (settings.debugGnssConfig)
+                systemPrintln("Skipping - LG290P is already in Survey-in Base configuration");
+            return (true); // No changes needed
+        }
+    }
+
     if (settings.fixedBaseCoordinateType == COORD_TYPE_ECEF)
     {
         // Waits for save and reset
@@ -576,13 +596,13 @@ bool GNSS_LG290P::fixRateIsAllowed(uint32_t fixRateMs)
 // Return minimum in milliseconds
 uint32_t GNSS_LG290P::fixRateGetMinimumMs()
 {
-    return (1000.0 / lgAllowedFixRatesHz[0]);
+    return (1000.0 / lgAllowedFixRatesHz[lgAllowedFixRatesCount - 1]); // The max Hz value is the min ms value
 }
 
 // Return maximum in milliseconds
 uint32_t GNSS_LG290P::fixRateGetMaximumMs()
 {
-    return (1000.0 / lgAllowedFixRatesHz[lgAllowedFixRatesCount - 1]);
+    return (1000.0 / lgAllowedFixRatesHz[0]);
 }
 
 //----------------------------------------
@@ -1450,22 +1470,20 @@ void GNSS_LG290P::menuMessages()
             // MSM7 is set during setMessagesRTCMRover()
 
             // Override settings for PPP logging
-            setElevation(15);
-            setMinCno(30);
-
-            setRate(1); // Go to 1 Hz
-
-            if (incoming == 12)
-            {
-                systemPrintln("Reset to High-rate PPP Logging Defaults (NMEAx7 / RTCMx4 - 1Hz)");
-            }
-            else
-            {
-                systemPrintln("Reset to PPP Logging Defaults (NMEAx7 / RTCMx4 - 30 second decimation)");
-            }
+            settings.minElev = 15; // Degrees
+            gnssConfigure(GNSS_CONFIG_ELEVATION);
+            settings.minCNO = 30; // dBHz
+            gnssConfigure(GNSS_CONFIG_CN0);
+            settings.measurementRateMs = 1000; // Go to 1 Hz
+            gnssConfigure(GNSS_CONFIG_FIX_RATE);
 
             gnssConfigure(GNSS_CONFIG_MESSAGE_RATE_NMEA);       // Request receiver to use new settings
             gnssConfigure(GNSS_CONFIG_MESSAGE_RATE_RTCM_ROVER); // Request receiver to use new settings
+
+            if (incoming == 12)
+                systemPrintln("Reset to High-rate PPP Logging Defaults (NMEAx7 / RTCMx4 - 1Hz)");
+            else
+                systemPrintln("Reset to PPP Logging Defaults (NMEAx7 / RTCMx4 - 30 second decimation)");
         }
         else if ((incoming == 13) &&
                  (namedSettingAvailableOnPlatform("useMSM7"))) // Redundant - but good practice for code reuse)
@@ -1820,6 +1838,8 @@ bool GNSS_LG290P::setCorrRadioExtPort(bool enable, bool force)
 {
     if (online.gnss)
     {
+        // Someday, read/modify/write setPortInputProtocols
+
         if (force || (enable != _corrRadioExtPortEnabled))
         {
             // Set UART3 InputProt: RTCM3 (4) vs NMEA (1)
@@ -2023,11 +2043,7 @@ bool GNSS_LG290P::setMessagesNMEA()
         }
     }
 
-    if (response == true)
-    {
-        // For messages to take effect we must save/reset
-        gnssConfigure(GNSS_CONFIG_RESET);
-    }
+    // Messages take effect immediately. Save/Reset is not needed.
 
     return (response);
 }
@@ -2114,11 +2130,7 @@ bool GNSS_LG290P::setMessagesRTCMBase()
         _lg290p->sendOkCommand(cfgRtcm); // Enable MSM4/7, output regular intervals, interval (seconds)
     }
 
-    if (response == true)
-    {
-        // For messages to take effect we must save/reset
-        gnssConfigure(GNSS_CONFIG_RESET);
-    }
+    // Messages take effect immediately. Save/Reset is not needed.
 
     return (response);
 }
@@ -2284,11 +2296,7 @@ bool GNSS_LG290P::setMessagesRTCMRover()
         _lg290p->sendOkCommand(msmCommand);
     }
 
-    if (response == true)
-    {
-        // For messages to take effect we must save/reset
-        gnssConfigure(GNSS_CONFIG_RESET);
-    }
+    // Messages take effect immediately. Save/Reset is not needed.
 
     return (response);
 }
@@ -2411,7 +2419,7 @@ bool GNSS_LG290P::setTilt()
         {
             systemPrintln("Increasing GNSS measurement rate to 5Hz for tilt support");
             settings.measurementRateMs = 200;
-            gnssConfigure(GNSS_CONFIG_RATE);
+            gnssConfigure(GNSS_CONFIG_FIX_RATE);
         }
 
         // On the LG290P Flex module, UART 3 of the GNSS is connected to the IMU UART 1

@@ -1327,7 +1327,8 @@ SettingValueResponse updateSettingWithValue(bool inCommands, const char *setting
 
     else if (strcmp(settingName, "measurementRateHz") == 0)
     {
-        gnss->setRate(1.0 / settingValue);
+        settings.measurementRateMs = 1000 / settingValue; // Convert Hz to ms
+        gnssConfigure(GNSS_CONFIG_FIX_RATE);                  // Request receiver to use new settings
 
         // This is one of the first settings to be received. If seen, remove the station files.
         removeFile(stationCoordinateECEFFileName);
@@ -1359,8 +1360,9 @@ SettingValueResponse updateSettingWithValue(bool inCommands, const char *setting
     }
     else if (strcmp(settingName, "minCNO") == 0)
     {
-        // Note: this sends the Min CNO to the GNSS, as well as saving it in settings...
-        gnss->setMinCno(settingValue);
+        settings.minCNO = settingValue;
+        gnssConfigure(GNSS_CONFIG_CN0); // Request receiver to use new settings
+
         knownSetting = true;
     }
     else if (strcmp(settingName, "fixedHAEAPC") == 0)

@@ -474,7 +474,7 @@ bool GNSS_UM980::fixedBaseStart()
 // Rates are expressed in ms between fixes.
 //----------------------------------------
 const float um980MinRateHz = 0.02; // 1 / 65 = 0.015384 Hz = Found experimentally
-const float um980MaxRateHz = 20.0;   // 20Hz
+const float um980MaxRateHz = 20.0; // 20Hz
 
 bool GNSS_UM980::fixRateIsAllowed(uint32_t fixRateMs)
 {
@@ -483,13 +483,13 @@ bool GNSS_UM980::fixRateIsAllowed(uint32_t fixRateMs)
     return (false);
 }
 
-// Return minimum in milliseconds 
+// Return minimum in milliseconds
 uint32_t GNSS_UM980::fixRateGetMinimumMs()
 {
     return (1000.0 / um980MinRateHz);
 }
 
-// Return maximum in milliseconds 
+// Return maximum in milliseconds
 uint32_t GNSS_UM980::fixRateGetMaximumMs()
 {
     return (1000.0 / um980MaxRateHz);
@@ -1089,10 +1089,12 @@ void GNSS_UM980::menuConstellations()
             incoming--; // Align choice to constellation array of 0 to 5
 
             settings.um980Constellations[incoming] ^= 1;
+            gnssConfigure(GNSS_CONFIG_CONSTELLATION); // Request receiver to use new settings
         }
         else if ((incoming == MAX_UM980_CONSTELLATIONS + 1) && present.galileoHasCapable)
         {
             settings.enableGalileoHas ^= 1;
+            gnssConfigure(GNSS_CONFIG_HAS_E6); // Request receiver to use new settings
         }
         else if (incoming == INPUT_RESPONSE_GETNUMBER_EXIT)
             break;
@@ -1101,9 +1103,6 @@ void GNSS_UM980::menuConstellations()
         else
             printUnknown(incoming);
     }
-
-    // Apply current settings to module
-    gnss->setConstellations();
 
     clearBuffer(); // Empty buffer of any newline chars
 }
@@ -1192,13 +1191,9 @@ void GNSS_UM980::menuMessages()
             // setRtcmRoverMessageRateByName("RTCM1124", reportRate); //BeiDou not used by CSRS-PPP
 
             if (incoming == 12)
-            {
                 systemPrintln("Reset to High-rate PPP Logging (NMEAx5 / RTCMx4 - 1Hz)");
-            }
             else
-            {
                 systemPrintln("Reset to PPP Logging (NMEAx5 / RTCMx4 - 30 second decimation)");
-            }
 
             gnssConfigure(GNSS_CONFIG_MESSAGE_RATE_NMEA); // Request receiver to use new settings
             if (inBaseMode())
