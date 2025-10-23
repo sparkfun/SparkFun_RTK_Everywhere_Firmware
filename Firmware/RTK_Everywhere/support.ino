@@ -916,7 +916,7 @@ InputResponse getNewSetting(const char *settingPrompt, float min, float max, flo
 
         if (response == INPUT_RESPONSE_VALID)
         {
-            if (enteredValue >= min && enteredValue <= max)
+            if ((float)enteredValue >= min && enteredValue <= max)
             {
                 *setting = (float)enteredValue; // Recorded to NVM and file at main menu exit
                 return (INPUT_RESPONSE_VALID);
