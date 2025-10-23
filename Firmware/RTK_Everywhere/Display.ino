@@ -284,22 +284,23 @@ void displayUpdate()
                 */
 
             case (STATE_ROVER_NOT_STARTED):
-                displayHorizontalAccuracy(&iconPropertyList, &CrossHairProperties,
-                                          0b11111111); // Single crosshair, no blink
-                paintLogging(&iconPropertyList);
-                displaySivVsOpenShort(&iconPropertyList);
-                displayBatteryVsEthernet(&iconPropertyList);
-                displayFullIPAddress(&iconPropertyList); // Bottom left - 128x64 only
-                setRadioIcons(&iconPropertyList);
-                break;
+                // displayHorizontalAccuracy(&iconPropertyList, &CrossHairProperties,
+                //                           0b11111111); // Single crosshair, no blink
+                // paintLogging(&iconPropertyList);
+                // displaySivVsOpenShort(&iconPropertyList);
+                // displayBatteryVsEthernet(&iconPropertyList);
+                // displayFullIPAddress(&iconPropertyList); // Bottom left - 128x64 only
+                // setRadioIcons(&iconPropertyList);
+                // break;
             case (STATE_ROVER_CONFIG_WAIT):
-                displayHorizontalAccuracy(&iconPropertyList, &CrossHairProperties,
-                                          0b11111111); // Single crosshair, no blink
-                paintLogging(&iconPropertyList);
-                displaySivVsOpenShort(&iconPropertyList);
-                displayBatteryVsEthernet(&iconPropertyList);
-                displayFullIPAddress(&iconPropertyList); // Bottom left - 128x64 only
-                setRadioIcons(&iconPropertyList);
+                // displayHorizontalAccuracy(&iconPropertyList, &CrossHairProperties,
+                //                           0b11111111); // Single crosshair, no blink
+                // paintLogging(&iconPropertyList);
+                // displaySivVsOpenShort(&iconPropertyList);
+                // displayBatteryVsEthernet(&iconPropertyList);
+                // displayFullIPAddress(&iconPropertyList); // Bottom left - 128x64 only
+                // setRadioIcons(&iconPropertyList);
+                displayRoverStart(0);
                 break;
             case (STATE_ROVER_NO_FIX):
                 displayHorizontalAccuracy(&iconPropertyList, &CrossHairProperties,
@@ -343,7 +344,7 @@ void displayUpdate()
             case (STATE_BASE_CASTER_NOT_STARTED):
             case (STATE_BASE_NOT_STARTED):
             case (STATE_BASE_CONFIG_WAIT):
-                // Do nothing. Static display shown during state change.
+                displayBaseStart(0); // Show 'Base' while the system configures the Base
                 break;
 
             // Start of base / survey in / NTRIP mode
@@ -375,9 +376,10 @@ void displayUpdate()
                 displayBaseSiv(&iconPropertyList); // 128x64 only
                 break;
             case (STATE_BASE_FIXED_NOT_STARTED):
-                displayBatteryVsEthernet(&iconPropertyList); // Top right
-                displayFullIPAddress(&iconPropertyList);     // Bottom left - 128x64 only
-                setRadioIcons(&iconPropertyList);
+                displayBaseSuccess(0); // Show 'Base Started' while the system configures the Base
+                // displayBatteryVsEthernet(&iconPropertyList); // Top right
+                // displayFullIPAddress(&iconPropertyList);     // Bottom left - 128x64 only
+                // setRadioIcons(&iconPropertyList);
                 break;
             case (STATE_BASE_FIXED_TRANSMITTING):
                 paintLogging(&iconPropertyList);
@@ -2103,8 +2105,6 @@ void displayBaseStart(uint16_t displayTime)
             printTextCenter("BaseCast", yPos, QW_FONT_8X16, 1, false); // text, y, font type, kerning, inverted
         else
             printTextCenter("Base", yPos, QW_FONT_8X16, 1, false); // text, y, font type, kerning, inverted
-
-        oled->display();
 
         oled->display();
 

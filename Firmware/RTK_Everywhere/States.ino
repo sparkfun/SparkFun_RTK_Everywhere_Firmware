@@ -94,8 +94,6 @@ void stateUpdate()
                 return;
             }
 
-            displayRoverStart(0);
-
             baseStatusLedOff();
 
             gnssConfigure(GNSS_CONFIG_ROVER); // Request reconfigure to rover mode
@@ -217,8 +215,6 @@ void stateUpdate()
             if (online.gnss == false)
                 return;
 
-            displayBaseStart(0); // Show 'Base'
-
             baseStatusLedOff();
 
             gnssConfigure(GNSS_CONFIG_BASE); // Request reconfigure to base mode
@@ -253,7 +249,7 @@ void stateUpdate()
         }
         break;
 
-        // Wait for horz acc of 5m or less before starting survey in
+        // Wait for horizontal accuracy to reach a certain level before starting survey in
         case (STATE_BASE_TEMP_SETTLE): {
             // Blink base LED slowly while we wait for first fix
             if ((millis() - lastBaseLEDupdate) > 1000)
@@ -266,13 +262,15 @@ void stateUpdate()
             int siv = gnss->getSatellitesInView();
             float hpa = gnss->getHorizontalAccuracy();
 
-            // Check for <1m horz accuracy before starting surveyIn
+            // Check for horizontal accuracy threshold before starting survey in
             char accuracy[20];
             char temp[20];
             const char *units = getHpaUnits(hpa, temp, sizeof(temp), 2, true);
+
             // gnssGetSurveyInStartingAccuracy is 10m max
             const char *accUnits =
                 getHpaUnits(gnss->getSurveyInStartingAccuracy(), accuracy, sizeof(accuracy), 2, false);
+
             systemPrintf("Waiting for Horz Accuracy < %s (%s): %s%s%s%s, SIV: %d\r\n", accuracy, accUnits, temp,
                          (accUnits != units) ? " (" : "", (accUnits != units) ? units : "",
                          (accUnits != units) ? ")" : "", siv);
