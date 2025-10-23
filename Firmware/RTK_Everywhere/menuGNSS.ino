@@ -174,59 +174,44 @@ void menuGNSS()
         if ((incoming == 1) && (!present.gnss_mosaicX5))
         {
             float rateHz = 0.0;
-            float minRateHz = 1.0; // Measurement rate per second
-            float maxRateHz = 1.0;
-
-            if (present.gnss_zedf9p)
-            {
-                minRateHz = 0.00012; // Limit of 127 (navRate) * 65000ms (measRate) = 137 minute limit.
-                maxRateHz = 20;      // 20Hz
-            }
-            else if (present.gnss_um980)
-            {
-                minRateHz = 0.02; // 1 / 65 = 0.015384 Hz = Found experimentally
-                maxRateHz = 20;   // 20Hz
-            }
-            else if (present.gnss_lg290p)
-            {
-                minRateHz = 1.0; // The LG290P doesn't support slower speeds than 1Hz
-                maxRateHz = 20;  // 20Hz
-            }
+            float minRateHz = 1000.0 / gnss->fixRateGetMinimumMs(); // Convert ms to Hz
+            float maxRateHz = 1000.0 / gnss->fixRateGetMaximumMs();
 
             if (getNewSetting("Enter GNSS measurement rate in Hz", minRateHz, maxRateHz, &rateHz) ==
-                INPUT_RESPONSE_VALID) // 20Hz limit with all constellations enabled
+                INPUT_RESPONSE_VALID)
             {
-                gnss->setRate(1.0 / rateHz); // Convert Hz to seconds. This will set settings.measurementRateMs,
-                                             // settings.navigationRate, and GSV message
+                float requestedRateMs = 1000.0 / rateHz; // Convert Hz to milliseconds.
+                if (gnss->fixRateIsAllowed(requestedRateMs))
+                {
+                    settings.measurementRateMs = requestedRateMs;
+                    gnssConfigure(GNSS_CONFIG_RATE);
+                    // This will set settings.measurementRateMs, settings.navigationRate, and GSV message
+                    // gnss->setRate(1.0 / rateHz); //TODO remove once all platforms are accounted for. Good: UM980,
+                    // LG290P,
+                }
+                else
+                    systemPrintln("Error: Illegal rate for this platform");
             }
         }
         else if ((incoming == 2) && (!present.gnss_mosaicX5))
         {
-            float rate_ms = 0.0; //
-            float minRate = 1.0; // Seconds between fixes
-            float maxRate = 1.0;
+            float requestedRateS = 0.0;
+            float minRateS = gnss->fixRateGetMinimumMs() / 1000.0; // Convert ms to seconds
+            float maxRateS = gnss->fixRateGetMaximumMs() / 1000.0;
 
-            if (present.gnss_zedf9p)
+            if (getNewSetting("Enter GNSS measurement rate in seconds between measurements", minRateS, maxRateS,
+                              &requestedRateS) == INPUT_RESPONSE_VALID)
             {
-                minRate = 0.05;   // 20Hz
-                maxRate = 8255.0; // Limit of 127 (navRate) * 65000ms (measRate) = 137 minute limit.
-            }
-            else if (present.gnss_um980)
-            {
-                minRate = 0.05; // 20Hz
-                maxRate = 65.0; // Found experimentally
-            }
-            else if (present.gnss_lg290p)
-            {
-                minRate = 0.05; // 20Hz
-                maxRate = 1.0;  // The LG290P doesn't support slower speeds than 1Hz
-            }
-
-            if (getNewSetting("Enter GNSS measurement rate in seconds between measurements", minRate, maxRate,
-                              &rate_ms) == INPUT_RESPONSE_VALID)
-            {
-                // This will set settings.measurementRateMs, settings.navigationRate, and GSV message
-                gnss->setRate(rate_ms);
+                if (gnss->fixRateIsAllowed(requestedRateS * 1000.0)) //Convert S to ms
+                {
+                    settings.measurementRateMs = requestedRateS * 1000.0;
+                    gnssConfigure(GNSS_CONFIG_RATE);
+                    // This will set settings.measurementRateMs, settings.navigationRate, and GSV message
+                    // gnss->setRate(1.0 / rateHz); //TODO remove once all platforms are accounted for. Good: UM980,
+                    // LG290P,
+                }
+                else
+                    systemPrintln("Error: Illegal rate for this platform");                
             }
         }
         else if (incoming == 3 && present.dynamicModel)
@@ -320,12 +305,11 @@ void menuGNSS()
         }
         else if (incoming == 6 && present.minCno)
         {
-            int minCNO = 0;
-            // Arbitrary 90 dBHz max. mosaic-X5 is 60dBHz max.
-            if (getNewSetting("Enter minimum satellite signal level for navigation in dBHz", 0,
-                              present.gnss_mosaicX5 ? 60 : 90, &minCNO) == INPUT_RESPONSE_VALID)
+            // mosaic-X5 is 60dBHz max.
+            if (getNewSetting("Enter minimum satellite signal level for navigation in dBHz", 0, 60, &settings.minCNO) ==
+                INPUT_RESPONSE_VALID)
             {
-                gnssConfigure(GNSS_CONFIG_CN0);       // Request receiver to use new settings
+                gnssConfigure(GNSS_CONFIG_CN0); // Request receiver to use new settings
             }
         }
 

@@ -131,6 +131,13 @@ class GNSS
     //   Returns true if successfully started and false upon failure
     virtual bool fixedBaseStart();
 
+    virtual bool fixRateIsAllowed(uint32_t fixRateMs);
+
+    //Return min/max rate in ms
+    virtual uint32_t fixRateGetMinimumMs();
+
+    virtual uint32_t fixRateGetMaximumMs();
+
     // Return the number of active/enabled messages
     virtual uint8_t getActiveMessageCount();
 

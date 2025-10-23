@@ -58,8 +58,8 @@ void GNSS_ZED::applyPointPerfectKeys()
 
         _zed->setVal8(UBLOX_CFG_MSGOUT_UBX_RXM_COR_I2C, 1, VAL_LAYER_ALL); // Enable UBX-RXM-COR messages on I2C
 
-        _zed->setVal8(UBLOX_CFG_NAVHPG_DGNSSMODE,
-                      3, VAL_LAYER_ALL); // Set the differential mode - ambiguities are fixed whenever possible
+        _zed->setVal8(UBLOX_CFG_NAVHPG_DGNSSMODE, 3,
+                      VAL_LAYER_ALL); // Set the differential mode - ambiguities are fixed whenever possible
 
         bool response = _zed->setDynamicSPARTNKeys(currentKeyLengthBytes, currentKeyGPSWeek, currentKeyGPSToW,
                                                    settings.pointPerfectCurrentKey, nextKeyLengthBytes, nextKeyGPSWeek,
@@ -243,7 +243,8 @@ bool GNSS_ZED::beginExternalEvent()
     if (settings.enableExternalHardwareEventLogging && (settings.dataPortChannel == MUX_PPS_EVENTTRIGGER))
     {
         response &= _zed->setAutoTIMTM2callbackPtr(
-            &eventTriggerReceived, VAL_LAYER_ALL); // Enable automatic TIM TM2 messages with callback to eventTriggerReceived
+            &eventTriggerReceived,
+            VAL_LAYER_ALL); // Enable automatic TIM TM2 messages with callback to eventTriggerReceived
     }
     else
     {
@@ -277,7 +278,7 @@ bool GNSS_ZED::setPPS()
         response &= _zed->addCfgValset(UBLOX_CFG_TP_PULSE_LENGTH_DEF, 1); // Define timepulse by length (not ratio)
         response &=
             _zed->addCfgValset(UBLOX_CFG_TP_USE_LOCKED_TP1,
-                            1); // Use CFG-TP-PERIOD_LOCK_TP1 and CFG-TP-LEN_LOCK_TP1 as soon as GNSS time is valid
+                               1); // Use CFG-TP-PERIOD_LOCK_TP1 and CFG-TP-LEN_LOCK_TP1 as soon as GNSS time is valid
         response &= _zed->addCfgValset(UBLOX_CFG_TP_TP1_ENA, settings.enableExternalPulse); // Enable/disable timepulse
         response &=
             _zed->addCfgValset(UBLOX_CFG_TP_POL_TP1, settings.externalPulsePolarity); // 0 = falling, 1 = rising edge
@@ -287,10 +288,11 @@ bool GNSS_ZED::setPPS()
         response &= _zed->addCfgValset(UBLOX_CFG_TP_LEN_TP1, 0);          // Set the pulse length in us
 
         // When the module is _locked_ to GNSS time, make it generate 1Hz (Default is 100ms high, 900ms low)
-        response &= _zed->addCfgValset(UBLOX_CFG_TP_PERIOD_LOCK_TP1,
-                                    settings.externalPulseTimeBetweenPulse_us); // Set the period between pulses is us
         response &=
-            _zed->addCfgValset(UBLOX_CFG_TP_LEN_LOCK_TP1, settings.externalPulseLength_us); // Set the pulse length in us
+            _zed->addCfgValset(UBLOX_CFG_TP_PERIOD_LOCK_TP1,
+                               settings.externalPulseTimeBetweenPulse_us); // Set the period between pulses is us
+        response &= _zed->addCfgValset(UBLOX_CFG_TP_LEN_LOCK_TP1,
+                                       settings.externalPulseLength_us); // Set the pulse length in us
         response &= _zed->sendCfgValset();
     }
 
@@ -540,8 +542,8 @@ bool GNSS_ZED::configure()
 
     // Configure the callbacks
 
-    response &=
-        _zed->setAutoPVTcallbackPtr(&storePVTdata, VAL_LAYER_ALL); // Enable automatic NAV PVT messages with callback to storePVTdata
+    response &= _zed->setAutoPVTcallbackPtr(
+        &storePVTdata, VAL_LAYER_ALL); // Enable automatic NAV PVT messages with callback to storePVTdata
     response &= _zed->setAutoHPPOSLLHcallbackPtr(
         &storeHPdata, VAL_LAYER_ALL); // Enable automatic NAV HPPOSLLH messages with callback to storeHPdata
 
@@ -921,8 +923,8 @@ void GNSS_ZED::enableGgaForNtrip()
             measurementFrequency = 0.2; // 0.2Hz * 5 = 1 measurement every 5 seconds
         if (settings.debugGnss)
             systemPrintf("Adjusting GGA setting to %f\r\n", measurementFrequency);
-        _zed->setVal8(UBLOX_CFG_MSGOUT_NMEA_ID_GGA_I2C,
-                      measurementFrequency, VAL_LAYER_ALL); // Enable GGA over I2C. Tell the module to output GGA every second
+        _zed->setVal8(UBLOX_CFG_MSGOUT_NMEA_ID_GGA_I2C, measurementFrequency,
+                      VAL_LAYER_ALL); // Enable GGA over I2C. Tell the module to output GGA every second
     }
 }
 
@@ -951,13 +953,13 @@ void GNSS_ZED::factoryReset()
     if (online.gnss)
     {
         // Set the clearMask and loadMask to 0xFFFF. Set deviceMask to devBBR | devFlash
-        uint8_t clearAndLoadMask[] = { 0xFF, 0xFF, 0, 0, 0, 0, 0, 0, 0xFF, 0xFF, 0, 0, 0x03 };
+        uint8_t clearAndLoadMask[] = {0xFF, 0xFF, 0, 0, 0, 0, 0, 0, 0xFF, 0xFF, 0, 0, 0x03};
         _zed->cfgCfg(clearAndLoadMask, 13);
 
         delay(2000);
 
         // Set the saveMask to 0xFFFF. Set deviceMask to devBBR | devFlash
-        uint8_t saveMask[] = { 0, 0, 0, 0, 0xFF, 0xFF, 0, 0, 0, 0, 0, 0, 0x03 };
+        uint8_t saveMask[] = {0, 0, 0, 0, 0xFF, 0xFF, 0, 0, 0, 0, 0, 0, 0x03};
         _zed->cfgCfg(saveMask, 13);
 
         _zed->hardReset(); // Perform a reset leading to a cold start (zero info start-up)
@@ -1068,6 +1070,32 @@ bool GNSS_ZED::fixedBaseStart()
     }
 
     return (response);
+}
+
+//----------------------------------------
+// Check if given GNSS fix rate is allowed
+// Rates are expressed in ms between fixes.
+//----------------------------------------
+const float f9pMinRateHz = 0.00012; // Limit of 127 (navRate) * 65000ms (measRate) = 137 minute limit.
+const float f9pMaxRateHz = 20.0;    // 20Hz
+
+bool GNSS_ZED::fixRateIsAllowed(uint32_t fixRateMs)
+{
+    if (fixRateMs > (1000 / f9pMinRateHz) && fixRateMs < (1000 / f9pMaxRateHz))
+        return (true);
+    return (false);
+}
+
+// Return minimum in milliseconds
+uint32_t GNSS_ZED::fixRateGetMinimumMs()
+{
+    return (1000.0 / f9pMinRateHz);
+}
+
+// Return maximum in milliseconds
+uint32_t GNSS_ZED::fixRateGetMaximumMs()
+{
+    return (1000.0 / f9pMaxRateHz);
 }
 
 //----------------------------------------
@@ -2193,7 +2221,6 @@ bool GNSS_ZED::setCorrRadioExtPort(bool enable, bool force)
     return false;
 }
 
-
 //----------------------------------------
 // Set the elevation in degrees
 //----------------------------------------
@@ -2273,9 +2300,9 @@ bool GNSS_ZED::setNmeaMessageRateByName(const char *msgName, uint8_t msgRate)
 
 //----------------------------------------
 // Set the rate for all messages
-// The ZED has a lot more messages than just NMEA in ubxMessageRates[], but other platforms generally just have NMEA and RTCM
-// There are many messages so split into batches. VALSET is limited to 64 max per batch
-// Uses dummy newCfg and sendCfg values to be sure we open/close a complete set
+// The ZED has a lot more messages than just NMEA in ubxMessageRates[], but other platforms generally just have NMEA and
+// RTCM There are many messages so split into batches. VALSET is limited to 64 max per batch Uses dummy newCfg and
+// sendCfg values to be sure we open/close a complete set
 //----------------------------------------
 bool GNSS_ZED::setMessagesNMEA()
 {
@@ -2334,8 +2361,8 @@ bool GNSS_ZED::setMessagesNMEA()
 //----------------------------------------
 bool GNSS_ZED::setMessagesRTCMBase()
 {
-    //TODO
-    return(false);
+    // TODO
+    return (false);
 }
 
 //----------------------------------------
@@ -2343,8 +2370,8 @@ bool GNSS_ZED::setMessagesRTCMBase()
 //----------------------------------------
 bool GNSS_ZED::setMessagesRTCMRover()
 {
-    //TODO
-    return(false);
+    // TODO
+    return (false);
 }
 
 //----------------------------------------
@@ -2464,8 +2491,8 @@ bool GNSS_ZED::setTalkerGNGGA()
     if (online.gnss)
     {
         bool success = true;
-        success &=
-            _zed->setVal8(UBLOX_CFG_NMEA_MAINTALKERID, 3, VAL_LAYER_ALL); // Return talker ID to GNGGA after NTRIP Client set to GPGGA
+        success &= _zed->setVal8(UBLOX_CFG_NMEA_MAINTALKERID, 3,
+                                 VAL_LAYER_ALL);           // Return talker ID to GNGGA after NTRIP Client set to GPGGA
         success &= _zed->setNMEAGPGGAcallbackPtr(nullptr); // Remove callback
         return success;
     }
@@ -2730,7 +2757,8 @@ bool GNSS_ZED::surveyInStart()
 
     bool response = true;
     response &= _zed->setVal8(UBLOX_CFG_TMODE_MODE, 1, VAL_LAYER_ALL); // Survey-in enable
-    response &= _zed->setVal32(UBLOX_CFG_TMODE_SVIN_ACC_LIMIT, settings.observationPositionAccuracy * 10000, VAL_LAYER_ALL);
+    response &=
+        _zed->setVal32(UBLOX_CFG_TMODE_SVIN_ACC_LIMIT, settings.observationPositionAccuracy * 10000, VAL_LAYER_ALL);
     response &= _zed->setVal32(UBLOX_CFG_TMODE_SVIN_MIN_DUR, settings.observationSeconds, VAL_LAYER_ALL);
 
     if (response == false)
@@ -2820,7 +2848,8 @@ const int zedAllowedRatesCount = sizeof(zedAllowedRates) / sizeof(zedAllowedRate
 bool GNSS_ZED::baudIsAllowed(uint32_t baudRate)
 {
     for (int x = 0; x < zedAllowedRatesCount; x++)
-        if (zedAllowedRates[x] == baudRate) return (true);
+        if (zedAllowedRates[x] == baudRate)
+            return (true);
     return (false);
 }
 

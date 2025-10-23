@@ -142,11 +142,13 @@ void menuBase()
         if (incoming == 1)
         {
             settings.fixedBase ^= 1;
+
             gnssConfigure(GNSS_CONFIG_BASE); // Request receiver to use new settings
         }
         else if (settings.fixedBase == true && incoming == 2)
         {
             settings.fixedBaseCoordinateType ^= 1;
+
             gnssConfigure(GNSS_CONFIG_BASE); // Request receiver to use new settings
         }
 
@@ -176,6 +178,7 @@ void menuBase()
                         if (getUserInputDouble(&fixedEcefZ) == INPUT_RESPONSE_VALID)
                         {
                             settings.fixedEcefZ = fixedEcefZ;
+
                             gnssConfigure(GNSS_CONFIG_BASE); // Request receiver to use new settings
                         }
                     }
@@ -219,6 +222,7 @@ void menuBase()
                                     if (getUserInputDouble(&fixedAltitude) == INPUT_RESPONSE_VALID)
                                     {
                                         settings.fixedAltitude = fixedAltitude;
+
                                         gnssConfigure(GNSS_CONFIG_BASE); // Request receiver to use new settings
                                     }
                                 }
@@ -313,10 +317,10 @@ void menuBase()
                 systemPrintf("Enter Caster Address for Server %d: ", serverNumber + 1);
                 if (getUserInputString(&settings.ntripServer_CasterHost[serverNumber][0], NTRIP_SERVER_STRING_SIZE) ==
                     INPUT_RESPONSE_VALID)
-                    {
-                        // NTRIP Server state machine will update automatically
-                    }
+                {
+                    // NTRIP Server state machine will update automatically
                 }
+            }
             else if (incoming == 1)
             {
                 // Arbitrary 99k max port #
@@ -328,9 +332,9 @@ void menuBase()
 
                 if (getNewSetting(tempString, 1, 99999, &settings.ntripServer_CasterPort[serverNumber]) ==
                     INPUT_RESPONSE_VALID)
-                    {
-                        // NTRIP Server state machine will update automatically
-                    }
+                {
+                    // NTRIP Server state machine will update automatically
+                }
             }
             else if (incoming == 2)
             {
@@ -341,9 +345,9 @@ void menuBase()
 
                 if (getUserInputString(&settings.ntripServer_CasterUser[serverNumber][0], NTRIP_SERVER_STRING_SIZE) ==
                     INPUT_RESPONSE_VALID)
-                    {
-                        // NTRIP Server state machine will update automatically
-                    }
+                {
+                    // NTRIP Server state machine will update automatically
+                }
             }
             else if (incoming == 3)
             {
@@ -354,9 +358,9 @@ void menuBase()
 
                 if (getUserInputString(&settings.ntripServer_CasterUserPW[serverNumber][0], NTRIP_SERVER_STRING_SIZE) ==
                     INPUT_RESPONSE_VALID)
-                    {
-                        // NTRIP Server state machine will update automatically
-                    }
+                {
+                    // NTRIP Server state machine will update automatically
+                }
             }
             else if (incoming == 4)
             {
@@ -367,9 +371,9 @@ void menuBase()
 
                 if (getUserInputString(&settings.ntripServer_MountPoint[serverNumber][0], NTRIP_SERVER_STRING_SIZE) ==
                     INPUT_RESPONSE_VALID)
-                    {
-                        // NTRIP Server state machine will update automatically
-                    }
+                {
+                    // NTRIP Server state machine will update automatically
+                }
             }
             else if (incoming == 5)
             {
@@ -380,9 +384,9 @@ void menuBase()
 
                 if (getUserInputString(&settings.ntripServer_MountPointPW[serverNumber][0], NTRIP_SERVER_STRING_SIZE) ==
                     INPUT_RESPONSE_VALID)
-                    {
-                        // NTRIP Server state machine will update automatically
-                    }
+                {
+                    // NTRIP Server state machine will update automatically
+                }
             }
         }
 

@@ -470,6 +470,32 @@ bool GNSS_UM980::fixedBaseStart()
 }
 
 //----------------------------------------
+// Check if given GNSS fix rate is allowed
+// Rates are expressed in ms between fixes.
+//----------------------------------------
+const float um980MinRateHz = 0.02; // 1 / 65 = 0.015384 Hz = Found experimentally
+const float um980MaxRateHz = 20.0;   // 20Hz
+
+bool GNSS_UM980::fixRateIsAllowed(uint32_t fixRateMs)
+{
+    if (fixRateMs > (1000.0 / um980MinRateHz) && fixRateMs < (1000.0 / um980MaxRateHz))
+        return (true);
+    return (false);
+}
+
+// Return minimum in milliseconds 
+uint32_t GNSS_UM980::fixRateGetMinimumMs()
+{
+    return (1000.0 / um980MinRateHz);
+}
+
+// Return maximum in milliseconds 
+uint32_t GNSS_UM980::fixRateGetMaximumMs()
+{
+    return (1000.0 / um980MaxRateHz);
+}
+
+//----------------------------------------
 // Return the number of active/enabled messages
 //----------------------------------------
 uint8_t GNSS_UM980::getActiveMessageCount()
@@ -1865,22 +1891,8 @@ bool GNSS_UM980::setRate(double secondsBetweenSolutions)
     if (settings.debugGnssConfig)
         systemPrintln("setRate: Modifying rates");
 
-    bool response = true;
-
     gnssConfigure(GNSS_CONFIG_MESSAGE_RATE_NMEA);
     gnssConfigure(GNSS_CONFIG_MESSAGE_RATE_RTCM_ROVER);
-
-    // If we successfully set rates, only then record to settings
-    if (response)
-    {
-        uint16_t msBetweenSolutions = secondsBetweenSolutions * 1000;
-        settings.measurementRateMs = msBetweenSolutions;
-    }
-    else
-    {
-        systemPrintln("Failed to set measurement and navigation rates");
-        return (false);
-    }
 
     return (true);
 }
@@ -1986,25 +1998,25 @@ bool GNSS_UM980::surveyInStart()
 //----------------------------------------
 // Check if given baud rate is allowed
 //----------------------------------------
-const uint32_t um980AllowedRates[] = {9600, 19200, 38400, 57600, 115200, 230400, 460800, 921600};
-const int um980AllowedRatesCount = sizeof(um980AllowedRates) / sizeof(um980AllowedRates[0]);
+const uint32_t um980AllowedBaudRates[] = {9600, 19200, 38400, 57600, 115200, 230400, 460800, 921600};
+const int um980AllowedBaudRatesCount = sizeof(um980AllowedBaudRates) / sizeof(um980AllowedBaudRates[0]);
 
 bool GNSS_UM980::baudIsAllowed(uint32_t baudRate)
 {
-    for (int x = 0; x < um980AllowedRatesCount; x++)
-        if (um980AllowedRates[x] == baudRate)
+    for (int x = 0; x < um980AllowedBaudRatesCount; x++)
+        if (um980AllowedBaudRates[x] == baudRate)
             return (true);
     return (false);
 }
 
 uint32_t GNSS_UM980::baudGetMinimum()
 {
-    return (um980AllowedRates[0]);
+    return (um980AllowedBaudRates[0]);
 }
 
 uint32_t GNSS_UM980::baudGetMaximum()
 {
-    return (um980AllowedRates[um980AllowedRatesCount - 1]);
+    return (um980AllowedBaudRates[um980AllowedBaudRatesCount - 1]);
 }
 
 //----------------------------------------

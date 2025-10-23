@@ -152,14 +152,26 @@ void gnssUpdate()
 
         if (gnssConfigureRequested(GNSS_CONFIG_BASE))
         {
-            if (gnss->configureBase() == true)
+            // Change GNSS receiver configuration if we are in base mode, otherwise, just change setting
+            if (inBaseMode() == true)
             {
-                gnssConfigureClear(GNSS_CONFIG_BASE);
-                gnssConfigure(GNSS_CONFIG_SAVE); // Request receiver commit this change to NVM
+                if (gnss->configureBase() == true)
+                {
+                    gnssConfigureClear(GNSS_CONFIG_BASE);
+                    gnssConfigure(GNSS_CONFIG_SAVE); // Request receiver commit this change to NVM
+                }
+                else
+                {
+                    systemPrintln("Base config failed");
+                }
             }
             else
             {
-                systemPrintln("Base config failed");
+                // We have allowed the settings struct changes, but do not need to apply them to the GNSS receiver at
+                // this time
+                if (settings.debugGnssConfig)
+                    systemPrintln("Not in base mode - clearing bit.");
+                gnssConfigureClear(GNSS_CONFIG_BASE);
             }
         }
 
@@ -357,18 +369,18 @@ void gnssVerifyTables()
 void gnssConfigure(uint8_t configureBit)
 {
     uint32_t mask = (1 << configureBit);
-    settings.gnssConfigureRequest |= mask;
+    settings.gnssConfigureRequest |= mask; // Set the bit
 }
 
 // Given a bit to configure, clear that bit from the overall bitfield
 void gnssConfigureClear(uint8_t configureBit)
 {
-    uint32_t mask = ~(1 << configureBit);
+    uint32_t mask = (1 << configureBit);
 
     if (settings.debugGnssConfig && (settings.gnssConfigureRequest & mask))
         systemPrintf("GNSS Config Clear: %s\r\n", gnssConfigDisplayNames[configureBit]);
 
-    settings.gnssConfigureRequest &= mask;
+    settings.gnssConfigureRequest &= ~mask; // Clear the bit
 }
 
 // Return true if a given bit is set

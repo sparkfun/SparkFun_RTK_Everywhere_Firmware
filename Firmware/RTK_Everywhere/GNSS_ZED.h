@@ -467,6 +467,13 @@ class GNSS_ZED : GNSS
     //   Returns true if successfully started and false upon failure
     bool fixedBaseStart();
 
+    bool fixRateIsAllowed(uint32_t fixRateMs);
+
+    //Return min/max rate in ms
+    uint32_t fixRateGetMinimumMs();
+
+    uint32_t fixRateGetMaximumMs();
+
     // Return the number of active/enabled messages
     uint8_t getActiveMessageCount();
 

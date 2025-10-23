@@ -919,6 +919,33 @@ bool GNSS_MOSAIC::fixedBaseStart()
 }
 
 //----------------------------------------
+// Check if given GNSS fix rate is allowed
+// Rates are expressed in ms between fixes.
+//----------------------------------------
+
+bool GNSS_MOSAIC::fixRateIsAllowed(uint32_t fixRateMs)
+{
+    //TODO
+    if (fixRateMs != 1000)
+        return (false);
+    return (true);
+}
+
+// Return minimum in milliseconds
+uint32_t GNSS_MOSAIC::fixRateGetMinimumMs()
+{
+    //TODO
+    return (1000);
+}
+
+// Return maximum in milliseconds
+uint32_t GNSS_MOSAIC::fixRateGetMaximumMs()
+{
+    //TODO
+    return (1000);
+}
+
+//----------------------------------------
 // Return the number of active/enabled messages
 //----------------------------------------
 uint8_t GNSS_MOSAIC::getActiveMessageCount()

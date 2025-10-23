@@ -182,6 +182,22 @@ class GNSS_None : public GNSS
         return false;
     }
 
+    bool fixRateIsAllowed(uint32_t fixRateMs)
+    {
+        return false;
+    }
+
+    //Return min/max rate in ms
+    uint32_t fixRateGetMinimumMs()
+    {
+        return 0;
+    }
+
+    uint32_t fixRateGetMaximumMs()
+    {
+        return 0;
+    }
+
     // Return the number of active/enabled messages
     uint8_t getActiveMessageCount()
     {
