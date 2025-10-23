@@ -166,17 +166,13 @@ bool GNSS_UM980::checkPPPRates()
 //----------------------------------------
 bool GNSS_UM980::configureBase()
 {
-    /*
-        Disable all messages
-        Start base
-        Enable RTCM Base messages
-        Enable NMEA messages
-    */
-    // Trusting the saved configuration does not seem to work on the UM980.
-    // It looks like the GPGGA NMEA output does not restart...?
-    // (Re)configuration is quick. Doing this every time is not much of an overhead.
-
-    bool response = true;
+    // Determine current mode. If we are already in Rover, no changes needed
+    //  0 - Unknown, 1 - Rover Survey, 2 - Rover UAV, 3 - Rover Auto, 4 - Base Survey-in, 5 - Base fixed
+    int currentMode = getMode();
+    if (settings.fixedBase == false && currentMode == 4)
+        return (true);
+    if (settings.fixedBase == true && currentMode == 5)
+        return (true);
 
     // Set the dynamic mode. This will cancel any base averaging mode and is needed
     // to allow a freshly started device to settle in regular GNSS reception mode before issuing
@@ -187,7 +183,7 @@ bool GNSS_UM980::configureBase()
     gnssConfigure(GNSS_CONFIG_MESSAGE_RATE_RTCM_BASE);
     gnssConfigure(GNSS_CONFIG_MESSAGE_RATE_NMEA);
 
-    return (response);
+    return (true);
 }
 
 //----------------------------------------
