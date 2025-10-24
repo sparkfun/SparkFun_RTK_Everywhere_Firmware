@@ -1,6 +1,6 @@
 #ifdef COMPILE_AUTHENTICATION
 
-const char *accessoryName = "Test Mode";
+const char *accessoryName = "SparkPNT RTK Flex";
 const char *manufacturer = "SparkFun Electronics";
 const char *hardwareVersion = "1.0.0";
 const char *EAProtocol = "com.sparkfun.rtk";
@@ -12,7 +12,7 @@ const char *LIComponentName = "com.sparkfun.li";
 // accessory. The value is available in the product plan header in the MFi Portal and is different from the
 // Product Plan ID. Click on the blue "information" icon to the right of your blue MFi Account number on
 // the top-left of a Product Plan form.
-const char *productPlanUID = "2c724e9b4fad4eba";
+const char *productPlanUID = "e9e877bb278140f0";
 
 extern BTSerialInterface *bluetoothSerialSpp;
 
