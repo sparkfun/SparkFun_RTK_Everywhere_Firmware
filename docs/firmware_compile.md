@@ -101,6 +101,10 @@ For the real Wild West experience, you can also download a copy of the `release_
 docker build -t rtk_everywhere_firmware .
 ```
 
+![Dockerfile starting](./img/CompileSource/Dockerfile_starting.png)
+
+![Dockerfile complete](./img/CompileSource/Dockerfile_complete.png)
+
 * If you want to see the full build progress including the output of echo or ls, use:
 
 ```
@@ -113,9 +117,11 @@ docker build -t rtk_everywhere_firmware --progress=plain .
 docker build -t rtk_everywhere_firmware --progress=plain --no-cache .
 ```
 
+Building the Image is slow, taking several minutes. But you should only need to do it once - unless you make any changes to the Dockerfile.
+
 ### Compile the firmware by running the Image
 
-In Docker Desktop, in the Images tab, you should now be able to see an Image named `rtk_everywhere_firmware`. We now need to Run that image to compile the firmware. Click the triangular Run icon under Actions.
+In Docker Desktop, in the Images tab, you should now be able to see an Image named `rtk_everywhere_firmware`. We now need to Run that image to compile the firmware. Click the triangular Run icon under Actions:
 
 ![Docker image ready to run](./img/CompileSource/Docker_Image.png)
 
