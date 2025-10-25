@@ -4,6 +4,7 @@ This is information about how to compile the RTK Everywhere firmware from source
 
 * [How SparkFun does it](#how-sparkfun-does-it)
 * [Using Docker](#using-docker)
+* [Compiling on Windows (Deprecated)](#compiling-on-windows-deprecated)
 
 ## How SparkFun does it
 
@@ -13,6 +14,8 @@ You are welcome to clone or fork this repo and do the exact same thing yourself.
 
 If you run the [compilation workflow](https://github.com/sparkfun/SparkFun_RTK_Everywhere_Firmware/blob/main/.github/workflows/compile-rtk-everywhere.yml), it will compile the firmware and attempt to push the binary to the Binaries repo. This will fail as your account won't have the right permissions. The [non-release-build](https://github.com/sparkfun/SparkFun_RTK_Everywhere_Firmware/blob/main/.github/workflows/non-release-build.yml) is the one for you. The firmware binary will be attached as an Artifact to the workflow run. Navigate to Actions \ Non-Release Build, select the latest run of Non-Release Build, the binary is in the Artifacts.
 
+You can then use the [SparkFun RTK Firmware Uploader](https://github.com/sparkfun/SparkFun_RTK_Firmware_Uploader) to upload the binary onto the ESP32.
+
 ## Using Docker
 
 Installing the correct version of the ESP32 core and of each required Arduino library, is tedious and error-prone. Especially on Windows. We've lost count of the number of times code compilation fails on our local machines, because we had the wrong ESP32 core installed, or forgot to patch libbt or libmbedcrypto... It is much easier to sandbox the firmware compilation using an environment like [Docker](https://www.docker.com/).
@@ -21,7 +24,7 @@ Here is a step-by-step guide for how to install Docker and compile the firmware 
 
 ### Install Docker Desktop
 
-* Head to [Docker](https://www.docker.com/) and create an account
+* Head to [Docker](https://www.docker.com/) and create an account. A free "Personal" account will cover occasional compilations of the firmware
 * Download and install [Docker Desktop](https://docs.docker.com/get-started/get-docker/) - there are versions for Mac, Windows and Linux. You may need to restart to complete the installation.
 * Run the Desktop and sign in
 * On Windows, you may see an error saying "**WSL needs updating** Your version of Windows Subsystem for Linux (WSL) is too old". If you do:
@@ -64,7 +67,7 @@ For the real Wild West experience, you can also download a copy of the `release_
 
 [![Download ZIP - release candidate](./img/CompileSource/Download_Zip.png)](https://github.com/sparkfun/SparkFun_RTK_Everywhere_Firmware/archive/refs/heads/release_candidate.zip "Download ZIP (release_candidate branch)")
 
-### Setting up the Docker container
+### Running the Dockerfile to compile the firmware
 
 * Make sure you have Docker Desktop running
 * Open a Command Prompt and `cd` into the SparkFun_RTK_Everywhere_Firmware folder
@@ -82,23 +85,35 @@ For the real Wild West experience, you can also download a copy of the `release_
     README.md
 ```
 
-* `cd Firmware` , `cd RTK_Everywhere` and then `dir` again. You should see:
+* `cd Firmware` and then `dir` again. You should see:
 
 ```
-    AP-Config
-    AuthCoPro.ino
-    Base.ino
-    Begin.ino
+    Dockerfile
+    readme.md
+    RTKEverywhere.csv
+    RTKEverywhere_8MB.csv
 ```
 
-* and many other files and folders. The file we will be using first is the `Dockerfile`.
+* The file we will be using is the `Dockerfile`.
 * Type:
 
 ```
 docker build -t rtk_everywhere_firmware .
 ```
 
-## Old Windows Guide (Deprecated)
+* If you want to see the full build progress including the output of echo or ls, use:
+
+```
+docker build -t rtk_everywhere_firmware --progress=plain .
+```
+
+* If you rebuild completely from scratch, use:
+
+```
+docker build -t rtk_everywhere_firmware --progress=plain --no-cache .
+```
+
+## Compiling on Windows (Deprecated)
 
 The SparkFun RTK Everywhere Firmware is compiled using Arduino CLI (currently [v1.0.4](https://github.com/arduino/arduino-cli/releases)). To compile:
 
@@ -117,7 +132,7 @@ The SparkFun RTK Everywhere Firmware is compiled using Arduino CLI (currently [v
 4. RTK Everywhere uses a custom partition file. Download the [RTKEverywhere.csv](https://github.com/sparkfun/SparkFun_RTK_Everywhere_Firmware/blob/main/Firmware/RTKEverywhere.csv) or [RTKEverywhere_8MB.csv](https://github.com/sparkfun/SparkFun_RTK_Everywhere_Firmware/blob/main/Firmware/RTKEverywhere_8MB.csv) for the RTK Postcard.
 5. Add *RTKEverywhere.csv* partition table to the Arduino partitions folder. It should look something like
 
-		C:\Users\\[user name]\AppData\Local\Arduino15\packages\esp32\hardware\esp32\3.0.1\tools\partitions\RTKEverywhere.csv
+		C:\Users\[user name]\AppData\Local\Arduino15\packages\esp32\hardware\esp32\3.0.7\tools\partitions\RTKEverywhere.csv
 
 	This will increase the program partitions, as well as the SPIFFs partition to utilize the full 16MB of flash (8MB in the case of the Postcard).
 
