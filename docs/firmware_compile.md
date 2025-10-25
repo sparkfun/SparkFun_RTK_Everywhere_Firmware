@@ -57,7 +57,7 @@ Fork a copy of RTK Everywhere
 </figcaption>
 </figure>
 
-Clone your fork to your local machine, make changes, and send us a Pull Request. This is exactly what the SparkFun Team do when developing the code.
+Clone your fork to your local machine, make changes, and send us a Pull Request. This is exactly what the SparkFun Team do when developing the code. Please use the `release_candidate` branch for any such changes. We are very unlikely to merge anything directly into `main`, unless it is (e.g.) docs corrections or improvements.
 
 If you don't want to do either of those, you can simply Download a Zip copy of the repo instead. You will receive a complete copy as a Zip file. You can do this from the green **Code** button, or click on the icon below to download a copy of the main (released) branch:
 
@@ -67,7 +67,7 @@ For the real Wild West experience, you can also download a copy of the `release_
 
 [![Download ZIP - release candidate](./img/CompileSource/Download_Zip.png)](https://github.com/sparkfun/SparkFun_RTK_Everywhere_Firmware/archive/refs/heads/release_candidate.zip "Download ZIP (release_candidate branch)")
 
-### Running the Dockerfile to compile the firmware
+### Running the Dockerfile to create an Image
 
 * Make sure you have Docker Desktop running
 * Open a Command Prompt and `cd` into the SparkFun_RTK_Everywhere_Firmware folder
@@ -107,11 +107,43 @@ docker build -t rtk_everywhere_firmware .
 docker build -t rtk_everywhere_firmware --progress=plain .
 ```
 
-* If you rebuild completely from scratch, use:
+* If you rebuild the image completely from scratch, without using the cache, use:
 
 ```
 docker build -t rtk_everywhere_firmware --progress=plain --no-cache .
 ```
+
+### Compile the firmware by running the Image
+
+In Docker Desktop, in the Images tab, you should now be able to see an Image named `rtk_everywhere_firmware`. We now need to Run that image to compile the firmware. Click the triangular Run icon under Actions.
+
+![Docker image ready to run](./img/CompileSource/Docker_Image.png)
+
+Running the Image will create a Container for the arduino-cli code compilation. The Container name is random, because we didn't define one in the **Optional settings**. It is running the final line of the Dockerfile `CMD arduino-cli compile ...`. Let it run. As the compilation progresses, you will see messages appear in the Logs tab. When the compilation is complete, the Container will stop and you should see:
+
+![Container code compilation is complete](./img/CompileSource/Container_compilation_complete.png)
+
+You can recompile your code at any time by running the image again. (You don't need to recreate the image each time - unless you've changed the Dockerfile.)
+
+Make a note of the container name. We will need it to extract the firmware binary from the container. In the above screenshot, the container is called **reverent_jackson**
+
+In the Command Prompt, type the following (replace **reverent_jackson** with your container name):
+
+```
+docker cp reverent_jackson:/work/RTK_Everywhere/build/esp32.esp32.esp32/RTK_Everywhere.ino.bin .
+```
+
+Hey presto! A file called `RTK_Everywhere.ino.bin` appears in the current directory. That's the firmware binary we are going to upload to the ESP32.
+
+If the need the `.elf` file so you can debug code crashes with me-no-dev's [ESP ExceptionDecoder](https://github.com/me-no-dev/EspExceptionDecoder):
+
+```
+docker cp reverent_jackson:/work/RTK_Everywhere/build/esp32.esp32.esp32/RTK_Everywhere.ino.elf .
+```
+
+If you want the files to appear in a more convenient directory, replace the single `.` with a folder path.
+
+The Container compilation is fast, taking around 2 minutes 20 seconds for a full compile. Running the same `arduino-cli compile` command directly in a Command Prompt takes around 3 minutes.
 
 ## Compiling on Windows (Deprecated)
 
