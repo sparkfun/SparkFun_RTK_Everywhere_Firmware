@@ -141,7 +141,7 @@ docker cp reverent_jackson:/work/RTK_Everywhere/build/esp32.esp32.esp32/RTK_Ever
 
 Hey presto! A file called `RTK_Everywhere.ino.bin` appears in the current directory. That's the firmware binary we are going to upload to the ESP32.
 
-If the need the `.elf` file so you can debug code crashes with me-no-dev's [ESP ExceptionDecoder](https://github.com/me-no-dev/EspExceptionDecoder):
+If you need the `.elf` file so you can debug code crashes with me-no-dev's [ESP ExceptionDecoder](https://github.com/me-no-dev/EspExceptionDecoder):
 
 ```
 docker cp reverent_jackson:/work/RTK_Everywhere/build/esp32.esp32.esp32/RTK_Everywhere.ino.elf .
