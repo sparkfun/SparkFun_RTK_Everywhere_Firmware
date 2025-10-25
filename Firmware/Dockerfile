@@ -88,6 +88,12 @@ RUN arduino-cli lib install "SparkFun Toolkit"@1.0.6
 WORKDIR /work
 ADD . .
 
+# Get current date
+#RUN echo "$(date +'%b_%d_%Y')" > date_scores.txt
+#RUN DATE_SCORES=$(cat date_scores.txt) && echo "Date: ${DATE_SCORES}"
+#RUN echo "$(date +'%b %d %Y')" > date_no_scores.txt
+#RUN DATE_NO_SCORES=$(cat date_no_scores.txt) && echo "Date: ${DATE_NO_SCORES}"
+
 # Patch libmbedtls and libbt
 WORKDIR /work/RTK_Everywhere/Patch
 RUN ESP_IDF=$(ls /root/.arduino15/packages/esp32/tools/esp32-arduino-libs | grep idf-release) \
@@ -113,7 +119,7 @@ RUN cp RTKEverywhere.csv "/root/.arduino15/packages/esp32/hardware/esp32/${CORE_
 
 # Compile Sketch
 WORKDIR /work/RTK_Everywhere
-RUN arduino-cli compile --fqbn "esp32:esp32:esp32":DebugLevel=${DEBUG_LEVEL},PSRAM=enabled \
+CMD arduino-cli compile --fqbn "esp32:esp32:esp32":DebugLevel=${DEBUG_LEVEL},PSRAM=enabled \
     ./RTK_Everywhere.ino \
     --build-property build.partitions=RTKEverywhere \
     --build-property upload.maximum_size=4055040 \
@@ -126,9 +132,3 @@ RUN arduino-cli compile --fqbn "esp32:esp32:esp32":DebugLevel=${DEBUG_LEVEL},PSR
     \"-DFIRMWARE_VERSION_MINOR=${FIRMWARE_VERSION_MINOR}\" \
     \"-DENABLE_DEVELOPER=${ENABLE_DEVELOPER}\"" \
     --export-binaries
-
-# Get current date
-#RUN echo "$(date +'%b_%d_%Y')" > date_scores.txt
-#RUN DATE_SCORES=$(cat date_scores.txt) && echo "Date: ${DATE_SCORES}"
-#RUN echo "$(date +'%b %d %Y')" > date_no_scores.txt
-#RUN DATE_NO_SCORES=$(cat date_no_scores.txt) && echo "Date: ${DATE_NO_SCORES}"
