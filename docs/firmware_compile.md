@@ -113,13 +113,13 @@ docker build -t rtk_everywhere_firmware .
 docker build -t rtk_everywhere_firmware --progress=plain .
 ```
 
-* If you rebuild the image completely from scratch, without using the cache, use:
+* If you want to rebuild the image completely from scratch, without using the cache, use:
 
 ```
 docker build -t rtk_everywhere_firmware --progress=plain --no-cache .
 ```
 
-Building the full Image from scratch is slow, taking several minutes. But you should only need to do it once - unless you make any changes to the Dockerfile.
+Building the full Image from scratch is slow, taking several minutes. You should only need to do it once - unless you make any changes to the Dockerfile.
 
 * When you make changes to the source code and want to recompile, use:
 
@@ -143,7 +143,7 @@ By default, the Container name is random. To avoid this, we define one in the **
 
 Run the Container and you should see:
 
-![Container is complete](./img/CompileSource/Container_compilation_complete.png)
+![Container is complete](./img/CompileSource/Container_complete.png)
 
 In the Command Prompt, type the following :
 
@@ -153,7 +153,7 @@ docker cp rtk_everywhere:/RTK_Everywhere.ino.bin .
 
 Hey presto! A file called `RTK_Everywhere.ino.bin` appears in the current directory. That's the firmware binary we are going to upload to the ESP32.
 
-1[Firmware binary](./img/CompileSource/Firmware_binary.png)
+![Firmware binary](./img/CompileSource/Firmware_binary.png)
 
 If you need the `.elf` file so you can debug code crashes with me-no-dev's [ESP ExceptionDecoder](https://github.com/me-no-dev/EspExceptionDecoder):
 
@@ -163,7 +163,7 @@ docker cp rtk_everywhere:/RTK_Everywhere.ino.elf .
 
 If you want the files to appear in a more convenient directory, replace the single `.` with a folder path.
 
-Delete the `rtk_everywhere` container afterwardds, to save disk space, and so you can reuse the same container name next time.
+Delete the `rtk_everywhere` container afterwards, to save disk space and so you can reuse the same container name next time.
 
 ## Compiling on Windows (Deprecated)
 
