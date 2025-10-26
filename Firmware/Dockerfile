@@ -1,4 +1,4 @@
-FROM ubuntu:latest
+FROM ubuntu:latest AS upstream
 
 ARG DEBIAN_FRONTEND=noninteractive
 
@@ -84,6 +84,9 @@ RUN arduino-cli lib install "SparkFun Apple Accessory Arduino Library"@3.0.9
 RUN arduino-cli lib install "SparkFun Authentication Coprocessor Arduino Library"@1.0.0
 RUN arduino-cli lib install "SparkFun Toolkit"@1.0.6
 
+# Copy RTK_Everywhere into /work and build deployment image
+FROM upstream AS deployment
+
 # Create work directory
 WORKDIR /work
 ADD . .
@@ -119,7 +122,7 @@ RUN cp RTKEverywhere.csv "/root/.arduino15/packages/esp32/hardware/esp32/${CORE_
 
 # Compile Sketch
 WORKDIR /work/RTK_Everywhere
-CMD arduino-cli compile --fqbn "esp32:esp32:esp32":DebugLevel=${DEBUG_LEVEL},PSRAM=enabled \
+RUN arduino-cli compile --fqbn "esp32:esp32:esp32":DebugLevel=${DEBUG_LEVEL},PSRAM=enabled \
     ./RTK_Everywhere.ino \
     --build-property build.partitions=RTKEverywhere \
     --build-property upload.maximum_size=4055040 \
@@ -132,3 +135,8 @@ CMD arduino-cli compile --fqbn "esp32:esp32:esp32":DebugLevel=${DEBUG_LEVEL},PSR
     \"-DFIRMWARE_VERSION_MINOR=${FIRMWARE_VERSION_MINOR}\" \
     \"-DENABLE_DEVELOPER=${ENABLE_DEVELOPER}\"" \
     --export-binaries
+
+# Copy the compile output. List the files
+FROM deployment AS output
+COPY --from=deployment /work/RTK_Everywhere/build/esp32.esp32.esp32 /
+CMD echo $(ls /*.*)

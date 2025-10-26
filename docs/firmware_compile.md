@@ -22,19 +22,6 @@ Installing the correct version of the ESP32 core and of each required Arduino li
 
 Here is a step-by-step guide for how to install Docker and compile the firmware from scratch:
 
-### Install Docker Desktop
-
-* Head to [Docker](https://www.docker.com/) and create an account. A free "Personal" account will cover occasional compilations of the firmware
-* Download and install [Docker Desktop](https://docs.docker.com/get-started/get-docker/) - there are versions for Mac, Windows and Linux. You may need to restart to complete the installation.
-* Run the Desktop and sign in
-* On Windows, you may see an error saying "**WSL needs updating** Your version of Windows Subsystem for Linux (WSL) is too old". If you do:
-    * Open a command prompt
-	* Type `wsl --update` to update WSL. At the time of writing, this installs Windows Subsystem for Linux 2.6.1
-	* Restart the Docker Desktop
-* If you are using Docker for the first time, the "What is a container?" and "How do I run a container?" demos are useful
-    * On Windows, you may need to give Docker Desktop permission to access to your Network
-	* You can Stop the container and Delete it when you are done
-
 ### Clone, fork or download the RTK Everywhere Firmware repo
 
 To build the RTK Everywhere Firmware, you obviously need a copy of the source code.
@@ -67,9 +54,24 @@ For the real Wild West experience, you can also download a copy of the `release_
 
 [![Download ZIP - release candidate](./img/CompileSource/Download_Zip.png)](https://github.com/sparkfun/SparkFun_RTK_Everywhere_Firmware/archive/refs/heads/release_candidate.zip "Download ZIP (release_candidate branch)")
 
+### Install Docker Desktop
+
+* Head to [Docker](https://www.docker.com/) and create an account. A free "Personal" account will cover occasional compilations of the firmware
+* Download and install [Docker Desktop](https://docs.docker.com/get-started/get-docker/) - there are versions for Mac, Windows and Linux. You may need to restart to complete the installation.
+* Run the Desktop and sign in
+* On Windows, you may see an error saying "**WSL needs updating** Your version of Windows Subsystem for Linux (WSL) is too old". If you do:
+    * Open a command prompt
+	* Type `wsl --update` to update WSL. At the time of writing, this installs Windows Subsystem for Linux 2.6.1
+	* Restart the Docker Desktop
+* If you are using Docker for the first time, the "What is a container?" and "How do I run a container?" demos are useful
+    * On Windows, you may want to give Docker Desktop permission to access to your Network, so it can access (e.g.) HTML ports
+	* You can Stop the container and Delete it when you are done
+* You may want to prevent Docker from running when your machine starts up
+    * Uncheck "Start Docker Desktop when you sign in to your computer" in the Desktop settings
+
 ### Running the Dockerfile to create an Image
 
-* Make sure you have Docker Desktop running
+* **Make sure you have Docker Desktop running.** You don't need to be logged in, but it needs to be running.
 * Open a Command Prompt and `cd` into the SparkFun_RTK_Everywhere_Firmware folder
 * Check you are in the right place. Type `dir` and hit enter. You should see the following files and folders:
 
@@ -117,39 +119,51 @@ docker build -t rtk_everywhere_firmware --progress=plain .
 docker build -t rtk_everywhere_firmware --progress=plain --no-cache .
 ```
 
-Building the Image is slow, taking several minutes. But you should only need to do it once - unless you make any changes to the Dockerfile.
+Building the full Image from scratch is slow, taking several minutes. But you should only need to do it once - unless you make any changes to the Dockerfile.
 
-### Compile the firmware by running the Image
+* When you make changes to the source code and want to recompile, use:
 
-In Docker Desktop, in the Images tab, you should now be able to see an Image named `rtk_everywhere_firmware`. We now need to Run that image to compile the firmware. Click the triangular Run icon under Actions:
+```
+docker build -t rtk_everywhere_firmware --no-cache-filter deployment .
+```
+
+This uses the cache for the `upstream` stage and avoids recreating the full ubuntu machine. But it ignores the cache for the `deployment` stage, ensuring the code is recompiled.
+
+### Access the firmware by running the Image
+
+In Docker Desktop, in the Images tab, you should now be able to see an Image named `rtk_everywhere_firmware`. We now need to Run that Image to access the firmware binary. Click the triangular Run icon under Actions:
 
 ![Docker image ready to run](./img/CompileSource/Docker_Image.png)
 
-Running the Image will create a Container for the arduino-cli code compilation. The Container name is random, because we didn't define one in the **Optional settings**. It is running the final line of the Dockerfile `CMD arduino-cli compile ...`. Let it run. As the compilation progresses, you will see messages appear in the Logs tab. When the compilation is complete, the Container will stop and you should see:
+Running the Image will create a Container, through which we can access the output of the arduino-cli code compilation.
 
-![Container code compilation is complete](./img/CompileSource/Container_compilation_complete.png)
+By default, the Container name is random. To avoid this, we define one in the **Optional settings** :
 
-You can recompile your code at any time by running the image again. (You don't need to recreate the image each time - unless you've changed the Dockerfile.)
+![Docker Container - named rtk_everywhere](./img/CompileSource/Docker_Container.png)
 
-Make a note of the container name. We will need it to extract the firmware binary from the container. In the above screenshot, the container is called **reverent_jackson**
+Run the Container and you should see:
 
-In the Command Prompt, type the following (replace **reverent_jackson** with your container name):
+![Container is complete](./img/CompileSource/Container_compilation_complete.png)
+
+In the Command Prompt, type the following :
 
 ```
-docker cp reverent_jackson:/work/RTK_Everywhere/build/esp32.esp32.esp32/RTK_Everywhere.ino.bin .
+docker cp rtk_everywhere:/RTK_Everywhere.ino.bin .
 ```
 
 Hey presto! A file called `RTK_Everywhere.ino.bin` appears in the current directory. That's the firmware binary we are going to upload to the ESP32.
 
+1[Firmware binary](./img/CompileSource/Firmware_binary.png)
+
 If you need the `.elf` file so you can debug code crashes with me-no-dev's [ESP ExceptionDecoder](https://github.com/me-no-dev/EspExceptionDecoder):
 
 ```
-docker cp reverent_jackson:/work/RTK_Everywhere/build/esp32.esp32.esp32/RTK_Everywhere.ino.elf .
+docker cp rtk_everywhere:/RTK_Everywhere.ino.elf .
 ```
 
 If you want the files to appear in a more convenient directory, replace the single `.` with a folder path.
 
-The Container compilation is fast, taking around 2 minutes 20 seconds for a full compile. Running the same `arduino-cli compile` command directly in a Command Prompt takes around 3 minutes.
+Delete the `rtk_everywhere` container afterwardds, to save disk space, and so you can reuse the same container name next time.
 
 ## Compiling on Windows (Deprecated)
 
