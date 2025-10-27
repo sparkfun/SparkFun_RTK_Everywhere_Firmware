@@ -1592,8 +1592,6 @@ void logUpdate()
             blockLogging = true;
             return;
         }
-
-        setLoggingType(); // Determine if we are standard, PPP, or custom. Changes logging icon accordingly.
     }
     else if (online.logging == true && settings.enableLogging == false)
     {
@@ -1614,7 +1612,6 @@ void logUpdate()
                 systemPrintln("Log file: log length reached");
             endLogging(false, true); //(gotSemaphore, releaseSemaphore) Close file. Reset parser stats.
             beginLogging();          // Create new file based on current RTC.
-            setLoggingType();        // Determine if we are standard, PPP, or custom. Changes logging icon accordingly.
         }
     }
 
