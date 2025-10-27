@@ -1488,8 +1488,6 @@ void GNSS_LG290P::menuMessages()
     }
 
     clearBuffer(); // Empty buffer of any newline chars
-
-    setLoggingType(); // Determine if we are standard, PPP, or custom. Changes logging icon accordingly.
 }
 
 //----------------------------------------

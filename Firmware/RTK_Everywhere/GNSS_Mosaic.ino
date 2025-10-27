@@ -154,7 +154,6 @@ void menuLogMosaic()
         mosaic->configureLogging();  // This will enable / disable RINEX logging
         mosaic->setMessagesNMEA();   // Enable NMEA messages - this will enable/disable the DSK1 streams
         mosaic->saveConfiguration(); // Save the configuration
-        setLoggingType();            // Update Standard, PPP, or custom for icon selection
     }
 
     clearBuffer(); // Empty buffer of any newline chars
@@ -461,7 +460,6 @@ bool GNSS_MOSAIC::configureBase()
     if (settings.gnssConfiguredBase)
     {
         systemPrintln("Skipping mosaic Base configuration");
-        setLoggingType(); // Needed because logUpdate exits early and never calls setLoggingType
         return true;
     }
 
@@ -480,8 +478,6 @@ bool GNSS_MOSAIC::configureBase()
     response &= setMessagesNMEA();
 
     response &= configureLogging();
-
-    setLoggingType(); // Update Standard, PPP, or custom for icon selection
 
     // Save the current configuration into non-volatile memory (NVM)
     response &= saveConfiguration();
@@ -706,7 +702,6 @@ bool GNSS_MOSAIC::configureRover()
     if (settings.gnssConfiguredRover)
     {
         systemPrintln("Skipping mosaic Rover configuration");
-        setLoggingType(); // Needed because logUpdate exits early and never calls setLoggingType
         return (true);
     }
 
@@ -727,8 +722,6 @@ bool GNSS_MOSAIC::configureRover()
     response &= setMessagesNMEA();
 
     response &= configureLogging();
-
-    setLoggingType(); // Update Standard, PPP, or custom for icon selection
 
     // Save the current configuration into non-volatile memory (NVM)
     response &= saveConfiguration();
@@ -1737,7 +1730,6 @@ void GNSS_MOSAIC::menuMessages()
 
     clearBuffer(); // Empty buffer of any newline chars
 
-    setLoggingType(); // Update Standard, PPP, or custom for icon selection
 }
 
 //----------------------------------------

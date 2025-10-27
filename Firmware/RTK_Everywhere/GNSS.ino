@@ -114,8 +114,16 @@ void gnssUpdate()
     // Allow the GNSS platform to update itself
     gnss->update();
 
-    if (settings.gnssConfigureRequest == 0)
+    if (gnssConfigureComplete() == true)
+    {
+        // We need to establish the logging type:
+        //  After a device has completed boot up (the GNSS may or may not have been reconfigured)
+        //  After a user changes the message configurations (NMEA, RTCM, or OTHER).
+        if (loggingType == LOGGING_UNKNOWN)
+            setLoggingType(); // Update Standard, PPP, or custom for icon selection
+
         return; // No configuration requests
+    }
 
     // Handle any requested configuration changes
     // Only update the GNSS receiver once the CLI, serial menu, and Web Config interfaces are disconnected
@@ -275,6 +283,7 @@ void gnssUpdate()
             {
                 gnssConfigureClear(GNSS_CONFIG_MESSAGE_RATE_NMEA);
                 gnssConfigure(GNSS_CONFIG_SAVE); // Request receiver commit this change to NVM
+                setLoggingType();                // Update Standard, PPP, or custom for icon selection
             }
         }
 
@@ -290,6 +299,7 @@ void gnssUpdate()
                 {
                     gnssConfigureClear(GNSS_CONFIG_MESSAGE_RATE_RTCM_ROVER);
                     gnssConfigure(GNSS_CONFIG_SAVE); // Request receiver commit this change to NVM
+                    setLoggingType();                // Update Standard, PPP, or custom for icon selection
                 }
             }
         }
@@ -306,6 +316,7 @@ void gnssUpdate()
                 {
                     gnssConfigureClear(GNSS_CONFIG_MESSAGE_RATE_RTCM_BASE);
                     gnssConfigure(GNSS_CONFIG_SAVE); // Request receiver commit this change to NVM
+                    setLoggingType();                // Update Standard, PPP, or custom for icon selection
                 }
             }
         }
@@ -315,6 +326,7 @@ void gnssUpdate()
             // TODO - It is not clear where LG290P PQTM messages are being enabled
             gnssConfigureClear(GNSS_CONFIG_MESSAGE_RATE_OTHER);
             gnssConfigure(GNSS_CONFIG_SAVE); // Request receiver commit this change to NVM
+            setLoggingType();                // Update Standard, PPP, or custom for icon selection
         }
 
         if (gnssConfigureRequested(GNSS_CONFIG_TILT))

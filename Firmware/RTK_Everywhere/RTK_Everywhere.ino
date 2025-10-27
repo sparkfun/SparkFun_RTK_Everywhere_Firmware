@@ -616,7 +616,6 @@ volatile static int combinedSpaceRemaining; // Overrun indicator
 volatile static uint64_t logFileSize;       // Updated with each write
 int bufferOverruns;                         // Running count of possible data losses since power-on
 
-bool zedUartPassed; // Goes true during testing if ESP can communicate with ZED over UART
 const uint8_t btEscapeCharacter = '+';
 const uint8_t btMaxEscapeCharacters = 3; // Number of characters needed to enter remote command mode over Bluetooth
 

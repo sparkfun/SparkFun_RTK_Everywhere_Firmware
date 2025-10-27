@@ -181,7 +181,6 @@ void menuLog()
         {
             endLogging(false, true); //(gotSemaphore, releaseSemaphore) Close file. Reset parser stats.
             beginLogging();          // Create new file based on current RTC.
-            setLoggingType();        // Determine if we are standard, PPP, or custom. Changes logging icon accordingly.
         }
         else if (incoming == 5 && settings.enableLogging == true)
         {

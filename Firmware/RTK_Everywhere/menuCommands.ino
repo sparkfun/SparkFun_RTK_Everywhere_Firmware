@@ -1508,7 +1508,6 @@ SettingValueResponse updateSettingWithValue(bool inCommands, const char *setting
         {
             endLogging(false, true); //(gotSemaphore, releaseSemaphore) Close file. Reset parser stats.
             beginLogging();          // Create new file based on current RTC.
-            setLoggingType();        // Determine if we are standard, PPP, or custom. Changes logging icon accordingly.
 
             char newFileNameCSV[sizeof("logFileName,") + sizeof(logFileName) + 1];
             snprintf(newFileNameCSV, sizeof(newFileNameCSV), "logFileName,%s,", logFileName);
