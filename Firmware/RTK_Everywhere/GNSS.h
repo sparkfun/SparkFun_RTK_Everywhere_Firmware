@@ -190,6 +190,9 @@ class GNSS
     // Returns minutes or zero if not online
     virtual uint8_t getMinute();
 
+    // Returns the current mode: Base/Rover/etc
+    virtual uint8_t getMode();
+
     // Returns month number or zero if not online
     virtual uint8_t getMonth();
 
@@ -226,6 +229,12 @@ class GNSS
 
     // Returns full year, ie 2023, not 23.
     virtual uint16_t getYear();
+
+    // Helper functions for the current mode as read from the GNSS receiver 
+    // Not to be confused with inRoverMode() and inBaseMode() used in States.ino
+    virtual bool gnssInBaseFixedMode();
+    virtual bool gnssInBaseSurveyInMode();
+    virtual bool gnssInRoverMode();
 
     // Antenna Short / Open detection
     virtual bool isAntennaShorted();

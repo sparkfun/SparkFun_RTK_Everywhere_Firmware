@@ -166,12 +166,10 @@ bool GNSS_UM980::checkPPPRates()
 //----------------------------------------
 bool GNSS_UM980::configureBase()
 {
-    // Determine current mode. If we are already in Rover, no changes needed
-    //  0 - Unknown, 1 - Rover Survey, 2 - Rover UAV, 3 - Rover Auto, 4 - Base Survey-in, 5 - Base fixed
-    int currentMode = getMode();
-    if (settings.fixedBase == false && currentMode == 4)
+    // If we are already in the appropriate base mode, no changes needed
+    if (settings.fixedBase == false && gnssInBaseSurveyInMode())
         return (true);
-    if (settings.fixedBase == true && currentMode == 5)
+    if (settings.fixedBase == true && gnssInBaseFixedMode())
         return (true);
 
     // Set the dynamic mode. This will cancel any base averaging mode and is needed
@@ -235,16 +233,6 @@ bool GNSS_UM980::configureOnce()
             }
 
             systemPrintln("UM980 has completed reboot.");
-
-            // configureOnce() should only be run after a system level factory reset
-            // Other bits to enable NMEA and RTCM should be enabled so no need to enable messages here
-
-            // // Re-enable messages
-            // gnssConfigure(GNSS_CONFIG_MESSAGE_RATE_NMEA);
-            // if (inBaseMode())
-            //     gnssConfigure(GNSS_CONFIG_MESSAGE_RATE_RTCM_BASE);
-            // else
-            //     gnssConfigure(GNSS_CONFIG_MESSAGE_RATE_RTCM_ROVER);
         }
     }
 
@@ -867,16 +855,39 @@ uint16_t GNSS_UM980::getYear()
 }
 
 //----------------------------------------
-// Returns true if the device is in Rover mode
-// Currently the only two modes are Rover or Base
+// Returns true if the device is in Base Fixed mode
 //----------------------------------------
-bool GNSS_UM980::inRoverMode()
+bool GNSS_UM980::gnssInBaseFixedMode()
 {
-    // Determine which state we are in
-    if (settings.lastState == STATE_BASE_NOT_STARTED)
-        return (false);
+    //  0 - Unknown, 1 - Rover Survey, 2 - Rover UAV, 3 - Rover Auto, 4 - Base Survey-in, 5 - Base fixed
+    if (getMode() == 5)
+        return (true);
+    return (false);
+}
 
-    return (true); // Default to Rover
+//----------------------------------------
+// Returns true if the device is in Base Survey-in mode
+//----------------------------------------
+bool GNSS_UM980::gnssInBaseSurveyInMode()
+{
+    //  0 - Unknown, 1 - Rover Survey, 2 - Rover UAV, 3 - Rover Auto, 4 - Base Survey-in, 5 - Base fixed
+    if (getMode() == 4)
+        return (true);
+
+    return (false);
+}
+
+//----------------------------------------
+// Returns true if the device is in Rover mode
+//----------------------------------------
+bool GNSS_UM980::gnssInRoverMode()
+{
+    //  0 - Unknown, 1 - Rover Survey, 2 - Rover UAV, 3 - Rover Auto, 4 - Base Survey-in, 5 - Base fixed
+    int currentMode = getMode();
+    if (currentMode >= 1 && currentMode <= 3)
+        return (true);
+
+    return (false);
 }
 
 // If we issue a library command that must wait for a response, we don't want
@@ -1142,8 +1153,8 @@ void GNSS_UM980::menuMessages()
 
             systemPrintln("Reset to Defaults");
 
-            gnssConfigure(GNSS_CONFIG_MESSAGE_RATE_NMEA); // Request receiver to use new settings
-            if (inBaseMode())
+            gnssConfigure(GNSS_CONFIG_MESSAGE_RATE_NMEA);          // Request receiver to use new settings
+            if (inBaseMode())                                      // If the current system state is Base
                 gnssConfigure(GNSS_CONFIG_MESSAGE_RATE_RTCM_BASE); // Request receiver to use new settings
             else
                 gnssConfigure(GNSS_CONFIG_MESSAGE_RATE_RTCM_ROVER); // Request receiver to use new settings
@@ -1178,8 +1189,8 @@ void GNSS_UM980::menuMessages()
             else
                 systemPrintln("Reset to PPP Logging (NMEAx5 / RTCMx4 - 30 second decimation)");
 
-            gnssConfigure(GNSS_CONFIG_MESSAGE_RATE_NMEA); // Request receiver to use new settings
-            if (inBaseMode())
+            gnssConfigure(GNSS_CONFIG_MESSAGE_RATE_NMEA);          // Request receiver to use new settings
+            if (inBaseMode())                                      // If the current system state is Base
                 gnssConfigure(GNSS_CONFIG_MESSAGE_RATE_RTCM_BASE); // Request receiver to use new settings
             else
                 gnssConfigure(GNSS_CONFIG_MESSAGE_RATE_RTCM_ROVER); // Request receiver to use new settings
@@ -1598,7 +1609,7 @@ bool GNSS_UM980::setMessagesNMEA()
         um980MessagesEnabled_RTCM_Base = false;
 
         // Request reconfigure of RTCM
-        if (inBaseMode())
+        if (inBaseMode()) // If the current system state is Base
             gnssConfigure(GNSS_CONFIG_MESSAGE_RATE_RTCM_BASE);
         else
             gnssConfigure(GNSS_CONFIG_MESSAGE_RATE_RTCM_ROVER);

@@ -96,7 +96,8 @@ void stateUpdate()
 
             baseStatusLedOff();
 
-            gnssConfigure(GNSS_CONFIG_ROVER); // Request reconfigure to rover mode
+            if(gnss->gnssInRoverMode() == false)
+                gnssConfigure(GNSS_CONFIG_ROVER); // Request reconfigure to rover mode
 
             setMuxport(settings.dataPortChannel); // Return mux to original channel
 

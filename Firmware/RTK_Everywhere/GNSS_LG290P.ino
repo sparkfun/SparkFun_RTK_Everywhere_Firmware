@@ -217,55 +217,24 @@ bool GNSS_LG290P::configure()
 }
 
 //----------------------------------------
-// Configure specific aspects of the receiver for rover mode
-//----------------------------------------
-bool GNSS_LG290P::configureRover()
-{
-    Serial.println("Config rover");
-
-    int currentMode = getMode();
-    if (currentMode == 1) // 0 - Unknown, 1 - Rover, 2 - Base
-    {
-        if (settings.debugGnssConfig)
-            systemPrintln("Skipping LG290P Rover configuration");
-        return (true); // No changes needed
-    }
-
-    bool response = _lg290p->setModeRover(false); // Don't wait for save and reset
-    // Setting mode to rover should disable any survey-in
-
-    gnssConfigure(GNSS_CONFIG_FIX_RATE);
-    gnssConfigure(GNSS_CONFIG_MESSAGE_RATE_RTCM_ROVER);
-    gnssConfigure(GNSS_CONFIG_MESSAGE_RATE_NMEA);
-    gnssConfigure(GNSS_CONFIG_RESET); // Mode change requires reset
-
-    return (response);
-}
-
-//----------------------------------------
 // Configure specific aspects of the receiver for base mode
 //----------------------------------------
 bool GNSS_LG290P::configureBase()
 {
     bool response = true;
 
-    int currentMode = getMode();
-    uint8_t surveyInMode = getSurveyInMode(); // 0 - Disabled, 1 - Survey-in mode, 2 - Fixed mode
-
-    if (currentMode == 2) // 0 - Unknown, 1 - Rover, 2 - Base
+    if (settings.fixedBase == false && gnssInBaseSurveyInMode())
     {
-        if (settings.fixedBase == true && surveyInMode == 2)
-        {
-            if (settings.debugGnssConfig)
-                systemPrintln("Skipping - LG290P is already in Fixed Base configuration");
-            return (true); // No changes needed
-        }
-        if (settings.fixedBase == false && surveyInMode == 1)
-        {
-            if (settings.debugGnssConfig)
-                systemPrintln("Skipping - LG290P is already in Survey-in Base configuration");
-            return (true); // No changes needed
-        }
+        if (settings.debugGnssConfig)
+            systemPrintln("Skipping - LG290P is already in Fixed Base configuration");
+        return (true); // No changes needed
+    }
+
+    if (settings.fixedBase == true && gnssInBaseFixedMode())
+    {
+        if (settings.debugGnssConfig)
+            systemPrintln("Skipping - LG290P is already in Survey-in Base configuration");
+        return (true); // No changes needed
     }
 
     // If the device is set to Survey-In, we must allow the device to be configured.
@@ -286,7 +255,7 @@ bool GNSS_LG290P::configureBase()
     // We set base mode here because we don't want to reset the module right before we (potentially) start a survey-in
     // We wait for States.ino to change us from base settle, to survey started, at which time the surveyInStart() is
     // issued.
-    if (currentMode != 2) // 0 - Unknown, 1 - Rover, 2 - Base
+    if (gnssInRoverMode() == true) // 0 - Unknown, 1 - Rover, 2 - Base
     {
         response &= _lg290p->setModeBase(false); // Don't save and reset
         if (settings.debugGnssConfig && response == false)
@@ -295,7 +264,7 @@ bool GNSS_LG290P::configureBase()
 
     // Switching to Base Mode should disable any currently running survey-in
     // But if we were already in base mode, then disable any currently running survey-in
-    if (surveyInMode == 1 || surveyInMode == 2)
+    if (gnssInBaseSurveyInMode() || gnssInBaseFixedMode())
     {
         response &= disableSurveyIn(false); // Don't save and reset
         if (settings.debugGnssConfig && response == false)
@@ -323,6 +292,29 @@ bool GNSS_LG290P::configureBase()
         if (settings.debugGnssConfig && response)
             systemPrintln("LG290P Base configured");
     }
+
+    return (response);
+}
+
+//----------------------------------------
+// Configure specific aspects of the receiver for rover mode
+//----------------------------------------
+bool GNSS_LG290P::configureRover()
+{
+    if (gnssInRoverMode()) // 0 - Unknown, 1 - Rover, 2 - Base
+    {
+        if (settings.debugGnssConfig)
+            systemPrintln("Skipping LG290P Rover configuration");
+        return (true); // No changes needed
+    }
+
+    bool response = _lg290p->setModeRover(false); // Don't wait for save and reset
+    // Setting mode to rover should disable any survey-in
+
+    gnssConfigure(GNSS_CONFIG_FIX_RATE);
+    gnssConfigure(GNSS_CONFIG_MESSAGE_RATE_RTCM_ROVER);
+    gnssConfigure(GNSS_CONFIG_MESSAGE_RATE_NMEA);
+    gnssConfigure(GNSS_CONFIG_RESET); // Mode change requires reset
 
     return (response);
 }
@@ -502,23 +494,18 @@ bool GNSS_LG290P::fixedBaseStart()
         return (false);
 
     // Read, modify, write
-    int currentMode = getMode();
-    uint8_t surveyInMode = getSurveyInMode(); // 0 - Disabled, 1 - Survey-in mode, 2 - Fixed mode
 
-    if (currentMode == 2) // 0 - Unknown, 1 - Rover, 2 - Base
+    if (settings.fixedBase == true && gnssInBaseFixedMode())
     {
-        if (settings.fixedBase == true && surveyInMode == 2)
-        {
-            if (settings.debugGnssConfig)
-                systemPrintln("Skipping - LG290P is already in Fixed Base configuration");
-            return (true); // No changes needed
-        }
-        if (settings.fixedBase == false && surveyInMode == 1)
-        {
-            if (settings.debugGnssConfig)
-                systemPrintln("Skipping - LG290P is already in Survey-in Base configuration");
-            return (true); // No changes needed
-        }
+        if (settings.debugGnssConfig)
+            systemPrintln("Skipping - LG290P is already in Fixed Base configuration");
+        return (true); // No changes needed
+    }
+    if (settings.fixedBase == false && gnssInBaseSurveyInMode())
+    {
+        if (settings.debugGnssConfig)
+            systemPrintln("Skipping - LG290P is already in Survey-in Base configuration");
+        return (true); // No changes needed
     }
 
     if (settings.fixedBaseCoordinateType == COORD_TYPE_ECEF)
@@ -1090,16 +1077,42 @@ uint16_t GNSS_LG290P::getYear()
 }
 
 //----------------------------------------
-// Returns true if the device is in Rover mode
-// Currently the only two modes are Rover or Base
+// Returns true if the device is in Base Fixed mode
 //----------------------------------------
-bool GNSS_LG290P::inRoverMode()
+bool GNSS_LG290P::gnssInBaseFixedMode()
 {
-    // Determine which state we are in
-    if (settings.lastState == STATE_BASE_NOT_STARTED)
-        return (false);
+    // 0 - Unknown, 1 - Rover, 2 - Base
+    if (getMode() == 2)
+    {
+        if (getSurveyInMode() == 2) // 0 - Disabled, 1 - Survey-in mode, 2 - Fixed mode
+            return (true);
+    }
+    return (false);
+}
 
-    return (true); // Default to Rover
+//----------------------------------------
+// Returns true if the device is in Base Survey In mode
+//----------------------------------------
+bool GNSS_LG290P::gnssInBaseSurveyInMode()
+{
+    // 0 - Unknown, 1 - Rover, 2 - Base
+    if (getMode() == 2)
+    {
+        if (getSurveyInMode() == 1) // 0 - Disabled, 1 - Survey-in mode, 2 - Fixed mode
+            return (true);
+    }
+    return (false);
+}
+
+//----------------------------------------
+// Returns true if the device is in Rover mode
+//----------------------------------------
+bool GNSS_LG290P::gnssInRoverMode()
+{
+    // 0 - Unknown, 1 - Rover, 2 - Base
+    if (getMode() == 1)
+        return (true);
+    return (false);
 }
 
 // If we issue a library command that must wait for a response, we don't want
@@ -1404,7 +1417,7 @@ void GNSS_LG290P::menuMessages()
                 settings.lg290pMessageRatesPQTM[x] = lgMessagesPQTM[x].msgDefaultRate;
 
             gnssConfigure(GNSS_CONFIG_MESSAGE_RATE_NMEA);
-            if (inBaseMode())
+            if (inBaseMode()) // If the system is in Base mode
                 gnssConfigure(GNSS_CONFIG_MESSAGE_RATE_RTCM_BASE);
             else
                 gnssConfigure(GNSS_CONFIG_MESSAGE_RATE_RTCM_ROVER);
@@ -2286,12 +2299,11 @@ bool GNSS_LG290P::setMultipathMitigation(bool enableMultipathMitigation)
 }
 
 //----------------------------------------
-// Returns the current mode
+// Returns the current mode, Base/Rover/etc
 // 0 - Unknown, 1 - Rover, 2 - Base
 //----------------------------------------
 uint8_t GNSS_LG290P::getMode()
 {
-    // The fix rate can only be set in rover mode. Return false if we are in base mode.
     int currentMode = 0;
     if (online.gnss)
         _lg290p->getMode(currentMode);
@@ -2310,14 +2322,13 @@ bool GNSS_LG290P::setRate(double secondsBetweenSolutions)
 
     // The fix rate can only be set in rover mode. Return true if we are in base mode.
     // This allows the gnssUpdate() to clear the bit.
-    int currentMode = getMode();
-    if (currentMode == 2) // Base
-        return (true);    // Nothing to modify at this time
+    if (gnssInBaseSurveyInMode() || gnssInBaseFixedMode()) // Base
+        return (true);                                     // Nothing to modify at this time
 
     bool response = true;
 
     // Change to rover mode
-    if (currentMode != 1) // 0 - Unknown, 1 - Rover, 2 - Base
+    if (gnssInRoverMode() == false)
     {
         response &= _lg290p->setModeRover(); // Wait for save and reset
         if (response == false && settings.debugGnssConfig)

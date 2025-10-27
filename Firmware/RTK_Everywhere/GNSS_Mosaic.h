@@ -733,6 +733,9 @@ class GNSS_MOSAIC : GNSS
     // Returns minutes or zero if not online
     uint8_t getMinute();
 
+    // Returns the current mode: Base/Rover/etc
+    uint8_t getMode();
+
     // Returns month number or zero if not online
     uint8_t getMonth();
 
@@ -777,9 +780,10 @@ class GNSS_MOSAIC : GNSS
     // Returns full year, ie 2023, not 23.
     uint16_t getYear();
 
-    // Returns true if the device is in Rover mode
-    // Currently the only two modes are Rover or Base
-    bool inRoverMode();
+    // Helper functions for the current mode as read from the GNSS receiver 
+    bool gnssInBaseFixedMode();
+    bool gnssInBaseSurveyInMode();
+    bool gnssInRoverMode();
 
     // Antenna Short / Open detection
     bool isAntennaShorted();

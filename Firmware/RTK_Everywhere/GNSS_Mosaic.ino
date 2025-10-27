@@ -1125,6 +1125,15 @@ uint8_t GNSS_MOSAIC::getMinute()
 }
 
 //----------------------------------------
+// Returns the current mode: Base/Rover/etc
+//----------------------------------------
+uint8_t GNSS_MOSAIC::getMode()
+{
+    // TODO
+    return 0;
+}
+
+//----------------------------------------
 // Returns month number or zero if not online
 //----------------------------------------
 uint8_t GNSS_MOSAIC::getMonth()
@@ -1264,16 +1273,28 @@ uint16_t GNSS_MOSAIC::getYear()
 }
 
 //----------------------------------------
-// Returns true if the device is in Rover mode
-// Currently the only two modes are Rover or Base
+// Returns true if the device is in Base Fixed mode
 //----------------------------------------
-bool GNSS_MOSAIC::inRoverMode()
+bool GNSS_MOSAIC::gnssInBaseFixedMode()
 {
-    // Determine which state we are in
-    if (settings.lastState == STATE_BASE_NOT_STARTED)
-        return (false);
-
-    return (true); // Default to Rover
+    // TODO
+    return (false);
+}
+//----------------------------------------
+// Returns true if the device is in Base Survey In mode
+//----------------------------------------
+bool GNSS_MOSAIC::gnssInBaseSurveyInMode()
+{
+    // TODO
+    return (false);
+}
+//----------------------------------------
+// Returns true if the device is in Rover mode
+//----------------------------------------
+bool GNSS_MOSAIC::gnssInRoverMode()
+{
+    // TODO
+    return (false);
 }
 
 //----------------------------------------
@@ -1624,7 +1645,7 @@ void GNSS_MOSAIC::menuMessagesRTCM(bool rover)
                 if ((interval >= 0.1) && (interval <= 600.0))
                 {
                     intervalPtr[incoming] = interval;
-                    if (inBaseMode())
+                    if (inBaseMode())                                      // If the system state is Base mode
                         gnssConfigure(GNSS_CONFIG_MESSAGE_RATE_RTCM_BASE); // Request receiver to use new settings
                     else
                         gnssConfigure(GNSS_CONFIG_MESSAGE_RATE_RTCM_ROVER); // Request receiver to use new settings
@@ -1703,8 +1724,8 @@ void GNSS_MOSAIC::menuMessages()
             for (int x = 0; x < MAX_MOSAIC_RTCM_V3_MSG; x++)
                 settings.mosaicMessageEnabledRTCMv3Base[x] = mosaicMessagesRTCMv3[x].defaultEnabled;
 
-            gnssConfigure(GNSS_CONFIG_MESSAGE_RATE_NMEA); // Request receiver to use new settings
-            if (inBaseMode())
+            gnssConfigure(GNSS_CONFIG_MESSAGE_RATE_NMEA);          // Request receiver to use new settings
+            if (inBaseMode())                                      // If the system state is Base mode
                 gnssConfigure(GNSS_CONFIG_MESSAGE_RATE_RTCM_BASE); // Request receiver to use new settings
             else
                 gnssConfigure(GNSS_CONFIG_MESSAGE_RATE_RTCM_ROVER); // Request receiver to use new settings

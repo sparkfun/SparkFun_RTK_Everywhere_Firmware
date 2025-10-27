@@ -461,7 +461,7 @@ class GNSS_ZED : GNSS
 
     bool fixRateIsAllowed(uint32_t fixRateMs);
 
-    //Return min/max rate in ms
+    // Return min/max rate in ms
     uint32_t fixRateGetMinimumMs();
 
     uint32_t fixRateGetMaximumMs();
@@ -529,6 +529,10 @@ class GNSS_ZED : GNSS
     // Returns minutes or zero if not online
     uint8_t getMinute();
 
+    // Returns the current mode: Base/Rover/etc
+    // 0 - Rover, 1 - Base Survey-In, 2 - Base Fixed
+    uint8_t getMode();
+
     // Returns month number or zero if not online
     uint8_t getMonth();
 
@@ -567,6 +571,11 @@ class GNSS_ZED : GNSS
 
     // Returns full year, ie 2023, not 23.
     uint16_t getYear();
+
+    // Helper functions for the current mode as read from the GNSS receiver 
+    bool gnssInBaseFixedMode();
+    bool gnssInBaseSurveyInMode();
+    bool gnssInRoverMode();
 
     // Antenna Short / Open detection
     bool isAntennaShorted();
@@ -652,6 +661,9 @@ class GNSS_ZED : GNSS
     // Outputs:
     //   Returns the number of correction data bytes written
     int pushRawData(uint8_t *dataToSend, int dataLength);
+
+    // Set callback functions (PVT, etc) for u-blox library
+    bool registerCallbacks();
 
     // Hardware or software reset the GNSS
     bool reset();

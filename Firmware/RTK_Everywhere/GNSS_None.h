@@ -293,6 +293,12 @@ class GNSS_None : public GNSS
         return _minute;
     }
 
+    // Returns the current mode: Base/Rover/etc
+    uint8_t getMode()
+    {
+        return 0;
+    }
+
     // Returns month number or zero if not online
     uint8_t getMonth()
     {
@@ -367,6 +373,20 @@ class GNSS_None : public GNSS
     uint16_t getYear()
     {
         return _year;
+    }
+
+    // Helper functions for the current mode as read from the GNSS receiver 
+    bool gnssInBaseFixedMode()
+    {
+        return false;
+    }
+    bool gnssInBaseSurveyInMode()
+    {
+        return false;
+    }
+    bool gnssInRoverMode()
+    {
+        return false;
     }
 
     bool isBlocking()

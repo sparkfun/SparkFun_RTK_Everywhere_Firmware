@@ -307,9 +307,10 @@ class GNSS_LG290P : GNSS
     // Returns full year, ie 2023, not 23.
     uint16_t getYear();
 
-    // Returns true if the device is in Rover mode
-    // Currently the only two modes are Rover or Base
-    bool inRoverMode();
+    // Helper functions for the current mode as read from the GNSS receiver 
+    bool gnssInBaseFixedMode();
+    bool gnssInBaseSurveyInMode();
+    bool gnssInRoverMode();
 
     bool isBlocking();
 
