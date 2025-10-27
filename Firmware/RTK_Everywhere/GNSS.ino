@@ -26,10 +26,10 @@ enum
     GNSS_CONFIG_MESSAGE_RATE_OTHER,      // Update any other messages (UBX, PQTM, etc)
     GNSS_CONFIG_HAS_E6,                  // Enable/disable HAS E6 capabilities
     GNSS_CONFIG_MULTIPATH,
-    GNSS_CONFIG_TILT,      // Enable/disable any output needed for tilt compensation
+    GNSS_CONFIG_TILT,            // Enable/disable any output needed for tilt compensation
     GNSS_CONFIG_EXT_CORRECTIONS, // Enable / disable corrections protocol(s) on the Radio External port
-    GNSS_CONFIG_SAVE,      // Indicates current settings be saved to GNSS receiver NVM
-    GNSS_CONFIG_RESET,     // Indicates receiver needs resetting
+    GNSS_CONFIG_SAVE,            // Indicates current settings be saved to GNSS receiver NVM
+    GNSS_CONFIG_RESET,           // Indicates receiver needs resetting
 
     // Add new entries above here
     GNSS_CONFIG_MAX,
@@ -107,11 +107,14 @@ bool GNSS::supportsAntennaShortOpen()
 
 void gnssUpdate()
 {
+    if (online.gnss == false)
+        return;
+
     // Belt and suspender
     if (gnss == nullptr)
         return;
 
-    // Allow the GNSS platform to update itself
+        // Allow the GNSS platform to update itself
     gnss->update();
 
     if (gnssConfigureComplete() == true)

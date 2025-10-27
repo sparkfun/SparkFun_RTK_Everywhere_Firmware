@@ -97,7 +97,7 @@ void GNSS_LG290P::begin()
 
     systemPrintln("GNSS LG290P online");
 
-    // Turn on/off debug messages
+    // Turn on debug messages if needed
     if (settings.debugGnss)
         debuggingEnable();
 
@@ -204,9 +204,6 @@ bool GNSS_LG290P::configure()
             delay(1000); // Wait for device to reboot
         }
 
-        if (configureOnce())
-            return (true);
-
         // If we fail, reset LG290P
         systemPrintln("Resetting LG290P to complete configuration");
 
@@ -217,16 +214,6 @@ bool GNSS_LG290P::configure()
 
     systemPrintln("LG290P failed to configure");
     return (false);
-}
-
-//----------------------------------------
-// Configure the basic LG290P settings (rover/base agnostic)
-//----------------------------------------
-bool GNSS_LG290P::configureOnce()
-{
-    // Nothing to do once
-    // All config gets done either from mode switches or user modifications
-    return (true);
 }
 
 //----------------------------------------
@@ -463,12 +450,6 @@ void GNSS_LG290P::debuggingEnable()
         _lg290p->enableDebugging();       // Print all debug to Serial
         _lg290p->enablePrintRxMessages(); // Print incoming processed messages from SEMP
     }
-}
-
-//----------------------------------------
-void GNSS_LG290P::enableGgaForNtrip()
-{
-    // TODO lg290pEnableGgaForNtrip();
 }
 
 //----------------------------------------
@@ -1964,16 +1945,11 @@ bool GNSS_LG290P::setMessagesNMEA()
                     systemPrintf("Enable NMEA failed at messageNumber %d %s.\r\n", messageNumber,
                                  lgMessagesNMEA[messageNumber].msgTextName);
 
-                // If we are using IP based corrections, we need to send local data to the PPL
-                // The PPL requires being fed GPGGA/ZDA, and RTCM1019/1020/1042/1046
-                if (pointPerfectServiceUsesKeys())
+                // Mark messages needed for other services (NTRIP Client, PointPerfect, etc) as enabled if rate > 0
+                if (settings.lg290pMessageRatesNMEA[messageNumber] > 0)
                 {
-                    // Mark PPL required messages as enabled if rate > 0
-                    if (settings.lg290pMessageRatesNMEA[messageNumber] > 0)
-                    {
-                        if (strcmp(lgMessagesNMEA[messageNumber].msgTextName, "GGA") == 0)
-                            gpggaEnabled = true;
-                    }
+                    if (strcmp(lgMessagesNMEA[messageNumber].msgTextName, "GGA") == 0)
+                        gpggaEnabled = true;
                 }
             }
         }
@@ -1985,20 +1961,20 @@ bool GNSS_LG290P::setMessagesNMEA()
             break; // Don't step through portNumbers
     }
 
-    if (pointPerfectServiceUsesKeys())
+    // Enable GGA if needed for other services
+    if (gpggaEnabled == false)
     {
         // Force on any messages that are needed for PPL
-        // If firmware is 4 or higher, use setMessageRateOnPort, otherwise setMessageRate
-        if (lg290pFirmwareVersion >= 4)
+        // Enable GGA for NTRIP
+        if (pointPerfectServiceUsesKeys() ||
+            (settings.enableNtripClient == true && settings.ntripClient_TransmitGGA == true))
         {
-            // Enable GGA on UART 2 (connected to ESP32) only
-            if (gpggaEnabled == false)
+            // If firmware is 4 or higher, use setMessageRateOnPort, otherwise setMessageRate
+            if (lg290pFirmwareVersion >= 4)
+                // Enable GGA. On Torch, LG290P connected to ESP32 on UART 2.
                 response &= _lg290p->setMessageRateOnPort("GGA", 1, 2);
-        }
-        else
-        {
-            // Enable GGA on all UARTs. It's the best we can do.
-            if (gpggaEnabled == false)
+            else
+                // Enable GGA on all UARTs. It's the best we can do.
                 response &= _lg290p->setMessageRate("GGA", 1);
         }
     }
@@ -2377,13 +2353,6 @@ bool GNSS_LG290P::setRate(double secondsBetweenSolutions)
         systemPrintln("Failed to set measurement rate");
 
     return (response);
-}
-
-//----------------------------------------
-bool GNSS_LG290P::setTalkerGNGGA()
-{
-    // TODO lg290pSetTalkerGNGGA();
-    return false;
 }
 
 //----------------------------------------

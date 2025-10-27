@@ -646,8 +646,6 @@ class GNSS_MOSAIC : GNSS
 
     void debuggingEnable();
 
-    void enableGgaForNtrip();
-
     // Restore the GNSS to the factory settings
     void factoryReset();
 
@@ -1022,8 +1020,6 @@ class GNSS_MOSAIC : GNSS
     //   Returns true if the rate was successfully set and false upon
     //   failure
     bool setRate(double secondsBetweenSolutions);
-
-    bool setTalkerGNGGA();
 
     // Enable/disable any output needed for tilt compensation
     bool setTilt();

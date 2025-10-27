@@ -340,9 +340,6 @@ bool GNSS_ZED::configureBase()
 
     update(); // Regularly poll to get latest data
 
-    _zed->setNMEAGPGGAcallbackPtr(
-        nullptr); // Disable GPGGA call back that may have been set during Rover NTRIP Client mode
-
     bool success = false;
     int tryNo = -1;
 

@@ -146,10 +146,6 @@ class GNSS_None : public GNSS
     {
     }
 
-    void enableGgaForNtrip()
-    {
-    }
-
     // Restore the GNSS to the factory settings
     void factoryReset()
     {
@@ -629,11 +625,6 @@ class GNSS_None : public GNSS
     //   Returns true if the rate was successfully set and false upon
     //   failure
     bool setRate(double secondsBetweenSolutions)
-    {
-        return true;
-    }
-
-    bool setTalkerGNGGA()
     {
         return true;
     }

@@ -178,8 +178,6 @@ class GNSS_LG290P : GNSS
 
     bool disableSurveyIn(bool saveAndReset);
 
-    void enableGgaForNtrip();
-
     bool enterConfigMode(unsigned long waitForSemaphoreTimeout_millis);
 
     bool exitConfigMode();
@@ -445,8 +443,6 @@ class GNSS_LG290P : GNSS
     //   Returns true if the rate was successfully set and false upon
     //   failure
     bool setRate(double secondsBetweenSolutions);
-
-    bool setTalkerGNGGA();
 
     // Enable/disable any output needed for tilt compensation
     bool setTilt();

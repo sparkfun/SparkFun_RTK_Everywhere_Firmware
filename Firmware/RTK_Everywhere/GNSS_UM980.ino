@@ -391,12 +391,6 @@ void GNSS_UM980::disableAllOutput()
 }
 
 //----------------------------------------
-void GNSS_UM980::enableGgaForNtrip()
-{
-    // TODO um980EnableGgaForNtrip();
-}
-
-//----------------------------------------
 // Restore the GNSS to the factory settings
 //----------------------------------------
 void GNSS_UM980::factoryReset()
@@ -1628,28 +1622,35 @@ bool GNSS_UM980::setMessagesNMEA()
             }
         }
 
-        // If we are using MQTT based corrections, we need to send local data to the PPL
-        // The PPL requires being fed GPGGA/ZDA, and RTCM1019/1020/1042/1046
-        if (pointPerfectServiceUsesKeys())
+        // Mark certain required messages as enabled if rate > 0
+        if (settings.um980MessageRatesNMEA[messageNumber] > 0)
         {
-            // Mark PPL required messages as enabled if rate > 0
-            if (settings.um980MessageRatesNMEA[messageNumber] > 0)
-            {
-                if (strcmp(umMessagesNMEA[messageNumber].msgTextName, "GPGGA") == 0)
-                    gpggaEnabled = true;
-                else if (strcmp(umMessagesNMEA[messageNumber].msgTextName, "GPZDA") == 0)
-                    gpzdaEnabled = true;
-            }
+            if (strcmp(umMessagesNMEA[messageNumber].msgTextName, "GPGGA") == 0)
+                gpggaEnabled = true;
+            else if (strcmp(umMessagesNMEA[messageNumber].msgTextName, "GPZDA") == 0)
+                gpzdaEnabled = true;
         }
     }
 
-    if (pointPerfectServiceUsesKeys())
+    // Enable GGA if needed for other services
+    if (gpggaEnabled == false)
     {
-        // Force on any messages that are needed for PPL
-        if (gpggaEnabled == false)
+        // If we are using MQTT based corrections, we need to send local data to the PPL
+        // The PPL requires being fed GPGGA/ZDA, and RTCM1019/1020/1042/1046
+        // Enable GGA for NTRIP
+        if (pointPerfectServiceUsesKeys() ||
+            (settings.enableNtripClient == true && settings.ntripClient_TransmitGGA == true))
+        {
             response &= _um980->setNMEAPortMessage("GPGGA", "COM3", 1);
-        if (gpzdaEnabled == false)
+        }
+    }
+
+    if (gpzdaEnabled == false)
+    {
+        if (pointPerfectServiceUsesKeys())
+        {
             response &= _um980->setNMEAPortMessage("GPZDA", "COM3", 1);
+        }
     }
 
     if (response == true)
@@ -1879,13 +1880,6 @@ bool GNSS_UM980::setRate(double secondsBetweenSolutions)
     gnssConfigure(GNSS_CONFIG_MESSAGE_RATE_RTCM_ROVER);
 
     return (true);
-}
-
-//----------------------------------------
-bool GNSS_UM980::setTalkerGNGGA()
-{
-    // TODO um980SetTalkerGNGGA();
-    return false;
 }
 
 //----------------------------------------

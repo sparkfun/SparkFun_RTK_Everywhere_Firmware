@@ -111,8 +111,6 @@ class GNSS
 
     virtual void debuggingEnable();
 
-    virtual void enableGgaForNtrip();
-
     // Restore the GNSS to the factory settings
     virtual void factoryReset();
 
@@ -373,8 +371,6 @@ class GNSS
     //   Returns true if the rate was successfully set and false upon
     //   failure
     virtual bool setRate(double secondsBetweenSolutions);
-
-    virtual bool setTalkerGNGGA();
 
     // Enable/disable any output needed for tilt compensation
     virtual bool setTilt();

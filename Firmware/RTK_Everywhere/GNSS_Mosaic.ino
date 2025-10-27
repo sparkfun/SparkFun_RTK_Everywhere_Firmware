@@ -799,14 +799,6 @@ void GNSS_MOSAIC::debuggingEnable()
 }
 
 //----------------------------------------
-void GNSS_MOSAIC::enableGgaForNtrip()
-{
-    // Set the talker ID to GP
-    // setMessagesNMEA() will enable GGA if needed
-    sendWithResponse("snti,GP\n\r", "NMEATalkerID");
-}
-
-//----------------------------------------
 // Restore the GNSS to the factory settings
 //----------------------------------------
 void GNSS_MOSAIC::factoryReset()
@@ -885,7 +877,7 @@ bool GNSS_MOSAIC::fixedBaseStart()
 
 bool GNSS_MOSAIC::fixRateIsAllowed(uint32_t fixRateMs)
 {
-    //TODO
+    // TODO
     if (fixRateMs != 1000)
         return (false);
     return (true);
@@ -894,14 +886,14 @@ bool GNSS_MOSAIC::fixRateIsAllowed(uint32_t fixRateMs)
 // Return minimum in milliseconds
 uint32_t GNSS_MOSAIC::fixRateGetMinimumMs()
 {
-    //TODO
+    // TODO
     return (1000);
 }
 
 // Return maximum in milliseconds
 uint32_t GNSS_MOSAIC::fixRateGetMaximumMs()
 {
-    //TODO
+    // TODO
     return (1000);
 }
 
@@ -1729,7 +1721,6 @@ void GNSS_MOSAIC::menuMessages()
     }
 
     clearBuffer(); // Empty buffer of any newline chars
-
 }
 
 //----------------------------------------
@@ -2528,12 +2519,6 @@ bool GNSS_MOSAIC::setRate(double secondsBetweenSolutions)
     // The interval of each message or 'group' can be adjusted from 0.1s to 600s
     // RTCMv3 messages are enabled separately
     return true;
-}
-
-//----------------------------------------
-bool GNSS_MOSAIC::setTalkerGNGGA()
-{
-    return sendWithResponse("snti,GN\n\r", "NMEATalkerID");
 }
 
 //----------------------------------------
