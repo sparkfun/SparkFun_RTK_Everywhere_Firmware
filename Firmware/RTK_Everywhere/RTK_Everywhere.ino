@@ -1464,9 +1464,6 @@ void loop()
     DMW_c("periodicDisplay");
     updatePeriodicDisplay();
 
-    DMW_c("gnssUpdate");
-    gnssUpdate();
-
     DMW_c("stateUpdate");
     stateUpdate();
 
@@ -1475,6 +1472,9 @@ void loop()
 
     DMW_c("displayUpdate");
     displayUpdate();
+
+    DMW_c("gnssUpdate");
+    gnssUpdate();
 
     DMW_c("rtcUpdate");
     rtcUpdate(); // Set system time to GNSS once we have fix
