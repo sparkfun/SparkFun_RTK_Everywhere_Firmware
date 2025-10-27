@@ -190,7 +190,7 @@ If you want the files to appear in a more convenient directory, replace the sing
 
 Delete the `rtk_everywhere` container afterwards, to save disk space and so you can reuse the same container name next time. If you forget, you will see an error:
 
-```Conflict. The container name "/rtk_container" is already in use by container. You have to remove (or rename) that container to be able to reuse that name.```
+```Conflict. The container name "/rtk_everywhere" is already in use by container. You have to remove (or rename) that container to be able to reuse that name.```
 
 * **Remember:** when you make changes to the source code and want to recompile, use:
 
@@ -249,10 +249,13 @@ python main_js_zipper.py ../RTK_Everywhere/AP-Config/src/main.js ../RTK_Everywhe
 		arduino-cli compile --fqbn "esp32:esp32:esp32":DebugLevel=none,PSRAM=enabled ./Firmware/RTK_Everywhere/RTK_Everywhere.ino --build-property build.partitions=RTKEverywhere --build-property upload.maximum_size=4055040 --build-property "compiler.cpp.extra_flags=-MMD -c" --export-binaries
 ```
 
-9. Once compiled, upload to the device using the following command where `[COM_PORT]` is the COM port on which the RTK device is located (ie `COM42`).
+9. Once compiled, upload to the device using the following two commands. Replace `COM4` with the COM port on which the RTK device is located.
 
 ```
-		arduino-cli upload -p [COM_PORT] --fqbn esp32:esp32:esp32:UploadSpeed=512000,FlashSize=16M 'Firmware/RTK_Everywhere'
+		esptool.exe --chip esp32 --port \\.\COM4 --baud 460800 --before default_reset --after no_reset write_flash -z --flash_mode dio --flash_freq 80m --flash_size detect 0x1000 RTK_Surveyor.ino.bootloader.bin 0x8000 RTK_Surveyor_Partitions_16MB.bin 0xe000 boot_app0.bin 0x10000 RTK_Surveyor.ino.bin
+
+        esptool.exe --chip esp32 --port \\.\COM4 --before default_reset run
+
 ```
 
 If you are seeing the error:
