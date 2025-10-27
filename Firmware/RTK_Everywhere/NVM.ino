@@ -60,19 +60,15 @@ void loadSettings()
 
     // Temp store any variables from LFS that should override SD
     int resetCount = settings.resetCount;
-    bool gnssConfiguredOnce = settings.gnssConfiguredOnce;
-    bool gnssConfiguredRover = settings.gnssConfiguredRover;
-    bool gnssConfiguredBase = settings.gnssConfiguredBase;
+    uint32_t gnssConfigureRequest = settings.gnssConfigureRequest;
 
     loadSystemSettingsFromFileSD(settingsFileName);
 
     settings.resetCount = resetCount; // resetCount from LFS should override SD
 
-    // Trust gnssConfigured from LittleFS over SD.
+    // Trust gnssConfigureRequest from LittleFS over SD.
     // LittleFS may have been erased, SD could be stale.
-    settings.gnssConfiguredOnce = gnssConfiguredOnce;
-    settings.gnssConfiguredRover = gnssConfiguredRover;
-    settings.gnssConfiguredBase = gnssConfiguredBase;
+    settings.gnssConfigureRequest = gnssConfigureRequest;
 
     // Change empty profile name to 'Profile1' etc
     if (strlen(settings.profileName) == 0)
@@ -340,13 +336,13 @@ void recordSystemSettingsToFile(File *settingsFile)
         break;
 
         case tCmnCnst:
-        break; // Nothing to do here. Let each GNSS add its settings
+            break; // Nothing to do here. Let each GNSS add its settings
         case tCmnRtNm:
-        break; // Nothing to do here. Let each GNSS add its settings
+            break; // Nothing to do here. Let each GNSS add its settings
         case tCnRtRtB:
-        break; // Nothing to do here. Let each GNSS add its settings
+            break; // Nothing to do here. Let each GNSS add its settings
         case tCnRtRtR:
-        break; // Nothing to do here. Let each GNSS add its settings
+            break; // Nothing to do here. Let each GNSS add its settings
 
         case tEspNowPr: {
             // Record ESP-NOW peer MAC addresses
@@ -1744,29 +1740,26 @@ void loadProfileNumber()
         else
         {
             systemPrintln("profileNumber.txt not found");
-            settings.gnssConfiguredOnce = false; // On the next boot, reapply all settings
-            settings.gnssConfiguredBase = false;
-            settings.gnssConfiguredRover = false;
-            recordProfileNumber(0); // Record profile
+            gnssConfigureDefaults(); // Set all bits in the request bitfield to cause the GNSS receiver to go through a
+                                     // full (re)configuration
+            recordProfileNumber(0);  // Record profile
         }
     }
     else
     {
         systemPrintln("profileNumber.txt not found");
-        settings.gnssConfiguredOnce = false; // On the next boot, reapply all settings
-        settings.gnssConfiguredBase = false;
-        settings.gnssConfiguredRover = false;
-        recordProfileNumber(0); // Record profile
+        gnssConfigureDefaults(); // Set all bits in the request bitfield to cause the GNSS receiver to go through a full
+                                 // (re)configuration
+        recordProfileNumber(0);  // Record profile
     }
 
     // We have arbitrary limit of user profiles
     if (profileNumber >= MAX_PROFILE_COUNT)
     {
         systemPrintln("ProfileNumber invalid. Going to zero.");
-        settings.gnssConfiguredOnce = false; // On the next boot, reapply all settings
-        settings.gnssConfiguredBase = false;
-        settings.gnssConfiguredRover = false;
-        recordProfileNumber(0); // Record profile
+        gnssConfigureDefaults(); // Set all bits in the request bitfield to cause the GNSS receiver to go through a full
+                                 // (re)configuration
+        recordProfileNumber(0);  // Record profile
     }
 
     systemPrintf("Using profile #%d\r\n", profileNumber);

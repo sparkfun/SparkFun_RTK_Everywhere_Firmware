@@ -114,7 +114,7 @@ void gnssUpdate()
     if (gnss == nullptr)
         return;
 
-        // Allow the GNSS platform to update itself
+    // Allow the GNSS platform to update itself
     gnss->update();
 
     if (gnssConfigureComplete() == true)
@@ -165,26 +165,14 @@ void gnssUpdate()
 
         if (gnssConfigureRequested(GNSS_CONFIG_BASE))
         {
-            // Change GNSS receiver configuration if we are in base mode, otherwise, just change setting
-            if (inBaseMode() == true)
+            if (gnss->configureBase() == true)
             {
-                if (gnss->configureBase() == true)
-                {
-                    gnssConfigureClear(GNSS_CONFIG_BASE);
-                    gnssConfigure(GNSS_CONFIG_SAVE); // Request receiver commit this change to NVM
-                }
-                else
-                {
-                    systemPrintln("Base config failed");
-                }
+                gnssConfigureClear(GNSS_CONFIG_BASE);
+                gnssConfigure(GNSS_CONFIG_SAVE); // Request receiver commit this change to NVM
             }
             else
             {
-                // We have allowed the settings struct changes, but do not need to apply them to the GNSS receiver at
-                // this time
-                if (settings.debugGnssConfig)
-                    systemPrintln("Not in base mode - clearing bit.");
-                gnssConfigureClear(GNSS_CONFIG_BASE);
+                systemPrintln("Base config failed");
             }
         }
 
@@ -539,8 +527,8 @@ void gnssDetectReceiverType()
     // Note: with this in place, the X5 detection will take a lot longer due to the baud rate change
 #ifdef FLEX_OVERRIDE
     systemPrintln("<<<<<<<<<< !!!!!!!!!! FLEX FORCED !!!!!!!!!! >>>>>>>>>>");
-    // settings.detectedGnssReceiver = GNSS_RECEIVER_UNKNOWN; // This may be causing weirdness on the LG290P. Commenting
-    // for now
+    // settings.detectedGnssReceiver = GNSS_RECEIVER_UNKNOWN; // This may be causing weirdness on the LG290P.
+    // Commenting for now
 #endif
 
     // Start auto-detect if NVM is not yet set

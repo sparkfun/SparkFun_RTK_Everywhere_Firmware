@@ -264,7 +264,7 @@ bool GNSS_LG290P::configureBase()
 
     // Switching to Base Mode should disable any currently running survey-in
     // But if we were already in base mode, then disable any currently running survey-in
-    if (gnssInBaseSurveyInMode() || gnssInBaseFixedMode())
+    if (gnss->gnssInBaseSurveyInMode() || gnss->gnssInBaseFixedMode())
     {
         response &= disableSurveyIn(false); // Don't save and reset
         if (settings.debugGnssConfig && response == false)
@@ -2322,7 +2322,7 @@ bool GNSS_LG290P::setRate(double secondsBetweenSolutions)
 
     // The fix rate can only be set in rover mode. Return true if we are in base mode.
     // This allows the gnssUpdate() to clear the bit.
-    if (gnssInBaseSurveyInMode() || gnssInBaseFixedMode()) // Base
+    if (gnss->gnssInBaseSurveyInMode() || gnss->gnssInBaseFixedMode()) // Base
         return (true);                                     // Nothing to modify at this time
 
     bool response = true;

@@ -1066,7 +1066,7 @@ void tiltDetect()
         {
             present.imu_im19 = true; // Allow tiltUpdate() to run
             settings.detectedTilt = true;
-            settings.gnssConfiguredRover = false; // Update rover settings
+            gnssConfigure(GNSS_CONFIG_TILT); // Request receiver to use new settings
             break;
         }
     }

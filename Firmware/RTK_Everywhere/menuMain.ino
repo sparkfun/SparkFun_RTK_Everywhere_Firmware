@@ -273,7 +273,7 @@ void menuMain()
         // Re-enable GNSS debug once we exit config menus
         gnss->debuggingEnable();
     }
-    
+
     recordSystemSettings(); // Once all menus have exited, record the new settings to LittleFS and config file
 
     clearBuffer();           // Empty buffer of any newline chars
@@ -450,9 +450,9 @@ void menuUserProfiles()
 // Change the active profile number, without unit reset
 void changeProfileNumber(byte newProfileNumber)
 {
-    settings.gnssConfiguredBase = false; // On the next boot, reapply all settings
-    settings.gnssConfiguredRover = false;
-    recordSystemSettings(); // Before switching, we need to record the current settings to LittleFS and SD
+    gnssConfigureDefaults(); // Set all bits in the request bitfield to cause the GNSS receiver to go through a full
+                             // (re)configuration
+    recordSystemSettings();  // Before switching, we need to record the current settings to LittleFS and SD
 
     recordProfileNumber(newProfileNumber);
     profileNumber = newProfileNumber;
@@ -565,8 +565,7 @@ BluetoothRadioType_e mmChangeBluetoothProtocol(BluetoothRadioType_e bluetoothUse
 // Restart Bluetooth radio if settings have changed
 void mmSetBluetoothProtocol(BluetoothRadioType_e bluetoothUserChoice, bool clearBtPairings)
 {
-    if ((bluetoothUserChoice != settings.bluetoothRadioType) 
-        || (clearBtPairings != settings.clearBtPairings))
+    if ((bluetoothUserChoice != settings.bluetoothRadioType) || (clearBtPairings != settings.clearBtPairings))
     {
         bluetoothStop();
         settings.bluetoothRadioType = bluetoothUserChoice;
@@ -713,8 +712,8 @@ void menuRadio()
                 {
                     for (int x = 0; x < settings.espnowPeerCount; x++)
                         espNowRemovePeer(settings.espnowPeers[x]);
-                    
-                    espNowStart(); //Restart ESP-NOW to enable broadcastMAC
+
+                    espNowStart(); // Restart ESP-NOW to enable broadcastMAC
                 }
                 settings.espnowPeerCount = 0;
                 systemPrintln("Radios forgotten");

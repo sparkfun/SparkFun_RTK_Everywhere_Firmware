@@ -748,13 +748,6 @@ struct Settings
     uint16_t navigationRate =
         1; // Ratio between number of measurements and navigation solutions. Default 1 for 4Hz (with measurementRate).
 
-    // Signatures to indicate how the GNSS is configured (Once, Base, Rover, etc.)
-    // Bit 0 indicates if the GNSS has been configured previously.
-    // Bits 1 onwards record the state of critical settings.
-    // Configuration is reapplied if any of those critical settings have changed
-    bool gnssConfiguredOnce = false;
-    bool gnssConfiguredBase = false;
-    bool gnssConfiguredRover = false;
 
     // GNSS UART
     uint16_t serialGNSSRxFullThreshold = 50; // RX FIFO full interrupt. Max of ~128. See pinUART2Task().
@@ -1451,9 +1444,6 @@ const RTK_Settings_Entry rtkSettingsEntries[] =
     { 0, 0, 0, 1, 1, 1, 1, 1, 1, ALL, 1, _bool,     0, & settings.enablePrintPosition, "enablePrintPosition", nullptr, },
     { 0, 1, 0, 1, 1, 1, 1, 1, 1, ALL, 1, _uint16_t, 0, & settings.measurementRateMs, "measurementRateMs", nullptr, },
     { 0, 1, 0, 1, 1, 1, 1, 1, 1, ALL, 1, _uint16_t, 0, & settings.navigationRate, "navigationRate", nullptr, },
-    { 0, 0, 0, 1, 1, 1, 1, 1, 1, ALL, 1, _bool,     0, & settings.gnssConfiguredOnce, "gnssConfiguredOnce", nullptr, },
-    { 0, 0, 0, 1, 1, 1, 1, 1, 1, ALL, 1, _bool,     0, & settings.gnssConfiguredBase, "gnssConfiguredBase", nullptr, },
-    { 0, 0, 0, 1, 1, 1, 1, 1, 1, ALL, 1, _bool,     0, & settings.gnssConfiguredRover, "gnssConfiguredRover", nullptr, },
 
     // Hardware
     { 1, 1, 0, 1, 1, 1, 0, 1, 0, NON, 0, _bool,     0, & settings.enableExternalHardwareEventLogging, "enableExternalHardwareEventLogging", nullptr, },

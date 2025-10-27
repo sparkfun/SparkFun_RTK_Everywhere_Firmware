@@ -96,8 +96,7 @@ void stateUpdate()
 
             baseStatusLedOff();
 
-            if(gnss->gnssInRoverMode() == false)
-                gnssConfigure(GNSS_CONFIG_ROVER); // Request reconfigure to rover mode
+            gnssConfigure(GNSS_CONFIG_ROVER); // Request reconfigure to rover mode
 
             setMuxport(settings.dataPortChannel); // Return mux to original channel
 
@@ -458,9 +457,9 @@ void stateUpdate()
 
                     parseIncomingSettings();
 
-                    settings.gnssConfiguredOnce = false; // On the next boot, reapply all settings
-                    settings.gnssConfiguredBase = false;
-                    settings.gnssConfiguredRover = false;
+                    gnssConfigureDefaults(); // Set all bits in the request bitfield to cause the GNSS receiver to go
+                                             // through a full (re)configuration
+
                     recordSystemSettings(); // Record these settings to unit
 
                     // Clear buffer
@@ -570,8 +569,8 @@ void stateUpdate()
             if (tasksStartGnssUart() && ntpConfigureUbloxModule())
             {
                 settings.lastState = STATE_NTPSERVER_NOT_STARTED; // Record this state for next POR
-                settings.gnssConfiguredBase = false;              // On the next boot, reapply all settings
-                settings.gnssConfiguredRover = false;
+                gnssConfigureDefaults(); // Set all bits in the request bitfield to cause the GNSS receiver to go
+                                         // through a full (re)configuration
                 recordSystemSettings();
 
                 if (online.ethernetNTPServer)

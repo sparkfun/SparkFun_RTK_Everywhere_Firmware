@@ -143,13 +143,19 @@ void menuBase()
         {
             settings.fixedBase ^= 1;
 
-            gnssConfigure(GNSS_CONFIG_BASE); // Request receiver to use new settings
+            // Change GNSS receiver configuration if the receiver is in Base mode, otherwise, just change setting
+            // This prevents a user, while in Rover mode, but changing a Base setting, from entering Base mode
+            if (gnss->gnssInBaseSurveyInMode() || gnss->gnssInBaseFixedMode())
+                gnssConfigure(GNSS_CONFIG_BASE); // Request receiver to use new settings
         }
         else if (settings.fixedBase == true && incoming == 2)
         {
             settings.fixedBaseCoordinateType ^= 1;
 
-            gnssConfigure(GNSS_CONFIG_BASE); // Request receiver to use new settings
+            // Change GNSS receiver configuration if the receiver is in Base mode, otherwise, just change setting
+            // This prevents a user, while in Rover mode, but changing a Base setting, from entering Base mode
+            if (gnss->gnssInBaseSurveyInMode() || gnss->gnssInBaseFixedMode())
+                gnssConfigure(GNSS_CONFIG_BASE); // Request receiver to use new settings
         }
 
         else if (settings.fixedBase == true && incoming == 3)
@@ -179,7 +185,11 @@ void menuBase()
                         {
                             settings.fixedEcefZ = fixedEcefZ;
 
-                            gnssConfigure(GNSS_CONFIG_BASE); // Request receiver to use new settings
+                            // Change GNSS receiver configuration if the receiver is in Base mode, otherwise, just
+                            // change setting This prevents a user, while in Rover mode, but changing a Base setting,
+                            // from entering Base mode
+                            if (gnss->gnssInBaseSurveyInMode() || gnss->gnssInBaseFixedMode())
+                                gnssConfigure(GNSS_CONFIG_BASE); // Request receiver to use new settings
                         }
                     }
                 }
@@ -223,7 +233,11 @@ void menuBase()
                                     {
                                         settings.fixedAltitude = fixedAltitude;
 
-                                        gnssConfigure(GNSS_CONFIG_BASE); // Request receiver to use new settings
+                                        // Change GNSS receiver configuration if the receiver is in Base mode,
+                                        // otherwise, just change setting This prevents a user, while in Rover mode, but
+                                        // changing a Base setting, from entering Base mode
+                                        if (gnss->gnssInBaseSurveyInMode() || gnss->gnssInBaseFixedMode())
+                                            gnssConfigure(GNSS_CONFIG_BASE); // Request receiver to use new settings
                                     }
                                 }
                                 else
@@ -246,7 +260,10 @@ void menuBase()
             if (getNewSetting("Enter the antenna height (a.k.a. pole length) in millimeters", -15000, 15000,
                               &settings.antennaHeight_mm) == INPUT_RESPONSE_VALID)
             {
-                gnssConfigure(GNSS_CONFIG_BASE); // Request receiver to use new settings
+                // Change GNSS receiver configuration if the receiver is in Base mode, otherwise, just change setting
+                // This prevents a user, while in Rover mode but changing a Base setting, from entering Base mode
+                if (gnss->gnssInBaseSurveyInMode() || gnss->gnssInBaseFixedMode())
+                    gnssConfigure(GNSS_CONFIG_BASE); // Request receiver to use new settings
                 // TODO Does any other hardware need to be reconfigured after this setting change? Tilt sensor?
             }
         }
@@ -258,6 +275,9 @@ void menuBase()
                     "Torch/X2=116.5, Facet mosaic=68.5, EVK=42.0, Postcard=37.5, Flex=62.5",
                     -200.0, 200.0, &settings.antennaPhaseCenter_mm) == INPUT_RESPONSE_VALID)
             {
+                // Change GNSS receiver configuration if the receiver is in Base mode, otherwise, just change setting
+                // This prevents a user, while in Rover mode but changing a Base setting, from entering Base mode
+                if (gnss->gnssInBaseSurveyInMode() || gnss->gnssInBaseFixedMode())
                 gnssConfigure(GNSS_CONFIG_BASE); // Request receiver to use new settings
             }
         }
@@ -268,6 +288,9 @@ void menuBase()
             if (getNewSetting("Enter the number of seconds for survey-in observation time", 60, 60 * 10,
                               &settings.observationSeconds) == INPUT_RESPONSE_VALID)
             {
+                // Change GNSS receiver configuration if the receiver is in Base mode, otherwise, just change setting
+                // This prevents a user, while in Rover mode but changing a Base setting, from entering Base mode
+                if (gnss->gnssInBaseSurveyInMode() || gnss->gnssInBaseFixedMode())
                 gnssConfigure(GNSS_CONFIG_BASE); // Request receiver to use new settings
             }
         }
@@ -279,6 +302,9 @@ void menuBase()
                               (double)maxObservationPositionAccuracy,
                               &settings.observationPositionAccuracy) == INPUT_RESPONSE_VALID)
             {
+                // Change GNSS receiver configuration if the receiver is in Base mode, otherwise, just change setting
+                // This prevents a user, while in Rover mode but changing a Base setting, from entering Base mode
+                if (gnss->gnssInBaseSurveyInMode() || gnss->gnssInBaseFixedMode())
                 gnssConfigure(GNSS_CONFIG_BASE); // Request receiver to use new settings
             }
         }
@@ -289,6 +315,9 @@ void menuBase()
                               (double)maxSurveyInStartingAccuracy,
                               &settings.surveyInStartingAccuracy) == INPUT_RESPONSE_VALID)
             {
+                // Change GNSS receiver configuration if the receiver is in Base mode, otherwise, just change setting
+                // This prevents a user, while in Rover mode but changing a Base setting, from entering Base mode
+                if (gnss->gnssInBaseSurveyInMode() || gnss->gnssInBaseFixedMode())
                 gnssConfigure(GNSS_CONFIG_BASE); // Request receiver to use new settings
             }
         }

@@ -2467,8 +2467,8 @@ void paintProfile(uint8_t profileUnit)
 
         if (profileNumber >= 0)
         {
-            settings.gnssConfiguredBase = false; // On the next boot, reapply all settings
-            settings.gnssConfiguredRover = false;
+            gnssConfigureDefaults(); // Set all bits in the request bitfield to cause the GNSS receiver to go through a
+                                     // full (re)configuration
             recordSystemSettings(); // Before switching, we need to record the current settings to LittleFS and SD
 
             recordProfileNumber(
