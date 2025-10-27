@@ -2606,35 +2606,6 @@ void paintSystemTest()
             oled->print(macAddress);
             oled->print(":");
 
-            // Verify the ESP UART can communicate TX/RX to ZED UART1
-            if (zedUartPassed == false)
-            {
-                systemPrintln("GNSS test");
-
-                setMuxport(MUX_GNSS_UART); // Set mux to UART so we can debug over data port
-                delay(20);
-
-                // Clear out buffer before starting
-                while (serialGNSS->available())
-                    serialGNSS->read();
-                serialGNSS->flush();
-
-#ifdef COMPILE_ZED
-                SFE_UBLOX_GNSS_SERIAL myGNSS;
-
-                // begin() attempts 3 connections
-                if (myGNSS.begin(*serialGNSS) == true)
-                {
-
-                    zedUartPassed = true;
-                    oled->print("OK");
-                }
-                else
-                    oled->print("FAIL");
-#endif // COMPILE_ZED
-            }
-            else
-                oled->print("OK");
         } // End display 1
 
         if (systemTestDisplayNumber == 0)

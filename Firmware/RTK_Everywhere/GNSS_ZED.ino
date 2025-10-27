@@ -929,23 +929,6 @@ void GNSS_ZED::enableGgaForNtrip()
 }
 
 //----------------------------------------
-// Enable RTCM 1230. This is the GLONASS bias sentence and is transmitted
-// even if there is no GPS fix. We use it to test serial output.
-// Returns true if successfully started and false upon failure
-//----------------------------------------
-bool GNSS_ZED::enableRTCMTest()
-{
-    if (online.gnss)
-    {
-        _zed->newCfgValset(VAL_LAYER_RAM); // Create a new Configuration Item VALSET message
-        _zed->addCfgValset(UBLOX_CFG_MSGOUT_RTCM_3X_TYPE1230_UART2, 1); // Enable message 1230 every second
-        _zed->sendCfgValset();                                          // Send the VALSET
-        return true;
-    }
-    return false;
-}
-
-//----------------------------------------
 // Restore the GNSS to the factory settings
 //----------------------------------------
 void GNSS_ZED::factoryReset()

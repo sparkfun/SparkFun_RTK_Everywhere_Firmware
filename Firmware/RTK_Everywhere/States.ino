@@ -508,11 +508,6 @@ void stateUpdate()
             // Debounce entry into test menu
             if ((millis() - lastTestMenuChange) > 500)
             {
-                tasksStopGnssUart(); // Stop absoring GNSS serial via task
-                zedUartPassed = false;
-
-                gnss->enableRTCMTest();
-
                 RTK_MODE(RTK_MODE_TESTING);
                 changeState(STATE_TESTING);
             }

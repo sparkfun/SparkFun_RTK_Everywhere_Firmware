@@ -397,17 +397,6 @@ void GNSS_UM980::enableGgaForNtrip()
 }
 
 //----------------------------------------
-// Enable RTCM 1230. This is the GLONASS bias sentence and is transmitted
-// even if there is no GPS fix. We use it to test serial output.
-// Returns true if successfully started and false upon failure
-//----------------------------------------
-bool GNSS_UM980::enableRTCMTest()
-{
-    // There is no data port on devices with the UM980
-    return false;
-}
-
-//----------------------------------------
 // Restore the GNSS to the factory settings
 //----------------------------------------
 void GNSS_UM980::factoryReset()

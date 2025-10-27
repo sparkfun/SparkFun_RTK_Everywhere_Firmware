@@ -814,39 +814,6 @@ void GNSS_MOSAIC::enableGgaForNtrip()
 }
 
 //----------------------------------------
-// Enable RTCM 1230. This is the GLONASS bias sentence and is transmitted
-// even if there is no GPS fix. We use it to test serial output.
-// Outputs:
-//   Returns true if successfully started and false upon failure
-//----------------------------------------
-bool GNSS_MOSAIC::enableRTCMTest()
-{
-    // Enable RTCM1230 on COM2 (Radio connector)
-    // Called by STATE_TEST. Mosaic could still be starting up, so allow many retries
-
-    int retries = 0;
-    const int retryLimit = 20;
-
-    // Add RTCMv3 output on COM2
-    while (!sendWithResponse("sdio,COM2,,+RTCMv3\n\r", "DataInOut"))
-    {
-        if (retries == retryLimit)
-            break;
-        retries++;
-        sendWithResponse("SSSSSSSSSSSSSSSSSSSS\n\r", "COM"); // Send escape sequence
-    }
-
-    if (retries == retryLimit)
-        return false;
-
-    bool success = true;
-    success &= sendWithResponse("sr3i,RTCM1230,1.0\n\r", "RTCMv3Interval"); // Set message interval to 1s
-    success &= sendWithResponse("sr3o,COM2,+RTCM1230\n\r", "RTCMv3Output"); // Add RTCMv3 1230 output
-
-    return success;
-}
-
-//----------------------------------------
 // Restore the GNSS to the factory settings
 //----------------------------------------
 void GNSS_MOSAIC::factoryReset()

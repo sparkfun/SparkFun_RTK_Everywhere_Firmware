@@ -449,12 +449,6 @@ class GNSS_ZED : GNSS
 
     void enableGgaForNtrip();
 
-    // Enable RTCM 1230. This is the GLONASS bias sentence and is transmitted
-    // even if there is no GPS fix. We use it to test serial output.
-    // Outputs:
-    //   Returns true if successfully started and false upon failure
-    bool enableRTCMTest();
-
     // Restore the GNSS to the factory settings
     void factoryReset();
 
