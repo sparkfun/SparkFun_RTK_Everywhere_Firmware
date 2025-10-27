@@ -170,10 +170,11 @@ void GNSS_ZED::begin()
         //"1.30" - ZED-F9P (HPG) released Dec, 2021. Also ZED-F9R (HPS) released Sept, 2022
         //"1.32" - ZED-F9P released May, 2022
         //"1.50" - ZED-F9P released July, 2024
+        //"1.51" - ZED-F9P released November, 2024
 
-        const uint8_t knownFirmwareVersions[] = {100, 112, 113, 120, 121, 130, 132, 150};
+        const uint8_t knownFirmwareVersions[] = {100, 112, 113, 120, 121, 130, 132, 150, 151};
         bool knownFirmware = false;
-        for (uint8_t i = 0; i < (sizeof(knownFirmwareVersions) / sizeof(uint8_t)); i++)
+        for (uint8_t i = 0; i < (sizeof(knownFirmwareVersions) / sizeof(knownFirmwareVersions[0])); i++)
         {
             if (gnssFirmwareVersionInt == knownFirmwareVersions[i])
                 knownFirmware = true;
