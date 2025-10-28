@@ -30,21 +30,11 @@ To build the RTK Everywhere Firmware, you obviously need a copy of the source co
 
 If you are familiar with Git and GitHub Desktop, you can clone the RTK Everywhere Firmware repo directly into GitHub Desktop:
 
-<figure markdown>
 ![Clone RTK Everywhere with GitHub Desktop](./img/CompileSource/Clone_Repo_To_GitHub_Desktop.png)
-<figcaption markdown>
-Clone RTK Everywhere with GitHub Desktop
-</figcaption>
-</figure>
 
 If you want to _contribute_ to RTK Everywhere, and already have a GitHub account, you can Fork the repo:
 
-<figure markdown>
 ![Fork RTK Everywhere](./img/CompileSource/Fork_Repo.png)
-<figcaption markdown>
-Fork a copy of RTK Everywhere
-</figcaption>
-</figure>
 
 Clone your fork to your local machine, make changes, and send us a Pull Request. This is exactly what the SparkFun Team do when developing the code. Please use the `release_candidate` branch for any such changes. We are very unlikely to merge anything directly into `main`, unless it is (e.g.) docs corrections or improvements.
 
@@ -60,7 +50,10 @@ For the real Wild West experience, you can also download a copy of the `release_
 
 * **(Optional)** Head to [Docker](https://www.docker.com/) and create an account. A free "Personal" account will cover occasional compilations of the firmware
 * Download and install [Docker Desktop](https://docs.docker.com/get-started/get-docker/) - there are versions for Mac, Windows and Linux. You may need to restart to complete the installation.
-* Run the Desktop. If you don't sign in, it will run in Personal mode - which will cover occasional compilations of the firmware
+* Run the Desktop
+    * You don't _need_ to have an account and you don't _need_ to be signed in
+    * You only need to be signed in if you want to store or share your Container on Docker Hub
+    * If you don't sign in, Docker Desktop will run in Personal mode - which will cover local compilations of the firmware
 * On Windows, you may see an error saying "**WSL needs updating** Your version of Windows Subsystem for Linux (WSL) is too old". If you do:
     * Open a command prompt
 	* Type `wsl --update` to update WSL. At the time of writing, this installs Windows Subsystem for Linux 2.6.1
@@ -73,7 +66,7 @@ For the real Wild West experience, you can also download a copy of the `release_
 
 ### Using Docker to create the firmware binary
 
-* **Make sure you have Docker Desktop running.** You don't need to be logged in, but it needs to be running.
+* **Make sure you have Docker Desktop running.** You don't need to be signed in, but it needs to be running.
 * Open a Command Prompt and `cd` into the SparkFun_RTK_Everywhere_Firmware folder
 * Check you are in the right place. Type `dir` and hit enter. You should see the following files and folders:
 
@@ -198,10 +191,34 @@ Delete the `rtk_everywhere` container afterwards, to save disk space and so you 
 docker build -t rtk_everywhere_firmware --no-cache-filter deployment .
 ```
 
-* **Shortcut:** the `compile_with_docker.bat` batch file does everything for you:
+#### Shortcut: compile_with_docker.bat
+
+**Shortcut:** the `compile_with_docker.bat` batch file does everything for you:
 
 ```
 docker build -t rtk_everywhere_firmware --no-cache-filter deployment .
+docker create --name=rtk_everywhere rtk_everywhere_firmware:latest
+docker cp rtk_everywhere:/RTK_Everywhere.ino.bin .
+docker cp rtk_everywhere:/RTK_Everywhere.ino.elf .
+docker cp rtk_everywhere:/RTK_Everywhere.ino.bootloader.bin .
+docker container rm rtk_everywhere
+```
+
+#### Changing the build properties
+
+**Changing the build properties:** if you want to change the build properties and (e.g.) include your own PointPerfect token, paste the following into a .bat file or shell script:
+
+```
+docker build -t rtk_everywhere_firmware --no-cache-filter deployment^
+ --build-arg FIRMWARE_VERSION_MAJOR=99^
+ --build-arg FIRMWARE_VERSION_MINOR=99^
+ --build-arg POINTPERFECT_LBAND_TOKEN="0xAA,0xBB,<<=YOUR TOKEN IN C HEX FORMAT=>>,0x02,0x03"^
+ --build-arg POINTPERFECT_IP_TOKEN="0xAA,0xBB,<<=YOUR TOKEN IN C HEX FORMAT=>>,0x02,0x03"^
+ --build-arg POINTPERFECT_LBAND_IP_TOKEN="0xAA,0xBB,<<=YOUR TOKEN IN C HEX FORMAT=>>,0x02,0x03"^
+ --build-arg POINTPERFECT_RTCM_TOKEN="0xAA,0xBB,<<=YOUR TOKEN IN C HEX FORMAT=>>,0x02,0x03"^
+ --build-arg ENABLE_DEVELOPER=false^
+ --build-arg DEBUG_LEVEL=none^
+ .
 docker create --name=rtk_everywhere rtk_everywhere_firmware:latest
 docker cp rtk_everywhere:/RTK_Everywhere.ino.bin .
 docker cp rtk_everywhere:/RTK_Everywhere.ino.elf .
