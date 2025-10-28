@@ -175,7 +175,7 @@ void menuGNSS()
         {
             float rateHz = 0.0;
             float minRateHz = 1000.0 / gnss->fixRateGetMaximumMs(); // Convert ms to Hz
-            float maxRateHz = 1000.0 / gnss->fixRateGetMinimumMs(); //The minimum in milliseconds is the max in Hz
+            float maxRateHz = 1000.0 / gnss->fixRateGetMinimumMs(); // The minimum in milliseconds is the max in Hz
 
             if (getNewSetting("Enter GNSS measurement rate in Hz", minRateHz, maxRateHz, &rateHz) ==
                 INPUT_RESPONSE_VALID)
@@ -185,9 +185,6 @@ void menuGNSS()
                 {
                     settings.measurementRateMs = requestedRateMs;
                     gnssConfigure(GNSS_CONFIG_FIX_RATE);
-                    // This will set settings.measurementRateMs, settings.navigationRate, and GSV message
-                    // gnss->setRate(1.0 / rateHz); //TODO remove once all platforms are accounted for. Good: UM980,
-                    // LG290P,
                 }
                 else
                     systemPrintln("Error: Illegal rate for this platform");
@@ -202,16 +199,13 @@ void menuGNSS()
             if (getNewSetting("Enter GNSS measurement rate in seconds between measurements", minRateS, maxRateS,
                               &requestedRateS) == INPUT_RESPONSE_VALID)
             {
-                if (gnss->fixRateIsAllowed(requestedRateS * 1000.0)) //Convert S to ms
+                if (gnss->fixRateIsAllowed(requestedRateS * 1000.0)) // Convert S to ms
                 {
                     settings.measurementRateMs = requestedRateS * 1000.0;
                     gnssConfigure(GNSS_CONFIG_FIX_RATE);
-                    // This will set settings.measurementRateMs, settings.navigationRate, and GSV message
-                    // gnss->setRate(1.0 / rateHz); //TODO remove once all platforms are accounted for. Good: UM980,
-                    // LG290P,
                 }
                 else
-                    systemPrintln("Error: Illegal rate for this platform");                
+                    systemPrintln("Error: Illegal rate for this platform");
             }
         }
         else if (incoming == 3 && present.dynamicModel)

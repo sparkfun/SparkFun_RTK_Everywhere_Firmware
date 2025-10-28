@@ -826,7 +826,7 @@ const float f9pMaxRateHz = 20.0;    // 20Hz
 
 bool GNSS_ZED::fixRateIsAllowed(uint32_t fixRateMs)
 {
-    if (fixRateMs > (1000 / f9pMinRateHz) && fixRateMs < (1000 / f9pMaxRateHz))
+    if (fixRateMs >= fixRateGetMinimumMs() && fixRateMs <= fixRateGetMaximumMs())
         return (true);
     return (false);
 }
@@ -834,13 +834,13 @@ bool GNSS_ZED::fixRateIsAllowed(uint32_t fixRateMs)
 // Return minimum in milliseconds
 uint32_t GNSS_ZED::fixRateGetMinimumMs()
 {
-    return (1000.0 / f9pMinRateHz);
+    return (1000.0 / f9pMaxRateHz); // Max Hz is min ms
 }
 
 // Return maximum in milliseconds
 uint32_t GNSS_ZED::fixRateGetMaximumMs()
 {
-    return (1000.0 / f9pMaxRateHz);
+    return (1000.0 / f9pMinRateHz); // Min Hz is max ms
 }
 
 //----------------------------------------
@@ -1119,7 +1119,7 @@ uint32_t GNSS_ZED::getRadioBaudRate()
 double GNSS_ZED::getRateS()
 {
     // Because we may be in base mode, do not get freq from module, use settings instead
-    float measurementFrequency = (1000.0 / settings.measurementRateMs) / settings.navigationRate;
+    float measurementFrequency = (1000.0 / settings.measurementRateMs);
     double measurementRateS = 1.0 / measurementFrequency; // 1 / 4Hz = 0.25s
 
     return (measurementRateS);
@@ -1583,6 +1583,8 @@ void GNSS_ZED::menuConstellations()
                 settings.ubxConstellations[ubxConstellationIDToIndex(SFE_UBLOX_GNSS_ID_GPS)].enabled =
                     settings.ubxConstellations[incoming].enabled;
             }
+
+            gnssConfigure(GNSS_CONFIG_CONSTELLATION); // Request receiver to use new settings
         }
         else if (incoming == INPUT_RESPONSE_GETNUMBER_EXIT)
             break;
@@ -1591,9 +1593,6 @@ void GNSS_ZED::menuConstellations()
         else
             printUnknown(incoming);
     }
-
-    // Apply current settings to module
-    setConstellations();
 
     clearBuffer(); // Empty buffer of any newline chars
 }
@@ -1662,7 +1661,7 @@ void GNSS_ZED::menuMessages()
             setMessageRateByName("NMEA_GST", 1);
 
             // We want GSV NMEA to be reported at 1Hz to avoid swamping SPP connection
-            float measurementFrequency = (1000.0 / settings.measurementRateMs) / settings.navigationRate;
+            float measurementFrequency = (1000.0 / settings.measurementRateMs);
             if (measurementFrequency < 1.0)
                 measurementFrequency = 1.0;
             setMessageRateByName("NMEA_GSV", measurementFrequency); // One report per second
@@ -1680,7 +1679,7 @@ void GNSS_ZED::menuMessages()
             setMessageRateByName("NMEA_GST", 1);
 
             // We want GSV NMEA to be reported at 1Hz to avoid swamping SPP connection
-            float measurementFrequency = (1000.0 / settings.measurementRateMs) / settings.navigationRate;
+            float measurementFrequency = (1000.0 / settings.measurementRateMs);
             if (measurementFrequency < 1.0)
                 measurementFrequency = 1.0;
             setMessageRateByName("NMEA_GSV", measurementFrequency); // One report per second
@@ -2195,7 +2194,7 @@ bool GNSS_ZED::setMessagesNMEA()
         // Enable GGA for NTRIP
         if (settings.enableNtripClient == true && settings.ntripClient_TransmitGGA == true)
         {
-            float measurementFrequency = (1000.0 / settings.measurementRateMs) / settings.navigationRate;
+            float measurementFrequency = (1000.0 / settings.measurementRateMs);
             if (measurementFrequency < 0.2)
                 measurementFrequency = 0.2; // 0.2Hz * 5 = 1 measurement every 5 seconds
             if (settings.debugGnssConfig)
@@ -2310,7 +2309,7 @@ bool GNSS_ZED::setMinCno(uint8_t cnoValue)
     {
         if (commandSupported(UBLOX_CFG_NAVSPG_INFIL_MINCNO))
         {
-            if (_zed->addCfgValset(UBLOX_CFG_NAVSPG_INFIL_MINCNO,
+            if (_zed->setVal8(UBLOX_CFG_NAVSPG_INFIL_MINCNO,
                                    settings.minCNO) ==
                 false) // Set minimum satellite signal level for navigation - default 6
                 return (false);
@@ -2342,15 +2341,14 @@ bool GNSS_ZED::setMultipathMitigation(bool enableMultipathMitigation)
 }
 
 //----------------------------------------
-// Given the number of seconds between desired solution reports, determine measurementRateMs and navigationRate
-// measurementRateS > 25 & <= 65535
-// navigationRate >= 1 && <= 127
+// Given the number of seconds between desired solution reports, determine measurementRateMs setting
 // We give preference to limiting a measurementRate to 30 or below due to reported problems with measRates above 30.
 //----------------------------------------
 bool GNSS_ZED::setRate(double secondsBetweenSolutions)
 {
-    uint16_t measRate = 0; // Calculate these locally and then attempt to apply them to ZED at completion
-    uint16_t navRate = 0;
+    // Calculate these locally and then attempt to apply them to ZED at completion
+    uint16_t measRate = 0; // 25 < measRate <= 65535
+    uint16_t navRate = 0; // 1 <= navRate <= 127
 
     if (online.gnss == false)
         return (false);
@@ -2408,8 +2406,7 @@ bool GNSS_ZED::setRate(double secondsBetweenSolutions)
     // If we successfully set rates, only then record to settings
     if (response)
     {
-        settings.measurementRateMs = measRate;
-        settings.navigationRate = navRate;
+        settings.measurementRateMs = secondsBetweenSolutions * 1000;
     }
     else
     {

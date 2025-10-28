@@ -1338,8 +1338,6 @@ SettingValueResponse updateSettingWithValue(bool inCommands, const char *setting
         knownSetting = true;
     }
 
-    // navigationRate is calculated using measurementRateHz
-
     else if (strstr(settingName, "stationECEF") != nullptr)
     {
         replaceCharacter((char *)settingValueStr, ' ', ','); // Replace all ' ' with ',' before recording to file

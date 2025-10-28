@@ -1846,7 +1846,7 @@ bool GNSS_UM980::setMultipathMitigation(bool enableMultipathMitigation)
 }
 
 //----------------------------------------
-// Given the number of seconds between desired solution reports, determine measurementRateMs and navigationRate
+// Given the number of seconds between desired solution reports, determine measurementRateMs
 //----------------------------------------
 bool GNSS_UM980::setRate(double secondsBetweenSolutions)
 {
