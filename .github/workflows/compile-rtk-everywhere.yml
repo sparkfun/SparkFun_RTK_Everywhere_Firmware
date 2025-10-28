@@ -7,10 +7,6 @@ env:
   FILENAME_PREFIX: RTK_Everywhere_Firmware
   FIRMWARE_VERSION_MAJOR: 2
   FIRMWARE_VERSION_MINOR: 3
-  POINTPERFECT_LBAND_TOKEN: ${{ secrets.POINTPERFECT_LBAND_TOKEN }}
-  POINTPERFECT_IP_TOKEN: ${{ secrets.POINTPERFECT_IP_TOKEN }}
-  POINTPERFECT_LBAND_IP_TOKEN: ${{ secrets.POINTPERFECT_LBAND_IP_TOKEN }}
-  POINTPERFECT_RTCM_TOKEN: ${{ secrets.POINTPERFECT_RTCM_TOKEN }}
   CORE_VERSION: 3.0.7
 
 jobs:
@@ -54,124 +50,49 @@ jobs:
               echo "DEBUG_LEVEL=error" >> "$GITHUB_ENV"
           fi
 
-      - name: Setup Arduino CLI
-        uses: arduino/setup-arduino-cli@v1
-
-      - name: Start config file
-        run: arduino-cli config init --additional-urls "https://raw.githubusercontent.com/espressif/arduino-esp32/gh-pages/package_esp32_index.json,https://espressif.github.io/arduino-esp32/package_esp32_dev_index.json"
-
-      - name: Update core index
-        run: arduino-cli core update-index
-
-      - name: Update library index
-        run: arduino-cli lib update-index
-
-      - name: Install platform
-        run: arduino-cli core install esp32:esp32@${{ env.CORE_VERSION }}
-
-      - name: Get IDF version
+      - name: Run Dockerfile and copy files
+        # The --quiet suppresses the build output, keeping the secrets safe
         run: |
-          cd /home/runner/.arduino15/packages/esp32/tools/esp32-arduino-libs
-          IDF_VERSION=$(ls | grep idf-release)
-          echo "ESP_IDF=${IDF_VERSION}" >> "$GITHUB_ENV"
-
-      - name: Get Known Libraries
-        run: arduino-cli lib install
-          ArduinoJson@7.0.4
-          ESP32Time@2.0.0
-          ESP32_BleSerial@2.0.1
-          "ESP32-OTA-Pull"@1.0.0
-          JC_Button@2.1.2
-          PubSubClient@2.8.0
-          "SdFat"@2.1.1
-          "SparkFun LIS2DH12 Arduino Library"@1.0.3
-          "SparkFun MAX1704x Fuel Gauge Arduino Library"@1.0.4
-          "SparkFun u-blox GNSS v3"@3.1.10
-          "SparkFun Qwiic OLED Arduino Library"@1.0.13
-          SSLClientESP32@2.0.0
-          "SparkFun Extensible Message Parser"@1.0.4
-          "SparkFun BQ40Z50 Battery Manager Arduino Library"@1.0.0
-          "ArduinoMqttClient"@0.1.8
-          "SparkFun u-blox PointPerfect Library"@1.11.4
-          "SparkFun IM19 IMU Arduino Library"@1.0.1
-          "SparkFun UM980 Triband RTK GNSS Arduino Library"@1.0.5
-          "SparkFun LG290P Quadband RTK GNSS Arduino Library"@1.0.8
-          "SparkFun I2C Expander Arduino Library"@1.0.1
-          "SparkFun Apple Accessory Arduino Library"@3.0.9
-          "SparkFun Authentication Coprocessor Arduino Library"@1.0.0
-          "SparkFun Toolkit"@1.0.6
-
-      - name: Patch libmbedtls
-        run: |
-          cd Firmware/RTK_Everywhere/Patch/
-          cp libmbedtls.a /home/runner/.arduino15/packages/esp32/tools/esp32-arduino-libs/${{ env.ESP_IDF }}/esp32/lib/libmbedtls.a
-          cp libmbedtls_2.a /home/runner/.arduino15/packages/esp32/tools/esp32-arduino-libs/${{ env.ESP_IDF }}/esp32/lib/libmbedtls_2.a
-          cp libmbedcrypto.a /home/runner/.arduino15/packages/esp32/tools/esp32-arduino-libs/${{ env.ESP_IDF }}/esp32/lib/libmbedcrypto.a
-          cp libmbedx509.a /home/runner/.arduino15/packages/esp32/tools/esp32-arduino-libs/${{ env.ESP_IDF }}/esp32/lib/libmbedx509.a
-
-      - name: Patch NetworkEvents
-        run: |
-          cd Firmware/RTK_Everywhere/Patch/
-          cp NetworkEvents.* /home/runner/.arduino15/packages/esp32/hardware/esp32/${{ env.CORE_VERSION }}/libraries/Network/src/
-
-      - name: Patch libbt
-        run: |
-          cd Firmware/RTK_Everywhere/Patch/
-          cp libbt.a /home/runner/.arduino15/packages/esp32/tools/esp32-arduino-libs/${{ env.ESP_IDF }}/esp32/lib/libbt.a
-
-      - name: Setup Python
-        uses: actions/setup-python@v4
-        with:
-          python-version: '3.10'
-
-      # Configure Python - now we have Python installed, we need to provide everything needed by esptool otherwise the compile fails
-      - name: Configure Python
-        run: |
-          pip3 install pyserial
-
-      - name: Update index_html
-        run: |
-          cd Firmware/Tools
-          python index_html_zipper.py ../RTK_Everywhere/AP-Config/index.html ../RTK_Everywhere/form.h
-
-      - name: Update main_js
-        run: |
-          cd Firmware/Tools
-          python main_js_zipper.py ../RTK_Everywhere/AP-Config/src/main.js ../RTK_Everywhere/form.h
+          cd ./Firmware
+          echo "*** The docker build is quiet to protect the GitHub secrets ***"
+          docker build -t rtk_everywhere_firmware --no-cache --quiet \
+            --build-arg CORE_VERSION=${{ env.CORE_VERSION }} \
+            --build-arg FIRMWARE_VERSION_MAJOR=${{ env.FIRMWARE_VERSION_MAJOR }} \
+            --build-arg FIRMWARE_VERSION_MINOR=${{ env.FIRMWARE_VERSION_MINOR }} \
+            --build-arg POINTPERFECT_LBAND_TOKEN="${{ secrets.POINTPERFECT_LBAND_TOKEN }}" \
+            --build-arg POINTPERFECT_IP_TOKEN="${{ secrets.POINTPERFECT_IP_TOKEN }}" \
+            --build-arg POINTPERFECT_LBAND_IP_TOKEN="${{ secrets.POINTPERFECT_LBAND_IP_TOKEN }}" \
+            --build-arg POINTPERFECT_RTCM_TOKEN="${{ secrets.POINTPERFECT_RTCM_TOKEN }}" \
+            --build-arg ENABLE_DEVELOPER=${{ env.ENABLE_DEVELOPER }} \
+            --build-arg DEBUG_LEVEL=${{ env.DEBUG_LEVEL }} \
+            .
+          docker create --name=rtk_everywhere rtk_everywhere_firmware:latest
+          mkdir ./build
+          docker cp rtk_everywhere:/RTK_Everywhere.ino.bin ./build
+          docker cp rtk_everywhere:/RTK_Everywhere.ino.elf ./build
+          docker cp rtk_everywhere:/RTK_Everywhere/form.h ./RTK_Everywhere
+          docker container rm rtk_everywhere
 
       - name: Commit and push form.h
-        uses: actions-js/push@master
-        with:
-          github_token: ${{ secrets.GITHUB_TOKEN }}
-          directory: ./Firmware/RTK_Everywhere
-          branch: ${{ env.BRANCH }}
-          message: 'Update form.h via Python'
-
-      - name: Copy custom RTKEverywhere.csv
-        run:
-          # Compile the source using the 16MB partition file. Other platforms (ie, the 8MB Postcard) use 
-          # the same binary but use a different partition binary during the upload phase.
-          # View the different RTK partition files used during upload here: 
-          # https://github.com/sparkfun/SparkFun_RTK_Firmware_Uploader/tree/main/RTK_Firmware_Uploader/resource
-          cp Firmware/RTKEverywhere.csv /home/runner/.arduino15/packages/esp32/hardware/esp32/${{ env.CORE_VERSION }}/tools/partitions/RTKEverywhere.csv
-
-      - name: Compile Sketch
-        run: arduino-cli compile --fqbn "esp32:esp32:esp32":DebugLevel=${{ env.DEBUG_LEVEL }},PSRAM=enabled ./Firmware/RTK_Everywhere/RTK_Everywhere.ino
-          --build-property build.partitions=RTKEverywhere
-          --build-property upload.maximum_size=4055040
-          --build-property "compiler.cpp.extra_flags=-MMD -c \"-DPOINTPERFECT_LBAND_TOKEN=$POINTPERFECT_LBAND_TOKEN\" \"-DPOINTPERFECT_IP_TOKEN=$POINTPERFECT_IP_TOKEN\" \"-DPOINTPERFECT_LBAND_IP_TOKEN=$POINTPERFECT_LBAND_IP_TOKEN\" \"-DPOINTPERFECT_RTCM_TOKEN=$POINTPERFECT_RTCM_TOKEN\"  \"-DFIRMWARE_VERSION_MAJOR=$FIRMWARE_VERSION_MAJOR\" \"-DFIRMWARE_VERSION_MINOR=$FIRMWARE_VERSION_MINOR\" \"-DENABLE_DEVELOPER=${{ env.ENABLE_DEVELOPER }}\""
-          --export-binaries
+        run: |
+          git config --local user.email "github-actions[bot]@users.noreply.github.com"
+          git config --local user.name "github-actions[bot]"
+          git add ./Firmware/RTK_Everywhere/form.h
+          git commit -m "Update form.h via Python"
+          git push origin ${{ env.BRANCH }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Rename binary
         run: |
-          cd Firmware/RTK_Everywhere/build/esp32.esp32.esp32/
+          cd ./Firmware/build
           mv RTK_Everywhere.ino.bin ${{ env.FILENAME_PREFIX }}${{ env.FILE_ENDING_UNDERSCORE }}.bin
 
       - name: Upload binary to action
         uses: actions/upload-artifact@v4
         with:
           name: ${{ env.FILENAME_PREFIX }}${{ env.FILE_ENDING_UNDERSCORE }}
-          path: ./Firmware/RTK_Everywhere/build/esp32.esp32.esp32/${{ env.FILENAME_PREFIX }}${{ env.FILE_ENDING_UNDERSCORE }}.bin
+          path: ./Firmware/build/${{ env.FILENAME_PREFIX }}${{ env.FILE_ENDING_UNDERSCORE }}.bin
 
 
       - name: Push binary to Binaries Repo
@@ -180,7 +101,7 @@ jobs:
         env:
           API_TOKEN_GITHUB: ${{ secrets.PUSH_BINARIES_REPO }}
         with:
-          source_file: ./Firmware/RTK_Everywhere/build/esp32.esp32.esp32/${{ env.FILENAME_PREFIX }}${{ env.FILE_ENDING_UNDERSCORE }}.bin
+          source_file: ./Firmware/build/${{ env.FILENAME_PREFIX }}${{ env.FILE_ENDING_UNDERSCORE }}.bin
           destination_repo: 'sparkfun/SparkFun_RTK_Everywhere_Firmware_Binaries'
           destination_folder: ''
           user_email: 'nathan@sparkfun.com'

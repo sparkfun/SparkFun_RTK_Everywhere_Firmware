@@ -2,20 +2,20 @@ FROM ubuntu:latest AS upstream
 
 ARG DEBIAN_FRONTEND=noninteractive
 
-ENV FILENAME_PREFIX=RTK_Everywhere_Firmware
-ENV FIRMWARE_VERSION_MAJOR=99
-ENV FIRMWARE_VERSION_MINOR=99
-ENV CORE_VERSION=3.0.7
+ARG CORE_VERSION=3.0.7
+
+ARG FIRMWARE_VERSION_MAJOR=99
+ARG FIRMWARE_VERSION_MINOR=99
 
 # ESP32 Core Debug Level
 # We use "none" for releases and "error" for release_candidate
 # You may find "verbose" useful while you are debugging your changes
-ENV DEBUG_LEVEL=error
+ARG DEBUG_LEVEL=error
 
 # Developer Mode
 # You may find "true" useful while you are making changes
 # Set to false for releases
-ENV ENABLE_DEVELOPER=true
+ARG ENABLE_DEVELOPER=true
 
 # If you have your own u-blox PointPerfect token(s), define them here
 # or pass in as args when building the Dockerfile
@@ -84,22 +84,15 @@ RUN arduino-cli lib install "SparkFun Apple Accessory Arduino Library"@3.0.9
 RUN arduino-cli lib install "SparkFun Authentication Coprocessor Arduino Library"@1.0.0
 RUN arduino-cli lib install "SparkFun Toolkit"@1.0.6
 
-# Copy RTK_Everywhere into /work and build deployment image
+# Copy RTK_Everywhere and build deployment image
 FROM upstream AS deployment
 
-# Create work directory
-WORKDIR /work
+# Add the source files
 ADD . .
 
-# Get current date
-#RUN echo "$(date +'%b_%d_%Y')" > date_scores.txt
-#RUN DATE_SCORES=$(cat date_scores.txt) && echo "Date: ${DATE_SCORES}"
-#RUN echo "$(date +'%b %d %Y')" > date_no_scores.txt
-#RUN DATE_NO_SCORES=$(cat date_no_scores.txt) && echo "Date: ${DATE_NO_SCORES}"
-
 # Patch libmbedtls and libbt
-WORKDIR /work/RTK_Everywhere/Patch
-RUN ESP_IDF=$(ls /root/.arduino15/packages/esp32/tools/esp32-arduino-libs | grep idf-release) \
+RUN cd ./RTK_Everywhere/Patch \
+    && ESP_IDF=$(ls /root/.arduino15/packages/esp32/tools/esp32-arduino-libs | grep idf-release) \
     && echo "ESP IDF Version: ${ESP_IDF}" \
     && cp libmbedtls.a "/root/.arduino15/packages/esp32/tools/esp32-arduino-libs/${ESP_IDF}/esp32/lib/libmbedtls.a" \
     && cp libmbedtls_2.a "/root/.arduino15/packages/esp32/tools/esp32-arduino-libs/${ESP_IDF}/esp32/lib/libmbedtls_2.a" \
@@ -108,21 +101,21 @@ RUN ESP_IDF=$(ls /root/.arduino15/packages/esp32/tools/esp32-arduino-libs | grep
     && cp libbt.a "/root/.arduino15/packages/esp32/tools/esp32-arduino-libs/${ESP_IDF}/esp32/lib/libbt.a"
 
 # Patch NetworkEvents
-RUN cp NetworkEvents.* "/root/.arduino15/packages/esp32/hardware/esp32/${CORE_VERSION}/libraries/Network/src/"
+RUN cd ./RTK_Everywhere/Patch \
+    && cp NetworkEvents.* "/root/.arduino15/packages/esp32/hardware/esp32/${CORE_VERSION}/libraries/Network/src/"
 
 # Update form.h with index_html and main_js
-WORKDIR /work/Tools
-RUN python3 index_html_zipper.py ../RTK_Everywhere/AP-Config/index.html ../RTK_Everywhere/form.h
-RUN python3 main_js_zipper.py ../RTK_Everywhere/AP-Config/src/main.js ../RTK_Everywhere/form.h
+RUN cd ./Tools \
+    && python3 index_html_zipper.py ../RTK_Everywhere/AP-Config/index.html ../RTK_Everywhere/form.h \
+    && python3 main_js_zipper.py ../RTK_Everywhere/AP-Config/src/main.js ../RTK_Everywhere/form.h
 
 # Copy custom RTKEverywhere.csv
 # Use the 16MB partitions by default. 8MB (Postcard) partitions must be compiled separately
-WORKDIR /work
 RUN cp RTKEverywhere.csv "/root/.arduino15/packages/esp32/hardware/esp32/${CORE_VERSION}/tools/partitions/RTKEverywhere.csv"
 
 # Compile Sketch
-WORKDIR /work/RTK_Everywhere
-RUN arduino-cli compile --fqbn "esp32:esp32:esp32":DebugLevel=${DEBUG_LEVEL},PSRAM=enabled \
+RUN cd ./RTK_Everywhere \
+    && arduino-cli compile --fqbn "esp32:esp32:esp32":DebugLevel=${DEBUG_LEVEL},PSRAM=enabled \
     ./RTK_Everywhere.ino \
     --build-property build.partitions=RTKEverywhere \
     --build-property upload.maximum_size=4055040 \
@@ -138,5 +131,5 @@ RUN arduino-cli compile --fqbn "esp32:esp32:esp32":DebugLevel=${DEBUG_LEVEL},PSR
 
 # Copy the compile output. List the files
 FROM deployment AS output
-COPY --from=deployment /work/RTK_Everywhere/build/esp32.esp32.esp32 /
+COPY --from=deployment ./RTK_Everywhere/build/esp32.esp32.esp32 /
 CMD echo $(ls /*.*)
