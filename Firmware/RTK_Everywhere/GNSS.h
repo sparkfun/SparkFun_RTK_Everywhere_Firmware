@@ -185,7 +185,7 @@ class GNSS
     virtual uint8_t getMillisecond();
 
     // Get the minimum satellite signal level for navigation.
-    uint8_t getMinCno();
+    uint8_t getMinCN0();
 
     // Returns minutes or zero if not online
     virtual uint8_t getMinute();
@@ -361,7 +361,7 @@ class GNSS
     virtual bool setMessagesRTCMRover();
 
     // Set the minimum satellite signal level for navigation.
-    virtual bool setMinCno(uint8_t cnoValue);
+    virtual bool setMinCN0(uint8_t cnoValue);
 
     // Set the dynamic model to use for RTK
     // Inputs:

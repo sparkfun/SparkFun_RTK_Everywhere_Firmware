@@ -714,7 +714,7 @@ class GNSS_ZED : GNSS
     bool setMessageRateByName(const char *msgName, uint8_t msgRate);
 
     // Set the minimum satellite signal level for navigation.
-    bool setMinCno(uint8_t cnoValue);
+    bool setMinCN0(uint8_t cnoValue);
 
     // Set the NMEA messages
     bool setMessagesNMEA();

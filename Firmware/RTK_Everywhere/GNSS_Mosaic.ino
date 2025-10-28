@@ -463,7 +463,7 @@ bool GNSS_MOSAIC::configureBase()
 
     response &= setElevation(settings.minElev);
 
-    response &= setMinCno(settings.minCNO);
+    response &= setMinCN0(settings.minCN0);
 
     response &= setConstellations();
 
@@ -585,7 +585,7 @@ bool GNSS_MOSAIC::configureOnce()
 {
     /*
     Configure COM1
-    Set minCNO
+    Set minCN0
     Set elevationAngle
     Set Constellations
 
@@ -690,7 +690,7 @@ bool GNSS_MOSAIC::configureRover()
 
     response &= setElevation(settings.minElev); // Set by menuGNSS which calls gnss->setElevation
 
-    response &= setMinCno(settings.minCNO);
+    response &= setMinCN0(settings.minCN0);
 
     response &= setConstellations();
 
@@ -2183,7 +2183,7 @@ bool GNSS_MOSAIC::setHighAccuracyService(bool enableGalileoHas)
 //----------------------------------------
 // Set the minimum satellite signal level for navigation.
 //----------------------------------------
-bool GNSS_MOSAIC::setMinCno(uint8_t cnoValue)
+bool GNSS_MOSAIC::setMinCN0(uint8_t cnoValue)
 {
     if (cnoValue > 60)
         cnoValue = 60;

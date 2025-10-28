@@ -134,7 +134,7 @@ class GNSS_UM980 : GNSS
     bool setHighAccuracyService(bool enableGalileoHas);
 
     // Set the minimum satellite signal level for navigation.
-    bool setMinCno(uint8_t cnoValue);
+    bool setMinCN0(uint8_t cnoValue);
 
   public:
     // Constructor
@@ -272,7 +272,7 @@ class GNSS_UM980 : GNSS
     uint8_t getMillisecond();
 
     // Get the minimum satellite signal level for navigation.
-    uint8_t getMinCno();
+    uint8_t getMinCN0();
 
     // Returns minutes or zero if not online
     uint8_t getMinute();

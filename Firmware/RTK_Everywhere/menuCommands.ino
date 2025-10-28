@@ -1356,9 +1356,9 @@ SettingValueResponse updateSettingWithValue(bool inCommands, const char *setting
             systemPrintf("%s recorded\r\n", settingValueStr);
         knownSetting = true;
     }
-    else if (strcmp(settingName, "minCNO") == 0)
+    else if (strcmp(settingName, "minCN0") == 0)
     {
-        settings.minCNO = settingValue;
+        settings.minCN0 = settingValue;
         gnssConfigure(GNSS_CONFIG_CN0); // Request receiver to use new settings
 
         knownSetting = true;
@@ -2206,7 +2206,7 @@ void createSettingsString(char *newSettings)
         stringRecord(newSettings, "udpOverWiFiStation", 0); // 1 = WiFi mode, 0 = AP
 
     // Single variables needed on Config page
-    stringRecord(newSettings, "minCNO", gnss->getMinCno());
+    stringRecord(newSettings, "minCN0", gnss->getMinCN0());
     stringRecord(newSettings, "enableRCFirmware", enableRCFirmware);
 
     // Add SD Characteristics
@@ -3164,7 +3164,7 @@ SettingValueResponse getSettingValue(bool inCommands, const char *settingName, c
             "getNewFirmware",
             "measurementRateHz",
             "measurementRateSec",
-            "minCNO",
+            "minCN0",
             "nicknameECEF",
             "nicknameGeodetic",
             "resetProfile",

@@ -2303,14 +2303,14 @@ bool GNSS_ZED::setMessagesRTCMRover()
 //----------------------------------------
 // Set the minimum satellite signal level for navigation.
 //----------------------------------------
-bool GNSS_ZED::setMinCno(uint8_t cnoValue)
+bool GNSS_ZED::setMinCN0(uint8_t cnoValue)
 {
     if (online.gnss)
     {
         if (commandSupported(UBLOX_CFG_NAVSPG_INFIL_MINCNO))
         {
             if (_zed->setVal8(UBLOX_CFG_NAVSPG_INFIL_MINCNO,
-                                   settings.minCNO) ==
+                              settings.minCN0) ==
                 false) // Set minimum satellite signal level for navigation - default 6
                 return (false);
         }
@@ -2348,7 +2348,7 @@ bool GNSS_ZED::setRate(double secondsBetweenSolutions)
 {
     // Calculate these locally and then attempt to apply them to ZED at completion
     uint16_t measRate = 0; // 25 < measRate <= 65535
-    uint16_t navRate = 0; // 1 <= navRate <= 127
+    uint16_t navRate = 0;  // 1 <= navRate <= 127
 
     if (online.gnss == false)
         return (false);

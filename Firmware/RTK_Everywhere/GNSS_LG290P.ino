@@ -144,7 +144,7 @@ void GNSS_LG290P::begin()
     {
         // Supported starting in v05
         present.minElevation = true;
-        present.minCno = true;
+        present.minCN0 = true;
     }
 
     printModuleInfo();
@@ -1453,7 +1453,7 @@ void GNSS_LG290P::menuMessages()
             // Override settings for PPP logging
             settings.minElev = 15; // Degrees
             gnssConfigure(GNSS_CONFIG_ELEVATION);
-            settings.minCNO = 30; // dBHz
+            settings.minCN0 = 30; // dBHz
             gnssConfigure(GNSS_CONFIG_CN0);
             settings.measurementRateMs = 1000; // Go to 1 Hz
             gnssConfigure(GNSS_CONFIG_FIX_RATE);
@@ -1914,7 +1914,7 @@ bool GNSS_LG290P::setHighAccuracyService(bool enableGalileoHas)
 //----------------------------------------
 // Set the minimum satellite signal level for navigation.
 //----------------------------------------
-bool GNSS_LG290P::setMinCno(uint8_t cnoValue)
+bool GNSS_LG290P::setMinCN0(uint8_t cnoValue)
 {
     // Present on >= v05
     if (lg290pFirmwareVersion >= 5)

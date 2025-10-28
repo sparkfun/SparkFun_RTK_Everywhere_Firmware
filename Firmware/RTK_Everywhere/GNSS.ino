@@ -72,9 +72,9 @@ extern unsigned long lastGGAPush;
 //----------------------------------------
 // Get the minimum satellite signal level for navigation.
 //----------------------------------------
-uint8_t GNSS::getMinCno()
+uint8_t GNSS::getMinCN0()
 {
-    return (settings.minCNO);
+    return (settings.minCN0);
 }
 
 //----------------------------------------
@@ -234,7 +234,7 @@ void gnssUpdate()
 
         if (gnssConfigureRequested(GNSS_CONFIG_CN0))
         {
-            if (gnss->setMinCno(settings.minCNO) == true)
+            if (gnss->setMinCN0(settings.minCN0) == true)
             {
                 gnssConfigureClear(GNSS_CONFIG_CN0);
                 gnssConfigure(GNSS_CONFIG_SAVE); // Request receiver commit this change to NVM
@@ -571,7 +571,7 @@ void gnssDetectReceiverType()
         gnss = (GNSS *)new GNSS_LG290P();
 
         present.gnss_lg290p = true;
-        present.minCno = true;
+        present.minCN0 = true;
         present.minElevation = true;
         present.needsExternalPpl = true; // Uses the PointPerfect Library
 
@@ -583,7 +583,7 @@ void gnssDetectReceiverType()
         gnss = (GNSS *)new GNSS_MOSAIC();
 
         present.gnss_mosaicX5 = true;
-        present.minCno = true;
+        present.minCN0 = true;
         present.minElevation = true;
         present.dynamicModel = true;
         present.mosaicMicroSd = true;

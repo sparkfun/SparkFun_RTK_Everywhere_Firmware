@@ -192,7 +192,7 @@ bool GNSS_UM980::configureOnce()
       UM980 COM1 - Connected to ESP32 through switches. Not used.
       UM980 COM2 - To IMU.
       UM980 COM3 - BT, config and LoRa Radio. Configured for 115200 from begin().
-    Set minCNO
+    Set minCN0
     Set elevationAngle
     Set Constellations
     Set messages
@@ -1568,7 +1568,7 @@ bool GNSS_UM980::setHighAccuracyService(bool enableGalileoHas)
 //----------------------------------------
 // Set the minimum satellite signal level (carrier to noise ratio) for navigation.
 //----------------------------------------
-bool GNSS_UM980::setMinCno(uint8_t cn0Value)
+bool GNSS_UM980::setMinCN0(uint8_t cn0Value)
 {
     if (online.gnss)
     {

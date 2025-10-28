@@ -274,7 +274,7 @@ function parseIncoming(msg) {
 
                 hide("dynamicModelDropdown"); //Not supported on LG290P
                 hide("minElevConfig"); //Not supported on LG290P
-                hide("minCNOConfig"); //Not supported on LG290P
+                hide("minCN0Config"); //Not supported on LG290P
 
                 ge("rtcmRateInfoText").setAttribute('data-bs-original-title', 'RTCM is transmitted by the base at a default of 1Hz for messages 1005, 1074, 1084, 1094, 1114, 1124, 1134. This can be lowered for radios with low bandwidth or tailored to transmit any/all RTCM messages. Limits: 0 to 20. Note: The measurement rate is overridden to 1Hz when in Base mode.');
 
@@ -342,7 +342,7 @@ function parseIncoming(msg) {
 
                 hide("dynamicModelDropdown"); //Not supported on LG290P
                 hide("minElevConfig"); //Not supported on LG290P
-                hide("minCNOConfig"); //Not supported on LG290P
+                hide("minCN0Config"); //Not supported on LG290P
 
                 ge("rtcmRateInfoText").setAttribute('data-bs-original-title', 'RTCM is transmitted by the base at a default of 1Hz for messages 1005, 1074, 1084, 1094, 1124, and 0.1Hz for 1033. This can be lowered for radios with low bandwidth or tailored to transmit any/all RTCM messages. Limits: 0 to 20. Note: The measurement rate is overridden to 1Hz when in Base mode.');
 
@@ -840,7 +840,7 @@ function validateFields() {
     checkConstellations();
 
     checkElementValue("minElev", 0, 90, "Must be between 0 and 90", "collapseGNSSConfig");
-    checkElementValue("minCNO", 0, 90, "Must be between 0 and 90", "collapseGNSSConfig");
+    checkElementValue("minCN0", 0, 90, "Must be between 0 and 90", "collapseGNSSConfig");
 
     if (ge("enableNtripClient").checked == true) {
         checkElementString("ntripClientCasterHost", 1, 45, "Must be 1 to 45 characters", "collapseGNSSConfig");

@@ -100,7 +100,7 @@ class GNSS_LG290P : GNSS
     void menuMessagesSubtype(int *localMessageRate, const char *messageType);
 
     // Set the minimum satellite signal level for navigation.
-    bool setMinCno(uint8_t cnoValue);
+    bool setMinCN0(uint8_t cnoValue);
 
     // Given the name of a message, find it, and set the rate
     bool setNmeaMessageRateByName(const char *msgName, uint8_t msgRate);
@@ -260,7 +260,7 @@ class GNSS_LG290P : GNSS
     uint8_t getMillisecond();
 
     // Get the minimum satellite signal level for navigation.
-    uint8_t getMinCno();
+    uint8_t getMinCN0();
 
     // Returns minutes or zero if not online
     uint8_t getMinute();

@@ -125,8 +125,8 @@ void menuGNSS()
             systemPrintf("5) Minimum elevation for a GNSS satellite to be used in fix (degrees): %d\r\n",
                          settings.minElev);
 
-        if (present.minCno)
-            systemPrintf("6) Minimum satellite signal level for navigation (dBHz): %d\r\n", gnss->getMinCno());
+        if (present.minCN0)
+            systemPrintf("6) Minimum satellite signal level for navigation (dBHz): %d\r\n", gnss->getMinCN0());
 
         systemPrint("7) Toggle NTRIP Client: ");
         if (settings.enableNtripClient == true)
@@ -297,10 +297,10 @@ void menuGNSS()
                 gnssConfigure(GNSS_CONFIG_ELEVATION); // Request receiver to use new settings
             }
         }
-        else if (incoming == 6 && present.minCno)
+        else if (incoming == 6 && present.minCN0)
         {
             // mosaic-X5 is 60dBHz max.
-            if (getNewSetting("Enter minimum satellite signal level for navigation in dBHz", 0, 60, &settings.minCNO) ==
+            if (getNewSetting("Enter minimum satellite signal level for navigation in dBHz", 0, 60, &settings.minCN0) ==
                 INPUT_RESPONSE_VALID)
             {
                 gnssConfigure(GNSS_CONFIG_CN0); // Request receiver to use new settings

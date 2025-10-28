@@ -11,7 +11,7 @@ class GNSS_None : public GNSS
 {
   protected:
     // Set the minimum satellite signal level for navigation.
-    bool setMinCno(uint8_t cnoValue)
+    bool setMinCN0(uint8_t cnoValue)
     {
         return false;
     }

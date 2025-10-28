@@ -936,7 +936,7 @@ struct Settings
     // Rover operation
     uint8_t dynamicModel = 254; // Default will be applied by checkGNSSArrayDefaults
     bool enablePrintRoverAccuracy = true;
-    int16_t minCNO = 6;   // Minimum satellite signal level for navigation. ZED-F9P default is 6 dBHz
+    int16_t minCN0 = 6;   // Minimum satellite signal level for navigation. ZED-F9P default is 6 dBHz
     // Minimum elevation (in deg) for a GNSS satellite to be used in NAV
     // Note: we use 8-bit unsigned here, but some platforms (ZED, mosaic-X5) support negative elevation limits
     uint8_t minElev = 10;
@@ -1649,7 +1649,7 @@ const RTK_Settings_Entry rtkSettingsEntries[] =
     // Rover operation
     { 1, 1, 0, 1, 1, 1, 1, 1, 0, ALL, 0, _uint8_t,  0, & settings.dynamicModel, "dynamicModel", nullptr, },
     { 0, 0, 0, 1, 1, 1, 1, 1, 1, ALL, 1, _bool,     0, & settings.enablePrintRoverAccuracy, "enablePrintRoverAccuracy", nullptr, },
-    { 0, 1, 0, 1, 1, 1, 1, 1, 1, ALL, 1, _int16_t,  0, & settings.minCNO, "minCNO", nullptr, }, // Not inWebConfig - createSettingsString gets from GNSS
+    { 0, 1, 0, 1, 1, 1, 1, 1, 1, ALL, 1, _int16_t,  0, & settings.minCN0, "minCN0", nullptr, }, // Not inWebConfig - createSettingsString gets from GNSS
     { 1, 1, 0, 1, 1, 1, 1, 1, 1, ALL, 1, _uint8_t,  0, & settings.minElev, "minElev", nullptr, },
 
     // RTC (Real Time Clock)
@@ -1971,7 +1971,7 @@ struct struct_present
     float antennaPhaseCenter_mm = 0.0; // Used to setup tilt compensation
     bool galileoHasCapable = false; // UM980 has HAS capabilities
     bool multipathMitigation = false; // UM980 has MPM, other platforms do not
-    bool minCno = false; // ZED, mosaic, UM980 have minCN0. LG290P does on version >= v5.
+    bool minCN0 = false; // ZED, mosaic, UM980 have minCN0. LG290P does on version >= v5.
     bool minElevation = false; // ZED, mosaic, UM980 have minElevation. LG290P does on versions >= v5.
     bool dynamicModel = false; // ZED, mosaic, UM980 have dynamic models. LG290P does not.
     bool gpioExpanderSwitches = false; // Used on Flex

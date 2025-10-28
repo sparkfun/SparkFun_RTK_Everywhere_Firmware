@@ -237,7 +237,7 @@ void beginBoard()
         present.needsExternalPpl = true; // Uses the PointPerfect Library
         present.galileoHasCapable = true;
         present.multipathMitigation = true; // UM980 has MPM, other platforms do not
-        present.minCno = true;
+        present.minCN0 = true;
         present.minElevation = true;
         present.dynamicModel = true;
 
@@ -354,7 +354,7 @@ void beginBoard()
         present.display_i2c1 = true;
         present.display_type = DISPLAY_128x64;
         present.i2c1BusSpeed_400 = true; // Run display bus at higher speed
-        present.minCno = true;
+        present.minCN0 = true;
         present.minElevation = true;
         present.dynamicModel = true;
 
@@ -479,7 +479,7 @@ void beginBoard()
         present.fastPowerOff = true;
         present.invertedFastPowerOff = true;
         present.gnss_to_uart = true;
-        present.minCno = true;
+        present.minCN0 = true;
         present.minElevation = true;
         present.dynamicModel = true;
 
@@ -561,7 +561,7 @@ void beginBoard()
         present.fastPowerOff = true;
         present.invertedFastPowerOff = true;
         present.gnss_to_uart = true;
-        present.minCno = true;
+        present.minCN0 = true;
         present.minElevation = true;
         present.dynamicModel = true;
 
@@ -660,7 +660,7 @@ void beginBoard()
         present.mosaicMicroSd;
         present.microSdCardDetectLow = true; // Except microSD is connected to mosaic... present.microSd is false
 
-        present.minCno = true;
+        present.minCN0 = true;
         present.minElevation = true;
         present.needsExternalPpl = true; // Uses the PointPerfect Library for L-Band
         present.dynamicModel = true;
@@ -734,7 +734,7 @@ void beginBoard()
 
         // We can't enable here because we don't know if lg290pFirmwareVersion is >= v05
         // present.minElevation = true;
-        // present.minCno = true;
+        // present.minCN0 = true;
 
         pin_I2C0_SDA = 7;
         pin_I2C0_SCL = 20;
@@ -878,7 +878,7 @@ void beginBoard()
 
         // We can't enable GNSS features here because we don't know if lg290pFirmwareVersion is >= v05
         // present.minElevation = true;
-        // present.minCno = true;
+        // present.minCN0 = true;
 
         pin_I2C0_SDA = 15;
         pin_I2C0_SCL = 4;
