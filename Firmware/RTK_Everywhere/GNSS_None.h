@@ -174,7 +174,7 @@ class GNSS_None : public GNSS
         return false;
     }
 
-    //Return min/max rate in ms
+    // Return min/max rate in ms
     uint32_t fixRateGetMinimumMs()
     {
         return 0;
@@ -375,7 +375,7 @@ class GNSS_None : public GNSS
         return _year;
     }
 
-    // Helper functions for the current mode as read from the GNSS receiver 
+    // Helper functions for the current mode as read from the GNSS receiver
     bool gnssInBaseFixedMode()
     {
         return false;
@@ -591,6 +591,12 @@ class GNSS_None : public GNSS
 
     // Control whether HAS E6 is used in location fixes or not
     bool setHighAccuracyService(bool enableGalileoHas)
+    {
+        return true;
+    }
+
+    // Configure device-direct logging. Currently mosaic-X5 specific.
+    bool setLogging()
     {
         return true;
     }

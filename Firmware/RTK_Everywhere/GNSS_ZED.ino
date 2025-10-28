@@ -510,6 +510,8 @@ bool GNSS_ZED::configureBase()
         return (true); // No changes needed
     }
 
+    // Assume we are changing from Rover to Base, request any additional config changes
+
     gnssConfigure(GNSS_CONFIG_FIX_RATE);
     gnssConfigure(GNSS_CONFIG_MESSAGE_RATE_NMEA);
     gnssConfigure(GNSS_CONFIG_MESSAGE_RATE_RTCM_BASE);
@@ -621,6 +623,8 @@ bool GNSS_ZED::configureRover()
             systemPrintln("Skipping F9P Rover configuration");
         return (true); // No changes needed
     }
+
+    // Assume we are changing from Base to Rover, request any additional config changes
 
     bool response = true;
 
@@ -2070,6 +2074,15 @@ bool GNSS_ZED::setElevation(uint8_t elevationDegrees)
 bool GNSS_ZED::setHighAccuracyService(bool enableGalileoHas)
 {
     // Not yet supported on this platform
+    return (true); // Return true to clear gnssConfigure test
+}
+
+//----------------------------------------
+// Configure device-direct logging. Currently mosaic-X5 specific.
+//----------------------------------------
+bool GNSS_ZED::setLogging()
+{
+    // Not supported on this platform
     return (true); // Return true to clear gnssConfigure test
 }
 

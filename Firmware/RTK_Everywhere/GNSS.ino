@@ -5,15 +5,18 @@ GNSS.ino
 
   For any given GNSS receiver, the following functions need to be implemented:
   * begin() - Start communication with the device and its library
-  * configure() - Runs once after a system wide factory reset. Any settings that need to be set but are not exposed to the user.
+  * configure() - Runs once after a system wide factory reset. Any settings that need to be set but are not exposed to
+the user.
   * configureRover() - Change mode to Rover. Request NMEA and RTCM changes as needed.
-  * configureBase() - Change mode to Base. Fixed/Temp are controlled in states.ino. Request NMEA and RTCM changes as needed.
+  * configureBase() - Change mode to Base. Fixed/Temp are controlled in states.ino. Request NMEA and RTCM changes as
+needed.
   * setBaudRateComm() - Set baud rate for connection between microcontroller and GNSS receiver
   * setBaudRateData() - Set baud rate for connection to the GNSS UART connected to the connector labeled DATA
   * setBaudRateRadio() - Set baud rate for connection to the GNSS UART connected to the connector labeled RADIO
   * setRate() - Set the report rate of the GNSS receiver. May or may not drive NMEA/RTCM rates directly.
   * setConstellations() - Set the constellations and bands for the GNSS receiver
-  * setElevation() - Set the degrees a GNSS satellite must be above the horizon in order to be used in location calculation
+  * setElevation() - Set the degrees a GNSS satellite must be above the horizon in order to be used in location
+calculation
   * setMinCN0() - Set dBHz a GNSS satellite's signal strength must be above in order to be used in location calculation
   * setPPS() - Set the width, period, and polarity of the pulse-per-second signal
   * setModel() - Set the model used when calculating a location
@@ -54,6 +57,7 @@ enum
     GNSS_CONFIG_MULTIPATH,
     GNSS_CONFIG_TILT,            // Enable/disable any output needed for tilt compensation
     GNSS_CONFIG_EXT_CORRECTIONS, // Enable / disable corrections protocol(s) on the Radio External port
+    GNSS_CONFIG_LOGGING,         // Enable / disable logging
     GNSS_CONFIG_SAVE,            // Indicates current settings be saved to GNSS receiver NVM
     GNSS_CONFIG_RESET,           // Indicates receiver needs resetting
 
@@ -81,6 +85,7 @@ static const char *gnssConfigDisplayNames[] = {
     "MULTIPATH",
     "TILT",
     "EXT_CORRECTIONS",
+    "LOGGING",
     "SAVE",
     "RESET",
 };
@@ -95,13 +100,6 @@ extern NetworkClient *ntripClient;
 
 extern unsigned long lastGGAPush;
 
-//----------------------------------------
-// Get the minimum satellite signal level for navigation.
-//----------------------------------------
-uint8_t GNSS::getMinCN0()
-{
-    return (settings.minCN0);
-}
 
 //----------------------------------------
 float GNSS::getSurveyInStartingAccuracy()
@@ -360,6 +358,15 @@ void gnssUpdate()
             if (gnss->setCorrRadioExtPort(settings.enableExtCorrRadio, true) == true) // Force the setting
             {
                 gnssConfigureClear(GNSS_CONFIG_EXT_CORRECTIONS);
+                gnssConfigure(GNSS_CONFIG_SAVE); // Request receiver commit this change to NVM
+            }
+        }
+
+        if (gnssConfigureRequested(GNSS_CONFIG_LOGGING))
+        {
+            if (gnss->setLogging() == true)
+            {
+                gnssConfigureClear(GNSS_CONFIG_LOGGING);
                 gnssConfigure(GNSS_CONFIG_SAVE); // Request receiver commit this change to NVM
             }
         }

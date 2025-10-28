@@ -657,7 +657,7 @@ void beginBoard()
         present.invertedFastPowerOff = true;
         present.gnss_to_uart = true;
         present.gnss_to_uart2 = true;
-        present.mosaicMicroSd;
+        present.mosaicMicroSd = true;
         present.microSdCardDetectLow = true; // Except microSD is connected to mosaic... present.microSd is false
 
         present.minCN0 = true;

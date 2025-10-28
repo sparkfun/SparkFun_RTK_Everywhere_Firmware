@@ -237,6 +237,8 @@ bool GNSS_LG290P::configureBase()
         return (true); // No changes needed
     }
 
+    // Assume we are changing from Rover to Base, request any additional config changes
+
     // If the device is set to Survey-In, we must allow the device to be configured.
     // Otherwise PQTMEPE (estimated position error) is never populated, so the survey
     // never starts (Waiting for Horz Accuracy < 2.00m...)
@@ -308,6 +310,8 @@ bool GNSS_LG290P::configureRover()
         return (true); // No changes needed
     }
 
+    // Assume we are changing from Base to Rover, request any additional config changes
+
     bool response = _lg290p->setModeRover(false); // Don't wait for save and reset
     // Setting mode to rover should disable any survey-in
 
@@ -356,49 +360,6 @@ uint8_t GNSS_LG290P::getSurveyInMode()
 bool GNSS_LG290P::configureNtpMode()
 {
     return false;
-}
-
-//----------------------------------------
-// Disable NMEA and RTCM on UART2 to reduce the serial traffic
-//----------------------------------------
-bool GNSS_LG290P::enterConfigMode(unsigned long waitForSemaphoreTimeout_millis)
-{
-    if (online.gnss)
-    {
-        unsigned long start = millis();
-        bool isBlocking;
-        do
-        { // Wait for up to waitForSemaphoreTimeout for library to stop blocking
-            isBlocking = _lg290p->isBlocking();
-        } while (isBlocking && ((millis() - start) < waitForSemaphoreTimeout_millis));
-
-        // This will fail if the library is still blocking, but it is worth a punt...
-
-        if (lg290pFirmwareVersion >= 6) // See #747
-            // Disable NMEA and RTCM on the LG290P UART2, but leave the undocumented Bit 1 enabled
-            return (_lg290p->sendOkCommand("$PQTMCFGPROT", ",W,1,2,00000007,00000002"));
-
-        // Disable NMEA and RTCM on the LG290P UART2
-        return (_lg290p->sendOkCommand("$PQTMCFGPROT", ",W,1,2,00000000,00000000"));
-    }
-    return (false);
-}
-
-//----------------------------------------
-// Enable NMEA and RTCM on UART2
-//----------------------------------------
-bool GNSS_LG290P::exitConfigMode()
-{
-    if (online.gnss)
-    {
-        if (lg290pFirmwareVersion >= 6) // See #747
-            // Enable NMEA and RTCM on the LG290P UART2, plus the undocumented Bit 1
-            return (_lg290p->sendOkCommand("$PQTMCFGPROT", ",W,1,2,00000007,00000007"));
-
-        // Enable NMEA and RTCM on the LG290P UART2
-        return (_lg290p->sendOkCommand("$PQTMCFGPROT", ",W,1,2,00000005,00000005"));
-    }
-    return (false);
 }
 
 //----------------------------------------
@@ -1869,7 +1830,7 @@ bool GNSS_LG290P::setHighAccuracyService(bool enableGalileoHas)
     // E6 reception requires version v06 with 'PPP_TEMP' in firmware title
     // Present is set during LG290P begin()
     if (present.galileoHasCapable == false)
-        return (true); // We are unable to set this setting so report success
+        return (true); // Return true to clear gnssConfigure test
 
     // TODO - We should read/modify/write on PQTMCFGPPP
 
@@ -1909,6 +1870,15 @@ bool GNSS_LG290P::setHighAccuracyService(bool enableGalileoHas)
     }
 
     return (result);
+}
+
+//----------------------------------------
+// Configure device-direct logging. Currently mosaic-X5 specific.
+//----------------------------------------
+bool GNSS_LG290P::setLogging()
+{
+    // Not supported on this platform
+    return (true); // Return true to clear gnssConfigure test
 }
 
 //----------------------------------------
@@ -2323,7 +2293,7 @@ bool GNSS_LG290P::setRate(double secondsBetweenSolutions)
     // The fix rate can only be set in rover mode. Return true if we are in base mode.
     // This allows the gnssUpdate() to clear the bit.
     if (gnss->gnssInBaseSurveyInMode() || gnss->gnssInBaseFixedMode()) // Base
-        return (true);                                     // Nothing to modify at this time
+        return (true);                                                 // Nothing to modify at this time
 
     bool response = true;
 

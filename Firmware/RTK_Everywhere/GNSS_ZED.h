@@ -572,7 +572,7 @@ class GNSS_ZED : GNSS
     // Returns full year, ie 2023, not 23.
     uint16_t getYear();
 
-    // Helper functions for the current mode as read from the GNSS receiver 
+    // Helper functions for the current mode as read from the GNSS receiver
     bool gnssInBaseFixedMode();
     bool gnssInBaseSurveyInMode();
     bool gnssInRoverMode();
@@ -706,6 +706,9 @@ class GNSS_ZED : GNSS
 
     // Enable or disable HAS E6 capability
     bool setHighAccuracyService(bool enableGalileoHas);
+
+    // Configure any logging settings - currently mosaic-X5 specific
+    bool setLogging();
 
     // Given a unique string, find first and last records containing that string in message array
     void setMessageOffsets(const ubxMsg *localMessage, const char *messageType, int &startOfBlock, int &endOfBlock);

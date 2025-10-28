@@ -172,14 +172,16 @@ bool GNSS_UM980::configureBase()
     if (settings.fixedBase == true && gnssInBaseFixedMode())
         return (true);
 
+    // Assume we are changing from Rover to Base, request any additional config changes
+
     // Set the dynamic mode. This will cancel any base averaging mode and is needed
     // to allow a freshly started device to settle in regular GNSS reception mode before issuing
     // a surveyInStart().
     gnssConfigure(GNSS_CONFIG_MODEL);
 
     // Request receiver to use new settings
-    gnssConfigure(GNSS_CONFIG_MESSAGE_RATE_RTCM_BASE);
     gnssConfigure(GNSS_CONFIG_MESSAGE_RATE_NMEA);
+    gnssConfigure(GNSS_CONFIG_MESSAGE_RATE_RTCM_BASE);
 
     return (true);
 }
@@ -292,12 +294,14 @@ bool GNSS_UM980::configureRover()
     if (settings.dynamicModel == UM980_DYN_MODEL_AUTOMOTIVE && currentMode == 3)
         return (true);
 
+    // Assume we are changing from Base to Rover, request any additional config changes
+
     // Sets the dynamic model (Survey/UAV/Automotive) and puts the device into Rover mode
     gnssConfigure(GNSS_CONFIG_MODEL);
 
     // Request a change to NMEA and Rover RTCM
-    gnssConfigure(GNSS_CONFIG_MESSAGE_RATE_RTCM_ROVER);
     gnssConfigure(GNSS_CONFIG_MESSAGE_RATE_NMEA);
+    gnssConfigure(GNSS_CONFIG_MESSAGE_RATE_RTCM_ROVER);
 
     return (true);
 }
@@ -1563,6 +1567,15 @@ bool GNSS_UM980::setHighAccuracyService(bool enableGalileoHas)
         }
     }
     return (result);
+}
+
+//----------------------------------------
+// Configure device-direct logging. Currently mosaic-X5 specific.
+//----------------------------------------
+bool GNSS_UM980::setLogging()
+{
+    // Not supported on this platform
+    return (true); // Return true to clear gnssConfigure test
 }
 
 //----------------------------------------

@@ -615,8 +615,6 @@ class GNSS_MOSAIC : GNSS
     // Configure mosaic-X5 L-Band
     bool configureLBand(bool enableLBand, uint32_t LBandFreq = 0);
 
-    bool configureLogging();
-
     // Configure specific aspects of the receiver for NTP mode
     bool configureNtpMode();
 
@@ -660,11 +658,11 @@ class GNSS_MOSAIC : GNSS
 
     bool fixRateIsAllowed(uint32_t fixRateMs);
 
-    //Return min/max rate in ms
+    // Return min/max rate in ms
     uint32_t fixRateGetMinimumMs();
 
     uint32_t fixRateGetMaximumMs();
-    
+
     // Return the number of active/enabled messages
     uint8_t getActiveMessageCount();
 
@@ -780,7 +778,7 @@ class GNSS_MOSAIC : GNSS
     // Returns full year, ie 2023, not 23.
     uint16_t getYear();
 
-    // Helper functions for the current mode as read from the GNSS receiver 
+    // Helper functions for the current mode as read from the GNSS receiver
     bool gnssInBaseFixedMode();
     bool gnssInBaseSurveyInMode();
     bool gnssInRoverMode();
@@ -991,6 +989,9 @@ class GNSS_MOSAIC : GNSS
 
     // Enable or disable HAS E6 capability
     bool setHighAccuracyService(bool enableGalileoHas);
+
+    // Configure any logging settings - currently mosaic-X5 specific
+    bool setLogging();
 
     // Turn on all the enabled NMEA messages on COM1
     bool setMessagesNMEA();

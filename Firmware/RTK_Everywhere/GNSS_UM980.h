@@ -271,9 +271,6 @@ class GNSS_UM980 : GNSS
     // Returns two digits of milliseconds or zero if not online
     uint8_t getMillisecond();
 
-    // Get the minimum satellite signal level for navigation.
-    uint8_t getMinCN0();
-
     // Returns minutes or zero if not online
     uint8_t getMinute();
 
@@ -437,6 +434,9 @@ class GNSS_UM980 : GNSS
     // Inputs:
     //   elevationDegrees: The elevation value in degrees
     bool setElevation(uint8_t elevationDegrees);
+
+    // Configure any logging settings - currently mosaic-X5 specific
+    bool setLogging();
 
     // Turn on all the enabled NMEA messages on COM3
     bool setMessagesNMEA();

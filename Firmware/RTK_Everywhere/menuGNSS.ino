@@ -126,7 +126,7 @@ void menuGNSS()
                          settings.minElev);
 
         if (present.minCN0)
-            systemPrintf("6) Minimum satellite signal level for navigation (dBHz): %d\r\n", gnss->getMinCN0());
+            systemPrintf("6) Minimum satellite signal level for navigation (dBHz): %d\r\n", settings.minCN0);
 
         systemPrint("7) Toggle NTRIP Client: ");
         if (settings.enableNtripClient == true)

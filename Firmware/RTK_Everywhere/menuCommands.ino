@@ -2206,7 +2206,7 @@ void createSettingsString(char *newSettings)
         stringRecord(newSettings, "udpOverWiFiStation", 0); // 1 = WiFi mode, 0 = AP
 
     // Single variables needed on Config page
-    stringRecord(newSettings, "minCN0", gnss->getMinCN0());
+    stringRecord(newSettings, "minCN0", settings.minCN0);
     stringRecord(newSettings, "enableRCFirmware", enableRCFirmware);
 
     // Add SD Characteristics

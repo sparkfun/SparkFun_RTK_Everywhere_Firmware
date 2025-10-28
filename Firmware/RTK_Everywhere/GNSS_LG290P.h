@@ -259,9 +259,6 @@ class GNSS_LG290P : GNSS
     // Returns two digits of milliseconds or zero if not online
     uint8_t getMillisecond();
 
-    // Get the minimum satellite signal level for navigation.
-    uint8_t getMinCN0();
-
     // Returns minutes or zero if not online
     uint8_t getMinute();
 
@@ -420,6 +417,9 @@ class GNSS_LG290P : GNSS
     bool setElevation(uint8_t elevationDegrees);
 
     bool setHighAccuracyService(bool enableGalileoHas);
+
+    // Configure any logging settings - currently mosaic-X5 specific
+    bool setLogging();
 
     // Set the NMEA messages
     bool setMessagesNMEA();

@@ -184,9 +184,6 @@ class GNSS
     // Returns two digits of milliseconds or zero if not online
     virtual uint8_t getMillisecond();
 
-    // Get the minimum satellite signal level for navigation.
-    uint8_t getMinCN0();
-
     // Returns minutes or zero if not online
     virtual uint8_t getMinute();
 
@@ -348,6 +345,9 @@ class GNSS
     virtual bool setElevation(uint8_t elevationDegrees);
 
     virtual bool setHighAccuracyService(bool enableGalileoHas);
+
+    // Configure any logging settings - currently mosaic-X5 specific
+    virtual bool setLogging();
 
     virtual bool setNmeaMessageRateByName(const char *msgName, uint8_t msgRate);
 
