@@ -1764,7 +1764,15 @@ void GNSS_ZED::menuMessagesSubtype(uint8_t *localMessageRate, const char *messag
             {
                 inputMessageRate(localMessageRate[msgNumber], msgNumber + rtcmOffset);
 
-                gnssConfigure(GNSS_CONFIG_MESSAGE_RATE_NMEA); // Request receiver to use new settings
+                // Depending on the message type, trigger different config requests
+                // Note: anything not handled triggers a NMEA config which runs the whole array including
+                // NMEA, RTCM (Rover), RXM, NAV, NAV2, NMEA NAV2, MON, TIM, PUBX
+                if (strcmp(messageType, "RTCM") == 0)
+                    gnssConfigure(GNSS_CONFIG_MESSAGE_RATE_RTCM_ROVER); // Request receiver to use new settings
+                else if (strcmp(messageType, "RTCM-Base") == 0)
+                    gnssConfigure(GNSS_CONFIG_MESSAGE_RATE_RTCM_BASE); // Request receiver to use new settings
+                else
+                    gnssConfigure(GNSS_CONFIG_MESSAGE_RATE_NMEA); // Request receiver to use new settings
             }
             else
                 printUnknown(incoming);
@@ -2134,57 +2142,41 @@ bool GNSS_ZED::setMessagesNMEA()
 
     bool success = true;
 
-    if (online.gnss)
+    bool response = true;
+    int messageNumber = 0;
+
+    while (messageNumber < MAX_UBX_MSG)
     {
-        int tryNo = -1;
+        response &= _zed->newCfgValset(VAL_LAYER_ALL);
 
-        // Try up to maxRetries times to configure the messages
-        // This corrects occasional failures seen on the Reference Station where the GNSS is connected via SPI
-        // instead of I2C and UART1. I believe the SETVAL ACK is occasionally missed due to the level of messages being
-        // processed.
-        while ((++tryNo < maxRetries) && success == false)
+        do
         {
-            bool response = true;
-            int messageNumber = 0;
-
-            while (messageNumber < MAX_UBX_MSG)
+            if (messageSupported(messageNumber))
             {
-                response &= _zed->newCfgValset(VAL_LAYER_ALL);
+                uint8_t rate = settings.ubxMessageRates[messageNumber];
 
-                do
+                // Set NMEA messages to user's settings on UART1 interface
+                response &= _zed->addCfgValset(ubxMessages[messageNumber].msgConfigKey,
+                                               rate); // msgConfigKey defaults to UART1
+
+                // Mark messages needed for other services (NTRIP Client, PointPerfect, etc) as enabled if rate
+                // > 0
+                if (settings.ubxMessageRates[messageNumber] > 0)
                 {
-                    if (messageSupported(messageNumber))
-                    {
-                        uint8_t rate = settings.ubxMessageRates[messageNumber];
-
-                        // Set NMEA messages to user's settings on UART1 interface
-                        response &= _zed->addCfgValset(ubxMessages[messageNumber].msgConfigKey,
-                                                       rate); // msgConfigKey defaults to UART1
-
-                        // Mark messages needed for other services (NTRIP Client, PointPerfect, etc) as enabled if rate
-                        // > 0
-                        if (settings.ubxMessageRates[messageNumber] > 0)
-                        {
-                            if (strcmp(ubxMessages[messageNumber].msgTextName, "NMEA_GGA") == 0)
-                                gpggaEnabled = true;
-                        }
-                    }
-                    messageNumber++;
-                } while (((messageNumber % 43) < 42) &&
-                         (messageNumber < MAX_UBX_MSG)); // Limit 1st batch to 42. Batches after that will be (up to) 43
-                                                         // in size. It's a HHGTTG thing.
-
-                if (_zed->sendCfgValset() == false)
-                {
-                    systemPrintf("sendCfg failed at messageNumber %d %s. Try %d of %d.\r\n", messageNumber - 1,
-                                 (messageNumber - 1) < MAX_UBX_MSG ? ubxMessages[messageNumber - 1].msgTextName : "",
-                                 tryNo + 1, maxRetries);
-                    response &= false; // If any one of the Valset fails, report failure overall
+                    if (strcmp(ubxMessages[messageNumber].msgTextName, "NMEA_GGA") == 0)
+                        gpggaEnabled = true;
                 }
             }
+            messageNumber++;
+        } while (((messageNumber % 43) < 42) &&
+                 (messageNumber < MAX_UBX_MSG)); // Limit 1st batch to 42. Batches after that will be (up to) 43
+                                                 // in size. It's a HHGTTG thing.
 
-            if (response)
-                success = true;
+        if (_zed->sendCfgValset() == false)
+        {
+            systemPrintf("sendCfg failed at messageNumber %d %s.\r\n", messageNumber - 1,
+                         (messageNumber - 1) < MAX_UBX_MSG ? ubxMessages[messageNumber - 1].msgTextName : "");
+            response &= false; // If any one of the Valset fails, report failure overall
         }
     }
 
