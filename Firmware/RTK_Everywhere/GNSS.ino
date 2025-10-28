@@ -2,7 +2,33 @@
 GNSS.ino
 
   GNSS layer implementation
-------------------------------------------------------------------------------*/
+
+  For any given GNSS receiver, the following functions need to be implemented:
+  * begin() - Start communication with the device and its library
+  * configure() - Runs once after a system wide factory reset. Any settings that need to be set but are not exposed to the user.
+  * configureRover() - Change mode to Rover. Request NMEA and RTCM changes as needed.
+  * configureBase() - Change mode to Base. Fixed/Temp are controlled in states.ino. Request NMEA and RTCM changes as needed.
+  * setBaudRateComm() - Set baud rate for connection between microcontroller and GNSS receiver
+  * setBaudRateData() - Set baud rate for connection to the GNSS UART connected to the connector labeled DATA
+  * setBaudRateRadio() - Set baud rate for connection to the GNSS UART connected to the connector labeled RADIO
+  * setRate() - Set the report rate of the GNSS receiver. May or may not drive NMEA/RTCM rates directly.
+  * setConstellations() - Set the constellations and bands for the GNSS receiver
+  * setElevation() - Set the degrees a GNSS satellite must be above the horizon in order to be used in location calculation
+  * setMinCN0() - Set dBHz a GNSS satellite's signal strength must be above in order to be used in location calculation
+  * setPPS() - Set the width, period, and polarity of the pulse-per-second signal
+  * setModel() - Set the model used when calculating a location
+  * setMessagesNMEA() - Set the NMEA messages output during Base or Rover mode
+  * setMessagesRTCMBase() - Set the RTCM messages output during Base mode
+  * setMessagesRTCMRover() - Set the RTCM messages output during Rover mode
+  * setHighAccuracyService() - Set the PPP/HAS E6 capabilities of the receiver
+  * setMultipathMitigation() - Set the multipath capabilities of the receiver
+  * setTilt() - Set the GNSS receiver's output to be compatible with a tilt sensor
+  * setCorrRadioExtPort() - Set corrections protocol(s) on the UART connected to the RADIO port
+  * saveConfiguration() - Save the current receiver's settings to the receiver's NVM
+  * reset() - Reset the receiver (through software or hardware)
+  * factoryReset() - Reset the receiver to factory settings
+  There are many more but these form the core of any configuration interface.
+  ------------------------------------------------------------------------------*/
 
 // We may receive a command or the user may change a setting that needs to modify the configuration of the GNSS receiver
 // Because this can take time, we group all the changes together and re-configure the receiver once the user has exited
