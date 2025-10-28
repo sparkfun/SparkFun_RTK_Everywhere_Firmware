@@ -53,10 +53,10 @@ void printMosaicCardSpace()
 //----------------------------------------
 void menuLogMosaic()
 {
-    if (!present.mosaicMicroSd) // This may be needed for the G5 P3 ?
+    if (present.mosaicMicroSd == false) // This may be needed for the G5 P3 ?
+    {
         return;
-
-    bool applyChanges = false;
+    }
 
     while (1)
     {
@@ -95,12 +95,12 @@ void menuLogMosaic()
         if (incoming == 1)
         {
             settings.enableLogging ^= 1;
-            applyChanges = true;
+            gnssConfigure(GNSS_CONFIG_LOGGING); // Request receiver to use new settings
         }
         else if (incoming == 2)
         {
             settings.enableLoggingRINEX ^= 1;
-            applyChanges = true;
+            gnssConfigure(GNSS_CONFIG_LOGGING); // Request receiver to use new settings
         }
         else if (incoming == 3 && settings.enableLoggingRINEX == true)
         {
@@ -116,7 +116,7 @@ void menuLogMosaic()
             if (duration >= 1 && duration <= MAX_MOSAIC_FILE_DURATIONS)
             {
                 settings.RINEXFileDuration = duration - 1;
-                applyChanges = true;
+                gnssConfigure(GNSS_CONFIG_LOGGING); // Request receiver to use new settings
             }
         }
         else if (incoming == 4 && settings.enableLoggingRINEX == true)
@@ -133,7 +133,7 @@ void menuLogMosaic()
             if (interval >= 1 && interval <= MAX_MOSAIC_OBS_INTERVALS)
             {
                 settings.RINEXObsInterval = interval - 1;
-                applyChanges = true;
+                gnssConfigure(GNSS_CONFIG_LOGGING); // Request receiver to use new settings
             }
         }
         else if (incoming == 'x')
@@ -144,16 +144,6 @@ void menuLogMosaic()
             break;
         else
             printUnknown(incoming);
-    }
-
-    // Apply changes
-    if (applyChanges)
-    {
-        GNSS_MOSAIC *mosaic = (GNSS_MOSAIC *)gnss;
-
-        mosaic->configureLogging();  // This will enable / disable RINEX logging
-        mosaic->setMessagesNMEA();   // Enable NMEA messages - this will enable/disable the DSK1 streams
-        mosaic->saveConfiguration(); // Save the configuration
     }
 
     clearBuffer(); // Empty buffer of any newline chars
@@ -242,6 +232,8 @@ void GNSS_MOSAIC::begin()
     //   COM3 is N/C (ESP32 UART2 is connected to the IMU)
     //   COM4 TX provides data to the IMU - TODO
 
+    systemPrintln("Starting communication with mosaic-X5");
+
     if (productVariant != RTK_FLEX) // productVariant == RTK_FACET_MOSAIC
     {
         if (serial2GNSS == nullptr)
@@ -270,13 +262,6 @@ void GNSS_MOSAIC::begin()
             systemPrintln("Could not set mosaic-X5 COM1 baud!");
             return;
         }
-
-        // Set COM2 (Radio) and COM3 (Data) baud rates
-        setBaudRateRadio(settings.radioPortBaud);
-        setBaudRateData(settings.dataPortBaud);
-
-        // Set COM2 (Radio) protocol(s)
-        setCorrRadioExtPort(settings.enableExtCorrRadio, true); // Force the setting
 
         updateSD(); // Check card size and free space
 
@@ -310,10 +295,6 @@ void GNSS_MOSAIC::begin()
 
         if (isPresent() == false) // Detect if the module is present
             return;
-
-        // Set COM2 (Radio) and COM3 (Data) baud rates
-        setBaudRateRadio(settings.radioPortBaud);
-        setBaudRateData(settings.dataPortBaud); // Probably redundant
 
         // Set COM2 (Radio) protocol(s)
         setCorrRadioExtPort(settings.enableExtCorrRadio, true); // Force the setting
@@ -362,9 +343,6 @@ bool GNSS_MOSAIC::beginExternalEvent()
     // Note: You can't disable events via sep. Event cannot be set to "none"...
     //       All you can do is disable the ExtEvent stream
 
-    if (online.gnss == false)
-        return (false);
-
     if (settings.dataPortChannel != MUX_PPS_EVENTTRIGGER)
         return (true); // No need to configure PPS if port is not selected
 
@@ -385,9 +363,6 @@ bool GNSS_MOSAIC::beginExternalEvent()
 //----------------------------------------
 bool GNSS_MOSAIC::setPPS()
 {
-    if (online.gnss == false)
-        return (false);
-
     if (settings.dataPortChannel != MUX_PPS_EVENTTRIGGER)
         return (true); // No need to configure PPS if port is not selected
 
@@ -435,57 +410,9 @@ bool GNSS_MOSAIC::checkPPPRates()
     return settings.enableLoggingRINEX;
 }
 
+// Enable / disable RINEX logging
 //----------------------------------------
-// Configure the Base
-// Outputs:
-//   Returns true if successfully configured and false upon failure
-//----------------------------------------
-bool GNSS_MOSAIC::configureBase()
-{
-    /*
-        Set mode to Static + dynamic model
-        Enable RTCM Base messages
-        Enable NMEA messages
-
-        mosaicX5AutoBaseStart() will start "survey-in"
-        mosaicX5FixedBaseStart() will start fixed base
-    */
-
-    if (online.gnss == false)
-    {
-        systemPrintln("GNSS not online");
-        return (false);
-    }
-
-    bool response = true;
-
-    response &= setModel(MOSAIC_DYN_MODEL_STATIC);
-
-    response &= setElevation(settings.minElev);
-
-    response &= setMinCN0(settings.minCN0);
-
-    response &= setConstellations();
-
-    response &= setMessagesRTCMBase();
-
-    response &= setMessagesNMEA();
-
-    response &= configureLogging();
-
-    // Save the current configuration into non-volatile memory (NVM)
-    response &= saveConfiguration();
-
-    if (response == false)
-    {
-        systemPrintln("mosaic-X5 Base failed to configure");
-    }
-
-    return (response);
-}
-
-//----------------------------------------
-bool GNSS_MOSAIC::configureLogging()
+bool GNSS_MOSAIC::setLogging()
 {
     bool response = true;
     String setting;
@@ -577,6 +504,51 @@ bool GNSS_MOSAIC::configureLBand(bool enableLBand, uint32_t LBandFreq)
 }
 
 //----------------------------------------
+// Setup the general configuration of the GNSS
+// Not Rover or Base specific (ie, baud rates)
+// Outputs:
+//   Returns true if successfully configured and false upon failure
+//----------------------------------------
+bool GNSS_MOSAIC::configure()
+{
+    // Attempt 3 tries on MOSAICX5 config
+    for (int x = 0; x < 3; x++)
+    {
+        if (configureOnce() == true)
+            return (true);
+    }
+
+    systemPrintln("mosaic-X5 failed to configure");
+    return (false);
+}
+
+//----------------------------------------
+// Configure the Base
+// Outputs:
+//   Returns true if successfully configured and false upon failure
+//----------------------------------------
+bool GNSS_MOSAIC::configureBase()
+{
+    // TODO Check if we are already in base here. Return if we are.
+
+    // Assume we are changing from Rover to Base, request any additional config changes
+
+    bool response = true;
+
+    // Set the model to static for Base mode
+    response &= setModel(MOSAIC_DYN_MODEL_STATIC);
+
+    gnssConfigure(GNSS_CONFIG_MESSAGE_RATE_RTCM_BASE);
+
+    if (response == false)
+    {
+        systemPrintln("mosaic-X5 Base failed to configure");
+    }
+
+    return (response);
+}
+
+//----------------------------------------
 // Perform the GNSS configuration
 // Outputs:
 //   Returns true if successfully configured and false upon failure
@@ -627,40 +599,16 @@ bool GNSS_MOSAIC::configureOnce()
     response &= sendWithResponse("snt,+GPSL5\n\r", "SignalTracking", 1000, 200);
     response &= sendWithResponse("snu,+GPSL5,+GPSL5\n\r", "SignalUsage", 1000, 200);
 
-    configureLogging();
-
     if (response == true)
     {
         online.gnss = true; // If we failed before, mark as online now
 
         systemPrintln("mosaic-X5 configuration updated");
-
-        // Save the current configuration into non-volatile memory (NVM)
-        response &= saveConfiguration();
     }
     else
         online.gnss = false; // Take it offline
 
     return (response);
-}
-
-//----------------------------------------
-// Setup the general configuration of the GNSS
-// Not Rover or Base specific (ie, baud rates)
-// Outputs:
-//   Returns true if successfully configured and false upon failure
-//----------------------------------------
-bool GNSS_MOSAIC::configure()
-{
-    // Attempt 3 tries on MOSAICX5 config
-    for (int x = 0; x < 3; x++)
-    {
-        if (configureOnce() == true)
-            return (true);
-    }
-
-    systemPrintln("mosaic-X5 failed to configure");
-    return (false);
 }
 
 //----------------------------------------
@@ -670,43 +618,20 @@ bool GNSS_MOSAIC::configure()
 //----------------------------------------
 bool GNSS_MOSAIC::configureRover()
 {
-    /*
-        Set mode to Rover + dynamic model
-        Set minElevation
-        Enable RTCM messages on COM1
-        Enable NMEA on COM1
-    */
-    if (online.gnss == false)
-    {
-        systemPrintln("GNSS not online");
-        return (false);
-    }
+    // TODO Check if we are already in rover here. Return if we are.
+
+    // Assume we are changing from Base to Rover, request any additional config changes
 
     bool response = true;
 
     response &= sendWithResponse("spm,Rover,all,auto\n\r", "PVTMode");
 
-    response &= setModel(settings.dynamicModel); // Set by menuGNSS which calls gnss->setModel
-
-    response &= setElevation(settings.minElev); // Set by menuGNSS which calls gnss->setElevation
-
-    response &= setMinCN0(settings.minCN0);
-
-    response &= setConstellations();
-
-    response &= setMessagesRTCMRover();
-
-    response &= setMessagesNMEA();
-
-    response &= configureLogging();
-
-    // Save the current configuration into non-volatile memory (NVM)
-    response &= saveConfiguration();
+    gnssConfigure(GNSS_CONFIG_FIX_RATE);
+    gnssConfigure(GNSS_CONFIG_MESSAGE_RATE_NMEA);
+    gnssConfigure(GNSS_CONFIG_MESSAGE_RATE_RTCM_ROVER);
 
     if (response == false)
-    {
         systemPrintln("mosaic-X5 Rover failed to configure");
-    }
 
     return (response);
 }
@@ -1478,6 +1403,7 @@ void GNSS_MOSAIC::menuConstellations()
             incoming--; // Align choice to constellation array of 0 to 5
 
             settings.mosaicConstellations[incoming] ^= 1;
+            gnssConfigure(GNSS_CONFIG_CONSTELLATION); // Request receiver to use new settings
         }
         else if (incoming == INPUT_RESPONSE_GETNUMBER_EXIT)
             break;
@@ -1486,11 +1412,6 @@ void GNSS_MOSAIC::menuConstellations()
         else
             printUnknown(incoming);
     }
-
-    // Apply current settings to module
-    setConstellations();
-
-    saveConfiguration(); // Save the updated constellations
 
     clearBuffer(); // Empty buffer of any newline chars
 }
@@ -2177,7 +2098,7 @@ bool GNSS_MOSAIC::setElevation(uint8_t elevationDegrees)
 bool GNSS_MOSAIC::setHighAccuracyService(bool enableGalileoHas)
 {
     // Not yet supported on this platform
-    return (false);
+    return (true); // Return true to clear gnssConfigure test
 }
 
 //----------------------------------------
@@ -2522,8 +2443,8 @@ bool GNSS_MOSAIC::setRate(double secondsBetweenSolutions)
 //----------------------------------------
 bool GNSS_MOSAIC::setTilt()
 {
-    // Not yet available on this platform
-    return false;
+    // Not yet supported on this platform
+    return (true); // Return true to clear gnssConfigure test
 }
 
 //----------------------------------------
