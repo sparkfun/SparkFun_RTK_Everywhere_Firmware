@@ -454,20 +454,9 @@ bool GNSS_LG290P::fixedBaseStart()
     if (online.gnss == false)
         return (false);
 
-    // Read, modify, write
-
-    if (settings.fixedBase == true && gnssInBaseFixedMode())
-    {
-        if (settings.debugGnssConfig)
-            systemPrintln("Skipping - LG290P is already in Fixed Base configuration");
+    // If we are already in the appropriate base mode, no changes needed
+    if (gnssInBaseFixedMode())
         return (true); // No changes needed
-    }
-    if (settings.fixedBase == false && gnssInBaseSurveyInMode())
-    {
-        if (settings.debugGnssConfig)
-            systemPrintln("Skipping - LG290P is already in Survey-in Base configuration");
-        return (true); // No changes needed
-    }
 
     if (settings.fixedBaseCoordinateType == COORD_TYPE_ECEF)
     {
@@ -1845,7 +1834,6 @@ bool GNSS_LG290P::setHighAccuracyService(bool enableGalileoHas)
         if (_lg290p->sendOkCommand("$PQTMCFGPPP", ",W,2,1,120,0.10,0.15") == true)
         {
             systemPrintln("Galileo E6 HAS service enabled");
-            gnssConfigure(GNSS_CONFIG_SAVE); // Request receiver commit this change to NVM
         }
         else
         {
@@ -1860,7 +1848,6 @@ bool GNSS_LG290P::setHighAccuracyService(bool enableGalileoHas)
         if (_lg290p->sendOkCommand("$PQTMCFGPPP", ",W,0") == true)
         {
             systemPrintln("Galileo E6 HAS service disabled");
-            gnssConfigure(GNSS_CONFIG_SAVE); // Request receiver commit this change to NVM
         }
         else
         {
@@ -2397,24 +2384,23 @@ bool GNSS_LG290P::surveyInReset()
 //----------------------------------------
 bool GNSS_LG290P::surveyInStart()
 {
-    if (online.gnss)
+    if (gnssInBaseSurveyInMode())
+        return (true); // No changes needed
+
+    bool response = true;
+
+    // Average for a number of seconds (default is 60)
+    response &= _lg290p->setSurveyInMode(settings.observationSeconds);
+
+    if (response == false)
     {
-        bool response = true;
-
-        response &=
-            _lg290p->setSurveyInMode(settings.observationSeconds); // Average for a number of seconds (default is 60)
-
-        if (response == false)
-        {
-            systemPrintln("Survey start failed");
-            return (false);
-        }
-
-        _autoBaseStartTimer = millis(); // Stamp when averaging began
-
-        return (response);
+        systemPrintln("Survey start failed");
+        return (false);
     }
-    return false;
+
+    _autoBaseStartTimer = millis(); // Stamp when averaging began
+
+    return (response);
 }
 
 //----------------------------------------

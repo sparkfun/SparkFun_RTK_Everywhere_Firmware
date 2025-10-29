@@ -232,8 +232,6 @@ void GNSS_MOSAIC::begin()
     //   COM3 is N/C (ESP32 UART2 is connected to the IMU)
     //   COM4 TX provides data to the IMU - TODO
 
-    systemPrintln("Starting communication with mosaic-X5");
-
     if (productVariant != RTK_FLEX) // productVariant == RTK_FACET_MOSAIC
     {
         if (serial2GNSS == nullptr)
@@ -529,7 +527,18 @@ bool GNSS_MOSAIC::configure()
 //----------------------------------------
 bool GNSS_MOSAIC::configureBase()
 {
-    // TODO Check if we are already in base here. Return if we are.
+    if (settings.fixedBase == false && gnssInBaseSurveyInMode())
+        return (true); // No changes needed
+
+    if (settings.fixedBase == true)
+    {
+        // 0 - Unknown, 1 - Rover, 2 - Base Survey In, 3 - Base Fixed Geodetic, 4 - Base Fixed Cartesian
+        int currentMode = getMode();
+        if (currentMode == 3 && settings.fixedBaseCoordinateType == COORD_TYPE_GEODETIC)
+            return (true); // No changes needed
+        if (currentMode == 4 && settings.fixedBaseCoordinateType == COORD_TYPE_ECEF)
+            return (true); // No changes needed
+    }
 
     // Assume we are changing from Rover to Base, request any additional config changes
 
@@ -618,7 +627,8 @@ bool GNSS_MOSAIC::configureOnce()
 //----------------------------------------
 bool GNSS_MOSAIC::configureRover()
 {
-    // TODO Check if we are already in rover here. Return if we are.
+    if (gnssInRoverMode())
+        return (true); // No changes needed
 
     // Assume we are changing from Base to Rover, request any additional config changes
 
@@ -737,6 +747,14 @@ uint16_t GNSS_MOSAIC::fileBufferExtractData(uint8_t *fileBuffer, int fileBytesTo
 //----------------------------------------
 bool GNSS_MOSAIC::fixedBaseStart()
 {
+    // If we are already in the appropriate base mode, no changes needed
+    // 0 - Unknown, 1 - Rover, 2 - Base Survey In, 3 - Base Fixed Geodetic, 4 - Base Fixed Cartesian
+    int currentMode = getMode();
+    if (currentMode == 3 && settings.fixedBaseCoordinateType == COORD_TYPE_GEODETIC)
+        return (true); // No changes needed
+    if (currentMode == 4 && settings.fixedBaseCoordinateType == COORD_TYPE_ECEF)
+        return (true); // No changes needed
+
     bool response = true;
 
     // TODO: support alternate Datums (ETRS89, NAD83, NAD83_PA, NAD83_MA, GDA94, GDA2020)
@@ -763,9 +781,7 @@ bool GNSS_MOSAIC::fixedBaseStart()
     }
 
     if (response == false)
-    {
         systemPrintln("Fixed base start failed");
-    }
 
     return (response);
 }
@@ -1026,11 +1042,43 @@ uint8_t GNSS_MOSAIC::getMinute()
 
 //----------------------------------------
 // Returns the current mode: Base/Rover/etc
+// 0 - Unknown, 1 - Rover, 2 - Base Survey In, 3 - Base Fixed Geodetic, 4 - Base Fixed Cartesian
 //----------------------------------------
 uint8_t GNSS_MOSAIC::getMode()
 {
-    // TODO
-    return 0;
+    // Example responses to gpm:
+    // PVTMode, Rover, StandAlone+SBAS+DGNSS+RTKFloat+RTKFixed, auto
+    // PVTMode, Static, StandAlone+SBAS+DGNSS+RTKFloat+RTKFixed, auto
+    // PVTMode, Static, StandAlone+SBAS+DGNSS+RTKFloat+RTKFixed, Geodetic1
+    // PVTMode, Static, StandAlone+SBAS+DGNSS+RTKFloat+RTKFixed, Cartesian1
+
+    char receiverResponse[500];
+    // Send gpm, look for correct PVTMode response, and store the entire response for searching later
+    if (sendWithResponse("gpm\n\r", "PVTMode", 1000, 25, receiverResponse, sizeof(receiverResponse)) == true)
+    {
+        if (strnstr(receiverResponse, "Cartesian", sizeof(receiverResponse)) != nullptr) // Found
+        {
+            Serial.println("Mode: Base fixed Cartesian");
+            return (4);
+        }
+        if (strnstr(receiverResponse, "Geodetic", sizeof(receiverResponse)) != nullptr) // Found
+        {
+            Serial.println("Mode: Base fixed Geodetic");
+            return (3);
+        }
+        if (strnstr(receiverResponse, "Static", sizeof(receiverResponse)) != nullptr) // Found
+        {
+            Serial.println("Mode: Base survey-in");
+            return (2);
+        }
+        if (strnstr(receiverResponse, "Rover", sizeof(receiverResponse)) != nullptr) // Found
+        {
+            Serial.println("Mode: Rover");
+            return (1);
+        }
+    }
+
+    return 0; // Unknown
 }
 
 //----------------------------------------
@@ -1177,7 +1225,10 @@ uint16_t GNSS_MOSAIC::getYear()
 //----------------------------------------
 bool GNSS_MOSAIC::gnssInBaseFixedMode()
 {
-    // TODO
+    // 0 - Unknown, 1 - Rover, 2 - Base Survey In, 3 - Base Fixed Geodetic, 4 - Base Fixed Cartesian
+    int currentMode = getMode();
+    if (currentMode == 3 || currentMode == 4)
+        return (true);
     return (false);
 }
 //----------------------------------------
@@ -1185,7 +1236,9 @@ bool GNSS_MOSAIC::gnssInBaseFixedMode()
 //----------------------------------------
 bool GNSS_MOSAIC::gnssInBaseSurveyInMode()
 {
-    // TODO
+    // 0 - Unknown, 1 - Rover, 2 - Base Survey In, 3 - Base Fixed Geodetic, 4 - Base Fixed Cartesian
+    if (getMode() == 2)
+        return (true);
     return (false);
 }
 //----------------------------------------
@@ -1193,7 +1246,9 @@ bool GNSS_MOSAIC::gnssInBaseSurveyInMode()
 //----------------------------------------
 bool GNSS_MOSAIC::gnssInRoverMode()
 {
-    // TODO
+    // 0 - Unknown, 1 - Rover, 2 - Base Survey In, 3 - Base Fixed Geodetic, 4 - Base Fixed Cartesian
+    if (getMode() == 1)
+        return (true);
     return (false);
 }
 
@@ -1556,6 +1611,11 @@ void GNSS_MOSAIC::menuMessagesRTCM(bool rover)
             incoming--;
             incoming -= MAX_MOSAIC_RTCM_V3_INTERVAL_GROUPS;
             enabledPtr[incoming] ^= 1;
+
+            if (inBaseMode())                                      // If the system state is Base mode
+                gnssConfigure(GNSS_CONFIG_MESSAGE_RATE_RTCM_BASE); // Request receiver to use new settings
+            else
+                gnssConfigure(GNSS_CONFIG_MESSAGE_RATE_RTCM_ROVER); // Request receiver to use new settings
         }
         else if (incoming == INPUT_RESPONSE_GETNUMBER_EXIT)
             break;
@@ -1910,8 +1970,8 @@ bool GNSS_MOSAIC::sendWithResponse(HardwareSerial *serialPort, const char *messa
             if (serialPort->available())
             {
                 uint8_t c = serialPort->read();
-                // if ((settings.debugGnss == true) && (!inMainMenu))
-                //     systemPrintf("%c", (char)c);
+                if ((settings.debugGnss == true) && (!inMainMenu))
+                    systemPrintf("%c", (char)c);
                 if (response && (replySeen < (responseSize - 1)))
                 {
                     *(response + replySeen) = c;
@@ -2679,17 +2739,19 @@ bool GNSS_MOSAIC::surveyInReset()
 //----------------------------------------
 bool GNSS_MOSAIC::surveyInStart()
 {
-    // Start a Self-optimizing Base Station
-    bool response = sendWithResponse("spm,Static,,auto\n\r", "PVTMode");
-
     _determiningFixedPosition = true; // Ensure flag is set initially
 
     _autoBaseStartTimer = millis(); // Stamp when averaging began
 
+    // If we are already in the appropriate base mode, no changes needed
+    if (gnssInBaseSurveyInMode())
+        return (true); // No changes needed
+
+    // Start a Self-optimizing Base Station
+    bool response = sendWithResponse("spm,Static,,auto\n\r", "PVTMode");
+
     if (response == false)
-    {
         systemPrintln("Survey start failed");
-    }
 
     return (response);
 }
@@ -2872,6 +2934,9 @@ uint32_t GNSS_MOSAIC::baudGetMaximum()
 // Return true if the receiver is detected
 bool GNSS_MOSAIC::isPresent()
 {
+    systemPrintln("Starting communication with mosaic-X5");
+    paintMosaicBooting();
+
     if (productVariant != RTK_FLEX) // productVariant == RTK_FACET_MOSAIC
     {
         // Set COM4 to: CMD input (only), SBF output (only)

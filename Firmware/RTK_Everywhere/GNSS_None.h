@@ -358,11 +358,6 @@ class GNSS_None : public GNSS
         return 0;
     }
 
-    float getSurveyInStartingAccuracy()
-    {
-        return 0;
-    }
-
     // Returns timing accuracy or zero if not online
     uint32_t getTimeAccuracy()
     {

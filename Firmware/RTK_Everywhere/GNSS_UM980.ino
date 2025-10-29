@@ -421,10 +421,14 @@ uint16_t GNSS_UM980::fileBufferExtractData(uint8_t *fileBuffer, int fileBytesToR
 //----------------------------------------
 bool GNSS_UM980::fixedBaseStart()
 {
-    bool response = true;
-
     if (online.gnss == false)
         return (false);
+
+    // If we are already in the appropriate base mode, no changes needed
+    if (gnssInBaseFixedMode())
+        return (true);
+
+    bool response = true;
 
     if (settings.fixedBaseCoordinateType == COORD_TYPE_ECEF)
     {
@@ -1975,14 +1979,19 @@ bool GNSS_UM980::surveyInStart()
 {
     if (online.gnss)
     {
+        // If we are already in the appropriate base mode, no changes needed
+        if (gnssInBaseSurveyInMode())
+            return (true);
+
         bool response = true;
 
         // Start a Self-optimizing Base Station
         // We do not use the distance parameter (settings.observationPositionAccuracy) because that
         // setting on the UM980 is related to automatically restarting base mode
         // at power on (very different from ZED-F9P).
-        response &=
-            _um980->setModeBaseAverage(settings.observationSeconds); // Average for a number of seconds (default is 60)
+
+        // Average for a number of seconds (default is 60)
+        response &= _um980->setModeBaseAverage(settings.observationSeconds);
 
         if (response == false)
         {

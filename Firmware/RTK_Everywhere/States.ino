@@ -244,7 +244,11 @@ void stateUpdate()
                 if (settings.fixedBase == false)
                     changeState(STATE_BASE_TEMP_SETTLE);
                 else
+                {
+                    gnssConfigure(GNSS_CONFIG_BASE_FIXED); // Request start of fixed base
                     changeState(STATE_BASE_FIXED_NOT_STARTED);
+                    RTK_MODE(RTK_MODE_BASE_FIXED);
+                }
             }
         }
         break;
@@ -267,9 +271,8 @@ void stateUpdate()
             char temp[20];
             const char *units = getHpaUnits(hpa, temp, sizeof(temp), 2, true);
 
-            // gnssGetSurveyInStartingAccuracy is 10m max
-            const char *accUnits =
-                getHpaUnits(gnss->getSurveyInStartingAccuracy(), accuracy, sizeof(accuracy), 2, false);
+            // surveyInStartingAccuracy is 10m max
+            const char *accUnits = getHpaUnits(settings.surveyInStartingAccuracy, accuracy, sizeof(accuracy), 2, false);
 
             systemPrintf("Waiting for Horz Accuracy < %s (%s): %s%s%s%s, SIV: %d\r\n", accuracy, accUnits, temp,
                          (accUnits != units) ? " (" : "", (accUnits != units) ? units : "",
@@ -277,16 +280,13 @@ void stateUpdate()
 
             // On the mosaic-X5, the HPA is undefined while the GNSS is determining its fixed position
             // We need to skip the HPA check...
-            if ((hpa > 0.0 && hpa < gnss->getSurveyInStartingAccuracy()) || present.gnss_mosaicX5)
+            if ((hpa > 0.0 && hpa < settings.surveyInStartingAccuracy) || present.gnss_mosaicX5)
             {
-                displaySurveyStart(0); // Show 'Survey'
+                gnssConfigure(GNSS_CONFIG_BASE_SURVEY); // Request reconfigure to base survey in mode
 
-                if (gnss->surveyInStart() == true) // Begin survey
-                {
-                    displaySurveyStarted(500); // Show 'Survey Started'
+                displaySurveyStarted(500); // Show 'Survey Started'
 
-                    changeState(STATE_BASE_TEMP_SURVEY_STARTED);
-                }
+                changeState(STATE_BASE_TEMP_SURVEY_STARTED);
             }
         }
         break;
@@ -373,21 +373,12 @@ void stateUpdate()
         */
 
         // User has switched to base with fixed option enabled. Let's configure and try to get there.
-        // If fixed base fails, we'll handle it here
+        // If fixed base fails, gnssConfigure() will attempt again
         case (STATE_BASE_FIXED_NOT_STARTED): {
-            RTK_MODE(RTK_MODE_BASE_FIXED);
-            bool response = gnss->fixedBaseStart();
-            if (response == true)
+            if (gnssConfigureComplete())
             {
                 baseStatusLedOn(); // Turn on the base/status LED
                 changeState(STATE_BASE_FIXED_TRANSMITTING);
-            }
-            else
-            {
-                systemPrintln("Fixed base start failed");
-                displayBaseFail(1000);
-
-                changeState(STATE_ROVER_NOT_STARTED); // Return to rover mode to avoid being in fixed base mode
             }
         }
         break;

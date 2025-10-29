@@ -40,7 +40,9 @@ enum
 {
     GNSS_CONFIG_ONCE, // Settings specific to a receiver that don't fit into other setting categories
     GNSS_CONFIG_ROVER,
-    GNSS_CONFIG_BASE, // Fixed base or survey in, location, etc
+    GNSS_CONFIG_BASE,        // Apply any settings before the start of survey-in or fixed base
+    GNSS_CONFIG_BASE_SURVEY, // Start survey in base
+    GNSS_CONFIG_BASE_FIXED,  // Start fixed base
     GNSS_CONFIG_BAUD_RATE_RADIO,
     GNSS_CONFIG_BAUD_RATE_DATA,
     GNSS_CONFIG_FIX_RATE,
@@ -69,6 +71,8 @@ static const char *gnssConfigDisplayNames[] = {
     "ONCE",
     "ROVER",
     "BASE",
+    "BASE SURVEY",
+    "BASE FIXED",
     "BAUD_RATE_RADIO",
     "BAUD_RATE_DATA",
     "RATE",
@@ -99,13 +103,6 @@ extern NetworkClient *ntripClient;
 #endif // COMPILE_NETWORK
 
 extern unsigned long lastGGAPush;
-
-
-//----------------------------------------
-float GNSS::getSurveyInStartingAccuracy()
-{
-    return (settings.surveyInStartingAccuracy);
-}
 
 //----------------------------------------
 // Returns true if the antenna is shorted
@@ -181,10 +178,6 @@ void gnssUpdate()
                 gnssConfigureClear(GNSS_CONFIG_ROVER);
                 gnssConfigure(GNSS_CONFIG_SAVE); // Request receiver commit this change to NVM
             }
-            else
-            {
-                systemPrintln("Rover config failed");
-            }
         }
 
         if (gnssConfigureRequested(GNSS_CONFIG_BASE))
@@ -194,9 +187,23 @@ void gnssUpdate()
                 gnssConfigureClear(GNSS_CONFIG_BASE);
                 gnssConfigure(GNSS_CONFIG_SAVE); // Request receiver commit this change to NVM
             }
-            else
+        }
+
+        if (gnssConfigureRequested(GNSS_CONFIG_BASE_SURVEY))
+        {
+            if (gnss->surveyInStart() == true)
             {
-                systemPrintln("Base config failed");
+                gnssConfigureClear(GNSS_CONFIG_BASE_SURVEY);
+                gnssConfigure(GNSS_CONFIG_SAVE); // Request receiver commit this change to NVM
+            }
+        }
+
+        if (gnssConfigureRequested(GNSS_CONFIG_BASE_FIXED))
+        {
+            if (gnss->fixedBaseStart() == true)
+            {
+                gnssConfigureClear(GNSS_CONFIG_BASE_FIXED);
+                gnssConfigure(GNSS_CONFIG_SAVE); // Request receiver commit this change to NVM
             }
         }
 
@@ -449,6 +456,8 @@ void gnssConfigureDefaults()
 
     // Clear request bits that do not need to be set after a factory reset
     gnssConfigureClear(GNSS_CONFIG_BASE);
+    gnssConfigureClear(GNSS_CONFIG_BASE_SURVEY);
+    gnssConfigureClear(GNSS_CONFIG_BASE_FIXED);
     gnssConfigureClear(GNSS_CONFIG_MESSAGE_RATE_RTCM_BASE);
     gnssConfigureClear(GNSS_CONFIG_RESET);
 }

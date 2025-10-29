@@ -741,12 +741,9 @@ bool GNSS_ZED::fixedBaseStart()
     if (online.gnss == false)
         return (false);
 
+    // If we are already in the appropriate base mode, no changes needed
     if (gnssInBaseFixedMode())
-    {
-        if (settings.debugGnssConfig)
-            systemPrintln("Skipping - F9P is already in Fixed Base configuration");
         return (true); // No changes needed
-    }
 
     if (settings.fixedBaseCoordinateType == COORD_TYPE_ECEF)
     {
@@ -2651,12 +2648,9 @@ bool GNSS_ZED::surveyInStart()
     if (online.gnss == false)
         return (false);
 
+    // If we are already in the appropriate base mode, no changes needed
     if (gnssInBaseSurveyInMode())
-    {
-        if (settings.debugGnssConfig)
-            systemPrintln("Skipping F9P Survey-In Base - already running");
         return (true); // No changes needed
-    }
 
     _zed->setVal8(UBLOX_CFG_TMODE_MODE, 0, VAL_LAYER_ALL); // Disable survey-in mode
     delay(100);

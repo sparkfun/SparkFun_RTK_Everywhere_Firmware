@@ -100,7 +100,7 @@ void menuBase()
                 }
 
                 systemPrintf("4) Set required initial positional accuracy before Survey-In: %0.2f meters\r\n",
-                             gnss->getSurveyInStartingAccuracy());
+                             settings.surveyInStartingAccuracy);
             }
         }
 
@@ -278,7 +278,7 @@ void menuBase()
                 // Change GNSS receiver configuration if the receiver is in Base mode, otherwise, just change setting
                 // This prevents a user, while in Rover mode but changing a Base setting, from entering Base mode
                 if (gnss->gnssInBaseSurveyInMode() || gnss->gnssInBaseFixedMode())
-                gnssConfigure(GNSS_CONFIG_BASE); // Request receiver to use new settings
+                    gnssConfigure(GNSS_CONFIG_BASE); // Request receiver to use new settings
             }
         }
 
@@ -291,7 +291,7 @@ void menuBase()
                 // Change GNSS receiver configuration if the receiver is in Base mode, otherwise, just change setting
                 // This prevents a user, while in Rover mode but changing a Base setting, from entering Base mode
                 if (gnss->gnssInBaseSurveyInMode() || gnss->gnssInBaseFixedMode())
-                gnssConfigure(GNSS_CONFIG_BASE); // Request receiver to use new settings
+                    gnssConfigure(GNSS_CONFIG_BASE); // Request receiver to use new settings
             }
         }
         else if (settings.fixedBase == false && incoming == 3 &&
@@ -305,7 +305,7 @@ void menuBase()
                 // Change GNSS receiver configuration if the receiver is in Base mode, otherwise, just change setting
                 // This prevents a user, while in Rover mode but changing a Base setting, from entering Base mode
                 if (gnss->gnssInBaseSurveyInMode() || gnss->gnssInBaseFixedMode())
-                gnssConfigure(GNSS_CONFIG_BASE); // Request receiver to use new settings
+                    gnssConfigure(GNSS_CONFIG_BASE); // Request receiver to use new settings
             }
         }
         else if (settings.fixedBase == false && incoming == 4 && (!present.gnss_mosaicX5))
@@ -318,7 +318,7 @@ void menuBase()
                 // Change GNSS receiver configuration if the receiver is in Base mode, otherwise, just change setting
                 // This prevents a user, while in Rover mode but changing a Base setting, from entering Base mode
                 if (gnss->gnssInBaseSurveyInMode() || gnss->gnssInBaseFixedMode())
-                gnssConfigure(GNSS_CONFIG_BASE); // Request receiver to use new settings
+                    gnssConfigure(GNSS_CONFIG_BASE); // Request receiver to use new settings
             }
         }
 

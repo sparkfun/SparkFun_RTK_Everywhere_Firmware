@@ -219,8 +219,6 @@ class GNSS
     // Return the number of seconds the survey-in process has been running
     virtual int getSurveyInObservationTime();
 
-    float getSurveyInStartingAccuracy();
-
     // Returns timing accuracy or zero if not online
     virtual uint32_t getTimeAccuracy();
 

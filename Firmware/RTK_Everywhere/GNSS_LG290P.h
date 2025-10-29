@@ -296,8 +296,6 @@ class GNSS_LG290P : GNSS
     // Return the number of seconds the survey-in process has been running
     int getSurveyInObservationTime();
 
-    float getSurveyInStartingAccuracy();
-
     // Returns timing accuracy or zero if not online
     uint32_t getTimeAccuracy();
 

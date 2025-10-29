@@ -3073,6 +3073,11 @@ void paintEspNowPaired()
     displayMessage("ESP-NOW Paired", 2000);
 }
 
+void paintMosaicBooting()
+{
+    displayMessage("GNSS Booting", 0);
+}
+
 void displayNtpStart(uint16_t displayTime)
 {
     if (online.display == true)
