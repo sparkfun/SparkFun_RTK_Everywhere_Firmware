@@ -497,17 +497,21 @@ bool GNSS_ZED::configure()
 //----------------------------------------
 bool GNSS_ZED::configureBase()
 {
-    if (settings.fixedBase == false && gnssInBaseSurveyInMode())
+    // If we are already in the appropriate base mode, no changes needed
+
+    // We may have been in a previous survey-in. We want to restart a survey-in regardless.
+    // If we are already in the appropriate base mode, no changes needed
+    // if (settings.fixedBase == false && gnssInBaseSurveyInMode())
+    //     return (true); // No changes needed
+
+    if (settings.fixedBase == true)
     {
-        if (settings.debugGnssConfig)
-            systemPrintln("Skipping - F9P already in Survey-In Base configuration");
-        return (true); // No changes needed
-    }
-    if (settings.fixedBase == true && gnssInBaseFixedMode())
-    {
-        if (settings.debugGnssConfig)
-            systemPrintln("Skipping - F9P already in Fixed Base configuration");
-        return (true); // No changes needed
+        // 0 - Rover, 1 - Base Survey-In, 2 - Base Fixed ECEF, 3 - Base Fixed LLH
+        int currentMode = getMode();
+        if (currentMode == 2 && settings.fixedBaseCoordinateType == COORD_TYPE_ECEF)
+            return (true); // No changes needed
+        if (currentMode == 3 && settings.fixedBaseCoordinateType == COORD_TYPE_GEODETIC)
+            return (true); // No changes needed
     }
 
     // Assume we are changing from Rover to Base, request any additional config changes
@@ -521,7 +525,7 @@ bool GNSS_ZED::configureBase()
     if (settings.fixedBase == false)
     {
         // If we are doing a Survey-In (temporary) style Base, change to Rover Mode so our location can settle
-        response &= _zed->setVal8(UBLOX_CFG_TMODE_MODE, 0);
+        response &= _zed->setVal8(UBLOX_CFG_TMODE_MODE, 0); // Change to Rover Mode
     }
 
     if (response == false)
@@ -742,7 +746,12 @@ bool GNSS_ZED::fixedBaseStart()
         return (false);
 
     // If we are already in the appropriate base mode, no changes needed
-    if (gnssInBaseFixedMode())
+
+    // 0 - Rover, 1 - Base Survey-In, 2 - Base Fixed ECEF, 3 - Base Fixed LLH
+    int currentMode = getMode();
+    if (currentMode == 2 && settings.fixedBaseCoordinateType == COORD_TYPE_ECEF)
+        return (true); // No changes needed
+    if (currentMode == 3 && settings.fixedBaseCoordinateType == COORD_TYPE_GEODETIC)
         return (true); // No changes needed
 
     if (settings.fixedBaseCoordinateType == COORD_TYPE_ECEF)
@@ -1045,7 +1054,7 @@ uint8_t GNSS_ZED::getMinute()
 
 //----------------------------------------
 // Returns the current mode
-// 0 - Rover, 1 - Base Survey-In, 2 - Base Fixed
+// 0 - Rover, 1 - Base Survey-In, 2 - Base Fixed ECEF, 3 - Base Fixed LLH
 //----------------------------------------
 uint8_t GNSS_ZED::getMode()
 {
@@ -1053,7 +1062,22 @@ uint8_t GNSS_ZED::getMode()
     {
         // Survey mode is only available on ZED-F9P modules
         if (commandSupported(UBLOX_CFG_TMODE_MODE))
-            return (_zed->getVal8(UBLOX_CFG_TMODE_MODE));
+        {
+            int currentMode = _zed->getVal8(UBLOX_CFG_TMODE_MODE);
+
+            if (currentMode == 0) // Rover
+                return (0);
+            if (currentMode == 1) // Survey-in
+                return (1);
+            if (currentMode == 2) // Fixed
+            {
+                int baseType = _zed->getVal8(UBLOX_CFG_TMODE_POS_TYPE);
+                if (baseType == 0) // ECEF
+                    return (2);    // Base Fixed ECEF
+                if (baseType == 1) // LLH
+                    return (3);    // Base Fixed LLH
+            }
+        }
     }
 
     return (0); // Rover
@@ -1186,6 +1210,9 @@ int GNSS_ZED::getSurveyInObservationTime()
     if (online.gnss == false)
         return (0);
 
+    if(gnssConfigureComplete() == false)
+        return (0);
+
     // Use a local static so we don't have to request these values multiple times (ZED takes many ms to respond
     // to this command)
     if ((millis() - lastCheck) > 1000)
@@ -1217,7 +1244,7 @@ uint16_t GNSS_ZED::getYear()
 //----------------------------------------
 bool GNSS_ZED::gnssInBaseFixedMode()
 {
-    if (getMode() == 2) // 0 - Rover, 1 - Base Survey-In, 2 - Base Fixed
+    if (getMode() == 2 || getMode() == 3) // 0 - Rover, 1 - Base Survey-In, 2 - Base Fixed ECEF, 3 - Base Fixed LLH
         return (true);
 
     return (false);
@@ -1228,7 +1255,7 @@ bool GNSS_ZED::gnssInBaseFixedMode()
 //----------------------------------------
 bool GNSS_ZED::gnssInBaseSurveyInMode()
 {
-    if (getMode() == 1) // 0 - Rover, 1 - Base Survey-In, 2 - Base Fixed
+    if (getMode() == 1) // 0 - Rover, 1 - Base Survey-In, 2 - Base Fixed ECEF, 3 - Base Fixed LLH
         return (true);
 
     return (false);
@@ -2641,16 +2668,16 @@ bool GNSS_ZED::surveyInReset()
 
 //----------------------------------------
 // Start the survey-in operation
-// The ZED-F9P is slightly different than the NEO-M8P. See the Integration manual 3.5.8 for more info.
 //----------------------------------------
 bool GNSS_ZED::surveyInStart()
 {
     if (online.gnss == false)
         return (false);
 
+    // We may have been in a previous survey-in. We want to restart a survey-in regardless.
     // If we are already in the appropriate base mode, no changes needed
-    if (gnssInBaseSurveyInMode())
-        return (true); // No changes needed
+    // if (gnssInBaseSurveyInMode())
+    //     return (true); // No changes needed
 
     _zed->setVal8(UBLOX_CFG_TMODE_MODE, 0, VAL_LAYER_ALL); // Disable survey-in mode
     delay(100);
