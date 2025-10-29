@@ -200,6 +200,8 @@ unsigned long lastGGAPush;
 
 bool ntripClientForcedShutdown = false; // NTRIP Client was turned off due to an error. Don't allow restart.
 
+bool ntripClientSettingsChange = false; // Goes true when a menu or command modified the client credentials
+
 //----------------------------------------
 // NTRIP Client Routines
 //----------------------------------------
@@ -391,6 +393,13 @@ bool ntripClientEnabled(const char **line)
 
         // Verify still enabled
         enabled = settings.enableNtripClient;
+
+        // Allow restart if settings change
+        if(ntripClientSettingsChange == true)
+        {
+            ntripClientSettingsChange = false;
+            ntripClientForcedShutdown = false;
+        }
 
         // Determine if the shutdown is being forced
         if (enabled && ntripClientForcedShutdown)
@@ -871,8 +880,14 @@ void ntripClientUpdate()
                     systemPrintln("NTRIP Client resetting connection attempt counter and timeout");
             }
 
+            // Check if the there have been changes to the client settings
+            if(ntripClientSettingsChange == true)
+            {
+                ntripClientSettingsChange = false;
+                ntripClientRestart();
+            }
             // Check for timeout receiving NTRIP data
-            if (ntripClientReceiveDataAvailable() == 0)
+            else if (ntripClientReceiveDataAvailable() == 0)
             {
                 // Don't fail during retransmission attempts
                 if ((millis() - ntripClientTimer) > NTRIP_CLIENT_RECEIVE_DATA_TIMEOUT)

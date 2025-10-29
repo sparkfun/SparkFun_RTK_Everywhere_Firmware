@@ -310,13 +310,13 @@ void menuGNSS()
         else if (incoming == 7)
         {
             settings.enableNtripClient ^= 1;
-            // No need to restart rover. NTRIP Client state machine will service the change.
         }
         else if ((incoming == 8) && settings.enableNtripClient == true)
         {
             systemPrint("Enter new Caster Address: ");
             getUserInputString(settings.ntripClient_CasterHost, sizeof(settings.ntripClient_CasterHost));
-            // No need to restart rover. NTRIP Client state machine will service the change.
+
+            ntripClientSettingsChange = true; // Notify the NTRIP Client state machine of new credentials
         }
         else if ((incoming == 9) && settings.enableNtripClient == true)
         {
@@ -324,32 +324,32 @@ void menuGNSS()
             if (getNewSetting("Enter new Caster Port", 1, 99999, &settings.ntripClient_CasterPort) ==
                 INPUT_RESPONSE_VALID)
             {
-                // No need to restart rover. NTRIP Client state machine will service the change.
+                ntripClientSettingsChange = true; // Notify the NTRIP Client state machine of new credentials
             }
         }
         else if ((incoming == 10) && settings.enableNtripClient == true)
         {
             systemPrintf("Enter user name for %s: ", settings.ntripClient_CasterHost);
             getUserInputString(settings.ntripClient_CasterUser, sizeof(settings.ntripClient_CasterUser));
-            // No need to restart rover. NTRIP Client state machine will service the change.
+            ntripClientSettingsChange = true; // Notify the NTRIP Client state machine of new credentials
         }
         else if ((incoming == 11) && settings.enableNtripClient == true)
         {
             systemPrintf("Enter user password for %s: ", settings.ntripClient_CasterHost);
             getUserInputString(settings.ntripClient_CasterUserPW, sizeof(settings.ntripClient_CasterUserPW));
-            // No need to restart rover. NTRIP Client state machine will service the change.
+            ntripClientSettingsChange = true; // Notify the NTRIP Client state machine of new credentials
         }
         else if ((incoming == 12) && settings.enableNtripClient == true)
         {
             systemPrint("Enter new Mount Point: ");
             getUserInputString(settings.ntripClient_MountPoint, sizeof(settings.ntripClient_MountPoint));
-            // No need to restart rover. NTRIP Client state machine will service the change.
+            ntripClientSettingsChange = true; // Notify the NTRIP Client state machine of new credentials
         }
         else if ((incoming == 13) && settings.enableNtripClient == true)
         {
             systemPrintf("Enter password for Mount Point %s: ", settings.ntripClient_MountPoint);
             getUserInputString(settings.ntripClient_MountPointPW, sizeof(settings.ntripClient_MountPointPW));
-            // No need to restart rover. NTRIP Client state machine will service the change.
+            ntripClientSettingsChange = true; // Notify the NTRIP Client state machine of new credentials
         }
         else if ((incoming == 14) && settings.enableNtripClient == true)
         {
