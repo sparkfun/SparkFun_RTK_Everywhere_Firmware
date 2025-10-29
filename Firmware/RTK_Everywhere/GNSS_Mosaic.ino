@@ -2232,7 +2232,7 @@ bool GNSS_MOSAIC::setMessagesNMEA()
         }
     }
 
-    if (settings.ntripClient_TransmitGGA == true)
+    if (settings.ntripClient_TransmitGGA == true && settings.enableNtripClient == true)
     {
         // Force on GGA if needed for NTRIP
         if (gpggaEnabled == false)
