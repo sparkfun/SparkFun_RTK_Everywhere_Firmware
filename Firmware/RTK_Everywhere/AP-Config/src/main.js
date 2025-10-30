@@ -876,7 +876,9 @@ function validateFields() {
     if (isElementShown("lg290pGnssSettings") == true) {
         checkElementValue("rtcmMinElev", -90, 90, "Must be between -90 and 90", "collapseGNSSConfig");
     }
-
+    if (ge("enableGalileoHas").checked == true) {
+        checkElementString("configurePPP", 1, 30, "Must be 1 to 30 characters", "collapseGNSSConfig");
+    }
     if (ge("enableNtripClient").checked == true) {
         checkElementString("ntripClientCasterHost", 1, 45, "Must be 1 to 45 characters", "collapseGNSSConfig");
         checkElementValue("ntripClientCasterPort", 1, 99999, "Must be 1 to 99999", "collapseGNSSConfig");

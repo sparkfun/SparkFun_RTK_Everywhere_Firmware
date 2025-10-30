@@ -450,7 +450,7 @@ protected:
   //   elevationDegrees: The elevation value in degrees
   bool setElevation(uint8_t elevationDegrees);
 
-  bool setHighAccuracyService(bool enableGalileoHas);
+  bool setHighAccuracyService(bool enableGalileoHas, const char *configurePPP);
 
   // Enable all the valid messages for this platform
   bool setMessages(int maxRetries);
