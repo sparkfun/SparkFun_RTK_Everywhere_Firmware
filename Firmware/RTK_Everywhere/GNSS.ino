@@ -311,35 +311,31 @@ void gnssUpdate()
 
         if (gnssConfigureRequested(GNSS_CONFIG_MESSAGE_RATE_RTCM_ROVER))
         {
-            if (inRoverMode() == false)
+            if (gnss->gnssInRoverMode() == false)
             {
-                systemPrintln("Error: Change to RTCM Rover rates requested but not in Rover mode. Skipping.");
+                systemPrintln("Warning: Change to RTCM Rover rates requested but not in Rover mode.");
             }
-            else
+
+            if (gnss->setMessagesRTCMRover() == true)
             {
-                if (gnss->setMessagesRTCMRover() == true)
-                {
-                    gnssConfigureClear(GNSS_CONFIG_MESSAGE_RATE_RTCM_ROVER);
-                    gnssConfigure(GNSS_CONFIG_SAVE); // Request receiver commit this change to NVM
-                    setLoggingType();                // Update Standard, PPP, or custom for icon selection
-                }
+                gnssConfigureClear(GNSS_CONFIG_MESSAGE_RATE_RTCM_ROVER);
+                gnssConfigure(GNSS_CONFIG_SAVE); // Request receiver commit this change to NVM
+                setLoggingType();                // Update Standard, PPP, or custom for icon selection
             }
         }
 
         if (gnssConfigureRequested(GNSS_CONFIG_MESSAGE_RATE_RTCM_BASE))
         {
-            if (inBaseMode() == false)
+            if (gnss->gnssInBaseFixedMode() == false && gnss->gnssInBaseSurveyInMode() == false)
             {
-                systemPrintln("Error: Change to RTCM Base rates requested but not in Base mode. Skipping.");
+                systemPrintln("Warning: Change to RTCM Base rates requested but not in Base mode.");
             }
-            else
+
+            if (gnss->setMessagesRTCMBase() == true)
             {
-                if (gnss->setMessagesRTCMBase() == true)
-                {
-                    gnssConfigureClear(GNSS_CONFIG_MESSAGE_RATE_RTCM_BASE);
-                    gnssConfigure(GNSS_CONFIG_SAVE); // Request receiver commit this change to NVM
-                    setLoggingType();                // Update Standard, PPP, or custom for icon selection
-                }
+                gnssConfigureClear(GNSS_CONFIG_MESSAGE_RATE_RTCM_BASE);
+                gnssConfigure(GNSS_CONFIG_SAVE); // Request receiver commit this change to NVM
+                setLoggingType();                // Update Standard, PPP, or custom for icon selection
             }
         }
 

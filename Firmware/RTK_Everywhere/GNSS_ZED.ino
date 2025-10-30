@@ -516,16 +516,19 @@ bool GNSS_ZED::configureBase()
 
     // Assume we are changing from Rover to Base, request any additional config changes
 
-    gnssConfigure(GNSS_CONFIG_FIX_RATE);
-    gnssConfigure(GNSS_CONFIG_MESSAGE_RATE_NMEA);
-    gnssConfigure(GNSS_CONFIG_MESSAGE_RATE_RTCM_BASE);
-
     bool response = true;
 
     if (settings.fixedBase == false)
     {
         // If we are doing a Survey-In (temporary) style Base, change to Rover Mode so our location can settle
+        // Base config resumes at the end of startSurveyIn()
         response &= _zed->setVal8(UBLOX_CFG_TMODE_MODE, 0); // Change to Rover Mode
+        gnssConfigure(GNSS_CONFIG_FIX_RATE);
+        gnssConfigure(GNSS_CONFIG_MESSAGE_RATE_RTCM_ROVER);
+    }
+    else
+    {
+        // If we are doing a Fixed Base, config occurs in fixedBaseStart()
     }
 
     if (response == false)
@@ -633,7 +636,6 @@ bool GNSS_ZED::configureRover()
     bool response = true;
 
     gnssConfigure(GNSS_CONFIG_FIX_RATE);
-    gnssConfigure(GNSS_CONFIG_MESSAGE_RATE_NMEA);
     gnssConfigure(GNSS_CONFIG_MESSAGE_RATE_RTCM_ROVER);
 
     response &= _zed->setVal8(UBLOX_CFG_TMODE_MODE, 0); // Switch to Rover mode
@@ -823,6 +825,10 @@ bool GNSS_ZED::fixedBaseStart()
         response &= _zed->addCfgValset(UBLOX_CFG_TMODE_HEIGHT_HP, minorAlt);
         response &= _zed->sendCfgValset();
     }
+
+    // Now that the module is set to base mode, complete the base config.
+    gnssConfigure(GNSS_CONFIG_FIX_RATE);
+    gnssConfigure(GNSS_CONFIG_MESSAGE_RATE_RTCM_BASE);
 
     return (response);
 }
@@ -1210,7 +1216,7 @@ int GNSS_ZED::getSurveyInObservationTime()
     if (online.gnss == false)
         return (0);
 
-    if(gnssConfigureComplete() == false)
+    if (gnssConfigureComplete() == false)
         return (0);
 
     // Use a local static so we don't have to request these values multiple times (ZED takes many ms to respond
@@ -2228,18 +2234,18 @@ bool GNSS_ZED::setMessagesNMEA()
                 measurementFrequency = 0.2; // 0.2Hz * 5 = 1 measurement every 5 seconds
             if (settings.debugGnssConfig)
                 systemPrintf("Adjusting GGA setting to %f\r\n", measurementFrequency);
-            _zed->setVal8(UBLOX_CFG_MSGOUT_NMEA_ID_GGA_I2C, measurementFrequency,
-                          VAL_LAYER_ALL); // Enable GGA over I2C. Tell the module to output GGA every second
+            response &= _zed->setVal8(UBLOX_CFG_MSGOUT_NMEA_ID_GGA_UART1, measurementFrequency,
+                                      VAL_LAYER_ALL); // Enable GGA over UART1. Tell the module to output GGA every second
         }
     }
 
     // Configure the callback for GGA as needed
     if (settings.enableNtripClient == true && settings.ntripClient_TransmitGGA == true)
-        _zed->setNMEAGPGGAcallbackPtr(&zedPushGPGGA);
+        response &= _zed->setNMEAGPGGAcallbackPtr(&zedPushGPGGA);
     else
-        _zed->setNMEAGPGGAcallbackPtr(nullptr);
+        response &= _zed->setNMEAGPGGAcallbackPtr(nullptr);
 
-    return (success);
+    return (response);
 }
 
 //----------------------------------------
@@ -2382,8 +2388,13 @@ bool GNSS_ZED::setRate(double secondsBetweenSolutions)
     if (online.gnss == false)
         return (false);
 
-    if (gnss->gnssInBaseSurveyInMode() || gnss->gnssInBaseFixedMode())
-        secondsBetweenSolutions = 1; // In Base mode we force 1Hz
+    // In Base mode we force 1Hz, and avoid overwriting the setting
+    bool baseOverride = false;
+    if (gnssInBaseSurveyInMode() || gnssInBaseFixedMode())
+    {
+        baseOverride = true;
+        secondsBetweenSolutions = 1;
+    }
 
     // If we have more than an hour between readings, increase mesaurementRate to near max of 65,535
     if (secondsBetweenSolutions > 3600.0)
@@ -2435,7 +2446,8 @@ bool GNSS_ZED::setRate(double secondsBetweenSolutions)
     // If we successfully set rates, only then record to settings
     if (response)
     {
-        settings.measurementRateMs = secondsBetweenSolutions * 1000;
+        if (baseOverride == false)
+            settings.measurementRateMs = secondsBetweenSolutions * 1000;
     }
     else
     {
@@ -2731,6 +2743,13 @@ bool GNSS_ZED::surveyInStart()
         if ((millis() - startTime) > maxTime)
             return (false); // Reset of survey failed
     }
+
+    // The ZED-F9P starts a Survey-in in Rover mode to allow the location fix to settle.
+    // Once settle is complete, the survey starts.
+    // Here we change the fix rate and enable RTCM messages for base mode.
+    // Essentially completing the Base configuration.
+    gnssConfigure(GNSS_CONFIG_FIX_RATE);
+    gnssConfigure(GNSS_CONFIG_MESSAGE_RATE_RTCM_BASE);
 
     return (true);
 }
