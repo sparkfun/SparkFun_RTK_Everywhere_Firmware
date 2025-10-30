@@ -412,7 +412,7 @@ bool GNSS_LG290P::configureRover()
     if (settings.debugGnss && response == false)
         systemPrintln("configureRover: Set rate failed");
 
-    response &= setHighAccuracyService(settings.enableGalileoHas);
+    response &= setHighAccuracyService(settings.enableGalileoHas, (const char *)settings.configurePPP);
 
     response &= enableRTCMRover();
     if (settings.debugGnss && response == false)
@@ -528,7 +528,7 @@ bool GNSS_LG290P::configureBase()
 
     response &= setMinCnoRadio(settings.minCNO);
 
-    response &= setHighAccuracyService(settings.enableGalileoHas);
+    response &= setHighAccuracyService(settings.enableGalileoHas, (const char *)settings.configurePPP);
 
     response &= enableRTCMBase(); // Set RTCM messages
     if (settings.debugGnss && response == false)
@@ -1912,6 +1912,9 @@ void GNSS_LG290P::menuConstellations()
         {
             systemPrintf("%d) Galileo E6 Corrections: %s\r\n", MAX_LG290P_CONSTELLATIONS + 1,
                          settings.enableGalileoHas ? "Enabled" : "Disabled");
+            if (settings.enableGalileoHas)
+                systemPrintf("%d) PPP Configuration: \"%s\"\r\n", MAX_LG290P_CONSTELLATIONS + 2,
+                            settings.configurePPP);
         }
 
         systemPrintln("x) Exit");
@@ -1928,6 +1931,31 @@ void GNSS_LG290P::menuConstellations()
         {
             settings.enableGalileoHas ^= 1;
         }
+        else if ((incoming == MAX_LG290P_CONSTELLATIONS + 2) && present.galileoHasCapable && settings.enableGalileoHas)
+        {
+            systemPrintln("Enter the PPP configuration separated by spaces, not commas:");
+            char newConfig[sizeof(settings.configurePPP)];
+            getUserInputString(newConfig, sizeof(newConfig));
+            bool isValid = true;
+            int spacesSeen = 0;
+            for (size_t i = 0; i < strlen(newConfig); i++)
+            {
+                if ((isValid) && (newConfig[i] == ',')) // Check for no commas
+                {
+                    systemPrintln("Comma detected. Please try again");
+                    isValid = false;
+                }
+                if (newConfig[i] == ' ')
+                    spacesSeen++;
+            }
+            if ((isValid) && (spacesSeen < 4)) // Check for at least 4 spaces
+            {
+                systemPrintln("Configuration should contain at least 4 spaces");
+                isValid = false;
+            }
+            if (isValid)
+                snprintf(settings.configurePPP, sizeof(settings.configurePPP), "%s", newConfig);
+        }
         else if (incoming == INPUT_RESPONSE_GETNUMBER_EXIT)
             break;
         else if (incoming == INPUT_RESPONSE_GETNUMBER_TIMEOUT)
@@ -1939,7 +1967,7 @@ void GNSS_LG290P::menuConstellations()
     // Apply current settings to module
     gnss->setConstellations();
 
-    setHighAccuracyService(settings.enableGalileoHas);
+    setHighAccuracyService(settings.enableGalileoHas, (const char *)settings.configurePPP);
 
     clearBuffer(); // Empty buffer of any newline chars
 }
@@ -2415,7 +2443,7 @@ bool GNSS_LG290P::setElevation(uint8_t elevationDegrees)
 }
 
 //----------------------------------------
-bool GNSS_LG290P::setHighAccuracyService(bool enableGalileoHas)
+bool GNSS_LG290P::setHighAccuracyService(bool enableGalileoHas, const char *configurePPP)
 {
     bool result = true;
 
@@ -2429,7 +2457,9 @@ bool GNSS_LG290P::setHighAccuracyService(bool enableGalileoHas)
     {
         // $PQTMCFGPPP,W,2,1,120,0.10,0.15*68
         // Enable E6 HAS, WGS84, 120 timeout, 0.10m Horizontal convergence accuracy threshold, 0.15m Vertical threshold
-        if (_lg290p->sendOkCommand("$PQTMCFGPPP", ",W,2,1,120,0.10,0.15") == true)
+        char paramConfigurePPP[sizeof(settings.configurePPP) + 4];
+        snprintf(paramConfigurePPP, sizeof(paramConfigurePPP), ",W,%s", configPppSpacesToCommas(configurePPP));
+        if (_lg290p->sendOkCommand("$PQTMCFGPPP", paramConfigurePPP) == true)
         {
             systemPrintln("Galileo E6 HAS service enabled");
         }
