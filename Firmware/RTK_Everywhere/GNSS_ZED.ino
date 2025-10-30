@@ -627,7 +627,7 @@ bool GNSS_ZED::configureRover()
     if (gnssInRoverMode())
     {
         if (settings.debugGnssConfig)
-            systemPrintln("Skipping F9P Rover configuration");
+            systemPrintln("Skipping Rover configuration");
         return (true); // No changes needed
     }
 

@@ -311,10 +311,8 @@ void gnssUpdate()
 
         if (gnssConfigureRequested(GNSS_CONFIG_MESSAGE_RATE_RTCM_ROVER))
         {
-            if (gnss->gnssInRoverMode() == false)
-            {
+            if (settings.debugGnssConfig == true && gnss->gnssInRoverMode() == false)
                 systemPrintln("Warning: Change to RTCM Rover rates requested but not in Rover mode.");
-            }
 
             if (gnss->setMessagesRTCMRover() == true)
             {
@@ -326,10 +324,9 @@ void gnssUpdate()
 
         if (gnssConfigureRequested(GNSS_CONFIG_MESSAGE_RATE_RTCM_BASE))
         {
-            if (gnss->gnssInBaseFixedMode() == false && gnss->gnssInBaseSurveyInMode() == false)
-            {
-                systemPrintln("Warning: Change to RTCM Base rates requested but not in Base mode.");
-            }
+            if (settings.debugGnssConfig == true)
+                if (gnss->gnssInBaseFixedMode() == false && gnss->gnssInBaseSurveyInMode() == false)
+                    systemPrintln("Warning: Change to RTCM Base rates requested but not in Base mode.");
 
             if (gnss->setMessagesRTCMBase() == true)
             {

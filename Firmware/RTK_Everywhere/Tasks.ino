@@ -865,8 +865,17 @@ void processUart1Message(SEMP_PARSE_STATE *parse, uint16_t type)
             // Suppress PQTM/NMEA messages as needed
             if (lg290pMessageEnabled((char *)parse->buffer, parse->length) == false)
             {
-                parse->buffer[0] = 0;
-                parse->length = 0;
+                if (settings.enableNtripClient == true && settings.ntripClient_TransmitGGA == true)
+                {
+                    // GGA is disabled, but the user has enabled the NTRIP Client.
+                    // Allow GGA to get through, unmodified.
+                }
+                else
+                {
+                    // Remove the contents of this message
+                    parse->buffer[0] = 0;
+                    parse->length = 0;
+                }
             }
         }
     }

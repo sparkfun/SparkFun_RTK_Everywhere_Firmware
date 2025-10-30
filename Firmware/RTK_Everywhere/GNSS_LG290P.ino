@@ -187,33 +187,11 @@ bool GNSS_LG290P::checkPPPRates()
 }
 
 //----------------------------------------
-// Setup the GNSS module for any setup (base or rover)
-// In general we check if the setting is different than setting stored in NVM before writing it.
+// begin() has already established communication. There are no one-time config requirements for the LG290P
 //----------------------------------------
 bool GNSS_LG290P::configure()
 {
-    for (int x = 0; x < 3; x++)
-    {
-        // Wait up to 5 seconds for device to come online
-        for (int x = 0; x < 5; x++)
-        {
-            if (_lg290p->isConnected())
-                break;
-            else
-                systemPrintln("Device still rebooting");
-            delay(1000); // Wait for device to reboot
-        }
-
-        // If we fail, reset LG290P
-        systemPrintln("Resetting LG290P to complete configuration");
-
-        gnssReset();
-        delay(500);
-        gnssBoot();
-    }
-
-    systemPrintln("LG290P failed to configure");
-    return (false);
+    return (true);
 }
 
 //----------------------------------------
@@ -226,28 +204,18 @@ bool GNSS_LG290P::configureBase()
     if (settings.fixedBase == false && gnssInBaseSurveyInMode())
     {
         if (settings.debugGnssConfig)
-            systemPrintln("Skipping - LG290P is already in Fixed Base configuration");
+            systemPrintln("Skipping - LG290P is already in Survey-In Base configuration");
         return (true); // No changes needed
     }
 
     if (settings.fixedBase == true && gnssInBaseFixedMode())
     {
         if (settings.debugGnssConfig)
-            systemPrintln("Skipping - LG290P is already in Survey-in Base configuration");
+            systemPrintln("Skipping - LG290P is already in Fixed Base configuration");
         return (true); // No changes needed
     }
 
     // Assume we are changing from Rover to Base, request any additional config changes
-
-    // If the device is set to Survey-In, we must allow the device to be configured.
-    // Otherwise PQTMEPE (estimated position error) is never populated, so the survey
-    // never starts (Waiting for Horz Accuracy < 2.00m...)
-    // if (currentMode == 2 && settings.fixedBase == false) // Not a fixed base = Survey-in
-    // {
-    //     if (settings.debugGnssConfig)
-    //         systemPrintln("Skipping LG290P Survey In Base configuration");
-    //     return true;
-    // }
 
     // "When set to Base Station mode, the receiver will automatically disable NMEA message output and enable RTCM MSM4
     // and RTCM3-1005 message output."
@@ -286,10 +254,13 @@ bool GNSS_LG290P::configureBase()
 
         reset();
 
-        gnssConfigure(GNSS_CONFIG_MESSAGE_RATE_RTCM_BASE);
-
         // When a device is changed from Rover to Base, NMEA messages are disabled. Turn them back on.
         gnssConfigure(GNSS_CONFIG_MESSAGE_RATE_NMEA);
+
+        // In Survey-In mode, configuring the RTCM Base will trigger a print warning because the survey-in
+        // takes a few seconds to start during which gnssInBaseSurveyInMode() incorrectly reports false.
+        // The print warning should be ignored.
+        gnssConfigure(GNSS_CONFIG_MESSAGE_RATE_RTCM_BASE);
 
         if (settings.debugGnssConfig && response)
             systemPrintln("LG290P Base configured");
@@ -306,7 +277,7 @@ bool GNSS_LG290P::configureRover()
     if (gnssInRoverMode()) // 0 - Unknown, 1 - Rover, 2 - Base
     {
         if (settings.debugGnssConfig)
-            systemPrintln("Skipping LG290P Rover configuration");
+            systemPrintln("Skipping Rover configuration");
         return (true); // No changes needed
     }
 
@@ -317,7 +288,6 @@ bool GNSS_LG290P::configureRover()
 
     gnssConfigure(GNSS_CONFIG_FIX_RATE);
     gnssConfigure(GNSS_CONFIG_MESSAGE_RATE_RTCM_ROVER);
-    gnssConfigure(GNSS_CONFIG_MESSAGE_RATE_NMEA);
     gnssConfigure(GNSS_CONFIG_RESET); // Mode change requires reset
 
     return (response);
@@ -349,9 +319,22 @@ void GNSS_LG290P::createMessageListBase(String &returnText)
 //----------------------------------------
 uint8_t GNSS_LG290P::getSurveyInMode()
 {
+    // Note: _lg290p->getSurveyMode() returns 0 while a survey-in is *running*
+    // so we check PQTMSVINSTATUS to see if a survey is in progress.
+
     if (online.gnss)
-        return (_lg290p->getSurveyMode());
-    return (false);
+    {
+        if (_lg290p->getSurveyMode() == 2)
+            return (2); // We know we are fixed
+        else
+        {
+            // Determine if a survey is running
+            int surveyStatus = _lg290p->getSurveyInStatus(); // 0 = Invalid, 1 = In-progress, 2 = Valid
+            if (surveyStatus == 1 || surveyStatus == 2)
+                return (1); // We're in survey mode
+        }
+    }
+    return (0);
 }
 
 //----------------------------------------
@@ -1939,10 +1922,16 @@ bool GNSS_LG290P::setMessagesNMEA()
         if (pointPerfectServiceUsesKeys() ||
             (settings.enableNtripClient == true && settings.ntripClient_TransmitGGA == true))
         {
+            if (settings.debugGnssConfig)
+                systemPrintln("Enabling GGA for NTRIP and PointPerfect");
+
             // If firmware is 4 or higher, use setMessageRateOnPort, otherwise setMessageRate
             if (lg290pFirmwareVersion >= 4)
-                // Enable GGA. On Torch, LG290P connected to ESP32 on UART 2.
+            {
+                // Enable GGA on a specific port
+                // On Torch X2 and Postcard, the LG290P UART 2 is connected to ESP32.
                 response &= _lg290p->setMessageRateOnPort("GGA", 1, 2);
+            }
             else
                 // Enable GGA on all UARTs. It's the best we can do.
                 response &= _lg290p->setMessageRate("GGA", 1);
@@ -2384,6 +2373,9 @@ bool GNSS_LG290P::surveyInReset()
 //----------------------------------------
 bool GNSS_LG290P::surveyInStart()
 {
+    _autoBaseStartTimer = millis(); // Stamp when averaging began
+
+    // We may have already started a survey-in from GNSS's previous NVM settings
     if (gnssInBaseSurveyInMode())
         return (true); // No changes needed
 
@@ -2397,8 +2389,6 @@ bool GNSS_LG290P::surveyInStart()
         systemPrintln("Survey start failed");
         return (false);
     }
-
-    _autoBaseStartTimer = millis(); // Stamp when averaging began
 
     return (response);
 }
