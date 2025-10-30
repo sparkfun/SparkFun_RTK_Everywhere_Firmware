@@ -1111,7 +1111,7 @@ struct Settings
         254}; // Mark first record with key so defaults will be applied. Int value for each supported message - Report
               // rates for RTCM Base. Default to Quectel recommended rates.
     int lg290pMessageRatesPQTM[MAX_LG290P_PQTM_MSG] = {254}; // Mark first record with key so defaults will be applied.
-    char configurePPP[30] = "2,1,120,0.10,0.15"; // PQTMCFGPPP: 2,1,120,0.10,0.15
+    char configurePPP[30] = "2 1 120 0.10 0.15"; // PQTMCFGPPP: 2,1,120,0.10,0.15 ** Use spaces, not commas! **
 #endif // COMPILE_LG290P
 
     bool debugSettings = false;

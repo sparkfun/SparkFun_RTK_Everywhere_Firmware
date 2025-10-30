@@ -1933,7 +1933,28 @@ void GNSS_LG290P::menuConstellations()
         }
         else if ((incoming == MAX_LG290P_CONSTELLATIONS + 2) && present.galileoHasCapable && settings.enableGalileoHas)
         {
-            getUserInputString(settings.configurePPP, sizeof(settings.configurePPP));
+            systemPrintln("Enter the PPP configuration separated by spaces, not commas:");
+            char newConfig[sizeof(settings.configurePPP)];
+            getUserInputString(newConfig, sizeof(newConfig));
+            bool isValid = true;
+            int spacesSeen = 0;
+            for (size_t i = 0; i < strlen(newConfig); i++)
+            {
+                if ((isValid) && (newConfig[i] == ',')) // Check for no commas
+                {
+                    systemPrintln("Comma detected. Please try again");
+                    isValid = false;
+                }
+                if (newConfig[i] == ' ')
+                    spacesSeen++;
+            }
+            if ((isValid) && (spacesSeen < 4)) // Check for at least 4 spaces
+            {
+                systemPrintln("Configuration should contain at least 4 spaces");
+                isValid = false;
+            }
+            if (isValid)
+                snprintf(settings.configurePPP, sizeof(settings.configurePPP), "%s", newConfig);
         }
         else if (incoming == INPUT_RESPONSE_GETNUMBER_EXIT)
             break;
@@ -2437,7 +2458,7 @@ bool GNSS_LG290P::setHighAccuracyService(bool enableGalileoHas, const char *conf
         // $PQTMCFGPPP,W,2,1,120,0.10,0.15*68
         // Enable E6 HAS, WGS84, 120 timeout, 0.10m Horizontal convergence accuracy threshold, 0.15m Vertical threshold
         char paramConfigurePPP[sizeof(settings.configurePPP) + 4];
-        snprintf(paramConfigurePPP, sizeof(paramConfigurePPP), ",W,%s", configurePPP);
+        snprintf(paramConfigurePPP, sizeof(paramConfigurePPP), ",W,%s", configPppSpacesToCommas(configurePPP));
         if (_lg290p->sendOkCommand("$PQTMCFGPPP", paramConfigurePPP) == true)
         {
             systemPrintln("Galileo E6 HAS service enabled");

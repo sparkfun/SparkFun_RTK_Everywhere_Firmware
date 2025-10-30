@@ -877,7 +877,7 @@ function validateFields() {
         checkElementValue("rtcmMinElev", -90, 90, "Must be between -90 and 90", "collapseGNSSConfig");
     }
     if (ge("enableGalileoHas").checked == true) {
-        checkElementString("configurePPP", 1, 30, "Must be 1 to 30 characters", "collapseGNSSConfig");
+        checkElementStringSpacesNoCommas("configurePPP", 1, 30, "Must be 1 to 30 characters. Separated by spaces. Commas not allowed", "collapseGNSSConfig");
     }
     if (ge("enableNtripClient").checked == true) {
         checkElementString("ntripClientCasterHost", 1, 45, "Must be 1 to 45 characters", "collapseGNSSConfig");
@@ -1375,6 +1375,19 @@ function checkElementString(id, min, max, errorText, collapseID) {
         }
         else
             ge(collapseID).classList.add('show');
+        errorCount++;
+    }
+    else
+        clearError(id);
+}
+
+function checkElementStringSpacesNoCommas(id, min, max, errorText, collapseID) {
+    value = ge(id).value;
+    var commas = value.split(',');
+    var spaces = value.split(' ');
+    if ((value.length < min) || (value.length > max) || (commas.length > 1) || (spaces.length == 1)) {
+        ge(id + 'Error').innerHTML = 'Error: ' + errorText;
+        ge(collapseID).classList.add('show');
         errorCount++;
     }
     else
