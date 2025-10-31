@@ -2148,6 +2148,8 @@ struct struct_tasks
     bool sdSizeCheckTaskStopRequest = false;
     bool updatePplTaskStopRequest = false;
     bool updateWebServerTaskStopRequest = false;
+
+    volatile bool endDirectConnectMode = false; // Set true by e.g. button task
 } task;
 
 #ifdef COMPILE_NETWORK
