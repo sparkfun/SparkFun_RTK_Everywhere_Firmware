@@ -443,9 +443,11 @@ void BTConfirmRequestCallback(uint32_t numVal) {
     if (bluetoothGetState() == BT_OFF)
         return;
 
-    systemPrintf("Device sent PIN: %06lu. Sending confirmation\r\n", numVal);
-    bluetoothSerialSpp->confirmReply(true); // AUTO_PAIR - equivalent to enableSSP(false, true);
     // TODO: if the RTK device has an OLED, we should display the PIN so user can confirm
+    systemPrintf("Device sent PIN: %06lu. Sending confirmation\r\n", numVal);
+#ifdef COMPILE_BT
+    bluetoothSerialSpp->confirmReply(true); // AUTO_PAIR - equivalent to enableSSP(false, true);
+#endif                               // COMPILE_BT
 }
 
 void deviceNameSpacesToUnderscores()
