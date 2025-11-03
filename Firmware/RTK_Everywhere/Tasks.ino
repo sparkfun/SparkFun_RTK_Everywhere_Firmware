@@ -2077,15 +2077,11 @@ void buttonCheckTask(void *e)
                 delay(300);
                 beepOff();
 
-                // Remove all the special files
-                removeUpdateLoraFirmware();
-                um980FirmwareRemoveUpdate();
-                gnssFirmwareRemoveUpdate();
-
                 systemPrintln("Exiting direct connection (passthrough) mode");
                 systemFlush(); // Complete prints
 
-                ESP.restart();
+                // See #763 . Do the file removal in the loop
+                task.endDirectConnectMode = true; // Indicate to loop that direct connection should be ended
             }
         }
         // Torch is a special case. Handle tilt stop and web config mode

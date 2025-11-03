@@ -2101,7 +2101,8 @@ void um980FirmwareBeginUpdate()
     bool inBootMode = false;
 
     // Echo everything to/from UM980
-    while (1)
+    task.endDirectConnectMode = false;
+    while (!task.endDirectConnectMode)
     {
         // Data coming from UM980 to external USB
         if (serialGNSS->available()) // Note: use if, not while
@@ -2129,8 +2130,15 @@ void um980FirmwareBeginUpdate()
             }
         }
 
-        // Button task will um980FirmwareRemoveUpdate and restart
+        // Button task will set task.endDirectConnectMode true
     }
+
+    // Remove the special file. See #763 . Do the file removal in the loop
+    um980FirmwareRemoveUpdate();
+
+    systemFlush(); // Complete prints
+
+    ESP.restart();
 }
 
 //----------------------------------------
@@ -2146,7 +2154,7 @@ bool um980FirmwareCheckUpdate()
 //----------------------------------------
 void um980FirmwareRemoveUpdate()
 {
-    return gnssFirmwareRemoveUpdateFile("/updateUm980Firmware.txt");
+    gnssFirmwareRemoveUpdateFile("/updateUm980Firmware.txt");
 }
 
 //----------------------------------------
