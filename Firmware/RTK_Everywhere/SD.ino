@@ -106,14 +106,44 @@ bool sdCardPresent(void)
             return (true); // Card detect high = SD in place
         return (false);    // Card detect low = No SD
     }
-    // TODO: check this. Do we have a conflict with online.gpioExpanderButtons vs online.gpioExpander?
     else if (present.microSdCardDetectGpioExpanderHigh == true)
     {
         if (online.gpioExpanderButtons == true)
         {
-            if (io.digitalRead(gpioExpander_cardDetect) == GPIO_EXPANDER_CARD_INSERTED)
-                return (true); // Card detect high = SD in place
-            return (false);    // Card detect low = No SD
+            static uint32_t lastExpanderCheck = 0;
+            static bool lastPresenceResult = false;
+
+            // Avoid constantly checking I2C bus for SD presence
+            // Update status every 1000ms
+            if (millis() - lastExpanderCheck > 1000)
+            {
+                lastExpanderCheck = millis();
+
+                if (io.digitalRead(gpioExpander_cardDetect) == GPIO_EXPANDER_CARD_INSERTED)
+                {
+                    lastPresenceResult = true;
+                    return (true); // Card detect high = SD in place
+                }
+
+                // If the SD card was online but it is now detected offline, re-check after debounce
+                if (online.microSD == true)
+                {
+                    delay(25); // Debounce
+
+                    if (io.digitalRead(gpioExpander_cardDetect) == GPIO_EXPANDER_CARD_INSERTED)
+                    {
+                        lastPresenceResult = true;
+                        return (true); // Card detect high = SD in place
+                    }
+                }
+                lastPresenceResult = false;
+                return (false); // Card detect low = No SD
+            }
+            else
+            {
+                // Between allowed checks, if asked, return what we found during last check
+                return (lastPresenceResult);
+            }
         }
         else
         {
