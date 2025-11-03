@@ -100,7 +100,7 @@ void stateUpdate()
 
             setMuxport(settings.dataPortChannel); // Return mux to original channel
 
-            bluetoothStart(); // Turn on Bluetooth with 'Rover' name
+            bluetoothStart(); // Start Bluetooth if it is not already started
 
             webServerStop();             // Stop the web config server
             baseCasterDisableOverride(); // Disable casting overrides
@@ -219,8 +219,7 @@ void stateUpdate()
 
             gnssConfigure(GNSS_CONFIG_BASE); // Request reconfigure to base mode
 
-            bluetoothStop();
-            bluetoothStart(); // Restart Bluetooth with 'Base' identifier
+            bluetoothStart(); // Start Bluetooth if it is not already started
 
             webServerStop(); // Stop the web config server
 
@@ -761,10 +760,11 @@ typedef struct _RTK_MODE_ENTRY
 } RTK_MODE_ENTRY;
 
 const RTK_MODE_ENTRY stateModeTable[] = {{"Rover", STATE_ROVER_NOT_STARTED, STATE_ROVER_RTK_FIX},
+                                         {"Base Caster", STATE_BASE_CASTER_NOT_STARTED, STATE_BASE_CASTER_NOT_STARTED},
                                          {"Base", STATE_BASE_NOT_STARTED, STATE_BASE_FIXED_TRANSMITTING},
-                                         {"Setup", STATE_DISPLAY_SETUP, STATE_PROFILE},
-                                         {"ESPNOW Pairing", STATE_ESPNOW_PAIRING_NOT_STARTED, STATE_ESPNOW_PAIRING},
+                                         {"Setup", STATE_DISPLAY_SETUP, STATE_PROFILE}, // Covers SETUP, WEB_CONFIG, TEST
                                          {"Provisioning", STATE_KEYS_REQUESTED, STATE_KEYS_REQUESTED},
+                                         {"ESPNOW Pairing", STATE_ESPNOW_PAIRING_NOT_STARTED, STATE_ESPNOW_PAIRING},
                                          {"NTP", STATE_NTPSERVER_NOT_STARTED, STATE_NTPSERVER_SYNC},
                                          {"Shutdown", STATE_SHUTDOWN, STATE_SHUTDOWN}};
 const int stateModeTableEntries = sizeof(stateModeTable) / sizeof(stateModeTable[0]);

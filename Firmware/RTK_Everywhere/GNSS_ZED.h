@@ -519,6 +519,8 @@ class GNSS_ZED : GNSS
 
     // Given the name of a message, return the array number
     uint8_t getMessageNumberByName(const char *msgName);
+    uint8_t getMessageNumberByNameSkipChecks(const char *msgName);
+    uint8_t getMessageNumberByName(const char *msgName, bool skipPlatformChecks);
 
     // Given the name of a message, find it, and return the rate
     uint8_t getMessageRateByName(const char *msgName);

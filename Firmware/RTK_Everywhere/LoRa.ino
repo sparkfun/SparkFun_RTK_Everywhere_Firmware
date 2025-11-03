@@ -554,7 +554,8 @@ void beginLoraFirmwareUpdate()
 
     // Push any incoming ESP32 UART0 to UART1 or UART2 and vice versa
     // Infinite loop until button is pressed
-    while (1)
+    task.endDirectConnectMode = false;
+    while (!task.endDirectConnectMode)
     {
         static unsigned long lastSerial = millis(); // Temporary fix for buttonless Flex
 
@@ -567,7 +568,7 @@ void beginLoraFirmwareUpdate()
         if (serialGNSS->available()) // Note: use if, not while
             Serial.write(serialGNSS->read());
 
-        // Button task will removeUpdateLoraFirmware and restart
+        // Button task will set task.endDirectConnectMode true
 
         // Temporary fix for buttonless Flex. TODO - remove
         if ((productVariant == RTK_FLEX) && ((millis() - lastSerial) > 30000))
@@ -589,6 +590,13 @@ void beginLoraFirmwareUpdate()
                 ESP.restart();
         }
     }
+
+    // Remove the special file. See #763 . Do the file removal in the loop
+    removeUpdateLoraFirmware();
+
+    systemFlush(); // Complete prints
+
+    ESP.restart();
 }
 
 void loraSetupTransmit()

@@ -2141,7 +2141,8 @@ void um980FirmwareBeginUpdate()
     bool inBootMode = false;
 
     // Echo everything to/from UM980
-    while (1)
+    task.endDirectConnectMode = false;
+    while (!task.endDirectConnectMode)
     {
         // Data coming from UM980 to external USB
         // if (serialGNSS->available()) // Note: use if, not while
@@ -2169,30 +2170,37 @@ void um980FirmwareBeginUpdate()
             }
         }
 
-        if (digitalRead(pin_powerButton) == HIGH)
-        {
-            while (digitalRead(pin_powerButton) == HIGH)
-                delay(100);
+        // if (digitalRead(pin_powerButton) == HIGH)
+        // {
+        //     while (digitalRead(pin_powerButton) == HIGH)
+        //         delay(100);
 
-            // Remove file and reset to exit pass-through mode
-            um980FirmwareRemoveUpdate();
+        //     // Remove file and reset to exit pass-through mode
+        //     um980FirmwareRemoveUpdate();
 
-            // Beep to indicate exit
-            beepOn();
-            delay(300);
-            beepOff();
-            delay(100);
-            beepOn();
-            delay(300);
-            beepOff();
+        //     // Beep to indicate exit
+        //     beepOn();
+        //     delay(300);
+        //     beepOff();
+        //     delay(100);
+        //     beepOn();
+        //     delay(300);
+        //     beepOff();
 
-            systemPrintln("Exiting UM980 passthrough mode");
-            systemFlush(); // Complete prints
+        //     systemPrintln("Exiting UM980 passthrough mode");
+        //     systemFlush(); // Complete prints
 
-            ESP.restart();
-        }
-        // Button task will um980FirmwareRemoveUpdate and restart
+        //     ESP.restart();
+        // }
+        // Button task will set task.endDirectConnectMode true
     }
+
+    // Remove the special file. See #763 . Do the file removal in the loop
+    um980FirmwareRemoveUpdate();
+
+    systemFlush(); // Complete prints
+
+    ESP.restart();
 }
 
 const char *um980FirmwareFileName = "/updateUm980Firmware.txt";

@@ -1198,7 +1198,7 @@ void wifiStationUpdate()
     }
 
     // Periodically display the WiFi state
-    if (PERIODIC_DISPLAY(PD_WIFI_STATE))
+    if (PERIODIC_DISPLAY(PD_WIFI_STATE) && !inMainMenu)
     {
         systemPrintf("WiFi station state: %s%s\r\n", wifiStationStateName[wifiStationState], reason);
         PERIODIC_CLEAR(PD_WIFI_STATE);
@@ -1262,6 +1262,14 @@ void wifiUpdateSettings()
 
     // Determine if the WiFi soft AP SSID string is present
     wifiSoftApSsidSet = (wifiSoftApSsid && strlen(wifiSoftApSsid));
+}
+
+//*********************************************************************
+// Determine if any of the WiFi station SSID values are set
+bool wifiAfterCommand(int cmdIndex)
+{
+    wifiUpdateSettings();
+    return true;
 }
 
 //*********************************************************************

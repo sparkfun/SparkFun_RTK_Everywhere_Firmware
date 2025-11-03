@@ -834,7 +834,7 @@ char *latestEASessionData;
 uint8_t wifiMACAddress[6];     // Display this address in the system menu
 uint8_t btMACAddress[6];       // Display this address when Bluetooth is enabled, otherwise display wifiMACAddress
 uint8_t ethernetMACAddress[6]; // Display this address when Ethernet is enabled, otherwise display wifiMACAddress
-char deviceName[70];           // The serial string that is broadcast. Ex: 'EVK Base-BC61'
+char deviceName[40];           // The serial string that is broadcast. E.g.: 'SparkFun Postcard-ABCD'
 char serialNumber[5];          // The serial number for MFi. Ex: 'BC61'
 char deviceFirmware[9];        // The firmware version for MFi. Ex: 'v2.2'
 const uint16_t menuTimeout = 60 * 10; // Menus will exit/timeout after this number of seconds

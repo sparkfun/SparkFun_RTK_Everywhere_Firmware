@@ -313,11 +313,12 @@
                     </div>
 
                     <div class="form-group mt-3" id="constellationCheckBoxes">
-                        <label for="gnssConstellations">Constellations:</label>
-                        <span class="tt" data-bs-placement="right"
-                            title="The receiver is capable of concurrently receiving signals from multiple satellites across multiple constellations. Some applications dictate the need to turn off certain constellation reception. Deselecting a given constellation will cause the receiver to ignore those signals preventing them from being used during position calculations. Default: All enabled.">
-                            <span class="icon-info-circle text-primary ms-2"></span>
-                        </span>
+                        <label>Constellations:
+                            <span class="tt" data-bs-placement="right"
+                                title="The receiver is capable of concurrently receiving signals from multiple satellites across multiple constellations. Some applications dictate the need to turn off certain constellation reception. Deselecting a given constellation will cause the receiver to ignore those signals preventing them from being used during position calculations. Default: All enabled.">
+                                <span class="icon-info-circle text-primary ms-2"></span>
+                            </span>
+                        </label>
                         <div id="constellationBeiDou" class="form-check mt-3 box-margin20">
                             <label class="form-check-label" for="constellation_BeiDou">BeiDou</label>
                             <input class="form-check-input" type="checkbox" value="" id="constellation_BeiDou">
@@ -361,9 +362,21 @@
                                 <span class="icon-info-circle text-primary ms-2"></span>
                             </span>
                         </div>
+                        <div class="form-group row">
+                            <label for="configurePPP" class="box-margin20 col-sm-3 col-5 col-form-label">Configure PPP:
+                                <span class="tt" data-bs-placement="right"
+                                    title="The configuration string for PPP. Enter values separated by spaces, not commas. Default: 2 1 120 0.10 0.15">
+                                    <span class="icon-info-circle text-primary ms-2"></span>
+                                </span>
+                            </label>
+                            <div class="col-sm-8 col-6">
+                                <input type="text" class="form-control" id="configurePPP">
+                                <p id="configurePPPError" class="inlineError"></p>
+                            </div>
+                        </div>
                     </div>
 
-                    <div id="useMSM7Setting">
+                    <div id="lg290pGnssSettings">
                         <div class="form-check mt-3">
                             <label class="form-check-label" for="useMSM7">MSM7 RTCM Selection</label>
                             <input class="form-check-input" type="checkbox" value="" id="useMSM7">
@@ -371,6 +384,21 @@
                                 title="Use MSM7 format RTCM mesages. Default: Disabled (MSM4).">
                                 <span class="icon-info-circle text-primary ms-2"></span>
                             </span>
+                        </div>
+
+                        <div class="form-group row" id="rtcmMinElevConfig">
+                            <div class="form-group row">
+                                <label for="rtcmMinElev" class="col-sm-4 col-6 col-form-label">Min SV Elevation for RTCM:
+                                    <span class="tt" data-bs-placement="right"
+                                        title="Minimum elevation in degrees for a GNSS satellite to be used for RTCM corrections. Default: -90">
+                                        <span class="icon-info-circle text-primary ms-2"></span>
+                                    </span>
+                                </label>
+                                <div class="col-sm-4 col-6">
+                                    <input type="number" class="form-control" id="rtcmMinElev">
+                                    <p id="rtcmMinElevError" class="inlineError"></p>
+                                </div>
+                            </div>
                         </div>
                     </div>
 
@@ -1931,7 +1959,7 @@
             <div class="card card-body">
 
                 <div id="uploadNewFirmwareDiv" class="mb-2">
-                    <label class="form-check-label" for="uploadNewFirmware">System Firmware:</label>
+                    <label class="form-check-label">System Firmware:</label>
                     <span id="rtkFirmwareVersionUpgrade" style="display:inline;">v0.0</span>
                 </div>
 
@@ -2066,7 +2094,7 @@
 
                         <div id="logFile" class="row">
                             <div class="mb-2">
-                                <label for="logFile" class="form-group box-margin20">Log file name: <span
+                                <label class="form-group box-margin20">Log file name: <span
                                         id="logFileName" style="display:inline;">SFE_Log.ubx</span>
                                 </label>
                             </div>

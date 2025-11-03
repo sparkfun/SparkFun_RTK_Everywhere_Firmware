@@ -299,7 +299,7 @@ InputResponse getUserInputString(char *userString, uint16_t stringSize, bool loc
     uint8_t spot = 0;
     bool echo = localEcho && settings.echoUserInput;
 
-    while ((millis() - startTime) / 1000 <= menuTimeout)
+    while (((millis() - startTime) / 1000) <= menuTimeout)
     {
         delay(1); // Yield to processor
 
@@ -1208,4 +1208,14 @@ void WeekToWToUnixEpoch(uint64_t *unixEpoch, uint16_t GPSWeek, uint32_t GPSToW)
     *unixEpoch = GPSWeek * (7 * SECONDS_IN_A_DAY); // 2192
     *unixEpoch += GPSToW;                          // 518400
     *unixEpoch += 315964800;
+}
+
+const char *configPppSpacesToCommas(const char *config)
+{
+    static char commas[sizeof(settings.configurePPP)];
+    snprintf(commas, sizeof(commas), "%s", config);
+    for (size_t i = 0; i < strlen(commas); i++)
+        if (commas[i] == ' ')
+            commas[i] = ',';
+    return (const char *)commas;
 }

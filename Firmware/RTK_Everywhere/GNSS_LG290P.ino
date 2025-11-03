@@ -123,7 +123,8 @@ void GNSS_LG290P::begin()
             lg290pFirmwareVersion, gnssFirmwareVersion);
 
         // Determine if the "LG290P03AANR01A03S_PPP_TEMP0812 2025/08/12" firmware is present
-        // This version has support for testing out E6/HAS PPP, but confusingly was released after v05.
+        // Or               "LG290P03AANR01A06S_PPP_TEMP0829 2025/08/29 17:08:39"
+        // The 03S_PPP_TEMP version has support for testing out E6/HAS PPP, but confusingly was released after v05.
         if (strstr(gnssFirmwareVersion, "PPP_TEMP") != nullptr)
         {
             present.galileoHasCapable = true;
@@ -145,6 +146,22 @@ void GNSS_LG290P::begin()
         // Supported starting in v05
         present.minElevation = true;
         present.minCN0 = true;
+    }
+
+    // Determine if PPP temp firmware is detected.
+    // "LG290P03AANR01A03S_PPP_TEMP0812"
+    // "LG290P03AANR01A06S_PPP_TEMP0829"
+    // There is also a v06 firmware that does not have PPP support.
+    // v07 is reportedly the first version to formally support PPP
+    if (strstr(gnssFirmwareVersion, "PPP_TEMP") != nullptr)
+    {
+        present.galileoHasCapable = true;
+        systemPrintln("PPP trial firmware detected. HAS settings will now be available.");
+    }
+
+    if (lg290pFirmwareVersion >= 7)
+    {
+        present.galileoHasCapable = true;
     }
 
     printModuleInfo();
@@ -301,6 +318,25 @@ bool GNSS_LG290P::configureRover()
 //----------------------------------------
 void GNSS_LG290P::createMessageList(String &returnText)
 {
+    for (int messageNumber = 0; messageNumber < MAX_LG290P_NMEA_MSG; messageNumber++)
+    {
+        // Strictly, this should be bool true/false as only 0/1 values are allowed
+        // and a checkbox should be used to select. BUT other platforms permit
+        // rates higher than 1. It's way cleaner if we just use 0/1 here
+        returnText += "messageRateNMEA_" + String(lgMessagesNMEA[messageNumber].msgTextName) + "," +
+                      String(settings.lg290pMessageRatesNMEA[messageNumber]) + ",";
+    }
+    for (int messageNumber = 0; messageNumber < MAX_LG290P_RTCM_MSG; messageNumber++)
+    {
+        returnText += "messageRateRTCMRover_" + String(lgMessagesRTCM[messageNumber].msgTextName) + "," +
+                      String(settings.lg290pMessageRatesRTCMRover[messageNumber]) + ",";
+    }
+    for (int messageNumber = 0; messageNumber < MAX_LG290P_PQTM_MSG; messageNumber++)
+    {
+        // messageRatePQTM is unique to the LG290P. So we can use true/false and a checkbox
+        returnText += "messageRatePQTM_" + String(lgMessagesPQTM[messageNumber].msgTextName) + "," +
+                      String(settings.lg290pMessageRatesPQTM[messageNumber] ? "true" : "false") + ",";
+    }
 }
 
 //----------------------------------------
@@ -311,6 +347,14 @@ void GNSS_LG290P::createMessageList(String &returnText)
 //----------------------------------------
 void GNSS_LG290P::createMessageListBase(String &returnText)
 {
+    for (int messageNumber = 0; messageNumber < MAX_LG290P_RTCM_MSG; messageNumber++)
+    {
+        // Strictly, this should be bool true/false as only 0/1 values are allowed
+        // and a checkbox should be used to select. BUT other platforms permit
+        // rates higher than 1. It's way cleaner if we just use 0/1 here
+        returnText += "messageRateRTCMBase_" + String(lgMessagesRTCM[messageNumber].msgTextName) + "," +
+                      String(settings.lg290pMessageRatesRTCMBase[messageNumber]) + ",";
+    }
 }
 
 //----------------------------------------
@@ -1260,6 +1304,8 @@ void GNSS_LG290P::menuConstellations()
         {
             systemPrintf("%d) Galileo E6 Corrections: %s\r\n", MAX_LG290P_CONSTELLATIONS + 1,
                          settings.enableGalileoHas ? "Enabled" : "Disabled");
+            if (settings.enableGalileoHas)
+                systemPrintf("%d) PPP Configuration: \"%s\"\r\n", MAX_LG290P_CONSTELLATIONS + 2, settings.configurePPP);
         }
 
         systemPrintln("x) Exit");
@@ -1277,6 +1323,31 @@ void GNSS_LG290P::menuConstellations()
         {
             settings.enableGalileoHas ^= 1;
             gnssConfigure(GNSS_CONFIG_HAS_E6); // Request receiver to use new settings
+        }
+        else if ((incoming == MAX_LG290P_CONSTELLATIONS + 2) && present.galileoHasCapable && settings.enableGalileoHas)
+        {
+            systemPrintln("Enter the PPP configuration separated by spaces, not commas:");
+            char newConfig[sizeof(settings.configurePPP)];
+            getUserInputString(newConfig, sizeof(newConfig));
+            bool isValid = true;
+            int spacesSeen = 0;
+            for (size_t i = 0; i < strlen(newConfig); i++)
+            {
+                if ((isValid) && (newConfig[i] == ',')) // Check for no commas
+                {
+                    systemPrintln("Comma detected. Please try again");
+                    isValid = false;
+                }
+                if (newConfig[i] == ' ')
+                    spacesSeen++;
+            }
+            if ((isValid) && (spacesSeen < 4)) // Check for at least 4 spaces
+            {
+                systemPrintln("Configuration should contain at least 4 spaces");
+                isValid = false;
+            }
+            if (isValid)
+                snprintf(settings.configurePPP, sizeof(settings.configurePPP), "%s", newConfig);
         }
         else if (incoming == INPUT_RESPONSE_GETNUMBER_EXIT)
             break;
@@ -1318,6 +1389,8 @@ void GNSS_LG290P::menuMessages()
 
         if (namedSettingAvailableOnPlatform("useMSM7")) // Redundant - but good practice for code reuse
             systemPrintf("13) MSM Selection: MSM%c\r\n", settings.useMSM7 ? '7' : '4');
+        if (namedSettingAvailableOnPlatform("rtcmMinElev")) // Redundant - but good practice for code reuse
+            systemPrintf("14) Minimum Elevation for RTCM: %d\r\n", settings.rtcmMinElev);
 
         systemPrintln("x) Exit");
 
@@ -1404,6 +1477,18 @@ void GNSS_LG290P::menuMessages()
         {
             settings.useMSM7 ^= 1;
             gnssConfigure(GNSS_CONFIG_MESSAGE_RATE_RTCM_ROVER); // Request receiver to use new settings
+        }
+        else if ((incoming == 14) && (namedSettingAvailableOnPlatform("rtcmMinElev")))
+        {
+            systemPrintf("Enter minimum elevation for RTCM: ");
+
+            int elevation = getUserInputNumber(); // Returns EXIT, TIMEOUT, or long
+
+            if (elevation >= -90 && elevation <= 90)
+            {
+                settings.rtcmMinElev = elevation;
+                gnssConfigure(GNSS_CONFIG_MESSAGE_RATE_RTCM_ROVER); // Request receiver to use new settings
+            }
         }
 
         else if (incoming == INPUT_RESPONSE_GETNUMBER_EXIT)
@@ -1797,9 +1882,7 @@ bool GNSS_LG290P::setElevation(uint8_t elevationDegrees)
 //----------------------------------------
 bool GNSS_LG290P::setHighAccuracyService(bool enableGalileoHas)
 {
-    bool result = true;
-
-    // E6 reception requires version v06 with 'PPP_TEMP' in firmware title
+    // E6 reception requires version v03/v06 with 'PPP_TEMP' in firmware title
     // Present is set during LG290P begin()
     if (present.galileoHasCapable == false)
         return (true); // Return true to clear gnssConfigure test
@@ -1813,8 +1896,11 @@ bool GNSS_LG290P::setHighAccuracyService(bool enableGalileoHas)
         // $PQTMCFGPPP,OK,00,2,120,0.10,0.15*0A
 
         // $PQTMCFGPPP,W,2,1,120,0.10,0.15*68
-        // Enable E6 HAS, WGS84, 120 timeout, 0.10m Horizontal convergence accuracy threshold, 0.15m Vertical threshold
-        if (_lg290p->sendOkCommand("$PQTMCFGPPP", ",W,2,1,120,0.10,0.15") == true)
+        // Enable E6 HAS, WGS84, 120 timeout, 0.10m Horizontal convergence accuracy threshold, 0.15m Vertical
+        // threshold
+        char paramConfigurePPP[sizeof(settings.configurePPP) + 4];
+        snprintf(paramConfigurePPP, sizeof(paramConfigurePPP), ",W,%s", configPppSpacesToCommas(configurePPP));
+        if (_lg290p->sendOkCommand("$PQTMCFGPPP", paramConfigurePPP) == true)
         {
             systemPrintln("Galileo E6 HAS service enabled");
         }
@@ -2209,9 +2295,9 @@ bool GNSS_LG290P::setMessagesRTCMRover()
         if (settings.debugCorrections)
             systemPrintf("Enabling Rover RTCM MSM output with rate of %d\r\n", minimumRtcmRate);
 
-        // Enable MSM4/7 (for faster PPP CSRS results), output at a rate equal to the minimum RTCM rate (EPH Mode = 2)
-        // PQTMCFGRTCM, W, <MSM_Type>, <MSM_Mode>, <MSM_ElevThd>, <Reserved>, <Reserved>, <EPH_Mode>, <EPH_Interval>
-        // Set MSM_ElevThd to 15 degrees from rftop suggestion
+        // Enable MSM4/7 (for faster PPP CSRS results), output at a rate equal to the minimum RTCM rate (EPH Mode =
+        // 2) PQTMCFGRTCM, W, <MSM_Type>, <MSM_Mode>, <MSM_ElevThd>, <Reserved>, <Reserved>, <EPH_Mode>,
+        // <EPH_Interval> Set MSM_ElevThd to 15 degrees from rftop suggestion
 
         char msmCommand[40] = {0};
         snprintf(msmCommand, sizeof(msmCommand), "PQTMCFGRTCM,W,%c,0,15,07,06,2,%d", settings.useMSM7 ? '7' : '4',

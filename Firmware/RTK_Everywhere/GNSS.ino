@@ -770,7 +770,8 @@ void gnssFirmwareBeginUpdate()
     serialGNSS->begin(serialBaud, SERIAL_8N1, pin_GnssUart_RX, pin_GnssUart_TX);
 
     // Echo everything to/from GNSS
-    while (1)
+    task.endDirectConnectMode = false;
+    while (!task.endDirectConnectMode)
     {
         static unsigned long lastSerial = millis(); // Temporary fix for buttonless Flex
 
@@ -783,7 +784,7 @@ void gnssFirmwareBeginUpdate()
         if (serialGNSS->available()) // Note: use if, not while
             Serial.write(serialGNSS->read());
 
-        // Button task will gnssFirmwareRemoveUpdate and restart
+        // Button task will set task.endDirectConnectMode true
 
         // Temporary fix for buttonless Flex. TODO - remove
         if ((productVariant == RTK_FLEX) && ((millis() - lastSerial) > 30000))
@@ -805,6 +806,13 @@ void gnssFirmwareBeginUpdate()
             ESP.restart();
         }
     }
+
+    // Remove all the special file. See #763 . Do the file removal in the loop
+    gnssFirmwareRemoveUpdate();
+
+    systemFlush(); // Complete prints
+
+    ESP.restart();
 }
 
 //----------------------------------------
