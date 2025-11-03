@@ -2044,7 +2044,7 @@ void buttonCheckTask(void *e)
                 thisButtonRelease = 0;
                 doubleTap = false;
 
-                if (firstButtonThrownOut == false)
+                if (firstButtonThrownOut == false && present.display_type != DISPLAY_MAX_NONE)
                     firstButtonThrownOut = true; // Throw away the first button press
                 else
                     singleTap = true;

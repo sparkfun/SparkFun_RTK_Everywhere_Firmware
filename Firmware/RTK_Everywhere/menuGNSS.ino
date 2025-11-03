@@ -316,7 +316,7 @@ void menuGNSS()
             systemPrint("Enter new Caster Address: ");
             getUserInputString(settings.ntripClient_CasterHost, sizeof(settings.ntripClient_CasterHost));
 
-            ntripClientSettingsChange = true; // Notify the NTRIP Client state machine of new credentials
+            ntripClientSettingsChanged(); // Notify the NTRIP Client state machine of new credentials
         }
         else if ((incoming == 9) && settings.enableNtripClient == true)
         {
@@ -324,32 +324,32 @@ void menuGNSS()
             if (getNewSetting("Enter new Caster Port", 1, 99999, &settings.ntripClient_CasterPort) ==
                 INPUT_RESPONSE_VALID)
             {
-                ntripClientSettingsChange = true; // Notify the NTRIP Client state machine of new credentials
+            ntripClientSettingsChanged(); // Notify the NTRIP Client state machine of new credentials
             }
         }
         else if ((incoming == 10) && settings.enableNtripClient == true)
         {
             systemPrintf("Enter user name for %s: ", settings.ntripClient_CasterHost);
             getUserInputString(settings.ntripClient_CasterUser, sizeof(settings.ntripClient_CasterUser));
-            ntripClientSettingsChange = true; // Notify the NTRIP Client state machine of new credentials
+            ntripClientSettingsChanged(); // Notify the NTRIP Client state machine of new credentials
         }
         else if ((incoming == 11) && settings.enableNtripClient == true)
         {
             systemPrintf("Enter user password for %s: ", settings.ntripClient_CasterHost);
             getUserInputString(settings.ntripClient_CasterUserPW, sizeof(settings.ntripClient_CasterUserPW));
-            ntripClientSettingsChange = true; // Notify the NTRIP Client state machine of new credentials
+            ntripClientSettingsChanged(); // Notify the NTRIP Client state machine of new credentials
         }
         else if ((incoming == 12) && settings.enableNtripClient == true)
         {
             systemPrint("Enter new Mount Point: ");
             getUserInputString(settings.ntripClient_MountPoint, sizeof(settings.ntripClient_MountPoint));
-            ntripClientSettingsChange = true; // Notify the NTRIP Client state machine of new credentials
+            ntripClientSettingsChanged(); // Notify the NTRIP Client state machine of new credentials
         }
         else if ((incoming == 13) && settings.enableNtripClient == true)
         {
             systemPrintf("Enter password for Mount Point %s: ", settings.ntripClient_MountPoint);
             getUserInputString(settings.ntripClient_MountPointPW, sizeof(settings.ntripClient_MountPointPW));
-            ntripClientSettingsChange = true; // Notify the NTRIP Client state machine of new credentials
+            ntripClientSettingsChanged(); // Notify the NTRIP Client state machine of new credentials
         }
         else if ((incoming == 14) && settings.enableNtripClient == true)
         {

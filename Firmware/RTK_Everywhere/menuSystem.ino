@@ -571,7 +571,7 @@ void menuDebugHardware()
             if (present.gnss_um980)
             {
                 // Create a file in LittleFS
-                if (createUm980Passthrough() == true)
+                if (um980CreatePassthrough() == true)
                 {
                     systemPrintln();
                     systemPrintln("UM980 passthrough mode has been recorded to LittleFS. Device will now reset.");

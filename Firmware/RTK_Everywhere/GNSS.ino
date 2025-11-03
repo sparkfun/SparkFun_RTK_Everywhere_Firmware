@@ -688,6 +688,7 @@ bool createGNSSPassthrough()
 {
     return createPassthrough("/updateGnssFirmware.txt");
 }
+
 bool createPassthrough(const char *filename)
 {
     if (online.fs == false)
@@ -695,18 +696,21 @@ bool createPassthrough(const char *filename)
 
     if (LittleFS.exists(filename))
     {
-        if (settings.debugGnss)
+        if (settings.debugGnssConfig)
             systemPrintf("LittleFS %s already exists\r\n", filename);
         return true;
     }
 
-    File updateUm980Firmware = LittleFS.open(filename, FILE_WRITE);
-    updateUm980Firmware.close();
+    if (settings.debugGnssConfig)
+        systemPrintf("Creating passthrough file: %s \r\n", filename);
+
+    File simpleFile = LittleFS.open(filename, FILE_WRITE);
+    simpleFile.close();
 
     if (LittleFS.exists(filename))
         return true;
 
-    if (settings.debugGnss)
+    if (settings.debugGnssConfig)
         systemPrintf("Unable to create %s on LittleFS\r\n", filename);
     return false;
 }
@@ -833,17 +837,22 @@ bool gnssFirmwareCheckUpdateFile(const char *filename)
 //----------------------------------------
 void gnssFirmwareRemoveUpdate()
 {
-    return gnssFirmwareRemoveUpdateFile("/updateGnssFirmware.txt");
+    gnssFirmwareRemoveUpdateFile("/updateGnssFirmware.txt");
 }
+
 void gnssFirmwareRemoveUpdateFile(const char *filename)
 {
     if (online.fs == false)
         return;
 
+    if (settings.debugGnssConfig)
+        systemPrintf("Removing passthrough file: %s \r\n", filename);
+
+    Serial.println("1");
     if (LittleFS.exists(filename))
     {
-        if (settings.debugGnss)
-            systemPrintf("Removing %s\r\n", filename);
+        Serial.println("2");
+        delay(50);
 
         LittleFS.remove(filename);
     }

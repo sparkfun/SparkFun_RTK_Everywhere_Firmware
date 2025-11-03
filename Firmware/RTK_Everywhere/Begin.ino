@@ -240,6 +240,7 @@ void beginBoard()
         present.minCN0 = true;
         present.minElevation = true;
         present.dynamicModel = true;
+        present.display_type = DISPLAY_MAX_NONE;
 
 #ifdef COMPILE_IM19_IMU
         present.imu_im19 = true; // Allow tiltUpdate() to run

@@ -66,6 +66,7 @@ void networkVerifyTables() {}
 //----------------------------------------
 
 void ntripClientPrintStatus() {systemPrintln("**NTRIP Client not compiled**");}
+void ntripClientSettingsChanged() {}
 void ntripClientStop(bool clientAllocated) {online.ntripClient = false;}
 void ntripClientUpdate() {}
 void ntripClientValidateTables() {}

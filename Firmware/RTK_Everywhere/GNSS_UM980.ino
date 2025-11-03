@@ -85,7 +85,7 @@ void GNSS_UM980::begin()
 
     if (_um980->begin(*serialGNSS) == false) // Give the serial port over to the library
     {
-        if (settings.debugGnss)
+        if (settings.debugGnssConfig)
             systemPrintln("GNSS UM980 failed to begin. Trying again.");
 
         // Try again with power on delay
@@ -179,8 +179,7 @@ bool GNSS_UM980::configureBase()
     // a surveyInStart().
     gnssConfigure(GNSS_CONFIG_MODEL);
 
-    // Request receiver to use new settings
-    gnssConfigure(GNSS_CONFIG_MESSAGE_RATE_NMEA);
+    // Request a change to Base RTCM
     gnssConfigure(GNSS_CONFIG_MESSAGE_RATE_RTCM_BASE);
 
     return (true);
@@ -189,53 +188,35 @@ bool GNSS_UM980::configureBase()
 //----------------------------------------
 bool GNSS_UM980::configureOnce()
 {
-    /*
-    Set COM port baud rates,
-      UM980 COM1 - Connected to ESP32 through switches. Not used.
-      UM980 COM2 - To IMU.
-      UM980 COM3 - BT, config and LoRa Radio. Configured for 115200 from begin().
-    Set minCN0
-    Set elevationAngle
-    Set Constellations
-    Set messages
-      Enable selected NMEA messages on COM3
-      Enable selected RTCM messages on COM3
-*/
     bool response = true;
-    response &= setBaudRate(2, 115200); // UM980 UART2 is connected to the IMU
-    if (response == false)
-        systemPrintln("setBaudRate failed");
 
-    // Assume if we've made it this far, the UM980 UART3 is communicating
-    // response &= setBaudRateComm(115200); // UM980 UART3 is connected to the switch, then ESP32
+    if (settings.debugGnssConfig)
+        systemPrintln("Configuring UM980");
 
-    // Signal group control is not currently exposed to the user, thus is not configured using gnssConfigure()
     // Read, modify, write
-    if (_um980->isConfigurationPresent("CONFIG SIGNALGROUP 2") == false)
+
+    // Output must be disabled before sending SIGNALGROUP command in order to get the OK response
+    disableAllOutput(); // Disable COM1/2/3
+
+    if (_um980->sendCommand("CONFIG SIGNALGROUP 2") == false)
     {
-        // Output must be disabled before sending SIGNALGROUP command in order to get the OK response
-        disableAllOutput(); // Disable COM1/2/3
+        systemPrintln("Signal group 2 command failed");
+        response = false;
+    }
+    else
+    {
+        systemPrintln("Enabling additional reception on UM980. This can take a few seconds.");
 
-        if (_um980->sendCommand("CONFIG SIGNALGROUP 2") == false)
+        while (1)
         {
-            systemPrintln("Signal group 2 command failed");
-            response = false;
+            delay(1000); // Wait for device to reboot
+            if (_um980->isConnected())
+                break;
+            else
+                systemPrintln("UM980 rebooting");
         }
-        else
-        {
-            systemPrintln("Enabling additional reception on UM980. This can take a few seconds.");
 
-            while (1)
-            {
-                delay(1000); // Wait for device to reboot
-                if (_um980->isConnected())
-                    break;
-                else
-                    systemPrintln("UM980 rebooting");
-            }
-
-            systemPrintln("UM980 has completed reboot.");
-        }
+        systemPrintln("UM980 has completed reboot.");
     }
 
     if (response)
@@ -299,8 +280,7 @@ bool GNSS_UM980::configureRover()
     // Sets the dynamic model (Survey/UAV/Automotive) and puts the device into Rover mode
     gnssConfigure(GNSS_CONFIG_MODEL);
 
-    // Request a change to NMEA and Rover RTCM
-    gnssConfigure(GNSS_CONFIG_MESSAGE_RATE_NMEA);
+    // Request a change to Rover RTCM
     gnssConfigure(GNSS_CONFIG_MESSAGE_RATE_RTCM_ROVER);
 
     return (true);
@@ -364,7 +344,7 @@ void GNSS_UM980::debuggingEnable()
 // Turn off all NMEA and RTCM
 void GNSS_UM980::disableAllOutput()
 {
-    if (settings.debugGnss)
+    if (settings.debugGnssConfig)
         systemPrintln("UM980 disable output");
 
     // Turn off local noise before moving to other ports
@@ -712,7 +692,13 @@ uint8_t GNSS_UM980::getMinute()
 uint8_t GNSS_UM980::getMode()
 {
     if (online.gnss)
-        return (_um980->getMode());
+    {
+        int mode = _um980->getMode();
+        if (settings.debugGnssConfig)
+            systemPrintf("getMode(): %d\r\n", mode);
+
+        return (mode);
+    }
     return (0);
 }
 
@@ -1466,7 +1452,7 @@ bool GNSS_UM980::setConstellations()
             response &= _um980->enableConstellation(um980ConstellationCommands[constellationNumber].textCommand);
             if (response == false)
             {
-                if (settings.debugGnss)
+                if (settings.debugGnssConfig)
                     systemPrintf("setConstellations failed to enable constellation %s [%d].\r\n",
                                  um980ConstellationCommands[constellationNumber].textName, constellationNumber);
                 return (false); // Don't attempt other messages, assume communication is down
@@ -1478,7 +1464,7 @@ bool GNSS_UM980::setConstellations()
 
             if (response == false)
             {
-                if (settings.debugGnss)
+                if (settings.debugGnssConfig)
                     systemPrintf("setConstellations failed to disable constellation %s [%d].\r\n",
                                  um980ConstellationCommands[constellationNumber].textName, constellationNumber);
                 return (false); // Don't attempt other messages, assume communication is down
@@ -1642,7 +1628,7 @@ bool GNSS_UM980::setMessagesNMEA()
 
             if (response == false)
             {
-                if (settings.debugGnss)
+                if (settings.debugGnssConfig)
                     systemPrintf("setMessagesNMEA failed to set %0.2f for message %s [%d].\r\n",
                                  settings.um980MessageRatesNMEA[messageNumber],
                                  umMessagesNMEA[messageNumber].msgTextName, messageNumber);
@@ -1712,7 +1698,7 @@ bool GNSS_UM980::setMessagesRTCMBase()
 
             if (response == false)
             {
-                if (settings.debugGnss)
+                if (settings.debugGnssConfig)
                     systemPrintf("setMessagesRTCMBase failed to set %0.2f for message %s [%d].\r\n",
                                  settings.um980MessageRatesRTCMBase[messageNumber],
                                  umMessagesRTCM[messageNumber].msgTextName, messageNumber);
@@ -1753,7 +1739,7 @@ bool GNSS_UM980::setMessagesRTCMRover()
                                                    settings.um980MessageRatesRTCMRover[messageNumber]);
             if (response == false)
             {
-                if (settings.debugGnss)
+                if (settings.debugGnssConfig)
                     systemPrintf("setMessagesRTCMRover failed to set %0.2f for message %s [%d].\r\n",
                                  settings.um980MessageRatesRTCMRover[messageNumber],
                                  umMessagesRTCM[messageNumber].msgTextName, messageNumber);
@@ -1816,6 +1802,10 @@ bool GNSS_UM980::setModel(uint8_t modelNumber)
             return (_um980->setModeRoverUAV());
         else if (modelNumber == UM980_DYN_MODEL_AUTOMOTIVE)
             return (_um980->setModeRoverAutomotive());
+        else
+        {
+            systemPrintf("Uncaught model: %d\r\n", modelNumber);
+        }
     }
     return (false);
 }
@@ -1922,13 +1912,13 @@ bool GNSS_UM980::setTilt()
 
     // Read, modify, write
     // The UM980 does not have a way to read the currently enabled messages so we do only a write
-
     if (settings.enableTiltCompensation == true)
     {
         // Configure UM980 to output binary and NMEA reports out COM2, connected to IM19 COM3
         response &= _um980->sendCommand("BESTPOSB COM2 0.2"); // 5Hz
         response &= _um980->sendCommand("PSRVELB COM2 0.2");
         response &= _um980->setNMEAPortMessage("GPGGA", "COM2", 0.2); // 5Hz
+        response &= setBaudRate(2, 115200);                           // UM980 UART2 is connected to the IMU
     }
     else
     {
@@ -2099,15 +2089,6 @@ bool GNSS_UM980::setRtcmRoverMessageRateByName(const char *msgName, uint8_t msgR
 //----------------------------------------
 
 //----------------------------------------
-// Force UART connection to GNSS for firmware update on the next boot by special file in
-// LittleFS
-//----------------------------------------
-bool createUm980Passthrough()
-{
-    return createPassthrough("/updateUm980Firmware.txt");
-}
-
-//----------------------------------------
 void um980FirmwareBeginUpdate()
 {
     // Note: We cannot increase the bootloading speed beyond 115200 because
@@ -2127,10 +2108,10 @@ void um980FirmwareBeginUpdate()
     //  This makes our job much easier...
 
     // Flag that we are in direct connect mode. Button task will um980FirmwareRemoveUpdate and exit
-    inDirectConnectMode = true;
+    // inDirectConnectMode = true;
 
     // Paint GNSS Update
-    paintGnssUpdate();
+    // paintGnssUpdate();
 
     // Stop all UART tasks. Redundant
     tasksStopGnssUart();
@@ -2163,8 +2144,8 @@ void um980FirmwareBeginUpdate()
     while (1)
     {
         // Data coming from UM980 to external USB
-        if (serialGNSS->available()) // Note: use if, not while
-            Serial.write(serialGNSS->read());
+        // if (serialGNSS->available()) // Note: use if, not while
+        //    Serial.write(serialGNSS->read());
 
         // Data coming from external USB to UM980
         if (Serial.available()) // Note: use if, not while
@@ -2188,8 +2169,40 @@ void um980FirmwareBeginUpdate()
             }
         }
 
+        if (digitalRead(pin_powerButton) == HIGH)
+        {
+            while (digitalRead(pin_powerButton) == HIGH)
+                delay(100);
+
+            // Remove file and reset to exit pass-through mode
+            um980FirmwareRemoveUpdate();
+
+            // Beep to indicate exit
+            beepOn();
+            delay(300);
+            beepOff();
+            delay(100);
+            beepOn();
+            delay(300);
+            beepOff();
+
+            systemPrintln("Exiting UM980 passthrough mode");
+            systemFlush(); // Complete prints
+
+            ESP.restart();
+        }
         // Button task will um980FirmwareRemoveUpdate and restart
     }
+}
+
+const char *um980FirmwareFileName = "/updateUm980Firmware.txt";
+
+//----------------------------------------
+// Force UART connection to GNSS for firmware update on the next boot by special file in LittleFS
+//----------------------------------------
+bool um980CreatePassthrough()
+{
+    return createPassthrough(um980FirmwareFileName);
 }
 
 //----------------------------------------
@@ -2197,7 +2210,7 @@ void um980FirmwareBeginUpdate()
 //----------------------------------------
 bool um980FirmwareCheckUpdate()
 {
-    return gnssFirmwareCheckUpdateFile("/updateUm980Firmware.txt");
+    return gnssFirmwareCheckUpdateFile(um980FirmwareFileName);
 }
 
 //----------------------------------------
@@ -2205,7 +2218,7 @@ bool um980FirmwareCheckUpdate()
 //----------------------------------------
 void um980FirmwareRemoveUpdate()
 {
-    return gnssFirmwareRemoveUpdateFile("/updateUm980Firmware.txt");
+    gnssFirmwareRemoveUpdateFile(um980FirmwareFileName);
 }
 
 //----------------------------------------
