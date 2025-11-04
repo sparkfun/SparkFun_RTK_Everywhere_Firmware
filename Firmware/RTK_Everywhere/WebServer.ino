@@ -37,7 +37,7 @@ static const char *const webServerStateNames[] = {
     webServer->on(page, HTTP_GET, []() {                                                                               \
         String length;                                                                                                 \
         if (settings.debugWebServer == true)                                                                           \
-            systemPrintf("WebServer: Sending %s (%p, %d bytes)\r\n", page, (void *)data, sizeof(data));               \
+            systemPrintf("WebServer: Sending %s (%p, %d bytes)\r\n", page, (void *)data, sizeof(data));                \
         webServer->sendHeader("Content-Encoding", "gzip");                                                             \
         length = String(sizeof(data));                                                                                 \
         webServer->sendHeader("Content-Length", length.c_str());                                                       \
@@ -63,8 +63,8 @@ static int last_ws_fd;
 
 static TaskHandle_t updateWebServerTaskHandle;
 static const uint8_t updateWebServerTaskPriority = 0; // 3 being the highest, and 0 being the lowest
-static const int webServerTaskStackSize = 1024 * 4; // Needs to be large enough to hold the file manager file list
-static const int webSocketStackSize = 1024 * 20; // Needs to be large enough to hold the full settingsCSV
+static const int webServerTaskStackSize = 1024 * 4;   // Needs to be large enough to hold the file manager file list
+static const int webSocketStackSize = 1024 * 20;      // Needs to be large enough to hold the full settingsCSV
 
 // Inspired by:
 // https://github.com/espressif/arduino-esp32/blob/master/libraries/WebServer/examples/MultiHomedServers/MultiHomedServers.ino
@@ -673,13 +673,7 @@ bool parseIncomingSettings()
         }
     }
 
-    if (counter < maxAttempts)
-    {
-        // Confirm receipt
-        if (settings.debugWebServer == true)
-            systemPrintln("Sending receipt confirmation of settings");
-        sendStringToWebsocket("confirmDataReceipt,1,");
-    }
+    systemPrintln("Parsing complete");
 
     return (true);
 }
