@@ -2813,11 +2813,12 @@ void displayMessage(const char *message, uint16_t displayTime)
         // Count words based on spaces
         uint8_t wordCount = 0;
         strncpy(temp, message, sizeof(temp) - 1); // strtok modifies the message so make copy
-        char *token = strtok(temp, " ");
+        char *preservedPointer;
+        char *token = strtok_r(temp, " ", &preservedPointer);
         while (token != nullptr)
         {
             wordCount++;
-            token = strtok(nullptr, " ");
+            token = strtok_r(nullptr, " ", &preservedPointer);
         }
 
         uint8_t yPos = (oled->getHeight() / 2) - (fontHeight / 2);
@@ -2829,11 +2830,11 @@ void displayMessage(const char *message, uint16_t displayTime)
         // drawFrame();
 
         strncpy(temp, message, sizeof(temp) - 1);
-        token = strtok(temp, " ");
+        token = strtok_r(temp, " ", &preservedPointer);
         while (token != nullptr)
         {
             printTextCenter(token, yPos, QW_FONT_8X16, 1, false); // text, y, font type, kerning, inverted
-            token = strtok(nullptr, " ");
+            token = strtok_r(nullptr, " ", &preservedPointer);
             yPos += fontHeight;
         }
 

@@ -262,10 +262,11 @@ void menuTcpUdp()
             // Remove any http:// or https:// prefix from host name
             // strtok modifies string to be parsed so we create a copy
             strncpy(hostname, settings.tcpClientHost, sizeof(hostname) - 1);
-            char *token = strtok(hostname, "//");
+            char *preservedPointer;
+            char *token = strtok_r(hostname, "//", &preservedPointer);
             if (token != nullptr)
             {
-                token = strtok(nullptr, "//"); // Advance to data after //
+                token = strtok_r(nullptr, "//", &preservedPointer); // Advance to data after //
                 if (token != nullptr)
                     strcpy(settings.tcpClientHost, token);
             }
