@@ -542,7 +542,7 @@ void beginLoraFirmwareUpdate()
     else
         systemPrintln("ERROR: productVariant does not support LoRa");
 
-    // Make sure ESP32 is connected to LoRa STM32 UART
+    // Make sure ESP-UART1 is connected to LoRa STM32 UART0
     muxSelectLoRaConfigure();
 
     loraEnterBootloader(); // Push boot pin high and reset STM32
@@ -715,7 +715,7 @@ bool loraEnterCommandMode()
 
     systemFlush(); // Complete prints
 
-    muxSelectLoRaConfigure(); // Connect to the STM32 for configuration
+    muxSelectLoRaCommunication(); // Connect the LoRa radio to ESP32 UART0 (shared with USB)
 
     delay(50); // Wait for incoming serial to complete
     while (Serial.available())
