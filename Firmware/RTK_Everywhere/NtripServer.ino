@@ -173,7 +173,7 @@ const RtkMode_t ntripServerMode = RTK_MODE_BASE_FIXED;
 //----------------------------------------
 
 // NTRIP Servers
-volatile static NTRIP_SERVER_DATA ntripServerArray[NTRIP_SERVER_MAX];
+static NTRIP_SERVER_DATA ntripServerArray[NTRIP_SERVER_MAX];
 
 //----------------------------------------
 // NTRIP Server Routines
@@ -184,7 +184,7 @@ volatile static NTRIP_SERVER_DATA ntripServerArray[NTRIP_SERVER_MAX];
 //----------------------------------------
 bool ntripServerConnectCaster(int serverIndex)
 {
-    volatile NTRIP_SERVER_DATA *ntripServer = &ntripServerArray[serverIndex];
+    NTRIP_SERVER_DATA *ntripServer = &ntripServerArray[serverIndex];
     const int SERVER_BUFFER_SIZE = 512;
     char serverBuffer[SERVER_BUFFER_SIZE];
 
@@ -239,7 +239,7 @@ bool ntripServerConnectLimitReached(int serverIndex)
 {
     bool limitReached;
     int minutes;
-    volatile NTRIP_SERVER_DATA *ntripServer = &ntripServerArray[serverIndex];
+    NTRIP_SERVER_DATA *ntripServer = &ntripServerArray[serverIndex];
     int seconds;
 
     // Retry the connection a few times
@@ -311,9 +311,9 @@ bool ntripServerEnabled(int serverIndex, const char ** line)
         {
             if (line)
             {
-                if (settings.ntripServer_CasterHost[0] == 0)
+                if (settings.ntripServer_CasterHost[serverIndex][0] == 0)
                     *line = ", Caster host not specified!";
-                else if (settings.ntripServer_CasterPort == 0)
+                else if (settings.ntripServer_CasterPort[serverIndex] == 0)
                     *line = ", Caster port not specified!";
                 else
                     *line = ", Mount point not specified!";
@@ -334,7 +334,7 @@ bool ntripServerEnabled(int serverIndex, const char ** line)
 //----------------------------------------
 void ntripServerPrintStateSummary(int serverIndex)
 {
-    volatile NTRIP_SERVER_DATA *ntripServer = &ntripServerArray[serverIndex];
+    NTRIP_SERVER_DATA *ntripServer = &ntripServerArray[serverIndex];
 
     switch (ntripServer->state)
     {
@@ -362,7 +362,7 @@ void ntripServerPrintStateSummary(int serverIndex)
 //----------------------------------------
 void ntripServerPrintStatus(int serverIndex)
 {
-    volatile NTRIP_SERVER_DATA *ntripServer = &ntripServerArray[serverIndex];
+    NTRIP_SERVER_DATA *ntripServer = &ntripServerArray[serverIndex];
     uint64_t milliseconds;
     uint32_t days;
     byte hours;
@@ -410,7 +410,7 @@ void ntripServerPrintStatus(int serverIndex)
 //----------------------------------------
 void ntripServerProcessRTCM(int serverIndex, uint8_t incoming)
 {
-    volatile NTRIP_SERVER_DATA *ntripServer = &ntripServerArray[serverIndex];
+    NTRIP_SERVER_DATA *ntripServer = &ntripServerArray[serverIndex];
 
     if (ntripServer->state == NTRIP_SERVER_CASTING)
     {
@@ -464,7 +464,7 @@ void ntripServerProcessRTCM(int serverIndex, uint8_t incoming)
 //----------------------------------------
 void ntripServerResponse(int serverIndex, char *response, size_t maxLength)
 {
-    volatile NTRIP_SERVER_DATA *ntripServer = &ntripServerArray[serverIndex];
+    NTRIP_SERVER_DATA *ntripServer = &ntripServerArray[serverIndex];
     char *responseEnd;
 
     // Make sure that we can zero terminate the response
@@ -483,7 +483,7 @@ void ntripServerResponse(int serverIndex, char *response, size_t maxLength)
 //----------------------------------------
 void ntripServerRestart(int serverIndex)
 {
-    volatile NTRIP_SERVER_DATA *ntripServer = &ntripServerArray[serverIndex];
+    NTRIP_SERVER_DATA *ntripServer = &ntripServerArray[serverIndex];
 
     // Save the previous uptime value
     if (ntripServer->state == NTRIP_SERVER_CASTING)
@@ -496,7 +496,7 @@ void ntripServerRestart(int serverIndex)
 //----------------------------------------
 void ntripServerSetState(int serverIndex, uint8_t newState)
 {
-    volatile NTRIP_SERVER_DATA * ntripServer;
+    NTRIP_SERVER_DATA * ntripServer;
 
     ntripServer = &ntripServerArray[serverIndex];
     if (settings.debugNtripServerState)
@@ -548,7 +548,7 @@ void ntripServerStop(int serverIndex, bool shutdown)
 {
     bool enabled;
     int index;
-    volatile NTRIP_SERVER_DATA *ntripServer = &ntripServerArray[serverIndex];
+    NTRIP_SERVER_DATA *ntripServer = &ntripServerArray[serverIndex];
 
     if (ntripServer->networkClient)
     {
@@ -612,7 +612,7 @@ void ntripServerUpdate(int serverIndex)
     const char * line = "";
 
     // Get the NTRIP data structure
-    volatile NTRIP_SERVER_DATA *ntripServer = &ntripServerArray[serverIndex];
+    NTRIP_SERVER_DATA *ntripServer = &ntripServerArray[serverIndex];
 
     // Shutdown the NTRIP server when the mode or setting changes
     DMW_if
