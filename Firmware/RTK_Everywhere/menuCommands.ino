@@ -4176,7 +4176,7 @@ void createCommandTypesJson(String &output)
 
     JsonArray command_types = doc["command types"].to<JsonArray>();
 
-#ifdef  COMPILE_LG290P
+#ifdef COMPILE_LG290P
     // LG290P
 
     JsonObject command_types_tLgConst = command_types.add<JsonObject>();
@@ -4240,7 +4240,7 @@ void createCommandTypesJson(String &output)
     command_types_tLgMRPqtm_values.add("1");
 #endif // COMPILE_LG290P
 
-#ifdef  COMPILE_MOSAICX5
+#ifdef COMPILE_MOSAICX5
     // mosaic-X5
 
     JsonObject command_types_tMosaicConst = command_types.add<JsonObject>();
@@ -4329,7 +4329,7 @@ void createCommandTypesJson(String &output)
     command_types_tMosaicMEBaRT_values.add("1");
 #endif // COMPILE_MOSAICX5
 
-#ifdef  COMPILE_UM980
+#ifdef COMPILE_UM980
     // UM980
 
     JsonObject command_types_tUmConst = command_types.add<JsonObject>();
@@ -4421,10 +4421,10 @@ void createCommandTypesJson(String &output)
     command_types_tUbMsgRtb["type"] = "int";
     command_types_tUbMsgRtb["value min"] = 0;
     command_types_tUbMsgRtb["value max"] = 250; // Avoid 254!
-#endif // COMPILE_ZED
+#endif                                          // COMPILE_ZED
 
-    doc.shrinkToFit();  // optional
+    doc.shrinkToFit(); // optional
 
-    //serializeJsonPretty(doc, output); // Pretty formatting - useful for testing
+    // serializeJsonPretty(doc, output); // Pretty formatting - useful for testing
     serializeJson(doc, output); // Standard JSON format
 }
