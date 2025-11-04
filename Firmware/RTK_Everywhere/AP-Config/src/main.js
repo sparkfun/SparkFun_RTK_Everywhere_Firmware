@@ -226,6 +226,9 @@ function parseIncoming(msg) {
                 hide("constellationSbas"); //Not supported on UM980
                 hide("constellationNavic"); //Not supported on UM980
 
+                show("galileoHasSetting");
+                hide("lg290pGnssSettings");
+
                 show("measurementRateInput");
 
                 show("loraConfig");
@@ -711,6 +714,7 @@ function parseIncoming(msg) {
         ge("enableARPLogging").dispatchEvent(new CustomEvent('change'));
         ge("enableAutoFirmwareUpdate").dispatchEvent(new CustomEvent('change'));
         ge("enableAutoReset").dispatchEvent(new CustomEvent('change'));
+        ge("enableGalileoHas").dispatchEvent(new CustomEvent('change'));
 
         updateECEFList();
         updateGeodeticList();
@@ -876,7 +880,7 @@ function validateFields() {
     if (isElementShown("lg290pGnssSettings") == true) {
         checkElementValue("rtcmMinElev", -90, 90, "Must be between -90 and 90", "collapseGNSSConfig");
     }
-    if (ge("enableGalileoHas").checked == true) {
+    if (isElementShown("configurePppSetting") == true) {
         checkElementStringSpacesNoCommas("configurePPP", 1, 30, "Must be 1 to 30 characters. Separated by spaces. Commas not allowed", "collapseGNSSConfig");
     }
     if (ge("enableNtripClient").checked == true) {
@@ -2004,6 +2008,20 @@ document.addEventListener("DOMContentLoaded", (event) => {
 
     ge("fixedHAEAPC").addEventListener("change", function () {
         adjustHAE();
+    });
+
+    ge("enableGalileoHas").addEventListener("change", function () {
+        if ((isElementShown("galileoHasSetting") == true) && (isElementShown("lg290pGnssSettings") == true)) {
+            if (ge("enableGalileoHas").checked == true) {
+                show("configurePppSetting");
+            }
+            else {
+                hide("configurePppSetting");
+            }
+        }
+        else {
+            hide("configurePppSetting"); // Hide on Torch UM980 - i.e. non-LG290P
+        }
     });
 
     for (let y = 0; y < numCorrectionsSources; y++) {
