@@ -440,12 +440,15 @@ void stateUpdate()
             if (incomingSettingsSpot > 0)
             {
                 // Allow for 750ms before we parse buffer for all data to arrive
-                if ((millis() - timeSinceLastIncomingSetting) > 750)
+                if ((millis() - timeSinceLastIncomingSetting) > 250)
                 {
-                    bool changed;
+                    // Confirm receipt so the web interface stops sending the config blob
+                    if (settings.debugWebServer == true)
+                        systemPrintln("Sending receipt confirmation of settings");
+                    sendStringToWebsocket("confirmDataReceipt,1,");
 
-                    currentlyParsingData =
-                        true; // Disallow new data to flow from websocket while we are parsing the current data
+                    // Disallow new data to flow from websocket while we are parsing the current data
+                    currentlyParsingData = true;
 
                     systemPrint("Parsing: ");
                     for (int x = 0; x < incomingSettingsSpot; x++)
@@ -771,14 +774,15 @@ typedef struct _RTK_MODE_ENTRY
     SystemState last;
 } RTK_MODE_ENTRY;
 
-const RTK_MODE_ENTRY stateModeTable[] = {{"Rover", STATE_ROVER_NOT_STARTED, STATE_ROVER_RTK_FIX},
-                                         {"Base Caster", STATE_BASE_CASTER_NOT_STARTED, STATE_BASE_CASTER_NOT_STARTED},
-                                         {"Base", STATE_BASE_NOT_STARTED, STATE_BASE_FIXED_TRANSMITTING},
-                                         {"Setup", STATE_DISPLAY_SETUP, STATE_PROFILE}, // Covers SETUP, WEB_CONFIG, TEST
-                                         {"Provisioning", STATE_KEYS_REQUESTED, STATE_KEYS_REQUESTED},
-                                         {"ESPNOW Pairing", STATE_ESPNOW_PAIRING_NOT_STARTED, STATE_ESPNOW_PAIRING},
-                                         {"NTP", STATE_NTPSERVER_NOT_STARTED, STATE_NTPSERVER_SYNC},
-                                         {"Shutdown", STATE_SHUTDOWN, STATE_SHUTDOWN}};
+const RTK_MODE_ENTRY stateModeTable[] = {
+    {"Rover", STATE_ROVER_NOT_STARTED, STATE_ROVER_RTK_FIX},
+    {"Base Caster", STATE_BASE_CASTER_NOT_STARTED, STATE_BASE_CASTER_NOT_STARTED},
+    {"Base", STATE_BASE_NOT_STARTED, STATE_BASE_FIXED_TRANSMITTING},
+    {"Setup", STATE_DISPLAY_SETUP, STATE_PROFILE}, // Covers SETUP, WEB_CONFIG, TEST
+    {"Provisioning", STATE_KEYS_REQUESTED, STATE_KEYS_REQUESTED},
+    {"ESPNOW Pairing", STATE_ESPNOW_PAIRING_NOT_STARTED, STATE_ESPNOW_PAIRING},
+    {"NTP", STATE_NTPSERVER_NOT_STARTED, STATE_NTPSERVER_SYNC},
+    {"Shutdown", STATE_SHUTDOWN, STATE_SHUTDOWN}};
 const int stateModeTableEntries = sizeof(stateModeTable) / sizeof(stateModeTable[0]);
 
 const char *stateToRtkMode(SystemState state)
