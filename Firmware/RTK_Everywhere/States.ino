@@ -683,6 +683,7 @@ const char *getState(SystemState state, char *buffer)
         return "STATE_DISPLAY_SETUP";
     case (STATE_WEB_CONFIG_NOT_STARTED):
         return "STATE_WEB_CONFIG_NOT_STARTED";
+    case (STATE_WEB_CONFIG_WAIT_FOR_NETWORK):
     case (STATE_WEB_CONFIG):
         return "STATE_WEB_CONFIG";
     case (STATE_TEST):

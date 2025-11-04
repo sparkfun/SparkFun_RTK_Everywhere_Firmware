@@ -279,7 +279,7 @@ void recordSystemSettingsToFile(File *settingsFile)
         break;
         case _uint32_t: {
             uint32_t *ptr = (uint32_t *)rtkSettingsEntries[i].var;
-            settingsFile->printf("%s=%d\r\n", rtkSettingsEntries[i].name, *ptr);
+            settingsFile->printf("%s=%lu\r\n", rtkSettingsEntries[i].name, *ptr);
         }
         break;
         case _uint64_t: {

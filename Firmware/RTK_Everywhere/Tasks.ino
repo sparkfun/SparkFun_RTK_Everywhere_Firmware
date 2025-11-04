@@ -1645,7 +1645,7 @@ void handleGnssDataTask(void *e)
                                 // Record trigger count with Time Of Week of rising edge (ms), Millisecond fraction of Time Of Week of
                                 // rising edge (ns), and accuracy estimate (ns)
                                 char eventData[82]; // Max NMEA sentence length is 82
-                                snprintf(eventData, sizeof(eventData), "%d,%d,%d,%d", triggerCount, triggerTowMsR, triggerTowSubMsR,
+                                snprintf(eventData, sizeof(eventData), "%lu,%lu,%lu,%lu", triggerCount, triggerTowMsR, triggerTowSubMsR,
                                         triggerAccEst);
 
                                 char nmeaMessage[82]; // Max NMEA sentence length is 82

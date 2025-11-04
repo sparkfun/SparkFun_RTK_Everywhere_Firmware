@@ -2438,7 +2438,7 @@ void stringRecord(char *settingsCSV, const char *id, int settingValue)
 void stringRecord(char *settingsCSV, const char *id, uint32_t settingValue)
 {
     char record[100];
-    snprintf(record, sizeof(record), "%s,%d,", id, settingValue);
+    snprintf(record, sizeof(record), "%s,%lu,", id, settingValue);
     strcat(settingsCSV, record);
 }
 
@@ -4129,7 +4129,7 @@ void printAvailableSettings()
 
             // Convert int to string
             char batteryChargingPercentStr[3] = {0}; // 45
-            snprintf(batteryChargingPercentStr, sizeof(batteryChargingPercentStr), "%0.0f", batteryChargingPercentStr);
+            snprintf(batteryChargingPercentStr, sizeof(batteryChargingPercentStr), "%0.0f", batteryChargingPercentPerHour);
 
             // Create the settingType based on the length of the firmware version
             char settingType[100];
