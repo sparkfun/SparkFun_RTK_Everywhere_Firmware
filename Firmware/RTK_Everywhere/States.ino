@@ -439,7 +439,7 @@ void stateUpdate()
         case (STATE_WEB_CONFIG): {
             if (incomingSettingsSpot > 0)
             {
-                // Allow for 750ms before we parse buffer for all data to arrive
+                // Allow for 250ms before we parse buffer for all data to arrive
                 if ((millis() - timeSinceLastIncomingSetting) > 250)
                 {
                     // Confirm receipt so the web interface stops sending the config blob

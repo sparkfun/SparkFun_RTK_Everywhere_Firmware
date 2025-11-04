@@ -78,6 +78,8 @@ const CoordinateTypes = {
 var convertedCoordinate = 0.0;
 var coordinateInputType = CoordinateTypes.COORDINATE_INPUT_TYPE_DD;
 
+var initialSettings = {};
+
 function parseIncoming(msg) {
     //console.log("Incoming message: " + msg);
 
@@ -329,7 +331,7 @@ function parseIncoming(msg) {
                 hide("logToSDCard"); //No SD card on Torch
 
                 hide("constellationSbas"); //Not supported on LG290P
-                show("constellationNavic"); 
+                show("constellationNavic");
                 show("galileoHasSetting");
                 show("lg290pGnssSettings");
                 hide("tiltConfig"); //Not supported on Torch X2
@@ -724,7 +726,36 @@ function parseIncoming(msg) {
         dhcpEthernet();
         updateLatLong();
         updateCorrectionsPriorities();
+
+        // Create copy of settings, send only changes when 'Save Configuration' is pressed
+        saveInitialSettings(); 
     }
+}
+
+// Save the current state of settings
+function saveInitialSettings() {
+    initialSettings = {}; // Clear previous settings
+
+    // Save input boxes and dropdowns
+    var clsElements = document.querySelectorAll(".form-control, .form-dropdown");
+    for (let x = 0; x < clsElements.length; x++) {
+        initialSettings[clsElements[x].id] = clsElements[x].value;
+    }
+
+    // Save checkboxes and radio buttons
+    clsElements = document.querySelectorAll(".form-check-input:not(.fileManagerCheck), .form-radio");
+    for (let x = 0; x < clsElements.length; x++) {
+        // Store boolean values for easy comparison
+        initialSettings[clsElements[x].id] = clsElements[x].checked.toString();
+    }
+
+    // Save corrections priorities
+    for (let x = 0; x < numCorrectionsSources; x++) {
+        initialSettings["correctionsPriority_" + correctionsSourceNames[x]] = correctionsSourcePriorities[x].toString();
+    }
+
+    // Note: recordsECEF and recordsGeodetic change very little so instead
+    // of creating copy here, we will resend any entered coordinates every time.
 }
 
 function hide(id) {
@@ -742,39 +773,62 @@ function isElementShown(id) {
     return (false);
 }
 
-//Create CSV of all setting data
+//Create CSV of all setting data that has changed from the original given to us
 function sendData() {
     var settingCSV = "";
+    var changedCount = 0;
 
-    //Input boxes
+    // Check input boxes and dropdowns
     var clsElements = document.querySelectorAll(".form-control, .form-dropdown");
     for (let x = 0; x < clsElements.length; x++) {
-        settingCSV += clsElements[x].id + "," + clsElements[x].value + ",";
+        var id = clsElements[x].id;
+        var currentValue = clsElements[x].value;
+        if (initialSettings[id] !== currentValue) {
+            settingCSV += id + "," + currentValue + ",";
+            changedCount++;
+        }
     }
 
-    //Check boxes, radio buttons
-    //Remove file manager files
+    // Check boxes, radio buttons
     clsElements = document.querySelectorAll(".form-check-input:not(.fileManagerCheck), .form-radio");
     for (let x = 0; x < clsElements.length; x++) {
-        settingCSV += clsElements[x].id + "," + clsElements[x].checked + ",";
+        var id = clsElements[x].id;
+        // Store boolean as string 'true'/'false' for consistent comparison with initialSettings
+        var currentValue = clsElements[x].checked.toString();
+        if (initialSettings[id] !== currentValue) {
+            settingCSV += id + "," + currentValue + ",";
+            changedCount++;
+        }
     }
 
+    // Records (ECEF and Geodetic) - For simplicity, we send the full list if any list element exists.
     for (let x = 0; x < recordsECEF.length; x++) {
         settingCSV += "stationECEF" + x + ',' + recordsECEF[x] + ",";
     }
-
     for (let x = 0; x < recordsGeodetic.length; x++) {
         settingCSV += "stationGeodetic" + x + ',' + recordsGeodetic[x] + ",";
     }
 
+    // Corrections Priorities
     for (let x = 0; x < correctionsSourceNames.length; x++) {
-        settingCSV += "correctionsPriority_" + correctionsSourceNames[x] + ',' + correctionsSourcePriorities[x] + ",";
+        var id = "correctionsPriority_" + correctionsSourceNames[x];
+        var currentValue = correctionsSourcePriorities[x].toString();
+        if (initialSettings[id] !== currentValue) {
+            settingCSV += id + ',' + currentValue + ",";
+            changedCount++;
+        }
     }
 
-    console.log("Sending: " + settingCSV);
-    websocket.send(settingCSV);
+    console.log("Sending " + changedCount + " changed settings: " + settingCSV);
 
-    sendDataTimeout = setTimeout(sendData, 2000);
+    // Only send if there are changes (plus the always-sent records)
+    if (settingCSV.length > 0) {
+        websocket.send(settingCSV);
+        sendDataTimeout = setTimeout(sendData, 2000);
+    } else {
+        // If nothing changed, immediately report success.
+        showSuccess('saveBtn', "No changes detected.");
+    }
 }
 
 function showError(id, errorText) {
