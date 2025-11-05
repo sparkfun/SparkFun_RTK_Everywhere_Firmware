@@ -737,6 +737,7 @@ IPAddress ethernetSubnetMask;
 // };
 volatile struct timeval ethernetNtpTv; // This will hold the time the Ethernet NTP packet arrived
 bool ntpLogIncreasing;
+bool ethernetRestartRequested = false; // Perform ETH.end() to disconnect TCP resources
 #endif // COMPILE_ETHERNET
 
 unsigned long lastEthernetCheck; // Prevents cable checking from continually happening
