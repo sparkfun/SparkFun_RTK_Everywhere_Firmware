@@ -250,8 +250,8 @@ int32_t tcpClientSendData(uint16_t dataHead)
                 if (bytesToSend < 0)
                     bytesToSend += settings.gnssHandlerBufferSize;
 
-                if(tcpClient->available())
-                    tcpClient->read(); // Gently absorb any unwanted incoming traffic
+                while(tcpClient->available())
+                    tcpClient->read(); // Absorb any unwanted incoming traffic
             }
 
             // Failed to write the data

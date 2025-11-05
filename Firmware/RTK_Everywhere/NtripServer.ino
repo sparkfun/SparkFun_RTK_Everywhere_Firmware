@@ -451,18 +451,16 @@ void ntripServerProcessRTCM(int serverIndex, uint8_t incoming)
                 ntripServer->rtcmBytesSent = ntripServer->rtcmBytesSent + 1;
                 ntripServer->timer = millis();
                 netOutgoingRTCM = true;
-                if (ntripServer->networkClient->available())
-                    ntripServer->networkClient->read(); // Gently absorb any unwanted incoming traffic
+                while (ntripServer->networkClient->available())
+                    ntripServer->networkClient->read(); // Absorb any unwanted incoming traffic
             }
             // Failed to write the data
             else
             {
                 // Done with this client connection
-                if (!inMainMenu)
-                    systemPrintf("NTRIP Server %d breaking connection to %s\r\n", serverIndex,
+                if (settings.debugNtripServerRtcm && (!inMainMenu))
+                    systemPrintf("NTRIP Server %d broken connection to %s\r\n", serverIndex,
                                  settings.ntripServer_CasterHost[serverIndex]);
-
-                ntripServerShutdown(serverIndex);
             }
         }
     }
