@@ -1587,10 +1587,12 @@ SettingValueResponse updateSettingWithValue(bool inCommands, const char *setting
     }
 
     // Unused variables from the Web Config interface - read to avoid errors
-    else
+    // Check if this setting an unused element from the Web Config interface
+    if (knownSetting == false)
     {
         const char *table[] = {
             "baseTypeSurveyIn",
+            "enableAutoReset",
             "enableFactoryDefaults",
             "enableFirmwareUpdate",
             "enableForgetRadios",
@@ -1601,15 +1603,20 @@ SettingValueResponse updateSettingWithValue(bool inCommands, const char *setting
             "nicknameECEF",
             "nicknameGeodetic",
             "saveToArduino",
-            "enableAutoReset",
             "shutdownNoChargeTimeoutMinutesCheckbox",
         };
         const int tableEntries = sizeof(table) / sizeof(table[0]);
 
-        knownSetting = commandCheckListForVariable(settingName, table, tableEntries);
+        // Compare the above table against this settingName
+        if (commandCheckListForVariable(settingName, table, tableEntries))
+        {
+            if (settings.debugWebServer == true)
+                systemPrintf("Setting '%s' is known web interface element. Ignoring.\r\n", settingName);
+            return (SETTING_KNOWN_WEB_CONFIG_INTERFACE_ELEMENT);
+        }
     }
 
-    // Check if this setting is read only
+    // Check if this setting is read only. Used with the CLI.
     if (knownSetting == false)
     {
         const char *table[] = {
@@ -1626,17 +1633,9 @@ SettingValueResponse updateSettingWithValue(bool inCommands, const char *setting
         };
         const int tableEntries = sizeof(table) / sizeof(table[0]);
 
+        // Compare the above table against this settingName
         if (commandCheckListForVariable(settingName, table, tableEntries))
             return (SETTING_KNOWN_READ_ONLY);
-    }
-
-    // If we've received a setting update for a setting that is not valid to this platform,
-    // allow it, but throw a warning.
-    // This is often caused by the Web Config page reporting all cells including
-    // those that are hidden because of platform limitations
-    if (knownSetting == true && settingAvailableOnPlatform(i) == false)
-    {
-        systemPrintf("Setting '%s' stored but not supported on this platform\r\n", settingName);
     }
 
     // Last catch
@@ -1683,6 +1682,16 @@ SettingValueResponse updateSettingWithValue(bool inCommands, const char *setting
 
         // Done with the buffer
         rtkFree(name, "name & suffix buffers");
+    }
+
+    // If we've received a setting update for a setting that is not valid to this platform,
+    // allow it, but throw a warning.
+    // This is often caused by the Web Config page reporting all cells including
+    // those that are hidden because of platform limitations
+    if (knownSetting == false && rtkSettingsEntries[i].inWebConfig && (settingAvailableOnPlatform(i) == false))
+    {
+        if (settings.debugWebServer == true)
+            systemPrintf("Setting '%s' received but not supported on this platform\r\n", settingName);
     }
 
     if (knownSetting == true && settingIsString == true)
@@ -4176,7 +4185,7 @@ void createCommandTypesJson(String &output)
 
     JsonArray command_types = doc["command types"].to<JsonArray>();
 
-#ifdef  COMPILE_LG290P
+#ifdef COMPILE_LG290P
     // LG290P
 
     JsonObject command_types_tLgConst = command_types.add<JsonObject>();
@@ -4240,7 +4249,7 @@ void createCommandTypesJson(String &output)
     command_types_tLgMRPqtm_values.add("1");
 #endif // COMPILE_LG290P
 
-#ifdef  COMPILE_MOSAICX5
+#ifdef COMPILE_MOSAICX5
     // mosaic-X5
 
     JsonObject command_types_tMosaicConst = command_types.add<JsonObject>();
@@ -4329,7 +4338,7 @@ void createCommandTypesJson(String &output)
     command_types_tMosaicMEBaRT_values.add("1");
 #endif // COMPILE_MOSAICX5
 
-#ifdef  COMPILE_UM980
+#ifdef COMPILE_UM980
     // UM980
 
     JsonObject command_types_tUmConst = command_types.add<JsonObject>();
@@ -4421,10 +4430,10 @@ void createCommandTypesJson(String &output)
     command_types_tUbMsgRtb["type"] = "int";
     command_types_tUbMsgRtb["value min"] = 0;
     command_types_tUbMsgRtb["value max"] = 250; // Avoid 254!
-#endif // COMPILE_ZED
+#endif                                          // COMPILE_ZED
 
-    doc.shrinkToFit();  // optional
+    doc.shrinkToFit(); // optional
 
-    //serializeJsonPretty(doc, output); // Pretty formatting - useful for testing
+    // serializeJsonPretty(doc, output); // Pretty formatting - useful for testing
     serializeJson(doc, output); // Standard JSON format
 }

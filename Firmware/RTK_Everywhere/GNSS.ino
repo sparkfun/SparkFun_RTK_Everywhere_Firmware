@@ -442,7 +442,10 @@ bool gnssCmdUpdateConstellations(int commandIndex)
     if (gnss == nullptr)
         return false;
 
-    return gnss->setConstellations();
+    //return gnss->setConstellations();
+    // setConstellations() can take multiple seconds. Avoid calling during WebConfig
+    // as this can lead to >10 seconds required for parsing of the incoming settings blob
+    return true;
 }
 
 //----------------------------------------
@@ -453,7 +456,8 @@ bool gnssCmdUpdateMessageRates(int commandIndex)
     if (gnss == nullptr)
         return false;
 
-    return gnss->setMessages(MAX_SET_MESSAGES_RETRIES);
+    //return gnss->setMessages(MAX_SET_MESSAGES_RETRIES);
+    return true;
 }
 
 //----------------------------------------

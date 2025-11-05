@@ -192,10 +192,11 @@ bool ntripServerConnectCaster(int serverIndex)
     char hostname[51];
     strncpy(hostname, settings.ntripServer_CasterHost[serverIndex],
             sizeof(hostname) - 1); // strtok modifies string to be parsed so we create a copy
-    char *token = strtok(hostname, "//");
+    char *preservedPointer;
+    char *token = strtok_r(hostname, "//", &preservedPointer);
     if (token != nullptr)
     {
-        token = strtok(nullptr, "//"); // Advance to data after //
+        token = strtok_r(nullptr, "//", &preservedPointer); // Advance to data after //
         if (token != nullptr)
             strcpy(settings.ntripServer_CasterHost[serverIndex], token);
     }

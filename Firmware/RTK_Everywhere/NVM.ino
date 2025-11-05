@@ -990,8 +990,16 @@ bool parseLine(char *str)
 {
     char *ptr;
 
+    // A health warning about strtok:
+    // strtok will convert any delimiters it finds ("=" in our case) into NULL characters.
+    // Also, be very careful that you do not use strtok within an strtok while loop.
+    // The next call of strtok(NULL, ...) in the outer loop will use the pointer saved from the inner loop!
+    // The same is true for tasks!
+    // The solution is to use strtok_r - the reentrant version of strtok
+
     // Set strtok start of line.
-    str = strtok(str, "=");
+    char *preservedPointer;
+    str = strtok_r(str, "=", &preservedPointer);
     if (!str)
     {
         log_d("Fail");
@@ -1006,7 +1014,7 @@ bool parseLine(char *str)
     char settingString[100] = "";
 
     // Move pointer to end of line
-    str = strtok(nullptr, "\n");
+    str = strtok_r(nullptr, "\n", &preservedPointer);
     if (!str)
     {
         // This line does not contain a \n or the settingString is zero length
