@@ -94,7 +94,7 @@ void identifyBoard()
         // 0x08 - HUSB238 - USB C PD Sink Controller
         bool husb238Present = i2cIsDevicePresent(i2c_0, 0x08);
 
-        // 0x10 -MFI343S00177 Authentication Coprocessor
+        // 0x10 - MFI343S00177 Authentication Coprocessor
         bool mfiPresent = i2cIsDevicePresent(i2c_0, 0x10);
 
         i2c_0->end();
@@ -447,7 +447,6 @@ void beginBoard()
         // Facet V2 is based on the ESP32-WROVER
         // ZED-F9P is interfaced via I2C and UART1
         // NEO-D9S is interfaced via I2C. UART2 TX is also connected to ESP32 pin 4
-        // TODO: pass PMP over serial to save I2C traffic?
 
         // Specify the GNSS radio
 #ifdef COMPILE_ZED
@@ -872,6 +871,8 @@ void beginBoard()
         present.beeper = true;
         present.gnss_to_uart = true;
         present.needsExternalPpl = true; // Uses the PointPerfect Library
+        present.fastPowerOff = true;
+        present.invertedFastPowerOff = true; // Driving PWRKILL high will cause powerdown
 
         // We can't enable GNSS features here because we don't know if lg290pFirmwareVersion is >= v05
         // present.minElevation = true;
@@ -884,7 +885,7 @@ void beginBoard()
         pin_GnssUart_TX = 17;
         pin_GNSS_DR_Reset = 22; // Push low to reset GNSS/DR.
 
-        pin_GNSS_TimePulse = 39; // PPS on UM980
+        pin_GNSS_TimePulse = 39; // PPS on LG290P
 
         pin_usbSelect = 12;          // Controls U18 switch between ESP UART0 to USB or GNSS UART1
         pin_powerAdapterDetect = 36; // Goes low when USB cable is plugged in
@@ -896,11 +897,13 @@ void beginBoard()
         pin_beeper = 33;
 
         pin_powerButton = 34;
-        // pin_powerSenseAndControl = 18; // PWRKILL
+        pin_powerFastOff = 18; // PWRKILL
 
         pin_loraRadio_power = 19; // LoRa_EN
         // pin_loraRadio_boot = 23;  // LoRa_BOOT0
         // pin_loraRadio_reset = 5;  // LoRa_NRST
+
+        pinMode(pin_powerFastOff, INPUT); // Leave this as an input. powerDown() will drive high for fast power off
 
         DMW_if systemPrintf("pin_bluetoothStatusLED: %d\r\n", pin_bluetoothStatusLED);
         pinMode(pin_bluetoothStatusLED, OUTPUT);
@@ -1808,6 +1811,12 @@ bool i2cBusInitialization(TwoWire *i2cBus, int sda, int scl, int clockKHz)
         // SDA/VCC shorted: 1000ms, response 5
         // SDA/GND shorted: 14ms, response 5
         timer = millis();
+
+        // If there is nothing else on the bus, the authentication coprocessor can be asleep
+        // Ping it twice to be sure
+        if (addr == 0x10)
+            i2cIsDevicePresent(i2cBus, addr); // Throw away result. Just wake it up.
+
         if (i2cIsDevicePresent(i2cBus, addr))
         {
             if (deviceFound == false)

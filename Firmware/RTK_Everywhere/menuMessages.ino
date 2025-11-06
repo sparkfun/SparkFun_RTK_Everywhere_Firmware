@@ -809,9 +809,13 @@ void checkGNSSArrayDefaults()
 #ifdef COMPILE_LG290P
     else if (present.gnss_lg290p)
     {
+        // This setting is not supported on the Torch X2 nor is it in the command array
+        // so it does not get used nor recorded to NVM leading to the defaults being
+        // applied at every boot. 
         if (settings.enableExtCorrRadio == 254)
         {
-            defaultsApplied = true;
+            if(productVariant != RTK_TORCH_X2) // Prevent defaults from being applied if this *is* a Torch X2
+                defaultsApplied = true;
             settings.enableExtCorrRadio = false;
         }
 

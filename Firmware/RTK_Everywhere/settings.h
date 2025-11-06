@@ -1779,13 +1779,13 @@ const RTK_Settings_Entry rtkSettingsEntries[] =
 //    i  d  i  v  V  i  c  n  r  e    X
 //    g  s  x  k  2  c  h  d  d  x    2  Type       Qual                Variable                  Name              afterSetCmd
 
-    // UM980 GNSS Receiver - TODO these apply to more than UM980
     { 1, 1, 0, 0, 0, 0, 1, 0, 1, HAS, 1, _bool,     0, & settings.enableGalileoHas, "enableGalileoHas", nullptr, },
     { 1, 1, 0, 0, 0, 0, 1, 0, 0, ALL, 0, _bool,     3, & settings.enableMultipathMitigation, "enableMultipathMitigation", nullptr, },
     { 0, 0, 0, 0, 0, 0, 1, 0, 0, ALL, 0, _bool,     0, & settings.enableImuCompensationDebug, "enableImuCompensationDebug", nullptr, },
     { 0, 0, 0, 0, 0, 0, 1, 0, 0, ALL, 0, _bool,     0, & settings.enableImuDebug, "enableImuDebug", nullptr, },
     { 1, 1, 0, 0, 0, 0, 1, 0, 0, ALL, 0, _bool,     0, & settings.enableTiltCompensation, "enableTiltCompensation", nullptr, },
 
+    // UM980 GNSS Receiver
 #ifdef  COMPILE_UM980
     { 1, 1, 1, 0, 0, 0, 1, 0, 0, U98, 0, tUmConst,  MAX_UM980_CONSTELLATIONS, & settings.um980Constellations, "constellation_", gnssCmdUpdateConstellations, },
     { 0, 1, 1, 0, 0, 0, 1, 0, 0, U98, 0, tUmMRNmea, MAX_UM980_NMEA_MSG, & settings.um980MessageRatesNMEA, "messageRateNMEA_", gnssCmdUpdateMessageRates, },
