@@ -1889,6 +1889,8 @@ bool GNSS_LG290P::setHighAccuracyService(bool enableGalileoHas)
 
     // TODO - We should read/modify/write on PQTMCFGPPP
 
+    bool result = true;
+
     // Enable E6 and PPP if enabled
     if (enableGalileoHas)
     {
@@ -1899,7 +1901,7 @@ bool GNSS_LG290P::setHighAccuracyService(bool enableGalileoHas)
         // Enable E6 HAS, WGS84, 120 timeout, 0.10m Horizontal convergence accuracy threshold, 0.15m Vertical
         // threshold
         char paramConfigurePPP[sizeof(settings.configurePPP) + 4];
-        snprintf(paramConfigurePPP, sizeof(paramConfigurePPP), ",W,%s", configPppSpacesToCommas(configurePPP));
+        snprintf(paramConfigurePPP, sizeof(paramConfigurePPP), ",W,%s", configPppSpacesToCommas(settings.configurePPP));
         if (_lg290p->sendOkCommand("$PQTMCFGPPP", paramConfigurePPP) == true)
         {
             systemPrintln("Galileo E6 HAS service enabled");

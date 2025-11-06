@@ -1266,7 +1266,7 @@ void wifiUpdateSettings()
 
 //*********************************************************************
 // Determine if any of the WiFi station SSID values are set
-bool wifiAfterCommand(int cmdIndex)
+bool wifiAfterCommand(const char *settingName, void *settingData, int settingType)
 {
     wifiUpdateSettings();
     return true;

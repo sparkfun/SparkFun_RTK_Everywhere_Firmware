@@ -270,7 +270,7 @@ void menuMessagesBaseRTCM()
             if (elevation >= -90 && elevation <= 90)
             {
                 settings.rtcmMinElev = elevation;
-                restartBase = true;
+                gnssConfigure(GNSS_CONFIG_ELEVATION); // Request receiver to use new settings
             }
         }
 
@@ -888,7 +888,7 @@ void checkGNSSArrayDefaults()
         }
         else if (present.gnss_lg290p)
         {
-            settings.minCNO = 10;                    // Default 10 dBHz
+            settings.minCN0 = 10;                    // Default 10 dBHz
             settings.surveyInStartingAccuracy = 2.0; // Default 2m
             settings.measurementRateMs = 500;        // Default 2Hz.
         }

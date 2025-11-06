@@ -1205,7 +1205,7 @@ typedef enum
 typedef bool (* AFTER_CMD)(const char *settingName, void *settingData, int settingType);
 
 // Forward routines
-bool wifiAfterCommand(int cmdIndex);
+bool wifiAfterCommand(const char *settingName, void *settingData, int settingType);
 
 typedef struct
 {
@@ -1799,10 +1799,10 @@ const RTK_Settings_Entry rtkSettingsEntries[] =
     // WiFi
     { 0, 0, 0, 1, 1, 1, 1, 1, 1, ALL, 1, _bool,     0, & settings.debugWebServer, "debugWebServer", nullptr, },
     { 0, 0, 0, 1, 1, 1, 1, 1, 1, ALL, 1, _bool,     0, & settings.debugWifiState, "debugWifiState", nullptr, },
-    { 0, 0, 0, 1, 1, 1, 1, 1, 1, ALL, 1, _bool,     0, & settings.enableCaptivePortal, "enableCaptivePortal", wifiAfterCommand, },
-    { 0, 1, 0, 1, 1, 1, 1, 1, 1, ALL, 1, _uint8_t,  0, & settings.wifiChannel, "wifiChannel", wifiAfterCommand, },
-    { 1, 0, 0, 1, 1, 1, 1, 1, 1, ALL, 1, _bool,     0, & settings.wifiConfigOverAP, "wifiConfigOverAP", wifiAfterCommand, },
-    { 1, 1, 1, 1, 1, 1, 1, 1, 1, ALL, 1, tWiFiNet,  MAX_WIFI_NETWORKS, & settings.wifiNetworks, "wifiNetwork_", wifiAfterCommand, },
+    { 0, 0, 0, 1, 1, 1, 1, 1, 1, ALL, 1, _bool,     0, & settings.enableCaptivePortal, "enableCaptivePortal", nullptr, },
+    { 0, 1, 0, 1, 1, 1, 1, 1, 1, ALL, 1, _uint8_t,  0, & settings.wifiChannel, "wifiChannel", nullptr, },
+    { 1, 0, 0, 1, 1, 1, 1, 1, 1, ALL, 1, _bool,     0, & settings.wifiConfigOverAP, "wifiConfigOverAP", nullptr, },
+    { 1, 1, 1, 1, 1, 1, 1, 1, 1, ALL, 1, tWiFiNet,  MAX_WIFI_NETWORKS, & settings.wifiNetworks, "wifiNetwork_", nullptr, },
     { 0, 0, 0, 1, 1, 1, 1, 1, 1, ALL, 1, _uint32_t, 0, & settings.wifiConnectTimeoutMs, "wifiConnectTimeoutMs", nullptr, },
 
     { 0, 1, 0, 1, 1, 1, 1, 1, 1, ALL, 1, _bool,     0, & settings.outputTipAltitude, "outputTipAltitude", nullptr, },
