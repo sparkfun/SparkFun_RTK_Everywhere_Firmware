@@ -163,11 +163,6 @@ void identifyBoard()
         systemPrintln("<<<<<<<<<< !!!!!!!!!! FLEX OVERRIDE !!!!!!!!!! >>>>>>>>>>");
         productVariant = RTK_FLEX; // TODO remove once v1.1 Flex has ID resistors
 #endif
-
-#ifdef TORCH_X2_OVERRIDE
-        systemPrintln("<<<<<<<<<< !!!!!!!!!! TORCH X2 OVERRIDE !!!!!!!!!! >>>>>>>>>>");
-        productVariant = RTK_TORCH_X2; // TODO remove once v1.1 Torch X2 has ID resistors
-#endif
     }
 
     if (ENABLE_DEVELOPER)
@@ -791,7 +786,8 @@ void beginBoard()
         present.gnss_to_uart = true;
 
         present.gpioExpanderSwitches = true;
-        // present.microSd = true; // TODO remove comment out - v1.0 hardware does not have pullup on #CD so card detection does not work
+        // present.microSd = true; // TODO remove comment out - v1.0 hardware does not have pullup on #CD so card
+        // detection does not work
         present.microSdCardDetectLow = true;
 
         present.display_i2c0 = true;
@@ -872,7 +868,7 @@ void beginBoard()
         present.antennaPhaseCenter_mm = 116.5; // Default to Torch helical APC, average of L1/L2
         present.fuelgauge_bq40z50 = true;
         present.charger_mp2762a = true;
-        present.button_powerHigh = true; // Button is pressed when high
+        present.button_powerLow = true; // Button is pressed when low
         present.beeper = true;
         present.gnss_to_uart = true;
         present.needsExternalPpl = true; // Uses the PointPerfect Library
@@ -1540,9 +1536,15 @@ void beginButtons()
     else
     {
         // Use the Button library
-        // Facet main/power button
-        if (present.button_powerLow == true && pin_powerSenseAndControl != PIN_UNDEFINED)
-            userBtn = new Button(pin_powerSenseAndControl);
+        if (present.button_powerLow == true)
+        {
+            // Torch X2 has both a powerButton and powerSenseAndControl (PWRKILL). Assign button task to powerButton.
+            if (pin_powerButton != PIN_UNDEFINED)
+                userBtn = new Button(pin_powerButton);
+            // Facet main/power button
+            else if (pin_powerSenseAndControl != PIN_UNDEFINED)
+                userBtn = new Button(pin_powerSenseAndControl);
+        }
 
         // Torch main/power button
         if (present.button_powerHigh == true && pin_powerButton != PIN_UNDEFINED)
