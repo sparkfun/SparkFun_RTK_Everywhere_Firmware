@@ -779,8 +779,7 @@ void beginBoard()
         present.gnss_to_uart = true;
 
         present.gpioExpanderSwitches = true;
-        // present.microSd = true; // TODO remove comment out - v1.0 hardware does not have pullup on #CD so card
-        // detection does not work
+        present.microSd = true;
         present.microSdCardDetectLow = true;
 
         present.display_i2c0 = true;
@@ -818,11 +817,8 @@ void beginBoard()
         pin_microSD_CS = 22;
         pin_microSD_CardDetect = 39;
 
-        pin_gpioExpanderInterrupt =
-            2; // TODO remove on v1.1 hardware. Not used since all GPIO expanded pins are outputs
-
-        digitalWrite(pin_powerFastOff, LOW); // Low = Stay on. High = turn off.
         pinMode(pin_powerFastOff, OUTPUT);
+        digitalWrite(pin_powerFastOff, LOW); // Low = Stay on. High = turn off.
 
         DMW_if systemPrintf("pin_bluetoothStatusLED: %d\r\n", pin_bluetoothStatusLED);
         pinMode(pin_bluetoothStatusLED, OUTPUT);
