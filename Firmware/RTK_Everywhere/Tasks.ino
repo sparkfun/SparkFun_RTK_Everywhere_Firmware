@@ -2094,9 +2094,9 @@ void buttonCheckTask(void *e)
             }
         }
         // Torch is a special case. Handle tilt stop and web config mode
-        else if (productVariant == RTK_TORCH)
+        else if (productVariant == RTK_TORCH || productVariant == RTK_TORCH_X2)
         {
-            // Platform has no display and tilt corrections, ie RTK Torch
+            // Platform has no display and possibly tilt corrections, ie RTK Torch and RTK Torch X2
 
             // In in tilt mode, exit on button press
             if ((singleTap || doubleTap) && (tiltIsCorrecting() == true))
@@ -2169,10 +2169,14 @@ void buttonCheckTask(void *e)
                                 // from firing
                 }
 
+                // If we have fast power off, use it
+                if (present.fastPowerOff == true)
+                    powerDown(false); //Don't display info
+
                 while (1)
                     ;
             }
-        } // End productVariant == Torch
+        } // End productVariant == Torch/Torch X2
         else // RTK EVK, RTK Facet v2, RTK Facet mosaic, RTK Postcard
         {
             if (systemState == STATE_SHUTDOWN)
@@ -2335,7 +2339,7 @@ void buttonCheckTask(void *e)
                     break;
                 } // End doubleTap switch (systemState)
             } // End doubleTap
-        } // End productVariant != Torch
+        } // End productVariant != (Torch | Torch X2)
 
         feedWdt();
         taskYIELD();
