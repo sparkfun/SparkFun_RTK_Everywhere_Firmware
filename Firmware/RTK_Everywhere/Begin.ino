@@ -780,7 +780,7 @@ void beginBoard()
         present.charger_mp2762a = true;
 
         present.button_powerLow = true; // Button is pressed when high
-        // present.button_mode = true;  //TODO remove comment. This won't be available until v1.1 of hardware
+        present.button_mode = true;
         present.beeper = true;
         present.gnss_to_uart = true;
 
@@ -795,6 +795,9 @@ void beginBoard()
         present.displayInverted = true;
         present.tiltPossible = true;
 
+        present.fastPowerOff = true;
+        present.invertedFastPowerOff = true; // Drive POWER_KILL high to cause powerdown
+
         pin_I2C0_SDA = 15;
         pin_I2C0_SCL = 4;
 
@@ -802,7 +805,8 @@ void beginBoard()
         pin_GnssUart_TX = 27;
 
         pin_powerSenseAndControl = 34;
-        // pin_modeButton = 25; //TODO remove comment. This won't be available until v1.1 of hardware
+        pin_powerFastOff = 23;
+        pin_modeButton = 25;
 
         pin_IMU_RX = 14; // ESP32 UART2
         pin_IMU_TX = 17;
@@ -822,6 +826,9 @@ void beginBoard()
 
         pin_gpioExpanderInterrupt =
             2; // TODO remove on v1.1 hardware. Not used since all GPIO expanded pins are outputs
+
+        digitalWrite(pin_powerFastOff, LOW); // Low = Stay on. High = turn off.
+        pinMode(pin_powerFastOff, OUTPUT);
 
         DMW_if systemPrintf("pin_bluetoothStatusLED: %d\r\n", pin_bluetoothStatusLED);
         pinMode(pin_bluetoothStatusLED, OUTPUT);
@@ -866,13 +873,12 @@ void beginBoard()
         present.gnss_lg290p = true;
         present.antennaPhaseCenter_mm = 116.5; // Default to Torch helical APC, average of L1/L2
         present.fuelgauge_bq40z50 = true;
-        present.charger_mp2762a = true;
         present.button_powerLow = true; // Button is pressed when low
         present.beeper = true;
         present.gnss_to_uart = true;
         present.needsExternalPpl = true; // Uses the PointPerfect Library
         present.fastPowerOff = true;
-        present.invertedFastPowerOff = true; // Driving PWRKILL high will cause powerdown
+        present.invertedFastPowerOff = true; // Drive PWRKILL high to cause powerdown
 
         // We can't enable GNSS features here because we don't know if lg290pFirmwareVersion is >= v05
         // present.minElevation = true;

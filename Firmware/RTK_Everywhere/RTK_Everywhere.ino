@@ -292,7 +292,7 @@ const int gpioExpanderSwitch_S4 = 3; // Controls U19 switch 4: connect GNSS UART
 const int gpioExpanderSwitch_LoraEnable = 4;   // LoRa_EN
 const int gpioExpanderSwitch_GNSS_Reset = 5;   // RST_GNSS
 const int gpioExpanderSwitch_LoraBoot = 6;     // LoRa_BOOT0 - Used for bootloading the STM32 radio IC
-const int gpioExpanderSwitch_PowerFastOff = 7; // PWRKILL
+const int gpioExpanderSwitch_S5 = 7; // Controls U61 switch 5: connect GNSS UART1 to Port A of CH342
 const int gpioExpanderNumSwitches = 8;
 
 //=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
