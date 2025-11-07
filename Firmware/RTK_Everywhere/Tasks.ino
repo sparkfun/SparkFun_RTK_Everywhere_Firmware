@@ -38,11 +38,11 @@ Tasks.ino
 // Macros
 //----------------------------------------
 
-#define WRAP_OFFSET(offset, increment, arraySize) \
-    {                                             \
-        offset += increment;                      \
-        if (offset >= arraySize)                  \
-            offset -= arraySize;                  \
+#define WRAP_OFFSET(offset, increment, arraySize)                                                                      \
+    {                                                                                                                  \
+        offset += increment;                                                                                           \
+        if (offset >= arraySize)                                                                                       \
+            offset -= arraySize;                                                                                       \
     }
 
 //----------------------------------------
@@ -62,12 +62,7 @@ enum RingBufferConsumers
 };
 
 const char *const ringBufferConsumer[] = {
-    "Bluetooth",
-    "TCP Client",
-    "TCP Server",
-    "SD Card",
-    "UDP Server",
-    "USB Serial",
+    "Bluetooth", "TCP Client", "TCP Server", "SD Card", "UDP Server", "USB Serial",
 };
 
 const int ringBufferConsumerEntries = sizeof(ringBufferConsumer) / sizeof(ringBufferConsumer[0]);
@@ -81,21 +76,13 @@ const int ringBufferConsumerEntries = sizeof(ringBufferConsumer) / sizeof(ringBu
 
 // List the parsers to be included
 SEMP_PARSE_ROUTINE const parserTable[] = {
-    sempNmeaPreamble,
-    sempUnicoreHashPreamble,
-    sempRtcmPreamble,
-    sempUbloxPreamble,
-    sempUnicoreBinaryPreamble,
+    sempNmeaPreamble, sempUnicoreHashPreamble, sempRtcmPreamble, sempUbloxPreamble, sempUnicoreBinaryPreamble,
 };
 const int parserCount = sizeof(parserTable) / sizeof(parserTable[0]);
 
 // List the names of the parsers
 const char *const parserNames[] = {
-    "NMEA",
-    "Unicore Hash_(#)",
-    "RTCM",
-    "u-Blox",
-    "Unicore Binary",
+    "NMEA", "Unicore Hash_(#)", "RTCM", "u-Blox", "Unicore Binary",
 };
 const int parserNameCount = sizeof(parserNames) / sizeof(parserNames[0]);
 
@@ -115,9 +102,9 @@ const char *const spartnParserNames[] = {
 };
 const int spartnParserNameCount = sizeof(spartnParserNames) / sizeof(spartnParserNames[0]);
 
-SEMP_PARSE_ROUTINE const rtcmParserTable[] = { sempRtcmPreamble };
+SEMP_PARSE_ROUTINE const rtcmParserTable[] = {sempRtcmPreamble};
 const int rtcmParserCount = sizeof(rtcmParserTable) / sizeof(rtcmParserTable[0]);
-const char *const rtcmParserNames[] = { "RTCM" };
+const char *const rtcmParserNames[] = {"RTCM"};
 const int rtcmParserNameCount = sizeof(rtcmParserNames) / sizeof(rtcmParserNames[0]);
 
 //----------------------------------------
@@ -153,7 +140,7 @@ void btReadTask(void *e)
 
     unsigned long btLastByteReceived = 0; // Track when the last BT transmission was received.
     const long btMinEscapeTime =
-        2000;                          // Bluetooth serial traffic must stop this amount before an escape char is recognized
+        2000; // Bluetooth serial traffic must stop this amount before an escape char is recognized
     uint8_t btEscapeCharsReceived = 0; // Used to enter remote command mode
 
     // Start notification
@@ -205,7 +192,6 @@ void btReadTask(void *e)
                         addToGnssBuffer(btEscapeCharacter);
                     }
                 }
-
 
                 else // This character is not a command character, pass along to GNSS
                 {
@@ -280,7 +266,8 @@ void sendGnssBuffer()
 {
     if (correctionLastSeen(CORR_BLUETOOTH))
     {
-        sempParseNextBytes(rtcmParse, bluetoothOutgoingToGnss, bluetoothOutgoingToGnssHead); // Parse the data for RTCM1005/1006
+        sempParseNextBytes(rtcmParse, bluetoothOutgoingToGnss,
+                           bluetoothOutgoingToGnssHead); // Parse the data for RTCM1005/1006
         if (gnss->pushRawData(bluetoothOutgoingToGnss, bluetoothOutgoingToGnssHead))
         {
             if ((settings.debugCorrections || PERIODIC_DISPLAY(PD_GNSS_DATA_TX)) && !inMainMenu)
@@ -396,11 +383,12 @@ void gnssReadTask(void *e)
             sempSbfSetInvalidDataCallback(sbfParse, processNonSBFData);
 
             // Initialize the SPARTN parser for the mosaic-X5
-            spartnParse = sempBeginParser(spartnParserTable, spartnParserCount, spartnParserNames, spartnParserNameCount,
-                                        0,                  // Scratchpad bytes
-                                        1200,               // Buffer length - SPARTN payload is 1024 bytes max
-                                        processUart1SPARTN, // eom Call Back - in mosaic.ino
-                                        "spartnParse");     // Parser Name
+            spartnParse =
+                sempBeginParser(spartnParserTable, spartnParserCount, spartnParserNames, spartnParserNameCount,
+                                0,                  // Scratchpad bytes
+                                1200,               // Buffer length - SPARTN payload is 1024 bytes max
+                                processUart1SPARTN, // eom Call Back - in mosaic.ino
+                                "spartnParse");     // Parser Name
             if (!spartnParse)
                 reportFatalError("Failed to initialize the SPARTN parser");
 
@@ -499,7 +487,7 @@ void gnssReadTask(void *e)
                             if (!expected) // SBF is not expected so restart the parsers
                             {
                                 sbfParse->state = sempFirstByte;
-                                if (spartnParserNeeded)                                
+                                if (spartnParserNeeded)
                                     spartnParse->state = sempFirstByte;
                                 if (settings.debugGnss)
                                     systemPrintf("Unexpected SBF block %d - rejected on ID or length\r\n",
@@ -540,7 +528,7 @@ void gnssReadTask(void *e)
                             if (!expected) // SBF is not expected so restart the parsers
                             {
                                 sbfParse->state = sempFirstByte;
-                                if (spartnParserNeeded)                                
+                                if (spartnParserNeeded)
                                     spartnParse->state = sempFirstByte;
                                 if (settings.debugGnss)
                                     systemPrintf("Unexpected EncapsulatedOutput block - rejected\r\n");
@@ -581,12 +569,12 @@ void forceTalkerId(const char *Id, char *msg, size_t maxLen)
 
     char oldTalker = msg[2];
     msg[2] = *Id; // Force the Talker ID
-    
+
     // Update the checksum: XOR chars between '$' and '*'
     size_t len = 1;
     uint8_t csum = 0;
     while ((len < maxLen) && (msg[len] != '*'))
-        csum = csum ^ msg[len++]; 
+        csum = csum ^ msg[len++];
 
     if (len >= (maxLen - 3))
     {
@@ -638,7 +626,7 @@ void forceRmcCog(char *msg, size_t maxLen)
     len = 1;
     uint8_t csum = 0;
     while ((len < maxLen) && (msg[len] != '*'))
-        csum = csum ^ msg[len++]; 
+        csum = csum ^ msg[len++];
     len++; // Point at the checksum and update it
     sprintf(&msg[len], "%02X", csum);
 }
@@ -683,7 +671,7 @@ void removeRmcNavStat(char *msg, size_t maxLen)
     len = 1;
     uint8_t csum = 0;
     while ((len < maxLen) && (msg[len] != '*'))
-        csum = csum ^ msg[len++]; 
+        csum = csum ^ msg[len++];
     len++; // Point at the checksum and update it
     sprintf(&msg[len], "%02X", csum);
 }
@@ -754,7 +742,7 @@ void processUart1Message(SEMP_PARSE_STATE *parse, uint16_t type)
                 latestGPGGA[parse->length] = 0; // NULL terminate
                 if ((strlen(latestGPGGA) > 10) && (latestGPGGA[strlen(latestGPGGA) - 2] == '\r'))
                     latestGPGGA[strlen(latestGPGGA) - 2] = 0; // Truncate the \r\n
-                forceTalkerId("P",latestGPGGA,latestNmeaMaxLen);
+                forceTalkerId("P", latestGPGGA, latestNmeaMaxLen);
             }
             else
                 systemPrintf("Increase latestNmeaMaxLen to > %d\r\n", parse->length);
@@ -767,9 +755,9 @@ void processUart1Message(SEMP_PARSE_STATE *parse, uint16_t type)
                 latestGPRMC[parse->length] = 0; // NULL terminate
                 if ((strlen(latestGPRMC) > 10) && (latestGPRMC[strlen(latestGPRMC) - 2] == '\r'))
                     latestGPRMC[strlen(latestGPRMC) - 2] = 0; // Truncate the \r\n
-                forceTalkerId("P",latestGPRMC,latestNmeaMaxLen);
-                forceRmcCog(latestGPRMC,latestNmeaMaxLen);
-                removeRmcNavStat(latestGPRMC,latestNmeaMaxLen);
+                forceTalkerId("P", latestGPRMC, latestNmeaMaxLen);
+                forceRmcCog(latestGPRMC, latestNmeaMaxLen);
+                removeRmcNavStat(latestGPRMC, latestNmeaMaxLen);
             }
             else
                 systemPrintf("Increase latestNmeaMaxLen to > %d\r\n", parse->length);
@@ -782,7 +770,7 @@ void processUart1Message(SEMP_PARSE_STATE *parse, uint16_t type)
                 latestGPGST[parse->length] = 0; // NULL terminate
                 if ((strlen(latestGPGST) > 10) && (latestGPGST[strlen(latestGPGST) - 2] == '\r'))
                     latestGPGST[strlen(latestGPGST) - 2] = 0; // Truncate the \r\n
-                forceTalkerId("P",latestGPGST,latestNmeaMaxLen);
+                forceTalkerId("P", latestGPGST, latestNmeaMaxLen);
             }
             else
                 systemPrintf("Increase latestNmeaMaxLen to > %d\r\n", parse->length);
@@ -795,13 +783,13 @@ void processUart1Message(SEMP_PARSE_STATE *parse, uint16_t type)
                 latestGPVTG[parse->length] = 0; // NULL terminate
                 if ((strlen(latestGPVTG) > 10) && (latestGPVTG[strlen(latestGPVTG) - 2] == '\r'))
                     latestGPVTG[strlen(latestGPVTG) - 2] = 0; // Truncate the \r\n
-                forceTalkerId("P",latestGPVTG,latestNmeaMaxLen);
+                forceTalkerId("P", latestGPVTG, latestNmeaMaxLen);
             }
             else
                 systemPrintf("Increase latestNmeaMaxLen to > %d\r\n", parse->length);
         }
-        else if ((strstr(sempNmeaGetSentenceName(parse), "GSA") != nullptr)
-                 || (strstr(sempNmeaGetSentenceName(parse), "GSV") != nullptr))
+        else if ((strstr(sempNmeaGetSentenceName(parse), "GSA") != nullptr) ||
+                 (strstr(sempNmeaGetSentenceName(parse), "GSV") != nullptr))
         {
             // If the Apple Accessory is sending the data to the EA Session,
             // discard this GSA / GSV. Bad things would happen if we were to
@@ -811,14 +799,14 @@ void processUart1Message(SEMP_PARSE_STATE *parse, uint16_t type)
             {
                 size_t spaceAvailable = latestEASessionDataMaxLen - strlen(latestEASessionData);
                 if (spaceAvailable >= 3)
-                    spaceAvailable -= 3; // Leave room for the CR, LF and NULL
+                    spaceAvailable -= 3;               // Leave room for the CR, LF and NULL
                 while (spaceAvailable < parse->length) // If the buffer is full, delete the oldest message(s)
                 {
                     const char *lfPtr = strstr(latestEASessionData, "\n"); // Find the first LF
                     if (lfPtr == nullptr)
-                        break; // Something has gone badly wrong...
-                    lfPtr++; // Point at the byte after the LF
-                    size_t oldLen = lfPtr - latestEASessionData; // This much data is old
+                        break;                                            // Something has gone badly wrong...
+                    lfPtr++;                                              // Point at the byte after the LF
+                    size_t oldLen = lfPtr - latestEASessionData;          // This much data is old
                     size_t newLen = strlen(latestEASessionData) - oldLen; // This much is new (not old)
                     for (size_t i = 0; i <= newLen; i++) // Move the new data over the old. Include the NULL
                         latestEASessionData[i] = latestEASessionData[oldLen + i];
@@ -830,14 +818,14 @@ void processUart1Message(SEMP_PARSE_STATE *parse, uint16_t type)
                 latestEASessionData[dataLen] = 0; // NULL terminate
                 if (latestEASessionData[dataLen - 1] != '\n')
                 {
-                    latestEASessionData[dataLen] = '\r'; // Add CR
+                    latestEASessionData[dataLen] = '\r';     // Add CR
                     latestEASessionData[dataLen + 1] = '\n'; // Add LF
-                    latestEASessionData[dataLen + 2] = 0; // NULL terminate
+                    latestEASessionData[dataLen + 2] = 0;    // NULL terminate
                 }
             }
             else if (settings.debugNetworkLayer)
                 systemPrintf("Discarding %d GSA/GSV bytes - latestEASessionDataIsBlocking\r\n", parse->length);
-#endif //COMPILE_AUTHENTICATION
+#endif // COMPILE_AUTHENTICATION
         }
     }
 
@@ -1014,8 +1002,8 @@ void processUart1Message(SEMP_PARSE_STATE *parse, uint16_t type)
 
     // Use a semaphore to prevent handleGnssDataTask from gatecrashing
     if (ringBufferSemaphore == NULL)
-        ringBufferSemaphore = xSemaphoreCreateMutex();  // Create the mutex
-    
+        ringBufferSemaphore = xSemaphoreCreateMutex(); // Create the mutex
+
     // Take the semaphore. Long wait. handleGnssDataTask could block
     // Enable printing of the ring buffer offsets (s d 10) and the SD buffer sizes (s h 7)
     // to see this in action. No more gatecrashing!
@@ -1044,54 +1032,54 @@ void processUart1Message(SEMP_PARSE_STATE *parse, uint16_t type)
                 previousTail -= settings.gnssHandlerBufferSize;
 
             /*  The rbOffsetArray holds the offsets into the ring buffer of the
-            *  start of each of the parsed messages.  A head (rbOffsetHead) and
-            *  tail (rbOffsetTail) offsets are used for this array to insert and
-            *  remove entries.  Typically this task only manipulates the head as
-            *  new messages are placed into the ring buffer.  The handleGnssDataTask
-            *  normally manipulates the tail as data is removed from the buffer.
-            *  However this task will manipulate the tail under two conditions:
-            *
-            *  1.  The ring buffer gets full and data must be discarded
-            *
-            *  2.  The rbOffsetArray is too small to hold all of the message
-            *      offsets for the data in the ring buffer.  The array is full
-            *      when (Head + 1) == Tail
-            *
-            *  Notes:
-            *      The rbOffsetArray is allocated along with the ring buffer in
-            *      Begin.ino
-            *
-            *      The first entry rbOffsetArray[0] is initialized to zero (0)
-            *      in Begin.ino
-            *
-            *      The array always has one entry in it containing the head offset
-            *      which contains a valid offset into the ringBuffer, handled below
-            *
-            *      The empty condition is Tail == Head
-            *
-            *      The amount of data described by the rbOffsetArray is
-            *      rbOffsetArray[Head] - rbOffsetArray[Tail]
-            *
-            *              rbOffsetArray                  ringBuffer
-            *           .-----------------.           .-----------------.
-            *           |                 |           |                 |
-            *           +-----------------+           |                 |
-            *  Tail --> |   Msg 1 Offset  |---------->+-----------------+ <-- Tail n
-            *           +-----------------+           |      Msg 1      |
-            *           |   Msg 2 Offset  |--------.  |                 |
-            *           +-----------------+        |  |                 |
-            *           |   Msg 3 Offset  |------. '->+-----------------+
-            *           +-----------------+      |    |      Msg 2      |
-            *  Head --> |   Head Offset   |--.   |    |                 |
-            *           +-----------------+  |   |    |                 |
-            *           |                 |  |   |    |                 |
-            *           +-----------------+  |   |    |                 |
-            *           |                 |  |   '--->+-----------------+
-            *           +-----------------+  |        |      Msg 3      |
-            *           |                 |  |        |                 |
-            *           +-----------------+  '------->+-----------------+ <-- dataHead
-            *           |                 |           |                 |
-            */
+             *  start of each of the parsed messages.  A head (rbOffsetHead) and
+             *  tail (rbOffsetTail) offsets are used for this array to insert and
+             *  remove entries.  Typically this task only manipulates the head as
+             *  new messages are placed into the ring buffer.  The handleGnssDataTask
+             *  normally manipulates the tail as data is removed from the buffer.
+             *  However this task will manipulate the tail under two conditions:
+             *
+             *  1.  The ring buffer gets full and data must be discarded
+             *
+             *  2.  The rbOffsetArray is too small to hold all of the message
+             *      offsets for the data in the ring buffer.  The array is full
+             *      when (Head + 1) == Tail
+             *
+             *  Notes:
+             *      The rbOffsetArray is allocated along with the ring buffer in
+             *      Begin.ino
+             *
+             *      The first entry rbOffsetArray[0] is initialized to zero (0)
+             *      in Begin.ino
+             *
+             *      The array always has one entry in it containing the head offset
+             *      which contains a valid offset into the ringBuffer, handled below
+             *
+             *      The empty condition is Tail == Head
+             *
+             *      The amount of data described by the rbOffsetArray is
+             *      rbOffsetArray[Head] - rbOffsetArray[Tail]
+             *
+             *              rbOffsetArray                  ringBuffer
+             *           .-----------------.           .-----------------.
+             *           |                 |           |                 |
+             *           +-----------------+           |                 |
+             *  Tail --> |   Msg 1 Offset  |---------->+-----------------+ <-- Tail n
+             *           +-----------------+           |      Msg 1      |
+             *           |   Msg 2 Offset  |--------.  |                 |
+             *           +-----------------+        |  |                 |
+             *           |   Msg 3 Offset  |------. '->+-----------------+
+             *           +-----------------+      |    |      Msg 2      |
+             *  Head --> |   Head Offset   |--.   |    |                 |
+             *           +-----------------+  |   |    |                 |
+             *           |                 |  |   |    |                 |
+             *           +-----------------+  |   |    |                 |
+             *           |                 |  |   '--->+-----------------+
+             *           +-----------------+  |        |      Msg 3      |
+             *           |                 |  |        |                 |
+             *           +-----------------+  '------->+-----------------+ <-- dataHead
+             *           |                 |           |                 |
+             */
 
             // Determine the index for the end of the circular ring buffer
             // offset list
@@ -1200,7 +1188,8 @@ void processUart1Message(SEMP_PARSE_STATE *parse, uint16_t type)
             if (!inMainMenu)
             {
                 if (consumer)
-                    systemPrintf("Ring buffer full: discarding %d bytes, %s could be slow\r\n", discardedBytes, consumer);
+                    systemPrintf("Ring buffer full: discarding %d bytes, %s could be slow\r\n", discardedBytes,
+                                 consumer);
                 else
                     systemPrintf("Ring buffer full: discarding %d bytes\r\n", discardedBytes);
                 Serial.flush(); // TODO - delete me!
@@ -1213,10 +1202,10 @@ void processUart1Message(SEMP_PARSE_STATE *parse, uint16_t type)
         if (bytesToCopy > (space + discardedBytes - 1)) // Sanity check
         {
             systemPrintf("Ring buffer update error %s: bytesToCopy (%d) is > space (%d) + discardedBytes (%d) - 1\r\n",
-                        getTimeStamp(), bytesToCopy, space, discardedBytes);
+                         getTimeStamp(), bytesToCopy, space, discardedBytes);
             Serial.flush(); // Flush Serial - the code is about to go bang...!
         }
-        
+
         // Add another message to the ring buffer
         // Account for this message
         // Diagnostic prints are provided by settings.enablePrintSDBuffers and the handleGnssDataTask
@@ -1269,7 +1258,8 @@ void processUart1Message(SEMP_PARSE_STATE *parse, uint16_t type)
     }
     else
     {
-        systemPrintf("processUart1Message could not get ringBuffer semaphore - held by %s\r\n", ringBufferSemaphoreHolder);
+        systemPrintf("processUart1Message could not get ringBuffer semaphore - held by %s\r\n",
+                     ringBufferSemaphoreHolder);
     }
 }
 
@@ -1364,8 +1354,8 @@ void handleGnssDataTask(void *e)
 
         // Use a semaphore to prevent handleGnssDataTask from gatecrashing
         if (ringBufferSemaphore == NULL)
-            ringBufferSemaphore = xSemaphoreCreateMutex();  // Create the mutex
-        
+            ringBufferSemaphore = xSemaphoreCreateMutex(); // Create the mutex
+
         // Take the semaphore. Short wait. processUart1Message shouldn't block for long
         if (xSemaphoreTake(ringBufferSemaphore, ringBuffer_shortWait_ms) == pdPASS)
         {
@@ -1554,7 +1544,7 @@ void handleGnssDataTask(void *e)
 
             // Block logging during Web Config to avoid SD collisions
             // See issue: https://github.com/sparkfun/SparkFun_RTK_Everywhere_Firmware/issues/693
-            if(webServerIsRunning() == true)
+            if (webServerIsRunning() == true)
                 connected = false;
 
             // If user wants to log, record to SD
@@ -1583,15 +1573,17 @@ void handleGnssDataTask(void *e)
 
                                 int availableUARTSpace = settings.uartReceiveBufferSize - bufferAvailable;
 
-                                systemPrintf("SD Incoming Serial @ %s: %04d\tToRead: %04d\tMovedToBuffer: %04d\tavailableUARTSpace: "
-                                            "%04d\tavailableHandlerSpace: %04d\tToRecord: %04d\tRecorded: %04d\tBO: %d\r\n",
-                                            getTimeStamp(), bufferAvailable, 0, 0, availableUARTSpace, availableHandlerSpace,
-                                            bytesToSend, 0, bufferOverruns);
+                                systemPrintf(
+                                    "SD Incoming Serial @ %s: %04d\tToRead: %04d\tMovedToBuffer: "
+                                    "%04d\tavailableUARTSpace: "
+                                    "%04d\tavailableHandlerSpace: %04d\tToRecord: %04d\tRecorded: %04d\tBO: %d\r\n",
+                                    getTimeStamp(), bufferAvailable, 0, 0, availableUARTSpace, availableHandlerSpace,
+                                    bytesToSend, 0, bufferOverruns);
                             }
 
                             // For the SD card, we need to write everything we've got
                             // to prevent the ARP Write and Events from gatecrashing...
-                            
+
                             int32_t sendTheseBytes = bytesToSend;
 
                             // Reduce bytes to record if we have more then the end of the buffer
@@ -1610,8 +1602,8 @@ void handleGnssDataTask(void *e)
 
                             if (bytesSent != sendTheseBytes)
                             {
-                                systemPrintf("SD write mismatch (1) @ %s: wrote %d bytes of %d\r\n",
-                                             getTimeStamp(), bytesSent, sendTheseBytes);
+                                systemPrintf("SD write mismatch (1) @ %s: wrote %d bytes of %d\r\n", getTimeStamp(),
+                                             bytesSent, sendTheseBytes);
                                 break; // Exit the do loop
                             }
 
@@ -1629,8 +1621,8 @@ void handleGnssDataTask(void *e)
 
                                 if (bytesSent != sendTheseBytes)
                                 {
-                                    systemPrintf("SD write mismatch (2) @ %s: wrote %d bytes of %d\r\n",
-                                                 getTimeStamp(), bytesSent, sendTheseBytes);
+                                    systemPrintf("SD write mismatch (2) @ %s: wrote %d bytes of %d\r\n", getTimeStamp(),
+                                                 bytesSent, sendTheseBytes);
                                     break; // Exit the do loop
                                 }
                             }
@@ -1651,15 +1643,15 @@ void handleGnssDataTask(void *e)
                                 if ((settings.enablePrintLogFileStatus) && (!inMainMenu))
                                     systemPrintln("Log file: recording event");
 
-                                // Record trigger count with Time Of Week of rising edge (ms), Millisecond fraction of Time Of Week of
-                                // rising edge (ns), and accuracy estimate (ns)
+                                // Record trigger count with Time Of Week of rising edge (ms), Millisecond fraction of
+                                // Time Of Week of rising edge (ns), and accuracy estimate (ns)
                                 char eventData[82]; // Max NMEA sentence length is 82
-                                snprintf(eventData, sizeof(eventData), "%d,%d,%d,%d", triggerCount, triggerTowMsR, triggerTowSubMsR,
-                                        triggerAccEst);
+                                snprintf(eventData, sizeof(eventData), "%d,%d,%d,%d", triggerCount, triggerTowMsR,
+                                         triggerTowSubMsR, triggerAccEst);
 
                                 char nmeaMessage[82]; // Max NMEA sentence length is 82
                                 createNMEASentence(CUSTOM_NMEA_TYPE_EVENT, nmeaMessage, sizeof(nmeaMessage),
-                                                eventData); // textID, buffer, sizeOfBuffer, text
+                                                   eventData); // textID, buffer, sizeOfBuffer, text
 
                                 logFile->write(nmeaMessage, strlen(nmeaMessage));
                                 const char *crlf = "\r\n";
@@ -1691,7 +1683,7 @@ void handleGnssDataTask(void *e)
 
                                 char nmeaMessage[82]; // Max NMEA sentence length is 82
                                 createNMEASentence(CUSTOM_NMEA_TYPE_ARP_ECEF_XYZH, nmeaMessage, sizeof(nmeaMessage),
-                                                ARPData); // textID, buffer, sizeOfBuffer, text
+                                                   ARPData); // textID, buffer, sizeOfBuffer, text
 
                                 logFile->write(nmeaMessage, strlen(nmeaMessage));
                                 const char *crlf = "\r\n";
@@ -1724,10 +1716,10 @@ void handleGnssDataTask(void *e)
                             {
                                 if (deltaMillis > 150)
                                     systemPrintf("Long Write! Time: %ld ms / Location: %ld / Recorded %d bytes / "
-                                                "spaceRemaining %d bytes\r\n",
-                                                deltaMillis, logFileSize, bytesToSend, combinedSpaceRemaining);
+                                                 "spaceRemaining %d bytes\r\n",
+                                                 deltaMillis, logFileSize, bytesToSend, combinedSpaceRemaining);
                             }
-                        } while(0);
+                        } while (0);
 
                         xSemaphoreGive(sdCardSemaphore);
                     } // End sdCardSemaphore
@@ -1736,7 +1728,7 @@ void handleGnssDataTask(void *e)
                         char semaphoreHolder[50];
                         getSemaphoreFunction(semaphoreHolder);
                         log_w("sdCardSemaphore failed to yield for SD write, held by %s, Tasks.ino line %d",
-                            semaphoreHolder, __LINE__);
+                              semaphoreHolder, __LINE__);
 
                         feedWdt();
                         taskYIELD();
@@ -1795,7 +1787,8 @@ void handleGnssDataTask(void *e)
         }
         else
         {
-            systemPrintf("handleGnssDataTask could not get ringBuffer semaphore - held by %s\r\n", ringBufferSemaphoreHolder);
+            systemPrintf("handleGnssDataTask could not get ringBuffer semaphore - held by %s\r\n",
+                         ringBufferSemaphoreHolder);
         }
 
         //----------------------------------------------------------------------
@@ -2071,7 +2064,7 @@ void buttonCheckTask(void *e)
 
         // End button checking
 
-        // If in direct connect mode. Note: this is just a flag not a STATE. 
+        // If in direct connect mode. Note: this is just a flag not a STATE.
         if (inDirectConnectMode)
         {
             // TODO: check if this works on both Torch and Flex. Note: Flex does not yet support buttons
@@ -2171,7 +2164,7 @@ void buttonCheckTask(void *e)
 
                 // If we have fast power off, use it
                 if (present.fastPowerOff == true)
-                    powerDown(false); //Don't display info
+                    powerDown(false); // Don't display info
 
                 while (1)
                     ;
@@ -2296,8 +2289,7 @@ void buttonCheckTask(void *e)
             {
                 switch (systemState)
                 {
-                case STATE_DISPLAY_SETUP:
-                {
+                case STATE_DISPLAY_SETUP: {
                     // If we are displaying the setup menu, a single tap will cycle through possible system states - see
                     // above Exit into new system state on double tap Exit display setup into previous state after ~10s
                     // - see updateSystemState()
@@ -2624,10 +2616,10 @@ void beginRtcmParse()
 {
     // Begin the RTCM parser - which will extract the base location from RTCM1005 / 1006
     rtcmParse = sempBeginParser(rtcmParserTable, rtcmParserCount, rtcmParserNames, rtcmParserNameCount,
-                               0,                   // Scratchpad bytes
-                               1050,                // Buffer length
-                               processRTCMMessage, // eom Call Back
-                               "rtcmParse");         // Parser Name
+                                0,                  // Scratchpad bytes
+                                1050,               // Buffer length
+                                processRTCMMessage, // eom Call Back
+                                "rtcmParse");       // Parser Name
     if (!rtcmParse)
         reportFatalError("Failed to initialize the RTCM parser");
 
