@@ -668,6 +668,12 @@ uint32_t GNSS_LG290P::getDataBaudRate()
         // This is nicknamed the DATA port
         dataUart = 1;
     }
+    else if (productVariant == RTK_FLEX)
+    {
+        // On the Flex, the DATA connector is not connected to the GNSS
+        // Return 0.
+        return (0);
+    }
     else if (productVariant == RTK_TORCH_X2)
     {
         // UART3 of the LG290P is connected to USB CH342 (Port A)
@@ -675,9 +681,8 @@ uint32_t GNSS_LG290P::getDataBaudRate()
         dataUart = 3;
     }
     else
-    {
         systemPrintln("getDataBaudRate: Uncaught platform");
-    }
+
     return (getBaudRate(dataUart));
 }
 
@@ -700,20 +705,20 @@ bool GNSS_LG290P::setBaudRateData(uint32_t baud)
                 // This is nicknamed the DATA port
                 return (setBaudRate(1, baud));
             }
-            else if (productVariant == RTK_TORCH_X2)
+            else if (productVariant == RTK_FLEX)
             {
-                if (getDataBaudRate() != baud)
-                {
-                    // UART3 of the LG290P is connected to USB CH342 (Port A)
-                    // This is nicknamed the DATA port
-                    return (setBaudRate(3, baud));
-                }
-            }
-            else
-            {
-                // On products that don't have a DATA port (Flex), act as if we have set the baud successfully
+                // On the Flex, the DATA connector is not connected to the GNSS
+                // Return true so that configuration can proceed.
                 return (true);
             }
+            else if (productVariant == RTK_TORCH_X2)
+            {
+                // UART3 of the LG290P is connected to USB CH342 (Port A)
+                // This is nicknamed the DATA port
+                return (setBaudRate(3, baud));
+            }
+            else
+                systemPrintln("setDataBaudRate: Uncaught platform");
         }
     }
     return (false);
@@ -741,6 +746,9 @@ uint32_t GNSS_LG290P::getRadioBaudRate()
         // Not really used at this time but available for configuration
         radioUart = 1;
     }
+    else
+        systemPrintln("getDataBaudRate: Uncaught platform");
+
     return (getBaudRate(radioUart));
 }
 
@@ -774,6 +782,9 @@ bool GNSS_LG290P::setBaudRateRadio(uint32_t baud)
                 // Not really used at this time but available for configuration
                 radioUart = 1;
             }
+            else
+                systemPrintln("setBaudRateRadio: Uncaught platform");
+
             return (setBaudRate(radioUart, baud));
         }
     }
@@ -1781,6 +1792,9 @@ bool GNSS_LG290P::setBaudRateComm(uint32_t baud)
                 // UART1 of the LG290P is connected to the ESP32 for the main config/comm
                 commUart = 1;
             }
+            else
+                systemPrintln("setBaudRateComm: Uncaught platform");
+
             return (setBaudRate(commUart, baud));
         }
     }
@@ -1803,6 +1817,9 @@ uint32_t GNSS_LG290P::getCommBaudRate()
         // On the Flex, the ESP32 UART1 is connected to LG290P UART1
         commUart = 1;
     }
+    else
+        systemPrintln("getCommBaudRate: Uncaught platform");
+
     return (getBaudRate(commUart));
 }
 
@@ -2630,7 +2647,7 @@ bool lg290pMessageEnabled(char *nmeaSentence, int sentenceLength)
 }
 
 // Return true if we detect this receiver type
-bool lg290pIsPresent()
+bool lg290pIsPresentOnFlex()
 {
     // Locally instantiate the hardware and library so it will release on exit
 

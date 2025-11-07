@@ -158,11 +158,6 @@ void identifyBoard()
         // Torch X2: 8.2/3.3  -->  836mV < 947mV < 1067mV (8.5% tolerance)
         else if (idWithAdc(idValue, 8.2, 3.3, 8.5))
             productVariant = RTK_TORCH_X2;
-
-#ifdef FLEX_OVERRIDE
-        systemPrintln("<<<<<<<<<< !!!!!!!!!! FLEX OVERRIDE !!!!!!!!!! >>>>>>>>>>");
-        productVariant = RTK_FLEX; // TODO remove once v1.1 Flex has ID resistors
-#endif
     }
 
     if (ENABLE_DEVELOPER)
@@ -777,7 +772,6 @@ void beginBoard()
         present.antennaPhaseCenter_mm = 62.0; // APC from drawings
         present.radio_lora = true;
         present.fuelgauge_bq40z50 = true;
-        present.charger_mp2762a = true;
 
         present.button_powerLow = true; // Button is pressed when high
         present.button_mode = true;
@@ -1526,6 +1520,12 @@ void beginButtons()
         buttonCount++;
     if (present.gpioExpanderButtons == true)
         buttonCount++;
+    if (productVariant == RTK_FLEX)
+    {
+        Serial.println("<<<<<<<<<<<<<<<<<<<< Deal with Flex buttons >>>>>>>>>>>>>>");
+        buttonCount = 1;
+    }
+
     if (buttonCount > 1)
         reportFatalError("Illegal button assignment.");
 

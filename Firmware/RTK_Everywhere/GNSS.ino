@@ -558,14 +558,6 @@ void gnssDetectReceiverType()
 
     gnssBoot(); // Tell GNSS to run
 
-    // TODO remove after testing, force retest on each boot
-    // Note: with this in place, the X5 detection will take a lot longer due to the baud rate change
-#ifdef FLEX_OVERRIDE
-    systemPrintln("<<<<<<<<<< !!!!!!!!!! FLEX FORCED !!!!!!!!!! >>>>>>>>>>");
-    // settings.detectedGnssReceiver = GNSS_RECEIVER_UNKNOWN; // This may be causing weirdness on the LG290P.
-    // Commenting for now
-#endif
-
     // Start auto-detect if NVM is not yet set
     if (settings.detectedGnssReceiver == GNSS_RECEIVER_UNKNOWN)
     {
@@ -574,7 +566,8 @@ void gnssDetectReceiverType()
         do
         {
 #ifdef COMPILE_LG290P
-            if (lg290pIsPresent() == true)
+            systemPrintln("Testing for LG290P");
+            if (lg290pIsPresentOnFlex() == true)
             {
                 systemPrintln("Auto-detected GNSS receiver: LG290P");
                 settings.detectedGnssReceiver = GNSS_RECEIVER_LG290P;
@@ -586,6 +579,7 @@ void gnssDetectReceiverType()
 #endif // COMPILE_LGP290P
 
 #ifdef COMPILE_MOSAICX5
+            systemPrintln("Testing for mosaic-X5");
             if (mosaicIsPresentOnFlex() == true) // Note: this changes the COM1 baud from 115200 to 460800
             {
                 systemPrintln("Auto-detected GNSS receiver: mosaic-X5");
