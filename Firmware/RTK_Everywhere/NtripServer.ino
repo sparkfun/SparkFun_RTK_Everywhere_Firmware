@@ -816,7 +816,11 @@ void ntripServerUpdate(int serverIndex)
                          settings.ntripServer_CasterHost[serverIndex]);
             ntripServerRestart(serverIndex);
         }
-        else if ((millis() - ntripServer->timer) > (10 * 1000))
+        // We must avoid a potential uint32_t negative number wrap around issue here
+        // processRTCM() may change ntripServer->timer
+        // And both millis() and timer are uint32_ts
+        // Casting millis() as int avoids the potential false positive
+        else if (((int64_t)millis() - ntripServer->timer) > (10 * 1000))
         {
             // GNSS stopped sending RTCM correction data
             systemPrintf("NTRIP Server %d breaking connection to %s due to lack of RTCM data!\r\n", serverIndex,
