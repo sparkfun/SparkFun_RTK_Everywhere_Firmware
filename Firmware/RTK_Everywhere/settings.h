@@ -413,6 +413,47 @@ typedef struct
     // Better debug printing by ntripServerProcessRTCM
     volatile uint32_t rtcmBytesSent;
     volatile uint32_t previousMilliseconds;
+
+    SemaphoreHandle_t serverSemaphore = NULL;
+
+    unsigned long millisSinceLastWrite()
+    {
+        unsigned long retVal = 0;
+        if (serverSemaphore == NULL)
+            serverSemaphore = xSemaphoreCreateMutex();
+        if (xSemaphoreTake(serverSemaphore, 10 / portTICK_PERIOD_MS) == pdPASS)
+        {
+            retVal = millis() - timer;
+            xSemaphoreGive(serverSemaphore);
+        }
+        return retVal;
+    }
+
+    unsigned long millisSinceStart()
+    {
+        unsigned long retVal = 0;
+        if (serverSemaphore == NULL)
+            serverSemaphore = xSemaphoreCreateMutex();
+        if (xSemaphoreTake(serverSemaphore, 10 / portTICK_PERIOD_MS) == pdPASS)
+        {
+            retVal = millis() - startTime;
+            xSemaphoreGive(serverSemaphore);
+        }
+        return retVal;
+    }
+
+    void updateAfterWrite()
+    {
+        if (serverSemaphore == NULL)
+            serverSemaphore = xSemaphoreCreateMutex();
+        if (xSemaphoreTake(serverSemaphore, 10 / portTICK_PERIOD_MS) == pdPASS)
+        {
+            bytesSent = bytesSent + 1;
+            rtcmBytesSent = rtcmBytesSent + 1;
+            timer = millis();
+            xSemaphoreGive(serverSemaphore);
+        }
+    }
 } NTRIP_SERVER_DATA;
 
 #endif  // COMPILE_NETWORK

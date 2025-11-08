@@ -447,9 +447,7 @@ void ntripServerProcessRTCM(int serverIndex, uint8_t incoming)
         {
             if (ntripServer->networkClient->write(incoming) == 1) // Send this byte to socket
             {
-                ntripServer->bytesSent = ntripServer->bytesSent + 1;
-                ntripServer->rtcmBytesSent = ntripServer->rtcmBytesSent + 1;
-                ntripServer->timer = millis();
+                ntripServer->updateAfterWrite();
                 netOutgoingRTCM = true;
                 while (ntripServer->networkClient->available())
                     ntripServer->networkClient->read(); // Absorb any unwanted incoming traffic
@@ -828,7 +826,7 @@ void ntripServerUpdate(int serverIndex)
                          settings.ntripServer_CasterHost[serverIndex]);
             ntripServerRestart(serverIndex);
         }
-        else if ((millis() - ntripServer->timer) > (10 * 1000))
+        else if (ntripServer->millisSinceLastWrite() > (10 * 1000))
         {
             // GNSS stopped sending RTCM correction data
             systemPrintf("NTRIP Server %d breaking connection to %s due to lack of RTCM data!\r\n", serverIndex,
@@ -843,7 +841,7 @@ void ntripServerUpdate(int serverIndex)
             // connection.  However increasing backoff delays should be
             // added when the NTRIP caster fails after a short connection
             // interval.
-            if (((millis() - ntripServer->startTime) > NTRIP_SERVER_CONNECTION_TIME) &&
+            if ((ntripServer->millisSinceStart() > NTRIP_SERVER_CONNECTION_TIME) &&
                 (ntripServer->connectionAttempts || ntripServer->connectionAttemptTimeout))
             {
                 // After a long connection period, reset the attempt counter
