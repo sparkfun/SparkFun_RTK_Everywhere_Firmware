@@ -2183,7 +2183,7 @@ void buttonCheckTask(void *e)
             else if ((systemState == STATE_BASE_NOT_STARTED) && (firstRoverStart == true) &&
                      (buttonPressedFor(500) == true))
             {
-                lastSetupMenuChange = millis(); // Prevent a timeout during state change
+                lastSetupMenuChange.setTimerToMillis(); // Prevent a timeout during state change
                 forceSystemStateUpdate = true;
                 requestChangeState(STATE_TEST);
             }
@@ -2216,7 +2216,7 @@ void buttonCheckTask(void *e)
                 case STATE_NTPSERVER_SYNC:
                     lastSystemState = systemState; // Remember this state to return if needed
                     requestChangeState(STATE_DISPLAY_SETUP);
-                    lastSetupMenuChange = millis();
+                    lastSetupMenuChange.setTimerToMillis();
                     setupSelectedButton = 0; // Highlight the first button
                     showMenu = false;
                     break;
@@ -2225,7 +2225,7 @@ void buttonCheckTask(void *e)
                     // If we are displaying the setup menu, a single tap will cycle through possible system states
                     // Exit into new system state on double tap - see below
                     // Exit display setup into previous state after ~10s - see updateSystemState()
-                    lastSetupMenuChange = millis();
+                    lastSetupMenuChange.setTimerToMillis();
 
                     forceDisplayUpdate = true; // User is interacting so repaint display quickly
 
@@ -2262,7 +2262,7 @@ void buttonCheckTask(void *e)
 
                 case STATE_TESTING:
                     // If we are in testing, return to Base Not Started
-                    lastSetupMenuChange = millis(); // Prevent a timeout during state change
+                    lastSetupMenuChange.setTimerToMillis(); // Prevent a timeout during state change
                     baseCasterDisableOverride();    // Leave Caster mode
                     requestChangeState(STATE_BASE_NOT_STARTED);
                     break;
@@ -2287,7 +2287,7 @@ void buttonCheckTask(void *e)
                     // If we are displaying the setup menu, a single tap will cycle through possible system states - see
                     // above Exit into new system state on double tap Exit display setup into previous state after ~10s
                     // - see updateSystemState()
-                    lastSetupMenuChange = millis(); // Prevent a timeout during state change
+                    lastSetupMenuChange.setTimerToMillis(); // Prevent a timeout during state change
                     uint8_t thisIsButton = 0;
                     for (auto it = setupButtons.begin(); it != setupButtons.end(); it = std::next(it))
                     {

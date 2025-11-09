@@ -872,7 +872,40 @@ uint32_t rtcmLastPacketSent; // Time stamp of RTCM going out (to NTRIP Server, E
 
 uint32_t maxSurveyInWait_s = 60L * 15L; // Re-start survey-in after X seconds
 
-uint32_t lastSetupMenuChange; // Limits how much time is spent in the setup menu
+typedef struct {
+    uint32_t timer;
+
+    SemaphoreHandle_t updateSemaphore = NULL;
+
+    void setTimerToMillis()
+    {
+        if (updateSemaphore == NULL)
+            updateSemaphore = xSemaphoreCreateMutex();
+        if (xSemaphoreTake(updateSemaphore, 10 / portTICK_PERIOD_MS) == pdPASS)
+        {
+            timer = millis();
+            xSemaphoreGive(updateSemaphore);
+        }
+    }
+
+    unsigned long millisSinceUpdate()
+    {
+        unsigned long retVal = 0;
+        if (updateSemaphore == NULL)
+            updateSemaphore = xSemaphoreCreateMutex();
+        if (xSemaphoreTake(updateSemaphore, 10 / portTICK_PERIOD_MS) == pdPASS)
+        {
+            retVal = millis() - timer;
+            xSemaphoreGive(updateSemaphore);
+        }
+        return retVal;
+    }
+} semaphoreProtectedTimer;
+// Needs a mutex because the timer is updated by the button task
+// but read by stateUpdate the loop. Prevents a race condition
+// and the occasional glitching seen in the button menu
+semaphoreProtectedTimer lastSetupMenuChange; // Limits how much time is spent in the setup menu
+
 uint32_t lastTestMenuChange;  // Avoids exiting the test menu for at least 1 second
 uint8_t setupSelectedButton =
     0; // In Display Setup, start displaying at this button. This is the selected (highlighted) button.

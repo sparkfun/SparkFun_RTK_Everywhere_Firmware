@@ -399,7 +399,7 @@ void stateUpdate()
         break;
 
         case (STATE_DISPLAY_SETUP): {
-            if ((millis() - lastSetupMenuChange) > 10000) // Exit Setup after 10s
+            if (lastSetupMenuChange.millisSinceUpdate() > 10000) // Exit Setup after 10s
             {
                 firstButtonThrownOut = false;
                 changeState(lastSystemState); // Return to the last system state
