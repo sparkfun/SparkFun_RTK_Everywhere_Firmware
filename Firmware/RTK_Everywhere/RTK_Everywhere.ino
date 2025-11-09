@@ -607,7 +607,7 @@ uint8_t *ringBuffer; // Buffer for reading from GNSS receiver. At 230400bps, 230
 const int gnssReadTaskStackSize = 8000;
 const size_t sempGnssReadBufferSize = 8000; // Make the SEMP buffer size the ~same
 
-const int handleGnssDataTaskStackSize = 3000;
+const int handleGnssDataTaskStackSize = 4000;
 
 TaskHandle_t pinBluetoothTaskHandle; // Dummy task to start hardware on an assigned core
 volatile bool bluetoothPinned;       // This variable is touched by core 0 but checked by core 1. Must be volatile.

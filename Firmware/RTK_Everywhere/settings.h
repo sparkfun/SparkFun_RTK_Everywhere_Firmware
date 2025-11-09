@@ -861,11 +861,11 @@ struct Settings
 
     // GNSS UART
     uint16_t serialGNSSRxFullThreshold = 50; // RX FIFO full interrupt. Max of ~128. See pinUART2Task().
-    int uartReceiveBufferSize = 1024 * 2; // This buffer is filled automatically as the UART receives characters.
+    int uartReceiveBufferSize = 1024 * 4; // This buffer is filled automatically as the UART receives characters. EVK needs 4K
 
     // Hardware
-    bool enableExternalHardwareEventLogging = false;           // Log when INT/TM2 pin goes low
-    uint16_t spiFrequency = 16;                           // By default, use 16MHz SPI
+    bool enableExternalHardwareEventLogging = false; // Log when INT/TM2 pin goes low
+    uint16_t spiFrequency = 16;                      // By default, use 16MHz SPI
 
     // HTTP
     bool debugHttpClientData = false;  // Debug the HTTP Client (ZTP) data flow
