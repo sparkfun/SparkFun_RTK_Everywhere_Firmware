@@ -683,8 +683,7 @@ void ntripServerUpdate(int serverIndex)
             // Failed to connect to to the network, attempt to restart the network
             ntripServerRestart(serverIndex);
 
-        else if (settings.enableNtripServer &&
-                 ((millis() - ntripServer->lastConnectionAttempt) > ntripServer->connectionAttemptTimeout))
+        else if (settings.enableNtripServer)
         {
             // No RTCM correction data sent yet
             rtcmPacketsSent = 0;

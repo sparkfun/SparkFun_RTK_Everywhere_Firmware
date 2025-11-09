@@ -398,7 +398,6 @@ typedef struct
     // Throttle the time between connection attempts
     // ms - Max of 4,294,967,295 or 4.3M seconds or 71,000 minutes or 1193 hours or 49 days between attempts
     volatile uint32_t connectionAttemptTimeout;
-    volatile uint32_t lastConnectionAttempt;
     volatile int connectionAttempts; // Count the number of connection attempts between restarts
 
     // NTRIP server timer usage:
@@ -416,6 +415,8 @@ typedef struct
 
 
     // Protect all methods that manipulate timer with a mutex - to avoid race conditions
+    // Remember that data is pushed to the servers by
+    // gnssReadTask -> processUart1Message -> processRTCM -> ntripServerProcessRTCM
     SemaphoreHandle_t serverSemaphore = NULL;
 
     unsigned long millisSinceTimer()
