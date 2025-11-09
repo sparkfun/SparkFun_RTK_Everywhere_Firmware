@@ -944,7 +944,7 @@ uint32_t max_idle_count = MAX_IDLE_TIME_COUNT;
 bool bluetoothIncomingRTCM;
 bool bluetoothOutgoingRTCM;
 bool netIncomingRTCM;
-bool netOutgoingRTCM;
+volatile bool netOutgoingRTCM;
 volatile bool mqttClientDataReceived; // Flag for display
 
 uint16_t failedParserMessages_UBX;
@@ -1669,7 +1669,7 @@ void logUpdate()
                     {
                         // Calculate generation and write speeds every 5 seconds
                         uint64_t fileSizeDelta = logFileSize - lastLogSize;
-                        systemPrintf(" - Generation rate: %0.1fkB/s", ((float)fileSizeDelta) / 5.0 / 1000.0);
+                        systemPrintf(" - Generation rate: %0.1fkB/s", ((double)fileSizeDelta) / 5.0 / 1000.0);
                     }
                     else
                     {
@@ -1686,7 +1686,8 @@ void logUpdate()
                 }
                 else
                 {
-                    log_d("No increase in file size");
+                    if ((settings.enablePrintLogFileStatus) && (!inMainMenu))
+                        systemPrintf("No increase in file size: %llu -> %llu\r\n", lastLogSize, logFileSize);
                     logIncreasing = false;
 
                     endSD(false, true); // alreadyHaveSemaphore, releaseSemaphore

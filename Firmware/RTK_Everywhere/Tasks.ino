@@ -1693,8 +1693,9 @@ void handleGnssDataTask(void *e)
 
                             logFileSize = logFile->fileSize(); // Update file size
 
-                            // Force file sync every 60s
-                            if ((millis() - lastUBXLogSyncTime) > 60000)
+                            // Force file sync every 60s - or every two seconds if the size is not increasing
+                            if (((logFileSize == lastLogSize) && ((millis() - lastUBXLogSyncTime) > 2000))
+                                || ((millis() - lastUBXLogSyncTime) > 60000))
                             {
                                 baseStatusLedBlink(); // Blink LED to indicate logging activity
 
