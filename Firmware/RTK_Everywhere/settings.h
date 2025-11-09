@@ -414,9 +414,11 @@ typedef struct
     volatile uint32_t rtcmBytesSent;
     volatile uint32_t previousMilliseconds;
 
+
+    // Protect all methods that manipulate timer with a mutex - to avoid race conditions
     SemaphoreHandle_t serverSemaphore = NULL;
 
-    unsigned long millisSinceLastWrite()
+    unsigned long millisSinceTimer()
     {
         unsigned long retVal = 0;
         if (serverSemaphore == NULL)
@@ -429,7 +431,7 @@ typedef struct
         return retVal;
     }
 
-    unsigned long millisSinceStart()
+    unsigned long millisSinceStartTime()
     {
         unsigned long retVal = 0;
         if (serverSemaphore == NULL)
@@ -442,7 +444,7 @@ typedef struct
         return retVal;
     }
 
-    void updateAfterWrite()
+    void updateTimerAndBytesSent()
     {
         if (serverSemaphore == NULL)
             serverSemaphore = xSemaphoreCreateMutex();
@@ -453,6 +455,63 @@ typedef struct
             timer = millis();
             xSemaphoreGive(serverSemaphore);
         }
+    }
+
+    bool checkBytesSentAndReset(uint32_t timerLimit)
+    {
+        bool retVal = false;
+        if (serverSemaphore == NULL)
+            serverSemaphore = xSemaphoreCreateMutex();
+        if (xSemaphoreTake(serverSemaphore, 10 / portTICK_PERIOD_MS) == pdPASS)
+        {
+            if (((millis() - timer) > timerLimit) && (bytesSent > 0))
+            {
+                retVal = true;
+                bytesSent = 0;
+            }
+            xSemaphoreGive(serverSemaphore);
+        }
+        return retVal;
+    }
+
+    unsigned long getUptime()
+    {
+        unsigned long retVal = 0;
+        if (serverSemaphore == NULL)
+            serverSemaphore = xSemaphoreCreateMutex();
+        if (xSemaphoreTake(serverSemaphore, 10 / portTICK_PERIOD_MS) == pdPASS)
+        {
+            retVal = timer - startTime;
+            xSemaphoreGive(serverSemaphore);
+        }
+        return retVal;
+    }
+
+    void setTimerToMillis()
+    {
+        if (serverSemaphore == NULL)
+            serverSemaphore = xSemaphoreCreateMutex();
+        if (xSemaphoreTake(serverSemaphore, 10 / portTICK_PERIOD_MS) == pdPASS)
+        {
+            timer = millis();
+            xSemaphoreGive(serverSemaphore);
+        }
+    }
+
+    bool checkConnectionAttemptTimeout()
+    {
+        bool retVal = false;
+        if (serverSemaphore == NULL)
+            serverSemaphore = xSemaphoreCreateMutex();
+        if (xSemaphoreTake(serverSemaphore, 10 / portTICK_PERIOD_MS) == pdPASS)
+        {
+            if ((millis() - timer) >= connectionAttemptTimeout)
+            {
+                retVal = true;
+            }
+            xSemaphoreGive(serverSemaphore);
+        }
+        return retVal;
     }
 } NTRIP_SERVER_DATA;
 

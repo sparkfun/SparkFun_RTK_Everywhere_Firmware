@@ -380,7 +380,7 @@ void ntripServerPrintStatus(int serverIndex)
         if (ntripServer->state == NTRIP_SERVER_CASTING)
             // Use ntripServer->timer since it gets reset after each successful data
             // reception from the NTRIP caster
-            milliseconds = ntripServer->timer - ntripServer->startTime;
+            milliseconds = ntripServer->getUptime();
         else
         {
             milliseconds = ntripServer->startTime;
@@ -434,20 +434,15 @@ void ntripServerProcessRTCM(int serverIndex, uint8_t incoming)
         }
 
         // If we have not gotten new RTCM bytes for a period of time, assume end of frame
-        if (((millis() - ntripServer->timer) > 100) && (ntripServer->bytesSent > 0))
-        {
-            if ((!inMainMenu) && settings.debugNtripServerRtcm)
-                systemPrintf("NTRIP Server %d transmitted %d RTCM bytes to Caster\r\n", serverIndex,
-                             ntripServer->bytesSent);
-
-            ntripServer->bytesSent = 0;
-        }
+        if (ntripServer->checkBytesSentAndReset(100) && (!inMainMenu) && settings.debugNtripServerRtcm)
+            systemPrintf("NTRIP Server %d transmitted %d RTCM bytes to Caster\r\n", serverIndex,
+                            ntripServer->bytesSent);
 
         if (ntripServer->networkClient && ntripServer->networkClient->connected())
         {
             if (ntripServer->networkClient->write(incoming) == 1) // Send this byte to socket
             {
-                ntripServer->updateAfterWrite();
+                ntripServer->updateTimerAndBytesSent();
                 netOutgoingRTCM = true;
                 while (ntripServer->networkClient->available())
                     ntripServer->networkClient->read(); // Absorb any unwanted incoming traffic
@@ -498,7 +493,7 @@ void ntripServerRestart(int serverIndex)
 
     // Save the previous uptime value
     if (ntripServer->state == NTRIP_SERVER_CASTING)
-        ntripServer->startTime = ntripServer->timer - ntripServer->startTime;
+        ntripServer->startTime = ntripServer->getUptime();
     ntripServerConnectLimitReached(serverIndex);
 }
 
@@ -576,7 +571,7 @@ void ntripServerStop(int serverIndex, bool shutdown)
     // Increase timeouts if we started the network
     if (ntripServer->state > NTRIP_SERVER_OFF)
         // Mark the Server stop so that we don't immediately attempt re-connect to Caster
-        ntripServer->timer = millis();
+        ntripServer->setTimerToMillis();
 
     // Determine the next NTRIP server state
     online.ntripServer[serverIndex] = false;
@@ -707,7 +702,7 @@ void ntripServerUpdate(int serverIndex)
     // Initiate the connection to the NTRIP caster
     case NTRIP_SERVER_CONNECTING:
         // Delay before opening the NTRIP server connection
-        if ((millis() - ntripServer->timer) >= ntripServer->connectionAttemptTimeout)
+        if (ntripServer->checkConnectionAttemptTimeout())
         {
             // Attempt a connection to the NTRIP caster
             if (!ntripServerConnectCaster(serverIndex))
@@ -721,7 +716,7 @@ void ntripServerUpdate(int serverIndex)
             else
             {
                 // Connection open to NTRIP caster, wait for the authorization response
-                ntripServer->timer = millis();
+                ntripServer->setTimerToMillis();
                 ntripServerSetState(serverIndex, NTRIP_SERVER_AUTHORIZATION);
             }
         }
@@ -734,7 +729,7 @@ void ntripServerUpdate(int serverIndex)
                  strlen("ICY 200 OK")) // Wait until at least a few bytes have arrived
         {
             // Check for response timeout
-            if ((millis() - ntripServer->timer) > 10000)
+            if (ntripServer->millisSinceTimer() > 10000)
             {
                 if (ntripServerConnectLimitReached(serverIndex))
                     systemPrintf(
@@ -781,7 +776,7 @@ void ntripServerUpdate(int serverIndex)
                              settings.ntripServer_MountPoint[serverIndex]);
 
                 // Connection is now open, start the RTCM correction data timer
-                ntripServer->timer = millis();
+                ntripServer->setTimerToMillis();
 
                 // We don't use a task because we use I2C hardware (and don't have a semaphore).
                 online.ntripServer[serverIndex] = true;
@@ -826,7 +821,7 @@ void ntripServerUpdate(int serverIndex)
                          settings.ntripServer_CasterHost[serverIndex]);
             ntripServerRestart(serverIndex);
         }
-        else if (ntripServer->millisSinceLastWrite() > (10 * 1000))
+        else if (ntripServer->millisSinceTimer() > (10 * 1000))
         {
             // GNSS stopped sending RTCM correction data
             systemPrintf("NTRIP Server %d breaking connection to %s due to lack of RTCM data!\r\n", serverIndex,
@@ -841,7 +836,7 @@ void ntripServerUpdate(int serverIndex)
             // connection.  However increasing backoff delays should be
             // added when the NTRIP caster fails after a short connection
             // interval.
-            if ((ntripServer->millisSinceStart() > NTRIP_SERVER_CONNECTION_TIME) &&
+            if ((ntripServer->millisSinceStartTime() > NTRIP_SERVER_CONNECTION_TIME) &&
                 (ntripServer->connectionAttempts || ntripServer->connectionAttemptTimeout))
             {
                 // After a long connection period, reset the attempt counter
