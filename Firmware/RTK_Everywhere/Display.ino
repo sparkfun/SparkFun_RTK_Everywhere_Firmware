@@ -2032,7 +2032,7 @@ void displayFullIPAddress(std::vector<iconPropertyBlinking> *iconList) // Bottom
 {
     static IPAddress ipAddress;
     NetPriority_t priority;
-    static NetPriority_t previousPriority;
+    static NetPriority_t previousPriority = NETWORK_NONE;
 
     // Max width: 15*6 = 90 pixels (6 pixels per character, nnn.nnn.nnn.nnn)
     if (present.display_type == DISPLAY_128x64)
