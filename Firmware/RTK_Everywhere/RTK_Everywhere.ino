@@ -873,7 +873,7 @@ uint32_t rtcmLastPacketSent; // Time stamp of RTCM going out (to NTRIP Server, E
 uint32_t maxSurveyInWait_s = 60L * 15L; // Re-start survey-in after X seconds
 
 typedef struct {
-    uint32_t timer;
+    volatile unsigned long timer;
 
     SemaphoreHandle_t updateSemaphore = NULL;
 
