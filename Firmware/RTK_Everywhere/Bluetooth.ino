@@ -29,6 +29,8 @@
 
 static volatile BTState bluetoothState = BT_OFF;
 
+BluetoothRadioType_e bluetoothRadioPreviousOnType = BLUETOOTH_RADIO_OFF;
+
 #ifdef COMPILE_BT
 
 #include <BleBatteryService.h>
@@ -47,8 +49,6 @@ BleBatteryService bluetoothBatteryService;
 #define BLE_COMMAND_TX_UUID "7e400003-b5a3-f393-e0a9-e50e24dcca9e"
 
 TaskHandle_t bluetoothCommandTaskHandle = nullptr; // Task to monitor incoming CLI from BLE
-
-BluetoothRadioType_e bluetoothRadioPreviousOnType = BLUETOOTH_RADIO_OFF;
 
 #endif // COMPILE_BT
 
@@ -443,9 +443,11 @@ void BTConfirmRequestCallback(uint32_t numVal) {
     if (bluetoothGetState() == BT_OFF)
         return;
 
-    systemPrintf("Device sent PIN: %06lu. Sending confirmation\r\n", numVal);
-    bluetoothSerialSpp->confirmReply(true); // AUTO_PAIR - equivalent to enableSSP(false, true);
     // TODO: if the RTK device has an OLED, we should display the PIN so user can confirm
+    systemPrintf("Device sent PIN: %06lu. Sending confirmation\r\n", numVal);
+#ifdef COMPILE_BT
+    bluetoothSerialSpp->confirmReply(true); // AUTO_PAIR - equivalent to enableSSP(false, true);
+#endif                               // COMPILE_BT
 }
 
 void deviceNameSpacesToUnderscores()

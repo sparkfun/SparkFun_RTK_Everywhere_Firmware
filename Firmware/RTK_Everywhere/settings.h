@@ -553,6 +553,7 @@ typedef enum
     SETTING_KNOWN,
     SETTING_KNOWN_STRING,
     SETTING_KNOWN_READ_ONLY,
+    SETTING_KNOWN_WEB_CONFIG_INTERFACE_ELEMENT,
 } SettingValueResponse;
 
 #define INCHES_IN_A_METER   39.37007874
@@ -1111,6 +1112,7 @@ struct Settings
         254}; // Mark first record with key so defaults will be applied. Int value for each supported message - Report
               // rates for RTCM Base. Default to Quectel recommended rates.
     int lg290pMessageRatesPQTM[MAX_LG290P_PQTM_MSG] = {254}; // Mark first record with key so defaults will be applied.
+    char configurePPP[30] = "2 1 120 0.10 0.15"; // PQTMCFGPPP: 2,1,120,0.10,0.15 ** Use spaces, not commas! **
 #endif // COMPILE_LG290P
 
     bool debugSettings = false;
@@ -1208,6 +1210,9 @@ typedef enum
 } Facet_Flex_Variant;
 
 typedef bool (* AFTER_CMD)(int cmdIndex);
+
+// Forward routines
+bool wifiAfterCommand(int cmdIndex);
 
 typedef struct
 {
@@ -1804,10 +1809,10 @@ const RTK_Settings_Entry rtkSettingsEntries[] =
     // WiFi
     { 0, 0, 0, 1, 1, 1, 1, 1, 1, ALL, 1, _bool,     0, & settings.debugWebServer, "debugWebServer", nullptr, },
     { 0, 0, 0, 1, 1, 1, 1, 1, 1, ALL, 1, _bool,     0, & settings.debugWifiState, "debugWifiState", nullptr, },
-    { 0, 0, 0, 1, 1, 1, 1, 1, 1, ALL, 1, _bool,     0, & settings.enableCaptivePortal, "enableCaptivePortal", nullptr, },
-    { 0, 1, 0, 1, 1, 1, 1, 1, 1, ALL, 1, _uint8_t,  0, & settings.wifiChannel, "wifiChannel", nullptr, },
-    { 1, 0, 0, 1, 1, 1, 1, 1, 1, ALL, 1, _bool,     0, & settings.wifiConfigOverAP, "wifiConfigOverAP", nullptr, },
-    { 1, 1, 1, 1, 1, 1, 1, 1, 1, ALL, 1, tWiFiNet,  MAX_WIFI_NETWORKS, & settings.wifiNetworks, "wifiNetwork_", nullptr, },
+    { 0, 0, 0, 1, 1, 1, 1, 1, 1, ALL, 1, _bool,     0, & settings.enableCaptivePortal, "enableCaptivePortal", wifiAfterCommand, },
+    { 0, 1, 0, 1, 1, 1, 1, 1, 1, ALL, 1, _uint8_t,  0, & settings.wifiChannel, "wifiChannel", wifiAfterCommand, },
+    { 1, 0, 0, 1, 1, 1, 1, 1, 1, ALL, 1, _bool,     0, & settings.wifiConfigOverAP, "wifiConfigOverAP", wifiAfterCommand, },
+    { 1, 1, 1, 1, 1, 1, 1, 1, 1, ALL, 1, tWiFiNet,  MAX_WIFI_NETWORKS, & settings.wifiNetworks, "wifiNetwork_", wifiAfterCommand, },
     { 0, 0, 0, 1, 1, 1, 1, 1, 1, ALL, 1, _uint32_t, 0, & settings.wifiConnectTimeoutMs, "wifiConnectTimeoutMs", nullptr, },
 
     { 0, 1, 0, 1, 1, 1, 1, 1, 1, ALL, 1, _bool,     0, & settings.outputTipAltitude, "outputTipAltitude", nullptr, },
@@ -1846,6 +1851,7 @@ const RTK_Settings_Entry rtkSettingsEntries[] =
     { 0, 1, 1, 0, 0, 0, 0, 0, 1, L29, 1, tLgMRBaRT, MAX_LG290P_RTCM_MSG, & settings.lg290pMessageRatesRTCMBase, "messageRateRTCMBase_", gnssCmdUpdateMessageRates, },
     { 0, 1, 1, 0, 0, 0, 0, 0, 1, L29, 1, tLgMRRvRT, MAX_LG290P_RTCM_MSG, & settings.lg290pMessageRatesRTCMRover, "messageRateRTCMRover_", gnssCmdUpdateMessageRates, },
     { 0, 1, 1, 0, 0, 0, 0, 0, 1, L29, 1, tLgMRPqtm, MAX_LG290P_PQTM_MSG, & settings.lg290pMessageRatesPQTM, "messageRatePQTM_", gnssCmdUpdateMessageRates, },
+    { 1, 1, 0, 0, 0, 0, 0, 0, 1, L29, 1, tCharArry, sizeof(settings.configurePPP), & settings.configurePPP, "configurePPP", nullptr, },
 #endif  // COMPILE_LG290P
 
     { 0, 0, 0, 1, 1, 1, 1, 1, 1, ALL, 1, _bool,     0, & settings.debugSettings, "debugSettings", nullptr, },
@@ -2143,6 +2149,8 @@ struct struct_tasks
     bool sdSizeCheckTaskStopRequest = false;
     bool updatePplTaskStopRequest = false;
     bool updateWebServerTaskStopRequest = false;
+
+    volatile bool endDirectConnectMode = false; // Set true by e.g. button task
 } task;
 
 #ifdef COMPILE_NETWORK

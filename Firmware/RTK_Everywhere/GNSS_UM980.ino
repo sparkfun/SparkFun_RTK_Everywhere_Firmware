@@ -69,10 +69,6 @@ void GNSS_UM980::begin()
     // Instantiate the library
     _um980 = new UM980();
 
-    // Turn on/off debug messages
-    if (settings.debugGnss)
-        debuggingEnable();
-
     // In order to reduce UM980 configuration time, the UM980 library blocks the start of BESTNAV and RECTIME until 3D
     // fix is achieved However, if all NMEA messages are disabled, the UM980 will never detect a 3D fix.
     if (isGgaActive())
@@ -97,7 +93,13 @@ void GNSS_UM980::begin()
             return;
         }
     }
+
+    online.gnss = true;
+
     systemPrintln("GNSS UM980 online");
+
+    if (settings.debugGnss)
+        debuggingEnable(); // Print all debug to Serial
 
     // Check firmware version and print info
     printModuleInfo();
@@ -119,8 +121,6 @@ void GNSS_UM980::begin()
         gnssFirmwareVersionInt = 99;
 
     snprintf(gnssUniqueId, sizeof(gnssUniqueId), "%s", _um980->getID());
-
-    online.gnss = true;
 }
 
 //----------------------------------------
@@ -475,8 +475,10 @@ void GNSS_UM980::disableAllOutput()
         response &= _um980->disableOutputPort("COM2");
         response &= _um980->disableOutputPort("COM3");
         if (response)
-            break;
+            return;
     }
+
+    systemPrintln("UM980 failed to disable output");
 }
 
 //----------------------------------------
@@ -2101,7 +2103,8 @@ void um980FirmwareBeginUpdate()
     bool inBootMode = false;
 
     // Echo everything to/from UM980
-    while (1)
+    task.endDirectConnectMode = false;
+    while (!task.endDirectConnectMode)
     {
         // Data coming from UM980 to external USB
         if (serialGNSS->available()) // Note: use if, not while
@@ -2129,8 +2132,15 @@ void um980FirmwareBeginUpdate()
             }
         }
 
-        // Button task will um980FirmwareRemoveUpdate and restart
+        // Button task will set task.endDirectConnectMode true
     }
+
+    // Remove the special file. See #763 . Do the file removal in the loop
+    um980FirmwareRemoveUpdate();
+
+    systemFlush(); // Complete prints
+
+    ESP.restart();
 }
 
 //----------------------------------------
@@ -2146,7 +2156,7 @@ bool um980FirmwareCheckUpdate()
 //----------------------------------------
 void um980FirmwareRemoveUpdate()
 {
-    return gnssFirmwareRemoveUpdateFile("/updateUm980Firmware.txt");
+    gnssFirmwareRemoveUpdateFile("/updateUm980Firmware.txt");
 }
 
 //----------------------------------------

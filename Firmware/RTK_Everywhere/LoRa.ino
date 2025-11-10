@@ -542,7 +542,7 @@ void beginLoraFirmwareUpdate()
     else
         systemPrintln("ERROR: productVariant does not support LoRa");
 
-    // Make sure ESP32 is connected to LoRa STM32 UART
+    // Make sure ESP-UART1 is connected to LoRa STM32 UART0
     muxSelectLoRaConfigure();
 
     loraEnterBootloader(); // Push boot pin high and reset STM32
@@ -554,7 +554,8 @@ void beginLoraFirmwareUpdate()
 
     // Push any incoming ESP32 UART0 to UART1 or UART2 and vice versa
     // Infinite loop until button is pressed
-    while (1)
+    task.endDirectConnectMode = false;
+    while (!task.endDirectConnectMode)
     {
         static unsigned long lastSerial = millis(); // Temporary fix for buttonless Flex
 
@@ -567,7 +568,7 @@ void beginLoraFirmwareUpdate()
         if (serialGNSS->available()) // Note: use if, not while
             Serial.write(serialGNSS->read());
 
-        // Button task will removeUpdateLoraFirmware and restart
+        // Button task will set task.endDirectConnectMode true
 
         // Temporary fix for buttonless Flex. TODO - remove
         if ((productVariant == RTK_FLEX) && ((millis() - lastSerial) > 30000))
@@ -589,6 +590,13 @@ void beginLoraFirmwareUpdate()
                 ESP.restart();
         }
     }
+
+    // Remove the special file. See #763 . Do the file removal in the loop
+    removeUpdateLoraFirmware();
+
+    systemFlush(); // Complete prints
+
+    ESP.restart();
 }
 
 void loraSetupTransmit()
@@ -707,7 +715,7 @@ bool loraEnterCommandMode()
 
     systemFlush(); // Complete prints
 
-    muxSelectLoRaConfigure(); // Connect to the STM32 for configuration
+    muxSelectLoRaCommunication(); // Connect the LoRa radio to ESP32 UART0 (shared with USB)
 
     delay(50); // Wait for incoming serial to complete
     while (Serial.available())

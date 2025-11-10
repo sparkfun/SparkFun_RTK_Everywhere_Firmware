@@ -176,6 +176,7 @@ void webServerSettingsClone()   {}
 void webServerStop() {}
 void webServerUpdate()  {}
 void webServerVerifyTables() {}
+bool wifiAfterCommand(int cmdIndex){return false;}
 void wifiSettingsClone() {}
 bool webServerIsRunning() {return false;}
 
