@@ -895,6 +895,8 @@ typedef struct {
             updateSemaphore = xSemaphoreCreateMutex();
         if (xSemaphoreTake(updateSemaphore, 10 / portTICK_PERIOD_MS) == pdPASS)
         {
+            // The semaphore prevents the race condition where timer is updated after
+            // millis() is read but before the subtraction. It prevents retVal from underflowing
             retVal = millis() - timer;
             xSemaphoreGive(updateSemaphore);
         }
