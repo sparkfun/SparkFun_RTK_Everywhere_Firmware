@@ -399,7 +399,7 @@ void stateUpdate()
         break;
 
         case (STATE_DISPLAY_SETUP): {
-            if ((millis() - lastSetupMenuChange) > 10000) // Exit Setup after 10s
+            if (lastSetupMenuChange.millisSinceUpdate() > 10000) // Exit Setup after 10s
             {
                 firstButtonThrownOut = false;
                 changeState(lastSystemState); // Return to the last system state
@@ -686,6 +686,7 @@ const char *getState(SystemState state, char *buffer)
         return "STATE_DISPLAY_SETUP";
     case (STATE_WEB_CONFIG_NOT_STARTED):
         return "STATE_WEB_CONFIG_NOT_STARTED";
+    case (STATE_WEB_CONFIG_WAIT_FOR_NETWORK):
     case (STATE_WEB_CONFIG):
         return "STATE_WEB_CONFIG";
     case (STATE_TEST):

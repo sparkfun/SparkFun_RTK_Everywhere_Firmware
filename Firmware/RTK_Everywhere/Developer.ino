@@ -9,8 +9,9 @@
 // Ethernet
 //----------------------------------------
 
-bool ethernetLinkUp()   {return false;}
-void menuEthernet() {systemPrintln("**Ethernet not compiled**");}
+bool ethernetLinkUp() {return false;}
+void menuEthernet()   {systemPrintln("**Ethernet not compiled**");}
+void ethernetUpdate() {}
 
 bool ntpLogIncreasing = false;
 

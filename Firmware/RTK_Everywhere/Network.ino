@@ -2453,10 +2453,12 @@ void networkUpdate()
     // Update the WiFi state
     wifiStationUpdate();
 
+    // Update Ethernet
+    ethernetUpdate();
+
     // Update the network services
     // Start or stop mDNS
-    if (networkMdnsRequests != networkMdnsRunning)
-        networkMulticastDNSUpdate();
+    networkMulticastDNSUpdate();
 
     // Update the network services
     DMW_c("mqttClientUpdate");

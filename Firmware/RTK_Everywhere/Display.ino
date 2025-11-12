@@ -1992,7 +1992,7 @@ void paintIPAddress()
     char ipAddress[16];
     snprintf(ipAddress, sizeof(ipAddress), "%s",
 #ifdef COMPILE_ETHERNET
-             ETH.localIP().toString());
+             ETH.localIP().toString().c_str());
 #else  // COMPILE_ETHERNET
              "0.0.0.0");
 #endif // COMPILE_ETHERNET
@@ -2032,7 +2032,7 @@ void displayFullIPAddress(std::vector<iconPropertyBlinking> *iconList) // Bottom
 {
     static IPAddress ipAddress;
     NetPriority_t priority;
-    static NetPriority_t previousPriority;
+    static NetPriority_t previousPriority = NETWORK_NONE;
 
     // Max width: 15*6 = 90 pixels (6 pixels per character, nnn.nnn.nnn.nnn)
     if (present.display_type == DISPLAY_128x64)
@@ -2052,7 +2052,7 @@ void displayFullIPAddress(std::vector<iconPropertyBlinking> *iconList) // Bottom
             // Display the IP address when it is available
             if (ipAddress != IPAddress((uint32_t)0))
             {
-                snprintf(myAddress, sizeof(myAddress), "%s", ipAddress.toString());
+                snprintf(myAddress, sizeof(myAddress), "%s", ipAddress.toString().c_str());
 
                 oled->setFont(QW_FONT_5X7); // Set font to smallest
                 oled->setCursor(0, 55);

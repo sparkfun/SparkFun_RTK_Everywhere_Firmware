@@ -249,6 +249,9 @@ int32_t tcpClientSendData(uint16_t dataHead)
                 bytesToSend = dataHead - tcpClientTail;
                 if (bytesToSend < 0)
                     bytesToSend += settings.gnssHandlerBufferSize;
+
+                while(tcpClient->available())
+                    tcpClient->read(); // Absorb any unwanted incoming traffic
             }
 
             // Failed to write the data

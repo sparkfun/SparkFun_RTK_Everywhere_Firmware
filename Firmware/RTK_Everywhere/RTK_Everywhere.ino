@@ -607,7 +607,7 @@ uint8_t *ringBuffer; // Buffer for reading from GNSS receiver. At 230400bps, 230
 const int gnssReadTaskStackSize = 8000;
 const size_t sempGnssReadBufferSize = 8000; // Make the SEMP buffer size the ~same
 
-const int handleGnssDataTaskStackSize = 3000;
+const int handleGnssDataTaskStackSize = 4000;
 
 TaskHandle_t pinBluetoothTaskHandle; // Dummy task to start hardware on an assigned core
 volatile bool bluetoothPinned;       // This variable is touched by core 0 but checked by core 1. Must be volatile.
@@ -737,6 +737,7 @@ IPAddress ethernetSubnetMask;
 // };
 volatile struct timeval ethernetNtpTv; // This will hold the time the Ethernet NTP packet arrived
 bool ntpLogIncreasing;
+bool ethernetRestartRequested = false; // Perform ETH.end() to disconnect TCP resources
 #endif // COMPILE_ETHERNET
 
 unsigned long lastEthernetCheck; // Prevents cable checking from continually happening
@@ -871,7 +872,42 @@ uint32_t rtcmLastPacketSent; // Time stamp of RTCM going out (to NTRIP Server, E
 
 uint32_t maxSurveyInWait_s = 60L * 15L; // Re-start survey-in after X seconds
 
-uint32_t lastSetupMenuChange; // Limits how much time is spent in the setup menu
+typedef struct {
+    volatile unsigned long timer;
+
+    SemaphoreHandle_t updateSemaphore = NULL;
+
+    void setTimerToMillis()
+    {
+        if (updateSemaphore == NULL)
+            updateSemaphore = xSemaphoreCreateMutex();
+        if (xSemaphoreTake(updateSemaphore, 10 / portTICK_PERIOD_MS) == pdPASS)
+        {
+            timer = millis();
+            xSemaphoreGive(updateSemaphore);
+        }
+    }
+
+    unsigned long millisSinceUpdate()
+    {
+        unsigned long retVal = 0;
+        if (updateSemaphore == NULL)
+            updateSemaphore = xSemaphoreCreateMutex();
+        if (xSemaphoreTake(updateSemaphore, 10 / portTICK_PERIOD_MS) == pdPASS)
+        {
+            // The semaphore prevents the race condition where timer is updated after
+            // millis() is read but before the subtraction. It prevents retVal from underflowing
+            retVal = millis() - timer;
+            xSemaphoreGive(updateSemaphore);
+        }
+        return retVal;
+    }
+} semaphoreProtectedTimer;
+// Needs a mutex because the timer is updated by the button task
+// but read by stateUpdate the loop. Prevents a race condition
+// and the occasional glitching seen in the button menu
+semaphoreProtectedTimer lastSetupMenuChange; // Limits how much time is spent in the setup menu
+
 uint32_t lastTestMenuChange;  // Avoids exiting the test menu for at least 1 second
 uint8_t setupSelectedButton =
     0; // In Display Setup, start displaying at this button. This is the selected (highlighted) button.
@@ -910,7 +946,7 @@ uint32_t max_idle_count = MAX_IDLE_TIME_COUNT;
 bool bluetoothIncomingRTCM;
 bool bluetoothOutgoingRTCM;
 bool netIncomingRTCM;
-bool netOutgoingRTCM;
+volatile bool netOutgoingRTCM;
 volatile bool mqttClientDataReceived; // Flag for display
 
 uint16_t failedParserMessages_UBX;
@@ -1635,7 +1671,7 @@ void logUpdate()
                     {
                         // Calculate generation and write speeds every 5 seconds
                         uint64_t fileSizeDelta = logFileSize - lastLogSize;
-                        systemPrintf(" - Generation rate: %0.1fkB/s", ((float)fileSizeDelta) / 5.0 / 1000.0);
+                        systemPrintf(" - Generation rate: %0.1fkB/s", ((double)fileSizeDelta) / 5.0 / 1000.0);
                     }
                     else
                     {
@@ -1652,7 +1688,8 @@ void logUpdate()
                 }
                 else
                 {
-                    log_d("No increase in file size");
+                    if ((settings.enablePrintLogFileStatus) && (!inMainMenu))
+                        systemPrintf("No increase in file size: %llu -> %llu\r\n", lastLogSize, logFileSize);
                     logIncreasing = false;
 
                     endSD(false, true); // alreadyHaveSemaphore, releaseSemaphore

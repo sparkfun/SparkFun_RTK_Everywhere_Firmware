@@ -1645,7 +1645,7 @@ void handleGnssDataTask(void *e)
                                 // Record trigger count with Time Of Week of rising edge (ms), Millisecond fraction of Time Of Week of
                                 // rising edge (ns), and accuracy estimate (ns)
                                 char eventData[82]; // Max NMEA sentence length is 82
-                                snprintf(eventData, sizeof(eventData), "%d,%d,%d,%d", triggerCount, triggerTowMsR, triggerTowSubMsR,
+                                snprintf(eventData, sizeof(eventData), "%lu,%lu,%lu,%lu", triggerCount, triggerTowMsR, triggerTowSubMsR,
                                         triggerAccEst);
 
                                 char nmeaMessage[82]; // Max NMEA sentence length is 82
@@ -1693,8 +1693,9 @@ void handleGnssDataTask(void *e)
 
                             logFileSize = logFile->fileSize(); // Update file size
 
-                            // Force file sync every 60s
-                            if ((millis() - lastUBXLogSyncTime) > 60000)
+                            // Force file sync every 60s - or every two seconds if the size is not increasing
+                            if (((logFileSize == lastLogSize) && ((millis() - lastUBXLogSyncTime) > 2000))
+                                || ((millis() - lastUBXLogSyncTime) > 60000))
                             {
                                 baseStatusLedBlink(); // Blink LED to indicate logging activity
 
@@ -2183,7 +2184,7 @@ void buttonCheckTask(void *e)
             else if ((systemState == STATE_BASE_NOT_STARTED) && (firstRoverStart == true) &&
                      (buttonPressedFor(500) == true))
             {
-                lastSetupMenuChange = millis(); // Prevent a timeout during state change
+                lastSetupMenuChange.setTimerToMillis(); // Prevent a timeout during state change
                 forceSystemStateUpdate = true;
                 requestChangeState(STATE_TEST);
             }
@@ -2216,7 +2217,7 @@ void buttonCheckTask(void *e)
                 case STATE_NTPSERVER_SYNC:
                     lastSystemState = systemState; // Remember this state to return if needed
                     requestChangeState(STATE_DISPLAY_SETUP);
-                    lastSetupMenuChange = millis();
+                    lastSetupMenuChange.setTimerToMillis();
                     setupSelectedButton = 0; // Highlight the first button
                     showMenu = false;
                     break;
@@ -2225,7 +2226,7 @@ void buttonCheckTask(void *e)
                     // If we are displaying the setup menu, a single tap will cycle through possible system states
                     // Exit into new system state on double tap - see below
                     // Exit display setup into previous state after ~10s - see updateSystemState()
-                    lastSetupMenuChange = millis();
+                    lastSetupMenuChange.setTimerToMillis();
 
                     forceDisplayUpdate = true; // User is interacting so repaint display quickly
 
@@ -2262,7 +2263,7 @@ void buttonCheckTask(void *e)
 
                 case STATE_TESTING:
                     // If we are in testing, return to Base Not Started
-                    lastSetupMenuChange = millis(); // Prevent a timeout during state change
+                    lastSetupMenuChange.setTimerToMillis(); // Prevent a timeout during state change
                     baseCasterDisableOverride();    // Leave Caster mode
                     requestChangeState(STATE_BASE_NOT_STARTED);
                     break;
@@ -2287,7 +2288,7 @@ void buttonCheckTask(void *e)
                     // If we are displaying the setup menu, a single tap will cycle through possible system states - see
                     // above Exit into new system state on double tap Exit display setup into previous state after ~10s
                     // - see updateSystemState()
-                    lastSetupMenuChange = millis(); // Prevent a timeout during state change
+                    lastSetupMenuChange.setTimerToMillis(); // Prevent a timeout during state change
                     uint8_t thisIsButton = 0;
                     for (auto it = setupButtons.begin(); it != setupButtons.end(); it = std::next(it))
                     {
