@@ -103,10 +103,6 @@ RUN cd ./RTK_Everywhere/Patch \
     && cp libmbedx509.a "/root/.arduino15/packages/esp32/tools/esp32-arduino-libs/${ESP_IDF}/esp32/lib/libmbedx509.a" \
     && cp libbt.a "/root/.arduino15/packages/esp32/tools/esp32-arduino-libs/${ESP_IDF}/esp32/lib/libbt.a"
 
-# Patch NetworkEvents
-RUN cd ./RTK_Everywhere/Patch \
-    && cp NetworkEvents.* "/root/.arduino15/packages/esp32/hardware/esp32/${CORE_VERSION}/libraries/Network/src/"
-
 # Update form.h with index_html and main_js
 RUN cd ./Tools \
     && python3 index_html_zipper.py ../RTK_Everywhere/AP-Config/index.html ../RTK_Everywhere/form.h \
