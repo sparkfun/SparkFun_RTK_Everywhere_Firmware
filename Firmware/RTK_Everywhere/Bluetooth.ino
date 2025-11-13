@@ -612,7 +612,7 @@ void bluetoothStart(bool skipOnlineCheck)
             // Uncomment the next line to force deletion of all paired (bonded) devices
             // (This should only be necessary if you have changed the SSP pairing type)
             //settings.clearBtPairings = true;
-            
+
             // Enable secure pairing without PIN :
             // iPhone displays Connection Unsuccessful - but then connects anyway...
             bluetoothSerialSpp->enableSSP(false, false);
@@ -650,6 +650,7 @@ void bluetoothStart(bool skipOnlineCheck)
                     recordSystemSettings();
                 }
 
+#ifdef  COMPILE_AUTHENTICATION
                 esp_sdp_init();
 
                 esp_bluetooth_sdp_hdr_overlay_t record = {(esp_bluetooth_sdp_types_t)0};
@@ -663,6 +664,7 @@ void bluetoothStart(bool skipOnlineCheck)
                 record.service_name = (char *)deviceName;
                 // record.rfcomm_channel_number = 1; // Doesn't seem to help the failed connects
                 esp_sdp_create_record((esp_bluetooth_sdp_record_t *)&record);
+#endif  // COMPILE_AUTHENTICATION
             }
         }
 

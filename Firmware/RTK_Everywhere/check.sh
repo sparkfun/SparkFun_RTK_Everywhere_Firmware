@@ -13,6 +13,11 @@ set -e
 git reset --hard --quiet HEAD
 make
 
+# MFi authentication
+sed -i 's|#define COMPILE_AUTHENTICATION|//#define COMPILE_AUTHENTICATION|' RTK_Everywhere.ino
+make
+git reset --hard --quiet HEAD
+
 # Bluetooth
 sed -i 's|#define COMPILE_BT|//#define COMPILE_BT|' RTK_Everywhere.ino
 make
