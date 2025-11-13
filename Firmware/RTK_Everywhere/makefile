@@ -35,8 +35,11 @@ HOME_BOARD_PATH=$(USER_DIRECTORY_PATH)\AppData\Local\Arduino15\packages\esp32
 PATCH_SRC_PATH=Patch\
 
 # Windows NT patch source paths
-PARTITION_SRC_PATH=..\$(PARTITION_CSV_FILE).csv
-PATCH_SRC_PATH=Patch\
+FIRMWARE_PATH=..
+RTK_EVERYWHERE_PATH=.
+AP_CONFIG_PATH=$(RTK_EVERYWHERE_PATH)\AP-Config
+PARTITION_SRC_PATH=$(FIRMWARE_PATH)\$(PARTITION_CSV_FILE).csv
+PATCH_SRC_PATH=$(RTK_EVERYWHERE_PATH)\Patch\
 
 # Windows NT patch destination paths
 MBED_LIB_DEST_PATH=$(HOME_BOARD_PATH)\tools\esp32-arduino-libs\${{ env.ESP_IDF }}\esp32/lib\
@@ -70,8 +73,11 @@ ESP_IDF_PATH=$(HOME_BOARD_PATH)/tools/esp32-arduino-libs
 HOME_BOARD_PATH=$(USER_DIRECTORY_PATH)/.arduino15/packages/esp32
 
 # Linux patch source paths
-PARTITION_SRC_PATH=../$(PARTITION_CSV_FILE).csv
-PATCH_SRC_PATH=Patch/
+FIRMWARE_PATH=..
+RTK_EVERYWHERE_PATH=.
+AP_CONFIG_PATH=$(RTK_EVERYWHERE_PATH)/AP-Config
+PARTITION_SRC_PATH=$(FIRMWARE_PATH)/$(PARTITION_CSV_FILE).csv
+PATCH_SRC_PATH=$(RTK_EVERYWHERE_PATH)/Patch/
 
 # Linux patch destination paths
 BT_LIB_DEST_PATH=$(ESP_IDF_PATH)/$(ESP_IDF_VERSION)/esp32/lib/
@@ -178,11 +184,11 @@ patch:
 	touch   $(PATCH_SRC_PATH)libmbedcrypto.a
 	touch   $(PATCH_SRC_PATH)libmbedx509.a
 
-#DEBUG_LEVEL=none
+DEBUG_LEVEL=none
 #DEBUG_LEVEL=error
 #DEBUG_LEVEL=warn
 #DEBUG_LEVEL=info
-DEBUG_LEVEL=debug
+#DEBUG_LEVEL=debug
 #DEBUG_LEVEL=verbose
 
 ENABLE_DEVELOPER=false
@@ -190,13 +196,13 @@ FIRMWARE_VERSION_MAJOR=99
 FIRMWARE_VERSION_MINOR=99
 POINTPERFECT_TOKEN=
 
-form.h:	AP-Config/* AP-Config/src/* AP-Config/src/fonts/*
-	python ../Tools/index_html_zipper.py AP-Config/index.html form.h
-	python ../Tools/main_js_zipper.py AP-Config/src/main.js form.h
+form.h:	$(AP_CONFIG_PATH)/* $(AP_CONFIG_PATH)/src/* $(AP_CONFIG_PATH)/src/fonts/*
+	python ../Tools/index_html_zipper.py $(AP_CONFIG_PATH)/index.html form.h
+	python ../Tools/main_js_zipper.py $(AP_CONFIG_PATH)/src/main.js form.h
 
-$(RTK_BIN_PATH):	RTK_Everywhere.ino   *.ino   *.h   makefile   $(PARTITION_DST_PATH)   $(MBED_LIB_DEST_PATH)libmbedtls.a   $(MBED_LIB_DEST_PATH)libmbedtls_2.a   $(MBED_LIB_DEST_PATH)libmbedcrypto.a   $(MBED_LIB_DEST_PATH)libmbedx509.a   $(BT_LIB_DEST_PATH)libbt.a
+$(RTK_BIN_PATH):	$(SKETCH)   *.ino   *.h   makefile   $(PARTITION_DST_PATH)   $(MBED_LIB_DEST_PATH)libmbedtls.a   $(MBED_LIB_DEST_PATH)libmbedtls_2.a   $(MBED_LIB_DEST_PATH)libmbedcrypto.a   $(MBED_LIB_DEST_PATH)libmbedx509.a   $(BT_LIB_DEST_PATH)libbt.a
 	$(CLEAR)
-	arduino-cli compile --fqbn "esp32:esp32:esp32":DebugLevel=$(DEBUG_LEVEL),PSRAM=enabled RTK_Everywhere.ino \
+	arduino-cli compile --fqbn "esp32:esp32:esp32":DebugLevel=$(DEBUG_LEVEL),PSRAM=enabled $(SKETCH) \
 		--warnings default \
 		--build-property build.partitions=$(PARTITION_CSV_FILE) \
 		--build-property upload.maximum_size=6291456 \
