@@ -184,6 +184,28 @@ bool webServerIsRunning() {return false;}
 #endif  // COMPILE_AP
 
 //----------------------------------------
+// Global Bluetooth Routines
+//----------------------------------------
+
+#ifndef COMPILE_BT
+int     bluetoothCommandAvailable() {return 0;}
+bool    bluetoothCommandIsConnected() {return false;}
+uint8_t bluetoothCommandRead() {return 0;}
+int     bluetoothCommandWrite(const uint8_t *buffer, int length) {return 0;}
+void    bluetoothFlush() {}
+byte    bluetoothGetState() {return BT_OFF;}
+void    bluetoothPrintStatus() {}
+uint8_t bluetoothRead() {return 0;}
+int     bluetoothRxDataAvailable() {return 0;}
+void    bluetoothSendBatteryPercent(int batteryLevelPercent) {}
+void    bluetoothStart() {}
+void    bluetoothStartSkipOnlineCheck() {}
+void    bluetoothStop() {}
+void    bluetoothUpdate() {}
+int     bluetoothWrite(const uint8_t *buffer, int length) {return 0;}
+#endif  // COMPILE_BT
+
+//----------------------------------------
 // ESP-NOW
 //----------------------------------------
 

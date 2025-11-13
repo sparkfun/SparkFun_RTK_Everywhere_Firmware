@@ -561,6 +561,8 @@ float batteryChargingPercentPerHour;
 #include "bluetoothSelect.h"
 #endif // COMPILE_BT
 
+BluetoothRadioType_e bluetoothRadioPreviousOnType = BLUETOOTH_RADIO_OFF;
+
 // This value controls the data that is output from the USB serial port
 // to the host PC.  By default (false) status and debug messages are output
 // to the USB serial port.  When this value is set to true then the status
