@@ -72,19 +72,6 @@ void ntripClientUpdate() {}
 void ntripClientValidateTables() {}
 
 //----------------------------------------
-// NTRIP server
-//----------------------------------------
-
-void ntripServerPrintStatus(int serverIndex) {systemPrintf("**NTRIP Server %d not compiled**\r\n", serverIndex);}
-void ntripServerProcessRTCM(int serverIndex, uint8_t incoming) {}
-void ntripServerStop(int serverIndex, bool shutdown) {online.ntripServer[serverIndex] = false;}
-void ntripServerUpdate() {}
-void ntripServerValidateTables() {}
-bool ntripServerIsCasting(int serverIndex) {
-    return (false);
-}
-
-//----------------------------------------
 // TCP client
 //----------------------------------------
 
@@ -132,6 +119,18 @@ void otaVerifyTables() {}
 #endif  // COMPILE_OTA_AUTO
 
 //----------------------------------------
+// HTTP Client
+//----------------------------------------
+
+#ifndef COMPILE_HTTP_CLIENT
+
+void httpClientPrintStatus() {}
+void httpClientUpdate() {}
+void httpClientValidateTables() {}
+
+#endif   // COMPILE_HTTP_CLIENT
+
+//----------------------------------------
 // MQTT Client
 //----------------------------------------
 
@@ -147,16 +146,17 @@ void mqttClientValidateTables() {}
 #endif   // COMPILE_MQTT_CLIENT
 
 //----------------------------------------
-// HTTP Client
+// NTRIP server
 //----------------------------------------
 
-#ifndef COMPILE_HTTP_CLIENT
-
-void httpClientPrintStatus() {}
-void httpClientUpdate() {}
-void httpClientValidateTables() {}
-
-#endif   // COMPILE_HTTP_CLIENT
+#ifndef COMPILE_NTRIP_SERVER
+bool ntripServerIsCasting(int serverIndex) {return false;}
+void ntripServerPrintStatus(int serverIndex) {systemPrintf("**NTRIP Server %d not compiled**\r\n", serverIndex);}
+void ntripServerProcessRTCM(int serverIndex, uint8_t incoming) {}
+void ntripServerStop(int serverIndex, bool shutdown) {online.ntripServer[serverIndex] = false;}
+void ntripServerUpdate() {}
+void ntripServerValidateTables() {}
+#endif   // COMPILE_NTRIP_SERVER
 
 //----------------------------------------
 // Web Server

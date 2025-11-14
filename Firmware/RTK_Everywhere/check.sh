@@ -67,6 +67,11 @@ sed -i 's|#define COMPILE_MOSAICX5|//#define COMPILE_MOSAICX5|' RTK_Everywhere.i
 make
 git reset --hard --quiet  HEAD
 
+# NTRIP Server
+sed -i 's|#define COMPILE_NTRIP_SERVER|//#define COMPILE_NTRIP_SERVER|' RTK_Everywhere.ino
+make
+git reset --hard --quiet  HEAD
+
 # UM980
 sed -i 's|#define COMPILE_UM980|//#define COMPILE_UM980|' RTK_Everywhere.ino
 make
