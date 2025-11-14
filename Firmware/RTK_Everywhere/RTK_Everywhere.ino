@@ -715,6 +715,7 @@ float lBandEBNO; // Used on system status menu
 // ESP-NOW Globals - For other module direct access
 bool espNowIncomingRTCM;
 bool espNowOutgoingRTCM;
+bool espnowRequestPair = false; // Modified by states.ino, menuRadio, or CLI
 int espNowRSSI;
 const uint8_t espNowBroadcastAddr[6] = {0xff, 0xff, 0xff, 0xff, 0xff, 0xff};
 
@@ -1592,7 +1593,7 @@ bool logLengthExceeded() // Limit individual files to maxLogLength_minutes
 
     if (nextLogTime_ms == 0) // Keep logging if nextLogTime_ms has not been set
         return false;
-    
+
     // Note: this will roll over every 49.71 days...
     // Solution: https://stackoverflow.com/a/3097744 - see issue #742
     return (!((long)(nextLogTime_ms - millis()) > 0));
