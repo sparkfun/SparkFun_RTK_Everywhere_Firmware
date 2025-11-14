@@ -387,34 +387,135 @@ enum PeriodDisplayValues
 
 #ifdef  COMPILE_NETWORK
 
-// NTRIP Server data - the array is declared volatile in NtripServer.ino
+// NTRIP Server data
 typedef struct
 {
     // Network connection used to push RTCM to NTRIP caster
     NetworkClient *networkClient;
-    uint8_t state;
+    volatile uint8_t state;
 
     // Count of bytes sent by the NTRIP server to the NTRIP caster
-    uint32_t bytesSent;
+    volatile uint32_t bytesSent;
 
     // Throttle the time between connection attempts
     // ms - Max of 4,294,967,295 or 4.3M seconds or 71,000 minutes or 1193 hours or 49 days between attempts
-    uint32_t connectionAttemptTimeout;
-    uint32_t lastConnectionAttempt;
-    int connectionAttempts; // Count the number of connection attempts between restarts
+    volatile uint32_t connectionAttemptTimeout;
+    volatile int connectionAttempts; // Count the number of connection attempts between restarts
 
     // NTRIP server timer usage:
     //  * Reconnection delay
     //  * Measure the connection response time
     //  * Receive RTCM correction data timeout
     //  * Monitor last RTCM byte received for frame counting
-    uint32_t timer;
-    uint32_t startTime;
-    int connectionAttemptsTotal; // Count the number of connection attempts absolutely
+    volatile uint32_t timer;
+    volatile uint32_t startTime;
+    volatile int connectionAttemptsTotal; // Count the number of connection attempts absolutely
 
     // Better debug printing by ntripServerProcessRTCM
-    uint32_t rtcmBytesSent;
-    uint32_t previousMilliseconds;
+    volatile uint32_t rtcmBytesSent;
+    volatile uint32_t previousMilliseconds;
+
+
+    // Protect all methods that manipulate timer with a mutex - to avoid race conditions
+    // Remember that data is pushed to the servers by
+    // gnssReadTask -> processUart1Message -> processRTCM -> ntripServerProcessRTCM
+    SemaphoreHandle_t serverSemaphore = NULL;
+
+    unsigned long millisSinceTimer()
+    {
+        unsigned long retVal = 0;
+        if (serverSemaphore == NULL)
+            serverSemaphore = xSemaphoreCreateMutex();
+        if (xSemaphoreTake(serverSemaphore, 10 / portTICK_PERIOD_MS) == pdPASS)
+        {
+            retVal = millis() - timer;
+            xSemaphoreGive(serverSemaphore);
+        }
+        return retVal;
+    }
+
+    unsigned long millisSinceStartTime()
+    {
+        unsigned long retVal = 0;
+        if (serverSemaphore == NULL)
+            serverSemaphore = xSemaphoreCreateMutex();
+        if (xSemaphoreTake(serverSemaphore, 10 / portTICK_PERIOD_MS) == pdPASS)
+        {
+            retVal = millis() - startTime;
+            xSemaphoreGive(serverSemaphore);
+        }
+        return retVal;
+    }
+
+    void updateTimerAndBytesSent()
+    {
+        if (serverSemaphore == NULL)
+            serverSemaphore = xSemaphoreCreateMutex();
+        if (xSemaphoreTake(serverSemaphore, 10 / portTICK_PERIOD_MS) == pdPASS)
+        {
+            bytesSent = bytesSent + 1;
+            rtcmBytesSent = rtcmBytesSent + 1;
+            timer = millis();
+            xSemaphoreGive(serverSemaphore);
+        }
+    }
+
+    bool checkBytesSentAndReset(uint32_t timerLimit)
+    {
+        bool retVal = false;
+        if (serverSemaphore == NULL)
+            serverSemaphore = xSemaphoreCreateMutex();
+        if (xSemaphoreTake(serverSemaphore, 10 / portTICK_PERIOD_MS) == pdPASS)
+        {
+            if (((millis() - timer) > timerLimit) && (bytesSent > 0))
+            {
+                retVal = true;
+                bytesSent = 0;
+            }
+            xSemaphoreGive(serverSemaphore);
+        }
+        return retVal;
+    }
+
+    unsigned long getUptime()
+    {
+        unsigned long retVal = 0;
+        if (serverSemaphore == NULL)
+            serverSemaphore = xSemaphoreCreateMutex();
+        if (xSemaphoreTake(serverSemaphore, 10 / portTICK_PERIOD_MS) == pdPASS)
+        {
+            retVal = timer - startTime;
+            xSemaphoreGive(serverSemaphore);
+        }
+        return retVal;
+    }
+
+    void setTimerToMillis()
+    {
+        if (serverSemaphore == NULL)
+            serverSemaphore = xSemaphoreCreateMutex();
+        if (xSemaphoreTake(serverSemaphore, 10 / portTICK_PERIOD_MS) == pdPASS)
+        {
+            timer = millis();
+            xSemaphoreGive(serverSemaphore);
+        }
+    }
+
+    bool checkConnectionAttemptTimeout()
+    {
+        bool retVal = false;
+        if (serverSemaphore == NULL)
+            serverSemaphore = xSemaphoreCreateMutex();
+        if (xSemaphoreTake(serverSemaphore, 10 / portTICK_PERIOD_MS) == pdPASS)
+        {
+            if ((millis() - timer) >= connectionAttemptTimeout)
+            {
+                retVal = true;
+            }
+            xSemaphoreGive(serverSemaphore);
+        }
+        return retVal;
+    }
 } NTRIP_SERVER_DATA;
 
 #endif  // COMPILE_NETWORK
@@ -555,6 +656,7 @@ typedef enum
     SETTING_KNOWN,
     SETTING_KNOWN_STRING,
     SETTING_KNOWN_READ_ONLY,
+    SETTING_KNOWN_WEB_CONFIG_INTERFACE_ELEMENT,
 } SettingValueResponse;
 
 #define INCHES_IN_A_METER   39.37007874
@@ -751,11 +853,11 @@ struct Settings
 
     // GNSS UART
     uint16_t serialGNSSRxFullThreshold = 50; // RX FIFO full interrupt. Max of ~128. See pinUART2Task().
-    int uartReceiveBufferSize = 1024 * 2; // This buffer is filled automatically as the UART receives characters.
+    int uartReceiveBufferSize = 1024 * 4; // This buffer is filled automatically as the UART receives characters. EVK needs 4K
 
     // Hardware
-    bool enableExternalHardwareEventLogging = false;           // Log when INT/TM2 pin goes low
-    uint16_t spiFrequency = 16;                           // By default, use 16MHz SPI
+    bool enableExternalHardwareEventLogging = false; // Log when INT/TM2 pin goes low
+    uint16_t spiFrequency = 16;                      // By default, use 16MHz SPI
 
     // HTTP
     bool debugHttpClientData = false;  // Debug the HTTP Client (ZTP) data flow

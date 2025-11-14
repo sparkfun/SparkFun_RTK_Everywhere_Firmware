@@ -13,6 +13,11 @@ set -e
 git reset --hard --quiet HEAD
 make
 
+# MFi authentication
+sed -i 's|#define COMPILE_AUTHENTICATION|//#define COMPILE_AUTHENTICATION|' RTK_Everywhere.ino
+make
+git reset --hard --quiet HEAD
+
 # Bluetooth
 sed -i 's|#define COMPILE_BT|//#define COMPILE_BT|' RTK_Everywhere.ino
 make
@@ -34,6 +39,11 @@ git reset --hard --quiet  HEAD
 sed -i 's|#define COMPILE_ETHERNET|//#define COMPILE_ETHERNET|' RTK_Everywhere.ino
 make
 git reset --hard --quiet  HEAD
+
+# LoRa
+sed -i 's|#define COMPILE_LORA|//#define COMPILE_LORA|' RTK_Everywhere.ino
+make
+git reset --hard --quiet HEAD
 
 # WiFi
 sed -i 's|#define COMPILE_WIFI|//#define COMPILE_WIFI|' RTK_Everywhere.ino
@@ -67,6 +77,31 @@ sed -i 's|#define COMPILE_MOSAICX5|//#define COMPILE_MOSAICX5|' RTK_Everywhere.i
 make
 git reset --hard --quiet  HEAD
 
+# NTP Server
+sed -i 's|#define COMPILE_NTP|//#define COMPILE_NTP|' RTK_Everywhere.ino
+make
+git reset --hard --quiet  HEAD
+
+# NTRIP Client
+sed -i 's|#define COMPILE_NTRIP_CLIENT|//#define COMPILE_NTRIP_CLIENT|' RTK_Everywhere.ino
+make
+git reset --hard --quiet  HEAD
+
+# NTRIP Server
+sed -i 's|#define COMPILE_NTRIP_SERVER|//#define COMPILE_NTRIP_SERVER|' RTK_Everywhere.ino
+make
+git reset --hard --quiet  HEAD
+
+# TCP Client
+sed -i 's|#define COMPILE_TCP_CLIENT|//#define COMPILE_TCP_CLIENT|' RTK_Everywhere.ino
+make
+git reset --hard --quiet  HEAD
+
+# TCP Server
+sed -i 's|#define COMPILE_TCP_SERVER|//#define COMPILE_TCP_SERVER|' RTK_Everywhere.ino
+make
+git reset --hard --quiet  HEAD
+
 # UM980
 sed -i 's|#define COMPILE_UM980|//#define COMPILE_UM980|' RTK_Everywhere.ino
 make
@@ -92,6 +127,11 @@ git reset --hard --quiet  HEAD
 
 # IM19_IMU
 sed -i 's|#define COMPILE_IM19_IMU|//#define COMPILE_IM19_IMU|' RTK_Everywhere.ino
+make
+git reset --hard --quiet  HEAD
+
+# MP2762A Charger
+sed -i 's|#define COMPILE_MP2762A_CHARGER|//#define COMPILE_MP2762A_CHARGER|' RTK_Everywhere.ino
 make
 git reset --hard --quiet  HEAD
 

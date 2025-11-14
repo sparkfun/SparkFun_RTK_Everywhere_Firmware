@@ -21,8 +21,6 @@
     frame is not critical.
 **********************************************************************/
 
-bool espnowRequestPair = false; // Modified by states.ino, menuRadio, or CLI
-
 #ifdef COMPILE_ESPNOW
 
 //****************************************

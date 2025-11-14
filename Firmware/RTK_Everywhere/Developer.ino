@@ -3,34 +3,25 @@
   mode (ENABLE_DEVELOPER defined).
 */
 
-#ifndef COMPILE_ETHERNET
-
 //----------------------------------------
 // Ethernet
 //----------------------------------------
 
-bool ethernetLinkUp()   {return false;}
-void menuEthernet() {systemPrintln("**Ethernet not compiled**");}
+#ifndef COMPILE_ETHERNET
+
+bool ethernetLinkUp() {return false;}
+void menuEthernet()   {systemPrintln("**Ethernet not compiled**");}
+void ethernetUpdate() {}
 
 bool ntpLogIncreasing = false;
 
-//----------------------------------------
-// NTP: Network Time Protocol
-//----------------------------------------
-
-void menuNTP() {systemPrint("**NTP not compiled**");}
-void ntpServerBegin() {}
-void ntpServerUpdate() {}
-void ntpValidateTables() {}
-void ntpServerStop() {}
-
 #endif // COMPILE_ETHERNET
-
-#ifndef COMPILE_NETWORK
 
 //----------------------------------------
 // Network layer
 //----------------------------------------
+
+#ifndef COMPILE_NETWORK
 
 void menuTcpUdp() {systemPrint("**Network not compiled**");}
 void networkBegin() {}
@@ -61,58 +52,6 @@ void networkUserRemove(NETCONSUMER_t consumer, const char * fileName, uint32_t l
 void networkValidateIndex(NetIndex_t index) {}
 void networkVerifyTables() {}
 
-//----------------------------------------
-// NTRIP client
-//----------------------------------------
-
-void ntripClientPrintStatus() {systemPrintln("**NTRIP Client not compiled**");}
-void ntripClientSettingsChanged() {}
-void ntripClientStop(bool clientAllocated) {online.ntripClient = false;}
-void ntripClientUpdate() {}
-void ntripClientValidateTables() {}
-
-//----------------------------------------
-// NTRIP server
-//----------------------------------------
-
-void ntripServerPrintStatus(int serverIndex) {systemPrintf("**NTRIP Server %d not compiled**\r\n", serverIndex);}
-void ntripServerProcessRTCM(int serverIndex, uint8_t incoming) {}
-void ntripServerStop(int serverIndex, bool shutdown) {online.ntripServer[serverIndex] = false;}
-void ntripServerUpdate() {}
-void ntripServerValidateTables() {}
-bool ntripServerIsCasting(int serverIndex) {
-    return (false);
-}
-
-//----------------------------------------
-// TCP client
-//----------------------------------------
-
-void tcpClientDiscardBytes(RING_BUFFER_OFFSET previousTail, RING_BUFFER_OFFSET newTail) {}
-int32_t tcpClientSendData(uint16_t dataHead) {return 0;}
-void tcpClientUpdate() {}
-void tcpClientValidateTables() {}
-void tcpClientZeroTail() {}
-
-//----------------------------------------
-// TCP server
-//----------------------------------------
-
-void tcpServerDiscardBytes(RING_BUFFER_OFFSET previousTail, RING_BUFFER_OFFSET newTail) {}
-int32_t tcpServerSendData(uint16_t dataHead) {return 0;}
-void tcpServerZeroTail() {}
-void tcpServerValidateTables() {}
-
-//----------------------------------------
-// UDP server
-//----------------------------------------
-
-void udpServerDiscardBytes(RING_BUFFER_OFFSET previousTail, RING_BUFFER_OFFSET newTail) {}
-int32_t udpServerSendData(uint16_t dataHead) {return 0;}
-void udpServerStop() {}
-void udpServerUpdate() {}
-void udpServerZeroTail() {}
-
 #endif // COMPILE_NETWORK
 
 //----------------------------------------
@@ -132,6 +71,18 @@ void otaVerifyTables() {}
 #endif  // COMPILE_OTA_AUTO
 
 //----------------------------------------
+// HTTP Client
+//----------------------------------------
+
+#ifndef COMPILE_HTTP_CLIENT
+
+void httpClientPrintStatus() {}
+void httpClientUpdate() {}
+void httpClientValidateTables() {}
+
+#endif   // COMPILE_HTTP_CLIENT
+
+//----------------------------------------
 // MQTT Client
 //----------------------------------------
 
@@ -147,16 +98,77 @@ void mqttClientValidateTables() {}
 #endif   // COMPILE_MQTT_CLIENT
 
 //----------------------------------------
-// HTTP Client
+// NTP: Network Time Protocol
 //----------------------------------------
 
-#ifndef COMPILE_HTTP_CLIENT
+#ifndef COMPILE_NTP
+void menuNTP() {systemPrint("**NTP not compiled**");}
+void ntpServerBegin() {}
+void ntpServerUpdate() {}
+void ntpValidateTables() {}
+void ntpServerStop() {}
+#endif  // COMPILE_NTP
 
-void httpClientPrintStatus() {}
-void httpClientUpdate() {}
-void httpClientValidateTables() {}
+//----------------------------------------
+// NTRIP client
+//----------------------------------------
 
-#endif   // COMPILE_HTTP_CLIENT
+#ifndef COMPILE_NTRIP_CLIENT
+void ntripClientPrintStatus() {systemPrintln("**NTRIP Client not compiled**");}
+void ntripClientPushGGA(const char * ggaString) {}
+void ntripClientStop(bool clientAllocated) {online.ntripClient = false;}
+void ntripClientUpdate() {}
+void ntripClientValidateTables() {}
+#endif   // COMPILE_NTRIP_CLIENT
+
+//----------------------------------------
+// NTRIP server
+//----------------------------------------
+
+#ifndef COMPILE_NTRIP_SERVER
+bool ntripServerIsCasting(int serverIndex) {return false;}
+void ntripServerPrintStatus(int serverIndex) {systemPrintf("**NTRIP Server %d not compiled**\r\n", serverIndex);}
+void ntripServerProcessRTCM(int serverIndex, uint8_t incoming) {}
+void ntripServerStop(int serverIndex, bool shutdown) {online.ntripServer[serverIndex] = false;}
+void ntripServerUpdate() {}
+void ntripServerValidateTables() {}
+#endif   // COMPILE_NTRIP_SERVER
+
+//----------------------------------------
+// TCP client
+//----------------------------------------
+
+#ifndef COMPILE_TCP_CLIENT
+void tcpClientDiscardBytes(RING_BUFFER_OFFSET previousTail, RING_BUFFER_OFFSET newTail) {}
+int32_t tcpClientSendData(uint16_t dataHead) {return 0;}
+void tcpClientUpdate() {}
+void tcpClientValidateTables() {}
+void tcpClientZeroTail() {}
+#endif  // COMPILE_TCP_CLIENT
+
+//----------------------------------------
+// TCP server
+//----------------------------------------
+
+#ifndef COMPILE_TCP_SERVER
+void tcpServerDiscardBytes(RING_BUFFER_OFFSET previousTail, RING_BUFFER_OFFSET newTail) {}
+int32_t tcpServerSendData(uint16_t dataHead) {return 0;}
+void tcpServerUpdate() {}
+void tcpServerValidateTables() {}
+void tcpServerZeroTail() {}
+#endif  // COMPILE_TCP_SERVER
+
+//----------------------------------------
+// UDP server
+//----------------------------------------
+
+#ifndef COMPILE_UDP_SERVER
+void udpServerDiscardBytes(RING_BUFFER_OFFSET previousTail, RING_BUFFER_OFFSET newTail) {}
+int32_t udpServerSendData(uint16_t dataHead) {return 0;}
+void udpServerStop() {}
+void udpServerUpdate() {}
+void udpServerZeroTail() {}
+#endif  // COMPILE_UDP_SERVER
 
 //----------------------------------------
 // Web Server
@@ -177,10 +189,33 @@ void webServerSettingsClone()   {}
 void webServerStop() {}
 void webServerUpdate()  {}
 void webServerVerifyTables() {}
+bool wifiAfterCommand(int cmdIndex){return false;}
 void wifiSettingsClone() {}
 bool webServerIsRunning() {return false;}
 
 #endif  // COMPILE_AP
+
+//----------------------------------------
+// Global Bluetooth Routines
+//----------------------------------------
+
+#ifndef COMPILE_BT
+int     bluetoothCommandAvailable() {return 0;}
+bool    bluetoothCommandIsConnected() {return false;}
+uint8_t bluetoothCommandRead() {return 0;}
+int     bluetoothCommandWrite(const uint8_t *buffer, int length) {return 0;}
+void    bluetoothFlush() {}
+byte    bluetoothGetState() {return BT_OFF;}
+void    bluetoothPrintStatus() {}
+uint8_t bluetoothRead() {return 0;}
+int     bluetoothRxDataAvailable() {return 0;}
+void    bluetoothSendBatteryPercent(int batteryLevelPercent) {}
+void    bluetoothStart() {}
+void    bluetoothStartSkipOnlineCheck() {}
+void    bluetoothStop() {}
+void    bluetoothUpdate() {}
+int     bluetoothWrite(const uint8_t *buffer, int length) {return 0;}
+#endif  // COMPILE_BT
 
 //----------------------------------------
 // ESP-NOW
@@ -201,6 +236,22 @@ bool espNowStop()                       {return true;}
 void espNowUpdate()                     {}
 
 #endif   // COMPILE_ESPNOW
+
+//----------------------------------------
+// LoRa
+//----------------------------------------
+
+#ifndef COMPILE_LORA
+void beginLoraFirmwareUpdate() {}
+bool checkUpdateLoraFirmware() {return false;}
+bool createLoRaPassthrough() {return false;}
+void loraGetVersion() {}
+void loraPowerOff() {}
+void loraProcessRTCM(uint8_t *rtcmData, uint16_t dataLength) {}
+void muxSelectUm980() {}
+void muxSelectUsb() {}
+void updateLora() {}
+#endif  // COMPILE_LORA
 
 //----------------------------------------
 // WiFi
@@ -239,13 +290,25 @@ void wifiVerifyTables()                         {}
 
 void menuTilt() {}
 void nmeaApplyCompensation(char *nmeaSentence, int arraySize) {}
-void tiltUpdate() {}
-void tiltStop() {}
-void tiltSensorFactoryReset() {}
+void tiltDetect() {systemPrintln("**Tilt Not Compiled**");}
 bool tiltIsCorrecting() {return(false);}
 void tiltRequestStop() {}
+void tiltSensorFactoryReset() {}
+void tiltStop() {}
+void tiltUpdate() {}
 
 #endif  // COMPILE_IM19_IMU
+
+//----------------------------------------
+// MP2762A Charger
+//----------------------------------------
+
+#ifndef COMPILE_MP2762A_CHARGER
+bool mp2762Begin(TwoWire *i2cBus, uint16_t volts, uint16_t milliamps) {return false;}
+uint16_t mp2762getBatteryVoltageMv() {return 0;}
+uint8_t mp2762getChargeStatus() {return 0;}
+void mp2762resetSafetyTimer() {}
+#endif  // COMPILE_MP2762A_CHARGER
 
 //----------------------------------------
 // UM980
@@ -284,6 +347,7 @@ bool sendGnssToPpl(uint8_t *buffer, int numDataBytes) {return false;}
 bool sendSpartnToPpl(uint8_t *buffer, int numDataBytes) {return false;}
 bool sendAuxSpartnToPpl(uint8_t *buffer, int numDataBytes) {return false;}
 void pointperfectPrintKeyInformation(const char *requestedBy) {systemPrintln("**PPL Not Compiled**");}
+void pointperfectPrintNtripInformation(const char *requestedBy) {}
 
 #endif  // COMPILE_POINTPERFECT_LIBRARY
 

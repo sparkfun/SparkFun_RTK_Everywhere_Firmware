@@ -358,8 +358,10 @@ void GNSS_UM980::disableAllOutput()
         response &= _um980->disableOutputPort("COM2");
         response &= _um980->disableOutputPort("COM3");
         if (response)
-            break;
+            return;
     }
+
+    systemPrintln("UM980 failed to disable output");
 }
 
 //----------------------------------------

@@ -37,7 +37,7 @@ static const char *const webServerStateNames[] = {
     webServer->on(page, HTTP_GET, []() {                                                                               \
         String length;                                                                                                 \
         if (settings.debugWebServer == true)                                                                           \
-            systemPrintf("WebServer: Sending %s (%p, %d bytes)\r\n", page, (void *)data, sizeof(data));               \
+            systemPrintf("WebServer: Sending %s (%p, %d bytes)\r\n", page, (void *)data, sizeof(data));                \
         webServer->sendHeader("Content-Encoding", "gzip");                                                             \
         length = String(sizeof(data));                                                                                 \
         webServer->sendHeader("Content-Length", length.c_str());                                                       \
@@ -63,8 +63,8 @@ static int last_ws_fd;
 
 static TaskHandle_t updateWebServerTaskHandle;
 static const uint8_t updateWebServerTaskPriority = 0; // 3 being the highest, and 0 being the lowest
-static const int webServerTaskStackSize = 1024 * 4; // Needs to be large enough to hold the file manager file list
-static const int webSocketStackSize = 1024 * 20; // Needs to be large enough to hold the full settingsCSV
+static const int webServerTaskStackSize = 1024 * 4;   // Needs to be large enough to hold the file manager file list
+static const int webSocketStackSize = 1024 * 20;      // Needs to be large enough to hold the full settingsCSV
 
 // Inspired by:
 // https://github.com/espressif/arduino-esp32/blob/master/libraries/WebServer/examples/MultiHomedServers/MultiHomedServers.ino
@@ -217,7 +217,7 @@ void getFileList(String &returnText)
     returnText += "sdFreeSpace," + freeSpace + ",";
 
     char fileName[50]; // Handle long file names
-
+    
     // Attempt to gain access to the SD card
     if (xSemaphoreTake(sdCardSemaphore, fatSemaphore_longWait_ms) == pdPASS)
     {
@@ -239,6 +239,18 @@ void getFileList(String &returnText)
                 String fileSize;
                 stringHumanReadableSize(fileSize, file.fileSize());
                 returnText += "fmName," + String(fileName) + ",fmSize," + fileSize + ",";
+
+                const int maxFiles = 20; //40 is too much
+                const int fileNameLength = 50;
+                const int maxStringLength = maxFiles * fileNameLength;
+                // It is not uncommon to have SD cards with 100+ files on them. String can get huge.
+                // Here we arbitrarily limit it. 
+                // This could be larger but, left unchecked, it will absolutely explode the stack.
+                if(returnText.length() > maxStringLength)
+                {
+                    systemPrintf("Limiting file list to %d characters\r\n", maxStringLength);
+                    break;
+                }
             }
         }
 
@@ -673,13 +685,7 @@ bool parseIncomingSettings()
         }
     }
 
-    if (counter < maxAttempts)
-    {
-        // Confirm receipt
-        if (settings.debugWebServer == true)
-            systemPrintln("Sending receipt confirmation of settings");
-        sendStringToWebsocket("confirmDataReceipt,1,");
-    }
+    systemPrintln("Parsing complete");
 
     return (true);
 }

@@ -84,10 +84,15 @@
 #define COMPILE_WIFI     // Comment out to remove WiFi functionality
 #define COMPILE_ETHERNET // Comment out to remove Ethernet (W5500) support
 #define COMPILE_CELLULAR // Comment out to remove cellular modem support
+#define COMPILE_LORA     // COmment out to remove LoRa functionality
 
 #ifdef COMPILE_BT
 #define COMPILE_AUTHENTICATION // Comment out to disable MFi authentication
 #endif
+
+#ifdef COMPILE_ETHERNET
+#define COMPILE_NTP     // Comment out to disable NTP functionality
+#endif  // COMPILE_ETHERNET
 
 #ifdef COMPILE_WIFI
 #define COMPILE_AP     // Requires WiFi. Comment out to remove Access Point functionality
@@ -106,12 +111,18 @@
 #define COMPILE_IM19_IMU             // Comment out to remove IM19_IMU functionality
 #define COMPILE_POINTPERFECT_LIBRARY // Comment out to remove PPL support
 #define COMPILE_BQ40Z50              // Comment out to remove BQ40Z50 functionality
+#define COMPILE_MP2762A_CHARGER      // Comment out to remove MP2762A charger functionality
 
 #if defined(COMPILE_WIFI) || defined(COMPILE_ETHERNET) || defined(COMPILE_CELLULAR)
 #define COMPILE_NETWORK
-#define COMPILE_MQTT_CLIENT // Comment out to remove MQTT Client functionality
-#define COMPILE_OTA_AUTO    // Comment out to disable automatic over-the-air firmware update
-#define COMPILE_HTTP_CLIENT // Comment out to disable HTTP Client (PointPerfect ZTP) functionality
+#define COMPILE_HTTP_CLIENT     // Comment out to disable HTTP Client (PointPerfect ZTP) functionality
+#define COMPILE_MQTT_CLIENT     // Comment out to remove MQTT Client functionality
+#define COMPILE_NTRIP_CLIENT    // Comment out to remove NTRIP client functionality
+#define COMPILE_NTRIP_SERVER    // Comment out to remove NTRIP server functionality
+#define COMPILE_OTA_AUTO        // Comment out to disable automatic over-the-air firmware update
+#define COMPILE_TCP_CLIENT      // Comment out to remove TCP client functionality
+#define COMPILE_TCP_SERVER      // Comment out to remove TCP server functionality
+#define COMPILE_UDP_SERVER      // Comment out to remove UDP server functionality
 #endif                      // COMPILE_WIFI || COMPILE_ETHERNET || COMPILE_CELLULAR
 
 // Always define ENABLE_DEVELOPER to enable its use in conditional statements
@@ -557,6 +568,8 @@ float batteryChargingPercentPerHour;
 #include "bluetoothSelect.h"
 #endif // COMPILE_BT
 
+BluetoothRadioType_e bluetoothRadioPreviousOnType = BLUETOOTH_RADIO_OFF;
+
 // This value controls the data that is output from the USB serial port
 // to the host PC.  By default (false) status and debug messages are output
 // to the USB serial port.  When this value is set to true then the status
@@ -603,7 +616,7 @@ uint8_t *ringBuffer; // Buffer for reading from GNSS receiver. At 230400bps, 230
 const int gnssReadTaskStackSize = 8000;
 const size_t sempGnssReadBufferSize = 8000; // Make the SEMP buffer size the ~same
 
-const int handleGnssDataTaskStackSize = 3000;
+const int handleGnssDataTaskStackSize = 4000;
 
 TaskHandle_t pinBluetoothTaskHandle; // Dummy task to start hardware on an assigned core
 volatile bool bluetoothPinned;       // This variable is touched by core 0 but checked by core 1. Must be volatile.
@@ -710,6 +723,7 @@ float lBandEBNO; // Used on system status menu
 // ESP-NOW Globals - For other module direct access
 bool espNowIncomingRTCM;
 bool espNowOutgoingRTCM;
+bool espnowRequestPair = false; // Modified by states.ino, menuRadio, or CLI
 int espNowRSSI;
 const uint8_t espNowBroadcastAddr[6] = {0xff, 0xff, 0xff, 0xff, 0xff, 0xff};
 
@@ -732,6 +746,7 @@ IPAddress ethernetSubnetMask;
 // };
 volatile struct timeval ethernetNtpTv; // This will hold the time the Ethernet NTP packet arrived
 bool ntpLogIncreasing;
+bool ethernetRestartRequested = false; // Perform ETH.end() to disconnect TCP resources
 #endif // COMPILE_ETHERNET
 
 unsigned long lastEthernetCheck; // Prevents cable checking from continually happening
@@ -866,7 +881,42 @@ uint32_t rtcmLastPacketSent; // Time stamp of RTCM going out (to NTRIP Server, E
 
 uint32_t maxSurveyInWait_s = 60L * 15L; // Re-start survey-in after X seconds
 
-uint32_t lastSetupMenuChange; // Limits how much time is spent in the setup menu
+typedef struct {
+    volatile unsigned long timer;
+
+    SemaphoreHandle_t updateSemaphore = NULL;
+
+    void setTimerToMillis()
+    {
+        if (updateSemaphore == NULL)
+            updateSemaphore = xSemaphoreCreateMutex();
+        if (xSemaphoreTake(updateSemaphore, 10 / portTICK_PERIOD_MS) == pdPASS)
+        {
+            timer = millis();
+            xSemaphoreGive(updateSemaphore);
+        }
+    }
+
+    unsigned long millisSinceUpdate()
+    {
+        unsigned long retVal = 0;
+        if (updateSemaphore == NULL)
+            updateSemaphore = xSemaphoreCreateMutex();
+        if (xSemaphoreTake(updateSemaphore, 10 / portTICK_PERIOD_MS) == pdPASS)
+        {
+            // The semaphore prevents the race condition where timer is updated after
+            // millis() is read but before the subtraction. It prevents retVal from underflowing
+            retVal = millis() - timer;
+            xSemaphoreGive(updateSemaphore);
+        }
+        return retVal;
+    }
+} semaphoreProtectedTimer;
+// Needs a mutex because the timer is updated by the button task
+// but read by stateUpdate the loop. Prevents a race condition
+// and the occasional glitching seen in the button menu
+semaphoreProtectedTimer lastSetupMenuChange; // Limits how much time is spent in the setup menu
+
 uint32_t lastTestMenuChange;  // Avoids exiting the test menu for at least 1 second
 uint8_t setupSelectedButton =
     0; // In Display Setup, start displaying at this button. This is the selected (highlighted) button.
@@ -903,7 +953,7 @@ uint32_t max_idle_count = MAX_IDLE_TIME_COUNT;
 bool bluetoothIncomingRTCM;
 bool bluetoothOutgoingRTCM;
 bool netIncomingRTCM;
-bool netOutgoingRTCM;
+volatile bool netOutgoingRTCM;
 volatile bool mqttClientDataReceived; // Flag for display
 
 uint16_t failedParserMessages_UBX;
@@ -937,6 +987,7 @@ int16_t *commandIndex;
 
 bool usbSerialIsSelected = true;      // Goes false when switch U18 is moved from CH34x to LoRa
 unsigned long loraLastIncomingSerial; // Last time a user sent a serial command. Used in LoRa timeouts.
+char loraFirmwareVersion[25] = {'\0'};
 
 //-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 
@@ -1552,7 +1603,7 @@ bool logLengthExceeded() // Limit individual files to maxLogLength_minutes
 
     if (nextLogTime_ms == 0) // Keep logging if nextLogTime_ms has not been set
         return false;
-    
+
     // Note: this will roll over every 49.71 days...
     // Solution: https://stackoverflow.com/a/3097744 - see issue #742
     return (!((long)(nextLogTime_ms - millis()) > 0));
@@ -1628,7 +1679,7 @@ void logUpdate()
                     {
                         // Calculate generation and write speeds every 5 seconds
                         uint64_t fileSizeDelta = logFileSize - lastLogSize;
-                        systemPrintf(" - Generation rate: %0.1fkB/s", ((float)fileSizeDelta) / 5.0 / 1000.0);
+                        systemPrintf(" - Generation rate: %0.1fkB/s", ((double)fileSizeDelta) / 5.0 / 1000.0);
                     }
                     else
                     {
@@ -1645,7 +1696,8 @@ void logUpdate()
                 }
                 else
                 {
-                    log_d("No increase in file size");
+                    if ((settings.enablePrintLogFileStatus) && (!inMainMenu))
+                        systemPrintf("No increase in file size: %llu -> %llu\r\n", lastLogSize, logFileSize);
                     logIncreasing = false;
 
                     endSD(false, true); // alreadyHaveSemaphore, releaseSemaphore

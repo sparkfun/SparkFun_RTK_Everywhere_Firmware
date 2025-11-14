@@ -117,7 +117,7 @@ NtripClient.ino
 
   =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=*/
 
-#ifdef COMPILE_NETWORK
+#ifdef COMPILE_NTRIP_CLIENT
 
 //----------------------------------------
 // Constants
@@ -218,10 +218,11 @@ bool ntripClientConnect()
     char hostname[51];
     strncpy(hostname, settings.ntripClient_CasterHost,
             sizeof(hostname) - 1); // strtok modifies string to be parsed so we create a copy
-    char *token = strtok(hostname, "//");
+    char *preservedPointer;
+    char *token = strtok_r(hostname, "//", &preservedPointer);
     if (token != nullptr)
     {
-        token = strtok(nullptr, "//"); // Advance to data after //
+        token = strtok_r(nullptr, "//", &preservedPointer); // Advance to data after //
         if (token != nullptr)
             strcpy(settings.ntripClient_CasterHost, token);
     }
@@ -500,6 +501,34 @@ void ntripClientPrintStatus()
         systemPrint(" Uptime: ");
         systemPrintf("%d %02d:%02d:%02d.%03lld (Reconnects: %d)\r\n", days, hours, minutes, seconds, milliseconds,
                      ntripClientConnectionAttemptsTotal);
+    }
+}
+
+//----------------------------------------
+// Push GGA string to the NTRIP caster
+//----------------------------------------
+void ntripClientPushGGA(const char * ggaString)
+{
+    // Wait until the client has been created
+    if (ntripClient != nullptr)
+    {
+        // Provide the caster with our current position as needed
+        if (ntripClient->connected() && settings.ntripClient_TransmitGGA == true)
+        {
+            if ((millis() - lastGGAPush) > NTRIPCLIENT_MS_BETWEEN_GGA)
+            {
+                lastGGAPush = millis();
+
+                if ((settings.debugNtripClientRtcm || PERIODIC_DISPLAY(PD_NTRIP_CLIENT_GGA)) && !inMainMenu)
+                {
+                    PERIODIC_CLEAR(PD_NTRIP_CLIENT_GGA);
+                    systemPrintf("NTRIP Client pushing GGA to server: %s", ggaString);
+                }
+
+                // Push the current GGA sentence to caster
+                ntripClient->write((const uint8_t *)ggaString, strlen(ggaString));
+            }
+        }
     }
 }
 
@@ -992,4 +1021,4 @@ void ntripClientValidateTables()
         reportFatalError("Fix ntripClientStateNameEntries to match NTRIPClientState");
 }
 
-#endif // COMPILE_NETWORK
+#endif  // COMPILE_NTRIP_CLIENT

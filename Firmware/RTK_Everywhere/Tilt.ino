@@ -1021,8 +1021,6 @@ void applyCompensationGGA(char *nmeaSentence, int sentenceLength)
         systemPrintf("Compensated GNGGA:\r\n%s\r\n", nmeaSentence);
 }
 
-#endif // COMPILE_IM19_IMU
-
 // Determine if a tilt sensor is available or not
 // Records outcome to NVM
 void tiltDetect()
@@ -1042,7 +1040,6 @@ void tiltDetect()
     if (settings.testedTilt == true)
         return;
 
-#ifdef COMPILE_IM19_IMU
     // Locally instantiate the library and hardware so it will release on exit
     IM19 *tiltSensor;
 
@@ -1073,12 +1070,10 @@ void tiltDetect()
     }
 
     SerialTiltTest.end(); // Release UART1 for reuse
-#else
-    systemPrintln("<<<<<<<<<< !!!!!!!!!! TILT NOT COMPILED !!!!!!!!!! >>>>>>>>>>");
-#endif // COMPILE_IM19_IMU
-
     systemPrintf("Tilt sensor %sdetected\r\n", settings.detectedTilt ? "" : "not ");
     settings.testedTilt = true; // Record this test so we don't do it again
     recordSystemSettings();
     return;
 }
+
+#endif // COMPILE_IM19_IMU

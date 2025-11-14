@@ -585,10 +585,11 @@ CoordinateInputType coordinateIdentifyInputType(const char *userEntryOriginal, d
     {
         coordinateInputType = COORDINATE_INPUT_TYPE_DD_MM_DASH;
 
-        char *token = strtok(userEntry, "-"); // Modifies the given array
+        char *preservedPointer;
+        char *token = strtok_r(userEntry, "-", &preservedPointer); // Modifies the given array
         // We trust that token points at something because the dashCount is > 0
         int decimal = atoi(token); // Get DD
-        token = strtok(nullptr, "-");
+        token = strtok_r(nullptr, "-", &preservedPointer);
         double minutes = atof(token); // Get MM.mmmmmmm
         *coordinate = decimal + (minutes / 60.0);
         if (negativeSign)
@@ -598,12 +599,13 @@ CoordinateInputType coordinateIdentifyInputType(const char *userEntryOriginal, d
     {
         coordinateInputType = COORDINATE_INPUT_TYPE_DD_MM_SS_DASH;
 
-        char *token = strtok(userEntry, "-"); // Modifies the given array
+        char *preservedPointer;
+        char *token = strtok_r(userEntry, "-", &preservedPointer); // Modifies the given array
         // We trust that token points at something because the spaceCount is > 0
         int decimal = atoi(token); // Get DD
-        token = strtok(nullptr, "-");
+        token = strtok_r(nullptr, "-", &preservedPointer);
         int minutes = atoi(token); // Get MM
-        token = strtok(nullptr, "-");
+        token = strtok_r(nullptr, "-", &preservedPointer);
 
         // Find '.'
         char *decimalPtr = strchr(token, '.');
@@ -626,10 +628,11 @@ CoordinateInputType coordinateIdentifyInputType(const char *userEntryOriginal, d
     {
         coordinateInputType = COORDINATE_INPUT_TYPE_DD_MM;
 
-        char *token = strtok(userEntry, " "); // Modifies the given array
+        char *preservedPointer;
+        char *token = strtok_r(userEntry, " ", &preservedPointer); // Modifies the given array
         // We trust that token points at something because the spaceCount is > 0
         int decimal = atoi(token); // Get DD
-        token = strtok(nullptr, " ");
+        token = strtok_r(nullptr, " ", &preservedPointer);
         double minutes = atof(token); // Get MM.mmmmmmm
         *coordinate = decimal + (minutes / 60.0);
         if (negativeSign)
@@ -639,12 +642,13 @@ CoordinateInputType coordinateIdentifyInputType(const char *userEntryOriginal, d
     {
         coordinateInputType = COORDINATE_INPUT_TYPE_DD_MM_SS;
 
-        char *token = strtok(userEntry, " "); // Modifies the given array
+        char *preservedPointer;
+        char *token = strtok_r(userEntry, " ", &preservedPointer); // Modifies the given array
         // We trust that token points at something because the spaceCount is > 0
         int decimal = atoi(token); // Get DD
-        token = strtok(nullptr, " ");
+        token = strtok_r(nullptr, " ", &preservedPointer);
         int minutes = atoi(token); // Get MM
-        token = strtok(nullptr, " ");
+        token = strtok_r(nullptr, " ", &preservedPointer);
 
         // Find '.'
         char *decimalPtr = strchr(token, '.');
