@@ -55,7 +55,7 @@ tcpServer.ino
            a new connection to the TCP server.
 */
 
-#ifdef COMPILE_NETWORK
+#ifdef COMPILE_TCP_SERVER
 
 //----------------------------------------
 // Constants
@@ -802,4 +802,4 @@ void tcpServerZeroTail()
         tcpServerClientTails[index] = 0;
 }
 
-#endif // COMPILE_NETWORK
+#endif // COMPILE_TCP_SERVER

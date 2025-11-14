@@ -63,15 +63,6 @@ void networkValidateIndex(NetIndex_t index) {}
 void networkVerifyTables() {}
 
 //----------------------------------------
-// TCP server
-//----------------------------------------
-
-void tcpServerDiscardBytes(RING_BUFFER_OFFSET previousTail, RING_BUFFER_OFFSET newTail) {}
-int32_t tcpServerSendData(uint16_t dataHead) {return 0;}
-void tcpServerZeroTail() {}
-void tcpServerValidateTables() {}
-
-//----------------------------------------
 // UDP server
 //----------------------------------------
 
@@ -162,6 +153,18 @@ void tcpClientUpdate() {}
 void tcpClientValidateTables() {}
 void tcpClientZeroTail() {}
 #endif  // COMPILE_TCP_CLIENT
+
+//----------------------------------------
+// TCP server
+//----------------------------------------
+
+#ifndef COMPILE_TCP_SERVER
+void tcpServerDiscardBytes(RING_BUFFER_OFFSET previousTail, RING_BUFFER_OFFSET newTail) {}
+int32_t tcpServerSendData(uint16_t dataHead) {return 0;}
+void tcpServerUpdate() {}
+void tcpServerValidateTables() {}
+void tcpServerZeroTail() {}
+#endif  // COMPILE_TCP_SERVER
 
 //----------------------------------------
 // Web Server
