@@ -3,27 +3,17 @@
   mode (ENABLE_DEVELOPER defined).
 */
 
-#ifndef COMPILE_ETHERNET
-
 //----------------------------------------
 // Ethernet
 //----------------------------------------
+
+#ifndef COMPILE_ETHERNET
 
 bool ethernetLinkUp() {return false;}
 void menuEthernet()   {systemPrintln("**Ethernet not compiled**");}
 void ethernetUpdate() {}
 
 bool ntpLogIncreasing = false;
-
-//----------------------------------------
-// NTP: Network Time Protocol
-//----------------------------------------
-
-void menuNTP() {systemPrint("**NTP not compiled**");}
-void ntpServerBegin() {}
-void ntpServerUpdate() {}
-void ntpValidateTables() {}
-void ntpServerStop() {}
 
 #endif // COMPILE_ETHERNET
 
@@ -106,6 +96,18 @@ void mqttClientUpdate() {}
 void mqttClientValidateTables() {}
 
 #endif   // COMPILE_MQTT_CLIENT
+
+//----------------------------------------
+// NTP: Network Time Protocol
+//----------------------------------------
+
+#ifndef COMPILE_NTP
+void menuNTP() {systemPrint("**NTP not compiled**");}
+void ntpServerBegin() {}
+void ntpServerUpdate() {}
+void ntpValidateTables() {}
+void ntpServerStop() {}
+#endif  // COMPILE_NTP
 
 //----------------------------------------
 // NTRIP client

@@ -77,6 +77,11 @@ sed -i 's|#define COMPILE_MOSAICX5|//#define COMPILE_MOSAICX5|' RTK_Everywhere.i
 make
 git reset --hard --quiet  HEAD
 
+# NTP Server
+sed -i 's|#define COMPILE_NTP|//#define COMPILE_NTP|' RTK_Everywhere.ino
+make
+git reset --hard --quiet  HEAD
+
 # NTRIP Client
 sed -i 's|#define COMPILE_NTRIP_CLIENT|//#define COMPILE_NTRIP_CLIENT|' RTK_Everywhere.ino
 make
