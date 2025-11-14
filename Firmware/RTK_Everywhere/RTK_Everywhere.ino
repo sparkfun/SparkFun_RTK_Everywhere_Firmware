@@ -121,6 +121,7 @@
 #define COMPILE_NTRIP_SERVER    // Comment out to remove NTRIP server functionality
 #define COMPILE_OTA_AUTO        // Comment out to disable automatic over-the-air firmware update
 #define COMPILE_TCP_CLIENT      // Comment out to remove TCP client functionality
+#define COMPILE_TCP_SERVER      // Comment out to remove TCP server functionality
 #endif                      // COMPILE_WIFI || COMPILE_ETHERNET || COMPILE_CELLULAR
 
 // Always define ENABLE_DEVELOPER to enable its use in conditional statements
