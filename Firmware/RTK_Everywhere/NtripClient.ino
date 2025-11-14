@@ -200,6 +200,8 @@ unsigned long lastGGAPush;
 
 bool ntripClientForcedShutdown = false; // NTRIP Client was turned off due to an error. Don't allow restart.
 
+bool settingsChanged = false; // Goes true when a menu or command modified the client credentials
+
 //----------------------------------------
 // NTRIP Client Routines
 //----------------------------------------
@@ -229,7 +231,8 @@ bool ntripClientConnect()
         systemPrintf("NTRIP Client connecting to %s:%d\r\n", settings.ntripClient_CasterHost,
                      settings.ntripClient_CasterPort);
 
-    int connectResponse = ntripClient->connect(settings.ntripClient_CasterHost, settings.ntripClient_CasterPort, NTRIP_CLIENT_RESPONSE_TIMEOUT);
+    int connectResponse = ntripClient->connect(settings.ntripClient_CasterHost, settings.ntripClient_CasterPort,
+                                               NTRIP_CLIENT_RESPONSE_TIMEOUT);
 
     if (connectResponse < 1)
     {
@@ -391,6 +394,13 @@ bool ntripClientEnabled(const char **line)
 
         // Verify still enabled
         enabled = settings.enableNtripClient;
+
+        // Allow restart if settings change
+        if(settingsChanged == true)
+        {
+            settingsChanged = false;
+            ntripClientForcedShutdown = false;
+        }
 
         // Determine if the shutdown is being forced
         if (enabled && ntripClientForcedShutdown)
@@ -587,6 +597,12 @@ void ntripClientSetState(uint8_t newState)
     }
 }
 
+// Called from CLI call backs or serial menus to let machine know it can restart the client if it is shut down
+void ntripClientSettingsChanged()
+{
+    settingsChanged = true;
+}
+
 //----------------------------------------
 // Start the NTRIP client
 //----------------------------------------
@@ -624,8 +640,9 @@ void ntripClientStop(bool shutdown)
         // Mark the Client stop so that we don't immediately attempt re-connect to Caster
         ntripClientTimer = millis();
 
-    // Return the Main Talker ID to "GN".
-    gnss->setTalkerGNGGA();
+    // If we modified the GGA report rate, return it to whatever is in settings
+    if (settings.ntripClient_TransmitGGA == true)
+        gnssConfigure(GNSS_CONFIG_MESSAGE_RATE_NMEA); // Request configure so that GGA returns to user defined setting
 
     // Determine the next NTRIP client state
     online.ntripClient = false;
@@ -823,9 +840,7 @@ void ntripClientUpdate()
 
                     if (settings.ntripClient_TransmitGGA == true)
                     {
-                        // Set the Main Talker ID to "GP". The NMEA GGA messages will be GPGGA instead of GNGGA
-                        // Tell the module to output GGA every 5 seconds
-                        gnss->enableGgaForNtrip();
+                        gnssConfigure(GNSS_CONFIG_MESSAGE_RATE_NMEA); // Request configure so that GGA gets enabled
 
                         lastGGAPush =
                             millis() - NTRIPCLIENT_MS_BETWEEN_GGA; // Force immediate transmission of GGA message
@@ -900,8 +915,14 @@ void ntripClientUpdate()
                     systemPrintln("NTRIP Client resetting connection attempt counter and timeout");
             }
 
+            // Check if the there have been changes to the client settings
+            if(settingsChanged == true)
+            {
+                settingsChanged = false;
+                ntripClientRestart();
+            }
             // Check for timeout receiving NTRIP data
-            if (ntripClientReceiveDataAvailable() == 0)
+            else if (ntripClientReceiveDataAvailable() == 0)
             {
                 // Don't fail during retransmission attempts
                 if ((millis() - ntripClientTimer) > NTRIP_CLIENT_RECEIVE_DATA_TIMEOUT)
@@ -954,7 +975,7 @@ void ntripClientUpdate()
                             sempParseNextBytes(rtcmParse, rtcmData, rtcmCount); // Parse the data for RTCM1005/1006
 
                             if ((settings.debugCorrections || settings.debugNtripClientRtcm ||
-                                    PERIODIC_DISPLAY(PD_NTRIP_CLIENT_DATA)) &&
+                                 PERIODIC_DISPLAY(PD_NTRIP_CLIENT_DATA)) &&
                                 (!inMainMenu))
                             {
                                 PERIODIC_CLEAR(PD_NTRIP_CLIENT_DATA);
@@ -964,7 +985,7 @@ void ntripClientUpdate()
                         else
                         {
                             if ((settings.debugCorrections || settings.debugNtripClientRtcm ||
-                                    PERIODIC_DISPLAY(PD_NTRIP_CLIENT_DATA)) &&
+                                 PERIODIC_DISPLAY(PD_NTRIP_CLIENT_DATA)) &&
                                 (!inMainMenu))
                             {
                                 PERIODIC_CLEAR(PD_NTRIP_CLIENT_DATA);

@@ -15,6 +15,10 @@ GNSS_UM980.ino
 
 #ifdef COMPILE_UM980
 
+bool um980MessagesEnabled_NMEA = false;       // Goes true when we enable NMEA messages
+bool um980MessagesEnabled_RTCM_Rover = false; // Goes true when we enable RTCM Rover messages
+bool um980MessagesEnabled_RTCM_Base = false;  // Goes true when we enable RTCM Base messages
+
 //----------------------------------------
 // If we have decryption keys, configure module
 // Note: don't check online.lband_neo here. We could be using ip corrections
@@ -70,7 +74,7 @@ void GNSS_UM980::begin()
     _um980 = new UM980();
 
     // In order to reduce UM980 configuration time, the UM980 library blocks the start of BESTNAV and RECTIME until 3D
-    // fix is achieved However, if all NMEA messages are disabled, the UM980 will never detect a 3D fix.
+    // fix is achieved. However, if all NMEA messages are disabled, the UM980 will never detect a 3D fix.
     if (isGgaActive())
         // If NMEA GPGGA is turned on, suppress BESTNAV messages until GPGGA reports a 3D fix
         _um980->disableBinaryBeforeFix();
@@ -81,7 +85,7 @@ void GNSS_UM980::begin()
 
     if (_um980->begin(*serialGNSS) == false) // Give the serial port over to the library
     {
-        if (settings.debugGnss)
+        if (settings.debugGnssConfig)
             systemPrintln("GNSS UM980 failed to begin. Trying again.");
 
         // Try again with power on delay
@@ -98,11 +102,9 @@ void GNSS_UM980::begin()
 
     systemPrintln("GNSS UM980 online");
 
+    // Turn on/off debug messages
     if (settings.debugGnss)
-        debuggingEnable(); // Print all debug to Serial
-
-    // Check firmware version and print info
-    printModuleInfo();
+        debuggingEnable();
 
     // Shortly after reset, the UM980 responds to the VERSIONB command with OK but doesn't report version information
     snprintf(gnssFirmwareVersion, sizeof(gnssFirmwareVersion), "%s", _um980->getVersion());
@@ -112,10 +114,11 @@ void GNSS_UM980::begin()
         // Shortly after reset, the UM980 responds to the VERSIONB command with OK but doesn't report version
         // information
         delay(2000); // 1s fails, 2s ok
-
-        // Ask for the version again after a short delay
-        snprintf(gnssFirmwareVersion, sizeof(gnssFirmwareVersion), "%s", _um980->getVersion());
     }
+
+    // Ask for the version again after a short delay
+    // Check firmware version and print info
+    printModuleInfo();
 
     if (sscanf(gnssFirmwareVersion, "%d", &gnssFirmwareVersionInt) != 1)
         gnssFirmwareVersionInt = 99;
@@ -124,8 +127,6 @@ void GNSS_UM980::begin()
 }
 
 //----------------------------------------
-// Setup the timepulse output on the PPS pin for external triggering
-// Setup TM2 time stamp input as need
 //----------------------------------------
 bool GNSS_UM980::beginExternalEvent()
 {
@@ -133,13 +134,19 @@ bool GNSS_UM980::beginExternalEvent()
     return (false);
 }
 
-//----------------------------------------
-// Setup the timepulse output on the PPS pin for external triggering
-//----------------------------------------
-bool GNSS_UM980::beginPPS()
+// Configure the Pulse-per-second pin based on user settings
+bool GNSS_UM980::setPPS()
 {
-    // UM980 PPS signal not exposed
-    return (false);
+    // The PPS signal is not exposed on the Torch so we don't configure the PPS based on internal settings, but we do
+    // configure the PPS so that the GNSS LED blinks
+
+    // Read, modify, write
+    // The UM980 does have the ability to read the current PPS settings from CONFIG output, but this function
+    // gets called very rarely. Just do a write for now.
+
+    // Enable PPS signal with a width of 200ms, and a period of 1 second
+    return (_um980->enablePPS(settings.externalPulseLength_us, settings.externalPulseTimeBetweenPulse_us /
+                                                                   1000)); // widthMicroseconds, periodMilliseconds
 }
 
 //----------------------------------------
@@ -159,130 +166,57 @@ bool GNSS_UM980::checkPPPRates()
 //----------------------------------------
 bool GNSS_UM980::configureBase()
 {
-    /*
-        Disable all messages
-        Start base
-        Enable RTCM Base messages
-        Enable NMEA messages
-    */
+    // If we are already in the appropriate base mode, no changes needed
+    if (settings.fixedBase == false && gnssInBaseSurveyInMode())
+        return (true);
+    if (settings.fixedBase == true && gnssInBaseFixedMode())
+        return (true);
 
-    if (online.gnss == false)
-    {
-        systemPrintln("GNSS not online");
-        return (false);
-    }
-
-    // Trusting the saved configuration does not seem to work on the UM980.
-    // It looks like the GPGGA NMEA output does not restart...?
-    // (Re)configuration is quick. Doing this every time is not much of an overhead.
-    //
-    // if (settings.gnssConfiguredBase)
-    // {
-    //     if (settings.debugGnss)
-    //         systemPrintln("Skipping UM980 Base configuration");
-    //     return true;
-    // }
-
-    disableAllOutput();
-
-    bool response = true;
+    // Assume we are changing from Rover to Base, request any additional config changes
 
     // Set the dynamic mode. This will cancel any base averaging mode and is needed
     // to allow a freshly started device to settle in regular GNSS reception mode before issuing
-    // um980BaseAverageStart().
-    response &= setModel(settings.dynamicModel);
+    // a surveyInStart().
+    gnssConfigure(GNSS_CONFIG_MODEL);
 
-    response &= setMultipathMitigation(settings.enableMultipathMitigation);
+    // Request a change to Base RTCM
+    gnssConfigure(GNSS_CONFIG_MESSAGE_RATE_RTCM_BASE);
 
-    response &= setHighAccuracyService(settings.enableGalileoHas);
-
-    response &= enableRTCMBase(); // Only turn on messages, do not turn off messages. We assume the caller has
-                                  // UNLOG or similar.
-
-    // Only turn on messages, do not turn off messages. We assume the caller has UNLOG or similar.
-    response &= enableNMEA();
-
-    // Save the current configuration into non-volatile memory (NVM)
-    response &= _um980->saveConfiguration();
-
-    if (response == false)
-    {
-        systemPrintln("UM980 Base failed to configure");
-    }
-
-    if (settings.debugGnss)
-        systemPrintln("UM980 Base configured");
-
-    settings.gnssConfiguredBase = response;
-
-    return (response);
+    return (true);
 }
 
 //----------------------------------------
 bool GNSS_UM980::configureOnce()
 {
-    /*
-    Disable all message traffic
-    Set COM port baud rates,
-      UM980 COM1 - Direct to USB, 115200
-      UM980 COM2 - To IMU. From settings.
-      UM980 COM3 - BT, config and LoRa Radio. Configured for 115200 from begin().
-    Set minCNO
-    Set elevationAngle
-    Set Constellations
-    Set messages
-      Enable selected NMEA messages on COM3
-      Enable selected RTCM messages on COM3
-*/
+    bool response = true;
 
-    // // If our settings haven't changed, trust GNSS's settings
-    if (settings.gnssConfiguredOnce)
-    {
-        systemPrintln("UM980 configuration maintained");
-        return (true);
-    }
+    if (settings.debugGnssConfig)
+        systemPrintln("Configuring UM980");
 
-    if (settings.debugGnss)
-        debuggingEnable(); // Print all debug to Serial
+    // Read, modify, write
 
+    // Output must be disabled before sending SIGNALGROUP command in order to get the OK response
     disableAllOutput(); // Disable COM1/2/3
 
-    bool response = true;
-    response &= _um980->setPortBaudrate("COM1", 115200); // COM1 is connected to switch, then USB
-    response &= _um980->setPortBaudrate("COM2", 115200); // COM2 is connected to the IMU
-    response &= _um980->setPortBaudrate("COM3", 115200); // COM3 is connected to the switch, then ESP32
-
-    //  // For now, let's not change the baud rate of the interface. We'll be using the default 115200 for now.
-    //  response &= setBaudRateCOM3(settings.dataPortBaud); // COM3 is connected to ESP UART2
-
-    // Enable PPS signal with a width of 200ms, and a period of 1 second
-    response &= _um980->enablePPS(200000, 1000); // widthMicroseconds, periodMilliseconds
-
-    response &= setElevation(settings.minElev); // UM980 default is 5 degrees. Our default is 10.
-
-    response &= setMinCnoRadio(settings.minCNO);
-
-    response &= setConstellations();
-
-    if (_um980->isConfigurationPresent("CONFIG SIGNALGROUP 2") == false)
+    if (_um980->sendCommand("CONFIG SIGNALGROUP 2") == false)
     {
-        if (_um980->sendCommand("CONFIG SIGNALGROUP 2") == false)
-            systemPrintln("Signal group 2 command failed");
-        else
+        systemPrintln("Signal group 2 command failed");
+        response = false;
+    }
+    else
+    {
+        systemPrintln("Enabling additional reception on UM980. This can take a few seconds.");
+
+        while (1)
         {
-            systemPrintln("Enabling additional reception on UM980. This can take a few seconds.");
-
-            while (1)
-            {
-                delay(1000); // Wait for device to reboot
-                if (_um980->isConnected())
-                    break;
-                else
-                    systemPrintln("UM980 rebooting");
-            }
-
-            systemPrintln("UM980 has completed reboot.");
+            delay(1000); // Wait for device to reboot
+            if (_um980->isConnected())
+                break;
+            else
+                systemPrintln("UM980 rebooting");
         }
+
+        systemPrintln("UM980 has completed reboot.");
     }
 
     if (response)
@@ -290,14 +224,9 @@ bool GNSS_UM980::configureOnce()
         online.gnss = true; // If we failed before, mark as online now
 
         systemPrintln("UM980 configuration updated");
-
-        // Save the current configuration into non-volatile memory (NVM)
-        response &= _um980->saveConfiguration();
     }
     else
         online.gnss = false; // Take it offline
-
-    settings.gnssConfiguredOnce = response;
 
     return (response);
 }
@@ -314,7 +243,7 @@ bool GNSS_UM980::configureNtpMode()
 // Setup the GNSS module for any setup (base or rover)
 // In general we check if the setting is different than setting stored in NVM before writing it.
 //----------------------------------------
-bool GNSS_UM980::configureGNSS()
+bool GNSS_UM980::configure()
 {
     for (int x = 0; x < 3; x++)
     {
@@ -324,10 +253,7 @@ bool GNSS_UM980::configureGNSS()
         // If we fail, reset UM980
         systemPrintln("Resetting UM980 to complete configuration");
 
-        gnssReset();
-        delay(500);
-        gnssBoot();
-        delay(500);
+        reset(); // Hardware reset the UM980
     }
 
     systemPrintln("UM980 failed to configure");
@@ -339,70 +265,25 @@ bool GNSS_UM980::configureGNSS()
 //----------------------------------------
 bool GNSS_UM980::configureRover()
 {
-    /*
-        Disable all message traffic
-        Cancel any survey-in modes
-        Set mode to Rover + dynamic model
-        Set minElevation
-        Enable RTCM messages on COM3
-        Enable NMEA on COM3
-    */
-    if (online.gnss == false)
-    {
-        systemPrintln("GNSS not online");
-        return (false);
-    }
+    // Determine current mode. If we are already in Rover, no changes needed
+    //  0 - Unknown, 1 - Rover Survey, 2 - Rover UAV, 3 - Rover Auto, 4 - Base Survey-in, 5 - Base fixed
+    int currentMode = getMode();
+    if (settings.dynamicModel == UM980_DYN_MODEL_SURVEY && currentMode == 1)
+        return (true);
+    if (settings.dynamicModel == UM980_DYN_MODEL_UAV && currentMode == 2)
+        return (true);
+    if (settings.dynamicModel == UM980_DYN_MODEL_AUTOMOTIVE && currentMode == 3)
+        return (true);
 
-    // Trusting the saved configuration does not seem to work on the UM980.
-    // It looks like the GPGGA NMEA output does not restart...?
-    // (Re)configuration is quick. Doing this every time is not much of an overhead.
-    //
-    // if (settings.gnssConfiguredRover)
-    // {
-    //     systemPrintln("Skipping UM980 Rover configuration");
-    //     return (true);
-    // }
+    // Assume we are changing from Base to Rover, request any additional config changes
 
-    disableAllOutput();
+    // Sets the dynamic model (Survey/UAV/Automotive) and puts the device into Rover mode
+    gnssConfigure(GNSS_CONFIG_MODEL);
 
-    bool response = true;
+    // Request a change to Rover RTCM
+    gnssConfigure(GNSS_CONFIG_MESSAGE_RATE_RTCM_ROVER);
 
-    response &= setModel(settings.dynamicModel); // This will cancel any base averaging mode
-
-    response &= setElevation(settings.minElev); // UM980 default is 5 degrees. Our default is 10.
-
-    response &= setMultipathMitigation(settings.enableMultipathMitigation);
-
-    response &= setHighAccuracyService(settings.enableGalileoHas);
-
-    // Configure UM980 to output binary reports out COM2, connected to IM19 COM3
-    response &= _um980->sendCommand("BESTPOSB COM2 0.2"); // 5Hz
-    response &= _um980->sendCommand("PSRVELB COM2 0.2");
-
-    // Configure UM980 to output NMEA reports out COM2, connected to IM19 COM3
-    response &= _um980->setNMEAPortMessage("GPGGA", "COM2", 0.2); // 5Hz
-
-    // Enable the NMEA sentences and RTCM on COM3 last. This limits the traffic on the config
-    // interface port during config.
-
-    // Only turn on messages, do not turn off messages. We assume the caller has UNLOG or similar.
-    response &= enableRTCMRover();
-    // TODO consider reducing the GSV sentence to 1/4 of the GPGGA setting
-
-    // Only turn on messages, do not turn off messages. We assume the caller has UNLOG or similar.
-    response &= enableNMEA();
-
-    // Save the current configuration into non-volatile memory (NVM)
-    response &= _um980->saveConfiguration();
-
-    if (response == false)
-    {
-        systemPrintln("UM980 Rover failed to configure");
-    }
-
-    settings.gnssConfiguredRover = response;
-
-    return (response);
+    return (true);
 }
 
 //----------------------------------------
@@ -440,6 +321,8 @@ void GNSS_UM980::createMessageListBase(String &returnText)
     }
 }
 
+// GNSS debugging has to be outside of gnssUpdate() because we often need to immediately turn on/off debugging
+// ie, entering the system menu
 //----------------------------------------
 void GNSS_UM980::debuggingDisable()
 {
@@ -461,7 +344,7 @@ void GNSS_UM980::debuggingEnable()
 // Turn off all NMEA and RTCM
 void GNSS_UM980::disableAllOutput()
 {
-    if (settings.debugGnss)
+    if (settings.debugGnssConfig)
         systemPrintln("UM980 disable output");
 
     // Turn off local noise before moving to other ports
@@ -479,171 +362,6 @@ void GNSS_UM980::disableAllOutput()
     }
 
     systemPrintln("UM980 failed to disable output");
-}
-
-//----------------------------------------
-// Disable all output, then re-enable NMEA
-//----------------------------------------
-void GNSS_UM980::disableRTCM()
-{
-    disableAllOutput();
-    enableNMEA();
-}
-
-//----------------------------------------
-void GNSS_UM980::enableGgaForNtrip()
-{
-    // TODO um980EnableGgaForNtrip();
-}
-
-//----------------------------------------
-// Turn on all the enabled NMEA messages on COM3
-//----------------------------------------
-bool GNSS_UM980::enableNMEA()
-{
-    bool response = true;
-    bool gpggaEnabled = false;
-    bool gpzdaEnabled = false;
-
-    for (int messageNumber = 0; messageNumber < MAX_UM980_NMEA_MSG; messageNumber++)
-    {
-        // Only turn on messages, do not turn off messages set to 0. This saves on command sending. We assume the caller
-        // has UNLOG or similar.
-        if (settings.um980MessageRatesNMEA[messageNumber] > 0)
-        {
-            // If any one of the commands fails, report failure overall
-            response &= _um980->setNMEAPortMessage(umMessagesNMEA[messageNumber].msgTextName, "COM3",
-                                                   settings.um980MessageRatesNMEA[messageNumber]);
-
-            if (response == false && settings.debugGnss)
-                systemPrintf("Enable NMEA failed at messageNumber %d %s.\r\n", messageNumber,
-                             umMessagesNMEA[messageNumber].msgTextName);
-
-            // If we are using IP based corrections, we need to send local data to the PPL
-            // The PPL requires being fed GPGGA/ZDA, and RTCM1019/1020/1042/1046
-            if (pointPerfectServiceUsesKeys())
-            {
-                // Mark PPL required messages as enabled if rate > 0
-                if (settings.um980MessageRatesNMEA[messageNumber] > 0)
-                {
-                    if (strcmp(umMessagesNMEA[messageNumber].msgTextName, "GPGGA") == 0)
-                        gpggaEnabled = true;
-                    else if (strcmp(umMessagesNMEA[messageNumber].msgTextName, "GPZDA") == 0)
-                        gpzdaEnabled = true;
-                }
-            }
-        }
-    }
-
-    if (pointPerfectServiceUsesKeys())
-    {
-        // Force on any messages that are needed for PPL
-        if (gpggaEnabled == false)
-            response &= _um980->setNMEAPortMessage("GPGGA", "COM3", 1);
-        if (gpzdaEnabled == false)
-            response &= _um980->setNMEAPortMessage("GPZDA", "COM3", 1);
-    }
-
-    return (response);
-}
-
-//----------------------------------------
-// Turn on all the enabled RTCM Base messages on COM3
-//----------------------------------------
-bool GNSS_UM980::enableRTCMBase()
-{
-    bool response = true;
-
-    for (int messageNumber = 0; messageNumber < MAX_UM980_RTCM_MSG; messageNumber++)
-    {
-        // Only turn on messages, do not turn off messages set to 0. This saves on command sending. We assume the caller
-        // has UNLOG or similar.
-        if (settings.um980MessageRatesRTCMBase[messageNumber] > 0)
-        {
-            // If any one of the commands fails, report failure overall
-            response &= _um980->setRTCMPortMessage(umMessagesRTCM[messageNumber].msgTextName, "COM3",
-                                                   settings.um980MessageRatesRTCMBase[messageNumber]);
-
-            if (response == false && settings.debugGnss)
-                systemPrintf("Enable RTCM failed at messageNumber %d %s.", messageNumber,
-                             umMessagesRTCM[messageNumber].msgTextName);
-        }
-    }
-
-    return (response);
-}
-
-//----------------------------------------
-// Turn on all the enabled RTCM Rover messages on COM3
-//----------------------------------------
-bool GNSS_UM980::enableRTCMRover()
-{
-    bool response = true;
-    bool rtcm1019Enabled = false;
-    bool rtcm1020Enabled = false;
-    bool rtcm1042Enabled = false;
-    bool rtcm1046Enabled = false;
-
-    for (int messageNumber = 0; messageNumber < MAX_UM980_RTCM_MSG; messageNumber++)
-    {
-        // Only turn on messages, do not turn off messages set to 0. This saves on command sending. We assume the caller
-        // has UNLOG or similar.
-        if (settings.um980MessageRatesRTCMRover[messageNumber] > 0)
-        {
-            if (_um980->setRTCMPortMessage(umMessagesRTCM[messageNumber].msgTextName, "COM3",
-                                           settings.um980MessageRatesRTCMRover[messageNumber]) == false)
-            {
-                if (settings.debugGnss)
-                    systemPrintf("Enable RTCM failed at messageNumber %d %s.", messageNumber,
-                                 umMessagesRTCM[messageNumber].msgTextName);
-                response &= false; // If any one of the commands fails, report failure overall
-            }
-
-            // If we are using IP based corrections, we need to send local data to the PPL
-            // The PPL requires being fed GPGGA/ZDA, and RTCM1019/1020/1042/1046
-            if (pointPerfectServiceUsesKeys())
-            {
-                // Mark PPL required messages as enabled if rate > 0
-                if (settings.um980MessageRatesRTCMRover[messageNumber] > 0)
-                {
-                    if (strcmp(umMessagesNMEA[messageNumber].msgTextName, "RTCM1019") == 0)
-                        rtcm1019Enabled = true;
-                    else if (strcmp(umMessagesNMEA[messageNumber].msgTextName, "RTCM1020") == 0)
-                        rtcm1020Enabled = true;
-                    else if (strcmp(umMessagesNMEA[messageNumber].msgTextName, "RTCM1042") == 0)
-                        rtcm1042Enabled = true;
-                    else if (strcmp(umMessagesNMEA[messageNumber].msgTextName, "RTCM1046") == 0)
-                        rtcm1046Enabled = true;
-                }
-            }
-        }
-    }
-
-    if (pointPerfectServiceUsesKeys())
-    {
-        // Force on any messages that are needed for PPL
-        if (rtcm1019Enabled == false)
-            response &= _um980->setRTCMPortMessage("RTCM1019", "COM3", 1);
-        if (rtcm1020Enabled == false)
-            response &= _um980->setRTCMPortMessage("RTCM1020", "COM3", 1);
-        if (rtcm1042Enabled == false)
-            response &= _um980->setRTCMPortMessage("RTCM1042", "COM3", 1);
-        if (rtcm1046Enabled == false)
-            response &= _um980->setRTCMPortMessage("RTCM1046", "COM3", 1);
-    }
-
-    return (response);
-}
-
-//----------------------------------------
-// Enable RTCM 1230. This is the GLONASS bias sentence and is transmitted
-// even if there is no GPS fix. We use it to test serial output.
-// Returns true if successfully started and false upon failure
-//----------------------------------------
-bool GNSS_UM980::enableRTCMTest()
-{
-    // There is no data port on devices with the UM980
-    return false;
 }
 
 //----------------------------------------
@@ -685,10 +403,14 @@ uint16_t GNSS_UM980::fileBufferExtractData(uint8_t *fileBuffer, int fileBytesToR
 //----------------------------------------
 bool GNSS_UM980::fixedBaseStart()
 {
-    bool response = true;
-
     if (online.gnss == false)
         return (false);
+
+    // If we are already in the appropriate base mode, no changes needed
+    if (gnssInBaseFixedMode())
+        return (true);
+
+    bool response = true;
 
     if (settings.fixedBaseCoordinateType == COORD_TYPE_ECEF)
     {
@@ -706,6 +428,32 @@ bool GNSS_UM980::fixedBaseStart()
     }
 
     return (response);
+}
+
+//----------------------------------------
+// Check if given GNSS fix rate is allowed
+// Rates are expressed in ms between fixes.
+//----------------------------------------
+const float um980MinRateHz = 0.02; // 1 / 65 = 0.015384 Hz = Found experimentally
+const float um980MaxRateHz = 20.0; // 20Hz
+
+bool GNSS_UM980::fixRateIsAllowed(uint32_t fixRateMs)
+{
+    if (fixRateMs > (1000.0 / um980MinRateHz) && fixRateMs < (1000.0 / um980MaxRateHz))
+        return (true);
+    return (false);
+}
+
+// Return minimum in milliseconds
+uint32_t GNSS_UM980::fixRateGetMinimumMs()
+{
+    return (1000.0 / um980MinRateHz);
+}
+
+// Return maximum in milliseconds
+uint32_t GNSS_UM980::fixRateGetMaximumMs()
+{
+    return (1000.0 / um980MaxRateHz);
 }
 
 //----------------------------------------
@@ -940,6 +688,23 @@ uint8_t GNSS_UM980::getMinute()
 }
 
 //----------------------------------------
+// Returns the current mode
+// 0 - Unknown, 1 - Rover Survey, 2 - Rover UAV, 3 - Rover Auto, 4 - Base Survey-in, 5 - Base fixed
+//----------------------------------------
+uint8_t GNSS_UM980::getMode()
+{
+    if (online.gnss)
+    {
+        int mode = _um980->getMode();
+        if (settings.debugGnssConfig)
+            systemPrintf("getMode(): %d\r\n", mode);
+
+        return (mode);
+    }
+    return (0);
+}
+
+//----------------------------------------
 // Returns month number or zero if not online
 //----------------------------------------
 uint8_t GNSS_UM980::getMonth()
@@ -1086,16 +851,39 @@ uint16_t GNSS_UM980::getYear()
 }
 
 //----------------------------------------
-// Returns true if the device is in Rover mode
-// Currently the only two modes are Rover or Base
+// Returns true if the device is in Base Fixed mode
 //----------------------------------------
-bool GNSS_UM980::inRoverMode()
+bool GNSS_UM980::gnssInBaseFixedMode()
 {
-    // Determine which state we are in
-    if (settings.lastState == STATE_BASE_NOT_STARTED)
-        return (false);
+    //  0 - Unknown, 1 - Rover Survey, 2 - Rover UAV, 3 - Rover Auto, 4 - Base Survey-in, 5 - Base fixed
+    if (getMode() == 5)
+        return (true);
+    return (false);
+}
 
-    return (true); // Default to Rover
+//----------------------------------------
+// Returns true if the device is in Base Survey-in mode
+//----------------------------------------
+bool GNSS_UM980::gnssInBaseSurveyInMode()
+{
+    //  0 - Unknown, 1 - Rover Survey, 2 - Rover UAV, 3 - Rover Auto, 4 - Base Survey-in, 5 - Base fixed
+    if (getMode() == 4)
+        return (true);
+
+    return (false);
+}
+
+//----------------------------------------
+// Returns true if the device is in Rover mode
+//----------------------------------------
+bool GNSS_UM980::gnssInRoverMode()
+{
+    //  0 - Unknown, 1 - Rover Survey, 2 - Rover UAV, 3 - Rover Auto, 4 - Base Survey-in, 5 - Base fixed
+    int currentMode = getMode();
+    if (currentMode >= 1 && currentMode <= 3)
+        return (true);
+
+    return (false);
 }
 
 // If we issue a library command that must wait for a response, we don't want
@@ -1291,10 +1079,12 @@ void GNSS_UM980::menuConstellations()
             incoming--; // Align choice to constellation array of 0 to 5
 
             settings.um980Constellations[incoming] ^= 1;
+            gnssConfigure(GNSS_CONFIG_CONSTELLATION); // Request receiver to use new settings
         }
         else if ((incoming == MAX_UM980_CONSTELLATIONS + 1) && present.galileoHasCapable)
         {
             settings.enableGalileoHas ^= 1;
+            gnssConfigure(GNSS_CONFIG_HAS_E6); // Request receiver to use new settings
         }
         else if (incoming == INPUT_RESPONSE_GETNUMBER_EXIT)
             break;
@@ -1303,9 +1093,6 @@ void GNSS_UM980::menuConstellations()
         else
             printUnknown(incoming);
     }
-
-    // Apply current settings to module
-    gnss->setConstellations();
 
     clearBuffer(); // Empty buffer of any newline chars
 }
@@ -1361,6 +1148,12 @@ void GNSS_UM980::menuMessages()
                 settings.um980MessageRatesRTCMBase[x] = umMessagesRTCM[x].msgDefaultRate;
 
             systemPrintln("Reset to Defaults");
+
+            gnssConfigure(GNSS_CONFIG_MESSAGE_RATE_NMEA);          // Request receiver to use new settings
+            if (inBaseMode())                                      // If the current system state is Base
+                gnssConfigure(GNSS_CONFIG_MESSAGE_RATE_RTCM_BASE); // Request receiver to use new settings
+            else
+                gnssConfigure(GNSS_CONFIG_MESSAGE_RATE_RTCM_ROVER); // Request receiver to use new settings
         }
         else if (incoming == 11 || incoming == 12)
         {
@@ -1388,13 +1181,15 @@ void GNSS_UM980::menuMessages()
             // setRtcmRoverMessageRateByName("RTCM1124", reportRate); //BeiDou not used by CSRS-PPP
 
             if (incoming == 12)
-            {
                 systemPrintln("Reset to High-rate PPP Logging (NMEAx5 / RTCMx4 - 1Hz)");
-            }
             else
-            {
                 systemPrintln("Reset to PPP Logging (NMEAx5 / RTCMx4 - 30 second decimation)");
-            }
+
+            gnssConfigure(GNSS_CONFIG_MESSAGE_RATE_NMEA);          // Request receiver to use new settings
+            if (inBaseMode())                                      // If the current system state is Base
+                gnssConfigure(GNSS_CONFIG_MESSAGE_RATE_RTCM_BASE); // Request receiver to use new settings
+            else
+                gnssConfigure(GNSS_CONFIG_MESSAGE_RATE_RTCM_ROVER); // Request receiver to use new settings
         }
 
         else if (incoming == INPUT_RESPONSE_GETNUMBER_EXIT)
@@ -1406,12 +1201,6 @@ void GNSS_UM980::menuMessages()
     }
 
     clearBuffer(); // Empty buffer of any newline chars
-
-    // Apply these changes at menu exit
-    if (inRoverMode())
-        restartRover = true;
-    else
-        restartBase = true;
 }
 
 //----------------------------------------
@@ -1505,11 +1294,20 @@ void GNSS_UM980::menuMessagesSubtype(float *localMessageRate, const char *messag
                     newSetting = floor(newSetting);
 
                 if (strcmp(messageType, "NMEA") == 0)
+                {
                     settings.um980MessageRatesNMEA[incoming] = (float)newSetting;
+                    gnssConfigure(GNSS_CONFIG_MESSAGE_RATE_NMEA); // Request receiver to use new settings
+                }
                 if (strcmp(messageType, "RTCMRover") == 0)
+                {
                     settings.um980MessageRatesRTCMRover[incoming] = (float)newSetting;
+                    gnssConfigure(GNSS_CONFIG_MESSAGE_RATE_RTCM_ROVER); // Request receiver to use new settings
+                }
                 if (strcmp(messageType, "RTCMBase") == 0)
+                {
                     settings.um980MessageRatesRTCMBase[incoming] = (float)newSetting;
+                    gnssConfigure(GNSS_CONFIG_MESSAGE_RATE_RTCM_BASE); // Request receiver to use new settings
+                }
             }
         }
         else if (incoming == INPUT_RESPONSE_GETNUMBER_EXIT)
@@ -1519,10 +1317,6 @@ void GNSS_UM980::menuMessagesSubtype(float *localMessageRate, const char *messag
         else
             printUnknown(incoming);
     }
-
-    settings.gnssConfiguredOnce = false; // Update the GNSS config at the next boot
-    settings.gnssConfiguredBase = false;
-    settings.gnssConfiguredRover = false;
 
     clearBuffer(); // Empty buffer of any newline chars
 }
@@ -1602,54 +1396,80 @@ bool GNSS_UM980::saveConfiguration()
 //----------------------------------------
 bool GNSS_UM980::setBaudRate(uint8_t uartNumber, uint32_t baudRate)
 {
-    if (uartNumber != 3)
+    if (uartNumber < 1 || uartNumber > 3)
     {
         systemPrintln("setBaudRate error: out of range");
         return (false);
     }
 
-    return setBaudRateCOM3(baudRate);
+    // The UART on the UM980 is passed as a string, ie "COM2"
+    char comName[5]; // COM3
+    snprintf(comName, sizeof(comName), "COM%d", uartNumber);
+
+    // Read, modify, write
+    uint32_t currentBaudRate = _um980->getPortBaudrate(comName);
+    if (currentBaudRate == baudRate)
+        return (true); // No change needed
+
+    return _um980->setPortBaudrate(comName, baudRate); //("COM3", 115200)
 }
 
+// UM980 COM1 - (DATA) Connected to the USB CH342
+// UM980 COM2 - Connected To IMU
+// UM980 COM3 - (COMM) Connected to ESP32 for BT, configuration, and LoRa Radio.
+// No RADIO connection.
 //----------------------------------------
 // Set the baud rate on the GNSS port that interfaces between the ESP32 and the GNSS
+// This just sets the GNSS side
 //----------------------------------------
-bool GNSS_UM980::setBaudRateCOM3(uint32_t baudRate)
+bool GNSS_UM980::setBaudRateComm(uint32_t baudRate)
 {
-    if (online.gnss)
-        return _um980->setPortBaudrate("COM3", baudRate);
-    return false;
+    return (setBaudRate(3, baudRate));
+}
+
+bool GNSS_UM980::setBaudRateData(uint32_t baudRate)
+{
+    return (setBaudRate(1, baudRate)); // The DATA port on the Torch is the USB C connector
+}
+
+bool GNSS_UM980::setBaudRateRadio(uint32_t baudRate)
+{
+    return true; // UM980 has no RADIO port
 }
 
 //----------------------------------------
 // Enable all the valid constellations and bands for this platform
-// Band support varies between platforms and firmware versions
-// We open/close a complete set 19 messages
 //----------------------------------------
 bool GNSS_UM980::setConstellations()
 {
     bool response = true;
 
+    // Read, modify, write
+    // The UM980 does not have a way to read the currently enabled constellations so we do only a write
+
     for (int constellationNumber = 0; constellationNumber < MAX_UM980_CONSTELLATIONS; constellationNumber++)
     {
-        if (settings.um980Constellations[constellationNumber])
+        if (settings.um980Constellations[constellationNumber] > 0)
         {
-            if (_um980->enableConstellation(um980ConstellationCommands[constellationNumber].textCommand) == false)
+            response &= _um980->enableConstellation(um980ConstellationCommands[constellationNumber].textCommand);
+            if (response == false)
             {
-                if (settings.debugGnss)
-                    systemPrintf("Enable constellation failed at constellationNumber %d %s.", constellationNumber,
-                                 um980ConstellationCommands[constellationNumber].textName);
-                response &= false; // If any one of the commands fails, report failure overall
+                if (settings.debugGnssConfig)
+                    systemPrintf("setConstellations failed to enable constellation %s [%d].\r\n",
+                                 um980ConstellationCommands[constellationNumber].textName, constellationNumber);
+                return (false); // Don't attempt other messages, assume communication is down
             }
         }
         else
         {
-            if (_um980->disableConstellation(um980ConstellationCommands[constellationNumber].textCommand) == false)
+            response &= _um980->disableConstellation(um980ConstellationCommands[constellationNumber].textCommand);
+
+            if (response == false)
             {
-                if (settings.debugGnss)
-                    systemPrintf("Disable constellation failed at constellationNumber %d %s.", constellationNumber,
-                                 um980ConstellationCommands[constellationNumber].textName);
-                response &= false; // If any one of the commands fails, report failure overall
+                if (settings.debugGnssConfig)
+                    systemPrintf("setConstellations failed to disable constellation %s [%d].\r\n",
+                                 um980ConstellationCommands[constellationNumber].textName, constellationNumber);
+                return (false); // Don't attempt other messages, assume communication is down
             }
         }
     }
@@ -1658,21 +1478,24 @@ bool GNSS_UM980::setConstellations()
 }
 
 //----------------------------------------
-bool GNSS_UM980::setDataBaudRate(uint32_t baud)
-{
-    return false; // UM980 has no multiplexer
-}
-
-//----------------------------------------
 // Set the elevation in degrees
 //----------------------------------------
 bool GNSS_UM980::setElevation(uint8_t elevationDegrees)
 {
     if (online.gnss)
+    {
+        // Read, modify, write
+        float currentElevation = _um980->getElevationAngle();
+        if (currentElevation == elevationDegrees)
+            return (true); // Nothing to change
+
         return _um980->setElevationAngle(elevationDegrees);
+    }
     return false;
 }
 
+//----------------------------------------
+// Control whether HAS E6 is used in location fixes or not
 //----------------------------------------
 bool GNSS_UM980::setHighAccuracyService(bool enableGalileoHas)
 {
@@ -1685,10 +1508,13 @@ bool GNSS_UM980::setHighAccuracyService(bool enableGalileoHas)
         int um980Version = String(_um980->getVersion()).toInt(); // Convert the string response to a value
         if (um980Version >= 11833)
         {
+            // Read, modify, write
             if (_um980->isConfigurationPresent("CONFIG PPP ENABLE E6-HAS") == false)
             {
                 if (_um980->sendCommand("CONFIG PPP ENABLE E6-HAS"))
+                {
                     systemPrintln("Galileo E6 HAS service enabled");
+                }
                 else
                 {
                     systemPrintln("Galileo E6 HAS service failed to enable");
@@ -1696,7 +1522,9 @@ bool GNSS_UM980::setHighAccuracyService(bool enableGalileoHas)
                 }
 
                 if (_um980->sendCommand("CONFIG PPP DATUM WGS84"))
+                {
                     systemPrintln("WGS84 Datum applied");
+                }
                 else
                 {
                     systemPrintln("WGS84 Datum failed to apply");
@@ -1708,7 +1536,8 @@ bool GNSS_UM980::setHighAccuracyService(bool enableGalileoHas)
         {
             systemPrintf(
                 "Current UM980 firmware: v%d. Galileo E6 reception requires v11833 or newer. Please update the "
-                "firmware on your UM980 to allow for HAS operation. Please see https://bit.ly/sfe-rtk-um980-update\r\n",
+                "firmware on your UM980 to allow for HAS operation. Please see "
+                "https://bit.ly/sfe-rtk-um980-update\r\n",
                 um980Version);
             // Don't fail the result. Module is still configured, just without HAS.
         }
@@ -1719,7 +1548,9 @@ bool GNSS_UM980::setHighAccuracyService(bool enableGalileoHas)
         if (_um980->isConfigurationPresent("CONFIG PPP ENABLE E6-HAS"))
         {
             if (_um980->sendCommand("CONFIG PPP DISABLE"))
+            {
                 systemPrintln("Galileo E6 HAS service disabled");
+            }
             else
             {
                 systemPrintln("Galileo E6 HAS service failed to disable");
@@ -1731,39 +1562,229 @@ bool GNSS_UM980::setHighAccuracyService(bool enableGalileoHas)
 }
 
 //----------------------------------------
-// Enable all the valid messages for this platform
-// There are many messages so split into batches. VALSET is limited to 64 max per batch
-// Uses dummy newCfg and sendCfg values to be sure we open/close a complete set
+// Configure device-direct logging. Currently mosaic-X5 specific.
 //----------------------------------------
-bool GNSS_UM980::setMessages(int maxRetries)
+bool GNSS_UM980::setLogging()
 {
-    // We probably don't need this for the UM980
-    //  TODO return(um980SetMessages(maxRetries));
-    return (true);
+    // Not supported on this platform
+    return (true); // Return true to clear gnssConfigure test
 }
 
 //----------------------------------------
-// Enable all the valid messages for this platform over the USB port
-// Add 2 to every UART1 key. This is brittle and non-perfect, but works.
+// Set the minimum satellite signal level (carrier to noise ratio) for navigation.
 //----------------------------------------
-bool GNSS_UM980::setMessagesUsb(int maxRetries)
-{
-    // We probably don't need this for the UM980
-    //  TODO return(um980SetMessagesUsb(maxRetries));
-    return (true);
-}
-
-//----------------------------------------
-// Set the minimum satellite signal level for navigation.
-//----------------------------------------
-bool GNSS_UM980::setMinCnoRadio(uint8_t cnoValue)
+bool GNSS_UM980::setMinCN0(uint8_t cn0Value)
 {
     if (online.gnss)
     {
-        _um980->setMinCNO(cnoValue);
+        // Read, modify, write
+        // The UM980 does not currently have a way to read the CN0, so we must write only
+        _um980->setMinCNO(cn0Value);
         return true;
     }
     return false;
+}
+
+//----------------------------------------
+// Turn on all the enabled NMEA messages on COM3
+//----------------------------------------
+bool GNSS_UM980::setMessagesNMEA()
+{
+    bool response = true;
+    bool gpggaEnabled = false;
+    bool gpzdaEnabled = false;
+
+    // The UM980 is unique in that there is a UNLOG command that turns off all
+    // reported NMEA/RTCM messages. Sending message rates of 0 works, until a
+    // message rate >0 is sent. Any following sending of message rates of 0 do not
+    // get a response. Our approach: UNLOG and set a global, and request
+    // RTCM be reconfigured. Send config requests only for >0 messages.
+    // At the end of RTCM reconfig, clear global. This approach
+    // presumes NMEA then RTCM will be configured in that order. Brittle but moving on.
+
+    if (settings.debugGnssConfig == true)
+        systemPrintln("setMessagesNMEA disabling output");
+
+    disableAllOutput();
+    um980MessagesEnabled_NMEA = false;
+
+    if (um980MessagesEnabled_RTCM_Rover == true || um980MessagesEnabled_RTCM_Base == true)
+    {
+        um980MessagesEnabled_RTCM_Rover = false;
+        um980MessagesEnabled_RTCM_Base = false;
+
+        // Request reconfigure of RTCM
+        if (inBaseMode()) // If the current system state is Base
+            gnssConfigure(GNSS_CONFIG_MESSAGE_RATE_RTCM_BASE);
+        else
+            gnssConfigure(GNSS_CONFIG_MESSAGE_RATE_RTCM_ROVER);
+    }
+
+    for (int messageNumber = 0; messageNumber < MAX_UM980_NMEA_MSG; messageNumber++)
+    {
+        if (settings.um980MessageRatesNMEA[messageNumber] > 0)
+        {
+            // If any one of the commands fails, report failure overall
+            response &= _um980->setNMEAPortMessage(umMessagesNMEA[messageNumber].msgTextName, "COM3",
+                                                   settings.um980MessageRatesNMEA[messageNumber]);
+
+            if (response == false)
+            {
+                if (settings.debugGnssConfig)
+                    systemPrintf("setMessagesNMEA failed to set %0.2f for message %s [%d].\r\n",
+                                 settings.um980MessageRatesNMEA[messageNumber],
+                                 umMessagesNMEA[messageNumber].msgTextName, messageNumber);
+                return (false); // Don't attempt other messages, assume communication is down
+            }
+        }
+
+        // Mark certain required messages as enabled if rate > 0
+        if (settings.um980MessageRatesNMEA[messageNumber] > 0)
+        {
+            if (strcmp(umMessagesNMEA[messageNumber].msgTextName, "GPGGA") == 0)
+                gpggaEnabled = true;
+            else if (strcmp(umMessagesNMEA[messageNumber].msgTextName, "GPZDA") == 0)
+                gpzdaEnabled = true;
+        }
+    }
+
+    // Enable GGA if needed for other services
+    if (gpggaEnabled == false)
+    {
+        // If we are using MQTT based corrections, we need to send local data to the PPL
+        // The PPL requires being fed GPGGA/ZDA, and RTCM1019/1020/1042/1046
+        // Enable GGA for NTRIP
+        if (pointPerfectServiceUsesKeys() ||
+            (settings.enableNtripClient == true && settings.ntripClient_TransmitGGA == true))
+        {
+            response &= _um980->setNMEAPortMessage("GPGGA", "COM3", 1);
+        }
+    }
+
+    if (gpzdaEnabled == false)
+    {
+        if (pointPerfectServiceUsesKeys())
+        {
+            response &= _um980->setNMEAPortMessage("GPZDA", "COM3", 1);
+        }
+    }
+
+    if (response == true)
+        um980MessagesEnabled_NMEA = true;
+
+    return (response);
+}
+
+//----------------------------------------
+// Configure RTCM Base messages on COM3 (the connection between ESP32 and UM980)
+//----------------------------------------
+bool GNSS_UM980::setMessagesRTCMBase()
+{
+    bool response = true;
+
+    if (um980MessagesEnabled_NMEA == false)
+    {
+        // If this function was called by itself (without NMEA running previously) then
+        // force call NMEA enable here. It will disable all output, then should um980MessagesEnabled_NMEA = true.
+        setMessagesNMEA();
+    }
+
+    for (int messageNumber = 0; messageNumber < MAX_UM980_RTCM_MSG; messageNumber++)
+    {
+        if (settings.um980MessageRatesRTCMBase[messageNumber] > 0)
+        {
+
+            // If any one of the commands fails, report failure overall
+            response &= _um980->setRTCMPortMessage(umMessagesRTCM[messageNumber].msgTextName, "COM3",
+                                                   settings.um980MessageRatesRTCMBase[messageNumber]);
+
+            if (response == false)
+            {
+                if (settings.debugGnssConfig)
+                    systemPrintf("setMessagesRTCMBase failed to set %0.2f for message %s [%d].\r\n",
+                                 settings.um980MessageRatesRTCMBase[messageNumber],
+                                 umMessagesRTCM[messageNumber].msgTextName, messageNumber);
+                return (false); // Don't attempt other messages, assume communication is down
+            }
+        }
+    }
+
+    if (response == true)
+        um980MessagesEnabled_RTCM_Base = true;
+
+    return (response);
+}
+
+//----------------------------------------
+// Set the RTCM Rover messages on COM3
+//----------------------------------------
+bool GNSS_UM980::setMessagesRTCMRover()
+{
+    bool response = true;
+    bool rtcm1019Enabled = false;
+    bool rtcm1020Enabled = false;
+    bool rtcm1042Enabled = false;
+    bool rtcm1046Enabled = false;
+
+    if (um980MessagesEnabled_NMEA == false)
+    {
+        // If this function was called by itself (without NMEA running previously) then
+        // force call NMEA enable here. It will disable all output, then should um980MessagesEnabled_NMEA = true.
+        setMessagesNMEA();
+    }
+
+    for (int messageNumber = 0; messageNumber < MAX_UM980_RTCM_MSG; messageNumber++)
+    {
+        if (settings.um980MessageRatesRTCMRover[messageNumber] > 0)
+        {
+            response &= _um980->setRTCMPortMessage(umMessagesRTCM[messageNumber].msgTextName, "COM3",
+                                                   settings.um980MessageRatesRTCMRover[messageNumber]);
+            if (response == false)
+            {
+                if (settings.debugGnssConfig)
+                    systemPrintf("setMessagesRTCMRover failed to set %0.2f for message %s [%d].\r\n",
+                                 settings.um980MessageRatesRTCMRover[messageNumber],
+                                 umMessagesRTCM[messageNumber].msgTextName, messageNumber);
+                return (false); // Don't attempt other messages, assume communication is down
+            }
+        }
+
+        // If we are using IP based corrections, we need to send local data to the PPL
+        // The PPL requires being fed GPGGA/ZDA, and RTCM1019/1020/1042/1046
+        if (pointPerfectServiceUsesKeys())
+        {
+            // Mark PPL required messages as enabled if rate > 0
+            if (settings.um980MessageRatesRTCMRover[messageNumber] > 0)
+            {
+                if (strcmp(umMessagesNMEA[messageNumber].msgTextName, "RTCM1019") == 0)
+                    rtcm1019Enabled = true;
+                else if (strcmp(umMessagesNMEA[messageNumber].msgTextName, "RTCM1020") == 0)
+                    rtcm1020Enabled = true;
+                else if (strcmp(umMessagesNMEA[messageNumber].msgTextName, "RTCM1042") == 0)
+                    rtcm1042Enabled = true;
+                else if (strcmp(umMessagesNMEA[messageNumber].msgTextName, "RTCM1046") == 0)
+                    rtcm1046Enabled = true;
+            }
+        }
+    }
+
+    if (pointPerfectServiceUsesKeys())
+    {
+        // Force on any messages that are needed for PPL
+        if (rtcm1019Enabled == false)
+            response &= _um980->setRTCMPortMessage("RTCM1019", "COM3", 1);
+        if (rtcm1020Enabled == false)
+            response &= _um980->setRTCMPortMessage("RTCM1020", "COM3", 1);
+        if (rtcm1042Enabled == false)
+            response &= _um980->setRTCMPortMessage("RTCM1042", "COM3", 1);
+        if (rtcm1046Enabled == false)
+            response &= _um980->setRTCMPortMessage("RTCM1046", "COM3", 1);
+    }
+
+    if (response == true)
+        um980MessagesEnabled_RTCM_Rover = true;
+
+    return (response);
 }
 
 //----------------------------------------
@@ -1773,16 +1794,26 @@ bool GNSS_UM980::setModel(uint8_t modelNumber)
 {
     if (online.gnss)
     {
+        // Read, modify, write
+        // #MODE,97,GPS,FINE,2387,501442000,0,0,18,511;MODE ROVER SURVEY,*10
+        // There is the ability to check the #MODE response, but for now, just write it
+
         if (modelNumber == UM980_DYN_MODEL_SURVEY)
             return (_um980->setModeRoverSurvey());
         else if (modelNumber == UM980_DYN_MODEL_UAV)
             return (_um980->setModeRoverUAV());
         else if (modelNumber == UM980_DYN_MODEL_AUTOMOTIVE)
             return (_um980->setModeRoverAutomotive());
+        else
+        {
+            systemPrintf("Uncaught model: %d\r\n", modelNumber);
+        }
     }
     return (false);
 }
 
+//----------------------------------------
+// Configure multipath mitigation
 //----------------------------------------
 bool GNSS_UM980::setMultipathMitigation(bool enableMultipathMitigation)
 {
@@ -1794,7 +1825,9 @@ bool GNSS_UM980::setMultipathMitigation(bool enableMultipathMitigation)
         if (_um980->isConfigurationPresent("CONFIG MMP ENABLE") == false)
         {
             if (_um980->sendCommand("CONFIG MMP ENABLE"))
+            {
                 systemPrintln("Multipath Mitigation enabled");
+            }
             else
             {
                 systemPrintln("Multipath Mitigation failed to enable");
@@ -1808,7 +1841,9 @@ bool GNSS_UM980::setMultipathMitigation(bool enableMultipathMitigation)
         if (_um980->isConfigurationPresent("CONFIG MMP ENABLE"))
         {
             if (_um980->sendCommand("CONFIG MMP DISABLE"))
+            {
                 systemPrintln("Multipath Mitigation disabled");
+            }
             else
             {
                 systemPrintln("Multipath Mitigation failed to disable");
@@ -1820,13 +1855,7 @@ bool GNSS_UM980::setMultipathMitigation(bool enableMultipathMitigation)
 }
 
 //----------------------------------------
-bool GNSS_UM980::setRadioBaudRate(uint32_t baud)
-{
-    return false; // UM980 has no multiplexer
-}
-
-//----------------------------------------
-// Given the number of seconds between desired solution reports, determine measurementRateMs and navigationRate
+// Given the number of seconds between desired solution reports, determine measurementRateMs
 //----------------------------------------
 bool GNSS_UM980::setRate(double secondsBetweenSolutions)
 {
@@ -1838,62 +1867,84 @@ bool GNSS_UM980::setRate(double secondsBetweenSolutions)
     // ie, if a message != 0, then it will be output at the measurementRate.
     // All RTCM for a base will be based on a measurementRateMs of 1000 with messages
     // that can be reported more slowly than that (ie 1 per 10 seconds).
-    bool response = true;
 
-    disableAllOutput();
+    // Read/Modify/Write
+    // Determine if we need to modify the setting at all
+    bool changeRequired = false;
 
-    // Overwrite any enabled messages with this rate
+    // Determine if the given setting different from our current settings
     for (int messageNumber = 0; messageNumber < MAX_UM980_NMEA_MSG; messageNumber++)
     {
         if (settings.um980MessageRatesNMEA[messageNumber] > 0)
-        {
-            settings.um980MessageRatesNMEA[messageNumber] = secondsBetweenSolutions;
-        }
+            if (settings.um980MessageRatesNMEA[messageNumber] != secondsBetweenSolutions)
+                changeRequired = true;
     }
-    response &= enableNMEA(); // Enact these rates
-
-    // TODO We don't know what state we are in, so we don't
-    // know which RTCM settings to update. Assume we are
-    // in rover for now
     for (int messageNumber = 0; messageNumber < MAX_UM980_RTCM_MSG; messageNumber++)
     {
         if (settings.um980MessageRatesRTCMRover[messageNumber] > 0)
-        {
-            settings.um980MessageRatesRTCMRover[messageNumber] = secondsBetweenSolutions;
-        }
+            if (settings.um980MessageRatesRTCMRover[messageNumber] != secondsBetweenSolutions)
+                changeRequired = true;
     }
-    response &= enableRTCMRover(); // Enact these rates
 
-    // If we successfully set rates, only then record to settings
-    if (response)
+    if (changeRequired == false)
     {
-        uint16_t msBetweenSolutions = secondsBetweenSolutions * 1000;
-        settings.measurementRateMs = msBetweenSolutions;
+        if (settings.debugGnssConfig)
+            systemPrintln("setRate: No change required");
+        return (true); // Success
     }
-    else
-    {
-        systemPrintln("Failed to set measurement and navigation rates");
-        return (false);
-    }
+
+    if (settings.debugGnssConfig)
+        systemPrintln("setRate: Modifying rates");
+
+    gnssConfigure(GNSS_CONFIG_MESSAGE_RATE_NMEA);
+    gnssConfigure(GNSS_CONFIG_MESSAGE_RATE_RTCM_ROVER);
 
     return (true);
 }
 
 //----------------------------------------
-bool GNSS_UM980::setTalkerGNGGA()
+// Enable/disable any output needed for tilt compensation
+//----------------------------------------
+bool GNSS_UM980::setTilt()
 {
-    // TODO um980SetTalkerGNGGA();
-    return false;
+    if (present.imu_im19 == false)
+        return (true); // Report success
+
+    bool response = true;
+
+    // Read, modify, write
+    // The UM980 does not have a way to read the currently enabled messages so we do only a write
+    if (settings.enableTiltCompensation == true)
+    {
+        // Configure UM980 to output binary and NMEA reports out COM2, connected to IM19 COM3
+        response &= _um980->sendCommand("BESTPOSB COM2 0.2"); // 5Hz
+        response &= _um980->sendCommand("PSRVELB COM2 0.2");
+        response &= _um980->setNMEAPortMessage("GPGGA", "COM2", 0.2); // 5Hz
+        response &= setBaudRate(2, 115200);                           // UM980 UART2 is connected to the IMU
+    }
+    else
+    {
+        // We could turn off these messages but because they are only fed into the IMU, it doesn't cause any harm.
+    }
+
+    return (response);
 }
 
 //----------------------------------------
-// Hotstart GNSS
-// Needed on ZED based products where RTK Float lock is seen using L-Band
-// Not used on UM980 based devices
+// Reset the GNSS receiver either through hardware or software
 //----------------------------------------
-bool GNSS_UM980::softwareReset()
+bool GNSS_UM980::reset()
 {
-    return false;
+    // Hardware reset the Torch in case UM980 is unresponsive
+    if (productVariant == RTK_TORCH)
+        digitalWrite(pin_GNSS_DR_Reset, LOW); // Tell UM980 and DR to reset
+
+    delay(500);
+
+    if (productVariant == RTK_TORCH)
+        digitalWrite(pin_GNSS_DR_Reset, HIGH); // Tell UM980 and DR to boot
+
+    return true;
 }
 
 //----------------------------------------
@@ -1920,14 +1971,19 @@ bool GNSS_UM980::surveyInStart()
 {
     if (online.gnss)
     {
+        // If we are already in the appropriate base mode, no changes needed
+        if (gnssInBaseSurveyInMode())
+            return (true);
+
         bool response = true;
 
         // Start a Self-optimizing Base Station
         // We do not use the distance parameter (settings.observationPositionAccuracy) because that
         // setting on the UM980 is related to automatically restarting base mode
         // at power on (very different from ZED-F9P).
-        response &=
-            _um980->setModeBaseAverage(settings.observationSeconds); // Average for a number of seconds (default is 60)
+
+        // Average for a number of seconds (default is 60)
+        response &= _um980->setModeBaseAverage(settings.observationSeconds);
 
         if (response == false)
         {
@@ -1945,25 +2001,25 @@ bool GNSS_UM980::surveyInStart()
 //----------------------------------------
 // Check if given baud rate is allowed
 //----------------------------------------
-const uint32_t um980AllowedRates[] = {9600, 19200, 38400, 57600, 115200, 230400, 460800, 921600};
-const int um980AllowedRatesCount = sizeof(um980AllowedRates) / sizeof(um980AllowedRates[0]);
+const uint32_t um980AllowedBaudRates[] = {9600, 19200, 38400, 57600, 115200, 230400, 460800, 921600};
+const int um980AllowedBaudRatesCount = sizeof(um980AllowedBaudRates) / sizeof(um980AllowedBaudRates[0]);
 
 bool GNSS_UM980::baudIsAllowed(uint32_t baudRate)
 {
-    for (int x = 0; x < um980AllowedRatesCount; x++)
-        if (um980AllowedRates[x] == baudRate)
+    for (int x = 0; x < um980AllowedBaudRatesCount; x++)
+        if (um980AllowedBaudRates[x] == baudRate)
             return (true);
     return (false);
 }
 
 uint32_t GNSS_UM980::baudGetMinimum()
 {
-    return (um980AllowedRates[0]);
+    return (um980AllowedBaudRates[0]);
 }
 
 uint32_t GNSS_UM980::baudGetMaximum()
 {
-    return (um980AllowedRates[um980AllowedRatesCount - 1]);
+    return (um980AllowedBaudRates[um980AllowedBaudRatesCount - 1]);
 }
 
 //----------------------------------------
@@ -1991,13 +2047,6 @@ void GNSS_UM980::unicoreHandler(uint8_t *buffer, int length)
 void GNSS_UM980::update()
 {
     // We don't check serial data here; the gnssReadTask takes care of serial consumption
-}
-
-// Set all NMEA message report rates to one value
-void GNSS_UM980::setNmeaMessageRates(uint8_t msgRate)
-{
-    for (int x = 0; x < MAX_UM980_NMEA_MSG; x++)
-        settings.um980MessageRatesNMEA[x] = msgRate;
 }
 
 // Set all RTCM Rover message report rates to one value
@@ -2042,15 +2091,6 @@ bool GNSS_UM980::setRtcmRoverMessageRateByName(const char *msgName, uint8_t msgR
 //----------------------------------------
 
 //----------------------------------------
-// Force UART connection to GNSS for firmware update on the next boot by special file in
-// LittleFS
-//----------------------------------------
-bool createUm980Passthrough()
-{
-    return createPassthrough("/updateUm980Firmware.txt");
-}
-
-//----------------------------------------
 void um980FirmwareBeginUpdate()
 {
     // Note: We cannot increase the bootloading speed beyond 115200 because
@@ -2062,7 +2102,7 @@ void um980FirmwareBeginUpdate()
 
     // Note: UM980 needs its own dedicated update function, due to the T@ and bootloader trigger
 
-    // Note: UM980 is cuurrently only available on Torch.
+    // Note: UM980 is currently only available on Torch.
     //  But um980FirmwareBeginUpdate has been reworked so it will work on Facet too.
 
     // Note: um980FirmwareBeginUpdate is called during setup, after identify board. I2C, gpio expanders, buttons
@@ -2070,10 +2110,10 @@ void um980FirmwareBeginUpdate()
     //  This makes our job much easier...
 
     // Flag that we are in direct connect mode. Button task will um980FirmwareRemoveUpdate and exit
-    inDirectConnectMode = true;
+    // inDirectConnectMode = true;
 
     // Paint GNSS Update
-    paintGnssUpdate();
+    // paintGnssUpdate();
 
     // Stop all UART tasks. Redundant
     tasksStopGnssUart();
@@ -2107,8 +2147,8 @@ void um980FirmwareBeginUpdate()
     while (!task.endDirectConnectMode)
     {
         // Data coming from UM980 to external USB
-        if (serialGNSS->available()) // Note: use if, not while
-            Serial.write(serialGNSS->read());
+        // if (serialGNSS->available()) // Note: use if, not while
+        //    Serial.write(serialGNSS->read());
 
         // Data coming from external USB to UM980
         if (Serial.available()) // Note: use if, not while
@@ -2124,14 +2164,36 @@ void um980FirmwareBeginUpdate()
                 {
                     // Reset UM980
                     gnssReset();
-                    delay(25);
+                    delay(500);
                     gnssBoot();
-
+                    delay(500);
                     inBootMode = true;
                 }
             }
         }
 
+        // if (digitalRead(pin_powerButton) == HIGH)
+        // {
+        //     while (digitalRead(pin_powerButton) == HIGH)
+        //         delay(100);
+
+        //     // Remove file and reset to exit pass-through mode
+        //     um980FirmwareRemoveUpdate();
+
+        //     // Beep to indicate exit
+        //     beepOn();
+        //     delay(300);
+        //     beepOff();
+        //     delay(100);
+        //     beepOn();
+        //     delay(300);
+        //     beepOff();
+
+        //     systemPrintln("Exiting UM980 passthrough mode");
+        //     systemFlush(); // Complete prints
+
+        //     ESP.restart();
+        // }
         // Button task will set task.endDirectConnectMode true
     }
 
@@ -2143,12 +2205,22 @@ void um980FirmwareBeginUpdate()
     ESP.restart();
 }
 
+const char *um980FirmwareFileName = "/updateUm980Firmware.txt";
+
+//----------------------------------------
+// Force UART connection to GNSS for firmware update on the next boot by special file in LittleFS
+//----------------------------------------
+bool um980CreatePassthrough()
+{
+    return createPassthrough(um980FirmwareFileName);
+}
+
 //----------------------------------------
 // Check if direct connection file exists
 //----------------------------------------
 bool um980FirmwareCheckUpdate()
 {
-    return gnssFirmwareCheckUpdateFile("/updateUm980Firmware.txt");
+    return gnssFirmwareCheckUpdateFile(um980FirmwareFileName);
 }
 
 //----------------------------------------
@@ -2156,7 +2228,7 @@ bool um980FirmwareCheckUpdate()
 //----------------------------------------
 void um980FirmwareRemoveUpdate()
 {
-    gnssFirmwareRemoveUpdateFile("/updateUm980Firmware.txt");
+    gnssFirmwareRemoveUpdateFile(um980FirmwareFileName);
 }
 
 //----------------------------------------

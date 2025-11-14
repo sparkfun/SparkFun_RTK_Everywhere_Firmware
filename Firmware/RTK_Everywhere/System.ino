@@ -924,11 +924,10 @@ void beginGpioExpanderSwitches()
 
         // SW1 is on pin 0. Driving it high will disconnect the ESP32 from USB
         // GNSS_RST is on pin 5. Driving it low when an LG290P is connected will kill the I2C bus.
-        // PWRKILL is on pin 7. Driving it low will turn off the system
         for (int i = 0; i < gpioExpanderNumSwitches; i++)
         {
-            // Set all pins to low except GNSS RESET and PWRKILL
-            if (i == gpioExpanderSwitch_GNSS_Reset || i == gpioExpanderSwitch_PowerFastOff)
+            // Set all pins to low except GNSS RESET
+            if (i == gpioExpanderSwitch_GNSS_Reset)
                 gpioExpanderSwitches->digitalWrite(i, HIGH);
             else
                 gpioExpanderSwitches->digitalWrite(i, LOW);

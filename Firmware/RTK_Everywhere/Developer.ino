@@ -290,7 +290,7 @@ void wifiVerifyTables()                         {}
 
 void menuTilt() {}
 void nmeaApplyCompensation(char *nmeaSentence, int arraySize) {}
-void tiltDetect() {}
+void tiltDetect() {systemPrintln("**Tilt Not Compiled**");}
 bool tiltIsCorrecting() {return(false);}
 void tiltRequestStop() {}
 void tiltSensorFactoryReset() {}

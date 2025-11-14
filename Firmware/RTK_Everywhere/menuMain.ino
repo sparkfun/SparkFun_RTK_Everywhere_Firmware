@@ -274,30 +274,13 @@ void menuMain()
             printUnknown(incoming);
     }
 
-    // Reboot as base only if currently operating as a base station
-    if (restartBase == true && inBaseMode() == true)
-    {
-        restartBase = false;
-        settings.gnssConfiguredBase = false;        // Reapply configuration
-        requestChangeState(STATE_BASE_NOT_STARTED); // Restart base upon exit for latest changes to take effect
-    }
-
-    if (restartRover == true && inRoverMode() == true)
-    {
-        restartRover = false;
-        settings.gnssConfiguredRover = false;        // Reapply configuration
-        requestChangeState(STATE_ROVER_NOT_STARTED); // Restart rover upon exit for latest changes to take effect
-    }
-
-    gnss->saveConfiguration();
-
-    recordSystemSettings(); // Once all menus have exited, record the new settings to LittleFS and config file
-
     if (settings.debugGnss == true)
     {
         // Re-enable GNSS debug once we exit config menus
         gnss->debuggingEnable();
     }
+
+    recordSystemSettings(); // Once all menus have exited, record the new settings to LittleFS and config file
 
     clearBuffer();           // Empty buffer of any newline chars
     btPrintEchoExit = false; // We are out of the menu system
@@ -473,9 +456,9 @@ void menuUserProfiles()
 // Change the active profile number, without unit reset
 void changeProfileNumber(byte newProfileNumber)
 {
-    settings.gnssConfiguredBase = false; // On the next boot, reapply all settings
-    settings.gnssConfiguredRover = false;
-    recordSystemSettings(); // Before switching, we need to record the current settings to LittleFS and SD
+    gnssConfigureDefaults(); // Set all bits in the request bitfield to cause the GNSS receiver to go through a full
+                             // (re)configuration
+    recordSystemSettings();  // Before switching, we need to record the current settings to LittleFS and SD
 
     recordProfileNumber(newProfileNumber);
     profileNumber = newProfileNumber;
@@ -588,8 +571,7 @@ BluetoothRadioType_e mmChangeBluetoothProtocol(BluetoothRadioType_e bluetoothUse
 // Update Bluetooth radio if settings have changed
 void mmSetBluetoothProtocol(BluetoothRadioType_e bluetoothUserChoice, bool clearBtPairings)
 {
-    if ((bluetoothUserChoice != settings.bluetoothRadioType) 
-        || (clearBtPairings != settings.clearBtPairings))
+    if ((bluetoothUserChoice != settings.bluetoothRadioType) || (clearBtPairings != settings.clearBtPairings))
     {
         // To avoid connection failures, we may need to restart the ESP32
 
@@ -806,8 +788,8 @@ void menuRadio()
                 {
                     for (int x = 0; x < settings.espnowPeerCount; x++)
                         espNowRemovePeer(settings.espnowPeers[x]);
-                    
-                    espNowStart(); //Restart ESP-NOW to enable broadcastMAC
+
+                    espNowStart(); // Restart ESP-NOW to enable broadcastMAC
                 }
                 settings.espnowPeerCount = 0;
                 systemPrintln("Radios forgotten");

@@ -521,6 +521,9 @@ void menuDebugHardware()
 
         systemPrintf("20) Delay between CLI LIST prints over BLE: %d\r\n", settings.cliBlePrintDelay_ms);
 
+        systemPrint("21) Print GNSS Config Debugging: ");
+        systemPrintf("%s\r\n", settings.debugGnssConfig ? "Enabled" : "Disabled");
+
         systemPrintln("e) Erase LittleFS");
 
         systemPrintln("t) Test Screen");
@@ -568,7 +571,7 @@ void menuDebugHardware()
             if (present.gnss_um980)
             {
                 // Create a file in LittleFS
-                if (createUm980Passthrough() == true)
+                if (um980CreatePassthrough() == true)
                 {
                     systemPrintln();
                     systemPrintln("UM980 passthrough mode has been recorded to LittleFS. Device will now reset.");
@@ -641,6 +644,11 @@ void menuDebugHardware()
             {
                 settings.cliBlePrintDelay_ms = newDelay;
             }
+        }
+
+        else if (incoming == 21)
+        {
+            settings.debugGnssConfig ^= 1;
         }
 
         else if (incoming == 'e')
@@ -993,10 +1001,6 @@ void menuOperation()
         systemPrint("9) UART Receive Buffer Size: ");
         systemPrintln(settings.uartReceiveBufferSize);
 
-        // ZED
-        if (present.gnss_zedf9p)
-            systemPrintln("10) Mirror ZED-F9x's UART1 settings to USB");
-
         // PPL Float Lock timeout
         systemPrint("11) Set PPL RTK Fix Timeout (seconds): ");
         if (settings.pplFixTimeoutS > 0)
@@ -1094,17 +1098,6 @@ void menuOperation()
                 recordSystemSettings();
                 ESP.restart();
             }
-        }
-        else if (incoming == 10 && present.gnss_zedf9p)
-        {
-#ifdef COMPILE_ZED
-            bool response = gnss->setMessagesUsb(MAX_SET_MESSAGES_RETRIES);
-
-            if (response == false)
-                systemPrintln(F("Failed to enable USB messages"));
-            else
-                systemPrintln(F("USB messages successfully enabled"));
-#endif // COMPILE_ZED
         }
         else if (incoming == 11)
         {

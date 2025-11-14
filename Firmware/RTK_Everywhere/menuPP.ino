@@ -340,7 +340,10 @@ void menuPointPerfectSelectService()
             {
                 settings.pointPerfectService = incoming - 1; // Align incoming to array
 
-                restartRover = true; // Require a rover restart to enable / disable RTCM for PPL
+                // Request re-config of RTCM Rover messages to enable / disable necessary RTCM messages for PPL
+                if(inRoverMode())
+                    gnssConfigure(GNSS_CONFIG_MESSAGE_RATE_RTCM_ROVER); // Request receiver to use new settings
+
                 settings.requestKeyUpdate =
                     settings.pointPerfectService != PP_NICKNAME_DISABLED; // Force a key update - or don't
 
@@ -781,7 +784,7 @@ void updateLBandCorrections()
                         millis(); // Restart timer for L-Band. Don't immediately reset ZED to achieve fix.
 
                     // Hotstart GNSS to try to get RTK lock
-                    gnss->softwareReset();
+                    gnss->reset();
 
                     if (settings.debugCorrections == true)
                         systemPrintf("Restarting ZED. Number of Float lock restarts: %d\r\n", floatLockRestarts);

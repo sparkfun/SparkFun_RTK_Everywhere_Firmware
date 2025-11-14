@@ -181,7 +181,6 @@ void menuLog()
         {
             endLogging(false, true); //(gotSemaphore, releaseSemaphore) Close file. Reset parser stats.
             beginLogging();          // Create new file based on current RTC.
-            setLoggingType();        // Determine if we are standard, PPP, or custom. Changes logging icon accordingly.
         }
         else if (incoming == 5 && settings.enableLogging == true)
         {
@@ -242,26 +241,25 @@ void menuMessagesBaseRTCM()
         if (incoming == 1)
         {
             gnss->menuMessageBaseRtcm();
-            restartBase = true;
         }
         else if (incoming == 2)
         {
             gnss->baseRtcmDefault();
+            gnssConfigure(GNSS_CONFIG_MESSAGE_RATE_RTCM_BASE); // Request receiver to use new settings
 
             systemPrintf("Reset to Defaults (%s)\r\n", gnss->getRtcmDefaultString());
-            restartBase = true;
         }
         else if (incoming == 3)
         {
             gnss->baseRtcmLowDataRate();
+            gnssConfigure(GNSS_CONFIG_MESSAGE_RATE_RTCM_BASE); // Request receiver to use new settings
 
             systemPrintf("Reset to Low Bandwidth Link (%s)\r\n", gnss->getRtcmLowDataRateString());
-            restartBase = true;
         }
         else if ((incoming == 4) && (namedSettingAvailableOnPlatform("useMSM7")))
         {
             settings.useMSM7 ^= 1;
-            restartBase = true;
+            gnssConfigure(GNSS_CONFIG_MESSAGE_RATE_RTCM_ROVER); // Request receiver to use new settings
         }
         else if ((incoming == 5) && (namedSettingAvailableOnPlatform("rtcmMinElev")))
         {
@@ -272,7 +270,7 @@ void menuMessagesBaseRTCM()
             if (elevation >= -90 && elevation <= 90)
             {
                 settings.rtcmMinElev = elevation;
-                restartBase = true;
+                gnssConfigure(GNSS_CONFIG_ELEVATION); // Request receiver to use new settings
             }
         }
 
@@ -693,11 +691,14 @@ void checkGNSSArrayDefaults()
             settings.dynamicModel = UM980_DYN_MODEL_SURVEY;
         }
 
-        if (settings.enableExtCorrRadio == 254)
-        {
-            defaultsApplied = true;
-            settings.enableExtCorrRadio = false;
-        }
+        // This setting is not supported on the UM980 nor is it in the command array
+        // so it does not get used nor recorded to NVM leading to the defaults being
+        // applied at every boot. Commented out to prevent this issue.
+        // if (settings.enableExtCorrRadio == 254)
+        // {
+        //     defaultsApplied = true;
+        //     settings.enableExtCorrRadio = false;
+        // }
 
         if (settings.um980Constellations[0] == 254)
         {
@@ -772,6 +773,7 @@ void checkGNSSArrayDefaults()
 
         if (settings.mosaicMessageIntervalsRTCMv3Rover[0] == 0.0)
         {
+
             defaultsApplied = true;
 
             for (int x = 0; x < MAX_MOSAIC_RTCM_V3_INTERVAL_GROUPS; x++)
@@ -807,9 +809,13 @@ void checkGNSSArrayDefaults()
 #ifdef COMPILE_LG290P
     else if (present.gnss_lg290p)
     {
+        // This setting is not supported on the Torch X2 nor is it in the command array
+        // so it does not get used nor recorded to NVM leading to the defaults being
+        // applied at every boot. 
         if (settings.enableExtCorrRadio == 254)
         {
-            defaultsApplied = true;
+            if(productVariant != RTK_TORCH_X2) // Prevent defaults from being applied if this *is* a Torch X2
+                defaultsApplied = true;
             settings.enableExtCorrRadio = false;
         }
 
@@ -874,26 +880,29 @@ void checkGNSSArrayDefaults()
     {
         if (present.gnss_um980)
         {
-            settings.minCNO = 10;                    // Default 10 dBHz
+            settings.minCN0 = 10;                    // Default 10 dBHz
             settings.surveyInStartingAccuracy = 2.0; // Default 2m
             settings.measurementRateMs = 500;        // Default 2Hz.
         }
         else if (present.gnss_zedf9p)
         {
-            settings.minCNO = 6;                     // Default 6 dBHz
+            settings.minCN0 = 6;                     // Default 6 dBHz
             settings.surveyInStartingAccuracy = 1.0; // Default 1m
             settings.measurementRateMs = 250;        // Default 4Hz.
         }
         else if (present.gnss_lg290p)
         {
-            settings.minCNO = 10;                    // Default 10 dBHz
+            settings.minCN0 = 10;                    // Default 10 dBHz
             settings.surveyInStartingAccuracy = 2.0; // Default 2m
             settings.measurementRateMs = 500;        // Default 2Hz.
         }
     }
 
     if (defaultsApplied == true)
+    {
+        gnssConfigureDefaults(); // Request a full reconfigure of the GNSS receiver
         recordSystemSettings();
+    }
 }
 
 // Determine logging type based on the GNSS receiver

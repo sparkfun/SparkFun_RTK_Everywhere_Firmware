@@ -301,8 +301,9 @@ void beginTilt()
     {
         result &= tiltSensor->sendCommand("LEVER_ARM=0.03391,0.00272,0.02370"); // -28.2, 0. -23.7mm
 
-        //Send AT+INSTALL_ANGLE=180,0,0 if the IM19 module is mounted on the back of the GNSS receiver (so the IM19 faces downward instead of upward), before sending the save command.
-        result &= tiltSensor->sendCommand("INSTALL_ANGLE=180,0,-90"); //IMU is mounted facing down
+        // Send AT+INSTALL_ANGLE=180,0,0 if the IM19 module is mounted on the back of the GNSS receiver (so the IM19
+        // faces downward instead of upward), before sending the save command.
+        result &= tiltSensor->sendCommand("INSTALL_ANGLE=180,0,-90"); // IMU is mounted facing down
     }
 
     // Set the overall length of the GNSS setup in meters: rod length 1800mm + internal length 96.45mm + antenna
@@ -1063,14 +1064,14 @@ void tiltDetect()
         {
             present.imu_im19 = true; // Allow tiltUpdate() to run
             settings.detectedTilt = true;
-            settings.gnssConfiguredRover = false; // Update rover settings
+            gnssConfigure(GNSS_CONFIG_TILT); // Request receiver to use new settings
             break;
         }
     }
 
     SerialTiltTest.end(); // Release UART1 for reuse
     systemPrintf("Tilt sensor %sdetected\r\n", settings.detectedTilt ? "" : "not ");
-    settings.testedTilt = true; //Record this test so we don't do it again
+    settings.testedTilt = true; // Record this test so we don't do it again
     recordSystemSettings();
     return;
 }

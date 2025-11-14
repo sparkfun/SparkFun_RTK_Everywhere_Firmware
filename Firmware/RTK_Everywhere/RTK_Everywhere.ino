@@ -78,10 +78,6 @@
 
 */
 
-// While we wait for the next hardware revisions, Flex and Torch can be manually enabled:
-//#define FLEX_OVERRIDE // Uncomment to force support for Flex
-//#define TORCH_X2_OVERRIDE // Uncomment to force support for Torch X2
-
 // To reduce compile times, various parts of the firmware can be disabled/removed if they are not
 // needed during development
 #define COMPILE_BT       // Comment out to remove Bluetooth functionality
@@ -304,7 +300,7 @@ const int gpioExpanderSwitch_S4 = 3; // Controls U19 switch 4: connect GNSS UART
 const int gpioExpanderSwitch_LoraEnable = 4;   // LoRa_EN
 const int gpioExpanderSwitch_GNSS_Reset = 5;   // RST_GNSS
 const int gpioExpanderSwitch_LoraBoot = 6;     // LoRa_BOOT0 - Used for bootloading the STM32 radio IC
-const int gpioExpanderSwitch_PowerFastOff = 7; // PWRKILL
+const int gpioExpanderSwitch_S5 = 7; // Controls U61 switch 5: connect GNSS UART1 to Port A of CH342
 const int gpioExpanderNumSwitches = 8;
 
 //=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
@@ -629,7 +625,6 @@ volatile static int combinedSpaceRemaining; // Overrun indicator
 volatile static uint64_t logFileSize;       // Updated with each write
 int bufferOverruns;                         // Running count of possible data losses since power-on
 
-bool zedUartPassed; // Goes true during testing if ESP can communicate with ZED over UART
 const uint8_t btEscapeCharacter = '+';
 const uint8_t btMaxEscapeCharacters = 3; // Number of characters needed to enter remote command mode over Bluetooth
 
@@ -936,8 +931,6 @@ uint32_t triggerTowSubMsR; // Global copy - Millisecond fraction of Time Of Week
 uint32_t triggerAccEst;    // Global copy - Accuracy estimate in nanoseconds
 
 unsigned long splashStart; // Controls how long the splash is displayed for. Currently min of 2s.
-bool restartBase;          // If the user modifies any NTRIP Server settings, we need to restart the base
-bool restartRover; // If the user modifies any NTRIP Client or PointPerfect settings, we need to restart the rover
 
 unsigned long startTime;       // Used for checking longest-running functions
 bool lbandCorrectionsReceived; // Used to display L-Band SIV icon when corrections are successfully decrypted (NEO-D9S
@@ -1402,6 +1395,9 @@ void setup()
     checkArrayDefaults(); // Check for uninitialized arrays that won't be initialized by gnssConfigure
                           // (checkGNSSArrayDefaults)
 
+    checkGNSSArrayDefaults(); // Check various setting arrays (message rates, etc) to see if they need to be reset to
+                              // defaults
+
     DMW_b("printPartitionTable");
     if (settings.printPartitionTable)
         printPartitionTable();
@@ -1421,14 +1417,14 @@ void setup()
     DMW_b("beginCharger");
     beginCharger(); // Configure battery charger
 
-    DMW_b("gnss->configure");
-    gnss->configure(); // Requires settings. Configure GNSS module
+    // DMW_b("gnss->configure");
+    // gnss->configure(); // Requires settings. Configure GNSS module
 
     DMW_b("beginExternalEvent");
     gnss->beginExternalEvent(); // Configure the event input
 
-    DMW_b("beginPPS");
-    gnss->beginPPS(); // Configure the time pulse output
+    DMW_b("setPPS");
+    gnss->setPPS(); // Configure the pulse per second pin
 
     DMW_b("beginInterrupts");
     beginInterrupts(); // Begin the TP interrupts
@@ -1515,9 +1511,6 @@ void loop()
     DMW_c("periodicDisplay");
     updatePeriodicDisplay();
 
-    DMW_c("gnss->update");
-    gnss->update();
-
     DMW_c("stateUpdate");
     stateUpdate();
 
@@ -1526,6 +1519,9 @@ void loop()
 
     DMW_c("displayUpdate");
     displayUpdate();
+
+    DMW_c("gnssUpdate");
+    gnssUpdate();
 
     DMW_c("rtcUpdate");
     rtcUpdate(); // Set system time to GNSS once we have fix
@@ -1643,8 +1639,6 @@ void logUpdate()
             blockLogging = true;
             return;
         }
-
-        setLoggingType(); // Determine if we are standard, PPP, or custom. Changes logging icon accordingly.
     }
     else if (online.logging == true && settings.enableLogging == false)
     {
@@ -1665,7 +1659,6 @@ void logUpdate()
                 systemPrintln("Log file: log length reached");
             endLogging(false, true); //(gotSemaphore, releaseSemaphore) Close file. Reset parser stats.
             beginLogging();          // Create new file based on current RTC.
-            setLoggingType();        // Determine if we are standard, PPP, or custom. Changes logging icon accordingly.
         }
     }
 

@@ -19,6 +19,8 @@
 
   =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=*/
 
+BluetoothRadioType_e bluetoothRadioPreviousOnType = BLUETOOTH_RADIO_OFF;
+
 #ifdef COMPILE_BT
 
 //----------------------------------------
@@ -386,7 +388,10 @@ void BTConfirmRequestCallback(uint32_t numVal) {
 
     // TODO: if the RTK device has an OLED, we should display the PIN so user can confirm
     systemPrintf("Device sent PIN: %06lu. Sending confirmation\r\n", numVal);
+#ifdef COMPILE_BT
     bluetoothSerialSpp->confirmReply(true); // AUTO_PAIR - equivalent to enableSSP(false, true);
+#endif                                      // COMPILE_BT
+    // TODO: if the RTK device has an OLED, we should display the PIN so user can confirm
 }
 
 void deviceNameSpacesToUnderscores()
@@ -556,14 +561,14 @@ void bluetoothStart(bool skipOnlineCheck)
             bluetoothSerialSpp->enableSSP(false, false);
 
             // Enable secure pairing with PIN :
-            //bluetoothSerialSpp->enableSSP(false, true);
+            // bluetoothSerialSpp->enableSSP(false, true);
 
             // Accessory Protocol recommends using a PIN
             // Support Apple Accessory: Device to Accessory
             // 1. Search for an accessory from the device and initiate pairing.
             // 2. Verify pairing is successful after exchanging a pin code.
-            //bluetoothSerialSpp->enableSSP(true, true); // Enable secure pairing with PIN
-            //bluetoothSerialSpp->onConfirmRequest(&BTConfirmRequestCallback); // Callback to verify the PIN
+            // bluetoothSerialSpp->enableSSP(true, true); // Enable secure pairing with PIN
+            // bluetoothSerialSpp->onConfirmRequest(&BTConfirmRequestCallback); // Callback to verify the PIN
 
             beginSuccess &= bluetoothSerialSpp->begin(
                 deviceName, true, true, settings.sppRxQueueSize, settings.sppTxQueueSize, 0, 0,
@@ -595,9 +600,9 @@ void bluetoothStart(bool skipOnlineCheck)
                 record.type = ESP_SDP_TYPE_RAW;
                 record.uuid.len = sizeof(UUID_IAP2);
                 memcpy(record.uuid.uuid.uuid128, UUID_IAP2, sizeof(UUID_IAP2));
-                //record.service_name_length = strlen(sdp_service_name) + 1;
-                //record.service_name = (char *)sdp_service_name;
-                // Use the same EIR Local Name parameter as the Name in the IdentificationInformation
+                // record.service_name_length = strlen(sdp_service_name) + 1;
+                // record.service_name = (char *)sdp_service_name;
+                //  Use the same EIR Local Name parameter as the Name in the IdentificationInformation
                 record.service_name_length = strlen(deviceName) + 1;
                 record.service_name = (char *)deviceName;
                 // record.rfcomm_channel_number = 1; // Doesn't seem to help the failed connects
@@ -672,7 +677,7 @@ void bluetoothStart(bool skipOnlineCheck)
 
         if (pin_bluetoothStatusLED != PIN_UNDEFINED)
         {
-            bluetoothLedTask.detach(); // Reset BT LED blinker task rate to 2Hz
+            bluetoothLedTask.detach();                                                  // Reset BT LED blinker task rate to 2Hz
             bluetoothLedTask.attach(bluetoothLedTaskPace2Hz, tickerBluetoothLedUpdate); // Rate in seconds, callback
         }
 
@@ -682,11 +687,11 @@ void bluetoothStart(bool skipOnlineCheck)
         {
             if (bluetoothCommandTaskHandle == nullptr)
                 xTaskCreatePinnedToCore(
-                    bluetoothCommandTask,   // Function to run
-                    "BluetoothCommandTask", // Just for humans
-                    4000,                   // Stack Size - must be ~4000
-                    nullptr,                // Task input parameter
-                    0, // Priority, with 3 (configMAX_PRIORITIES - 1) being the highest, and 0 being the lowest
+                    bluetoothCommandTask,              // Function to run
+                    "BluetoothCommandTask",            // Just for humans
+                    4000,                              // Stack Size - must be ~4000
+                    nullptr,                           // Task input parameter
+                    0,                                 // Priority, with 3 (configMAX_PRIORITIES - 1) being the highest, and 0 being the lowest
                     &bluetoothCommandTaskHandle,       // Task handle
                     settings.bluetoothInterruptsCore); // Core where task should run, 0 = core, 1 = Arduino
         }

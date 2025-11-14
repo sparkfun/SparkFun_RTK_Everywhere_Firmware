@@ -15,39 +15,41 @@
 typedef enum
 {
     STATE_ROVER_NOT_STARTED = 0,        //  0
-    STATE_ROVER_NO_FIX,                 //  1
-    STATE_ROVER_FIX,                    //  2
-    STATE_ROVER_RTK_FLOAT,              //  3
-    STATE_ROVER_RTK_FIX,                //  4
+    STATE_ROVER_CONFIG_WAIT,            //  1
+    STATE_ROVER_NO_FIX,                 //  2
+    STATE_ROVER_FIX,                    //  3
+    STATE_ROVER_RTK_FLOAT,              //  4
+    STATE_ROVER_RTK_FIX,                //  5
 
-    STATE_BASE_CASTER_NOT_STARTED,      //  5, Set override flag
-    STATE_BASE_NOT_STARTED,             //  6
-    STATE_BASE_TEMP_SETTLE,             //  7, User has indicated base, but current pos accuracy is too low
-    STATE_BASE_TEMP_SURVEY_STARTED,     //  8
-    STATE_BASE_TEMP_TRANSMITTING,       //  9
-    STATE_BASE_FIXED_NOT_STARTED,       // 10
-    STATE_BASE_FIXED_TRANSMITTING,      // 11
+    STATE_BASE_CASTER_NOT_STARTED,      //  6, Set override flag
+    STATE_BASE_NOT_STARTED,             //  7
+    STATE_BASE_CONFIG_WAIT,             //  8
+    STATE_BASE_TEMP_SETTLE,             //  9, User has indicated base, but current pos accuracy is too low
+    STATE_BASE_TEMP_SURVEY_STARTED,     // 10
+    STATE_BASE_TEMP_TRANSMITTING,       // 11
+    STATE_BASE_FIXED_NOT_STARTED,       // 12
+    STATE_BASE_FIXED_TRANSMITTING,      // 13
 
-    STATE_DISPLAY_SETUP,                // 12
-    STATE_WEB_CONFIG_NOT_STARTED,       // 13
-    STATE_WEB_CONFIG_WAIT_FOR_NETWORK,  // 14
-    STATE_WEB_CONFIG,                   // 15
-    STATE_TEST,                         // 16
-    STATE_TESTING,                      // 17
-    STATE_PROFILE,                      // 18
+    STATE_DISPLAY_SETUP,                // 14
+    STATE_WEB_CONFIG_NOT_STARTED,       // 15
+    STATE_WEB_CONFIG_WAIT_FOR_NETWORK,  // 16
+    STATE_WEB_CONFIG,                   // 17
+    STATE_TEST,                         // 18
+    STATE_TESTING,                      // 19
+    STATE_PROFILE,                      // 20
 
-    STATE_KEYS_REQUESTED,               // 19
+    STATE_KEYS_REQUESTED,               // 21
 
-    STATE_ESPNOW_PAIRING_NOT_STARTED,   // 20
-    STATE_ESPNOW_PAIRING,               // 21
+    STATE_ESPNOW_PAIRING_NOT_STARTED,   // 22
+    STATE_ESPNOW_PAIRING,               // 23
 
-    STATE_NTPSERVER_NOT_STARTED,        // 22
-    STATE_NTPSERVER_NO_SYNC,            // 23
-    STATE_NTPSERVER_SYNC,               // 24
+    STATE_NTPSERVER_NOT_STARTED,        // 24
+    STATE_NTPSERVER_NO_SYNC,            // 25
+    STATE_NTPSERVER_SYNC,               // 26
 
-    STATE_SHUTDOWN,                     // 25
+    STATE_SHUTDOWN,                     // 27
 
-    STATE_NOT_SET,                      // 26, Must be last on list
+    STATE_NOT_SET,                      // 28, Must be last on list
 } SystemState;
 volatile SystemState systemState = STATE_NOT_SET;
 SystemState lastSystemState = STATE_NOT_SET;
@@ -848,16 +850,6 @@ struct Settings
     bool debugGnss = false;                          // Turn on to display GNSS library debug messages
     bool enablePrintPosition = false;
     uint16_t measurementRateMs = 250;       // Elapsed ms between GNSS measurements. 25ms to 65535ms. Default 4Hz.
-    uint16_t navigationRate =
-        1; // Ratio between number of measurements and navigation solutions. Default 1 for 4Hz (with measurementRate).
-
-    // Signatures to indicate how the GNSS is configured (Once, Base, Rover, etc.)
-    // Bit 0 indicates if the GNSS has been configured previously.
-    // Bits 1 onwards record the state of critical settings.
-    // Configuration is reapplied if any of those critical settings have changed
-    bool gnssConfiguredOnce = false;
-    bool gnssConfiguredBase = false;
-    bool gnssConfiguredRover = false;
 
     // GNSS UART
     uint16_t serialGNSSRxFullThreshold = 50; // RX FIFO full interrupt. Max of ~128. See pinUART2Task().
@@ -1037,7 +1029,7 @@ struct Settings
 
     // Pulse
     bool enableExternalPulse = true;                           // Send pulse once lock is achieved
-    uint64_t externalPulseLength_us = 100000;                  // us length of pulse, max of 60s = 60 * 1000 * 1000
+    uint64_t externalPulseLength_us = 200000;                  // us length of pulse, max of 60s = 60 * 1000 * 1000
     pulseEdgeType_e externalPulsePolarity = PULSE_RISING_EDGE; // Pulse rises for pulse length, then falls
     uint64_t externalPulseTimeBetweenPulse_us = 1000000;       // us between pulses, max of 60s = 60 * 1000 * 1000
 
@@ -1049,7 +1041,7 @@ struct Settings
     // Rover operation
     uint8_t dynamicModel = 254; // Default will be applied by checkGNSSArrayDefaults
     bool enablePrintRoverAccuracy = true;
-    int16_t minCNO = 6;   // Minimum satellite signal level for navigation. ZED-F9P default is 6 dBHz
+    int16_t minCN0 = 6;   // Minimum satellite signal level for navigation. ZED-F9P default is 6 dBHz
     // Minimum elevation (in deg) for a GNSS satellite to be used in NAV
     // Note: we use 8-bit unsigned here, but some platforms (ZED, mosaic-X5) support negative elevation limits
     uint8_t minElev = 10;
@@ -1221,6 +1213,8 @@ struct Settings
     bool baseCasterOverride = false; //When true, user has put device into 'BaseCast' mode. Change settings, but don't save to NVM.
     bool debugCLI = false; //When true, output BLE CLI interactions over serial
     uint16_t cliBlePrintDelay_ms = 50; // Time delayed between prints during a LIST command to avoid overwhelming the BLE connection
+    uint32_t gnssConfigureRequest = 0; // Bitfield containing the change requests for various settings on the GNSS receiver
+    bool debugGnssConfig = false; // Enable to print output during gnssUpdate
 
     // Add new settings to appropriate group above or create new group
     // Then also add to the same group in rtkSettingsEntries below
@@ -1310,10 +1304,10 @@ typedef enum
     HAS = L29,          // Platforms which support Galileo HAS
 } Facet_Flex_Variant;
 
-typedef bool (* AFTER_CMD)(int cmdIndex);
+typedef bool (* AFTER_CMD)(const char *settingName, void *settingData, int settingType);
 
 // Forward routines
-bool wifiAfterCommand(int cmdIndex);
+bool wifiAfterCommand(const char *settingName, void *settingData, int settingType);
 
 typedef struct
 {
@@ -1554,12 +1548,9 @@ const RTK_Settings_Entry rtkSettingsEntries[] =
 
     // GNSS Receiver
     { 0, 0, 0, 1, 1, 1, 1, 1, 1, ALL, 1, _bool,     0, & settings.debugGnss, "debugGnss", nullptr, },
+    { 0, 0, 0, 1, 1, 1, 1, 1, 1, ALL, 1, _bool,     0, & settings.debugGnssConfig, "debugGnssConfig", nullptr, },
     { 0, 0, 0, 1, 1, 1, 1, 1, 1, ALL, 1, _bool,     0, & settings.enablePrintPosition, "enablePrintPosition", nullptr, },
     { 0, 1, 0, 1, 1, 1, 1, 1, 1, ALL, 1, _uint16_t, 0, & settings.measurementRateMs, "measurementRateMs", nullptr, },
-    { 0, 1, 0, 1, 1, 1, 1, 1, 1, ALL, 1, _uint16_t, 0, & settings.navigationRate, "navigationRate", nullptr, },
-    { 0, 0, 0, 1, 1, 1, 1, 1, 1, ALL, 1, _bool,     0, & settings.gnssConfiguredOnce, "gnssConfiguredOnce", nullptr, },
-    { 0, 0, 0, 1, 1, 1, 1, 1, 1, ALL, 1, _bool,     0, & settings.gnssConfiguredBase, "gnssConfiguredBase", nullptr, },
-    { 0, 0, 0, 1, 1, 1, 1, 1, 1, ALL, 1, _bool,     0, & settings.gnssConfiguredRover, "gnssConfiguredRover", nullptr, },
 
     // Hardware
     { 1, 1, 0, 1, 1, 1, 0, 1, 0, NON, 0, _bool,     0, & settings.enableExternalHardwareEventLogging, "enableExternalHardwareEventLogging", nullptr, },
@@ -1769,7 +1760,7 @@ const RTK_Settings_Entry rtkSettingsEntries[] =
     // Rover operation
     { 1, 1, 0, 1, 1, 1, 1, 1, 0, ALL, 0, _uint8_t,  0, & settings.dynamicModel, "dynamicModel", nullptr, },
     { 0, 0, 0, 1, 1, 1, 1, 1, 1, ALL, 1, _bool,     0, & settings.enablePrintRoverAccuracy, "enablePrintRoverAccuracy", nullptr, },
-    { 0, 1, 0, 1, 1, 1, 1, 1, 1, ALL, 1, _int16_t,  0, & settings.minCNO, "minCNO", nullptr, }, // Not inWebConfig - createSettingsString gets from GNSS
+    { 0, 1, 0, 1, 1, 1, 1, 1, 1, ALL, 1, _int16_t,  0, & settings.minCN0, "minCN0", nullptr, }, // Not inWebConfig - createSettingsString gets from GNSS
     { 1, 1, 0, 1, 1, 1, 1, 1, 1, ALL, 1, _uint8_t,  0, & settings.minElev, "minElev", nullptr, },
 
     // RTC (Real Time Clock)
@@ -1890,13 +1881,13 @@ const RTK_Settings_Entry rtkSettingsEntries[] =
 //    i  d  i  v  V  i  c  n  r  e    X
 //    g  s  x  k  2  c  h  d  d  x    2  Type       Qual                Variable                  Name              afterSetCmd
 
-    // UM980 GNSS Receiver - TODO these apply to more than UM980
     { 1, 1, 0, 0, 0, 0, 1, 0, 1, HAS, 1, _bool,     0, & settings.enableGalileoHas, "enableGalileoHas", nullptr, },
     { 1, 1, 0, 0, 0, 0, 1, 0, 0, ALL, 0, _bool,     3, & settings.enableMultipathMitigation, "enableMultipathMitigation", nullptr, },
     { 0, 0, 0, 0, 0, 0, 1, 0, 0, ALL, 0, _bool,     0, & settings.enableImuCompensationDebug, "enableImuCompensationDebug", nullptr, },
     { 0, 0, 0, 0, 0, 0, 1, 0, 0, ALL, 0, _bool,     0, & settings.enableImuDebug, "enableImuDebug", nullptr, },
     { 1, 1, 0, 0, 0, 0, 1, 0, 0, ALL, 0, _bool,     0, & settings.enableTiltCompensation, "enableTiltCompensation", nullptr, },
 
+    // UM980 GNSS Receiver
 #ifdef  COMPILE_UM980
     { 1, 1, 1, 0, 0, 0, 1, 0, 0, U98, 0, tUmConst,  MAX_UM980_CONSTELLATIONS, & settings.um980Constellations, "constellation_", gnssCmdUpdateConstellations, },
     { 0, 1, 1, 0, 0, 0, 1, 0, 0, U98, 0, tUmMRNmea, MAX_UM980_NMEA_MSG, & settings.um980MessageRatesNMEA, "messageRateNMEA_", gnssCmdUpdateMessageRates, },
@@ -1910,10 +1901,10 @@ const RTK_Settings_Entry rtkSettingsEntries[] =
     // WiFi
     { 0, 0, 0, 1, 1, 1, 1, 1, 1, ALL, 1, _bool,     0, & settings.debugWebServer, "debugWebServer", nullptr, },
     { 0, 0, 0, 1, 1, 1, 1, 1, 1, ALL, 1, _bool,     0, & settings.debugWifiState, "debugWifiState", nullptr, },
-    { 0, 0, 0, 1, 1, 1, 1, 1, 1, ALL, 1, _bool,     0, & settings.enableCaptivePortal, "enableCaptivePortal", wifiAfterCommand, },
-    { 0, 1, 0, 1, 1, 1, 1, 1, 1, ALL, 1, _uint8_t,  0, & settings.wifiChannel, "wifiChannel", wifiAfterCommand, },
-    { 1, 0, 0, 1, 1, 1, 1, 1, 1, ALL, 1, _bool,     0, & settings.wifiConfigOverAP, "wifiConfigOverAP", wifiAfterCommand, },
-    { 1, 1, 1, 1, 1, 1, 1, 1, 1, ALL, 1, tWiFiNet,  MAX_WIFI_NETWORKS, & settings.wifiNetworks, "wifiNetwork_", wifiAfterCommand, },
+    { 0, 0, 0, 1, 1, 1, 1, 1, 1, ALL, 1, _bool,     0, & settings.enableCaptivePortal, "enableCaptivePortal", nullptr, },
+    { 0, 1, 0, 1, 1, 1, 1, 1, 1, ALL, 1, _uint8_t,  0, & settings.wifiChannel, "wifiChannel", nullptr, },
+    { 1, 0, 0, 1, 1, 1, 1, 1, 1, ALL, 1, _bool,     0, & settings.wifiConfigOverAP, "wifiConfigOverAP", nullptr, },
+    { 1, 1, 1, 1, 1, 1, 1, 1, 1, ALL, 1, tWiFiNet,  MAX_WIFI_NETWORKS, & settings.wifiNetworks, "wifiNetwork_", nullptr, },
     { 0, 0, 0, 1, 1, 1, 1, 1, 1, ALL, 1, _uint32_t, 0, & settings.wifiConnectTimeoutMs, "wifiConnectTimeoutMs", nullptr, },
 
     { 0, 1, 0, 1, 1, 1, 1, 1, 1, ALL, 1, _bool,     0, & settings.outputTipAltitude, "outputTipAltitude", nullptr, },
@@ -1960,7 +1951,7 @@ const RTK_Settings_Entry rtkSettingsEntries[] =
     { 0, 1, 0, 1, 1, 1, 1, 1, 1, ALL, 1, _bool,     0, & settings.baseCasterOverride, "baseCasterOverride", nullptr, },
     { 0, 0, 0, 1, 1, 1, 1, 1, 1, ALL, 1, _bool,     0, & settings.debugCLI, "debugCLI", nullptr, },
     { 0, 0, 0, 1, 1, 1, 1, 1, 1, ALL, 1, _uint16_t, 0, & settings.cliBlePrintDelay_ms, "cliBlePrintDelay_ms", nullptr, },
-
+    { 0, 0, 0, 1, 1, 1, 1, 1, 1, ALL, 1, _uint32_t, 0, & settings.gnssConfigureRequest, "gnssConfigureRequest", nullptr, },
 
     // Add new settings to appropriate group above or create new group
     // Then also add to the same group in settings above
@@ -2092,7 +2083,7 @@ struct struct_present
     float antennaPhaseCenter_mm = 0.0; // Used to setup tilt compensation
     bool galileoHasCapable = false; // UM980 has HAS capabilities
     bool multipathMitigation = false; // UM980 has MPM, other platforms do not
-    bool minCno = false; // ZED, mosaic, UM980 have minCN0. LG290P does on version >= v5.
+    bool minCN0 = false; // ZED, mosaic, UM980 have minCN0. LG290P does on version >= v5.
     bool minElevation = false; // ZED, mosaic, UM980 have minElevation. LG290P does on versions >= v5.
     bool dynamicModel = false; // ZED, mosaic, UM980 have dynamic models. LG290P does not.
     bool gpioExpanderSwitches = false; // Used on Flex

@@ -96,17 +96,7 @@ void stateUpdate()
 
             baseStatusLedOff();
 
-            // Configure for rover mode
-            displayRoverStart(0);
-            if (gnss->configureRover() == false)
-            {
-                settings.gnssConfiguredRover = false; // On the next boot, reapply all settings
-                recordSystemSettings();               // Record this state for next POR
-
-                systemPrintln("Rover config failed");
-                displayRoverFail(1000);
-                return;
-            }
+            gnssConfigure(GNSS_CONFIG_ROVER); // Request reconfigure to rover mode
 
             setMuxport(settings.dataPortChannel); // Return mux to original channel
 
@@ -116,19 +106,25 @@ void stateUpdate()
             baseCasterDisableOverride(); // Disable casting overrides
 
             // Start the UART connected to the GNSS receiver for NMEA data (enables logging)
-            if (tasksStartGnssUart() == false)
-                displayRoverFail(1000);
-            else
+            if (tasksStartGnssUart() == true)
             {
-                settings.gnssConfiguredBase = false; // When the mode changes, reapply all settings
                 settings.lastState = STATE_ROVER_NOT_STARTED;
                 recordSystemSettings(); // Record this state for next POR
 
-                displayRoverSuccess(500);
-
-                changeState(STATE_ROVER_NO_FIX);
+                changeState(STATE_ROVER_CONFIG_WAIT);
 
                 firstRoverStart = false; // Do not allow entry into test menu again
+            }
+        }
+        break;
+
+        case (STATE_ROVER_CONFIG_WAIT): {
+            if (gnssConfigureComplete())
+            {
+                systemPrintln("Rover configured");
+                displayRoverSuccess(500); // Show 'Rover Started'
+
+                changeState(STATE_ROVER_NO_FIX);
             }
         }
         break;
@@ -221,38 +217,42 @@ void stateUpdate()
 
             baseStatusLedOff();
 
-            displayBaseStart(0); // Show 'Base'
+            gnssConfigure(GNSS_CONFIG_BASE); // Request reconfigure to base mode
 
             bluetoothStart(); // Start Bluetooth if it is not already started
 
             webServerStop(); // Stop the web config server
 
             // Start the UART connected to the GNSS receiver for NMEA data (enables logging)
-            if (tasksStartGnssUart() && gnss->configureBase())
+            if (tasksStartGnssUart())
             {
-                // settings.gnssConfiguredBase is set by gnss->configureBase()
-                settings.gnssConfiguredRover = false;        // When the mode changes, reapply all settings
                 settings.lastState = STATE_BASE_NOT_STARTED; // Record this state for next POR
                 recordSystemSettings();                      // Record this state for next POR
 
+                changeState(STATE_BASE_CONFIG_WAIT);
+            }
+        }
+        break;
+
+        case (STATE_BASE_CONFIG_WAIT): {
+            if (gnssConfigureComplete())
+            {
+                systemPrintln("Base configured");
                 displayBaseSuccess(500); // Show 'Base Started'
 
                 if (settings.fixedBase == false)
                     changeState(STATE_BASE_TEMP_SETTLE);
                 else
+                {
+                    gnssConfigure(GNSS_CONFIG_BASE_FIXED); // Request start of fixed base
                     changeState(STATE_BASE_FIXED_NOT_STARTED);
-            }
-            else
-            {
-                settings.gnssConfiguredBase = false; // On the next boot, reapply all settings
-                recordSystemSettings();              // Record this state for next POR
-
-                displayBaseFail(1000);
+                    RTK_MODE(RTK_MODE_BASE_FIXED);
+                }
             }
         }
         break;
 
-        // Wait for horz acc of 5m or less before starting survey in
+        // Wait for horizontal accuracy to reach a certain level before starting survey in
         case (STATE_BASE_TEMP_SETTLE): {
             // Blink base LED slowly while we wait for first fix
             if ((millis() - lastBaseLEDupdate) > 1000)
@@ -265,29 +265,27 @@ void stateUpdate()
             int siv = gnss->getSatellitesInView();
             float hpa = gnss->getHorizontalAccuracy();
 
-            // Check for <1m horz accuracy before starting surveyIn
+            // Check for horizontal accuracy threshold before starting survey in
             char accuracy[20];
             char temp[20];
             const char *units = getHpaUnits(hpa, temp, sizeof(temp), 2, true);
-            // gnssGetSurveyInStartingAccuracy is 10m max
-            const char *accUnits =
-                getHpaUnits(gnss->getSurveyInStartingAccuracy(), accuracy, sizeof(accuracy), 2, false);
+
+            // surveyInStartingAccuracy is 10m max
+            const char *accUnits = getHpaUnits(settings.surveyInStartingAccuracy, accuracy, sizeof(accuracy), 2, false);
+
             systemPrintf("Waiting for Horz Accuracy < %s (%s): %s%s%s%s, SIV: %d\r\n", accuracy, accUnits, temp,
                          (accUnits != units) ? " (" : "", (accUnits != units) ? units : "",
                          (accUnits != units) ? ")" : "", siv);
 
             // On the mosaic-X5, the HPA is undefined while the GNSS is determining its fixed position
             // We need to skip the HPA check...
-            if ((hpa > 0.0 && hpa < gnss->getSurveyInStartingAccuracy()) || present.gnss_mosaicX5)
+            if ((hpa > 0.0 && hpa < settings.surveyInStartingAccuracy) || present.gnss_mosaicX5)
             {
-                displaySurveyStart(0); // Show 'Survey'
+                gnssConfigure(GNSS_CONFIG_BASE_SURVEY); // Request reconfigure to base survey in mode
 
-                if (gnss->surveyInStart() == true) // Begin survey
-                {
-                    displaySurveyStarted(500); // Show 'Survey Started'
+                displaySurveyStarted(500); // Show 'Survey Started'
 
-                    changeState(STATE_BASE_TEMP_SURVEY_STARTED);
-                }
+                changeState(STATE_BASE_TEMP_SURVEY_STARTED);
             }
         }
         break;
@@ -374,21 +372,12 @@ void stateUpdate()
         */
 
         // User has switched to base with fixed option enabled. Let's configure and try to get there.
-        // If fixed base fails, we'll handle it here
+        // If fixed base fails, gnssConfigure() will attempt again
         case (STATE_BASE_FIXED_NOT_STARTED): {
-            RTK_MODE(RTK_MODE_BASE_FIXED);
-            bool response = gnss->fixedBaseStart();
-            if (response == true)
+            if (gnssConfigureComplete())
             {
                 baseStatusLedOn(); // Turn on the base/status LED
                 changeState(STATE_BASE_FIXED_TRANSMITTING);
-            }
-            else
-            {
-                systemPrintln("Fixed base start failed");
-                displayBaseFail(1000);
-
-                changeState(STATE_ROVER_NOT_STARTED); // Return to rover mode to avoid being in fixed base mode
             }
         }
         break;
@@ -461,9 +450,9 @@ void stateUpdate()
 
                     parseIncomingSettings();
 
-                    settings.gnssConfiguredOnce = false; // On the next boot, reapply all settings
-                    settings.gnssConfiguredBase = false;
-                    settings.gnssConfiguredRover = false;
+                    gnssConfigureDefaults(); // Set all bits in the request bitfield to cause the GNSS receiver to go
+                                             // through a full (re)configuration
+
                     recordSystemSettings(); // Record these settings to unit
 
                     // Clear buffer
@@ -512,11 +501,6 @@ void stateUpdate()
             // Debounce entry into test menu
             if ((millis() - lastTestMenuChange) > 500)
             {
-                tasksStopGnssUart(); // Stop absoring GNSS serial via task
-                zedUartPassed = false;
-
-                gnss->enableRTCMTest();
-
                 RTK_MODE(RTK_MODE_TESTING);
                 changeState(STATE_TESTING);
             }
@@ -578,8 +562,8 @@ void stateUpdate()
             if (tasksStartGnssUart() && ntpConfigureUbloxModule())
             {
                 settings.lastState = STATE_NTPSERVER_NOT_STARTED; // Record this state for next POR
-                settings.gnssConfiguredBase = false;              // On the next boot, reapply all settings
-                settings.gnssConfiguredRover = false;
+                gnssConfigureDefaults(); // Set all bits in the request bitfield to cause the GNSS receiver to go
+                                         // through a full (re)configuration
                 recordSystemSettings();
 
                 if (online.ethernetNTPServer)
@@ -660,6 +644,8 @@ const char *getState(SystemState state, char *buffer)
     {
     case (STATE_ROVER_NOT_STARTED):
         return "STATE_ROVER_NOT_STARTED";
+    case (STATE_ROVER_CONFIG_WAIT):
+        return "STATE_ROVER_CONFIG_WAIT";
     case (STATE_ROVER_NO_FIX):
         return "STATE_ROVER_NO_FIX";
     case (STATE_ROVER_FIX):
@@ -672,6 +658,8 @@ const char *getState(SystemState state, char *buffer)
         return "STATE_BASE_CASTER_NOT_STARTED";
     case (STATE_BASE_NOT_STARTED):
         return "STATE_BASE_NOT_STARTED";
+    case (STATE_BASE_CONFIG_WAIT):
+        return "STATE_BASE_CONFIG_WAIT";
     case (STATE_BASE_TEMP_SETTLE):
         return "STATE_BASE_TEMP_SETTLE";
     case (STATE_BASE_TEMP_SURVEY_STARTED):

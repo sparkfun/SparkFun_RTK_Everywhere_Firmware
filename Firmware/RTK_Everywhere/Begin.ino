@@ -94,7 +94,7 @@ void identifyBoard()
         // 0x08 - HUSB238 - USB C PD Sink Controller
         bool husb238Present = i2cIsDevicePresent(i2c_0, 0x08);
 
-        // 0x10 -MFI343S00177 Authentication Coprocessor
+        // 0x10 - MFI343S00177 Authentication Coprocessor
         bool mfiPresent = i2cIsDevicePresent(i2c_0, 0x10);
 
         i2c_0->end();
@@ -158,16 +158,6 @@ void identifyBoard()
         // Torch X2: 8.2/3.3  -->  836mV < 947mV < 1067mV (8.5% tolerance)
         else if (idWithAdc(idValue, 8.2, 3.3, 8.5))
             productVariant = RTK_TORCH_X2;
-
-#ifdef FLEX_OVERRIDE
-        systemPrintln("<<<<<<<<<< !!!!!!!!!! FLEX OVERRIDE !!!!!!!!!! >>>>>>>>>>");
-        productVariant = RTK_FLEX; // TODO remove once v1.1 Flex has ID resistors
-#endif
-
-#ifdef TORCH_X2_OVERRIDE
-        systemPrintln("<<<<<<<<<< !!!!!!!!!! TORCH X2 OVERRIDE !!!!!!!!!! >>>>>>>>>>");
-        productVariant = RTK_TORCH_X2; // TODO remove once v1.1 Torch X2 has ID resistors
-#endif
     }
 
     if (ENABLE_DEVELOPER)
@@ -237,9 +227,10 @@ void beginBoard()
         present.needsExternalPpl = true; // Uses the PointPerfect Library
         present.galileoHasCapable = true;
         present.multipathMitigation = true; // UM980 has MPM, other platforms do not
-        present.minCno = true;
+        present.minCN0 = true;
         present.minElevation = true;
         present.dynamicModel = true;
+        present.display_type = DISPLAY_MAX_NONE;
 
 #ifdef COMPILE_IM19_IMU
         present.imu_im19 = true; // Allow tiltUpdate() to run
@@ -354,7 +345,7 @@ void beginBoard()
         present.display_i2c1 = true;
         present.display_type = DISPLAY_128x64;
         present.i2c1BusSpeed_400 = true; // Run display bus at higher speed
-        present.minCno = true;
+        present.minCN0 = true;
         present.minElevation = true;
         present.dynamicModel = true;
 
@@ -451,7 +442,6 @@ void beginBoard()
         // Facet V2 is based on the ESP32-WROVER
         // ZED-F9P is interfaced via I2C and UART1
         // NEO-D9S is interfaced via I2C. UART2 TX is also connected to ESP32 pin 4
-        // TODO: pass PMP over serial to save I2C traffic?
 
         // Specify the GNSS radio
 #ifdef COMPILE_ZED
@@ -479,7 +469,7 @@ void beginBoard()
         present.fastPowerOff = true;
         present.invertedFastPowerOff = true;
         present.gnss_to_uart = true;
-        present.minCno = true;
+        present.minCN0 = true;
         present.minElevation = true;
         present.dynamicModel = true;
 
@@ -561,7 +551,7 @@ void beginBoard()
         present.fastPowerOff = true;
         present.invertedFastPowerOff = true;
         present.gnss_to_uart = true;
-        present.minCno = true;
+        present.minCN0 = true;
         present.minElevation = true;
         present.dynamicModel = true;
 
@@ -660,7 +650,7 @@ void beginBoard()
         present.mosaicMicroSd = true;
         present.microSdCardDetectLow = true; // Except microSD is connected to mosaic... present.microSd is false
 
-        present.minCno = true;
+        present.minCN0 = true;
         present.minElevation = true;
         present.needsExternalPpl = true; // Uses the PointPerfect Library for L-Band
         present.dynamicModel = true;
@@ -734,7 +724,7 @@ void beginBoard()
 
         // We can't enable here because we don't know if lg290pFirmwareVersion is >= v05
         // present.minElevation = true;
-        // present.minCno = true;
+        // present.minCN0 = true;
 
         pin_I2C0_SDA = 7;
         pin_I2C0_SCL = 20;
@@ -782,15 +772,14 @@ void beginBoard()
         present.antennaPhaseCenter_mm = 62.0; // APC from drawings
         present.radio_lora = true;
         present.fuelgauge_bq40z50 = true;
-        present.charger_mp2762a = true;
 
         present.button_powerLow = true; // Button is pressed when high
-        // present.button_mode = true;  //TODO remove comment. This won't be available until v1.1 of hardware
+        present.button_mode = true;
         present.beeper = true;
         present.gnss_to_uart = true;
 
         present.gpioExpanderSwitches = true;
-        // present.microSd = true; // TODO remove comment out - v1.0 hardware does not have pullup on #CD so card detection does not work
+        present.microSd = true;
         present.microSdCardDetectLow = true;
 
         present.display_i2c0 = true;
@@ -799,6 +788,9 @@ void beginBoard()
         present.displayInverted = true;
         present.tiltPossible = true;
 
+        present.fastPowerOff = true;
+        present.invertedFastPowerOff = true; // Drive POWER_KILL high to cause powerdown
+
         pin_I2C0_SDA = 15;
         pin_I2C0_SCL = 4;
 
@@ -806,7 +798,8 @@ void beginBoard()
         pin_GnssUart_TX = 27;
 
         pin_powerSenseAndControl = 34;
-        // pin_modeButton = 25; //TODO remove comment. This won't be available until v1.1 of hardware
+        pin_powerFastOff = 23;
+        pin_modeButton = 25;
 
         pin_IMU_RX = 14; // ESP32 UART2
         pin_IMU_TX = 17;
@@ -824,8 +817,8 @@ void beginBoard()
         pin_microSD_CS = 22;
         pin_microSD_CardDetect = 39;
 
-        pin_gpioExpanderInterrupt =
-            2; // TODO remove on v1.1 hardware. Not used since all GPIO expanded pins are outputs
+        pinMode(pin_powerFastOff, OUTPUT);
+        digitalWrite(pin_powerFastOff, LOW); // Low = Stay on. High = turn off.
 
         DMW_if systemPrintf("pin_bluetoothStatusLED: %d\r\n", pin_bluetoothStatusLED);
         pinMode(pin_bluetoothStatusLED, OUTPUT);
@@ -870,15 +863,16 @@ void beginBoard()
         present.gnss_lg290p = true;
         present.antennaPhaseCenter_mm = 116.5; // Default to Torch helical APC, average of L1/L2
         present.fuelgauge_bq40z50 = true;
-        present.charger_mp2762a = true;
-        present.button_powerHigh = true; // Button is pressed when high
+        present.button_powerLow = true; // Button is pressed when low
         present.beeper = true;
         present.gnss_to_uart = true;
         present.needsExternalPpl = true; // Uses the PointPerfect Library
+        present.fastPowerOff = true;
+        present.invertedFastPowerOff = true; // Drive PWRKILL high to cause powerdown
 
         // We can't enable GNSS features here because we don't know if lg290pFirmwareVersion is >= v05
         // present.minElevation = true;
-        // present.minCno = true;
+        // present.minCN0 = true;
 
         pin_I2C0_SDA = 15;
         pin_I2C0_SCL = 4;
@@ -887,7 +881,7 @@ void beginBoard()
         pin_GnssUart_TX = 17;
         pin_GNSS_DR_Reset = 22; // Push low to reset GNSS/DR.
 
-        pin_GNSS_TimePulse = 39; // PPS on UM980
+        pin_GNSS_TimePulse = 39; // PPS on LG290P
 
         pin_usbSelect = 12;          // Controls U18 switch between ESP UART0 to USB or GNSS UART1
         pin_powerAdapterDetect = 36; // Goes low when USB cable is plugged in
@@ -899,11 +893,13 @@ void beginBoard()
         pin_beeper = 33;
 
         pin_powerButton = 34;
-        // pin_powerSenseAndControl = 18; // PWRKILL
+        pin_powerFastOff = 18; // PWRKILL
 
         pin_loraRadio_power = 19; // LoRa_EN
         // pin_loraRadio_boot = 23;  // LoRa_BOOT0
         // pin_loraRadio_reset = 5;  // LoRa_NRST
+
+        pinMode(pin_powerFastOff, INPUT); // Leave this as an input. powerDown() will drive high for fast power off
 
         DMW_if systemPrintf("pin_bluetoothStatusLED: %d\r\n", pin_bluetoothStatusLED);
         pinMode(pin_bluetoothStatusLED, OUTPUT);
@@ -1504,6 +1500,12 @@ void beginButtons()
         buttonCount++;
     if (present.gpioExpanderButtons == true)
         buttonCount++;
+    if (productVariant == RTK_FLEX)
+    {
+        Serial.println("<<<<<<<<<<<<<<<<<<<< Deal with Flex buttons >>>>>>>>>>>>>>");
+        buttonCount = 1;
+    }
+
     if (buttonCount > 1)
         reportFatalError("Illegal button assignment.");
 
@@ -1523,9 +1525,15 @@ void beginButtons()
     else
     {
         // Use the Button library
-        // Facet main/power button
-        if (present.button_powerLow == true && pin_powerSenseAndControl != PIN_UNDEFINED)
-            userBtn = new Button(pin_powerSenseAndControl);
+        if (present.button_powerLow == true)
+        {
+            // Torch X2 has both a powerButton and powerSenseAndControl (PWRKILL). Assign button task to powerButton.
+            if (pin_powerButton != PIN_UNDEFINED)
+                userBtn = new Button(pin_powerButton);
+            // Facet main/power button
+            else if (pin_powerSenseAndControl != PIN_UNDEFINED)
+                userBtn = new Button(pin_powerSenseAndControl);
+        }
 
         // Torch main/power button
         if (present.button_powerHigh == true && pin_powerButton != PIN_UNDEFINED)
@@ -1789,6 +1797,12 @@ bool i2cBusInitialization(TwoWire *i2cBus, int sda, int scl, int clockKHz)
         // SDA/VCC shorted: 1000ms, response 5
         // SDA/GND shorted: 14ms, response 5
         timer = millis();
+
+        // If there is nothing else on the bus, the authentication coprocessor can be asleep
+        // Ping it twice to be sure
+        if (addr == 0x10)
+            i2cIsDevicePresent(i2cBus, addr); // Throw away result. Just wake it up.
+
         if (i2cIsDevicePresent(i2cBus, addr))
         {
             if (deviceFound == false)

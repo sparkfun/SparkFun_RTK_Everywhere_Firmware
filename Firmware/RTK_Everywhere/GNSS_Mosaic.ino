@@ -53,10 +53,10 @@ void printMosaicCardSpace()
 //----------------------------------------
 void menuLogMosaic()
 {
-    if (!present.mosaicMicroSd) // This may be needed for the G5 P3 ?
+    if (present.mosaicMicroSd == false) // This may be needed for the G5 P3 ?
+    {
         return;
-
-    bool applyChanges = false;
+    }
 
     while (1)
     {
@@ -95,12 +95,12 @@ void menuLogMosaic()
         if (incoming == 1)
         {
             settings.enableLogging ^= 1;
-            applyChanges = true;
+            gnssConfigure(GNSS_CONFIG_LOGGING); // Request receiver to use new settings
         }
         else if (incoming == 2)
         {
             settings.enableLoggingRINEX ^= 1;
-            applyChanges = true;
+            gnssConfigure(GNSS_CONFIG_LOGGING); // Request receiver to use new settings
         }
         else if (incoming == 3 && settings.enableLoggingRINEX == true)
         {
@@ -116,7 +116,7 @@ void menuLogMosaic()
             if (duration >= 1 && duration <= MAX_MOSAIC_FILE_DURATIONS)
             {
                 settings.RINEXFileDuration = duration - 1;
-                applyChanges = true;
+                gnssConfigure(GNSS_CONFIG_LOGGING); // Request receiver to use new settings
             }
         }
         else if (incoming == 4 && settings.enableLoggingRINEX == true)
@@ -133,7 +133,7 @@ void menuLogMosaic()
             if (interval >= 1 && interval <= MAX_MOSAIC_OBS_INTERVALS)
             {
                 settings.RINEXObsInterval = interval - 1;
-                applyChanges = true;
+                gnssConfigure(GNSS_CONFIG_LOGGING); // Request receiver to use new settings
             }
         }
         else if (incoming == 'x')
@@ -144,17 +144,6 @@ void menuLogMosaic()
             break;
         else
             printUnknown(incoming);
-    }
-
-    // Apply changes
-    if (applyChanges)
-    {
-        GNSS_MOSAIC *mosaic = (GNSS_MOSAIC *)gnss;
-
-        mosaic->configureLogging();  // This will enable / disable RINEX logging
-        mosaic->enableNMEA();        // Enable NMEA messages - this will enable/disable the DSK1 streams
-        mosaic->saveConfiguration(); // Save the configuration
-        setLoggingType();            // Update Standard, PPP, or custom for icon selection
     }
 
     clearBuffer(); // Empty buffer of any newline chars
@@ -251,14 +240,14 @@ void GNSS_MOSAIC::begin()
             return;
         }
 
-        if(isPresent() == false) //Detect if the module is present
+        if (isPresent() == false) // Detect if the module is present
             return;
 
         int retries = 0;
         int retryLimit = 3;
 
         // Set COM1 baud rate. X5 defaults to 115200. Settings default to 230400bps
-        while (!setBaudRateCOM(1, settings.dataPortBaud))
+        while (!setBaudRateComm(settings.dataPortBaud))
         {
             if (retries == retryLimit)
                 break;
@@ -271,13 +260,6 @@ void GNSS_MOSAIC::begin()
             systemPrintln("Could not set mosaic-X5 COM1 baud!");
             return;
         }
-
-        // Set COM2 (Radio) and COM3 (Data) baud rates
-        setRadioBaudRate(settings.radioPortBaud);
-        setDataBaudRate(settings.dataPortBaud);
-
-        // Set COM2 (Radio) protocol(s)
-        setCorrRadioExtPort(settings.enableExtCorrRadio, true); // Force the setting
 
         updateSD(); // Check card size and free space
 
@@ -309,12 +291,8 @@ void GNSS_MOSAIC::begin()
             return;
         }
 
-        if(isPresent() == false) //Detect if the module is present
+        if (isPresent() == false) // Detect if the module is present
             return;
-
-        // Set COM2 (Radio) and COM3 (Data) baud rates
-        setRadioBaudRate(settings.radioPortBaud);
-        setDataBaudRate(settings.dataPortBaud); // Probably redundant
 
         // Set COM2 (Radio) protocol(s)
         setCorrRadioExtPort(settings.enableExtCorrRadio, true); // Force the setting
@@ -363,9 +341,6 @@ bool GNSS_MOSAIC::beginExternalEvent()
     // Note: You can't disable events via sep. Event cannot be set to "none"...
     //       All you can do is disable the ExtEvent stream
 
-    if (online.gnss == false)
-        return (false);
-
     if (settings.dataPortChannel != MUX_PPS_EVENTTRIGGER)
         return (true); // No need to configure PPS if port is not selected
 
@@ -384,11 +359,8 @@ bool GNSS_MOSAIC::beginExternalEvent()
 //   Returns true if the pin was successfully setup and false upon
 //   failure
 //----------------------------------------
-bool GNSS_MOSAIC::beginPPS()
+bool GNSS_MOSAIC::setPPS()
 {
-    if (online.gnss == false)
-        return (false);
-
     if (settings.dataPortChannel != MUX_PPS_EVENTTRIGGER)
         return (true); // No need to configure PPS if port is not selected
 
@@ -436,68 +408,9 @@ bool GNSS_MOSAIC::checkPPPRates()
     return settings.enableLoggingRINEX;
 }
 
+// Enable / disable RINEX logging
 //----------------------------------------
-// Configure the Base
-// Outputs:
-//   Returns true if successfully configured and false upon failure
-//----------------------------------------
-bool GNSS_MOSAIC::configureBase()
-{
-    /*
-        Set mode to Static + dynamic model
-        Enable RTCM Base messages
-        Enable NMEA messages
-
-        mosaicX5AutoBaseStart() will start "survey-in"
-        mosaicX5FixedBaseStart() will start fixed base
-    */
-
-    if (online.gnss == false)
-    {
-        systemPrintln("GNSS not online");
-        return (false);
-    }
-
-    if (settings.gnssConfiguredBase)
-    {
-        systemPrintln("Skipping mosaic Base configuration");
-        setLoggingType(); // Needed because logUpdate exits early and never calls setLoggingType
-        return true;
-    }
-
-    bool response = true;
-
-    response &= setModel(MOSAIC_DYN_MODEL_STATIC);
-
-    response &= setElevation(settings.minElev);
-
-    response &= setMinCnoRadio(settings.minCNO);
-
-    response &= setConstellations();
-
-    response &= enableRTCMBase();
-
-    response &= enableNMEA();
-
-    response &= configureLogging();
-
-    setLoggingType(); // Update Standard, PPP, or custom for icon selection
-
-    // Save the current configuration into non-volatile memory (NVM)
-    response &= saveConfiguration();
-
-    if (response == false)
-    {
-        systemPrintln("mosaic-X5 Base failed to configure");
-    }
-
-    settings.gnssConfiguredBase = response;
-
-    return (response);
-}
-
-//----------------------------------------
-bool GNSS_MOSAIC::configureLogging()
+bool GNSS_MOSAIC::setLogging()
 {
     bool response = true;
     String setting;
@@ -589,6 +502,62 @@ bool GNSS_MOSAIC::configureLBand(bool enableLBand, uint32_t LBandFreq)
 }
 
 //----------------------------------------
+// Setup the general configuration of the GNSS
+// Not Rover or Base specific (ie, baud rates)
+// Outputs:
+//   Returns true if successfully configured and false upon failure
+//----------------------------------------
+bool GNSS_MOSAIC::configure()
+{
+    // Attempt 3 tries on MOSAICX5 config
+    for (int x = 0; x < 3; x++)
+    {
+        if (configureOnce() == true)
+            return (true);
+    }
+
+    systemPrintln("mosaic-X5 failed to configure");
+    return (false);
+}
+
+//----------------------------------------
+// Configure the Base
+// Outputs:
+//   Returns true if successfully configured and false upon failure
+//----------------------------------------
+bool GNSS_MOSAIC::configureBase()
+{
+    if (settings.fixedBase == false && gnssInBaseSurveyInMode())
+        return (true); // No changes needed
+
+    if (settings.fixedBase == true)
+    {
+        // 0 - Unknown, 1 - Rover, 2 - Base Survey In, 3 - Base Fixed Geodetic, 4 - Base Fixed Cartesian
+        int currentMode = getMode();
+        if (currentMode == 3 && settings.fixedBaseCoordinateType == COORD_TYPE_GEODETIC)
+            return (true); // No changes needed
+        if (currentMode == 4 && settings.fixedBaseCoordinateType == COORD_TYPE_ECEF)
+            return (true); // No changes needed
+    }
+
+    // Assume we are changing from Rover to Base, request any additional config changes
+
+    bool response = true;
+
+    // Set the model to static for Base mode
+    response &= setModel(MOSAIC_DYN_MODEL_STATIC);
+
+    gnssConfigure(GNSS_CONFIG_MESSAGE_RATE_RTCM_BASE);
+
+    if (response == false)
+    {
+        systemPrintln("mosaic-X5 Base failed to configure");
+    }
+
+    return (response);
+}
+
+//----------------------------------------
 // Perform the GNSS configuration
 // Outputs:
 //   Returns true if successfully configured and false upon failure
@@ -597,19 +566,13 @@ bool GNSS_MOSAIC::configureOnce()
 {
     /*
     Configure COM1
-    Set minCNO
+    Set minCN0
     Set elevationAngle
     Set Constellations
 
     NMEA Messages are enabled by enableNMEA
-    RTCMv3 messages are enabled by enableRTCMRover / enableRTCMBase
+    RTCMv3 messages are enabled by setMessagesRTCMRover / setMessagesRTCMBase
     */
-
-    if (settings.gnssConfiguredOnce)
-    {
-        systemPrintln("mosaic configuration maintained");
-        return (true);
-    }
 
     bool response = true;
 
@@ -645,42 +608,16 @@ bool GNSS_MOSAIC::configureOnce()
     response &= sendWithResponse("snt,+GPSL5\n\r", "SignalTracking", 1000, 200);
     response &= sendWithResponse("snu,+GPSL5,+GPSL5\n\r", "SignalUsage", 1000, 200);
 
-    configureLogging();
-
     if (response == true)
     {
         online.gnss = true; // If we failed before, mark as online now
 
         systemPrintln("mosaic-X5 configuration updated");
-
-        // Save the current configuration into non-volatile memory (NVM)
-        response &= saveConfiguration();
     }
     else
         online.gnss = false; // Take it offline
 
-    settings.gnssConfiguredOnce = response;
-
     return (response);
-}
-
-//----------------------------------------
-// Setup the general configuration of the GNSS
-// Not Rover or Base specific (ie, baud rates)
-// Outputs:
-//   Returns true if successfully configured and false upon failure
-//----------------------------------------
-bool GNSS_MOSAIC::configureGNSS()
-{
-    // Attempt 3 tries on MOSAICX5 config
-    for (int x = 0; x < 3; x++)
-    {
-        if (configureOnce() == true)
-            return (true);
-    }
-
-    systemPrintln("mosaic-X5 failed to configure");
-    return (false);
 }
 
 //----------------------------------------
@@ -690,55 +627,21 @@ bool GNSS_MOSAIC::configureGNSS()
 //----------------------------------------
 bool GNSS_MOSAIC::configureRover()
 {
-    /*
-        Set mode to Rover + dynamic model
-        Set minElevation
-        Enable RTCM messages on COM1
-        Enable NMEA on COM1
-    */
-    if (online.gnss == false)
-    {
-        systemPrintln("GNSS not online");
-        return (false);
-    }
+    if (gnssInRoverMode())
+        return (true); // No changes needed
 
-    // If our settings haven't changed, trust GNSS's settings
-    if (settings.gnssConfiguredRover)
-    {
-        systemPrintln("Skipping mosaic Rover configuration");
-        setLoggingType(); // Needed because logUpdate exits early and never calls setLoggingType
-        return (true);
-    }
+    // Assume we are changing from Base to Rover, request any additional config changes
 
     bool response = true;
 
     response &= sendWithResponse("spm,Rover,all,auto\n\r", "PVTMode");
 
-    response &= setModel(settings.dynamicModel); // Set by menuGNSS which calls gnss->setModel
-
-    response &= setElevation(settings.minElev); // Set by menuGNSS which calls gnss->setElevation
-
-    response &= setMinCnoRadio(settings.minCNO);
-
-    response &= setConstellations();
-
-    response &= enableRTCMRover();
-
-    response &= enableNMEA();
-
-    response &= configureLogging();
-
-    setLoggingType(); // Update Standard, PPP, or custom for icon selection
-
-    // Save the current configuration into non-volatile memory (NVM)
-    response &= saveConfiguration();
+    gnssConfigure(GNSS_CONFIG_FIX_RATE);
+    gnssConfigure(GNSS_CONFIG_MESSAGE_RATE_NMEA);
+    gnssConfigure(GNSS_CONFIG_MESSAGE_RATE_RTCM_ROVER);
 
     if (response == false)
-    {
         systemPrintln("mosaic-X5 Rover failed to configure");
-    }
-
-    settings.gnssConfiguredRover = response;
 
     return (response);
 }
@@ -806,317 +709,6 @@ void GNSS_MOSAIC::debuggingEnable()
 }
 
 //----------------------------------------
-void GNSS_MOSAIC::enableGgaForNtrip()
-{
-    // Set the talker ID to GP
-    // enableNMEA() will enable GGA if needed
-    sendWithResponse("snti,GP\n\r", "NMEATalkerID");
-}
-
-//----------------------------------------
-// Turn on all the enabled NMEA messages on COM1
-//----------------------------------------
-bool GNSS_MOSAIC::enableNMEA()
-{
-    bool gpggaEnabled = false;
-    bool gpzdaEnabled = false;
-    bool gpgstEnabled = false;
-
-    String streams[MOSAIC_NUM_NMEA_STREAMS];                                          // Build a string for each stream
-    for (int messageNumber = 0; messageNumber < MAX_MOSAIC_NMEA_MSG; messageNumber++) // For each NMEA message
-    {
-        int stream = settings.mosaicMessageStreamNMEA[messageNumber];
-        if (stream > 0)
-        {
-            stream--;
-
-            if (streams[stream].length() > 0)
-                streams[stream] += String("+");
-            streams[stream] += String(mosaicMessagesNMEA[messageNumber].msgTextName);
-
-            // If we are using IP based corrections, we need to send local data to the PPL
-            // The PPL requires being fed GPGGA/ZDA, and RTCM1019/1020/1042/1046
-            if (strstr(settings.pointPerfectKeyDistributionTopic, "/ip") != nullptr)
-            {
-                // Mark PPL required messages as enabled if stream > 0
-                if (strcmp(mosaicMessagesNMEA[messageNumber].msgTextName, "GGA") == 0)
-                    gpggaEnabled = true;
-                if (strcmp(mosaicMessagesNMEA[messageNumber].msgTextName, "ZDA") == 0)
-                    gpzdaEnabled = true;
-            }
-
-            if (strcmp(mosaicMessagesNMEA[messageNumber].msgTextName, "GST") == 0)
-                gpgstEnabled = true;
-        }
-    }
-
-    if (pointPerfectIsEnabled())
-    {
-        // Force on any messages that are needed for PPL
-        if (gpggaEnabled == false)
-        {
-            // Add GGA to Stream1 (streams[0])
-            // TODO: We may need to be cleverer about which stream we choose,
-            //       depending on the stream intervals
-            if (streams[0].length() > 0)
-                streams[0] += String("+");
-            streams[0] += String("GGA");
-            gpggaEnabled = true;
-        }
-        if (gpzdaEnabled == false)
-        {
-            if (streams[0].length() > 0)
-                streams[0] += String("+");
-            streams[0] += String("ZDA");
-            gpzdaEnabled = true;
-        }
-    }
-
-    if (settings.ntripClient_TransmitGGA == true)
-    {
-        // Force on GGA if needed for NTRIP
-        if (gpggaEnabled == false)
-        {
-            if (streams[0].length() > 0)
-                streams[0] += String("+");
-            streams[0] += String("GGA");
-            gpggaEnabled = true;
-        }
-    }
-
-    // Force GST on so we can extract the lat and lon standard deviations
-    if (gpgstEnabled == false)
-    {
-        if (streams[0].length() > 0)
-            streams[0] += String("+");
-        streams[0] += String("GST");
-        gpgstEnabled = true;
-    }
-
-    bool response = true;
-
-    for (int stream = 0; stream < MOSAIC_NUM_NMEA_STREAMS; stream++)
-    {
-        if (streams[stream].length() == 0)
-            streams[stream] = String("none");
-
-        String setting = String("sno,Stream" + String(stream + 1) + ",COM1," + streams[stream] + "," +
-                                String(mosaicMsgRates[settings.mosaicStreamIntervalsNMEA[stream]].name) + "\n\r");
-        response &= sendWithResponse(setting, "NMEAOutput");
-
-        if (settings.enableNmeaOnRadio)
-            setting = String("sno,Stream" + String(stream + MOSAIC_NUM_NMEA_STREAMS + 1) + ",COM2," + streams[stream] +
-                             "," + String(mosaicMsgRates[settings.mosaicStreamIntervalsNMEA[stream]].name) + "\n\r");
-        else
-            setting = String("sno,Stream" + String(stream + MOSAIC_NUM_NMEA_STREAMS + 1) + ",COM2,none,off\n\r");
-        response &= sendWithResponse(setting, "NMEAOutput");
-
-        if (settings.enableGnssToUsbSerial)
-        {
-            setting =
-                String("sno,Stream" + String(stream + (2 * MOSAIC_NUM_NMEA_STREAMS) + 1) + ",USB1," + streams[stream] +
-                       "," + String(mosaicMsgRates[settings.mosaicStreamIntervalsNMEA[stream]].name) + "\n\r");
-            response &= sendWithResponse(setting, "NMEAOutput");
-        }
-        else
-        {
-            // Disable the USB1 NMEA streams if settings.enableGnssToUsbSerial is not enabled
-            setting = String("sno,Stream" + String(stream + (2 * MOSAIC_NUM_NMEA_STREAMS) + 1) + ",USB1,none,off\n\r");
-            response &= sendWithResponse(setting, "NMEAOutput");
-        }
-
-        if (settings.enableLogging)
-        {
-            setting =
-                String("sno,Stream" + String(stream + (3 * MOSAIC_NUM_NMEA_STREAMS) + 1) + ",DSK1," + streams[stream] +
-                       "," + String(mosaicMsgRates[settings.mosaicStreamIntervalsNMEA[stream]].name) + "\n\r");
-            response &= sendWithResponse(setting, "NMEAOutput");
-        }
-        else
-        {
-            // Disable the DSK1 NMEA streams if settings.enableLogging is not enabled
-            setting = String("sno,Stream" + String(stream + (3 * MOSAIC_NUM_NMEA_STREAMS) + 1) + ",DSK1,none,off\n\r");
-            response &= sendWithResponse(setting, "NMEAOutput");
-        }
-    }
-
-    return (response);
-}
-
-//----------------------------------------
-// Turn on all the enabled RTCM Base messages on COM1, COM2 and USB1 (if enabled)
-//----------------------------------------
-bool GNSS_MOSAIC::enableRTCMBase()
-{
-    bool response = true;
-
-    // Set RTCMv3 Intervals
-    for (int group = 0; group < MAX_MOSAIC_RTCM_V3_INTERVAL_GROUPS; group++)
-    {
-        char flt[10];
-        snprintf(flt, sizeof(flt), "%.1f", settings.mosaicMessageIntervalsRTCMv3Base[group]);
-        String setting =
-            String("sr3i," + String(mosaicRTCMv3MsgIntervalGroups[group].name) + "," + String(flt) + "\n\r");
-        response &= sendWithResponse(setting, "RTCMv3Interval");
-    }
-
-    // Enable RTCMv3
-    String messages = String("");
-    for (int message = 0; message < MAX_MOSAIC_RTCM_V3_MSG; message++)
-    {
-        if (settings.mosaicMessageEnabledRTCMv3Base[message])
-        {
-            if (messages.length() > 0)
-                messages += String("+");
-            messages += String(mosaicMessagesRTCMv3[message].name);
-        }
-    }
-
-    if (messages.length() == 0)
-        messages = String("none");
-
-    String setting = String("sr3o,COM1+COM2");
-    if (settings.enableGnssToUsbSerial)
-        setting += String("+USB1");
-    setting += String("," + messages + "\n\r");
-    response &= sendWithResponse(setting, "RTCMv3Output");
-
-    if (!settings.enableGnssToUsbSerial)
-    {
-        response &= sendWithResponse("sr3o,USB1,none\n\r", "RTCMv3Output");
-    }
-
-    return (response);
-}
-
-//----------------------------------------
-// Turn on all the enabled RTCM Rover messages on COM1, COM2 and USB1 (if enabled)
-//----------------------------------------
-bool GNSS_MOSAIC::enableRTCMRover()
-{
-    bool response = true;
-    bool rtcm1019Enabled = false;
-    bool rtcm1020Enabled = false;
-    bool rtcm1042Enabled = false;
-    bool rtcm1046Enabled = false;
-
-    // Set RTCMv3 Intervals
-    for (int group = 0; group < MAX_MOSAIC_RTCM_V3_INTERVAL_GROUPS; group++)
-    {
-        char flt[10];
-        snprintf(flt, sizeof(flt), "%.1f", settings.mosaicMessageIntervalsRTCMv3Rover[group]);
-        String setting =
-            String("sr3i," + String(mosaicRTCMv3MsgIntervalGroups[group].name) + "," + String(flt) + "\n\r");
-        response &= sendWithResponse(setting, "RTCMv3Interval");
-    }
-
-    // Enable RTCMv3
-    String messages = String("");
-    for (int message = 0; message < MAX_MOSAIC_RTCM_V3_MSG; message++)
-    {
-        if (settings.mosaicMessageEnabledRTCMv3Rover[message])
-        {
-            if (messages.length() > 0)
-                messages += String("+");
-            messages += String(mosaicMessagesRTCMv3[message].name);
-
-            // If we are using IP based corrections, we need to send local data to the PPL
-            // The PPL requires being fed GPGGA/ZDA, and RTCM1019/1020/1042/1046
-            if (pointPerfectIsEnabled())
-            {
-                // Mark PPL required messages as enabled if rate > 0
-                if (strcmp(mosaicMessagesRTCMv3[message].name, "RTCM1019") == 0)
-                    rtcm1019Enabled = true;
-                if (strcmp(mosaicMessagesRTCMv3[message].name, "RTCM1020") == 0)
-                    rtcm1020Enabled = true;
-                if (strcmp(mosaicMessagesRTCMv3[message].name, "RTCM1042") == 0)
-                    rtcm1042Enabled = true;
-                if (strcmp(mosaicMessagesRTCMv3[message].name, "RTCM1046") == 0)
-                    rtcm1046Enabled = true;
-            }
-        }
-    }
-
-    if (pointPerfectIsEnabled())
-    {
-        // Force on any messages that are needed for PPL
-        if (rtcm1019Enabled == false)
-        {
-            if (messages.length() > 0)
-                messages += String("+");
-            messages += String("RTCM1019");
-        }
-        if (rtcm1020Enabled == false)
-        {
-            if (messages.length() > 0)
-                messages += String("+");
-            messages += String("RTCM1020");
-        }
-        if (rtcm1042Enabled == false)
-        {
-            if (messages.length() > 0)
-                messages += String("+");
-            messages += String("RTCM1042");
-        }
-        if (rtcm1046Enabled == false)
-        {
-            if (messages.length() > 0)
-                messages += String("+");
-            messages += String("RTCM1046");
-        }
-    }
-
-    if (messages.length() == 0)
-        messages = String("none");
-
-    String setting = String("sr3o,COM1+COM2");
-    if (settings.enableGnssToUsbSerial)
-        setting += String("+USB1");
-    setting += String("," + messages + "\n\r");
-    response &= sendWithResponse(setting, "RTCMv3Output");
-
-    if (!settings.enableGnssToUsbSerial)
-    {
-        response &= sendWithResponse("sr3o,USB1,none\n\r", "RTCMv3Output");
-    }
-
-    return (response);
-}
-
-//----------------------------------------
-// Enable RTCM 1230. This is the GLONASS bias sentence and is transmitted
-// even if there is no GPS fix. We use it to test serial output.
-// Outputs:
-//   Returns true if successfully started and false upon failure
-//----------------------------------------
-bool GNSS_MOSAIC::enableRTCMTest()
-{
-    // Enable RTCM1230 on COM2 (Radio connector)
-    // Called by STATE_TEST. Mosaic could still be starting up, so allow many retries
-
-    int retries = 0;
-    const int retryLimit = 20;
-
-    // Add RTCMv3 output on COM2
-    while (!sendWithResponse("sdio,COM2,,+RTCMv3\n\r", "DataInOut"))
-    {
-        if (retries == retryLimit)
-            break;
-        retries++;
-        sendWithResponse("SSSSSSSSSSSSSSSSSSSS\n\r", "COM"); // Send escape sequence
-    }
-
-    if (retries == retryLimit)
-        return false;
-
-    bool success = true;
-    success &= sendWithResponse("sr3i,RTCM1230,1.0\n\r", "RTCMv3Interval"); // Set message interval to 1s
-    success &= sendWithResponse("sr3o,COM2,+RTCM1230\n\r", "RTCMv3Output"); // Add RTCMv3 1230 output
-
-    return success;
-}
-
-//----------------------------------------
 // Restore the GNSS to the factory settings
 //----------------------------------------
 void GNSS_MOSAIC::factoryReset()
@@ -1155,6 +747,14 @@ uint16_t GNSS_MOSAIC::fileBufferExtractData(uint8_t *fileBuffer, int fileBytesTo
 //----------------------------------------
 bool GNSS_MOSAIC::fixedBaseStart()
 {
+    // If we are already in the appropriate base mode, no changes needed
+    // 0 - Unknown, 1 - Rover, 2 - Base Survey In, 3 - Base Fixed Geodetic, 4 - Base Fixed Cartesian
+    int currentMode = getMode();
+    if (currentMode == 3 && settings.fixedBaseCoordinateType == COORD_TYPE_GEODETIC)
+        return (true); // No changes needed
+    if (currentMode == 4 && settings.fixedBaseCoordinateType == COORD_TYPE_ECEF)
+        return (true); // No changes needed
+
     bool response = true;
 
     // TODO: support alternate Datums (ETRS89, NAD83, NAD83_PA, NAD83_MA, GDA94, GDA2020)
@@ -1181,11 +781,36 @@ bool GNSS_MOSAIC::fixedBaseStart()
     }
 
     if (response == false)
-    {
         systemPrintln("Fixed base start failed");
-    }
 
     return (response);
+}
+
+//----------------------------------------
+// Check if given GNSS fix rate is allowed
+// Rates are expressed in ms between fixes.
+//----------------------------------------
+
+bool GNSS_MOSAIC::fixRateIsAllowed(uint32_t fixRateMs)
+{
+    // TODO
+    if (fixRateMs != 1000)
+        return (false);
+    return (true);
+}
+
+// Return minimum in milliseconds
+uint32_t GNSS_MOSAIC::fixRateGetMinimumMs()
+{
+    // TODO
+    return (1000);
+}
+
+// Return maximum in milliseconds
+uint32_t GNSS_MOSAIC::fixRateGetMaximumMs()
+{
+    // TODO
+    return (1000);
 }
 
 //----------------------------------------
@@ -1416,6 +1041,47 @@ uint8_t GNSS_MOSAIC::getMinute()
 }
 
 //----------------------------------------
+// Returns the current mode: Base/Rover/etc
+// 0 - Unknown, 1 - Rover, 2 - Base Survey In, 3 - Base Fixed Geodetic, 4 - Base Fixed Cartesian
+//----------------------------------------
+uint8_t GNSS_MOSAIC::getMode()
+{
+    // Example responses to gpm:
+    // PVTMode, Rover, StandAlone+SBAS+DGNSS+RTKFloat+RTKFixed, auto
+    // PVTMode, Static, StandAlone+SBAS+DGNSS+RTKFloat+RTKFixed, auto
+    // PVTMode, Static, StandAlone+SBAS+DGNSS+RTKFloat+RTKFixed, Geodetic1
+    // PVTMode, Static, StandAlone+SBAS+DGNSS+RTKFloat+RTKFixed, Cartesian1
+
+    char receiverResponse[500];
+    // Send gpm, look for correct PVTMode response, and store the entire response for searching later
+    if (sendWithResponse("gpm\n\r", "PVTMode", 1000, 25, receiverResponse, sizeof(receiverResponse)) == true)
+    {
+        if (strnstr(receiverResponse, "Cartesian", sizeof(receiverResponse)) != nullptr) // Found
+        {
+            Serial.println("Mode: Base fixed Cartesian");
+            return (4);
+        }
+        if (strnstr(receiverResponse, "Geodetic", sizeof(receiverResponse)) != nullptr) // Found
+        {
+            Serial.println("Mode: Base fixed Geodetic");
+            return (3);
+        }
+        if (strnstr(receiverResponse, "Static", sizeof(receiverResponse)) != nullptr) // Found
+        {
+            Serial.println("Mode: Base survey-in");
+            return (2);
+        }
+        if (strnstr(receiverResponse, "Rover", sizeof(receiverResponse)) != nullptr) // Found
+        {
+            Serial.println("Mode: Rover");
+            return (1);
+        }
+    }
+
+    return 0; // Unknown
+}
+
+//----------------------------------------
 // Returns month number or zero if not online
 //----------------------------------------
 uint8_t GNSS_MOSAIC::getMonth()
@@ -1555,16 +1221,35 @@ uint16_t GNSS_MOSAIC::getYear()
 }
 
 //----------------------------------------
-// Returns true if the device is in Rover mode
-// Currently the only two modes are Rover or Base
+// Returns true if the device is in Base Fixed mode
 //----------------------------------------
-bool GNSS_MOSAIC::inRoverMode()
+bool GNSS_MOSAIC::gnssInBaseFixedMode()
 {
-    // Determine which state we are in
-    if (settings.lastState == STATE_BASE_NOT_STARTED)
-        return (false);
-
-    return (true); // Default to Rover
+    // 0 - Unknown, 1 - Rover, 2 - Base Survey In, 3 - Base Fixed Geodetic, 4 - Base Fixed Cartesian
+    int currentMode = getMode();
+    if (currentMode == 3 || currentMode == 4)
+        return (true);
+    return (false);
+}
+//----------------------------------------
+// Returns true if the device is in Base Survey In mode
+//----------------------------------------
+bool GNSS_MOSAIC::gnssInBaseSurveyInMode()
+{
+    // 0 - Unknown, 1 - Rover, 2 - Base Survey In, 3 - Base Fixed Geodetic, 4 - Base Fixed Cartesian
+    if (getMode() == 2)
+        return (true);
+    return (false);
+}
+//----------------------------------------
+// Returns true if the device is in Rover mode
+//----------------------------------------
+bool GNSS_MOSAIC::gnssInRoverMode()
+{
+    // 0 - Unknown, 1 - Rover, 2 - Base Survey In, 3 - Base Fixed Geodetic, 4 - Base Fixed Cartesian
+    if (getMode() == 1)
+        return (true);
+    return (false);
 }
 
 //----------------------------------------
@@ -1773,6 +1458,7 @@ void GNSS_MOSAIC::menuConstellations()
             incoming--; // Align choice to constellation array of 0 to 5
 
             settings.mosaicConstellations[incoming] ^= 1;
+            gnssConfigure(GNSS_CONFIG_CONSTELLATION); // Request receiver to use new settings
         }
         else if (incoming == INPUT_RESPONSE_GETNUMBER_EXIT)
             break;
@@ -1781,11 +1467,6 @@ void GNSS_MOSAIC::menuConstellations()
         else
             printUnknown(incoming);
     }
-
-    // Apply current settings to module
-    setConstellations();
-
-    saveConfiguration(); // Save the updated constellations
 
     clearBuffer(); // Empty buffer of any newline chars
 }
@@ -1833,6 +1514,8 @@ void GNSS_MOSAIC::menuMessagesNMEA()
             settings.mosaicMessageStreamNMEA[incoming] += 1;
             if (settings.mosaicMessageStreamNMEA[incoming] > MOSAIC_NUM_NMEA_STREAMS)
                 settings.mosaicMessageStreamNMEA[incoming] = 0; // Wrap around
+
+            gnssConfigure(GNSS_CONFIG_MESSAGE_RATE_NMEA); // Request receiver to use new settings
         }
         else if (incoming > MAX_MOSAIC_NMEA_MSG &&
                  incoming <= (MAX_MOSAIC_NMEA_MSG + MOSAIC_NUM_NMEA_STREAMS)) // Stream intervals
@@ -1851,6 +1534,7 @@ void GNSS_MOSAIC::menuMessagesNMEA()
             if (interval >= 1 && interval <= MAX_MOSAIC_MSG_RATES)
             {
                 settings.mosaicStreamIntervalsNMEA[incoming] = interval - 1;
+                gnssConfigure(GNSS_CONFIG_MESSAGE_RATE_NMEA); // Request receiver to use new settings
             }
         }
         else if (incoming == INPUT_RESPONSE_GETNUMBER_EXIT)
@@ -1860,9 +1544,6 @@ void GNSS_MOSAIC::menuMessagesNMEA()
         else
             printUnknown(incoming);
     }
-
-    settings.gnssConfiguredBase = false; // Update the GNSS config at the next boot
-    settings.gnssConfiguredRover = false;
 
     clearBuffer(); // Empty buffer of any newline chars
 }
@@ -1913,7 +1594,13 @@ void GNSS_MOSAIC::menuMessagesRTCM(bool rover)
             if (getUserInputDouble(&interval) == INPUT_RESPONSE_VALID) // Returns EXIT, TIMEOUT, or long
             {
                 if ((interval >= 0.1) && (interval <= 600.0))
+                {
                     intervalPtr[incoming] = interval;
+                    if (inBaseMode())                                      // If the system state is Base mode
+                        gnssConfigure(GNSS_CONFIG_MESSAGE_RATE_RTCM_BASE); // Request receiver to use new settings
+                    else
+                        gnssConfigure(GNSS_CONFIG_MESSAGE_RATE_RTCM_ROVER); // Request receiver to use new settings
+                }
                 else
                     systemPrintln("Invalid interval: Min 0.1; Max 600.0");
             }
@@ -1924,6 +1611,11 @@ void GNSS_MOSAIC::menuMessagesRTCM(bool rover)
             incoming--;
             incoming -= MAX_MOSAIC_RTCM_V3_INTERVAL_GROUPS;
             enabledPtr[incoming] ^= 1;
+
+            if (inBaseMode())                                      // If the system state is Base mode
+                gnssConfigure(GNSS_CONFIG_MESSAGE_RATE_RTCM_BASE); // Request receiver to use new settings
+            else
+                gnssConfigure(GNSS_CONFIG_MESSAGE_RATE_RTCM_ROVER); // Request receiver to use new settings
         }
         else if (incoming == INPUT_RESPONSE_GETNUMBER_EXIT)
             break;
@@ -1932,9 +1624,6 @@ void GNSS_MOSAIC::menuMessagesRTCM(bool rover)
         else
             printUnknown(incoming);
     }
-
-    settings.gnssConfiguredBase = false; // Update the GNSS config at the next boot
-    settings.gnssConfiguredRover = false;
 
     clearBuffer(); // Empty buffer of any newline chars
 }
@@ -1991,6 +1680,12 @@ void GNSS_MOSAIC::menuMessages()
             for (int x = 0; x < MAX_MOSAIC_RTCM_V3_MSG; x++)
                 settings.mosaicMessageEnabledRTCMv3Base[x] = mosaicMessagesRTCMv3[x].defaultEnabled;
 
+            gnssConfigure(GNSS_CONFIG_MESSAGE_RATE_NMEA);          // Request receiver to use new settings
+            if (inBaseMode())                                      // If the system state is Base mode
+                gnssConfigure(GNSS_CONFIG_MESSAGE_RATE_RTCM_BASE); // Request receiver to use new settings
+            else
+                gnssConfigure(GNSS_CONFIG_MESSAGE_RATE_RTCM_ROVER); // Request receiver to use new settings
+
             systemPrintln("Reset to Defaults");
         }
 
@@ -2003,14 +1698,6 @@ void GNSS_MOSAIC::menuMessages()
     }
 
     clearBuffer(); // Empty buffer of any newline chars
-
-    setLoggingType(); // Update Standard, PPP, or custom for icon selection
-
-    // Apply these changes at menu exit
-    if (inRoverMode() == true)
-        restartRover = true;
-    else
-        restartBase = true;
 }
 
 //----------------------------------------
@@ -2040,6 +1727,16 @@ uint16_t GNSS_MOSAIC::rtcmBufferAvailable()
 {
     // TODO
     return 0;
+}
+
+//----------------------------------------
+// Hardware or software reset the GNSS receiver
+//----------------------------------------
+bool GNSS_MOSAIC::reset()
+{
+    // We could restart L-Band here if needed, but gnss->reset is never called on the X5
+    // Instead, update() does it when spartnCorrectionsReceived times out
+    return false;
 }
 
 //----------------------------------------
@@ -2097,15 +1794,16 @@ bool GNSS_MOSAIC::saveConfiguration()
 //   Returns true if the response was received and false upon failure
 //----------------------------------------
 bool GNSS_MOSAIC::sendAndWaitForIdle(const char *message, const char *reply, unsigned long timeout, unsigned long wait,
-                                   char *response, size_t responseSize, bool debug)
+                                     char *response, size_t responseSize, bool debug)
 {
     if (productVariant == RTK_FACET_MOSAIC)
         return sendAndWaitForIdle(serial2GNSS, message, reply, timeout, wait, response, responseSize, debug);
     else
         return sendAndWaitForIdle(serialGNSS, message, reply, timeout, wait, response, responseSize, debug);
 }
-bool GNSS_MOSAIC::sendAndWaitForIdle(HardwareSerial *serialPort, const char *message, const char *reply, unsigned long timeout, unsigned long idle,
-                                     char *response, size_t responseSize, bool debug)
+bool GNSS_MOSAIC::sendAndWaitForIdle(HardwareSerial *serialPort, const char *message, const char *reply,
+                                     unsigned long timeout, unsigned long idle, char *response, size_t responseSize,
+                                     bool debug)
 {
     if (strlen(reply) == 0) // Reply can't be zero-length
         return false;
@@ -2126,8 +1824,8 @@ bool GNSS_MOSAIC::sendAndWaitForIdle(HardwareSerial *serialPort, const char *mes
         if (serialPort->available()) // If a char is available
         {
             uint8_t c = serialPort->read(); // Read it
-            //if (debug && (settings.debugGnss == true) && (!inMainMenu))
-            //    systemPrintf("%c", (char)c);
+            // if (debug && (settings.debugGnss == true) && (!inMainMenu))
+            //     systemPrintf("%c", (char)c);
             if (c == *(reply + replySeen)) // Is it a char from reply?
             {
                 if (response && (replySeen < (responseSize - 1)))
@@ -2150,8 +1848,8 @@ bool GNSS_MOSAIC::sendAndWaitForIdle(HardwareSerial *serialPort, const char *mes
             if (serialPort->available())
             {
                 uint8_t c = serialPort->read();
-                //if (debug && (settings.debugGnss == true) && (!inMainMenu))
-                //    systemPrintf("%c", (char)c);
+                // if (debug && (settings.debugGnss == true) && (!inMainMenu))
+                //     systemPrintf("%c", (char)c);
                 if (response && (replySeen < (responseSize - 1)))
                 {
                     *(response + replySeen) = c;
@@ -2217,8 +1915,8 @@ bool GNSS_MOSAIC::sendWithResponse(const char *message, const char *reply, unsig
     else
         return sendWithResponse(serialGNSS, message, reply, timeout, wait, response, responseSize);
 }
-bool GNSS_MOSAIC::sendWithResponse(HardwareSerial *serialPort, const char *message, const char *reply, unsigned long timeout, unsigned long wait,
-                                   char *response, size_t responseSize)
+bool GNSS_MOSAIC::sendWithResponse(HardwareSerial *serialPort, const char *message, const char *reply,
+                                   unsigned long timeout, unsigned long wait, char *response, size_t responseSize)
 {
     if (strlen(reply) == 0) // Reply can't be zero-length
         return false;
@@ -2240,8 +1938,8 @@ bool GNSS_MOSAIC::sendWithResponse(HardwareSerial *serialPort, const char *messa
         if (serialPort->available()) // If a char is available
         {
             uint8_t c = serialPort->read(); // Read it
-            //if ((settings.debugGnss == true) && (!inMainMenu))
-            //    systemPrintf("%c", (char)c);
+            // if ((settings.debugGnss == true) && (!inMainMenu))
+            //     systemPrintf("%c", (char)c);
             if (c == *(reply + replySeen)) // Is it a char from reply?
             {
                 if (response && (replySeen < (responseSize - 1)))
@@ -2261,7 +1959,7 @@ bool GNSS_MOSAIC::sendWithResponse(HardwareSerial *serialPort, const char *messa
                 keepGoing = false;
 
         if ((millis() - startTime) > (timeout + wait)) // Have we really timed out?
-            keepGoing = false;                       // Don't keepGoing
+            keepGoing = false;                         // Don't keepGoing
     }
 
     if (replySeen == strlen(reply)) // If the reply was seen
@@ -2272,8 +1970,8 @@ bool GNSS_MOSAIC::sendWithResponse(HardwareSerial *serialPort, const char *messa
             if (serialPort->available())
             {
                 uint8_t c = serialPort->read();
-                //if ((settings.debugGnss == true) && (!inMainMenu))
-                //    systemPrintf("%c", (char)c);
+                if ((settings.debugGnss == true) && (!inMainMenu))
+                    systemPrintf("%c", (char)c);
                 if (response && (replySeen < (responseSize - 1)))
                 {
                     *(response + replySeen) = c;
@@ -2331,6 +2029,21 @@ bool GNSS_MOSAIC::setBaudRate(uint8_t port, uint32_t baudRate)
     }
 
     return setBaudRateCOM(port, baudRate);
+}
+
+bool GNSS_MOSAIC::setBaudRateComm(uint32_t baud)
+{
+    return setBaudRateCOM(1, baud);
+}
+
+bool GNSS_MOSAIC::setBaudRateData(uint32_t baud)
+{
+    return setBaudRateCOM(3, baud);
+}
+
+bool GNSS_MOSAIC::setBaudRateRadio(uint32_t baud)
+{
+    return setBaudRateCOM(2, baud);
 }
 
 //----------------------------------------
@@ -2424,12 +2137,6 @@ bool GNSS_MOSAIC::setCorrRadioExtPort(bool enable, bool force)
 }
 
 //----------------------------------------
-bool GNSS_MOSAIC::setDataBaudRate(uint32_t baud)
-{
-    return setBaudRateCOM(3, baud);
-}
-
-//----------------------------------------
 // Set the elevation in degrees
 // Inputs:
 //   elevationDegrees: The elevation value in degrees
@@ -2446,33 +2153,294 @@ bool GNSS_MOSAIC::setElevation(uint8_t elevationDegrees)
 }
 
 //----------------------------------------
-// Enable all the valid messages for this platform
+// Control whether HAS E6 is used in location fixes or not
 //----------------------------------------
-bool GNSS_MOSAIC::setMessages(int maxRetries)
+bool GNSS_MOSAIC::setHighAccuracyService(bool enableGalileoHas)
 {
-    // TODO : do we need this?
-    return true;
-}
-
-//----------------------------------------
-// Enable all the valid messages for this platform over the USB port
-//----------------------------------------
-bool GNSS_MOSAIC::setMessagesUsb(int maxRetries)
-{
-    // TODO : do we need this?
-    return true;
+    // Not yet supported on this platform
+    return (true); // Return true to clear gnssConfigure test
 }
 
 //----------------------------------------
 // Set the minimum satellite signal level for navigation.
 //----------------------------------------
-bool GNSS_MOSAIC::setMinCnoRadio(uint8_t cnoValue)
+bool GNSS_MOSAIC::setMinCN0(uint8_t cnoValue)
 {
     if (cnoValue > 60)
         cnoValue = 60;
     String cn0 = String(cnoValue);
     String setting = String("scm,all," + cn0 + "\n\r");
     return (sendWithResponse(setting, "CN0Mask", 1000, 200));
+}
+
+//----------------------------------------
+// Turn on all the enabled NMEA messages on COM1
+//----------------------------------------
+bool GNSS_MOSAIC::setMessagesNMEA()
+{
+    bool gpggaEnabled = false;
+    bool gpzdaEnabled = false;
+    bool gpgstEnabled = false;
+
+    String streams[MOSAIC_NUM_NMEA_STREAMS];                                          // Build a string for each stream
+    for (int messageNumber = 0; messageNumber < MAX_MOSAIC_NMEA_MSG; messageNumber++) // For each NMEA message
+    {
+        int stream = settings.mosaicMessageStreamNMEA[messageNumber];
+        if (stream > 0)
+        {
+            stream--;
+
+            if (streams[stream].length() > 0)
+                streams[stream] += String("+");
+            streams[stream] += String(mosaicMessagesNMEA[messageNumber].msgTextName);
+
+            // If we are using IP based corrections, we need to send local data to the PPL
+            // The PPL requires being fed GPGGA/ZDA, and RTCM1019/1020/1042/1046
+            if (strstr(settings.pointPerfectKeyDistributionTopic, "/ip") != nullptr)
+            {
+                // Mark PPL required messages as enabled if stream > 0
+                if (strcmp(mosaicMessagesNMEA[messageNumber].msgTextName, "GGA") == 0)
+                    gpggaEnabled = true;
+                if (strcmp(mosaicMessagesNMEA[messageNumber].msgTextName, "ZDA") == 0)
+                    gpzdaEnabled = true;
+            }
+
+            if (strcmp(mosaicMessagesNMEA[messageNumber].msgTextName, "GST") == 0)
+                gpgstEnabled = true;
+        }
+    }
+
+    if (pointPerfectIsEnabled())
+    {
+        // Force on any messages that are needed for PPL
+        if (gpggaEnabled == false)
+        {
+            // Add GGA to Stream1 (streams[0])
+            // TODO: We may need to be cleverer about which stream we choose,
+            //       depending on the stream intervals
+            if (streams[0].length() > 0)
+                streams[0] += String("+");
+            streams[0] += String("GGA");
+            gpggaEnabled = true;
+        }
+        if (gpzdaEnabled == false)
+        {
+            if (streams[0].length() > 0)
+                streams[0] += String("+");
+            streams[0] += String("ZDA");
+            gpzdaEnabled = true;
+        }
+    }
+
+    if (settings.ntripClient_TransmitGGA == true && settings.enableNtripClient == true)
+    {
+        // Force on GGA if needed for NTRIP
+        if (gpggaEnabled == false)
+        {
+            if (streams[0].length() > 0)
+                streams[0] += String("+");
+            streams[0] += String("GGA");
+            gpggaEnabled = true;
+        }
+    }
+
+    // Force GST on so we can extract the lat and lon standard deviations
+    if (gpgstEnabled == false)
+    {
+        if (streams[0].length() > 0)
+            streams[0] += String("+");
+        streams[0] += String("GST");
+        gpgstEnabled = true;
+    }
+
+    bool response = true;
+
+    for (int stream = 0; stream < MOSAIC_NUM_NMEA_STREAMS; stream++)
+    {
+        if (streams[stream].length() == 0)
+            streams[stream] = String("none");
+
+        String setting = String("sno,Stream" + String(stream + 1) + ",COM1," + streams[stream] + "," +
+                                String(mosaicMsgRates[settings.mosaicStreamIntervalsNMEA[stream]].name) + "\n\r");
+        response &= sendWithResponse(setting, "NMEAOutput");
+
+        if (settings.enableNmeaOnRadio)
+            setting = String("sno,Stream" + String(stream + MOSAIC_NUM_NMEA_STREAMS + 1) + ",COM2," + streams[stream] +
+                             "," + String(mosaicMsgRates[settings.mosaicStreamIntervalsNMEA[stream]].name) + "\n\r");
+        else
+            setting = String("sno,Stream" + String(stream + MOSAIC_NUM_NMEA_STREAMS + 1) + ",COM2,none,off\n\r");
+        response &= sendWithResponse(setting, "NMEAOutput");
+
+        if (settings.enableGnssToUsbSerial)
+        {
+            setting =
+                String("sno,Stream" + String(stream + (2 * MOSAIC_NUM_NMEA_STREAMS) + 1) + ",USB1," + streams[stream] +
+                       "," + String(mosaicMsgRates[settings.mosaicStreamIntervalsNMEA[stream]].name) + "\n\r");
+            response &= sendWithResponse(setting, "NMEAOutput");
+        }
+        else
+        {
+            // Disable the USB1 NMEA streams if settings.enableGnssToUsbSerial is not enabled
+            setting = String("sno,Stream" + String(stream + (2 * MOSAIC_NUM_NMEA_STREAMS) + 1) + ",USB1,none,off\n\r");
+            response &= sendWithResponse(setting, "NMEAOutput");
+        }
+
+        if (settings.enableLogging)
+        {
+            setting =
+                String("sno,Stream" + String(stream + (3 * MOSAIC_NUM_NMEA_STREAMS) + 1) + ",DSK1," + streams[stream] +
+                       "," + String(mosaicMsgRates[settings.mosaicStreamIntervalsNMEA[stream]].name) + "\n\r");
+            response &= sendWithResponse(setting, "NMEAOutput");
+        }
+        else
+        {
+            // Disable the DSK1 NMEA streams if settings.enableLogging is not enabled
+            setting = String("sno,Stream" + String(stream + (3 * MOSAIC_NUM_NMEA_STREAMS) + 1) + ",DSK1,none,off\n\r");
+            response &= sendWithResponse(setting, "NMEAOutput");
+        }
+    }
+
+    return (response);
+}
+
+//----------------------------------------
+// Turn on all the enabled RTCM Base messages on COM1, COM2 and USB1 (if enabled)
+//----------------------------------------
+bool GNSS_MOSAIC::setMessagesRTCMBase()
+{
+    bool response = true;
+
+    // Set RTCMv3 Intervals
+    for (int group = 0; group < MAX_MOSAIC_RTCM_V3_INTERVAL_GROUPS; group++)
+    {
+        char flt[10];
+        snprintf(flt, sizeof(flt), "%.1f", settings.mosaicMessageIntervalsRTCMv3Base[group]);
+        String setting =
+            String("sr3i," + String(mosaicRTCMv3MsgIntervalGroups[group].name) + "," + String(flt) + "\n\r");
+        response &= sendWithResponse(setting, "RTCMv3Interval");
+    }
+
+    // Enable RTCMv3
+    String messages = String("");
+    for (int message = 0; message < MAX_MOSAIC_RTCM_V3_MSG; message++)
+    {
+        if (settings.mosaicMessageEnabledRTCMv3Base[message])
+        {
+            if (messages.length() > 0)
+                messages += String("+");
+            messages += String(mosaicMessagesRTCMv3[message].name);
+        }
+    }
+
+    if (messages.length() == 0)
+        messages = String("none");
+
+    String setting = String("sr3o,COM1+COM2");
+    if (settings.enableGnssToUsbSerial)
+        setting += String("+USB1");
+    setting += String("," + messages + "\n\r");
+    response &= sendWithResponse(setting, "RTCMv3Output");
+
+    if (!settings.enableGnssToUsbSerial)
+    {
+        response &= sendWithResponse("sr3o,USB1,none\n\r", "RTCMv3Output");
+    }
+
+    return (response);
+}
+
+//----------------------------------------
+// Turn on all the enabled RTCM Rover messages on COM1, COM2 and USB1 (if enabled)
+//----------------------------------------
+bool GNSS_MOSAIC::setMessagesRTCMRover()
+{
+    bool response = true;
+    bool rtcm1019Enabled = false;
+    bool rtcm1020Enabled = false;
+    bool rtcm1042Enabled = false;
+    bool rtcm1046Enabled = false;
+
+    // Set RTCMv3 Intervals
+    for (int group = 0; group < MAX_MOSAIC_RTCM_V3_INTERVAL_GROUPS; group++)
+    {
+        char flt[10];
+        snprintf(flt, sizeof(flt), "%.1f", settings.mosaicMessageIntervalsRTCMv3Rover[group]);
+        String setting =
+            String("sr3i," + String(mosaicRTCMv3MsgIntervalGroups[group].name) + "," + String(flt) + "\n\r");
+        response &= sendWithResponse(setting, "RTCMv3Interval");
+    }
+
+    // Enable RTCMv3
+    String messages = String("");
+    for (int message = 0; message < MAX_MOSAIC_RTCM_V3_MSG; message++)
+    {
+        if (settings.mosaicMessageEnabledRTCMv3Rover[message])
+        {
+            if (messages.length() > 0)
+                messages += String("+");
+            messages += String(mosaicMessagesRTCMv3[message].name);
+
+            // If we are using IP based corrections, we need to send local data to the PPL
+            // The PPL requires being fed GPGGA/ZDA, and RTCM1019/1020/1042/1046
+            if (pointPerfectIsEnabled())
+            {
+                // Mark PPL required messages as enabled if rate > 0
+                if (strcmp(mosaicMessagesRTCMv3[message].name, "RTCM1019") == 0)
+                    rtcm1019Enabled = true;
+                if (strcmp(mosaicMessagesRTCMv3[message].name, "RTCM1020") == 0)
+                    rtcm1020Enabled = true;
+                if (strcmp(mosaicMessagesRTCMv3[message].name, "RTCM1042") == 0)
+                    rtcm1042Enabled = true;
+                if (strcmp(mosaicMessagesRTCMv3[message].name, "RTCM1046") == 0)
+                    rtcm1046Enabled = true;
+            }
+        }
+    }
+
+    if (pointPerfectIsEnabled())
+    {
+        // Force on any messages that are needed for PPL
+        if (rtcm1019Enabled == false)
+        {
+            if (messages.length() > 0)
+                messages += String("+");
+            messages += String("RTCM1019");
+        }
+        if (rtcm1020Enabled == false)
+        {
+            if (messages.length() > 0)
+                messages += String("+");
+            messages += String("RTCM1020");
+        }
+        if (rtcm1042Enabled == false)
+        {
+            if (messages.length() > 0)
+                messages += String("+");
+            messages += String("RTCM1042");
+        }
+        if (rtcm1046Enabled == false)
+        {
+            if (messages.length() > 0)
+                messages += String("+");
+            messages += String("RTCM1046");
+        }
+    }
+
+    if (messages.length() == 0)
+        messages = String("none");
+
+    String setting = String("sr3o,COM1+COM2");
+    if (settings.enableGnssToUsbSerial)
+        setting += String("+USB1");
+    setting += String("," + messages + "\n\r");
+    response &= sendWithResponse(setting, "RTCMv3Output");
+
+    if (!settings.enableGnssToUsbSerial)
+    {
+        response &= sendWithResponse("sr3o,USB1,none\n\r", "RTCMv3Output");
+    }
+
+    return (response);
 }
 
 //----------------------------------------
@@ -2495,9 +2463,19 @@ bool GNSS_MOSAIC::setModel(uint8_t modelNumber)
 }
 
 //----------------------------------------
-bool GNSS_MOSAIC::setRadioBaudRate(uint32_t baud)
+// Configure multipath mitigation
+//----------------------------------------
+bool GNSS_MOSAIC::setMultipathMitigation(bool enableMultipathMitigation)
 {
-    return setBaudRateCOM(2, baud);
+    // Does not exist on this platform
+    return true;
+}
+
+// Given the name of a message, find it, and set the rate
+bool GNSS_MOSAIC::setNmeaMessageRateByName(const char *msgName, uint8_t msgRate)
+{
+    // TODO
+    return (false);
 }
 
 //----------------------------------------
@@ -2521,19 +2499,12 @@ bool GNSS_MOSAIC::setRate(double secondsBetweenSolutions)
 }
 
 //----------------------------------------
-bool GNSS_MOSAIC::setTalkerGNGGA()
-{
-    return sendWithResponse("snti,GN\n\r", "NMEATalkerID");
-}
-
+// Enable/disable any output needed for tilt compensation
 //----------------------------------------
-// Hotstart GNSS to try to get RTK lock
-//----------------------------------------
-bool GNSS_MOSAIC::softwareReset()
+bool GNSS_MOSAIC::setTilt()
 {
-    // We could restart L-Band here if needed, but gnss->softwareReset is never called on the X5
-    // Instead, update() does it when spartnCorrectionsReceived times out
-    return false;
+    // Not yet supported on this platform
+    return (true); // Return true to clear gnssConfigure test
 }
 
 //----------------------------------------
@@ -2595,7 +2566,8 @@ void GNSS_MOSAIC::storeBlock4013(SEMP_PARSE_STATE *parse)
             if (Tracking)
             {
                 // SV is being tracked
-                std::vector<svTracking_t>::iterator pos = std::find_if(svInTracking.begin(), svInTracking.end(), find_sv(SVID));
+                std::vector<svTracking_t>::iterator pos =
+                    std::find_if(svInTracking.begin(), svInTracking.end(), find_sv(SVID));
                 if (pos == svInTracking.end()) // If it is not in svInTracking, add it
                     svInTracking.push_back({SVID, millis()});
                 else // Update lastSeen
@@ -2608,7 +2580,8 @@ void GNSS_MOSAIC::storeBlock4013(SEMP_PARSE_STATE *parse)
             else
             {
                 // SV is not being tracked. If it is in svInTracking, remove it
-                std::vector<svTracking_t>::iterator pos = std::find_if(svInTracking.begin(), svInTracking.end(), find_sv(SVID));
+                std::vector<svTracking_t>::iterator pos =
+                    std::find_if(svInTracking.begin(), svInTracking.end(), find_sv(SVID));
                 if (pos != svInTracking.end())
                     svInTracking.erase(pos);
             }
@@ -2621,7 +2594,8 @@ void GNSS_MOSAIC::storeBlock4013(SEMP_PARSE_STATE *parse)
     bool keepGoing = true;
     while (keepGoing)
     {
-        std::vector<svTracking_t>::iterator pos = std::find_if(svInTracking.begin(), svInTracking.end(), find_stale_sv(millis()));
+        std::vector<svTracking_t>::iterator pos =
+            std::find_if(svInTracking.begin(), svInTracking.end(), find_stale_sv(millis()));
         if (pos != svInTracking.end())
             svInTracking.erase(pos);
         else
@@ -2657,7 +2631,7 @@ void GNSS_MOSAIC::storeBlock4059(SEMP_PARSE_STATE *parse)
 {
     if (!present.mosaicMicroSd)
         return;
-    
+
     if (sempSbfGetU1(parse, 14) < 1) // Check N is at least 1
         return;
 
@@ -2765,17 +2739,19 @@ bool GNSS_MOSAIC::surveyInReset()
 //----------------------------------------
 bool GNSS_MOSAIC::surveyInStart()
 {
-    // Start a Self-optimizing Base Station
-    bool response = sendWithResponse("spm,Static,,auto\n\r", "PVTMode");
-
     _determiningFixedPosition = true; // Ensure flag is set initially
 
     _autoBaseStartTimer = millis(); // Stamp when averaging began
 
+    // If we are already in the appropriate base mode, no changes needed
+    if (gnssInBaseSurveyInMode())
+        return (true); // No changes needed
+
+    // Start a Self-optimizing Base Station
+    bool response = sendWithResponse("spm,Static,,auto\n\r", "PVTMode");
+
     if (response == false)
-    {
         systemPrintln("Survey start failed");
-    }
 
     return (response);
 }
@@ -2955,9 +2931,12 @@ uint32_t GNSS_MOSAIC::baudGetMaximum()
     return (mosaicComRates[MAX_MOSAIC_COM_RATES - 1].rate);
 }
 
-//Return true if the receiver is detected
+// Return true if the receiver is detected
 bool GNSS_MOSAIC::isPresent()
 {
+    systemPrintln("Starting communication with mosaic-X5");
+    paintMosaicBooting();
+
     if (productVariant != RTK_FLEX) // productVariant == RTK_FACET_MOSAIC
     {
         // Set COM4 to: CMD input (only), SBF output (only)
@@ -2968,12 +2947,14 @@ bool GNSS_MOSAIC::isPresent()
     {
         // Set COM1 to: auto input, RTCMv3+SBF+NMEA+Encapsulate output
         // Mosaic could still be starting up, so allow many retries
-        return isPresentOnSerial(serialGNSS, "sdio,COM1,auto,RTCMv3+SBF+NMEA+Encapsulate\n\r", "DataInOut", "COM1>", 20);
+        return isPresentOnSerial(serialGNSS, "sdio,COM1,auto,RTCMv3+SBF+NMEA+Encapsulate\n\r", "DataInOut", "COM1>",
+                                 20);
     }
 }
 
-//Return true if the receiver is detected
-bool GNSS_MOSAIC::isPresentOnSerial(HardwareSerial *serialPort, const char *command, const char *response, const char *console, int retryLimit)
+// Return true if the receiver is detected
+bool GNSS_MOSAIC::isPresentOnSerial(HardwareSerial *serialPort, const char *command, const char *response,
+                                    const char *console, int retryLimit)
 {
     // Mosaic could still be starting up, so allow many retries
     int retries = 0;
@@ -3005,7 +2986,7 @@ bool GNSS_MOSAIC::isPresentOnSerial(HardwareSerial *serialPort, const char *comm
         if (retries == retryLimit)
         {
             systemPrintln("Could not communicate with mosaic-X5 at selected baud rate");
-            return(false);
+            return (false);
         }
     }
 
@@ -3277,7 +3258,8 @@ bool mosaicIsPresentOnFlex()
     serialTestGNSS.begin(115200, SERIAL_8N1, pin_GnssUart_RX, pin_GnssUart_TX);
 
     // Only try 3 times. LG290P detection will have been done first. X5 should have booted. Baud rate could be wrong.
-    if (mosaic.isPresentOnSerial(&serialTestGNSS, "sdio,COM1,auto,RTCMv3+SBF+NMEA+Encapsulate\n\r", "DataInOut", "COM1>", 3) == true)
+    if (mosaic.isPresentOnSerial(&serialTestGNSS, "sdio,COM1,auto,RTCMv3+SBF+NMEA+Encapsulate\n\r", "DataInOut",
+                                 "COM1>", 3) == true)
     {
         if (settings.debugGnss)
             systemPrintln("mosaic-X5 detected at 115200 baud");
@@ -3297,14 +3279,15 @@ bool mosaicIsPresentOnFlex()
     serialTestGNSS.begin(460800, SERIAL_8N1, pin_GnssUart_RX, pin_GnssUart_TX);
 
     // Only try 3 times, so we fail and pass on to the next Facet GNSS detection
-    if (mosaic.isPresentOnSerial(&serialTestGNSS, "sdio,COM1,auto,RTCMv3+SBF+NMEA+Encapsulate\n\r", "DataInOut", "COM1>", 3) == true)
+    if (mosaic.isPresentOnSerial(&serialTestGNSS, "sdio,COM1,auto,RTCMv3+SBF+NMEA+Encapsulate\n\r", "DataInOut",
+                                 "COM1>", 3) == true)
     {
         // serialGNSS and serial2GNSS have not yet been begun. We need to saveConfiguration manually
         unsigned long start = millis();
         bool result = mosaic.sendWithResponse(&serialTestGNSS, "eccf,Current,Boot\n\r", "CopyConfigFile", 5000);
         if (settings.debugGnss)
             systemPrintf("saveConfiguration: sendWithResponse returned %s after %d ms\r\n", result ? "true" : "false",
-                        millis() - start);
+                         millis() - start);
         if (settings.debugGnss)
             systemPrintf("mosaic-X5 baud rate %supdated\r\n", result ? "" : "NOT ");
         serialTestGNSS.end();
