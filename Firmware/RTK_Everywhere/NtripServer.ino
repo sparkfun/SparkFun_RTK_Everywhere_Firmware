@@ -122,7 +122,7 @@ NtripServer.ino
 
   =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=*/
 
-#ifdef COMPILE_NETWORK
+#ifdef COMPILE_NTRIP_SERVER
 
 //----------------------------------------
 // Constants
@@ -877,4 +877,4 @@ void ntripServerValidateTables()
         reportFatalError("Fix ntripServerStateNameEntries to match NTRIPServerState");
 }
 
-#endif // COMPILE_NETWORK
+#endif  // COMPILE_NTRIP_SERVER

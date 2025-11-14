@@ -114,9 +114,10 @@
 
 #if defined(COMPILE_WIFI) || defined(COMPILE_ETHERNET) || defined(COMPILE_CELLULAR)
 #define COMPILE_NETWORK
-#define COMPILE_MQTT_CLIENT // Comment out to remove MQTT Client functionality
-#define COMPILE_OTA_AUTO    // Comment out to disable automatic over-the-air firmware update
-#define COMPILE_HTTP_CLIENT // Comment out to disable HTTP Client (PointPerfect ZTP) functionality
+#define COMPILE_MQTT_CLIENT     // Comment out to remove MQTT Client functionality
+#define COMPILE_NTRIP_SERVER    // Comment out to remove NTRIP server functionality
+#define COMPILE_OTA_AUTO        // Comment out to disable automatic over-the-air firmware update
+#define COMPILE_HTTP_CLIENT     // Comment out to disable HTTP Client (PointPerfect ZTP) functionality
 #endif                      // COMPILE_WIFI || COMPILE_ETHERNET || COMPILE_CELLULAR
 
 // Always define ENABLE_DEVELOPER to enable its use in conditional statements
@@ -1596,7 +1597,7 @@ bool logLengthExceeded() // Limit individual files to maxLogLength_minutes
 
     if (nextLogTime_ms == 0) // Keep logging if nextLogTime_ms has not been set
         return false;
-    
+
     // Note: this will roll over every 49.71 days...
     // Solution: https://stackoverflow.com/a/3097744 - see issue #742
     return (!((long)(nextLogTime_ms - millis()) > 0));
