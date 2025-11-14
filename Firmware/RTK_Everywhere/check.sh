@@ -77,6 +77,11 @@ sed -i 's|#define COMPILE_NTRIP_SERVER|//#define COMPILE_NTRIP_SERVER|' RTK_Ever
 make
 git reset --hard --quiet  HEAD
 
+# TCP Client
+sed -i 's|#define COMPILE_TCP_CLIENT|//#define COMPILE_TCP_CLIENT|' RTK_Everywhere.ino
+make
+git reset --hard --quiet  HEAD
+
 # UM980
 sed -i 's|#define COMPILE_UM980|//#define COMPILE_UM980|' RTK_Everywhere.ino
 make

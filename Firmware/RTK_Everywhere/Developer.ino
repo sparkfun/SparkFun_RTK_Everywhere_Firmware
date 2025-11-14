@@ -63,16 +63,6 @@ void networkValidateIndex(NetIndex_t index) {}
 void networkVerifyTables() {}
 
 //----------------------------------------
-// TCP client
-//----------------------------------------
-
-void tcpClientDiscardBytes(RING_BUFFER_OFFSET previousTail, RING_BUFFER_OFFSET newTail) {}
-int32_t tcpClientSendData(uint16_t dataHead) {return 0;}
-void tcpClientUpdate() {}
-void tcpClientValidateTables() {}
-void tcpClientZeroTail() {}
-
-//----------------------------------------
 // TCP server
 //----------------------------------------
 
@@ -160,6 +150,18 @@ void ntripServerStop(int serverIndex, bool shutdown) {online.ntripServer[serverI
 void ntripServerUpdate() {}
 void ntripServerValidateTables() {}
 #endif   // COMPILE_NTRIP_SERVER
+
+//----------------------------------------
+// TCP client
+//----------------------------------------
+
+#ifndef COMPILE_TCP_CLIENT
+void tcpClientDiscardBytes(RING_BUFFER_OFFSET previousTail, RING_BUFFER_OFFSET newTail) {}
+int32_t tcpClientSendData(uint16_t dataHead) {return 0;}
+void tcpClientUpdate() {}
+void tcpClientValidateTables() {}
+void tcpClientZeroTail() {}
+#endif  // COMPILE_TCP_CLIENT
 
 //----------------------------------------
 // Web Server

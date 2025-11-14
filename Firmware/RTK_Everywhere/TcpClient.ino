@@ -115,7 +115,7 @@ TcpClient.ino
     * private SNIP NTRIP caster
 */
 
-#ifdef COMPILE_NETWORK
+#ifdef COMPILE_TCP_CLIENT
 
 //----------------------------------------
 // Constants
@@ -599,4 +599,4 @@ void tcpClientZeroTail()
     tcpClientTail = 0;
 }
 
-#endif // COMPILE_NETWORK
+#endif // COMPILE_TCP_CLIENT
