@@ -240,11 +240,12 @@ void wifiVerifyTables()                         {}
 
 void menuTilt() {}
 void nmeaApplyCompensation(char *nmeaSentence, int arraySize) {}
-void tiltUpdate() {}
-void tiltStop() {}
-void tiltSensorFactoryReset() {}
+void tiltDetect() {}
 bool tiltIsCorrecting() {return(false);}
 void tiltRequestStop() {}
+void tiltSensorFactoryReset() {}
+void tiltStop() {}
+void tiltUpdate() {}
 
 #endif  // COMPILE_IM19_IMU
 
