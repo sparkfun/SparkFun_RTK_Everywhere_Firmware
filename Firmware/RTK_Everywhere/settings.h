@@ -1205,9 +1205,9 @@ struct Settings
         254}; // Mark first record with key so defaults will be applied. Int value for each supported message - Report
               // rates for RTCM Base. Default to Quectel recommended rates.
     int lg290pMessageRatesPQTM[MAX_LG290P_PQTM_MSG] = {254}; // Mark first record with key so defaults will be applied.
-    char configurePPP[30] = "2 1 120 0.10 0.15"; // PQTMCFGPPP: 2,1,120,0.10,0.15 ** Use spaces, not commas! **
 #endif // COMPILE_LG290P
 
+    char configurePPP[30] = "2 1 120 0.10 0.15"; // PQTMCFGPPP: 2,1,120,0.10,0.15 ** Use spaces, not commas! **
     bool debugSettings = false;
     bool enableNtripCaster = false; //When true, respond as a faux NTRIP Caster to incoming TCP connections
     bool baseCasterOverride = false; //When true, user has put device into 'BaseCast' mode. Change settings, but don't save to NVM.

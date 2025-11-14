@@ -119,6 +119,7 @@ void ntripClientPushGGA(const char * ggaString) {}
 void ntripClientStop(bool clientAllocated) {online.ntripClient = false;}
 void ntripClientUpdate() {}
 void ntripClientValidateTables() {}
+void ntripClientSettingsChanged() {}
 #endif   // COMPILE_NTRIP_CLIENT
 
 //----------------------------------------
