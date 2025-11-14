@@ -93,6 +93,10 @@
 #define COMPILE_AUTHENTICATION // Comment out to disable MFi authentication
 #endif
 
+#ifdef COMPILE_ETHERNET
+#define COMPILE_NTP     // Comment out to disable NTP functionality
+#endif  // COMPILE_ETHERNET
+
 #ifdef COMPILE_WIFI
 #define COMPILE_AP     // Requires WiFi. Comment out to remove Access Point functionality
 #define COMPILE_ESPNOW // Requires WiFi. Comment out to remove ESP-NOW functionality.

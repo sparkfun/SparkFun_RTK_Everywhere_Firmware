@@ -51,7 +51,7 @@ NTP.ino
 
 ------------------------------------------------------------------------------*/
 
-#ifdef COMPILE_ETHERNET
+#ifdef COMPILE_NTP
 
 //----------------------------------------
 // Constants
@@ -983,4 +983,4 @@ void ntpValidateTables()
         reportFatalError("Fix ntpServerStateNameEntries to match NTP_STATE");
 }
 
-#endif // COMPILE_ETHERNET
+#endif // COMPILE_NTP

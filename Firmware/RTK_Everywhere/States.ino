@@ -564,7 +564,7 @@ void stateUpdate()
         }
         break;
 
-#ifdef COMPILE_ETHERNET
+#ifdef COMPILE_NTP
         case (STATE_NTPSERVER_NOT_STARTED): {
             RTK_MODE(RTK_MODE_NTP);
             firstRoverStart = false; // If NTP is starting, no test menu, normal button use.
@@ -627,7 +627,7 @@ void stateUpdate()
         }
         break;
 
-#endif // COMPILE_ETHERNET
+#endif // COMPILE_NTP
 
         case (STATE_SHUTDOWN): {
             forceDisplayUpdate = true;
