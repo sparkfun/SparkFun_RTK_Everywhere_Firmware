@@ -720,6 +720,7 @@ float lBandEBNO; // Used on system status menu
 // ESP-NOW Globals - For other module direct access
 bool espNowIncomingRTCM;
 bool espNowOutgoingRTCM;
+bool espnowRequestPair = false; // Modified by states.ino, menuRadio, or CLI
 int espNowRSSI;
 const uint8_t espNowBroadcastAddr[6] = {0xff, 0xff, 0xff, 0xff, 0xff, 0xff};
 
