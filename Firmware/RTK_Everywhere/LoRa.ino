@@ -36,7 +36,7 @@ LoRa.ino
     ESP32 (UART2) <-> Switch 3 B1 <-> STM32 LoRa (UART2)
 
     UART0 on the STM32 is used for pushing data across the link.
-    UART2 on the STM32 is used for configuration. 
+    UART2 on the STM32 is used for configuration.
 
   Printing:
     On Torch, Serial must be used to send and receive data from the radio. At times, this requires disconnecting from the USB interface.
@@ -53,6 +53,8 @@ LoRa.ino
   Then we delete the file and reboot to return to normal operation.
 
 ------------------------------------------------------------------------------*/
+
+#ifdef  COMPILE_LORA
 
 // See menuRadio() to get LoRa Settings
 
@@ -73,7 +75,6 @@ enum LoraState
 
 static volatile uint8_t loraState = LORA_OFF;
 
-char loraFirmwareVersion[25] = {'\0'};
 int loraBytesSent = 0;
 
 HardwareSerial *SerialForLoRa; // Don't instantiate until we know the platform. May compete with SerialForTilt
@@ -877,7 +878,7 @@ uint16_t loraAvailable()
         return (Serial.available());
     else if (productVariant == RTK_FLEX)
         return (SerialForLoRa->available());
-    
+
     systemPrintln("loraAvailable - invalid ProductVariant");
     return 0;
 }
@@ -892,3 +893,5 @@ uint16_t loraRead()
     systemPrintln("loraRead - invalid ProductVariant");
     return 0;
 }
+
+#endif  // COMPILE_LORA

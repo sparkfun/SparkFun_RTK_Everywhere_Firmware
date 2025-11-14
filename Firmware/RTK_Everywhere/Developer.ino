@@ -226,6 +226,22 @@ void espNowUpdate()                     {}
 #endif   // COMPILE_ESPNOW
 
 //----------------------------------------
+// LoRa
+//----------------------------------------
+
+#ifndef COMPILE_LORA
+void beginLoraFirmwareUpdate() {}
+bool checkUpdateLoraFirmware() {return false;}
+bool createLoRaPassthrough() {return false;}
+void loraGetVersion() {}
+void loraPowerOff() {}
+void loraProcessRTCM(uint8_t *rtcmData, uint16_t dataLength) {}
+void muxSelectUm980() {}
+void muxSelectUsb() {}
+void updateLora() {}
+#endif  // COMPILE_LORA
+
+//----------------------------------------
 // WiFi
 //----------------------------------------
 

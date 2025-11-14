@@ -88,6 +88,7 @@
 #define COMPILE_WIFI     // Comment out to remove WiFi functionality
 #define COMPILE_ETHERNET // Comment out to remove Ethernet (W5500) support
 #define COMPILE_CELLULAR // Comment out to remove cellular modem support
+#define COMPILE_LORA     // COmment out to remove LoRa functionality
 
 #ifdef COMPILE_BT
 #define COMPILE_AUTHENTICATION // Comment out to disable MFi authentication
@@ -982,6 +983,7 @@ int16_t *commandIndex;
 
 bool usbSerialIsSelected = true;      // Goes false when switch U18 is moved from CH34x to LoRa
 unsigned long loraLastIncomingSerial; // Last time a user sent a serial command. Used in LoRa timeouts.
+char loraFirmwareVersion[25] = {'\0'};
 
 //-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 

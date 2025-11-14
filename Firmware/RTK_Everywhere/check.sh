@@ -40,6 +40,11 @@ sed -i 's|#define COMPILE_ETHERNET|//#define COMPILE_ETHERNET|' RTK_Everywhere.i
 make
 git reset --hard --quiet  HEAD
 
+# LoRa
+sed -i 's|#define COMPILE_LORA|//#define COMPILE_LORA|' RTK_Everywhere.ino
+make
+git reset --hard --quiet HEAD
+
 # WiFi
 sed -i 's|#define COMPILE_WIFI|//#define COMPILE_WIFI|' RTK_Everywhere.ino
 make
