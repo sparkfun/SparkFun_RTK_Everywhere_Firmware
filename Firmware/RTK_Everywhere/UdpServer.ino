@@ -59,7 +59,7 @@ UdpServer.ino
         3. Verify that the displayed coordinates, fix tpe etc. are valid
 */
 
-#ifdef COMPILE_NETWORK
+#ifdef COMPILE_UDP_SERVER
 
 //----------------------------------------
 // Constants
@@ -436,4 +436,4 @@ void udpServerZeroTail()
     udpServerTail = 0;
 }
 
-#endif // COMPILE_NETWORK
+#endif // COMPILE_UDP_SERVER

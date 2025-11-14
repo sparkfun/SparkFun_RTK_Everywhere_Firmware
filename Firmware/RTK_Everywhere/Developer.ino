@@ -27,11 +27,11 @@ void ntpServerStop() {}
 
 #endif // COMPILE_ETHERNET
 
-#ifndef COMPILE_NETWORK
-
 //----------------------------------------
 // Network layer
 //----------------------------------------
+
+#ifndef COMPILE_NETWORK
 
 void menuTcpUdp() {systemPrint("**Network not compiled**");}
 void networkBegin() {}
@@ -61,16 +61,6 @@ void networkUserAdd(NETCONSUMER_t consumer, const char * fileName, uint32_t line
 void networkUserRemove(NETCONSUMER_t consumer, const char * fileName, uint32_t lineNumber) {}
 void networkValidateIndex(NetIndex_t index) {}
 void networkVerifyTables() {}
-
-//----------------------------------------
-// UDP server
-//----------------------------------------
-
-void udpServerDiscardBytes(RING_BUFFER_OFFSET previousTail, RING_BUFFER_OFFSET newTail) {}
-int32_t udpServerSendData(uint16_t dataHead) {return 0;}
-void udpServerStop() {}
-void udpServerUpdate() {}
-void udpServerZeroTail() {}
 
 #endif // COMPILE_NETWORK
 
@@ -165,6 +155,18 @@ void tcpServerUpdate() {}
 void tcpServerValidateTables() {}
 void tcpServerZeroTail() {}
 #endif  // COMPILE_TCP_SERVER
+
+//----------------------------------------
+// UDP server
+//----------------------------------------
+
+#ifndef COMPILE_UDP_SERVER
+void udpServerDiscardBytes(RING_BUFFER_OFFSET previousTail, RING_BUFFER_OFFSET newTail) {}
+int32_t udpServerSendData(uint16_t dataHead) {return 0;}
+void udpServerStop() {}
+void udpServerUpdate() {}
+void udpServerZeroTail() {}
+#endif  // COMPILE_UDP_SERVER
 
 //----------------------------------------
 // Web Server
