@@ -19,8 +19,6 @@
 
   =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=*/
 
-BluetoothRadioType_e bluetoothRadioPreviousOnType = BLUETOOTH_RADIO_OFF;
-
 #ifdef COMPILE_BT
 
 //----------------------------------------
