@@ -84,7 +84,9 @@ In the above image we see the WiFi symbol indicating a high signal strength. The
 
 PointPerfect Flex RTCM/NTRIP service uses a standard NTRIP interface to obtain corrections. Once [registered](#registration), to gain access to the PointPerfect system, the device must be given WiFi. The RTK device will automatically obtain **credentials**. These credentials will be copied into the NTRIP Client, and the NTRIP Client will be turned on. The device will then use WiFi (usually a cellular hot spot) to connect to the PointPerfect NTRIP Caster and begin providing the SparkFun RTK device with corrections. Within a few seconds, the device should change from RTK Float to RTK Fix.
 
-### PointPerfect Flex L-Band
+### PointPerfect Flex L-Band (Deprecated)
+
+**Note:** In July of 2025 u-blox announced the L-Band service to North America would be discontinued on December 31st, 2025. RTK Facet mosaic units, with a paid subscription to the L-Band service, can still use this signal up to December 31st, 2025, but afterward they will need to switch to an internet based correction services to obtain an RTK Fix.
 
 When this service is enabled, the device will attempt to connect to WiFi. If [registration](#registration) has been completed through SparkFun, the device will be issued L-Band specific keys and will obtain corrections over an extra signal broadcast by a geosynchronous satellite. The encrypted SPARTN packets are sent through the PointPerfectLibrary (PPL) and RTCM corrections are produced after ~60 seconds. The device will enter RTK Float, the RTK Fix states. Users report variable fix times with ok accuracy (not as good as RTCM service).
 

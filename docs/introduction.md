@@ -7,32 +7,40 @@ The line of RTK Everywhere products offered by SparkFun all run identical firmwa
 <div class="grid cards" markdown>
 
 -   <figure markdown>
+
 	[![Product Image](./img/SparkFun_RTK_EVK.png)](https://www.sparkfun.com/products/24342 "Go to Product Page")
 	<figcaption markdown>
+	
 	[SparkFun RTK EVK (GPS-24342)](https://www.sparkfun.com/products/24342)
 	</figcaption>
 	</figure>
 
 	<center>
+
 	[Quickstart Guide](https://docs.sparkfun.com/SparkFun_RTK_Everywhere_Firmware/quickstart-evk/){ .md-button .md-button--primary }
 	</center>
 
 	<center>
+
 	[Hookup Guide](https://docs.sparkfun.com/SparkFun_RTK_EVK/){ .md-button .md-button--primary }
 	</center>
 
 -   <figure markdown>
-	[![Product Image](./img/SparkFun-RTK-Facet-Mosaic-L-Band.jpg)](https://www.sparkfun.com/sparkpnt-rtk-facet-mosaic-l-band.html "Go to Product Page")
+
+	[![Product Image](./img/SparkFun-RTK-Facet-Mosaic-L-Band.jpg)](https://www.sparkfun.com/sparkpnt-rtk-facet-mosaic.html "Go to Product Page")
 	<figcaption markdown>
-	[SparkPNT RTK Facet mosaic L-Band (GPS-24903)](https://www.sparkfun.com/sparkpnt-rtk-facet-mosaic-l-band.html)
+
+	[SparkPNT RTK Facet mosaic (GPS-29688)](https://www.sparkfun.com/sparkpnt-rtk-facet-mosaic.html)
 	</figcaption>
 	</figure>
 
 	<center>
+
 	[Quickstart Guide](https://docs.sparkfun.com/SparkFun_RTK_Everywhere_Firmware/quickstart-facet-mosaic/){ .md-button .md-button--primary }
 	</center>
 
 	<center>
+
 	[Hookup Guide](https://docs.sparkfun.com/SparkFun_RTK_Facet_mosaic/){ .md-button .md-button--primary }
 	</center>
 
@@ -40,32 +48,40 @@ The line of RTK Everywhere products offered by SparkFun all run identical firmwa
 <div class="grid cards" markdown>
 
 -   <figure markdown>
+
 	[![Product Image](./img/SparkFun_RTK_Postcard.png)](https://www.sparkfun.com/sparkfun-rtk-postcard.html "Go to Product Page")
 	<figcaption markdown>
+
 	[SparkFun RTK Postcard (GPS-26916)](https://www.sparkfun.com/sparkfun-rtk-postcard.html)
 	</figcaption>
 	</figure>
 
 	<center>
+
 	[Quickstart Guide](https://docs.sparkfun.com/SparkFun_RTK_Everywhere_Firmware/quickstart-postcard/){ .md-button .md-button--primary }
 	</center>
 
 	<center>
+
 	[Hookup Guide](https://docs.sparkfun.com/SparkFun_RTK_Postcard/){ .md-button .md-button--primary }
 	</center>
 
 -   <figure markdown>
+
 	[![Product Image](./img/SparkFun_RTK_Torch.png)](https://www.sparkfun.com/products/25662 "Go to Product Page")
 	<figcaption markdown>
+
 	[SparkFun RTK Torch (GPS-25662)](https://www.sparkfun.com/products/25662)
 	</figcaption>
 	</figure>
 
 	<center>
+
 	[Quickstart Guide](https://docs.sparkfun.com/SparkFun_RTK_Everywhere_Firmware/quickstart-torch/){ .md-button .md-button--primary }
 	</center>
 
 	<center>
+
 	[Hookup Guide](https://docs.sparkfun.com/SparkFun_RTK_Torch/){ .md-button .md-button--primary }
 	</center>
 
@@ -85,4 +101,4 @@ The Bluetooth or Serial Terminal methods are recommended for most advanced confi
 
 If you have an issue, feature request, bug report, or a general question about the RTK firmware specifically we encourage you to post your comments on the [firmware's repository](https://github.com/sparkfun/SparkFun_RTK_Everywhere_Firmware/issues). If you feel like bragging or showing off what you did with your RTK product, we'd be thrilled to hear about it on the issues list as well!
 
-Things like how to attach an antenna or other hardware-specific topics are best read on the Hookup Guides for the individual products.
+Topics like how to attach an antenna or other hardware-specific topics are best read on the Hookup Guides for the individual products.

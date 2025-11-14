@@ -77,15 +77,19 @@ Most applications do not need to plug anything into the **DATA** port. Most user
 
 <figure markdown>
 
-![RADIO and DATA ports on the RTK Postacrd](<./img/Postcard/SparkFun RTK PostCard Ports.png>)
+![RADIO and DATA ports on the RTK Postcard](<./img/Postcard/SparkFun RTK PostCard Ports.png>)
 <figcaption markdown>
-RADIO and DATA ports on the RTK Postacrd
+RADIO and DATA ports on the RTK Postcard
 </figcaption>
 </figure>
 
+<figure markdown>
 
-
-![alt text](<img/Postcard/SparkFun RTK PostCard USB Channels.png>)
+![Dual serial ports show in Device Manager](<./img/Postcard/SparkFun RTK PostCard USB Channels.png>)
+<figcaption markdown>
+Dual serial ports show in Device Manager
+</figcaption>
+</figure>
 
 The DATA port on the RTK Postcard is the USB C connector. This connection creates two serial ports. **SERIAL-A** is used for [Serial Configuration](configure_with_serial.md). **SERIAL-B** is connected to the DATA port of the LG290P to receive NMEA and other data directly. The DATA port is also used for [updating the firmware](firmware_update_lg290p.md) on the LG290P.
 
