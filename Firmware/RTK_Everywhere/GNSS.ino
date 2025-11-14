@@ -4,14 +4,6 @@ GNSS.ino
   GNSS layer implementation
 ------------------------------------------------------------------------------*/
 
-extern int NTRIPCLIENT_MS_BETWEEN_GGA;
-
-#ifdef COMPILE_NETWORK
-extern NetworkClient *ntripClient;
-#endif // COMPILE_NETWORK
-
-extern unsigned long lastGGAPush;
-
 //----------------------------------------
 // Setup the general configuration of the GNSS
 // Not Rover or Base specific (ie, baud rates)
@@ -92,38 +84,20 @@ static void pushGPGGA(char *ggaData)
 
     if (xSemaphoreTake(reentrant, 10 / portTICK_PERIOD_MS) == pdPASS)
     {
-        if (ggaData)
+        do
         {
-            snprintf(storedGPGGA, sizeof(storedGPGGA), "%s", ggaData);
-            xSemaphoreGive(reentrant);
-            return;
-        }
-
-#ifdef COMPILE_NETWORK
-        // Wait until the client has been created
-        if (ntripClient != nullptr)
-        {
-            // Provide the caster with our current position as needed
-            if (ntripClient->connected() && settings.ntripClient_TransmitGGA == true)
+            // Save the ggaData string
+            if (ggaData)
             {
-                if ((millis() - lastGGAPush) > NTRIPCLIENT_MS_BETWEEN_GGA)
-                {
-                    lastGGAPush = millis();
-
-                    if ((settings.debugNtripClientRtcm || PERIODIC_DISPLAY(PD_NTRIP_CLIENT_GGA)) && !inMainMenu)
-                    {
-                        PERIODIC_CLEAR(PD_NTRIP_CLIENT_GGA);
-                        systemPrintf("NTRIP Client pushing GGA to server: %s", (const char *)storedGPGGA);
-                    }
-
-                    // Push our current GGA sentence to caster
-                    if (strlen(storedGPGGA) > 0)
-                        ntripClient->write((const uint8_t *)storedGPGGA, strlen(storedGPGGA));
-                }
+                snprintf(storedGPGGA, sizeof(storedGPGGA), "%s", ggaData);
+                break;
             }
-        }
-#endif // COMPILE_NETWORK
 
+            // Verify that a GGA string has been saved
+            if (storedGPGGA[0])
+                // Push our current GGA sentence to caster
+                ntripClientPushGGA(storedGPGGA);
+        } while (0);
         xSemaphoreGive(reentrant);
     }
 }

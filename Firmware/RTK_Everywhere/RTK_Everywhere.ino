@@ -116,6 +116,7 @@
 #if defined(COMPILE_WIFI) || defined(COMPILE_ETHERNET) || defined(COMPILE_CELLULAR)
 #define COMPILE_NETWORK
 #define COMPILE_MQTT_CLIENT     // Comment out to remove MQTT Client functionality
+#define COMPILE_NTRIP_CLIENT    // Comment out to remove NTRIP client functionality
 #define COMPILE_NTRIP_SERVER    // Comment out to remove NTRIP server functionality
 #define COMPILE_OTA_AUTO        // Comment out to disable automatic over-the-air firmware update
 #define COMPILE_HTTP_CLIENT     // Comment out to disable HTTP Client (PointPerfect ZTP) functionality
