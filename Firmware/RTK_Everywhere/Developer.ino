@@ -63,15 +63,6 @@ void networkValidateIndex(NetIndex_t index) {}
 void networkVerifyTables() {}
 
 //----------------------------------------
-// NTRIP client
-//----------------------------------------
-
-void ntripClientPrintStatus() {systemPrintln("**NTRIP Client not compiled**");}
-void ntripClientStop(bool clientAllocated) {online.ntripClient = false;}
-void ntripClientUpdate() {}
-void ntripClientValidateTables() {}
-
-//----------------------------------------
 // TCP client
 //----------------------------------------
 
@@ -144,6 +135,18 @@ void mqttClientUpdate() {}
 void mqttClientValidateTables() {}
 
 #endif   // COMPILE_MQTT_CLIENT
+
+//----------------------------------------
+// NTRIP client
+//----------------------------------------
+
+#ifndef COMPILE_NTRIP_CLIENT
+void ntripClientPrintStatus() {systemPrintln("**NTRIP Client not compiled**");}
+void ntripClientPushGGA(const char * ggaString) {}
+void ntripClientStop(bool clientAllocated) {online.ntripClient = false;}
+void ntripClientUpdate() {}
+void ntripClientValidateTables() {}
+#endif   // COMPILE_NTRIP_CLIENT
 
 //----------------------------------------
 // NTRIP server
