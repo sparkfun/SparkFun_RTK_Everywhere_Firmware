@@ -1481,24 +1481,8 @@ void beginCharger()
     {
         // Set pre-charge defaults for the MP2762A
         // See issue: https://github.com/sparkfun/SparkFun_RTK_Everywhere_Firmware/issues/240
-        if (mp2762Begin(i2c_0) == true)
-        {
-            // Resetting registers to defaults
-            mp2762registerReset();
-
-            // Setting FastCharge to 6.6V
-            mp2762setFastChargeVoltageMv(6600);
-
-            // Setting precharge current to 880mA
-            mp2762setPrechargeCurrentMa(880);
-
-            systemPrintln("Charger configuration complete");
-            online.batteryCharger_mp2762a = true;
-        }
-        else
-        {
+        if (mp2762Begin(i2c_0, 6600, 880) == false)
             systemPrintln("MP2762A charger failed to initialize");
-        }
     }
 }
 

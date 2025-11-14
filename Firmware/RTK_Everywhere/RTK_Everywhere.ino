@@ -111,6 +111,7 @@
 #define COMPILE_IM19_IMU             // Comment out to remove IM19_IMU functionality
 #define COMPILE_POINTPERFECT_LIBRARY // Comment out to remove PPL support
 #define COMPILE_BQ40Z50              // Comment out to remove BQ40Z50 functionality
+#define COMPILE_MP2762A_CHARGER      // Comment out to remove MP2762A charger functionality
 
 #if defined(COMPILE_WIFI) || defined(COMPILE_ETHERNET) || defined(COMPILE_CELLULAR)
 #define COMPILE_NETWORK

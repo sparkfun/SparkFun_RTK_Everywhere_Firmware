@@ -2,6 +2,8 @@
     Helper functions for the MP2762A Charger controller
 */
 
+#ifdef  COMPILE_MP2762A_CHARGER
+
 const uint8_t mp2762deviceAddress = 0x5C;
 
 #define MP2762A_PRECHARGE_CURRENT 0x03
@@ -19,11 +21,23 @@ const uint8_t mp2762deviceAddress = 0x5C;
 TwoWire *mp2762I2c = nullptr;
 
 // Returns true if device acknowledges its address
-bool mp2762Begin(TwoWire *i2cBus)
+bool mp2762Begin(TwoWire *i2cBus, uint16_t volts, uint16_t milliamps)
 {
     if (i2cIsDevicePresent(i2cBus, mp2762deviceAddress) == false)
         return (false);
     mp2762I2c = i2cBus;
+
+    // Resetting registers to defaults
+    mp2762registerReset();
+
+    // Setting FastCharge voltage
+    mp2762setFastChargeVoltageMv(volts);
+
+    // Setting precharge current
+    mp2762setPrechargeCurrentMa(milliamps);
+
+    systemPrintln("Charger configuration complete");
+    online.batteryCharger_mp2762a = true;
     return (true);
 }
 
@@ -225,3 +239,5 @@ bool mp2762writeRegister(uint8_t address, uint8_t value)
     }
     return (true);
 }
+
+#endif  // COMPILE_MP2762A_CHARGER

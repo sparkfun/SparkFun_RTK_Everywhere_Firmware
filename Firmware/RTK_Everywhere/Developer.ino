@@ -288,6 +288,17 @@ void tiltUpdate() {}
 #endif  // COMPILE_IM19_IMU
 
 //----------------------------------------
+// MP2762A Charger
+//----------------------------------------
+
+#ifndef COMPILE_MP2762A_CHARGER
+bool mp2762Begin(TwoWire *i2cBus, uint16_t volts, uint16_t milliamps) {return false;}
+uint16_t mp2762getBatteryVoltageMv() {return 0;}
+uint8_t mp2762getChargeStatus() {return 0;}
+void mp2762resetSafetyTimer() {}
+#endif  // COMPILE_MP2762A_CHARGER
+
+//----------------------------------------
 // UM980
 //----------------------------------------
 
