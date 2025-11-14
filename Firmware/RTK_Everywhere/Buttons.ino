@@ -82,7 +82,7 @@ void IRAM_ATTR gpioExpanderISR()
 }
 
 // Start the I2C expander if possible
-bool beginGpioExpander(uint8_t padAddress)
+bool beginGpioExpanderButtons(uint8_t padAddress)
 {
     // Initialize the PCA95xx with its default I2C address
     if (io.begin(padAddress, *i2c_0) == true)
@@ -99,7 +99,7 @@ bool beginGpioExpander(uint8_t padAddress)
 
         systemPrintln("Directional pad online");
 
-        online.gpioExpander = true;
+        online.gpioExpanderButtons = true;
         return (true);
     }
     return (false);
@@ -114,12 +114,12 @@ void buttonRead()
         userBtn->read();
 
     // Check directional pad once interrupt has occurred
-    if (online.gpioExpander == true && gpioChanged == true)
+    if (online.gpioExpanderButtons == true && gpioChanged == true)
     {
         gpioChanged = false;
 
         // Get all the pins in one read
-        uint8_t currentState = io.getInputRegister() & 0b00111111; // Ignore unconnected GPIO6/7
+        uint8_t currentState = io.getInputRegister() & 0b00011111; // Mask the five buttons. Ignore SD detect
 
         if (currentState != gpioExpander_previousState)
         {
@@ -155,7 +155,7 @@ bool buttonReleased()
         return (userBtn->wasReleased());
 
     // Check directional pad
-    if (online.gpioExpander == true)
+    if (online.gpioExpanderButtons == true)
     {
         // Check for any button press on the directional pad
         for (int buttonNumber = 0; buttonNumber < 5; buttonNumber++)
@@ -179,7 +179,7 @@ bool buttonReleased(uint8_t buttonNumber)
         return (false);
 
     // Check directional pad
-    if (online.gpioExpander == true)
+    if (online.gpioExpanderButtons == true)
     {
         if (gpioExpander_wasReleased[buttonNumber] == true)
         {
@@ -206,7 +206,7 @@ bool buttonPressedFor(uint16_t maxTime)
 bool buttonPressedFor(uint8_t buttonNumber, uint16_t maxTime)
 {
     // Check directional pad
-    if (online.gpioExpander == true)
+    if (online.gpioExpanderButtons == true)
     {
         // Check if the time has started for this button
         if (gpioExpander_holdStart[buttonNumber] > 0)

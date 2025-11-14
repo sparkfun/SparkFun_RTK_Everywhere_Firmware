@@ -1,35 +1,46 @@
 /*------------------------------------------------------------------------------
 LoRa.ino
 
-  This module implements the interface to the LoRa radio in the Torch.
+  This module implements the interface to the LoRa radio in the Torch and Flex.
 
-  ESP32 (UART1) <-> Switch U12 B0 <-> UM980 (UART3)
-  ESP32 (UART1) <-> Switch U12 B1 <-> STM32 LoRa(UART0)
+  Torch:
+    ESP32 (UART1) <-> Switch U12 B0 <-> UM980 (UART3)
+    ESP32 (UART1) <-> Switch U12 B1 <-> STM32 LoRa(UART0)
 
-  UART0 on the STM32 is used for debug messages and bootloading new firmware.
+    UART0 on the STM32 is used for debug messages and bootloading new firmware.
 
-  ESP32 (UART0) <-> Switch U18 B0 <-> USB to Serial
-  ESP32 (UART0) <-> Switch U18 B1 <-> Switch U11
+    ESP32 (UART0) <-> Switch U18 B0 <-> USB to Serial
+    ESP32 (UART0) <-> Switch U18 B1 <-> Switch U11
 
-  Switch U11 B0 <-> STM32 LoRa(UART2)
-  Switch U11 B1 <-> UM980 (UART1) - Not generally used
+    Switch U11 B0 <-> STM32 LoRa(UART2)
+    Switch U11 B1 <-> UM980 (UART1) - Not generally used
 
-  UART2 on the STM32 is used for configuration and pushing data across the link.
-  This poses a bit of a problem: we have to disconnect from USB serial (no prints)
-  while configuration or data is being passed.
+    UART2 on the STM32 is used for configuration and pushing data across the link.
+    This poses a bit of a problem: we have to disconnect from USB serial (no prints)
+    while configuration or data is being passed.
 
-  If we are in Base mode, listen from RTCM. Once received, disconnect from USB, send to
-  LoRa radio, then re-connect to USB.
+    If we are in Base mode, listen from RTCM. Once received, disconnect from USB, send to
+    LoRa radio, then re-connect to USB.
 
-  If we are in Rover mode, and LoRa is enabled, then we are connected permanently to the LoRa
-  radio to listen for incoming serial data. If no USB cable is attached, immediately
-  go into dedicated listening mode. If a USB cable is detected, then the dedicated listening mode is exited
-  for X seconds before re-entering the dedicated listening mode. Any serial traffic from USB during this time
-  resets the timeout.
+    If we are in Rover mode, and LoRa is enabled, then we are connected permanently to the LoRa
+    radio to listen for incoming serial data. If no USB cable is attached, immediately
+    go into dedicated listening mode. If a USB cable is detected, then the dedicated listening mode is exited
+    for X seconds before re-entering the dedicated listening mode. Any serial traffic from USB during this time
+    resets the timeout.
+
+  Flex:
+    Flex GNSS (UART2) <-> Switch 4 B0 <-> 4-Pin Serial TTL on 1mm JST under microSD
+    Flex GNSS (UART2) <-> Switch 4 B1 <-> STM32 LoRa (UART0)
+
+    ESP32 (UART2) <-> Switch 3 B0 <-> Flex GNSS Tilt (UART3)
+    ESP32 (UART2) <-> Switch 3 B1 <-> STM32 LoRa (UART2)
+
+    UART0 on the STM32 is used for pushing data across the link.
+    UART2 on the STM32 is used for configuration. 
 
   Printing:
-  Use systemPrint() to output serial to the USB serial interface
-  Use Serial.print() along with to output
+    On Torch, Serial must be used to send and receive data from the radio. At times, this requires disconnecting from the USB interface.
+    On Flex, SerialForLoRa is used on UART2 to configure and TX/RX data from the radio. If active, SerialForTilt must be ended first.
 
   Updating the STM32 LoRa Firmware:
   Bootloading the STM32 requires a connection to the USB serial. Because it is
@@ -64,6 +75,8 @@ static volatile uint8_t loraState = LORA_OFF;
 
 char loraFirmwareVersion[25] = {'\0'};
 int loraBytesSent = 0;
+
+HardwareSerial *SerialForLoRa; // Don't instantiate until we know the platform. May compete with SerialForTilt
 
 // Called from main loop
 // Control incoming/outgoing RTCM data from STM32 based LoRa radio (if supported by platform)
@@ -105,7 +118,7 @@ void updateLora()
             loraSetupReceive();
             systemFlush(); // Complete prints
 
-            muxSelectLoRa(); // Disconnect from USB
+            muxSelectLoRaCommunication(); // Disconnect from USB
             loraState = LORA_RX_DEDICATED;
         }
         else // USB cable attached, share the ESP32 UART0 connection between USB and LoRa
@@ -147,7 +160,7 @@ void updateLora()
             if (settings.debugLora == true)
             {
                 static unsigned long lastReport = 0;
-                if (millis() - lastReport > 3000)
+                if ((millis() - lastReport) > 3000)
                 {
                     lastReport = millis();
                     systemPrintf("LoRa transmitted %d RTCM bytes\r\n", loraBytesSent);
@@ -162,7 +175,7 @@ void updateLora()
         break;
 
     case (LORA_RX_DEDICATED):
-        if (Serial.available())
+        if (loraAvailable())
         {
             uint8_t rtcmData[512];
             int rtcmCount = 0;
@@ -183,7 +196,7 @@ void updateLora()
                     systemPrintf("LoRa received %d RTCM bytes, pushed to GNSS\r\n", rtcmCount);
                     systemFlush(); // Allow print to complete
 
-                    muxSelectLoRa(); // Disconnect from USB
+                    muxSelectLoRaCommunication(); // Disconnect from USB
                 }
             }
             else
@@ -196,7 +209,7 @@ void updateLora()
                     systemPrintf("LoRa received %d RTCM bytes, NOT pushed due to priority\r\n", rtcmCount);
                     systemFlush(); // Allow print to complete
 
-                    muxSelectLoRa(); // Disconnect from USB
+                    muxSelectLoRaCommunication(); // Disconnect from USB
                 }
             }
         }
@@ -220,11 +233,11 @@ void updateLora()
         break;
 
     case (LORA_RX_SHARED):
-        if ((millis() - loraLastIncomingSerial) / 1000 > settings.loraSerialInteractionTimeout_s)
+        if (((millis() - loraLastIncomingSerial) / 1000) > settings.loraSerialInteractionTimeout_s)
         {
             systemPrintln("LoRa shared port timeout expired. Moving to dedicated LoRa receive with no USB output.");
-            systemFlush();   // Complete prints
-            muxSelectLoRa(); // Disconnect from USB
+            systemFlush();                // Complete prints
+            muxSelectLoRaCommunication(); // Disconnect from USB
             loraState = LORA_RX_DEDICATED_USB;
         }
 
@@ -241,7 +254,7 @@ void updateLora()
         // USB cable is present. loraSerialInteractionTimeout_s has occurred. Be dedicated until USB is
         // disconnected.
 
-        if (Serial.available())
+        if (loraAvailable())
         {
             uint8_t rtcmData[512];
             int rtcmCount = 0;
@@ -262,7 +275,7 @@ void updateLora()
                     systemPrintf("LoRa received %d RTCM bytes, pushed to GNSS\r\n", rtcmCount);
                     systemFlush(); // Allow print to complete
 
-                    muxSelectLoRa(); // Disconnect from USB
+                    muxSelectLoRaCommunication(); // Disconnect from USB
                 }
             }
             else
@@ -275,7 +288,7 @@ void updateLora()
                     systemPrintf("LoRa received %d RTCM bytes, NOT pushed due to priority\r\n", rtcmCount);
                     systemFlush(); // Allow print to complete
 
-                    muxSelectLoRa(); // Disconnect from USB
+                    muxSelectLoRaCommunication(); // Disconnect from USB
                 }
             }
         }
@@ -320,65 +333,111 @@ void loraStop()
 
 void muxSelectUm980()
 {
-    digitalWrite(pin_muxA, LOW); // Connect ESP UART1 to UM980
-}
-
-// Used during firmware updates
-void muxSelectLoRaUart0()
-{
-    digitalWrite(pin_muxA, HIGH); // Connect ESP UART1 to LoRa UART0
+    // On a possible Flex UM980 variant, UM980 UART1 will be hardwired to ESP32 UART0. No muxes to change
+    if (productVariant == RTK_TORCH)
+        digitalWrite(pin_muxA, LOW); // Connect ESP UART1 to UM980
 }
 
 void muxSelectUsb()
 {
-    pinMode(pin_muxB, OUTPUT);   // Make really sure we can control this pin
-    digitalWrite(pin_muxB, LOW); // Connect ESP UART0 to CH340 Serial
+    if (productVariant == RTK_TORCH)
+    {
+        pinMode(pin_muxB, OUTPUT);   // Make really sure we can control this pin
+        digitalWrite(pin_muxB, LOW); // Connect ESP UART0 to CH340 Serial
 
-    usbSerialIsSelected = true; // Let other print operations know we are connected to the CH34x
+        usbSerialIsSelected = true; // Let other print operations know we are connected to the CH34x
+    }
 }
-void muxSelectLoRa()
+// Connect ESP32 to LoRa for regular transmissions
+void muxSelectLoRaCommunication()
 {
-    pinMode(pin_muxB, OUTPUT);    // Make really sure we can control this pin
-    digitalWrite(pin_muxA, LOW);  // Connect ESP UART1 to UM980
-    digitalWrite(pin_muxB, HIGH); // Connect ESP UART0 to U11
+    if (productVariant == RTK_TORCH)
+    {
+        pinMode(pin_muxB, OUTPUT);    // Make really sure we can control this pin
+        digitalWrite(pin_muxA, LOW);  // Connect ESP UART1 to UM980
+        digitalWrite(pin_muxB, HIGH); // Connect ESP UART0 to U11
 
-    usbSerialIsSelected = false; // Let other print operations know we are not connected to the CH34x
+        usbSerialIsSelected = false; // Let other print operations know we are not connected to the CH34x
+    }
+    else if (productVariant == RTK_FLEX)
+    {
+        gpioExpanderSelectLoraCommunication();
+    }
+}
+
+// Connect ESP32 to LoRa for configuration and bootloading
+void muxSelectLoRaConfigure()
+{
+    if (productVariant == RTK_TORCH)
+        digitalWrite(pin_muxA, HIGH); // Connect ESP UART1 to LoRa UART0
+    else if (productVariant == RTK_FLEX)
+        gpioExpanderSelectLoraConfigure(); // Connect ESP32 UART2 to LoRa UART2
 }
 
 void loraEnterBootloader()
 {
-    digitalWrite(pin_loraRadio_boot, HIGH); // Enter bootload mode
+    if (productVariant == RTK_TORCH || productVariant == RTK_TORCH_X2)
+        digitalWrite(pin_loraRadio_boot, HIGH); // Enter bootload mode
+    else if (productVariant == RTK_FLEX)
+        gpioExpanderLoraBootEnable();
+
     loraReset();
 }
 
 void loraExitBootloader()
 {
-    digitalWrite(pin_loraRadio_boot, LOW); // Exit bootload mode
+    if (productVariant == RTK_TORCH || productVariant == RTK_TORCH_X2)
+        digitalWrite(pin_loraRadio_boot, LOW); // Exit bootload mode
+    else if (productVariant == RTK_FLEX)
+        gpioExpanderLoraBootDisable();
+
     loraReset();
 }
 
 void loraReset()
 {
-    digitalWrite(pin_loraRadio_reset, LOW); // Reset STM32/radio
-    delay(15);
-    digitalWrite(pin_loraRadio_reset, HIGH); // Run STM32/radio
-    delay(15);
+    if (productVariant == RTK_TORCH || productVariant == RTK_TORCH_X2)
+    {
+        digitalWrite(pin_loraRadio_reset, LOW); // Reset STM32/radio
+        delay(15);
+        digitalWrite(pin_loraRadio_reset, HIGH); // Run STM32/radio
+        delay(15);
+    }
+    else if (productVariant == RTK_FLEX)
+    {
+        gpioExpanderLoraDisable();
+        delay(15);
+        gpioExpanderLoraEnable();
+        delay(15);
+    }
 }
 
 void loraPowerOn()
 {
-    digitalWrite(pin_loraRadio_power, HIGH); // Power STM32/radio
+    if (productVariant == RTK_TORCH)
+        digitalWrite(pin_loraRadio_power, HIGH); // Power STM32/radio
+    else if (productVariant == RTK_FLEX)
+        gpioExpanderLoraEnable();
 }
 
 void loraPowerOff()
 {
-    digitalWrite(pin_loraRadio_power, LOW); // Power off STM32/radio
+    if (productVariant == RTK_TORCH || productVariant == RTK_TORCH_X2)
+        digitalWrite(pin_loraRadio_power, LOW); // Power off STM32/radio
+    else if (productVariant == RTK_FLEX)
+        gpioExpanderLoraDisable();
 }
 
 bool loraIsOn()
 {
-    if (digitalRead(pin_loraRadio_power) == HIGH)
-        return (true);
+    if (productVariant == RTK_TORCH || productVariant == RTK_TORCH_X2)
+    {
+        if (digitalRead(pin_loraRadio_power) == HIGH)
+            return (true);
+        return (false);
+    }
+    else if (productVariant == RTK_FLEX)
+        return (gpioExpanderLoraIsOn());
     return (false);
 }
 
@@ -442,6 +501,19 @@ bool createLoRaPassthrough()
 
 void beginLoraFirmwareUpdate()
 {
+    // NOTE: this currently fails on Flex due to the way LoRa_EN and LoRa_NRST are interconnected.
+    //  This will be resolved with the next Flex motherboard rev.
+    //  TODO: delete this comment once new hardware is available.
+
+    // Flag that we are in direct connect mode. Button task will removeUpdateLoraFirmware and exit
+    inDirectConnectMode = true;
+
+    // Paint GNSS Update
+    paintLoRaUpdate();
+
+    // Stop all UART tasks. Redundant
+    tasksStopGnssUart();
+
     systemPrintln();
     systemPrintln("Entering STM32 direct connect for firmware update. Disconnect this terminal connection. Use "
                   "'STM32CubeProgrammer' to update the "
@@ -458,12 +530,20 @@ void beginLoraFirmwareUpdate()
     Serial.begin(57600); // Keep this at slower rate
 
     if (serialGNSS == nullptr)
-        serialGNSS = new HardwareSerial(2); // Use UART2 on the ESP32 for communication with the GNSS module
+        serialGNSS = new HardwareSerial(2); // Use UART2 on the ESP32 for communication with the LoRa radio
 
-    serialGNSS->begin(115200, SERIAL_8N1, pin_GnssUart_RX, pin_GnssUart_TX); // Keep this at 115200
+    serialGNSS->setRxBufferSize(settings.uartReceiveBufferSize);
+    serialGNSS->setTimeout(settings.serialTimeoutGNSS); // Requires serial traffic on the UART pins for detection
 
-    // Make sure ESP-UART1 is connected to LoRA STM32 UART0
-    muxSelectLoRaUart0();
+    if (productVariant == RTK_TORCH)
+        serialGNSS->begin(115200, SERIAL_8N1, pin_GnssUart_RX, pin_GnssUart_TX); // Keep this at 115200
+    else if (productVariant == RTK_FLEX)
+        serialGNSS->begin(115200, SERIAL_8N1, pin_IMU_RX, pin_IMU_TX); // Keep this at 115200
+    else
+        systemPrintln("ERROR: productVariant does not support LoRa");
+
+    // Make sure ESP-UART1 is connected to LoRa STM32 UART0
+    muxSelectLoRaConfigure();
 
     loraEnterBootloader(); // Push boot pin high and reset STM32
 
@@ -472,39 +552,51 @@ void beginLoraFirmwareUpdate()
     while (Serial.available())
         Serial.read();
 
-    // Push any incoming ESP32 UART0 to UART1 and vice versa
+    // Push any incoming ESP32 UART0 to UART1 or UART2 and vice versa
     // Infinite loop until button is pressed
-    while (1)
+    task.endDirectConnectMode = false;
+    while (!task.endDirectConnectMode)
     {
-        while (Serial.available())
-            serialGNSS->write(Serial.read());
+        static unsigned long lastSerial = millis(); // Temporary fix for buttonless Flex
 
-        while (serialGNSS->available())
+        if (Serial.available()) // Note: use if, not while
+        {
+            serialGNSS->write(Serial.read());
+            lastSerial = millis();
+        }
+
+        if (serialGNSS->available()) // Note: use if, not while
             Serial.write(serialGNSS->read());
 
-        if (readAnalogPinAsDigital(pin_powerButton) == HIGH)
+        // Button task will set task.endDirectConnectMode true
+
+        // Temporary fix for buttonless Flex. TODO - remove
+        if ((productVariant == RTK_FLEX) && ((millis() - lastSerial) > 30000))
         {
-            while (readAnalogPinAsDigital(pin_powerButton) == HIGH)
+                // Beep to indicate exit
+                beepOn();
+                delay(300);
+                beepOff();
                 delay(100);
+                beepOn();
+                delay(300);
+                beepOff();
 
-            // Remove file and reset to exit LoRa update pass-through mode
-            removeUpdateLoraFirmware();
+                removeUpdateLoraFirmware();
 
-            // Beep to indicate exit
-            beepOn();
-            delay(300);
-            beepOff();
-            delay(100);
-            beepOn();
-            delay(300);
-            beepOff();
+                systemPrintln("Exiting direct connection (passthrough) mode");
+                systemFlush(); // Complete prints
 
-            systemPrintln("Exiting LoRa Firmware update mode");
-            systemFlush(); // Complete prints
-
-            ESP.restart();
+                ESP.restart();
         }
     }
+
+    // Remove the special file. See #763 . Do the file removal in the loop
+    removeUpdateLoraFirmware();
+
+    systemFlush(); // Complete prints
+
+    ESP.restart();
 }
 
 void loraSetupTransmit()
@@ -573,10 +665,10 @@ bool loraSendCommand(const char *command, char *response, int *responseSize)
 
     systemFlush(); // Complete prints
 
-    muxSelectLoRa(); // Disconnect from USB
+    muxSelectLoRaCommunication(); // Disconnect from USB
 
-    Serial.printf("%s\r\n", command);
-    while (Serial.available() == 0)
+    loraPrintf("%s\r\n", command);
+    while (loraAvailable() == 0)
     {
         delay(1);
         responseTime++;
@@ -588,9 +680,9 @@ bool loraSendCommand(const char *command, char *response, int *responseSize)
     }
     delay(10); // Allow all serial to arrive
 
-    while (Serial.available())
+    while (loraAvailable())
     {
-        response[responseSpot++] = Serial.read();
+        response[responseSpot++] = loraRead();
         if (responseSpot == *responseSize)
         {
             responseSpot--;
@@ -607,7 +699,8 @@ bool loraSendCommand(const char *command, char *response, int *responseSize)
     return (false);
 }
 
-// Disconnects from USB
+// On the Torch, USB and LoRa radio are shared, so disconnects from USB are required
+// On the Flex, LoRa UART2 is on ESP32 UART2
 // Sends AT+V?, if response, we are already in command mode -> Reconnects to USB, Return
 // Sends +++ (but there is no response)
 // Sends AT+V?, if response, we are in command mode -> Reconnects to USB, Return
@@ -622,14 +715,14 @@ bool loraEnterCommandMode()
 
     systemFlush(); // Complete prints
 
-    muxSelectLoRa(); // Disconnect from USB
+    muxSelectLoRaCommunication(); // Connect the LoRa radio to ESP32 UART0 (shared with USB)
 
     delay(50); // Wait for incoming serial to complete
     while (Serial.available())
         Serial.read(); // Read any incoming and trash
 
     // Send version query. Wait up to 2000ms for a response
-    Serial.print("AT+V?\r\n");
+    loraPrint("AT+V?\r\n");
     for (int x = 0; x < 2000; x++)
     {
         if (Serial.available())
@@ -648,11 +741,11 @@ bool loraEnterCommandMode()
     }
 
     // No response so send +++
-    Serial.print("+++\r\n");
+    loraPrint("+++\r\n");
     delay(100); // Allow STM32 time to enter command mode
 
     // Send version query. Wait up to 2000ms for a response
-    Serial.print("AT+V?\r\n");
+    loraPrint("AT+V?\r\n");
     for (int x = 0; x < 2000; x++)
     {
         if (Serial.available())
@@ -723,16 +816,79 @@ void loraProcessRTCM(uint8_t *rtcmData, uint16_t dataLength)
 {
     if (loraState == LORA_TX)
     {
-        // Send this data to the LoRa radio
+        // Only needed for Torch. Flex has GNSS tied directly to LoRa.
+        if (productVariant == RTK_TORCH || productVariant == RTK_TORCH_X2)
+        {
+            // Send this data to the LoRa radio
 
-        systemFlush();   // Complete prints
-        muxSelectLoRa(); // Disconnect from USB
+            systemFlush();                // Complete prints
+            muxSelectLoRaCommunication(); // Connect to STM32 for regular TX/RX of corrections
 
-        Serial.write(rtcmData, dataLength);
+            loraWrite(rtcmData, dataLength);
 
-        systemFlush();  // Complete prints
-        muxSelectUsb(); // Connect USB
+            systemFlush();  // Complete prints
+            muxSelectUsb(); // Connect USB
+        }
 
         loraBytesSent += dataLength;
     }
+}
+
+// Write data to the LoRa radio, depends on platform
+void loraWrite(uint8_t *data, uint16_t dataLength)
+{
+    if (productVariant == RTK_TORCH)
+        Serial.write(data, dataLength);
+    else if (productVariant == RTK_FLEX)
+        SerialForLoRa->write(data, dataLength);
+}
+
+void loraPrint(const char *data)
+{
+    if (productVariant == RTK_TORCH)
+        Serial.print(data);
+    else if (productVariant == RTK_FLEX)
+        SerialForLoRa->print(data);
+}
+
+void loraPrintf(const char *format, ...)
+{
+    va_list args;
+    va_start(args, format);
+
+    va_list args2;
+    va_copy(args2, args);
+    char buf[vsnprintf(nullptr, 0, format, args) + 1];
+
+    vsnprintf(buf, sizeof buf, format, args2);
+
+    if (productVariant == RTK_TORCH)
+        Serial.printf(buf);
+    else if (productVariant == RTK_FLEX)
+        SerialForLoRa->printf(buf);
+
+    va_end(args);
+    va_end(args2);
+}
+
+uint16_t loraAvailable()
+{
+    if (productVariant == RTK_TORCH)
+        return (Serial.available());
+    else if (productVariant == RTK_FLEX)
+        return (SerialForLoRa->available());
+    
+    systemPrintln("loraAvailable - invalid ProductVariant");
+    return 0;
+}
+
+uint16_t loraRead()
+{
+    if (productVariant == RTK_TORCH)
+        return (Serial.read());
+    else if (productVariant == RTK_FLEX)
+        return (SerialForLoRa->read());
+
+    systemPrintln("loraRead - invalid ProductVariant");
+    return 0;
 }

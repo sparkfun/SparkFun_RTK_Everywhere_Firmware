@@ -75,7 +75,7 @@ MQTT_Client.ino
 // When the dict is received, we subscribe to the nearest localized topic and unsubscribe from the continental topic
 // When the AssistNow MGA data arrives, we unsubscribe and subscribe to AssistNow updates
 
-String localizedDistributionDictTopic = ""; // Used in menuPP
+String localizedDistributionDictTopic = ""; // Used in menuPointPerfect()
 String localizedDistributionTileTopic = "";
 
 #ifdef COMPILE_MQTT_CLIENT
@@ -514,6 +514,7 @@ int mqttClientProcessZedMessage(uint8_t *mqttData, uint16_t mqttCount, int bytes
             zed->updateCorrectionsSource(0); // Set SOURCE to 0 (IP) if needed
 
             gnss->pushRawData(mqttData, mqttCount);
+            // Corrections are SPARTN. No point in pushing them to rtcmParse
             bytesPushed += mqttCount;
 
             mqttClientDataReceived = true;
@@ -542,6 +543,7 @@ int mqttClientProcessZedMessage(uint8_t *mqttData, uint16_t mqttCount, int bytes
         }
 
         gnss->pushRawData(mqttData, mqttCount);
+        // No point in pushing keys / MGA to rtcmParse
         bytesPushed += mqttCount;
     }
 #endif // COMPILE_ZED
@@ -952,6 +954,16 @@ void mqttClientUpdate()
         // Attempt connection to the MQTT broker
         if (!mqttClient->connect(settings.pointPerfectBrokerHost, 8883))
         {
+            // Failed to connect to the server
+            int length = 1024;
+            char * errMessage = (char *)rtkMalloc(length, "HTTP error message");
+            if (errMessage)
+            {
+                memset(errMessage, 0, length);
+                mqttSecureClient->lastError(errMessage, length - 1);
+                systemPrintf("MQTT Error: %s\r\n", errMessage);
+                rtkFree(errMessage, "HTTP error message");
+            }
             systemPrintf("Failed to connect to MQTT broker %s\r\n", settings.pointPerfectBrokerHost);
             mqttClientRestart();
             break;
@@ -1013,7 +1025,7 @@ void mqttClientUpdate()
         mqttClient->poll();
 
         // Determine if a data timeout has occurred
-        if (millis() - mqttClientLastDataReceived >= MQTT_CLIENT_DATA_TIMEOUT)
+        if ((millis() - mqttClientLastDataReceived) >= MQTT_CLIENT_DATA_TIMEOUT)
         {
             systemPrintln("MQTT client data timeout. Disconnecting...");
             mqttClientRestart();
@@ -1157,7 +1169,7 @@ void mqttClientUpdate()
     }
 
     // Periodically display the MQTT client state
-    if (PERIODIC_DISPLAY(PD_MQTT_CLIENT_STATE))
+    if (PERIODIC_DISPLAY(PD_MQTT_CLIENT_STATE) && !inMainMenu)
     {
         const char *line = "";
         mqttClientEnabled(&line);

@@ -9,7 +9,7 @@ GNSS_None.h
 
 class GNSS_None : public GNSS
 {
-  protected:
+protected:
     // Setup the general configuration of the GNSS
     // Not Rover or Base specific (ie, baud rates)
     // Outputs:
@@ -25,7 +25,7 @@ class GNSS_None : public GNSS
         return false;
     }
 
-  public:
+public:
     // Constructor
     GNSS_None() : GNSS()
     {
@@ -48,13 +48,16 @@ class GNSS_None : public GNSS
     }
 
     // Check if a given baud rate is supported by this module
-    bool baudIsAllowed(uint32_t baudRate) {
+    bool baudIsAllowed(uint32_t baudRate)
+    {
         return false;
     }
-    uint32_t baudGetMinimum() {
+    uint32_t baudGetMinimum()
+    {
         return 0;
     }
-    uint32_t baudGetMaximum() {
+    uint32_t baudGetMaximum()
+    {
         return 0;
     }
 
@@ -118,7 +121,6 @@ class GNSS_None : public GNSS
     // Returns message names in the returnText string
     void createMessageList(String &returnText)
     {
-
     }
 
     // Responds with the RTCM/Base messages supported on this platform
@@ -127,7 +129,6 @@ class GNSS_None : public GNSS
     // Returns message names in the returnText string
     void createMessageListBase(String &returnText)
     {
-
     }
 
     // Responds with the messages supported on this platform
@@ -510,7 +511,7 @@ class GNSS_None : public GNSS
     {
     }
 
-    // If L-Band is available, but encrypted, allow RTCM through other sources (radio, ESP-Now) to GNSS receiver
+    // If L-Band is available, but encrypted, allow RTCM through other sources (radio, ESP-NOW) to GNSS receiver
     void rtcmOnGnssEnable()
     {
     }
@@ -528,14 +529,9 @@ class GNSS_None : public GNSS
         return false;
     }
 
-    // Set the baud rate on the GNSS port that interfaces between the ESP32 and the GNSS
-    // This just sets the GNSS side
-    // Used during Bluetooth testing
-    // Inputs:
-    //   baudRate: The desired baudrate
-    bool setBaudrate(uint32_t baudRate)
+    bool setBaudRate(uint8_t uartNumber, uint32_t baudRate)
     {
-        return true;
+        return false;
     }
 
     // Enable all the valid constellations and bands for this platform

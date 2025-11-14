@@ -14,7 +14,7 @@ int systemAvailable()
     return (Serial.available());
 }
 
-// If we are printing to all endpoints, BT gets priority
+// If we are reading from all endpoints, BT gets priority
 int systemRead()
 {
     if (printEndpoint == PRINT_ENDPOINT_BLUETOOTH || printEndpoint == PRINT_ENDPOINT_ALL)
@@ -59,6 +59,12 @@ void systemWrite(const uint8_t *buffer, uint16_t length)
     else if (printEndpoint == PRINT_ENDPOINT_BLUETOOTH_COMMAND)
     {
         bluetoothCommandWrite(buffer, length);
+    }
+
+    // We're just adding up the size of the list, don't pass along to serial port
+    else if (printEndpoint == PRINT_ENDPOINT_COUNT)
+    {
+        systemWriteCounts++;
     }
 }
 
@@ -293,7 +299,7 @@ InputResponse getUserInputString(char *userString, uint16_t stringSize, bool loc
     uint8_t spot = 0;
     bool echo = localEcho && settings.echoUserInput;
 
-    while ((millis() - startTime) / 1000 <= menuTimeout)
+    while (((millis() - startTime) / 1000) <= menuTimeout)
     {
         delay(1); // Yield to processor
 
@@ -301,6 +307,14 @@ InputResponse getUserInputString(char *userString, uint16_t stringSize, bool loc
         // Keep doing these important things while waiting for the user to enter data
 
         gnss->update(); // Regularly poll to get latest data
+
+        // Keep the ntripClient alive by pushing GPGGA.
+        // I'm not sure if we want / need to do this, but that's how it was when
+        // the GPGGA push was performed from processUart1Message from gnssReadTask.
+        // Doing it here keeps the user experience the same. It is safe to do it here
+        // because the loop is suspended and networkUpdate / ntripClientUpdate aren't
+        // being called. Maybe we _should_ call networkUpdate() here? Just sayin'...
+        pushGPGGA(nullptr);
 
         // Keep processing NTP requests
         if (online.ethernetNTPServer)
@@ -475,23 +489,33 @@ void printElapsedTime(const char *title)
 
 #define TIMESTAMP_INTERVAL 1000 // Milliseconds
 
+// Get the timestamp
+const char *getTimeStamp()
+{
+    static char theTime[30];
+
+    //         1         2         3
+    // 123456789012345678901234567890
+    // YYYY-mm-dd HH:MM:SS.xxxrn0
+    struct tm timeinfo = rtc.getTimeStruct();
+    char timestamp[30];
+    strftime(timestamp, sizeof(timestamp), "%Y-%m-%d %H:%M:%S", &timeinfo);
+    snprintf(theTime, sizeof(theTime), "%s.%03ld", timestamp, rtc.getMillis());
+
+    return (const char *)theTime;
+}
+
 // Print the timestamp
-void printTimeStamp()
+void printTimeStamp(bool always)
 {
     uint32_t currentMilliseconds;
     static uint32_t previousMilliseconds;
 
     // Timestamp the messages
     currentMilliseconds = millis();
-    if ((currentMilliseconds - previousMilliseconds) >= TIMESTAMP_INTERVAL)
+    if (always || ((currentMilliseconds - previousMilliseconds) >= TIMESTAMP_INTERVAL))
     {
-        //         1         2         3
-        // 123456789012345678901234567890
-        // YYYY-mm-dd HH:MM:SS.xxxrn0
-        struct tm timeinfo = rtc.getTimeStruct();
-        char timestamp[30];
-        strftime(timestamp, sizeof(timestamp), "%Y-%m-%d %H:%M:%S", &timeinfo);
-        systemPrintf("%s.%03ld\r\n", timestamp, rtc.getMillis());
+        systemPrintln(getTimeStamp());
 
         // Select the next time to display the timestamp
         previousMilliseconds = currentMilliseconds;
@@ -1185,3 +1209,12 @@ void WeekToWToUnixEpoch(uint64_t *unixEpoch, uint16_t GPSWeek, uint32_t GPSToW)
     *unixEpoch += 315964800;
 }
 
+const char *configPppSpacesToCommas(const char *config)
+{
+    static char commas[sizeof(settings.configurePPP)];
+    snprintf(commas, sizeof(commas), "%s", config);
+    for (size_t i = 0; i < strlen(commas); i++)
+        if (commas[i] == ' ')
+            commas[i] = ',';
+    return (const char *)commas;
+}

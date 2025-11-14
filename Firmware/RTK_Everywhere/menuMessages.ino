@@ -1,3 +1,84 @@
+// Menu of Logging Menus
+void menuLogSelection()
+{
+    if (present.microSd && !present.mosaicMicroSd)
+        menuLog();
+#ifdef COMPILE_MOSAICX5
+    if (!present.microSd && present.mosaicMicroSd)
+        menuLogMosaic();
+#endif
+    if (present.microSd && present.mosaicMicroSd)
+    {
+        while (1)
+        {
+            systemPrintln();
+            systemPrintln("Menu: Logging");
+            systemPrintln();
+
+            systemPrintln("Accessible microSD:");
+            printMicroSdInfo();
+            systemPrintln();
+#ifdef COMPILE_MOSAICX5
+            systemPrintln("Internal mosaic microSD:");
+            printMosaicCardSpace();
+            systemPrintln();
+#endif
+            systemPrintln("1) Accessible microSD logging");
+            systemPrintln("2) Internal mosaic microSD logging");
+
+            systemPrintln("x) Exit");
+
+            int incoming = getUserInputNumber(); // Returns EXIT, TIMEOUT, or long
+
+            if (incoming == 1)
+                menuLog();
+#ifdef COMPILE_MOSAICX5
+            else if (incoming == 2)
+                menuLogMosaic();
+#endif
+            else if (incoming == 'x')
+                break;
+            else if (incoming == INPUT_RESPONSE_GETNUMBER_EXIT)
+                break;
+            else if (incoming == INPUT_RESPONSE_GETNUMBER_TIMEOUT)
+                break;
+            else
+                printUnknown(incoming);
+        }
+        clearBuffer(); // Empty buffer of any newline chars
+    }
+}
+
+// Print accessible microSd size and free space
+void printMicroSdInfo()
+{
+    if (settings.enableSD && online.microSD)
+    {
+        char sdCardSizeChar[20];
+        String cardSize;
+        stringHumanReadableSize(cardSize, sdCardSize);
+        cardSize.toCharArray(sdCardSizeChar, sizeof(sdCardSizeChar));
+        char sdFreeSpaceChar[20];
+        String freeSpace;
+        stringHumanReadableSize(freeSpace, sdFreeSpace);
+        freeSpace.toCharArray(sdFreeSpaceChar, sizeof(sdFreeSpaceChar));
+
+        char myString[70];
+        snprintf(myString, sizeof(myString), "SD card size: %s / Free space: %s", sdCardSizeChar, sdFreeSpaceChar);
+        systemPrintln(myString);
+
+        if (online.logging)
+        {
+            systemPrintf("Current log file name: %s\r\n", logFileName);
+        }
+    }
+    else
+        systemPrintln("No microSD card is detected");
+
+    if (bufferOverruns)
+        systemPrintf("Buffer overruns: %d\r\n", bufferOverruns);
+}
+
 // Control the messages that get logged to SD
 // Control max logging time (limit to a certain number of minutes)
 // The main use case is the setup for a base station to log RAW sentences that then get post processed
@@ -7,32 +88,10 @@ void menuLog()
     {
         systemPrintln();
         systemPrintln("Menu: Logging");
+        systemPrintln();
 
-        if (settings.enableSD && online.microSD)
-        {
-            char sdCardSizeChar[20];
-            String cardSize;
-            stringHumanReadableSize(cardSize, sdCardSize);
-            cardSize.toCharArray(sdCardSizeChar, sizeof(sdCardSizeChar));
-            char sdFreeSpaceChar[20];
-            String freeSpace;
-            stringHumanReadableSize(freeSpace, sdFreeSpace);
-            freeSpace.toCharArray(sdFreeSpaceChar, sizeof(sdFreeSpaceChar));
-
-            char myString[70];
-            snprintf(myString, sizeof(myString), "SD card size: %s / Free space: %s", sdCardSizeChar, sdFreeSpaceChar);
-            systemPrintln(myString);
-
-            if (online.logging)
-            {
-                systemPrintf("Current log file name: %s\r\n", logFileName);
-            }
-        }
-        else
-            systemPrintln("No microSD card is detected");
-
-        if (bufferOverruns)
-            systemPrintf("Buffer overruns: %d\r\n", bufferOverruns);
+        printMicroSdInfo();
+        systemPrintln();
 
         systemPrint("1) Log to microSD: ");
         if (settings.enableLogging == true)
@@ -82,6 +141,15 @@ void menuLog()
                 systemPrintln("Disabled");
         }
 
+        if (settings.enableLogging == true)
+        {
+            systemPrint("9) Log file length alignment: ");
+            if (settings.alignedLogFiles == true)
+                systemPrintln("Enabled");
+            else
+                systemPrintln("Disabled");
+        }
+
         systemPrintln("x) Exit");
 
         int incoming = getUserInputNumber(); // Returns EXIT, TIMEOUT, or long
@@ -90,15 +158,17 @@ void menuLog()
         {
             settings.enableLogging ^= 1;
 
-            // Reset the maximum logging time when logging is disabled to ensure that
-            // the next time logging is enabled that the maximum amount of data can be
-            // captured.
-            if (settings.enableLogging == false)
-                startLogTime_minutes = 0;
+            // Reset the start logging time when logging is enabled to ensure that
+            // data can be captured.
+            if (settings.enableLogging == true)
+                startLogTime_minutes = millis() / 1000L / 60;
         }
         else if (incoming == 2 && settings.enableLogging == true)
         {
             // Arbitrary 2 year limit. See https://github.com/sparkfun/SparkFun_RTK_Firmware/issues/86
+            // Note: the 2 year limit is fine. But systemTime_minutes is based on millis(), and millis()
+            //       will roll over every 2^32ms = ~50 days...
+            //       TODO: use the GNSS epoch (uint32_t seconds plus uint32_t microseconds) to resolve this.
             getNewSetting("Enter max minutes before logging stops", 0, 60 * 24 * 365 * 2, &settings.maxLogTime_minutes);
         }
         else if (incoming == 3 && settings.enableLogging == true)
@@ -113,14 +183,14 @@ void menuLog()
             beginLogging();          // Create new file based on current RTC.
             setLoggingType();        // Determine if we are standard, PPP, or custom. Changes logging icon accordingly.
         }
-        else if (incoming == 5 && settings.enableLogging == true && online.logging == true)
+        else if (incoming == 5 && settings.enableLogging == true)
         {
             settings.enableARPLogging ^= 1;
         }
         else if (incoming == 6 && settings.enableLogging == true && settings.enableARPLogging == true)
         {
             // Arbitrary 10 minute limit
-            getNewSetting("Enter the ARP logging interval in seconds", 0, 60 * 10, &settings.ARPLoggingInterval_s);
+            getNewSetting("Enter the ARP logging interval in seconds", 1, 60 * 10, &settings.ARPLoggingInterval_s);
         }
         else if (incoming == 7)
         {
@@ -129,6 +199,10 @@ void menuLog()
         else if ((present.ethernet_ws5500 == true) && (incoming == 8))
         {
             settings.enableNTPFile ^= 1;
+        }
+        else if (incoming == 9 && settings.enableLogging == true)
+        {
+            settings.alignedLogFiles ^= 1;
         }
         else if (incoming == 'x')
             break;
@@ -151,10 +225,15 @@ void menuMessagesBaseRTCM()
         systemPrintln();
         systemPrintln("Menu: GNSS Messages - Base RTCM");
 
-        systemPrintln("1) Set RXM Messages for Base Mode");
+        systemPrintln("1) Set RTCM Messages for Base Mode");
 
         systemPrintf("2) Reset to Defaults (%s)\r\n", gnss->getRtcmDefaultString());
         systemPrintf("3) Reset to Low Bandwidth Link (%s)\r\n", gnss->getRtcmLowDataRateString());
+
+        if (namedSettingAvailableOnPlatform("useMSM7"))
+            systemPrintf("4) MSM Selection: MSM%c\r\n", settings.useMSM7 ? '7' : '4');
+        if (namedSettingAvailableOnPlatform("rtcmMinElev"))
+            systemPrintf("5) Minimum Elevation for RTCM: %d\r\n", settings.rtcmMinElev);
 
         systemPrintln("x) Exit");
 
@@ -179,6 +258,24 @@ void menuMessagesBaseRTCM()
             systemPrintf("Reset to Low Bandwidth Link (%s)\r\n", gnss->getRtcmLowDataRateString());
             restartBase = true;
         }
+        else if ((incoming == 4) && (namedSettingAvailableOnPlatform("useMSM7")))
+        {
+            settings.useMSM7 ^= 1;
+            restartBase = true;
+        }
+        else if ((incoming == 5) && (namedSettingAvailableOnPlatform("rtcmMinElev")))
+        {
+            systemPrintf("Enter minimum elevation for RTCM: ");
+
+            int elevation = getUserInputNumber(); // Returns EXIT, TIMEOUT, or long
+
+            if (elevation >= -90 && elevation <= 90)
+            {
+                settings.rtcmMinElev = elevation;
+                restartBase = true;
+            }
+        }
+
         else if (incoming == INPUT_RESPONSE_GETNUMBER_EXIT)
             break;
         else if (incoming == INPUT_RESPONSE_GETNUMBER_TIMEOUT)
@@ -194,7 +291,7 @@ void menuMessagesBaseRTCM()
 // Based on GPS data/time, create a log file in the format SFE_Everywhere_YYMMDD_HHMMSS.ubx
 bool beginLogging()
 {
-    return(beginLogging(nullptr));
+    return (beginLogging(nullptr));
 }
 
 bool beginLogging(const char *customFileName)
@@ -234,9 +331,9 @@ bool beginLogging(const char *customFileName)
 
                 if (strlen(logFileName) == 0)
                 {
-                    //u-blox platforms use ubx file extension for logs, all others use TXT
+                    // u-blox platforms use ubx file extension for logs, all others use TXT
                     char fileExtension[4] = "ubx";
-                    if(present.gnss_zedf9p == false)
+                    if (present.gnss_zedf9p == false)
                         strncpy(fileExtension, "txt", sizeof(fileExtension));
 
                     snprintf(logFileName, sizeof(logFileName), "/%s_%02d%02d%02d_%02d%02d%02d.%s", // SdFat library
@@ -244,8 +341,7 @@ bool beginLogging(const char *customFileName)
                              rtc.getDay(), // ESP32Time returns month:0-11
                              rtc.getHour(true), rtc.getMinute(),
                              rtc.getSecond(), // ESP32Time getHour(true) returns hour:0-23
-                             fileExtension
-                    );
+                             fileExtension);
                 }
             }
             else
@@ -261,7 +357,7 @@ bool beginLogging(const char *customFileName)
                 if (!logFile)
                 {
                     systemPrintln("Failed to allocate logFile!");
-                    return(false);
+                    return (false);
                 }
             }
 
@@ -278,22 +374,36 @@ bool beginLogging(const char *customFileName)
                     systemPrintf("Failed to create GNSS log file: %s\r\n", logFileName);
                     online.logging = false;
                     xSemaphoreGive(sdCardSemaphore);
-                    return(false);
+                    return (false);
                 }
 
                 logFileSize = 0;
-                lastLogSize = 0; // Reset counter - used for displaying active logging icon
+                lastLogSize = 0;           // Reset counter - used for displaying active logging icon
                 lastFileReport = millis(); // Fake last file report to avoid an immediate timeout
 
                 bufferOverruns = 0; // Reset counter
 
                 sdUpdateFileCreateTimestamp(logFile); // Update the file to create time & date
 
-                startCurrentLogTime_minutes = millis() / 1000L / 60; // Mark now as start of logging
-
-                // If it hasn't been done before, mark the initial start of logging for total run time
-                if (startLogTime_minutes == 0)
-                    startLogTime_minutes = millis() / 1000L / 60;
+                // Calculate the time of the next log file change
+                nextLogTime_ms = 0; // Default to no limit
+                if ((settings.alignedLogFiles) && (settings.maxLogLength_minutes > 0))
+                {
+                    // Aligned logging is only possible if the interval is an integral fraction of 24 hours
+                    if ((24 * 60 * 2) % settings.maxLogLength_minutes == 0)
+                    {
+                        // Calculate when the next log file should be opened - in millis()
+                        unsigned long hoursAsMillis = rtc.getMillis() + (rtc.getSecond() * 1000) +
+                                                      (rtc.getMinute() * 1000 * 60) +
+                                                      (rtc.getHour(true) * 1000 * 60 * 60);
+                        unsigned long maxLogLength_ms = (unsigned long)settings.maxLogLength_minutes * 60 * 1000;
+                        unsigned long millisFromPreviousLog = hoursAsMillis % maxLogLength_ms;
+                        unsigned long millisToNextLog = maxLogLength_ms - millisFromPreviousLog;
+                        nextLogTime_ms = millis() + millisToNextLog;
+                    }
+                }
+                if ((nextLogTime_ms == 0) && (settings.maxLogLength_minutes > 0)) // Non-aligned logging
+                    nextLogTime_ms = millis() + ((unsigned long)settings.maxLogLength_minutes * 60 * 1000);
 
                 // Add NMEA txt message with restart reason
                 char rstReason[30];
@@ -378,6 +488,8 @@ bool beginLogging(const char *customFileName)
                                    currentDate); // textID, buffer, sizeOfBuffer, text
                 logFile->println(nmeaMessage);
 
+                logFile->sync(); // Sync any partially written data
+
                 if (reuseLastLog == true)
                 {
                     systemPrintln("Appending last available log");
@@ -390,7 +502,7 @@ bool beginLogging(const char *customFileName)
                 // A retry will happen during the next loop, the log will eventually be opened
                 log_d("Failed to get file system lock to create GNSS log file");
                 online.logging = false;
-                return(false);
+                return (false);
             }
 
             systemPrintf("Log file name: %s\r\n", logFileName);
@@ -422,6 +534,7 @@ void endLogging(bool gotSemaphore, bool releaseSemaphore)
             char nmeaMessage[82]; // Max NMEA sentence length is 82
             createNMEASentence(CUSTOM_NMEA_TYPE_PARSER_STATS, nmeaMessage, sizeof(nmeaMessage),
                                parserStats); // textID, buffer, sizeOfBuffer, text
+            logFile->sync();                 // Sync any partially written data
             logFile->println(nmeaMessage);
             logFile->sync();
 
@@ -436,7 +549,7 @@ void endLogging(bool gotSemaphore, bool releaseSemaphore)
             delete logFile;
             logFile = nullptr;
 
-            systemPrintln("Log file closed");
+            systemPrintf("Log file closed @ %s\r\n", getTimeStamp());
 
             // Release the semaphore if requested
             if (releaseSemaphore)
@@ -521,10 +634,16 @@ void checkGNSSArrayDefaults()
     if (present.gnss_zedf9p)
     {
         if (settings.dynamicModel == 254)
+        {
+            defaultsApplied = true;
             settings.dynamicModel = DYN_MODEL_PORTABLE;
+        }
 
         if (settings.enableExtCorrRadio == 254)
+        {
+            defaultsApplied = true;
             settings.enableExtCorrRadio = true;
+        }
 
         if (settings.ubxMessageRates[0] == 254)
         {
@@ -546,25 +665,39 @@ void checkGNSSArrayDefaults()
             defaultsApplied = true;
 
             // Reset Base rates to defaults
-            GNSS_ZED * zed = (GNSS_ZED *)gnss;
+            GNSS_ZED *zed = (GNSS_ZED *)gnss;
             int firstRTCMRecord = zed->getMessageNumberByName("RTCM_1005");
             for (int x = 0; x < MAX_UBX_MSG_RTCM; x++)
                 settings.ubxMessageRatesBase[x] = ubxMessages[firstRTCMRecord + x].msgDefaultRate;
         }
     }
 #else
-    if(false)
-    {}
+    if (false)
+    {
+    }
 #endif // COMPILE_ZED
 
 #ifdef COMPILE_UM980
     else if (present.gnss_um980)
     {
+        if (settings.dataPortBaud != 115200)
+        {
+            // Belt and suspenders... Let's make really sure COM3 only ever runs at 115200
+            defaultsApplied = true;
+            settings.dataPortBaud = 115200;
+        }
+
         if (settings.dynamicModel == 254)
+        {
+            defaultsApplied = true;
             settings.dynamicModel = UM980_DYN_MODEL_SURVEY;
+        }
 
         if (settings.enableExtCorrRadio == 254)
+        {
+            defaultsApplied = true;
             settings.enableExtCorrRadio = false;
+        }
 
         if (settings.um980Constellations[0] == 254)
         {
@@ -608,10 +741,16 @@ void checkGNSSArrayDefaults()
     else if (present.gnss_mosaicX5)
     {
         if (settings.dynamicModel == 254)
+        {
+            defaultsApplied = true;
             settings.dynamicModel = MOSAIC_DYN_MODEL_QUASISTATIC;
+        }
 
         if (settings.enableExtCorrRadio == 254)
+        {
+            defaultsApplied = true;
             settings.enableExtCorrRadio = true;
+        }
 
         if (settings.mosaicConstellations[0] == 254)
         {
@@ -669,7 +808,10 @@ void checkGNSSArrayDefaults()
     else if (present.gnss_lg290p)
     {
         if (settings.enableExtCorrRadio == 254)
+        {
+            defaultsApplied = true;
             settings.enableExtCorrRadio = false;
+        }
 
         if (settings.lg290pConstellations[0] == 254)
         {
@@ -678,6 +820,8 @@ void checkGNSSArrayDefaults()
             // Reset constellations to defaults
             for (int x = 0; x < MAX_LG290P_CONSTELLATIONS; x++)
                 settings.lg290pConstellations[x] = 1;
+
+            settings.enableGalileoHas = false; // The default is true. Move to false so user must opt to turn it on.
         }
 
         if (settings.lg290pMessageRatesNMEA[0] == 254)
@@ -715,29 +859,34 @@ void checkGNSSArrayDefaults()
             for (int x = 0; x < MAX_LG290P_PQTM_MSG; x++)
                 settings.lg290pMessageRatesPQTM[x] = lgMessagesPQTM[x].msgDefaultRate;
         }
-
     }
-#endif  // COMPILE_LG290P
+#endif // COMPILE_LG290P
 
+    // If defaults have been applied, override antennaPhaseCenter_mm with default
+    // (This was in beginSystemState - for the Torch / UM980 only. Weird...)
+    if (defaultsApplied)
+    {
+        settings.antennaPhaseCenter_mm = present.antennaPhaseCenter_mm;
+    }
 
     // If defaults were applied, also default the non-array settings for this particular GNSS receiver
     if (defaultsApplied == true)
     {
         if (present.gnss_um980)
         {
-            settings.minCNO = 10;                    // Default 10 degrees
+            settings.minCNO = 10;                    // Default 10 dBHz
             settings.surveyInStartingAccuracy = 2.0; // Default 2m
             settings.measurementRateMs = 500;        // Default 2Hz.
         }
         else if (present.gnss_zedf9p)
         {
-            settings.minCNO = 6;                     // Default 6 degrees
+            settings.minCNO = 6;                     // Default 6 dBHz
             settings.surveyInStartingAccuracy = 1.0; // Default 1m
             settings.measurementRateMs = 250;        // Default 4Hz.
         }
         else if (present.gnss_lg290p)
         {
-            //settings.minCNO = 10;                     // Not yet supported
+            settings.minCNO = 10;                    // Default 10 dBHz
             settings.surveyInStartingAccuracy = 2.0; // Default 2m
             settings.measurementRateMs = 500;        // Default 2Hz.
         }

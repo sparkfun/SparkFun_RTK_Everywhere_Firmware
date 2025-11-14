@@ -1,3 +1,7 @@
+char otaOutcome[21] = {0}; // Modified by otaUpdate(), used to respond to rtkRemoteFirmwareVersion commands
+int systemWriteCounts =
+    0; // Modified by systemWrite(), used to calculate the number of items in the LIST command for CLI
+
 void menuCommands()
 {
     char cmdBuffer[200];
@@ -42,6 +46,8 @@ t_cliResult processCommand(char *cmdBuffer)
     // These commands are not part of the CLI and allow quick testing without validity check
     if ((strcmp(cmdBuffer, "x") == 0) || (strcmp(cmdBuffer, "exit") == 0))
     {
+        if (settings.debugCLI == true)
+            systemPrintln("Exiting CLI...");
         return (CLI_EXIT); // Exit command mode
     }
     else if (strcmp(cmdBuffer, "list") == 0)
@@ -178,7 +184,7 @@ t_cliResult processCommand(char *cmdBuffer)
             }
             else
             {
-                commandSendErrorResponse(tokens[0], (char *)"Unknown setting");
+                commandSendErrorResponse(tokens[0], field, (char *)"Unknown setting");
                 return (CLI_UNKNOWN_SETTING);
             }
         }
@@ -187,8 +193,13 @@ t_cliResult processCommand(char *cmdBuffer)
     {
         if (tokenCount != 3)
         {
-            commandSendErrorResponse(tokens[0],
-                                     (char *)"Incorrect number of arguments"); // Incorrect number of arguments
+            if (tokenCount == 2)
+                commandSendErrorResponse(tokens[0], tokens[1],
+                                         (char *)"Incorrect number of arguments"); // Incorrect number of arguments
+            else
+                commandSendErrorResponse(tokens[0],
+                                         (char *)"Incorrect number of arguments"); // Incorrect number of arguments
+
             return (CLI_BAD_FORMAT);
         }
         else
@@ -209,9 +220,14 @@ t_cliResult processCommand(char *cmdBuffer)
                                             value); // Wrap the string setting in quotes in the response, add OK
                 return (CLI_OK);
             }
+            else if (response == SETTING_KNOWN_READ_ONLY)
+            {
+                commandSendErrorResponse(tokens[0], field, (char *)"Setting is read only");
+                return (CLI_SETTING_READ_ONLY);
+            }
             else
             {
-                commandSendErrorResponse(tokens[0], (char *)"Unknown setting");
+                commandSendErrorResponse(tokens[0], field, (char *)"Unknown setting");
                 return (CLI_UNKNOWN_SETTING);
             }
         }
@@ -226,22 +242,60 @@ t_cliResult processCommand(char *cmdBuffer)
         }
         else
         {
-            if (strcmp(tokens[1], "EXIT") == 0)
-            {
-                commandSendExecuteOkResponse(tokens[0], tokens[1]);
-                return (CLI_EXIT);
-            }
-            else if (strcmp(tokens[1], "APPLY") == 0)
+            if (strcmp(tokens[1], "APPLY") == 0)
             {
                 commandSendExecuteOkResponse(tokens[0], tokens[1]);
                 // TODO - Do an apply...
                 return (CLI_OK);
             }
-            else if (strcmp(tokens[1], "SAVE") == 0)
+            else if (strcmp(tokens[1], "EXIT") == 0)
             {
-                recordSystemSettings();
+                commandSendExecuteOkResponse(tokens[0], tokens[1]);
+                return (CLI_EXIT);
+            }
+            else if (strcmp(tokens[1], "FACTORYRESET") == 0)
+            {
+                // Apply factory defaults, then reset
+                commandSendExecuteOkResponse(tokens[0], tokens[1]);
+                factoryReset(false); // We do not have the SD semaphore
+                return (CLI_OK);     // We should never get this far.
+            }
+            else if (strcmp(tokens[1], "LIST") == 0)
+            {
+                // Respond with a list of variables, types, and current value
+
+                // First calculate the lines in the LIST response
+                PrintEndpoint originalPrintEndpoint = printEndpoint;
+                printEndpoint = PRINT_ENDPOINT_COUNT;
+                systemWriteCounts = 0;
+                printAvailableSettings();
+                printEndpoint = originalPrintEndpoint;
+
+                // Print the list entry with the number of items in the list, including the list entry
+                char settingValue[6];                                                      // 12345
+                snprintf(settingValue, sizeof(settingValue), "%d", systemWriteCounts + 1); // Add list command
+                commandSendExecuteListResponse("list", "int", settingValue);
+
+                // Now actually print the list
+                printAvailableSettings();
                 commandSendExecuteOkResponse(tokens[0], tokens[1]);
                 return (CLI_OK);
+            }
+            else if (strcmp(tokens[1], "PAIR") == 0)
+            {
+                commandSendExecuteOkResponse(tokens[0], tokens[1]);
+                espnowRequestPair = true; // Start ESP-NOW pairing process
+                // Force exit all config menus and/or command modes to allow OTA state machine to run
+                btPrintEchoExit = true;
+                return (CLI_EXIT); // Exit the CLI to allow OTA state machine to run
+            }
+            else if (strcmp(tokens[1], "PAIRSTOP") == 0)
+            {
+                commandSendExecuteOkResponse(tokens[0], tokens[1]);
+                espnowRequestPair = false; // Stop ESP-NOW pairing process
+                // Force exit all config menus and/or command modes to allow OTA state machine to run
+                btPrintEchoExit = true;
+                return (CLI_EXIT); // Exit the CLI to allow OTA state machine to run
             }
             else if (strcmp(tokens[1], "REBOOT") == 0)
             {
@@ -249,16 +303,25 @@ t_cliResult processCommand(char *cmdBuffer)
                 delay(50); // Allow for final print
                 ESP.restart();
             }
-            else if (strcmp(tokens[1], "LIST") == 0)
+            else if (strcmp(tokens[1], "SAVE") == 0)
             {
-                // Respond with a list of variables, types, and current value
-                printAvailableSettings();
+                recordSystemSettings();
                 commandSendExecuteOkResponse(tokens[0], tokens[1]);
                 return (CLI_OK);
             }
+            else if (strcmp(tokens[1], "UPDATEFIRMWARE") == 0)
+            {
+                // Begin a firmware update. WiFi networks and enableRCFirmware should previously be set.
+                commandSendExecuteOkResponse(tokens[0], tokens[1]);
+                otaRequestFirmwareUpdate = true;
+
+                // Force exit all config menus and/or command modes to allow OTA state machine to run
+                btPrintEchoExit = true;
+                return (CLI_EXIT); // Exit the CLI to allow OTA state machine to run
+            }
             else
             {
-                commandSendErrorResponse(tokens[0], tokens[1], (char *)"Unknown command");
+                commandSendExecuteErrorResponse(tokens[0], tokens[1], (char *)"Unknown command");
                 return (CLI_UNKNOWN_COMMAND);
             }
         }
@@ -289,6 +352,17 @@ void commandSendExecuteOkResponse(const char *command, const char *settingName)
     // Create string between $ and * for checksum calculation
     char innerBuffer[200];
     sprintf(innerBuffer, "%s,%s,OK", command, settingName);
+    commandSendResponse(innerBuffer);
+}
+
+// Given a command, send structured ERROR response
+// Response format: $SPEXE,[setting name],ERROR,[Verbose error description]*FF<CR><LF>
+// Ex: $SPEXE,UPDATEFIRMWARE*77 = $SPEXE,UPDATEFIRMWARE,ERROR,No Internet*15
+void commandSendExecuteErrorResponse(const char *command, const char *settingName, const char *errorVerbose)
+{
+    // Create string between $ and * for checksum calculation
+    char innerBuffer[200];
+    snprintf(innerBuffer, sizeof(innerBuffer), "%s,%s,ERROR,%s", command, settingName, errorVerbose);
     commandSendResponse(innerBuffer);
 }
 
@@ -402,6 +476,7 @@ void commandSendErrorResponse(const char *command, const char *settingName, cons
     snprintf(innerBuffer, sizeof(innerBuffer), "%s,%s,,ERROR,%s", command, settingName, errorVerbose);
     commandSendResponse(innerBuffer);
 }
+
 // Given a command, send structured ERROR response
 // Response format: $SPxET,,,ERROR,[Verbose error description]*FF<CR><LF>
 // Ex: SPGET, 'Incorrect number of arguments' = "$SPGET,ERROR,Incorrect number of arguments*1E"
@@ -425,7 +500,54 @@ void commandSendResponse(const char *innerBuffer)
 
     sprintf(responseBuffer, "$%s*%02X\r\n", innerBuffer, calculatedChecksum);
 
-    systemPrint(responseBuffer);
+    // CLI interactions may come from BLE or serial, respond to all interfaces
+    commandSendAllInterfaces(responseBuffer);
+}
+
+// Given an inner buffer, send response sentence with checksum and <CR><LR>
+// Ex: SPGET,elvMask,0.25 = $SPGET,elvMask,0.25*07
+void commandSendResponseUnbuffered(const char *prefix, const char *innerBuffer)
+{
+    uint8_t calculatedChecksum = 0; // XOR chars between '$' and '*'
+    for (int x = 1; x < strlen(prefix); x++)
+        calculatedChecksum = calculatedChecksum ^ prefix[x];
+    for (int x = 0; x < strlen(innerBuffer); x++)
+        calculatedChecksum = calculatedChecksum ^ innerBuffer[x];
+
+    char suffix[6];
+    sprintf(suffix, "*%02X\r\n", calculatedChecksum);
+
+    // CLI interactions may come from BLE or serial, respond to all interfaces
+    commandSendAllInterfaces((char *)prefix);
+    commandSendAllInterfaces((char *)innerBuffer);
+    commandSendAllInterfaces(suffix);
+}
+
+// Pass a command string to the all interfaces
+void commandSendAllInterfaces(char *rxData)
+{
+    // Direct output to Bluetooth Command
+    PrintEndpoint originalPrintEndpoint = printEndpoint;
+
+    // Don't re-direct if we're doing a count of the print output
+    if (printEndpoint != PRINT_ENDPOINT_COUNT)
+    {
+        printEndpoint = PRINT_ENDPOINT_ALL;
+
+        // The LIST command dumps a large amount of data across the BLE link causing "esp_ble_gatts_send_ notify: rc=-1"
+        // errors
+
+        // With debug=debug, 788 characters are printed locally that slow down the interface enough to avoid errors,
+        // or 68.4ms at 115200
+        // With debug=error, can we delay 70ms after every line print and avoid errors? Yes! Works
+        // well. 50ms is good, 25ms works sometimes without error, 5 is bad.
+
+        if (bluetoothCommandIsConnected())
+            delay(settings.cliBlePrintDelay_ms);
+    }
+
+    systemPrint(rxData); // Send command output to BLE, SPP, and Serial
+    printEndpoint = originalPrintEndpoint;
 }
 
 // Checks structure of command and checksum
@@ -492,13 +614,34 @@ void commandSplitName(const char *settingName, char *truncatedName, int truncate
 }
 
 // Using the settingName string, return the index of the setting within command array
+int commandLookupSettingNameAfterPriority(bool inCommands, const char *settingName, char *truncatedName,
+                                          int truncatedNameLen, char *suffix, int suffixLen)
+{
+    return commandLookupSettingNameSelective(inCommands, settingName, truncatedName, truncatedNameLen, suffix,
+                                             suffixLen, true);
+}
 int commandLookupSettingName(bool inCommands, const char *settingName, char *truncatedName, int truncatedNameLen,
                              char *suffix, int suffixLen)
 {
+    return commandLookupSettingNameSelective(inCommands, settingName, truncatedName, truncatedNameLen, suffix,
+                                             suffixLen, false);
+}
+int commandLookupSettingNameSelective(bool inCommands, const char *settingName, char *truncatedName,
+                                      int truncatedNameLen, char *suffix, int suffixLen, bool usePrioritySettingsEnd)
+{
     const char *command;
 
-    // Loop through the valid command entries
-    for (int i = 0; i < commandCount; i++)
+    int prioritySettingsEnd = 0;
+    if (usePrioritySettingsEnd)
+        // Find "endOfPrioritySettings"
+        prioritySettingsEnd = findEndOfPrioritySettings();
+    // If "endOfPrioritySettings" is not found, prioritySettingsEnd will be zero
+
+    // Adjust prioritySettingsEnd if needed - depending on platform type
+    prioritySettingsEnd = adjustEndOfPrioritySettings(prioritySettingsEnd);
+
+    // Loop through the valid command entries - starting at prioritySettingsEnd
+    for (int i = prioritySettingsEnd; i < commandCount; i++)
     {
         // Verify that this command does not get split
         if ((commandIndex[i] >= 0) && (!rtkSettingsEntries[commandIndex[i]].useSuffix) &&
@@ -518,9 +661,10 @@ int commandLookupSettingName(bool inCommands, const char *settingName, char *tru
     commandSplitName(settingName, truncatedName, truncatedNameLen, suffix, suffixLen);
 
     // Loop through the settings entries
+    // This could be speeded up by
     // E.g. by storing the previous value of i and starting there.
     // Most of the time, the match will be i+1.
-    for (int i = 0; i < commandCount; i++)
+    for (int i = prioritySettingsEnd; i < commandCount; i++)
     {
         // Verify that this command gets split
         if ((commandIndex[i] >= 0) && rtkSettingsEntries[commandIndex[i]].useSuffix)
@@ -536,11 +680,14 @@ int commandLookupSettingName(bool inCommands, const char *settingName, char *tru
     }
 
     // Command not found
+    if (settings.debugCLI == true)
+        systemPrintf("commandLookupSettingName: Setting not found: %s\r\n", settingName);
+
     return COMMAND_UNKNOWN;
 }
 
 // Check for unknown variables
-bool commandCheckForUnknownVariable(const char *settingName, const char **entry, int tableEntries)
+bool commandCheckListForVariable(const char *settingName, const char **entry, int tableEntries)
 {
     const char **tableEnd;
 
@@ -575,8 +722,8 @@ SettingValueResponse updateSettingWithValue(bool inCommands, const char *setting
         settingValue = 0;
 
     bool knownSetting = false;
-    bool settingIsString = false; // Goes true when setting needs to be surrounded by quotes during command response.
-                                  // Generally char arrays but some others.
+    bool settingIsString = false; // Goes true when setting needs to be surrounded by quotes during command
+                                  // response. Generally char arrays but some others.
 
     // Loop through the valid command entries
     i = commandLookupSettingName(inCommands, settingName, truncatedName, sizeof(truncatedName), suffix, sizeof(suffix));
@@ -703,8 +850,8 @@ SettingValueResponse updateSettingWithValue(bool inCommands, const char *setting
 
             // Update the profile name in the file system if necessary
             if (strcmp(settingName, "profileName") == 0)
-                setProfileName(profileNumber); // Copy the current settings.profileName into the array of profile names
-                                               // at location profileNumber
+                setProfileName(profileNumber); // Copy the current settings.profileName into the array of profile
+                                               // names at location profileNumber
             settingIsString = true;
         }
         break;
@@ -717,9 +864,21 @@ SettingValueResponse updateSettingWithValue(bool inCommands, const char *setting
         }
         break;
 
+        case tCmnCnst: {
+#ifdef COMPILE_MOSAICX5
+            for (int x = 0; x < MAX_MOSAIC_CONSTELLATIONS; x++)
+            {
+                if ((suffix[0] == mosaicSignalConstellations[x].configName[0]) &&
+                    (strcmp(suffix, mosaicSignalConstellations[x].configName) == 0))
+                {
+                    settings.mosaicConstellations[x] = settingValue;
+                    knownSetting = true;
+                    break;
+                }
+            }
+#endif // COMPILE_MOSAICX5
 #ifdef COMPILE_ZED
-        case tUbxConst: {
-            for (int x = 0; x < qualifier; x++)
+            for (int x = 0; x < MAX_UBX_CONSTELLATIONS; x++)
             {
                 if ((suffix[0] == settings.ubxConstellations[x].textName[0]) &&
                     (strcmp(suffix, settings.ubxConstellations[x].textName) == 0))
@@ -729,6 +888,118 @@ SettingValueResponse updateSettingWithValue(bool inCommands, const char *setting
                     break;
                 }
             }
+#endif // COMPILE_ZED
+#ifdef COMPILE_UM980
+            for (int x = 0; x < MAX_UM980_CONSTELLATIONS; x++)
+            {
+                if ((suffix[0] == um980ConstellationCommands[x].textName[0]) &&
+                    (strcmp(suffix, um980ConstellationCommands[x].textName) == 0))
+                {
+                    settings.um980Constellations[x] = settingValue;
+                    knownSetting = true;
+                    break;
+                }
+            }
+#endif // COMPILE_UM980
+#ifdef COMPILE_LG290P
+            for (int x = 0; x < MAX_LG290P_CONSTELLATIONS; x++)
+            {
+                if ((suffix[0] == lg290pConstellationNames[x][0]) && (strcmp(suffix, lg290pConstellationNames[x]) == 0))
+                {
+                    settings.lg290pConstellations[x] = settingValue;
+                    knownSetting = true;
+                    break;
+                }
+            }
+#endif // COMPILE_LG290P
+        }
+        break;
+
+        case tCmnRtNm: {
+#ifdef COMPILE_UM980
+            for (int x = 0; x < MAX_UM980_NMEA_MSG; x++)
+            {
+                if ((suffix[0] == umMessagesNMEA[x].msgTextName[0]) &&
+                    (strcmp(suffix, umMessagesNMEA[x].msgTextName) == 0))
+                {
+                    settings.um980MessageRatesNMEA[x] = settingValue;
+                    knownSetting = true;
+                    break;
+                }
+            }
+#endif // COMPILE_UM980
+#ifdef COMPILE_LG290P
+            for (int x = 0; x < MAX_LG290P_NMEA_MSG; x++)
+            {
+                if ((suffix[0] == lgMessagesNMEA[x].msgTextName[0]) &&
+                    (strcmp(suffix, lgMessagesNMEA[x].msgTextName) == 0))
+                {
+                    settings.lg290pMessageRatesNMEA[x] = settingValue;
+                    knownSetting = true;
+                    break;
+                }
+            }
+#endif // COMPILE_LG290P
+        }
+        break;
+        case tCnRtRtB: {
+#ifdef COMPILE_UM980
+            for (int x = 0; x < MAX_UM980_RTCM_MSG; x++)
+            {
+                if ((suffix[0] == umMessagesRTCM[x].msgTextName[0]) &&
+                    (strcmp(suffix, umMessagesRTCM[x].msgTextName) == 0))
+                {
+                    settings.um980MessageRatesRTCMBase[x] = settingValue;
+                    knownSetting = true;
+                    break;
+                }
+            }
+#endif // COMPILE_UM980
+#ifdef COMPILE_LG290P
+            for (int x = 0; x < MAX_LG290P_RTCM_MSG; x++)
+            {
+                if ((suffix[0] == lgMessagesRTCM[x].msgTextName[0]) &&
+                    (strcmp(suffix, lgMessagesRTCM[x].msgTextName) == 0))
+                {
+                    settings.lg290pMessageRatesRTCMBase[x] = settingValue;
+                    knownSetting = true;
+                    break;
+                }
+            }
+#endif // COMPILE_LG290P
+        }
+        break;
+        case tCnRtRtR: {
+#ifdef COMPILE_UM980
+            for (int x = 0; x < MAX_UM980_RTCM_MSG; x++)
+            {
+                if ((suffix[0] == umMessagesRTCM[x].msgTextName[0]) &&
+                    (strcmp(suffix, umMessagesRTCM[x].msgTextName) == 0))
+                {
+                    settings.um980MessageRatesRTCMRover[x] = settingValue;
+                    knownSetting = true;
+                    break;
+                }
+            }
+#endif // COMPILE_UM980
+#ifdef COMPILE_LG290P
+            for (int x = 0; x < MAX_LG290P_RTCM_MSG; x++)
+            {
+                if ((suffix[0] == lgMessagesRTCM[x].msgTextName[0]) &&
+                    (strcmp(suffix, lgMessagesRTCM[x].msgTextName) == 0))
+                {
+                    settings.lg290pMessageRatesRTCMRover[x] = settingValue;
+                    knownSetting = true;
+                    break;
+                }
+            }
+#endif // COMPILE_LG290P
+        }
+        break;
+
+#ifdef COMPILE_ZED
+        case tUbxConst: {
+            // Covered by tCmnCnst
         }
         break;
         case tUbxMsgRt: {
@@ -869,55 +1140,19 @@ SettingValueResponse updateSettingWithValue(bool inCommands, const char *setting
 
 #ifdef COMPILE_UM980
         case tUmMRNmea: {
-            for (int x = 0; x < qualifier; x++)
-            {
-                if ((suffix[0] == umMessagesNMEA[x].msgTextName[0]) &&
-                    (strcmp(suffix, umMessagesNMEA[x].msgTextName) == 0))
-                {
-                    settings.um980MessageRatesNMEA[x] = settingValue;
-                    knownSetting = true;
-                    break;
-                }
-            }
+            // Covered by tCmnRtNm
         }
         break;
         case tUmMRRvRT: {
-            for (int x = 0; x < qualifier; x++)
-            {
-                if ((suffix[0] == umMessagesRTCM[x].msgTextName[0]) &&
-                    (strcmp(suffix, umMessagesRTCM[x].msgTextName) == 0))
-                {
-                    settings.um980MessageRatesRTCMRover[x] = settingValue;
-                    knownSetting = true;
-                    break;
-                }
-            }
+            // Covered by tCnRtRtR
         }
         break;
         case tUmMRBaRT: {
-            for (int x = 0; x < qualifier; x++)
-            {
-                if ((suffix[0] == umMessagesRTCM[x].msgTextName[0]) &&
-                    (strcmp(suffix, umMessagesRTCM[x].msgTextName) == 0))
-                {
-                    settings.um980MessageRatesRTCMBase[x] = settingValue;
-                    knownSetting = true;
-                    break;
-                }
-            }
+            // Covered by tCnRtRtB
         }
         break;
         case tUmConst: {
-            for (int x = 0; x < qualifier; x++)
-            {
-                if ((suffix[0] == um980ConstellationCommands[x].textName[0]) &&
-                    (strcmp(suffix, um980ConstellationCommands[x].textName) == 0))
-                {
-                    settings.um980Constellations[x] = settingValue;
-                    knownSetting = true;
-                    break;
-                }
-            }
+            // Covered by tCmnCnst
         }
         break;
 #endif // COMPILE_UM980
@@ -947,16 +1182,7 @@ SettingValueResponse updateSettingWithValue(bool inCommands, const char *setting
 
 #ifdef COMPILE_MOSAICX5
         case tMosaicConst: {
-            for (int x = 0; x < qualifier; x++)
-            {
-                if ((suffix[0] == mosaicSignalConstellations[x].configName[0]) &&
-                    (strcmp(suffix, mosaicSignalConstellations[x].configName) == 0))
-                {
-                    settings.mosaicConstellations[x] = settingValue;
-                    knownSetting = true;
-                    break;
-                }
-            }
+            // Covered by tCmnCnst
         }
         break;
         case tMosaicMSNmea: {
@@ -976,7 +1202,24 @@ SettingValueResponse updateSettingWithValue(bool inCommands, const char *setting
             int stream;
             if (sscanf(suffix, "%d", &stream) == 1)
             {
-                settings.mosaicStreamIntervalsNMEA[stream] = settingValue;
+                double settingValue_d;
+                int x;
+
+                // Check if stream interval settingValue is text format ("10ms" etc.)
+                for (x = 0; x < MAX_MOSAIC_MSG_RATES; x++)
+                {
+                    if (strcmp(settingValueStr, mosaicMsgRates[x].humanName) == 0)
+                    {
+                        settingValue_d = x;
+                        break;
+                    }
+                }
+
+                // If stream interval is not text, x will be MAX_MOSAIC_MSG_RATES
+                if (x == MAX_MOSAIC_MSG_RATES)
+                    settingValue_d = settingValue;
+
+                settings.mosaicStreamIntervalsNMEA[stream] = settingValue_d;
                 knownSetting = true;
                 break;
             }
@@ -1038,42 +1281,15 @@ SettingValueResponse updateSettingWithValue(bool inCommands, const char *setting
 
 #ifdef COMPILE_LG290P
         case tLgMRNmea: {
-            for (int x = 0; x < qualifier; x++)
-            {
-                if ((suffix[0] == lgMessagesNMEA[x].msgTextName[0]) &&
-                    (strcmp(suffix, lgMessagesNMEA[x].msgTextName) == 0))
-                {
-                    settings.lg290pMessageRatesNMEA[x] = settingValue;
-                    knownSetting = true;
-                    break;
-                }
-            }
+            // Covered by tCmnRtNm
         }
         break;
         case tLgMRRvRT: {
-            for (int x = 0; x < qualifier; x++)
-            {
-                if ((suffix[0] == lgMessagesRTCM[x].msgTextName[0]) &&
-                    (strcmp(suffix, lgMessagesRTCM[x].msgTextName) == 0))
-                {
-                    settings.lg290pMessageRatesRTCMRover[x] = settingValue;
-                    knownSetting = true;
-                    break;
-                }
-            }
+            // Covered by tCnRtRtR
         }
         break;
         case tLgMRBaRT: {
-            for (int x = 0; x < qualifier; x++)
-            {
-                if ((suffix[0] == lgMessagesRTCM[x].msgTextName[0]) &&
-                    (strcmp(suffix, lgMessagesRTCM[x].msgTextName) == 0))
-                {
-                    settings.lg290pMessageRatesRTCMBase[x] = settingValue;
-                    knownSetting = true;
-                    break;
-                }
-            }
+            // Covered by tCnRtRtB
         }
         break;
         case tLgMRPqtm: {
@@ -1090,26 +1306,35 @@ SettingValueResponse updateSettingWithValue(bool inCommands, const char *setting
         }
         break;
         case tLgConst: {
-            for (int x = 0; x < qualifier; x++)
-            {
-                if ((suffix[0] == lg290pConstellationNames[x][0]) && (strcmp(suffix, lg290pConstellationNames[x]) == 0))
-                {
-                    settings.lg290pConstellations[x] = settingValue;
-                    knownSetting = true;
-                    break;
-                }
-            }
+            // Covered by tCmnCnst
         }
         break;
 #endif // COMPILE_LG290P
+
+        case tGnssReceiver: {
+            gnssReceiverType_e *ptr = (gnssReceiverType_e *)var;
+            *ptr = (gnssReceiverType_e)settingValue;
+            knownSetting = true;
+        }
+        break;
+        }
+
+        // Done when the setting is found
+        if (knownSetting == true && settingIsString == true)
+        {
+            // Determine if extra work needs to be done when the setting changes
+            if (rtkSettingsEntries[i].afterSetCmd)
+                rtkSettingsEntries[i].afterSetCmd(i);
+            return (SETTING_KNOWN_STRING);
+        }
+        else if (knownSetting == true)
+        {
+            // Determine if extra work needs to be done when the setting changes
+            if (rtkSettingsEntries[i].afterSetCmd)
+                rtkSettingsEntries[i].afterSetCmd(i);
+            return (SETTING_KNOWN);
         }
     }
-
-    // Done when the setting is found
-    if (knownSetting == true && settingIsString == true)
-        return (SETTING_KNOWN_STRING);
-    else if (knownSetting == true)
-        return (SETTING_KNOWN);
 
     if (strcmp(settingName, "fixedLatText") == 0)
     {
@@ -1190,7 +1415,7 @@ SettingValueResponse updateSettingWithValue(bool inCommands, const char *setting
         knownSetting = true;
     }
 
-    // Special actions
+    // Special human-machine-interface commands/actions
     else if (strcmp(settingName, "enableRCFirmware") == 0)
     {
         enableRCFirmware = settingValue;
@@ -1226,6 +1451,8 @@ SettingValueResponse updateSettingWithValue(bool inCommands, const char *setting
 
         ESP.restart();
     }
+
+    // setProfile was used in the original Web Config interface
     else if (strcmp(settingName, "setProfile") == 0)
     {
         // Change to new profile
@@ -1250,6 +1477,21 @@ SettingValueResponse updateSettingWithValue(bool inCommands, const char *setting
         sendStringToWebsocket(settingsCSV);
         knownSetting = true;
     }
+
+    // profileNumber is used in the newer CLI with get/set capabilities
+    else if (strcmp(settingName, "profileNumber") == 0)
+    {
+        // Change to new profile
+        if (settings.debugCLI == true)
+            systemPrintf("Changing to profile number %d\r\n", settingValue);
+        changeProfileNumber(settingValue);
+
+        // Load new profile into system
+        loadSettings();
+
+        knownSetting = true;
+    }
+
     else if (strcmp(settingName, "resetProfile") == 0)
     {
         settingsToDefaults(); // Overwrite our current settings with defaults
@@ -1273,9 +1515,22 @@ SettingValueResponse updateSettingWithValue(bool inCommands, const char *setting
         sendStringToWebsocket(settingsCSV);
         knownSetting = true;
     }
+
+    // Is this a profile name change request? ie, 'profile2Name'
+    // Search by first letter first to speed up search
+    else if ((settingName[0] == 'p') && (strstr(settingName, "profile") != nullptr) &&
+             (strcmp(&settingName[8], "Name") == 0))
+    {
+        int profileNumber = settingName[7] - '0';
+        if (profileNumber >= 0 && profileNumber <= MAX_PROFILE_COUNT)
+        {
+            strncpy(profileNames[profileNumber], settingValueStr, sizeof(profileNames[0]));
+            knownSetting = true;
+        }
+    }
     else if (strcmp(settingName, "forgetEspNowPeers") == 0)
     {
-        // Forget all ESP-Now Peers
+        // Forget all ESP-NOW Peers
         for (int x = 0; x < settings.espnowPeerCount; x++)
             espNowRemovePeer(settings.espnowPeers[x]);
         settings.espnowPeerCount = 0;
@@ -1331,11 +1586,13 @@ SettingValueResponse updateSettingWithValue(bool inCommands, const char *setting
         knownSetting = true;
     }
 
-    // Unused variables - read to avoid errors
-    else
+    // Unused variables from the Web Config interface - read to avoid errors
+    // Check if this setting an unused element from the Web Config interface
+    if (knownSetting == false)
     {
         const char *table[] = {
             "baseTypeSurveyIn",
+            "enableAutoReset",
             "enableFactoryDefaults",
             "enableFirmwareUpdate",
             "enableForgetRadios",
@@ -1346,21 +1603,39 @@ SettingValueResponse updateSettingWithValue(bool inCommands, const char *setting
             "nicknameECEF",
             "nicknameGeodetic",
             "saveToArduino",
-            "enableAutoReset",
             "shutdownNoChargeTimeoutMinutesCheckbox",
         };
         const int tableEntries = sizeof(table) / sizeof(table[0]);
 
-        knownSetting = commandCheckForUnknownVariable(settingName, table, tableEntries);
+        // Compare the above table against this settingName
+        if (commandCheckListForVariable(settingName, table, tableEntries))
+        {
+            if (settings.debugWebServer == true)
+                systemPrintf("Setting '%s' is known web interface element. Ignoring.\r\n", settingName);
+            return (SETTING_KNOWN_WEB_CONFIG_INTERFACE_ELEMENT);
+        }
     }
 
-    // If we've received a setting update for a setting that is not valid to this platform,
-    // allow it, but throw a warning.
-    // This is often caused by the Web Config page reporting all cells including
-    // those that are hidden because of platform limitations
-    if (knownSetting == true && settingAvailableOnPlatform(i) == false)
+    // Check if this setting is read only. Used with the CLI.
+    if (knownSetting == false)
     {
-        systemPrintf("Setting '%s' stored but not supported on this platform\r\n", settingName);
+        const char *table[] = {
+            "batteryLevelPercent",
+            "batteryVoltage",
+            "batteryChargingPercentPerHour",
+            "bluetoothId",
+            "deviceId",
+            "deviceName",
+            "gnssModuleInfo",
+            "list",
+            "rtkFirmwareVersion",
+            "rtkRemoteFirmwareVersion",
+        };
+        const int tableEntries = sizeof(table) / sizeof(table[0]);
+
+        // Compare the above table against this settingName
+        if (commandCheckListForVariable(settingName, table, tableEntries))
+            return (SETTING_KNOWN_READ_ONLY);
     }
 
     // Last catch
@@ -1395,7 +1670,7 @@ SettingValueResponse updateSettingWithValue(bool inCommands, const char *setting
             }
 
             if (rtkIndex >= numRtkSettingsEntries)
-                systemPrintf("ERROR: Unknown '%s': %0.3lf\r\n", settingName, settingValue);
+                systemPrintf("updateSettingWithValue: Unknown '%s': %0.3lf\r\n", settingName, settingValue);
             else
             {
                 // Display the warning
@@ -1407,6 +1682,16 @@ SettingValueResponse updateSettingWithValue(bool inCommands, const char *setting
 
         // Done with the buffer
         rtkFree(name, "name & suffix buffers");
+    }
+
+    // If we've received a setting update for a setting that is not valid to this platform,
+    // allow it, but throw a warning.
+    // This is often caused by the Web Config page reporting all cells including
+    // those that are hidden because of platform limitations
+    if (knownSetting == false && rtkSettingsEntries[i].inWebConfig && (settingAvailableOnPlatform(i) == false))
+    {
+        if (settings.debugWebServer == true)
+            systemPrintf("Setting '%s' received but not supported on this platform\r\n", settingName);
     }
 
     if (knownSetting == true && settingIsString == true)
@@ -1431,32 +1716,8 @@ void createSettingsString(char *newSettings)
     strncpy(apPlatformPrefix, platformPrefixTable[productVariant], sizeof(apPlatformPrefix));
     stringRecord(newSettings, "platformPrefix", apPlatformPrefix);
 
-    char apRtkFirmwareVersion[86];
-    firmwareVersionGet(apRtkFirmwareVersion, sizeof(apRtkFirmwareVersion), true);
-    stringRecord(newSettings, "rtkFirmwareVersion", apRtkFirmwareVersion);
-
-    char apGNSSFirmwareVersion[80];
-    if (present.gnss_zedf9p)
-    {
-        snprintf(apGNSSFirmwareVersion, sizeof(apGNSSFirmwareVersion), "ZED-F9P Firmware: %s ID: %s",
-                 gnssFirmwareVersion, gnssUniqueId);
-    }
-    else if (present.gnss_um980)
-    {
-        snprintf(apGNSSFirmwareVersion, sizeof(apGNSSFirmwareVersion), "UM980 Firmware: %s ID: %s", gnssFirmwareVersion,
-                 gnssUniqueId);
-    }
-    else if (present.gnss_mosaicX5)
-    {
-        snprintf(apGNSSFirmwareVersion, sizeof(apGNSSFirmwareVersion), "mosaic-X5 Firmware: %s ID: %s",
-                 gnssFirmwareVersion, gnssUniqueId);
-    }
-    else if (present.gnss_lg290p)
-    {
-        snprintf(apGNSSFirmwareVersion, sizeof(apGNSSFirmwareVersion), "LG290P Firmware: %s ID: %s",
-                 gnssFirmwareVersion, gnssUniqueId);
-    }
-    stringRecord(newSettings, "gnssFirmwareVersion", apGNSSFirmwareVersion);
+    stringRecord(newSettings, "rtkFirmwareVersion", (char *)printRtkFirmwareVersion());
+    stringRecord(newSettings, "gnssFirmwareVersion", (char *)printGnssModuleInfo());
     stringRecord(newSettings, "gnssFirmwareVersionInt", gnssFirmwareVersionInt);
 
     char apDeviceBTID[30];
@@ -1562,6 +1823,15 @@ void createSettingsString(char *newSettings)
             }
             break;
 
+            case tCmnCnst:
+                break; // Nothing to do here. Let each GNSS add its settings
+            case tCmnRtNm:
+                break; // Nothing to do here. Let each GNSS add its settings
+            case tCnRtRtB:
+                break; // Nothing to do here. Let each GNSS add its settings
+            case tCnRtRtR:
+                break; // Nothing to do here. Let each GNSS add its settings
+
 #ifdef COMPILE_ZED
             case tUbxConst: {
                 // Record constellation settings
@@ -1604,7 +1874,7 @@ void createSettingsString(char *newSettings)
 #endif // COMPILE_ZED
 
             case tEspNowPr: {
-                // Record ESP-Now peer MAC addresses
+                // Record ESP-NOW peer MAC addresses
                 for (int x = 0; x < rtkSettingsEntries[i].qualifier; x++)
                 {
                     char tempString[50]; // espnowPeers_1=B4:C1:33:42:DE:01,
@@ -1728,9 +1998,9 @@ void createSettingsString(char *newSettings)
             break;
             case tUmConst: {
                 // Record UM980 Constellations
-                // um980Constellations are uint8_t, but here we have to convert to bool (true / false) so the web page
-                // check boxes are populated correctly. (We can't make it bool, otherwise the 254 initializer will
-                // probably fail...)
+                // um980Constellations are uint8_t, but here we have to convert to bool (true / false) so the web
+                // page check boxes are populated correctly. (We can't make it bool, otherwise the 254 initializer
+                // will probably fail...)
                 for (int x = 0; x < rtkSettingsEntries[i].qualifier; x++)
                 {
                     char tempString[50]; // um980Constellations.GLONASS=true
@@ -1895,9 +2165,9 @@ void createSettingsString(char *newSettings)
             break;
             case tLgConst: {
                 // Record LG290P Constellations
-                // lg290pConstellations are uint8_t, but here we have to convert to bool (true / false) so the web page
-                // check boxes are populated correctly. (We can't make it bool, otherwise the 254 initializer will
-                // probably fail...)
+                // lg290pConstellations are uint8_t, but here we have to convert to bool (true / false) so the web
+                // page check boxes are populated correctly. (We can't make it bool, otherwise the 254 initializer
+                // will probably fail...)
                 for (int x = 0; x < rtkSettingsEntries[i].qualifier; x++)
                 {
                     char tempString[50]; // lg290pConstellations.GLONASS=true
@@ -1908,6 +2178,12 @@ void createSettingsString(char *newSettings)
             }
             break;
 #endif // COMPILE_LG290P
+
+            case tGnssReceiver: {
+                gnssReceiverType_e *ptr = (gnssReceiverType_e *)rtkSettingsEntries[i].var;
+                stringRecord(newSettings, rtkSettingsEntries[i].name, (int)*ptr);
+            }
+            break;
             }
         }
     }
@@ -1950,9 +2226,6 @@ void createSettingsString(char *newSettings)
     }
     stringRecord(newSettings, "lastState", lastState);
 
-    stringRecord(
-        newSettings, "profileName",
-        profileNames[profileNumber]); // Must come before profile number so AP config page JS has name before number
     stringRecord(newSettings, "profileNumber", profileNumber);
     for (int index = 0; index < MAX_PROFILE_COUNT; index++)
     {
@@ -1968,10 +2241,15 @@ void createSettingsString(char *newSettings)
     else
         stringRecord(newSettings, "wifiConfigOverAP", 0); // 1 = AP mode, 0 = WiFi
 
-    if (settings.tcpUdpOverWiFiStation == true)
-        stringRecord(newSettings, "tcpUdpOverWiFiStation", 1); // 1 = WiFi mode, 0 = AP
+    if (settings.tcpOverWiFiStation == true)
+        stringRecord(newSettings, "tcpOverWiFiStation", 1); // 1 = WiFi mode, 0 = AP
     else
-        stringRecord(newSettings, "tcpUdpOverWiFiStation", 0); // 1 = WiFi mode, 0 = AP
+        stringRecord(newSettings, "tcpOverWiFiStation", 0); // 1 = WiFi mode, 0 = AP
+
+    if (settings.udpOverWiFiStation == true)
+        stringRecord(newSettings, "udpOverWiFiStation", 1); // 1 = WiFi mode, 0 = AP
+    else
+        stringRecord(newSettings, "udpOverWiFiStation", 0); // 1 = WiFi mode, 0 = AP
 
     // Single variables needed on Config page
     stringRecord(newSettings, "minCNO", gnss->getMinCno());
@@ -2021,7 +2299,7 @@ void createSettingsString(char *newSettings)
     stringRecord(newSettings, "ecefY", ecefY, 3);
     stringRecord(newSettings, "ecefZ", ecefZ, 3);
 
-    // Radio / ESP-Now settings
+    // Radio / ESP-NOW settings
     char radioMAC[18]; // Send radio MAC
     snprintf(radioMAC, sizeof(radioMAC), "%02X:%02X:%02X:%02X:%02X:%02X", wifiMACAddress[0], wifiMACAddress[1],
              wifiMACAddress[2], wifiMACAddress[3], wifiMACAddress[4], wifiMACAddress[5]);
@@ -2169,7 +2447,7 @@ void stringRecord(char *settingsCSV, const char *id, int settingValue)
 void stringRecord(char *settingsCSV, const char *id, uint32_t settingValue)
 {
     char record[100];
-    snprintf(record, sizeof(record), "%s,%d,", id, settingValue);
+    snprintf(record, sizeof(record), "%s,%lu,", id, settingValue);
     strcat(settingsCSV, record);
 }
 
@@ -2288,11 +2566,12 @@ SettingValueResponse getSettingValue(bool inCommands, const char *settingName, c
     void *var;
 
     bool knownSetting = false;
-    bool settingIsString = false; // Goes true when setting needs to be surrounded by quotes during command response.
-                                  // Generally char arrays but some others.
+    bool settingIsString = false; // Goes true when setting needs to be surrounded by quotes during command
+                                  // response. Generally char arrays but some others.
 
-    // Loop through the valid command entries
-    i = commandLookupSettingName(inCommands, settingName, truncatedName, sizeof(truncatedName), suffix, sizeof(suffix));
+    // Loop through the valid command entries - but skip the priority settings and use the GNSS-specific types
+    i = commandLookupSettingNameAfterPriority(inCommands, settingName, truncatedName, sizeof(truncatedName), suffix,
+                                              sizeof(suffix));
 
     // Determine if settingName is in the command table
     if (i >= 0)
@@ -2300,6 +2579,7 @@ SettingValueResponse getSettingValue(bool inCommands, const char *settingName, c
         qualifier = rtkSettingsEntries[i].qualifier;
         type = rtkSettingsEntries[i].type;
         var = rtkSettingsEntries[i].var;
+
         switch (type)
         {
         default:
@@ -2414,6 +2694,15 @@ SettingValueResponse getSettingValue(bool inCommands, const char *settingName, c
             settingIsString = true;
         }
         break;
+
+        case tCmnCnst:
+            break; // Nothing to do here. Let each GNSS add its settings
+        case tCmnRtNm:
+            break; // Nothing to do here. Let each GNSS add its settings
+        case tCnRtRtB:
+            break; // Nothing to do here. Let each GNSS add its settings
+        case tCnRtRtR:
+            break; // Nothing to do here. Let each GNSS add its settings
 
 #ifdef COMPILE_ZED
         case tUbxConst: {
@@ -2792,6 +3081,13 @@ SettingValueResponse getSettingValue(bool inCommands, const char *settingName, c
         }
         break;
 #endif // COMPILE_LG290P
+
+        case tGnssReceiver: {
+            gnssReceiverType_e *ptr = (gnssReceiverType_e *)var;
+            writeToString(settingValueStr, (int)*ptr);
+            knownSetting = true;
+        }
+        break;
         }
     }
 
@@ -2801,12 +3097,60 @@ SettingValueResponse getSettingValue(bool inCommands, const char *settingName, c
     else if (knownSetting == true)
         return (SETTING_KNOWN);
 
-    // Report deviceID over CLI - Useful for label generation
-    if (strcmp(settingName, "deviceId") == 0)
+    // Report special human-machine-interface settings
+
+    // Is this a profile name request? profile2Name
+    // Search by first letter first to speed up search
+    if ((settingName[0] == 'p') && (strstr(settingName, "profile") != nullptr) &&
+        (strcmp(&settingName[8], "Name") == 0))
+    {
+        int profileNumber = settingName[7] - '0';
+        if (profileNumber >= 0 && profileNumber <= MAX_PROFILE_COUNT)
+        {
+            writeToString(settingValueStr, profileNames[profileNumber]);
+            knownSetting = true;
+            settingIsString = true;
+        }
+    }
+    else if (strcmp(settingName, "bluetoothId") == 0)
+    {
+        // Get the last two digits of Bluetooth MAC
+        char macAddress[5];
+        snprintf(macAddress, sizeof(macAddress), "%02X%02X", btMACAddress[4], btMACAddress[5]);
+
+        writeToString(settingValueStr, macAddress);
+        knownSetting = true;
+        settingIsString = true;
+    }
+    else if (strcmp(settingName, "deviceName") == 0)
+    {
+        writeToString(settingValueStr, (char *)productDisplayNames[productVariant]);
+        knownSetting = true;
+        settingIsString = true;
+    }
+    else if (strcmp(settingName, "deviceId") == 0)
     {
         writeToString(settingValueStr, (char *)printDeviceId());
         knownSetting = true;
         settingIsString = true;
+    }
+    else if (strcmp(settingName, "rtkFirmwareVersion") == 0)
+    {
+        writeToString(settingValueStr, (char *)printRtkFirmwareVersion());
+        knownSetting = true;
+        settingIsString = true;
+    }
+    else if (strcmp(settingName, "rtkRemoteFirmwareVersion") == 0)
+    {
+        // otaUpdate() is synchronous and called from loop() so we respond here with OK, then go check the firmware
+        // version
+        writeToString(settingValueStr, (char *)"OK");
+        knownSetting = true;
+
+        otaRequestFirmwareVersionCheck = true;
+
+        // Force exit all config menus and/or command modes to allow OTA state machine to run
+        btPrintEchoExit = true;
     }
 
     // Special actions
@@ -2815,22 +3159,30 @@ SettingValueResponse getSettingValue(bool inCommands, const char *settingName, c
         writeToString(settingValueStr, enableRCFirmware);
         knownSetting = true;
     }
+    else if (strcmp(settingName, "gnssModuleInfo") == 0)
+    {
+        writeToString(settingValueStr, (char *)printGnssModuleInfo());
+        knownSetting = true;
+        settingIsString = true;
+    }
+
     else if (strcmp(settingName, "batteryLevelPercent") == 0)
     {
         checkBatteryLevels();
-        writeToString(settingValueStr, batteryLevelPercent);
+        writeToString(settingValueStr, batteryLevelPercent, 0);
         knownSetting = true;
+        settingIsString = true;
     }
     else if (strcmp(settingName, "batteryVoltage") == 0)
     {
         checkBatteryLevels();
-        writeToString(settingValueStr, batteryVoltage);
+        writeToString(settingValueStr, batteryVoltage, 2);
         knownSetting = true;
     }
     else if (strcmp(settingName, "batteryChargingPercentPerHour") == 0)
     {
         checkBatteryLevels();
-        writeToString(settingValueStr, batteryChargingPercentPerHour);
+        writeToString(settingValueStr, batteryChargingPercentPerHour, 0);
         knownSetting = true;
     }
 
@@ -2869,12 +3221,12 @@ SettingValueResponse getSettingValue(bool inCommands, const char *settingName, c
         };
         const int tableEntries = sizeof(table) / sizeof(table[0]);
 
-        knownSetting = commandCheckForUnknownVariable(settingName, table, tableEntries);
+        knownSetting = commandCheckListForVariable(settingName, table, tableEntries);
     }
 
     if (knownSetting == false)
     {
-        if (settings.debugWebServer)
+        if (settings.debugWebServer || settings.debugCLI)
             systemPrintf("getSettingValue() Unknown setting: %s\r\n", settingName);
     }
 
@@ -2990,6 +3342,15 @@ void commandList(bool inCommands, int i)
     }
     break;
 
+    case tCmnCnst:
+        break; // Nothing to do here. Let each GNSS add its commands
+    case tCmnRtNm:
+        break; // Nothing to do here. Let each GNSS add its commands
+    case tCnRtRtB:
+        break; // Nothing to do here. Let each GNSS add its commands
+    case tCnRtRtR:
+        break; // Nothing to do here. Let each GNSS add its commands
+
 #ifdef COMPILE_ZED
     case tUbxConst: {
         // Record constellation settings
@@ -2999,7 +3360,7 @@ void commandList(bool inCommands, int i)
                      settings.ubxConstellations[x].textName);
 
             getSettingValue(inCommands, settingName, settingValue);
-            commandSendExecuteListResponse(settingName, "bool", settingValue);
+            commandSendExecuteListResponse(settingName, "tUbxConst", settingValue);
         }
     }
     break;
@@ -3010,7 +3371,7 @@ void commandList(bool inCommands, int i)
             snprintf(settingName, sizeof(settingName), "%s%s", rtkSettingsEntries[i].name, ubxMessages[x].msgTextName);
 
             getSettingValue(inCommands, settingName, settingValue);
-            commandSendExecuteListResponse(settingName, "uint8_t", settingValue);
+            commandSendExecuteListResponse(settingName, "tUbxMsgRt", settingValue);
         }
     }
     break;
@@ -3025,14 +3386,14 @@ void commandList(bool inCommands, int i)
                      ubxMessages[firstRTCMRecord + x].msgTextName);
 
             getSettingValue(inCommands, settingName, settingValue);
-            commandSendExecuteListResponse(settingName, "uint8_t", settingValue);
+            commandSendExecuteListResponse(settingName, "tUbMsgRtb", settingValue);
         }
     }
     break;
 #endif // COMPILE_ZED
 
     case tEspNowPr: {
-        // Record ESP-Now peer MAC addresses
+        // Record ESP-NOW peer MAC addresses
         for (int x = 0; x < rtkSettingsEntries[i].qualifier; x++)
         {
             snprintf(settingType, sizeof(settingType), "uint8_t[%d]", sizeof(settings.espnowPeers[0]));
@@ -3136,7 +3497,7 @@ void commandList(bool inCommands, int i)
                      umMessagesNMEA[x].msgTextName);
 
             getSettingValue(inCommands, settingName, settingValue);
-            commandSendExecuteListResponse(settingName, "float", settingValue);
+            commandSendExecuteListResponse(settingName, "tUmMRNmea", settingValue);
         }
     }
     break;
@@ -3148,7 +3509,7 @@ void commandList(bool inCommands, int i)
                      umMessagesRTCM[x].msgTextName);
 
             getSettingValue(inCommands, settingName, settingValue);
-            commandSendExecuteListResponse(settingName, "float", settingValue);
+            commandSendExecuteListResponse(settingName, "tUmMRRvRT", settingValue);
         }
     }
     break;
@@ -3160,7 +3521,7 @@ void commandList(bool inCommands, int i)
                      umMessagesRTCM[x].msgTextName);
 
             getSettingValue(inCommands, settingName, settingValue);
-            commandSendExecuteListResponse(settingName, "float", settingValue);
+            commandSendExecuteListResponse(settingName, "tUmMRBaRT", settingValue);
         }
     }
     break;
@@ -3172,7 +3533,7 @@ void commandList(bool inCommands, int i)
                      um980ConstellationCommands[x].textName);
 
             getSettingValue(inCommands, settingName, settingValue);
-            commandSendExecuteListResponse(settingName, "uint8_t", settingValue);
+            commandSendExecuteListResponse(settingName, "tUmConst", settingValue);
         }
     }
     break;
@@ -3200,6 +3561,8 @@ void commandList(bool inCommands, int i)
         }
     }
     break;
+
+#ifdef COMPILE_MOSAICX5
     case tMosaicConst: {
         // Record Mosaic Constellations
         for (int x = 0; x < rtkSettingsEntries[i].qualifier; x++)
@@ -3208,7 +3571,7 @@ void commandList(bool inCommands, int i)
                      mosaicSignalConstellations[x].configName);
 
             getSettingValue(inCommands, settingName, settingValue);
-            commandSendExecuteListResponse(settingName, "uint8_t", settingValue);
+            commandSendExecuteListResponse(settingName, "tMosaicConst", settingValue);
         }
     }
     break;
@@ -3220,7 +3583,7 @@ void commandList(bool inCommands, int i)
                      mosaicMessagesNMEA[x].msgTextName);
 
             getSettingValue(inCommands, settingName, settingValue);
-            commandSendExecuteListResponse(settingName, "uint8_t", settingValue);
+            commandSendExecuteListResponse(settingName, "tMosaicMSNmea", settingValue);
         }
     }
     break;
@@ -3231,7 +3594,7 @@ void commandList(bool inCommands, int i)
             snprintf(settingName, sizeof(settingName), "%s%d", rtkSettingsEntries[i].name, x);
 
             getSettingValue(inCommands, settingName, settingValue);
-            commandSendExecuteListResponse(settingName, "uint8_t", settingValue);
+            commandSendExecuteListResponse(settingName, "tMosaicSINmea", mosaicMsgRates[atoi(settingValue)].humanName);
         }
     }
     break;
@@ -3243,7 +3606,7 @@ void commandList(bool inCommands, int i)
                      mosaicRTCMv3MsgIntervalGroups[x].name);
 
             getSettingValue(inCommands, settingName, settingValue);
-            commandSendExecuteListResponse(settingName, "float", settingValue);
+            commandSendExecuteListResponse(settingName, "tMosaicMIRvRT", settingValue);
         }
     }
     break;
@@ -3255,7 +3618,7 @@ void commandList(bool inCommands, int i)
                      mosaicRTCMv3MsgIntervalGroups[x].name);
 
             getSettingValue(inCommands, settingName, settingValue);
-            commandSendExecuteListResponse(settingName, "float", settingValue);
+            commandSendExecuteListResponse(settingName, "tMosaicMIBaRT", settingValue);
         }
     }
     break;
@@ -3267,7 +3630,7 @@ void commandList(bool inCommands, int i)
                      mosaicMessagesRTCMv3[x].name);
 
             getSettingValue(inCommands, settingName, settingValue);
-            commandSendExecuteListResponse(settingName, "uint8_t", settingValue);
+            commandSendExecuteListResponse(settingName, "tMosaicMERvRT", settingValue);
         }
     }
     break;
@@ -3279,10 +3642,11 @@ void commandList(bool inCommands, int i)
                      mosaicMessagesRTCMv3[x].name);
 
             getSettingValue(inCommands, settingName, settingValue);
-            commandSendExecuteListResponse(settingName, "uint8_t", settingValue);
+            commandSendExecuteListResponse(settingName, "tMosaicMEBaRT", settingValue);
         }
     }
     break;
+#endif // COMPILE_MOSAICX5
 
 #ifdef COMPILE_LG290P
     case tLgMRNmea: {
@@ -3293,7 +3657,7 @@ void commandList(bool inCommands, int i)
                      lgMessagesNMEA[x].msgTextName);
 
             getSettingValue(inCommands, settingName, settingValue);
-            commandSendExecuteListResponse(settingName, "uint8_t", settingValue);
+            commandSendExecuteListResponse(settingName, "tLgMRNmea", settingValue);
         }
     }
     break;
@@ -3305,7 +3669,7 @@ void commandList(bool inCommands, int i)
                      lgMessagesRTCM[x].msgTextName);
 
             getSettingValue(inCommands, settingName, settingValue);
-            commandSendExecuteListResponse(settingName, "uint8_t", settingValue);
+            commandSendExecuteListResponse(settingName, "tLgMRRvRT", settingValue);
         }
     }
     break;
@@ -3317,7 +3681,7 @@ void commandList(bool inCommands, int i)
                      lgMessagesRTCM[x].msgTextName);
 
             getSettingValue(inCommands, settingName, settingValue);
-            commandSendExecuteListResponse(settingName, "uint8_t", settingValue);
+            commandSendExecuteListResponse(settingName, "tLgMRBaRT", settingValue);
         }
     }
     break;
@@ -3329,7 +3693,7 @@ void commandList(bool inCommands, int i)
                      lgMessagesPQTM[x].msgTextName);
 
             getSettingValue(inCommands, settingName, settingValue);
-            commandSendExecuteListResponse(settingName, "uint8_t", settingValue);
+            commandSendExecuteListResponse(settingName, "tLgMRPqtm", settingValue);
         }
     }
     break;
@@ -3340,11 +3704,17 @@ void commandList(bool inCommands, int i)
             snprintf(settingName, sizeof(settingName), "%s%s", rtkSettingsEntries[i].name, lg290pConstellationNames[x]);
 
             getSettingValue(inCommands, settingName, settingValue);
-            commandSendExecuteListResponse(settingName, "bool", settingValue);
+            commandSendExecuteListResponse(settingName, "tLgConst", settingValue);
         }
     }
     break;
 #endif // COMPILE_LG290P
+
+    case tGnssReceiver: {
+        getSettingValue(inCommands, rtkSettingsEntries[i].name, settingValue);
+        commandSendExecuteListResponse(rtkSettingsEntries[i].name, "gnssReceiverType_e", settingValue);
+    }
+    break;
     }
 }
 
@@ -3369,8 +3739,48 @@ const char *commandGetName(int stringIndex, int rtkIndex)
     else if (rtkIndex == COMMAND_PROFILE_NUMBER)
         return "profileNumber";
 
-    // Display the device ID - used in PointPerfect
-    return "deviceId";
+    // Display the current firmware version number
+    else if (rtkIndex == COMMAND_FIRMWARE_VERSION)
+        return "rtkFirmwareVersion";
+
+    // Connect to the internet and retrieve the remote firmware version
+    else if (rtkIndex == COMMAND_REMOTE_FIRMWARE_VERSION)
+        return "rtkRemoteFirmwareVersion";
+
+    // Allow release candidate firmware to be installed
+    else if (rtkIndex == COMMAND_ENABLE_RC_FIRMWARE)
+        return "enableRCFirmware";
+
+    // Display the current GNSS firmware version number
+    else if (rtkIndex == COMMAND_GNSS_MODULE_INFO)
+        return "gnssModuleInfo";
+
+    // Display the current battery level as a percent
+    else if (rtkIndex == COMMAND_BATTERY_LEVEL_PERCENT)
+        return "batteryLevelPercent";
+
+    // Display the current battery level as a percent
+    else if (rtkIndex == COMMAND_BATTERY_VOLTAGE)
+        return "batteryVoltage";
+
+    // Display the current battery charging percent per hour
+    else if (rtkIndex == COMMAND_BATTERY_CHARGING_PERCENT)
+        return "batteryChargingPercentPerHour";
+
+    // Display the last four characters of the Bluetooth MAC address
+    else if (rtkIndex == COMMAND_BLUETOOTH_ID)
+        return "bluetoothId";
+
+    // Display the device Name
+    else if (rtkIndex == COMMAND_DEVICE_NAME)
+        return "deviceName";
+
+    // Display the device ID
+    else if (rtkIndex == COMMAND_DEVICE_ID)
+        return "deviceId";
+
+    systemPrintln("commandGetName Error: Uncaught command type");
+    return "unknown";
 }
 
 // Determine if the setting is available on this platform
@@ -3391,14 +3801,120 @@ bool settingAvailableOnPlatform(int i)
             break;
         if ((productVariant == RTK_POSTCARD) && rtkSettingsEntries[i].platPostcard)
             break;
+        if (productVariant == RTK_FLEX)
+        {
+            // TODO: check if we need to tighten up the logic here
+            // Maybe settings.detectedGnssReceiver and Facet_Flex_Variant should be amalgamated somehow?
+            if (rtkSettingsEntries[i].platFlex == ALL) // All
+                break;
+            if ((rtkSettingsEntries[i].platFlex == L29) && (settings.detectedGnssReceiver == GNSS_RECEIVER_LG290P))
+                break;
+            if ((rtkSettingsEntries[i].platFlex == MX5) && (settings.detectedGnssReceiver == GNSS_RECEIVER_MOSAIC_X5))
+                break;
+        }
+        if ((productVariant == RTK_TORCH_X2) && rtkSettingsEntries[i].platTorchX2)
+            break;
         return false;
     } while (0);
     return true;
 }
 
-// Allocate and fill the commandIndex table
-bool commandIndexFill()
+// Determine if the named setting is available on this platform
+// Note: this does a simple 1:1 comparison of settingName and
+//       rtkSettingsEntries[].name. It doesn't handle suffixes.
+bool namedSettingAvailableOnPlatform(const char *settingName)
 {
+    // Loop through the settings entries
+    int rtkIndex;
+    for (rtkIndex = 0; rtkIndex < numRtkSettingsEntries; rtkIndex++)
+    {
+        const char *command = rtkSettingsEntries[rtkIndex].name;
+
+        if (strcmp(command, settingName) == 0) // match found
+            break;
+    }
+
+    if (rtkIndex == numRtkSettingsEntries)
+        return false; // Not found
+
+    return settingAvailableOnPlatform(rtkIndex);
+}
+
+// Determine if the setting is possible on this platform
+bool settingPossibleOnPlatform(int i)
+{
+    do
+    {
+        // Verify that the command is available on the platform
+        if ((productVariant == RTK_EVK) && rtkSettingsEntries[i].platEvk)
+            break;
+        if ((productVariant == RTK_FACET_V2) && rtkSettingsEntries[i].platFacetV2)
+            break;
+        if ((productVariant == RTK_FACET_V2_LBAND) && rtkSettingsEntries[i].platFacetV2LBand)
+            break;
+        if ((productVariant == RTK_FACET_MOSAIC) && rtkSettingsEntries[i].platFacetMosaic)
+            break;
+        if ((productVariant == RTK_TORCH) && rtkSettingsEntries[i].platTorch)
+            break;
+        if ((productVariant == RTK_POSTCARD) && rtkSettingsEntries[i].platPostcard)
+            break;
+        if ((productVariant == RTK_FLEX) && (rtkSettingsEntries[i].platFlex > NON))
+            break;
+        if ((productVariant == RTK_TORCH_X2) && rtkSettingsEntries[i].platTorchX2)
+            break;
+        return false;
+    } while (0);
+    return true;
+}
+
+int findEndOfPrioritySettings()
+{
+    // Find "endOfPrioritySettings"
+    int prioritySettingsEnd = 0;
+    for (int i = 0; i < numRtkSettingsEntries; i++)
+    {
+        if (strcmp(rtkSettingsEntries[i].name, "endOfPrioritySettings") == 0)
+        {
+            prioritySettingsEnd = i;
+            break;
+        }
+    }
+    // If "endOfPrioritySettings" is not found, prioritySettingsEnd will be zero
+    return prioritySettingsEnd;
+}
+
+int adjustEndOfPrioritySettings(int prioritySettingsEnd)
+{
+    // If prioritySettingsEnd is zero, don't adjust
+    if (prioritySettingsEnd == 0)
+        return 0;
+
+    int adjustedPrioritySettingsEnd = prioritySettingsEnd;
+
+    // Check which of the priority settings are possible on this platform
+    // Deduct the ones which are not
+    for (int i = 0; i < prioritySettingsEnd; i++)
+    {
+        if (!settingPossibleOnPlatform(i))
+            adjustedPrioritySettingsEnd--;
+    }
+
+    return adjustedPrioritySettingsEnd;
+}
+
+// Allocate and fill the commandIndex table
+bool commandIndexFillPossible()
+{
+    return commandIndexFill(true);
+}
+bool commandIndexFillActual()
+{
+    return commandIndexFill(false);
+}
+bool commandIndexFill(bool usePossibleSettings)
+{
+    savePossibleSettings = usePossibleSettings; // Update savePossibleSettings
+
     int i;
     const char *iCommandName;
     int j;
@@ -3410,14 +3926,26 @@ bool commandIndexFill()
     commandCount = 0;
     for (i = 0; i < numRtkSettingsEntries; i++)
     {
-        if (settingAvailableOnPlatform(i))
-            commandCount += 1;
+        if (usePossibleSettings)
+        {
+            // commandIndexFill is called after identifyBoard. On Flex, we don't yet know
+            // the detectedGnssReceiver, so we have to use settingPossibleOnPlatform
+            if (settingPossibleOnPlatform(i))
+                commandCount += 1;
+        }
+        else
+        {
+            if (settingAvailableOnPlatform(i))
+                commandCount += 1;
+        }
     }
     commandCount += COMMAND_COUNT - 1;
 
     // Allocate the command array. Never freed
     length = commandCount * sizeof(*commandIndex);
 
+    if (commandIndex)
+        rtkFree(commandIndex, "Command index array (commandIndex)");
     commandIndex = (int16_t *)rtkMalloc(length, "Command index array (commandIndex)");
     if (!commandIndex)
     {
@@ -3429,15 +3957,43 @@ bool commandIndexFill()
     // Initialize commandIndex with index values into rtkSettingsEntries
     commandCount = 0;
     for (i = 0; i < numRtkSettingsEntries; i++)
-        if (settingAvailableOnPlatform(i))
-            commandIndex[commandCount++] = i;
+    {
+        if (usePossibleSettings)
+        {
+            if (settingPossibleOnPlatform(i))
+                commandIndex[commandCount++] = i;
+        }
+        else
+        {
+            if (settingAvailableOnPlatform(i))
+                commandIndex[commandCount++] = i;
+        }
+    }
 
-    // Add the man-machine interface commands to the list
+    // Add the human-machine-interface commands to the list
     for (i = 1; i < COMMAND_COUNT; i++)
         commandIndex[commandCount++] = -i;
 
-    // Sort the commands
-    for (i = 0; i < commandCount - 1; i++)
+    // Find "endOfPrioritySettings"
+    int prioritySettingsEnd = findEndOfPrioritySettings();
+    // If "endOfPrioritySettings" is not found, prioritySettingsEnd will be zero
+    // and all settings will be sorted. Just like the good old days...
+
+    // Adjust prioritySettingsEnd if needed - depending on platform type
+    prioritySettingsEnd = adjustEndOfPrioritySettings(prioritySettingsEnd);
+
+    if (settings.debugSettings || settings.debugCLI)
+    {
+        systemPrintf("commandCount %d\r\n", commandCount);
+
+        if (prioritySettingsEnd > 0)
+            systemPrintf("endOfPrioritySettings found at entry %d\r\n", prioritySettingsEnd);
+        else
+            systemPrintln("endOfPrioritySettings not found!");
+    }
+
+    // Sort the commands - starting at prioritySettingsEnd
+    for (i = prioritySettingsEnd; i < commandCount - 1; i++)
     {
         iCommandName = commandGetName(0, commandIndex[i]);
         for (j = i + 1; j < commandCount; j++)
@@ -3461,9 +4017,19 @@ bool commandIndexFill()
     return true;
 }
 
+void printSettingsCommandTypes()
+{
+    String json;
+    createCommandTypesJson(json);
+    commandSendResponseUnbuffered("$SPCTY,", json.c_str());
+}
+
 // List available settings, their type in CSV, and value
 void printAvailableSettings()
 {
+    // Print the command types JSON blob
+    printSettingsCommandTypes();
+
     // Display the commands
     for (int i = 0; i < commandCount; i++)
     {
@@ -3475,7 +4041,7 @@ void printAvailableSettings()
                 commandList(false, commandIndex[i]);
         }
 
-        // Below are commands formed specifically for the Man-Machine-Interface
+        // Below are commands formed specifically for the Human-Machine-Interface
         // Display the profile name - used in Profiles
         else if (commandIndex[i] >= -MAX_PROFILE_COUNT)
         {
@@ -3497,7 +4063,113 @@ void printAvailableSettings()
             commandSendExecuteListResponse("profileNumber", "uint8_t", settingValue);
         }
 
-        // Display the device ID - used in PointPerfect
+        // Display the current RTK Firmware version
+        else if (commandIndex[i] == COMMAND_FIRMWARE_VERSION)
+        {
+            // Create the settingType based on the length of the firmware version
+            char settingType[100];
+            snprintf(settingType, sizeof(settingType), "char[%d]", strlen(printRtkFirmwareVersion()));
+
+            commandSendExecuteListResponse("rtkFirmwareVersion", settingType, printRtkFirmwareVersion());
+        }
+
+        // Display the latest remote RTK Firmware version
+        else if (commandIndex[i] == COMMAND_REMOTE_FIRMWARE_VERSION)
+        {
+            // Report the available command but without data. That requires the user issue separate SPGET.
+            commandSendExecuteListResponse("rtkRemoteFirmwareVersion", "char[21]", "NotYetRetreived");
+        }
+
+        // Allow beta firmware release candidates
+        else if (commandIndex[i] == COMMAND_ENABLE_RC_FIRMWARE)
+        {
+            if (enableRCFirmware)
+                commandSendExecuteListResponse("enableRCFirmware", "bool", "true");
+            else
+                commandSendExecuteListResponse("enableRCFirmware", "bool", "false");
+        }
+
+        // Display the GNSS receiver info
+        else if (commandIndex[i] == COMMAND_GNSS_MODULE_INFO)
+        {
+            // Create the settingType based on the length of the firmware version
+            char settingType[100];
+            snprintf(settingType, sizeof(settingType), "char[%d]", strlen(printGnssModuleInfo()));
+
+            commandSendExecuteListResponse("gnssModuleInfo", settingType, printGnssModuleInfo());
+        }
+
+        // Display the current battery level as a percent
+        else if (commandIndex[i] == COMMAND_BATTERY_LEVEL_PERCENT)
+        {
+            checkBatteryLevels();
+
+            // Convert int to string
+            char batteryLvlStr[4] = {0}; // 104
+            snprintf(batteryLvlStr, sizeof(batteryLvlStr), "%d", batteryLevelPercent);
+
+            // Create the settingType based on the length of the firmware version
+            char settingType[100];
+            snprintf(settingType, sizeof(settingType), "char[%d]", strlen(batteryLvlStr));
+
+            commandSendExecuteListResponse("batteryLevelPercent", settingType, batteryLvlStr);
+        }
+
+        // Display the current battery voltage
+        else if (commandIndex[i] == COMMAND_BATTERY_VOLTAGE)
+        {
+            checkBatteryLevels();
+
+            // Convert int to string
+            char batteryVoltageStr[6] = {0}; // 11.25
+            snprintf(batteryVoltageStr, sizeof(batteryVoltageStr), "%0.2f", batteryVoltage);
+
+            // Create the settingType based on the length of the firmware version
+            char settingType[100];
+            snprintf(settingType, sizeof(settingType), "char[%d]", strlen(batteryVoltageStr));
+
+            commandSendExecuteListResponse("batteryVoltage", settingType, batteryVoltageStr);
+        }
+
+        // Display the current battery charging percent per hour
+        else if (commandIndex[i] == COMMAND_BATTERY_CHARGING_PERCENT)
+        {
+            checkBatteryLevels();
+
+            // Convert int to string
+            char batteryChargingPercentStr[3] = {0}; // 45
+            snprintf(batteryChargingPercentStr, sizeof(batteryChargingPercentStr), "%0.0f", batteryChargingPercentPerHour);
+
+            // Create the settingType based on the length of the firmware version
+            char settingType[100];
+            snprintf(settingType, sizeof(settingType), "char[%d]", strlen(batteryChargingPercentStr));
+
+            commandSendExecuteListResponse("batteryChargingPercentPerHour", settingType, batteryChargingPercentStr);
+        }
+
+        // Display the last four characters of the Bluetooth MAC
+        else if (commandIndex[i] == COMMAND_BLUETOOTH_ID)
+        {
+            // Get the last two digits of Bluetooth MAC
+            char macAddress[5];
+            snprintf(macAddress, sizeof(macAddress), "%02X%02X", btMACAddress[4], btMACAddress[5]);
+
+            // Create the settingType based on the length of the MAC
+            char settingType[100];
+            snprintf(settingType, sizeof(settingType), "char[%d]", strlen(macAddress));
+
+            commandSendExecuteListResponse("bluetoothId", settingType, macAddress);
+        }
+
+        // Display the device name
+        else if (commandIndex[i] == COMMAND_DEVICE_NAME)
+        {
+            char settingType[100];
+            snprintf(settingType, sizeof(settingType), "char[%d]", strlen(productDisplayNames[productVariant]));
+            commandSendExecuteListResponse("deviceName", settingType, productDisplayNames[productVariant]);
+        }
+
+        // Display the device ID
         else if (commandIndex[i] == COMMAND_DEVICE_ID)
         {
             char settingType[100];
@@ -3505,5 +4177,263 @@ void printAvailableSettings()
             commandSendExecuteListResponse("deviceId", settingType, printDeviceId());
         }
     }
-    systemPrintln();
+}
+
+void createCommandTypesJson(String &output)
+{
+    JsonDocument doc;
+
+    JsonArray command_types = doc["command types"].to<JsonArray>();
+
+#ifdef COMPILE_LG290P
+    // LG290P
+
+    JsonObject command_types_tLgConst = command_types.add<JsonObject>();
+    command_types_tLgConst["name"] = "tLgConst";
+    command_types_tLgConst["description"] = "LG290P GNSS constellations";
+    command_types_tLgConst["instruction"] = "Enable / disable each GNSS constellation";
+    command_types_tLgConst["prefix"] = "constellation_";
+    JsonArray command_types_tLgConst_keys = command_types_tLgConst["keys"].to<JsonArray>();
+    for (int x = 0; x < MAX_LG290P_CONSTELLATIONS; x++)
+        command_types_tLgConst_keys.add(lg290pConstellationNames[x]);
+    JsonArray command_types_tLgConst_values = command_types_tLgConst["values"].to<JsonArray>();
+    command_types_tLgConst_values.add("0");
+    command_types_tLgConst_values.add("1");
+
+    JsonObject command_types_tLgMRNmea = command_types.add<JsonObject>();
+    command_types_tLgMRNmea["name"] = "tLgMRNmea";
+    command_types_tLgMRNmea["description"] = "LG290P NMEA message rates";
+    command_types_tLgMRNmea["instruction"] = "Enable / disable each NMEA message";
+    command_types_tLgMRNmea["prefix"] = "messageRateNMEA_";
+    JsonArray command_types_tLgMRNmea_keys = command_types_tLgMRNmea["keys"].to<JsonArray>();
+    for (int y = 0; y < MAX_LG290P_NMEA_MSG; y++)
+        command_types_tLgMRNmea_keys.add(lgMessagesNMEA[y].msgTextName);
+    JsonArray command_types_tLgMRNmea_values = command_types_tLgMRNmea["values"].to<JsonArray>();
+    command_types_tLgMRNmea_values.add("0");
+    command_types_tLgMRNmea_values.add("1");
+
+    JsonObject command_types_tLgMRBaRT = command_types.add<JsonObject>();
+    command_types_tLgMRBaRT["name"] = "tLgMRBaRT";
+    command_types_tLgMRBaRT["description"] = "LG290P RTCM message rates - Base";
+    command_types_tLgMRBaRT["instruction"] = "Set the RTCM message interval in seconds for Base (0 = Off)";
+    command_types_tLgMRBaRT["prefix"] = "messageRateRTCMBase_";
+    JsonArray command_types_tLgMRBaRT_keys = command_types_tLgMRBaRT["keys"].to<JsonArray>();
+    for (int x = 0; x < MAX_LG290P_RTCM_MSG; x++)
+        command_types_tLgMRBaRT_keys.add(lgMessagesRTCM[x].msgTextName);
+    command_types_tLgMRBaRT["type"] = "int";
+    command_types_tLgMRBaRT["value min"] = 0;
+    command_types_tLgMRBaRT["value max"] = 1200;
+
+    JsonObject command_types_tLgMRRvRT = command_types.add<JsonObject>();
+    command_types_tLgMRRvRT["name"] = "tLgMRRvRT";
+    command_types_tLgMRRvRT["description"] = "LG290P RTCM message rates - Rover";
+    command_types_tLgMRRvRT["instruction"] = "Set the RTCM message interval in seconds for Rover (0 = Off)";
+    command_types_tLgMRRvRT["prefix"] = "messageRateRTCMRover_";
+    JsonArray command_types_tLgMRRvRT_keys = command_types_tLgMRRvRT["keys"].to<JsonArray>();
+    for (int x = 0; x < MAX_LG290P_RTCM_MSG; x++)
+        command_types_tLgMRRvRT_keys.add(lgMessagesRTCM[x].msgTextName);
+    command_types_tLgMRRvRT["type"] = "int";
+    command_types_tLgMRRvRT["value min"] = 0;
+    command_types_tLgMRRvRT["value max"] = 1200;
+
+    JsonObject command_types_tLgMRPqtm = command_types.add<JsonObject>();
+    command_types_tLgMRPqtm["name"] = "tLgMRPqtm";
+    command_types_tLgMRPqtm["description"] = "LG290P PQTM message rates";
+    command_types_tLgMRPqtm["instruction"] = "Enable / disable each PQTM message";
+    command_types_tLgMRPqtm["prefix"] = "messageRatePQTM_";
+    JsonArray command_types_tLgMRPqtm_keys = command_types_tLgMRPqtm["keys"].to<JsonArray>();
+    for (int x = 0; x < MAX_LG290P_PQTM_MSG; x++)
+        command_types_tLgMRPqtm_keys.add(lgMessagesPQTM[x].msgTextName);
+    JsonArray command_types_tLgMRPqtm_values = command_types_tLgMRPqtm["values"].to<JsonArray>();
+    command_types_tLgMRPqtm_values.add("0");
+    command_types_tLgMRPqtm_values.add("1");
+#endif // COMPILE_LG290P
+
+#ifdef COMPILE_MOSAICX5
+    // mosaic-X5
+
+    JsonObject command_types_tMosaicConst = command_types.add<JsonObject>();
+    command_types_tMosaicConst["name"] = "tMosaicConst";
+    command_types_tMosaicConst["description"] = "mosaic-X5 GNSS constellations";
+    command_types_tMosaicConst["instruction"] = "Enable / disable each GNSS constellation";
+    command_types_tMosaicConst["prefix"] = "constellation_";
+    JsonArray command_types_tMosaicConst_keys = command_types_tMosaicConst["keys"].to<JsonArray>();
+    for (int x = 0; x < MAX_MOSAIC_CONSTELLATIONS; x++)
+        command_types_tMosaicConst_keys.add(mosaicSignalConstellations[x].configName);
+    JsonArray command_types_tMosaicConst_values = command_types_tMosaicConst["values"].to<JsonArray>();
+    command_types_tMosaicConst_values.add("0");
+    command_types_tMosaicConst_values.add("1");
+
+    JsonObject command_types_tMosaicMSNmea = command_types.add<JsonObject>();
+    command_types_tMosaicMSNmea["name"] = "tMosaicMSNmea";
+    command_types_tMosaicMSNmea["description"] = "mosaic-X5 message stream for NMEA";
+    command_types_tMosaicMSNmea["instruction"] = "Select the message stream for each NMEA message (0 = Off)";
+    command_types_tMosaicMSNmea["prefix"] = "messageStreamNMEA_";
+    JsonArray command_types_tMosaicMSNmea_keys = command_types_tMosaicMSNmea["keys"].to<JsonArray>();
+    for (int x = 0; x < MAX_MOSAIC_NMEA_MSG; x++)
+        command_types_tMosaicMSNmea_keys.add(mosaicMessagesNMEA[x].msgTextName);
+    JsonArray command_types_tMosaicMSNmea_values = command_types_tMosaicMSNmea["values"].to<JsonArray>();
+    command_types_tMosaicMSNmea_values.add("0");
+    command_types_tMosaicMSNmea_values.add("1");
+    command_types_tMosaicMSNmea_values.add("2");
+
+    JsonObject command_types_tMosaicSINmea = command_types.add<JsonObject>();
+    command_types_tMosaicSINmea["name"] = "tMosaicSINmea";
+    command_types_tMosaicSINmea["description"] = "mosaic-X5 NMEA message intervals";
+    command_types_tMosaicSINmea["instruction"] = "Set the interval for each NMEA stream";
+    command_types_tMosaicSINmea["prefix"] = "streamIntervalNMEA_";
+    JsonArray command_types_tMosaicSINmea_keys = command_types_tMosaicSINmea["keys"].to<JsonArray>();
+    command_types_tMosaicSINmea_keys.add("1");
+    command_types_tMosaicSINmea_keys.add("2");
+    JsonArray command_types_tMosaicSINmea_values = command_types_tMosaicSINmea["values"].to<JsonArray>();
+    for (int y = 0; y < MAX_MOSAIC_MSG_RATES; y++)
+        command_types_tMosaicSINmea_values.add(mosaicMsgRates[y].humanName);
+
+    JsonObject command_types_tMosaicMIRvRT = command_types.add<JsonObject>();
+    command_types_tMosaicMIRvRT["name"] = "tMosaicMIRvRT";
+    command_types_tMosaicMIRvRT["description"] = "mosaic-X5 RTCM message intervals - Rover";
+    command_types_tMosaicMIRvRT["instruction"] = "Set the RTCM message interval in seconds for Rover";
+    command_types_tMosaicMIRvRT["prefix"] = "messageIntervalRTCMRover_";
+    JsonArray command_types_tMosaicMIRvRT_keys = command_types_tMosaicMIRvRT["keys"].to<JsonArray>();
+    for (int y = 0; y < MAX_MOSAIC_RTCM_V3_INTERVAL_GROUPS; y++)
+        command_types_tMosaicMIRvRT_keys.add(mosaicRTCMv3MsgIntervalGroups[y].name);
+    command_types_tMosaicMIRvRT["type"] = "float";
+    command_types_tMosaicMIRvRT["value min"] = 0.1;
+    command_types_tMosaicMIRvRT["value max"] = 600.0;
+
+    JsonObject command_types_tMosaicMIBaRT = command_types.add<JsonObject>();
+    command_types_tMosaicMIBaRT["name"] = "tMosaicMIBaRT";
+    command_types_tMosaicMIBaRT["description"] = "mosaic-X5 RTCM message intervals - Base";
+    command_types_tMosaicMIBaRT["instruction"] = "Set the RTCM message interval in seconds for Base";
+    command_types_tMosaicMIBaRT["prefix"] = "messageIntervalRTCMBase_";
+    JsonArray command_types_tMosaicMIBaRT_keys = command_types_tMosaicMIBaRT["keys"].to<JsonArray>();
+    for (int y = 0; y < MAX_MOSAIC_RTCM_V3_INTERVAL_GROUPS; y++)
+        command_types_tMosaicMIBaRT_keys.add(mosaicRTCMv3MsgIntervalGroups[y].name);
+    command_types_tMosaicMIBaRT["type"] = "float";
+    command_types_tMosaicMIBaRT["value min"] = 0.1;
+    command_types_tMosaicMIBaRT["value max"] = 600.0;
+
+    JsonObject command_types_tMosaicMERvRT = command_types.add<JsonObject>();
+    command_types_tMosaicMERvRT["name"] = "tMosaicMERvRT";
+    command_types_tMosaicMERvRT["description"] = "mosaic-X5 RTCM message enabled - Rover";
+    command_types_tMosaicMERvRT["instruction"] = "Enable / disable Rover RTCM messages";
+    command_types_tMosaicMERvRT["prefix"] = "messageEnabledRTCMRover_";
+    JsonArray command_types_tMosaicMERvRT_keys = command_types_tMosaicMERvRT["keys"].to<JsonArray>();
+    for (int y = 0; y < MAX_MOSAIC_RTCM_V3_MSG; y++)
+        command_types_tMosaicMERvRT_keys.add(mosaicMessagesRTCMv3[y].name);
+    JsonArray command_types_tMosaicMERvRT_values = command_types_tMosaicMERvRT["values"].to<JsonArray>();
+    command_types_tMosaicMERvRT_values.add("0");
+    command_types_tMosaicMERvRT_values.add("1");
+
+    JsonObject command_types_tMosaicMEBaRT = command_types.add<JsonObject>();
+    command_types_tMosaicMEBaRT["name"] = "tMosaicMEBaRT";
+    command_types_tMosaicMEBaRT["description"] = "mosaic-X5 RTCM message enabled - Base";
+    command_types_tMosaicMEBaRT["instruction"] = "Enable / disable Base RTCM messages";
+    command_types_tMosaicMEBaRT["prefix"] = "messageEnabledRTCMBase_";
+    JsonArray command_types_tMosaicMEBaRT_keys = command_types_tMosaicMEBaRT["keys"].to<JsonArray>();
+    for (int y = 0; y < MAX_MOSAIC_RTCM_V3_MSG; y++)
+        command_types_tMosaicMEBaRT_keys.add(mosaicMessagesRTCMv3[y].name);
+    JsonArray command_types_tMosaicMEBaRT_values = command_types_tMosaicMEBaRT["values"].to<JsonArray>();
+    command_types_tMosaicMEBaRT_values.add("0");
+    command_types_tMosaicMEBaRT_values.add("1");
+#endif // COMPILE_MOSAICX5
+
+#ifdef COMPILE_UM980
+    // UM980
+
+    JsonObject command_types_tUmConst = command_types.add<JsonObject>();
+    command_types_tUmConst["name"] = "tUmConst";
+    command_types_tUmConst["description"] = "UM980 GNSS constellations";
+    command_types_tUmConst["instruction"] = "Enable / disable each GNSS constellation";
+    command_types_tUmConst["prefix"] = "constellation_";
+    JsonArray command_types_tUmConst_keys = command_types_tUmConst["keys"].to<JsonArray>();
+    for (int x = 0; x < MAX_UM980_CONSTELLATIONS; x++)
+        command_types_tUmConst_keys.add(um980ConstellationCommands[x].textName);
+    JsonArray command_types_tUmConst_values = command_types_tUmConst["values"].to<JsonArray>();
+    command_types_tUmConst_values.add("0");
+    command_types_tUmConst_values.add("1");
+
+    JsonObject command_types_tUmMRNmea = command_types.add<JsonObject>();
+    command_types_tUmMRNmea["name"] = "tUmMRNmea";
+    command_types_tUmMRNmea["description"] = "UM980 NMEA message rates";
+    command_types_tUmMRNmea["instruction"] = "Set the NMEA message interval in seconds (0 = Off)";
+    command_types_tUmMRNmea["prefix"] = "messageRateNMEA_";
+    JsonArray command_types_tUmMRNmea_keys = command_types_tUmMRNmea["keys"].to<JsonArray>();
+    for (int y = 0; y < MAX_UM980_NMEA_MSG; y++)
+        command_types_tUmMRNmea_keys.add(umMessagesNMEA[y].msgTextName);
+    command_types_tUmMRNmea["type"] = "float";
+    command_types_tUmMRNmea["value min"] = 0.0;
+    command_types_tUmMRNmea["value max"] = 65.0;
+
+    JsonObject command_types_tUmMRBaRT = command_types.add<JsonObject>();
+    command_types_tUmMRBaRT["name"] = "tUmMRBaRT";
+    command_types_tUmMRBaRT["description"] = "UM980 RTCM message rates - Base";
+    command_types_tUmMRBaRT["instruction"] = "Set the RTCM message interval in seconds for Base (0 = Off)";
+    command_types_tUmMRBaRT["prefix"] = "messageRateRTCMBase_";
+    JsonArray command_types_tUmMRBaRT_keys = command_types_tUmMRBaRT["keys"].to<JsonArray>();
+    for (int x = 0; x < MAX_UM980_RTCM_MSG; x++)
+        command_types_tUmMRBaRT_keys.add(umMessagesRTCM[x].msgTextName);
+    command_types_tUmMRBaRT["type"] = "float";
+    command_types_tUmMRBaRT["value min"] = 0.0;
+    command_types_tUmMRBaRT["value max"] = 65.0;
+
+    JsonObject command_types_tUmMRRvRT = command_types.add<JsonObject>();
+    command_types_tUmMRRvRT["name"] = "tUmMRRvRT";
+    command_types_tUmMRRvRT["description"] = "UM980 RTCM message rates - Rover";
+    command_types_tUmMRRvRT["instruction"] = "Set the RTCM message interval in seconds for Rover (0 = Off)";
+    command_types_tUmMRRvRT["prefix"] = "messageRateRTCMRover_";
+    JsonArray command_types_tUmMRRvRT_keys = command_types_tUmMRRvRT["keys"].to<JsonArray>();
+    for (int x = 0; x < MAX_UM980_RTCM_MSG; x++)
+        command_types_tUmMRRvRT_keys.add(umMessagesRTCM[x].msgTextName);
+    command_types_tUmMRRvRT["type"] = "float";
+    command_types_tUmMRRvRT["value min"] = 0.0;
+    command_types_tUmMRRvRT["value max"] = 65.0;
+#endif // COMPILE_UM980
+
+#ifdef COMPILE_ZED
+    // ublox GNSS Receiver
+
+    JsonObject command_types_tUbxConst = command_types.add<JsonObject>();
+    command_types_tUbxConst["name"] = "tUbxConst";
+    command_types_tUbxConst["description"] = "ZED GNSS constellations";
+    command_types_tUbxConst["instruction"] = "Enable / disable each GNSS constellation";
+    command_types_tUbxConst["prefix"] = "constellation_";
+    JsonArray command_types_tUbxConst_keys = command_types_tUbxConst["keys"].to<JsonArray>();
+    for (int x = 0; x < MAX_UBX_CONSTELLATIONS; x++)
+        command_types_tUbxConst_keys.add(settings.ubxConstellations[x].textName);
+    JsonArray command_types_tUbxConst_values = command_types_tUbxConst["values"].to<JsonArray>();
+    command_types_tUbxConst_values.add("0");
+    command_types_tUbxConst_values.add("1");
+
+    JsonObject command_types_tUbxMsgRt = command_types.add<JsonObject>();
+    command_types_tUbxMsgRt["name"] = "tUbxMsgRt";
+    command_types_tUbxMsgRt["description"] = "ZED message rates - Rover";
+    command_types_tUbxMsgRt["instruction"] = "Set the message interval in navigation cycles for Rover (0 = Off)";
+    command_types_tUbxMsgRt["prefix"] = "ubxMessageRate_";
+    JsonArray command_types_tUbxMsgRt_keys = command_types_tUbxMsgRt["keys"].to<JsonArray>();
+    for (int x = 0; x < MAX_UBX_MSG; x++)
+        command_types_tUbxMsgRt_keys.add(ubxMessages[x].msgTextName);
+    command_types_tUbxMsgRt["type"] = "int";
+    command_types_tUbxMsgRt["value min"] = 0;
+    command_types_tUbxMsgRt["value max"] = 250; // Avoid 254!
+
+    JsonObject command_types_tUbMsgRtb = command_types.add<JsonObject>();
+    command_types_tUbMsgRtb["name"] = "tUbMsgRtb";
+    command_types_tUbMsgRtb["description"] = "ZED message rates - Base";
+    command_types_tUbMsgRtb["instruction"] = "Set the message interval in navigation cycles for Base (0 = Off)";
+    command_types_tUbMsgRtb["prefix"] = "ubxMessageRateBase_";
+    JsonArray command_types_tUbMsgRtb_keys = command_types_tUbMsgRtb["keys"].to<JsonArray>();
+    GNSS_ZED zed;
+    int firstRTCMRecord = zed.getMessageNumberByNameSkipChecks("RTCM_1005");
+    for (int x = 0; x < MAX_UBX_MSG_RTCM; x++)
+        command_types_tUbMsgRtb_keys.add(ubxMessages[firstRTCMRecord + x].msgTextName);
+    command_types_tUbMsgRtb["type"] = "int";
+    command_types_tUbMsgRtb["value min"] = 0;
+    command_types_tUbMsgRtb["value max"] = 250; // Avoid 254!
+#endif                                          // COMPILE_ZED
+
+    doc.shrinkToFit(); // optional
+
+    // serializeJsonPretty(doc, output); // Pretty formatting - useful for testing
+    serializeJson(doc, output); // Standard JSON format
 }

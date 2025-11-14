@@ -526,6 +526,8 @@ class GNSS_ZED : GNSS
 
     // Given the name of a message, return the array number
     uint8_t getMessageNumberByName(const char *msgName);
+    uint8_t getMessageNumberByNameSkipChecks(const char *msgName);
+    uint8_t getMessageNumberByName(const char *msgName, bool skipPlatformChecks);
 
     // Given the name of a message, find it, and return the rate
     uint8_t getMessageRateByName(const char *msgName);
@@ -662,7 +664,7 @@ class GNSS_ZED : GNSS
 
     uint16_t rtcmBufferAvailable();
 
-    // If L-Band is available, but encrypted, allow RTCM through other sources (radio, ESP-Now) to GNSS receiver
+    // If L-Band is available, but encrypted, allow RTCM through other sources (radio, ESP-NOW) to GNSS receiver
     void rtcmOnGnssDisable();
 
     // If LBand is being used, ignore any RTCM that may come in from the GNSS
@@ -675,12 +677,8 @@ class GNSS_ZED : GNSS
     //   Returns true when the configuration was saved and false upon failure
     bool saveConfiguration();
 
-    // Set the baud rate on the GNSS port that interfaces between the ESP32 and the GNSS
-    // This just sets the GNSS side
-    // Used during Bluetooth testing
-    // Inputs:
-    //   baudRate: The desired baudrate
-    bool setBaudrate(uint32_t baudRate);
+    // Set the baud rate on the designated port
+    bool setBaudRate(uint8_t uartNumber, uint32_t baudRate); // From the super class
 
     // Enable all the valid constellations and bands for this platform
     bool setConstellations();

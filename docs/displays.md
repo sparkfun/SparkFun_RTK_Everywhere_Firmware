@@ -249,7 +249,7 @@ RTK Everywhere - with NTRIP (RTK2go / SNIP) corrections
 
 Each corrections source has a unique icon:
 
-From left to right: External Radio; ESP-Now; LoRa Radio; Bluetooth
+From left to right: External Radio; ESP-NOW; LoRa Radio; Bluetooth
 
 <figure markdown>
 ![RTK Everywhere corrections source icons](./img/Corrections/SparkFun%20RTK%20Corrections%20Source%20Icons%201.png)

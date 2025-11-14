@@ -9,8 +9,9 @@
 // Ethernet
 //----------------------------------------
 
-bool ethernetLinkUp()   {return false;}
-void menuEthernet() {systemPrintln("**Ethernet not compiled**");}
+bool ethernetLinkUp() {return false;}
+void menuEthernet()   {systemPrintln("**Ethernet not compiled**");}
+void ethernetUpdate() {}
 
 bool ntpLogIncreasing = false;
 
@@ -171,9 +172,12 @@ bool webServerStart(int httpPort = 80)
 bool parseIncomingSettings() {return false;}
 void sendStringToWebsocket(const char* stringToSend) {}
 void stopWebServer() {}
+bool webServerSettingsCheckAndFree()    {return false;}
+void webServerSettingsClone()   {}
 void webServerStop() {}
 void webServerUpdate()  {}
 void webServerVerifyTables() {}
+bool wifiAfterCommand(int cmdIndex){return false;}
 void wifiSettingsClone() {}
 bool webServerIsRunning() {return false;}
 
@@ -185,15 +189,15 @@ bool webServerIsRunning() {return false;}
 
 #ifndef COMPILE_ESPNOW
 
-bool espNowGetState()                   {return ESPNOW_OFF;}
 bool espNowIsPaired()                   {return false;}
+bool espNowIsPairing()                   {return false;}
+bool espNowIsBroadcasting()                   {return false;}
 void espNowProcessRTCM(byte incoming)   {}
 bool espNowProcessRxPairedMessage()     {return true;}
 esp_err_t espNowRemovePeer(const uint8_t *peerMac)        {return ESP_OK;}
 esp_err_t espNowSendPairMessage(const uint8_t *sendToMac) {return ESP_OK;}
 bool espNowSetChannel(uint8_t channelNumber)        {return false;}
 bool espNowStart()                      {return true;}
-void espNowStaticPairing()              {}
 bool espNowStop()                       {return true;}
 void espNowUpdate()                     {}
 
@@ -210,9 +214,10 @@ void wifiDisplayNetworkData()                   {}
 void wifiDisplaySoftApStatus()                  {}
 bool wifiEspNowOff(const char * fileName, uint32_t lineNumber) {return true;}
 bool wifiEspNowOn(const char * fileName, uint32_t lineNumber) {return false;}
-void wifiEspNowSetChannel(WIFI_CHANNEL_t channel) {}
+void wifiEspNowChannelSet(WIFI_CHANNEL_t channel) {}
 int wifiNetworkCount()                          {return 0;}
 void wifiResetTimeout()                         {}
+IPAddress wifiSoftApGetBroadcastIpAddress()     {return IPAddress((uint32_t)0);}
 IPAddress wifiSoftApGetIpAddress()              {return IPAddress((uint32_t)0);}
 const char * wifiSoftApGetSsid()                {return "";}
 bool wifiSoftApOff(const char * fileName, uint32_t lineNumber) {return true;}
@@ -264,6 +269,7 @@ void nmeaExtractStdDeviations(char *nmeaSentence, int arraySize) {}
 void processNonSBFData(SEMP_PARSE_STATE *parse) {}
 void processUart1SBF(SEMP_PARSE_STATE *parse, uint16_t type) {}
 void processUart1SPARTN(SEMP_PARSE_STATE *parse, uint16_t type) {}
+void menuLogMosaic() {}
 
 #endif  // COMPILE_MOSAICX5
 
@@ -288,10 +294,8 @@ void pointperfectPrintKeyInformation(const char *requestedBy) {systemPrintln("**
 
 #ifndef COMPILE_LG290P
 
-void lg290pBoot()       {}
 void lg290pHandler(uint8_t * buffer, int length) {}
 bool lg290pMessageEnabled(char *nmeaSentence, int sentenceLength)   {return false;}
-void lg290pReset()      {}
 
 #endif // COMPILE_LG290P
 
@@ -308,3 +312,14 @@ void convertGnssTimeToEpoch(uint32_t *epochSecs, uint32_t *epochMicros) {
 }
 
 #endif // COMPILE_ZED
+
+//----------------------------------------
+// MFi authentication coprocessor
+//----------------------------------------
+
+#ifndef COMPILE_AUTHENTICATION
+
+void beginAuthCoPro(TwoWire *i2cBus) {systemPrintln("**MFi Authentication Not Compiled**");}
+void updateAuthCoPro() {}
+
+#endif // COMPILE_AUTHENTICATION

@@ -226,8 +226,11 @@ void menuTcpUdp()
         if (settings.mdnsEnable)
             systemPrintf("n) MDNS host name: %s\r\n", settings.mdnsHostName);
 
-        systemPrint("a) Broadcast TCP/UDP Server packets over local WiFi or act as Access Point: ");
-        systemPrintf("%s\r\n", settings.tcpUdpOverWiFiStation ? "WiFi" : "AP");
+        systemPrint("t) Broadcast TCP/UDP Server packets over local WiFi or act as Access Point: ");
+        systemPrintf("%s\r\n", settings.tcpOverWiFiStation ? "WiFi" : "AP");
+
+        systemPrint("u) Broadcast UDP Server packets over local WiFi or act as Access Point: ");
+        systemPrintf("%s\r\n", settings.udpOverWiFiStation ? "WiFi" : "AP");
 
         //------------------------------
         // Finish the menu and get the input
@@ -259,10 +262,11 @@ void menuTcpUdp()
             // Remove any http:// or https:// prefix from host name
             // strtok modifies string to be parsed so we create a copy
             strncpy(hostname, settings.tcpClientHost, sizeof(hostname) - 1);
-            char *token = strtok(hostname, "//");
+            char *preservedPointer;
+            char *token = strtok_r(hostname, "//", &preservedPointer);
             if (token != nullptr)
             {
-                token = strtok(nullptr, "//"); // Advance to data after //
+                token = strtok_r(nullptr, "//", &preservedPointer); // Advance to data after //
                 if (token != nullptr)
                     strcpy(settings.tcpClientHost, token);
             }
@@ -323,11 +327,18 @@ void menuTcpUdp()
             getUserInputString((char *)&settings.mdnsHostName, sizeof(settings.mdnsHostName));
         }
 
-        else if (incoming == 'a')
+        else if (incoming == 't')
         {
-            settings.tcpUdpOverWiFiStation ^= 1;
+            settings.tcpOverWiFiStation ^= 1;
             wifiUpdateSettings();
         }
+
+        else if (incoming == 'u')
+        {
+            settings.udpOverWiFiStation ^= 1;
+            wifiUpdateSettings();
+        }
+
         //------------------------------
         // Handle exit and invalid input
         //------------------------------
@@ -2442,10 +2453,12 @@ void networkUpdate()
     // Update the WiFi state
     wifiStationUpdate();
 
+    // Update Ethernet
+    ethernetUpdate();
+
     // Update the network services
     // Start or stop mDNS
-    if (networkMdnsRequests != networkMdnsRunning)
-        networkMulticastDNSUpdate();
+    networkMulticastDNSUpdate();
 
     // Update the network services
     DMW_c("mqttClientUpdate");
@@ -2578,7 +2591,12 @@ void networkUserAdd(NETCONSUMER_t consumer, const char *fileName, uint32_t lineN
 
     // Display the user
     if (settings.debugNetworkLayer)
-        systemPrintf("%s adding user %s\r\n", networkInterfaceTable[index].name, networkConsumerTable[consumer]);
+    {
+        if (index < NETWORK_OFFLINE)
+            systemPrintf("%s adding user %s\r\n", networkInterfaceTable[index].name, networkConsumerTable[consumer]);
+        else
+            systemPrintf("NETWORK_ANY adding user %s\r\n", networkConsumerTable[consumer]);
+    }
 
     // Remember this network interface
     networkConsumerIndexLast[consumer] = index;

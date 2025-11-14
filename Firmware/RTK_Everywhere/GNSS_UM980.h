@@ -143,6 +143,8 @@ class GNSS_UM980 : GNSS
     // Controls the messages that get broadcast over Bluetooth and logged (if enabled)
     void menuMessagesSubtype(float *localMessageRate, const char *messageType);
 
+    bool setBaudRate(uint8_t uartNumber, uint32_t baudRate); // From the super class
+
     // Set the baud rate on the GNSS port that interfaces between the ESP32 and the GNSS
     // Inputs:
     //   baudRate: The desired baudrate
@@ -421,7 +423,7 @@ class GNSS_UM980 : GNSS
     // If LBand is being used, ignore any RTCM that may come in from the GNSS
     void rtcmOnGnssDisable();
 
-    // If L-Band is available, but encrypted, allow RTCM through other sources (radio, ESP-Now) to GNSS receiver
+    // If L-Band is available, but encrypted, allow RTCM through other sources (radio, ESP-NOW) to GNSS receiver
     void rtcmOnGnssEnable();
 
     uint16_t rtcmRead(uint8_t *rtcmBuffer, int rtcmBytesToRead);
@@ -430,13 +432,6 @@ class GNSS_UM980 : GNSS
     // Outputs:
     //   Returns true when the configuration was saved and false upon failure
     bool saveConfiguration();
-
-    // Set the baud rate on the GNSS port that interfaces between the ESP32 and the GNSS
-    // This just sets the GNSS side
-    // Used during Bluetooth testing
-    // Inputs:
-    //   baudRate: The desired baudrate
-    bool setBaudrate(uint32_t baudRate);
 
     // Enable all the valid constellations and bands for this platform
     bool setConstellations();
@@ -464,6 +459,18 @@ class GNSS_UM980 : GNSS
     // Inputs:
     //   modelNumber: Number of the model to use, provided by radio library
     bool setModel(uint8_t modelNumber);
+
+    // Set all NMEA message report rates to one value
+    void setNmeaMessageRates(uint8_t msgRate);
+
+    // Given the name of a message, find it, and set the rate
+    bool setNmeaMessageRateByName(const char *msgName, uint8_t msgRate);
+
+    // Set all RTCM Rover message report rates to one value
+    void setRtcmRoverMessageRates(uint8_t msgRate);
+
+    // Given the name of a message, find it, and set the rate
+    bool setRtcmRoverMessageRateByName(const char *msgName, uint8_t msgRate);
 
     bool setRadioBaudRate(uint32_t baud);
 

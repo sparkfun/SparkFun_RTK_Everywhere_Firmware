@@ -11,7 +11,7 @@ HTTP_Client.ino
 ------------------------------------------------------------------------------*/
 
 ZtpResponse ztpResponse =
-    ZTP_NOT_STARTED; // Used in menuPP. This is the overall result of the ZTP process of testing multiple tokens
+    ZTP_NOT_STARTED; // Used in menuPointPerfect(). This is the overall result of the ZTP process of testing multiple tokens
 
 #ifdef COMPILE_HTTP_CLIENT
 
@@ -372,6 +372,17 @@ void httpClientUpdate()
         if (!httpSecureClient->connect(THINGSTREAM_SERVER, HTTPS_PORT))
         {
             // Failed to connect to the server
+            int length = 1024;
+            char * errMessage = (char *)rtkMalloc(length, "HTTP error message");
+            if (errMessage)
+            {
+                memset(errMessage, 0, length);
+                httpSecureClient->lastError(errMessage, length - 1);
+                systemPrintf("Get %s failed, %s\r\n", THINGSTREAM_SERVER, errMessage);
+                rtkFree(errMessage, "HTTP error message");
+            }
+            else
+                systemPrintf("Get %s failed!\r\n", THINGSTREAM_SERVER);
             systemPrintln("ERROR: Failed to connect to the Thingstream server!");
             httpClientRestart(); // I _think_ we want to restart here - i.e. retry after the timeout?
             break;
@@ -682,7 +693,7 @@ void httpClientUpdate()
     }
 
     // Periodically display the HTTP client state
-    if (PERIODIC_DISPLAY(PD_HTTP_CLIENT_STATE))
+    if (PERIODIC_DISPLAY(PD_HTTP_CLIENT_STATE) && !inMainMenu)
     {
         const char *line = "";
         httpClientEnabled(&line);

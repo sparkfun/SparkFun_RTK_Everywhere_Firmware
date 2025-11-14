@@ -32,7 +32,10 @@ void terminalUpdate()
 
             // Push RTCM to GNSS module over I2C / SPI
             if (correctionLastSeen(CORR_USB))
+            {
                 gnss->pushRawData((uint8_t *)buffer, length);
+                sempParseNextBytes(rtcmParse, (uint8_t *)buffer, length); // Parse the data for RTCM1005/1006
+            }
         }
 
         // Does incoming data consist of RTCM correction messages
@@ -51,7 +54,10 @@ void terminalUpdate()
 
             // Push RTCM to GNSS module over I2C / SPI
             if (correctionLastSeen(CORR_USB))
+            {
                 gnss->pushRawData((uint8_t *)buffer, length);
+                sempParseNextBytes(rtcmParse, (uint8_t *)buffer, length); // Parse the data for RTCM1005/1006
+            }
         }
         else
         {
@@ -105,20 +111,17 @@ void menuMain()
     forwardGnssDataToUsbSerial = false;
 
     inMainMenu = true;
+
+    // Clear btPrintEchoExit on entering the menu, to prevent dropping straight
+    // through if the BT connection was dropped while we had the menu closed
+    btPrintEchoExit = false;
+
     displaySerialConfig(); // Display 'Serial Config' while user is configuring
 
     if (settings.debugGnss == true)
     {
         // Turn off GNSS debug while in config menus
         gnss->debuggingDisable();
-    }
-
-    // Check for remote app config entry into command mode
-    if (runCommandMode == true)
-    {
-        runCommandMode = false;
-        menuCommands();
-        return;
     }
 
     while (1)
@@ -128,6 +131,7 @@ void menuMain()
         firmwareVersionGet(versionString, sizeof(versionString), true);
         RTKBrandAttribute *brandAttributes = getBrandAttributeFromBrand(present.brand);
         systemPrintf("%s RTK %s %s\r\n", brandAttributes->name, platformPrefix, versionString);
+        systemPrintf("Mode: %s\r\n", stateToRtkMode(systemState));
 
 #ifdef COMPILE_BT
 
@@ -144,6 +148,11 @@ void menuMain()
         else if (settings.bluetoothRadioType == BLUETOOTH_RADIO_BLE)
         {
             systemPrint("** Bluetooth Low-Energy broadcasting as: ");
+            systemPrint(deviceName);
+        }
+        else if (settings.bluetoothRadioType == BLUETOOTH_RADIO_SPP_ACCESSORY_MODE)
+        {
+            systemPrint("** Bluetooth SPP (Accessory Mode) broadcasting as: ");
             systemPrint(deviceName);
         }
         else if (settings.bluetoothRadioType == BLUETOOTH_RADIO_OFF)
@@ -222,12 +231,8 @@ void menuMain()
             menuBase();
         else if (incoming == 4)
             menuPorts();
-#ifdef COMPILE_MOSAICX5
-        else if (incoming == 5 && productVariant == RTK_FACET_MOSAIC)
-            menuLogMosaic();
-#endif                                                         // COMPILE_MOSAICX5
         else if (incoming == 5 && productVariant != RTK_TORCH) // Torch does not have logging
-            menuLog();
+            menuLogSelection();
         else if (incoming == 6)
             menuWiFi();
         else if (incoming == 7)
@@ -273,14 +278,14 @@ void menuMain()
     if (restartBase == true && inBaseMode() == true)
     {
         restartBase = false;
-        settings.gnssConfiguredBase = false; // Reapply configuration
+        settings.gnssConfiguredBase = false;        // Reapply configuration
         requestChangeState(STATE_BASE_NOT_STARTED); // Restart base upon exit for latest changes to take effect
     }
 
     if (restartRover == true && inRoverMode() == true)
     {
         restartRover = false;
-        settings.gnssConfiguredRover = false; // Reapply configuration
+        settings.gnssConfiguredRover = false;        // Reapply configuration
         requestChangeState(STATE_ROVER_NOT_STARTED); // Restart rover upon exit for latest changes to take effect
     }
 
@@ -429,7 +434,7 @@ void menuUserProfiles()
         else if (incoming == MAX_PROFILE_COUNT + 4)
         {
             // Print profile
-            systemPrintf("Select the profile to be printed (1-%d): ",MAX_PROFILE_COUNT);
+            systemPrintf("Select the profile to be printed (1-%d): ", MAX_PROFILE_COUNT);
 
             int printThis = getUserInputNumber(); // Returns EXIT, TIMEOUT, or long
 
@@ -520,7 +525,8 @@ void factoryReset(bool alreadyHasSemaphore)
             // An error occurs when a settings file is on the microSD card and it is not
             // deleted, as such the settings on the microSD card will be loaded when the
             // RTK reboots, resulting in failure to achieve the factory reset condition
-            systemPrintf("sdCardSemaphore failed to yield, held by %s, menuMain.ino line %d\r\n", semaphoreHolder, __LINE__);
+            systemPrintf("sdCardSemaphore failed to yield, held by %s, menuMain.ino line %d\r\n", semaphoreHolder,
+                         __LINE__);
         }
     }
     else
@@ -539,7 +545,7 @@ void factoryReset(bool alreadyHasSemaphore)
         gnss->factoryReset();
     }
     else
-        systemPrintln("GNSS not online. Unable to factoryReset...");
+        systemPrintln("GNSS not online: Unable to factory reset.");
 
     systemPrintln("Settings erased successfully. Rebooting. Goodbye!");
     delay(2000);
@@ -556,6 +562,8 @@ void mmDisplayBluetoothRadioMenu(char menuChar, BluetoothRadioType_e bluetoothUs
         systemPrintln("Classic");
     else if (bluetoothUserChoice == BLUETOOTH_RADIO_BLE)
         systemPrintln("BLE");
+    else if (bluetoothUserChoice == BLUETOOTH_RADIO_SPP_ACCESSORY_MODE)
+        systemPrintln("Classic - Accessory Mode");
     else
         systemPrintln("Off");
 }
@@ -569,19 +577,93 @@ BluetoothRadioType_e mmChangeBluetoothProtocol(BluetoothRadioType_e bluetoothUse
     else if (bluetoothUserChoice == BLUETOOTH_RADIO_SPP)
         bluetoothUserChoice = BLUETOOTH_RADIO_BLE;
     else if (bluetoothUserChoice == BLUETOOTH_RADIO_BLE)
+        bluetoothUserChoice = BLUETOOTH_RADIO_SPP_ACCESSORY_MODE;
+    else if (bluetoothUserChoice == BLUETOOTH_RADIO_SPP_ACCESSORY_MODE)
         bluetoothUserChoice = BLUETOOTH_RADIO_OFF;
     else if (bluetoothUserChoice == BLUETOOTH_RADIO_OFF)
         bluetoothUserChoice = BLUETOOTH_RADIO_SPP_AND_BLE;
     return bluetoothUserChoice;
 }
 
-// Restart Bluetooth radio if settings have changed
-void mmSetBluetoothProtocol(BluetoothRadioType_e bluetoothUserChoice)
+// Update Bluetooth radio if settings have changed
+void mmSetBluetoothProtocol(BluetoothRadioType_e bluetoothUserChoice, bool clearBtPairings)
 {
-    if (bluetoothUserChoice != settings.bluetoothRadioType)
+    if ((bluetoothUserChoice != settings.bluetoothRadioType) 
+        || (clearBtPairings != settings.clearBtPairings))
     {
+        // To avoid connection failures, we may need to restart the ESP32
+
+        // If Bluetooth was on, and the user has selected OFF, then just stop
+        if ((settings.bluetoothRadioType != BLUETOOTH_RADIO_OFF)
+            && (bluetoothUserChoice == BLUETOOTH_RADIO_OFF))
+        {
+            bluetoothStop();
+            settings.bluetoothRadioType = bluetoothUserChoice;
+            settings.clearBtPairings = clearBtPairings;
+            return;
+        }
+        // If Bluetooth was off, and the user has selected on, and Bluetooth has not been started previously
+        // then just start
+        else if ((settings.bluetoothRadioType == BLUETOOTH_RADIO_OFF)
+                 && (bluetoothUserChoice != BLUETOOTH_RADIO_OFF)
+                 && (bluetoothRadioPreviousOnType == BLUETOOTH_RADIO_OFF))
+        {
+            settings.bluetoothRadioType = bluetoothUserChoice;
+            settings.clearBtPairings = clearBtPairings;
+            bluetoothStart();
+            return;
+        }
+        // If Bluetooth was off, and the user has selected on, and Bluetooth has been started previously
+        // then restart
+        else if ((settings.bluetoothRadioType == BLUETOOTH_RADIO_OFF)
+                 && (bluetoothUserChoice != BLUETOOTH_RADIO_OFF)
+                 && (bluetoothRadioPreviousOnType != BLUETOOTH_RADIO_OFF))
+        {
+            settings.bluetoothRadioType = bluetoothUserChoice;
+            settings.clearBtPairings = clearBtPairings;
+            recordSystemSettings();
+            systemPrintln("Rebooting to apply new Bluetooth choice. Goodbye!");
+            delay(1000);
+            ESP.restart();
+            return;
+        }
+        // If Bluetooth was in Accessory Mode, and still is, and clearBtPairings is true
+        // then (re)start Bluetooth skipping the online check
+        else if ((settings.bluetoothRadioType == BLUETOOTH_RADIO_SPP_ACCESSORY_MODE)
+                 && (bluetoothUserChoice == BLUETOOTH_RADIO_SPP_ACCESSORY_MODE)
+                 && clearBtPairings)
+        {
+            settings.clearBtPairings = clearBtPairings;
+            bluetoothStartSkipOnlineCheck();
+            return;
+        }
+        // If Bluetooth was in Accessory Mode, and still is, and clearBtPairings is false
+        // then do nothing
+        else if ((settings.bluetoothRadioType == BLUETOOTH_RADIO_SPP_ACCESSORY_MODE)
+                 && (bluetoothUserChoice == BLUETOOTH_RADIO_SPP_ACCESSORY_MODE)
+                 && (!clearBtPairings))
+        {
+            return;
+        }
+        // If Bluetooth was on, and the user has selected a different mode
+        // then restart
+        else if ((settings.bluetoothRadioType != BLUETOOTH_RADIO_OFF)
+                 && (bluetoothUserChoice != settings.bluetoothRadioType))
+        {
+            settings.bluetoothRadioType = bluetoothUserChoice;
+            settings.clearBtPairings = clearBtPairings;
+            recordSystemSettings();
+            systemPrintln("Rebooting to apply new Bluetooth choice. Goodbye!");
+            delay(1000);
+            ESP.restart();
+            return;
+        }
+        // <--- Insert any new special cases here, or higher up if needed --->
+
+        // Previous catch-all. Likely to cause connection failures...
         bluetoothStop();
         settings.bluetoothRadioType = bluetoothUserChoice;
+        settings.clearBtPairings = clearBtPairings;
         bluetoothStart();
     }
 }
@@ -590,6 +672,7 @@ void mmSetBluetoothProtocol(BluetoothRadioType_e bluetoothUserChoice)
 void menuRadio()
 {
     BluetoothRadioType_e bluetoothUserChoice = settings.bluetoothRadioType;
+    bool clearBtPairings = settings.clearBtPairings;
 
     while (1)
     {
@@ -597,7 +680,7 @@ void menuRadio()
         systemPrintln("Menu: Radios");
 
 #ifndef COMPILE_ESPNOW
-        systemPrintln("1) **ESP-Now Not Compiled**");
+        systemPrintln("1) **ESP-NOW Not Compiled**");
 #else  // COMPILE_ESPNOW
         if (settings.enableEspNow == false)
             systemPrintln("1) ESP-NOW Radio: Disabled");
@@ -623,7 +706,16 @@ void menuRadio()
             else
                 systemPrintln("  No Paired Radios - Broadcast Enabled");
 
-            systemPrintln("2) Pair radios");
+            if (espNowState == ESPNOW_BROADCASTING || espNowState == ESPNOW_PAIRED)
+                systemPrintf("2) Pairing: %s\r\n", espnowRequestPair ? "Requested" : "Not requested");
+            else if (espNowState == ESPNOW_PAIRING)
+            {
+                if (espnowRequestPair == true)
+                    systemPrintln("2) (Pairing in process) Stop pairing");
+                else
+                    systemPrintln("2) Pairing stopped");
+            }
+
             systemPrintln("3) Forget all radios");
 
             systemPrintf("4) Current channel: %d\r\n", wifiChannel);
@@ -664,6 +756,12 @@ void menuRadio()
         // Display Bluetooth menu
         mmDisplayBluetoothRadioMenu('b', bluetoothUserChoice);
 
+        // If in BLUETOOTH_RADIO_SPP_ACCESSORY_MODE, allow user to delete all pairings
+        if (bluetoothUserChoice == BLUETOOTH_RADIO_SPP_ACCESSORY_MODE)
+        {
+            systemPrintf("c) Clear BT pairings: %s\r\n", clearBtPairings ? "Yes" : "No");
+        }
+
         systemPrintln("x) Exit");
 
         byte incoming = getUserInputCharacterNumber();
@@ -672,19 +770,31 @@ void menuRadio()
         if (incoming == 'b')
             bluetoothUserChoice = mmChangeBluetoothProtocol(bluetoothUserChoice);
 
+        // Allow user to clear BT pairings - when BTClassicSerial is next begun
+        else if ((incoming == 'c') && (bluetoothUserChoice == BLUETOOTH_RADIO_SPP_ACCESSORY_MODE))
+            clearBtPairings ^= 1;
+
         else if (incoming == 1)
         {
             settings.enableEspNow ^= 1;
 
             // Start ESP-NOW so that getChannel runs correctly
             if (settings.enableEspNow == true)
-                wifiEspNowOn(__FILE__, __LINE__);
+                wifiEspNowOn(__FILE__, __LINE__); // Handles espNowStart
             else
-                wifiEspNowOff(__FILE__, __LINE__);
+                wifiEspNowOff(__FILE__, __LINE__); // Handles espNowStop
         }
         else if (settings.enableEspNow == true && incoming == 2)
         {
-            espNowStaticPairing();
+            if (espNowIsBroadcasting() == true || espNowIsPaired() == true)
+            {
+                espnowRequestPair ^= 1;
+            }
+            else if (espNowIsPairing() == true)
+            {
+                espnowRequestPair = false;
+                systemPrintln("Pairing stop requested");
+            }
         }
         else if (settings.enableEspNow == true && incoming == 3)
         {
@@ -696,6 +806,8 @@ void menuRadio()
                 {
                     for (int x = 0; x < settings.espnowPeerCount; x++)
                         espNowRemovePeer(settings.espnowPeers[x]);
+                    
+                    espNowStart(); //Restart ESP-NOW to enable broadcastMAC
                 }
                 settings.espnowPeerCount = 0;
                 systemPrintln("Radios forgotten");
@@ -706,7 +818,7 @@ void menuRadio()
             if (getNewSetting("Enter the WiFi channel to use for ESP-NOW communication", 1, 14,
                               &settings.wifiChannel) == INPUT_RESPONSE_VALID)
             {
-                wifiEspNowSetChannel(settings.wifiChannel);
+                wifiEspNowChannelSet(settings.wifiChannel);
                 if (settings.wifiChannel)
                 {
                     if (settings.wifiChannel == wifiChannel)
@@ -752,7 +864,7 @@ void menuRadio()
             if (wifiEspNowRunning == false)
                 wifiEspNowOn(__FILE__, __LINE__);
 
-            uint8_t espNowData[] =
+            const uint8_t espNowData[] =
                 "This is the long string to test how quickly we can send one string to the other unit. I am going to "
                 "need a much longer sentence if I want to get a long amount of data into one transmission. This is "
                 "nearing 200 characters but needs to be near 250.";
@@ -765,13 +877,12 @@ void menuRadio()
             if (wifiEspNowRunning == false)
                 wifiEspNowOn(__FILE__, __LINE__);
 
-            uint8_t espNowData[] =
+            const uint8_t espNowData[] =
                 "This is the long string to test how quickly we can send one string to the other unit. I am going to "
                 "need a much longer sentence if I want to get a long amount of data into one transmission. This is "
                 "nearing 200 characters but needs to be near 250.";
-            uint8_t broadcastMac[6] = {0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF};
 #ifdef COMPILE_ESPNOW
-            esp_now_send(broadcastMac, (uint8_t *)&espNowData, sizeof(espNowData)); // Send packet over broadcast
+            esp_now_send(espNowBroadcastAddr, (uint8_t *)&espNowData, sizeof(espNowData)); // Send packet over broadcast
 #endif
         }
 
@@ -801,10 +912,10 @@ void menuRadio()
             printUnknown(incoming);
     }
 
-    wifiEspNowOn(__FILE__, __LINE__);
+    wifiEspNowOn(__FILE__, __LINE__); // Turn on the hardware if settings.enableEspNow is true
 
-    // Restart Bluetooth radio if settings have changed
-    mmSetBluetoothProtocol(bluetoothUserChoice);
+    // Update Bluetooth radio if settings have changed
+    mmSetBluetoothProtocol(bluetoothUserChoice, clearBtPairings);
 
     // LoRa radio state machine will start/stop radio upon next updateLora in loop()
 

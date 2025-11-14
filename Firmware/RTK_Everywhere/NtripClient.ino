@@ -138,7 +138,7 @@ static const uint32_t NTRIP_CLIENT_RESPONSE_TIMEOUT = 10 * 1000; // Milliseconds
 static const uint32_t NTRIP_CLIENT_RECEIVE_DATA_TIMEOUT = 30 * 1000; // Milliseconds
 
 // Most incoming data is around 500 bytes but may be larger
-static const int RTCM_DATA_SIZE = 512 * 4;
+static const size_t RTCM_DATA_SIZE = 512 * 4;
 
 // NTRIP client server request buffer size
 static const int SERVER_BUFFER_SIZE = CREDENTIALS_BUFFER_SIZE + 3;
@@ -216,10 +216,11 @@ bool ntripClientConnect()
     char hostname[51];
     strncpy(hostname, settings.ntripClient_CasterHost,
             sizeof(hostname) - 1); // strtok modifies string to be parsed so we create a copy
-    char *token = strtok(hostname, "//");
+    char *preservedPointer;
+    char *token = strtok_r(hostname, "//", &preservedPointer);
     if (token != nullptr)
     {
-        token = strtok(nullptr, "//"); // Advance to data after //
+        token = strtok_r(nullptr, "//", &preservedPointer); // Advance to data after //
         if (token != nullptr)
             strcpy(settings.ntripClient_CasterHost, token);
     }
@@ -228,7 +229,7 @@ bool ntripClientConnect()
         systemPrintf("NTRIP Client connecting to %s:%d\r\n", settings.ntripClient_CasterHost,
                      settings.ntripClient_CasterPort);
 
-    int connectResponse = ntripClient->connect(settings.ntripClient_CasterHost, settings.ntripClient_CasterPort);
+    int connectResponse = ntripClient->connect(settings.ntripClient_CasterHost, settings.ntripClient_CasterPort, NTRIP_CLIENT_RESPONSE_TIMEOUT);
 
     if (connectResponse < 1)
     {
@@ -248,7 +249,7 @@ bool ntripClientConnect()
     length = strlen(serverRequest);
     serverRequest[length++] = '\r';
     serverRequest[length++] = '\n';
-    serverRequest[length++] = 0;
+    serverRequest[length] = 0;
 
     // Set up the credentials
     char credentials[CREDENTIALS_BUFFER_SIZE];
@@ -657,7 +658,8 @@ void ntripClientUpdate()
         {
             // Allocate the ntripClient structure
             networkUseDefaultInterface();
-            ntripClient = new NetworkClient();
+            if (!ntripClient)
+                ntripClient = new NetworkClient();
             if (!ntripClient)
             {
                 // Failed to allocate the ntripClient structure
@@ -717,7 +719,7 @@ void ntripClientUpdate()
         if (ntripClientReceiveDataAvailable() < strlen("ICY 200 OK")) // Wait until at least a few bytes have arrived
         {
             // Check for response timeout
-            if (millis() - ntripClientTimer > NTRIP_CLIENT_RESPONSE_TIMEOUT)
+            if ((millis() - ntripClientTimer) > NTRIP_CLIENT_RESPONSE_TIMEOUT)
             {
                 // NTRIP web service did not respond
                 if (ntripClientConnectLimitReached()) // Updates ntripClientConnectionAttemptTimeout
@@ -759,6 +761,7 @@ void ntripClientUpdate()
                 {
                     systemPrintf("Caster may not have mountpoint %s. Caster responded with problem: %s\r\n",
                                  settings.ntripClient_MountPoint, response);
+                    systemPrintln("ntripClient shutdown. Please update the mountpoint and reconnect");
 
                     // Stop NTRIP client operations
                     ntripClientForceShutdown();
@@ -803,6 +806,7 @@ void ntripClientUpdate()
                     // We don't use a task because we use I2C hardware (and don't have a semaphore).
                     online.ntripClient = true;
                     ntripClientStartTime = millis();
+                    ntripClient->setConnectionTimeout(NTRIP_CLIENT_RECEIVE_DATA_TIMEOUT);
                     ntripClientSetState(NTRIP_CLIENT_CONNECTED);
                 }
             }
@@ -919,9 +923,10 @@ void ntripClientUpdate()
                         {
                             // Push RTCM to GNSS module over I2C / SPI
                             gnss->pushRawData(rtcmData, rtcmCount);
+                            sempParseNextBytes(rtcmParse, rtcmData, rtcmCount); // Parse the data for RTCM1005/1006
 
                             if ((settings.debugCorrections || settings.debugNtripClientRtcm ||
-                                 PERIODIC_DISPLAY(PD_NTRIP_CLIENT_DATA)) &&
+                                    PERIODIC_DISPLAY(PD_NTRIP_CLIENT_DATA)) &&
                                 (!inMainMenu))
                             {
                                 PERIODIC_CLEAR(PD_NTRIP_CLIENT_DATA);
@@ -931,7 +936,7 @@ void ntripClientUpdate()
                         else
                         {
                             if ((settings.debugCorrections || settings.debugNtripClientRtcm ||
-                                 PERIODIC_DISPLAY(PD_NTRIP_CLIENT_DATA)) &&
+                                    PERIODIC_DISPLAY(PD_NTRIP_CLIENT_DATA)) &&
                                 (!inMainMenu))
                             {
                                 PERIODIC_CLEAR(PD_NTRIP_CLIENT_DATA);
@@ -943,12 +948,15 @@ void ntripClientUpdate()
                     }
                 }
             }
+
+            // Now that the ntripClient->read is complete, write GPGGA if needed and available. See #695
+            pushGPGGA(nullptr);
         }
         break;
     }
 
     // Periodically display the NTRIP client state
-    if (PERIODIC_DISPLAY(PD_NTRIP_CLIENT_STATE))
+    if (PERIODIC_DISPLAY(PD_NTRIP_CLIENT_STATE) && !inMainMenu)
     {
         systemPrintf("NTRIP Client state: %s%s\r\n", ntripClientStateName[ntripClientState], line);
         PERIODIC_CLEAR(PD_NTRIP_CLIENT_STATE);

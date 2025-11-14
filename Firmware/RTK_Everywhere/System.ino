@@ -112,14 +112,24 @@ void beepOn()
 {
     // Disallow beeper if setting is turned off
     if ((pin_beeper != PIN_UNDEFINED) && (settings.enableBeeper == true))
-        digitalWrite(pin_beeper, HIGH);
+    {
+        if (productVariant == RTK_TORCH || productVariant == RTK_TORCH_X2)
+            digitalWrite(pin_beeper, HIGH);
+        else if (productVariant == RTK_FLEX)
+            tone(pin_beeper, 523); // NOTE_C5
+    }
 }
 
 void beepOff()
 {
     // Disallow beeper if setting is turned off
     if ((pin_beeper != PIN_UNDEFINED) && (settings.enableBeeper == true))
-        digitalWrite(pin_beeper, LOW);
+    {
+        if (productVariant == RTK_TORCH || productVariant == RTK_TORCH_X2)
+            digitalWrite(pin_beeper, LOW);
+        else if (productVariant == RTK_FLEX)
+            noTone(pin_beeper);
+    }
 }
 
 // Only useful for pin_chargerLED on Facet mosaic
@@ -140,11 +150,13 @@ void updateBattery()
     if (online.batteryFuelGauge == true)
     {
         static unsigned long lastBatteryFuelGaugeUpdate = 0;
-        if (millis() - lastBatteryFuelGaugeUpdate > 5000)
+        if ((millis() - lastBatteryFuelGaugeUpdate) > 5000)
         {
             lastBatteryFuelGaugeUpdate = millis();
 
             checkBatteryLevels();
+
+            bluetoothSendBatteryPercent(batteryLevelPercent); // Send over dedicated BLE service
 
             // Display the battery data
             if (settings.enablePrintBatteryMessages)
@@ -187,7 +199,7 @@ void updateBattery()
     if (online.batteryCharger_mp2762a == true)
     {
         static unsigned long lastBatteryChargerUpdate = 0;
-        if (millis() - lastBatteryChargerUpdate > 5000)
+        if ((millis() - lastBatteryChargerUpdate) > 5000)
         {
             lastBatteryChargerUpdate = millis();
 
@@ -314,7 +326,7 @@ void reportHeap()
 {
     if (settings.enableHeapReport == true)
     {
-        if (millis() - lastHeapReport > 1000)
+        if ((millis() - lastHeapReport) > 1000)
         {
             reportHeapNow(false);
         }
@@ -391,11 +403,27 @@ void settingsToDefaults()
 {
     static const Settings defaultSettings;
     settings = defaultSettings;
+
+    checkArrayDefaults();     // This does not call recordSystemSettings
+    checkGNSSArrayDefaults(); // This calls recordSystemSettings if any GNSS defaults are applied
 }
 
 // Periodically print information if enabled
 void printReports()
 {
+    if (bluetoothCommandIsConnected() == true)
+        return;
+
+    if (inMainMenu)
+        return;
+
+    // Periodically display the firmware mode
+    if (PERIODIC_DISPLAY(PD_FIRMWARE_MODE))
+    {
+        PERIODIC_CLEAR(PD_FIRMWARE_MODE);
+        systemPrintf("Firmware mode: %s\r\n", stateToRtkMode(systemState));
+    }
+
     // Periodically print the position
     if (settings.enablePrintPosition && ((millis() - lastPrintPosition) > 15000))
     {
@@ -403,7 +431,7 @@ void printReports()
         lastPrintPosition = millis();
     }
 
-    if (settings.enablePrintRoverAccuracy && (millis() - lastPrintRoverAccuracy > 2000))
+    if (settings.enablePrintRoverAccuracy && ((millis() - lastPrintRoverAccuracy) > 2000))
     {
         lastPrintRoverAccuracy = millis();
         if (online.gnss)
@@ -557,10 +585,11 @@ CoordinateInputType coordinateIdentifyInputType(const char *userEntryOriginal, d
     {
         coordinateInputType = COORDINATE_INPUT_TYPE_DD_MM_DASH;
 
-        char *token = strtok(userEntry, "-"); // Modifies the given array
+        char *preservedPointer;
+        char *token = strtok_r(userEntry, "-", &preservedPointer); // Modifies the given array
         // We trust that token points at something because the dashCount is > 0
         int decimal = atoi(token); // Get DD
-        token = strtok(nullptr, "-");
+        token = strtok_r(nullptr, "-", &preservedPointer);
         double minutes = atof(token); // Get MM.mmmmmmm
         *coordinate = decimal + (minutes / 60.0);
         if (negativeSign)
@@ -570,12 +599,13 @@ CoordinateInputType coordinateIdentifyInputType(const char *userEntryOriginal, d
     {
         coordinateInputType = COORDINATE_INPUT_TYPE_DD_MM_SS_DASH;
 
-        char *token = strtok(userEntry, "-"); // Modifies the given array
+        char *preservedPointer;
+        char *token = strtok_r(userEntry, "-", &preservedPointer); // Modifies the given array
         // We trust that token points at something because the spaceCount is > 0
         int decimal = atoi(token); // Get DD
-        token = strtok(nullptr, "-");
+        token = strtok_r(nullptr, "-", &preservedPointer);
         int minutes = atoi(token); // Get MM
-        token = strtok(nullptr, "-");
+        token = strtok_r(nullptr, "-", &preservedPointer);
 
         // Find '.'
         char *decimalPtr = strchr(token, '.');
@@ -598,10 +628,11 @@ CoordinateInputType coordinateIdentifyInputType(const char *userEntryOriginal, d
     {
         coordinateInputType = COORDINATE_INPUT_TYPE_DD_MM;
 
-        char *token = strtok(userEntry, " "); // Modifies the given array
+        char *preservedPointer;
+        char *token = strtok_r(userEntry, " ", &preservedPointer); // Modifies the given array
         // We trust that token points at something because the spaceCount is > 0
         int decimal = atoi(token); // Get DD
-        token = strtok(nullptr, " ");
+        token = strtok_r(nullptr, " ", &preservedPointer);
         double minutes = atof(token); // Get MM.mmmmmmm
         *coordinate = decimal + (minutes / 60.0);
         if (negativeSign)
@@ -611,12 +642,13 @@ CoordinateInputType coordinateIdentifyInputType(const char *userEntryOriginal, d
     {
         coordinateInputType = COORDINATE_INPUT_TYPE_DD_MM_SS;
 
-        char *token = strtok(userEntry, " "); // Modifies the given array
+        char *preservedPointer;
+        char *token = strtok_r(userEntry, " ", &preservedPointer); // Modifies the given array
         // We trust that token points at something because the spaceCount is > 0
         int decimal = atoi(token); // Get DD
-        token = strtok(nullptr, " ");
+        token = strtok_r(nullptr, " ", &preservedPointer);
         int minutes = atoi(token); // Get MM
-        token = strtok(nullptr, " ");
+        token = strtok_r(nullptr, " ", &preservedPointer);
 
         // Find '.'
         char *decimalPtr = strchr(token, '.');
@@ -871,4 +903,121 @@ void getMacAddresses(uint8_t *macAddress, const char *name, esp_mac_type_t type,
     if (debug)
         systemPrintf("%02X:%02X:%02X:%02X:%02X:%02X - %s\r\n", macAddress[0], macAddress[1], macAddress[2],
                      macAddress[3], macAddress[4], macAddress[5], name);
-};
+}
+
+// Start the I2C GPIO expander responsible for switches (generally the RTK Flex)
+void beginGpioExpanderSwitches()
+{
+    if (present.gpioExpanderSwitches)
+    {
+        if (gpioExpanderSwitches == nullptr)
+            gpioExpanderSwitches = new SFE_PCA95XX(PCA95XX_PCA9534);
+
+        // In Flex, the GPIO Expander has been assigned address 0x21
+        if (gpioExpanderSwitches->begin(0x21, *i2c_0) == false)
+        {
+            systemPrintln("GPIO expander for switches not detected");
+            delete gpioExpanderSwitches;
+            gpioExpanderSwitches = nullptr;
+            return;
+        }
+
+        // SW1 is on pin 0. Driving it high will disconnect the ESP32 from USB
+        // GNSS_RST is on pin 5. Driving it low when an LG290P is connected will kill the I2C bus.
+        // PWRKILL is on pin 7. Driving it low will turn off the system
+        for (int i = 0; i < gpioExpanderNumSwitches; i++)
+        {
+            // Set all pins to low except GNSS RESET and PWRKILL
+            if (i == gpioExpanderSwitch_GNSS_Reset || i == gpioExpanderSwitch_PowerFastOff)
+                gpioExpanderSwitches->digitalWrite(i, HIGH);
+            else
+                gpioExpanderSwitches->digitalWrite(i, LOW);
+
+            gpioExpanderSwitches->pinMode(i, OUTPUT);
+        }
+
+        online.gpioExpanderSwitches = true;
+
+        systemPrintln("GPIO Expander for switches configuration complete");
+    }
+}
+
+// Drive GPIO pin high to bring GNSS out of reset
+void gpioExpanderGnssBoot()
+{
+    if (online.gpioExpanderSwitches == true)
+        gpioExpanderSwitches->digitalWrite(gpioExpanderSwitch_GNSS_Reset, HIGH);
+}
+
+void gpioExpanderGnssReset()
+{
+    if (online.gpioExpanderSwitches == true)
+    {
+        if (settings.detectedGnssReceiver != GNSS_RECEIVER_LG290P)
+        {
+            gpioExpanderSwitches->digitalWrite(gpioExpanderSwitch_GNSS_Reset, LOW);
+        }
+        else
+            systemPrintln("Skipped disable of LG290P"); // Disabling an LG290P when it's connected to an I2C bus will
+                                                        // bring down the I2C bus
+    }
+}
+
+// The IMU is on UART3 of the Flex module connected to switch 3
+void gpioExpanderSelectImu()
+{
+    if (online.gpioExpanderSwitches == true)
+        gpioExpanderSwitches->digitalWrite(gpioExpanderSwitch_S3, LOW);
+}
+
+// Connect ESP32 UART2 to LoRa UART2 for configuration and bootloading/firmware updates
+void gpioExpanderSelectLoraConfigure()
+{
+    if (online.gpioExpanderSwitches == true)
+        gpioExpanderSwitches->digitalWrite(gpioExpanderSwitch_S3, HIGH);
+}
+
+// Connect Flex GNSS UART2 to LoRa UART0 for normal TX/RX of corrections and data
+void gpioExpanderSelectLoraCommunication()
+{
+    if (online.gpioExpanderSwitches == true)
+        gpioExpanderSwitches->digitalWrite(gpioExpanderSwitch_S4, HIGH);
+}
+
+// Connect Flex GNSS UART2 to 4-pin JST RADIO port
+void gpioExpanderSelectRadioPort()
+{
+    if (online.gpioExpanderSwitches == true)
+        gpioExpanderSwitches->digitalWrite(gpioExpanderSwitch_S4, LOW);
+}
+
+// Drive GPIO pin high to enable LoRa Radio
+void gpioExpanderLoraEnable()
+{
+    if (online.gpioExpanderSwitches == true)
+        gpioExpanderSwitches->digitalWrite(gpioExpanderSwitch_LoraEnable, HIGH);
+}
+void gpioExpanderLoraDisable()
+{
+    if (online.gpioExpanderSwitches == true)
+        gpioExpanderSwitches->digitalWrite(gpioExpanderSwitch_LoraEnable, LOW);
+}
+bool gpioExpanderLoraIsOn()
+{
+    if (online.gpioExpanderSwitches == true)
+    {
+        if (gpioExpanderSwitches->digitalRead(gpioExpanderSwitch_LoraEnable) == HIGH)
+            return (true);
+    }
+    return (false);
+}
+void gpioExpanderLoraBootEnable()
+{
+    if (online.gpioExpanderSwitches == true)
+        gpioExpanderSwitches->digitalWrite(gpioExpanderSwitch_LoraBoot, HIGH);
+}
+void gpioExpanderLoraBootDisable()
+{
+    if (online.gpioExpanderSwitches == true)
+        gpioExpanderSwitches->digitalWrite(gpioExpanderSwitch_LoraBoot, LOW);
+}

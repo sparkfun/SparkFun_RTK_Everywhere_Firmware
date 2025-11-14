@@ -37,7 +37,7 @@ static const char *const webServerStateNames[] = {
     webServer->on(page, HTTP_GET, []() {                                                                               \
         String length;                                                                                                 \
         if (settings.debugWebServer == true)                                                                           \
-            Serial.printf("WebServer: Sending %s (%p, %d bytes)\r\n", page, (void *)data, sizeof(data));               \
+            systemPrintf("WebServer: Sending %s (%p, %d bytes)\r\n", page, (void *)data, sizeof(data));                \
         webServer->sendHeader("Content-Encoding", "gzip");                                                             \
         length = String(sizeof(data));                                                                                 \
         webServer->sendHeader("Content-Length", length.c_str());                                                       \
@@ -63,8 +63,8 @@ static int last_ws_fd;
 
 static TaskHandle_t updateWebServerTaskHandle;
 static const uint8_t updateWebServerTaskPriority = 0; // 3 being the highest, and 0 being the lowest
-static const int webServerTaskStackSize = 1024 * 4;
-static const int webSocketStackSize = 1024 * 20; // Needs to be large enough to hold the file manager file list
+static const int webServerTaskStackSize = 1024 * 4;   // Needs to be large enough to hold the file manager file list
+static const int webSocketStackSize = 1024 * 20;      // Needs to be large enough to hold the full settingsCSV
 
 // Inspired by:
 // https://github.com/espressif/arduino-esp32/blob/master/libraries/WebServer/examples/MultiHomedServers/MultiHomedServers.ino
@@ -217,7 +217,7 @@ void getFileList(String &returnText)
     returnText += "sdFreeSpace," + freeSpace + ",";
 
     char fileName[50]; // Handle long file names
-
+    
     // Attempt to gain access to the SD card
     if (xSemaphoreTake(sdCardSemaphore, fatSemaphore_longWait_ms) == pdPASS)
     {
@@ -239,6 +239,18 @@ void getFileList(String &returnText)
                 String fileSize;
                 stringHumanReadableSize(fileSize, file.fileSize());
                 returnText += "fmName," + String(fileName) + ",fmSize," + fileSize + ",";
+
+                const int maxFiles = 20; //40 is too much
+                const int fileNameLength = 50;
+                const int maxStringLength = maxFiles * fileNameLength;
+                // It is not uncommon to have SD cards with 100+ files on them. String can get huge.
+                // Here we arbitrarily limit it. 
+                // This could be larger but, left unchecked, it will absolutely explode the stack.
+                if(returnText.length() > maxStringLength)
+                {
+                    systemPrintf("Limiting file list to %d characters\r\n", maxStringLength);
+                    break;
+                }
             }
         }
 
@@ -590,8 +602,12 @@ void notFound()
 {
     if (settings.enableCaptivePortal == true && knownCaptiveUrl(webServer->uri()) == true)
     {
-        String logmessage = "Known captive URI: " + webServer->client().remoteIP().toString() + " " + webServer->uri();
-        systemPrintln(logmessage);
+        if (settings.debugWebServer == true)
+        {
+            String logmessage =
+                "Known captive URI: " + webServer->client().remoteIP().toString() + " " + webServer->uri();
+            systemPrintln(logmessage);
+        }
         webServer->sendHeader("Location", "/");
         webServer->send(302, "text/plain", "Redirect to Web Config");
         return;
@@ -669,13 +685,7 @@ bool parseIncomingSettings()
         }
     }
 
-    if (counter < maxAttempts)
-    {
-        // Confirm receipt
-        if (settings.debugWebServer == true)
-            systemPrintln("Sending receipt confirmation of settings");
-        sendStringToWebsocket("confirmDataReceipt,1,");
-    }
+    systemPrintln("Parsing complete");
 
     return (true);
 }
@@ -816,6 +826,8 @@ bool webServerAssignResources(int httpPort = 80)
         /* https://github.com/espressif/arduino-esp32/blob/master/libraries/DNSServer/examples/CaptivePortal/CaptivePortal.ino
          */
 
+        // Note: MDNS should probably be begun by networkMulticastDNSUpdate, but that doesn't seem to be happening...
+        //       Is the networkInterface aware that AP needs it? Let's start it manually...
         if (MDNS.begin(&settings.mdnsHostName[0]) == false)
         {
             systemPrintln("Error setting up MDNS responder!");
@@ -1089,16 +1101,8 @@ void webServerSetState(uint8_t newState)
         if (!online.rtc)
             systemPrintf("%s%s%s%s\r\n", asterisk, initialState, arrow, endingState);
         else
-        {
             // Timestamp the state change
-            //          1         2
-            // 12345678901234567890123456
-            // YYYY-mm-dd HH:MM:SS.xxxrn0
-            struct tm timeinfo = rtc.getTimeStruct();
-            char s[30];
-            strftime(s, sizeof(s), "%Y-%m-%d %H:%M:%S", &timeinfo);
-            systemPrintf("%s%s%s%s, %s.%03ld\r\n", asterisk, initialState, arrow, endingState, s, rtc.getMillis());
-        }
+            systemPrintf("%s%s%s%s, %s\r\n", asterisk, initialState, arrow, endingState, getTimeStamp());
     }
 
     // Validate the state
@@ -1339,6 +1343,8 @@ static esp_err_t ws_handler(httpd_req_t *req)
             for (int i = 0; i < ws_pkt.len; i++)
             {
                 incomingSettings[incomingSettingsSpot++] = ws_pkt.payload[i];
+                if (incomingSettingsSpot == AP_CONFIG_SETTING_SIZE)
+                    systemPrintln("incomingSettings wrap-around. Increase AP_CONFIG_SETTING_SIZE");
                 incomingSettingsSpot %= AP_CONFIG_SETTING_SIZE;
             }
             timeSinceLastIncomingSetting = millis();
@@ -1377,6 +1383,34 @@ static const httpd_uri_t ws = {.uri = "/ws",
 //----------------------------------------
 void httpdDisplayConfig(struct httpd_config *config)
 {
+    /*
+    httpd_config object:
+            5: task_priority
+        20480: stack_size
+    2147483647: core_id
+            81: server_port
+        32768: ctrl_port
+            7: max_open_sockets
+            8: max_uri_handlers
+            8: max_resp_headers
+            5: backlog_conn
+        false: lru_purge_enable
+            5: recv_wait_timeout
+            5: send_wait_timeout
+    0x0: global_user_ctx
+    0x0: global_user_ctx_free_fn
+    0x0: global_transport_ctx
+    0x0: global_transport_ctx_free_fn
+        false: enable_so_linger
+            0: linger_timeout
+        false: keep_alive_enable
+            0: keep_alive_idle
+            0: keep_alive_interval
+            0: keep_alive_count
+    0x0: open_fn
+    0x0: close_fn
+    0x0: uri_match_fn
+    */
     systemPrintf("httpd_config object:\r\n");
     systemPrintf("%10d: task_priority\r\n", config->task_priority);
     systemPrintf("%10d: stack_size\r\n", config->stack_size);
@@ -1418,7 +1452,7 @@ bool websocketServerStart(void)
     // Use different ports for websocket and webServer - use port 81 for the websocket - also defined in main.js
     config.server_port = 81;
 
-    // Increase the stack size from 4K to handle page processing
+    // Increase the stack size from 4K to handle page processing (settingsCSV)
     config.stack_size = webSocketStackSize;
 
     // Start the httpd server

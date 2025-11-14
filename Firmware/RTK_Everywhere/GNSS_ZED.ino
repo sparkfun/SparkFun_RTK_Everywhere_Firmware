@@ -137,7 +137,7 @@ void GNSS_ZED::begin()
 
     if (_zed->begin(*i2c_0) == false)
     {
-        systemPrintln("GNSS Failed to begin. Trying again.");
+        systemPrintln("GNSS ZED failed to begin. Trying again.");
 
         // Try again with power on delay
         delay(1000); // Wait for ZED-F9P to power up before it can respond to ACK
@@ -406,7 +406,9 @@ bool GNSS_ZED::configureBase()
                                            settings.ubxMessageRatesBase[x]); // UBLOX_CFG UART1 + 2 = USB
         }
 
-        response &= _zed->addCfgValset(UBLOX_CFG_NAVSPG_INFIL_MINELEV, settings.minElev); // Set minimum elevation
+        // Set minimum elevation
+        // Note: ZED supports negative elevations, but our firmware only allows 0-90
+        response &= _zed->addCfgValset(UBLOX_CFG_NAVSPG_INFIL_MINELEV, settings.minElev);
 
         response &= _zed->sendCfgValset(); // Closing value
 
@@ -542,10 +544,6 @@ bool GNSS_ZED::configureGNSS()
         _zed->setAutoPVTcallbackPtr(&storePVTdata, VAL_LAYER_ALL); // Enable automatic NAV PVT messages with callback to storePVTdata
     response &= _zed->setAutoHPPOSLLHcallbackPtr(
         &storeHPdata, VAL_LAYER_ALL); // Enable automatic NAV HPPOSLLH messages with callback to storeHPdata
-    _zed->setRTCM1005InputcallbackPtr(
-        &storeRTCM1005data); // Configure a callback for RTCM 1005 - parsed from pushRawData
-    _zed->setRTCM1006InputcallbackPtr(
-        &storeRTCM1006data); // Configure a callback for RTCM 1006 - parsed from pushRawData
 
     if (present.timePulseInterrupt)
         response &= _zed->setAutoTIMTPcallbackPtr(
@@ -1232,7 +1230,15 @@ double GNSS_ZED::getLongitude()
 //----------------------------------------
 uint8_t GNSS_ZED::getMessageNumberByName(const char *msgName)
 {
-    if (present.gnss_zedf9p)
+    return getMessageNumberByName(msgName, false);
+}
+uint8_t GNSS_ZED::getMessageNumberByNameSkipChecks(const char *msgName)
+{
+    return getMessageNumberByName(msgName, true);
+}
+uint8_t GNSS_ZED::getMessageNumberByName(const char *msgName, bool skipPlatformChecks)
+{
+    if (skipPlatformChecks || present.gnss_zedf9p)
     {
         for (int x = 0; x < MAX_UBX_MSG; x++)
         {
@@ -1379,7 +1385,7 @@ float GNSS_ZED::getSurveyInMeanAccuracy()
 
     // Use a local static so we don't have to request these values multiple times (ZED takes many ms to respond
     // to this command)
-    if (millis() - lastCheck > 1000)
+    if ((millis() - lastCheck) > 1000)
     {
         lastCheck = millis();
         svinMeanAccuracy = _zed->getSurveyInMeanAccuracy(50);
@@ -1400,7 +1406,7 @@ int GNSS_ZED::getSurveyInObservationTime()
 
     // Use a local static so we don't have to request these values multiple times (ZED takes many ms to respond
     // to this command)
-    if (millis() - lastCheck > 1000)
+    if ((millis() - lastCheck) > 1000)
     {
         lastCheck = millis();
         svinObservationTime = _zed->getSurveyInObservationTime(50);
@@ -1995,7 +2001,7 @@ void GNSS_ZED::rtcmOnGnssDisable()
 }
 
 //----------------------------------------
-// If L-Band is available, but encrypted, allow RTCM through other sources (radio, ESP-Now) to GNSS receiver
+// If L-Band is available, but encrypted, allow RTCM through other sources (radio, ESP-NOW) to GNSS receiver
 //----------------------------------------
 void GNSS_ZED::rtcmOnGnssEnable()
 {
@@ -2012,6 +2018,28 @@ uint16_t GNSS_ZED::rtcmRead(uint8_t *rtcmBuffer, int rtcmBytesToRead)
 }
 
 //----------------------------------------
+// Set the baud rate of mosaic-X5 COMn - from the super class
+// Inputs:
+//   port: COM port number
+//   baudRate: New baud rate for the COM port
+// Outputs:
+//   Returns true if the baud rate was set and false upon failure
+//----------------------------------------
+bool GNSS_ZED::setBaudRate(uint8_t port, uint32_t baudRate)
+{
+    if (port < 1 || port > 2)
+    {
+        systemPrintln("setBaudRate error: out of range");
+        return (false);
+    }
+
+    if (port == 1)
+        return setDataBaudRate(baudRate);
+    else
+        return setRadioBaudRate(baudRate);
+}
+
+//----------------------------------------
 // Save the current configuration
 // Returns true when the configuration was saved and false upon failure
 //----------------------------------------
@@ -2022,19 +2050,6 @@ bool GNSS_ZED::saveConfiguration()
 
     _zed->saveConfiguration(); // Save the current settings to flash and BBR on the ZED-F9P
     return true;
-}
-
-//----------------------------------------
-// Set the baud rate on the GNSS port that interfaces between the ESP32 and the GNSS
-// This just sets the GNSS side
-// Used during Bluetooth testing
-//----------------------------------------
-bool GNSS_ZED::setBaudrate(uint32_t baudRate)
-{
-    if (online.gnss)
-        return _zed->setVal32(UBLOX_CFG_UART1_BAUDRATE,
-                              (115200 * 2), VAL_LAYER_ALL); // Defaults to 230400 to maximize message output support
-    return false;
 }
 
 //----------------------------------------
@@ -2599,30 +2614,6 @@ void GNSS_ZED::storeMONCOMMSdataRadio(UBX_MON_COMMS_data_t *ubxDataStruct)
 }
 
 //----------------------------------------
-// Callback to save ARPECEF*
-//----------------------------------------
-void storeRTCM1005data(RTCM_1005_data_t *rtcmData1005)
-{
-    ARPECEFX = rtcmData1005->AntennaReferencePointECEFX;
-    ARPECEFY = rtcmData1005->AntennaReferencePointECEFY;
-    ARPECEFZ = rtcmData1005->AntennaReferencePointECEFZ;
-    ARPECEFH = 0;
-    newARPAvailable = true;
-}
-
-//----------------------------------------
-// Callback to save ARPECEF*
-//----------------------------------------
-void storeRTCM1006data(RTCM_1006_data_t *rtcmData1006)
-{
-    ARPECEFX = rtcmData1006->AntennaReferencePointECEFX;
-    ARPECEFY = rtcmData1006->AntennaReferencePointECEFY;
-    ARPECEFZ = rtcmData1006->AntennaReferencePointECEFZ;
-    ARPECEFH = rtcmData1006->AntennaHeight;
-    newARPAvailable = true;
-}
-
-//----------------------------------------
 void storeTIMTPdata(UBX_TIM_TP_data_t *ubxDataStruct)
 {
     uint32_t tow = ubxDataStruct->week - SFE_UBLOX_JAN_1ST_2020_WEEK; // Calculate the number of weeks since Jan 1st
@@ -2687,7 +2678,7 @@ bool GNSS_ZED::surveyInReset()
     while (_zed->getSurveyInActive(100) || _zed->getSurveyInValid(100))
     {
         delay(100);
-        if (millis() - startTime > maxTime)
+        if ((millis() - startTime) > maxTime)
             return (false); // Reset of survey failed
     }
 
@@ -2751,7 +2742,7 @@ bool GNSS_ZED::surveyInStart()
     while (_zed->getSurveyInActive(100) == false)
     {
         delay(100);
-        if (millis() - startTime > maxTime)
+        if ((millis() - startTime) > maxTime)
             return (false); // Reset of survey failed
     }
 
@@ -2994,7 +2985,7 @@ void inputMessageRate(uint8_t &localMessageRate, uint8_t messageNumber)
     if (rate == INPUT_RESPONSE_GETNUMBER_TIMEOUT || rate == INPUT_RESPONSE_GETNUMBER_EXIT)
         return;
 
-    while (rate < 0 || rate > 255) // 8 bit limit
+    while (rate < 0 || rate > 250) // 8 bit limit. Avoid 254!
     {
         systemPrintln("Error: Message rate out of range");
         systemPrintf("Enter %s message rate (0 to disable): ", ubxMessages[messageNumber].msgTextName);

@@ -78,6 +78,8 @@ const CoordinateTypes = {
 var convertedCoordinate = 0.0;
 var coordinateInputType = CoordinateTypes.COORDINATE_INPUT_TYPE_DD;
 
+var initialSettings = {};
+
 function parseIncoming(msg) {
     //console.log("Incoming message: " + msg);
 
@@ -112,16 +114,17 @@ function parseIncoming(msg) {
                 hide("externalPortOptions");
                 show("logToSDCard");
                 hide("galileoHasSetting");
+                hide("lg290pGnssSettings");
                 hide("tiltConfig");
                 hide("beeperControl");
-                show("useAssistNowCheckbox");
                 show("measurementRateInput");
                 hide("mosaicNMEAStreamDropdowns");
                 show("surveyInSettings");
-                show("useLocalizedDistributionCheckbox");
+
                 show("useEnableExtCorrRadio");
                 show("extCorrRadioSPARTNSourceDropdown");
                 hide("enableNmeaOnRadio");
+
                 hide("shutdownNoChargeTimeoutMinutesCheckboxDetail");
 
                 hide("constellationNavic"); //Not supported on ZED
@@ -131,7 +134,9 @@ function parseIncoming(msg) {
                 select.add(newOption, undefined);
                 newOption = new Option('Flex NTRIP/RTCM', '1');
                 select.add(newOption, undefined);
-                newOption = new Option('Flex L-Band North America', '2');
+                newOption = new Option('Flex L-Band North America (Deprecated)', '2');
+                select.add(newOption, undefined);
+                newOption = new Option('Flex MQTT (Deprecated)', '5');
                 select.add(newOption, undefined);
             }
             else if ((platformPrefix == "Facet v2") || (platformPrefix == "Facet v2 LBand")) {
@@ -143,13 +148,12 @@ function parseIncoming(msg) {
                 show("externalPortOptions");
                 show("logToSDCard");
                 hide("galileoHasSetting");
+                hide("lg290pGnssSettings");
                 hide("tiltConfig");
                 hide("beeperControl");
-                show("useAssistNowCheckbox");
                 show("measurementRateInput");
                 hide("mosaicNMEAStreamDropdowns");
                 show("surveyInSettings");
-                show("useLocalizedDistributionCheckbox");
                 show("useEnableExtCorrRadio");
                 show("extCorrRadioSPARTNSourceDropdown");
                 hide("enableNmeaOnRadio");
@@ -165,13 +169,13 @@ function parseIncoming(msg) {
                 show("externalPortOptions");
                 show("logToSDCard");
                 hide("galileoHasSetting");
+                hide("lg290pGnssSettings");
                 hide("tiltConfig");
                 hide("beeperControl");
-                hide("useAssistNowCheckbox");
                 hide("measurementRateInput");
                 show("mosaicNMEAStreamDropdowns");
                 hide("surveyInSettings");
-                hide("useLocalizedDistributionCheckbox");
+
                 show("useEnableExtCorrRadio");
                 hide("extCorrRadioSPARTNSourceDropdown");
                 show("enableNmeaOnRadio");
@@ -203,7 +207,9 @@ function parseIncoming(msg) {
                 select.add(newOption, undefined);
                 newOption = new Option('Flex NTRIP/RTCM', '1');
                 select.add(newOption, undefined);
-                newOption = new Option('Flex L-Band North America', '2');
+                newOption = new Option('Flex L-Band North America (Deprecated)', '2');
+                select.add(newOption, undefined);
+                newOption = new Option('Flex MQTT (Deprecated)', '5');
                 select.add(newOption, undefined);
             }
             else if (platformPrefix == "Torch") {
@@ -222,7 +228,9 @@ function parseIncoming(msg) {
                 hide("constellationSbas"); //Not supported on UM980
                 hide("constellationNavic"); //Not supported on UM980
 
-                show("useAssistNowCheckbox"); //Does the PPL use MGA? Not sure...
+                show("galileoHasSetting");
+                hide("lg290pGnssSettings");
+
                 show("measurementRateInput");
 
                 show("loraConfig");
@@ -242,6 +250,8 @@ function parseIncoming(msg) {
                 select.add(newOption, undefined);
                 newOption = new Option('Flex NTRIP/RTCM', '1');
                 select.add(newOption, undefined);
+                newOption = new Option('Flex MQTT (Deprecated)', '5');
+                select.add(newOption, undefined);
             }
             else if (platformPrefix == "Postcard") {
                 show("baseConfig");
@@ -252,15 +262,14 @@ function parseIncoming(msg) {
                 show("externalPortOptions");
                 show("logToSDCard");
 
-                hide("galileoHasSetting");
+                show("galileoHasSetting");
+                show("lg290pGnssSettings");
                 hide("tiltConfig");
                 hide("beeperControl");
 
-                show("useAssistNowCheckbox");
                 show("measurementRateInput");
                 hide("mosaicNMEAStreamDropdowns");
                 show("surveyInSettings");
-                show("useLocalizedDistributionCheckbox");
                 show("useEnableExtCorrRadio");
                 hide("extCorrRadioSPARTNSourceDropdown");
                 show("enableNmeaOnRadio");
@@ -269,8 +278,8 @@ function parseIncoming(msg) {
                 show("constellationNavic");
 
                 hide("dynamicModelDropdown"); //Not supported on LG290P
-                hide("minElevConfig"); //Not supported on LG290P
-                hide("minCNOConfig"); //Not supported on LG290P
+                show("minElevConfig");
+                show("minCNOConfig");
 
                 ge("rtcmRateInfoText").setAttribute('data-bs-original-title', 'RTCM is transmitted by the base at a default of 1Hz for messages 1005, 1074, 1084, 1094, 1114, 1124, 1134. This can be lowered for radios with low bandwidth or tailored to transmit any/all RTCM messages. Limits: 0 to 20. Note: The measurement rate is overridden to 1Hz when in Base mode.');
 
@@ -279,8 +288,9 @@ function parseIncoming(msg) {
                 select.add(newOption, undefined);
                 newOption = new Option('Flex NTRIP/RTCM', '1');
                 select.add(newOption, undefined);
+                newOption = new Option('Flex MQTT (Deprecated)', '5');
+                select.add(newOption, undefined);
 
-                console.log("Change baud list");
                 ge("radioPortBaud").options.length = 0; //Remove all from list
                 select = ge("radioPortBaud");
                 newOption = new Option('9600', '9600');
@@ -305,6 +315,48 @@ function parseIncoming(msg) {
                 newOption = new Option('460800', '460800');
                 select.add(newOption, undefined);
                 newOption = new Option('921600', '921600');
+                select.add(newOption, undefined);
+            }
+            else if (platformPrefix == "Torch X2") {
+                show("baseConfig");
+                show("ppConfig");
+                hide("ethernetConfig");
+                hide("ntpConfig");
+                show("portsConfig");
+
+                // No RADIO port on Torch X2
+                // No DATA port on Torch X2
+                hide("externalPortOptions");
+
+                hide("logToSDCard"); //No SD card on Torch
+
+                hide("constellationSbas"); //Not supported on LG290P
+                show("constellationNavic");
+                show("galileoHasSetting");
+                show("lg290pGnssSettings");
+                hide("tiltConfig"); //Not supported on Torch X2
+
+                show("measurementRateInput");
+
+                hide("mosaicNMEAStreamDropdowns");
+                show("surveyInSettings");
+
+                hide("useEnableExtCorrRadio"); //No External Radio connector on Torch X2
+                hide("extCorrRadioSPARTNSourceDropdown");
+                hide("enableNmeaOnRadio");
+
+                hide("dynamicModelDropdown"); //Not supported on LG290P
+                show("minElevConfig");
+                show("minCNOConfig");
+
+                ge("rtcmRateInfoText").setAttribute('data-bs-original-title', 'RTCM is transmitted by the base at a default of 1Hz for messages 1005, 1074, 1084, 1094, 1124, and 0.1Hz for 1033. This can be lowered for radios with low bandwidth or tailored to transmit any/all RTCM messages. Limits: 0 to 20. Note: The measurement rate is overridden to 1Hz when in Base mode.');
+
+                select = ge("pointPerfectService");
+                newOption = new Option('Disabled', '0');
+                select.add(newOption, undefined);
+                newOption = new Option('Flex NTRIP/RTCM', '1');
+                select.add(newOption, undefined);
+                newOption = new Option('Flex MQTT (Deprecated)', '5');
                 select.add(newOption, undefined);
             }
         }
@@ -460,6 +512,23 @@ function parseIncoming(msg) {
             messageText += " id='" + messageName + "' value='" + messageRate + "'>";
             messageText += "<p id='" + messageName + "Error' class='inlineError'></p>";
             messageText += "</div></div>";
+        }
+        else if (id.includes("messageRatePQTM")) {
+            // messageRatePQTM_EPE
+            var messageName = id;
+            var messageNameLabel = "";
+
+            var messageData = messageName.split('_');
+            messageNameLabel = messageData[1];
+
+            messageText += "<div class='form-check mt-3'>";
+            messageText += "<label class='form-check-label' for='" + messageName + "'>Enable " + messageNameLabel + "</label>";
+            messageText += "<input class='form-check-input' type='checkbox' id='" + messageName + "'>";
+            messageText += "</div>";
+
+            // Save the name and value as we can't set 'checked' yet. messageText has not yet been added to innerHTML
+            savedCheckboxNames.push(messageName);
+            savedCheckboxValues.push(val);
         }
         else if (id.includes("messageRate") || id.includes("messageIntervalRTCM")) {
             // messageRateNMEA_GPDTM
@@ -647,7 +716,7 @@ function parseIncoming(msg) {
         ge("enableARPLogging").dispatchEvent(new CustomEvent('change'));
         ge("enableAutoFirmwareUpdate").dispatchEvent(new CustomEvent('change'));
         ge("enableAutoReset").dispatchEvent(new CustomEvent('change'));
-        ge("useLocalizedDistribution").dispatchEvent(new CustomEvent('change'));
+        ge("enableGalileoHas").dispatchEvent(new CustomEvent('change'));
 
         updateECEFList();
         updateGeodeticList();
@@ -657,7 +726,36 @@ function parseIncoming(msg) {
         dhcpEthernet();
         updateLatLong();
         updateCorrectionsPriorities();
+
+        // Create copy of settings, send only changes when 'Save Configuration' is pressed
+        saveInitialSettings(); 
     }
+}
+
+// Save the current state of settings
+function saveInitialSettings() {
+    initialSettings = {}; // Clear previous settings
+
+    // Save input boxes and dropdowns
+    var clsElements = document.querySelectorAll(".form-control, .form-dropdown");
+    for (let x = 0; x < clsElements.length; x++) {
+        initialSettings[clsElements[x].id] = clsElements[x].value;
+    }
+
+    // Save checkboxes and radio buttons
+    clsElements = document.querySelectorAll(".form-check-input:not(.fileManagerCheck), .form-radio");
+    for (let x = 0; x < clsElements.length; x++) {
+        // Store boolean values for easy comparison
+        initialSettings[clsElements[x].id] = clsElements[x].checked.toString();
+    }
+
+    // Save corrections priorities
+    for (let x = 0; x < numCorrectionsSources; x++) {
+        initialSettings["correctionsPriority_" + correctionsSourceNames[x]] = correctionsSourcePriorities[x].toString();
+    }
+
+    // Note: recordsECEF and recordsGeodetic change very little so instead
+    // of creating copy here, we will resend any entered coordinates every time.
 }
 
 function hide(id) {
@@ -668,39 +766,69 @@ function show(id) {
     ge(id).style.display = "block";
 }
 
-//Create CSV of all setting data
+function isElementShown(id) {
+    if (ge(id).style.display == "block") {
+        return (true);
+    }
+    return (false);
+}
+
+//Create CSV of all setting data that has changed from the original given to us
 function sendData() {
     var settingCSV = "";
+    var changedCount = 0;
 
-    //Input boxes
+    // Check input boxes and dropdowns
     var clsElements = document.querySelectorAll(".form-control, .form-dropdown");
     for (let x = 0; x < clsElements.length; x++) {
-        settingCSV += clsElements[x].id + "," + clsElements[x].value + ",";
+        var id = clsElements[x].id;
+        var currentValue = clsElements[x].value;
+        if (initialSettings[id] !== currentValue) {
+            settingCSV += id + "," + currentValue + ",";
+            changedCount++;
+        }
     }
 
-    //Check boxes, radio buttons
-    //Remove file manager files
+    // Check boxes, radio buttons
     clsElements = document.querySelectorAll(".form-check-input:not(.fileManagerCheck), .form-radio");
     for (let x = 0; x < clsElements.length; x++) {
-        settingCSV += clsElements[x].id + "," + clsElements[x].checked + ",";
+        var id = clsElements[x].id;
+        // Store boolean as string 'true'/'false' for consistent comparison with initialSettings
+        var currentValue = clsElements[x].checked.toString();
+        if (initialSettings[id] !== currentValue) {
+            settingCSV += id + "," + currentValue + ",";
+            changedCount++;
+        }
     }
 
+    // Records (ECEF and Geodetic) - For simplicity, we send the full list if any list element exists.
     for (let x = 0; x < recordsECEF.length; x++) {
         settingCSV += "stationECEF" + x + ',' + recordsECEF[x] + ",";
     }
-
     for (let x = 0; x < recordsGeodetic.length; x++) {
         settingCSV += "stationGeodetic" + x + ',' + recordsGeodetic[x] + ",";
     }
 
+    // Corrections Priorities
     for (let x = 0; x < correctionsSourceNames.length; x++) {
-        settingCSV += "correctionsPriority_" + correctionsSourceNames[x] + ',' + correctionsSourcePriorities[x] + ",";
+        var id = "correctionsPriority_" + correctionsSourceNames[x];
+        var currentValue = correctionsSourcePriorities[x].toString();
+        if (initialSettings[id] !== currentValue) {
+            settingCSV += id + ',' + currentValue + ",";
+            changedCount++;
+        }
     }
 
-    console.log("Sending: " + settingCSV);
-    websocket.send(settingCSV);
+    console.log("Sending " + changedCount + " changed settings: " + settingCSV);
 
-    sendDataTimeout = setTimeout(sendData, 2000);
+    // Only send if there are changes (plus the always-sent records)
+    if (settingCSV.length > 0) {
+        websocket.send(settingCSV);
+        sendDataTimeout = setTimeout(sendData, 2000);
+    } else {
+        // If nothing changed, immediately report success.
+        showSuccess('saveBtn', "No changes detected.");
+    }
 }
 
 function showError(id, errorText) {
@@ -759,6 +887,14 @@ function checkMessageValueUM980Base(id) {
     checkElementValue(id, 0, 65, "Must be between 0 and 65", "collapseGNSSConfigMsgBase");
 }
 
+function checkMessageValueLG290P01(id) {
+    checkElementValue(id, 0, 1, "Must be between 0 and 1", "collapseGNSSConfigMsg");
+}
+
+function checkMessageValueLG290P01200(id) {
+    checkElementValue(id, 0, 1200, "Must be between 0 and 1200", "collapseGNSSConfigMsg");
+}
+
 function collapseSection(section, caret) {
     ge(section).classList.remove('show');
     ge(caret).classList.remove('icon-caret-down');
@@ -795,7 +931,12 @@ function validateFields() {
 
     checkElementValue("minElev", 0, 90, "Must be between 0 and 90", "collapseGNSSConfig");
     checkElementValue("minCNO", 0, 90, "Must be between 0 and 90", "collapseGNSSConfig");
-
+    if (isElementShown("lg290pGnssSettings") == true) {
+        checkElementValue("rtcmMinElev", -90, 90, "Must be between -90 and 90", "collapseGNSSConfig");
+    }
+    if (isElementShown("configurePppSetting") == true) {
+        checkElementStringSpacesNoCommas("configurePPP", 1, 30, "Must be 1 to 30 characters. Separated by spaces. Commas not allowed", "collapseGNSSConfig");
+    }
     if (ge("enableNtripClient").checked == true) {
         checkElementString("ntripClientCasterHost", 1, 45, "Must be 1 to 45 characters", "collapseGNSSConfig");
         checkElementValue("ntripClientCasterPort", 1, 99999, "Must be 1 to 99999", "collapseGNSSConfig");
@@ -859,6 +1000,25 @@ function validateFields() {
         for (let x = 0; x < messages.length; x++) {
             var messageName = messages[x].id;
             checkElementValue(messageName, 0.1, 600.0, "Must be between 0.1 and 600.0", "collapseGNSSConfigMsgBase");
+        }
+    }
+
+    //Check all LG290P message boxes
+    else if ((platformPrefix == "Postcard") || (platformPrefix == "Torch X2")) {
+        var messages = document.querySelectorAll('input[id^=messageRateNMEA_]');
+        for (let x = 0; x < messages.length; x++) {
+            var messageName = messages[x].id;
+            checkMessageValueLG290P01(messageName);
+        }
+        var messages = document.querySelectorAll('input[id^=messageRateRTCMRover_]');
+        for (let x = 0; x < messages.length; x++) {
+            var messageName = messages[x].id;
+            checkMessageValueLG290P01200(messageName);
+        }
+        var messages = document.querySelectorAll('input[id^=messageRateRTCMBase_]');
+        for (let x = 0; x < messages.length; x++) {
+            var messageName = messages[x].id;
+            checkMessageValueLG290P01200(messageName);
         }
     }
 
@@ -1003,8 +1163,8 @@ function validateFields() {
 
     //System Config
     if (ge("enableLogging").checked == true) {
-        checkElementValue("maxLogTime", 1, 1051200, "Must be 1 to 1,051,200", "collapseSystemConfig");
-        checkElementValue("maxLogLength", 1, 1051200, "Must be 1 to 1,051,200", "collapseSystemConfig");
+        checkElementValue("maxLogTime", 0, 1051200, "Must be 0 to 1,051,200", "collapseSystemConfig");
+        checkElementValue("maxLogLength", 0, 2880, "Must be 0 to 2880", "collapseSystemConfig");
     }
     else {
         clearElement("maxLogTime", 60 * 24);
@@ -1279,6 +1439,19 @@ function checkElementString(id, min, max, errorText, collapseID) {
         clearError(id);
 }
 
+function checkElementStringSpacesNoCommas(id, min, max, errorText, collapseID) {
+    value = ge(id).value;
+    var commas = value.split(',');
+    var spaces = value.split(' ');
+    if ((value.length < min) || (value.length > max) || (commas.length > 1) || (spaces.length == 1)) {
+        ge(id + 'Error').innerHTML = 'Error: ' + errorText;
+        ge(collapseID).classList.add('show');
+        errorCount++;
+    }
+    else
+        clearError(id);
+}
+
 function checkElementIPAddress(id, errorText, collapseID) {
     value = ge(id).value;
     var data = value.split('.');
@@ -1378,6 +1551,12 @@ function zeroMessages() {
         var messageName = messages[x].id;
         ge(messageName).checked = false;
     }
+    //match messageRatePQTM_
+    messages = document.querySelectorAll('input[id^=messageRatePQTM_]');
+    for (let x = 0; x < messages.length; x++) {
+        var messageName = messages[x].id;
+        ge(messageName).checked = false;
+    }
 }
 
 function zeroBaseMessages() {
@@ -1434,6 +1613,15 @@ function resetToSurveyingDefaults() {
 
         ge("messageIntervalRTCMRover_RTCM1033").value = 10.0;
     }
+    else if ((platformPrefix == "Postcard") || (platformPrefix == "Torch X2")) {
+        ge("messageRateNMEA_GPRMC").value = 1;
+        ge("messageRateNMEA_GPGGA").value = 1;
+        ge("messageRateNMEA_GPGSV").value = 1;
+        ge("messageRateNMEA_GPGSA").value = 1;
+        ge("messageRateNMEA_GPVTG").value = 1;
+        ge("messageRateNMEA_GPGLL").value = 1;
+        ge("messageRateNMEA_GPGST").value = 1; //Supported on >= v4
+    }
 }
 function resetToLoggingDefaults() {
     zeroMessages();
@@ -1448,16 +1636,40 @@ function resetToLoggingDefaults() {
         ge("ubxMessageRate_RXM_SFRBX").value = 1;
     }
     else if (platformPrefix == "Torch") {
-        ge("messageRateNMEA_GPGGA").value = 0.5;
-        ge("messageRateNMEA_GPGSA").value = 0.5;
-        ge("messageRateNMEA_GPGST").value = 0.5;
-        ge("messageRateNMEA_GPGSV").value = 1.0;
-        ge("messageRateNMEA_GPRMC").value = 0.5;
+        ge("messageRateNMEA_GPGGA").value = 1;
+        ge("messageRateNMEA_GPGSA").value = 1;
+        ge("messageRateNMEA_GPGST").value = 1;
+        ge("messageRateNMEA_GPGSV").value = 5; // Limit to 1 per 5 seconds
+        ge("messageRateNMEA_GPRMC").value = 1;
 
-        ge("messageRateRTCMRover_RTCM1019").value = 1.0;
-        ge("messageRateRTCMRover_RTCM1020").value = 1.0;
-        ge("messageRateRTCMRover_RTCM1042").value = 1.0;
-        ge("messageRateRTCMRover_RTCM1046").value = 1.0;
+        ge("messageRateRTCMRover_RTCM1019").value = 30;
+        ge("messageRateRTCMRover_RTCM1020").value = 30;
+        ge("messageRateRTCMRover_RTCM1042").value = 30;
+        ge("messageRateRTCMRover_RTCM1046").value = 30;
+
+        ge("messageRateRTCMRover_RTCM1074").value = 30;
+        ge("messageRateRTCMRover_RTCM1084").value = 30;
+        ge("messageRateRTCMRover_RTCM1094").value = 30;
+        ge("messageRateRTCMRover_RTCM1124").value = 30;
+    }
+    else if ((platformPrefix == "Postcard") || (platformPrefix == "Torch X2")) {
+        ge("messageRateNMEA_GPRMC").value = 1;
+        ge("messageRateNMEA_GPGGA").value = 1;
+        ge("messageRateNMEA_GPGSV").value = 1;
+        ge("messageRateNMEA_GPGSA").value = 1;
+        ge("messageRateNMEA_GPVTG").value = 1;
+        ge("messageRateNMEA_GPGLL").value = 1;
+        ge("messageRateNMEA_GPGST").value = 1; // Supported on >= v4
+
+        ge("messageRateRTCMRover_RTCM1019").value = 30;
+        ge("messageRateRTCMRover_RTCM1020").value = 30;
+        ge("messageRateRTCMRover_RTCM1042").value = 30;
+        ge("messageRateRTCMRover_RTCM1046").value = 30;
+
+        ge("messageRateRTCMRover_RTCM107X").value = 30;
+        ge("messageRateRTCMRover_RTCM108X").value = 30;
+        ge("messageRateRTCMRover_RTCM109X").value = 30;
+        ge("messageRateRTCMRover_RTCM112X").value = 30;
     }
     else if (platformPrefix == "Facet mosaicX5") {
         ge("streamIntervalNMEA_0").value = 6; //msec500
@@ -1742,15 +1954,6 @@ document.addEventListener("DOMContentLoaded", (event) => {
         }
     });
 
-    ge("useLocalizedDistribution").addEventListener("change", function () {
-        if (ge("useLocalizedDistribution").checked) {
-            show("localizedDistributionTileLevelDropdown");
-        }
-        else {
-            hide("localizedDistributionTileLevelDropdown");
-        }
-    });
-
     ge("enableExternalPulse").addEventListener("change", function () {
         if (ge("enableExternalPulse").checked == true) {
             show("externalPulseConfigDetails");
@@ -1859,6 +2062,20 @@ document.addEventListener("DOMContentLoaded", (event) => {
 
     ge("fixedHAEAPC").addEventListener("change", function () {
         adjustHAE();
+    });
+
+    ge("enableGalileoHas").addEventListener("change", function () {
+        if ((isElementShown("galileoHasSetting") == true) && (isElementShown("lg290pGnssSettings") == true)) {
+            if (ge("enableGalileoHas").checked == true) {
+                show("configurePppSetting");
+            }
+            else {
+                hide("configurePppSetting");
+            }
+        }
+        else {
+            hide("configurePppSetting"); // Hide on Torch UM980 - i.e. non-LG290P
+        }
     });
 
     for (let y = 0; y < numCorrectionsSources; y++) {

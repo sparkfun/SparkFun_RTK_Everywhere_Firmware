@@ -11,7 +11,7 @@ static uint32_t lastStateTime = 0;
 // A user pressing the mode button (change between rover/base) is handled by buttonCheckTask()
 void stateUpdate()
 {
-    if (millis() - lastSystemStateUpdate > 500 || forceSystemStateUpdate == true)
+    if (((millis() - lastSystemStateUpdate) > 500) || (forceSystemStateUpdate == true))
     {
         lastSystemStateUpdate = millis();
         forceSystemStateUpdate = false;
@@ -101,7 +101,7 @@ void stateUpdate()
             if (gnss->configureRover() == false)
             {
                 settings.gnssConfiguredRover = false; // On the next boot, reapply all settings
-                recordSystemSettings();           // Record this state for next POR
+                recordSystemSettings();               // Record this state for next POR
 
                 systemPrintln("Rover config failed");
                 displayRoverFail(1000);
@@ -110,12 +110,12 @@ void stateUpdate()
 
             setMuxport(settings.dataPortChannel); // Return mux to original channel
 
-            bluetoothStart(); // Turn on Bluetooth with 'Rover' name
+            bluetoothStart(); // Start Bluetooth if it is not already started
 
             webServerStop();             // Stop the web config server
             baseCasterDisableOverride(); // Disable casting overrides
 
-            // Start the UART connected to the GNSS receiver for NMEA and UBX data (enables logging)
+            // Start the UART connected to the GNSS receiver for NMEA data (enables logging)
             if (tasksStartGnssUart() == false)
                 displayRoverFail(1000);
             else
@@ -208,7 +208,6 @@ void stateUpdate()
         case (STATE_BASE_CASTER_NOT_STARTED): {
             baseCasterEnableOverride();
 
-            wifiSoftApSsid = "RTK Caster";
             changeState(STATE_BASE_NOT_STARTED);
         }
         break;
@@ -224,18 +223,17 @@ void stateUpdate()
 
             displayBaseStart(0); // Show 'Base'
 
-            bluetoothStop();
-            bluetoothStart(); // Restart Bluetooth with 'Base' identifier
+            bluetoothStart(); // Start Bluetooth if it is not already started
 
             webServerStop(); // Stop the web config server
 
-            // Start the UART connected to the GNSS receiver for NMEA and UBX data (enables logging)
+            // Start the UART connected to the GNSS receiver for NMEA data (enables logging)
             if (tasksStartGnssUart() && gnss->configureBase())
             {
                 // settings.gnssConfiguredBase is set by gnss->configureBase()
-                settings.gnssConfiguredRover = false; // When the mode changes, reapply all settings
+                settings.gnssConfiguredRover = false;        // When the mode changes, reapply all settings
                 settings.lastState = STATE_BASE_NOT_STARTED; // Record this state for next POR
-                recordSystemSettings(); // Record this state for next POR
+                recordSystemSettings();                      // Record this state for next POR
 
                 displayBaseSuccess(500); // Show 'Base Started'
 
@@ -247,7 +245,7 @@ void stateUpdate()
             else
             {
                 settings.gnssConfiguredBase = false; // On the next boot, reapply all settings
-                recordSystemSettings();          // Record this state for next POR
+                recordSystemSettings();              // Record this state for next POR
 
                 displayBaseFail(1000);
             }
@@ -257,7 +255,7 @@ void stateUpdate()
         // Wait for horz acc of 5m or less before starting survey in
         case (STATE_BASE_TEMP_SETTLE): {
             // Blink base LED slowly while we wait for first fix
-            if (millis() - lastBaseLEDupdate > 1000)
+            if ((millis() - lastBaseLEDupdate) > 1000)
             {
                 lastBaseLEDupdate = millis();
 
@@ -297,7 +295,7 @@ void stateUpdate()
         // Check survey status until it completes or 15 minutes elapses and we go back to rover
         case (STATE_BASE_TEMP_SURVEY_STARTED): {
             // Blink base LED quickly during survey in
-            if (millis() - lastBaseLEDupdate > 500)
+            if ((millis() - lastBaseLEDupdate) > 500)
             {
                 lastBaseLEDupdate = millis();
 
@@ -401,7 +399,7 @@ void stateUpdate()
         break;
 
         case (STATE_DISPLAY_SETUP): {
-            if (millis() - lastSetupMenuChange > 10000) // Exit Setup after 10s
+            if (lastSetupMenuChange.millisSinceUpdate() > 10000) // Exit Setup after 10s
             {
                 firstButtonThrownOut = false;
                 changeState(lastSystemState); // Return to the last system state
@@ -431,7 +429,6 @@ void stateUpdate()
             for (int serverIndex = 0; serverIndex < NTRIP_SERVER_MAX; serverIndex++)
                 ntripServerStop(serverIndex, true); // Do not allocate new wifiClient
 
-            wifiSoftApSsid = "RTK Config";
             webServerStart(); // Start the webserver state machine for web config
 
             RTK_MODE(RTK_MODE_WEB_CONFIG);
@@ -442,25 +439,28 @@ void stateUpdate()
         case (STATE_WEB_CONFIG): {
             if (incomingSettingsSpot > 0)
             {
-                // Allow for 750ms before we parse buffer for all data to arrive
-                if (millis() - timeSinceLastIncomingSetting > 750)
+                // Allow for 250ms before we parse buffer for all data to arrive
+                if ((millis() - timeSinceLastIncomingSetting) > 250)
                 {
-                    bool changed;
+                    // Confirm receipt so the web interface stops sending the config blob
+                    if (settings.debugWebServer == true)
+                        systemPrintln("Sending receipt confirmation of settings");
+                    sendStringToWebsocket("confirmDataReceipt,1,");
 
-                    currentlyParsingData =
-                        true; // Disallow new data to flow from websocket while we are parsing the current data
+                    // Disallow new data to flow from websocket while we are parsing the current data
+                    currentlyParsingData = true;
 
                     systemPrint("Parsing: ");
                     for (int x = 0; x < incomingSettingsSpot; x++)
                         systemWrite(incomingSettings[x]);
                     systemPrintln();
 
-                    //Create temporary copy of Settings, so that we can check if they change while parsing
-                    //Useful for detecting when we need to change WiFi station settings
+                    // Create temporary copy of Settings, so that we can check if they change while parsing
+                    // Useful for detecting when we need to change WiFi station settings
                     wifiSettingsClone();
-                    
+
                     parseIncomingSettings();
-                    
+
                     settings.gnssConfiguredOnce = false; // On the next boot, reapply all settings
                     settings.gnssConfiguredBase = false;
                     settings.gnssConfiguredRover = false;
@@ -480,7 +480,7 @@ void stateUpdate()
             if (websocketConnected == true)
             {
                 // Update the coordinates on the AP page
-                if (millis() - lastDynamicDataUpdate > 1000)
+                if ((millis() - lastDynamicDataUpdate) > 1000)
                 {
                     lastDynamicDataUpdate = millis();
                     createDynamicDataString(settingsCSV);
@@ -510,7 +510,7 @@ void stateUpdate()
         // Setup device for testing
         case (STATE_TEST): {
             // Debounce entry into test menu
-            if (millis() - lastTestMenuChange > 500)
+            if ((millis() - lastTestMenuChange) > 500)
             {
                 tasksStopGnssUart(); // Stop absoring GNSS serial via task
                 zedUartPassed = false;
@@ -542,10 +542,11 @@ void stateUpdate()
 
         case (STATE_ESPNOW_PAIRING_NOT_STARTED): {
 #ifdef COMPILE_ESPNOW
+
             paintEspNowPairing();
 
-            // Start ESP-Now if needed, put ESP-Now into broadcast state
-            espNowBeginPairing();
+            // Let the ESP-NOW state machine know we want to start pairing
+            espnowRequestPair = true;
 
             changeState(STATE_ESPNOW_PAIRING);
 #else  // COMPILE_ESPNOW
@@ -555,15 +556,11 @@ void stateUpdate()
         break;
 
         case (STATE_ESPNOW_PAIRING): {
-            if (espNowProcessRxPairedMessage() == true)
-            {
-                paintEspNowPaired();
-
+            // The ESP-NOW state machine handles the pairing process
+            // Once it exits the pairing process, return to last system state
+            if (espNowIsPairing)
                 // Return to the previous state
                 changeState(lastSystemState);
-            }
-            else
-                espNowSendPairMessage(espNowBroadcastAddr); // Send unit's MAC address over broadcast, no ack, no encryption
         }
         break;
 
@@ -577,11 +574,11 @@ void stateUpdate()
 
             displayNtpStart(500); // Show 'NTP'
 
-            // Start UART connected to the GNSS receiver for NMEA and UBX data (enables logging)
+            // Start UART connected to the GNSS receiver for NMEA data (enables logging)
             if (tasksStartGnssUart() && ntpConfigureUbloxModule())
             {
                 settings.lastState = STATE_NTPSERVER_NOT_STARTED; // Record this state for next POR
-                settings.gnssConfiguredBase = false; // On the next boot, reapply all settings
+                settings.gnssConfiguredBase = false;              // On the next boot, reapply all settings
                 settings.gnssConfiguredRover = false;
                 recordSystemSettings();
 
@@ -689,6 +686,7 @@ const char *getState(SystemState state, char *buffer)
         return "STATE_DISPLAY_SETUP";
     case (STATE_WEB_CONFIG_NOT_STARTED):
         return "STATE_WEB_CONFIG_NOT_STARTED";
+    case (STATE_WEB_CONFIG_WAIT_FOR_NETWORK):
     case (STATE_WEB_CONFIG):
         return "STATE_WEB_CONFIG";
     case (STATE_TEST):
@@ -764,16 +762,8 @@ void changeState(SystemState newState)
         if (!online.rtc)
             systemPrintf("%s%s%s%s\r\n", asterisk, initialState, arrow, endingState);
         else
-        {
             // Timestamp the state change
-            //          1         2
-            // 12345678901234567890123456
-            // YYYY-mm-dd HH:MM:SS.xxxrn0
-            struct tm timeinfo = rtc.getTimeStruct();
-            char s[30];
-            strftime(s, sizeof(s), "%Y-%m-%d %H:%M:%S", &timeinfo);
-            systemPrintf("%s%s%s%s, %s.%03ld\r\n", asterisk, initialState, arrow, endingState, s, rtc.getMillis());
-        }
+            systemPrintf("%s%s%s%s, %s\r\n", asterisk, initialState, arrow, endingState, getTimeStamp());
     }
 }
 
@@ -785,13 +775,15 @@ typedef struct _RTK_MODE_ENTRY
     SystemState last;
 } RTK_MODE_ENTRY;
 
-const RTK_MODE_ENTRY stateModeTable[] = {{"Rover", STATE_ROVER_NOT_STARTED, STATE_ROVER_RTK_FIX},
-                                         {"Base", STATE_BASE_NOT_STARTED, STATE_BASE_FIXED_TRANSMITTING},
-                                         {"Setup", STATE_DISPLAY_SETUP, STATE_PROFILE},
-                                         {"ESPNOW Pairing", STATE_ESPNOW_PAIRING_NOT_STARTED, STATE_ESPNOW_PAIRING},
-                                         {"Provisioning", STATE_KEYS_REQUESTED, STATE_KEYS_REQUESTED},
-                                         {"NTP", STATE_NTPSERVER_NOT_STARTED, STATE_NTPSERVER_SYNC},
-                                         {"Shutdown", STATE_SHUTDOWN, STATE_SHUTDOWN}};
+const RTK_MODE_ENTRY stateModeTable[] = {
+    {"Rover", STATE_ROVER_NOT_STARTED, STATE_ROVER_RTK_FIX},
+    {"Base Caster", STATE_BASE_CASTER_NOT_STARTED, STATE_BASE_CASTER_NOT_STARTED},
+    {"Base", STATE_BASE_NOT_STARTED, STATE_BASE_FIXED_TRANSMITTING},
+    {"Setup", STATE_DISPLAY_SETUP, STATE_PROFILE}, // Covers SETUP, WEB_CONFIG, TEST
+    {"Provisioning", STATE_KEYS_REQUESTED, STATE_KEYS_REQUESTED},
+    {"ESPNOW Pairing", STATE_ESPNOW_PAIRING_NOT_STARTED, STATE_ESPNOW_PAIRING},
+    {"NTP", STATE_NTPSERVER_NOT_STARTED, STATE_NTPSERVER_SYNC},
+    {"Shutdown", STATE_SHUTDOWN, STATE_SHUTDOWN}};
 const int stateModeTableEntries = sizeof(stateModeTable) / sizeof(stateModeTable[0]);
 
 const char *stateToRtkMode(SystemState state)

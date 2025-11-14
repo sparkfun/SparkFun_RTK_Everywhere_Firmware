@@ -27,7 +27,7 @@ void sdUpdate()
         }
         else if (sdCardPresent() == true) // Poll card to see if a card is inserted
         {
-            systemPrintln("SD inserted");
+            systemPrintf("SD inserted @ %s\r\n", getTimeStamp());
             beginSD(); // Attempt to start SD
         }
     }
@@ -35,7 +35,7 @@ void sdUpdate()
     if (online.logging == true && sdCardSize > 0 &&
         sdFreeSpace < sdMinAvailableSpace) // Stop logging if we are below the min
     {
-        log_d("Logging stopped. SD full.");
+        systemPrintf("Logging stopped. SD full @ %s\r\n", getTimeStamp());
         outOfSDSpace = true;
         endSD(false, true); //(alreadyHaveSemaphore, releaseSemaphore) Close down file.
         return;
@@ -48,8 +48,11 @@ void sdUpdate()
         deleteSDSizeCheckTask();
 
     // Check if SD card is still present
-    if (sdCardPresent() == false)
+    if (sdCardPresent() == false && online.microSD == true)
+    {
+        systemPrintf("SD removed @ %s\r\n", getTimeStamp());
         endSD(false, true); //(alreadyHaveSemaphore, releaseSemaphore) Close down SD.
+    }
 }
 
 /*
@@ -74,12 +77,21 @@ void sdUpdate()
 #define SD_READ_OCR (0x40 + 58)    // read OCR
 #define SD_ADV_INIT (0xc0 + 41)    // ACMD41, for SDHC cards - advanced start initialization
 
-// Begin initialization by sending CMD0 and waiting until SD card
-// responds with In Idle Mode (0x01). If the response is not 0x01
-// within a reasonable amount of time, there is no SD card on the bus.
-// Returns false if not card is detected
-// Returns true if a card responds
-// This test takes approximately 13ms to complete
+// How this works:
+// Some variants have the SD socket card detect pin connected directly to GPIO
+// Of those, some are low when the card is present, some are high
+// On some variants the card detection is performed via a GPIO expander
+// On Postcard:     on the Portability Shield, SD DET (SD_CD) is connected to
+//                  IO5 of a PCA9554 I2C GPIO expander (address 0x20)
+//                  IO5 is high when the card is present
+// On Flex:         SD_#CD is connected to ESP32 GPIO39
+// Torch:           has no SD card
+// On Facet mosaic: the SD card is connected directly to the X5 but
+//                  SD_!DET is connected to ESP32 GPIO15
+//
+// More generally:
+// The GPIO expander on Postcard is known as gpioExpanderButtons (0x20)
+// Flex also has a GPIO expander, known as gpioExpanderSwitches (0x21)
 bool sdCardPresent(void)
 {
     if (present.microSdCardDetectLow == true)
@@ -94,44 +106,113 @@ bool sdCardPresent(void)
             return (true); // Card detect high = SD in place
         return (false);    // Card detect low = No SD
     }
-    else if (present.microSdCardDetectGpioExpanderHigh == true && online.gpioExpander == true)
+    else if (present.microSdCardDetectGpioExpanderHigh == true)
     {
-        if (io.digitalRead(gpioExpander_cardDetect) == GPIO_EXPANDER_CARD_INSERTED)
-            return (true); // Card detect high = SD in place
-        return (false);    // Card detect low = No SD
+        if (online.gpioExpanderButtons == true)
+        {
+            static uint32_t lastExpanderCheck = 0;
+            static bool lastPresenceResult = false;
+
+            // Avoid constantly checking I2C bus for SD presence
+            // Update status every 1000ms
+            if (millis() - lastExpanderCheck > 1000)
+            {
+                lastExpanderCheck = millis();
+
+                if (io.digitalRead(gpioExpander_cardDetect) == GPIO_EXPANDER_CARD_INSERTED)
+                {
+                    lastPresenceResult = true;
+                    return (true); // Card detect high = SD in place
+                }
+
+                // If the SD card was online but it is now detected offline, re-check after debounce
+                if (online.microSD == true)
+                {
+                    delay(25); // Debounce
+
+                    if (io.digitalRead(gpioExpander_cardDetect) == GPIO_EXPANDER_CARD_INSERTED)
+                    {
+                        lastPresenceResult = true;
+                        return (true); // Card detect high = SD in place
+                    }
+                }
+                lastPresenceResult = false;
+                return (false); // Card detect low = No SD
+            }
+            else
+            {
+                // Between allowed checks, if asked, return what we found during last check
+                return (lastPresenceResult);
+            }
+        }
+        else
+        {
+            // reportFatalError("sdCardPresent: gpioExpander not online.");
+            return (false);
+        }
     }
 
     // else - no card detect pin. Use software detect
 
-    // Use software to detect a card
-    DMW_if systemPrintf("pin_microSD_CS: %d\r\n", pin_microSD_CS);
-    if (pin_microSD_CS == -1)
-        reportFatalError("Illegal SD CS pin assignment.");
+    // Begin initialization by sending CMD0 and waiting until SD card
+    // responds with In Idle Mode (0x01). If the response is not 0x01
+    // within a reasonable amount of time, there is no SD card on the bus.
+    // Returns false if not card is detected
+    // Returns true if a card responds
+    // This test takes approximately 13ms to complete
 
-    byte response = 0;
+    // Note: even though this is protected by the semaphore,
+    //       this will probably cause issues / corruption if
+    //       a SdFile is open for writing...?
 
-    beginSPI(false);
-    SPI.setClockDivider(SPI_CLOCK_DIV2);
-    SPI.setDataMode(SPI_MODE0);
-    SPI.setBitOrder(MSBFIRST);
-    pinMode(pin_microSD_CS, OUTPUT);
+    static bool previousCardPresentBySW = false;
 
-    // Sending clocks while card power stabilizes...
-    sdDeselectCard();             // always make sure
-    for (byte i = 0; i < 30; i++) // send several clocks while card power stabilizes
-        xchg(0xff);
-
-    // Sending CMD0 - GO IDLE...
-    for (byte i = 0; i < 0x10; i++) // Attempt to go idle
+    if (xSemaphoreTake(sdCardSemaphore, fatSemaphore_longWait_ms) == pdPASS)
     {
-        response = sdSendCommand(SD_GO_IDLE, 0); // send CMD0 - go to idle state
-        if (response == 1)
-            break;
-    }
-    if (response != 1)
-        return (false); // Card failed to respond to idle
+        markSemaphore(FUNCTION_RECORDSETTINGS);
 
-    return (true); // Card detected
+        // Use software to detect a card
+        DMW_if systemPrintf("pin_microSD_CS: %d\r\n", pin_microSD_CS);
+        if (pin_microSD_CS == -1)
+            reportFatalError("Illegal SD CS pin assignment.");
+
+        byte response = 0;
+
+        beginSPI(false);
+        SPI.setClockDivider(SPI_CLOCK_DIV2);
+        SPI.setDataMode(SPI_MODE0);
+        SPI.setBitOrder(MSBFIRST);
+        pinMode(pin_microSD_CS, OUTPUT);
+
+        // Sending clocks while card power stabilizes...
+        sdDeselectCard();             // always make sure
+        for (byte i = 0; i < 30; i++) // send several clocks while card power stabilizes
+            xchg(0xff);
+
+        // Sending CMD0 - GO IDLE...
+        for (byte i = 0; i < 0x10; i++) // Attempt to go idle
+        {
+            response = sdSendCommand(SD_GO_IDLE, 0); // send CMD0 - go to idle state
+            if (response == 1)
+                break;
+        }
+
+        xSemaphoreGive(sdCardSemaphore);
+
+        if (response != 1)
+        {
+            previousCardPresentBySW = false;
+            return (false); // Card failed to respond to idle
+        }
+
+        previousCardPresentBySW = true;
+        return (true); // Card detected
+    }
+    else
+    {
+        // Could not get semaphore. Return previous state
+        return previousCardPresentBySW;
+    }
 }
 
 /*

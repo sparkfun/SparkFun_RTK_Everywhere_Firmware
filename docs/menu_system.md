@@ -77,7 +77,7 @@ System Menu Options serial menu
 
 The device can be in Rover, Base, or WiFi Config mode. The selected mode will be entered once the user exits the menu system.
 
-- **B**ase - The device will reconfigure for base mode. It will begin transmitting corrections over Bluetooth, WiFi (NTRIP Server, TCP, etc), or other (ESP-Now, external radio if compatible, etc).
+- **B**ase - The device will reconfigure for base mode. It will begin transmitting corrections over Bluetooth, WiFi (NTRIP Server, TCP, etc), or other (ESP-NOW, external radio if compatible, etc).
 - Base**C**aster - The device will reconfigure for base caster mode. It will broadcast a WiFi access point, allow incoming NTRIP Client connections on port 2101. See [BaseCast Mode](menu_base.md#base-cast).
 - **R**over - This is the default mode. The device transmits its NMEA and other messages (if enabled) over Bluetooth. It can receive corrections over Bluetooth (or other transport methods such as NTRIP Client) to achieve RTK Fix.
 - **W**eb Config - The device will shut down GNSS operations and serve a configuration web page over WiFi or ethernet.
@@ -108,7 +108,7 @@ System Menu Options serial menu
 - **~** - If desired, the external button(s) can be disabled to prevent accidental mode changes.
 
 !!! note
-	Bluetooth SPP cannot operate concurrently with ESP-Now radio transmissions. Therefore, if you plan to use the ESP-Now radio system to connect RTK products, the BLE protocol must be used to communicate over Bluetooth to data collectors. Alternatively, ESP-Now works concurrently with WiFi so connecting to a data collector over WiFi can be used.
+	Bluetooth SPP cannot operate concurrently with ESP-NOW radio transmissions. Therefore, if you plan to use the ESP-NOW radio system to connect RTK products, the BLE protocol must be used to communicate over Bluetooth to data collectors. Alternatively, ESP-NOW works concurrently with WiFi so connecting to a data collector over WiFi can be used.
 
 ## Factory Reset
 

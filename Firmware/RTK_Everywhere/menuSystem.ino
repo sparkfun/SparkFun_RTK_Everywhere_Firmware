@@ -8,7 +8,7 @@ void menuSystem()
         systemPrintln();
         systemPrintln("System Status");
 
-        printTimeStamp();
+        printTimeStamp(true);
 
         systemPrint("GNSS: ");
         if (online.gnss == true)
@@ -104,7 +104,7 @@ void menuSystem()
         }
 
         // Display the Bluetooth status
-        bluetoothTest(false);
+        bluetoothPrintStatus();
 
 #ifdef COMPILE_NETWORK
         networkDisplayStatus();
@@ -417,8 +417,8 @@ void menuSystem()
             printUnknown(incoming);
     }
 
-    // Restart Bluetooth radio if settings have changed
-    mmSetBluetoothProtocol(bluetoothUserChoice);
+    // Update Bluetooth radio if settings have changed (ignore clearBtPairings)
+    mmSetBluetoothProtocol(bluetoothUserChoice, settings.clearBtPairings);
 
     clearBuffer(); // Empty buffer of any newline chars
 }
@@ -434,9 +434,6 @@ void menuDebugHardware()
         // Battery
         systemPrint("1) Print battery status messages: ");
         systemPrintf("%s\r\n", settings.enablePrintBatteryMessages ? "Enabled" : "Disabled");
-
-        // Bluetooth
-        systemPrintln("2) Run Bluetooth Test");
 
         // RTC
         systemPrint("3) Print RTC resyncs: ");
@@ -465,8 +462,24 @@ void menuDebugHardware()
         systemPrint("12) Print Tilt/IMU Compensation Debugging: ");
         systemPrintf("%s\r\n", settings.enableImuCompensationDebug ? "Enabled" : "Disabled");
 
+        // GNSS Firmware upgrades:
+        // On Torch:    we need a direct connection (passthrough) from USB to CH342 B to
+        //              ESP32 UART0 to ESP32 UART1 to UM980 UART3 for firmware upgrade.
+        // On Postcard: firmware can be updated over USB and the CH342 B connection to GNSS
+        //              UART1. A hardware GNSS reset may be beneficial, but it is possible
+        //              to reset over USB / UART too ($PQTMSRR*4B).
+        // On Flex:     mosaic-X5 can be updated over USB via the USB Hub.
+        //              A direct connection can be created from USB to USB Hub to CH342 B to
+        //              ESP32 UART0 to ESP32 UART1 to GNSS UART1.
+        //              ZED-X20P will need a direct connection. Update via USB is not possible.
+        //              LG290P needs a direct connection.
+        //              A future UM980 variant will also need a direct connection.
+        //              Updates via the 4-pin JST RADIO connector and GNSS UART2 may also be possible.
+
         if (present.gnss_um980)
-            systemPrintln("13) UM980 direct connect");
+            systemPrintln("13) UM980 direct connect for firmware upgrade");
+        else if ((productVariant == RTK_FLEX) && (present.gnss_lg290p || present.gnss_zedx20p))
+            systemPrintln("13) GNSS direct connect for firmware update");
         else if (present.gnss_lg290p)
             systemPrintln("13) LG290P reset for firmware update");
 
@@ -485,16 +498,28 @@ void menuDebugHardware()
         systemPrint("): ");
         systemPrintf("%s\r\n", settings.enablePsram ? "Enabled" : "Disabled");
 
-        systemPrint("15) Print ESP-Now Debugging: ");
+        systemPrint("15) Print ESP-NOW Debugging: ");
         systemPrintf("%s\r\n", settings.debugEspNow ? "Enabled" : "Disabled");
 
         systemPrint("16) Print LoRa Debugging: ");
         systemPrintf("%s\r\n", settings.debugLora ? "Enabled" : "Disabled");
 
+        // LoRa Firmware upgrades:
+        // On Torch: we need a direct connection from USB to CH342 B to ESP32 UART0 to
+        //           ESP32 UART1 to LoRa UART0.
+        // On Flex:  we need a direct connection from USB to USB Hub to ESP32 UART0 to
+        //           ESP32 UART2 to LoRa UART2.
+        //           TODO: check STM32 can be updated via UART2!!
+
         if (present.radio_lora)
-            systemPrintln("17) STM32 direct connect");
+            systemPrintln("17) STM32 direct connect for LoRa firmware upgrade");
 
         systemPrintln("18) Display littleFS stats");
+
+        systemPrint("19) Print CLI Debugging: ");
+        systemPrintf("%s\r\n", settings.debugCLI ? "Enabled" : "Disabled");
+
+        systemPrintf("20) Delay between CLI LIST prints over BLE: %d\r\n", settings.cliBlePrintDelay_ms);
 
         systemPrintln("e) Erase LittleFS");
 
@@ -508,8 +533,6 @@ void menuDebugHardware()
 
         if (incoming == 1)
             settings.enablePrintBatteryMessages ^= 1;
-        else if (incoming == 2)
-            bluetoothTest(true);
         else if (incoming == 3)
             settings.enablePrintRtcSync ^= 1;
         else if (incoming == 4)
@@ -554,13 +577,27 @@ void menuDebugHardware()
                     ESP.restart();
                 }
             }
+            else if ((productVariant == RTK_FLEX) && (present.gnss_lg290p || present.gnss_zedx20p))
+            {
+                // Create a file in LittleFS
+                if (createGNSSPassthrough() == true)
+                {
+                    systemPrintln();
+                    systemPrintln("GNSS passthrough mode has been recorded to LittleFS. Device will now reset.");
+                    systemFlush(); // Complete prints
+
+                    ESP.restart();
+                }
+            }
             else if (present.gnss_lg290p)
             {
                 systemPrintln();
-                systemPrintln("QGNSS must be connected to CH342 Port B at 460800bps. Begin firmware update from QGNSS (hit the play button) then reset the LG290P.");
-                lg290pReset();
+                systemPrintf("QGNSS must be connected to CH342 Port B at %dbps. Begin firmware update from QGNSS (hit "
+                             "the play button) then reset the LG290P.\r\n",
+                             settings.dataPortBaud);
+                gnssReset();
                 delay(100);
-                lg290pBoot();
+                gnssBoot();
                 systemPrintln("LG290P reset complete.");
             }
         }
@@ -591,6 +628,19 @@ void menuDebugHardware()
         {
             systemPrintf("LittleFS total bytes: %d\r\n", LittleFS.totalBytes());
             systemPrintf("LittleFS used bytes: %d\r\n", LittleFS.usedBytes());
+        }
+        else if (incoming == 19)
+        {
+            settings.debugCLI ^= 1;
+        }
+        else if (incoming == 20)
+        {
+            systemPrintf("Enter millisecond delay (%d to %d) for CLI LIST command over BLE: ", 0, 1000);
+            int newDelay = getUserInputNumber(); // Returns EXIT, TIMEOUT, or long
+            if ((newDelay != INPUT_RESPONSE_GETNUMBER_EXIT) && (newDelay != INPUT_RESPONSE_GETNUMBER_TIMEOUT))
+            {
+                settings.cliBlePrintDelay_ms = newDelay;
+            }
         }
 
         else if (incoming == 'e')
@@ -801,6 +851,7 @@ void menuDebugSoftware()
 
         systemPrintf("40) Print LittleFS and settings management: %s\r\n",
                      settings.debugSettings ? "Enabled" : "Disabled");
+        systemPrintf("41) Halt on ESP_RST_PANIC: %s\r\n", settings.haltOnPanic ? "Enabled" : "Disabled");
 
         // Tasks
         systemPrint("50) Task Highwater Reporting: ");
@@ -856,6 +907,8 @@ void menuDebugSoftware()
 
         else if (incoming == 40)
             settings.debugSettings ^= 1;
+        else if (incoming == 41)
+            settings.haltOnPanic ^= 1;
 
         else if (incoming == 50)
             settings.enableTaskReports ^= 1;
@@ -1171,6 +1224,9 @@ void menuPeriodicPrint()
         systemPrint("27) RTK correction source: ");
         systemPrintf("%s\r\n", PERIODIC_SETTING(PD_CORRECTION_SOURCE) ? "Enabled" : "Disabled");
 
+        systemPrint("28) Firmware mode: ");
+        systemPrintf("%s\r\n", PERIODIC_SETTING(PD_FIRMWARE_MODE) ? "Enabled" : "Disabled");
+
         systemPrintln("------  Clients  -----");
         systemPrint("40) NTP server data: ");
         systemPrintf("%s\r\n", PERIODIC_SETTING(PD_NTP_SERVER_DATA) ? "Enabled" : "Disabled");
@@ -1279,12 +1335,14 @@ void menuPeriodicPrint()
 
         else if (incoming == 20)
         {
+            systemPrint("Enter the new periodic print mask: ");
             int value = getUserInputNumber();
             if ((value != INPUT_RESPONSE_GETNUMBER_EXIT) && (value != INPUT_RESPONSE_GETNUMBER_TIMEOUT))
                 settings.periodicDisplay = value;
         }
         else if (incoming == 21)
         {
+            systemPrint("Enter the new periodic display interval (s): ");
             int seconds = getUserInputNumber();
             if ((seconds != INPUT_RESPONSE_GETNUMBER_EXIT) && (seconds != INPUT_RESPONSE_GETNUMBER_TIMEOUT))
                 settings.periodicDisplayInterval = seconds * 1000;
@@ -1301,6 +1359,8 @@ void menuPeriodicPrint()
             settings.enablePrintStates ^= 1;
         else if (incoming == 27)
             PERIODIC_TOGGLE(PD_CORRECTION_SOURCE);
+        else if (incoming == 28)
+            PERIODIC_TOGGLE(PD_FIRMWARE_MODE);
 
         else if (incoming == 40)
             PERIODIC_TOGGLE(PD_NTP_SERVER_DATA);
@@ -1393,7 +1453,7 @@ void menuInstrument()
         systemPrintf("1) Set Antenna Height (a.k.a. Pole Length): %0.3lfm\r\n",
                      settings.antennaHeight_mm / (double)1000.0);
 
-        systemPrintf("2) Set Antenna Phase Center (a.k.a. ARP): %0.1fmm\r\n", settings.antennaPhaseCenter_mm);
+        systemPrintf("2) Set Antenna Phase Center: %0.1fmm\r\n", settings.antennaPhaseCenter_mm);
 
         systemPrint("3) Report Tip Altitude: ");
         systemPrintf("%s\r\n", settings.outputTipAltitude ? "Enabled" : "Disabled");
