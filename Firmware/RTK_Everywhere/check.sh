@@ -135,6 +135,11 @@ sed -i 's|#define COMPILE_MENU_BASE|//#define COMPILE_MENU_BASE|' RTK_Everywhere
 make
 git reset --hard --quiet  HEAD
 
+# Menu correction priorities
+sed -i 's|#define COMPILE_MENU_CORRECTIONS|//#define COMPILE_MENU_CORRECTIONS|' RTK_Everywhere.ino
+make
+git reset --hard --quiet  HEAD
+
 # Menu Ethernet
 sed -i 's|#define COMPILE_MENU_ETHERNET|//#define COMPILE_MENU_ETHERNET|' RTK_Everywhere.ino
 make

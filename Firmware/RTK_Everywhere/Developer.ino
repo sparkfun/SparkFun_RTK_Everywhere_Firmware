@@ -361,6 +361,14 @@ void menuBase() {systemPrint("**Menu base not compiled**");}
 #endif  // COMPILE_MENU_BASE
 
 //----------------------------------------
+// Correction priorities menu
+//----------------------------------------
+
+#ifndef COMPILE_MENU_CORRECTIONS
+void menuCorrectionsPriorities() {systemPrint("**Menu correction priorities not compiled**");}
+#endif  // COMPILE_MENU_CORRECTIONS
+
+//----------------------------------------
 // Ethernet menu
 //----------------------------------------
 
