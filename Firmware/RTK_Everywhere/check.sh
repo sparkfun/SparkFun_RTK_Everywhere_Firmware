@@ -155,6 +155,11 @@ sed -i 's|#define COMPILE_MENU_GNSS|//#define COMPILE_MENU_GNSS|' RTK_Everywhere
 make
 git reset --hard --quiet  HEAD
 
+# Menu Instruments
+sed -i 's|#define COMPILE_MENU_INSTRUMENTS|//#define COMPILE_MENU_INSTRUMENTS|' RTK_Everywhere.ino
+make
+git reset --hard --quiet  HEAD
+
 # Menu Logging
 sed -i 's|#define COMPILE_MENU_LOGGING|//#define COMPILE_MENU_LOGGING|' RTK_Everywhere.ino
 make

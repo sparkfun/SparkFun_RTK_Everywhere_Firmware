@@ -395,6 +395,14 @@ void menuGNSS() {systemPrint("**Menu GNSS not compiled**");}
 #endif  // COMPILE_MENU_GNSS
 
 //----------------------------------------
+// Instruments menu
+//----------------------------------------
+
+#ifndef COMPILE_MENU_INSTRUMENTS
+void menuInstrument() {systemPrint("**Menu instruments not compiled**");}
+#endif  // COMPILE_MENU_INSTRUMENTS
+
+//----------------------------------------
 // Logging menus
 //----------------------------------------
 

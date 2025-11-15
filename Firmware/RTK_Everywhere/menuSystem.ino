@@ -1433,6 +1433,8 @@ void menuPeriodicPrint()
 
 #endif  // COMPILE_MENU_SYSTEM
 
+#ifdef  COMPILE_MENU_INSTRUMENTS
+
 // Get the parameters for the antenna height, reference point, and tilt compensation
 void menuInstrument()
 {
@@ -1504,3 +1506,5 @@ void menuInstrument()
 
     clearBuffer(); // Empty buffer of any newline chars
 }
+
+#endif  // COMPILE_MENU_INSTRUMENTS
