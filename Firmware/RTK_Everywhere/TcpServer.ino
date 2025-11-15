@@ -1,5 +1,5 @@
-/*
-tcpServer.ino
+/*=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
+TcpServer.ino
 
   The TCP (position, velocity and time) server sits on top of the network layer
   and sends position data to one or more computers or cell phones for display.
@@ -53,7 +53,7 @@ tcpServer.ino
 
         2. When the connection breaks, stop and restart Vespucci to create
            a new connection to the TCP server.
-*/
+=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=*/
 
 #ifdef COMPILE_TCP_SERVER
 

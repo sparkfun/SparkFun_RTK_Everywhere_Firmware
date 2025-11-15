@@ -1,4 +1,6 @@
-/*
+/*=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
+NVM.ino
+
   For any new setting added to the settings struct, we must add it to setting file
   recording and logging, and to the WiFi AP load/read in the following places:
 
@@ -41,7 +43,7 @@
 
   form.h also needs to be updated to include a space for user input. This is best
   edited in the index.html and main.js files.
-*/
+=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=*/
 
 bool loadSystemSettingsFromFileLFS(char *fileName, const char *findMe = nullptr, char *found = nullptr,
                                    int len = 0); // Header

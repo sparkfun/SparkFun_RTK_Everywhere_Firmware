@@ -1,4 +1,6 @@
-/*
+/*=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
+RTK_Everywhere.ino
+
   October 2nd, 2023
   SparkFun Electronics
   Nathan Seidle
@@ -76,7 +78,7 @@
   |                                         |    |             |
   +-----------------------------------------+    +-------------+
 
-*/
+=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=*/
 
 // To reduce compile times, various parts of the firmware can be disabled/removed if they are not
 // needed during development
