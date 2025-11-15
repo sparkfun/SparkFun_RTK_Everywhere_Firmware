@@ -395,6 +395,14 @@ void menuGNSS() {systemPrint("**Menu GNSS not compiled**");}
 #endif  // COMPILE_MENU_GNSS
 
 //----------------------------------------
+// Messages menu
+//----------------------------------------
+
+#ifndef COMPILE_MENU_MESSAGES
+void menuMessagesBaseRTCM() {systemPrint("**Menu messages not compiled**");}
+#endif  // COMPILE_MENU_MESSAGES
+
+//----------------------------------------
 // TCP / UDP menu
 //----------------------------------------
 

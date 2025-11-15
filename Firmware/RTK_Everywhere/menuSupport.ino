@@ -282,3 +282,274 @@ void printNEOInfo()
     if (present.lband_neo == true)
         systemPrintf("NEO-D9S firmware: %s\r\n", neoFirmwareVersion);
 }
+
+// Check various setting arrays (message rates, etc) to see if they need to be reset to defaults
+void checkGNSSArrayDefaults()
+{
+    bool defaultsApplied = false;
+
+#ifdef COMPILE_ZED
+    if (present.gnss_zedf9p)
+    {
+        if (settings.dynamicModel == 254)
+        {
+            defaultsApplied = true;
+            settings.dynamicModel = DYN_MODEL_PORTABLE;
+        }
+
+        if (settings.enableExtCorrRadio == 254)
+        {
+            defaultsApplied = true;
+            settings.enableExtCorrRadio = true;
+        }
+
+        if (settings.ubxMessageRates[0] == 254)
+        {
+            defaultsApplied = true;
+
+            // Reset rates to defaults
+            for (int x = 0; x < MAX_UBX_MSG; x++)
+            {
+                if (ubxMessages[x].msgClass == UBX_RTCM_MSB)
+                    settings.ubxMessageRates[x] = 0; // For general rover messages, RTCM should be zero by default.
+                                                     // ubxMessageRatesBase will have the proper defaults.
+                else
+                    settings.ubxMessageRates[x] = ubxMessages[x].msgDefaultRate;
+            }
+        }
+
+        if (settings.ubxMessageRatesBase[0] == 254)
+        {
+            defaultsApplied = true;
+
+            // Reset Base rates to defaults
+            GNSS_ZED *zed = (GNSS_ZED *)gnss;
+            int firstRTCMRecord = zed->getMessageNumberByName("RTCM_1005");
+            for (int x = 0; x < MAX_UBX_MSG_RTCM; x++)
+                settings.ubxMessageRatesBase[x] = ubxMessages[firstRTCMRecord + x].msgDefaultRate;
+        }
+    }
+#else
+    if (false)
+    {
+    }
+#endif // COMPILE_ZED
+
+#ifdef COMPILE_UM980
+    else if (present.gnss_um980)
+    {
+        if (settings.dataPortBaud != 115200)
+        {
+            // Belt and suspenders... Let's make really sure COM3 only ever runs at 115200
+            defaultsApplied = true;
+            settings.dataPortBaud = 115200;
+        }
+
+        if (settings.dynamicModel == 254)
+        {
+            defaultsApplied = true;
+            settings.dynamicModel = UM980_DYN_MODEL_SURVEY;
+        }
+
+        if (settings.enableExtCorrRadio == 254)
+        {
+            defaultsApplied = true;
+            settings.enableExtCorrRadio = false;
+        }
+
+        if (settings.um980Constellations[0] == 254)
+        {
+            defaultsApplied = true;
+
+            // Reset constellations to defaults
+            for (int x = 0; x < MAX_UM980_CONSTELLATIONS; x++)
+                settings.um980Constellations[x] = 1;
+        }
+
+        if (settings.um980MessageRatesNMEA[0] == 254)
+        {
+            defaultsApplied = true;
+
+            // Reset rates to defaults
+            for (int x = 0; x < MAX_UM980_NMEA_MSG; x++)
+                settings.um980MessageRatesNMEA[x] = umMessagesNMEA[x].msgDefaultRate;
+        }
+
+        if (settings.um980MessageRatesRTCMRover[0] == 254)
+        {
+            defaultsApplied = true;
+
+            // For rovers, RTCM should be zero by default.
+            for (int x = 0; x < MAX_UM980_RTCM_MSG; x++)
+                settings.um980MessageRatesRTCMRover[x] = 0;
+        }
+
+        if (settings.um980MessageRatesRTCMBase[0] == 254)
+        {
+            defaultsApplied = true;
+
+            // Reset RTCM rates to defaults
+            for (int x = 0; x < MAX_UM980_RTCM_MSG; x++)
+                settings.um980MessageRatesRTCMBase[x] = umMessagesRTCM[x].msgDefaultRate;
+        }
+    }
+#endif // COMPILE_UM980
+
+#ifdef COMPILE_MOSAICX5
+    else if (present.gnss_mosaicX5)
+    {
+        if (settings.dynamicModel == 254)
+        {
+            defaultsApplied = true;
+            settings.dynamicModel = MOSAIC_DYN_MODEL_QUASISTATIC;
+        }
+
+        if (settings.enableExtCorrRadio == 254)
+        {
+            defaultsApplied = true;
+            settings.enableExtCorrRadio = true;
+        }
+
+        if (settings.mosaicConstellations[0] == 254)
+        {
+            defaultsApplied = true;
+
+            // Reset constellations to defaults
+            for (int x = 0; x < MAX_MOSAIC_CONSTELLATIONS; x++)
+                settings.mosaicConstellations[x] = 1;
+        }
+
+        if (settings.mosaicMessageStreamNMEA[0] == 254)
+        {
+            defaultsApplied = true;
+
+            // Reset rates to defaults
+            for (int x = 0; x < MAX_MOSAIC_NMEA_MSG; x++)
+                settings.mosaicMessageStreamNMEA[x] = mosaicMessagesNMEA[x].msgDefaultStream;
+        }
+
+        if (settings.mosaicMessageIntervalsRTCMv3Rover[0] == 0.0)
+        {
+            defaultsApplied = true;
+
+            for (int x = 0; x < MAX_MOSAIC_RTCM_V3_INTERVAL_GROUPS; x++)
+                settings.mosaicMessageIntervalsRTCMv3Rover[x] = mosaicRTCMv3MsgIntervalGroups[x].defaultInterval;
+        }
+
+        if (settings.mosaicMessageIntervalsRTCMv3Base[0] == 0.0)
+        {
+            defaultsApplied = true;
+
+            for (int x = 0; x < MAX_MOSAIC_RTCM_V3_INTERVAL_GROUPS; x++)
+                settings.mosaicMessageIntervalsRTCMv3Base[x] = mosaicRTCMv3MsgIntervalGroups[x].defaultInterval;
+        }
+
+        if (settings.mosaicMessageEnabledRTCMv3Rover[0] == 254)
+        {
+            defaultsApplied = true;
+
+            for (int x = 0; x < MAX_MOSAIC_RTCM_V3_MSG; x++)
+                settings.mosaicMessageEnabledRTCMv3Rover[x] = 0;
+        }
+
+        if (settings.mosaicMessageEnabledRTCMv3Base[0] == 254)
+        {
+            defaultsApplied = true;
+
+            for (int x = 0; x < MAX_MOSAIC_RTCM_V3_MSG; x++)
+                settings.mosaicMessageEnabledRTCMv3Base[x] = mosaicMessagesRTCMv3[x].defaultEnabled;
+        }
+    }
+#endif // COMPILE_MOSAICX5
+
+#ifdef COMPILE_LG290P
+    else if (present.gnss_lg290p)
+    {
+        if (settings.enableExtCorrRadio == 254)
+        {
+            defaultsApplied = true;
+            settings.enableExtCorrRadio = false;
+        }
+
+        if (settings.lg290pConstellations[0] == 254)
+        {
+            defaultsApplied = true;
+
+            // Reset constellations to defaults
+            for (int x = 0; x < MAX_LG290P_CONSTELLATIONS; x++)
+                settings.lg290pConstellations[x] = 1;
+
+            settings.enableGalileoHas = false; // The default is true. Move to false so user must opt to turn it on.
+        }
+
+        if (settings.lg290pMessageRatesNMEA[0] == 254)
+        {
+            defaultsApplied = true;
+
+            // Reset rates to defaults
+            for (int x = 0; x < MAX_LG290P_NMEA_MSG; x++)
+                settings.lg290pMessageRatesNMEA[x] = lgMessagesNMEA[x].msgDefaultRate;
+        }
+
+        if (settings.lg290pMessageRatesRTCMRover[0] == 254)
+        {
+            defaultsApplied = true;
+
+            // For rovers, RTCM should be zero by default.
+            for (int x = 0; x < MAX_LG290P_RTCM_MSG; x++)
+                settings.lg290pMessageRatesRTCMRover[x] = 0;
+        }
+
+        if (settings.lg290pMessageRatesRTCMBase[0] == 254)
+        {
+            defaultsApplied = true;
+
+            // Reset RTCM rates to defaults
+            for (int x = 0; x < MAX_LG290P_RTCM_MSG; x++)
+                settings.lg290pMessageRatesRTCMBase[x] = lgMessagesRTCM[x].msgDefaultRate;
+        }
+
+        if (settings.lg290pMessageRatesPQTM[0] == 254)
+        {
+            defaultsApplied = true;
+
+            // Reset rates to defaults
+            for (int x = 0; x < MAX_LG290P_PQTM_MSG; x++)
+                settings.lg290pMessageRatesPQTM[x] = lgMessagesPQTM[x].msgDefaultRate;
+        }
+    }
+#endif // COMPILE_LG290P
+
+    // If defaults have been applied, override antennaPhaseCenter_mm with default
+    // (This was in beginSystemState - for the Torch / UM980 only. Weird...)
+    if (defaultsApplied)
+    {
+        settings.antennaPhaseCenter_mm = present.antennaPhaseCenter_mm;
+    }
+
+    // If defaults were applied, also default the non-array settings for this particular GNSS receiver
+    if (defaultsApplied == true)
+    {
+        if (present.gnss_um980)
+        {
+            settings.minCN0 = 10;                    // Default 10 dBHz
+            settings.surveyInStartingAccuracy = 2.0; // Default 2m
+            settings.measurementRateMs = 500;        // Default 2Hz.
+        }
+        else if (present.gnss_zedf9p)
+        {
+            settings.minCN0 = 6;                     // Default 6 dBHz
+            settings.surveyInStartingAccuracy = 1.0; // Default 1m
+            settings.measurementRateMs = 250;        // Default 4Hz.
+        }
+        else if (present.gnss_lg290p)
+        {
+            settings.minCN0 = 10;                    // Default 10 dBHz
+            settings.surveyInStartingAccuracy = 2.0; // Default 2m
+            settings.measurementRateMs = 500;        // Default 2Hz.
+        }
+    }
+
+    if (defaultsApplied == true)
+        recordSystemSettings();
+}
