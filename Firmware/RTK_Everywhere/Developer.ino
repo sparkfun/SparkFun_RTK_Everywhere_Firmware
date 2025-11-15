@@ -379,6 +379,14 @@ void menuEthernet() {systemPrint("**Menu Ethernet not compiled**");}
 #endif  // COMPILE_MENU_ETHERNET
 
 //----------------------------------------
+// Firmware menu
+//----------------------------------------
+
+#ifndef COMPILE_MENU_FIRMWARE
+void firmwareMenu() {systemPrint("**Menu firmware not compiled**");}
+#endif  // COMPILE_MENU_FIRMWARE
+
+//----------------------------------------
 // TCP / UDP menu
 //----------------------------------------
 

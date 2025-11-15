@@ -130,6 +130,7 @@ RTK_Everywhere.ino
 #define COMPILE_MENU_BASE           // Comment out to remove base menu functionality
 #define COMPILE_MENU_CORRECTIONS    // Comment out to remove correction priorities menu functionality
 #define COMPILE_MENU_ETHERNET       // Comment out to remove Ethernet menu functionality
+#define COMPILE_MENU_FIRMWARE       // Comment out to remove firmware menu functionality
 #define COMPILE_MENU_TCP_UDP        // Comment out to remove TCP/UDP menu functionality
 #define COMPILE_MENU_WIFI           // Comment out to remove WiFi menu functionality
 

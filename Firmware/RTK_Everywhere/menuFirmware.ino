@@ -43,6 +43,8 @@ bool newOTAFirmwareAvailable = false;
 // Menu
 //----------------------------------------
 
+#ifdef  COMPILE_MENU_FIRMWARE
+
 //----------------------------------------
 // Update firmware if bin files found
 //----------------------------------------
@@ -90,6 +92,8 @@ void firmwareMenu()
 
     clearBuffer(); // Empty buffer of any newline chars
 }
+
+#endif  // COMPILE_MENU_FIRMWARE
 
 //----------------------------------------
 // Version number comes in as v2.7-Jan 5 2023

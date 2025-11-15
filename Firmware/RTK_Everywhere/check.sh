@@ -145,6 +145,11 @@ sed -i 's|#define COMPILE_MENU_ETHERNET|//#define COMPILE_MENU_ETHERNET|' RTK_Ev
 make
 git reset --hard --quiet  HEAD
 
+# Menu Firmware
+sed -i 's|#define COMPILE_MENU_FIRMWARE|//#define COMPILE_MENU_FIRMWARE|' RTK_Everywhere.ino
+make
+git reset --hard --quiet  HEAD
+
 # Menu TCP/UDP
 sed -i 's|#define COMPILE_MENU_TCP_UDP|//#define COMPILE_MENU_TCP_UDP|' RTK_Everywhere.ino
 make
