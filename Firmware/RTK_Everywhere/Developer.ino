@@ -353,6 +353,14 @@ void mp2762resetSafetyTimer() {}
 //======================================================================
 
 //----------------------------------------
+// All serial menus
+//----------------------------------------
+
+#ifndef COMPILE_SERIAL_MENUS
+void menuMain() {systemPrint("**All serial menus not compiled**");}
+#endif  // COMPILE_SERIAL_MENUS
+
+//----------------------------------------
 // Base menu
 //----------------------------------------
 

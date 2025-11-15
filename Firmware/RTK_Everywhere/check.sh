@@ -205,6 +205,11 @@ sed -i 's|#define COMPILE_MENU_WIFI|//#define COMPILE_MENU_WIFI|' RTK_Everywhere
 make
 git reset --hard --quiet  HEAD
 
+# All serial menus
+sed -i 's|#define COMPILE_SERIAL_MENUS|//#define COMPILE_SERIAL_MENUS|' RTK_Everywhere.ino
+make
+git reset --hard --quiet  HEAD
+
 # MP2762A Charger
 sed -i 's|#define COMPILE_MP2762A_CHARGER|//#define COMPILE_MP2762A_CHARGER|' RTK_Everywhere.ino
 make

@@ -701,3 +701,307 @@ void printFileList()
             endSD(true, true);
     }
 }
+
+// Change the active profile number, without unit reset
+void changeProfileNumber(byte newProfileNumber)
+{
+    gnssConfigureDefaults(); // Set all bits in the request bitfield to cause the GNSS receiver to go through a full
+                             // (re)configuration
+    recordSystemSettings(); // Before switching, we need to record the current settings to LittleFS and SD
+
+    recordProfileNumber(newProfileNumber);
+    profileNumber = newProfileNumber;
+    setSettingsFileName(); // Load the settings file name into memory (enabled profile name delete)
+
+    // We need to load these settings from file so that we can record a profile name change correctly
+    bool responseLFS = loadSystemSettingsFromFileLFS(settingsFileName);
+    bool responseSD = loadSystemSettingsFromFileSD(settingsFileName);
+
+    // If this is an empty/new profile slot, overwrite our current settings with defaults
+    if (responseLFS == false && responseSD == false)
+    {
+        systemPrintln("No profile found: Applying default settings");
+        settingsToDefaults();
+    }
+}
+
+// Erase all settings. Upon restart, unit will use defaults
+void factoryReset(bool alreadyHasSemaphore)
+{
+    displaySystemReset(); // Display friendly message on OLED
+
+    tasksStopGnssUart();
+
+    // Attempt to write to file system. This avoids collisions with file writing from other functions like
+    // recordSystemSettingsToFile() and gnssSerialReadTask() if (settings.enableSD && online.microSD)
+    // Don't check settings.enableSD - it could be corrupt
+    if (online.microSD)
+    {
+        if (alreadyHasSemaphore == true || xSemaphoreTake(sdCardSemaphore, fatSemaphore_longWait_ms) == pdPASS)
+        {
+            // Remove this specific settings file. Don't remove the other profiles.
+            sd->remove(settingsFileName);
+
+            sd->remove(stationCoordinateECEFFileName); // Remove station files
+            sd->remove(stationCoordinateGeodeticFileName);
+
+            xSemaphoreGive(sdCardSemaphore);
+
+            systemPrintln("Settings files deleted...");
+        } // End sdCardSemaphore
+        else
+        {
+            char semaphoreHolder[50];
+            getSemaphoreFunction(semaphoreHolder);
+
+            // An error occurs when a settings file is on the microSD card and it is not
+            // deleted, as such the settings on the microSD card will be loaded when the
+            // RTK reboots, resulting in failure to achieve the factory reset condition
+            systemPrintf("sdCardSemaphore failed to yield, held by %s, menuMain.ino line %d\r\n", semaphoreHolder,
+                         __LINE__);
+        }
+    }
+    else
+    {
+        systemPrintln("microSD not online. Unable to delete settings files...");
+    }
+
+    tiltSensorFactoryReset();
+
+    systemPrintln("Formatting internal file system...");
+    LittleFS.format();
+
+    if (online.gnss == true)
+    {
+        systemPrintln("Resetting the GNSS to factory defaults. This could take a few seconds...");
+        gnss->factoryReset();
+    }
+    else
+        systemPrintln("GNSS not online: Unable to factory reset.");
+
+    systemPrintln("Settings erased successfully. Rebooting. Goodbye!");
+    delay(2000);
+    ESP.restart();
+}
+
+// Display the Bluetooth radio menu item
+void mmDisplayBluetoothRadioMenu(char menuChar, BluetoothRadioType_e bluetoothUserChoice)
+{
+    systemPrintf("%c) Set Bluetooth Mode: ", menuChar);
+    if (bluetoothUserChoice == BLUETOOTH_RADIO_SPP_AND_BLE)
+        systemPrintln("Dual");
+    else if (bluetoothUserChoice == BLUETOOTH_RADIO_SPP)
+        systemPrintln("Classic");
+    else if (bluetoothUserChoice == BLUETOOTH_RADIO_BLE)
+        systemPrintln("BLE");
+    else if (bluetoothUserChoice == BLUETOOTH_RADIO_SPP_ACCESSORY_MODE)
+        systemPrintln("Classic - Accessory Mode");
+    else
+        systemPrintln("Off");
+}
+
+// Select the Bluetooth protocol
+BluetoothRadioType_e mmChangeBluetoothProtocol(BluetoothRadioType_e bluetoothUserChoice)
+{
+    // Change Bluetooth protocol
+    if (bluetoothUserChoice == BLUETOOTH_RADIO_SPP_AND_BLE)
+        bluetoothUserChoice = BLUETOOTH_RADIO_SPP;
+    else if (bluetoothUserChoice == BLUETOOTH_RADIO_SPP)
+        bluetoothUserChoice = BLUETOOTH_RADIO_BLE;
+    else if (bluetoothUserChoice == BLUETOOTH_RADIO_BLE)
+        bluetoothUserChoice = BLUETOOTH_RADIO_SPP_ACCESSORY_MODE;
+    else if (bluetoothUserChoice == BLUETOOTH_RADIO_SPP_ACCESSORY_MODE)
+        bluetoothUserChoice = BLUETOOTH_RADIO_OFF;
+    else if (bluetoothUserChoice == BLUETOOTH_RADIO_OFF)
+        bluetoothUserChoice = BLUETOOTH_RADIO_SPP_AND_BLE;
+    return bluetoothUserChoice;
+}
+
+// Update Bluetooth radio if settings have changed
+void mmSetBluetoothProtocol(BluetoothRadioType_e bluetoothUserChoice, bool clearBtPairings)
+{
+    if ((bluetoothUserChoice != settings.bluetoothRadioType)
+        || (clearBtPairings != settings.clearBtPairings))
+    {
+        // To avoid connection failures, we may need to restart the ESP32
+
+        // If Bluetooth was on, and the user has selected OFF, then just stop
+        if ((settings.bluetoothRadioType != BLUETOOTH_RADIO_OFF)
+            && (bluetoothUserChoice == BLUETOOTH_RADIO_OFF))
+        {
+            bluetoothStop();
+            settings.bluetoothRadioType = bluetoothUserChoice;
+            settings.clearBtPairings = clearBtPairings;
+            return;
+        }
+        // If Bluetooth was off, and the user has selected on, and Bluetooth has not been started previously
+        // then just start
+        else if ((settings.bluetoothRadioType == BLUETOOTH_RADIO_OFF)
+                 && (bluetoothUserChoice != BLUETOOTH_RADIO_OFF)
+                 && (bluetoothRadioPreviousOnType == BLUETOOTH_RADIO_OFF))
+        {
+            settings.bluetoothRadioType = bluetoothUserChoice;
+            settings.clearBtPairings = clearBtPairings;
+            bluetoothStart();
+            return;
+        }
+        // If Bluetooth was off, and the user has selected on, and Bluetooth has been started previously
+        // then restart
+        else if ((settings.bluetoothRadioType == BLUETOOTH_RADIO_OFF)
+                 && (bluetoothUserChoice != BLUETOOTH_RADIO_OFF)
+                 && (bluetoothRadioPreviousOnType != BLUETOOTH_RADIO_OFF))
+        {
+            settings.bluetoothRadioType = bluetoothUserChoice;
+            settings.clearBtPairings = clearBtPairings;
+            recordSystemSettings();
+            systemPrintln("Rebooting to apply new Bluetooth choice. Goodbye!");
+            delay(1000);
+            ESP.restart();
+            return;
+        }
+        // If Bluetooth was in Accessory Mode, and still is, and clearBtPairings is true
+        // then (re)start Bluetooth skipping the online check
+        else if ((settings.bluetoothRadioType == BLUETOOTH_RADIO_SPP_ACCESSORY_MODE)
+                 && (bluetoothUserChoice == BLUETOOTH_RADIO_SPP_ACCESSORY_MODE)
+                 && clearBtPairings)
+        {
+            settings.clearBtPairings = clearBtPairings;
+            bluetoothStartSkipOnlineCheck();
+            return;
+        }
+        // If Bluetooth was in Accessory Mode, and still is, and clearBtPairings is false
+        // then do nothing
+        else if ((settings.bluetoothRadioType == BLUETOOTH_RADIO_SPP_ACCESSORY_MODE)
+                 && (bluetoothUserChoice == BLUETOOTH_RADIO_SPP_ACCESSORY_MODE)
+                 && (!clearBtPairings))
+        {
+            return;
+        }
+        // If Bluetooth was on, and the user has selected a different mode
+        // then restart
+        else if ((settings.bluetoothRadioType != BLUETOOTH_RADIO_OFF)
+                 && (bluetoothUserChoice != settings.bluetoothRadioType))
+        {
+            settings.bluetoothRadioType = bluetoothUserChoice;
+            settings.clearBtPairings = clearBtPairings;
+            recordSystemSettings();
+            systemPrintln("Rebooting to apply new Bluetooth choice. Goodbye!");
+            delay(1000);
+            ESP.restart();
+            return;
+        }
+        // <--- Insert any new special cases here, or higher up if needed --->
+
+        // Previous catch-all. Likely to cause connection failures...
+        bluetoothStop();
+        settings.bluetoothRadioType = bluetoothUserChoice;
+        settings.clearBtPairings = clearBtPairings;
+        bluetoothStart();
+    }
+}
+
+// Check to see if we've received serial over USB
+// Report status if ~ received, otherwise present config menu
+void terminalUpdate()
+{
+    char buffer[128];
+    static uint32_t lastPeriodicDisplay;
+    int length;
+    static bool passRtcmToGnss;
+    static uint32_t rtcmTimer;
+
+    // Check for USB serial input
+    if (systemAvailable())
+    {
+        byte incoming = systemRead();
+
+        // Is this the start of an RTCM correction message
+        if (incoming == 0xd3)
+        {
+            // Enable RTCM reception
+            passRtcmToGnss = true;
+
+            // Start the RTCM timer
+            rtcmTimer = millis();
+            rtcmLastPacketReceived = rtcmTimer;
+
+            // Tell the display about the serial RTCM message
+            usbSerialIncomingRtcm = true;
+
+            // Read the beginning of the RTCM correction message
+            buffer[0] = incoming;
+            length = Serial.readBytes(&buffer[1], sizeof(buffer) - 1) + 1;
+
+            // Push RTCM to GNSS module over I2C / SPI
+            if (correctionLastSeen(CORR_USB))
+            {
+                gnss->pushRawData((uint8_t *)buffer, length);
+                sempParseNextBytes(rtcmParse, (uint8_t *)buffer, length); // Parse the data for RTCM1005/1006
+            }
+        }
+
+        // Does incoming data consist of RTCM correction messages
+        if (passRtcmToGnss && ((millis() - rtcmTimer) < RTCM_CORRECTION_INPUT_TIMEOUT))
+        {
+            // Renew the RTCM timer
+            rtcmTimer = millis();
+            rtcmLastPacketReceived = rtcmTimer;
+
+            // Tell the display about the serial RTCM message
+            usbSerialIncomingRtcm = true;
+
+            // Read more of the RTCM correction message
+            buffer[0] = incoming;
+            length = Serial.readBytes(&buffer[1], sizeof(buffer) - 1) + 1;
+
+            // Push RTCM to GNSS module over I2C / SPI
+            if (correctionLastSeen(CORR_USB))
+            {
+                gnss->pushRawData((uint8_t *)buffer, length);
+                sempParseNextBytes(rtcmParse, (uint8_t *)buffer, length); // Parse the data for RTCM1005/1006
+            }
+        }
+        else
+        {
+            // Allow regular serial input
+            passRtcmToGnss = false;
+
+            if (incoming == '~')
+            {
+                // Output custom GNTXT message with all current system data
+                printCurrentConditionsNMEA();
+            }
+            else
+            {
+                // When outputting GNSS data to USB serial, check for +++
+                if (!forwardGnssDataToUsbSerial)
+                    menuMain(); // Present user menu
+                else
+                {
+                    static uint32_t plusTimeout;
+                    static uint8_t plusCount;
+
+                    // Reset plusCount on timeout
+                    if ((millis() - plusTimeout) > PLUS_PLUS_PLUS_TIMEOUT)
+                        plusCount = 0;
+
+                    // Check for + input
+                    if (incoming != '+')
+                        // Must start over looking for +++
+                        plusCount = 0;
+                    else
+                    {
+                        // + entered, check for the +++ sequence
+                        plusCount++;
+                        if (plusCount < 3)
+                            // Restart the timeout
+                            plusTimeout = millis();
+                        else
+                            // +++ was entered, display the main menu
+                            menuMain(); // Present user menu
+                    }
+                }
+            }
+        }
+    }
+}
