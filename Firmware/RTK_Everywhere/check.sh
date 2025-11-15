@@ -130,6 +130,11 @@ sed -i 's|#define COMPILE_IM19_IMU|//#define COMPILE_IM19_IMU|' RTK_Everywhere.i
 make
 git reset --hard --quiet  HEAD
 
+# Menu Ethernet
+sed -i 's|#define COMPILE_MENU_ETHERNET|//#define COMPILE_MENU_ETHERNET|' RTK_Everywhere.ino
+make
+git reset --hard --quiet  HEAD
+
 # Menu TCP/UDP
 sed -i 's|#define COMPILE_MENU_TCP_UDP|//#define COMPILE_MENU_TCP_UDP|' RTK_Everywhere.ino
 make

@@ -353,6 +353,16 @@ void mp2762resetSafetyTimer() {}
 //======================================================================
 
 //----------------------------------------
+// Ethernet
+//----------------------------------------
+
+#ifndef COMPILE_MENU_ETHERNET
+#ifdef  COMPILE_ETHERNET
+void menuEthernet() {systemPrint("**Menu Ethernet not compiled**");}
+#endif  // COMPILE_ETHERNET
+#endif  // COMPILE_MENU_ETHERNET
+
+//----------------------------------------
 // TCP / UDP
 //----------------------------------------
 
