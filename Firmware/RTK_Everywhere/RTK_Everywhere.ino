@@ -129,6 +129,7 @@ RTK_Everywhere.ino
 
 #define COMPILE_MENU_ETHERNET       // Comment out to remove Ethernet menu functionality
 #define COMPILE_MENU_TCP_UDP        // Comment out to remove TCP/UDP menu functionality
+#define COMPILE_MENU_WIFI           // Comment out to remove WiFi menu functionality
 
 // Always define ENABLE_DEVELOPER to enable its use in conditional statements
 #ifndef ENABLE_DEVELOPER

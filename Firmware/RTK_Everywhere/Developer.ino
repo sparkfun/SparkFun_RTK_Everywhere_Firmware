@@ -353,7 +353,7 @@ void mp2762resetSafetyTimer() {}
 //======================================================================
 
 //----------------------------------------
-// Ethernet
+// Ethernet menu
 //----------------------------------------
 
 #ifndef COMPILE_MENU_ETHERNET
@@ -363,7 +363,7 @@ void menuEthernet() {systemPrint("**Menu Ethernet not compiled**");}
 #endif  // COMPILE_MENU_ETHERNET
 
 //----------------------------------------
-// TCP / UDP
+// TCP / UDP menu
 //----------------------------------------
 
 #ifndef COMPILE_MENU_TCP_UDP
@@ -371,6 +371,16 @@ void menuEthernet() {systemPrint("**Menu Ethernet not compiled**");}
 void menuTcpUdp() {systemPrint("**Menu TCP/UDP not compiled**");}
 #endif  // COMPILE_NETWORK
 #endif  // COMPILE_MENU_TCP_UDP
+
+//----------------------------------------
+// WiFi menu
+//----------------------------------------
+
+#ifndef COMPILE_MENU_WIFI
+#ifdef  COMPILE_WIFI
+void menuWiFi() {systemPrint("**Menu WiFi not compiled**");}
+#endif  // COMPILE_WIFI
+#endif  // COMPILE_MENU_WIFI
 
 //======================================================================
 // Serial Radios
