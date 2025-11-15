@@ -419,6 +419,14 @@ void menuPorts() {systemPrint("**Menu ports not compiled**");}
 #endif  // COMPILE_MENU_PORTS
 
 //----------------------------------------
+// PointPerfect (PP) menu
+//----------------------------------------
+
+#ifndef COMPILE_MENU_POINTPERFECT
+void menuPointPerfect() {systemPrint("**Menu PointPerfect (PP) not compiled**");}
+#endif  // COMPILE_MENU_POINTPERFECT
+
+//----------------------------------------
 // TCP / UDP menu
 //----------------------------------------
 

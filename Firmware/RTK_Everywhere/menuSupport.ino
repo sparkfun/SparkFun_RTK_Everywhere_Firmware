@@ -553,3 +553,13 @@ void checkGNSSArrayDefaults()
     if (defaultsApplied == true)
         recordSystemSettings();
 }
+
+// Returns string containing the MAC + product variant number
+const char *printDeviceId()
+{
+    static char deviceID[strlen("1234567890ABXX") + 1]; // 12 character MAC + 2 character variant + room for terminator
+    snprintf(deviceID, sizeof(deviceID), "%02X%02X%02X%02X%02X%02X%02X", btMACAddress[0], btMACAddress[1],
+             btMACAddress[2], btMACAddress[3], btMACAddress[4], btMACAddress[5], productVariant);
+
+    return ((const char *)deviceID);
+}

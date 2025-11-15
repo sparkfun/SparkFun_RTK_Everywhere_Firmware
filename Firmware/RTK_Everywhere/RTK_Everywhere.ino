@@ -135,6 +135,7 @@ RTK_Everywhere.ino
 #define COMPILE_MENU_LOGGING        // Comment out to remove logging menus functionality
 #define COMPILE_MENU_MESSAGES       // Comment out to remove messages menu functionality
 #define COMPILE_MENU_PORTS          // Comment out to remove ports menu functionality
+#define COMPILE_MENU_POINTPERFECT   // Comment out to remove PointPerfect menu functionality
 #define COMPILE_MENU_TCP_UDP        // Comment out to remove TCP/UDP menu functionality
 #define COMPILE_MENU_WIFI           // Comment out to remove WiFi menu functionality
 
