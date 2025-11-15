@@ -5,6 +5,80 @@ Developer.ino
   mode (ENABLE_DEVELOPER defined).
 =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=*/
 
+//======================================================================
+// GNSS Devices and Support
+//======================================================================
+
+//----------------------------------------
+// LG290P
+//----------------------------------------
+
+#ifndef COMPILE_LG290P
+
+void lg290pHandler(uint8_t * buffer, int length) {}
+bool lg290pMessageEnabled(char *nmeaSentence, int sentenceLength)   {return false;}
+
+#endif // COMPILE_LG290P
+
+//----------------------------------------
+// mosaic-X5
+//----------------------------------------
+
+#ifndef  COMPILE_MOSAICX5
+
+void mosaicVerifyTables() {}
+void nmeaExtractStdDeviations(char *nmeaSentence, int arraySize) {}
+void processNonSBFData(SEMP_PARSE_STATE *parse) {}
+void processUart1SBF(SEMP_PARSE_STATE *parse, uint16_t type) {}
+void processUart1SPARTN(SEMP_PARSE_STATE *parse, uint16_t type) {}
+void menuLogMosaic() {}
+
+#endif  // COMPILE_MOSAICX5
+
+//----------------------------------------
+// PointPerfect Library
+//----------------------------------------
+
+#ifndef  COMPILE_POINTPERFECT_LIBRARY
+
+void beginPPL() {systemPrintln("**PPL Not Compiled**");}
+void updatePPL() {}
+bool sendGnssToPpl(uint8_t *buffer, int numDataBytes) {return false;}
+bool sendSpartnToPpl(uint8_t *buffer, int numDataBytes) {return false;}
+bool sendAuxSpartnToPpl(uint8_t *buffer, int numDataBytes) {return false;}
+void pointperfectPrintKeyInformation(const char *requestedBy) {systemPrintln("**PPL Not Compiled**");}
+void pointperfectPrintNtripInformation(const char *requestedBy) {}
+
+#endif  // COMPILE_POINTPERFECT_LIBRARY
+
+//----------------------------------------
+// UM980
+//----------------------------------------
+
+#ifndef  COMPILE_UM980
+
+void um980UnicoreHandler(uint8_t * buffer, int length) {}
+
+#endif  // COMPILE_UM980
+
+//----------------------------------------
+// ZED-F9x
+//----------------------------------------
+
+#ifndef COMPILE_ZED
+
+// void checkRXMCOR() {}
+// void pushRXMPMP() {}
+void convertGnssTimeToEpoch(uint32_t *epochSecs, uint32_t *epochMicros) {
+    systemPrintln("**Epoch not compiled** ZED not included so time will be invalid");
+}
+
+#endif // COMPILE_ZED
+
+//======================================================================
+// Network Hardware
+//======================================================================
+
 //----------------------------------------
 // Ethernet
 //----------------------------------------
@@ -18,6 +92,39 @@ void ethernetUpdate() {}
 bool ntpLogIncreasing = false;
 
 #endif // COMPILE_ETHERNET
+
+//----------------------------------------
+// WiFi
+//----------------------------------------
+
+#ifndef COMPILE_WIFI
+
+void menuWiFi()                 {systemPrintln("**WiFi not compiled**");}
+void wifiDisplayNetworkData()                   {}
+void wifiDisplaySoftApStatus()                  {}
+bool wifiEspNowOff(const char * fileName, uint32_t lineNumber) {return true;}
+bool wifiEspNowOn(const char * fileName, uint32_t lineNumber) {return false;}
+void wifiEspNowChannelSet(WIFI_CHANNEL_t channel) {}
+int wifiNetworkCount()                          {return 0;}
+void wifiResetTimeout()                         {}
+IPAddress wifiSoftApGetBroadcastIpAddress()     {return IPAddress((uint32_t)0);}
+IPAddress wifiSoftApGetIpAddress()              {return IPAddress((uint32_t)0);}
+const char * wifiSoftApGetSsid()                {return "";}
+bool wifiSoftApOff(const char * fileName, uint32_t lineNumber) {return true;}
+bool wifiSoftApOn(const char * fileName, uint32_t lineNumber) {return false;}
+void wifiStationDisplayData()                   {}
+bool wifiStationOff(const char * fileName, uint32_t lineNumber) {return true;}
+bool wifiStationOn(const char * fileName, uint32_t lineNumber) {return false;}
+void wifiStationUpdate()                        {}
+void wifiStopAll()                              {}
+void wifiUpdateSettings()                       {}
+void wifiVerifyTables()                         {}
+
+#endif // COMPILE_WIFI
+
+//======================================================================
+// Network Software
+//======================================================================
 
 //----------------------------------------
 // Network layer
@@ -198,6 +305,53 @@ bool webServerIsRunning() {return false;}
 
 #endif  // COMPILE_AP
 
+//======================================================================
+// Other Devices
+//======================================================================
+
+//----------------------------------------
+// IM19_IMU
+//----------------------------------------
+
+#ifndef  COMPILE_IM19_IMU
+
+void menuTilt() {}
+void nmeaApplyCompensation(char *nmeaSentence, int arraySize) {}
+void tiltDetect() {systemPrintln("**Tilt Not Compiled**");}
+bool tiltIsCorrecting() {return(false);}
+void tiltRequestStop() {}
+void tiltSensorFactoryReset() {}
+void tiltStop() {}
+void tiltUpdate() {}
+
+#endif  // COMPILE_IM19_IMU
+
+//----------------------------------------
+// MFi authentication coprocessor
+//----------------------------------------
+
+#ifndef COMPILE_AUTHENTICATION
+
+void beginAuthCoPro(TwoWire *i2cBus) {systemPrintln("**MFi Authentication Not Compiled**");}
+void updateAuthCoPro() {}
+
+#endif // COMPILE_AUTHENTICATION
+
+//----------------------------------------
+// MP2762A Charger
+//----------------------------------------
+
+#ifndef COMPILE_MP2762A_CHARGER
+bool mp2762Begin(TwoWire *i2cBus, uint16_t volts, uint16_t milliamps) {return false;}
+uint16_t mp2762getBatteryVoltageMv() {return 0;}
+uint8_t mp2762getChargeStatus() {return 0;}
+void mp2762resetSafetyTimer() {}
+#endif  // COMPILE_MP2762A_CHARGER
+
+//======================================================================
+// Serial Radios
+//======================================================================
+
 //----------------------------------------
 // Global Bluetooth Routines
 //----------------------------------------
@@ -255,137 +409,3 @@ void muxSelectUm980() {}
 void muxSelectUsb() {}
 void updateLora() {}
 #endif  // COMPILE_LORA
-
-//----------------------------------------
-// WiFi
-//----------------------------------------
-
-#ifndef COMPILE_WIFI
-
-void menuWiFi()                 {systemPrintln("**WiFi not compiled**");}
-void wifiDisplayNetworkData()                   {}
-void wifiDisplaySoftApStatus()                  {}
-bool wifiEspNowOff(const char * fileName, uint32_t lineNumber) {return true;}
-bool wifiEspNowOn(const char * fileName, uint32_t lineNumber) {return false;}
-void wifiEspNowChannelSet(WIFI_CHANNEL_t channel) {}
-int wifiNetworkCount()                          {return 0;}
-void wifiResetTimeout()                         {}
-IPAddress wifiSoftApGetBroadcastIpAddress()     {return IPAddress((uint32_t)0);}
-IPAddress wifiSoftApGetIpAddress()              {return IPAddress((uint32_t)0);}
-const char * wifiSoftApGetSsid()                {return "";}
-bool wifiSoftApOff(const char * fileName, uint32_t lineNumber) {return true;}
-bool wifiSoftApOn(const char * fileName, uint32_t lineNumber) {return false;}
-void wifiStationDisplayData()                   {}
-bool wifiStationOff(const char * fileName, uint32_t lineNumber) {return true;}
-bool wifiStationOn(const char * fileName, uint32_t lineNumber) {return false;}
-void wifiStationUpdate()                        {}
-void wifiStopAll()                              {}
-void wifiUpdateSettings()                       {}
-void wifiVerifyTables()                         {}
-
-#endif // COMPILE_WIFI
-
-//----------------------------------------
-// IM19_IMU
-//----------------------------------------
-
-#ifndef  COMPILE_IM19_IMU
-
-void menuTilt() {}
-void nmeaApplyCompensation(char *nmeaSentence, int arraySize) {}
-void tiltDetect() {systemPrintln("**Tilt Not Compiled**");}
-bool tiltIsCorrecting() {return(false);}
-void tiltRequestStop() {}
-void tiltSensorFactoryReset() {}
-void tiltStop() {}
-void tiltUpdate() {}
-
-#endif  // COMPILE_IM19_IMU
-
-//----------------------------------------
-// MP2762A Charger
-//----------------------------------------
-
-#ifndef COMPILE_MP2762A_CHARGER
-bool mp2762Begin(TwoWire *i2cBus, uint16_t volts, uint16_t milliamps) {return false;}
-uint16_t mp2762getBatteryVoltageMv() {return 0;}
-uint8_t mp2762getChargeStatus() {return 0;}
-void mp2762resetSafetyTimer() {}
-#endif  // COMPILE_MP2762A_CHARGER
-
-//----------------------------------------
-// UM980
-//----------------------------------------
-
-#ifndef  COMPILE_UM980
-
-void um980UnicoreHandler(uint8_t * buffer, int length) {}
-
-#endif  // COMPILE_UM980
-
-//----------------------------------------
-// mosaic-X5
-//----------------------------------------
-
-#ifndef  COMPILE_MOSAICX5
-
-void mosaicVerifyTables() {}
-void nmeaExtractStdDeviations(char *nmeaSentence, int arraySize) {}
-void processNonSBFData(SEMP_PARSE_STATE *parse) {}
-void processUart1SBF(SEMP_PARSE_STATE *parse, uint16_t type) {}
-void processUart1SPARTN(SEMP_PARSE_STATE *parse, uint16_t type) {}
-void menuLogMosaic() {}
-
-#endif  // COMPILE_MOSAICX5
-
-//----------------------------------------
-// PointPerfect Library
-//----------------------------------------
-
-#ifndef  COMPILE_POINTPERFECT_LIBRARY
-
-void beginPPL() {systemPrintln("**PPL Not Compiled**");}
-void updatePPL() {}
-bool sendGnssToPpl(uint8_t *buffer, int numDataBytes) {return false;}
-bool sendSpartnToPpl(uint8_t *buffer, int numDataBytes) {return false;}
-bool sendAuxSpartnToPpl(uint8_t *buffer, int numDataBytes) {return false;}
-void pointperfectPrintKeyInformation(const char *requestedBy) {systemPrintln("**PPL Not Compiled**");}
-void pointperfectPrintNtripInformation(const char *requestedBy) {}
-
-#endif  // COMPILE_POINTPERFECT_LIBRARY
-
-//----------------------------------------
-// LG290P
-//----------------------------------------
-
-#ifndef COMPILE_LG290P
-
-void lg290pHandler(uint8_t * buffer, int length) {}
-bool lg290pMessageEnabled(char *nmeaSentence, int sentenceLength)   {return false;}
-
-#endif // COMPILE_LG290P
-
-//----------------------------------------
-// ZED-F9x
-//----------------------------------------
-
-#ifndef COMPILE_ZED
-
-// void checkRXMCOR() {}
-// void pushRXMPMP() {}
-void convertGnssTimeToEpoch(uint32_t *epochSecs, uint32_t *epochMicros) {
-    systemPrintln("**Epoch not compiled** ZED not included so time will be invalid");
-}
-
-#endif // COMPILE_ZED
-
-//----------------------------------------
-// MFi authentication coprocessor
-//----------------------------------------
-
-#ifndef COMPILE_AUTHENTICATION
-
-void beginAuthCoPro(TwoWire *i2cBus) {systemPrintln("**MFi Authentication Not Compiled**");}
-void updateAuthCoPro() {}
-
-#endif // COMPILE_AUTHENTICATION
