@@ -654,6 +654,8 @@ void mmSetBluetoothProtocol(BluetoothRadioType_e bluetoothUserChoice, bool clear
     }
 }
 
+#ifdef  COMPILE_MENU_RADIO
+
 // Configure the internal radio, if available
 void menuRadio()
 {
@@ -907,3 +909,5 @@ void menuRadio()
 
     clearBuffer(); // Empty buffer of any newline chars
 }
+
+#endif  // COMPILE_MENU_RADIO

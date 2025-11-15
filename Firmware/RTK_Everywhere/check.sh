@@ -175,6 +175,11 @@ sed -i 's|#define COMPILE_MENU_POINTPERFECT|//#define COMPILE_MENU_POINTPERFECT|
 make
 git reset --hard --quiet  HEAD
 
+# Menu Radio
+sed -i 's|#define COMPILE_MENU_RADIO|//#define COMPILE_MENU_RADIO|' RTK_Everywhere.ino
+make
+git reset --hard --quiet  HEAD
+
 # Menu System
 sed -i 's|#define COMPILE_MENU_SYSTEM|//#define COMPILE_MENU_SYSTEM|' RTK_Everywhere.ino
 make

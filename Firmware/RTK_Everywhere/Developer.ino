@@ -427,6 +427,14 @@ void menuPointPerfect() {systemPrint("**Menu PointPerfect (PP) not compiled**");
 #endif  // COMPILE_MENU_POINTPERFECT
 
 //----------------------------------------
+// Radio menu
+//----------------------------------------
+
+#ifndef COMPILE_MENU_RADIO
+void menuRadio() {systemPrint("**Menu radio not compiled**");}
+#endif  // COMPILE_MENU_RADIO
+
+//----------------------------------------
 // System menu
 //----------------------------------------
 
