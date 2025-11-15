@@ -275,3 +275,10 @@ void recordLineToLFS(const char *fileName, const char *lineData)
     file.println(lineData);
     file.close();
 }
+
+// Print the NEO firmware version
+void printNEOInfo()
+{
+    if (present.lband_neo == true)
+        systemPrintf("NEO-D9S firmware: %s\r\n", neoFirmwareVersion);
+}

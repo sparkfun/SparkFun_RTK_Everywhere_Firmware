@@ -387,6 +387,14 @@ void firmwareMenu() {systemPrint("**Menu firmware not compiled**");}
 #endif  // COMPILE_MENU_FIRMWARE
 
 //----------------------------------------
+// GNSS menu
+//----------------------------------------
+
+#ifndef COMPILE_MENU_GNSS
+void menuGNSS() {systemPrint("**Menu GNSS not compiled**");}
+#endif  // COMPILE_MENU_GNSS
+
+//----------------------------------------
 // TCP / UDP menu
 //----------------------------------------
 
