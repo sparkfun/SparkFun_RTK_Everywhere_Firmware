@@ -165,6 +165,11 @@ sed -i 's|#define COMPILE_MENU_MESSAGES|//#define COMPILE_MENU_MESSAGES|' RTK_Ev
 make
 git reset --hard --quiet  HEAD
 
+# Menu Ports
+sed -i 's|#define COMPILE_MENU_PORTS|//#define COMPILE_MENU_PORTS|' RTK_Everywhere.ino
+make
+git reset --hard --quiet  HEAD
+
 # Menu TCP/UDP
 sed -i 's|#define COMPILE_MENU_TCP_UDP|//#define COMPILE_MENU_TCP_UDP|' RTK_Everywhere.ino
 make

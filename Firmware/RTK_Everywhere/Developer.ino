@@ -411,6 +411,14 @@ void menuMessagesBaseRTCM() {systemPrint("**Menu messages not compiled**");}
 #endif  // COMPILE_MENU_MESSAGES
 
 //----------------------------------------
+// Ports menu
+//----------------------------------------
+
+#ifndef COMPILE_MENU_PORTS
+void menuPorts() {systemPrint("**Menu ports not compiled**");}
+#endif  // COMPILE_MENU_PORTS
+
+//----------------------------------------
 // TCP / UDP menu
 //----------------------------------------
 
