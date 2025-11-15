@@ -427,6 +427,14 @@ void menuPointPerfect() {systemPrint("**Menu PointPerfect (PP) not compiled**");
 #endif  // COMPILE_MENU_POINTPERFECT
 
 //----------------------------------------
+// System menu
+//----------------------------------------
+
+#ifndef COMPILE_MENU_SYSTEM
+void menuSystem() {systemPrint("**Menu system not compiled**");}
+#endif  // COMPILE_MENU_SYSTEM
+
+//----------------------------------------
 // TCP / UDP menu
 //----------------------------------------
 

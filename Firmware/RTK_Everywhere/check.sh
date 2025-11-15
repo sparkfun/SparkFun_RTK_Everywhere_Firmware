@@ -175,6 +175,11 @@ sed -i 's|#define COMPILE_MENU_POINTPERFECT|//#define COMPILE_MENU_POINTPERFECT|
 make
 git reset --hard --quiet  HEAD
 
+# Menu System
+sed -i 's|#define COMPILE_MENU_SYSTEM|//#define COMPILE_MENU_SYSTEM|' RTK_Everywhere.ino
+make
+git reset --hard --quiet  HEAD
+
 # Menu TCP/UDP
 sed -i 's|#define COMPILE_MENU_TCP_UDP|//#define COMPILE_MENU_TCP_UDP|' RTK_Everywhere.ino
 make
