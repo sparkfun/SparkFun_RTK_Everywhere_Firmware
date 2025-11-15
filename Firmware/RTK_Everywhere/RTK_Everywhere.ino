@@ -127,6 +127,8 @@ RTK_Everywhere.ino
 #define COMPILE_UDP_SERVER      // Comment out to remove UDP server functionality
 #endif                      // COMPILE_WIFI || COMPILE_ETHERNET || COMPILE_CELLULAR
 
+#define COMPILE_MENU_TCP_UDP        // Comment out to remove TCP/UDP menu functionality
+
 // Always define ENABLE_DEVELOPER to enable its use in conditional statements
 #ifndef ENABLE_DEVELOPER
 #define ENABLE_DEVELOPER                                                                                               \

@@ -177,6 +177,9 @@ NetMask_t networkMdnsRunning;  // Non-zero when mDNS is running
 //----------------------------------------
 // Menu for configuring TCP/UDP interfaces
 //----------------------------------------
+
+#ifdef  COMPILE_MENU_TCP_UDP
+
 void menuTcpUdp()
 {
     while (1)
@@ -353,6 +356,8 @@ void menuTcpUdp()
             printUnknown(incoming);
     }
 }
+
+#endif  // COMPILE_MENU_TCP_UDP
 
 //----------------------------------------
 // Initialize the network layer

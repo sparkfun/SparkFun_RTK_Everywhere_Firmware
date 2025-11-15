@@ -349,6 +349,20 @@ void mp2762resetSafetyTimer() {}
 #endif  // COMPILE_MP2762A_CHARGER
 
 //======================================================================
+// Serial Menus
+//======================================================================
+
+//----------------------------------------
+// TCP / UDP
+//----------------------------------------
+
+#ifndef COMPILE_MENU_TCP_UDP
+#ifdef  COMPILE_NETWORK
+void menuTcpUdp() {systemPrint("**Menu TCP/UDP not compiled**");}
+#endif  // COMPILE_NETWORK
+#endif  // COMPILE_MENU_TCP_UDP
+
+//======================================================================
 // Serial Radios
 //======================================================================
 
