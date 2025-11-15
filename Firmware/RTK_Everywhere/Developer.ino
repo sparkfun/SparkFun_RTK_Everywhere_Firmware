@@ -453,6 +453,14 @@ void menuTcpUdp() {systemPrint("**Menu TCP/UDP not compiled**");}
 #endif  // COMPILE_MENU_TCP_UDP
 
 //----------------------------------------
+// User Profiles menu
+//----------------------------------------
+
+#ifndef COMPILE_MENU_USER_PROFILES
+void menuUserProfiles() {systemPrint("**Menu user profiles not compiled**");}
+#endif  // COMPILE_MENU_USER_PROFILES
+
+//----------------------------------------
 // WiFi menu
 //----------------------------------------
 

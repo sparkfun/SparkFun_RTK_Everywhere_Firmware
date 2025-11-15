@@ -301,6 +301,8 @@ void menuMain()
     loraLastIncomingSerial = millis();
 }
 
+#ifdef  COMPILE_MENU_USER_PROFILES
+
 // Change system wide settings based on current user profile
 // Ways to change the GNSS settings:
 // Menus - we apply changes at the exit of each sub menu
@@ -456,6 +458,8 @@ void menuUserProfiles()
 
     clearBuffer(); // Empty buffer of any newline chars
 }
+
+#endif  // COMPILE_MENU_USER_PROFILES
 
 // Change the active profile number, without unit reset
 void changeProfileNumber(byte newProfileNumber)

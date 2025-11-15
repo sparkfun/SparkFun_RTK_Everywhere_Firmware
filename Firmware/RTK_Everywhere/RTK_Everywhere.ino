@@ -139,6 +139,7 @@ RTK_Everywhere.ino
 #define COMPILE_MENU_RADIO          // Comment out to remove radio menu functionality
 #define COMPILE_MENU_SYSTEM         // Comment out to remove system menu functionality
 #define COMPILE_MENU_TCP_UDP        // Comment out to remove TCP/UDP menu functionality
+#define COMPILE_MENU_USER_PROFILES  // Comment out to remove user profile menu functionality
 #define COMPILE_MENU_WIFI           // Comment out to remove WiFi menu functionality
 
 // Always define ENABLE_DEVELOPER to enable its use in conditional statements
