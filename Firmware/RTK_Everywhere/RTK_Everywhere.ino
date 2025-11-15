@@ -127,6 +127,7 @@ RTK_Everywhere.ino
 #define COMPILE_UDP_SERVER      // Comment out to remove UDP server functionality
 #endif                      // COMPILE_WIFI || COMPILE_ETHERNET || COMPILE_CELLULAR
 
+#define COMPILE_MENU_BASE           // Comment out to remove base menu functionality
 #define COMPILE_MENU_ETHERNET       // Comment out to remove Ethernet menu functionality
 #define COMPILE_MENU_TCP_UDP        // Comment out to remove TCP/UDP menu functionality
 #define COMPILE_MENU_WIFI           // Comment out to remove WiFi menu functionality
