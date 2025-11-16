@@ -7,6 +7,7 @@ GNSS_Mosaic.h
 #ifndef __GNSS_MOSAIC_H__
 #define __GNSS_MOSAIC_H__
 
+#include "GNSS_Mosaic.h"
 #include <SparkFun_Extensible_Message_Parser.h> //http://librarymanager/All#SparkFun_Extensible_Message_Parser
 
 typedef struct
@@ -1071,4 +1072,8 @@ class GNSS_MOSAIC : GNSS
     void waitSBFReceiverSetup(HardwareSerial *serialPort, unsigned long timeout);
 };
 
-#endif // __GNSS_MOSAIC_H__
+// Forward routine declarations
+bool mosaicIsPresentOnFlex();
+void mosaicNewClass();
+
+#endif  // __GNSS_MOSAIC_H__

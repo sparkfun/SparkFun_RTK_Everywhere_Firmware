@@ -8,6 +8,8 @@ GNSS_LG290P.ino
 
 #ifdef COMPILE_LG290P
 
+#include "GNSS_LG290P.h"
+
 int lg290pFirmwareVersion = 0;
 
 //----------------------------------------
@@ -2646,6 +2648,7 @@ bool lg290pMessageEnabled(char *nmeaSentence, int sentenceLength)
     return (true);
 }
 
+//----------------------------------------
 // Return true if we detect this receiver type
 bool lg290pIsPresentOnFlex()
 {
@@ -2679,6 +2682,19 @@ bool lg290pIsPresentOnFlex()
 
     serialTestGNSS.end();
     return false;
+}
+
+//----------------------------------------
+// Called by gnssDetectReceiverType to create the GNSS_LG290P class instance
+//----------------------------------------
+void lg290pNewClass()
+{
+    gnss = (GNSS *)new GNSS_LG290P();
+
+    present.gnss_lg290p = true;
+    present.minCN0 = true;
+    present.minElevation = true;
+    present.needsExternalPpl = true; // Uses the PointPerfect Library
 }
 
 #endif // COMPILE_LG290P

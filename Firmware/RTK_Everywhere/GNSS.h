@@ -419,4 +419,18 @@ bool gnssCmdUpdateConstellations(const char *settingName, void *settingData, int
 // Update the message rates following a set command
 bool gnssCmdUpdateMessageRates(const char *settingName, void *settingData, int settingType);
 
+// Determine if the GNSS receiver is present
+typedef bool (* GNSS_PRESENT)();
+
+// Create the GNSS class instance
+typedef void (* GNSS_NEW_CLASS)();
+
+typedef struct _GNSS_SUPPORT_ROUTINES
+{
+    const char * name;
+    gnssReceiverType_e _receiver;
+    GNSS_PRESENT _present;
+    GNSS_NEW_CLASS _newClass;
+} GNSS_SUPPORT_ROUTINES;
+
 #endif // __GNSS_H__

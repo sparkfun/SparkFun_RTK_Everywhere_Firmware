@@ -6,6 +6,8 @@ GNSS_Mosaic.ino
 
 #ifdef COMPILE_MOSAICX5
 
+#include "GNSS_Mosaic.h"
+
 //==============================================================================
 // Notes about Septentrio log file formats:
 // Files are stored in directory "SSN/GRB0051"
@@ -3245,9 +3247,9 @@ bool mosaicX5waitCR(unsigned long timeout)
 }
 */
 
-#endif // COMPILE_MOSAICX5
-
+//----------------------------------------
 // Test for mosaic on UART1 of the ESP32 on Flex
+//----------------------------------------
 bool mosaicIsPresentOnFlex()
 {
     // Locally instantiate the hardware and library so it will release on exit
@@ -3297,3 +3299,20 @@ bool mosaicIsPresentOnFlex()
     serialTestGNSS.end();
     return false;
 }
+
+//----------------------------------------
+// Called by gnssDetectReceiverType to create the GNSS_MOSAIC class instance
+//----------------------------------------
+void mosaicNewClass()
+{
+    gnss = (GNSS *)new GNSS_MOSAIC();
+
+    present.gnss_mosaicX5 = true;
+    present.minCN0 = true;
+    present.minElevation = true;
+    present.dynamicModel = true;
+    present.mosaicMicroSd = true;
+    // present.needsExternalPpl = true; // Nope. No L-Band support...
+}
+
+#endif // COMPILE_MOSAICX5

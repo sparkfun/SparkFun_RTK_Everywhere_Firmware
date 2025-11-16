@@ -33,6 +33,31 @@ calculation
   There are many more but these form the core of any configuration interface.
 =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=*/
 
+//----------------------------------------
+// Constants
+//----------------------------------------
+
+const GNSS_SUPPORT_ROUTINES gnssSupportRoutines[] =
+{
+#ifdef  COMPILE_LG290P
+    {
+        "LG290P",               // _name
+        GNSS_RECEIVER_LG290P,   // _receiver
+        lg290pIsPresentOnFlex,  // _present
+        lg290pNewClass,         // _newClass
+    },
+#endif  // COMPILE_LG290P
+#ifdef  COMPILE_MOSAICX5
+    {
+        "Mosaic-X5",                // _name
+        GNSS_RECEIVER_MOSAIC_X5,    // _receiver
+        mosaicIsPresentOnFlex,      // _present
+        mosaicNewClass,             // _newClass
+    },
+#endif  // COMPILE_MOSAICX5
+};
+#define GNSS_SUPPORT_ROUTINES_ENTRIES   (sizeof(gnssSupportRoutines) / sizeof(gnssSupportRoutines[0]))
+
 // We may receive a command or the user may change a setting that needs to modify the configuration of the GNSS receiver
 // Because this can take time, we group all the changes together and re-configure the receiver once the user has exited
 // the menu system, closed the Web Config, or the CLI is closed.
@@ -526,6 +551,8 @@ static void pushGPGGA(char *ggaData)
 // If we have a previous ID, use it
 void gnssDetectReceiverType()
 {
+    int index;
+
     // Currently only the Flex requires GNSS receiver detection
     if (productVariant != RTK_FLEX)
         return;
@@ -535,70 +562,36 @@ void gnssDetectReceiverType()
     // Start auto-detect if NVM is not yet set
     if (settings.detectedGnssReceiver == GNSS_RECEIVER_UNKNOWN)
     {
-        // The COMPILE guards prevent else if
-        // Use a do while (0) so we can break when GNSS is detected
-        do
+        for (index = 0; index < GNSS_SUPPORT_ROUTINES_ENTRIES; index++)
         {
-#ifdef COMPILE_LG290P
-            systemPrintln("Testing for LG290P");
-            if (lg290pIsPresentOnFlex() == true)
+            if (gnssSupportRoutines[index]._present
+                && gnssSupportRoutines[index]._present())
             {
-                systemPrintln("Auto-detected GNSS receiver: LG290P");
-                settings.detectedGnssReceiver = GNSS_RECEIVER_LG290P;
+                systemPrintf("Auto-detected GNSS receiver: %s\r\n",
+                             gnssSupportRoutines[index].name);
+                settings.detectedGnssReceiver = gnssSupportRoutines[index]._receiver;
                 recordSystemSettings(); // Record the detected GNSS receiver and avoid this test in the future
                 break;
             }
-#else  // COMPILE_LGP290P
-            systemPrintln("<<<<<<<<<< !!!!!!!!!! LG290P NOT COMPILED !!!!!!!!!! >>>>>>>>>>");
-#endif // COMPILE_LGP290P
-
-#ifdef COMPILE_MOSAICX5
-            systemPrintln("Testing for mosaic-X5");
-            if (mosaicIsPresentOnFlex() == true) // Note: this changes the COM1 baud from 115200 to 460800
-            {
-                systemPrintln("Auto-detected GNSS receiver: mosaic-X5");
-                settings.detectedGnssReceiver = GNSS_RECEIVER_MOSAIC_X5;
-                recordSystemSettings(); // Record the detected GNSS receiver and avoid this test in the future
-                break;
-            }
-#else  // COMPILE_MOSAICX5
-            systemPrintln("<<<<<<<<<< !!!!!!!!!! MOSAICX5 NOT COMPILED !!!!!!!!!! >>>>>>>>>>");
-#endif // COMPILE_MOSAICX5
-        } while (0);
-    }
-
-    // Start the detected receiver
-    if (settings.detectedGnssReceiver == GNSS_RECEIVER_LG290P)
-    {
-#ifdef COMPILE_LG290P
-        gnss = (GNSS *)new GNSS_LG290P();
-
-        present.gnss_lg290p = true;
-        present.minCN0 = true;
-        present.minElevation = true;
-        present.needsExternalPpl = true; // Uses the PointPerfect Library
-
-#endif // COMPILE_LGP290P
-    }
-    else if (settings.detectedGnssReceiver == GNSS_RECEIVER_MOSAIC_X5)
-    {
-#ifdef COMPILE_MOSAICX5
-        gnss = (GNSS *)new GNSS_MOSAIC();
-
-        present.gnss_mosaicX5 = true;
-        present.minCN0 = true;
-        present.minElevation = true;
-        present.dynamicModel = true;
-        present.mosaicMicroSd = true;
-        // present.needsExternalPpl = true; // Nope. No L-Band support...
-
-#endif // COMPILE_MOSAICX5
+        }
     }
 
     // Auto ID failed, mark everything as unknown
-    else if (settings.detectedGnssReceiver == GNSS_RECEIVER_UNKNOWN)
+    if (settings.detectedGnssReceiver == GNSS_RECEIVER_UNKNOWN)
     {
         gnss = (GNSS *)new GNSS_None();
+    }
+    else
+    {
+        // Create the GNSS class instance
+        for (index = 0; index < GNSS_SUPPORT_ROUTINES_ENTRIES; index++)
+        {
+            if (settings.detectedGnssReceiver == gnssSupportRoutines[index]._receiver)
+            {
+                gnssSupportRoutines[index]._newClass();
+                break;
+            }
+        }
     }
 }
 

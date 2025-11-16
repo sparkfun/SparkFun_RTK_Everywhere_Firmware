@@ -469,5 +469,9 @@ class GNSS_LG290P : GNSS
     void update();
 };
 
+// Forward routine declarations
+bool lg290pIsPresentOnFlex();
+void lg290pNewClass();
+
 #endif // COMPILE_LG290P
 #endif // __GNSS_LG290P_H__
