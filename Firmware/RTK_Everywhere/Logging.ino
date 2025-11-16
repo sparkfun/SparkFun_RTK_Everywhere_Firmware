@@ -2,6 +2,8 @@
 Logging.ino
 =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=*/
 
+#ifdef  COMPILE_MENU_LOGGING
+
 // Menu of Logging Menus
 void menuLogSelection()
 {
@@ -190,6 +192,8 @@ void menuLog()
 
     clearBuffer(); // Empty buffer of any newline chars
 }
+
+#endif  // COMPILE_MENU_LOGGING
 
 // Print accessible microSd size and free space
 void printMicroSdInfo()

@@ -53,6 +53,9 @@ void printMosaicCardSpace()
 //----------------------------------------
 // Control the messages that get logged to SD
 //----------------------------------------
+
+#ifdef  COMPILE_MENU_LOGGING
+
 void menuLogMosaic()
 {
     if (present.mosaicMicroSd == false) // This may be needed for the G5 P3 ?
@@ -150,6 +153,8 @@ void menuLogMosaic()
 
     clearBuffer(); // Empty buffer of any newline chars
 }
+
+#endif  // COMPILE_MENU_LOGGING
 
 //==========================================================================
 // GNSS_MOSAIC class implementation
