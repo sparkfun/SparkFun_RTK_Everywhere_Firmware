@@ -45,6 +45,7 @@ const GNSS_SUPPORT_ROUTINES gnssSupportRoutines[] =
         GNSS_RECEIVER_LG290P,   // _receiver
         lg290pIsPresentOnFlex,  // _present
         lg290pNewClass,         // _newClass
+        nullptr,                // _createString
         lg290pNewSettingValue,  // _newSettingValue
         lg290pSettingsToFile,   // _settingToFile
     },
@@ -55,6 +56,7 @@ const GNSS_SUPPORT_ROUTINES gnssSupportRoutines[] =
         GNSS_RECEIVER_MOSAIC_X5,    // _receiver
         mosaicIsPresentOnFlex,      // _present
         mosaicNewClass,             // _newClass
+        nullptr,                // _createString
         mosaicNewSettingValue,      // _newSettingValue
         mosaicSettingsToFile,       // _settingToFile
     },
@@ -65,6 +67,7 @@ const GNSS_SUPPORT_ROUTINES gnssSupportRoutines[] =
         GNSS_RECEIVER_UNKNOWN,  // _receiver
         nullptr,                // _present
         nullptr,                // _newClass
+        nullptr,                // _createString
         um980NewSettingValue,   // _newSettingValue
         um980SettingsToFile,    // _settingToFile
     },
@@ -75,6 +78,7 @@ const GNSS_SUPPORT_ROUTINES gnssSupportRoutines[] =
         GNSS_RECEIVER_UNKNOWN,  // _receiver
         nullptr,                // _present
         nullptr,                // _newClass
+        nullptr,                // _createString
         zedNewSettingValue,     // _newSettingValue
         zedSettingsToFile,      // _settingToFile
     },
@@ -849,6 +853,22 @@ void gnssFirmwareRemoveUpdateFile(const char *filename)
 
         LittleFS.remove(filename);
     }
+}
+
+//----------------------------------------
+// Called by createSettingsString to build settings file string
+//----------------------------------------
+bool gnssCreateString(RTK_Settings_Types type,
+                      int settingsIndex,
+                      char * newSettings)
+{
+    for (int index = 0; index < GNSS_SUPPORT_ROUTINES_ENTRIES; index++)
+    {
+        if (gnssSupportRoutines[index]._createString
+            && gnssSupportRoutines[index]._createString(type, settingsIndex, newSettings))
+            return true;
+    }
+    return false;
 }
 
 //----------------------------------------
