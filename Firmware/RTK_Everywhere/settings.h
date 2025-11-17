@@ -263,17 +263,6 @@ typedef enum
     MUX_ADC_DAC,
 } muxConnectionType_e;
 
-// GNSS receiver type detected in Flex
-typedef enum
-{
-    GNSS_RECEIVER_LG290P = 0,
-    GNSS_RECEIVER_MOSAIC_X5,
-    GNSS_RECEIVER_X20P,
-    GNSS_RECEIVER_UM980,
-    // Add new values above this line
-    GNSS_RECEIVER_UNKNOWN,
-} gnssReceiverType_e;
-
 // User can enter fixed base coordinates in ECEF or degrees
 typedef enum
 {

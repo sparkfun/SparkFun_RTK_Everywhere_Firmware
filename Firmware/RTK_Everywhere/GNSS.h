@@ -7,6 +7,17 @@ GNSS.h
 #ifndef __GNSS_H__
 #define __GNSS_H__
 
+// GNSS receiver type detected in Flex
+typedef enum
+{
+    GNSS_RECEIVER_LG290P = 0,
+    GNSS_RECEIVER_MOSAIC_X5,
+    GNSS_RECEIVER_X20P,
+    GNSS_RECEIVER_UM980,
+    // Add new values above this line
+    GNSS_RECEIVER_UNKNOWN,
+} gnssReceiverType_e;
+
 class GNSS
 {
   protected:
