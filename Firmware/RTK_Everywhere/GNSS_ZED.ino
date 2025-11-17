@@ -6,6 +6,8 @@ GNSS_ZED.ino
 
 #ifdef COMPILE_ZED
 
+#include "GNSS_ZED.h"
+
 //----------------------------------------
 // If we have decryption keys, configure module
 // Note: don't check online.lband_neo here. We could be using ip corrections
@@ -3017,6 +3019,59 @@ void inputMessageRate(uint8_t &localMessageRate, uint8_t messageNumber)
 void zedPushGPGGA(NMEA_GGA_data_t *nmeaData)
 {
     pushGPGGA((char *)nmeaData->nmea);
+}
+
+//----------------------------------------
+// Called by gnssSettingsToFile to save ZED specific settings
+//----------------------------------------
+bool zedSettingsToFile(File *settingsFile,
+                       RTK_Settings_Types type,
+                       int settingsIndex)
+{
+    switch (type)
+    {
+        default:
+            return false;
+
+        case tUbxConst: {
+            // Record constellation settings
+            for (int x = 0; x < rtkSettingsEntries[settingsIndex].qualifier; x++)
+            {
+                char tempString[50]; // constellation_BeiDou=1
+                snprintf(tempString, sizeof(tempString), "%s%s=%d", rtkSettingsEntries[settingsIndex].name,
+                         settings.ubxConstellations[x].textName, settings.ubxConstellations[x].enabled);
+                settingsFile->println(tempString);
+            }
+        }
+        break;
+        case tUbxMsgRt: {
+            // Record message settings
+            for (int x = 0; x < rtkSettingsEntries[settingsIndex].qualifier; x++)
+            {
+                char tempString[50]; // ubxMessageRate_UBX_NMEA_DTM=5
+                snprintf(tempString, sizeof(tempString), "%s%s=%d", rtkSettingsEntries[settingsIndex].name,
+                         ubxMessages[x].msgTextName, settings.ubxMessageRates[x]);
+                settingsFile->println(tempString);
+            }
+        }
+        break;
+        case tUbMsgRtb: {
+            // Record message settings
+
+            GNSS_ZED *zed = (GNSS_ZED *)gnss;
+            int firstRTCMRecord = zed->getMessageNumberByName("RTCM_1005");
+
+            for (int x = 0; x < rtkSettingsEntries[settingsIndex].qualifier; x++)
+            {
+                char tempString[50]; // ubxMessageRateBase_UBX_NMEA_DTM=5
+                snprintf(tempString, sizeof(tempString), "%s%s=%d", rtkSettingsEntries[settingsIndex].name,
+                         ubxMessages[firstRTCMRecord + x].msgTextName, settings.ubxMessageRatesBase[x]);
+                settingsFile->println(tempString);
+            }
+        }
+        break;
+    }
+    return true;
 }
 
 #endif // COMPILE_ZED

@@ -425,12 +425,18 @@ typedef bool (* GNSS_PRESENT)();
 // Create the GNSS class instance
 typedef void (* GNSS_NEW_CLASS)();
 
+// Write settings to a file
+typedef bool (* GNSS_SETTING_TO_FILE)(File *settingsFile,
+                                      RTK_Settings_Types type,
+                                      int settingsIndex);
+
 typedef struct _GNSS_SUPPORT_ROUTINES
 {
     const char * name;
     gnssReceiverType_e _receiver;
     GNSS_PRESENT _present;
     GNSS_NEW_CLASS _newClass;
+    GNSS_SETTING_TO_FILE _settingToFile;
 } GNSS_SUPPORT_ROUTINES;
 
 #endif // __GNSS_H__

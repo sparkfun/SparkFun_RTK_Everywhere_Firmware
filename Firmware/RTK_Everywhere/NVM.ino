@@ -216,6 +216,8 @@ void recordSystemSettingsToFileLFS(char *fileName)
 // The order of variables matches the order found in settings.h
 void recordSystemSettingsToFile(File *settingsFile)
 {
+    RTK_Settings_Types type;
+
     settingsFile->printf("%s=%d\r\n", "sizeOfSettings", settings.sizeOfSettings);
     settingsFile->printf("%s=%d\r\n", "rtkIdentifier", settings.rtkIdentifier);
 
@@ -241,7 +243,13 @@ void recordSystemSettingsToFile(File *settingsFile)
                 continue;
         }
 
-        switch (rtkSettingsEntries[i].type)
+        // Check for a GNSS receiver specific type
+        type = rtkSettingsEntries[i].type;
+        if (gnssSettingsToFile(settingsFile, type, i))
+            continue;
+
+        // Process the generic types
+        switch (type)
         {
         default:
             break;
@@ -360,46 +368,6 @@ void recordSystemSettingsToFile(File *settingsFile)
         }
         break;
 
-#ifdef COMPILE_ZED
-        case tUbxConst: {
-            // Record constellation settings
-            for (int x = 0; x < rtkSettingsEntries[i].qualifier; x++)
-            {
-                char tempString[50]; // constellation_BeiDou=1
-                snprintf(tempString, sizeof(tempString), "%s%s=%d", rtkSettingsEntries[i].name,
-                         settings.ubxConstellations[x].textName, settings.ubxConstellations[x].enabled);
-                settingsFile->println(tempString);
-            }
-        }
-        break;
-        case tUbxMsgRt: {
-            // Record message settings
-            for (int x = 0; x < rtkSettingsEntries[i].qualifier; x++)
-            {
-                char tempString[50]; // ubxMessageRate_UBX_NMEA_DTM=5
-                snprintf(tempString, sizeof(tempString), "%s%s=%d", rtkSettingsEntries[i].name,
-                         ubxMessages[x].msgTextName, settings.ubxMessageRates[x]);
-                settingsFile->println(tempString);
-            }
-        }
-        break;
-        case tUbMsgRtb: {
-            // Record message settings
-
-            GNSS_ZED *zed = (GNSS_ZED *)gnss;
-            int firstRTCMRecord = zed->getMessageNumberByName("RTCM_1005");
-
-            for (int x = 0; x < rtkSettingsEntries[i].qualifier; x++)
-            {
-                char tempString[50]; // ubxMessageRateBase_UBX_NMEA_DTM=5
-                snprintf(tempString, sizeof(tempString), "%s%s=%d", rtkSettingsEntries[i].name,
-                         ubxMessages[firstRTCMRecord + x].msgTextName, settings.ubxMessageRatesBase[x]);
-                settingsFile->println(tempString);
-            }
-        }
-        break;
-#endif // COMPILE_ZED
-
         case tWiFiNet: {
             // Record WiFi credential table
             for (int x = 0; x < rtkSettingsEntries[i].qualifier; x++)
@@ -463,53 +431,6 @@ void recordSystemSettingsToFile(File *settingsFile)
         }
         break;
 
-#ifdef COMPILE_UM980
-        case tUmMRNmea: {
-            // Record UM980 NMEA rates
-            for (int x = 0; x < rtkSettingsEntries[i].qualifier; x++)
-            {
-                char tempString[50]; // um980MessageRatesNMEA_GPDTM=0.05
-                snprintf(tempString, sizeof(tempString), "%s%s=%0.2f", rtkSettingsEntries[i].name,
-                         umMessagesNMEA[x].msgTextName, settings.um980MessageRatesNMEA[x]);
-                settingsFile->println(tempString);
-            }
-        }
-        break;
-        case tUmMRRvRT: {
-            // Record UM980 Rover RTCM rates
-            for (int x = 0; x < rtkSettingsEntries[i].qualifier; x++)
-            {
-                char tempString[50]; // um980MessageRatesRTCMRover_RTCM1001=0.2
-                snprintf(tempString, sizeof(tempString), "%s%s=%0.2f", rtkSettingsEntries[i].name,
-                         umMessagesRTCM[x].msgTextName, settings.um980MessageRatesRTCMRover[x]);
-                settingsFile->println(tempString);
-            }
-        }
-        break;
-        case tUmMRBaRT: {
-            // Record UM980 Base RTCM rates
-            for (int x = 0; x < rtkSettingsEntries[i].qualifier; x++)
-            {
-                char tempString[50]; // um980MessageRatesRTCMBase_RTCM1001=0.2
-                snprintf(tempString, sizeof(tempString), "%s%s=%0.2f", rtkSettingsEntries[i].name,
-                         umMessagesRTCM[x].msgTextName, settings.um980MessageRatesRTCMBase[x]);
-                settingsFile->println(tempString);
-            }
-        }
-        break;
-        case tUmConst: {
-            // Record UM980 Constellations
-            for (int x = 0; x < rtkSettingsEntries[i].qualifier; x++)
-            {
-                char tempString[50]; // um980Constellations_GLONASS=1
-                snprintf(tempString, sizeof(tempString), "%s%s=%0d", rtkSettingsEntries[i].name,
-                         um980ConstellationCommands[x].textName, settings.um980Constellations[x]);
-                settingsFile->println(tempString);
-            }
-        }
-        break;
-#endif // COMPILE_UM980
-
         case tCorrSPri: {
             // Record corrections priorities
             for (int x = 0; x < rtkSettingsEntries[i].qualifier; x++)
@@ -529,145 +450,6 @@ void recordSystemSettingsToFile(File *settingsFile)
             }
         }
         break;
-
-#ifdef COMPILE_MOSAICX5
-        case tMosaicConst: {
-            // Record Mosaic Constellations
-            for (int x = 0; x < rtkSettingsEntries[i].qualifier; x++)
-            {
-                char tempString[50]; // constellation_GLONASS=1
-                snprintf(tempString, sizeof(tempString), "%s%s=%0d", rtkSettingsEntries[i].name,
-                         mosaicSignalConstellations[x].configName, settings.mosaicConstellations[x]);
-                settingsFile->println(tempString);
-            }
-        }
-        break;
-        case tMosaicMSNmea: {
-            // Record Mosaic NMEA message streams
-            for (int x = 0; x < rtkSettingsEntries[i].qualifier; x++)
-            {
-                char tempString[50]; // messageStreamNMEA_GGA=1
-                snprintf(tempString, sizeof(tempString), "%s%s=%0d", rtkSettingsEntries[i].name,
-                         mosaicMessagesNMEA[x].msgTextName, settings.mosaicMessageStreamNMEA[x]);
-                settingsFile->println(tempString);
-            }
-        }
-        break;
-        case tMosaicSINmea: {
-            // Record Mosaic NMEA stream intervals
-            for (int x = 0; x < rtkSettingsEntries[i].qualifier; x++)
-            {
-                char tempString[50]; // streamIntervalNMEA_1=1
-                snprintf(tempString, sizeof(tempString), "%s%d=%0d", rtkSettingsEntries[i].name, x,
-                         settings.mosaicStreamIntervalsNMEA[x]);
-                settingsFile->println(tempString);
-            }
-        }
-        break;
-        case tMosaicMIRvRT: {
-            // Record Mosaic Rover RTCM intervals
-            for (int x = 0; x < rtkSettingsEntries[i].qualifier; x++)
-            {
-                char tempString[50]; // messageIntervalRTCMRover_RTCM1001=0.2
-                snprintf(tempString, sizeof(tempString), "%s%s=%0.2f", rtkSettingsEntries[i].name,
-                         mosaicRTCMv3MsgIntervalGroups[x].name, settings.mosaicMessageIntervalsRTCMv3Rover[x]);
-                settingsFile->println(tempString);
-            }
-        }
-        break;
-        case tMosaicMIBaRT: {
-            // Record Mosaic Base RTCM intervals
-            for (int x = 0; x < rtkSettingsEntries[i].qualifier; x++)
-            {
-                char tempString[50]; // messageIntervalRTCMBase_RTCM1001=0.2
-                snprintf(tempString, sizeof(tempString), "%s%s=%0.2f", rtkSettingsEntries[i].name,
-                         mosaicRTCMv3MsgIntervalGroups[x].name, settings.mosaicMessageIntervalsRTCMv3Base[x]);
-                settingsFile->println(tempString);
-            }
-        }
-        break;
-        case tMosaicMERvRT: {
-            // Record Mosaic Rover RTCM enabled
-            for (int x = 0; x < rtkSettingsEntries[i].qualifier; x++)
-            {
-                char tempString[50]; // messageEnabledRTCMRover_RTCM1001=0
-                snprintf(tempString, sizeof(tempString), "%s%s=%0d", rtkSettingsEntries[i].name,
-                         mosaicMessagesRTCMv3[x].name, settings.mosaicMessageEnabledRTCMv3Rover[x]);
-                settingsFile->println(tempString);
-            }
-        }
-        break;
-        case tMosaicMEBaRT: {
-            // Record Mosaic Base RTCM enabled
-            for (int x = 0; x < rtkSettingsEntries[i].qualifier; x++)
-            {
-                char tempString[50]; // messageEnabledRTCMBase_RTCM1001=0
-                snprintf(tempString, sizeof(tempString), "%s%s=%0d", rtkSettingsEntries[i].name,
-                         mosaicMessagesRTCMv3[x].name, settings.mosaicMessageEnabledRTCMv3Base[x]);
-                settingsFile->println(tempString);
-            }
-        }
-        break;
-#endif // COMPILE_MOSAICX5
-
-#ifdef COMPILE_LG290P
-        case tLgMRNmea: {
-            // Record LG290P NMEA rates
-            for (int x = 0; x < rtkSettingsEntries[i].qualifier; x++)
-            {
-                char tempString[50]; // lg290pMessageRatesNMEA_GPGGA=2
-                snprintf(tempString, sizeof(tempString), "%s%s=%d", rtkSettingsEntries[i].name,
-                         lgMessagesNMEA[x].msgTextName, settings.lg290pMessageRatesNMEA[x]);
-                settingsFile->println(tempString);
-            }
-        }
-        break;
-        case tLgMRRvRT: {
-            // Record LG290P Rover RTCM rates
-            for (int x = 0; x < rtkSettingsEntries[i].qualifier; x++)
-            {
-                char tempString[50]; // lg290pMessageRatesRTCMRover_RTCM1005=2
-                snprintf(tempString, sizeof(tempString), "%s%s=%d", rtkSettingsEntries[i].name,
-                         lgMessagesRTCM[x].msgTextName, settings.lg290pMessageRatesRTCMRover[x]);
-                settingsFile->println(tempString);
-            }
-        }
-        break;
-        case tLgMRBaRT: {
-            // Record LG290P Base RTCM rates
-            for (int x = 0; x < rtkSettingsEntries[i].qualifier; x++)
-            {
-                char tempString[50]; // lg290pMessageRatesRTCMBase_RTCM1005=2
-                snprintf(tempString, sizeof(tempString), "%s%s=%d", rtkSettingsEntries[i].name,
-                         lgMessagesRTCM[x].msgTextName, settings.lg290pMessageRatesRTCMBase[x]);
-                settingsFile->println(tempString);
-            }
-        }
-        break;
-        case tLgMRPqtm: {
-            // Record LG290P PQTM rates
-            for (int x = 0; x < rtkSettingsEntries[i].qualifier; x++)
-            {
-                char tempString[50]; // lg290pMessageRatesPQTM_EPE=1
-                snprintf(tempString, sizeof(tempString), "%s%s=%d", rtkSettingsEntries[i].name,
-                         lgMessagesPQTM[x].msgTextName, settings.lg290pMessageRatesPQTM[x]);
-                settingsFile->println(tempString);
-            }
-        }
-        break;
-        case tLgConst: {
-            // Record LG290P Constellations
-            for (int x = 0; x < rtkSettingsEntries[i].qualifier; x++)
-            {
-                char tempString[50]; // lg290pConstellations_GLONASS=1
-                snprintf(tempString, sizeof(tempString), "%s%s=%d", rtkSettingsEntries[i].name,
-                         lg290pConstellationNames[x], settings.lg290pConstellations[x]);
-                settingsFile->println(tempString);
-            }
-        }
-        break;
-#endif // COMPILE_LG290P
-
         case tGnssReceiver: {
             gnssReceiverType_e *ptr = (gnssReceiverType_e *)rtkSettingsEntries[i].var;
             settingsFile->printf("%s=%d\r\n", rtkSettingsEntries[i].name, (int)*ptr);

@@ -1075,5 +1075,8 @@ class GNSS_MOSAIC : GNSS
 // Forward routine declarations
 bool mosaicIsPresentOnFlex();
 void mosaicNewClass();
+bool mosaicSettingsToFile(File *settingsFile,
+                          RTK_Settings_Types type,
+                          int settingsIndex);
 
 #endif  // __GNSS_MOSAIC_H__

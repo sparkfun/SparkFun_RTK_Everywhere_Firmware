@@ -45,6 +45,7 @@ const GNSS_SUPPORT_ROUTINES gnssSupportRoutines[] =
         GNSS_RECEIVER_LG290P,   // _receiver
         lg290pIsPresentOnFlex,  // _present
         lg290pNewClass,         // _newClass
+        lg290pSettingsToFile,   // _settingToFile
     },
 #endif  // COMPILE_LG290P
 #ifdef  COMPILE_MOSAICX5
@@ -53,8 +54,27 @@ const GNSS_SUPPORT_ROUTINES gnssSupportRoutines[] =
         GNSS_RECEIVER_MOSAIC_X5,    // _receiver
         mosaicIsPresentOnFlex,      // _present
         mosaicNewClass,             // _newClass
+        mosaicSettingsToFile,       // _settingToFile
     },
 #endif  // COMPILE_MOSAICX5
+#ifdef  COMPILE_UM980
+    {
+        "UM980",                // _name
+        GNSS_RECEIVER_UNKNOWN,  // _receiver
+        nullptr,                // _present
+        nullptr,                // _newClass
+        um980SettingsToFile,    // _settingToFile
+    },
+#endif  // COMPILE_UM980
+#ifdef  COMPILE_ZED
+    {
+        "ZED",                  // _name
+        GNSS_RECEIVER_UNKNOWN,  // _receiver
+        nullptr,                // _present
+        nullptr,                // _newClass
+        zedSettingsToFile,      // _settingToFile
+    },
+#endif  // COMPILE_ZED
 };
 #define GNSS_SUPPORT_ROUTINES_ENTRIES   (sizeof(gnssSupportRoutines) / sizeof(gnssSupportRoutines[0]))
 
@@ -825,4 +845,20 @@ void gnssFirmwareRemoveUpdateFile(const char *filename)
 
         LittleFS.remove(filename);
     }
+}
+
+//----------------------------------------
+// Called by recordSystemSettingsToFile to save GNSS specific settings
+//----------------------------------------
+bool gnssSettingsToFile(File *settingsFile,
+                        RTK_Settings_Types type,
+                        int settingsIndex)
+{
+    for (int index = 0; index < GNSS_SUPPORT_ROUTINES_ENTRIES; index++)
+    {
+        if (gnssSupportRoutines[index]._settingToFile
+            && gnssSupportRoutines[index]._settingToFile(settingsFile, type, settingsIndex))
+            return true;
+    }
+    return false;
 }

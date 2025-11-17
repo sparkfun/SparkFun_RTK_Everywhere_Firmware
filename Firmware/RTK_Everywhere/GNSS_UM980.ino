@@ -15,6 +15,8 @@ GNSS_UM980.ino
 
 #ifdef COMPILE_UM980
 
+#include "GNSS_UM980.h"
+
 bool um980MessagesEnabled_NMEA = false;       // Goes true when we enable NMEA messages
 bool um980MessagesEnabled_RTCM_Rover = false; // Goes true when we enable RTCM Rover messages
 bool um980MessagesEnabled_RTCM_Base = false;  // Goes true when we enable RTCM Base messages
@@ -2086,9 +2088,67 @@ bool GNSS_UM980::setRtcmRoverMessageRateByName(const char *msgName, uint8_t msgR
     return (false);
 }
 
-#endif // COMPILE_UM980
-
 //----------------------------------------
+// Called by gnssSettingsToFile to save UM980 specific settings
+//----------------------------------------
+bool um980SettingsToFile(File *settingsFile,
+                         RTK_Settings_Types type,
+                         int settingsIndex)
+{
+    switch (type)
+    {
+        default:
+            return false;
+
+        case tUmMRNmea: {
+            // Record UM980 NMEA rates
+            for (int x = 0; x < rtkSettingsEntries[settingsIndex].qualifier; x++)
+            {
+                char tempString[50]; // um980MessageRatesNMEA_GPDTM=0.05
+                snprintf(tempString, sizeof(tempString), "%s%s=%0.2f", rtkSettingsEntries[settingsIndex].name,
+                         umMessagesNMEA[x].msgTextName, settings.um980MessageRatesNMEA[x]);
+                settingsFile->println(tempString);
+            }
+        }
+        break;
+        case tUmMRRvRT: {
+            // Record UM980 Rover RTCM rates
+            for (int x = 0; x < rtkSettingsEntries[settingsIndex].qualifier; x++)
+            {
+                char tempString[50]; // um980MessageRatesRTCMRover_RTCM1001=0.2
+                snprintf(tempString, sizeof(tempString), "%s%s=%0.2f", rtkSettingsEntries[settingsIndex].name,
+                         umMessagesRTCM[x].msgTextName, settings.um980MessageRatesRTCMRover[x]);
+                settingsFile->println(tempString);
+            }
+        }
+        break;
+        case tUmMRBaRT: {
+            // Record UM980 Base RTCM rates
+            for (int x = 0; x < rtkSettingsEntries[settingsIndex].qualifier; x++)
+            {
+                char tempString[50]; // um980MessageRatesRTCMBase_RTCM1001=0.2
+                snprintf(tempString, sizeof(tempString), "%s%s=%0.2f", rtkSettingsEntries[settingsIndex].name,
+                         umMessagesRTCM[x].msgTextName, settings.um980MessageRatesRTCMBase[x]);
+                settingsFile->println(tempString);
+            }
+        }
+        break;
+        case tUmConst: {
+            // Record UM980 Constellations
+            for (int x = 0; x < rtkSettingsEntries[settingsIndex].qualifier; x++)
+            {
+                char tempString[50]; // um980Constellations_GLONASS=1
+                snprintf(tempString, sizeof(tempString), "%s%s=%0d", rtkSettingsEntries[settingsIndex].name,
+                         um980ConstellationCommands[x].textName, settings.um980Constellations[x]);
+                settingsFile->println(tempString);
+            }
+        }
+        break;
+    }
+    return true;
+}
+
+#endif // COMPILE_UM980
 
 //----------------------------------------
 void um980FirmwareBeginUpdate()
