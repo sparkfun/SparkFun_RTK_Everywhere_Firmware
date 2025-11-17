@@ -65,6 +65,12 @@ typedef enum {
     // (Maintain the enum of existing settings types!)
 } RTK_Settings_Types;
 
+#include <LittleFS.h> //Built-in
+
+// Important note: the firmware currently requires SdFat v2.1.1
+// sd->begin will crash second time around with ~v2.2.3
+#include "SdFat.h" //http://librarymanager/All#sdfat_exfat by Bill Greiman.
+
 #include "GNSS.h"
 #include "GNSS_None.h"
 #include "GNSS_ZED.h" //Structs of ZED messages, needed for settings.h

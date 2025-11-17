@@ -320,8 +320,6 @@ TwoWire *i2cAuthCoPro = nullptr;
 
 // LittleFS for storing settings for different user profiles
 //-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
-#include <LittleFS.h> //Built-in
-
 #define MAX_PROFILE_COUNT 8
 uint8_t activeProfiles;                    // Bit vector indicating which profiles are active
 uint8_t displayProfile;                    // Profile Unit - Range: 0 - (MAX_PROFILE_COUNT - 1)
@@ -349,9 +347,6 @@ void printTimeStamp(bool always = false); // Header
 
 void beginSPI(bool force = false); // Header
 
-// Important note: the firmware currently requires SdFat v2.1.1
-// sd->begin will crash second time around with ~v2.2.3
-#include "SdFat.h" //http://librarymanager/All#sdfat_exfat by Bill Greiman.
 SdFat *sd;
 
 #define platformFilePrefix platformFilePrefixTable[productVariant] // Sets the prefix for logs and settings files
