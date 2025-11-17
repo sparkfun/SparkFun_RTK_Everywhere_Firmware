@@ -2089,6 +2089,70 @@ bool GNSS_UM980::setRtcmRoverMessageRateByName(const char *msgName, uint8_t msgR
 }
 
 //----------------------------------------
+// Called by gnssCreateString to build settings file string
+//----------------------------------------
+bool um980CreateString(RTK_Settings_Types type,
+                       int settingsIndex,
+                       char * newSettings)
+{
+    switch (type)
+    {
+        default:
+            return false;
+
+        case tUmMRNmea: {
+            // Record UM980 NMEA rates
+            for (int x = 0; x < rtkSettingsEntries[settingsIndex].qualifier; x++)
+            {
+                char tempString[50]; // um980MessageRatesNMEA_GPDTM=0.05
+                snprintf(tempString, sizeof(tempString), "%s%s,%0.2f,", rtkSettingsEntries[settingsIndex].name,
+                         umMessagesNMEA[x].msgTextName, settings.um980MessageRatesNMEA[x]);
+                stringRecord(newSettings, tempString);
+            }
+        }
+        break;
+        case tUmMRRvRT: {
+            // Record UM980 Rover RTCM rates
+            for (int x = 0; x < rtkSettingsEntries[settingsIndex].qualifier; x++)
+            {
+                char tempString[50]; // um980MessageRatesRTCMRover_RTCM1001=0.2
+                snprintf(tempString, sizeof(tempString), "%s%s,%0.2f,", rtkSettingsEntries[settingsIndex].name,
+                         umMessagesRTCM[x].msgTextName, settings.um980MessageRatesRTCMRover[x]);
+                stringRecord(newSettings, tempString);
+            }
+        }
+        break;
+        case tUmMRBaRT: {
+            // Record UM980 Base RTCM rates
+            for (int x = 0; x < rtkSettingsEntries[settingsIndex].qualifier; x++)
+            {
+                char tempString[50]; // um980MessageRatesRTCMBase.RTCM1001=0.2
+                snprintf(tempString, sizeof(tempString), "%s%s,%0.2f,", rtkSettingsEntries[settingsIndex].name,
+                         umMessagesRTCM[x].msgTextName, settings.um980MessageRatesRTCMBase[x]);
+                stringRecord(newSettings, tempString);
+            }
+        }
+        break;
+        case tUmConst: {
+            // Record UM980 Constellations
+            // um980Constellations are uint8_t, but here we have to convert to bool (true / false) so the web
+            // page check boxes are populated correctly. (We can't make it bool, otherwise the 254 initializer
+            // will probably fail...)
+            for (int x = 0; x < rtkSettingsEntries[settingsIndex].qualifier; x++)
+            {
+                char tempString[50]; // um980Constellations.GLONASS=true
+                snprintf(tempString, sizeof(tempString), "%s%s,%s,", rtkSettingsEntries[settingsIndex].name,
+                         um980ConstellationCommands[x].textName,
+                         ((settings.um980Constellations[x] == 0) ? "false" : "true"));
+                stringRecord(newSettings, tempString);
+            }
+        }
+        break;
+    }
+    return true;
+}
+
+//----------------------------------------
 // Called by gnssNewSettingValue to save a UM980 specific setting
 //----------------------------------------
 bool um980NewSettingValue(RTK_Settings_Types type,

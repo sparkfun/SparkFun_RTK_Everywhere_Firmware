@@ -3248,6 +3248,102 @@ bool mosaicX5waitCR(unsigned long timeout)
 */
 
 //----------------------------------------
+// Called by gnssCreateString to build settings file string
+//----------------------------------------
+bool mosaicCreateString(RTK_Settings_Types type,
+                        int settingsIndex,
+                        char * newSettings)
+{
+    switch (type)
+    {
+        default:
+            return false;
+
+        case tMosaicConst: {
+            // Record Mosaic Constellations
+            for (int x = 0; x < rtkSettingsEntries[settingsIndex].qualifier; x++)
+            {
+                char tempString[50];
+                snprintf(tempString, sizeof(tempString), "%s%s,%s,", rtkSettingsEntries[settingsIndex].name,
+                         mosaicSignalConstellations[x].configName,
+                         ((settings.mosaicConstellations[x] == 0) ? "false" : "true"));
+                stringRecord(newSettings, tempString);
+            }
+        }
+        break;
+        case tMosaicMSNmea: {
+            // Record Mosaic NMEA message streams
+            for (int x = 0; x < rtkSettingsEntries[settingsIndex].qualifier; x++)
+            {
+                char tempString[50]; // messageRateNMEA_GGA,1,
+                snprintf(tempString, sizeof(tempString), "%s%s,%0d,", rtkSettingsEntries[settingsIndex].name,
+                         mosaicMessagesNMEA[x].msgTextName, settings.mosaicMessageStreamNMEA[x]);
+                stringRecord(newSettings, tempString);
+            }
+        }
+        break;
+        case tMosaicSINmea: {
+            // Record Mosaic NMEA stream intervals
+            for (int x = 0; x < rtkSettingsEntries[settingsIndex].qualifier; x++)
+            {
+                char tempString[50]; // streamIntervalNMEA_1,10,
+                snprintf(tempString, sizeof(tempString), "%s%d,%0d,", rtkSettingsEntries[settingsIndex].name, x,
+                         settings.mosaicStreamIntervalsNMEA[x]);
+                stringRecord(newSettings, tempString);
+            }
+        }
+        break;
+        case tMosaicMIRvRT: {
+            // Record Mosaic Rover RTCM intervals
+            for (int x = 0; x < rtkSettingsEntries[settingsIndex].qualifier; x++)
+            {
+                char tempString[50];
+                snprintf(tempString, sizeof(tempString), "%s%s,%0.2f,", rtkSettingsEntries[settingsIndex].name,
+                         mosaicRTCMv3MsgIntervalGroups[x].name, settings.mosaicMessageIntervalsRTCMv3Rover[x]);
+                stringRecord(newSettings, tempString);
+            }
+        }
+        break;
+        case tMosaicMIBaRT: {
+            // Record Mosaic Base RTCM intervals
+            for (int x = 0; x < rtkSettingsEntries[settingsIndex].qualifier; x++)
+            {
+                char tempString[50];
+                snprintf(tempString, sizeof(tempString), "%s%s,%0.2f,", rtkSettingsEntries[settingsIndex].name,
+                         mosaicRTCMv3MsgIntervalGroups[x].name, settings.mosaicMessageIntervalsRTCMv3Base[x]);
+                stringRecord(newSettings, tempString);
+            }
+        }
+        break;
+        case tMosaicMERvRT: {
+            // Record Mosaic Rover RTCM enabled
+            for (int x = 0; x < rtkSettingsEntries[settingsIndex].qualifier; x++)
+            {
+                char tempString[50];
+                snprintf(tempString, sizeof(tempString), "%s%s,%s,", rtkSettingsEntries[settingsIndex].name,
+                         mosaicMessagesRTCMv3[x].name,
+                         settings.mosaicMessageEnabledRTCMv3Rover[x] == 0 ? "false" : "true");
+                stringRecord(newSettings, tempString);
+            }
+        }
+        break;
+        case tMosaicMEBaRT: {
+            // Record Mosaic Base RTCM enabled
+            for (int x = 0; x < rtkSettingsEntries[settingsIndex].qualifier; x++)
+            {
+                char tempString[50];
+                snprintf(tempString, sizeof(tempString), "%s%s,%s,", rtkSettingsEntries[settingsIndex].name,
+                         mosaicMessagesRTCMv3[x].name,
+                         settings.mosaicMessageEnabledRTCMv3Base[x] == 0 ? "false" : "true");
+                stringRecord(newSettings, tempString);
+            }
+        }
+        break;
+    }
+    return true;
+}
+
+//----------------------------------------
 // Test for mosaic on UART1 of the ESP32 on Flex
 //----------------------------------------
 bool mosaicIsPresentOnFlex()

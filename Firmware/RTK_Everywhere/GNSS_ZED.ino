@@ -3022,6 +3022,60 @@ void zedPushGPGGA(NMEA_GGA_data_t *nmeaData)
 }
 
 //----------------------------------------
+// Called by gnssCreateString to build settings file string
+//----------------------------------------
+bool zedCreateString(RTK_Settings_Types type,
+                     int settingsIndex,
+                     char * newSettings)
+{
+    switch (type)
+    {
+        default:
+            return false;
+
+        case tUbxConst: {
+            // Record constellation settings
+            for (int x = 0; x < rtkSettingsEntries[settingsIndex].qualifier; x++)
+            {
+                char tempString[50];
+                snprintf(tempString, sizeof(tempString), "%s%s,%s,", rtkSettingsEntries[settingsIndex].name,
+                         settings.ubxConstellations[x].textName,
+                         settings.ubxConstellations[x].enabled ? "true" : "false");
+                stringRecord(newSettings, tempString);
+            }
+        }
+        break;
+        case tUbxMsgRt: {
+            // Record message settings
+            for (int x = 0; x < rtkSettingsEntries[settingsIndex].qualifier; x++)
+            {
+                char tempString[50];
+                snprintf(tempString, sizeof(tempString), "%s%s,%d,", rtkSettingsEntries[settingsIndex].name,
+                         ubxMessages[x].msgTextName, settings.ubxMessageRates[x]);
+                stringRecord(newSettings, tempString);
+            }
+        }
+        break;
+        case tUbMsgRtb: {
+            // Locate the first record
+            GNSS_ZED *zed = (GNSS_ZED *)gnss;
+            int firstRTCMRecord = zed->getMessageNumberByName("RTCM_1005");
+
+            // Record message settings
+            for (int x = 0; x < rtkSettingsEntries[settingsIndex].qualifier; x++)
+            {
+                char tempString[50];
+                snprintf(tempString, sizeof(tempString), "%s%s,%d,", rtkSettingsEntries[settingsIndex].name,
+                         ubxMessages[firstRTCMRecord + x].msgTextName, settings.ubxMessageRatesBase[x]);
+                stringRecord(newSettings, tempString);
+            }
+        }
+        break;
+    }
+    return true;
+}
+
+//----------------------------------------
 // Called by gnssNewSettingValue to save a ZED specific setting
 //----------------------------------------
 bool zedNewSettingValue(RTK_Settings_Types type,

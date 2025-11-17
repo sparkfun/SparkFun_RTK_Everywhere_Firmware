@@ -2649,6 +2649,80 @@ bool lg290pMessageEnabled(char *nmeaSentence, int sentenceLength)
 }
 
 //----------------------------------------
+// Called by gnssCreateString to build settings file string
+//----------------------------------------
+bool lg290pCreateString(RTK_Settings_Types type,
+                        int settingsIndex,
+                        char * newSettings)
+{
+    switch (type)
+    {
+        default:
+            return false;
+
+        case tLgMRNmea: {
+            // Record LG290P NMEA rates
+            for (int x = 0; x < rtkSettingsEntries[settingsIndex].qualifier; x++)
+            {
+                char tempString[50]; // lg290pMessageRatesNMEA_GPGGA=1 Not a float
+                snprintf(tempString, sizeof(tempString), "%s%s,%d,", rtkSettingsEntries[settingsIndex].name,
+                         lgMessagesNMEA[x].msgTextName, settings.lg290pMessageRatesNMEA[x]);
+                stringRecord(newSettings, tempString);
+            }
+        }
+        break;
+        case tLgMRRvRT: {
+            // Record LG290P Rover RTCM rates
+            for (int x = 0; x < rtkSettingsEntries[settingsIndex].qualifier; x++)
+            {
+                char tempString[50]; // lg290pMessageRatesRTCMRover_RTCM1005=2
+                snprintf(tempString, sizeof(tempString), "%s%s,%d,", rtkSettingsEntries[settingsIndex].name,
+                         lgMessagesRTCM[x].msgTextName, settings.lg290pMessageRatesRTCMRover[x]);
+                stringRecord(newSettings, tempString);
+            }
+        }
+        break;
+        case tLgMRBaRT: {
+            // Record LG290P Base RTCM rates
+            for (int x = 0; x < rtkSettingsEntries[settingsIndex].qualifier; x++)
+            {
+                char tempString[50]; // lg290pMessageRatesRTCMBase.RTCM1005=2
+                snprintf(tempString, sizeof(tempString), "%s%s,%d,", rtkSettingsEntries[settingsIndex].name,
+                         lgMessagesRTCM[x].msgTextName, settings.lg290pMessageRatesRTCMBase[x]);
+                stringRecord(newSettings, tempString);
+            }
+        }
+        break;
+        case tLgMRPqtm: {
+            // Record LG290P PQTM rates
+            for (int x = 0; x < rtkSettingsEntries[settingsIndex].qualifier; x++)
+            {
+                char tempString[50]; // lg290pMessageRatesPQTM_EPE=1 Not a float
+                snprintf(tempString, sizeof(tempString), "%s%s,%d,", rtkSettingsEntries[settingsIndex].name,
+                         lgMessagesPQTM[x].msgTextName, settings.lg290pMessageRatesPQTM[x]);
+                stringRecord(newSettings, tempString);
+            }
+        }
+        break;
+        case tLgConst: {
+            // Record LG290P Constellations
+            // lg290pConstellations are uint8_t, but here we have to convert to bool (true / false) so the web
+            // page check boxes are populated correctly. (We can't make it bool, otherwise the 254 initializer
+            // will probably fail...)
+            for (int x = 0; x < rtkSettingsEntries[settingsIndex].qualifier; x++)
+            {
+                char tempString[50]; // lg290pConstellations.GLONASS=true
+                snprintf(tempString, sizeof(tempString), "%s%s,%s,", rtkSettingsEntries[settingsIndex].name,
+                         lg290pConstellationNames[x], ((settings.lg290pConstellations[x] == 0) ? "false" : "true"));
+                stringRecord(newSettings, tempString);
+            }
+        }
+        break;
+    }
+    return true;
+}
+
+//----------------------------------------
 // Return true if we detect this receiver type
 bool lg290pIsPresentOnFlex()
 {
