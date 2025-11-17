@@ -852,6 +852,23 @@ void gnssFirmwareRemoveUpdateFile(const char *filename)
 }
 
 //----------------------------------------
+// Called by parseLine to parse GNSS specific settings
+//----------------------------------------
+bool gnssNewSettingValue(RTK_Settings_Types type,
+                         const char * suffix,
+                         int qualifier,
+                         double d)
+{
+    for (int index = 0; index < GNSS_SUPPORT_ROUTINES_ENTRIES; index++)
+    {
+        if (gnssSupportRoutines[index]._newSettingValue
+            && gnssSupportRoutines[index]._newSettingValue(type, suffix, qualifier, d))
+            return true;
+    }
+    return false;
+}
+
+//----------------------------------------
 // Called by recordSystemSettingsToFile to save GNSS specific settings
 //----------------------------------------
 bool gnssSettingsToFile(File *settingsFile,
