@@ -3022,6 +3022,59 @@ void zedPushGPGGA(NMEA_GGA_data_t *nmeaData)
 }
 
 //----------------------------------------
+// Called by gnssNewSettingValue to save a ZED specific setting
+//----------------------------------------
+bool zedNewSettingValue(RTK_Settings_Types type,
+                        const char * suffix,
+                        int qualifier,
+                        double d)
+{
+    switch (type)
+    {
+        case tCmnCnst:
+            for (int x = 0; x < MAX_UBX_CONSTELLATIONS; x++)
+            {
+                if ((suffix[0] == settings.ubxConstellations[x].textName[0]) &&
+                    (strcmp(suffix, settings.ubxConstellations[x].textName) == 0))
+                {
+                    settings.ubxConstellations[x].enabled = d;
+                    return true;
+                }
+            }
+            break;
+        case tUbxConst:
+            // Covered by ttCmnCnst
+            break;
+        case tUbxMsgRt:
+            for (int x = 0; x < qualifier; x++)
+            {
+                if ((suffix[0] == ubxMessages[x].msgTextName[0]) &&
+                    (strcmp(suffix, ubxMessages[x].msgTextName) == 0))
+                {
+                    settings.ubxMessageRates[x] = (uint8_t)d;
+                    return true;
+                }
+            }
+            break;
+        case tUbMsgRtb:
+            GNSS_ZED *zed = (GNSS_ZED *)gnss;
+            int firstRTCMRecord = zed->getMessageNumberByName("RTCM_1005");
+
+            for (int x = 0; x < qualifier; x++)
+            {
+                if ((suffix[0] == ubxMessages[firstRTCMRecord + x].msgTextName[0]) &&
+                    (strcmp(suffix, ubxMessages[firstRTCMRecord + x].msgTextName) == 0))
+                {
+                    settings.ubxMessageRatesBase[x] = (uint8_t)d;
+                    return true;
+                }
+            }
+            break;
+    }
+    return false;
+}
+
+//----------------------------------------
 // Called by gnssSettingsToFile to save ZED specific settings
 //----------------------------------------
 bool zedSettingsToFile(File *settingsFile,

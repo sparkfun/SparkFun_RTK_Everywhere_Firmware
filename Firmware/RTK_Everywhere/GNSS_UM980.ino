@@ -2089,6 +2089,76 @@ bool GNSS_UM980::setRtcmRoverMessageRateByName(const char *msgName, uint8_t msgR
 }
 
 //----------------------------------------
+// Called by gnssNewSettingValue to save a UM980 specific setting
+//----------------------------------------
+bool um980NewSettingValue(RTK_Settings_Types type,
+                          const char * suffix,
+                          int qualifier,
+                          double d)
+{
+    switch (type)
+    {
+        case tCmnCnst:
+            for (int x = 0; x < MAX_UM980_CONSTELLATIONS; x++)
+            {
+                if ((suffix[0] == um980ConstellationCommands[x].textName[0]) &&
+                    (strcmp(suffix, um980ConstellationCommands[x].textName) == 0))
+                {
+                    settings.um980Constellations[x] = d;
+                    return true;
+                }
+            }
+            break;
+        case tCmnRtNm:
+            for (int x = 0; x < MAX_UM980_NMEA_MSG; x++)
+            {
+                if ((suffix[0] == umMessagesNMEA[x].msgTextName[0]) &&
+                    (strcmp(suffix, umMessagesNMEA[x].msgTextName) == 0))
+                {
+                    settings.um980MessageRatesNMEA[x] = d;
+                    return true;
+                }
+            }
+            break;
+        case tCnRtRtB:
+            for (int x = 0; x < MAX_UM980_RTCM_MSG; x++)
+            {
+                if ((suffix[0] == umMessagesRTCM[x].msgTextName[0]) &&
+                    (strcmp(suffix, umMessagesRTCM[x].msgTextName) == 0))
+                {
+                    settings.um980MessageRatesRTCMBase[x] = d;
+                    return true;
+                }
+            }
+            break;
+        case tCnRtRtR:
+            for (int x = 0; x < MAX_UM980_RTCM_MSG; x++)
+            {
+                if ((suffix[0] == umMessagesRTCM[x].msgTextName[0]) &&
+                    (strcmp(suffix, umMessagesRTCM[x].msgTextName) == 0))
+                {
+                    settings.um980MessageRatesRTCMRover[x] = d;
+                    return true;
+                }
+            }
+            break;
+        case tUmMRNmea:
+            // Covered by tCmnRtNm
+            break;
+        case tUmMRRvRT:
+            // Covered by tCnRtRtR
+            break;
+        case tUmMRBaRT:
+            // Covered by tCnRtRtB
+            break;
+        case tUmConst:
+            // Covered by tCmnCnst
+            break;
+    }
+    return false;
+}
+
+//----------------------------------------
 // Called by gnssSettingsToFile to save UM980 specific settings
 //----------------------------------------
 bool um980SettingsToFile(File *settingsFile,

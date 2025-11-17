@@ -426,7 +426,10 @@ typedef bool (* GNSS_PRESENT)();
 typedef void (* GNSS_NEW_CLASS)();
 
 // Update a setting value
-typedef bool (* GNSS_NEW_SETTING_VALUE)(const char * suffix, double d);
+typedef bool (* GNSS_NEW_SETTING_VALUE)(RTK_Settings_Types type,
+                                        const char * suffix,
+                                        int qualifier,
+                                        double d);
 
 // Write settings to a file
 typedef bool (* GNSS_SETTING_TO_FILE)(File *settingsFile,

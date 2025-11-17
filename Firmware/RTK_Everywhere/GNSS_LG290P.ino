@@ -2698,6 +2698,87 @@ void lg290pNewClass()
 }
 
 //----------------------------------------
+// Called by gnssNewSettingValue to save a LG290P specific setting
+//----------------------------------------
+bool lg290pNewSettingValue(RTK_Settings_Types type,
+                           const char * suffix,
+                           int qualifier,
+                           double d)
+{
+    switch (type)
+    {
+        case tCmnCnst:
+            for (int x = 0; x < MAX_LG290P_CONSTELLATIONS; x++)
+            {
+                if ((suffix[0] == lg290pConstellationNames[x][0]) &&
+                    (strcmp(suffix, lg290pConstellationNames[x]) == 0))
+                {
+                    settings.lg290pConstellations[x] = d;
+                    break;
+                }
+            }
+            break;
+        case tCmnRtNm:
+            for (int x = 0; x < MAX_LG290P_NMEA_MSG; x++)
+            {
+                if ((suffix[0] == lgMessagesNMEA[x].msgTextName[0]) &&
+                    (strcmp(suffix, lgMessagesNMEA[x].msgTextName) == 0))
+                {
+                    settings.lg290pMessageRatesNMEA[x] = d;
+                    return true;
+                }
+            }
+            break;
+        case tCnRtRtB:
+            for (int x = 0; x < MAX_LG290P_RTCM_MSG; x++)
+            {
+                if ((suffix[0] == lgMessagesRTCM[x].msgTextName[0]) &&
+                    (strcmp(suffix, lgMessagesRTCM[x].msgTextName) == 0))
+                {
+                    settings.lg290pMessageRatesRTCMBase[x] = d;
+                    return true;
+                }
+            }
+            break;
+        case tCnRtRtR:
+            for (int x = 0; x < MAX_LG290P_RTCM_MSG; x++)
+            {
+                if ((suffix[0] == lgMessagesRTCM[x].msgTextName[0]) &&
+                    (strcmp(suffix, lgMessagesRTCM[x].msgTextName) == 0))
+                {
+                    settings.lg290pMessageRatesRTCMRover[x] = d;
+                    return true;
+                }
+            }
+            break;
+        case tLgMRNmea:
+            // Covered by tCmnRtNm
+            break;
+        case tLgMRRvRT:
+            // Covered by tCnRtRtR
+            break;
+        case tLgMRBaRT:
+            // Covered by tCnRtRtB
+            break;
+        case tLgMRPqtm:
+            for (int x = 0; x < qualifier; x++)
+            {
+                if ((suffix[0] == lgMessagesPQTM[x].msgTextName[0]) &&
+                    (strcmp(suffix, lgMessagesPQTM[x].msgTextName) == 0))
+                {
+                    settings.lg290pMessageRatesPQTM[x] = d;
+                    return true;
+                }
+            }
+            break;
+        case tLgConst:
+            // Covered by tCmnCnst
+            break;
+    }
+    return false;
+}
+
+//----------------------------------------
 // Called by gnssSettingsToFile to save LG290P specific settings
 //----------------------------------------
 bool lg290pSettingsToFile(File *settingsFile,

@@ -3316,6 +3316,103 @@ void mosaicNewClass()
 }
 
 //----------------------------------------
+// Called by gnssNewSettingValue to save a mosaic specific setting
+//----------------------------------------
+bool mosaicNewSettingValue(RTK_Settings_Types type,
+                           const char * suffix,
+                           int qualifier,
+                           double d)
+{
+    switch (type)
+    {
+        case tCmnCnst:
+            for (int x = 0; x < MAX_MOSAIC_CONSTELLATIONS; x++)
+            {
+                if ((suffix[0] == mosaicSignalConstellations[x].configName[0]) &&
+                    (strcmp(suffix, mosaicSignalConstellations[x].configName) == 0))
+                {
+                    settings.mosaicConstellations[x] = d;
+                    return true;
+                }
+            }
+            break;
+        case tMosaicConst:
+            // Covered by tCmnCnst
+            break;
+        case tMosaicMSNmea: {
+            for (int x = 0; x < qualifier; x++)
+            {
+                if ((suffix[0] == mosaicMessagesNMEA[x].msgTextName[0]) &&
+                    (strcmp(suffix, mosaicMessagesNMEA[x].msgTextName) == 0))
+                {
+                    settings.mosaicMessageStreamNMEA[x] = d;
+                    return true;
+                }
+            }
+        }
+        break;
+        case tMosaicSINmea: {
+            int stream;
+            if (sscanf(suffix, "%d", &stream) == 1)
+            {
+                settings.mosaicStreamIntervalsNMEA[stream] = d;
+                return true;
+            }
+        }
+        break;
+        case tMosaicMIRvRT: {
+            for (int x = 0; x < qualifier; x++)
+            {
+                if ((suffix[0] == mosaicRTCMv3MsgIntervalGroups[x].name[0]) &&
+                    (strcmp(suffix, mosaicRTCMv3MsgIntervalGroups[x].name) == 0))
+                {
+                    settings.mosaicMessageIntervalsRTCMv3Rover[x] = d;
+                    return true;
+                }
+            }
+        }
+        break;
+        case tMosaicMIBaRT: {
+            for (int x = 0; x < qualifier; x++)
+            {
+                if ((suffix[0] == mosaicRTCMv3MsgIntervalGroups[x].name[0]) &&
+                    (strcmp(suffix, mosaicRTCMv3MsgIntervalGroups[x].name) == 0))
+                {
+                    settings.mosaicMessageIntervalsRTCMv3Base[x] = d;
+                    return true;
+                }
+            }
+        }
+        break;
+        case tMosaicMERvRT: {
+            for (int x = 0; x < qualifier; x++)
+            {
+                if ((suffix[0] == mosaicMessagesRTCMv3[x].name[0]) &&
+                    (strcmp(suffix, mosaicMessagesRTCMv3[x].name) == 0))
+                {
+                    settings.mosaicMessageEnabledRTCMv3Rover[x] = d;
+                    return true;
+                }
+            }
+        }
+        break;
+        case tMosaicMEBaRT: {
+            for (int x = 0; x < qualifier; x++)
+            {
+                if ((suffix[0] == mosaicMessagesRTCMv3[x].name[0]) &&
+                    (strcmp(suffix, mosaicMessagesRTCMv3[x].name) == 0))
+                {
+                    settings.mosaicMessageEnabledRTCMv3Base[x] = d;
+                    return true;
+                }
+            }
+        }
+        break;
+    }
+    return false;
+}
+
+//----------------------------------------
 // Called by gnssSettingsToFile to save mosaic specific settings
 //----------------------------------------
 bool mosaicSettingsToFile(File *settingsFile,

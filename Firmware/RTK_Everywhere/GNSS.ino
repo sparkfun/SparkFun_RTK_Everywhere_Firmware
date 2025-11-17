@@ -45,7 +45,7 @@ const GNSS_SUPPORT_ROUTINES gnssSupportRoutines[] =
         GNSS_RECEIVER_LG290P,   // _receiver
         lg290pIsPresentOnFlex,  // _present
         lg290pNewClass,         // _newClass
-        nullptr,  		// _newSettingValue
+        lg290pNewSettingValue,  // _newSettingValue
         lg290pSettingsToFile,   // _settingToFile
     },
 #endif  // COMPILE_LG290P
@@ -55,7 +55,7 @@ const GNSS_SUPPORT_ROUTINES gnssSupportRoutines[] =
         GNSS_RECEIVER_MOSAIC_X5,    // _receiver
         mosaicIsPresentOnFlex,      // _present
         mosaicNewClass,             // _newClass
-        nullptr,  		// _newSettingValue
+        mosaicNewSettingValue,      // _newSettingValue
         mosaicSettingsToFile,       // _settingToFile
     },
 #endif  // COMPILE_MOSAICX5
@@ -65,7 +65,7 @@ const GNSS_SUPPORT_ROUTINES gnssSupportRoutines[] =
         GNSS_RECEIVER_UNKNOWN,  // _receiver
         nullptr,                // _present
         nullptr,                // _newClass
-        nullptr,  		// _newSettingValue
+        um980NewSettingValue,   // _newSettingValue
         um980SettingsToFile,    // _settingToFile
     },
 #endif  // COMPILE_UM980
@@ -75,7 +75,7 @@ const GNSS_SUPPORT_ROUTINES gnssSupportRoutines[] =
         GNSS_RECEIVER_UNKNOWN,  // _receiver
         nullptr,                // _present
         nullptr,                // _newClass
-        nullptr,  		// _newSettingValue
+        zedNewSettingValue,     // _newSettingValue
         zedSettingsToFile,      // _settingToFile
     },
 #endif  // COMPILE_ZED
