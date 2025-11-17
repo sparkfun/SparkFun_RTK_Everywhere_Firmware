@@ -5,6 +5,66 @@ settings.h
 #ifndef __SETTINGS_H__
 #define __SETTINGS_H__
 
+typedef enum {
+    _bool = 0,
+    _int,
+    _float,
+    _double,
+    _uint8_t,
+    _uint16_t,
+    _uint32_t,
+    _uint64_t,
+    _int8_t,
+    _int16_t,
+    tMuxConn,
+    tSysState,
+    tPulseEdg,
+    tBtRadio,
+    tPerDisp,
+    tCoordInp,
+    tCharArry,
+    _IPString,
+    tUbxMsgRt,
+    tUbxConst,
+    tEspNowPr,
+    tUbMsgRtb,
+    tWiFiNet,
+    tNSCHost,
+    tNSCPort,
+    tNSCUser,
+    tNSCUsrPw,
+    tNSMtPt,
+    tNSMtPtPw,
+
+    tUmMRNmea,
+    tUmMRRvRT,
+    tUmMRBaRT,
+    tUmConst,
+
+    tCorrSPri,
+    tRegCorTp,
+    tMosaicConst,
+    tMosaicMSNmea,
+    tMosaicSINmea,
+    tMosaicMIRvRT,
+    tMosaicMIBaRT,
+    tMosaicMERvRT,
+    tMosaicMEBaRT,
+    tLgMRNmea,
+    tLgMRRvRT,
+    tLgMRBaRT,
+    tLgMRPqtm,
+    tLgConst,
+    tGnssReceiver,
+
+    tCmnCnst,
+    tCmnRtNm,
+    tCnRtRtB,
+    tCnRtRtR,
+    // Add new settings types above <---------------->
+    // (Maintain the enum of existing settings types!)
+} RTK_Settings_Types;
+
 #include "GNSS.h"
 #include "GNSS_None.h"
 #include "GNSS_ZED.h" //Structs of ZED messages, needed for settings.h
@@ -1222,66 +1282,6 @@ const char *localizedDistributionTileLevelNames[LOCALIZED_DISTRIBUTION_TILE_LEVE
     "500 x 500km high density",
     "250 x 250km high density",
 };
-
-typedef enum {
-    _bool = 0,
-    _int,
-    _float,
-    _double,
-    _uint8_t,
-    _uint16_t,
-    _uint32_t,
-    _uint64_t,
-    _int8_t,
-    _int16_t,
-    tMuxConn,
-    tSysState,
-    tPulseEdg,
-    tBtRadio,
-    tPerDisp,
-    tCoordInp,
-    tCharArry,
-    _IPString,
-    tUbxMsgRt,
-    tUbxConst,
-    tEspNowPr,
-    tUbMsgRtb,
-    tWiFiNet,
-    tNSCHost,
-    tNSCPort,
-    tNSCUser,
-    tNSCUsrPw,
-    tNSMtPt,
-    tNSMtPtPw,
-
-    tUmMRNmea,
-    tUmMRRvRT,
-    tUmMRBaRT,
-    tUmConst,
-
-    tCorrSPri,
-    tRegCorTp,
-    tMosaicConst,
-    tMosaicMSNmea,
-    tMosaicSINmea,
-    tMosaicMIRvRT,
-    tMosaicMIBaRT,
-    tMosaicMERvRT,
-    tMosaicMEBaRT,
-    tLgMRNmea,
-    tLgMRRvRT,
-    tLgMRBaRT,
-    tLgMRPqtm,
-    tLgConst,
-    tGnssReceiver,
-
-    tCmnCnst,
-    tCmnRtNm,
-    tCnRtRtB,
-    tCnRtRtR,
-    // Add new settings types above <---------------->
-    // (Maintain the enum of existing settings types!)
-} RTK_Settings_Types;
 
 typedef enum
 {
