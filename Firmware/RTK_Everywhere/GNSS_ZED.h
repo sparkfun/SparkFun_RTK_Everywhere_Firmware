@@ -796,6 +796,12 @@ class GNSS_ZED : GNSS
 };
 
 // Forward routine declarations
+bool zedCommandList(RTK_Settings_Types type,
+                    int settingsIndex,
+                    bool inCommands,
+                    int qualifier,
+                    char * settingName,
+                    char * settingValue);
 bool zedCreateString(RTK_Settings_Types type,
                      int settingsIndex,
                      char * newSettings);

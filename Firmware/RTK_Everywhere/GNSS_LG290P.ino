@@ -2649,6 +2649,84 @@ bool lg290pMessageEnabled(char *nmeaSentence, int sentenceLength)
 }
 
 //----------------------------------------
+// List available settings, their type in CSV, and value
+//----------------------------------------
+bool lg290pCommandList(RTK_Settings_Types type,
+                       int settingsIndex,
+                       bool inCommands,
+                       int qualifier,
+                       char * settingName,
+                       char * settingValue)
+{
+    switch (type)
+    {
+        default:
+            return false;
+
+        case tLgMRNmea: {
+            // Record LG290P NMEA rates
+            for (int x = 0; x < rtkSettingsEntries[settingsIndex].qualifier; x++)
+            {
+                snprintf(settingName, sizeof(settingName), "%s%s", rtkSettingsEntries[settingsIndex].name,
+                         lgMessagesNMEA[x].msgTextName);
+
+                getSettingValue(inCommands, settingName, settingValue);
+                commandSendExecuteListResponse(settingName, "tLgMRNmea", settingValue);
+            }
+        }
+        break;
+        case tLgMRRvRT: {
+            // Record LG290P Rover RTCM rates
+            for (int x = 0; x < rtkSettingsEntries[settingsIndex].qualifier; x++)
+            {
+                snprintf(settingName, sizeof(settingName), "%s%s", rtkSettingsEntries[settingsIndex].name,
+                         lgMessagesRTCM[x].msgTextName);
+
+                getSettingValue(inCommands, settingName, settingValue);
+                commandSendExecuteListResponse(settingName, "tLgMRRvRT", settingValue);
+            }
+        }
+        break;
+        case tLgMRBaRT: {
+            // Record LG290P Base RTCM rates
+            for (int x = 0; x < rtkSettingsEntries[settingsIndex].qualifier; x++)
+            {
+                snprintf(settingName, sizeof(settingName), "%s%s", rtkSettingsEntries[settingsIndex].name,
+                         lgMessagesRTCM[x].msgTextName);
+
+                getSettingValue(inCommands, settingName, settingValue);
+                commandSendExecuteListResponse(settingName, "tLgMRBaRT", settingValue);
+            }
+        }
+        break;
+        case tLgMRPqtm: {
+            // Record LG290P PQTM rates
+            for (int x = 0; x < rtkSettingsEntries[settingsIndex].qualifier; x++)
+            {
+                snprintf(settingName, sizeof(settingName), "%s%s", rtkSettingsEntries[settingsIndex].name,
+                         lgMessagesPQTM[x].msgTextName);
+
+                getSettingValue(inCommands, settingName, settingValue);
+                commandSendExecuteListResponse(settingName, "tLgMRPqtm", settingValue);
+            }
+        }
+        break;
+        case tLgConst: {
+            // Record LG290P Constellations
+            for (int x = 0; x < rtkSettingsEntries[settingsIndex].qualifier; x++)
+            {
+                snprintf(settingName, sizeof(settingName), "%s%s", rtkSettingsEntries[settingsIndex].name, lg290pConstellationNames[x]);
+
+                getSettingValue(inCommands, settingName, settingValue);
+                commandSendExecuteListResponse(settingName, "tLgConst", settingValue);
+            }
+        }
+        break;
+    }
+    return true;
+}
+
+//----------------------------------------
 // Called by gnssCreateString to build settings file string
 //----------------------------------------
 bool lg290pCreateString(RTK_Settings_Types type,

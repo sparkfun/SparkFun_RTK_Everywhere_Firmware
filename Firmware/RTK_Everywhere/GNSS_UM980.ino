@@ -2089,6 +2089,73 @@ bool GNSS_UM980::setRtcmRoverMessageRateByName(const char *msgName, uint8_t msgR
 }
 
 //----------------------------------------
+// List available settings, their type in CSV, and value
+//----------------------------------------
+bool um980CommandList(RTK_Settings_Types type,
+                      int settingsIndex,
+                      bool inCommands,
+                      int qualifier,
+                      char * settingName,
+                      char * settingValue)
+{
+    switch (type)
+    {
+        default:
+            return false;
+
+        case tUmMRNmea: {
+            // Record UM980 NMEA rates
+            for (int x = 0; x < rtkSettingsEntries[settingsIndex].qualifier; x++)
+            {
+                snprintf(settingName, sizeof(settingName), "%s%s", rtkSettingsEntries[settingsIndex].name,
+                         umMessagesNMEA[x].msgTextName);
+
+                getSettingValue(inCommands, settingName, settingValue);
+                commandSendExecuteListResponse(settingName, "tUmMRNmea", settingValue);
+            }
+        }
+        break;
+        case tUmMRRvRT: {
+            // Record UM980 Rover RTCM rates
+            for (int x = 0; x < rtkSettingsEntries[settingsIndex].qualifier; x++)
+            {
+                snprintf(settingName, sizeof(settingName), "%s%s", rtkSettingsEntries[settingsIndex].name,
+                         umMessagesRTCM[x].msgTextName);
+
+                getSettingValue(inCommands, settingName, settingValue);
+                commandSendExecuteListResponse(settingName, "tUmMRRvRT", settingValue);
+            }
+        }
+        break;
+        case tUmMRBaRT: {
+            // Record UM980 Base RTCM rates
+            for (int x = 0; x < rtkSettingsEntries[settingsIndex].qualifier; x++)
+            {
+                snprintf(settingName, sizeof(settingName), "%s%s", rtkSettingsEntries[settingsIndex].name,
+                         umMessagesRTCM[x].msgTextName);
+
+                getSettingValue(inCommands, settingName, settingValue);
+                commandSendExecuteListResponse(settingName, "tUmMRBaRT", settingValue);
+            }
+        }
+        break;
+        case tUmConst: {
+            // Record UM980 Constellations
+            for (int x = 0; x < rtkSettingsEntries[settingsIndex].qualifier; x++)
+            {
+                snprintf(settingName, sizeof(settingName), "%s%s", rtkSettingsEntries[settingsIndex].name,
+                         um980ConstellationCommands[x].textName);
+
+                getSettingValue(inCommands, settingName, settingValue);
+                commandSendExecuteListResponse(settingName, "tUmConst", settingValue);
+            }
+        }
+        break;
+    }
+    return true;
+}
+
+//----------------------------------------
 // Called by gnssCreateString to build settings file string
 //----------------------------------------
 bool um980CreateString(RTK_Settings_Types type,

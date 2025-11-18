@@ -3022,6 +3022,63 @@ void zedPushGPGGA(NMEA_GGA_data_t *nmeaData)
 }
 
 //----------------------------------------
+// List available settings, their type in CSV, and value
+//----------------------------------------
+bool zedCommandList(RTK_Settings_Types type,
+                    int settingsIndex,
+                    bool inCommands,
+                    int qualifier,
+                    char * settingName,
+                    char * settingValue)
+{
+    switch (type)
+    {
+        default:
+            return false;
+
+        case tUbxConst: {
+            // Record constellation settings
+            for (int x = 0; x < rtkSettingsEntries[settingsIndex].qualifier; x++)
+            {
+                snprintf(settingName, sizeof(settingName), "%s%s", rtkSettingsEntries[settingsIndex].name,
+                         settings.ubxConstellations[x].textName);
+
+                getSettingValue(inCommands, settingName, settingValue);
+                commandSendExecuteListResponse(settingName, "tUbxConst", settingValue);
+            }
+        }
+        break;
+        case tUbxMsgRt: {
+            // Record message settings
+            for (int x = 0; x < rtkSettingsEntries[settingsIndex].qualifier; x++)
+            {
+                snprintf(settingName, sizeof(settingName), "%s%s", rtkSettingsEntries[settingsIndex].name, ubxMessages[x].msgTextName);
+
+                getSettingValue(inCommands, settingName, settingValue);
+                commandSendExecuteListResponse(settingName, "tUbxMsgRt", settingValue);
+            }
+        }
+        break;
+        case tUbMsgRtb: {
+            // Record message settings
+            GNSS_ZED *zed = (GNSS_ZED *)gnss;
+            int firstRTCMRecord = zed->getMessageNumberByName("RTCM_1005");
+
+            for (int x = 0; x < rtkSettingsEntries[settingsIndex].qualifier; x++)
+            {
+                snprintf(settingName, sizeof(settingName), "%s%s", rtkSettingsEntries[settingsIndex].name,
+                         ubxMessages[firstRTCMRecord + x].msgTextName);
+
+                getSettingValue(inCommands, settingName, settingValue);
+                commandSendExecuteListResponse(settingName, "tUbMsgRtb", settingValue);
+            }
+        }
+        break;
+    }
+    return true;
+}
+
+//----------------------------------------
 // Called by gnssCreateString to build settings file string
 //----------------------------------------
 bool zedCreateString(RTK_Settings_Types type,

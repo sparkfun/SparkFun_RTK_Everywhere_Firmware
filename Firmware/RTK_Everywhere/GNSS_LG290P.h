@@ -470,6 +470,12 @@ class GNSS_LG290P : GNSS
 };
 
 // Forward routine declarations
+bool lg290pCommandList(RTK_Settings_Types type,
+                       int settingsIndex,
+                       bool inCommands,
+                       int qualifier,
+                       char * settingName,
+                       char * settingValue);
 bool lg290pCreateString(RTK_Settings_Types type,
                         int settingsIndex,
                         char * newSettings);

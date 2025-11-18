@@ -3248,6 +3248,108 @@ bool mosaicX5waitCR(unsigned long timeout)
 */
 
 //----------------------------------------
+// List available settings, their type in CSV, and value
+//----------------------------------------
+bool mosaicCommandList(RTK_Settings_Types type,
+                       int settingsIndex,
+                       bool inCommands,
+                       int qualifier,
+                       char * settingName,
+                       char * settingValue)
+{
+    switch (type)
+    {
+        default:
+            return false;
+
+        case tMosaicConst: {
+            // Record Mosaic Constellations
+            for (int x = 0; x < rtkSettingsEntries[settingsIndex].qualifier; x++)
+            {
+                snprintf(settingName, sizeof(settingName), "%s%s", rtkSettingsEntries[settingsIndex].name,
+                         mosaicSignalConstellations[x].configName);
+
+                getSettingValue(inCommands, settingName, settingValue);
+                commandSendExecuteListResponse(settingName, "tMosaicConst", settingValue);
+            }
+        }
+        break;
+        case tMosaicMSNmea: {
+            // Record Mosaic NMEA message streams
+            for (int x = 0; x < rtkSettingsEntries[settingsIndex].qualifier; x++)
+            {
+                snprintf(settingName, sizeof(settingName), "%s%s", rtkSettingsEntries[settingsIndex].name,
+                         mosaicMessagesNMEA[x].msgTextName);
+
+                getSettingValue(inCommands, settingName, settingValue);
+                commandSendExecuteListResponse(settingName, "tMosaicMSNmea", settingValue);
+            }
+        }
+        break;
+        case tMosaicSINmea: {
+            // Record Mosaic NMEA stream intervals
+            for (int x = 0; x < rtkSettingsEntries[settingsIndex].qualifier; x++)
+            {
+                snprintf(settingName, sizeof(settingName), "%s%d", rtkSettingsEntries[settingsIndex].name, x);
+
+                getSettingValue(inCommands, settingName, settingValue);
+                commandSendExecuteListResponse(settingName, "tMosaicSINmea", mosaicMsgRates[atoi(settingValue)].humanName);
+            }
+        }
+        break;
+        case tMosaicMIRvRT: {
+            // Record Mosaic Rover RTCM intervals
+            for (int x = 0; x < rtkSettingsEntries[settingsIndex].qualifier; x++)
+            {
+                snprintf(settingName, sizeof(settingName), "%s%s", rtkSettingsEntries[settingsIndex].name,
+                         mosaicRTCMv3MsgIntervalGroups[x].name);
+
+                getSettingValue(inCommands, settingName, settingValue);
+                commandSendExecuteListResponse(settingName, "tMosaicMIRvRT", settingValue);
+            }
+        }
+        break;
+        case tMosaicMIBaRT: {
+            // Record Mosaic Base RTCM intervals
+            for (int x = 0; x < rtkSettingsEntries[settingsIndex].qualifier; x++)
+            {
+                snprintf(settingName, sizeof(settingName), "%s%s", rtkSettingsEntries[settingsIndex].name,
+                         mosaicRTCMv3MsgIntervalGroups[x].name);
+
+                getSettingValue(inCommands, settingName, settingValue);
+                commandSendExecuteListResponse(settingName, "tMosaicMIBaRT", settingValue);
+            }
+        }
+        break;
+        case tMosaicMERvRT: {
+            // Record Mosaic Rover RTCM enabled
+            for (int x = 0; x < rtkSettingsEntries[settingsIndex].qualifier; x++)
+            {
+                snprintf(settingName, sizeof(settingName), "%s%s", rtkSettingsEntries[settingsIndex].name,
+                         mosaicMessagesRTCMv3[x].name);
+
+                getSettingValue(inCommands, settingName, settingValue);
+                commandSendExecuteListResponse(settingName, "tMosaicMERvRT", settingValue);
+            }
+        }
+        break;
+        case tMosaicMEBaRT: {
+            // Record Mosaic Base RTCM enabled
+            for (int x = 0; x < rtkSettingsEntries[settingsIndex].qualifier; x++)
+            {
+                snprintf(settingName, sizeof(settingName), "%s%s", rtkSettingsEntries[settingsIndex].name,
+                         mosaicMessagesRTCMv3[x].name);
+
+                getSettingValue(inCommands, settingName, settingValue);
+                commandSendExecuteListResponse(settingName, "tMosaicMEBaRT", settingValue);
+            }
+        }
+        break;
+    }
+    return true;
+}
+
+//----------------------------------------
 // Called by gnssCreateString to build settings file string
 //----------------------------------------
 bool mosaicCreateString(RTK_Settings_Types type,
