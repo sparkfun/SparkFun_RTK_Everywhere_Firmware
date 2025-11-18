@@ -45,8 +45,9 @@ const GNSS_SUPPORT_ROUTINES gnssSupportRoutines[] =
         GNSS_RECEIVER_LG290P,   // _receiver
         lg290pIsPresentOnFlex,  // _present
         lg290pNewClass,         // _newClass
+        nullptr,                // _commandList
         lg290pCreateString,     // _createString
-        nullptr,                // _getSettingValue
+        lg290pGetSettingValue,  // _getSettingValue
         lg290pNewSettingValue,  // _newSettingValue
         lg290pSettingsToFile,   // _settingToFile
     },
@@ -57,8 +58,9 @@ const GNSS_SUPPORT_ROUTINES gnssSupportRoutines[] =
         GNSS_RECEIVER_MOSAIC_X5,    // _receiver
         mosaicIsPresentOnFlex,      // _present
         mosaicNewClass,             // _newClass
+        nullptr,                // _commandList
         mosaicCreateString,         // _createString
-        nullptr,                // _getSettingValue
+        mosaicGetSettingValue,      // _getSettingValue
         mosaicNewSettingValue,      // _newSettingValue
         mosaicSettingsToFile,       // _settingToFile
     },
@@ -69,8 +71,9 @@ const GNSS_SUPPORT_ROUTINES gnssSupportRoutines[] =
         GNSS_RECEIVER_UNKNOWN,  // _receiver
         nullptr,                // _present
         nullptr,                // _newClass
+        nullptr,                // _commandList
         um980CreateString,      // _createString
-        nullptr,                // _getSettingValue
+        um980GetSettingValue,   // _getSettingValue
         um980NewSettingValue,   // _newSettingValue
         um980SettingsToFile,    // _settingToFile
     },
@@ -81,8 +84,9 @@ const GNSS_SUPPORT_ROUTINES gnssSupportRoutines[] =
         GNSS_RECEIVER_UNKNOWN,  // _receiver
         nullptr,                // _present
         nullptr,                // _newClass
+        nullptr,                // _commandList
         zedCreateString,        // _createString
-        nullptr,                // _getSettingValue
+        zedGetSettingValue,     // _getSettingValue
         zedNewSettingValue,     // _newSettingValue
         zedSettingsToFile,      // _settingToFile
     },
@@ -857,6 +861,30 @@ void gnssFirmwareRemoveUpdateFile(const char *filename)
 
         LittleFS.remove(filename);
     }
+}
+
+//----------------------------------------
+// List available settings, their type in CSV, and value
+//----------------------------------------
+bool gnssCommandList(RTK_Settings_Types type,
+                     int settingsIndex,
+                     bool inCommands,
+                     int qualifier,
+                     char * settingName,
+                     char * settingValue)
+{
+    for (int index = 0; index < GNSS_SUPPORT_ROUTINES_ENTRIES; index++)
+    {
+        if (gnssSupportRoutines[index]._commandList
+            && gnssSupportRoutines[index]._commandList(type,
+                                                       settingsIndex,
+                                                       inCommands,
+                                                       qualifier,
+                                                       settingName,
+                                                       settingValue))
+            return true;
+    }
+    return false;
 }
 
 //----------------------------------------

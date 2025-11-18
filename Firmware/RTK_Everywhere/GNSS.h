@@ -425,6 +425,14 @@ typedef bool (* GNSS_PRESENT)();
 // Create the GNSS class instance
 typedef void (* GNSS_NEW_CLASS)();
 
+// List available settings, their type in CSV, and value
+typedef bool (* GNSS_COMMAND_LIST)(RTK_Settings_Types type,
+                                   int settingsIndex,
+                                   bool inCommands,
+                                   int qualifier,
+                                   char * settingName,
+                                   char * settingValue);
+
 // Create string for settings
 typedef bool (* GNSS_CREATE_STRING)(RTK_Settings_Types type,
                                     int settingsIndex,
@@ -454,6 +462,7 @@ typedef struct _GNSS_SUPPORT_ROUTINES
     gnssReceiverType_e _receiver;
     GNSS_PRESENT _present;
     GNSS_NEW_CLASS _newClass;
+    GNSS_COMMAND_LIST _commandList;
     GNSS_CREATE_STRING _createString;
     GNSS_GET_SETTING_VALUE _getSettingValue;
     GNSS_NEW_SETTING_VALUE _newSettingValue;
