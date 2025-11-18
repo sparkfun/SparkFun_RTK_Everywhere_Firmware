@@ -432,7 +432,9 @@ typedef bool (* GNSS_CREATE_STRING)(RTK_Settings_Types type,
 
 // Return setting value as a string
 typedef bool (* GNSS_GET_SETTING_VALUE)(RTK_Settings_Types type,
+                                        const char * suffix,
                                         int settingsIndex,
+                                        int qualifier,
                                         char * settingValueStr);
 
 // Update a setting value

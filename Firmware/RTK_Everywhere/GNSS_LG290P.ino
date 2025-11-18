@@ -2723,6 +2723,80 @@ bool lg290pCreateString(RTK_Settings_Types type,
 }
 
 //----------------------------------------
+// Return setting value as a string
+//----------------------------------------
+bool lg290pGetSettingValue(RTK_Settings_Types type,
+                           const char * suffix,
+                           int settingsIndex,
+                           int qualifier,
+                           char * settingValueStr)
+{
+    switch (type)
+    {
+        case tLgMRNmea: {
+            for (int x = 0; x < qualifier; x++)
+            {
+                if ((suffix[0] == lgMessagesNMEA[x].msgTextName[0]) &&
+                    (strcmp(suffix, lgMessagesNMEA[x].msgTextName) == 0))
+                {
+                    writeToString(settingValueStr, settings.lg290pMessageRatesNMEA[x]);
+                    return true;
+                }
+            }
+        }
+        break;
+        case tLgMRRvRT: {
+            for (int x = 0; x < qualifier; x++)
+            {
+                if ((suffix[0] == lgMessagesRTCM[x].msgTextName[0]) &&
+                    (strcmp(suffix, lgMessagesRTCM[x].msgTextName) == 0))
+                {
+                    writeToString(settingValueStr, settings.lg290pMessageRatesRTCMRover[x]);
+                    return true;
+                }
+            }
+        }
+        break;
+        case tLgMRBaRT: {
+            for (int x = 0; x < qualifier; x++)
+            {
+                if ((suffix[0] == lgMessagesRTCM[x].msgTextName[0]) &&
+                    (strcmp(suffix, lgMessagesRTCM[x].msgTextName) == 0))
+                {
+                    writeToString(settingValueStr, settings.lg290pMessageRatesRTCMBase[x]);
+                    return true;
+                }
+            }
+        }
+        break;
+        case tLgMRPqtm: {
+            for (int x = 0; x < qualifier; x++)
+            {
+                if ((suffix[0] == lgMessagesPQTM[x].msgTextName[0]) &&
+                    (strcmp(suffix, lgMessagesPQTM[x].msgTextName) == 0))
+                {
+                    writeToString(settingValueStr, settings.lg290pMessageRatesPQTM[x]);
+                    return true;
+                }
+            }
+        }
+        break;
+        case tLgConst: {
+            for (int x = 0; x < qualifier; x++)
+            {
+                if ((suffix[0] == lg290pConstellationNames[x][0]) && (strcmp(suffix, lg290pConstellationNames[x]) == 0))
+                {
+                    writeToString(settingValueStr, settings.lg290pConstellations[x]);
+                    return true;
+                }
+            }
+        }
+        break;
+    }
+    return false;
+}
+
+//----------------------------------------
 // Return true if we detect this receiver type
 bool lg290pIsPresentOnFlex()
 {

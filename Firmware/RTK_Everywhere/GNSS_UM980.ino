@@ -2153,6 +2153,69 @@ bool um980CreateString(RTK_Settings_Types type,
 }
 
 //----------------------------------------
+// Return setting value as a string
+//----------------------------------------
+bool um980GetSettingValue(RTK_Settings_Types type,
+                          const char * suffix,
+                          int settingsIndex,
+                          int qualifier,
+                          char * settingValueStr)
+{
+    switch (type)
+    {
+        case tUmMRNmea: {
+            for (int x = 0; x < qualifier; x++)
+            {
+                if ((suffix[0] == umMessagesNMEA[x].msgTextName[0]) &&
+                    (strcmp(suffix, umMessagesNMEA[x].msgTextName) == 0))
+                {
+                    writeToString(settingValueStr, settings.um980MessageRatesNMEA[x]);
+                    return true;
+                }
+            }
+        }
+        break;
+        case tUmMRRvRT: {
+            for (int x = 0; x < qualifier; x++)
+            {
+                if ((suffix[0] == umMessagesRTCM[x].msgTextName[0]) &&
+                    (strcmp(suffix, umMessagesRTCM[x].msgTextName) == 0))
+                {
+                    writeToString(settingValueStr, settings.um980MessageRatesRTCMRover[x]);
+                    return true;
+                }
+            }
+        }
+        break;
+        case tUmMRBaRT: {
+            for (int x = 0; x < qualifier; x++)
+            {
+                if ((suffix[0] == umMessagesRTCM[x].msgTextName[0]) &&
+                    (strcmp(suffix, umMessagesRTCM[x].msgTextName) == 0))
+                {
+                    writeToString(settingValueStr, settings.um980MessageRatesRTCMBase[x]);
+                    return true;
+                }
+            }
+        }
+        break;
+        case tUmConst: {
+            for (int x = 0; x < qualifier; x++)
+            {
+                if ((suffix[0] == um980ConstellationCommands[x].textName[0]) &&
+                    (strcmp(suffix, um980ConstellationCommands[x].textName) == 0))
+                {
+                    writeToString(settingValueStr, settings.um980Constellations[x]);
+                    return true;
+                }
+            }
+        }
+        break;
+    }
+    return false;
+}
+
+//----------------------------------------
 // Called by gnssNewSettingValue to save a UM980 specific setting
 //----------------------------------------
 bool um980NewSettingValue(RTK_Settings_Types type,

@@ -3076,6 +3076,59 @@ bool zedCreateString(RTK_Settings_Types type,
 }
 
 //----------------------------------------
+// Return setting value as a string
+//----------------------------------------
+bool zedGetSettingValue(RTK_Settings_Types type,
+                        const char * suffix,
+                        int settingsIndex,
+                        int qualifier,
+                        char * settingValueStr)
+{
+    switch (type)
+    {
+        case tUbxConst: {
+            for (int x = 0; x < qualifier; x++)
+            {
+                if ((suffix[0] == settings.ubxConstellations[x].textName[0]) &&
+                    (strcmp(suffix, settings.ubxConstellations[x].textName) == 0))
+                {
+                    writeToString(settingValueStr, settings.ubxConstellations[x].enabled);
+                    return true;
+                }
+            }
+        }
+        break;
+        case tUbxMsgRt: {
+            for (int x = 0; x < qualifier; x++)
+            {
+                if ((suffix[0] == ubxMessages[x].msgTextName[0]) && (strcmp(suffix, ubxMessages[x].msgTextName) == 0))
+                {
+                    writeToString(settingValueStr, settings.ubxMessageRates[x]);
+                    return true;
+                }
+            }
+        }
+        break;
+        case tUbMsgRtb: {
+            GNSS_ZED *zed = (GNSS_ZED *)gnss;
+            int firstRTCMRecord = zed->getMessageNumberByName("RTCM_1005");
+
+            for (int x = 0; x < qualifier; x++)
+            {
+                if ((suffix[0] == ubxMessages[firstRTCMRecord + x].msgTextName[0]) &&
+                    (strcmp(suffix, ubxMessages[firstRTCMRecord + x].msgTextName) == 0))
+                {
+                    writeToString(settingValueStr, settings.ubxMessageRatesBase[x]);
+                    return true;
+                }
+            }
+        }
+        break;
+    }
+    return false;
+}
+
+//----------------------------------------
 // Called by gnssNewSettingValue to save a ZED specific setting
 //----------------------------------------
 bool zedNewSettingValue(RTK_Settings_Types type,

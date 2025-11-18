@@ -1076,6 +1076,11 @@ class GNSS_MOSAIC : GNSS
 bool mosaicCreateString(RTK_Settings_Types type,
                         int settingsIndex,
                         char * newSettings);
+bool mosaicpGetSettingValue(RTK_Settings_Types type,
+                            const char * suffix,
+                            int settingsIndex,
+                            int qualifier,
+                            char * settingValueStr);
 bool mosaicIsPresentOnFlex();
 void mosaicNewClass();
 bool mosaicNewSettingValue(RTK_Settings_Types type,

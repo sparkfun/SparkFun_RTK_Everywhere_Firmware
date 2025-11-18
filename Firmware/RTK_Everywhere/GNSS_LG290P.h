@@ -473,6 +473,11 @@ class GNSS_LG290P : GNSS
 bool lg290pCreateString(RTK_Settings_Types type,
                         int settingsIndex,
                         char * newSettings);
+bool lg290pGetSettingValue(RTK_Settings_Types type,
+                           const char * suffix,
+                           int qualifier,
+                           int settingsIndex,
+                           char * settingValueStr);
 bool lg290pIsPresentOnFlex();
 void lg290pNewClass();
 bool lg290pNewSettingValue(RTK_Settings_Types type,

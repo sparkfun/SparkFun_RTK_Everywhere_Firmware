@@ -879,13 +879,19 @@ bool gnssCreateString(RTK_Settings_Types type,
 // Return setting value as a string
 //----------------------------------------
 bool gnssGetSettingValue(RTK_Settings_Types type,
+                         const char * suffix,
                          int settingsIndex,
+                         int qualifier,
                          char * settingValueStr)
 {
     for (int index = 0; index < GNSS_SUPPORT_ROUTINES_ENTRIES; index++)
     {
         if (gnssSupportRoutines[index]._getSettingValue
-            && gnssSupportRoutines[index]._getSettingValue(type, settingsIndex, settingValueStr))
+            && gnssSupportRoutines[index]._getSettingValue(type,
+                                                           suffix,
+                                                           settingsIndex,
+                                                           qualifier,
+                                                           settingValueStr))
             return true;
     }
     return false;

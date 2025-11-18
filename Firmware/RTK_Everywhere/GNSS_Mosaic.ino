@@ -3344,6 +3344,102 @@ bool mosaicCreateString(RTK_Settings_Types type,
 }
 
 //----------------------------------------
+// Return setting value as a string
+//----------------------------------------
+bool mosaicGetSettingValue(RTK_Settings_Types type,
+                           const char * suffix,
+                           int settingsIndex,
+                           int qualifier,
+                           char * settingValueStr)
+{
+    switch (type)
+    {
+        case tMosaicConst: {
+            for (int x = 0; x < qualifier; x++)
+            {
+                if ((suffix[0] == mosaicSignalConstellations[x].configName[0]) &&
+                    (strcmp(suffix, mosaicSignalConstellations[x].configName) == 0))
+                {
+                    writeToString(settingValueStr, settings.mosaicConstellations[x]);
+                    return true;
+                }
+            }
+        }
+        break;
+        case tMosaicMSNmea: {
+            for (int x = 0; x < qualifier; x++)
+            {
+                if ((suffix[0] == mosaicMessagesNMEA[x].msgTextName[0]) &&
+                    (strcmp(suffix, mosaicMessagesNMEA[x].msgTextName) == 0))
+                {
+                    writeToString(settingValueStr, settings.mosaicMessageStreamNMEA[x]);
+                    return true;
+                }
+            }
+        }
+        break;
+        case tMosaicSINmea: {
+            int stream;
+            if (sscanf(suffix, "%d", &stream) == 1)
+            {
+                writeToString(settingValueStr, settings.mosaicStreamIntervalsNMEA[stream]);
+                return true;
+            }
+        }
+        break;
+        case tMosaicMIRvRT: {
+            for (int x = 0; x < qualifier; x++)
+            {
+                if ((suffix[0] == mosaicRTCMv3MsgIntervalGroups[x].name[0]) &&
+                    (strcmp(suffix, mosaicRTCMv3MsgIntervalGroups[x].name) == 0))
+                {
+                    writeToString(settingValueStr, settings.mosaicMessageIntervalsRTCMv3Rover[x]);
+                    return true;
+                }
+            }
+        }
+        break;
+        case tMosaicMIBaRT: {
+            for (int x = 0; x < qualifier; x++)
+            {
+                if ((suffix[0] == mosaicRTCMv3MsgIntervalGroups[x].name[0]) &&
+                    (strcmp(suffix, mosaicRTCMv3MsgIntervalGroups[x].name) == 0))
+                {
+                    writeToString(settingValueStr, settings.mosaicMessageIntervalsRTCMv3Base[x]);
+                    return true;
+                }
+            }
+        }
+        break;
+        case tMosaicMERvRT: {
+            for (int x = 0; x < qualifier; x++)
+            {
+                if ((suffix[0] == mosaicMessagesRTCMv3[x].name[0]) &&
+                    (strcmp(suffix, mosaicMessagesRTCMv3[x].name) == 0))
+                {
+                    writeToString(settingValueStr, settings.mosaicMessageEnabledRTCMv3Rover[x]);
+                    return true;
+                }
+            }
+        }
+        break;
+        case tMosaicMEBaRT: {
+            for (int x = 0; x < qualifier; x++)
+            {
+                if ((suffix[0] == mosaicMessagesRTCMv3[x].name[0]) &&
+                    (strcmp(suffix, mosaicMessagesRTCMv3[x].name) == 0))
+                {
+                    writeToString(settingValueStr, settings.mosaicMessageEnabledRTCMv3Base[x]);
+                    return true;
+                }
+            }
+        }
+        break;
+    }
+    return false;
+}
+
+//----------------------------------------
 // Test for mosaic on UART1 of the ESP32 on Flex
 //----------------------------------------
 bool mosaicIsPresentOnFlex()

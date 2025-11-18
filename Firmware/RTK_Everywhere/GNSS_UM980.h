@@ -499,6 +499,11 @@ class GNSS_UM980 : GNSS
 bool um980CreateString(RTK_Settings_Types type,
                        int settingsIndex,
                        char * newSettings);
+bool um980GetSettingValue(RTK_Settings_Types type,
+                          const char * suffix,
+                          int settingsIndex,
+                          int qualifier,
+                          char * settingValueStr);
 bool um980NewSettingValue(RTK_Settings_Types type,
                           const char * suffix,
                           int qualifier,
