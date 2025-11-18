@@ -460,7 +460,7 @@ typedef struct
         }
     }
 
-    bool checkBytesSentAndReset(uint32_t timerLimit)
+    bool checkBytesSentAndReset(uint32_t timerLimit, uint32_t *totalBytesSent)
     {
         bool retVal = false;
         if (serverSemaphore == NULL)
@@ -470,6 +470,7 @@ typedef struct
             if (((millis() - timer) > timerLimit) && (bytesSent > 0))
             {
                 retVal = true;
+                *totalBytesSent = bytesSent;
                 bytesSent = 0;
             }
             xSemaphoreGive(serverSemaphore);
