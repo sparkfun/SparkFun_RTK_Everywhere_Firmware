@@ -46,6 +46,7 @@ const GNSS_SUPPORT_ROUTINES gnssSupportRoutines[] =
         lg290pIsPresentOnFlex,  // _present
         lg290pNewClass,         // _newClass
         lg290pCommandList,      // _commandList
+        nullptr,                // _commandTypeJson
         lg290pCreateString,     // _createString
         lg290pGetSettingValue,  // _getSettingValue
         lg290pNewSettingValue,  // _newSettingValue
@@ -59,6 +60,7 @@ const GNSS_SUPPORT_ROUTINES gnssSupportRoutines[] =
         mosaicIsPresentOnFlex,      // _present
         mosaicNewClass,             // _newClass
         mosaicCommandList,          // _commandList
+        nullptr,                // _commandTypeJson
         mosaicCreateString,         // _createString
         mosaicGetSettingValue,      // _getSettingValue
         mosaicNewSettingValue,      // _newSettingValue
@@ -72,6 +74,7 @@ const GNSS_SUPPORT_ROUTINES gnssSupportRoutines[] =
         nullptr,                // _present
         nullptr,                // _newClass
         um980CommandList,       // _commandList
+        nullptr,                // _commandTypeJson
         um980CreateString,      // _createString
         um980GetSettingValue,   // _getSettingValue
         um980NewSettingValue,   // _newSettingValue
@@ -85,6 +88,7 @@ const GNSS_SUPPORT_ROUTINES gnssSupportRoutines[] =
         nullptr,                // _present
         nullptr,                // _newClass
         zedCommandList,         // _commandList
+        nullptr,                // _commandTypeJson
         zedCreateString,        // _createString
         zedGetSettingValue,     // _getSettingValue
         zedNewSettingValue,     // _newSettingValue
@@ -885,6 +889,18 @@ bool gnssCommandList(RTK_Settings_Types type,
             return true;
     }
     return false;
+}
+
+//----------------------------------------
+// Add types to a JSON array
+//----------------------------------------
+void gnssCommandTypeJson(JsonArray &command_types)
+{
+    for (int index = 0; index < GNSS_SUPPORT_ROUTINES_ENTRIES; index++)
+    {
+        if (gnssSupportRoutines[index]._commandTypeJson)
+            gnssSupportRoutines[index]._commandTypeJson(command_types);
+    }
 }
 
 //----------------------------------------

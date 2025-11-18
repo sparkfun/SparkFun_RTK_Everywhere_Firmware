@@ -3186,6 +3186,9 @@ void createCommandTypesJson(String &output)
 
     JsonArray command_types = doc["command types"].to<JsonArray>();
 
+    // Add the GNSS specific types
+    gnssCommandTypeJson(command_types);
+
 #ifdef COMPILE_LG290P
     // LG290P
 

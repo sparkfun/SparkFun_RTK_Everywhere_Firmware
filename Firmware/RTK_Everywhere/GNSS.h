@@ -433,6 +433,9 @@ typedef bool (* GNSS_COMMAND_LIST)(RTK_Settings_Types type,
                                    char * settingName,
                                    char * settingValue);
 
+// Add types to a JSON array
+typedef void (* GNSS_COMMAND_TYPE_JSON)(JsonArray &command_types);
+
 // Create string for settings
 typedef bool (* GNSS_CREATE_STRING)(RTK_Settings_Types type,
                                     int settingsIndex,
@@ -463,6 +466,7 @@ typedef struct _GNSS_SUPPORT_ROUTINES
     GNSS_PRESENT _present;
     GNSS_NEW_CLASS _newClass;
     GNSS_COMMAND_LIST _commandList;
+    GNSS_COMMAND_TYPE_JSON _commandTypeJson;
     GNSS_CREATE_STRING _createString;
     GNSS_GET_SETTING_VALUE _getSettingValue;
     GNSS_NEW_SETTING_VALUE _newSettingValue;
