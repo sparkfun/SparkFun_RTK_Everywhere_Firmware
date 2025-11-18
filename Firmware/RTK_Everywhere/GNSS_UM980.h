@@ -502,6 +502,7 @@ bool um980CommandList(RTK_Settings_Types type,
                       int qualifier,
                       char * settingName,
                       char * settingValue);
+void um980CommandTypeJson(JsonArray &command_types);
 bool um980CreateString(RTK_Settings_Types type,
                        int settingsIndex,
                        char * newSettings);

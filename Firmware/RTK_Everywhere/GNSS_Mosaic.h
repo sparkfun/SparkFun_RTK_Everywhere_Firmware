@@ -1079,6 +1079,7 @@ bool mosaicCommandList(RTK_Settings_Types type,
                        int qualifier,
                        char * settingName,
                        char * settingValue);
+void mosaicCommandTypeJson(JsonArray &command_types);
 bool mosaicCreateString(RTK_Settings_Types type,
                         int settingsIndex,
                         char * newSettings);

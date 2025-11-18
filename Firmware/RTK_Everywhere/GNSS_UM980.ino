@@ -2156,6 +2156,60 @@ bool um980CommandList(RTK_Settings_Types type,
 }
 
 //----------------------------------------
+// Add types to a JSON array
+//----------------------------------------
+void um980CommandTypeJson(JsonArray &command_types)
+{
+    JsonObject command_types_tUmConst = command_types.add<JsonObject>();
+    command_types_tUmConst["name"] = "tUmConst";
+    command_types_tUmConst["description"] = "UM980 GNSS constellations";
+    command_types_tUmConst["instruction"] = "Enable / disable each GNSS constellation";
+    command_types_tUmConst["prefix"] = "constellation_";
+    JsonArray command_types_tUmConst_keys = command_types_tUmConst["keys"].to<JsonArray>();
+    for (int x = 0; x < MAX_UM980_CONSTELLATIONS; x++)
+        command_types_tUmConst_keys.add(um980ConstellationCommands[x].textName);
+    JsonArray command_types_tUmConst_values = command_types_tUmConst["values"].to<JsonArray>();
+    command_types_tUmConst_values.add("0");
+    command_types_tUmConst_values.add("1");
+
+    JsonObject command_types_tUmMRNmea = command_types.add<JsonObject>();
+    command_types_tUmMRNmea["name"] = "tUmMRNmea";
+    command_types_tUmMRNmea["description"] = "UM980 NMEA message rates";
+    command_types_tUmMRNmea["instruction"] = "Set the NMEA message interval in seconds (0 = Off)";
+    command_types_tUmMRNmea["prefix"] = "messageRateNMEA_";
+    JsonArray command_types_tUmMRNmea_keys = command_types_tUmMRNmea["keys"].to<JsonArray>();
+    for (int y = 0; y < MAX_UM980_NMEA_MSG; y++)
+        command_types_tUmMRNmea_keys.add(umMessagesNMEA[y].msgTextName);
+    command_types_tUmMRNmea["type"] = "float";
+    command_types_tUmMRNmea["value min"] = 0.0;
+    command_types_tUmMRNmea["value max"] = 65.0;
+
+    JsonObject command_types_tUmMRBaRT = command_types.add<JsonObject>();
+    command_types_tUmMRBaRT["name"] = "tUmMRBaRT";
+    command_types_tUmMRBaRT["description"] = "UM980 RTCM message rates - Base";
+    command_types_tUmMRBaRT["instruction"] = "Set the RTCM message interval in seconds for Base (0 = Off)";
+    command_types_tUmMRBaRT["prefix"] = "messageRateRTCMBase_";
+    JsonArray command_types_tUmMRBaRT_keys = command_types_tUmMRBaRT["keys"].to<JsonArray>();
+    for (int x = 0; x < MAX_UM980_RTCM_MSG; x++)
+        command_types_tUmMRBaRT_keys.add(umMessagesRTCM[x].msgTextName);
+    command_types_tUmMRBaRT["type"] = "float";
+    command_types_tUmMRBaRT["value min"] = 0.0;
+    command_types_tUmMRBaRT["value max"] = 65.0;
+
+    JsonObject command_types_tUmMRRvRT = command_types.add<JsonObject>();
+    command_types_tUmMRRvRT["name"] = "tUmMRRvRT";
+    command_types_tUmMRRvRT["description"] = "UM980 RTCM message rates - Rover";
+    command_types_tUmMRRvRT["instruction"] = "Set the RTCM message interval in seconds for Rover (0 = Off)";
+    command_types_tUmMRRvRT["prefix"] = "messageRateRTCMRover_";
+    JsonArray command_types_tUmMRRvRT_keys = command_types_tUmMRRvRT["keys"].to<JsonArray>();
+    for (int x = 0; x < MAX_UM980_RTCM_MSG; x++)
+        command_types_tUmMRRvRT_keys.add(umMessagesRTCM[x].msgTextName);
+    command_types_tUmMRRvRT["type"] = "float";
+    command_types_tUmMRRvRT["value min"] = 0.0;
+    command_types_tUmMRRvRT["value max"] = 65.0;
+}
+
+//----------------------------------------
 // Called by gnssCreateString to build settings file string
 //----------------------------------------
 bool um980CreateString(RTK_Settings_Types type,

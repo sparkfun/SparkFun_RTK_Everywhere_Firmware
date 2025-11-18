@@ -3350,6 +3350,97 @@ bool mosaicCommandList(RTK_Settings_Types type,
 }
 
 //----------------------------------------
+// Add types to a JSON array
+//----------------------------------------
+void mosaicCommandTypeJson(JsonArray &command_types)
+{
+    JsonObject command_types_tMosaicConst = command_types.add<JsonObject>();
+    command_types_tMosaicConst["name"] = "tMosaicConst";
+    command_types_tMosaicConst["description"] = "mosaic-X5 GNSS constellations";
+    command_types_tMosaicConst["instruction"] = "Enable / disable each GNSS constellation";
+    command_types_tMosaicConst["prefix"] = "constellation_";
+    JsonArray command_types_tMosaicConst_keys = command_types_tMosaicConst["keys"].to<JsonArray>();
+    for (int x = 0; x < MAX_MOSAIC_CONSTELLATIONS; x++)
+        command_types_tMosaicConst_keys.add(mosaicSignalConstellations[x].configName);
+    JsonArray command_types_tMosaicConst_values = command_types_tMosaicConst["values"].to<JsonArray>();
+    command_types_tMosaicConst_values.add("0");
+    command_types_tMosaicConst_values.add("1");
+
+    JsonObject command_types_tMosaicMSNmea = command_types.add<JsonObject>();
+    command_types_tMosaicMSNmea["name"] = "tMosaicMSNmea";
+    command_types_tMosaicMSNmea["description"] = "mosaic-X5 message stream for NMEA";
+    command_types_tMosaicMSNmea["instruction"] = "Select the message stream for each NMEA message (0 = Off)";
+    command_types_tMosaicMSNmea["prefix"] = "messageStreamNMEA_";
+    JsonArray command_types_tMosaicMSNmea_keys = command_types_tMosaicMSNmea["keys"].to<JsonArray>();
+    for (int x = 0; x < MAX_MOSAIC_NMEA_MSG; x++)
+        command_types_tMosaicMSNmea_keys.add(mosaicMessagesNMEA[x].msgTextName);
+    JsonArray command_types_tMosaicMSNmea_values = command_types_tMosaicMSNmea["values"].to<JsonArray>();
+    command_types_tMosaicMSNmea_values.add("0");
+    command_types_tMosaicMSNmea_values.add("1");
+    command_types_tMosaicMSNmea_values.add("2");
+
+    JsonObject command_types_tMosaicSINmea = command_types.add<JsonObject>();
+    command_types_tMosaicSINmea["name"] = "tMosaicSINmea";
+    command_types_tMosaicSINmea["description"] = "mosaic-X5 NMEA message intervals";
+    command_types_tMosaicSINmea["instruction"] = "Set the interval for each NMEA stream";
+    command_types_tMosaicSINmea["prefix"] = "streamIntervalNMEA_";
+    JsonArray command_types_tMosaicSINmea_keys = command_types_tMosaicSINmea["keys"].to<JsonArray>();
+    command_types_tMosaicSINmea_keys.add("1");
+    command_types_tMosaicSINmea_keys.add("2");
+    JsonArray command_types_tMosaicSINmea_values = command_types_tMosaicSINmea["values"].to<JsonArray>();
+    for (int y = 0; y < MAX_MOSAIC_MSG_RATES; y++)
+        command_types_tMosaicSINmea_values.add(mosaicMsgRates[y].humanName);
+
+    JsonObject command_types_tMosaicMIRvRT = command_types.add<JsonObject>();
+    command_types_tMosaicMIRvRT["name"] = "tMosaicMIRvRT";
+    command_types_tMosaicMIRvRT["description"] = "mosaic-X5 RTCM message intervals - Rover";
+    command_types_tMosaicMIRvRT["instruction"] = "Set the RTCM message interval in seconds for Rover";
+    command_types_tMosaicMIRvRT["prefix"] = "messageIntervalRTCMRover_";
+    JsonArray command_types_tMosaicMIRvRT_keys = command_types_tMosaicMIRvRT["keys"].to<JsonArray>();
+    for (int y = 0; y < MAX_MOSAIC_RTCM_V3_INTERVAL_GROUPS; y++)
+        command_types_tMosaicMIRvRT_keys.add(mosaicRTCMv3MsgIntervalGroups[y].name);
+    command_types_tMosaicMIRvRT["type"] = "float";
+    command_types_tMosaicMIRvRT["value min"] = 0.1;
+    command_types_tMosaicMIRvRT["value max"] = 600.0;
+
+    JsonObject command_types_tMosaicMIBaRT = command_types.add<JsonObject>();
+    command_types_tMosaicMIBaRT["name"] = "tMosaicMIBaRT";
+    command_types_tMosaicMIBaRT["description"] = "mosaic-X5 RTCM message intervals - Base";
+    command_types_tMosaicMIBaRT["instruction"] = "Set the RTCM message interval in seconds for Base";
+    command_types_tMosaicMIBaRT["prefix"] = "messageIntervalRTCMBase_";
+    JsonArray command_types_tMosaicMIBaRT_keys = command_types_tMosaicMIBaRT["keys"].to<JsonArray>();
+    for (int y = 0; y < MAX_MOSAIC_RTCM_V3_INTERVAL_GROUPS; y++)
+        command_types_tMosaicMIBaRT_keys.add(mosaicRTCMv3MsgIntervalGroups[y].name);
+    command_types_tMosaicMIBaRT["type"] = "float";
+    command_types_tMosaicMIBaRT["value min"] = 0.1;
+    command_types_tMosaicMIBaRT["value max"] = 600.0;
+
+    JsonObject command_types_tMosaicMERvRT = command_types.add<JsonObject>();
+    command_types_tMosaicMERvRT["name"] = "tMosaicMERvRT";
+    command_types_tMosaicMERvRT["description"] = "mosaic-X5 RTCM message enabled - Rover";
+    command_types_tMosaicMERvRT["instruction"] = "Enable / disable Rover RTCM messages";
+    command_types_tMosaicMERvRT["prefix"] = "messageEnabledRTCMRover_";
+    JsonArray command_types_tMosaicMERvRT_keys = command_types_tMosaicMERvRT["keys"].to<JsonArray>();
+    for (int y = 0; y < MAX_MOSAIC_RTCM_V3_MSG; y++)
+        command_types_tMosaicMERvRT_keys.add(mosaicMessagesRTCMv3[y].name);
+    JsonArray command_types_tMosaicMERvRT_values = command_types_tMosaicMERvRT["values"].to<JsonArray>();
+    command_types_tMosaicMERvRT_values.add("0");
+    command_types_tMosaicMERvRT_values.add("1");
+
+    JsonObject command_types_tMosaicMEBaRT = command_types.add<JsonObject>();
+    command_types_tMosaicMEBaRT["name"] = "tMosaicMEBaRT";
+    command_types_tMosaicMEBaRT["description"] = "mosaic-X5 RTCM message enabled - Base";
+    command_types_tMosaicMEBaRT["instruction"] = "Enable / disable Base RTCM messages";
+    command_types_tMosaicMEBaRT["prefix"] = "messageEnabledRTCMBase_";
+    JsonArray command_types_tMosaicMEBaRT_keys = command_types_tMosaicMEBaRT["keys"].to<JsonArray>();
+    for (int y = 0; y < MAX_MOSAIC_RTCM_V3_MSG; y++)
+        command_types_tMosaicMEBaRT_keys.add(mosaicMessagesRTCMv3[y].name);
+    JsonArray command_types_tMosaicMEBaRT_values = command_types_tMosaicMEBaRT["values"].to<JsonArray>();
+    command_types_tMosaicMEBaRT_values.add("0");
+    command_types_tMosaicMEBaRT_values.add("1");
+}
+
+//----------------------------------------
 // Called by gnssCreateString to build settings file string
 //----------------------------------------
 bool mosaicCreateString(RTK_Settings_Types type,

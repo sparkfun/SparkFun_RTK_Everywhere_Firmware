@@ -476,6 +476,7 @@ bool lg290pCommandList(RTK_Settings_Types type,
                        int qualifier,
                        char * settingName,
                        char * settingValue);
+void lg290pCommandTypeJson(JsonArray &command_types);
 bool lg290pCreateString(RTK_Settings_Types type,
                         int settingsIndex,
                         char * newSettings);

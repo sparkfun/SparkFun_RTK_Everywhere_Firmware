@@ -802,6 +802,7 @@ bool zedCommandList(RTK_Settings_Types type,
                     int qualifier,
                     char * settingName,
                     char * settingValue);
+void zedCommandTypeJson(JsonArray &command_types);
 bool zedCreateString(RTK_Settings_Types type,
                      int settingsIndex,
                      char * newSettings);
