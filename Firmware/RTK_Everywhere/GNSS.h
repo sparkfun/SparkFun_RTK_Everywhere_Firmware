@@ -430,6 +430,11 @@ typedef bool (* GNSS_CREATE_STRING)(RTK_Settings_Types type,
                                     int settingsIndex,
                                     char * newSettings);
 
+// Return setting value as a string
+typedef bool (* GNSS_GET_SETTING_VALUE)(RTK_Settings_Types type,
+                                        int settingsIndex,
+                                        char * settingValueStr);
+
 // Update a setting value
 typedef bool (* GNSS_NEW_SETTING_VALUE)(RTK_Settings_Types type,
                                         const char * suffix,
@@ -448,6 +453,7 @@ typedef struct _GNSS_SUPPORT_ROUTINES
     GNSS_PRESENT _present;
     GNSS_NEW_CLASS _newClass;
     GNSS_CREATE_STRING _createString;
+    GNSS_GET_SETTING_VALUE _getSettingValue;
     GNSS_NEW_SETTING_VALUE _newSettingValue;
     GNSS_SETTING_TO_FILE _settingToFile;
 } GNSS_SUPPORT_ROUTINES;
