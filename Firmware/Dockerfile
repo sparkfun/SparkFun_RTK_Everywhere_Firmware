@@ -65,7 +65,7 @@ RUN arduino-cli core install "esp32:esp32@${CORE_VERSION}"
 # Get Known Libraries
 RUN arduino-cli lib install ArduinoJson@7.0.4
 RUN arduino-cli lib install ESP32Time@2.0.0
-RUN arduino-cli lib install ESP32_BleSerial@2.0.1
+RUN arduino-cli lib install ESP32_BleSerial@3.0.0
 RUN arduino-cli lib install "ESP32-OTA-Pull"@1.0.0
 RUN arduino-cli lib install JC_Button@2.1.2
 RUN arduino-cli lib install PubSubClient@2.8.0
@@ -80,7 +80,7 @@ RUN arduino-cli lib install "SparkFun BQ40Z50 Battery Manager Arduino Library"@1
 RUN arduino-cli lib install "ArduinoMqttClient"@0.1.8
 RUN arduino-cli lib install "SparkFun u-blox PointPerfect Library"@1.11.4
 RUN arduino-cli lib install "SparkFun IM19 IMU Arduino Library"@1.0.1
-RUN arduino-cli lib install "SparkFun UM980 Triband RTK GNSS Arduino Library"@1.0.5
+RUN arduino-cli lib install "SparkFun UM980 Triband RTK GNSS Arduino Library"@1.0.9
 RUN arduino-cli lib install "SparkFun LG290P Quadband RTK GNSS Arduino Library"@1.0.8
 RUN arduino-cli lib install "SparkFun I2C Expander Arduino Library"@1.0.1
 RUN arduino-cli lib install "SparkFun Apple Accessory Arduino Library"@3.0.9
