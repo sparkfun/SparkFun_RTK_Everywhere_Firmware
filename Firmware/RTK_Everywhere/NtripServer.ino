@@ -409,8 +409,13 @@ void ntripServerPrintStatus(int serverIndex)
 //----------------------------------------
 // This function gets called as each RTCM byte comes in
 //----------------------------------------
+/*
 void ntripServerProcessRTCM(int serverIndex, uint8_t incoming)
 {
+    // ntripServerProcessRTCM can take up to 15ms to complete
+    // But when the "no increase in file size" and "due to lack of RTCM" glitch happens,
+    // the code stalls here for 10 seconds!
+
     NTRIP_SERVER_DATA *ntripServer = &ntripServerArray[serverIndex];
 
     if (ntripServer->state == NTRIP_SERVER_CASTING)
@@ -441,6 +446,7 @@ void ntripServerProcessRTCM(int serverIndex, uint8_t incoming)
 
         if (ntripServer->networkClient && ntripServer->networkClient->connected())
         {
+            pinDebugOn();
             if (ntripServer->networkClient->write(incoming) == 1) // Send this byte to socket
             {
                 ntripServer->updateTimerAndBytesSent();
@@ -456,6 +462,70 @@ void ntripServerProcessRTCM(int serverIndex, uint8_t incoming)
                     systemPrintf("NTRIP Server %d broken connection to %s\r\n", serverIndex,
                                  settings.ntripServer_CasterHost[serverIndex]);
             }
+            pinDebugOff();
+        }
+    }
+
+    // Indicate that the GNSS is providing correction data
+    else if (ntripServer->state == NTRIP_SERVER_WAIT_GNSS_DATA)
+    {
+        ntripServerSetState(serverIndex, NTRIP_SERVER_CONNECTING);
+    }
+}
+*/
+void ntripServerProcessRTCM(int serverIndex, uint8_t *rtcmData, uint16_t dataLength)
+{
+    // ntripServerProcessRTCM can take up to 15ms to complete
+    // But when the "no increase in file size" and "due to lack of RTCM" glitch happens,
+    // the code stalls here for 10 seconds!
+
+    NTRIP_SERVER_DATA *ntripServer = &ntripServerArray[serverIndex];
+
+    if (ntripServer->state == NTRIP_SERVER_CASTING)
+    {
+        // Generate and print timestamp if needed
+        uint32_t currentMilliseconds;
+        if (online.rtc)
+        {
+            // Timestamp the RTCM messages
+            currentMilliseconds = millis();
+            if (((settings.debugNtripServerRtcm && ((currentMilliseconds - ntripServer->previousMilliseconds) > 5)) ||
+                 PERIODIC_DISPLAY(PD_NTRIP_SERVER_DATA)) &&
+                (!settings.enableRtcmMessageChecking) && (!inMainMenu) && ntripServer->bytesSent)
+            {
+                PERIODIC_CLEAR(PD_NTRIP_SERVER_DATA);
+                systemPrintf("    Tx%d RTCM: %s, %d bytes sent\r\n", serverIndex, getTimeStamp(),
+                             ntripServer->rtcmBytesSent);
+                ntripServer->rtcmBytesSent = 0;
+            }
+            ntripServer->previousMilliseconds = currentMilliseconds;
+        }
+
+        // If we have not gotten new RTCM bytes for a period of time, assume end of frame
+        uint32_t totalBytesSent;
+        if (ntripServer->checkBytesSentAndReset(100, &totalBytesSent) && (!inMainMenu) && settings.debugNtripServerRtcm)
+            systemPrintf("NTRIP Server %d transmitted %d RTCM bytes to Caster\r\n", serverIndex,
+                            totalBytesSent);
+
+        if (ntripServer->networkClient && ntripServer->networkClient->connected())
+        {
+            pinDebugOn();
+            if (ntripServer->networkClient->write(rtcmData, dataLength) == dataLength) // Send this byte to socket
+            {
+                ntripServer->updateTimerAndBytesSent(dataLength);
+                netOutgoingRTCM = true;
+                while (ntripServer->networkClient->available())
+                    ntripServer->networkClient->read(); // Absorb any unwanted incoming traffic
+            }
+            // Failed to write the data
+            else
+            {
+                // Done with this client connection
+                if (settings.debugNtripServerRtcm && (!inMainMenu))
+                    systemPrintf("NTRIP Server %d broken connection to %s\r\n", serverIndex,
+                                 settings.ntripServer_CasterHost[serverIndex]);
+            }
+            pinDebugOff();
         }
     }
 
@@ -824,6 +894,8 @@ void ntripServerUpdate(int serverIndex)
         else if (ntripServer->millisSinceTimer() > (10 * 1000))
         {
             // GNSS stopped sending RTCM correction data
+            if (pin_debug != PIN_UNDEFINED)
+                systemPrint(debugMessagePrefix);
             systemPrintf("NTRIP Server %d breaking connection to %s due to lack of RTCM data!\r\n", serverIndex,
                          settings.ntripServer_CasterHost[serverIndex]);
             ntripServerRestart(serverIndex);

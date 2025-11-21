@@ -2,12 +2,18 @@
 // Pass data along to NTRIP Server, or ESP-NOW radio
 void processRTCM(uint8_t *rtcmData, uint16_t dataLength)
 {
+
     // Give this byte to the various possible transmission methods
-    for (int x = 0; x < dataLength; x++)
+    // Note: the "no increase in file size" and "due to lack of RTCM" glitch happens
+    //       somewhere in ntripServerProcessRTCM
+    //pinDebugOn();
+    //for (int x = 0; x < dataLength; x++)
     {
         for (int serverIndex = 0; serverIndex < NTRIP_SERVER_MAX; serverIndex++)
-            ntripServerProcessRTCM(serverIndex, rtcmData[x]);
+            //ntripServerProcessRTCM(serverIndex, rtcmData[x]);
+            ntripServerProcessRTCM(serverIndex, rtcmData, dataLength);
     }
+    //pinDebugOff();
 
     for (int x = 0; x < dataLength; x++)
         espNowProcessRTCM(rtcmData[x]);

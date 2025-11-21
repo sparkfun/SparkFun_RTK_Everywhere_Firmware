@@ -357,7 +357,15 @@ void gnssReadTask(void *e)
         reportFatalError("Failed to initialize the parser");
 
     if (settings.debugGnss)
-        sempEnableDebugOutput(rtkParse);
+    {
+        sempEnableDebugOutput(rtkParse); // Standard debug on Serial
+        //sempEnableDebugOutput(rtkParse, &Serial, true); // Verbose debug
+    }
+
+    // Abort NMEA and Unicore Hash on non-printable character
+    // Help faster recovery from UART errors on EVK
+    sempAbortNmeaOnNonPrintable(rtkParse);
+    sempAbortHashOnNonPrintable(rtkParse);
 
     bool sbfParserNeeded = present.gnss_mosaicX5;
     bool spartnParserNeeded = present.gnss_mosaicX5 && (productVariant != RTK_FLEX);
@@ -450,20 +458,35 @@ void gnssReadTask(void *e)
             while (serialGNSS->available())
             {
                 // Read the data from UART1
-                uint8_t incomingData[500];
+                static uint8_t incomingData[256];
                 int bytesIncoming = serialGNSS->read(incomingData, sizeof(incomingData));
                 totalRxByteCount += bytesIncoming;
+
+                if ((bytesIncoming < 0) || (bytesIncoming > sizeof(incomingData)))
+                {
+                    systemPrint(debugMessagePrefix);
+                    systemPrintf("gnssReadTask: bytesIncoming = %d\r\n", bytesIncoming);
+                }
 
                 for (int x = 0; x < bytesIncoming; x++)
                 {
                     // Update the parser state based on the incoming byte
                     // On mosaic-X5, pass the byte to sbfParse. On all other platforms, pass it straight to rtkParse
-                    sempParseNextByte(sbfParserNeeded ? sbfParse : rtkParse, incomingData[x]);
+                    if (!sbfParserNeeded)
+                    {
+                        // Note: the "no increase in file size" and "due to lack of RTCM" glitch happens
+                        //       somewhere in sempParseNextByte (processUart1Message)
+                        //pinDebugOn();
+                        sempParseNextByte(rtkParse, incomingData[x]);
+                        //pinDebugOff();
+                    }
 
                     // See notes above. On the mosaic-X5, check that the incoming SBF blocks have expected IDs and
                     // lengths to help prevent raw L-Band data being misidentified as SBF
-                    if (sbfParserNeeded)
+                    else // if (sbfParserNeeded)
                     {
+                        sempParseNextByte(sbfParse, incomingData[x]);
+
                         SEMP_SCRATCH_PAD *scratchPad = (SEMP_SCRATCH_PAD *)sbfParse->scratchPad;
 
                         // Check if this is Length MSB
@@ -884,7 +907,11 @@ void processUart1Message(SEMP_PARSE_STATE *parse, uint16_t type)
     if (inBaseMode() && type == RTK_RTCM_PARSER_INDEX)
     {
         // Pass data along to NTRIP Server, ESP-NOW radio, or LoRa
+        // Note: the "no increase in file size" and "due to lack of RTCM" glitch happens
+        //       somewhere in processRTCM
+        //pinDebugOn();
         processRTCM(parse->buffer, parse->length);
+        //pinDebugOff();
     }
 
     // Determine if we are using the PPL - UM980, LG290P, or mosaic-X5

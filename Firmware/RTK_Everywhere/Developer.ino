@@ -129,7 +129,8 @@ void ntripClientSettingsChanged() {}
 #ifndef COMPILE_NTRIP_SERVER
 bool ntripServerIsCasting(int serverIndex) {return false;}
 void ntripServerPrintStatus(int serverIndex) {systemPrintf("**NTRIP Server %d not compiled**\r\n", serverIndex);}
-void ntripServerProcessRTCM(int serverIndex, uint8_t incoming) {}
+//void ntripServerProcessRTCM(int serverIndex, uint8_t incoming) {}
+void ntripServerProcessRTCM(int serverIndex, uint8_t *rtcmData, uint16_t dataLength) {}
 void ntripServerStop(int serverIndex, bool shutdown) {online.ntripServer[serverIndex] = false;}
 void ntripServerUpdate() {}
 void ntripServerValidateTables() {}

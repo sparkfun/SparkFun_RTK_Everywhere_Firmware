@@ -460,6 +460,19 @@ typedef struct
         }
     }
 
+    void updateTimerAndBytesSent(uint16_t dataLength)
+    {
+        if (serverSemaphore == NULL)
+            serverSemaphore = xSemaphoreCreateMutex();
+        if (xSemaphoreTake(serverSemaphore, 10 / portTICK_PERIOD_MS) == pdPASS)
+        {
+            bytesSent = bytesSent + dataLength;
+            rtcmBytesSent = rtcmBytesSent + dataLength;
+            timer = millis();
+            xSemaphoreGive(serverSemaphore);
+        }
+    }
+
     bool checkBytesSentAndReset(uint32_t timerLimit, uint32_t *totalBytesSent)
     {
         bool retVal = false;
@@ -854,7 +867,7 @@ struct Settings
 
     // GNSS UART
     uint16_t serialGNSSRxFullThreshold = 50; // RX FIFO full interrupt. Max of ~128. See pinUART2Task().
-    int uartReceiveBufferSize = 1024 * 4; // This buffer is filled automatically as the UART receives characters. EVK needs 4K
+    int uartReceiveBufferSize = 1024 * 2; // This buffer is filled automatically as the UART receives characters
 
     // Hardware
     bool enableExternalHardwareEventLogging = false; // Log when INT/TM2 pin goes low

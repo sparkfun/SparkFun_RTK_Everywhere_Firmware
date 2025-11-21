@@ -206,10 +206,13 @@ const uint16_t HTTPS_PORT = 443;                                                
 #define SECONDS_IN_AN_HOUR (MINUTES_IN_AN_HOUR * SECONDS_IN_A_MINUTE)
 #define SECONDS_IN_A_DAY (HOURS_IN_A_DAY * SECONDS_IN_AN_HOUR)
 
+const char *debugMessagePrefix = "# => "; // Something ~unique and easy to trigger on
+
 // Hardware connections
 //=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 // These pins are set in beginBoard()
 #define PIN_UNDEFINED -1
+int pin_debug = PIN_UNDEFINED;              // LED on EVK
 int pin_batteryStatusLED = PIN_UNDEFINED;   // LED on Torch
 int pin_baseStatusLED = PIN_UNDEFINED;      // LED on EVK
 int pin_bluetoothStatusLED = PIN_UNDEFINED; // LED on Torch
@@ -602,7 +605,7 @@ volatile bool inDirectConnectMode = false; // Global state to indicate if GNSS/L
 
 #define SERIAL_SIZE_TX 512
 uint8_t wBuffer[SERIAL_SIZE_TX]; // Buffer for writing from incoming SPP to F9P
-const int btReadTaskStackSize = 4000;
+const int btReadTaskStackSize = 3000;
 
 // Array of start-of-sentence offsets into the ring buffer
 #define AMOUNT_OF_RING_BUFFER_DATA_TO_DISCARD (settings.gnssHandlerBufferSize >> 2)
@@ -1696,6 +1699,8 @@ void logUpdate()
                 }
                 else
                 {
+                    if (pin_debug != PIN_UNDEFINED)
+                        systemPrint(debugMessagePrefix);
                     if ((settings.enablePrintLogFileStatus) && (!inMainMenu))
                         systemPrintf("No increase in file size: %llu -> %llu\r\n", lastLogSize, logFileSize);
                     logIncreasing = false;
