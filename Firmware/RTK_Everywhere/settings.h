@@ -530,6 +530,19 @@ typedef struct
         }
         return retVal;
     }
+
+    bool networkClientConnected()
+    {
+        bool retVal = false;
+        if (serverSemaphore == NULL)
+            serverSemaphore = xSemaphoreCreateMutex();
+        if (xSemaphoreTake(serverSemaphore, 100 / portTICK_PERIOD_MS) == pdPASS)
+        {
+            retVal = (bool)networkClient->connected();
+            xSemaphoreGive(serverSemaphore);
+        }
+        return retVal;        
+    }
 } NTRIP_SERVER_DATA;
 
 #endif  // COMPILE_NETWORK
@@ -900,6 +913,7 @@ struct Settings
     // Network layer
     bool debugNetworkLayer = false;    // Enable debugging of the network layer
     bool printNetworkStatus = true;    // Print network status (delays, failovers, IP address)
+    uint32_t networkClientWriteTimeout_ms = 250; // networkClient _timeout in ms
 
     // NTP
     bool debugNtp = false;
@@ -1628,6 +1642,7 @@ const RTK_Settings_Entry rtkSettingsEntries[] =
     // Network layer
     { 0, 0, 0, 1, 1, 1, 1, 1, 1, ALL, 1, _bool,     0, & settings.debugNetworkLayer, "debugNetworkLayer", nullptr, },
     { 0, 0, 0, 1, 1, 1, 1, 1, 1, ALL, 1, _bool,     0, & settings.printNetworkStatus, "printNetworkStatus", nullptr, },
+    { 0, 0, 0, 1, 1, 1, 1, 1, 1, ALL, 1, _uint32_t, 0, & settings.networkClientWriteTimeout_ms, "networkClientWriteTimeout", nullptr, },
 
 //                         F
 //                         a

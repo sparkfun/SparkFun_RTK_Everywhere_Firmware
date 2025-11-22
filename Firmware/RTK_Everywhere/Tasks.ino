@@ -1592,6 +1592,8 @@ void handleGnssDataTask(void *e)
                     {
                         markSemaphore(FUNCTION_WRITESD);
 
+                        //pinDebugOn();
+
                         do // Do the SD write in a do loop so we can break out if needed
                         {
                             if (settings.enablePrintSDBuffers && (!inMainMenu))
@@ -1748,6 +1750,9 @@ void handleGnssDataTask(void *e)
                                                  deltaMillis, logFileSize, bytesToSend, combinedSpaceRemaining);
                             }
                         } while (0);
+
+
+                        //pinDebugOff();
 
                         xSemaphoreGive(sdCardSemaphore);
                     } // End sdCardSemaphore

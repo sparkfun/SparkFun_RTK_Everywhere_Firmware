@@ -444,9 +444,9 @@ void ntripServerProcessRTCM(int serverIndex, uint8_t incoming)
             systemPrintf("NTRIP Server %d transmitted %d RTCM bytes to Caster\r\n", serverIndex,
                             totalBytesSent);
 
-        if (ntripServer->networkClient && ntripServer->networkClient->connected())
+        if (ntripServer->networkClient && ntripServer->networkClientConnected())
         {
-            pinDebugOn();
+            //pinDebugOn();
             if (ntripServer->networkClient->write(incoming) == 1) // Send this byte to socket
             {
                 ntripServer->updateTimerAndBytesSent();
@@ -462,7 +462,7 @@ void ntripServerProcessRTCM(int serverIndex, uint8_t incoming)
                     systemPrintf("NTRIP Server %d broken connection to %s\r\n", serverIndex,
                                  settings.ntripServer_CasterHost[serverIndex]);
             }
-            pinDebugOff();
+            //pinDebugOff();
         }
     }
 
@@ -507,11 +507,22 @@ void ntripServerProcessRTCM(int serverIndex, uint8_t *rtcmData, uint16_t dataLen
             systemPrintf("NTRIP Server %d transmitted %d RTCM bytes to Caster\r\n", serverIndex,
                             totalBytesSent);
 
-        if (ntripServer->networkClient && ntripServer->networkClient->connected())
+        if (ntripServer->networkClient && ntripServer->networkClientConnected())
         {
+            unsigned long entryTime = millis();
+
+            // Note: the "no increase in file size" and "due to lack of RTCM" glitch
+            //       on EVK usually happens during the writing of RTCM 1005.
+            // RTCM 1074,1084,1094,1124 arrive from the F9P and are written to the ntripServer
+            // Then a blob of NMEA arrives - and is written to consumers
+            // Then RTCM 1005 arrives. The length is only 19+6 bytes. The stall happens during its write...
+            // I have seen the stall happen during the RTCM 1074,1084,1094,1124 but it seems even more rare
+
             pinDebugOn();
+            ntripServer->networkClient->setConnectionTimeout(settings.networkClientWriteTimeout_ms); // Belt & Braces
             if (ntripServer->networkClient->write(rtcmData, dataLength) == dataLength) // Send this byte to socket
             {
+                pinDebugOff();
                 ntripServer->updateTimerAndBytesSent(dataLength);
                 netOutgoingRTCM = true;
                 while (ntripServer->networkClient->available())
@@ -526,6 +537,17 @@ void ntripServerProcessRTCM(int serverIndex, uint8_t *rtcmData, uint16_t dataLen
                                  settings.ntripServer_CasterHost[serverIndex]);
             }
             pinDebugOff();
+
+            if ((millis() - entryTime) > 1000)
+            {
+                systemPrintf("# => ntripServer write took %ldms\r\n", millis() - entryTime);
+                dumpBuffer(rtcmData, dataLength);
+
+                // # => ntripServer write took 3419ms
+                // 0x00000000: D3 00 13 3E D0 00 03 88 90 14 78 26 BF C9 56 50  ...>......x&..VP
+                // 0x00000010: 45 0C 17 41 6B 26 2B D1 C7                       E..Ak&+..
+
+            }
         }
     }
 
@@ -630,7 +652,7 @@ void ntripServerStop(int serverIndex, bool shutdown)
     if (ntripServer->networkClient)
     {
         // Break the NTRIP server connection if necessary
-        if (ntripServer->networkClient->connected())
+        if (ntripServer->networkClientConnected())
             ntripServer->networkClient->stop();
 
         // Free the NTRIP server resources
@@ -852,6 +874,15 @@ void ntripServerUpdate(int serverIndex)
                 online.ntripServer[serverIndex] = true;
                 ntripServer->startTime = millis();
                 ntripServerSetState(serverIndex, NTRIP_SERVER_CASTING);
+
+                // Now we are ready to start casting, decrease timeout to networkClientWriteTimeout_ms
+                // The default timeout is WIFI_CLIENT_DEF_CONN_TIMEOUT_MS (3000)
+                // Each write will retry up to WIFI_CLIENT_MAX_WRITE_RETRY (10) times
+                // NetworkClient uses the same _timeout for both the initial connection and
+                // subsequent writes. The trick is to setConnectionTimeout after we are connected
+                // By reducing the timeout, we (hopefully) prevent the
+                // "no increase in file size" and "due to lack of RTCM" glitch
+                ntripServer->networkClient->setConnectionTimeout(settings.networkClientWriteTimeout_ms);
             }
 
             // Look for '401 Unauthorized'
@@ -884,7 +915,7 @@ void ntripServerUpdate(int serverIndex)
     // NTRIP server authorized to send RTCM correction data to NTRIP caster
     case NTRIP_SERVER_CASTING:
         // Check for a broken connection
-        if (!ntripServer->networkClient->connected())
+        if (!ntripServer->networkClientConnected())
         {
             // Broken connection, retry the NTRIP connection
             systemPrintf("Connection to NTRIP Caster %d - %s was lost\r\n", serverIndex,
