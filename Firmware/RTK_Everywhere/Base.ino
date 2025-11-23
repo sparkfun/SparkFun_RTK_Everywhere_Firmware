@@ -8,6 +8,7 @@ uint8_t rtcmConsumerBufferHead;
 uint8_t rtcmConsumerBufferTail;
 uint8_t *rtcmConsumerBufferPtr = nullptr;
 
+// Allocate and initialize the rtcmConsumerBuffer
 bool rtcmConsumerBufferAllocated()
 {
     if (rtcmConsumerBufferPtr == nullptr)
@@ -29,11 +30,10 @@ bool rtcmConsumerBufferAllocated()
     return true;
 }
 
+// Store each RTCM message in a PSRAM buffer
+// The messages are written to the servers by sendRTCMToConsumers
 void storeRTCMForConsumers(uint8_t *rtcmData, uint16_t dataLength)
 {
-    // Store each RTCM message in a PSRAM buffer
-    // The messages are written to the servers by sendRTCMToConsumers
-
     if (!rtcmConsumerBufferAllocated())
         return;
 
@@ -50,9 +50,9 @@ void storeRTCMForConsumers(uint8_t *rtcmData, uint16_t dataLength)
         uint8_t *dest = rtcmConsumerBufferPtr;
         dest += (size_t)rtcmConsumerBufferEntrySize * (size_t)rtcmConsumerBufferHead;
         memcpy(dest, rtcmData, dataLength); // Store the RTCM
-        rtcmConsumerBufferLengths[rtcmConsumerBufferHead] = dataLength;
-        rtcmConsumerBufferHead++;
-        rtcmConsumerBufferHead %= rtcmConsumerBufferEntries;
+        rtcmConsumerBufferLengths[rtcmConsumerBufferHead] = dataLength; // Store the length
+        rtcmConsumerBufferHead++; // Increment the Head
+        rtcmConsumerBufferHead %= rtcmConsumerBufferEntries; // Wrap
     }
     else
     {
@@ -72,16 +72,19 @@ void sendRTCMToConsumers()
         uint8_t *dest = rtcmConsumerBufferPtr;
         dest += (size_t)rtcmConsumerBufferEntrySize * (size_t)rtcmConsumerBufferTail;
 
+        // NTRIP Server
         for (int serverIndex = 0; serverIndex < NTRIP_SERVER_MAX; serverIndex++)
             ntripServerSendRTCM(serverIndex, dest, rtcmConsumerBufferLengths[rtcmConsumerBufferTail]);
 
+        // LoRa
         loraProcessRTCM(dest, rtcmConsumerBufferLengths[rtcmConsumerBufferTail]);
 
+        // ESP-NOW
         for (uint16_t x = 0; x < rtcmConsumerBufferLengths[rtcmConsumerBufferTail]; x++)
             espNowProcessRTCM(dest[x]);
 
-        rtcmConsumerBufferTail++;
-        rtcmConsumerBufferTail %= rtcmConsumerBufferEntries;
+        rtcmConsumerBufferTail++; // Increment the Tail
+        rtcmConsumerBufferTail %= rtcmConsumerBufferEntries; // Wrap
     }
 }
 
