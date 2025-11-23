@@ -474,8 +474,6 @@ void gnssReadTask(void *e)
                     // On mosaic-X5, pass the byte to sbfParse. On all other platforms, pass it straight to rtkParse
                     if (!sbfParserNeeded)
                     {
-                        // Note: the "no increase in file size" and "due to lack of RTCM" glitch happens
-                        //       somewhere in sempParseNextByte (processUart1Message)
                         //pinDebugOn();
                         sempParseNextByte(rtkParse, incomingData[x]);
                         //pinDebugOff();
@@ -907,8 +905,6 @@ void processUart1Message(SEMP_PARSE_STATE *parse, uint16_t type)
     if (inBaseMode() && type == RTK_RTCM_PARSER_INDEX)
     {
         // Pass data along to NTRIP Server, ESP-NOW radio, or LoRa
-        // Note: the "no increase in file size" and "due to lack of RTCM" glitch happens
-        //       somewhere in processRTCM
         //pinDebugOn();
         processRTCM(parse->buffer, parse->length);
         //pinDebugOff();
@@ -1387,6 +1383,21 @@ void handleGnssDataTask(void *e)
         if (xSemaphoreTake(ringBufferSemaphore, ringBuffer_shortWait_ms) == pdPASS)
         {
             ringBufferSemaphoreHolder = "handleGnssDataTask";
+
+            //----------------------------------------------------------------------
+            // Send RTCM to consumers
+            //
+            // RTCM has its own storage in rtcmConsumerBuffer (Base.ino)
+            // It does not use the main ringBuffer
+            // But we do the writing here so all traffic generated in the same place
+            //----------------------------------------------------------------------
+
+            startMillis = millis();
+
+            sendRTCMToConsumers();
+
+            if ((millis() - startMillis) > settings.networkClientWriteTimeout_ms)
+                slowConsumer = "RTCM Consumers";
 
             //----------------------------------------------------------------------
             // Send data over Bluetooth

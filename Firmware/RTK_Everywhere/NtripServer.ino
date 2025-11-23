@@ -406,79 +406,8 @@ void ntripServerPrintStatus(int serverIndex)
     }
 }
 
-//----------------------------------------
-// This function gets called as each RTCM byte comes in
-//----------------------------------------
-/*
-void ntripServerProcessRTCM(int serverIndex, uint8_t incoming)
+void ntripServerSendRTCM(int serverIndex, uint8_t *rtcmData, uint16_t dataLength)
 {
-    // ntripServerProcessRTCM can take up to 15ms to complete
-    // But when the "no increase in file size" and "due to lack of RTCM" glitch happens,
-    // the code stalls here for 10 seconds!
-
-    NTRIP_SERVER_DATA *ntripServer = &ntripServerArray[serverIndex];
-
-    if (ntripServer->state == NTRIP_SERVER_CASTING)
-    {
-        // Generate and print timestamp if needed
-        uint32_t currentMilliseconds;
-        if (online.rtc)
-        {
-            // Timestamp the RTCM messages
-            currentMilliseconds = millis();
-            if (((settings.debugNtripServerRtcm && ((currentMilliseconds - ntripServer->previousMilliseconds) > 5)) ||
-                 PERIODIC_DISPLAY(PD_NTRIP_SERVER_DATA)) &&
-                (!settings.enableRtcmMessageChecking) && (!inMainMenu) && ntripServer->bytesSent)
-            {
-                PERIODIC_CLEAR(PD_NTRIP_SERVER_DATA);
-                systemPrintf("    Tx%d RTCM: %s, %d bytes sent\r\n", serverIndex, getTimeStamp(),
-                             ntripServer->rtcmBytesSent);
-                ntripServer->rtcmBytesSent = 0;
-            }
-            ntripServer->previousMilliseconds = currentMilliseconds;
-        }
-
-        // If we have not gotten new RTCM bytes for a period of time, assume end of frame
-        uint32_t totalBytesSent;
-        if (ntripServer->checkBytesSentAndReset(100, &totalBytesSent) && (!inMainMenu) && settings.debugNtripServerRtcm)
-            systemPrintf("NTRIP Server %d transmitted %d RTCM bytes to Caster\r\n", serverIndex,
-                            totalBytesSent);
-
-        if (ntripServer->networkClient && ntripServer->networkClientConnected(true))
-        {
-            //pinDebugOn();
-            if (ntripServer->networkClient->write(incoming) == 1) // Send this byte to socket
-            {
-                ntripServer->updateTimerAndBytesSent();
-                netOutgoingRTCM = true;
-                while (ntripServer->networkClient->available())
-                    ntripServer->networkClient->read(); // Absorb any unwanted incoming traffic
-            }
-            // Failed to write the data
-            else
-            {
-                // Done with this client connection
-                if (settings.debugNtripServerRtcm && (!inMainMenu))
-                    systemPrintf("NTRIP Server %d broken connection to %s\r\n", serverIndex,
-                                 settings.ntripServer_CasterHost[serverIndex]);
-            }
-            //pinDebugOff();
-        }
-    }
-
-    // Indicate that the GNSS is providing correction data
-    else if (ntripServer->state == NTRIP_SERVER_WAIT_GNSS_DATA)
-    {
-        ntripServerSetState(serverIndex, NTRIP_SERVER_CONNECTING);
-    }
-}
-*/
-void ntripServerProcessRTCM(int serverIndex, uint8_t *rtcmData, uint16_t dataLength)
-{
-    // ntripServerProcessRTCM can take up to 15ms to complete
-    // But when the "no increase in file size" and "due to lack of RTCM" glitch happens,
-    // the code stalls here for 10 seconds!
-
     NTRIP_SERVER_DATA *ntripServer = &ntripServerArray[serverIndex];
 
     if (ntripServer->state == NTRIP_SERVER_CASTING)
@@ -511,13 +440,6 @@ void ntripServerProcessRTCM(int serverIndex, uint8_t *rtcmData, uint16_t dataLen
         {
             unsigned long entryTime = millis();
 
-            // Note: the "no increase in file size" and "due to lack of RTCM" glitch
-            //       on EVK usually happens during the writing of RTCM 1005.
-            // RTCM 1074,1084,1094,1124 arrive from the F9P and are written to the ntripServer
-            // Then a blob of NMEA arrives - and is written to consumers
-            // Then RTCM 1005 arrives. The length is only 19+6 bytes. The stall happens during its write...
-            // I have seen the stall happen during the RTCM 1074,1084,1094,1124 but it seems even more rare
-
             pinDebugOn();
             if (ntripServer->networkClientWrite(rtcmData, dataLength) == dataLength) // Send this byte to socket
             {
@@ -541,12 +463,6 @@ void ntripServerProcessRTCM(int serverIndex, uint8_t *rtcmData, uint16_t dataLen
                 if (pin_debug != PIN_UNDEFINED)
                     systemPrint(debugMessagePrefix);
                 systemPrintf("ntripServer write took %ldms\r\n", millis() - entryTime);
-                dumpBuffer(rtcmData, dataLength);
-
-                // # => ntripServer write took 3419ms
-                // 0x00000000: D3 00 13 3E D0 00 03 88 90 14 78 26 BF C9 56 50  ...>......x&..VP
-                // 0x00000010: 45 0C 17 41 6B 26 2B D1 C7                       E..Ak&+..
-
             }
         }
     }
@@ -880,8 +796,6 @@ void ntripServerUpdate(int serverIndex)
                 // Each write will retry up to WIFI_CLIENT_MAX_WRITE_RETRY (10) times
                 // NetworkClient uses the same _timeout for both the initial connection and
                 // subsequent writes. The trick is to setConnectionTimeout after we are connected
-                // By reducing the timeout, we (hopefully) prevent the
-                // "no increase in file size" and "due to lack of RTCM" glitch
                 ntripServer->networkClient->setConnectionTimeout(settings.networkClientWriteTimeout_ms);
             }
 

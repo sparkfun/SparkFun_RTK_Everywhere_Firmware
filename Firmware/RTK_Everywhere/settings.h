@@ -419,10 +419,7 @@ typedef struct
 
 
     // Protect all methods that manipulate timer with a mutex - to avoid race conditions
-    // Remember that data is pushed to the servers by
-    // gnssReadTask -> processUart1Message -> processRTCM -> ntripServerProcessRTCM
-    // These methods also protect the ntripServerProcessRTCM task write from connected checks
-    // by ntripServerUpdate in the loop
+    // Also protect the write from connected checks
     SemaphoreHandle_t serverSemaphore = NULL;
 
     unsigned long millisSinceTimer()
@@ -942,7 +939,8 @@ struct Settings
     // Network layer
     bool debugNetworkLayer = false;    // Enable debugging of the network layer
     bool printNetworkStatus = true;    // Print network status (delays, failovers, IP address)
-    uint32_t networkClientWriteTimeout_ms = 1000; // networkClient _timeout in ms (lib default is 3000)
+    // networkClient _timeout in ms (lib default is 3000). This limits write glitches to about 3.4s
+    uint32_t networkClientWriteTimeout_ms = 250;
 
     // NTP
     bool debugNtp = false;
