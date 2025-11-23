@@ -406,6 +406,9 @@ void ntripServerPrintStatus(int serverIndex)
     }
 }
 
+//----------------------------------------
+// This function gets called as each complete RTCM message comes in
+//----------------------------------------
 void ntripServerSendRTCM(int serverIndex, uint8_t *rtcmData, uint16_t dataLength)
 {
     NTRIP_SERVER_DATA *ntripServer = &ntripServerArray[serverIndex];
@@ -440,10 +443,10 @@ void ntripServerSendRTCM(int serverIndex, uint8_t *rtcmData, uint16_t dataLength
         {
             unsigned long entryTime = millis();
 
-            pinDebugOn();
+            //pinDebugOn();
             if (ntripServer->networkClientWrite(rtcmData, dataLength) == dataLength) // Send this byte to socket
             {
-                pinDebugOff();
+                //pinDebugOff();
                 ntripServer->updateTimerAndBytesSent(dataLength);
                 netOutgoingRTCM = true;
                 ntripServer->networkClientAbsorb(); // Absorb any unwanted incoming traffic
@@ -456,9 +459,9 @@ void ntripServerSendRTCM(int serverIndex, uint8_t *rtcmData, uint16_t dataLength
                     systemPrintf("NTRIP Server %d broken connection to %s\r\n", serverIndex,
                                  settings.ntripServer_CasterHost[serverIndex]);
             }
-            pinDebugOff();
+            //pinDebugOff();
 
-            if (((millis() - entryTime) > 1000) )//&& settings.debugNtripServerRtcm && (!inMainMenu))
+            if (((millis() - entryTime) > settings.networkClientWriteTimeout_ms) && settings.debugNtripServerRtcm && (!inMainMenu))
             {
                 if (pin_debug != PIN_UNDEFINED)
                     systemPrint(debugMessagePrefix);
