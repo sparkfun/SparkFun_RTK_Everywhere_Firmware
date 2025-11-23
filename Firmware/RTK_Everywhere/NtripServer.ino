@@ -444,7 +444,7 @@ void ntripServerProcessRTCM(int serverIndex, uint8_t incoming)
             systemPrintf("NTRIP Server %d transmitted %d RTCM bytes to Caster\r\n", serverIndex,
                             totalBytesSent);
 
-        if (ntripServer->networkClient && ntripServer->networkClientConnected())
+        if (ntripServer->networkClient && ntripServer->networkClientConnected(true))
         {
             //pinDebugOn();
             if (ntripServer->networkClient->write(incoming) == 1) // Send this byte to socket
@@ -507,7 +507,7 @@ void ntripServerProcessRTCM(int serverIndex, uint8_t *rtcmData, uint16_t dataLen
             systemPrintf("NTRIP Server %d transmitted %d RTCM bytes to Caster\r\n", serverIndex,
                             totalBytesSent);
 
-        if (ntripServer->networkClient && ntripServer->networkClientConnected())
+        if (ntripServer->networkClient && ntripServer->networkClientConnected(true))
         {
             unsigned long entryTime = millis();
 
@@ -519,14 +519,12 @@ void ntripServerProcessRTCM(int serverIndex, uint8_t *rtcmData, uint16_t dataLen
             // I have seen the stall happen during the RTCM 1074,1084,1094,1124 but it seems even more rare
 
             pinDebugOn();
-            ntripServer->networkClient->setConnectionTimeout(settings.networkClientWriteTimeout_ms); // Belt & Braces
-            if (ntripServer->networkClient->write(rtcmData, dataLength) == dataLength) // Send this byte to socket
+            if (ntripServer->networkClientWrite(rtcmData, dataLength) == dataLength) // Send this byte to socket
             {
                 pinDebugOff();
                 ntripServer->updateTimerAndBytesSent(dataLength);
                 netOutgoingRTCM = true;
-                while (ntripServer->networkClient->available())
-                    ntripServer->networkClient->read(); // Absorb any unwanted incoming traffic
+                ntripServer->networkClientAbsorb(); // Absorb any unwanted incoming traffic
             }
             // Failed to write the data
             else
@@ -538,9 +536,11 @@ void ntripServerProcessRTCM(int serverIndex, uint8_t *rtcmData, uint16_t dataLen
             }
             pinDebugOff();
 
-            if ((millis() - entryTime) > 1000)
+            if (((millis() - entryTime) > 1000) )//&& settings.debugNtripServerRtcm && (!inMainMenu))
             {
-                systemPrintf("# => ntripServer write took %ldms\r\n", millis() - entryTime);
+                if (pin_debug != PIN_UNDEFINED)
+                    systemPrint(debugMessagePrefix);
+                systemPrintf("ntripServer write took %ldms\r\n", millis() - entryTime);
                 dumpBuffer(rtcmData, dataLength);
 
                 // # => ntripServer write took 3419ms
@@ -652,7 +652,7 @@ void ntripServerStop(int serverIndex, bool shutdown)
     if (ntripServer->networkClient)
     {
         // Break the NTRIP server connection if necessary
-        if (ntripServer->networkClientConnected())
+        if (ntripServer->networkClientConnected(true))
             ntripServer->networkClient->stop();
 
         // Free the NTRIP server resources
@@ -915,7 +915,7 @@ void ntripServerUpdate(int serverIndex)
     // NTRIP server authorized to send RTCM correction data to NTRIP caster
     case NTRIP_SERVER_CASTING:
         // Check for a broken connection
-        if (!ntripServer->networkClientConnected())
+        if (!ntripServer->networkClientConnected(true))
         {
             // Broken connection, retry the NTRIP connection
             systemPrintf("Connection to NTRIP Caster %d - %s was lost\r\n", serverIndex,

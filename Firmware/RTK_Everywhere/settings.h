@@ -388,6 +388,8 @@ enum PeriodDisplayValues
 #ifdef  COMPILE_NETWORK
 
 // NTRIP Server data
+const TickType_t serverSemaphore_shortWait_ms = 10 / portTICK_PERIOD_MS;
+const TickType_t serverSemaphore_longWait_ms = 100 / portTICK_PERIOD_MS;
 typedef struct
 {
     // Network connection used to push RTCM to NTRIP caster
@@ -419,6 +421,8 @@ typedef struct
     // Protect all methods that manipulate timer with a mutex - to avoid race conditions
     // Remember that data is pushed to the servers by
     // gnssReadTask -> processUart1Message -> processRTCM -> ntripServerProcessRTCM
+    // These methods also protect the ntripServerProcessRTCM task write from connected checks
+    // by ntripServerUpdate in the loop
     SemaphoreHandle_t serverSemaphore = NULL;
 
     unsigned long millisSinceTimer()
@@ -426,7 +430,7 @@ typedef struct
         unsigned long retVal = 0;
         if (serverSemaphore == NULL)
             serverSemaphore = xSemaphoreCreateMutex();
-        if (xSemaphoreTake(serverSemaphore, 10 / portTICK_PERIOD_MS) == pdPASS)
+        if (xSemaphoreTake(serverSemaphore, serverSemaphore_shortWait_ms) == pdPASS)
         {
             retVal = millis() - timer;
             xSemaphoreGive(serverSemaphore);
@@ -439,7 +443,7 @@ typedef struct
         unsigned long retVal = 0;
         if (serverSemaphore == NULL)
             serverSemaphore = xSemaphoreCreateMutex();
-        if (xSemaphoreTake(serverSemaphore, 10 / portTICK_PERIOD_MS) == pdPASS)
+        if (xSemaphoreTake(serverSemaphore, serverSemaphore_shortWait_ms) == pdPASS)
         {
             retVal = millis() - startTime;
             xSemaphoreGive(serverSemaphore);
@@ -451,7 +455,7 @@ typedef struct
     {
         if (serverSemaphore == NULL)
             serverSemaphore = xSemaphoreCreateMutex();
-        if (xSemaphoreTake(serverSemaphore, 10 / portTICK_PERIOD_MS) == pdPASS)
+        if (xSemaphoreTake(serverSemaphore, serverSemaphore_shortWait_ms) == pdPASS)
         {
             bytesSent = bytesSent + 1;
             rtcmBytesSent = rtcmBytesSent + 1;
@@ -464,7 +468,7 @@ typedef struct
     {
         if (serverSemaphore == NULL)
             serverSemaphore = xSemaphoreCreateMutex();
-        if (xSemaphoreTake(serverSemaphore, 10 / portTICK_PERIOD_MS) == pdPASS)
+        if (xSemaphoreTake(serverSemaphore, serverSemaphore_shortWait_ms) == pdPASS)
         {
             bytesSent = bytesSent + dataLength;
             rtcmBytesSent = rtcmBytesSent + dataLength;
@@ -478,7 +482,7 @@ typedef struct
         bool retVal = false;
         if (serverSemaphore == NULL)
             serverSemaphore = xSemaphoreCreateMutex();
-        if (xSemaphoreTake(serverSemaphore, 10 / portTICK_PERIOD_MS) == pdPASS)
+        if (xSemaphoreTake(serverSemaphore, serverSemaphore_shortWait_ms) == pdPASS)
         {
             if (((millis() - timer) > timerLimit) && (bytesSent > 0))
             {
@@ -496,7 +500,7 @@ typedef struct
         unsigned long retVal = 0;
         if (serverSemaphore == NULL)
             serverSemaphore = xSemaphoreCreateMutex();
-        if (xSemaphoreTake(serverSemaphore, 10 / portTICK_PERIOD_MS) == pdPASS)
+        if (xSemaphoreTake(serverSemaphore, serverSemaphore_shortWait_ms) == pdPASS)
         {
             retVal = timer - startTime;
             xSemaphoreGive(serverSemaphore);
@@ -508,7 +512,7 @@ typedef struct
     {
         if (serverSemaphore == NULL)
             serverSemaphore = xSemaphoreCreateMutex();
-        if (xSemaphoreTake(serverSemaphore, 10 / portTICK_PERIOD_MS) == pdPASS)
+        if (xSemaphoreTake(serverSemaphore, serverSemaphore_shortWait_ms) == pdPASS)
         {
             timer = millis();
             xSemaphoreGive(serverSemaphore);
@@ -520,7 +524,7 @@ typedef struct
         bool retVal = false;
         if (serverSemaphore == NULL)
             serverSemaphore = xSemaphoreCreateMutex();
-        if (xSemaphoreTake(serverSemaphore, 10 / portTICK_PERIOD_MS) == pdPASS)
+        if (xSemaphoreTake(serverSemaphore, serverSemaphore_shortWait_ms) == pdPASS)
         {
             if ((millis() - timer) >= connectionAttemptTimeout)
             {
@@ -531,17 +535,42 @@ typedef struct
         return retVal;
     }
 
-    bool networkClientConnected()
+    bool networkClientConnected(bool assumeConnected)
     {
-        bool retVal = false;
+        bool retVal = assumeConnected;
         if (serverSemaphore == NULL)
             serverSemaphore = xSemaphoreCreateMutex();
-        if (xSemaphoreTake(serverSemaphore, 100 / portTICK_PERIOD_MS) == pdPASS)
+        if (xSemaphoreTake(serverSemaphore, serverSemaphore_longWait_ms) == pdPASS)
         {
             retVal = (bool)networkClient->connected();
             xSemaphoreGive(serverSemaphore);
         }
         return retVal;        
+    }
+
+    size_t networkClientWrite(const uint8_t *buf, size_t size)
+    {
+        size_t retVal = 0;
+        if (serverSemaphore == NULL)
+            serverSemaphore = xSemaphoreCreateMutex();
+        if (xSemaphoreTake(serverSemaphore, serverSemaphore_longWait_ms) == pdPASS)
+        {
+            retVal = networkClient->write(buf, size);
+            xSemaphoreGive(serverSemaphore);
+        }
+        return retVal;        
+    }
+
+    void networkClientAbsorb()
+    {
+        if (serverSemaphore == NULL)
+            serverSemaphore = xSemaphoreCreateMutex();
+        if (xSemaphoreTake(serverSemaphore, serverSemaphore_shortWait_ms) == pdPASS)
+        {
+            while (networkClient->available())
+                networkClient->read(); // Absorb any unwanted incoming traffic
+            xSemaphoreGive(serverSemaphore);
+        }
     }
 } NTRIP_SERVER_DATA;
 
@@ -913,7 +942,7 @@ struct Settings
     // Network layer
     bool debugNetworkLayer = false;    // Enable debugging of the network layer
     bool printNetworkStatus = true;    // Print network status (delays, failovers, IP address)
-    uint32_t networkClientWriteTimeout_ms = 250; // networkClient _timeout in ms
+    uint32_t networkClientWriteTimeout_ms = 1000; // networkClient _timeout in ms (lib default is 3000)
 
     // NTP
     bool debugNtp = false;
