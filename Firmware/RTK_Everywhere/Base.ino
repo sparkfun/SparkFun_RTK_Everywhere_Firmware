@@ -1,6 +1,6 @@
 // Enough storage for two rounds of RTCM 1074,1084,1094,1124,1005
 // To prevent the "no increase in file size" and "due to lack of RTCM" glitch:
-// RTCM is stored in PSRAM by the Uart1 task and written by tripServerUpdate
+// RTCM is stored in PSRAM by the processUart1Message task and written by sendRTCMToConsumers
 const uint8_t rtcmConsumerBufferEntries = 16;
 const uint16_t rtcmConsumerBufferEntrySize = 1032; // RTCM can be up to 1024 + 6 bytes
 uint16_t rtcmConsumerBufferLengths[rtcmConsumerBufferEntries];
@@ -32,7 +32,7 @@ bool rtcmConsumerBufferAllocated()
 void storeRTCMForConsumers(uint8_t *rtcmData, uint16_t dataLength)
 {
     // Store each RTCM message in a PSRAM buffer
-    // The messages are written to the servers by ntripServerUpdate
+    // The messages are written to the servers by sendRTCMToConsumers
 
     if (!rtcmConsumerBufferAllocated())
         return;
@@ -61,6 +61,7 @@ void storeRTCMForConsumers(uint8_t *rtcmData, uint16_t dataLength)
     }
 }
 
+// Send the stored RTCM to consumers: ntripServer, LoRa and ESP-NOW
 void sendRTCMToConsumers()
 {
     if (!rtcmConsumerBufferAllocated())
@@ -85,7 +86,7 @@ void sendRTCMToConsumers()
 }
 
 // This function gets called when an RTCM packet passes parser check in processUart1Message() task
-// Pass data along to NTRIP Server, or ESP-NOW radio
+// Store data ready to be passed along to NTRIP Server, or ESP-NOW radio
 void processRTCM(uint8_t *rtcmData, uint16_t dataLength)
 {
     storeRTCMForConsumers(rtcmData, dataLength);
