@@ -1281,8 +1281,9 @@ void processUart1Message(SEMP_PARSE_STATE *parse, uint16_t type)
     }
     else
     {
-        systemPrintf("processUart1Message could not get ringBuffer semaphore - held by %s\r\n",
-                     ringBufferSemaphoreHolder);
+        if (settings.debugGnss && (!inMainMenu))
+            systemPrintf("processUart1Message could not get ringBuffer semaphore - held by %s\r\n",
+                         ringBufferSemaphoreHolder);
     }
 }
 
@@ -1373,6 +1374,21 @@ void handleGnssDataTask(void *e)
             systemPrintln("handleGnssDataTask running");
         }
 
+        //----------------------------------------------------------------------
+        // Send RTCM to consumers
+        //
+        // RTCM has its own storage in rtcmConsumerBuffer (Base.ino)
+        // It does not use the main ringBuffer
+        // But we do the writing here so all traffic generated in the same place
+        //----------------------------------------------------------------------
+
+        startMillis = millis();
+
+        sendRTCMToConsumers();
+
+        if ((millis() - startMillis) > settings.networkClientWriteTimeout_ms)
+            slowConsumer = "RTCM Consumers";
+
         usedSpace = 0;
 
         // Use a semaphore to prevent handleGnssDataTask from gatecrashing
@@ -1383,21 +1399,6 @@ void handleGnssDataTask(void *e)
         if (xSemaphoreTake(ringBufferSemaphore, ringBuffer_shortWait_ms) == pdPASS)
         {
             ringBufferSemaphoreHolder = "handleGnssDataTask";
-
-            //----------------------------------------------------------------------
-            // Send RTCM to consumers
-            //
-            // RTCM has its own storage in rtcmConsumerBuffer (Base.ino)
-            // It does not use the main ringBuffer
-            // But we do the writing here so all traffic generated in the same place
-            //----------------------------------------------------------------------
-
-            startMillis = millis();
-
-            sendRTCMToConsumers();
-
-            if ((millis() - startMillis) > settings.networkClientWriteTimeout_ms)
-                slowConsumer = "RTCM Consumers";
 
             //----------------------------------------------------------------------
             // Send data over Bluetooth
@@ -1831,8 +1832,9 @@ void handleGnssDataTask(void *e)
         }
         else
         {
-            systemPrintf("handleGnssDataTask could not get ringBuffer semaphore - held by %s\r\n",
-                         ringBufferSemaphoreHolder);
+            if (settings.debugGnss && (!inMainMenu))
+                systemPrintf("handleGnssDataTask could not get ringBuffer semaphore - held by %s\r\n",
+                             ringBufferSemaphoreHolder);
         }
 
         //----------------------------------------------------------------------
