@@ -1699,10 +1699,12 @@ void logUpdate()
                 }
                 else
                 {
-                    if (pin_debug != PIN_UNDEFINED)
-                        systemPrint(debugMessagePrefix);
                     if ((settings.enablePrintLogFileStatus) && (!inMainMenu))
+                    {
+                        if (pin_debug != PIN_UNDEFINED)
+                            systemPrint(debugMessagePrefix);
                         systemPrintf("No increase in file size: %llu -> %llu\r\n", lastLogSize, logFileSize);
+                    }
                     logIncreasing = false;
 
                     endSD(false, true); // alreadyHaveSemaphore, releaseSemaphore
