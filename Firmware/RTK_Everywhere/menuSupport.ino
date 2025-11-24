@@ -2,285 +2,27 @@
 menuSupport.ino
 ------------------------------------------------------------------------------*/
 
-// Open the given file and load a given line to the given pointer
-bool getFileLineLFS(const char *fileName, int lineToFind, char *lineData, int lineDataLength)
+// Change the active profile number, without unit reset
+void changeProfileNumber(byte newProfileNumber)
 {
-    if (!LittleFS.exists(fileName))
+    gnssConfigureDefaults(); // Set all bits in the request bitfield to cause the GNSS receiver to go through a full
+                             // (re)configuration
+    recordSystemSettings(); // Before switching, we need to record the current settings to LittleFS and SD
+
+    recordProfileNumber(newProfileNumber);
+    profileNumber = newProfileNumber;
+    setSettingsFileName(); // Load the settings file name into memory (enabled profile name delete)
+
+    // We need to load these settings from file so that we can record a profile name change correctly
+    bool responseLFS = loadSystemSettingsFromFileLFS(settingsFileName);
+    bool responseSD = loadSystemSettingsFromFileSD(settingsFileName);
+
+    // If this is an empty/new profile slot, overwrite our current settings with defaults
+    if (responseLFS == false && responseSD == false)
     {
-        log_d("File %s not found", fileName);
-        return (false);
+        systemPrintln("No profile found: Applying default settings");
+        settingsToDefaults();
     }
-
-    File file = LittleFS.open(fileName, FILE_READ);
-    if (!file)
-    {
-        log_d("File %s not found", fileName);
-        return (false);
-    }
-
-    // We cannot be sure how the user will terminate their files so we avoid the use of readStringUntil
-    int lineNumber = 0;
-    int x = 0;
-    bool lineFound = false;
-
-    while (file.available())
-    {
-        byte incoming = file.read();
-        if (incoming == '\r' || incoming == '\n')
-        {
-            lineData[x] = '\0'; // Terminate
-
-            if (lineNumber == lineToFind)
-            {
-                lineFound = true; // We found the line. We're done!
-                break;
-            }
-
-            // Sometimes a line has multiple terminators
-            while (file.peek() == '\r' || file.peek() == '\n')
-                file.read(); // Dump it to prevent next line read corruption
-
-            lineNumber++; // Advance
-            x = 0;        // Reset
-        }
-        else
-        {
-            if (x == (lineDataLength - 1))
-            {
-                lineData[x] = '\0'; // Terminate
-                break;              // Max size hit
-            }
-
-            // Record this character to the lineData array
-            lineData[x++] = incoming;
-        }
-    }
-    file.close();
-    return (lineFound);
-}
-
-// Given a fileName, return the given line number
-// Returns true if line was loaded
-// Returns false if a file was not opened/loaded
-bool getFileLineSD(const char *fileName, int lineToFind, char *lineData, int lineDataLength)
-{
-    bool gotSemaphore = false;
-    bool lineFound = false;
-    bool wasSdCardOnline;
-
-    // Try to gain access the SD card
-    wasSdCardOnline = online.microSD;
-    if (online.microSD != true)
-        beginSD();
-
-    while (online.microSD == true)
-    {
-        // Attempt to access file system. This avoids collisions with file writing from other functions like
-        // recordSystemSettingsToFile() and gnssSerialReadTask()
-        if (xSemaphoreTake(sdCardSemaphore, fatSemaphore_longWait_ms) == pdPASS)
-        {
-            markSemaphore(FUNCTION_GETLINE);
-
-            gotSemaphore = true;
-
-            SdFile file; // FAT32
-            if (file.open(fileName, O_READ) == false)
-            {
-                log_d("File %s not found", fileName);
-                break;
-            }
-
-            int lineNumber = 0;
-
-            while (file.available())
-            {
-                // Get the next line from the file
-                int n = file.fgets(lineData, lineDataLength);
-                if (n <= 0)
-                {
-                    systemPrintf("Failed to read line %d from settings file\r\n", lineNumber);
-                    break;
-                }
-                else
-                {
-                    if (lineNumber == lineToFind)
-                    {
-                        lineFound = true;
-                        break;
-                    }
-                }
-
-                if (strlen(lineData) > 0) // Ignore single \n or \r
-                    lineNumber++;
-            }
-
-            file.close();
-
-            break;
-        } // End Semaphore check
-        else
-        {
-            systemPrintf("sdCardSemaphore failed to yield, menuBase.ino line %d\r\n", __LINE__);
-        }
-        break;
-    } // End SD online
-
-    // Release access the SD card
-    if (online.microSD && (!wasSdCardOnline))
-        endSD(gotSemaphore, true);
-    else if (gotSemaphore)
-        xSemaphoreGive(sdCardSemaphore);
-
-    return (lineFound);
-}
-
-// Given a string, replace a single char with another char
-void replaceCharacter(char *myString, char toReplace, char replaceWith)
-{
-    for (int i = 0; i < strlen(myString); i++)
-    {
-        if (myString[i] == toReplace)
-            myString[i] = replaceWith;
-    }
-}
-
-// Remove a given filename from SD
-bool removeFileSD(const char *fileName)
-{
-    bool removed = false;
-
-    bool gotSemaphore = false;
-    bool wasSdCardOnline;
-
-    // Try to gain access the SD card
-    wasSdCardOnline = online.microSD;
-    if (online.microSD != true)
-        beginSD();
-
-    while (online.microSD == true)
-    {
-        // Attempt to access file system. This avoids collisions with file writing from other functions like
-        // recordSystemSettingsToFile() and gnssSerialReadTask()
-        if (xSemaphoreTake(sdCardSemaphore, fatSemaphore_longWait_ms) == pdPASS)
-        {
-            markSemaphore(FUNCTION_REMOVEFILE);
-
-            gotSemaphore = true;
-
-            if (sd->exists(fileName))
-            {
-                log_d("Removing from SD: %s", fileName);
-                sd->remove(fileName);
-                removed = true;
-            }
-
-            break;
-        } // End Semaphore check
-        else
-        {
-            systemPrintf("sdCardSemaphore failed to yield, menuBase.ino line %d\r\n", __LINE__);
-        }
-        break;
-    } // End SD online
-
-    // Release access the SD card
-    if (online.microSD && (!wasSdCardOnline))
-        endSD(gotSemaphore, true);
-    else if (gotSemaphore)
-        xSemaphoreGive(sdCardSemaphore);
-
-    return (removed);
-}
-
-// Remove a given filename from LFS
-bool removeFileLFS(const char *fileName)
-{
-    if (LittleFS.exists(fileName))
-    {
-        LittleFS.remove(fileName);
-        log_d("Removing LittleFS: %s", fileName);
-        return (true);
-    }
-
-    return (false);
-}
-
-// Remove a given filename from SD and LFS
-bool removeFile(const char *fileName)
-{
-    bool removed = true;
-
-    removed &= removeFileSD(fileName);
-    removed &= removeFileLFS(fileName);
-
-    return (removed);
-}
-
-// Given a filename and char array, append to file
-void recordLineToSD(const char *fileName, const char *lineData)
-{
-    bool gotSemaphore = false;
-    bool wasSdCardOnline;
-
-    // Try to gain access the SD card
-    wasSdCardOnline = online.microSD;
-    if (online.microSD != true)
-        beginSD();
-
-    while (online.microSD == true)
-    {
-        // Attempt to access file system. This avoids collisions with file writing from other functions like
-        // recordSystemSettingsToFile() and gnssSerialReadTask()
-        if (xSemaphoreTake(sdCardSemaphore, fatSemaphore_longWait_ms) == pdPASS)
-        {
-            markSemaphore(FUNCTION_RECORDLINE);
-
-            gotSemaphore = true;
-
-            SdFile file;
-            if (file.open(fileName, O_CREAT | O_APPEND | O_WRITE) == false)
-            {
-                systemPrintf("recordLineToSD: Failed to modify %s\n\r", fileName);
-                break;
-            }
-
-            file.println(lineData);
-            file.close();
-            break;
-        } // End Semaphore check
-        else
-        {
-            systemPrintf("sdCardSemaphore failed to yield, menuBase.ino line %d\r\n", __LINE__);
-        }
-        break;
-    } // End SD online
-
-    // Release access the SD card
-    if (online.microSD && (!wasSdCardOnline))
-        endSD(gotSemaphore, true);
-    else if (gotSemaphore)
-        xSemaphoreGive(sdCardSemaphore);
-}
-
-// Given a filename and char array, append to file
-void recordLineToLFS(const char *fileName, const char *lineData)
-{
-    File file = LittleFS.open(fileName, FILE_APPEND);
-    if (!file)
-    {
-        systemPrintf("File %s failed to create\r\n", fileName);
-        return;
-    }
-
-    file.println(lineData);
-    file.close();
-}
-
-// Print the NEO firmware version
-void printNEOInfo()
-{
-    if (present.lband_neo == true)
-        systemPrintf("NEO-D9S firmware: %s\r\n", neoFirmwareVersion);
 }
 
 // Check various setting arrays (message rates, etc) to see if they need to be reset to defaults
@@ -554,14 +296,311 @@ void checkGNSSArrayDefaults()
         recordSystemSettings();
 }
 
-// Returns string containing the MAC + product variant number
-const char *printDeviceId()
+// Erase all settings. Upon restart, unit will use defaults
+void factoryReset(bool alreadyHasSemaphore)
 {
-    static char deviceID[strlen("1234567890ABXX") + 1]; // 12 character MAC + 2 character variant + room for terminator
-    snprintf(deviceID, sizeof(deviceID), "%02X%02X%02X%02X%02X%02X%02X", btMACAddress[0], btMACAddress[1],
-             btMACAddress[2], btMACAddress[3], btMACAddress[4], btMACAddress[5], productVariant);
+    displaySystemReset(); // Display friendly message on OLED
 
-    return ((const char *)deviceID);
+    tasksStopGnssUart();
+
+    // Attempt to write to file system. This avoids collisions with file writing from other functions like
+    // recordSystemSettingsToFile() and gnssSerialReadTask() if (settings.enableSD && online.microSD)
+    // Don't check settings.enableSD - it could be corrupt
+    if (online.microSD)
+    {
+        if (alreadyHasSemaphore == true || xSemaphoreTake(sdCardSemaphore, fatSemaphore_longWait_ms) == pdPASS)
+        {
+            // Remove this specific settings file. Don't remove the other profiles.
+            sd->remove(settingsFileName);
+
+            sd->remove(stationCoordinateECEFFileName); // Remove station files
+            sd->remove(stationCoordinateGeodeticFileName);
+
+            xSemaphoreGive(sdCardSemaphore);
+
+            systemPrintln("Settings files deleted...");
+        } // End sdCardSemaphore
+        else
+        {
+            char semaphoreHolder[50];
+            getSemaphoreFunction(semaphoreHolder);
+
+            // An error occurs when a settings file is on the microSD card and it is not
+            // deleted, as such the settings on the microSD card will be loaded when the
+            // RTK reboots, resulting in failure to achieve the factory reset condition
+            systemPrintf("sdCardSemaphore failed to yield, held by %s, menuMain.ino line %d\r\n", semaphoreHolder,
+                         __LINE__);
+        }
+    }
+    else
+    {
+        systemPrintln("microSD not online. Unable to delete settings files...");
+    }
+
+    tiltSensorFactoryReset();
+
+    systemPrintln("Formatting internal file system...");
+    LittleFS.format();
+
+    if (online.gnss == true)
+    {
+        systemPrintln("Resetting the GNSS to factory defaults. This could take a few seconds...");
+        gnss->factoryReset();
+    }
+    else
+        systemPrintln("GNSS not online: Unable to factory reset.");
+
+    systemPrintln("Settings erased successfully. Rebooting. Goodbye!");
+    delay(2000);
+    ESP.restart();
+}
+
+// Open the given file and load a given line to the given pointer
+bool getFileLineLFS(const char *fileName, int lineToFind, char *lineData, int lineDataLength)
+{
+    if (!LittleFS.exists(fileName))
+    {
+        log_d("File %s not found", fileName);
+        return (false);
+    }
+
+    File file = LittleFS.open(fileName, FILE_READ);
+    if (!file)
+    {
+        log_d("File %s not found", fileName);
+        return (false);
+    }
+
+    // We cannot be sure how the user will terminate their files so we avoid the use of readStringUntil
+    int lineNumber = 0;
+    int x = 0;
+    bool lineFound = false;
+
+    while (file.available())
+    {
+        byte incoming = file.read();
+        if (incoming == '\r' || incoming == '\n')
+        {
+            lineData[x] = '\0'; // Terminate
+
+            if (lineNumber == lineToFind)
+            {
+                lineFound = true; // We found the line. We're done!
+                break;
+            }
+
+            // Sometimes a line has multiple terminators
+            while (file.peek() == '\r' || file.peek() == '\n')
+                file.read(); // Dump it to prevent next line read corruption
+
+            lineNumber++; // Advance
+            x = 0;        // Reset
+        }
+        else
+        {
+            if (x == (lineDataLength - 1))
+            {
+                lineData[x] = '\0'; // Terminate
+                break;              // Max size hit
+            }
+
+            // Record this character to the lineData array
+            lineData[x++] = incoming;
+        }
+    }
+    file.close();
+    return (lineFound);
+}
+
+// Given a fileName, return the given line number
+// Returns true if line was loaded
+// Returns false if a file was not opened/loaded
+bool getFileLineSD(const char *fileName, int lineToFind, char *lineData, int lineDataLength)
+{
+    bool gotSemaphore = false;
+    bool lineFound = false;
+    bool wasSdCardOnline;
+
+    // Try to gain access the SD card
+    wasSdCardOnline = online.microSD;
+    if (online.microSD != true)
+        beginSD();
+
+    while (online.microSD == true)
+    {
+        // Attempt to access file system. This avoids collisions with file writing from other functions like
+        // recordSystemSettingsToFile() and gnssSerialReadTask()
+        if (xSemaphoreTake(sdCardSemaphore, fatSemaphore_longWait_ms) == pdPASS)
+        {
+            markSemaphore(FUNCTION_GETLINE);
+
+            gotSemaphore = true;
+
+            SdFile file; // FAT32
+            if (file.open(fileName, O_READ) == false)
+            {
+                log_d("File %s not found", fileName);
+                break;
+            }
+
+            int lineNumber = 0;
+
+            while (file.available())
+            {
+                // Get the next line from the file
+                int n = file.fgets(lineData, lineDataLength);
+                if (n <= 0)
+                {
+                    systemPrintf("Failed to read line %d from settings file\r\n", lineNumber);
+                    break;
+                }
+                else
+                {
+                    if (lineNumber == lineToFind)
+                    {
+                        lineFound = true;
+                        break;
+                    }
+                }
+
+                if (strlen(lineData) > 0) // Ignore single \n or \r
+                    lineNumber++;
+            }
+
+            file.close();
+
+            break;
+        } // End Semaphore check
+        else
+        {
+            systemPrintf("sdCardSemaphore failed to yield, menuBase.ino line %d\r\n", __LINE__);
+        }
+        break;
+    } // End SD online
+
+    // Release access the SD card
+    if (online.microSD && (!wasSdCardOnline))
+        endSD(gotSemaphore, true);
+    else if (gotSemaphore)
+        xSemaphoreGive(sdCardSemaphore);
+
+    return (lineFound);
+}
+
+// Select the Bluetooth protocol
+BluetoothRadioType_e mmChangeBluetoothProtocol(BluetoothRadioType_e bluetoothUserChoice)
+{
+    // Change Bluetooth protocol
+    if (bluetoothUserChoice == BLUETOOTH_RADIO_SPP_AND_BLE)
+        bluetoothUserChoice = BLUETOOTH_RADIO_SPP;
+    else if (bluetoothUserChoice == BLUETOOTH_RADIO_SPP)
+        bluetoothUserChoice = BLUETOOTH_RADIO_BLE;
+    else if (bluetoothUserChoice == BLUETOOTH_RADIO_BLE)
+        bluetoothUserChoice = BLUETOOTH_RADIO_SPP_ACCESSORY_MODE;
+    else if (bluetoothUserChoice == BLUETOOTH_RADIO_SPP_ACCESSORY_MODE)
+        bluetoothUserChoice = BLUETOOTH_RADIO_OFF;
+    else if (bluetoothUserChoice == BLUETOOTH_RADIO_OFF)
+        bluetoothUserChoice = BLUETOOTH_RADIO_SPP_AND_BLE;
+    return bluetoothUserChoice;
+}
+
+// Display the Bluetooth radio menu item
+void mmDisplayBluetoothRadioMenu(char menuChar, BluetoothRadioType_e bluetoothUserChoice)
+{
+    systemPrintf("%c) Set Bluetooth Mode: ", menuChar);
+    if (bluetoothUserChoice == BLUETOOTH_RADIO_SPP_AND_BLE)
+        systemPrintln("Dual");
+    else if (bluetoothUserChoice == BLUETOOTH_RADIO_SPP)
+        systemPrintln("Classic");
+    else if (bluetoothUserChoice == BLUETOOTH_RADIO_BLE)
+        systemPrintln("BLE");
+    else if (bluetoothUserChoice == BLUETOOTH_RADIO_SPP_ACCESSORY_MODE)
+        systemPrintln("Classic - Accessory Mode");
+    else
+        systemPrintln("Off");
+}
+
+// Update Bluetooth radio if settings have changed
+void mmSetBluetoothProtocol(BluetoothRadioType_e bluetoothUserChoice, bool clearBtPairings)
+{
+    if ((bluetoothUserChoice != settings.bluetoothRadioType)
+        || (clearBtPairings != settings.clearBtPairings))
+    {
+        // To avoid connection failures, we may need to restart the ESP32
+
+        // If Bluetooth was on, and the user has selected OFF, then just stop
+        if ((settings.bluetoothRadioType != BLUETOOTH_RADIO_OFF)
+            && (bluetoothUserChoice == BLUETOOTH_RADIO_OFF))
+        {
+            bluetoothStop();
+            settings.bluetoothRadioType = bluetoothUserChoice;
+            settings.clearBtPairings = clearBtPairings;
+            return;
+        }
+        // If Bluetooth was off, and the user has selected on, and Bluetooth has not been started previously
+        // then just start
+        else if ((settings.bluetoothRadioType == BLUETOOTH_RADIO_OFF)
+                 && (bluetoothUserChoice != BLUETOOTH_RADIO_OFF)
+                 && (bluetoothRadioPreviousOnType == BLUETOOTH_RADIO_OFF))
+        {
+            settings.bluetoothRadioType = bluetoothUserChoice;
+            settings.clearBtPairings = clearBtPairings;
+            bluetoothStart();
+            return;
+        }
+        // If Bluetooth was off, and the user has selected on, and Bluetooth has been started previously
+        // then restart
+        else if ((settings.bluetoothRadioType == BLUETOOTH_RADIO_OFF)
+                 && (bluetoothUserChoice != BLUETOOTH_RADIO_OFF)
+                 && (bluetoothRadioPreviousOnType != BLUETOOTH_RADIO_OFF))
+        {
+            settings.bluetoothRadioType = bluetoothUserChoice;
+            settings.clearBtPairings = clearBtPairings;
+            recordSystemSettings();
+            systemPrintln("Rebooting to apply new Bluetooth choice. Goodbye!");
+            delay(1000);
+            ESP.restart();
+            return;
+        }
+        // If Bluetooth was in Accessory Mode, and still is, and clearBtPairings is true
+        // then (re)start Bluetooth skipping the online check
+        else if ((settings.bluetoothRadioType == BLUETOOTH_RADIO_SPP_ACCESSORY_MODE)
+                 && (bluetoothUserChoice == BLUETOOTH_RADIO_SPP_ACCESSORY_MODE)
+                 && clearBtPairings)
+        {
+            settings.clearBtPairings = clearBtPairings;
+            bluetoothStartSkipOnlineCheck();
+            return;
+        }
+        // If Bluetooth was in Accessory Mode, and still is, and clearBtPairings is false
+        // then do nothing
+        else if ((settings.bluetoothRadioType == BLUETOOTH_RADIO_SPP_ACCESSORY_MODE)
+                 && (bluetoothUserChoice == BLUETOOTH_RADIO_SPP_ACCESSORY_MODE)
+                 && (!clearBtPairings))
+        {
+            return;
+        }
+        // If Bluetooth was on, and the user has selected a different mode
+        // then restart
+        else if ((settings.bluetoothRadioType != BLUETOOTH_RADIO_OFF)
+                 && (bluetoothUserChoice != settings.bluetoothRadioType))
+        {
+            settings.bluetoothRadioType = bluetoothUserChoice;
+            settings.clearBtPairings = clearBtPairings;
+            recordSystemSettings();
+            systemPrintln("Rebooting to apply new Bluetooth choice. Goodbye!");
+            delay(1000);
+            ESP.restart();
+            return;
+        }
+        // <--- Insert any new special cases here, or higher up if needed --->
+
+        // Previous catch-all. Likely to cause connection failures...
+        bluetoothStop();
+        settings.bluetoothRadioType = bluetoothUserChoice;
+        settings.clearBtPairings = clearBtPairings;
+        bluetoothStart();
+    }
 }
 
 // Print the current long/lat/alt/HPA/SIV
@@ -613,6 +652,16 @@ void printCurrentConditionsNMEA()
                            (char *)"OFFLINE"); // textID, buffer, sizeOfBuffer, text
         systemPrintln(nmeaMessage);
     }
+}
+
+// Returns string containing the MAC + product variant number
+const char *printDeviceId()
+{
+    static char deviceID[strlen("1234567890ABXX") + 1]; // 12 character MAC + 2 character variant + room for terminator
+    snprintf(deviceID, sizeof(deviceID), "%02X%02X%02X%02X%02X%02X%02X", btMACAddress[0], btMACAddress[1],
+             btMACAddress[2], btMACAddress[3], btMACAddress[4], btMACAddress[5], productVariant);
+
+    return ((const char *)deviceID);
 }
 
 // When called, prints the contents of root folder list of files on SD card
@@ -702,204 +751,155 @@ void printFileList()
     }
 }
 
-// Change the active profile number, without unit reset
-void changeProfileNumber(byte newProfileNumber)
+// Print the NEO firmware version
+void printNEOInfo()
 {
-    gnssConfigureDefaults(); // Set all bits in the request bitfield to cause the GNSS receiver to go through a full
-                             // (re)configuration
-    recordSystemSettings(); // Before switching, we need to record the current settings to LittleFS and SD
-
-    recordProfileNumber(newProfileNumber);
-    profileNumber = newProfileNumber;
-    setSettingsFileName(); // Load the settings file name into memory (enabled profile name delete)
-
-    // We need to load these settings from file so that we can record a profile name change correctly
-    bool responseLFS = loadSystemSettingsFromFileLFS(settingsFileName);
-    bool responseSD = loadSystemSettingsFromFileSD(settingsFileName);
-
-    // If this is an empty/new profile slot, overwrite our current settings with defaults
-    if (responseLFS == false && responseSD == false)
-    {
-        systemPrintln("No profile found: Applying default settings");
-        settingsToDefaults();
-    }
+    if (present.lband_neo == true)
+        systemPrintf("NEO-D9S firmware: %s\r\n", neoFirmwareVersion);
 }
 
-// Erase all settings. Upon restart, unit will use defaults
-void factoryReset(bool alreadyHasSemaphore)
+// Given a filename and char array, append to file
+void recordLineToLFS(const char *fileName, const char *lineData)
 {
-    displaySystemReset(); // Display friendly message on OLED
-
-    tasksStopGnssUart();
-
-    // Attempt to write to file system. This avoids collisions with file writing from other functions like
-    // recordSystemSettingsToFile() and gnssSerialReadTask() if (settings.enableSD && online.microSD)
-    // Don't check settings.enableSD - it could be corrupt
-    if (online.microSD)
+    File file = LittleFS.open(fileName, FILE_APPEND);
+    if (!file)
     {
-        if (alreadyHasSemaphore == true || xSemaphoreTake(sdCardSemaphore, fatSemaphore_longWait_ms) == pdPASS)
+        systemPrintf("File %s failed to create\r\n", fileName);
+        return;
+    }
+
+    file.println(lineData);
+    file.close();
+}
+
+// Given a filename and char array, append to file
+void recordLineToSD(const char *fileName, const char *lineData)
+{
+    bool gotSemaphore = false;
+    bool wasSdCardOnline;
+
+    // Try to gain access the SD card
+    wasSdCardOnline = online.microSD;
+    if (online.microSD != true)
+        beginSD();
+
+    while (online.microSD == true)
+    {
+        // Attempt to access file system. This avoids collisions with file writing from other functions like
+        // recordSystemSettingsToFile() and gnssSerialReadTask()
+        if (xSemaphoreTake(sdCardSemaphore, fatSemaphore_longWait_ms) == pdPASS)
         {
-            // Remove this specific settings file. Don't remove the other profiles.
-            sd->remove(settingsFileName);
+            markSemaphore(FUNCTION_RECORDLINE);
 
-            sd->remove(stationCoordinateECEFFileName); // Remove station files
-            sd->remove(stationCoordinateGeodeticFileName);
+            gotSemaphore = true;
 
-            xSemaphoreGive(sdCardSemaphore);
+            SdFile file;
+            if (file.open(fileName, O_CREAT | O_APPEND | O_WRITE) == false)
+            {
+                systemPrintf("recordLineToSD: Failed to modify %s\n\r", fileName);
+                break;
+            }
 
-            systemPrintln("Settings files deleted...");
-        } // End sdCardSemaphore
+            file.println(lineData);
+            file.close();
+            break;
+        } // End Semaphore check
         else
         {
-            char semaphoreHolder[50];
-            getSemaphoreFunction(semaphoreHolder);
-
-            // An error occurs when a settings file is on the microSD card and it is not
-            // deleted, as such the settings on the microSD card will be loaded when the
-            // RTK reboots, resulting in failure to achieve the factory reset condition
-            systemPrintf("sdCardSemaphore failed to yield, held by %s, menuMain.ino line %d\r\n", semaphoreHolder,
-                         __LINE__);
+            systemPrintf("sdCardSemaphore failed to yield, menuBase.ino line %d\r\n", __LINE__);
         }
-    }
-    else
-    {
-        systemPrintln("microSD not online. Unable to delete settings files...");
-    }
+        break;
+    } // End SD online
 
-    tiltSensorFactoryReset();
-
-    systemPrintln("Formatting internal file system...");
-    LittleFS.format();
-
-    if (online.gnss == true)
-    {
-        systemPrintln("Resetting the GNSS to factory defaults. This could take a few seconds...");
-        gnss->factoryReset();
-    }
-    else
-        systemPrintln("GNSS not online: Unable to factory reset.");
-
-    systemPrintln("Settings erased successfully. Rebooting. Goodbye!");
-    delay(2000);
-    ESP.restart();
+    // Release access the SD card
+    if (online.microSD && (!wasSdCardOnline))
+        endSD(gotSemaphore, true);
+    else if (gotSemaphore)
+        xSemaphoreGive(sdCardSemaphore);
 }
 
-// Display the Bluetooth radio menu item
-void mmDisplayBluetoothRadioMenu(char menuChar, BluetoothRadioType_e bluetoothUserChoice)
+// Remove a given filename from SD and LFS
+bool removeFile(const char *fileName)
 {
-    systemPrintf("%c) Set Bluetooth Mode: ", menuChar);
-    if (bluetoothUserChoice == BLUETOOTH_RADIO_SPP_AND_BLE)
-        systemPrintln("Dual");
-    else if (bluetoothUserChoice == BLUETOOTH_RADIO_SPP)
-        systemPrintln("Classic");
-    else if (bluetoothUserChoice == BLUETOOTH_RADIO_BLE)
-        systemPrintln("BLE");
-    else if (bluetoothUserChoice == BLUETOOTH_RADIO_SPP_ACCESSORY_MODE)
-        systemPrintln("Classic - Accessory Mode");
-    else
-        systemPrintln("Off");
+    bool removed = true;
+
+    removed &= removeFileSD(fileName);
+    removed &= removeFileLFS(fileName);
+
+    return (removed);
 }
 
-// Select the Bluetooth protocol
-BluetoothRadioType_e mmChangeBluetoothProtocol(BluetoothRadioType_e bluetoothUserChoice)
+bool removeFileLFS(const char *fileName)
 {
-    // Change Bluetooth protocol
-    if (bluetoothUserChoice == BLUETOOTH_RADIO_SPP_AND_BLE)
-        bluetoothUserChoice = BLUETOOTH_RADIO_SPP;
-    else if (bluetoothUserChoice == BLUETOOTH_RADIO_SPP)
-        bluetoothUserChoice = BLUETOOTH_RADIO_BLE;
-    else if (bluetoothUserChoice == BLUETOOTH_RADIO_BLE)
-        bluetoothUserChoice = BLUETOOTH_RADIO_SPP_ACCESSORY_MODE;
-    else if (bluetoothUserChoice == BLUETOOTH_RADIO_SPP_ACCESSORY_MODE)
-        bluetoothUserChoice = BLUETOOTH_RADIO_OFF;
-    else if (bluetoothUserChoice == BLUETOOTH_RADIO_OFF)
-        bluetoothUserChoice = BLUETOOTH_RADIO_SPP_AND_BLE;
-    return bluetoothUserChoice;
-}
-
-// Update Bluetooth radio if settings have changed
-void mmSetBluetoothProtocol(BluetoothRadioType_e bluetoothUserChoice, bool clearBtPairings)
-{
-    if ((bluetoothUserChoice != settings.bluetoothRadioType)
-        || (clearBtPairings != settings.clearBtPairings))
+    if (LittleFS.exists(fileName))
     {
-        // To avoid connection failures, we may need to restart the ESP32
+        LittleFS.remove(fileName);
+        log_d("Removing LittleFS: %s", fileName);
+        return (true);
+    }
 
-        // If Bluetooth was on, and the user has selected OFF, then just stop
-        if ((settings.bluetoothRadioType != BLUETOOTH_RADIO_OFF)
-            && (bluetoothUserChoice == BLUETOOTH_RADIO_OFF))
-        {
-            bluetoothStop();
-            settings.bluetoothRadioType = bluetoothUserChoice;
-            settings.clearBtPairings = clearBtPairings;
-            return;
-        }
-        // If Bluetooth was off, and the user has selected on, and Bluetooth has not been started previously
-        // then just start
-        else if ((settings.bluetoothRadioType == BLUETOOTH_RADIO_OFF)
-                 && (bluetoothUserChoice != BLUETOOTH_RADIO_OFF)
-                 && (bluetoothRadioPreviousOnType == BLUETOOTH_RADIO_OFF))
-        {
-            settings.bluetoothRadioType = bluetoothUserChoice;
-            settings.clearBtPairings = clearBtPairings;
-            bluetoothStart();
-            return;
-        }
-        // If Bluetooth was off, and the user has selected on, and Bluetooth has been started previously
-        // then restart
-        else if ((settings.bluetoothRadioType == BLUETOOTH_RADIO_OFF)
-                 && (bluetoothUserChoice != BLUETOOTH_RADIO_OFF)
-                 && (bluetoothRadioPreviousOnType != BLUETOOTH_RADIO_OFF))
-        {
-            settings.bluetoothRadioType = bluetoothUserChoice;
-            settings.clearBtPairings = clearBtPairings;
-            recordSystemSettings();
-            systemPrintln("Rebooting to apply new Bluetooth choice. Goodbye!");
-            delay(1000);
-            ESP.restart();
-            return;
-        }
-        // If Bluetooth was in Accessory Mode, and still is, and clearBtPairings is true
-        // then (re)start Bluetooth skipping the online check
-        else if ((settings.bluetoothRadioType == BLUETOOTH_RADIO_SPP_ACCESSORY_MODE)
-                 && (bluetoothUserChoice == BLUETOOTH_RADIO_SPP_ACCESSORY_MODE)
-                 && clearBtPairings)
-        {
-            settings.clearBtPairings = clearBtPairings;
-            bluetoothStartSkipOnlineCheck();
-            return;
-        }
-        // If Bluetooth was in Accessory Mode, and still is, and clearBtPairings is false
-        // then do nothing
-        else if ((settings.bluetoothRadioType == BLUETOOTH_RADIO_SPP_ACCESSORY_MODE)
-                 && (bluetoothUserChoice == BLUETOOTH_RADIO_SPP_ACCESSORY_MODE)
-                 && (!clearBtPairings))
-        {
-            return;
-        }
-        // If Bluetooth was on, and the user has selected a different mode
-        // then restart
-        else if ((settings.bluetoothRadioType != BLUETOOTH_RADIO_OFF)
-                 && (bluetoothUserChoice != settings.bluetoothRadioType))
-        {
-            settings.bluetoothRadioType = bluetoothUserChoice;
-            settings.clearBtPairings = clearBtPairings;
-            recordSystemSettings();
-            systemPrintln("Rebooting to apply new Bluetooth choice. Goodbye!");
-            delay(1000);
-            ESP.restart();
-            return;
-        }
-        // <--- Insert any new special cases here, or higher up if needed --->
+    return (false);
+}
 
-        // Previous catch-all. Likely to cause connection failures...
-        bluetoothStop();
-        settings.bluetoothRadioType = bluetoothUserChoice;
-        settings.clearBtPairings = clearBtPairings;
-        bluetoothStart();
+// Remove a given filename from SD
+bool removeFileSD(const char *fileName)
+{
+    bool removed = false;
+
+    bool gotSemaphore = false;
+    bool wasSdCardOnline;
+
+    // Try to gain access the SD card
+    wasSdCardOnline = online.microSD;
+    if (online.microSD != true)
+        beginSD();
+
+    while (online.microSD == true)
+    {
+        // Attempt to access file system. This avoids collisions with file writing from other functions like
+        // recordSystemSettingsToFile() and gnssSerialReadTask()
+        if (xSemaphoreTake(sdCardSemaphore, fatSemaphore_longWait_ms) == pdPASS)
+        {
+            markSemaphore(FUNCTION_REMOVEFILE);
+
+            gotSemaphore = true;
+
+            if (sd->exists(fileName))
+            {
+                log_d("Removing from SD: %s", fileName);
+                sd->remove(fileName);
+                removed = true;
+            }
+
+            break;
+        } // End Semaphore check
+        else
+        {
+            systemPrintf("sdCardSemaphore failed to yield, menuBase.ino line %d\r\n", __LINE__);
+        }
+        break;
+    } // End SD online
+
+    // Release access the SD card
+    if (online.microSD && (!wasSdCardOnline))
+        endSD(gotSemaphore, true);
+    else if (gotSemaphore)
+        xSemaphoreGive(sdCardSemaphore);
+
+    return (removed);
+}
+
+// Given a string, replace a single char with another char
+void replaceCharacter(char *myString, char toReplace, char replaceWith)
+{
+    for (int i = 0; i < strlen(myString); i++)
+    {
+        if (myString[i] == toReplace)
+            myString[i] = replaceWith;
     }
 }
 
+// Remove a given filename from LFS
 // Check to see if we've received serial over USB
 // Report status if ~ received, otherwise present config menu
 void terminalUpdate()
