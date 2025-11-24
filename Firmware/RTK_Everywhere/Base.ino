@@ -1,5 +1,5 @@
 // Enough storage for two rounds of RTCM 1074,1084,1094,1124,1005
-// To prevent the "no increase in file size" and "due to lack of RTCM" glitch:
+// To help prevent the "no increase in file size" and "due to lack of RTCM" glitch:
 // RTCM is stored in PSRAM by the processUart1Message task and written by sendRTCMToConsumers
 const uint8_t rtcmConsumerBufferEntries = 16;
 const uint16_t rtcmConsumerBufferEntrySize = 1032; // RTCM can be up to 1024 + 6 bytes
@@ -38,13 +38,9 @@ void storeRTCMForConsumers(uint8_t *rtcmData, uint16_t dataLength)
         return;
 
     // Check if a buffer is available
-    uint8_t buffersInUse;
-    if (rtcmConsumerBufferHead == rtcmConsumerBufferTail) // All buffers are empty
-        buffersInUse = 0;
-    else if (rtcmConsumerBufferHead > rtcmConsumerBufferTail)
-        buffersInUse = rtcmConsumerBufferHead - rtcmConsumerBufferTail;
-    else // rtcmConsumerBufferHead < rtcmConsumerBufferTail
-        buffersInUse = (rtcmConsumerBufferEntries + rtcmConsumerBufferHead) - rtcmConsumerBufferTail;
+    uint8_t buffersInUse = rtcmConsumerBufferHead - rtcmConsumerBufferTail;
+    if (buffersInUse >= rtcmConsumerBufferEntries) // Wrap if Tail is > Head
+        buffersInUse += rtcmConsumerBufferEntries;
     if (buffersInUse < (rtcmConsumerBufferEntries - 1))
     {
         uint8_t *dest = rtcmConsumerBufferPtr;
