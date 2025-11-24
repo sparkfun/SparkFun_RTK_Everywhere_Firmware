@@ -495,5 +495,14 @@ class GNSS_UM980 : GNSS
     void update();
 };
 
+// Forward routine declarations
+bool um980NewSettingValue(RTK_Settings_Types type,
+                          const char * suffix,
+                          int qualifier,
+                          double d);
+bool um980SettingsToFile(File *settingsFile,
+                         RTK_Settings_Types type,
+                         int settingsIndex);
+
 #endif // COMPILE_UM980
 #endif // __GNSS_UM980_H__
