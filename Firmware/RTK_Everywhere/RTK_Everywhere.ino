@@ -127,6 +127,26 @@ RTK_Everywhere.ino
 #define COMPILE_UDP_SERVER      // Comment out to remove UDP server functionality
 #endif                      // COMPILE_WIFI || COMPILE_ETHERNET || COMPILE_CELLULAR
 
+#define COMPILE_SERIAL_MENUS    // Comment out to remove base menu functionality
+
+#ifdef  COMPILE_SERIAL_MENUS
+#define COMPILE_MENU_BASE           // Comment out to remove base menu functionality
+#define COMPILE_MENU_CORRECTIONS    // Comment out to remove correction priorities menu functionality
+#define COMPILE_MENU_ETHERNET       // Comment out to remove Ethernet menu functionality
+#define COMPILE_MENU_FIRMWARE       // Comment out to remove firmware menu functionality
+#define COMPILE_MENU_GNSS           // Comment out to remove GNSS menu functionality
+#define COMPILE_MENU_INSTRUMENTS    // Comment out to remove instruments menu functionality
+#define COMPILE_MENU_LOGGING        // Comment out to remove logging menus functionality
+#define COMPILE_MENU_MESSAGES       // Comment out to remove messages menu functionality
+#define COMPILE_MENU_PORTS          // Comment out to remove ports menu functionality
+#define COMPILE_MENU_POINTPERFECT   // Comment out to remove PointPerfect menu functionality
+#define COMPILE_MENU_RADIO          // Comment out to remove radio menu functionality
+#define COMPILE_MENU_SYSTEM         // Comment out to remove system menu functionality
+#define COMPILE_MENU_TCP_UDP        // Comment out to remove TCP/UDP menu functionality
+#define COMPILE_MENU_USER_PROFILES  // Comment out to remove user profile menu functionality
+#define COMPILE_MENU_WIFI           // Comment out to remove WiFi menu functionality
+#endif  // COMPILE_SERIAL_MENUS
+
 // Always define ENABLE_DEVELOPER to enable its use in conditional statements
 #ifndef ENABLE_DEVELOPER
 #define ENABLE_DEVELOPER                                                                                               \

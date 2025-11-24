@@ -261,6 +261,8 @@ void correctionPriorityIncrease(CORRECTION_ID_T oldPriority)
 // Correction API
 //----------------------------------------
 
+#ifdef  COMPILE_MENU_CORRECTIONS
+
 //----------------------------------------
 // Set the priority of all correction sources
 // Note: this sets the priority of all possible sources, not just the ones available / in use
@@ -318,6 +320,8 @@ void menuCorrectionsPriorities()
 
     clearBuffer(); // Empty buffer of any newline chars
 }
+
+#endif  // COMPILE_MENU_CORRECTIONS
 
 //----------------------------------------
 // Display the correction priority table

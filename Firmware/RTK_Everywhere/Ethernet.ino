@@ -13,6 +13,9 @@ arduino_event_id_t ethernetLastEvent = ARDUINO_EVENT_ETH_STOP; // Save the last 
 //----------------------------------------
 // Get the Ethernet parameters
 //----------------------------------------
+
+#ifdef  COMPILE_MENU_ETHERNET
+
 void menuEthernet()
 {
     if (present.ethernet_ws5500 == false)
@@ -132,6 +135,8 @@ void menuEthernet()
         ethernetRestart();
     }
 }
+
+#endif  // COMPILE_MENU_ETHERNET
 
 //=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 // Ethernet routines
