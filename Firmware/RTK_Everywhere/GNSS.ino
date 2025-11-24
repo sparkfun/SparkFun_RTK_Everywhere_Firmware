@@ -1,4 +1,4 @@
-/*------------------------------------------------------------------------------
+/*=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 GNSS.ino
 
   GNSS layer implementation
@@ -31,7 +31,7 @@ calculation
   * reset() - Reset the receiver (through software or hardware)
   * factoryReset() - Reset the receiver to factory settings
   There are many more but these form the core of any configuration interface.
-  ------------------------------------------------------------------------------*/
+=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=*/
 
 // We may receive a command or the user may change a setting that needs to modify the configuration of the GNSS receiver
 // Because this can take time, we group all the changes together and re-configure the receiver once the user has exited

@@ -1,3 +1,7 @@
+/*=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
+Ethernet.ino
+=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=*/
+
 #ifdef COMPILE_ETHERNET
 
 //----------------------------------------
@@ -188,9 +192,9 @@ void ethernetEvent(arduino_event_id_t event, arduino_event_info_t info)
     case ARDUINO_EVENT_ETH_DISCONNECTED:
         if (settings.enablePrintEthernetDiag && (!inMainMenu))
             systemPrintln("ETH Disconnected");
-        
+
         ethernetRestartRequested = true; // Perform ETH.end() to disconnect TCP resources
-        
+
         break;
 
     case ARDUINO_EVENT_ETH_STOP:

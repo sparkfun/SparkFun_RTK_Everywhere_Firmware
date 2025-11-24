@@ -1,4 +1,4 @@
-/*------------------------------------------------------------------------------
+/*=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 GNSS_UM980.ino
 
   Implementation of the GNSS_UM980 class
@@ -11,7 +11,7 @@ GNSS_UM980.ino
   The ESP32 reads in binary and NMEA from the UM980 and passes that data over Bluetooth.
   If tilt compensation is activated, the ESP32 intercepts the NMEA from the UM980 and
   injects the new tilt-compensated data, previously read from the IM19.
-------------------------------------------------------------------------------*/
+=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=*/
 
 #ifdef COMPILE_UM980
 

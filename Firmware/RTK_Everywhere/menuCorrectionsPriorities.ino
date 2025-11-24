@@ -1,47 +1,47 @@
-//=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
-// menuCorrectionsPriorities.ino
-//
-// Manage the correction sources for the GNSS.  The menu is used to
-// set the priority order of the possible correction sources.
-//
-// As new sources become active (receive correction data), a new
-// correction source is enabled when the new source priority is higher
-// than the current source.  See correctionLastSeen and CorrectionSetSourceId.
-//
-// As the time since last received exceeds settings.correctionsSourcesLifetime_s
-// seconds the correction source transitions from active to inactive.
-// If this source was supplying corrections to the GNSS, correctionIsSourceActive
-// searches for the highest priority active correction source.
-//
-// The correction stack looks like:
-//
-//  Network
-//
-//  Ethernet ---->|           NetworkClient   Corrections
-//                |
-//  WiFi -------->|                  |--> MQTT --->|
-//                +--> IP --> TCP -->+             +--> UART --> GNSS
-//  PPP (LARA) -->|                  |--> NTRIP -->|               ^
-//                                                 |               |
-//  Bluetooth ------------------------------------>|               |
-//                                                 |               |
-//  ESPNOW --------------------------------------->|               |
-//                                                 |               |
-//  LBAND ---------------------------------------->|               |
-//                                                 |               |
-//  LORA ----------------------------------------->|               |
-//                                                 |               |
-//  USB ------------------------------------------>|               |
-//                                                                 |
-//  Serial (Radio Ext) --------------------------------------------'
-//
-// The corrections interface is using:
-//
-//      * available
-//      * read
-//      * write
-//
-//=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
+/*=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
+menuCorrectionsPriorities.ino
+
+  Manage the correction sources for the GNSS.  The menu is used to
+  set the priority order of the possible correction sources.
+
+  As new sources become active (receive correction data), a new
+  correction source is enabled when the new source priority is higher
+  than the current source.  See correctionLastSeen and CorrectionSetSourceId.
+
+  As the time since last received exceeds settings.correctionsSourcesLifetime_s
+  seconds the correction source transitions from active to inactive.
+  If this source was supplying corrections to the GNSS, correctionIsSourceActive
+  searches for the highest priority active correction source.
+
+  The correction stack looks like:
+
+   Network
+
+   Ethernet ---->|           NetworkClient   Corrections
+                 |
+   WiFi -------->|                  |--> MQTT --->|
+                 +--> IP --> TCP -->+             +--> UART --> GNSS
+   PPP (LARA) -->|                  |--> NTRIP -->|               ^
+                                                  |               |
+   Bluetooth ------------------------------------>|               |
+                                                  |               |
+   ESPNOW --------------------------------------->|               |
+                                                  |               |
+   LBAND ---------------------------------------->|               |
+                                                  |               |
+   LORA ----------------------------------------->|               |
+                                                  |               |
+   USB ------------------------------------------>|               |
+                                                                  |
+   Serial (Radio Ext) --------------------------------------------'
+
+  The corrections interface is using:
+
+       * available
+       * read
+       * write
+
+=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=*/
 
 //----------------------------------------
 // Locals
