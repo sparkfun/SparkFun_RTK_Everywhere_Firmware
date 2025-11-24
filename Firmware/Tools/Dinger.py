@@ -3,7 +3,7 @@ import multiprocessing
 import serial
 from datetime import datetime
 
-def dinger(port, baud, find):
+def dinger(port, baud, find, printLines):
     ser = serial.Serial(port, baud)
     buffer = list(find)
     for i in range(len(find)):
@@ -15,11 +15,12 @@ def dinger(port, baud, find):
         s = ''
         for c in buffer:
             s += chr(ord(c))
-        #print(s)
         if s == find:
             print('\a') # Ding
             print("Ding! " + str(find) + " found at " + datetime.now().isoformat())
-            print(str(ser.readline()))
+            if (printLines > 0):
+                for i in range (printLines):
+                    print(str(ser.readline())[2:-1])
         
 if __name__ == "__main__":
 
@@ -35,9 +36,12 @@ if __name__ == "__main__":
     parser.add_argument('-find', type=str, default="# => ",
                         help='Ding on this')
 
+    parser.add_argument('-print', type=int, default=1,
+                        help='Print following lines')
+
     args = parser.parse_args()
 
-    proc = multiprocessing.Process(target = dinger, args = (args.port, args.baud, args.find))
+    proc = multiprocessing.Process(target = dinger, args = (args.port, args.baud, args.find, args.print))
     proc.start()
 
     try:
