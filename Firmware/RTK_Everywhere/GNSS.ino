@@ -45,6 +45,10 @@ const GNSS_SUPPORT_ROUTINES gnssSupportRoutines[] =
         GNSS_RECEIVER_LG290P,   // _receiver
         lg290pIsPresentOnFlex,  // _present
         lg290pNewClass,         // _newClass
+        lg290pCommandList,      // _commandList
+        lg290pCommandTypeJson,  // _commandTypeJson
+        lg290pCreateString,     // _createString
+        lg290pGetSettingValue,  // _getSettingValue
         lg290pNewSettingValue,  // _newSettingValue
         lg290pSettingsToFile,   // _settingToFile
     },
@@ -55,6 +59,10 @@ const GNSS_SUPPORT_ROUTINES gnssSupportRoutines[] =
         GNSS_RECEIVER_MOSAIC_X5,    // _receiver
         mosaicIsPresentOnFlex,      // _present
         mosaicNewClass,             // _newClass
+        mosaicCommandList,          // _commandList
+        mosaicCommandTypeJson,      // _commandTypeJson
+        mosaicCreateString,         // _createString
+        mosaicGetSettingValue,      // _getSettingValue
         mosaicNewSettingValue,      // _newSettingValue
         mosaicSettingsToFile,       // _settingToFile
     },
@@ -65,6 +73,10 @@ const GNSS_SUPPORT_ROUTINES gnssSupportRoutines[] =
         GNSS_RECEIVER_UNKNOWN,  // _receiver
         nullptr,                // _present
         nullptr,                // _newClass
+        um980CommandList,       // _commandList
+        um980CommandTypeJson,   // _commandTypeJson
+        um980CreateString,      // _createString
+        um980GetSettingValue,   // _getSettingValue
         um980NewSettingValue,   // _newSettingValue
         um980SettingsToFile,    // _settingToFile
     },
@@ -75,6 +87,10 @@ const GNSS_SUPPORT_ROUTINES gnssSupportRoutines[] =
         GNSS_RECEIVER_UNKNOWN,  // _receiver
         nullptr,                // _present
         nullptr,                // _newClass
+        zedCommandList,         // _commandList
+        zedCommandTypeJson,     // _commandTypeJson
+        zedCreateString,        // _createString
+        zedGetSettingValue,     // _getSettingValue
         zedNewSettingValue,     // _newSettingValue
         zedSettingsToFile,      // _settingToFile
     },
@@ -849,6 +865,80 @@ void gnssFirmwareRemoveUpdateFile(const char *filename)
 
         LittleFS.remove(filename);
     }
+}
+
+//----------------------------------------
+// List available settings, their type in CSV, and value
+//----------------------------------------
+bool gnssCommandList(RTK_Settings_Types type,
+                     int settingsIndex,
+                     bool inCommands,
+                     int qualifier,
+                     char * settingName,
+                     char * settingValue)
+{
+    for (int index = 0; index < GNSS_SUPPORT_ROUTINES_ENTRIES; index++)
+    {
+        if (gnssSupportRoutines[index]._commandList
+            && gnssSupportRoutines[index]._commandList(type,
+                                                       settingsIndex,
+                                                       inCommands,
+                                                       qualifier,
+                                                       settingName,
+                                                       settingValue))
+            return true;
+    }
+    return false;
+}
+
+//----------------------------------------
+// Add types to a JSON array
+//----------------------------------------
+void gnssCommandTypeJson(JsonArray &command_types)
+{
+    for (int index = 0; index < GNSS_SUPPORT_ROUTINES_ENTRIES; index++)
+    {
+        if (gnssSupportRoutines[index]._commandTypeJson)
+            gnssSupportRoutines[index]._commandTypeJson(command_types);
+    }
+}
+
+//----------------------------------------
+// Called by createSettingsString to build settings file string
+//----------------------------------------
+bool gnssCreateString(RTK_Settings_Types type,
+                      int settingsIndex,
+                      char * newSettings)
+{
+    for (int index = 0; index < GNSS_SUPPORT_ROUTINES_ENTRIES; index++)
+    {
+        if (gnssSupportRoutines[index]._createString
+            && gnssSupportRoutines[index]._createString(type, settingsIndex, newSettings))
+            return true;
+    }
+    return false;
+}
+
+//----------------------------------------
+// Return setting value as a string
+//----------------------------------------
+bool gnssGetSettingValue(RTK_Settings_Types type,
+                         const char * suffix,
+                         int settingsIndex,
+                         int qualifier,
+                         char * settingValueStr)
+{
+    for (int index = 0; index < GNSS_SUPPORT_ROUTINES_ENTRIES; index++)
+    {
+        if (gnssSupportRoutines[index]._getSettingValue
+            && gnssSupportRoutines[index]._getSettingValue(type,
+                                                           suffix,
+                                                           settingsIndex,
+                                                           qualifier,
+                                                           settingValueStr))
+            return true;
+    }
+    return false;
 }
 
 //----------------------------------------

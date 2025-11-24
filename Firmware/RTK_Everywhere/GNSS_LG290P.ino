@@ -2649,6 +2649,298 @@ bool lg290pMessageEnabled(char *nmeaSentence, int sentenceLength)
 }
 
 //----------------------------------------
+// List available settings, their type in CSV, and value
+//----------------------------------------
+bool lg290pCommandList(RTK_Settings_Types type,
+                       int settingsIndex,
+                       bool inCommands,
+                       int qualifier,
+                       char * settingName,
+                       char * settingValue)
+{
+    switch (type)
+    {
+        default:
+            return false;
+
+        case tLgMRNmea: {
+            // Record LG290P NMEA rates
+            for (int x = 0; x < rtkSettingsEntries[settingsIndex].qualifier; x++)
+            {
+                snprintf(settingName, sizeof(settingName), "%s%s", rtkSettingsEntries[settingsIndex].name,
+                         lgMessagesNMEA[x].msgTextName);
+
+                getSettingValue(inCommands, settingName, settingValue);
+                commandSendExecuteListResponse(settingName, "tLgMRNmea", settingValue);
+            }
+        }
+        break;
+        case tLgMRRvRT: {
+            // Record LG290P Rover RTCM rates
+            for (int x = 0; x < rtkSettingsEntries[settingsIndex].qualifier; x++)
+            {
+                snprintf(settingName, sizeof(settingName), "%s%s", rtkSettingsEntries[settingsIndex].name,
+                         lgMessagesRTCM[x].msgTextName);
+
+                getSettingValue(inCommands, settingName, settingValue);
+                commandSendExecuteListResponse(settingName, "tLgMRRvRT", settingValue);
+            }
+        }
+        break;
+        case tLgMRBaRT: {
+            // Record LG290P Base RTCM rates
+            for (int x = 0; x < rtkSettingsEntries[settingsIndex].qualifier; x++)
+            {
+                snprintf(settingName, sizeof(settingName), "%s%s", rtkSettingsEntries[settingsIndex].name,
+                         lgMessagesRTCM[x].msgTextName);
+
+                getSettingValue(inCommands, settingName, settingValue);
+                commandSendExecuteListResponse(settingName, "tLgMRBaRT", settingValue);
+            }
+        }
+        break;
+        case tLgMRPqtm: {
+            // Record LG290P PQTM rates
+            for (int x = 0; x < rtkSettingsEntries[settingsIndex].qualifier; x++)
+            {
+                snprintf(settingName, sizeof(settingName), "%s%s", rtkSettingsEntries[settingsIndex].name,
+                         lgMessagesPQTM[x].msgTextName);
+
+                getSettingValue(inCommands, settingName, settingValue);
+                commandSendExecuteListResponse(settingName, "tLgMRPqtm", settingValue);
+            }
+        }
+        break;
+        case tLgConst: {
+            // Record LG290P Constellations
+            for (int x = 0; x < rtkSettingsEntries[settingsIndex].qualifier; x++)
+            {
+                snprintf(settingName, sizeof(settingName), "%s%s", rtkSettingsEntries[settingsIndex].name, lg290pConstellationNames[x]);
+
+                getSettingValue(inCommands, settingName, settingValue);
+                commandSendExecuteListResponse(settingName, "tLgConst", settingValue);
+            }
+        }
+        break;
+    }
+    return true;
+}
+
+//----------------------------------------
+// Add types to a JSON array
+//----------------------------------------
+void lg290pCommandTypeJson(JsonArray &command_types)
+{
+    JsonObject command_types_tLgConst = command_types.add<JsonObject>();
+    command_types_tLgConst["name"] = "tLgConst";
+    command_types_tLgConst["description"] = "LG290P GNSS constellations";
+    command_types_tLgConst["instruction"] = "Enable / disable each GNSS constellation";
+    command_types_tLgConst["prefix"] = "constellation_";
+    JsonArray command_types_tLgConst_keys = command_types_tLgConst["keys"].to<JsonArray>();
+    for (int x = 0; x < MAX_LG290P_CONSTELLATIONS; x++)
+        command_types_tLgConst_keys.add(lg290pConstellationNames[x]);
+    JsonArray command_types_tLgConst_values = command_types_tLgConst["values"].to<JsonArray>();
+    command_types_tLgConst_values.add("0");
+    command_types_tLgConst_values.add("1");
+
+    JsonObject command_types_tLgMRNmea = command_types.add<JsonObject>();
+    command_types_tLgMRNmea["name"] = "tLgMRNmea";
+    command_types_tLgMRNmea["description"] = "LG290P NMEA message rates";
+    command_types_tLgMRNmea["instruction"] = "Enable / disable each NMEA message";
+    command_types_tLgMRNmea["prefix"] = "messageRateNMEA_";
+    JsonArray command_types_tLgMRNmea_keys = command_types_tLgMRNmea["keys"].to<JsonArray>();
+    for (int y = 0; y < MAX_LG290P_NMEA_MSG; y++)
+        command_types_tLgMRNmea_keys.add(lgMessagesNMEA[y].msgTextName);
+    JsonArray command_types_tLgMRNmea_values = command_types_tLgMRNmea["values"].to<JsonArray>();
+    command_types_tLgMRNmea_values.add("0");
+    command_types_tLgMRNmea_values.add("1");
+
+    JsonObject command_types_tLgMRBaRT = command_types.add<JsonObject>();
+    command_types_tLgMRBaRT["name"] = "tLgMRBaRT";
+    command_types_tLgMRBaRT["description"] = "LG290P RTCM message rates - Base";
+    command_types_tLgMRBaRT["instruction"] = "Set the RTCM message interval in seconds for Base (0 = Off)";
+    command_types_tLgMRBaRT["prefix"] = "messageRateRTCMBase_";
+    JsonArray command_types_tLgMRBaRT_keys = command_types_tLgMRBaRT["keys"].to<JsonArray>();
+    for (int x = 0; x < MAX_LG290P_RTCM_MSG; x++)
+        command_types_tLgMRBaRT_keys.add(lgMessagesRTCM[x].msgTextName);
+    command_types_tLgMRBaRT["type"] = "int";
+    command_types_tLgMRBaRT["value min"] = 0;
+    command_types_tLgMRBaRT["value max"] = 1200;
+
+    JsonObject command_types_tLgMRRvRT = command_types.add<JsonObject>();
+    command_types_tLgMRRvRT["name"] = "tLgMRRvRT";
+    command_types_tLgMRRvRT["description"] = "LG290P RTCM message rates - Rover";
+    command_types_tLgMRRvRT["instruction"] = "Set the RTCM message interval in seconds for Rover (0 = Off)";
+    command_types_tLgMRRvRT["prefix"] = "messageRateRTCMRover_";
+    JsonArray command_types_tLgMRRvRT_keys = command_types_tLgMRRvRT["keys"].to<JsonArray>();
+    for (int x = 0; x < MAX_LG290P_RTCM_MSG; x++)
+        command_types_tLgMRRvRT_keys.add(lgMessagesRTCM[x].msgTextName);
+    command_types_tLgMRRvRT["type"] = "int";
+    command_types_tLgMRRvRT["value min"] = 0;
+    command_types_tLgMRRvRT["value max"] = 1200;
+
+    JsonObject command_types_tLgMRPqtm = command_types.add<JsonObject>();
+    command_types_tLgMRPqtm["name"] = "tLgMRPqtm";
+    command_types_tLgMRPqtm["description"] = "LG290P PQTM message rates";
+    command_types_tLgMRPqtm["instruction"] = "Enable / disable each PQTM message";
+    command_types_tLgMRPqtm["prefix"] = "messageRatePQTM_";
+    JsonArray command_types_tLgMRPqtm_keys = command_types_tLgMRPqtm["keys"].to<JsonArray>();
+    for (int x = 0; x < MAX_LG290P_PQTM_MSG; x++)
+        command_types_tLgMRPqtm_keys.add(lgMessagesPQTM[x].msgTextName);
+    JsonArray command_types_tLgMRPqtm_values = command_types_tLgMRPqtm["values"].to<JsonArray>();
+    command_types_tLgMRPqtm_values.add("0");
+    command_types_tLgMRPqtm_values.add("1");
+}
+
+//----------------------------------------
+// Called by gnssCreateString to build settings file string
+//----------------------------------------
+bool lg290pCreateString(RTK_Settings_Types type,
+                        int settingsIndex,
+                        char * newSettings)
+{
+    switch (type)
+    {
+        default:
+            return false;
+
+        case tLgMRNmea: {
+            // Record LG290P NMEA rates
+            for (int x = 0; x < rtkSettingsEntries[settingsIndex].qualifier; x++)
+            {
+                char tempString[50]; // lg290pMessageRatesNMEA_GPGGA=1 Not a float
+                snprintf(tempString, sizeof(tempString), "%s%s,%d,", rtkSettingsEntries[settingsIndex].name,
+                         lgMessagesNMEA[x].msgTextName, settings.lg290pMessageRatesNMEA[x]);
+                stringRecord(newSettings, tempString);
+            }
+        }
+        break;
+        case tLgMRRvRT: {
+            // Record LG290P Rover RTCM rates
+            for (int x = 0; x < rtkSettingsEntries[settingsIndex].qualifier; x++)
+            {
+                char tempString[50]; // lg290pMessageRatesRTCMRover_RTCM1005=2
+                snprintf(tempString, sizeof(tempString), "%s%s,%d,", rtkSettingsEntries[settingsIndex].name,
+                         lgMessagesRTCM[x].msgTextName, settings.lg290pMessageRatesRTCMRover[x]);
+                stringRecord(newSettings, tempString);
+            }
+        }
+        break;
+        case tLgMRBaRT: {
+            // Record LG290P Base RTCM rates
+            for (int x = 0; x < rtkSettingsEntries[settingsIndex].qualifier; x++)
+            {
+                char tempString[50]; // lg290pMessageRatesRTCMBase.RTCM1005=2
+                snprintf(tempString, sizeof(tempString), "%s%s,%d,", rtkSettingsEntries[settingsIndex].name,
+                         lgMessagesRTCM[x].msgTextName, settings.lg290pMessageRatesRTCMBase[x]);
+                stringRecord(newSettings, tempString);
+            }
+        }
+        break;
+        case tLgMRPqtm: {
+            // Record LG290P PQTM rates
+            for (int x = 0; x < rtkSettingsEntries[settingsIndex].qualifier; x++)
+            {
+                char tempString[50]; // lg290pMessageRatesPQTM_EPE=1 Not a float
+                snprintf(tempString, sizeof(tempString), "%s%s,%d,", rtkSettingsEntries[settingsIndex].name,
+                         lgMessagesPQTM[x].msgTextName, settings.lg290pMessageRatesPQTM[x]);
+                stringRecord(newSettings, tempString);
+            }
+        }
+        break;
+        case tLgConst: {
+            // Record LG290P Constellations
+            // lg290pConstellations are uint8_t, but here we have to convert to bool (true / false) so the web
+            // page check boxes are populated correctly. (We can't make it bool, otherwise the 254 initializer
+            // will probably fail...)
+            for (int x = 0; x < rtkSettingsEntries[settingsIndex].qualifier; x++)
+            {
+                char tempString[50]; // lg290pConstellations.GLONASS=true
+                snprintf(tempString, sizeof(tempString), "%s%s,%s,", rtkSettingsEntries[settingsIndex].name,
+                         lg290pConstellationNames[x], ((settings.lg290pConstellations[x] == 0) ? "false" : "true"));
+                stringRecord(newSettings, tempString);
+            }
+        }
+        break;
+    }
+    return true;
+}
+
+//----------------------------------------
+// Return setting value as a string
+//----------------------------------------
+bool lg290pGetSettingValue(RTK_Settings_Types type,
+                           const char * suffix,
+                           int settingsIndex,
+                           int qualifier,
+                           char * settingValueStr)
+{
+    switch (type)
+    {
+        case tLgMRNmea: {
+            for (int x = 0; x < qualifier; x++)
+            {
+                if ((suffix[0] == lgMessagesNMEA[x].msgTextName[0]) &&
+                    (strcmp(suffix, lgMessagesNMEA[x].msgTextName) == 0))
+                {
+                    writeToString(settingValueStr, settings.lg290pMessageRatesNMEA[x]);
+                    return true;
+                }
+            }
+        }
+        break;
+        case tLgMRRvRT: {
+            for (int x = 0; x < qualifier; x++)
+            {
+                if ((suffix[0] == lgMessagesRTCM[x].msgTextName[0]) &&
+                    (strcmp(suffix, lgMessagesRTCM[x].msgTextName) == 0))
+                {
+                    writeToString(settingValueStr, settings.lg290pMessageRatesRTCMRover[x]);
+                    return true;
+                }
+            }
+        }
+        break;
+        case tLgMRBaRT: {
+            for (int x = 0; x < qualifier; x++)
+            {
+                if ((suffix[0] == lgMessagesRTCM[x].msgTextName[0]) &&
+                    (strcmp(suffix, lgMessagesRTCM[x].msgTextName) == 0))
+                {
+                    writeToString(settingValueStr, settings.lg290pMessageRatesRTCMBase[x]);
+                    return true;
+                }
+            }
+        }
+        break;
+        case tLgMRPqtm: {
+            for (int x = 0; x < qualifier; x++)
+            {
+                if ((suffix[0] == lgMessagesPQTM[x].msgTextName[0]) &&
+                    (strcmp(suffix, lgMessagesPQTM[x].msgTextName) == 0))
+                {
+                    writeToString(settingValueStr, settings.lg290pMessageRatesPQTM[x]);
+                    return true;
+                }
+            }
+        }
+        break;
+        case tLgConst: {
+            for (int x = 0; x < qualifier; x++)
+            {
+                if ((suffix[0] == lg290pConstellationNames[x][0]) && (strcmp(suffix, lg290pConstellationNames[x]) == 0))
+                {
+                    writeToString(settingValueStr, settings.lg290pConstellations[x]);
+                    return true;
+                }
+            }
+        }
+        break;
+    }
+    return false;
+}
+
+//----------------------------------------
 // Return true if we detect this receiver type
 bool lg290pIsPresentOnFlex()
 {

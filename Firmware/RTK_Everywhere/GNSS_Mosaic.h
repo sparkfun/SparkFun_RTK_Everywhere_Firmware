@@ -1073,6 +1073,21 @@ class GNSS_MOSAIC : GNSS
 };
 
 // Forward routine declarations
+bool mosaicCommandList(RTK_Settings_Types type,
+                       int settingsIndex,
+                       bool inCommands,
+                       int qualifier,
+                       char * settingName,
+                       char * settingValue);
+void mosaicCommandTypeJson(JsonArray &command_types);
+bool mosaicCreateString(RTK_Settings_Types type,
+                        int settingsIndex,
+                        char * newSettings);
+bool mosaicpGetSettingValue(RTK_Settings_Types type,
+                            const char * suffix,
+                            int settingsIndex,
+                            int qualifier,
+                            char * settingValueStr);
 bool mosaicIsPresentOnFlex();
 void mosaicNewClass();
 bool mosaicNewSettingValue(RTK_Settings_Types type,

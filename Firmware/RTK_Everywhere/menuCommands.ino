@@ -738,6 +738,8 @@ SettingValueResponse updateSettingWithValue(bool inCommands, const char *setting
         qualifier = rtkSettingsEntries[i].qualifier;
         type = rtkSettingsEntries[i].type;
         var = rtkSettingsEntries[i].var;
+
+        // Handle the generic types
         switch (type)
         {
         default:
@@ -867,175 +869,6 @@ SettingValueResponse updateSettingWithValue(bool inCommands, const char *setting
             settingIsString = true;
         }
         break;
-
-        case tCmnCnst: {
-#ifdef COMPILE_MOSAICX5
-            for (int x = 0; x < MAX_MOSAIC_CONSTELLATIONS; x++)
-            {
-                if ((suffix[0] == mosaicSignalConstellations[x].configName[0]) &&
-                    (strcmp(suffix, mosaicSignalConstellations[x].configName) == 0))
-                {
-                    settings.mosaicConstellations[x] = settingValue;
-                    knownSetting = true;
-                    break;
-                }
-            }
-#endif // COMPILE_MOSAICX5
-#ifdef COMPILE_ZED
-            for (int x = 0; x < MAX_UBX_CONSTELLATIONS; x++)
-            {
-                if ((suffix[0] == settings.ubxConstellations[x].textName[0]) &&
-                    (strcmp(suffix, settings.ubxConstellations[x].textName) == 0))
-                {
-                    settings.ubxConstellations[x].enabled = settingValue;
-                    knownSetting = true;
-                    break;
-                }
-            }
-#endif // COMPILE_ZED
-#ifdef COMPILE_UM980
-            for (int x = 0; x < MAX_UM980_CONSTELLATIONS; x++)
-            {
-                if ((suffix[0] == um980ConstellationCommands[x].textName[0]) &&
-                    (strcmp(suffix, um980ConstellationCommands[x].textName) == 0))
-                {
-                    settings.um980Constellations[x] = settingValue;
-                    knownSetting = true;
-                    break;
-                }
-            }
-#endif // COMPILE_UM980
-#ifdef COMPILE_LG290P
-            for (int x = 0; x < MAX_LG290P_CONSTELLATIONS; x++)
-            {
-                if ((suffix[0] == lg290pConstellationNames[x][0]) && (strcmp(suffix, lg290pConstellationNames[x]) == 0))
-                {
-                    settings.lg290pConstellations[x] = settingValue;
-                    knownSetting = true;
-                    break;
-                }
-            }
-#endif // COMPILE_LG290P
-        }
-        break;
-
-        case tCmnRtNm: {
-#ifdef COMPILE_UM980
-            for (int x = 0; x < MAX_UM980_NMEA_MSG; x++)
-            {
-                if ((suffix[0] == umMessagesNMEA[x].msgTextName[0]) &&
-                    (strcmp(suffix, umMessagesNMEA[x].msgTextName) == 0))
-                {
-                    settings.um980MessageRatesNMEA[x] = settingValue;
-                    knownSetting = true;
-                    break;
-                }
-            }
-#endif // COMPILE_UM980
-#ifdef COMPILE_LG290P
-            for (int x = 0; x < MAX_LG290P_NMEA_MSG; x++)
-            {
-                if ((suffix[0] == lgMessagesNMEA[x].msgTextName[0]) &&
-                    (strcmp(suffix, lgMessagesNMEA[x].msgTextName) == 0))
-                {
-                    settings.lg290pMessageRatesNMEA[x] = settingValue;
-                    knownSetting = true;
-                    break;
-                }
-            }
-#endif // COMPILE_LG290P
-        }
-        break;
-        case tCnRtRtB: {
-#ifdef COMPILE_UM980
-            for (int x = 0; x < MAX_UM980_RTCM_MSG; x++)
-            {
-                if ((suffix[0] == umMessagesRTCM[x].msgTextName[0]) &&
-                    (strcmp(suffix, umMessagesRTCM[x].msgTextName) == 0))
-                {
-                    settings.um980MessageRatesRTCMBase[x] = settingValue;
-                    knownSetting = true;
-                    break;
-                }
-            }
-#endif // COMPILE_UM980
-#ifdef COMPILE_LG290P
-            for (int x = 0; x < MAX_LG290P_RTCM_MSG; x++)
-            {
-                if ((suffix[0] == lgMessagesRTCM[x].msgTextName[0]) &&
-                    (strcmp(suffix, lgMessagesRTCM[x].msgTextName) == 0))
-                {
-                    settings.lg290pMessageRatesRTCMBase[x] = settingValue;
-                    knownSetting = true;
-                    break;
-                }
-            }
-#endif // COMPILE_LG290P
-        }
-        break;
-        case tCnRtRtR: {
-#ifdef COMPILE_UM980
-            for (int x = 0; x < MAX_UM980_RTCM_MSG; x++)
-            {
-                if ((suffix[0] == umMessagesRTCM[x].msgTextName[0]) &&
-                    (strcmp(suffix, umMessagesRTCM[x].msgTextName) == 0))
-                {
-                    settings.um980MessageRatesRTCMRover[x] = settingValue;
-                    knownSetting = true;
-                    break;
-                }
-            }
-#endif // COMPILE_UM980
-#ifdef COMPILE_LG290P
-            for (int x = 0; x < MAX_LG290P_RTCM_MSG; x++)
-            {
-                if ((suffix[0] == lgMessagesRTCM[x].msgTextName[0]) &&
-                    (strcmp(suffix, lgMessagesRTCM[x].msgTextName) == 0))
-                {
-                    settings.lg290pMessageRatesRTCMRover[x] = settingValue;
-                    knownSetting = true;
-                    break;
-                }
-            }
-#endif // COMPILE_LG290P
-        }
-        break;
-
-#ifdef COMPILE_ZED
-        case tUbxConst: {
-            // Covered by tCmnCnst
-        }
-        break;
-        case tUbxMsgRt: {
-            for (int x = 0; x < qualifier; x++)
-            {
-                if ((suffix[0] == ubxMessages[x].msgTextName[0]) && (strcmp(suffix, ubxMessages[x].msgTextName) == 0))
-                {
-                    settings.ubxMessageRates[x] = (uint8_t)settingValue;
-                    knownSetting = true;
-                    break;
-                }
-            }
-        }
-        break;
-        case tUbMsgRtb: {
-            GNSS_ZED *zed = (GNSS_ZED *)gnss;
-            int firstRTCMRecord = zed->getMessageNumberByName("RTCM_1005");
-
-            for (int x = 0; x < qualifier; x++)
-            {
-                if ((suffix[0] == ubxMessages[firstRTCMRecord + x].msgTextName[0]) &&
-                    (strcmp(suffix, ubxMessages[firstRTCMRecord + x].msgTextName) == 0))
-                {
-                    settings.ubxMessageRatesBase[x] = (uint8_t)settingValue;
-                    knownSetting = true;
-                    break;
-                }
-            }
-        }
-        break;
-#endif // COMPILE_ZED
-
         case tEspNowPr: {
             int suffixNum;
             if (sscanf(suffix, "%d", &suffixNum) == 1)
@@ -1142,25 +975,6 @@ SettingValueResponse updateSettingWithValue(bool inCommands, const char *setting
         }
         break;
 
-#ifdef COMPILE_UM980
-        case tUmMRNmea: {
-            // Covered by tCmnRtNm
-        }
-        break;
-        case tUmMRRvRT: {
-            // Covered by tCnRtRtR
-        }
-        break;
-        case tUmMRBaRT: {
-            // Covered by tCnRtRtB
-        }
-        break;
-        case tUmConst: {
-            // Covered by tCmnCnst
-        }
-        break;
-#endif // COMPILE_UM980
-
         case tCorrSPri: {
             for (int x = 0; x < qualifier; x++)
             {
@@ -1185,23 +999,6 @@ SettingValueResponse updateSettingWithValue(bool inCommands, const char *setting
         break;
 
 #ifdef COMPILE_MOSAICX5
-        case tMosaicConst: {
-            // Covered by tCmnCnst
-        }
-        break;
-        case tMosaicMSNmea: {
-            for (int x = 0; x < qualifier; x++)
-            {
-                if ((suffix[0] == mosaicMessagesNMEA[x].msgTextName[0]) &&
-                    (strcmp(suffix, mosaicMessagesNMEA[x].msgTextName) == 0))
-                {
-                    settings.mosaicMessageStreamNMEA[x] = settingValue;
-                    knownSetting = true;
-                    break;
-                }
-            }
-        }
-        break;
         case tMosaicSINmea: {
             int stream;
             if (sscanf(suffix, "%d", &stream) == 1)
@@ -1229,91 +1026,7 @@ SettingValueResponse updateSettingWithValue(bool inCommands, const char *setting
             }
         }
         break;
-        case tMosaicMIRvRT: {
-            for (int x = 0; x < qualifier; x++)
-            {
-                if ((suffix[0] == mosaicRTCMv3MsgIntervalGroups[x].name[0]) &&
-                    (strcmp(suffix, mosaicRTCMv3MsgIntervalGroups[x].name) == 0))
-                {
-                    settings.mosaicMessageIntervalsRTCMv3Rover[x] = settingValue;
-                    knownSetting = true;
-                    break;
-                }
-            }
-        }
-        break;
-        case tMosaicMIBaRT: {
-            for (int x = 0; x < qualifier; x++)
-            {
-                if ((suffix[0] == mosaicRTCMv3MsgIntervalGroups[x].name[0]) &&
-                    (strcmp(suffix, mosaicRTCMv3MsgIntervalGroups[x].name) == 0))
-                {
-                    settings.mosaicMessageIntervalsRTCMv3Base[x] = settingValue;
-                    knownSetting = true;
-                    break;
-                }
-            }
-        }
-        break;
-        case tMosaicMERvRT: {
-            for (int x = 0; x < qualifier; x++)
-            {
-                if ((suffix[0] == mosaicMessagesRTCMv3[x].name[0]) &&
-                    (strcmp(suffix, mosaicMessagesRTCMv3[x].name) == 0))
-                {
-                    settings.mosaicMessageEnabledRTCMv3Rover[x] = settingValue;
-                    knownSetting = true;
-                    break;
-                }
-            }
-        }
-        break;
-        case tMosaicMEBaRT: {
-            for (int x = 0; x < qualifier; x++)
-            {
-                if ((suffix[0] == mosaicMessagesRTCMv3[x].name[0]) &&
-                    (strcmp(suffix, mosaicMessagesRTCMv3[x].name) == 0))
-                {
-                    settings.mosaicMessageEnabledRTCMv3Base[x] = settingValue;
-                    knownSetting = true;
-                    break;
-                }
-            }
-        }
-        break;
 #endif // COMPILE_MOSAICX5
-
-#ifdef COMPILE_LG290P
-        case tLgMRNmea: {
-            // Covered by tCmnRtNm
-        }
-        break;
-        case tLgMRRvRT: {
-            // Covered by tCnRtRtR
-        }
-        break;
-        case tLgMRBaRT: {
-            // Covered by tCnRtRtB
-        }
-        break;
-        case tLgMRPqtm: {
-            for (int x = 0; x < qualifier; x++)
-            {
-                if ((suffix[0] == lgMessagesPQTM[x].msgTextName[0]) &&
-                    (strcmp(suffix, lgMessagesPQTM[x].msgTextName) == 0))
-                {
-                    settings.lg290pMessageRatesPQTM[x] = settingValue;
-                    knownSetting = true;
-                    break;
-                }
-            }
-        }
-        break;
-        case tLgConst: {
-            // Covered by tCmnCnst
-        }
-        break;
-#endif // COMPILE_LG290P
 
         case tGnssReceiver: {
             gnssReceiverType_e *ptr = (gnssReceiverType_e *)var;
@@ -1321,6 +1034,13 @@ SettingValueResponse updateSettingWithValue(bool inCommands, const char *setting
             knownSetting = true;
         }
         break;
+        }
+
+        // Handle the GNSS specific types
+        if (knownSetting == false)
+        {
+            if (gnssNewSettingValue(type, settingName, qualifier, settingValue))
+                knownSetting = true;
         }
 
         // Done when the setting is found
@@ -1834,48 +1554,6 @@ void createSettingsString(char *newSettings)
                 break; // Nothing to do here. Let each GNSS add its settings
             case tCnRtRtR:
                 break; // Nothing to do here. Let each GNSS add its settings
-
-#ifdef COMPILE_ZED
-            case tUbxConst: {
-                // Record constellation settings
-                for (int x = 0; x < rtkSettingsEntries[i].qualifier; x++)
-                {
-                    char tempString[50];
-                    snprintf(tempString, sizeof(tempString), "%s%s,%s,", rtkSettingsEntries[i].name,
-                             settings.ubxConstellations[x].textName,
-                             settings.ubxConstellations[x].enabled ? "true" : "false");
-                    stringRecord(newSettings, tempString);
-                }
-            }
-            break;
-            case tUbxMsgRt: {
-                // Record message settings
-                for (int x = 0; x < rtkSettingsEntries[i].qualifier; x++)
-                {
-                    char tempString[50];
-                    snprintf(tempString, sizeof(tempString), "%s%s,%d,", rtkSettingsEntries[i].name,
-                             ubxMessages[x].msgTextName, settings.ubxMessageRates[x]);
-                    stringRecord(newSettings, tempString);
-                }
-            }
-            break;
-            case tUbMsgRtb: {
-                // Record message settings
-
-                GNSS_ZED *zed = (GNSS_ZED *)gnss;
-                int firstRTCMRecord = zed->getMessageNumberByName("RTCM_1005");
-
-                for (int x = 0; x < rtkSettingsEntries[i].qualifier; x++)
-                {
-                    char tempString[50];
-                    snprintf(tempString, sizeof(tempString), "%s%s,%d,", rtkSettingsEntries[i].name,
-                             ubxMessages[firstRTCMRecord + x].msgTextName, settings.ubxMessageRatesBase[x]);
-                    stringRecord(newSettings, tempString);
-                }
-            }
-            break;
-#endif // COMPILE_ZED
-
             case tEspNowPr: {
                 // Record ESP-NOW peer MAC addresses
                 for (int x = 0; x < rtkSettingsEntries[i].qualifier; x++)
@@ -1964,58 +1642,6 @@ void createSettingsString(char *newSettings)
                 }
             }
             break;
-
-#ifdef COMPILE_UM980
-            case tUmMRNmea: {
-                // Record UM980 NMEA rates
-                for (int x = 0; x < rtkSettingsEntries[i].qualifier; x++)
-                {
-                    char tempString[50]; // um980MessageRatesNMEA_GPDTM=0.05
-                    snprintf(tempString, sizeof(tempString), "%s%s,%0.2f,", rtkSettingsEntries[i].name,
-                             umMessagesNMEA[x].msgTextName, settings.um980MessageRatesNMEA[x]);
-                    stringRecord(newSettings, tempString);
-                }
-            }
-            break;
-            case tUmMRRvRT: {
-                // Record UM980 Rover RTCM rates
-                for (int x = 0; x < rtkSettingsEntries[i].qualifier; x++)
-                {
-                    char tempString[50]; // um980MessageRatesRTCMRover_RTCM1001=0.2
-                    snprintf(tempString, sizeof(tempString), "%s%s,%0.2f,", rtkSettingsEntries[i].name,
-                             umMessagesRTCM[x].msgTextName, settings.um980MessageRatesRTCMRover[x]);
-                    stringRecord(newSettings, tempString);
-                }
-            }
-            break;
-            case tUmMRBaRT: {
-                // Record UM980 Base RTCM rates
-                for (int x = 0; x < rtkSettingsEntries[i].qualifier; x++)
-                {
-                    char tempString[50]; // um980MessageRatesRTCMBase.RTCM1001=0.2
-                    snprintf(tempString, sizeof(tempString), "%s%s,%0.2f,", rtkSettingsEntries[i].name,
-                             umMessagesRTCM[x].msgTextName, settings.um980MessageRatesRTCMBase[x]);
-                    stringRecord(newSettings, tempString);
-                }
-            }
-            break;
-            case tUmConst: {
-                // Record UM980 Constellations
-                // um980Constellations are uint8_t, but here we have to convert to bool (true / false) so the web
-                // page check boxes are populated correctly. (We can't make it bool, otherwise the 254 initializer
-                // will probably fail...)
-                for (int x = 0; x < rtkSettingsEntries[i].qualifier; x++)
-                {
-                    char tempString[50]; // um980Constellations.GLONASS=true
-                    snprintf(tempString, sizeof(tempString), "%s%s,%s,", rtkSettingsEntries[i].name,
-                             um980ConstellationCommands[x].textName,
-                             ((settings.um980Constellations[x] == 0) ? "false" : "true"));
-                    stringRecord(newSettings, tempString);
-                }
-            }
-            break;
-#endif // COMPILE_UM980
-
             case tCorrSPri: {
                 // Record corrections priorities
                 for (int x = 0; x < rtkSettingsEntries[i].qualifier; x++)
@@ -2037,151 +1663,6 @@ void createSettingsString(char *newSettings)
                 }
             }
             break;
-
-#ifdef COMPILE_MOSAICX5
-            case tMosaicConst: {
-                // Record Mosaic Constellations
-                for (int x = 0; x < rtkSettingsEntries[i].qualifier; x++)
-                {
-                    char tempString[50];
-                    snprintf(tempString, sizeof(tempString), "%s%s,%s,", rtkSettingsEntries[i].name,
-                             mosaicSignalConstellations[x].configName,
-                             ((settings.mosaicConstellations[x] == 0) ? "false" : "true"));
-                    stringRecord(newSettings, tempString);
-                }
-            }
-            break;
-            case tMosaicMSNmea: {
-                // Record Mosaic NMEA message streams
-                for (int x = 0; x < rtkSettingsEntries[i].qualifier; x++)
-                {
-                    char tempString[50]; // messageRateNMEA_GGA,1,
-                    snprintf(tempString, sizeof(tempString), "%s%s,%0d,", rtkSettingsEntries[i].name,
-                             mosaicMessagesNMEA[x].msgTextName, settings.mosaicMessageStreamNMEA[x]);
-                    stringRecord(newSettings, tempString);
-                }
-            }
-            break;
-            case tMosaicSINmea: {
-                // Record Mosaic NMEA stream intervals
-                for (int x = 0; x < rtkSettingsEntries[i].qualifier; x++)
-                {
-                    char tempString[50]; // streamIntervalNMEA_1,10,
-                    snprintf(tempString, sizeof(tempString), "%s%d,%0d,", rtkSettingsEntries[i].name, x,
-                             settings.mosaicStreamIntervalsNMEA[x]);
-                    stringRecord(newSettings, tempString);
-                }
-            }
-            break;
-            case tMosaicMIRvRT: {
-                // Record Mosaic Rover RTCM intervals
-                for (int x = 0; x < rtkSettingsEntries[i].qualifier; x++)
-                {
-                    char tempString[50];
-                    snprintf(tempString, sizeof(tempString), "%s%s,%0.2f,", rtkSettingsEntries[i].name,
-                             mosaicRTCMv3MsgIntervalGroups[x].name, settings.mosaicMessageIntervalsRTCMv3Rover[x]);
-                    stringRecord(newSettings, tempString);
-                }
-            }
-            break;
-            case tMosaicMIBaRT: {
-                // Record Mosaic Base RTCM intervals
-                for (int x = 0; x < rtkSettingsEntries[i].qualifier; x++)
-                {
-                    char tempString[50];
-                    snprintf(tempString, sizeof(tempString), "%s%s,%0.2f,", rtkSettingsEntries[i].name,
-                             mosaicRTCMv3MsgIntervalGroups[x].name, settings.mosaicMessageIntervalsRTCMv3Base[x]);
-                    stringRecord(newSettings, tempString);
-                }
-            }
-            break;
-            case tMosaicMERvRT: {
-                // Record Mosaic Rover RTCM enabled
-                for (int x = 0; x < rtkSettingsEntries[i].qualifier; x++)
-                {
-                    char tempString[50];
-                    snprintf(tempString, sizeof(tempString), "%s%s,%s,", rtkSettingsEntries[i].name,
-                             mosaicMessagesRTCMv3[x].name,
-                             settings.mosaicMessageEnabledRTCMv3Rover[x] == 0 ? "false" : "true");
-                    stringRecord(newSettings, tempString);
-                }
-            }
-            break;
-            case tMosaicMEBaRT: {
-                // Record Mosaic Base RTCM enabled
-                for (int x = 0; x < rtkSettingsEntries[i].qualifier; x++)
-                {
-                    char tempString[50];
-                    snprintf(tempString, sizeof(tempString), "%s%s,%s,", rtkSettingsEntries[i].name,
-                             mosaicMessagesRTCMv3[x].name,
-                             settings.mosaicMessageEnabledRTCMv3Base[x] == 0 ? "false" : "true");
-                    stringRecord(newSettings, tempString);
-                }
-            }
-            break;
-#endif // COMPILE_MOSAICX5
-
-#ifdef COMPILE_LG290P
-            case tLgMRNmea: {
-                // Record LG290P NMEA rates
-                for (int x = 0; x < rtkSettingsEntries[i].qualifier; x++)
-                {
-                    char tempString[50]; // lg290pMessageRatesNMEA_GPGGA=1 Not a float
-                    snprintf(tempString, sizeof(tempString), "%s%s,%d,", rtkSettingsEntries[i].name,
-                             lgMessagesNMEA[x].msgTextName, settings.lg290pMessageRatesNMEA[x]);
-                    stringRecord(newSettings, tempString);
-                }
-            }
-            break;
-            case tLgMRRvRT: {
-                // Record LG290P Rover RTCM rates
-                for (int x = 0; x < rtkSettingsEntries[i].qualifier; x++)
-                {
-                    char tempString[50]; // lg290pMessageRatesRTCMRover_RTCM1005=2
-                    snprintf(tempString, sizeof(tempString), "%s%s,%d,", rtkSettingsEntries[i].name,
-                             lgMessagesRTCM[x].msgTextName, settings.lg290pMessageRatesRTCMRover[x]);
-                    stringRecord(newSettings, tempString);
-                }
-            }
-            break;
-            case tLgMRBaRT: {
-                // Record LG290P Base RTCM rates
-                for (int x = 0; x < rtkSettingsEntries[i].qualifier; x++)
-                {
-                    char tempString[50]; // lg290pMessageRatesRTCMBase.RTCM1005=2
-                    snprintf(tempString, sizeof(tempString), "%s%s,%d,", rtkSettingsEntries[i].name,
-                             lgMessagesRTCM[x].msgTextName, settings.lg290pMessageRatesRTCMBase[x]);
-                    stringRecord(newSettings, tempString);
-                }
-            }
-            break;
-            case tLgMRPqtm: {
-                // Record LG290P PQTM rates
-                for (int x = 0; x < rtkSettingsEntries[i].qualifier; x++)
-                {
-                    char tempString[50]; // lg290pMessageRatesPQTM_EPE=1 Not a float
-                    snprintf(tempString, sizeof(tempString), "%s%s,%d,", rtkSettingsEntries[i].name,
-                             lgMessagesPQTM[x].msgTextName, settings.lg290pMessageRatesPQTM[x]);
-                    stringRecord(newSettings, tempString);
-                }
-            }
-            break;
-            case tLgConst: {
-                // Record LG290P Constellations
-                // lg290pConstellations are uint8_t, but here we have to convert to bool (true / false) so the web
-                // page check boxes are populated correctly. (We can't make it bool, otherwise the 254 initializer
-                // will probably fail...)
-                for (int x = 0; x < rtkSettingsEntries[i].qualifier; x++)
-                {
-                    char tempString[50]; // lg290pConstellations.GLONASS=true
-                    snprintf(tempString, sizeof(tempString), "%s%s,%s,", rtkSettingsEntries[i].name,
-                             lg290pConstellationNames[x], ((settings.lg290pConstellations[x] == 0) ? "false" : "true"));
-                    stringRecord(newSettings, tempString);
-                }
-            }
-            break;
-#endif // COMPILE_LG290P
-
             case tGnssReceiver: {
                 gnssReceiverType_e *ptr = (gnssReceiverType_e *)rtkSettingsEntries[i].var;
                 stringRecord(newSettings, rtkSettingsEntries[i].name, (int)*ptr);
@@ -2583,514 +2064,262 @@ SettingValueResponse getSettingValue(bool inCommands, const char *settingName, c
         type = rtkSettingsEntries[i].type;
         var = rtkSettingsEntries[i].var;
 
-        switch (type)
+        // Handle GNSS specific types
+        if (gnssGetSettingValue(type, suffix, i, qualifier, settingValueStr))
+            knownSetting = true;
+        else
         {
-        default:
-            break;
-        case _bool: {
-            bool *ptr = (bool *)var;
-            writeToString(settingValueStr, *ptr);
-            knownSetting = true;
-        }
-        break;
-        case _int: {
-            int *ptr = (int *)var;
-            writeToString(settingValueStr, *ptr);
-            knownSetting = true;
-        }
-        break;
-        case _float: {
-            float *ptr = (float *)var;
-            writeToString(settingValueStr, (double)*ptr, qualifier);
-            knownSetting = true;
-        }
-        break;
-        case _double: {
-            double *ptr = (double *)var;
-            writeToString(settingValueStr, *ptr, qualifier);
-            knownSetting = true;
-        }
-        break;
-        case _uint8_t: {
-            uint8_t *ptr = (uint8_t *)var;
-            writeToString(settingValueStr, (int)*ptr);
-            knownSetting = true;
-        }
-        break;
-        case _uint16_t: {
-            uint16_t *ptr = (uint16_t *)var;
-            writeToString(settingValueStr, (int)*ptr);
-            knownSetting = true;
-        }
-        break;
-        case _uint32_t: {
-            uint32_t *ptr = (uint32_t *)var;
-            writeToString(settingValueStr, *ptr);
-            knownSetting = true;
-        }
-        break;
-        case _uint64_t: {
-            uint64_t *ptr = (uint64_t *)var;
-            writeToString(settingValueStr, *ptr);
-            knownSetting = true;
-        }
-        break;
-        case _int8_t: {
-            int8_t *ptr = (int8_t *)var;
-            writeToString(settingValueStr, (int)*ptr);
-            knownSetting = true;
-        }
-        break;
-        case _int16_t: {
-            int16_t *ptr = (int16_t *)var;
-            writeToString(settingValueStr, (int)*ptr);
-            knownSetting = true;
-        }
-        break;
-        case tMuxConn: {
-            muxConnectionType_e *ptr = (muxConnectionType_e *)var;
-            writeToString(settingValueStr, (int)*ptr);
-            knownSetting = true;
-        }
-        break;
-        case tSysState: {
-            SystemState *ptr = (SystemState *)var;
-            writeToString(settingValueStr, (int)*ptr);
-            knownSetting = true;
-        }
-        break;
-        case tPulseEdg: {
-            pulseEdgeType_e *ptr = (pulseEdgeType_e *)var;
-            writeToString(settingValueStr, (int)*ptr);
-            knownSetting = true;
-        }
-        break;
-        case tBtRadio: {
-            BluetoothRadioType_e *ptr = (BluetoothRadioType_e *)var;
-            writeToString(settingValueStr, (int)*ptr);
-            knownSetting = true;
-        }
-        break;
-        case tPerDisp: {
-            PeriodicDisplay_t *ptr = (PeriodicDisplay_t *)var;
-            writeToString(settingValueStr, *ptr);
-            knownSetting = true;
-        }
-        break;
-        case tCoordInp: {
-            CoordinateInputType *ptr = (CoordinateInputType *)var;
-            writeToString(settingValueStr, (int)*ptr);
-            knownSetting = true;
-        }
-        break;
-        case tCharArry: {
-            char *ptr = (char *)var;
-            writeToString(settingValueStr, ptr);
-            knownSetting = true;
-            settingIsString = true;
-        }
-        break;
-        case _IPString: {
-            IPAddress *ptr = (IPAddress *)var;
-            writeToString(settingValueStr, (char *)ptr->toString().c_str());
-            knownSetting = true;
-            settingIsString = true;
-        }
-        break;
-
-        case tCmnCnst:
-            break; // Nothing to do here. Let each GNSS add its settings
-        case tCmnRtNm:
-            break; // Nothing to do here. Let each GNSS add its settings
-        case tCnRtRtB:
-            break; // Nothing to do here. Let each GNSS add its settings
-        case tCnRtRtR:
-            break; // Nothing to do here. Let each GNSS add its settings
-
-#ifdef COMPILE_ZED
-        case tUbxConst: {
-            for (int x = 0; x < qualifier; x++)
+            // Handle generic types
+            switch (type)
             {
-                if ((suffix[0] == settings.ubxConstellations[x].textName[0]) &&
-                    (strcmp(suffix, settings.ubxConstellations[x].textName) == 0))
-                {
-                    writeToString(settingValueStr, settings.ubxConstellations[x].enabled);
-                    knownSetting = true;
-                    break;
-                }
-            }
-        }
-        break;
-        case tUbxMsgRt: {
-            for (int x = 0; x < qualifier; x++)
-            {
-                if ((suffix[0] == ubxMessages[x].msgTextName[0]) && (strcmp(suffix, ubxMessages[x].msgTextName) == 0))
-                {
-                    writeToString(settingValueStr, settings.ubxMessageRates[x]);
-                    knownSetting = true;
-                    break;
-                }
-            }
-        }
-        break;
-        case tUbMsgRtb: {
-            GNSS_ZED *zed = (GNSS_ZED *)gnss;
-            int firstRTCMRecord = zed->getMessageNumberByName("RTCM_1005");
-
-            for (int x = 0; x < qualifier; x++)
-            {
-                if ((suffix[0] == ubxMessages[firstRTCMRecord + x].msgTextName[0]) &&
-                    (strcmp(suffix, ubxMessages[firstRTCMRecord + x].msgTextName) == 0))
-                {
-                    writeToString(settingValueStr, settings.ubxMessageRatesBase[x]);
-                    knownSetting = true;
-                    break;
-                }
-            }
-        }
-        break;
-#endif // COMPILE_ZED
-
-        case tEspNowPr: {
-            int suffixNum;
-            if (sscanf(suffix, "%d", &suffixNum) == 1)
-            {
-                char peer[18];
-                snprintf(peer, sizeof(peer), "%X:%X:%X:%X:%X:%X", settings.espnowPeers[suffixNum][0],
-                         settings.espnowPeers[suffixNum][1], settings.espnowPeers[suffixNum][2],
-                         settings.espnowPeers[suffixNum][3], settings.espnowPeers[suffixNum][4],
-                         settings.espnowPeers[suffixNum][5]);
-                writeToString(settingValueStr, peer);
-                knownSetting = true;
-                settingIsString = true;
-            }
-        }
-        break;
-        case tWiFiNet: {
-            int network;
-
-            if (strstr(suffix, "SSID") != nullptr)
-            {
-                if (sscanf(suffix, "%dSSID", &network) == 1)
-                {
-                    writeToString(settingValueStr, settings.wifiNetworks[network].ssid);
-                    knownSetting = true;
-                    settingIsString = true;
-                }
-            }
-            else if (strstr(suffix, "Password") != nullptr)
-            {
-                if (sscanf(suffix, "%dPassword", &network) == 1)
-                {
-                    writeToString(settingValueStr, settings.wifiNetworks[network].password);
-                    knownSetting = true;
-                    settingIsString = true;
-                }
-            }
-        }
-        break;
-        case tNSCHost: {
-            int server;
-            if (sscanf(suffix, "%d", &server) == 1)
-            {
-                writeToString(settingValueStr, settings.ntripServer_CasterHost[server]);
-                knownSetting = true;
-                settingIsString = true;
-            }
-        }
-        break;
-        case tNSCPort: {
-            int server;
-            if (sscanf(suffix, "%d", &server) == 1)
-            {
-                writeToString(settingValueStr, settings.ntripServer_CasterPort[server]);
-                knownSetting = true;
-            }
-        }
-        break;
-        case tNSCUser: {
-            int server;
-            if (sscanf(suffix, "%d", &server) == 1)
-            {
-                writeToString(settingValueStr, settings.ntripServer_CasterUser[server]);
-                knownSetting = true;
-                settingIsString = true;
-            }
-        }
-        break;
-        case tNSCUsrPw: {
-            int server;
-            if (sscanf(suffix, "%d", &server) == 1)
-            {
-                writeToString(settingValueStr, settings.ntripServer_CasterUserPW[server]);
-                knownSetting = true;
-                settingIsString = true;
-            }
-        }
-        break;
-        case tNSMtPt: {
-            int server;
-            if (sscanf(suffix, "%d", &server) == 1)
-            {
-                writeToString(settingValueStr, settings.ntripServer_MountPoint[server]);
-                knownSetting = true;
-                settingIsString = true;
-            }
-        }
-        break;
-        case tNSMtPtPw: {
-            int server;
-            if (sscanf(suffix, "%d", &server) == 1)
-            {
-                writeToString(settingValueStr, settings.ntripServer_MountPointPW[server]);
-                knownSetting = true;
-                settingIsString = true;
-            }
-        }
-        break;
-
-#ifdef COMPILE_UM980
-        case tUmMRNmea: {
-            for (int x = 0; x < qualifier; x++)
-            {
-                if ((suffix[0] == umMessagesNMEA[x].msgTextName[0]) &&
-                    (strcmp(suffix, umMessagesNMEA[x].msgTextName) == 0))
-                {
-                    writeToString(settingValueStr, settings.um980MessageRatesNMEA[x]);
-                    knownSetting = true;
-                    break;
-                }
-            }
-        }
-        break;
-        case tUmMRRvRT: {
-            for (int x = 0; x < qualifier; x++)
-            {
-                if ((suffix[0] == umMessagesRTCM[x].msgTextName[0]) &&
-                    (strcmp(suffix, umMessagesRTCM[x].msgTextName) == 0))
-                {
-                    writeToString(settingValueStr, settings.um980MessageRatesRTCMRover[x]);
-                    knownSetting = true;
-                    break;
-                }
-            }
-        }
-        break;
-        case tUmMRBaRT: {
-            for (int x = 0; x < qualifier; x++)
-            {
-                if ((suffix[0] == umMessagesRTCM[x].msgTextName[0]) &&
-                    (strcmp(suffix, umMessagesRTCM[x].msgTextName) == 0))
-                {
-                    writeToString(settingValueStr, settings.um980MessageRatesRTCMBase[x]);
-                    knownSetting = true;
-                    break;
-                }
-            }
-        }
-        break;
-        case tUmConst: {
-            for (int x = 0; x < qualifier; x++)
-            {
-                if ((suffix[0] == um980ConstellationCommands[x].textName[0]) &&
-                    (strcmp(suffix, um980ConstellationCommands[x].textName) == 0))
-                {
-                    writeToString(settingValueStr, settings.um980Constellations[x]);
-                    knownSetting = true;
-                    break;
-                }
-            }
-        }
-        break;
-#endif // COMPILE_UM980
-
-        case tCorrSPri: {
-            for (int x = 0; x < qualifier; x++)
-            {
-                if ((suffix[0] == correctionGetName(x)[0]) && (strcmp(suffix, correctionGetName(x)) == 0))
-                {
-                    writeToString(settingValueStr, settings.correctionsSourcesPriority[x]);
-                    knownSetting = true;
-                    break;
-                }
-            }
-        }
-        break;
-        case tRegCorTp: {
-            int region;
-            if (sscanf(suffix, "%d", &region) == 1)
-            {
-                writeToString(settingValueStr, settings.regionalCorrectionTopics[region]);
-                knownSetting = true;
-                settingIsString = true;
-            }
-        }
-        break;
-
-#ifdef COMPILE_MOSAICX5
-        case tMosaicConst: {
-            for (int x = 0; x < qualifier; x++)
-            {
-                if ((suffix[0] == mosaicSignalConstellations[x].configName[0]) &&
-                    (strcmp(suffix, mosaicSignalConstellations[x].configName) == 0))
-                {
-                    writeToString(settingValueStr, settings.mosaicConstellations[x]);
-                    knownSetting = true;
-                    break;
-                }
-            }
-        }
-        break;
-        case tMosaicMSNmea: {
-            for (int x = 0; x < qualifier; x++)
-            {
-                if ((suffix[0] == mosaicMessagesNMEA[x].msgTextName[0]) &&
-                    (strcmp(suffix, mosaicMessagesNMEA[x].msgTextName) == 0))
-                {
-                    writeToString(settingValueStr, settings.mosaicMessageStreamNMEA[x]);
-                    knownSetting = true;
-                    break;
-                }
-            }
-        }
-        break;
-        case tMosaicSINmea: {
-            int stream;
-            if (sscanf(suffix, "%d", &stream) == 1)
-            {
-                writeToString(settingValueStr, settings.mosaicStreamIntervalsNMEA[stream]);
-                knownSetting = true;
+            default:
                 break;
+            case _bool: {
+                bool *ptr = (bool *)var;
+                writeToString(settingValueStr, *ptr);
+                knownSetting = true;
             }
-        }
-        break;
-        case tMosaicMIRvRT: {
-            for (int x = 0; x < qualifier; x++)
-            {
-                if ((suffix[0] == mosaicRTCMv3MsgIntervalGroups[x].name[0]) &&
-                    (strcmp(suffix, mosaicRTCMv3MsgIntervalGroups[x].name) == 0))
-                {
-                    writeToString(settingValueStr, settings.mosaicMessageIntervalsRTCMv3Rover[x]);
-                    knownSetting = true;
-                    break;
-                }
+            break;
+            case _int: {
+                int *ptr = (int *)var;
+                writeToString(settingValueStr, *ptr);
+                knownSetting = true;
             }
-        }
-        break;
-        case tMosaicMIBaRT: {
-            for (int x = 0; x < qualifier; x++)
-            {
-                if ((suffix[0] == mosaicRTCMv3MsgIntervalGroups[x].name[0]) &&
-                    (strcmp(suffix, mosaicRTCMv3MsgIntervalGroups[x].name) == 0))
-                {
-                    writeToString(settingValueStr, settings.mosaicMessageIntervalsRTCMv3Base[x]);
-                    knownSetting = true;
-                    break;
-                }
+            break;
+            case _float: {
+                float *ptr = (float *)var;
+                writeToString(settingValueStr, (double)*ptr, qualifier);
+                knownSetting = true;
             }
-        }
-        break;
-        case tMosaicMERvRT: {
-            for (int x = 0; x < qualifier; x++)
-            {
-                if ((suffix[0] == mosaicMessagesRTCMv3[x].name[0]) &&
-                    (strcmp(suffix, mosaicMessagesRTCMv3[x].name) == 0))
-                {
-                    writeToString(settingValueStr, settings.mosaicMessageEnabledRTCMv3Rover[x]);
-                    knownSetting = true;
-                    break;
-                }
+            break;
+            case _double: {
+                double *ptr = (double *)var;
+                writeToString(settingValueStr, *ptr, qualifier);
+                knownSetting = true;
             }
-        }
-        break;
-        case tMosaicMEBaRT: {
-            for (int x = 0; x < qualifier; x++)
-            {
-                if ((suffix[0] == mosaicMessagesRTCMv3[x].name[0]) &&
-                    (strcmp(suffix, mosaicMessagesRTCMv3[x].name) == 0))
-                {
-                    writeToString(settingValueStr, settings.mosaicMessageEnabledRTCMv3Base[x]);
-                    knownSetting = true;
-                    break;
-                }
+            break;
+            case _uint8_t: {
+                uint8_t *ptr = (uint8_t *)var;
+                writeToString(settingValueStr, (int)*ptr);
+                knownSetting = true;
             }
-        }
-        break;
-#endif // COMPILE_MOSAICX5
+            break;
+            case _uint16_t: {
+                uint16_t *ptr = (uint16_t *)var;
+                writeToString(settingValueStr, (int)*ptr);
+                knownSetting = true;
+            }
+            break;
+            case _uint32_t: {
+                uint32_t *ptr = (uint32_t *)var;
+                writeToString(settingValueStr, *ptr);
+                knownSetting = true;
+            }
+            break;
+            case _uint64_t: {
+                uint64_t *ptr = (uint64_t *)var;
+                writeToString(settingValueStr, *ptr);
+                knownSetting = true;
+            }
+            break;
+            case _int8_t: {
+                int8_t *ptr = (int8_t *)var;
+                writeToString(settingValueStr, (int)*ptr);
+                knownSetting = true;
+            }
+            break;
+            case _int16_t: {
+                int16_t *ptr = (int16_t *)var;
+                writeToString(settingValueStr, (int)*ptr);
+                knownSetting = true;
+            }
+            break;
+            case tMuxConn: {
+                muxConnectionType_e *ptr = (muxConnectionType_e *)var;
+                writeToString(settingValueStr, (int)*ptr);
+                knownSetting = true;
+            }
+            break;
+            case tSysState: {
+                SystemState *ptr = (SystemState *)var;
+                writeToString(settingValueStr, (int)*ptr);
+                knownSetting = true;
+            }
+            break;
+            case tPulseEdg: {
+                pulseEdgeType_e *ptr = (pulseEdgeType_e *)var;
+                writeToString(settingValueStr, (int)*ptr);
+                knownSetting = true;
+            }
+            break;
+            case tBtRadio: {
+                BluetoothRadioType_e *ptr = (BluetoothRadioType_e *)var;
+                writeToString(settingValueStr, (int)*ptr);
+                knownSetting = true;
+            }
+            break;
+            case tPerDisp: {
+                PeriodicDisplay_t *ptr = (PeriodicDisplay_t *)var;
+                writeToString(settingValueStr, *ptr);
+                knownSetting = true;
+            }
+            break;
+            case tCoordInp: {
+                CoordinateInputType *ptr = (CoordinateInputType *)var;
+                writeToString(settingValueStr, (int)*ptr);
+                knownSetting = true;
+            }
+            break;
+            case tCharArry: {
+                char *ptr = (char *)var;
+                writeToString(settingValueStr, ptr);
+                knownSetting = true;
+                settingIsString = true;
+            }
+            break;
+            case _IPString: {
+                IPAddress *ptr = (IPAddress *)var;
+                writeToString(settingValueStr, (char *)ptr->toString().c_str());
+                knownSetting = true;
+                settingIsString = true;
+            }
+            break;
 
-#ifdef COMPILE_LG290P
-        case tLgMRNmea: {
-            for (int x = 0; x < qualifier; x++)
-            {
-                if ((suffix[0] == lgMessagesNMEA[x].msgTextName[0]) &&
-                    (strcmp(suffix, lgMessagesNMEA[x].msgTextName) == 0))
-                {
-                    writeToString(settingValueStr, settings.lg290pMessageRatesNMEA[x]);
-                    knownSetting = true;
-                    break;
-                }
-            }
-        }
-        break;
-        case tLgMRRvRT: {
-            for (int x = 0; x < qualifier; x++)
-            {
-                if ((suffix[0] == lgMessagesRTCM[x].msgTextName[0]) &&
-                    (strcmp(suffix, lgMessagesRTCM[x].msgTextName) == 0))
-                {
-                    writeToString(settingValueStr, settings.lg290pMessageRatesRTCMRover[x]);
-                    knownSetting = true;
-                    break;
-                }
-            }
-        }
-        break;
-        case tLgMRBaRT: {
-            for (int x = 0; x < qualifier; x++)
-            {
-                if ((suffix[0] == lgMessagesRTCM[x].msgTextName[0]) &&
-                    (strcmp(suffix, lgMessagesRTCM[x].msgTextName) == 0))
-                {
-                    writeToString(settingValueStr, settings.lg290pMessageRatesRTCMBase[x]);
-                    knownSetting = true;
-                    break;
-                }
-            }
-        }
-        break;
-        case tLgMRPqtm: {
-            for (int x = 0; x < qualifier; x++)
-            {
-                if ((suffix[0] == lgMessagesPQTM[x].msgTextName[0]) &&
-                    (strcmp(suffix, lgMessagesPQTM[x].msgTextName) == 0))
-                {
-                    writeToString(settingValueStr, settings.lg290pMessageRatesPQTM[x]);
-                    knownSetting = true;
-                    break;
-                }
-            }
-        }
-        break;
-        case tLgConst: {
-            for (int x = 0; x < qualifier; x++)
-            {
-                if ((suffix[0] == lg290pConstellationNames[x][0]) && (strcmp(suffix, lg290pConstellationNames[x]) == 0))
-                {
-                    writeToString(settingValueStr, settings.lg290pConstellations[x]);
-                    knownSetting = true;
-                    break;
-                }
-            }
-        }
-        break;
-#endif // COMPILE_LG290P
+            case tCmnCnst:
+                break; // Nothing to do here. Let each GNSS add its settings
+            case tCmnRtNm:
+                break; // Nothing to do here. Let each GNSS add its settings
+            case tCnRtRtB:
+                break; // Nothing to do here. Let each GNSS add its settings
+            case tCnRtRtR:
+                break; // Nothing to do here. Let each GNSS add its settings
 
-        case tGnssReceiver: {
-            gnssReceiverType_e *ptr = (gnssReceiverType_e *)var;
-            writeToString(settingValueStr, (int)*ptr);
-            knownSetting = true;
-        }
-        break;
+            case tEspNowPr: {
+                int suffixNum;
+                if (sscanf(suffix, "%d", &suffixNum) == 1)
+                {
+                    char peer[18];
+                    snprintf(peer, sizeof(peer), "%X:%X:%X:%X:%X:%X", settings.espnowPeers[suffixNum][0],
+                             settings.espnowPeers[suffixNum][1], settings.espnowPeers[suffixNum][2],
+                             settings.espnowPeers[suffixNum][3], settings.espnowPeers[suffixNum][4],
+                             settings.espnowPeers[suffixNum][5]);
+                    writeToString(settingValueStr, peer);
+                    knownSetting = true;
+                    settingIsString = true;
+                }
+            }
+            break;
+            case tWiFiNet: {
+                int network;
+
+                if (strstr(suffix, "SSID") != nullptr)
+                {
+                    if (sscanf(suffix, "%dSSID", &network) == 1)
+                    {
+                        writeToString(settingValueStr, settings.wifiNetworks[network].ssid);
+                        knownSetting = true;
+                        settingIsString = true;
+                    }
+                }
+                else if (strstr(suffix, "Password") != nullptr)
+                {
+                    if (sscanf(suffix, "%dPassword", &network) == 1)
+                    {
+                        writeToString(settingValueStr, settings.wifiNetworks[network].password);
+                        knownSetting = true;
+                        settingIsString = true;
+                    }
+                }
+            }
+            break;
+            case tNSCHost: {
+                int server;
+                if (sscanf(suffix, "%d", &server) == 1)
+                {
+                    writeToString(settingValueStr, settings.ntripServer_CasterHost[server]);
+                    knownSetting = true;
+                    settingIsString = true;
+                }
+            }
+            break;
+            case tNSCPort: {
+                int server;
+                if (sscanf(suffix, "%d", &server) == 1)
+                {
+                    writeToString(settingValueStr, settings.ntripServer_CasterPort[server]);
+                    knownSetting = true;
+                }
+            }
+            break;
+            case tNSCUser: {
+                int server;
+                if (sscanf(suffix, "%d", &server) == 1)
+                {
+                    writeToString(settingValueStr, settings.ntripServer_CasterUser[server]);
+                    knownSetting = true;
+                    settingIsString = true;
+                }
+            }
+            break;
+            case tNSCUsrPw: {
+                int server;
+                if (sscanf(suffix, "%d", &server) == 1)
+                {
+                    writeToString(settingValueStr, settings.ntripServer_CasterUserPW[server]);
+                    knownSetting = true;
+                    settingIsString = true;
+                }
+            }
+            break;
+            case tNSMtPt: {
+                int server;
+                if (sscanf(suffix, "%d", &server) == 1)
+                {
+                    writeToString(settingValueStr, settings.ntripServer_MountPoint[server]);
+                    knownSetting = true;
+                    settingIsString = true;
+                }
+            }
+            break;
+            case tNSMtPtPw: {
+                int server;
+                if (sscanf(suffix, "%d", &server) == 1)
+                {
+                    writeToString(settingValueStr, settings.ntripServer_MountPointPW[server]);
+                    knownSetting = true;
+                    settingIsString = true;
+                }
+            }
+            break;
+            case tCorrSPri: {
+                for (int x = 0; x < qualifier; x++)
+                {
+                    if ((suffix[0] == correctionGetName(x)[0]) && (strcmp(suffix, correctionGetName(x)) == 0))
+                    {
+                        writeToString(settingValueStr, settings.correctionsSourcesPriority[x]);
+                        knownSetting = true;
+                        break;
+                    }
+                }
+            }
+            break;
+            case tRegCorTp: {
+                int region;
+                if (sscanf(suffix, "%d", &region) == 1)
+                {
+                    writeToString(settingValueStr, settings.regionalCorrectionTopics[region]);
+                    knownSetting = true;
+                    settingIsString = true;
+                }
+            }
+            break;
+            case tGnssReceiver: {
+                gnssReceiverType_e *ptr = (gnssReceiverType_e *)var;
+                writeToString(settingValueStr, (int)*ptr);
+                knownSetting = true;
+            }
+            break;
+            }
         }
     }
 
@@ -3245,479 +2474,248 @@ SettingValueResponse getSettingValue(bool inCommands, const char *settingName, c
 // See issue: https://github.com/sparkfun/SparkFun_RTK_Everywhere_Firmware/issues/190
 void commandList(bool inCommands, int i)
 {
+    int qualifier;
     char settingName[100];
     char settingType[100];
     char settingValue[100];
+    RTK_Settings_Types type;
 
-    switch (rtkSettingsEntries[i].type)
+    // Handle the GNSS specific types
+    qualifier = rtkSettingsEntries[i].qualifier;
+    type = rtkSettingsEntries[i].type;
+    if (gnssCommandList(type, i, inCommands, qualifier, settingName, settingValue) == false)
     {
-    default:
+        // Handle the generic types
+        switch (type)
+        {
+        default:
+            break;
+        case _bool: {
+            getSettingValue(inCommands, rtkSettingsEntries[i].name, settingValue);
+            commandSendExecuteListResponse(rtkSettingsEntries[i].name, "bool", settingValue);
+        }
         break;
-    case _bool: {
-        getSettingValue(inCommands, rtkSettingsEntries[i].name, settingValue);
-        commandSendExecuteListResponse(rtkSettingsEntries[i].name, "bool", settingValue);
-    }
-    break;
-    case _int: {
-        getSettingValue(inCommands, rtkSettingsEntries[i].name, settingValue);
-        commandSendExecuteListResponse(rtkSettingsEntries[i].name, "int", settingValue);
-    }
-    break;
-    case _float: {
-        getSettingValue(inCommands, rtkSettingsEntries[i].name, settingValue);
-        commandSendExecuteListResponse(rtkSettingsEntries[i].name, "float", settingValue);
-    }
-    break;
-    case _double: {
-        getSettingValue(inCommands, rtkSettingsEntries[i].name, settingValue);
-        commandSendExecuteListResponse(rtkSettingsEntries[i].name, "double", settingValue);
-    }
-    break;
-    case _uint8_t: {
-        getSettingValue(inCommands, rtkSettingsEntries[i].name, settingValue);
-        commandSendExecuteListResponse(rtkSettingsEntries[i].name, "uint8_t", settingValue);
-    }
-    break;
-    case _uint16_t: {
-        getSettingValue(inCommands, rtkSettingsEntries[i].name, settingValue);
-        commandSendExecuteListResponse(rtkSettingsEntries[i].name, "uint16_t", settingValue);
-    }
-    break;
-    case _uint32_t: {
-        getSettingValue(inCommands, rtkSettingsEntries[i].name, settingValue);
-        commandSendExecuteListResponse(rtkSettingsEntries[i].name, "uint32_t", settingValue);
-    }
-    break;
-    case _uint64_t: {
-        getSettingValue(inCommands, rtkSettingsEntries[i].name, settingValue);
-        commandSendExecuteListResponse(rtkSettingsEntries[i].name, "uint64_t", settingValue);
-    }
-    break;
-    case _int8_t: {
-        getSettingValue(inCommands, rtkSettingsEntries[i].name, settingValue);
-        commandSendExecuteListResponse(rtkSettingsEntries[i].name, "int8_t", settingValue);
-    }
-    break;
-    case _int16_t: {
-        getSettingValue(inCommands, rtkSettingsEntries[i].name, settingValue);
-        commandSendExecuteListResponse(rtkSettingsEntries[i].name, "int16_t", settingValue);
-    }
-    break;
-    case tMuxConn: {
-        getSettingValue(inCommands, rtkSettingsEntries[i].name, settingValue);
-        commandSendExecuteListResponse(rtkSettingsEntries[i].name, "muxConnectionType_e", settingValue);
-    }
-    break;
-    case tSysState: {
-        getSettingValue(inCommands, rtkSettingsEntries[i].name, settingValue);
-        commandSendExecuteListResponse(rtkSettingsEntries[i].name, "SystemState", settingValue);
-    }
-    break;
-    case tPulseEdg: {
-        getSettingValue(inCommands, rtkSettingsEntries[i].name, settingValue);
-        commandSendExecuteListResponse(rtkSettingsEntries[i].name, "pulseEdgeType_e", settingValue);
-    }
-    break;
-    case tBtRadio: {
-        getSettingValue(inCommands, rtkSettingsEntries[i].name, settingValue);
-        commandSendExecuteListResponse(rtkSettingsEntries[i].name, "BluetoothRadioType_e", settingValue);
-    }
-    break;
-    case tPerDisp: {
-        getSettingValue(inCommands, rtkSettingsEntries[i].name, settingValue);
-        commandSendExecuteListResponse(rtkSettingsEntries[i].name, "PeriodicDisplay_t", settingValue);
-    }
-    break;
-    case tCoordInp: {
-        getSettingValue(inCommands, rtkSettingsEntries[i].name, settingValue);
-        commandSendExecuteListResponse(rtkSettingsEntries[i].name, "CoordinateInputType", settingValue);
-    }
-    break;
-    case tCharArry: {
-        snprintf(settingType, sizeof(settingType), "char[%d]", rtkSettingsEntries[i].qualifier);
-        getSettingValue(inCommands, rtkSettingsEntries[i].name, settingValue);
-        commandSendExecuteListResponse(rtkSettingsEntries[i].name, settingType, settingValue);
-    }
-    break;
-    case _IPString: {
-        getSettingValue(inCommands, rtkSettingsEntries[i].name, settingValue);
-        commandSendExecuteListResponse(rtkSettingsEntries[i].name, "IPAddress", settingValue);
-    }
-    break;
-
-    case tCmnCnst:
-        break; // Nothing to do here. Let each GNSS add its commands
-    case tCmnRtNm:
-        break; // Nothing to do here. Let each GNSS add its commands
-    case tCnRtRtB:
-        break; // Nothing to do here. Let each GNSS add its commands
-    case tCnRtRtR:
-        break; // Nothing to do here. Let each GNSS add its commands
-
-#ifdef COMPILE_ZED
-    case tUbxConst: {
-        // Record constellation settings
-        for (int x = 0; x < rtkSettingsEntries[i].qualifier; x++)
-        {
-            snprintf(settingName, sizeof(settingName), "%s%s", rtkSettingsEntries[i].name,
-                     settings.ubxConstellations[x].textName);
-
-            getSettingValue(inCommands, settingName, settingValue);
-            commandSendExecuteListResponse(settingName, "tUbxConst", settingValue);
+        case _int: {
+            getSettingValue(inCommands, rtkSettingsEntries[i].name, settingValue);
+            commandSendExecuteListResponse(rtkSettingsEntries[i].name, "int", settingValue);
         }
-    }
-    break;
-    case tUbxMsgRt: {
-        // Record message settings
-        for (int x = 0; x < rtkSettingsEntries[i].qualifier; x++)
-        {
-            snprintf(settingName, sizeof(settingName), "%s%s", rtkSettingsEntries[i].name, ubxMessages[x].msgTextName);
-
-            getSettingValue(inCommands, settingName, settingValue);
-            commandSendExecuteListResponse(settingName, "tUbxMsgRt", settingValue);
+        break;
+        case _float: {
+            getSettingValue(inCommands, rtkSettingsEntries[i].name, settingValue);
+            commandSendExecuteListResponse(rtkSettingsEntries[i].name, "float", settingValue);
         }
-    }
-    break;
-    case tUbMsgRtb: {
-        // Record message settings
-        GNSS_ZED *zed = (GNSS_ZED *)gnss;
-        int firstRTCMRecord = zed->getMessageNumberByName("RTCM_1005");
-
-        for (int x = 0; x < rtkSettingsEntries[i].qualifier; x++)
-        {
-            snprintf(settingName, sizeof(settingName), "%s%s", rtkSettingsEntries[i].name,
-                     ubxMessages[firstRTCMRecord + x].msgTextName);
-
-            getSettingValue(inCommands, settingName, settingValue);
-            commandSendExecuteListResponse(settingName, "tUbMsgRtb", settingValue);
+        break;
+        case _double: {
+            getSettingValue(inCommands, rtkSettingsEntries[i].name, settingValue);
+            commandSendExecuteListResponse(rtkSettingsEntries[i].name, "double", settingValue);
         }
-    }
-    break;
-#endif // COMPILE_ZED
-
-    case tEspNowPr: {
-        // Record ESP-NOW peer MAC addresses
-        for (int x = 0; x < rtkSettingsEntries[i].qualifier; x++)
-        {
-            snprintf(settingType, sizeof(settingType), "uint8_t[%d]", sizeof(settings.espnowPeers[0]));
-            snprintf(settingName, sizeof(settingName), "%s%d", rtkSettingsEntries[i].name, x);
-
-            getSettingValue(inCommands, settingName, settingValue);
-            commandSendExecuteListResponse(settingName, settingType, settingValue);
+        break;
+        case _uint8_t: {
+            getSettingValue(inCommands, rtkSettingsEntries[i].name, settingValue);
+            commandSendExecuteListResponse(rtkSettingsEntries[i].name, "uint8_t", settingValue);
         }
-    }
-    break;
-    case tWiFiNet: {
-        // Record WiFi credential table
-        for (int x = 0; x < rtkSettingsEntries[i].qualifier; x++)
-        {
-            snprintf(settingType, sizeof(settingType), "char[%d]", sizeof(settings.wifiNetworks[0].password));
-            snprintf(settingName, sizeof(settingName), "%s%dPassword", rtkSettingsEntries[i].name, x);
-
-            getSettingValue(inCommands, settingName, settingValue);
-            commandSendExecuteListResponse(settingName, settingType, settingValue);
-
-            snprintf(settingType, sizeof(settingType), "char[%d]", sizeof(settings.wifiNetworks[0].ssid));
-            snprintf(settingName, sizeof(settingName), "%s%dSSID", rtkSettingsEntries[i].name, x);
-
-            getSettingValue(inCommands, settingName, settingValue);
-            commandSendExecuteListResponse(settingName, settingType, settingValue);
+        break;
+        case _uint16_t: {
+            getSettingValue(inCommands, rtkSettingsEntries[i].name, settingValue);
+            commandSendExecuteListResponse(rtkSettingsEntries[i].name, "uint16_t", settingValue);
         }
-    }
-    break;
-    case tNSCHost: {
-        for (int x = 0; x < rtkSettingsEntries[i].qualifier; x++)
-        {
-            snprintf(settingType, sizeof(settingType), "char[%d]", sizeof(settings.ntripServer_CasterHost[x]));
-            snprintf(settingName, sizeof(settingName), "%s%d", rtkSettingsEntries[i].name, x);
-
-            getSettingValue(inCommands, settingName, settingValue);
-            commandSendExecuteListResponse(settingName, settingType, settingValue);
+        break;
+        case _uint32_t: {
+            getSettingValue(inCommands, rtkSettingsEntries[i].name, settingValue);
+            commandSendExecuteListResponse(rtkSettingsEntries[i].name, "uint32_t", settingValue);
         }
-    }
-    break;
-    case tNSCPort: {
-        for (int x = 0; x < rtkSettingsEntries[i].qualifier; x++)
-        {
-            snprintf(settingName, sizeof(settingName), "%s%d", rtkSettingsEntries[i].name, x);
-
-            getSettingValue(inCommands, settingName, settingValue);
-            commandSendExecuteListResponse(settingName, "uint16_t", settingValue);
+        break;
+        case _uint64_t: {
+            getSettingValue(inCommands, rtkSettingsEntries[i].name, settingValue);
+            commandSendExecuteListResponse(rtkSettingsEntries[i].name, "uint64_t", settingValue);
         }
-    }
-    break;
-    case tNSCUser: {
-        for (int x = 0; x < rtkSettingsEntries[i].qualifier; x++)
-        {
-            snprintf(settingType, sizeof(settingType), "char[%d]", sizeof(settings.ntripServer_CasterUser[x]));
-            snprintf(settingName, sizeof(settingName), "%s%d", rtkSettingsEntries[i].name, x);
-
-            getSettingValue(inCommands, settingName, settingValue);
-            commandSendExecuteListResponse(settingName, settingType, settingValue);
+        break;
+        case _int8_t: {
+            getSettingValue(inCommands, rtkSettingsEntries[i].name, settingValue);
+            commandSendExecuteListResponse(rtkSettingsEntries[i].name, "int8_t", settingValue);
         }
-    }
-    break;
-    case tNSCUsrPw: {
-        for (int x = 0; x < rtkSettingsEntries[i].qualifier; x++)
-        {
-            snprintf(settingType, sizeof(settingType), "char[%d]", sizeof(settings.ntripServer_CasterUserPW[x]));
-            snprintf(settingName, sizeof(settingName), "%s%d", rtkSettingsEntries[i].name, x);
-
-            getSettingValue(inCommands, settingName, settingValue);
-            commandSendExecuteListResponse(settingName, settingType, settingValue);
+        break;
+        case _int16_t: {
+            getSettingValue(inCommands, rtkSettingsEntries[i].name, settingValue);
+            commandSendExecuteListResponse(rtkSettingsEntries[i].name, "int16_t", settingValue);
         }
-    }
-    break;
-    case tNSMtPt: {
-        for (int x = 0; x < rtkSettingsEntries[i].qualifier; x++)
-        {
-            snprintf(settingType, sizeof(settingType), "char[%d]", sizeof(settings.ntripServer_MountPoint[x]));
-            snprintf(settingName, sizeof(settingName), "%s%d", rtkSettingsEntries[i].name, x);
-
-            getSettingValue(inCommands, settingName, settingValue);
-            commandSendExecuteListResponse(settingName, settingType, settingValue);
+        break;
+        case tMuxConn: {
+            getSettingValue(inCommands, rtkSettingsEntries[i].name, settingValue);
+            commandSendExecuteListResponse(rtkSettingsEntries[i].name, "muxConnectionType_e", settingValue);
         }
-    }
-    break;
-    case tNSMtPtPw: {
-        for (int x = 0; x < rtkSettingsEntries[i].qualifier; x++)
-        {
-            snprintf(settingType, sizeof(settingType), "char[%d]", sizeof(settings.ntripServer_MountPointPW[x]));
-            snprintf(settingName, sizeof(settingName), "%s%d", rtkSettingsEntries[i].name, x);
-
-            getSettingValue(inCommands, settingName, settingValue);
-            commandSendExecuteListResponse(settingName, settingType, settingValue);
+        break;
+        case tSysState: {
+            getSettingValue(inCommands, rtkSettingsEntries[i].name, settingValue);
+            commandSendExecuteListResponse(rtkSettingsEntries[i].name, "SystemState", settingValue);
         }
-    }
-    break;
-
-#ifdef COMPILE_UM980
-    case tUmMRNmea: {
-        // Record UM980 NMEA rates
-        for (int x = 0; x < rtkSettingsEntries[i].qualifier; x++)
-        {
-            snprintf(settingName, sizeof(settingName), "%s%s", rtkSettingsEntries[i].name,
-                     umMessagesNMEA[x].msgTextName);
-
-            getSettingValue(inCommands, settingName, settingValue);
-            commandSendExecuteListResponse(settingName, "tUmMRNmea", settingValue);
+        break;
+        case tPulseEdg: {
+            getSettingValue(inCommands, rtkSettingsEntries[i].name, settingValue);
+            commandSendExecuteListResponse(rtkSettingsEntries[i].name, "pulseEdgeType_e", settingValue);
         }
-    }
-    break;
-    case tUmMRRvRT: {
-        // Record UM980 Rover RTCM rates
-        for (int x = 0; x < rtkSettingsEntries[i].qualifier; x++)
-        {
-            snprintf(settingName, sizeof(settingName), "%s%s", rtkSettingsEntries[i].name,
-                     umMessagesRTCM[x].msgTextName);
-
-            getSettingValue(inCommands, settingName, settingValue);
-            commandSendExecuteListResponse(settingName, "tUmMRRvRT", settingValue);
+        break;
+        case tBtRadio: {
+            getSettingValue(inCommands, rtkSettingsEntries[i].name, settingValue);
+            commandSendExecuteListResponse(rtkSettingsEntries[i].name, "BluetoothRadioType_e", settingValue);
         }
-    }
-    break;
-    case tUmMRBaRT: {
-        // Record UM980 Base RTCM rates
-        for (int x = 0; x < rtkSettingsEntries[i].qualifier; x++)
-        {
-            snprintf(settingName, sizeof(settingName), "%s%s", rtkSettingsEntries[i].name,
-                     umMessagesRTCM[x].msgTextName);
-
-            getSettingValue(inCommands, settingName, settingValue);
-            commandSendExecuteListResponse(settingName, "tUmMRBaRT", settingValue);
+        break;
+        case tPerDisp: {
+            getSettingValue(inCommands, rtkSettingsEntries[i].name, settingValue);
+            commandSendExecuteListResponse(rtkSettingsEntries[i].name, "PeriodicDisplay_t", settingValue);
         }
-    }
-    break;
-    case tUmConst: {
-        // Record UM980 Constellations
-        for (int x = 0; x < rtkSettingsEntries[i].qualifier; x++)
-        {
-            snprintf(settingName, sizeof(settingName), "%s%s", rtkSettingsEntries[i].name,
-                     um980ConstellationCommands[x].textName);
-
-            getSettingValue(inCommands, settingName, settingValue);
-            commandSendExecuteListResponse(settingName, "tUmConst", settingValue);
+        break;
+        case tCoordInp: {
+            getSettingValue(inCommands, rtkSettingsEntries[i].name, settingValue);
+            commandSendExecuteListResponse(rtkSettingsEntries[i].name, "CoordinateInputType", settingValue);
         }
-    }
-    break;
-#endif // COMPILE_UM980
-
-    case tCorrSPri: {
-        // Record corrections priorities
-        for (int x = 0; x < rtkSettingsEntries[i].qualifier; x++)
-        {
-            snprintf(settingName, sizeof(settingName), "%s%s", rtkSettingsEntries[i].name, correctionGetName(x));
-
-            getSettingValue(inCommands, settingName, settingValue);
-            commandSendExecuteListResponse(settingName, "int", settingValue);
+        break;
+        case tCharArry: {
+            snprintf(settingType, sizeof(settingType), "char[%d]", rtkSettingsEntries[i].qualifier);
+            getSettingValue(inCommands, rtkSettingsEntries[i].name, settingValue);
+            commandSendExecuteListResponse(rtkSettingsEntries[i].name, settingType, settingValue);
         }
-    }
-    break;
-    case tRegCorTp: {
-        for (int r = 0; r < rtkSettingsEntries[i].qualifier; r++)
-        {
-            snprintf(settingType, sizeof(settingType), "char[%d]", sizeof(settings.regionalCorrectionTopics[0]));
-            snprintf(settingName, sizeof(settingName), "%s%d", rtkSettingsEntries[i].name, r);
-
-            getSettingValue(inCommands, settingName, settingValue);
-            commandSendExecuteListResponse(settingName, settingType, settingValue);
+        break;
+        case _IPString: {
+            getSettingValue(inCommands, rtkSettingsEntries[i].name, settingValue);
+            commandSendExecuteListResponse(rtkSettingsEntries[i].name, "IPAddress", settingValue);
         }
-    }
-    break;
+        break;
 
-#ifdef COMPILE_MOSAICX5
-    case tMosaicConst: {
-        // Record Mosaic Constellations
-        for (int x = 0; x < rtkSettingsEntries[i].qualifier; x++)
-        {
-            snprintf(settingName, sizeof(settingName), "%s%s", rtkSettingsEntries[i].name,
-                     mosaicSignalConstellations[x].configName);
+        case tCmnCnst:
+            break; // Nothing to do here. Let each GNSS add its commands
+        case tCmnRtNm:
+            break; // Nothing to do here. Let each GNSS add its commands
+        case tCnRtRtB:
+            break; // Nothing to do here. Let each GNSS add its commands
+        case tCnRtRtR:
+            break; // Nothing to do here. Let each GNSS add its commands
 
-            getSettingValue(inCommands, settingName, settingValue);
-            commandSendExecuteListResponse(settingName, "tMosaicConst", settingValue);
+        case tEspNowPr: {
+            // Record ESP-NOW peer MAC addresses
+            for (int x = 0; x < rtkSettingsEntries[i].qualifier; x++)
+            {
+                snprintf(settingType, sizeof(settingType), "uint8_t[%d]", sizeof(settings.espnowPeers[0]));
+                snprintf(settingName, sizeof(settingName), "%s%d", rtkSettingsEntries[i].name, x);
+
+                getSettingValue(inCommands, settingName, settingValue);
+                commandSendExecuteListResponse(settingName, settingType, settingValue);
+            }
         }
-    }
-    break;
-    case tMosaicMSNmea: {
-        // Record Mosaic NMEA message streams
-        for (int x = 0; x < rtkSettingsEntries[i].qualifier; x++)
-        {
-            snprintf(settingName, sizeof(settingName), "%s%s", rtkSettingsEntries[i].name,
-                     mosaicMessagesNMEA[x].msgTextName);
+        break;
+        case tWiFiNet: {
+            // Record WiFi credential table
+            for (int x = 0; x < rtkSettingsEntries[i].qualifier; x++)
+            {
+                snprintf(settingType, sizeof(settingType), "char[%d]", sizeof(settings.wifiNetworks[0].password));
+                snprintf(settingName, sizeof(settingName), "%s%dPassword", rtkSettingsEntries[i].name, x);
 
-            getSettingValue(inCommands, settingName, settingValue);
-            commandSendExecuteListResponse(settingName, "tMosaicMSNmea", settingValue);
+                getSettingValue(inCommands, settingName, settingValue);
+                commandSendExecuteListResponse(settingName, settingType, settingValue);
+
+                snprintf(settingType, sizeof(settingType), "char[%d]", sizeof(settings.wifiNetworks[0].ssid));
+                snprintf(settingName, sizeof(settingName), "%s%dSSID", rtkSettingsEntries[i].name, x);
+
+                getSettingValue(inCommands, settingName, settingValue);
+                commandSendExecuteListResponse(settingName, settingType, settingValue);
+            }
         }
-    }
-    break;
-    case tMosaicSINmea: {
-        // Record Mosaic NMEA stream intervals
-        for (int x = 0; x < rtkSettingsEntries[i].qualifier; x++)
-        {
-            snprintf(settingName, sizeof(settingName), "%s%d", rtkSettingsEntries[i].name, x);
+        break;
+        case tNSCHost: {
+            for (int x = 0; x < rtkSettingsEntries[i].qualifier; x++)
+            {
+                snprintf(settingType, sizeof(settingType), "char[%d]", sizeof(settings.ntripServer_CasterHost[x]));
+                snprintf(settingName, sizeof(settingName), "%s%d", rtkSettingsEntries[i].name, x);
 
-            getSettingValue(inCommands, settingName, settingValue);
-            commandSendExecuteListResponse(settingName, "tMosaicSINmea", mosaicMsgRates[atoi(settingValue)].humanName);
+                getSettingValue(inCommands, settingName, settingValue);
+                commandSendExecuteListResponse(settingName, settingType, settingValue);
+            }
         }
-    }
-    break;
-    case tMosaicMIRvRT: {
-        // Record Mosaic Rover RTCM intervals
-        for (int x = 0; x < rtkSettingsEntries[i].qualifier; x++)
-        {
-            snprintf(settingName, sizeof(settingName), "%s%s", rtkSettingsEntries[i].name,
-                     mosaicRTCMv3MsgIntervalGroups[x].name);
+        break;
+        case tNSCPort: {
+            for (int x = 0; x < rtkSettingsEntries[i].qualifier; x++)
+            {
+                snprintf(settingName, sizeof(settingName), "%s%d", rtkSettingsEntries[i].name, x);
 
-            getSettingValue(inCommands, settingName, settingValue);
-            commandSendExecuteListResponse(settingName, "tMosaicMIRvRT", settingValue);
+                getSettingValue(inCommands, settingName, settingValue);
+                commandSendExecuteListResponse(settingName, "uint16_t", settingValue);
+            }
         }
-    }
-    break;
-    case tMosaicMIBaRT: {
-        // Record Mosaic Base RTCM intervals
-        for (int x = 0; x < rtkSettingsEntries[i].qualifier; x++)
-        {
-            snprintf(settingName, sizeof(settingName), "%s%s", rtkSettingsEntries[i].name,
-                     mosaicRTCMv3MsgIntervalGroups[x].name);
+        break;
+        case tNSCUser: {
+            for (int x = 0; x < rtkSettingsEntries[i].qualifier; x++)
+            {
+                snprintf(settingType, sizeof(settingType), "char[%d]", sizeof(settings.ntripServer_CasterUser[x]));
+                snprintf(settingName, sizeof(settingName), "%s%d", rtkSettingsEntries[i].name, x);
 
-            getSettingValue(inCommands, settingName, settingValue);
-            commandSendExecuteListResponse(settingName, "tMosaicMIBaRT", settingValue);
+                getSettingValue(inCommands, settingName, settingValue);
+                commandSendExecuteListResponse(settingName, settingType, settingValue);
+            }
         }
-    }
-    break;
-    case tMosaicMERvRT: {
-        // Record Mosaic Rover RTCM enabled
-        for (int x = 0; x < rtkSettingsEntries[i].qualifier; x++)
-        {
-            snprintf(settingName, sizeof(settingName), "%s%s", rtkSettingsEntries[i].name,
-                     mosaicMessagesRTCMv3[x].name);
+        break;
+        case tNSCUsrPw: {
+            for (int x = 0; x < rtkSettingsEntries[i].qualifier; x++)
+            {
+                snprintf(settingType, sizeof(settingType), "char[%d]", sizeof(settings.ntripServer_CasterUserPW[x]));
+                snprintf(settingName, sizeof(settingName), "%s%d", rtkSettingsEntries[i].name, x);
 
-            getSettingValue(inCommands, settingName, settingValue);
-            commandSendExecuteListResponse(settingName, "tMosaicMERvRT", settingValue);
+                getSettingValue(inCommands, settingName, settingValue);
+                commandSendExecuteListResponse(settingName, settingType, settingValue);
+            }
         }
-    }
-    break;
-    case tMosaicMEBaRT: {
-        // Record Mosaic Base RTCM enabled
-        for (int x = 0; x < rtkSettingsEntries[i].qualifier; x++)
-        {
-            snprintf(settingName, sizeof(settingName), "%s%s", rtkSettingsEntries[i].name,
-                     mosaicMessagesRTCMv3[x].name);
+        break;
+        case tNSMtPt: {
+            for (int x = 0; x < rtkSettingsEntries[i].qualifier; x++)
+            {
+                snprintf(settingType, sizeof(settingType), "char[%d]", sizeof(settings.ntripServer_MountPoint[x]));
+                snprintf(settingName, sizeof(settingName), "%s%d", rtkSettingsEntries[i].name, x);
 
-            getSettingValue(inCommands, settingName, settingValue);
-            commandSendExecuteListResponse(settingName, "tMosaicMEBaRT", settingValue);
+                getSettingValue(inCommands, settingName, settingValue);
+                commandSendExecuteListResponse(settingName, settingType, settingValue);
+            }
         }
-    }
-    break;
-#endif // COMPILE_MOSAICX5
+        break;
+        case tNSMtPtPw: {
+            for (int x = 0; x < rtkSettingsEntries[i].qualifier; x++)
+            {
+                snprintf(settingType, sizeof(settingType), "char[%d]", sizeof(settings.ntripServer_MountPointPW[x]));
+                snprintf(settingName, sizeof(settingName), "%s%d", rtkSettingsEntries[i].name, x);
 
-#ifdef COMPILE_LG290P
-    case tLgMRNmea: {
-        // Record LG290P NMEA rates
-        for (int x = 0; x < rtkSettingsEntries[i].qualifier; x++)
-        {
-            snprintf(settingName, sizeof(settingName), "%s%s", rtkSettingsEntries[i].name,
-                     lgMessagesNMEA[x].msgTextName);
-
-            getSettingValue(inCommands, settingName, settingValue);
-            commandSendExecuteListResponse(settingName, "tLgMRNmea", settingValue);
+                getSettingValue(inCommands, settingName, settingValue);
+                commandSendExecuteListResponse(settingName, settingType, settingValue);
+            }
         }
-    }
-    break;
-    case tLgMRRvRT: {
-        // Record LG290P Rover RTCM rates
-        for (int x = 0; x < rtkSettingsEntries[i].qualifier; x++)
-        {
-            snprintf(settingName, sizeof(settingName), "%s%s", rtkSettingsEntries[i].name,
-                     lgMessagesRTCM[x].msgTextName);
+        break;
 
-            getSettingValue(inCommands, settingName, settingValue);
-            commandSendExecuteListResponse(settingName, "tLgMRRvRT", settingValue);
+        case tCorrSPri: {
+            // Record corrections priorities
+            for (int x = 0; x < rtkSettingsEntries[i].qualifier; x++)
+            {
+                snprintf(settingName, sizeof(settingName), "%s%s", rtkSettingsEntries[i].name, correctionGetName(x));
+
+                getSettingValue(inCommands, settingName, settingValue);
+                commandSendExecuteListResponse(settingName, "int", settingValue);
+            }
         }
-    }
-    break;
-    case tLgMRBaRT: {
-        // Record LG290P Base RTCM rates
-        for (int x = 0; x < rtkSettingsEntries[i].qualifier; x++)
-        {
-            snprintf(settingName, sizeof(settingName), "%s%s", rtkSettingsEntries[i].name,
-                     lgMessagesRTCM[x].msgTextName);
+        break;
+        case tRegCorTp: {
+            for (int r = 0; r < rtkSettingsEntries[i].qualifier; r++)
+            {
+                snprintf(settingType, sizeof(settingType), "char[%d]", sizeof(settings.regionalCorrectionTopics[0]));
+                snprintf(settingName, sizeof(settingName), "%s%d", rtkSettingsEntries[i].name, r);
 
-            getSettingValue(inCommands, settingName, settingValue);
-            commandSendExecuteListResponse(settingName, "tLgMRBaRT", settingValue);
+                getSettingValue(inCommands, settingName, settingValue);
+                commandSendExecuteListResponse(settingName, settingType, settingValue);
+            }
         }
-    }
-    break;
-    case tLgMRPqtm: {
-        // Record LG290P PQTM rates
-        for (int x = 0; x < rtkSettingsEntries[i].qualifier; x++)
-        {
-            snprintf(settingName, sizeof(settingName), "%s%s", rtkSettingsEntries[i].name,
-                     lgMessagesPQTM[x].msgTextName);
+        break;
 
-            getSettingValue(inCommands, settingName, settingValue);
-            commandSendExecuteListResponse(settingName, "tLgMRPqtm", settingValue);
+        case tGnssReceiver: {
+            getSettingValue(inCommands, rtkSettingsEntries[i].name, settingValue);
+            commandSendExecuteListResponse(rtkSettingsEntries[i].name, "gnssReceiverType_e", settingValue);
         }
-    }
-    break;
-    case tLgConst: {
-        // Record LG290P Constellations
-        for (int x = 0; x < rtkSettingsEntries[i].qualifier; x++)
-        {
-            snprintf(settingName, sizeof(settingName), "%s%s", rtkSettingsEntries[i].name, lg290pConstellationNames[x]);
-
-            getSettingValue(inCommands, settingName, settingValue);
-            commandSendExecuteListResponse(settingName, "tLgConst", settingValue);
+        break;
         }
-    }
-    break;
-#endif // COMPILE_LG290P
-
-    case tGnssReceiver: {
-        getSettingValue(inCommands, rtkSettingsEntries[i].name, settingValue);
-        commandSendExecuteListResponse(rtkSettingsEntries[i].name, "gnssReceiverType_e", settingValue);
-    }
-    break;
     }
 }
 
@@ -4188,252 +3186,8 @@ void createCommandTypesJson(String &output)
 
     JsonArray command_types = doc["command types"].to<JsonArray>();
 
-#ifdef COMPILE_LG290P
-    // LG290P
-
-    JsonObject command_types_tLgConst = command_types.add<JsonObject>();
-    command_types_tLgConst["name"] = "tLgConst";
-    command_types_tLgConst["description"] = "LG290P GNSS constellations";
-    command_types_tLgConst["instruction"] = "Enable / disable each GNSS constellation";
-    command_types_tLgConst["prefix"] = "constellation_";
-    JsonArray command_types_tLgConst_keys = command_types_tLgConst["keys"].to<JsonArray>();
-    for (int x = 0; x < MAX_LG290P_CONSTELLATIONS; x++)
-        command_types_tLgConst_keys.add(lg290pConstellationNames[x]);
-    JsonArray command_types_tLgConst_values = command_types_tLgConst["values"].to<JsonArray>();
-    command_types_tLgConst_values.add("0");
-    command_types_tLgConst_values.add("1");
-
-    JsonObject command_types_tLgMRNmea = command_types.add<JsonObject>();
-    command_types_tLgMRNmea["name"] = "tLgMRNmea";
-    command_types_tLgMRNmea["description"] = "LG290P NMEA message rates";
-    command_types_tLgMRNmea["instruction"] = "Enable / disable each NMEA message";
-    command_types_tLgMRNmea["prefix"] = "messageRateNMEA_";
-    JsonArray command_types_tLgMRNmea_keys = command_types_tLgMRNmea["keys"].to<JsonArray>();
-    for (int y = 0; y < MAX_LG290P_NMEA_MSG; y++)
-        command_types_tLgMRNmea_keys.add(lgMessagesNMEA[y].msgTextName);
-    JsonArray command_types_tLgMRNmea_values = command_types_tLgMRNmea["values"].to<JsonArray>();
-    command_types_tLgMRNmea_values.add("0");
-    command_types_tLgMRNmea_values.add("1");
-
-    JsonObject command_types_tLgMRBaRT = command_types.add<JsonObject>();
-    command_types_tLgMRBaRT["name"] = "tLgMRBaRT";
-    command_types_tLgMRBaRT["description"] = "LG290P RTCM message rates - Base";
-    command_types_tLgMRBaRT["instruction"] = "Set the RTCM message interval in seconds for Base (0 = Off)";
-    command_types_tLgMRBaRT["prefix"] = "messageRateRTCMBase_";
-    JsonArray command_types_tLgMRBaRT_keys = command_types_tLgMRBaRT["keys"].to<JsonArray>();
-    for (int x = 0; x < MAX_LG290P_RTCM_MSG; x++)
-        command_types_tLgMRBaRT_keys.add(lgMessagesRTCM[x].msgTextName);
-    command_types_tLgMRBaRT["type"] = "int";
-    command_types_tLgMRBaRT["value min"] = 0;
-    command_types_tLgMRBaRT["value max"] = 1200;
-
-    JsonObject command_types_tLgMRRvRT = command_types.add<JsonObject>();
-    command_types_tLgMRRvRT["name"] = "tLgMRRvRT";
-    command_types_tLgMRRvRT["description"] = "LG290P RTCM message rates - Rover";
-    command_types_tLgMRRvRT["instruction"] = "Set the RTCM message interval in seconds for Rover (0 = Off)";
-    command_types_tLgMRRvRT["prefix"] = "messageRateRTCMRover_";
-    JsonArray command_types_tLgMRRvRT_keys = command_types_tLgMRRvRT["keys"].to<JsonArray>();
-    for (int x = 0; x < MAX_LG290P_RTCM_MSG; x++)
-        command_types_tLgMRRvRT_keys.add(lgMessagesRTCM[x].msgTextName);
-    command_types_tLgMRRvRT["type"] = "int";
-    command_types_tLgMRRvRT["value min"] = 0;
-    command_types_tLgMRRvRT["value max"] = 1200;
-
-    JsonObject command_types_tLgMRPqtm = command_types.add<JsonObject>();
-    command_types_tLgMRPqtm["name"] = "tLgMRPqtm";
-    command_types_tLgMRPqtm["description"] = "LG290P PQTM message rates";
-    command_types_tLgMRPqtm["instruction"] = "Enable / disable each PQTM message";
-    command_types_tLgMRPqtm["prefix"] = "messageRatePQTM_";
-    JsonArray command_types_tLgMRPqtm_keys = command_types_tLgMRPqtm["keys"].to<JsonArray>();
-    for (int x = 0; x < MAX_LG290P_PQTM_MSG; x++)
-        command_types_tLgMRPqtm_keys.add(lgMessagesPQTM[x].msgTextName);
-    JsonArray command_types_tLgMRPqtm_values = command_types_tLgMRPqtm["values"].to<JsonArray>();
-    command_types_tLgMRPqtm_values.add("0");
-    command_types_tLgMRPqtm_values.add("1");
-#endif // COMPILE_LG290P
-
-#ifdef COMPILE_MOSAICX5
-    // mosaic-X5
-
-    JsonObject command_types_tMosaicConst = command_types.add<JsonObject>();
-    command_types_tMosaicConst["name"] = "tMosaicConst";
-    command_types_tMosaicConst["description"] = "mosaic-X5 GNSS constellations";
-    command_types_tMosaicConst["instruction"] = "Enable / disable each GNSS constellation";
-    command_types_tMosaicConst["prefix"] = "constellation_";
-    JsonArray command_types_tMosaicConst_keys = command_types_tMosaicConst["keys"].to<JsonArray>();
-    for (int x = 0; x < MAX_MOSAIC_CONSTELLATIONS; x++)
-        command_types_tMosaicConst_keys.add(mosaicSignalConstellations[x].configName);
-    JsonArray command_types_tMosaicConst_values = command_types_tMosaicConst["values"].to<JsonArray>();
-    command_types_tMosaicConst_values.add("0");
-    command_types_tMosaicConst_values.add("1");
-
-    JsonObject command_types_tMosaicMSNmea = command_types.add<JsonObject>();
-    command_types_tMosaicMSNmea["name"] = "tMosaicMSNmea";
-    command_types_tMosaicMSNmea["description"] = "mosaic-X5 message stream for NMEA";
-    command_types_tMosaicMSNmea["instruction"] = "Select the message stream for each NMEA message (0 = Off)";
-    command_types_tMosaicMSNmea["prefix"] = "messageStreamNMEA_";
-    JsonArray command_types_tMosaicMSNmea_keys = command_types_tMosaicMSNmea["keys"].to<JsonArray>();
-    for (int x = 0; x < MAX_MOSAIC_NMEA_MSG; x++)
-        command_types_tMosaicMSNmea_keys.add(mosaicMessagesNMEA[x].msgTextName);
-    JsonArray command_types_tMosaicMSNmea_values = command_types_tMosaicMSNmea["values"].to<JsonArray>();
-    command_types_tMosaicMSNmea_values.add("0");
-    command_types_tMosaicMSNmea_values.add("1");
-    command_types_tMosaicMSNmea_values.add("2");
-
-    JsonObject command_types_tMosaicSINmea = command_types.add<JsonObject>();
-    command_types_tMosaicSINmea["name"] = "tMosaicSINmea";
-    command_types_tMosaicSINmea["description"] = "mosaic-X5 NMEA message intervals";
-    command_types_tMosaicSINmea["instruction"] = "Set the interval for each NMEA stream";
-    command_types_tMosaicSINmea["prefix"] = "streamIntervalNMEA_";
-    JsonArray command_types_tMosaicSINmea_keys = command_types_tMosaicSINmea["keys"].to<JsonArray>();
-    command_types_tMosaicSINmea_keys.add("1");
-    command_types_tMosaicSINmea_keys.add("2");
-    JsonArray command_types_tMosaicSINmea_values = command_types_tMosaicSINmea["values"].to<JsonArray>();
-    for (int y = 0; y < MAX_MOSAIC_MSG_RATES; y++)
-        command_types_tMosaicSINmea_values.add(mosaicMsgRates[y].humanName);
-
-    JsonObject command_types_tMosaicMIRvRT = command_types.add<JsonObject>();
-    command_types_tMosaicMIRvRT["name"] = "tMosaicMIRvRT";
-    command_types_tMosaicMIRvRT["description"] = "mosaic-X5 RTCM message intervals - Rover";
-    command_types_tMosaicMIRvRT["instruction"] = "Set the RTCM message interval in seconds for Rover";
-    command_types_tMosaicMIRvRT["prefix"] = "messageIntervalRTCMRover_";
-    JsonArray command_types_tMosaicMIRvRT_keys = command_types_tMosaicMIRvRT["keys"].to<JsonArray>();
-    for (int y = 0; y < MAX_MOSAIC_RTCM_V3_INTERVAL_GROUPS; y++)
-        command_types_tMosaicMIRvRT_keys.add(mosaicRTCMv3MsgIntervalGroups[y].name);
-    command_types_tMosaicMIRvRT["type"] = "float";
-    command_types_tMosaicMIRvRT["value min"] = 0.1;
-    command_types_tMosaicMIRvRT["value max"] = 600.0;
-
-    JsonObject command_types_tMosaicMIBaRT = command_types.add<JsonObject>();
-    command_types_tMosaicMIBaRT["name"] = "tMosaicMIBaRT";
-    command_types_tMosaicMIBaRT["description"] = "mosaic-X5 RTCM message intervals - Base";
-    command_types_tMosaicMIBaRT["instruction"] = "Set the RTCM message interval in seconds for Base";
-    command_types_tMosaicMIBaRT["prefix"] = "messageIntervalRTCMBase_";
-    JsonArray command_types_tMosaicMIBaRT_keys = command_types_tMosaicMIBaRT["keys"].to<JsonArray>();
-    for (int y = 0; y < MAX_MOSAIC_RTCM_V3_INTERVAL_GROUPS; y++)
-        command_types_tMosaicMIBaRT_keys.add(mosaicRTCMv3MsgIntervalGroups[y].name);
-    command_types_tMosaicMIBaRT["type"] = "float";
-    command_types_tMosaicMIBaRT["value min"] = 0.1;
-    command_types_tMosaicMIBaRT["value max"] = 600.0;
-
-    JsonObject command_types_tMosaicMERvRT = command_types.add<JsonObject>();
-    command_types_tMosaicMERvRT["name"] = "tMosaicMERvRT";
-    command_types_tMosaicMERvRT["description"] = "mosaic-X5 RTCM message enabled - Rover";
-    command_types_tMosaicMERvRT["instruction"] = "Enable / disable Rover RTCM messages";
-    command_types_tMosaicMERvRT["prefix"] = "messageEnabledRTCMRover_";
-    JsonArray command_types_tMosaicMERvRT_keys = command_types_tMosaicMERvRT["keys"].to<JsonArray>();
-    for (int y = 0; y < MAX_MOSAIC_RTCM_V3_MSG; y++)
-        command_types_tMosaicMERvRT_keys.add(mosaicMessagesRTCMv3[y].name);
-    JsonArray command_types_tMosaicMERvRT_values = command_types_tMosaicMERvRT["values"].to<JsonArray>();
-    command_types_tMosaicMERvRT_values.add("0");
-    command_types_tMosaicMERvRT_values.add("1");
-
-    JsonObject command_types_tMosaicMEBaRT = command_types.add<JsonObject>();
-    command_types_tMosaicMEBaRT["name"] = "tMosaicMEBaRT";
-    command_types_tMosaicMEBaRT["description"] = "mosaic-X5 RTCM message enabled - Base";
-    command_types_tMosaicMEBaRT["instruction"] = "Enable / disable Base RTCM messages";
-    command_types_tMosaicMEBaRT["prefix"] = "messageEnabledRTCMBase_";
-    JsonArray command_types_tMosaicMEBaRT_keys = command_types_tMosaicMEBaRT["keys"].to<JsonArray>();
-    for (int y = 0; y < MAX_MOSAIC_RTCM_V3_MSG; y++)
-        command_types_tMosaicMEBaRT_keys.add(mosaicMessagesRTCMv3[y].name);
-    JsonArray command_types_tMosaicMEBaRT_values = command_types_tMosaicMEBaRT["values"].to<JsonArray>();
-    command_types_tMosaicMEBaRT_values.add("0");
-    command_types_tMosaicMEBaRT_values.add("1");
-#endif // COMPILE_MOSAICX5
-
-#ifdef COMPILE_UM980
-    // UM980
-
-    JsonObject command_types_tUmConst = command_types.add<JsonObject>();
-    command_types_tUmConst["name"] = "tUmConst";
-    command_types_tUmConst["description"] = "UM980 GNSS constellations";
-    command_types_tUmConst["instruction"] = "Enable / disable each GNSS constellation";
-    command_types_tUmConst["prefix"] = "constellation_";
-    JsonArray command_types_tUmConst_keys = command_types_tUmConst["keys"].to<JsonArray>();
-    for (int x = 0; x < MAX_UM980_CONSTELLATIONS; x++)
-        command_types_tUmConst_keys.add(um980ConstellationCommands[x].textName);
-    JsonArray command_types_tUmConst_values = command_types_tUmConst["values"].to<JsonArray>();
-    command_types_tUmConst_values.add("0");
-    command_types_tUmConst_values.add("1");
-
-    JsonObject command_types_tUmMRNmea = command_types.add<JsonObject>();
-    command_types_tUmMRNmea["name"] = "tUmMRNmea";
-    command_types_tUmMRNmea["description"] = "UM980 NMEA message rates";
-    command_types_tUmMRNmea["instruction"] = "Set the NMEA message interval in seconds (0 = Off)";
-    command_types_tUmMRNmea["prefix"] = "messageRateNMEA_";
-    JsonArray command_types_tUmMRNmea_keys = command_types_tUmMRNmea["keys"].to<JsonArray>();
-    for (int y = 0; y < MAX_UM980_NMEA_MSG; y++)
-        command_types_tUmMRNmea_keys.add(umMessagesNMEA[y].msgTextName);
-    command_types_tUmMRNmea["type"] = "float";
-    command_types_tUmMRNmea["value min"] = 0.0;
-    command_types_tUmMRNmea["value max"] = 65.0;
-
-    JsonObject command_types_tUmMRBaRT = command_types.add<JsonObject>();
-    command_types_tUmMRBaRT["name"] = "tUmMRBaRT";
-    command_types_tUmMRBaRT["description"] = "UM980 RTCM message rates - Base";
-    command_types_tUmMRBaRT["instruction"] = "Set the RTCM message interval in seconds for Base (0 = Off)";
-    command_types_tUmMRBaRT["prefix"] = "messageRateRTCMBase_";
-    JsonArray command_types_tUmMRBaRT_keys = command_types_tUmMRBaRT["keys"].to<JsonArray>();
-    for (int x = 0; x < MAX_UM980_RTCM_MSG; x++)
-        command_types_tUmMRBaRT_keys.add(umMessagesRTCM[x].msgTextName);
-    command_types_tUmMRBaRT["type"] = "float";
-    command_types_tUmMRBaRT["value min"] = 0.0;
-    command_types_tUmMRBaRT["value max"] = 65.0;
-
-    JsonObject command_types_tUmMRRvRT = command_types.add<JsonObject>();
-    command_types_tUmMRRvRT["name"] = "tUmMRRvRT";
-    command_types_tUmMRRvRT["description"] = "UM980 RTCM message rates - Rover";
-    command_types_tUmMRRvRT["instruction"] = "Set the RTCM message interval in seconds for Rover (0 = Off)";
-    command_types_tUmMRRvRT["prefix"] = "messageRateRTCMRover_";
-    JsonArray command_types_tUmMRRvRT_keys = command_types_tUmMRRvRT["keys"].to<JsonArray>();
-    for (int x = 0; x < MAX_UM980_RTCM_MSG; x++)
-        command_types_tUmMRRvRT_keys.add(umMessagesRTCM[x].msgTextName);
-    command_types_tUmMRRvRT["type"] = "float";
-    command_types_tUmMRRvRT["value min"] = 0.0;
-    command_types_tUmMRRvRT["value max"] = 65.0;
-#endif // COMPILE_UM980
-
-#ifdef COMPILE_ZED
-    // ublox GNSS Receiver
-
-    JsonObject command_types_tUbxConst = command_types.add<JsonObject>();
-    command_types_tUbxConst["name"] = "tUbxConst";
-    command_types_tUbxConst["description"] = "ZED GNSS constellations";
-    command_types_tUbxConst["instruction"] = "Enable / disable each GNSS constellation";
-    command_types_tUbxConst["prefix"] = "constellation_";
-    JsonArray command_types_tUbxConst_keys = command_types_tUbxConst["keys"].to<JsonArray>();
-    for (int x = 0; x < MAX_UBX_CONSTELLATIONS; x++)
-        command_types_tUbxConst_keys.add(settings.ubxConstellations[x].textName);
-    JsonArray command_types_tUbxConst_values = command_types_tUbxConst["values"].to<JsonArray>();
-    command_types_tUbxConst_values.add("0");
-    command_types_tUbxConst_values.add("1");
-
-    JsonObject command_types_tUbxMsgRt = command_types.add<JsonObject>();
-    command_types_tUbxMsgRt["name"] = "tUbxMsgRt";
-    command_types_tUbxMsgRt["description"] = "ZED message rates - Rover";
-    command_types_tUbxMsgRt["instruction"] = "Set the message interval in navigation cycles for Rover (0 = Off)";
-    command_types_tUbxMsgRt["prefix"] = "ubxMessageRate_";
-    JsonArray command_types_tUbxMsgRt_keys = command_types_tUbxMsgRt["keys"].to<JsonArray>();
-    for (int x = 0; x < MAX_UBX_MSG; x++)
-        command_types_tUbxMsgRt_keys.add(ubxMessages[x].msgTextName);
-    command_types_tUbxMsgRt["type"] = "int";
-    command_types_tUbxMsgRt["value min"] = 0;
-    command_types_tUbxMsgRt["value max"] = 250; // Avoid 254!
-
-    JsonObject command_types_tUbMsgRtb = command_types.add<JsonObject>();
-    command_types_tUbMsgRtb["name"] = "tUbMsgRtb";
-    command_types_tUbMsgRtb["description"] = "ZED message rates - Base";
-    command_types_tUbMsgRtb["instruction"] = "Set the message interval in navigation cycles for Base (0 = Off)";
-    command_types_tUbMsgRtb["prefix"] = "ubxMessageRateBase_";
-    JsonArray command_types_tUbMsgRtb_keys = command_types_tUbMsgRtb["keys"].to<JsonArray>();
-    GNSS_ZED zed;
-    int firstRTCMRecord = zed.getMessageNumberByNameSkipChecks("RTCM_1005");
-    for (int x = 0; x < MAX_UBX_MSG_RTCM; x++)
-        command_types_tUbMsgRtb_keys.add(ubxMessages[firstRTCMRecord + x].msgTextName);
-    command_types_tUbMsgRtb["type"] = "int";
-    command_types_tUbMsgRtb["value min"] = 0;
-    command_types_tUbMsgRtb["value max"] = 250; // Avoid 254!
-#endif                                          // COMPILE_ZED
+    // Add the GNSS specific types
+    gnssCommandTypeJson(command_types);
 
     doc.shrinkToFit(); // optional
 
