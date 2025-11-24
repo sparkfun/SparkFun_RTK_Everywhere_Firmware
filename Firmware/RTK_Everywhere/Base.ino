@@ -8,7 +8,9 @@ uint8_t rtcmConsumerBufferHead;
 uint8_t rtcmConsumerBufferTail;
 uint8_t *rtcmConsumerBufferPtr = nullptr;
 
+//----------------------------------------
 // Allocate and initialize the rtcmConsumerBuffer
+//----------------------------------------
 bool rtcmConsumerBufferAllocated()
 {
     if (rtcmConsumerBufferPtr == nullptr)
@@ -30,18 +32,40 @@ bool rtcmConsumerBufferAllocated()
     return true;
 }
 
+//----------------------------------------
+// Check how many RTCM buffers contain data
+//----------------------------------------
+uint8_t rtcmBuffersInUse()
+{
+    if (!rtcmConsumerBufferAllocated())
+        return 0;
+
+    uint8_t buffersInUse = rtcmConsumerBufferHead - rtcmConsumerBufferTail;
+    if (buffersInUse >= rtcmConsumerBufferEntries) // Wrap if Tail is > Head
+        buffersInUse += rtcmConsumerBufferEntries;
+    return buffersInUse;
+}
+
+//----------------------------------------
+// Check if any RTCM data is available
+//----------------------------------------
+bool rtcmDataAvailable()
+{
+    return (rtcmBuffersInUse() > 0);
+}
+
+//----------------------------------------
 // Store each RTCM message in a PSRAM buffer
+// This function gets called as each complete RTCM message comes in
 // The messages are written to the servers by sendRTCMToConsumers
+//----------------------------------------
 void storeRTCMForConsumers(uint8_t *rtcmData, uint16_t dataLength)
 {
     if (!rtcmConsumerBufferAllocated())
         return;
 
     // Check if a buffer is available
-    uint8_t buffersInUse = rtcmConsumerBufferHead - rtcmConsumerBufferTail;
-    if (buffersInUse >= rtcmConsumerBufferEntries) // Wrap if Tail is > Head
-        buffersInUse += rtcmConsumerBufferEntries;
-    if (buffersInUse < (rtcmConsumerBufferEntries - 1))
+    if (rtcmBuffersInUse() < (rtcmConsumerBufferEntries - 1))
     {
         uint8_t *dest = rtcmConsumerBufferPtr;
         dest += (size_t)rtcmConsumerBufferEntrySize * (size_t)rtcmConsumerBufferHead;
@@ -57,7 +81,9 @@ void storeRTCMForConsumers(uint8_t *rtcmData, uint16_t dataLength)
     }
 }
 
+//----------------------------------------
 // Send the stored RTCM to consumers: ntripServer, LoRa and ESP-NOW
+//----------------------------------------
 void sendRTCMToConsumers()
 {
     if (!rtcmConsumerBufferAllocated())
@@ -84,8 +110,10 @@ void sendRTCMToConsumers()
     }
 }
 
-// This function gets called when an RTCM packet passes parser check in processUart1Message() task
+//----------------------------------------
 // Store data ready to be passed along to NTRIP Server, or ESP-NOW radio
+// This function gets called when an RTCM packet passes parser check in processUart1Message() task
+//----------------------------------------
 void processRTCM(uint8_t *rtcmData, uint16_t dataLength)
 {
     storeRTCMForConsumers(rtcmData, dataLength);

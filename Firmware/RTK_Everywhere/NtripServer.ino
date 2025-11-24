@@ -150,7 +150,7 @@ typedef struct
     volatile uint32_t startTime;
     volatile int connectionAttemptsTotal; // Count the number of connection attempts absolutely
 
-    // Better debug printing by ntripServerProcessRTCM
+    // Better debug printing by ntripServerSendRTCM
     volatile uint32_t rtcmBytesSent;
     volatile uint32_t previousMilliseconds;
 
@@ -382,6 +382,14 @@ const RtkMode_t ntripServerMode = RTK_MODE_BASE_FIXED;
 // NTRIP Servers
 static NTRIP_SERVER_DATA ntripServerArray[NTRIP_SERVER_MAX];
 
+bool ntripServerSettingsHaveChanged[NTRIP_SERVER_MAX] =
+{
+    false,
+    false,
+    false,
+    false,
+}; // Goes true when a menu or command modified the server credentials
+
 //----------------------------------------
 // NTRIP Server Routines
 //----------------------------------------
@@ -412,9 +420,12 @@ bool ntripServerConnectCaster(int serverIndex)
         systemPrintf("NTRIP Server %d connecting to %s:%d\r\n", serverIndex,
                      settings.ntripServer_CasterHost[serverIndex], settings.ntripServer_CasterPort[serverIndex]);
 
-    // Attempt a connection to the NTRIP caster
+    // Record the settings as unchanged
+    ntripServerSettingsHaveChanged[serverIndex] = false;
+
+    // Attempt a connection to the NTRIP caster - using the full default 3000ms _timeout
     if (!ntripServer->networkClient->connect(settings.ntripServer_CasterHost[serverIndex],
-                                             settings.ntripServer_CasterPort[serverIndex]))
+                                             settings.ntripServer_CasterPort[serverIndex], 3000))
     {
         if (settings.debugNtripServerState)
             systemPrintf("NTRIP Server %d connection to NTRIP caster %s:%d failed\r\n", serverIndex,
@@ -513,13 +524,16 @@ bool ntripServerEnabled(int serverIndex, const char ** line)
         }
 
         // Verify that the parameters were specified
-        if ((settings.ntripServer_CasterHost[serverIndex][0] == 0)
+        if ((settings.ntripServer_CasterEnabled[serverIndex] == false)
+            || (settings.ntripServer_CasterHost[serverIndex][0] == 0)
             || (settings.ntripServer_CasterPort[serverIndex] == 0)
             || (settings.ntripServer_MountPoint[serverIndex][0] == 0))
         {
             if (line)
             {
-                if (settings.ntripServer_CasterHost[serverIndex][0] == 0)
+                if (settings.ntripServer_CasterEnabled[serverIndex] == false)
+                    *line = ", Caster not enabled!";
+                else if (settings.ntripServer_CasterHost[serverIndex][0] == 0)
                     *line = ", Caster host not specified!";
                 else if (settings.ntripServer_CasterPort[serverIndex] == 0)
                     *line = ", Caster port not specified!";
@@ -614,7 +628,7 @@ void ntripServerPrintStatus(int serverIndex)
 }
 
 //----------------------------------------
-// This function gets called as each complete RTCM message comes in
+// This function sends stored, complete RTCM messages to connected servers
 //----------------------------------------
 void ntripServerSendRTCM(int serverIndex, uint8_t *rtcmData, uint16_t dataLength)
 {
@@ -675,12 +689,6 @@ void ntripServerSendRTCM(int serverIndex, uint8_t *rtcmData, uint16_t dataLength
                 systemPrintf("ntripServer write took %ldms\r\n", millis() - entryTime);
             }
         }
-    }
-
-    // Indicate that the GNSS is providing correction data
-    else if (ntripServer->state == NTRIP_SERVER_WAIT_GNSS_DATA)
-    {
-        ntripServerSetState(serverIndex, NTRIP_SERVER_CONNECTING);
     }
 }
 
@@ -799,6 +807,8 @@ void ntripServerStop(int serverIndex, bool shutdown)
     {
         if (settings.debugNtripServerState)
             systemPrintf("NTRIP Server %d shutdown requested!\r\n", serverIndex);
+        if (settings.debugNtripServerState && (!settings.ntripServer_CasterEnabled[serverIndex]))
+            systemPrintf("NTRIP Server %d caster not enabled!\r\n", serverIndex);
         if (settings.debugNtripServerState && (!settings.ntripServer_CasterHost[serverIndex][0]))
             systemPrintf("NTRIP Server %d caster host not configured!\r\n", serverIndex);
         if (settings.debugNtripServerState && (!settings.ntripServer_CasterPort[serverIndex]))
@@ -846,6 +856,13 @@ void ntripServerUpdate(int serverIndex)
     enabled = ntripServerEnabled(serverIndex, &line);
     if (!enabled && (ntripServer->state > NTRIP_SERVER_OFF))
         ntripServerShutdown(serverIndex);
+
+    // Determine if the settings have changed
+    else if (ntripServerSettingsHaveChanged[serverIndex])
+    {
+        ntripServerSettingsHaveChanged[serverIndex] = false;
+        ntripServerRestart(serverIndex);
+    }
 
     // Determine if the network has failed
     else if ((ntripServer->state > NTRIP_SERVER_WAIT_FOR_NETWORK)
@@ -902,6 +919,13 @@ void ntripServerUpdate(int serverIndex)
             // Failed to connect to to the network, attempt to restart the network
             ntripServerRestart(serverIndex);
 
+        // Determine if the settings have changed
+        else if (ntripServerSettingsHaveChanged[serverIndex])
+        {
+            ntripServerSettingsHaveChanged[serverIndex] = false;
+            ntripServerRestart(serverIndex);
+        }
+
         else if (settings.enableNtripServer)
         {
             // No RTCM correction data sent yet
@@ -914,7 +938,11 @@ void ntripServerUpdate(int serverIndex)
 
     // Wait for GNSS correction data
     case NTRIP_SERVER_WAIT_GNSS_DATA:
-        // State change handled in ntripServerProcessRTCM
+        // There is a small risk that any other connected servers will absorb the
+        // data before rtcmDataAvailable() is able to return true. We may need to
+        // add a data-was-available timer or similar?
+        if (rtcmDataAvailable())
+            ntripServerSetState(serverIndex, NTRIP_SERVER_CONNECTING);
         break;
 
     // Initiate the connection to the NTRIP caster
@@ -1046,6 +1074,14 @@ void ntripServerUpdate(int serverIndex)
                          settings.ntripServer_CasterHost[serverIndex]);
             ntripServerRestart(serverIndex);
         }
+        // Determine if the settings have changed
+        else if (ntripServerSettingsHaveChanged[serverIndex])
+        {
+            systemPrintf("NTRIP Server %d breaking connection to %s - settings changed!\r\n", serverIndex,
+                         settings.ntripServer_CasterHost[serverIndex]);
+            ntripServerSettingsHaveChanged[serverIndex] = false;
+            ntripServerRestart(serverIndex);
+        }
         else if (ntripServer->millisSinceTimer() > (10 * 1000))
         {
             // GNSS stopped sending RTCM correction data
@@ -1103,6 +1139,12 @@ void ntripServerValidateTables()
 {
     if (ntripServerStateNameEntries != NTRIP_SERVER_STATE_MAX)
         reportFatalError("Fix ntripServerStateNameEntries to match NTRIPServerState");
+}
+
+// Called from CLI call backs or serial menus to let machine know it can restart the server
+void ntripServerSettingsChanged(int serverIndex)
+{
+    ntripServerSettingsHaveChanged[serverIndex] = true;
 }
 
 #endif  // COMPILE_NTRIP_SERVER

@@ -786,6 +786,13 @@ struct Settings
     bool debugNtripServerState = false;
     bool enableNtripServer = false;
     bool enableRtcmMessageChecking = false;
+    bool ntripServer_CasterEnabled[NTRIP_SERVER_MAX] =
+    {
+        false,
+        false,
+        false,
+        false,
+    };
     char ntripServer_CasterHost[NTRIP_SERVER_MAX][NTRIP_SERVER_STRING_SIZE] = // It's free...
     {
         "rtk2go.com",
@@ -1153,6 +1160,9 @@ typedef enum {
     tCmnRtNm,
     tCnRtRtB,
     tCnRtRtR,
+
+    tNSCEn,
+
     // Add new settings types above <---------------->
     // (Maintain the enum of existing settings types!)
 } RTK_Settings_Types;
@@ -1526,6 +1536,7 @@ const RTK_Settings_Entry rtkSettingsEntries[] =
     { 0, 0, 0, 1, 1, 1, 1, 1, 1, ALL, 1, _bool,     0, & settings.debugNtripServerState, "debugNtripServerState", nullptr, },
     { 1, 1, 0, 1, 1, 1, 1, 1, 1, ALL, 1, _bool,     0, & settings.enableNtripServer, "enableNtripServer", nullptr, },
     { 0, 0, 0, 1, 1, 1, 1, 1, 1, ALL, 1, _bool,     0, & settings.enableRtcmMessageChecking, "enableRtcmMessageChecking", nullptr, },
+    { 1, 1, 1, 1, 1, 1, 1, 1, 1, ALL, 1, tNSCEn,    NTRIP_SERVER_MAX, & settings.ntripServer_CasterEnabled[0], "ntripServerCasterEnabled_", nullptr, },
     { 1, 1, 1, 1, 1, 1, 1, 1, 1, ALL, 1, tNSCHost,  NTRIP_SERVER_MAX, & settings.ntripServer_CasterHost[0], "ntripServerCasterHost_", nullptr, },
     { 1, 1, 1, 1, 1, 1, 1, 1, 1, ALL, 1, tNSCPort,  NTRIP_SERVER_MAX, & settings.ntripServer_CasterPort[0], "ntripServerCasterPort_", nullptr, },
     { 1, 1, 1, 1, 1, 1, 1, 1, 1, ALL, 1, tNSCUser,  NTRIP_SERVER_MAX, & settings.ntripServer_CasterUser[0], "ntripServerCasterUser_", nullptr, },

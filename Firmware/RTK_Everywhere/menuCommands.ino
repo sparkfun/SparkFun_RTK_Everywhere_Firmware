@@ -1073,6 +1073,15 @@ SettingValueResponse updateSettingWithValue(bool inCommands, const char *setting
             }
         }
         break;
+        case tNSCEn: {
+            int server;
+            if (sscanf(suffix, "%d", &server) == 1)
+            {
+                settings.ntripServer_CasterEnabled[server] = (bool)settingValue;
+                knownSetting = true;
+            }
+        }
+        break;
         case tNSCHost: {
             int server;
             if (sscanf(suffix, "%d", &server) == 1)
@@ -1896,6 +1905,16 @@ void createSettingsString(char *newSettings)
                     stringRecord(newSettings, tempString);
                     snprintf(tempString, sizeof(tempString), "%s%dPassword,%s,", rtkSettingsEntries[i].name, x,
                              settings.wifiNetworks[x].password);
+                    stringRecord(newSettings, tempString);
+                }
+            }
+            break;
+            case tNSCEn: {
+                for (int x = 0; x < rtkSettingsEntries[i].qualifier; x++)
+                {
+                    char tempString[50];
+                    snprintf(tempString, sizeof(tempString), "%s%d,%d,", rtkSettingsEntries[i].name, x,
+                             settings.ntripServer_CasterEnabled[x]);
                     stringRecord(newSettings, tempString);
                 }
             }
@@ -2785,6 +2804,15 @@ SettingValueResponse getSettingValue(bool inCommands, const char *settingName, c
             }
         }
         break;
+        case tNSCEn: {
+            int server;
+            if (sscanf(suffix, "%d", &server) == 1)
+            {
+                writeToString(settingValueStr, settings.ntripServer_CasterEnabled[server]);
+                knownSetting = true;
+            }
+        }
+        break;
         case tNSCHost: {
             int server;
             if (sscanf(suffix, "%d", &server) == 1)
@@ -3418,6 +3446,16 @@ void commandList(bool inCommands, int i)
 
             getSettingValue(inCommands, settingName, settingValue);
             commandSendExecuteListResponse(settingName, settingType, settingValue);
+        }
+    }
+    break;
+    case tNSCEn: {
+        for (int x = 0; x < rtkSettingsEntries[i].qualifier; x++)
+        {
+            snprintf(settingName, sizeof(settingName), "%s%d", rtkSettingsEntries[i].name, x);
+
+            getSettingValue(inCommands, settingName, settingValue);
+            commandSendExecuteListResponse(settingName, "bool", settingValue);
         }
     }
     break;
