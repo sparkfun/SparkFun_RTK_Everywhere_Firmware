@@ -75,7 +75,7 @@ RUN arduino-cli lib install "SparkFun MAX1704x Fuel Gauge Arduino Library"@1.0.4
 RUN arduino-cli lib install "SparkFun u-blox GNSS v3"@3.1.10
 RUN arduino-cli lib install "SparkFun Qwiic OLED Arduino Library"@1.0.13
 RUN arduino-cli lib install SSLClientESP32@2.0.0
-RUN arduino-cli lib install "SparkFun Extensible Message Parser"@1.0.4
+RUN arduino-cli lib install "SparkFun Extensible Message Parser"@1.0.6
 RUN arduino-cli lib install "SparkFun BQ40Z50 Battery Manager Arduino Library"@1.0.0
 RUN arduino-cli lib install "ArduinoMqttClient"@0.1.8
 RUN arduino-cli lib install "SparkFun u-blox PointPerfect Library"@1.11.4
