@@ -464,8 +464,8 @@ void gnssReadTask(void *e)
 
                 if ((bytesIncoming < 0) || (bytesIncoming > sizeof(incomingData)))
                 {
-                    systemPrint(debugMessagePrefix);
-                    systemPrintf("gnssReadTask: bytesIncoming = %d\r\n", bytesIncoming);
+                    if (settings.debugGnss)
+                        systemPrintf("gnssReadTask: bytesIncoming = %d\r\n", bytesIncoming);
                 }
 
                 for (int x = 0; x < bytesIncoming; x++)
