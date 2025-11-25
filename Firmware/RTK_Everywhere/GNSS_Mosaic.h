@@ -1,8 +1,8 @@
-/*------------------------------------------------------------------------------
+/*=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 GNSS_Mosaic.h
 
   Declarations and definitions for the Mosaic GNSS receiver
-------------------------------------------------------------------------------*/
+=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=*/
 
 #ifndef __GNSS_MOSAIC_H__
 #define __GNSS_MOSAIC_H__
@@ -1071,4 +1071,30 @@ class GNSS_MOSAIC : GNSS
     void waitSBFReceiverSetup(HardwareSerial *serialPort, unsigned long timeout);
 };
 
-#endif // __GNSS_MOSAIC_H__
+// Forward routine declarations
+bool mosaicCommandList(RTK_Settings_Types type,
+                       int settingsIndex,
+                       bool inCommands,
+                       int qualifier,
+                       char * settingName,
+                       char * settingValue);
+void mosaicCommandTypeJson(JsonArray &command_types);
+bool mosaicCreateString(RTK_Settings_Types type,
+                        int settingsIndex,
+                        char * newSettings);
+bool mosaicpGetSettingValue(RTK_Settings_Types type,
+                            const char * suffix,
+                            int settingsIndex,
+                            int qualifier,
+                            char * settingValueStr);
+bool mosaicIsPresentOnFlex();
+void mosaicNewClass();
+bool mosaicNewSettingValue(RTK_Settings_Types type,
+                           const char * suffix,
+                           int qualifier,
+                           double d);
+bool mosaicSettingsToFile(File *settingsFile,
+                          RTK_Settings_Types type,
+                          int settingsIndex);
+
+#endif  // __GNSS_MOSAIC_H__

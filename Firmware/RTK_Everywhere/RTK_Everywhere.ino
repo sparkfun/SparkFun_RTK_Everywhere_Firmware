@@ -1,4 +1,6 @@
-/*
+/*=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
+RTK_Everywhere.ino
+
   October 2nd, 2023
   SparkFun Electronics
   Nathan Seidle
@@ -76,7 +78,7 @@
   |                                         |    |             |
   +-----------------------------------------+    +-------------+
 
-*/
+=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=*/
 
 // To reduce compile times, various parts of the firmware can be disabled/removed if they are not
 // needed during development
@@ -124,6 +126,26 @@
 #define COMPILE_TCP_SERVER      // Comment out to remove TCP server functionality
 #define COMPILE_UDP_SERVER      // Comment out to remove UDP server functionality
 #endif                      // COMPILE_WIFI || COMPILE_ETHERNET || COMPILE_CELLULAR
+
+#define COMPILE_SERIAL_MENUS    // Comment out to remove base menu functionality
+
+#ifdef  COMPILE_SERIAL_MENUS
+#define COMPILE_MENU_BASE           // Comment out to remove base menu functionality
+#define COMPILE_MENU_CORRECTIONS    // Comment out to remove correction priorities menu functionality
+#define COMPILE_MENU_ETHERNET       // Comment out to remove Ethernet menu functionality
+#define COMPILE_MENU_FIRMWARE       // Comment out to remove firmware menu functionality
+#define COMPILE_MENU_GNSS           // Comment out to remove GNSS menu functionality
+#define COMPILE_MENU_INSTRUMENTS    // Comment out to remove instruments menu functionality
+#define COMPILE_MENU_LOGGING        // Comment out to remove logging menus functionality
+#define COMPILE_MENU_MESSAGES       // Comment out to remove messages menu functionality
+#define COMPILE_MENU_PORTS          // Comment out to remove ports menu functionality
+#define COMPILE_MENU_POINTPERFECT   // Comment out to remove PointPerfect menu functionality
+#define COMPILE_MENU_RADIO          // Comment out to remove radio menu functionality
+#define COMPILE_MENU_SYSTEM         // Comment out to remove system menu functionality
+#define COMPILE_MENU_TCP_UDP        // Comment out to remove TCP/UDP menu functionality
+#define COMPILE_MENU_USER_PROFILES  // Comment out to remove user profile menu functionality
+#define COMPILE_MENU_WIFI           // Comment out to remove WiFi menu functionality
+#endif  // COMPILE_SERIAL_MENUS
 
 // Always define ENABLE_DEVELOPER to enable its use in conditional statements
 #ifndef ENABLE_DEVELOPER
@@ -318,8 +340,6 @@ TwoWire *i2cAuthCoPro = nullptr;
 
 // LittleFS for storing settings for different user profiles
 //-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
-#include <LittleFS.h> //Built-in
-
 #define MAX_PROFILE_COUNT 8
 uint8_t activeProfiles;                    // Bit vector indicating which profiles are active
 uint8_t displayProfile;                    // Profile Unit - Range: 0 - (MAX_PROFILE_COUNT - 1)
@@ -347,9 +367,6 @@ void printTimeStamp(bool always = false); // Header
 
 void beginSPI(bool force = false); // Header
 
-// Important note: the firmware currently requires SdFat v2.1.1
-// sd->begin will crash second time around with ~v2.2.3
-#include "SdFat.h" //http://librarymanager/All#sdfat_exfat by Bill Greiman.
 SdFat *sd;
 
 #define platformFilePrefix platformFilePrefixTable[productVariant] // Sets the prefix for logs and settings files

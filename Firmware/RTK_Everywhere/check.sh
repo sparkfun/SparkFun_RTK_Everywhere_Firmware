@@ -130,6 +130,86 @@ sed -i 's|#define COMPILE_IM19_IMU|//#define COMPILE_IM19_IMU|' RTK_Everywhere.i
 make
 git reset --hard --quiet  HEAD
 
+# Menu base
+sed -i 's|#define COMPILE_MENU_BASE|//#define COMPILE_MENU_BASE|' RTK_Everywhere.ino
+make
+git reset --hard --quiet  HEAD
+
+# Menu correction priorities
+sed -i 's|#define COMPILE_MENU_CORRECTIONS|//#define COMPILE_MENU_CORRECTIONS|' RTK_Everywhere.ino
+make
+git reset --hard --quiet  HEAD
+
+# Menu Ethernet
+sed -i 's|#define COMPILE_MENU_ETHERNET|//#define COMPILE_MENU_ETHERNET|' RTK_Everywhere.ino
+make
+git reset --hard --quiet  HEAD
+
+# Menu Firmware
+sed -i 's|#define COMPILE_MENU_FIRMWARE|//#define COMPILE_MENU_FIRMWARE|' RTK_Everywhere.ino
+make
+git reset --hard --quiet  HEAD
+
+# Menu GNSS
+sed -i 's|#define COMPILE_MENU_GNSS|//#define COMPILE_MENU_GNSS|' RTK_Everywhere.ino
+make
+git reset --hard --quiet  HEAD
+
+# Menu Instruments
+sed -i 's|#define COMPILE_MENU_INSTRUMENTS|//#define COMPILE_MENU_INSTRUMENTS|' RTK_Everywhere.ino
+make
+git reset --hard --quiet  HEAD
+
+# Menu Logging
+sed -i 's|#define COMPILE_MENU_LOGGING|//#define COMPILE_MENU_LOGGING|' RTK_Everywhere.ino
+make
+git reset --hard --quiet  HEAD
+
+# Menu Messages
+sed -i 's|#define COMPILE_MENU_MESSAGES|//#define COMPILE_MENU_MESSAGES|' RTK_Everywhere.ino
+make
+git reset --hard --quiet  HEAD
+
+# Menu Ports
+sed -i 's|#define COMPILE_MENU_PORTS|//#define COMPILE_MENU_PORTS|' RTK_Everywhere.ino
+make
+git reset --hard --quiet  HEAD
+
+# Menu PointPerfect (PP)
+sed -i 's|#define COMPILE_MENU_POINTPERFECT|//#define COMPILE_MENU_POINTPERFECT|' RTK_Everywhere.ino
+make
+git reset --hard --quiet  HEAD
+
+# Menu Radio
+sed -i 's|#define COMPILE_MENU_RADIO|//#define COMPILE_MENU_RADIO|' RTK_Everywhere.ino
+make
+git reset --hard --quiet  HEAD
+
+# Menu System
+sed -i 's|#define COMPILE_MENU_SYSTEM|//#define COMPILE_MENU_SYSTEM|' RTK_Everywhere.ino
+make
+git reset --hard --quiet  HEAD
+
+# Menu TCP/UDP
+sed -i 's|#define COMPILE_MENU_TCP_UDP|//#define COMPILE_MENU_TCP_UDP|' RTK_Everywhere.ino
+make
+git reset --hard --quiet  HEAD
+
+# Menu User Profiles
+sed -i 's|#define COMPILE_MENU_USER_PROFILES|//#define COMPILE_MENU_USER_PROFILES|' RTK_Everywhere.ino
+make
+git reset --hard --quiet  HEAD
+
+# Menu WiFi
+sed -i 's|#define COMPILE_MENU_WIFI|//#define COMPILE_MENU_WIFI|' RTK_Everywhere.ino
+make
+git reset --hard --quiet  HEAD
+
+# All serial menus
+sed -i 's|#define COMPILE_SERIAL_MENUS|//#define COMPILE_SERIAL_MENUS|' RTK_Everywhere.ino
+make
+git reset --hard --quiet  HEAD
+
 # MP2762A Charger
 sed -i 's|#define COMPILE_MP2762A_CHARGER|//#define COMPILE_MP2762A_CHARGER|' RTK_Everywhere.ino
 make

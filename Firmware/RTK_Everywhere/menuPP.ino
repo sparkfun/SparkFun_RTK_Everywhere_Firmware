@@ -1,3 +1,7 @@
+/*=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
+menuPP.ino
+=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=*/
+
 #include "mbedtls/ctr_drbg.h"
 #include "mbedtls/ssl.h" //Needed for certificate validation
 
@@ -80,6 +84,8 @@ const PP_Service ppServices[] = {
 };
 
 const int ppServiceCount = sizeof(ppServices) / sizeof(ppServices[0]);
+
+#ifdef  COMPILE_MENU_POINTPERFECT
 
 // Provision device on ThingStream
 // Download keys
@@ -305,16 +311,6 @@ void menuPointPerfect()
     clearBuffer(); // Empty buffer of any newline chars
 }
 
-// Returns string containing the MAC + product variant number
-const char *printDeviceId()
-{
-    static char deviceID[strlen("1234567890ABXX") + 1]; // 12 character MAC + 2 character variant + room for terminator
-    snprintf(deviceID, sizeof(deviceID), "%02X%02X%02X%02X%02X%02X%02X", btMACAddress[0], btMACAddress[1],
-             btMACAddress[2], btMACAddress[3], btMACAddress[4], btMACAddress[5], productVariant);
-
-    return ((const char *)deviceID);
-}
-
 // Present user with list of available services, list depends on platform
 void menuPointPerfectSelectService()
 {
@@ -505,6 +501,8 @@ void menuPointPerfectKeys()
 
     clearBuffer(); // Empty buffer of any newline chars
 }
+
+#endif  // COMPILE_MENU_POINTPERFECT
 
 // Update any L-Band hardware
 // Check if NEO-D9S is connected. Configure if available.

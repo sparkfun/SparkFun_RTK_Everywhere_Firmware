@@ -1,4 +1,4 @@
-/*
+/*=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 UdpServer.ino
 
   The UDP (position, velocity and time) server sits on top of the network layer
@@ -57,7 +57,7 @@ UdpServer.ino
         2. Enable Show Position Information
 
         3. Verify that the displayed coordinates, fix tpe etc. are valid
-*/
+=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=*/
 
 #ifdef COMPILE_UDP_SERVER
 

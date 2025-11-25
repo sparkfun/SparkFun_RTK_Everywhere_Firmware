@@ -1,8 +1,8 @@
-/**********************************************************************
-  Wifi.ino
+/*=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
+Wifi.ino
 
   WiFi layer, supports use by ESP-NOW, soft AP and WiFi station
-**********************************************************************/
+=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=*/
 
 #ifdef COMPILE_WIFI
 
@@ -369,6 +369,9 @@ static struct Settings *wifiPreviousSettings;
 //*********************************************************************
 // Set WiFi credentials
 // Enable TCP connections
+
+#ifdef  COMPILE_MENU_WIFI
+
 void menuWiFi()
 {
     wifiSettingsClone(); // Create a copy of settings to detect if WiFi settings change
@@ -444,6 +447,8 @@ void menuWiFi()
 
     clearBuffer(); // Empty buffer of any newline chars
 }
+
+#endif  // COMPILE_MENU_WIFI
 
 //----------------------------------------
 // Check the settings and free the settings structure
