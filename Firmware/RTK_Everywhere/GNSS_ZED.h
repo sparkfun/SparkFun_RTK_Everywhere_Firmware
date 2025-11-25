@@ -1,8 +1,8 @@
-/*------------------------------------------------------------------------------
+/*=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 GNSS_ZED.h
 
   Declarations and definitions for the GNSS_ZED implementation
-------------------------------------------------------------------------------*/
+=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=*/
 
 #ifndef __GNSS_ZED_H__
 #define __GNSS_ZED_H__
@@ -794,6 +794,30 @@ class GNSS_ZED : GNSS
 
     void updateCorrectionsSource(uint8_t source);
 };
+
+// Forward routine declarations
+bool zedCommandList(RTK_Settings_Types type,
+                    int settingsIndex,
+                    bool inCommands,
+                    int qualifier,
+                    char * settingName,
+                    char * settingValue);
+void zedCommandTypeJson(JsonArray &command_types);
+bool zedCreateString(RTK_Settings_Types type,
+                     int settingsIndex,
+                     char * newSettings);
+bool zedGetSettingValue(RTK_Settings_Types type,
+                        const char * suffix,
+                        int settingsIndex,
+                        int qualifier,
+                        char * settingValueStr);
+bool zedNewSettingValue(RTK_Settings_Types type,
+                        const char * suffix,
+                        int qualifier,
+                        double d);
+bool zedSettingsToFile(File *settingsFile,
+                       RTK_Settings_Types type,
+                       int settingsIndex);
 
 #endif // COMPILE_ZED
 #endif // __GNSS_ZED_H__

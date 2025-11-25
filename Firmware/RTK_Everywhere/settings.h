@@ -1,5 +1,78 @@
+/*=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
+settings.h
+=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=*/
+
 #ifndef __SETTINGS_H__
 #define __SETTINGS_H__
+
+typedef enum {
+    _bool = 0,
+    _int,
+    _float,
+    _double,
+    _uint8_t,
+    _uint16_t,
+    _uint32_t,
+    _uint64_t,
+    _int8_t,
+    _int16_t,
+    tMuxConn,
+    tSysState,
+    tPulseEdg,
+    tBtRadio,
+    tPerDisp,
+    tCoordInp,
+    tCharArry,
+    _IPString,
+    tUbxMsgRt,
+    tUbxConst,
+    tEspNowPr,
+    tUbMsgRtb,
+    tWiFiNet,
+    tNSCHost,
+    tNSCPort,
+    tNSCUser,
+    tNSCUsrPw,
+    tNSMtPt,
+    tNSMtPtPw,
+
+    tUmMRNmea,
+    tUmMRRvRT,
+    tUmMRBaRT,
+    tUmConst,
+
+    tCorrSPri,
+    tRegCorTp,
+    tMosaicConst,
+    tMosaicMSNmea,
+    tMosaicSINmea,
+    tMosaicMIRvRT,
+    tMosaicMIBaRT,
+    tMosaicMERvRT,
+    tMosaicMEBaRT,
+    tLgMRNmea,
+    tLgMRRvRT,
+    tLgMRBaRT,
+    tLgMRPqtm,
+    tLgConst,
+    tGnssReceiver,
+
+    tCmnCnst,
+    tCmnRtNm,
+    tCnRtRtB,
+    tCnRtRtR,
+
+    tNSCEn,
+
+    // Add new settings types above <---------------->
+    // (Maintain the enum of existing settings types!)
+} RTK_Settings_Types;
+
+#include <LittleFS.h> //Built-in
+
+// Important note: the firmware currently requires SdFat v2.1.1
+// sd->begin will crash second time around with ~v2.2.3
+#include "SdFat.h" //http://librarymanager/All#sdfat_exfat by Bill Greiman.
 
 #include "GNSS.h"
 #include "GNSS_None.h"
@@ -258,17 +331,6 @@ typedef enum
     MUX_I2C_WT,
     MUX_ADC_DAC,
 } muxConnectionType_e;
-
-// GNSS receiver type detected in Flex
-typedef enum
-{
-    GNSS_RECEIVER_LG290P = 0,
-    GNSS_RECEIVER_MOSAIC_X5,
-    GNSS_RECEIVER_X20P,
-    GNSS_RECEIVER_UM980,
-    // Add new values above this line
-    GNSS_RECEIVER_UNKNOWN,
-} gnssReceiverType_e;
 
 // User can enter fixed base coordinates in ECEF or degrees
 typedef enum
@@ -1103,69 +1165,6 @@ const char *localizedDistributionTileLevelNames[LOCALIZED_DISTRIBUTION_TILE_LEVE
     "500 x 500km high density",
     "250 x 250km high density",
 };
-
-typedef enum {
-    _bool = 0,
-    _int,
-    _float,
-    _double,
-    _uint8_t,
-    _uint16_t,
-    _uint32_t,
-    _uint64_t,
-    _int8_t,
-    _int16_t,
-    tMuxConn,
-    tSysState,
-    tPulseEdg,
-    tBtRadio,
-    tPerDisp,
-    tCoordInp,
-    tCharArry,
-    _IPString,
-    tUbxMsgRt,
-    tUbxConst,
-    tEspNowPr,
-    tUbMsgRtb,
-    tWiFiNet,
-    tNSCHost,
-    tNSCPort,
-    tNSCUser,
-    tNSCUsrPw,
-    tNSMtPt,
-    tNSMtPtPw,
-
-    tUmMRNmea,
-    tUmMRRvRT,
-    tUmMRBaRT,
-    tUmConst,
-
-    tCorrSPri,
-    tRegCorTp,
-    tMosaicConst,
-    tMosaicMSNmea,
-    tMosaicSINmea,
-    tMosaicMIRvRT,
-    tMosaicMIBaRT,
-    tMosaicMERvRT,
-    tMosaicMEBaRT,
-    tLgMRNmea,
-    tLgMRRvRT,
-    tLgMRBaRT,
-    tLgMRPqtm,
-    tLgConst,
-    tGnssReceiver,
-
-    tCmnCnst,
-    tCmnRtNm,
-    tCnRtRtB,
-    tCnRtRtR,
-
-    tNSCEn,
-
-    // Add new settings types above <---------------->
-    // (Maintain the enum of existing settings types!)
-} RTK_Settings_Types;
 
 typedef enum
 {

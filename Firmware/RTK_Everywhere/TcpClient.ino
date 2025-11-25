@@ -1,4 +1,4 @@
-/*
+/*=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 TcpClient.ino
 
   The (position, velocity and time) client sits on top of the network layer and
@@ -113,7 +113,7 @@ TcpClient.ino
     * https://emlid.com/ntrip-caster/
     * http://rtk2go.com/
     * private SNIP NTRIP caster
-*/
+=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=*/
 
 #ifdef COMPILE_TCP_CLIENT
 

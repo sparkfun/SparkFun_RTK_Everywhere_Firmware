@@ -1,4 +1,4 @@
-/*------------------------------------------------------------------------------
+/*=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 HTTP_Client.ino
 
   The HTTP client sits on top of the network layer and handles Zero Touch
@@ -8,7 +8,7 @@ HTTP_Client.ino
   pointperfectTryZtpToken but was problematic as it used a separate instance
   of NetworkClientSecure and had no control over the underlying network.
 
-------------------------------------------------------------------------------*/
+=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=*/
 
 ZtpResponse ztpResponse =
     ZTP_NOT_STARTED; // Used in menuPointPerfect(). This is the overall result of the ZTP process of testing multiple tokens

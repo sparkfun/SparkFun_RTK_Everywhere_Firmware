@@ -1,9 +1,8 @@
-
-/*------------------------------------------------------------------------------
+/*=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 GNSS_UM980.h
 
   Declarations and definitions for the UM980 GNSS receiver and the GNSS_UM980 class
-------------------------------------------------------------------------------*/
+=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=*/
 
 #ifndef __GNSS_UM980_H__
 #define __GNSS_UM980_H__
@@ -495,6 +494,30 @@ class GNSS_UM980 : GNSS
     // Poll routine to update the GNSS state
     void update();
 };
+
+// Forward routine declarations
+bool um980CommandList(RTK_Settings_Types type,
+                      int settingsIndex,
+                      bool inCommands,
+                      int qualifier,
+                      char * settingName,
+                      char * settingValue);
+void um980CommandTypeJson(JsonArray &command_types);
+bool um980CreateString(RTK_Settings_Types type,
+                       int settingsIndex,
+                       char * newSettings);
+bool um980GetSettingValue(RTK_Settings_Types type,
+                          const char * suffix,
+                          int settingsIndex,
+                          int qualifier,
+                          char * settingValueStr);
+bool um980NewSettingValue(RTK_Settings_Types type,
+                          const char * suffix,
+                          int qualifier,
+                          double d);
+bool um980SettingsToFile(File *settingsFile,
+                         RTK_Settings_Types type,
+                         int settingsIndex);
 
 #endif // COMPILE_UM980
 #endif // __GNSS_UM980_H__

@@ -1,4 +1,6 @@
-/*
+/*=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
+Tilt.ino
+
   Once RTK Fix is achieved, and the tilt sensor is activated (ie rocked back and forth) the tilt sensor
   generates binary-encoded lat/lon/alt values that are tilt-compensated. To get these values to the
   GIS Data Collector software, we need to transmit corrected NMEA sentences over Bluetooth. The
@@ -11,7 +13,7 @@
   are already set. We just need to be sure the tilt-compensated values are positive using abs().
   This could lead to problems if the unit is within ~1m of the Equator and Prime Meridian but
   we don't consider those edges cases here.
-*/
+=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=*/
 
 #ifdef COMPILE_IM19_IMU
 

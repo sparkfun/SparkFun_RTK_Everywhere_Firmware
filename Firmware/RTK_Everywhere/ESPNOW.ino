@@ -1,4 +1,4 @@
-/**********************************************************************
+/*=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
   ESPNOW.ino
 
   Handle the ESP-NOW events
@@ -19,7 +19,7 @@
   * We don't care if the ESP NOW packet is corrupt or not. RTCM has its own
     CRC. RTK needs valid RTCM once every few seconds so a single dropped
     frame is not critical.
-**********************************************************************/
+=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=*/
 
 #ifdef COMPILE_ESPNOW
 

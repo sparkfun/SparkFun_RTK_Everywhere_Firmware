@@ -1,4 +1,8 @@
-// Helper functions to support printing to eiter the serial port or bluetooth connection
+/*=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
+Support.ino
+
+  Helper functions to support printing to eiter the serial port or bluetooth connection
+=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=*/
 
 // If we are printing to all endpoints, BT gets priority
 int systemAvailable()
