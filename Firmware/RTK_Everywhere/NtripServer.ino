@@ -854,20 +854,24 @@ void ntripServerUpdate(int serverIndex)
         ntripServerSetState(serverIndex, ntripServer->state);
     connected = networkConsumerIsConnected(NETWORK_CONSUMER(serverIndex));
     enabled = ntripServerEnabled(serverIndex, &line);
+
+    // Determine if no longer enabled
     if (!enabled && (ntripServer->state > NTRIP_SERVER_OFF))
         ntripServerShutdown(serverIndex);
 
-    // Determine if the settings have changed
-    else if (ntripServerSettingsHaveChanged[serverIndex])
-    {
-        ntripServerSettingsHaveChanged[serverIndex] = false;
-        ntripServerRestart(serverIndex);
-    }
-
     // Determine if the network has failed
-    else if ((ntripServer->state > NTRIP_SERVER_WAIT_FOR_NETWORK)
-        && (!connected))
+    else if ((ntripServer->state >= NTRIP_SERVER_NETWORK_CONNECTED)
+             && (!connected))
         ntripServerRestart(serverIndex);
+
+    // Determine if the settings have changed while connected
+    else if ((ntripServer->state >= NTRIP_SERVER_NETWORK_CONNECTED)
+             && (connected)
+             && (ntripServerSettingsHaveChanged[serverIndex]))
+        ntripServerRestart(serverIndex);
+
+    // Clear the ntripServerSettingsHaveChanged flag. Oneshot
+    ntripServerSettingsHaveChanged[serverIndex] = false;
 
     // Enable the network and the NTRIP server if requested
     switch (ntripServer->state)
