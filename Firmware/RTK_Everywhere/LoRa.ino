@@ -1,4 +1,4 @@
-/*------------------------------------------------------------------------------
+/*=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 LoRa.ino
 
   This module implements the interface to the LoRa radio in the Torch and Flex.
@@ -52,7 +52,7 @@ LoRa.ino
   passthrough mode indefinitely until the user presses the external button.
   Then we delete the file and reboot to return to normal operation.
 
-------------------------------------------------------------------------------*/
+=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=*/
 
 #ifdef  COMPILE_LORA
 
