@@ -8,8 +8,8 @@ Base.ino
 const uint8_t rtcmConsumerBufferEntries = 16;
 const uint16_t rtcmConsumerBufferEntrySize = 1032; // RTCM can be up to 1024 + 6 bytes
 uint16_t rtcmConsumerBufferLengths[rtcmConsumerBufferEntries];
-uint8_t rtcmConsumerBufferHead;
-uint8_t rtcmConsumerBufferTail;
+volatile uint8_t rtcmConsumerBufferHead;
+volatile uint8_t rtcmConsumerBufferTail;
 uint8_t *rtcmConsumerBufferPtr = nullptr;
 
 //----------------------------------------
