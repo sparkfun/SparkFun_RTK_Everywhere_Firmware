@@ -661,6 +661,16 @@ function parseIncoming(msg) {
             ge("antennaHeight_m").value = val / 1000.0;
         }
 
+        //enableExtCorrRadio should be bool but is sent as uint8_t because it _could_ be 254
+        else if (id.includes("enableExtCorrRadio")) {
+            if (val == 0) {
+                ge(id).checked = false;
+            }
+            else {
+                ge(id).checked = true;
+            }
+        }
+
         //Check boxes / radio buttons
         else if (val == "true") {
             try {
