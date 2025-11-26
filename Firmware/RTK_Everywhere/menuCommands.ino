@@ -1602,8 +1602,8 @@ void createSettingsString(char *newSettings)
                 for (int x = 0; x < rtkSettingsEntries[i].qualifier; x++)
                 {
                     char tempString[50];
-                    snprintf(tempString, sizeof(tempString), "%s%d,%d,", rtkSettingsEntries[i].name, x,
-                             settings.ntripServer_CasterEnabled[x]);
+                    snprintf(tempString, sizeof(tempString), "%s%d,%s,", rtkSettingsEntries[i].name, x,
+                             settings.ntripServer_CasterEnabled[x] ? "true" : "false");
                     stringRecord(newSettings, tempString);
                 }
             }
