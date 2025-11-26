@@ -1440,6 +1440,7 @@ void createSettingsString(char *newSettings)
 {
     char tagText[80];
     char nameText[64];
+    RTK_Settings_Types type;
 
     newSettings[0] = '\0'; // Erase current settings string
 
@@ -1460,7 +1461,13 @@ void createSettingsString(char *newSettings)
     {
         if (rtkSettingsEntries[i].inWebConfig && (settingAvailableOnPlatform(i) == true))
         {
-            switch (rtkSettingsEntries[i].type)
+            // Handle GNSS specific types
+            type = rtkSettingsEntries[i].type;
+            if (gnssCreateString(type, i, newSettings))
+                continue;
+
+            // Handle the generic types
+            switch (type)
             {
             default:
                 break;
