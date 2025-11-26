@@ -75,8 +75,8 @@ void storeRTCMForConsumers(uint8_t *rtcmData, uint16_t dataLength)
         dest += (size_t)rtcmConsumerBufferEntrySize * (size_t)rtcmConsumerBufferHead;
         memcpy(dest, rtcmData, dataLength); // Store the RTCM
         rtcmConsumerBufferLengths[rtcmConsumerBufferHead] = dataLength; // Store the length
-        rtcmConsumerBufferHead++; // Increment the Head
-        rtcmConsumerBufferHead %= rtcmConsumerBufferEntries; // Wrap
+        rtcmConsumerBufferHead = rtcmConsumerBufferHead + 1; // Increment the Head
+        rtcmConsumerBufferHead = rtcmConsumerBufferHead % rtcmConsumerBufferEntries; // Wrap
     }
     else
     {
@@ -109,8 +109,8 @@ void sendRTCMToConsumers()
         for (uint16_t x = 0; x < rtcmConsumerBufferLengths[rtcmConsumerBufferTail]; x++)
             espNowProcessRTCM(dest[x]);
 
-        rtcmConsumerBufferTail++; // Increment the Tail
-        rtcmConsumerBufferTail %= rtcmConsumerBufferEntries; // Wrap
+        rtcmConsumerBufferTail = rtcmConsumerBufferTail + 1; // Increment the Tail
+        rtcmConsumerBufferTail = rtcmConsumerBufferTail % rtcmConsumerBufferEntries; // Wrap
     }
 }
 
