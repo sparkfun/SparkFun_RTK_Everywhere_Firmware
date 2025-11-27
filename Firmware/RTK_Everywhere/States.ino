@@ -893,7 +893,10 @@ void constructSetupDisplay(std::vector<setupButton> *buttons)
     // Can't use inBaseMode() or inRoverMode() here because we are in STATE_DISPLAY_SETUP
     addSetupButton(buttons, "Base", STATE_BASE_NOT_STARTED);
     addSetupButton(buttons, "BaseCast", STATE_BASE_CASTER_NOT_STARTED);
-    addSetupButton(buttons, "BaseAssist", STATE_BASE_ASSIST_NOT_STARTED);
+    if (present.display_type == DISPLAY_128x64)
+        addSetupButton(buttons, "BaseAssist", STATE_BASE_ASSIST_NOT_STARTED);
+    else
+        addSetupButton(buttons, "BaseAsst", STATE_BASE_ASSIST_NOT_STARTED);
 
     addSetupButton(buttons, "Rover", STATE_ROVER_NOT_STARTED);
 
