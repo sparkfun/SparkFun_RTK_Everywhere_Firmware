@@ -122,6 +122,10 @@ typedef enum
 
     STATE_SHUTDOWN,                     // 27
 
+    STATE_BASE_ASSIST_NOT_STARTED,      // 28
+
+    // Add new states above this line to preserve the enum for settings.lastState
+
     STATE_NOT_SET,                      // 28, Must be last on list
 } SystemState;
 volatile SystemState systemState = STATE_NOT_SET;

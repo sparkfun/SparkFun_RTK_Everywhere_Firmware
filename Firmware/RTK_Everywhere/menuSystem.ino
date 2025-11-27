@@ -163,6 +163,7 @@ void menuSystem()
         systemPrintf("Mode: %s\r\n", stateToRtkMode(systemState));
 
         // Support mode switching
+        systemPrintln("A) Switch to Base mode using Base Assist");
         systemPrintln("B) Switch to Base mode");
         systemPrintln("C) Switch to Base Caster mode");
         if (present.ethernet_ws5500 == true)
@@ -379,6 +380,12 @@ void menuSystem()
         }
 
         // Support mode switching
+        else if (incoming == 'A')
+        {
+            forceSystemStateUpdate = true; // Immediately go to this new state
+            baseCasterDisableOverride();   // Leave Caster mode
+            changeState(STATE_BASE_ASSIST_NOT_STARTED);
+        }
         else if (incoming == 'B')
         {
             forceSystemStateUpdate = true; // Immediately go to this new state

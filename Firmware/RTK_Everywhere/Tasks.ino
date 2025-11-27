@@ -2260,6 +2260,7 @@ void buttonCheckTask(void *e)
                 case STATE_BASE_TEMP_TRANSMITTING:
                 case STATE_BASE_FIXED_NOT_STARTED:
                 case STATE_BASE_FIXED_TRANSMITTING:
+                case STATE_BASE_ASSIST_NOT_STARTED:
                 case STATE_WEB_CONFIG_NOT_STARTED:
                 case STATE_WEB_CONFIG:
                 case STATE_ESPNOW_PAIRING_NOT_STARTED:

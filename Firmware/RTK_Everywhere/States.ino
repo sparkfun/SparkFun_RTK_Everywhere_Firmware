@@ -163,6 +163,17 @@ void stateUpdate()
 
             /*
                               .-----------------------------------.
+                              |  STATE_BASE_ASSIST_NOT_STARTED    |
+                              |            Text: 'Base'           |
+                              '-----------------------------------'
+                                                |
+                                                | Copy current position into settings
+                                                | Set fixedBase true
+                                                | STATE_BASE_NOT_STARTED falls into
+                                                | STATE_BASE_FIXED_NOT_STARTED
+                                                | 
+                                                V
+                              .-----------------------------------.
                   startBase() |      STATE_BASE_NOT_STARTED       |
                  .------------|            Text: 'Base'           |
                  |    = false '-----------------------------------'
@@ -205,6 +216,48 @@ void stateUpdate()
 
         case (STATE_BASE_CASTER_NOT_STARTED): {
             baseCasterEnableOverride();
+
+            changeState(STATE_BASE_NOT_STARTED);
+        }
+        break;
+
+        // User wants to switch to fixed base, using the current position as
+        // the fixed base position.
+        // Note: this works when switching from Rover (e.g. with RTK Fix)
+        //       or when switching from Temporary Base (after Survey-In)
+        case (STATE_BASE_ASSIST_NOT_STARTED): {
+            if (online.gnss == false)
+                return;
+
+            // Copy current position into fixed base position
+            settings.fixedBase = true;
+            settings.fixedLat = gnss->getLatitude();
+            settings.fixedLong = gnss->getLongitude();
+            settings.fixedAltitude = gnss->getAltitude();
+            double ecefX = 0;
+            double ecefY = 0;
+            double ecefZ = 0;
+            geodeticToEcef(settings.fixedLat, settings.fixedLong, settings.fixedAltitude,
+                           &ecefX, &ecefY, &ecefZ);
+            settings.fixedEcefX = ecefX;
+            settings.fixedEcefY = ecefY;
+            settings.fixedEcefZ = ecefZ;
+
+            systemPrint("Switching to Fixed Base mode using:");
+            systemPrint(" Lat: ");
+            systemPrint(settings.fixedLat, haeNumberOfDecimals);
+            systemPrint(", Lon: ");
+            systemPrint(settings.fixedLong, haeNumberOfDecimals);
+            systemPrint(", Alt: ");
+            systemPrint(settings.fixedAltitude, 4);
+            systemPrint(", ECEF: ");
+            systemPrint(settings.fixedEcefX, 4);
+            systemPrint(",");
+            systemPrint(settings.fixedEcefY, 4);
+            systemPrint(",");
+            systemPrintln(settings.fixedEcefZ, 4);
+
+            // STATE_BASE_NOT_STARTED will record settings for next POR
 
             changeState(STATE_BASE_NOT_STARTED);
         }
@@ -361,7 +414,7 @@ void stateUpdate()
                   = false |        Text: "Base Started"       |
             .-------------|                                   |
             |             '-----------------------------------'
-            V                               |
+            V                                 |
           STATE_ROVER_NOT_STARTED             | startBase() = true
           (Rover diagram)                     V
                           .-----------------------------------.
@@ -672,6 +725,9 @@ const char *getState(SystemState state, char *buffer)
         return "STATE_BASE_FIXED_NOT_STARTED";
     case (STATE_BASE_FIXED_TRANSMITTING):
         return "STATE_BASE_FIXED_TRANSMITTING";
+    case (STATE_BASE_ASSIST_NOT_STARTED):
+        return "STATE_BASE_ASSIST_NOT_STARTED";
+
     case (STATE_DISPLAY_SETUP):
         return "STATE_DISPLAY_SETUP";
     case (STATE_WEB_CONFIG_NOT_STARTED):
@@ -768,6 +824,7 @@ typedef struct _RTK_MODE_ENTRY
 const RTK_MODE_ENTRY stateModeTable[] = {
     {"Rover", STATE_ROVER_NOT_STARTED, STATE_ROVER_RTK_FIX},
     {"Base Caster", STATE_BASE_CASTER_NOT_STARTED, STATE_BASE_CASTER_NOT_STARTED},
+    {"Base Assist", STATE_BASE_ASSIST_NOT_STARTED, STATE_BASE_ASSIST_NOT_STARTED},
     {"Base", STATE_BASE_NOT_STARTED, STATE_BASE_FIXED_TRANSMITTING},
     {"Setup", STATE_DISPLAY_SETUP, STATE_PROFILE}, // Covers SETUP, WEB_CONFIG, TEST
     {"Provisioning", STATE_KEYS_REQUESTED, STATE_KEYS_REQUESTED},
@@ -833,9 +890,13 @@ void constructSetupDisplay(std::vector<setupButton> *buttons)
 {
     buttons->clear();
 
+    // Can't use inBaseMode() or inRoverMode() here because we are in STATE_DISPLAY_SETUP
     addSetupButton(buttons, "Base", STATE_BASE_NOT_STARTED);
     addSetupButton(buttons, "BaseCast", STATE_BASE_CASTER_NOT_STARTED);
+    addSetupButton(buttons, "BaseAssist", STATE_BASE_ASSIST_NOT_STARTED);
+
     addSetupButton(buttons, "Rover", STATE_ROVER_NOT_STARTED);
+
     if (present.ethernet_ws5500 == true)
     {
         addSetupButton(buttons, "NTP", STATE_NTPSERVER_NOT_STARTED);
@@ -866,5 +927,6 @@ void constructSetupDisplay(std::vector<setupButton> *buttons)
             }
         }
     }
+
     addSetupButton(buttons, "Exit", STATE_NOT_SET);
 }
