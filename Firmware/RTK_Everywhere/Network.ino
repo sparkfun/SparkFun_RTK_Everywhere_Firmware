@@ -599,6 +599,20 @@ bool networkConsumerIsConnected(NETCONSUMER_t consumer)
     // Validate the consumer
     networkConsumerValidate(consumer);
 
+    // if (consumer == NETCONSUMER_NTRIP_SERVER_1)
+    // {
+    //     index = networkIndexTable[networkPriority];
+    //     systemPrintf("NETCONSUMER_NTRIP_SERVER_1: %ld %d %d %d %d\r\n",
+    //         networkHasInternet_bm,
+    //         networkConsumerPriority[consumer],
+    //         networkPriority,
+    //         index,
+    //         networkInterfaceHasInternet(index)
+    //         );
+    // }
+
+    // NETCONSUMER_NTRIP_SERVER_1: 2 3 3 3 0
+
     // If the client is using the highest priority network and that
     // network is still available then continue as normal
     if (networkHasInternet_bm && (networkConsumerPriority[consumer] == networkPriority))
