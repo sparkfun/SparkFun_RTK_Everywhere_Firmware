@@ -2455,11 +2455,14 @@ void networkUpdate()
         }
     }
 
-    // Update the WiFi state
-    wifiStationUpdate();
-
-    // Update Ethernet
-    ethernetUpdate();
+    // Walk the list of network priorities in descending order
+    for (priority = 0; priority < NETWORK_OFFLINE; priority++)
+    {
+        // Update the networks in order of priority
+        index = networkIndexTable[priority];
+        if (networkInterfaceTable[index].updateMethod)
+            networkInterfaceTable[index].updateMethod();
+    }
 
     // Update the network services
     // Start or stop mDNS

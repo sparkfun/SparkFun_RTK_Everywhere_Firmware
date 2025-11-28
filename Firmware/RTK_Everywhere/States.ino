@@ -226,6 +226,9 @@ void stateUpdate()
         // Note: this works when switching from Rover (e.g. with RTK Fix)
         //       or when switching from Temporary Base (after Survey-In)
         case (STATE_BASE_ASSIST_NOT_STARTED): {
+            RTK_MODE(RTK_MODE_BASE_FIXED);
+            firstRoverStart = false; // If base is starting, no test menu, normal button use.
+
             if (online.gnss == false)
                 return;
 
@@ -711,6 +714,8 @@ const char *getState(SystemState state, char *buffer)
         return "STATE_ROVER_RTK_FIX";
     case (STATE_BASE_CASTER_NOT_STARTED):
         return "STATE_BASE_CASTER_NOT_STARTED";
+    case (STATE_BASE_ASSIST_NOT_STARTED):
+        return "STATE_BASE_ASSIST_NOT_STARTED";
     case (STATE_BASE_NOT_STARTED):
         return "STATE_BASE_NOT_STARTED";
     case (STATE_BASE_CONFIG_WAIT):
@@ -725,8 +730,6 @@ const char *getState(SystemState state, char *buffer)
         return "STATE_BASE_FIXED_NOT_STARTED";
     case (STATE_BASE_FIXED_TRANSMITTING):
         return "STATE_BASE_FIXED_TRANSMITTING";
-    case (STATE_BASE_ASSIST_NOT_STARTED):
-        return "STATE_BASE_ASSIST_NOT_STARTED";
 
     case (STATE_DISPLAY_SETUP):
         return "STATE_DISPLAY_SETUP";
@@ -858,7 +861,7 @@ bool inRoverMode()
 
 bool inBaseMode()
 {
-    if (systemState >= STATE_BASE_NOT_STARTED && systemState <= STATE_BASE_FIXED_TRANSMITTING)
+    if (systemState >= STATE_BASE_CASTER_NOT_STARTED && systemState <= STATE_BASE_FIXED_TRANSMITTING)
         return (true);
     return (false);
 }

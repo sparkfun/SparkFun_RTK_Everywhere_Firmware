@@ -346,9 +346,9 @@ void displayUpdate()
                 break;
 
             case (STATE_BASE_CASTER_NOT_STARTED):
+            case (STATE_BASE_ASSIST_NOT_STARTED):
             case (STATE_BASE_NOT_STARTED):
             case (STATE_BASE_CONFIG_WAIT):
-            case (STATE_BASE_ASSIST_NOT_STARTED):
                 displayBaseStart(0); // Show 'Base' while the system configures the Base
                 break;
 
@@ -1282,9 +1282,9 @@ void setModeIcon(std::vector<iconPropertyBlinking> *iconList)
         break;
 
     case (STATE_BASE_CASTER_NOT_STARTED):
+    case (STATE_BASE_ASSIST_NOT_STARTED):
     case (STATE_BASE_NOT_STARTED):
     case (STATE_BASE_CONFIG_WAIT):
-    case (STATE_BASE_ASSIST_NOT_STARTED):
         // Do nothing. Static display shown during state change.
         break;
     case (STATE_BASE_TEMP_SETTLE): {
