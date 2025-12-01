@@ -892,6 +892,8 @@ uint8_t GNSS_ZED::getActiveRtcmMessageCount()
 //----------------------------------------
 double GNSS_ZED::getAltitude()
 {
+    // _altitude contains the Height above ellipsoid from NAV-PVT height
+    // We don't need to adjust for the Geoidal Separation (Undulation)
     return _altitude;
 }
 

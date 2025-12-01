@@ -510,7 +510,10 @@ uint8_t GNSS_UM980::getActiveRtcmMessageCount()
 double GNSS_UM980::getAltitude()
 {
     if (online.gnss)
-        return (_um980->getAltitude());
+        // See issue #809
+        // getAltitude returns the Height above mean sea level (meters) from BESTNAVB
+        // For Height above Ellipsoid, we need to add the the geoidalSeparation
+        return (_um980->getAltitude() + _um980->getGeoidalSeparation());
     return (0);
 }
 

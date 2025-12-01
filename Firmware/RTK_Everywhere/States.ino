@@ -241,11 +241,9 @@ void stateUpdate()
             settings.fixedLong = gnss->getLongitude();
 
             // See issue #809
-            // Strictly we should implement this inside each GNSS class / instance
-            double fixedAltitude = gnss->getAltitude();
-            if ((present.gnss_lg290p) || (present.gnss_um980))
-                fixedAltitude += gnss->getGeoidalSeparation();
-            settings.fixedAltitude = fixedAltitude;
+            // gnss->getAltitude() will always return Height above ellipsoid
+            // even if the underlying library getAltitude does not
+            settings.fixedAltitude = gnss->getAltitude();
 
             systemPrint("Switching to Fixed Base mode using:");
             systemPrint(" Lat: ");

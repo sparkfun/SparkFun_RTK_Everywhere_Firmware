@@ -593,7 +593,10 @@ uint8_t GNSS_LG290P::getActiveRtcmMessageCount()
 double GNSS_LG290P::getAltitude()
 {
     if (online.gnss)
-        return (_lg290p->getAltitude());
+        // See issue #809
+        // getAltitude returns the Altitude above mean sea level (meters)
+        // For Height above Ellipsoid, we need to add the the geoidalSeparation
+        return (_lg290p->getAltitude() + _lg290p->getGeoidalSeparation());
     return (0);
 }
 

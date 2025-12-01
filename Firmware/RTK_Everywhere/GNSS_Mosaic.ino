@@ -855,6 +855,8 @@ uint8_t GNSS_MOSAIC::getActiveMessageCount()
 //----------------------------------------
 double GNSS_MOSAIC::getAltitude()
 {
+    // _altitude contains the Ellipsoidal height (meters) from SBF Block 4007
+    // We don't need to adjust for the Geoidal Separation (Undulation)
     return _altitude;
 }
 
