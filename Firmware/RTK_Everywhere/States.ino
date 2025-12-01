@@ -226,7 +226,8 @@ void stateUpdate()
         // Note: this works when switching from Rover (e.g. with RTK Fix)
         //       or when switching from Temporary Base (after Survey-In)
         case (STATE_BASE_ASSIST_NOT_STARTED): {
-            RTK_MODE(RTK_MODE_BASE_FIXED);
+            // Mark RTK_MODE as BASE_UNDECIDED to avoid starting NTRIP Client when we do not need it
+            RTK_MODE(RTK_MODE_BASE_UNDECIDED);
             firstRoverStart = false; // If base is starting, no test menu, normal button use.
 
             if (online.gnss == false)
@@ -267,7 +268,8 @@ void stateUpdate()
         break;
 
         case (STATE_BASE_NOT_STARTED): {
-            RTK_MODE(RTK_MODE_BASE_SURVEY_IN);
+            // Mark RTK_MODE as BASE_UNDECIDED to avoid starting NTRIP Client when we may not need it
+            RTK_MODE(RTK_MODE_BASE_UNDECIDED);
             firstRoverStart = false; // If base is starting, no test menu, normal button use.
 
             if (online.gnss == false)
@@ -299,12 +301,15 @@ void stateUpdate()
                 displayBaseSuccess(500); // Show 'Base Started'
 
                 if (settings.fixedBase == false)
+                {
                     changeState(STATE_BASE_TEMP_SETTLE);
+                    RTK_MODE(RTK_MODE_BASE_SURVEY_IN); // Now allow NTRIP Client to start
+                }
                 else
                 {
                     gnssConfigure(GNSS_CONFIG_BASE_FIXED); // Request start of fixed base
                     changeState(STATE_BASE_FIXED_NOT_STARTED);
-                    RTK_MODE(RTK_MODE_BASE_FIXED);
+                    RTK_MODE(RTK_MODE_BASE_FIXED); // Now allow NTRIP Server to start
                 }
             }
         }

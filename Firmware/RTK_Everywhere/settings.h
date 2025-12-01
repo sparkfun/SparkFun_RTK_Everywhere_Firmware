@@ -131,6 +131,7 @@ SystemState requestedSystemState = STATE_NOT_SET;
 bool newSystemStateRequested = false;
 
 // Base modes set with RTK_MODE
+#define RTK_MODE_BASE_UNDECIDED     0
 #define RTK_MODE_BASE_FIXED         0x0001  // 1 << 0
 #define RTK_MODE_BASE_SURVEY_IN     0x0002  // 1 << 1
 #define RTK_MODE_NTP                0x0004  // 1 << 2

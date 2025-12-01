@@ -840,7 +840,7 @@ void networkDisplayMode()
 
     if (rtkMode == 0)
     {
-        systemPrintf("rtkMode: 0 (Not specified)\r\n");
+        systemPrintf("rtkMode: 0 (Not Specified or Base Undecided)\r\n");
         return;
     }
 
