@@ -2253,6 +2253,8 @@ void buttonCheckTask(void *e)
                 case STATE_ROVER_FIX:
                 case STATE_ROVER_RTK_FLOAT:
                 case STATE_ROVER_RTK_FIX:
+                case STATE_BASE_CASTER_NOT_STARTED:
+                case STATE_BASE_ASSIST_NOT_STARTED:
                 case STATE_BASE_NOT_STARTED:
                 case STATE_BASE_CONFIG_WAIT:
                 case STATE_BASE_TEMP_SETTLE:

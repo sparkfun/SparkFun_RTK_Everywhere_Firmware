@@ -430,7 +430,7 @@ bool savePossibleSettings = true; // Save possible vs. available settings. See r
 //-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 #ifdef COMPILE_WIFI
 int packetRSSI;
-RTK_WIFI wifi(false);
+RTK_WIFI wifi(false); // wifi(false); is non-verbose. For verbose, change to wifi(true); 
 #endif // COMPILE_WIFI
 
 // WiFi Globals - For other module direct access

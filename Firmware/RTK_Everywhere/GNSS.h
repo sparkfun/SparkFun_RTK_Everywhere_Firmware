@@ -21,7 +21,8 @@ typedef enum
 class GNSS
 {
   protected:
-    float _altitude;           // Altitude in meters
+    double _altitude;           // Altitude in meters
+    double _geoidalSeparation; // Geoidal separation in meters
     float _horizontalAccuracy; // Horizontal position accuracy in meters
     double _latitude;          // Latitude in degrees
     double _longitude;         // Longitude in degrees
@@ -165,6 +166,9 @@ class GNSS
 
     // Returns the fix type or zero if not online
     virtual uint8_t getFixType();
+
+    // Returns the geoidal separation
+    virtual double getGeoidalSeparation();
 
     // Returns the hours of 24 hour clock or zero if not online
     virtual uint8_t getHour();

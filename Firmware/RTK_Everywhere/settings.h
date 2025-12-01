@@ -95,34 +95,35 @@ typedef enum
     STATE_ROVER_RTK_FIX,                //  5
 
     STATE_BASE_CASTER_NOT_STARTED,      //  6, Set override flag
-    STATE_BASE_NOT_STARTED,             //  7
-    STATE_BASE_CONFIG_WAIT,             //  8
-    STATE_BASE_TEMP_SETTLE,             //  9, User has indicated base, but current pos accuracy is too low
-    STATE_BASE_TEMP_SURVEY_STARTED,     // 10
-    STATE_BASE_TEMP_TRANSMITTING,       // 11
-    STATE_BASE_FIXED_NOT_STARTED,       // 12
-    STATE_BASE_FIXED_TRANSMITTING,      // 13
+    STATE_BASE_ASSIST_NOT_STARTED,      //  7
+    STATE_BASE_NOT_STARTED,             //  8
+    STATE_BASE_CONFIG_WAIT,             //  9
+    STATE_BASE_TEMP_SETTLE,             // 10, User has indicated base, but current pos accuracy is too low
+    STATE_BASE_TEMP_SURVEY_STARTED,     // 11
+    STATE_BASE_TEMP_TRANSMITTING,       // 12
+    STATE_BASE_FIXED_NOT_STARTED,       // 13
+    STATE_BASE_FIXED_TRANSMITTING,      // 14
 
-    STATE_DISPLAY_SETUP,                // 14
-    STATE_WEB_CONFIG_NOT_STARTED,       // 15
-    STATE_WEB_CONFIG_WAIT_FOR_NETWORK,  // 16
-    STATE_WEB_CONFIG,                   // 17
-    STATE_TEST,                         // 18
-    STATE_TESTING,                      // 19
-    STATE_PROFILE,                      // 20
+    STATE_DISPLAY_SETUP,                // 15
+    STATE_WEB_CONFIG_NOT_STARTED,       // 16
+    STATE_WEB_CONFIG_WAIT_FOR_NETWORK,  // 17
+    STATE_WEB_CONFIG,                   // 18
+    STATE_TEST,                         // 19
+    STATE_TESTING,                      // 20
+    STATE_PROFILE,                      // 21
 
-    STATE_KEYS_REQUESTED,               // 21
+    STATE_KEYS_REQUESTED,               // 22
 
-    STATE_ESPNOW_PAIRING_NOT_STARTED,   // 22
-    STATE_ESPNOW_PAIRING,               // 23
+    STATE_ESPNOW_PAIRING_NOT_STARTED,   // 23
+    STATE_ESPNOW_PAIRING,               // 24
 
-    STATE_NTPSERVER_NOT_STARTED,        // 24
-    STATE_NTPSERVER_NO_SYNC,            // 25
-    STATE_NTPSERVER_SYNC,               // 26
+    STATE_NTPSERVER_NOT_STARTED,        // 25
+    STATE_NTPSERVER_NO_SYNC,            // 26
+    STATE_NTPSERVER_SYNC,               // 27
 
-    STATE_SHUTDOWN,                     // 27
+    STATE_SHUTDOWN,                     // 28
 
-    STATE_NOT_SET,                      // 28, Must be last on list
+    STATE_NOT_SET,                      // 29, Must be last on list
 } SystemState;
 volatile SystemState systemState = STATE_NOT_SET;
 SystemState lastSystemState = STATE_NOT_SET;
@@ -130,6 +131,7 @@ SystemState requestedSystemState = STATE_NOT_SET;
 bool newSystemStateRequested = false;
 
 // Base modes set with RTK_MODE
+#define RTK_MODE_BASE_UNDECIDED     0
 #define RTK_MODE_BASE_FIXED         0x0001  // 1 << 0
 #define RTK_MODE_BASE_SURVEY_IN     0x0002  // 1 << 1
 #define RTK_MODE_NTP                0x0004  // 1 << 2
@@ -2046,18 +2048,23 @@ extern NETWORK_POLL_SEQUENCE laraBootSequence[];
 extern NETWORK_POLL_SEQUENCE laraOffSequence[];
 extern NETWORK_POLL_SEQUENCE laraOnSequence[];
 
+typedef void (* NETWORK_UPDATE_METHOD)();
+extern void ethernetUpdate();
+extern void wifiStationUpdate();
+
 // networkInterfaceTable entry
 typedef struct _NETWORK_TABLE_ENTRY
 {
-    NetworkInterface * netif;       // Network interface object address
-    bool mDNS;                      // Set true to use mDNS service
-    NetIndex_t index;               // Table index, also default priority
-    uint8_t pdState;                // Periodic display state value
-    NETWORK_POLL_SEQUENCE * boot;   // Boot sequence, may be nullptr
-    NETWORK_POLL_SEQUENCE * start;  // Start sequence (Off --> On), may be nullptr
-    NETWORK_POLL_SEQUENCE * stop;   // Stop routine (On --> Off), may be nullptr
-    const char * name;              // Name of the network interface
-    bool * present;                 // Address of present bool or nullptr if always available
+    NetworkInterface * netif;           // Network interface object address
+    bool mDNS;                          // Set true to use mDNS service
+    NetIndex_t index;                   // Table index, also default priority
+    uint8_t pdState;                    // Periodic display state value
+    NETWORK_POLL_SEQUENCE * boot;       // Boot sequence, may be nullptr
+    NETWORK_POLL_SEQUENCE * start;      // Start sequence (Off --> On), may be nullptr
+    NETWORK_POLL_SEQUENCE * stop;       // Stop routine (On --> Off), may be nullptr
+    const char * name;                  // Name of the network interface
+    bool * present;                     // Address of present bool or nullptr if always available
+    NETWORK_UPDATE_METHOD updateMethod; // Update method
 } NETWORK_TABLE_ENTRY;
 
 // List of networks in default priority order!  These entries must match
@@ -2067,24 +2074,24 @@ typedef struct _NETWORK_TABLE_ENTRY
 // as the priority drops to that level. The stop routine is called as the
 // priority rises above that level. The priority will continue to fall or
 // rise until a network is found that is online.
-const NETWORK_TABLE_ENTRY networkInterfaceTable[] =
-{ //     Interface  mDNS    Index                   Periodic State      Boot Sequence           Start Sequence      Stop Sequence       Name                    Present
+NETWORK_TABLE_ENTRY networkInterfaceTable[] =
+{ //     Interface  mDNS    Index                   Periodic State      Boot Sequence           Start Sequence      Stop Sequence       Name                    Present                   Update method
     #ifdef COMPILE_ETHERNET
-        {&ETH,      true,   NETWORK_ETHERNET,       PD_ETHERNET_STATE,  nullptr,                nullptr,            nullptr,            "Ethernet",             &present.ethernet_ws5500},
+        {&ETH,      true,   NETWORK_ETHERNET,       PD_ETHERNET_STATE,  nullptr,                nullptr,            nullptr,            "Ethernet",             &present.ethernet_ws5500, ethernetUpdate},
     #else
-        {nullptr,   false,  NETWORK_ETHERNET,       PD_ETHERNET_STATE,  nullptr,                nullptr,            nullptr,            "Ethernet-NotCompiled", nullptr},
+        {nullptr,   false,  NETWORK_ETHERNET,       PD_ETHERNET_STATE,  nullptr,                nullptr,            nullptr,            "Ethernet-NotCompiled", nullptr,                  nullptr},
     #endif  // COMPILE_ETHERNET
 
     #ifdef COMPILE_WIFI
-        {&WiFi.STA, true,   NETWORK_WIFI_STATION,   PD_WIFI_STATE,      nullptr,                nullptr,            nullptr,            "WiFi Station",         nullptr},
+        {&WiFi.STA, true,   NETWORK_WIFI_STATION,   PD_WIFI_STATE,      nullptr,                nullptr,            nullptr,            "WiFi Station",         nullptr,                  wifiStationUpdate},
     #else
-        {nullptr,   false,  NETWORK_WIFI_STATION,   PD_WIFI_STATE,      nullptr,                nullptr,            nullptr,            "WiFi-NotCompiled",     nullptr},
+        {nullptr,   false,  NETWORK_WIFI_STATION,   PD_WIFI_STATE,      nullptr,                nullptr,            nullptr,            "WiFi-NotCompiled",     nullptr,                  nullptr},
     #endif  // COMPILE_WIFI
 
     #ifdef  COMPILE_CELLULAR
-        {&PPP,      false,  NETWORK_CELLULAR,       PD_CELLULAR_STATE,  laraBootSequence,       laraOnSequence,     laraOffSequence,    "Cellular",             &present.cellular_lara},
+        {&PPP,      false,  NETWORK_CELLULAR,       PD_CELLULAR_STATE,  laraBootSequence,       laraOnSequence,     laraOffSequence,    "Cellular",             &present.cellular_lara,   nullptr},
     #else
-        {nullptr,   false,  NETWORK_CELLULAR,       PD_CELLULAR_STATE,  nullptr,                nullptr,            nullptr,            "Cellular-NotCompiled", nullptr,            },
+        {nullptr,   false,  NETWORK_CELLULAR,       PD_CELLULAR_STATE,  nullptr,                nullptr,            nullptr,            "Cellular-NotCompiled", nullptr,                  nullptr},
     #endif  // COMPILE_CELLULAR
 };
 const int networkInterfaceTableEntries = sizeof(networkInterfaceTable) / sizeof(networkInterfaceTable[0]);
