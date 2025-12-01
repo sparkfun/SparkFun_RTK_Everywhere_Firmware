@@ -587,6 +587,16 @@ uint8_t GNSS_UM980::getFixType()
 }
 
 //----------------------------------------
+// Returns the geoidal separation in meters or zero if the GNSS is offline
+//----------------------------------------
+double GNSS_UM980::getGeoidalSeparation()
+{
+    if (online.gnss)
+        return (_um980->getGeoidalSeparation());
+    return (0);
+}
+
+//----------------------------------------
 // Get the horizontal position accuracy
 // Returns the horizontal position accuracy or zero if offline
 //----------------------------------------

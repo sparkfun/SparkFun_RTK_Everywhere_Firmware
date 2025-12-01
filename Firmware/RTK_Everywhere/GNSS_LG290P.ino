@@ -830,6 +830,16 @@ uint8_t GNSS_LG290P::getFixType()
 }
 
 //----------------------------------------
+// Returns the geoidal separation in meters or zero if the GNSS is offline
+//----------------------------------------
+double GNSS_LG290P::getGeoidalSeparation()
+{
+    if (online.gnss)
+        return (_lg290p->getGeoidalSeparation());
+    return (0);
+}
+
+//----------------------------------------
 // Get the horizontal position accuracy
 // Returns the horizontal position accuracy or zero if offline
 //----------------------------------------

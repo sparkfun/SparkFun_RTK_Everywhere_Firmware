@@ -937,6 +937,14 @@ uint8_t GNSS_ZED::getFixType()
 }
 
 //----------------------------------------
+// Returns the geoidal separation in meters or zero if the GNSS is offline
+//----------------------------------------
+double GNSS_ZED::getGeoidalSeparation()
+{
+    return _geoidalSeparation;
+}
+
+//----------------------------------------
 // Get the horizontal position accuracy
 // Returns the horizontal position accuracy or zero if offline
 //----------------------------------------
@@ -2542,7 +2550,8 @@ void storePVTdata(UBX_NAV_PVT_data_t *ubxDataStruct)
 //----------------------------------------
 void GNSS_ZED::storePVTdataRadio(UBX_NAV_PVT_data_t *ubxDataStruct)
 {
-    _altitude = ubxDataStruct->height / 1000.0;
+    _altitude = (double)ubxDataStruct->height / 1000.0; // Height above ellipsoid in mm
+    _geoidalSeparation = (double)(ubxDataStruct->height - ubxDataStruct->hMSL) / 1000.0;
 
     _day = ubxDataStruct->day;
     _month = ubxDataStruct->month;

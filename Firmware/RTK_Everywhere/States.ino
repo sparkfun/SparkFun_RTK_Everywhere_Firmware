@@ -234,18 +234,18 @@ void stateUpdate()
                 return;
 
             // Copy current position into fixed base position
+            // For now, use the geodetic position only
             settings.fixedBase = true;
+            settings.fixedBaseCoordinateType = COORD_TYPE_GEODETIC;
             settings.fixedLat = gnss->getLatitude();
             settings.fixedLong = gnss->getLongitude();
-            settings.fixedAltitude = gnss->getAltitude();
-            double ecefX = 0;
-            double ecefY = 0;
-            double ecefZ = 0;
-            geodeticToEcef(settings.fixedLat, settings.fixedLong, settings.fixedAltitude,
-                           &ecefX, &ecefY, &ecefZ);
-            settings.fixedEcefX = ecefX;
-            settings.fixedEcefY = ecefY;
-            settings.fixedEcefZ = ecefZ;
+
+            // See issue #809
+            // Strictly we should implement this inside each GNSS class / instance
+            double fixedAltitude = gnss->getAltitude();
+            if ((present.gnss_lg290p) || (present.gnss_um980))
+                fixedAltitude += gnss->getGeoidalSeparation();
+            settings.fixedAltitude = fixedAltitude;
 
             systemPrint("Switching to Fixed Base mode using:");
             systemPrint(" Lat: ");
@@ -253,13 +253,7 @@ void stateUpdate()
             systemPrint(", Lon: ");
             systemPrint(settings.fixedLong, haeNumberOfDecimals);
             systemPrint(", Alt: ");
-            systemPrint(settings.fixedAltitude, 4);
-            systemPrint(", ECEF: ");
-            systemPrint(settings.fixedEcefX, 4);
-            systemPrint(",");
-            systemPrint(settings.fixedEcefY, 4);
-            systemPrint(",");
-            systemPrintln(settings.fixedEcefZ, 4);
+            systemPrintln(settings.fixedAltitude, 4);
 
             // STATE_BASE_NOT_STARTED will record settings for next POR
 

@@ -953,6 +953,14 @@ uint8_t GNSS_MOSAIC::getFixType()
 }
 
 //----------------------------------------
+// Returns the geoidal separation in meters or zero if the GNSS is offline
+//----------------------------------------
+double GNSS_MOSAIC::getGeoidalSeparation()
+{
+    return _geoidalSeparation;
+}
+
+//----------------------------------------
 // Returns the hours of 24 hour clock or zero if not online
 //----------------------------------------
 uint8_t GNSS_MOSAIC::getHour()
@@ -2527,7 +2535,8 @@ void GNSS_MOSAIC::storeBlock4007(SEMP_PARSE_STATE *parse)
 {
     _latitude = sempSbfGetF8(parse, 16) * 180.0 / PI; // Convert from radians to degrees
     _longitude = sempSbfGetF8(parse, 24) * 180.0 / PI;
-    _altitude = (float)sempSbfGetF8(parse, 32);
+    _altitude = sempSbfGetF8(parse, 32); // Ellipsoidal height
+    _geoidalSeparation = (double)sempSbfGetF4(parse, 40); // Geoid undulation
     _horizontalAccuracy = ((float)sempSbfGetU2(parse, 90)) / 100.0; // Convert from cm to m
 
     // NrSV is the total number of satellites used in the PVT computation.
