@@ -234,6 +234,14 @@ class GNSS_None : public GNSS
         return _fixType;
     }
 
+    // Get the geoidal separation
+    // Outputs:
+    //   Returns the geoidal separation in meters or zero if the GNSS is offline
+    double getGeoidalSeparation()
+    {
+        return _geoidalSeparation;
+    }
+
     // Returns the hours of 24 hour clock or zero if not online
     uint8_t getHour()
     {

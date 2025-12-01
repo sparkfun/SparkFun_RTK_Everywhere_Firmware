@@ -357,6 +357,7 @@ void beginBoard()
         pin_modeButton = 0;
         // 24, D2  : Status LED
         pin_baseStatusLED = 2;
+        //pin_debug = 2; // On EVK we can use the Status LED for debug
         // 29, D5  : GNSS TP via 74LVC4066 switch
         pin_GNSS_TimePulse = 5;
         // 14, D12 : I2C1 SDA via 74LVC4066 switch
@@ -420,6 +421,10 @@ void beginBoard()
         DMW_if systemPrintf("pin_baseStatusLED: %d\r\n", pin_baseStatusLED);
         pinMode(pin_baseStatusLED, OUTPUT);
         baseStatusLedOff();
+
+        DMW_if systemPrintf("pin_debug: %d\r\n", pin_debug);
+        pinMode(pin_debug, OUTPUT);
+        pinDebugOff();
 
         DMW_if systemPrintf("pin_Cellular_Network_Indicator: %d\r\n", pin_Cellular_Network_Indicator);
         pinMode(pin_Cellular_Network_Indicator, INPUT);

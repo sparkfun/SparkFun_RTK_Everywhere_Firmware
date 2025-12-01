@@ -593,7 +593,10 @@ uint8_t GNSS_LG290P::getActiveRtcmMessageCount()
 double GNSS_LG290P::getAltitude()
 {
     if (online.gnss)
-        return (_lg290p->getAltitude());
+        // See issue #809
+        // getAltitude returns the Altitude above mean sea level (meters)
+        // For Height above Ellipsoid, we need to add the the geoidalSeparation
+        return (_lg290p->getAltitude() + _lg290p->getGeoidalSeparation());
     return (0);
 }
 
@@ -827,6 +830,16 @@ uint8_t GNSS_LG290P::getFixType()
         // 5 = Float RTK. Satellite system used in RTK mode, floating integers.
         return (_lg290p->getFixQuality());
     return 0;
+}
+
+//----------------------------------------
+// Returns the geoidal separation in meters or zero if the GNSS is offline
+//----------------------------------------
+double GNSS_LG290P::getGeoidalSeparation()
+{
+    if (online.gnss)
+        return (_lg290p->getGeoidalSeparation());
+    return (0);
 }
 
 //----------------------------------------

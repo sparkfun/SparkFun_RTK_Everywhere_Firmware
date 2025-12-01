@@ -383,6 +383,14 @@ void recordSystemSettingsToFile(File *settingsFile)
             }
         }
         break;
+        case tNSCEn: {
+            for (int x = 0; x < rtkSettingsEntries[i].qualifier; x++)
+            {
+                settingsFile->printf("%s%d=%d\r\n", rtkSettingsEntries[i].name, x,
+                                     settings.ntripServer_CasterEnabled[x]);
+            }
+        }
+        break;
         case tNSCHost: {
             for (int x = 0; x < rtkSettingsEntries[i].qualifier; x++)
             {
@@ -1064,6 +1072,15 @@ bool parseLine(char *str)
                                     sizeof(settings.wifiNetworks[0].password));
                             knownSetting = true;
                         }
+                    }
+                }
+                break;
+                case tNSCEn: {
+                    int server;
+                    if (sscanf(suffix, "%d", &server) == 1)
+                    {
+                        settings.ntripServer_CasterEnabled[server] = d;
+                        knownSetting = true;
                     }
                 }
                 break;

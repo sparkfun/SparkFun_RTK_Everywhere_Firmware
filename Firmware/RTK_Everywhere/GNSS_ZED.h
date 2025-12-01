@@ -491,6 +491,9 @@ class GNSS_ZED : GNSS
     // Returns the fix type or zero if not online
     uint8_t getFixType();
 
+    // Returns the geoidal separation
+    double getGeoidalSeparation();
+
     // Returns the hours of 24 hour clock or zero if not online
     uint8_t getHour();
 

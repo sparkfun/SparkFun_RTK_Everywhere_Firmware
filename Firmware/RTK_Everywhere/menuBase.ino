@@ -122,17 +122,21 @@ void menuBase()
             {
                 systemPrintf("NTRIP Server #%d\r\n", serverIndex + 1);
 
-                systemPrintf("%d) Set Caster Address: %s\r\n", (0 + (serverIndex * 6)) + ntripServerOptionOffset,
+                int menuEntry = (serverIndex * 7) + ntripServerOptionOffset;
+                systemPrintf("%d) Caster:             %s%s\r\n", 0 + menuEntry,
+                             (menuEntry < 10) ? " " : "",
+                             settings.ntripServer_CasterEnabled[serverIndex] ? "Enabled" : "Disabled");
+                systemPrintf("%d) Set Caster Address: %s\r\n", 1 + menuEntry,
                              &settings.ntripServer_CasterHost[serverIndex][0]);
-                systemPrintf("%d) Set Caster Port: %d\r\n", (1 + (serverIndex * 6)) + ntripServerOptionOffset,
+                systemPrintf("%d) Set Caster Port:    %d\r\n", 2 + menuEntry,
                              settings.ntripServer_CasterPort[serverIndex]);
-                systemPrintf("%d) Set Caster User: %s\r\n", (2 + (serverIndex * 6)) + ntripServerOptionOffset,
+                systemPrintf("%d) Set Caster User:    %s\r\n", 3 + menuEntry,
                              &settings.ntripServer_CasterUser[serverIndex][0]);
-                systemPrintf("%d) Set Caster User PW: %s\r\n", (3 + (serverIndex * 6)) + ntripServerOptionOffset,
+                systemPrintf("%d) Set Caster User PW: %s\r\n", 4 + menuEntry,
                              &settings.ntripServer_CasterUserPW[serverIndex][0]);
-                systemPrintf("%d) Set Mountpoint: %s\r\n", (4 + (serverIndex * 6)) + ntripServerOptionOffset,
+                systemPrintf("%d) Set Mountpoint:     %s\r\n", 5 + menuEntry,
                              &settings.ntripServer_MountPoint[serverIndex][0]);
-                systemPrintf("%d) Set Mountpoint PW: %s\r\n", (5 + (serverIndex * 6)) + ntripServerOptionOffset,
+                systemPrintf("%d) Set Mountpoint PW:  %s\r\n", 6 + menuEntry,
                              &settings.ntripServer_MountPointPW[serverIndex][0]);
             }
         }
@@ -336,23 +340,28 @@ void menuBase()
 
         // NTRIP Server entries
         else if ((settings.enableNtripServer == true) && (incoming >= ntripServerOptionOffset) &&
-                 incoming < (ntripServerOptionOffset + 6 * NTRIP_SERVER_MAX))
+                 incoming < (ntripServerOptionOffset + 7 * NTRIP_SERVER_MAX))
         {
             // Down adjust user's selection
             incoming -= ntripServerOptionOffset;
-            int serverNumber = incoming / 6;
-            incoming -= (serverNumber * 6);
+            int serverNumber = incoming / 7;
+            incoming -= (serverNumber * 7);
 
             if (incoming == 0)
+            {
+                settings.ntripServer_CasterEnabled[serverNumber] ^= 1; // Toggle
+                ntripServerSettingsChanged(serverNumber); // Notify the NTRIP Server state machine of new credentials
+            }
+            else if (incoming == 1)
             {
                 systemPrintf("Enter Caster Address for Server %d: ", serverNumber + 1);
                 if (getUserInputString(&settings.ntripServer_CasterHost[serverNumber][0], NTRIP_SERVER_STRING_SIZE) ==
                     INPUT_RESPONSE_VALID)
                 {
-                    // NTRIP Server state machine will update automatically
+                    ntripServerSettingsChanged(serverNumber); // Notify the NTRIP Server state machine of new credentials
                 }
             }
-            else if (incoming == 1)
+            else if (incoming == 2)
             {
                 // Arbitrary 99k max port #
                 char tempString[100];
@@ -364,10 +373,10 @@ void menuBase()
                 if (getNewSetting(tempString, 1, 99999, &settings.ntripServer_CasterPort[serverNumber]) ==
                     INPUT_RESPONSE_VALID)
                 {
-                    // NTRIP Server state machine will update automatically
+                    ntripServerSettingsChanged(serverNumber); // Notify the NTRIP Server state machine of new credentials
                 }
             }
-            else if (incoming == 2)
+            else if (incoming == 3)
             {
                 if (strlen(settings.ntripServer_CasterHost[serverNumber]) > 0)
                     systemPrintf("Enter Caster User for %s: ", settings.ntripServer_CasterHost[serverNumber]);
@@ -377,10 +386,10 @@ void menuBase()
                 if (getUserInputString(&settings.ntripServer_CasterUser[serverNumber][0], NTRIP_SERVER_STRING_SIZE) ==
                     INPUT_RESPONSE_VALID)
                 {
-                    // NTRIP Server state machine will update automatically
+                    ntripServerSettingsChanged(serverNumber); // Notify the NTRIP Server state machine of new credentials
                 }
             }
-            else if (incoming == 3)
+            else if (incoming == 4)
             {
                 if (strlen(settings.ntripServer_MountPoint[serverNumber]) > 0)
                     systemPrintf("Enter password for Caster User %s: ", settings.ntripServer_CasterUser[serverNumber]);
@@ -390,10 +399,10 @@ void menuBase()
                 if (getUserInputString(&settings.ntripServer_CasterUserPW[serverNumber][0], NTRIP_SERVER_STRING_SIZE) ==
                     INPUT_RESPONSE_VALID)
                 {
-                    // NTRIP Server state machine will update automatically
+                    ntripServerSettingsChanged(serverNumber); // Notify the NTRIP Server state machine of new credentials
                 }
             }
-            else if (incoming == 4)
+            else if (incoming == 5)
             {
                 if (strlen(settings.ntripServer_CasterHost[serverNumber]) > 0)
                     systemPrintf("Enter Mount Point for %s: ", settings.ntripServer_CasterHost[serverNumber]);
@@ -403,10 +412,10 @@ void menuBase()
                 if (getUserInputString(&settings.ntripServer_MountPoint[serverNumber][0], NTRIP_SERVER_STRING_SIZE) ==
                     INPUT_RESPONSE_VALID)
                 {
-                    // NTRIP Server state machine will update automatically
+                    ntripServerSettingsChanged(serverNumber); // Notify the NTRIP Server state machine of new credentials
                 }
             }
-            else if (incoming == 5)
+            else if (incoming == 6)
             {
                 if (strlen(settings.ntripServer_MountPoint[serverNumber]) > 0)
                     systemPrintf("Enter password for Mount Point %s: ", settings.ntripServer_MountPoint[serverNumber]);
@@ -416,7 +425,7 @@ void menuBase()
                 if (getUserInputString(&settings.ntripServer_MountPointPW[serverNumber][0], NTRIP_SERVER_STRING_SIZE) ==
                     INPUT_RESPONSE_VALID)
                 {
-                    // NTRIP Server state machine will update automatically
+                    ntripServerSettingsChanged(serverNumber); // Notify the NTRIP Server state machine of new credentials
                 }
             }
         }

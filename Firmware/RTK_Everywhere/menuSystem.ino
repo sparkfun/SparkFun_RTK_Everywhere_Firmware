@@ -163,6 +163,7 @@ void menuSystem()
         systemPrintf("Mode: %s\r\n", stateToRtkMode(systemState));
 
         // Support mode switching
+        systemPrintln("A) Switch to Base mode using Base Assist");
         systemPrintln("B) Switch to Base mode");
         systemPrintln("C) Switch to Base Caster mode");
         if (present.ethernet_ws5500 == true)
@@ -379,6 +380,12 @@ void menuSystem()
         }
 
         // Support mode switching
+        else if (incoming == 'A')
+        {
+            forceSystemStateUpdate = true; // Immediately go to this new state
+            baseCasterDisableOverride();   // Leave Caster mode
+            changeState(STATE_BASE_ASSIST_NOT_STARTED);
+        }
         else if (incoming == 'B')
         {
             forceSystemStateUpdate = true; // Immediately go to this new state
@@ -648,7 +655,8 @@ void menuDebugHardware()
             int newDelay = getUserInputNumber(); // Returns EXIT, TIMEOUT, or long
             if ((newDelay != INPUT_RESPONSE_GETNUMBER_EXIT) && (newDelay != INPUT_RESPONSE_GETNUMBER_TIMEOUT))
             {
-                settings.cliBlePrintDelay_ms = newDelay;
+                if ((newDelay >= 0) && (newDelay <= 1000))
+                    settings.cliBlePrintDelay_ms = newDelay;
             }
         }
 
@@ -715,6 +723,8 @@ void menuDebugNetwork()
         systemPrint("11) Print network layer status: ");
         systemPrintf("%s\r\n", settings.printNetworkStatus ? "Enabled" : "Disabled");
 
+        systemPrintf("12) NetworkClient write timeout: %ldms\r\n", settings.networkClientWriteTimeout_ms);
+
         // NTP
         systemPrint("20) Debug NTP: ");
         systemPrintf("%s\r\n", settings.debugNtp ? "Enabled" : "Disabled");
@@ -773,6 +783,16 @@ void menuDebugNetwork()
             settings.debugNetworkLayer ^= 1;
         else if (incoming == 11)
             settings.printNetworkStatus ^= 1;
+        else if (incoming == 12)
+        {
+            systemPrintf("Enter NetworkClient timeout (%d to %d): ", 100, 3000);
+            int newDelay = getUserInputNumber(); // Returns EXIT, TIMEOUT, or long
+            if ((newDelay != INPUT_RESPONSE_GETNUMBER_EXIT) && (newDelay != INPUT_RESPONSE_GETNUMBER_TIMEOUT))
+            {
+                if ((newDelay >= 100) && (newDelay <= 3000))
+                    settings.networkClientWriteTimeout_ms = newDelay;
+            }
+        }
         else if (incoming == 20)
             settings.debugNtp ^= 1;
         else if (incoming == 21)

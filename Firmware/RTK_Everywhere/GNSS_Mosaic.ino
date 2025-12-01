@@ -855,6 +855,8 @@ uint8_t GNSS_MOSAIC::getActiveMessageCount()
 //----------------------------------------
 double GNSS_MOSAIC::getAltitude()
 {
+    // _altitude contains the Ellipsoidal height (meters) from SBF Block 4007
+    // We don't need to adjust for the Geoidal Separation (Undulation)
     return _altitude;
 }
 
@@ -950,6 +952,14 @@ uint8_t GNSS_MOSAIC::getFixType()
     //     10: Precise Point Positioning (PPP)
     //     12: Reserved
     return _fixType;
+}
+
+//----------------------------------------
+// Returns the geoidal separation in meters or zero if the GNSS is offline
+//----------------------------------------
+double GNSS_MOSAIC::getGeoidalSeparation()
+{
+    return _geoidalSeparation;
 }
 
 //----------------------------------------
@@ -2527,7 +2537,8 @@ void GNSS_MOSAIC::storeBlock4007(SEMP_PARSE_STATE *parse)
 {
     _latitude = sempSbfGetF8(parse, 16) * 180.0 / PI; // Convert from radians to degrees
     _longitude = sempSbfGetF8(parse, 24) * 180.0 / PI;
-    _altitude = (float)sempSbfGetF8(parse, 32);
+    _altitude = sempSbfGetF8(parse, 32); // Ellipsoidal height
+    _geoidalSeparation = (double)sempSbfGetF4(parse, 40); // Geoid undulation
     _horizontalAccuracy = ((float)sempSbfGetU2(parse, 90)) / 100.0; // Convert from cm to m
 
     // NrSV is the total number of satellites used in the PVT computation.

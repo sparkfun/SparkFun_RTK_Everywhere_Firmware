@@ -742,13 +742,13 @@ void bluetoothStop()
         {
             bluetoothSerialBle->flush();      // Complete any transfers
             bluetoothSerialBle->disconnect(); // Drop any clients
-            bluetoothSerialBle->end();        // Release resources
+            //bluetoothSerialBle->end();        // Release resources : causes FreeRTOS Task "BLEFlushTask_" should not return, Aborting now!
             //delete bluetoothSerialBle;
             //bluetoothSerialBle = nullptr;
 
             bluetoothSerialBleCommands->flush();      // Complete any transfers
             bluetoothSerialBleCommands->disconnect(); // Drop any clients
-            bluetoothSerialBleCommands->end();        // Release resources
+            //bluetoothSerialBleCommands->end();        // Release resources : causes FreeRTOS Task "BLEFlushTask_" should not return, Aborting now!
             //delete bluetoothSerialBleCommands;
             //bluetoothSerialBleCommands = nullptr;
 
@@ -776,13 +776,13 @@ void bluetoothStop()
         {
             bluetoothSerialBle->flush();      // Complete any transfers
             bluetoothSerialBle->disconnect(); // Drop any clients
-            bluetoothSerialBle->end();        // Release resources
+            //bluetoothSerialBle->end();        // Release resources : FreeRTOS Task "BLEFlushTask_" should not return, Aborting now!
             //delete bluetoothSerialBle;
             //bluetoothSerialBle = nullptr;
 
             bluetoothSerialBleCommands->flush();      // Complete any transfers
             bluetoothSerialBleCommands->disconnect(); // Drop any clients
-            bluetoothSerialBleCommands->end();        // Release resources
+            //bluetoothSerialBleCommands->end();        // Release resources : FreeRTOS Task "BLEFlushTask_" should not return, Aborting now!
             //delete bluetoothSerialBleCommands;
             //bluetoothSerialBleCommands = nullptr;
 

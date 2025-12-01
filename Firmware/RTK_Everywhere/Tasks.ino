@@ -357,7 +357,15 @@ void gnssReadTask(void *e)
         reportFatalError("Failed to initialize the parser");
 
     if (settings.debugGnss)
-        sempEnableDebugOutput(rtkParse);
+    {
+        sempEnableDebugOutput(rtkParse); // Standard debug on Serial
+        //sempEnableDebugOutput(rtkParse, &Serial, true); // Verbose debug
+    }
+
+    // Abort NMEA and Unicore Hash on non-printable character
+    // Help faster recovery from UART errors on EVK
+    sempAbortNmeaOnNonPrintable(rtkParse);
+    sempAbortHashOnNonPrintable(rtkParse);
 
     bool sbfParserNeeded = present.gnss_mosaicX5;
     bool spartnParserNeeded = present.gnss_mosaicX5 && (productVariant != RTK_FLEX);
@@ -450,20 +458,33 @@ void gnssReadTask(void *e)
             while (serialGNSS->available())
             {
                 // Read the data from UART1
-                uint8_t incomingData[500];
+                static uint8_t incomingData[256];
                 int bytesIncoming = serialGNSS->read(incomingData, sizeof(incomingData));
                 totalRxByteCount += bytesIncoming;
+
+                if ((bytesIncoming < 0) || (bytesIncoming > sizeof(incomingData)))
+                {
+                    if (settings.debugGnss)
+                        systemPrintf("gnssReadTask: bytesIncoming = %d\r\n", bytesIncoming);
+                }
 
                 for (int x = 0; x < bytesIncoming; x++)
                 {
                     // Update the parser state based on the incoming byte
                     // On mosaic-X5, pass the byte to sbfParse. On all other platforms, pass it straight to rtkParse
-                    sempParseNextByte(sbfParserNeeded ? sbfParse : rtkParse, incomingData[x]);
+                    if (!sbfParserNeeded)
+                    {
+                        //pinDebugOn();
+                        sempParseNextByte(rtkParse, incomingData[x]);
+                        //pinDebugOff();
+                    }
 
                     // See notes above. On the mosaic-X5, check that the incoming SBF blocks have expected IDs and
                     // lengths to help prevent raw L-Band data being misidentified as SBF
-                    if (sbfParserNeeded)
+                    else // if (sbfParserNeeded)
                     {
+                        sempParseNextByte(sbfParse, incomingData[x]);
+
                         SEMP_SCRATCH_PAD *scratchPad = (SEMP_SCRATCH_PAD *)sbfParse->scratchPad;
 
                         // Check if this is Length MSB
@@ -884,7 +905,9 @@ void processUart1Message(SEMP_PARSE_STATE *parse, uint16_t type)
     if (inBaseMode() && type == RTK_RTCM_PARSER_INDEX)
     {
         // Pass data along to NTRIP Server, ESP-NOW radio, or LoRa
+        //pinDebugOn();
         processRTCM(parse->buffer, parse->length);
+        //pinDebugOff();
     }
 
     // Determine if we are using the PPL - UM980, LG290P, or mosaic-X5
@@ -1258,8 +1281,9 @@ void processUart1Message(SEMP_PARSE_STATE *parse, uint16_t type)
     }
     else
     {
-        systemPrintf("processUart1Message could not get ringBuffer semaphore - held by %s\r\n",
-                     ringBufferSemaphoreHolder);
+        if (settings.debugGnss && (!inMainMenu))
+            systemPrintf("processUart1Message could not get ringBuffer semaphore - held by %s\r\n",
+                         ringBufferSemaphoreHolder);
     }
 }
 
@@ -1349,6 +1373,21 @@ void handleGnssDataTask(void *e)
             PERIODIC_CLEAR(PD_TASK_HANDLE_GNSS_DATA);
             systemPrintln("handleGnssDataTask running");
         }
+
+        //----------------------------------------------------------------------
+        // Send RTCM to consumers
+        //
+        // RTCM has its own storage in rtcmConsumerBuffer (Base.ino)
+        // It does not use the main ringBuffer
+        // But we do the writing here so all traffic generated in the same place
+        //----------------------------------------------------------------------
+
+        startMillis = millis();
+
+        sendRTCMToConsumers();
+
+        if ((millis() - startMillis) > settings.networkClientWriteTimeout_ms)
+            slowConsumer = "RTCM Consumers";
 
         usedSpace = 0;
 
@@ -1565,6 +1604,8 @@ void handleGnssDataTask(void *e)
                     {
                         markSemaphore(FUNCTION_WRITESD);
 
+                        //pinDebugOn();
+
                         do // Do the SD write in a do loop so we can break out if needed
                         {
                             if (settings.enablePrintSDBuffers && (!inMainMenu))
@@ -1722,6 +1763,9 @@ void handleGnssDataTask(void *e)
                             }
                         } while (0);
 
+
+                        //pinDebugOff();
+
                         xSemaphoreGive(sdCardSemaphore);
                     } // End sdCardSemaphore
                     else
@@ -1788,8 +1832,9 @@ void handleGnssDataTask(void *e)
         }
         else
         {
-            systemPrintf("handleGnssDataTask could not get ringBuffer semaphore - held by %s\r\n",
-                         ringBufferSemaphoreHolder);
+            if (settings.debugGnss && (!inMainMenu))
+                systemPrintf("handleGnssDataTask could not get ringBuffer semaphore - held by %s\r\n",
+                             ringBufferSemaphoreHolder);
         }
 
         //----------------------------------------------------------------------
@@ -2208,6 +2253,8 @@ void buttonCheckTask(void *e)
                 case STATE_ROVER_FIX:
                 case STATE_ROVER_RTK_FLOAT:
                 case STATE_ROVER_RTK_FIX:
+                case STATE_BASE_CASTER_NOT_STARTED:
+                case STATE_BASE_ASSIST_NOT_STARTED:
                 case STATE_BASE_NOT_STARTED:
                 case STATE_BASE_CONFIG_WAIT:
                 case STATE_BASE_TEMP_SETTLE:

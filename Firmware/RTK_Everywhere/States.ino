@@ -163,6 +163,17 @@ void stateUpdate()
 
             /*
                               .-----------------------------------.
+                              |  STATE_BASE_ASSIST_NOT_STARTED    |
+                              |            Text: 'Base'           |
+                              '-----------------------------------'
+                                                |
+                                                | Copy current position into settings
+                                                | Set fixedBase true
+                                                | STATE_BASE_NOT_STARTED falls into
+                                                | STATE_BASE_FIXED_NOT_STARTED
+                                                | 
+                                                V
+                              .-----------------------------------.
                   startBase() |      STATE_BASE_NOT_STARTED       |
                  .------------|            Text: 'Base'           |
                  |    = false '-----------------------------------'
@@ -210,8 +221,47 @@ void stateUpdate()
         }
         break;
 
+        // User wants to switch to fixed base, using the current position as
+        // the fixed base position.
+        // Note: this works when switching from Rover (e.g. with RTK Fix)
+        //       or when switching from Temporary Base (after Survey-In)
+        case (STATE_BASE_ASSIST_NOT_STARTED): {
+            // Mark RTK_MODE as BASE_UNDECIDED to avoid starting NTRIP Client when we do not need it
+            RTK_MODE(RTK_MODE_BASE_UNDECIDED);
+            firstRoverStart = false; // If base is starting, no test menu, normal button use.
+
+            if (online.gnss == false)
+                return;
+
+            // Copy current position into fixed base position
+            // For now, use the geodetic position only
+            settings.fixedBase = true;
+            settings.fixedBaseCoordinateType = COORD_TYPE_GEODETIC;
+            settings.fixedLat = gnss->getLatitude();
+            settings.fixedLong = gnss->getLongitude();
+
+            // See issue #809
+            // gnss->getAltitude() will always return Height above ellipsoid
+            // even if the underlying library getAltitude does not
+            settings.fixedAltitude = gnss->getAltitude();
+
+            systemPrint("Switching to Fixed Base mode using:");
+            systemPrint(" Lat: ");
+            systemPrint(settings.fixedLat, haeNumberOfDecimals);
+            systemPrint(", Lon: ");
+            systemPrint(settings.fixedLong, haeNumberOfDecimals);
+            systemPrint(", Alt: ");
+            systemPrintln(settings.fixedAltitude, 4);
+
+            // STATE_BASE_NOT_STARTED will record settings for next POR
+
+            changeState(STATE_BASE_NOT_STARTED);
+        }
+        break;
+
         case (STATE_BASE_NOT_STARTED): {
-            RTK_MODE(RTK_MODE_BASE_SURVEY_IN);
+            // Mark RTK_MODE as BASE_UNDECIDED to avoid starting NTRIP Client when we may not need it
+            RTK_MODE(RTK_MODE_BASE_UNDECIDED);
             firstRoverStart = false; // If base is starting, no test menu, normal button use.
 
             if (online.gnss == false)
@@ -243,12 +293,15 @@ void stateUpdate()
                 displayBaseSuccess(500); // Show 'Base Started'
 
                 if (settings.fixedBase == false)
+                {
                     changeState(STATE_BASE_TEMP_SETTLE);
+                    RTK_MODE(RTK_MODE_BASE_SURVEY_IN); // Now allow NTRIP Client to start
+                }
                 else
                 {
                     gnssConfigure(GNSS_CONFIG_BASE_FIXED); // Request start of fixed base
                     changeState(STATE_BASE_FIXED_NOT_STARTED);
-                    RTK_MODE(RTK_MODE_BASE_FIXED);
+                    RTK_MODE(RTK_MODE_BASE_FIXED); // Now allow NTRIP Server to start
                 }
             }
         }
@@ -361,7 +414,7 @@ void stateUpdate()
                   = false |        Text: "Base Started"       |
             .-------------|                                   |
             |             '-----------------------------------'
-            V                               |
+            V                                 |
           STATE_ROVER_NOT_STARTED             | startBase() = true
           (Rover diagram)                     V
                           .-----------------------------------.
@@ -658,6 +711,8 @@ const char *getState(SystemState state, char *buffer)
         return "STATE_ROVER_RTK_FIX";
     case (STATE_BASE_CASTER_NOT_STARTED):
         return "STATE_BASE_CASTER_NOT_STARTED";
+    case (STATE_BASE_ASSIST_NOT_STARTED):
+        return "STATE_BASE_ASSIST_NOT_STARTED";
     case (STATE_BASE_NOT_STARTED):
         return "STATE_BASE_NOT_STARTED";
     case (STATE_BASE_CONFIG_WAIT):
@@ -672,6 +727,7 @@ const char *getState(SystemState state, char *buffer)
         return "STATE_BASE_FIXED_NOT_STARTED";
     case (STATE_BASE_FIXED_TRANSMITTING):
         return "STATE_BASE_FIXED_TRANSMITTING";
+
     case (STATE_DISPLAY_SETUP):
         return "STATE_DISPLAY_SETUP";
     case (STATE_WEB_CONFIG_NOT_STARTED):
@@ -768,6 +824,7 @@ typedef struct _RTK_MODE_ENTRY
 const RTK_MODE_ENTRY stateModeTable[] = {
     {"Rover", STATE_ROVER_NOT_STARTED, STATE_ROVER_RTK_FIX},
     {"Base Caster", STATE_BASE_CASTER_NOT_STARTED, STATE_BASE_CASTER_NOT_STARTED},
+    {"Base Assist", STATE_BASE_ASSIST_NOT_STARTED, STATE_BASE_ASSIST_NOT_STARTED},
     {"Base", STATE_BASE_NOT_STARTED, STATE_BASE_FIXED_TRANSMITTING},
     {"Setup", STATE_DISPLAY_SETUP, STATE_PROFILE}, // Covers SETUP, WEB_CONFIG, TEST
     {"Provisioning", STATE_KEYS_REQUESTED, STATE_KEYS_REQUESTED},
@@ -801,7 +858,7 @@ bool inRoverMode()
 
 bool inBaseMode()
 {
-    if (systemState >= STATE_BASE_NOT_STARTED && systemState <= STATE_BASE_FIXED_TRANSMITTING)
+    if (systemState >= STATE_BASE_CASTER_NOT_STARTED && systemState <= STATE_BASE_FIXED_TRANSMITTING)
         return (true);
     return (false);
 }
@@ -833,9 +890,16 @@ void constructSetupDisplay(std::vector<setupButton> *buttons)
 {
     buttons->clear();
 
+    // Can't use inBaseMode() or inRoverMode() here because we are in STATE_DISPLAY_SETUP
     addSetupButton(buttons, "Base", STATE_BASE_NOT_STARTED);
     addSetupButton(buttons, "BaseCast", STATE_BASE_CASTER_NOT_STARTED);
+    if (present.display_type == DISPLAY_128x64)
+        addSetupButton(buttons, "BaseAssist", STATE_BASE_ASSIST_NOT_STARTED);
+    else
+        addSetupButton(buttons, "BaseAsst", STATE_BASE_ASSIST_NOT_STARTED);
+
     addSetupButton(buttons, "Rover", STATE_ROVER_NOT_STARTED);
+
     if (present.ethernet_ws5500 == true)
     {
         addSetupButton(buttons, "NTP", STATE_NTPSERVER_NOT_STARTED);
@@ -866,5 +930,6 @@ void constructSetupDisplay(std::vector<setupButton> *buttons)
             }
         }
     }
+
     addSetupButton(buttons, "Exit", STATE_NOT_SET);
 }
