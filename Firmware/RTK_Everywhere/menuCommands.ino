@@ -1171,7 +1171,7 @@ SettingValueResponse updateSettingWithValue(bool inCommands, const char *setting
         if (settings.debugWebServer == true)
             systemPrintln("Sending reset confirmation");
 
-        sendStringToWebsocket((char *)"confirmReset,1,");
+        webSocketsSendString((char *)"confirmReset,1,");
         delay(500); // Allow for delivery
 
         systemPrintln("Reset after AP Config");
@@ -1201,7 +1201,7 @@ SettingValueResponse updateSettingWithValue(bool inCommands, const char *setting
             systemPrintf("Profile contents: %s\r\n", settingsCSV);
         }
 
-        sendStringToWebsocket(settingsCSV);
+        webSocketsSendString(settingsCSV);
         knownSetting = true;
     }
 
@@ -1239,7 +1239,7 @@ SettingValueResponse updateSettingWithValue(bool inCommands, const char *setting
             systemPrintf("Profile contents: %s\r\n", settingsCSV);
         }
 
-        sendStringToWebsocket(settingsCSV);
+        webSocketsSendString(settingsCSV);
         knownSetting = true;
     }
 
@@ -1273,7 +1273,7 @@ SettingValueResponse updateSettingWithValue(bool inCommands, const char *setting
             char newFileNameCSV[sizeof("logFileName,") + sizeof(logFileName) + 1];
             snprintf(newFileNameCSV, sizeof(newFileNameCSV), "logFileName,%s,", logFileName);
 
-            sendStringToWebsocket(newFileNameCSV); // Tell the config page the name of the file we just created
+            webSocketsSendString(newFileNameCSV); // Tell the config page the name of the file we just created
         }
         knownSetting = true;
     }
@@ -1282,7 +1282,7 @@ SettingValueResponse updateSettingWithValue(bool inCommands, const char *setting
         if (settings.debugWebServer == true)
             systemPrintln("Checking for new OTA Pull firmware");
 
-        sendStringToWebsocket((char *)"checkingNewFirmware,1,"); // Tell the config page we received their request
+        webSocketsSendString((char *)"checkingNewFirmware,1,"); // Tell the config page we received their request
 
         knownSetting = true;
 
@@ -1294,7 +1294,7 @@ SettingValueResponse updateSettingWithValue(bool inCommands, const char *setting
         if (settings.debugWebServer == true)
             systemPrintln("Getting new OTA Pull firmware");
 
-        sendStringToWebsocket((char *)"gettingNewFirmware,1,");
+        webSocketsSendString((char *)"gettingNewFirmware,1,");
 
         // Let the OTA state machine know it needs to report its progress to the websocket
         apConfigFirmwareUpdateInProcess = true;
