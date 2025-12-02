@@ -251,7 +251,7 @@ The SparkFun RTK Everywhere Firmware is compiled using Arduino CLI (currently [v
 
 	This will increase the program partitions, as well as the SPIFFs partition to utilize the full 16MB of flash (8MB in the case of the Postcard).
 
-6. Patch the core (libmbedtls, NetworkEvents and libbt) - as shown in the workflow
+6. Patch the core (libmbedtls and libbt) - as shown in the workflow
 
 7. Update the web config `form.h` by running the two python scripts in the `Tools` folder:
 

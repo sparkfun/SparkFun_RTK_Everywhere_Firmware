@@ -1,4 +1,4 @@
-/*
+/*=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 TcpClient.ino
 
   The (position, velocity and time) client sits on top of the network layer and
@@ -113,9 +113,9 @@ TcpClient.ino
     * https://emlid.com/ntrip-caster/
     * http://rtk2go.com/
     * private SNIP NTRIP caster
-*/
+=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=*/
 
-#ifdef COMPILE_NETWORK
+#ifdef COMPILE_TCP_CLIENT
 
 //----------------------------------------
 // Constants
@@ -249,6 +249,9 @@ int32_t tcpClientSendData(uint16_t dataHead)
                 bytesToSend = dataHead - tcpClientTail;
                 if (bytesToSend < 0)
                     bytesToSend += settings.gnssHandlerBufferSize;
+
+                while(tcpClient->available())
+                    tcpClient->read(); // Absorb any unwanted incoming traffic
             }
 
             // Failed to write the data
@@ -596,4 +599,4 @@ void tcpClientZeroTail()
     tcpClientTail = 0;
 }
 
-#endif // COMPILE_NETWORK
+#endif // COMPILE_TCP_CLIENT

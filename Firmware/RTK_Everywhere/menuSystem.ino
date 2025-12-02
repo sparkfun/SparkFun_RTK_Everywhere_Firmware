@@ -1,3 +1,9 @@
+/*=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
+menuSystem.ino
+=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=*/
+
+#ifdef  COMPILE_MENU_SYSTEM
+
 // Display current system status
 void menuSystem()
 {
@@ -157,6 +163,7 @@ void menuSystem()
         systemPrintf("Mode: %s\r\n", stateToRtkMode(systemState));
 
         // Support mode switching
+        systemPrintln("A) Switch to Base mode using Base Assist");
         systemPrintln("B) Switch to Base mode");
         systemPrintln("C) Switch to Base Caster mode");
         if (present.ethernet_ws5500 == true)
@@ -373,6 +380,12 @@ void menuSystem()
         }
 
         // Support mode switching
+        else if (incoming == 'A')
+        {
+            forceSystemStateUpdate = true; // Immediately go to this new state
+            baseCasterDisableOverride();   // Leave Caster mode
+            changeState(STATE_BASE_ASSIST_NOT_STARTED);
+        }
         else if (incoming == 'B')
         {
             forceSystemStateUpdate = true; // Immediately go to this new state
@@ -521,6 +534,9 @@ void menuDebugHardware()
 
         systemPrintf("20) Delay between CLI LIST prints over BLE: %d\r\n", settings.cliBlePrintDelay_ms);
 
+        systemPrint("21) Print GNSS Config Debugging: ");
+        systemPrintf("%s\r\n", settings.debugGnssConfig ? "Enabled" : "Disabled");
+
         systemPrintln("e) Erase LittleFS");
 
         systemPrintln("t) Test Screen");
@@ -568,7 +584,7 @@ void menuDebugHardware()
             if (present.gnss_um980)
             {
                 // Create a file in LittleFS
-                if (createUm980Passthrough() == true)
+                if (um980CreatePassthrough() == true)
                 {
                     systemPrintln();
                     systemPrintln("UM980 passthrough mode has been recorded to LittleFS. Device will now reset.");
@@ -639,8 +655,14 @@ void menuDebugHardware()
             int newDelay = getUserInputNumber(); // Returns EXIT, TIMEOUT, or long
             if ((newDelay != INPUT_RESPONSE_GETNUMBER_EXIT) && (newDelay != INPUT_RESPONSE_GETNUMBER_TIMEOUT))
             {
-                settings.cliBlePrintDelay_ms = newDelay;
+                if ((newDelay >= 0) && (newDelay <= 1000))
+                    settings.cliBlePrintDelay_ms = newDelay;
             }
+        }
+
+        else if (incoming == 21)
+        {
+            settings.debugGnssConfig ^= 1;
         }
 
         else if (incoming == 'e')
@@ -701,6 +723,8 @@ void menuDebugNetwork()
         systemPrint("11) Print network layer status: ");
         systemPrintf("%s\r\n", settings.printNetworkStatus ? "Enabled" : "Disabled");
 
+        systemPrintf("12) NetworkClient write timeout: %ldms\r\n", settings.networkClientWriteTimeout_ms);
+
         // NTP
         systemPrint("20) Debug NTP: ");
         systemPrintf("%s\r\n", settings.debugNtp ? "Enabled" : "Disabled");
@@ -759,6 +783,16 @@ void menuDebugNetwork()
             settings.debugNetworkLayer ^= 1;
         else if (incoming == 11)
             settings.printNetworkStatus ^= 1;
+        else if (incoming == 12)
+        {
+            systemPrintf("Enter NetworkClient timeout (%d to %d): ", 100, 3000);
+            int newDelay = getUserInputNumber(); // Returns EXIT, TIMEOUT, or long
+            if ((newDelay != INPUT_RESPONSE_GETNUMBER_EXIT) && (newDelay != INPUT_RESPONSE_GETNUMBER_TIMEOUT))
+            {
+                if ((newDelay >= 100) && (newDelay <= 3000))
+                    settings.networkClientWriteTimeout_ms = newDelay;
+            }
+        }
         else if (incoming == 20)
             settings.debugNtp ^= 1;
         else if (incoming == 21)
@@ -993,10 +1027,6 @@ void menuOperation()
         systemPrint("9) UART Receive Buffer Size: ");
         systemPrintln(settings.uartReceiveBufferSize);
 
-        // ZED
-        if (present.gnss_zedf9p)
-            systemPrintln("10) Mirror ZED-F9x's UART1 settings to USB");
-
         // PPL Float Lock timeout
         systemPrint("11) Set PPL RTK Fix Timeout (seconds): ");
         if (settings.pplFixTimeoutS > 0)
@@ -1094,17 +1124,6 @@ void menuOperation()
                 recordSystemSettings();
                 ESP.restart();
             }
-        }
-        else if (incoming == 10 && present.gnss_zedf9p)
-        {
-#ifdef COMPILE_ZED
-            bool response = gnss->setMessagesUsb(MAX_SET_MESSAGES_RETRIES);
-
-            if (response == false)
-                systemPrintln(F("Failed to enable USB messages"));
-            else
-                systemPrintln(F("USB messages successfully enabled"));
-#endif // COMPILE_ZED
         }
         else if (incoming == 11)
         {
@@ -1432,6 +1451,10 @@ void menuPeriodicPrint()
     clearBuffer(); // Empty buffer of any newline chars
 }
 
+#endif  // COMPILE_MENU_SYSTEM
+
+#ifdef  COMPILE_MENU_INSTRUMENTS
+
 // Get the parameters for the antenna height, reference point, and tilt compensation
 void menuInstrument()
 {
@@ -1504,140 +1527,4 @@ void menuInstrument()
     clearBuffer(); // Empty buffer of any newline chars
 }
 
-// Print the current long/lat/alt/HPA/SIV
-// From Example11_GetHighPrecisionPositionUsingDouble
-void printCurrentConditions()
-{
-    if (online.gnss == true)
-    {
-        systemPrint("SIV: ");
-        systemPrint(gnss->getSatellitesInView());
-
-        float hpa = gnss->getHorizontalAccuracy();
-        char temp[20];
-        const char *units = getHpaUnits(hpa, temp, sizeof(temp), 3, true);
-        systemPrintf(", HPA (%s): %s", units, temp);
-
-        systemPrint(", Lat: ");
-        systemPrint(gnss->getLatitude(), haeNumberOfDecimals);
-        systemPrint(", Lon: ");
-        systemPrint(gnss->getLongitude(), haeNumberOfDecimals);
-        systemPrint(", Altitude (m): ");
-        systemPrint(gnss->getAltitude(), 3);
-
-        systemPrintln();
-    }
-}
-
-void printCurrentConditionsNMEA()
-{
-    if (online.gnss == true)
-    {
-        char systemStatus[100];
-        snprintf(systemStatus, sizeof(systemStatus),
-                 "%02d%02d%02d.%02d,%02d%02d%02d,%0.3f,%d,%0.9f,%0.9f,%0.3f,%d,%d,%d", gnss->getHour(),
-                 gnss->getMinute(), gnss->getSecond(), gnss->getMillisecond(), gnss->getDay(), gnss->getMonth(),
-                 gnss->getYear() % 2000, // Limit to 2 digits
-                 gnss->getHorizontalAccuracy(), gnss->getSatellitesInView(), gnss->getLatitude(), gnss->getLongitude(),
-                 gnss->getAltitude(), gnss->getFixType(), gnss->getCarrierSolution(), batteryLevelPercent);
-
-        char nmeaMessage[100]; // Max NMEA sentence length is 82
-        createNMEASentence(CUSTOM_NMEA_TYPE_STATUS, nmeaMessage, sizeof(nmeaMessage),
-                           systemStatus); // textID, buffer, sizeOfBuffer, text
-        systemPrintln(nmeaMessage);
-    }
-    else
-    {
-        char nmeaMessage[100]; // Max NMEA sentence length is 82
-        createNMEASentence(CUSTOM_NMEA_TYPE_STATUS, nmeaMessage, sizeof(nmeaMessage),
-                           (char *)"OFFLINE"); // textID, buffer, sizeOfBuffer, text
-        systemPrintln(nmeaMessage);
-    }
-}
-
-// When called, prints the contents of root folder list of files on SD card
-// This allows us to replace the sd.ls() function to point at Serial and BT outputs
-void printFileList()
-{
-    bool sdCardAlreadyMounted = online.microSD;
-    if (!online.microSD)
-        beginSD();
-
-    // Notify the user if the microSD card is not available
-    if (!online.microSD)
-        systemPrintln("microSD card not online!");
-    else
-    {
-        // Attempt to gain access to the SD card
-        if (xSemaphoreTake(sdCardSemaphore, fatSemaphore_longWait_ms) == pdPASS)
-        {
-            markSemaphore(FUNCTION_PRINT_FILE_LIST);
-
-            SdFile dir;
-            dir.open("/"); // Open root
-            uint16_t fileCount = 0;
-
-            SdFile tempFile;
-
-            systemPrintln("Files found:");
-
-            while (tempFile.openNext(&dir, O_READ))
-            {
-                if (tempFile.isFile())
-                {
-                    fileCount++;
-
-                    // 2017-05-19 187362648 800_0291.MOV
-
-                    // Get File Date from sdFat
-                    uint16_t fileDate;
-                    uint16_t fileTime;
-                    tempFile.getCreateDateTime(&fileDate, &fileTime);
-
-                    // Convert sdFat file date fromat into YYYY-MM-DD
-                    char fileDateChar[20];
-                    snprintf(fileDateChar, sizeof(fileDateChar), "%d-%02d-%02d",
-                             ((fileDate >> 9) + 1980),   // Year
-                             ((fileDate >> 5) & 0b1111), // Month
-                             (fileDate & 0b11111)        // Day
-                    );
-
-                    char fileSizeChar[20];
-                    String fileSizeStr;
-                    stringHumanReadableSize(fileSizeStr, tempFile.fileSize());
-                    fileSizeStr.toCharArray(fileSizeChar, sizeof(fileSizeChar));
-
-                    char fileName[50]; // Handle long file names
-                    tempFile.getName(fileName, sizeof(fileName));
-
-                    char fileRecord[100];
-                    snprintf(fileRecord, sizeof(fileRecord), "%s\t%s\t%s", fileDateChar, fileSizeChar, fileName);
-
-                    systemPrintln(fileRecord);
-                }
-            }
-
-            dir.close();
-            tempFile.close();
-
-            if (fileCount == 0)
-                systemPrintln("No files found");
-        }
-        else
-        {
-            char semaphoreHolder[50];
-            getSemaphoreFunction(semaphoreHolder);
-
-            // This is an error because the current settings no longer match the settings
-            // on the microSD card, and will not be restored to the expected settings!
-            systemPrintf("sdCardSemaphore failed to yield, held by %s, menuSystem.ino line %d\r\n", semaphoreHolder,
-                         __LINE__);
-        }
-
-        // Release the SD card if not originally mounted
-        if (sdCardAlreadyMounted)
-            xSemaphoreGive(sdCardSemaphore);
-        else
-            endSD(true, true);
-    }
-}
+#endif  // COMPILE_MENU_INSTRUMENTS

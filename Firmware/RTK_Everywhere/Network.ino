@@ -1,4 +1,4 @@
-/*------------------------------------------------------------------------------
+/*=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 Network.ino
 
   This module implements the network layer.  An overview of the network stack
@@ -95,7 +95,7 @@ Network.ino
     * https://emlid.com/ntrip-caster/
     * http://rtk2go.com/
     * private SNIP NTRIP caster
-------------------------------------------------------------------------------*/
+=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=*/
 
 #ifdef COMPILE_NETWORK
 
@@ -177,6 +177,9 @@ NetMask_t networkMdnsRunning;  // Non-zero when mDNS is running
 //----------------------------------------
 // Menu for configuring TCP/UDP interfaces
 //----------------------------------------
+
+#ifdef  COMPILE_MENU_TCP_UDP
+
 void menuTcpUdp()
 {
     while (1)
@@ -353,6 +356,8 @@ void menuTcpUdp()
             printUnknown(incoming);
     }
 }
+
+#endif  // COMPILE_MENU_TCP_UDP
 
 //----------------------------------------
 // Initialize the network layer
@@ -594,6 +599,20 @@ bool networkConsumerIsConnected(NETCONSUMER_t consumer)
     // Validate the consumer
     networkConsumerValidate(consumer);
 
+    // if (consumer == NETCONSUMER_NTRIP_SERVER_1)
+    // {
+    //     index = networkIndexTable[networkPriority];
+    //     systemPrintf("NETCONSUMER_NTRIP_SERVER_1: %ld %d %d %d %d\r\n",
+    //         networkHasInternet_bm,
+    //         networkConsumerPriority[consumer],
+    //         networkPriority,
+    //         index,
+    //         networkInterfaceHasInternet(index)
+    //         );
+    // }
+
+    // NETCONSUMER_NTRIP_SERVER_1: 2 3 3 3 0
+
     // If the client is using the highest priority network and that
     // network is still available then continue as normal
     if (networkHasInternet_bm && (networkConsumerPriority[consumer] == networkPriority))
@@ -821,7 +840,7 @@ void networkDisplayMode()
 
     if (rtkMode == 0)
     {
-        systemPrintf("rtkMode: 0 (Not specified)\r\n");
+        systemPrintf("rtkMode: 0 (Not Specified or Base Undecided)\r\n");
         return;
     }
 
@@ -2450,13 +2469,18 @@ void networkUpdate()
         }
     }
 
-    // Update the WiFi state
-    wifiStationUpdate();
+    // Walk the list of network priorities in descending order
+    for (priority = 0; priority < NETWORK_OFFLINE; priority++)
+    {
+        // Update the networks in order of priority
+        index = networkIndexTable[priority];
+        if (networkInterfaceTable[index].updateMethod)
+            networkInterfaceTable[index].updateMethod();
+    }
 
     // Update the network services
     // Start or stop mDNS
-    if (networkMdnsRequests != networkMdnsRunning)
-        networkMulticastDNSUpdate();
+    networkMulticastDNSUpdate();
 
     // Update the network services
     DMW_c("mqttClientUpdate");

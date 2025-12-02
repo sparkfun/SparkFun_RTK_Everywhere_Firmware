@@ -1,4 +1,8 @@
-// Helper functions to support printing to eiter the serial port or bluetooth connection
+/*=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
+Support.ino
+
+  Helper functions to support printing to eiter the serial port or bluetooth connection
+=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=*/
 
 // If we are printing to all endpoints, BT gets priority
 int systemAvailable()
@@ -751,7 +755,8 @@ void verifyTables()
     webServerVerifyTables();
     pointPerfectVerifyTables();
     wifiVerifyTables();
-
+    gnssVerifyTables();
+    
     if (CORR_NUM >= (int)('x' - 'a'))
         reportFatalError("Too many correction sources");
 }
@@ -915,7 +920,7 @@ InputResponse getNewSetting(const char *settingPrompt, float min, float max, flo
 
         if (response == INPUT_RESPONSE_VALID)
         {
-            if (enteredValue >= min && enteredValue <= max)
+            if ((float)enteredValue >= min && enteredValue <= max)
             {
                 *setting = (float)enteredValue; // Recorded to NVM and file at main menu exit
                 return (INPUT_RESPONSE_VALID);

@@ -1,3 +1,7 @@
+/*=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
+bluetoothSelect.h
+=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=*/
+
 #ifdef COMPILE_BT
 
 // We use a local copy of the BluetoothSerial library so that we can increase the RX buffer. See issues:
@@ -6,6 +10,7 @@
 #include "src/BluetoothSerial/BluetoothSerial.h"
 
 #include <BleSerial.h> //Click here to get the library: http://librarymanager/All#ESP32_BleSerial by Avinab Malla
+#include <BleBufferedSerial.h>
 
 #include "esp_sdp_api.h"
 
@@ -170,14 +175,18 @@ class BTClassicSerial : public virtual BTSerialInterface, public BluetoothSerial
     }
 };
 
-class BTLESerial : public virtual BTSerialInterface, public BleSerial
+//class BTLESerial : public virtual BTSerialInterface, public BleSerial
+
+//Use buffered BLE serial to handle LIST command over CLI interface
+class BTLESerial : public virtual BTSerialInterface, public BleBufferedSerial 
 {
   public:
     // Missing from BleSerial
     bool begin(String deviceName, bool isMaster, bool disableBLE, uint16_t rxQueueSize, uint16_t txQueueSize,
                const char *serviceID, const char *rxID, const char *txID)
     {
-        BleSerial::begin(deviceName.c_str(), serviceID, rxID, txID, -1); // name, service_uuid, rx_uuid, tx_uuid, led_pin
+        BleBufferedSerial::begin(deviceName.c_str(), serviceID, rxID, txID, -1); // name, service_uuid, rx_uuid, tx_uuid, led_pin
+        //BleSerial::begin(deviceName.c_str(), serviceID, rxID, txID, -1); // name, service_uuid, rx_uuid, tx_uuid, led_pin
         return true;
     }
 
@@ -189,7 +198,8 @@ class BTLESerial : public virtual BTSerialInterface, public BleSerial
 
     void end()
     {
-        BleSerial::end();
+        BleBufferedSerial::end();
+        // BleSerial::end();
     }
 
     esp_err_t register_callback(void * callback)
@@ -199,42 +209,50 @@ class BTLESerial : public virtual BTSerialInterface, public BleSerial
 
     void setTimeout(unsigned long timeout)
     {
-        BleSerial::setTimeout(timeout);
+        BleBufferedSerial::setTimeout(timeout);
+        // BleSerial::setTimeout(timeout);
     }
 
     int available()
     {
-        return BleSerial::available();
+        return BleBufferedSerial::available();
+        // return BleSerial::available();
     }
 
     size_t readBytes(uint8_t *buffer, size_t bufferSize)
     {
-        return BleSerial::readBytes(buffer, bufferSize);
+        return BleBufferedSerial::readBytes(buffer, bufferSize);
+        // return BleSerial::readBytes(buffer, bufferSize);
     }
 
     int read()
     {
-        return BleSerial::read();
+        return BleBufferedSerial::read();
+        // return BleSerial::read();
     }
 
     int peek()
     {
-        return BleSerial::peek();
+        return BleBufferedSerial::peek();
+        // return BleSerial::peek();
     }
 
     size_t write(const uint8_t *buffer, size_t size)
     {
-        return BleSerial::write(buffer, size);
+        return BleBufferedSerial::write(buffer, size);
+        // return BleSerial::write(buffer, size);
     }
 
     size_t write(uint8_t value)
     {
-        return BleSerial::write(value);
+        return BleBufferedSerial::write(value);
+        // return BleSerial::write(value);
     }
 
     void flush()
     {
-        BleSerial::flush();
+        BleBufferedSerial::flush();
+        // BleSerial::flush();
     }
 
     bool connect(uint8_t remoteAddress[], int channel, esp_spp_sec_t sec_mask, esp_spp_role_t role)
@@ -244,7 +262,8 @@ class BTLESerial : public virtual BTSerialInterface, public BleSerial
 
     bool connected()
     {
-        return (BleSerial::connected());
+        return (BleBufferedSerial::connected());
+        // return (BleSerial::connected());
     }
 
     void enableSSP(bool inputCapability, bool outputCapability) {}

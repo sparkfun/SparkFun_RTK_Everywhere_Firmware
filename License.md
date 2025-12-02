@@ -6,7 +6,7 @@ SparkFun uses two different licenses for our files — one for hardware and one 
 Hardware
 ---------
 
-**SparkFun hardware is released under [Creative Commons Share-alike 4.0 International](http://creativecommons.org/licenses/by-sa/4.0/).**
+**SparkFun hardware, and everything in this repo, is released under [Creative Commons Share-alike 4.0 International](http://creativecommons.org/licenses/by-sa/4.0/).**
 
 Note: This is a human-readable summary of (and not a substitute for) the [license](http://creativecommons.org/licenses/by-sa/4.0/legalcode).
 

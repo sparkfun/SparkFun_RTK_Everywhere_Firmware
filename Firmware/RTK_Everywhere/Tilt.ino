@@ -1,4 +1,6 @@
-/*
+/*=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
+Tilt.ino
+
   Once RTK Fix is achieved, and the tilt sensor is activated (ie rocked back and forth) the tilt sensor
   generates binary-encoded lat/lon/alt values that are tilt-compensated. To get these values to the
   GIS Data Collector software, we need to transmit corrected NMEA sentences over Bluetooth. The
@@ -11,7 +13,7 @@
   are already set. We just need to be sure the tilt-compensated values are positive using abs().
   This could lead to problems if the unit is within ~1m of the Equator and Prime Meridian but
   we don't consider those edges cases here.
-*/
+=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=*/
 
 #ifdef COMPILE_IM19_IMU
 
@@ -301,8 +303,9 @@ void beginTilt()
     {
         result &= tiltSensor->sendCommand("LEVER_ARM=0.03391,0.00272,0.02370"); // -28.2, 0. -23.7mm
 
-        //Send AT+INSTALL_ANGLE=180,0,0 if the IM19 module is mounted on the back of the GNSS receiver (so the IM19 faces downward instead of upward), before sending the save command.
-        result &= tiltSensor->sendCommand("INSTALL_ANGLE=180,0,-90"); //IMU is mounted facing down
+        // Send AT+INSTALL_ANGLE=180,0,0 if the IM19 module is mounted on the back of the GNSS receiver (so the IM19
+        // faces downward instead of upward), before sending the save command.
+        result &= tiltSensor->sendCommand("INSTALL_ANGLE=180,0,-90"); // IMU is mounted facing down
     }
 
     // Set the overall length of the GNSS setup in meters: rod length 1800mm + internal length 96.45mm + antenna
@@ -1020,8 +1023,6 @@ void applyCompensationGGA(char *nmeaSentence, int sentenceLength)
         systemPrintf("Compensated GNGGA:\r\n%s\r\n", nmeaSentence);
 }
 
-#endif // COMPILE_IM19_IMU
-
 // Determine if a tilt sensor is available or not
 // Records outcome to NVM
 void tiltDetect()
@@ -1041,7 +1042,6 @@ void tiltDetect()
     if (settings.testedTilt == true)
         return;
 
-#ifdef COMPILE_IM19_IMU
     // Locally instantiate the library and hardware so it will release on exit
     IM19 *tiltSensor;
 
@@ -1066,17 +1066,16 @@ void tiltDetect()
         {
             present.imu_im19 = true; // Allow tiltUpdate() to run
             settings.detectedTilt = true;
-            settings.gnssConfiguredRover = false; // Update rover settings
+            gnssConfigure(GNSS_CONFIG_TILT); // Request receiver to use new settings
             break;
         }
     }
 
     SerialTiltTest.end(); // Release UART1 for reuse
-
-#endif // COMPILE_IM19_IMU
-
     systemPrintf("Tilt sensor %sdetected\r\n", settings.detectedTilt ? "" : "not ");
-    settings.testedTilt = true; //Record this test so we don't do it again
+    settings.testedTilt = true; // Record this test so we don't do it again
     recordSystemSettings();
     return;
 }
+
+#endif // COMPILE_IM19_IMU

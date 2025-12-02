@@ -1,3 +1,9 @@
+/*=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
+menuPorts.ino
+=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=*/
+
+#ifdef  COMPILE_MENU_PORTS
+
 void menuPorts()
 {
     if (present.portDataMux == true)
@@ -57,11 +63,11 @@ void menuPortsNoMux()
         systemPrintln("Menu: Ports");
 
         systemPrint("1) Set serial baud rate for Radio Port: ");
-        systemPrint(gnss->getRadioBaudRate());
+        systemPrint(settings.radioPortBaud);
         systemPrintln(" bps");
 
         systemPrint("2) Set serial baud rate for Data Port: ");
-        systemPrint(gnss->getDataBaudRate());
+        systemPrint(settings.dataPortBaud);
         systemPrintln(" bps");
 
         systemPrintf("3) Output GNSS data to USB serial: %s\r\n",
@@ -80,7 +86,8 @@ void menuPortsNoMux()
             systemPrintf("4) Allow incoming corrections on RADIO port: %s\r\n",
                          settings.enableExtCorrRadio ? "Enabled" : "Disabled");
             systemPrintf("5) Limit RADIO port output to RTCM: %s\r\n",
-                         settings.enableNmeaOnRadio ? "Disabled" : "Enabled"); //Reverse disabled/enabled to align with prompt
+                         settings.enableNmeaOnRadio ? "Disabled"
+                                                    : "Enabled"); // Reverse disabled/enabled to align with prompt
         }
 
         systemPrintln("x) Exit");
@@ -96,8 +103,7 @@ void menuPortsNoMux()
                 if (gnss->baudIsAllowed(newBaud))
                 {
                     settings.radioPortBaud = newBaud;
-                    if (online.gnss == true)
-                        gnss->setRadioBaudRate(newBaud);
+                    gnssConfigure(GNSS_CONFIG_BAUD_RATE_RADIO); // Request receiver to use new settings
                 }
                 else
                 {
@@ -114,8 +120,7 @@ void menuPortsNoMux()
                 if (gnss->baudIsAllowed(newBaud))
                 {
                     settings.dataPortBaud = newBaud;
-                    if (online.gnss == true)
-                        gnss->setDataBaudRate(newBaud);
+                    gnssConfigure(GNSS_CONFIG_BAUD_RATE_DATA); // Request receiver to use new settings
                 }
                 else
                 {
@@ -133,7 +138,7 @@ void menuPortsNoMux()
         {
             // Toggle the enable for the external corrections radio
             settings.enableExtCorrRadio ^= 1;
-            gnss->setCorrRadioExtPort(settings.enableExtCorrRadio, true); // Force the setting
+            gnssConfigure(GNSS_CONFIG_EXT_CORRECTIONS); // Request receiver to use new settings
         }
         else if ((incoming == 5) && (present.gnss_zedf9p))
         {
@@ -154,18 +159,6 @@ void menuPortsNoMux()
             printUnknown(incoming);
     }
 
-#ifdef COMPILE_LG290P
-    if (present.gnss_lg290p)
-    {
-        // Apply these changes at menu exit - to enable/disable NMEA on radio
-        GNSS_LG290P *aLG290P = (GNSS_LG290P *)gnss;
-        if (aLG290P->inRoverMode() == true)
-            restartRover = true;
-        else
-            restartBase = true;
-    }
-#endif // COMPILE_LG290P
-
     clearBuffer(); // Empty buffer of any newline chars
 }
 
@@ -178,7 +171,7 @@ void menuPortsMultiplexed()
         systemPrintln("Menu: Ports");
 
         systemPrint("1) Set Radio port serial baud rate: ");
-        systemPrint(gnss->getRadioBaudRate());
+        systemPrint(settings.radioPortBaud);
         systemPrintln(" bps");
 
         systemPrint("2) Set Data port connections: ");
@@ -194,7 +187,7 @@ void menuPortsMultiplexed()
         if (settings.dataPortChannel == MUX_GNSS_UART)
         {
             systemPrint("3) Set Data port serial baud rate: ");
-            systemPrint(gnss->getDataBaudRate());
+            systemPrint(settings.dataPortBaud);
             systemPrintln(" bps");
         }
         else if (settings.dataPortChannel == MUX_PPS_EVENTTRIGGER)
@@ -218,7 +211,8 @@ void menuPortsMultiplexed()
             systemPrintf("5) Output GNSS data to USB1 serial: %s\r\n",
                          settings.enableGnssToUsbSerial ? "Enabled" : "Disabled");
             systemPrintf("6) Limit RADIO port output to RTCM: %s\r\n",
-                         settings.enableNmeaOnRadio ? "Disabled" : "Enabled"); //Reverse disabled/enabled to align with prompt
+                         settings.enableNmeaOnRadio ? "Disabled"
+                                                    : "Enabled"); // Reverse disabled/enabled to align with prompt
         }
 
         systemPrintln("x) Exit");
@@ -234,8 +228,7 @@ void menuPortsMultiplexed()
                 if (gnss->baudIsAllowed(newBaud))
                 {
                     settings.radioPortBaud = newBaud;
-                    if (online.gnss == true)
-                        gnss->setRadioBaudRate(newBaud);
+                    gnssConfigure(GNSS_CONFIG_BAUD_RATE_RADIO); // Request receiver to use new settings
                 }
                 else
                 {
@@ -260,6 +253,9 @@ void menuPortsMultiplexed()
             {
                 settings.dataPortChannel = (muxConnectionType_e)(muxPort - 1); // Adjust user input from 1-4 to 0-3
                 setMuxport(settings.dataPortChannel);
+
+                if (muxPort == 2)
+                    gnssConfigure(GNSS_CONFIG_PPS); // Request receiver to use new settings
             }
         }
         else if (incoming == 3 && settings.dataPortChannel == MUX_GNSS_UART)
@@ -271,8 +267,7 @@ void menuPortsMultiplexed()
                 if (gnss->baudIsAllowed(newBaud))
                 {
                     settings.dataPortBaud = newBaud;
-                    if (online.gnss == true)
-                        gnss->setDataBaudRate(newBaud);
+                    gnssConfigure(GNSS_CONFIG_BAUD_RATE_DATA); // Request receiver to use new settings
                 }
                 else
                 {
@@ -288,7 +283,7 @@ void menuPortsMultiplexed()
         {
             // Toggle the enable for the external corrections radio
             settings.enableExtCorrRadio ^= 1;
-            gnss->setCorrRadioExtPort(settings.enableExtCorrRadio, true); // Force the setting
+            gnssConfigure(GNSS_CONFIG_EXT_CORRECTIONS); // Request receiver to use new settings
         }
         else if ((incoming == 5) && (present.gnss_zedf9p))
         {
@@ -315,27 +310,13 @@ void menuPortsMultiplexed()
 
     clearBuffer(); // Empty buffer of any newline chars
 
-#ifdef COMPILE_MOSAICX5
-    if (present.gnss_mosaicX5)
-    {
-        // Apply these changes at menu exit - to enable message output on USB1
-        // and/or enable/disable NMEA on radio
-        GNSS_MOSAIC *mosaic = (GNSS_MOSAIC *)gnss;
-        if (mosaic->inRoverMode() == true)
-            restartRover = true;
-        else
-            restartBase = true;
-    }
-#endif // COMPILE_MOSAICX5
-
-    gnss->beginExternalEvent();         // Update with new settings
-    gnss->beginPPS();
+    gnss->beginExternalEvent(); // Update with new settings
 }
 
 // Configure the behavior of the PPS and INT pins.
 // Most often used for logging events (inputs) and when external triggers (outputs) occur.
 // menuPortHardwareTriggers is only called by menuPortsMultiplexed.
-// Call gnss->beginExternalEvent() and gnss->beginPPS() in menuPortsMultiplexed, not here
+// Call gnss->beginExternalEvent() and gnss->setPPS() in menuPortsMultiplexed, not here
 // since menuPortsMultiplexed has control of the multiplexer
 void menuPortHardwareTriggers()
 {
@@ -473,3 +454,5 @@ void menuPortHardwareTriggers()
 
     clearBuffer(); // Empty buffer of any newline chars
 }
+
+#endif  // COMPILE_MENU_PORTS

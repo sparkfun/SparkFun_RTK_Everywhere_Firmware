@@ -278,8 +278,8 @@ function parseIncoming(msg) {
                 show("constellationNavic");
 
                 hide("dynamicModelDropdown"); //Not supported on LG290P
-                show("minElevConfig");
-                show("minCNOConfig");
+                hide("minElevConfig"); //Not supported on LG290P
+                hide("minCN0Config"); //Not supported on LG290P
 
                 ge("rtcmRateInfoText").setAttribute('data-bs-original-title', 'RTCM is transmitted by the base at a default of 1Hz for messages 1005, 1074, 1084, 1094, 1114, 1124, 1134. This can be lowered for radios with low bandwidth or tailored to transmit any/all RTCM messages. Limits: 0 to 20. Note: The measurement rate is overridden to 1Hz when in Base mode.');
 
@@ -346,8 +346,8 @@ function parseIncoming(msg) {
                 hide("enableNmeaOnRadio");
 
                 hide("dynamicModelDropdown"); //Not supported on LG290P
-                show("minElevConfig");
-                show("minCNOConfig");
+                hide("minElevConfig"); //Not supported on LG290P
+                hide("minCN0Config"); //Not supported on LG290P
 
                 ge("rtcmRateInfoText").setAttribute('data-bs-original-title', 'RTCM is transmitted by the base at a default of 1Hz for messages 1005, 1074, 1084, 1094, 1124, and 0.1Hz for 1033. This can be lowered for radios with low bandwidth or tailored to transmit any/all RTCM messages. Limits: 0 to 20. Note: The measurement rate is overridden to 1Hz when in Base mode.');
 
@@ -661,6 +661,16 @@ function parseIncoming(msg) {
             ge("antennaHeight_m").value = val / 1000.0;
         }
 
+        //enableExtCorrRadio should be bool but is sent as uint8_t because it _could_ be 254
+        else if (id.includes("enableExtCorrRadio")) {
+            if (val == 0) {
+                ge(id).checked = false;
+            }
+            else {
+                ge(id).checked = true;
+            }
+        }
+
         //Check boxes / radio buttons
         else if (val == "true") {
             try {
@@ -930,7 +940,7 @@ function validateFields() {
     checkConstellations();
 
     checkElementValue("minElev", 0, 90, "Must be between 0 and 90", "collapseGNSSConfig");
-    checkElementValue("minCNO", 0, 90, "Must be between 0 and 90", "collapseGNSSConfig");
+    checkElementValue("minCN0", 0, 90, "Must be between 0 and 90", "collapseGNSSConfig");
     if (isElementShown("lg290pGnssSettings") == true) {
         checkElementValue("rtcmMinElev", -90, 90, "Must be between -90 and 90", "collapseGNSSConfig");
     }

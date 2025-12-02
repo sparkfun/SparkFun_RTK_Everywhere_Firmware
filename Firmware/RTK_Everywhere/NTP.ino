@@ -1,5 +1,4 @@
-
-/*------------------------------------------------------------------------------
+/*=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 NTP.ino
 
   This module implements the network time protocol (NTP).
@@ -49,9 +48,9 @@ NTP.ino
                     v
                NTP Server
 
-------------------------------------------------------------------------------*/
+=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=*/
 
-#ifdef COMPILE_ETHERNET
+#ifdef COMPILE_NTP
 
 //----------------------------------------
 // Constants
@@ -609,7 +608,7 @@ bool ntpProcessOneRequest(bool process, const timeval *recTv, const timeval *syn
             if (ntpDiag != nullptr)
             {
                 char tmpbuf[128];
-                snprintf(tmpbuf, sizeof(tmpbuf), "Originate Timestamp (Client Transmit): %u.%06u\r\n",
+                snprintf(tmpbuf, sizeof(tmpbuf), "Originate Timestamp (Client Transmit): %lu.%06lu\r\n",
                          packet.transmitTimestampSeconds,
                          packet.convertFractionToMicros(packet.transmitTimestampFraction));
                 strlcat(ntpDiag, tmpbuf, ntpDiagSize);
@@ -631,7 +630,7 @@ bool ntpProcessOneRequest(bool process, const timeval *recTv, const timeval *syn
             if (ntpDiag != nullptr)
             {
                 char tmpbuf[128];
-                snprintf(tmpbuf, sizeof(tmpbuf), "Received Timestamp:                    %u.%06u\r\n",
+                snprintf(tmpbuf, sizeof(tmpbuf), "Received Timestamp:                    %lu.%06lu\r\n",
                          packet.receiveTimestampSeconds,
                          packet.convertFractionToMicros(packet.receiveTimestampFraction));
                 strlcat(ntpDiag, tmpbuf, ntpDiagSize);
@@ -649,7 +648,7 @@ bool ntpProcessOneRequest(bool process, const timeval *recTv, const timeval *syn
             if (ntpDiag != nullptr)
             {
                 char tmpbuf[128];
-                snprintf(tmpbuf, sizeof(tmpbuf), "Reference Timestamp (Last Sync):       %u.%06u\r\n",
+                snprintf(tmpbuf, sizeof(tmpbuf), "Reference Timestamp (Last Sync):       %lu.%06lu\r\n",
                          packet.referenceTimestampSeconds,
                          packet.convertFractionToMicros(packet.referenceTimestampFraction));
                 strlcat(ntpDiag, tmpbuf, ntpDiagSize);
@@ -677,7 +676,7 @@ bool ntpProcessOneRequest(bool process, const timeval *recTv, const timeval *syn
             if (ntpDiag != nullptr)
             {
                 char tmpbuf[128];
-                snprintf(tmpbuf, sizeof(tmpbuf), "Transmit Timestamp:                    %u.%06u\r\n",
+                snprintf(tmpbuf, sizeof(tmpbuf), "Transmit Timestamp:                    %lu.%06lu\r\n",
                          packet.transmitTimestampSeconds,
                          packet.convertFractionToMicros(packet.transmitTimestampFraction));
                 strlcat(ntpDiag, tmpbuf, ntpDiagSize);
@@ -983,4 +982,4 @@ void ntpValidateTables()
         reportFatalError("Fix ntpServerStateNameEntries to match NTP_STATE");
 }
 
-#endif // COMPILE_ETHERNET
+#endif // COMPILE_NTP

@@ -1,5 +1,5 @@
-/*
-tcpServer.ino
+/*=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
+TcpServer.ino
 
   The TCP (position, velocity and time) server sits on top of the network layer
   and sends position data to one or more computers or cell phones for display.
@@ -53,9 +53,9 @@ tcpServer.ino
 
         2. When the connection breaks, stop and restart Vespucci to create
            a new connection to the TCP server.
-*/
+=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=*/
 
-#ifdef COMPILE_NETWORK
+#ifdef COMPILE_TCP_SERVER
 
 //----------------------------------------
 // Constants
@@ -120,7 +120,7 @@ static const char * tcpServerName;
 static volatile uint8_t tcpServerClientConnected;
 static volatile uint8_t tcpServerClientDataSent;
 static volatile uint8_t tcpServerClientSendingData;
-static uint32_t tcpServerClientTimer[TCP_SERVER_MAX_CLIENTS];
+static volatile uint32_t tcpServerClientTimer[TCP_SERVER_MAX_CLIENTS];
 static volatile uint8_t tcpServerClientWriteError;
 static NetworkClient *tcpServerClient[TCP_SERVER_MAX_CLIENTS];
 static IPAddress tcpServerClientIpAddress[TCP_SERVER_MAX_CLIENTS];
@@ -168,9 +168,12 @@ int32_t tcpServerClientSendData(int index, uint8_t *data, uint16_t length)
         length = tcpServerClient[index]->write(data, length);
         if (length > 0)
         {
-            // Update the data sent flag when data successfully sent
+            // Update the data sent flag and timer when data successfully sent
             if (length > 0)
+            {
                 tcpServerClientDataSent = tcpServerClientDataSent | (1 << index);
+                tcpServerClientTimer[index] = millis();
+            }
             if ((settings.debugTcpServer || PERIODIC_DISPLAY(PD_TCP_SERVER_CLIENT_DATA)) && (!inMainMenu))
                 systemPrintf("%s wrote %d bytes to %s\r\n",
                              tcpServerName, length,
@@ -802,4 +805,4 @@ void tcpServerZeroTail()
         tcpServerClientTails[index] = 0;
 }
 
-#endif // COMPILE_NETWORK
+#endif // COMPILE_TCP_SERVER

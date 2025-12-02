@@ -1,10 +1,12 @@
-/*------------------------------------------------------------------------------
+/*=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 GNSS_ZED.ino
 
   Implementation of the GNSS_ZED class
-------------------------------------------------------------------------------*/
+=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=*/
 
 #ifdef COMPILE_ZED
+
+#include "GNSS_ZED.h"
 
 //----------------------------------------
 // If we have decryption keys, configure module
@@ -58,8 +60,8 @@ void GNSS_ZED::applyPointPerfectKeys()
 
         _zed->setVal8(UBLOX_CFG_MSGOUT_UBX_RXM_COR_I2C, 1, VAL_LAYER_ALL); // Enable UBX-RXM-COR messages on I2C
 
-        _zed->setVal8(UBLOX_CFG_NAVHPG_DGNSSMODE,
-                      3, VAL_LAYER_ALL); // Set the differential mode - ambiguities are fixed whenever possible
+        _zed->setVal8(UBLOX_CFG_NAVHPG_DGNSSMODE, 3,
+                      VAL_LAYER_ALL); // Set the differential mode - ambiguities are fixed whenever possible
 
         bool response = _zed->setDynamicSPARTNKeys(currentKeyLengthBytes, currentKeyGPSWeek, currentKeyGPSToW,
                                                    settings.pointPerfectCurrentKey, nextKeyLengthBytes, nextKeyGPSWeek,
@@ -137,17 +139,21 @@ void GNSS_ZED::begin()
 
     if (_zed->begin(*i2c_0) == false)
     {
-        systemPrintln("GNSS ZED failed to begin. Trying again.");
+        systemPrintln("GNSS ZED-F9P failed to begin. Trying again.");
 
         // Try again with power on delay
         delay(1000); // Wait for ZED-F9P to power up before it can respond to ACK
         if (_zed->begin(*i2c_0) == false)
         {
-            systemPrintln("GNSS ZED offline");
+            systemPrintln("GNSS ZED-F9P offline");
             displayGNSSFail(1000);
             return;
         }
     }
+
+    // Turn on debug messages if needed
+    if (settings.debugGnss)
+        debuggingEnable();
 
     // Increase transactions to reduce transfer time
     _zed->i2cTransactionSize = 128;
@@ -170,10 +176,11 @@ void GNSS_ZED::begin()
         //"1.30" - ZED-F9P (HPG) released Dec, 2021. Also ZED-F9R (HPS) released Sept, 2022
         //"1.32" - ZED-F9P released May, 2022
         //"1.50" - ZED-F9P released July, 2024
+        //"1.51" - ZED-F9P released November, 2024
 
-        const uint8_t knownFirmwareVersions[] = {100, 112, 113, 120, 121, 130, 132, 150};
+        const uint8_t knownFirmwareVersions[] = {100, 112, 113, 120, 121, 130, 132, 150, 151};
         bool knownFirmware = false;
-        for (uint8_t i = 0; i < (sizeof(knownFirmwareVersions) / sizeof(uint8_t)); i++)
+        for (uint8_t i = 0; i < (sizeof(knownFirmwareVersions) / sizeof(knownFirmwareVersions[0])); i++)
         {
             if (gnssFirmwareVersionInt == knownFirmwareVersions[i])
                 knownFirmware = true;
@@ -214,13 +221,18 @@ void GNSS_ZED::begin()
         {
             snprintf(gnssUniqueId, sizeof(gnssUniqueId), "%s", _zed->getUniqueChipIdStr(&chipID));
 
-            systemPrintln("GNSS ZED online");
+            // Callbacks are volatile and must be set after each reset
+            registerCallbacks();
+
+            systemPrintln("GNSS ZED-F9P online");
+
             online.gnss = true;
+
             return;
         }
     }
 
-    systemPrintln("GNSS ZED offline");
+    systemPrintln("GNSS ZED-F9P offline");
     displayGNSSFail(1000);
 }
 
@@ -243,7 +255,8 @@ bool GNSS_ZED::beginExternalEvent()
     if (settings.enableExternalHardwareEventLogging && (settings.dataPortChannel == MUX_PPS_EVENTTRIGGER))
     {
         response &= _zed->setAutoTIMTM2callbackPtr(
-            &eventTriggerReceived, VAL_LAYER_ALL); // Enable automatic TIM TM2 messages with callback to eventTriggerReceived
+            &eventTriggerReceived,
+            VAL_LAYER_ALL); // Enable automatic TIM TM2 messages with callback to eventTriggerReceived
     }
     else
     {
@@ -262,7 +275,7 @@ bool GNSS_ZED::beginExternalEvent()
 // This will be called once by setup and possibly multiple times by
 // menuPortsMultiplexed.
 //----------------------------------------
-bool GNSS_ZED::beginPPS()
+bool GNSS_ZED::setPPS()
 {
     if (online.gnss == false)
         return (false);
@@ -277,7 +290,7 @@ bool GNSS_ZED::beginPPS()
         response &= _zed->addCfgValset(UBLOX_CFG_TP_PULSE_LENGTH_DEF, 1); // Define timepulse by length (not ratio)
         response &=
             _zed->addCfgValset(UBLOX_CFG_TP_USE_LOCKED_TP1,
-                            1); // Use CFG-TP-PERIOD_LOCK_TP1 and CFG-TP-LEN_LOCK_TP1 as soon as GNSS time is valid
+                               1); // Use CFG-TP-PERIOD_LOCK_TP1 and CFG-TP-LEN_LOCK_TP1 as soon as GNSS time is valid
         response &= _zed->addCfgValset(UBLOX_CFG_TP_TP1_ENA, settings.enableExternalPulse); // Enable/disable timepulse
         response &=
             _zed->addCfgValset(UBLOX_CFG_TP_POL_TP1, settings.externalPulsePolarity); // 0 = falling, 1 = rising edge
@@ -287,15 +300,16 @@ bool GNSS_ZED::beginPPS()
         response &= _zed->addCfgValset(UBLOX_CFG_TP_LEN_TP1, 0);          // Set the pulse length in us
 
         // When the module is _locked_ to GNSS time, make it generate 1Hz (Default is 100ms high, 900ms low)
-        response &= _zed->addCfgValset(UBLOX_CFG_TP_PERIOD_LOCK_TP1,
-                                    settings.externalPulseTimeBetweenPulse_us); // Set the period between pulses is us
         response &=
-            _zed->addCfgValset(UBLOX_CFG_TP_LEN_LOCK_TP1, settings.externalPulseLength_us); // Set the pulse length in us
+            _zed->addCfgValset(UBLOX_CFG_TP_PERIOD_LOCK_TP1,
+                               settings.externalPulseTimeBetweenPulse_us); // Set the period between pulses is us
+        response &= _zed->addCfgValset(UBLOX_CFG_TP_LEN_LOCK_TP1,
+                                       settings.externalPulseLength_us); // Set the pulse length in us
         response &= _zed->sendCfgValset();
     }
 
     if (response == false)
-        systemPrintln("beginPPS failed");
+        systemPrintln("setPPS failed");
 
     return (response);
 }
@@ -321,109 +335,208 @@ bool GNSS_ZED::checkPPPRates()
 }
 
 //----------------------------------------
-// Configure specific aspects of the receiver for base mode
+// Setup the u-blox module for any setup (base or rover)
+// This gets run once after a factory reset, and is called until it completes successfully.
+// In general we check if the setting is incorrect before writing it. Otherwise, the set commands have, on rare
+// occasion, become corrupt. The worst is when the I2C port gets turned off or the I2C address gets borked.
 //----------------------------------------
-bool GNSS_ZED::configureBase()
+bool GNSS_ZED::configure()
 {
     if (online.gnss == false)
         return (false);
 
-    if (settings.gnssConfiguredBase)
+    bool response = true;
+
+    // // Wait for initial report from module
+    // int maxWait = 2000;
+    // startTime = millis();
+    // while (_pvtUpdated == false)
+    // {
+    //     update(); // Regularly poll to get latest data
+
+    //     delay(10);
+    //     if ((millis() - startTime) > maxWait)
+    //     {
+    //         systemPrintln("PVT Update failed");
+    //         break;
+    //     }
+    // }
+
+    response &= _zed->newCfgValset(VAL_LAYER_ALL);
+
+    response &= _zed->addCfgValset(UBLOX_CFG_HW_ANT_CFG_SHORTDET, 1); // Enable antenna short detection
+    response &= _zed->addCfgValset(UBLOX_CFG_HW_ANT_CFG_OPENDET, 1);  // Enable antenna open detection
+
+    // UART1 will primarily be used to pass NMEA and UBX from ZED to ESP32 (eventually to cell phone)
+    // but the phone can also provide RTCM data and a user may want to configure the ZED over Bluetooth.
+    // So let's be sure to enable UBX+NMEA+RTCM on the input
+    response &= _zed->addCfgValset(UBLOX_CFG_UART1OUTPROT_UBX, 1);
+    response &= _zed->addCfgValset(UBLOX_CFG_UART1OUTPROT_NMEA, 1);
+    if (commandSupported(UBLOX_CFG_UART1OUTPROT_RTCM3X))
+        response &= _zed->addCfgValset(UBLOX_CFG_UART1OUTPROT_RTCM3X, 1);
+    response &= _zed->addCfgValset(UBLOX_CFG_UART1INPROT_UBX, 1);
+    response &= _zed->addCfgValset(UBLOX_CFG_UART1INPROT_NMEA, 1);
+    response &= _zed->addCfgValset(UBLOX_CFG_UART1INPROT_RTCM3X, 1);
+    if (commandSupported(UBLOX_CFG_UART1INPROT_SPARTN))
+        response &= _zed->addCfgValset(UBLOX_CFG_UART1INPROT_SPARTN, 0);
+
+    // Disable SPI port - This is just to remove some overhead by ZED
+    response &= _zed->addCfgValset(UBLOX_CFG_SPIOUTPROT_UBX, 0);
+    response &= _zed->addCfgValset(UBLOX_CFG_SPIOUTPROT_NMEA, 0);
+    if (commandSupported(UBLOX_CFG_SPIOUTPROT_RTCM3X))
+        response &= _zed->addCfgValset(UBLOX_CFG_SPIOUTPROT_RTCM3X, 0);
+
+    response &= _zed->addCfgValset(UBLOX_CFG_SPIINPROT_UBX, 0);
+    response &= _zed->addCfgValset(UBLOX_CFG_SPIINPROT_NMEA, 0);
+    response &= _zed->addCfgValset(UBLOX_CFG_SPIINPROT_RTCM3X, 0);
+    if (commandSupported(UBLOX_CFG_SPIINPROT_SPARTN))
+        response &= _zed->addCfgValset(UBLOX_CFG_SPIINPROT_SPARTN, 0);
+
+    // Set the UART2 to only do RTCM (in case this device goes into base mode)
+    response &= _zed->addCfgValset(UBLOX_CFG_UART2OUTPROT_UBX, 0);
+    response &= _zed->addCfgValset(UBLOX_CFG_UART2OUTPROT_NMEA, 0);
+    if (commandSupported(UBLOX_CFG_UART2OUTPROT_RTCM3X))
+        response &= _zed->addCfgValset(UBLOX_CFG_UART2OUTPROT_RTCM3X, 1);
+
+    // UART2INPROT is set by setCorrRadioExtPort
+
+    // We don't want NMEA over I2C, but we will want to deliver RTCM, and UBX+RTCM is not an option
+    response &= _zed->addCfgValset(UBLOX_CFG_I2COUTPROT_UBX, 1);
+    response &= _zed->addCfgValset(UBLOX_CFG_I2COUTPROT_NMEA, 1);
+    if (commandSupported(UBLOX_CFG_I2COUTPROT_RTCM3X))
+        response &= _zed->addCfgValset(UBLOX_CFG_I2COUTPROT_RTCM3X, 1);
+
+    response &= _zed->addCfgValset(UBLOX_CFG_I2CINPROT_UBX, 1);
+    response &= _zed->addCfgValset(UBLOX_CFG_I2CINPROT_NMEA, 1);
+    response &= _zed->addCfgValset(UBLOX_CFG_I2CINPROT_RTCM3X, 1);
+
+    if (commandSupported(UBLOX_CFG_I2CINPROT_SPARTN))
     {
-        if (settings.debugGnss)
-            systemPrintln("Skipping ZED Base configuration");
-        return true;
+        if (present.lband_neo)
+            response &=
+                _zed->addCfgValset(UBLOX_CFG_I2CINPROT_SPARTN,
+                                   1); // We push NEO-D9S correction data (SPARTN) to ZED-F9P over the I2C interface
+        else
+            response &= _zed->addCfgValset(UBLOX_CFG_I2CINPROT_SPARTN, 0);
     }
 
-    update(); // Regularly poll to get latest data
+    // The USB port on the ZED may be used for RTCM to/from the computer (as an NTRIP caster or client)
+    // So let's be sure all protocols are on for the USB port
+    response &= _zed->addCfgValset(UBLOX_CFG_USBOUTPROT_UBX, 1);
+    response &= _zed->addCfgValset(UBLOX_CFG_USBOUTPROT_NMEA, 1);
+    if (commandSupported(UBLOX_CFG_USBOUTPROT_RTCM3X))
+        response &= _zed->addCfgValset(UBLOX_CFG_USBOUTPROT_RTCM3X, 1);
+    response &= _zed->addCfgValset(UBLOX_CFG_USBINPROT_UBX, 1);
+    response &= _zed->addCfgValset(UBLOX_CFG_USBINPROT_NMEA, 1);
+    response &= _zed->addCfgValset(UBLOX_CFG_USBINPROT_RTCM3X, 1);
+    if (commandSupported(UBLOX_CFG_USBINPROT_SPARTN))
+        response &= _zed->addCfgValset(UBLOX_CFG_USBINPROT_SPARTN, 0);
 
-    _zed->setNMEAGPGGAcallbackPtr(
-        nullptr); // Disable GPGGA call back that may have been set during Rover NTRIP Client mode
-
-    bool success = false;
-    int tryNo = -1;
-
-    // Try up to MAX_SET_MESSAGES_RETRIES times to configure the GNSS
-    // This corrects occasional failures seen on the Reference Station where the GNSS is connected via SPI
-    // instead of I2C and UART1. I believe the SETVAL ACK is occasionally missed due to the level of messages being
-    // processed.
-    while ((++tryNo < MAX_SET_MESSAGES_RETRIES) && !success)
+    if (commandSupported(UBLOX_CFG_NAV2_OUT_ENABLED))
     {
-        bool response = true;
-
-        // In Base mode we force 1Hz
-        response &= _zed->newCfgValset(VAL_LAYER_ALL);
-        response &= _zed->addCfgValset(UBLOX_CFG_RATE_MEAS, 1000);
-        response &= _zed->addCfgValset(UBLOX_CFG_RATE_NAV, 1);
-
-        // Since we are at 1Hz, allow GSV NMEA to be reported at whatever the user has chosen
-        response &= _zed->addCfgValset(ubxMessages[8].msgConfigKey,
-                                       settings.ubxMessageRates[8]); // Update rate on module
-
-        response &= _zed->addCfgValset(UBLOX_CFG_MSGOUT_NMEA_ID_GGA_I2C,
-                                       0); // Disable NMEA message that may have been set during Rover NTRIP Client mode
-
-        // Survey mode is only available on ZED-F9P modules
-        if (commandSupported(UBLOX_CFG_TMODE_MODE))
-            response &= _zed->addCfgValset(UBLOX_CFG_TMODE_MODE, 0); // Disable survey-in mode
-
-        // Note that using UBX-CFG-TMODE3 to set the receiver mode to Survey In or to Fixed Mode, will set
-        // automatically the dynamic platform model (CFG-NAVSPG-DYNMODEL) to Stationary.
-        // response &= _zed->addCfgValset(UBLOX_CFG_NAVSPG_DYNMODEL, (dynModel)settings.dynamicModel); //Not needed
-
-        // For most RTK products, the GNSS is interfaced via both I2C and UART1. Configuration and PVT/HPPOS messages
-        // are configured over I2C. Any messages that need to be logged are output on UART1, and received by this code
-        // using serialGNSS-> In base mode the RTK device should output RTCM over all ports: (Primary) UART2 in case the
-        // RTK device is connected via radio to rover (Optional) I2C in case user wants base to connect to WiFi and
-        // NTRIP Caster (Seconday) USB in case the RTK device is used as an NTRIP caster connected to SBC or other
-        // (Tertiary) UART1 in case RTK device is sending RTCM to a phone that is then NTRIP Caster
-
-        // Find first RTCM record in ubxMessage array
-        int firstRTCMRecord = getMessageNumberByName("RTCM_1005");
-
-        // ubxMessageRatesBase is an array of ~12 uint8_ts
-        // ubxMessage is an array of ~80 messages
-        // We use firstRTCMRecord as an offset for the keys, but use x as the rate
-
-        for (int x = 0; x < MAX_UBX_MSG_RTCM; x++)
+        // Count NAV2 messages and enable NAV2 as needed.
+        if (getNAV2MessageCount() > 0)
         {
-            response &= _zed->addCfgValset(ubxMessages[firstRTCMRecord + x].msgConfigKey - 1,
-                                           settings.ubxMessageRatesBase[x]); // UBLOX_CFG UART1 - 1 = I2C
-            response &= _zed->addCfgValset(ubxMessages[firstRTCMRecord + x].msgConfigKey,
-                                           settings.ubxMessageRatesBase[x]); // UBLOX_CFG UART1
-
-            // Disable messages on SPI
-            response &= _zed->addCfgValset(ubxMessages[firstRTCMRecord + x].msgConfigKey + 3,
-                                           0); // UBLOX_CFG UART1 + 3 = SPI
+            response &= _zed->addCfgValset(
+                UBLOX_CFG_NAV2_OUT_ENABLED,
+                1); // Enable NAV2 messages. This has the side effect of causing RTCM to generate twice as fast.
         }
-
-        // Update message rates for UART2 and USB
-        for (int x = 0; x < MAX_UBX_MSG_RTCM; x++)
-        {
-            response &= _zed->addCfgValset(ubxMessages[firstRTCMRecord + x].msgConfigKey + 1,
-                                           settings.ubxMessageRatesBase[x]); // UBLOX_CFG UART1 + 1 = UART2
-            response &= _zed->addCfgValset(ubxMessages[firstRTCMRecord + x].msgConfigKey + 2,
-                                           settings.ubxMessageRatesBase[x]); // UBLOX_CFG UART1 + 2 = USB
-        }
-
-        // Set minimum elevation
-        // Note: ZED supports negative elevations, but our firmware only allows 0-90
-        response &= _zed->addCfgValset(UBLOX_CFG_NAVSPG_INFIL_MINELEV, settings.minElev);
-
-        response &= _zed->sendCfgValset(); // Closing value
-
-        if (response)
-            success = true;
+        else
+            response &= _zed->addCfgValset(UBLOX_CFG_NAV2_OUT_ENABLED, 0); // Disable NAV2 messages
     }
 
-    if (!success)
+    response &= _zed->addCfgValset(UBLOX_CFG_NMEA_HIGHPREC, 1);    // Enable high precision NMEA
+    response &= _zed->addCfgValset(UBLOX_CFG_NMEA_SVNUMBERING, 1); // Enable extended satellite numbering
+
+    response &= _zed->sendCfgValset();
+
+    if (response == false)
+        systemPrintln("Module failed config block 0");
+
+    // Disable NMEA messages on all but UART1
+    response &= _zed->newCfgValset(VAL_LAYER_ALL);
+
+    response &= _zed->addCfgValset(UBLOX_CFG_MSGOUT_NMEA_ID_GGA_I2C, 0);
+    response &= _zed->addCfgValset(UBLOX_CFG_MSGOUT_NMEA_ID_GSA_I2C, 0);
+    response &= _zed->addCfgValset(UBLOX_CFG_MSGOUT_NMEA_ID_GSV_I2C, 0);
+    response &= _zed->addCfgValset(UBLOX_CFG_MSGOUT_NMEA_ID_RMC_I2C, 0);
+    response &= _zed->addCfgValset(UBLOX_CFG_MSGOUT_NMEA_ID_GST_I2C, 0);
+    response &= _zed->addCfgValset(UBLOX_CFG_MSGOUT_NMEA_ID_GLL_I2C, 0);
+    response &= _zed->addCfgValset(UBLOX_CFG_MSGOUT_NMEA_ID_VTG_I2C, 0);
+
+    response &= _zed->addCfgValset(UBLOX_CFG_MSGOUT_NMEA_ID_GGA_UART2, 0);
+    response &= _zed->addCfgValset(UBLOX_CFG_MSGOUT_NMEA_ID_GSA_UART2, 0);
+    response &= _zed->addCfgValset(UBLOX_CFG_MSGOUT_NMEA_ID_GSV_UART2, 0);
+    response &= _zed->addCfgValset(UBLOX_CFG_MSGOUT_NMEA_ID_RMC_UART2, 0);
+    response &= _zed->addCfgValset(UBLOX_CFG_MSGOUT_NMEA_ID_GST_UART2, 0);
+    response &= _zed->addCfgValset(UBLOX_CFG_MSGOUT_NMEA_ID_GLL_UART2, 0);
+    response &= _zed->addCfgValset(UBLOX_CFG_MSGOUT_NMEA_ID_VTG_UART2, 0);
+
+    response &= _zed->addCfgValset(UBLOX_CFG_MSGOUT_NMEA_ID_GGA_SPI, 0);
+    response &= _zed->addCfgValset(UBLOX_CFG_MSGOUT_NMEA_ID_GSA_SPI, 0);
+    response &= _zed->addCfgValset(UBLOX_CFG_MSGOUT_NMEA_ID_GSV_SPI, 0);
+    response &= _zed->addCfgValset(UBLOX_CFG_MSGOUT_NMEA_ID_RMC_SPI, 0);
+    response &= _zed->addCfgValset(UBLOX_CFG_MSGOUT_NMEA_ID_GST_SPI, 0);
+    response &= _zed->addCfgValset(UBLOX_CFG_MSGOUT_NMEA_ID_GLL_SPI, 0);
+    response &= _zed->addCfgValset(UBLOX_CFG_MSGOUT_NMEA_ID_VTG_SPI, 0);
+
+    response &= _zed->sendCfgValset();
+
+    if (response == false)
+        systemPrintln("Module failed config block 1");
+
+    // Enable RTCM3 if needed - if not enable NMEA IN to keep skipped updated
+    gnssConfigure(GNSS_CONFIG_EXT_CORRECTIONS); // Request receiver to use new settings
+
+    if (response)
+        systemPrintln("ZED-F9P configured");
+
+    return (response);
+}
+
+//----------------------------------------
+// Configure specific aspects of the receiver for base mode
+//----------------------------------------
+bool GNSS_ZED::configureBase()
+{
+    // If we are already in the appropriate base mode, no changes needed
+
+    // We may have been in a previous survey-in. We want to restart a survey-in regardless.
+    // If we are already in the appropriate base mode, no changes needed
+    // if (settings.fixedBase == false && gnssInBaseSurveyInMode())
+    //     return (true); // No changes needed
+
+    if (settings.fixedBase == true)
+    {
+        // 0 - Rover, 1 - Base Survey-In, 2 - Base Fixed ECEF, 3 - Base Fixed LLH
+        int currentMode = getMode();
+        if (currentMode == 2 && settings.fixedBaseCoordinateType == COORD_TYPE_ECEF)
+            return (true); // No changes needed
+        if (currentMode == 3 && settings.fixedBaseCoordinateType == COORD_TYPE_GEODETIC)
+            return (true); // No changes needed
+    }
+
+    // Assume we are changing from Rover to Base, request any additional config changes
+
+    bool response = true;
+
+    if (settings.fixedBase == false)
+    {
+        // If we are doing a Survey-In (temporary) style Base, change to Rover Mode so our location can settle
+        // Base config resumes at the end of startSurveyIn()
+        response &= _zed->setVal8(UBLOX_CFG_TMODE_MODE, 0); // Change to Rover Mode
+        gnssConfigure(GNSS_CONFIG_FIX_RATE);
+        gnssConfigure(GNSS_CONFIG_MESSAGE_RATE_RTCM_ROVER);
+    }
+    else
+    {
+        // If we are doing a Fixed Base, config occurs in fixedBaseStart()
+    }
+
+    if (response == false)
         systemPrintln("Base config fail");
 
-    // The configuration should be saved to RAM+BBR+FLASH. No need to saveConfiguration here.
-
-    settings.gnssConfiguredBase = success;
-
-    return (success);
+    return (response);
 }
 
 //----------------------------------------
@@ -433,18 +546,12 @@ bool GNSS_ZED::configureNtpMode()
 {
     bool success = false;
 
-    if (online.gnss == false)
-        return (false);
-
     // This is only called by STATE_NTPSERVER_NOT_STARTED
     // I guess it is OK to always do the configuration?
     // stateUpdate clear the Base and Rover configuration flags
     // to ensure the configuration is re-applied when we exit this mode
 
     update(); // Regularly poll to get latest data
-
-    // Disable GPGGA call back that may have been set during Rover NTRIP Client mode
-    _zed->setNMEAGPGGAcallbackPtr(nullptr);
 
     int tryNo = -1;
 
@@ -515,346 +622,30 @@ bool GNSS_ZED::configureNtpMode()
 }
 
 //----------------------------------------
-// Setup the u-blox module for any setup (base or rover)
-// This is the equivalent of configureOnce on the other platforms
-// In general we check if the setting is incorrect before writing it. Otherwise, the set commands have, on rare
-// occasion, become corrupt. The worst is when the I2C port gets turned off or the I2C address gets borked.
-//----------------------------------------
-bool GNSS_ZED::configureGNSS()
-{
-    if (online.gnss == false)
-        return (false);
-
-    bool response = true;
-    bool success = true;
-
-    // Turn on/off debug messages
-    if (settings.debugGnss)
-        _zed->enableDebugging(Serial, true); // Enable only the critical debug messages over Serial
-    else
-        _zed->disableDebugging();
-
-    // Check if the ubxMessageRates or ubxMessageRatesBase need to be defaulted
-    // Redundant - also done by gnssConfigure
-    // checkGNSSArrayDefaults();
-
-    // Configure the callbacks
-
-    response &=
-        _zed->setAutoPVTcallbackPtr(&storePVTdata, VAL_LAYER_ALL); // Enable automatic NAV PVT messages with callback to storePVTdata
-    response &= _zed->setAutoHPPOSLLHcallbackPtr(
-        &storeHPdata, VAL_LAYER_ALL); // Enable automatic NAV HPPOSLLH messages with callback to storeHPdata
-
-    if (present.timePulseInterrupt)
-        response &= _zed->setAutoTIMTPcallbackPtr(
-            &storeTIMTPdata, VAL_LAYER_ALL); // Enable automatic TIM TP messages with callback to storeTIMTPdata
-
-    if (present.antennaShortOpen)
-    {
-        response &= _zed->newCfgValset(VAL_LAYER_ALL);
-
-        response &= _zed->addCfgValset(UBLOX_CFG_HW_ANT_CFG_SHORTDET, 1); // Enable antenna short detection
-        response &= _zed->addCfgValset(UBLOX_CFG_HW_ANT_CFG_OPENDET, 1);  // Enable antenna open detection
-
-        response &= _zed->sendCfgValset();
-        response &= _zed->setAutoMONHWcallbackPtr(
-            &storeMONHWdata, VAL_LAYER_ALL); // Enable automatic MON HW messages with callback to storeMONHWdata
-    }
-
-    // Add a callback for UBX-MON-COMMS
-    response &= _zed->setAutoMONCOMMScallbackPtr(&storeMONCOMMSdata, VAL_LAYER_ALL);
-
-    // Enable RTCM3 if needed - if not enable NMEA IN to keep skipped updated
-    response &= setCorrRadioExtPort(settings.enableExtCorrRadio, true); // Force the setting
-
-    if (!response)
-    {
-        systemPrintln("GNSS initial configuration (callbacks, short detection, radio port) failed");
-    }
-    success &= response;
-    response = true; // Reset
-
-    // Configuring the ZED can take more than 2000ms. Configuration is saved to
-    // ZED RAM+BBR so there is no need to update settings unless user has modified
-    // the settings file or internal settings.
-    if (settings.gnssConfiguredOnce)
-    {
-        systemPrintln("ZED-F9x configuration maintained");
-        return (true);
-    }
-
-    // Wait for initial report from module
-    int maxWait = 2000;
-    startTime = millis();
-    while (_pvtUpdated == false)
-    {
-        update(); // Regularly poll to get latest data
-
-        delay(10);
-        if ((millis() - startTime) > maxWait)
-        {
-            log_d("PVT Update failed");
-            break;
-        }
-    }
-
-    // The first thing we do is go to 1Hz to lighten any I2C traffic from a previous configuration
-    response &= _zed->newCfgValset(VAL_LAYER_ALL);
-    response &= _zed->addCfgValset(UBLOX_CFG_RATE_MEAS, 1000);
-    response &= _zed->addCfgValset(UBLOX_CFG_RATE_NAV, 1);
-
-    if (commandSupported(UBLOX_CFG_TMODE_MODE))
-        response &= _zed->addCfgValset(UBLOX_CFG_TMODE_MODE, 0); // Disable survey-in mode
-
-    // UART1 will primarily be used to pass NMEA and UBX from ZED to ESP32 (eventually to cell phone)
-    // but the phone can also provide RTCM data and a user may want to configure the ZED over Bluetooth.
-    // So let's be sure to enable UBX+NMEA+RTCM on the input
-    response &= _zed->addCfgValset(UBLOX_CFG_UART1OUTPROT_UBX, 1);
-    response &= _zed->addCfgValset(UBLOX_CFG_UART1OUTPROT_NMEA, 1);
-    if (commandSupported(UBLOX_CFG_UART1OUTPROT_RTCM3X))
-        response &= _zed->addCfgValset(UBLOX_CFG_UART1OUTPROT_RTCM3X, 1);
-    response &= _zed->addCfgValset(UBLOX_CFG_UART1INPROT_UBX, 1);
-    response &= _zed->addCfgValset(UBLOX_CFG_UART1INPROT_NMEA, 1);
-    response &= _zed->addCfgValset(UBLOX_CFG_UART1INPROT_RTCM3X, 1);
-    if (commandSupported(UBLOX_CFG_UART1INPROT_SPARTN))
-        response &= _zed->addCfgValset(UBLOX_CFG_UART1INPROT_SPARTN, 0);
-
-    response &= _zed->addCfgValset(UBLOX_CFG_UART1_BAUDRATE,
-                                   settings.dataPortBaud); // Defaults to 230400 to maximize message output support
-    response &=
-        _zed->addCfgValset(UBLOX_CFG_UART2_BAUDRATE,
-                           settings.radioPortBaud); // Defaults to 57600 to match SiK telemetry radio firmware default
-
-    // Disable SPI port - This is just to remove some overhead by ZED
-    response &= _zed->addCfgValset(UBLOX_CFG_SPIOUTPROT_UBX, 0);
-    response &= _zed->addCfgValset(UBLOX_CFG_SPIOUTPROT_NMEA, 0);
-    if (commandSupported(UBLOX_CFG_SPIOUTPROT_RTCM3X))
-        response &= _zed->addCfgValset(UBLOX_CFG_SPIOUTPROT_RTCM3X, 0);
-
-    response &= _zed->addCfgValset(UBLOX_CFG_SPIINPROT_UBX, 0);
-    response &= _zed->addCfgValset(UBLOX_CFG_SPIINPROT_NMEA, 0);
-    response &= _zed->addCfgValset(UBLOX_CFG_SPIINPROT_RTCM3X, 0);
-    if (commandSupported(UBLOX_CFG_SPIINPROT_SPARTN))
-        response &= _zed->addCfgValset(UBLOX_CFG_SPIINPROT_SPARTN, 0);
-
-    // Set the UART2 to only do RTCM (in case this device goes into base mode)
-    response &= _zed->addCfgValset(UBLOX_CFG_UART2OUTPROT_UBX, 0);
-    response &= _zed->addCfgValset(UBLOX_CFG_UART2OUTPROT_NMEA, 0);
-    if (commandSupported(UBLOX_CFG_UART2OUTPROT_RTCM3X))
-        response &= _zed->addCfgValset(UBLOX_CFG_UART2OUTPROT_RTCM3X, 1);
-
-    // UART2INPROT is set by setCorrRadioExtPort
-
-    // We don't want NMEA over I2C, but we will want to deliver RTCM, and UBX+RTCM is not an option
-    response &= _zed->addCfgValset(UBLOX_CFG_I2COUTPROT_UBX, 1);
-    response &= _zed->addCfgValset(UBLOX_CFG_I2COUTPROT_NMEA, 1);
-    if (commandSupported(UBLOX_CFG_I2COUTPROT_RTCM3X))
-        response &= _zed->addCfgValset(UBLOX_CFG_I2COUTPROT_RTCM3X, 1);
-
-    response &= _zed->addCfgValset(UBLOX_CFG_I2CINPROT_UBX, 1);
-    response &= _zed->addCfgValset(UBLOX_CFG_I2CINPROT_NMEA, 1);
-    response &= _zed->addCfgValset(UBLOX_CFG_I2CINPROT_RTCM3X, 1);
-
-    if (commandSupported(UBLOX_CFG_I2CINPROT_SPARTN))
-    {
-        if (present.lband_neo)
-            response &=
-                _zed->addCfgValset(UBLOX_CFG_I2CINPROT_SPARTN,
-                                   1); // We push NEO-D9S correction data (SPARTN) to ZED-F9P over the I2C interface
-        else
-            response &= _zed->addCfgValset(UBLOX_CFG_I2CINPROT_SPARTN, 0);
-    }
-
-    // The USB port on the ZED may be used for RTCM to/from the computer (as an NTRIP caster or client)
-    // So let's be sure all protocols are on for the USB port
-    response &= _zed->addCfgValset(UBLOX_CFG_USBOUTPROT_UBX, 1);
-    response &= _zed->addCfgValset(UBLOX_CFG_USBOUTPROT_NMEA, 1);
-    if (commandSupported(UBLOX_CFG_USBOUTPROT_RTCM3X))
-        response &= _zed->addCfgValset(UBLOX_CFG_USBOUTPROT_RTCM3X, 1);
-    response &= _zed->addCfgValset(UBLOX_CFG_USBINPROT_UBX, 1);
-    response &= _zed->addCfgValset(UBLOX_CFG_USBINPROT_NMEA, 1);
-    response &= _zed->addCfgValset(UBLOX_CFG_USBINPROT_RTCM3X, 1);
-    if (commandSupported(UBLOX_CFG_USBINPROT_SPARTN))
-        response &= _zed->addCfgValset(UBLOX_CFG_USBINPROT_SPARTN, 0);
-
-    if (commandSupported(UBLOX_CFG_NAVSPG_INFIL_MINCNO))
-    {
-        response &=
-            _zed->addCfgValset(UBLOX_CFG_NAVSPG_INFIL_MINCNO,
-                               settings.minCNO); // Set minimum satellite signal level for navigation - default 6
-    }
-
-    if (commandSupported(UBLOX_CFG_NAV2_OUT_ENABLED))
-    {
-        // Count NAV2 messages and enable NAV2 as needed.
-        if (getNAV2MessageCount() > 0)
-        {
-            response &= _zed->addCfgValset(
-                UBLOX_CFG_NAV2_OUT_ENABLED,
-                1); // Enable NAV2 messages. This has the side effect of causing RTCM to generate twice as fast.
-        }
-        else
-            response &= _zed->addCfgValset(UBLOX_CFG_NAV2_OUT_ENABLED, 0); // Disable NAV2 messages
-    }
-
-    response &= _zed->sendCfgValset();
-
-    if (response == false)
-        systemPrintln("Module failed config block 0");
-    success &= response;
-    response = true; // Reset
-
-    // Enable the constellations the user has set
-    response &= setConstellations(); // 19 messages. Send newCfg or sendCfg with value set
-    if (response == false)
-        systemPrintln("Module failed config block 1");
-    success &= response;
-    response = true; // Reset
-
-    // Make sure the appropriate messages are enabled
-    response &= setMessages(MAX_SET_MESSAGES_RETRIES); // Does a complete open/closed val set
-    if (response == false)
-        systemPrintln("Module failed config block 2");
-    success &= response;
-    response = true; // Reset
-
-    // Disable NMEA messages on all but UART1
-    response &= _zed->newCfgValset(VAL_LAYER_ALL);
-
-    response &= _zed->addCfgValset(UBLOX_CFG_MSGOUT_NMEA_ID_GGA_I2C, 0);
-    response &= _zed->addCfgValset(UBLOX_CFG_MSGOUT_NMEA_ID_GSA_I2C, 0);
-    response &= _zed->addCfgValset(UBLOX_CFG_MSGOUT_NMEA_ID_GSV_I2C, 0);
-    response &= _zed->addCfgValset(UBLOX_CFG_MSGOUT_NMEA_ID_RMC_I2C, 0);
-    response &= _zed->addCfgValset(UBLOX_CFG_MSGOUT_NMEA_ID_GST_I2C, 0);
-    response &= _zed->addCfgValset(UBLOX_CFG_MSGOUT_NMEA_ID_GLL_I2C, 0);
-    response &= _zed->addCfgValset(UBLOX_CFG_MSGOUT_NMEA_ID_VTG_I2C, 0);
-
-    response &= _zed->addCfgValset(UBLOX_CFG_MSGOUT_NMEA_ID_GGA_UART2, 0);
-    response &= _zed->addCfgValset(UBLOX_CFG_MSGOUT_NMEA_ID_GSA_UART2, 0);
-    response &= _zed->addCfgValset(UBLOX_CFG_MSGOUT_NMEA_ID_GSV_UART2, 0);
-    response &= _zed->addCfgValset(UBLOX_CFG_MSGOUT_NMEA_ID_RMC_UART2, 0);
-    response &= _zed->addCfgValset(UBLOX_CFG_MSGOUT_NMEA_ID_GST_UART2, 0);
-    response &= _zed->addCfgValset(UBLOX_CFG_MSGOUT_NMEA_ID_GLL_UART2, 0);
-    response &= _zed->addCfgValset(UBLOX_CFG_MSGOUT_NMEA_ID_VTG_UART2, 0);
-
-    response &= _zed->addCfgValset(UBLOX_CFG_MSGOUT_NMEA_ID_GGA_SPI, 0);
-    response &= _zed->addCfgValset(UBLOX_CFG_MSGOUT_NMEA_ID_GSA_SPI, 0);
-    response &= _zed->addCfgValset(UBLOX_CFG_MSGOUT_NMEA_ID_GSV_SPI, 0);
-    response &= _zed->addCfgValset(UBLOX_CFG_MSGOUT_NMEA_ID_RMC_SPI, 0);
-    response &= _zed->addCfgValset(UBLOX_CFG_MSGOUT_NMEA_ID_GST_SPI, 0);
-    response &= _zed->addCfgValset(UBLOX_CFG_MSGOUT_NMEA_ID_GLL_SPI, 0);
-    response &= _zed->addCfgValset(UBLOX_CFG_MSGOUT_NMEA_ID_VTG_SPI, 0);
-
-    response &= _zed->sendCfgValset();
-
-    if (response == false)
-        systemPrintln("Module failed config block 3");
-
-    success &= response;
-
-    if (success)
-    {
-        systemPrintln("ZED-F9x configuration updated");
-    }
-
-    settings.gnssConfiguredOnce = success;
-
-    // The configuration should be saved to RAM+BBR+FLASH. No need to saveConfiguration here.
-
-    return (success);
-}
-
-//----------------------------------------
 // Configure specific aspects of the receiver for rover mode
 //----------------------------------------
 bool GNSS_ZED::configureRover()
 {
-    if (online.gnss == false)
+    if (gnssInRoverMode())
     {
-        systemPrintln("GNSS not online");
-        return (false);
+        if (settings.debugGnssConfig)
+            systemPrintln("Skipping Rover configuration");
+        return (true); // No changes needed
     }
 
-    // If our settings haven't changed, trust GNSS's settings
-    if (settings.gnssConfiguredRover)
-    {
-        systemPrintln("Skipping ZED Rover configuration");
-        return (true);
-    }
+    // Assume we are changing from Base to Rover, request any additional config changes
 
-    update(); // Regularly poll to get latest data
+    bool response = true;
 
-    bool success = false;
-    int tryNo = -1;
+    gnssConfigure(GNSS_CONFIG_FIX_RATE);
+    gnssConfigure(GNSS_CONFIG_MESSAGE_RATE_RTCM_ROVER);
 
-    // Try up to MAX_SET_MESSAGES_RETRIES times to configure the GNSS
-    // This corrects occasional failures seen on the Reference Station where the GNSS is connected via SPI
-    // instead of I2C and UART1. I believe the SETVAL ACK is occasionally missed due to the level of messages being
-    // processed.
-    while ((++tryNo < MAX_SET_MESSAGES_RETRIES) && !success)
-    {
-        bool response = true;
+    response &= _zed->setVal8(UBLOX_CFG_TMODE_MODE, 0); // Switch to Rover mode
 
-        // Set output rate
-        response &= _zed->newCfgValset(VAL_LAYER_ALL);
-        response &= _zed->addCfgValset(UBLOX_CFG_RATE_MEAS, settings.measurementRateMs);
-        response &= _zed->addCfgValset(UBLOX_CFG_RATE_NAV, settings.navigationRate);
-
-        // Survey mode is only available on ZED-F9P modules
-        if (commandSupported(UBLOX_CFG_TMODE_MODE))
-            response &= _zed->addCfgValset(UBLOX_CFG_TMODE_MODE, 0); // Disable survey-in mode
-
-        response &= _zed->addCfgValset(UBLOX_CFG_NAVSPG_DYNMODEL, (dynModel)settings.dynamicModel); // Set dynamic model
-
-        // RTCM is only available on ZED-F9P modules
-        //
-        // For most RTK products, the GNSS is interfaced via both I2C and UART1. Configuration and PVT/HPPOS messages
-        // are configured over I2C. Any messages that need to be logged are output on UART1, and received by this code
-        // using serialGNSS-> So in Rover mode, we want to disable any RTCM messages on I2C (and USB and UART2).
-        //
-        // But, on the Reference Station, the GNSS is interfaced via SPI. It has no access to I2C and UART1. So for that
-        // product - in Rover mode - we want to leave any RTCM messages enabled on SPI so they can be logged if desired.
-
-        // Find first RTCM record in ubxMessage array
-        int firstRTCMRecord = getMessageNumberByName("RTCM_1005");
-
-        // Set RTCM messages to user's settings
-        for (int x = 0; x < MAX_UBX_MSG_RTCM; x++)
-            response &= _zed->addCfgValset(ubxMessages[firstRTCMRecord + x].msgConfigKey - 1,
-                                           settings.ubxMessageRates[firstRTCMRecord + x]); // UBLOX_CFG UART1 - 1 = I2C
-
-        // Set RTCM messages to user's settings
-        for (int x = 0; x < MAX_UBX_MSG_RTCM; x++)
-        {
-            response &=
-                _zed->addCfgValset(ubxMessages[firstRTCMRecord + x].msgConfigKey + 1,
-                                   settings.ubxMessageRates[firstRTCMRecord + x]); // UBLOX_CFG UART1 + 1 = UART2
-            response &= _zed->addCfgValset(ubxMessages[firstRTCMRecord + x].msgConfigKey + 2,
-                                           settings.ubxMessageRates[firstRTCMRecord + x]); // UBLOX_CFG UART1 + 2 = USB
-        }
-
-        response &= _zed->addCfgValset(UBLOX_CFG_NMEA_MAINTALKERID,
-                                       3); // Return talker ID to GNGGA after NTRIP Client set to GPGGA
-
-        response &= _zed->addCfgValset(UBLOX_CFG_NMEA_HIGHPREC, 1);    // Enable high precision NMEA
-        response &= _zed->addCfgValset(UBLOX_CFG_NMEA_SVNUMBERING, 1); // Enable extended satellite numbering
-
-        response &= _zed->addCfgValset(UBLOX_CFG_NAVSPG_INFIL_MINELEV, settings.minElev); // Set minimum elevation
-
-        response &= _zed->sendCfgValset(); // Closing
-
-        if (response)
-            success = true;
-    }
-
-    if (!success)
+    if (response == false)
         systemPrintln("Rover config fail");
 
-    settings.gnssConfiguredRover = success;
-
-    // The configuration should be saved to RAM+BBR+FLASH. No need to saveConfiguration here.
-
-    return (success);
+    return (response);
 }
 
 //----------------------------------------
@@ -908,42 +699,6 @@ void GNSS_ZED::debuggingEnable()
 }
 
 //----------------------------------------
-void GNSS_ZED::enableGgaForNtrip()
-{
-    if (online.gnss)
-    {
-        // Set the Main Talker ID to "GP". The NMEA GGA messages will be GPGGA instead of GNGGA
-        _zed->setVal8(UBLOX_CFG_NMEA_MAINTALKERID, 1, VAL_LAYER_ALL);
-        _zed->setNMEAGPGGAcallbackPtr(&zedPushGPGGA); // Set up the callback for GPGGA
-
-        float measurementFrequency = (1000.0 / settings.measurementRateMs) / settings.navigationRate;
-        if (measurementFrequency < 0.2)
-            measurementFrequency = 0.2; // 0.2Hz * 5 = 1 measurement every 5 seconds
-        if (settings.debugGnss)
-            systemPrintf("Adjusting GGA setting to %f\r\n", measurementFrequency);
-        _zed->setVal8(UBLOX_CFG_MSGOUT_NMEA_ID_GGA_I2C,
-                      measurementFrequency, VAL_LAYER_ALL); // Enable GGA over I2C. Tell the module to output GGA every second
-    }
-}
-
-//----------------------------------------
-// Enable RTCM 1230. This is the GLONASS bias sentence and is transmitted
-// even if there is no GPS fix. We use it to test serial output.
-// Returns true if successfully started and false upon failure
-//----------------------------------------
-bool GNSS_ZED::enableRTCMTest()
-{
-    if (online.gnss)
-    {
-        _zed->newCfgValset(VAL_LAYER_RAM); // Create a new Configuration Item VALSET message
-        _zed->addCfgValset(UBLOX_CFG_MSGOUT_RTCM_3X_TYPE1230_UART2, 1); // Enable message 1230 every second
-        _zed->sendCfgValset();                                          // Send the VALSET
-        return true;
-    }
-    return false;
-}
-
-//----------------------------------------
 // Restore the GNSS to the factory settings
 //----------------------------------------
 void GNSS_ZED::factoryReset()
@@ -951,13 +706,13 @@ void GNSS_ZED::factoryReset()
     if (online.gnss)
     {
         // Set the clearMask and loadMask to 0xFFFF. Set deviceMask to devBBR | devFlash
-        uint8_t clearAndLoadMask[] = { 0xFF, 0xFF, 0, 0, 0, 0, 0, 0, 0xFF, 0xFF, 0, 0, 0x03 };
+        uint8_t clearAndLoadMask[] = {0xFF, 0xFF, 0, 0, 0, 0, 0, 0, 0xFF, 0xFF, 0, 0, 0x03};
         _zed->cfgCfg(clearAndLoadMask, 13);
 
         delay(2000);
 
         // Set the saveMask to 0xFFFF. Set deviceMask to devBBR | devFlash
-        uint8_t saveMask[] = { 0, 0, 0, 0, 0xFF, 0xFF, 0, 0, 0, 0, 0, 0, 0x03 };
+        uint8_t saveMask[] = {0, 0, 0, 0, 0xFF, 0xFF, 0, 0, 0, 0, 0, 0, 0x03};
         _zed->cfgCfg(saveMask, 13);
 
         _zed->hardReset(); // Perform a reset leading to a cold start (zero info start-up)
@@ -992,10 +747,16 @@ bool GNSS_ZED::fixedBaseStart()
     bool response = true;
 
     if (online.gnss == false)
-    {
-        systemPrintln("GNSS not online");
         return (false);
-    }
+
+    // If we are already in the appropriate base mode, no changes needed
+
+    // 0 - Rover, 1 - Base Survey-In, 2 - Base Fixed ECEF, 3 - Base Fixed LLH
+    int currentMode = getMode();
+    if (currentMode == 2 && settings.fixedBaseCoordinateType == COORD_TYPE_ECEF)
+        return (true); // No changes needed
+    if (currentMode == 3 && settings.fixedBaseCoordinateType == COORD_TYPE_GEODETIC)
+        return (true); // No changes needed
 
     if (settings.fixedBaseCoordinateType == COORD_TYPE_ECEF)
     {
@@ -1016,7 +777,7 @@ bool GNSS_ZED::fixedBaseStart()
         //-1280208.308,-4716803.847,4086665.811 is SparkFun HQ so...
 
         response &= _zed->newCfgValset(VAL_LAYER_ALL);
-        response &= _zed->addCfgValset(UBLOX_CFG_TMODE_MODE, 2);     // Fixed
+        response &= _zed->addCfgValset(UBLOX_CFG_TMODE_MODE, 2);     // Switch to Fixed Base mode
         response &= _zed->addCfgValset(UBLOX_CFG_TMODE_POS_TYPE, 0); // Position in ECEF
         response &= _zed->addCfgValset(UBLOX_CFG_TMODE_ECEF_X, majorEcefX);
         response &= _zed->addCfgValset(UBLOX_CFG_TMODE_ECEF_X_HP, minorEcefX);
@@ -1056,7 +817,7 @@ bool GNSS_ZED::fixedBaseStart()
         //    systemPrintf("minor (should be 84): %ld\r\n", minorAlt);
 
         response &= _zed->newCfgValset(VAL_LAYER_ALL);
-        response &= _zed->addCfgValset(UBLOX_CFG_TMODE_MODE, 2);     // Fixed
+        response &= _zed->addCfgValset(UBLOX_CFG_TMODE_MODE, 2);     // Switch to Fixed Base mode
         response &= _zed->addCfgValset(UBLOX_CFG_TMODE_POS_TYPE, 1); // Position in LLH
         response &= _zed->addCfgValset(UBLOX_CFG_TMODE_LAT, majorLat);
         response &= _zed->addCfgValset(UBLOX_CFG_TMODE_LAT_HP, minorLat);
@@ -1067,7 +828,37 @@ bool GNSS_ZED::fixedBaseStart()
         response &= _zed->sendCfgValset();
     }
 
+    // Now that the module is set to base mode, complete the base config.
+    gnssConfigure(GNSS_CONFIG_FIX_RATE);
+    gnssConfigure(GNSS_CONFIG_MESSAGE_RATE_RTCM_BASE);
+
     return (response);
+}
+
+//----------------------------------------
+// Check if given GNSS fix rate is allowed
+// Rates are expressed in ms between fixes.
+//----------------------------------------
+const float f9pMinRateHz = 0.00012; // Limit of 127 (navRate) * 65000ms (measRate) = 137 minute limit.
+const float f9pMaxRateHz = 20.0;    // 20Hz
+
+bool GNSS_ZED::fixRateIsAllowed(uint32_t fixRateMs)
+{
+    if (fixRateMs >= fixRateGetMinimumMs() && fixRateMs <= fixRateGetMaximumMs())
+        return (true);
+    return (false);
+}
+
+// Return minimum in milliseconds
+uint32_t GNSS_ZED::fixRateGetMinimumMs()
+{
+    return (1000.0 / f9pMaxRateHz); // Max Hz is min ms
+}
+
+// Return maximum in milliseconds
+uint32_t GNSS_ZED::fixRateGetMaximumMs()
+{
+    return (1000.0 / f9pMinRateHz); // Min Hz is max ms
 }
 
 //----------------------------------------
@@ -1101,6 +892,8 @@ uint8_t GNSS_ZED::getActiveRtcmMessageCount()
 //----------------------------------------
 double GNSS_ZED::getAltitude()
 {
+    // _altitude contains the Height above ellipsoid from NAV-PVT height
+    // We don't need to adjust for the Geoidal Separation (Undulation)
     return _altitude;
 }
 
@@ -1143,6 +936,14 @@ uint16_t GNSS_ZED::getFixAgeMilliseconds()
 uint8_t GNSS_ZED::getFixType()
 {
     return (_fixType);
+}
+
+//----------------------------------------
+// Returns the geoidal separation in meters or zero if the GNSS is offline
+//----------------------------------------
+double GNSS_ZED::getGeoidalSeparation()
+{
+    return _geoidalSeparation;
 }
 
 //----------------------------------------
@@ -1278,6 +1079,37 @@ uint8_t GNSS_ZED::getMinute()
 }
 
 //----------------------------------------
+// Returns the current mode
+// 0 - Rover, 1 - Base Survey-In, 2 - Base Fixed ECEF, 3 - Base Fixed LLH
+//----------------------------------------
+uint8_t GNSS_ZED::getMode()
+{
+    if (online.gnss)
+    {
+        // Survey mode is only available on ZED-F9P modules
+        if (commandSupported(UBLOX_CFG_TMODE_MODE))
+        {
+            int currentMode = _zed->getVal8(UBLOX_CFG_TMODE_MODE);
+
+            if (currentMode == 0) // Rover
+                return (0);
+            if (currentMode == 1) // Survey-in
+                return (1);
+            if (currentMode == 2) // Fixed
+            {
+                int baseType = _zed->getVal8(UBLOX_CFG_TMODE_POS_TYPE);
+                if (baseType == 0) // ECEF
+                    return (2);    // Base Fixed ECEF
+                if (baseType == 1) // LLH
+                    return (3);    // Base Fixed LLH
+            }
+        }
+    }
+
+    return (0); // Rover
+}
+
+//----------------------------------------
 // Returns month number or zero if not online
 //----------------------------------------
 uint8_t GNSS_ZED::getMonth()
@@ -1338,7 +1170,7 @@ uint32_t GNSS_ZED::getRadioBaudRate()
 double GNSS_ZED::getRateS()
 {
     // Because we may be in base mode, do not get freq from module, use settings instead
-    float measurementFrequency = (1000.0 / settings.measurementRateMs) / settings.navigationRate;
+    float measurementFrequency = (1000.0 / settings.measurementRateMs);
     double measurementRateS = 1.0 / measurementFrequency; // 1 / 4Hz = 0.25s
 
     return (measurementRateS);
@@ -1404,6 +1236,9 @@ int GNSS_ZED::getSurveyInObservationTime()
     if (online.gnss == false)
         return (0);
 
+    if (gnssConfigureComplete() == false)
+        return (0);
+
     // Use a local static so we don't have to request these values multiple times (ZED takes many ms to respond
     // to this command)
     if ((millis() - lastCheck) > 1000)
@@ -1428,6 +1263,39 @@ uint32_t GNSS_ZED::getTimeAccuracy()
 uint16_t GNSS_ZED::getYear()
 {
     return (_year);
+}
+
+//----------------------------------------
+// Returns true if the GNSS receiver is in Base Fixed mode
+//----------------------------------------
+bool GNSS_ZED::gnssInBaseFixedMode()
+{
+    if (getMode() == 2 || getMode() == 3) // 0 - Rover, 1 - Base Survey-In, 2 - Base Fixed ECEF, 3 - Base Fixed LLH
+        return (true);
+
+    return (false);
+}
+
+//----------------------------------------
+// Returns true if the GNSS receiver is in Base Survey-in mode
+//----------------------------------------
+bool GNSS_ZED::gnssInBaseSurveyInMode()
+{
+    if (getMode() == 1) // 0 - Rover, 1 - Base Survey-In, 2 - Base Fixed ECEF, 3 - Base Fixed LLH
+        return (true);
+
+    return (false);
+}
+
+//----------------------------------------
+// Returns true if the GNSS receiver is in Rover mode
+//----------------------------------------
+bool GNSS_ZED::gnssInRoverMode()
+{
+    if (getMode() == 0) // 0 - Rover, 1 - Base Survey-In, 2 - Base Fixed
+        return (true);
+
+    return (false);
 }
 
 //----------------------------------------
@@ -1769,6 +1637,8 @@ void GNSS_ZED::menuConstellations()
                 settings.ubxConstellations[ubxConstellationIDToIndex(SFE_UBLOX_GNSS_ID_GPS)].enabled =
                     settings.ubxConstellations[incoming].enabled;
             }
+
+            gnssConfigure(GNSS_CONFIG_CONSTELLATION); // Request receiver to use new settings
         }
         else if (incoming == INPUT_RESPONSE_GETNUMBER_EXIT)
             break;
@@ -1777,9 +1647,6 @@ void GNSS_ZED::menuConstellations()
         else
             printUnknown(incoming);
     }
-
-    // Apply current settings to module
-    setConstellations();
 
     clearBuffer(); // Empty buffer of any newline chars
 }
@@ -1848,13 +1715,15 @@ void GNSS_ZED::menuMessages()
             setMessageRateByName("NMEA_GST", 1);
 
             // We want GSV NMEA to be reported at 1Hz to avoid swamping SPP connection
-            float measurementFrequency = (1000.0 / settings.measurementRateMs) / settings.navigationRate;
+            float measurementFrequency = (1000.0 / settings.measurementRateMs);
             if (measurementFrequency < 1.0)
                 measurementFrequency = 1.0;
             setMessageRateByName("NMEA_GSV", measurementFrequency); // One report per second
 
             setMessageRateByName("NMEA_RMC", 1);
             systemPrintln("Reset to Surveying Defaults (NMEAx5)");
+
+            gnssConfigure(GNSS_CONFIG_MESSAGE_RATE_NMEA); // Request receiver to use new settings
         }
         else if (incoming == 11)
         {
@@ -1864,7 +1733,7 @@ void GNSS_ZED::menuMessages()
             setMessageRateByName("NMEA_GST", 1);
 
             // We want GSV NMEA to be reported at 1Hz to avoid swamping SPP connection
-            float measurementFrequency = (1000.0 / settings.measurementRateMs) / settings.navigationRate;
+            float measurementFrequency = (1000.0 / settings.measurementRateMs);
             if (measurementFrequency < 1.0)
                 measurementFrequency = 1.0;
             setMessageRateByName("NMEA_GSV", measurementFrequency); // One report per second
@@ -1874,16 +1743,22 @@ void GNSS_ZED::menuMessages()
             setMessageRateByName("RXM_RAWX", 1);
             setMessageRateByName("RXM_SFRBX", 1);
             systemPrintln("Reset to PPP Logging Defaults (NMEAx5 + RXMx2)");
+
+            gnssConfigure(GNSS_CONFIG_MESSAGE_RATE_NMEA); // Request receiver to use new settings
         }
         else if (incoming == 12)
         {
             setGNSSMessageRates(settings.ubxMessageRates, 0); // Turn off all messages
             systemPrintln("All messages disabled");
+
+            gnssConfigure(GNSS_CONFIG_MESSAGE_RATE_NMEA); // Request receiver to use new settings
         }
         else if (incoming == 13)
         {
             setGNSSMessageRates(settings.ubxMessageRates, 1); // Turn on all messages to report once per fix
             systemPrintln("All messages enabled");
+
+            gnssConfigure(GNSS_CONFIG_MESSAGE_RATE_NMEA); // Request receiver to use new settings
         }
         else if (incoming == INPUT_RESPONSE_GETNUMBER_EXIT)
             break;
@@ -1894,15 +1769,6 @@ void GNSS_ZED::menuMessages()
     }
 
     clearBuffer(); // Empty buffer of any newline chars
-
-    // Make sure the appropriate messages are enabled
-    bool response = setMessages(MAX_SET_MESSAGES_RETRIES); // Does a complete open/closed val set
-    if (response == false)
-        systemPrintf("menuMessages: Failed to enable messages - after %d tries", MAX_SET_MESSAGES_RETRIES);
-    else
-        systemPrintln("menuMessages: Messages successfully enabled");
-
-    setLoggingType(); // Update Standard, PPP, or custom for icon selection
 }
 
 // Given a sub type (ie "RTCM", "NMEA") present menu showing messages with this subtype
@@ -1949,7 +1815,19 @@ void GNSS_ZED::menuMessagesSubtype(uint8_t *localMessageRate, const char *messag
             int msgNumber = (incoming - 1) + startOfBlock;
 
             if (messageSupported(msgNumber + rtcmOffset) == true)
+            {
                 inputMessageRate(localMessageRate[msgNumber], msgNumber + rtcmOffset);
+
+                // Depending on the message type, trigger different config requests
+                // Note: anything not handled triggers a NMEA config which runs the whole array including
+                // NMEA, RTCM (Rover), RXM, NAV, NAV2, NMEA NAV2, MON, TIM, PUBX
+                if (strcmp(messageType, "RTCM") == 0)
+                    gnssConfigure(GNSS_CONFIG_MESSAGE_RATE_RTCM_ROVER); // Request receiver to use new settings
+                else if (strcmp(messageType, "RTCM-Base") == 0)
+                    gnssConfigure(GNSS_CONFIG_MESSAGE_RATE_RTCM_BASE); // Request receiver to use new settings
+                else
+                    gnssConfigure(GNSS_CONFIG_MESSAGE_RATE_NMEA); // Request receiver to use new settings
+            }
             else
                 printUnknown(incoming);
         }
@@ -1981,6 +1859,44 @@ int GNSS_ZED::pushRawData(uint8_t *dataToSend, int dataLength)
     if (online.gnss)
         return (_zed->pushRawData((uint8_t *)dataToSend, dataLength));
     return (0);
+}
+
+// These are settings used inside the library, not setting on the GNSS receiver so they are not saved to the receiver's
+// NVM We have to re-enable them each time
+bool GNSS_ZED::registerCallbacks()
+{
+    bool response = true;
+
+    // Enable automatic NAV PVT messages with callback to storePVTdata
+    response &= _zed->setAutoPVTcallbackPtr(&storePVTdata, VAL_LAYER_ALL);
+
+    // Enable automatic NAV HPPOSLLH messages with callback to storeHPdata
+    response &= _zed->setAutoHPPOSLLHcallbackPtr(&storeHPdata, VAL_LAYER_ALL);
+
+    // Enable automatic TIM TP messages with callback to storeTIMTPdata
+    if (present.timePulseInterrupt)
+        response &= _zed->setAutoTIMTPcallbackPtr(&storeTIMTPdata, VAL_LAYER_ALL);
+
+    // Enable automatic MON HW messages with callback to storeMONHWdata
+    if (present.antennaShortOpen)
+        response &= _zed->setAutoMONHWcallbackPtr(&storeMONHWdata, VAL_LAYER_ALL);
+
+    // Add a callback for UBX-MON-COMMS
+    response &= _zed->setAutoMONCOMMScallbackPtr(&storeMONCOMMSdata, VAL_LAYER_ALL);
+
+    return (response);
+}
+
+//----------------------------------------
+// Hardware or software reset the GNSS receiver
+// Hotstart GNSS to try to get RTK lock
+//----------------------------------------
+bool GNSS_ZED::reset()
+{
+    if (online.gnss == false)
+        return false;
+    _zed->softwareResetGNSSOnly();
+    return true;
 }
 
 //----------------------------------------
@@ -2034,11 +1950,30 @@ bool GNSS_ZED::setBaudRate(uint8_t port, uint32_t baudRate)
     }
 
     if (port == 1)
-        return setDataBaudRate(baudRate);
+        return setBaudRateData(baudRate);
     else
-        return setRadioBaudRate(baudRate);
+        return setBaudRateRadio(baudRate);
 }
 
+// With ZED modules, configuration communication is done over I2C. No 'Comm' UART exists.
+bool GNSS_ZED::setBaudRateComm(uint32_t baudRate)
+{
+    return false;
+}
+
+bool GNSS_ZED::setBaudRateData(uint32_t baudRate)
+{
+    if (online.gnss)
+        return _zed->setVal32(UBLOX_CFG_UART1_BAUDRATE, baudRate, VAL_LAYER_ALL);
+    return false;
+}
+
+bool GNSS_ZED::setBaudRateRadio(uint32_t baudRate)
+{
+    if (online.gnss)
+        return _zed->setVal32(UBLOX_CFG_UART2_BAUDRATE, baudRate, VAL_LAYER_ALL);
+    return false;
+}
 //----------------------------------------
 // Save the current configuration
 // Returns true when the configuration was saved and false upon failure
@@ -2171,14 +2106,6 @@ bool GNSS_ZED::setCorrRadioExtPort(bool enable, bool force)
 }
 
 //----------------------------------------
-bool GNSS_ZED::setDataBaudRate(uint32_t baud)
-{
-    if (online.gnss)
-        return _zed->setVal32(UBLOX_CFG_UART1_BAUDRATE, baud, VAL_LAYER_ALL);
-    return false;
-}
-
-//----------------------------------------
 // Set the elevation in degrees
 //----------------------------------------
 bool GNSS_ZED::setElevation(uint8_t elevationDegrees)
@@ -2189,6 +2116,24 @@ bool GNSS_ZED::setElevation(uint8_t elevationDegrees)
         return true;
     }
     return false;
+}
+
+//----------------------------------------
+// Control whether HAS E6 is used in location fixes or not
+//----------------------------------------
+bool GNSS_ZED::setHighAccuracyService(bool enableGalileoHas)
+{
+    // Not yet supported on this platform
+    return (true); // Return true to clear gnssConfigure test
+}
+
+//----------------------------------------
+// Configure device-direct logging. Currently mosaic-X5 specific.
+//----------------------------------------
+bool GNSS_ZED::setLogging()
+{
+    // Not supported on this platform
+    return (true); // Return true to clear gnssConfigure test
 }
 
 //----------------------------------------
@@ -2239,117 +2184,193 @@ bool GNSS_ZED::setMessageRateByName(const char *msgName, uint8_t msgRate)
     return (false);
 }
 
-//----------------------------------------
-// Enable all the valid messages for this platform
-// There are many messages so split into batches. VALSET is limited to 64 max per batch
-// Uses dummy newCfg and sendCfg values to be sure we open/close a complete set
-//----------------------------------------
-bool GNSS_ZED::setMessages(int maxRetries)
+// Given the name of a message, find it, and set the rate
+bool GNSS_ZED::setNmeaMessageRateByName(const char *msgName, uint8_t msgRate)
 {
-    bool success = false;
-
-    if (online.gnss)
-    {
-        int tryNo = -1;
-
-        // Try up to maxRetries times to configure the messages
-        // This corrects occasional failures seen on the Reference Station where the GNSS is connected via SPI
-        // instead of I2C and UART1. I believe the SETVAL ACK is occasionally missed due to the level of messages being
-        // processed.
-        while ((++tryNo < maxRetries) && !success)
-        {
-            bool response = true;
-            int messageNumber = 0;
-
-            while (messageNumber < MAX_UBX_MSG)
-            {
-                response &= _zed->newCfgValset(VAL_LAYER_ALL);
-
-                do
-                {
-                    if (messageSupported(messageNumber))
-                    {
-                        uint8_t rate = settings.ubxMessageRates[messageNumber];
-
-                        response &= _zed->addCfgValset(ubxMessages[messageNumber].msgConfigKey, rate);
-                    }
-                    messageNumber++;
-                } while (((messageNumber % 43) < 42) &&
-                         (messageNumber < MAX_UBX_MSG)); // Limit 1st batch to 42. Batches after that will be (up to) 43
-                                                         // in size. It's a HHGTTG thing.
-
-                if (_zed->sendCfgValset() == false)
-                {
-                    systemPrintf("sendCfg failed at messageNumber %d %s. Try %d of %d.\r\n", messageNumber - 1,
-                                 (messageNumber - 1) < MAX_UBX_MSG ? ubxMessages[messageNumber - 1].msgTextName : "",
-                                 tryNo + 1, maxRetries);
-                    response &= false; // If any one of the Valset fails, report failure overall
-                }
-            }
-
-            if (response)
-                success = true;
-        }
-    }
-    return (success);
+    // TODO
+    return (false);
 }
 
 //----------------------------------------
-// Enable all the valid messages for this platform over the USB port
-// Add 2 to every UART1 key. This is brittle and non-perfect, but works.
+// Set the rate for all messages
+// The ZED has a lot more messages than just NMEA in ubxMessageRates[], but other platforms generally just have NMEA and
+// RTCM. There are many messages so split into batches. VALSET is limited to 64 per batch. Uses dummy newCfg and
+// sendCfg values to be sure we open/close a complete set.
 //----------------------------------------
-bool GNSS_ZED::setMessagesUsb(int maxRetries)
+bool GNSS_ZED::setMessagesNMEA()
 {
-    bool success = false;
+    int maxRetries = MAX_SET_MESSAGES_RETRIES;
 
-    if (online.gnss)
+    bool gpggaEnabled = false;
+
+    bool success = true;
+
+    bool response = true;
+    int messageNumber = 0;
+
+    while (messageNumber < MAX_UBX_MSG)
     {
-        int tryNo = -1;
+        response &= _zed->newCfgValset(VAL_LAYER_ALL);
 
-        // Try up to maxRetries times to configure the messages
-        // This corrects occasional failures seen on the Reference Station where the GNSS is connected via SPI
-        // instead of I2C and UART1. I believe the SETVAL ACK is occasionally missed due to the level of messages being
-        // processed.
-        while ((++tryNo < maxRetries) && !success)
+        do
         {
-            bool response = true;
-            int messageNumber = 0;
-
-            while (messageNumber < MAX_UBX_MSG)
+            if (messageSupported(messageNumber))
             {
-                response &= _zed->newCfgValset(VAL_LAYER_ALL);
+                uint8_t rate = settings.ubxMessageRates[messageNumber];
 
-                do
+                // Set NMEA messages to user's settings on UART1 interface
+                response &= _zed->addCfgValset(ubxMessages[messageNumber].msgConfigKey,
+                                               rate); // msgConfigKey defaults to UART1
+
+                // Mark messages needed for other services (NTRIP Client, PointPerfect, etc) as enabled if rate
+                // > 0
+                if (settings.ubxMessageRates[messageNumber] > 0)
                 {
-                    if (messageSupported(messageNumber))
-                        response &= _zed->addCfgValset(ubxMessages[messageNumber].msgConfigKey + 2,
-                                                       settings.ubxMessageRates[messageNumber]);
-                    messageNumber++;
-                } while (((messageNumber % 43) < 42) &&
-                         (messageNumber < MAX_UBX_MSG)); // Limit 1st batch to 42. Batches after that will be (up to) 43
-                                                         // in size. It's a HHGTTG thing.
-
-                response &= _zed->sendCfgValset();
+                    if (strcmp(ubxMessages[messageNumber].msgTextName, "NMEA_GGA") == 0)
+                        gpggaEnabled = true;
+                }
             }
+            messageNumber++;
+        } while (((messageNumber % 43) < 42) &&
+                 (messageNumber < MAX_UBX_MSG)); // Limit 1st batch to 42. Batches after that will be (up to) 43
+                                                 // in size. It's a HHGTTG thing.
 
-            if (response)
-                success = true;
+        if (_zed->sendCfgValset() == false)
+        {
+            systemPrintf("sendCfg failed at messageNumber %d %s.\r\n", messageNumber - 1,
+                         (messageNumber - 1) < MAX_UBX_MSG ? ubxMessages[messageNumber - 1].msgTextName : "");
+            response &= false; // If any one of the Valset fails, report failure overall
         }
     }
-    return (success);
+
+    // Enable GGA if needed for other services
+    if (gpggaEnabled == false)
+    {
+        // Enable GGA for NTRIP
+        if (settings.enableNtripClient == true && settings.ntripClient_TransmitGGA == true)
+        {
+            float measurementFrequency = (1000.0 / settings.measurementRateMs);
+            if (measurementFrequency < 0.2)
+                measurementFrequency = 0.2; // 0.2Hz * 5 = 1 measurement every 5 seconds
+            if (settings.debugGnssConfig)
+                systemPrintf("Adjusting GGA setting to %f\r\n", measurementFrequency);
+            response &= _zed->setVal8(UBLOX_CFG_MSGOUT_NMEA_ID_GGA_UART1, measurementFrequency,
+                                      VAL_LAYER_ALL); // Enable GGA over UART1. Tell the module to output GGA every second
+        }
+    }
+
+    // Configure the callback for GGA as needed
+    if (settings.enableNtripClient == true && settings.ntripClient_TransmitGGA == true)
+        response &= _zed->setNMEAGPGGAcallbackPtr(&zedPushGPGGA);
+    else
+        response &= _zed->setNMEAGPGGAcallbackPtr(nullptr);
+
+    return (response);
+}
+
+//----------------------------------------
+// Configure RTCM Base messages
+//----------------------------------------
+bool GNSS_ZED::setMessagesRTCMBase()
+{
+    // RTCM is only available on ZED-F9P modules
+    //
+    // For the RTK EVK, the GNSS is interfaced via both I2C and UART1. Configuration and PVT/HPPOS messages
+    // are configured over I2C. Any messages that need to be logged are output on UART1, and received by this code
+    // using serialGNSS->. In base mode the RTK device should output RTCM over all ports:
+    // (Primary) UART2 in case the RTK device is connected via radio to rover
+    // (Optional) I2C in case user wants the base to connect to WiFi and NTRIP Caster
+    // (Secondary) USB in case the RTK device is used as an NTRIP caster connected to SBC or other
+    // (Tertiary) UART1 in case RTK device is sending RTCM to a phone that is then NTRIP Caster
+
+    // ubxMessageRatesBase is an array of ~12 uint8_ts
+    // ubxMessage is an array of ~80 messages
+    // We use firstRTCMRecord as an offset for the keys, but use x as the rate
+    // Find first RTCM record in ubxMessage array
+    int firstRTCMRecord = getMessageNumberByName("RTCM_1005");
+
+    bool response = true;
+
+    response &= _zed->newCfgValset(VAL_LAYER_ALL);
+
+    // VALSET is limited to 64 per batch
+    // Update RTCM message rates for all interfaces. This is 12 * 5 = 60 valsets.
+    for (int x = 0; x < MAX_UBX_MSG_RTCM; x++)
+    {
+        response &= _zed->addCfgValset(ubxMessages[firstRTCMRecord + x].msgConfigKey - 1,
+                                       settings.ubxMessageRatesBase[x]); // UBLOX_CFG UART1 - 1 = I2C
+        response &= _zed->addCfgValset(ubxMessages[firstRTCMRecord + x].msgConfigKey,
+                                       settings.ubxMessageRatesBase[x]); // UBLOX_CFG UART1
+        response &= _zed->addCfgValset(ubxMessages[firstRTCMRecord + x].msgConfigKey + 1,
+                                       settings.ubxMessageRatesBase[x]); // UBLOX_CFG UART1 + 1 = UART2
+        response &= _zed->addCfgValset(ubxMessages[firstRTCMRecord + x].msgConfigKey + 2,
+                                       settings.ubxMessageRatesBase[x]); // UBLOX_CFG UART1 + 2 = USB
+        // Disable messages on SPI
+        response &= _zed->addCfgValset(ubxMessages[firstRTCMRecord + x].msgConfigKey + 3,
+                                       0); // UBLOX_CFG UART1 + 3 = SPI
+    }
+
+    response &= _zed->sendCfgValset(); // Closing value
+
+    return (response);
+}
+
+//----------------------------------------
+// Configure RTCM Base messages
+//----------------------------------------
+bool GNSS_ZED::setMessagesRTCMRover()
+{
+    // RTCM is only available on ZED-F9P modules
+    //
+    // For the RTK EVK, the GNSS is interfaced via both I2C and UART1. Configuration and PVT/HPPOS messages
+    // are configured over I2C. Any messages that need to be logged are output on UART1, and received by using
+    // serialGNSS->. So in Rover mode, we want to disable any RTCM messages on I2C (and USB and UART2).
+
+    // Find first RTCM record in ubxMessage array
+    int firstRTCMRecord = getMessageNumberByName("RTCM_1005");
+
+    bool response = true;
+
+    response &= _zed->newCfgValset(VAL_LAYER_ALL);
+
+    // VALSET is limited to 64 per batch
+    // Update RTCM message rates for all interfaces. This is 12 * 5 = 60 valsets.
+    for (int x = 0; x < MAX_UBX_MSG_RTCM; x++)
+    {
+        // Disable RTCM on all interfaces but UART1
+        response &= _zed->addCfgValset(ubxMessages[firstRTCMRecord + x].msgConfigKey - 1,
+                                       0); // UBLOX_CFG UART1 - 1 = I2C
+        response &= _zed->addCfgValset(ubxMessages[firstRTCMRecord + x].msgConfigKey,
+                                       settings.ubxMessageRates[firstRTCMRecord + x]); // UBLOX_CFG UART1
+        response &= _zed->addCfgValset(ubxMessages[firstRTCMRecord + x].msgConfigKey + 1,
+                                       0); // UBLOX_CFG UART1 + 1 = UART2
+        response &= _zed->addCfgValset(ubxMessages[firstRTCMRecord + x].msgConfigKey + 2,
+                                       0); // UBLOX_CFG UART1 + 2 = USB
+        response &= _zed->addCfgValset(ubxMessages[firstRTCMRecord + x].msgConfigKey + 3,
+                                       0); // UBLOX_CFG UART1 + 3 = SPI
+    }
+
+    response &= _zed->sendCfgValset(); // Closing
+
+    return (response);
 }
 
 //----------------------------------------
 // Set the minimum satellite signal level for navigation.
 //----------------------------------------
-bool GNSS_ZED::setMinCnoRadio(uint8_t cnoValue)
+bool GNSS_ZED::setMinCN0(uint8_t cnoValue)
 {
     if (online.gnss)
     {
-        _zed->setVal8(UBLOX_CFG_NAVSPG_INFIL_MINCNO, cnoValue, VAL_LAYER_ALL);
-        return true;
+        if (commandSupported(UBLOX_CFG_NAVSPG_INFIL_MINCNO))
+        {
+            if (_zed->setVal8(UBLOX_CFG_NAVSPG_INFIL_MINCNO,
+                              settings.minCN0) ==
+                false) // Set minimum satellite signal level for navigation - default 6
+                return (false);
+        }
     }
-    return false;
+    return true; // If command not supported, we still need to return true to allow gnssConfigure() to complete
 }
 
 //----------------------------------------
@@ -2366,26 +2387,34 @@ bool GNSS_ZED::setModel(uint8_t modelNumber)
 }
 
 //----------------------------------------
-bool GNSS_ZED::setRadioBaudRate(uint32_t baud)
+// Configure multipath mitigation
+//----------------------------------------
+bool GNSS_ZED::setMultipathMitigation(bool enableMultipathMitigation)
 {
-    if (online.gnss)
-        return _zed->setVal32(UBLOX_CFG_UART2_BAUDRATE, baud, VAL_LAYER_ALL);
-    return false;
+    // Does not exist on the ZED platform
+    return true;
 }
 
 //----------------------------------------
-// Given the number of seconds between desired solution reports, determine measurementRateMs and navigationRate
-// measurementRateS > 25 & <= 65535
-// navigationRate >= 1 && <= 127
+// Given the number of seconds between desired solution reports, determine measurementRateMs setting
 // We give preference to limiting a measurementRate to 30 or below due to reported problems with measRates above 30.
 //----------------------------------------
 bool GNSS_ZED::setRate(double secondsBetweenSolutions)
 {
-    uint16_t measRate = 0; // Calculate these locally and then attempt to apply them to ZED at completion
-    uint16_t navRate = 0;
+    // Calculate these locally and then attempt to apply them to ZED at completion
+    uint16_t measRate = 0; // 25 < measRate <= 65535
+    uint16_t navRate = 0;  // 1 <= navRate <= 127
 
     if (online.gnss == false)
         return (false);
+
+    // In Base mode we force 1Hz, and avoid overwriting the setting
+    bool baseOverride = false;
+    if (gnssInBaseSurveyInMode() || gnssInBaseFixedMode())
+    {
+        baseOverride = true;
+        secondsBetweenSolutions = 1;
+    }
 
     // If we have more than an hour between readings, increase mesaurementRate to near max of 65,535
     if (secondsBetweenSolutions > 3600.0)
@@ -2437,8 +2466,8 @@ bool GNSS_ZED::setRate(double secondsBetweenSolutions)
     // If we successfully set rates, only then record to settings
     if (response)
     {
-        settings.measurementRateMs = measRate;
-        settings.navigationRate = navRate;
+        if (baseOverride == false)
+            settings.measurementRateMs = secondsBetweenSolutions * 1000;
     }
     else
     {
@@ -2450,27 +2479,11 @@ bool GNSS_ZED::setRate(double secondsBetweenSolutions)
 }
 
 //----------------------------------------
-bool GNSS_ZED::setTalkerGNGGA()
-{
-    if (online.gnss)
-    {
-        bool success = true;
-        success &=
-            _zed->setVal8(UBLOX_CFG_NMEA_MAINTALKERID, 3, VAL_LAYER_ALL); // Return talker ID to GNGGA after NTRIP Client set to GPGGA
-        success &= _zed->setNMEAGPGGAcallbackPtr(nullptr); // Remove callback
-        return success;
-    }
-    return false;
-}
-
+// Enable/disable any output needed for tilt compensation
 //----------------------------------------
-// Hotstart GNSS to try to get RTK lock
-//----------------------------------------
-bool GNSS_ZED::softwareReset()
+bool GNSS_ZED::setTilt()
 {
-    if (online.gnss == false)
-        return false;
-    _zed->softwareResetGNSSOnly();
+    // Not yet available on this platform
     return true;
 }
 
@@ -2539,7 +2552,8 @@ void storePVTdata(UBX_NAV_PVT_data_t *ubxDataStruct)
 //----------------------------------------
 void GNSS_ZED::storePVTdataRadio(UBX_NAV_PVT_data_t *ubxDataStruct)
 {
-    _altitude = ubxDataStruct->height / 1000.0;
+    _altitude = (double)ubxDataStruct->height / 1000.0; // Height above ellipsoid in mm
+    _geoidalSeparation = (double)(ubxDataStruct->height - ubxDataStruct->hMSL) / 1000.0;
 
     _day = ubxDataStruct->day;
     _month = ubxDataStruct->month;
@@ -2552,8 +2566,8 @@ void GNSS_ZED::storePVTdataRadio(UBX_NAV_PVT_data_t *ubxDataStruct)
     _millisecond = ceil((ubxDataStruct->iTOW % 1000) / 10.0); // Limit to first two digits
 
     _satellitesInView = ubxDataStruct->numSV;
-    _fixType = ubxDataStruct->fixType; // 0 = no fix, 1 = dead reckoning only, 2 = 2D-fix, 3 = 3D-fix, 4 = GNSS + dead
-                                       // reckoning combined, 5 = time only fix
+    _fixType = ubxDataStruct->fixType; // 0 = no fix, 1 = dead reckoning only, 2 = 2D-fix, 3 = 3D-fix, 4 = GNSS +
+                                       // dead reckoning combined, 5 = time only fix
     _carrierSolution = ubxDataStruct->flags.bits.carrSoln;
 
     _validDate = ubxDataStruct->valid.bits.validDate;
@@ -2687,12 +2701,16 @@ bool GNSS_ZED::surveyInReset()
 
 //----------------------------------------
 // Start the survey-in operation
-// The ZED-F9P is slightly different than the NEO-M8P. See the Integration manual 3.5.8 for more info.
 //----------------------------------------
 bool GNSS_ZED::surveyInStart()
 {
     if (online.gnss == false)
         return (false);
+
+    // We may have been in a previous survey-in. We want to restart a survey-in regardless.
+    // If we are already in the appropriate base mode, no changes needed
+    // if (gnssInBaseSurveyInMode())
+    //     return (true); // No changes needed
 
     _zed->setVal8(UBLOX_CFG_TMODE_MODE, 0, VAL_LAYER_ALL); // Disable survey-in mode
     delay(100);
@@ -2723,7 +2741,8 @@ bool GNSS_ZED::surveyInStart()
 
     bool response = true;
     response &= _zed->setVal8(UBLOX_CFG_TMODE_MODE, 1, VAL_LAYER_ALL); // Survey-in enable
-    response &= _zed->setVal32(UBLOX_CFG_TMODE_SVIN_ACC_LIMIT, settings.observationPositionAccuracy * 10000, VAL_LAYER_ALL);
+    response &=
+        _zed->setVal32(UBLOX_CFG_TMODE_SVIN_ACC_LIMIT, settings.observationPositionAccuracy * 10000, VAL_LAYER_ALL);
     response &= _zed->setVal32(UBLOX_CFG_TMODE_SVIN_MIN_DUR, settings.observationSeconds, VAL_LAYER_ALL);
 
     if (response == false)
@@ -2745,6 +2764,13 @@ bool GNSS_ZED::surveyInStart()
         if ((millis() - startTime) > maxTime)
             return (false); // Reset of survey failed
     }
+
+    // The ZED-F9P starts a Survey-in in Rover mode to allow the location fix to settle.
+    // Once settle is complete, the survey starts.
+    // Here we change the fix rate and enable RTCM messages for base mode.
+    // Essentially completing the Base configuration.
+    gnssConfigure(GNSS_CONFIG_FIX_RATE);
+    gnssConfigure(GNSS_CONFIG_MESSAGE_RATE_RTCM_BASE);
 
     return (true);
 }
@@ -2813,7 +2839,8 @@ const int zedAllowedRatesCount = sizeof(zedAllowedRates) / sizeof(zedAllowedRate
 bool GNSS_ZED::baudIsAllowed(uint32_t baudRate)
 {
     for (int x = 0; x < zedAllowedRatesCount; x++)
-        if (zedAllowedRates[x] == baudRate) return (true);
+        if (zedAllowedRates[x] == baudRate)
+            return (true);
     return (false);
 }
 
@@ -3003,6 +3030,320 @@ void inputMessageRate(uint8_t &localMessageRate, uint8_t messageNumber)
 void zedPushGPGGA(NMEA_GGA_data_t *nmeaData)
 {
     pushGPGGA((char *)nmeaData->nmea);
+}
+
+//----------------------------------------
+// List available settings, their type in CSV, and value
+//----------------------------------------
+bool zedCommandList(RTK_Settings_Types type,
+                    int settingsIndex,
+                    bool inCommands,
+                    int qualifier,
+                    char * settingName,
+                    char * settingValue)
+{
+    switch (type)
+    {
+        default:
+            return false;
+
+        case tUbxConst: {
+            // Record constellation settings
+            for (int x = 0; x < rtkSettingsEntries[settingsIndex].qualifier; x++)
+            {
+                snprintf(settingName, sizeof(settingName), "%s%s", rtkSettingsEntries[settingsIndex].name,
+                         settings.ubxConstellations[x].textName);
+
+                getSettingValue(inCommands, settingName, settingValue);
+                commandSendExecuteListResponse(settingName, "tUbxConst", settingValue);
+            }
+        }
+        break;
+        case tUbxMsgRt: {
+            // Record message settings
+            for (int x = 0; x < rtkSettingsEntries[settingsIndex].qualifier; x++)
+            {
+                snprintf(settingName, sizeof(settingName), "%s%s", rtkSettingsEntries[settingsIndex].name, ubxMessages[x].msgTextName);
+
+                getSettingValue(inCommands, settingName, settingValue);
+                commandSendExecuteListResponse(settingName, "tUbxMsgRt", settingValue);
+            }
+        }
+        break;
+        case tUbMsgRtb: {
+            // Record message settings
+            GNSS_ZED *zed = (GNSS_ZED *)gnss;
+            int firstRTCMRecord = zed->getMessageNumberByName("RTCM_1005");
+
+            for (int x = 0; x < rtkSettingsEntries[settingsIndex].qualifier; x++)
+            {
+                snprintf(settingName, sizeof(settingName), "%s%s", rtkSettingsEntries[settingsIndex].name,
+                         ubxMessages[firstRTCMRecord + x].msgTextName);
+
+                getSettingValue(inCommands, settingName, settingValue);
+                commandSendExecuteListResponse(settingName, "tUbMsgRtb", settingValue);
+            }
+        }
+        break;
+    }
+    return true;
+}
+
+//----------------------------------------
+// Add types to a JSON array
+//----------------------------------------
+void zedCommandTypeJson(JsonArray &command_types)
+{
+    JsonObject command_types_tUbxConst = command_types.add<JsonObject>();
+    command_types_tUbxConst["name"] = "tUbxConst";
+    command_types_tUbxConst["description"] = "ZED GNSS constellations";
+    command_types_tUbxConst["instruction"] = "Enable / disable each GNSS constellation";
+    command_types_tUbxConst["prefix"] = "constellation_";
+    JsonArray command_types_tUbxConst_keys = command_types_tUbxConst["keys"].to<JsonArray>();
+    for (int x = 0; x < MAX_UBX_CONSTELLATIONS; x++)
+        command_types_tUbxConst_keys.add(settings.ubxConstellations[x].textName);
+    JsonArray command_types_tUbxConst_values = command_types_tUbxConst["values"].to<JsonArray>();
+    command_types_tUbxConst_values.add("0");
+    command_types_tUbxConst_values.add("1");
+
+    JsonObject command_types_tUbxMsgRt = command_types.add<JsonObject>();
+    command_types_tUbxMsgRt["name"] = "tUbxMsgRt";
+    command_types_tUbxMsgRt["description"] = "ZED message rates - Rover";
+    command_types_tUbxMsgRt["instruction"] = "Set the message interval in navigation cycles for Rover (0 = Off)";
+    command_types_tUbxMsgRt["prefix"] = "ubxMessageRate_";
+    JsonArray command_types_tUbxMsgRt_keys = command_types_tUbxMsgRt["keys"].to<JsonArray>();
+    for (int x = 0; x < MAX_UBX_MSG; x++)
+        command_types_tUbxMsgRt_keys.add(ubxMessages[x].msgTextName);
+    command_types_tUbxMsgRt["type"] = "int";
+    command_types_tUbxMsgRt["value min"] = 0;
+    command_types_tUbxMsgRt["value max"] = 250; // Avoid 254!
+
+    JsonObject command_types_tUbMsgRtb = command_types.add<JsonObject>();
+    command_types_tUbMsgRtb["name"] = "tUbMsgRtb";
+    command_types_tUbMsgRtb["description"] = "ZED message rates - Base";
+    command_types_tUbMsgRtb["instruction"] = "Set the message interval in navigation cycles for Base (0 = Off)";
+    command_types_tUbMsgRtb["prefix"] = "ubxMessageRateBase_";
+    JsonArray command_types_tUbMsgRtb_keys = command_types_tUbMsgRtb["keys"].to<JsonArray>();
+    GNSS_ZED zed;
+    int firstRTCMRecord = zed.getMessageNumberByNameSkipChecks("RTCM_1005");
+    for (int x = 0; x < MAX_UBX_MSG_RTCM; x++)
+        command_types_tUbMsgRtb_keys.add(ubxMessages[firstRTCMRecord + x].msgTextName);
+    command_types_tUbMsgRtb["type"] = "int";
+    command_types_tUbMsgRtb["value min"] = 0;
+    command_types_tUbMsgRtb["value max"] = 250; // Avoid 254!
+}
+
+//----------------------------------------
+// Called by gnssCreateString to build settings file string
+//----------------------------------------
+bool zedCreateString(RTK_Settings_Types type,
+                     int settingsIndex,
+                     char * newSettings)
+{
+    switch (type)
+    {
+        default:
+            return false;
+
+        case tUbxConst: {
+            // Record constellation settings
+            for (int x = 0; x < rtkSettingsEntries[settingsIndex].qualifier; x++)
+            {
+                char tempString[50];
+                snprintf(tempString, sizeof(tempString), "%s%s,%s,", rtkSettingsEntries[settingsIndex].name,
+                         settings.ubxConstellations[x].textName,
+                         settings.ubxConstellations[x].enabled ? "true" : "false");
+                stringRecord(newSettings, tempString);
+            }
+        }
+        break;
+        case tUbxMsgRt: {
+            // Record message settings
+            for (int x = 0; x < rtkSettingsEntries[settingsIndex].qualifier; x++)
+            {
+                char tempString[50];
+                snprintf(tempString, sizeof(tempString), "%s%s,%d,", rtkSettingsEntries[settingsIndex].name,
+                         ubxMessages[x].msgTextName, settings.ubxMessageRates[x]);
+                stringRecord(newSettings, tempString);
+            }
+        }
+        break;
+        case tUbMsgRtb: {
+            // Locate the first record
+            GNSS_ZED *zed = (GNSS_ZED *)gnss;
+            int firstRTCMRecord = zed->getMessageNumberByName("RTCM_1005");
+
+            // Record message settings
+            for (int x = 0; x < rtkSettingsEntries[settingsIndex].qualifier; x++)
+            {
+                char tempString[50];
+                snprintf(tempString, sizeof(tempString), "%s%s,%d,", rtkSettingsEntries[settingsIndex].name,
+                         ubxMessages[firstRTCMRecord + x].msgTextName, settings.ubxMessageRatesBase[x]);
+                stringRecord(newSettings, tempString);
+            }
+        }
+        break;
+    }
+    return true;
+}
+
+//----------------------------------------
+// Return setting value as a string
+//----------------------------------------
+bool zedGetSettingValue(RTK_Settings_Types type,
+                        const char * suffix,
+                        int settingsIndex,
+                        int qualifier,
+                        char * settingValueStr)
+{
+    switch (type)
+    {
+        case tUbxConst: {
+            for (int x = 0; x < qualifier; x++)
+            {
+                if ((suffix[0] == settings.ubxConstellations[x].textName[0]) &&
+                    (strcmp(suffix, settings.ubxConstellations[x].textName) == 0))
+                {
+                    writeToString(settingValueStr, settings.ubxConstellations[x].enabled);
+                    return true;
+                }
+            }
+        }
+        break;
+        case tUbxMsgRt: {
+            for (int x = 0; x < qualifier; x++)
+            {
+                if ((suffix[0] == ubxMessages[x].msgTextName[0]) && (strcmp(suffix, ubxMessages[x].msgTextName) == 0))
+                {
+                    writeToString(settingValueStr, settings.ubxMessageRates[x]);
+                    return true;
+                }
+            }
+        }
+        break;
+        case tUbMsgRtb: {
+            GNSS_ZED *zed = (GNSS_ZED *)gnss;
+            int firstRTCMRecord = zed->getMessageNumberByName("RTCM_1005");
+
+            for (int x = 0; x < qualifier; x++)
+            {
+                if ((suffix[0] == ubxMessages[firstRTCMRecord + x].msgTextName[0]) &&
+                    (strcmp(suffix, ubxMessages[firstRTCMRecord + x].msgTextName) == 0))
+                {
+                    writeToString(settingValueStr, settings.ubxMessageRatesBase[x]);
+                    return true;
+                }
+            }
+        }
+        break;
+    }
+    return false;
+}
+
+//----------------------------------------
+// Called by gnssNewSettingValue to save a ZED specific setting
+//----------------------------------------
+bool zedNewSettingValue(RTK_Settings_Types type,
+                        const char * suffix,
+                        int qualifier,
+                        double d)
+{
+    switch (type)
+    {
+        case tCmnCnst:
+            for (int x = 0; x < MAX_UBX_CONSTELLATIONS; x++)
+            {
+                if ((suffix[0] == settings.ubxConstellations[x].textName[0]) &&
+                    (strcmp(suffix, settings.ubxConstellations[x].textName) == 0))
+                {
+                    settings.ubxConstellations[x].enabled = d;
+                    return true;
+                }
+            }
+            break;
+        case tUbxConst:
+            // Covered by ttCmnCnst
+            break;
+        case tUbxMsgRt:
+            for (int x = 0; x < qualifier; x++)
+            {
+                if ((suffix[0] == ubxMessages[x].msgTextName[0]) &&
+                    (strcmp(suffix, ubxMessages[x].msgTextName) == 0))
+                {
+                    settings.ubxMessageRates[x] = (uint8_t)d;
+                    return true;
+                }
+            }
+            break;
+        case tUbMsgRtb:
+            GNSS_ZED *zed = (GNSS_ZED *)gnss;
+            int firstRTCMRecord = zed->getMessageNumberByName("RTCM_1005");
+
+            for (int x = 0; x < qualifier; x++)
+            {
+                if ((suffix[0] == ubxMessages[firstRTCMRecord + x].msgTextName[0]) &&
+                    (strcmp(suffix, ubxMessages[firstRTCMRecord + x].msgTextName) == 0))
+                {
+                    settings.ubxMessageRatesBase[x] = (uint8_t)d;
+                    return true;
+                }
+            }
+            break;
+    }
+    return false;
+}
+
+//----------------------------------------
+// Called by gnssSettingsToFile to save ZED specific settings
+//----------------------------------------
+bool zedSettingsToFile(File *settingsFile,
+                       RTK_Settings_Types type,
+                       int settingsIndex)
+{
+    switch (type)
+    {
+        default:
+            return false;
+
+        case tUbxConst: {
+            // Record constellation settings
+            for (int x = 0; x < rtkSettingsEntries[settingsIndex].qualifier; x++)
+            {
+                char tempString[50]; // constellation_BeiDou=1
+                snprintf(tempString, sizeof(tempString), "%s%s=%d", rtkSettingsEntries[settingsIndex].name,
+                         settings.ubxConstellations[x].textName, settings.ubxConstellations[x].enabled);
+                settingsFile->println(tempString);
+            }
+        }
+        break;
+        case tUbxMsgRt: {
+            // Record message settings
+            for (int x = 0; x < rtkSettingsEntries[settingsIndex].qualifier; x++)
+            {
+                char tempString[50]; // ubxMessageRate_UBX_NMEA_DTM=5
+                snprintf(tempString, sizeof(tempString), "%s%s=%d", rtkSettingsEntries[settingsIndex].name,
+                         ubxMessages[x].msgTextName, settings.ubxMessageRates[x]);
+                settingsFile->println(tempString);
+            }
+        }
+        break;
+        case tUbMsgRtb: {
+            // Record message settings
+
+            GNSS_ZED *zed = (GNSS_ZED *)gnss;
+            int firstRTCMRecord = zed->getMessageNumberByName("RTCM_1005");
+
+            for (int x = 0; x < rtkSettingsEntries[settingsIndex].qualifier; x++)
+            {
+                char tempString[50]; // ubxMessageRateBase_UBX_NMEA_DTM=5
+                snprintf(tempString, sizeof(tempString), "%s%s=%d", rtkSettingsEntries[settingsIndex].name,
+                         ubxMessages[firstRTCMRecord + x].msgTextName, settings.ubxMessageRatesBase[x]);
+                settingsFile->println(tempString);
+            }
+        }
+        break;
+    }
+    return true;
 }
 
 #endif // COMPILE_ZED

@@ -1,9 +1,8 @@
-
-/*------------------------------------------------------------------------------
+/*=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 GNSS_UM980.h
 
   Declarations and definitions for the UM980 GNSS receiver and the GNSS_UM980 class
-------------------------------------------------------------------------------*/
+=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=*/
 
 #ifndef __GNSS_UM980_H__
 #define __GNSS_UM980_H__
@@ -111,22 +110,10 @@ class GNSS_UM980 : GNSS
     // Not Rover or Base specific (ie, baud rates)
     // Outputs:
     //   Returns true if successfully configured and false upon failure
-    bool configureGNSS();
+    bool configure();
 
     // Turn off all NMEA and RTCM
     void disableAllOutput();
-
-    // Disable all output, then re-enable
-    void disableRTCM();
-
-    // Turn on all the enabled NMEA messages on COM3
-    bool enableNMEA();
-
-    // Turn on all the enabled RTCM Rover messages on COM3
-    bool enableRTCMRover();
-
-    // Turn on all the enabled RTCM Base messages on COM3
-    bool enableRTCMBase();
 
     uint8_t getActiveNmeaMessageCount();
 
@@ -143,19 +130,10 @@ class GNSS_UM980 : GNSS
     // Controls the messages that get broadcast over Bluetooth and logged (if enabled)
     void menuMessagesSubtype(float *localMessageRate, const char *messageType);
 
-    bool setBaudRate(uint8_t uartNumber, uint32_t baudRate); // From the super class
-
-    // Set the baud rate on the GNSS port that interfaces between the ESP32 and the GNSS
-    // Inputs:
-    //   baudRate: The desired baudrate
-    bool setBaudRateCOM3(uint32_t baudRate);
-
     bool setHighAccuracyService(bool enableGalileoHas);
 
     // Set the minimum satellite signal level for navigation.
-    bool setMinCnoRadio(uint8_t cnoValue);
-
-    bool setMultipathMitigation(bool enableMultipathMitigation);
+    bool setMinCN0(uint8_t cnoValue);
 
   public:
     // Constructor
@@ -185,12 +163,6 @@ class GNSS_UM980 : GNSS
     // Outputs:
     //   Returns true when an external event occurs and false if no event
     bool beginExternalEvent();
-
-    // Setup the timepulse output on the PPS pin for external triggering
-    // Outputs
-    //   Returns true if the pin was successfully setup and false upon
-    //   failure
-    bool beginPPS();
 
     bool checkNMEARates();
 
@@ -225,14 +197,6 @@ class GNSS_UM980 : GNSS
 
     void debuggingEnable();
 
-    void enableGgaForNtrip();
-
-    // Enable RTCM 1230. This is the GLONASS bias sentence and is transmitted
-    // even if there is no GPS fix. We use it to test serial output.
-    // Outputs:
-    //   Returns true if successfully started and false upon failure
-    bool enableRTCMTest();
-
     // Restore the GNSS to the factory settings
     void factoryReset();
 
@@ -244,6 +208,13 @@ class GNSS_UM980 : GNSS
     // Outputs:
     //   Returns true if successfully started and false upon failure
     bool fixedBaseStart();
+
+    bool fixRateIsAllowed(uint32_t fixRateMs);
+
+    //Return min/max rate in ms
+    uint32_t fixRateGetMinimumMs();
+
+    uint32_t fixRateGetMaximumMs();
 
     // Return the number of active/enabled messages
     uint8_t getActiveMessageCount();
@@ -269,6 +240,9 @@ class GNSS_UM980 : GNSS
 
     // Returns the fix type or zero if not online
     uint8_t getFixType();
+
+    // Returns the geoidal separation
+    double getGeoidalSeparation();
 
     // Returns the hours of 24 hour clock or zero if not online
     uint8_t getHour();
@@ -299,11 +273,12 @@ class GNSS_UM980 : GNSS
     // Returns two digits of milliseconds or zero if not online
     uint8_t getMillisecond();
 
-    // Get the minimum satellite signal level for navigation.
-    uint8_t getMinCno();
-
     // Returns minutes or zero if not online
     uint8_t getMinute();
+
+    // Returns the current mode
+    // 0 - Unknown, 1 - Rover Survey, 2 - Rover UAV, 3 - Rover Auto, 4 - Base Survey-in, 5 - Base fixed
+    uint8_t getMode();
 
     // Returns month number or zero if not online
     uint8_t getMonth();
@@ -334,17 +309,16 @@ class GNSS_UM980 : GNSS
     // Return the number of seconds the survey-in process has been running
     int getSurveyInObservationTime();
 
-    float getSurveyInStartingAccuracy();
-
     // Returns timing accuracy or zero if not online
     uint32_t getTimeAccuracy();
 
     // Returns full year, ie 2023, not 23.
     uint16_t getYear();
 
-    // Returns true if the device is in Rover mode
-    // Currently the only two modes are Rover or Base
-    bool inRoverMode();
+    // Helper functions for the current mode as read from the GNSS receiver 
+    bool gnssInBaseFixedMode();
+    bool gnssInBaseSurveyInMode();
+    bool gnssInRoverMode();
 
     bool isBlocking();
 
@@ -420,6 +394,9 @@ class GNSS_UM980 : GNSS
 
     uint16_t rtcmBufferAvailable();
 
+    // Hardware or software reset the GNSS
+    bool reset();
+
     // If LBand is being used, ignore any RTCM that may come in from the GNSS
     void rtcmOnGnssDisable();
 
@@ -433,6 +410,17 @@ class GNSS_UM980 : GNSS
     //   Returns true when the configuration was saved and false upon failure
     bool saveConfiguration();
 
+    bool setBaudRate(uint8_t uartNumber, uint32_t baudRate); // From the super class
+
+    // Set the baud rate on the GNSS port that interfaces between the ESP32 and the GNSS
+    // Inputs:
+    //   baudRate: The desired baudrate
+    bool setBaudRateComm(uint32_t baudRate);
+
+    bool setBaudRateData(uint32_t baudRate);
+
+    bool setBaudRateRadio(uint32_t baudRate);
+
     // Enable all the valid constellations and bands for this platform
     bool setConstellations();
 
@@ -442,37 +430,41 @@ class GNSS_UM980 : GNSS
         return true;
     }
 
-    bool setDataBaudRate(uint32_t baud);
-
     // Set the elevation in degrees
     // Inputs:
     //   elevationDegrees: The elevation value in degrees
     bool setElevation(uint8_t elevationDegrees);
 
-    // Enable all the valid messages for this platform
-    bool setMessages(int maxRetries);
+    // Configure any logging settings - currently mosaic-X5 specific
+    bool setLogging();
 
-    // Enable all the valid messages for this platform over the USB port
-    bool setMessagesUsb(int maxRetries);
+    // Turn on all the enabled NMEA messages on COM3
+    bool setMessagesNMEA();
+
+    // Turn on all the enabled RTCM Rover messages on COM3
+    bool setMessagesRTCMRover();
+
+    // Turn on all the enabled RTCM Base messages on COM3
+    bool setMessagesRTCMBase();
 
     // Set the dynamic model to use for RTK
     // Inputs:
     //   modelNumber: Number of the model to use, provided by radio library
     bool setModel(uint8_t modelNumber);
 
-    // Set all NMEA message report rates to one value
-    void setNmeaMessageRates(uint8_t msgRate);
+    bool setMultipathMitigation(bool enableMultipathMitigation);
 
     // Given the name of a message, find it, and set the rate
     bool setNmeaMessageRateByName(const char *msgName, uint8_t msgRate);
+
+    // Configure the Pulse-per-second pin based on user settings
+    bool setPPS();
 
     // Set all RTCM Rover message report rates to one value
     void setRtcmRoverMessageRates(uint8_t msgRate);
 
     // Given the name of a message, find it, and set the rate
     bool setRtcmRoverMessageRateByName(const char *msgName, uint8_t msgRate);
-
-    bool setRadioBaudRate(uint32_t baud);
 
     // Specify the interval between solutions
     // Inputs:
@@ -482,10 +474,8 @@ class GNSS_UM980 : GNSS
     //   failure
     bool setRate(double secondsBetweenSolutions);
 
-    bool setTalkerGNGGA();
-
-    // Hotstart GNSS to try to get RTK lock
-    bool softwareReset();
+    // Enable/disable any output needed for tilt compensation
+    bool setTilt();
 
     bool standby();
 
@@ -507,6 +497,30 @@ class GNSS_UM980 : GNSS
     // Poll routine to update the GNSS state
     void update();
 };
+
+// Forward routine declarations
+bool um980CommandList(RTK_Settings_Types type,
+                      int settingsIndex,
+                      bool inCommands,
+                      int qualifier,
+                      char * settingName,
+                      char * settingValue);
+void um980CommandTypeJson(JsonArray &command_types);
+bool um980CreateString(RTK_Settings_Types type,
+                       int settingsIndex,
+                       char * newSettings);
+bool um980GetSettingValue(RTK_Settings_Types type,
+                          const char * suffix,
+                          int settingsIndex,
+                          int qualifier,
+                          char * settingValueStr);
+bool um980NewSettingValue(RTK_Settings_Types type,
+                          const char * suffix,
+                          int qualifier,
+                          double d);
+bool um980SettingsToFile(File *settingsFile,
+                         RTK_Settings_Types type,
+                         int settingsIndex);
 
 #endif // COMPILE_UM980
 #endif // __GNSS_UM980_H__

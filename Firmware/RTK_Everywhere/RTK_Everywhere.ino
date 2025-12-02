@@ -1,4 +1,6 @@
-/*
+/*=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
+RTK_Everywhere.ino
+
   October 2nd, 2023
   SparkFun Electronics
   Nathan Seidle
@@ -8,7 +10,7 @@
 
   Compiled using Arduino CLI and ESP32 core v3.0.7.
 
-  For compilation instructions see https://docs.sparkfun.com/SparkFun_RTK_Firmware/firmware_update/#compiling-source
+  For compilation instructions see https://docs.sparkfun.com/SparkFun_RTK_Everywhere_Firmware/firmware_compile/
 
   Special thanks to Avinab Malla for guidance on getting xTasks implemented.
 
@@ -76,11 +78,7 @@
   |                                         |    |             |
   +-----------------------------------------+    +-------------+
 
-*/
-
-// While we wait for the next hardware revisions, Flex and Torch can be manually enabled:
-//#define FLEX_OVERRIDE // Uncomment to force support for Flex
-//#define TORCH_X2_OVERRIDE // Uncomment to force support for Torch X2
+=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=*/
 
 // To reduce compile times, various parts of the firmware can be disabled/removed if they are not
 // needed during development
@@ -88,10 +86,15 @@
 #define COMPILE_WIFI     // Comment out to remove WiFi functionality
 #define COMPILE_ETHERNET // Comment out to remove Ethernet (W5500) support
 #define COMPILE_CELLULAR // Comment out to remove cellular modem support
+#define COMPILE_LORA     // COmment out to remove LoRa functionality
 
 #ifdef COMPILE_BT
 #define COMPILE_AUTHENTICATION // Comment out to disable MFi authentication
 #endif
+
+#ifdef COMPILE_ETHERNET
+#define COMPILE_NTP     // Comment out to disable NTP functionality
+#endif  // COMPILE_ETHERNET
 
 #ifdef COMPILE_WIFI
 #define COMPILE_AP     // Requires WiFi. Comment out to remove Access Point functionality
@@ -110,13 +113,39 @@
 #define COMPILE_IM19_IMU             // Comment out to remove IM19_IMU functionality
 #define COMPILE_POINTPERFECT_LIBRARY // Comment out to remove PPL support
 #define COMPILE_BQ40Z50              // Comment out to remove BQ40Z50 functionality
+#define COMPILE_MP2762A_CHARGER      // Comment out to remove MP2762A charger functionality
 
 #if defined(COMPILE_WIFI) || defined(COMPILE_ETHERNET) || defined(COMPILE_CELLULAR)
 #define COMPILE_NETWORK
-#define COMPILE_MQTT_CLIENT // Comment out to remove MQTT Client functionality
-#define COMPILE_OTA_AUTO    // Comment out to disable automatic over-the-air firmware update
-#define COMPILE_HTTP_CLIENT // Comment out to disable HTTP Client (PointPerfect ZTP) functionality
+#define COMPILE_HTTP_CLIENT     // Comment out to disable HTTP Client (PointPerfect ZTP) functionality
+#define COMPILE_MQTT_CLIENT     // Comment out to remove MQTT Client functionality
+#define COMPILE_NTRIP_CLIENT    // Comment out to remove NTRIP client functionality
+#define COMPILE_NTRIP_SERVER    // Comment out to remove NTRIP server functionality
+#define COMPILE_OTA_AUTO        // Comment out to disable automatic over-the-air firmware update
+#define COMPILE_TCP_CLIENT      // Comment out to remove TCP client functionality
+#define COMPILE_TCP_SERVER      // Comment out to remove TCP server functionality
+#define COMPILE_UDP_SERVER      // Comment out to remove UDP server functionality
 #endif                      // COMPILE_WIFI || COMPILE_ETHERNET || COMPILE_CELLULAR
+
+#define COMPILE_SERIAL_MENUS    // Comment out to remove base menu functionality
+
+#ifdef  COMPILE_SERIAL_MENUS
+#define COMPILE_MENU_BASE           // Comment out to remove base menu functionality
+#define COMPILE_MENU_CORRECTIONS    // Comment out to remove correction priorities menu functionality
+#define COMPILE_MENU_ETHERNET       // Comment out to remove Ethernet menu functionality
+#define COMPILE_MENU_FIRMWARE       // Comment out to remove firmware menu functionality
+#define COMPILE_MENU_GNSS           // Comment out to remove GNSS menu functionality
+#define COMPILE_MENU_INSTRUMENTS    // Comment out to remove instruments menu functionality
+#define COMPILE_MENU_LOGGING        // Comment out to remove logging menus functionality
+#define COMPILE_MENU_MESSAGES       // Comment out to remove messages menu functionality
+#define COMPILE_MENU_PORTS          // Comment out to remove ports menu functionality
+#define COMPILE_MENU_POINTPERFECT   // Comment out to remove PointPerfect menu functionality
+#define COMPILE_MENU_RADIO          // Comment out to remove radio menu functionality
+#define COMPILE_MENU_SYSTEM         // Comment out to remove system menu functionality
+#define COMPILE_MENU_TCP_UDP        // Comment out to remove TCP/UDP menu functionality
+#define COMPILE_MENU_USER_PROFILES  // Comment out to remove user profile menu functionality
+#define COMPILE_MENU_WIFI           // Comment out to remove WiFi menu functionality
+#endif  // COMPILE_SERIAL_MENUS
 
 // Always define ENABLE_DEVELOPER to enable its use in conditional statements
 #ifndef ENABLE_DEVELOPER
@@ -199,10 +228,13 @@ const uint16_t HTTPS_PORT = 443;                                                
 #define SECONDS_IN_AN_HOUR (MINUTES_IN_AN_HOUR * SECONDS_IN_A_MINUTE)
 #define SECONDS_IN_A_DAY (HOURS_IN_A_DAY * SECONDS_IN_AN_HOUR)
 
+const char *debugMessagePrefix = "# => "; // Something ~unique and easy to trigger on
+
 // Hardware connections
 //=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 // These pins are set in beginBoard()
 #define PIN_UNDEFINED -1
+int pin_debug = PIN_UNDEFINED;              // LED on EVK
 int pin_batteryStatusLED = PIN_UNDEFINED;   // LED on Torch
 int pin_baseStatusLED = PIN_UNDEFINED;      // LED on EVK
 int pin_bluetoothStatusLED = PIN_UNDEFINED; // LED on Torch
@@ -293,7 +325,7 @@ const int gpioExpanderSwitch_S4 = 3; // Controls U19 switch 4: connect GNSS UART
 const int gpioExpanderSwitch_LoraEnable = 4;   // LoRa_EN
 const int gpioExpanderSwitch_GNSS_Reset = 5;   // RST_GNSS
 const int gpioExpanderSwitch_LoraBoot = 6;     // LoRa_BOOT0 - Used for bootloading the STM32 radio IC
-const int gpioExpanderSwitch_PowerFastOff = 7; // PWRKILL
+const int gpioExpanderSwitch_S5 = 7; // Controls U61 switch 5: connect GNSS UART1 to Port A of CH342
 const int gpioExpanderNumSwitches = 8;
 
 //=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
@@ -311,8 +343,6 @@ TwoWire *i2cAuthCoPro = nullptr;
 
 // LittleFS for storing settings for different user profiles
 //-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
-#include <LittleFS.h> //Built-in
-
 #define MAX_PROFILE_COUNT 8
 uint8_t activeProfiles;                    // Bit vector indicating which profiles are active
 uint8_t displayProfile;                    // Profile Unit - Range: 0 - (MAX_PROFILE_COUNT - 1)
@@ -340,9 +370,6 @@ void printTimeStamp(bool always = false); // Header
 
 void beginSPI(bool force = false); // Header
 
-// Important note: the firmware currently requires SdFat v2.1.1
-// sd->begin will crash second time around with ~v2.2.3
-#include "SdFat.h" //http://librarymanager/All#sdfat_exfat by Bill Greiman.
 SdFat *sd;
 
 #define platformFilePrefix platformFilePrefixTable[productVariant] // Sets the prefix for logs and settings files
@@ -403,7 +430,7 @@ bool savePossibleSettings = true; // Save possible vs. available settings. See r
 //-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 #ifdef COMPILE_WIFI
 int packetRSSI;
-RTK_WIFI wifi(false);
+RTK_WIFI wifi(false); // wifi(false); is non-verbose. For verbose, change to wifi(true); 
 #endif // COMPILE_WIFI
 
 // WiFi Globals - For other module direct access
@@ -561,6 +588,8 @@ float batteryChargingPercentPerHour;
 #include "bluetoothSelect.h"
 #endif // COMPILE_BT
 
+BluetoothRadioType_e bluetoothRadioPreviousOnType = BLUETOOTH_RADIO_OFF;
+
 // This value controls the data that is output from the USB serial port
 // to the host PC.  By default (false) status and debug messages are output
 // to the USB serial port.  When this value is set to true then the status
@@ -593,7 +622,7 @@ volatile bool inDirectConnectMode = false; // Global state to indicate if GNSS/L
 
 #define SERIAL_SIZE_TX 512
 uint8_t wBuffer[SERIAL_SIZE_TX]; // Buffer for writing from incoming SPP to F9P
-const int btReadTaskStackSize = 4000;
+const int btReadTaskStackSize = 3000;
 
 // Array of start-of-sentence offsets into the ring buffer
 #define AMOUNT_OF_RING_BUFFER_DATA_TO_DISCARD (settings.gnssHandlerBufferSize >> 2)
@@ -607,7 +636,7 @@ uint8_t *ringBuffer; // Buffer for reading from GNSS receiver. At 230400bps, 230
 const int gnssReadTaskStackSize = 8000;
 const size_t sempGnssReadBufferSize = 8000; // Make the SEMP buffer size the ~same
 
-const int handleGnssDataTaskStackSize = 3000;
+const int handleGnssDataTaskStackSize = 4000;
 
 TaskHandle_t pinBluetoothTaskHandle; // Dummy task to start hardware on an assigned core
 volatile bool bluetoothPinned;       // This variable is touched by core 0 but checked by core 1. Must be volatile.
@@ -616,7 +645,6 @@ volatile static int combinedSpaceRemaining; // Overrun indicator
 volatile static uint64_t logFileSize;       // Updated with each write
 int bufferOverruns;                         // Running count of possible data losses since power-on
 
-bool zedUartPassed; // Goes true during testing if ESP can communicate with ZED over UART
 const uint8_t btEscapeCharacter = '+';
 const uint8_t btMaxEscapeCharacters = 3; // Number of characters needed to enter remote command mode over Bluetooth
 
@@ -715,6 +743,7 @@ float lBandEBNO; // Used on system status menu
 // ESP-NOW Globals - For other module direct access
 bool espNowIncomingRTCM;
 bool espNowOutgoingRTCM;
+bool espnowRequestPair = false; // Modified by states.ino, menuRadio, or CLI
 int espNowRSSI;
 const uint8_t espNowBroadcastAddr[6] = {0xff, 0xff, 0xff, 0xff, 0xff, 0xff};
 
@@ -737,6 +766,7 @@ IPAddress ethernetSubnetMask;
 // };
 volatile struct timeval ethernetNtpTv; // This will hold the time the Ethernet NTP packet arrived
 bool ntpLogIncreasing;
+bool ethernetRestartRequested = false; // Perform ETH.end() to disconnect TCP resources
 #endif // COMPILE_ETHERNET
 
 unsigned long lastEthernetCheck; // Prevents cable checking from continually happening
@@ -871,7 +901,42 @@ uint32_t rtcmLastPacketSent; // Time stamp of RTCM going out (to NTRIP Server, E
 
 uint32_t maxSurveyInWait_s = 60L * 15L; // Re-start survey-in after X seconds
 
-uint32_t lastSetupMenuChange; // Limits how much time is spent in the setup menu
+typedef struct {
+    volatile unsigned long timer;
+
+    SemaphoreHandle_t updateSemaphore = NULL;
+
+    void setTimerToMillis()
+    {
+        if (updateSemaphore == NULL)
+            updateSemaphore = xSemaphoreCreateMutex();
+        if (xSemaphoreTake(updateSemaphore, 10 / portTICK_PERIOD_MS) == pdPASS)
+        {
+            timer = millis();
+            xSemaphoreGive(updateSemaphore);
+        }
+    }
+
+    unsigned long millisSinceUpdate()
+    {
+        unsigned long retVal = 0;
+        if (updateSemaphore == NULL)
+            updateSemaphore = xSemaphoreCreateMutex();
+        if (xSemaphoreTake(updateSemaphore, 10 / portTICK_PERIOD_MS) == pdPASS)
+        {
+            // The semaphore prevents the race condition where timer is updated after
+            // millis() is read but before the subtraction. It prevents retVal from underflowing
+            retVal = millis() - timer;
+            xSemaphoreGive(updateSemaphore);
+        }
+        return retVal;
+    }
+} semaphoreProtectedTimer;
+// Needs a mutex because the timer is updated by the button task
+// but read by stateUpdate the loop. Prevents a race condition
+// and the occasional glitching seen in the button menu
+semaphoreProtectedTimer lastSetupMenuChange; // Limits how much time is spent in the setup menu
+
 uint32_t lastTestMenuChange;  // Avoids exiting the test menu for at least 1 second
 uint8_t setupSelectedButton =
     0; // In Display Setup, start displaying at this button. This is the selected (highlighted) button.
@@ -886,8 +951,6 @@ uint32_t triggerTowSubMsR; // Global copy - Millisecond fraction of Time Of Week
 uint32_t triggerAccEst;    // Global copy - Accuracy estimate in nanoseconds
 
 unsigned long splashStart; // Controls how long the splash is displayed for. Currently min of 2s.
-bool restartBase;          // If the user modifies any NTRIP Server settings, we need to restart the base
-bool restartRover; // If the user modifies any NTRIP Client or PointPerfect settings, we need to restart the rover
 
 unsigned long startTime;       // Used for checking longest-running functions
 bool lbandCorrectionsReceived; // Used to display L-Band SIV icon when corrections are successfully decrypted (NEO-D9S
@@ -910,7 +973,7 @@ uint32_t max_idle_count = MAX_IDLE_TIME_COUNT;
 bool bluetoothIncomingRTCM;
 bool bluetoothOutgoingRTCM;
 bool netIncomingRTCM;
-bool netOutgoingRTCM;
+volatile bool netOutgoingRTCM;
 volatile bool mqttClientDataReceived; // Flag for display
 
 uint16_t failedParserMessages_UBX;
@@ -944,6 +1007,7 @@ int16_t *commandIndex;
 
 bool usbSerialIsSelected = true;      // Goes false when switch U18 is moved from CH34x to LoRa
 unsigned long loraLastIncomingSerial; // Last time a user sent a serial command. Used in LoRa timeouts.
+char loraFirmwareVersion[25] = {'\0'};
 
 //-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 
@@ -1351,6 +1415,9 @@ void setup()
     checkArrayDefaults(); // Check for uninitialized arrays that won't be initialized by gnssConfigure
                           // (checkGNSSArrayDefaults)
 
+    checkGNSSArrayDefaults(); // Check various setting arrays (message rates, etc) to see if they need to be reset to
+                              // defaults
+
     DMW_b("printPartitionTable");
     if (settings.printPartitionTable)
         printPartitionTable();
@@ -1370,14 +1437,14 @@ void setup()
     DMW_b("beginCharger");
     beginCharger(); // Configure battery charger
 
-    DMW_b("gnss->configure");
-    gnss->configure(); // Requires settings. Configure GNSS module
+    // DMW_b("gnss->configure");
+    // gnss->configure(); // Requires settings. Configure GNSS module
 
     DMW_b("beginExternalEvent");
     gnss->beginExternalEvent(); // Configure the event input
 
-    DMW_b("beginPPS");
-    gnss->beginPPS(); // Configure the time pulse output
+    DMW_b("setPPS");
+    gnss->setPPS(); // Configure the pulse per second pin
 
     DMW_b("beginInterrupts");
     beginInterrupts(); // Begin the TP interrupts
@@ -1464,9 +1531,6 @@ void loop()
     DMW_c("periodicDisplay");
     updatePeriodicDisplay();
 
-    DMW_c("gnss->update");
-    gnss->update();
-
     DMW_c("stateUpdate");
     stateUpdate();
 
@@ -1475,6 +1539,9 @@ void loop()
 
     DMW_c("displayUpdate");
     displayUpdate();
+
+    DMW_c("gnssUpdate");
+    gnssUpdate();
 
     DMW_c("rtcUpdate");
     rtcUpdate(); // Set system time to GNSS once we have fix
@@ -1556,7 +1623,7 @@ bool logLengthExceeded() // Limit individual files to maxLogLength_minutes
 
     if (nextLogTime_ms == 0) // Keep logging if nextLogTime_ms has not been set
         return false;
-    
+
     // Note: this will roll over every 49.71 days...
     // Solution: https://stackoverflow.com/a/3097744 - see issue #742
     return (!((long)(nextLogTime_ms - millis()) > 0));
@@ -1592,8 +1659,6 @@ void logUpdate()
             blockLogging = true;
             return;
         }
-
-        setLoggingType(); // Determine if we are standard, PPP, or custom. Changes logging icon accordingly.
     }
     else if (online.logging == true && settings.enableLogging == false)
     {
@@ -1614,7 +1679,6 @@ void logUpdate()
                 systemPrintln("Log file: log length reached");
             endLogging(false, true); //(gotSemaphore, releaseSemaphore) Close file. Reset parser stats.
             beginLogging();          // Create new file based on current RTC.
-            setLoggingType();        // Determine if we are standard, PPP, or custom. Changes logging icon accordingly.
         }
     }
 
@@ -1635,7 +1699,7 @@ void logUpdate()
                     {
                         // Calculate generation and write speeds every 5 seconds
                         uint64_t fileSizeDelta = logFileSize - lastLogSize;
-                        systemPrintf(" - Generation rate: %0.1fkB/s", ((float)fileSizeDelta) / 5.0 / 1000.0);
+                        systemPrintf(" - Generation rate: %0.1fkB/s", ((double)fileSizeDelta) / 5.0 / 1000.0);
                     }
                     else
                     {
@@ -1652,7 +1716,12 @@ void logUpdate()
                 }
                 else
                 {
-                    log_d("No increase in file size");
+                    if ((settings.enablePrintLogFileStatus) && (!inMainMenu))
+                    {
+                        if (pin_debug != PIN_UNDEFINED)
+                            systemPrint(debugMessagePrefix);
+                        systemPrintf("No increase in file size: %llu -> %llu\r\n", lastLogSize, logFileSize);
+                    }
                     logIncreasing = false;
 
                     endSD(false, true); // alreadyHaveSemaphore, releaseSemaphore
