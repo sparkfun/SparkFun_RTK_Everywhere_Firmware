@@ -102,7 +102,7 @@ void updateAuthCoPro()
                 // Having core debug enabled adds enough delay to make this work.
                 // With debug set to none, we need to insert a _small_ delay...
                 // Too much delay and we get Connection Unsuccessful.
-                delay(2);
+                //delay(2);
 
                 int channel = 1;
                 if (settings.debugNetworkLayer)

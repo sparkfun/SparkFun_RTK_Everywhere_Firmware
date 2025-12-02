@@ -556,7 +556,7 @@ void bluetoothStart(bool skipOnlineCheck)
 
             // Enable secure pairing without PIN :
             // iPhone displays Connection Unsuccessful - but then connects anyway...
-            bluetoothSerialSpp->enableSSP(false, false);
+            //bluetoothSerialSpp->enableSSP(false, false);
 
             // Enable secure pairing with PIN :
             // bluetoothSerialSpp->enableSSP(false, true);
@@ -565,8 +565,8 @@ void bluetoothStart(bool skipOnlineCheck)
             // Support Apple Accessory: Device to Accessory
             // 1. Search for an accessory from the device and initiate pairing.
             // 2. Verify pairing is successful after exchanging a pin code.
-            // bluetoothSerialSpp->enableSSP(true, true); // Enable secure pairing with PIN
-            // bluetoothSerialSpp->onConfirmRequest(&BTConfirmRequestCallback); // Callback to verify the PIN
+            bluetoothSerialSpp->enableSSP(true, true); // Enable secure pairing with PIN
+            bluetoothSerialSpp->onConfirmRequest(&BTConfirmRequestCallback); // Callback to verify the PIN
 
             beginSuccess &= bluetoothSerialSpp->begin(
                 accessoryName, true, true, settings.sppRxQueueSize, settings.sppTxQueueSize, 0, 0,
