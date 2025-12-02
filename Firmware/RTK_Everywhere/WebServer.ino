@@ -1133,9 +1133,11 @@ void webServerStart()
             systemPrintln("Web Server: Starting");
 
         // Start the network
-        if ((settings.wifiConfigOverAP == false) || networkInterfaceHasInternet(NETWORK_WIFI_STATION))
+        if (networkInterfaceHasInternet(NETWORK_ETHERNET))
             networkConsumerAdd(NETCONSUMER_WEB_CONFIG, NETWORK_ANY, __FILE__, __LINE__);
-        if (settings.wifiConfigOverAP)
+        else if ((settings.wifiConfigOverAP == false) || networkInterfaceHasInternet(NETWORK_WIFI_STATION))
+            networkConsumerAdd(NETCONSUMER_WEB_CONFIG, NETWORK_ANY, __FILE__, __LINE__);
+        else if (settings.wifiConfigOverAP)
             networkSoftApConsumerAdd(NETCONSUMER_WEB_CONFIG, __FILE__, __LINE__);
         webServerSetState(WEBSERVER_STATE_WAIT_FOR_NETWORK);
     }
