@@ -417,7 +417,7 @@ static void handleFirmwareFileUpload()
     {
         // Check file name against valid firmware names
         const char *BIN_EXT = "bin";
-        const char *BIN_HEADER = "RTK_Everywhere_Firmware";
+        const char *BIN_HEADER = "/RTK_Everywhere";
 
         fileName = upload.filename;
 
@@ -429,7 +429,7 @@ static void handleFirmwareFileUpload()
         // Check 'bin' extension
         if (strcmp(BIN_EXT, &fname[strlen(fname) - strlen(BIN_EXT)]) == 0)
         {
-            // Check for 'RTK_Everywhere_Firmware' start of file name
+            // Check for '/RTK_Everywhere' start of file name
             if (strncmp(fname, BIN_HEADER, strlen(BIN_HEADER)) == 0)
             {
                 // Begin update process
