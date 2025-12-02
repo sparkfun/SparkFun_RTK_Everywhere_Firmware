@@ -465,6 +465,10 @@ static void handleFirmwareFileUpload()
         }
         else
         {
+            // See issue #811
+            // The Update.write seems to upload the whole file in one go
+            // This code never gets called...
+            
             binBytesSent = upload.currentSize;
 
             // Send an update to browser every 100k
