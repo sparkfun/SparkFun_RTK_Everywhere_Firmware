@@ -561,19 +561,44 @@ void menuCommonBaseCoords()
             selectedCoords = incoming - 1;
         else if (incoming == 'a')
         {
-            systemPrintln("Enter new coordinates:");
+            if (settings.fixedBaseCoordinateType == COORD_TYPE_GEODETIC)
+            {
+                systemPrintln("Enter new coordinates in Name,Lat,Long,Alt CSV format");
+                systemPrintln("E.g. SparkFun_HQ,40.09029479,-105.18505761,1560.089");
+            }
+            else
+            {
+                systemPrintln("Enter new coordinates in Name,X,Y,Z CSV format");
+                systemPrintln("E.g. SparkFun_HQ,-1280206.568,-4716804.403,4086665.484");
+            }
+
             char newCoords[100];
+            char *ptr = newCoords;
             if ((getUserInputString(newCoords, sizeof(newCoords)) == INPUT_RESPONSE_VALID) && (strlen(newCoords) > 0))
             {
                 if (settings.fixedBaseCoordinateType == COORD_TYPE_GEODETIC)
                 {
-                    recordLineToSD(stationCoordinateGeodeticFileName, newCoords);
-                    recordLineToLFS(stationCoordinateGeodeticFileName, newCoords);
+                    float lat;
+                    float lon;
+                    float alt;
+                    char baseName[100];
+                    if (sscanf(ptr,"%[^,],%f,%f,%f", baseName, &lat, &lon, &alt) == 4)
+                    {
+                        recordLineToSD(stationCoordinateGeodeticFileName, newCoords);
+                        recordLineToLFS(stationCoordinateGeodeticFileName, newCoords);
+                    }
                 }
                 else
                 {
-                    recordLineToSD(stationCoordinateECEFFileName, newCoords);
-                    recordLineToLFS(stationCoordinateECEFFileName, newCoords);
+                    float x;
+                    float y;
+                    float z;
+                    char baseName[100];
+                    if (sscanf(ptr,"%[^,],%f,%f,%f", baseName, &x, &y, &z) == 4)
+                    {
+                        recordLineToSD(stationCoordinateECEFFileName, newCoords);
+                        recordLineToLFS(stationCoordinateECEFFileName, newCoords);
+                    }
                 }
             }
         }
