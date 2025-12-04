@@ -19,7 +19,7 @@ static const float maxSurveyInStartingAccuracy = 10.0;
 // Set the ECEF coordinates for a known location
 void menuBase()
 {
-    int ntripServerOptionOffset = 9; // NTRIP Server menus start at this value
+    int ntripServerOptionOffset = 10; // NTRIP Server menus start at this value
 
     while (1)
     {
@@ -106,9 +106,11 @@ void menuBase()
             }
         }
 
-        systemPrintln("7) Set RTCM Message Rates");
+        systemPrintln("7) Commonly Used Base Coordinates");
 
-        systemPrint("8) Toggle NTRIP Server: ");
+        systemPrintln("8) Set RTCM Message Rates");
+
+        systemPrint("9) Toggle NTRIP Server: ");
         if (settings.enableNtripServer == true)
             systemPrintln("Enabled");
         else
@@ -330,10 +332,15 @@ void menuBase()
 
         else if (incoming == 7)
         {
-            menuMessagesBaseRTCM(); // Set rates for RTCM during Base mode
+            menuCommonBaseCoords(); // Commonly used base coordinates
         }
 
         else if (incoming == 8)
+        {
+            menuMessagesBaseRTCM(); // Set rates for RTCM during Base mode
+        }
+
+        else if (incoming == 9)
         {
             settings.enableNtripServer ^= 1;
         }
@@ -469,6 +476,162 @@ void menuBaseCoordinateType()
         else if (incoming == INPUT_RESPONSE_GETNUMBER_EXIT)
             break;
         else if (incoming == INPUT_RESPONSE_GETNUMBER_TIMEOUT)
+            break;
+        else
+            printUnknown(incoming);
+    }
+
+    clearBuffer(); // Empty buffer of any newline chars
+}
+
+// Set commonly used base coordinates
+void menuCommonBaseCoords()
+{
+    int selectedCoords = 0;
+
+    while (1)
+    {
+        systemPrintln();
+        systemPrintln("Menu: Commonly Used Base Coordinates\r\n");
+
+        int numCoords = 0;
+
+        // Step through the common coordinates file
+
+        for (int index = 0; index < COMMON_COORDINATES_MAX_STATIONS; index++) // Arbitrary 50 station limit
+        {
+            // stationInfo example: LocationA,40.09029479,-105.18505761,1560.089
+            char stationInfo[100];
+
+            if (settings.fixedBaseCoordinateType == COORD_TYPE_GEODETIC)
+            {
+                // Try SD, then LFS
+                if (getFileLineSD(stationCoordinateGeodeticFileName, index, stationInfo, sizeof(stationInfo)) ==
+                    true) // fileName, lineNumber, array, arraySize
+                {
+                }
+                else if (getFileLineLFS(stationCoordinateGeodeticFileName, index, stationInfo, sizeof(stationInfo)) ==
+                        true) // fileName, lineNumber, array, arraySize
+                {
+                }
+                else
+                {
+                    // We could not find this line
+                    break;
+                }
+            }
+            else
+            {
+                // Try SD, then LFS
+                if (getFileLineSD(stationCoordinateECEFFileName, index, stationInfo, sizeof(stationInfo)) ==
+                    true) // fileName, lineNumber, array, arraySize
+                {
+                }
+                else if (getFileLineLFS(stationCoordinateECEFFileName, index, stationInfo, sizeof(stationInfo)) ==
+                        true) // fileName, lineNumber, array, arraySize
+                {
+                }
+                else
+                {
+                    // We could not find this line
+                    break;
+                }
+            }
+
+            trim(stationInfo); // Remove trailing whitespace
+            //replaceCharacter(stationInfo, ',', ' '); // Change all , to ' ' for easier parsing on the JS side
+
+            systemPrintf("%d)%s %s %s\r\n",
+                        numCoords + 1,
+                        numCoords < 9 ? " " : "",
+                        numCoords == selectedCoords ? "->" : "  ",
+                        stationInfo
+                    );
+            numCoords++;
+        }
+
+        systemPrintln("a) Add");
+        systemPrintln("d) Delete");
+        systemPrintln("l) Load");
+        systemPrintln("x) Exit");
+
+        byte incoming = getUserInputCharacterNumber();
+
+        if ((incoming > 0) && (incoming <= numCoords))
+            selectedCoords = incoming - 1;
+        else if (incoming == 'a')
+        {
+            systemPrintln("Enter new coordinates:");
+            char newCoords[100];
+            if ((getUserInputString(newCoords, sizeof(newCoords)) == INPUT_RESPONSE_VALID) && (strlen(newCoords) > 0))
+            {
+                if (settings.fixedBaseCoordinateType == COORD_TYPE_GEODETIC)
+                {
+                    recordLineToSD(stationCoordinateGeodeticFileName, newCoords);
+                    recordLineToLFS(stationCoordinateGeodeticFileName, newCoords);
+                }
+                else
+                {
+                    recordLineToSD(stationCoordinateECEFFileName, newCoords);
+                    recordLineToLFS(stationCoordinateECEFFileName, newCoords);
+                }
+            }
+        }
+        else if (incoming == 'd')
+        {
+            if (settings.fixedBaseCoordinateType == COORD_TYPE_GEODETIC)
+            {
+                removeLineFromSD(stationCoordinateGeodeticFileName, selectedCoords);
+                removeLineFromLFS(stationCoordinateGeodeticFileName, selectedCoords);
+            }
+            else
+            {
+                removeLineFromSD(stationCoordinateECEFFileName, selectedCoords);
+                removeLineFromLFS(stationCoordinateECEFFileName, selectedCoords);
+            }
+        }
+        else if (incoming == 'l')
+        {
+            char newCoords[100];
+            char *ptr = newCoords;
+            if (settings.fixedBaseCoordinateType == COORD_TYPE_GEODETIC)
+            {
+                if (!getFileLineSD(stationCoordinateGeodeticFileName, selectedCoords, newCoords, sizeof(newCoords)))
+                    getFileLineLFS(stationCoordinateGeodeticFileName, selectedCoords, newCoords, sizeof(newCoords));
+                float lat;
+                float lon;
+                float alt;
+                char baseName[100];
+                if (sscanf(ptr,"%[^,],%f,%f,%f", baseName, &lat, &lon, &alt) == 4)
+                {
+                    settings.fixedLat = lat;
+                    settings.fixedLong = lon;
+                    settings.fixedAltitude = alt; // Assume user has entered pole tip altitude
+                    recordSystemSettings();
+                }
+            }
+            else
+            {
+                if (!getFileLineSD(stationCoordinateECEFFileName, selectedCoords, newCoords, sizeof(newCoords)))
+                    getFileLineLFS(stationCoordinateECEFFileName, selectedCoords, newCoords, sizeof(newCoords));
+                float x;
+                float y;
+                float z;
+                char baseName[100];
+                if (sscanf(ptr,"%[^,],%f,%f,%f", baseName, &x, &y, &z) == 4)
+                {
+                    settings.fixedEcefX = x;
+                    settings.fixedEcefY = y;
+                    settings.fixedEcefZ = z;
+                    recordSystemSettings();
+                }
+            }
+        }
+        else if (incoming == 'x')
+            break;
+        else if (incoming == INPUT_RESPONSE_GETCHARACTERNUMBER_EMPTY)
+            break;
+        else if (incoming == INPUT_RESPONSE_GETCHARACTERNUMBER_TIMEOUT)
             break;
         else
             printUnknown(incoming);

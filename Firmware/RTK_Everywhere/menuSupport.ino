@@ -772,6 +772,56 @@ void recordLineToLFS(const char *fileName, const char *lineData)
     file.close();
 }
 
+// Given a filename, erase the selected line by copying the file without that line
+void removeLineFromLFS(const char *fileName, int lineNo)
+{
+    if (!LittleFS.exists(fileName))
+    {
+        log_d("File %s not found", fileName);
+        return;
+    }
+
+    if (LittleFS.exists("/tempFile.txt"))
+    {
+        log_d("/tempFile.txt exists. Deleting...");
+        LittleFS.remove("/tempFile.txt");
+    }
+
+    int failedReads = 0;
+
+    for (int index = 0; index < 999; index++) // Arbitrary limit
+    {
+        char store[100];
+
+        if (getFileLineLFS(fileName, index, store, sizeof(store)) && (index != lineNo))
+            recordLineToLFS("/tempFile.txt", store);
+        else
+            failedReads++;
+
+        if (failedReads > 3)
+            break; // Give up. End of file?
+    }
+
+    LittleFS.remove(fileName);
+
+    failedReads = 0;
+
+    for (int index = 0; index < 999; index++) // Arbitrary limit
+    {
+        char store[100];
+
+        if (getFileLineLFS("/tempFile.txt", index, store, sizeof(store)))
+            recordLineToLFS(fileName, store);
+        else
+            failedReads++;
+
+        if (failedReads > 3)
+            break; // Give up. End of file?
+    }
+
+    LittleFS.remove("/tempFile.txt");
+}
+
 // Given a filename and char array, append to file
 void recordLineToSD(const char *fileName, const char *lineData)
 {
@@ -816,6 +866,50 @@ void recordLineToSD(const char *fileName, const char *lineData)
         endSD(gotSemaphore, true);
     else if (gotSemaphore)
         xSemaphoreGive(sdCardSemaphore);
+}
+
+// Given a filename and char array, append to file
+void removeLineFromSD(const char *fileName, int lineNo)
+{
+    if (LittleFS.exists("/tempFile.txt"))
+    {
+        log_d("/tempFile.txt exists. Deleting...");
+        LittleFS.remove("/tempFile.txt");
+    }
+
+    int failedReads = 0;
+
+    for (int index = 0; index < 999; index++) // Arbitrary limit
+    {
+        char store[100];
+
+        if (getFileLineSD(fileName, index, store, sizeof(store)) && (index != lineNo))
+            recordLineToLFS("/tempFile.txt", store);
+        else
+            failedReads++;
+
+        if (failedReads > 3)
+            break; // Give up. End of file?
+    }
+
+    removeFileSD(fileName);
+
+    failedReads = 0;
+
+    for (int index = 0; index < 999; index++) // Arbitrary limit
+    {
+        char store[100];
+
+        if (getFileLineLFS("/tempFile.txt", index, store, sizeof(store)))
+            recordLineToSD(fileName, store);
+        else
+            failedReads++;
+
+        if (failedReads > 3)
+            break; // Give up. End of file?
+    }
+
+    LittleFS.remove("/tempFile.txt");
 }
 
 // Remove a given filename from SD and LFS
