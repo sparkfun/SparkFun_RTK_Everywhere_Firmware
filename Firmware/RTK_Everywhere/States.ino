@@ -245,6 +245,10 @@ void stateUpdate()
             // even if the underlying library getAltitude does not
             settings.fixedAltitude = gnss->getAltitude();
 
+            // Subtract the antennaHeight and antennaPhaseCenter
+            // settings.fixedAltitude is the pole tip altitude, not the GNSS antenna altitude
+            settings.fixedAltitude -= ((settings.antennaHeight_mm + settings.antennaPhaseCenter_mm) / 1000.0);
+
             systemPrint("Switching to Fixed Base mode using:");
             systemPrint(" Lat: ");
             systemPrint(settings.fixedLat, haeNumberOfDecimals);
