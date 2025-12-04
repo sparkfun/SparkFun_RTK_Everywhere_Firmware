@@ -332,7 +332,11 @@ void menuBase()
 
         else if (incoming == 7)
         {
-            menuCommonBaseCoords(); // Commonly used base coordinates
+            if (menuCommonBaseCoords()) // Commonly used base coordinates - returns true if coordinates were loaded
+                // Change GNSS receiver configuration if the receiver is in Base mode, otherwise, just change setting
+                // This prevents a user, while in Rover mode but changing a Base setting, from entering Base mode
+                if (gnss->gnssInBaseFixedMode())
+                    gnssConfigure(GNSS_CONFIG_BASE); // Request receiver to use new settings
         }
 
         else if (incoming == 8)
@@ -485,9 +489,10 @@ void menuBaseCoordinateType()
 }
 
 // Set commonly used base coordinates
-void menuCommonBaseCoords()
+bool menuCommonBaseCoords()
 {
     int selectedCoords = 0;
+    bool retVal = false; // Retrun value - set true if new coords are loaded
 
     while (1)
     {
@@ -539,7 +544,6 @@ void menuCommonBaseCoords()
             }
 
             trim(stationInfo); // Remove trailing whitespace
-            //replaceCharacter(stationInfo, ',', ' '); // Change all , to ' ' for easier parsing on the JS side
 
             systemPrintf("%d)%s %s %s\r\n",
                         numCoords + 1,
@@ -578,11 +582,11 @@ void menuCommonBaseCoords()
             {
                 if (settings.fixedBaseCoordinateType == COORD_TYPE_GEODETIC)
                 {
-                    float lat;
-                    float lon;
-                    float alt;
+                    double lat;
+                    double lon;
+                    double alt;
                     char baseName[100];
-                    if (sscanf(ptr,"%[^,],%f,%f,%f", baseName, &lat, &lon, &alt) == 4)
+                    if (sscanf(ptr,"%[^,],%lf,%lf,%lf", baseName, &lat, &lon, &alt) == 4)
                     {
                         recordLineToSD(stationCoordinateGeodeticFileName, newCoords);
                         recordLineToLFS(stationCoordinateGeodeticFileName, newCoords);
@@ -590,11 +594,11 @@ void menuCommonBaseCoords()
                 }
                 else
                 {
-                    float x;
-                    float y;
-                    float z;
+                    double x;
+                    double y;
+                    double z;
                     char baseName[100];
-                    if (sscanf(ptr,"%[^,],%f,%f,%f", baseName, &x, &y, &z) == 4)
+                    if (sscanf(ptr,"%[^,],%lf,%lf,%lf", baseName, &x, &y, &z) == 4)
                     {
                         recordLineToSD(stationCoordinateECEFFileName, newCoords);
                         recordLineToLFS(stationCoordinateECEFFileName, newCoords);
@@ -623,32 +627,34 @@ void menuCommonBaseCoords()
             {
                 if (!getFileLineSD(stationCoordinateGeodeticFileName, selectedCoords, newCoords, sizeof(newCoords)))
                     getFileLineLFS(stationCoordinateGeodeticFileName, selectedCoords, newCoords, sizeof(newCoords));
-                float lat;
-                float lon;
-                float alt;
+                double lat;
+                double lon;
+                double alt;
                 char baseName[100];
-                if (sscanf(ptr,"%[^,],%f,%f,%f", baseName, &lat, &lon, &alt) == 4)
+                if (sscanf(ptr,"%[^,],%lf,%lf,%lf", baseName, &lat, &lon, &alt) == 4)
                 {
                     settings.fixedLat = lat;
                     settings.fixedLong = lon;
                     settings.fixedAltitude = alt; // Assume user has entered pole tip altitude
                     recordSystemSettings();
+                    retVal = true; // New coords need to be applied
                 }
             }
             else
             {
                 if (!getFileLineSD(stationCoordinateECEFFileName, selectedCoords, newCoords, sizeof(newCoords)))
                     getFileLineLFS(stationCoordinateECEFFileName, selectedCoords, newCoords, sizeof(newCoords));
-                float x;
-                float y;
-                float z;
+                double x;
+                double y;
+                double z;
                 char baseName[100];
-                if (sscanf(ptr,"%[^,],%f,%f,%f", baseName, &x, &y, &z) == 4)
+                if (sscanf(ptr,"%[^,],%lf,%lf,%lf", baseName, &x, &y, &z) == 4)
                 {
                     settings.fixedEcefX = x;
                     settings.fixedEcefY = y;
                     settings.fixedEcefZ = z;
                     recordSystemSettings();
+                    retVal = true; // New coords need to be applied
                 }
             }
         }
@@ -663,6 +669,8 @@ void menuCommonBaseCoords()
     }
 
     clearBuffer(); // Empty buffer of any newline chars
+
+    return retVal;
 }
 
 #endif  // COMPILE_MENU_BASE
