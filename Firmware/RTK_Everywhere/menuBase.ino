@@ -580,25 +580,20 @@ bool menuCommonBaseCoords()
             char *ptr = newCoords;
             if ((getUserInputString(newCoords, sizeof(newCoords)) == INPUT_RESPONSE_VALID) && (strlen(newCoords) > 0))
             {
-                if (settings.fixedBaseCoordinateType == COORD_TYPE_GEODETIC)
+                double latx;
+                double lony;
+                double altz;
+                char baseName[100];
+                if ((sscanf(ptr,"%[^,],%lf,%lf,%lf", baseName, &latx, &lony, &altz) == 4)
+                    && (strlen(baseName) > 0)
+                    && (strstr(baseName, " ") == nullptr)) // Check for spaces
                 {
-                    double lat;
-                    double lon;
-                    double alt;
-                    char baseName[100];
-                    if (sscanf(ptr,"%[^,],%lf,%lf,%lf", baseName, &lat, &lon, &alt) == 4)
+                    if (settings.fixedBaseCoordinateType == COORD_TYPE_GEODETIC)
                     {
                         recordLineToSD(stationCoordinateGeodeticFileName, newCoords);
                         recordLineToLFS(stationCoordinateGeodeticFileName, newCoords);
                     }
-                }
-                else
-                {
-                    double x;
-                    double y;
-                    double z;
-                    char baseName[100];
-                    if (sscanf(ptr,"%[^,],%lf,%lf,%lf", baseName, &x, &y, &z) == 4)
+                    else
                     {
                         recordLineToSD(stationCoordinateECEFFileName, newCoords);
                         recordLineToLFS(stationCoordinateECEFFileName, newCoords);
@@ -618,6 +613,9 @@ bool menuCommonBaseCoords()
                 removeLineFromSD(stationCoordinateECEFFileName, selectedCoords);
                 removeLineFromLFS(stationCoordinateECEFFileName, selectedCoords);
             }
+
+            if (selectedCoords > 0)
+                selectedCoords -= 1;
         }
         else if (incoming == 'l')
         {
