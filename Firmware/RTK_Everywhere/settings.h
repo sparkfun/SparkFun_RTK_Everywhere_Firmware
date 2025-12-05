@@ -1968,6 +1968,8 @@ struct struct_present
     bool dynamicModel = false; // ZED, mosaic, UM980 have dynamic models. LG290P does not.
     bool gpioExpanderSwitches = false; // Used on Flex
     bool tiltPossible = false; //Flex may have a tilt IMU
+
+    const char *gnssUpdatePort = ""; // "CH342 Channel A" etc.
 } present;
 
 // Monitor which devices on the device are on or offline.
