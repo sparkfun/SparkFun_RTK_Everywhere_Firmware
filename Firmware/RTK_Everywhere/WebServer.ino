@@ -651,6 +651,9 @@ bool parseIncomingSettings()
     char settingName[100] = {'\0'};
     char valueStr[150] = {'\0'}; // stationGeodetic1,ANameThatIsTooLongToBeDisplayed 40.09029479 -105.18505761 1560.089
 
+    bool stationGeodeticSeen = false;
+    bool stationECEFSeen = false;
+
     char *commaPtr = incomingSettings;
     char *headPtr = incomingSettings;
 
@@ -677,6 +680,24 @@ bool parseIncomingSettings()
 
         if (settings.debugWebServer == true)
             systemPrintf("settingName: %s value: %s\r\n", settingName, valueStr);
+
+        // Check for first stationGeodetic
+        if ((strstr(settingName, "stationGeodetic") != nullptr) && (!stationGeodeticSeen))
+        {
+            stationGeodeticSeen = true;
+            removeFile(stationCoordinateGeodeticFileName);
+            if (settings.debugWebServer == true)
+                systemPrintln("Station geodetic coordinate file removed");
+        }
+
+        // Check for first stationECEF
+        if ((strstr(settingName, "stationECEF") != nullptr) && (!stationECEFSeen))
+        {
+            stationECEFSeen = true;
+            removeFile(stationCoordinateECEFFileName);
+            if (settings.debugWebServer == true)
+                systemPrintln("Station ECEF coordinate file removed");
+        }
 
         updateSettingWithValue(false, settingName, valueStr);
 
