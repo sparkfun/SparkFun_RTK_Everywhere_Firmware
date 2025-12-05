@@ -554,9 +554,10 @@ bool menuCommonBaseCoords()
             numCoords++;
         }
 
-        systemPrintln("a) Add");
-        systemPrintln("d) Delete");
-        systemPrintln("l) Load");
+        systemPrintln("a) Add Coordinates");
+        systemPrintln("c) Add Current Coordinates");
+        systemPrintln("d) Delete Coordinates");
+        systemPrintln("l) Load Coordinates into Fixed Base");
         systemPrintln("x) Exit");
 
         byte incoming = getUserInputCharacterNumber();
@@ -599,6 +600,36 @@ bool menuCommonBaseCoords()
                         recordLineToLFS(stationCoordinateECEFFileName, newCoords);
                     }
                 }
+            }
+        }
+        else if (incoming == 'c')
+        {
+            char newCoords[100];
+            struct tm timeinfo = rtc.getTimeStruct();
+            char timestamp[30];
+            strftime(timestamp, sizeof(timestamp), "%Y-%m-%d_%H:%M:%S", &timeinfo);
+            if (settings.fixedBaseCoordinateType == COORD_TYPE_GEODETIC)
+            {
+                snprintf(newCoords, sizeof(newCoords), "%s,%.8lf,%.8lf,%.4lf",
+                         timestamp,
+                         gnss->getLatitude(),
+                         gnss->getLongitude(),
+                         gnss->getAltitude() - ((settings.antennaHeight_mm + settings.antennaPhaseCenter_mm) / 1000.0));
+                recordLineToSD(stationCoordinateGeodeticFileName, newCoords);
+                recordLineToLFS(stationCoordinateGeodeticFileName, newCoords);
+            }
+            else
+            {
+                double ecefX = 0;
+                double ecefY = 0;
+                double ecefZ = 0;
+                geodeticToEcef(gnss->getLatitude(), gnss->getLongitude(),
+                               gnss->getAltitude() - ((settings.antennaHeight_mm + settings.antennaPhaseCenter_mm) / 1000.0),
+                               &ecefX, &ecefY, &ecefZ);
+                snprintf(newCoords, sizeof(newCoords), "%s,%.4lf,%.4lf,%.4lf",
+                         timestamp, ecefX, ecefY, ecefZ);
+                recordLineToSD(stationCoordinateECEFFileName, newCoords);
+                recordLineToLFS(stationCoordinateECEFFileName, newCoords);
             }
         }
         else if (incoming == 'd')
