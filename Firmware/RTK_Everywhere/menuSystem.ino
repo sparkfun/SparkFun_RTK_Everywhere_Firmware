@@ -608,13 +608,20 @@ void menuDebugHardware()
             else if (present.gnss_lg290p)
             {
                 systemPrintln();
-                systemPrintf("QGNSS must be connected to CH342 Port B at %dbps. Begin firmware update from QGNSS (hit "
-                             "the play button) then reset the LG290P.\r\n",
+                systemPrintf("QGNSS must be connected to CH342 Port B at %dbps.\r\n",
                              settings.dataPortBaud);
+                systemPrintf("Begin firmware update from QGNSS (hit the play button) "
+                             "then reset the LG290P using menu choice %d.\r\n",
+                             incoming);
                 gnssReset();
                 delay(100);
                 gnssBoot();
                 systemPrintln("LG290P reset complete.");
+                gnssConfigureDefaults(); // Set all bits in the request bitfield to cause the GNSS receiver to go
+                                         // through a full (re)configuration
+                recordSystemSettings();  // Record these settings to unit
+                systemPrintln("GNSS defaults have been applied. GNSS will be configured when you exit the menu.");
+                systemPrintln("Wait for the update to complete. Then exit the menu.");
             }
         }
         else if (incoming == 14)
