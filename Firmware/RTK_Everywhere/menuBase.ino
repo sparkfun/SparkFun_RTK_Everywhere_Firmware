@@ -492,7 +492,7 @@ void menuBaseCoordinateType()
 bool menuCommonBaseCoords()
 {
     int selectedCoords = 0;
-    bool retVal = false; // Retrun value - set true if new coords are loaded
+    bool retVal = false; // Return value - set true if new coords are loaded
 
     while (1)
     {
