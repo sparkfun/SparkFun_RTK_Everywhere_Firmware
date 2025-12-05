@@ -1097,13 +1097,7 @@ SettingValueResponse updateSettingWithValue(bool inCommands, const char *setting
     else if (strcmp(settingName, "measurementRateHz") == 0)
     {
         settings.measurementRateMs = 1000 / settingValue; // Convert Hz to ms
-        gnssConfigure(GNSS_CONFIG_FIX_RATE);                  // Request receiver to use new settings
-
-        // This is one of the first settings to be received. If seen, remove the station files.
-        removeFile(stationCoordinateECEFFileName);
-        removeFile(stationCoordinateGeodeticFileName);
-        if (settings.debugWebServer == true)
-            systemPrintln("Station coordinate files removed");
+        gnssConfigure(GNSS_CONFIG_FIX_RATE);              // Request receiver to use new settings
         knownSetting = true;
     }
 

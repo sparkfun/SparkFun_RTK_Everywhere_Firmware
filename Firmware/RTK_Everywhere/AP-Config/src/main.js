@@ -2253,7 +2253,7 @@ function updateECEFList() {
 
     $("#StationCoordinatesECEF option").each(function () {
         var parts = $(this).text().split(' ');
-        var nickname = parts[0].substring(0, 15);
+        var nickname = parts[0].substring(0, 19);
         $(this).text(nickname + ': ' + parts[1] + ' ' + parts[2] + ' ' + parts[3]).text;
     });
 }
@@ -2383,7 +2383,7 @@ function updateGeodeticList() {
 
     $("#StationCoordinatesGeodetic option").each(function () {
         var parts = $(this).text().split(' ');
-        var nickname = parts[0].substring(0, 15);
+        var nickname = parts[0].substring(0, 19);
 
         if (parts.length >= 7) {
             $(this).text(nickname + ': ' + parts[1] + ' ' + parts[2] + ' ' + parts[3]
