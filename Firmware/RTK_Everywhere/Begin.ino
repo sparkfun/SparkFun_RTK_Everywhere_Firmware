@@ -95,7 +95,8 @@ void identifyBoard()
         bool husb238Present = i2cIsDevicePresent(i2c_0, 0x08);
 
         // 0x10 - MFI343S00177 Authentication Coprocessor
-        bool mfiPresent = i2cIsDevicePresent(i2c_0, 0x10);
+        // The authentication coprocessor can be asleep. It needs special treatment
+        bool mfiPresent = i2cIsDeviceRegisterPresent(i2c_0, 0x10, 0x00, 0x07);
 
         i2c_0->end();
 
@@ -1803,12 +1804,19 @@ bool i2cBusInitialization(TwoWire *i2cBus, int sda, int scl, int clockKHz)
         // SDA/GND shorted: 14ms, response 5
         timer = millis();
 
-        // If there is nothing else on the bus, the authentication coprocessor can be asleep
-        // Ping it twice to be sure
-        if (addr == 0x10)
-            i2cIsDevicePresent(i2cBus, addr); // Throw away result. Just wake it up.
+        // The authentication coprocessor can be asleep. It needs special treatment
+        if ((addr == 0x10) && (i2cIsDeviceRegisterPresent(i2cBus, addr, 0x00, 0x07)))
+        {
+            if (deviceFound == false)
+            {
+                systemPrintln("I2C Devices:");
+                deviceFound = true;
+            }
 
-        if (i2cIsDevicePresent(i2cBus, addr))
+            systemPrintf("  0x%02X - MFI343S00177 Authentication Coprocessor\r\n", addr);
+            i2cAuthCoPro = i2cBus; // Record the bus
+        }
+        else if (i2cIsDevicePresent(i2cBus, addr))
         {
             if (deviceFound == false)
             {
@@ -1819,7 +1827,7 @@ bool i2cBusInitialization(TwoWire *i2cBus, int sda, int scl, int clockKHz)
             switch (addr)
             {
             default: {
-                systemPrintf("  0x%02X\r\n", addr);
+                systemPrintf("  0x%02X - Unknown\r\n", addr);
                 break;
             }
 
@@ -1830,12 +1838,6 @@ bool i2cBusInitialization(TwoWire *i2cBus, int sda, int scl, int clockKHz)
 
             case 0x0B: {
                 systemPrintf("  0x%02X - BQ40Z50 Battery Pack Manager / Fuel gauge\r\n", addr);
-                break;
-            }
-
-            case 0x10: {
-                systemPrintf("  0x%02X - MFI343S00177 Authentication Coprocessor\r\n", addr);
-                i2cAuthCoPro = i2cBus; // Record the bus
                 break;
             }
 
