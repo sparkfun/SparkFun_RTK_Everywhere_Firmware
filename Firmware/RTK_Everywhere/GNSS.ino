@@ -667,7 +667,7 @@ void gnssReset()
     }
     else if (productVariant == RTK_TORCH_X2)
     {
-        digitalWrite(pin_GNSS_Reset, LOW); // Tell LG290P to reset
+        digitalWrite(pin_GNSS_DR_Reset, LOW); // Tell LG290P to reset
     }
     else if (productVariant == RTK_FLEX)
     {
