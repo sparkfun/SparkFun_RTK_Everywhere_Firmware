@@ -278,6 +278,31 @@ bool i2cIsDevicePresent(TwoWire *i2cBus, uint8_t deviceAddress)
     return false;
 }
 
+// Read an I2C device register and check for an expected value
+bool i2cIsDeviceRegisterPresent(TwoWire *i2cBus, uint8_t deviceAddress, uint8_t registerAddress, uint8_t expectedValue)
+{
+    int maxRetries = 3;
+
+    while (maxRetries > 0)
+    {
+        maxRetries--;
+        delay(1);
+
+        i2cBus->beginTransmission(deviceAddress);
+        i2cBus->write(registerAddress);
+        if (i2cBus->endTransmission() != 0)
+            continue;
+
+        i2cBus->requestFrom(deviceAddress, (uint8_t)1);
+        if (i2cBus->available())
+        {
+            return (i2cBus->read() == expectedValue);
+        }
+    }
+
+    return false;
+}
+
 // Create a test file in file structure to make sure we can
 bool createTestFile()
 {
