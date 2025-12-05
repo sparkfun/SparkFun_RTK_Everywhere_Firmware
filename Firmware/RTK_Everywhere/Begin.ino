@@ -715,6 +715,7 @@ void beginBoard()
         present.antennaPhaseCenter_mm = 37.5; // APC of SPK-6E helical L1/L2/L5 antenna
         present.needsExternalPpl = true;      // Uses the PointPerfect Library
         present.gnss_to_uart = true;
+        present.gnssUpdatePort = "CH342 Channel B";
 
         // The following are present on the optional shield. Devices will be marked offline if shield is not present.
         present.charger_mcp73833 = true;
@@ -874,6 +875,7 @@ void beginBoard()
         present.needsExternalPpl = true; // Uses the PointPerfect Library
         present.fastPowerOff = true;
         present.invertedFastPowerOff = true; // Drive PWRKILL high to cause powerdown
+        present.gnssUpdatePort = "CH342 Channel A";
 
         // We can't enable GNSS features here because we don't know if lg290pFirmwareVersion is >= v05
         // present.minElevation = true;

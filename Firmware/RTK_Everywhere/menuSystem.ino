@@ -608,7 +608,8 @@ void menuDebugHardware()
             else if (present.gnss_lg290p)
             {
                 systemPrintln();
-                systemPrintf("QGNSS must be connected to CH342 Port B at %dbps.\r\n",
+                systemPrintf("QGNSS must be connected to %s at %dbps.\r\n",
+                             present.gnssUpdatePort,
                              settings.dataPortBaud);
                 systemPrintf("Begin firmware update from QGNSS (hit the play button) "
                              "then reset the LG290P using menu choice %d.\r\n",
