@@ -2017,9 +2017,14 @@ void buttonCheckTask(void *e)
 {
     // Record the time of the most recent two button releases
     // This allows us to detect single and double presses
-    unsigned long doubleTapInterval = 250; // User must press and release twice within this to create a double tap
 
-    if (present.imu_im19 && (present.display_type == DISPLAY_MAX_NONE))
+    // User must press and release twice within this to create a double tap
+    // 250ms is OK for youngsters. 500ms is better for older fingers
+    // Remember that this also limits how fast you can scroll through the display menu
+    // Set settings.defaultDoubleTapInterval_ms to the minimum for your fingers
+    unsigned long doubleTapInterval = settings.defaultDoubleTapInterval_ms;
+
+    if ((productVariant == RTK_TORCH) || (productVariant == RTK_TORCH_X2))
         doubleTapInterval = 1000; // We are only interested in double taps, so use a longer interval
 
     unsigned long previousButtonRelease = 0;
