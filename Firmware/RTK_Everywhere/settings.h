@@ -785,9 +785,9 @@ struct Settings
     int uartReceiveBufferSize = 1024 * 2; // This buffer is filled automatically as the UART receives characters
 
     // Hardware
+    uint32_t defaultDoubleTapInterval_ms = 250;
     bool enableExternalHardwareEventLogging = false; // Log when INT/TM2 pin goes low
     uint16_t spiFrequency = 16;                      // By default, use 16MHz SPI
-    uint32_t defaultDoubleTapInterval_ms = 250;
 
     // HTTP
     bool debugHttpClientData = false;  // Debug the HTTP Client (ZTP) data flow
@@ -1432,9 +1432,9 @@ const RTK_Settings_Entry rtkSettingsEntries[] =
     { 0, 1, 0, 1, 1, 1, 1, 1, 1, ALL, 1, _uint16_t, 0, & settings.measurementRateMs, "measurementRateMs", nullptr, },
 
     // Hardware
+    { 0, 1, 0, 1, 1, 1, 1, 1, 1, ALL, 1, _uint32_t, 0, & settings.defaultDoubleTapInterval_ms, "defaultDoubleTapInterval", nullptr, },
     { 1, 1, 0, 1, 1, 1, 0, 1, 0, NON, 0, _bool,     0, & settings.enableExternalHardwareEventLogging, "enableExternalHardwareEventLogging", nullptr, },
     { 0, 0, 0, 1, 1, 1, 0, 1, 1, ALL, 0, _uint16_t, 0, & settings.spiFrequency, "spiFrequency", nullptr, },
-    { 0, 1, 0, 1, 1, 1, 1, 1, 1, ALL, 1, _uint32_t, 0, & settings.defaultDoubleTapInterval_ms, "defaultDoubleTapInterval", nullptr, },
 
     // HTTP
     { 0, 0, 0, 1, 1, 1, 1, 1, 1, ALL, 1, _bool,     0, & settings.debugHttpClientData, "debugHttpClientData", nullptr, },
