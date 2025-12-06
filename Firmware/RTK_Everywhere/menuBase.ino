@@ -556,8 +556,8 @@ bool menuCommonBaseCoords()
 
         systemPrintln("a) Add Coordinates");
         systemPrintln("c) Add Current Coordinates");
-        systemPrintln("d) Delete Coordinates");
-        systemPrintln("l) Load Coordinates into Fixed Base");
+        systemPrintln("d) Delete Selected Coordinates");
+        systemPrintln("l) Load Selected Coordinates into Fixed Base");
         systemPrintln("t) Add Current Coordinates with Timestamp");
         systemPrintln("x) Exit");
 
@@ -609,7 +609,8 @@ bool menuCommonBaseCoords()
             char coordsName[50];
             if ((getUserInputString(coordsName, sizeof(coordsName)) == INPUT_RESPONSE_VALID)
                 && (strlen(coordsName) > 0)
-                && (strstr(coordsName, " ") == nullptr))
+                && (strstr(coordsName, " ") == nullptr)
+                && (strstr(coordsName, ",") == nullptr)) // No spaces or commas
             {
                 char newCoords[100];
                 if (settings.fixedBaseCoordinateType == COORD_TYPE_GEODETIC)
@@ -627,11 +628,11 @@ bool menuCommonBaseCoords()
                     double ecefX = 0;
                     double ecefY = 0;
                     double ecefZ = 0;
-                    geodeticToEcef(gnss->getLatitude(), gnss->getLongitude(),
-                                gnss->getAltitude() - ((settings.antennaHeight_mm + settings.antennaPhaseCenter_mm) / 1000.0),
-                                &ecefX, &ecefY, &ecefZ);
+                    // Don't subtract antennaHeight_mm + antennaPhaseCenter_mm
+                    geodeticToEcef(gnss->getLatitude(), gnss->getLongitude(), gnss->getAltitude(),
+                                   &ecefX, &ecefY, &ecefZ);
                     snprintf(newCoords, sizeof(newCoords), "%s,%.4lf,%.4lf,%.4lf",
-                            coordsName, ecefX, ecefY, ecefZ);
+                             coordsName, ecefX, ecefY, ecefZ);
                     recordLineToSD(stationCoordinateECEFFileName, newCoords);
                     recordLineToLFS(stationCoordinateECEFFileName, newCoords);
                 }
@@ -713,8 +714,8 @@ bool menuCommonBaseCoords()
                 double ecefX = 0;
                 double ecefY = 0;
                 double ecefZ = 0;
-                geodeticToEcef(gnss->getLatitude(), gnss->getLongitude(),
-                               gnss->getAltitude() - ((settings.antennaHeight_mm + settings.antennaPhaseCenter_mm) / 1000.0),
+                // Don't subtract antennaHeight_mm + antennaPhaseCenter_mm
+                geodeticToEcef(gnss->getLatitude(), gnss->getLongitude(), gnss->getAltitude(),
                                &ecefX, &ecefY, &ecefZ);
                 snprintf(newCoords, sizeof(newCoords), "%s,%.4lf,%.4lf,%.4lf",
                          timestamp, ecefX, ecefY, ecefZ);
