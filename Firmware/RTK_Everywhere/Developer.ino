@@ -100,6 +100,7 @@ bool ntpLogIncreasing = false;
 #ifndef COMPILE_WIFI
 
 void menuWiFi()                 {systemPrintln("**WiFi not compiled**");}
+bool wifiAfterCommand(int cmdIndex)             {return false;}
 void wifiDisplayNetworkData()                   {}
 void wifiDisplaySoftApStatus()                  {}
 bool wifiEspNowOff(const char * fileName, uint32_t lineNumber) {return true;}
@@ -107,6 +108,7 @@ bool wifiEspNowOn(const char * fileName, uint32_t lineNumber) {return false;}
 void wifiEspNowChannelSet(WIFI_CHANNEL_t channel) {}
 int wifiNetworkCount()                          {return 0;}
 void wifiResetTimeout()                         {}
+void wifiSettingsClone()                        {}
 IPAddress wifiSoftApGetBroadcastIpAddress()     {return IPAddress((uint32_t)0);}
 IPAddress wifiSoftApGetIpAddress()              {return IPAddress((uint32_t)0);}
 const char * wifiSoftApGetSsid()                {return "";}
@@ -300,8 +302,6 @@ void webServerSettingsClone()   {}
 void webServerStop() {}
 void webServerUpdate()  {}
 void webServerVerifyTables() {}
-bool wifiAfterCommand(int cmdIndex){return false;}
-void wifiSettingsClone() {}
 bool webServerIsRunning() {return false;}
 
 #endif  // COMPILE_AP
