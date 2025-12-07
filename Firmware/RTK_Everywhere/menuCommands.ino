@@ -1204,7 +1204,9 @@ SettingValueResponse updateSettingWithValue(bool inCommands, const char *setting
             systemPrintln();
         }
 
-        sendStringToWebsocket(settingsCSV);
+        dynamicDataUpdateInterval = initialDataUpdateInterval; // Prevent dynamic data from gatecrashing
+        lastDynamicDataUpdate = millis();
+        sendStringToWebsocket(settingsCSV); // Queue async settings send
         knownSetting = true;
     }
 
@@ -1245,7 +1247,9 @@ SettingValueResponse updateSettingWithValue(bool inCommands, const char *setting
             systemPrintln();
         }
 
-        sendStringToWebsocket(settingsCSV);
+        dynamicDataUpdateInterval = initialDataUpdateInterval; // Prevent dynamic data from gatecrashing
+        lastDynamicDataUpdate = millis();
+        sendStringToWebsocket(settingsCSV); // Queue async settings send
         knownSetting = true;
     }
 
