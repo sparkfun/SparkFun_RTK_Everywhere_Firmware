@@ -1215,7 +1215,6 @@ void processUart1Message(SEMP_PARSE_STATE *parse, uint16_t type)
                                  consumer);
                 else
                     systemPrintf("Ring buffer full: discarding %d bytes\r\n", discardedBytes);
-                Serial.flush(); // TODO - delete me!
             }
 
             // Update the tails. This needs semaphore protection
@@ -2207,6 +2206,8 @@ void buttonCheckTask(void *e)
                     delay(500); // We will be shutting off during this delay but this prevents another beepMultiple()
                                 // from firing
                 }
+
+                Serial.flush(); // Complete prints
 
                 // If we have fast power off, use it
                 if (present.fastPowerOff == true)
