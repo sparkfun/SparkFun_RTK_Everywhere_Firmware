@@ -1285,7 +1285,6 @@ void recordProfileNumber(uint8_t newProfileNumber)
         return;
     }
 
-    profileNumber = newProfileNumber;
     File fileProfileNumber = LittleFS.open("/profileNumber.txt", FILE_WRITE);
     if (!fileProfileNumber)
     {
@@ -1294,6 +1293,7 @@ void recordProfileNumber(uint8_t newProfileNumber)
     }
     fileProfileNumber.write(newProfileNumber);
     fileProfileNumber.close();
+    profileNumber = newProfileNumber;
 }
 
 // Populate profileNames[][] based on names found in LittleFS and SD
