@@ -3,8 +3,14 @@ menuSupport.ino
 =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=*/
 
 // Change the active profile number, without unit reset
-void changeProfileNumber(byte newProfileNumber)
+void changeProfileNumber(uint8_t newProfileNumber)
 {
+    if (newProfileNumber >= MAX_PROFILE_COUNT)
+    {
+        systemPrintf("changeProfileNumber: illegal newProfileNumber %d\r\n", (int)newProfileNumber);
+        return;
+    }
+
     gnssConfigureDefaults(); // Set all bits in the request bitfield to cause the GNSS receiver to go through a full
                              // (re)configuration
     recordSystemSettings(); // Before switching, we need to record the current settings to LittleFS and SD

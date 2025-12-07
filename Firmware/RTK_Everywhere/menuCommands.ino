@@ -710,7 +710,7 @@ bool commandCheckListForVariable(const char *settingName, const char **entry, in
 SettingValueResponse updateSettingWithValue(bool inCommands, const char *settingName, const char *settingValueStr)
 {
     int i;
-    char *ptr;
+    char *endptr;
     int qualifier;
     double settingValue;
     char suffix[51];
@@ -719,7 +719,7 @@ SettingValueResponse updateSettingWithValue(bool inCommands, const char *setting
     void *var;
 
     // Convert the value from a string into a number
-    settingValue = strtod(settingValueStr, &ptr);
+    settingValue = strtod(settingValueStr, &endptr);
     if (strcmp(settingValueStr, "true") == 0)
         settingValue = 1;
     if (strcmp(settingValueStr, "false") == 0)
@@ -816,11 +816,11 @@ SettingValueResponse updateSettingWithValue(bool inCommands, const char *setting
 
             // 0 = Rover, 1 = Base, 2 = NTP, 3 = Base Caster
             settings.lastState = STATE_ROVER_NOT_STARTED; // Default
-            if (settingValue == 1)
+            if ((int)settingValue == 1)
                 settings.lastState = STATE_BASE_NOT_STARTED;
-            else if (settingValue == 2 && productVariant == RTK_EVK)
+            else if ((int)settingValue == 2 && productVariant == RTK_EVK)
                 settings.lastState = STATE_NTPSERVER_NOT_STARTED;
-            else if (settingValue == 3)
+            else if ((int)settingValue == 3)
                 settings.lastState = STATE_BASE_CASTER_NOT_STARTED;
         }
         break;
@@ -934,7 +934,7 @@ SettingValueResponse updateSettingWithValue(bool inCommands, const char *setting
             int server;
             if (sscanf(suffix, "%d", &server) == 1)
             {
-                settings.ntripServer_CasterPort[server] = settingValue;
+                settings.ntripServer_CasterPort[server] = (uint16_t)settingValue;
                 knownSetting = true;
             }
         }
@@ -989,7 +989,7 @@ SettingValueResponse updateSettingWithValue(bool inCommands, const char *setting
             {
                 if ((suffix[0] == correctionGetName(x)[0]) && (strcmp(suffix, correctionGetName(x)) == 0))
                 {
-                    settings.correctionsSourcesPriority[x] = settingValue;
+                    settings.correctionsSourcesPriority[x] = (CORRECTION_ID_T)settingValue;
                     knownSetting = true;
                     break;
                 }
@@ -1133,12 +1133,12 @@ SettingValueResponse updateSettingWithValue(bool inCommands, const char *setting
     }
     else if (strcmp(settingName, "baseTypeFixed") == 0)
     {
-        settings.fixedBase = ((settingValue == 1) ? true : false);
+        settings.fixedBase = (((int)settingValue == 1) ? true : false);
         knownSetting = true;
     }
     else if (strcmp(settingName, "fixedBaseCoordinateTypeECEF") == 0)
     {
-        settings.fixedBaseCoordinateType = ((settingValue == 1) ? COORD_TYPE_ECEF : COORD_TYPE_GEODETIC);
+        settings.fixedBaseCoordinateType = (((int)settingValue == 1) ? COORD_TYPE_ECEF : COORD_TYPE_GEODETIC);
         knownSetting = true;
     }
 
@@ -1184,8 +1184,8 @@ SettingValueResponse updateSettingWithValue(bool inCommands, const char *setting
     {
         // Change to new profile
         if (settings.debugWebServer == true)
-            systemPrintf("Changing to profile number %d\r\n", settingValue);
-        changeProfileNumber(settingValue);
+            systemPrintf("Changing to profile number %d\r\n", (int)settingValue);
+        changeProfileNumber((uint8_t)settingValue);
 
         // Load new profile into system
         loadSettings();
@@ -1197,8 +1197,11 @@ SettingValueResponse updateSettingWithValue(bool inCommands, const char *setting
 
         if (settings.debugWebServer == true)
         {
-            systemPrintf("Sending profile %d\r\n", settingValue);
-            systemPrintf("Profile contents: %s\r\n", settingsCSV);
+            systemPrintf("Sending profile %d\r\n", (int)settingValue);
+            systemPrintln("Profile contents:");
+            for (int x = 0; x < strlen(settingsCSV); x++) // Print manually
+                systemWrite(settingsCSV[x]);
+            systemPrintln();
         }
 
         sendStringToWebsocket(settingsCSV);
@@ -1210,8 +1213,8 @@ SettingValueResponse updateSettingWithValue(bool inCommands, const char *setting
     {
         // Change to new profile
         if (settings.debugCLI == true)
-            systemPrintf("Changing to profile number %d\r\n", settingValue);
-        changeProfileNumber(settingValue);
+            systemPrintf("Changing to profile number %d\r\n", (int)settingValue);
+        changeProfileNumber((uint8_t)settingValue);
 
         // Load new profile into system
         loadSettings();
@@ -1235,8 +1238,11 @@ SettingValueResponse updateSettingWithValue(bool inCommands, const char *setting
 
         if (settings.debugWebServer == true)
         {
-            systemPrintf("Sending reset profile %d\r\n", settingValue);
-            systemPrintf("Profile contents: %s\r\n", settingsCSV);
+            systemPrintf("Sending reset profile %d\r\n", (int)settingValue);
+            systemPrintln("Profile contents:");
+            for (int x = 0; x < strlen(settingsCSV); x++) // Print manually
+                systemWrite(settingsCSV[x]);
+            systemPrintln();
         }
 
         sendStringToWebsocket(settingsCSV);
@@ -1270,7 +1276,7 @@ SettingValueResponse updateSettingWithValue(bool inCommands, const char *setting
             endLogging(false, true); //(gotSemaphore, releaseSemaphore) Close file. Reset parser stats.
             beginLogging();          // Create new file based on current RTC.
 
-            char newFileNameCSV[sizeof("logFileName,") + sizeof(logFileName) + 1];
+            char newFileNameCSV[sizeof("logFileName,") + sizeof(logFileName) + 2];
             snprintf(newFileNameCSV, sizeof(newFileNameCSV), "logFileName,%s,", logFileName);
 
             sendStringToWebsocket(newFileNameCSV); // Tell the config page the name of the file we just created

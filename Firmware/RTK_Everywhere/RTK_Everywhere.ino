@@ -704,10 +704,14 @@ bool firstButtonThrownOut = false;
 // use a global to combine the incoming
 #define AP_CONFIG_SETTING_SIZE 20000 // 10000 isn't enough if the SD card contains many files
 char *settingsCSV;                   // Push large array onto heap
+char *dynamicDataCSV;                // Separate storage for createDynamicDataString
+char *firmwareVersionCSV;            // Separate storage for createFirmwareVersionString
 char *incomingSettings;
 int incomingSettingsSpot;
 unsigned long timeSinceLastIncomingSetting;
-unsigned long lastDynamicDataUpdate;
+volatile unsigned long lastDynamicDataUpdate;
+const unsigned long initialDataUpdateInterval = 5000; // Reduced to 1000 by stateUpdate
+volatile unsigned long dynamicDataUpdateInterval = initialDataUpdateInterval;
 bool websocketConnected = false;
 
 #ifdef COMPILE_WIFI

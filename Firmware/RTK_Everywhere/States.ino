@@ -524,23 +524,21 @@ void stateUpdate()
             if (websocketConnected == true)
             {
                 // Update the coordinates on the AP page
-                if ((millis() - lastDynamicDataUpdate) > 1000)
+                if ((millis() - lastDynamicDataUpdate) > dynamicDataUpdateInterval)
                 {
                     lastDynamicDataUpdate = millis();
-                    createDynamicDataString(settingsCSV);
+                    dynamicDataUpdateInterval = 1000; // Reduce the interval after first update
+                    createDynamicDataString(dynamicDataCSV);
 
-                    sendStringToWebsocket(settingsCSV);
+                    sendStringToWebsocket(dynamicDataCSV);
                 }
 
                 // If a firmware version was requested, and obtained, report it back to the web page
                 if (strlen(otaReportedVersion) > 0)
                 {
-                    createFirmwareVersionString(settingsCSV);
+                    createFirmwareVersionString(firmwareVersionCSV);
 
-                    if (settings.debugWebServer)
-                        systemPrintf("WebServer: Firmware version requested. Sending: %s\r\n", settingsCSV);
-
-                    sendStringToWebsocket(settingsCSV);
+                    sendStringToWebsocket(firmwareVersionCSV);
 
                     otaReportedVersion[0] = '\0'; // Zero out the reported version
                 }

@@ -31,6 +31,7 @@ void rtkFree(void *data, const char *text)
     if (settings.debugMalloc)
         systemPrintf("%p: Freeing %s\r\n", data, text);
     free(data);
+    data = nullptr;
 }
 
 // Allocate memory from PSRAM when available

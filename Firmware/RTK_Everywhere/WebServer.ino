@@ -58,8 +58,7 @@ static uint8_t webServerState;
 static httpd_handle_t wsserver;
 static WebServer *webServer;
 
-// httpd_req_t *last_ws_req;
-static int last_ws_fd;
+volatile int last_ws_fd;
 
 static TaskHandle_t updateWebServerTaskHandle;
 static const uint8_t updateWebServerTaskPriority = 0; // 3 being the highest, and 0 being the lowest
@@ -715,6 +714,8 @@ bool parseIncomingSettings()
     return (true);
 }
 
+// https://github.com/espressif/esp-idf/blob/master/examples/protocols/http_server/ws_echo_server/main/ws_echo_server.c
+
 //----------------------------------------
 // Send a string to the browser using the web socket
 //----------------------------------------
@@ -722,35 +723,24 @@ void sendStringToWebsocket(const char *stringToSend)
 {
     if (!websocketConnected)
     {
-        systemPrintf("sendStringToWebsocket: not connected - could not send: %s\r\n", stringToSend);
+        systemPrintf("sendStringToWebsocket: not connected - could not send %d bytes\r\n", strlen(stringToSend));
         return;
     }
 
-    // To send content to the webServer, we would call: webServer->sendContent(stringToSend);
-    // But here we want to send content to the websocket (wsserver)...
-
-    httpd_ws_frame_t ws_pkt;
-    memset(&ws_pkt, 0, sizeof(httpd_ws_frame_t));
-    ws_pkt.payload = (uint8_t *)stringToSend;
-    ws_pkt.len = strlen(stringToSend);
-    ws_pkt.type = HTTPD_WS_TYPE_TEXT;
-
-    // If we use httpd_ws_send_frame, it requires a req.
-    // esp_err_t ret = httpd_ws_send_frame(last_ws_req, &ws_pkt);
-    // if (ret != ESP_OK) {
-    //    ESP_LOGE(TAG, "httpd_ws_send_frame failed with %d", ret);
-    //}
-
-    // If we use httpd_ws_send_frame_async, it requires a fd.
-    esp_err_t ret = httpd_ws_send_frame_async(wsserver, last_ws_fd, &ws_pkt);
+    esp_err_t ret = trigger_async_send(stringToSend);
     if (ret != ESP_OK)
     {
-        systemPrintf("httpd_ws_send_frame failed with %d\r\n", ret);
+        systemPrintf("trigger_async_send failed with %d\r\n", ret);
     }
     else
     {
         if (settings.debugWebServer == true)
-            systemPrintf("sendStringToWebsocket: %s\r\n", stringToSend);
+        {
+            systemPrintln("sendStringToWebsocket:");
+            for (int x = 0; x < strlen(stringToSend); x++) // Print manually
+                systemWrite(stringToSend[x]);
+            systemPrintln();
+        }
     }
 }
 
@@ -778,6 +768,16 @@ void stopWebServer()
     {
         rtkFree(settingsCSV, "Settings buffer (settingsCSV)");
         settingsCSV = nullptr;
+    }
+    if (dynamicDataCSV != nullptr)
+    {
+        rtkFree(dynamicDataCSV, "Settings buffer (dynamicDataCSV)");
+        dynamicDataCSV = nullptr;
+    }
+    if (firmwareVersionCSV != nullptr)
+    {
+        rtkFree(firmwareVersionCSV, "Settings buffer (firmwareVersionCSV)");
+        firmwareVersionCSV = nullptr;
     }
 
     if (incomingSettings != nullptr)
@@ -847,6 +847,20 @@ bool webServerAssignResources(int httpPort = 80)
             break;
         }
         createSettingsString(settingsCSV);
+
+        // The dynamic data is typically 180 bytes
+        dynamicDataCSV = (char *)rtkMalloc(300, "Settings buffer (dynamicDataCSV)");
+        if (!dynamicDataCSV)
+        {
+            systemPrintln("ERROR: Web server failed to allocate dynamicDataCSV");
+            break;
+        }
+        firmwareVersionCSV = (char *)rtkMalloc(100, "Settings buffer (firmwareVersionCSV)");
+        if (!firmwareVersionCSV)
+        {
+            systemPrintln("ERROR: Web server failed to allocate firmwareVersionCSV");
+            break;
+        }
 
         /* https://github.com/espressif/arduino-esp32/blob/master/libraries/DNSServer/examples/CaptivePortal/CaptivePortal.ino
          */
@@ -1059,6 +1073,16 @@ void webServerReleaseResources()
         webServer->close();
         delete webServer;
         webServer = nullptr;
+    }
+    if (dynamicDataCSV != nullptr)
+    {
+        rtkFree(dynamicDataCSV, "Settings buffer (dynamicDataCSV)");
+        dynamicDataCSV = nullptr;
+    }
+    if (firmwareVersionCSV != nullptr)
+    {
+        rtkFree(firmwareVersionCSV, "Settings buffer (firmwareVersionCSV)");
+        firmwareVersionCSV = nullptr;
     }
 
     if (settingsCSV != nullptr)
@@ -1273,16 +1297,61 @@ void webServerVerifyTables()
 }
 
 //----------------------------------------
+// Structure holding server handle
+// and internal socket fd in order
+// to use out of request send
+//----------------------------------------
+struct async_resp_arg {
+    httpd_handle_t hd;
+    int fd;
+    const char *data;
+};
+
+//----------------------------------------
+//  Async send
+//----------------------------------------
+static void ws_async_send(void *arg)
+{
+    struct async_resp_arg *resp_arg = (struct async_resp_arg *)arg;
+    httpd_handle_t hd = resp_arg->hd;
+    int fd = resp_arg->fd;
+    httpd_ws_frame_t ws_pkt;
+    memset(&ws_pkt, 0, sizeof(httpd_ws_frame_t));
+    ws_pkt.payload = (uint8_t*)resp_arg->data;
+    ws_pkt.len = strlen(resp_arg->data);
+    ws_pkt.type = HTTPD_WS_TYPE_TEXT;
+
+    httpd_ws_send_frame_async(hd, fd, &ws_pkt);
+    free(resp_arg);
+}
+
+//----------------------------------------
+//  Queue async send
+//----------------------------------------
+static esp_err_t trigger_async_send(const char *data)
+{
+    struct async_resp_arg *resp_arg = (struct async_resp_arg *)malloc(sizeof(struct async_resp_arg));
+    if (resp_arg == NULL) {
+        return ESP_ERR_NO_MEM;
+    }
+    resp_arg->hd = wsserver;
+    resp_arg->fd = last_ws_fd;
+    resp_arg->data = data;
+    esp_err_t ret = httpd_queue_work(wsserver, ws_async_send, resp_arg);
+    if (ret != ESP_OK) {
+        free(resp_arg);
+    }
+    return ret;
+}
+
+//----------------------------------------
+// Web socket handler
 //----------------------------------------
 static esp_err_t ws_handler(httpd_req_t *req)
 {
-    // Log the req, so we can reuse it for httpd_ws_send_frame
-    // TODO: do we need to be cleverer about this?
-    // last_ws_req = req;
-
     if (req->method == HTTP_GET)
     {
-        // Log the fd, so we can reuse it for httpd_ws_send_frame_async
+        // Record the fd, so we can reuse it for httpd_ws_send_frame_async
         // TODO: do we need to be cleverer about this?
         last_ws_fd = httpd_req_to_sockfd(req);
 
@@ -1290,8 +1359,11 @@ static esp_err_t ws_handler(httpd_req_t *req)
             systemPrintf("Handshake done, the new ws connection was opened with fd %d\r\n", last_ws_fd);
 
         websocketConnected = true;
+        // Postpone the dynamic data while the page is loading and the settingsCSV is being uploaded
+        // (This prevents the dynamic data from gatecrashing the settings!!)
+        dynamicDataUpdateInterval = initialDataUpdateInterval;
         lastDynamicDataUpdate = millis();
-        sendStringToWebsocket(settingsCSV);
+        sendStringToWebsocket(settingsCSV); // Queue async settings send
 
         return ESP_OK;
     }
@@ -1387,8 +1459,11 @@ static esp_err_t ws_handler(httpd_req_t *req)
         if (settings.debugWebServer == true)
             systemPrintln("Client closed or refreshed the web page");
 
-        createSettingsString(settingsCSV);
         websocketConnected = false;
+        //createSettingsString(settingsCSV); // Refresh settingsCSV
+        //dynamicDataUpdateInterval = initialDataUpdateInterval; // Increased interval when web page is loading
+        //lastDynamicDataUpdate = millis();
+        //sendStringToWebsocket(settingsCSV); // Queue async settings send
     }
 
     rtkFree(buf, "Payload buffer (buf)");
@@ -1491,6 +1566,7 @@ bool websocketServerStart(void)
         httpdDisplayConfig(&config);
         reportHeapNow(true);
     }
+
     status = httpd_start(&wsserver, &config);
     if (status == ESP_OK)
     {

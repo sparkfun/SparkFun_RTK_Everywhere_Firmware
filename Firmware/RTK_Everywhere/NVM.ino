@@ -776,7 +776,7 @@ bool printSystemSettingsFromFileLFS(char *fileName)
 // The order of variables matches the order found in settings.h
 bool parseLine(char *str)
 {
-    char *ptr;
+    char *endptr;
 
     // A health warning about strtok:
     // strtok will convert any delimiters it finds ("=" in our case) into NULL characters.
@@ -847,7 +847,7 @@ bool parseLine(char *str)
         else
         {
             // Attempt to convert string to double
-            d = strtod(str, &ptr);
+            d = strtod(str, &endptr);
 
             if (d == 0.0) // strtod failed, may be string or may be 0 but let it pass
             {
@@ -855,7 +855,7 @@ bool parseLine(char *str)
             }
             else
             {
-                if (str == ptr || *skipSpace(ptr))
+                if ((str == endptr) || (*skipSpace(endptr)))
                     return false; // Check str pointer
             }
         }
@@ -1279,6 +1279,12 @@ void loadProfileNumber()
 // Record the given profile number as well as a config bool
 void recordProfileNumber(uint8_t newProfileNumber)
 {
+    if (newProfileNumber >= MAX_PROFILE_COUNT)
+    {
+        systemPrintf("recordProfileNumber: illegal newProfileNumber %d\r\n", (int)newProfileNumber);
+        return;
+    }
+
     profileNumber = newProfileNumber;
     File fileProfileNumber = LittleFS.open("/profileNumber.txt", FILE_WRITE);
     if (!fileProfileNumber)
