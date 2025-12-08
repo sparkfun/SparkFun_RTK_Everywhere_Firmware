@@ -1155,7 +1155,7 @@ void webServerStart()
 
         // Start the network
         if (networkInterfaceHasInternet(NETWORK_ETHERNET))
-            networkConsumerAdd(NETCONSUMER_WEB_CONFIG, NETWORK_ANY, __FILE__, __LINE__);
+            networkConsumerAdd(NETCONSUMER_WEB_CONFIG, NETWORK_ETHERNET, __FILE__, __LINE__);
         else if ((settings.wifiConfigOverAP == false) || networkInterfaceHasInternet(NETWORK_WIFI_STATION))
             networkConsumerAdd(NETCONSUMER_WEB_CONFIG, NETWORK_ANY, __FILE__, __LINE__);
         else if (settings.wifiConfigOverAP)
