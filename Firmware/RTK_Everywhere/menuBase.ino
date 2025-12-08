@@ -30,7 +30,7 @@ void menuBase()
         if (settings.fixedBase == true && settings.fixedBaseCoordinateType == COORD_TYPE_GEODETIC)
         {
             systemPrintf(
-                "Total Height Above Ellipsoid of Antenna Phase Center (HAE APC): %0.4fmm\r\n",
+                "Total Height Above Ellipsoid of Antenna Phase Center (HAE APC): %0.4fm\r\n",
                 ((settings.fixedAltitude + (settings.antennaHeight_mm + settings.antennaPhaseCenter_mm) / 1000)));
         }
 
@@ -494,6 +494,16 @@ bool menuCommonBaseCoords()
     int selectedCoords = 0;
     bool retVal = false; // Return value - set true if new coords are loaded
 
+    static double latitude = 40.09029479;
+    static double longitude = -105.18505761;
+    static double haeMark = 1560.089;
+    static double haeApc = haeMark + ((settings.antennaHeight_mm + settings.antennaPhaseCenter_mm) / 1000.0);
+    static bool enteredHaeMark = true;
+    static double ecefx = -1280206.568;
+    static double ecefy = -4716804.403;
+    static double ecefz = 4086665.484;
+    static String name = "SparkFun_HQ";
+
     while (1)
     {
         systemPrintln();
@@ -505,9 +515,9 @@ bool menuCommonBaseCoords()
 
         for (int index = 0; index < COMMON_COORDINATES_MAX_STATIONS; index++) // Arbitrary 50 station limit
         {
-            // stationInfo example: LocationA,40.09029479,-105.18505761,1560.089
             char stationInfo[100];
 
+            // SparkFun_HQ,40.09029479,-105.18505761,1560.089,1.8,0
             if (settings.fixedBaseCoordinateType == COORD_TYPE_GEODETIC)
             {
                 // Try SD, then LFS
@@ -525,7 +535,7 @@ bool menuCommonBaseCoords()
                     break;
                 }
             }
-            else
+            else // SparkFun_HQ,-1280206.568,-4716804.403,4086665.484
             {
                 // Try SD, then LFS
                 if (getFileLineSD(stationCoordinateECEFFileName, index, stationInfo, sizeof(stationInfo)) ==
@@ -554,56 +564,148 @@ bool menuCommonBaseCoords()
             numCoords++;
         }
 
-        systemPrintln("a) Add Coordinates");
-        systemPrintln("c) Add Current Coordinates");
-        systemPrintln("d) Delete Selected Coordinates");
-        systemPrintln("l) Load Selected Coordinates into Fixed Base");
-        systemPrintln("t) Add Current Coordinates with Timestamp");
-        systemPrintln("x) Exit");
+        systemPrintln("d)     Delete Selected Coordinates");
+        systemPrintln("s)     Save Selected Coordinates into Fixed Base");
+        systemPrintln();
+
+        if (settings.fixedBaseCoordinateType == COORD_TYPE_GEODETIC)
+        {
+            systemPrintf("%d)%s    Latitude:  %.8lf\r\n",
+                        numCoords + 1,
+                        numCoords < 9 ? " " : "",
+                        latitude);
+            systemPrintf("%d)%s    Longitude: %.8lf\r\n",
+                        numCoords + 2,
+                        numCoords < 8 ? " " : "",
+                        longitude);
+            systemPrintf("%d)%s %s HAE Mark:  %.4lfm\r\n",
+                        numCoords + 3,
+                        numCoords < 7 ? " " : "",
+                        enteredHaeMark ? "->" : "  ",
+                        haeMark);
+            systemPrintf("%d)%s %s HAE APC:   %.4lfm\r\n",
+                        numCoords + 4,
+                        numCoords < 6 ? " " : "",
+                        enteredHaeMark ? "  " : "->",
+                        haeApc);
+        }
+        else
+        {
+            systemPrintf("%d)%s    ECEF X:    %.4lf\r\n",
+                        numCoords + 1,
+                        numCoords < 9 ? " " : "",
+                        ecefx);
+            systemPrintf("%d)%s    ECEF Y:    %.4lf\r\n",
+                        numCoords + 2,
+                        numCoords < 8 ? " " : "",
+                        ecefy);
+            systemPrintf("%d)%s    ECEF Z:    %.4lf\r\n",
+                        numCoords + 3,
+                        numCoords < 7 ? " " : "",
+                        ecefz);
+        }
+
+        systemPrintln();
+
+        systemPrintf("n)     Name:      %s\r\n", name.c_str());
+        systemPrintln("a)     Add These Coordinates");
+        systemPrintf("l)     Load %s From GNSS\r\n",
+                    settings.fixedBaseCoordinateType == COORD_TYPE_GEODETIC ? "LLh" : "ECEF");
+
+        systemPrintln();
+
+        systemPrintln("x)     Exit");
 
         byte incoming = getUserInputCharacterNumber();
 
         if ((incoming > 0) && (incoming <= numCoords))
             selectedCoords = incoming - 1;
-        else if (incoming == 'a')
+        else if ((incoming >= (numCoords + 1))
+                 && (incoming <= (numCoords + 4))
+                 && (settings.fixedBaseCoordinateType == COORD_TYPE_GEODETIC))
         {
-            if (settings.fixedBaseCoordinateType == COORD_TYPE_GEODETIC)
+            if (incoming == (numCoords + 1))
             {
-                systemPrintln("Enter new coordinates in Name,Lat,Long,Alt CSV format");
-                systemPrintln("E.g. SparkFun_HQ,40.09029479,-105.18505761,1560.089");
-            }
-            else
-            {
-                systemPrintln("Enter new coordinates in Name,X,Y,Z CSV format");
-                systemPrintln("E.g. SparkFun_HQ,-1280206.568,-4716804.403,4086665.484");
-            }
-
-            char newCoords[100];
-            char *ptr = newCoords;
-            if ((getUserInputString(newCoords, sizeof(newCoords)) == INPUT_RESPONSE_VALID) && (strlen(newCoords) > 0))
-            {
-                double latx;
-                double lony;
-                double altz;
-                char baseName[100];
-                if ((sscanf(ptr,"%[^,],%lf,%lf,%lf", baseName, &latx, &lony, &altz) == 4)
-                    && (strlen(baseName) > 0)
-                    && (strstr(baseName, " ") == nullptr)) // Check for spaces
+                systemPrint("Enter the Latitude in degrees (ex: 40.090335429, 40 05.4201257, 40-05.4201257, "
+                            "4005.4201257, 40 05 25.207544, etc): ");
+                char userEntry[50];
+                if (getUserInputString(userEntry, sizeof(userEntry)) == INPUT_RESPONSE_VALID)
                 {
-                    if (settings.fixedBaseCoordinateType == COORD_TYPE_GEODETIC)
-                    {
-                        recordLineToSD(stationCoordinateGeodeticFileName, newCoords);
-                        recordLineToLFS(stationCoordinateGeodeticFileName, newCoords);
-                    }
-                    else
-                    {
-                        recordLineToSD(stationCoordinateECEFFileName, newCoords);
-                        recordLineToLFS(stationCoordinateECEFFileName, newCoords);
-                    }
+                    double fixedLat = 0.0;
+                    // Identify which type of method they used
+                    CoordinateInputType latCoordinateInputType =
+                        coordinateIdentifyInputType(userEntry, &fixedLat);
+                    if (latCoordinateInputType != COORDINATE_INPUT_TYPE_INVALID_UNKNOWN)
+                        latitude = fixedLat;
+                }
+            }
+            else if (incoming == (numCoords + 2))
+            {
+                systemPrint("Enter the Longitude in degrees (ex: -105.184774720, -105 11.0864832, -105-11.0864832, "
+                            "-105 11 05.188992, etc): ");
+                char userEntry[50];
+                if (getUserInputString(userEntry, sizeof(userEntry)) == INPUT_RESPONSE_VALID)
+                {
+                    double fixedLong = 0.0;
+                    // Identify which type of method they used
+                    CoordinateInputType longCoordinateInputType =
+                        coordinateIdentifyInputType(userEntry, &fixedLong);
+                    if (longCoordinateInputType != COORDINATE_INPUT_TYPE_INVALID_UNKNOWN)
+                        longitude = fixedLong;
+                }
+            }
+            else if (incoming == (numCoords + 3))
+            {
+                systemPrintln("Enter the Height Above Ellipsoid of the mark.");
+                systemPrint("This is the coordinate or altitude of the mark or monument on the ground. (ex: 1560.089): ");
+                double fixedAltitude;
+                if (getUserInputDouble(&fixedAltitude) == INPUT_RESPONSE_VALID)
+                {
+                    haeMark = fixedAltitude;
+                    haeApc = fixedAltitude + ((settings.antennaHeight_mm + settings.antennaPhaseCenter_mm) / 1000.0);
+                    enteredHaeMark = true;
+                }
+            }
+            else if (incoming == (numCoords + 4))
+            {
+                systemPrintln("Enter the Height Above Ellipsoid of the Antenna Phase Center.");
+                systemPrint("This is the sum of the antenna height, phase center, and mark height. (ex: 1561.889): ");
+                double fixedAltitude;
+                if (getUserInputDouble(&fixedAltitude) == INPUT_RESPONSE_VALID)
+                {
+                    haeApc = fixedAltitude;
+                    haeMark = fixedAltitude - ((settings.antennaHeight_mm + settings.antennaPhaseCenter_mm) / 1000.0);
+                    enteredHaeMark = false;
                 }
             }
         }
-        else if (incoming == 'c')
+        else if ((incoming >= (numCoords + 1))
+                 && (incoming <= (numCoords + 3))
+                 && (settings.fixedBaseCoordinateType != COORD_TYPE_GEODETIC))
+        {
+            if (incoming == (numCoords + 1))
+            {
+                systemPrintln("Enter the ECEF X coordinate in meters. (ex: -1280206.568): ");
+                double ecef;
+                if (getUserInputDouble(&ecef) == INPUT_RESPONSE_VALID)
+                    ecefx = ecef;
+            }
+            else if (incoming == (numCoords + 1))
+            {
+                systemPrintln("Enter the ECEF Y coordinate in meters. (ex: -4716804.403): ");
+                double ecef;
+                if (getUserInputDouble(&ecef) == INPUT_RESPONSE_VALID)
+                    ecefy = ecef;
+            }
+            else if (incoming == (numCoords + 3))
+            {
+                systemPrintln("Enter the ECEF Z coordinate in meters. (ex: 4086665.484): ");
+                double ecef;
+                if (getUserInputDouble(&ecef) == INPUT_RESPONSE_VALID)
+                    ecefz = ecef;
+            }
+        }
+        else if (incoming == 'n')
         {
             systemPrintln("Enter the name for these coordinates:");
             char coordsName[50];
@@ -612,30 +714,33 @@ bool menuCommonBaseCoords()
                 && (strstr(coordsName, " ") == nullptr)
                 && (strstr(coordsName, ",") == nullptr)) // No spaces or commas
             {
-                char newCoords[100];
-                if (settings.fixedBaseCoordinateType == COORD_TYPE_GEODETIC)
-                {
-                    snprintf(newCoords, sizeof(newCoords), "%s,%.8lf,%.8lf,%.4lf",
-                            coordsName,
-                            gnss->getLatitude(),
-                            gnss->getLongitude(),
-                            gnss->getAltitude() - ((settings.antennaHeight_mm + settings.antennaPhaseCenter_mm) / 1000.0));
-                    recordLineToSD(stationCoordinateGeodeticFileName, newCoords);
-                    recordLineToLFS(stationCoordinateGeodeticFileName, newCoords);
-                }
-                else
-                {
-                    double ecefX = 0;
-                    double ecefY = 0;
-                    double ecefZ = 0;
-                    // Don't subtract antennaHeight_mm + antennaPhaseCenter_mm
-                    geodeticToEcef(gnss->getLatitude(), gnss->getLongitude(), gnss->getAltitude(),
-                                   &ecefX, &ecefY, &ecefZ);
-                    snprintf(newCoords, sizeof(newCoords), "%s,%.4lf,%.4lf,%.4lf",
-                             coordsName, ecefX, ecefY, ecefZ);
-                    recordLineToSD(stationCoordinateECEFFileName, newCoords);
-                    recordLineToLFS(stationCoordinateECEFFileName, newCoords);
-                }
+                name = String(coordsName);
+            }
+        }
+        else if (incoming == 'a')
+        {
+            char newCoords[100];
+            if (settings.fixedBaseCoordinateType == COORD_TYPE_GEODETIC)
+            {
+                snprintf(newCoords, sizeof(newCoords), "%s,%.8lf,%.8lf,%.4lf,%.4lf,%.4lf",
+                         name.c_str(),
+                         latitude,
+                         longitude,
+                         haeMark,
+                         settings.antennaHeight_mm / 1000.0,
+                         settings.antennaPhaseCenter_mm / 1000.0);
+                recordLineToSD(stationCoordinateGeodeticFileName, newCoords);
+                recordLineToLFS(stationCoordinateGeodeticFileName, newCoords);
+            }
+            else
+            {
+                snprintf(newCoords, sizeof(newCoords), "%s,%.4lf,%.4lf,%.4lf",
+                         name.c_str(),
+                         ecefx,
+                         ecefy,
+                         ecefz);
+                recordLineToSD(stationCoordinateECEFFileName, newCoords);
+                recordLineToLFS(stationCoordinateECEFFileName, newCoords);
             }
         }
         else if (incoming == 'd')
@@ -656,6 +761,27 @@ bool menuCommonBaseCoords()
         }
         else if (incoming == 'l')
         {
+            if (settings.fixedBaseCoordinateType == COORD_TYPE_GEODETIC)
+            {
+                latitude = gnss->getLatitude();
+                longitude = gnss->getLongitude();
+                haeApc = gnss->getAltitude();
+                haeMark = haeApc - ((settings.antennaHeight_mm + settings.antennaPhaseCenter_mm) / 1000.0);
+                enteredHaeMark = false;
+            }
+            else
+            {
+                double newx;
+                double newy;
+                double newz;
+                geodeticToEcef(gnss->getLatitude(), gnss->getLongitude(), gnss->getAltitude(), &newx, &newy, &newz);
+                ecefx = newx;
+                ecefy = newy;
+                ecefz = newz;
+            }
+        }
+        else if (incoming == 's')
+        {
             char newCoords[100];
             char *ptr = newCoords;
             if (settings.fixedBaseCoordinateType == COORD_TYPE_GEODETIC)
@@ -665,12 +791,16 @@ bool menuCommonBaseCoords()
                 double lat;
                 double lon;
                 double alt;
+                double height;
+                double apc;
                 char baseName[100];
-                if (sscanf(ptr,"%[^,],%lf,%lf,%lf", baseName, &lat, &lon, &alt) == 4)
+                if (sscanf(ptr,"%[^,],%lf,%lf,%lf", baseName, &lat, &lon, &alt, &height, &apc) == 6)
                 {
                     settings.fixedLat = lat;
                     settings.fixedLong = lon;
                     settings.fixedAltitude = alt; // Assume user has entered pole tip altitude
+                    settings.antennaHeight_mm = height * 1000.0;
+                    settings.antennaPhaseCenter_mm = apc * 1000.0;
                     recordSystemSettings();
                     retVal = true; // New coords need to be applied
                 }
@@ -691,36 +821,6 @@ bool menuCommonBaseCoords()
                     recordSystemSettings();
                     retVal = true; // New coords need to be applied
                 }
-            }
-        }
-        else if (incoming == 't')
-        {
-            char newCoords[100];
-            struct tm timeinfo = rtc.getTimeStruct();
-            char timestamp[30];
-            strftime(timestamp, sizeof(timestamp), "%Y-%m-%d_%H:%M:%S", &timeinfo);
-            if (settings.fixedBaseCoordinateType == COORD_TYPE_GEODETIC)
-            {
-                snprintf(newCoords, sizeof(newCoords), "%s,%.8lf,%.8lf,%.4lf",
-                         timestamp,
-                         gnss->getLatitude(),
-                         gnss->getLongitude(),
-                         gnss->getAltitude() - ((settings.antennaHeight_mm + settings.antennaPhaseCenter_mm) / 1000.0));
-                recordLineToSD(stationCoordinateGeodeticFileName, newCoords);
-                recordLineToLFS(stationCoordinateGeodeticFileName, newCoords);
-            }
-            else
-            {
-                double ecefX = 0;
-                double ecefY = 0;
-                double ecefZ = 0;
-                // Don't subtract antennaHeight_mm + antennaPhaseCenter_mm
-                geodeticToEcef(gnss->getLatitude(), gnss->getLongitude(), gnss->getAltitude(),
-                               &ecefX, &ecefY, &ecefZ);
-                snprintf(newCoords, sizeof(newCoords), "%s,%.4lf,%.4lf,%.4lf",
-                         timestamp, ecefX, ecefY, ecefZ);
-                recordLineToSD(stationCoordinateECEFFileName, newCoords);
-                recordLineToLFS(stationCoordinateECEFFileName, newCoords);
             }
         }
         else if (incoming == 'x')
