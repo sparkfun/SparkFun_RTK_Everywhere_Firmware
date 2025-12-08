@@ -328,7 +328,11 @@ InputResponse getUserInputString(char *userString, uint16_t stringSize, bool loc
 
         //=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 
-        if (btPrintEchoExit) // User has disconnected from BT. Force exit all menus.
+        // User has disconnected from BT
+        // Or user has selected web config on Torch
+        // Or CLI_EXIT in progress
+        // Force exit all menus.
+        if (forceMenuExit)
             return INPUT_RESPONSE_TIMEOUT;
 
         // Get the next input character
