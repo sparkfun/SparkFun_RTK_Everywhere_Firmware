@@ -1205,6 +1205,8 @@ SettingValueResponse updateSettingWithValue(bool inCommands, const char *setting
         }
 
         dynamicDataUpdateInterval = initialDataUpdateInterval; // Prevent dynamic data from gatecrashing
+        if (settings.debugWebServer == true) // Double the interval if debug is enabled
+            dynamicDataUpdateInterval = 2 * initialDataUpdateInterval;
         lastDynamicDataUpdate = millis();
         sendStringToWebsocket(settingsCSV); // Queue async settings send
         knownSetting = true;
@@ -1248,6 +1250,8 @@ SettingValueResponse updateSettingWithValue(bool inCommands, const char *setting
         }
 
         dynamicDataUpdateInterval = initialDataUpdateInterval; // Prevent dynamic data from gatecrashing
+        if (settings.debugWebServer == true) // Double the interval if debug is enabled
+            dynamicDataUpdateInterval = 2 * initialDataUpdateInterval;
         lastDynamicDataUpdate = millis();
         sendStringToWebsocket(settingsCSV); // Queue async settings send
         knownSetting = true;

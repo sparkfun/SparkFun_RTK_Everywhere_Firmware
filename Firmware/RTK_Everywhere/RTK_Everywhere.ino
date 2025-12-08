@@ -710,7 +710,7 @@ char *incomingSettings;
 int incomingSettingsSpot;
 unsigned long timeSinceLastIncomingSetting;
 volatile unsigned long lastDynamicDataUpdate;
-const unsigned long initialDataUpdateInterval = 5000; // Reduced to 1000 by stateUpdate
+const unsigned long initialDataUpdateInterval = 2500; // Reduced to 1000 by stateUpdate
 volatile unsigned long dynamicDataUpdateInterval = initialDataUpdateInterval;
 bool websocketConnected = false;
 

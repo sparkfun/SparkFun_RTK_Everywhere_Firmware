@@ -1362,6 +1362,8 @@ static esp_err_t ws_handler(httpd_req_t *req)
         // Postpone the dynamic data while the page is loading and the settingsCSV is being uploaded
         // (This prevents the dynamic data from gatecrashing the settings!!)
         dynamicDataUpdateInterval = initialDataUpdateInterval;
+        if (settings.debugWebServer == true) // Double the interval if debug is enabled
+            dynamicDataUpdateInterval = 2 * initialDataUpdateInterval;
         lastDynamicDataUpdate = millis();
         sendStringToWebsocket(settingsCSV); // Queue async settings send
 
@@ -1460,8 +1462,11 @@ static esp_err_t ws_handler(httpd_req_t *req)
             systemPrintln("Client closed or refreshed the web page");
 
         websocketConnected = false;
-        //createSettingsString(settingsCSV); // Refresh settingsCSV
+        createSettingsString(settingsCSV); // Refresh settingsCSV - it may have changed
+        // I think the following is redundant? TODO: remove it once we are sure it isn't needed
         //dynamicDataUpdateInterval = initialDataUpdateInterval; // Increased interval when web page is loading
+        //if (settings.debugWebServer == true) // Double the interval if debug is enabled
+        //    dynamicDataUpdateInterval = 2 * initialDataUpdateInterval;
         //lastDynamicDataUpdate = millis();
         //sendStringToWebsocket(settingsCSV); // Queue async settings send
     }
