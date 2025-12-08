@@ -1191,17 +1191,20 @@ SettingValueResponse updateSettingWithValue(bool inCommands, const char *setting
         loadSettings();
 
         // Send new settings to browser. Re-use settingsCSV to avoid stack.
-        memset(settingsCSV, 0, AP_CONFIG_SETTING_SIZE); // Clear any garbage from settings array
-
-        createSettingsString(settingsCSV);
-
-        if (settings.debugWebServer == true)
+        if (settingsCSV)
         {
-            systemPrintf("Sending profile %d\r\n", settingValue);
-            systemPrintf("Profile contents: %s\r\n", settingsCSV);
-        }
+            memset(settingsCSV, 0, AP_CONFIG_SETTING_SIZE); // Clear any garbage from settings array
 
-        webSocketsSendString(settingsCSV);
+            createSettingsString(settingsCSV);
+
+            if (settings.debugWebServer == true)
+            {
+                systemPrintf("Sending profile %d\r\n", settingValue);
+                systemPrintf("Profile contents: %s\r\n", settingsCSV);
+            }
+
+            webSocketsSendString(settingsCSV);
+        }
         knownSetting = true;
     }
 
@@ -1229,17 +1232,20 @@ SettingValueResponse updateSettingWithValue(bool inCommands, const char *setting
         activeProfiles = loadProfileNames();
 
         // Send new settings to browser. Re-use settingsCSV to avoid stack.
-        memset(settingsCSV, 0, AP_CONFIG_SETTING_SIZE); // Clear any garbage from settings array
-
-        createSettingsString(settingsCSV);
-
-        if (settings.debugWebServer == true)
+        if (settingsCSV)
         {
-            systemPrintf("Sending reset profile %d\r\n", settingValue);
-            systemPrintf("Profile contents: %s\r\n", settingsCSV);
-        }
+            memset(settingsCSV, 0, AP_CONFIG_SETTING_SIZE); // Clear any garbage from settings array
 
-        webSocketsSendString(settingsCSV);
+            createSettingsString(settingsCSV);
+
+            if (settings.debugWebServer == true)
+            {
+                systemPrintf("Sending reset profile %d\r\n", settingValue);
+                systemPrintf("Profile contents: %s\r\n", settingsCSV);
+            }
+
+            webSocketsSendString(settingsCSV);
+        }
         knownSetting = true;
     }
 
