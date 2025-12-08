@@ -342,7 +342,7 @@ bool webSocketsStart(void)
 
     // Start the httpd server
     if (settings.debugWebServer == true)
-        systemPrintf("Starting webSockets on port: %d\r\n", config.server_port);
+        systemPrintf("webSockets starting on port: %d\r\n", config.server_port);
 
     if (settings.debugWebServer == true)
     {
@@ -354,13 +354,14 @@ bool webSocketsStart(void)
     {
         // Registering the ws handler
         if (settings.debugWebServer == true)
-            systemPrintln("Registering URI handlers");
+            systemPrintln("webSockets registering URI handlers");
         httpd_register_uri_handler(webSocketsHandle, &webSocketsPage);
         return true;
     }
 
     // Display the failure to start
-    systemPrintf("ERROR: webSockets failed to start, status: %s!\r\n", esp_err_to_name(status));
+    if (settings.debugWebServer)
+        systemPrintf("ERROR: webSockets failed to start, status: %s!\r\n", esp_err_to_name(status));
     return false;
 }
 
@@ -375,7 +376,9 @@ void webSocketsStop()
     {
         // Stop the httpd server
         esp_err_t status = httpd_stop(webSocketsHandle);
-        if (status != ESP_OK)
+        if (status == ESP_OK)
+            systemPrintf("webSockets stopped\r\n");
+        else
             systemPrintf("ERROR: webSockets failed to stop, status: %s!\r\n", esp_err_to_name(status));
         webSocketsHandle = nullptr;
     }
