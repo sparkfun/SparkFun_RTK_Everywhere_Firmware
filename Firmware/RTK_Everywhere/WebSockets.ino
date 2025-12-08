@@ -13,13 +13,25 @@ WebSockets.ino
 static const int webSocketsStackSize = 1024 * 20;   // Needs to be large enough to hold the full settingsCSV
 
 //----------------------------------------
+// New types
+//----------------------------------------
+
+typedef struct _WEB_SOCKETS_CLIENT
+{
+    struct _WEB_SOCKETS_CLIENT * _flink;
+    struct _WEB_SOCKETS_CLIENT * _blink;
+    httpd_req_t * _request;
+    int _socketFD;
+} WEB_SOCKETS_CLIENT;
+
+//----------------------------------------
 // Locals
 //----------------------------------------
 
-static int last_ws_fd;
-// httpd_req_t *last_ws_req;
-static bool webSocketsConnected;
+static WEB_SOCKETS_CLIENT * webSocketsClientListHead;
+static WEB_SOCKETS_CLIENT * webSocketsClientListTail;
 static httpd_handle_t webSocketsHandle;
+static SemaphoreHandle_t webSocketsMutex;
 
 //----------------------------------------
 // Create a csv string with the dynamic data to update (current coordinates,
@@ -125,21 +137,50 @@ void webSocketsCreateFirmwareVersionString(char *settingsCSV)
 //----------------------------------------
 static esp_err_t webSocketsHandler(httpd_req_t *req)
 {
+    WEB_SOCKETS_CLIENT * client;
+    WEB_SOCKETS_CLIENT * entry;
+
     // Log the req, so we can reuse it for httpd_ws_send_frame
     // TODO: do we need to be cleverer about this?
     // last_ws_req = req;
 
     if (req->method == HTTP_GET)
     {
-        // Log the fd, so we can reuse it for httpd_ws_send_frame_async
-        // TODO: do we need to be cleverer about this?
-        last_ws_fd = httpd_req_to_sockfd(req);
+        // Allocate a WEB_SOCKETS_CLIENT structure
+        client = (WEB_SOCKETS_CLIENT *)rtkMalloc(sizeof(WEB_SOCKETS_CLIENT), "WEB_SOCKETS_CLIENT");
+        if (client == nullptr)
+        {
+            if (settings.debugWebServer == true)
+                systemPrintf("ERROR: Failed to allocate WEB_SOCKETS_CLIENT!\r\n");
+            return ESP_FAIL;
+        }
+
+        // Save the client context
+        client->_request = req;
+        client->_socketFD = httpd_req_to_sockfd(req);
+
+        // Single thread access to the list of clients;
+        xSemaphoreTake(webSocketsMutex, portMAX_DELAY);
+
+        // ListHead -> ... -> client (flink) -> nullptr;
+        // ListTail -> client (blink) -> ... -> nullptr;
+        // Add this client to the list
+        client->_flink = nullptr;
+        entry = webSocketsClientListTail;
+        client->_blink = entry;
+        if (entry)
+            entry->_flink = client;
+        else
+            webSocketsClientListHead = client;
+        webSocketsClientListTail = client;
+
+        // Release the synchronization
+        xSemaphoreGive(webSocketsMutex);
 
         if (settings.debugWebServer == true)
             systemPrintf("webSockets: Added client, _request: %p, _socketFD: %d\r\n",
                          client->_request, client->_socketFD);
 
-        webSocketsConnected = true;
         lastDynamicDataUpdate = millis();
         webSocketsSendString(settingsCSV);
 
@@ -238,7 +279,6 @@ static esp_err_t webSocketsHandler(httpd_req_t *req)
             systemPrintln("WebSockets: Client closed or refreshed the web page");
 
         createSettingsString(settingsCSV);
-        webSocketsConnected = false;
     }
 
     rtkFree(buf, "Payload buffer (buf)");
@@ -250,7 +290,7 @@ static esp_err_t webSocketsHandler(httpd_req_t *req)
 //----------------------------------------
 bool webSocketsIsConnected()
 {
-    return webSocketsConnected;
+    return (webSocketsClientListHead != nullptr);
 }
 
 //----------------------------------------
@@ -280,38 +320,67 @@ void webSocketsSendSettings(void)
 //----------------------------------------
 void webSocketsSendString(const char *stringToSend)
 {
-    if (!webSocketsConnected)
+    WEB_SOCKETS_CLIENT * client;
+
+    if (!webSocketsIsConnected())
     {
         systemPrintf("webSocketsSendString: not connected - could not send: %s\r\n", stringToSend);
         return;
     }
 
-    // To send content to the webServer, we would call: webServer->sendContent(stringToSend);
-    // But here we want to send content to the websocket (webSocketsHandle)...
-
+    // Describe the packet to send
     httpd_ws_frame_t ws_pkt;
     memset(&ws_pkt, 0, sizeof(httpd_ws_frame_t));
     ws_pkt.payload = (uint8_t *)stringToSend;
     ws_pkt.len = strlen(stringToSend);
     ws_pkt.type = HTTPD_WS_TYPE_TEXT;
 
-    // If we use httpd_ws_send_frame, it requires a req.
-    // esp_err_t ret = httpd_ws_send_frame(last_ws_req, &ws_pkt);
-    // if (ret != ESP_OK) {
-    //    ESP_LOGE(TAG, "httpd_ws_send_frame failed with %d", ret);
-    //}
+    // Single thread access to the list of clients;
+    xSemaphoreTake(webSocketsMutex, portMAX_DELAY);
 
-    // If we use httpd_ws_send_frame_async, it requires a fd.
-    esp_err_t ret = httpd_ws_send_frame_async(webSocketsHandle, last_ws_fd, &ws_pkt);
-    if (ret != ESP_OK)
+    // Send this message to each of the clients
+    client = webSocketsClientListHead;
+    while (client)
     {
-        systemPrintf("WebSockets: httpd_ws_send_frame failed with %d\r\n", ret);
+        // Get the next client
+        WEB_SOCKETS_CLIENT * nextClient = client->_flink;
+
+        // Send the string to to the client browser
+        esp_err_t ret = httpd_ws_send_frame_async(webSocketsHandle,
+                                                  client->_socketFD,
+                                                  &ws_pkt);
+
+        // Check for message send failure
+        if (ret != ESP_OK)
+        {
+            systemPrintf("WebSockets: httpd_ws_send_frame failed with %d for client request: %x\r\n",
+                         ret, client->_request);
+
+            // Remove this client
+            WEB_SOCKETS_CLIENT * previousClient = client->_blink;
+            if (previousClient)
+                previousClient->_flink = nextClient;
+            else
+                webSocketsClientListHead = nextClient;
+            if (nextClient)
+                nextClient->_blink = previousClient;
+            else
+                webSocketsClientListTail = previousClient;
+
+            // Done with this client
+            rtkFree(client, "WEB_SOCKETS_CLINET");
+        }
+
+        // Successfully sent the message
+        else if (settings.debugWebServer == true)
+                systemPrintf("webSocketsSendString: %s\r\n", stringToSend);
+
+        // Get the next client
+        client = nextClient;
     }
-    else
-    {
-        if (settings.debugWebServer == true)
-            systemPrintf("webSocketsSendString: %s\r\n", stringToSend);
-    }
+
+    // Release the synchronization
+    xSemaphoreGive(webSocketsMutex);
 }
 
 //----------------------------------------
@@ -350,6 +419,19 @@ bool webSocketsStart(void)
         httpdDisplayConfig(&config);
         reportHeapNow(true);
     }
+
+    // Allocate the mutex
+    if (webSocketsMutex == nullptr)
+    {
+        webSocketsMutex = xSemaphoreCreateMutex();
+        if (webSocketsMutex == nullptr)
+        {
+            if (settings.debugWebServer)
+                systemPrintf("ERROR: webSockets failed to allocate the mutex!\r\n");
+            return false;
+        }
+    }
+
     status = httpd_start(&webSocketsHandle, &config);
     if (status == ESP_OK)
     {
@@ -371,10 +453,32 @@ bool webSocketsStart(void)
 //----------------------------------------
 void webSocketsStop()
 {
-    webSocketsConnected = false;
+    WEB_SOCKETS_CLIENT * client;
 
     if (webSocketsHandle != nullptr)
     {
+        // Single thread access to the list of clients;
+        xSemaphoreTake(webSocketsMutex, portMAX_DELAY);
+
+        // ListHead -> ... -> client (flink) -> nullptr;
+        // ListTail -> client (blink) -> ... -> nullptr;
+        // Discard the clients
+        while (webSocketsClientListHead)
+        {
+            // Remove this client
+            client = webSocketsClientListHead;
+            webSocketsClientListHead = client->_flink;
+
+            // Discard this client
+            rtkFree(client, "WEB_SOCKETS_CLIENT");
+        }
+        webSocketsClientListTail = nullptr;
+
+        // ListHead -> nullptr;
+        // ListTail -> nullptr;
+        // Release the synchronization
+        xSemaphoreGive(webSocketsMutex);
+
         // Stop the httpd server
         esp_err_t status = httpd_stop(webSocketsHandle);
         if (status == ESP_OK)
