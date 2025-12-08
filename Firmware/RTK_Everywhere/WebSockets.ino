@@ -105,7 +105,7 @@ void webSocketsCreateFirmwareVersionString(char *settingsCSV)
     if (firmwareVersionIsReportedNewer(otaReportedVersion, currentVersion) == true)
     {
         if (settings.debugWebServer == true)
-            systemPrintln("New version detected");
+            systemPrintln("WebSockets: New firmware version detected");
         snprintf(newVersionCSV, sizeof(newVersionCSV), "%s,", otaReportedVersion);
     }
     else
@@ -136,7 +136,8 @@ static esp_err_t webSocketsHandler(httpd_req_t *req)
         last_ws_fd = httpd_req_to_sockfd(req);
 
         if (settings.debugWebServer == true)
-            systemPrintf("Handshake done, the new ws connection was opened with fd %d\r\n", last_ws_fd);
+            systemPrintf("webSockets: Added client, _request: %p, _socketFD: %d\r\n",
+                         client->_request, client->_socketFD);
 
         webSocketsConnected = true;
         lastDynamicDataUpdate = millis();
@@ -153,18 +154,18 @@ static esp_err_t webSocketsHandler(httpd_req_t *req)
     esp_err_t ret = httpd_ws_recv_frame(req, &ws_pkt, 0);
     if (ret != ESP_OK)
     {
-        systemPrintf("httpd_ws_recv_frame failed to get frame len with %d\r\n", ret);
+        systemPrintf("WebSockets: httpd_ws_recv_frame failed to get frame len with %d\r\n", ret);
         return ret;
     }
     if (settings.debugWebServer == true)
-        systemPrintf("frame len is %d\r\n", ws_pkt.len);
+        systemPrintf("WebSockets: frame len is %d\r\n", ws_pkt.len);
     if (ws_pkt.len)
     {
         /* ws_pkt.len + 1 is for NULL termination as we are expecting a string */
         buf = (uint8_t *)rtkMalloc(ws_pkt.len + 1, "Payload buffer (buf)");
         if (buf == NULL)
         {
-            systemPrintln("Failed to malloc memory for buf");
+            systemPrintln("WebSockets: Failed to malloc memory for buf");
             return ESP_ERR_NO_MEM;
         }
         ws_pkt.payload = buf;
@@ -172,7 +173,7 @@ static esp_err_t webSocketsHandler(httpd_req_t *req)
         ret = httpd_ws_recv_frame(req, &ws_pkt, ws_pkt.len);
         if (ret != ESP_OK)
         {
-            systemPrintf("httpd_ws_recv_frame failed with %d\r\n", ret);
+            systemPrintf("WebSockets: httpd_ws_recv_frame failed with %d\r\n", ret);
             rtkFree(buf, "Payload buffer (buf)");
             return ret;
         }
@@ -205,7 +206,7 @@ static esp_err_t webSocketsHandler(httpd_req_t *req)
             pktType = "HTTPD_WS_TYPE_PONG";
             break;
         }
-        systemPrintf("Packet: %p, %d bytes, type: %d%s%s%s\r\n", ws_pkt.payload, length, ws_pkt.type,
+        systemPrintf("WebSockets: Packet: %p, %d bytes, type: %d%s%s%s\r\n", ws_pkt.payload, length, ws_pkt.type,
                      pktType ? " (" : "", pktType ? pktType : "", pktType ? ")" : "");
         if (length > 0x40)
             length = 0x40;
@@ -220,7 +221,7 @@ static esp_err_t webSocketsHandler(httpd_req_t *req)
             {
                 incomingSettings[incomingSettingsSpot++] = ws_pkt.payload[i];
                 if (incomingSettingsSpot == AP_CONFIG_SETTING_SIZE)
-                    systemPrintln("incomingSettings wrap-around. Increase AP_CONFIG_SETTING_SIZE");
+                    systemPrintln("WebSockets: incomingSettings wrap-around. Increase AP_CONFIG_SETTING_SIZE");
                 incomingSettingsSpot %= AP_CONFIG_SETTING_SIZE;
             }
             timeSinceLastIncomingSetting = millis();
@@ -228,13 +229,13 @@ static esp_err_t webSocketsHandler(httpd_req_t *req)
         else
         {
             if (settings.debugWebServer == true)
-                systemPrintln("Ignoring packet due to parsing block");
+                systemPrintln("WebSockets: Ignoring packet due to parsing block");
         }
     }
     else if (ws_pkt.type == HTTPD_WS_TYPE_CLOSE)
     {
         if (settings.debugWebServer == true)
-            systemPrintln("Client closed or refreshed the web page");
+            systemPrintln("WebSockets: Client closed or refreshed the web page");
 
         createSettingsString(settingsCSV);
         webSocketsConnected = false;
@@ -260,7 +261,7 @@ void webSocketsSendFirmwareVersion(void)
     webSocketsCreateFirmwareVersionString(settingsCSV);
 
     if (settings.debugWebServer)
-        systemPrintf("WebServer: Firmware version requested. Sending: %s\r\n", settingsCSV);
+        systemPrintf("WebSockets: Firmware version requested. Sending: %s\r\n", settingsCSV);
 
     webSocketsSendString(settingsCSV);
 }
@@ -304,7 +305,7 @@ void webSocketsSendString(const char *stringToSend)
     esp_err_t ret = httpd_ws_send_frame_async(webSocketsHandle, last_ws_fd, &ws_pkt);
     if (ret != ESP_OK)
     {
-        systemPrintf("httpd_ws_send_frame failed with %d\r\n", ret);
+        systemPrintf("WebSockets: httpd_ws_send_frame failed with %d\r\n", ret);
     }
     else
     {
