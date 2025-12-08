@@ -18,6 +18,7 @@ static const int webSocketsStackSize = 1024 * 20;   // Needs to be large enough 
 
 static int last_ws_fd;
 // httpd_req_t *last_ws_req;
+static bool webSocketsConnected;
 static httpd_handle_t webSocketsHandle;
 
 //----------------------------------------
@@ -137,7 +138,7 @@ static esp_err_t webSocketsHandler(httpd_req_t *req)
         if (settings.debugWebServer == true)
             systemPrintf("Handshake done, the new ws connection was opened with fd %d\r\n", last_ws_fd);
 
-        websocketConnected = true;
+        webSocketsConnected = true;
         lastDynamicDataUpdate = millis();
         webSocketsSendString(settingsCSV);
 
@@ -236,11 +237,19 @@ static esp_err_t webSocketsHandler(httpd_req_t *req)
             systemPrintln("Client closed or refreshed the web page");
 
         createSettingsString(settingsCSV);
-        websocketConnected = false;
+        webSocketsConnected = false;
     }
 
     rtkFree(buf, "Payload buffer (buf)");
     return ret;
+}
+
+//----------------------------------------
+// Determine if webSockets is connected to a client
+//----------------------------------------
+bool webSocketsIsConnected()
+{
+    return webSocketsConnected;
 }
 
 //----------------------------------------
@@ -270,7 +279,7 @@ void webSocketsSendSettings(void)
 //----------------------------------------
 void webSocketsSendString(const char *stringToSend)
 {
-    if (!websocketConnected)
+    if (!webSocketsConnected)
     {
         systemPrintf("webSocketsSendString: not connected - could not send: %s\r\n", stringToSend);
         return;
@@ -360,7 +369,7 @@ bool webSocketsStart(void)
 //----------------------------------------
 void webSocketsStop()
 {
-    websocketConnected = false;
+    webSocketsConnected = false;
 
     if (webSocketsHandle != nullptr)
     {

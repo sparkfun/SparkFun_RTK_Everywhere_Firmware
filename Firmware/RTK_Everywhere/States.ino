@@ -521,7 +521,7 @@ void stateUpdate()
 #ifdef COMPILE_WIFI
 #ifdef COMPILE_AP
             // Handle dynamic requests coming from web config page
-            if (websocketConnected == true)
+            if (webSocketsIsConnected() == true)
             {
                 // Update the coordinates on the AP page
                 if ((millis() - lastDynamicDataUpdate) > 1000)

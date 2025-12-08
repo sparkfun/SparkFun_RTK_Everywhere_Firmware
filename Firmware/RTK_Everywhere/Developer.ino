@@ -304,6 +304,12 @@ void webServerVerifyTables() {}
 bool wifiAfterCommand(int cmdIndex){return false;}
 bool webServerIsRunning() {return false;}
 
+//----------------------------------------
+// Web Sockets
+//----------------------------------------
+
+bool webSocketsIsConnected() (return false;}
+
 #endif  // COMPILE_AP
 
 //======================================================================

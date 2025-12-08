@@ -884,7 +884,7 @@ void otaUpdate()
                 // is requesting the firmware update via those interfaces, thus we attempt an update
                 // only once, stopping the state machine on failure
 
-                if (websocketConnected)
+                if (webSocketsIsConnected())
                 {
                     // Report failed connection to web client
                     webSocketsSendString((char *)"newFirmwareVersion,NO_INTERNET,");
@@ -941,7 +941,7 @@ void otaUpdate()
                     {
                         otaRequestFirmwareVersionCheck = false;
 
-                        if (websocketConnected)
+                        if (webSocketsIsConnected())
                         {
                             char newVersionCSV[40];
                             snprintf(newVersionCSV, sizeof(newVersionCSV), "newFirmwareVersion,%s,",
@@ -966,7 +966,7 @@ void otaUpdate()
                 else
                 {
                     systemPrintln("Version Check: Firmware is up to date. No new firmware available.");
-                    if (websocketConnected)
+                    if (webSocketsIsConnected())
                         webSocketsSendString((char *)"newFirmwareVersion,CURRENT,");
 
                     otaUpdateStop();
@@ -976,7 +976,7 @@ void otaUpdate()
             {
                 // Failed to get version number
                 systemPrintln("Failed to get version number from server.");
-                if (websocketConnected)
+                if (webSocketsIsConnected())
                     webSocketsSendString((char *)"newFirmwareVersion,NO_SERVER,");
 
                 // Report failure over the CLI
@@ -995,7 +995,7 @@ void otaUpdate()
             {
                 otaUpdateStop();
 
-                if (websocketConnected)
+                if (webSocketsIsConnected())
                     webSocketsSendString((char *)"gettingNewFirmware,ERROR,");
 
                 // Report failure over the CLI
@@ -1009,7 +1009,7 @@ void otaUpdate()
                 otaUpdateFirmware();
 
                 // Update triggers ESP.restart(). If we get this far, the firmware update has failed
-                if (websocketConnected)
+                if (webSocketsIsConnected())
                     webSocketsSendString((char *)"gettingNewFirmware,ERROR,");
 
                 // Report failure over the CLI
