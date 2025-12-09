@@ -1171,7 +1171,7 @@ SettingValueResponse updateSettingWithValue(bool inCommands, const char *setting
         if (settings.debugWebServer == true)
             systemPrintln("Sending reset confirmation");
 
-        sendStringToWebsocket((char *)"confirmReset,1,");
+        webSocketsSendString((char *)"confirmReset,1,");
         delay(500); // Allow for delivery
 
         systemPrintln("Reset after AP Config");
@@ -1191,17 +1191,20 @@ SettingValueResponse updateSettingWithValue(bool inCommands, const char *setting
         loadSettings();
 
         // Send new settings to browser. Re-use settingsCSV to avoid stack.
-        memset(settingsCSV, 0, AP_CONFIG_SETTING_SIZE); // Clear any garbage from settings array
-
-        createSettingsString(settingsCSV);
-
-        if (settings.debugWebServer == true)
+        if (settingsCSV)
         {
-            systemPrintf("Sending profile %d\r\n", settingValue);
-            systemPrintf("Profile contents: %s\r\n", settingsCSV);
-        }
+            memset(settingsCSV, 0, AP_CONFIG_SETTING_SIZE); // Clear any garbage from settings array
 
-        sendStringToWebsocket(settingsCSV);
+            createSettingsString(settingsCSV);
+
+            if (settings.debugWebServer == true)
+            {
+                systemPrintf("Sending profile %d\r\n", settingValue);
+                systemPrintf("Profile contents: %s\r\n", settingsCSV);
+            }
+
+            webSocketsSendString(settingsCSV);
+        }
         knownSetting = true;
     }
 
@@ -1229,17 +1232,20 @@ SettingValueResponse updateSettingWithValue(bool inCommands, const char *setting
         activeProfiles = loadProfileNames();
 
         // Send new settings to browser. Re-use settingsCSV to avoid stack.
-        memset(settingsCSV, 0, AP_CONFIG_SETTING_SIZE); // Clear any garbage from settings array
-
-        createSettingsString(settingsCSV);
-
-        if (settings.debugWebServer == true)
+        if (settingsCSV)
         {
-            systemPrintf("Sending reset profile %d\r\n", settingValue);
-            systemPrintf("Profile contents: %s\r\n", settingsCSV);
-        }
+            memset(settingsCSV, 0, AP_CONFIG_SETTING_SIZE); // Clear any garbage from settings array
 
-        sendStringToWebsocket(settingsCSV);
+            createSettingsString(settingsCSV);
+
+            if (settings.debugWebServer == true)
+            {
+                systemPrintf("Sending reset profile %d\r\n", settingValue);
+                systemPrintf("Profile contents: %s\r\n", settingsCSV);
+            }
+
+            webSocketsSendString(settingsCSV);
+        }
         knownSetting = true;
     }
 
@@ -1273,7 +1279,7 @@ SettingValueResponse updateSettingWithValue(bool inCommands, const char *setting
             char newFileNameCSV[sizeof("logFileName,") + sizeof(logFileName) + 1];
             snprintf(newFileNameCSV, sizeof(newFileNameCSV), "logFileName,%s,", logFileName);
 
-            sendStringToWebsocket(newFileNameCSV); // Tell the config page the name of the file we just created
+            webSocketsSendString(newFileNameCSV); // Tell the config page the name of the file we just created
         }
         knownSetting = true;
     }
@@ -1282,7 +1288,7 @@ SettingValueResponse updateSettingWithValue(bool inCommands, const char *setting
         if (settings.debugWebServer == true)
             systemPrintln("Checking for new OTA Pull firmware");
 
-        sendStringToWebsocket((char *)"checkingNewFirmware,1,"); // Tell the config page we received their request
+        webSocketsSendString((char *)"checkingNewFirmware,1,"); // Tell the config page we received their request
 
         knownSetting = true;
 
@@ -1294,7 +1300,7 @@ SettingValueResponse updateSettingWithValue(bool inCommands, const char *setting
         if (settings.debugWebServer == true)
             systemPrintln("Getting new OTA Pull firmware");
 
-        sendStringToWebsocket((char *)"gettingNewFirmware,1,");
+        webSocketsSendString((char *)"gettingNewFirmware,1,");
 
         // Let the OTA state machine know it needs to report its progress to the websocket
         apConfigFirmwareUpdateInProcess = true;

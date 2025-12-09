@@ -171,7 +171,7 @@ void stateUpdate()
                                                 | Set fixedBase true
                                                 | STATE_BASE_NOT_STARTED falls into
                                                 | STATE_BASE_FIXED_NOT_STARTED
-                                                | 
+                                                |
                                                 V
                               .-----------------------------------.
                   startBase() |      STATE_BASE_NOT_STARTED       |
@@ -489,7 +489,7 @@ void stateUpdate()
                     // Confirm receipt so the web interface stops sending the config blob
                     if (settings.debugWebServer == true)
                         systemPrintln("Sending receipt confirmation of settings");
-                    sendStringToWebsocket("confirmDataReceipt,1,");
+                    webSocketsSendString("confirmDataReceipt,1,");
 
                     // Disallow new data to flow from websocket while we are parsing the current data
                     currentlyParsingData = true;
@@ -521,27 +521,19 @@ void stateUpdate()
 #ifdef COMPILE_WIFI
 #ifdef COMPILE_AP
             // Handle dynamic requests coming from web config page
-            if (websocketConnected == true)
+            if (webSocketsIsConnected() == true)
             {
                 // Update the coordinates on the AP page
                 if ((millis() - lastDynamicDataUpdate) > 1000)
                 {
                     lastDynamicDataUpdate = millis();
-                    createDynamicDataString(settingsCSV);
-
-                    sendStringToWebsocket(settingsCSV);
+                    webSocketsSendSettings();
                 }
 
                 // If a firmware version was requested, and obtained, report it back to the web page
                 if (strlen(otaReportedVersion) > 0)
                 {
-                    createFirmwareVersionString(settingsCSV);
-
-                    if (settings.debugWebServer)
-                        systemPrintf("WebServer: Firmware version requested. Sending: %s\r\n", settingsCSV);
-
-                    sendStringToWebsocket(settingsCSV);
-
+                    webSocketsSendFirmwareVersion();
                     otaReportedVersion[0] = '\0'; // Zero out the reported version
                 }
             }
