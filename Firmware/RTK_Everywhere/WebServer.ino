@@ -136,18 +136,6 @@ void getFileList(String &returnText)
                 String fileSize;
                 stringHumanReadableSize(fileSize, file.fileSize());
                 returnText += "fmName," + String(fileName) + ",fmSize," + fileSize + ",";
-
-                const int maxFiles = 20; //40 is too much
-                const int fileNameLength = 50;
-                const int maxStringLength = maxFiles * fileNameLength;
-                // It is not uncommon to have SD cards with 100+ files on them. String can get huge.
-                // Here we arbitrarily limit it.
-                // This could be larger but, left unchecked, it will absolutely explode the stack.
-                if(returnText.length() > maxStringLength)
-                {
-                    systemPrintf("Limiting file list to %d characters\r\n", maxStringLength);
-                    break;
-                }
             }
         }
 
