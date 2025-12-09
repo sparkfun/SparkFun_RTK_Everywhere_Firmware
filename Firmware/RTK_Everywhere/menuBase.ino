@@ -503,6 +503,8 @@ bool menuCommonBaseCoords()
     static double ecefy = -4716804.403;
     static double ecefz = 4086665.484;
     static String name = "SparkFun_HQ";
+    double antennaHeight_mm = settings.antennaHeight_mm;
+    double antennaPhaseCenter_mm = settings.antennaPhaseCenter_mm;
 
     while (1)
     {
@@ -564,70 +566,69 @@ bool menuCommonBaseCoords()
             numCoords++;
         }
 
-        systemPrintln("d)     Delete Selected Coordinates");
-        systemPrintln("s)     Save Selected Coordinates into Fixed Base");
+        systemPrintln("c) Copy Selected Coordinates for Editing");
+        systemPrintln("d) Delete Selected Coordinates");
+        systemPrintln("s) Save Selected Coordinates into Fixed Base");
         systemPrintln();
 
         if (settings.fixedBaseCoordinateType == COORD_TYPE_GEODETIC)
         {
-            systemPrintf("%d)%s    Latitude:  %.8lf\r\n",
-                        numCoords + 1,
-                        numCoords < 9 ? " " : "",
+            systemPrintf("%d)    Latitude:       %.8lf\r\n",
+                        COMMON_COORDINATES_MAX_STATIONS + 1,
                         latitude);
-            systemPrintf("%d)%s    Longitude: %.8lf\r\n",
-                        numCoords + 2,
-                        numCoords < 8 ? " " : "",
+            systemPrintf("%d)    Longitude:      %.8lf\r\n",
+                        COMMON_COORDINATES_MAX_STATIONS + 2,
                         longitude);
-            systemPrintf("%d)%s %s HAE Mark:  %.4lfm\r\n",
-                        numCoords + 3,
-                        numCoords < 7 ? " " : "",
+            systemPrintf("%d) %s HAE Mark:       %.4lfm\r\n",
+                        COMMON_COORDINATES_MAX_STATIONS + 3,
                         enteredHaeMark ? "->" : "  ",
                         haeMark);
-            systemPrintf("%d)%s %s HAE APC:   %.4lfm\r\n",
-                        numCoords + 4,
-                        numCoords < 6 ? " " : "",
+            systemPrintf("%d) %s HAE APC:        %.4lfm\r\n",
+                        COMMON_COORDINATES_MAX_STATIONS + 4,
                         enteredHaeMark ? "  " : "->",
                         haeApc);
+            systemPrintf("%d)    Antenna Height: %.1lfmm\r\n",
+                        COMMON_COORDINATES_MAX_STATIONS + 5,
+                        antennaHeight_mm);
+            systemPrintf("%d)    Antenna PC:     %.1lfmm\r\n",
+                        COMMON_COORDINATES_MAX_STATIONS + 6,
+                        antennaPhaseCenter_mm);
         }
         else
         {
-            systemPrintf("%d)%s    ECEF X:    %.4lf\r\n",
-                        numCoords + 1,
-                        numCoords < 9 ? " " : "",
+            systemPrintf("%d)    ECEF X: %.4lf\r\n",
+                        COMMON_COORDINATES_MAX_STATIONS + 1,
                         ecefx);
-            systemPrintf("%d)%s    ECEF Y:    %.4lf\r\n",
-                        numCoords + 2,
-                        numCoords < 8 ? " " : "",
+            systemPrintf("%d)    ECEF Y: %.4lf\r\n",
+                        COMMON_COORDINATES_MAX_STATIONS + 2,
                         ecefy);
-            systemPrintf("%d)%s    ECEF Z:    %.4lf\r\n",
-                        numCoords + 3,
-                        numCoords < 7 ? " " : "",
+            systemPrintf("%d)    ECEF Z: %.4lf\r\n",
+                        COMMON_COORDINATES_MAX_STATIONS + 3,
                         ecefz);
         }
-
-        systemPrintln();
-
-        systemPrintf("n)     Name:      %s\r\n", name.c_str());
-        systemPrintln("a)     Add These Coordinates");
-        systemPrintf("l)     Load %s From GNSS\r\n",
+        systemPrintf("n)     Name: %s %s\r\n",
+                     settings.fixedBaseCoordinateType == COORD_TYPE_GEODETIC ? "        " : "",
+                     name.c_str());
+        systemPrintln("a) Add These Coordinates");
+        systemPrintf("l) Load %s From GNSS\r\n",
                     settings.fixedBaseCoordinateType == COORD_TYPE_GEODETIC ? "LLh" : "ECEF");
 
         systemPrintln();
 
-        systemPrintln("x)     Exit");
+        systemPrintln("x) Exit");
 
         byte incoming = getUserInputCharacterNumber();
 
         if ((incoming > 0) && (incoming <= numCoords))
             selectedCoords = incoming - 1;
-        else if ((incoming >= (numCoords + 1))
-                 && (incoming <= (numCoords + 4))
+        else if ((incoming >= (COMMON_COORDINATES_MAX_STATIONS + 1))
+                 && (incoming <= (COMMON_COORDINATES_MAX_STATIONS + 6))
                  && (settings.fixedBaseCoordinateType == COORD_TYPE_GEODETIC))
         {
-            if (incoming == (numCoords + 1))
+            if (incoming == (COMMON_COORDINATES_MAX_STATIONS + 1))
             {
-                systemPrint("Enter the Latitude in degrees (ex: 40.090335429, 40 05.4201257, 40-05.4201257, "
-                            "4005.4201257, 40 05 25.207544, etc): ");
+                systemPrintln("Enter the Latitude in degrees");
+                systemPrintln("(ex: 40.090335429, 40 05.4201257, 40-05.4201257, 4005.4201257, 40 05 25.207544, etc):");
                 char userEntry[50];
                 if (getUserInputString(userEntry, sizeof(userEntry)) == INPUT_RESPONSE_VALID)
                 {
@@ -639,10 +640,10 @@ bool menuCommonBaseCoords()
                         latitude = fixedLat;
                 }
             }
-            else if (incoming == (numCoords + 2))
+            else if (incoming == (COMMON_COORDINATES_MAX_STATIONS + 2))
             {
-                systemPrint("Enter the Longitude in degrees (ex: -105.184774720, -105 11.0864832, -105-11.0864832, "
-                            "-105 11 05.188992, etc): ");
+                systemPrintln("Enter the Longitude in degrees");
+                systemPrintln("(ex: -105.184774720, -105 11.0864832, -105-11.0864832, -105 11 05.188992, etc):");
                 char userEntry[50];
                 if (getUserInputString(userEntry, sizeof(userEntry)) == INPUT_RESPONSE_VALID)
                 {
@@ -654,52 +655,73 @@ bool menuCommonBaseCoords()
                         longitude = fixedLong;
                 }
             }
-            else if (incoming == (numCoords + 3))
+            else if (incoming == (COMMON_COORDINATES_MAX_STATIONS + 3))
             {
                 systemPrintln("Enter the Height Above Ellipsoid of the mark.");
-                systemPrint("This is the coordinate or altitude of the mark or monument on the ground. (ex: 1560.089): ");
+                systemPrintln("This is the coordinate or altitude of the mark or monument on the ground.");
+                systemPrint("(ex: 1560.089): ");
                 double fixedAltitude;
                 if (getUserInputDouble(&fixedAltitude) == INPUT_RESPONSE_VALID)
                 {
                     haeMark = fixedAltitude;
-                    haeApc = fixedAltitude + ((settings.antennaHeight_mm + settings.antennaPhaseCenter_mm) / 1000.0);
+                    haeApc = fixedAltitude + ((antennaHeight_mm + antennaPhaseCenter_mm) / 1000.0);
                     enteredHaeMark = true;
                 }
             }
-            else if (incoming == (numCoords + 4))
+            else if (incoming == (COMMON_COORDINATES_MAX_STATIONS + 4))
             {
                 systemPrintln("Enter the Height Above Ellipsoid of the Antenna Phase Center.");
-                systemPrint("This is the sum of the antenna height, phase center, and mark height. (ex: 1561.889): ");
+                systemPrintln("This is the sum of the antenna height, phase center, and mark height.");
+                systemPrint("(ex: 1561.889): ");
                 double fixedAltitude;
                 if (getUserInputDouble(&fixedAltitude) == INPUT_RESPONSE_VALID)
                 {
                     haeApc = fixedAltitude;
-                    haeMark = fixedAltitude - ((settings.antennaHeight_mm + settings.antennaPhaseCenter_mm) / 1000.0);
+                    haeMark = fixedAltitude - ((antennaHeight_mm + antennaPhaseCenter_mm) / 1000.0);
                     enteredHaeMark = false;
                 }
             }
+            else if (incoming == (COMMON_COORDINATES_MAX_STATIONS + 5))
+            {
+                systemPrintln("Enter the Antenna Height in mm.");
+                systemPrint("This is the length of the prism pole and any included extensions. No additional ARP should be included.");
+                systemPrint("(ex: 1800.0): ");
+                double height;
+                if (getUserInputDouble(&height) == INPUT_RESPONSE_VALID)
+                    antennaHeight_mm = height;
+            }
+            else if (incoming == (COMMON_COORDINATES_MAX_STATIONS + 6))
+            {
+                systemPrintln("Enter the Antenna Phase Center in mm.");
+                systemPrintln("APC is the distance from the base of the antenna to the antenna phase center.");
+                systemPrintln("This is usually printed on the side of the antenna and is calculated during antenna calibration.");
+                systemPrintln("Common APCs: Torch(117mm) EVK(42mm) Facet mosaic(69mm) Facet L-Band v2(69mm) Facet v2(70mm):");
+                double apc;
+                if (getUserInputDouble(&apc) == INPUT_RESPONSE_VALID)
+                    antennaPhaseCenter_mm = apc;
+            }
         }
-        else if ((incoming >= (numCoords + 1))
-                 && (incoming <= (numCoords + 3))
+        else if ((incoming >= (COMMON_COORDINATES_MAX_STATIONS + 1))
+                 && (incoming <= (COMMON_COORDINATES_MAX_STATIONS + 3))
                  && (settings.fixedBaseCoordinateType != COORD_TYPE_GEODETIC))
         {
-            if (incoming == (numCoords + 1))
+            if (incoming == (COMMON_COORDINATES_MAX_STATIONS + 1))
             {
-                systemPrintln("Enter the ECEF X coordinate in meters. (ex: -1280206.568): ");
+                systemPrintln("Enter the ECEF X coordinate in meters. (ex: -1280206.568):");
                 double ecef;
                 if (getUserInputDouble(&ecef) == INPUT_RESPONSE_VALID)
                     ecefx = ecef;
             }
-            else if (incoming == (numCoords + 1))
+            else if (incoming == (COMMON_COORDINATES_MAX_STATIONS + 2))
             {
-                systemPrintln("Enter the ECEF Y coordinate in meters. (ex: -4716804.403): ");
+                systemPrintln("Enter the ECEF Y coordinate in meters. (ex: -4716804.403):");
                 double ecef;
                 if (getUserInputDouble(&ecef) == INPUT_RESPONSE_VALID)
                     ecefy = ecef;
             }
-            else if (incoming == (numCoords + 3))
+            else if (incoming == (COMMON_COORDINATES_MAX_STATIONS + 3))
             {
-                systemPrintln("Enter the ECEF Z coordinate in meters. (ex: 4086665.484): ");
+                systemPrintln("Enter the ECEF Z coordinate in meters. (ex: 4086665.484):");
                 double ecef;
                 if (getUserInputDouble(&ecef) == INPUT_RESPONSE_VALID)
                     ecefz = ecef;
@@ -727,8 +749,8 @@ bool menuCommonBaseCoords()
                          latitude,
                          longitude,
                          haeMark,
-                         settings.antennaHeight_mm / 1000.0,
-                         settings.antennaPhaseCenter_mm / 1000.0);
+                         antennaHeight_mm / 1000.0,
+                         antennaPhaseCenter_mm / 1000.0);
                 recordLineToSD(stationCoordinateGeodeticFileName, newCoords);
                 recordLineToLFS(stationCoordinateGeodeticFileName, newCoords);
             }
@@ -741,6 +763,48 @@ bool menuCommonBaseCoords()
                          ecefz);
                 recordLineToSD(stationCoordinateECEFFileName, newCoords);
                 recordLineToLFS(stationCoordinateECEFFileName, newCoords);
+            }
+        }
+        else if (incoming == 'c')
+        {
+            char newCoords[100];
+            char *ptr = newCoords;
+            if (settings.fixedBaseCoordinateType == COORD_TYPE_GEODETIC)
+            {
+                if (!getFileLineSD(stationCoordinateGeodeticFileName, selectedCoords, newCoords, sizeof(newCoords)))
+                    getFileLineLFS(stationCoordinateGeodeticFileName, selectedCoords, newCoords, sizeof(newCoords));
+                double lat;
+                double lon;
+                double alt;
+                double height;
+                double apc;
+                char baseName[100];
+                if (sscanf(ptr,"%[^,],%lf,%lf,%lf,%lf,%lf", baseName, &lat, &lon, &alt, &height, &apc) == 6)
+                {
+                    latitude = lat;
+                    longitude = lon;
+                    haeMark = alt;
+                    antennaHeight_mm = height * 1000.0;
+                    antennaPhaseCenter_mm = apc * 1000.0;
+                    haeApc = haeMark + ((antennaHeight_mm + antennaPhaseCenter_mm) / 1000.0);
+                    name = String(baseName);
+                }
+            }
+            else
+            {
+                if (!getFileLineSD(stationCoordinateECEFFileName, selectedCoords, newCoords, sizeof(newCoords)))
+                    getFileLineLFS(stationCoordinateECEFFileName, selectedCoords, newCoords, sizeof(newCoords));
+                double x;
+                double y;
+                double z;
+                char baseName[100];
+                if (sscanf(ptr,"%[^,],%lf,%lf,%lf", baseName, &x, &y, &z) == 4)
+                {
+                    ecefx = x;
+                    ecefy = y;
+                    ecefz = z;
+                    name = String(baseName);
+                }
             }
         }
         else if (incoming == 'd')
@@ -766,7 +830,7 @@ bool menuCommonBaseCoords()
                 latitude = gnss->getLatitude();
                 longitude = gnss->getLongitude();
                 haeApc = gnss->getAltitude();
-                haeMark = haeApc - ((settings.antennaHeight_mm + settings.antennaPhaseCenter_mm) / 1000.0);
+                haeMark = haeApc - ((antennaHeight_mm + antennaPhaseCenter_mm) / 1000.0);
                 enteredHaeMark = false;
             }
             else
@@ -794,11 +858,11 @@ bool menuCommonBaseCoords()
                 double height;
                 double apc;
                 char baseName[100];
-                if (sscanf(ptr,"%[^,],%lf,%lf,%lf", baseName, &lat, &lon, &alt, &height, &apc) == 6)
+                if (sscanf(ptr,"%[^,],%lf,%lf,%lf,%lf,%lf", baseName, &lat, &lon, &alt, &height, &apc) == 6)
                 {
                     settings.fixedLat = lat;
                     settings.fixedLong = lon;
-                    settings.fixedAltitude = alt; // Assume user has entered pole tip altitude
+                    settings.fixedAltitude = alt;
                     settings.antennaHeight_mm = height * 1000.0;
                     settings.antennaPhaseCenter_mm = apc * 1000.0;
                     recordSystemSettings();
