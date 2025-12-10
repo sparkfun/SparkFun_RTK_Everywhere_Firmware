@@ -532,10 +532,12 @@ void menuDebugHardware()
         systemPrint("19) Print CLI Debugging: ");
         systemPrintf("%s\r\n", settings.debugCLI ? "Enabled" : "Disabled");
 
-        systemPrintf("20) Delay between CLI LIST prints over BLE: %d\r\n", settings.cliBlePrintDelay_ms);
+        systemPrintf("20) Delay between CLI LIST prints over BLE: %dms\r\n", settings.cliBlePrintDelay_ms);
 
         systemPrint("21) Print GNSS Config Debugging: ");
         systemPrintf("%s\r\n", settings.debugGnssConfig ? "Enabled" : "Disabled");
+
+        systemPrintf("22) Default Double-Tap Interval: %dms\r\n", settings.defaultDoubleTapInterval_ms);
 
         systemPrintln("e) Erase LittleFS");
 
@@ -667,10 +669,19 @@ void menuDebugHardware()
                     settings.cliBlePrintDelay_ms = newDelay;
             }
         }
-
         else if (incoming == 21)
         {
             settings.debugGnssConfig ^= 1;
+        }
+        else if (incoming == 22)
+        {
+            systemPrintf("Enter default double-tap interval (milliseconds, %d to %d): ", 250, 1000);
+            int newInterval = getUserInputNumber(); // Returns EXIT, TIMEOUT, or long
+            if ((newInterval != INPUT_RESPONSE_GETNUMBER_EXIT) && (newInterval != INPUT_RESPONSE_GETNUMBER_TIMEOUT))
+            {
+                if ((newInterval >= 250) && (newInterval <= 1000))
+                    settings.defaultDoubleTapInterval_ms = newInterval;
+            }
         }
 
         else if (incoming == 'e')
