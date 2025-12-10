@@ -64,7 +64,7 @@ void bluetoothUpdate()
             bluetoothState = BT_CONNECTED;
             // LED is controlled by tickerBluetoothLedUpdate()
 
-            btPrintEchoExit = false; // Reset the exiting of config menus and/or command modes
+            forceMenuExit = false; // Reset the exiting of config menus and/or command modes
 
 #ifdef COMPILE_AUTHENTICATION
             if (sendAccessoryHandshakeOnBtConnect)
@@ -80,7 +80,7 @@ void bluetoothUpdate()
             systemPrintln("BT client disconnected");
 
             btPrintEcho = false;
-            btPrintEchoExit = true; // Force exit all config menus and/or command modes
+            forceMenuExit = true; // Force exit all config menus and/or command modes
             printEndpoint = PRINT_ENDPOINT_SERIAL;
 
             bluetoothState = BT_NOTCONNECTED;

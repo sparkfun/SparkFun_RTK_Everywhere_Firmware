@@ -2165,6 +2165,7 @@ void buttonCheckTask(void *e)
                         beepOff();
                     }
 
+                    forceMenuExit = true; // Force menu exit to go immediately into web config
                     forceSystemStateUpdate = true; // Immediately go to this new state
                     changeState(STATE_WEB_CONFIG_NOT_STARTED);
                 }
@@ -2184,6 +2185,10 @@ void buttonCheckTask(void *e)
                         beepOff();
                     }
 
+                    // Force menu exit to go immediately into Rover
+                    // (User can open the menu while in web config)
+                    forceMenuExit = true;
+                    
                     forceSystemStateUpdate = true; // Immediately go to this new state
                     changeState(STATE_ROVER_NOT_STARTED);
                 }

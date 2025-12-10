@@ -12,9 +12,9 @@ void menuMain()
 
     inMainMenu = true;
 
-    // Clear btPrintEchoExit on entering the menu, to prevent dropping straight
+    // Clear forceMenuExit on entering the menu, to prevent dropping straight
     // through if the BT connection was dropped while we had the menu closed
-    btPrintEchoExit = false;
+    forceMenuExit = false;
 
     displaySerialConfig(); // Display 'Serial Config' while user is configuring
 
@@ -182,8 +182,8 @@ void menuMain()
 
     recordSystemSettings(); // Once all menus have exited, record the new settings to LittleFS and config file
 
-    clearBuffer();           // Empty buffer of any newline chars
-    btPrintEchoExit = false; // We are out of the menu system
+    clearBuffer();         // Empty buffer of any newline chars
+    forceMenuExit = false; // We are out of the menu system
     inMainMenu = false;
 
     // Change the USB serial output behavior if necessary

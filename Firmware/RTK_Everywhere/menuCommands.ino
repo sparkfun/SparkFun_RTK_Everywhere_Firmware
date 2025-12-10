@@ -20,10 +20,10 @@ void menuCommands()
     {
         InputResponse response = getUserInputString(cmdBuffer, sizeof(cmdBuffer), false); // Turn off echo
 
-        if (btPrintEchoExit == true)
+        if (forceMenuExit == true) // BT disconnect etc. forces menu exit
         {
-            systemPrintln("BT Connection lost. Exiting command mode...");
-            btPrintEchoExit = false;
+            systemPrintln("Command mode forced exit...");
+            // Don't clear forceMenuExit here. We want to exit the menus completely
             break; // Exit while(1) loop
         }
 
@@ -290,7 +290,7 @@ t_cliResult processCommand(char *cmdBuffer)
                 commandSendExecuteOkResponse(tokens[0], tokens[1]);
                 espnowRequestPair = true; // Start ESP-NOW pairing process
                 // Force exit all config menus and/or command modes to allow OTA state machine to run
-                btPrintEchoExit = true;
+                forceMenuExit = true;
                 return (CLI_EXIT); // Exit the CLI to allow OTA state machine to run
             }
             else if (strcmp(tokens[1], "PAIRSTOP") == 0)
@@ -298,7 +298,7 @@ t_cliResult processCommand(char *cmdBuffer)
                 commandSendExecuteOkResponse(tokens[0], tokens[1]);
                 espnowRequestPair = false; // Stop ESP-NOW pairing process
                 // Force exit all config menus and/or command modes to allow OTA state machine to run
-                btPrintEchoExit = true;
+                forceMenuExit = true;
                 return (CLI_EXIT); // Exit the CLI to allow OTA state machine to run
             }
             else if (strcmp(tokens[1], "REBOOT") == 0)
@@ -320,7 +320,7 @@ t_cliResult processCommand(char *cmdBuffer)
                 otaRequestFirmwareUpdate = true;
 
                 // Force exit all config menus and/or command modes to allow OTA state machine to run
-                btPrintEchoExit = true;
+                forceMenuExit = true;
                 return (CLI_EXIT); // Exit the CLI to allow OTA state machine to run
             }
             else
@@ -2417,7 +2417,7 @@ SettingValueResponse getSettingValue(bool inCommands, const char *settingName, c
         otaRequestFirmwareVersionCheck = true;
 
         // Force exit all config menus and/or command modes to allow OTA state machine to run
-        btPrintEchoExit = true;
+        forceMenuExit = true;
     }
 
     // Special actions
