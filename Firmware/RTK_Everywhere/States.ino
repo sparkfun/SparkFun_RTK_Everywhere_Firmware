@@ -234,24 +234,48 @@ void stateUpdate()
                 return;
 
             // Copy current position into fixed base position
-            // For now, use the geodetic position only
             settings.fixedBase = true;
-            settings.fixedBaseCoordinateType = COORD_TYPE_GEODETIC;
-            settings.fixedLat = gnss->getLatitude();
-            settings.fixedLong = gnss->getLongitude();
+            if (settings.fixedBaseCoordinateType == COORD_TYPE_GEODETIC)
+            {
+                settings.fixedLat = gnss->getLatitude();
+                settings.fixedLong = gnss->getLongitude();
 
-            // See issue #809
-            // gnss->getAltitude() will always return Height above ellipsoid
-            // even if the underlying library getAltitude does not
-            settings.fixedAltitude = gnss->getAltitude();
+                // See issue #809
+                // gnss->getAltitude() will always return Height above ellipsoid
+                // even if the underlying library getAltitude does not
+                settings.fixedAltitude = gnss->getAltitude();
 
-            systemPrint("Switching to Fixed Base mode using:");
-            systemPrint(" Lat: ");
-            systemPrint(settings.fixedLat, haeNumberOfDecimals);
-            systemPrint(", Lon: ");
-            systemPrint(settings.fixedLong, haeNumberOfDecimals);
-            systemPrint(", Alt: ");
-            systemPrintln(settings.fixedAltitude, 4);
+                // Subtract the antennaHeight and antennaPhaseCenter
+                // settings.fixedAltitude is the pole tip altitude, not the GNSS antenna altitude
+                settings.fixedAltitude -= ((settings.antennaHeight_mm + settings.antennaPhaseCenter_mm) / 1000.0);
+
+                systemPrint("Switching to Fixed Base mode using:");
+                systemPrint(" Lat: ");
+                systemPrint(settings.fixedLat, haeNumberOfDecimals);
+                systemPrint(", Lon: ");
+                systemPrint(settings.fixedLong, haeNumberOfDecimals);
+                systemPrint(", Alt: ");
+                systemPrintln(settings.fixedAltitude, 4);
+            }
+            else
+            {
+                double ecefX = 0;
+                double ecefY = 0;
+                double ecefZ = 0;
+                // Don't subtract antennaHeight_mm + antennaPhaseCenter_mm
+                geodeticToEcef(gnss->getLatitude(), gnss->getLongitude(), gnss->getAltitude(),
+                               &ecefX, &ecefY, &ecefZ);
+                settings.fixedEcefX = ecefX;
+                settings.fixedEcefY = ecefY;
+                settings.fixedEcefZ = ecefZ;
+
+                systemPrint("Switching to Fixed Base mode using ECEF: ");
+                systemPrint(settings.fixedEcefX, 4);
+                systemPrint(",");
+                systemPrint(settings.fixedEcefY, 4);
+                systemPrint(",");
+                systemPrintln(settings.fixedEcefZ, 4);
+            }
 
             // STATE_BASE_NOT_STARTED will record settings for next POR
 
