@@ -430,7 +430,7 @@ bool savePossibleSettings = true; // Save possible vs. available settings. See r
 //-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 #ifdef COMPILE_WIFI
 int packetRSSI;
-RTK_WIFI wifi(false); // wifi(false); is non-verbose. For verbose, change to wifi(true); 
+RTK_WIFI wifi(false); // wifi(false); is non-verbose. For verbose, change to wifi(true);
 #endif // COMPILE_WIFI
 
 // WiFi Globals - For other module direct access
@@ -708,7 +708,6 @@ char *incomingSettings;
 int incomingSettingsSpot;
 unsigned long timeSinceLastIncomingSetting;
 unsigned long lastDynamicDataUpdate;
-bool websocketConnected = false;
 
 #ifdef COMPILE_WIFI
 #ifdef COMPILE_AP
@@ -873,7 +872,7 @@ int systemTime_minutes;               // Used to test if logging is less than ma
 uint32_t powerPressedStartTime;       // Times how long the user has been holding the power button, used for power down
 bool inMainMenu;                      // Set true when in the serial config menu system.
 bool btPrintEcho;                     // Set true when in the serial config menu system via Bluetooth.
-bool btPrintEchoExit;                 // When true, exit all config menus.
+volatile bool forceMenuExit;          // When true, exit all config menus.
 bool sendAccessoryHandshakeOnBtConnect = false; // Send accessory handshake on BT connect
 
 bool forceDisplayUpdate = true; // Goes true when setup is pressed, causes the display to refresh in real-time

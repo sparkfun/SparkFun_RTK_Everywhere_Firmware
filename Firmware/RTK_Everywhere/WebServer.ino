@@ -55,16 +55,11 @@ static uint8_t webServerState;
 // Once connected to the access point for WiFi Config, the ESP32 sends current setting values in one long string to
 // websocket After user clicks 'save', data is validated via main.js and a long string of values is returned.
 
-static httpd_handle_t wsserver;
 static WebServer *webServer;
-
-// httpd_req_t *last_ws_req;
-static int last_ws_fd;
 
 static TaskHandle_t updateWebServerTaskHandle;
 static const uint8_t updateWebServerTaskPriority = 0; // 3 being the highest, and 0 being the lowest
 static const int webServerTaskStackSize = 1024 * 4;   // Needs to be large enough to hold the file manager file list
-static const int webSocketStackSize = 1024 * 20;      // Needs to be large enough to hold the full settingsCSV
 
 // Inspired by:
 // https://github.com/espressif/arduino-esp32/blob/master/libraries/WebServer/examples/MultiHomedServers/MultiHomedServers.ino
@@ -77,104 +72,6 @@ static const int webSocketStackSize = 1024 * 20;      // Needs to be large enoug
 // https://github.com/mo-thunderz/Esp32WifiPart2/blob/main/Arduino/ESP32WebserverWebsocket/ESP32WebserverWebsocket.ino
 // https://www.youtube.com/watch?v=15X0WvGaVg8
 // https://github.com/espressif/arduino-esp32/blob/master/libraries/WebServer/examples/WebServer/WebServer.ino
-
-//----------------------------------------
-// Create a csv string with the dynamic data to update (current coordinates, battery level, etc)
-//----------------------------------------
-void createDynamicDataString(char *settingsCSV)
-{
-    settingsCSV[0] = '\0'; // Erase current settings string
-
-    // Current coordinates come from HPPOSLLH call back
-    stringRecord(settingsCSV, "geodeticLat", gnss->getLatitude(), haeNumberOfDecimals);
-    stringRecord(settingsCSV, "geodeticLon", gnss->getLongitude(), haeNumberOfDecimals);
-    stringRecord(settingsCSV, "geodeticAlt", gnss->getAltitude(), 3);
-
-    double ecefX = 0;
-    double ecefY = 0;
-    double ecefZ = 0;
-
-    geodeticToEcef(gnss->getLatitude(), gnss->getLongitude(), gnss->getAltitude(), &ecefX, &ecefY, &ecefZ);
-
-    stringRecord(settingsCSV, "ecefX", ecefX, 3);
-    stringRecord(settingsCSV, "ecefY", ecefY, 3);
-    stringRecord(settingsCSV, "ecefZ", ecefZ, 3);
-
-    if (online.batteryFuelGauge == false) // Product has no battery
-    {
-        stringRecord(settingsCSV, "batteryIconFileName", (char *)"src/BatteryBlank.png");
-        stringRecord(settingsCSV, "batteryPercent", (char *)" ");
-    }
-    else
-    {
-        // Determine battery icon
-        int iconLevel = 0;
-        if (batteryLevelPercent < 25)
-            iconLevel = 0;
-        else if (batteryLevelPercent < 50)
-            iconLevel = 1;
-        else if (batteryLevelPercent < 75)
-            iconLevel = 2;
-        else // batt level > 75
-            iconLevel = 3;
-
-        char batteryIconFileName[sizeof("src/Battery2_Charging.png__")]; // sizeof() includes 1 for \0 termination
-
-        if (isCharging())
-            snprintf(batteryIconFileName, sizeof(batteryIconFileName), "src/Battery%d_Charging.png", iconLevel);
-        else
-            snprintf(batteryIconFileName, sizeof(batteryIconFileName), "src/Battery%d.png", iconLevel);
-
-        stringRecord(settingsCSV, "batteryIconFileName", batteryIconFileName);
-
-        // Limit batteryLevelPercent to sane levels
-        if (batteryLevelPercent > 100)
-            batteryLevelPercent = 100;
-
-        // Determine battery percent
-        char batteryPercent[sizeof("+100%__")];
-        if (isCharging())
-            snprintf(batteryPercent, sizeof(batteryPercent), "+%d%%", batteryLevelPercent);
-        else
-            snprintf(batteryPercent, sizeof(batteryPercent), "%d%%", batteryLevelPercent);
-        stringRecord(settingsCSV, "batteryPercent", batteryPercent);
-    }
-
-    strcat(settingsCSV, "\0");
-}
-
-//----------------------------------------
-// Report back to the web config page with a CSV that contains the either CURRENT or
-// the latest version as obtained by the OTA state machine
-//----------------------------------------
-void createFirmwareVersionString(char *settingsCSV)
-{
-    char newVersionCSV[100];
-
-    settingsCSV[0] = '\0'; // Erase current settings string
-
-    // Create a string of the unit's current firmware version
-    char currentVersion[21];
-    firmwareVersionGet(currentVersion, sizeof(currentVersion), enableRCFirmware);
-
-    // Compare the unit's version against the reported version from OTA
-    if (firmwareVersionIsReportedNewer(otaReportedVersion, currentVersion) == true)
-    {
-        if (settings.debugWebServer == true)
-            systemPrintln("New version detected");
-        snprintf(newVersionCSV, sizeof(newVersionCSV), "%s,", otaReportedVersion);
-    }
-    else
-    {
-        if (settings.debugWebServer == true)
-            systemPrintln("No new firmware available");
-        snprintf(newVersionCSV, sizeof(newVersionCSV), "CURRENT,");
-    }
-
-    stringRecord(settingsCSV, "newFirmwareVersion", newVersionCSV);
-
-    strcat(settingsCSV, "\0");
-}
 
 //----------------------------------------
 // When called, responds with the messages supported on this platform
@@ -239,18 +136,6 @@ void getFileList(String &returnText)
                 String fileSize;
                 stringHumanReadableSize(fileSize, file.fileSize());
                 returnText += "fmName," + String(fileName) + ",fmSize," + fileSize + ",";
-
-                const int maxFiles = 20; //40 is too much
-                const int fileNameLength = 50;
-                const int maxStringLength = maxFiles * fileNameLength;
-                // It is not uncommon to have SD cards with 100+ files on them. String can get huge.
-                // Here we arbitrarily limit it.
-                // This could be larger but, left unchecked, it will absolutely explode the stack.
-                if(returnText.length() > maxStringLength)
-                {
-                    systemPrintf("Limiting file list to %d characters\r\n", maxStringLength);
-                    break;
-                }
             }
         }
 
@@ -376,7 +261,7 @@ static void handleFileManager()
 
                         managerFileOpen = false;
 
-                        sendStringToWebsocket("fmNext,1,"); // Tell browser to send next file if needed
+                        webSocketsSendString("fmNext,1,"); // Tell browser to send next file if needed
                     }
 
                     dataAvailable -= sending;
@@ -417,7 +302,7 @@ static void handleFirmwareFileUpload()
     {
         // Check file name against valid firmware names
         const char *BIN_EXT = "bin";
-        const char *BIN_HEADER = "RTK_Everywhere_Firmware";
+        const char *BIN_HEADER = "/RTK_Everywhere";
 
         fileName = upload.filename;
 
@@ -429,7 +314,7 @@ static void handleFirmwareFileUpload()
         // Check 'bin' extension
         if (strcmp(BIN_EXT, &fname[strlen(fname) - strlen(BIN_EXT)]) == 0)
         {
-            // Check for 'RTK_Everywhere_Firmware' start of file name
+            // Check for '/RTK_Everywhere' start of file name
             if (strncmp(fname, BIN_HEADER, strlen(BIN_HEADER)) == 0)
             {
                 // Begin update process
@@ -465,6 +350,10 @@ static void handleFirmwareFileUpload()
         }
         else
         {
+            // See issue #811
+            // The Update.write seems to upload the whole file in one go
+            // This code never gets called...
+
             binBytesSent = upload.currentSize;
 
             // Send an update to browser every 100k
@@ -480,7 +369,7 @@ static void handleFirmwareFileUpload()
                              bytesSentMsg); // Convert to "firmwareUploadMsg,11214 bytes sent,"
 
                 systemPrintf("msg: %s\r\n", statusMsg);
-                sendStringToWebsocket(statusMsg);
+                webSocketsSendString(statusMsg);
             }
         }
     }
@@ -495,7 +384,7 @@ static void handleFirmwareFileUpload()
         }
         else
         {
-            sendStringToWebsocket("firmwareUploadComplete,1,");
+            webSocketsSendString("firmwareUploadComplete,1,");
             systemPrintln("Firmware update complete. Restarting");
             delay(500);
             ESP.restart();
@@ -647,6 +536,9 @@ bool parseIncomingSettings()
     char settingName[100] = {'\0'};
     char valueStr[150] = {'\0'}; // stationGeodetic1,ANameThatIsTooLongToBeDisplayed 40.09029479 -105.18505761 1560.089
 
+    bool stationGeodeticSeen = false;
+    bool stationECEFSeen = false;
+
     char *commaPtr = incomingSettings;
     char *headPtr = incomingSettings;
 
@@ -674,6 +566,24 @@ bool parseIncomingSettings()
         if (settings.debugWebServer == true)
             systemPrintf("settingName: %s value: %s\r\n", settingName, valueStr);
 
+        // Check for first stationGeodetic
+        if ((strstr(settingName, "stationGeodetic") != nullptr) && (!stationGeodeticSeen))
+        {
+            stationGeodeticSeen = true;
+            removeFile(stationCoordinateGeodeticFileName);
+            if (settings.debugWebServer == true)
+                systemPrintln("Station geodetic coordinate file removed");
+        }
+
+        // Check for first stationECEF
+        if ((strstr(settingName, "stationECEF") != nullptr) && (!stationECEFSeen))
+        {
+            stationECEFSeen = true;
+            removeFile(stationCoordinateECEFFileName);
+            if (settings.debugWebServer == true)
+                systemPrintln("Station ECEF coordinate file removed");
+        }
+
         updateSettingWithValue(false, settingName, valueStr);
 
         // Avoid infinite loop if response is malformed
@@ -688,45 +598,6 @@ bool parseIncomingSettings()
     systemPrintln("Parsing complete");
 
     return (true);
-}
-
-//----------------------------------------
-// Send a string to the browser using the web socket
-//----------------------------------------
-void sendStringToWebsocket(const char *stringToSend)
-{
-    if (!websocketConnected)
-    {
-        systemPrintf("sendStringToWebsocket: not connected - could not send: %s\r\n", stringToSend);
-        return;
-    }
-
-    // To send content to the webServer, we would call: webServer->sendContent(stringToSend);
-    // But here we want to send content to the websocket (wsserver)...
-
-    httpd_ws_frame_t ws_pkt;
-    memset(&ws_pkt, 0, sizeof(httpd_ws_frame_t));
-    ws_pkt.payload = (uint8_t *)stringToSend;
-    ws_pkt.len = strlen(stringToSend);
-    ws_pkt.type = HTTPD_WS_TYPE_TEXT;
-
-    // If we use httpd_ws_send_frame, it requires a req.
-    // esp_err_t ret = httpd_ws_send_frame(last_ws_req, &ws_pkt);
-    // if (ret != ESP_OK) {
-    //    ESP_LOGE(TAG, "httpd_ws_send_frame failed with %d", ret);
-    //}
-
-    // If we use httpd_ws_send_frame_async, it requires a fd.
-    esp_err_t ret = httpd_ws_send_frame_async(wsserver, last_ws_fd, &ws_pkt);
-    if (ret != ESP_OK)
-    {
-        systemPrintf("httpd_ws_send_frame failed with %d\r\n", ret);
-    }
-    else
-    {
-        if (settings.debugWebServer == true)
-            systemPrintf("sendStringToWebsocket: %s\r\n", stringToSend);
-    }
 }
 
 //----------------------------------------
@@ -966,7 +837,7 @@ bool webServerAssignResources(int httpPort = 80)
         reportHeapNow(false);
 
         // Start the web socket server on port 81 using <esp_http_server.h>
-        if (websocketServerStart() == false)
+        if (webSocketsStart() == false)
         {
             if (settings.debugWebServer == true)
                 systemPrintln("Web Sockets failed to start");
@@ -1027,7 +898,7 @@ void webServerReleaseResources()
 
     online.webServer = false;
 
-    webServerStopSockets(); // Release socket resources
+    webSocketsStop(); // Release socket resources
 
     if (webServer != nullptr)
     {
@@ -1046,22 +917,6 @@ void webServerReleaseResources()
     {
         rtkFree(incomingSettings, "Settings buffer (incomingSettings)");
         incomingSettings = nullptr;
-    }
-}
-
-//----------------------------------------
-//----------------------------------------
-void webServerStopSockets()
-{
-    websocketConnected = false;
-
-    if (wsserver != nullptr)
-    {
-        // Stop the httpd server
-        esp_err_t status = httpd_stop(wsserver);
-        if (status != ESP_OK)
-            systemPrintf("ERROR: wsserver failed to stop, status: %s!\r\n", esp_err_to_name(status));
-        wsserver = nullptr;
     }
 }
 
@@ -1129,9 +984,11 @@ void webServerStart()
             systemPrintln("Web Server: Starting");
 
         // Start the network
-        if ((settings.wifiConfigOverAP == false) || networkInterfaceHasInternet(NETWORK_WIFI_STATION))
+        if (networkInterfaceHasInternet(NETWORK_ETHERNET))
             networkConsumerAdd(NETCONSUMER_WEB_CONFIG, NETWORK_ANY, __FILE__, __LINE__);
-        if (settings.wifiConfigOverAP)
+        else if ((settings.wifiConfigOverAP == false) || networkInterfaceHasInternet(NETWORK_WIFI_STATION))
+            networkConsumerAdd(NETCONSUMER_WEB_CONFIG, NETWORK_ANY, __FILE__, __LINE__);
+        else if (settings.wifiConfigOverAP)
             networkSoftApConsumerAdd(NETCONSUMER_WEB_CONFIG, __FILE__, __LINE__);
         webServerSetState(WEBSERVER_STATE_WAIT_FOR_NETWORK);
     }
@@ -1246,139 +1103,6 @@ void webServerVerifyTables()
 }
 
 //----------------------------------------
-//----------------------------------------
-static esp_err_t ws_handler(httpd_req_t *req)
-{
-    // Log the req, so we can reuse it for httpd_ws_send_frame
-    // TODO: do we need to be cleverer about this?
-    // last_ws_req = req;
-
-    if (req->method == HTTP_GET)
-    {
-        // Log the fd, so we can reuse it for httpd_ws_send_frame_async
-        // TODO: do we need to be cleverer about this?
-        last_ws_fd = httpd_req_to_sockfd(req);
-
-        if (settings.debugWebServer == true)
-            systemPrintf("Handshake done, the new ws connection was opened with fd %d\r\n", last_ws_fd);
-
-        websocketConnected = true;
-        lastDynamicDataUpdate = millis();
-        sendStringToWebsocket(settingsCSV);
-
-        return ESP_OK;
-    }
-
-    httpd_ws_frame_t ws_pkt;
-    uint8_t *buf = NULL;
-    memset(&ws_pkt, 0, sizeof(httpd_ws_frame_t));
-    ws_pkt.type = HTTPD_WS_TYPE_TEXT;
-    /* Set max_len = 0 to get the frame len */
-    esp_err_t ret = httpd_ws_recv_frame(req, &ws_pkt, 0);
-    if (ret != ESP_OK)
-    {
-        systemPrintf("httpd_ws_recv_frame failed to get frame len with %d\r\n", ret);
-        return ret;
-    }
-    if (settings.debugWebServer == true)
-        systemPrintf("frame len is %d\r\n", ws_pkt.len);
-    if (ws_pkt.len)
-    {
-        /* ws_pkt.len + 1 is for NULL termination as we are expecting a string */
-        buf = (uint8_t *)rtkMalloc(ws_pkt.len + 1, "Payload buffer (buf)");
-        if (buf == NULL)
-        {
-            systemPrintln("Failed to malloc memory for buf");
-            return ESP_ERR_NO_MEM;
-        }
-        ws_pkt.payload = buf;
-        /* Set max_len = ws_pkt.len to get the frame payload */
-        ret = httpd_ws_recv_frame(req, &ws_pkt, ws_pkt.len);
-        if (ret != ESP_OK)
-        {
-            systemPrintf("httpd_ws_recv_frame failed with %d\r\n", ret);
-            rtkFree(buf, "Payload buffer (buf)");
-            return ret;
-        }
-    }
-    if (settings.debugWebServer == true)
-    {
-        const char *pktType;
-        size_t length = ws_pkt.len;
-        switch (ws_pkt.type)
-        {
-        default:
-            pktType = nullptr;
-            break;
-        case HTTPD_WS_TYPE_CONTINUE:
-            pktType = "HTTPD_WS_TYPE_CONTINUE";
-            break;
-        case HTTPD_WS_TYPE_TEXT:
-            pktType = "HTTPD_WS_TYPE_TEXT";
-            break;
-        case HTTPD_WS_TYPE_BINARY:
-            pktType = "HTTPD_WS_TYPE_BINARY";
-            break;
-        case HTTPD_WS_TYPE_CLOSE:
-            pktType = "HTTPD_WS_TYPE_CLOSE";
-            break;
-        case HTTPD_WS_TYPE_PING:
-            pktType = "HTTPD_WS_TYPE_PING";
-            break;
-        case HTTPD_WS_TYPE_PONG:
-            pktType = "HTTPD_WS_TYPE_PONG";
-            break;
-        }
-        systemPrintf("Packet: %p, %d bytes, type: %d%s%s%s\r\n", ws_pkt.payload, length, ws_pkt.type,
-                     pktType ? " (" : "", pktType ? pktType : "", pktType ? ")" : "");
-        if (length > 0x40)
-            length = 0x40;
-        dumpBuffer(ws_pkt.payload, length);
-    }
-
-    if (ws_pkt.type == HTTPD_WS_TYPE_TEXT)
-    {
-        if (currentlyParsingData == false)
-        {
-            for (int i = 0; i < ws_pkt.len; i++)
-            {
-                incomingSettings[incomingSettingsSpot++] = ws_pkt.payload[i];
-                if (incomingSettingsSpot == AP_CONFIG_SETTING_SIZE)
-                    systemPrintln("incomingSettings wrap-around. Increase AP_CONFIG_SETTING_SIZE");
-                incomingSettingsSpot %= AP_CONFIG_SETTING_SIZE;
-            }
-            timeSinceLastIncomingSetting = millis();
-        }
-        else
-        {
-            if (settings.debugWebServer == true)
-                systemPrintln("Ignoring packet due to parsing block");
-        }
-    }
-    else if (ws_pkt.type == HTTPD_WS_TYPE_CLOSE)
-    {
-        if (settings.debugWebServer == true)
-            systemPrintln("Client closed or refreshed the web page");
-
-        createSettingsString(settingsCSV);
-        websocketConnected = false;
-    }
-
-    rtkFree(buf, "Payload buffer (buf)");
-    return ret;
-}
-
-//----------------------------------------
-//----------------------------------------
-static const httpd_uri_t ws = {.uri = "/ws",
-                               .method = HTTP_GET,
-                               .handler = ws_handler,
-                               .user_ctx = NULL,
-                               .is_websocket = true,
-                               .handle_ws_control_frames = true,
-                               .supported_subprotocol = NULL};
-
-//----------------------------------------
 // Display the HTTPD configuration
 //----------------------------------------
 void httpdDisplayConfig(struct httpd_config *config)
@@ -1438,45 +1162,6 @@ void httpdDisplayConfig(struct httpd_config *config)
     systemPrintf("%p: open_fn\r\n", (void *)config->open_fn);
     systemPrintf("%p: close_fn\r\n", (void *)config->close_fn);
     systemPrintf("%p: uri_match_fn\r\n", (void *)config->uri_match_fn);
-}
-
-//----------------------------------------
-//----------------------------------------
-bool websocketServerStart(void)
-{
-    esp_err_t status;
-
-    // Gete the configuration object
-    httpd_config_t config = HTTPD_DEFAULT_CONFIG();
-
-    // Use different ports for websocket and webServer - use port 81 for the websocket - also defined in main.js
-    config.server_port = 81;
-
-    // Increase the stack size from 4K to handle page processing (settingsCSV)
-    config.stack_size = webSocketStackSize;
-
-    // Start the httpd server
-    if (settings.debugWebServer == true)
-        systemPrintf("Starting wsserver on port: %d\r\n", config.server_port);
-
-    if (settings.debugWebServer == true)
-    {
-        httpdDisplayConfig(&config);
-        reportHeapNow(true);
-    }
-    status = httpd_start(&wsserver, &config);
-    if (status == ESP_OK)
-    {
-        // Registering the ws handler
-        if (settings.debugWebServer == true)
-            systemPrintln("Registering URI handlers");
-        httpd_register_uri_handler(wsserver, &ws);
-        return true;
-    }
-
-    // Display the failure to start
-    systemPrintf("ERROR: wsserver failed to start, status: %s!\r\n", esp_err_to_name(status));
-    return false;
 }
 
 #endif // COMPILE_AP

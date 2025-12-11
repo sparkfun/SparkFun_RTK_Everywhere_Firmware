@@ -785,6 +785,7 @@ struct Settings
     int uartReceiveBufferSize = 1024 * 2; // This buffer is filled automatically as the UART receives characters
 
     // Hardware
+    uint32_t defaultDoubleTapInterval_ms = 250;
     bool enableExternalHardwareEventLogging = false; // Log when INT/TM2 pin goes low
     uint16_t spiFrequency = 16;                      // By default, use 16MHz SPI
 
@@ -1431,6 +1432,7 @@ const RTK_Settings_Entry rtkSettingsEntries[] =
     { 0, 1, 0, 1, 1, 1, 1, 1, 1, ALL, 1, _uint16_t, 0, & settings.measurementRateMs, "measurementRateMs", nullptr, },
 
     // Hardware
+    { 0, 1, 0, 1, 1, 1, 1, 1, 1, ALL, 1, _uint32_t, 0, & settings.defaultDoubleTapInterval_ms, "defaultDoubleTapInterval", nullptr, },
     { 1, 1, 0, 1, 1, 1, 0, 1, 0, NON, 0, _bool,     0, & settings.enableExternalHardwareEventLogging, "enableExternalHardwareEventLogging", nullptr, },
     { 0, 0, 0, 1, 1, 1, 0, 1, 1, ALL, 0, _uint16_t, 0, & settings.spiFrequency, "spiFrequency", nullptr, },
 
@@ -1787,7 +1789,7 @@ const RTK_Settings_Entry rtkSettingsEntries[] =
     { 1, 1, 1, 1, 1, 1, 1, 1, 1, ALL, 1, tWiFiNet,  MAX_WIFI_NETWORKS, & settings.wifiNetworks, "wifiNetwork_", nullptr, },
     { 0, 0, 0, 1, 1, 1, 1, 1, 1, ALL, 1, _uint32_t, 0, & settings.wifiConnectTimeoutMs, "wifiConnectTimeoutMs", nullptr, },
 
-    { 0, 1, 0, 1, 1, 1, 1, 1, 1, ALL, 1, _bool,     0, & settings.outputTipAltitude, "outputTipAltitude", nullptr, },
+    { 1, 1, 0, 1, 1, 1, 1, 1, 1, ALL, 1, _bool,     0, & settings.outputTipAltitude, "outputTipAltitude", nullptr, },
 
     // Localized distribution
     { 1, 0, 0, 1, 1, 0, 1, 1, 1, ALL, 1, _bool,     0, & settings.useLocalizedDistribution, "useLocalizedDistribution", nullptr, },
@@ -1968,6 +1970,8 @@ struct struct_present
     bool dynamicModel = false; // ZED, mosaic, UM980 have dynamic models. LG290P does not.
     bool gpioExpanderSwitches = false; // Used on Flex
     bool tiltPossible = false; //Flex may have a tilt IMU
+
+    const char *gnssUpdatePort = ""; // "CH342 Channel A" etc.
 } present;
 
 // Monitor which devices on the device are on or offline.

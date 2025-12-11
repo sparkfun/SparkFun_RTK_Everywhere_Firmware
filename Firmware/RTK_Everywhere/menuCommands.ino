@@ -20,10 +20,10 @@ void menuCommands()
     {
         InputResponse response = getUserInputString(cmdBuffer, sizeof(cmdBuffer), false); // Turn off echo
 
-        if (btPrintEchoExit == true)
+        if (forceMenuExit == true) // BT disconnect etc. forces menu exit
         {
-            systemPrintln("BT Connection lost. Exiting command mode...");
-            btPrintEchoExit = false;
+            systemPrintln("Command mode forced exit...");
+            // Don't clear forceMenuExit here. We want to exit the menus completely
             break; // Exit while(1) loop
         }
 
@@ -290,7 +290,7 @@ t_cliResult processCommand(char *cmdBuffer)
                 commandSendExecuteOkResponse(tokens[0], tokens[1]);
                 espnowRequestPair = true; // Start ESP-NOW pairing process
                 // Force exit all config menus and/or command modes to allow OTA state machine to run
-                btPrintEchoExit = true;
+                forceMenuExit = true;
                 return (CLI_EXIT); // Exit the CLI to allow OTA state machine to run
             }
             else if (strcmp(tokens[1], "PAIRSTOP") == 0)
@@ -298,7 +298,7 @@ t_cliResult processCommand(char *cmdBuffer)
                 commandSendExecuteOkResponse(tokens[0], tokens[1]);
                 espnowRequestPair = false; // Stop ESP-NOW pairing process
                 // Force exit all config menus and/or command modes to allow OTA state machine to run
-                btPrintEchoExit = true;
+                forceMenuExit = true;
                 return (CLI_EXIT); // Exit the CLI to allow OTA state machine to run
             }
             else if (strcmp(tokens[1], "REBOOT") == 0)
@@ -320,7 +320,7 @@ t_cliResult processCommand(char *cmdBuffer)
                 otaRequestFirmwareUpdate = true;
 
                 // Force exit all config menus and/or command modes to allow OTA state machine to run
-                btPrintEchoExit = true;
+                forceMenuExit = true;
                 return (CLI_EXIT); // Exit the CLI to allow OTA state machine to run
             }
             else
@@ -1097,13 +1097,7 @@ SettingValueResponse updateSettingWithValue(bool inCommands, const char *setting
     else if (strcmp(settingName, "measurementRateHz") == 0)
     {
         settings.measurementRateMs = 1000 / settingValue; // Convert Hz to ms
-        gnssConfigure(GNSS_CONFIG_FIX_RATE);                  // Request receiver to use new settings
-
-        // This is one of the first settings to be received. If seen, remove the station files.
-        removeFile(stationCoordinateECEFFileName);
-        removeFile(stationCoordinateGeodeticFileName);
-        if (settings.debugWebServer == true)
-            systemPrintln("Station coordinate files removed");
+        gnssConfigure(GNSS_CONFIG_FIX_RATE);              // Request receiver to use new settings
         knownSetting = true;
     }
 
@@ -1177,7 +1171,7 @@ SettingValueResponse updateSettingWithValue(bool inCommands, const char *setting
         if (settings.debugWebServer == true)
             systemPrintln("Sending reset confirmation");
 
-        sendStringToWebsocket((char *)"confirmReset,1,");
+        webSocketsSendString((char *)"confirmReset,1,");
         delay(500); // Allow for delivery
 
         systemPrintln("Reset after AP Config");
@@ -1197,17 +1191,20 @@ SettingValueResponse updateSettingWithValue(bool inCommands, const char *setting
         loadSettings();
 
         // Send new settings to browser. Re-use settingsCSV to avoid stack.
-        memset(settingsCSV, 0, AP_CONFIG_SETTING_SIZE); // Clear any garbage from settings array
-
-        createSettingsString(settingsCSV);
-
-        if (settings.debugWebServer == true)
+        if (settingsCSV)
         {
-            systemPrintf("Sending profile %d\r\n", settingValue);
-            systemPrintf("Profile contents: %s\r\n", settingsCSV);
-        }
+            memset(settingsCSV, 0, AP_CONFIG_SETTING_SIZE); // Clear any garbage from settings array
 
-        sendStringToWebsocket(settingsCSV);
+            createSettingsString(settingsCSV);
+
+            if (settings.debugWebServer == true)
+            {
+                systemPrintf("Sending profile %d\r\n", settingValue);
+                systemPrintf("Profile contents: %s\r\n", settingsCSV);
+            }
+
+            webSocketsSendString(settingsCSV);
+        }
         knownSetting = true;
     }
 
@@ -1235,17 +1232,20 @@ SettingValueResponse updateSettingWithValue(bool inCommands, const char *setting
         activeProfiles = loadProfileNames();
 
         // Send new settings to browser. Re-use settingsCSV to avoid stack.
-        memset(settingsCSV, 0, AP_CONFIG_SETTING_SIZE); // Clear any garbage from settings array
-
-        createSettingsString(settingsCSV);
-
-        if (settings.debugWebServer == true)
+        if (settingsCSV)
         {
-            systemPrintf("Sending reset profile %d\r\n", settingValue);
-            systemPrintf("Profile contents: %s\r\n", settingsCSV);
-        }
+            memset(settingsCSV, 0, AP_CONFIG_SETTING_SIZE); // Clear any garbage from settings array
 
-        sendStringToWebsocket(settingsCSV);
+            createSettingsString(settingsCSV);
+
+            if (settings.debugWebServer == true)
+            {
+                systemPrintf("Sending reset profile %d\r\n", settingValue);
+                systemPrintf("Profile contents: %s\r\n", settingsCSV);
+            }
+
+            webSocketsSendString(settingsCSV);
+        }
         knownSetting = true;
     }
 
@@ -1279,7 +1279,7 @@ SettingValueResponse updateSettingWithValue(bool inCommands, const char *setting
             char newFileNameCSV[sizeof("logFileName,") + sizeof(logFileName) + 1];
             snprintf(newFileNameCSV, sizeof(newFileNameCSV), "logFileName,%s,", logFileName);
 
-            sendStringToWebsocket(newFileNameCSV); // Tell the config page the name of the file we just created
+            webSocketsSendString(newFileNameCSV); // Tell the config page the name of the file we just created
         }
         knownSetting = true;
     }
@@ -1288,7 +1288,7 @@ SettingValueResponse updateSettingWithValue(bool inCommands, const char *setting
         if (settings.debugWebServer == true)
             systemPrintln("Checking for new OTA Pull firmware");
 
-        sendStringToWebsocket((char *)"checkingNewFirmware,1,"); // Tell the config page we received their request
+        webSocketsSendString((char *)"checkingNewFirmware,1,"); // Tell the config page we received their request
 
         knownSetting = true;
 
@@ -1300,7 +1300,7 @@ SettingValueResponse updateSettingWithValue(bool inCommands, const char *setting
         if (settings.debugWebServer == true)
             systemPrintln("Getting new OTA Pull firmware");
 
-        sendStringToWebsocket((char *)"gettingNewFirmware,1,");
+        webSocketsSendString((char *)"gettingNewFirmware,1,");
 
         // Let the OTA state machine know it needs to report its progress to the websocket
         apConfigFirmwareUpdateInProcess = true;
@@ -2417,7 +2417,7 @@ SettingValueResponse getSettingValue(bool inCommands, const char *settingName, c
         otaRequestFirmwareVersionCheck = true;
 
         // Force exit all config menus and/or command modes to allow OTA state machine to run
-        btPrintEchoExit = true;
+        forceMenuExit = true;
     }
 
     // Special actions
