@@ -556,7 +556,7 @@ void bluetoothStart(bool skipOnlineCheck)
 
             // Enable secure pairing without PIN :
             // iPhone displays Connection Unsuccessful - but then connects anyway...
-            //bluetoothSerialSpp->enableSSP(false, false);
+            bluetoothSerialSpp->enableSSP(false, false);
 
             // Enable secure pairing with PIN :
             // bluetoothSerialSpp->enableSSP(false, true);
@@ -565,8 +565,8 @@ void bluetoothStart(bool skipOnlineCheck)
             // Support Apple Accessory: Device to Accessory
             // 1. Search for an accessory from the device and initiate pairing.
             // 2. Verify pairing is successful after exchanging a pin code.
-            bluetoothSerialSpp->enableSSP(true, true); // Enable secure pairing with PIN
-            bluetoothSerialSpp->onConfirmRequest(&BTConfirmRequestCallback); // Callback to verify the PIN
+            //bluetoothSerialSpp->enableSSP(true, true); // Enable secure pairing with PIN
+            //bluetoothSerialSpp->onConfirmRequest(&BTConfirmRequestCallback); // Callback to verify the PIN
 
             beginSuccess &= bluetoothSerialSpp->begin(
                 accessoryName, true, true, settings.sppRxQueueSize, settings.sppTxQueueSize, 0, 0,
@@ -601,9 +601,12 @@ void bluetoothStart(bool skipOnlineCheck)
                 // record.service_name_length = strlen(sdp_service_name) + 1;
                 // record.service_name = (char *)sdp_service_name;
                 //  Use the same EIR Local Name parameter as the Name in the IdentificationInformation
-                record.service_name_length = strlen(deviceName) + 1;
-                record.service_name = (char *)deviceName;
-                // record.rfcomm_channel_number = 1; // Doesn't seem to help the failed connects
+                //record.service_name_length = strlen(accessoryName) + 1;
+                //record.service_name = (char *)accessoryName;
+                //const char *serviceName = "SPP RFCOMM";
+                //record.service_name_length = strlen(serviceName) + 1;
+                //record.service_name = (char *)serviceName;
+                record.rfcomm_channel_number = 2; // RFCOMM DLCI 2
                 esp_sdp_create_record((esp_bluetooth_sdp_record_t *)&record);
 #endif  // COMPILE_AUTHENTICATION
             }
