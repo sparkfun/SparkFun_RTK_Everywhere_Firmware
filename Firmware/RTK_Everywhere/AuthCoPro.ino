@@ -102,13 +102,15 @@ void updateAuthCoPro()
                 // Having core debug enabled adds enough delay to make this work.
                 // With debug set to none, we need to insert a _small_ delay...
                 // Too much delay and we get Connection Unsuccessful.
-                //delay(2);
+                delay(2);
 
                 int channel = 1;
                 if (settings.debugNetworkLayer)
                     systemPrintf("Connecting on channel %d\r\n", channel);
 
-                bluetoothSerialSpp->connect(bluetoothSerialSpp->aclGetAddress(), channel); // Blocking for READY_TIMEOUT
+                bluetoothSerialSpp->connect(bluetoothSerialSpp->aclGetAddress(), channel,
+                    (ESP_SPP_SEC_ENCRYPT | ESP_SPP_SEC_AUTHENTICATE),
+                    ESP_SPP_ROLE_SLAVE); // Blocking for READY_TIMEOUT
 
                 if (bluetoothSerialSpp->connected())
                 {
