@@ -410,6 +410,54 @@ void deviceNameUnderscoresToSpaces()
     }
 }
 
+// Callback for Service Discovery Protocol
+// This allows the iAP2 record to be created _after_ SDP is initialized
+extern const int rfcommChanneliAP2;
+static void esp_sdp_callback(esp_sdp_cb_event_t event, esp_sdp_cb_param_t *param)
+{
+    switch (event) {
+    case ESP_SDP_INIT_EVT:
+        if (settings.debugNetworkLayer)
+            systemPrintf("ESP_SDP_INIT_EVT: status: %d\r\n", param->init.status);
+        if (param->init.status == ESP_SDP_SUCCESS) {
+            // SDP has been initialized. _Now_ we can create the iAP2 record!
+            // Serial Port will have RFCOMM channel 1
+            // For iAP2, we need to specify channel 2
+            esp_bluetooth_sdp_hdr_overlay_t record = {(esp_bluetooth_sdp_types_t)0};
+            record.type = ESP_SDP_TYPE_RAW;
+            record.uuid.len = sizeof(UUID_IAP2);
+            memcpy(record.uuid.uuid.uuid128, UUID_IAP2, sizeof(UUID_IAP2));
+            // The service_name isn't critical. But we can't not set one.
+            // (If we don't set a name, the record doesn't get created.)
+            record.service_name_length = strlen(sdp_service_name) + 1;
+            record.service_name = (char *)sdp_service_name;
+            record.rfcomm_channel_number = rfcommChanneliAP2; // RFCOMM channel
+            record.l2cap_psm = -1;
+            record.profile_version = -1;
+            esp_sdp_create_record((esp_bluetooth_sdp_record_t *)&record);
+        }
+        break;
+    case ESP_SDP_DEINIT_EVT:
+        if (settings.debugNetworkLayer)
+            systemPrintf("ESP_SDP_DEINIT_EVT: status: %d\r\n", param->deinit.status);
+        break;
+    case ESP_SDP_SEARCH_COMP_EVT:
+        if (settings.debugNetworkLayer)
+            systemPrintf("ESP_SDP_SEARCH_COMP_EVT: status: %d\r\n", param->search.status);
+        break;
+    case ESP_SDP_CREATE_RECORD_COMP_EVT:
+        if (settings.debugNetworkLayer)
+            systemPrintf("ESP_SDP_CREATE_RECORD_COMP_EVT: status: %d\r\n", param->create_record.status);
+        break;
+    case ESP_SDP_REMOVE_RECORD_COMP_EVT:
+        if (settings.debugNetworkLayer)
+            systemPrintf("ESP_SDP_REMOVE_RECORD_COMP_EVT: status: %d\r\n", param->remove_record.status);
+        break;
+    default:
+        break;
+    }
+}
+
 // Begin Bluetooth with a broadcast name of 'SparkFun Postcard-XXXX' or 'SparkPNT Facet mosaicX5-XXXX'
 // Add 4 characters of device's MAC address to end of the broadcast name
 // This allows users to discern between multiple devices in the local area
@@ -568,8 +616,9 @@ void bluetoothStart(bool skipOnlineCheck)
             //bluetoothSerialSpp->enableSSP(true, true); // Enable secure pairing with PIN
             //bluetoothSerialSpp->onConfirmRequest(&BTConfirmRequestCallback); // Callback to verify the PIN
 
+            // Start initially in SLAVE mode
             beginSuccess &= bluetoothSerialSpp->begin(
-                accessoryName, true, true, settings.sppRxQueueSize, settings.sppTxQueueSize, 0, 0,
+                accessoryName, false, true, settings.sppRxQueueSize, settings.sppTxQueueSize, 0, 0,
                 0); // localName, isMaster, disableBLE, rxBufferSize, txBufferSize, serviceID, rxID, txID
 
             if (beginSuccess)
@@ -592,22 +641,11 @@ void bluetoothStart(bool skipOnlineCheck)
                 }
 
 #ifdef  COMPILE_AUTHENTICATION
+                // The SDP callback will create the iAP2 record
+                // Doing it this way ensures the Serial Port record is created first
+                // The iAP2 record is created second, and we can select RFCOMM channel 2
+                esp_sdp_register_callback(esp_sdp_callback);
                 esp_sdp_init();
-
-                esp_bluetooth_sdp_hdr_overlay_t record = {(esp_bluetooth_sdp_types_t)0};
-                record.type = ESP_SDP_TYPE_RAW;
-                record.uuid.len = sizeof(UUID_IAP2);
-                memcpy(record.uuid.uuid.uuid128, UUID_IAP2, sizeof(UUID_IAP2));
-                // record.service_name_length = strlen(sdp_service_name) + 1;
-                // record.service_name = (char *)sdp_service_name;
-                //  Use the same EIR Local Name parameter as the Name in the IdentificationInformation
-                //record.service_name_length = strlen(accessoryName) + 1;
-                //record.service_name = (char *)accessoryName;
-                //const char *serviceName = "SPP RFCOMM";
-                //record.service_name_length = strlen(serviceName) + 1;
-                //record.service_name = (char *)serviceName;
-                record.rfcomm_channel_number = 2; // RFCOMM DLCI 2
-                esp_sdp_create_record((esp_bluetooth_sdp_record_t *)&record);
 #endif  // COMPILE_AUTHENTICATION
             }
         }

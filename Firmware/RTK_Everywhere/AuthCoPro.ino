@@ -14,6 +14,10 @@ const char *LIComponentName = "com.sparkfun.li";
 // the top-left of a Product Plan form.
 const char *productPlanUID = "e9e877bb278140f0";
 
+// The "Serial Port" is allocated RFCOMM channel 1
+// We can use RFCOMM channel 2 for iAP2
+const int rfcommChanneliAP2 = 2;
+
 extern BTSerialInterface *bluetoothSerialSpp;
 
 void transportConnected(bool *isConnected)
@@ -97,20 +101,26 @@ void updateAuthCoPro()
                 char bda_str[18];
                 systemPrintf("Apple Device %s found\r\n", bda2str(bluetoothSerialSpp->aclGetAddress(), bda_str, 18));
 
-                // We need to connect _almost_ immediately for a successful pairing
-                // This is really brittle.
-                // Having core debug enabled adds enough delay to make this work.
-                // With debug set to none, we need to insert a _small_ delay...
-                // Too much delay and we get Connection Unsuccessful.
-                delay(2);
+                // Allow time for the pairing to complete
+                // (TODO: use ESP_BT_GAP_AUTH_CMPL_EVT or getBondedDevices to avoid the delay)
+                delay(500);
 
-                int channel = 1;
+                // Copy the phone address, while we are still connected
+                uint8_t aclAddress[ESP_BD_ADDR_LEN];
+                memcpy(aclAddress, bluetoothSerialSpp->aclGetAddress(), ESP_BD_ADDR_LEN);
+
+                systemPrintln("Switching Bluetooth mode");
+
+                // Switch to MASTER mode
+                bluetoothSerialSpp->begin(
+                    accessoryName, true, true, settings.sppRxQueueSize, settings.sppTxQueueSize, 0, 0,
+                    0); // localName, isMaster, disableBLE, rxBufferSize, txBufferSize, serviceID, rxID, txID
+
+                int channel = rfcommChanneliAP2; // RFCOMM channel
                 if (settings.debugNetworkLayer)
                     systemPrintf("Connecting on channel %d\r\n", channel);
 
-                bluetoothSerialSpp->connect(bluetoothSerialSpp->aclGetAddress(), channel,
-                    (ESP_SPP_SEC_ENCRYPT | ESP_SPP_SEC_AUTHENTICATE),
-                    ESP_SPP_ROLE_SLAVE); // Blocking for READY_TIMEOUT
+                bluetoothSerialSpp->connect(aclAddress, channel); // Connect as MASTER
 
                 if (bluetoothSerialSpp->connected())
                 {
