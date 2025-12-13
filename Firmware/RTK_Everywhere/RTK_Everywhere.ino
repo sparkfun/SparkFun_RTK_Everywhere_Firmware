@@ -703,6 +703,8 @@ bool firstButtonThrownOut = false;
 // Because the incoming string is longer than max len, there are multiple callbacks so we
 // use a global to combine the incoming
 #define AP_CONFIG_SETTING_SIZE 20000 // 10000 isn't enough if the SD card contains many files
+#define AP_FIRMWARE_VERSION_SIZE    256
+
 char *settingsCSV;                   // Push large array onto heap
 char *incomingSettings;
 int incomingSettingsSpot;

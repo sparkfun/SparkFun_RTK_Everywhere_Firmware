@@ -182,9 +182,19 @@ static esp_err_t webSocketsHandler(httpd_req_t *req)
                          client->_request, client->_socketFD);
 
         lastDynamicDataUpdate = millis();
-        webSocketsSendString(settingsCSV);
 
-        return ESP_OK;
+        // Send new settings to browser.
+        char * settingsCsvList = (char *)rtkMalloc(AP_CONFIG_SETTING_SIZE, "Command CSV settings list");
+        if (settingsCsvList)
+        {
+            createSettingsString(settingsCsvList);
+            webSocketsSendString(settingsCsvList);
+            rtkFree(settingsCsvList, "Command CSV settings list");
+            return ESP_OK;
+        }
+        if (settings.debugWebServer == true)
+            systemPrintf("ERROR: Failed to allocate settings CSV list!\r\n");
+        return ESP_FAIL;
     }
 
     httpd_ws_frame_t ws_pkt;
@@ -298,12 +308,22 @@ bool webSocketsIsConnected()
 //----------------------------------------
 void webSocketsSendFirmwareVersion(void)
 {
-    webSocketsCreateFirmwareVersionString(settingsCSV);
+    char * firmwareVersion;
 
-    if (settings.debugWebServer)
-        systemPrintf("WebSockets: Firmware version requested. Sending: %s\r\n", settingsCSV);
+    firmwareVersion = (char *)rtkMalloc(AP_FIRMWARE_VERSION_SIZE, "WebSockets firmware description");
+    if (firmwareVersion == nullptr)
+        systemPrintf("ERROR: WebSockets failed to allocate firmware description\r\n");
+    else
+    {
+        webSocketsCreateFirmwareVersionString(firmwareVersion);
 
-    webSocketsSendString(settingsCSV);
+        if (settings.debugWebServer)
+            systemPrintf("WebSockets: Firmware version requested. Sending: %s\r\n",
+                         firmwareVersion);
+
+        webSocketsSendString(firmwareVersion);
+        rtkFree(firmwareVersion, "WebSockets firmware description");
+    }
 }
 
 //----------------------------------------
@@ -311,8 +331,17 @@ void webSocketsSendFirmwareVersion(void)
 //----------------------------------------
 void webSocketsSendSettings(void)
 {
-    webSocketsCreateDynamicDataString(settingsCSV);
-    webSocketsSendString(settingsCSV);
+    char * settingsCsvList;
+
+    settingsCsvList = (char *)rtkMalloc(AP_CONFIG_SETTING_SIZE, "WebSockets CSV settings list");
+    if (settingsCsvList == nullptr)
+        systemPrintf("ERROR: WebSockets failed to allocate settings CSV list\r\n");
+    else
+    {
+        webSocketsCreateDynamicDataString(settingsCsvList);
+        webSocketsSendString(settingsCsvList);
+        rtkFree(settingsCsvList, "WebSockets CSV settings list");
+    }
 }
 
 //----------------------------------------
@@ -373,7 +402,7 @@ void webSocketsSendString(const char *stringToSend)
 
         // Successfully sent the message
         else if (settings.debugWebServer == true)
-                systemPrintf("webSocketsSendString: %s\r\n", stringToSend);
+            systemPrintf("webSocketsSendString: %s\r\n", stringToSend);
 
         // Get the next client
         client = nextClient;

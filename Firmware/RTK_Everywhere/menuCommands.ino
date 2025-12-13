@@ -1182,6 +1182,8 @@ SettingValueResponse updateSettingWithValue(bool inCommands, const char *setting
     // setProfile was used in the original Web Config interface
     else if (strcmp(settingName, "setProfile") == 0)
     {
+        char * settingsCsvList;
+
         // Change to new profile
         if (settings.debugWebServer == true)
             systemPrintf("Changing to profile number %d\r\n", settingValue);
@@ -1190,20 +1192,20 @@ SettingValueResponse updateSettingWithValue(bool inCommands, const char *setting
         // Load new profile into system
         loadSettings();
 
-        // Send new settings to browser. Re-use settingsCSV to avoid stack.
-        if (settingsCSV)
+        // Send new settings to browser.
+        settingsCsvList = (char *)rtkMalloc(AP_CONFIG_SETTING_SIZE, "Command CSV settings list");
+        if (settingsCsvList)
         {
-            memset(settingsCSV, 0, AP_CONFIG_SETTING_SIZE); // Clear any garbage from settings array
-
-            createSettingsString(settingsCSV);
+            createSettingsString(settingsCsvList);
 
             if (settings.debugWebServer == true)
             {
                 systemPrintf("Sending profile %d\r\n", settingValue);
-                systemPrintf("Profile contents: %s\r\n", settingsCSV);
+                systemPrintf("Profile contents: %s\r\n", settingsCsvList);
             }
 
-            webSocketsSendString(settingsCSV);
+            webSocketsSendString(settingsCsvList);
+            rtkFree(settingsCsvList, "Command CSV settings list");
         }
         knownSetting = true;
     }
@@ -1224,6 +1226,8 @@ SettingValueResponse updateSettingWithValue(bool inCommands, const char *setting
 
     else if (strcmp(settingName, "resetProfile") == 0)
     {
+        char * settingsCsvList;
+
         settingsToDefaults(); // Overwrite our current settings with defaults
 
         recordSystemSettings(); // Overwrite profile file and NVM with these settings
@@ -1231,20 +1235,20 @@ SettingValueResponse updateSettingWithValue(bool inCommands, const char *setting
         // Get bitmask of active profiles
         activeProfiles = loadProfileNames();
 
-        // Send new settings to browser. Re-use settingsCSV to avoid stack.
-        if (settingsCSV)
+        // Send new settings to browser.
+        settingsCsvList = (char *)rtkMalloc(AP_CONFIG_SETTING_SIZE, "Command CSV settings list");
+        if (settingsCsvList)
         {
-            memset(settingsCSV, 0, AP_CONFIG_SETTING_SIZE); // Clear any garbage from settings array
-
-            createSettingsString(settingsCSV);
+            createSettingsString(settingsCsvList);
 
             if (settings.debugWebServer == true)
             {
                 systemPrintf("Sending reset profile %d\r\n", settingValue);
-                systemPrintf("Profile contents: %s\r\n", settingsCSV);
+                systemPrintf("Profile contents: %s\r\n", settingsCsvList);
             }
 
-            webSocketsSendString(settingsCSV);
+            webSocketsSendString(settingsCsvList);
+            rtkFree(settingsCsvList, "Command CSV settings list");
         }
         knownSetting = true;
     }
