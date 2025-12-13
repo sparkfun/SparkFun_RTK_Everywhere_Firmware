@@ -620,12 +620,6 @@ void stopWebServer()
         webServer = nullptr;
     }
 
-    if (settingsCSV != nullptr)
-    {
-        rtkFree(settingsCSV, "Settings buffer (settingsCSV)");
-        settingsCSV = nullptr;
-    }
-
     if (incomingSettings != nullptr)
     {
         rtkFree(incomingSettings, "Settings buffer (incomingSettings)");
@@ -683,16 +677,6 @@ bool webServerAssignResources(int httpPort = 80)
             break;
         }
         memset(incomingSettings, 0, AP_CONFIG_SETTING_SIZE);
-
-        // Pre-load settings CSV
-        // Freed by webServerStop
-        settingsCSV = (char *)rtkMalloc(AP_CONFIG_SETTING_SIZE, "Settings buffer (settingsCSV)");
-        if (!settingsCSV)
-        {
-            systemPrintln("ERROR: Web server failed to allocate settingsCSV");
-            break;
-        }
-        createSettingsString(settingsCSV);
 
         /* https://github.com/espressif/arduino-esp32/blob/master/libraries/DNSServer/examples/CaptivePortal/CaptivePortal.ino
          */
@@ -905,12 +889,6 @@ void webServerReleaseResources()
         webServer->close();
         delete webServer;
         webServer = nullptr;
-    }
-
-    if (settingsCSV != nullptr)
-    {
-        rtkFree(settingsCSV, "Settings buffer (settingsCSV)");
-        settingsCSV = nullptr;
     }
 
     if (incomingSettings != nullptr)

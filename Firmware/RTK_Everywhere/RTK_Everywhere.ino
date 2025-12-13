@@ -705,7 +705,6 @@ bool firstButtonThrownOut = false;
 #define AP_CONFIG_SETTING_SIZE 20000 // 10000 isn't enough if the SD card contains many files
 #define AP_FIRMWARE_VERSION_SIZE    256
 
-char *settingsCSV;                   // Push large array onto heap
 char *incomingSettings;
 int incomingSettingsSpot;
 unsigned long timeSinceLastIncomingSetting;

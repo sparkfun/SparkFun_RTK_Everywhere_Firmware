@@ -10,7 +10,7 @@ WebSockets.ino
 // Constants
 //----------------------------------------
 
-static const int webSocketsStackSize = 1024 * 20;   // Needs to be large enough to hold the full settingsCSV
+static const int webSocketsStackSize = 1024 * 20;
 
 //----------------------------------------
 // New types
@@ -287,8 +287,6 @@ static esp_err_t webSocketsHandler(httpd_req_t *req)
     {
         if (settings.debugWebServer == true)
             systemPrintln("WebSockets: Client closed or refreshed the web page");
-
-        createSettingsString(settingsCSV);
     }
 
     rtkFree(buf, "Payload buffer (buf)");
@@ -435,8 +433,6 @@ bool webSocketsStart(void)
 
     // Use different ports for websocket and webServer - use port 81 for the websocket - also defined in main.js
     config.server_port = 81;
-
-    // Increase the stack size from 4K to handle page processing (settingsCSV)
     config.stack_size = webSocketsStackSize;
 
     // Start the httpd server
