@@ -37,14 +37,14 @@ static SemaphoreHandle_t webSocketsMutex;
 // Create a csv string with the dynamic data to update (current coordinates,
 // battery level, etc)
 //----------------------------------------
-void webSocketsCreateDynamicDataString(char *settingsCSV)
+void webSocketsCreateDynamicDataString(char *csvList)
 {
-    settingsCSV[0] = '\0'; // Erase current settings string
+    csvList[0] = '\0'; // Erase current settings string
 
     // Current coordinates come from HPPOSLLH call back
-    stringRecord(settingsCSV, "geodeticLat", gnss->getLatitude(), haeNumberOfDecimals);
-    stringRecord(settingsCSV, "geodeticLon", gnss->getLongitude(), haeNumberOfDecimals);
-    stringRecord(settingsCSV, "geodeticAlt", gnss->getAltitude(), 3);
+    stringRecord(csvList, "geodeticLat", gnss->getLatitude(), haeNumberOfDecimals);
+    stringRecord(csvList, "geodeticLon", gnss->getLongitude(), haeNumberOfDecimals);
+    stringRecord(csvList, "geodeticAlt", gnss->getAltitude(), 3);
 
     double ecefX = 0;
     double ecefY = 0;
@@ -52,14 +52,14 @@ void webSocketsCreateDynamicDataString(char *settingsCSV)
 
     geodeticToEcef(gnss->getLatitude(), gnss->getLongitude(), gnss->getAltitude(), &ecefX, &ecefY, &ecefZ);
 
-    stringRecord(settingsCSV, "ecefX", ecefX, 3);
-    stringRecord(settingsCSV, "ecefY", ecefY, 3);
-    stringRecord(settingsCSV, "ecefZ", ecefZ, 3);
+    stringRecord(csvList, "ecefX", ecefX, 3);
+    stringRecord(csvList, "ecefY", ecefY, 3);
+    stringRecord(csvList, "ecefZ", ecefZ, 3);
 
     if (online.batteryFuelGauge == false) // Product has no battery
     {
-        stringRecord(settingsCSV, "batteryIconFileName", (char *)"src/BatteryBlank.png");
-        stringRecord(settingsCSV, "batteryPercent", (char *)" ");
+        stringRecord(csvList, "batteryIconFileName", (char *)"src/BatteryBlank.png");
+        stringRecord(csvList, "batteryPercent", (char *)" ");
     }
     else
     {
@@ -81,7 +81,7 @@ void webSocketsCreateDynamicDataString(char *settingsCSV)
         else
             snprintf(batteryIconFileName, sizeof(batteryIconFileName), "src/Battery%d.png", iconLevel);
 
-        stringRecord(settingsCSV, "batteryIconFileName", batteryIconFileName);
+        stringRecord(csvList, "batteryIconFileName", batteryIconFileName);
 
         // Limit batteryLevelPercent to sane levels
         if (batteryLevelPercent > 100)
@@ -93,21 +93,21 @@ void webSocketsCreateDynamicDataString(char *settingsCSV)
             snprintf(batteryPercent, sizeof(batteryPercent), "+%d%%", batteryLevelPercent);
         else
             snprintf(batteryPercent, sizeof(batteryPercent), "%d%%", batteryLevelPercent);
-        stringRecord(settingsCSV, "batteryPercent", batteryPercent);
+        stringRecord(csvList, "batteryPercent", batteryPercent);
     }
 
-    strcat(settingsCSV, "\0");
+    strcat(csvList, "\0");
 }
 
 //----------------------------------------
 // Report back to the web config page with a CSV that contains the either CURRENT or
 // the latest version as obtained by the OTA state machine
 //----------------------------------------
-void webSocketsCreateFirmwareVersionString(char *settingsCSV)
+void webSocketsCreateFirmwareVersionString(char *firmwareString)
 {
     char newVersionCSV[100];
 
-    settingsCSV[0] = '\0'; // Erase current settings string
+    firmwareString[0] = '\0'; // Erase current settings string
 
     // Create a string of the unit's current firmware version
     char currentVersion[21];
@@ -127,9 +127,9 @@ void webSocketsCreateFirmwareVersionString(char *settingsCSV)
         snprintf(newVersionCSV, sizeof(newVersionCSV), "CURRENT,");
     }
 
-    stringRecord(settingsCSV, "newFirmwareVersion", newVersionCSV);
+    stringRecord(firmwareString, "newFirmwareVersion", newVersionCSV);
 
-    strcat(settingsCSV, "\0");
+    strcat(firmwareString, "\0");
 }
 
 //----------------------------------------
