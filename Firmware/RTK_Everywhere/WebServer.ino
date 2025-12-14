@@ -74,18 +74,6 @@ static const int webServerTaskStackSize = 1024 * 4;   // Needs to be large enoug
 // https://github.com/espressif/arduino-esp32/blob/master/libraries/WebServer/examples/WebServer/WebServer.ino
 
 //----------------------------------------
-// When called, responds with the messages supported on this platform
-// Message name and current rate are formatted in CSV, formatted to html by JS
-//----------------------------------------
-void createMessageList(String &returnText)
-{
-    returnText = "";
-    gnss->createMessageList(returnText);
-    if (settings.debugWebServer == true)
-        systemPrintf("returnText (%d bytes): %s\r\n", returnText.length(), returnText.c_str());
-}
-
-//----------------------------------------
 // When called, responds with the RTCM/Base messages supported on this platform
 // Message name and current rate are formatted in CSV, formatted to html by JS
 //----------------------------------------
@@ -719,7 +707,7 @@ bool webServerAssignResources(int httpPort = 80)
             if (settings.debugWebServer == true)
                 systemPrintln(logmessage);
             String messages;
-            createMessageList(messages);
+            webSocketsCreateMessageList(messages);
             if (settings.debugWebServer == true)
                 systemPrintln(messages);
             webServer->send(200, "text/plain", messages);
