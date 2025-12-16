@@ -527,7 +527,7 @@ void stateUpdate()
                     // Useful for detecting when we need to change WiFi station settings
                     wifiSettingsClone();
 
-                    parseIncomingSettings();
+                    webSocketsParseIncomingSettings();
 
                     gnssConfigureDefaults(); // Set all bits in the request bitfield to cause the GNSS receiver to go
                                              // through a full (re)configuration
