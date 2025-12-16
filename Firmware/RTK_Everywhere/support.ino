@@ -758,7 +758,6 @@ void verifyTables()
     correctionVerifyTables();
     webServerVerifyTables();
     pointPerfectVerifyTables();
-    webSocketsVerifyTables();
     wifiVerifyTables();
     gnssVerifyTables();
 

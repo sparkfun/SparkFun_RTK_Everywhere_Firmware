@@ -7,29 +7,6 @@ WebServer.ino
 #ifdef COMPILE_AP
 
 //----------------------------------------
-// Constants
-//----------------------------------------
-
-// State machine to allow web server access to network layer
-enum WebServerState
-{
-    WEBSERVER_STATE_OFF = 0,
-    WEBSERVER_STATE_WAIT_FOR_NETWORK,
-    WEBSERVER_STATE_NETWORK_CONNECTED,
-    WEBSERVER_STATE_RUNNING,
-
-    // Add new states here
-    WEBSERVER_STATE_MAX
-};
-
-static const char *const webServerStateNames[] = {
-    "WEBSERVER_STATE_OFF",
-    "WEBSERVER_STATE_WAIT_FOR_NETWORK",
-    "WEBSERVER_STATE_NETWORK_CONNECTED",
-    "WEBSERVER_STATE_RUNNING",
-};
-
-//----------------------------------------
 // Macros
 //----------------------------------------
 
@@ -47,10 +24,6 @@ static const char *const webServerStateNames[] = {
 //----------------------------------------
 // Locals
 //----------------------------------------
-
-static const int webServerStateEntries = sizeof(webServerStateNames) / sizeof(webServerStateNames[0]);
-
-static uint8_t webServerState;
 
 // Once connected to the access point for WiFi Config, the ESP32 sends current setting values in one long string to
 // websocket After user clicks 'save', data is validated via main.js and a long string of values is returned.
@@ -687,27 +660,6 @@ bool webServerAssignResources(int httpPort = 80)
 }
 
 //----------------------------------------
-// Get the webconfig state name
-//----------------------------------------
-const char *webServerGetStateName(uint8_t state, char *string)
-{
-    if (state < WEBSERVER_STATE_MAX)
-        return webServerStateNames[state];
-    sprintf(string, "Web Server: Unknown state (%d)", state);
-    return string;
-}
-
-//----------------------------------------
-// Determine if the web server is running
-//----------------------------------------
-bool webServerIsRunning()
-{
-    if (webServerState == WEBSERVER_STATE_RUNNING)
-        return (true);
-    return (false);
-}
-
-//----------------------------------------
 //----------------------------------------
 void webServerReleaseResources()
 {
@@ -737,188 +689,6 @@ void webServerReleaseResources()
         rtkFree(incomingSettings, "Settings buffer (incomingSettings)");
         incomingSettings = nullptr;
     }
-}
-
-//----------------------------------------
-// Set the next webconfig state
-//----------------------------------------
-void webServerSetState(uint8_t newState)
-{
-    char string1[40];
-    char string2[40];
-    const char *arrow = nullptr;
-    const char *asterisk = nullptr;
-    const char *initialState = nullptr;
-    const char *endingState = nullptr;
-
-    // Display the state transition
-    if (settings.debugWebServer)
-    {
-        arrow = "";
-        asterisk = "";
-        initialState = "";
-        if (newState == webServerState)
-            asterisk = "*";
-        else
-        {
-            initialState = webServerGetStateName(webServerState, string1);
-            arrow = " --> ";
-        }
-    }
-
-    // Set the new state
-    webServerState = newState;
-    if (settings.debugWebServer)
-    {
-        // Display the new firmware update state
-        endingState = webServerGetStateName(newState, string2);
-        if (!online.rtc)
-            systemPrintf("%s%s%s%s\r\n", asterisk, initialState, arrow, endingState);
-        else
-            // Timestamp the state change
-            systemPrintf("%s%s%s%s, %s\r\n", asterisk, initialState, arrow, endingState, getTimeStamp());
-    }
-
-    // Validate the state
-    if (newState >= WEBSERVER_STATE_MAX)
-        reportFatalError("Web Server: Invalid web config state");
-}
-
-//----------------------------------------
-// Start the Web Server state machine
-//----------------------------------------
-void webServerStart()
-{
-    // Display the heap state
-    reportHeapNow(settings.debugWebServer);
-
-    if (webServerState != WEBSERVER_STATE_OFF)
-    {
-        if (settings.debugWebServer)
-            systemPrintln("Web Server: Already running!");
-    }
-    else
-    {
-        if (settings.debugWebServer)
-            systemPrintln("Web Server: Starting");
-
-        // Start the network
-        if (networkInterfaceHasInternet(NETWORK_ETHERNET))
-            networkConsumerAdd(NETCONSUMER_WEB_CONFIG, NETWORK_ANY, __FILE__, __LINE__);
-        else if ((settings.wifiConfigOverAP == false) || networkInterfaceHasInternet(NETWORK_WIFI_STATION))
-            networkConsumerAdd(NETCONSUMER_WEB_CONFIG, NETWORK_ANY, __FILE__, __LINE__);
-        else if (settings.wifiConfigOverAP)
-            networkSoftApConsumerAdd(NETCONSUMER_WEB_CONFIG, __FILE__, __LINE__);
-        webServerSetState(WEBSERVER_STATE_WAIT_FOR_NETWORK);
-    }
-}
-
-//----------------------------------------
-// Stop the web config state machine
-//----------------------------------------
-void webServerStop()
-{
-    networkUserRemove(NETCONSUMER_WEB_CONFIG, __FILE__, __LINE__);
-    if (webServerState != WEBSERVER_STATE_OFF)
-    {
-        webServerReleaseResources(); // Release web server resources
-
-        // Stop network
-        systemPrintln("Web Server releasing network request");
-        networkSoftApConsumerRemove(NETCONSUMER_WEB_CONFIG, __FILE__, __LINE__);
-        networkConsumerRemove(NETCONSUMER_WEB_CONFIG, NETWORK_ANY, __FILE__, __LINE__);
-
-        // Stop the machine
-        webServerSetState(WEBSERVER_STATE_OFF);
-        if (settings.debugWebServer)
-            systemPrintln("Web Server: Stopped");
-
-        // Display the heap state
-        reportHeapNow(settings.debugWebServer);
-    }
-}
-
-//----------------------------------------
-// State machine to handle the starting/stopping of the web server
-//----------------------------------------
-void webServerUpdate()
-{
-    bool connected;
-
-    // Determine if the network is connected
-    connected = networkConsumerIsConnected(NETCONSUMER_WEB_CONFIG);
-
-    // Walk the state machine
-    switch (webServerState)
-    {
-    default:
-        systemPrintf("ERROR: Unknown Web Server state (%d)\r\n", webServerState);
-
-        // Stop the machine
-        webServerStop();
-        break;
-
-    case WEBSERVER_STATE_OFF:
-        // Wait until webServerStart() is called
-        break;
-
-    // Wait for connection to the network
-    case WEBSERVER_STATE_WAIT_FOR_NETWORK:
-        // Wait until the network is connected to the internet or has WiFi AP
-        if (connected || wifiSoftApRunning)
-        {
-            if (settings.debugWebServer)
-                systemPrintln("Web Server connected to network");
-
-            networkUserAdd(NETCONSUMER_WEB_CONFIG, __FILE__, __LINE__);
-            webServerSetState(WEBSERVER_STATE_NETWORK_CONNECTED);
-        }
-        break;
-
-    // Start the web server
-    case WEBSERVER_STATE_NETWORK_CONNECTED: {
-        // Determine if the network has failed
-        if (connected == false && wifiSoftApRunning == false)
-        {
-            networkUserRemove(NETCONSUMER_WEB_CONFIG, __FILE__, __LINE__);
-            webServerSetState(WEBSERVER_STATE_WAIT_FOR_NETWORK);
-        }
-
-        // Attempt to start the web server
-        else if (webServerAssignResources(settings.httpPort) == true)
-            webServerSetState(WEBSERVER_STATE_RUNNING);
-    }
-    break;
-
-    // Allow web services
-    case WEBSERVER_STATE_RUNNING:
-        // Determine if the network has failed
-        if (connected == false && wifiSoftApRunning == false)
-        {
-            webServerReleaseResources(); // Release web server resources
-            webServerSetState(WEBSERVER_STATE_WAIT_FOR_NETWORK);
-        }
-
-        // This state is exited when webServerStop() is called
-
-        break;
-    }
-
-    // Display an alive message
-    if (PERIODIC_DISPLAY(PD_WEB_SERVER_STATE))
-    {
-        systemPrintf("Web Server state: %s\r\n", webServerStateNames[webServerState]);
-        PERIODIC_CLEAR(PD_WEB_SERVER_STATE);
-    }
-}
-
-//----------------------------------------
-// Verify the web server tables
-//----------------------------------------
-void webServerVerifyTables()
-{
-    if (webServerStateEntries != WEBSERVER_STATE_MAX)
-        reportFatalError("Fix webServerStateNames to match WebServerState");
 }
 
 #endif // COMPILE_AP
