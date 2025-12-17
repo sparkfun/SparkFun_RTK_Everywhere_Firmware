@@ -377,7 +377,7 @@ void handleUpload()
 //----------------------------------------
 void notFound()
 {
-    if (settings.enableCaptivePortal == true && knownCaptiveUrl(webServer->uri()) == true)
+    if (settings.enableCaptivePortal && webSocketsCheckForKnownCaptiveUrl(webServer->uri().c_str()))
     {
         if (settings.debugWebServer == true)
         {
@@ -393,25 +393,6 @@ void notFound()
     String logmessage = "notFound: " + webServer->client().remoteIP().toString() + " " + webServer->uri();
     systemPrintln(logmessage);
     webServer->send(404, "text/plain", "Not found");
-}
-
-// These are the various files or endpoints that browsers will attempt to access to see if internet access is available
-// If one is requested, redirect user to captive portal
-String captiveUrls[] = {
-    "/hotspot-detect.html", "/library/test/success.html", "/generate_204", "/ncsi.txt", "/check_network_status.txt",
-    "/connecttest.txt"};
-
-static const uint8_t captiveUrlCount = sizeof(captiveUrls) / sizeof(captiveUrls[0]);
-
-// Check if given URI is a captive portal endpoint
-bool knownCaptiveUrl(String uri)
-{
-    for (int i = 0; i < captiveUrlCount; i++)
-    {
-        if (uri == captiveUrls[i])
-            return true;
-    }
-    return false;
 }
 
 //----------------------------------------
