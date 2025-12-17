@@ -83,6 +83,7 @@ static SemaphoreHandle_t webSocketsMutex;
 
 esp_err_t webSocketsHandlerFileList(httpd_req_t *req);
 esp_err_t webSocketsHandlerGetPage(httpd_req_t *req);
+esp_err_t webSocketsHandlerListMessages(httpd_req_t *req);
 
 //----------------------------------------
 // Web page descriptions
@@ -131,8 +132,11 @@ const GET_PAGE_HANDLER webSocketsPages[] =
     // File pages
     PAGE_HANDLER(22, "/listfiles", HTTP_GET, text_plain, webSocketsHandlerFileList),
 
+    // Message handlers
+    PAGE_HANDLER(23, "/listMessages", HTTP_GET, text_plain, webSocketsHandlerListMessages),
+
     // Add pages above this line
-    WEB_PAGE(23, "/", text_html, index_html),
+    WEB_PAGE(24, "/", text_html, index_html),
 };
 
 #define WEB_SOCKETS_SPECIAL_PAGES   2
@@ -235,6 +239,18 @@ void webSocketsCreateFirmwareVersionString(char *firmwareString)
     stringRecord(firmwareString, "newFirmwareVersion", newVersionCSV);
 
     strcat(firmwareString, "\0");
+}
+
+//----------------------------------------
+// When called, responds with the messages supported on this platform
+// Message name and current rate are formatted in CSV, formatted to html by JS
+//----------------------------------------
+void webSocketsCreateMessageList(String &returnText)
+{
+    returnText = "";
+    gnss->createMessageList(returnText);
+    if (settings.debugWebServer == true)
+        systemPrintf("returnText (%d bytes): %s\r\n", returnText.length(), returnText.c_str());
 }
 
 //----------------------------------------
@@ -607,6 +623,29 @@ esp_err_t webSocketsHandlerGetPage(httpd_req_t *req)
     httpd_resp_set_type(req, (const char *)*webpage->_type);
     httpd_resp_set_hdr(req, "Content-Encoding", "gzip");
     return httpd_resp_send(req, (const char *)webpage->_data, webpage->_length);
+}
+
+//----------------------------------------
+// Handler for supported messages list
+//----------------------------------------
+esp_err_t webSocketsHandlerListMessages(httpd_req_t *req)
+{
+    size_t bytes;
+    const char * data;
+    char ipAddress[80];
+    String messageList;
+
+    // Get the messages list
+    webSocketsCreateMessageList(messageList);
+    data = messageList.c_str();
+    bytes = messageList.length();
+
+    // Display the request and response
+    webSocketsDisplayRequestAndData(req, data, bytes);
+
+    // Send the response
+    httpd_resp_set_type(req, text_plain);
+    return httpd_resp_send(req, data, bytes);
 }
 
 //----------------------------------------
