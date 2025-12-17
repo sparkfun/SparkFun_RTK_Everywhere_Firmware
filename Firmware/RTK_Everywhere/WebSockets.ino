@@ -133,6 +133,94 @@ void webSocketsCreateFirmwareVersionString(char *firmwareString)
 }
 
 //----------------------------------------
+// Display the request
+//----------------------------------------
+void webSocketsDisplayRequest(httpd_req_t *req)
+{
+    // Display the request and response
+    if (settings.debugWebServer == true)
+    {
+        char ipAddress[80];
+
+        webSocketsGetClientIpAddressAndPort(req, ipAddress, sizeof(ipAddress));
+        systemPrintf("WebServer Client: %s%s\r\n", ipAddress, req->uri);
+    }
+}
+
+//----------------------------------------
+// Get the client IP address
+//----------------------------------------
+void webSocketsGetClientIpAddressAndPort(httpd_req_t *req,
+                                         char * ipAddress,
+                                         size_t ipAddressBytes)
+{
+    socklen_t addrBytes;
+    const uint8_t ip4Address[12] =
+    {
+        0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0xff, 0xff
+    };
+    struct sockaddr_in6 ip6Address;
+    bool isIp6Address;
+    size_t requiredStringLength;
+    int socketFD;
+    char temp[32 + 7 + 1];
+
+    // Validate the parameters
+    if (ipAddress == nullptr)
+    {
+        systemPrintf("ERROR: ipAddress must be specified in WebSockets\r\n");
+        return;
+    }
+    if (ipAddressBytes == 0)
+    {
+        systemPrintf("ERROR: ipAddressBytes must be > 0 in WebSockets\r\n");
+        return;
+    }
+    ipAddress[0] = 0;
+
+    // Get the socket's file descriptor
+    socketFD = httpd_req_to_sockfd(req);
+
+    // Get the IP6 address of the client from the httpd server
+    addrBytes = sizeof(ip6Address);
+    if (getpeername(socketFD, (struct sockaddr *)&ip6Address, &addrBytes) < 0)
+    {
+        if (settings.debugWebServer == true)
+            systemPrintf("ERROR: WebSockets failed to get client IP address\r\n");
+        return;
+    }
+
+    // Determine the type of IP address
+    isIp6Address = (memcmp(&ip6Address.sin6_addr, &ip4Address, sizeof(ip4Address)) != 0);
+
+    // Convert the IPv6 address into a string
+    if (isIp6Address)
+        inet_ntop(AF_INET6, &ip6Address.sin6_addr, temp, sizeof(temp));
+    else
+        inet_ntop(AF_INET, &ip6Address.sin6_addr.un.u8_addr[12], temp, sizeof(temp));
+
+    // Verify the length of the output buffer
+    requiredStringLength = (isIp6Address ? 1 : 0)   // Left bracket (IP6 only)
+                         + strlen(temp)             // IP address
+                         + (isIp6Address ? 1 : 0)   // Right bracket (IP6 only)
+                         + 1    // Colon
+                         + 5    // Port number
+                         + 1;   // Zero termination
+    if (ipAddressBytes < requiredStringLength)
+    {
+        if (settings.debugWebServer == true)
+            systemPrintf("ERROR: WebSockets failed to get client IP address\r\n");
+        return;
+    }
+
+    // Build the IP address string
+    if (isIp6Address)
+        sprintf(ipAddress, "[%s]:%d", temp, ip6Address.sin6_port);
+    else
+        sprintf(ipAddress, "%s:%d", temp, ip6Address.sin6_port);
+}
+
+//----------------------------------------
 // Handler for web sockets requests
 //----------------------------------------
 static esp_err_t webSocketsHandler(httpd_req_t *req)
@@ -294,11 +382,81 @@ static esp_err_t webSocketsHandler(httpd_req_t *req)
 }
 
 //----------------------------------------
+// Generate the Not Found page
+//----------------------------------------
+esp_err_t webSocketsHandlerPageNotFound(httpd_req_t *req, httpd_err_code_t err)
+{
+    char ipAddress[80];
+    String logMessage;
+
+    // Display an error
+    webSocketsGetClientIpAddressAndPort(req, ipAddress, sizeof(ipAddress));
+    logMessage = "WebSockets, Page ";
+    logMessage += req->uri;
+    logMessage += " not found, cliient: ";
+    logMessage += ipAddress;
+    systemPrintln(logMessage);
+
+/*
+    if (settings.enableCaptivePortal == true && knownCaptiveUrl(webServer->uri()) == true)
+    {
+        if (settings.debugWebServer == true)
+        {
+            String logmessage =
+                "Known captive URI: " + webServer->client().remoteIP().toString() + " " + webServer->uri();
+            systemPrintln(logmessage);
+        }
+        webServer->sendHeader("Location", "/");
+        webServer->send(302, "text/plain", "Redirect to Web Config");
+        return;
+    }
+*/
+
+    // Set the 404 status code
+    const char * statusText = "Error 404, page not found";
+    httpd_resp_set_status(req, statusText);
+
+    // Set the content type
+    httpd_resp_set_type(req, "text/html");
+
+    // Send the response
+    String htmlResponse = "<h1>";
+    htmlResponse += statusText;
+    htmlResponse += "</h1><p>The requested page (";
+    htmlResponse += req->uri;
+    htmlResponse += ") was not found.</p>";
+    httpd_resp_send(req, htmlResponse.c_str(), htmlResponse.length());
+
+    // Return ESP_OK to indicate the error was handled successfully
+    return ESP_OK;
+}
+
+//----------------------------------------
 // Determine if webSockets is connected to a client
 //----------------------------------------
 bool webSocketsIsConnected()
 {
     return (webSocketsClientListHead != nullptr);
+}
+
+//----------------------------------------
+// Register an error handler
+//----------------------------------------
+bool webSocketsRegisterErrorHandler(httpd_err_code_t error,
+                                    httpd_err_handler_func_t handler)
+{
+    esp_err_t status;
+
+    // Register the error handler
+    status = httpd_register_err_handler(webSocketsHandle, error, handler);
+    if (settings.debugWebServer == true)
+    {
+        if (status == ESP_OK)
+            systemPrintf("webSockets registered %d error handler\r\n", error);
+        else
+            systemPrintf("webSockets Failed to register %d error handler!\r\n", error);
+    }
+    return (status == ESP_OK);
 }
 
 //----------------------------------------
@@ -460,11 +618,29 @@ bool webSocketsStart(void)
     status = httpd_start(&webSocketsHandle, &config);
     if (status == ESP_OK)
     {
-        // Registering the ws handler
-        if (settings.debugWebServer == true)
-            systemPrintln("webSockets registering URI handlers");
-        httpd_register_uri_handler(webSocketsHandle, &webSocketsPage);
-        return true;
+        do
+        {
+            if (settings.debugWebServer == true)
+                systemPrintln("webSockets registering page handlers");
+
+            // Register the page not found (404) error handler
+            if (!webSocketsRegisterErrorHandler(HTTPD_404_NOT_FOUND,
+                                                webSocketsHandlerPageNotFound))
+                break;
+
+            // Registering the ws handler
+            if (settings.debugWebServer == true)
+                systemPrintln("webSockets registering URI handlers");
+            httpd_register_uri_handler(webSocketsHandle, &webSocketsPage);
+
+            // The web server is ready to handle incoming requests
+            if (settings.debugWebServer)
+                systemPrintf("webSockets successfully started\r\n");
+            return true;
+        } while (0);
+
+        // Stop the web server
+        httpd_stop(webSocketsHandle);
     }
 
     // Display the failure to start

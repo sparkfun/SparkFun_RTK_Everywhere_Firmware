@@ -181,6 +181,7 @@ RTK_Everywhere.ino
 #include <NetworkClient.h>
 #include <NetworkClientSecure.h>
 #include <NetworkUdp.h>
+#include <lwip/sockets.h>
 #endif // COMPILE_NETWORK
 
 #define RTK_MAX_CONNECTION_MSEC (15 * MILLISECONDS_IN_A_MINUTE)
