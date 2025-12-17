@@ -10,7 +10,7 @@ WebSockets.ino
 // Constants
 //----------------------------------------
 
-static const int webSocketsStackSize = 1024 * 20;   // Needs to be large enough to hold the full settingsCSV
+static const int webSocketsStackSize = 1024 * 20;
 
 //----------------------------------------
 // New types
@@ -37,14 +37,14 @@ static SemaphoreHandle_t webSocketsMutex;
 // Create a csv string with the dynamic data to update (current coordinates,
 // battery level, etc)
 //----------------------------------------
-void webSocketsCreateDynamicDataString(char *settingsCSV)
+void webSocketsCreateDynamicDataString(char *csvList)
 {
-    settingsCSV[0] = '\0'; // Erase current settings string
+    csvList[0] = '\0'; // Erase current settings string
 
     // Current coordinates come from HPPOSLLH call back
-    stringRecord(settingsCSV, "geodeticLat", gnss->getLatitude(), haeNumberOfDecimals);
-    stringRecord(settingsCSV, "geodeticLon", gnss->getLongitude(), haeNumberOfDecimals);
-    stringRecord(settingsCSV, "geodeticAlt", gnss->getAltitude(), 3);
+    stringRecord(csvList, "geodeticLat", gnss->getLatitude(), haeNumberOfDecimals);
+    stringRecord(csvList, "geodeticLon", gnss->getLongitude(), haeNumberOfDecimals);
+    stringRecord(csvList, "geodeticAlt", gnss->getAltitude(), 3);
 
     double ecefX = 0;
     double ecefY = 0;
@@ -52,14 +52,14 @@ void webSocketsCreateDynamicDataString(char *settingsCSV)
 
     geodeticToEcef(gnss->getLatitude(), gnss->getLongitude(), gnss->getAltitude(), &ecefX, &ecefY, &ecefZ);
 
-    stringRecord(settingsCSV, "ecefX", ecefX, 3);
-    stringRecord(settingsCSV, "ecefY", ecefY, 3);
-    stringRecord(settingsCSV, "ecefZ", ecefZ, 3);
+    stringRecord(csvList, "ecefX", ecefX, 3);
+    stringRecord(csvList, "ecefY", ecefY, 3);
+    stringRecord(csvList, "ecefZ", ecefZ, 3);
 
     if (online.batteryFuelGauge == false) // Product has no battery
     {
-        stringRecord(settingsCSV, "batteryIconFileName", (char *)"src/BatteryBlank.png");
-        stringRecord(settingsCSV, "batteryPercent", (char *)" ");
+        stringRecord(csvList, "batteryIconFileName", (char *)"src/BatteryBlank.png");
+        stringRecord(csvList, "batteryPercent", (char *)" ");
     }
     else
     {
@@ -81,7 +81,7 @@ void webSocketsCreateDynamicDataString(char *settingsCSV)
         else
             snprintf(batteryIconFileName, sizeof(batteryIconFileName), "src/Battery%d.png", iconLevel);
 
-        stringRecord(settingsCSV, "batteryIconFileName", batteryIconFileName);
+        stringRecord(csvList, "batteryIconFileName", batteryIconFileName);
 
         // Limit batteryLevelPercent to sane levels
         if (batteryLevelPercent > 100)
@@ -93,21 +93,21 @@ void webSocketsCreateDynamicDataString(char *settingsCSV)
             snprintf(batteryPercent, sizeof(batteryPercent), "+%d%%", batteryLevelPercent);
         else
             snprintf(batteryPercent, sizeof(batteryPercent), "%d%%", batteryLevelPercent);
-        stringRecord(settingsCSV, "batteryPercent", batteryPercent);
+        stringRecord(csvList, "batteryPercent", batteryPercent);
     }
 
-    strcat(settingsCSV, "\0");
+    strcat(csvList, "\0");
 }
 
 //----------------------------------------
 // Report back to the web config page with a CSV that contains the either CURRENT or
 // the latest version as obtained by the OTA state machine
 //----------------------------------------
-void webSocketsCreateFirmwareVersionString(char *settingsCSV)
+void webSocketsCreateFirmwareVersionString(char *firmwareString)
 {
     char newVersionCSV[100];
 
-    settingsCSV[0] = '\0'; // Erase current settings string
+    firmwareString[0] = '\0'; // Erase current settings string
 
     // Create a string of the unit's current firmware version
     char currentVersion[21];
@@ -127,9 +127,9 @@ void webSocketsCreateFirmwareVersionString(char *settingsCSV)
         snprintf(newVersionCSV, sizeof(newVersionCSV), "CURRENT,");
     }
 
-    stringRecord(settingsCSV, "newFirmwareVersion", newVersionCSV);
+    stringRecord(firmwareString, "newFirmwareVersion", newVersionCSV);
 
-    strcat(settingsCSV, "\0");
+    strcat(firmwareString, "\0");
 }
 
 //----------------------------------------
@@ -182,9 +182,19 @@ static esp_err_t webSocketsHandler(httpd_req_t *req)
                          client->_request, client->_socketFD);
 
         lastDynamicDataUpdate = millis();
-        webSocketsSendString(settingsCSV);
 
-        return ESP_OK;
+        // Send new settings to browser.
+        char * settingsCsvList = (char *)rtkMalloc(AP_CONFIG_SETTING_SIZE, "Command CSV settings list");
+        if (settingsCsvList)
+        {
+            createSettingsString(settingsCsvList);
+            webSocketsSendString(settingsCsvList);
+            rtkFree(settingsCsvList, "Command CSV settings list");
+            return ESP_OK;
+        }
+        if (settings.debugWebServer == true)
+            systemPrintf("ERROR: Failed to allocate settings CSV list!\r\n");
+        return ESP_FAIL;
     }
 
     httpd_ws_frame_t ws_pkt;
@@ -277,8 +287,6 @@ static esp_err_t webSocketsHandler(httpd_req_t *req)
     {
         if (settings.debugWebServer == true)
             systemPrintln("WebSockets: Client closed or refreshed the web page");
-
-        createSettingsString(settingsCSV);
     }
 
     rtkFree(buf, "Payload buffer (buf)");
@@ -298,12 +306,22 @@ bool webSocketsIsConnected()
 //----------------------------------------
 void webSocketsSendFirmwareVersion(void)
 {
-    webSocketsCreateFirmwareVersionString(settingsCSV);
+    char * firmwareVersion;
 
-    if (settings.debugWebServer)
-        systemPrintf("WebSockets: Firmware version requested. Sending: %s\r\n", settingsCSV);
+    firmwareVersion = (char *)rtkMalloc(AP_FIRMWARE_VERSION_SIZE, "WebSockets firmware description");
+    if (firmwareVersion == nullptr)
+        systemPrintf("ERROR: WebSockets failed to allocate firmware description\r\n");
+    else
+    {
+        webSocketsCreateFirmwareVersionString(firmwareVersion);
 
-    webSocketsSendString(settingsCSV);
+        if (settings.debugWebServer)
+            systemPrintf("WebSockets: Firmware version requested. Sending: %s\r\n",
+                         firmwareVersion);
+
+        webSocketsSendString(firmwareVersion);
+        rtkFree(firmwareVersion, "WebSockets firmware description");
+    }
 }
 
 //----------------------------------------
@@ -311,8 +329,17 @@ void webSocketsSendFirmwareVersion(void)
 //----------------------------------------
 void webSocketsSendSettings(void)
 {
-    webSocketsCreateDynamicDataString(settingsCSV);
-    webSocketsSendString(settingsCSV);
+    char * settingsCsvList;
+
+    settingsCsvList = (char *)rtkMalloc(AP_CONFIG_SETTING_SIZE, "WebSockets CSV settings list");
+    if (settingsCsvList == nullptr)
+        systemPrintf("ERROR: WebSockets failed to allocate settings CSV list\r\n");
+    else
+    {
+        webSocketsCreateDynamicDataString(settingsCsvList);
+        webSocketsSendString(settingsCsvList);
+        rtkFree(settingsCsvList, "WebSockets CSV settings list");
+    }
 }
 
 //----------------------------------------
@@ -373,7 +400,7 @@ void webSocketsSendString(const char *stringToSend)
 
         // Successfully sent the message
         else if (settings.debugWebServer == true)
-                systemPrintf("webSocketsSendString: %s\r\n", stringToSend);
+            systemPrintf("webSocketsSendString: %s\r\n", stringToSend);
 
         // Get the next client
         client = nextClient;
@@ -406,8 +433,6 @@ bool webSocketsStart(void)
 
     // Use different ports for websocket and webServer - use port 81 for the websocket - also defined in main.js
     config.server_port = 81;
-
-    // Increase the stack size from 4K to handle page processing (settingsCSV)
     config.stack_size = webSocketsStackSize;
 
     // Start the httpd server
