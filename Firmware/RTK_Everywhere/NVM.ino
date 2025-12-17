@@ -53,7 +53,7 @@ bool loadSystemSettingsFromFileSD(char *fileName, const char *findMe = nullptr, 
 // We use the LittleFS library to store user profiles in SPIFFs
 // Move selected user profile from SPIFFs into settings struct (RAM)
 // We originally used EEPROM but it was limited to 4096 bytes. Each settings struct is ~4000 bytes
-// so multiple user profiles wouldn't fit. Prefences was limited to a single putBytes of ~3000 bytes.
+// so multiple user profiles wouldn't fit. Preferences was limited to a single putBytes of ~3000 bytes.
 // So we moved again to SPIFFs. It's being replaced by LittleFS so here we are.
 void loadSettings()
 {
@@ -1220,7 +1220,7 @@ int getLine(File *openFile, char *lineChars, int lineSize)
         lineChars[count++] = incoming;
 
         if (count == lineSize - 1)
-            break; // Stop before overun of buffer
+            break; // Stop before overrun of buffer
     }
     lineChars[count] = '\0'; // Terminate string
     return (count);
