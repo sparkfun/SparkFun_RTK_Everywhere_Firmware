@@ -3,8 +3,7 @@
 const char *accessoryName = "SparkPNT RTK Flex";
 const char *manufacturer = "SparkFun Electronics";
 const char *hardwareVersion = "1.0.0";
-const char *EAProtocol = "com.sparkfun.rtk";
-//const char *BTTransportName = "com.sparkfun.bt";
+const char *EAProtocol = "com.bad-elf.gps"; // "com.sparkfun.rtk";
 const char *BTTransportName = "Bluetooth";
 const char *LIComponentName = "com.sparkfun.li";
 
@@ -14,9 +13,9 @@ const char *LIComponentName = "com.sparkfun.li";
 // the top-left of a Product Plan form.
 const char *productPlanUID = "e9e877bb278140f0";
 
-// The "Serial Port" is allocated RFCOMM channel 1
-// We can use RFCOMM channel 2 for iAP2
-const int rfcommChanneliAP2 = 2;
+const int rfcommChanneliAP2 = 2; // Use RFCOMM channel 2 for iAP2
+
+volatile bool sdpCreateRecordEvent = false; // Flag to indicate when the iAP2 record has been created
 
 extern BTSerialInterface *bluetoothSerialSpp;
 
@@ -93,34 +92,30 @@ void updateAuthCoPro()
         {
             appleAccessory->update(); // Update the Accessory driver
 
+            // Check if the iAP2 SDP record has been created
+            // If it has, restart the SPP Server using rfcommChanneliAP2
+            if (sdpCreateRecordEvent)
+            {
+                sdpCreateRecordEvent = false;
+                esp_spp_stop_srv();
+                esp_spp_start_srv(ESP_SPP_SEC_NONE, ESP_SPP_ROLE_SLAVE, rfcommChanneliAP2, "ESP32SPP2");
+            }
+
             // Check for a new device connection
             // Note: aclConnected is a one-shot
             //       The internal flag is automatically cleared when aclConnected returns true
             if (bluetoothSerialSpp->aclConnected() == true)
             {
                 char bda_str[18];
-                systemPrintf("Apple Device %s found\r\n", bda2str(bluetoothSerialSpp->aclGetAddress(), bda_str, 18));
+                systemPrintf("Apple Device %s found. Waiting for connection...\r\n", bda2str(bluetoothSerialSpp->aclGetAddress(), bda_str, 18));
 
-                // Allow time for the pairing to complete
-                // (TODO: use ESP_BT_GAP_AUTH_CMPL_EVT or getBondedDevices to avoid the delay)
-                delay(500);
-
-                // Copy the phone address, while we are still connected
-                uint8_t aclAddress[ESP_BD_ADDR_LEN];
-                memcpy(aclAddress, bluetoothSerialSpp->aclGetAddress(), ESP_BD_ADDR_LEN);
-
-                systemPrintln("Switching Bluetooth mode");
-
-                // Switch to MASTER mode
-                bluetoothSerialSpp->begin(
-                    accessoryName, true, true, settings.sppRxQueueSize, settings.sppTxQueueSize, 0, 0,
-                    0); // localName, isMaster, disableBLE, rxBufferSize, txBufferSize, serviceID, rxID, txID
-
-                int channel = rfcommChanneliAP2; // RFCOMM channel
-                if (settings.debugNetworkLayer)
-                    systemPrintf("Connecting on channel %d\r\n", channel);
-
-                bluetoothSerialSpp->connect(aclAddress, channel); // Connect as MASTER
+                unsigned long connectionStart = millis();
+                while ((millis() - connectionStart) < 5000)
+                {
+                    if (bluetoothSerialSpp->connected())
+                        break;
+                    delay(10);
+                }
 
                 if (bluetoothSerialSpp->connected())
                 {

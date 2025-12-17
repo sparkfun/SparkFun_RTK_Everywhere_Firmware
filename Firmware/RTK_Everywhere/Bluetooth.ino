@@ -413,6 +413,7 @@ void deviceNameUnderscoresToSpaces()
 // Callback for Service Discovery Protocol
 // This allows the iAP2 record to be created _after_ SDP is initialized
 extern const int rfcommChanneliAP2;
+extern volatile bool sdpCreateRecordEvent;
 static void esp_sdp_callback(esp_sdp_cb_event_t event, esp_sdp_cb_param_t *param)
 {
     switch (event) {
@@ -421,8 +422,6 @@ static void esp_sdp_callback(esp_sdp_cb_event_t event, esp_sdp_cb_param_t *param
             systemPrintf("ESP_SDP_INIT_EVT: status: %d\r\n", param->init.status);
         if (param->init.status == ESP_SDP_SUCCESS) {
             // SDP has been initialized. _Now_ we can create the iAP2 record!
-            // Serial Port will have RFCOMM channel 1
-            // For iAP2, we need to specify channel 2
             esp_bluetooth_sdp_hdr_overlay_t record = {(esp_bluetooth_sdp_types_t)0};
             record.type = ESP_SDP_TYPE_RAW;
             record.uuid.len = sizeof(UUID_IAP2);
@@ -448,6 +447,7 @@ static void esp_sdp_callback(esp_sdp_cb_event_t event, esp_sdp_cb_param_t *param
     case ESP_SDP_CREATE_RECORD_COMP_EVT:
         if (settings.debugNetworkLayer)
             systemPrintf("ESP_SDP_CREATE_RECORD_COMP_EVT: status: %d\r\n", param->create_record.status);
+        sdpCreateRecordEvent = true; // Flag that the iAP2 record has been created
         break;
     case ESP_SDP_REMOVE_RECORD_COMP_EVT:
         if (settings.debugNetworkLayer)
@@ -616,15 +616,12 @@ void bluetoothStart(bool skipOnlineCheck)
             //bluetoothSerialSpp->enableSSP(true, true); // Enable secure pairing with PIN
             //bluetoothSerialSpp->onConfirmRequest(&BTConfirmRequestCallback); // Callback to verify the PIN
 
-            // Start initially in SLAVE mode
             beginSuccess &= bluetoothSerialSpp->begin(
                 accessoryName, false, true, settings.sppRxQueueSize, settings.sppTxQueueSize, 0, 0,
                 0); // localName, isMaster, disableBLE, rxBufferSize, txBufferSize, serviceID, rxID, txID
 
             if (beginSuccess)
             {
-                // bluetoothSerialSpp.getBtAddress(btMACAddress); // Read the ESP32 BT MAC Address
-
                 if (settings.clearBtPairings)
                 {
                     // Paired / bonded devices are stored in flash. Only a full flash erase
@@ -642,8 +639,6 @@ void bluetoothStart(bool skipOnlineCheck)
 
 #ifdef  COMPILE_AUTHENTICATION
                 // The SDP callback will create the iAP2 record
-                // Doing it this way ensures the Serial Port record is created first
-                // The iAP2 record is created second, and we can select RFCOMM channel 2
                 esp_sdp_register_callback(esp_sdp_callback);
                 esp_sdp_init();
 #endif  // COMPILE_AUTHENTICATION
