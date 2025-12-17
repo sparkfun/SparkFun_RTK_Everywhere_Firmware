@@ -40,6 +40,20 @@ static const char *const webServerStateNames[] = {
 };
 static const int webServerStateEntries = sizeof(webServerStateNames) / sizeof(webServerStateNames[0]);
 
+// These are the various files or endpoints that browsers will attempt to
+// access to see if internet access is available.  If one is requested,
+// redirect user to captive portal (main page "/").
+const char * webSocketsCaptiveUrls[] =
+{
+    "/hotspot-detect.html",
+    "/library/test/success.html",
+    "/generate_204",
+    "/ncsi.txt",
+    "/check_network_status.txt",
+    "/connecttest.txt"
+};
+const uint8_t webSocketsCaptiveUrlCount = sizeof(webSocketsCaptiveUrls) / sizeof(webSocketsCaptiveUrls[0]);
+
 //----------------------------------------
 // New types
 //----------------------------------------
@@ -169,6 +183,19 @@ const GET_PAGE_HANDLER webSocketsPages[] =
 
 #define WEB_SOCKETS_SPECIAL_PAGES   2
 #define WEB_SOCKETS_TOTAL_PAGES     (sizeof(webSocketsPages) / sizeof(GET_PAGE_HANDLER))
+
+//----------------------------------------
+// Check if given URI is a captive portal endpoint
+//----------------------------------------
+bool webSocketsCheckForKnownCaptiveUrl(const char * uri)
+{
+    for (int i = 0; i < webSocketsCaptiveUrlCount; i++)
+    {
+        if (strcmp(uri, webSocketsCaptiveUrls[i]) == 0)
+            return true;
+    }
+    return false;
+}
 
 //----------------------------------------
 // Create a csv string with the dynamic data to update (current coordinates,
@@ -1309,6 +1336,24 @@ esp_err_t webSocketsHandlerPageNotFound(httpd_req_t *req, httpd_err_code_t err)
     char ipAddress[80];
     String logMessage;
 
+    // Handle the captive portal pages
+    if (settings.enableCaptivePortal
+        && webSocketsCheckForKnownCaptiveUrl(req->uri))
+    {
+        if (settings.debugWebServer == true)
+        {
+            char ipAddress[80];
+
+            webSocketsGetClientIpAddressAndPort(req, ipAddress, sizeof(ipAddress));
+            systemPrintf("WebSockets: Captive page %s referenced from %s\r\n", req->uri, ipAddress);
+        }
+
+        // Redirect to the main page
+        httpd_resp_set_status(req, "302 redirect");
+        httpd_resp_set_hdr(req, "Location", "/");
+        return httpd_resp_sendstr(req, "Redirect to Web Config");
+    }
+
     // Display an error
     webSocketsGetClientIpAddressAndPort(req, ipAddress, sizeof(ipAddress));
     logMessage = "WebSockets, Page ";
@@ -1316,21 +1361,6 @@ esp_err_t webSocketsHandlerPageNotFound(httpd_req_t *req, httpd_err_code_t err)
     logMessage += " not found, cliient: ";
     logMessage += ipAddress;
     systemPrintln(logMessage);
-
-/*
-    if (settings.enableCaptivePortal == true && knownCaptiveUrl(webServer->uri()) == true)
-    {
-        if (settings.debugWebServer == true)
-        {
-            String logmessage =
-                "Known captive URI: " + webServer->client().remoteIP().toString() + " " + webServer->uri();
-            systemPrintln(logmessage);
-        }
-        webServer->sendHeader("Location", "/");
-        webServer->send(302, "text/plain", "Redirect to Web Config");
-        return;
-    }
-*/
 
     // Set the 404 status code
     const char * statusText = "Error 404, page not found";
