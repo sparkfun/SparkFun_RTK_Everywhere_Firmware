@@ -42,6 +42,19 @@ typedef struct _WEB_SOCKETS_CLIENT
 // Macros
 //----------------------------------------
 
+#define PAGE_HANDLER(index, page, httpMethod, type, routine)    \
+    {                                               \
+        {                                           \
+            .uri = page,                            \
+            .method = httpMethod,                   \
+            .handler = routine,                     \
+            .user_ctx = (void *)index,              \
+        },                                          \
+        &type,                                      \
+        nullptr,                                    \
+        0,                                          \
+    }
+
 #define WEB_PAGE(index, page, type, data)           \
     {                                               \
         {                                           \
@@ -68,6 +81,7 @@ static SemaphoreHandle_t webSocketsMutex;
 // Forward routines
 //----------------------------------------
 
+esp_err_t webSocketsHandlerFileList(httpd_req_t *req);
 esp_err_t webSocketsHandlerGetPage(httpd_req_t *req);
 
 //----------------------------------------
@@ -114,8 +128,11 @@ const GET_PAGE_HANDLER webSocketsPages[] =
     WEB_PAGE(20, "/src/bootstrap.min.css", text_css, bootstrap_min_css),
     WEB_PAGE(21, "/src/style.css", text_css, style_css),
 
+    // File pages
+    PAGE_HANDLER(22, "/listfiles", HTTP_GET, text_plain, webSocketsHandlerFileList),
+
     // Add pages above this line
-    WEB_PAGE(22, "/", text_html, index_html),
+    WEB_PAGE(23, "/", text_html, index_html),
 };
 
 #define WEB_SOCKETS_SPECIAL_PAGES   2
@@ -327,6 +344,67 @@ void webSocketsGetClientIpAddressAndPort(httpd_req_t *req,
 }
 
 //----------------------------------------
+// When called, responds with the root folder list of files on SD card
+// Name and size are formatted in CSV, formatted to html by JS
+//----------------------------------------
+void webSocketsGetFileList(String &returnText)
+{
+    returnText = "";
+
+    // Update the SD Size and Free Space
+    String cardSize;
+    stringHumanReadableSize(cardSize, sdCardSize);
+    returnText += "sdSize," + cardSize + ",";
+    String freeSpace;
+    stringHumanReadableSize(freeSpace, sdFreeSpace);
+    returnText += "sdFreeSpace," + freeSpace + ",";
+
+    char fileName[50]; // Handle long file names
+
+    // Attempt to gain access to the SD card
+    if (xSemaphoreTake(sdCardSemaphore, fatSemaphore_longWait_ms) == pdPASS)
+    {
+        markSemaphore(FUNCTION_FILEMANAGER_UPLOAD1);
+
+        SdFile root;
+        root.open("/"); // Open root
+        SdFile file;
+        uint16_t fileCount = 0;
+
+        while (file.openNext(&root, O_READ))
+        {
+            if (file.isFile())
+            {
+                fileCount++;
+
+                file.getName(fileName, sizeof(fileName));
+
+                String fileSize;
+                stringHumanReadableSize(fileSize, file.fileSize());
+                returnText += "fmName," + String(fileName) + ",fmSize," + fileSize + ",";
+            }
+        }
+
+        root.close();
+        file.close();
+
+        xSemaphoreGive(sdCardSemaphore);
+    }
+    else
+    {
+        char semaphoreHolder[50];
+        getSemaphoreFunction(semaphoreHolder);
+
+        // This is an error because the current settings no longer match the settings
+        // on the microSD card, and will not be restored to the expected settings!
+        systemPrintf("sdCardSemaphore failed to yield, held by %s, Form.ino line %d\r\n", semaphoreHolder, __LINE__);
+    }
+
+    if (settings.debugWebServer == true)
+        systemPrintf("returnText (%d bytes): %s\r\n", returnText.length(), returnText.c_str());
+}
+
+//----------------------------------------
 // Handler for web sockets requests
 //----------------------------------------
 static esp_err_t webSocketsHandler(httpd_req_t *req)
@@ -485,6 +563,29 @@ static esp_err_t webSocketsHandler(httpd_req_t *req)
 
     rtkFree(buf, "Payload buffer (buf)");
     return ret;
+}
+
+//----------------------------------------
+// Handler to list the microSD card files
+//----------------------------------------
+esp_err_t webSocketsHandlerFileList(httpd_req_t *req)
+{
+    size_t bytes;
+    const char * data;
+    String fileList;
+    char ipAddress[80];
+
+    // Get the file list
+    webSocketsGetFileList(fileList);
+    data = fileList.c_str();
+    bytes = fileList.length();
+
+    // Display the request and response
+    webSocketsDisplayRequestAndData(req, data, bytes);
+
+    // Send the response
+    httpd_resp_set_type(req, text_plain);
+    return httpd_resp_send(req, data, bytes);
 }
 
 //----------------------------------------

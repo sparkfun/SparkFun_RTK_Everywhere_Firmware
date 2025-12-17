@@ -98,67 +98,6 @@ void createMessageListBase(String &returnText)
 }
 
 //----------------------------------------
-// When called, responds with the root folder list of files on SD card
-// Name and size are formatted in CSV, formatted to html by JS
-//----------------------------------------
-void getFileList(String &returnText)
-{
-    returnText = "";
-
-    // Update the SD Size and Free Space
-    String cardSize;
-    stringHumanReadableSize(cardSize, sdCardSize);
-    returnText += "sdSize," + cardSize + ",";
-    String freeSpace;
-    stringHumanReadableSize(freeSpace, sdFreeSpace);
-    returnText += "sdFreeSpace," + freeSpace + ",";
-
-    char fileName[50]; // Handle long file names
-
-    // Attempt to gain access to the SD card
-    if (xSemaphoreTake(sdCardSemaphore, fatSemaphore_longWait_ms) == pdPASS)
-    {
-        markSemaphore(FUNCTION_FILEMANAGER_UPLOAD1);
-
-        SdFile root;
-        root.open("/"); // Open root
-        SdFile file;
-        uint16_t fileCount = 0;
-
-        while (file.openNext(&root, O_READ))
-        {
-            if (file.isFile())
-            {
-                fileCount++;
-
-                file.getName(fileName, sizeof(fileName));
-
-                String fileSize;
-                stringHumanReadableSize(fileSize, file.fileSize());
-                returnText += "fmName," + String(fileName) + ",fmSize," + fileSize + ",";
-            }
-        }
-
-        root.close();
-        file.close();
-
-        xSemaphoreGive(sdCardSemaphore);
-    }
-    else
-    {
-        char semaphoreHolder[50];
-        getSemaphoreFunction(semaphoreHolder);
-
-        // This is an error because the current settings no longer match the settings
-        // on the microSD card, and will not be restored to the expected settings!
-        systemPrintf("sdCardSemaphore failed to yield, held by %s, Form.ino line %d\r\n", semaphoreHolder, __LINE__);
-    }
-
-    if (settings.debugWebServer == true)
-        systemPrintf("returnText (%d bytes): %s\r\n", returnText.length(), returnText.c_str());
-}
-
-//----------------------------------------
 // Handler for firmware file downloads
 //----------------------------------------
 static void handleFileManager()
@@ -770,7 +709,7 @@ bool webServerAssignResources(int httpPort = 80)
             if (settings.debugWebServer == true)
                 systemPrintln(logmessage);
             String files;
-            getFileList(files);
+            webSocketsGetFileList(files);
             webServer->send(200, "text/plain", files);
         });
 
