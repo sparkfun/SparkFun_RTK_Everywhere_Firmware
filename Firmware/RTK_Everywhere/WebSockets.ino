@@ -153,13 +153,14 @@ const GET_PAGE_HANDLER webSocketsPages[] =
 
     // File pages
     PAGE_HANDLER(22, "/listfiles", HTTP_GET, text_plain, webSocketsHandlerFileList),
+    PAGE_HANDLER(23, "/file", HTTP_GET, text_plain, webSocketsHandlerFileManager),
 
     // Message handlers
-    PAGE_HANDLER(23, "/listMessages", HTTP_GET, text_plain, webSocketsHandlerListMessages),
-    PAGE_HANDLER(24, "/listMessagesBase", HTTP_GET, text_plain, webSocketsHandlerListBaseMessages),
+    PAGE_HANDLER(24, "/listMessages", HTTP_GET, text_plain, webSocketsHandlerListMessages),
+    PAGE_HANDLER(25, "/listMessagesBase", HTTP_GET, text_plain, webSocketsHandlerListBaseMessages),
 
     // Add pages above this line
-    WEB_PAGE(25, "/", text_html, index_html),
+    WEB_PAGE(26, "/", text_html, index_html),
 };
 
 #define WEB_SOCKETS_SPECIAL_PAGES   2
@@ -319,6 +320,66 @@ void webSocketsDisplayRequestAndData(httpd_req_t *req,
         systemPrintf("WebServer Client: %s%s (%p, %d bytes)\r\n",
                      ipAddress, req->uri, data, bytes);
     }
+}
+
+//----------------------------------------
+// Delete the specified file
+//----------------------------------------
+void webSocketsFileDelete(httpd_req_t * req, const char * fileName)
+{
+    int httpResponseCode;
+    String * response;
+    String responseFailed;
+    String responseSuccessful;
+    const char * statusMessage;
+
+    // Build the responses
+    responseFailed = "File ";
+    responseFailed += &fileName[1];
+    responseFailed += " does not exist";
+
+    responseSuccessful = "Deleted file ";
+    responseSuccessful += &fileName[1];
+
+    // Attempt to gain access to the SD card
+    if (settings.debugWebServer == true)
+        systemPrintf("WebSockets waiting for the sdCardSemaphore semaphore\r\n");
+    if (xSemaphoreTake(sdCardSemaphore, fatSemaphore_longWait_ms) != pdPASS)
+    {
+        statusMessage = HTTPD_500;
+        responseFailed = "Failed to obtain access to the SD card!";
+        response = &responseFailed;
+    }
+    else
+    {
+        // Delete the file if it exists
+        if (sd->exists(fileName))
+        {
+            sd->remove(fileName);
+            statusMessage = HTTPD_200;
+            response = &responseSuccessful;
+        }
+
+        // Send the error when the file does not exist
+        else
+        {
+            statusMessage = HTTPD_400;
+            response = &responseFailed;
+        }
+
+        // Release the semaphore
+        xSemaphoreGive(sdCardSemaphore);
+        if (settings.debugWebServer == true)
+            systemPrintf("WebSockets released the sdCardSemaphore semaphore\r\n");
+    }
+
+    // Send the response
+    if (response == &responseFailed)
+        responseFailed = "ERROR: " + responseFailed;
+    if (settings.debugWebServer == true)
+        systemPrintf("WebSockets: %s\r\n", response->c_str());
+    httpd_resp_set_status(req, statusMessage);
+    httpd_resp_send(req, response->c_str(), response->length());
 }
 
 //----------------------------------------
@@ -651,6 +712,110 @@ esp_err_t webSocketsHandlerFileList(httpd_req_t *req)
 }
 
 //----------------------------------------
+// Handler for file manager
+//----------------------------------------
+esp_err_t webSocketsHandlerFileManager(httpd_req_t *req)
+{
+    char * action;
+    const char * actionParameter = "action=";
+    size_t bytes;
+    const char * errorMessage;
+    char * fileName;
+    const char * fileNameParameter = "name=";
+    char * parameter;
+    char * parameters;
+    char * parameterBuffer;
+    size_t parameterBufferLength;
+    esp_err_t status;
+    do
+    {
+        errorMessage = nullptr;
+
+        // Display the request
+        webSocketsDisplayRequest(req);
+
+        // Allocate a buffer for the name and action
+        parameterBufferLength = strlen(req->uri);
+        parameterBuffer = (char *)rtkMalloc(parameterBufferLength + 1,
+                                            "WebSockets file manager parameters buffer");
+        if (parameterBuffer == nullptr)
+        {
+            errorMessage = "ERROR: WebSockets failed to allocate file manager parameters buffer!";
+            break;
+        }
+
+        // Locate the parameters, then follow question mark after the webpage name
+        parameters = strcpy(parameterBuffer, req->uri);
+        parameters = strstr(parameters, "?");
+        if (parameters == nullptr)
+        {
+            errorMessage = "ERROR: Parameters not passed to WebSockets page!";
+            break;
+        }
+        parameters += 1;
+        parameterBufferLength = parameterBufferLength - (parameters - parameterBuffer);
+
+        // Locate the file name parameter
+        fileName = strstr(parameters, fileNameParameter);
+        if (fileName == nullptr)
+        {
+            errorMessage = "ERROR: name parameter not passed to WebSockets page!";
+            break;
+        }
+        fileName += strlen(fileNameParameter);
+
+        // Locate the action parameter
+        action = strstr(parameters, actionParameter);
+        if (action == nullptr)
+        {
+            errorMessage = "ERROR: action parameter not passed to WebSockets page!";
+            break;
+        }
+        action += strlen(actionParameter);
+
+        // Zero terminate the file name
+        parameter = fileName;
+        while ((*parameter != 0) && (*parameter != '&')) parameter++;
+        *parameter = 0;
+
+        // Zero terminate the action
+        parameter = action;
+        while ((*parameter != 0) && (*parameter != '&')) parameter++;
+        *parameter = 0;
+
+        // Add a slash to the beginning of the file name
+        *--fileName = '/';
+
+        // Display the parameters
+        if (settings.debugWebServer == true)
+        {
+            systemPrintf("fileName: %s\r\n", fileName);
+            systemPrintf("action: %s\r\n", action);
+        }
+
+        // Perform the action
+        if (strcmp(action, "delete") == 0)
+            webSocketsFileDelete(req, fileName);
+        else
+            errorMessage = "ERROR: Unknown WebSockets action!";
+    } while (0);
+
+    // Done with the buffers
+    if (parameterBuffer)
+        rtkFree(parameterBuffer,
+                "WebSockets file manager parameters buffer");
+
+    // Output the error
+    if (errorMessage)
+    {
+        // Respond with 500 Internal Server Error
+        systemPrintln(errorMessage);
+        httpd_resp_send_err(req, HTTPD_500_INTERNAL_SERVER_ERROR, errorMessage);
+    }
+    return ESP_OK;
+}
+
+//----------------------------------------
 // Handler for GET_PAGE_HANDLER structures
 //----------------------------------------
 esp_err_t webSocketsHandlerGetPage(httpd_req_t *req)
@@ -919,6 +1084,53 @@ bool webSocketsParseIncomingSettings()
     systemPrintln("Parsing complete");
 
     return (true);
+}
+
+//----------------------------------------
+// Read the contents of the request into a buffer
+//----------------------------------------
+uint8_t * webSocketsReadRequestContent(httpd_req_t *req)
+{
+    uint8_t * buffer;
+    size_t bufferLength;
+    size_t bytes;
+    const char * errorMessage;
+
+    // Locate the header
+    do
+    {
+        // Allocate a new buffer
+        bufferLength = req->content_len;
+        buffer = (uint8_t *)rtkMalloc(bufferLength + 1, "WebSockets request content");
+        if (buffer == nullptr)
+        {
+            errorMessage = "ERROR: WebSockets failed to allocate request content buffer";
+            break;
+        }
+
+        // Read the request content into the buffer
+        bytes = httpd_req_recv(req, (char *)buffer, bufferLength);
+        if (bytes != bufferLength)
+        {
+            errorMessage = "ERROR: WebSockets failed to read request content!";
+            break;
+        }
+
+        // Zero terminate the buffer
+        buffer[bufferLength] = 0;
+        return buffer;
+    } while (0);
+
+    // Free the buffer
+    if (buffer)
+        rtkFree(buffer, "WebSockets request content");
+
+    // Respond with 500 Internal Server Error
+    systemPrintln(errorMessage);
+    httpd_resp_send_err(req, HTTPD_500_INTERNAL_SERVER_ERROR, errorMessage);
+
+    // Indicate an error
+    return nullptr;
 }
 
 //----------------------------------------
