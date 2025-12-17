@@ -13,6 +13,10 @@ WebSockets.ino
 static const int webSocketsStackSize = 1024 * 20;
 
 const char * const image_png = "image/png";
+const char * const text_css = "text/css";
+const char * const text_html = "text/html";
+const char * const text_javascript = "text/javascript";
+const char * const text_plain = "text/plain";
 
 //----------------------------------------
 // New types
@@ -78,6 +82,40 @@ const GET_PAGE_HANDLER webSocketsPages[] =
 
     // Add special pages above this line
 
+    // Page icon
+    WEB_PAGE( 2, "/favicon.ico", text_plain, favicon_ico),
+
+    // Fonts
+    WEB_PAGE( 3, "/src/fonts/icomoon.eot", text_plain, icomoon_eot),
+    WEB_PAGE( 4, "/src/fonts/icomoon.svg", text_plain, icomoon_svg),
+    WEB_PAGE( 5, "/src/fonts/icomoon.ttf", text_plain, icomoon_ttf),
+    WEB_PAGE( 6, "/src/fonts/icomoon.woof", text_plain, icomoon_woof),
+
+    // Battery icons
+    WEB_PAGE( 7, "/src/BatteryBlank.png", image_png, batteryBlank_png),
+    WEB_PAGE( 8, "/src/Battery0.png", image_png, battery0_png),
+    WEB_PAGE( 9, "/src/Battery1.png", image_png, battery1_png),
+    WEB_PAGE(10, "/src/Battery2.png", image_png, battery2_png),
+    WEB_PAGE(11, "/src/Battery3.png", image_png, battery3_png),
+    WEB_PAGE(12, "/src/Battery0_Charging.png", image_png, battery0_Charging_png),
+    WEB_PAGE(13, "/src/Battery1_Charging.png", image_png, battery1_Charging_png),
+    WEB_PAGE(14, "/src/Battery2_Charging.png", image_png, battery2_Charging_png),
+    WEB_PAGE(15, "/src/Battery3_Charging.png", image_png, battery3_Charging_png),
+
+    // Bootstrap
+    WEB_PAGE(16, "/src/bootstrap.bundle.min.js", text_javascript, bootstrap_bundle_min_js),
+    WEB_PAGE(17, "/src/bootstrap.min.js", text_javascript, bootstrap_min_js),
+
+    // Java script
+    WEB_PAGE(18, "/src/jquery-3.6.0.min.js", text_javascript, jquery_js),
+    WEB_PAGE(19, "/src/main.js", text_javascript, main_js),
+
+    // Style sheets
+    WEB_PAGE(20, "/src/bootstrap.min.css", text_css, bootstrap_min_css),
+    WEB_PAGE(21, "/src/style.css", text_css, style_css),
+
+    // Add pages above this line
+    WEB_PAGE(22, "/", text_html, index_html),
 };
 
 #define WEB_SOCKETS_SPECIAL_PAGES   2
@@ -702,6 +740,10 @@ bool webSocketsStart(void)
     config.server_port = 81;
     config.stack_size = webSocketsStackSize;
 
+    // Set the number of URI handlers
+    config.max_uri_handlers = WEB_SOCKETS_TOTAL_PAGES + 16;
+    config.max_resp_headers = config.max_uri_handlers;
+
     // Start the httpd server
     if (settings.debugWebServer == true)
         systemPrintf("webSockets starting on port: %d\r\n", config.server_port);
@@ -730,6 +772,8 @@ bool webSocketsStart(void)
     {
         do
         {
+            int i;
+
             if (settings.debugWebServer == true)
                 systemPrintln("webSockets registering page handlers");
 
@@ -750,6 +794,13 @@ bool webSocketsStart(void)
 
             // Register the web socket handler
             if (!webSocketsRegisterPageHandler(&webSocketsPage))
+                break;
+
+            // Register the main pages
+            for (i = WEB_SOCKETS_SPECIAL_PAGES; i < WEB_SOCKETS_TOTAL_PAGES; i++)
+                if (!webSocketsRegisterPageHandler(&webSocketsPages[i]._page))
+                    break;
+            if (i < WEB_SOCKETS_TOTAL_PAGES)
                 break;
 
             // The web server is ready to handle incoming requests
