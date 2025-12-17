@@ -18,7 +18,9 @@ const char * const text_html = "text/html";
 const char * const text_javascript = "text/javascript";
 const char * const text_plain = "text/plain";
 
+#define UPLOAD_FIRMWARE     "/uploadFirmware"
 #define UPLOAD_PATH         "/uploadFile"
+const char * fileNameParameter = "filename=\"";
 
 // State machine to allow web server access to network layer
 enum WebServerState
@@ -120,6 +122,7 @@ static uint8_t webServerState;
 
 esp_err_t webSocketsHandlerFileList(httpd_req_t *req);
 esp_err_t webSocketsHandlerFileUpload(httpd_req_t *req);
+esp_err_t webSocketsHandlerFirmwareUpload(httpd_req_t *req);
 esp_err_t webSocketsHandlerGetPage(httpd_req_t *req);
 esp_err_t webSocketsHandlerListBaseMessages(httpd_req_t *req);
 esp_err_t webSocketsHandlerListMessages(httpd_req_t *req);
@@ -171,14 +174,15 @@ const GET_PAGE_HANDLER webSocketsPages[] =
     // File pages
     PAGE_HANDLER(22, "/listfiles", HTTP_GET, text_plain, webSocketsHandlerFileList),
     PAGE_HANDLER(23, "/file", HTTP_GET, text_plain, webSocketsHandlerFileManager),
+    PAGE_HANDLER(24, UPLOAD_FIRMWARE, HTTP_POST, text_plain, webSocketsHandlerFirmwareUpload),
 
     // Message handlers
-    PAGE_HANDLER(24, "/listMessages", HTTP_GET, text_plain, webSocketsHandlerListMessages),
-    PAGE_HANDLER(25, "/listMessagesBase", HTTP_GET, text_plain, webSocketsHandlerListBaseMessages),
-    PAGE_HANDLER(26, UPLOAD_PATH, HTTP_POST, text_plain, webSocketsHandlerFileUpload),
+    PAGE_HANDLER(25, "/listMessages", HTTP_GET, text_plain, webSocketsHandlerListMessages),
+    PAGE_HANDLER(26, "/listMessagesBase", HTTP_GET, text_plain, webSocketsHandlerListBaseMessages),
+    PAGE_HANDLER(27, UPLOAD_PATH, HTTP_POST, text_plain, webSocketsHandlerFileUpload),
 
     // Add pages above this line
-    WEB_PAGE(27, "/", text_html, index_html),
+    WEB_PAGE(28, "/", text_html, index_html),
 };
 
 #define WEB_SOCKETS_SPECIAL_PAGES   2
@@ -971,7 +975,6 @@ esp_err_t webSocketsHandlerFileUpload(httpd_req_t *req)
     SdFile file;
     size_t fileLength;
     char * fileName;
-    const char * fileNameParameter = "filename=\"";
     char * header;
     size_t remainingLength;
     bool semaphoreAcquired;
@@ -987,9 +990,9 @@ esp_err_t webSocketsHandlerFileUpload(httpd_req_t *req)
         header = nullptr;
         semaphoreAcquired = false;
         separator = nullptr;
-        status = ESP_FAIL;
+        status = ESP_OK;
 
-        // Display the request and response
+        // Display the request
         webSocketsDisplayRequest(req);
 
         // Get the separator
@@ -1010,7 +1013,7 @@ esp_err_t webSocketsHandlerFileUpload(httpd_req_t *req)
         if (header == nullptr)
             break;
 
-        // Display the separator
+        // Display the header
         if (settings.debugWebServer == true)
         {
             systemPrintln("Header");
@@ -1160,7 +1163,6 @@ esp_err_t webSocketsHandlerFileUpload(httpd_req_t *req)
 
         // Success
         httpd_resp_sendstr(req, "File uploaded successfully");
-        status = ESP_OK;
     } while (0);
 
     // Close the file
@@ -1180,6 +1182,242 @@ esp_err_t webSocketsHandlerFileUpload(httpd_req_t *req)
     // Release the semaphore
     if (semaphoreAcquired)
         xSemaphoreGive(sdCardSemaphore);
+
+    // Display the error message
+    if (errorMessage)
+    {
+        // Respond with 500 Internal Server Error
+        systemPrintln(errorMessage);
+        httpd_resp_send_err(req, HTTPD_500_INTERNAL_SERVER_ERROR, errorMessage);
+    }
+
+    // Done with the buffers
+    if (buffer)
+        rtkFree(buffer, "WebSockets file data buffer");
+    if (header)
+        rtkFree(header, "WebSockets header");
+    if (separator)
+        rtkFree(separator, "WebSockets separator");
+    return status;
+}
+
+//----------------------------------------
+// Handler for firmware file upload
+//----------------------------------------
+esp_err_t webSocketsHandlerFirmwareUpload(httpd_req_t *req)
+{
+    uint8_t * buffer;
+    const size_t bufferLength = 32768;
+    size_t bytes;
+    size_t bytesRead;
+    size_t bytesWritten;
+    uint8_t * data;
+    size_t dataBytes;
+    const char * errorMessage;
+    size_t fileLength;
+    char * fileName;
+    char * header;
+    size_t remainingLength;
+    char * separator;
+    size_t separatorLength;
+    esp_err_t status;
+    char * temp;
+    bool updateRunning;
+
+    do
+    {
+        buffer = nullptr;
+        errorMessage = nullptr;
+        header = nullptr;
+        separator = nullptr;
+        status = ESP_OK;
+        updateRunning = false;
+
+        // Display the request
+        webSocketsDisplayRequest(req);
+
+        // Get the separator
+        separator = webSocketsReadSeparator(req);
+        if (separator == nullptr)
+            break;
+        separatorLength = strlen(separator);
+
+        // Display the separator
+        if (settings.debugWebServer == true)
+        {
+            systemPrintln("Seperator");
+            dumpBuffer((uint8_t *)separator, strlen(separator) + 2);
+        }
+
+        // Get the header
+        header = webSocketsReadHeader(req);
+        if (header == nullptr)
+            break;
+
+        // Display the header
+        if (settings.debugWebServer == true)
+        {
+            systemPrintln("Header");
+            dumpBuffer((uint8_t *)header, strlen(header));
+        }
+
+        // Determine the file length
+        fileLength = req->content_len
+                   - separatorLength
+                   - 2                      // CR/LF
+                   - strlen(header);
+
+        // Estimate the remaining content data
+        remainingLength = 2                 // CR/LF
+                        + separatorLength
+                        + 2;                // Dash dash
+        if (fileLength >= (remainingLength + 2))
+            remainingLength += 2;
+        if (fileLength < remainingLength)
+        {
+            errorMessage = "ERROR: WebSockets detected a bad file length!";
+            break;
+        }
+        fileLength -= remainingLength;
+
+        // Display the file length
+        if (settings.debugWebServer == true)
+            systemPrintf("fileLength: %d (0x%08x) bytes\r\n", fileLength, fileLength);
+
+        // Get the buffer for the file download
+        buffer = (uint8_t *)rtkMalloc(bufferLength, "WebSockets file data buffer");
+        if (buffer == nullptr)
+        {
+            errorMessage = "ERROR: WebSockets failed to allocate file data buffer!";
+            break;
+        }
+
+        // Locate the file name parameter
+        fileName = strstr(header, fileNameParameter);
+        if (fileName == nullptr)
+        {
+            errorMessage = "ERROR: WebSockets failed to get filename parameter!";
+            break;
+        }
+        fileName += strlen(fileNameParameter);
+
+        // Get the file name
+        temp = fileName;
+        while (*temp && (*temp != '\r') && (*temp != '\"'))
+            temp += 1;
+
+        // Zero terminate the file name
+        *temp = 0;
+
+        // Display the file name
+        if (settings.debugWebServer == true)
+            systemPrintf("fileName: %s\r\n", fileName);
+
+        // Verify the firmware file name
+        if ((strstr(fileName, "RTK_Everywhere") != fileName)
+            || (strstr(fileName, ".bin") != (fileName + strlen(fileName) - 4)))
+        {
+            errorMessage = "ERROR: WebSockets detected unknown file type!";
+            break;
+        }
+
+        // Add the slash to the file name
+        fileName -= 1;
+        *fileName = '/';
+
+        // Begin update process
+        updateRunning = true;
+        if (!Update.begin(UPDATE_SIZE_UNKNOWN))
+        {
+            errorMessage = "ERROR: WebSockets failed to start Update!";
+            break;
+        }
+
+        // Upload the firmware
+        bytesWritten = 0;
+        dataBytes = fileLength;
+        while (dataBytes > 0)
+        {
+            // Determine the transfer length
+            bytes = dataBytes;
+            if (bytes > bufferLength)
+                bytes = bufferLength;
+
+            // Get a portion of the file
+            bytesRead = httpd_req_recv(req, (char *)buffer, bytes);
+
+            // Check for end of file
+            if (bytesRead == 0)
+                break;
+
+            // Write the firmware file
+            if (Update.write(buffer, bytesRead) != bytesRead)
+            {
+                errorMessage = "ERROR: WebServer failed to write the firmware!";
+                break;
+            }
+
+            // Account for the data received
+            dataBytes -= bytesRead;
+        }
+
+        // Handle the errors
+        if (dataBytes != 0)
+            break;
+
+        // Get remaining portion of the page content
+        bytesRead = httpd_req_recv(req, (char *)buffer, remainingLength);
+        if (bytesRead != remainingLength)
+        {
+            errorMessage = "ERROR: WebSockets failed to read the remaining content!";
+            break;
+        }
+
+        // Locate the separator at the end of the file
+        data = (uint8_t *)strstr((char *)buffer, separator);
+        if (data == nullptr)
+        {
+            errorMessage = "ERROR: WebServer failed to detect end of file!";
+            break;
+        }
+
+        // Backup two bytes to remove the required CR/LF before the separator
+        data -= 2;
+
+        // Write the data to the file
+        bytes = data - buffer;
+        if (bytes)
+        {
+            // Write the firmware file
+            if (Update.write(buffer, bytes) != bytes)
+            {
+                errorMessage = "ERROR: WebServer failed to finish writing the firmware!";
+                break;
+            }
+        }
+
+        // Display the file length
+        fileLength += bytes;
+        if (settings.debugWebServer == true)
+            systemPrintf("Firmware Length: %d (0x%08x) bytes\r\n", fileLength, fileLength);
+
+        // Finish writing the flash
+        if (!Update.end(true))
+        {
+            errorMessage = "ERROR: WebServer failed to finish writing the firmware!";
+            break;
+        }
+
+        // Success
+        webSocketsSendString("firmwareUploadComplete,1,");
+        systemPrintln("Firmware update complete. Restarting");
+        delay(500);
+        ESP.restart();
+    } while (0);
+
+    // Redirect the update output
+    if (updateRunning)
+        Update.printError(Serial);
 
     // Display the error message
     if (errorMessage)
