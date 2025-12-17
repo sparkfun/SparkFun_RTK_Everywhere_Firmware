@@ -12,9 +12,19 @@ WebSockets.ino
 
 static const int webSocketsStackSize = 1024 * 20;
 
+const char * const image_png = "image/png";
+
 //----------------------------------------
 // New types
 //----------------------------------------
+
+typedef struct _GET_PAGE_HANDLER
+{
+    httpd_uri_t _page;
+    const char * const * _type;
+    void * _data;
+    size_t _length;
+} GET_PAGE_HANDLER;
 
 typedef struct _WEB_SOCKETS_CLIENT
 {
@@ -25,6 +35,23 @@ typedef struct _WEB_SOCKETS_CLIENT
 } WEB_SOCKETS_CLIENT;
 
 //----------------------------------------
+// Macros
+//----------------------------------------
+
+#define WEB_PAGE(index, page, type, data)           \
+    {                                               \
+        {                                           \
+            .uri = page,                            \
+            .method = HTTP_GET,                     \
+            .handler = webSocketsHandlerGetPage,    \
+            .user_ctx = (void *)index,              \
+        },                                          \
+        &type,                                      \
+        (void *)data,                               \
+        sizeof(data),                               \
+    }
+
+//----------------------------------------
 // Locals
 //----------------------------------------
 
@@ -32,6 +59,29 @@ static WEB_SOCKETS_CLIENT * webSocketsClientListHead;
 static WEB_SOCKETS_CLIENT * webSocketsClientListTail;
 static httpd_handle_t webSocketsHandle;
 static SemaphoreHandle_t webSocketsMutex;
+
+//----------------------------------------
+// Forward routines
+//----------------------------------------
+
+esp_err_t webSocketsHandlerGetPage(httpd_req_t *req);
+
+//----------------------------------------
+// Web page descriptions
+//----------------------------------------
+
+const GET_PAGE_HANDLER webSocketsPages[] =
+{
+    // Platform specific pages
+    WEB_PAGE( 0, "/src/rtk-setup.png", image_png, rtkSetup_png),    // EVK
+    WEB_PAGE( 1, "/src/rtk-setup.png", image_png, rtkSetupWiFi_png),    // WiFi support
+
+    // Add special pages above this line
+
+};
+
+#define WEB_SOCKETS_SPECIAL_PAGES   2
+#define WEB_SOCKETS_TOTAL_PAGES     (sizeof(webSocketsPages) / sizeof(GET_PAGE_HANDLER))
 
 //----------------------------------------
 // Create a csv string with the dynamic data to update (current coordinates,
@@ -144,6 +194,24 @@ void webSocketsDisplayRequest(httpd_req_t *req)
 
         webSocketsGetClientIpAddressAndPort(req, ipAddress, sizeof(ipAddress));
         systemPrintf("WebServer Client: %s%s\r\n", ipAddress, req->uri);
+    }
+}
+
+//----------------------------------------
+// Display the request
+//----------------------------------------
+void webSocketsDisplayRequestAndData(httpd_req_t *req,
+                                     const void * data,
+                                     size_t bytes)
+{
+    // Display the request and response
+    if (settings.debugWebServer == true)
+    {
+        char ipAddress[80];
+
+        webSocketsGetClientIpAddressAndPort(req, ipAddress, sizeof(ipAddress));
+        systemPrintf("WebServer Client: %s%s (%p, %d bytes)\r\n",
+                     ipAddress, req->uri, data, bytes);
     }
 }
 
@@ -382,6 +450,27 @@ static esp_err_t webSocketsHandler(httpd_req_t *req)
 }
 
 //----------------------------------------
+// Handler for GET_PAGE_HANDLER structures
+//----------------------------------------
+esp_err_t webSocketsHandlerGetPage(httpd_req_t *req)
+{
+    uint32_t index;
+    const GET_PAGE_HANDLER * webpage;
+
+    // Locate the page description
+    index = (intptr_t)req->user_ctx;
+    webpage = &((const GET_PAGE_HANDLER *)&webSocketsPages)[index];
+
+    // Display the request and response
+    webSocketsDisplayRequestAndData(req, webpage->_data, webpage->_length);
+
+    // Send the response
+    httpd_resp_set_type(req, (const char *)*webpage->_type);
+    httpd_resp_set_hdr(req, "Content-Encoding", "gzip");
+    return httpd_resp_send(req, (const char *)webpage->_data, webpage->_length);
+}
+
+//----------------------------------------
 // Generate the Not Found page
 //----------------------------------------
 esp_err_t webSocketsHandlerPageNotFound(httpd_req_t *req, httpd_err_code_t err)
@@ -455,6 +544,25 @@ bool webSocketsRegisterErrorHandler(httpd_err_code_t error,
             systemPrintf("webSockets registered %d error handler\r\n", error);
         else
             systemPrintf("webSockets Failed to register %d error handler!\r\n", error);
+    }
+    return (status == ESP_OK);
+}
+
+//----------------------------------------
+// Register a webpage handler
+//----------------------------------------
+bool webSocketsRegisterPageHandler(const httpd_uri_t * page)
+{
+    esp_err_t status;
+
+    // Register the handler
+    status = httpd_register_uri_handler(webSocketsHandle, page);
+    if (settings.debugWebServer == true)
+    {
+        if (status == ESP_OK)
+            systemPrintf("webSockets registered %s handler\r\n", page->uri);
+        else
+            systemPrintf("webSockets Failed to register %s handler!\r\n", page->uri);
     }
     return (status == ESP_OK);
 }
@@ -585,6 +693,7 @@ static const httpd_uri_t webSocketsPage = {.uri = "/ws",
 bool webSocketsStart(void)
 {
     esp_err_t status;
+    const GET_PAGE_HANDLER * setupPage;
 
     // Get the configuration object
     httpd_config_t config = HTTPD_DEFAULT_CONFIG();
@@ -615,6 +724,7 @@ bool webSocketsStart(void)
         }
     }
 
+    // Start the web server
     status = httpd_start(&webSocketsHandle, &config);
     if (status == ESP_OK)
     {
@@ -628,10 +738,19 @@ bool webSocketsStart(void)
                                                 webSocketsHandlerPageNotFound))
                 break;
 
-            // Registering the ws handler
-            if (settings.debugWebServer == true)
-                systemPrintln("webSockets registering URI handlers");
-            httpd_register_uri_handler(webSocketsHandle, &webSocketsPage);
+            // Get the product specific web page
+            if (productVariant == RTK_EVK)
+                setupPage = &webSocketsPages[0];
+            else
+                setupPage = &webSocketsPages[1];
+
+            // Register the product specific page
+            if (!webSocketsRegisterPageHandler(&setupPage->_page))
+                break;
+
+            // Register the web socket handler
+            if (!webSocketsRegisterPageHandler(&webSocketsPage))
+                break;
 
             // The web server is ready to handle incoming requests
             if (settings.debugWebServer)
@@ -687,6 +806,35 @@ void webSocketsStop()
         else
             systemPrintf("ERROR: webSockets failed to stop, status: %s!\r\n", esp_err_to_name(status));
         webSocketsHandle = nullptr;
+    }
+}
+
+//----------------------------------------
+// Verify the web page descriptions
+//----------------------------------------
+void webSocketsVerifyTables()
+{
+    const GET_PAGE_HANDLER * endPage;
+    uint32_t index;
+    const GET_PAGE_HANDLER * startPage;
+    const GET_PAGE_HANDLER * webpage;
+
+    // Loop through all of the web page handlers
+    startPage = (GET_PAGE_HANDLER *)&webSocketsPages;
+    webpage = startPage;
+    endPage = &startPage[WEB_SOCKETS_TOTAL_PAGES];
+    while (webpage < endPage)
+    {
+        index = webpage - startPage;
+        if ((uintptr_t)webpage->_page.user_ctx != index)
+        {
+            Serial.printf("Change GET_PAGE for %s from %d to %d\r\n",
+                          webpage->_page.uri,
+                          (uintptr_t)webpage->_page.user_ctx,
+                          index);
+            reportFatalError("webSockets: Fix GET_PAGE entry");
+        }
+        webpage++;
     }
 }
 
