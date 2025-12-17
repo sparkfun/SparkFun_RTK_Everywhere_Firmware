@@ -383,6 +383,113 @@ void webSocketsFileDelete(httpd_req_t * req, const char * fileName)
 }
 
 //----------------------------------------
+// Download the specified file
+//----------------------------------------
+void webSocketsFileDownload(httpd_req_t * req, const char * fileName)
+{
+    uint8_t * buffer;
+    const size_t bufferLength = 1024; // 32768;
+    int bytes;
+    SdFile file;
+    int httpResponseCode;
+    String * response;
+    String responseFailed;
+    String responseSuccessful;
+    esp_err_t status;
+    const char * statusMessage;
+
+    // Build the responses
+    responseFailed = "File ";
+    responseFailed += &fileName[1];
+    responseFailed += " does not exist";
+
+    responseSuccessful = "Downloaded file ";
+    responseSuccessful += &fileName[1];
+
+    // Attempt to gain access to the SD card
+    if (settings.debugWebServer == true)
+        systemPrintf("WebSockets waiting for the sdCardSemaphore semaphore\r\n");
+    if (xSemaphoreTake(sdCardSemaphore, fatSemaphore_longWait_ms) != pdPASS)
+    {
+        statusMessage = HTTPD_500;
+        responseFailed = "Failed to obtain access to the SD card!";
+        response = &responseFailed;
+    }
+    else
+    {
+        // Allocate the buffer
+        buffer = (uint8_t *)rtkMalloc(bufferLength, "WebSockets file download buffer");
+        if (buffer)
+        {
+            // Download the file if it exists
+            if (file.open(sd->vol(), fileName, 0))
+            {
+                while (1)
+                {
+                    bytes = file.read(buffer, bufferLength);
+                    if (bytes == 0)
+                    {
+                        statusMessage = HTTPD_200;
+                        response = &responseSuccessful;
+                        break;
+                    }
+                    if (bytes < 0)
+                    {
+                        statusMessage = HTTPD_500;
+                        responseFailed = "Failed during download of ";
+                        responseFailed += &fileName[1];
+                        response = &responseFailed;
+                        break;
+                    }
+
+                    // Send the data
+                    status = httpd_resp_send_chunk(req, (char *)buffer, bytes);
+                    if (status != ESP_OK)
+                    {
+                        statusMessage = HTTPD_500;
+                        responseFailed = "Failed sending download data";
+                        response = &responseFailed;
+                        break;
+                    }
+                }
+
+                // Done with this file
+                file.close();
+            }
+
+            // Send the error when the file does not exist
+            else
+            {
+                statusMessage = HTTPD_400;
+                response = &responseFailed;
+            }
+
+            // Free the download buffer
+            rtkFree(buffer, "WebSockets file download buffer");
+        }
+        else
+        {
+            statusMessage = HTTPD_500;
+            responseFailed = "Failed to allocate download buffer!";
+            response = &responseFailed;
+        }
+
+        // Release the semaphore
+        xSemaphoreGive(sdCardSemaphore);
+        if (settings.debugWebServer == true)
+            systemPrintf("WebSockets released the sdCardSemaphore semaphore\r\n");
+    }
+
+    // Send the response
+    if (response == &responseFailed)
+        responseFailed = "ERROR: " + responseFailed;
+    if (settings.debugWebServer == true)
+        systemPrintf("WebSockets: %s\r\n", response->c_str());
+    httpd_resp_set_status(req, statusMessage);
+    httpd_resp_send(req, response->c_str(), response->length());
+}
+
+//----------------------------------------
 // Get the client IP address
 //----------------------------------------
 void webSocketsGetClientIpAddressAndPort(httpd_req_t *req,
@@ -796,6 +903,8 @@ esp_err_t webSocketsHandlerFileManager(httpd_req_t *req)
         // Perform the action
         if (strcmp(action, "delete") == 0)
             webSocketsFileDelete(req, fileName);
+        if (strcmp(action, "download") == 0)
+            webSocketsFileDownload(req, fileName);
         else
             errorMessage = "ERROR: Unknown WebSockets action!";
     } while (0);
