@@ -74,18 +74,6 @@ static const int webServerTaskStackSize = 1024 * 4;   // Needs to be large enoug
 // https://github.com/espressif/arduino-esp32/blob/master/libraries/WebServer/examples/WebServer/WebServer.ino
 
 //----------------------------------------
-// When called, responds with the RTCM/Base messages supported on this platform
-// Message name and current rate are formatted in CSV, formatted to html by JS
-//----------------------------------------
-void createMessageListBase(String &returnText)
-{
-    returnText = "";
-    gnss->createMessageListBase(returnText);
-    if (settings.debugWebServer == true)
-        systemPrintf("returnText (%d bytes): %s\r\n", returnText.length(), returnText.c_str());
-}
-
-//----------------------------------------
 // Handler for firmware file downloads
 //----------------------------------------
 static void handleFileManager()
@@ -454,80 +442,6 @@ bool knownCaptiveUrl(String uri)
 }
 
 //----------------------------------------
-// Break CSV into setting constituents
-// Can't use strtok because we may have two commas next to each other, ie
-// measurementRateHz,4.00,measurementRateSec,,dynamicModel,0,
-//----------------------------------------
-bool parseIncomingSettings()
-{
-    char settingName[100] = {'\0'};
-    char valueStr[150] = {'\0'}; // stationGeodetic1,ANameThatIsTooLongToBeDisplayed 40.09029479 -105.18505761 1560.089
-
-    bool stationGeodeticSeen = false;
-    bool stationECEFSeen = false;
-
-    char *commaPtr = incomingSettings;
-    char *headPtr = incomingSettings;
-
-    int counter = 0;
-    int maxAttempts = 500;
-    while (*headPtr) // Check if we've reached the end of the string
-    {
-        // Spin to first comma
-        commaPtr = strstr(headPtr, ",");
-        if (commaPtr != nullptr)
-        {
-            *commaPtr = '\0';
-            strcpy(settingName, headPtr);
-            headPtr = commaPtr + 1;
-        }
-
-        commaPtr = strstr(headPtr, ",");
-        if (commaPtr != nullptr)
-        {
-            *commaPtr = '\0';
-            strcpy(valueStr, headPtr);
-            headPtr = commaPtr + 1;
-        }
-
-        if (settings.debugWebServer == true)
-            systemPrintf("settingName: %s value: %s\r\n", settingName, valueStr);
-
-        // Check for first stationGeodetic
-        if ((strstr(settingName, "stationGeodetic") != nullptr) && (!stationGeodeticSeen))
-        {
-            stationGeodeticSeen = true;
-            removeFile(stationCoordinateGeodeticFileName);
-            if (settings.debugWebServer == true)
-                systemPrintln("Station geodetic coordinate file removed");
-        }
-
-        // Check for first stationECEF
-        if ((strstr(settingName, "stationECEF") != nullptr) && (!stationECEFSeen))
-        {
-            stationECEFSeen = true;
-            removeFile(stationCoordinateECEFFileName);
-            if (settings.debugWebServer == true)
-                systemPrintln("Station ECEF coordinate file removed");
-        }
-
-        updateSettingWithValue(false, settingName, valueStr);
-
-        // Avoid infinite loop if response is malformed
-        counter++;
-        if (counter == maxAttempts)
-        {
-            systemPrintln("Error: Incoming settings malformed.");
-            break;
-        }
-    }
-
-    systemPrintln("Parsing complete");
-
-    return (true);
-}
-
-//----------------------------------------
 // Stop the web server
 //----------------------------------------
 void stopWebServer()
@@ -719,7 +633,7 @@ bool webServerAssignResources(int httpPort = 80)
             if (settings.debugWebServer == true)
                 systemPrintln(logmessage);
             String messageList;
-            createMessageListBase(messageList);
+            webSocketsCreateMessageListBase(messageList);
             if (settings.debugWebServer == true)
                 systemPrintln(messageList);
             webServer->send(200, "text/plain", messageList);

@@ -83,6 +83,7 @@ static SemaphoreHandle_t webSocketsMutex;
 
 esp_err_t webSocketsHandlerFileList(httpd_req_t *req);
 esp_err_t webSocketsHandlerGetPage(httpd_req_t *req);
+esp_err_t webSocketsHandlerListBaseMessages(httpd_req_t *req);
 esp_err_t webSocketsHandlerListMessages(httpd_req_t *req);
 
 //----------------------------------------
@@ -134,9 +135,10 @@ const GET_PAGE_HANDLER webSocketsPages[] =
 
     // Message handlers
     PAGE_HANDLER(23, "/listMessages", HTTP_GET, text_plain, webSocketsHandlerListMessages),
+    PAGE_HANDLER(24, "/listMessagesBase", HTTP_GET, text_plain, webSocketsHandlerListBaseMessages),
 
     // Add pages above this line
-    WEB_PAGE(24, "/", text_html, index_html),
+    WEB_PAGE(25, "/", text_html, index_html),
 };
 
 #define WEB_SOCKETS_SPECIAL_PAGES   2
@@ -249,6 +251,18 @@ void webSocketsCreateMessageList(String &returnText)
 {
     returnText = "";
     gnss->createMessageList(returnText);
+    if (settings.debugWebServer == true)
+        systemPrintf("returnText (%d bytes): %s\r\n", returnText.length(), returnText.c_str());
+}
+
+//----------------------------------------
+// When called, responds with the RTCM/Base messages supported on this platform
+// Message name and current rate are formatted in CSV, formatted to html by JS
+//----------------------------------------
+void webSocketsCreateMessageListBase(String &returnText)
+{
+    returnText = "";
+    gnss->createMessageListBase(returnText);
     if (settings.debugWebServer == true)
         systemPrintf("returnText (%d bytes): %s\r\n", returnText.length(), returnText.c_str());
 }
@@ -626,6 +640,29 @@ esp_err_t webSocketsHandlerGetPage(httpd_req_t *req)
 }
 
 //----------------------------------------
+// Handler for supported RTCM/Base messages list
+//----------------------------------------
+esp_err_t webSocketsHandlerListBaseMessages(httpd_req_t *req)
+{
+    size_t bytes;
+    const char * data;
+    char ipAddress[80];
+    String messageList;
+
+    // Get the messages list
+    webSocketsCreateMessageListBase(messageList);
+    data = messageList.c_str();
+    bytes = messageList.length();
+
+    // Display the request and response
+    webSocketsDisplayRequestAndData(req, data, bytes);
+
+    // Send the response
+    httpd_resp_set_type(req, text_plain);
+    return httpd_resp_send(req, data, bytes);
+}
+
+//----------------------------------------
 // Handler for supported messages list
 //----------------------------------------
 esp_err_t webSocketsHandlerListMessages(httpd_req_t *req)
@@ -704,6 +741,80 @@ esp_err_t webSocketsHandlerPageNotFound(httpd_req_t *req, httpd_err_code_t err)
 bool webSocketsIsConnected()
 {
     return (webSocketsClientListHead != nullptr);
+}
+
+//----------------------------------------
+// Break CSV into setting constituents
+// Can't use strtok because we may have two commas next to each other, ie
+// measurementRateHz,4.00,measurementRateSec,,dynamicModel,0,
+//----------------------------------------
+bool webSocketsParseIncomingSettings()
+{
+    char settingName[100] = {'\0'};
+    char valueStr[150] = {'\0'}; // stationGeodetic1,ANameThatIsTooLongToBeDisplayed 40.09029479 -105.18505761 1560.089
+
+    bool stationGeodeticSeen = false;
+    bool stationECEFSeen = false;
+
+    char *commaPtr = incomingSettings;
+    char *headPtr = incomingSettings;
+
+    int counter = 0;
+    int maxAttempts = 500;
+    while (*headPtr) // Check if we've reached the end of the string
+    {
+        // Spin to first comma
+        commaPtr = strstr(headPtr, ",");
+        if (commaPtr != nullptr)
+        {
+            *commaPtr = '\0';
+            strcpy(settingName, headPtr);
+            headPtr = commaPtr + 1;
+        }
+
+        commaPtr = strstr(headPtr, ",");
+        if (commaPtr != nullptr)
+        {
+            *commaPtr = '\0';
+            strcpy(valueStr, headPtr);
+            headPtr = commaPtr + 1;
+        }
+
+        if (settings.debugWebServer == true)
+            systemPrintf("settingName: %s value: %s\r\n", settingName, valueStr);
+
+        // Check for first stationGeodetic
+        if ((strstr(settingName, "stationGeodetic") != nullptr) && (!stationGeodeticSeen))
+        {
+            stationGeodeticSeen = true;
+            removeFile(stationCoordinateGeodeticFileName);
+            if (settings.debugWebServer == true)
+                systemPrintln("Station geodetic coordinate file removed");
+        }
+
+        // Check for first stationECEF
+        if ((strstr(settingName, "stationECEF") != nullptr) && (!stationECEFSeen))
+        {
+            stationECEFSeen = true;
+            removeFile(stationCoordinateECEFFileName);
+            if (settings.debugWebServer == true)
+                systemPrintln("Station ECEF coordinate file removed");
+        }
+
+        updateSettingWithValue(false, settingName, valueStr);
+
+        // Avoid infinite loop if response is malformed
+        counter++;
+        if (counter == maxAttempts)
+        {
+            systemPrintln("Error: Incoming settings malformed.");
+            break;
+        }
+    }
+
+    systemPrintln("Parsing complete");
+
+    return (true);
 }
 
 //----------------------------------------
