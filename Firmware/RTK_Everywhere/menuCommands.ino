@@ -1182,6 +1182,8 @@ SettingValueResponse updateSettingWithValue(bool inCommands, const char *setting
     // setProfile was used in the original Web Config interface
     else if (strcmp(settingName, "setProfile") == 0)
     {
+        char * settingsCsvList;
+
         // Change to new profile
         if (settings.debugWebServer == true)
             systemPrintf("Changing to profile number %d\r\n", settingValue);
@@ -1190,20 +1192,20 @@ SettingValueResponse updateSettingWithValue(bool inCommands, const char *setting
         // Load new profile into system
         loadSettings();
 
-        // Send new settings to browser. Re-use settingsCSV to avoid stack.
-        if (settingsCSV)
+        // Send new settings to browser.
+        settingsCsvList = (char *)rtkMalloc(AP_CONFIG_SETTING_SIZE, "Command CSV settings list");
+        if (settingsCsvList)
         {
-            memset(settingsCSV, 0, AP_CONFIG_SETTING_SIZE); // Clear any garbage from settings array
-
-            createSettingsString(settingsCSV);
+            createSettingsString(settingsCsvList);
 
             if (settings.debugWebServer == true)
             {
                 systemPrintf("Sending profile %d\r\n", settingValue);
-                systemPrintf("Profile contents: %s\r\n", settingsCSV);
+                systemPrintf("Profile contents: %s\r\n", settingsCsvList);
             }
 
-            webSocketsSendString(settingsCSV);
+            webSocketsSendString(settingsCsvList);
+            rtkFree(settingsCsvList, "Command CSV settings list");
         }
         knownSetting = true;
     }
@@ -1224,6 +1226,8 @@ SettingValueResponse updateSettingWithValue(bool inCommands, const char *setting
 
     else if (strcmp(settingName, "resetProfile") == 0)
     {
+        char * settingsCsvList;
+
         settingsToDefaults(); // Overwrite our current settings with defaults
 
         recordSystemSettings(); // Overwrite profile file and NVM with these settings
@@ -1231,20 +1235,20 @@ SettingValueResponse updateSettingWithValue(bool inCommands, const char *setting
         // Get bitmask of active profiles
         activeProfiles = loadProfileNames();
 
-        // Send new settings to browser. Re-use settingsCSV to avoid stack.
-        if (settingsCSV)
+        // Send new settings to browser.
+        settingsCsvList = (char *)rtkMalloc(AP_CONFIG_SETTING_SIZE, "Command CSV settings list");
+        if (settingsCsvList)
         {
-            memset(settingsCSV, 0, AP_CONFIG_SETTING_SIZE); // Clear any garbage from settings array
-
-            createSettingsString(settingsCSV);
+            createSettingsString(settingsCsvList);
 
             if (settings.debugWebServer == true)
             {
                 systemPrintf("Sending reset profile %d\r\n", settingValue);
-                systemPrintf("Profile contents: %s\r\n", settingsCSV);
+                systemPrintf("Profile contents: %s\r\n", settingsCsvList);
             }
 
-            webSocketsSendString(settingsCSV);
+            webSocketsSendString(settingsCsvList);
+            rtkFree(settingsCsvList, "Command CSV settings list");
         }
         knownSetting = true;
     }
@@ -1946,23 +1950,23 @@ void createSettingsString(char *newSettings)
 }
 
 // Add record with int
-void stringRecord(char *settingsCSV, const char *id, int settingValue)
+void stringRecord(char *csvList, const char *id, int settingValue)
 {
     char record[100];
     snprintf(record, sizeof(record), "%s,%d,", id, settingValue);
-    strcat(settingsCSV, record);
+    strcat(csvList, record);
 }
 
 // Add record with uint32_t
-void stringRecord(char *settingsCSV, const char *id, uint32_t settingValue)
+void stringRecord(char *csvList, const char *id, uint32_t settingValue)
 {
     char record[100];
     snprintf(record, sizeof(record), "%s,%lu,", id, settingValue);
-    strcat(settingsCSV, record);
+    strcat(csvList, record);
 }
 
 // Add record with double
-void stringRecord(char *settingsCSV, const char *id, double settingValue, int decimalPlaces)
+void stringRecord(char *csvList, const char *id, double settingValue, int decimalPlaces)
 {
     char format[10];
     snprintf(format, sizeof(format), "%%0.%dlf", decimalPlaces); // Create '%0.09lf'
@@ -1972,11 +1976,11 @@ void stringRecord(char *settingsCSV, const char *id, double settingValue, int de
 
     char record[100];
     snprintf(record, sizeof(record), "%s,%s,", id, formattedValue);
-    strcat(settingsCSV, record);
+    strcat(csvList, record);
 }
 
 // Add record with bool
-void stringRecord(char *settingsCSV, const char *id, bool settingValue)
+void stringRecord(char *csvList, const char *id, bool settingValue)
 {
     char temp[10];
     if (settingValue == true)
@@ -1986,45 +1990,45 @@ void stringRecord(char *settingsCSV, const char *id, bool settingValue)
 
     char record[100];
     snprintf(record, sizeof(record), "%s,%s,", id, temp);
-    strcat(settingsCSV, record);
+    strcat(csvList, record);
 }
 
 // Add string. Provide your own commas!
-void stringRecord(char *settingsCSV, const char *id)
+void stringRecord(char *csvList, const char *id)
 {
-    strcat(settingsCSV, id);
+    strcat(csvList, id);
 }
 
 // Add record with string
-void stringRecord(char *settingsCSV, const char *id, char *settingValue)
+void stringRecord(char *csvList, const char *id, char *settingValue)
 {
     char record[100];
     snprintf(record, sizeof(record), "%s,%s,", id, settingValue);
-    strcat(settingsCSV, record);
+    strcat(csvList, record);
 }
 
 // Add record with uint64_t
-void stringRecord(char *settingsCSV, const char *id, uint64_t settingValue)
+void stringRecord(char *csvList, const char *id, uint64_t settingValue)
 {
     char record[100];
     snprintf(record, sizeof(record), "%s,%lld,", id, settingValue);
-    strcat(settingsCSV, record);
+    strcat(csvList, record);
 }
 
 // Add record with int
-void stringRecordN(char *settingsCSV, const char *id, int n, int settingValue)
+void stringRecordN(char *csvList, const char *id, int n, int settingValue)
 {
     char record[100];
     snprintf(record, sizeof(record), "%s_%d,%d,", id, n, settingValue);
-    strcat(settingsCSV, record);
+    strcat(csvList, record);
 }
 
 // Add record with string
-void stringRecordN(char *settingsCSV, const char *id, int n, char *settingValue)
+void stringRecordN(char *csvList, const char *id, int n, char *settingValue)
 {
     char record[100];
     snprintf(record, sizeof(record), "%s_%d,%s,", id, n, settingValue);
-    strcat(settingsCSV, record);
+    strcat(csvList, record);
 }
 
 void writeToString(char *settingValueStr, bool value)

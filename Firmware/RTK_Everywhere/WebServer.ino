@@ -7,29 +7,6 @@ WebServer.ino
 #ifdef COMPILE_AP
 
 //----------------------------------------
-// Constants
-//----------------------------------------
-
-// State machine to allow web server access to network layer
-enum WebServerState
-{
-    WEBSERVER_STATE_OFF = 0,
-    WEBSERVER_STATE_WAIT_FOR_NETWORK,
-    WEBSERVER_STATE_NETWORK_CONNECTED,
-    WEBSERVER_STATE_RUNNING,
-
-    // Add new states here
-    WEBSERVER_STATE_MAX
-};
-
-static const char *const webServerStateNames[] = {
-    "WEBSERVER_STATE_OFF",
-    "WEBSERVER_STATE_WAIT_FOR_NETWORK",
-    "WEBSERVER_STATE_NETWORK_CONNECTED",
-    "WEBSERVER_STATE_RUNNING",
-};
-
-//----------------------------------------
 // Macros
 //----------------------------------------
 
@@ -47,10 +24,6 @@ static const char *const webServerStateNames[] = {
 //----------------------------------------
 // Locals
 //----------------------------------------
-
-static const int webServerStateEntries = sizeof(webServerStateNames) / sizeof(webServerStateNames[0]);
-
-static uint8_t webServerState;
 
 // Once connected to the access point for WiFi Config, the ESP32 sends current setting values in one long string to
 // websocket After user clicks 'save', data is validated via main.js and a long string of values is returned.
@@ -72,91 +45,6 @@ static const int webServerTaskStackSize = 1024 * 4;   // Needs to be large enoug
 // https://github.com/mo-thunderz/Esp32WifiPart2/blob/main/Arduino/ESP32WebserverWebsocket/ESP32WebserverWebsocket.ino
 // https://www.youtube.com/watch?v=15X0WvGaVg8
 // https://github.com/espressif/arduino-esp32/blob/master/libraries/WebServer/examples/WebServer/WebServer.ino
-
-//----------------------------------------
-// When called, responds with the messages supported on this platform
-// Message name and current rate are formatted in CSV, formatted to html by JS
-//----------------------------------------
-void createMessageList(String &returnText)
-{
-    returnText = "";
-    gnss->createMessageList(returnText);
-    if (settings.debugWebServer == true)
-        systemPrintf("returnText (%d bytes): %s\r\n", returnText.length(), returnText.c_str());
-}
-
-//----------------------------------------
-// When called, responds with the RTCM/Base messages supported on this platform
-// Message name and current rate are formatted in CSV, formatted to html by JS
-//----------------------------------------
-void createMessageListBase(String &returnText)
-{
-    returnText = "";
-    gnss->createMessageListBase(returnText);
-    if (settings.debugWebServer == true)
-        systemPrintf("returnText (%d bytes): %s\r\n", returnText.length(), returnText.c_str());
-}
-
-//----------------------------------------
-// When called, responds with the root folder list of files on SD card
-// Name and size are formatted in CSV, formatted to html by JS
-//----------------------------------------
-void getFileList(String &returnText)
-{
-    returnText = "";
-
-    // Update the SD Size and Free Space
-    String cardSize;
-    stringHumanReadableSize(cardSize, sdCardSize);
-    returnText += "sdSize," + cardSize + ",";
-    String freeSpace;
-    stringHumanReadableSize(freeSpace, sdFreeSpace);
-    returnText += "sdFreeSpace," + freeSpace + ",";
-
-    char fileName[50]; // Handle long file names
-
-    // Attempt to gain access to the SD card
-    if (xSemaphoreTake(sdCardSemaphore, fatSemaphore_longWait_ms) == pdPASS)
-    {
-        markSemaphore(FUNCTION_FILEMANAGER_UPLOAD1);
-
-        SdFile root;
-        root.open("/"); // Open root
-        SdFile file;
-        uint16_t fileCount = 0;
-
-        while (file.openNext(&root, O_READ))
-        {
-            if (file.isFile())
-            {
-                fileCount++;
-
-                file.getName(fileName, sizeof(fileName));
-
-                String fileSize;
-                stringHumanReadableSize(fileSize, file.fileSize());
-                returnText += "fmName," + String(fileName) + ",fmSize," + fileSize + ",";
-            }
-        }
-
-        root.close();
-        file.close();
-
-        xSemaphoreGive(sdCardSemaphore);
-    }
-    else
-    {
-        char semaphoreHolder[50];
-        getSemaphoreFunction(semaphoreHolder);
-
-        // This is an error because the current settings no longer match the settings
-        // on the microSD card, and will not be restored to the expected settings!
-        systemPrintf("sdCardSemaphore failed to yield, held by %s, Form.ino line %d\r\n", semaphoreHolder, __LINE__);
-    }
-
-    if (settings.debugWebServer == true)
-        systemPrintf("returnText (%d bytes): %s\r\n", returnText.length(), returnText.c_str());
-}
 
 //----------------------------------------
 // Handler for firmware file downloads
@@ -489,7 +377,7 @@ void handleUpload()
 //----------------------------------------
 void notFound()
 {
-    if (settings.enableCaptivePortal == true && knownCaptiveUrl(webServer->uri()) == true)
+    if (settings.enableCaptivePortal && webSocketsCheckForKnownCaptiveUrl(webServer->uri().c_str()))
     {
         if (settings.debugWebServer == true)
         {
@@ -505,99 +393,6 @@ void notFound()
     String logmessage = "notFound: " + webServer->client().remoteIP().toString() + " " + webServer->uri();
     systemPrintln(logmessage);
     webServer->send(404, "text/plain", "Not found");
-}
-
-// These are the various files or endpoints that browsers will attempt to access to see if internet access is available
-// If one is requested, redirect user to captive portal
-String captiveUrls[] = {
-    "/hotspot-detect.html", "/library/test/success.html", "/generate_204", "/ncsi.txt", "/check_network_status.txt",
-    "/connecttest.txt"};
-
-static const uint8_t captiveUrlCount = sizeof(captiveUrls) / sizeof(captiveUrls[0]);
-
-// Check if given URI is a captive portal endpoint
-bool knownCaptiveUrl(String uri)
-{
-    for (int i = 0; i < captiveUrlCount; i++)
-    {
-        if (uri == captiveUrls[i])
-            return true;
-    }
-    return false;
-}
-
-//----------------------------------------
-// Break CSV into setting constituents
-// Can't use strtok because we may have two commas next to each other, ie
-// measurementRateHz,4.00,measurementRateSec,,dynamicModel,0,
-//----------------------------------------
-bool parseIncomingSettings()
-{
-    char settingName[100] = {'\0'};
-    char valueStr[150] = {'\0'}; // stationGeodetic1,ANameThatIsTooLongToBeDisplayed 40.09029479 -105.18505761 1560.089
-
-    bool stationGeodeticSeen = false;
-    bool stationECEFSeen = false;
-
-    char *commaPtr = incomingSettings;
-    char *headPtr = incomingSettings;
-
-    int counter = 0;
-    int maxAttempts = 500;
-    while (*headPtr) // Check if we've reached the end of the string
-    {
-        // Spin to first comma
-        commaPtr = strstr(headPtr, ",");
-        if (commaPtr != nullptr)
-        {
-            *commaPtr = '\0';
-            strcpy(settingName, headPtr);
-            headPtr = commaPtr + 1;
-        }
-
-        commaPtr = strstr(headPtr, ",");
-        if (commaPtr != nullptr)
-        {
-            *commaPtr = '\0';
-            strcpy(valueStr, headPtr);
-            headPtr = commaPtr + 1;
-        }
-
-        if (settings.debugWebServer == true)
-            systemPrintf("settingName: %s value: %s\r\n", settingName, valueStr);
-
-        // Check for first stationGeodetic
-        if ((strstr(settingName, "stationGeodetic") != nullptr) && (!stationGeodeticSeen))
-        {
-            stationGeodeticSeen = true;
-            removeFile(stationCoordinateGeodeticFileName);
-            if (settings.debugWebServer == true)
-                systemPrintln("Station geodetic coordinate file removed");
-        }
-
-        // Check for first stationECEF
-        if ((strstr(settingName, "stationECEF") != nullptr) && (!stationECEFSeen))
-        {
-            stationECEFSeen = true;
-            removeFile(stationCoordinateECEFFileName);
-            if (settings.debugWebServer == true)
-                systemPrintln("Station ECEF coordinate file removed");
-        }
-
-        updateSettingWithValue(false, settingName, valueStr);
-
-        // Avoid infinite loop if response is malformed
-        counter++;
-        if (counter == maxAttempts)
-        {
-            systemPrintln("Error: Incoming settings malformed.");
-            break;
-        }
-    }
-
-    systemPrintln("Parsing complete");
-
-    return (true);
 }
 
 //----------------------------------------
@@ -618,12 +413,6 @@ void stopWebServer()
         webServer->close();
         delete webServer;
         webServer = nullptr;
-    }
-
-    if (settingsCSV != nullptr)
-    {
-        rtkFree(settingsCSV, "Settings buffer (settingsCSV)");
-        settingsCSV = nullptr;
     }
 
     if (incomingSettings != nullptr)
@@ -683,16 +472,6 @@ bool webServerAssignResources(int httpPort = 80)
             break;
         }
         memset(incomingSettings, 0, AP_CONFIG_SETTING_SIZE);
-
-        // Pre-load settings CSV
-        // Freed by webServerStop
-        settingsCSV = (char *)rtkMalloc(AP_CONFIG_SETTING_SIZE, "Settings buffer (settingsCSV)");
-        if (!settingsCSV)
-        {
-            systemPrintln("ERROR: Web server failed to allocate settingsCSV");
-            break;
-        }
-        createSettingsString(settingsCSV);
 
         /* https://github.com/espressif/arduino-esp32/blob/master/libraries/DNSServer/examples/CaptivePortal/CaptivePortal.ino
          */
@@ -786,7 +565,7 @@ bool webServerAssignResources(int httpPort = 80)
             if (settings.debugWebServer == true)
                 systemPrintln(logmessage);
             String files;
-            getFileList(files);
+            webSocketsGetFileList(files);
             webServer->send(200, "text/plain", files);
         });
 
@@ -796,7 +575,7 @@ bool webServerAssignResources(int httpPort = 80)
             if (settings.debugWebServer == true)
                 systemPrintln(logmessage);
             String messages;
-            createMessageList(messages);
+            webSocketsCreateMessageList(messages);
             if (settings.debugWebServer == true)
                 systemPrintln(messages);
             webServer->send(200, "text/plain", messages);
@@ -808,7 +587,7 @@ bool webServerAssignResources(int httpPort = 80)
             if (settings.debugWebServer == true)
                 systemPrintln(logmessage);
             String messageList;
-            createMessageListBase(messageList);
+            webSocketsCreateMessageListBase(messageList);
             if (settings.debugWebServer == true)
                 systemPrintln(messageList);
             webServer->send(200, "text/plain", messageList);
@@ -862,27 +641,6 @@ bool webServerAssignResources(int httpPort = 80)
 }
 
 //----------------------------------------
-// Get the webconfig state name
-//----------------------------------------
-const char *webServerGetStateName(uint8_t state, char *string)
-{
-    if (state < WEBSERVER_STATE_MAX)
-        return webServerStateNames[state];
-    sprintf(string, "Web Server: Unknown state (%d)", state);
-    return string;
-}
-
-//----------------------------------------
-// Determine if the web server is running
-//----------------------------------------
-bool webServerIsRunning()
-{
-    if (webServerState == WEBSERVER_STATE_RUNNING)
-        return (true);
-    return (false);
-}
-
-//----------------------------------------
 //----------------------------------------
 void webServerReleaseResources()
 {
@@ -907,261 +665,11 @@ void webServerReleaseResources()
         webServer = nullptr;
     }
 
-    if (settingsCSV != nullptr)
-    {
-        rtkFree(settingsCSV, "Settings buffer (settingsCSV)");
-        settingsCSV = nullptr;
-    }
-
     if (incomingSettings != nullptr)
     {
         rtkFree(incomingSettings, "Settings buffer (incomingSettings)");
         incomingSettings = nullptr;
     }
-}
-
-//----------------------------------------
-// Set the next webconfig state
-//----------------------------------------
-void webServerSetState(uint8_t newState)
-{
-    char string1[40];
-    char string2[40];
-    const char *arrow = nullptr;
-    const char *asterisk = nullptr;
-    const char *initialState = nullptr;
-    const char *endingState = nullptr;
-
-    // Display the state transition
-    if (settings.debugWebServer)
-    {
-        arrow = "";
-        asterisk = "";
-        initialState = "";
-        if (newState == webServerState)
-            asterisk = "*";
-        else
-        {
-            initialState = webServerGetStateName(webServerState, string1);
-            arrow = " --> ";
-        }
-    }
-
-    // Set the new state
-    webServerState = newState;
-    if (settings.debugWebServer)
-    {
-        // Display the new firmware update state
-        endingState = webServerGetStateName(newState, string2);
-        if (!online.rtc)
-            systemPrintf("%s%s%s%s\r\n", asterisk, initialState, arrow, endingState);
-        else
-            // Timestamp the state change
-            systemPrintf("%s%s%s%s, %s\r\n", asterisk, initialState, arrow, endingState, getTimeStamp());
-    }
-
-    // Validate the state
-    if (newState >= WEBSERVER_STATE_MAX)
-        reportFatalError("Web Server: Invalid web config state");
-}
-
-//----------------------------------------
-// Start the Web Server state machine
-//----------------------------------------
-void webServerStart()
-{
-    // Display the heap state
-    reportHeapNow(settings.debugWebServer);
-
-    if (webServerState != WEBSERVER_STATE_OFF)
-    {
-        if (settings.debugWebServer)
-            systemPrintln("Web Server: Already running!");
-    }
-    else
-    {
-        if (settings.debugWebServer)
-            systemPrintln("Web Server: Starting");
-
-        // Start the network
-        if (networkInterfaceHasInternet(NETWORK_ETHERNET))
-            networkConsumerAdd(NETCONSUMER_WEB_CONFIG, NETWORK_ANY, __FILE__, __LINE__);
-        else if ((settings.wifiConfigOverAP == false) || networkInterfaceHasInternet(NETWORK_WIFI_STATION))
-            networkConsumerAdd(NETCONSUMER_WEB_CONFIG, NETWORK_ANY, __FILE__, __LINE__);
-        else if (settings.wifiConfigOverAP)
-            networkSoftApConsumerAdd(NETCONSUMER_WEB_CONFIG, __FILE__, __LINE__);
-        webServerSetState(WEBSERVER_STATE_WAIT_FOR_NETWORK);
-    }
-}
-
-//----------------------------------------
-// Stop the web config state machine
-//----------------------------------------
-void webServerStop()
-{
-    networkUserRemove(NETCONSUMER_WEB_CONFIG, __FILE__, __LINE__);
-    if (webServerState != WEBSERVER_STATE_OFF)
-    {
-        webServerReleaseResources(); // Release web server resources
-
-        // Stop network
-        systemPrintln("Web Server releasing network request");
-        networkSoftApConsumerRemove(NETCONSUMER_WEB_CONFIG, __FILE__, __LINE__);
-        networkConsumerRemove(NETCONSUMER_WEB_CONFIG, NETWORK_ANY, __FILE__, __LINE__);
-
-        // Stop the machine
-        webServerSetState(WEBSERVER_STATE_OFF);
-        if (settings.debugWebServer)
-            systemPrintln("Web Server: Stopped");
-
-        // Display the heap state
-        reportHeapNow(settings.debugWebServer);
-    }
-}
-
-//----------------------------------------
-// State machine to handle the starting/stopping of the web server
-//----------------------------------------
-void webServerUpdate()
-{
-    bool connected;
-
-    // Determine if the network is connected
-    connected = networkConsumerIsConnected(NETCONSUMER_WEB_CONFIG);
-
-    // Walk the state machine
-    switch (webServerState)
-    {
-    default:
-        systemPrintf("ERROR: Unknown Web Server state (%d)\r\n", webServerState);
-
-        // Stop the machine
-        webServerStop();
-        break;
-
-    case WEBSERVER_STATE_OFF:
-        // Wait until webServerStart() is called
-        break;
-
-    // Wait for connection to the network
-    case WEBSERVER_STATE_WAIT_FOR_NETWORK:
-        // Wait until the network is connected to the internet or has WiFi AP
-        if (connected || wifiSoftApRunning)
-        {
-            if (settings.debugWebServer)
-                systemPrintln("Web Server connected to network");
-
-            networkUserAdd(NETCONSUMER_WEB_CONFIG, __FILE__, __LINE__);
-            webServerSetState(WEBSERVER_STATE_NETWORK_CONNECTED);
-        }
-        break;
-
-    // Start the web server
-    case WEBSERVER_STATE_NETWORK_CONNECTED: {
-        // Determine if the network has failed
-        if (connected == false && wifiSoftApRunning == false)
-        {
-            networkUserRemove(NETCONSUMER_WEB_CONFIG, __FILE__, __LINE__);
-            webServerSetState(WEBSERVER_STATE_WAIT_FOR_NETWORK);
-        }
-
-        // Attempt to start the web server
-        else if (webServerAssignResources(settings.httpPort) == true)
-            webServerSetState(WEBSERVER_STATE_RUNNING);
-    }
-    break;
-
-    // Allow web services
-    case WEBSERVER_STATE_RUNNING:
-        // Determine if the network has failed
-        if (connected == false && wifiSoftApRunning == false)
-        {
-            webServerReleaseResources(); // Release web server resources
-            webServerSetState(WEBSERVER_STATE_WAIT_FOR_NETWORK);
-        }
-
-        // This state is exited when webServerStop() is called
-
-        break;
-    }
-
-    // Display an alive message
-    if (PERIODIC_DISPLAY(PD_WEB_SERVER_STATE))
-    {
-        systemPrintf("Web Server state: %s\r\n", webServerStateNames[webServerState]);
-        PERIODIC_CLEAR(PD_WEB_SERVER_STATE);
-    }
-}
-
-//----------------------------------------
-// Verify the web server tables
-//----------------------------------------
-void webServerVerifyTables()
-{
-    if (webServerStateEntries != WEBSERVER_STATE_MAX)
-        reportFatalError("Fix webServerStateNames to match WebServerState");
-}
-
-//----------------------------------------
-// Display the HTTPD configuration
-//----------------------------------------
-void httpdDisplayConfig(struct httpd_config *config)
-{
-    /*
-    httpd_config object:
-            5: task_priority
-        20480: stack_size
-    2147483647: core_id
-            81: server_port
-        32768: ctrl_port
-            7: max_open_sockets
-            8: max_uri_handlers
-            8: max_resp_headers
-            5: backlog_conn
-        false: lru_purge_enable
-            5: recv_wait_timeout
-            5: send_wait_timeout
-    0x0: global_user_ctx
-    0x0: global_user_ctx_free_fn
-    0x0: global_transport_ctx
-    0x0: global_transport_ctx_free_fn
-        false: enable_so_linger
-            0: linger_timeout
-        false: keep_alive_enable
-            0: keep_alive_idle
-            0: keep_alive_interval
-            0: keep_alive_count
-    0x0: open_fn
-    0x0: close_fn
-    0x0: uri_match_fn
-    */
-    systemPrintf("httpd_config object:\r\n");
-    systemPrintf("%10d: task_priority\r\n", config->task_priority);
-    systemPrintf("%10d: stack_size\r\n", config->stack_size);
-    systemPrintf("%10d: core_id\r\n", config->core_id);
-    systemPrintf("%10d: server_port\r\n", config->server_port);
-    systemPrintf("%10d: ctrl_port\r\n", config->ctrl_port);
-    systemPrintf("%10d: max_open_sockets\r\n", config->max_open_sockets);
-    systemPrintf("%10d: max_uri_handlers\r\n", config->max_uri_handlers);
-    systemPrintf("%10d: max_resp_headers\r\n", config->max_resp_headers);
-    systemPrintf("%10d: backlog_conn\r\n", config->backlog_conn);
-    systemPrintf("%10s: lru_purge_enable\r\n", config->lru_purge_enable ? "true" : "false");
-    systemPrintf("%10d: recv_wait_timeout\r\n", config->recv_wait_timeout);
-
-    systemPrintf("%10d: send_wait_timeout\r\n", config->send_wait_timeout);
-    systemPrintf("%p: global_user_ctx\r\n", config->global_user_ctx);
-    systemPrintf("%p: global_user_ctx_free_fn\r\n", config->global_user_ctx_free_fn);
-    systemPrintf("%p: global_transport_ctx\r\n", config->global_transport_ctx);
-    systemPrintf("%p: global_transport_ctx_free_fn\r\n", (void *)config->global_transport_ctx_free_fn);
-    systemPrintf("%10s: enable_so_linger\r\n", config->enable_so_linger ? "true" : "false");
-    systemPrintf("%10d: linger_timeout\r\n", config->linger_timeout);
-    systemPrintf("%10s: keep_alive_enable\r\n", config->keep_alive_enable ? "true" : "false");
-    systemPrintf("%10d: keep_alive_idle\r\n", config->keep_alive_idle);
-    systemPrintf("%10d: keep_alive_interval\r\n", config->keep_alive_interval);
-    systemPrintf("%10d: keep_alive_count\r\n", config->keep_alive_count);
-    systemPrintf("%p: open_fn\r\n", (void *)config->open_fn);
-    systemPrintf("%p: close_fn\r\n", (void *)config->close_fn);
-    systemPrintf("%p: uri_match_fn\r\n", (void *)config->uri_match_fn);
 }
 
 #endif // COMPILE_AP

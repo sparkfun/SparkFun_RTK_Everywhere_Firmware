@@ -760,7 +760,7 @@ void verifyTables()
     pointPerfectVerifyTables();
     wifiVerifyTables();
     gnssVerifyTables();
-    
+
     if (CORR_NUM >= (int)('x' - 'a'))
         reportFatalError("Too many correction sources");
 }

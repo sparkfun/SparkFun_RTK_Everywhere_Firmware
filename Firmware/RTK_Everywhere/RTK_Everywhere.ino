@@ -181,6 +181,7 @@ RTK_Everywhere.ino
 #include <NetworkClient.h>
 #include <NetworkClientSecure.h>
 #include <NetworkUdp.h>
+#include <lwip/sockets.h>
 #endif // COMPILE_NETWORK
 
 #define RTK_MAX_CONNECTION_MSEC (15 * MILLISECONDS_IN_A_MINUTE)
@@ -703,7 +704,8 @@ bool firstButtonThrownOut = false;
 // Because the incoming string is longer than max len, there are multiple callbacks so we
 // use a global to combine the incoming
 #define AP_CONFIG_SETTING_SIZE 20000 // 10000 isn't enough if the SD card contains many files
-char *settingsCSV;                   // Push large array onto heap
+#define AP_FIRMWARE_VERSION_SIZE    256
+
 char *incomingSettings;
 int incomingSettingsSpot;
 unsigned long timeSinceLastIncomingSetting;

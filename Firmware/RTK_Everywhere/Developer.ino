@@ -293,7 +293,7 @@ bool webServerStart(int httpPort = 80)
     systemPrintln("**AP not compiled**");
     return false;
 }
-bool parseIncomingSettings() {return false;}
+bool webSocketsParseIncomingSettings() {return false;}
 void sendStringToWebsocket(const char* stringToSend) {}
 void stopWebServer() {}
 bool webServerSettingsCheckAndFree()    {return false;}
