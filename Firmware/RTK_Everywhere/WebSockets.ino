@@ -423,7 +423,7 @@ void webSocketsFileDelete(httpd_req_t * req, const char * fileName)
 void webSocketsFileDownload(httpd_req_t * req, const char * fileName)
 {
     uint8_t * buffer;
-    const size_t bufferLength = 1024; // 32768;
+    const size_t bufferLength = 32768;
     int bytes;
     SdFile file;
     int httpResponseCode;
