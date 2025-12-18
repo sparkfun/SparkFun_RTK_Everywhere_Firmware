@@ -425,6 +425,8 @@ void webSocketsFileDownload(httpd_req_t * req, const char * fileName)
     uint8_t * buffer;
     const size_t bufferLength = 32768;
     int bytes;
+    uint64_t bytesSent;
+    char client[80];
     SdFile file;
     bool haveSemaphore;
     int httpResponseCode;
@@ -437,6 +439,7 @@ void webSocketsFileDownload(httpd_req_t * req, const char * fileName)
     do
     {
         buffer = nullptr;
+        bytesSent = 0;
         haveSemaphore = false;
 
         // Build the responses
@@ -446,6 +449,9 @@ void webSocketsFileDownload(httpd_req_t * req, const char * fileName)
 
         responseSuccessful = "Downloaded file ";
         responseSuccessful += &fileName[1];
+
+        // Get the client
+        webSocketsGetClientIpAddressAndPort(req, client, sizeof(client));
 
         // Allocate the buffer
         buffer = (uint8_t *)rtkMalloc(bufferLength, "WebSockets file download buffer");
@@ -495,6 +501,12 @@ void webSocketsFileDownload(httpd_req_t * req, const char * fileName)
                 responseFailed += &fileName[1];
                 response = &responseFailed;
                 break;
+            }
+            if (settings.debugWebServer == true)
+            {
+                systemPrintf("WebSockets: Sending %d bytes at offset %lld to %s\r\n",
+                             bytes, bytesSent, client);
+                bytesSent += bytes;
             }
 
             // Send the data
