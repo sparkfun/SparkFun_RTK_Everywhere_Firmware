@@ -3,7 +3,6 @@
 const char *accessoryName = "SparkPNT RTK Flex";
 const char *manufacturer = "SparkFun Electronics";
 const char *hardwareVersion = "1.0.0";
-const char *EAProtocol = "com.bad-elf.gps"; // "com.sparkfun.rtk";
 const char *BTTransportName = "Bluetooth";
 const char *LIComponentName = "com.sparkfun.li";
 
@@ -54,7 +53,7 @@ void beginAuthCoPro(TwoWire *i2cBus)
     appleAccessory->setSerialNumber(serialNumber);
     appleAccessory->setFirmwareVersion(deviceFirmware);
     appleAccessory->setHardwareVersion(hardwareVersion);
-    appleAccessory->setExternalAccessoryProtocol(EAProtocol);
+    appleAccessory->setExternalAccessoryProtocol((const char *)&settings.eaProtocol);
     appleAccessory->setBluetoothTransportName(BTTransportName);
     appleAccessory->setBluetoothMacAddress(btMACAddress);
     appleAccessory->setLocationInfoComponentName(LIComponentName);
