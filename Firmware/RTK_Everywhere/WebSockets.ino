@@ -677,6 +677,9 @@ static esp_err_t webSocketsHandler(httpd_req_t *req)
     WEB_SOCKETS_CLIENT * client;
     WEB_SOCKETS_CLIENT * entry;
 
+    // Display the request
+    webSocketsDisplayRequest(req);
+
     // Log the req, so we can reuse it for httpd_ws_send_frame
     // TODO: do we need to be cleverer about this?
     // last_ws_req = req;
