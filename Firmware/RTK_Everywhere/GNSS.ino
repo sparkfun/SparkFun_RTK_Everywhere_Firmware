@@ -470,14 +470,14 @@ void gnssVerifyTables()
 }
 
 // Given a bit to configure, set that bit in the overall bitfield
-void gnssConfigure(uint8_t configureBit)
+void gnssConfigure(uint32_t configureBit)
 {
     uint32_t mask = (1 << configureBit);
     settings.gnssConfigureRequest |= mask; // Set the bit
 }
 
 // Given a bit to configure, clear that bit from the overall bitfield
-void gnssConfigureClear(uint8_t configureBit)
+void gnssConfigureClear(uint32_t configureBit)
 {
     uint32_t mask = (1 << configureBit);
 
@@ -488,7 +488,7 @@ void gnssConfigureClear(uint8_t configureBit)
 }
 
 // Return true if a given bit is set
-bool gnssConfigureRequested(uint8_t configureBit)
+bool gnssConfigureRequested(uint32_t configureBit)
 {
     uint32_t mask = (1 << configureBit);
 
