@@ -59,6 +59,8 @@ const numCorrectionsSources = 8;
 var correctionsSourceNames = [];
 var correctionsSourcePriorities = [];
 
+// Note: if you add a new array here, add it to initializeArrays() too
+
 const CoordinateTypes = {
     COORDINATE_INPUT_TYPE_DD: 0, //Default DD.ddddddddd
     COORDINATE_INPUT_TYPE_DDMM: 1, //DDMM.mmmmm
@@ -79,6 +81,18 @@ var convertedCoordinate = 0.0;
 var coordinateInputType = CoordinateTypes.COORDINATE_INPUT_TYPE_DD;
 
 var initialSettings = {};
+
+function initializeArrays() {
+    // Initialize (empty) all existing arrays by setting their length to zero
+    savedMessageNames.length = 0;
+    savedMessageValues.length = 0;
+    savedCheckboxNames.length = 0;
+    savedCheckboxValues.length = 0;
+    recordsECEF.length = 0;
+    recordsGeodetic.length = 0;
+    correctionsSourceNames.length = 0;
+    correctionsSourcePriorities.length = 0;
+}
 
 function parseIncoming(msg) {
     //console.log("Incoming message: " + msg);
@@ -103,6 +117,7 @@ function parseIncoming(msg) {
             platformPrefix = val;
             document.title = "RTK " + platformPrefix + " Setup";
             fullPageUpdate = true;
+            initializeArrays();
             correctionText = "";
 
             if (platformPrefix == "EVK") {
