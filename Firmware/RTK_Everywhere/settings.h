@@ -741,9 +741,10 @@ struct Settings
 
     // Bluetooth
     BluetoothRadioType_e bluetoothRadioType = BLUETOOTH_RADIO_SPP_AND_BLE;
+    bool clearBtPairings = true; // Clear MFi Accessory SSP pairings
+    char eaProtocol[50] = "com.sparkfun.rtk"; // MFi External Accessory protocol name
     uint16_t sppRxQueueSize = 512 * 4;
     uint16_t sppTxQueueSize = 32;
-    bool clearBtPairings = true; // Clear MFi Accessory SSP pairings
 
     // Corrections
     int correctionsSourcesLifetime_s = 30; // Expire a corrections source if no data is seen for this many seconds
@@ -1353,9 +1354,10 @@ const RTK_Settings_Entry rtkSettingsEntries[] =
 
     // Bluetooth
     { 1, 1, 0, 1, 1, 1, 1, 1, 1, ALL, 1, tBtRadio,  0, & settings.bluetoothRadioType, "bluetoothRadioType", nullptr, },
+    { 0, 1, 0, 1, 1, 1, 1, 1, 1, ALL, 1, _bool,     0, & settings.clearBtPairings, "clearBtPairings", nullptr, },
+    { 0, 1, 0, 1, 1, 1, 1, 1, 1, ALL, 1, tCharArry, sizeof(settings.eaProtocol), & settings.eaProtocol, "eaProtocol", nullptr, },
     { 0, 0, 0, 1, 1, 1, 1, 1, 1, ALL, 1, _uint16_t, 0, & settings.sppRxQueueSize, "sppRxQueueSize", nullptr, },
     { 0, 0, 0, 1, 1, 1, 1, 1, 1, ALL, 1, _uint16_t, 0, & settings.sppTxQueueSize, "sppTxQueueSize", nullptr, },
-    { 0, 1, 0, 1, 1, 1, 1, 1, 1, ALL, 1, _bool,     0, & settings.clearBtPairings, "clearBtPairings", nullptr, },
 
     // Corrections
     { 1, 1, 0, 1, 1, 1, 1, 1, 1, ALL, 1, _int,      0, & settings.correctionsSourcesLifetime_s, "correctionsSourcesLifetime", nullptr, },
