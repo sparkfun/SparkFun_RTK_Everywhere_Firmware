@@ -367,7 +367,7 @@ function parseIncoming(msg) {
                 ge("rtcmRateInfoText").setAttribute('data-bs-original-title', 'RTCM is transmitted by the base at a default of 1Hz for messages 1005, 1074, 1084, 1094, 1124, and 0.1Hz for 1033. This can be lowered for radios with low bandwidth or tailored to transmit any/all RTCM messages. Limits: 0 to 20. Note: The measurement rate is overridden to 1Hz when in Base mode.');
 
                 select = ge("pointPerfectService");
-                newOption = new Option('Disabled', '0');
+                let newOption = new Option('Disabled', '0');
                 select.add(newOption, undefined);
                 newOption = new Option('Flex NTRIP/RTCM', '1');
                 select.add(newOption, undefined);
@@ -401,7 +401,7 @@ function parseIncoming(msg) {
                 select.add(newOption, undefined);
                 if (val >= 121) {
                     select = ge("dynamicModel");
-                    let newOption = new Option('Mower', '11');
+                    newOption = new Option('Mower', '11');
                     select.add(newOption, undefined);
                     newOption = new Option('E-Scooter', '12');
                     select.add(newOption, undefined);
