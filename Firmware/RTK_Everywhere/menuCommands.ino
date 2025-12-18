@@ -1186,7 +1186,7 @@ SettingValueResponse updateSettingWithValue(bool inCommands, const char *setting
 
         // Change to new profile
         if (settings.debugWebServer == true)
-            systemPrintf("Changing to profile number %d\r\n", settingValue);
+            systemPrintf("Changing to profile number %d\r\n", (int)settingValue);
         changeProfileNumber(settingValue);
 
         // Load new profile into system
@@ -1200,8 +1200,11 @@ SettingValueResponse updateSettingWithValue(bool inCommands, const char *setting
 
             if (settings.debugWebServer == true)
             {
-                systemPrintf("Sending profile %d\r\n", settingValue);
-                systemPrintf("Profile contents: %s\r\n", settingsCsvList);
+                systemPrintf("Sending profile %d\r\n", (int)settingValue);
+                systemPrintln("Profile contents:");
+                for (int x = 0; x < strlen(settingsCsvList); x++) // Print manually
+                    systemWrite(settingsCsvList[x]);
+                systemPrintln();
             }
 
             webSocketsSendString(settingsCsvList);
@@ -1215,7 +1218,7 @@ SettingValueResponse updateSettingWithValue(bool inCommands, const char *setting
     {
         // Change to new profile
         if (settings.debugCLI == true)
-            systemPrintf("Changing to profile number %d\r\n", settingValue);
+            systemPrintf("Changing to profile number %d\r\n", (int)settingValue);
         changeProfileNumber(settingValue);
 
         // Load new profile into system
@@ -1243,8 +1246,11 @@ SettingValueResponse updateSettingWithValue(bool inCommands, const char *setting
 
             if (settings.debugWebServer == true)
             {
-                systemPrintf("Sending reset profile %d\r\n", settingValue);
-                systemPrintf("Profile contents: %s\r\n", settingsCsvList);
+                systemPrintf("Sending reset profile %d\r\n", (int)settingValue);
+                systemPrintln("Profile contents:");
+                for (int x = 0; x < strlen(settingsCsvList); x++) // Print manually
+                    systemWrite(settingsCsvList[x]);
+                systemPrintln();
             }
 
             webSocketsSendString(settingsCsvList);
@@ -1280,7 +1286,7 @@ SettingValueResponse updateSettingWithValue(bool inCommands, const char *setting
             endLogging(false, true); //(gotSemaphore, releaseSemaphore) Close file. Reset parser stats.
             beginLogging();          // Create new file based on current RTC.
 
-            char newFileNameCSV[sizeof("logFileName,") + sizeof(logFileName) + 1];
+            char newFileNameCSV[sizeof("logFileName,") + sizeof(logFileName) + 2];
             snprintf(newFileNameCSV, sizeof(newFileNameCSV), "logFileName,%s,", logFileName);
 
             webSocketsSendString(newFileNameCSV); // Tell the config page the name of the file we just created

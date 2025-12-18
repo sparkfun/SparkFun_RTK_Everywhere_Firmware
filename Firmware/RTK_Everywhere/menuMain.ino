@@ -53,7 +53,7 @@ void menuMain()
         else if (settings.bluetoothRadioType == BLUETOOTH_RADIO_SPP_ACCESSORY_MODE)
         {
             systemPrint("** Bluetooth SPP (Accessory Mode) broadcasting as: ");
-            systemPrint(deviceName);
+            systemPrint(accessoryName);
         }
         else if (settings.bluetoothRadioType == BLUETOOTH_RADIO_OFF)
         {
@@ -449,10 +449,11 @@ void menuRadio()
         // Display Bluetooth menu
         mmDisplayBluetoothRadioMenu('b', bluetoothUserChoice);
 
-        // If in BLUETOOTH_RADIO_SPP_ACCESSORY_MODE, allow user to delete all pairings
+        // If in BLUETOOTH_RADIO_SPP_ACCESSORY_MODE, allow user to delete all pairings and set EA Protocol name
         if (bluetoothUserChoice == BLUETOOTH_RADIO_SPP_ACCESSORY_MODE)
         {
             systemPrintf("c) Clear BT pairings: %s\r\n", clearBtPairings ? "Yes" : "No");
+            systemPrintf("e) EA Protocol name: %s\r\n", settings.eaProtocol);
         }
 
         systemPrintln("x) Exit");
@@ -466,6 +467,15 @@ void menuRadio()
         // Allow user to clear BT pairings - when BTClassicSerial is next begun
         else if ((incoming == 'c') && (bluetoothUserChoice == BLUETOOTH_RADIO_SPP_ACCESSORY_MODE))
             clearBtPairings ^= 1;
+
+        // Allow user to modify the External Accessory protocol name
+        else if ((incoming == 'e') && (bluetoothUserChoice == BLUETOOTH_RADIO_SPP_ACCESSORY_MODE))
+        {
+            systemPrint("Enter new protocol name: ");
+            getUserInputString(settings.eaProtocol, sizeof(settings.eaProtocol));
+            recordSystemSettings();
+            systemPrintln("\r\n** Please reconnect to the Device to apply the changes **");
+        }
 
         else if (incoming == 1)
         {

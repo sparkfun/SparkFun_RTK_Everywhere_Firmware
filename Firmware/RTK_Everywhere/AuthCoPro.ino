@@ -1,13 +1,20 @@
 #ifdef COMPILE_AUTHENTICATION
 
+const char *accessoryName = "SparkPNT RTK Flex";
 const char *manufacturer = "SparkFun Electronics";
 const char *hardwareVersion = "1.0.0";
-const char *EAProtocol = "com.sparkfun.rtk";
-//const char *BTTransportName = "com.sparkfun.bt";
 const char *BTTransportName = "Bluetooth";
 const char *LIComponentName = "com.sparkfun.li";
-const char *productPlanUID =
-    "0123456789ABCDEF"; // This comes from the MFi Portal, when you register the product with Apple
+
+// The Product Plan UID is a 16 character unique identifier for the product plan associated with the
+// accessory. The value is available in the product plan header in the MFi Portal and is different from the
+// Product Plan ID. Click on the blue "information" icon to the right of your blue MFi Account number on
+// the top-left of a Product Plan form.
+const char *productPlanUID = "e9e877bb278140f0";
+
+const int rfcommChanneliAP2 = 2; // Use RFCOMM channel 2 for iAP2
+
+volatile bool sdpCreateRecordEvent = false; // Flag to indicate when the iAP2 record has been created
 
 extern BTSerialInterface *bluetoothSerialSpp;
 
@@ -40,13 +47,13 @@ void beginAuthCoPro(TwoWire *i2cBus)
         appleAccessory->enableDebug(&Serial); // Enable debug prints to Serial
 
     // Pass Identity Information, Protocols and Names into the accessory driver
-    appleAccessory->setAccessoryName(deviceName);
+    appleAccessory->setAccessoryName(accessoryName);
     appleAccessory->setModelIdentifier(platformPrefix);
     appleAccessory->setManufacturer(manufacturer);
     appleAccessory->setSerialNumber(serialNumber);
     appleAccessory->setFirmwareVersion(deviceFirmware);
     appleAccessory->setHardwareVersion(hardwareVersion);
-    appleAccessory->setExternalAccessoryProtocol(EAProtocol);
+    appleAccessory->setExternalAccessoryProtocol((const char *)&settings.eaProtocol);
     appleAccessory->setBluetoothTransportName(BTTransportName);
     appleAccessory->setBluetoothMacAddress(btMACAddress);
     appleAccessory->setLocationInfoComponentName(LIComponentName);
@@ -84,26 +91,30 @@ void updateAuthCoPro()
         {
             appleAccessory->update(); // Update the Accessory driver
 
+            // Check if the iAP2 SDP record has been created
+            // If it has, restart the SPP Server using rfcommChanneliAP2
+            if (sdpCreateRecordEvent)
+            {
+                sdpCreateRecordEvent = false;
+                esp_spp_stop_srv();
+                esp_spp_start_srv(ESP_SPP_SEC_NONE, ESP_SPP_ROLE_SLAVE, rfcommChanneliAP2, "ESP32SPP2");
+            }
+
             // Check for a new device connection
             // Note: aclConnected is a one-shot
             //       The internal flag is automatically cleared when aclConnected returns true
             if (bluetoothSerialSpp->aclConnected() == true)
             {
                 char bda_str[18];
-                systemPrintf("Apple Device %s found\r\n", bda2str(bluetoothSerialSpp->aclGetAddress(), bda_str, 18));
+                systemPrintf("Apple Device %s found. Waiting for connection...\r\n", bda2str(bluetoothSerialSpp->aclGetAddress(), bda_str, 18));
 
-                // We need to connect _almost_ immediately for a successful pairing
-                // This is really brittle.
-                // Having core debug enabled adds enough delay to make this work.
-                // With debug set to none, we need to insert a _small_ delay...
-                // Too much delay and we get Connection Unsuccessful.
-                delay(2);
-
-                int channel = 1;
-                if (settings.debugNetworkLayer)
-                    systemPrintf("Connecting on channel %d\r\n", channel);
-
-                bluetoothSerialSpp->connect(bluetoothSerialSpp->aclGetAddress(), channel); // Blocking for READY_TIMEOUT
+                unsigned long connectionStart = millis();
+                while ((millis() - connectionStart) < 5000)
+                {
+                    if (bluetoothSerialSpp->connected())
+                        break;
+                    delay(10);
+                }
 
                 if (bluetoothSerialSpp->connected())
                 {
