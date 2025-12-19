@@ -1215,7 +1215,6 @@ void processUart1Message(SEMP_PARSE_STATE *parse, uint16_t type)
                                  consumer);
                 else
                     systemPrintf("Ring buffer full: discarding %d bytes\r\n", discardedBytes);
-                Serial.flush(); // TODO - delete me!
             }
 
             // Update the tails. This needs semaphore protection
@@ -2199,6 +2198,7 @@ void buttonCheckTask(void *e)
             else if (buttonPressedFor(2100) == true)
             {
                 systemPrintln("Shutting down");
+                Serial.flush();
 
                 tickerStop(); // Stop controlling LEDs via ticker task
 

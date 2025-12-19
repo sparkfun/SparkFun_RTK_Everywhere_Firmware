@@ -114,7 +114,7 @@ static uint16_t tcpServerPort;
 static uint8_t tcpServerState;
 static uint32_t tcpServerTimer;
 static bool tcpServerWiFiSoftAp;
-static const char * tcpServerName;
+static const char * tcpServerName = "";
 
 // TCP server clients
 static volatile uint8_t tcpServerClientConnected;
@@ -198,7 +198,7 @@ bool tcpServerEnabled(const char ** line)
 {
     bool casterMode;
     bool enabled;
-    const char * name;
+    static const char * name = "";
     uint16_t port;
     bool softAP;
 
@@ -210,7 +210,8 @@ bool tcpServerEnabled(const char ** line)
             || settings.enableNtripCaster
             || settings.baseCasterOverride) == false)
         {
-            *line = ", Not enabled!";
+            if (line)
+                *line = ", Not enabled!";
             break;
         }
 
@@ -251,7 +252,9 @@ bool tcpServerEnabled(const char ** line)
         // Wrong mode for TCP server or base caster operation
         else
         {
-            *line = ", Wrong mode!";
+            name = "None";
+            if (line)
+                *line = ", Wrong mode!";
             break;
         }
 
@@ -271,12 +274,14 @@ bool tcpServerEnabled(const char ** line)
             || (port != tcpServerPort)
             || (softAP != tcpServerWiFiSoftAp))
         {
-            *line = ", Wrong state to switch configuration!";
+            if (line)
+                *line = ", Wrong state to switch configuration!";
             break;
         }
 
         // The server is enabled and in the correct mode
-        *line = "";
+        if (line)
+            *line = "";
         enabled = true;
     } while (0);
     return enabled;
@@ -661,10 +666,14 @@ void tcpServerUpdate()
     const char * line = "";
 
     // Shutdown the TCP server when the mode or setting changes
+    Serial.print("tcpServerState "); Serial.println(tcpServerState); Serial.flush();
     DMW_st(tcpServerSetState, tcpServerState);
+    Serial.print("tcpServerState "); Serial.println(tcpServerState); Serial.flush();
     connected = networkConsumerIsConnected(NETCONSUMER_TCP_SERVER)
               || (tcpServerWiFiSoftAp && wifiSoftApOnline);
+    Serial.print("connected "); Serial.println(connected); Serial.flush();
     enabled = tcpServerEnabled(&line);
+    Serial.print("enabled "); Serial.println(enabled); Serial.flush();
     if ((tcpServerState > TCP_SERVER_STATE_OFF) && !enabled)
         tcpServerStop();
 
@@ -762,6 +771,18 @@ void tcpServerUpdate()
         break;
     }
 
+    Serial.print("tcpServerName "); Serial.println(tcpServerName); Serial.flush();
+
+    Serial.print("tcpServerStateName[tcpServerState] "); Serial.println(tcpServerStateName[tcpServerState]); Serial.flush();
+    
+    Serial.print("line "); Serial.println(line); Serial.flush();
+
+    Serial.print("tcpServerName "); Serial.println(strlen(tcpServerName)); Serial.flush();
+
+    Serial.print("tcpServerStateName[tcpServerState] "); Serial.println(strlen(tcpServerStateName[tcpServerState])); Serial.flush();
+    
+    Serial.print("line "); Serial.println(strlen(line)); Serial.flush();
+
     // Periodically display the TCP state
     if (PERIODIC_DISPLAY(PD_TCP_SERVER_STATE) && (!inMainMenu))
     {
@@ -769,6 +790,13 @@ void tcpServerUpdate()
                      tcpServerStateName[tcpServerState], line);
         PERIODIC_CLEAR(PD_TCP_SERVER_STATE);
     }
+
+    Serial.print("tcpServerName "); Serial.println(tcpServerName); Serial.flush();
+
+    Serial.print("tcpServerStateName[tcpServerState] "); Serial.println(tcpServerStateName[tcpServerState]); Serial.flush();
+    
+    Serial.print("line "); Serial.println(line); Serial.flush();
+
 }
 
 //----------------------------------------

@@ -1314,7 +1314,8 @@ bool provisioningEnabled(const char **line)
         enabled = pointPerfectIsEnabled();
         if (enabled == false)
         {
-            *line = ", PointPerfect corrections disabled!";
+            if (line)
+                *line = ", PointPerfect corrections disabled!";
             break;
         }
 
@@ -1330,10 +1331,13 @@ bool provisioningEnabled(const char **line)
 
         // Determine if key provisioning is enabled
         enabled = provisioningRunning;
-        if (settings.autoKeyRenewal)
-            *line = ", Key not requested and auto key renewal running later!";
-        else
-            *line = ", Key not requested and auto key renewal is disabled!";
+        if (line)
+        {
+            if (settings.autoKeyRenewal)
+                *line = ", Key not requested and auto key renewal running later!";
+            else
+                *line = ", Key not requested and auto key renewal is disabled!";
+        }
     } while (0);
     return enabled;
 }

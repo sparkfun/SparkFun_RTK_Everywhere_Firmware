@@ -28,7 +28,7 @@ void beginPsram()
 // Free memory to PSRAM when available
 void rtkFree(void *data, const char *text)
 {
-    if (settings.debugMalloc)
+    if (settings.debugMalloc && !inMainMenu)
         systemPrintf("%p: Freeing %s\r\n", data, text);
     free(data);
 }
@@ -51,7 +51,7 @@ void *rtkMalloc(size_t sizeInBytes, const char *text)
     }
 
     // Display the allocation
-    if (settings.debugMalloc)
+    if (settings.debugMalloc && !inMainMenu)
     {
         if (data)
             systemPrintf("%p, %s %d bytes allocated: %s\r\n", data, area, sizeInBytes, text);
@@ -64,6 +64,9 @@ void *rtkMalloc(size_t sizeInBytes, const char *text)
 // See https://en.cppreference.com/w/cpp/memory/new/operator_delete
 void operator delete(void *ptr) noexcept
 {
+    //free(ptr);
+
+    // Do we still need this?
     rtkFree(ptr, "buffer");
 }
 
@@ -75,6 +78,10 @@ void operator delete[](void *ptr) noexcept
 // See https://en.cppreference.com/w/cpp/memory/new/operator_new
 void *operator new(std::size_t count)
 {
+    //void *data = malloc(count);
+    //return data;
+
+    // Do we still need this?
     return rtkMalloc(count, "new buffer");
 }
 
@@ -338,12 +345,14 @@ void reportHeapNow(bool alwaysPrint)
 
         if (online.psram == true)
         {
+            heap_caps_check_integrity_all(true);
             systemPrintf("FreeHeap: %d / HeapLowestPoint: %d / LargestBlock: %d / Used PSRAM: %d\r\n",
                          ESP.getFreeHeap(), xPortGetMinimumEverFreeHeapSize(),
                          heap_caps_get_largest_free_block(MALLOC_CAP_8BIT), ESP.getPsramSize() - ESP.getFreePsram());
         }
         else
         {
+            heap_caps_check_integrity_all(true);
             systemPrintf("FreeHeap: %d / HeapLowestPoint: %d / LargestBlock: %d\r\n", ESP.getFreeHeap(),
                          xPortGetMinimumEverFreeHeapSize(), heap_caps_get_largest_free_block(MALLOC_CAP_8BIT));
         }
