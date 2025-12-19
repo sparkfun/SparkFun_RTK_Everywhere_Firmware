@@ -1691,8 +1691,9 @@
                     </div>
 
                     <div class="form-check mt-3">
-                        <input type="checkbox" value="" id="enableNtripCaster" onClick="tcpServerBoxes()">
-                        <label for="enableNtripCaster">NTRIP Caster</label>
+                        <label class="form-check-label" for="enableNtripCaster">NTRIP Caster</label>
+                        <input class="form-check-input" type="checkbox" value="" id="enableNtripCaster" onClick="tcpServerBoxes()">
+                        
                         <span class="tt" data-bs-placement="right"
                             title="If enabled, device will emulate an NTRIP caster, allowing inbound NTRIP Clients to connect and get RTCM over the given port.">
                             <span class="icon-info-circle text-primary ms-2"></span>
