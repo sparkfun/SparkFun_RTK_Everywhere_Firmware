@@ -1351,9 +1351,6 @@ void setup()
     DMW_b("beginDisplay");
     beginDisplay(i2cDisplay); // Start display to be able to display any errors
 
-    DMW_b("beginAuthCoPro");
-    beginAuthCoPro(i2cAuthCoPro); // Discover and start authentication coprocessor
-
     DMW_b("verifyTables");
     verifyTables(); // Verify the consistency of the internal tables
 
@@ -1457,6 +1454,9 @@ void setup()
     DMW_b("rtcUpdate");
     rtcUpdate(); // The GNSS likely has a time/date. Update ESP32 RTC to match. Needed for PointPerfect key
                  // expiration.
+
+    DMW_b("beginAuthCoPro");
+    beginAuthCoPro(i2cAuthCoPro); // Discover and start authentication coprocessor
 
     systemFlush(); // Complete any previous prints
 
