@@ -210,6 +210,8 @@ const uint16_t HTTPS_PORT = 443;                                                
 #include <PPP.h>
 #endif // COMPILE_CELLULAR
 
+#include <ArduinoJson.h> //http://librarymanager/All#Arduino_JSON_messagepack - Needed for settings.h
+
 #include "settings.h"
 #include <esp_mac.h> // MAC address support
 
@@ -465,8 +467,6 @@ const char *wifiSoftApPassword = nullptr;
 
 // Over-the-Air (OTA) update support
 //-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
-#include <ArduinoJson.h> //http://librarymanager/All#Arduino_JSON_messagepack
-
 #include "esp_ota_ops.h" //Needed for partition counting and updateFromSD
 
 #define OTA_FIRMWARE_JSON_URL_LENGTH 128
