@@ -60,6 +60,12 @@ const uint8_t webSocketsCaptiveUrlCount = sizeof(webSocketsCaptiveUrls) / sizeof
 // New types
 //----------------------------------------
 
+typedef struct _FILE_EXTENSION_TO_CONTENT_TYPE
+{
+    const char * _fileExtension;
+    const char * _contentType;
+} FILE_EXTENSION_TO_CONTENT_TYPE;
+
 typedef struct _GET_PAGE_HANDLER
 {
     httpd_uri_t _page;
@@ -423,13 +429,20 @@ void webSocketsFileDelete(httpd_req_t * req, const char * fileName)
 void webSocketsFileDownload(httpd_req_t * req, const char * fileName)
 {
     uint8_t * buffer;
-    const size_t bufferLength = 32768;
+    const size_t bufferBytes = 32768;
     int bytes;
     uint64_t bytesSent;
-    char client[80];
+    char * client;
+    const size_t clientBytes = 80;
+    char * disposition;
+    size_t dispositionBytes;
+    const char * dispositionFormat = "attachment; filename=\"%s\"";
     SdFile file;
     bool haveSemaphore;
     int httpResponseCode;
+    size_t length;
+    char * lengthString;
+    const size_t lengthStringBytes = 32;
     String * response;
     String responseFailed;
     String responseSuccessful;
@@ -453,8 +466,16 @@ void webSocketsFileDownload(httpd_req_t * req, const char * fileName)
         // Get the client
         webSocketsGetClientIpAddressAndPort(req, client, sizeof(client));
 
+        // Determine the disposition string length
+        dispositionBytes = snprintf(nullptr, 0, dispositionFormat, &fileName[1]);
+
         // Allocate the buffer
-        buffer = (uint8_t *)rtkMalloc(bufferLength, "WebSockets file download buffer");
+        length += bufferBytes
+               + clientBytes
+               + lengthStringBytes
+               + dispositionBytes
+               + 1;                 // Disposition zero termination
+        buffer = (uint8_t *)rtkMalloc(length, "WebSockets file download buffer");
         if (buffer == nullptr)
         {
             statusMessage = HTTPD_500;
@@ -462,6 +483,10 @@ void webSocketsFileDownload(httpd_req_t * req, const char * fileName)
             response = &responseFailed;
             break;
         }
+        memset(buffer, 0, length);
+        client = (char *)&buffer[bufferBytes];
+        lengthString = &client[clientBytes];
+        disposition = &lengthString[lengthStringBytes];
 
         // Attempt to gain access to the SD card
         if (settings.debugWebServer == true)
@@ -484,11 +509,60 @@ void webSocketsFileDownload(httpd_req_t * req, const char * fileName)
             break;
         }
 
+        // Set the file name
+        sprintf(disposition, dispositionFormat, &fileName[1]);
+        if (httpd_resp_set_hdr(req, "Content-Disposition", disposition) != ESP_OK)
+        {
+            statusMessage = HTTPD_500;
+            responseFailed = "Failed to set content disposition";
+            response = &responseFailed;
+            break;
+        }
+
+        // Set the content type
+        if (webSocketsSetContentType(req, fileName) != ESP_OK)
+        {
+            statusMessage = HTTPD_500;
+            responseFailed = "Failed to set content type";
+            response = &responseFailed;
+            break;
+        }
+
+        // Set the transfer method
+        if (httpd_resp_set_hdr(req, "Content-Transfer-Encoding", "binary") != ESP_OK)
+        {
+            statusMessage = HTTPD_500;
+            responseFailed = "Failed to set transfer encoding";
+            response = &responseFailed;
+            break;
+        }
+
+        // Set the file length
+        sprintf(lengthString, "%lld", file.size());
+        if (httpd_resp_set_hdr(req, "Content-Length", lengthString) != ESP_OK)
+        {
+            statusMessage = HTTPD_500;
+            responseFailed = "Failed to set content length";
+            response = &responseFailed;
+            break;
+        }
+        if (settings.debugWebServer == true)
+            systemPrintf("File length: %s bytes\r\n", lengthString);
+
+        // Set the response status
+        if (httpd_resp_set_status(req, HTTPD_200) != ESP_OK)
+        {
+            statusMessage = HTTPD_500;
+            responseFailed = "Failed to set response status";
+            response = &responseFailed;
+            break;
+        }
+
         // Download the file data
         while (1)
         {
             // Read data from the file
-            bytes = file.read(buffer, bufferLength);
+            bytes = file.read(buffer, bufferBytes);
             if (bytes < 0)
             {
                 statusMessage = HTTPD_500;
@@ -2263,6 +2337,62 @@ static const httpd_uri_t webSocketsPage = {.uri = "/ws",
                                            .is_websocket = true,
                                            .handle_ws_control_frames = true,
                                            .supported_subprotocol = NULL};
+
+//----------------------------------------
+// Set the content type based upon the file extension
+//----------------------------------------
+esp_err_t webSocketsSetContentType(httpd_req_t *req, const char *fileName)
+{
+    const char * defaultType = "text/plain";
+    const char * extension;
+    size_t extensionLength;
+    const FILE_EXTENSION_TO_CONTENT_TYPE extensionTable[] =
+    {
+        {".bin", "application/octet-stream"},
+        {".bmp", "image/bmp"},
+        {".css", "text/css"},
+        {".csv", "text/csv"},
+        {".eot", "application/vnd.ms-fontobject"},
+        {".gz", "application/gzip"},
+        {".html", "text/html"},
+        {".ico", "image/x-icon"},
+        {".jpeg", "image/jpeg"},
+        {".js", "text/javascript"},
+        {".json", "application/json"},
+        {".pdf", "application/pdf"},
+        {".png", "image/png"},
+        {".ttf", "font/ttf"},
+        {".txt", "text/plain"},
+        {".ubx", "application/octet-stream"},
+        {".woff", "font/woff"},
+        {".woff2", "font/woff2"},
+    };
+    const int entries = sizeof(extensionTable) / sizeof(extensionTable[0]);
+    size_t fileNameLength;
+    int index;
+
+    // Walk the list of extensions
+    fileNameLength = strlen(fileName);
+    for (index = 0; index < entries; index++)
+    {
+        // Determine if this extension matches
+        extension = extensionTable[index]._fileExtension;
+        extensionLength = strlen(extension);
+        if (strcasecmp(&fileName[fileNameLength - extensionLength], extension) == 0)
+        {
+            // Set the content type
+            if (settings.debugWebServer == true)
+                systemPrintf("WebSockets: Found content type %s\r\n",
+                             extensionTable[index]._contentType);
+            return httpd_resp_set_type(req, extensionTable[index]._contentType);
+        }
+    }
+
+    // No extension matches, set the default
+    if (settings.debugWebServer == true)
+        systemPrintf("WebSockets: Using default content type %s\r\n", defaultType);
+    return httpd_resp_set_type(req, defaultType);
+}
 
 //----------------------------------------
 // Start the web sockets layer
