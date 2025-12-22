@@ -1253,6 +1253,10 @@ void forceGnssCommunicationRate(uint32_t &platformGnssCommunicationRate)
             platformGnssCommunicationRate = 115200;
         }
     }
+    else
+    {
+        systemPrintln("Error: Unhandled GNSS communication rate");
+    }
 }
 // Assign GNSS UART interrupts to the core that started the task. See:
 // https://github.com/espressif/arduino-esp32/issues/3386
