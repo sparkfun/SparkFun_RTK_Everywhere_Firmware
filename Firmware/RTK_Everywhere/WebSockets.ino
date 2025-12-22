@@ -2207,13 +2207,18 @@ void webServerStart()
         if (settings.debugWebServer)
             systemPrintln("Web Server: Starting");
 
-        // Start the network
-        if (networkInterfaceHasInternet(NETWORK_ETHERNET))
-            networkConsumerAdd(NETCONSUMER_WEB_CONFIG, NETWORK_ANY, __FILE__, __LINE__);
-        else if ((settings.wifiConfigOverAP == false) || networkInterfaceHasInternet(NETWORK_WIFI_STATION))
-            networkConsumerAdd(NETCONSUMER_WEB_CONFIG, NETWORK_ANY, __FILE__, __LINE__);
-        else if (settings.wifiConfigOverAP)
-            networkSoftApConsumerAdd(NETCONSUMER_WEB_CONFIG, __FILE__, __LINE__);
+        do {
+            // Start the network
+            if (networkInterfaceHasInternet(NETWORK_ETHERNET))
+            {
+                networkConsumerAdd(NETCONSUMER_WEB_CONFIG, NETWORK_ANY, __FILE__, __LINE__);
+                break;
+            }
+            if ((settings.wifiConfigOverAP == false) || networkInterfaceHasInternet(NETWORK_WIFI_STATION))
+                networkConsumerAdd(NETCONSUMER_WEB_CONFIG, NETWORK_ANY, __FILE__, __LINE__);
+            if (settings.wifiConfigOverAP)
+                networkSoftApConsumerAdd(NETCONSUMER_WEB_CONFIG, __FILE__, __LINE__);
+        } while (0);
         webServerSetState(WEBSERVER_STATE_WAIT_FOR_NETWORK);
     }
 }
