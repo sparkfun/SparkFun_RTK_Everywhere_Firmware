@@ -136,13 +136,14 @@ bool udpServerEnabled(const char ** line)
         // Verify the operating mode
         if (NEQ_RTK_MODE(udpServerMode))
         {
-            *line = ", Wrong mode!";
+            if (line)
+                *line = ", Wrong mode!";
             break;
         }
 
         // Verify still enabled
         enabled = settings.enableUdpServer;
-        if (enabled == false)
+        if (line && enabled == false)
             *line = ", Not enabled!";
     } while (0);
     return enabled;

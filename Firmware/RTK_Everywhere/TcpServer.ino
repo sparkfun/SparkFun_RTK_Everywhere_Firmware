@@ -104,6 +104,25 @@ const RtkMode_t baseCasterMode = RTK_MODE_BASE_FIXED;
 const RtkMode_t tcpServerMode = RTK_MODE_ROVER
                               | RTK_MODE_BASE_SURVEY_IN;
 
+const char *const tcpServerModeNames[] = {
+    "TCP Server (Uninitialized)",
+    "TCP Server", // TCP server running in Rover mode (non-Caster Mode)
+    "Base Caster", // Base caster using soft AP WiFi
+    "NTRIP Caster", // Base Caster using WiFi STN
+};
+
+enum tcpServerModeIds
+{
+    TCP_SERVER_MODE_UNINITIALIZED,
+    TCP_SERVER_MODE_SERVER,
+    TCP_SERVER_MODE_BASE_CASTER,
+    TCP_SERVER_MODE_NTRIP_CASTER,
+    // Insert new modes here
+    TCP_SERVER_MODE_MAX // Last entry
+};
+
+const int tcpServerModesEntries = sizeof(tcpServerModeNames) / sizeof(tcpServerModeNames[0]);
+
 //----------------------------------------
 // Locals
 //----------------------------------------
@@ -114,7 +133,7 @@ static uint16_t tcpServerPort;
 static uint8_t tcpServerState;
 static uint32_t tcpServerTimer;
 static bool tcpServerWiFiSoftAp;
-static const char * tcpServerName;
+static const char * tcpServerName = tcpServerModeNames[TCP_SERVER_MODE_UNINITIALIZED];
 
 // TCP server clients
 static volatile uint8_t tcpServerClientConnected;
@@ -198,7 +217,7 @@ bool tcpServerEnabled(const char ** line)
 {
     bool casterMode;
     bool enabled;
-    const char * name;
+    const char * name = tcpServerModeNames[TCP_SERVER_MODE_UNINITIALIZED];
     uint16_t port;
     bool softAP;
 
@@ -210,7 +229,8 @@ bool tcpServerEnabled(const char ** line)
             || settings.enableNtripCaster
             || settings.baseCasterOverride) == false)
         {
-            *line = ", Not enabled!";
+            if (line)
+                *line = ", Not enabled!";
             break;
         }
 
@@ -218,7 +238,7 @@ bool tcpServerEnabled(const char ** line)
         if ((EQ_RTK_MODE(tcpServerMode) && settings.enableTcpServer))
         {
             // TCP server running in Rover mode
-            name = "TCP Server";
+            name = tcpServerModeNames[TCP_SERVER_MODE_SERVER];
             casterMode = false;
             port = settings.tcpServerPort;
             softAP = false;
@@ -235,13 +255,13 @@ bool tcpServerEnabled(const char ** line)
             if (settings.baseCasterOverride || (settings.tcpOverWiFiStation == false))
             {
                 // Using soft AP
-                name = "Base Caster";
+                name = tcpServerModeNames[TCP_SERVER_MODE_BASE_CASTER];
                 port = 2101;
                 softAP = true;
             }
             else
             {
-                name = "NTRIP Caster";
+                name = tcpServerModeNames[TCP_SERVER_MODE_NTRIP_CASTER];
                 // Using WiFi station
                 port = settings.tcpServerPort;
                 softAP = false;
@@ -251,7 +271,8 @@ bool tcpServerEnabled(const char ** line)
         // Wrong mode for TCP server or base caster operation
         else
         {
-            *line = ", Wrong mode!";
+            if (line)
+                *line = ", Wrong mode!";
             break;
         }
 
@@ -271,12 +292,14 @@ bool tcpServerEnabled(const char ** line)
             || (port != tcpServerPort)
             || (softAP != tcpServerWiFiSoftAp))
         {
-            *line = ", Wrong state to switch configuration!";
+            if (line)
+                *line = ", Wrong state to switch configuration!";
             break;
         }
 
         // The server is enabled and in the correct mode
-        *line = "";
+        if (line)
+            *line = "";
         enabled = true;
     } while (0);
     return enabled;
@@ -700,7 +723,7 @@ void tcpServerUpdate()
         if (enabled)
         {
             if (settings.debugTcpServer && (!inMainMenu))
-                systemPrintf("%s start/r/n", tcpServerName);
+                systemPrintf("%s start\r\n", tcpServerName);
             if (tcpServerWiFiSoftAp)
                 networkSoftApConsumerAdd(NETCONSUMER_TCP_SERVER, __FILE__, __LINE__);
             else
@@ -792,6 +815,8 @@ void tcpServerValidateTables()
         reportFatalError("Fix tcpServerStateNameEntries to match tcpServerStates");
     if (tcpServerClientStateNameEntries != TCP_SERVER_CLIENT_MAX)
         reportFatalError("Fix tcpServerClientStateNameEntries to match tcpServerClientStates");
+    if (tcpServerModesEntries != TCP_SERVER_MODE_MAX)
+        reportFatalError("Fix tcpServerModesEntries to match tcpServerModeIds");
 }
 
 //----------------------------------------

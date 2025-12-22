@@ -1039,6 +1039,7 @@ volatile bool deadManWalking;
 #define DMW_if if (deadManWalking)
 #define DMW_b(string)                                                                                                  \
     {                                                                                                                  \
+        reportHeapNow(true);                                                                                           \
         if (bootTimeIndex < MAX_BOOT_TIME_ENTRIES)                                                                     \
         {                                                                                                              \
             bootTime[bootTimeIndex] = millis();                                                                        \

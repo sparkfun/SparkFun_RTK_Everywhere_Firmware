@@ -189,13 +189,14 @@ bool tcpClientEnabled(const char ** line)
         // Verify the operating mode
         if (NEQ_RTK_MODE(tcpClientMode))
         {
-            *line = ", Wrong mode!";
+            if (line)
+                *line = ", Wrong mode!";
             break;
         }
 
         // Verify enabled
         enabled = settings.enableTcpClient;
-        if (enabled == false)
+        if (line && enabled == false)
             *line = ", Not enabled!";
     } while (0);
     return enabled;
