@@ -53,7 +53,11 @@ void menuMain()
         else if (settings.bluetoothRadioType == BLUETOOTH_RADIO_SPP_ACCESSORY_MODE)
         {
             systemPrint("** Bluetooth SPP (Accessory Mode) broadcasting as: ");
+#ifdef  COMPILE_AUTHENTICATION
             systemPrint(accessoryName);
+#else
+            systemPrint("** Not Compiled!**");
+#endif
         }
         else if (settings.bluetoothRadioType == BLUETOOTH_RADIO_OFF)
         {

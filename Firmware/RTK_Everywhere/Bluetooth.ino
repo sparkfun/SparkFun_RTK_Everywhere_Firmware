@@ -424,6 +424,8 @@ static void esp_sdp_callback(esp_sdp_cb_event_t event, esp_sdp_cb_param_t *param
             // SDP has been initialized. _Now_ we can create the iAP2 record!
             esp_bluetooth_sdp_hdr_overlay_t record = {(esp_bluetooth_sdp_types_t)0};
             record.type = ESP_SDP_TYPE_RAW;
+
+#ifdef COMPILE_AUTHENTICATION
             record.uuid.len = sizeof(UUID_IAP2);
             memcpy(record.uuid.uuid.uuid128, UUID_IAP2, sizeof(UUID_IAP2));
             // The service_name isn't critical. But we can't not set one.
@@ -431,6 +433,8 @@ static void esp_sdp_callback(esp_sdp_cb_event_t event, esp_sdp_cb_param_t *param
             record.service_name_length = strlen(sdp_service_name) + 1;
             record.service_name = (char *)sdp_service_name;
             record.rfcomm_channel_number = rfcommChanneliAP2; // RFCOMM channel
+#endif
+
             record.l2cap_psm = -1;
             record.profile_version = -1;
             esp_sdp_create_record((esp_bluetooth_sdp_record_t *)&record);
@@ -598,6 +602,7 @@ void bluetoothStart(bool skipOnlineCheck)
         }
         else if (settings.bluetoothRadioType == BLUETOOTH_RADIO_SPP_ACCESSORY_MODE)
         {
+#ifdef COMPILE_AUTHENTICATION
             // Uncomment the next line to force deletion of all paired (bonded) devices
             // (This should only be necessary if you have changed the SSP pairing type)
             //settings.clearBtPairings = true;
@@ -637,7 +642,6 @@ void bluetoothStart(bool skipOnlineCheck)
                     recordSystemSettings();
                 }
 
-#ifdef  COMPILE_AUTHENTICATION
                 // The SDP callback will create the iAP2 record
                 esp_sdp_register_callback(esp_sdp_callback);
                 esp_sdp_init();
@@ -705,7 +709,11 @@ void bluetoothStart(bool skipOnlineCheck)
         else if (settings.bluetoothRadioType == BLUETOOTH_RADIO_BLE)
             systemPrintf("Bluetooth Low-Energy broadcasting as: %s\r\n", deviceName);
         else if (settings.bluetoothRadioType == BLUETOOTH_RADIO_SPP_ACCESSORY_MODE)
+#ifdef  COMPILE_AUTHENTICATION
             systemPrintf("Bluetooth SPP (Accessory Mode) broadcasting as: %s\r\n", accessoryName);
+#else
+            systemPrintf("** Not Compiled! Bluetooth SPP (Accessory Mode)**\r\n");
+#endif
 
         if (pin_bluetoothStatusLED != PIN_UNDEFINED)
         {
