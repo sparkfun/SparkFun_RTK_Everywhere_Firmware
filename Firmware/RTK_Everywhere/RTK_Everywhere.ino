@@ -623,7 +623,7 @@ volatile bool inDirectConnectMode = false; // Global state to indicate if GNSS/L
 
 #define SERIAL_SIZE_TX 512
 uint8_t wBuffer[SERIAL_SIZE_TX]; // Buffer for writing from incoming SPP to F9P
-const int btReadTaskStackSize = 4000;
+const int btReadTaskStackSize = 3000;
 
 // Array of start-of-sentence offsets into the ring buffer
 #define AMOUNT_OF_RING_BUFFER_DATA_TO_DISCARD (settings.gnssHandlerBufferSize >> 2)
@@ -692,7 +692,7 @@ const int beepTaskUpdatesHz = 20; // Update Beep 20 times a second. Shortest dur
 Button *userBtn = nullptr;
 
 const uint8_t buttonCheckTaskPriority = 1; // 3 being the highest, and 0 being the lowest
-const int buttonTaskStackSize = 4000;
+const int buttonTaskStackSize = 2000;
 
 const int shutDownButtonTime = 2000; // ms press and hold before shutdown
 bool firstButtonThrownOut = false;
