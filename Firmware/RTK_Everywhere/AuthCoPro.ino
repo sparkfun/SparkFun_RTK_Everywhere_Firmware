@@ -135,4 +135,4 @@ void updateAuthCoPro()
     }
 }
 
-#endif
+#endif // COMPILE_AUTHENTICATION
