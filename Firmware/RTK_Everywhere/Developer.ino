@@ -294,7 +294,7 @@ bool webServerStart(int httpPort = 80)
     return false;
 }
 bool webSocketsParseIncomingSettings() {return false;}
-void sendStringToWebsocket(const char* stringToSend) {}
+void webSocketsSendString(const char* stringToSend) {}
 void stopWebServer() {}
 bool webServerSettingsCheckAndFree()    {return false;}
 void webServerSettingsClone()   {}
@@ -308,7 +308,7 @@ bool webServerIsRunning() {return false;}
 // Web Sockets
 //----------------------------------------
 
-bool webSocketsIsConnected() (return false;}
+bool webSocketsIsConnected() {return false;}
 
 #endif  // COMPILE_AP
 
