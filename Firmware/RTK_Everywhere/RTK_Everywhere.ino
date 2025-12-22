@@ -692,7 +692,7 @@ const int beepTaskUpdatesHz = 20; // Update Beep 20 times a second. Shortest dur
 Button *userBtn = nullptr;
 
 const uint8_t buttonCheckTaskPriority = 1; // 3 being the highest, and 0 being the lowest
-const int buttonTaskStackSize = 3000;
+const int buttonTaskStackSize = 4000;
 
 const int shutDownButtonTime = 2000; // ms press and hold before shutdown
 bool firstButtonThrownOut = false;
@@ -1029,13 +1029,13 @@ const char *bootTimeString[MAX_BOOT_TIME_ENTRIES];
 //     a rough location of the issue.
 //-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 
-#define DEAD_MAN_WALKING_ENABLED 1
+#define DEAD_MAN_WALKING_ENABLED 0
 
 #if DEAD_MAN_WALKING_ENABLED
 
 // Developer substitutions enabled by changing DEAD_MAN_WALKING_ENABLED
 // from 0 to 1
-volatile bool deadManWalking = true;
+volatile bool deadManWalking;
 #define DMW_if if (deadManWalking)
 #define DMW_b(string)                                                                                                  \
     {                                                                                                                  \
