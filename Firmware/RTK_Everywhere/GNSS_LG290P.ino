@@ -1683,7 +1683,7 @@ void GNSS_LG290P::printModuleInfo()
         std::string version, buildDate, buildTime;
         if (_lg290p->getVersionInfo(version, buildDate, buildTime))
         {
-            systemPrintf("LG290P version: v%02d - %s %s %s - v%d\r\n", lg290pFirmwareVersion, version.c_str(),
+            systemPrintf("LG290P version: v%02d - %s %s %s\r\n", lg290pFirmwareVersion, version.c_str(),
                          buildDate.c_str(), buildTime.c_str());
         }
         else
