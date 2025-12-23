@@ -295,7 +295,6 @@ bool webServerStart(int httpPort = 80)
 }
 bool webSocketsParseIncomingSettings() {return false;}
 void webSocketsSendString(const char* stringToSend) {}
-void stopWebServer() {}
 bool webServerSettingsCheckAndFree()    {return false;}
 void webServerSettingsClone()   {}
 void webServerStop() {}

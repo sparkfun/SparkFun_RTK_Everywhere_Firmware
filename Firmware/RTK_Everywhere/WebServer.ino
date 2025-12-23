@@ -10,15 +10,6 @@ WebServer.ino
 // Locals
 //----------------------------------------
 
-void stopWebServer()
-{
-    if (incomingSettings != nullptr)
-    {
-        rtkFree(incomingSettings, "Settings buffer (incomingSettings)");
-        incomingSettings = nullptr;
-    }
-}
-
 //----------------------------------------
 // Create the web server
 //----------------------------------------
