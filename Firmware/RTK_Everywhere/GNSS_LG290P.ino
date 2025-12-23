@@ -3019,7 +3019,7 @@ bool lg290pNewSettingValue(RTK_Settings_Types type,
                     (strcmp(suffix, lg290pConstellationNames[x]) == 0))
                 {
                     settings.lg290pConstellations[x] = d;
-                    break;
+                    return true;
                 }
             }
             break;
