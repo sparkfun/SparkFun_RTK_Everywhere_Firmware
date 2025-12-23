@@ -1,4 +1,4 @@
-var gateway = `ws://${window.location.hostname}:81/ws`;
+var gateway = `ws://${window.location.hostname}:80/ws`;
 var websocket;
 
 window.addEventListener('load', onLoad);
