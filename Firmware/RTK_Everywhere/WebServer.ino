@@ -119,7 +119,7 @@ typedef struct _WEB_SOCKETS_CLIENT
 static WEB_SOCKETS_CLIENT * webSocketsClientListHead;
 static WEB_SOCKETS_CLIENT * webSocketsClientListTail;
 static httpd_handle_t webSocketsHandle;
-static SemaphoreHandle_t webSocketsMutex;
+static SemaphoreHandle_t webServerMutex;
 static uint8_t webServerState;
 
 //----------------------------------------
@@ -233,6 +233,18 @@ bool webServerAssignResources(int httpPort = 80)
         if (settings.debugWebServer == true)
             systemPrintln("Web Server: Started");
         reportHeapNow(false);
+
+        // Allocate the mutex
+        if (webServerMutex == nullptr)
+        {
+            webServerMutex = xSemaphoreCreateMutex();
+            if (webServerMutex == nullptr)
+            {
+                if (settings.debugWebServer)
+                    systemPrintf("ERROR: Web server failed to allocate the mutex!\r\n");
+                break;
+            }
+        }
 
         // Start the web socket server on port 81 using <esp_http_server.h>
         if (webSocketsStart() == false)
@@ -866,7 +878,7 @@ static esp_err_t webSocketsHandler(httpd_req_t *req)
         client->_socketFD = httpd_req_to_sockfd(req);
 
         // Single thread access to the list of clients;
-        xSemaphoreTake(webSocketsMutex, portMAX_DELAY);
+        xSemaphoreTake(webServerMutex, portMAX_DELAY);
 
         // ListHead -> ... -> client (flink) -> nullptr;
         // ListTail -> client (blink) -> ... -> nullptr;
@@ -881,7 +893,7 @@ static esp_err_t webSocketsHandler(httpd_req_t *req)
         webSocketsClientListTail = client;
 
         // Release the synchronization
-        xSemaphoreGive(webSocketsMutex);
+        xSemaphoreGive(webServerMutex);
 
         if (settings.debugWebServer == true)
             systemPrintf("webSockets: Added client, _request: %p, _socketFD: %d\r\n",
@@ -2215,6 +2227,13 @@ void webServerReleaseResources()
 
     webSocketsStop(); // Release socket resources
 
+    // Free the mutex
+    if (webServerMutex)
+    {
+        vSemaphoreDelete(webServerMutex);
+        webServerMutex = nullptr;
+    }
+
     if (incomingSettings != nullptr)
     {
         rtkFree(incomingSettings, "Settings buffer (incomingSettings)");
@@ -2284,7 +2303,7 @@ void webSocketsSendString(const char *stringToSend)
     ws_pkt.type = HTTPD_WS_TYPE_TEXT;
 
     // Single thread access to the list of clients;
-    xSemaphoreTake(webSocketsMutex, portMAX_DELAY);
+    xSemaphoreTake(webServerMutex, portMAX_DELAY);
 
     // Send this message to each of the clients
     client = webSocketsClientListHead;
@@ -2328,7 +2347,7 @@ void webSocketsSendString(const char *stringToSend)
     }
 
     // Release the synchronization
-    xSemaphoreGive(webSocketsMutex);
+    xSemaphoreGive(webServerMutex);
 }
 
 //----------------------------------------
@@ -2507,18 +2526,6 @@ bool webSocketsStart(void)
         reportHeapNow(true);
     }
 
-    // Allocate the mutex
-    if (webSocketsMutex == nullptr)
-    {
-        webSocketsMutex = xSemaphoreCreateMutex();
-        if (webSocketsMutex == nullptr)
-        {
-            if (settings.debugWebServer)
-                systemPrintf("ERROR: webSockets failed to allocate the mutex!\r\n");
-            return false;
-        }
-    }
-
     // Start the web server
     status = httpd_start(&webSocketsHandle, &config);
     if (status == ESP_OK)
@@ -2607,7 +2614,7 @@ void webSocketsStop()
     if (webSocketsHandle != nullptr)
     {
         // Single thread access to the list of clients;
-        xSemaphoreTake(webSocketsMutex, portMAX_DELAY);
+        xSemaphoreTake(webServerMutex, portMAX_DELAY);
 
         // ListHead -> ... -> client (flink) -> nullptr;
         // ListTail -> client (blink) -> ... -> nullptr;
@@ -2626,7 +2633,7 @@ void webSocketsStop()
         // ListHead -> nullptr;
         // ListTail -> nullptr;
         // Release the synchronization
-        xSemaphoreGive(webSocketsMutex);
+        xSemaphoreGive(webServerMutex);
 
         // Stop the httpd server
         esp_err_t status = httpd_stop(webSocketsHandle);
