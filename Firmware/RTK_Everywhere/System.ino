@@ -51,13 +51,14 @@ void *rtkMalloc(size_t sizeInBytes, const char *text)
     }
 
     // Display the allocation
-    if (settings.debugMalloc && !inMainMenu)
+    if (data)
     {
-        if (data)
+        if (settings.debugMalloc && !inMainMenu)
             systemPrintf("%p, %s %d bytes allocated: %s\r\n", data, area, sizeInBytes, text);
-        else
-            systemPrintf("Failed to allocate %d bytes from %s: %s\r\n", sizeInBytes, area, text);
     }
+    else
+        systemPrintf("Error: Failed to allocate %d bytes from %s: %s\r\n", sizeInBytes, area, text);
+
     return data;
 }
 
