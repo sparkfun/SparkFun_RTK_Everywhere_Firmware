@@ -1215,7 +1215,7 @@ void wifiStationUpdate()
 void wifiStopAll()
 {
     // Stop the web server
-    stopWebServer();
+    webServerStop();
 
     // Stop the Wifi layer
     wifi.enable(false, false, false, __FILE__, __LINE__);

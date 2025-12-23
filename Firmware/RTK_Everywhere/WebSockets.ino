@@ -2406,7 +2406,7 @@ bool webSocketsStart(void)
     httpd_config_t config = HTTPD_DEFAULT_CONFIG();
 
     // Use different ports for websocket and webServer - use port 81 for the websocket - also defined in main.js
-    config.server_port = 81;
+    config.server_port = 80;
     config.stack_size = webSocketsStackSize;
 
     // Set the number of URI handlers
