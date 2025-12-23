@@ -426,6 +426,7 @@ void webSocketsFileDownload(httpd_req_t * req, const char * fileName)
     const size_t bufferLength = 32768;
     int bytes;
     SdFile file;
+    bool haveSemaphore;
     int httpResponseCode;
     String * response;
     String responseFailed;
@@ -433,95 +434,107 @@ void webSocketsFileDownload(httpd_req_t * req, const char * fileName)
     esp_err_t status;
     const char * statusMessage;
 
-    // Build the responses
-    responseFailed = "File ";
-    responseFailed += &fileName[1];
-    responseFailed += " does not exist";
-
-    responseSuccessful = "Downloaded file ";
-    responseSuccessful += &fileName[1];
-
-    // Attempt to gain access to the SD card
-    if (settings.debugWebServer == true)
-        systemPrintf("WebSockets waiting for the sdCardSemaphore semaphore\r\n");
-    if (xSemaphoreTake(sdCardSemaphore, fatSemaphore_longWait_ms) != pdPASS)
+    do
     {
-        statusMessage = HTTPD_500;
-        responseFailed = "Failed to obtain access to the SD card!";
-        response = &responseFailed;
-    }
-    else
-    {
+        buffer = nullptr;
+        haveSemaphore = false;
+
+        // Build the responses
+        responseFailed = "File ";
+        responseFailed += &fileName[1];
+        responseFailed += " does not exist";
+
+        responseSuccessful = "Downloaded file ";
+        responseSuccessful += &fileName[1];
+
         // Allocate the buffer
         buffer = (uint8_t *)rtkMalloc(bufferLength, "WebSockets file download buffer");
-        if (buffer)
-        {
-            // Download the file if it exists
-            if (file.open(sd->vol(), fileName, 0))
-            {
-                while (1)
-                {
-                    bytes = file.read(buffer, bufferLength);
-                    if (bytes == 0)
-                    {
-                        statusMessage = HTTPD_200;
-                        response = &responseSuccessful;
-                        break;
-                    }
-                    if (bytes < 0)
-                    {
-                        statusMessage = HTTPD_500;
-                        responseFailed = "Failed during download of ";
-                        responseFailed += &fileName[1];
-                        response = &responseFailed;
-                        break;
-                    }
-
-                    // Send the data
-                    status = httpd_resp_send_chunk(req, (char *)buffer, bytes);
-                    if (status != ESP_OK)
-                    {
-                        statusMessage = HTTPD_500;
-                        responseFailed = "Failed sending download data";
-                        response = &responseFailed;
-                        break;
-                    }
-                }
-
-                // Done with this file
-                file.close();
-            }
-
-            // Send the error when the file does not exist
-            else
-            {
-                statusMessage = HTTPD_400;
-                response = &responseFailed;
-            }
-
-            // Free the download buffer
-            rtkFree(buffer, "WebSockets file download buffer");
-        }
-        else
+        if (buffer == nullptr)
         {
             statusMessage = HTTPD_500;
             responseFailed = "Failed to allocate download buffer!";
             response = &responseFailed;
+            break;
         }
 
-        // Release the semaphore
+        // Attempt to gain access to the SD card
+        if (settings.debugWebServer == true)
+            systemPrintf("WebSockets waiting for the sdCardSemaphore semaphore\r\n");
+        if (xSemaphoreTake(sdCardSemaphore, fatSemaphore_longWait_ms) != pdPASS)
+        {
+            statusMessage = HTTPD_500;
+            responseFailed = "Failed to obtain access to the SD card!";
+            response = &responseFailed;
+            break;
+        }
+        haveSemaphore = true;
+
+        // Open the file if it exists
+        if (file.open(sd->vol(), fileName, 0) == false)
+        {
+            // Send the error when the file does not exist
+            statusMessage = HTTPD_400;
+            response = &responseFailed;
+            break;
+        }
+
+        // Download the file data
+        while (1)
+        {
+            bytes = file.read(buffer, bufferLength);
+            if (bytes == 0)
+            {
+                statusMessage = HTTPD_200;
+                response = &responseSuccessful;
+                break;
+            }
+            if (bytes < 0)
+            {
+                statusMessage = HTTPD_500;
+                responseFailed = "Failed during download of ";
+                responseFailed += &fileName[1];
+                response = &responseFailed;
+                break;
+            }
+
+            // Send the data
+            status = httpd_resp_send_chunk(req, (char *)buffer, bytes);
+            if (status != ESP_OK)
+            {
+                statusMessage = HTTPD_500;
+                responseFailed = "Failed sending download data";
+                response = &responseFailed;
+                break;
+            }
+        }
+    } while (0);
+
+    // Done with this file
+    if (file.isOpen())
+        file.close();
+
+    // Release the semaphore
+    if (haveSemaphore)
+    {
         xSemaphoreGive(sdCardSemaphore);
         if (settings.debugWebServer == true)
             systemPrintf("WebSockets released the sdCardSemaphore semaphore\r\n");
     }
 
+    // Free the download buffer
+    if (buffer)
+        rtkFree(buffer, "WebSockets file download buffer");
+
     // Send the response
-    if (response == &responseFailed)
-        responseFailed = "ERROR: " + responseFailed;
-    if (settings.debugWebServer == true)
-        systemPrintf("WebSockets: %s\r\n", response->c_str());
-    httpd_resp_set_status(req, statusMessage);
-    httpd_resp_send(req, response->c_str(), response->length());
+    if (response)
+    {
+        if (response == &responseFailed)
+            responseFailed = "ERROR: " + responseFailed;
+        if (settings.debugWebServer == true)
+            systemPrintf("WebSockets: %s\r\n", response->c_str());
+        httpd_resp_set_status(req, statusMessage);
+        httpd_resp_send(req, response->c_str(), response->length());
+    }
 }
 
 //----------------------------------------
