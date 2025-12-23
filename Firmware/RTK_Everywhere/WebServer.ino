@@ -104,7 +104,7 @@ typedef struct _WEB_SOCKETS_CLIENT
         {                                           \
             .uri = page,                            \
             .method = HTTP_GET,                     \
-            .handler = webSocketsHandlerGetPage,    \
+            .handler = webServerHandlerGetPage,     \
             .user_ctx = (void *)index,              \
         },                                          \
         &type,                                      \
@@ -126,12 +126,12 @@ static uint8_t webServerState;
 // Forward routines
 //----------------------------------------
 
-esp_err_t webSocketsHandlerFileList(httpd_req_t *req);
-esp_err_t webSocketsHandlerFileUpload(httpd_req_t *req);
-esp_err_t webSocketsHandlerFirmwareUpload(httpd_req_t *req);
-esp_err_t webSocketsHandlerGetPage(httpd_req_t *req);
-esp_err_t webSocketsHandlerListBaseMessages(httpd_req_t *req);
-esp_err_t webSocketsHandlerListMessages(httpd_req_t *req);
+esp_err_t webServerHandlerFileList(httpd_req_t *req);
+esp_err_t webServerHandlerFileUpload(httpd_req_t *req);
+esp_err_t webServerHandlerFirmwareUpload(httpd_req_t *req);
+esp_err_t webServerHandlerGetPage(httpd_req_t *req);
+esp_err_t webServerHandlerListBaseMessages(httpd_req_t *req);
+esp_err_t webServerHandlerListMessages(httpd_req_t *req);
 
 //----------------------------------------
 // Web page descriptions
@@ -178,14 +178,14 @@ const GET_PAGE_HANDLER webSocketsPages[] =
     WEB_PAGE(21, "/src/style.css", text_css, style_css),
 
     // File pages
-    PAGE_HANDLER(22, "/listfiles", HTTP_GET, text_plain, webSocketsHandlerFileList),
-    PAGE_HANDLER(23, "/file", HTTP_GET, text_plain, webSocketsHandlerFileManager),
-    PAGE_HANDLER(24, UPLOAD_FIRMWARE, HTTP_POST, text_plain, webSocketsHandlerFirmwareUpload),
+    PAGE_HANDLER(22, "/listfiles", HTTP_GET, text_plain, webServerHandlerFileList),
+    PAGE_HANDLER(23, "/file", HTTP_GET, text_plain, webServerHandlerFileManager),
+    PAGE_HANDLER(24, UPLOAD_FIRMWARE, HTTP_POST, text_plain, webServerHandlerFirmwareUpload),
 
     // Message handlers
-    PAGE_HANDLER(25, "/listMessages", HTTP_GET, text_plain, webSocketsHandlerListMessages),
-    PAGE_HANDLER(26, "/listMessagesBase", HTTP_GET, text_plain, webSocketsHandlerListBaseMessages),
-    PAGE_HANDLER(27, UPLOAD_PATH, HTTP_POST, text_plain, webSocketsHandlerFileUpload),
+    PAGE_HANDLER(25, "/listMessages", HTTP_GET, text_plain, webServerHandlerListMessages),
+    PAGE_HANDLER(26, "/listMessagesBase", HTTP_GET, text_plain, webServerHandlerListBaseMessages),
+    PAGE_HANDLER(27, UPLOAD_PATH, HTTP_POST, text_plain, webServerHandlerFileUpload),
 
     // Add pages above this line
     WEB_PAGE(28, "/", text_html, index_html),
@@ -850,7 +850,7 @@ const char *webServerGetStateName(uint8_t state, char *string)
 //----------------------------------------
 // Handler for web sockets requests
 //----------------------------------------
-static esp_err_t webSocketsHandler(httpd_req_t *req)
+static esp_err_t webServerHandler(httpd_req_t *req)
 {
     WEB_SOCKETS_CLIENT * client;
     WEB_SOCKETS_CLIENT * entry;
@@ -1014,7 +1014,7 @@ static esp_err_t webSocketsHandler(httpd_req_t *req)
 //----------------------------------------
 // Handler to list the microSD card files
 //----------------------------------------
-esp_err_t webSocketsHandlerFileList(httpd_req_t *req)
+esp_err_t webServerHandlerFileList(httpd_req_t *req)
 {
     size_t bytes;
     const char * data;
@@ -1037,7 +1037,7 @@ esp_err_t webSocketsHandlerFileList(httpd_req_t *req)
 //----------------------------------------
 // Handler for file manager
 //----------------------------------------
-esp_err_t webSocketsHandlerFileManager(httpd_req_t *req)
+esp_err_t webServerHandlerFileManager(httpd_req_t *req)
 {
     char * action;
     const char * actionParameter = "action=";
@@ -1143,7 +1143,7 @@ esp_err_t webSocketsHandlerFileManager(httpd_req_t *req)
 //----------------------------------------
 // Handler to upload a file from the PC to the microSD card
 //----------------------------------------
-esp_err_t webSocketsHandlerFileUpload(httpd_req_t *req)
+esp_err_t webServerHandlerFileUpload(httpd_req_t *req)
 {
     uint8_t * buffer;
     const size_t bufferLength = 32768;
@@ -1385,7 +1385,7 @@ esp_err_t webSocketsHandlerFileUpload(httpd_req_t *req)
 //----------------------------------------
 // Handler for firmware file upload
 //----------------------------------------
-esp_err_t webSocketsHandlerFirmwareUpload(httpd_req_t *req)
+esp_err_t webServerHandlerFirmwareUpload(httpd_req_t *req)
 {
     uint8_t * buffer;
     const size_t bufferLength = 32768;
@@ -1621,7 +1621,7 @@ esp_err_t webSocketsHandlerFirmwareUpload(httpd_req_t *req)
 //----------------------------------------
 // Handler for GET_PAGE_HANDLER structures
 //----------------------------------------
-esp_err_t webSocketsHandlerGetPage(httpd_req_t *req)
+esp_err_t webServerHandlerGetPage(httpd_req_t *req)
 {
     uint32_t index;
     const GET_PAGE_HANDLER * webpage;
@@ -1704,7 +1704,7 @@ void webSocketsHttpdDisplayConfig(struct httpd_config *config)
 //----------------------------------------
 // Handler for supported RTCM/Base messages list
 //----------------------------------------
-esp_err_t webSocketsHandlerListBaseMessages(httpd_req_t *req)
+esp_err_t webServerHandlerListBaseMessages(httpd_req_t *req)
 {
     size_t bytes;
     const char * data;
@@ -1727,7 +1727,7 @@ esp_err_t webSocketsHandlerListBaseMessages(httpd_req_t *req)
 //----------------------------------------
 // Handler for supported messages list
 //----------------------------------------
-esp_err_t webSocketsHandlerListMessages(httpd_req_t *req)
+esp_err_t webServerHandlerListMessages(httpd_req_t *req)
 {
     size_t bytes;
     const char * data;
@@ -1750,7 +1750,7 @@ esp_err_t webSocketsHandlerListMessages(httpd_req_t *req)
 //----------------------------------------
 // Generate the Not Found page
 //----------------------------------------
-esp_err_t webSocketsHandlerPageNotFound(httpd_req_t *req, httpd_err_code_t err)
+esp_err_t webServerHandlerPageNotFound(httpd_req_t *req, httpd_err_code_t err)
 {
     char ipAddress[80];
     String logMessage;
@@ -2355,7 +2355,7 @@ void webSocketsSendString(const char *stringToSend)
 //----------------------------------------
 static const httpd_uri_t webSocketsPage = {.uri = "/ws",
                                            .method = HTTP_GET,
-                                           .handler = webSocketsHandler,
+                                           .handler = webServerHandler,
                                            .user_ctx = NULL,
                                            .is_websocket = true,
                                            .handle_ws_control_frames = true,
@@ -2539,7 +2539,7 @@ bool webSocketsStart(void)
 
             // Register the page not found (404) error handler
             if (!webSocketsRegisterErrorHandler(HTTPD_404_NOT_FOUND,
-                                                webSocketsHandlerPageNotFound))
+                                                webServerHandlerPageNotFound))
                 break;
 
             // Get the product specific web page
