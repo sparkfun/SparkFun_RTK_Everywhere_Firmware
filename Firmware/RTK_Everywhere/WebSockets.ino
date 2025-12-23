@@ -2254,7 +2254,8 @@ bool webSocketsStart(void)
 
     // Set the number of URI handlers
     config.max_uri_handlers = WEB_SOCKETS_TOTAL_PAGES + 16;
-    config.max_resp_headers = config.max_uri_handlers;
+    config.max_open_sockets = 13;
+    config.max_resp_headers = config.max_open_sockets;
 
     // Start the httpd server
     if (settings.debugWebServer == true)
