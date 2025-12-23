@@ -60,6 +60,12 @@ const uint8_t webSocketsCaptiveUrlCount = sizeof(webSocketsCaptiveUrls) / sizeof
 // New types
 //----------------------------------------
 
+typedef struct _FILE_EXTENSION_TO_CONTENT_TYPE
+{
+    const char * _fileExtension;
+    const char * _contentType;
+} FILE_EXTENSION_TO_CONTENT_TYPE;
+
 typedef struct _GET_PAGE_HANDLER
 {
     httpd_uri_t _page;
@@ -423,105 +429,200 @@ void webSocketsFileDelete(httpd_req_t * req, const char * fileName)
 void webSocketsFileDownload(httpd_req_t * req, const char * fileName)
 {
     uint8_t * buffer;
-    const size_t bufferLength = 1024; // 32768;
+    const size_t bufferBytes = 32768;
     int bytes;
+    uint64_t bytesSent;
+    char * client;
+    const size_t clientBytes = 80;
+    char * disposition;
+    size_t dispositionBytes;
+    const char * dispositionFormat = "attachment; filename=\"%s\"";
     SdFile file;
+    bool haveSemaphore;
     int httpResponseCode;
+    size_t length;
+    char * lengthString;
+    const size_t lengthStringBytes = 32;
     String * response;
     String responseFailed;
     String responseSuccessful;
     esp_err_t status;
     const char * statusMessage;
 
-    // Build the responses
-    responseFailed = "File ";
-    responseFailed += &fileName[1];
-    responseFailed += " does not exist";
-
-    responseSuccessful = "Downloaded file ";
-    responseSuccessful += &fileName[1];
-
-    // Attempt to gain access to the SD card
-    if (settings.debugWebServer == true)
-        systemPrintf("WebSockets waiting for the sdCardSemaphore semaphore\r\n");
-    if (xSemaphoreTake(sdCardSemaphore, fatSemaphore_longWait_ms) != pdPASS)
+    do
     {
-        statusMessage = HTTPD_500;
-        responseFailed = "Failed to obtain access to the SD card!";
-        response = &responseFailed;
-    }
-    else
-    {
+        buffer = nullptr;
+        bytesSent = 0;
+        haveSemaphore = false;
+
+        // Build the responses
+        responseFailed = "File ";
+        responseFailed += &fileName[1];
+        responseFailed += " does not exist";
+
+        responseSuccessful = "Downloaded file ";
+        responseSuccessful += &fileName[1];
+
+        // Get the client
+        webSocketsGetClientIpAddressAndPort(req, client, sizeof(client));
+
+        // Determine the disposition string length
+        dispositionBytes = snprintf(nullptr, 0, dispositionFormat, &fileName[1]);
+
         // Allocate the buffer
-        buffer = (uint8_t *)rtkMalloc(bufferLength, "WebSockets file download buffer");
-        if (buffer)
-        {
-            // Download the file if it exists
-            if (file.open(sd->vol(), fileName, 0))
-            {
-                while (1)
-                {
-                    bytes = file.read(buffer, bufferLength);
-                    if (bytes == 0)
-                    {
-                        statusMessage = HTTPD_200;
-                        response = &responseSuccessful;
-                        break;
-                    }
-                    if (bytes < 0)
-                    {
-                        statusMessage = HTTPD_500;
-                        responseFailed = "Failed during download of ";
-                        responseFailed += &fileName[1];
-                        response = &responseFailed;
-                        break;
-                    }
-
-                    // Send the data
-                    status = httpd_resp_send_chunk(req, (char *)buffer, bytes);
-                    if (status != ESP_OK)
-                    {
-                        statusMessage = HTTPD_500;
-                        responseFailed = "Failed sending download data";
-                        response = &responseFailed;
-                        break;
-                    }
-                }
-
-                // Done with this file
-                file.close();
-            }
-
-            // Send the error when the file does not exist
-            else
-            {
-                statusMessage = HTTPD_400;
-                response = &responseFailed;
-            }
-
-            // Free the download buffer
-            rtkFree(buffer, "WebSockets file download buffer");
-        }
-        else
+        length += bufferBytes
+               + clientBytes
+               + lengthStringBytes
+               + dispositionBytes
+               + 1;                 // Disposition zero termination
+        buffer = (uint8_t *)rtkMalloc(length, "WebSockets file download buffer");
+        if (buffer == nullptr)
         {
             statusMessage = HTTPD_500;
             responseFailed = "Failed to allocate download buffer!";
             response = &responseFailed;
+            break;
+        }
+        memset(buffer, 0, length);
+        client = (char *)&buffer[bufferBytes];
+        lengthString = &client[clientBytes];
+        disposition = &lengthString[lengthStringBytes];
+
+        // Attempt to gain access to the SD card
+        if (settings.debugWebServer == true)
+            systemPrintf("WebSockets waiting for the sdCardSemaphore semaphore\r\n");
+        if (xSemaphoreTake(sdCardSemaphore, fatSemaphore_longWait_ms) != pdPASS)
+        {
+            statusMessage = HTTPD_500;
+            responseFailed = "Failed to obtain access to the SD card!";
+            response = &responseFailed;
+            break;
+        }
+        haveSemaphore = true;
+
+        // Open the file if it exists
+        if (file.open(sd->vol(), fileName, 0) == false)
+        {
+            // Send the error when the file does not exist
+            statusMessage = HTTPD_400;
+            response = &responseFailed;
+            break;
         }
 
-        // Release the semaphore
+        // Set the file name
+        sprintf(disposition, dispositionFormat, &fileName[1]);
+        if (httpd_resp_set_hdr(req, "Content-Disposition", disposition) != ESP_OK)
+        {
+            statusMessage = HTTPD_500;
+            responseFailed = "Failed to set content disposition";
+            response = &responseFailed;
+            break;
+        }
+
+        // Set the content type
+        if (webSocketsSetContentType(req, fileName) != ESP_OK)
+        {
+            statusMessage = HTTPD_500;
+            responseFailed = "Failed to set content type";
+            response = &responseFailed;
+            break;
+        }
+
+        // Set the transfer method
+        if (httpd_resp_set_hdr(req, "Content-Transfer-Encoding", "binary") != ESP_OK)
+        {
+            statusMessage = HTTPD_500;
+            responseFailed = "Failed to set transfer encoding";
+            response = &responseFailed;
+            break;
+        }
+
+        // Set the file length
+        sprintf(lengthString, "%lld", file.size());
+        if (httpd_resp_set_hdr(req, "Content-Length", lengthString) != ESP_OK)
+        {
+            statusMessage = HTTPD_500;
+            responseFailed = "Failed to set content length";
+            response = &responseFailed;
+            break;
+        }
+        if (settings.debugWebServer == true)
+            systemPrintf("File length: %s bytes\r\n", lengthString);
+
+        // Set the response status
+        if (httpd_resp_set_status(req, HTTPD_200) != ESP_OK)
+        {
+            statusMessage = HTTPD_500;
+            responseFailed = "Failed to set response status";
+            response = &responseFailed;
+            break;
+        }
+
+        // Download the file data
+        while (1)
+        {
+            // Read data from the file
+            bytes = file.read(buffer, bufferBytes);
+            if (bytes < 0)
+            {
+                statusMessage = HTTPD_500;
+                responseFailed = "Failed during download of ";
+                responseFailed += &fileName[1];
+                response = &responseFailed;
+                break;
+            }
+            if (settings.debugWebServer == true)
+            {
+                systemPrintf("WebSockets: Sending %d bytes at offset %lld to %s\r\n",
+                             bytes, bytesSent, client);
+                bytesSent += bytes;
+            }
+
+            // Send the data
+            status = httpd_resp_send_chunk(req, (char *)buffer, bytes);
+            if (status != ESP_OK)
+            {
+                statusMessage = HTTPD_500;
+                responseFailed = "Failed sending download data";
+                response = &responseFailed;
+                break;
+            }
+
+            // Check for end of file
+            if (bytes == 0)
+            {
+                response = nullptr;
+                break;
+            }
+        }
+    } while (0);
+
+    // Done with this file
+    if (file.isOpen())
+        file.close();
+
+    // Release the semaphore
+    if (haveSemaphore)
+    {
         xSemaphoreGive(sdCardSemaphore);
         if (settings.debugWebServer == true)
             systemPrintf("WebSockets released the sdCardSemaphore semaphore\r\n");
     }
 
+    // Free the download buffer
+    if (buffer)
+        rtkFree(buffer, "WebSockets file download buffer");
+
     // Send the response
-    if (response == &responseFailed)
-        responseFailed = "ERROR: " + responseFailed;
-    if (settings.debugWebServer == true)
-        systemPrintf("WebSockets: %s\r\n", response->c_str());
-    httpd_resp_set_status(req, statusMessage);
-    httpd_resp_send(req, response->c_str(), response->length());
+    if (response)
+    {
+        if (response == &responseFailed)
+            responseFailed = "ERROR: " + responseFailed;
+        if (settings.debugWebServer == true)
+            systemPrintf("WebSockets: %s\r\n", response->c_str());
+        httpd_resp_set_status(req, statusMessage);
+        httpd_resp_send(req, response->c_str(), response->length());
+    }
 }
 
 //----------------------------------------
@@ -676,6 +777,9 @@ static esp_err_t webSocketsHandler(httpd_req_t *req)
 {
     WEB_SOCKETS_CLIENT * client;
     WEB_SOCKETS_CLIENT * entry;
+
+    // Display the request
+    webSocketsDisplayRequest(req);
 
     // Log the req, so we can reuse it for httpd_ws_send_frame
     // TODO: do we need to be cleverer about this?
@@ -2235,6 +2339,62 @@ static const httpd_uri_t webSocketsPage = {.uri = "/ws",
                                            .supported_subprotocol = NULL};
 
 //----------------------------------------
+// Set the content type based upon the file extension
+//----------------------------------------
+esp_err_t webSocketsSetContentType(httpd_req_t *req, const char *fileName)
+{
+    const char * defaultType = "text/plain";
+    const char * extension;
+    size_t extensionLength;
+    const FILE_EXTENSION_TO_CONTENT_TYPE extensionTable[] =
+    {
+        {".bin", "application/octet-stream"},
+        {".bmp", "image/bmp"},
+        {".css", "text/css"},
+        {".csv", "text/csv"},
+        {".eot", "application/vnd.ms-fontobject"},
+        {".gz", "application/gzip"},
+        {".html", "text/html"},
+        {".ico", "image/x-icon"},
+        {".jpeg", "image/jpeg"},
+        {".js", "text/javascript"},
+        {".json", "application/json"},
+        {".pdf", "application/pdf"},
+        {".png", "image/png"},
+        {".ttf", "font/ttf"},
+        {".txt", "text/plain"},
+        {".ubx", "application/octet-stream"},
+        {".woff", "font/woff"},
+        {".woff2", "font/woff2"},
+    };
+    const int entries = sizeof(extensionTable) / sizeof(extensionTable[0]);
+    size_t fileNameLength;
+    int index;
+
+    // Walk the list of extensions
+    fileNameLength = strlen(fileName);
+    for (index = 0; index < entries; index++)
+    {
+        // Determine if this extension matches
+        extension = extensionTable[index]._fileExtension;
+        extensionLength = strlen(extension);
+        if (strcasecmp(&fileName[fileNameLength - extensionLength], extension) == 0)
+        {
+            // Set the content type
+            if (settings.debugWebServer == true)
+                systemPrintf("WebSockets: Found content type %s\r\n",
+                             extensionTable[index]._contentType);
+            return httpd_resp_set_type(req, extensionTable[index]._contentType);
+        }
+    }
+
+    // No extension matches, set the default
+    if (settings.debugWebServer == true)
+        systemPrintf("WebSockets: Using default content type %s\r\n", defaultType);
+    return httpd_resp_set_type(req, defaultType);
+}
+
+//----------------------------------------
 // Start the web sockets layer
 //----------------------------------------
 bool webSocketsStart(void)
@@ -2251,7 +2411,8 @@ bool webSocketsStart(void)
 
     // Set the number of URI handlers
     config.max_uri_handlers = WEB_SOCKETS_TOTAL_PAGES + 16;
-    config.max_resp_headers = config.max_uri_handlers;
+    config.max_open_sockets = 13;
+    config.max_resp_headers = config.max_open_sockets;
 
     // Start the httpd server
     if (settings.debugWebServer == true)

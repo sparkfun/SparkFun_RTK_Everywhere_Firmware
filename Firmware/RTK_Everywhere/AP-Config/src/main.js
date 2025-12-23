@@ -82,6 +82,41 @@ var coordinateInputType = CoordinateTypes.COORDINATE_INPUT_TYPE_DD;
 
 var initialSettings = {};
 
+var receivedSettings = [];
+
+var divTables = {
+    galileoHasSetting: ["enableGalileoHas"],
+    lg290pGnssSettings: ["useMSM7", "rtcmMinElev"],
+    rtcmMinElevConfig: ["rtcmMinElev"],
+    minElevConfig: ["minElev"],
+    minCN0Config: ["minCN0"]
+};
+
+function showHideDivs() {
+    let len = receivedSettings.length;
+    for (var key in divTables) {
+        if (divTables.hasOwnProperty(key)) {
+            var showMe = false;
+            var settings = divTables[key];
+            //console.log("key: " + key + ", settings: " + settings);
+            for (let j=0; j < settings.length; j++) {
+                for (let i=0; i < len; i++) {
+                    if (receivedSettings[i] === settings[j]) {
+                        showMe = true;
+                    }
+                }
+            }
+            if (showMe == true) {
+                //console.log("showing: " + key);
+                show(key);
+            }
+            else {
+                hide(key);
+            }
+        }
+    }
+}
+
 function initializeArrays() {
     // Initialize (empty) all existing arrays by setting their length to zero
     savedMessageNames.length = 0;
@@ -92,6 +127,7 @@ function initializeArrays() {
     recordsGeodetic.length = 0;
     correctionsSourceNames.length = 0;
     correctionsSourcePriorities.length = 0;
+    receivedSettings.length = 0;
 }
 
 function parseIncoming(msg) {
@@ -102,6 +138,7 @@ function parseIncoming(msg) {
         var id = data[x];
         var val = data[x + 1];
         //console.log("id: " + id + ", val: " + val);
+        receivedSettings.push(id);
 
         //Special commands
         if (id.includes("sdMounted")) {
@@ -128,8 +165,6 @@ function parseIncoming(msg) {
                 show("portsConfig");
                 hide("externalPortOptions");
                 show("logToSDCard");
-                hide("galileoHasSetting");
-                hide("lg290pGnssSettings");
                 hide("tiltConfig");
                 hide("beeperControl");
                 show("measurementRateInput");
@@ -162,8 +197,6 @@ function parseIncoming(msg) {
                 show("portsConfig");
                 show("externalPortOptions");
                 show("logToSDCard");
-                hide("galileoHasSetting");
-                hide("lg290pGnssSettings");
                 hide("tiltConfig");
                 hide("beeperControl");
                 show("measurementRateInput");
@@ -183,8 +216,6 @@ function parseIncoming(msg) {
                 show("portsConfig");
                 show("externalPortOptions");
                 show("logToSDCard");
-                hide("galileoHasSetting");
-                hide("lg290pGnssSettings");
                 hide("tiltConfig");
                 hide("beeperControl");
                 hide("measurementRateInput");
@@ -243,9 +274,6 @@ function parseIncoming(msg) {
                 hide("constellationSbas"); //Not supported on UM980
                 hide("constellationNavic"); //Not supported on UM980
 
-                show("galileoHasSetting");
-                hide("lg290pGnssSettings");
-
                 show("measurementRateInput");
 
                 show("loraConfig");
@@ -277,8 +305,6 @@ function parseIncoming(msg) {
                 show("externalPortOptions");
                 show("logToSDCard");
 
-                show("galileoHasSetting");
-                show("lg290pGnssSettings");
                 hide("tiltConfig");
                 hide("beeperControl");
 
@@ -293,8 +319,6 @@ function parseIncoming(msg) {
                 show("constellationNavic");
 
                 hide("dynamicModelDropdown"); //Not supported on LG290P
-                hide("minElevConfig"); //Not supported on LG290P
-                hide("minCN0Config"); //Not supported on LG290P
 
                 ge("rtcmRateInfoText").setAttribute('data-bs-original-title', 'RTCM is transmitted by the base at a default of 1Hz for messages 1005, 1074, 1084, 1094, 1114, 1124, 1134. This can be lowered for radios with low bandwidth or tailored to transmit any/all RTCM messages. Limits: 0 to 20. Note: The measurement rate is overridden to 1Hz when in Base mode.');
 
@@ -347,8 +371,6 @@ function parseIncoming(msg) {
 
                 hide("constellationSbas"); //Not supported on LG290P
                 show("constellationNavic");
-                show("galileoHasSetting");
-                show("lg290pGnssSettings");
                 hide("tiltConfig"); //Not supported on Torch X2
 
                 show("measurementRateInput");
@@ -361,8 +383,6 @@ function parseIncoming(msg) {
                 hide("enableNmeaOnRadio");
 
                 hide("dynamicModelDropdown"); //Not supported on LG290P
-                hide("minElevConfig"); //Not supported on LG290P
-                hide("minCN0Config"); //Not supported on LG290P
 
                 ge("rtcmRateInfoText").setAttribute('data-bs-original-title', 'RTCM is transmitted by the base at a default of 1Hz for messages 1005, 1074, 1084, 1094, 1124, and 0.1Hz for 1033. This can be lowered for radios with low bandwidth or tailored to transmit any/all RTCM messages. Limits: 0 to 20. Note: The measurement rate is overridden to 1Hz when in Base mode.');
 
@@ -754,6 +774,9 @@ function parseIncoming(msg) {
 
         // Create copy of settings, send only changes when 'Save Configuration' is pressed
         saveInitialSettings(); 
+
+        // Show / hide divs based on received settings
+        showHideDivs();
     }
 }
 
