@@ -613,7 +613,7 @@ void stateUpdate()
         case (STATE_ESPNOW_PAIRING): {
             // The ESP-NOW state machine handles the pairing process
             // Once it exits the pairing process, return to last system state
-            if (espNowIsPairing)
+            if (espNowIsPairing())
                 // Return to the previous state
                 changeState(lastSystemState);
         }
