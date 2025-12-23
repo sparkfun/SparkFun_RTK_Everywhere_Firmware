@@ -10,7 +10,7 @@ WebServer.ino
 // Constants
 //----------------------------------------
 
-static const int webSocketsStackSize = 1024 * 20;
+static const int webServerStackSize = 1024 * 20;
 
 const char * const image_png = "image/png";
 const char * const text_css = "text/css";
@@ -118,7 +118,7 @@ typedef struct _WEB_SOCKETS_CLIENT
 
 static WEB_SOCKETS_CLIENT * webSocketsClientListHead;
 static WEB_SOCKETS_CLIENT * webSocketsClientListTail;
-static httpd_handle_t webSocketsHandle;
+static httpd_handle_t webServerHandle;
 static SemaphoreHandle_t webServerMutex;
 static uint8_t webServerState;
 
@@ -192,13 +192,15 @@ const GET_PAGE_HANDLER webSocketsPages[] =
 };
 
 #define WEB_SOCKETS_SPECIAL_PAGES   2
-#define WEB_SOCKETS_TOTAL_PAGES     (sizeof(webSocketsPages) / sizeof(GET_PAGE_HANDLER))
+const int webServerTotalPages = (sizeof(webSocketsPages) / sizeof(GET_PAGE_HANDLER));
 
 //----------------------------------------
 // Create the web server
 //----------------------------------------
 bool webServerAssignResources(int httpPort = 80)
 {
+    esp_err_t status;
+
     if (settings.debugWebServer)
         systemPrintln("Assigning web server resources");
     do
@@ -246,17 +248,47 @@ bool webServerAssignResources(int httpPort = 80)
             }
         }
 
-        // Start the web socket server on port 81 using <esp_http_server.h>
+        // Get the configuration object
+        httpd_config_t config = HTTPD_DEFAULT_CONFIG();
+
+        // Use different ports for websocket and webServer - use port 81 for the websocket - also defined in main.js
+        config.server_port = 80;
+        config.stack_size = webServerStackSize;
+
+        // Set the number of URI handlers
+        config.max_uri_handlers = webServerTotalPages + 16;
+        config.max_open_sockets = 13;
+        config.max_resp_headers = config.max_open_sockets;
+
+        if (settings.debugWebServer == true)
+        {
+            webSocketsHttpdDisplayConfig(&config);
+            reportHeapNow(true);
+        }
+
+        // Start the web server
+        if (settings.debugWebServer == true)
+            systemPrintf("Web server starting on port: %d\r\n", config.server_port);
+        status = httpd_start(&webServerHandle, &config);
+        if (status != ESP_OK)
+        {
+            // Display the failure to start
+            if (settings.debugWebServer == true)
+                systemPrintf("ERROR: Web server failed to start, status: %s!\r\n", esp_err_to_name(status));
+            break;
+        }
+
+        // Register the pages
         if (webSocketsStart() == false)
         {
             if (settings.debugWebServer == true)
-                systemPrintln("Web Sockets failed to start");
+                systemPrintf("ERROR: Web server failed page registration!\r\n");
             break;
         }
 
         if (settings.debugWebServer == true)
         {
-            systemPrintln("Web Socket Server Started");
+            systemPrintln("Web Server Started");
             reportHeapNow(true);
         }
 
@@ -2186,7 +2218,7 @@ bool webSocketsRegisterErrorHandler(httpd_err_code_t error,
     esp_err_t status;
 
     // Register the error handler
-    status = httpd_register_err_handler(webSocketsHandle, error, handler);
+    status = httpd_register_err_handler(webServerHandle, error, handler);
     if (settings.debugWebServer == true)
     {
         if (status == ESP_OK)
@@ -2205,7 +2237,7 @@ bool webSocketsRegisterPageHandler(const httpd_uri_t * page)
     esp_err_t status;
 
     // Register the handler
-    status = httpd_register_uri_handler(webSocketsHandle, page);
+    status = httpd_register_uri_handler(webServerHandle, page);
     if (settings.debugWebServer == true)
     {
         if (status == ESP_OK)
@@ -2220,12 +2252,27 @@ bool webSocketsRegisterPageHandler(const httpd_uri_t * page)
 //----------------------------------------
 void webServerReleaseResources()
 {
+    esp_err_t status;
+
     if (settings.debugWebServer)
         systemPrintln("Releasing web server resources");
 
     online.webServer = false;
 
-    webSocketsStop(); // Release socket resources
+    // Determine if the web server is running
+    if (webServerHandle)
+    {
+        // Release socket resources
+        webSocketsStop();
+
+        // Stop the web server
+        status = httpd_stop(webServerHandle);
+        if (status == ESP_OK)
+            systemPrintf("Web server stopped\r\n");
+        else
+            systemPrintf("ERROR: Web server failed to stop, status: %s!\r\n", esp_err_to_name(status));
+        webServerHandle = nullptr;
+    }
 
     // Free the mutex
     if (webServerMutex)
@@ -2313,7 +2360,7 @@ void webSocketsSendString(const char *stringToSend)
         WEB_SOCKETS_CLIENT * nextClient = client->_flink;
 
         // Send the string to to the client browser
-        esp_err_t ret = httpd_ws_send_frame_async(webSocketsHandle,
+        esp_err_t ret = httpd_ws_send_frame_async(webServerHandle,
                                                   client->_socketFD,
                                                   &ws_pkt);
 
@@ -2504,74 +2551,44 @@ bool webSocketsStart(void)
     esp_err_t status;
     const GET_PAGE_HANDLER * setupPage;
 
-    // Get the configuration object
-    httpd_config_t config = HTTPD_DEFAULT_CONFIG();
-
-    // Use different ports for websocket and webServer - use port 81 for the websocket - also defined in main.js
-    config.server_port = 80;
-    config.stack_size = webSocketsStackSize;
-
-    // Set the number of URI handlers
-    config.max_uri_handlers = WEB_SOCKETS_TOTAL_PAGES + 16;
-    config.max_open_sockets = 13;
-    config.max_resp_headers = config.max_open_sockets;
-
-    // Start the httpd server
-    if (settings.debugWebServer == true)
-        systemPrintf("webSockets starting on port: %d\r\n", config.server_port);
-
-    if (settings.debugWebServer == true)
+    do
     {
-        webSocketsHttpdDisplayConfig(&config);
-        reportHeapNow(true);
-    }
+        int i;
 
-    // Start the web server
-    status = httpd_start(&webSocketsHandle, &config);
-    if (status == ESP_OK)
-    {
-        do
-        {
-            int i;
+        if (settings.debugWebServer == true)
+            systemPrintln("webSockets registering page handlers");
 
-            if (settings.debugWebServer == true)
-                systemPrintln("webSockets registering page handlers");
+        // Register the page not found (404) error handler
+        if (!webSocketsRegisterErrorHandler(HTTPD_404_NOT_FOUND,
+                                            webServerHandlerPageNotFound))
+            break;
 
-            // Register the page not found (404) error handler
-            if (!webSocketsRegisterErrorHandler(HTTPD_404_NOT_FOUND,
-                                                webServerHandlerPageNotFound))
+        // Get the product specific web page
+        if (productVariant == RTK_EVK)
+            setupPage = &webSocketsPages[0];
+        else
+            setupPage = &webSocketsPages[1];
+
+        // Register the product specific page
+        if (!webSocketsRegisterPageHandler(&setupPage->_page))
+            break;
+
+        // Register the web socket handler
+        if (!webSocketsRegisterPageHandler(&webSocketsPage))
+            break;
+
+        // Register the main pages
+        for (i = WEB_SOCKETS_SPECIAL_PAGES; i < webServerTotalPages; i++)
+            if (!webSocketsRegisterPageHandler(&webSocketsPages[i]._page))
                 break;
+        if (i < webServerTotalPages)
+            break;
 
-            // Get the product specific web page
-            if (productVariant == RTK_EVK)
-                setupPage = &webSocketsPages[0];
-            else
-                setupPage = &webSocketsPages[1];
-
-            // Register the product specific page
-            if (!webSocketsRegisterPageHandler(&setupPage->_page))
-                break;
-
-            // Register the web socket handler
-            if (!webSocketsRegisterPageHandler(&webSocketsPage))
-                break;
-
-            // Register the main pages
-            for (i = WEB_SOCKETS_SPECIAL_PAGES; i < WEB_SOCKETS_TOTAL_PAGES; i++)
-                if (!webSocketsRegisterPageHandler(&webSocketsPages[i]._page))
-                    break;
-            if (i < WEB_SOCKETS_TOTAL_PAGES)
-                break;
-
-            // The web server is ready to handle incoming requests
-            if (settings.debugWebServer)
-                systemPrintf("webSockets successfully started\r\n");
-            return true;
-        } while (0);
-
-        // Stop the web server
-        httpd_stop(webSocketsHandle);
-    }
+        // The web server is ready to handle incoming requests
+        if (settings.debugWebServer)
+            systemPrintf("webSockets successfully started\r\n");
+        return true;
+    } while (0);
 
     // Display the failure to start
     if (settings.debugWebServer)
@@ -2611,7 +2628,7 @@ void webSocketsStop()
 {
     WEB_SOCKETS_CLIENT * client;
 
-    if (webSocketsHandle != nullptr)
+    if (webServerHandle != nullptr)
     {
         // Single thread access to the list of clients;
         xSemaphoreTake(webServerMutex, portMAX_DELAY);
@@ -2634,14 +2651,6 @@ void webSocketsStop()
         // ListTail -> nullptr;
         // Release the synchronization
         xSemaphoreGive(webServerMutex);
-
-        // Stop the httpd server
-        esp_err_t status = httpd_stop(webSocketsHandle);
-        if (status == ESP_OK)
-            systemPrintf("webSockets stopped\r\n");
-        else
-            systemPrintf("ERROR: webSockets failed to stop, status: %s!\r\n", esp_err_to_name(status));
-        webSocketsHandle = nullptr;
     }
 }
 
@@ -2735,7 +2744,7 @@ void webServerVerifyTables()
     // Loop through all of the web page handlers
     startPage = (GET_PAGE_HANDLER *)&webSocketsPages;
     webpage = startPage;
-    endPage = &startPage[WEB_SOCKETS_TOTAL_PAGES];
+    endPage = &startPage[webServerTotalPages];
     while (webpage < endPage)
     {
         index = webpage - startPage;
