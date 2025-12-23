@@ -10,56 +10,13 @@ WebServer.ino
 // Locals
 //----------------------------------------
 
-static TaskHandle_t updateWebServerTaskHandle;
-static const uint8_t updateWebServerTaskPriority = 0; // 3 being the highest, and 0 being the lowest
-static const int webServerTaskStackSize = 1024 * 4;   // Needs to be large enough to hold the file manager file list
-
 void stopWebServer()
 {
-    if (task.updateWebServerTaskRunning)
-        task.updateWebServerTaskStopRequest = true;
-
-    // Wait for task to stop running
-    do
-        delay(10);
-    while (task.updateWebServerTaskRunning);
-
     if (incomingSettings != nullptr)
     {
         rtkFree(incomingSettings, "Settings buffer (incomingSettings)");
         incomingSettings = nullptr;
     }
-}
-
-//----------------------------------------
-//----------------------------------------
-void updateWebServerTask(void *e)
-{
-    // Start notification
-    task.updateWebServerTaskRunning = true;
-    if (settings.printTaskStartStop)
-        systemPrintln("Task updateWebServerTask started");
-
-    // Verify that the task is still running
-    task.updateWebServerTaskStopRequest = false;
-    while (task.updateWebServerTaskStopRequest == false)
-    {
-        // Display an alive message
-        if (PERIODIC_DISPLAY(PD_TASK_UPDATE_WEBSERVER))
-        {
-            PERIODIC_CLEAR(PD_TASK_UPDATE_WEBSERVER);
-            systemPrintln("updateWebServerTask running");
-        }
-
-        feedWdt();
-        taskYIELD();
-    }
-
-    // Stop notification
-    if (settings.printTaskStartStop)
-        systemPrintln("Task updateWebServerTask stopped");
-    task.updateWebServerTaskRunning = false;
-    vTaskDelete(updateWebServerTaskHandle);
 }
 
 //----------------------------------------
@@ -98,15 +55,6 @@ bool webServerAssignResources(int httpPort = 80)
         if (settings.mdnsEnable == true)
             MDNS.addService("http", "tcp", settings.httpPort); // Add service to MDNS
 
-        // Starts task for updating webServer with handleClient
-        if (task.updateWebServerTaskRunning == false)
-            xTaskCreate(updateWebServerTask,
-                        "UpdateWebServer",      // Just for humans
-                        webServerTaskStackSize, // Stack Size - needs to be large enough to hold the file manager list
-                        nullptr,                // Task input parameter
-                        updateWebServerTaskPriority,
-                        &updateWebServerTaskHandle); // Task handle
-
         if (settings.debugWebServer == true)
             systemPrintln("Web Server: Started");
         reportHeapNow(false);
@@ -142,13 +90,6 @@ void webServerReleaseResources()
 {
     if (settings.debugWebServer)
         systemPrintln("Releasing web server resources");
-    if (task.updateWebServerTaskRunning)
-        task.updateWebServerTaskStopRequest = true;
-
-    // Wait for task to stop running
-    do
-        delay(10);
-    while (task.updateWebServerTaskRunning);
 
     online.webServer = false;
 
