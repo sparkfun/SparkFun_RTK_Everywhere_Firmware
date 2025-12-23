@@ -10,30 +10,10 @@ WebServer.ino
 // Locals
 //----------------------------------------
 
-// Once connected to the access point for WiFi Config, the ESP32 sends current setting values in one long string to
-// websocket After user clicks 'save', data is validated via main.js and a long string of values is returned.
-
-static WebServer *webServer;
-
 static TaskHandle_t updateWebServerTaskHandle;
 static const uint8_t updateWebServerTaskPriority = 0; // 3 being the highest, and 0 being the lowest
 static const int webServerTaskStackSize = 1024 * 4;   // Needs to be large enough to hold the file manager file list
 
-// Inspired by:
-// https://github.com/espressif/arduino-esp32/blob/master/libraries/WebServer/examples/MultiHomedServers/MultiHomedServers.ino
-// https://esp32.com/viewtopic.php?t=37384
-// https://github.com/espressif/esp-idf/blob/master/examples/protocols/http_server/ws_echo_server/main/ws_echo_server.c
-// https://github.com/espressif/arduino-esp32/blob/master/libraries/ESP32/examples/Camera/CameraWebServer/CameraWebServer.ino
-// https://esp32.com/viewtopic.php?t=24445
-
-// These are useful:
-// https://github.com/mo-thunderz/Esp32WifiPart2/blob/main/Arduino/ESP32WebserverWebsocket/ESP32WebserverWebsocket.ino
-// https://www.youtube.com/watch?v=15X0WvGaVg8
-// https://github.com/espressif/arduino-esp32/blob/master/libraries/WebServer/examples/WebServer/WebServer.ino
-
-//----------------------------------------
-// Stop the web server
-//----------------------------------------
 void stopWebServer()
 {
     if (task.updateWebServerTaskRunning)
@@ -43,13 +23,6 @@ void stopWebServer()
     do
         delay(10);
     while (task.updateWebServerTaskRunning);
-
-    if (webServer != nullptr)
-    {
-        webServer->close();
-        delete webServer;
-        webServer = nullptr;
-    }
 
     if (incomingSettings != nullptr)
     {
@@ -78,8 +51,6 @@ void updateWebServerTask(void *e)
             systemPrintln("updateWebServerTask running");
         }
 
-        webServer->handleClient();
-
         feedWdt();
         taskYIELD();
     }
@@ -92,7 +63,7 @@ void updateWebServerTask(void *e)
 }
 
 //----------------------------------------
-// Create the web server and web sockets
+// Create the web server
 //----------------------------------------
 bool webServerAssignResources(int httpPort = 80)
 {
@@ -123,16 +94,6 @@ bool webServerAssignResources(int httpPort = 80)
             if (settings.debugNetworkLayer)
                 systemPrintf("mDNS started as %s.local\r\n", settings.mdnsHostName);
         }
-
-        webServer = new WebServer(httpPort);
-        if (!webServer)
-        {
-            systemPrintln("ERROR: Web server failed to allocate webServer");
-            break;
-        }
-
-        // Start the web server
-        webServer->begin();
 
         if (settings.mdnsEnable == true)
             MDNS.addService("http", "tcp", settings.httpPort); // Add service to MDNS
@@ -192,13 +153,6 @@ void webServerReleaseResources()
     online.webServer = false;
 
     webSocketsStop(); // Release socket resources
-
-    if (webServer != nullptr)
-    {
-        webServer->close();
-        delete webServer;
-        webServer = nullptr;
-    }
 
     if (incomingSettings != nullptr)
     {
