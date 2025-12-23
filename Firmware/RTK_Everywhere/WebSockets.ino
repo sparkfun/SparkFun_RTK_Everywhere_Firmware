@@ -487,13 +487,8 @@ void webSocketsFileDownload(httpd_req_t * req, const char * fileName)
         // Download the file data
         while (1)
         {
+            // Read data from the file
             bytes = file.read(buffer, bufferLength);
-            if (bytes == 0)
-            {
-                statusMessage = HTTPD_200;
-                response = &responseSuccessful;
-                break;
-            }
             if (bytes < 0)
             {
                 statusMessage = HTTPD_500;
@@ -516,6 +511,13 @@ void webSocketsFileDownload(httpd_req_t * req, const char * fileName)
                 statusMessage = HTTPD_500;
                 responseFailed = "Failed sending download data";
                 response = &responseFailed;
+                break;
+            }
+
+            // Check for end of file
+            if (bytes == 0)
+            {
+                response = nullptr;
                 break;
             }
         }
