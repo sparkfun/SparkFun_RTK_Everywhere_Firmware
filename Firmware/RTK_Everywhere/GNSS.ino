@@ -949,13 +949,16 @@ bool gnssNewSettingValue(RTK_Settings_Types type,
                          int qualifier,
                          double d)
 {
+    // We must parse all GNSS. tCmnCnst etc. are present in all GNSS
+    bool retval = false;
     for (int index = 0; index < GNSS_SUPPORT_ROUTINES_ENTRIES; index++)
     {
-        if (gnssSupportRoutines[index]._newSettingValue
-            && gnssSupportRoutines[index]._newSettingValue(type, suffix, qualifier, d))
-            return true;
+        if (gnssSupportRoutines[index]._newSettingValue)
+        {
+            retval |= gnssSupportRoutines[index]._newSettingValue(type, suffix, qualifier, d);
+        }
     }
-    return false;
+    return retval;
 }
 
 //----------------------------------------
