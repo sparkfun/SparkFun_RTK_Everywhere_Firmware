@@ -1048,8 +1048,9 @@ volatile bool deadManWalking;
         bootTimeIndex += 1;                                                                                            \
         DMW_if systemPrintf("%s called\r\n", string);                                                                  \
     }
-#define DMW_c(string) DMW_if systemPrintf("%s called\r\n", string);
+#define DMW_l(string) DMW_if systemPrintf("%s called\r\n", string);
 #define DMW_m(string) DMW_if systemPrintln(string);
+#define DMW_n(string) DMW_if systemPrintf("%s called\r\n", string);
 #define DMW_r(string) DMW_if systemPrintf("%s returning\r\n", string);
 #define DMW_rs(string, status) DMW_if systemPrintf("%s returning %d\r\n", string, (int32_t)status);
 #define DMW_st(routine, state) DMW_if routine(state);
@@ -1118,9 +1119,10 @@ volatile bool deadManWalking;
         }                                                                                                              \
         bootTimeIndex += 1;                                                                                            \
     }
-#define DMW_c(string)
 #define DMW_ds(routine, dataStructure)
+#define DMW_l(string)
 #define DMW_m(string)
+#define DMW_n(string)
 #define DMW_r(string)
 #define DMW_rs(string, status)
 #define DMW_st(routine, state)
@@ -1530,77 +1532,78 @@ void setup()
 
 void loop()
 {
-    DMW_c("periodicDisplay");
+    DMW_l("periodicDisplay");
     updatePeriodicDisplay();
 
-    DMW_c("stateUpdate");
+    DMW_l("stateUpdate");
     stateUpdate();
 
-    DMW_c("updateBattery");
+    DMW_l("updateBattery");
     updateBattery();
 
-    DMW_c("displayUpdate");
+    DMW_l("displayUpdate");
     displayUpdate();
 
-    DMW_c("gnssUpdate");
+    DMW_l("gnssUpdate");
     gnssUpdate();
 
-    DMW_c("rtcUpdate");
+    DMW_l("rtcUpdate");
     rtcUpdate(); // Set system time to GNSS once we have fix
 
-    DMW_c("bluetoothUpdate");
+    DMW_l("bluetoothUpdate");
     bluetoothUpdate(); // Check for BLE connections
 
-    DMW_c("sdUpdate");
+    DMW_l("sdUpdate");
     sdUpdate(); // Check if SD needs to be started or is at max capacity
 
-    DMW_c("logUpdate");
+    DMW_l("logUpdate");
     logUpdate(); // Record any new data. Create or close files as needed.
 
-    DMW_c("reportHeap");
+    DMW_l("reportHeap");
     reportHeap(); // If debug enabled, report free heap
 
-    DMW_c("terminalUpdate");
+    DMW_l("terminalUpdate");
     terminalUpdate(); // Menu system via ESP32 USB connection
 
-    DMW_c("networkUpdate");
+    DMW_l("networkUpdate");
     networkUpdate(); // Maintain the network connections
 
-    DMW_c("updateAuthCoPro");
+    DMW_l("updateAuthCoPro");
     updateAuthCoPro(); // Update the Apple Accessory
 
-    DMW_c("updateLBand");
+    DMW_l("updateLBand");
     updateLBand(); // Update L-Band
 
-    DMW_c("updateLBandCorrections");
+    DMW_l("updateLBandCorrections");
     updateLBandCorrections(); // Check if we've recently received PointPerfect corrections or not
 
-    DMW_c("tiltUpdate");
+    DMW_l("tiltUpdate");
     tiltUpdate(); // Check if new lat/lon/alt have been calculated
 
-    DMW_c("espNowUpdate");
+    DMW_l("espNowUpdate");
     espNowUpdate(); // Check if we need to finish sending any RTCM over ESP-NOW radio
 
-    DMW_c("updateLora");
+    DMW_l("updateLora");
     updateLora(); // Check if we need to finish sending any RTCM over LoRa radio
 
-    DMW_c("updatePPL");
+    DMW_l("updatePPL");
     updatePPL(); // Check if we need to get any new RTCM from the PPL
 
-    DMW_c("printReports");
+    DMW_l("printReports");
     printReports(); // Periodically print GNSS coordinates and accuracy if enabled
 
-    DMW_c("otaAutoUpdate");
+    DMW_l("otaAutoUpdate");
     otaUpdate(); // Initiate firmware version checks, scheduled automatic updates, or requested firmware over-the-air
                  // updates
 
-    DMW_c("correctionUpdateSource");
+    DMW_l("correctionUpdateSource");
     correctionUpdateSource(); // Retire expired sources
 
-    DMW_c("updateProvisioning");
+    DMW_l("updateProvisioning");
     provisioningUpdate(); // Check if we should attempt to connect to PointPerfect to get keys / certs / correction
                           // topic etc.
 
+    DMW_l("loopDelay");
     loopDelay(); // A small delay prevents panic if no other I2C or functions are called
 }
 

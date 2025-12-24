@@ -2483,23 +2483,23 @@ void networkUpdate()
     networkMulticastDNSUpdate();
 
     // Update the network services
-    DMW_c("mqttClientUpdate");
+    DMW_n("mqttClientUpdate");
     mqttClientUpdate(); // Process any Point Perfect MQTT messages
-    DMW_c("ntpServerUpdate");
+    DMW_n("ntpServerUpdate");
     ntpServerUpdate(); // Process any received NTP requests
-    DMW_c("ntripClientUpdate");
+    DMW_n("ntripClientUpdate");
     ntripClientUpdate(); // Check the NTRIP client connection and move data NTRIP --> ZED
-    DMW_c("ntripServerUpdate");
+    DMW_n("ntripServerUpdate");
     ntripServerUpdate(); // Check the NTRIP server connection and move data ZED --> NTRIP
-    DMW_c("tcpClientUpdate");
+    DMW_n("tcpClientUpdate");
     tcpClientUpdate(); // Turn on the TCP client as needed
-    DMW_c("tcpServerUpdate");
+    DMW_n("tcpServerUpdate");
     tcpServerUpdate(); // Turn on the TCP server as needed
-    DMW_c("udpServerUpdate");
+    DMW_n("udpServerUpdate");
     udpServerUpdate(); // Turn on the UDP server as needed
-    DMW_c("httpClientUpdate");
+    DMW_n("httpClientUpdate");
     httpClientUpdate(); // Process any Point Perfect HTTP messages
-    DMW_c("webServerUpdate");
+    DMW_n("webServerUpdate");
     webServerUpdate(); // Start webServer for web config as needed
 
     // Periodically display the network interface state
