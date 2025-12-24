@@ -918,7 +918,7 @@ bool parseLine(char *str)
             var = rtkSettingsEntries[i].var;
 
             // Handle the GNSS specific types
-            if (gnssNewSettingValue(type, settingName, qualifier, d))
+            if (gnssNewSettingValue(type, suffix, qualifier, d))
                 knownSetting = true;
             else
             {

@@ -1048,7 +1048,7 @@ SettingValueResponse updateSettingWithValue(bool inCommands, const char *setting
         // Handle the GNSS specific types
         if (knownSetting == false)
         {
-            if (gnssNewSettingValue(type, settingName, qualifier, settingValue))
+            if (gnssNewSettingValue(type, suffix, qualifier, settingValue))
                 knownSetting = true;
         }
 
