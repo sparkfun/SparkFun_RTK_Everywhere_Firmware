@@ -62,6 +62,36 @@ void *rtkMalloc(size_t sizeInBytes, const char *text)
     return data;
 }
 
+// Determine if the address is in the EEPROM (Flash)
+bool rtkIsAddressInEEPROM(void * addr)
+{
+    return ((addr >= (void *)0x3f400000) && (addr <= (void *)0x3f7fffff));
+}
+
+// Determine if the address is in PSRAM (SPI RAM)
+bool rtkIsAddressInPSRAM(void * addr)
+{
+    return ((addr >= (void *)0x3f800000) && (addr <= (void *)0x3fbfffff));
+}
+
+// Determine if the address is in PSRAM or SRAM
+bool rtkIsAddressInRAM(void * addr)
+{
+    return rtkIsAddressInSRAM(addr) || rtkIsAddressInPSRAM(addr);
+}
+
+bool rtkIsAddressInROM(void * addr)
+{
+    return (((addr >= (void *)0x3ff90000) && (addr <= (void *)0x3ff9ffff))
+        ||  ((addr >= (void *)0x40000000) && (addr <= (void *)0x4005ffff)));
+}
+
+// Determine if the address is in SRAM
+bool rtkIsAddressInSRAM(void * addr)
+{
+    return ((addr >= (void *)0x3ffae000) && (addr <= (void *)0x3ffdffff));
+}
+
 // See https://en.cppreference.com/w/cpp/memory/new/operator_delete
 void operator delete(void *ptr) noexcept
 {
