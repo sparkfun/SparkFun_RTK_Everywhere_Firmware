@@ -828,8 +828,21 @@ const char *coordinatePrintableInputType(CoordinateInputType coordinateInputType
 void reportFatalError(const char *errorMsg)
 {
     displayHalt();
+
+    // Empty the FIFO of any incoming data
+    while (Serial.available())
+        Serial.read();
     while (1)
     {
+        // Allow carriage return to reset the system
+        if (Serial.available() && (Serial.read() == '\r'))
+        {
+            Serial.println("System reset");
+            Serial.flush();
+            ESP.restart();
+        }
+
+        // Periodically display the halted message
         systemPrint("HALTED: ");
         systemPrint(errorMsg);
         systemPrintln();
