@@ -25,6 +25,18 @@ void beginPsram()
     }
 }
 
+// Get the task name
+const char * rtkTaskGetName(TaskHandle_t handle)
+{
+    uint32_t * data;
+    const char * taskName;
+
+    taskName = nullptr;
+    if (handle)
+        taskName = ((char *)handle) + 0x34;
+    return taskName;
+}
+
 // Validate the heap
 void rtkValidateHeap(const char * string)
 {
@@ -35,7 +47,7 @@ void rtkValidateHeap(const char * string)
         const char * taskName;
 
         handle = xTaskGetCurrentTaskHandle();
-        taskName = nullptr;
+        taskName = rtkTaskGetName(handle);
         systemPrintf("Task handle 0x%08x %s%s%scalling %s\r\n",
                       handle,
                       taskName ? "(" : "",
