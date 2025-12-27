@@ -194,11 +194,21 @@ const GET_PAGE_HANDLER webSocketsPages[] =
 #define WEB_SOCKETS_SPECIAL_PAGES   2
 const int webServerTotalPages = (sizeof(webSocketsPages) / sizeof(GET_PAGE_HANDLER));
 
+static const httpd_uri_t webSocketsPage = {.uri = "/ws",
+                                           .method = HTTP_GET,
+                                           .handler = webServerHandlerWebSockets,
+                                           .user_ctx = NULL,
+                                           .is_websocket = true,
+                                           .handle_ws_control_frames = true,
+                                           .supported_subprotocol = NULL};
+
 //----------------------------------------
 // Create the web server
 //----------------------------------------
 bool webServerAssignResources(int httpPort = 80)
 {
+    int i;
+    const GET_PAGE_HANDLER * setupPage;
     esp_err_t status;
 
     if (settings.debugWebServer)
@@ -278,13 +288,34 @@ bool webServerAssignResources(int httpPort = 80)
             break;
         }
 
-        // Register the pages
-        if (webSocketsStart() == false)
-        {
-            if (settings.debugWebServer == true)
-                systemPrintf("ERROR: Web server failed page registration!\r\n");
+        if (settings.debugWebServer == true)
+            systemPrintln("webServer registering page handlers");
+
+        // Register the page not found (404) error handler
+        if (!webSocketsRegisterErrorHandler(HTTPD_404_NOT_FOUND,
+                                            webServerHandlerPageNotFound))
             break;
-        }
+
+        // Get the product specific web page
+        if (productVariant == RTK_EVK)
+            setupPage = &webSocketsPages[0];
+        else
+            setupPage = &webSocketsPages[1];
+
+        // Register the product specific page
+        if (!webSocketsRegisterPageHandler(&setupPage->_page))
+            break;
+
+        // Register the web socket handler
+        if (!webSocketsRegisterPageHandler(&webSocketsPage))
+            break;
+
+        // Register the main pages
+        for (i = WEB_SOCKETS_SPECIAL_PAGES; i < webServerTotalPages; i++)
+            if (!webSocketsRegisterPageHandler(&webSocketsPages[i]._page))
+                break;
+        if (i < webServerTotalPages)
+            break;
 
         if (settings.debugWebServer == true)
         {
@@ -882,7 +913,7 @@ const char *webServerGetStateName(uint8_t state, char *string)
 //----------------------------------------
 // Handler for web sockets requests
 //----------------------------------------
-static esp_err_t webServerHandler(httpd_req_t *req)
+static esp_err_t webServerHandlerWebSockets(httpd_req_t *req)
 {
     WEB_SOCKETS_CLIENT * client;
     WEB_SOCKETS_CLIENT * entry;
@@ -2418,17 +2449,6 @@ void webSocketsSendString(const char *stringToSend)
 }
 
 //----------------------------------------
-// Web page description
-//----------------------------------------
-static const httpd_uri_t webSocketsPage = {.uri = "/ws",
-                                           .method = HTTP_GET,
-                                           .handler = webServerHandler,
-                                           .user_ctx = NULL,
-                                           .is_websocket = true,
-                                           .handle_ws_control_frames = true,
-                                           .supported_subprotocol = NULL};
-
-//----------------------------------------
 // Set the content type based upon the file extension
 //----------------------------------------
 esp_err_t webSocketsSetContentType(httpd_req_t *req, const char *fileName)
@@ -2561,59 +2581,6 @@ void webServerStart()
         } while (0);
         webServerSetState(WEBSERVER_STATE_WAIT_FOR_NETWORK);
     }
-}
-
-//----------------------------------------
-// Start the web sockets layer
-//----------------------------------------
-bool webSocketsStart(void)
-{
-    esp_err_t status;
-    const GET_PAGE_HANDLER * setupPage;
-
-    do
-    {
-        int i;
-
-        if (settings.debugWebServer == true)
-            systemPrintln("webSockets registering page handlers");
-
-        // Register the page not found (404) error handler
-        if (!webSocketsRegisterErrorHandler(HTTPD_404_NOT_FOUND,
-                                            webServerHandlerPageNotFound))
-            break;
-
-        // Get the product specific web page
-        if (productVariant == RTK_EVK)
-            setupPage = &webSocketsPages[0];
-        else
-            setupPage = &webSocketsPages[1];
-
-        // Register the product specific page
-        if (!webSocketsRegisterPageHandler(&setupPage->_page))
-            break;
-
-        // Register the web socket handler
-        if (!webSocketsRegisterPageHandler(&webSocketsPage))
-            break;
-
-        // Register the main pages
-        for (i = WEB_SOCKETS_SPECIAL_PAGES; i < webServerTotalPages; i++)
-            if (!webSocketsRegisterPageHandler(&webSocketsPages[i]._page))
-                break;
-        if (i < webServerTotalPages)
-            break;
-
-        // The web server is ready to handle incoming requests
-        if (settings.debugWebServer)
-            systemPrintf("webSockets successfully started\r\n");
-        return true;
-    } while (0);
-
-    // Display the failure to start
-    if (settings.debugWebServer)
-        systemPrintf("ERROR: webSockets failed to start, status: %s!\r\n", esp_err_to_name(status));
-    return false;
 }
 
 //----------------------------------------
