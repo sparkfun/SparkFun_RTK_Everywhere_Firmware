@@ -45,7 +45,7 @@ static const int webServerStateEntries = sizeof(webServerStateNames) / sizeof(we
 // These are the various files or endpoints that browsers will attempt to
 // access to see if internet access is available.  If one is requested,
 // redirect user to captive portal (main page "/").
-const char * webSocketsCaptiveUrls[] =
+const char * webServerCaptiveUrls[] =
 {
     "/hotspot-detect.html",
     "/library/test/success.html",
@@ -54,7 +54,7 @@ const char * webSocketsCaptiveUrls[] =
     "/check_network_status.txt",
     "/connecttest.txt"
 };
-const uint8_t webSocketsCaptiveUrlCount = sizeof(webSocketsCaptiveUrls) / sizeof(webSocketsCaptiveUrls[0]);
+const uint8_t webServerCaptiveUrlCount = sizeof(webServerCaptiveUrls) / sizeof(webServerCaptiveUrls[0]);
 
 //----------------------------------------
 // New types
@@ -116,8 +116,8 @@ typedef struct _WEB_SOCKETS_CLIENT
 // Locals
 //----------------------------------------
 
-static WEB_SOCKETS_CLIENT * webSocketsClientListHead;
-static WEB_SOCKETS_CLIENT * webSocketsClientListTail;
+static WEB_SOCKETS_CLIENT * webServerClientListHead;
+static WEB_SOCKETS_CLIENT * webServerClientListTail;
 static httpd_handle_t webServerHandle;
 static SemaphoreHandle_t webServerMutex;
 static uint8_t webServerState;
@@ -137,7 +137,7 @@ esp_err_t webServerHandlerListMessages(httpd_req_t *req);
 // Web page descriptions
 //----------------------------------------
 
-const GET_PAGE_HANDLER webSocketsPages[] =
+const GET_PAGE_HANDLER webServerPages[] =
 {
     // Platform specific pages
     WEB_PAGE( 0, "/src/rtk-setup.png", image_png, rtkSetup_png),    // EVK
@@ -192,15 +192,15 @@ const GET_PAGE_HANDLER webSocketsPages[] =
 };
 
 #define WEB_SOCKETS_SPECIAL_PAGES   2
-const int webServerTotalPages = (sizeof(webSocketsPages) / sizeof(GET_PAGE_HANDLER));
+const int webServerTotalPages = (sizeof(webServerPages) / sizeof(GET_PAGE_HANDLER));
 
-static const httpd_uri_t webSocketsPage = {.uri = "/ws",
-                                           .method = HTTP_GET,
-                                           .handler = webServerHandlerWebSockets,
-                                           .user_ctx = NULL,
-                                           .is_websocket = true,
-                                           .handle_ws_control_frames = true,
-                                           .supported_subprotocol = NULL};
+static const httpd_uri_t webServerPage = {.uri = "/ws",
+                                          .method = HTTP_GET,
+                                          .handler = webServerHandlerWebSockets,
+                                          .user_ctx = NULL,
+                                          .is_websocket = true,
+                                          .handle_ws_control_frames = true,
+                                          .supported_subprotocol = NULL};
 
 //----------------------------------------
 // Create the web server
@@ -272,7 +272,7 @@ bool webServerAssignResources(int httpPort = 80)
 
         if (settings.debugWebServer == true)
         {
-            webSocketsHttpdDisplayConfig(&config);
+            webServerHttpdDisplayConfig(&config);
             reportHeapNow(true);
         }
 
@@ -289,30 +289,30 @@ bool webServerAssignResources(int httpPort = 80)
         }
 
         if (settings.debugWebServer == true)
-            systemPrintln("webServer registering page handlers");
+            systemPrintln("WebServer registering page handlers");
 
         // Register the page not found (404) error handler
-        if (!webSocketsRegisterErrorHandler(HTTPD_404_NOT_FOUND,
-                                            webServerHandlerPageNotFound))
+        if (!webServerRegisterErrorHandler(HTTPD_404_NOT_FOUND,
+                                           webServerHandlerPageNotFound))
             break;
 
         // Get the product specific web page
         if (productVariant == RTK_EVK)
-            setupPage = &webSocketsPages[0];
+            setupPage = &webServerPages[0];
         else
-            setupPage = &webSocketsPages[1];
+            setupPage = &webServerPages[1];
 
         // Register the product specific page
-        if (!webSocketsRegisterPageHandler(&setupPage->_page))
+        if (!webServerRegisterPageHandler(&setupPage->_page))
             break;
 
         // Register the web socket handler
-        if (!webSocketsRegisterPageHandler(&webSocketsPage))
+        if (!webServerRegisterPageHandler(&webServerPage))
             break;
 
         // Register the main pages
         for (i = WEB_SOCKETS_SPECIAL_PAGES; i < webServerTotalPages; i++)
-            if (!webSocketsRegisterPageHandler(&webSocketsPages[i]._page))
+            if (!webServerRegisterPageHandler(&webServerPages[i]._page))
                 break;
         if (i < webServerTotalPages)
             break;
@@ -337,11 +337,11 @@ bool webServerAssignResources(int httpPort = 80)
 //----------------------------------------
 // Check if given URI is a captive portal endpoint
 //----------------------------------------
-bool webSocketsCheckForKnownCaptiveUrl(const char * uri)
+bool webServerCheckForKnownCaptiveUrl(const char * uri)
 {
-    for (int i = 0; i < webSocketsCaptiveUrlCount; i++)
+    for (int i = 0; i < webServerCaptiveUrlCount; i++)
     {
-        if (strcmp(uri, webSocketsCaptiveUrls[i]) == 0)
+        if (strcmp(uri, webServerCaptiveUrls[i]) == 0)
             return true;
     }
     return false;
@@ -351,7 +351,7 @@ bool webSocketsCheckForKnownCaptiveUrl(const char * uri)
 // Create a csv string with the dynamic data to update (current coordinates,
 // battery level, etc)
 //----------------------------------------
-void webSocketsCreateDynamicDataString(char *csvList)
+void webServerCreateDynamicDataString(char *csvList)
 {
     csvList[0] = '\0'; // Erase current settings string
 
@@ -417,7 +417,7 @@ void webSocketsCreateDynamicDataString(char *csvList)
 // Report back to the web config page with a CSV that contains the either CURRENT or
 // the latest version as obtained by the OTA state machine
 //----------------------------------------
-void webSocketsCreateFirmwareVersionString(char *firmwareString)
+void webServerCreateFirmwareVersionString(char *firmwareString)
 {
     char newVersionCSV[100];
 
@@ -431,7 +431,7 @@ void webSocketsCreateFirmwareVersionString(char *firmwareString)
     if (firmwareVersionIsReportedNewer(otaReportedVersion, currentVersion) == true)
     {
         if (settings.debugWebServer == true)
-            systemPrintln("WebSockets: New firmware version detected");
+            systemPrintln("WebServer: New firmware version detected");
         snprintf(newVersionCSV, sizeof(newVersionCSV), "%s,", otaReportedVersion);
     }
     else
@@ -450,7 +450,7 @@ void webSocketsCreateFirmwareVersionString(char *firmwareString)
 // When called, responds with the messages supported on this platform
 // Message name and current rate are formatted in CSV, formatted to html by JS
 //----------------------------------------
-void webSocketsCreateMessageList(String &returnText)
+void webServerCreateMessageList(String &returnText)
 {
     returnText = "";
     gnss->createMessageList(returnText);
@@ -462,7 +462,7 @@ void webSocketsCreateMessageList(String &returnText)
 // When called, responds with the RTCM/Base messages supported on this platform
 // Message name and current rate are formatted in CSV, formatted to html by JS
 //----------------------------------------
-void webSocketsCreateMessageListBase(String &returnText)
+void webServerCreateMessageListBase(String &returnText)
 {
     returnText = "";
     gnss->createMessageListBase(returnText);
@@ -473,14 +473,14 @@ void webSocketsCreateMessageListBase(String &returnText)
 //----------------------------------------
 // Display the request
 //----------------------------------------
-void webSocketsDisplayRequest(httpd_req_t *req)
+void webServerDisplayRequest(httpd_req_t *req)
 {
     // Display the request and response
     if (settings.debugWebServer == true)
     {
         char ipAddress[80];
 
-        webSocketsGetClientIpAddressAndPort(req, ipAddress, sizeof(ipAddress));
+        webServerGetClientIpAddressAndPort(req, ipAddress, sizeof(ipAddress));
         systemPrintf("WebServer Client: %s%s\r\n", ipAddress, req->uri);
     }
 }
@@ -488,16 +488,16 @@ void webSocketsDisplayRequest(httpd_req_t *req)
 //----------------------------------------
 // Display the request
 //----------------------------------------
-void webSocketsDisplayRequestAndData(httpd_req_t *req,
-                                     const void * data,
-                                     size_t bytes)
+void webServerDisplayRequestAndData(httpd_req_t *req,
+                                    const void * data,
+                                    size_t bytes)
 {
     // Display the request and response
     if (settings.debugWebServer == true)
     {
         char ipAddress[80];
 
-        webSocketsGetClientIpAddressAndPort(req, ipAddress, sizeof(ipAddress));
+        webServerGetClientIpAddressAndPort(req, ipAddress, sizeof(ipAddress));
         systemPrintf("WebServer Client: %s%s (%p, %d bytes)\r\n",
                      ipAddress, req->uri, data, bytes);
     }
@@ -506,7 +506,7 @@ void webSocketsDisplayRequestAndData(httpd_req_t *req,
 //----------------------------------------
 // Delete the specified file
 //----------------------------------------
-void webSocketsFileDelete(httpd_req_t * req, const char * fileName)
+void webServerFileDelete(httpd_req_t * req, const char * fileName)
 {
     int httpResponseCode;
     String * response;
@@ -524,7 +524,7 @@ void webSocketsFileDelete(httpd_req_t * req, const char * fileName)
 
     // Attempt to gain access to the SD card
     if (settings.debugWebServer == true)
-        systemPrintf("WebSockets waiting for the sdCardSemaphore semaphore\r\n");
+        systemPrintf("WebServer waiting for the sdCardSemaphore semaphore\r\n");
     if (xSemaphoreTake(sdCardSemaphore, fatSemaphore_longWait_ms) != pdPASS)
     {
         statusMessage = HTTPD_500;
@@ -551,14 +551,14 @@ void webSocketsFileDelete(httpd_req_t * req, const char * fileName)
         // Release the semaphore
         xSemaphoreGive(sdCardSemaphore);
         if (settings.debugWebServer == true)
-            systemPrintf("WebSockets released the sdCardSemaphore semaphore\r\n");
+            systemPrintf("WebServer released the sdCardSemaphore semaphore\r\n");
     }
 
     // Send the response
     if (response == &responseFailed)
         responseFailed = "ERROR: " + responseFailed;
     if (settings.debugWebServer == true)
-        systemPrintf("WebSockets: %s\r\n", response->c_str());
+        systemPrintf("WebServer: %s\r\n", response->c_str());
     httpd_resp_set_status(req, statusMessage);
     httpd_resp_send(req, response->c_str(), response->length());
 }
@@ -566,7 +566,7 @@ void webSocketsFileDelete(httpd_req_t * req, const char * fileName)
 //----------------------------------------
 // Download the specified file
 //----------------------------------------
-void webSocketsFileDownload(httpd_req_t * req, const char * fileName)
+void webServerFileDownload(httpd_req_t * req, const char * fileName)
 {
     uint8_t * buffer;
     const size_t bufferBytes = 32768;
@@ -604,7 +604,7 @@ void webSocketsFileDownload(httpd_req_t * req, const char * fileName)
         responseSuccessful += &fileName[1];
 
         // Get the client
-        webSocketsGetClientIpAddressAndPort(req, client, sizeof(client));
+        webServerGetClientIpAddressAndPort(req, client, sizeof(client));
 
         // Determine the disposition string length
         dispositionBytes = snprintf(nullptr, 0, dispositionFormat, &fileName[1]);
@@ -615,7 +615,7 @@ void webSocketsFileDownload(httpd_req_t * req, const char * fileName)
                + lengthStringBytes
                + dispositionBytes
                + 1;                 // Disposition zero termination
-        buffer = (uint8_t *)rtkMalloc(length, "WebSockets file download buffer");
+        buffer = (uint8_t *)rtkMalloc(length, "WebServer file download buffer");
         if (buffer == nullptr)
         {
             statusMessage = HTTPD_500;
@@ -630,7 +630,7 @@ void webSocketsFileDownload(httpd_req_t * req, const char * fileName)
 
         // Attempt to gain access to the SD card
         if (settings.debugWebServer == true)
-            systemPrintf("WebSockets waiting for the sdCardSemaphore semaphore\r\n");
+            systemPrintf("WebServer waiting for the sdCardSemaphore semaphore\r\n");
         if (xSemaphoreTake(sdCardSemaphore, fatSemaphore_longWait_ms) != pdPASS)
         {
             statusMessage = HTTPD_500;
@@ -660,7 +660,7 @@ void webSocketsFileDownload(httpd_req_t * req, const char * fileName)
         }
 
         // Set the content type
-        if (webSocketsSetContentType(req, fileName) != ESP_OK)
+        if (webServerSetContentType(req, fileName) != ESP_OK)
         {
             statusMessage = HTTPD_500;
             responseFailed = "Failed to set content type";
@@ -704,7 +704,7 @@ void webSocketsFileDownload(httpd_req_t * req, const char * fileName)
             }
             if (settings.debugWebServer == true)
             {
-                systemPrintf("WebSockets: Sending %d bytes at offset %lld to %s\r\n",
+                systemPrintf("WebServer: Sending %d bytes at offset %lld to %s\r\n",
                              bytes, bytesSent, client);
                 bytesSent += bytes;
             }
@@ -737,12 +737,12 @@ void webSocketsFileDownload(httpd_req_t * req, const char * fileName)
     {
         xSemaphoreGive(sdCardSemaphore);
         if (settings.debugWebServer == true)
-            systemPrintf("WebSockets released the sdCardSemaphore semaphore\r\n");
+            systemPrintf("WebServer released the sdCardSemaphore semaphore\r\n");
     }
 
     // Free the download buffer
     if (buffer)
-        rtkFree(buffer, "WebSockets file download buffer");
+        rtkFree(buffer, "WebServer file download buffer");
 
     // Send the response
     if (response)
@@ -750,7 +750,7 @@ void webSocketsFileDownload(httpd_req_t * req, const char * fileName)
         if (response == &responseFailed)
             responseFailed = "ERROR: " + responseFailed;
         if (settings.debugWebServer == true)
-            systemPrintf("WebSockets: %s\r\n", response->c_str());
+            systemPrintf("WebServer: %s\r\n", response->c_str());
         httpd_resp_set_status(req, statusMessage);
         httpd_resp_send(req, response->c_str(), response->length());
     }
@@ -759,9 +759,9 @@ void webSocketsFileDownload(httpd_req_t * req, const char * fileName)
 //----------------------------------------
 // Get the client IP address
 //----------------------------------------
-void webSocketsGetClientIpAddressAndPort(httpd_req_t *req,
-                                         char * ipAddress,
-                                         size_t ipAddressBytes)
+void webServerGetClientIpAddressAndPort(httpd_req_t *req,
+                                        char * ipAddress,
+                                        size_t ipAddressBytes)
 {
     socklen_t addrBytes;
     const uint8_t ip4Address[12] =
@@ -777,12 +777,12 @@ void webSocketsGetClientIpAddressAndPort(httpd_req_t *req,
     // Validate the parameters
     if (ipAddress == nullptr)
     {
-        systemPrintf("ERROR: ipAddress must be specified in WebSockets\r\n");
+        systemPrintf("ERROR: ipAddress must be specified in webServer\r\n");
         return;
     }
     if (ipAddressBytes == 0)
     {
-        systemPrintf("ERROR: ipAddressBytes must be > 0 in WebSockets\r\n");
+        systemPrintf("ERROR: ipAddressBytes must be > 0 in webServer\r\n");
         return;
     }
     ipAddress[0] = 0;
@@ -795,7 +795,7 @@ void webSocketsGetClientIpAddressAndPort(httpd_req_t *req,
     if (getpeername(socketFD, (struct sockaddr *)&ip6Address, &addrBytes) < 0)
     {
         if (settings.debugWebServer == true)
-            systemPrintf("ERROR: WebSockets failed to get client IP address\r\n");
+            systemPrintf("ERROR: WebServer failed to get client IP address\r\n");
         return;
     }
 
@@ -818,7 +818,7 @@ void webSocketsGetClientIpAddressAndPort(httpd_req_t *req,
     if (ipAddressBytes < requiredStringLength)
     {
         if (settings.debugWebServer == true)
-            systemPrintf("ERROR: WebSockets failed to get client IP address\r\n");
+            systemPrintf("ERROR: WebServer failed to get client IP address\r\n");
         return;
     }
 
@@ -833,7 +833,7 @@ void webSocketsGetClientIpAddressAndPort(httpd_req_t *req,
 // When called, responds with the root folder list of files on SD card
 // Name and size are formatted in CSV, formatted to html by JS
 //----------------------------------------
-void webSocketsGetFileList(String &returnText)
+void webServerGetFileList(String &returnText)
 {
     returnText = "";
 
@@ -910,7 +910,7 @@ static esp_err_t webServerHandlerWebSockets(httpd_req_t *req)
     WEB_SOCKETS_CLIENT * entry;
 
     // Display the request
-    webSocketsDisplayRequest(req);
+    webServerDisplayRequest(req);
 
     // Log the req, so we can reuse it for httpd_ws_send_frame
     // TODO: do we need to be cleverer about this?
@@ -938,19 +938,19 @@ static esp_err_t webServerHandlerWebSockets(httpd_req_t *req)
         // ListTail -> client (blink) -> ... -> nullptr;
         // Add this client to the list
         client->_flink = nullptr;
-        entry = webSocketsClientListTail;
+        entry = webServerClientListTail;
         client->_blink = entry;
         if (entry)
             entry->_flink = client;
         else
-            webSocketsClientListHead = client;
-        webSocketsClientListTail = client;
+            webServerClientListHead = client;
+        webServerClientListTail = client;
 
         // Release the synchronization
         xSemaphoreGive(webServerMutex);
 
         if (settings.debugWebServer == true)
-            systemPrintf("webSockets: Added client, _request: %p, _socketFD: %d\r\n",
+            systemPrintf("WebServer: Added client, _request: %p, _socketFD: %d\r\n",
                          client->_request, client->_socketFD);
 
         lastDynamicDataUpdate = millis();
@@ -960,7 +960,7 @@ static esp_err_t webServerHandlerWebSockets(httpd_req_t *req)
         if (settingsCsvList)
         {
             createSettingsString(settingsCsvList);
-            webSocketsSendString(settingsCsvList);
+            webServerSendString(settingsCsvList);
             rtkFree(settingsCsvList, "Command CSV settings list");
             return ESP_OK;
         }
@@ -977,18 +977,18 @@ static esp_err_t webServerHandlerWebSockets(httpd_req_t *req)
     esp_err_t ret = httpd_ws_recv_frame(req, &ws_pkt, 0);
     if (ret != ESP_OK)
     {
-        systemPrintf("WebSockets: httpd_ws_recv_frame failed to get frame len with %d\r\n", ret);
+        systemPrintf("WebServer: httpd_ws_recv_frame failed to get frame len with %d\r\n", ret);
         return ret;
     }
     if (settings.debugWebServer == true)
-        systemPrintf("WebSockets: frame len is %d\r\n", ws_pkt.len);
+        systemPrintf("WebServer: frame len is %d\r\n", ws_pkt.len);
     if (ws_pkt.len)
     {
         /* ws_pkt.len + 1 is for NULL termination as we are expecting a string */
         buf = (uint8_t *)rtkMalloc(ws_pkt.len + 1, "Payload buffer (buf)");
         if (buf == NULL)
         {
-            systemPrintln("WebSockets: Failed to malloc memory for buf");
+            systemPrintln("WebServer: Failed to malloc memory for buf");
             return ESP_ERR_NO_MEM;
         }
         ws_pkt.payload = buf;
@@ -996,7 +996,7 @@ static esp_err_t webServerHandlerWebSockets(httpd_req_t *req)
         ret = httpd_ws_recv_frame(req, &ws_pkt, ws_pkt.len);
         if (ret != ESP_OK)
         {
-            systemPrintf("WebSockets: httpd_ws_recv_frame failed with %d\r\n", ret);
+            systemPrintf("WebServer: httpd_ws_recv_frame failed with %d\r\n", ret);
             rtkFree(buf, "Payload buffer (buf)");
             return ret;
         }
@@ -1029,7 +1029,7 @@ static esp_err_t webServerHandlerWebSockets(httpd_req_t *req)
             pktType = "HTTPD_WS_TYPE_PONG";
             break;
         }
-        systemPrintf("WebSockets: Packet: %p, %d bytes, type: %d%s%s%s\r\n", ws_pkt.payload, length, ws_pkt.type,
+        systemPrintf("WebServer: Packet: %p, %d bytes, type: %d%s%s%s\r\n", ws_pkt.payload, length, ws_pkt.type,
                      pktType ? " (" : "", pktType ? pktType : "", pktType ? ")" : "");
         if (length > 0x40)
             length = 0x40;
@@ -1044,7 +1044,7 @@ static esp_err_t webServerHandlerWebSockets(httpd_req_t *req)
             {
                 incomingSettings[incomingSettingsSpot++] = ws_pkt.payload[i];
                 if (incomingSettingsSpot == AP_CONFIG_SETTING_SIZE)
-                    systemPrintln("WebSockets: incomingSettings wrap-around. Increase AP_CONFIG_SETTING_SIZE");
+                    systemPrintln("WebServer: incomingSettings wrap-around. Increase AP_CONFIG_SETTING_SIZE");
                 incomingSettingsSpot %= AP_CONFIG_SETTING_SIZE;
             }
             timeSinceLastIncomingSetting = millis();
@@ -1052,13 +1052,13 @@ static esp_err_t webServerHandlerWebSockets(httpd_req_t *req)
         else
         {
             if (settings.debugWebServer == true)
-                systemPrintln("WebSockets: Ignoring packet due to parsing block");
+                systemPrintln("WebServer: Ignoring packet due to parsing block");
         }
     }
     else if (ws_pkt.type == HTTPD_WS_TYPE_CLOSE)
     {
         if (settings.debugWebServer == true)
-            systemPrintln("WebSockets: Client closed or refreshed the web page");
+            systemPrintln("WebServer: Client closed or refreshed the web page");
     }
 
     rtkFree(buf, "Payload buffer (buf)");
@@ -1076,12 +1076,12 @@ esp_err_t webServerHandlerFileList(httpd_req_t *req)
     char ipAddress[80];
 
     // Get the file list
-    webSocketsGetFileList(fileList);
+    webServerGetFileList(fileList);
     data = fileList.c_str();
     bytes = fileList.length();
 
     // Display the request and response
-    webSocketsDisplayRequestAndData(req, data, bytes);
+    webServerDisplayRequestAndData(req, data, bytes);
 
     // Send the response
     httpd_resp_set_type(req, text_plain);
@@ -1109,15 +1109,15 @@ esp_err_t webServerHandlerFileManager(httpd_req_t *req)
         errorMessage = nullptr;
 
         // Display the request
-        webSocketsDisplayRequest(req);
+        webServerDisplayRequest(req);
 
         // Allocate a buffer for the name and action
         parameterBufferLength = strlen(req->uri);
         parameterBuffer = (char *)rtkMalloc(parameterBufferLength + 1,
-                                            "WebSockets file manager parameters buffer");
+                                            "WebServer file manager parameters buffer");
         if (parameterBuffer == nullptr)
         {
-            errorMessage = "ERROR: WebSockets failed to allocate file manager parameters buffer!";
+            errorMessage = "ERROR: WebServer failed to allocate file manager parameters buffer!";
             break;
         }
 
@@ -1126,7 +1126,7 @@ esp_err_t webServerHandlerFileManager(httpd_req_t *req)
         parameters = strstr(parameters, "?");
         if (parameters == nullptr)
         {
-            errorMessage = "ERROR: Parameters not passed to WebSockets page!";
+            errorMessage = "ERROR: Parameters not passed to webServer page!";
             break;
         }
         parameters += 1;
@@ -1136,7 +1136,7 @@ esp_err_t webServerHandlerFileManager(httpd_req_t *req)
         fileName = strstr(parameters, fileNameParameter);
         if (fileName == nullptr)
         {
-            errorMessage = "ERROR: name parameter not passed to WebSockets page!";
+            errorMessage = "ERROR: name parameter not passed to webServer page!";
             break;
         }
         fileName += strlen(fileNameParameter);
@@ -1145,7 +1145,7 @@ esp_err_t webServerHandlerFileManager(httpd_req_t *req)
         action = strstr(parameters, actionParameter);
         if (action == nullptr)
         {
-            errorMessage = "ERROR: action parameter not passed to WebSockets page!";
+            errorMessage = "ERROR: action parameter not passed to webServer page!";
             break;
         }
         action += strlen(actionParameter);
@@ -1172,17 +1172,17 @@ esp_err_t webServerHandlerFileManager(httpd_req_t *req)
 
         // Perform the action
         if (strcmp(action, "delete") == 0)
-            webSocketsFileDelete(req, fileName);
+            webServerFileDelete(req, fileName);
         else if (strcmp(action, "download") == 0)
-            webSocketsFileDownload(req, fileName);
+            webServerFileDownload(req, fileName);
         else
-            errorMessage = "ERROR: Unknown WebSockets action!";
+            errorMessage = "ERROR: Unknown webServer action!";
     } while (0);
 
     // Done with the buffers
     if (parameterBuffer)
         rtkFree(parameterBuffer,
-                "WebSockets file manager parameters buffer");
+                "WebServer file manager parameters buffer");
 
     // Output the error
     if (errorMessage)
@@ -1228,10 +1228,10 @@ esp_err_t webServerHandlerFileUpload(httpd_req_t *req)
         status = ESP_OK;
 
         // Display the request
-        webSocketsDisplayRequest(req);
+        webServerDisplayRequest(req);
 
         // Get the separator
-        separator = webSocketsReadSeparator(req);
+        separator = webServerReadSeparator(req);
         if (separator == nullptr)
             break;
         separatorLength = strlen(separator);
@@ -1244,7 +1244,7 @@ esp_err_t webServerHandlerFileUpload(httpd_req_t *req)
         }
 
         // Get the header
-        header = webSocketsReadHeader(req);
+        header = webServerReadHeader(req);
         if (header == nullptr)
             break;
 
@@ -1269,7 +1269,7 @@ esp_err_t webServerHandlerFileUpload(httpd_req_t *req)
             remainingLength += 2;
         if (fileLength < remainingLength)
         {
-            errorMessage = "ERROR: WebSockets detected a bad file length!";
+            errorMessage = "ERROR: WebServer detected a bad file length!";
             break;
         }
         fileLength -= remainingLength;
@@ -1279,10 +1279,10 @@ esp_err_t webServerHandlerFileUpload(httpd_req_t *req)
             systemPrintf("fileLength: %d (0x%08x) bytes\r\n", fileLength, fileLength);
 
         // Get the buffer for the file download
-        buffer = (uint8_t *)rtkMalloc(bufferLength, "WebSockets file data buffer");
+        buffer = (uint8_t *)rtkMalloc(bufferLength, "WebServer file data buffer");
         if (buffer == nullptr)
         {
-            errorMessage = "ERROR: WebSockets failed to allocate file data buffer!";
+            errorMessage = "ERROR: WebServer failed to allocate file data buffer!";
             break;
         }
 
@@ -1290,7 +1290,7 @@ esp_err_t webServerHandlerFileUpload(httpd_req_t *req)
         fileName = strstr(header, fileNameParameter);
         if (fileName == nullptr)
         {
-            errorMessage = "ERROR: WebSockets failed to get filename parameter!";
+            errorMessage = "ERROR: WebServer failed to get filename parameter!";
             break;
         }
         fileName += strlen(fileNameParameter);
@@ -1314,7 +1314,7 @@ esp_err_t webServerHandlerFileUpload(httpd_req_t *req)
         // Attempt to gain access to the SD card
         if (xSemaphoreTake(sdCardSemaphore, fatSemaphore_longWait_ms) != pdPASS)
         {
-            errorMessage = "ERROR: WebSockets failed to obtain access to the SD card!";
+            errorMessage = "ERROR: WebServer failed to obtain access to the SD card!";
             break;
         }
         semaphoreAcquired = true;
@@ -1322,7 +1322,7 @@ esp_err_t webServerHandlerFileUpload(httpd_req_t *req)
         // Attempt to open the file
         if (file.open(fileName, O_WRONLY | O_CREAT | O_TRUNC) == false)
         {
-            errorMessage = "ERROR: WebSockets failed to create the file!";
+            errorMessage = "ERROR: WebServer failed to create the file!";
             break;
         }
 
@@ -1363,7 +1363,7 @@ esp_err_t webServerHandlerFileUpload(httpd_req_t *req)
         bytesRead = httpd_req_recv(req, (char *)buffer, remainingLength);
         if (bytesRead != remainingLength)
         {
-            errorMessage = "ERROR: WebSockets failed to read the remaining content!";
+            errorMessage = "ERROR: WebServer failed to read the remaining content!";
             break;
         }
 
@@ -1428,11 +1428,11 @@ esp_err_t webServerHandlerFileUpload(httpd_req_t *req)
 
     // Done with the buffers
     if (buffer)
-        rtkFree(buffer, "WebSockets file data buffer");
+        rtkFree(buffer, "WebServer file data buffer");
     if (header)
-        rtkFree(header, "WebSockets header");
+        rtkFree(header, "WebServer header");
     if (separator)
-        rtkFree(separator, "WebSockets separator");
+        rtkFree(separator, "WebServer separator");
     return status;
 }
 
@@ -1469,10 +1469,10 @@ esp_err_t webServerHandlerFirmwareUpload(httpd_req_t *req)
         updateRunning = false;
 
         // Display the request
-        webSocketsDisplayRequest(req);
+        webServerDisplayRequest(req);
 
         // Get the separator
-        separator = webSocketsReadSeparator(req);
+        separator = webServerReadSeparator(req);
         if (separator == nullptr)
             break;
         separatorLength = strlen(separator);
@@ -1485,7 +1485,7 @@ esp_err_t webServerHandlerFirmwareUpload(httpd_req_t *req)
         }
 
         // Get the header
-        header = webSocketsReadHeader(req);
+        header = webServerReadHeader(req);
         if (header == nullptr)
             break;
 
@@ -1510,7 +1510,7 @@ esp_err_t webServerHandlerFirmwareUpload(httpd_req_t *req)
             remainingLength += 2;
         if (fileLength < remainingLength)
         {
-            errorMessage = "ERROR: WebSockets detected a bad file length!";
+            errorMessage = "ERROR: WebServer detected a bad file length!";
             break;
         }
         fileLength -= remainingLength;
@@ -1520,10 +1520,10 @@ esp_err_t webServerHandlerFirmwareUpload(httpd_req_t *req)
             systemPrintf("fileLength: %d (0x%08x) bytes\r\n", fileLength, fileLength);
 
         // Get the buffer for the file download
-        buffer = (uint8_t *)rtkMalloc(bufferLength, "WebSockets file data buffer");
+        buffer = (uint8_t *)rtkMalloc(bufferLength, "WebServer file data buffer");
         if (buffer == nullptr)
         {
-            errorMessage = "ERROR: WebSockets failed to allocate file data buffer!";
+            errorMessage = "ERROR: WebServer failed to allocate file data buffer!";
             break;
         }
 
@@ -1531,7 +1531,7 @@ esp_err_t webServerHandlerFirmwareUpload(httpd_req_t *req)
         fileName = strstr(header, fileNameParameter);
         if (fileName == nullptr)
         {
-            errorMessage = "ERROR: WebSockets failed to get filename parameter!";
+            errorMessage = "ERROR: WebServer failed to get filename parameter!";
             break;
         }
         fileName += strlen(fileNameParameter);
@@ -1552,7 +1552,7 @@ esp_err_t webServerHandlerFirmwareUpload(httpd_req_t *req)
         if ((strstr(fileName, "RTK_Everywhere") != fileName)
             || (strstr(fileName, ".bin") != (fileName + strlen(fileName) - 4)))
         {
-            errorMessage = "ERROR: WebSockets detected unknown file type!";
+            errorMessage = "ERROR: WebServer detected unknown file type!";
             break;
         }
 
@@ -1564,7 +1564,7 @@ esp_err_t webServerHandlerFirmwareUpload(httpd_req_t *req)
         updateRunning = true;
         if (!Update.begin(UPDATE_SIZE_UNKNOWN))
         {
-            errorMessage = "ERROR: WebSockets failed to start Update!";
+            errorMessage = "ERROR: WebServer failed to start Update!";
             break;
         }
 
@@ -1604,7 +1604,7 @@ esp_err_t webServerHandlerFirmwareUpload(httpd_req_t *req)
         bytesRead = httpd_req_recv(req, (char *)buffer, remainingLength);
         if (bytesRead != remainingLength)
         {
-            errorMessage = "ERROR: WebSockets failed to read the remaining content!";
+            errorMessage = "ERROR: WebServer failed to read the remaining content!";
             break;
         }
 
@@ -1644,7 +1644,7 @@ esp_err_t webServerHandlerFirmwareUpload(httpd_req_t *req)
         }
 
         // Success
-        webSocketsSendString("firmwareUploadComplete,1,");
+        webServerSendString("firmwareUploadComplete,1,");
         systemPrintln("Firmware update complete. Restarting");
         delay(500);
         ESP.restart();
@@ -1664,11 +1664,11 @@ esp_err_t webServerHandlerFirmwareUpload(httpd_req_t *req)
 
     // Done with the buffers
     if (buffer)
-        rtkFree(buffer, "WebSockets file data buffer");
+        rtkFree(buffer, "WebServer file data buffer");
     if (header)
-        rtkFree(header, "WebSockets header");
+        rtkFree(header, "WebServer header");
     if (separator)
-        rtkFree(separator, "WebSockets separator");
+        rtkFree(separator, "WebServer separator");
     return status;
 }
 
@@ -1682,10 +1682,10 @@ esp_err_t webServerHandlerGetPage(httpd_req_t *req)
 
     // Locate the page description
     index = (intptr_t)req->user_ctx;
-    webpage = &((const GET_PAGE_HANDLER *)&webSocketsPages)[index];
+    webpage = &((const GET_PAGE_HANDLER *)&webServerPages)[index];
 
     // Display the request and response
-    webSocketsDisplayRequestAndData(req, webpage->_data, webpage->_length);
+    webServerDisplayRequestAndData(req, webpage->_data, webpage->_length);
 
     // Send the response
     httpd_resp_set_type(req, (const char *)*webpage->_type);
@@ -1696,7 +1696,7 @@ esp_err_t webServerHandlerGetPage(httpd_req_t *req)
 //----------------------------------------
 // Display the HTTPD configuration
 //----------------------------------------
-void webSocketsHttpdDisplayConfig(struct httpd_config *config)
+void webServerHttpdDisplayConfig(struct httpd_config *config)
 {
     /*
     httpd_config object:
@@ -1766,12 +1766,12 @@ esp_err_t webServerHandlerListBaseMessages(httpd_req_t *req)
     String messageList;
 
     // Get the messages list
-    webSocketsCreateMessageListBase(messageList);
+    webServerCreateMessageListBase(messageList);
     data = messageList.c_str();
     bytes = messageList.length();
 
     // Display the request and response
-    webSocketsDisplayRequestAndData(req, data, bytes);
+    webServerDisplayRequestAndData(req, data, bytes);
 
     // Send the response
     httpd_resp_set_type(req, text_plain);
@@ -1789,12 +1789,12 @@ esp_err_t webServerHandlerListMessages(httpd_req_t *req)
     String messageList;
 
     // Get the messages list
-    webSocketsCreateMessageList(messageList);
+    webServerCreateMessageList(messageList);
     data = messageList.c_str();
     bytes = messageList.length();
 
     // Display the request and response
-    webSocketsDisplayRequestAndData(req, data, bytes);
+    webServerDisplayRequestAndData(req, data, bytes);
 
     // Send the response
     httpd_resp_set_type(req, text_plain);
@@ -1811,14 +1811,14 @@ esp_err_t webServerHandlerPageNotFound(httpd_req_t *req, httpd_err_code_t err)
 
     // Handle the captive portal pages
     if (settings.enableCaptivePortal
-        && webSocketsCheckForKnownCaptiveUrl(req->uri))
+        && webServerCheckForKnownCaptiveUrl(req->uri))
     {
         if (settings.debugWebServer == true)
         {
             char ipAddress[80];
 
-            webSocketsGetClientIpAddressAndPort(req, ipAddress, sizeof(ipAddress));
-            systemPrintf("WebSockets: Captive page %s referenced from %s\r\n", req->uri, ipAddress);
+            webServerGetClientIpAddressAndPort(req, ipAddress, sizeof(ipAddress));
+            systemPrintf("WebServer: Captive page %s referenced from %s\r\n", req->uri, ipAddress);
         }
 
         // Redirect to the main page
@@ -1828,8 +1828,8 @@ esp_err_t webServerHandlerPageNotFound(httpd_req_t *req, httpd_err_code_t err)
     }
 
     // Display an error
-    webSocketsGetClientIpAddressAndPort(req, ipAddress, sizeof(ipAddress));
-    logMessage = "WebSockets, Page ";
+    webServerGetClientIpAddressAndPort(req, ipAddress, sizeof(ipAddress));
+    logMessage = "WebServer, Page ";
     logMessage += req->uri;
     logMessage += " not found, cliient: ";
     logMessage += ipAddress;
@@ -1855,11 +1855,11 @@ esp_err_t webServerHandlerPageNotFound(httpd_req_t *req, httpd_err_code_t err)
 }
 
 //----------------------------------------
-// Determine if webSockets is connected to a client
+// Determine if webServer is connected to a client
 //----------------------------------------
-bool webSocketsIsConnected()
+bool webServerIsConnected()
 {
-    return (webSocketsClientListHead != nullptr);
+    return (webServerClientListHead != nullptr);
 }
 
 //----------------------------------------
@@ -1877,7 +1877,7 @@ bool webServerIsRunning()
 // Can't use strtok because we may have two commas next to each other, ie
 // measurementRateHz,4.00,measurementRateSec,,dynamicModel,0,
 //----------------------------------------
-bool webSocketsParseIncomingSettings()
+bool webServerParseIncomingSettings()
 {
     char settingName[100] = {'\0'};
     char valueStr[150] = {'\0'}; // stationGeodetic1,ANameThatIsTooLongToBeDisplayed 40.09029479 -105.18505761 1560.089
@@ -1949,7 +1949,7 @@ bool webSocketsParseIncomingSettings()
 //----------------------------------------
 // Read the header into a buffer
 //----------------------------------------
-char * webSocketsReadHeader(httpd_req_t *req)
+char * webServerReadHeader(httpd_req_t *req)
 {
     char * buffer;
     size_t bufferLength;
@@ -1978,10 +1978,10 @@ char * webSocketsReadHeader(httpd_req_t *req)
             bufferLength = bufferLength ? bufferLength << 1 : 256;
 
             // Allocate a new buffer
-            buffer = (char *)rtkMalloc(bufferLength, "WebSockets header");
+            buffer = (char *)rtkMalloc(bufferLength, "WebServer header");
             if (buffer == nullptr)
             {
-                errorMessage = "ERROR: WebSockets failed to allocate header buffer";
+                errorMessage = "ERROR: WebServer failed to allocate header buffer";
                 break;
             }
 
@@ -1989,7 +1989,7 @@ char * webSocketsReadHeader(httpd_req_t *req)
             if (previousBuffer)
             {
                 memcpy(buffer, previousBuffer, previousLength);
-                rtkFree(previousBuffer, "WebSockets header");
+                rtkFree(previousBuffer, "WebServer header");
                 previousBuffer = nullptr;
             }
         }
@@ -2001,7 +2001,7 @@ char * webSocketsReadHeader(httpd_req_t *req)
             bytes = httpd_req_recv(req, &data, 1);
             if (bytes == 0)
             {
-                errorMessage = "ERROR: WebSockets failed to read header!";
+                errorMessage = "ERROR: WebServer failed to read header!";
                 break;
             }
 
@@ -2021,7 +2021,7 @@ char * webSocketsReadHeader(httpd_req_t *req)
             bytes = httpd_req_recv(req, &data, 1);
             if (bytes == 0)
             {
-                errorMessage = "ERROR: WebSockets failed to read header line feed!";
+                errorMessage = "ERROR: WebServer failed to read header line feed!";
                 break;
             }
             buffer[totalBytes++] = data;
@@ -2034,7 +2034,7 @@ char * webSocketsReadHeader(httpd_req_t *req)
             bytes = httpd_req_recv(req, &data, 1);
             if (bytes == 0)
             {
-                errorMessage = "ERROR: WebSockets failed to read header second carriage return!";
+                errorMessage = "ERROR: WebServer failed to read header second carriage return!";
                 break;
             }
             buffer[totalBytes++] = data;
@@ -2047,7 +2047,7 @@ char * webSocketsReadHeader(httpd_req_t *req)
             bytes = httpd_req_recv(req, &data, 1);
             if (bytes == 0)
             {
-                errorMessage = "ERROR: WebSockets failed to read header second line feed!";
+                errorMessage = "ERROR: WebServer failed to read header second line feed!";
                 break;
             }
             buffer[totalBytes++] = data;
@@ -2066,7 +2066,7 @@ char * webSocketsReadHeader(httpd_req_t *req)
 
     // Free the buffer
     if (buffer)
-        rtkFree(buffer, "WebSockets header");
+        rtkFree(buffer, "WebServer header");
 
     // Respond with 500 Internal Server Error
     systemPrintln(errorMessage);
@@ -2079,7 +2079,7 @@ char * webSocketsReadHeader(httpd_req_t *req)
 //----------------------------------------
 // Read the separator into a buffer
 //----------------------------------------
-char * webSocketsReadSeparator(httpd_req_t *req)
+char * webServerReadSeparator(httpd_req_t *req)
 {
     char * buffer;
     size_t bufferLength;
@@ -2106,10 +2106,10 @@ char * webSocketsReadSeparator(httpd_req_t *req)
         bufferLength = bufferLength ? bufferLength << 1 : 128;
 
         // Allocate a new buffer
-        buffer = (char *)rtkMalloc(bufferLength, "WebSockets separator");
+        buffer = (char *)rtkMalloc(bufferLength, "WebServer separator");
         if (buffer == nullptr)
         {
-            errorMessage = "ERROR: WebSockets failed to allocate separator buffer";
+            errorMessage = "ERROR: WebServer failed to allocate separator buffer";
             break;
         }
 
@@ -2117,7 +2117,7 @@ char * webSocketsReadSeparator(httpd_req_t *req)
         if (previousBuffer)
         {
             memcpy(buffer, previousBuffer, previousLength);
-            rtkFree(previousBuffer, "WebSockets separator");
+            rtkFree(previousBuffer, "WebServer separator");
             previousBuffer = nullptr;
         }
 
@@ -2128,7 +2128,7 @@ char * webSocketsReadSeparator(httpd_req_t *req)
             bytes = httpd_req_recv(req, &data, 1);
             if (bytes == 0)
             {
-                errorMessage = "ERROR: WebSockets failed to read separator!";
+                errorMessage = "ERROR: WebServer failed to read separator!";
                 break;
             }
             buffer[totalBytes] = data;
@@ -2153,14 +2153,14 @@ char * webSocketsReadSeparator(httpd_req_t *req)
             bytes = httpd_req_recv(req, &data, 1);
             if (bytes == 0)
             {
-                errorMessage = "ERROR: WebSockets failed to read separator line feed!";
+                errorMessage = "ERROR: WebServer failed to read separator line feed!";
                 break;
             }
 
             // Verify the line feed
             if (data != '\n')
             {
-                errorMessage = "ERROR: WebSockets separator did not find the expected line feed!\r\n";
+                errorMessage = "ERROR: WebServer separator did not find the expected line feed!\r\n";
                 break;
             }
 
@@ -2174,7 +2174,7 @@ char * webSocketsReadSeparator(httpd_req_t *req)
 
     // Free the buffer
     if (buffer)
-        rtkFree(buffer, "WebSockets separator");
+        rtkFree(buffer, "WebServer separator");
 
     // Respond with 500 Internal Server Error
     systemPrintln(errorMessage);
@@ -2187,7 +2187,7 @@ char * webSocketsReadSeparator(httpd_req_t *req)
 //----------------------------------------
 // Read the contents of the request into a buffer
 //----------------------------------------
-uint8_t * webSocketsReadRequestContent(httpd_req_t *req)
+uint8_t * webServerReadRequestContent(httpd_req_t *req)
 {
     uint8_t * buffer;
     size_t bufferLength;
@@ -2199,10 +2199,10 @@ uint8_t * webSocketsReadRequestContent(httpd_req_t *req)
     {
         // Allocate a new buffer
         bufferLength = req->content_len;
-        buffer = (uint8_t *)rtkMalloc(bufferLength + 1, "WebSockets request content");
+        buffer = (uint8_t *)rtkMalloc(bufferLength + 1, "WebServer request content");
         if (buffer == nullptr)
         {
-            errorMessage = "ERROR: WebSockets failed to allocate request content buffer";
+            errorMessage = "ERROR: WebServer failed to allocate request content buffer";
             break;
         }
 
@@ -2210,7 +2210,7 @@ uint8_t * webSocketsReadRequestContent(httpd_req_t *req)
         bytes = httpd_req_recv(req, (char *)buffer, bufferLength);
         if (bytes != bufferLength)
         {
-            errorMessage = "ERROR: WebSockets failed to read request content!";
+            errorMessage = "ERROR: WebServer failed to read request content!";
             break;
         }
 
@@ -2221,7 +2221,7 @@ uint8_t * webSocketsReadRequestContent(httpd_req_t *req)
 
     // Free the buffer
     if (buffer)
-        rtkFree(buffer, "WebSockets request content");
+        rtkFree(buffer, "WebServer request content");
 
     // Respond with 500 Internal Server Error
     systemPrintln(errorMessage);
@@ -2234,7 +2234,7 @@ uint8_t * webSocketsReadRequestContent(httpd_req_t *req)
 //----------------------------------------
 // Register an error handler
 //----------------------------------------
-bool webSocketsRegisterErrorHandler(httpd_err_code_t error,
+bool webServerRegisterErrorHandler(httpd_err_code_t error,
                                     httpd_err_handler_func_t handler)
 {
     esp_err_t status;
@@ -2244,9 +2244,9 @@ bool webSocketsRegisterErrorHandler(httpd_err_code_t error,
     if (settings.debugWebServer == true)
     {
         if (status == ESP_OK)
-            systemPrintf("webSockets registered %d error handler\r\n", error);
+            systemPrintf("WebServer registered %d error handler\r\n", error);
         else
-            systemPrintf("webSockets Failed to register %d error handler!\r\n", error);
+            systemPrintf("WebServer Failed to register %d error handler!\r\n", error);
     }
     return (status == ESP_OK);
 }
@@ -2254,7 +2254,7 @@ bool webSocketsRegisterErrorHandler(httpd_err_code_t error,
 //----------------------------------------
 // Register a webpage handler
 //----------------------------------------
-bool webSocketsRegisterPageHandler(const httpd_uri_t * page)
+bool webServerRegisterPageHandler(const httpd_uri_t * page)
 {
     esp_err_t status;
 
@@ -2263,9 +2263,9 @@ bool webSocketsRegisterPageHandler(const httpd_uri_t * page)
     if (settings.debugWebServer == true)
     {
         if (status == ESP_OK)
-            systemPrintf("webSockets registered %s handler\r\n", page->uri);
+            systemPrintf("WebServer registered %s handler\r\n", page->uri);
         else
-            systemPrintf("webSockets Failed to register %s handler!\r\n", page->uri);
+            systemPrintf("WebServer Failed to register %s handler!\r\n", page->uri);
     }
     return (status == ESP_OK);
 }
@@ -2291,16 +2291,16 @@ void webServerReleaseResources()
         // ListHead -> ... -> client (flink) -> nullptr;
         // ListTail -> client (blink) -> ... -> nullptr;
         // Discard the clients
-        while (webSocketsClientListHead)
+        while (webServerClientListHead)
         {
             // Remove this client
-            client = webSocketsClientListHead;
-            webSocketsClientListHead = client->_flink;
+            client = webServerClientListHead;
+            webServerClientListHead = client->_flink;
 
             // Discard this client
             rtkFree(client, "WEB_SOCKETS_CLIENT");
         }
-        webSocketsClientListTail = nullptr;
+        webServerClientListTail = nullptr;
 
         // ListHead -> nullptr;
         // ListTail -> nullptr;
@@ -2333,54 +2333,54 @@ void webServerReleaseResources()
 //----------------------------------------
 // Send the formware version via web sockets
 //----------------------------------------
-void webSocketsSendFirmwareVersion(void)
+void webServerSendFirmwareVersion(void)
 {
     char * firmwareVersion;
 
-    firmwareVersion = (char *)rtkMalloc(AP_FIRMWARE_VERSION_SIZE, "WebSockets firmware description");
+    firmwareVersion = (char *)rtkMalloc(AP_FIRMWARE_VERSION_SIZE, "WebServer firmware description");
     if (firmwareVersion == nullptr)
-        systemPrintf("ERROR: WebSockets failed to allocate firmware description\r\n");
+        systemPrintf("ERROR: WebServer failed to allocate firmware description\r\n");
     else
     {
-        webSocketsCreateFirmwareVersionString(firmwareVersion);
+        webServerCreateFirmwareVersionString(firmwareVersion);
 
         if (settings.debugWebServer)
-            systemPrintf("WebSockets: Firmware version requested. Sending: %s\r\n",
+            systemPrintf("WebServer: Firmware version requested. Sending: %s\r\n",
                          firmwareVersion);
 
-        webSocketsSendString(firmwareVersion);
-        rtkFree(firmwareVersion, "WebSockets firmware description");
+        webServerSendString(firmwareVersion);
+        rtkFree(firmwareVersion, "WebServer firmware description");
     }
 }
 
 //----------------------------------------
 // Send the current settings via web sockets
 //----------------------------------------
-void webSocketsSendSettings(void)
+void webServerSendSettings(void)
 {
     char * settingsCsvList;
 
-    settingsCsvList = (char *)rtkMalloc(AP_CONFIG_SETTING_SIZE, "WebSockets CSV settings list");
+    settingsCsvList = (char *)rtkMalloc(AP_CONFIG_SETTING_SIZE, "WebServer CSV settings list");
     if (settingsCsvList == nullptr)
-        systemPrintf("ERROR: WebSockets failed to allocate settings CSV list\r\n");
+        systemPrintf("ERROR: WebServer failed to allocate settings CSV list\r\n");
     else
     {
-        webSocketsCreateDynamicDataString(settingsCsvList);
-        webSocketsSendString(settingsCsvList);
-        rtkFree(settingsCsvList, "WebSockets CSV settings list");
+        webServerCreateDynamicDataString(settingsCsvList);
+        webServerSendString(settingsCsvList);
+        rtkFree(settingsCsvList, "WebServer CSV settings list");
     }
 }
 
 //----------------------------------------
 // Send a string to the browser using the web socket
 //----------------------------------------
-void webSocketsSendString(const char *stringToSend)
+void webServerSendString(const char *stringToSend)
 {
     WEB_SOCKETS_CLIENT * client;
 
-    if (!webSocketsIsConnected())
+    if (!webServerIsConnected())
     {
-        systemPrintf("webSocketsSendString: not connected - could not send: %s\r\n", stringToSend);
+        systemPrintf("WebServerSendString: not connected - could not send: %s\r\n", stringToSend);
         return;
     }
 
@@ -2395,7 +2395,7 @@ void webSocketsSendString(const char *stringToSend)
     xSemaphoreTake(webServerMutex, portMAX_DELAY);
 
     // Send this message to each of the clients
-    client = webSocketsClientListHead;
+    client = webServerClientListHead;
     while (client)
     {
         // Get the next client
@@ -2409,7 +2409,7 @@ void webSocketsSendString(const char *stringToSend)
         // Check for message send failure
         if (ret != ESP_OK)
         {
-            systemPrintf("WebSockets: httpd_ws_send_frame failed with %d for client request: %x\r\n",
+            systemPrintf("WebServer: httpd_ws_send_frame failed with %d for client request: %x\r\n",
                          ret, client->_request);
 
             // Remove this client
@@ -2417,11 +2417,11 @@ void webSocketsSendString(const char *stringToSend)
             if (previousClient)
                 previousClient->_flink = nextClient;
             else
-                webSocketsClientListHead = nextClient;
+                webServerClientListHead = nextClient;
             if (nextClient)
                 nextClient->_blink = previousClient;
             else
-                webSocketsClientListTail = previousClient;
+                webServerClientListTail = previousClient;
 
             // Done with this client
             rtkFree(client, "WEB_SOCKETS_CLINET");
@@ -2429,7 +2429,7 @@ void webSocketsSendString(const char *stringToSend)
 
         // Successfully sent the message
         else if (settings.debugWebServer == true)
-            systemPrintf("webSocketsSendString: %s\r\n", stringToSend);
+            systemPrintf("WebServerSendString: %s\r\n", stringToSend);
 
         // Get the next client
         client = nextClient;
@@ -2442,7 +2442,7 @@ void webSocketsSendString(const char *stringToSend)
 //----------------------------------------
 // Set the content type based upon the file extension
 //----------------------------------------
-esp_err_t webSocketsSetContentType(httpd_req_t *req, const char *fileName)
+esp_err_t webServerSetContentType(httpd_req_t *req, const char *fileName)
 {
     const char * defaultType = "text/plain";
     const char * extension;
@@ -2483,7 +2483,7 @@ esp_err_t webSocketsSetContentType(httpd_req_t *req, const char *fileName)
         {
             // Set the content type
             if (settings.debugWebServer == true)
-                systemPrintf("WebSockets: Found content type %s\r\n",
+                systemPrintf("WebServer: Found content type %s\r\n",
                              extensionTable[index]._contentType);
             return httpd_resp_set_type(req, extensionTable[index]._contentType);
         }
@@ -2491,7 +2491,7 @@ esp_err_t webSocketsSetContentType(httpd_req_t *req, const char *fileName)
 
     // No extension matches, set the default
     if (settings.debugWebServer == true)
-        systemPrintf("WebSockets: Using default content type %s\r\n", defaultType);
+        systemPrintf("WebServer: Using default content type %s\r\n", defaultType);
     return httpd_resp_set_type(req, defaultType);
 }
 
@@ -2687,7 +2687,7 @@ void webServerVerifyTables()
         reportFatalError("Fix webServerStateNames to match WebServerState");
 
     // Loop through all of the web page handlers
-    startPage = (GET_PAGE_HANDLER *)&webSocketsPages;
+    startPage = (GET_PAGE_HANDLER *)&webServerPages;
     webpage = startPage;
     endPage = &startPage[webServerTotalPages];
     while (webpage < endPage)
@@ -2699,7 +2699,7 @@ void webServerVerifyTables()
                           webpage->_page.uri,
                           (uintptr_t)webpage->_page.user_ctx,
                           index);
-            reportFatalError("webSockets: Fix GET_PAGE entry");
+            reportFatalError("WebServer: Fix GET_PAGE entry");
         }
         webpage++;
     }
