@@ -2252,6 +2252,7 @@ bool webSocketsRegisterPageHandler(const httpd_uri_t * page)
 //----------------------------------------
 void webServerReleaseResources()
 {
+    WEB_SOCKETS_CLIENT * client;
     esp_err_t status;
 
     if (settings.debugWebServer)
@@ -2262,8 +2263,27 @@ void webServerReleaseResources()
     // Determine if the web server is running
     if (webServerHandle)
     {
-        // Release socket resources
-        webSocketsStop();
+        // Single thread access to the list of clients;
+        xSemaphoreTake(webServerMutex, portMAX_DELAY);
+
+        // ListHead -> ... -> client (flink) -> nullptr;
+        // ListTail -> client (blink) -> ... -> nullptr;
+        // Discard the clients
+        while (webSocketsClientListHead)
+        {
+            // Remove this client
+            client = webSocketsClientListHead;
+            webSocketsClientListHead = client->_flink;
+
+            // Discard this client
+            rtkFree(client, "WEB_SOCKETS_CLIENT");
+        }
+        webSocketsClientListTail = nullptr;
+
+        // ListHead -> nullptr;
+        // ListTail -> nullptr;
+        // Release the synchronization
+        xSemaphoreGive(webServerMutex);
 
         // Stop the web server
         status = httpd_stop(webServerHandle);
@@ -2618,39 +2638,6 @@ void webServerStop()
 
         // Display the heap state
         reportHeapNow(settings.debugWebServer);
-    }
-}
-
-//----------------------------------------
-// Stop the web sockets layer
-//----------------------------------------
-void webSocketsStop()
-{
-    WEB_SOCKETS_CLIENT * client;
-
-    if (webServerHandle != nullptr)
-    {
-        // Single thread access to the list of clients;
-        xSemaphoreTake(webServerMutex, portMAX_DELAY);
-
-        // ListHead -> ... -> client (flink) -> nullptr;
-        // ListTail -> client (blink) -> ... -> nullptr;
-        // Discard the clients
-        while (webSocketsClientListHead)
-        {
-            // Remove this client
-            client = webSocketsClientListHead;
-            webSocketsClientListHead = client->_flink;
-
-            // Discard this client
-            rtkFree(client, "WEB_SOCKETS_CLIENT");
-        }
-        webSocketsClientListTail = nullptr;
-
-        // ListHead -> nullptr;
-        // ListTail -> nullptr;
-        // Release the synchronization
-        xSemaphoreGive(webServerMutex);
     }
 }
 
