@@ -668,15 +668,6 @@ void webSocketsFileDownload(httpd_req_t * req, const char * fileName)
             break;
         }
 
-        // Set the transfer method
-        if (httpd_resp_set_hdr(req, "Content-Transfer-Encoding", "binary") != ESP_OK)
-        {
-            statusMessage = HTTPD_500;
-            responseFailed = "Failed to set transfer encoding";
-            response = &responseFailed;
-            break;
-        }
-
         // Set the file length
         sprintf(lengthString, "%lld", file.size());
         if (httpd_resp_set_hdr(req, "Content-Length", lengthString) != ESP_OK)
