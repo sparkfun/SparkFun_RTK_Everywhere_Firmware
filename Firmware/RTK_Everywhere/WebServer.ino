@@ -902,170 +902,6 @@ const char *webServerGetStateName(uint8_t state, char *string)
 }
 
 //----------------------------------------
-// Handler for web sockets requests
-//----------------------------------------
-static esp_err_t webServerHandlerWebSockets(httpd_req_t *req)
-{
-    WEB_SOCKETS_CLIENT * client;
-    WEB_SOCKETS_CLIENT * entry;
-
-    // Display the request
-    webServerDisplayRequest(req);
-
-    // Log the req, so we can reuse it for httpd_ws_send_frame
-    // TODO: do we need to be cleverer about this?
-    // last_ws_req = req;
-
-    if (req->method == HTTP_GET)
-    {
-        // Allocate a WEB_SOCKETS_CLIENT structure
-        client = (WEB_SOCKETS_CLIENT *)rtkMalloc(sizeof(WEB_SOCKETS_CLIENT), "WEB_SOCKETS_CLIENT");
-        if (client == nullptr)
-        {
-            if (settings.debugWebServer == true)
-                systemPrintf("ERROR: Failed to allocate WEB_SOCKETS_CLIENT!\r\n");
-            return ESP_FAIL;
-        }
-
-        // Save the client context
-        client->_request = req;
-        client->_socketFD = httpd_req_to_sockfd(req);
-
-        // Single thread access to the list of clients;
-        xSemaphoreTake(webServerMutex, portMAX_DELAY);
-
-        // ListHead -> ... -> client (flink) -> nullptr;
-        // ListTail -> client (blink) -> ... -> nullptr;
-        // Add this client to the list
-        client->_flink = nullptr;
-        entry = webServerClientListTail;
-        client->_blink = entry;
-        if (entry)
-            entry->_flink = client;
-        else
-            webServerClientListHead = client;
-        webServerClientListTail = client;
-
-        // Release the synchronization
-        xSemaphoreGive(webServerMutex);
-
-        if (settings.debugWebServer == true)
-            systemPrintf("WebServer: Added client, _request: %p, _socketFD: %d\r\n",
-                         client->_request, client->_socketFD);
-
-        lastDynamicDataUpdate = millis();
-
-        // Send new settings to browser.
-        char * settingsCsvList = (char *)rtkMalloc(AP_CONFIG_SETTING_SIZE, "Command CSV settings list");
-        if (settingsCsvList)
-        {
-            createSettingsString(settingsCsvList);
-            webServerSendString(settingsCsvList);
-            rtkFree(settingsCsvList, "Command CSV settings list");
-            return ESP_OK;
-        }
-        if (settings.debugWebServer == true)
-            systemPrintf("ERROR: Failed to allocate settings CSV list!\r\n");
-        return ESP_FAIL;
-    }
-
-    httpd_ws_frame_t ws_pkt;
-    uint8_t *buf = NULL;
-    memset(&ws_pkt, 0, sizeof(httpd_ws_frame_t));
-    ws_pkt.type = HTTPD_WS_TYPE_TEXT;
-    /* Set max_len = 0 to get the frame len */
-    esp_err_t ret = httpd_ws_recv_frame(req, &ws_pkt, 0);
-    if (ret != ESP_OK)
-    {
-        systemPrintf("WebServer: httpd_ws_recv_frame failed to get frame len with %d\r\n", ret);
-        return ret;
-    }
-    if (settings.debugWebServer == true)
-        systemPrintf("WebServer: frame len is %d\r\n", ws_pkt.len);
-    if (ws_pkt.len)
-    {
-        /* ws_pkt.len + 1 is for NULL termination as we are expecting a string */
-        buf = (uint8_t *)rtkMalloc(ws_pkt.len + 1, "Payload buffer (buf)");
-        if (buf == NULL)
-        {
-            systemPrintln("WebServer: Failed to malloc memory for buf");
-            return ESP_ERR_NO_MEM;
-        }
-        ws_pkt.payload = buf;
-        /* Set max_len = ws_pkt.len to get the frame payload */
-        ret = httpd_ws_recv_frame(req, &ws_pkt, ws_pkt.len);
-        if (ret != ESP_OK)
-        {
-            systemPrintf("WebServer: httpd_ws_recv_frame failed with %d\r\n", ret);
-            rtkFree(buf, "Payload buffer (buf)");
-            return ret;
-        }
-    }
-    if (settings.debugWebServer == true)
-    {
-        const char *pktType;
-        size_t length = ws_pkt.len;
-        switch (ws_pkt.type)
-        {
-        default:
-            pktType = nullptr;
-            break;
-        case HTTPD_WS_TYPE_CONTINUE:
-            pktType = "HTTPD_WS_TYPE_CONTINUE";
-            break;
-        case HTTPD_WS_TYPE_TEXT:
-            pktType = "HTTPD_WS_TYPE_TEXT";
-            break;
-        case HTTPD_WS_TYPE_BINARY:
-            pktType = "HTTPD_WS_TYPE_BINARY";
-            break;
-        case HTTPD_WS_TYPE_CLOSE:
-            pktType = "HTTPD_WS_TYPE_CLOSE";
-            break;
-        case HTTPD_WS_TYPE_PING:
-            pktType = "HTTPD_WS_TYPE_PING";
-            break;
-        case HTTPD_WS_TYPE_PONG:
-            pktType = "HTTPD_WS_TYPE_PONG";
-            break;
-        }
-        systemPrintf("WebServer: Packet: %p, %d bytes, type: %d%s%s%s\r\n", ws_pkt.payload, length, ws_pkt.type,
-                     pktType ? " (" : "", pktType ? pktType : "", pktType ? ")" : "");
-        if (length > 0x40)
-            length = 0x40;
-        dumpBuffer(ws_pkt.payload, length);
-    }
-
-    if (ws_pkt.type == HTTPD_WS_TYPE_TEXT)
-    {
-        if (currentlyParsingData == false)
-        {
-            for (int i = 0; i < ws_pkt.len; i++)
-            {
-                incomingSettings[incomingSettingsSpot++] = ws_pkt.payload[i];
-                if (incomingSettingsSpot == AP_CONFIG_SETTING_SIZE)
-                    systemPrintln("WebServer: incomingSettings wrap-around. Increase AP_CONFIG_SETTING_SIZE");
-                incomingSettingsSpot %= AP_CONFIG_SETTING_SIZE;
-            }
-            timeSinceLastIncomingSetting = millis();
-        }
-        else
-        {
-            if (settings.debugWebServer == true)
-                systemPrintln("WebServer: Ignoring packet due to parsing block");
-        }
-    }
-    else if (ws_pkt.type == HTTPD_WS_TYPE_CLOSE)
-    {
-        if (settings.debugWebServer == true)
-            systemPrintln("WebServer: Client closed or refreshed the web page");
-    }
-
-    rtkFree(buf, "Payload buffer (buf)");
-    return ret;
-}
-
-//----------------------------------------
 // Handler to list the microSD card files
 //----------------------------------------
 esp_err_t webServerHandlerFileList(httpd_req_t *req)
@@ -1694,68 +1530,6 @@ esp_err_t webServerHandlerGetPage(httpd_req_t *req)
 }
 
 //----------------------------------------
-// Display the HTTPD configuration
-//----------------------------------------
-void webServerHttpdDisplayConfig(struct httpd_config *config)
-{
-    /*
-    httpd_config object:
-            5: task_priority
-        20480: stack_size
-    2147483647: core_id
-            81: server_port
-        32768: ctrl_port
-            7: max_open_sockets
-            8: max_uri_handlers
-            8: max_resp_headers
-            5: backlog_conn
-        false: lru_purge_enable
-            5: recv_wait_timeout
-            5: send_wait_timeout
-    0x0: global_user_ctx
-    0x0: global_user_ctx_free_fn
-    0x0: global_transport_ctx
-    0x0: global_transport_ctx_free_fn
-        false: enable_so_linger
-            0: linger_timeout
-        false: keep_alive_enable
-            0: keep_alive_idle
-            0: keep_alive_interval
-            0: keep_alive_count
-    0x0: open_fn
-    0x0: close_fn
-    0x0: uri_match_fn
-    */
-    systemPrintf("httpd_config object:\r\n");
-    systemPrintf("%10d: task_priority\r\n", config->task_priority);
-    systemPrintf("%10d: stack_size\r\n", config->stack_size);
-    systemPrintf("%10d: core_id\r\n", config->core_id);
-    systemPrintf("%10d: server_port\r\n", config->server_port);
-    systemPrintf("%10d: ctrl_port\r\n", config->ctrl_port);
-    systemPrintf("%10d: max_open_sockets\r\n", config->max_open_sockets);
-    systemPrintf("%10d: max_uri_handlers\r\n", config->max_uri_handlers);
-    systemPrintf("%10d: max_resp_headers\r\n", config->max_resp_headers);
-    systemPrintf("%10d: backlog_conn\r\n", config->backlog_conn);
-    systemPrintf("%10s: lru_purge_enable\r\n", config->lru_purge_enable ? "true" : "false");
-    systemPrintf("%10d: recv_wait_timeout\r\n", config->recv_wait_timeout);
-
-    systemPrintf("%10d: send_wait_timeout\r\n", config->send_wait_timeout);
-    systemPrintf("%p: global_user_ctx\r\n", config->global_user_ctx);
-    systemPrintf("%p: global_user_ctx_free_fn\r\n", config->global_user_ctx_free_fn);
-    systemPrintf("%p: global_transport_ctx\r\n", config->global_transport_ctx);
-    systemPrintf("%p: global_transport_ctx_free_fn\r\n", (void *)config->global_transport_ctx_free_fn);
-    systemPrintf("%10s: enable_so_linger\r\n", config->enable_so_linger ? "true" : "false");
-    systemPrintf("%10d: linger_timeout\r\n", config->linger_timeout);
-    systemPrintf("%10s: keep_alive_enable\r\n", config->keep_alive_enable ? "true" : "false");
-    systemPrintf("%10d: keep_alive_idle\r\n", config->keep_alive_idle);
-    systemPrintf("%10d: keep_alive_interval\r\n", config->keep_alive_interval);
-    systemPrintf("%10d: keep_alive_count\r\n", config->keep_alive_count);
-    systemPrintf("%p: open_fn\r\n", (void *)config->open_fn);
-    systemPrintf("%p: close_fn\r\n", (void *)config->close_fn);
-    systemPrintf("%p: uri_match_fn\r\n", (void *)config->uri_match_fn);
-}
-
-//----------------------------------------
 // Handler for supported RTCM/Base messages list
 //----------------------------------------
 esp_err_t webServerHandlerListBaseMessages(httpd_req_t *req)
@@ -1852,6 +1626,232 @@ esp_err_t webServerHandlerPageNotFound(httpd_req_t *req, httpd_err_code_t err)
 
     // Return ESP_OK to indicate the error was handled successfully
     return ESP_OK;
+}
+
+//----------------------------------------
+// Handler for web sockets requests
+//----------------------------------------
+static esp_err_t webServerHandlerWebSockets(httpd_req_t *req)
+{
+    WEB_SOCKETS_CLIENT * client;
+    WEB_SOCKETS_CLIENT * entry;
+
+    // Display the request
+    webServerDisplayRequest(req);
+
+    // Log the req, so we can reuse it for httpd_ws_send_frame
+    // TODO: do we need to be cleverer about this?
+    // last_ws_req = req;
+
+    if (req->method == HTTP_GET)
+    {
+        // Allocate a WEB_SOCKETS_CLIENT structure
+        client = (WEB_SOCKETS_CLIENT *)rtkMalloc(sizeof(WEB_SOCKETS_CLIENT), "WEB_SOCKETS_CLIENT");
+        if (client == nullptr)
+        {
+            if (settings.debugWebServer == true)
+                systemPrintf("ERROR: Failed to allocate WEB_SOCKETS_CLIENT!\r\n");
+            return ESP_FAIL;
+        }
+
+        // Save the client context
+        client->_request = req;
+        client->_socketFD = httpd_req_to_sockfd(req);
+
+        // Single thread access to the list of clients;
+        xSemaphoreTake(webServerMutex, portMAX_DELAY);
+
+        // ListHead -> ... -> client (flink) -> nullptr;
+        // ListTail -> client (blink) -> ... -> nullptr;
+        // Add this client to the list
+        client->_flink = nullptr;
+        entry = webServerClientListTail;
+        client->_blink = entry;
+        if (entry)
+            entry->_flink = client;
+        else
+            webServerClientListHead = client;
+        webServerClientListTail = client;
+
+        // Release the synchronization
+        xSemaphoreGive(webServerMutex);
+
+        if (settings.debugWebServer == true)
+            systemPrintf("WebServer: Added client, _request: %p, _socketFD: %d\r\n",
+                         client->_request, client->_socketFD);
+
+        lastDynamicDataUpdate = millis();
+
+        // Send new settings to browser.
+        char * settingsCsvList = (char *)rtkMalloc(AP_CONFIG_SETTING_SIZE, "Command CSV settings list");
+        if (settingsCsvList)
+        {
+            createSettingsString(settingsCsvList);
+            webServerSendString(settingsCsvList);
+            rtkFree(settingsCsvList, "Command CSV settings list");
+            return ESP_OK;
+        }
+        if (settings.debugWebServer == true)
+            systemPrintf("ERROR: Failed to allocate settings CSV list!\r\n");
+        return ESP_FAIL;
+    }
+
+    httpd_ws_frame_t ws_pkt;
+    uint8_t *buf = NULL;
+    memset(&ws_pkt, 0, sizeof(httpd_ws_frame_t));
+    ws_pkt.type = HTTPD_WS_TYPE_TEXT;
+    /* Set max_len = 0 to get the frame len */
+    esp_err_t ret = httpd_ws_recv_frame(req, &ws_pkt, 0);
+    if (ret != ESP_OK)
+    {
+        systemPrintf("WebServer: httpd_ws_recv_frame failed to get frame len with %d\r\n", ret);
+        return ret;
+    }
+    if (settings.debugWebServer == true)
+        systemPrintf("WebServer: frame len is %d\r\n", ws_pkt.len);
+    if (ws_pkt.len)
+    {
+        /* ws_pkt.len + 1 is for NULL termination as we are expecting a string */
+        buf = (uint8_t *)rtkMalloc(ws_pkt.len + 1, "Payload buffer (buf)");
+        if (buf == NULL)
+        {
+            systemPrintln("WebServer: Failed to malloc memory for buf");
+            return ESP_ERR_NO_MEM;
+        }
+        ws_pkt.payload = buf;
+        /* Set max_len = ws_pkt.len to get the frame payload */
+        ret = httpd_ws_recv_frame(req, &ws_pkt, ws_pkt.len);
+        if (ret != ESP_OK)
+        {
+            systemPrintf("WebServer: httpd_ws_recv_frame failed with %d\r\n", ret);
+            rtkFree(buf, "Payload buffer (buf)");
+            return ret;
+        }
+    }
+    if (settings.debugWebServer == true)
+    {
+        const char *pktType;
+        size_t length = ws_pkt.len;
+        switch (ws_pkt.type)
+        {
+        default:
+            pktType = nullptr;
+            break;
+        case HTTPD_WS_TYPE_CONTINUE:
+            pktType = "HTTPD_WS_TYPE_CONTINUE";
+            break;
+        case HTTPD_WS_TYPE_TEXT:
+            pktType = "HTTPD_WS_TYPE_TEXT";
+            break;
+        case HTTPD_WS_TYPE_BINARY:
+            pktType = "HTTPD_WS_TYPE_BINARY";
+            break;
+        case HTTPD_WS_TYPE_CLOSE:
+            pktType = "HTTPD_WS_TYPE_CLOSE";
+            break;
+        case HTTPD_WS_TYPE_PING:
+            pktType = "HTTPD_WS_TYPE_PING";
+            break;
+        case HTTPD_WS_TYPE_PONG:
+            pktType = "HTTPD_WS_TYPE_PONG";
+            break;
+        }
+        systemPrintf("WebServer: Packet: %p, %d bytes, type: %d%s%s%s\r\n", ws_pkt.payload, length, ws_pkt.type,
+                     pktType ? " (" : "", pktType ? pktType : "", pktType ? ")" : "");
+        if (length > 0x40)
+            length = 0x40;
+        dumpBuffer(ws_pkt.payload, length);
+    }
+
+    if (ws_pkt.type == HTTPD_WS_TYPE_TEXT)
+    {
+        if (currentlyParsingData == false)
+        {
+            for (int i = 0; i < ws_pkt.len; i++)
+            {
+                incomingSettings[incomingSettingsSpot++] = ws_pkt.payload[i];
+                if (incomingSettingsSpot == AP_CONFIG_SETTING_SIZE)
+                    systemPrintln("WebServer: incomingSettings wrap-around. Increase AP_CONFIG_SETTING_SIZE");
+                incomingSettingsSpot %= AP_CONFIG_SETTING_SIZE;
+            }
+            timeSinceLastIncomingSetting = millis();
+        }
+        else
+        {
+            if (settings.debugWebServer == true)
+                systemPrintln("WebServer: Ignoring packet due to parsing block");
+        }
+    }
+    else if (ws_pkt.type == HTTPD_WS_TYPE_CLOSE)
+    {
+        if (settings.debugWebServer == true)
+            systemPrintln("WebServer: Client closed or refreshed the web page");
+    }
+
+    rtkFree(buf, "Payload buffer (buf)");
+    return ret;
+}
+
+//----------------------------------------
+// Display the HTTPD configuration
+//----------------------------------------
+void webServerHttpdDisplayConfig(struct httpd_config *config)
+{
+    /*
+    httpd_config object:
+            5: task_priority
+        20480: stack_size
+    2147483647: core_id
+            81: server_port
+        32768: ctrl_port
+            7: max_open_sockets
+            8: max_uri_handlers
+            8: max_resp_headers
+            5: backlog_conn
+        false: lru_purge_enable
+            5: recv_wait_timeout
+            5: send_wait_timeout
+    0x0: global_user_ctx
+    0x0: global_user_ctx_free_fn
+    0x0: global_transport_ctx
+    0x0: global_transport_ctx_free_fn
+        false: enable_so_linger
+            0: linger_timeout
+        false: keep_alive_enable
+            0: keep_alive_idle
+            0: keep_alive_interval
+            0: keep_alive_count
+    0x0: open_fn
+    0x0: close_fn
+    0x0: uri_match_fn
+    */
+    systemPrintf("httpd_config object:\r\n");
+    systemPrintf("%10d: task_priority\r\n", config->task_priority);
+    systemPrintf("%10d: stack_size\r\n", config->stack_size);
+    systemPrintf("%10d: core_id\r\n", config->core_id);
+    systemPrintf("%10d: server_port\r\n", config->server_port);
+    systemPrintf("%10d: ctrl_port\r\n", config->ctrl_port);
+    systemPrintf("%10d: max_open_sockets\r\n", config->max_open_sockets);
+    systemPrintf("%10d: max_uri_handlers\r\n", config->max_uri_handlers);
+    systemPrintf("%10d: max_resp_headers\r\n", config->max_resp_headers);
+    systemPrintf("%10d: backlog_conn\r\n", config->backlog_conn);
+    systemPrintf("%10s: lru_purge_enable\r\n", config->lru_purge_enable ? "true" : "false");
+    systemPrintf("%10d: recv_wait_timeout\r\n", config->recv_wait_timeout);
+
+    systemPrintf("%10d: send_wait_timeout\r\n", config->send_wait_timeout);
+    systemPrintf("%p: global_user_ctx\r\n", config->global_user_ctx);
+    systemPrintf("%p: global_user_ctx_free_fn\r\n", config->global_user_ctx_free_fn);
+    systemPrintf("%p: global_transport_ctx\r\n", config->global_transport_ctx);
+    systemPrintf("%p: global_transport_ctx_free_fn\r\n", (void *)config->global_transport_ctx_free_fn);
+    systemPrintf("%10s: enable_so_linger\r\n", config->enable_so_linger ? "true" : "false");
+    systemPrintf("%10d: linger_timeout\r\n", config->linger_timeout);
+    systemPrintf("%10s: keep_alive_enable\r\n", config->keep_alive_enable ? "true" : "false");
+    systemPrintf("%10d: keep_alive_idle\r\n", config->keep_alive_idle);
+    systemPrintf("%10d: keep_alive_interval\r\n", config->keep_alive_interval);
+    systemPrintf("%10d: keep_alive_count\r\n", config->keep_alive_count);
+    systemPrintf("%p: open_fn\r\n", (void *)config->open_fn);
+    systemPrintf("%p: close_fn\r\n", (void *)config->close_fn);
+    systemPrintf("%p: uri_match_fn\r\n", (void *)config->uri_match_fn);
 }
 
 //----------------------------------------
@@ -2077,6 +2077,53 @@ char * webServerReadHeader(httpd_req_t *req)
 }
 
 //----------------------------------------
+// Read the contents of the request into a buffer
+//----------------------------------------
+uint8_t * webServerReadRequestContent(httpd_req_t *req)
+{
+    uint8_t * buffer;
+    size_t bufferLength;
+    size_t bytes;
+    const char * errorMessage;
+
+    // Locate the header
+    do
+    {
+        // Allocate a new buffer
+        bufferLength = req->content_len;
+        buffer = (uint8_t *)rtkMalloc(bufferLength + 1, "WebServer request content");
+        if (buffer == nullptr)
+        {
+            errorMessage = "ERROR: WebServer failed to allocate request content buffer";
+            break;
+        }
+
+        // Read the request content into the buffer
+        bytes = httpd_req_recv(req, (char *)buffer, bufferLength);
+        if (bytes != bufferLength)
+        {
+            errorMessage = "ERROR: WebServer failed to read request content!";
+            break;
+        }
+
+        // Zero terminate the buffer
+        buffer[bufferLength] = 0;
+        return buffer;
+    } while (0);
+
+    // Free the buffer
+    if (buffer)
+        rtkFree(buffer, "WebServer request content");
+
+    // Respond with 500 Internal Server Error
+    systemPrintln(errorMessage);
+    httpd_resp_send_err(req, HTTPD_500_INTERNAL_SERVER_ERROR, errorMessage);
+
+    // Indicate an error
+    return nullptr;
+}
+
+//----------------------------------------
 // Read the separator into a buffer
 //----------------------------------------
 char * webServerReadSeparator(httpd_req_t *req)
@@ -2175,53 +2222,6 @@ char * webServerReadSeparator(httpd_req_t *req)
     // Free the buffer
     if (buffer)
         rtkFree(buffer, "WebServer separator");
-
-    // Respond with 500 Internal Server Error
-    systemPrintln(errorMessage);
-    httpd_resp_send_err(req, HTTPD_500_INTERNAL_SERVER_ERROR, errorMessage);
-
-    // Indicate an error
-    return nullptr;
-}
-
-//----------------------------------------
-// Read the contents of the request into a buffer
-//----------------------------------------
-uint8_t * webServerReadRequestContent(httpd_req_t *req)
-{
-    uint8_t * buffer;
-    size_t bufferLength;
-    size_t bytes;
-    const char * errorMessage;
-
-    // Locate the header
-    do
-    {
-        // Allocate a new buffer
-        bufferLength = req->content_len;
-        buffer = (uint8_t *)rtkMalloc(bufferLength + 1, "WebServer request content");
-        if (buffer == nullptr)
-        {
-            errorMessage = "ERROR: WebServer failed to allocate request content buffer";
-            break;
-        }
-
-        // Read the request content into the buffer
-        bytes = httpd_req_recv(req, (char *)buffer, bufferLength);
-        if (bytes != bufferLength)
-        {
-            errorMessage = "ERROR: WebServer failed to read request content!";
-            break;
-        }
-
-        // Zero terminate the buffer
-        buffer[bufferLength] = 0;
-        return buffer;
-    } while (0);
-
-    // Free the buffer
-    if (buffer)
-        rtkFree(buffer, "WebServer request content");
 
     // Respond with 500 Internal Server Error
     systemPrintln(errorMessage);
