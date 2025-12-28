@@ -47,12 +47,15 @@ static const int webServerStateEntries = sizeof(webServerStateNames) / sizeof(we
 // redirect user to captive portal (main page "/").
 const char * webServerCaptiveUrls[] =
 {
-    "/hotspot-detect.html",
-    "/library/test/success.html",
-    "/generate_204",
-    "/ncsi.txt",
-    "/check_network_status.txt",
-    "/connecttest.txt"
+    "canonical.html",
+    "check_network_status.txt",
+    "chrome-variations/seed",
+    "connecttest.txt",
+    "generate_204",
+    "hotspot-detect.html",
+    "library/test/success.html",
+    "ncsi.txt",
+    "success.txt",
 };
 const uint8_t webServerCaptiveUrlCount = sizeof(webServerCaptiveUrls) / sizeof(webServerCaptiveUrls[0]);
 
@@ -224,9 +227,6 @@ bool webServerAssignResources(int httpPort = 80)
         }
         memset(incomingSettings, 0, AP_CONFIG_SETTING_SIZE);
 
-        /* https://github.com/espressif/arduino-esp32/blob/master/libraries/DNSServer/examples/CaptivePortal/CaptivePortal.ino
-         */
-
         // Note: MDNS should probably be begun by networkMulticastDNSUpdate, but that doesn't seem to be happening...
         //       Is the networkInterface aware that AP needs it? Let's start it manually...
         if (MDNS.begin(&settings.mdnsHostName[0]) == false)
@@ -339,9 +339,34 @@ bool webServerAssignResources(int httpPort = 80)
 //----------------------------------------
 bool webServerCheckForKnownCaptiveUrl(const char * uri)
 {
+    const char * uriPos;
+    const char * uriStart;
+    const char * uriEnd;
+    size_t uriLength;
+    size_t urlLength;
+
+    // Remove the protocol designator
+    uriStart = uri;
+    uriPos = strstr(uriStart, "//");
+    if (uriPos)
+        uriStart = uriPos + 2;
+
+    // Remove the server name or IP address
+    uriPos = strstr(uriStart, "/");
+    if (uriPos)
+        uriStart = uriPos + 1;
+
+    // Remove any parameters
+    uriEnd = strstr(uriStart, "?");
+    uriLength = uriEnd ? uriEnd - uriStart : strlen(uriStart);
+
+    // Walk the list of captive URLs
     for (int i = 0; i < webServerCaptiveUrlCount; i++)
     {
-        if (strcmp(uri, webServerCaptiveUrls[i]) == 0)
+        // Check for a match
+        urlLength = strlen(webServerCaptiveUrls[i]);
+        if ((uriLength == uriLength)
+            && (strncmp(uriStart, webServerCaptiveUrls[i], urlLength) == 0))
             return true;
     }
     return false;
@@ -888,6 +913,79 @@ void webServerGetFileList(String &returnText)
 
     if (settings.debugWebServer == true)
         systemPrintf("returnText (%d bytes): %s\r\n", returnText.length(), returnText.c_str());
+}
+
+//----------------------------------------
+// Get the local IP address and port number
+//----------------------------------------
+void webServerGetLocalIpAddressAndPort(httpd_req_t *req,
+                                       char * ipAddress,
+                                       size_t ipAddressBytes)
+{
+    socklen_t addrBytes;
+    const uint8_t ip4Address[12] =
+    {
+        0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0xff, 0xff
+    };
+    struct sockaddr_in6 ip6Address;
+    bool isIp6Address;
+    size_t requiredStringLength;
+    int socketFD;
+    char temp[32 + 7 + 1];
+
+    // Validate the parameters
+    if (ipAddress == nullptr)
+    {
+        systemPrintf("ERROR: ipAddress must be specified in webServer\r\n");
+        return;
+    }
+    if (ipAddressBytes == 0)
+    {
+        systemPrintf("ERROR: ipAddressBytes must be > 0 in webServer\r\n");
+        return;
+    }
+    ipAddress[0] = 0;
+
+    // Get the socket's file descriptor
+    socketFD = httpd_req_to_sockfd(req);
+
+    // Get the IP6 address of the client from the httpd server
+    addrBytes = sizeof(ip6Address);
+    if (getsockname(socketFD, (struct sockaddr *)&ip6Address, &addrBytes) < 0)
+    {
+        if (settings.debugWebServer == true)
+            systemPrintf("ERROR: WebServer failed to get client IP address\r\n");
+        return;
+    }
+
+    // Determine the type of IP address
+    isIp6Address = (memcmp(&ip6Address.sin6_addr, &ip4Address, sizeof(ip4Address)) != 0);
+
+    // Convert the IPv6 address into a string
+    if (isIp6Address)
+        inet_ntop(AF_INET6, &ip6Address.sin6_addr, temp, sizeof(temp));
+    else
+        inet_ntop(AF_INET, &ip6Address.sin6_addr.un.u8_addr[12], temp, sizeof(temp));
+
+    // Verify the length of the output buffer
+    requiredStringLength = (isIp6Address ? 1 : 0)   // Left bracket (IP6 only)
+                         + strlen(temp)             // IP address
+                         + (isIp6Address ? 1 : 0)   // Right bracket (IP6 only)
+                         + 1    // Colon
+                         + 5    // Port number
+                         + 1;   // Zero termination
+    if (ipAddressBytes < requiredStringLength)
+    {
+        if (settings.debugWebServer == true)
+            systemPrintf("ERROR: WebServer failed to get client IP address\r\n");
+        return;
+    }
+
+    // Build the IP address string
+    if (isIp6Address)
+        sprintf(ipAddress, "[%s]:%d", temp, ip6Address.sin6_port);
+    else
+        sprintf(ipAddress, "%s:%d", temp, ip6Address.sin6_port);
 }
 
 //----------------------------------------
@@ -1582,22 +1680,36 @@ esp_err_t webServerHandlerPageNotFound(httpd_req_t *req, httpd_err_code_t err)
 {
     char ipAddress[80];
     String logMessage;
+    char * pos;
+    String redirectLocation;
 
     // Handle the captive portal pages
+    // https://github.com/espressif/arduino-esp32/blob/master/libraries/DNSServer/examples/CaptivePortal/CaptivePortal.ino
     if (settings.enableCaptivePortal
         && webServerCheckForKnownCaptiveUrl(req->uri))
     {
         if (settings.debugWebServer == true)
         {
-            char ipAddress[80];
-
             webServerGetClientIpAddressAndPort(req, ipAddress, sizeof(ipAddress));
             systemPrintf("WebServer: Captive page %s referenced from %s\r\n", req->uri, ipAddress);
         }
 
+        // Get the local IP address and port for this connection
+        webServerGetLocalIpAddressAndPort(req, ipAddress, sizeof(ipAddress));
+
+        // Remove the port number
+        pos = strstr(ipAddress, ":");
+        if (pos)
+            *pos = 0;
+
+        // Construct the redirect location
+        redirectLocation = "http://";
+        redirectLocation += ipAddress;
+        redirectLocation += "/";
+
         // Redirect to the main page
-        httpd_resp_set_status(req, "302 redirect");
-        httpd_resp_set_hdr(req, "Location", "/");
+        httpd_resp_set_status(req, "302 Found");
+        httpd_resp_set_hdr(req, "Location", redirectLocation.c_str());
         return httpd_resp_sendstr(req, "Redirect to Web Config");
     }
 
