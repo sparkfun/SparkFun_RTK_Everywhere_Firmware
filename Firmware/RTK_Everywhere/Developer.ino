@@ -288,26 +288,22 @@ void udpServerZeroTail() {}
 
 #ifndef COMPILE_AP
 
+bool webServerIsConnected() {return false;}
+bool webServerParseIncomingSettings() {return false;}
+void webServerSendString(const char* stringToSend) {}
+bool webServerSettingsCheckAndFree()    {return false;}
+void webServerSettingsClone()   {}
 bool webServerStart(int httpPort = 80)
 {
     systemPrintln("**AP not compiled**");
     return false;
 }
-bool webSocketsParseIncomingSettings() {return false;}
-void webSocketsSendString(const char* stringToSend) {}
-bool webServerSettingsCheckAndFree()    {return false;}
-void webServerSettingsClone()   {}
 void webServerStop() {}
 void webServerUpdate()  {}
 void webServerVerifyTables() {}
 bool wifiAfterCommand(int cmdIndex){return false;}
 bool webServerIsRunning() {return false;}
 
-//----------------------------------------
-// Web Sockets
-//----------------------------------------
-
-bool webSocketsIsConnected() {return false;}
 
 #endif  // COMPILE_AP
 
