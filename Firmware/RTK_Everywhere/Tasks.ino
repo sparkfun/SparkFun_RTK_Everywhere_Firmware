@@ -2111,13 +2111,23 @@ void buttonCheckTask(void *e)
 
             gpioExpander_lastReleased = 255; // Reset for the next read
         }
+        // If user presses the power button (on a dual button system) act as double tap (select)
+        if (buttonLastPressed() == dualButton_power)
+        {
+            doubleTap = true;
+            singleTap = false;
+            previousButtonRelease = 0;
+            thisButtonRelease = 0;
+
+            dualButton_lastReleased = 255; // Reset for the next read
+        }
 
         // End button checking
 
         // If in direct connect mode. Note: this is just a flag not a STATE.
         if (inDirectConnectMode)
         {
-            // TODO: check if this works on both Torch and Flex. Note: Flex does not yet support buttons
+            // TODO: check if this works on both Torch and Flex.
             if (singleTap || doubleTap)
             {
                 // Beep to indicate exit
@@ -2195,7 +2205,7 @@ void buttonCheckTask(void *e)
 
             // The RTK Torch uses a shutdown IC configured to turn off ~3s
             // Beep shortly before the shutdown IC takes over
-            else if (buttonPressedFor(2100) == true)
+            else if (powerButtonPressedFor(2100) == true)
             {
                 systemPrintln("Shutting down");
                 Serial.flush();
@@ -2226,13 +2236,13 @@ void buttonCheckTask(void *e)
                     ;
             }
         } // End productVariant == Torch/Torch X2
-        else // RTK EVK, RTK Facet v2, RTK Facet mosaic, RTK Postcard
+        else // RTK EVK, RTK Facet mosaic, RTK Postcard, RTK Flex
         {
             if (systemState == STATE_SHUTDOWN)
             {
                 // Ignore button presses while shutting down
             }
-            else if (buttonPressedFor(shutDownButtonTime))
+            else if (powerButtonPressedFor(shutDownButtonTime))
             {
                 forceSystemStateUpdate = true;
                 requestChangeState(STATE_SHUTDOWN);
@@ -2240,13 +2250,6 @@ void buttonCheckTask(void *e)
                 if (inMainMenu)
                     powerDown(true); // State machine is not updated while in menu system so go straight to power down
                                      // as needed
-            }
-            else if ((systemState == STATE_BASE_NOT_STARTED) && (firstRoverStart == true) &&
-                     (buttonPressedFor(500) == true))
-            {
-                lastSetupMenuChange.setTimerToMillis(); // Prevent a timeout during state change
-                forceSystemStateUpdate = true;
-                requestChangeState(STATE_TEST);
             }
 
             // If the button is disabled, do nothing

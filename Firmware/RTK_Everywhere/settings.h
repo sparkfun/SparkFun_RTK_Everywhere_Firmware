@@ -1955,7 +1955,8 @@ struct struct_present
     bool laraPowerControl = false;
     bool antennaShortOpen = false;
 
-    bool button_mode = false;
+    bool button_mode = false; // EVK has a dedicated Mode button but no power
+    bool button_function = false; // Flex has both power and Function buttons
     bool button_powerHigh = false; // Button is pressed when high
     bool button_powerLow = false; // Button is pressed when low
     bool gpioExpanderButtons = false; // Available on Portability shield
@@ -1982,7 +1983,8 @@ struct struct_online
     bool batteryCharger_mp2762a = false;
     bool batteryFuelGauge = false;
     bool bluetooth = false;
-    bool button = false;
+    bool powerButton = false;
+    bool functionButton = false;
     bool display = false;
     bool ethernetNTPServer = false; // EthernetUDP
     bool fs = false;

@@ -249,9 +249,9 @@ int pin_mux1 = PIN_UNDEFINED;
 int pin_mux2 = PIN_UNDEFINED;
 int pin_mux3 = PIN_UNDEFINED;
 int pin_mux4 = PIN_UNDEFINED;
-int pin_powerSenseAndControl = PIN_UNDEFINED; // Power button and power down I/O on Facet
-int pin_modeButton = PIN_UNDEFINED;           // Mode button on EVK
-int pin_powerButton = PIN_UNDEFINED;          // Power and general purpose button on Torch
+
+int pin_modeButton = PIN_UNDEFINED;           // Mode button on EVK, Function button on Flex
+int pin_powerButton = PIN_UNDEFINED;          // Power and general purpose button on Torch, Facet
 int pin_powerFastOff = PIN_UNDEFINED;         // Output on Facet
 int pin_muxDAC = PIN_UNDEFINED;
 int pin_muxADC = PIN_UNDEFINED;

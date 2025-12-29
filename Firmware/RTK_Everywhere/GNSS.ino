@@ -857,10 +857,8 @@ void gnssFirmwareRemoveUpdateFile(const char *filename)
     if (settings.debugGnssConfig)
         systemPrintf("Removing passthrough file: %s \r\n", filename);
 
-    Serial.println("1");
     if (LittleFS.exists(filename))
     {
-        Serial.println("2");
         delay(50);
 
         LittleFS.remove(filename);

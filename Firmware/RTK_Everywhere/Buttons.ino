@@ -2,14 +2,18 @@
 Buttons.ino
 =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=*/
 
+uint8_t dualButton_lastReleased = 255; // Track which button on the RTK Flex was pressed last
+static int dualButton_power = 0;
+static int dualButton_function = 1;
+
 // User has pressed the power button to turn on the system
 // Was it an accidental bump or do they really want to turn on?
 // Let's make sure they continue to press for 500ms
 void powerOnCheck()
 {
     powerPressedStartTime = millis();
-    if (pin_powerSenseAndControl != PIN_UNDEFINED)
-        if (digitalRead(pin_powerSenseAndControl) == LOW)
+    if (pin_powerButton != PIN_UNDEFINED)
+        if (digitalRead(pin_powerButton) == LOW)
             delay(500);
 
     if (FIRMWARE_VERSION_MAJOR == 99)
@@ -18,8 +22,8 @@ void powerOnCheck()
     }
     else
     {
-        if (pin_powerSenseAndControl != PIN_UNDEFINED)
-            if (digitalRead(pin_powerSenseAndControl) != LOW)
+        if (pin_powerButton != PIN_UNDEFINED)
+            if (digitalRead(pin_powerButton) != LOW)
                 powerDown(false); // Power button tap. Returning to off state.
     }
 
@@ -46,16 +50,6 @@ void powerDown(bool displayInfo)
 
     if (present.peripheralPowerControl == true)
         peripheralsOff();
-
-    if (pin_powerSenseAndControl != PIN_UNDEFINED)
-    {
-        // Change the button input to an output
-        // Note: on the original Facet, pin_powerSenseAndControl could be pulled low to
-        //       turn the power off (slowly). No RTK-Everywhere devices use that circuit.
-        //       Pulling it low on Facet mosaic does no harm.
-        pinMode(pin_powerSenseAndControl, OUTPUT);
-        digitalWrite(pin_powerSenseAndControl, LOW);
-    }
 
     if (present.fastPowerOff == true)
     {
@@ -113,9 +107,12 @@ bool beginGpioExpanderButtons(uint8_t padAddress)
 // Or read the GPIO expander and update the button state arrays
 void buttonRead()
 {
-    // Check direct button
-    if (online.button == true)
+    // Check power button
+    if (online.powerButton == true)
         powerBtn->read();
+
+    if (online.functionButton == true)
+        functionBtn->read();
 
     // Check directional pad once interrupt has occurred
     if (online.gpioExpanderButtons == true && gpioChanged == true)
@@ -154,9 +151,33 @@ void buttonRead()
 // Check if a previously pressed button has been released
 bool buttonReleased()
 {
-    // Check direct button
-    if (online.button == true)
-        return (powerBtn->wasReleased());
+    bool wasReleased = false;
+
+    // If this system has only one button (Facet mosaic, Torch, Torch X2) and it
+    // was released, return true.
+
+    // If this system has a function (Flex) or mode (EVK) button and it was released,
+    // return true. If this system has a power button as well (Flex), and it was released, return true.
+
+    // If this system has multiple buttons (Postcard possibly), return true if any were released
+
+    if (online.functionButton == true)
+    {
+        if (functionBtn->wasReleased() == true)
+        {
+            dualButton_lastReleased = dualButton_function;
+            wasReleased = true;
+        }
+    }
+
+    if (online.powerButton == true)
+    {
+        if (powerBtn->wasReleased() == true)
+        {
+            dualButton_lastReleased = dualButton_power;
+            wasReleased = true;
+        }
+    }
 
     // Check directional pad
     if (online.gpioExpanderButtons == true)
@@ -172,14 +193,14 @@ bool buttonReleased()
         }
     }
 
-    return (false);
+    return (wasReleased);
 }
 
 // Given a button number, check if a previously pressed button has been released
 bool buttonReleased(uint8_t buttonNumber)
 {
-    // Check direct button
-    if (online.button == true)
+    // Check single button
+    if (online.powerButton == true)
         return (false);
 
     // Check directional pad
@@ -196,29 +217,12 @@ bool buttonReleased(uint8_t buttonNumber)
     return (false);
 }
 
-// Check if a button has been pressed for a certain amount of time
-bool buttonPressedFor(uint16_t maxTime)
+// Check if the power button has been pressed for a certain amount of time
+bool powerButtonPressedFor(uint16_t maxTime)
 {
-    // Check for direct button
-    if (online.button == true)
+    // Check single button
+    if (online.powerButton == true)
         return (powerBtn->pressedFor(maxTime));
-
-    return (false);
-}
-
-// Check if a button has been pressed for a certain amount of time
-bool buttonPressedFor(uint8_t buttonNumber, uint16_t maxTime)
-{
-    // Check directional pad
-    if (online.gpioExpanderButtons == true)
-    {
-        // Check if the time has started for this button
-        if (gpioExpander_holdStart[buttonNumber] > 0)
-        {
-            if (millis() - gpioExpander_holdStart[buttonNumber] > maxTime)
-                return (true);
-        }
-    }
 
     return (false);
 }
@@ -227,5 +231,11 @@ bool buttonPressedFor(uint8_t buttonNumber, uint16_t maxTime)
 // Returns 255 if no button pressed yet
 uint8_t buttonLastPressed()
 {
-    return (gpioExpander_lastReleased);
+    if (online.functionButton == true && online.powerButton == true)
+        return (dualButton_lastReleased);
+
+    if (online.gpioExpanderButtons == true)
+        return (gpioExpander_lastReleased);
+
+    return (255);
 }

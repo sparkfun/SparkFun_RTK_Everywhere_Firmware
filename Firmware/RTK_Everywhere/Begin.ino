@@ -358,8 +358,8 @@ void beginBoard()
         pin_modeButton = 0;
         // 24, D2  : Status LED
         pin_baseStatusLED = 2;
-        //pin_debug = 2; // On EVK we can use the Status LED for debug
-        // 29, D5  : GNSS TP via 74LVC4066 switch
+        // pin_debug = 2; // On EVK we can use the Status LED for debug
+        //  29, D5  : GNSS TP via 74LVC4066 switch
         pin_GNSS_TimePulse = 5;
         // 14, D12 : I2C1 SDA via 74LVC4066 switch
         pin_I2C1_SDA = 12;
@@ -493,7 +493,7 @@ void beginBoard()
         pin_microSD_CS = 25;
         pin_muxDAC = 26;
         pin_peripheralPowerControl = 27;
-        pin_powerSenseAndControl = 32;
+        pin_powerButton = 32;
         pin_powerFastOff = 33;
         pin_chargerLED = 34;
         pin_chargerLED2 = 36;
@@ -574,7 +574,7 @@ void beginBoard()
         pin_microSD_CS = 25;
         pin_muxDAC = 26;
         pin_peripheralPowerControl = 27;
-        pin_powerSenseAndControl = 32;
+        pin_powerButton = 32;
         pin_powerFastOff = 33;
         pin_chargerLED = 34;
         pin_chargerLED2 = 36;
@@ -675,7 +675,7 @@ void beginBoard()
         pin_GnssUart2_TX = 25;
         pin_muxDAC = 26;
         pin_peripheralPowerControl = 27;
-        pin_powerSenseAndControl = 32;
+        pin_powerButton = 32;
         pin_powerFastOff = 33;
         pin_chargerLED = 34;
         pin_GnssReady = 36;
@@ -781,7 +781,7 @@ void beginBoard()
         present.fuelgauge_bq40z50 = true;
 
         present.button_powerLow = true; // Button is pressed when high
-        present.button_mode = true;
+        present.button_function = true; // Function or Fn button
         present.beeper = true;
         present.gnss_to_uart = true;
 
@@ -804,7 +804,7 @@ void beginBoard()
         pin_GnssUart_RX = 26;
         pin_GnssUart_TX = 27;
 
-        pin_powerSenseAndControl = 34;
+        pin_powerButton = 34;
         pin_powerFastOff = 23;
         pin_modeButton = 25;
 
@@ -846,7 +846,7 @@ void beginBoard()
         pinMode(pin_beeper, OUTPUT);
         beepOff();
 
-        pinMode(pin_powerSenseAndControl, INPUT);
+        pinMode(pin_powerButton, INPUT);
 
         pinMode(pin_powerAdapterDetect, INPUT); // Has 10k pullup
 
@@ -1502,7 +1502,6 @@ void beginButtons()
 
     TaskHandle_t taskHandle;
 
-    // Currently only one button is supported but can be expanded in the future
     int buttonCount = 0;
     if (present.button_powerLow == true)
         buttonCount++;
@@ -1510,16 +1509,12 @@ void beginButtons()
         buttonCount++;
     if (present.button_mode == true)
         buttonCount++;
+    if (present.button_function == true)
+        buttonCount++;
     if (present.gpioExpanderButtons == true)
         buttonCount++;
 
-    if (productVariant == RTK_FLEX)
-    {
-        Serial.println("<<<<<<<<<<<<<<<<<<<< Deal with Flex buttons >>>>>>>>>>>>>>");
-        buttonCount = 1;
-    }
-
-    if (buttonCount > 1)
+    if (buttonCount > 2)
         reportFatalError("Illegal button assignment.");
 
     // Postcard button uses an I2C expander
@@ -1540,34 +1535,58 @@ void beginButtons()
         // Use the Button library
         if (present.button_powerLow == true)
         {
-            // Torch X2 has both a powerButton and powerSenseAndControl (PWRKILL). Assign button task to powerButton.
-            if (pin_powerButton != PIN_UNDEFINED)
+            // Flex has a power button (GPIO) and function button (Mode or Fn)
+            if (present.button_function == true)
+            {
                 powerBtn = new Button(pin_powerButton);
-            // Facet main/power button
-            else if (pin_powerSenseAndControl != PIN_UNDEFINED)
-                powerBtn = new Button(pin_powerSenseAndControl);
+                functionBtn = new Button(pin_modeButton);
+            }
+            // Torch X2, Facet mosaic have just one power/setup button
+            else if (pin_powerButton != PIN_UNDEFINED)
+                powerBtn = new Button(pin_powerButton);
         }
 
         // Torch main/power button
-        if (present.button_powerHigh == true && pin_powerButton != PIN_UNDEFINED)
+        else if (present.button_powerHigh == true && pin_powerButton != PIN_UNDEFINED)
             powerBtn = new Button(pin_powerButton, 25, true,
-                                 false); // Turn off inversion. Needed for buttons that are high when pressed.
+                                  false); // Turn off inversion. Needed for buttons that are high when pressed.
 
-        // EVK/Flex user button (Mode or Fn)
-        if (present.button_mode == true)
+        // EVK Mode button
+        else if (present.button_mode == true)
             functionBtn = new Button(pin_modeButton);
 
-        if (powerBtn == nullptr)
+        // Unknown
+        else
+            systemPrintf("Error: Uncaught button configuration");
+
+        if (powerBtn != nullptr)
         {
-            systemPrintln("Failed to begin button");
+            powerBtn->begin();
+            online.powerButton = true;
+        }
+        else
+        {
+            if (present.button_powerHigh || present.button_powerLow)
+                systemPrintln("Failed to begin power button");
             return;
         }
 
-        powerBtn->begin();
-        online.button = true;
+        if (functionBtn != nullptr)
+        {
+            functionBtn->begin();
+            online.functionButton = true;
+        }
+        else
+        {
+            if (present.button_function)
+                systemPrintln("Failed to begin function button");
+            else if (present.button_mode)
+                systemPrintln("Failed to begin mode button");
+            return;
+        }
     }
 
-    if (online.button == true || online.gpioExpanderButtons == true)
+    if (online.powerButton == true || online.functionButton == true || online.gpioExpanderButtons == true)
     {
         // Starts task for monitoring button presses
         if (!task.buttonCheckTaskRunning)
