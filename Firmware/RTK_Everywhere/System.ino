@@ -25,6 +25,31 @@ void beginPsram()
     }
 }
 
+// Validate the heap
+void rtkValidateHeap(const char * string)
+{
+    // Validate the heap
+    if (heap_caps_check_integrity_all(true) == false)
+    {
+        TaskHandle_t handle;
+        const char * taskName;
+
+        handle = xTaskGetCurrentTaskHandle();
+        taskName = pcTaskGetName(handle);
+        systemPrintf("Task handle 0x%08x %s%s%scalling %s\r\n",
+                      handle,
+                      taskName ? "(" : "",
+                      taskName ? taskName : "",
+                      taskName ? ") " : "",
+                      string);
+        systemPrintf("Checking internal heap\r\n");
+        heap_caps_check_integrity(MALLOC_CAP_INTERNAL, true);
+        systemPrintf("Checking PSRAM heap\r\n");
+        heap_caps_check_integrity(MALLOC_CAP_SPIRAM, true);
+        reportFatalError("Corrput heap!");
+    }
+}
+
 // Free memory to PSRAM when available
 void rtkFree(void *data, const char *text)
 {
@@ -60,6 +85,36 @@ void *rtkMalloc(size_t sizeInBytes, const char *text)
         systemPrintf("Error: Failed to allocate %d bytes from %s: %s\r\n", sizeInBytes, area, text);
 
     return data;
+}
+
+// Determine if the address is in the EEPROM (Flash)
+bool rtkIsAddressInEEPROM(void * addr)
+{
+    return ((addr >= (void *)0x3f400000) && (addr <= (void *)0x3f7fffff));
+}
+
+// Determine if the address is in PSRAM (SPI RAM)
+bool rtkIsAddressInPSRAM(void * addr)
+{
+    return ((addr >= (void *)0x3f800000) && (addr <= (void *)0x3fbfffff));
+}
+
+// Determine if the address is in PSRAM or SRAM
+bool rtkIsAddressInRAM(void * addr)
+{
+    return rtkIsAddressInSRAM(addr) || rtkIsAddressInPSRAM(addr);
+}
+
+bool rtkIsAddressInROM(void * addr)
+{
+    return (((addr >= (void *)0x3ff90000) && (addr <= (void *)0x3ff9ffff))
+        ||  ((addr >= (void *)0x40000000) && (addr <= (void *)0x4005ffff)));
+}
+
+// Determine if the address is in SRAM
+bool rtkIsAddressInSRAM(void * addr)
+{
+    return ((addr >= (void *)0x3ffae000) && (addr <= (void *)0x3ffdffff));
 }
 
 // See https://en.cppreference.com/w/cpp/memory/new/operator_delete
@@ -344,19 +399,14 @@ void reportHeapNow(bool alwaysPrint)
     {
         lastHeapReport = millis();
 
+        rtkValidateHeap("reportHeapNow");
         if (online.psram == true)
-        {
-            heap_caps_check_integrity_all(true);
             systemPrintf("FreeHeap: %d / HeapLowestPoint: %d / LargestBlock: %d / Used PSRAM: %d\r\n",
                          ESP.getFreeHeap(), xPortGetMinimumEverFreeHeapSize(),
                          heap_caps_get_largest_free_block(MALLOC_CAP_8BIT), ESP.getPsramSize() - ESP.getFreePsram());
-        }
         else
-        {
-            heap_caps_check_integrity_all(true);
             systemPrintf("FreeHeap: %d / HeapLowestPoint: %d / LargestBlock: %d\r\n", ESP.getFreeHeap(),
                          xPortGetMinimumEverFreeHeapSize(), heap_caps_get_largest_free_block(MALLOC_CAP_8BIT));
-        }
     }
 }
 
