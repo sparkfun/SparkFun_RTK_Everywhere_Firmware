@@ -790,7 +790,7 @@ void beginBoard()
         present.microSdCardDetectLow = true;
 
         present.display_i2c0 = true;
-        present.i2c0BusSpeed_400 = true; // Run display bus at higher speed
+        //present.i2c0BusSpeed_400 = true; // The BQ40Z50 requires 100kHz
         present.display_type = DISPLAY_128x64;
         present.displayInverted = true;
         present.tiltPossible = true;
