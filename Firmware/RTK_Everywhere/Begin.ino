@@ -1512,6 +1512,7 @@ void beginButtons()
         buttonCount++;
     if (present.gpioExpanderButtons == true)
         buttonCount++;
+
     if (productVariant == RTK_FLEX)
     {
         Serial.println("<<<<<<<<<<<<<<<<<<<< Deal with Flex buttons >>>>>>>>>>>>>>");
@@ -1541,28 +1542,28 @@ void beginButtons()
         {
             // Torch X2 has both a powerButton and powerSenseAndControl (PWRKILL). Assign button task to powerButton.
             if (pin_powerButton != PIN_UNDEFINED)
-                userBtn = new Button(pin_powerButton);
+                powerBtn = new Button(pin_powerButton);
             // Facet main/power button
             else if (pin_powerSenseAndControl != PIN_UNDEFINED)
-                userBtn = new Button(pin_powerSenseAndControl);
+                powerBtn = new Button(pin_powerSenseAndControl);
         }
 
         // Torch main/power button
         if (present.button_powerHigh == true && pin_powerButton != PIN_UNDEFINED)
-            userBtn = new Button(pin_powerButton, 25, true,
+            powerBtn = new Button(pin_powerButton, 25, true,
                                  false); // Turn off inversion. Needed for buttons that are high when pressed.
 
         // EVK/Flex user button (Mode or Fn)
         if (present.button_mode == true)
-            userBtn = new Button(pin_modeButton);
+            functionBtn = new Button(pin_modeButton);
 
-        if (userBtn == nullptr)
+        if (powerBtn == nullptr)
         {
             systemPrintln("Failed to begin button");
             return;
         }
 
-        userBtn->begin();
+        powerBtn->begin();
         online.button = true;
     }
 

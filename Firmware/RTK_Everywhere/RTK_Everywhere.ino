@@ -689,7 +689,8 @@ const int beepTaskUpdatesHz = 20; // Update Beep 20 times a second. Shortest dur
 // Buttons - Interrupt driven and debounce
 //-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 #include <JC_Button.h> //http://librarymanager/All#JC_Button
-Button *userBtn = nullptr;
+Button *powerBtn = nullptr;
+Button *functionBtn = nullptr;
 
 const uint8_t buttonCheckTaskPriority = 1; // 3 being the highest, and 0 being the lowest
 const int buttonTaskStackSize = 2000;

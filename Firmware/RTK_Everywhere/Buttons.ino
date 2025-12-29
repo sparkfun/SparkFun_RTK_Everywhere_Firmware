@@ -115,7 +115,7 @@ void buttonRead()
 {
     // Check direct button
     if (online.button == true)
-        userBtn->read();
+        powerBtn->read();
 
     // Check directional pad once interrupt has occurred
     if (online.gpioExpanderButtons == true && gpioChanged == true)
@@ -156,7 +156,7 @@ bool buttonReleased()
 {
     // Check direct button
     if (online.button == true)
-        return (userBtn->wasReleased());
+        return (powerBtn->wasReleased());
 
     // Check directional pad
     if (online.gpioExpanderButtons == true)
@@ -201,7 +201,7 @@ bool buttonPressedFor(uint16_t maxTime)
 {
     // Check for direct button
     if (online.button == true)
-        return (userBtn->pressedFor(maxTime));
+        return (powerBtn->pressedFor(maxTime));
 
     return (false);
 }
