@@ -89,7 +89,8 @@ var divTables = {
     lg290pGnssSettings: ["useMSM7", "rtcmMinElev"],
     rtcmMinElevConfig: ["rtcmMinElev"],
     minElevConfig: ["minElev"],
-    minCN0Config: ["minCN0"]
+    minCN0Config: ["minCN0"],
+    logToSDCard: ["enableLogging"]
 };
 
 function showHideDivs() {
@@ -164,7 +165,6 @@ function parseIncoming(msg) {
                 show("ntpConfig");
                 show("portsConfig");
                 hide("externalPortOptions");
-                show("logToSDCard");
                 hide("tiltConfig");
                 hide("beeperControl");
                 show("measurementRateInput");
@@ -196,7 +196,6 @@ function parseIncoming(msg) {
                 hide("ntpConfig");
                 show("portsConfig");
                 show("externalPortOptions");
-                show("logToSDCard");
                 hide("tiltConfig");
                 hide("beeperControl");
                 show("measurementRateInput");
@@ -215,7 +214,6 @@ function parseIncoming(msg) {
                 hide("ntpConfig");
                 show("portsConfig");
                 show("externalPortOptions");
-                show("logToSDCard");
                 hide("tiltConfig");
                 hide("beeperControl");
                 hide("measurementRateInput");
@@ -269,8 +267,6 @@ function parseIncoming(msg) {
                 // No DATA port on Torch
                 hide("externalPortOptions");
 
-                hide("logToSDCard");
-
                 hide("constellationSbas"); //Not supported on UM980
                 hide("constellationNavic"); //Not supported on UM980
 
@@ -303,7 +299,6 @@ function parseIncoming(msg) {
                 hide("ntpConfig");
                 show("portsConfig");
                 show("externalPortOptions");
-                show("logToSDCard");
 
                 hide("tiltConfig");
                 hide("beeperControl");
@@ -366,8 +361,6 @@ function parseIncoming(msg) {
                 // No RADIO port on Torch X2
                 // No DATA port on Torch X2
                 hide("externalPortOptions");
-
-                hide("logToSDCard"); //No SD card on Torch
 
                 hide("constellationSbas"); //Not supported on LG290P
                 show("constellationNavic");
