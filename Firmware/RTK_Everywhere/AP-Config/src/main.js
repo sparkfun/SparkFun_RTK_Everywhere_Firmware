@@ -1626,13 +1626,13 @@ function resetToSurveyingDefaults() {
         ge("messageIntervalRTCMRover_RTCM1033").value = 10.0;
     }
     else if ((platformPrefix == "Postcard") || (platformPrefix == "Torch X2")) {
-        ge("messageRateNMEA_GPRMC").value = 1;
-        ge("messageRateNMEA_GPGGA").value = 1;
-        ge("messageRateNMEA_GPGSV").value = 1;
-        ge("messageRateNMEA_GPGSA").value = 1;
-        ge("messageRateNMEA_GPVTG").value = 1;
-        ge("messageRateNMEA_GPGLL").value = 1;
-        ge("messageRateNMEA_GPGST").value = 1; //Supported on >= v4
+        ge("messageRateNMEA_RMC").value = 1;
+        ge("messageRateNMEA_GGA").value = 1;
+        ge("messageRateNMEA_GSV").value = 1;
+        ge("messageRateNMEA_GSA").value = 1;
+        ge("messageRateNMEA_VTG").value = 1;
+        ge("messageRateNMEA_GLL").value = 1;
+        ge("messageRateNMEA_GST").value = 1; //Supported on >= v4
     }
 }
 function resetToLoggingDefaults() {
@@ -1665,23 +1665,22 @@ function resetToLoggingDefaults() {
         ge("messageRateRTCMRover_RTCM1124").value = 30;
     }
     else if ((platformPrefix == "Postcard") || (platformPrefix == "Torch X2")) {
-        ge("messageRateNMEA_GPRMC").value = 1;
-        ge("messageRateNMEA_GPGGA").value = 1;
-        ge("messageRateNMEA_GPGSV").value = 1;
-        ge("messageRateNMEA_GPGSA").value = 1;
-        ge("messageRateNMEA_GPVTG").value = 1;
-        ge("messageRateNMEA_GPGLL").value = 1;
-        ge("messageRateNMEA_GPGST").value = 1; // Supported on >= v4
+        ge("messageRateNMEA_RMC").value = 1;
+        ge("messageRateNMEA_GGA").value = 1;
+        ge("messageRateNMEA_GSV").value = 1;
+        ge("messageRateNMEA_GSA").value = 1;
+        ge("messageRateNMEA_VTG").value = 1;
+        ge("messageRateNMEA_GLL").value = 1;
+        ge("messageRateNMEA_GST").value = 1; // Supported on >= v4
 
-        ge("messageRateRTCMRover_RTCM1019").value = 30;
-        ge("messageRateRTCMRover_RTCM1020").value = 30;
-        ge("messageRateRTCMRover_RTCM1042").value = 30;
-        ge("messageRateRTCMRover_RTCM1046").value = 30;
+        ge("messageRateRTCMRover_RTCM3-1005").value = 1;
 
-        ge("messageRateRTCMRover_RTCM107X").value = 30;
-        ge("messageRateRTCMRover_RTCM108X").value = 30;
-        ge("messageRateRTCMRover_RTCM109X").value = 30;
-        ge("messageRateRTCMRover_RTCM112X").value = 30;
+        ge("messageRateRTCMRover_RTCM3-107X").value = 1;
+        ge("messageRateRTCMRover_RTCM3-108X").value = 1;
+        ge("messageRateRTCMRover_RTCM3-109X").value = 1;
+        ge("messageRateRTCMRover_RTCM3-111X").value = 1;
+        ge("messageRateRTCMRover_RTCM3-112X").value = 1;
+        ge("messageRateRTCMRover_RTCM3-113X").value = 1;
     }
     else if (platformPrefix == "Facet mosaicX5") {
         ge("streamIntervalNMEA_0").value = 6; //msec500
