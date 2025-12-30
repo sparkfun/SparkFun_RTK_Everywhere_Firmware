@@ -991,16 +991,6 @@ function validateFields() {
         checkElementString("ntripClientMountPoint", 1, 30, "Must be 1 to 30 characters", "collapseGNSSConfig");
         checkElementCasterUser("ntripClientCasterHost", "ntripClientCasterUser", "rtk2go.com", "User must use their email address", "collapseGNSSConfig");
     }
-    // Don't overwrite with the defaults here. User may want to disable NTRIP but not lose the existing settings.
-    // else {
-    //     clearElement("ntripClientCasterHost", "rtk2go.com");
-    //     clearElement("ntripClientCasterPort", 2101);
-    //     clearElement("ntripClientMountPoint", "bldr_SparkFun1");
-    //     clearElement("ntripClientMountPointPW");
-    //     clearElement("ntripClientCasterUser", "test@test.com");
-    //     clearElement("ntripClientCasterUserPW", "");
-    //     ge("ntripClientTransmitGGA").checked = true;
-    // }
 
     //Check all UBX message boxes
     //match all ids starting with ubxMessageRate_
@@ -1074,32 +1064,14 @@ function validateFields() {
     if (ge("baseTypeSurveyIn").checked == true) {
         checkElementValue("observationSeconds", 60, 600, "Must be between 60 to 600", "collapseBaseConfig");
         checkElementValue("observationPositionAccuracy", 1, 5.1, "Must be between 1.0 to 5.0", "collapseBaseConfig");
-
-        clearElement("fixedEcefX", -1280206.568);
-        clearElement("fixedEcefY", -4716804.403);
-        clearElement("fixedEcefZ", 4086665.484);
-        clearElement("fixedLatText", 40.09029479);
-        clearElement("fixedLongText", -105.18505761);
-        clearElement("fixedAltitude", 1560.089);
     }
     else {
-        clearElement("observationSeconds", 60);
-        clearElement("observationPositionAccuracy", 5.0);
-
         if (ge("fixedBaseCoordinateTypeECEF").checked == true) {
-            clearElement("fixedLatText", 40.09029479);
-            clearElement("fixedLongText", -105.18505761);
-            clearElement("fixedAltitude", 1560.089);
-
             checkElementValue("fixedEcefX", -7000000, 7000000, "Must be -7000000 to 7000000", "collapseBaseConfig");
             checkElementValue("fixedEcefY", -7000000, 7000000, "Must be -7000000 to 7000000", "collapseBaseConfig");
             checkElementValue("fixedEcefZ", -7000000, 7000000, "Must be -7000000 to 7000000", "collapseBaseConfig");
         }
         else {
-            clearElement("fixedEcefX", -1280206.568);
-            clearElement("fixedEcefY", -4716804.403);
-            clearElement("fixedEcefZ", 4086665.484);
-
             checkLatLong(); //Verify Lat/Long input type
             checkElementValue("fixedAltitude", -11034, 8849, "Must be -11034 to 8849", "collapseBaseConfig");
 
@@ -1134,33 +1106,6 @@ function validateFields() {
         checkElementString("ntripServerMountPoint_3", 0, 49, "Must be 0 to 49 characters", "ntripServerConfig3");
         checkElementString("ntripServerMountPointPW_3", 0, 49, "Must be 0 to 49 characters", "ntripServerConfig3");
     }
-    // Don't overwrite with the defaults here. User may want to disable NTRIP but not lose the existing settings.
-    // else {
-    //     clearElement("ntripServerCasterHost_0", "rtk2go.com");
-    //     clearElement("ntripServerCasterPort_0", 2101);
-    //     clearElement("ntripServerCasterUser_0", "test@test.com");
-    //     clearElement("ntripServerCasterUserPW_0", "");
-    //     clearElement("ntripServerMountPoint_0", "bldr_dwntwn2");
-    //     clearElement("ntripServerMountPointPW_0", "WR5wRo4H");
-    //     clearElement("ntripServerCasterHost_1", "");
-    //     clearElement("ntripServerCasterPort_1", 0);
-    //     clearElement("ntripServerCasterUser_1", "");
-    //     clearElement("ntripServerCasterUserPW_1", "");
-    //     clearElement("ntripServerMountPoint_1", "");
-    //     clearElement("ntripServerMountPointPW_1", "");
-    //     clearElement("ntripServerCasterHost_2", "");
-    //     clearElement("ntripServerCasterPort_2", 0);
-    //     clearElement("ntripServerCasterUser_2", "");
-    //     clearElement("ntripServerCasterUserPW_2", "");
-    //     clearElement("ntripServerMountPoint_2", "");
-    //     clearElement("ntripServerMountPointPW_2", "");
-    //     clearElement("ntripServerCasterHost_3", "");
-    //     clearElement("ntripServerCasterPort_3", 0);
-    //     clearElement("ntripServerCasterUser_3", "");
-    //     clearElement("ntripServerCasterUserPW_3", "");
-    //     clearElement("ntripServerMountPoint_3", "");
-    //     clearElement("ntripServerMountPointPW_3", "");
-    // }
 
     //PointPerfect Config
     checkPointPerfectService();
@@ -1214,37 +1159,21 @@ function validateFields() {
         checkElementValue("maxLogTime", 0, 1051200, "Must be 0 to 1,051,200", "collapseSystemConfig");
         checkElementValue("maxLogLength", 0, 2880, "Must be 0 to 2880", "collapseSystemConfig");
     }
-    else {
-        clearElement("maxLogTime", 60 * 24);
-        clearElement("maxLogLength", 60 * 24);
-    }
 
     if (ge("enableARPLogging").checked == true) {
         checkElementValue("ARPLoggingInterval", 1, 600, "Must be 1 to 600", "collapseSystemConfig");
-    }
-    else {
-        clearElement("ARPLoggingInterval", 10);
     }
 
     if (ge("enableAutoFirmwareUpdate").checked == true) {
         checkElementValue("autoFirmwareCheckMinutes", 1, 999999, "Must be 1 to 999999", "collapseSystemConfig");
     }
-    else {
-        clearElement("autoFirmwareCheckMinutes", 0);
-    }
 
     if (ge("enableAutoReset").checked == true) {
         checkElementValue("rebootMinutes", 0, 4294967, "Must be 0 to 4,294,967", "collapseSystemConfig");
     }
-    else {
-        clearElement("rebootMinutes", 0); //0 = disable
-    }
 
     if (ge("shutdownNoChargeTimeoutMinutesCheckbox").checked == true) {
         checkElementValue("shutdownNoChargeTimeoutMinutes", 0, 604800, "Must be 0 to 604,800", "collapseSystemConfig");
-    }
-    else {
-        clearElement("shutdownNoChargeTimeoutMinutes", 0); //0 = disable
     }
 
     //Ethernet
