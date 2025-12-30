@@ -1726,6 +1726,16 @@ function resetToRTCMDefaults() {
         ge("messageRateRTCMBase_RTCM1094").value = 1.0;
         ge("messageRateRTCMBase_RTCM1124").value = 1.0;
     }
+    else if ((platformPrefix == "Postcard") || (platformPrefix == "Torch X2")) {
+        ge("messageRateRTCMRover_RTCM3-1005").value = 1;
+
+        ge("messageRateRTCMRover_RTCM3-107X").value = 1;
+        ge("messageRateRTCMRover_RTCM3-108X").value = 1;
+        ge("messageRateRTCMRover_RTCM3-109X").value = 1;
+        ge("messageRateRTCMRover_RTCM3-111X").value = 1;
+        ge("messageRateRTCMRover_RTCM3-112X").value = 1;
+        ge("messageRateRTCMRover_RTCM3-113X").value = 1;
+    }
     else if (platformPrefix == "Facet mosaicX5") {
         ge("messageIntervalRTCMBase_RTCM1033").value = 10.0;
 
@@ -1760,6 +1770,16 @@ function resetToRTCMLowBandwidth() {
         ge("messageRateRTCMBase_RTCM1084").value = 2.0;
         ge("messageRateRTCMBase_RTCM1094").value = 2.0;
         ge("messageRateRTCMBase_RTCM1124").value = 2.0;
+    }
+    else if ((platformPrefix == "Postcard") || (platformPrefix == "Torch X2")) {
+        ge("messageRateRTCMRover_RTCM3-1005").value = 10;
+
+        ge("messageRateRTCMRover_RTCM3-107X").value = 2;
+        ge("messageRateRTCMRover_RTCM3-108X").value = 2;
+        ge("messageRateRTCMRover_RTCM3-109X").value = 2;
+        ge("messageRateRTCMRover_RTCM3-111X").value = 2;
+        ge("messageRateRTCMRover_RTCM3-112X").value = 2;
+        ge("messageRateRTCMRover_RTCM3-113X").value = 2;
     }
     else if (platformPrefix == "Facet mosaicX5") {
         ge("messageIntervalRTCMBase_RTCM1005|6").value = 10.0;
