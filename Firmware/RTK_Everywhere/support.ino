@@ -86,15 +86,18 @@ size_t systemWriteGnssDataToUsbSerial(const uint8_t *buffer, uint16_t length)
 // Ensure all serial output has been transmitted, FIFOs are empty
 void systemFlush()
 {
-    if (printEndpoint == PRINT_ENDPOINT_ALL)
+    if ((printEndpoint == PRINT_ENDPOINT_SERIAL)
+        || (printEndpoint == PRINT_ENDPOINT_ALL))
     {
-        Serial.flush();
-        bluetoothFlush();
+        if (forwardGnssDataToUsbSerial == false)
+        {
+            if (usbSerialIsSelected == true) // Only use UART0 if we have the mux on the ESP's UART pointed at the CH34x
+                Serial.flush();
+        }
     }
-    else if (printEndpoint == PRINT_ENDPOINT_BLUETOOTH)
-        bluetoothFlush();
-    else
-        Serial.flush();
+
+    // Flush active Bluetooth device, does nothing when Bluetooth is off
+    bluetoothFlush();
 }
 
 // Output a byte to the serial port
