@@ -512,7 +512,7 @@ typedef enum
     PRINT_ENDPOINT_BLUETOOTH,
     PRINT_ENDPOINT_BLUETOOTH_COMMAND,
     PRINT_ENDPOINT_ALL,
-    PRINT_ENDPOINT_COUNT,
+    PRINT_ENDPOINT_COUNT_COMMANDS,
 } PrintEndpoint;
 PrintEndpoint printEndpoint = PRINT_ENDPOINT_SERIAL; // Controls where the configuration menu gets piped to
 
