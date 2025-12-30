@@ -890,14 +890,16 @@ function sendData() {
 
     console.log("Sending " + changedCount + " changed settings: " + settingCSV);
 
+    var result = false;
+
     // Only send if there are changes (plus the always-sent records)
     if (settingCSV.length > 0) {
         websocket.send(settingCSV);
         sendDataTimeout = setTimeout(sendData, 2000);
-    } else {
-        // If nothing changed, immediately report success.
-        showSuccess('saveBtn', "No changes detected.");
+        result = true;
     }
+
+    return result;
 }
 
 function showError(id, errorText) {
@@ -1236,9 +1238,15 @@ function changeProfile() {
 
         currentProfileNumber = document.querySelector('input[name=profileRadio]:checked').value;
 
-        sendData();
         clearError('saveBtn');
-        showSuccess('saveBtn', "Saving...");
+        var dataSent = sendData();
+        if (dataSent == true) {
+            showSuccess('saveBtn', "Saving...");
+        }
+        else {
+            // If nothing changed, immediately report success.
+            showSuccess('saveBtn', "No changes detected.");
+        }
 
         websocket.send("setProfile," + currentProfileNumber + ",");
 
@@ -1275,8 +1283,14 @@ function saveConfig() {
     }
     else {
         clearError('saveBtn');
-        sendData();
-        showSuccess('saveBtn', "Saving...");
+        var dataSent = sendData();
+        if (dataSent == true) {
+            showSuccess('saveBtn', "Saving...");
+        }
+        else {
+            // If nothing changed, immediately report success.
+            showSuccess('saveBtn', "No changes detected.");
+        }
     }
 
 }
