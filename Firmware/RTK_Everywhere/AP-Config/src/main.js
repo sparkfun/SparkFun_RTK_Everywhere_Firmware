@@ -1922,6 +1922,9 @@ document.addEventListener("DOMContentLoaded", (event) => {
             else if (platformPrefix == "Torch") {
                 ge("antennaPhaseCenter_mm").value = 116.5; //Average of L1/L2
             }
+            else if (platformPrefix == "Torch X2") {
+                ge("antennaPhaseCenter_mm").value = 116.5; //Average of L1/L2
+            }
             else if (platformPrefix == "EVK") {
                 ge("antennaPhaseCenter_mm").value = 42.0; //Average of L1/L2
             }
