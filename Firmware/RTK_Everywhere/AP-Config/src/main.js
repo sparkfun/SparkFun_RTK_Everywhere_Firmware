@@ -581,6 +581,9 @@ function parseIncoming(msg) {
             messageText += " id='" + messageName + "' value='" + messageRate + "'>";
             messageText += "<p id='" + messageName + "Error' class='inlineError'></p>";
             messageText += "</div></div>";
+
+            // Add this rate to initialSettings - if it has not been added before
+            addInitialSetting(id, val);
         }
         else if (id.includes("messageStreamNMEA")) {
             // messageStreamNMEA_GGA
@@ -797,6 +800,20 @@ function saveInitialSettings() {
 
     // Note: recordsECEF and recordsGeodetic change very little so instead
     // of creating copy here, we will resend any entered coordinates every time.
+}
+
+// Add this setting to initialSettings - if it has not been added before
+function addInitialSetting(id, val) {
+    var seen = false;
+    for (let x = 0; x < initialSettings.length; x++) {
+        if (initialSettings[x] === id) {
+            seen = true;
+        }
+    }
+    if (seen == false) {
+        //console.log("Adding " + id + ":" + val + " to initialSettings");
+        initialSettings[id] = val;
+    }
 }
 
 function hide(id) {
