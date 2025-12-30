@@ -309,7 +309,6 @@ void menuUserProfiles()
                 }
 
                 recordProfileNumber(0); // Move to Profile1
-                profileNumber = 0;
 
                 snprintf(settingsFileName, sizeof(settingsFileName), "/%s_Settings_%d.txt", platformFilePrefix,
                          profileNumber); // Update file name with new profileNumber
