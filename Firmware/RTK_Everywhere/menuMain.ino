@@ -292,12 +292,20 @@ void menuUserProfiles()
                 // Remove profile from LittleFS
                 if (LittleFS.exists(settingsFileName))
                     LittleFS.remove(settingsFileName);
+                if (LittleFS.exists(stationCoordinateECEFFileName))
+                    LittleFS.remove(stationCoordinateECEFFileName);
+                if (LittleFS.exists(stationCoordinateGeodeticFileName))
+                    LittleFS.remove(stationCoordinateGeodeticFileName);
 
                 // Remove profile from SD if available
                 if (online.microSD == true)
                 {
                     if (sd->exists(settingsFileName))
                         sd->remove(settingsFileName);
+                    if (sd->exists(stationCoordinateECEFFileName))
+                        sd->remove(stationCoordinateECEFFileName);
+                    if (sd->exists(stationCoordinateGeodeticFileName))
+                        sd->remove(stationCoordinateGeodeticFileName);
                 }
 
                 recordProfileNumber(0); // Move to Profile1
