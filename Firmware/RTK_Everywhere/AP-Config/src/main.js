@@ -844,6 +844,11 @@ function sendData() {
         if (initialSettings[id] !== currentValue) {
             settingCSV += id + "," + currentValue + ",";
             changedCount++;
+
+            // Update initialSettings with the currentValue
+            // If the user reverts to the original setting,
+            // that needs to be sent as a change
+            initialSettings[id] = currentValue;
         }
     }
 
@@ -856,6 +861,9 @@ function sendData() {
         if (initialSettings[id] !== currentValue) {
             settingCSV += id + "," + currentValue + ",";
             changedCount++;
+
+            // Update initialSettings with the currentValue
+            initialSettings[id] = currentValue;
         }
     }
 
@@ -874,6 +882,9 @@ function sendData() {
         if (initialSettings[id] !== currentValue) {
             settingCSV += id + ',' + currentValue + ",";
             changedCount++;
+
+            // Update initialSettings with the currentValue
+            initialSettings[id] = currentValue;
         }
     }
 
