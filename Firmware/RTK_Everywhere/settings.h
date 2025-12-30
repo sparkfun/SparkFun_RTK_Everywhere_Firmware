@@ -1310,8 +1310,8 @@ const RTK_Settings_Entry rtkSettingsEntries[] =
     // Antenna
     { 1, 1, 0, 1, 1, 1, 1, 1, 1, ALL, 1, _int16_t,  0, & settings.antennaHeight_mm, "antennaHeight_mm", nullptr, },
     { 1, 1, 0, 1, 1, 1, 1, 1, 1, ALL, 1, _float,    2, & settings.antennaPhaseCenter_mm, "antennaPhaseCenter_mm", nullptr, },
-    { 1, 1, 0, 1, 1, 1, 0, 1, 1, ALL, 1, _uint16_t, 0, & settings.ARPLoggingInterval_s, "ARPLoggingInterval", nullptr, },
-    { 1, 1, 0, 1, 1, 1, 0, 1, 1, ALL, 1, _bool,     0, & settings.enableARPLogging, "enableARPLogging", nullptr, },
+    { 1, 1, 0, 1, 1, 1, 0, 1, 1, ALL, 0, _uint16_t, 0, & settings.ARPLoggingInterval_s, "ARPLoggingInterval", nullptr, },
+    { 1, 1, 0, 1, 1, 1, 0, 1, 1, ALL, 0, _bool,     0, & settings.enableARPLogging, "enableARPLogging", nullptr, },
 
     // Base operation
     { 1, 1, 0, 1, 1, 1, 1, 1, 1, ALL, 1, tCoordInp, 0, & settings.coordinateInputType, "coordinateInputType", nullptr, },
