@@ -308,10 +308,12 @@ void menuUserProfiles()
                         sd->remove(stationCoordinateGeodeticFileName);
                 }
 
+                gnssConfigureDefaults(); // Set all bits in the request bitfield to cause the GNSS receiver to go through a
+                                         // full (re)configuration
+
                 recordProfileNumber(0); // Move to Profile1
 
-                snprintf(settingsFileName, sizeof(settingsFileName), "/%s_Settings_%d.txt", platformFilePrefix,
-                         profileNumber); // Update file name with new profileNumber
+                setSettingsFileName(); // Update file name with new profileNumber. Also updates station coordinates file names
 
                 // We need to load these settings from file so that we can record a profile name change correctly
                 bool responseLFS = loadSystemSettingsFromFileLFS(settingsFileName);
