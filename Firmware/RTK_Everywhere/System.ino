@@ -46,7 +46,7 @@ void rtkValidateHeap(const char * string)
         heap_caps_check_integrity(MALLOC_CAP_INTERNAL, true);
         systemPrintf("Checking PSRAM heap\r\n");
         heap_caps_check_integrity(MALLOC_CAP_SPIRAM, true);
-        reportFatalError("Corrput heap!");
+        reportFatalError("Corrupt heap!");
     }
 }
 
@@ -83,6 +83,20 @@ void *rtkMalloc(size_t sizeInBytes, const char *text)
     }
     else
         systemPrintf("Error: Failed to allocate %d bytes from %s: %s\r\n", sizeInBytes, area, text);
+
+    // If you are trying to trace "CORRUPT HEAP Bad tail" issues, add the tail address here:
+    const uint32_t badTail = 0; // E.g. 0x3f80135c which was being allocated to the oled
+    if (badTail)
+    {
+        char ptrAddress[11];
+        snprintf(ptrAddress, sizeof(ptrAddress), "%p", data);
+        char tailMinusSize[11];
+        snprintf(tailMinusSize, sizeof(tailMinusSize), "0x%08x", badTail - sizeInBytes);
+        //systemPrintf("rtkMalloc: address %s tail-size %s\r\n", ptrAddress, tailMinusSize);
+        if (strcmp(ptrAddress, tailMinusSize) == 0)
+            systemPrintf("rtkMalloc: tail 0x%08x length 0x%04X (%ld) allocated to %s\r\n",
+                         badTail, sizeInBytes, sizeInBytes, text);
+    }
 
     return data;
 }
