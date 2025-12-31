@@ -342,15 +342,18 @@ void feedWdt()
 // time.
 void gnssReadTask(void *e)
 {
+    int bytes;
+
     // Start notification
     task.gnssReadTaskRunning = true;
     if (settings.printTaskStartStop)
         systemPrintln("Task gnssReadTask started");
 
     // Initialize the main parser
+    bytes = psramFound() ? 16384 : 3000;
     rtkParse = sempBeginParser(parserTable, parserCount, parserNames, parserNameCount,
                                0,                   // Scratchpad bytes
-                               3000,                // Buffer length
+                               bytes,               // Buffer length
                                processUart1Message, // eom Call Back
                                "rtkParse");         // Parser Name
     if (!rtkParse)
@@ -373,9 +376,12 @@ void gnssReadTask(void *e)
     if (sbfParserNeeded)
     {
         // Initialize the SBF parser for the mosaic-X5
+        bytes = psramFound() ? 16384 : sempGnssReadBufferSize;
+        if (bytes < sempGnssReadBufferSize)
+            bytes = sempGnssReadBufferSize;
         sbfParse = sempBeginParser(sbfParserTable, sbfParserCount, sbfParserNames, sbfParserNameCount,
                                    0,                      // Scratchpad bytes
-                                   sempGnssReadBufferSize, // Buffer length - 3000 isn't enough!
+                                   bytes,                  // Buffer length
                                    processUart1SBF,        // eom Call Back - in mosaic.ino
                                    "sbfParse");            // Parser Name
         if (!sbfParse)
@@ -391,10 +397,11 @@ void gnssReadTask(void *e)
             sempSbfSetInvalidDataCallback(sbfParse, processNonSBFData);
 
             // Initialize the SPARTN parser for the mosaic-X5
+            bytes = 1200; // SPARTN payload is 1024 bytes max
             spartnParse =
                 sempBeginParser(spartnParserTable, spartnParserCount, spartnParserNames, spartnParserNameCount,
                                 0,                  // Scratchpad bytes
-                                1200,               // Buffer length - SPARTN payload is 1024 bytes max
+                                bytes,              // Buffer length
                                 processUart1SPARTN, // eom Call Back - in mosaic.ino
                                 "spartnParse");     // Parser Name
             if (!spartnParse)
@@ -2676,9 +2683,10 @@ void bluetoothCommandTask(void *pvParameters)
 void beginRtcmParse()
 {
     // Begin the RTCM parser - which will extract the base location from RTCM1005 / 1006
+    int bytes = psramFound() ? 16384 : 1050;
     rtcmParse = sempBeginParser(rtcmParserTable, rtcmParserCount, rtcmParserNames, rtcmParserNameCount,
                                 0,                  // Scratchpad bytes
-                                1050,               // Buffer length
+                                bytes,              // Buffer length
                                 processRTCMMessage, // eom Call Back
                                 "rtcmParse");       // Parser Name
     if (!rtcmParse)
