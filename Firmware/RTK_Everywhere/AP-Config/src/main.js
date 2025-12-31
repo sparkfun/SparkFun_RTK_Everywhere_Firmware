@@ -844,11 +844,7 @@ function sendData() {
         if (initialSettings[id] !== currentValue) {
             settingCSV += id + "," + currentValue + ",";
             changedCount++;
-
-            // Update initialSettings with the currentValue
-            // If the user reverts to the original setting,
-            // that needs to be sent as a change
-            initialSettings[id] = currentValue;
+            // updateInitialSettings will update initialSettings with the currentValue
         }
     }
 
@@ -861,9 +857,7 @@ function sendData() {
         if (initialSettings[id] !== currentValue) {
             settingCSV += id + "," + currentValue + ",";
             changedCount++;
-
-            // Update initialSettings with the currentValue
-            initialSettings[id] = currentValue;
+            // updateInitialSettings will update initialSettings with the currentValue
         }
     }
 
@@ -882,9 +876,7 @@ function sendData() {
         if (initialSettings[id] !== currentValue) {
             settingCSV += id + ',' + currentValue + ",";
             changedCount++;
-
-            // Update initialSettings with the currentValue
-            initialSettings[id] = currentValue;
+            // updateInitialSettings will update initialSettings with the currentValue
         }
     }
 
@@ -900,6 +892,33 @@ function sendData() {
     }
 
     return result;
+}
+
+//Once the changes have been sent, update initialSettings to avoid sending duplicates
+function updateInitialSettings() {
+    // Check input boxes and dropdowns
+    var clsElements = document.querySelectorAll(".form-control, .form-dropdown");
+    for (let x = 0; x < clsElements.length; x++) {
+        var id = clsElements[x].id;
+        var currentValue = clsElements[x].value;
+        initialSettings[id] = currentValue;
+    }
+
+    // Check boxes, radio buttons
+    clsElements = document.querySelectorAll(".form-check-input:not(.fileManagerCheck), .form-radio");
+    for (let x = 0; x < clsElements.length; x++) {
+        var id = clsElements[x].id;
+        // Store boolean as string 'true'/'false' for consistent comparison with initialSettings
+        var currentValue = clsElements[x].checked.toString();
+        initialSettings[id] = currentValue;
+    }
+
+    // Corrections Priorities
+    for (let x = 0; x < correctionsSourceNames.length; x++) {
+        var id = "correctionsPriority_" + correctionsSourceNames[x];
+        var currentValue = correctionsSourcePriorities[x].toString();
+        initialSettings[id] = currentValue;
+    }
 }
 
 function showError(id, errorText) {
@@ -1837,6 +1856,8 @@ function confirmDataReceipt() {
     else {
         console.log("Unknown owner of confirmDataReceipt");
     }
+    //Now update initialSettings to avoid sending the changes again
+    updateInitialSettings();
 }
 
 function firmwareUploadWait() {
