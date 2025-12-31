@@ -540,6 +540,9 @@ function parseIncoming(msg) {
             messageText += " id='" + messageName + "' value='" + messageRate + "'>";
             messageText += "<p id='" + messageName + "Error' class='inlineError'></p>";
             messageText += "</div></div>";
+
+            // Add this rate to initialSettings - if it has not been added before
+            addInitialSetting(id, val);
         }
         else if (id.includes("messageRatePQTM")) {
             // messageRatePQTM_EPE
@@ -557,6 +560,9 @@ function parseIncoming(msg) {
             // Save the name and value as we can't set 'checked' yet. messageText has not yet been added to innerHTML
             savedCheckboxNames.push(messageName);
             savedCheckboxValues.push(val);
+
+            // Add to initialSettings - if it has not been added before. Val will be "true" / "false"
+            addInitialSetting(id, val);
         }
         else if (id.includes("messageRate") || id.includes("messageIntervalRTCM")) {
             // messageRateNMEA_GPDTM
@@ -605,6 +611,9 @@ function parseIncoming(msg) {
             // Save the name and value as we can't set the value yet. messageText has not yet been added to innerHTML
             savedMessageNames.push(messageName);
             savedMessageValues.push(val);
+
+            // Add this to initialSettings - if it has not been added before
+            addInitialSetting(id, val);
         }
         else if (id.includes("messageEnabledRTCM")) {
             // messageEnabledRTCMRover_RTCM1230
@@ -623,6 +632,9 @@ function parseIncoming(msg) {
             // Save the name and value as we can't set 'checked' yet. messageText has not yet been added to innerHTML
             savedCheckboxNames.push(messageName);
             savedCheckboxValues.push(val);
+
+            // Add this to initialSettings - if it has not been added before
+            addInitialSetting(id, val);
         }
         else if (id.includes("correctionsPriority")) {
             var correctionName = id;
@@ -2470,6 +2482,7 @@ function getFileList() {
     }
 }
 
+//Called when user clicks the Message Rates button
 function getMessageList() {
     if (obtainedMessageList == false) {
         obtainedMessageList = true;
@@ -2509,6 +2522,9 @@ function getMessageList() {
     }
 }
 
+//Get the Base message rates
+//We (currently) don't include savedMessageNames/Values here as only the mosaic-X5
+//NMEA streams need those, and those are covered by getMessageList
 function getMessageListBase() {
     if (obtainedMessageListBase == false) {
         obtainedMessageListBase = true;
