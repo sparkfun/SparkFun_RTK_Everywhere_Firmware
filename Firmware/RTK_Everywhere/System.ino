@@ -26,22 +26,18 @@ void beginPsram()
 }
 
 // Validate the heap
-void rtkValidateHeap(const char * string)
+void rtkValidateHeap(const char *string)
 {
     // Validate the heap
     if (heap_caps_check_integrity_all(true) == false)
     {
         TaskHandle_t handle;
-        const char * taskName;
+        const char *taskName;
 
         handle = xTaskGetCurrentTaskHandle();
         taskName = pcTaskGetName(handle);
-        systemPrintf("Task handle 0x%08x %s%s%scalling %s\r\n",
-                      handle,
-                      taskName ? "(" : "",
-                      taskName ? taskName : "",
-                      taskName ? ") " : "",
-                      string);
+        systemPrintf("Task handle 0x%08x %s%s%scalling %s\r\n", handle, taskName ? "(" : "", taskName ? taskName : "",
+                     taskName ? ") " : "", string);
         systemPrintf("Checking internal heap\r\n");
         heap_caps_check_integrity(MALLOC_CAP_INTERNAL, true);
         systemPrintf("Checking PSRAM heap\r\n");
@@ -88,31 +84,31 @@ void *rtkMalloc(size_t sizeInBytes, const char *text)
 }
 
 // Determine if the address is in the EEPROM (Flash)
-bool rtkIsAddressInEEPROM(void * addr)
+bool rtkIsAddressInEEPROM(void *addr)
 {
     return ((addr >= (void *)0x3f400000) && (addr <= (void *)0x3f7fffff));
 }
 
 // Determine if the address is in PSRAM (SPI RAM)
-bool rtkIsAddressInPSRAM(void * addr)
+bool rtkIsAddressInPSRAM(void *addr)
 {
     return ((addr >= (void *)0x3f800000) && (addr <= (void *)0x3fbfffff));
 }
 
 // Determine if the address is in PSRAM or SRAM
-bool rtkIsAddressInRAM(void * addr)
+bool rtkIsAddressInRAM(void *addr)
 {
     return rtkIsAddressInSRAM(addr) || rtkIsAddressInPSRAM(addr);
 }
 
-bool rtkIsAddressInROM(void * addr)
+bool rtkIsAddressInROM(void *addr)
 {
-    return (((addr >= (void *)0x3ff90000) && (addr <= (void *)0x3ff9ffff))
-        ||  ((addr >= (void *)0x40000000) && (addr <= (void *)0x4005ffff)));
+    return (((addr >= (void *)0x3ff90000) && (addr <= (void *)0x3ff9ffff)) ||
+            ((addr >= (void *)0x40000000) && (addr <= (void *)0x4005ffff)));
 }
 
 // Determine if the address is in SRAM
-bool rtkIsAddressInSRAM(void * addr)
+bool rtkIsAddressInSRAM(void *addr)
 {
     return ((addr >= (void *)0x3ffae000) && (addr <= (void *)0x3ffdffff));
 }
@@ -120,7 +116,7 @@ bool rtkIsAddressInSRAM(void * addr)
 // See https://en.cppreference.com/w/cpp/memory/new/operator_delete
 void operator delete(void *ptr) noexcept
 {
-    //free(ptr);
+    // free(ptr);
 
     // Do we still need this?
     rtkFree(ptr, "buffer");
@@ -134,8 +130,8 @@ void operator delete[](void *ptr) noexcept
 // See https://en.cppreference.com/w/cpp/memory/new/operator_new
 void *operator new(std::size_t count)
 {
-    //void *data = malloc(count);
-    //return data;
+    // void *data = malloc(count);
+    // return data;
 
     // Do we still need this?
     return rtkMalloc(count, "new buffer");
