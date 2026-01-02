@@ -950,12 +950,11 @@ bool isUsbAttached()
 {
     if (pin_powerAdapterDetect != PIN_UNDEFINED)
     {
-        if (pin_powerAdapterDetect != PIN_UNDEFINED)
-            // Pin goes low when wall adapter is detected
-            if (readAnalogPinAsDigital(pin_powerAdapterDetect) == HIGH)
-                return false;
-        return true;
+        // Pin goes low when wall adapter is detected
+        if (readAnalogPinAsDigital(pin_powerAdapterDetect) == LOW)
+            return true;
     }
+
     return false;
 }
 
@@ -1078,7 +1077,7 @@ void gpioExpanderSelectLoraConfigure()
         gpioExpanderSwitches->digitalWrite(gpioExpanderSwitch_S3, HIGH);
 }
 
-// Connect Flex GNSS UART2 to LoRa UART0 for normal TX/RX of corrections and data
+// Connect Flex GNSS receiver UART2 to LoRa UART0 for normal TX/RX of corrections and data
 void gpioExpanderSelectLoraCommunication()
 {
     if (online.gpioExpanderSwitches == true)
