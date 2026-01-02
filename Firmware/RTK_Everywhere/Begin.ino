@@ -1091,7 +1091,7 @@ void beginSD()
             int maxTries = 1;
             for (; tries < maxTries; tries++)
             {
-                log_d("SD init failed - using SPI and SdFat. Trying again %d out of %d", tries + 1, maxTries);
+                //systemPrintf("SD init failed - using SPI and SdFat. Trying again %d out of %d\r\n", tries + 1, maxTries);
 
                 delay(250); // Give SD more time to power up, then try again
                 if (sd->begin(SdSpiConfig(pin_microSD_CS, SHARED_SPI, SD_SCK_MHZ(settings.spiFrequency))) == true)
@@ -1100,8 +1100,10 @@ void beginSD()
 
             if (tries == maxTries)
             {
-                systemPrintln("SD init failed - using SPI and SdFat. Is card formatted?");
+                systemPrintln("microSD init failed. Is card formatted? Marking card offline.");
                 sdDeselectCard();
+                
+                present.microSd = false; // Stop attempting to use SD
 
                 // Check reset count and prevent rolling reboot
                 if (settings.resetCount < 5)
