@@ -808,7 +808,7 @@ void beginBoard()
         pin_powerFastOff = 23;
         pin_modeButton = 25;
 
-        pin_IMU_RX = 14; // ESP32 UART2
+        pin_IMU_RX = 14; // ESP32 UART2, also connected to LoRa radio through SW3
         pin_IMU_TX = 17;
 
         pin_powerAdapterDetect = 36; // Goes low when USB cable is plugged in
@@ -823,6 +823,11 @@ void beginBoard()
         pin_SCK = 18;  // SPI SCK --> microSD card SCK
         pin_microSD_CS = 22;
         pin_microSD_CardDetect = 39;
+
+        // LoRa pins are connected to GPIO expander
+        // LoRa_EN connected to Expander IO4 powers the LoRa module when high
+        // LoRa_BOOT0 connected to Expander IO6 enters bootloader mode when high
+        // The LoRa interface is connected to ESP32 UART2
 
         pinMode(pin_powerFastOff, OUTPUT);
         digitalWrite(pin_powerFastOff, LOW); // Low = Stay on. High = turn off.
