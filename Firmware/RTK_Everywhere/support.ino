@@ -65,8 +65,8 @@ void systemWrite(const uint8_t *buffer, uint16_t length)
         bluetoothCommandWrite(buffer, length);
     }
 
-    // We're just adding up the size of the list, don't pass along to serial port
-    else if (printEndpoint == PRINT_ENDPOINT_COUNT)
+    // Count the number of commands, 1 systemPrint call per command
+    else if (printEndpoint == PRINT_ENDPOINT_COUNT_COMMANDS)
     {
         systemWriteCounts++;
     }
