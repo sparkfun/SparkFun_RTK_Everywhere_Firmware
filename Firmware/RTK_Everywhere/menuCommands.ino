@@ -270,7 +270,7 @@ t_cliResult processCommand(char *cmdBuffer)
 
                 // First calculate the lines in the LIST response
                 PrintEndpoint originalPrintEndpoint = printEndpoint;
-                printEndpoint = PRINT_ENDPOINT_COUNT;
+                printEndpoint = PRINT_ENDPOINT_COUNT_COMMANDS;
                 systemWriteCounts = 0;
                 printAvailableSettings();
                 printEndpoint = originalPrintEndpoint;
@@ -534,7 +534,7 @@ void commandSendAllInterfaces(char *rxData)
     PrintEndpoint originalPrintEndpoint = printEndpoint;
 
     // Don't re-direct if we're doing a count of the print output
-    if (printEndpoint != PRINT_ENDPOINT_COUNT)
+    if (printEndpoint != PRINT_ENDPOINT_COUNT_COMMANDS)
     {
         printEndpoint = PRINT_ENDPOINT_ALL;
 
