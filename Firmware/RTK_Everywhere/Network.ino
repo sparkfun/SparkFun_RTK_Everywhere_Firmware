@@ -2668,6 +2668,7 @@ void networkUserRemove(NETCONSUMER_t consumer, const char *fileName, uint32_t li
 {
     NetIndex_t index;
     NETCONSUMER_MASK_t mask;
+    const char * name;
 
     // Validate the consumer
     networkConsumerValidate(consumer);
@@ -2683,7 +2684,10 @@ void networkUserRemove(NETCONSUMER_t consumer, const char *fileName, uint32_t li
     if (netIfUsers[index] & mask)
     {
         if (settings.debugNetworkLayer)
-            systemPrintf("%s removing user %s\r\n", networkInterfaceTable[index].name, networkConsumerTable[consumer]);
+        {
+            name = (index == NETWORK_ANY) ? "ANY" : networkInterfaceTable[index].name;
+            systemPrintf("%s removing user %s\r\n", name, networkConsumerTable[consumer]);
+        }
 
         // The network interface is no longer in use by this consumer
         netIfUsers[index] &= ~mask;
