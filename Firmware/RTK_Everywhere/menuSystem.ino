@@ -235,8 +235,6 @@ void menuSystem()
 
         systemPrintln("r) Reset all settings to default");
 
-        systemPrintln("t) Display task list");
-
         systemPrintf("u) Printed measurement units: %s\r\n",
                      measurementScaleTable[measurementScaleToIndex(settings.measurementScale)].measurementScaleName);
 
@@ -327,8 +325,6 @@ void menuSystem()
             else
                 systemPrintln("Reset aborted");
         }
-        else if (incoming == 't')
-            rtkTaskList(&Serial);
         else if (incoming == 'u')
         {
             settings.measurementScale += 1;
@@ -929,6 +925,8 @@ void menuDebugSoftware()
 
         systemPrintln("r) Force system reset");
 
+        systemPrintln("t) Display task list");
+
         systemPrintln("x) Exit");
 
         byte incoming = getUserInputCharacterNumber();
@@ -989,6 +987,8 @@ void menuDebugSoftware()
 
             ESP.restart();
         }
+        else if (incoming == 't')
+            rtkTaskList(&Serial);
         else if (incoming == 'x')
             break;
         else if (incoming == INPUT_RESPONSE_GETCHARACTERNUMBER_EMPTY)
