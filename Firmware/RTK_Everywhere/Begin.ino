@@ -777,8 +777,10 @@ void beginBoard()
         present.psram_2mb = true;
 
         present.antennaPhaseCenter_mm = 62.0; // APC from drawings
-        present.radio_lora = true;
         present.fuelgauge_bq40z50 = true;
+
+        present.radio_lora = true;
+        present.loraDedicatedUart = true;
 
         present.button_powerLow = true; // Button is pressed when high
         present.button_function = true; // Function or Fn button
@@ -1096,7 +1098,8 @@ void beginSD()
             int maxTries = 1;
             for (; tries < maxTries; tries++)
             {
-                //systemPrintf("SD init failed - using SPI and SdFat. Trying again %d out of %d\r\n", tries + 1, maxTries);
+                // systemPrintf("SD init failed - using SPI and SdFat. Trying again %d out of %d\r\n", tries + 1,
+                // maxTries);
 
                 delay(250); // Give SD more time to power up, then try again
                 if (sd->begin(SdSpiConfig(pin_microSD_CS, SHARED_SPI, SD_SCK_MHZ(settings.spiFrequency))) == true)
@@ -1107,7 +1110,7 @@ void beginSD()
             {
                 systemPrintln("microSD init failed. Is card formatted? Marking card offline.");
                 sdDeselectCard();
-                
+
                 present.microSd = false; // Stop attempting to use SD
 
                 // Check reset count and prevent rolling reboot
