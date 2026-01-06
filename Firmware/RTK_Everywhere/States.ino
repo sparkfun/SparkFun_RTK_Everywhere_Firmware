@@ -102,9 +102,10 @@ void stateUpdate()
 
             setMuxport(settings.dataPortChannel); // Return mux to original channel
 
+            webServerStop();             // Stop the web config server
+
             bluetoothStart(); // Start Bluetooth if it is not already started
 
-            webServerStop();             // Stop the web config server
             baseCasterDisableOverride(); // Disable casting overrides
 
             // Start the UART connected to the GNSS receiver for NMEA data (enables logging)

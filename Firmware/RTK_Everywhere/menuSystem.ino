@@ -925,6 +925,8 @@ void menuDebugSoftware()
 
         systemPrintln("r) Force system reset");
 
+        systemPrintln("t) Display task list");
+
         systemPrintln("x) Exit");
 
         byte incoming = getUserInputCharacterNumber();
@@ -985,6 +987,8 @@ void menuDebugSoftware()
 
             ESP.restart();
         }
+        else if (incoming == 't')
+            rtkTaskList(&Serial);
         else if (incoming == 'x')
             break;
         else if (incoming == INPUT_RESPONSE_GETCHARACTERNUMBER_EMPTY)

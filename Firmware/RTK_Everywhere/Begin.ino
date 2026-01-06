@@ -777,8 +777,10 @@ void beginBoard()
         present.psram_2mb = true;
 
         present.antennaPhaseCenter_mm = 62.0; // APC from drawings
-        present.radio_lora = true;
         present.fuelgauge_bq40z50 = true;
+
+        present.radio_lora = true;
+        present.loraDedicatedUart = true;
 
         present.button_powerLow = true; // Button is pressed when high
         present.button_function = true; // Function or Fn button
@@ -790,7 +792,7 @@ void beginBoard()
         present.microSdCardDetectLow = true;
 
         present.display_i2c0 = true;
-        //present.i2c0BusSpeed_400 = true; // The BQ40Z50 requires 100kHz
+        // present.i2c0BusSpeed_400 = true; // The BQ40Z50 fuel gauge requires 100kHz
         present.display_type = DISPLAY_128x64;
         present.displayInverted = true;
         present.tiltPossible = true;
@@ -808,7 +810,7 @@ void beginBoard()
         pin_powerFastOff = 23;
         pin_modeButton = 25;
 
-        pin_IMU_RX = 14; // ESP32 UART2
+        pin_IMU_RX = 14; // ESP32 UART2, also connected to LoRa radio through SW3
         pin_IMU_TX = 17;
 
         pin_powerAdapterDetect = 36; // Goes low when USB cable is plugged in
@@ -823,6 +825,11 @@ void beginBoard()
         pin_SCK = 18;  // SPI SCK --> microSD card SCK
         pin_microSD_CS = 22;
         pin_microSD_CardDetect = 39;
+
+        // LoRa pins are connected to GPIO expander
+        // LoRa_EN connected to Expander IO4 powers the LoRa module when high
+        // LoRa_BOOT0 connected to Expander IO6 enters bootloader mode when high
+        // The LoRa interface is connected to ESP32 UART2
 
         pinMode(pin_powerFastOff, OUTPUT);
         digitalWrite(pin_powerFastOff, LOW); // Low = Stay on. High = turn off.
@@ -1091,7 +1098,8 @@ void beginSD()
             int maxTries = 1;
             for (; tries < maxTries; tries++)
             {
-                log_d("SD init failed - using SPI and SdFat. Trying again %d out of %d", tries + 1, maxTries);
+                // systemPrintf("SD init failed - using SPI and SdFat. Trying again %d out of %d\r\n", tries + 1,
+                // maxTries);
 
                 delay(250); // Give SD more time to power up, then try again
                 if (sd->begin(SdSpiConfig(pin_microSD_CS, SHARED_SPI, SD_SCK_MHZ(settings.spiFrequency))) == true)
@@ -1100,8 +1108,10 @@ void beginSD()
 
             if (tries == maxTries)
             {
-                systemPrintln("SD init failed - using SPI and SdFat. Is card formatted?");
+                systemPrintln("microSD init failed. Is card formatted? Marking card offline.");
                 sdDeselectCard();
+
+                present.microSd = false; // Stop attempting to use SD
 
                 // Check reset count and prevent rolling reboot
                 if (settings.resetCount < 5)
