@@ -659,6 +659,51 @@ void forceRmcCog(char *msg, size_t maxLen)
     sprintf(&msg[len], "%02X", csum);
 }
 
+// Replace the RMC Mode Indicator - if needed
+// Location Information expects the Mode Indicator to be:
+// A=Autonomous, D=Differential, E=Approximation, N=Invalid Data
+// ATS throws an error with the F=Float, M=Manual, R=RTK from the LG290P
+// Change unsupported modes to A / D
+void replaceRmcModeIndicator(char *msg, size_t maxLen)
+{
+    if (strstr(msg, "RMC") == nullptr)
+        return; // Nothing to do
+
+    // Find the start of Mode Indicator - at the 12th comma
+    int numCommas = 0;
+    size_t len = 0;
+    while ((numCommas < 12) && (msg[len] != '*') && (len < maxLen))
+    {
+        if (msg[len++] == ',')
+            numCommas++;
+    }
+
+    if (len >= (maxLen - 3)) // Something went horribly wrong
+        return;
+
+    // If the next char is ',' or '*' - there's nothing to do
+    if ((msg[len] == ',') || (msg[len] == '*') || (numCommas < 12))
+        return;
+
+    // If the Mode Indicator is A, D, E or N - there's nothing to do
+    if ((msg[len] == 'A') || (msg[len] == 'D') || (msg[len] == 'E') || (msg[len] == 'N'))
+        return;
+
+    // Replace unsupported mode indicator
+    if (msg[len] == 'M') // Change Manual to Autonomous
+        msg[len] = 'A';
+    else
+        msg[len] = 'D'; // Change everything else to Differential
+
+    // Update the checksum: XOR chars between '$' and '*'
+    len = 1;
+    uint8_t csum = 0;
+    while ((len < maxLen) && (msg[len] != '*'))
+        csum = csum ^ msg[len++];
+    len++; // Point at the checksum and update it
+    sprintf(&msg[len], "%02X", csum);
+}
+
 // Remove the RMC Navigational Status field - if needed
 void removeRmcNavStat(char *msg, size_t maxLen)
 {
@@ -691,7 +736,7 @@ void removeRmcNavStat(char *msg, size_t maxLen)
     if (msg[asterix] != '*') // Something went horribly wrong
         return;
 
-    // Delete the NavStat
+    // Delete the NavStat - overwrite it with the asterix
     for (size_t i = 0; i < (strlen(msg) + 1 - asterix); i++) // Copy the * CSUM NULL
         msg[len + i] = msg[asterix + i];
 
@@ -785,6 +830,7 @@ void processUart1Message(SEMP_PARSE_STATE *parse, uint16_t type)
                     latestGPRMC[strlen(latestGPRMC) - 2] = 0; // Truncate the \r\n
                 forceTalkerId("P", latestGPRMC, latestNmeaMaxLen);
                 forceRmcCog(latestGPRMC, latestNmeaMaxLen);
+                replaceRmcModeIndicator(latestGPRMC, latestNmeaMaxLen);
                 removeRmcNavStat(latestGPRMC, latestNmeaMaxLen);
             }
             else
