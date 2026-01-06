@@ -51,7 +51,7 @@ public:
   size_t write(const uint8_t *buffer, size_t size);
   void flush();
   void end(void);
-  void memrelease();
+  void memrelease(int mode);
   void setTimeout(int timeoutMS);
   void onData(BluetoothSerialDataCb cb);
   esp_err_t register_callback(esp_spp_cb_t callback);

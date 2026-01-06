@@ -1127,9 +1127,9 @@ void BluetoothSerial::end()
 /**
  * free additional ~30kB ram, reset is required to enable BT again
  */
-void BluetoothSerial::memrelease()
+void BluetoothSerial::memrelease(int mode)
 {
-    esp_bt_mem_release(ESP_BT_MODE_BTDM);
+    esp_bt_mem_release((esp_bt_mode_t)mode);
 }
 
 #ifdef CONFIG_BT_SSP_ENABLED

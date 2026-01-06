@@ -48,7 +48,7 @@ class BTSerialInterface : public virtual Stream
     virtual void respondPasskey(uint32_t passkey) = 0;
 
     virtual void deleteAllBondedDevices() = 0;
-    virtual void memrelease() = 0;
+    virtual void memrelease(int mode) = 0;
 };
 
 class BTClassicSerial : public virtual BTSerialInterface, public BluetoothSerial
@@ -169,9 +169,9 @@ class BTClassicSerial : public virtual BTSerialInterface, public BluetoothSerial
         BluetoothSerial::deleteAllBondedDevices();
     }
 
-    void memrelease()
+    void memrelease(int mode)
     {
-        BluetoothSerial::memrelease();
+        BluetoothSerial::memrelease(mode);
     }
 };
 
@@ -292,7 +292,7 @@ class BTLESerial : public virtual BTSerialInterface, public BleBufferedSerial
 
     void deleteAllBondedDevices() {}
 
-    void memrelease() {}
+    void memrelease(int mode) {}
 
     // Callbacks removed in v2 of BleSerial. Using polled connected() in bluetoothUpdate()
     // override BLEServerCallbacks
