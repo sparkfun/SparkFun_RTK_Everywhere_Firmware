@@ -64,7 +64,7 @@ RUN arduino-cli lib update-index
 RUN arduino-cli core install "esp32:esp32@${CORE_VERSION}"
 
 # Get Known Libraries
-RUN arduino-cli lib install ArduinoJson@7.0.4
+RUN arduino-cli lib install ArduinoJson@7.4.2
 RUN arduino-cli lib install ESP32Time@2.0.0
 RUN arduino-cli lib install ESP32_BleSerial@3.0.0
 RUN arduino-cli lib install "ESP32-OTA-Pull"@1.0.0

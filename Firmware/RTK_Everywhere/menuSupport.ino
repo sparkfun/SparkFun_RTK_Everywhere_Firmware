@@ -10,7 +10,6 @@ void changeProfileNumber(byte newProfileNumber)
     recordSystemSettings(); // Before switching, we need to record the current settings to LittleFS and SD
 
     recordProfileNumber(newProfileNumber);
-    profileNumber = newProfileNumber;
     setSettingsFileName(); // Load the settings file name into memory (enabled profile name delete)
 
     // We need to load these settings from file so that we can record a profile name change correctly

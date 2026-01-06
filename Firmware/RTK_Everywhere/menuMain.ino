@@ -292,19 +292,28 @@ void menuUserProfiles()
                 // Remove profile from LittleFS
                 if (LittleFS.exists(settingsFileName))
                     LittleFS.remove(settingsFileName);
+                if (LittleFS.exists(stationCoordinateECEFFileName))
+                    LittleFS.remove(stationCoordinateECEFFileName);
+                if (LittleFS.exists(stationCoordinateGeodeticFileName))
+                    LittleFS.remove(stationCoordinateGeodeticFileName);
 
                 // Remove profile from SD if available
                 if (online.microSD == true)
                 {
                     if (sd->exists(settingsFileName))
                         sd->remove(settingsFileName);
+                    if (sd->exists(stationCoordinateECEFFileName))
+                        sd->remove(stationCoordinateECEFFileName);
+                    if (sd->exists(stationCoordinateGeodeticFileName))
+                        sd->remove(stationCoordinateGeodeticFileName);
                 }
 
-                recordProfileNumber(0); // Move to Profile1
-                profileNumber = 0;
+                gnssConfigureDefaults(); // Set all bits in the request bitfield to cause the GNSS receiver to go through a
+                                         // full (re)configuration
 
-                snprintf(settingsFileName, sizeof(settingsFileName), "/%s_Settings_%d.txt", platformFilePrefix,
-                         profileNumber); // Update file name with new profileNumber
+                recordProfileNumber(0); // Move to Profile1
+
+                setSettingsFileName(); // Update file name with new profileNumber. Also updates station coordinates file names
 
                 // We need to load these settings from file so that we can record a profile name change correctly
                 bool responseLFS = loadSystemSettingsFromFileLFS(settingsFileName);

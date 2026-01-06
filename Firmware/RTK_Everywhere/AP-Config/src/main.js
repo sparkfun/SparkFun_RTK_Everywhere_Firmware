@@ -89,7 +89,8 @@ var divTables = {
     lg290pGnssSettings: ["useMSM7", "rtcmMinElev"],
     rtcmMinElevConfig: ["rtcmMinElev"],
     minElevConfig: ["minElev"],
-    minCN0Config: ["minCN0"]
+    minCN0Config: ["minCN0"],
+    logToSDCard: ["enableLogging"]
 };
 
 function showHideDivs() {
@@ -164,7 +165,6 @@ function parseIncoming(msg) {
                 show("ntpConfig");
                 show("portsConfig");
                 hide("externalPortOptions");
-                show("logToSDCard");
                 hide("tiltConfig");
                 hide("beeperControl");
                 show("measurementRateInput");
@@ -196,7 +196,6 @@ function parseIncoming(msg) {
                 hide("ntpConfig");
                 show("portsConfig");
                 show("externalPortOptions");
-                show("logToSDCard");
                 hide("tiltConfig");
                 hide("beeperControl");
                 show("measurementRateInput");
@@ -215,7 +214,6 @@ function parseIncoming(msg) {
                 hide("ntpConfig");
                 show("portsConfig");
                 show("externalPortOptions");
-                show("logToSDCard");
                 hide("tiltConfig");
                 hide("beeperControl");
                 hide("measurementRateInput");
@@ -269,8 +267,6 @@ function parseIncoming(msg) {
                 // No DATA port on Torch
                 hide("externalPortOptions");
 
-                hide("logToSDCard");
-
                 hide("constellationSbas"); //Not supported on UM980
                 hide("constellationNavic"); //Not supported on UM980
 
@@ -303,7 +299,6 @@ function parseIncoming(msg) {
                 hide("ntpConfig");
                 show("portsConfig");
                 show("externalPortOptions");
-                show("logToSDCard");
 
                 hide("tiltConfig");
                 hide("beeperControl");
@@ -366,8 +361,6 @@ function parseIncoming(msg) {
                 // No RADIO port on Torch X2
                 // No DATA port on Torch X2
                 hide("externalPortOptions");
-
-                hide("logToSDCard"); //No SD card on Torch
 
                 hide("constellationSbas"); //Not supported on LG290P
                 show("constellationNavic");
@@ -547,6 +540,9 @@ function parseIncoming(msg) {
             messageText += " id='" + messageName + "' value='" + messageRate + "'>";
             messageText += "<p id='" + messageName + "Error' class='inlineError'></p>";
             messageText += "</div></div>";
+
+            // Add this rate to initialSettings - if it has not been added before
+            addInitialSetting(id, val);
         }
         else if (id.includes("messageRatePQTM")) {
             // messageRatePQTM_EPE
@@ -564,6 +560,9 @@ function parseIncoming(msg) {
             // Save the name and value as we can't set 'checked' yet. messageText has not yet been added to innerHTML
             savedCheckboxNames.push(messageName);
             savedCheckboxValues.push(val);
+
+            // Add to initialSettings - if it has not been added before. Val will be "true" / "false"
+            addInitialSetting(id, val);
         }
         else if (id.includes("messageRate") || id.includes("messageIntervalRTCM")) {
             // messageRateNMEA_GPDTM
@@ -588,6 +587,9 @@ function parseIncoming(msg) {
             messageText += " id='" + messageName + "' value='" + messageRate + "'>";
             messageText += "<p id='" + messageName + "Error' class='inlineError'></p>";
             messageText += "</div></div>";
+
+            // Add this rate to initialSettings - if it has not been added before
+            addInitialSetting(id, val);
         }
         else if (id.includes("messageStreamNMEA")) {
             // messageStreamNMEA_GGA
@@ -609,6 +611,9 @@ function parseIncoming(msg) {
             // Save the name and value as we can't set the value yet. messageText has not yet been added to innerHTML
             savedMessageNames.push(messageName);
             savedMessageValues.push(val);
+
+            // Add this to initialSettings - if it has not been added before
+            addInitialSetting(id, val);
         }
         else if (id.includes("messageEnabledRTCM")) {
             // messageEnabledRTCMRover_RTCM1230
@@ -627,6 +632,9 @@ function parseIncoming(msg) {
             // Save the name and value as we can't set 'checked' yet. messageText has not yet been added to innerHTML
             savedCheckboxNames.push(messageName);
             savedCheckboxValues.push(val);
+
+            // Add this to initialSettings - if it has not been added before
+            addInitialSetting(id, val);
         }
         else if (id.includes("correctionsPriority")) {
             var correctionName = id;
@@ -806,6 +814,20 @@ function saveInitialSettings() {
     // of creating copy here, we will resend any entered coordinates every time.
 }
 
+// Add this setting to initialSettings - if it has not been added before
+function addInitialSetting(id, val) {
+    var seen = false;
+    for (let x = 0; x < initialSettings.length; x++) {
+        if (initialSettings[x] === id) {
+            seen = true;
+        }
+    }
+    if (seen == false) {
+        //console.log("Adding " + id + ":" + val + " to initialSettings");
+        initialSettings[id] = val;
+    }
+}
+
 function hide(id) {
     ge(id).style.display = "none";
 }
@@ -834,6 +856,7 @@ function sendData() {
         if (initialSettings[id] !== currentValue) {
             settingCSV += id + "," + currentValue + ",";
             changedCount++;
+            // updateInitialSettings will update initialSettings with the currentValue
         }
     }
 
@@ -846,6 +869,7 @@ function sendData() {
         if (initialSettings[id] !== currentValue) {
             settingCSV += id + "," + currentValue + ",";
             changedCount++;
+            // updateInitialSettings will update initialSettings with the currentValue
         }
     }
 
@@ -864,18 +888,48 @@ function sendData() {
         if (initialSettings[id] !== currentValue) {
             settingCSV += id + ',' + currentValue + ",";
             changedCount++;
+            // updateInitialSettings will update initialSettings with the currentValue
         }
     }
 
     console.log("Sending " + changedCount + " changed settings: " + settingCSV);
 
+    var result = false;
+
     // Only send if there are changes (plus the always-sent records)
     if (settingCSV.length > 0) {
         websocket.send(settingCSV);
         sendDataTimeout = setTimeout(sendData, 2000);
-    } else {
-        // If nothing changed, immediately report success.
-        showSuccess('saveBtn', "No changes detected.");
+        result = true;
+    }
+
+    return result;
+}
+
+//Once the changes have been sent, update initialSettings to avoid sending duplicates
+function updateInitialSettings() {
+    // Check input boxes and dropdowns
+    var clsElements = document.querySelectorAll(".form-control, .form-dropdown");
+    for (let x = 0; x < clsElements.length; x++) {
+        var id = clsElements[x].id;
+        var currentValue = clsElements[x].value;
+        initialSettings[id] = currentValue;
+    }
+
+    // Check boxes, radio buttons
+    clsElements = document.querySelectorAll(".form-check-input:not(.fileManagerCheck), .form-radio");
+    for (let x = 0; x < clsElements.length; x++) {
+        var id = clsElements[x].id;
+        // Store boolean as string 'true'/'false' for consistent comparison with initialSettings
+        var currentValue = clsElements[x].checked.toString();
+        initialSettings[id] = currentValue;
+    }
+
+    // Corrections Priorities
+    for (let x = 0; x < correctionsSourceNames.length; x++) {
+        var id = "correctionsPriority_" + correctionsSourceNames[x];
+        var currentValue = correctionsSourcePriorities[x].toString();
+        initialSettings[id] = currentValue;
     }
 }
 
@@ -991,16 +1045,6 @@ function validateFields() {
         checkElementString("ntripClientMountPoint", 1, 30, "Must be 1 to 30 characters", "collapseGNSSConfig");
         checkElementCasterUser("ntripClientCasterHost", "ntripClientCasterUser", "rtk2go.com", "User must use their email address", "collapseGNSSConfig");
     }
-    // Don't overwrite with the defaults here. User may want to disable NTRIP but not lose the existing settings.
-    // else {
-    //     clearElement("ntripClientCasterHost", "rtk2go.com");
-    //     clearElement("ntripClientCasterPort", 2101);
-    //     clearElement("ntripClientMountPoint", "bldr_SparkFun1");
-    //     clearElement("ntripClientMountPointPW");
-    //     clearElement("ntripClientCasterUser", "test@test.com");
-    //     clearElement("ntripClientCasterUserPW", "");
-    //     ge("ntripClientTransmitGGA").checked = true;
-    // }
 
     //Check all UBX message boxes
     //match all ids starting with ubxMessageRate_
@@ -1074,32 +1118,14 @@ function validateFields() {
     if (ge("baseTypeSurveyIn").checked == true) {
         checkElementValue("observationSeconds", 60, 600, "Must be between 60 to 600", "collapseBaseConfig");
         checkElementValue("observationPositionAccuracy", 1, 5.1, "Must be between 1.0 to 5.0", "collapseBaseConfig");
-
-        clearElement("fixedEcefX", -1280206.568);
-        clearElement("fixedEcefY", -4716804.403);
-        clearElement("fixedEcefZ", 4086665.484);
-        clearElement("fixedLatText", 40.09029479);
-        clearElement("fixedLongText", -105.18505761);
-        clearElement("fixedAltitude", 1560.089);
     }
     else {
-        clearElement("observationSeconds", 60);
-        clearElement("observationPositionAccuracy", 5.0);
-
         if (ge("fixedBaseCoordinateTypeECEF").checked == true) {
-            clearElement("fixedLatText", 40.09029479);
-            clearElement("fixedLongText", -105.18505761);
-            clearElement("fixedAltitude", 1560.089);
-
             checkElementValue("fixedEcefX", -7000000, 7000000, "Must be -7000000 to 7000000", "collapseBaseConfig");
             checkElementValue("fixedEcefY", -7000000, 7000000, "Must be -7000000 to 7000000", "collapseBaseConfig");
             checkElementValue("fixedEcefZ", -7000000, 7000000, "Must be -7000000 to 7000000", "collapseBaseConfig");
         }
         else {
-            clearElement("fixedEcefX", -1280206.568);
-            clearElement("fixedEcefY", -4716804.403);
-            clearElement("fixedEcefZ", 4086665.484);
-
             checkLatLong(); //Verify Lat/Long input type
             checkElementValue("fixedAltitude", -11034, 8849, "Must be -11034 to 8849", "collapseBaseConfig");
 
@@ -1134,33 +1160,6 @@ function validateFields() {
         checkElementString("ntripServerMountPoint_3", 0, 49, "Must be 0 to 49 characters", "ntripServerConfig3");
         checkElementString("ntripServerMountPointPW_3", 0, 49, "Must be 0 to 49 characters", "ntripServerConfig3");
     }
-    // Don't overwrite with the defaults here. User may want to disable NTRIP but not lose the existing settings.
-    // else {
-    //     clearElement("ntripServerCasterHost_0", "rtk2go.com");
-    //     clearElement("ntripServerCasterPort_0", 2101);
-    //     clearElement("ntripServerCasterUser_0", "test@test.com");
-    //     clearElement("ntripServerCasterUserPW_0", "");
-    //     clearElement("ntripServerMountPoint_0", "bldr_dwntwn2");
-    //     clearElement("ntripServerMountPointPW_0", "WR5wRo4H");
-    //     clearElement("ntripServerCasterHost_1", "");
-    //     clearElement("ntripServerCasterPort_1", 0);
-    //     clearElement("ntripServerCasterUser_1", "");
-    //     clearElement("ntripServerCasterUserPW_1", "");
-    //     clearElement("ntripServerMountPoint_1", "");
-    //     clearElement("ntripServerMountPointPW_1", "");
-    //     clearElement("ntripServerCasterHost_2", "");
-    //     clearElement("ntripServerCasterPort_2", 0);
-    //     clearElement("ntripServerCasterUser_2", "");
-    //     clearElement("ntripServerCasterUserPW_2", "");
-    //     clearElement("ntripServerMountPoint_2", "");
-    //     clearElement("ntripServerMountPointPW_2", "");
-    //     clearElement("ntripServerCasterHost_3", "");
-    //     clearElement("ntripServerCasterPort_3", 0);
-    //     clearElement("ntripServerCasterUser_3", "");
-    //     clearElement("ntripServerCasterUserPW_3", "");
-    //     clearElement("ntripServerMountPoint_3", "");
-    //     clearElement("ntripServerMountPointPW_3", "");
-    // }
 
     //PointPerfect Config
     checkPointPerfectService();
@@ -1214,37 +1213,21 @@ function validateFields() {
         checkElementValue("maxLogTime", 0, 1051200, "Must be 0 to 1,051,200", "collapseSystemConfig");
         checkElementValue("maxLogLength", 0, 2880, "Must be 0 to 2880", "collapseSystemConfig");
     }
-    else {
-        clearElement("maxLogTime", 60 * 24);
-        clearElement("maxLogLength", 60 * 24);
-    }
 
     if (ge("enableARPLogging").checked == true) {
         checkElementValue("ARPLoggingInterval", 1, 600, "Must be 1 to 600", "collapseSystemConfig");
-    }
-    else {
-        clearElement("ARPLoggingInterval", 10);
     }
 
     if (ge("enableAutoFirmwareUpdate").checked == true) {
         checkElementValue("autoFirmwareCheckMinutes", 1, 999999, "Must be 1 to 999999", "collapseSystemConfig");
     }
-    else {
-        clearElement("autoFirmwareCheckMinutes", 0);
-    }
 
     if (ge("enableAutoReset").checked == true) {
         checkElementValue("rebootMinutes", 0, 4294967, "Must be 0 to 4,294,967", "collapseSystemConfig");
     }
-    else {
-        clearElement("rebootMinutes", 0); //0 = disable
-    }
 
     if (ge("shutdownNoChargeTimeoutMinutesCheckbox").checked == true) {
         checkElementValue("shutdownNoChargeTimeoutMinutes", 0, 604800, "Must be 0 to 604,800", "collapseSystemConfig");
-    }
-    else {
-        clearElement("shutdownNoChargeTimeoutMinutes", 0); //0 = disable
     }
 
     //Ethernet
@@ -1286,9 +1269,15 @@ function changeProfile() {
 
         currentProfileNumber = document.querySelector('input[name=profileRadio]:checked').value;
 
-        sendData();
         clearError('saveBtn');
-        showSuccess('saveBtn', "Saving...");
+        var dataSent = sendData();
+        if (dataSent == true) {
+            showSuccess('saveBtn', "Saving...");
+        }
+        else {
+            // If nothing changed, immediately report success.
+            showSuccess('saveBtn', "No changes detected.");
+        }
 
         websocket.send("setProfile," + currentProfileNumber + ",");
 
@@ -1325,8 +1314,14 @@ function saveConfig() {
     }
     else {
         clearError('saveBtn');
-        sendData();
-        showSuccess('saveBtn', "Saving...");
+        var dataSent = sendData();
+        if (dataSent == true) {
+            showSuccess('saveBtn', "Saving...");
+        }
+        else {
+            // If nothing changed, immediately report success.
+            showSuccess('saveBtn', "No changes detected.");
+        }
     }
 
 }
@@ -1662,13 +1657,13 @@ function resetToSurveyingDefaults() {
         ge("messageIntervalRTCMRover_RTCM1033").value = 10.0;
     }
     else if ((platformPrefix == "Postcard") || (platformPrefix == "Torch X2")) {
-        ge("messageRateNMEA_GPRMC").value = 1;
-        ge("messageRateNMEA_GPGGA").value = 1;
-        ge("messageRateNMEA_GPGSV").value = 1;
-        ge("messageRateNMEA_GPGSA").value = 1;
-        ge("messageRateNMEA_GPVTG").value = 1;
-        ge("messageRateNMEA_GPGLL").value = 1;
-        ge("messageRateNMEA_GPGST").value = 1; //Supported on >= v4
+        ge("messageRateNMEA_RMC").value = 1;
+        ge("messageRateNMEA_GGA").value = 1;
+        ge("messageRateNMEA_GSV").value = 1;
+        ge("messageRateNMEA_GSA").value = 1;
+        ge("messageRateNMEA_VTG").value = 1;
+        ge("messageRateNMEA_GLL").value = 1;
+        ge("messageRateNMEA_GST").value = 1; //Supported on >= v4
     }
 }
 function resetToLoggingDefaults() {
@@ -1701,23 +1696,22 @@ function resetToLoggingDefaults() {
         ge("messageRateRTCMRover_RTCM1124").value = 30;
     }
     else if ((platformPrefix == "Postcard") || (platformPrefix == "Torch X2")) {
-        ge("messageRateNMEA_GPRMC").value = 1;
-        ge("messageRateNMEA_GPGGA").value = 1;
-        ge("messageRateNMEA_GPGSV").value = 1;
-        ge("messageRateNMEA_GPGSA").value = 1;
-        ge("messageRateNMEA_GPVTG").value = 1;
-        ge("messageRateNMEA_GPGLL").value = 1;
-        ge("messageRateNMEA_GPGST").value = 1; // Supported on >= v4
+        ge("messageRateNMEA_RMC").value = 1;
+        ge("messageRateNMEA_GGA").value = 1;
+        ge("messageRateNMEA_GSV").value = 1;
+        ge("messageRateNMEA_GSA").value = 1;
+        ge("messageRateNMEA_VTG").value = 1;
+        ge("messageRateNMEA_GLL").value = 1;
+        ge("messageRateNMEA_GST").value = 1; // Supported on >= v4
 
-        ge("messageRateRTCMRover_RTCM1019").value = 30;
-        ge("messageRateRTCMRover_RTCM1020").value = 30;
-        ge("messageRateRTCMRover_RTCM1042").value = 30;
-        ge("messageRateRTCMRover_RTCM1046").value = 30;
+        ge("messageRateRTCMRover_RTCM3-1005").value = 1;
 
-        ge("messageRateRTCMRover_RTCM107X").value = 30;
-        ge("messageRateRTCMRover_RTCM108X").value = 30;
-        ge("messageRateRTCMRover_RTCM109X").value = 30;
-        ge("messageRateRTCMRover_RTCM112X").value = 30;
+        ge("messageRateRTCMRover_RTCM3-107X").value = 1;
+        ge("messageRateRTCMRover_RTCM3-108X").value = 1;
+        ge("messageRateRTCMRover_RTCM3-109X").value = 1;
+        ge("messageRateRTCMRover_RTCM3-111X").value = 1;
+        ge("messageRateRTCMRover_RTCM3-112X").value = 1;
+        ge("messageRateRTCMRover_RTCM3-113X").value = 1;
     }
     else if (platformPrefix == "Facet mosaicX5") {
         ge("streamIntervalNMEA_0").value = 6; //msec500
@@ -1763,6 +1757,16 @@ function resetToRTCMDefaults() {
         ge("messageRateRTCMBase_RTCM1094").value = 1.0;
         ge("messageRateRTCMBase_RTCM1124").value = 1.0;
     }
+    else if ((platformPrefix == "Postcard") || (platformPrefix == "Torch X2")) {
+        ge("messageRateRTCMBase_RTCM3-1005").value = 1;
+
+        ge("messageRateRTCMBase_RTCM3-107X").value = 1;
+        ge("messageRateRTCMBase_RTCM3-108X").value = 1;
+        ge("messageRateRTCMBase_RTCM3-109X").value = 1;
+        ge("messageRateRTCMBase_RTCM3-111X").value = 1;
+        ge("messageRateRTCMBase_RTCM3-112X").value = 1;
+        ge("messageRateRTCMBase_RTCM3-113X").value = 1;
+    }
     else if (platformPrefix == "Facet mosaicX5") {
         ge("messageIntervalRTCMBase_RTCM1033").value = 10.0;
 
@@ -1797,6 +1801,16 @@ function resetToRTCMLowBandwidth() {
         ge("messageRateRTCMBase_RTCM1084").value = 2.0;
         ge("messageRateRTCMBase_RTCM1094").value = 2.0;
         ge("messageRateRTCMBase_RTCM1124").value = 2.0;
+    }
+    else if ((platformPrefix == "Postcard") || (platformPrefix == "Torch X2")) {
+        ge("messageRateRTCMBase_RTCM3-1005").value = 10;
+
+        ge("messageRateRTCMBase_RTCM3-107X").value = 2;
+        ge("messageRateRTCMBase_RTCM3-108X").value = 2;
+        ge("messageRateRTCMBase_RTCM3-109X").value = 2;
+        ge("messageRateRTCMBase_RTCM3-111X").value = 2;
+        ge("messageRateRTCMBase_RTCM3-112X").value = 2;
+        ge("messageRateRTCMBase_RTCM3-113X").value = 2;
     }
     else if (platformPrefix == "Facet mosaicX5") {
         ge("messageIntervalRTCMBase_RTCM1005|6").value = 10.0;
@@ -1854,6 +1868,8 @@ function confirmDataReceipt() {
     else {
         console.log("Unknown owner of confirmDataReceipt");
     }
+    //Now update initialSettings to avoid sending the changes again
+    updateInitialSettings();
 }
 
 function firmwareUploadWait() {
@@ -1937,6 +1953,9 @@ document.addEventListener("DOMContentLoaded", (event) => {
                 ge("antennaPhaseCenter_mm").value = 69.6; //Average of L1/L2
             }
             else if (platformPrefix == "Torch") {
+                ge("antennaPhaseCenter_mm").value = 116.5; //Average of L1/L2
+            }
+            else if (platformPrefix == "Torch X2") {
                 ge("antennaPhaseCenter_mm").value = 116.5; //Average of L1/L2
             }
             else if (platformPrefix == "EVK") {
@@ -2463,6 +2482,7 @@ function getFileList() {
     }
 }
 
+//Called when user clicks the Message Rates button
 function getMessageList() {
     if (obtainedMessageList == false) {
         obtainedMessageList = true;
@@ -2502,6 +2522,9 @@ function getMessageList() {
     }
 }
 
+//Get the Base message rates
+//We (currently) don't include savedMessageNames/Values here as only the mosaic-X5
+//NMEA streams need those, and those are covered by getMessageList
 function getMessageListBase() {
     if (obtainedMessageListBase == false) {
         obtainedMessageListBase = true;

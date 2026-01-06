@@ -2492,7 +2492,7 @@ void webServerSendString(const char *stringToSend)
 
     if (!webServerIsConnected())
     {
-        systemPrintf("WebServerSendString: not connected - could not send: %s\r\n", stringToSend);
+        systemPrintf("webServerSendString: not connected - could not send %d bytes\r\n", strlen(stringToSend));
         return;
     }
 
@@ -2541,7 +2541,12 @@ void webServerSendString(const char *stringToSend)
 
         // Successfully sent the message
         else if (settings.debugWebServer == true)
-            systemPrintf("WebServerSendString: %s\r\n", stringToSend);
+        {
+            systemPrint("webServerSendString: ");
+            for (int x = 0; x < strlen(stringToSend); x++) // Print manually
+                systemWrite(stringToSend[x]);
+            systemPrintln();
+        }
 
         // Get the next client
         client = nextClient;
