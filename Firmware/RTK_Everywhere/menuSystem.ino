@@ -431,7 +431,7 @@ void menuSystem()
     }
 
     // Update Bluetooth radio if settings have changed (ignore clearBtPairings)
-    mmSetBluetoothProtocol(bluetoothUserChoice, settings.clearBtPairings);
+    applyBluetoothSettings(bluetoothUserChoice, settings.clearBtPairings);
 
     clearBuffer(); // Empty buffer of any newline chars
 }

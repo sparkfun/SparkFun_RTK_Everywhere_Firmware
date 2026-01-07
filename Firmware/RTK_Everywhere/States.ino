@@ -104,7 +104,8 @@ void stateUpdate()
 
             webServerStop();             // Stop the web config server
 
-            bluetoothStart(); // Start Bluetooth if it is not already started
+            // Start Bluetooth if it is not already started
+            applyBluetoothSettingsForce(settings.bluetoothRadioType, settings.clearBtPairings);
 
             baseCasterDisableOverride(); // Disable casting overrides
 
@@ -296,9 +297,10 @@ void stateUpdate()
 
             gnssConfigure(GNSS_CONFIG_BASE); // Request reconfigure to base mode
 
-            bluetoothStart(); // Start Bluetooth if it is not already started
-
             webServerStop(); // Stop the web config server
+
+            // Start Bluetooth if it is not already started
+            applyBluetoothSettingsForce(settings.bluetoothRadioType, settings.clearBtPairings);
 
             // Start the UART connected to the GNSS receiver for NMEA data (enables logging)
             if (tasksStartGnssUart())
