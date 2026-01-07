@@ -788,7 +788,7 @@ void bluetoothEndCommon(bool endMe)
         {
             bluetoothSerialBle->flush();      // Complete any transfers
             bluetoothSerialBle->disconnect(); // Drop any clients
-            //bluetoothSerialBle->end();        // Release resources : causes FreeRTOS Task "BLEFlushTask_" should not return, Aborting now!
+            bluetoothSerialBle->end();        // Release resources : needs vTaskDelete in SparkFun fork
             if (endMe)
             {
                 delete bluetoothSerialBle;
@@ -797,7 +797,7 @@ void bluetoothEndCommon(bool endMe)
 
             bluetoothSerialBleCommands->flush();      // Complete any transfers
             bluetoothSerialBleCommands->disconnect(); // Drop any clients
-            //bluetoothSerialBleCommands->end();        // Release resources : causes FreeRTOS Task "BLEFlushTask_" should not return, Aborting now!
+            bluetoothSerialBleCommands->end();        // Release resources : needs vTaskDelete in SparkFun fork
             if (endMe)
             {
                 delete bluetoothSerialBleCommands;
@@ -834,7 +834,7 @@ void bluetoothEndCommon(bool endMe)
         {
             bluetoothSerialBle->flush();      // Complete any transfers
             bluetoothSerialBle->disconnect(); // Drop any clients
-            //bluetoothSerialBle->end();        // Release resources : FreeRTOS Task "BLEFlushTask_" should not return, Aborting now!
+            bluetoothSerialBle->end();        // Release resources : needs vTaskDelete in SparkFun fork
             if (endMe)
             {
                 delete bluetoothSerialBle;
@@ -843,7 +843,7 @@ void bluetoothEndCommon(bool endMe)
 
             bluetoothSerialBleCommands->flush();      // Complete any transfers
             bluetoothSerialBleCommands->disconnect(); // Drop any clients
-            //bluetoothSerialBleCommands->end();        // Release resources : FreeRTOS Task "BLEFlushTask_" should not return, Aborting now!
+            bluetoothSerialBleCommands->end();        // Release resources : needs vTaskDelete in SparkFun fork
             if (endMe)
             {
                 delete bluetoothSerialBleCommands;
