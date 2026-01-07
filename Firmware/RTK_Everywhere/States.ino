@@ -90,11 +90,6 @@ void stateUpdate()
         */
         case (STATE_ROVER_NOT_STARTED): {
             RTK_MODE(RTK_MODE_ROVER);
-            if (online.gnss == false)
-            {
-                firstRoverStart = false; // If GNSS is offline, we still need to allow button use
-                return;
-            }
 
             baseStatusLedOff();
 
@@ -102,14 +97,22 @@ void stateUpdate()
 
             setMuxport(settings.dataPortChannel); // Return mux to original channel
 
-            webServerStop();             // Stop the web config server
+            webServerStop(); // Stop the web config server
 
             bluetoothStart(); // Start Bluetooth if it is not already started
 
             baseCasterDisableOverride(); // Disable casting overrides
 
+            if (online.gnss == false)
+            {
+                firstRoverStart = false; // If GNSS is offline, we still need to allow button use
+
+                // Allow a device with a failed GNSS connection to advance through states, including display updates
+                changeState(STATE_ROVER_NO_FIX);
+            }
+
             // Start the UART connected to the GNSS receiver for NMEA data (enables logging)
-            if (tasksStartGnssUart() == true)
+            else if (tasksStartGnssUart() == true)
             {
                 settings.lastState = STATE_ROVER_NOT_STARTED;
                 recordSystemSettings(); // Record this state for next POR
@@ -126,7 +129,6 @@ void stateUpdate()
             {
                 systemPrintln("Rover configured");
                 displayRoverSuccess(500); // Show 'Rover Started'
-
                 changeState(STATE_ROVER_NO_FIX);
             }
         }
@@ -264,8 +266,7 @@ void stateUpdate()
                 double ecefY = 0;
                 double ecefZ = 0;
                 // Don't subtract antennaHeight_mm + antennaPhaseCenter_mm
-                geodeticToEcef(gnss->getLatitude(), gnss->getLongitude(), gnss->getAltitude(),
-                               &ecefX, &ecefY, &ecefZ);
+                geodeticToEcef(gnss->getLatitude(), gnss->getLongitude(), gnss->getAltitude(), &ecefX, &ecefY, &ecefZ);
                 settings.fixedEcefX = ecefX;
                 settings.fixedEcefY = ecefY;
                 settings.fixedEcefZ = ecefZ;
