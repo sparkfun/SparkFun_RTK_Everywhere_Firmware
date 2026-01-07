@@ -2139,6 +2139,15 @@ void displayGNSSFail(uint16_t displayTime)
     displayMessage("GNSS Failed", displayTime);
 }
 
+void displayGNSSAutodetect(uint16_t displayTime)
+{
+    displayMessage("Autodetecting GNSS", displayTime);
+}
+void displayGNSSAutodetectFailed(uint16_t displayTime)
+{
+    displayMessage("Autodetect Failed", displayTime);
+}
+
 void displayNoWiFi(uint16_t displayTime)
 {
     displayMessage("No WiFi", displayTime);
