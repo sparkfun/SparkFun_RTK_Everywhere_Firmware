@@ -559,8 +559,7 @@ void applyCompensationGNS(char *nmeaSentence, int sentenceLength)
         {
             if (settings.enableImuCompensationDebug == true && !inMainMenu)
                 systemPrintf("Compensated latitude length has changed! Orig: %d New: %d\r\n",
-                            (latitudeStop - latitudeStart),
-                            strlen(coordinateStringDDMM));
+                             (latitudeStop - latitudeStart), strlen(coordinateStringDDMM));
         }
 
         // Add tilt-compensated Latitude
@@ -586,8 +585,7 @@ void applyCompensationGNS(char *nmeaSentence, int sentenceLength)
         {
             if (settings.enableImuCompensationDebug == true && !inMainMenu)
                 systemPrintf("Compensated longitude length has changed! Orig: %d New: %d\r\n",
-                            (longitudeStop - longitudeStart),
-                            strlen(coordinateStringDDMM));
+                             (longitudeStop - longitudeStart), strlen(coordinateStringDDMM));
         }
 
         // Add tilt-compensated Longitude
@@ -641,15 +639,14 @@ void applyCompensationGNS(char *nmeaSentence, int sentenceLength)
     {
         if (settings.enableImuCompensationDebug == true && !inMainMenu)
             systemPrintf("Compensated altitude length has changed! Orig: %d New: %d\r\n",
-                        (altitudeStop - altitudeStart),
-                        strlen(coordinateStringDDMM));
+                         (altitudeStop - altitudeStart), strlen(coordinateStringDDMM));
     }
 
     // Add tilt-compensated Altitude
     strncat(newSentence, coordinateStringDDMM, sizeof(newSentence) - 1);
 
     // We can't allow the message length to change. Truncate if needed
-    // altitudeStop is the position of the comma. 
+    // altitudeStop is the position of the comma.
     while (strlen(newSentence) > altitudeStop)
         *(newSentence + strlen(newSentence) - 1) = 0; // Move the NULL terminator
 
@@ -749,8 +746,7 @@ void applyCompensationGLL(char *nmeaSentence, int sentenceLength)
     {
         if (settings.enableImuCompensationDebug == true && !inMainMenu)
             systemPrintf("Compensated latitude length has changed! Orig: %d New: %d\r\n",
-                        (latitudeStop - latitudeStart),
-                        strlen(coordinateStringDDMM));
+                         (latitudeStop - latitudeStart), strlen(coordinateStringDDMM));
     }
 
     // Add tilt-compensated Latitude
@@ -776,8 +772,7 @@ void applyCompensationGLL(char *nmeaSentence, int sentenceLength)
     {
         if (settings.enableImuCompensationDebug == true && !inMainMenu)
             systemPrintf("Compensated longitude length has changed! Orig: %d New: %d\r\n",
-                        (longitudeStop - longitudeStart),
-                        strlen(coordinateStringDDMM));
+                         (longitudeStop - longitudeStart), strlen(coordinateStringDDMM));
     }
 
     // Add tilt-compensated Longitude
@@ -883,8 +878,7 @@ void applyCompensationRMC(char *nmeaSentence, int sentenceLength)
     {
         if (settings.enableImuCompensationDebug == true && !inMainMenu)
             systemPrintf("Compensated latitude length has changed! Orig: %d New: %d\r\n",
-                        (latitudeStop - latitudeStart),
-                        strlen(coordinateStringDDMM));
+                         (latitudeStop - latitudeStart), strlen(coordinateStringDDMM));
     }
 
     // Add tilt-compensated Latitude
@@ -910,8 +904,7 @@ void applyCompensationRMC(char *nmeaSentence, int sentenceLength)
     {
         if (settings.enableImuCompensationDebug == true && !inMainMenu)
             systemPrintf("Compensated longitude length has changed! Orig: %d New: %d\r\n",
-                        (longitudeStop - longitudeStart),
-                        strlen(coordinateStringDDMM));
+                         (longitudeStop - longitudeStart), strlen(coordinateStringDDMM));
     }
 
     // Add tilt-compensated Longitude
@@ -1048,8 +1041,7 @@ void applyCompensationGGA(char *nmeaSentence, int sentenceLength)
         {
             if (settings.enableImuCompensationDebug == true && !inMainMenu)
                 systemPrintf("Compensated latitude length has changed! Orig: %d New: %d\r\n",
-                            (latitudeStop - latitudeStart),
-                            strlen(coordinateStringDDMM));
+                             (latitudeStop - latitudeStart), strlen(coordinateStringDDMM));
         }
 
         // Add tilt-compensated Latitude
@@ -1075,8 +1067,7 @@ void applyCompensationGGA(char *nmeaSentence, int sentenceLength)
         {
             if (settings.enableImuCompensationDebug == true && !inMainMenu)
                 systemPrintf("Compensated longitude length has changed! Orig: %d New: %d\r\n",
-                            (longitudeStop - longitudeStart),
-                            strlen(coordinateStringDDMM));
+                             (longitudeStop - longitudeStart), strlen(coordinateStringDDMM));
         }
 
         // Add tilt-compensated Longitude
@@ -1130,15 +1121,14 @@ void applyCompensationGGA(char *nmeaSentence, int sentenceLength)
     {
         if (settings.enableImuCompensationDebug == true && !inMainMenu)
             systemPrintf("Compensated altitude length has changed! Orig: %d New: %d\r\n",
-                        (altitudeStop - altitudeStart),
-                        strlen(coordinateStringDDMM));
+                         (altitudeStop - altitudeStart), strlen(coordinateStringDDMM));
     }
 
     // Add tilt-compensated Altitude
     strncat(newSentence, coordinateStringDDMM, sizeof(newSentence) - 1);
 
     // We can't allow the message length to change. Truncate if needed
-    // altitudeStop is the position of the comma. 
+    // altitudeStop is the position of the comma.
     while (strlen(newSentence) > altitudeStop)
         *(newSentence + strlen(newSentence) - 1) = 0; // Move the NULL terminator
 
@@ -1186,6 +1176,9 @@ void tiltDetect()
     if (settings.testedTilt == true)
         return;
 
+    systemPrintln("Beginning tilt autodetection");
+    displayTiltAutodetect(0);
+
     // Locally instantiate the library and hardware so it will release on exit
     IM19 *tiltSensor;
 
@@ -1216,7 +1209,15 @@ void tiltDetect()
     }
 
     SerialTiltTest.end(); // Release UART1 for reuse
-    systemPrintf("Tilt sensor %sdetected\r\n", settings.detectedTilt ? "" : "not ");
+
+    if (settings.detectedTilt == true)
+        systemPrintln("Tilt sensor detected");
+    else
+    {
+        systemPrintln("Tilt sensor not detected");
+        displayTiltAutodetectFailed(2000);
+    }
+    
     settings.testedTilt = true; // Record this test so we don't do it again
     recordSystemSettings();
     return;
