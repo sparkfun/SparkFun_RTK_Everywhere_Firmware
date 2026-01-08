@@ -478,6 +478,14 @@ void bluetoothStart(bool skipOnlineCheck)
     if (settings.bluetoothRadioType == BLUETOOTH_RADIO_OFF)
         return;
 
+    if (bluetoothEnded)
+    {
+        recordSystemSettings(); // Ensure new radio type is recorded
+        systemPrintln("Bluetooth was ended. Rebooting to restart Bluetooth. Goodbye!");
+        delay(1000);
+        ESP.restart();
+    }
+
     if (!skipOnlineCheck)
     {
         if (online.bluetooth)
@@ -871,6 +879,7 @@ void bluetoothEndCommon(bool endMe)
 
         reportHeapNow(false);
         online.bluetooth = false;
+        bluetoothEnded = endMe; // Record if bluetoothEnd was called and ESP.restart is needed
     }
     bluetoothIncomingRTCM = false;
 }
@@ -963,7 +972,7 @@ void applyBluetoothSettingsCommon(BluetoothRadioType_e bluetoothUserChoice, bool
             systemPrintln("Rebooting to apply new Bluetooth choice. Goodbye!");
             delay(1000);
             ESP.restart();
-            return;
+            return; // Never executed
         }
         // <--- Insert any new special cases here, or higher up if needed --->
 
