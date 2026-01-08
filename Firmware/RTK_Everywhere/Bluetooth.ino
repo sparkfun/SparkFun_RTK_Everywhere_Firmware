@@ -365,19 +365,30 @@ void bluetoothFlush()
 
     if (settings.bluetoothRadioType == BLUETOOTH_RADIO_SPP_AND_BLE)
     {
-        bluetoothSerialBle->flush();
-        bluetoothSerialBleCommands->flush(); // Complete any transfers
-        bluetoothSerialSpp->flush();
+        if (bluetoothSerialBle != nullptr)
+            bluetoothSerialBle->flush();
+        if (bluetoothSerialBleCommands != nullptr)
+            bluetoothSerialBleCommands->flush(); // Complete any transfers
+        if (bluetoothSerialSpp != nullptr)
+            bluetoothSerialSpp->flush();
     }
     else if (settings.bluetoothRadioType == BLUETOOTH_RADIO_SPP)
-        bluetoothSerialSpp->flush();
+    {
+        if (bluetoothSerialSpp != nullptr)
+            bluetoothSerialSpp->flush();
+    }
     else if (settings.bluetoothRadioType == BLUETOOTH_RADIO_BLE)
     {
-        bluetoothSerialBle->flush();
-        bluetoothSerialBleCommands->flush(); // Complete any transfers
+        if (bluetoothSerialBle != nullptr)
+            bluetoothSerialBle->flush();
+        if (bluetoothSerialBleCommands != nullptr)
+            bluetoothSerialBleCommands->flush(); // Complete any transfers
     }
     else if (settings.bluetoothRadioType == BLUETOOTH_RADIO_SPP_ACCESSORY_MODE)
-        bluetoothSerialSpp->flush(); // Needed? Not sure... TODO
+    {
+        if (bluetoothSerialSpp != nullptr)
+            bluetoothSerialSpp->flush(); // Needed? Not sure... TODO
+    }
 }
 
 void BTConfirmRequestCallback(uint32_t numVal) {
