@@ -2,7 +2,7 @@
 menuSystem.ino
 =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=*/
 
-#ifdef  COMPILE_MENU_SYSTEM
+#ifdef COMPILE_MENU_SYSTEM
 
 // Display current system status
 void menuSystem()
@@ -534,10 +534,12 @@ void menuDebugHardware()
 
         systemPrintf("20) Delay between CLI LIST prints over BLE: %dms\r\n", settings.cliBlePrintDelay_ms);
 
-        systemPrint("21) Print GNSS Config Debugging: ");
+        systemPrintf("21) Double-Tap Interval: %dms\r\n", settings.defaultDoubleTapInterval_ms);
+
+        systemPrint("22) Print GNSS Config Debugging: ");
         systemPrintf("%s\r\n", settings.debugGnssConfig ? "Enabled" : "Disabled");
 
-        systemPrintf("22) Default Double-Tap Interval: %dms\r\n", settings.defaultDoubleTapInterval_ms);
+        systemPrintln("23) Reset GNSS Config");
 
         systemPrintln("e) Erase LittleFS");
 
@@ -610,8 +612,7 @@ void menuDebugHardware()
             else if (present.gnss_lg290p)
             {
                 systemPrintln();
-                systemPrintf("QGNSS must be connected to %s at %dbps.\r\n",
-                             present.gnssUpdatePort,
+                systemPrintf("QGNSS must be connected to %s at %dbps.\r\n", present.gnssUpdatePort,
                              settings.dataPortBaud);
                 systemPrintf("Begin firmware update from QGNSS (hit the play button) "
                              "then reset the LG290P using menu choice %d.\r\n",
@@ -671,17 +672,22 @@ void menuDebugHardware()
         }
         else if (incoming == 21)
         {
-            settings.debugGnssConfig ^= 1;
-        }
-        else if (incoming == 22)
-        {
-            systemPrintf("Enter default double-tap interval (milliseconds, %d to %d): ", 250, 1000);
+            systemPrintf("Enter double-tap interval (milliseconds, %d to %d): ", 250, 1000);
             int newInterval = getUserInputNumber(); // Returns EXIT, TIMEOUT, or long
             if ((newInterval != INPUT_RESPONSE_GETNUMBER_EXIT) && (newInterval != INPUT_RESPONSE_GETNUMBER_TIMEOUT))
             {
                 if ((newInterval >= 250) && (newInterval <= 1000))
                     settings.defaultDoubleTapInterval_ms = newInterval;
             }
+        }
+        else if (incoming == 22)
+        {
+            settings.debugGnssConfig ^= 1;
+        }
+        else if (incoming == 23)
+        {
+            // Set all bits in the request bitfield to cause the GNSS receiver to go through a full (re)configuration
+            gnssConfigureDefaults();
         }
 
         else if (incoming == 'e')
@@ -1474,9 +1480,9 @@ void menuPeriodicPrint()
     clearBuffer(); // Empty buffer of any newline chars
 }
 
-#endif  // COMPILE_MENU_SYSTEM
+#endif // COMPILE_MENU_SYSTEM
 
-#ifdef  COMPILE_MENU_INSTRUMENTS
+#ifdef COMPILE_MENU_INSTRUMENTS
 
 // Get the parameters for the antenna height, reference point, and tilt compensation
 void menuInstrument()
@@ -1550,4 +1556,4 @@ void menuInstrument()
     clearBuffer(); // Empty buffer of any newline chars
 }
 
-#endif  // COMPILE_MENU_INSTRUMENTS
+#endif // COMPILE_MENU_INSTRUMENTS

@@ -443,7 +443,10 @@ void menuRadio()
             }
             else
             {
-                loraGetVersion();
+                //Allow state machine to run to get version number
+                for (int x = 0; x < 4; x++)
+                    updateLora();
+
                 if (strlen(loraFirmwareVersion) < 3)
                 {
                     strncpy(loraFirmwareVersion, "Unknown", sizeof(loraFirmwareVersion));

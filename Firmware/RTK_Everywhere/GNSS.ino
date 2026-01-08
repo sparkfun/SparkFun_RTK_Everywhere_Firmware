@@ -602,6 +602,9 @@ void gnssDetectReceiverType()
     // Start auto-detect if NVM is not yet set
     if (settings.detectedGnssReceiver == GNSS_RECEIVER_UNKNOWN)
     {
+        systemPrintln("Beginning GNSS autodetection");
+        displayGNSSAutodetect(0);
+
         for (index = 0; index < GNSS_SUPPORT_ROUTINES_ENTRIES; index++)
         {
             if (gnssSupportRoutines[index]._present
@@ -620,6 +623,8 @@ void gnssDetectReceiverType()
     if (settings.detectedGnssReceiver == GNSS_RECEIVER_UNKNOWN)
     {
         gnss = (GNSS *)new GNSS_None();
+        systemPrintln("Failed to identify a flex module.");
+        displayGNSSAutodetectFailed(2000);
     }
     else
     {
