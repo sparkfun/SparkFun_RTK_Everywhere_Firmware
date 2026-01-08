@@ -424,7 +424,7 @@ void microSDUpdateFirmware(const char *firmwareFileName)
     // Turn off any tasks so that we are not disrupted
     wifiEspNowOff(__FILE__, __LINE__);
     wifiStopAll();
-    bluetoothStop();
+    bluetoothEnd();
 
     // Delete tasks if running
     tasksStopGnssUart();

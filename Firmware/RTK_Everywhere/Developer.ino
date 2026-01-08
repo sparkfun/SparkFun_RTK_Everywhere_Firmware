@@ -510,6 +510,7 @@ void    bluetoothSendBatteryPercent(int batteryLevelPercent) {}
 void    bluetoothStart() {}
 void    bluetoothStartSkipOnlineCheck() {}
 void    bluetoothStop() {}
+void    bluetoothEnd() {}
 void    bluetoothUpdate() {}
 int     bluetoothWrite(const uint8_t *buffer, int length) {return 0;}
 #endif  // COMPILE_BT

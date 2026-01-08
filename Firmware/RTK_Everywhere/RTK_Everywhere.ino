@@ -590,6 +590,7 @@ float batteryChargingPercentPerHour;
 #endif // COMPILE_BT
 
 BluetoothRadioType_e bluetoothRadioPreviousOnType = BLUETOOTH_RADIO_OFF;
+bool bluetoothEnded = false; // Indicates if bluetoothEnd has been called and ESP.restart is needed
 
 // This value controls the data that is output from the USB serial port
 // to the host PC.  By default (false) status and debug messages are output

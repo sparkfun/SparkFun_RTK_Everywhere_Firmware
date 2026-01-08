@@ -478,6 +478,14 @@ void bluetoothStart(bool skipOnlineCheck)
     if (settings.bluetoothRadioType == BLUETOOTH_RADIO_OFF)
         return;
 
+    if (bluetoothEnded)
+    {
+        recordSystemSettings(); // Ensure new radio type is recorded
+        systemPrintln("Bluetooth was ended. Rebooting to restart Bluetooth. Goodbye!");
+        delay(1000);
+        ESP.restart();
+    }
+
     if (!skipOnlineCheck)
     {
         if (online.bluetooth)
@@ -760,8 +768,12 @@ void bluetoothStart(bool skipOnlineCheck)
 //     vTaskDelete(nullptr); // Delete task once it has run once
 // }
 
+// This function ends BT. A ESP.restart() is needed to get it going again
+void bluetoothEnd() { bluetoothEndCommon(true); }
 // This function stops BT so that it can be restarted later
-void bluetoothStop()
+void bluetoothStop() { bluetoothEndCommon(false); }
+// Common code for bluetooth stop and end
+void bluetoothEndCommon(bool endMe)
 {
     if (online.bluetooth)
     {
@@ -784,23 +796,32 @@ void bluetoothStop()
         {
             bluetoothSerialBle->flush();      // Complete any transfers
             bluetoothSerialBle->disconnect(); // Drop any clients
-            //bluetoothSerialBle->end();        // Release resources : causes FreeRTOS Task "BLEFlushTask_" should not return, Aborting now!
-            //delete bluetoothSerialBle;
-            //bluetoothSerialBle = nullptr;
+            bluetoothSerialBle->end();        // Release resources : needs vTaskDelete in SparkFun fork
+            if (endMe)
+            {
+                delete bluetoothSerialBle;
+                bluetoothSerialBle = nullptr;
+            }
 
             bluetoothSerialBleCommands->flush();      // Complete any transfers
             bluetoothSerialBleCommands->disconnect(); // Drop any clients
-            //bluetoothSerialBleCommands->end();        // Release resources : causes FreeRTOS Task "BLEFlushTask_" should not return, Aborting now!
-            //delete bluetoothSerialBleCommands;
-            //bluetoothSerialBleCommands = nullptr;
+            bluetoothSerialBleCommands->end();        // Release resources : needs vTaskDelete in SparkFun fork
+            if (endMe)
+            {
+                delete bluetoothSerialBleCommands;
+                bluetoothSerialBleCommands = nullptr;
+            }
 
             bluetoothSerialSpp->flush();      // Complete any transfers
             bluetoothSerialSpp->disconnect(); // Drop any clients
-            bluetoothSerialSpp->register_callback(nullptr);
             bluetoothSerialSpp->end();        // Release resources
-            bluetoothSerialSpp->memrelease(BT_MODE_BTDM); // Release memory - using correct mode
-            //delete bluetoothSerialSpp;
-            //bluetoothSerialSpp = nullptr;
+            if (endMe)
+            {
+                bluetoothSerialSpp->register_callback(nullptr);
+                bluetoothSerialSpp->memrelease(BT_MODE_BTDM); // Release memory - using correct mode
+                delete bluetoothSerialSpp;
+                bluetoothSerialSpp = nullptr;
+            }
 
             bluetoothBatteryService.end();
         }
@@ -808,25 +829,34 @@ void bluetoothStop()
         {
             bluetoothSerialSpp->flush();      // Complete any transfers
             bluetoothSerialSpp->disconnect(); // Drop any clients
-            bluetoothSerialSpp->register_callback(nullptr);
             bluetoothSerialSpp->end();        // Release resources
-            bluetoothSerialSpp->memrelease(BT_MODE_CLASSIC_BT); // Release memory - using correct mode
-            //delete bluetoothSerialSpp;
-            //bluetoothSerialSpp = nullptr;
+            if (endMe)
+            {
+                bluetoothSerialSpp->register_callback(nullptr);
+                bluetoothSerialSpp->memrelease(BT_MODE_CLASSIC_BT); // Release memory - using correct mode
+                delete bluetoothSerialSpp;
+                bluetoothSerialSpp = nullptr;
+            }
         }
         else if (settings.bluetoothRadioType == BLUETOOTH_RADIO_BLE)
         {
             bluetoothSerialBle->flush();      // Complete any transfers
             bluetoothSerialBle->disconnect(); // Drop any clients
-            //bluetoothSerialBle->end();        // Release resources : FreeRTOS Task "BLEFlushTask_" should not return, Aborting now!
-            //delete bluetoothSerialBle;
-            //bluetoothSerialBle = nullptr;
+            bluetoothSerialBle->end();        // Release resources : needs vTaskDelete in SparkFun fork
+            if (endMe)
+            {
+                delete bluetoothSerialBle;
+                bluetoothSerialBle = nullptr;
+            }
 
             bluetoothSerialBleCommands->flush();      // Complete any transfers
             bluetoothSerialBleCommands->disconnect(); // Drop any clients
-            //bluetoothSerialBleCommands->end();        // Release resources : FreeRTOS Task "BLEFlushTask_" should not return, Aborting now!
-            //delete bluetoothSerialBleCommands;
-            //bluetoothSerialBleCommands = nullptr;
+            bluetoothSerialBleCommands->end();        // Release resources : needs vTaskDelete in SparkFun fork
+            if (endMe)
+            {
+                delete bluetoothSerialBleCommands;
+                bluetoothSerialBleCommands = nullptr;
+            }
 
             bluetoothBatteryService.end();
         }
@@ -834,11 +864,14 @@ void bluetoothStop()
         {
             bluetoothSerialSpp->flush();      // Complete any transfers
             bluetoothSerialSpp->disconnect(); // Drop any clients
-            bluetoothSerialSpp->register_callback(nullptr);
             bluetoothSerialSpp->end();        // Release resources
-            bluetoothSerialSpp->memrelease(BT_MODE_CLASSIC_BT); // Release memory - using correct mode
-            //delete bluetoothSerialSpp;
-            //bluetoothSerialSpp = nullptr;
+            if (endMe)
+            {
+                bluetoothSerialSpp->register_callback(nullptr);
+                bluetoothSerialSpp->memrelease(BT_MODE_CLASSIC_BT); // Release memory - using correct mode
+                delete bluetoothSerialSpp;
+                bluetoothSerialSpp = nullptr;
+            }
         }
 
         if (settings.debugNetworkLayer)
@@ -846,8 +879,109 @@ void bluetoothStop()
 
         reportHeapNow(false);
         online.bluetooth = false;
+        bluetoothEnded = endMe; // Record if bluetoothEnd was called and ESP.restart is needed
     }
     bluetoothIncomingRTCM = false;
+}
+
+// Update Bluetooth radio if settings have changed
+// (Previously, this was mmSetBluetoothProtocol in menuSupport)
+void applyBluetoothSettings(BluetoothRadioType_e bluetoothUserChoice, bool clearBtPairings)
+{
+    applyBluetoothSettingsCommon(bluetoothUserChoice, clearBtPairings, false);
+}
+void applyBluetoothSettingsForce(BluetoothRadioType_e bluetoothUserChoice, bool clearBtPairings)
+{
+    applyBluetoothSettingsCommon(bluetoothUserChoice, clearBtPairings, true);
+}
+void applyBluetoothSettingsCommon(BluetoothRadioType_e bluetoothUserChoice, bool clearBtPairings, bool force)
+{
+    if (force ||
+        ((bluetoothUserChoice != settings.bluetoothRadioType)
+        || (clearBtPairings != settings.clearBtPairings)))
+    {
+        // To avoid connection failures, we may need to restart the ESP32
+
+        // If force is true then (re)start
+        if (force)
+        {
+            bluetoothStop(); // This does nothing if bluetooth is not online
+            bluetoothStartSkipOnlineCheck(); // Always start, even if online
+            return;
+        }
+        // If Bluetooth was on, and the user has selected OFF, then just stop
+        else if ((settings.bluetoothRadioType != BLUETOOTH_RADIO_OFF)
+            && (bluetoothUserChoice == BLUETOOTH_RADIO_OFF))
+        {
+            bluetoothStop();
+            settings.bluetoothRadioType = bluetoothUserChoice;
+            settings.clearBtPairings = clearBtPairings;
+            return;
+        }
+        // If Bluetooth was off, and the user has selected on, and Bluetooth has not been started previously
+        // then just start
+        else if ((settings.bluetoothRadioType == BLUETOOTH_RADIO_OFF)
+                 && (bluetoothUserChoice != BLUETOOTH_RADIO_OFF)
+                 && (bluetoothRadioPreviousOnType == BLUETOOTH_RADIO_OFF))
+        {
+            settings.bluetoothRadioType = bluetoothUserChoice;
+            settings.clearBtPairings = clearBtPairings;
+            bluetoothStart();
+            return;
+        }
+        // // If Bluetooth was off, and the user has selected on, and Bluetooth has been started previously
+        // // then restart
+        // else if ((settings.bluetoothRadioType == BLUETOOTH_RADIO_OFF)
+        //          && (bluetoothUserChoice != BLUETOOTH_RADIO_OFF)
+        //          && (bluetoothRadioPreviousOnType != BLUETOOTH_RADIO_OFF))
+        // {
+        //     settings.bluetoothRadioType = bluetoothUserChoice;
+        //     settings.clearBtPairings = clearBtPairings;
+        //     recordSystemSettings();
+        //     systemPrintln("Rebooting to apply new Bluetooth choice. Goodbye!");
+        //     delay(1000);
+        //     ESP.restart();
+        //     return;
+        // }
+        // If Bluetooth was in Accessory Mode, and still is, and clearBtPairings is true
+        // then (re)start Bluetooth skipping the online check
+        else if ((settings.bluetoothRadioType == BLUETOOTH_RADIO_SPP_ACCESSORY_MODE)
+                 && (bluetoothUserChoice == BLUETOOTH_RADIO_SPP_ACCESSORY_MODE)
+                 && clearBtPairings)
+        {
+            settings.clearBtPairings = clearBtPairings;
+            bluetoothStartSkipOnlineCheck();
+            return;
+        }
+        // If Bluetooth was in Accessory Mode, and still is, and clearBtPairings is false
+        // then do nothing
+        else if ((settings.bluetoothRadioType == BLUETOOTH_RADIO_SPP_ACCESSORY_MODE)
+                 && (bluetoothUserChoice == BLUETOOTH_RADIO_SPP_ACCESSORY_MODE)
+                 && (!clearBtPairings))
+        {
+            return;
+        }
+        // If Bluetooth was on, and the user has selected a different mode
+        // then restart
+        else if ((settings.bluetoothRadioType != BLUETOOTH_RADIO_OFF)
+                 && (bluetoothUserChoice != settings.bluetoothRadioType))
+        {
+            settings.bluetoothRadioType = bluetoothUserChoice;
+            settings.clearBtPairings = clearBtPairings;
+            recordSystemSettings();
+            systemPrintln("Rebooting to apply new Bluetooth choice. Goodbye!");
+            delay(1000);
+            ESP.restart();
+            return; // Never executed
+        }
+        // <--- Insert any new special cases here, or higher up if needed --->
+
+        // Previous catch-all. Likely to cause connection failures...
+        bluetoothStop();
+        settings.bluetoothRadioType = bluetoothUserChoice;
+        settings.clearBtPairings = clearBtPairings;
+        bluetoothStart();
+    }
 }
 
 // Print the current Bluetooth radio configuration and connection status

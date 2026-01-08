@@ -634,7 +634,7 @@ void menuRadio()
     wifiEspNowOn(__FILE__, __LINE__); // Turn on the hardware if settings.enableEspNow is true
 
     // Update Bluetooth radio if settings have changed
-    mmSetBluetoothProtocol(bluetoothUserChoice, clearBtPairings);
+    applyBluetoothSettings(bluetoothUserChoice, clearBtPairings);
 
     // LoRa radio state machine will start/stop radio upon next updateLora in loop()
 

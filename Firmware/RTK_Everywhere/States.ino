@@ -99,7 +99,8 @@ void stateUpdate()
 
             webServerStop(); // Stop the web config server
 
-            bluetoothStart(); // Start Bluetooth if it is not already started
+            // Start Bluetooth if it is not already started
+            applyBluetoothSettingsForce(settings.bluetoothRadioType, settings.clearBtPairings);
 
             baseCasterDisableOverride(); // Disable casting overrides
 
@@ -297,9 +298,10 @@ void stateUpdate()
 
             gnssConfigure(GNSS_CONFIG_BASE); // Request reconfigure to base mode
 
-            bluetoothStart(); // Start Bluetooth if it is not already started
-
             webServerStop(); // Stop the web config server
+
+            // Start Bluetooth if it is not already started
+            applyBluetoothSettingsForce(settings.bluetoothRadioType, settings.clearBtPairings);
 
             // Start the UART connected to the GNSS receiver for NMEA data (enables logging)
             if (tasksStartGnssUart())
@@ -490,7 +492,7 @@ void stateUpdate()
 
             displayWebConfigNotStarted(); // Display immediately while we wait for server to start
 
-            bluetoothStop(); // Bluetooth must be stopped to allow enough RAM for AP+STA (firmware check)
+            bluetoothEnd(); // Bluetooth must end to allow enough RAM for AP+STA (firmware check)
             wifiEspNowOff(__FILE__, __LINE__); // We don't need ESP-NOW during web config
 
             // The GNSS UART task is left running to allow GNSS receivers to obtain LLh data for 1Hz page updates

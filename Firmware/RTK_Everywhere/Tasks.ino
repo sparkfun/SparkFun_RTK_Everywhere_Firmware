@@ -2723,7 +2723,8 @@ void bluetoothCommandTask(void *pvParameters)
     if (settings.printTaskStartStop)
         systemPrintln("Task bluetoothCommandTask stopped");
     task.bluetoothCommandTaskRunning = false;
-    vTaskDelete(NULL);
+    vTaskDelete(bluetoothCommandTaskHandle); // Stop the task
+    bluetoothCommandTaskHandle = nullptr;
 }
 
 void beginRtcmParse()

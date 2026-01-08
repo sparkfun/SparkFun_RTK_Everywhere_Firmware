@@ -66,7 +66,7 @@ RUN arduino-cli core install "esp32:esp32@${CORE_VERSION}"
 # Get Known Libraries
 RUN arduino-cli lib install ArduinoJson@7.4.2
 RUN arduino-cli lib install ESP32Time@2.0.0
-RUN arduino-cli lib install ESP32_BleSerial@3.0.0
+#RUN arduino-cli lib install ESP32_BleSerial@3.0.0
 RUN arduino-cli lib install "ESP32-OTA-Pull"@1.0.0
 RUN arduino-cli lib install JC_Button@2.1.2
 RUN arduino-cli lib install PubSubClient@2.8.0
@@ -74,7 +74,7 @@ RUN arduino-cli lib install "SdFat"@2.1.1
 RUN arduino-cli lib install "SparkFun LIS2DH12 Arduino Library"@1.0.3
 RUN arduino-cli lib install "SparkFun MAX1704x Fuel Gauge Arduino Library"@1.0.4
 RUN arduino-cli lib install "SparkFun u-blox GNSS v3"@3.1.10
-RUN arduino-cli lib install "SparkFun Qwiic OLED Arduino Library"@1.0.14
+RUN arduino-cli lib install "SparkFun Qwiic OLED Arduino Library"@1.0.15
 RUN arduino-cli lib install SSLClientESP32@2.0.0
 RUN arduino-cli lib install "SparkFun Extensible Message Parser"@1.0.8
 RUN arduino-cli lib install "SparkFun BQ40Z50 Battery Manager Arduino Library"@1.0.0
@@ -87,6 +87,12 @@ RUN arduino-cli lib install "SparkFun I2C Expander Arduino Library"@1.0.1
 RUN arduino-cli lib install "SparkFun Apple Accessory Arduino Library"@3.1.0
 RUN arduino-cli lib install "SparkFun Authentication Coprocessor Arduino Library"@1.0.0
 RUN arduino-cli lib install "SparkFun Toolkit"@1.0.6
+
+# Enable external libs
+RUN arduino-cli config set library.enable_unsafe_install true
+
+# Install SparkFun fork of ESP32_BleSerial
+RUN arduino-cli lib install --git-url https://github.com/sparkfun/ESP32_BleSerial.git
 
 # Copy RTK_Everywhere and build deployment image
 FROM upstream AS deployment
