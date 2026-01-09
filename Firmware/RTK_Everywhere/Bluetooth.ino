@@ -491,6 +491,7 @@ void bluetoothStart(bool skipOnlineCheck)
 
     if (bluetoothEnded)
     {
+        gnssConfigureDefaults(); // Ensure GNSS is reconfigured
         recordSystemSettings(); // Ensure new radio type is recorded
         systemPrintln("Bluetooth was ended. Rebooting to restart Bluetooth. Goodbye!");
         delay(1000);
