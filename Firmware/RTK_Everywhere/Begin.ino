@@ -1841,16 +1841,21 @@ bool i2cBusInitialization(TwoWire *i2cBus, int sda, int scl, int clockKHz)
         timer = millis();
 
         // The authentication coprocessor can be asleep. It needs special treatment
-        if ((addr == 0x10) && (i2cIsDeviceRegisterPresent(i2cBus, addr, 0x00, 0x07)))
+        if (addr == 0x10)
         {
-            if (deviceFound == false)
+            // This takes longer than 3ms to complete
+            // Don't allow the code to reach else if ((millis() - timer) > 3)
+            if (i2cIsDeviceRegisterPresent(i2cBus, addr, 0x00, 0x07))
             {
-                systemPrintln("I2C Devices:");
-                deviceFound = true;
-            }
+                if (deviceFound == false)
+                {
+                    systemPrintln("I2C Devices:");
+                    deviceFound = true;
+                }
 
-            systemPrintf("  0x%02X - MFI343S00177 Authentication Coprocessor\r\n", addr);
-            i2cAuthCoPro = i2cBus; // Record the bus
+                systemPrintf("  0x%02X - MFI343S00177 Authentication Coprocessor\r\n", addr);
+                i2cAuthCoPro = i2cBus; // Record the bus
+            }
         }
         else if (i2cIsDevicePresent(i2cBus, addr))
         {
