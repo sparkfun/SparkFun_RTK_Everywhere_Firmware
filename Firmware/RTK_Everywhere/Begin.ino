@@ -1762,7 +1762,7 @@ void pinI2CDetectTask(void *pvParameters)
     // Stop notification
     //if (settings.printTaskStartStop) // Settings have not yet been loaded
     // systemPrintln("Task pinI2CDetectTask stopped");
-    
+
     task.i2cDetectTaskRunning = false;
     vTaskDelete(nullptr); // Delete task once it has run once
 }
@@ -1842,7 +1842,7 @@ void pinI2CTask(void *pvParameters)
     if (settings.printTaskStartStop)
         systemPrintln("Task pinI2CTask started");
 
-    if (pin_I2C0_SDA == -1 || pin_I2C0_SCL == -1)
+    if (pin_I2C0_SDA == PIN_UNDEFINED || pin_I2C0_SCL == PIN_UNDEFINED)
         reportFatalError("Illegal I2C0 pin assignment.");
 
     int bus0speed = 100;
@@ -1861,7 +1861,7 @@ void pinI2CTask(void *pvParameters)
         if (present.i2c1BusSpeed_400 == true)
             bus1speed = 400;
 
-        if (pin_I2C1_SDA == -1 || pin_I2C1_SCL == -1)
+        if (pin_I2C1_SDA == PIN_UNDEFINED || pin_I2C1_SCL == PIN_UNDEFINED)
             reportFatalError("Illegal I2C1 pin assignment.");
         i2cBusInitialization(i2c_1, pin_I2C1_SDA, pin_I2C1_SCL, bus1speed);
     }
