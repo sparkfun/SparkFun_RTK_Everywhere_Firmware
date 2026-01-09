@@ -77,45 +77,7 @@ void identifyBoard()
     // First, test for devices that do not have ID resistors
     if (productVariant == RTK_UNKNOWN)
     {
-        // Check if unique ICs are on the I2C bus
-        if (i2c_0 == nullptr)
-            i2c_0 = new TwoWire(0);
-        int pin_SDA = 15;
-        int pin_SCL = 4;
-
-        i2c_0->begin(pin_SDA, pin_SCL); // SDA, SCL
-
-        // 0x0B - BQ40Z50 Li-Ion Battery Pack Manager / Fuel gauge
-        bool bq40z50Present = i2cIsDevicePresent(i2c_0, 0x0B);
-
-        // 0x5C - MP2762A Charger
-        bool mp2762aPresent = i2cIsDevicePresent(i2c_0, 0x5C);
-
-        // 0x08 - HUSB238 - USB C PD Sink Controller
-        bool husb238Present = i2cIsDevicePresent(i2c_0, 0x08);
-
-        // 0x10 - MFI343S00177 Authentication Coprocessor
-        // The authentication coprocessor can be asleep. It needs special treatment
-        bool mfiPresent = i2cIsDeviceRegisterPresent(i2c_0, 0x10, 0x00, 0x07);
-
-        i2c_0->end();
-
-        // Proceed with Torch ID only if MFi is absent (Torch X2 has MFi, and ID resistors)
-        if (mfiPresent == false)
-        {
-            if (bq40z50Present || mp2762aPresent || husb238Present)
-            {
-                productVariant = RTK_TORCH;
-                if (bq40z50Present == false)
-                    systemPrintln("Error: Torch ID'd with no BQ40Z50 present");
-
-                if (mp2762aPresent == false)
-                    systemPrintln("Error: Torch ID'd with no MP2762A present");
-
-                if (husb238Present == false)
-                    systemPrintln("Error: Torch ID'd with no HUSB238 present");
-            }
-        }
+        testI2cDevices();
     }
 
     if (productVariant == RTK_UNKNOWN)
@@ -1710,6 +1672,99 @@ void beginIdleTasks()
                     index);                 // Core where task should run, 0=core, 1=Arduino
         }
     }
+}
+
+// Torch has no ID resistors. We need to test the I2C bus to detect a Torch
+void testI2cDevices()
+{
+    TaskHandle_t taskHandle;
+
+    if (i2c_0 == nullptr)
+        i2c_0 = new TwoWire(0);
+
+    // Complete the power-up delay for a power-controlled I2C bus
+    if (i2cPowerUpDelay)
+        while (millis() < i2cPowerUpDelay)
+            ;
+
+    //if (settings.printTaskStartStop) // Settings have not yet been loaded
+    // systemPrintf("Task pinI2CDetectTask will be run on core %d%s\r\n",
+    //     settings.i2cInterruptsCore, settings.i2cInterruptsCore == 1 ? " (Arduino)" : "");
+
+    if (task.i2cDetectTaskRunning == false)
+    {
+        xTaskCreatePinnedToCore(
+            pinI2CDetectTask,
+            "I2CDetect",  // Just for humans
+            2000,        // Stack Size
+            nullptr,     // Task input parameter
+            0,           // Priority, with 3 (configMAX_PRIORITIES - 1) being the highest, and 0 being the lowest
+            &taskHandle, // Task handle
+            settings.i2cInterruptsCore); // Core where task should run, 0=core, 1=Arduino
+
+        // Wait for task to start running
+        while (task.i2cDetectTaskRunning == false)
+            delay(1);
+    }
+
+    // Wait for task to complete
+    while (task.i2cDetectTaskRunning == true)
+        delay(1);
+}
+
+// Assign I2C interrupts to the core that started the task. See: https://github.com/espressif/arduino-esp32/issues/3386
+void pinI2CDetectTask(void *pvParameters)
+{
+    task.i2cDetectTaskRunning = true;
+
+    // Start notification
+    //if (settings.printTaskStartStop) // Settings have not yet been loaded
+    // systemPrintln("Task pinI2CDetectTask started");
+
+    // Check if unique ICs are on the Torch I2C bus
+    int pin_SDA = 15;
+    int pin_SCL = 4;
+
+    i2c_0->begin(pin_SDA, pin_SCL); // SDA, SCL
+
+    // 0x0B - BQ40Z50 Li-Ion Battery Pack Manager / Fuel gauge
+    bool bq40z50Present = i2cIsDevicePresent(i2c_0, 0x0B);
+
+    // 0x5C - MP2762A Charger
+    bool mp2762aPresent = i2cIsDevicePresent(i2c_0, 0x5C);
+
+    // 0x08 - HUSB238 - USB C PD Sink Controller
+    bool husb238Present = i2cIsDevicePresent(i2c_0, 0x08);
+
+    // 0x10 - MFI343S00177 Authentication Coprocessor
+    // The authentication coprocessor can be asleep. It needs special treatment
+    bool mfiPresent = i2cIsDeviceRegisterPresent(i2c_0, 0x10, 0x00, 0x07);
+
+    i2c_0->end();
+
+    // Proceed with Torch ID only if MFi is absent (Torch X2 has MFi, and ID resistors)
+    if (mfiPresent == false)
+    {
+        if (bq40z50Present || mp2762aPresent || husb238Present)
+        {
+            productVariant = RTK_TORCH;
+            if (bq40z50Present == false)
+                systemPrintln("Error: Torch ID'd with no BQ40Z50 present");
+
+            if (mp2762aPresent == false)
+                systemPrintln("Error: Torch ID'd with no MP2762A present");
+
+            if (husb238Present == false)
+                systemPrintln("Error: Torch ID'd with no HUSB238 present");
+        }
+    }
+
+    // Stop notification
+    //if (settings.printTaskStartStop) // Settings have not yet been loaded
+    // systemPrintln("Task pinI2CDetectTask stopped");
+    
+    task.i2cDetectTaskRunning = false;
+    vTaskDelete(nullptr); // Delete task once it has run once
 }
 
 void beginI2C()

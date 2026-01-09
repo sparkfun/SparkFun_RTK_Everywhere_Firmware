@@ -1171,7 +1171,9 @@ void menuOperation()
         }
         else if (incoming == 32)
         {
-            getNewSetting("Enter Core used for I2C Interrupts", 0, 1, &settings.i2cInterruptsCore);
+            systemPrintln("\r\nI2C Interrupts Core can not be changed here.");
+            systemPrintln("It is needed before the settings are loaded.");
+            systemPrintln("Change in settings and recompile.");
         }
         else if (incoming == 50)
         {
