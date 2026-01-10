@@ -1474,7 +1474,18 @@ void beginButtons()
 
     TaskHandle_t taskHandle;
 
+    // Validate the button pins - so we don't need to do it below
+    if (present.button_powerLow == true && pin_powerButton == PIN_UNDEFINED)
+        reportFatalError("Illegal power button assignment.");
+    if (present.button_powerHigh == true && pin_powerButton == PIN_UNDEFINED)
+        reportFatalError("Illegal power button assignment.");
+    if (present.button_mode == true && pin_modeButton == PIN_UNDEFINED)
+        reportFatalError("Illegal mode button assignment.");
+    if (present.button_function == true && pin_modeButton == PIN_UNDEFINED)
+        reportFatalError("Illegal function button assignment.");
+
     int buttonCount = 0;
+    int allowedButtons = 1;
     if (present.button_powerLow == true)
         buttonCount++;
     if (present.button_powerHigh == true)
@@ -1482,11 +1493,14 @@ void beginButtons()
     if (present.button_mode == true)
         buttonCount++;
     if (present.button_function == true)
+    {
         buttonCount++;
+        allowedButtons++;
+    }
     if (present.gpioExpanderButtons == true)
         buttonCount++;
 
-    if (buttonCount > 2)
+    if (buttonCount != allowedButtons)
         reportFatalError("Illegal button assignment.");
 
     // Postcard button uses an I2C expander
@@ -1507,19 +1521,15 @@ void beginButtons()
         // Use the Button library
         if (present.button_powerLow == true)
         {
+            // Torch X2 and Facet mosaic have just one power/setup button
+            powerBtn = new Button(pin_powerButton);
             // Flex has a power button (GPIO) and function button (Mode or Fn)
             if (present.button_function == true)
-            {
-                powerBtn = new Button(pin_powerButton);
                 functionBtn = new Button(pin_modeButton);
-            }
-            // Torch X2, Facet mosaic have just one power/setup button
-            else if (pin_powerButton != PIN_UNDEFINED)
-                powerBtn = new Button(pin_powerButton);
         }
 
-        // Torch main/power button
-        else if (present.button_powerHigh == true && pin_powerButton != PIN_UNDEFINED)
+        // Torch power/setup button
+        else if (present.button_powerHigh == true)
             powerBtn = new Button(pin_powerButton, 25, true,
                                   false); // Turn off inversion. Needed for buttons that are high when pressed.
 
@@ -1531,6 +1541,7 @@ void beginButtons()
         else
             systemPrintf("Error: Uncaught button configuration");
 
+        // Begin the Button instances
         if (powerBtn != nullptr)
         {
             powerBtn->begin();
@@ -1539,8 +1550,7 @@ void beginButtons()
         else
         {
             if (present.button_powerHigh || present.button_powerLow)
-                systemPrintln("Failed to begin power button");
-            return;
+                reportFatalError("Failed to begin power button");
         }
 
         if (functionBtn != nullptr)
@@ -1551,13 +1561,13 @@ void beginButtons()
         else
         {
             if (present.button_function)
-                systemPrintln("Failed to begin function button");
+                reportFatalError("Failed to begin function button");
             else if (present.button_mode)
-                systemPrintln("Failed to begin mode button");
-            return;
+                reportFatalError("Failed to begin mode button");
         }
     }
 
+    // If any button needs it, start the button task
     if (online.powerButton == true || online.functionButton == true || online.gpioExpanderButtons == true)
     {
         // Starts task for monitoring button presses
