@@ -2155,24 +2155,31 @@ void buttonCheckTask(void *e)
         }
 
         // If user presses the center button or right, act as double tap (select)
-        if (buttonLastPressed() == gpioExpander_center || buttonLastPressed() == gpioExpander_right)
+        if (online.gpioExpanderButtons == true)
         {
-            doubleTap = true;
-            singleTap = false;
-            previousButtonRelease = 0;
-            thisButtonRelease = 0;
+            if (buttonLastPressed() == gpioExpander_center || buttonLastPressed() == gpioExpander_right)
+            {
+                doubleTap = true;
+                singleTap = false;
+                previousButtonRelease = 0;
+                thisButtonRelease = 0;
 
-            gpioExpander_lastReleased = 255; // Reset for the next read
+                gpioExpander_lastReleased = 255; // Reset for the next read
+            }
         }
         // If user presses the power button (on a dual button system) act as double tap (select)
-        if (buttonLastPressed() == dualButton_power)
+        // dualButton_power == gpioExpander_up so this needs to be wrapped:
+        if (online.functionButton == true && online.powerButton == true)
         {
-            doubleTap = true;
-            singleTap = false;
-            previousButtonRelease = 0;
-            thisButtonRelease = 0;
+            if (buttonLastPressed() == dualButton_power)
+            {
+                doubleTap = true;
+                singleTap = false;
+                previousButtonRelease = 0;
+                thisButtonRelease = 0;
 
-            dualButton_lastReleased = 255; // Reset for the next read
+                dualButton_lastReleased = 255; // Reset for the next read
+            }
         }
 
         // End button checking
