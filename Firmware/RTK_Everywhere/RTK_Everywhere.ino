@@ -320,6 +320,8 @@ int gpioExpander_right = 2;
 int gpioExpander_left = 3;
 int gpioExpander_center = 4;
 int gpioExpander_cardDetect = 5;
+int gpioExpander_io6 = 6;
+int gpioExpander_io7 = 7;
 
 const int gpioExpanderSwitch_S1 = 0; // Controls U16 switch 1: connect ESP UART0 to CH342 or SW2
 const int gpioExpanderSwitch_S2 = 1; // Controls U17 switch 2: connect SW1 to RS232 Output or GNSS UART4
