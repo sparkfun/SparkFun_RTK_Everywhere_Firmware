@@ -871,33 +871,68 @@ void processUart1Message(SEMP_PARSE_STATE *parse, uint16_t type)
 #ifdef COMPILE_AUTHENTICATION
             if (appleAccessory->latestEASessionDataIsBlocking() == false)
             {
-                size_t spaceAvailable = latestEASessionDataMaxLen - strlen(latestEASessionData);
-                if (spaceAvailable >= 3)
-                    spaceAvailable -= 3;               // Leave room for the CR, LF and NULL
-                while (spaceAvailable < parse->length) // If the buffer is full, delete the oldest message(s)
+                do // Use a do loop so we can break out if needed
                 {
-                    const char *lfPtr = strstr(latestEASessionData, "\n"); // Find the first LF
-                    if (lfPtr == nullptr)
-                        break;                                            // Something has gone badly wrong...
-                    lfPtr++;                                              // Point at the byte after the LF
-                    size_t oldLen = lfPtr - latestEASessionData;          // This much data is old
-                    size_t newLen = strlen(latestEASessionData) - oldLen; // This much is new (not old)
-                    for (size_t i = 0; i <= newLen; i++) // Move the new data over the old. Include the NULL
-                        latestEASessionData[i] = latestEASessionData[oldLen + i];
-                    spaceAvailable += oldLen;
-                }
-                size_t dataLen = strlen(latestEASessionData);
-                memcpy(&latestEASessionData[dataLen], parse->buffer, parse->length); // Add the new NMEA data
-                dataLen += parse->length;
-                latestEASessionData[dataLen] = 0; // NULL terminate
-                if (latestEASessionData[dataLen - 1] != '\n')
-                {
-                    latestEASessionData[dataLen] = '\r';     // Add CR
-                    latestEASessionData[dataLen + 1] = '\n'; // Add LF
-                    latestEASessionData[dataLen + 2] = 0;    // NULL terminate
-                }
+                    // Check the buffer is large enough. Include room for the CR, LF and NULL
+                    if (latestEASessionDataMaxLen < (parse->length + 3))
+                    {
+                        if (settings.debugNetworkLayer && !inMainMenu)
+                            systemPrintf("Increase latestEASessionDataMaxLen to > %d\r\n", parse->length);
+                        break;
+                    }
+
+                    // Use strnlen to get the length of the stored EA session data
+                    size_t latestEASessionDataLen = strnlen(latestEASessionData, latestEASessionDataMaxLen);
+                    if (latestEASessionDataLen == latestEASessionDataMaxLen)
+                    {
+                        if (settings.debugNetworkLayer && !inMainMenu)
+                            systemPrintln("latestEASessionData is full and not NULL-terminated. Discarding buffer contents...");
+                        *latestEASessionData = 0;
+                        latestEASessionDataLen = 0;
+                    }
+
+                    size_t spaceAvailable = latestEASessionDataMaxLen - latestEASessionDataLen;
+                    
+                    // If the buffer is full, delete the oldest message(s). Include room for the CR, LF and NULL
+                    while (spaceAvailable < (parse->length + 3))
+                    {
+                        const char *lfPtr = strstr(latestEASessionData, "\n"); // Find the first LF
+                        if (lfPtr == nullptr)
+                        {
+                            // LF not found. Something has gone badly wrong...
+                            if (settings.debugNetworkLayer && !inMainMenu)
+                                systemPrintln("latestEASessionData does not contain LF. Discarding buffer contents...");
+                            *latestEASessionData = 0;
+                            latestEASessionDataLen = 0;
+                            spaceAvailable = latestEASessionDataMaxLen;
+                        }
+                        else
+                        {
+                            lfPtr++;                                         // Point at the byte after the LF
+                            size_t oldLen = lfPtr - latestEASessionData;     // This much data is old
+                            size_t newLen = latestEASessionDataLen - oldLen; // This much is new (not old)
+                            // Move the new data over the old. Include the NULL
+                            memmove(latestEASessionData, &latestEASessionData[oldLen], newLen + 1);
+                            spaceAvailable += oldLen;
+                            latestEASessionDataLen = newLen;
+                            // if (settings.debugNetworkLayer && !inMainMenu)
+                            //     systemPrintf("latestEASessionData is full. Discarding %d bytes...\r\n", oldLen);
+                        }
+                    }
+
+                    memcpy(&latestEASessionData[latestEASessionDataLen], parse->buffer, parse->length); // Add the new NMEA data
+                    latestEASessionDataLen += parse->length;
+                    if (latestEASessionData[latestEASessionDataLen - 1] != '\n') // Check for LF
+                    {
+                        latestEASessionData[latestEASessionDataLen++] = '\r';     // Add CR
+                        latestEASessionData[latestEASessionDataLen++] = '\n'; // Add LF
+                    }
+                    latestEASessionData[latestEASessionDataLen] = 0;    // NULL terminate
+                    // if (settings.debugNetworkLayer && !inMainMenu)
+                    //     systemPrintf("latestEASessionData: added %d bytes...\r\n", parse->length);
+                } while (0);
             }
-            else if (settings.debugNetworkLayer)
+            else if (settings.debugNetworkLayer && !inMainMenu)
                 systemPrintf("Discarding %d GSA/GSV bytes - latestEASessionDataIsBlocking\r\n", parse->length);
 #endif // COMPILE_AUTHENTICATION
         }
