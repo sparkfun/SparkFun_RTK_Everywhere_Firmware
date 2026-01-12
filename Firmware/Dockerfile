@@ -116,8 +116,10 @@ RUN cd ./Tools \
     && python3 main_js_zipper.py ../RTK_Everywhere/AP-Config/src/main.js ../RTK_Everywhere/form.h
 
 # Copy custom RTKEverywhere.csv
-# Use the 16MB partitions by default. 8MB (Postcard) partitions must be compiled separately
+# Use the 16MB version
 RUN cp RTKEverywhere.csv "/root/.arduino15/packages/esp32/hardware/esp32/${CORE_VERSION}/tools/partitions/RTKEverywhere.csv"
+# Use the 8MB version
+#RUN cp RTKEverywhere_8MB.csv "/root/.arduino15/packages/esp32/hardware/esp32/${CORE_VERSION}/tools/partitions/RTKEverywhere.csv"
 
 # Compile Sketch
 RUN cd ./RTK_Everywhere \
