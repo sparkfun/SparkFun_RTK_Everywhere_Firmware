@@ -60,7 +60,7 @@ void *rtkMalloc(size_t sizeInBytes, const char *text)
     const char *area;
     void *data;
 
-    if (online.psram == true)
+    if (online.psram == true && sizeInBytes >= settings.psramMallocLevel)
     {
         area = "PSRAM";
         data = ps_malloc(sizeInBytes);
