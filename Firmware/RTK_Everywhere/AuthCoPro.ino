@@ -20,12 +20,16 @@ extern BTSerialInterface *bluetoothSerialSpp;
 
 void transportConnected(bool *isConnected)
 {
-    *isConnected = bluetoothSerialSpp->connected();
+    if (bluetoothSerialSpp)
+        *isConnected = bluetoothSerialSpp->connected();
+    else
+        *isConnected = false;
 }
 
 void transportDisconnect(bool *disconnected)
 {
-    bluetoothSerialSpp->disconnect();
+    if (bluetoothSerialSpp)
+        bluetoothSerialSpp->disconnect();
 }
 
 void beginAuthCoPro(TwoWire *i2cBus)
@@ -61,13 +65,23 @@ void beginAuthCoPro(TwoWire *i2cBus)
 
     // Pass the pointers for the latest NMEA data into the Accessory driver
     latestGPGGA = (char *)rtkMalloc(latestNmeaMaxLen, "AuthCoPro");
+    *latestGPGGA = 0; // Null-terminate so strlen will work
     latestGPRMC = (char *)rtkMalloc(latestNmeaMaxLen, "AuthCoPro");
+    *latestGPRMC = 0; // Null-terminate so strlen will work
     latestGPGST = (char *)rtkMalloc(latestNmeaMaxLen, "AuthCoPro");
+    *latestGPGST = 0; // Null-terminate so strlen will work
     latestGPVTG = (char *)rtkMalloc(latestNmeaMaxLen, "AuthCoPro");
+    *latestGPVTG = 0; // Null-terminate so strlen will work
     appleAccessory->setNMEApointers(latestGPGGA, latestGPRMC, latestGPGST, latestGPVTG);
 
     // Pass the pointer for additional GSA / GSV EA Session data
     latestEASessionData = (char *)rtkMalloc(latestEASessionDataMaxLen, "AuthCoPro");
+    if (!latestEASessionData)
+    {
+        systemPrintln("latestEASessionData memory allocation failed!");
+        return;
+    }
+    *latestEASessionData = 0; // Null-terminate so strlen will work
     appleAccessory->setEASessionPointer(latestEASessionData);
 
     // Pass the transport connected and disconnect methods into the accessory driver
