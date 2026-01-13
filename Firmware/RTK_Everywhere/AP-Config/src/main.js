@@ -21,6 +21,7 @@ function ge(e) {
 var fixedLat = 0;
 var fixedLong = 0;
 var platformPrefix = "";
+var facetFPGNSS = "";
 var geodeticLat = 40.01;
 var geodeticLon = -105.19;
 var geodeticAlt = 1500.1;
@@ -388,6 +389,118 @@ function parseIncoming(msg) {
                 select.add(newOption, undefined);
             }
         }
+        else if (id == "facetFPGNSS") {
+            facetFPGNSS = val;
+
+            if (facetFPGNSS == "Mosaic-X5") {
+                show("baseConfig");
+                show("ppConfig");
+                hide("ethernetConfig");
+                hide("ntpConfig");
+                show("portsConfig");
+                show("externalPortOptions");
+                hide("tiltConfig");
+                show("beeperControl");
+                hide("measurementRateInput");
+                show("mosaicNMEAStreamDropdowns");
+                hide("surveyInSettings");
+
+                show("useEnableExtCorrRadio");
+                hide("extCorrRadioSPARTNSourceDropdown");
+                show("enableNmeaOnRadio");
+
+                select = ge("dynamicModel");
+                let newOption = new Option('Static', '0');
+                select.add(newOption, undefined);
+                newOption = new Option('Quasistatic', '1');
+                select.add(newOption, undefined);
+                newOption = new Option('Pedestrian', '2');
+                select.add(newOption, undefined);
+                newOption = new Option('Automotive', '3');
+                select.add(newOption, undefined);
+                newOption = new Option('Race Car', '4');
+                select.add(newOption, undefined);
+                newOption = new Option('Heavy Machinery', '5');
+                select.add(newOption, undefined);
+                newOption = new Option('UAV', '6');
+                select.add(newOption, undefined);
+                newOption = new Option('Unlimited', '7');
+                select.add(newOption, undefined);
+
+                ge("messageRateInfoText").setAttribute('data-bs-original-title', 'The GNSS can output NMEA and RTCMv3 at different rates. For NMEA: select a stream for each message, and set an interval for each stream. For RTCMv3: set an interval for each message group, and enable individual messages.');
+                ge("rtcmRateInfoText").setAttribute('data-bs-original-title', 'RTCM is transmitted by the base at a default of 1Hz for messages 1005, MSM4, and 0.1Hz for 1033. This can be lowered for radios with low bandwidth or tailored to transmit any/all RTCM messages. Limits: 0.1 to 600.');
+                ge("enableExtCorrRadioInfoText").setAttribute('data-bs-original-title', 'Enable external radio corrections: RTCMv3 on mosaic COM2. Default: False');
+
+                select = ge("pointPerfectService");
+                newOption = new Option('Disabled', '0');
+                select.add(newOption, undefined);
+                newOption = new Option('Flex NTRIP/RTCM', '1');
+                select.add(newOption, undefined);
+                newOption = new Option('Flex L-Band North America (Deprecated)', '2');
+                select.add(newOption, undefined);
+                newOption = new Option('Flex MQTT (Deprecated)', '5');
+                select.add(newOption, undefined);
+            }
+            else if (facetFPGNSS == "LG290P") {
+                show("baseConfig");
+                show("ppConfig");
+                hide("ethernetConfig");
+                hide("ntpConfig");
+                show("portsConfig");
+                show("externalPortOptions");
+
+                hide("tiltConfig");
+                show("beeperControl");
+
+                show("measurementRateInput");
+                hide("mosaicNMEAStreamDropdowns");
+                show("surveyInSettings");
+                show("useEnableExtCorrRadio");
+                hide("extCorrRadioSPARTNSourceDropdown");
+                show("enableNmeaOnRadio");
+
+                hide("constellationSbas"); //Not supported on LG290P
+                show("constellationNavic");
+
+                hide("dynamicModelDropdown"); //Not supported on LG290P
+
+                ge("rtcmRateInfoText").setAttribute('data-bs-original-title', 'RTCM is transmitted by the base at a default of 1Hz for messages 1005, 1074, 1084, 1094, 1114, 1124, 1134. This can be lowered for radios with low bandwidth or tailored to transmit any/all RTCM messages. Limits: 0 to 20. Note: The measurement rate is overridden to 1Hz when in Base mode.');
+
+                select = ge("pointPerfectService");
+                let newOption = new Option('Disabled', '0');
+                select.add(newOption, undefined);
+                newOption = new Option('Flex NTRIP/RTCM', '1');
+                select.add(newOption, undefined);
+                newOption = new Option('Flex MQTT (Deprecated)', '5');
+                select.add(newOption, undefined);
+
+                ge("radioPortBaud").options.length = 0; //Remove all from list
+                select = ge("radioPortBaud");
+                newOption = new Option('9600', '9600');
+                select.add(newOption, undefined);
+                newOption = new Option('115200', '115200');
+                select.add(newOption, undefined);
+                newOption = new Option('230400', '230400');
+                select.add(newOption, undefined);
+                newOption = new Option('460800', '460800');
+                select.add(newOption, undefined);
+                newOption = new Option('921600', '921600');
+                select.add(newOption, undefined);
+
+                ge("dataPortBaud").options.length = 0; //Remove all from list
+                select = ge("dataPortBaud");
+                newOption = new Option('9600', '9600');
+                select.add(newOption, undefined);
+                newOption = new Option('115200', '115200');
+                select.add(newOption, undefined);
+                newOption = new Option('230400', '230400');
+                select.add(newOption, undefined);
+                newOption = new Option('460800', '460800');
+                select.add(newOption, undefined);
+                newOption = new Option('921600', '921600');
+                select.add(newOption, undefined);
+            }
+        }
         else if (id.includes("gnssFirmwareVersionInt")) {
             //Modify settings due to firmware limitations
             if ((platformPrefix == "EVK") || (platformPrefix == "Facet v2") || (platformPrefix == "Facet v2 LBand")) {
@@ -589,7 +702,7 @@ function parseIncoming(msg) {
             messageText += "</div></div>";
 
             // Add this rate to initialSettings - if it has not been added before
-            addInitialSetting(id, val);
+            addInitialSetting(id, messageRate);
         }
         else if (id.includes("messageStreamNMEA")) {
             // messageStreamNMEA_GGA
@@ -1081,8 +1194,8 @@ function validateFields() {
         }
     }
 
-    //Check Facet mosaicX5 RTCM intervals
-    else if (platformPrefix == "Facet mosaicX5") {
+    //Check Mosaic-X5 RTCM intervals
+    else if ((platformPrefix == "Facet mosaicX5") || ((platformPrefix == "Flex") && (facetFPGNSS == "Mosaic-X5"))) {
         var messages = document.querySelectorAll('input[id^=messageIntervalRTCMRover]');
         for (let x = 0; x < messages.length; x++) {
             var messageName = messages[x].id;
@@ -1096,7 +1209,7 @@ function validateFields() {
     }
 
     //Check all LG290P message boxes
-    else if ((platformPrefix == "Postcard") || (platformPrefix == "Torch X2")) {
+    else if ((platformPrefix == "Postcard") || (platformPrefix == "Torch X2") || ((platformPrefix == "Flex") && (facetFPGNSS == "LG290P"))) {
         var messages = document.querySelectorAll('input[id^=messageRateNMEA_]');
         for (let x = 0; x < messages.length; x++) {
             var messageName = messages[x].id;
@@ -1645,7 +1758,7 @@ function resetToSurveyingDefaults() {
         ge("messageRateNMEA_GPGSV").value = 1.0;
         ge("messageRateNMEA_GPRMC").value = 0.5;
     }
-    else if (platformPrefix == "Facet mosaicX5") {
+    else if ((platformPrefix == "Facet mosaicX5") || ((platformPrefix == "Flex") && (facetFPGNSS == "Mosaic-X5"))) {
         ge("streamIntervalNMEA_0").value = 6; //msec500
         ge("streamIntervalNMEA_1").value = 7; //sec1
         ge("messageStreamNMEA_GGA").value = 1;
@@ -1656,7 +1769,7 @@ function resetToSurveyingDefaults() {
 
         ge("messageIntervalRTCMRover_RTCM1033").value = 10.0;
     }
-    else if ((platformPrefix == "Postcard") || (platformPrefix == "Torch X2")) {
+    else if ((platformPrefix == "Postcard") || (platformPrefix == "Torch X2") || ((platformPrefix == "Flex") && (facetFPGNSS == "LG290P"))) {
         ge("messageRateNMEA_RMC").value = 1;
         ge("messageRateNMEA_GGA").value = 1;
         ge("messageRateNMEA_GSV").value = 1;
@@ -1695,7 +1808,7 @@ function resetToLoggingDefaults() {
         ge("messageRateRTCMRover_RTCM1094").value = 30;
         ge("messageRateRTCMRover_RTCM1124").value = 30;
     }
-    else if ((platformPrefix == "Postcard") || (platformPrefix == "Torch X2")) {
+    else if ((platformPrefix == "Postcard") || (platformPrefix == "Torch X2") || ((platformPrefix == "Flex") && (facetFPGNSS == "LG290P"))) {
         ge("messageRateNMEA_RMC").value = 1;
         ge("messageRateNMEA_GGA").value = 1;
         ge("messageRateNMEA_GSV").value = 1;
@@ -1713,7 +1826,7 @@ function resetToLoggingDefaults() {
         ge("messageRateRTCMRover_RTCM3-112X").value = 1;
         ge("messageRateRTCMRover_RTCM3-113X").value = 1;
     }
-    else if (platformPrefix == "Facet mosaicX5") {
+    else if ((platformPrefix == "Facet mosaicX5") || ((platformPrefix == "Flex") && (facetFPGNSS == "Mosaic-X5"))) {
         ge("streamIntervalNMEA_0").value = 6; //msec500
         ge("streamIntervalNMEA_1").value = 7; //sec1
         ge("messageStreamNMEA_GGA").value = 1;
@@ -1757,7 +1870,7 @@ function resetToRTCMDefaults() {
         ge("messageRateRTCMBase_RTCM1094").value = 1.0;
         ge("messageRateRTCMBase_RTCM1124").value = 1.0;
     }
-    else if ((platformPrefix == "Postcard") || (platformPrefix == "Torch X2")) {
+    else if ((platformPrefix == "Postcard") || (platformPrefix == "Torch X2") || ((platformPrefix == "Flex") && (facetFPGNSS == "LG290P"))) {
         ge("messageRateRTCMBase_RTCM3-1005").value = 1;
 
         ge("messageRateRTCMBase_RTCM3-107X").value = 1;
@@ -1767,7 +1880,7 @@ function resetToRTCMDefaults() {
         ge("messageRateRTCMBase_RTCM3-112X").value = 1;
         ge("messageRateRTCMBase_RTCM3-113X").value = 1;
     }
-    else if (platformPrefix == "Facet mosaicX5") {
+    else if ((platformPrefix == "Facet mosaicX5") || ((platformPrefix == "Flex") && (facetFPGNSS == "Mosaic-X5"))) {
         ge("messageIntervalRTCMBase_RTCM1033").value = 10.0;
 
         ge("messageEnabledRTCMBase_RTCM1005").checked = true;
@@ -1802,7 +1915,7 @@ function resetToRTCMLowBandwidth() {
         ge("messageRateRTCMBase_RTCM1094").value = 2.0;
         ge("messageRateRTCMBase_RTCM1124").value = 2.0;
     }
-    else if ((platformPrefix == "Postcard") || (platformPrefix == "Torch X2")) {
+    else if ((platformPrefix == "Postcard") || (platformPrefix == "Torch X2") || ((platformPrefix == "Flex") && (facetFPGNSS == "LG290P"))) {
         ge("messageRateRTCMBase_RTCM3-1005").value = 10;
 
         ge("messageRateRTCMBase_RTCM3-107X").value = 2;
@@ -1812,7 +1925,7 @@ function resetToRTCMLowBandwidth() {
         ge("messageRateRTCMBase_RTCM3-112X").value = 2;
         ge("messageRateRTCMBase_RTCM3-113X").value = 2;
     }
-    else if (platformPrefix == "Facet mosaicX5") {
+    else if ((platformPrefix == "Facet mosaicX5") || ((platformPrefix == "Flex") && (facetFPGNSS == "Mosaic-X5"))) {
         ge("messageIntervalRTCMBase_RTCM1005|6").value = 10.0;
         ge("messageIntervalRTCMBase_RTCM1033").value = 10.0;
         ge("messageIntervalRTCMBase_MSM4").value = 2.0;
@@ -1960,6 +2073,9 @@ document.addEventListener("DOMContentLoaded", (event) => {
             }
             else if (platformPrefix == "EVK") {
                 ge("antennaPhaseCenter_mm").value = 42.0; //Average of L1/L2
+            }
+            else if (platformPrefix == "Flex") {
+                ge("antennaPhaseCenter_mm").value = 68.5; //Average of L1/L2 - TBC
             }
             else {
                 ge("antennaPhaseCenter_mm").value = 0.0;
