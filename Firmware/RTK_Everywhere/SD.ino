@@ -177,7 +177,7 @@ bool sdCardPresent(void)
 
         // Use software to detect a card
         DMW_if systemPrintf("pin_microSD_CS: %d\r\n", pin_microSD_CS);
-        if (pin_microSD_CS == -1)
+        if (pin_microSD_CS == PIN_UNDEFINED)
             reportFatalError("Illegal SD CS pin assignment.");
 
         byte response = 0;

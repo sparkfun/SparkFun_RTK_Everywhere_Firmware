@@ -3003,6 +3003,10 @@ bool commandIndexFill(bool usePossibleSettings)
     if (commandIndex)
         rtkFree(commandIndex, "Command index array (commandIndex)");
     commandIndex = (int16_t *)rtkMalloc(length, "Command index array (commandIndex)");
+
+    // systemPrintf("commandIndexFill%s: commandCount %d. Allocating %d bytes at address %p\r\n",
+    //     usePossibleSettings ? "Possible" : "Actual", commandCount, length, commandIndex);
+
     if (!commandIndex)
     {
         // Failed to allocate the commandIndex

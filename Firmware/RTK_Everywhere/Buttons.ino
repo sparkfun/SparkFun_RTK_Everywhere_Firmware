@@ -92,8 +92,16 @@ bool beginGpioExpanderButtons(uint8_t padAddress)
         io.pinMode(gpioExpander_center, INPUT);
         io.pinMode(gpioExpander_cardDetect, INPUT);
 
+        // Set the unused pins to OUTPUT so they can't generate an interrupt
+        io.pinMode(gpioExpander_io6, OUTPUT);
+        io.pinMode(gpioExpander_io7, OUTPUT);
+
+        // The PCA95XX INT pin is open drain. It pulls low when the inputs change
+        // We need to interrupt on the FALLING edge only
+        // If we interrupt on CHANGE, we could get another interrupt when INT is cleared
+        // sdCardPresent will clear the INT too (but not the gpioChanged flag)
         pinMode(pin_gpioExpanderInterrupt, INPUT_PULLUP);
-        attachInterrupt(pin_gpioExpanderInterrupt, gpioExpanderISR, CHANGE);
+        attachInterrupt(pin_gpioExpanderInterrupt, gpioExpanderISR, FALLING);
 
         systemPrintln("Directional pad online");
 

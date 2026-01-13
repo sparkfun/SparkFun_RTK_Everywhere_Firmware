@@ -84,14 +84,34 @@ void *rtkMalloc(size_t sizeInBytes, const char *text)
     const uint32_t badTail = 0; // E.g. 0x3f80135c which was being allocated to the oled
     if (badTail)
     {
-        char ptrAddress[11];
-        snprintf(ptrAddress, sizeof(ptrAddress), "%p", data);
-        char tailMinusSize[11];
-        snprintf(tailMinusSize, sizeof(tailMinusSize), "0x%08x", badTail - sizeInBytes);
-        //systemPrintf("rtkMalloc: address %s tail-size %s\r\n", ptrAddress, tailMinusSize);
-        if (strcmp(ptrAddress, tailMinusSize) == 0)
+        union {
+            void *ptr;
+            uint32_t address;
+        } ptr2address;
+        ptr2address.ptr = data;
+        // Align sizeInBytes to multiples of 4: 0->0; 1->4; 4->4; 5->8; 4001->4004
+        uint32_t alignedSize = (sizeInBytes + 3) & (~3);
+        // Look for address == badTail - alignedSize (ignore the canary)
+        if (ptr2address.address == badTail - alignedSize)
             systemPrintf("rtkMalloc: tail 0x%08x length 0x%04X (%ld) allocated to %s\r\n",
                          badTail, sizeInBytes, sizeInBytes, text);
+    }
+
+    // If you are trying to trace "CORRUPT HEAP Bad head" issues, add the head address here:
+    const uint32_t badHead = 0; // E.g. 0x3f808ff4 (identifed that 0x3f808048 was allocated to AuthCoPro)
+    if (badHead)
+    {
+        union {
+            void *ptr;
+            uint32_t address;
+        } ptr2address;
+        ptr2address.ptr = data;
+        // Align sizeInBytes to multiples of 4: 0->0; 1->4; 4->4; 5->8; 4001->4004
+        uint32_t alignedSize = (sizeInBytes + 3) & (~3);
+        // Look for badHead == address + alignedSize + two 4-byte canaries:
+        if (badHead == ptr2address.address + alignedSize + 8)
+            systemPrintf("rtkMalloc: head 0x%08x length 0x%04X (%ld) allocated to %s\r\n",
+                         ptr2address.address, sizeInBytes, sizeInBytes, text);
     }
 
     return data;

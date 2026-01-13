@@ -2155,24 +2155,31 @@ void buttonCheckTask(void *e)
         }
 
         // If user presses the center button or right, act as double tap (select)
-        if (buttonLastPressed() == gpioExpander_center || buttonLastPressed() == gpioExpander_right)
+        if (online.gpioExpanderButtons == true)
         {
-            doubleTap = true;
-            singleTap = false;
-            previousButtonRelease = 0;
-            thisButtonRelease = 0;
+            if (buttonLastPressed() == gpioExpander_center || buttonLastPressed() == gpioExpander_right)
+            {
+                doubleTap = true;
+                singleTap = false;
+                previousButtonRelease = 0;
+                thisButtonRelease = 0;
 
-            gpioExpander_lastReleased = 255; // Reset for the next read
+                gpioExpander_lastReleased = 255; // Reset for the next read
+            }
         }
         // If user presses the power button (on a dual button system) act as double tap (select)
-        if (buttonLastPressed() == dualButton_power)
+        // dualButton_power == gpioExpander_up so this needs to be wrapped:
+        if (online.functionButton == true && online.powerButton == true)
         {
-            doubleTap = true;
-            singleTap = false;
-            previousButtonRelease = 0;
-            thisButtonRelease = 0;
+            if (buttonLastPressed() == dualButton_power)
+            {
+                doubleTap = true;
+                singleTap = false;
+                previousButtonRelease = 0;
+                thisButtonRelease = 0;
 
-            dualButton_lastReleased = 255; // Reset for the next read
+                dualButton_lastReleased = 255; // Reset for the next read
+            }
         }
 
         // End button checking
@@ -2203,6 +2210,28 @@ void buttonCheckTask(void *e)
         else if (productVariant == RTK_TORCH || productVariant == RTK_TORCH_X2)
         {
             // Platform has no display and possibly tilt corrections, ie RTK Torch and RTK Torch X2
+
+            // Print how long the button has been held. Useful for setting the powerButtonPressLimit
+            // static uint16_t longestPress = 0;
+            // // Torch shuts down when powerButtonPressedFor reaches ~2400
+            // //const uint16_t pressDurations[] = { 1900, 1950, 2000, 2050, 2100, 2150, 2200, 2250, 2300, 2350, 2400, 2450, 2500 };
+            // // Torch X2 shuts down when powerButtonPressedFor reaches ~1500
+            // const uint16_t pressDurations[] = { 1000, 1050, 1100, 1150, 1200, 1250, 1300, 1350, 1400, 1450, 1500, 1650, 1700 };
+            // const uint16_t numDurations = sizeof(pressDurations) / sizeof(uint16_t);
+            // for (uint16_t d = longestPress; d < numDurations; d++)
+            // {
+            //     if (powerButtonPressedFor(pressDurations[d]))
+            //     {
+            //         systemPrintf("Torch power button pressed for %dms\r\n", pressDurations[d]);
+            //         longestPress = d + 1;
+            //     }
+            // }
+
+            // Torch X2 shuts down when powerButtonPressedFor reaches ~1500
+            // To allow time for the beep, we need to start shutting down at ~1200
+            uint16_t powerButtonPressLimit = 1200;
+            if (productVariant == RTK_TORCH)
+                powerButtonPressLimit = 2100; // For Torch, it is closer to ~2400
 
             // In in tilt mode, exit on button press
             if ((singleTap || doubleTap) && (tiltIsCorrecting() == true))
@@ -2258,7 +2287,7 @@ void buttonCheckTask(void *e)
 
             // The RTK Torch uses a shutdown IC configured to turn off ~3s
             // Beep shortly before the shutdown IC takes over
-            else if (powerButtonPressedFor(2100) == true)
+            else if (powerButtonPressedFor(powerButtonPressLimit) == true)
             {
                 systemPrintln("Shutting down");
                 Serial.flush();

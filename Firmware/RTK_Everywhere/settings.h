@@ -2115,6 +2115,7 @@ const NetMask_t mDNSUse = 0x3; // One bit per network interface
 struct struct_tasks
 {
     volatile bool gnssUartPinnedTaskRunning = false;
+    volatile bool i2cDetectTaskRunning = false;
     volatile bool i2cPinnedTaskRunning = false;
     volatile bool bluetoothCommandTaskRunning = false;
     volatile bool btReadTaskRunning = false;
