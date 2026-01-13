@@ -18,12 +18,12 @@ Compatibility Icons
 
 </div>
 
-To get millimeter accuracy we need to provide the RTK unit with correction values. Corrections, often called RTCM, help the RTK unit refine its position calculations. There are multiple options for [correction sources](http://docs.sparkfun.com/SparkFun_RTK_Everywhere_Firmware/correction_sources/), but this tutorial focuses on PointPerfect. PointPerfect Flex over NTRIP is $15 per month and is an [SSR based service](https://docs.sparkfun.com/SparkFun_RTK_Everywhere_Firmware/correction_sources/#osr-vs-ssr) meaning there are no base stations or 'dead-air' gaps in the coverage map: the contiguous 48 states in the USA, EU, Japan, and parts of Australia are covered by this service. See the coverage map [here](https://www.u-blox.com/en/pointperfect-service-coverage).
+To get millimeter accuracy we need to provide the RTK unit with correction values. Corrections, often called RTCM, help the RTK unit refine its position calculations. There are multiple options for [correction sources](http://docs.sparkfun.com/SparkFun_RTK_Everywhere_Firmware/correction_sources/), but this tutorial focuses on PointPerfect. PointPerfect Flex over NTRIP is $15 per month and is an [SSR based service](https://docs.sparkfun.com/SparkFun_RTK_Everywhere_Firmware/correction_sources/#osr-vs-ssr) meaning there are no base stations or 'dead-air' gaps in the coverage map. The contiguous 48 states in the USA, EU, Japan, and parts of Australia are covered by this service. See the coverage map [here](https://www.u-blox.com/en/pointperfect-service-coverage).
 
 <figure markdown>
-[![PointPerfect Coverage map including L-Band and IP delivery methods](./img/PointPerfect/SparkFun RTK Everywhere - PointPerfect Coverage Map Small.png)](https://www.u-blox.com/en/pointperfect-service-coverage)
+[![PointPerfect Flex Coverage Map](./img/PointPerfect/SparkFun RTK Everywhere - PointPerfect Coverage Map Small.png)](https://www.u-blox.com/en/pointperfect-service-coverage)
 <figcaption markdown>
-PointPerfect Coverage map including L-Band and IP delivery methods
+PointPerfect Flex Coverage Map
 </figcaption>
 </figure>
 
@@ -79,9 +79,8 @@ Close the NTRIP Client window returning to the main app screen and proceed outdo
 
 Above, if you get a 'Connection Failed' error it is likely that username or password was incorrect. Double check you credentials and try again.
 
-### No Cellular Coverage?
+## No Cellular Coverage?
 
 ![A device getting corrections over WiFi](<img/Corrections/SparkFun RTK Everywhere - Correction Data Flow NTRIP over Starlink.png>)
-
 
 What if you don't have cellular connectivity? Corrections can be obtained over any internet connection. [Starlink Roam](https://www.starlink.com/us/roam) or [Eutelsat KONNECT](https://europe.konnect.com/en-DE) can provide internet over satellite. Once WiFi is available at the job site the RTK device can be configured to connect to WiFi and get the corrections over its built-in NTRIP Client. See the [NTRIP Client docs](http://docs.sparkfun.com/SparkFun_RTK_Everywhere_Firmware/menu_gnss/#ntrip-client) for more information.
