@@ -1622,7 +1622,7 @@ void loop()
 void waitingForMenuInput()
 {
     // Don't call stateUpdate() here. Wait until we exit the menu before changing state.
-    
+
     DMW_w("updateBattery");
     updateBattery();
 
@@ -2011,5 +2011,31 @@ void getSemaphoreFunction(char *functionName)
     case FUNCTION_ARPWRITE:
         strcpy(functionName, "ARP Write");
         break;
+    }
+}
+
+//----------------------------------------
+// Output a buffer of data
+//
+// Inputs:
+//   buffer: Address of a buffer of data to output
+//   length: Number of bytes of data to output
+//----------------------------------------
+void output(uint8_t * buffer, size_t length)
+{
+    size_t bytesWritten;
+
+    if (Serial)
+    {
+        while (length)
+        {
+            // Wait until space is available in the FIFO
+            while (Serial.availableForWrite() == 0);
+
+            // Output the character
+            bytesWritten = Serial.write(buffer, length);
+            buffer += bytesWritten;
+            length -= bytesWritten;
+        }
     }
 }
