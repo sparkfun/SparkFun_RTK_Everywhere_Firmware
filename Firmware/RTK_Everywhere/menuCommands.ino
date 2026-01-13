@@ -1459,6 +1459,18 @@ void createSettingsString(char *newSettings)
     strncpy(apPlatformPrefix, platformPrefixTable[productVariant], sizeof(apPlatformPrefix));
     stringRecord(newSettings, "platformPrefix", apPlatformPrefix);
 
+    if (productVariant == RTK_FLEX)
+    {
+        for (int index = 0; index < GNSS_SUPPORT_ROUTINES_ENTRIES; index++)
+        {
+            if (gnssSupportRoutines[index]._receiver == settings.detectedGnssReceiver)
+            {
+                stringRecord(newSettings, "facetFPGNSS", (char *)gnssSupportRoutines[index].name);
+                break;
+            }
+        }
+    }
+
     stringRecord(newSettings, "rtkFirmwareVersion", (char *)printRtkFirmwareVersion());
     stringRecord(newSettings, "gnssFirmwareVersion", (char *)printGnssModuleInfo());
     stringRecord(newSettings, "gnssFirmwareVersionInt", gnssFirmwareVersionInt);
