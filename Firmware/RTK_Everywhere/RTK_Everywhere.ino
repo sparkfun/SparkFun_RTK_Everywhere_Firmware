@@ -1056,6 +1056,7 @@ volatile bool deadManWalking;
 #define DMW_r(string) DMW_if systemPrintf("%s returning\r\n", string);
 #define DMW_rs(string, status) DMW_if systemPrintf("%s returning %d\r\n", string, (int32_t)status);
 #define DMW_st(routine, state) DMW_if routine(state);
+#define DMW_w(string) DMW_if systemPrintf("%s called\r\n", string); rtkValidateHeap("waitingForMenuInput");
 
 #define START_DEAD_MAN_WALKING                                                                                         \
     {                                                                                                                  \
@@ -1128,6 +1129,7 @@ volatile bool deadManWalking;
 #define DMW_r(string)
 #define DMW_rs(string, status)
 #define DMW_st(routine, state)
+#define DMW_w(string)
 
 #endif // 0
 
@@ -1607,6 +1609,43 @@ void loop()
 
     DMW_l("loopDelay");
     loopDelay(); // A small delay prevents panic if no other I2C or functions are called
+}
+
+// When the user has the menu open, it spends most of its time waiting for getUserInputString
+// getUserInputString calls waitingForMenuInput to keep the essential non-tasks running
+void waitingForMenuInput()
+{
+/*  ORIGINAL CODE from getUserInputString
+
+    gnss->update(); // Regularly poll to get latest data
+
+    // Keep the ntripClient alive by pushing GPGGA.
+    // I'm not sure if we want / need to do this, but that's how it was when
+    // the GPGGA push was performed from processUart1Message from gnssReadTask.
+    // Doing it here keeps the user experience the same. It is safe to do it here
+    // because the loop is suspended and networkUpdate / ntripClientUpdate aren't
+    // being called. Maybe we _should_ call networkUpdate() here? Just sayin'...
+    pushGPGGA(nullptr);
+
+    // Keep processing NTP requests
+    if (online.ethernetNTPServer)
+    {
+        ntpServerUpdate();
+    }
+*/
+
+    // Regularly poll to get latest data
+    DMW_w("gnssUpdate");
+    gnssUpdate();
+
+    // Maintain the network connections
+    // This calls ntpServerUpdate and pushGPGGA (via ntripClientUpdate)
+    DMW_w("networkUpdate");
+    networkUpdate();
+
+    // Keep the AuthCoPro iAP2 machine running
+    DMW_w("updateAuthCoPro");
+    updateAuthCoPro();
 }
 
 void loopDelay()
