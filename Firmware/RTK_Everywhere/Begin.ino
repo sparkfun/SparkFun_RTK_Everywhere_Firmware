@@ -1244,7 +1244,7 @@ void pinGnssUartTask(void *pvParameters)
     serialGNSS->setRxBufferSize(settings.uartReceiveBufferSize);
     serialGNSS->setTimeout(settings.serialTimeoutGNSS); // Requires serial traffic on the UART pins for detection
 
-    if (pin_GnssUart_RX == -1 || pin_GnssUart_TX == -1)
+    if (pin_GnssUart_RX == PIN_UNDEFINED || pin_GnssUart_TX == PIN_UNDEFINED)
         reportFatalError("Illegal UART pin assignment.");
 
     uint32_t platformGnssCommunicationRate =
@@ -1550,7 +1550,7 @@ void beginButtons()
         else
         {
             if (present.button_powerHigh || present.button_powerLow)
-                reportFatalError("Failed to begin power button");
+                systemPrintln("Failed to begin power button. Continuing...");
         }
 
         if (functionBtn != nullptr)
@@ -1561,9 +1561,9 @@ void beginButtons()
         else
         {
             if (present.button_function)
-                reportFatalError("Failed to begin function button");
-            else if (present.button_mode)
-                reportFatalError("Failed to begin mode button");
+                systemPrintln("Failed to begin function button. Continuing...");
+            if (present.button_mode)
+                systemPrintln("Failed to begin mode button. Continuing...");
         }
     }
 
