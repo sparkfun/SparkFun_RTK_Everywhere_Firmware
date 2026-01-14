@@ -256,7 +256,7 @@ void updateBattery()
             bluetoothSendBatteryPercent(batteryLevelPercent); // Send over dedicated BLE service
 
             // Display the battery data
-            if (settings.enablePrintBatteryMessages)
+            if (settings.enablePrintBatteryMessages && !inMainMenu)
             {
                 char tempStr[25];
                 if (isCharging())
