@@ -313,21 +313,7 @@ InputResponse getUserInputString(char *userString, uint16_t stringSize, bool loc
         //=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
         // Keep doing these important things while waiting for the user to enter data
 
-        gnss->update(); // Regularly poll to get latest data
-
-        // Keep the ntripClient alive by pushing GPGGA.
-        // I'm not sure if we want / need to do this, but that's how it was when
-        // the GPGGA push was performed from processUart1Message from gnssReadTask.
-        // Doing it here keeps the user experience the same. It is safe to do it here
-        // because the loop is suspended and networkUpdate / ntripClientUpdate aren't
-        // being called. Maybe we _should_ call networkUpdate() here? Just sayin'...
-        pushGPGGA(nullptr);
-
-        // Keep processing NTP requests
-        if (online.ethernetNTPServer)
-        {
-            ntpServerUpdate();
-        }
+        waitingForMenuInput();
 
         //=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 

@@ -684,7 +684,6 @@ function parseIncoming(msg) {
             // messageIntervalRTCMRover_RTCM1230
             // messageIntervalRTCMBase_RTCM1230
             var messageName = id;
-            var messageRate = parseFloat(val);
             var messageNameLabel = "";
             var qualifier = "";
             if (id.includes("messageIntervalRTCM")) {
@@ -696,13 +695,15 @@ function parseIncoming(msg) {
 
             messageText += "<div class='form-group row' id='msg" + messageName + "'>";
             messageText += "<label for='" + messageName + "' class='col-sm-4 col-6 col-form-label'>" + messageNameLabel + qualifier + ":</label>";
-            messageText += "<div class='col-sm-4 col-4'><input type='number' class='form-control'";
-            messageText += " id='" + messageName + "' value='" + messageRate + "'>";
+            messageText += "<div class='col-sm-4 col-4'><input type='number'";
+            messageText += getDecimalPlacesStep(val);
+            messageText += " class='form-control'";
+            messageText += " id='" + messageName + "' value='" + val + "'>";
             messageText += "<p id='" + messageName + "Error' class='inlineError'></p>";
             messageText += "</div></div>";
 
             // Add this rate to initialSettings - if it has not been added before
-            addInitialSetting(id, messageRate);
+            addInitialSetting(id, val);
         }
         else if (id.includes("messageStreamNMEA")) {
             // messageStreamNMEA_GGA
@@ -3186,4 +3187,24 @@ function printableInputType(coordinateInputType) {
             break;
     }
     return ("Unknown");
+}
+
+//Given a number as string, return the step based on the number of decimal places
+function getDecimalPlacesStep(theVal) {
+    var theStep = "";
+    var decimalPlaces = 0;
+    if (theVal.includes(".")) {
+        var intDec = theVal.split('.');
+        decimalPlaces = intDec[1].length;
+    }
+
+    if (decimalPlaces > 0) {
+        theStep = " step='0.";
+        for (let i = 1; i < decimalPlaces; i++) {
+            theStep += "0";
+        }
+        theStep += "1'";
+    }
+
+    return (theStep);
 }

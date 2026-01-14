@@ -1058,6 +1058,7 @@ volatile bool deadManWalking;
 #define DMW_r(string) DMW_if systemPrintf("%s returning\r\n", string);
 #define DMW_rs(string, status) DMW_if systemPrintf("%s returning %d\r\n", string, (int32_t)status);
 #define DMW_st(routine, state) DMW_if routine(state);
+#define DMW_w(string) DMW_if systemPrintf("%s called\r\n", string); rtkValidateHeap("waitingForMenuInput");
 
 #define START_DEAD_MAN_WALKING                                                                                         \
     {                                                                                                                  \
@@ -1130,6 +1131,7 @@ volatile bool deadManWalking;
 #define DMW_r(string)
 #define DMW_rs(string, status)
 #define DMW_st(routine, state)
+#define DMW_w(string)
 
 #endif // 0
 
@@ -1609,6 +1611,46 @@ void loop()
 
     DMW_l("loopDelay");
     loopDelay(); // A small delay prevents panic if no other I2C or functions are called
+}
+
+// When the user has the menu open, it spends most of its time waiting for getUserInputString
+// getUserInputString calls waitingForMenuInput to keep the essential non-tasks running
+void waitingForMenuInput()
+{
+    // Don't call stateUpdate() here. Wait until we exit the menu before changing state.
+    
+    DMW_w("updateBattery");
+    updateBattery();
+
+    DMW_w("gnssUpdate");
+    gnssUpdate(); // Regularly poll to get latest data
+
+    DMW_w("rtcUpdate");
+    rtcUpdate(); // Set system time to GNSS once we have fix
+
+    DMW_w("bluetoothUpdate");
+    bluetoothUpdate(); // Check for BLE connections
+
+    DMW_w("sdUpdate");
+    sdUpdate(); // Check if SD needs to be started or is at max capacity
+
+    DMW_w("logUpdate");
+    logUpdate(); // Record any new data. Create or close files as needed.
+
+    DMW_w("networkUpdate"); // Maintain the network connections
+    networkUpdate(); // This calls ntpServerUpdate and pushGPGGA (via ntripClientUpdate)
+
+    DMW_w("updateAuthCoPro");
+    updateAuthCoPro(); // Keep the AuthCoPro iAP2 machine running
+
+    DMW_w("tiltUpdate");
+    tiltUpdate(); // Check if new lat/lon/alt have been calculated
+
+    DMW_w("espNowUpdate");
+    espNowUpdate(); // Check if we need to finish sending any RTCM over ESP-NOW radio
+
+    DMW_w("updateLora");
+    updateLora(); // Check if we need to finish sending any RTCM over LoRa radio
 }
 
 void loopDelay()
