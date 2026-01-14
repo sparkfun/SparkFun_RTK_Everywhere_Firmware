@@ -1615,37 +1615,40 @@ void loop()
 // getUserInputString calls waitingForMenuInput to keep the essential non-tasks running
 void waitingForMenuInput()
 {
-/*  ORIGINAL CODE from getUserInputString
+    // Don't call stateUpdate() here. Wait until we exit the menu before changing state.
+    
+    DMW_w("updateBattery");
+    updateBattery();
 
-    gnss->update(); // Regularly poll to get latest data
-
-    // Keep the ntripClient alive by pushing GPGGA.
-    // I'm not sure if we want / need to do this, but that's how it was when
-    // the GPGGA push was performed from processUart1Message from gnssReadTask.
-    // Doing it here keeps the user experience the same. It is safe to do it here
-    // because the loop is suspended and networkUpdate / ntripClientUpdate aren't
-    // being called. Maybe we _should_ call networkUpdate() here? Just sayin'...
-    pushGPGGA(nullptr);
-
-    // Keep processing NTP requests
-    if (online.ethernetNTPServer)
-    {
-        ntpServerUpdate();
-    }
-*/
-
-    // Regularly poll to get latest data
     DMW_w("gnssUpdate");
-    gnssUpdate();
+    gnssUpdate(); // Regularly poll to get latest data
 
-    // Maintain the network connections
-    // This calls ntpServerUpdate and pushGPGGA (via ntripClientUpdate)
-    DMW_w("networkUpdate");
-    networkUpdate();
+    DMW_w("rtcUpdate");
+    rtcUpdate(); // Set system time to GNSS once we have fix
 
-    // Keep the AuthCoPro iAP2 machine running
+    DMW_w("bluetoothUpdate");
+    bluetoothUpdate(); // Check for BLE connections
+
+    DMW_w("sdUpdate");
+    sdUpdate(); // Check if SD needs to be started or is at max capacity
+
+    DMW_w("logUpdate");
+    logUpdate(); // Record any new data. Create or close files as needed.
+
+    DMW_w("networkUpdate"); // Maintain the network connections
+    networkUpdate(); // This calls ntpServerUpdate and pushGPGGA (via ntripClientUpdate)
+
     DMW_w("updateAuthCoPro");
-    updateAuthCoPro();
+    updateAuthCoPro(); // Keep the AuthCoPro iAP2 machine running
+
+    DMW_w("tiltUpdate");
+    tiltUpdate(); // Check if new lat/lon/alt have been calculated
+
+    DMW_w("espNowUpdate");
+    espNowUpdate(); // Check if we need to finish sending any RTCM over ESP-NOW radio
+
+    DMW_w("updateLora");
+    updateLora(); // Check if we need to finish sending any RTCM over LoRa radio
 }
 
 void loopDelay()
