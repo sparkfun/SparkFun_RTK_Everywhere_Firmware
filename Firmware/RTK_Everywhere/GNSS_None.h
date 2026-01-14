@@ -263,7 +263,7 @@ class GNSS_None : public GNSS
     //   Returns the longitude value or zero if not online
     double getLongitude()
     {
-        return 0;
+        return _longitude;
     }
 
     // Returns two digits of milliseconds or zero if not online
