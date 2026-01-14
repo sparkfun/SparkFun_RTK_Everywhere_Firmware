@@ -597,6 +597,14 @@ void gnssDetectReceiverType()
     if (productVariant != RTK_FLEX)
         return;
 
+    if (gpioExpanderDetectGnss() == false)
+    {
+        gnss = (GNSS *)new GNSS_None();
+        systemPrintln("Failed to detect a flex module.");
+        displayGNSSAutodetectFailed(2000);
+        return;
+    }
+
     gnssBoot(); // Tell GNSS to run
 
     // Start auto-detect if NVM is not yet set
@@ -633,7 +641,8 @@ void gnssDetectReceiverType()
         {
             if (settings.detectedGnssReceiver == gnssSupportRoutines[index]._receiver)
             {
-                gnssSupportRoutines[index]._newClass();
+                if (gnssSupportRoutines[index]._newClass)
+                    gnssSupportRoutines[index]._newClass();
                 break;
             }
         }
