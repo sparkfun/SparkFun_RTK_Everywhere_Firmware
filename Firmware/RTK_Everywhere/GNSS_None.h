@@ -179,7 +179,7 @@ class GNSS_None : public GNSS
     //   Returns the altitude in meters or zero if the GNSS is offline
     double getAltitude()
     {
-        return 0;
+        return _altitude;
     }
 
     // Returns the carrier solution or zero if not online
@@ -196,7 +196,7 @@ class GNSS_None : public GNSS
     // Returns the day number or zero if not online
     uint8_t getDay()
     {
-        return 0;
+        return _day;
     }
 
     // Return the number of milliseconds since GNSS data was last updated
@@ -208,7 +208,7 @@ class GNSS_None : public GNSS
     // Returns the fix type or zero if not online
     uint8_t getFixType()
     {
-        return 0;
+        return _fixType;
     }
 
     // Get the geoidal separation
@@ -216,13 +216,13 @@ class GNSS_None : public GNSS
     //   Returns the geoidal separation in meters or zero if the GNSS is offline
     double getGeoidalSeparation()
     {
-        return 0;
+        return _geoidalSeparation;
     }
 
     // Returns the hours of 24 hour clock or zero if not online
     uint8_t getHour()
     {
-        return 0;
+        return _hour;
     }
 
     // Get the horizontal position accuracy
@@ -230,7 +230,7 @@ class GNSS_None : public GNSS
     //   Returns the horizontal position accuracy or zero if offline
     float getHorizontalAccuracy()
     {
-        return 0;
+        return _horizontalAccuracy;
     }
 
     const char *getId()
@@ -243,13 +243,13 @@ class GNSS_None : public GNSS
     //   Returns the latitude value or zero if not online
     double getLatitude()
     {
-        return 0;
+        return _latitude;
     }
 
     // Query GNSS for current leap seconds
     uint8_t getLeapSeconds()
     {
-        return 0;
+        return _leapSeconds;
     }
 
     // Return the type of logging that matches the enabled messages - drives the logging icon
@@ -269,13 +269,13 @@ class GNSS_None : public GNSS
     // Returns two digits of milliseconds or zero if not online
     uint8_t getMillisecond()
     {
-        return 0;
+        return _millisecond;
     }
 
     // Returns minutes or zero if not online
     uint8_t getMinute()
     {
-        return 0;
+        return _minute;
     }
 
     // Returns the current mode: Base/Rover/etc
@@ -287,7 +287,7 @@ class GNSS_None : public GNSS
     // Returns month number or zero if not online
     uint8_t getMonth()
     {
-        return 0;
+        return _month;
     }
 
     // Returns nanoseconds or zero if not online
@@ -320,13 +320,13 @@ class GNSS_None : public GNSS
     // Returns the number of satellites in view or zero if offline
     uint8_t getSatellitesInView()
     {
-        return 0;
+        return _satellitesInView;
     }
 
     // Returns seconds or zero if not online
     uint8_t getSecond()
     {
-        return 0;
+        return _second;
     }
 
     // Get the survey-in mean accuracy
@@ -334,7 +334,7 @@ class GNSS_None : public GNSS
     //   Returns the mean accuracy or zero (0)
     float getSurveyInMeanAccuracy()
     {
-        return 0;
+        return _horizontalAccuracy;
     }
 
     // Return the number of seconds the survey-in process has been running
@@ -352,7 +352,7 @@ class GNSS_None : public GNSS
     // Returns full year, ie 2023, not 23.
     uint16_t getYear()
     {
-        return 0;
+        return _year;
     }
 
     // Helper functions for the current mode as read from the GNSS receiver

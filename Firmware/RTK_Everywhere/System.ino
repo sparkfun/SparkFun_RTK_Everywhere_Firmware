@@ -1096,7 +1096,7 @@ void gpioExpanderGnssReset()
 // Detect if a GNSS is present by:
 // Driving gpioExpanderSwitch_GNSS_Reset LOW to place the GNSS in RESET
 // Change gpioExpanderSwitch_GNSS_Reset to INPUT
-// Read the state of gpioExpanderSwitch_GNSS_Reset over the next n seconds
+// Read the state of gpioExpanderSwitch_GNSS_Reset over the next second
 // If it is pulled high by the GNSS, GNSS is present
 // If it stays low, GNSS is missing
 bool gpioExpanderDetectGnss()
@@ -1109,13 +1109,15 @@ bool gpioExpanderDetectGnss()
             gpioExpanderSwitches->pinMode(gpioExpanderSwitch_GNSS_Reset, INPUT);
             bool flexGnssDetected = false;
             unsigned long startTime = millis();
-            for (unsigned long timeStep = 100; timeStep <= 2000; timeStep += 100)
+            for (unsigned long timeStep = 100; timeStep <= 1000; timeStep += 100)
             {
                 while ((millis() - startTime) < timeStep)
                     delay(10);
                 flexGnssDetected |= (gpioExpanderSwitches->digitalRead(gpioExpanderSwitch_GNSS_Reset) == 1);
                 systemPrintf("GNSS detection: GNSS %sdetected after %ldms\r\n",
                     flexGnssDetected ? "" : "not ", timeStep );
+                if (flexGnssDetected)
+                    break;
             }
             gpioExpanderSwitches->pinMode(gpioExpanderSwitch_GNSS_Reset, OUTPUT);
             return (flexGnssDetected);

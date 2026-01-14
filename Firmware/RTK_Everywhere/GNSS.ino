@@ -597,56 +597,49 @@ void gnssDetectReceiverType()
     if (productVariant != RTK_FLEX)
         return;
 
-    if (gpioExpanderDetectGnss() == false)
+    if (gpioExpanderDetectGnss() == true)
     {
-        gnss = (GNSS *)new GNSS_None();
-        systemPrintln("Failed to detect a flex module.");
-        displayGNSSAutodetectFailed(2000);
-        return;
-    }
+        gnssBoot(); // Tell GNSS to run
 
-    gnssBoot(); // Tell GNSS to run
-
-    // Start auto-detect if NVM is not yet set
-    if (settings.detectedGnssReceiver == GNSS_RECEIVER_UNKNOWN)
-    {
-        systemPrintln("Beginning GNSS autodetection");
-        displayGNSSAutodetect(0);
-
-        for (index = 0; index < GNSS_SUPPORT_ROUTINES_ENTRIES; index++)
+        // Start auto-detect if NVM is not yet set
+        if (settings.detectedGnssReceiver == GNSS_RECEIVER_UNKNOWN)
         {
-            if (gnssSupportRoutines[index]._present
-                && gnssSupportRoutines[index]._present())
+            systemPrintln("Beginning GNSS autodetection");
+            displayGNSSAutodetect(0);
+
+            for (index = 0; index < GNSS_SUPPORT_ROUTINES_ENTRIES; index++)
             {
-                systemPrintf("Auto-detected GNSS receiver: %s\r\n",
-                             gnssSupportRoutines[index].name);
-                settings.detectedGnssReceiver = gnssSupportRoutines[index]._receiver;
-                recordSystemSettings(); // Record the detected GNSS receiver and avoid this test in the future
-                break;
+                if (gnssSupportRoutines[index]._present
+                    && gnssSupportRoutines[index]._present())
+                {
+                    systemPrintf("Auto-detected GNSS receiver: %s\r\n",
+                                gnssSupportRoutines[index].name);
+                    settings.detectedGnssReceiver = gnssSupportRoutines[index]._receiver;
+                    recordSystemSettings(); // Record the detected GNSS receiver and avoid this test in the future
+                    break;
+                }
+            }
+        }
+
+        if (settings.detectedGnssReceiver != GNSS_RECEIVER_UNKNOWN)
+        {
+            // Create the GNSS class instance
+            for (index = 0; index < GNSS_SUPPORT_ROUTINES_ENTRIES; index++)
+            {
+                if (settings.detectedGnssReceiver == gnssSupportRoutines[index]._receiver)
+                {
+                    if (gnssSupportRoutines[index]._newClass)
+                        gnssSupportRoutines[index]._newClass();
+                    return;
+                }
             }
         }
     }
 
     // Auto ID failed, mark everything as unknown
-    if (settings.detectedGnssReceiver == GNSS_RECEIVER_UNKNOWN)
-    {
-        gnss = (GNSS *)new GNSS_None();
-        systemPrintln("Failed to identify a flex module.");
-        displayGNSSAutodetectFailed(2000);
-    }
-    else
-    {
-        // Create the GNSS class instance
-        for (index = 0; index < GNSS_SUPPORT_ROUTINES_ENTRIES; index++)
-        {
-            if (settings.detectedGnssReceiver == gnssSupportRoutines[index]._receiver)
-            {
-                if (gnssSupportRoutines[index]._newClass)
-                    gnssSupportRoutines[index]._newClass();
-                break;
-            }
-        }
-    }
+    gnss = (GNSS *)new GNSS_None();
+    systemPrintln("Failed to detect or identify a flex module.");
+    displayGNSSAutodetectFailed(2000);
 }
 
 // Based on the platform, put the GNSS receiver into run mode
