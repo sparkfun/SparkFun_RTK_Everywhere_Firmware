@@ -405,11 +405,6 @@ class GNSS_UM980 : GNSS
 
     uint16_t rtcmRead(uint8_t *rtcmBuffer, int rtcmBytesToRead);
 
-    // Save the current configuration
-    // Outputs:
-    //   Returns true when the configuration was saved and false upon failure
-    bool saveConfiguration();
-
     bool setBaudRate(uint8_t uartNumber, uint32_t baudRate); // From the super class
 
     // Set the baud rate on the GNSS port that interfaces between the ESP32 and the GNSS
@@ -420,6 +415,11 @@ class GNSS_UM980 : GNSS
     bool setBaudRateData(uint32_t baudRate);
 
     bool setBaudRateRadio(uint32_t baudRate);
+
+    // Save the current configuration
+    // Outputs:
+    //   Returns true when the configuration was saved and false upon failure
+    bool saveConfiguration();
 
     // Enable all the valid constellations and bands for this platform
     bool setConstellations();

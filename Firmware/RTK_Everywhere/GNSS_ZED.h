@@ -412,6 +412,12 @@ class GNSS_ZED : GNSS
 
     bool checkPPPRates();
 
+    // Setup the general configuration of the GNSS
+    // Not Rover or Base specific (ie, baud rates)
+    // Outputs:
+    //   Returns true if successfully configured and false upon failure
+    bool configure();
+
     // Configure the Base
     // Outputs:
     //   Returns true if successfully configured and false upon failure
@@ -419,12 +425,6 @@ class GNSS_ZED : GNSS
 
     // Configure specific aspects of the receiver for NTP mode
     bool configureNtpMode();
-
-    // Setup the general configuration of the GNSS
-    // Not Rover or Base specific (ie, baud rates)
-    // Outputs:
-    //   Returns true if successfully configured and false upon failure
-    bool configure();
 
     // Configure the Rover
     // Outputs:
@@ -683,11 +683,6 @@ class GNSS_ZED : GNSS
 
     uint16_t rtcmRead(uint8_t *rtcmBuffer, int rtcmBytesToRead);
 
-    // Save the current configuration
-    // Outputs:
-    //   Returns true when the configuration was saved and false upon failure
-    bool saveConfiguration();
-
     // Set the baud rate on the designated port
     bool setBaudRate(uint8_t uartNumber, uint32_t baudRate); // From the super class
 
@@ -696,6 +691,11 @@ class GNSS_ZED : GNSS
     bool setBaudRateData(uint32_t baudRate);
 
     bool setBaudRateRadio(uint32_t baudRate);
+
+    // Save the current configuration
+    // Outputs:
+    //   Returns true when the configuration was saved and false upon failure
+    bool saveConfiguration();
 
     // Enable all the valid constellations and bands for this platform
     bool setConstellations();

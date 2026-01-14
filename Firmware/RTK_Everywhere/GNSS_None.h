@@ -9,13 +9,6 @@ GNSS_None.h
 
 class GNSS_None : public GNSS
 {
-  protected:
-    // Set the minimum satellite signal level for navigation.
-    bool setMinCN0(uint8_t cnoValue)
-    {
-        return false;
-    }
-
   public:
     // Constructor
     GNSS_None() : GNSS()
@@ -122,22 +115,6 @@ class GNSS_None : public GNSS
     {
     }
 
-    // Responds with the messages supported on this platform
-    // Inputs:
-    //   returnText: String to receive message names
-    // Returns message names in the returnText string
-    void getMessageList(String &returnText)
-    {
-    }
-
-    // Responds with the RTCM/Base messages supported on this platform
-    // Inputs:
-    //   returnText: String to receive message names
-    // Returns message names in the returnText string
-    void getMessageListBase(String &returnText)
-    {
-    }
-
     void debuggingDisable()
     {
     }
@@ -202,7 +179,7 @@ class GNSS_None : public GNSS
     //   Returns the altitude in meters or zero if the GNSS is offline
     double getAltitude()
     {
-        return _altitude;
+        return 0;
     }
 
     // Returns the carrier solution or zero if not online
@@ -219,7 +196,7 @@ class GNSS_None : public GNSS
     // Returns the day number or zero if not online
     uint8_t getDay()
     {
-        return _day;
+        return 0;
     }
 
     // Return the number of milliseconds since GNSS data was last updated
@@ -231,7 +208,7 @@ class GNSS_None : public GNSS
     // Returns the fix type or zero if not online
     uint8_t getFixType()
     {
-        return _fixType;
+        return 0;
     }
 
     // Get the geoidal separation
@@ -239,13 +216,13 @@ class GNSS_None : public GNSS
     //   Returns the geoidal separation in meters or zero if the GNSS is offline
     double getGeoidalSeparation()
     {
-        return _geoidalSeparation;
+        return 0;
     }
 
     // Returns the hours of 24 hour clock or zero if not online
     uint8_t getHour()
     {
-        return _hour;
+        return 0;
     }
 
     // Get the horizontal position accuracy
@@ -253,7 +230,7 @@ class GNSS_None : public GNSS
     //   Returns the horizontal position accuracy or zero if offline
     float getHorizontalAccuracy()
     {
-        return _horizontalAccuracy;
+        return 0;
     }
 
     const char *getId()
@@ -266,13 +243,13 @@ class GNSS_None : public GNSS
     //   Returns the latitude value or zero if not online
     double getLatitude()
     {
-        return _latitude;
+        return 0;
     }
 
     // Query GNSS for current leap seconds
     uint8_t getLeapSeconds()
     {
-        return _leapSeconds;
+        return 0;
     }
 
     // Return the type of logging that matches the enabled messages - drives the logging icon
@@ -286,19 +263,19 @@ class GNSS_None : public GNSS
     //   Returns the longitude value or zero if not online
     double getLongitude()
     {
-        return _longitude;
+        return 0;
     }
 
     // Returns two digits of milliseconds or zero if not online
     uint8_t getMillisecond()
     {
-        return _millisecond;
+        return 0;
     }
 
     // Returns minutes or zero if not online
     uint8_t getMinute()
     {
-        return _minute;
+        return 0;
     }
 
     // Returns the current mode: Base/Rover/etc
@@ -310,7 +287,7 @@ class GNSS_None : public GNSS
     // Returns month number or zero if not online
     uint8_t getMonth()
     {
-        return _month;
+        return 0;
     }
 
     // Returns nanoseconds or zero if not online
@@ -343,13 +320,13 @@ class GNSS_None : public GNSS
     // Returns the number of satellites in view or zero if offline
     uint8_t getSatellitesInView()
     {
-        return _satellitesInView;
+        return 0;
     }
 
     // Returns seconds or zero if not online
     uint8_t getSecond()
     {
-        return _second;
+        return 0;
     }
 
     // Get the survey-in mean accuracy
@@ -357,7 +334,7 @@ class GNSS_None : public GNSS
     //   Returns the mean accuracy or zero (0)
     float getSurveyInMeanAccuracy()
     {
-        return _horizontalAccuracy;
+        return 0;
     }
 
     // Return the number of seconds the survey-in process has been running
@@ -375,7 +352,7 @@ class GNSS_None : public GNSS
     // Returns full year, ie 2023, not 23.
     uint16_t getYear()
     {
-        return _year;
+        return 0;
     }
 
     // Helper functions for the current mode as read from the GNSS receiver
@@ -498,10 +475,6 @@ class GNSS_None : public GNSS
     {
     }
 
-    void modifyGst(char *nmeaSentence, uint16_t *sentenceLength)
-    {
-    }
-
     // Print the module type and firmware version
     void printModuleInfo()
     {
@@ -544,22 +517,9 @@ class GNSS_None : public GNSS
         return 0;
     }
 
-    // Save the current configuration
-    // Outputs:
-    //   Returns true when the configuration was saved and false upon failure
-    bool saveConfiguration()
-    {
-        return false;
-    }
-
     bool setBaudRate(uint8_t uartNumber, uint32_t baudRate)
     {
         return false;
-    }
-
-    bool setBaudRateData(uint32_t baud)
-    {
-        return true;
     }
 
     bool setBaudRateComm(uint32_t baud)
@@ -567,9 +527,22 @@ class GNSS_None : public GNSS
         return true;
     }
 
+    bool setBaudRateData(uint32_t baud)
+    {
+        return true;
+    }
+
     bool setBaudRateRadio(uint32_t baud)
     {
         return true;
+    }
+
+    // Save the current configuration
+    // Outputs:
+    //   Returns true when the configuration was saved and false upon failure
+    bool saveConfiguration()
+    {
+        return false;
     }
 
     // Enable all the valid constellations and bands for this platform
@@ -622,6 +595,12 @@ class GNSS_None : public GNSS
         return true;
     }
 
+    // Set the minimum satellite signal level for navigation.
+    bool setMinCN0(uint8_t cnoValue)
+    {
+        return true;
+    }
+
     // Set the dynamic model to use for RTK
     // Inputs:
     //   modelNumber: Number of the model to use, provided by radio library
@@ -664,6 +643,12 @@ class GNSS_None : public GNSS
     }
 
     bool standby()
+    {
+        return true;
+    }
+
+    // Antenna Short / Open detection
+    bool supportsAntennaShortOpen()
     {
         return true;
     }

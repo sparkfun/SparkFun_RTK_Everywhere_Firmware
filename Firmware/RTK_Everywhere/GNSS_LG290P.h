@@ -140,9 +140,6 @@ class GNSS_LG290P : GNSS
     //   Returns true when an external event occurs and false if no event
     bool beginExternalEvent();
 
-    // Setup the PPS pin for PPS LED
-    bool setPPS();
-
     bool checkNMEARates();
 
     bool checkPPPRates();
@@ -439,6 +436,9 @@ class GNSS_LG290P : GNSS
     bool setModel(uint8_t modelNumber);
 
     bool setMultipathMitigation(bool enableMultipathMitigation);
+
+    // Setup the PPS pin for PPS LED
+    bool setPPS();
 
     // Specify the interval between solutions
     // Inputs:
