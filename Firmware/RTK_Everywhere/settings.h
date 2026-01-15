@@ -219,18 +219,25 @@ const int platformFilePrefixTableEntries = sizeof(platformFilePrefixTable) / siz
 // SparkPNT Facet FP-ABCD06
 // SparkPNT Torch X2-ABCD07
 // It is also used to create the title for the menus etc.. Include "RTK" if rtkPrefix is true
-const productDisplayName platformPrefixTable[] =
+// The Product Plan UID is a 16 character unique identifier for the product plan associated with the MFi accessory.
+typedef struct
 {
-    { "EVK", true },
-    { "Facet v2", true },
-    { "Facet X5", true },
-    { "Torch", true },
-    { "Facet v2 LB", true },
-    { "Postcard", true },
-    { "Facet FP", false },
-    { "Torch X2", true },
+    const char *name;
+    const bool rtkPrefix; // If true, "RTK" is included above the name
+    const char *productPlanUID;
+} productPlatformPrefix;
+const productPlatformPrefix platformPrefixTable[] =
+{
+    { "EVK",         true,  "0000000000000000" },
+    { "Facet v2",    true,  "0000000000000000" },
+    { "Facet X5",    true,  "0000000000000000" },
+    { "Torch",       true,  "0000000000000000" },
+    { "Facet v2 LB", true,  "0000000000000000" },
+    { "Postcard",    true,  "e9e877bb278140f0" },
+    { "Facet FP",    false, "e9e877bb278140f0" },
+    { "Torch X2",    true,  "3407c7ca3d6b4984" },
     // Add new values just above this line
-    { "Unknown", true },
+    { "Unknown",     true,  "0000000000000000" },
 };
 const int platformPrefixTableEntries = sizeof(platformPrefixTable) / sizeof(platformPrefixTable[0]);
 
