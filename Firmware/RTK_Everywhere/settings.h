@@ -223,7 +223,7 @@ const int platformFilePrefixTableEntries = sizeof(platformFilePrefixTable) / siz
 typedef struct
 {
     const char *name;
-    const bool rtkPrefix; // If true, "RTK" is included above the name
+    const bool rtkPrefix; // If true, "RTK " is included before the name in the serial menus etc (not BT broadcast!)
     const char *productPlanUID;
 } productPlatformPrefix;
 const productPlatformPrefix platformPrefixTable[] =
