@@ -642,6 +642,7 @@ void gnssDetectReceiverType()
     // will fail... The code above has been rearranged so we only need to use it once.
     gnss = (GNSS *)new GNSS_None();
     systemPrintln("Failed to detect or identify a flex module.");
+    settings.enablePrintBatteryMessages = true; // Print _something_ to the console
     displayGNSSAutodetectFailed(2000);
 }
 
