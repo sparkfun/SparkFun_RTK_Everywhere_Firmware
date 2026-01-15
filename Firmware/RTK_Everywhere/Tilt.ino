@@ -1176,6 +1176,18 @@ void tiltDetect()
     if (settings.testedTilt == true)
         return;
 
+    // Skip test if the FacetFP GNSS is unknown
+    if (productVariant == RTK_FLEX)
+    {
+        if (settings.detectedGnssReceiver == GNSS_RECEIVER_UNKNOWN)
+        {
+            systemPrintln("FacetFP GNSS is unknown. Skipping tilt autodetection");
+            settings.testedTilt = true;
+            recordSystemSettings();
+            return;
+        }
+    }
+
     systemPrintln("Beginning tilt autodetection");
     displayTiltAutodetect(0);
 

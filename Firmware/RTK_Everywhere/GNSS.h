@@ -332,6 +332,14 @@ class GNSS
 
     virtual uint16_t rtcmRead(uint8_t *rtcmBuffer, int rtcmBytesToRead);
 
+    virtual bool setBaudRate(uint8_t uartNumber, uint32_t baudRate);
+
+    virtual bool setBaudRateComm(uint32_t baud);
+
+    virtual bool setBaudRateData(uint32_t baud);
+
+    virtual bool setBaudRateRadio(uint32_t baud);
+
     // Save the current configuration
     // Outputs:
     //   Returns true when the configuration was saved and false upon failure
@@ -344,14 +352,6 @@ class GNSS
     // Always update if force is true. Otherwise, only update if enable has changed state
     virtual bool setCorrRadioExtPort(bool enable, bool force);
 
-    virtual bool setBaudRate(uint8_t uartNumber, uint32_t baudRate);
-
-    virtual bool setBaudRateComm(uint32_t baud);
-
-    virtual bool setBaudRateData(uint32_t baud);
-
-    virtual bool setBaudRateRadio(uint32_t baud);
-
     // Set the elevation in degrees
     // Inputs:
     //   elevationDegrees: The elevation value in degrees
@@ -361,8 +361,6 @@ class GNSS
 
     // Configure any logging settings - currently mosaic-X5 specific
     virtual bool setLogging();
-
-    virtual bool setNmeaMessageRateByName(const char *msgName, uint8_t msgRate);
 
     // Enable/disable messages according to the NMEA array
     virtual bool setMessagesNMEA();
@@ -382,6 +380,8 @@ class GNSS
     virtual bool setModel(uint8_t modelNumber);
 
     virtual bool setMultipathMitigation(bool enableMultipathMitigation);
+
+    virtual bool setNmeaMessageRateByName(const char *msgName, uint8_t msgRate);
 
     // Configure the Pulse-per-second pin based on user settings
     virtual bool setPPS();

@@ -9,13 +9,6 @@ GNSS_None.h
 
 class GNSS_None : public GNSS
 {
-  protected:
-    // Set the minimum satellite signal level for navigation.
-    bool setMinCN0(uint8_t cnoValue)
-    {
-        return false;
-    }
-
   public:
     // Constructor
     GNSS_None() : GNSS()
@@ -119,22 +112,6 @@ class GNSS_None : public GNSS
     //   returnText: String to receive message names
     // Returns message names in the returnText string
     void createMessageListBase(String &returnText)
-    {
-    }
-
-    // Responds with the messages supported on this platform
-    // Inputs:
-    //   returnText: String to receive message names
-    // Returns message names in the returnText string
-    void getMessageList(String &returnText)
-    {
-    }
-
-    // Responds with the RTCM/Base messages supported on this platform
-    // Inputs:
-    //   returnText: String to receive message names
-    // Returns message names in the returnText string
-    void getMessageListBase(String &returnText)
     {
     }
 
@@ -498,10 +475,6 @@ class GNSS_None : public GNSS
     {
     }
 
-    void modifyGst(char *nmeaSentence, uint16_t *sentenceLength)
-    {
-    }
-
     // Print the module type and firmware version
     void printModuleInfo()
     {
@@ -544,22 +517,9 @@ class GNSS_None : public GNSS
         return 0;
     }
 
-    // Save the current configuration
-    // Outputs:
-    //   Returns true when the configuration was saved and false upon failure
-    bool saveConfiguration()
-    {
-        return false;
-    }
-
     bool setBaudRate(uint8_t uartNumber, uint32_t baudRate)
     {
         return false;
-    }
-
-    bool setBaudRateData(uint32_t baud)
-    {
-        return true;
     }
 
     bool setBaudRateComm(uint32_t baud)
@@ -567,9 +527,22 @@ class GNSS_None : public GNSS
         return true;
     }
 
+    bool setBaudRateData(uint32_t baud)
+    {
+        return true;
+    }
+
     bool setBaudRateRadio(uint32_t baud)
     {
         return true;
+    }
+
+    // Save the current configuration
+    // Outputs:
+    //   Returns true when the configuration was saved and false upon failure
+    bool saveConfiguration()
+    {
+        return false;
     }
 
     // Enable all the valid constellations and bands for this platform
@@ -622,6 +595,12 @@ class GNSS_None : public GNSS
         return true;
     }
 
+    // Set the minimum satellite signal level for navigation.
+    bool setMinCN0(uint8_t cnoValue)
+    {
+        return true;
+    }
+
     // Set the dynamic model to use for RTK
     // Inputs:
     //   modelNumber: Number of the model to use, provided by radio library
@@ -664,6 +643,12 @@ class GNSS_None : public GNSS
     }
 
     bool standby()
+    {
+        return true;
+    }
+
+    // Antenna Short / Open detection
+    bool supportsAntennaShortOpen()
     {
         return true;
     }
