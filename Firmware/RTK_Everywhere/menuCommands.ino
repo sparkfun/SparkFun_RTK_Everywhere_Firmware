@@ -1456,7 +1456,7 @@ void createSettingsString(char *newSettings)
 
     // System Info
     char apPlatformPrefix[80];
-    strncpy(apPlatformPrefix, platformPrefixTable[productVariant], sizeof(apPlatformPrefix));
+    strncpy(apPlatformPrefix, platformPrefixTable[productVariant].name, sizeof(apPlatformPrefix));
     stringRecord(newSettings, "platformPrefix", apPlatformPrefix);
 
     if (productVariant == RTK_FLEX)
@@ -2413,7 +2413,7 @@ SettingValueResponse getSettingValue(bool inCommands, const char *settingName, c
     }
     else if (strcmp(settingName, "deviceName") == 0)
     {
-        writeToString(settingValueStr, (char *)productDisplayNames[productVariant]);
+        writeToString(settingValueStr, (char *)productDisplayNames[productVariant].name);
         knownSetting = true;
         settingIsString = true;
     }
@@ -3237,8 +3237,8 @@ void printAvailableSettings()
         else if (commandIndex[i] == COMMAND_DEVICE_NAME)
         {
             char settingType[100];
-            snprintf(settingType, sizeof(settingType), "char[%d]", strlen(productDisplayNames[productVariant]));
-            commandSendExecuteListResponse("deviceName", settingType, productDisplayNames[productVariant]);
+            snprintf(settingType, sizeof(settingType), "char[%d]", strlen(productDisplayNames[productVariant].name));
+            commandSendExecuteListResponse("deviceName", settingType, productDisplayNames[productVariant].name);
         }
 
         // Display the device ID

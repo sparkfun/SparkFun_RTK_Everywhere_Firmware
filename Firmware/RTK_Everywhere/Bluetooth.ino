@@ -508,35 +508,6 @@ void bluetoothStart(bool skipOnlineCheck)
     { // Maintain the indentation for now. TODO: delete the braces and correct indentation
         bluetoothState = BT_OFF; // Indicate to tasks that BT is unavailable
 
-        char productName[50] = {0};
-        strncpy(productName, platformPrefix, sizeof(productName));
-
-        // Longest platform prefix is currently "Facet mosaicX5". We are just OK.
-        // We currently don't need this:
-        // // BLE is limited to ~28 characters in the device name. Shorten platformPrefix if needed.
-        // if (settings.bluetoothRadioType == BLUETOOTH_RADIO_SPP_AND_BLE ||
-        //     settings.bluetoothRadioType == BLUETOOTH_RADIO_BLE)
-        // {
-        //     if (strcmp(productName, "LONG PLATFORM PREFIX") == 0)
-        //     {
-        //         strncpy(productName, "SHORTER PREFIX", sizeof(productName));
-        //     }
-        // }
-
-        RTKBrandAttribute *brandAttributes = getBrandAttributeFromBrand(present.brand);
-
-        snprintf(deviceName, sizeof(deviceName), "%s %s-%02X%02X", brandAttributes->name, productName, btMACAddress[4],
-                 btMACAddress[5]);
-
-        if (strlen(deviceName) > 28) // "SparkPNT Facet mosaicX5-ABCD" = 28 chars. We are just OK
-        {
-            // BLE will fail quietly if broadcast name is more than 28 characters
-            systemPrintf(
-                "ERROR! The Bluetooth device name \"%s\" is %d characters long. It will not work in BLE mode.\r\n",
-                deviceName, strlen(deviceName));
-            reportFatalError("Bluetooth device name is longer than 28 characters.");
-        }
-
         // Select Bluetooth setup
         if (settings.bluetoothRadioType == BLUETOOTH_RADIO_SPP_AND_BLE)
         {
@@ -641,7 +612,7 @@ void bluetoothStart(bool skipOnlineCheck)
             //bluetoothSerialSpp->onConfirmRequest(&BTConfirmRequestCallback); // Callback to verify the PIN
 
             beginSuccess &= bluetoothSerialSpp->begin(
-                accessoryName, false, true, settings.sppRxQueueSize, settings.sppTxQueueSize, 0, 0,
+                deviceName, false, true, settings.sppRxQueueSize, settings.sppTxQueueSize, 0, 0,
                 0); // localName, isMaster, disableBLE, rxBufferSize, txBufferSize, serviceID, rxID, txID
 
             if (beginSuccess)
@@ -729,7 +700,7 @@ void bluetoothStart(bool skipOnlineCheck)
             systemPrintf("Bluetooth Low-Energy broadcasting as: %s\r\n", deviceName);
         else if (settings.bluetoothRadioType == BLUETOOTH_RADIO_SPP_ACCESSORY_MODE)
 #ifdef  COMPILE_AUTHENTICATION
-            systemPrintf("Bluetooth SPP (Accessory Mode) broadcasting as: %s\r\n", accessoryName);
+            systemPrintf("Bluetooth SPP (Accessory Mode) broadcasting as: %s\r\n", deviceName);
 #else
             systemPrintf("** Not Compiled! Bluetooth SPP (Accessory Mode)**\r\n");
 #endif

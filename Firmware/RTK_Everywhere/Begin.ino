@@ -72,7 +72,6 @@ void identifyBoard()
     getMacAddresses(wifiMACAddress, "wifiMACAddress", ESP_MAC_WIFI_STA, true);
     getMacAddresses(btMACAddress, "btMACAddress", ESP_MAC_BT, true);
     getMacAddresses(ethernetMACAddress, "ethernetMACAddress", ESP_MAC_ETH, true);
-    snprintf(serialNumber, sizeof(serialNumber), "%02X%02X", btMACAddress[4], btMACAddress[5]);
 
     // First, test for devices that do not have ID resistors
     if (productVariant == RTK_UNKNOWN)
@@ -124,7 +123,7 @@ void identifyBoard()
     }
 
     if (ENABLE_DEVELOPER)
-        systemPrintf("Identified variant: %s\r\n", productDisplayNames[productVariant]);
+        systemPrintf("Identified variant: %s\r\n", productDisplayNames[productVariant].name);
 }
 
 // Turn on power for the display before beginDisplay
@@ -922,7 +921,9 @@ void beginVersion()
 
     char title[50];
     RTKBrandAttribute *brandAttributes = getBrandAttributeFromBrand(present.brand);
-    snprintf(title, sizeof(title), "%s RTK %s %s", brandAttributes->name, platformPrefix, versionString);
+    snprintf(title, sizeof(title), "%s %s%s %s", brandAttributes->name, 
+        platformPrefixTable[productVariant].rtkPrefix ? "RTK " : "",
+        platformPrefix, versionString);
     for (int i = 0; i < strlen(title); i++)
         systemPrint("=");
     systemPrintln();

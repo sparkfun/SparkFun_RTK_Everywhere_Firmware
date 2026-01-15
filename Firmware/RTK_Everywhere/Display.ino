@@ -511,17 +511,21 @@ void displaySplash()
         oled->display(); // Post a clear display
 
         int fontHeight = 8;
+        int numLines = productDisplayNames[productVariant].rtkPrefix ? 4 : 3;
         int yPos = (oled->getHeight() - ((fontHeight * 4) + 2 + 5 + 7)) / 2;
 
         // Display the product name
         RTKBrandAttribute *brandAttributes = getBrandAttributeFromBrand(present.brand);
         printTextCenter(brandAttributes->name, yPos, QW_FONT_5X7, 1, false); // text, y, font type, kerning, inverted
 
-        yPos = yPos + fontHeight + 2;
-        printTextCenter("RTK", yPos, QW_FONT_8X16, 1, false);
+        if (productDisplayNames[productVariant].rtkPrefix)
+        {
+            yPos = yPos + fontHeight + 2;
+            printTextCenter("RTK", yPos, QW_FONT_8X16, 1, false);
+        }
 
         yPos = yPos + fontHeight + 5;
-        printTextCenter(productDisplayNames[productVariant], yPos, QW_FONT_8X16, 1, false);
+        printTextCenter(productDisplayNames[productVariant].name, yPos, QW_FONT_8X16, 1, false);
 
         yPos = yPos + fontHeight + 7;
         char unitFirmware[50];

@@ -1216,3 +1216,26 @@ const char *configPppSpacesToCommas(const char *config)
             commas[i] = ',';
     return (const char *)commas;
 }
+
+void assembleDeviceName()
+{
+    char productName[50] = {0};
+    // platformPrefix is platformPrefixTable[productVariant].name
+    strncpy(productName, platformPrefix, sizeof(productName));
+
+    RTKBrandAttribute *brandAttributes = getBrandAttributeFromBrand(present.brand);
+
+    snprintf(deviceName, sizeof(deviceName), "%s %s-%02X%02X%02d", brandAttributes->name, productName, btMACAddress[4],
+                btMACAddress[5], productVariant);
+
+    if (strlen(deviceName) > 28) // "SparkPNT Facet v2 LB-ABCD04" is 27 chars. We are just OK
+    {
+        // BLE will fail quietly if broadcast name is more than 28 characters
+        systemPrintf(
+            "ERROR! The Bluetooth device name \"%s\" is %d characters long. It will not work in BLE mode.\r\n",
+            deviceName, strlen(deviceName));
+        reportFatalError("Bluetooth device name is longer than 28 characters.");
+    }
+
+    snprintf(serialNumber, sizeof(serialNumber), "%02X%02X%02d", btMACAddress[4], btMACAddress[5], productVariant);
+}

@@ -1,6 +1,5 @@
 #ifdef COMPILE_AUTHENTICATION
 
-const char *accessoryName = "SparkPNT RTK Flex";
 const char *manufacturer = "SparkFun Electronics";
 const char *hardwareVersion = "1.0.0";
 const char *BTTransportName = "Bluetooth";
@@ -51,7 +50,7 @@ void beginAuthCoPro(TwoWire *i2cBus)
         appleAccessory->enableDebug(&Serial); // Enable debug prints to Serial
 
     // Pass Identity Information, Protocols and Names into the accessory driver
-    appleAccessory->setAccessoryName(accessoryName);
+    appleAccessory->setAccessoryName(deviceName);
     appleAccessory->setModelIdentifier(platformPrefix);
     appleAccessory->setManufacturer(manufacturer);
     appleAccessory->setSerialNumber(serialNumber);

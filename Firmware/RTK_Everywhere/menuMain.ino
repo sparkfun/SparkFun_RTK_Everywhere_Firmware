@@ -30,7 +30,9 @@ void menuMain()
         char versionString[21];
         firmwareVersionGet(versionString, sizeof(versionString), true);
         RTKBrandAttribute *brandAttributes = getBrandAttributeFromBrand(present.brand);
-        systemPrintf("%s RTK %s %s\r\n", brandAttributes->name, platformPrefix, versionString);
+        systemPrintf("%s %s%s %s\r\n", brandAttributes->name,
+            platformPrefixTable[productVariant].rtkPrefix ? "RTK " : "",
+            platformPrefix, versionString);
         systemPrintf("Mode: %s\r\n", stateToRtkMode(systemState));
 
 #ifdef COMPILE_BT
@@ -54,7 +56,7 @@ void menuMain()
         {
             systemPrint("** Bluetooth SPP (Accessory Mode) broadcasting as: ");
 #ifdef  COMPILE_AUTHENTICATION
-            systemPrint(accessoryName);
+            systemPrint(deviceName);
 #else
             systemPrint("** Not Compiled!**");
 #endif

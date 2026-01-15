@@ -174,22 +174,29 @@ typedef enum
 } ProductVariant;
 ProductVariant productVariant = RTK_UNKNOWN;
 
-const char * const productDisplayNames[] =
+// The product name displayed on the OLED
+// Keep short - and adjust to match the width of the OLED
+typedef struct
 {
-    // Keep short - these are displayed on the OLED
-    "EVK",
-    "Facet v2",
-    "Facet X5",
-    "Torch",
-    "Facet LB",
-    "Postcard",
-    "Flex",
-    "Torch X2",
+    const char *name;
+    const bool rtkPrefix; // If true, "RTK" is included above the name
+} productDisplayName;
+const productDisplayName productDisplayNames[] =
+{
+    { "EVK", true },
+    { "Facet v2", true },
+    { "Facet X5", true },
+    { "Torch", true },
+    { "Facet LB", true },
+    { "Postcard", true },
+    { "Facet FP", false },
+    { "Torch X2", true },
     // Add new values just above this line
-    "Unknown"
+    { "Unknown", false },
 };
 const int productDisplayNamesEntries = sizeof(productDisplayNames) / sizeof(productDisplayNames[0]);
 
+// Settings and log file prefix
 const char * const platformFilePrefixTable[] =
 {
     "SFE_EVK",
@@ -198,28 +205,36 @@ const char * const platformFilePrefixTable[] =
     "SFE_Torch",
     "SFE_Facet_v2_LBand",
     "SFE_Postcard",
-    "SFE_Flex",
+    "SFE_Facet_FP",
     "SFE_Torch_X2",
     // Add new values just above this line
     "SFE_Unknown"
 };
 const int platformFilePrefixTableEntries = sizeof(platformFilePrefixTable) / sizeof(platformFilePrefixTable[0]);
 
-const char * const platformPrefixTable[] =
+// platformPrefix is used to create the BT broadcast deviceName
+// It is formed from: the brand, the platformPrefix, the 6-character serial number (two MAC octets plus productVariant)
+// Limit these to 12 chars max - to keep the total length to 28 chars or less
+// E.g.: "SparkPNT Facet v2 LB-ABCD04" is 27 chars
+// SparkPNT Facet FP-ABCD06
+// SparkPNT Torch X2-ABCD07
+// It is also used to create the title for the menus etc.. Include "RTK" if rtkPrefix is true
+const productDisplayName platformPrefixTable[] =
 {
-    "EVK",
-    "Facet v2",
-    "Facet mosaicX5",
-    "Torch",
-    "Facet v2 LBand",
-    "Postcard",
-    "Flex",
-    "Torch X2",
+    { "EVK", true },
+    { "Facet v2", true },
+    { "Facet X5", true },
+    { "Torch", true },
+    { "Facet v2 LB", true },
+    { "Postcard", true },
+    { "Facet FP", false },
+    { "Torch X2", true },
     // Add new values just above this line
-    "Unknown"
+    { "Unknown", true },
 };
 const int platformPrefixTableEntries = sizeof(platformPrefixTable) / sizeof(platformPrefixTable[0]);
 
+// Assembled into the PointPerfect ZTP request (largely deprecated)
 const char * const platformProvisionTable[] =
 {
     "EVK",
