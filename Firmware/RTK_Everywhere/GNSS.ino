@@ -637,6 +637,9 @@ void gnssDetectReceiverType()
     }
 
     // Auto ID failed, mark everything as unknown
+    // Note: there can be only one! If you use "gnss = (GNSS *)new GNSS_None();"
+    // more than once, you get a really obscure linker error and your compilation
+    // will fail... The code above has been rearranged so we only need to use it once.
     gnss = (GNSS *)new GNSS_None();
     systemPrintln("Failed to detect or identify a flex module.");
     displayGNSSAutodetectFailed(2000);
