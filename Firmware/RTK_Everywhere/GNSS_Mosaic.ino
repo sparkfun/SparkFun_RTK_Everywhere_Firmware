@@ -2959,14 +2959,14 @@ bool GNSS_MOSAIC::isPresent()
     {
         // Set COM4 to: CMD input (only), SBF output (only)
         // Mosaic could still be starting up, so allow many retries
-        return isPresentOnSerial(serial2GNSS, "sdio,COM4,CMD,SBF\n\r", "DataInOut", "COM4>", 20);
+        return isPresentOnSerial(serial2GNSS, "sdio,COM4,CMD,SBF\n\r", "DataInOut", "COM4>", 5);
     }
     else // productVariant == RTK_FLEX
     {
         // Set COM1 to: auto input, RTCMv3+SBF+NMEA+Encapsulate output
         // Mosaic could still be starting up, so allow many retries
         return isPresentOnSerial(serialGNSS, "sdio,COM1,auto,RTCMv3+SBF+NMEA+Encapsulate\n\r", "DataInOut", "COM1>",
-                                 20);
+                                 5);
     }
 }
 
@@ -2982,14 +2982,14 @@ bool GNSS_MOSAIC::isPresentOnSerial(HardwareSerial *serialPort, const char *comm
         if (retries == retryLimit)
             break;
         retries++;
-        sendWithResponse(serialPort, "SSSSSSSSSSSSSSSSSSSS\n\r", console); // Send escape sequence
+        sendWithResponse(serialPort, "SSSSSSSSSSSSSSSSSSSS\n\r", console, 100); // Send escape sequence
     }
 
     if (retries == retryLimit)
     {
         systemPrintln("Could not communicate with mosaic-X5 at selected baud rate. Attempting a soft reset...");
 
-        sendWithResponse(serialPort, "erst,soft,none\n\r", "ResetReceiver");
+        sendWithResponse(serialPort, "erst,soft,none\n\r", "ResetReceiver", 100);
 
         retries = 0;
 
@@ -2998,7 +2998,7 @@ bool GNSS_MOSAIC::isPresentOnSerial(HardwareSerial *serialPort, const char *comm
             if (retries == retryLimit)
                 break;
             retries++;
-            sendWithResponse(serialPort, "SSSSSSSSSSSSSSSSSSSS\n\r", console); // Send escape sequence
+            sendWithResponse(serialPort, "SSSSSSSSSSSSSSSSSSSS\n\r", console, 100); // Send escape sequence
         }
 
         if (retries == retryLimit)
