@@ -1476,7 +1476,7 @@ void createSettingsString(char *newSettings)
     stringRecord(newSettings, "gnssFirmwareVersionInt", gnssFirmwareVersionInt);
 
     char apDeviceBTID[30];
-    snprintf(apDeviceBTID, sizeof(apDeviceBTID), "Device Bluetooth ID: %02X%02X", btMACAddress[4], btMACAddress[5]);
+    snprintf(apDeviceBTID, sizeof(apDeviceBTID), "Device Bluetooth ID: %s", serialNumber);
     stringRecord(newSettings, "deviceBTID", apDeviceBTID);
 
     for (int i = 0; i < numRtkSettingsEntries; i++)
@@ -2403,11 +2403,7 @@ SettingValueResponse getSettingValue(bool inCommands, const char *settingName, c
     }
     else if (strcmp(settingName, "bluetoothId") == 0)
     {
-        // Get the last two digits of Bluetooth MAC
-        char macAddress[5];
-        snprintf(macAddress, sizeof(macAddress), "%02X%02X", btMACAddress[4], btMACAddress[5]);
-
-        writeToString(settingValueStr, macAddress);
+        writeToString(settingValueStr, serialNumber);
         knownSetting = true;
         settingIsString = true;
     }
@@ -3219,18 +3215,14 @@ void printAvailableSettings()
             commandSendExecuteListResponse("batteryChargingPercentPerHour", settingType, batteryChargingPercentStr);
         }
 
-        // Display the last four characters of the Bluetooth MAC
+        // Display the last four characters of the Bluetooth MAC plus the productVariant
         else if (commandIndex[i] == COMMAND_BLUETOOTH_ID)
         {
-            // Get the last two digits of Bluetooth MAC
-            char macAddress[5];
-            snprintf(macAddress, sizeof(macAddress), "%02X%02X", btMACAddress[4], btMACAddress[5]);
-
             // Create the settingType based on the length of the MAC
             char settingType[100];
-            snprintf(settingType, sizeof(settingType), "char[%d]", strlen(macAddress));
+            snprintf(settingType, sizeof(settingType), "char[%d]", strlen(serialNumber));
 
-            commandSendExecuteListResponse("bluetoothId", settingType, macAddress);
+            commandSendExecuteListResponse("bluetoothId", settingType, serialNumber);
         }
 
         // Display the device name

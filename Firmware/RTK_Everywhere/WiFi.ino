@@ -2912,7 +2912,7 @@ bool RTK_WIFI::stopStart(WIFI_ACTION_t stopping, WIFI_ACTION_t starting)
             // Append the last four digits of the MAC address
             if (strlen(_apSsid) == 0)
             {
-                snprintf(_apSsid, SSID_LENGTH, "%s %02X%02X", wifiSoftApSsid, btMACAddress[4], btMACAddress[5]);
+                snprintf(_apSsid, SSID_LENGTH, "%s %s", wifiSoftApSsid, serialNumber);
                 _apSsid[SSID_LENGTH - 1] = 0;
             }
 

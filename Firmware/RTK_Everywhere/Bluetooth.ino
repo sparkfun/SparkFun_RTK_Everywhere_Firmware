@@ -982,10 +982,8 @@ void bluetoothPrintStatus()
     else if (settings.bluetoothRadioType == BLUETOOTH_RADIO_OFF)
         systemPrint("Off ");
 
-    char macAddress[5];
-    snprintf(macAddress, sizeof(macAddress), "%02X%02X", btMACAddress[4], btMACAddress[5]);
     systemPrint("(");
-    systemPrint(macAddress);
+    systemPrint(serialNumber);
     systemPrint(")");
 
     if (settings.bluetoothRadioType != BLUETOOTH_RADIO_OFF)
