@@ -1099,14 +1099,34 @@ void gpioExpanderGnssReset()
 // Read the state of gpioExpanderSwitch_GNSS_Reset over the next second
 // If it is pulled high by the GNSS, GNSS is present
 // If it stays low, GNSS is missing
+// But we need to be careful. If we put an LG290P into RESET, it brings down the
+// I2C bus. So, we need to be quick! Drive reset low, then immediately change to
+// INPUT using a direct write - not the read-modify-write through the library.
 bool gpioExpanderDetectGnss()
 {
     if (online.gpioExpanderSwitches == true)
     {
         if (settings.detectedGnssReceiver == GNSS_RECEIVER_UNKNOWN)
         {
+            // Use 400kHz for speed
+            if (present.i2c0BusSpeed_400 == false)
+                i2c_0->setClock(400000);
+            
+            // Set GNSS Reset LOW
             gpioExpanderSwitches->digitalWrite(gpioExpanderSwitch_GNSS_Reset, LOW);
-            gpioExpanderSwitches->pinMode(gpioExpanderSwitch_GNSS_Reset, INPUT);
+            
+            // Clock is ticking! Be quick!
+            // Set GNSS Reset to INPUT as fast as possible
+            i2c_0->beginTransmission(0x21); // FacetFP TCA9534 is on address 0x21
+            i2c_0->write(0x03); // TCA9534 CONFIGURATION register
+            i2c_0->write((uint8_t)(1 << gpioExpanderSwitch_GNSS_Reset)); // Reset INPUT, all others OUTPUT
+            i2c_0->endTransmission(true);
+
+            // Restore 100kHz
+            if (present.i2c0BusSpeed_400 == false)
+                i2c_0->setClock(100000);
+
+            // Read the Reset pin every 100ms for 1s. If any one read is high, GNSS is present
             bool flexGnssDetected = false;
             unsigned long startTime = millis();
             for (unsigned long timeStep = 100; timeStep <= 1000; timeStep += 100)
@@ -1114,12 +1134,17 @@ bool gpioExpanderDetectGnss()
                 while ((millis() - startTime) < timeStep)
                     delay(10);
                 flexGnssDetected |= (gpioExpanderSwitches->digitalRead(gpioExpanderSwitch_GNSS_Reset) == 1);
-                systemPrintf("GNSS detection: GNSS %sdetected after %ldms\r\n",
-                    flexGnssDetected ? "" : "not ", timeStep );
+                if (settings.debugGnss)
+                    systemPrintf("GNSS detection: GNSS %sdetected after %ldms\r\n",
+                        flexGnssDetected ? "" : "not ", timeStep );
                 if (flexGnssDetected)
                     break;
             }
+
+            // Make GNSS Reset OUTPUT HIGH again
+            gpioExpanderSwitches->digitalWrite(gpioExpanderSwitch_GNSS_Reset, HIGH);
             gpioExpanderSwitches->pinMode(gpioExpanderSwitch_GNSS_Reset, OUTPUT);
+
             return (flexGnssDetected);
         }
     }
