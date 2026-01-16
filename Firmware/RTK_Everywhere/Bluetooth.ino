@@ -391,7 +391,8 @@ void bluetoothFlush()
     }
 }
 
-void BTConfirmRequestCallback(uint32_t numVal) {
+void BTConfirmRequestCallback(uint32_t numVal)
+{
     if (bluetoothGetState() == BT_OFF)
         return;
 
@@ -427,11 +428,13 @@ extern const int rfcommChanneliAP2;
 extern volatile bool sdpCreateRecordEvent;
 static void esp_sdp_callback(esp_sdp_cb_event_t event, esp_sdp_cb_param_t *param)
 {
-    switch (event) {
+    switch (event)
+    {
     case ESP_SDP_INIT_EVT:
         if (settings.debugNetworkLayer)
             systemPrintf("ESP_SDP_INIT_EVT: status: %d\r\n", param->init.status);
-        if (param->init.status == ESP_SDP_SUCCESS) {
+        if (param->init.status == ESP_SDP_SUCCESS)
+        {
             // SDP has been initialized. _Now_ we can create the iAP2 record!
             esp_bluetooth_sdp_hdr_overlay_t record = {(esp_bluetooth_sdp_types_t)0};
             record.type = ESP_SDP_TYPE_RAW;
@@ -505,7 +508,7 @@ void bluetoothStart(bool skipOnlineCheck)
         }
     }
 
-    { // Maintain the indentation for now. TODO: delete the braces and correct indentation
+    {                            // Maintain the indentation for now. TODO: delete the braces and correct indentation
         bluetoothState = BT_OFF; // Indicate to tasks that BT is unavailable
 
         // Select Bluetooth setup
@@ -595,7 +598,7 @@ void bluetoothStart(bool skipOnlineCheck)
 #ifdef COMPILE_AUTHENTICATION
             // Uncomment the next line to force deletion of all paired (bonded) devices
             // (This should only be necessary if you have changed the SSP pairing type)
-            //settings.clearBtPairings = true;
+            // settings.clearBtPairings = true;
 
             // Enable secure pairing without PIN :
             // iPhone displays Connection Unsuccessful - but then connects anyway...
@@ -608,8 +611,8 @@ void bluetoothStart(bool skipOnlineCheck)
             // Support Apple Accessory: Device to Accessory
             // 1. Search for an accessory from the device and initiate pairing.
             // 2. Verify pairing is successful after exchanging a pin code.
-            //bluetoothSerialSpp->enableSSP(true, true); // Enable secure pairing with PIN
-            //bluetoothSerialSpp->onConfirmRequest(&BTConfirmRequestCallback); // Callback to verify the PIN
+            // bluetoothSerialSpp->enableSSP(true, true); // Enable secure pairing with PIN
+            // bluetoothSerialSpp->onConfirmRequest(&BTConfirmRequestCallback); // Callback to verify the PIN
 
             beginSuccess &= bluetoothSerialSpp->begin(
                 deviceName, false, true, settings.sppRxQueueSize, settings.sppTxQueueSize, 0, 0,
@@ -636,7 +639,7 @@ void bluetoothStart(bool skipOnlineCheck)
                 esp_sdp_register_callback(esp_sdp_callback);
                 esp_sdp_init();
             }
-#endif  // COMPILE_AUTHENTICATION
+#endif // COMPILE_AUTHENTICATION
         }
 
         if (beginSuccess == false)
@@ -699,7 +702,7 @@ void bluetoothStart(bool skipOnlineCheck)
         else if (settings.bluetoothRadioType == BLUETOOTH_RADIO_BLE)
             systemPrintf("Bluetooth Low-Energy broadcasting as: %s\r\n", deviceName);
         else if (settings.bluetoothRadioType == BLUETOOTH_RADIO_SPP_ACCESSORY_MODE)
-#ifdef  COMPILE_AUTHENTICATION
+#ifdef COMPILE_AUTHENTICATION
             systemPrintf("Bluetooth SPP (Accessory Mode) broadcasting as: %s\r\n", deviceName);
 #else
             systemPrintf("** Not Compiled! Bluetooth SPP (Accessory Mode)**\r\n");
@@ -707,7 +710,7 @@ void bluetoothStart(bool skipOnlineCheck)
 
         if (pin_bluetoothStatusLED != PIN_UNDEFINED)
         {
-            bluetoothLedTask.detach();                                                  // Reset BT LED blinker task rate to 2Hz
+            bluetoothLedTask.detach(); // Reset BT LED blinker task rate to 2Hz
             bluetoothLedTask.attach(bluetoothLedTaskPace2Hz, tickerBluetoothLedUpdate); // Rate in seconds, callback
         }
 
@@ -717,11 +720,11 @@ void bluetoothStart(bool skipOnlineCheck)
         {
             if (bluetoothCommandTaskHandle == nullptr)
                 xTaskCreatePinnedToCore(
-                    bluetoothCommandTask,              // Function to run
-                    "BluetoothCommandTask",            // Just for humans
-                    4000,                              // Stack Size - must be ~4000
-                    nullptr,                           // Task input parameter
-                    0,                                 // Priority, with 3 (configMAX_PRIORITIES - 1) being the highest, and 0 being the lowest
+                    bluetoothCommandTask,   // Function to run
+                    "BluetoothCommandTask", // Just for humans
+                    4000,                   // Stack Size - must be ~4000
+                    nullptr,                // Task input parameter
+                    0, // Priority, with 3 (configMAX_PRIORITIES - 1) being the highest, and 0 being the lowest
                     &bluetoothCommandTaskHandle,       // Task handle
                     settings.bluetoothInterruptsCore); // Core where task should run, 0 = core, 1 = Arduino
         }
@@ -751,9 +754,15 @@ void bluetoothStart(bool skipOnlineCheck)
 // }
 
 // This function ends BT. A ESP.restart() is needed to get it going again
-void bluetoothEnd() { bluetoothEndCommon(true); }
+void bluetoothEnd()
+{
+    bluetoothEndCommon(true);
+}
 // This function stops BT so that it can be restarted later
-void bluetoothStop() { bluetoothEndCommon(false); }
+void bluetoothStop()
+{
+    bluetoothEndCommon(false);
+}
 // Common code for bluetooth stop and end
 void bluetoothEndCommon(bool endMe)
 {
@@ -879,21 +888,19 @@ void applyBluetoothSettingsForce(BluetoothRadioType_e bluetoothUserChoice, bool 
 void applyBluetoothSettingsCommon(BluetoothRadioType_e bluetoothUserChoice, bool clearBtPairings, bool force)
 {
     if (force ||
-        ((bluetoothUserChoice != settings.bluetoothRadioType)
-        || (clearBtPairings != settings.clearBtPairings)))
+        ((bluetoothUserChoice != settings.bluetoothRadioType) || (clearBtPairings != settings.clearBtPairings)))
     {
         // To avoid connection failures, we may need to restart the ESP32
 
         // If force is true then (re)start
         if (force)
         {
-            bluetoothStop(); // This does nothing if bluetooth is not online
+            bluetoothStop();                 // This does nothing if bluetooth is not online
             bluetoothStartSkipOnlineCheck(); // Always start, even if online
             return;
         }
         // If Bluetooth was on, and the user has selected OFF, then just stop
-        else if ((settings.bluetoothRadioType != BLUETOOTH_RADIO_OFF)
-            && (bluetoothUserChoice == BLUETOOTH_RADIO_OFF))
+        else if ((settings.bluetoothRadioType != BLUETOOTH_RADIO_OFF) && (bluetoothUserChoice == BLUETOOTH_RADIO_OFF))
         {
             bluetoothStop();
             settings.bluetoothRadioType = bluetoothUserChoice;
@@ -902,9 +909,8 @@ void applyBluetoothSettingsCommon(BluetoothRadioType_e bluetoothUserChoice, bool
         }
         // If Bluetooth was off, and the user has selected on, and Bluetooth has not been started previously
         // then just start
-        else if ((settings.bluetoothRadioType == BLUETOOTH_RADIO_OFF)
-                 && (bluetoothUserChoice != BLUETOOTH_RADIO_OFF)
-                 && (bluetoothRadioPreviousOnType == BLUETOOTH_RADIO_OFF))
+        else if ((settings.bluetoothRadioType == BLUETOOTH_RADIO_OFF) && (bluetoothUserChoice != BLUETOOTH_RADIO_OFF) &&
+                 (bluetoothRadioPreviousOnType == BLUETOOTH_RADIO_OFF))
         {
             settings.bluetoothRadioType = bluetoothUserChoice;
             settings.clearBtPairings = clearBtPairings;
@@ -927,9 +933,8 @@ void applyBluetoothSettingsCommon(BluetoothRadioType_e bluetoothUserChoice, bool
         // }
         // If Bluetooth was in Accessory Mode, and still is, and clearBtPairings is true
         // then (re)start Bluetooth skipping the online check
-        else if ((settings.bluetoothRadioType == BLUETOOTH_RADIO_SPP_ACCESSORY_MODE)
-                 && (bluetoothUserChoice == BLUETOOTH_RADIO_SPP_ACCESSORY_MODE)
-                 && clearBtPairings)
+        else if ((settings.bluetoothRadioType == BLUETOOTH_RADIO_SPP_ACCESSORY_MODE) &&
+                 (bluetoothUserChoice == BLUETOOTH_RADIO_SPP_ACCESSORY_MODE) && clearBtPairings)
         {
             settings.clearBtPairings = clearBtPairings;
             bluetoothStartSkipOnlineCheck();
@@ -937,16 +942,15 @@ void applyBluetoothSettingsCommon(BluetoothRadioType_e bluetoothUserChoice, bool
         }
         // If Bluetooth was in Accessory Mode, and still is, and clearBtPairings is false
         // then do nothing
-        else if ((settings.bluetoothRadioType == BLUETOOTH_RADIO_SPP_ACCESSORY_MODE)
-                 && (bluetoothUserChoice == BLUETOOTH_RADIO_SPP_ACCESSORY_MODE)
-                 && (!clearBtPairings))
+        else if ((settings.bluetoothRadioType == BLUETOOTH_RADIO_SPP_ACCESSORY_MODE) &&
+                 (bluetoothUserChoice == BLUETOOTH_RADIO_SPP_ACCESSORY_MODE) && (!clearBtPairings))
         {
             return;
         }
         // If Bluetooth was on, and the user has selected a different mode
         // then restart
-        else if ((settings.bluetoothRadioType != BLUETOOTH_RADIO_OFF)
-                 && (bluetoothUserChoice != settings.bluetoothRadioType))
+        else if ((settings.bluetoothRadioType != BLUETOOTH_RADIO_OFF) &&
+                 (bluetoothUserChoice != settings.bluetoothRadioType))
         {
             settings.bluetoothRadioType = bluetoothUserChoice;
             settings.clearBtPairings = clearBtPairings;
