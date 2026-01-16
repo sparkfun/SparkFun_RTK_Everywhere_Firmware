@@ -101,7 +101,7 @@ void updateAuthCoPro()
 
     if (online.authenticationCoPro) // Coprocessor must be present and online
     {
-        if ((bluetoothGetState() > BT_OFF) && (settings.bluetoothRadioType == BLUETOOTH_RADIO_SPP_ACCESSORY_MODE))
+        if (bluetoothGetState() > BT_OFF)
         {
             appleAccessory->update(); // Update the Accessory driver
 
@@ -120,7 +120,8 @@ void updateAuthCoPro()
             if (bluetoothSerialSpp->aclConnected() == true)
             {
                 char bda_str[18];
-                systemPrintf("Apple Device %s found. Waiting for connection...\r\n", bda2str(bluetoothSerialSpp->aclGetAddress(), bda_str, 18));
+                systemPrintf("Bluetooth Device %s detected.\r\n",
+                             bda2str(bluetoothSerialSpp->aclGetAddress(), bda_str, 18));
 
                 unsigned long connectionStart = millis();
                 while ((millis() - connectionStart) < 5000)
@@ -130,16 +131,7 @@ void updateAuthCoPro()
                     delay(10);
                 }
 
-                if (bluetoothSerialSpp->connected())
-                {
-                    systemPrintln("Connected. Sending handshake...");
-                    appleAccessory->startHandshake((Stream *)bluetoothSerialSpp);
-                }
-                else
-                {
-                    systemPrintln("Connection failed / timed out! Handshake will be sent if device connects...");
-                    sendAccessoryHandshakeOnBtConnect = true;
-                }
+                appleAccessory->startHandshake((Stream *)bluetoothSerialSpp);
             }
 
             // That's all folks!
