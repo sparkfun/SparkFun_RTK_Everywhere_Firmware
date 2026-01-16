@@ -823,7 +823,7 @@ class GNSS_MOSAIC : GNSS
     bool isPresent();
     bool isPresentOnSerial(HardwareSerial *serialPort, const char *command, const char *response, const char *console,
                            int retryLimit = 20);
-    bool mosaicIsPresentOnFlex();
+    bool mosaicIsPresentOnFacetFP();
 
     // Some functions (L-Band area frequency determination) merely need
     // to know if we have an RTK Fix.  This function checks to see if the
@@ -1090,7 +1090,7 @@ bool mosaicpGetSettingValue(RTK_Settings_Types type,
                             int settingsIndex,
                             int qualifier,
                             char * settingValueStr);
-bool mosaicIsPresentOnFlex();
+bool mosaicIsPresentOnFacetFP();
 void mosaicNewClass();
 bool mosaicNewSettingValue(RTK_Settings_Types type,
                            const char * suffix,

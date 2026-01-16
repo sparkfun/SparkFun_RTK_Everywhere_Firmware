@@ -488,7 +488,7 @@ bool lg290pGetSettingValue(RTK_Settings_Types type,
                            int qualifier,
                            int settingsIndex,
                            char * settingValueStr);
-bool lg290pIsPresentOnFlex();
+bool lg290pIsPresentOnFacetFP();
 void lg290pNewClass();
 bool lg290pNewSettingValue(RTK_Settings_Types type,
                            const char * suffix,

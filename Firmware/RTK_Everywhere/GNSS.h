@@ -7,7 +7,7 @@ GNSS.h
 #ifndef __GNSS_H__
 #define __GNSS_H__
 
-// GNSS receiver type detected in Flex
+// GNSS receiver type detected in Facet FP
 typedef enum
 {
     GNSS_RECEIVER_LG290P = 0,

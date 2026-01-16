@@ -1,7 +1,7 @@
 /*=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 LoRa.ino
 
-  This module implements the interface to the LoRa radio in the Torch and Flex.
+  This module implements the interface to the LoRa radio in the Torch and Facet FP.
 
   Torch:
     ESP32 (UART1) <-> Switch U12 B0 <-> UM980 (UART3)
@@ -28,11 +28,11 @@ LoRa.ino
     for X seconds before re-entering the dedicated listening mode. Any serial traffic from USB during this time
     resets the timeout.
 
-  Flex:
-    Flex GNSS (UART2) <-> Switch 4 B0 <-> 4-Pin Serial TTL on 1mm JST under microSD
-    Flex GNSS (UART2) <-> Switch 4 B1 <-> STM32 LoRa (UART0)
+  Facet FP:
+    Facet FP GNSS (UART2) <-> Switch 4 B0 <-> 4-Pin Serial TTL on 1mm JST under microSD
+    Facet FP GNSS (UART2) <-> Switch 4 B1 <-> STM32 LoRa (UART0)
 
-    ESP32 (UART2) <-> Switch 3 B0 <-> Flex GNSS Tilt (UART3)
+    ESP32 (UART2) <-> Switch 3 B0 <-> Facet FP GNSS Tilt (UART3)
     ESP32 (UART2) <-> Switch 3 B1 <-> STM32 LoRa (UART2)
 
     UART0 on the STM32 is used for pushing data across the link.
@@ -40,7 +40,7 @@ LoRa.ino
 
   Printing:
     On Torch, Serial must be used to send and receive data from the radio. At times, this requires disconnecting from
-    the USB interface. On Flex, SerialForLoRa is used on UART2 to configure and TX/RX data from the radio. If active,
+    the USB interface. On Facet FP, SerialForLoRa is used on UART2 to configure and TX/RX data from the radio. If active,
     SerialForTilt must be ended first.
 
   Updating the STM32 LoRa Firmware:
@@ -392,7 +392,7 @@ void loraStop()
 
 void muxSelectUm980()
 {
-    // On a possible Flex UM980 variant, UM980 UART1 will be hardwired to ESP32 UART0. No muxes to change
+    // On a possible Facet FP UM980 variant, UM980 UART1 will be hardwired to ESP32 UART0. No muxes to change
     if (productVariant == RTK_TORCH)
         digitalWrite(pin_muxA, LOW); // Connect ESP UART1 to UM980
 }
@@ -418,7 +418,7 @@ void muxSelectLoRaCommunication()
 
         usbSerialIsSelected = false; // Let other print operations know we are not connected to the CH34x
     }
-    else if (productVariant == RTK_FLEX)
+    else if (productVariant == RTK_FACET_FP)
     {
         gpioExpanderSelectLoraConfigure(); // Connect ESP to LoRa for sending config commands
     }
@@ -429,7 +429,7 @@ void muxSelectLoRaConfigure()
 {
     if (productVariant == RTK_TORCH)
         digitalWrite(pin_muxA, HIGH); // Connect ESP UART1 to LoRa UART0
-    else if (productVariant == RTK_FLEX)
+    else if (productVariant == RTK_FACET_FP)
         gpioExpanderSelectLoraConfigure(); // Connect ESP32 UART2 to LoRa UART2
 }
 
@@ -437,7 +437,7 @@ void loraEnterBootloader()
 {
     if (productVariant == RTK_TORCH || productVariant == RTK_TORCH_X2)
         digitalWrite(pin_loraRadio_boot, HIGH); // Enter bootload mode
-    else if (productVariant == RTK_FLEX)
+    else if (productVariant == RTK_FACET_FP)
         gpioExpanderLoraBootEnable();
 
     loraReset();
@@ -447,7 +447,7 @@ void loraExitBootloader()
 {
     if (productVariant == RTK_TORCH || productVariant == RTK_TORCH_X2)
         digitalWrite(pin_loraRadio_boot, LOW); // Exit bootload mode
-    else if (productVariant == RTK_FLEX)
+    else if (productVariant == RTK_FACET_FP)
         gpioExpanderLoraBootDisable();
 
     loraReset();
@@ -462,7 +462,7 @@ void loraReset()
         digitalWrite(pin_loraRadio_reset, HIGH); // Run STM32/radio
         delay(15);
     }
-    else if (productVariant == RTK_FLEX)
+    else if (productVariant == RTK_FACET_FP)
     {
         // There is no reset, only a power cycle
         gpioExpanderLoraDisable();
@@ -476,7 +476,7 @@ void loraPowerOn()
 {
     if (productVariant == RTK_TORCH)
         digitalWrite(pin_loraRadio_power, HIGH); // Power STM32/radio
-    else if (productVariant == RTK_FLEX)
+    else if (productVariant == RTK_FACET_FP)
         gpioExpanderLoraEnable();
 }
 
@@ -484,7 +484,7 @@ void loraPowerOff()
 {
     if (productVariant == RTK_TORCH || productVariant == RTK_TORCH_X2)
         digitalWrite(pin_loraRadio_power, LOW); // Power off STM32/radio
-    else if (productVariant == RTK_FLEX)
+    else if (productVariant == RTK_FACET_FP)
         gpioExpanderLoraDisable();
 }
 
@@ -496,7 +496,7 @@ bool loraIsOn()
             return (true);
         return (false);
     }
-    else if (productVariant == RTK_FLEX)
+    else if (productVariant == RTK_FACET_FP)
         return (gpioExpanderLoraIsOn());
     return (false);
 }
@@ -561,8 +561,8 @@ bool createLoRaPassthrough()
 
 void beginLoraFirmwareUpdate()
 {
-    // NOTE: this currently fails on Flex due to the way LoRa_EN and LoRa_NRST are interconnected.
-    //  This will be resolved with the next Flex motherboard rev.
+    // NOTE: this currently fails on Facet FP due to the way LoRa_EN and LoRa_NRST are interconnected.
+    //  This will be resolved with the next Facet FP motherboard rev.
     //  TODO: delete this comment once new hardware is available.
 
     // Flag that we are in direct connect mode. Button task will removeUpdateLoraFirmware and exit
@@ -594,7 +594,7 @@ void beginLoraFirmwareUpdate()
 
     if (productVariant == RTK_TORCH)
         serialGNSS->begin(115200, SERIAL_8N1, pin_GnssUart_RX, pin_GnssUart_TX); // Keep this at 115200
-    else if (productVariant == RTK_FLEX)
+    else if (productVariant == RTK_FACET_FP)
         serialGNSS->begin(115200, SERIAL_8N1, pin_IMU_RX, pin_IMU_TX); // Keep this at 115200
     else
         systemPrintln("ERROR: productVariant does not support LoRa");
@@ -614,7 +614,7 @@ void beginLoraFirmwareUpdate()
     task.endDirectConnectMode = false;
     while (!task.endDirectConnectMode)
     {
-        static unsigned long lastSerial = millis(); // Temporary fix for buttonless Flex
+        static unsigned long lastSerial = millis(); // Temporary fix for buttonless Facet FP
 
         if (Serial.available()) // Note: use if, not while
         {
@@ -737,7 +737,7 @@ bool loraSendCommand(const char *command, char *response, int *responseSize)
 }
 
 // On the Torch, USB and LoRa radio are shared, so disconnects from USB are required
-// On the Flex, LoRa UART2 is on ESP32 UART2
+// On the Facet FP, LoRa UART2 is on ESP32 UART2
 // Sends AT+V?, if response, we are already in command mode -> Reconnects to USB, Return
 // Sends +++ (but there is no response)
 // Sends AT+V?, if response, we are in command mode -> Reconnects to USB, Return
@@ -845,7 +845,7 @@ void loraProcessRTCM(uint8_t *rtcmData, uint16_t dataLength)
 {
     if (loraState == LORA_TX)
     {
-        // Only needed for Torch. Flex has GNSS tied directly to LoRa.
+        // Only needed for Torch. Facet FP has GNSS tied directly to LoRa.
         if (productVariant == RTK_TORCH)
         {
             // Send this data to the LoRa radio
@@ -868,7 +868,7 @@ void loraWrite(uint8_t *data, uint16_t dataLength)
 {
     if (productVariant == RTK_TORCH)
         Serial.write(data, dataLength);
-    else if (productVariant == RTK_FLEX)
+    else if (productVariant == RTK_FACET_FP)
         SerialForLoRa->write(data, dataLength);
 }
 
@@ -876,7 +876,7 @@ void loraPrint(const char *data)
 {
     if (productVariant == RTK_TORCH)
         Serial.print(data);
-    else if (productVariant == RTK_FLEX)
+    else if (productVariant == RTK_FACET_FP)
         SerialForLoRa->print(data);
 }
 
@@ -893,7 +893,7 @@ void loraPrintf(const char *format, ...)
 
     if (productVariant == RTK_TORCH)
         Serial.printf(buf);
-    else if (productVariant == RTK_FLEX)
+    else if (productVariant == RTK_FACET_FP)
         SerialForLoRa->printf(buf);
 
     va_end(args);
@@ -904,7 +904,7 @@ uint16_t loraAvailable()
 {
     if (productVariant == RTK_TORCH)
         return (Serial.available());
-    else if (productVariant == RTK_FLEX)
+    else if (productVariant == RTK_FACET_FP)
         return (SerialForLoRa->available());
 
     systemPrintln("loraAvailable - invalid ProductVariant");
@@ -915,7 +915,7 @@ uint16_t loraRead()
 {
     if (productVariant == RTK_TORCH)
         return (Serial.read());
-    else if (productVariant == RTK_FLEX)
+    else if (productVariant == RTK_FACET_FP)
         return (SerialForLoRa->read());
 
     systemPrintln("loraRead - invalid ProductVariant");

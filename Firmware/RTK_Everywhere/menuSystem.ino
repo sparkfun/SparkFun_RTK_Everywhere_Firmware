@@ -481,7 +481,7 @@ void menuDebugHardware()
         // On Postcard: firmware can be updated over USB and the CH342 B connection to GNSS
         //              UART1. A hardware GNSS reset may be beneficial, but it is possible
         //              to reset over USB / UART too ($PQTMSRR*4B).
-        // On Flex:     mosaic-X5 can be updated over USB via the USB Hub.
+        // On Facet FP:     mosaic-X5 can be updated over USB via the USB Hub.
         //              A direct connection can be created from USB to USB Hub to CH342 B to
         //              ESP32 UART0 to ESP32 UART1 to GNSS UART1.
         //              ZED-X20P will need a direct connection. Update via USB is not possible.
@@ -491,7 +491,7 @@ void menuDebugHardware()
 
         if (present.gnss_um980)
             systemPrintln("13) UM980 direct connect for firmware upgrade");
-        else if ((productVariant == RTK_FLEX) && (present.gnss_lg290p || present.gnss_zedx20p))
+        else if ((productVariant == RTK_FACET_FP) && (present.gnss_lg290p || present.gnss_zedx20p))
             systemPrintln("13) GNSS direct connect for firmware update");
         else if (present.gnss_lg290p)
             systemPrintln("13) LG290P reset for firmware update");
@@ -520,7 +520,7 @@ void menuDebugHardware()
         // LoRa Firmware upgrades:
         // On Torch: we need a direct connection from USB to CH342 B to ESP32 UART0 to
         //           ESP32 UART1 to LoRa UART0.
-        // On Flex:  we need a direct connection from USB to USB Hub to ESP32 UART0 to
+        // On Facet FP:  we need a direct connection from USB to USB Hub to ESP32 UART0 to
         //           ESP32 UART2 to LoRa UART2.
         //           TODO: check STM32 can be updated via UART2!!
 
@@ -597,7 +597,7 @@ void menuDebugHardware()
                     ESP.restart();
                 }
             }
-            else if ((productVariant == RTK_FLEX) && (present.gnss_lg290p || present.gnss_zedx20p))
+            else if ((productVariant == RTK_FACET_FP) && (present.gnss_lg290p || present.gnss_zedx20p))
             {
                 // Create a file in LittleFS
                 if (createGNSSPassthrough() == true)

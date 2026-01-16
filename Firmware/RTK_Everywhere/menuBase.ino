@@ -280,7 +280,7 @@ void menuBase()
             if (getNewSetting(
                     "Enter the antenna phase center (the distance between the ARP and the APC) in millimeters. "
                     "Common antennas "
-                    "Torch/X2=116.5, Facet mosaic=68.5, EVK=42.0, Postcard=37.5, Flex=62.5",
+                    "Torch/X2=116.5, Facet mosaic=68.5, EVK=42.0, Postcard=37.5, Facet FP=62.5",
                     -200.0, 200.0, &settings.antennaPhaseCenter_mm) == INPUT_RESPONSE_VALID)
             {
                 // Change GNSS receiver configuration if the receiver is in Base mode, otherwise, just change setting

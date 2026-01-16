@@ -239,7 +239,7 @@ void GNSS_MOSAIC::begin()
     //   COM3 is N/C (ESP32 UART2 is connected to the IMU)
     //   COM4 TX provides data to the IMU - TODO
 
-    if (productVariant != RTK_FLEX) // productVariant == RTK_FACET_MOSAIC
+    if (productVariant != RTK_FACET_FP) // productVariant == RTK_FACET_MOSAIC
     {
         if (serial2GNSS == nullptr)
         {
@@ -290,7 +290,7 @@ void GNSS_MOSAIC::begin()
         else
             systemPrintln("GNSS mosaic-X5 offline!");
     }
-    else // productVariant == RTK_FLEX
+    else // productVariant == RTK_FACET_FP
     {
         if (serialGNSS == nullptr)
         {
@@ -1289,8 +1289,8 @@ bool GNSS_MOSAIC::isAntennaOpen()
 bool GNSS_MOSAIC::isBlocking()
 {
     // Facet mosaic is non-blocking. It has exclusive access to COM4
-    // Flex (mosaic) is blocking. Suspend the GNSS read task only if needed
-    return _isBlocking && (productVariant == RTK_FLEX);
+    // Facet FP (mosaic) is blocking. Suspend the GNSS read task only if needed
+    return _isBlocking && (productVariant == RTK_FACET_FP);
 }
 
 //----------------------------------------
@@ -2955,13 +2955,13 @@ bool GNSS_MOSAIC::isPresent()
     systemPrintln("Starting communication with mosaic-X5");
     paintMosaicBooting();
 
-    if (productVariant != RTK_FLEX) // productVariant == RTK_FACET_MOSAIC
+    if (productVariant != RTK_FACET_FP) // productVariant == RTK_FACET_MOSAIC
     {
         // Set COM4 to: CMD input (only), SBF output (only)
         // Mosaic could still be starting up, so allow many retries
         return isPresentOnSerial(serial2GNSS, "sdio,COM4,CMD,SBF\n\r", "DataInOut", "COM4>", 5);
     }
-    else // productVariant == RTK_FLEX
+    else // productVariant == RTK_FACET_FP
     {
         // Set COM1 to: auto input, RTCMv3+SBF+NMEA+Encapsulate output
         // Mosaic could still be starting up, so allow many retries
@@ -3649,9 +3649,9 @@ bool mosaicGetSettingValue(RTK_Settings_Types type,
 }
 
 //----------------------------------------
-// Test for mosaic on UART1 of the ESP32 on Flex
+// Test for mosaic on UART1 of the ESP32 on Facet FP
 //----------------------------------------
-bool mosaicIsPresentOnFlex()
+bool mosaicIsPresentOnFacetFP()
 {
     // Locally instantiate the hardware and library so it will release on exit
     HardwareSerial serialTestGNSS(2);

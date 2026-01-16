@@ -371,7 +371,7 @@ void gnssReadTask(void *e)
     sempAbortHashOnNonPrintable(rtkParse);
 
     bool sbfParserNeeded = present.gnss_mosaicX5;
-    bool spartnParserNeeded = present.gnss_mosaicX5 && (productVariant != RTK_FLEX);
+    bool spartnParserNeeded = present.gnss_mosaicX5 && (productVariant != RTK_FACET_FP);
 
     if (sbfParserNeeded)
     {
@@ -457,7 +457,7 @@ void gnssReadTask(void *e)
         // to add extra checks, above and beyond the invalidDataCallback, to make sure that doesn't happen.
         // Here we check that the SBF ID and length are expected / valid too.
         //
-        // For Flex mosaic, we need the SBF parser but not the SPARTN parser
+        // For Facet FP mosaic, we need the SBF parser but not the SPARTN parser
 
         if (gnss->isBlocking() == false)
         {
@@ -2222,7 +2222,7 @@ void buttonCheckTask(void *e)
         // If in direct connect mode. Note: this is just a flag not a STATE.
         if (inDirectConnectMode)
         {
-            // TODO: check if this works on both Torch and Flex.
+            // TODO: check if this works on both Torch and Facet FP.
             if (singleTap || doubleTap)
             {
                 // Beep to indicate exit
@@ -2353,7 +2353,7 @@ void buttonCheckTask(void *e)
                     ;
             }
         } // End productVariant == Torch/Torch X2
-        else // RTK EVK, RTK Facet mosaic, RTK Postcard, RTK Flex
+        else // RTK EVK, RTK Facet mosaic, RTK Postcard, RTK Facet FP
         {
             if (systemState == STATE_SHUTDOWN)
             {

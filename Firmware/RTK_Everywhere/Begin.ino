@@ -109,9 +109,9 @@ void identifyBoard()
         else if (idWithAdc(idValue, 12.1, 1.5, 8.5))
             productVariant = RTK_FACET_V2_LBAND;
 
-        // Flex: 10.0/20.0  -->  2071mV < 2200mV < 2322mV (8.5% tolerance)
+        // Facet FP: 10.0/20.0  -->  2071mV < 2200mV < 2322mV (8.5% tolerance)
         else if (idWithAdc(idValue, 10.0, 20.0, 8.5))
-            productVariant = RTK_FLEX;
+            productVariant = RTK_FACET_FP;
 
         // Postcard: 3.3/10  -->  2371mV < 2481mV < 2582mV (8.5% tolerance)
         else if (idWithAdc(idValue, 3.3, 10, 8.5))
@@ -583,7 +583,7 @@ void beginBoard()
         // mosaic COM3 is connected to the Data connector - via the multiplexer
         // mosaic COM3 is available as a generic COM port. The firmware configures the baud. Nothing else.
 
-        // NOTE: Flex with mosaic-X5 is VERY different!
+        // NOTE: Facet FP with mosaic-X5 is VERY different!
 
         // Specify the GNSS radio
 #ifdef COMPILE_MOSAICX5
@@ -725,7 +725,7 @@ void beginBoard()
         sdDeselectCard();
     }
 
-    else if (productVariant == RTK_FLEX)
+    else if (productVariant == RTK_FACET_FP)
     {
         present.psram_2mb = true;
 
@@ -1199,7 +1199,7 @@ void forceGnssCommunicationRate(uint32_t &platformGnssCommunicationRate)
         // LG290P communicates at 460800bps.
         platformGnssCommunicationRate = 115200 * 4;
     }
-    else if (productVariant == RTK_FLEX)
+    else if (productVariant == RTK_FACET_FP)
     {
         if (settings.detectedGnssReceiver == GNSS_RECEIVER_LG290P)
         {
@@ -1208,7 +1208,7 @@ void forceGnssCommunicationRate(uint32_t &platformGnssCommunicationRate)
         }
         else if (settings.detectedGnssReceiver == GNSS_RECEIVER_MOSAIC_X5)
         {
-            // Mosaic defaults to 115200, but mosaicIsPresentOnFlex() increases COM1 to 460800bps
+            // Mosaic defaults to 115200, but mosaicIsPresentOnFacetFP() increases COM1 to 460800bps
             platformGnssCommunicationRate = 115200 * 4;
         }
         else
@@ -1515,7 +1515,7 @@ void beginButtons()
         {
             // Torch X2 and Facet mosaic have just one power/setup button
             powerBtn = new Button(pin_powerButton);
-            // Flex has a power button (GPIO) and function button (Mode or Fn)
+            // Facet FP has a power button (GPIO) and function button (Mode or Fn)
             if (present.button_function == true)
                 functionBtn = new Button(pin_modeButton);
         }
@@ -1631,7 +1631,7 @@ void beginSystemState()
         if (systemState == STATE_BASE_NOT_STARTED)
             firstRoverStart = false;
     }
-    else if (productVariant == RTK_FLEX)
+    else if (productVariant == RTK_FACET_FP)
     {
         // Return to either Rover or Base Not Started. The last state previous to power down.
         systemState = settings.lastState;
@@ -1955,7 +1955,7 @@ bool i2cBusInitialization(TwoWire *i2cBus, int sda, int scl, int clockKHz)
             }
 
             case 0x21: {
-                systemPrintf("  0x%02X - PCA9554 GPIO Expander with Interrupt (Flex)\r\n", addr);
+                systemPrintf("  0x%02X - PCA9554 GPIO Expander with Interrupt (Facet FP)\r\n", addr);
                 break;
             }
 
@@ -1970,7 +1970,7 @@ bool i2cBusInitialization(TwoWire *i2cBus, int sda, int scl, int clockKHz)
             }
 
             case 0x3C: {
-                systemPrintf("  0x%02X - SSD1306 OLED Driver (Flex)\r\n", addr);
+                systemPrintf("  0x%02X - SSD1306 OLED Driver (Facet fP)\r\n", addr);
                 break;
             }
 

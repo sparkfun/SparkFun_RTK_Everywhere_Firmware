@@ -2,7 +2,7 @@
 Buttons.ino
 =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=*/
 
-uint8_t dualButton_lastReleased = 255; // Track which button on the RTK Flex was pressed last
+uint8_t dualButton_lastReleased = 255; // Track which button on the Facet FP was pressed last
 static int dualButton_power = 0;
 static int dualButton_function = 1;
 
@@ -164,8 +164,8 @@ bool buttonReleased()
     // If this system has only one button (Facet mosaic, Torch, Torch X2) and it
     // was released, return true.
 
-    // If this system has a function (Flex) or mode (EVK) button and it was released,
-    // return true. If this system has a power button as well (Flex), and it was released, return true.
+    // If this system has a function (Facet FP) or mode (EVK) button and it was released,
+    // return true. If this system has a power button as well (Facet FP), and it was released, return true.
 
     // If this system has multiple buttons (Postcard possibly), return true if any were released
 

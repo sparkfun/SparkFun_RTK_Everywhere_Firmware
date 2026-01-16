@@ -2526,7 +2526,7 @@ void um980FirmwareBeginUpdate()
     serialGNSS->setRxBufferSize(settings.uartReceiveBufferSize);
     serialGNSS->setTimeout(settings.serialTimeoutGNSS); // Requires serial traffic on the UART pins for detection
 
-    // This is OK for Flex too. We're using the main GNSS pins.
+    // This is OK for Facet FP too. We're using the main GNSS pins.
     serialGNSS->begin(115200, SERIAL_8N1, pin_GnssUart_RX, pin_GnssUart_TX);
 
     // UPrecise needs to query the device before entering bootload mode

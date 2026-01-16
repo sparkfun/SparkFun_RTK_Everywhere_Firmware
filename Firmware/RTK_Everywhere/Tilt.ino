@@ -299,7 +299,7 @@ void beginTilt()
     // Set the distance of the IMU from the center line - x:6.78mm y:10.73mm z:19.25mm
     if (productVariant == RTK_TORCH)
         result &= tiltSensor->sendCommand("LEVER_ARM=-0.00678,-0.01073,-0.0314"); // From stock firmware
-    else if (productVariant == RTK_FLEX)
+    else if (productVariant == RTK_FACET_FP)
     {
         result &= tiltSensor->sendCommand("LEVER_ARM=0.03391,0.00272,0.02370"); // -28.2, 0. -23.7mm
 
@@ -324,7 +324,7 @@ void beginTilt()
     // Configure interface type. This allows IM19 to receive Unicore-style binary messages
     if (productVariant == RTK_TORCH)
         result &= tiltSensor->sendCommand("GNSS_CARD=UNICORE");
-    else if (productVariant == RTK_FLEX)
+    else if (productVariant == RTK_FACET_FP)
         result &= tiltSensor->sendCommand("GNSS_CARD=OEM");
 
     // Configure as tilt measurement mode
@@ -1177,7 +1177,7 @@ void tiltDetect()
         return;
 
     // Skip test if the FacetFP GNSS is unknown
-    if (productVariant == RTK_FLEX)
+    if (productVariant == RTK_FACET_FP)
     {
         if (settings.detectedGnssReceiver == GNSS_RECEIVER_UNKNOWN)
         {
@@ -1196,7 +1196,7 @@ void tiltDetect()
 
     tiltSensor = new IM19();
 
-    // On Flex, ESP UART2 is connected to SW3, then UART3 of the GNSS (where a tilt module resides, if populated)
+    // On Facet FP, ESP UART2 is connected to SW3, then UART3 of the GNSS (where a tilt module resides, if populated)
     HardwareSerial SerialTiltTest(1); // Use UART1 on the ESP32 to communicate with IMU
 
     // Confirm SW3 is in the correct position

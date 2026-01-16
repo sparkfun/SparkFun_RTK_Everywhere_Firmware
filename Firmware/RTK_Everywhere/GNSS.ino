@@ -43,7 +43,7 @@ const GNSS_SUPPORT_ROUTINES gnssSupportRoutines[] =
     {
         "LG290P",               // _name
         GNSS_RECEIVER_LG290P,   // _receiver
-        lg290pIsPresentOnFlex,  // _present
+        lg290pIsPresentOnFacetFP,  // _present
         lg290pNewClass,         // _newClass
         lg290pCommandList,      // _commandList
         lg290pCommandTypeJson,  // _commandTypeJson
@@ -57,7 +57,7 @@ const GNSS_SUPPORT_ROUTINES gnssSupportRoutines[] =
     {
         "Mosaic-X5",                // _name
         GNSS_RECEIVER_MOSAIC_X5,    // _receiver
-        mosaicIsPresentOnFlex,      // _present
+        mosaicIsPresentOnFacetFP,      // _present
         mosaicNewClass,             // _newClass
         mosaicCommandList,          // _commandList
         mosaicCommandTypeJson,      // _commandTypeJson
@@ -593,8 +593,8 @@ void gnssDetectReceiverType()
 {
     int index;
 
-    // Currently only the Flex requires GNSS receiver detection
-    if (productVariant != RTK_FLEX)
+    // Currently only the Facet FP requires GNSS receiver detection
+    if (productVariant != RTK_FACET_FP)
         return;
 
     if (gpioExpanderDetectGnss() == true)
@@ -657,7 +657,7 @@ void gnssBoot()
     {
         digitalWrite(pin_GNSS_DR_Reset, HIGH); // Tell LG290P to boot
     }
-    else if (productVariant == RTK_FLEX)
+    else if (productVariant == RTK_FACET_FP)
     {
         gpioExpanderGnssBoot(); // Drive the GNSS reset pin high
     }
@@ -680,7 +680,7 @@ void gnssReset()
     {
         digitalWrite(pin_GNSS_DR_Reset, LOW); // Tell LG290P to reset
     }
-    else if (productVariant == RTK_FLEX)
+    else if (productVariant == RTK_FACET_FP)
     {
         gpioExpanderGnssReset(); // Drive the GNSS reset pin low
     }
@@ -740,7 +740,7 @@ void gnssFirmwareBeginUpdate()
     //  detection at the start of the update. I think the delays introduced by serialGNSS->write(Serial.read())
     //  and Serial.write(serialGNSS->read()) cause the failure, but I'm not sure.
     //  It seems that LG290P needs a dedicated hardware link from USB to GNSS UART for a successful update.
-    //  This will be added in the next rev of the Flex motherboard.
+    //  This will be added in the next rev of the Facet FP motherboard.
 
     // NOTE: X20P will expect a baud rate change during the update, unless we force 9600 baud.
     //  The dedicated hardware link will make X20P firmware updates easy.
@@ -759,7 +759,7 @@ void gnssFirmwareBeginUpdate()
 
     uint32_t serialBaud = 115200;
 
-    forceGnssCommunicationRate(serialBaud); // On Flex, must be called after gnssDetectReceiverType
+    forceGnssCommunicationRate(serialBaud); // On Facet FP, must be called after gnssDetectReceiverType
 
     systemPrintln();
     systemPrintf("Entering GNSS direct connect for firmware update and configuration. Disconnect this terminal "
@@ -778,14 +778,14 @@ void gnssFirmwareBeginUpdate()
     serialGNSS->setRxBufferSize(settings.uartReceiveBufferSize);
     serialGNSS->setTimeout(settings.serialTimeoutGNSS); // Requires serial traffic on the UART pins for detection
 
-    // This is OK for Flex too. We're using the main GNSS pins.
+    // This is OK for Facet FP too. We're using the main GNSS pins.
     serialGNSS->begin(serialBaud, SERIAL_8N1, pin_GnssUart_RX, pin_GnssUart_TX);
 
     // Echo everything to/from GNSS
     task.endDirectConnectMode = false;
     while (!task.endDirectConnectMode)
     {
-        static unsigned long lastSerial = millis(); // Temporary fix for buttonless Flex
+        static unsigned long lastSerial = millis(); // Temporary fix for buttonless Facet FP
 
         if (Serial.available()) // Note: use if, not while
         {
@@ -798,8 +798,8 @@ void gnssFirmwareBeginUpdate()
 
         // Button task will set task.endDirectConnectMode true
 
-        // Temporary fix for buttonless Flex. TODO - remove
-        if ((productVariant == RTK_FLEX) && ((millis() - lastSerial) > 30000))
+        // Temporary fix for buttonless Facet FP. TODO - remove
+        if ((productVariant == RTK_FACET_FP) && ((millis() - lastSerial) > 30000))
         {
             // Beep to indicate exit
             beepOn();

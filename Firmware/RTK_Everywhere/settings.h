@@ -198,7 +198,7 @@ typedef enum
     RTK_TORCH = 3, // 0x03
     RTK_FACET_V2_LBAND = 4, // 0x04
     RTK_POSTCARD = 5, // 0x05
-    RTK_FLEX = 6, // 0x06
+    RTK_FACET_FP = 6, // 0x06
     RTK_TORCH_X2 = 7, // 0x07
     // Add new values above this line
     RTK_UNKNOWN
@@ -243,7 +243,7 @@ const productProperties productPropertiesTable[] =
     { RTK_FACET_MOSAIC,     BRAND_SPARKPNT, "Facet X5",     "Facet X5", "SFE_Facet_mosaic",     "Facet mosaicX5",   true,   "0000000000000000", STATE_ROVER_NOT_STARTED,    "https://www.sparkfun.com/rtk_facet_mosaic_registration" },
     { RTK_FACET_V2,         BRAND_SPARKPNT, "Facet v2",     "Facet v2", "SFE_Facet_v2",         "Facet v2",         true,   "0000000000000000", STATE_ROVER_NOT_STARTED,    "Unknown" },
     { RTK_FACET_V2_LBAND,   BRAND_SPARKPNT, "Facet v2 LB",  "Facet LB", "SFE_Facet_v2_LBand",   "Facet v2 LBand",   true,   "0000000000000000", STATE_ROVER_NOT_STARTED,    "Unknown" },
-    { RTK_FLEX,             BRAND_SPARKPNT, "Facet FP",     "Facet FP", "SFE_Facet_FP",         "Facet FP",         false,  "e9e877bb278140f0", STATE_ROVER_NOT_STARTED,    "https://www.sparkfun.com/rtk_facet_fp_registration" },
+    { RTK_FACET_FP,             BRAND_SPARKPNT, "Facet FP",     "Facet FP", "SFE_Facet_FP",         "Facet FP",         false,  "e9e877bb278140f0", STATE_ROVER_NOT_STARTED,    "https://www.sparkfun.com/rtk_facet_fp_registration" },
     { RTK_POSTCARD,         BRAND_SPARKFUN, "Postcard",     "Postcard", "SFE_Postcard",         "Postcard",         true,   "e9e877bb278140f0", STATE_ROVER_NOT_STARTED,    "https://www.sparkfun.com/rtk_postcard_registration" },
     { RTK_TORCH,            BRAND_SPARKFUN, "Torch",        "Torch",    "SFE_Torch",            "Torch",            true,   "0000000000000000", STATE_ROVER_NOT_STARTED,    "https://www.sparkfun.com/rtk_torch_registration" },
     { RTK_TORCH_X2,         BRAND_SPARKPNT, "Torch X2",     "Torch X2", "SFE_Torch_X2",         "Torch X2",         true,   "3407c7ca3d6b4984", STATE_ROVER_NOT_STARTED,    "https://www.sparkfun.com/rtk_torch_x2_registration" },
@@ -1169,7 +1169,7 @@ typedef enum
     ZED = ZF9 | ZX2,    // Hybrids are possible (enums don't have to be consecutive)
     MSM = L29,          // Platforms which require parameter selection of MSM7 over MSM4
     HAS = L29,          // Platforms which support Galileo HAS
-} Facet_Flex_Variant;
+} Facet_FP_Variant;
 
 typedef bool (* AFTER_CMD)(const char *settingName, void *settingData, int settingType);
 
@@ -1187,7 +1187,7 @@ typedef struct
     bool platTorch;
     bool platFacetV2LBand;
     bool platPostcard;
-    Facet_Flex_Variant platFlex;
+    Facet_FP_Variant platFacetFP;
     bool platTorchX2;
     RTK_Settings_Types type;
     int qualifier;
@@ -1230,7 +1230,7 @@ const RTK_Settings_Entry rtkSettingsEntries[] =
 // inWebConfig = Should this setting be sent to the WiFi/Eth Config page
 // inCommands = Should this setting be exposed over the CLI
 // useSuffix = Setting has an additional array to search
-// EVK/Facet V2/Facet mosaic/Torch/Facet V2 L-Band/Postcard/Flex = Is this setting supported on X platform
+// EVK/Facet V2/Facet mosaic/Torch/Facet V2 L-Band/Postcard/Facet FP = Is this setting supported on X platform
 
 //                         F
 //                         a
@@ -1238,24 +1238,23 @@ const RTK_Settings_Entry rtkSettingsEntries[] =
 //    i              a     e
 //    n  i           c     t
 //    W  n  u        e
-//    e  C  s     F  t     V  P       T
-//    b  o  e     a        2  o       o
-//    C  m  S     c  M        s       r
-//    o  m  u     e  o  T  L  t       c
-//    n  a  f     t  s  o  B  c  F    h
-//    f  n  f  E     a  r  a  a  l
-//    i  d  i  v  V  i  c  n  r  e    X
-//    g  s  x  k  2  c  h  d  d  x    2  Type       Qual                Variable                  Name              afterSetCmd
-
+//    e  C  s     F  t     V  P  F    T
+//    b  o  e     a        2  o  a    o
+//    C  m  S     c  M        s  c    r
+//    o  m  u     e  o  T  L  t  e    c
+//    n  a  f     t  s  o  B  c  t    h
+//    f  n  f  E     a  r  a  a        
+//    i  d  i  v  V  i  c  n  r  F    X
+//    g  s  x  k  2  c  h  d  d  P    2  Type       Qual                Variable                  Name              afterSetCmd
     // =======================================================================================================
     // Priority Settings which are not alphabetized in commandIndex
     // =======================================================================================================
 
-    // Detected GNSS Receiver - only for Flex. Save / load first so settingAvailableOnPlatform is correct on Flex
+    // Detected GNSS Receiver - only for Facet FP. Save / load first so settingAvailableOnPlatform is correct on Facet FP
     { 0, 0, 0, 0, 0, 0, 0, 0, 0, ALL, 0, tGnssReceiver,     0, & settings.detectedGnssReceiver, "detectedGnssReceiver", nullptr, },
 
-    // Common settings which use the same name on multiple Flex platforms
-    // We need these - for Flex - because:
+    // Common settings which use the same name on multiple Facet FP platforms
+    // We need these - for Facet FP - because:
     //   During setup, the settings are loaded before we know which GNSS is present
     //   Previously, the setting would be applied to whichever GNSS is matched first alphabetically
     //   We need to apply these settings to all GNSS initially so that when we
@@ -1285,15 +1284,14 @@ const RTK_Settings_Entry rtkSettingsEntries[] =
 //    i              a     e
 //    n  i           c     t
 //    W  n  u        e
-//    e  C  s     F  t     V  P       T
-//    b  o  e     a        2  o       o
-//    C  m  S     c  M        s       r
-//    o  m  u     e  o  T  L  t       c
-//    n  a  f     t  s  o  B  c  F    h
-//    f  n  f  E     a  r  a  a  l
-//    i  d  i  v  V  i  c  n  r  e    X
-//    g  s  x  k  2  c  h  d  d  x    2  Type       Qual                Variable                  Name              afterSetCmd
-
+//    e  C  s     F  t     V  P  F    T
+//    b  o  e     a        2  o  a    o
+//    C  m  S     c  M        s  c    r
+//    o  m  u     e  o  T  L  t  e    c
+//    n  a  f     t  s  o  B  c  t    h
+//    f  n  f  E     a  r  a  a        
+//    i  d  i  v  V  i  c  n  r  F    X
+//    g  s  x  k  2  c  h  d  d  P    2  Type       Qual                Variable                  Name              afterSetCmd
     // Antenna
     { 1, 1, 0, 1, 1, 1, 1, 1, 1, ALL, 1, _int16_t,  0, & settings.antennaHeight_mm, "antennaHeight_mm", nullptr, },
     { 1, 1, 0, 1, 1, 1, 1, 1, 1, ALL, 1, _float,    2, & settings.antennaPhaseCenter_mm, "antennaPhaseCenter_mm", nullptr, },
@@ -1326,14 +1324,14 @@ const RTK_Settings_Entry rtkSettingsEntries[] =
 //    i              a     e
 //    n  i           c     t
 //    W  n  u        e
-//    e  C  s     F  t     V  P       T
-//    b  o  e     a        2  o       o
-//    C  m  S     c  M        s       r
-//    o  m  u     e  o  T  L  t       c
-//    n  a  f     t  s  o  B  c  F    h
-//    f  n  f  E     a  r  a  a  l
-//    i  d  i  v  V  i  c  n  r  e    X
-//    g  s  x  k  2  c  h  d  d  x    2  Type       Qual                Variable                  Name              afterSetCmd
+//    e  C  s     F  t     V  P  F    T
+//    b  o  e     a        2  o  a    o
+//    C  m  S     c  M        s  c    r
+//    o  m  u     e  o  T  L  t  e    c
+//    n  a  f     t  s  o  B  c  t    h
+//    f  n  f  E     a  r  a  a        
+//    i  d  i  v  V  i  c  n  r  F    X
+//    g  s  x  k  2  c  h  d  d  P    2  Type       Qual                Variable                  Name              afterSetCmd
 
 
     // Beeper
@@ -1359,15 +1357,14 @@ const RTK_Settings_Entry rtkSettingsEntries[] =
 //    i              a     e
 //    n  i           c     t
 //    W  n  u        e
-//    e  C  s     F  t     V  P       T
-//    b  o  e     a        2  o       o
-//    C  m  S     c  M        s       r
-//    o  m  u     e  o  T  L  t       c
-//    n  a  f     t  s  o  B  c  F    h
-//    f  n  f  E     a  r  a  a  l
-//    i  d  i  v  V  i  c  n  r  e    X
-//    g  s  x  k  2  c  h  d  d  x    2  Type       Qual                Variable                  Name              afterSetCmd
-
+//    e  C  s     F  t     V  P  F    T
+//    b  o  e     a        2  o  a    o
+//    C  m  S     c  M        s  c    r
+//    o  m  u     e  o  T  L  t  e    c
+//    n  a  f     t  s  o  B  c  t    h
+//    f  n  f  E     a  r  a  a        
+//    i  d  i  v  V  i  c  n  r  F    X
+//    g  s  x  k  2  c  h  d  d  P    2  Type       Qual                Variable                  Name              afterSetCmd
 
     // Data Port Multiplexer
     { 1, 1, 0, 0, 1, 1, 0, 1, 0, NON, 0, tMuxConn,  0, & settings.dataPortChannel, "dataPortChannel", nullptr, },
@@ -1387,15 +1384,14 @@ const RTK_Settings_Entry rtkSettingsEntries[] =
 //    i              a     e
 //    n  i           c     t
 //    W  n  u        e
-//    e  C  s     F  t     V  P       T
-//    b  o  e     a        2  o       o
-//    C  m  S     c  M        s       r
-//    o  m  u     e  o  T  L  t       c
-//    n  a  f     t  s  o  B  c  F    h
-//    f  n  f  E     a  r  a  a  l
-//    i  d  i  v  V  i  c  n  r  e    X
-//    g  s  x  k  2  c  h  d  d  x    2  Type       Qual                Variable                  Name              afterSetCmd
-
+//    e  C  s     F  t     V  P  F    T
+//    b  o  e     a        2  o  a    o
+//    C  m  S     c  M        s  c    r
+//    o  m  u     e  o  T  L  t  e    c
+//    n  a  f     t  s  o  B  c  t    h
+//    f  n  f  E     a  r  a  a        
+//    i  d  i  v  V  i  c  n  r  F    X
+//    g  s  x  k  2  c  h  d  d  P    2  Type       Qual                Variable                  Name              afterSetCmd
 
     // Ethernet
     { 0, 0, 0, 1, 0, 0, 0, 0, 0, NON, 0, _bool,     0, & settings.enablePrintEthernetDiag, "enablePrintEthernetDiag", nullptr, },
@@ -1439,15 +1435,14 @@ const RTK_Settings_Entry rtkSettingsEntries[] =
 //    i              a     e
 //    n  i           c     t
 //    W  n  u        e
-//    e  C  s     F  t     V  P       T
-//    b  o  e     a        2  o       o
-//    C  m  S     c  M        s       r
-//    o  m  u     e  o  T  L  t       c
-//    n  a  f     t  s  o  B  c  F    h
-//    f  n  f  E     a  r  a  a  l
-//    i  d  i  v  V  i  c  n  r  e    X
-//    g  s  x  k  2  c  h  d  d  x    2  Type       Qual                Variable                  Name              afterSetCmd
-
+//    e  C  s     F  t     V  P  F    T
+//    b  o  e     a        2  o  a    o
+//    C  m  S     c  M        s  c    r
+//    o  m  u     e  o  T  L  t  e    c
+//    n  a  f     t  s  o  B  c  t    h
+//    f  n  f  E     a  r  a  a        
+//    i  d  i  v  V  i  c  n  r  F    X
+//    g  s  x  k  2  c  h  d  d  P    2  Type       Qual                Variable                  Name              afterSetCmd
 
     // Log file
     { 1, 1, 0, 1, 1, 1, 0, 1, 1, ALL, 0, _bool,     0, & settings.alignedLogFiles, "alignedLogFiles", nullptr, },
@@ -1491,15 +1486,14 @@ const RTK_Settings_Entry rtkSettingsEntries[] =
 //    i              a     e
 //    n  i           c     t
 //    W  n  u        e
-//    e  C  s     F  t     V  P       T
-//    b  o  e     a        2  o       o
-//    C  m  S     c  M        s       r
-//    o  m  u     e  o  T  L  t       c
-//    n  a  f     t  s  o  B  c  F    h
-//    f  n  f  E     a  r  a  a  l
-//    i  d  i  v  V  i  c  n  r  e    X
-//    g  s  x  k  2  c  h  d  d  x    2  Type       Qual                Variable                  Name              afterSetCmd
-
+//    e  C  s     F  t     V  P  F    T
+//    b  o  e     a        2  o  a    o
+//    C  m  S     c  M        s  c    r
+//    o  m  u     e  o  T  L  t  e    c
+//    n  a  f     t  s  o  B  c  t    h
+//    f  n  f  E     a  r  a  a        
+//    i  d  i  v  V  i  c  n  r  F    X
+//    g  s  x  k  2  c  h  d  d  P    2  Type       Qual                Variable                  Name              afterSetCmd
 
     // NTP (Ethernet Only)
     { 0, 0, 0, 1, 0, 0, 0, 0, 0, NON, 0, _bool,     0, & settings.debugNtp, "debugNtp", nullptr, },
@@ -1608,15 +1602,14 @@ const RTK_Settings_Entry rtkSettingsEntries[] =
 //    i              a     e
 //    n  i           c     t
 //    W  n  u        e
-//    e  C  s     F  t     V  P       T
-//    b  o  e     a        2  o       o
-//    C  m  S     c  M        s       r
-//    o  m  u     e  o  T  L  t       c
-//    n  a  f     t  s  o  B  c  F    h
-//    f  n  f  E     a  r  a  a  l
-//    i  d  i  v  V  i  c  n  r  e    X
-//    g  s  x  k  2  c  h  d  d  x    2  Type       Qual                Variable                  Name              afterSetCmd
-
+//    e  C  s     F  t     V  P  F    T
+//    b  o  e     a        2  o  a    o
+//    C  m  S     c  M        s  c    r
+//    o  m  u     e  o  T  L  t  e    c
+//    n  a  f     t  s  o  B  c  t    h
+//    f  n  f  E     a  r  a  a        
+//    i  d  i  v  V  i  c  n  r  F    X
+//    g  s  x  k  2  c  h  d  d  P    2  Type       Qual                Variable                  Name              afterSetCmd
 
     // Pulse Per Second
     { 1, 1, 0, 1, 1, 1, 0, 1, 0, NON, 0, _bool,     0, & settings.enableExternalPulse, "enableExternalPulse", nullptr, },
@@ -1643,15 +1636,14 @@ const RTK_Settings_Entry rtkSettingsEntries[] =
 //    i              a     e
 //    n  i           c     t
 //    W  n  u        e
-//    e  C  s     F  t     V  P       T
-//    b  o  e     a        2  o       o
-//    C  m  S     c  M        s       r
-//    o  m  u     e  o  T  L  t       c
-//    n  a  f     t  s  o  B  c  F    h
-//    f  n  f  E     a  r  a  a  l
-//    i  d  i  v  V  i  c  n  r  e    X
-//    g  s  x  k  2  c  h  d  d  x    2  Type       Qual                Variable                  Name              afterSetCmd
-
+//    e  C  s     F  t     V  P  F    T
+//    b  o  e     a        2  o  a    o
+//    C  m  S     c  M        s  c    r
+//    o  m  u     e  o  T  L  t  e    c
+//    n  a  f     t  s  o  B  c  t    h
+//    f  n  f  E     a  r  a  a        
+//    i  d  i  v  V  i  c  n  r  F    X
+//    g  s  x  k  2  c  h  d  d  P    2  Type       Qual                Variable                  Name              afterSetCmd
 
     // SD Card
     { 0, 0, 0, 1, 1, 1, 0, 1, 1, ALL, 0, _bool,     0, & settings.enablePrintBufferOverrun, "enablePrintBufferOverrun", nullptr, },
@@ -1673,15 +1665,14 @@ const RTK_Settings_Entry rtkSettingsEntries[] =
 //    i              a     e
 //    n  i           c     t
 //    W  n  u        e
-//    e  C  s     F  t     V  P       T
-//    b  o  e     a        2  o       o
-//    C  m  S     c  M        s       r
-//    o  m  u     e  o  T  L  t       c
-//    n  a  f     t  s  o  B  c  F    h
-//    f  n  f  E     a  r  a  a  l
-//    i  d  i  v  V  i  c  n  r  e    X
-//    g  s  x  k  2  c  h  d  d  x    2  Type       Qual                Variable                  Name              afterSetCmd
-
+//    e  C  s     F  t     V  P  F    T
+//    b  o  e     a        2  o  a    o
+//    C  m  S     c  M        s  c    r
+//    o  m  u     e  o  T  L  t  e    c
+//    n  a  f     t  s  o  B  c  t    h
+//    f  n  f  E     a  r  a  a        
+//    i  d  i  v  V  i  c  n  r  F    X
+//    g  s  x  k  2  c  h  d  d  P    2  Type       Qual                Variable                  Name              afterSetCmd
 
     // Setup Button
     { 0, 1, 0, 1, 1, 1, 1, 1, 1, ALL, 1, _bool,     0, & settings.disableSetupButton, "disableSetupButton", nullptr, },
@@ -1714,15 +1705,14 @@ const RTK_Settings_Entry rtkSettingsEntries[] =
 //    i              a     e
 //    n  i           c     t
 //    W  n  u        e
-//    e  C  s     F  t     V  P       T
-//    b  o  e     a        2  o       o
-//    C  m  S     c  M        s       r
-//    o  m  u     e  o  T  L  t       c
-//    n  a  f     t  s  o  B  c  F    h
-//    f  n  f  E     a  r  a  a  l
-//    i  d  i  v  V  i  c  n  r  e    X
-//    g  s  x  k  2  c  h  d  d  x    2  Type       Qual                Variable                  Name              afterSetCmd
-
+//    e  C  s     F  t     V  P  F    T
+//    b  o  e     a        2  o  a    o
+//    C  m  S     c  M        s  c    r
+//    o  m  u     e  o  T  L  t  e    c
+//    n  a  f     t  s  o  B  c  t    h
+//    f  n  f  E     a  r  a  a        
+//    i  d  i  v  V  i  c  n  r  F    X
+//    g  s  x  k  2  c  h  d  d  P    2  Type       Qual                Variable                  Name              afterSetCmd
 
     // ublox GNSS Receiver
 #ifdef COMPILE_ZED
@@ -1743,15 +1733,14 @@ const RTK_Settings_Entry rtkSettingsEntries[] =
 //    i              a     e
 //    n  i           c     t
 //    W  n  u        e
-//    e  C  s     F  t     V  P       T
-//    b  o  e     a        2  o       o
-//    C  m  S     c  M        s       r
-//    o  m  u     e  o  T  L  t       c
-//    n  a  f     t  s  o  B  c  F    h
-//    f  n  f  E     a  r  a  a  l
-//    i  d  i  v  V  i  c  n  r  e    X
-//    g  s  x  k  2  c  h  d  d  x    2  Type       Qual                Variable                  Name              afterSetCmd
-
+//    e  C  s     F  t     V  P  F    T
+//    b  o  e     a        2  o  a    o
+//    C  m  S     c  M        s  c    r
+//    o  m  u     e  o  T  L  t  e    c
+//    n  a  f     t  s  o  B  c  t    h
+//    f  n  f  E     a  r  a  a        
+//    i  d  i  v  V  i  c  n  r  F    X
+//    g  s  x  k  2  c  h  d  d  P    2  Type       Qual                Variable                  Name              afterSetCmd
     { 1, 1, 0, 0, 0, 0, 1, 0, 1, HAS, 1, _bool,     0, & settings.enableGalileoHas, "enableGalileoHas", nullptr, },
     { 1, 1, 0, 0, 0, 0, 1, 0, 0, ALL, 0, _bool,     3, & settings.enableMultipathMitigation, "enableMultipathMitigation", nullptr, },
     { 0, 0, 0, 0, 0, 0, 1, 0, 0, ALL, 0, _bool,     0, & settings.enableImuCompensationDebug, "enableImuCompensationDebug", nullptr, },
@@ -1799,15 +1788,14 @@ const RTK_Settings_Entry rtkSettingsEntries[] =
 //    i              a     e
 //    n  i           c     t
 //    W  n  u        e
-//    e  C  s     F  t     V  P       T
-//    b  o  e     a        2  o       o
-//    C  m  S     c  M        s       r
-//    o  m  u     e  o  T  L  t       c
-//    n  a  f     t  s  o  B  c  F    h
-//    f  n  f  E     a  r  a  a  l
-//    i  d  i  v  V  i  c  n  r  e    X
-//    g  s  x  k  2  c  h  d  d  x    2  Type       Qual                Variable                  Name              afterSetCmd
-
+//    e  C  s     F  t     V  P  F    T
+//    b  o  e     a        2  o  a    o
+//    C  m  S     c  M        s  c    r
+//    o  m  u     e  o  T  L  t  e    c
+//    n  a  f     t  s  o  B  c  t    h
+//    f  n  f  E     a  r  a  a        
+//    i  d  i  v  V  i  c  n  r  F    X
+//    g  s  x  k  2  c  h  d  d  P    2  Type       Qual                Variable                  Name              afterSetCmd
 #ifdef  COMPILE_LG290P
     { 1, 1, 1, 0, 0, 0, 0, 0, 1, L29, 1, tLgConst,  MAX_LG290P_CONSTELLATIONS, & settings.lg290pConstellations, "constellation_", gnssCmdUpdateConstellations, },
     { 0, 1, 1, 0, 0, 0, 0, 0, 1, L29, 1, tLgMRNmea, MAX_LG290P_NMEA_MSG, & settings.lg290pMessageRatesNMEA, "messageRateNMEA_", gnssCmdUpdateMessageRates, },
@@ -1832,15 +1820,14 @@ const RTK_Settings_Entry rtkSettingsEntries[] =
 //    i              a     e
 //    n  i           c     t
 //    W  n  u        e
-//    e  C  s     F  t     V  P       T
-//    b  o  e     a        2  o       o
-//    C  m  S     c  M        s       r
-//    o  m  u     e  o  T  L  t       c
-//    n  a  f     t  s  o  B  c  F    h
-//    f  n  f  E     a  r  a  a  l
-//    i  d  i  v  V  i  c  n  r  e    X
-//    g  s  x  k  2  c  h  d  d  x    2  Type       Qual                Variable                  Name              afterSetCmd
-
+//    e  C  s     F  t     V  P  F    T
+//    b  o  e     a        2  o  a    o
+//    C  m  S     c  M        s  c    r
+//    o  m  u     e  o  T  L  t  e    c
+//    n  a  f     t  s  o  B  c  t    h
+//    f  n  f  E     a  r  a  a        
+//    i  d  i  v  V  i  c  n  r  F    X
+//    g  s  x  k  2  c  h  d  d  P    2  Type       Qual                Variable                  Name              afterSetCmd
     /*
     { 1, 1, 0, 1, 1, 1, 1, 1, 1, ALL, 1,     0, & settings., ""},
     */
@@ -1902,7 +1889,7 @@ struct struct_present
     bool antennaShortOpen = false;
 
     bool button_mode = false; // EVK has a dedicated Mode button but no power
-    bool button_function = false; // Flex has both power and Function buttons
+    bool button_function = false; // Facet FP has both power and Function buttons
     bool button_powerHigh = false; // Button is pressed when high
     bool button_powerLow = false; // Button is pressed when low
     bool gpioExpanderButtons = false; // Available on Portability shield
@@ -1917,8 +1904,8 @@ struct struct_present
     bool minCN0 = false; // ZED, mosaic, UM980 have minCN0. LG290P does on version >= v5.
     bool minElevation = false; // ZED, mosaic, UM980 have minElevation. LG290P does on versions >= v5.
     bool dynamicModel = false; // ZED, mosaic, UM980 have dynamic models. LG290P does not.
-    bool gpioExpanderSwitches = false; // Used on Flex
-    bool tiltPossible = false; //Flex may have a tilt IMU
+    bool gpioExpanderSwitches = false; // Used on Facet FP
+    bool tiltPossible = false; //Facet FP may have a tilt IMU
     bool loraDedicatedUart = false; // Platforms may have a dedicated or shared UART interface to the LoRa radio
 
     const char *gnssUpdatePort = ""; // "CH342 Channel A" etc.

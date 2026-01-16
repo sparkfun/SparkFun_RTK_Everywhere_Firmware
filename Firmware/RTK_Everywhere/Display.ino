@@ -154,7 +154,7 @@ void beginDisplay(TwoWire *i2cBus)
     {
         i2cAddress = kOLEDMicroDefaultAddress;
 
-        if (productVariant == RTK_FLEX)
+        if (productVariant == RTK_FACET_FP)
             i2cAddress = 0x3C;
 
         if (oled == nullptr)

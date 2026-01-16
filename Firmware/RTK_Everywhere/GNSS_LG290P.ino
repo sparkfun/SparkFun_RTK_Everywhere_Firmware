@@ -673,9 +673,9 @@ uint32_t GNSS_LG290P::getDataBaudRate()
         // This is nicknamed the DATA port
         dataUart = 1;
     }
-    else if (productVariant == RTK_FLEX)
+    else if (productVariant == RTK_FACET_FP)
     {
-        // On the Flex, the DATA connector is not connected to the GNSS
+        // On the Facet FP, the DATA connector is not connected to the GNSS
         // Return 0.
         return (0);
     }
@@ -710,9 +710,9 @@ bool GNSS_LG290P::setBaudRateData(uint32_t baud)
                 // This is nicknamed the DATA port
                 return (setBaudRate(1, baud));
             }
-            else if (productVariant == RTK_FLEX)
+            else if (productVariant == RTK_FACET_FP)
             {
-                // On the Flex, the DATA connector is not connected to the GNSS
+                // On the Facet FP, the DATA connector is not connected to the GNSS
                 // Return true so that configuration can proceed.
                 return (true);
             }
@@ -740,7 +740,7 @@ uint32_t GNSS_LG290P::getRadioBaudRate()
         // UART3 of the LG290P is connected to the locking JST connector labled RADIO
         radioUart = 3;
     }
-    else if (productVariant == RTK_FLEX)
+    else if (productVariant == RTK_FACET_FP)
     {
         // UART2 of the LG290P is connected to SW4, which is connected to LoRa UART0
         radioUart = 2;
@@ -776,7 +776,7 @@ bool GNSS_LG290P::setBaudRateRadio(uint32_t baud)
                 // UART3 of the LG290P is connected to the locking JST connector labled RADIO
                 radioUart = 3;
             }
-            else if (productVariant == RTK_FLEX)
+            else if (productVariant == RTK_FACET_FP)
             {
                 // UART2 of the LG290P is connected to SW4, which is connected to LoRa UART0
                 radioUart = 2;
@@ -1802,7 +1802,7 @@ bool GNSS_LG290P::setBaudRateComm(uint32_t baud)
                 // UART2 of the LG290P is connected to the ESP32 for the main config/comm
                 commUart = 2;
             }
-            else if (productVariant == RTK_FLEX)
+            else if (productVariant == RTK_FACET_FP)
             {
                 // UART1 of the LG290P is connected to the ESP32 for the main config/comm
                 commUart = 1;
@@ -1827,9 +1827,9 @@ uint32_t GNSS_LG290P::getCommBaudRate()
         // On the Postcard, the ESP32 UART1 is connected to LG290P UART2
         commUart = 2;
     }
-    else if (productVariant == RTK_FLEX)
+    else if (productVariant == RTK_FACET_FP)
     {
-        // On the Flex, the ESP32 UART1 is connected to LG290P UART1
+        // On the Facet FP, the ESP32 UART1 is connected to LG290P UART1
         commUart = 1;
     }
     else
@@ -2058,7 +2058,7 @@ bool GNSS_LG290P::setMessagesNMEA()
         }
     }
 
-    // If this is Flex, we may need to enable NMEA for Tilt IMU
+    // If this is Facet FP, we may need to enable NMEA for Tilt IMU
     if (present.tiltPossible == true)
     {
         if (present.imu_im19 == true && settings.enableTiltCompensation == true)
@@ -2955,7 +2955,7 @@ bool lg290pGetSettingValue(RTK_Settings_Types type,
 
 //----------------------------------------
 // Return true if we detect this receiver type
-bool lg290pIsPresentOnFlex()
+bool lg290pIsPresentOnFacetFP()
 {
     // Locally instantiate the hardware and library so it will release on exit
 

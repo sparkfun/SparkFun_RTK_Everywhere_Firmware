@@ -212,7 +212,7 @@ void beepOn()
     {
         if (productVariant == RTK_TORCH || productVariant == RTK_TORCH_X2)
             digitalWrite(pin_beeper, HIGH);
-        else if (productVariant == RTK_FLEX)
+        else if (productVariant == RTK_FACET_FP)
             tone(pin_beeper, 523); // NOTE_C5
     }
 }
@@ -224,7 +224,7 @@ void beepOff()
     {
         if (productVariant == RTK_TORCH || productVariant == RTK_TORCH_X2)
             digitalWrite(pin_beeper, LOW);
-        else if (productVariant == RTK_FLEX)
+        else if (productVariant == RTK_FACET_FP)
             noTone(pin_beeper);
     }
 }
@@ -1036,7 +1036,7 @@ void getMacAddresses(uint8_t *macAddress, const char *name, esp_mac_type_t type,
                      macAddress[3], macAddress[4], macAddress[5], name);
 }
 
-// Start the I2C GPIO expander responsible for switches (generally the RTK Flex)
+// Start the I2C GPIO expander responsible for switches (generally the RTK Facet FP)
 void beginGpioExpanderSwitches()
 {
     if (present.gpioExpanderSwitches)
@@ -1044,7 +1044,7 @@ void beginGpioExpanderSwitches()
         if (gpioExpanderSwitches == nullptr)
             gpioExpanderSwitches = new SFE_PCA95XX(PCA95XX_PCA9534);
 
-        // In Flex, the GPIO Expander has been assigned address 0x21
+        // In Facet FP, the GPIO Expander has been assigned address 0x21
         if (gpioExpanderSwitches->begin(0x21, *i2c_0) == false)
         {
             systemPrintln("GPIO expander for switches not detected");
@@ -1127,17 +1127,17 @@ bool gpioExpanderDetectGnss()
                 i2c_0->setClock(100000);
 
             // Read the Reset pin every 100ms for 1s. If any one read is high, GNSS is present
-            bool flexGnssDetected = false;
+            bool flexModuleDetected = false;
             unsigned long startTime = millis();
             for (unsigned long timeStep = 100; timeStep <= 1000; timeStep += 100)
             {
                 while ((millis() - startTime) < timeStep)
                     delay(10);
-                flexGnssDetected |= (gpioExpanderSwitches->digitalRead(gpioExpanderSwitch_GNSS_Reset) == 1);
+                flexModuleDetected |= (gpioExpanderSwitches->digitalRead(gpioExpanderSwitch_GNSS_Reset) == 1);
                 if (settings.debugGnss)
                     systemPrintf("GNSS detection: GNSS %sdetected after %ldms\r\n",
-                        flexGnssDetected ? "" : "not ", timeStep );
-                if (flexGnssDetected)
+                        flexModuleDetected ? "" : "not ", timeStep );
+                if (flexModuleDetected)
                     break;
             }
 
@@ -1145,13 +1145,13 @@ bool gpioExpanderDetectGnss()
             gpioExpanderSwitches->digitalWrite(gpioExpanderSwitch_GNSS_Reset, HIGH);
             gpioExpanderSwitches->pinMode(gpioExpanderSwitch_GNSS_Reset, OUTPUT);
 
-            return (flexGnssDetected);
+            return (flexModuleDetected);
         }
     }
     return (true); // Default to true so gnssDetectReceiverType() will continue with detection
 }
 
-// The IMU is on UART3 of the Flex module connected to switch 3
+// The IMU is on UART3 of the Facet FP module connected to switch 3
 void gpioExpanderSelectImu()
 {
     if (online.gpioExpanderSwitches == true)
@@ -1165,14 +1165,14 @@ void gpioExpanderSelectLoraConfigure()
         gpioExpanderSwitches->digitalWrite(gpioExpanderSwitch_S3, HIGH);
 }
 
-// Connect Flex GNSS receiver UART2 to LoRa UART0 for normal TX/RX of corrections and data
+// Connect Facet FP GNSS receiver UART2 to LoRa UART0 for normal TX/RX of corrections and data
 void gpioExpanderSelectLoraCommunication()
 {
     if (online.gpioExpanderSwitches == true)
         gpioExpanderSwitches->digitalWrite(gpioExpanderSwitch_S4, HIGH);
 }
 
-// Connect Flex GNSS UART2 to 4-pin JST RADIO port
+// Connect Facet FP GNSS UART2 to 4-pin JST RADIO port
 void gpioExpanderSelectRadioPort()
 {
     if (online.gpioExpanderSwitches == true)

@@ -250,7 +250,7 @@ int pin_mux2 = PIN_UNDEFINED;
 int pin_mux3 = PIN_UNDEFINED;
 int pin_mux4 = PIN_UNDEFINED;
 
-int pin_modeButton = PIN_UNDEFINED;           // Mode button on EVK, Function button on Flex
+int pin_modeButton = PIN_UNDEFINED;           // Mode button on EVK, Function button on Facet FP
 int pin_powerButton = PIN_UNDEFINED;          // Power and general purpose button on Torch, Facet
 int pin_powerFastOff = PIN_UNDEFINED;         // Output on Facet
 int pin_muxDAC = PIN_UNDEFINED;
@@ -1391,11 +1391,11 @@ void setup()
 
     DMW_b("um980FirmwareCheckUpdate");
     if (um980FirmwareCheckUpdate() == true) // UM980 needs special treatment
-        um980FirmwareBeginUpdate(); // Needs Flex GNSS, I2C, GPIO Expander Switches, display, buttons, etc.
+        um980FirmwareBeginUpdate(); // Needs Facet FP GNSS, I2C, GPIO Expander Switches, display, buttons, etc.
 
     DMW_b("gnssFirmwareCheckUpdate");
     if (gnssFirmwareCheckUpdate() == true) // Check if updateGnssFirmware.txt exists
-        gnssFirmwareBeginUpdate(); // Needs Flex GNSS, I2C, GPIO Expander Switches, display, buttons, etc.
+        gnssFirmwareBeginUpdate(); // Needs Facet FP GNSS, I2C, GPIO Expander Switches, display, buttons, etc.
 
     DMW_b("commandIndexFillActual");
     commandIndexFillActual(); // Shrink the commandIndex table now we're certain what GNSS we have
