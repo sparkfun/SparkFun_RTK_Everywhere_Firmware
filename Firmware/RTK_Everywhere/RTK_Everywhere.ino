@@ -377,7 +377,8 @@ void beginSPI(bool force = false); // Header
 
 SdFat *sd;
 
-#define platformFilePrefix platformFilePrefixTable[productVariant] // Sets the prefix for logs and settings files
+#define productVariantProperties getProductPropertiesFromVariant(productVariant)
+#define platformFilePrefix getProductPropertiesFromVariant(productVariant)->filePrefix // Sets the prefix for logs and settings files
 
 SdFile *logFile;                  // File that all GNSS messages sentences are written to
 unsigned long lastUBXLogSyncTime; // Used to record to SD every half second
@@ -617,7 +618,7 @@ volatile bool forwardGnssDataToUsbSerial;
 // entered then no changes are made and the +++ sequence must be re-entered.
 #define PLUS_PLUS_PLUS_TIMEOUT (2 * 1000) // Milliseconds
 
-#define platformPrefix platformPrefixTable[productVariant].name // Sets the prefix for broadcast names
+#define platformPrefix getProductPropertiesFromVariant(productVariant)->name // Sets the prefix for broadcast names
 
 HardwareSerial *serialGNSS = nullptr;  // Don't instantiate until we know what gnssPlatform we're on
 HardwareSerial *serial2GNSS = nullptr; // Don't instantiate until we know what gnssPlatform we're on

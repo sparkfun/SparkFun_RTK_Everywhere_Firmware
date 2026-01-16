@@ -29,9 +29,8 @@ void menuMain()
         systemPrintln();
         char versionString[21];
         firmwareVersionGet(versionString, sizeof(versionString), true);
-        RTKBrandAttribute *brandAttributes = getBrandAttributeFromBrand(present.brand);
-        systemPrintf("%s %s%s %s\r\n", brandAttributes->name,
-            platformPrefixTable[productVariant].rtkPrefix ? "RTK " : "",
+        systemPrintf("%s %s%s %s\r\n", getBrandAttributeFromProductVariant(productVariant)->name,
+            productVariantProperties->rtkPrefix ? "RTK " : "",
             platformPrefix, versionString);
         systemPrintf("Mode: %s\r\n", stateToRtkMode(systemState));
 

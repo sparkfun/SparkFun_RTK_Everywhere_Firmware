@@ -54,7 +54,7 @@ void beginAuthCoPro(TwoWire *i2cBus)
     appleAccessory->setBluetoothTransportName(BTTransportName);
     appleAccessory->setBluetoothMacAddress(btMACAddress);
     appleAccessory->setLocationInfoComponentName(LIComponentName);
-    appleAccessory->setProductPlanUID(platformPrefixTable[productVariant].productPlanUID);
+    appleAccessory->setProductPlanUID(productVariantProperties->productPlanUID);
 
     // Pass the pointers for the latest NMEA data into the Accessory driver
     latestGPGGA = (char *)rtkMalloc(latestNmeaMaxLen, "AuthCoPro");
