@@ -377,7 +377,8 @@ void beginSPI(bool force = false); // Header
 
 SdFat *sd;
 
-#define platformFilePrefix platformFilePrefixTable[productVariant] // Sets the prefix for logs and settings files
+#define productVariantProperties getProductPropertiesFromVariant(productVariant)
+#define platformFilePrefix getProductPropertiesFromVariant(productVariant)->filePrefix // Sets the prefix for logs and settings files
 
 SdFile *logFile;                  // File that all GNSS messages sentences are written to
 unsigned long lastUBXLogSyncTime; // Used to record to SD every half second
@@ -617,7 +618,7 @@ volatile bool forwardGnssDataToUsbSerial;
 // entered then no changes are made and the +++ sequence must be re-entered.
 #define PLUS_PLUS_PLUS_TIMEOUT (2 * 1000) // Milliseconds
 
-#define platformPrefix platformPrefixTable[productVariant] // Sets the prefix for broadcast names
+#define platformPrefix getProductPropertiesFromVariant(productVariant)->name // Sets the prefix for broadcast names
 
 HardwareSerial *serialGNSS = nullptr;  // Don't instantiate until we know what gnssPlatform we're on
 HardwareSerial *serial2GNSS = nullptr; // Don't instantiate until we know what gnssPlatform we're on
@@ -869,8 +870,9 @@ char *latestEASessionData;
 uint8_t wifiMACAddress[6];     // Display this address in the system menu
 uint8_t btMACAddress[6];       // Display this address when Bluetooth is enabled, otherwise display wifiMACAddress
 uint8_t ethernetMACAddress[6]; // Display this address when Ethernet is enabled, otherwise display wifiMACAddress
-char deviceName[40];           // The serial string that is broadcast. E.g.: 'SparkFun Postcard-ABCD'
-char serialNumber[5];          // The serial number for MFi. Ex: 'BC61'
+char deviceName[40];           // The serial string that is broadcast. E.g.: 'SparkPNT Facet FP-ABCD06'
+char accessoryName[40];        // The IdentificationInformation Name for MFi. E.g.: 'SparkPNT Facet FP'
+char serialNumber[7];          // The serial number for MFi. Two MAC octets plus productVariant. Ex: 'ABCD06'
 char deviceFirmware[9];        // The firmware version for MFi. Ex: 'v2.2'
 const uint16_t menuTimeout = 60 * 10; // Menus will exit/timeout after this number of seconds
 int systemTime_minutes;               // Used to test if logging is less than max minutes
@@ -1414,6 +1416,9 @@ void setup()
 
     DMW_b("tiltDetect");
     tiltDetect(); // If we don't know if there is a tilt compensation sensor, auto-detect it. Uses settings.
+
+    DMW_b("assembleDeviceName");
+    assembleDeviceName(); // Assemble the BT broadcast deviceName
 
     // DEBUG_NEARLY_EVERYTHING // Debug nearly all the things
     // DEBUG_THE_ESSENTIALS // Debug the essentials - handy for measuring the boot time after a factory reset

@@ -1,16 +1,9 @@
 #ifdef COMPILE_AUTHENTICATION
 
-const char *accessoryName = "SparkPNT RTK Flex";
 const char *manufacturer = "SparkFun Electronics";
 const char *hardwareVersion = "1.0.0";
 const char *BTTransportName = "Bluetooth";
 const char *LIComponentName = "com.sparkfun.li";
-
-// The Product Plan UID is a 16 character unique identifier for the product plan associated with the
-// accessory. The value is available in the product plan header in the MFi Portal and is different from the
-// Product Plan ID. Click on the blue "information" icon to the right of your blue MFi Account number on
-// the top-left of a Product Plan form.
-const char *productPlanUID = "e9e877bb278140f0";
 
 const int rfcommChanneliAP2 = 2; // Use RFCOMM channel 2 for iAP2
 
@@ -51,7 +44,7 @@ void beginAuthCoPro(TwoWire *i2cBus)
         appleAccessory->enableDebug(&Serial); // Enable debug prints to Serial
 
     // Pass Identity Information, Protocols and Names into the accessory driver
-    appleAccessory->setAccessoryName(accessoryName);
+    appleAccessory->setAccessoryName((const char *)accessoryName);
     appleAccessory->setModelIdentifier(platformPrefix);
     appleAccessory->setManufacturer(manufacturer);
     appleAccessory->setSerialNumber(serialNumber);
@@ -61,7 +54,7 @@ void beginAuthCoPro(TwoWire *i2cBus)
     appleAccessory->setBluetoothTransportName(BTTransportName);
     appleAccessory->setBluetoothMacAddress(btMACAddress);
     appleAccessory->setLocationInfoComponentName(LIComponentName);
-    appleAccessory->setProductPlanUID(productPlanUID);
+    appleAccessory->setProductPlanUID(productVariantProperties->productPlanUID);
 
     // Pass the pointers for the latest NMEA data into the Accessory driver
     latestGPGGA = (char *)rtkMalloc(latestNmeaMaxLen, "AuthCoPro");

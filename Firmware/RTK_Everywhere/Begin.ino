@@ -72,7 +72,6 @@ void identifyBoard()
     getMacAddresses(wifiMACAddress, "wifiMACAddress", ESP_MAC_WIFI_STA, true);
     getMacAddresses(btMACAddress, "btMACAddress", ESP_MAC_BT, true);
     getMacAddresses(ethernetMACAddress, "ethernetMACAddress", ESP_MAC_ETH, true);
-    snprintf(serialNumber, sizeof(serialNumber), "%02X%02X", btMACAddress[4], btMACAddress[5]);
 
     // First, test for devices that do not have ID resistors
     if (productVariant == RTK_UNKNOWN)
@@ -124,7 +123,7 @@ void identifyBoard()
     }
 
     if (ENABLE_DEVELOPER)
-        systemPrintf("Identified variant: %s\r\n", productDisplayNames[productVariant]);
+        systemPrintf("Identified variant: %s\r\n", platformPrefix);
 }
 
 // Turn on power for the display before beginDisplay
@@ -176,7 +175,6 @@ void beginBoard()
         systemPrintln("<<<<<<<<<< !!!!!!!!!! UM980 NOT COMPILED !!!!!!!!!! >>>>>>>>>>");
 #endif // COMPILE_UM980
 
-        present.brand = BRAND_SPARKFUN;
         present.psram_2mb = true;
         present.gnss_um980 = true;
         present.antennaPhaseCenter_mm = 116.5; // Default to Torch helical APC, average of L1/L2
@@ -283,8 +281,6 @@ void beginBoard()
         gnss = (GNSS *)new GNSS_None();
         systemPrintln("<<<<<<<<<< !!!!!!!!!! ZED NOT COMPILED !!!!!!!!!! >>>>>>>>>>");
 #endif // COMPILE_ZED
-
-        present.brand = BRAND_SPARKFUN;
 
         // Pin defs etc. for EVK v1.1
         present.psram_4mb = true;
@@ -419,7 +415,6 @@ void beginBoard()
         systemPrintln("<<<<<<<<<< !!!!!!!!!! ZED NOT COMPILED !!!!!!!!!! >>>>>>>>>>");
 #endif // COMPILE_ZED
 
-        present.brand = BRAND_SPARKPNT;
         present.psram_4mb = true;
         present.gnss_zedf9p = true;
         present.antennaPhaseCenter_mm = 68.5; // Default to L-Band element APC, average of L1/L2
@@ -502,7 +497,6 @@ void beginBoard()
         systemPrintln("<<<<<<<<<< !!!!!!!!!! ZED NOT COMPILED !!!!!!!!!! >>>>>>>>>>");
 #endif // COMPILE_ZED
 
-        present.brand = BRAND_SPARKPNT;
         present.psram_4mb = true;
         present.gnss_zedf9p = true;
         present.antennaPhaseCenter_mm = 69.6; // Default to NGS certified RTK Facet element APC, average of L1/L2
@@ -599,7 +593,6 @@ void beginBoard()
         systemPrintln("<<<<<<<<<< !!!!!!!!!! MOSAICX5 NOT COMPILED !!!!!!!!!! >>>>>>>>>>");
 #endif // COMPILE_MOSAICX5
 
-        present.brand = BRAND_SPARKPNT;
         present.psram_4mb = true;
         present.gnss_mosaicX5 = true;
         present.antennaPhaseCenter_mm = 68.5; // Default to L-Band element APC, average of L1/L2
@@ -672,7 +665,6 @@ void beginBoard()
         systemPrintln("<<<<<<<<<< !!!!!!!!!! LG290P NOT COMPILED !!!!!!!!!! >>>>>>>>>>");
 #endif // COMPILE_LGP290P
 
-        present.brand = BRAND_SPARKFUN;
         present.psram_2mb = true;
         present.gnss_lg290p = true;
         present.antennaPhaseCenter_mm = 37.5; // APC of SPK-6E helical L1/L2/L5 antenna
@@ -735,7 +727,6 @@ void beginBoard()
 
     else if (productVariant == RTK_FLEX)
     {
-        present.brand = BRAND_SPARKPNT;
         present.psram_2mb = true;
 
         present.antennaPhaseCenter_mm = 62.0; // APC from drawings
@@ -834,7 +825,6 @@ void beginBoard()
         systemPrintln("<<<<<<<<<< !!!!!!!!!! LG290P NOT COMPILED !!!!!!!!!! >>>>>>>>>>");
 #endif // COMPILE_UM980
 
-        present.brand = BRAND_SPARKPNT;
         present.psram_2mb = true;
         present.gnss_lg290p = true;
         present.antennaPhaseCenter_mm = 116.5; // Default to Torch helical APC, average of L1/L2
@@ -921,8 +911,10 @@ void beginVersion()
     firmwareVersionGet(versionString, sizeof(versionString), true);
 
     char title[50];
-    RTKBrandAttribute *brandAttributes = getBrandAttributeFromBrand(present.brand);
-    snprintf(title, sizeof(title), "%s RTK %s %s", brandAttributes->name, platformPrefix, versionString);
+    snprintf(title, sizeof(title), "%s %s%s %s",
+        getBrandAttributeFromProductVariant(productVariant)->name,
+        productVariantProperties->rtkPrefix ? "RTK " : "",
+        platformPrefix, versionString);
     for (int i = 0; i < strlen(title); i++)
         systemPrint("=");
     systemPrintln();
@@ -1593,7 +1585,7 @@ void beginSystemState()
     // Set the default previous state
     if (settings.lastState == STATE_NOT_SET) // Default
     {
-        systemState = platformPreviousStateTable[productVariant];
+        systemState = productVariantProperties->defaultSystemState;
         settings.lastState = systemState;
     }
 

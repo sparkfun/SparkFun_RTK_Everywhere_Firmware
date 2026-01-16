@@ -713,19 +713,9 @@ void checkArrayDefaults()
 // Verify table sizes match enum definitions
 void verifyTables()
 {
-    // Verify the product name table
-    if (productDisplayNamesEntries != (RTK_UNKNOWN + 1))
-        reportFatalError("Fix productDisplayNames to match ProductVariant");
-    if (platformFilePrefixTableEntries != (RTK_UNKNOWN + 1))
-        reportFatalError("Fix platformFilePrefixTable to match ProductVariant");
-    if (platformPrefixTableEntries != (RTK_UNKNOWN + 1))
-        reportFatalError("Fix platformPrefixTable to match ProductVariant");
-    if (platformPreviousStateTableEntries != (RTK_UNKNOWN + 1))
-        reportFatalError("Fix platformPreviousStateTable to match ProductVariant");
-    if (platformProvisionTableEntries != (RTK_UNKNOWN + 1))
-        reportFatalError("Fix platformProvisionTable to match ProductVariant");
-    if (platformRegistrationPageTableEntries != (RTK_UNKNOWN + 1))
-        reportFatalError("Fix platformRegistrationPageTable to match ProductVariant");
+    // Verify the product properties table
+    if (productPropertiesEntries != (RTK_UNKNOWN + 1))
+        reportFatalError("Fix productPropertiesTable to match ProductVariant");
 
     // Verify the measurement scales
     if (measurementScaleEntries != MEASUREMENT_UNITS_MAX)
@@ -1216,3 +1206,46 @@ const char *configPppSpacesToCommas(const char *config)
             commas[i] = ',';
     return (const char *)commas;
 }
+
+void assembleDeviceName()
+{
+    RTKBrandAttribute *brandAttributes = getBrandAttributeFromProductVariant(productVariant);
+
+    snprintf(deviceName, sizeof(deviceName), "%s %s-%02X%02X%02d", brandAttributes->name, platformPrefix, btMACAddress[4],
+                btMACAddress[5], productVariant);
+
+    if (strlen(deviceName) > 28) // "SparkPNT Facet v2 LB-ABCD04" is 27 chars. We are just OK
+    {
+        // BLE will fail quietly if broadcast name is more than 28 characters
+        systemPrintf(
+            "ERROR! The Bluetooth device name \"%s\" is %d characters long. It will not work in BLE mode.\r\n",
+            deviceName, strlen(deviceName));
+        reportFatalError("Bluetooth device name is longer than 28 characters.");
+    }
+
+    snprintf(accessoryName, sizeof(accessoryName), "%s %s", brandAttributes->name, platformPrefix);
+
+    snprintf(serialNumber, sizeof(serialNumber), "%02X%02X%02d", btMACAddress[4], btMACAddress[5], productVariant);
+}
+
+const productProperties * getProductPropertiesFromVariant(ProductVariant variant) {
+    for (int i = 0; i < (int)RTK_UNKNOWN; i++) {
+        if (productPropertiesTable[i].productVariant == variant)
+            return &productPropertiesTable[i];
+    }
+    return getProductPropertiesFromVariant(RTK_UNKNOWN);
+}
+
+RTKBrandAttribute * getBrandAttributeFromBrand(RTKBrands_e brand) {
+    for (int i = 0; i < (int)RTKBrands_e::BRAND_NUM; i++) {
+        if (RTKBrandAttributes[i].brand == brand)
+            return &RTKBrandAttributes[i];
+    }
+    return getBrandAttributeFromBrand(DEFAULT_BRAND);
+}
+
+RTKBrandAttribute * getBrandAttributeFromProductVariant(ProductVariant variant) {
+    const productProperties * properties = getProductPropertiesFromVariant(variant);
+    return getBrandAttributeFromBrand(properties->brand);
+}
+

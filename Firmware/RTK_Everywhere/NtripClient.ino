@@ -864,7 +864,7 @@ void ntripClientUpdate()
                                  "Please contact "
                                  "support@sparkfun.com or goto %s to renew the PointPerfect "
                                  "subscription. Please reference device ID: %s\r\n",
-                                 platformRegistrationPageTable[productVariant], printDeviceId());
+                                 productVariantProperties->platformRegistration, printDeviceId());
                 }
                 else
                 {

@@ -993,7 +993,8 @@ void createZtpRequest(String &str)
     // Build the givenName:   Name vxx.yy - deviceID
     char givenName[100];
     memset(givenName, 0, sizeof(givenName));
-    snprintf(givenName, sizeof(givenName), "%s %s - %s", platformProvisionTable[productVariant], versionString,
+    snprintf(givenName, sizeof(givenName), "%s %s - %s",
+             productVariantProperties->platformProvision, versionString,
              printDeviceId());
     if (strlen(givenName) >= 50)
     {
@@ -1551,7 +1552,7 @@ void provisioningUpdate()
             systemPrintf("This device has been deactivated. Please contact "
                          "support@sparkfun.com or goto %s to renew the PointPerfect "
                          "subscription. Please reference device ID: %s\r\n",
-                         platformRegistrationPageTable[productVariant], printDeviceId());
+                         productVariantProperties->platformRegistration, printDeviceId());
 
             httpClientModeNeeded = false; // Tell HTTP_Client to give up.
             displayAccountExpired(5 * MILLISECONDS_IN_A_SECOND);
@@ -1563,7 +1564,7 @@ void provisioningUpdate()
             systemPrintf("This device is not whitelisted. Please contact "
                          "support@sparkfun.com or goto %s to get the subscription "
                          "activated. Please reference device ID: %s\r\n",
-                         platformRegistrationPageTable[productVariant], printDeviceId());
+                         productVariantProperties->platformRegistration, printDeviceId());
 
             httpClientModeNeeded = false; // Tell HTTP_Client to give up.
             displayNotListed(5 * MILLISECONDS_IN_A_SECOND);

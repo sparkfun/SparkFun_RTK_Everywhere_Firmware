@@ -158,7 +158,38 @@ const uint8_t rtkModeNameEntries = sizeof(rtkModeName) / sizeof(rtkModeName[0]);
 #define EQ_RTK_MODE(mode)       (rtkMode && (rtkMode == (mode & rtkMode)))
 #define NEQ_RTK_MODE(mode)      ((rtkMode == 0) || ((mode & rtkMode) == 0))
 
-//Used as part of device ID and whitelists. Do not reorder.
+// Branding support
+typedef enum {
+    BRAND_SPARKFUN = 0,
+    BRAND_SPARKPNT,
+    // Add new brands above this line
+    BRAND_NUM
+} RTKBrands_e;
+
+const RTKBrands_e DEFAULT_BRAND = BRAND_SPARKFUN;
+
+typedef struct
+{
+    const RTKBrands_e brand;
+    const char name[9];
+    const uint8_t logoWidth;
+    const uint8_t logoHeight;
+    const uint8_t * const logoPointer;
+} RTKBrandAttribute;
+
+extern const uint8_t logoSparkFun_Height;
+extern const uint8_t logoSparkFun_Width;
+extern const uint8_t logoSparkFun[];
+extern const uint8_t logoSparkPNT_Height;
+extern const uint8_t logoSparkPNT_Width;
+extern const uint8_t logoSparkPNT[];
+
+RTKBrandAttribute RTKBrandAttributes[RTKBrands_e::BRAND_NUM] = {
+    { BRAND_SPARKFUN, "SparkFun", logoSparkFun_Width, logoSparkFun_Height, logoSparkFun },
+    { BRAND_SPARKPNT, "SparkPNT", logoSparkPNT_Width, logoSparkPNT_Height, logoSparkPNT },
+};
+
+// Product Variant used as part of device ID and whitelists. Do not reorder.
 typedef enum
 {
     RTK_EVK = 0, // 0x00
@@ -174,81 +205,51 @@ typedef enum
 } ProductVariant;
 ProductVariant productVariant = RTK_UNKNOWN;
 
-const char * const productDisplayNames[] =
+// Product Properties Table
+// ========================
+// name is used to create the BT broadcast deviceName
+// It is formed from: the brand, the name, the 6-character serial number (two MAC octets plus productVariant)
+// Limit name to 12 chars max - to keep the total broadcast length to 28 chars or less
+// E.g.: "SparkPNT Facet v2 LB-ABCD04" is 27 chars
+// SparkPNT Facet FP-ABCD06
+// SparkPNT Torch X2-ABCD07
+// name is also used to create the title for the menus etc.. Include "RTK" if rtkPrefix is true
+// displayName is displayed on the OLED. Keep short - and adjust to match the width of the OLED
+// filePrefix is the settings and log file prefix
+// platformProvision is assembled into the PointPerfect ZTP request (largely deprecated)
+// If rtkPrefix is true, "RTK" is included before the name: on the OLED, in the serial menus, etc.
+// productPlanUID is a 16 character unique identifier for the product plan associated with the MFi accessory
+// defaultSystemState is the default system state - if the actual previous state is unknown
+// platformRegistration is the web page for product registration
+typedef struct
 {
-    // Keep short - these are displayed on the OLED
-    "EVK",
-    "Facet v2",
-    "Facet X5",
-    "Torch",
-    "Facet LB",
-    "Postcard",
-    "Flex",
-    "Torch X2",
-    // Add new values just above this line
-    "Unknown"
-};
-const int productDisplayNamesEntries = sizeof(productDisplayNames) / sizeof(productDisplayNames[0]);
+    ProductVariant productVariant;
+    const RTKBrands_e brand;
+    const char *name;
+    const char *displayName;
+    const char *filePrefix;
+    const char *platformProvision;
+    const bool rtkPrefix;
+    const char *productPlanUID;
+    const SystemState defaultSystemState;
+    const char *platformRegistration;
+} productProperties;
 
-const char * const platformFilePrefixTable[] =
+const productProperties productPropertiesTable[] =
 {
-    "SFE_EVK",
-    "SFE_Facet_v2",
-    "SFE_Facet_mosaic",
-    "SFE_Torch",
-    "SFE_Facet_v2_LBand",
-    "SFE_Postcard",
-    "SFE_Flex",
-    "SFE_Torch_X2",
-    // Add new values just above this line
-    "SFE_Unknown"
+    //productVariant        brand           name            displayName filePrefix              platformProvision   rtkPfx  productPlanUID      defaultSystemState          platformRegistration
+    //==============        =====           ====            =========== ==========              =================   ======  ==============      ==================          ====================
+    { RTK_EVK,              BRAND_SPARKFUN, "EVK",          "EVK",      "SFE_EVK",              "EVK",              true,   "0000000000000000", STATE_ROVER_NOT_STARTED,    "https://www.sparkfun.com/rtk_evk_registration" },
+    { RTK_FACET_MOSAIC,     BRAND_SPARKPNT, "Facet X5",     "Facet X5", "SFE_Facet_mosaic",     "Facet mosaicX5",   true,   "0000000000000000", STATE_ROVER_NOT_STARTED,    "https://www.sparkfun.com/rtk_facet_mosaic_registration" },
+    { RTK_FACET_V2,         BRAND_SPARKPNT, "Facet v2",     "Facet v2", "SFE_Facet_v2",         "Facet v2",         true,   "0000000000000000", STATE_ROVER_NOT_STARTED,    "Unknown" },
+    { RTK_FACET_V2_LBAND,   BRAND_SPARKPNT, "Facet v2 LB",  "Facet LB", "SFE_Facet_v2_LBand",   "Facet v2 LBand",   true,   "0000000000000000", STATE_ROVER_NOT_STARTED,    "Unknown" },
+    { RTK_FLEX,             BRAND_SPARKPNT, "Facet FP",     "Facet FP", "SFE_Facet_FP",         "Flex",             false,  "e9e877bb278140f0", STATE_ROVER_NOT_STARTED,    "https://www.sparkfun.com/rtk_flex_registration" },
+    { RTK_POSTCARD,         BRAND_SPARKFUN, "Postcard",     "Postcard", "SFE_Postcard",         "Postcard",         true,   "e9e877bb278140f0", STATE_ROVER_NOT_STARTED,    "https://www.sparkfun.com/rtk_postcard_registration" },
+    { RTK_TORCH,            BRAND_SPARKFUN, "Torch",        "Torch",    "SFE_Torch",            "Torch",            true,   "0000000000000000", STATE_ROVER_NOT_STARTED,    "https://www.sparkfun.com/rtk_torch_registration" },
+    { RTK_TORCH_X2,         BRAND_SPARKPNT, "Torch X2",     "Torch X2", "SFE_Torch_X2",         "Torch X2",         true,   "3407c7ca3d6b4984", STATE_ROVER_NOT_STARTED,    "https://www.sparkfun.com/rtk_torch_x2_registration" },
+    { RTK_UNKNOWN,          DEFAULT_BRAND,  "Unknown",      "Unknown",  "SFE_Unknown",          "Unknown",          true,   "0000000000000000", STATE_ROVER_NOT_STARTED,    "Unknown" },
 };
-const int platformFilePrefixTableEntries = sizeof(platformFilePrefixTable) / sizeof(platformFilePrefixTable[0]);
-
-const char * const platformPrefixTable[] =
-{
-    "EVK",
-    "Facet v2",
-    "Facet mosaicX5",
-    "Torch",
-    "Facet v2 LBand",
-    "Postcard",
-    "Flex",
-    "Torch X2",
-    // Add new values just above this line
-    "Unknown"
-};
-const int platformPrefixTableEntries = sizeof(platformPrefixTable) / sizeof(platformPrefixTable[0]);
-
-const char * const platformProvisionTable[] =
-{
-    "EVK",
-    "Facet v2",
-    "Facet mosaicX5",
-    "Torch",
-    "Facet v2 LBand",
-    "Postcard",
-    "Flex",
-    "Torch X2",
-    // Add new values just above this line
-    "Unknown"
-};
-const int platformProvisionTableEntries = sizeof(platformProvisionTable) / sizeof(platformProvisionTable[0]);
-
-const char * const platformRegistrationPageTable[] =
-{
-    "https://www.sparkfun.com/rtk_evk_registration",
-    "Unknown",
-    "https://www.sparkfun.com/rtk_facet_mosaic_registration",
-    "https://www.sparkfun.com/rtk_torch_registration",
-    "Unknown",
-    "https://www.sparkfun.com/rtk_postcard_registration",
-    "https://www.sparkfun.com/rtk_flex_registration",
-    "https://www.sparkfun.com/rtk_torch_x2_registration",
-    // Add new values just above this line
-    "Unknown"
-};
-const int platformRegistrationPageTableEntries = sizeof(platformRegistrationPageTable) / sizeof(platformRegistrationPageTable[0]);
+const int productPropertiesEntries = sizeof(productPropertiesTable) / sizeof(productPropertiesTable[0]);
 
 // Corrections Priority
 typedef enum
@@ -292,21 +293,7 @@ typedef struct
     uint8_t newProfile; // Only valid when newState == STATE_PROFILE
 } setupButton;
 
-const SystemState platformPreviousStateTable[] =
-{
-    STATE_ROVER_NOT_STARTED,    // EVK
-    STATE_ROVER_NOT_STARTED,    // Facet v2
-    STATE_ROVER_NOT_STARTED,    // Facet mosaic
-    STATE_ROVER_NOT_STARTED,    // Torch
-    STATE_ROVER_NOT_STARTED,    // Facet v2 L-Band
-    STATE_ROVER_NOT_STARTED,    // Postcard
-    STATE_ROVER_NOT_STARTED,    // Flex
-    STATE_ROVER_NOT_STARTED,    // Torch X2
-    // Add new values above this line
-    STATE_ROVER_NOT_STARTED     // Unknown
-};
-const int platformPreviousStateTableEntries = sizeof (platformPreviousStateTable) / sizeof(platformPreviousStateTable[0]);
-
+// OLED Displays
 typedef enum
 {
     DISPLAY_64x48,
@@ -1861,50 +1848,9 @@ const RTK_Settings_Entry rtkSettingsEntries[] =
 
 const int numRtkSettingsEntries = sizeof(rtkSettingsEntries) / sizeof(rtkSettingsEntries)[0];
 
-// Branding support
-typedef enum {
-    BRAND_SPARKFUN = 0,
-    BRAND_SPARKPNT,
-    // Add new brands above this line
-    BRAND_NUM
-} RTKBrands_e;
-
-const RTKBrands_e DEFAULT_BRAND = BRAND_SPARKFUN;
-
-typedef struct
-{
-    const RTKBrands_e brand;
-    const char name[9];
-    const uint8_t logoWidth;
-    const uint8_t logoHeight;
-    const uint8_t * const logoPointer;
-} RTKBrandAttribute;
-
-extern const uint8_t logoSparkFun_Height;
-extern const uint8_t logoSparkFun_Width;
-extern const uint8_t logoSparkFun[];
-extern const uint8_t logoSparkPNT_Height;
-extern const uint8_t logoSparkPNT_Width;
-extern const uint8_t logoSparkPNT[];
-
-RTKBrandAttribute RTKBrandAttributes[RTKBrands_e::BRAND_NUM] = {
-    { BRAND_SPARKFUN, "SparkFun", logoSparkFun_Width, logoSparkFun_Height, logoSparkFun },
-    { BRAND_SPARKPNT, "SparkPNT", logoSparkPNT_Width, logoSparkPNT_Height, logoSparkPNT },
-};
-
-RTKBrandAttribute * getBrandAttributeFromBrand(RTKBrands_e brand) {
-    for (int i = 0; i < (int)RTKBrands_e::BRAND_NUM; i++) {
-        if (RTKBrandAttributes[i].brand == brand)
-            return &RTKBrandAttributes[i];
-    }
-    return getBrandAttributeFromBrand(DEFAULT_BRAND);
-}
-
 // Indicate which peripherals are present on a given platform
 struct struct_present
 {
-    RTKBrands_e brand = DEFAULT_BRAND;
-
     bool psram_2mb = false;
     bool psram_4mb = false;
 

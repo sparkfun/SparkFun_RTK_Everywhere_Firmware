@@ -408,10 +408,8 @@ bool beginLogging(const char *customFileName)
                 logFile->println(nmeaMessage);
 
                 // Device BT MAC. See issue: https://github.com/sparkfun/SparkFun_RTK_Firmware/issues/346
-                char macAddress[5];
-                snprintf(macAddress, sizeof(macAddress), "%02X%02X", btMACAddress[4], btMACAddress[5]);
                 createNMEASentence(CUSTOM_NMEA_TYPE_DEVICE_BT_ID, nmeaMessage, sizeof(nmeaMessage),
-                                   macAddress); // textID, buffer, sizeOfBuffer, text
+                                   serialNumber); // textID, buffer, sizeOfBuffer, text
                 logFile->println(nmeaMessage);
 
                 // Record today's time/date into log. This is in case a log is restarted. See issue 440:
