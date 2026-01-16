@@ -599,6 +599,10 @@ void bluetoothStart(bool skipOnlineCheck)
                 BLE_COMMAND_RX_UUID, BLE_COMMAND_TX_UUID); // localName, isMaster, disableBLE, rxBufferSize,
                                                            // txBufferSize, serviceID, rxID, txID
             bluetoothBatteryService.begin();
+
+            // The SDP callback will create the iAP2 record
+            esp_sdp_register_callback(esp_sdp_callback);
+            esp_sdp_init();
         }
         else if (settings.bluetoothRadioType == BLUETOOTH_RADIO_SPP)
         {
