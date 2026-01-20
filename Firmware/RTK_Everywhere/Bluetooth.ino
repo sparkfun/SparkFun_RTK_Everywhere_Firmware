@@ -74,6 +74,7 @@ void bluetoothUpdate()
             btPrintEcho = false;
             forceMenuExit = true; // Force exit all config menus and/or command modes
             printEndpoint = PRINT_ENDPOINT_SERIAL;
+            sppAccessoryMode = false;
 
             bluetoothState = BT_NOTCONNECTED;
         }
