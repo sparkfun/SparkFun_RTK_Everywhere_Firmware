@@ -5,7 +5,7 @@ const char *hardwareVersion = "1.0.0";
 const char *BTTransportName = "Bluetooth";
 const char *LIComponentName = "com.sparkfun.li";
 
-const int rfcommChanneliAP2 = 2; // Use RFCOMM channel 2 for iAP2
+const int rfcommChanneliAP2 = 3; // Use RFCOMM channel 3 for iAP2 (using Dual SPP+BLE)
 
 volatile bool sdpCreateRecordEvent = false; // Flag to indicate when the iAP2 record has been created
 
@@ -114,8 +114,9 @@ void updateAuthCoPro()
             if (bluetoothSerialSpp->aclConnected() == true)
             {
                 char bda_str[18];
-                systemPrintf("Bluetooth device %s found. Waiting for connection...\r\n",
-                             bda2str(bluetoothSerialSpp->aclGetAddress(), bda_str, 18));
+                systemPrintf("Bluetooth device %s found%s\r\n",
+                             bda2str(bluetoothSerialSpp->aclGetAddress(), bda_str, 18),
+                             settings.debugNetworkLayer ? ". Waiting for connection..." : "");
 
                 unsigned long connectionStart = millis();
                 while ((millis() - connectionStart) < 2000)
@@ -127,7 +128,7 @@ void updateAuthCoPro()
 
                 if (bluetoothSerialSpp->connected())
                 {
-                    //if (settings.debugNetworkLayer)
+                    if (settings.debugNetworkLayer)
                         systemPrintf("Device connected after %ldms. Sending handshake...\r\n", millis() - connectionStart);
                     sppAccessoryMode = true; // Accessory needs exclusive access to SPP. Disable other reads / writes
                     unsigned long handshakeStart = millis();
@@ -138,16 +139,16 @@ void updateAuthCoPro()
                         appleAccessory->update(); // Update the Accessory driver
                         handshakeReceived = appleAccessory->handshakeReceived(); // One-shot
                         delay(50);
-                    } while (!handshakeReceived && (millis() - handshakeStart) < 2000);
+                    } while (!handshakeReceived && ((millis() - handshakeStart) < 2000));
 
                     if (handshakeReceived)
                     {
-                        //if (settings.debugNetworkLayer)
+                        if (settings.debugNetworkLayer)
                             systemPrintf("Handshake received after %ldms. SPP is now in Accessory Mode\r\n", millis() - handshakeStart);
                     }
                     else
                     {
-                        //if (settings.debugNetworkLayer)
+                        if (settings.debugNetworkLayer)
                             systemPrintln("No handshake received. Reverting to standard SPP");
                         sppAccessoryMode = false; // Revert to standard SPP reads / writes
                         // TODO: do we need to restart SPP with esp_spp_start_srv ?
