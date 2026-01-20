@@ -726,6 +726,7 @@ struct Settings
     bool enableBeeper = true; // Some platforms have an audible notification
 
     // Bluetooth
+    float accessoryTimeOffset_s = 0.0; // Apply this offset to EA NMEA data via utcAdjust
     BluetoothRadioType_e bluetoothRadioType = BLUETOOTH_RADIO_SPP_AND_BLE;
     bool clearBtPairings = true; // Clear MFi Accessory SSP pairings
     char eaProtocol[50] = "com.sparkfun.rtk"; // MFi External Accessory protocol name
@@ -1337,6 +1338,7 @@ const RTK_Settings_Entry rtkSettingsEntries[] =
     { 1, 1, 0, 0, 0, 0, 1, 0, 0, ALL, 1, _bool,     0, & settings.enableBeeper, "enableBeeper", nullptr, },
 
     // Bluetooth
+    { 0, 0, 0, 0, 0, 0, 0, 0, 1, ALL, 1, _float,    0, & settings.accessoryTimeOffset_s, "accessoryTimeOffset", nullptr, },
     { 1, 1, 0, 1, 1, 1, 1, 1, 1, ALL, 1, tBtRadio,  0, & settings.bluetoothRadioType, "bluetoothRadioType", nullptr, },
     { 0, 1, 0, 1, 1, 1, 1, 1, 1, ALL, 1, _bool,     0, & settings.clearBtPairings, "clearBtPairings", nullptr, },
     { 0, 1, 0, 1, 1, 1, 1, 1, 1, ALL, 1, tCharArry, sizeof(settings.eaProtocol), & settings.eaProtocol, "eaProtocol", nullptr, },

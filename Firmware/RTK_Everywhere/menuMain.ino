@@ -460,6 +460,7 @@ void menuRadio()
         // If in BLUETOOTH_RADIO_SPP_AND_BLE, allow user to delete all pairings and set EA Protocol name
         if (bluetoothUserChoice == BLUETOOTH_RADIO_SPP_AND_BLE)
         {
+            systemPrintf("a) Accessory time offset: %.3fs\r\n", settings.accessoryTimeOffset_s);
             systemPrintf("c) Clear BT pairings: %s\r\n", clearBtPairings ? "Yes" : "No");
             systemPrintf("e) EA Protocol name: %s\r\n", settings.eaProtocol);
         }
@@ -471,6 +472,15 @@ void menuRadio()
         // Select the bluetooth radio
         if (incoming == 'b')
             bluetoothUserChoice = mmChangeBluetoothProtocol(bluetoothUserChoice);
+
+        // Allow user to adjust the accessory mode time offset
+        else if ((incoming == 'a') && (bluetoothUserChoice == BLUETOOTH_RADIO_SPP_AND_BLE))
+        {
+            systemPrint("Enter new Accessory time offset: ");
+            double tOffset;
+            if (getUserInputDouble(&tOffset) == INPUT_RESPONSE_VALID)
+                settings.accessoryTimeOffset_s = (float)tOffset;
+        }
 
         // Allow user to clear BT pairings - when BTClassicSerial is next begun
         else if ((incoming == 'c') && (bluetoothUserChoice == BLUETOOTH_RADIO_SPP_AND_BLE))
