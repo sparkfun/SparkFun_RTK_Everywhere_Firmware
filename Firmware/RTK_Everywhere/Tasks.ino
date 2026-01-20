@@ -1493,10 +1493,11 @@ void handleGnssDataTask(void *e)
 
             startMillis = millis();
 
-            // Determine BT connection state. Discard the data if in BLUETOOTH_RADIO_SPP_ACCESSORY_MODE
-            bool connected = false;
-            if (settings.bluetoothRadioType != BLUETOOTH_RADIO_SPP_ACCESSORY_MODE)
-                connected = (bluetoothGetState() == BT_CONNECTED);
+            // Determine BT connection state
+            // Note: we don't check sppAccessoryMode here. BLE writes can continue when
+            // the Accessory needs exclusive access to SPP. The SPP writes are skipped
+            // inside bluetoothWrite
+            bool connected = (bluetoothGetState() == BT_CONNECTED);
 
             if (!connected)
                 // Discard the data

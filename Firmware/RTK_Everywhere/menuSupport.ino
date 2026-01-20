@@ -495,8 +495,6 @@ BluetoothRadioType_e mmChangeBluetoothProtocol(BluetoothRadioType_e bluetoothUse
     else if (bluetoothUserChoice == BLUETOOTH_RADIO_SPP)
         bluetoothUserChoice = BLUETOOTH_RADIO_BLE;
     else if (bluetoothUserChoice == BLUETOOTH_RADIO_BLE)
-        bluetoothUserChoice = BLUETOOTH_RADIO_SPP_ACCESSORY_MODE;
-    else if (bluetoothUserChoice == BLUETOOTH_RADIO_SPP_ACCESSORY_MODE)
         bluetoothUserChoice = BLUETOOTH_RADIO_OFF;
     else if (bluetoothUserChoice == BLUETOOTH_RADIO_OFF)
         bluetoothUserChoice = BLUETOOTH_RADIO_SPP_AND_BLE;
@@ -513,8 +511,6 @@ void mmDisplayBluetoothRadioMenu(char menuChar, BluetoothRadioType_e bluetoothUs
         systemPrintln("Classic");
     else if (bluetoothUserChoice == BLUETOOTH_RADIO_BLE)
         systemPrintln("BLE");
-    else if (bluetoothUserChoice == BLUETOOTH_RADIO_SPP_ACCESSORY_MODE)
-        systemPrintln("Classic - Accessory Mode");
     else
         systemPrintln("Off");
 }
