@@ -479,7 +479,7 @@ void menuRadio()
             systemPrint("Enter new Accessory time offset: ");
             double tOffset;
             if (getUserInputDouble(&tOffset) == INPUT_RESPONSE_VALID)
-                settings.accessoryTimeOffset_s = (float)tOffset;
+                settings.accessoryTimeOffset_s = tOffset;
         }
 
         // Allow user to clear BT pairings - when BTClassicSerial is next begun

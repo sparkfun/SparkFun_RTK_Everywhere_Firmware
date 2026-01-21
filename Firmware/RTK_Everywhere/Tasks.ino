@@ -755,8 +755,11 @@ void removeRmcNavStat(char *msg, size_t maxLen)
 
 // Apply offsetSeconds to the UTC time in GGA / RMC / GST
 // Note: this places a null directly after the csum, overwriting the \r (if there is one)
-void utcAdjust(float offsetSeconds, char *msg, size_t maxLen)
+void utcAdjust(double offsetSeconds, char *msg, size_t maxLen)
 {
+    if (offsetSeconds == 0.0)
+        return; // Nothing to do
+
     bool isRMC = (strstr(msg, "RMC") != nullptr);
 
     // Find the start of UTC - at the 1st comma
@@ -775,28 +778,29 @@ void utcAdjust(float offsetSeconds, char *msg, size_t maxLen)
 
     size_t timestart = len;
 
-    float secondsNow = 0.0;
-    secondsNow += ((float)(msg[len++] - 0x30)) * 36000.0;
-    secondsNow += ((float)(msg[len++] - 0x30)) * 3600.0;
-    secondsNow += ((float)(msg[len++] - 0x30)) * 600.0;
-    secondsNow += ((float)(msg[len++] - 0x30)) * 60.0;
-    secondsNow += ((float)(msg[len++] - 0x30)) * 10.0;
-    secondsNow += ((float)(msg[len++] - 0x30)) * 1.0;
+    double secondsNow = 0.0;
+    secondsNow += ((double)(msg[len++] - 0x30)) * 36000.0;
+    secondsNow += ((double)(msg[len++] - 0x30)) * 3600.0;
+    secondsNow += ((double)(msg[len++] - 0x30)) * 600.0;
+    secondsNow += ((double)(msg[len++] - 0x30)) * 60.0;
+    secondsNow += ((double)(msg[len++] - 0x30)) * 10.0;
+    secondsNow += ((double)(msg[len++] - 0x30)) * 1.0;
     int ndp = 0; // Number of decimal places
     if (msg[len] == '.')
     {
         len++;
-        float dp = 0.1;
+        double dp = 0.1;
         while (msg[len] != ',')
         {
-            secondsNow += ((float)(msg[len++] - 0x30)) * dp;
+            secondsNow += ((double)(msg[len++] - 0x30)) * dp;
             ndp++;
-            dp /= 10.0;
+            dp *= 0.1;
         }
     }
 
     // Apply the offset
 
+    offsetSeconds = round(offsetSeconds * 1000.0) / 1000.0;
     secondsNow += offsetSeconds;
     int dateAdjust = 0;
     while (secondsNow < 0.0)
@@ -818,14 +822,14 @@ void utcAdjust(float offsetSeconds, char *msg, size_t maxLen)
     else
         snprintf(timeFormat, sizeof(timeFormat), "%%02d%%02d%%02d");
     int hours = (int)(secondsNow / 3600.0);
-    secondsNow -= (float)hours * 3600.0;
+    secondsNow -= (double)hours * 3600.0;
     int mins = (int)(secondsNow / 60.0);
-    secondsNow -= (float)mins * 60.0;
+    secondsNow -= (double)mins * 60.0;
     int secs = (int)(secondsNow);
-    secondsNow -= (float)secs;
+    secondsNow -= (double)secs;
     for (int d = 0; d < ndp; d++)
         secondsNow *= 10.0;
-    int dps = (int)(secondsNow);
+    int dps = (int)round(secondsNow);
     if (ndp > 0)
         sprintf(&msg[timestart], timeFormat, hours, mins, secs, dps);
     else
