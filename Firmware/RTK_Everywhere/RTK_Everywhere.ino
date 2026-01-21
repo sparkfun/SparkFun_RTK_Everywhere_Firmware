@@ -83,10 +83,10 @@ RTK_Everywhere.ino
 // To reduce compile times, various parts of the firmware can be disabled/removed if they are not
 // needed during development
 #define COMPILE_BT       // Comment out to remove Bluetooth functionality
-// #define COMPILE_WIFI     // Comment out to remove WiFi functionality
-// #define COMPILE_ETHERNET // Comment out to remove Ethernet (W5500) support
-// #define COMPILE_CELLULAR // Comment out to remove cellular modem support
-// #define COMPILE_LORA     // COmment out to remove LoRa functionality
+#define COMPILE_WIFI     // Comment out to remove WiFi functionality
+#define COMPILE_ETHERNET // Comment out to remove Ethernet (W5500) support
+#define COMPILE_CELLULAR // Comment out to remove cellular modem support
+#define COMPILE_LORA     // COmment out to remove LoRa functionality
 
 #ifdef COMPILE_BT
 #define COMPILE_AUTHENTICATION // Comment out to disable MFi authentication
@@ -111,7 +111,7 @@ RTK_Everywhere.ino
 #endif                   // COMPILE_ZED
 
 #define COMPILE_IM19_IMU             // Comment out to remove IM19_IMU functionality
-//#define COMPILE_POINTPERFECT_LIBRARY // Comment out to remove PPL support
+#define COMPILE_POINTPERFECT_LIBRARY // Comment out to remove PPL support
 #define COMPILE_BQ40Z50              // Comment out to remove BQ40Z50 functionality
 #define COMPILE_MP2762A_CHARGER      // Comment out to remove MP2762A charger functionality
 
