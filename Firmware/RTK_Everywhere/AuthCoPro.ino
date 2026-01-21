@@ -99,14 +99,15 @@ void beginAuthCoPro(TwoWire *i2cBus)
     systemPrintln("Authentication coprocessor online");
 }
 
+// Take control of the SPP connection once an Apple Accessory handshake is established
+// Otherwise, do not intervene
 void updateAuthCoPro()
 {
     // bluetoothStart is called during STATE_ROVER_NOT_STARTED and STATE_BASE_NOT_STARTED
     // appleAccessory.update() will use &transportConnected to learn if BT SPP is running
 
-    // For now, we only support this when in dual SPP+BLE mode
     // These escapes are common for every case
-    if (bluetoothGetState() == BT_OFF || settings.bluetoothRadioType != BLUETOOTH_RADIO_SPP_AND_BLE)
+    if (bluetoothGetState() == BT_OFF || settings.bluetoothRadioType == BLUETOOTH_RADIO_BLE)
     {
         Serial.println("BT off. Move to accessory off.");
         appleAccessorySetState(APPLE_ACCESSORY_OFF);
@@ -119,7 +120,8 @@ void updateAuthCoPro()
         if (online.authenticationCoPro == true && bluetoothGetState() > BT_OFF)
         {
             // For now, we only support this when in dual SPP+BLE mode
-            if (settings.bluetoothRadioType == BLUETOOTH_RADIO_SPP_AND_BLE)
+            if (settings.bluetoothRadioType == BLUETOOTH_RADIO_SPP_AND_BLE ||
+                settings.bluetoothRadioType == BLUETOOTH_RADIO_BLE)
             {
                 Serial.println("All good, moving to accessory wait");
                 appleAccessorySetState(APPLE_ACCESSORY_WAITING);
@@ -128,8 +130,7 @@ void updateAuthCoPro()
         break;
 
     // Wait for incoming Bluetooth connection
-    case APPLE_ACCESSORY_WAITING:
-
+    case APPLE_ACCESSORY_WAITING: {
         appleAccessory->update(); // Update the Accessory driver
 
         // Check if the iAP2 SDP record has been created
@@ -141,13 +142,14 @@ void updateAuthCoPro()
             esp_spp_start_srv(ESP_SPP_SEC_NONE, ESP_SPP_ROLE_SLAVE, rfcommChanneliAP2, "ESP32SPP2");
         }
 
-        // Check for a new device connection
-        // Note: aclConnected is a one-shot
-        //       The internal flag is automatically cleared when aclConnected returns true
+        // // Check for a new device connection
+        // // Note: aclConnected is a one-shot
+        // //       The internal flag is automatically cleared when aclConnected returns true
         // if (bluetoothSerialSpp->aclConnected() == true)
         // {
         //     char bda_str[18];
-        //     systemPrintf("Bluetooth device %s found%s\r\n", bda2str(bluetoothSerialSpp->aclGetAddress(), bda_str, 18),
+        //     systemPrintf("Bluetooth device %s found%s\r\n", bda2str(bluetoothSerialSpp->aclGetAddress(), bda_str,
+        //     18),
         //                  settings.debugNetworkLayer ? ". Waiting for connection..." : "");
 
         //     unsigned long connectionStart = millis();
@@ -158,52 +160,52 @@ void updateAuthCoPro()
         //         delay(10);
         //     }
 
-            if (bluetoothSerialSpp->connected())
+        if (bluetoothSerialSpp->connected())
+        {
+            if (settings.debugNetworkLayer)
+                // systemPrintf("Device connected after %ldms. Sending handshake...\r\n", millis() -
+                // connectionStart);
+                systemPrintf("Device connected. Sending handshake...\r\n");
+
+            unsigned long handshakeStart = millis();
+            bool handshakeReceived = false;
+            appleAccessory->startHandshake((Stream *)bluetoothSerialSpp); // Start the handshake
+
+            do
+            {
+                appleAccessory->update();                                // Update the Accessory driver
+                handshakeReceived = appleAccessory->handshakeReceived(); // One-shot
+                delay(50);
+            } while (!handshakeReceived && ((millis() - handshakeStart) < 2000));
+
+            if (handshakeReceived)
             {
                 if (settings.debugNetworkLayer)
-                    // systemPrintf("Device connected after %ldms. Sending handshake...\r\n", millis() - connectionStart);
-                    systemPrintf("Device connected. Sending handshake...\r\n");
+                    systemPrintf("Handshake received after %ldms. SPP is now in Accessory Mode\r\n",
+                                 millis() - handshakeStart);
 
-                unsigned long handshakeStart = millis();
-                bool handshakeReceived = false;
-                appleAccessory->startHandshake((Stream *)bluetoothSerialSpp); // Start the handshake
-
-                do
-                {
-                    appleAccessory->update();                                // Update the Accessory driver
-                    handshakeReceived = appleAccessory->handshakeReceived(); // One-shot
-                    delay(50);
-                } while (!handshakeReceived && ((millis() - handshakeStart) < 2000));
-
-                if (handshakeReceived)
-                {
-                    if (settings.debugNetworkLayer)
-                        systemPrintf("Handshake received after %ldms. SPP is now in Accessory Mode\r\n",
-                                     millis() - handshakeStart);
-
-                    Serial.println("Handshake, move to connected");
-                    appleAccessorySetState(APPLE_ACCESSORY_CONNECTED);
-                }
-                else
-                {
-                    if (settings.debugNetworkLayer)
-                        systemPrintln("No handshake received. Reverting to standard SPP");
-                    Serial.println("No handshake received. Reverting to standard SPP");
-                    appleAccessorySetState(APPLE_ACCESSORY_NOT_FOUND);
-                    // TODO: do we need to restart SPP with esp_spp_start_srv ?
-                }
+                Serial.println("Handshake, move to connected");
+                appleAccessorySetState(APPLE_ACCESSORY_CONNECTED);
             }
-            // else
-            // {
-            // Serial.println("Apple accessory disconnect. Move to waiting");
-            // appleAccessorySetState(APPLE_ACCESSORY_WAITING);
-
-            // }
-
+            else
+            {
+                if (settings.debugNetworkLayer)
+                    systemPrintln("No handshake received. Reverting to standard SPP");
+                Serial.println("No handshake received. Reverting to standard SPP");
+                appleAccessorySetState(APPLE_ACCESSORY_NOT_FOUND);
+                // TODO: do we need to restart SPP with esp_spp_start_srv ?
+            }
+        }
+        //     else
+        //     {
+        //         Serial.println("Apple accessory disconnect. Move to waiting");
+        //         appleAccessorySetState(APPLE_ACCESSORY_WAITING);
+        //     }
         // }
-        break;
+    }
+    break;
 
-        // Update accessory driver while we are connected
+    // Update accessory driver while we are connected
     case APPLE_ACCESSORY_CONNECTED:
         if (bluetoothIsConnected() == false)
         {
@@ -215,7 +217,7 @@ void updateAuthCoPro()
 
         break;
 
-        // Do nothing over the SPP link
+    // Do nothing over the SPP link
     case APPLE_ACCESSORY_NOT_FOUND:
         if (bluetoothIsConnected() == false)
         {
