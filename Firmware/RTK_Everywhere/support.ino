@@ -1209,10 +1209,13 @@ const char *configPppSpacesToCommas(const char *config)
 
 void assembleDeviceName()
 {
+    snprintf(serialNumber, sizeof(serialNumber), "%02X%02X%02d", btMACAddress[4], btMACAddress[5], productVariant);
+
     RTKBrandAttribute *brandAttributes = getBrandAttributeFromProductVariant(productVariant);
 
-    snprintf(deviceName, sizeof(deviceName), "%s %s-%02X%02X%02d", brandAttributes->name, platformPrefix, btMACAddress[4],
-                btMACAddress[5], productVariant);
+    snprintf(accessoryName, sizeof(accessoryName), "%s %s", brandAttributes->name, platformPrefix);
+
+    snprintf(deviceName, sizeof(deviceName), "%s-%s", accessoryName, serialNumber);
 
     if (strlen(deviceName) > 28) // "SparkPNT Facet v2 LB-ABCD04" is 27 chars. We are just OK
     {
@@ -1223,9 +1226,6 @@ void assembleDeviceName()
         reportFatalError("Bluetooth device name is longer than 28 characters.");
     }
 
-    snprintf(accessoryName, sizeof(accessoryName), "%s %s", brandAttributes->name, platformPrefix);
-
-    snprintf(serialNumber, sizeof(serialNumber), "%02X%02X%02d", btMACAddress[4], btMACAddress[5], productVariant);
 }
 
 const productProperties * getProductPropertiesFromVariant(ProductVariant variant) {

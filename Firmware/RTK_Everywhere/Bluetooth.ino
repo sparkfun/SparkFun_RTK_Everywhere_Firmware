@@ -65,14 +65,6 @@ void bluetoothUpdate()
             // LED is controlled by tickerBluetoothLedUpdate()
 
             forceMenuExit = false; // Reset the exiting of config menus and/or command modes
-
-#ifdef COMPILE_AUTHENTICATION
-            if (sendAccessoryHandshakeOnBtConnect)
-            {
-                appleAccessory->startHandshake((Stream *)bluetoothSerialSpp);
-                sendAccessoryHandshakeOnBtConnect = false; // One-shot
-            }
-#endif
         }
 
         else if ((bluetoothState == BT_CONNECTED) && (!bluetoothIsConnected()))
@@ -82,6 +74,7 @@ void bluetoothUpdate()
             btPrintEcho = false;
             forceMenuExit = true; // Force exit all config menus and/or command modes
             printEndpoint = PRINT_ENDPOINT_SERIAL;
+            sppAccessoryMode = false;
 
             bluetoothState = BT_NOTCONNECTED;
         }
@@ -111,11 +104,6 @@ bool bluetoothIsConnected()
         if (bluetoothSerialBle->connected() == true || bluetoothSerialBleCommands->connected() == true)
             return (true);
     }
-    else if (settings.bluetoothRadioType == BLUETOOTH_RADIO_SPP_ACCESSORY_MODE)
-    {
-        if (bluetoothSerialSpp->connected() == true)
-            return (true);
-    }
 
     return (false);
 }
@@ -139,10 +127,6 @@ bool bluetoothCommandIsConnected()
     {
         if (bluetoothSerialBleCommands->connected() == true)
             return (true);
-    }
-    else if (settings.bluetoothRadioType == BLUETOOTH_RADIO_SPP_ACCESSORY_MODE)
-    {
-        return (false);
     }
 
     return (false);
@@ -170,16 +154,16 @@ int bluetoothRead(uint8_t *buffer, int length)
         if (bytesRead > 0)
             return (bytesRead);
 
-        bytesRead = bluetoothSerialSpp->readBytes(buffer, length);
+        // If we are in Accessory Mode, return 0. Accessory needs exclusive access to SPP
+        if (sppAccessoryMode)
+            return 0;
 
-        return (bytesRead);
+        return (bluetoothSerialSpp->readBytes(buffer, length));
     }
     else if (settings.bluetoothRadioType == BLUETOOTH_RADIO_SPP)
         return bluetoothSerialSpp->readBytes(buffer, length);
     else if (settings.bluetoothRadioType == BLUETOOTH_RADIO_BLE)
         return bluetoothSerialBle->readBytes(buffer, length);
-    else if (settings.bluetoothRadioType == BLUETOOTH_RADIO_SPP_ACCESSORY_MODE)
-        return 0; // Nothing to do here. SDP takes care of everything...
 
     return 0;
 }
@@ -209,14 +193,16 @@ uint8_t bluetoothRead()
         if (bluetoothSerialBle->available())
             return (bluetoothSerialBle->read());
 
+        // If we are in Accessory Mode, return 0. Accessory needs exclusive access to SPP
+        if (sppAccessoryMode)
+            return 0;
+
         return (bluetoothSerialSpp->read());
     }
     else if (settings.bluetoothRadioType == BLUETOOTH_RADIO_SPP)
         return bluetoothSerialSpp->read();
     else if (settings.bluetoothRadioType == BLUETOOTH_RADIO_BLE)
         return bluetoothSerialBle->read();
-    else if (settings.bluetoothRadioType == BLUETOOTH_RADIO_SPP_ACCESSORY_MODE)
-        return 0; // Nothing to do here. SDP takes care of everything...
 
     return 0;
 }
@@ -242,14 +228,16 @@ int bluetoothRxDataAvailable()
         if (bluetoothSerialBle->available())
             return (bluetoothSerialBle->available());
 
+        // If we are in Accessory Mode, return 0. Accessory needs exclusive access to SPP
+        if (sppAccessoryMode)
+            return 0;
+
         return (bluetoothSerialSpp->available());
     }
     else if (settings.bluetoothRadioType == BLUETOOTH_RADIO_SPP)
         return bluetoothSerialSpp->available();
     else if (settings.bluetoothRadioType == BLUETOOTH_RADIO_BLE)
         return bluetoothSerialBle->available();
-    else if (settings.bluetoothRadioType == BLUETOOTH_RADIO_SPP_ACCESSORY_MODE)
-        return 0; // Nothing to do here. SDP takes care of everything...
 
     return (0);
 }
@@ -273,7 +261,11 @@ int bluetoothWrite(const uint8_t *buffer, int length)
     {
         // Write to both interfaces
         int bleWrite = bluetoothSerialBle->write(buffer, length);
-        int sppWrite = bluetoothSerialSpp->write(buffer, length);
+        int sppWrite = 0;
+        if (!sppAccessoryMode)
+            sppWrite = bluetoothSerialSpp->write(buffer, length);
+        else
+            sppWrite = length;
 
         // We hope and assume both interfaces pass the same byte count
         // through their respective stacks
@@ -293,8 +285,6 @@ int bluetoothWrite(const uint8_t *buffer, int length)
             return bluetoothSerialBle->write(buffer, length);
         return 0;
     }
-    else if (settings.bluetoothRadioType == BLUETOOTH_RADIO_SPP_ACCESSORY_MODE)
-        return length; // Nothing to do here. SDP takes care of everything...
 
     return (0);
 }
@@ -318,8 +308,6 @@ int bluetoothCommandWrite(const uint8_t *buffer, int length)
             return bluetoothSerialBleCommands->write(buffer, length);
         return 0;
     }
-    else if (settings.bluetoothRadioType == BLUETOOTH_RADIO_SPP_ACCESSORY_MODE)
-        return length; // Nothing to do here. SDP takes care of everything...
 
     return (0);
 }
@@ -334,7 +322,11 @@ int bluetoothWrite(uint8_t value)
     {
         // Write to both interfaces
         int bleWrite = bluetoothSerialBle->write(value);
-        int sppWrite = bluetoothSerialSpp->write(value);
+        int sppWrite = 0;
+        if (!sppAccessoryMode)
+            sppWrite = bluetoothSerialSpp->write(value);
+        else
+            sppWrite = 1;
 
         // We hope and assume both interfaces pass the same byte count
         // through their respective stacks
@@ -351,8 +343,6 @@ int bluetoothWrite(uint8_t value)
     {
         return bluetoothSerialBle->write(value);
     }
-    else if (settings.bluetoothRadioType == BLUETOOTH_RADIO_SPP_ACCESSORY_MODE)
-        return 1; // Nothing to do here. SDP takes care of everything...
 
     return (0);
 }
@@ -383,11 +373,6 @@ void bluetoothFlush()
             bluetoothSerialBle->flush();
         if (bluetoothSerialBleCommands != nullptr)
             bluetoothSerialBleCommands->flush(); // Complete any transfers
-    }
-    else if (settings.bluetoothRadioType == BLUETOOTH_RADIO_SPP_ACCESSORY_MODE)
-    {
-        if (bluetoothSerialSpp != nullptr)
-            bluetoothSerialSpp->flush(); // Needed? Not sure... TODO
     }
 }
 
@@ -533,11 +518,6 @@ void bluetoothStart(bool skipOnlineCheck)
             if (bluetoothSerialBleCommands == nullptr)
                 bluetoothSerialBleCommands = new BTLESerial();
         }
-        else if (settings.bluetoothRadioType == BLUETOOTH_RADIO_SPP_ACCESSORY_MODE)
-        {
-            if (bluetoothSerialSpp == nullptr)
-                bluetoothSerialSpp = new BTClassicSerial();
-        }
 
         // Not yet implemented
         //  if (pinBluetoothTaskHandle == nullptr)
@@ -556,9 +536,36 @@ void bluetoothStart(bool skipOnlineCheck)
         bool beginSuccess = true;
         if (settings.bluetoothRadioType == BLUETOOTH_RADIO_SPP_AND_BLE)
         {
+            sppAccessoryMode = false; // This is set later by updateAuthCoPro()
+
+            // Enable secure pairing without PIN
+            bluetoothSerialSpp->enableSSP(false, false);
+
             beginSuccess &= bluetoothSerialSpp->begin(
                 deviceName, false, false, settings.sppRxQueueSize, settings.sppTxQueueSize, 0, 0,
                 0); // localName, isMaster, disableBLE, rxBufferSize, txBufferSize, serviceID, rxID, txID
+
+            if (beginSuccess)
+            {
+                if (settings.clearBtPairings)
+                {
+                    // Paired / bonded devices are stored in flash. Only a full flash erase
+                    // or deleteAllBondedDevices() will clear them all. They can be deleted
+                    // individually, but that would need a menu and more functions added to
+                    // the BT classes.
+                    // Deleting all bonded devices after a factory reset seems sensible.
+                    // TODO: test all the possibilities / overlap of this and "Forget Device"
+                    if (settings.debugNetworkLayer)
+                        systemPrintln("Deleting all bonded devices");
+                    bluetoothSerialSpp->deleteAllBondedDevices(); // Must be called after begin
+                    settings.clearBtPairings = false;
+                    recordSystemSettings();
+                }
+
+                // The SDP callback will create the iAP2 record
+                esp_sdp_register_callback(esp_sdp_callback);
+                esp_sdp_init();
+            }
 
             beginSuccess &= bluetoothSerialBle->begin(
                 deviceName, false, false, settings.sppRxQueueSize, settings.sppTxQueueSize, BLE_SERVICE_UUID,
@@ -592,54 +599,6 @@ void bluetoothStart(bool skipOnlineCheck)
             // txBufferSize, serviceID, rxID, txID
 
             bluetoothBatteryService.begin();
-        }
-        else if (settings.bluetoothRadioType == BLUETOOTH_RADIO_SPP_ACCESSORY_MODE)
-        {
-#ifdef COMPILE_AUTHENTICATION
-            // Uncomment the next line to force deletion of all paired (bonded) devices
-            // (This should only be necessary if you have changed the SSP pairing type)
-            // settings.clearBtPairings = true;
-
-            // Enable secure pairing without PIN :
-            // iPhone displays Connection Unsuccessful - but then connects anyway...
-            bluetoothSerialSpp->enableSSP(false, false);
-
-            // Enable secure pairing with PIN :
-            // bluetoothSerialSpp->enableSSP(false, true);
-
-            // Accessory Protocol recommends using a PIN
-            // Support Apple Accessory: Device to Accessory
-            // 1. Search for an accessory from the device and initiate pairing.
-            // 2. Verify pairing is successful after exchanging a pin code.
-            // bluetoothSerialSpp->enableSSP(true, true); // Enable secure pairing with PIN
-            // bluetoothSerialSpp->onConfirmRequest(&BTConfirmRequestCallback); // Callback to verify the PIN
-
-            beginSuccess &= bluetoothSerialSpp->begin(
-                deviceName, false, true, settings.sppRxQueueSize, settings.sppTxQueueSize, 0, 0,
-                0); // localName, isMaster, disableBLE, rxBufferSize, txBufferSize, serviceID, rxID, txID
-
-            if (beginSuccess)
-            {
-                if (settings.clearBtPairings)
-                {
-                    // Paired / bonded devices are stored in flash. Only a full flash erase
-                    // or deleteAllBondedDevices() will clear them all. They can be deleted
-                    // individually, but that would need a menu and more functions added to
-                    // the BT classes.
-                    // Deleting all bonded devices after a factory reset seems sensible.
-                    // TODO: test all the possibilities / overlap of this and "Forget Device"
-                    if (settings.debugNetworkLayer)
-                        systemPrintln("Deleting all bonded devices");
-                    bluetoothSerialSpp->deleteAllBondedDevices(); // Must be called after begin
-                    settings.clearBtPairings = false;
-                    recordSystemSettings();
-                }
-
-                // The SDP callback will create the iAP2 record
-                esp_sdp_register_callback(esp_sdp_callback);
-                esp_sdp_init();
-            }
-#endif // COMPILE_AUTHENTICATION
         }
 
         if (beginSuccess == false)
@@ -690,10 +649,6 @@ void bluetoothStart(bool skipOnlineCheck)
             bluetoothSerialBle->setTimeout(10);
             bluetoothSerialBleCommands->setTimeout(10); // Using 10 from BleSerial example
         }
-        else if (settings.bluetoothRadioType == BLUETOOTH_RADIO_SPP_ACCESSORY_MODE)
-        {
-            bluetoothSerialSpp->setTimeout(250); // Needed? Not sure... TODO
-        }
 
         if (settings.bluetoothRadioType == BLUETOOTH_RADIO_SPP_AND_BLE)
             systemPrintf("Bluetooth SPP and BLE broadcasting as: %s\r\n", deviceName);
@@ -701,12 +656,6 @@ void bluetoothStart(bool skipOnlineCheck)
             systemPrintf("Bluetooth SPP broadcasting as: %s\r\n", deviceName);
         else if (settings.bluetoothRadioType == BLUETOOTH_RADIO_BLE)
             systemPrintf("Bluetooth Low-Energy broadcasting as: %s\r\n", deviceName);
-        else if (settings.bluetoothRadioType == BLUETOOTH_RADIO_SPP_ACCESSORY_MODE)
-#ifdef COMPILE_AUTHENTICATION
-            systemPrintf("Bluetooth SPP (Accessory Mode) broadcasting as: %s\r\n", deviceName);
-#else
-            systemPrintf("** Not Compiled! Bluetooth SPP (Accessory Mode)**\r\n");
-#endif
 
         if (pin_bluetoothStatusLED != PIN_UNDEFINED)
         {
@@ -806,6 +755,7 @@ void bluetoothEndCommon(bool endMe)
             bluetoothSerialSpp->flush();      // Complete any transfers
             bluetoothSerialSpp->disconnect(); // Drop any clients
             bluetoothSerialSpp->end();        // Release resources
+            sppAccessoryMode = false;         // Done with Accessory Mode
             if (endMe)
             {
                 bluetoothSerialSpp->register_callback(nullptr);
@@ -850,19 +800,6 @@ void bluetoothEndCommon(bool endMe)
             }
 
             bluetoothBatteryService.end();
-        }
-        else if (settings.bluetoothRadioType == BLUETOOTH_RADIO_SPP_ACCESSORY_MODE)
-        {
-            bluetoothSerialSpp->flush();      // Complete any transfers
-            bluetoothSerialSpp->disconnect(); // Drop any clients
-            bluetoothSerialSpp->end();        // Release resources
-            if (endMe)
-            {
-                bluetoothSerialSpp->register_callback(nullptr);
-                bluetoothSerialSpp->memrelease(BT_MODE_CLASSIC_BT); // Release memory - using correct mode
-                delete bluetoothSerialSpp;
-                bluetoothSerialSpp = nullptr;
-            }
         }
 
         if (settings.debugNetworkLayer)
@@ -931,19 +868,17 @@ void applyBluetoothSettingsCommon(BluetoothRadioType_e bluetoothUserChoice, bool
         //     ESP.restart();
         //     return;
         // }
-        // If Bluetooth was in Accessory Mode, and still is, and clearBtPairings is true
-        // then (re)start Bluetooth skipping the online check
-        else if ((settings.bluetoothRadioType == BLUETOOTH_RADIO_SPP_ACCESSORY_MODE) &&
-                 (bluetoothUserChoice == BLUETOOTH_RADIO_SPP_ACCESSORY_MODE) && clearBtPairings)
+        // If clearBtPairings is true then (re)start Bluetooth skipping the online check
+        else if ((settings.bluetoothRadioType == BLUETOOTH_RADIO_SPP_AND_BLE) &&
+                 (bluetoothUserChoice == BLUETOOTH_RADIO_SPP_AND_BLE) && clearBtPairings)
         {
             settings.clearBtPairings = clearBtPairings;
             bluetoothStartSkipOnlineCheck();
             return;
         }
-        // If Bluetooth was in Accessory Mode, and still is, and clearBtPairings is false
-        // then do nothing
-        else if ((settings.bluetoothRadioType == BLUETOOTH_RADIO_SPP_ACCESSORY_MODE) &&
-                 (bluetoothUserChoice == BLUETOOTH_RADIO_SPP_ACCESSORY_MODE) && (!clearBtPairings))
+        // If clearBtPairings is false then do nothing
+        else if ((settings.bluetoothRadioType == BLUETOOTH_RADIO_SPP_AND_BLE) &&
+                 (bluetoothUserChoice == BLUETOOTH_RADIO_SPP_AND_BLE) && (!clearBtPairings))
         {
             return;
         }
@@ -981,8 +916,6 @@ void bluetoothPrintStatus()
         systemPrint("SPP ");
     else if (settings.bluetoothRadioType == BLUETOOTH_RADIO_BLE)
         systemPrint("Low Energy ");
-    else if (settings.bluetoothRadioType == BLUETOOTH_RADIO_SPP_ACCESSORY_MODE)
-        systemPrint("SPP Accessory Mode ");
     else if (settings.bluetoothRadioType == BLUETOOTH_RADIO_OFF)
         systemPrint("Off ");
 

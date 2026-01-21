@@ -645,6 +645,7 @@ const int handleGnssDataTaskStackSize = 4000;
 
 TaskHandle_t pinBluetoothTaskHandle; // Dummy task to start hardware on an assigned core
 volatile bool bluetoothPinned;       // This variable is touched by core 0 but checked by core 1. Must be volatile.
+volatile bool sppAccessoryMode;      // Set true when the Accessory needs exclusive access to BT SPP
 
 volatile static int combinedSpaceRemaining; // Overrun indicator
 volatile static uint64_t logFileSize;       // Updated with each write
@@ -880,7 +881,6 @@ uint32_t powerPressedStartTime;       // Times how long the user has been holdin
 bool inMainMenu;                      // Set true when in the serial config menu system.
 bool btPrintEcho;                     // Set true when in the serial config menu system via Bluetooth.
 volatile bool forceMenuExit;          // When true, exit all config menus.
-bool sendAccessoryHandshakeOnBtConnect = false; // Send accessory handshake on BT connect
 
 bool forceDisplayUpdate = true; // Goes true when setup is pressed, causes the display to refresh in real-time
 uint32_t lastSystemStateUpdate;

@@ -590,6 +590,7 @@ void gnssReadTask(void *e)
 }
 
 // Force the NMEA Talker ID - if needed
+// Note: this places a null directly after the csum, overwriting the \r (if there is one)
 void forceTalkerId(const char *Id, char *msg, size_t maxLen)
 {
     if (msg[2] == *Id)
@@ -612,10 +613,11 @@ void forceTalkerId(const char *Id, char *msg, size_t maxLen)
     }
 
     len++; // Point at the checksum and update it
-    sprintf(&msg[len], "%02X", csum);
+    sprintf(&msg[len], "%02X", csum); // null-terminate after csum
 }
 
 // Force the RMC COG entry - if needed
+// Note: this places a null directly after the csum, overwriting the \r (if there is one)
 void forceRmcCog(char *msg, size_t maxLen)
 {
     const char *noCog = "0.0";
@@ -656,7 +658,7 @@ void forceRmcCog(char *msg, size_t maxLen)
     while ((len < maxLen) && (msg[len] != '*'))
         csum = csum ^ msg[len++];
     len++; // Point at the checksum and update it
-    sprintf(&msg[len], "%02X", csum);
+    sprintf(&msg[len], "%02X", csum); // null-terminate after csum
 }
 
 // Replace the RMC Mode Indicator - if needed
@@ -664,6 +666,7 @@ void forceRmcCog(char *msg, size_t maxLen)
 // A=Autonomous, D=Differential, E=Approximation, N=Invalid Data
 // ATS throws an error with the F=Float, M=Manual, R=RTK from the LG290P
 // Change unsupported modes to A / D
+// Note: this places a null directly after the csum, overwriting the \r (if there is one)
 void replaceRmcModeIndicator(char *msg, size_t maxLen)
 {
     if (strstr(msg, "RMC") == nullptr)
@@ -701,10 +704,11 @@ void replaceRmcModeIndicator(char *msg, size_t maxLen)
     while ((len < maxLen) && (msg[len] != '*'))
         csum = csum ^ msg[len++];
     len++; // Point at the checksum and update it
-    sprintf(&msg[len], "%02X", csum);
+    sprintf(&msg[len], "%02X", csum); // null-terminate after csum
 }
 
 // Remove the RMC Navigational Status field - if needed
+// Note: this places a null directly after the csum, overwriting the \r (if there is one)
 void removeRmcNavStat(char *msg, size_t maxLen)
 {
     if (strstr(msg, "RMC") == nullptr)
@@ -746,7 +750,136 @@ void removeRmcNavStat(char *msg, size_t maxLen)
     while ((len < maxLen) && (msg[len] != '*'))
         csum = csum ^ msg[len++];
     len++; // Point at the checksum and update it
-    sprintf(&msg[len], "%02X", csum);
+    sprintf(&msg[len], "%02X", csum); // null-terminate after csum
+}
+
+// Apply offsetSeconds to the UTC time in GGA / RMC / GST
+// Note: this places a null directly after the csum, overwriting the \r (if there is one)
+void utcAdjust(double offsetSeconds, char *msg, size_t maxLen)
+{
+    if (offsetSeconds == 0.0)
+        return; // Nothing to do
+
+    bool isRMC = (strstr(msg, "RMC") != nullptr);
+
+    // Find the start of UTC - at the 1st comma
+    int numCommas = 0;
+    size_t len = 0;
+    while ((numCommas < 1) && (msg[len] != '*') && (len < maxLen))
+    {
+        if (msg[len++] == ',')
+            numCommas++;
+    }
+
+    if (len >= (maxLen - 3)) // Something went horribly wrong
+        return;
+
+    // Assemble the time
+
+    size_t timestart = len;
+
+    double secondsNow = 0.0;
+    secondsNow += ((double)(msg[len++] - 0x30)) * 36000.0;
+    secondsNow += ((double)(msg[len++] - 0x30)) * 3600.0;
+    secondsNow += ((double)(msg[len++] - 0x30)) * 600.0;
+    secondsNow += ((double)(msg[len++] - 0x30)) * 60.0;
+    secondsNow += ((double)(msg[len++] - 0x30)) * 10.0;
+    secondsNow += ((double)(msg[len++] - 0x30)) * 1.0;
+    int ndp = 0; // Number of decimal places
+    if (msg[len] == '.')
+    {
+        len++;
+        double dp = 0.1;
+        while (msg[len] != ',')
+        {
+            secondsNow += ((double)(msg[len++] - 0x30)) * dp;
+            ndp++;
+            dp *= 0.1;
+        }
+    }
+
+    // Apply the offset
+
+    offsetSeconds = round(offsetSeconds * 1000.0) / 1000.0;
+    secondsNow += offsetSeconds;
+    int dateAdjust = 0;
+    while (secondsNow < 0.0)
+    {
+        secondsNow += 86400.0;
+        dateAdjust -= 1;
+    }
+    while (secondsNow >= 86400.0)
+    {
+        secondsNow -= 86400.0;
+        dateAdjust += 1;
+    }
+
+    // Update the time
+
+    char timeFormat[18];
+    if (ndp > 0)
+        snprintf(timeFormat, sizeof(timeFormat), "%%02d%%02d%%02d.%%0%dd", ndp);
+    else
+        snprintf(timeFormat, sizeof(timeFormat), "%%02d%%02d%%02d");
+    int hours = (int)(secondsNow / 3600.0);
+    secondsNow -= (double)hours * 3600.0;
+    int mins = (int)(secondsNow / 60.0);
+    secondsNow -= (double)mins * 60.0;
+    int secs = (int)(secondsNow);
+    secondsNow -= (double)secs;
+    for (int d = 0; d < ndp; d++)
+        secondsNow *= 10.0;
+    int dps = (int)round(secondsNow);
+    if (ndp > 0)
+        sprintf(&msg[timestart], timeFormat, hours, mins, secs, dps);
+    else
+        sprintf(&msg[timestart], timeFormat, hours, mins, secs);
+    msg[len] = ','; // Restore the comma (it was overwritten by the null)
+
+    // Update the RMC Date
+
+    if (isRMC && (dateAdjust != 0))
+    {
+        while ((numCommas < 9) && (msg[len] != '*') && (len < maxLen))
+        {
+            if (msg[len++] == ',')
+                numCommas++;
+        }
+
+        // Assemble the date
+
+        size_t datestart = len;
+
+        struct tm tm_actual;
+        struct tm *tm = &tm_actual;
+        tm->tm_mday = (((int)(msg[len++] - 0x30)) * 10) + ((int)(msg[len++] - 0x30));
+        tm->tm_mon = (((int)(msg[len++] - 0x30)) * 10) + ((int)(msg[len++] - 0x30)) - 1;
+        tm->tm_year = (((int)(msg[len++] - 0x30)) * 10) + ((int)(msg[len++] - 0x30)) + 100;
+        tm->tm_hour = hours;
+        tm->tm_min = mins;
+        tm->tm_sec = secs;
+        tm->tm_isdst = 0;
+
+        time_t tt = mktime(tm);
+
+        // Adjust the date
+
+        tt += dateAdjust * 86400;
+        tm = localtime(&tt);
+
+        // Update the date
+
+        strftime(&msg[datestart], 7, "%d%m%y", tm);
+        msg[datestart + 6] = ','; // Restore the comma (it was overwritten by the null)
+    }
+
+    // Update the checksum: XOR chars between '$' and '*'
+    len = 1;
+    uint8_t csum = 0;
+    while ((len < maxLen) && (msg[len] != '*'))
+        csum = csum ^ msg[len++];
+    len++; // Point at the checksum and update it
+    sprintf(&msg[len], "%02X", csum); // null-terminate after csum
 }
 
 // Call back from within parser, for end of message
@@ -816,6 +949,7 @@ void processUart1Message(SEMP_PARSE_STATE *parse, uint16_t type)
                 if ((strlen(latestGPGGA) > 10) && (latestGPGGA[strlen(latestGPGGA) - 2] == '\r'))
                     latestGPGGA[strlen(latestGPGGA) - 2] = 0; // Truncate the \r\n
                 forceTalkerId("P", latestGPGGA, latestNmeaMaxLen);
+                utcAdjust(settings.accessoryTimeOffset_s, latestGPGGA, latestNmeaMaxLen);
             }
             else
                 systemPrintf("Increase latestNmeaMaxLen to > %d\r\n", parse->length);
@@ -832,6 +966,7 @@ void processUart1Message(SEMP_PARSE_STATE *parse, uint16_t type)
                 forceRmcCog(latestGPRMC, latestNmeaMaxLen);
                 replaceRmcModeIndicator(latestGPRMC, latestNmeaMaxLen);
                 removeRmcNavStat(latestGPRMC, latestNmeaMaxLen);
+                utcAdjust(settings.accessoryTimeOffset_s, latestGPRMC, latestNmeaMaxLen);
             }
             else
                 systemPrintf("Increase latestNmeaMaxLen to > %d\r\n", parse->length);
@@ -845,6 +980,7 @@ void processUart1Message(SEMP_PARSE_STATE *parse, uint16_t type)
                 if ((strlen(latestGPGST) > 10) && (latestGPGST[strlen(latestGPGST) - 2] == '\r'))
                     latestGPGST[strlen(latestGPGST) - 2] = 0; // Truncate the \r\n
                 forceTalkerId("P", latestGPGST, latestNmeaMaxLen);
+                utcAdjust(settings.accessoryTimeOffset_s, latestGPGST, latestNmeaMaxLen);
             }
             else
                 systemPrintf("Increase latestNmeaMaxLen to > %d\r\n", parse->length);
@@ -1493,10 +1629,11 @@ void handleGnssDataTask(void *e)
 
             startMillis = millis();
 
-            // Determine BT connection state. Discard the data if in BLUETOOTH_RADIO_SPP_ACCESSORY_MODE
-            bool connected = false;
-            if (settings.bluetoothRadioType != BLUETOOTH_RADIO_SPP_ACCESSORY_MODE)
-                connected = (bluetoothGetState() == BT_CONNECTED);
+            // Determine BT connection state
+            // Note: we don't check sppAccessoryMode here. BLE writes can continue when
+            // the Accessory needs exclusive access to SPP. The SPP writes are skipped
+            // inside bluetoothWrite
+            bool connected = (bluetoothGetState() == BT_CONNECTED);
 
             if (!connected)
                 // Discard the data

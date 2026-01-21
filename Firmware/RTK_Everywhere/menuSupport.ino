@@ -495,8 +495,6 @@ BluetoothRadioType_e mmChangeBluetoothProtocol(BluetoothRadioType_e bluetoothUse
     else if (bluetoothUserChoice == BLUETOOTH_RADIO_SPP)
         bluetoothUserChoice = BLUETOOTH_RADIO_BLE;
     else if (bluetoothUserChoice == BLUETOOTH_RADIO_BLE)
-        bluetoothUserChoice = BLUETOOTH_RADIO_SPP_ACCESSORY_MODE;
-    else if (bluetoothUserChoice == BLUETOOTH_RADIO_SPP_ACCESSORY_MODE)
         bluetoothUserChoice = BLUETOOTH_RADIO_OFF;
     else if (bluetoothUserChoice == BLUETOOTH_RADIO_OFF)
         bluetoothUserChoice = BLUETOOTH_RADIO_SPP_AND_BLE;
@@ -513,8 +511,6 @@ void mmDisplayBluetoothRadioMenu(char menuChar, BluetoothRadioType_e bluetoothUs
         systemPrintln("Classic");
     else if (bluetoothUserChoice == BLUETOOTH_RADIO_BLE)
         systemPrintln("BLE");
-    else if (bluetoothUserChoice == BLUETOOTH_RADIO_SPP_ACCESSORY_MODE)
-        systemPrintln("Classic - Accessory Mode");
     else
         systemPrintln("Off");
 }
@@ -574,8 +570,8 @@ void printCurrentConditionsNMEA()
 const char *printDeviceId()
 {
     static char deviceID[strlen("1234567890ABXX") + 1]; // 12 character MAC + 2 character variant + room for terminator
-    snprintf(deviceID, sizeof(deviceID), "%02X%02X%02X%02X%02X%02X%02d", btMACAddress[0], btMACAddress[1],
-             btMACAddress[2], btMACAddress[3], btMACAddress[4], btMACAddress[5], productVariant);
+    snprintf(deviceID, sizeof(deviceID), "%02X%02X%02X%02X%s", btMACAddress[0], btMACAddress[1],
+             btMACAddress[2], btMACAddress[3], serialNumber);
 
     return ((const char *)deviceID);
 }
