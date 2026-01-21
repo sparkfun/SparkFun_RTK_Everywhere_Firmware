@@ -34,6 +34,7 @@ BTSerialInterface *bluetoothSerialBle = nullptr;
 BTSerialInterface *bluetoothSerialBleCommands = nullptr; // Second BLE serial for CLI interface to mobile app
 BleBatteryService bluetoothBatteryService;
 
+
 #define BLE_SERVICE_UUID "6e400001-b5a3-f393-e0a9-e50e24dcca9e"
 #define BLE_RX_UUID "6e400002-b5a3-f393-e0a9-e50e24dcca9e"
 #define BLE_TX_UUID "6e400003-b5a3-f393-e0a9-e50e24dcca9e"
@@ -74,7 +75,6 @@ void bluetoothUpdate()
             btPrintEcho = false;
             forceMenuExit = true; // Force exit all config menus and/or command modes
             printEndpoint = PRINT_ENDPOINT_SERIAL;
-            sppAccessoryMode = false;
 
             bluetoothState = BT_NOTCONNECTED;
         }
@@ -155,7 +155,7 @@ int bluetoothRead(uint8_t *buffer, int length)
             return (bytesRead);
 
         // If we are in Accessory Mode, return 0. Accessory needs exclusive access to SPP
-        if (sppAccessoryMode)
+        if (appleAccessoryIsConnecting() == true)
             return 0;
 
         return (bluetoothSerialSpp->readBytes(buffer, length));
@@ -194,7 +194,7 @@ uint8_t bluetoothRead()
             return (bluetoothSerialBle->read());
 
         // If we are in Accessory Mode, return 0. Accessory needs exclusive access to SPP
-        if (sppAccessoryMode)
+        if (appleAccessoryIsConnecting() == true)
             return 0;
 
         return (bluetoothSerialSpp->read());
@@ -229,7 +229,7 @@ int bluetoothRxDataAvailable()
             return (bluetoothSerialBle->available());
 
         // If we are in Accessory Mode, return 0. Accessory needs exclusive access to SPP
-        if (sppAccessoryMode)
+        if (appleAccessoryIsConnecting() == true)
             return 0;
 
         return (bluetoothSerialSpp->available());
@@ -262,7 +262,7 @@ int bluetoothWrite(const uint8_t *buffer, int length)
         // Write to both interfaces
         int bleWrite = bluetoothSerialBle->write(buffer, length);
         int sppWrite = 0;
-        if (!sppAccessoryMode)
+        if (appleAccessoryIsConnecting() == false)
             sppWrite = bluetoothSerialSpp->write(buffer, length);
         else
             sppWrite = length;
@@ -323,7 +323,7 @@ int bluetoothWrite(uint8_t value)
         // Write to both interfaces
         int bleWrite = bluetoothSerialBle->write(value);
         int sppWrite = 0;
-        if (!sppAccessoryMode)
+        if (appleAccessoryIsConnecting() == false)
             sppWrite = bluetoothSerialSpp->write(value);
         else
             sppWrite = 1;
@@ -536,8 +536,6 @@ void bluetoothStart(bool skipOnlineCheck)
         bool beginSuccess = true;
         if (settings.bluetoothRadioType == BLUETOOTH_RADIO_SPP_AND_BLE)
         {
-            sppAccessoryMode = false; // This is set later by updateAuthCoPro()
-
             // Enable secure pairing without PIN
             bluetoothSerialSpp->enableSSP(false, false);
 
@@ -755,7 +753,6 @@ void bluetoothEndCommon(bool endMe)
             bluetoothSerialSpp->flush();      // Complete any transfers
             bluetoothSerialSpp->disconnect(); // Drop any clients
             bluetoothSerialSpp->end();        // Release resources
-            sppAccessoryMode = false;         // Done with Accessory Mode
             if (endMe)
             {
                 bluetoothSerialSpp->register_callback(nullptr);
