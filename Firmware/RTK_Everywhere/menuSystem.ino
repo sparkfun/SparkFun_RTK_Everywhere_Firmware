@@ -750,6 +750,9 @@ void menuDebugNetwork()
 
         systemPrintf("12) NetworkClient write timeout: %ldms\r\n", settings.networkClientWriteTimeout_ms);
 
+        systemPrint("13) Debug AppleAccessory: ");
+        systemPrintf("%s\r\n", settings.debugAppleAccessory ? "Enabled" : "Disabled");
+
         // NTP
         systemPrint("20) Debug NTP: ");
         systemPrintf("%s\r\n", settings.debugNtp ? "Enabled" : "Disabled");
@@ -818,6 +821,8 @@ void menuDebugNetwork()
                     settings.networkClientWriteTimeout_ms = newDelay;
             }
         }
+        else if (incoming == 13)
+            settings.debugAppleAccessory ^= 1;
         else if (incoming == 20)
             settings.debugNtp ^= 1;
         else if (incoming == 21)
