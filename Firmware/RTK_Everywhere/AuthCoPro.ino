@@ -40,8 +40,10 @@ void beginAuthCoPro(TwoWire *i2cBus)
         return;
     }
 
-    if (settings.debugNetworkLayer)
-        appleAccessory->enableDebug(&Serial); // Enable debug prints to Serial
+    // Enable debug prints to Serial
+    // AppleAccessory gets its own debug enable. It's a LOT of debug...
+    if (settings.debugAppleAccessory)
+        appleAccessory->enableDebug(&Serial);
 
     // Pass Identity Information, Protocols and Names into the accessory driver
     appleAccessory->setAccessoryName((const char *)accessoryName);
