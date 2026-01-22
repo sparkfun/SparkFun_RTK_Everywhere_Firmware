@@ -135,11 +135,13 @@ void updateAuthCoPro()
                     bool handshakeReceived = false;
                     appleAccessory->startHandshake((Stream *)bluetoothSerialSpp); // Start the handshake
 
+                    // AppleAccessory uses a handshake timeout of 1000ms. One retry is permitted (with v3.1.2).
+                    // So we use a 2200ms timeout here
                     do {
                         appleAccessory->update(); // Update the Accessory driver
                         handshakeReceived = appleAccessory->handshakeReceived(); // One-shot
                         delay(50);
-                    } while (!handshakeReceived && ((millis() - handshakeStart) < 2000));
+                    } while (!handshakeReceived && ((millis() - handshakeStart) < 2200));
 
                     if (handshakeReceived)
                     {
