@@ -802,6 +802,7 @@ struct Settings
     char mdnsHostName[50] = "rtk";
 
     // Network layer
+    bool debugAppleAccessory = false;  // Enable debugging of the AppleAccessory
     bool debugNetworkLayer = false;    // Enable debugging of the network layer
     bool printNetworkStatus = true;    // Print network status (delays, failovers, IP address)
     // networkClient _timeout in ms (lib default is 3000). This limits write glitches to about 3.4s
@@ -1477,6 +1478,7 @@ const RTK_Settings_Entry rtkSettingsEntries[] =
     { 0, 1, 0, 1, 1, 1, 1, 1, 1, ALL, 1, tCharArry, sizeof(settings.mdnsHostName), & settings.mdnsHostName, "mdnsHostName", nullptr, },
 
     // Network layer
+    { 0, 0, 0, 1, 1, 1, 1, 1, 1, ALL, 1, _bool,     0, & settings.debugAppleAccessory, "debugAppleAccessory", nullptr, },
     { 0, 0, 0, 1, 1, 1, 1, 1, 1, ALL, 1, _bool,     0, & settings.debugNetworkLayer, "debugNetworkLayer", nullptr, },
     { 0, 0, 0, 1, 1, 1, 1, 1, 1, ALL, 1, _bool,     0, & settings.printNetworkStatus, "printNetworkStatus", nullptr, },
     { 0, 0, 0, 1, 1, 1, 1, 1, 1, ALL, 1, _uint32_t, 0, & settings.networkClientWriteTimeout_ms, "networkClientWriteTimeout", nullptr, },
