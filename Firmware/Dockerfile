@@ -84,7 +84,7 @@ RUN arduino-cli lib install "SparkFun IM19 IMU Arduino Library"@1.0.1
 RUN arduino-cli lib install "SparkFun UM980 Triband RTK GNSS Arduino Library"@1.0.10
 RUN arduino-cli lib install "SparkFun LG290P Quadband RTK GNSS Arduino Library"@1.0.8
 RUN arduino-cli lib install "SparkFun I2C Expander Arduino Library"@1.0.1
-RUN arduino-cli lib install "SparkFun Apple Accessory Arduino Library"@3.1.1
+RUN arduino-cli lib install "SparkFun Apple Accessory Arduino Library"@3.1.2
 RUN arduino-cli lib install "SparkFun Authentication Coprocessor Arduino Library"@1.0.0
 RUN arduino-cli lib install "SparkFun Toolkit"@1.0.6
 
