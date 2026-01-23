@@ -497,6 +497,7 @@ void menuWiFi() {systemPrint("**Menu WiFi not compiled**");}
 //----------------------------------------
 
 #ifndef COMPILE_BT
+void    bluetoothApplySettings(BluetoothRadioType_e bluetoothUserChoice, bool clearBtPairings) {}
 int     bluetoothCommandAvailable() {return 0;}
 bool    bluetoothCommandIsConnected() {return false;}
 uint8_t bluetoothCommandRead() {return 0;}
@@ -508,6 +509,7 @@ uint8_t bluetoothRead() {return 0;}
 int     bluetoothRxDataAvailable() {return 0;}
 void    bluetoothSendBatteryPercent(int batteryLevelPercent) {}
 void    bluetoothStart() {}
+void    bluetoothStartWithSettings() {}
 void    bluetoothStartSkipOnlineCheck() {}
 void    bluetoothStop() {}
 void    bluetoothEnd() {}
