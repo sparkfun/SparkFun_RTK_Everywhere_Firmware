@@ -1449,9 +1449,6 @@ void setup()
     DMW_b("beginCharger");
     beginCharger(); // Configure battery charger
 
-    // DMW_b("gnss->configure");
-    // gnss->configure(); // Requires settings. Configure GNSS module
-
     DMW_b("beginExternalEvent");
     gnss->beginExternalEvent(); // Configure the event input
 
