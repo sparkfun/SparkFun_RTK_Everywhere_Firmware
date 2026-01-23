@@ -813,22 +813,22 @@ void bluetoothEndCommon(bool endMe)
 }
 
 // All calls to bluetoothStart and bluetoothStop should be performed through
-// bluetoothASettingsCommon. This allows the ESP32 to be restarted if needed
+// bluetoothApplySettingsCommon. This allows the ESP32 to be restarted if needed
 // when changing modes. If bluetoothEnd has been called, ESP32 is restarted by bluetoothStart.
 void bluetoothApplySettings(BluetoothRadioType_e bluetoothUserChoice, bool clearBtPairings)
 {
-    bluetoothASettingsCommon(bluetoothUserChoice, clearBtPairings, false);
+    bluetoothApplySettingsCommon(bluetoothUserChoice, clearBtPairings, false);
 }
 
 void bluetoothStartWithSettings()
 {
-    bluetoothASettingsCommon(settings.bluetoothRadioType, settings.clearBtPairings, true);
+    bluetoothApplySettingsCommon(settings.bluetoothRadioType, settings.clearBtPairings, true);
 }
 
 // Update Bluetooth radio if settings have _changed_. Or, if startWithSettings is true,
 // (re)start with the current settings. (This is really just bluetoothStart in disguise!)
 // (Previously, this was mmSetBluetoothProtocol in menuSupport)
-void bluetoothASettingsCommon(BluetoothRadioType_e bluetoothUserChoice, bool clearBtPairings, bool startWithSettings)
+void bluetoothApplySettingsCommon(BluetoothRadioType_e bluetoothUserChoice, bool clearBtPairings, bool startWithSettings)
 {
     if (startWithSettings ||
         ((bluetoothUserChoice != settings.bluetoothRadioType) || (clearBtPairings != settings.clearBtPairings)))
