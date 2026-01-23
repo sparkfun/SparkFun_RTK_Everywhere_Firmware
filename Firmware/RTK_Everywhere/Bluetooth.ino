@@ -461,18 +461,16 @@ static void esp_sdp_callback(esp_sdp_cb_event_t event, esp_sdp_cb_param_t *param
     }
 }
 
-// Begin Bluetooth with a broadcast name of 'SparkFun Postcard-XXXX' or 'SparkPNT Facet mosaicX5-XXXX'
-// Add 4 characters of device's MAC address to end of the broadcast name
-// This allows users to discern between multiple devices in the local area
+// Begin Bluetooth
 void bluetoothStart()
 {
-    bluetoothStart(false);
+    bluetoothStart(true); // Do an online check before (re)starting
 }
 void bluetoothStartSkipOnlineCheck()
 {
-    bluetoothStart(true);
+    bluetoothStart(false); // Skip the online check, (re)start Bluetooth
 }
-void bluetoothStart(bool skipOnlineCheck)
+void bluetoothStart(bool onlineCheck)
 {
     if (settings.bluetoothRadioType == BLUETOOTH_RADIO_OFF)
         return;
@@ -485,12 +483,10 @@ void bluetoothStart(bool skipOnlineCheck)
         ESP.restart();
     }
 
-    if (!skipOnlineCheck)
+    if (onlineCheck == true)
     {
         if (online.bluetooth)
-        {
-            return;
-        }
+            return; // No need to mess with Bluetooth, it's already online.
     }
 
     bluetoothState = BT_OFF; // Indicate to tasks that BT is unavailable
