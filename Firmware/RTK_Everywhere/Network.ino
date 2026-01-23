@@ -2488,9 +2488,9 @@ void networkUpdate()
     DMW_n("ntpServerUpdate");
     ntpServerUpdate(); // Process any received NTP requests
     DMW_n("ntripClientUpdate");
-    ntripClientUpdate(); // Check the NTRIP client connection and move data NTRIP --> ZED
+    ntripClientUpdate(); // Check the NTRIP client connection and move data NTRIP --> GNSS
     DMW_n("ntripServerUpdate");
-    ntripServerUpdate(); // Check the NTRIP server connection and move data ZED --> NTRIP
+    ntripServerUpdate(); // Check the NTRIP server connection and move data GNSS --> NTRIP
     DMW_n("tcpClientUpdate");
     tcpClientUpdate(); // Turn on the TCP client as needed
     DMW_n("tcpServerUpdate");
