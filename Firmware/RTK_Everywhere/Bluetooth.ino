@@ -812,28 +812,31 @@ void bluetoothEndCommon(bool endMe)
     bluetoothIncomingRTCM = false;
 }
 
-// Update Bluetooth radio if settings have changed
-// (Previously, this was mmSetBluetoothProtocol in menuSupport)
+// All calls to bluetoothStart and bluetoothStop should be performed through
+// applyBluetoothSettingsCommon. This allows the ESP32 to be restarted if needed
+// when changing modes. If bluetoothEnd has been called, ESP32 is restarted by bluetoothStart.
 void applyBluetoothSettings(BluetoothRadioType_e bluetoothUserChoice, bool clearBtPairings)
 {
     applyBluetoothSettingsCommon(bluetoothUserChoice, clearBtPairings, false);
 }
-void applyBluetoothSettingsForce(BluetoothRadioType_e bluetoothUserChoice, bool clearBtPairings)
+void startBluetoothWithSettings()
 {
-    applyBluetoothSettingsCommon(bluetoothUserChoice, clearBtPairings, true);
+    applyBluetoothSettingsCommon(settings.bluetoothRadioType, settings.clearBtPairings, true);
 }
-void applyBluetoothSettingsCommon(BluetoothRadioType_e bluetoothUserChoice, bool clearBtPairings, bool force)
+// Update Bluetooth radio if settings have _changed_. Or, if startWithSettings is true,
+// (re)start with the current settings. (This is really just bluetoothStart in disguise!)
+// (Previously, this was mmSetBluetoothProtocol in menuSupport)
+void applyBluetoothSettingsCommon(BluetoothRadioType_e bluetoothUserChoice, bool clearBtPairings, bool startWithSettings)
 {
-    if (force ||
+    if (startWithSettings ||
         ((bluetoothUserChoice != settings.bluetoothRadioType) || (clearBtPairings != settings.clearBtPairings)))
     {
         // To avoid connection failures, we may need to restart the ESP32
 
-        // If force is true then (re)start
-        if (force)
+        // If startWithSettings is true then (re)start with the current settings
+        if (startWithSettings)
         {
-            bluetoothStop();                 // This does nothing if bluetooth is not online
-            bluetoothStartSkipOnlineCheck(); // Always start, even if online
+            bluetoothStart();
             return;
         }
         // If Bluetooth was on, and the user has selected OFF, then just stop
