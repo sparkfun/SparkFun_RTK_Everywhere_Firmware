@@ -493,196 +493,192 @@ void bluetoothStart(bool skipOnlineCheck)
         }
     }
 
-    {                            // Maintain the indentation for now. TODO: delete the braces and correct indentation
-        bluetoothState = BT_OFF; // Indicate to tasks that BT is unavailable
+    bluetoothState = BT_OFF; // Indicate to tasks that BT is unavailable
 
-        // Select Bluetooth setup
-        if (settings.bluetoothRadioType == BLUETOOTH_RADIO_SPP_AND_BLE)
+    // Select Bluetooth setup
+    if (settings.bluetoothRadioType == BLUETOOTH_RADIO_SPP_AND_BLE)
+    {
+        if (bluetoothSerialSpp == nullptr)
+            bluetoothSerialSpp = new BTClassicSerial();
+        if (bluetoothSerialBle == nullptr)
+            bluetoothSerialBle = new BTLESerial();
+        if (bluetoothSerialBleCommands == nullptr)
+            bluetoothSerialBleCommands = new BTLESerial();
+    }
+    else if (settings.bluetoothRadioType == BLUETOOTH_RADIO_SPP)
+    {
+        if (bluetoothSerialSpp == nullptr)
+            bluetoothSerialSpp = new BTClassicSerial();
+    }
+    else if (settings.bluetoothRadioType == BLUETOOTH_RADIO_BLE)
+    {
+        if (bluetoothSerialBle == nullptr)
+            bluetoothSerialBle = new BTLESerial();
+        if (bluetoothSerialBleCommands == nullptr)
+            bluetoothSerialBleCommands = new BTLESerial();
+    }
+
+    // Not yet implemented
+    //  if (pinBluetoothTaskHandle == nullptr)
+    //      xTaskCreatePinnedToCore(
+    //          pinBluetoothTask,
+    //          "BluetoothStart", // Just for humans
+    //          2000,        // Stack Size
+    //          nullptr,     // Task input parameter
+    //          0,           // Priority, with 3 (configMAX_PRIORITIES - 1) being the highest, and 0 being the
+    //          lowest &pinBluetoothTaskHandle,              // Task handle settings.bluetoothInterruptsCore); //
+    //          Core where task should run, 0=core, 1=Arduino
+
+    // while (bluetoothPinned == false) // Wait for task to run once
+    //     delay(1);
+
+    bool beginSuccess = true;
+    if (settings.bluetoothRadioType == BLUETOOTH_RADIO_SPP_AND_BLE)
+    {
+        sppAccessoryMode = false; // This is set later by updateAuthCoPro()
+
+        // Enable secure pairing without PIN
+        bluetoothSerialSpp->enableSSP(false, false);
+
+        beginSuccess &= bluetoothSerialSpp->begin(
+            deviceName, false, false, settings.sppRxQueueSize, settings.sppTxQueueSize, 0, 0,
+            0); // localName, isMaster, disableBLE, rxBufferSize, txBufferSize, serviceID, rxID, txID
+
+        if (beginSuccess)
         {
-            if (bluetoothSerialSpp == nullptr)
-                bluetoothSerialSpp = new BTClassicSerial();
-            if (bluetoothSerialBle == nullptr)
-                bluetoothSerialBle = new BTLESerial();
-            if (bluetoothSerialBleCommands == nullptr)
-                bluetoothSerialBleCommands = new BTLESerial();
-        }
-        else if (settings.bluetoothRadioType == BLUETOOTH_RADIO_SPP)
-        {
-            if (bluetoothSerialSpp == nullptr)
-                bluetoothSerialSpp = new BTClassicSerial();
-        }
-        else if (settings.bluetoothRadioType == BLUETOOTH_RADIO_BLE)
-        {
-            if (bluetoothSerialBle == nullptr)
-                bluetoothSerialBle = new BTLESerial();
-            if (bluetoothSerialBleCommands == nullptr)
-                bluetoothSerialBleCommands = new BTLESerial();
-        }
-
-        // Not yet implemented
-        //  if (pinBluetoothTaskHandle == nullptr)
-        //      xTaskCreatePinnedToCore(
-        //          pinBluetoothTask,
-        //          "BluetoothStart", // Just for humans
-        //          2000,        // Stack Size
-        //          nullptr,     // Task input parameter
-        //          0,           // Priority, with 3 (configMAX_PRIORITIES - 1) being the highest, and 0 being the
-        //          lowest &pinBluetoothTaskHandle,              // Task handle settings.bluetoothInterruptsCore); //
-        //          Core where task should run, 0=core, 1=Arduino
-
-        // while (bluetoothPinned == false) // Wait for task to run once
-        //     delay(1);
-
-        bool beginSuccess = true;
-        if (settings.bluetoothRadioType == BLUETOOTH_RADIO_SPP_AND_BLE)
-        {
-            sppAccessoryMode = false; // This is set later by updateAuthCoPro()
-
-            // Enable secure pairing without PIN
-            bluetoothSerialSpp->enableSSP(false, false);
-
-            beginSuccess &= bluetoothSerialSpp->begin(
-                deviceName, false, false, settings.sppRxQueueSize, settings.sppTxQueueSize, 0, 0,
-                0); // localName, isMaster, disableBLE, rxBufferSize, txBufferSize, serviceID, rxID, txID
-
-            if (beginSuccess)
+            if (settings.clearBtPairings)
             {
-                if (settings.clearBtPairings)
-                {
-                    // Paired / bonded devices are stored in flash. Only a full flash erase
-                    // or deleteAllBondedDevices() will clear them all. They can be deleted
-                    // individually, but that would need a menu and more functions added to
-                    // the BT classes.
-                    // Deleting all bonded devices after a factory reset seems sensible.
-                    // TODO: test all the possibilities / overlap of this and "Forget Device"
-                    if (settings.debugNetworkLayer)
-                        systemPrintln("Deleting all bonded devices");
-                    bluetoothSerialSpp->deleteAllBondedDevices(); // Must be called after begin
-                    settings.clearBtPairings = false;
-                    recordSystemSettings();
-                }
-
-                // The SDP callback will create the iAP2 record
-                esp_sdp_register_callback(esp_sdp_callback);
-                esp_sdp_init();
+                // Paired / bonded devices are stored in flash. Only a full flash erase
+                // or deleteAllBondedDevices() will clear them all. They can be deleted
+                // individually, but that would need a menu and more functions added to
+                // the BT classes.
+                // Deleting all bonded devices after a factory reset seems sensible.
+                // TODO: test all the possibilities / overlap of this and "Forget Device"
+                if (settings.debugNetworkLayer)
+                    systemPrintln("Deleting all bonded devices");
+                bluetoothSerialSpp->deleteAllBondedDevices(); // Must be called after begin
+                settings.clearBtPairings = false;
+                recordSystemSettings();
             }
 
-            beginSuccess &= bluetoothSerialBle->begin(
-                deviceName, false, false, settings.sppRxQueueSize, settings.sppTxQueueSize, BLE_SERVICE_UUID,
-                BLE_RX_UUID,
-                BLE_TX_UUID); // localName, isMaster, disableBLE, rxBufferSize, txBufferSize, serviceID, rxID, txID
-
-            beginSuccess &= bluetoothSerialBleCommands->begin(
-                deviceName, false, false, settings.sppRxQueueSize, settings.sppTxQueueSize, BLE_COMMAND_SERVICE_UUID,
-                BLE_COMMAND_RX_UUID, BLE_COMMAND_TX_UUID); // localName, isMaster, disableBLE, rxBufferSize,
-                                                           // txBufferSize, serviceID, rxID, txID
-            bluetoothBatteryService.begin();
-        }
-        else if (settings.bluetoothRadioType == BLUETOOTH_RADIO_SPP)
-        {
-            // Disable BLE
-            beginSuccess &= bluetoothSerialSpp->begin(
-                deviceName, false, true, settings.sppRxQueueSize, settings.sppTxQueueSize, 0, 0,
-                0); // localName, isMaster, disableBLE, rxBufferSize, txBufferSize, serviceID, rxID, txID
-        }
-        else if (settings.bluetoothRadioType == BLUETOOTH_RADIO_BLE)
-        {
-            // Don't disable BLE
-            beginSuccess &= bluetoothSerialBle->begin(
-                deviceName, false, false, settings.sppRxQueueSize, settings.sppTxQueueSize, BLE_SERVICE_UUID,
-                BLE_RX_UUID,
-                BLE_TX_UUID); // localName, isMaster, disableBLE, rxBufferSize, txBufferSize, serviceID, rxID, txID
-
-            beginSuccess &= bluetoothSerialBleCommands->begin(
-                deviceName, false, false, settings.sppRxQueueSize, settings.sppTxQueueSize, BLE_COMMAND_SERVICE_UUID,
-                BLE_COMMAND_RX_UUID, BLE_COMMAND_TX_UUID); // localName, isMaster, disableBLE, rxBufferSize,
-            // txBufferSize, serviceID, rxID, txID
-
-            bluetoothBatteryService.begin();
+            // The SDP callback will create the iAP2 record
+            esp_sdp_register_callback(esp_sdp_callback);
+            esp_sdp_init();
         }
 
-        if (beginSuccess == false)
-        {
-            systemPrintln("An error occurred initializing Bluetooth");
-            bluetoothLedOff();
-            return;
-        }
-        // Set PIN to 1234 so we can connect to older BT devices, but not require a PIN for modern device pairing
-        // See issue: https://github.com/sparkfun/SparkFun_RTK_Firmware/issues/5
-        // https://github.com/espressif/esp-idf/issues/1541
-        //-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
-        /*
-        // Note: Since version 3.0.0 this library does not support legacy pairing (using fixed PIN consisting of 4
-        digits). esp_bt_sp_param_t param_type = ESP_BT_SP_IOCAP_MODE;
+        beginSuccess &= bluetoothSerialBle->begin(
+            deviceName, false, false, settings.sppRxQueueSize, settings.sppTxQueueSize, BLE_SERVICE_UUID, BLE_RX_UUID,
+            BLE_TX_UUID); // localName, isMaster, disableBLE, rxBufferSize, txBufferSize, serviceID, rxID, txID
 
-        esp_bt_io_cap_t iocap = ESP_BT_IO_CAP_NONE; // Requires pin 1234 on old BT dongle, No prompt on new BT dongle
-        // esp_bt_io_cap_t iocap = ESP_BT_IO_CAP_OUT; //Works but prompts for either pin (old) or 'Does this 6 pin
-        // appear on the device?' (new)
+        beginSuccess &= bluetoothSerialBleCommands->begin(
+            deviceName, false, false, settings.sppRxQueueSize, settings.sppTxQueueSize, BLE_COMMAND_SERVICE_UUID,
+            BLE_COMMAND_RX_UUID, BLE_COMMAND_TX_UUID); // localName, isMaster, disableBLE, rxBufferSize,
+                                                       // txBufferSize, serviceID, rxID, txID
+        bluetoothBatteryService.begin();
+    }
+    else if (settings.bluetoothRadioType == BLUETOOTH_RADIO_SPP)
+    {
+        // Disable BLE
+        beginSuccess &= bluetoothSerialSpp->begin(
+            deviceName, false, true, settings.sppRxQueueSize, settings.sppTxQueueSize, 0, 0,
+            0); // localName, isMaster, disableBLE, rxBufferSize, txBufferSize, serviceID, rxID, txID
+    }
+    else if (settings.bluetoothRadioType == BLUETOOTH_RADIO_BLE)
+    {
+        // Don't disable BLE
+        beginSuccess &= bluetoothSerialBle->begin(
+            deviceName, false, false, settings.sppRxQueueSize, settings.sppTxQueueSize, BLE_SERVICE_UUID, BLE_RX_UUID,
+            BLE_TX_UUID); // localName, isMaster, disableBLE, rxBufferSize, txBufferSize, serviceID, rxID, txID
 
-        esp_bt_gap_set_security_param(param_type, &iocap, sizeof(uint8_t));
+        beginSuccess &= bluetoothSerialBleCommands->begin(
+            deviceName, false, false, settings.sppRxQueueSize, settings.sppTxQueueSize, BLE_COMMAND_SERVICE_UUID,
+            BLE_COMMAND_RX_UUID, BLE_COMMAND_TX_UUID); // localName, isMaster, disableBLE, rxBufferSize,
+        // txBufferSize, serviceID, rxID, txID
 
-        esp_bt_pin_type_t pin_type = ESP_BT_PIN_TYPE_FIXED;
-        esp_bt_pin_code_t pin_code;
-        pin_code[0] = '1';
-        pin_code[1] = '2';
-        pin_code[2] = '3';
-        pin_code[3] = '4';
-        esp_bt_gap_set_pin(pin_type, 4, pin_code);
-        */
-        //-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+        bluetoothBatteryService.begin();
+    }
 
-        if (settings.bluetoothRadioType == BLUETOOTH_RADIO_SPP_AND_BLE)
-        {
-            // Bluetooth callbacks are handled by bluetoothUpdate()
-            bluetoothSerialSpp->setTimeout(250);
-            bluetoothSerialBle->setTimeout(10);         // Using 10 from BleSerial example
-            bluetoothSerialBleCommands->setTimeout(10); // Using 10 from BleSerial example
-        }
-        else if (settings.bluetoothRadioType == BLUETOOTH_RADIO_SPP)
-        {
-            // Bluetooth callbacks are handled by bluetoothUpdate()
-            bluetoothSerialSpp->setTimeout(250);
-        }
-        else if (settings.bluetoothRadioType == BLUETOOTH_RADIO_BLE)
-        {
-            // Bluetooth callbacks are handled by bluetoothUpdate()
-            bluetoothSerialBle->setTimeout(10);
-            bluetoothSerialBleCommands->setTimeout(10); // Using 10 from BleSerial example
-        }
+    if (beginSuccess == false)
+    {
+        systemPrintln("An error occurred initializing Bluetooth");
+        bluetoothLedOff();
+        return;
+    }
+    // Set PIN to 1234 so we can connect to older BT devices, but not require a PIN for modern device pairing
+    // See issue: https://github.com/sparkfun/SparkFun_RTK_Firmware/issues/5
+    // https://github.com/espressif/esp-idf/issues/1541
+    //-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+    /*
+    // Note: Since version 3.0.0 this library does not support legacy pairing (using fixed PIN consisting of 4
+    digits). esp_bt_sp_param_t param_type = ESP_BT_SP_IOCAP_MODE;
 
-        if (settings.bluetoothRadioType == BLUETOOTH_RADIO_SPP_AND_BLE)
-            systemPrintf("Bluetooth SPP and BLE broadcasting as: %s\r\n", deviceName);
-        else if (settings.bluetoothRadioType == BLUETOOTH_RADIO_SPP)
-            systemPrintf("Bluetooth SPP broadcasting as: %s\r\n", deviceName);
-        else if (settings.bluetoothRadioType == BLUETOOTH_RADIO_BLE)
-            systemPrintf("Bluetooth Low-Energy broadcasting as: %s\r\n", deviceName);
+    esp_bt_io_cap_t iocap = ESP_BT_IO_CAP_NONE; // Requires pin 1234 on old BT dongle, No prompt on new BT dongle
+    // esp_bt_io_cap_t iocap = ESP_BT_IO_CAP_OUT; //Works but prompts for either pin (old) or 'Does this 6 pin
+    // appear on the device?' (new)
 
-        if (pin_bluetoothStatusLED != PIN_UNDEFINED)
-        {
-            bluetoothLedTask.detach(); // Reset BT LED blinker task rate to 2Hz
-            bluetoothLedTask.attach(bluetoothLedTaskPace2Hz, tickerBluetoothLedUpdate); // Rate in seconds, callback
-        }
+    esp_bt_gap_set_security_param(param_type, &iocap, sizeof(uint8_t));
 
-        // Start BLE Command Task if BLE is enabled
-        if (settings.bluetoothRadioType == BLUETOOTH_RADIO_SPP_AND_BLE ||
-            settings.bluetoothRadioType == BLUETOOTH_RADIO_BLE)
-        {
-            if (bluetoothCommandTaskHandle == nullptr)
-                xTaskCreatePinnedToCore(
-                    bluetoothCommandTask,   // Function to run
-                    "BluetoothCommandTask", // Just for humans
-                    4000,                   // Stack Size - must be ~4000
-                    nullptr,                // Task input parameter
-                    0, // Priority, with 3 (configMAX_PRIORITIES - 1) being the highest, and 0 being the lowest
-                    &bluetoothCommandTaskHandle,       // Task handle
-                    settings.bluetoothInterruptsCore); // Core where task should run, 0 = core, 1 = Arduino
-        }
+    esp_bt_pin_type_t pin_type = ESP_BT_PIN_TYPE_FIXED;
+    esp_bt_pin_code_t pin_code;
+    pin_code[0] = '1';
+    pin_code[1] = '2';
+    pin_code[2] = '3';
+    pin_code[3] = '4';
+    esp_bt_gap_set_pin(pin_type, 4, pin_code);
+    */
+    //-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 
-        bluetoothState = BT_NOTCONNECTED;
-        reportHeapNow(false);
-        online.bluetooth = true;
-        bluetoothRadioPreviousOnType = settings.bluetoothRadioType;
-    } // if (1)
+    if (settings.bluetoothRadioType == BLUETOOTH_RADIO_SPP_AND_BLE)
+    {
+        // Bluetooth callbacks are handled by bluetoothUpdate()
+        bluetoothSerialSpp->setTimeout(250);
+        bluetoothSerialBle->setTimeout(10);         // Using 10 from BleSerial example
+        bluetoothSerialBleCommands->setTimeout(10); // Using 10 from BleSerial example
+    }
+    else if (settings.bluetoothRadioType == BLUETOOTH_RADIO_SPP)
+    {
+        // Bluetooth callbacks are handled by bluetoothUpdate()
+        bluetoothSerialSpp->setTimeout(250);
+    }
+    else if (settings.bluetoothRadioType == BLUETOOTH_RADIO_BLE)
+    {
+        // Bluetooth callbacks are handled by bluetoothUpdate()
+        bluetoothSerialBle->setTimeout(10);
+        bluetoothSerialBleCommands->setTimeout(10); // Using 10 from BleSerial example
+    }
+
+    if (settings.bluetoothRadioType == BLUETOOTH_RADIO_SPP_AND_BLE)
+        systemPrintf("Bluetooth SPP and BLE broadcasting as: %s\r\n", deviceName);
+    else if (settings.bluetoothRadioType == BLUETOOTH_RADIO_SPP)
+        systemPrintf("Bluetooth SPP broadcasting as: %s\r\n", deviceName);
+    else if (settings.bluetoothRadioType == BLUETOOTH_RADIO_BLE)
+        systemPrintf("Bluetooth Low-Energy broadcasting as: %s\r\n", deviceName);
+
+    if (pin_bluetoothStatusLED != PIN_UNDEFINED)
+    {
+        bluetoothLedTask.detach(); // Reset BT LED blinker task rate to 2Hz
+        bluetoothLedTask.attach(bluetoothLedTaskPace2Hz, tickerBluetoothLedUpdate); // Rate in seconds, callback
+    }
+
+    // Start BLE Command Task if BLE is enabled
+    if (settings.bluetoothRadioType == BLUETOOTH_RADIO_SPP_AND_BLE ||
+        settings.bluetoothRadioType == BLUETOOTH_RADIO_BLE)
+    {
+        if (bluetoothCommandTaskHandle == nullptr)
+            xTaskCreatePinnedToCore(
+                bluetoothCommandTask,   // Function to run
+                "BluetoothCommandTask", // Just for humans
+                4000,                   // Stack Size - must be ~4000
+                nullptr,                // Task input parameter
+                0, // Priority, with 3 (configMAX_PRIORITIES - 1) being the highest, and 0 being the lowest
+                &bluetoothCommandTaskHandle,       // Task handle
+                settings.bluetoothInterruptsCore); // Core where task should run, 0 = core, 1 = Arduino
+    }
+
+    bluetoothState = BT_NOTCONNECTED;
+    reportHeapNow(false);
+    online.bluetooth = true;
+    bluetoothRadioPreviousOnType = settings.bluetoothRadioType;
 }
 
 // Assign Bluetooth interrupts to the core that started the task. See:
@@ -828,7 +824,8 @@ void bluetoothStartWithSettings()
 // Update Bluetooth radio if settings have _changed_. Or, if startWithSettings is true,
 // (re)start with the current settings. (This is really just bluetoothStart in disguise!)
 // (Previously, this was mmSetBluetoothProtocol in menuSupport)
-void bluetoothApplySettingsCommon(BluetoothRadioType_e bluetoothUserChoice, bool clearBtPairings, bool startWithSettings)
+void bluetoothApplySettingsCommon(BluetoothRadioType_e bluetoothUserChoice, bool clearBtPairings,
+                                  bool startWithSettings)
 {
     if (startWithSettings ||
         ((bluetoothUserChoice != settings.bluetoothRadioType) || (clearBtPairings != settings.clearBtPairings)))
