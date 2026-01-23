@@ -266,6 +266,22 @@ void systemPrintln()
     systemPrint("\r\n");
 }
 
+// Print a buffer, using chunks as necessary
+void systemPrintBufferToConsole(const uint8_t *buffer, int length)
+{
+    size_t bytesWritten = 0;
+    const size_t chunk = 256;
+    while (bytesWritten < (size_t)length)
+    {
+        size_t bytesToWrite = (size_t)length - bytesWritten;
+        if (bytesToWrite > chunk) // Chunkify
+            bytesToWrite = chunk;
+        Serial.write(buffer + bytesWritten, bytesToWrite);
+        bytesWritten += bytesToWrite;
+    }
+    //Serial.println();
+}
+
 // Option not known
 void printUnknown(uint8_t unknownChoice)
 {
