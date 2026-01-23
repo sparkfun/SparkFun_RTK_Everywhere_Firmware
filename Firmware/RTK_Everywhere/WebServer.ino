@@ -864,11 +864,21 @@ void webServerGetFileList(String &returnText)
 
     // Update the SD Size and Free Space
     String cardSize;
-    stringHumanReadableSize(cardSize, sdCardSize);
-    returnText += "sdSize," + cardSize + ",";
     String freeSpace;
-    stringHumanReadableSize(freeSpace, sdFreeSpace);
-    returnText += "sdFreeSpace," + freeSpace + ",";
+    if (present.microSd)
+    {
+        stringHumanReadableSize(cardSize, sdCardSize);
+        returnText += "sdSize," + cardSize + ",";
+        stringHumanReadableSize(freeSpace, sdFreeSpace);
+        returnText += "sdFreeSpace," + freeSpace + ",";
+    }
+    else if (present.mosaicMicroSd)
+    {
+        stringHumanReadableSize(cardSize, mosaicSdCardSize);
+        returnText += "sdSize," + cardSize + ",";
+        stringHumanReadableSize(freeSpace, mosaicSdFreeSpace);
+        returnText += "sdFreeSpace," + freeSpace + ",";
+    }
 
     char fileName[50]; // Handle long file names
 

@@ -901,6 +901,7 @@ uint32_t lastPrintPosition;   // For periodic display of the position
 uint64_t lastLogSize = 0;
 bool logIncreasing; // Goes true when log file is greater than lastLogSize or logPosition changes
 bool reuseLastLog;  // Goes true if we have a reset due to software (rather than POR)
+bool logMosaicIncreasing; // Goes true when the mosaic SD log is increasing
 
 uint16_t rtcmPacketsSent;    // Used to count RTCM packets sent via processRTCM()
 uint32_t rtcmLastPacketSent; // Time stamp of RTCM going out (to NTRIP Server, ESP-NOW, etc)

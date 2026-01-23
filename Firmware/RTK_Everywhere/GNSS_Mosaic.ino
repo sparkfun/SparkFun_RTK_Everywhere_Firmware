@@ -2673,12 +2673,6 @@ void GNSS_MOSAIC::storeBlock4059(SEMP_PARSE_STATE *parse)
 
     mosaicSdFreeSpace = mosaicSdCardSize - diskUsage;
 
-    if (!present.microSd) // Overwrite - if this is the only SD card
-    {
-        sdCardSize = mosaicSdCardSize;
-        sdFreeSpace = mosaicSdFreeSpace;
-    }
-
     _diskStatusSeen = true;
 }
 
@@ -2786,47 +2780,53 @@ void GNSS_MOSAIC::update()
     // The only way to get the X5 to recognise the card seems to be to perform a soft reset.
     // Where should we perform the soft reset? updateSD seems the best place...
 
-    // Update the SD card size, free space and logIncreasing
+    // Update the SD card size, free space and logMosaicIncreasing
     static unsigned long sdCardSizeLastCheck = 0;
     const unsigned long sdCardSizeCheckInterval = 5000;   // Matches the interval in logUpdate
     static unsigned long sdCardLastFreeChange = millis(); // X5 is slow to update free. Seems to be about every ~20s?
-    static uint64_t previousFreeSpace = 0;
+    static uint64_t previousMosaicFreeSpace = 0;
     if ((millis() - sdCardSizeLastCheck) > sdCardSizeCheckInterval)
     {
         updateSD(); // Check if the card has been removed / inserted
 
         if (_diskStatusSeen) // Check if the DiskStatus SBF message has been seen
         {
-            // If previousFreeSpace hasn't been initialized, initialize it
-            if (previousFreeSpace == 0)
-                previousFreeSpace = sdFreeSpace;
+            // If previousMosaicFreeSpace hasn't been initialized, initialize it
+            if (previousMosaicFreeSpace == 0)
+                previousMosaicFreeSpace = mosaicSdFreeSpace;
 
-            if (sdFreeSpace < previousFreeSpace)
+            if (mosaicSdFreeSpace < previousMosaicFreeSpace)
             {
-                // The free space is decreasing, so set logIncreasing to true
-                previousFreeSpace = sdFreeSpace;
-                logIncreasing = true;
+                // The free space is decreasing, so set logMosaicIncreasing to true
+                previousMosaicFreeSpace = mosaicSdFreeSpace;
+                logMosaicIncreasing = true;
                 sdCardLastFreeChange = millis();
             }
-            else if (sdFreeSpace == previousFreeSpace)
+            else if (mosaicSdFreeSpace == previousMosaicFreeSpace)
             {
                 // The free space has not changed
                 // X5 is slow to update free. Seems to be about every ~20s?
-                // So only set logIncreasing to false after 30s
+                // So only set logMosaicIncreasing to false after 30s
                 if ((millis() - sdCardLastFreeChange) > 30000)
-                    logIncreasing = false;
+                {
+                    if (settings.enablePrintLogFileMessages)
+                        systemPrintln("mosaic-X5 update: log not increasing, _diskStatusSeen");
+                    logMosaicIncreasing = false;
+                }
             }
-            else // if (sdFreeSpace > previousFreeSpace)
+            else // if (mosaicSdFreeSpace > previousMosaicFreeSpace)
             {
                 // User must have inserted a new SD card?
-                previousFreeSpace = sdFreeSpace;
+                previousMosaicFreeSpace = mosaicSdFreeSpace;
             }
         }
         else
         {
             // Disk status not seen
             // (Unmounting the SD card will prevent _diskStatusSeen from going true)
-            logIncreasing = false;
+            if (settings.enablePrintLogFileMessages)
+                systemPrintln("mosaic-X5 update: log not increasing, !_diskStatusSeen");
+            logMosaicIncreasing = false;
         }
 
         sdCardSizeLastCheck = millis(); // Update the timer
