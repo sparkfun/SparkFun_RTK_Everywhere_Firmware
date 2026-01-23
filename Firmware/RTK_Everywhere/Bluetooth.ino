@@ -257,10 +257,16 @@ int bluetoothWrite(const uint8_t *buffer, int length)
     if (bluetoothGetState() == BT_OFF)
         return length; // Avoid buffer full warnings
 
+    // BLE write does not handle 0 length requests correctly
+    if (length == 0) // Nothing to do...
+        return 0;
+
     if (settings.bluetoothRadioType == BLUETOOTH_RADIO_SPP_AND_BLE)
     {
         // Write to both interfaces
+
         int bleWrite = bluetoothSerialBle->write(buffer, length);
+
         int sppWrite = 0;
         if (!sppAccessoryMode)
             sppWrite = bluetoothSerialSpp->write(buffer, length);
@@ -280,10 +286,14 @@ int bluetoothWrite(const uint8_t *buffer, int length)
     }
     else if (settings.bluetoothRadioType == BLUETOOTH_RADIO_BLE)
     {
-        // BLE write does not handle 0 length requests correctly
-        if (length > 0)
-            return bluetoothSerialBle->write(buffer, length);
-        return 0;
+        int written = bluetoothSerialBle->write(buffer, length);
+        if (settings.debugNetworkLayer && (written != length))
+            systemPrintf("BLE bluetoothWrite: wrote %d bytes of %d\r\n", written, length);
+
+        // Print the data being written to BLE, so we can compare it to the SW Maps Log File
+        //systemPrintBufferToConsole(buffer, length);
+
+        return (written);
     }
 
     return (0);
@@ -292,6 +302,10 @@ int bluetoothWrite(const uint8_t *buffer, int length)
 // Write data to the BLE Command interface
 int bluetoothCommandWrite(const uint8_t *buffer, int length)
 {
+    // BLE write does not handle 0 length requests correctly
+    if (length == 0) // Nothing to do...
+        return 0;
+
     if (settings.bluetoothRadioType == BLUETOOTH_RADIO_SPP_AND_BLE)
     {
         return (bluetoothSerialBleCommands->write(buffer, length));
@@ -303,10 +317,7 @@ int bluetoothCommandWrite(const uint8_t *buffer, int length)
     }
     else if (settings.bluetoothRadioType == BLUETOOTH_RADIO_BLE)
     {
-        // BLE write does not handle 0 length requests correctly
-        if (length > 0)
-            return bluetoothSerialBleCommands->write(buffer, length);
-        return 0;
+        return (bluetoothSerialBleCommands->write(buffer, length));
     }
 
     return (0);
