@@ -115,6 +115,9 @@ RUN cd ./Tools \
     && python3 index_html_zipper.py ../RTK_Everywhere/AP-Config/index.html ../RTK_Everywhere/form.h \
     && python3 main_js_zipper.py ../RTK_Everywhere/AP-Config/src/main.js ../RTK_Everywhere/form.h
 
+# Patch ESP32_BleSerial - remove the BLE multiple write characteristics
+RUN sed -i 's|txCharacteristic->setWriteNoResponseProperty(true)|//txCharacteristic->setWriteNoResponseProperty(true)|g' /root/Arduino/libraries/ESP32_BleSerial/src/BleBufferedSerial.cpp
+
 # Copy custom RTKEverywhere.csv
 # Use the 16MB version
 RUN cp RTKEverywhere.csv "/root/.arduino15/packages/esp32/hardware/esp32/${CORE_VERSION}/tools/partitions/RTKEverywhere.csv"

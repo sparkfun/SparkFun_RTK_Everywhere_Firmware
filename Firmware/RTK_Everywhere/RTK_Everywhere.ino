@@ -1643,8 +1643,26 @@ void waitingForMenuInput()
     DMW_w("logUpdate");
     logUpdate(); // Record any new data. Create or close files as needed.
 
-    DMW_w("networkUpdate"); // Maintain the network connections
-    networkUpdate(); // This calls ntpServerUpdate and pushGPGGA (via ntripClientUpdate)
+    // Update the network services
+    // Don't call networkUpdate() here. It will spin up WiFi for NTRIP etc. before we're ready
+    DMW_w("mqttClientUpdate");
+    mqttClientUpdate(); // Process any Point Perfect MQTT messages
+    DMW_w("ntpServerUpdate");
+    ntpServerUpdate(); // Process any received NTP requests
+    DMW_w("ntripClientUpdate");
+    ntripClientUpdate(); // Check the NTRIP client connection and move data NTRIP --> GNSS
+    DMW_w("ntripServerUpdate");
+    ntripServerUpdate(); // Check the NTRIP server connection and move data GNSS --> NTRIP
+    DMW_w("tcpClientUpdate");
+    tcpClientUpdate(); // Turn on the TCP client as needed
+    DMW_w("tcpServerUpdate");
+    tcpServerUpdate(); // Turn on the TCP server as needed
+    DMW_w("udpServerUpdate");
+    udpServerUpdate(); // Turn on the UDP server as needed
+    DMW_w("httpClientUpdate");
+    httpClientUpdate(); // Process any Point Perfect HTTP messages
+    DMW_w("webServerUpdate");
+    webServerUpdate(); // Start webServer for web config as needed
 
     DMW_w("updateAuthCoPro");
     updateAuthCoPro(); // Keep the AuthCoPro iAP2 machine running
