@@ -359,7 +359,7 @@ void recordSystemSettingsToFile(File *settingsFile)
             for (int x = 0; x < rtkSettingsEntries[i].qualifier; x++)
             {
                 char tempString[50]; // espnowPeer_1=B4:C1:33:42:DE:01,
-                snprintf(tempString, sizeof(tempString), "%s%d=%02X:%02X:%02X:%02X:%02X:%02X,",
+                snprintf(tempString, sizeof(tempString), "%s%d=%02X:%02X:%02X:%02X:%02X:%02X",
                          rtkSettingsEntries[i].name, x, settings.espnowPeers[x][0], settings.espnowPeers[x][1],
                          settings.espnowPeers[x][2], settings.espnowPeers[x][3], settings.espnowPeers[x][4],
                          settings.espnowPeers[x][5]);

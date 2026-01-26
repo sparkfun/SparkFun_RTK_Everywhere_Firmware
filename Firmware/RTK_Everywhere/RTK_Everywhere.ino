@@ -901,6 +901,7 @@ uint32_t lastPrintPosition;   // For periodic display of the position
 uint64_t lastLogSize = 0;
 bool logIncreasing; // Goes true when log file is greater than lastLogSize or logPosition changes
 bool reuseLastLog;  // Goes true if we have a reset due to software (rather than POR)
+bool logMosaicIncreasing; // Goes true when the mosaic SD log is increasing
 
 uint16_t rtcmPacketsSent;    // Used to count RTCM packets sent via processRTCM()
 uint32_t rtcmLastPacketSent; // Time stamp of RTCM going out (to NTRIP Server, ESP-NOW, etc)
@@ -1385,6 +1386,13 @@ void setup()
     DMW_b("gnssDetectReceiverType");
     gnssDetectReceiverType(); // If we don't know the receiver from the platform, auto-detect it. Uses settings.
 
+    // Check array defaults - after gnssDetectReceiverType() - before gnss->begin()
+    DMW_b("checkArrayDefaults");
+    checkArrayDefaults(); // Check for uninitialized arrays that won't be initialized by gnssConfigure
+                          // (checkGNSSArrayDefaults)
+    checkGNSSArrayDefaults(); // Check various setting arrays (message rates, etc) to see if they need to be reset to
+                              // defaults
+
     DMW_b("checkUpdateLoraFirmware");
     if (checkUpdateLoraFirmware() == true) // Check if updateLoraFirmware.txt exists
         beginLoraFirmwareUpdate(); // Needs I2C, GPIO Expander Switches, display, buttons, etc.
@@ -1409,7 +1417,7 @@ void setup()
     beginGnssUart2();
 
     DMW_b("gnss->begin");
-    gnss->begin(); // Requires settings. Connect to GNSS to get module type
+    gnss->begin(); // Requires settings - with array defaults
 
     DMW_b("beginRtcmParse");
     beginRtcmParse();
@@ -1422,13 +1430,6 @@ void setup()
 
     // DEBUG_NEARLY_EVERYTHING // Debug nearly all the things
     // DEBUG_THE_ESSENTIALS // Debug the essentials - handy for measuring the boot time after a factory reset
-
-    DMW_b("checkArrayDefaults");
-    checkArrayDefaults(); // Check for uninitialized arrays that won't be initialized by gnssConfigure
-                          // (checkGNSSArrayDefaults)
-
-    checkGNSSArrayDefaults(); // Check various setting arrays (message rates, etc) to see if they need to be reset to
-                              // defaults
 
     DMW_b("printPartitionTable");
     if (settings.printPartitionTable)

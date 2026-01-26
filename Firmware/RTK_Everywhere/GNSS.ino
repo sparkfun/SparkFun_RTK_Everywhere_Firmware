@@ -161,6 +161,16 @@ static const char *gnssConfigDisplayNames[] = {
 
 static const int gnssConfigStateEntries = sizeof(gnssConfigDisplayNames) / sizeof(gnssConfigDisplayNames[0]);
 
+// On platforms that support / need it (i.e. mosaic-X5), refresh the
+// COM port by sending an escape sequence or similar to make the
+// GNSS snap out of it...
+// Outputs:
+//   Returns true if successful and false upon failure
+bool GNSS::comPortRefresh()
+{
+    return true;
+}
+
 //----------------------------------------
 // Returns true if the antenna is shorted
 //----------------------------------------
@@ -443,16 +453,26 @@ void gnssUpdate()
 
         // If gnssConfigureRequest bits are still set, the next update will attempt to service them.
 
-        if (settings.gnssConfigureRequest != 0 && settings.debugGnssConfig)
+        if (settings.gnssConfigureRequest != 0)
         {
-            systemPrint("Remaining gnssConfigureRequest: ");
-
-            for (int x = 0; x < GNSS_CONFIG_MAX; x++)
+            if (settings.debugGnssConfig)
             {
-                if (gnssConfigureRequested(x))
-                    systemPrintf("%s ", gnssConfigDisplayNames[x]);
+                systemPrint("Remaining gnssConfigureRequest: ");
+
+                for (int x = 0; x < GNSS_CONFIG_MAX; x++)
+                {
+                    if (gnssConfigureRequested(x))
+                        systemPrintf("%s ", gnssConfigDisplayNames[x]);
+                }
+                systemPrintln();
             }
-            systemPrintln();
+
+            // On Facet FP mosaic-X5:
+            //   If NTRIP has been connected and corrections have been pushed to the GNSS over COM1
+            //   Then the corrections are stopped (e.g. NTRIP is disabled)
+            //   COM1 can ignore incoming commands and the above GNSS configuration fails with a timeout
+            //   The solution is to send the escape sequence
+            gnss->comPortRefresh();
         }
 
         // settings.gnssConfigureRequest was likely changed. Record the current config state to ESP32 NVM

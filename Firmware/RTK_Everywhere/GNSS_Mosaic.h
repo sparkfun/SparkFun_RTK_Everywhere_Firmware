@@ -604,6 +604,13 @@ class GNSS_MOSAIC : GNSS
 
     bool checkPPPRates();
 
+    // On platforms that support / need it (i.e. mosaic-X5), refresh the
+    // COM port by sending an escape sequence or similar to make the
+    // GNSS snap out of it...
+    // Outputs:
+    //   Returns true if successful and false upon failure
+    bool comPortRefresh();
+
     // Configure the Base
     // Outputs:
     //   Returns true if successfully configured and false upon failure

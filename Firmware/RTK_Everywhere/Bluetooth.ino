@@ -90,18 +90,20 @@ bool bluetoothIsConnected()
 
     if (settings.bluetoothRadioType == BLUETOOTH_RADIO_SPP_AND_BLE)
     {
-        if (bluetoothSerialSpp->connected() == true || bluetoothSerialBle->connected() == true ||
-            bluetoothSerialBleCommands->connected() == true)
+        if ((bluetoothSerialSpp && bluetoothSerialSpp->connected())
+            || (bluetoothSerialBle && bluetoothSerialBle->connected())
+            || (bluetoothSerialBleCommands && bluetoothSerialBleCommands->connected()))
             return (true);
     }
     else if (settings.bluetoothRadioType == BLUETOOTH_RADIO_SPP)
     {
-        if (bluetoothSerialSpp->connected() == true)
+        if (bluetoothSerialSpp && bluetoothSerialSpp->connected())
             return (true);
     }
     else if (settings.bluetoothRadioType == BLUETOOTH_RADIO_BLE)
     {
-        if (bluetoothSerialBle->connected() == true || bluetoothSerialBleCommands->connected() == true)
+        if ((bluetoothSerialBle && bluetoothSerialBle->connected())
+            || (bluetoothSerialBleCommands && bluetoothSerialBleCommands->connected()))
             return (true);
     }
 
@@ -116,8 +118,8 @@ bool bluetoothCommandIsConnected()
 
     if (settings.bluetoothRadioType == BLUETOOTH_RADIO_SPP_AND_BLE)
     {
-        if (bluetoothSerialBleCommands->connected() == true)
-            return (true);
+        if (bluetoothSerialBleCommands)
+            return (bluetoothSerialBleCommands->connected());
     }
     else if (settings.bluetoothRadioType == BLUETOOTH_RADIO_SPP)
     {
@@ -125,8 +127,8 @@ bool bluetoothCommandIsConnected()
     }
     else if (settings.bluetoothRadioType == BLUETOOTH_RADIO_BLE)
     {
-        if (bluetoothSerialBleCommands->connected() == true)
-            return (true);
+        if (bluetoothSerialBleCommands)
+            return (bluetoothSerialBleCommands->connected());
     }
 
     return (false);
@@ -149,7 +151,10 @@ int bluetoothRead(uint8_t *buffer, int length)
         int bytesRead = 0;
 
         // Give incoming BLE the priority
-        bytesRead = bluetoothSerialBle->readBytes(buffer, length);
+        if (bluetoothSerialBle)
+        {
+            bytesRead = bluetoothSerialBle->readBytes(buffer, length);
+        }
 
         if (bytesRead > 0)
             return (bytesRead);
@@ -158,12 +163,19 @@ int bluetoothRead(uint8_t *buffer, int length)
         if (sppAccessoryMode)
             return 0;
 
-        return (bluetoothSerialSpp->readBytes(buffer, length));
+        if (bluetoothSerialSpp)
+            return (bluetoothSerialSpp->readBytes(buffer, length));
     }
     else if (settings.bluetoothRadioType == BLUETOOTH_RADIO_SPP)
-        return bluetoothSerialSpp->readBytes(buffer, length);
+    {
+        if (bluetoothSerialSpp)
+            return bluetoothSerialSpp->readBytes(buffer, length);
+    }
     else if (settings.bluetoothRadioType == BLUETOOTH_RADIO_BLE)
-        return bluetoothSerialBle->readBytes(buffer, length);
+    {
+        if (bluetoothSerialBle)
+            return bluetoothSerialBle->readBytes(buffer, length);
+    }
 
     return 0;
 }
@@ -171,11 +183,14 @@ int bluetoothRead(uint8_t *buffer, int length)
 // Read data from the Bluetooth command interface
 int bluetoothCommandRead(uint8_t *buffer, int length)
 {
+    if (bluetoothGetState() == BT_OFF)
+        return 0;
+
     if (settings.bluetoothRadioType == BLUETOOTH_RADIO_SPP_AND_BLE ||
         settings.bluetoothRadioType == BLUETOOTH_RADIO_BLE)
     {
-        int bytesRead = bluetoothSerialBleCommands->readBytes(buffer, length);
-        return (bytesRead);
+        if (bluetoothSerialBleCommands)
+            return bluetoothSerialBleCommands->readBytes(buffer, length);
     }
 
     return 0;
@@ -190,19 +205,27 @@ uint8_t bluetoothRead()
     if (settings.bluetoothRadioType == BLUETOOTH_RADIO_SPP_AND_BLE)
     {
         // Give incoming BLE the priority
-        if (bluetoothSerialBle->available())
-            return (bluetoothSerialBle->read());
+        if (bluetoothSerialBle)
+            if (bluetoothSerialBle->available())
+                return (bluetoothSerialBle->read());
 
         // If we are in Accessory Mode, return 0. Accessory needs exclusive access to SPP
         if (sppAccessoryMode)
             return 0;
 
-        return (bluetoothSerialSpp->read());
+        if (bluetoothSerialSpp)
+            return (bluetoothSerialSpp->read());
     }
     else if (settings.bluetoothRadioType == BLUETOOTH_RADIO_SPP)
-        return bluetoothSerialSpp->read();
+    {
+        if (bluetoothSerialSpp)
+            return bluetoothSerialSpp->read();
+    }
     else if (settings.bluetoothRadioType == BLUETOOTH_RADIO_BLE)
-        return bluetoothSerialBle->read();
+    {
+        if (bluetoothSerialBle)
+            return bluetoothSerialBle->read();
+    }
 
     return 0;
 }
@@ -210,9 +233,14 @@ uint8_t bluetoothRead()
 // Read data from the BLE Command interface
 uint8_t bluetoothCommandRead()
 {
+    if (bluetoothGetState() == BT_OFF)
+        return 0;
+
     if (settings.bluetoothRadioType == BLUETOOTH_RADIO_SPP_AND_BLE ||
         settings.bluetoothRadioType == BLUETOOTH_RADIO_BLE)
-        return bluetoothSerialBleCommands->read();
+        if (bluetoothSerialBleCommands)
+            return bluetoothSerialBleCommands->read();
+
     return (0);
 }
 
@@ -225,29 +253,43 @@ int bluetoothRxDataAvailable()
     if (settings.bluetoothRadioType == BLUETOOTH_RADIO_SPP_AND_BLE)
     {
         // Give incoming BLE the priority
-        if (bluetoothSerialBle->available())
+        if ((bluetoothSerialBle) && (bluetoothSerialBle->available()))
             return (bluetoothSerialBle->available());
 
         // If we are in Accessory Mode, return 0. Accessory needs exclusive access to SPP
         if (sppAccessoryMode)
             return 0;
 
-        return (bluetoothSerialSpp->available());
+        if (bluetoothSerialSpp)
+            return (bluetoothSerialSpp->available());
     }
     else if (settings.bluetoothRadioType == BLUETOOTH_RADIO_SPP)
-        return bluetoothSerialSpp->available();
+    {
+        if (bluetoothSerialSpp)
+            return bluetoothSerialSpp->available();
+    }
     else if (settings.bluetoothRadioType == BLUETOOTH_RADIO_BLE)
-        return bluetoothSerialBle->available();
+    {
+        if (bluetoothSerialBle)
+            return bluetoothSerialBle->available();
+    }
 
-    return (0);
+    return (0); // Catch-all
 }
 
 // Determine if data is available on the BLE Command interface
 int bluetoothCommandAvailable()
 {
+    if (bluetoothGetState() == BT_OFF)
+        return 0;
+
     if (settings.bluetoothRadioType == BLUETOOTH_RADIO_SPP_AND_BLE ||
         settings.bluetoothRadioType == BLUETOOTH_RADIO_BLE)
-        return bluetoothSerialBleCommands->available();
+    {
+        if (bluetoothSerialBleCommands)
+            return bluetoothSerialBleCommands->available();
+    }
+
     return (0);
 }
 
@@ -257,15 +299,25 @@ int bluetoothWrite(const uint8_t *buffer, int length)
     if (bluetoothGetState() == BT_OFF)
         return length; // Avoid buffer full warnings
 
+    // BLE write does not handle 0 length requests correctly
+    if (length == 0)
+        return 0;
+
     if (settings.bluetoothRadioType == BLUETOOTH_RADIO_SPP_AND_BLE)
     {
         // Write to both interfaces
-        int bleWrite = bluetoothSerialBle->write(buffer, length);
+        int bleWrite = 0;
+        if (bluetoothSerialBle)
+            bleWrite = bluetoothSerialBle->write(buffer, length);
+
         int sppWrite = 0;
         if (!sppAccessoryMode)
-            sppWrite = bluetoothSerialSpp->write(buffer, length);
+        {
+            if (bluetoothSerialSpp)
+                sppWrite = bluetoothSerialSpp->write(buffer, length);
+        }
         else
-            sppWrite = length;
+            sppWrite = length; // Avoid buffer full warnings
 
         // We hope and assume both interfaces pass the same byte count
         // through their respective stacks
@@ -276,14 +328,13 @@ int bluetoothWrite(const uint8_t *buffer, int length)
     }
     else if (settings.bluetoothRadioType == BLUETOOTH_RADIO_SPP)
     {
-        return bluetoothSerialSpp->write(buffer, length);
+        if (bluetoothSerialSpp)
+            return bluetoothSerialSpp->write(buffer, length);
     }
     else if (settings.bluetoothRadioType == BLUETOOTH_RADIO_BLE)
     {
-        // BLE write does not handle 0 length requests correctly
-        if (length > 0)
+        if (bluetoothSerialBle)
             return bluetoothSerialBle->write(buffer, length);
-        return 0;
     }
 
     return (0);
@@ -292,9 +343,17 @@ int bluetoothWrite(const uint8_t *buffer, int length)
 // Write data to the BLE Command interface
 int bluetoothCommandWrite(const uint8_t *buffer, int length)
 {
+    if (bluetoothGetState() == BT_OFF)
+        return length; // Avoid buffer full warnings
+
+    // BLE write does not handle 0 length requests correctly
+    if (length == 0)
+        return 0;
+
     if (settings.bluetoothRadioType == BLUETOOTH_RADIO_SPP_AND_BLE)
     {
-        return (bluetoothSerialBleCommands->write(buffer, length));
+        if (bluetoothSerialBleCommands)
+            return (bluetoothSerialBleCommands->write(buffer, length));
     }
     else if (settings.bluetoothRadioType == BLUETOOTH_RADIO_SPP)
     {
@@ -303,10 +362,8 @@ int bluetoothCommandWrite(const uint8_t *buffer, int length)
     }
     else if (settings.bluetoothRadioType == BLUETOOTH_RADIO_BLE)
     {
-        // BLE write does not handle 0 length requests correctly
-        if (length > 0)
+        if (bluetoothSerialBleCommands)
             return bluetoothSerialBleCommands->write(buffer, length);
-        return 0;
     }
 
     return (0);
@@ -326,7 +383,7 @@ int bluetoothWrite(uint8_t value)
         if (!sppAccessoryMode)
             sppWrite = bluetoothSerialSpp->write(value);
         else
-            sppWrite = 1;
+            sppWrite = 1; // Avoid buffer full warnings
 
         // We hope and assume both interfaces pass the same byte count
         // through their respective stacks
