@@ -1790,12 +1790,22 @@ void createSettingsString(char *newSettings)
     // Add SD Characteristics
     char sdCardSizeChar[20];
     String cardSize;
-    stringHumanReadableSize(cardSize, sdCardSize);
-    cardSize.toCharArray(sdCardSizeChar, sizeof(sdCardSizeChar));
     char sdFreeSpaceChar[20];
     String freeSpace;
-    stringHumanReadableSize(freeSpace, sdFreeSpace);
-    freeSpace.toCharArray(sdFreeSpaceChar, sizeof(sdFreeSpaceChar));
+    if (present.microSd)
+    {
+        stringHumanReadableSize(cardSize, sdCardSize);
+        cardSize.toCharArray(sdCardSizeChar, sizeof(sdCardSizeChar));
+        stringHumanReadableSize(freeSpace, sdFreeSpace);
+        freeSpace.toCharArray(sdFreeSpaceChar, sizeof(sdFreeSpaceChar));
+    }
+    else if (present.mosaicMicroSd)
+    {
+        stringHumanReadableSize(cardSize, mosaicSdCardSize);
+        cardSize.toCharArray(sdCardSizeChar, sizeof(sdCardSizeChar));
+        stringHumanReadableSize(freeSpace, mosaicSdFreeSpace);
+        freeSpace.toCharArray(sdFreeSpaceChar, sizeof(sdFreeSpaceChar));
+    }
 
     stringRecord(newSettings, "sdFreeSpace", sdFreeSpaceChar);
     stringRecord(newSettings, "sdSize", sdCardSizeChar);

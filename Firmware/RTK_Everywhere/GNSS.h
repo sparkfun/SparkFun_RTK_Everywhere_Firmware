@@ -88,6 +88,13 @@ class GNSS
 
     virtual bool checkPPPRates();
 
+    // On platforms that support / need it (i.e. mosaic-X5), refresh the
+    // COM port by sending an escape sequence or similar to make the
+    // GNSS snap out of it...
+    // Outputs:
+    //   Returns true if successful and false upon failure
+    virtual bool comPortRefresh();
+
     // Setup the general configuration of the GNSS
     // Not Rover or Base specific (ie, baud rates)
     // Outputs:

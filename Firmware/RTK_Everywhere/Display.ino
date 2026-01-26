@@ -1834,7 +1834,9 @@ void paintLogging(std::vector<iconPropertyBlinking> *iconList, bool pulse, bool 
     prop.icon.bitmap = nullptr;
     prop.duty = 0b11111111;
 
-    if (((online.logging == true) && (logIncreasing || ntpLogIncreasing)) || (present.gnss_mosaicX5 && logIncreasing))
+    // If any logging is taking place, display the logging icon
+    if (((online.logging == true) && (logIncreasing || ntpLogIncreasing))
+        || (present.mosaicMicroSd && logMosaicIncreasing))
     {
         if (NTP)
         {
@@ -2558,14 +2560,14 @@ void paintSystemTest()
                 else
                     oled->print("FAIL");
             }
-            else if (present.gnss_mosaicX5)
+            else if (present.mosaicMicroSd)
             {
                 // Facet mosaic has an SD card, but it is connected directly to the mosaic-X5
                 // Calling gnss->update() during the GNSS check will cause sdCardSize to be updated
                 oled->setCursor(xOffset, yOffset); // x, y
                 oled->print("SD:");
 
-                if (sdCardSize > 0)
+                if (mosaicSdCardSize > 0)
                     oled->print("OK");
                 else
                     oled->print("FAIL");
