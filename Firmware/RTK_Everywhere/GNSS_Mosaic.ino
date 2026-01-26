@@ -462,6 +462,30 @@ bool GNSS_MOSAIC::setLogging()
     return response;
 }
 
+// On platforms that support / need it (i.e. mosaic-X5), refresh the
+// COM port by sending an escape sequence or similar to make the
+// GNSS snap out of it...
+// Outputs:
+//   Returns true if successful and false upon failure
+bool GNSS_MOSAIC::comPortRefresh()
+{
+    if (productVariant != RTK_FACET_FP) // productVariant == RTK_FACET_MOSAIC
+    {
+        if (serial2GNSS)
+        {
+            return sendWithResponse(serial2GNSS, "SSSSSSSSSSSSSSSSSSSS\n\r", "COM4>"); // Send escape sequence
+        }
+    }
+    else
+    {
+        if (serialGNSS)
+        {
+            return sendWithResponse(serialGNSS, "SSSSSSSSSSSSSSSSSSSS\n\r", "COM1>"); // Send escape sequence
+        }
+    }
+    return true;
+}
+
 //----------------------------------------
 // Configure specific aspects of the receiver for NTP mode
 //----------------------------------------
