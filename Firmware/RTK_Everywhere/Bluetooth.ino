@@ -44,6 +44,8 @@ BleBatteryService bluetoothBatteryService;
 #define BLE_COMMAND_RX_UUID "7e400002-b5a3-f393-e0a9-e50e24dcca9e"
 #define BLE_COMMAND_TX_UUID "7e400003-b5a3-f393-e0a9-e50e24dcca9e"
 
+volatile unsigned long bleCommandTrafficSeen_millis = 0;
+
 //----------------------------------------
 // Global Bluetooth Routines
 //----------------------------------------
@@ -111,6 +113,9 @@ bool bluetoothIsConnected()
 }
 
 // Return true if the BLE Command channel is connected
+// Note:
+//   This actually tells us if any clients are connected to the BLE Server,
+//   not that anyone is reading / writing from / to the Command service    
 bool bluetoothCommandIsConnected()
 {
     if (bluetoothGetState() == BT_OFF)
@@ -196,6 +201,22 @@ int bluetoothCommandRead(uint8_t *buffer, int length)
     return 0;
 }
 
+// Read data from the BLE Command interface
+// Note: This isn't NULL-safe. External code must call bluetoothCommandAvailable first.
+//       It would be better if this returned int. -1 if nothing is available.
+uint8_t bluetoothCommandRead()
+{
+    if (bluetoothGetState() == BT_OFF)
+        return 0;
+
+    if (settings.bluetoothRadioType == BLUETOOTH_RADIO_SPP_AND_BLE ||
+        settings.bluetoothRadioType == BLUETOOTH_RADIO_BLE)
+        if (bluetoothSerialBleCommands)
+            return bluetoothSerialBleCommands->read();
+
+    return (0);
+}
+
 // Read data from the Bluetooth device
 uint8_t bluetoothRead()
 {
@@ -228,20 +249,6 @@ uint8_t bluetoothRead()
     }
 
     return 0;
-}
-
-// Read data from the BLE Command interface
-uint8_t bluetoothCommandRead()
-{
-    if (bluetoothGetState() == BT_OFF)
-        return 0;
-
-    if (settings.bluetoothRadioType == BLUETOOTH_RADIO_SPP_AND_BLE ||
-        settings.bluetoothRadioType == BLUETOOTH_RADIO_BLE)
-        if (bluetoothSerialBleCommands)
-            return bluetoothSerialBleCommands->read();
-
-    return (0);
 }
 
 // Determine if data is available

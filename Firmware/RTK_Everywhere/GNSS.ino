@@ -161,6 +161,8 @@ static const char *gnssConfigDisplayNames[] = {
 
 static const int gnssConfigStateEntries = sizeof(gnssConfigDisplayNames) / sizeof(gnssConfigDisplayNames[0]);
 
+volatile bool gnssConfigureInProgress = false;
+
 // On platforms that support / need it (i.e. mosaic-X5), refresh the
 // COM port by sending an escape sequence or similar to make the
 // GNSS snap out of it...
@@ -220,8 +222,11 @@ void gnssUpdate()
     // Only update the GNSS receiver once the CLI, serial menu, and Web Config interfaces are disconnected
     // This is to avoid multiple reconfigure delays when multiple commands are received, ie enable GPS, disable Galileo,
     // should only trigger one GNSS reconfigure
-    if (bluetoothCommandIsConnected() == false && inMainMenu == false && inWebConfigMode() == false)
+    const unsigned long bleCommandIdleTimeout = 2000; // TODO: check if this is long enough?
+    if ((inMainMenu == false) && (inWebConfigMode() == false)
+        && ((millis() - bleCommandTrafficSeen_millis) > bleCommandIdleTimeout))
     {
+        gnssConfigureInProgress = true; // Set the 'semaphore'
         bool result = true;
 
         // Service requests
@@ -477,6 +482,9 @@ void gnssUpdate()
 
         // settings.gnssConfigureRequest was likely changed. Record the current config state to ESP32 NVM
         recordSystemSettings();
+
+        gnssConfigureInProgress = false; // Clear the 'semaphore'
+
     } // end bluetoothCommandIsConnected(), inMainMenu, inWebConfigMode()
 }
 
