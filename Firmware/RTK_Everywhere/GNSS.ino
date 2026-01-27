@@ -485,7 +485,7 @@ void gnssUpdate()
 
         gnssConfigureInProgress = false; // Clear the 'semaphore'
 
-    } // end bluetoothCommandIsConnected(), inMainMenu, inWebConfigMode()
+    } // end bleCommandIdleTimeout, inMainMenu, inWebConfigMode()
 }
 
 //----------------------------------------
