@@ -57,7 +57,7 @@ The LG290P is the GNSS receiver used on the RTK Postcard. The following describe
 	</figcaption>
 	</figure>
 
-5. Reset the LG290P. From the main menu navigate to System 's'->Hardware 'h'->LG290P reset for firmware update '13'. This will reset the LG290P and allow the bootlader to begin. If more than 20 seconds have gone by, restart the upgrade process in QGNSS and then reset the LG290P again.
+5. Reset the LG290P. From the main menu navigate to System 's'->Hardware 'h'->LG290P reset for firmware update '13'. This will reset the LG290P and allow the bootloader to begin. If more than 20 seconds have gone by, restart the upgrade process in QGNSS and then reset the LG290P again.
 
 6. The update process takes a little over a minute. Once completed, close QGNSS and power cycle the RTK Postcard.
 
