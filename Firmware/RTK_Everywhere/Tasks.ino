@@ -2890,27 +2890,32 @@ void bluetoothCommandTask(void *pvParameters)
             systemPrintln("bluetoothCommandTask running");
         }
 
-        // Check stream for incoming characters
-        if (bluetoothCommandAvailable() > 0)
+        // Don't process commands while the GNSS is being configured
+        if (!gnssConfigureInProgress)
         {
-            byte incoming = bluetoothCommandRead();
-
-            rxData[rxSpot++] = incoming;
-            rxSpot %= sizeof(rxData); // Wrap
-
-            // Verify presence of trailing \r\n
-            if (rxSpot > 2 && rxData[rxSpot - 1] == '\n' && rxData[rxSpot - 2] == '\r')
+            // Check stream for incoming characters
+            if (bluetoothCommandAvailable() > 0)
             {
-                rxData[rxSpot - 2] = '\0'; // Remove \r\n
-                processCommand(rxData);
-                rxSpot = 0; // Reset
+                byte incoming = bluetoothCommandRead();
+                bleCommandTrafficSeen_millis = millis();
+
+                rxData[rxSpot++] = incoming;
+                rxSpot %= sizeof(rxData); // Wrap
+
+                // Verify presence of trailing \r\n
+                if (rxSpot > 2 && rxData[rxSpot - 1] == '\n' && rxData[rxSpot - 2] == '\r')
+                {
+                    rxData[rxSpot - 2] = '\0'; // Remove \r\n
+                    processCommand(rxData);
+                    rxSpot = 0; // Reset
+                }
             }
         }
 
         if (PERIODIC_DISPLAY(PD_BLUETOOTH_DATA_RX) && !inMainMenu)
         {
             PERIODIC_CLEAR(PD_BLUETOOTH_DATA_RX);
-            systemPrintf("Bluetooth received %d bytes\r\n", rxSpot);
+            systemPrintf("bluetoothCommandTask: %d bytes waiting to be processed\r\n", rxSpot);
         }
 
         if ((settings.enableTaskReports == true) && (!inMainMenu))
