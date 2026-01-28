@@ -1213,8 +1213,42 @@ void assembleDeviceName()
 
     RTKBrandAttribute *brandAttributes = getBrandAttributeFromProductVariant(productVariant);
 
-    snprintf(accessoryName, sizeof(accessoryName), "%s %s", brandAttributes->name, platformPrefix);
+    char gnssModelIdentifier[2] = {0};
+    char tiltIdentifier[2] = {0};
 
+    if (productVariant == RTK_FACET_FP)
+    {
+        // Extract the GNSS gnssModelIdentifier
+        for (int index = 0; index < GNSS_SUPPORT_ROUTINES_ENTRIES; index++)
+        {
+            if (settings.detectedGnssReceiver == gnssSupportRoutines[index]._receiver)
+            {
+                snprintf(gnssModelIdentifier, sizeof(gnssModelIdentifier), "%s",
+                         gnssSupportRoutines[index].gnssModelIdentifier);
+                break;
+            }
+        }
+
+        // Form the Tilt identifier
+        if (settings.detectedTilt)
+            snprintf(tiltIdentifier, sizeof(tiltIdentifier), "T");
+    }
+
+    // Set the display name for the OLED: "TX2", "FPLT", "Facet LB"
+    snprintf(displayName, sizeof(displayName), "%s%s%s",
+                productVariantProperties->displayName,
+                gnssModelIdentifier, tiltIdentifier);
+
+    // Set the prefix for broadcast names: "TX2", "FPLT"
+    snprintf(platformPrefix, sizeof(platformPrefix), "%s%s%s",
+                productVariantProperties->name,
+                gnssModelIdentifier, tiltIdentifier);
+
+    // Set the accessory name for MFi: "SparkPNT TX2", "SparkPNT FPLT"
+    snprintf(accessoryName, sizeof(accessoryName), "%s %s", brandAttributes->name,
+             platformPrefix);
+
+    // Set the device name for BT broadcast: "SparkPNT TX2-ABCD07"
     snprintf(deviceName, sizeof(deviceName), "%s-%s", accessoryName, serialNumber);
 
     if (strlen(deviceName) > 28) // "SparkPNT Facet v2 LB-ABCD04" is 27 chars. We are just OK

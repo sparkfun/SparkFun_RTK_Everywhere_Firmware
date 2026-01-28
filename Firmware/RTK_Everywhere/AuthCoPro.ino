@@ -47,10 +47,10 @@ void beginAuthCoPro(TwoWire *i2cBus)
 
     // Pass Identity Information, Protocols and Names into the accessory driver
     appleAccessory->setAccessoryName((const char *)accessoryName);
-    appleAccessory->setModelIdentifier(platformPrefix);
+    appleAccessory->setModelIdentifier((const char *)platformPrefix);
     appleAccessory->setManufacturer(manufacturer);
-    appleAccessory->setSerialNumber(serialNumber);
-    appleAccessory->setFirmwareVersion(deviceFirmware);
+    appleAccessory->setSerialNumber((const char *)serialNumber);
+    appleAccessory->setFirmwareVersion((const char *)deviceFirmware);
     appleAccessory->setHardwareVersion(hardwareVersion);
     appleAccessory->setExternalAccessoryProtocol((const char *)&settings.eaProtocol);
     appleAccessory->setBluetoothTransportName(BTTransportName);

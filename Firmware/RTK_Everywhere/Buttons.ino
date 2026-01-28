@@ -3,8 +3,8 @@ Buttons.ino
 =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=*/
 
 uint8_t dualButton_lastReleased = 255; // Track which button on the Facet FP was pressed last
-static int dualButton_power = 0;
-static int dualButton_function = 1;
+const uint8_t dualButton_power = gpioExpander_io7 + 1;
+const uint8_t dualButton_function = dualButton_power + 1;
 
 // User has pressed the power button to turn on the system
 // Was it an accidental bump or do they really want to turn on?
@@ -50,6 +50,9 @@ void powerDown(bool displayInfo)
 
     if (present.peripheralPowerControl == true)
         peripheralsOff();
+
+    systemPrintln("Device powered down");
+    systemFlush();
 
     if (present.fastPowerOff == true)
     {
@@ -193,10 +196,10 @@ bool buttonReleased()
         // Check for any button press on the directional pad
         for (int buttonNumber = 0; buttonNumber < 5; buttonNumber++)
         {
-            if (buttonReleased(buttonNumber) == true)
+            if (gpioExpanderButtonReleased(buttonNumber) == true)
             {
                 gpioExpander_lastReleased = buttonNumber;
-                return (true);
+                wasReleased = true;
             }
         }
     }
@@ -205,12 +208,10 @@ bool buttonReleased()
 }
 
 // Given a button number, check if a previously pressed button has been released
-bool buttonReleased(uint8_t buttonNumber)
+// gpioExpander_wasReleased[] is updated by buttonRead()
+// Call buttonRead() before calling buttonReleased()
+bool gpioExpanderButtonReleased(uint8_t buttonNumber)
 {
-    // Check single button
-    if (online.powerButton == true)
-        return (false);
-
     // Check directional pad
     if (online.gpioExpanderButtons == true)
     {

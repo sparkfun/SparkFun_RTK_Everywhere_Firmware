@@ -185,6 +185,8 @@ void finishDisplay()
     }
     else if (online.display == true)
     {
+        displaySplashNameKnown(); // Display the full RTK product name and firmware version
+
         // Units can boot under 1s. Keep the splash screen up for at least 2s.
         while ((millis() - splashStart) < 2000)
             delay(1);
@@ -327,7 +329,10 @@ void updateBattery()
             {
                 int minutesSinceLastCharge = ((millis() - shutdownNoChargeTimer) / 1000) / 60;
                 if (minutesSinceLastCharge > settings.shutdownNoChargeTimeoutMinutes)
+                {
+                    systemPrintln("Shutting down (no charge)...");
                     powerDown(true);
+                }
             }
             else
             {
@@ -1055,7 +1060,7 @@ void beginGpioExpanderSwitches()
 
         // SW1 is on pin 0. Driving it high will disconnect the ESP32 from USB
         // GNSS_RST is on pin 5. Driving it low when an LG290P is connected will kill the I2C bus.
-        for (int i = 0; i < gpioExpanderNumSwitches; i++)
+        for (uint8_t i = 0; i < gpioExpanderNumSwitches; i++)
         {
             // Set all pins to low except GNSS RESET
             if (i == gpioExpanderSwitch_GNSS_Reset)

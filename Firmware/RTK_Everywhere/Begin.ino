@@ -123,7 +123,7 @@ void identifyBoard()
     }
 
     if (ENABLE_DEVELOPER)
-        systemPrintf("Identified variant: %s\r\n", platformPrefix);
+        systemPrintf("Identified variant: %s\r\n", productVariantProperties->name);
 }
 
 // Turn on power for the display before beginDisplay
@@ -735,8 +735,8 @@ void beginBoard()
         present.radio_lora = true;
         present.loraDedicatedUart = true;
 
-        present.button_powerLow = true; // Button is pressed when high
-        present.button_function = true; // Function or Fn button
+        present.button_powerLow = true; // Button is pressed when low
+        present.button_function = true; // Function or Fn button. Low when pressed
         present.beeper = true;
         present.gnss_to_uart = true;
 
@@ -910,11 +910,12 @@ void beginVersion()
     char versionString[21];
     firmwareVersionGet(versionString, sizeof(versionString), true);
 
+    // The GNSS and Tilt could be unknown. Show the generic name only
     char title[50];
     snprintf(title, sizeof(title), "%s %s%s %s",
         getBrandAttributeFromProductVariant(productVariant)->name,
         productVariantProperties->rtkPrefix ? "RTK " : "",
-        platformPrefix, versionString);
+        productVariantProperties->name, versionString);
     for (int i = 0; i < strlen(title); i++)
         systemPrint("=");
     systemPrintln();

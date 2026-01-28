@@ -245,8 +245,8 @@ bool ntripClientConnect()
     // Set up the server request (GET)
     char serverRequest[SERVER_BUFFER_SIZE];
     int length;
-    snprintf(serverRequest, SERVER_BUFFER_SIZE, "GET /%s HTTP/1.0\r\nUser-Agent: NTRIP SparkFun_RTK_%s_",
-             settings.ntripClient_MountPoint, platformPrefix);
+    snprintf(serverRequest, SERVER_BUFFER_SIZE, "GET /%s HTTP/1.0\r\nUser-Agent: NTRIP %s_",
+             settings.ntripClient_MountPoint, deviceName);
     length = strlen(serverRequest);
     firmwareVersionGet(&serverRequest[length], SERVER_BUFFER_SIZE - 2 - length, false);
     length = strlen(serverRequest);

@@ -497,6 +497,14 @@ void displayUpdate()
 
 void displaySplash()
 {
+    displaySplashCommon(false); // Full product name not known
+}
+void displaySplashNameKnown()
+{
+    displaySplashCommon(true); // Full product name known
+}
+void displaySplashCommon(bool nameKnown)
+{
     if (online.display == true)
     {
         // Shorten logo display if locally compiled
@@ -525,7 +533,8 @@ void displaySplash()
         }
 
         yPos = yPos + fontHeight + 5;
-        printTextCenter(productVariantProperties->displayName, yPos, QW_FONT_8X16, 1, false);
+        printTextCenter(nameKnown ? displayName : productVariantProperties->name,
+                        yPos, QW_FONT_8X16, 1, false);
 
         yPos = yPos + fontHeight + 7;
         char unitFirmware[50];
@@ -534,8 +543,9 @@ void displaySplash()
 
         oled->display();
 
-        // Start the timer for the splash screen display
-        splashStart = millis();
+        // Retart the timer for the splash screen display
+        if (!nameKnown)
+            splashStart = millis();
     }
 }
 
