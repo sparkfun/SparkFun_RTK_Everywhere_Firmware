@@ -2069,7 +2069,7 @@ document.addEventListener("DOMContentLoaded", (event) => {
             else if (platformPrefix == "Torch") {
                 ge("antennaPhaseCenter_mm").value = 116.5; //Average of L1/L2
             }
-            else if (platformPrefix == "X2") {
+            else if (platformPrefix == "TX2") {
                 ge("antennaPhaseCenter_mm").value = 116.5; //Average of L1/L2
             }
             else if (platformPrefix == "EVK") {
