@@ -1,12 +1,14 @@
-/*------------------------------------------------------------------------------
+/*=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 GNSS_LG290P.ino
 
   Implementation of the GNSS_LG290P class
 
   The ESP32 reads in binary and NMEA from the LG290P and passes that data over Bluetooth.
-------------------------------------------------------------------------------*/
+=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=*/
 
 #ifdef COMPILE_LG290P
+
+#include "GNSS_LG290P.h"
 
 int lg290pFirmwareVersion = 0;
 
@@ -78,10 +80,6 @@ void GNSS_LG290P::begin()
     // Instantiate the library
     _lg290p = new LG290P();
 
-    // // Turn on/off debug messages
-    if (settings.debugGnss)
-        debuggingEnable();
-
     if (_lg290p->begin(*serialGNSS) == false) // Give the serial port over to the library
     {
         if (settings.debugGnss)
@@ -96,9 +94,20 @@ void GNSS_LG290P::begin()
             return;
         }
     }
-    systemPrintln("GNSS LG290P online");
 
     online.gnss = true;
+
+    systemPrintln("GNSS LG290P online");
+
+    // Turn on debug messages if needed
+    if (settings.debugGnss)
+        debuggingEnable();
+
+    // Check baud settings. LG290P has a limited number of allowable bauds
+    if (baudIsAllowed(settings.dataPortBaud) == false)
+        settings.dataPortBaud = 460800;
+    if (baudIsAllowed(settings.radioPortBaud) == false)
+        settings.radioPortBaud = 115200;
 
     // Check firmware version and print info
     _lg290p->getFirmwareVersion(lg290pFirmwareVersion); // Needs LG290P library v1.0.7
@@ -138,7 +147,7 @@ void GNSS_LG290P::begin()
     {
         // Supported starting in v05
         present.minElevation = true;
-        present.minCno = true;
+        present.minCN0 = true;
     }
 
     // Determine if PPP temp firmware is detected.
@@ -175,10 +184,13 @@ bool GNSS_LG290P::beginExternalEvent()
 //----------------------------------------
 // Setup the timepulse output on the PPS pin for external triggering
 //----------------------------------------
-bool GNSS_LG290P::beginPPS()
+bool GNSS_LG290P::setPPS()
 {
-    // TODO LG290P
-    return (false);
+    bool response = _lg290p->setPPS(200, false, true); // duration time ms, alwaysOutput, polarity
+    if (settings.debugGnssConfig && response == false)
+        systemPrintln("setPPS failed");
+
+    return (response);
 }
 
 //----------------------------------------
@@ -194,255 +206,11 @@ bool GNSS_LG290P::checkPPPRates()
 }
 
 //----------------------------------------
-// Setup the GNSS module for any setup (base or rover)
-// In general we check if the setting is different than setting stored in NVM before writing it.
+// begin() has already established communication. There are no one-time config requirements for the LG290P
 //----------------------------------------
-bool GNSS_LG290P::configureGNSS()
+bool GNSS_LG290P::configure()
 {
-    for (int x = 0; x < 3; x++)
-    {
-        // Wait up to 5 seconds for device to come online
-        for (int x = 0; x < 5; x++)
-        {
-            if (_lg290p->isConnected())
-                break;
-            else
-                systemPrintln("Device still rebooting");
-            delay(1000); // Wait for device to reboot
-        }
-
-        if (configureOnce())
-            return (true);
-
-        // If we fail, reset LG290P
-        systemPrintln("Resetting LG290P to complete configuration");
-
-        gnssReset();
-        delay(500);
-        gnssBoot();
-    }
-
-    systemPrintln("LG290P failed to configure");
-    return (false);
-}
-
-//----------------------------------------
-// Configure the basic LG290P settings (rover/base agnostic)
-//----------------------------------------
-bool GNSS_LG290P::configureOnce()
-{
-    /*
-    Disable all message traffic
-    Set COM port baud rates,
-      LG290P COM1 - DATA / Direct to USB, 115200
-      LG290P COM2 - BT and GNSS config. Configured for 115200 from begin().
-      LG290P COM3 - RADIO / Direct output to locking JST connector.
-    Set minCNO
-    Set elevationAngle
-    Set Constellations
-    Set messages
-      Enable selected NMEA messages on COM2
-      Enable selected RTCM messages on COM2
-*/
-
-    if (settings.gnssConfiguredOnce)
-    {
-        systemPrintln("LG290P configuration maintained");
-        return (true);
-    }
-
-    if (settings.debugGnss)
-        debuggingEnable(); // Print all debug to Serial
-
-    serialGNSS->flush(); // Remove any incoming characters
-
-    bool response = true;
-
-    uint8_t retries = 4;
-
-    while ((retries > 0) && (!enterConfigMode(500)))
-    {
-        online.gnss = true; // Mark online so enterConfigMode can re-enter
-        retries--;
-        systemPrintf("configureOnce: Enter config mode failed. %d retries remaining\r\n", retries);
-    }
-
-    response &= (retries > 0);
-    if (settings.debugGnss && response == false)
-        systemPrintln("configureOnce: Enter config mode failed");
-
-    // Check baud settings. LG290P has a limited number of allowable bauds
-    if (baudIsAllowed(settings.dataPortBaud) == false)
-        settings.dataPortBaud = 460800;
-    if (baudIsAllowed(settings.radioPortBaud) == false)
-        settings.radioPortBaud = 115200;
-
-    // Set the baud rate for the three UARTs
-    if (response == true)
-    {
-        response &= setDataBaudRate(settings.dataPortBaud); // If available, set baud of DATA port
-
-        // The following setCommBaudrate() is redundant because to get this far, the comm interface must already be
-        // working response &= setCommBaudrate(115200 * 4); // Set baud for main comm channel
-
-        response &= setRadioBaudRate(settings.radioPortBaud); // If available, set baud of RADIO port
-
-        if (response == false && settings.debugGnss)
-            systemPrintln("configureOnce: setBauds failed.");
-    }
-
-    // Enable PPS signal with a width of 200ms
-    if (response == true)
-    {
-        response &= _lg290p->setPPS(200, false, true); // duration time ms, alwaysOutput, polarity
-        if (settings.debugGnss && response == false)
-            systemPrintln("configureOnce: setPPS failed");
-    }
-
-    if (response == true)
-    {
-        response &= setConstellations();
-        if (settings.debugGnss && response == false)
-            systemPrintln("configureOnce: setConstellations failed");
-    }
-
-    // We do not set Rover or fix rate here because fix rate only applies in rover mode.
-
-    response &= exitConfigMode(); // We must exit config before we save otherwise we will save with NMEA/RTCM off
-
-    if (response)
-    {
-        online.gnss = true; // If we failed before, mark as online now
-
-        systemPrintln("LG290P configuration updated");
-
-        // Save the current configuration into non-volatile memory (NVM)
-        response &= saveConfiguration();
-    }
-    else
-        online.gnss = false; // Take it offline
-
-    settings.gnssConfiguredOnce = response;
-
-    return (response);
-}
-
-//----------------------------------------
-// Configure specific aspects of the receiver for rover mode
-//----------------------------------------
-bool GNSS_LG290P::configureRover()
-{
-    /*
-        Set mode to Rover
-        Enable RTCM messages on UART1/2/3
-        Enable NMEA on UART1/2/3
-    */
-    if (online.gnss == false)
-    {
-        systemPrintln("GNSS not online");
-        return (false);
-    }
-
-    // If our settings haven't changed, trust GNSS's settings
-    if (settings.gnssConfiguredRover)
-    {
-        systemPrintln("Skipping LG290P Rover configuration");
-        return (true);
-    }
-
-    bool response = true;
-
-    serialGNSS->flush(); // Remove any incoming characters
-
-    uint8_t retries = 4;
-
-    while ((retries > 0) && (!enterConfigMode(500)))
-    {
-        retries--;
-        systemPrintf("configureRover: Enter config mode failed. %d retries remaining\r\n", retries);
-    }
-
-    response &= (retries > 0);
-    if (settings.debugGnss && response == false)
-        systemPrintln("configureRover: Enter config mode failed");
-
-    // We must force receiver into Rover mode so that we can set fix rate
-    int currentMode = getMode();
-    if (currentMode != 1) // 0 - Unknown, 1 - Rover, 2 - Base
-    {
-        // response &= _lg290p->setModeRover(); // Wait for save and reset
-        // Ignore result for now. enterConfigMode disables NMEA, which causes the built-in write/save/reset methods to
-        // fail because NMEA is not present.
-        _lg290p->setModeRover(); // Wait for save and reset
-        if (settings.debugGnss && response == false)
-            systemPrintln("configureRover: Set mode rover failed");
-    }
-
-    response &= setElevation(settings.minElev);
-
-    response &= setMinCnoRadio(settings.minCNO);
-
-    // If we are on a platform that supports tilt
-    if (present.tiltPossible == true)
-    {
-        // And tilt is present and enabled
-        if (present.imu_im19 == true && settings.enableTiltCompensation == true)
-        {
-            // Configure GNSS to support the tilt sensor
-
-            // Tilt sensor requires 5Hz at a minimum
-            if (settings.measurementRateMs > 200)
-            {
-                systemPrintln("Increasing GNSS measurement rate to 5Hz for tilt support");
-                settings.measurementRateMs = 200;
-            }
-
-            // On the LG290P Flex module, UART 3 of the GNSS is connected to the IMU UART 1
-            response &= setBaudRate(3, 115200);
-
-            if (response == false && settings.debugGnss)
-                systemPrintln("configureRover: setBaud failed.");
-
-            // Enable of GGA, RMC, GST for tilt sensor is done in enableNMEA()
-        }
-    }
-
-    // Set the fix rate. Default on LG290P is 10Hz so set accordingly.
-    response &= setRate(settings.measurementRateMs / 1000.0); // May require save/reset
-    if (settings.debugGnss && response == false)
-        systemPrintln("configureRover: Set rate failed");
-
-    response &= setHighAccuracyService(settings.enableGalileoHas, (const char *)settings.configurePPP);
-
-    response &= enableRTCMRover();
-    if (settings.debugGnss && response == false)
-        systemPrintln("configureRover: Enable RTCM failed");
-
-    response &= enableNMEA();
-    if (settings.debugGnss && response == false)
-        systemPrintln("configureRover: Enable NMEA failed");
-
-    response &= exitConfigMode(); // We must exit config before we save otherwise we will save with NMEA/RTCM off
-
-    if (response == false)
-    {
-        systemPrintln("LG290P Rover failed to configure");
-    }
-    else
-    {
-        // Save the current configuration into non-volatile memory (NVM)
-        response &= saveConfiguration();
-
-        // For RTCM and MSM messages to take effect (ie, PointPerfect is active) we must save/reset
-        softwareReset();
-
-        if (settings.debugGnss && response)
-            systemPrintln("LG290P Rover configured");
-    }
-
-    settings.gnssConfiguredRover = response;
-
-    return (response);
+    return (true);
 }
 
 //----------------------------------------
@@ -450,46 +218,23 @@ bool GNSS_LG290P::configureRover()
 //----------------------------------------
 bool GNSS_LG290P::configureBase()
 {
-    /*
-        Disable all messages
-        Enable RTCM Base messages
-        Enable NMEA messages
-    */
-
-    if (online.gnss == false)
-    {
-        systemPrintln("GNSS not online");
-        return (false);
-    }
-
-    // If the device is set to Survey-In, we must allow the device to be configured.
-    // Otherwise PQTMEPE (estimated position error) is never populated, so the survey
-    // never starts (Waiting for Horz Accuracy < 2.00m...)
-    if (settings.fixedBase == false) // Not a fixed base = Survey-in
-    {
-        if (settings.gnssConfiguredBase)
-        {
-            if (settings.debugGnss)
-                systemPrintln("Skipping LG290P Base configuration");
-            return true;
-        }
-    }
-
     bool response = true;
 
-    serialGNSS->flush(); // Remove any incoming characters
-
-    uint8_t retries = 4;
-
-    while ((retries > 0) && (!enterConfigMode(500)))
+    if (settings.fixedBase == false && gnssInBaseSurveyInMode())
     {
-        retries--;
-        systemPrintf("configureBase: Enter config mode failed. %d retries remaining\r\n", retries);
+        if (settings.debugGnssConfig)
+            systemPrintln("Skipping - LG290P is already in Survey-In Base configuration");
+        return (true); // No changes needed
     }
 
-    response &= (retries > 0);
-    if (settings.debugGnss && response == false)
-        systemPrintln("configureBase: Enter config mode failed");
+    if (settings.fixedBase == true && gnssInBaseFixedMode())
+    {
+        if (settings.debugGnssConfig)
+            systemPrintln("Skipping - LG290P is already in Fixed Base configuration");
+        return (true); // No changes needed
+    }
+
+    // Assume we are changing from Rover to Base, request any additional config changes
 
     // "When set to Base Station mode, the receiver will automatically disable NMEA message output and enable RTCM MSM4
     // and RTCM3-1005 message output."
@@ -499,46 +244,21 @@ bool GNSS_LG290P::configureBase()
     // We set base mode here because we don't want to reset the module right before we (potentially) start a survey-in
     // We wait for States.ino to change us from base settle, to survey started, at which time the surveyInStart() is
     // issued.
-    int currentMode = getMode();
-    if (currentMode != 2) // 0 - Unknown, 1 - Rover, 2 - Base
+    if (gnssInRoverMode() == true) // 0 - Unknown, 1 - Rover, 2 - Base
     {
-        // response &= _lg290p->setModeBase(); // Wait for save and reset
-        // Ignore result for now. enterConfigMode disables NMEA, which causes the built-in write/save/reset methods to
-        // fail because NMEA is not present.
-        _lg290p->setModeBase(false); // Don't save and reset
-        if (settings.debugGnss && response == false)
+        response &= _lg290p->setModeBase(false); // Don't save and reset
+        if (settings.debugGnssConfig && response == false)
             systemPrintln("configureBase: Set mode base failed");
-
-        // Device should now have survey mode disabled
     }
 
-    // If we are in survey mode, then disable it
-    uint8_t surveyInMode = getSurveyInMode(); // 0 - Disabled, 1 - Survey-in mode, 2 - Fixed mode
-    if (surveyInMode == 1 || surveyInMode == 2)
+    // Switching to Base Mode should disable any currently running survey-in
+    // But if we were already in base mode, then disable any currently running survey-in
+    if (gnss->gnssInBaseSurveyInMode() || gnss->gnssInBaseFixedMode())
     {
-        // response &= disableSurveyIn(); // Wait for save and reset
-        // Ignore result for now. enterConfigMode disables NMEA, which causes the built-in write/save/reset methods to
-        // fail because NMEA is not present.
-        disableSurveyIn(false); // Don't save and reset
-        if (settings.debugGnss && response == false)
+        response &= disableSurveyIn(false); // Don't save and reset
+        if (settings.debugGnssConfig && response == false)
             systemPrintln("configureBase: disable survey in failed");
     }
-
-    response &= setElevation(settings.minElev);
-
-    response &= setMinCnoRadio(settings.minCNO);
-
-    response &= setHighAccuracyService(settings.enableGalileoHas, (const char *)settings.configurePPP);
-
-    response &= enableRTCMBase(); // Set RTCM messages
-    if (settings.debugGnss && response == false)
-        systemPrintln("configureBase: Enable RTCM failed");
-
-    response &= enableNMEA(); // Set NMEA messages
-    if (settings.debugGnss && response == false)
-        systemPrintln("configureBase: Enable NMEA failed");
-
-    response &= exitConfigMode(); // We must exit config before we save otherwise we will save with NMEA/RTCM off
 
     if (response == false)
     {
@@ -546,20 +266,48 @@ bool GNSS_LG290P::configureBase()
     }
     else
     {
-        // Save the current configuration into non-volatile memory (NVM)
+        // When switching between modes, we have to do a save, reset, then
+        // enable messages. Because of how GNSS.ino works, we force the
+        // save/reset here.
         response &= saveConfiguration();
 
-        softwareReset();
+        reset();
 
-        // When a device is changed from Rover to Base, NMEA messages settings do not survive PQTMSAVEPAR
-        // Re-enable NMEA post reset
-        response &= enableNMEA(); // Set NMEA messages
+        // When a device is changed from Rover to Base, NMEA messages are disabled. Turn them back on.
+        gnssConfigure(GNSS_CONFIG_MESSAGE_RATE_NMEA);
 
-        if (settings.debugGnss && response)
+        // In Survey-In mode, configuring the RTCM Base will trigger a print warning because the survey-in
+        // takes a few seconds to start during which gnssInBaseSurveyInMode() incorrectly reports false.
+        // The print warning should be ignored.
+        gnssConfigure(GNSS_CONFIG_MESSAGE_RATE_RTCM_BASE);
+
+        if (settings.debugGnssConfig && response)
             systemPrintln("LG290P Base configured");
     }
 
-    settings.gnssConfiguredBase = response;
+    return (response);
+}
+
+//----------------------------------------
+// Configure specific aspects of the receiver for rover mode
+//----------------------------------------
+bool GNSS_LG290P::configureRover()
+{
+    if (gnssInRoverMode()) // 0 - Unknown, 1 - Rover, 2 - Base
+    {
+        if (settings.debugGnssConfig)
+            systemPrintln("Skipping Rover configuration");
+        return (true); // No changes needed
+    }
+
+    // Assume we are changing from Base to Rover, request any additional config changes
+
+    bool response = _lg290p->setModeRover(false); // Don't wait for save and reset
+    // Setting mode to rover should disable any survey-in
+
+    gnssConfigure(GNSS_CONFIG_FIX_RATE);
+    gnssConfigure(GNSS_CONFIG_MESSAGE_RATE_RTCM_ROVER);
+    gnssConfigure(GNSS_CONFIG_RESET); // Mode change requires reset
 
     return (response);
 }
@@ -617,9 +365,22 @@ void GNSS_LG290P::createMessageListBase(String &returnText)
 //----------------------------------------
 uint8_t GNSS_LG290P::getSurveyInMode()
 {
+    // Note: _lg290p->getSurveyMode() returns 0 while a survey-in is *running*
+    // so we check PQTMSVINSTATUS to see if a survey is in progress.
+
     if (online.gnss)
-        return (_lg290p->getSurveyMode());
-    return (false);
+    {
+        if (_lg290p->getSurveyMode() == 2)
+            return (2); // We know we are fixed
+        else
+        {
+            // Determine if a survey is running
+            int surveyStatus = _lg290p->getSurveyInStatus(); // 0 = Invalid, 1 = In-progress, 2 = Valid
+            if (surveyStatus == 1 || surveyStatus == 2)
+                return (1); // We're in survey mode
+        }
+    }
+    return (0);
 }
 
 //----------------------------------------
@@ -628,49 +389,6 @@ uint8_t GNSS_LG290P::getSurveyInMode()
 bool GNSS_LG290P::configureNtpMode()
 {
     return false;
-}
-
-//----------------------------------------
-// Disable NMEA and RTCM on UART2 to reduce the serial traffic
-//----------------------------------------
-bool GNSS_LG290P::enterConfigMode(unsigned long waitForSemaphoreTimeout_millis)
-{
-    if (online.gnss)
-    {
-        unsigned long start = millis();
-        bool isBlocking;
-        do
-        { // Wait for up to waitForSemaphoreTimeout for library to stop blocking
-            isBlocking = _lg290p->isBlocking();
-        } while (isBlocking && ((millis() - start) < waitForSemaphoreTimeout_millis));
-
-        // This will fail if the library is still blocking, but it is worth a punt...
-
-        if (lg290pFirmwareVersion >= 6) // See #747
-            // Disable NMEA and RTCM on the LG290P UART2, but leave the undocumented Bit 1 enabled
-            return (_lg290p->sendOkCommand("$PQTMCFGPROT", ",W,1,2,00000007,00000002"));
-
-        // Disable NMEA and RTCM on the LG290P UART2
-        return (_lg290p->sendOkCommand("$PQTMCFGPROT", ",W,1,2,00000000,00000000"));
-    }
-    return (false);
-}
-
-//----------------------------------------
-// Enable NMEA and RTCM on UART2
-//----------------------------------------
-bool GNSS_LG290P::exitConfigMode()
-{
-    if (online.gnss)
-    {
-        if (lg290pFirmwareVersion >= 6) // See #747
-            // Enable NMEA and RTCM on the LG290P UART2, plus the undocumented Bit 1
-            return (_lg290p->sendOkCommand("$PQTMCFGPROT", ",W,1,2,00000007,00000007"));
-
-        // Enable NMEA and RTCM on the LG290P UART2
-        return (_lg290p->sendOkCommand("$PQTMCFGPROT", ",W,1,2,00000005,00000005"));
-    }
-    return (false);
 }
 
 //----------------------------------------
@@ -690,7 +408,7 @@ bool GNSS_LG290P::disableSurveyIn(bool saveAndReset)
             response &= saveConfiguration();
             if (settings.debugGnss && response == false)
                 systemPrintln("disableSurveyIn: save failed");
-            response &= softwareReset();
+            response &= reset();
             if (settings.debugGnss && response == false)
                 systemPrintln("disableSurveyIn: reset failed");
         }
@@ -717,387 +435,6 @@ void GNSS_LG290P::debuggingEnable()
 }
 
 //----------------------------------------
-void GNSS_LG290P::enableGgaForNtrip()
-{
-    // TODO lg290pEnableGgaForNtrip();
-}
-
-//----------------------------------------
-// Turn on all the enabled NMEA messages
-//----------------------------------------
-bool GNSS_LG290P::enableNMEA()
-{
-    bool response = true;
-    bool gpggaEnabled = false;
-
-    int portNumber = 1;
-
-    while (portNumber < 4)
-    {
-        for (int messageNumber = 0; messageNumber < MAX_LG290P_NMEA_MSG; messageNumber++)
-        {
-            // Check if this NMEA message is supported by the current LG290P firmware
-            if (lg290pFirmwareVersion >= lgMessagesNMEA[messageNumber].firmwareVersionSupported)
-            {
-                // Disable NMEA output on UART3 RADIO
-                int msgRate = settings.lg290pMessageRatesNMEA[messageNumber];
-                if ((portNumber == 3) && (settings.enableNmeaOnRadio == false))
-                    msgRate = 0;
-
-                // If firmware is 4 or higher, use setMessageRateOnPort, otherwise setMessageRate
-                if (lg290pFirmwareVersion >= 4)
-                    // Enable this message, at this rate, on this port
-                    response &=
-                        _lg290p->setMessageRateOnPort(lgMessagesNMEA[messageNumber].msgTextName, msgRate, portNumber);
-                else
-                    // Enable this message, at this rate
-                    response &= _lg290p->setMessageRate(lgMessagesNMEA[messageNumber].msgTextName, msgRate);
-                if (response == false && settings.debugGnss)
-                    systemPrintf("Enable NMEA failed at messageNumber %d %s.\r\n", messageNumber,
-                                 lgMessagesNMEA[messageNumber].msgTextName);
-
-                // If we are using IP based corrections, we need to send local data to the PPL
-                // The PPL requires being fed GPGGA/ZDA, and RTCM1019/1020/1042/1046
-                if (pointPerfectServiceUsesKeys())
-                {
-                    // Mark PPL required messages as enabled if rate > 0
-                    if (settings.lg290pMessageRatesNMEA[messageNumber] > 0)
-                    {
-                        if (strcmp(lgMessagesNMEA[messageNumber].msgTextName, "GGA") == 0)
-                            gpggaEnabled = true;
-                    }
-                }
-            }
-        }
-
-        portNumber++;
-
-        // setMessageRateOnPort only supported on v4 and above
-        if (lg290pFirmwareVersion < 4)
-            break; // Don't step through portNumbers
-    }
-
-    if (pointPerfectServiceUsesKeys())
-    {
-        // Force on any messages that are needed for PPL
-        // If firmware is 4 or higher, use setMessageRateOnPort, otherwise setMessageRate
-        if (lg290pFirmwareVersion >= 4)
-        {
-            // Enable GGA on UART 2 (connected to ESP32) only
-            if (gpggaEnabled == false)
-                response &= _lg290p->setMessageRateOnPort("GGA", 1, 2);
-        }
-        else
-        {
-            // Enable GGA on all UARTs. It's the best we can do.
-            if (gpggaEnabled == false)
-                response &= _lg290p->setMessageRate("GGA", 1);
-        }
-    }
-
-    // If this is Flex, we may need to enable NMEA for Tilt IMU
-    if (present.tiltPossible == true)
-    {
-        if (present.imu_im19 == true && settings.enableTiltCompensation == true)
-        {
-            // Regardless of user settings, enable GGA, RMC, GST on UART3
-            // If firmware is 4 or higher, use setMessageRateOnPort, otherwise setMessageRate
-            if (lg290pFirmwareVersion >= 4)
-            {
-                // Enable GGA/RMS/GST on UART 3 (connected to the IMU) only
-                response &= _lg290p->setMessageRateOnPort("GGA", 1, 3);
-                response &= _lg290p->setMessageRateOnPort("RMC", 1, 3);
-                response &= _lg290p->setMessageRateOnPort("GST", 1, 3);
-            }
-            else
-            {
-                // GST not supported below 4
-                systemPrintf(
-                    "Current LG290P firmware: v%d (full form: %s). Tilt compensation requires GST on firmware v4 "
-                    "or newer. Please "
-                    "update the "
-                    "firmware on your LG290P to allow for these features. Please see "
-                    "https://bit.ly/sfe-rtk-lg290p-update\r\n Marking tilt compensation offline.",
-                    lg290pFirmwareVersion, gnssFirmwareVersion);
-
-                present.imu_im19 = false;
-            }
-        }
-    }
-    return (response);
-}
-
-//----------------------------------------
-// Turn on all the enabled RTCM Base messages
-//----------------------------------------
-bool GNSS_LG290P::enableRTCMBase()
-{
-    bool response = true;
-    bool enableRTCM = false; // Goes true if we need to enable RTCM output reporting
-
-    int portNumber = 1;
-
-    int minimumRtcmRate = 1000;
-
-    while (portNumber < 4)
-    {
-        for (int messageNumber = 0; messageNumber < MAX_LG290P_RTCM_MSG; messageNumber++)
-        {
-            // Check if this RTCM message is supported by the current LG290P firmware
-            if (lg290pFirmwareVersion >= lgMessagesRTCM[messageNumber].firmwareVersionSupported)
-            {
-                // Setting RTCM-1005 must have only the rate
-                // Setting RTCM-107X must have rate and offset
-                if (strchr(lgMessagesRTCM[messageNumber].msgTextName, 'X') == nullptr)
-                {
-                    // No X found. This is RTCM-1??? message. No offset.
-
-                    // If firmware is 4 or higher, use setMessageRateOnPort, otherwise setMessageRate
-                    if (lg290pFirmwareVersion >= 4)
-                        // Enable this message, at this rate, on this port
-                        response &= _lg290p->setMessageRateOnPort(lgMessagesRTCM[messageNumber].msgTextName,
-                                                                  settings.lg290pMessageRatesRTCMBase[messageNumber],
-                                                                  portNumber);
-                    else
-                        // Enable this message, at this rate
-                        response &= _lg290p->setMessageRate(lgMessagesRTCM[messageNumber].msgTextName,
-                                                            settings.lg290pMessageRatesRTCMBase[messageNumber]);
-
-                    if (response == false && settings.debugGnss)
-                        systemPrintf("Enable RTCM failed at messageNumber %d %s\r\n", messageNumber,
-                                     lgMessagesRTCM[messageNumber].msgTextName);
-                }
-                else
-                {
-                    // X found. This is RTCM-1??X message. Assign 'offset' of 0
-
-                    // If firmware is 4 or higher, use setMessageRateOnPort, otherwise setMessageRate
-                    if (lg290pFirmwareVersion >= 4)
-                        // Enable this message, at this rate, on this port
-                        response &= _lg290p->setMessageRateOnPort(lgMessagesRTCM[messageNumber].msgTextName,
-                                                                  settings.lg290pMessageRatesRTCMBase[messageNumber],
-                                                                  portNumber, 0);
-                    else
-                        // Enable this message, at this rate
-                        response &= _lg290p->setMessageRate(lgMessagesRTCM[messageNumber].msgTextName,
-                                                            settings.lg290pMessageRatesRTCMBase[messageNumber], 0);
-
-                    if (response == false && settings.debugGnss)
-                        systemPrintf("Enable RTCM failed at messageNumber %d %s\r\n", messageNumber,
-                                     lgMessagesRTCM[messageNumber].msgTextName);
-                }
-
-                // If any message is enabled, enable RTCM output
-                if (settings.lg290pMessageRatesRTCMBase[messageNumber] > 0)
-                {
-                    enableRTCM = true;
-                    // Capture the message with the lowest rate
-                    if (settings.lg290pMessageRatesRTCMBase[messageNumber] < minimumRtcmRate)
-                        minimumRtcmRate = settings.lg290pMessageRatesRTCMBase[messageNumber];
-                }
-            }
-        }
-
-        portNumber++;
-
-        // setMessageRateOnPort only supported on v4 and above
-        if (lg290pFirmwareVersion < 4)
-            break; // Don't step through portNumbers
-    }
-
-    if (enableRTCM == true)
-    {
-        if (settings.debugGnss)
-            systemPrintf("Enabling Base RTCM MSM%c output with rate of %d\r\n", settings.useMSM7 ? '7' : '4',
-                         minimumRtcmRate);
-
-        // PQTMCFGRTCM fails to respond with OK over UART2 of LG290P, so don't look for it
-        char cfgRtcm[40];
-        snprintf(cfgRtcm, sizeof(cfgRtcm), "PQTMCFGRTCM,W,%c,0,%d,07,06,2,%d", settings.useMSM7 ? '7' : '4',
-                 settings.rtcmMinElev, minimumRtcmRate);
-        _lg290p->sendOkCommand(cfgRtcm); // Enable MSM4/7, output regular intervals, interval (seconds)
-    }
-
-    return (response);
-}
-
-//----------------------------------------
-// Turn on all the enabled RTCM Rover messages
-//----------------------------------------
-bool GNSS_LG290P::enableRTCMRover()
-{
-    bool response = true;
-    bool rtcm1019Enabled = false;
-    bool rtcm1020Enabled = false;
-    bool rtcm1042Enabled = false;
-    bool rtcm1046Enabled = false;
-    bool enableRTCM = false; // Goes true if we need to enable RTCM output reporting
-
-    int portNumber = 1;
-
-    int minimumRtcmRate = 1000;
-
-    while (portNumber < 4)
-    {
-        for (int messageNumber = 0; messageNumber < MAX_LG290P_RTCM_MSG; messageNumber++)
-        {
-            // 1019 to 1046 can only be set to 1 fix per report
-            // 107x to 112x can be set to 1-1200 fixes between reports
-            // So we set all RTCM to 1, and set PQTMCFGRTCM to the lowest value found
-
-            // Capture the message with the lowest rate
-            if (settings.lg290pMessageRatesRTCMRover[messageNumber] > 0 &&
-                settings.lg290pMessageRatesRTCMRover[messageNumber] < minimumRtcmRate)
-                minimumRtcmRate = settings.lg290pMessageRatesRTCMRover[messageNumber];
-
-            // Force all RTCM messages to 1 or 0. See above for reasoning.
-            int rate = settings.lg290pMessageRatesRTCMRover[messageNumber];
-            if (rate > 1)
-                rate = 1;
-
-            // Check if this RTCM message is supported by the current LG290P firmware
-            if (lg290pFirmwareVersion >= lgMessagesRTCM[messageNumber].firmwareVersionSupported)
-            {
-                // Setting RTCM-1005 must have only the rate
-                // Setting RTCM-107X must have rate and offset
-                if (strchr(lgMessagesRTCM[messageNumber].msgTextName, 'X') == nullptr)
-                {
-                    // No X found. This is RTCM-1??? message. No offset.
-
-                    // If firmware is 4 or higher, use setMessageRateOnPort, otherwise setMessageRate
-                    if (lg290pFirmwareVersion >= 4)
-                    {
-                        // If any one of the commands fails, report failure overall
-                        response &=
-                            _lg290p->setMessageRateOnPort(lgMessagesRTCM[messageNumber].msgTextName, rate, portNumber);
-                    }
-                    else
-                        response &= _lg290p->setMessageRate(lgMessagesRTCM[messageNumber].msgTextName, rate);
-
-                    if (response == false && settings.debugGnss)
-                        systemPrintf("Enable RTCM failed at messageNumber %d %s\r\n", messageNumber,
-                                     lgMessagesRTCM[messageNumber].msgTextName);
-                }
-                else
-                {
-                    // X found. This is RTCM-1??X message. Assign 'offset' of 0
-
-                    // The rate of these type of messages can be 1 to 1200, so we allow the full rate
-
-                    // If firmware is 4 or higher, use setMessageRateOnPort, otherwise setMessageRate
-                    if (lg290pFirmwareVersion >= 4)
-                    {
-                        response &= _lg290p->setMessageRateOnPort(lgMessagesRTCM[messageNumber].msgTextName,
-                                                                  settings.lg290pMessageRatesRTCMRover[messageNumber],
-                                                                  portNumber, 0);
-                    }
-                    else
-                        response &= _lg290p->setMessageRate(lgMessagesRTCM[messageNumber].msgTextName,
-                                                            settings.lg290pMessageRatesRTCMRover[messageNumber], 0);
-
-                    if (response == false && settings.debugGnss)
-                        systemPrintf("Enable RTCM failed at messageNumber %d %s\r\n", messageNumber,
-                                     lgMessagesRTCM[messageNumber].msgTextName);
-                }
-
-                // If any message is enabled, enable RTCM output
-                if (settings.lg290pMessageRatesRTCMRover[messageNumber] > 0)
-                    enableRTCM = true;
-
-                // If we are using IP based corrections, we need to send local data to the PPL
-                // The PPL requires being fed GPGGA/ZDA, and RTCM1019/1020/1042/1046
-                if (pointPerfectServiceUsesKeys())
-                {
-                    // Mark PPL required messages as enabled if rate > 0
-                    if (settings.lg290pMessageRatesRTCMRover[messageNumber] > 0)
-                    {
-                        if (strcmp(lgMessagesRTCM[messageNumber].msgTextName, "RTCM3-1019") == 0)
-                            rtcm1019Enabled = true;
-                        else if (strcmp(lgMessagesRTCM[messageNumber].msgTextName, "RTCM3-1020") == 0)
-                            rtcm1020Enabled = true;
-                        else if (strcmp(lgMessagesRTCM[messageNumber].msgTextName, "RTCM3-1042") == 0)
-                            rtcm1042Enabled = true;
-                        else if (strcmp(lgMessagesRTCM[messageNumber].msgTextName, "RTCM3-1046") == 0)
-                            rtcm1046Enabled = true;
-                    }
-                }
-            }
-        }
-
-        portNumber++;
-
-        // setMessageRateOnPort only supported on v4 and above
-        if (lg290pFirmwareVersion < 4)
-            break; // Don't step through portNumbers
-    }
-
-    if (pointPerfectServiceUsesKeys())
-    {
-        enableRTCM = true; // Force enable RTCM output
-
-        // Force on any messages that are needed for PPL
-        if (rtcm1019Enabled == false)
-        {
-            if (settings.debugCorrections)
-                systemPrintln("PPL Enabling RTCM3-1019");
-            response &= _lg290p->setMessageRate("RTCM3-1019", 1);
-        }
-        if (rtcm1020Enabled == false)
-        {
-            if (settings.debugCorrections)
-                systemPrintln("PPL Enabling RTCM3-1020");
-
-            response &= _lg290p->setMessageRate("RTCM3-1020", 1);
-        }
-        if (rtcm1042Enabled == false)
-        {
-            if (settings.debugCorrections)
-                systemPrintln("PPL Enabling RTCM3-1042");
-
-            response &= _lg290p->setMessageRate("RTCM3-1042", 1);
-        }
-        if (rtcm1046Enabled == false)
-        {
-            if (settings.debugCorrections)
-                systemPrintln("PPL Enabling RTCM3-1046");
-            response &= _lg290p->setMessageRate("RTCM3-1046", 1);
-        }
-    }
-
-    // If any RTCM message is enabled, send CFGRTCM
-    if (enableRTCM == true)
-    {
-        if (settings.debugCorrections)
-            systemPrintf("Enabling Rover RTCM MSM%c output with rate of %d\r\n", settings.useMSM7 ? '7' : '4',
-                         minimumRtcmRate);
-
-        // Enable MSM4/7 (for faster PPP CSRS results), output at a rate equal to the minimum RTCM rate (EPH Mode = 2)
-        // PQTMCFGRTCM, W, <MSM_Type>, <MSM_Mode>, <MSM_ElevThd>, <Reserved>, <Reserved>, <EPH_Mode>, <EPH_Interval>
-        // Set MSM_ElevThd to 15 degrees from rftop suggestion
-
-        char msmCommand[40] = {0};
-        snprintf(msmCommand, sizeof(msmCommand), "PQTMCFGRTCM,W,%c,0,%d,07,06,2,%d", settings.useMSM7 ? '7' : '4',
-                 settings.rtcmMinElev, minimumRtcmRate);
-
-        // PQTMCFGRTCM fails to respond with OK over UART2 of LG290P, so don't look for it
-        _lg290p->sendOkCommand(msmCommand);
-    }
-
-    return (response);
-}
-
-//----------------------------------------
-// Enable RTCM 1230. This is the GLONASS bias sentence and is transmitted
-// even if there is no GPS fix. We use it to test serial output.
-// Returns true if successfully started and false upon failure
-//----------------------------------------
-bool GNSS_LG290P::enableRTCMTest()
-{
-    // RTCM-1230 not supported on the LG290P
-    return false;
-}
-
-//----------------------------------------
 // Restore the GNSS to the factory settings
 //----------------------------------------
 void GNSS_LG290P::factoryReset()
@@ -1107,7 +444,7 @@ void GNSS_LG290P::factoryReset()
         _lg290p->factoryRestore(); // Restores the parameters configured by all commands to their default values.
                                    // This command takes effect after restarting.
 
-        softwareReset(); // Reboot the receiver.
+        reset(); // Reboot the receiver.
 
         systemPrintln("Waiting for LG290P to reboot");
         while (1)
@@ -1146,6 +483,10 @@ bool GNSS_LG290P::fixedBaseStart()
     if (online.gnss == false)
         return (false);
 
+    // If we are already in the appropriate base mode, no changes needed
+    if (gnssInBaseFixedMode())
+        return (true); // No changes needed
+
     if (settings.fixedBaseCoordinateType == COORD_TYPE_ECEF)
     {
         // Waits for save and reset
@@ -1171,6 +512,33 @@ bool GNSS_LG290P::fixedBaseStart()
     }
 
     return (response);
+}
+
+//----------------------------------------
+// Check if given GNSS fix rate is allowed
+// Rates are expressed in ms between fixes.
+//----------------------------------------
+const uint32_t lgAllowedFixRatesHz[] = {1, 2, 5, 10, 20}; // The LG290P doesn't support slower speeds than 1Hz
+const int lgAllowedFixRatesCount = sizeof(lgAllowedFixRatesHz) / sizeof(lgAllowedFixRatesHz[0]);
+
+bool GNSS_LG290P::fixRateIsAllowed(uint32_t fixRateMs)
+{
+    for (int x = 0; x < lgAllowedFixRatesCount; x++)
+        if (fixRateMs == (1000.0 / lgAllowedFixRatesHz[x]))
+            return (true);
+    return (false);
+}
+
+// Return minimum in milliseconds
+uint32_t GNSS_LG290P::fixRateGetMinimumMs()
+{
+    return (1000.0 / lgAllowedFixRatesHz[lgAllowedFixRatesCount - 1]); // The max Hz value is the min ms value
+}
+
+// Return maximum in milliseconds
+uint32_t GNSS_LG290P::fixRateGetMaximumMs()
+{
+    return (1000.0 / lgAllowedFixRatesHz[0]);
 }
 
 //----------------------------------------
@@ -1225,7 +593,10 @@ uint8_t GNSS_LG290P::getActiveRtcmMessageCount()
 double GNSS_LG290P::getAltitude()
 {
     if (online.gnss)
-        return (_lg290p->getAltitude());
+        // See issue #809
+        // getAltitude returns the Altitude above mean sea level (meters)
+        // For Height above Ellipsoid, we need to add the the geoidalSeparation
+        return (_lg290p->getAltitude() + _lg290p->getGeoidalSeparation());
     return (0);
 }
 
@@ -1302,6 +673,12 @@ uint32_t GNSS_LG290P::getDataBaudRate()
         // This is nicknamed the DATA port
         dataUart = 1;
     }
+    else if (productVariant == RTK_FACET_FP)
+    {
+        // On the Facet FP, the DATA connector is not connected to the GNSS
+        // Return 0.
+        return (0);
+    }
     else if (productVariant == RTK_TORCH_X2)
     {
         // UART3 of the LG290P is connected to USB CH342 (Port A)
@@ -1309,16 +686,15 @@ uint32_t GNSS_LG290P::getDataBaudRate()
         dataUart = 3;
     }
     else
-    {
         systemPrintln("getDataBaudRate: Uncaught platform");
-    }
+
     return (getBaudRate(dataUart));
 }
 
 //----------------------------------------
 // Set the baud rate of port nicknamed DATA
 //----------------------------------------
-bool GNSS_LG290P::setDataBaudRate(uint32_t baud)
+bool GNSS_LG290P::setBaudRateData(uint32_t baud)
 {
     if (online.gnss)
     {
@@ -1334,20 +710,20 @@ bool GNSS_LG290P::setDataBaudRate(uint32_t baud)
                 // This is nicknamed the DATA port
                 return (setBaudRate(1, baud));
             }
-            else if (productVariant == RTK_TORCH_X2)
+            else if (productVariant == RTK_FACET_FP)
             {
-                if (getDataBaudRate() != baud)
-                {
-                    // UART3 of the LG290P is connected to USB CH342 (Port A)
-                    // This is nicknamed the DATA port
-                    return (setBaudRate(3, baud));
-                }
-            }
-            else
-            {
-                // On products that don't have a DATA port (Flex), act as if we have set the baud successfully
+                // On the Facet FP, the DATA connector is not connected to the GNSS
+                // Return true so that configuration can proceed.
                 return (true);
             }
+            else if (productVariant == RTK_TORCH_X2)
+            {
+                // UART3 of the LG290P is connected to USB CH342 (Port A)
+                // This is nicknamed the DATA port
+                return (setBaudRate(3, baud));
+            }
+            else
+                systemPrintln("setDataBaudRate: Uncaught platform");
         }
     }
     return (false);
@@ -1364,7 +740,7 @@ uint32_t GNSS_LG290P::getRadioBaudRate()
         // UART3 of the LG290P is connected to the locking JST connector labled RADIO
         radioUart = 3;
     }
-    else if (productVariant == RTK_FLEX)
+    else if (productVariant == RTK_FACET_FP)
     {
         // UART2 of the LG290P is connected to SW4, which is connected to LoRa UART0
         radioUart = 2;
@@ -1375,13 +751,16 @@ uint32_t GNSS_LG290P::getRadioBaudRate()
         // Not really used at this time but available for configuration
         radioUart = 1;
     }
+    else
+        systemPrintln("getDataBaudRate: Uncaught platform");
+
     return (getBaudRate(radioUart));
 }
 
 //----------------------------------------
 // Set the baud rate for the Radio connection
 //----------------------------------------
-bool GNSS_LG290P::setRadioBaudRate(uint32_t baud)
+bool GNSS_LG290P::setBaudRateRadio(uint32_t baud)
 {
     if (online.gnss)
     {
@@ -1397,7 +776,7 @@ bool GNSS_LG290P::setRadioBaudRate(uint32_t baud)
                 // UART3 of the LG290P is connected to the locking JST connector labled RADIO
                 radioUart = 3;
             }
-            else if (productVariant == RTK_FLEX)
+            else if (productVariant == RTK_FACET_FP)
             {
                 // UART2 of the LG290P is connected to SW4, which is connected to LoRa UART0
                 radioUart = 2;
@@ -1408,6 +787,9 @@ bool GNSS_LG290P::setRadioBaudRate(uint32_t baud)
                 // Not really used at this time but available for configuration
                 radioUart = 1;
             }
+            else
+                systemPrintln("setBaudRateRadio: Uncaught platform");
+
             return (setBaudRate(radioUart, baud));
         }
     }
@@ -1448,6 +830,16 @@ uint8_t GNSS_LG290P::getFixType()
         // 5 = Float RTK. Satellite system used in RTK mode, floating integers.
         return (_lg290p->getFixQuality());
     return 0;
+}
+
+//----------------------------------------
+// Returns the geoidal separation in meters or zero if the GNSS is offline
+//----------------------------------------
+double GNSS_LG290P::getGeoidalSeparation()
+{
+    if (online.gnss)
+        return (_lg290p->getGeoidalSeparation());
+    return (0);
 }
 
 //----------------------------------------
@@ -1688,16 +1080,42 @@ uint16_t GNSS_LG290P::getYear()
 }
 
 //----------------------------------------
-// Returns true if the device is in Rover mode
-// Currently the only two modes are Rover or Base
+// Returns true if the device is in Base Fixed mode
 //----------------------------------------
-bool GNSS_LG290P::inRoverMode()
+bool GNSS_LG290P::gnssInBaseFixedMode()
 {
-    // Determine which state we are in
-    if (settings.lastState == STATE_BASE_NOT_STARTED)
-        return (false);
+    // 0 - Unknown, 1 - Rover, 2 - Base
+    if (getMode() == 2)
+    {
+        if (getSurveyInMode() == 2) // 0 - Disabled, 1 - Survey-in mode, 2 - Fixed mode
+            return (true);
+    }
+    return (false);
+}
 
-    return (true); // Default to Rover
+//----------------------------------------
+// Returns true if the device is in Base Survey In mode
+//----------------------------------------
+bool GNSS_LG290P::gnssInBaseSurveyInMode()
+{
+    // 0 - Unknown, 1 - Rover, 2 - Base
+    if (getMode() == 2)
+    {
+        if (getSurveyInMode() == 1) // 0 - Disabled, 1 - Survey-in mode, 2 - Fixed mode
+            return (true);
+    }
+    return (false);
+}
+
+//----------------------------------------
+// Returns true if the device is in Rover mode
+//----------------------------------------
+bool GNSS_LG290P::gnssInRoverMode()
+{
+    // 0 - Unknown, 1 - Rover, 2 - Base
+    if (getMode() == 1)
+        return (true);
+    return (false);
 }
 
 // If we issue a library command that must wait for a response, we don't want
@@ -1913,8 +1331,7 @@ void GNSS_LG290P::menuConstellations()
             systemPrintf("%d) Galileo E6 Corrections: %s\r\n", MAX_LG290P_CONSTELLATIONS + 1,
                          settings.enableGalileoHas ? "Enabled" : "Disabled");
             if (settings.enableGalileoHas)
-                systemPrintf("%d) PPP Configuration: \"%s\"\r\n", MAX_LG290P_CONSTELLATIONS + 2,
-                            settings.configurePPP);
+                systemPrintf("%d) PPP Configuration: \"%s\"\r\n", MAX_LG290P_CONSTELLATIONS + 2, settings.configurePPP);
         }
 
         systemPrintln("x) Exit");
@@ -1926,10 +1343,12 @@ void GNSS_LG290P::menuConstellations()
             incoming--; // Align choice to constellation array of 0 to 5
 
             settings.lg290pConstellations[incoming] ^= 1;
+            gnssConfigure(GNSS_CONFIG_CONSTELLATION); // Request receiver to use new settings
         }
         else if ((incoming == MAX_LG290P_CONSTELLATIONS + 1) && present.galileoHasCapable)
         {
             settings.enableGalileoHas ^= 1;
+            gnssConfigure(GNSS_CONFIG_HAS_E6); // Request receiver to use new settings
         }
         else if ((incoming == MAX_LG290P_CONSTELLATIONS + 2) && present.galileoHasCapable && settings.enableGalileoHas)
         {
@@ -1963,11 +1382,6 @@ void GNSS_LG290P::menuConstellations()
         else
             printUnknown(incoming);
     }
-
-    // Apply current settings to module
-    gnss->setConstellations();
-
-    setHighAccuracyService(settings.enableGalileoHas, (const char *)settings.configurePPP);
 
     clearBuffer(); // Empty buffer of any newline chars
 }
@@ -2034,6 +1448,12 @@ void GNSS_LG290P::menuMessages()
             for (int x = 0; x < MAX_LG290P_PQTM_MSG; x++)
                 settings.lg290pMessageRatesPQTM[x] = lgMessagesPQTM[x].msgDefaultRate;
 
+            gnssConfigure(GNSS_CONFIG_MESSAGE_RATE_NMEA);
+            if (inBaseMode()) // If the system is in Base mode
+                gnssConfigure(GNSS_CONFIG_MESSAGE_RATE_RTCM_BASE);
+            else
+                gnssConfigure(GNSS_CONFIG_MESSAGE_RATE_RTCM_ROVER);
+
             systemPrintln("Reset to Defaults");
         }
         else if (incoming == 11 || incoming == 12)
@@ -2060,26 +1480,30 @@ void GNSS_LG290P::menuMessages()
             setRtcmRoverMessageRateByName("RTCM3-109X", rtcmReportRate);
             // setRtcmRoverMessageRateByName("RTCM3-112X", rtcmReportRate); //BeiDou not used by CSRS-PPP
 
-            // MSM7 is set during enableRTCMRover()
+            // MSM7 is set during setMessagesRTCMRover()
 
             // Override settings for PPP logging
-            setElevation(15);
-            setMinCnoRadio(30);
+            settings.minElev = 15; // Degrees
+            gnssConfigure(GNSS_CONFIG_ELEVATION);
+            settings.minCN0 = 30; // dBHz
+            gnssConfigure(GNSS_CONFIG_CN0);
+            settings.measurementRateMs = 1000; // Go to 1 Hz
+            gnssConfigure(GNSS_CONFIG_FIX_RATE);
 
-            setRate(1); // Go to 1 Hz
+            gnssConfigure(GNSS_CONFIG_MESSAGE_RATE_NMEA);       // Request receiver to use new settings
+            gnssConfigure(GNSS_CONFIG_MESSAGE_RATE_RTCM_ROVER); // Request receiver to use new settings
 
             if (incoming == 12)
-            {
                 systemPrintln("Reset to High-rate PPP Logging Defaults (NMEAx7 / RTCMx4 - 1Hz)");
-            }
             else
-            {
                 systemPrintln("Reset to PPP Logging Defaults (NMEAx7 / RTCMx4 - 30 second decimation)");
-            }
         }
         else if ((incoming == 13) &&
                  (namedSettingAvailableOnPlatform("useMSM7"))) // Redundant - but good practice for code reuse)
+        {
             settings.useMSM7 ^= 1;
+            gnssConfigure(GNSS_CONFIG_MESSAGE_RATE_RTCM_ROVER); // Request receiver to use new settings
+        }
         else if ((incoming == 14) && (namedSettingAvailableOnPlatform("rtcmMinElev")))
         {
             systemPrintf("Enter minimum elevation for RTCM: ");
@@ -2089,6 +1513,7 @@ void GNSS_LG290P::menuMessages()
             if (elevation >= -90 && elevation <= 90)
             {
                 settings.rtcmMinElev = elevation;
+                gnssConfigure(GNSS_CONFIG_MESSAGE_RATE_RTCM_ROVER); // Request receiver to use new settings
             }
         }
 
@@ -2101,14 +1526,6 @@ void GNSS_LG290P::menuMessages()
     }
 
     clearBuffer(); // Empty buffer of any newline chars
-
-    // Apply these changes at menu exit
-    if (inRoverMode())
-        restartRover = true;
-    else
-        restartBase = true;
-
-    setLoggingType(); // Determine if we are standard, PPP, or custom. Changes logging icon accordingly.
 }
 
 //----------------------------------------
@@ -2215,22 +1632,34 @@ void GNSS_LG290P::menuMessagesSubtype(int *localMessageRate, const char *message
             if (strcmp(messageType, "NMEA") == 0)
             {
                 if (getNewSetting(messageString, 0, 1, &newSetting) == INPUT_RESPONSE_VALID)
+                {
                     settings.lg290pMessageRatesNMEA[incoming] = newSetting;
+                    gnssConfigure(GNSS_CONFIG_MESSAGE_RATE_NMEA); // Configure receiver to use new setting
+                }
             }
             if (strcmp(messageType, "RTCMRover") == 0)
             {
                 if (getNewSetting(messageString, 0, 1200, &newSetting) == INPUT_RESPONSE_VALID)
+                {
                     settings.lg290pMessageRatesRTCMRover[incoming] = newSetting;
+                    gnssConfigure(GNSS_CONFIG_MESSAGE_RATE_RTCM_ROVER); // Configure receiver to use new setting
+                }
             }
             if (strcmp(messageType, "RTCMBase") == 0)
             {
                 if (getNewSetting(messageString, 0, 1200, &newSetting) == INPUT_RESPONSE_VALID)
+                {
                     settings.lg290pMessageRatesRTCMBase[incoming] = newSetting;
+                    gnssConfigure(GNSS_CONFIG_MESSAGE_RATE_RTCM_BASE); // Configure receiver to use new setting
+                }
             }
             if (strcmp(messageType, "PQTM") == 0)
             {
                 if (getNewSetting(messageString, 0, 1, &newSetting) == INPUT_RESPONSE_VALID)
+                {
                     settings.lg290pMessageRatesPQTM[incoming] = newSetting;
+                    gnssConfigure(GNSS_CONFIG_MESSAGE_RATE_OTHER); // Configure receiver to use new setting
+                }
             }
         }
         else if (incoming == INPUT_RESPONSE_GETNUMBER_EXIT)
@@ -2240,10 +1669,6 @@ void GNSS_LG290P::menuMessagesSubtype(int *localMessageRate, const char *message
         else
             printUnknown(incoming);
     }
-
-    settings.gnssConfiguredOnce = false; // Update the GNSS config at the next boot
-    settings.gnssConfiguredBase = false;
-    settings.gnssConfiguredRover = false;
 
     clearBuffer(); // Empty buffer of any newline chars
 }
@@ -2258,7 +1683,7 @@ void GNSS_LG290P::printModuleInfo()
         std::string version, buildDate, buildTime;
         if (_lg290p->getVersionInfo(version, buildDate, buildTime))
         {
-            systemPrintf("LG290P version: v%02d - %s %s %s - v%d\r\n", lg290pFirmwareVersion, version.c_str(),
+            systemPrintf("LG290P version: v%02d - %s %s %s\r\n", lg290pFirmwareVersion, version.c_str(),
                          buildDate.c_str(), buildTime.c_str());
         }
         else
@@ -2281,6 +1706,38 @@ int GNSS_LG290P::pushRawData(uint8_t *dataToSend, int dataLength)
     if (online.gnss)
         return (serialGNSS->write(dataToSend, dataLength));
     return (0);
+}
+
+//----------------------------------------
+// Hardware or software reset the GNSS receiver
+// Reset GNSS via software command
+// Poll for isConnected()
+//----------------------------------------
+bool GNSS_LG290P::reset()
+{
+    if (online.gnss)
+    {
+        if (settings.debugGnss || settings.debugGnssConfig)
+            systemPrintln("Rebooting LG290P");
+
+        _lg290p->reset();
+
+        // Poll for a limited amount of time before unit comes back
+        int x = 0;
+        while (x++ < 50)
+        {
+            delay(100); // Wait for device to reboot
+            if (_lg290p->isConnected() == true)
+                break;
+            else
+                systemPrintln("GNSS still rebooting");
+        }
+        if (x < 50)
+            return (true);
+
+        systemPrintln("GNSS failed to connect after reboot");
+    }
+    return (false);
 }
 
 //----------------------------------------
@@ -2329,7 +1786,7 @@ bool GNSS_LG290P::saveConfiguration()
 // Set the baud rate on the GNSS port that interfaces between the ESP32 and the GNSS
 // This just sets the GNSS side
 //----------------------------------------
-bool GNSS_LG290P::setCommBaudrate(uint32_t baud)
+bool GNSS_LG290P::setBaudRateComm(uint32_t baud)
 {
     if (online.gnss)
     {
@@ -2345,11 +1802,14 @@ bool GNSS_LG290P::setCommBaudrate(uint32_t baud)
                 // UART2 of the LG290P is connected to the ESP32 for the main config/comm
                 commUart = 2;
             }
-            else if (productVariant == RTK_FLEX)
+            else if (productVariant == RTK_FACET_FP)
             {
                 // UART1 of the LG290P is connected to the ESP32 for the main config/comm
                 commUart = 1;
             }
+            else
+                systemPrintln("setBaudRateComm: Uncaught platform");
+
             return (setBaudRate(commUart, baud));
         }
     }
@@ -2367,11 +1827,14 @@ uint32_t GNSS_LG290P::getCommBaudRate()
         // On the Postcard, the ESP32 UART1 is connected to LG290P UART2
         commUart = 2;
     }
-    else if (productVariant == RTK_FLEX)
+    else if (productVariant == RTK_FACET_FP)
     {
-        // On the Flex, the ESP32 UART1 is connected to LG290P UART1
+        // On the Facet FP, the ESP32 UART1 is connected to LG290P UART1
         commUart = 1;
     }
+    else
+        systemPrintln("getCommBaudRate: Uncaught platform");
+
     return (getBaudRate(commUart));
 }
 
@@ -2393,6 +1856,8 @@ bool GNSS_LG290P::setConstellations()
                                               settings.lg290pConstellations[5]); // NavIC
     }
 
+    gnssConfigure(GNSS_CONFIG_RESET); // Constellation changes require device save/restart
+
     return (response);
 }
 
@@ -2402,6 +1867,8 @@ bool GNSS_LG290P::setCorrRadioExtPort(bool enable, bool force)
 {
     if (online.gnss)
     {
+        // Someday, read/modify/write setPortInputProtocols
+
         if (force || (enable != _corrRadioExtPortEnabled))
         {
             // Set UART3 InputProt: RTCM3 (4) vs NMEA (1)
@@ -2443,22 +1910,30 @@ bool GNSS_LG290P::setElevation(uint8_t elevationDegrees)
 }
 
 //----------------------------------------
-bool GNSS_LG290P::setHighAccuracyService(bool enableGalileoHas, const char *configurePPP)
+// Control whether HAS E6 is used in location fixes or not
+//----------------------------------------
+bool GNSS_LG290P::setHighAccuracyService(bool enableGalileoHas)
 {
-    bool result = true;
-
     // E6 reception requires version v03/v06 with 'PPP_TEMP' in firmware title
     // Present is set during LG290P begin()
     if (present.galileoHasCapable == false)
-        return (result); // We are unable to set this setting to report success
+        return (true); // Return true to clear gnssConfigure test
+
+    // TODO - We should read/modify/write on PQTMCFGPPP
+
+    bool result = true;
 
     // Enable E6 and PPP if enabled
-    if (settings.enableGalileoHas)
+    if (enableGalileoHas)
     {
+        // $PQTMCFGPPP,R*68
+        // $PQTMCFGPPP,OK,00,2,120,0.10,0.15*0A
+
         // $PQTMCFGPPP,W,2,1,120,0.10,0.15*68
-        // Enable E6 HAS, WGS84, 120 timeout, 0.10m Horizontal convergence accuracy threshold, 0.15m Vertical threshold
+        // Enable E6 HAS, WGS84, 120 timeout, 0.10m Horizontal convergence accuracy threshold, 0.15m Vertical
+        // threshold
         char paramConfigurePPP[sizeof(settings.configurePPP) + 4];
-        snprintf(paramConfigurePPP, sizeof(paramConfigurePPP), ",W,%s", configPppSpacesToCommas(configurePPP));
+        snprintf(paramConfigurePPP, sizeof(paramConfigurePPP), ",W,%s", configPppSpacesToCommas(settings.configurePPP));
         if (_lg290p->sendOkCommand("$PQTMCFGPPP", paramConfigurePPP) == true)
         {
             systemPrintln("Galileo E6 HAS service enabled");
@@ -2488,30 +1963,18 @@ bool GNSS_LG290P::setHighAccuracyService(bool enableGalileoHas, const char *conf
 }
 
 //----------------------------------------
-// Enable all the valid messages for this platform
-// There are many messages so split into batches. VALSET is limited to 64 max per batch
-// Uses dummy newCfg and sendCfg values to be sure we open/close a complete set
+// Configure device-direct logging. Currently mosaic-X5 specific.
 //----------------------------------------
-bool GNSS_LG290P::setMessages(int maxRetries)
+bool GNSS_LG290P::setLogging()
 {
-    // Not needed for LG290P
-    return (true);
-}
-
-//----------------------------------------
-// Enable all the valid messages for this platform over the USB port
-// Add 2 to every UART1 key. This is brittle and non-perfect, but works.
-//----------------------------------------
-bool GNSS_LG290P::setMessagesUsb(int maxRetries)
-{
-    // Not needed for LG290P
-    return (true);
+    // Not supported on this platform
+    return (true); // Return true to clear gnssConfigure test
 }
 
 //----------------------------------------
 // Set the minimum satellite signal level for navigation.
 //----------------------------------------
-bool GNSS_LG290P::setMinCnoRadio(uint8_t cnoValue)
+bool GNSS_LG290P::setMinCN0(uint8_t cnoValue)
 {
     // Present on >= v05
     if (lg290pFirmwareVersion >= 5)
@@ -2522,21 +1985,391 @@ bool GNSS_LG290P::setMinCnoRadio(uint8_t cnoValue)
 }
 
 //----------------------------------------
+// Enable/disable NMEA messages according to the NMEA array
+//----------------------------------------
+bool GNSS_LG290P::setMessagesNMEA()
+{
+    bool response = true;
+    bool gpggaEnabled = false;
+
+    int portNumber = 1;
+
+    while (portNumber < 4)
+    {
+        for (int messageNumber = 0; messageNumber < MAX_LG290P_NMEA_MSG; messageNumber++)
+        {
+            // Check if this NMEA message is supported by the current LG290P firmware
+            if (lg290pFirmwareVersion >= lgMessagesNMEA[messageNumber].firmwareVersionSupported)
+            {
+                // Disable NMEA output on UART3 RADIO
+                int msgRate = settings.lg290pMessageRatesNMEA[messageNumber];
+                if ((portNumber == 3) && (settings.enableNmeaOnRadio == false))
+                    msgRate = 0;
+
+                // If firmware is 4 or higher, use setMessageRateOnPort, otherwise setMessageRate
+                if (lg290pFirmwareVersion >= 4)
+                    // Enable this message, at this rate, on this port
+                    response &=
+                        _lg290p->setMessageRateOnPort(lgMessagesNMEA[messageNumber].msgTextName, msgRate, portNumber);
+                else
+                    // Enable this message, at this rate
+                    response &= _lg290p->setMessageRate(lgMessagesNMEA[messageNumber].msgTextName, msgRate);
+                if (response == false && settings.debugGnss)
+                    systemPrintf("Enable NMEA failed at messageNumber %d %s.\r\n", messageNumber,
+                                 lgMessagesNMEA[messageNumber].msgTextName);
+
+                // Mark messages needed for other services (NTRIP Client, PointPerfect, etc) as enabled if rate > 0
+                if (settings.lg290pMessageRatesNMEA[messageNumber] > 0)
+                {
+                    if (strcmp(lgMessagesNMEA[messageNumber].msgTextName, "GGA") == 0)
+                        gpggaEnabled = true;
+                }
+            }
+        }
+
+        portNumber++;
+
+        // setMessageRateOnPort only supported on v4 and above
+        if (lg290pFirmwareVersion < 4)
+            break; // Don't step through portNumbers
+    }
+
+    // Enable GGA if needed for other services
+    if (gpggaEnabled == false)
+    {
+        // Force on any messages that are needed for PPL
+        // Enable GGA for NTRIP
+        if (pointPerfectServiceUsesKeys() ||
+            (settings.enableNtripClient == true && settings.ntripClient_TransmitGGA == true))
+        {
+            if (settings.debugGnssConfig)
+                systemPrintln("Enabling GGA for NTRIP and PointPerfect");
+
+            // If firmware is 4 or higher, use setMessageRateOnPort, otherwise setMessageRate
+            if (lg290pFirmwareVersion >= 4)
+            {
+                // Enable GGA on a specific port
+                // On Torch X2 and Postcard, the LG290P UART 2 is connected to ESP32.
+                response &= _lg290p->setMessageRateOnPort("GGA", 1, 2);
+            }
+            else
+                // Enable GGA on all UARTs. It's the best we can do.
+                response &= _lg290p->setMessageRate("GGA", 1);
+        }
+    }
+
+    // If this is Facet FP, we may need to enable NMEA for Tilt IMU
+    if (present.tiltPossible == true)
+    {
+        if (present.imu_im19 == true && settings.enableTiltCompensation == true)
+        {
+            // Regardless of user settings, enable GGA, RMC, GST on UART3
+            // If firmware is 4 or higher, use setMessageRateOnPort, otherwise setMessageRate
+            if (lg290pFirmwareVersion >= 4)
+            {
+                // Enable GGA/RMS/GST on UART 3 (connected to the IMU) only
+                response &= _lg290p->setMessageRateOnPort("GGA", 1, 3);
+                response &= _lg290p->setMessageRateOnPort("RMC", 1, 3);
+                response &= _lg290p->setMessageRateOnPort("GST", 1, 3);
+            }
+            else
+            {
+                // GST not supported below 4
+                systemPrintf(
+                    "Current LG290P firmware: v%d (full form: %s). Tilt compensation requires GST on firmware v4 "
+                    "or newer. Please "
+                    "update the "
+                    "firmware on your LG290P to allow for these features. Please see "
+                    "https://bit.ly/sfe-rtk-lg290p-update\r\n Marking tilt compensation offline.",
+                    lg290pFirmwareVersion, gnssFirmwareVersion);
+
+                present.imu_im19 = false;
+            }
+        }
+    }
+
+    // Messages take effect immediately. Save/Reset is not needed.
+
+    return (response);
+}
+
+//----------------------------------------
+// Turn on all the enabled RTCM Base messages
+//----------------------------------------
+bool GNSS_LG290P::setMessagesRTCMBase()
+{
+    bool response = true;
+    bool enableRTCM = false; // Goes true if we need to enable RTCM output reporting
+
+    int portNumber = 1;
+
+    while (portNumber < 4)
+    {
+        for (int messageNumber = 0; messageNumber < MAX_LG290P_RTCM_MSG; messageNumber++)
+        {
+            // Check if this RTCM message is supported by the current LG290P firmware
+            if (lg290pFirmwareVersion >= lgMessagesRTCM[messageNumber].firmwareVersionSupported)
+            {
+                // Setting RTCM-1005 must have only the rate
+                // Setting RTCM-107X must have rate and offset
+                if (strchr(lgMessagesRTCM[messageNumber].msgTextName, 'X') == nullptr)
+                {
+                    // No X found. This is RTCM-1??? message. No offset.
+
+                    // If firmware is 4 or higher, use setMessageRateOnPort, otherwise setMessageRate
+                    if (lg290pFirmwareVersion >= 4)
+                        // Enable this message, at this rate, on this port
+                        response &= _lg290p->setMessageRateOnPort(lgMessagesRTCM[messageNumber].msgTextName,
+                                                                  settings.lg290pMessageRatesRTCMBase[messageNumber],
+                                                                  portNumber);
+                    else
+                        // Enable this message, at this rate
+                        response &= _lg290p->setMessageRate(lgMessagesRTCM[messageNumber].msgTextName,
+                                                            settings.lg290pMessageRatesRTCMBase[messageNumber]);
+
+                    if (response == false && settings.debugGnss)
+                        systemPrintf("Enable RTCM failed at messageNumber %d %s\r\n", messageNumber,
+                                     lgMessagesRTCM[messageNumber].msgTextName);
+                }
+                else
+                {
+                    // X found. This is RTCM-1??X message. Assign 'offset' of 0
+
+                    // If firmware is 4 or higher, use setMessageRateOnPort, otherwise setMessageRate
+                    if (lg290pFirmwareVersion >= 4)
+                        // Enable this message, at this rate, on this port
+                        response &= _lg290p->setMessageRateOnPort(lgMessagesRTCM[messageNumber].msgTextName,
+                                                                  settings.lg290pMessageRatesRTCMBase[messageNumber],
+                                                                  portNumber, 0);
+                    else
+                        // Enable this message, at this rate
+                        response &= _lg290p->setMessageRate(lgMessagesRTCM[messageNumber].msgTextName,
+                                                            settings.lg290pMessageRatesRTCMBase[messageNumber], 0);
+
+                    if (response == false && settings.debugGnss)
+                        systemPrintf("Enable RTCM failed at messageNumber %d %s\r\n", messageNumber,
+                                     lgMessagesRTCM[messageNumber].msgTextName);
+                }
+
+                // If any message is enabled, enable RTCM output
+                if (settings.lg290pMessageRatesRTCMBase[messageNumber] > 0)
+                    enableRTCM = true;
+            }
+        }
+
+        portNumber++;
+
+        // setMessageRateOnPort only supported on v4 and above
+        if (lg290pFirmwareVersion < 4)
+            break; // Don't step through portNumbers
+    }
+
+    if (enableRTCM == true)
+    {
+        if (settings.debugGnss)
+            systemPrintln("Enabling Base RTCM output");
+
+        // PQTMCFGRTCM fails to respond with OK over UART2 of LG290P, so don't look for it
+        char cfgRtcm[40];
+        snprintf(cfgRtcm, sizeof(cfgRtcm), "PQTMCFGRTCM,W,%c,0,-90,07,06,2,1", settings.useMSM7 ? '7' : '4');
+        _lg290p->sendOkCommand(cfgRtcm); // Enable MSM4/7, output regular intervals, interval (seconds)
+    }
+
+    // Messages take effect immediately. Save/Reset is not needed.
+
+    return (response);
+}
+
+//----------------------------------------
+// Turn on all the enabled RTCM Rover messages
+//----------------------------------------
+bool GNSS_LG290P::setMessagesRTCMRover()
+{
+    bool response = true;
+    bool rtcm1019Enabled = false;
+    bool rtcm1020Enabled = false;
+    bool rtcm1042Enabled = false;
+    bool rtcm1046Enabled = false;
+    bool enableRTCM = false; // Goes true if we need to enable RTCM output reporting
+
+    int portNumber = 1;
+
+    int minimumRtcmRate = 1000;
+
+    while (portNumber < 4)
+    {
+        for (int messageNumber = 0; messageNumber < MAX_LG290P_RTCM_MSG; messageNumber++)
+        {
+            // 1019 to 1046 can only be set to 1 fix per report
+            // 107x to 112x can be set to 1-1200 fixes between reports
+            // So we set all RTCM to 1, and set PQTMCFGRTCM to the lowest value found
+
+            // Capture the message with the lowest rate
+            if (settings.lg290pMessageRatesRTCMRover[messageNumber] > 0 &&
+                settings.lg290pMessageRatesRTCMRover[messageNumber] < minimumRtcmRate)
+                minimumRtcmRate = settings.lg290pMessageRatesRTCMRover[messageNumber];
+
+            // Force all RTCM messages to 1 or 0. See above for reasoning.
+            int rate = settings.lg290pMessageRatesRTCMRover[messageNumber];
+            if (rate > 1)
+                rate = 1;
+
+            // Check if this RTCM message is supported by the current LG290P firmware
+            if (lg290pFirmwareVersion >= lgMessagesRTCM[messageNumber].firmwareVersionSupported)
+            {
+                // Setting RTCM-1005 must have only the rate
+                // Setting RTCM-107X must have rate and offset
+                if (strchr(lgMessagesRTCM[messageNumber].msgTextName, 'X') == nullptr)
+                {
+                    // No X found. This is RTCM-1??? message. No offset.
+
+                    // If firmware is 4 or higher, use setMessageRateOnPort, otherwise setMessageRate
+                    if (lg290pFirmwareVersion >= 4)
+                    {
+                        // If any one of the commands fails, report failure overall
+                        response &=
+                            _lg290p->setMessageRateOnPort(lgMessagesRTCM[messageNumber].msgTextName, rate, portNumber);
+                    }
+                    else
+                        response &= _lg290p->setMessageRate(lgMessagesRTCM[messageNumber].msgTextName, rate);
+
+                    if (response == false && settings.debugGnss)
+                        systemPrintf("Enable RTCM failed at messageNumber %d %s\r\n", messageNumber,
+                                     lgMessagesRTCM[messageNumber].msgTextName);
+                }
+                else
+                {
+                    // X found. This is RTCM-1??X message. Assign 'offset' of 0
+
+                    // The rate of these type of messages can be 1 to 1200, so we allow the full rate
+
+                    // If firmware is 4 or higher, use setMessageRateOnPort, otherwise setMessageRate
+                    if (lg290pFirmwareVersion >= 4)
+                    {
+                        response &= _lg290p->setMessageRateOnPort(lgMessagesRTCM[messageNumber].msgTextName,
+                                                                  settings.lg290pMessageRatesRTCMRover[messageNumber],
+                                                                  portNumber, 0);
+                    }
+                    else
+                        response &= _lg290p->setMessageRate(lgMessagesRTCM[messageNumber].msgTextName,
+                                                            settings.lg290pMessageRatesRTCMRover[messageNumber], 0);
+
+                    if (response == false && settings.debugGnss)
+                        systemPrintf("Enable RTCM failed at messageNumber %d %s\r\n", messageNumber,
+                                     lgMessagesRTCM[messageNumber].msgTextName);
+                }
+
+                // If any message is enabled, enable RTCM output
+                if (settings.lg290pMessageRatesRTCMRover[messageNumber] > 0)
+                    enableRTCM = true;
+
+                // If we are using IP based corrections, we need to send local data to the PPL
+                // The PPL requires being fed GPGGA/ZDA, and RTCM1019/1020/1042/1046
+                if (pointPerfectServiceUsesKeys())
+                {
+                    // Mark PPL required messages as enabled if rate > 0
+                    if (settings.lg290pMessageRatesRTCMRover[messageNumber] > 0)
+                    {
+                        if (strcmp(lgMessagesRTCM[messageNumber].msgTextName, "RTCM3-1019") == 0)
+                            rtcm1019Enabled = true;
+                        else if (strcmp(lgMessagesRTCM[messageNumber].msgTextName, "RTCM3-1020") == 0)
+                            rtcm1020Enabled = true;
+                        else if (strcmp(lgMessagesRTCM[messageNumber].msgTextName, "RTCM3-1042") == 0)
+                            rtcm1042Enabled = true;
+                        else if (strcmp(lgMessagesRTCM[messageNumber].msgTextName, "RTCM3-1046") == 0)
+                            rtcm1046Enabled = true;
+                    }
+                }
+            }
+        }
+
+        portNumber++;
+
+        // setMessageRateOnPort only supported on v4 and above
+        if (lg290pFirmwareVersion < 4)
+            break; // Don't step through portNumbers
+    }
+
+    if (pointPerfectServiceUsesKeys())
+    {
+        enableRTCM = true; // Force enable RTCM output
+
+        // Force on any messages that are needed for PPL
+        if (rtcm1019Enabled == false)
+        {
+            if (settings.debugCorrections)
+                systemPrintln("PPL Enabling RTCM3-1019");
+            response &= _lg290p->setMessageRate("RTCM3-1019", 1);
+        }
+        if (rtcm1020Enabled == false)
+        {
+            if (settings.debugCorrections)
+                systemPrintln("PPL Enabling RTCM3-1020");
+
+            response &= _lg290p->setMessageRate("RTCM3-1020", 1);
+        }
+        if (rtcm1042Enabled == false)
+        {
+            if (settings.debugCorrections)
+                systemPrintln("PPL Enabling RTCM3-1042");
+
+            response &= _lg290p->setMessageRate("RTCM3-1042", 1);
+        }
+        if (rtcm1046Enabled == false)
+        {
+            if (settings.debugCorrections)
+                systemPrintln("PPL Enabling RTCM3-1046");
+            response &= _lg290p->setMessageRate("RTCM3-1046", 1);
+        }
+    }
+
+    // If any RTCM message is enabled, send CFGRTCM
+    if (enableRTCM == true)
+    {
+        if (settings.debugCorrections)
+            systemPrintf("Enabling Rover RTCM MSM output with rate of %d\r\n", minimumRtcmRate);
+
+        // Enable MSM4/7 (for faster PPP CSRS results), output at a rate equal to the minimum RTCM rate (EPH Mode =
+        // 2) PQTMCFGRTCM, W, <MSM_Type>, <MSM_Mode>, <MSM_ElevThd>, <Reserved>, <Reserved>, <EPH_Mode>,
+        // <EPH_Interval> Set MSM_ElevThd to 15 degrees from rftop suggestion
+
+        char msmCommand[40] = {0};
+        snprintf(msmCommand, sizeof(msmCommand), "PQTMCFGRTCM,W,%c,0,15,07,06,2,%d", settings.useMSM7 ? '7' : '4',
+                 minimumRtcmRate);
+
+        // PQTMCFGRTCM fails to respond with OK over UART2 of LG290P, so don't look for it
+        _lg290p->sendOkCommand(msmCommand);
+    }
+
+    // Messages take effect immediately. Save/Reset is not needed.
+
+    return (response);
+}
+
+//----------------------------------------
 // Set the dynamic model to use for RTK
 //----------------------------------------
 bool GNSS_LG290P::setModel(uint8_t modelNumber)
 {
     // Not a feature on LG290p
-    return (false);
+    return true;
 }
 
 //----------------------------------------
-// Returns the current mode
+// Configure multipath mitigation
+//----------------------------------------
+bool GNSS_LG290P::setMultipathMitigation(bool enableMultipathMitigation)
+{
+    // Does not exist on this platform
+    return true;
+}
+
+//----------------------------------------
+// Returns the current mode, Base/Rover/etc
 // 0 - Unknown, 1 - Rover, 2 - Base
 //----------------------------------------
 uint8_t GNSS_LG290P::getMode()
 {
-    // The fix rate can only be set in rover mode. Return false if we are in base mode.
     int currentMode = 0;
     if (online.gnss)
         _lg290p->getMode(currentMode);
@@ -2551,13 +2384,21 @@ bool GNSS_LG290P::setRate(double secondsBetweenSolutions)
     if (online.gnss == false)
         return (false);
 
-    // The fix rate can only be set in rover mode. Return false if we are in base mode.
-    int currentMode = getMode();
-    if (currentMode == 2) // Base
+    // Read, modify, write
+
+    // The fix rate can only be set in rover mode. Return true if we are in base mode.
+    // This allows the gnssUpdate() to clear the bit.
+    if (gnss->gnssInBaseSurveyInMode() || gnss->gnssInBaseFixedMode()) // Base
+        return (true);                                                 // Nothing to modify at this time
+
+    bool response = true;
+
+    // Change to rover mode
+    if (gnssInRoverMode() == false)
     {
-        if (settings.debugGnss || settings.debugCorrections)
-            systemPrintln("Error: setRate can only be used in Rover mode");
-        return (false);
+        response &= _lg290p->setModeRover(); // Wait for save and reset
+        if (response == false && settings.debugGnssConfig)
+            systemPrintln("setRate: Set mode rover failed");
     }
 
     // The LG290P has a fix interval and a message output rate
@@ -2566,8 +2407,6 @@ bool GNSS_LG290P::setRate(double secondsBetweenSolutions)
 
     // LG290P has fix interval in milliseconds
     uint16_t msBetweenSolutions = secondsBetweenSolutions * 1000;
-
-    bool response = true;
 
     // The LG290P requires some settings to be applied and then a software reset to occur to take affect
     // A soft reset takes multiple seconds so we will read, then write if required.
@@ -2582,76 +2421,53 @@ bool GNSS_LG290P::setRate(double secondsBetweenSolutions)
             // Set the fix interval
             response &= _lg290p->setFixInterval(msBetweenSolutions);
 
-            // Reboot receiver to apply changes
             if (response == true)
-            {
-                if (settings.debugGnss || settings.debugCorrections)
-                    systemPrintln("Rebooting LG290P");
-
-                response &= saveConfiguration();
-
-                response &= softwareReset();
-
-                int maxTries = 10;
-                for (int x = 0; x < maxTries; x++)
-                {
-                    delay(1000); // Wait for device to reboot
-                    if (_lg290p->isConnected())
-                        break;
-                    else
-                        systemPrintln("Device still rebooting");
-                }
-            }
+                gnssConfigure(GNSS_CONFIG_RESET); // Reboot receiver to apply changes
         }
     }
 
-    // If we successfully set rates, then record to settings
-    if (response)
-    {
-        settings.measurementRateMs = msBetweenSolutions;
-    }
-    else
-    {
-        systemPrintln("Failed to set measurement and navigation rates");
-        return (false);
-    }
+    if (response == false)
+        systemPrintln("Failed to set measurement rate");
 
-    return (true);
+    return (response);
 }
 
 //----------------------------------------
-bool GNSS_LG290P::setTalkerGNGGA()
+// Enable/disable any output needed for tilt compensation
+//----------------------------------------
+bool GNSS_LG290P::setTilt()
 {
-    // TODO lg290pSetTalkerGNGGA();
-    return false;
-}
+    if (present.tiltPossible == false)
+        return (true); // No tilt on this platform. Report success to clear request.
 
-//----------------------------------------
-// Reset GNSS via software command
-// Poll for isConnected()
-//----------------------------------------
-bool GNSS_LG290P::softwareReset()
-{
-    if (online.gnss)
+    if (present.imu_im19 == false)
+        return (true); // No tilt on this platform. Report success to clear request.
+
+    bool response = true;
+
+    // Tilt is present
+    if (settings.enableTiltCompensation == true)
     {
-        _lg290p->reset();
+        // If enabled, configure GNSS to support the tilt sensor
 
-        // Poll for a limited amount of time before unit comes back
-        int x = 0;
-        while (x++ < 50)
+        // Tilt sensor requires 5Hz at a minimum
+        if (settings.measurementRateMs > 200)
         {
-            delay(100); // Wait for device to reboot
-            if (_lg290p->isConnected() == true)
-                break;
-            else
-                systemPrintln("GNSS still rebooting");
+            systemPrintln("Increasing GNSS measurement rate to 5Hz for tilt support");
+            settings.measurementRateMs = 200;
+            gnssConfigure(GNSS_CONFIG_FIX_RATE);
         }
-        if (x < 50)
-            return (true);
 
-        systemPrintln("GNSS failed to connect after reboot");
+        // On the LG290P Flex module, UART 3 of the GNSS is connected to the IMU UART 1
+        response &= setBaudRate(3, 115200);
+
+        if (response == false && settings.debugGnssConfig)
+            systemPrintln("setTilt: setBaud failed.");
+
+        // Enable of GGA, RMC, GST for tilt sensor is done in setMessagesNMEA()
     }
-    return (false);
+
+    return response;
 }
 
 //----------------------------------------
@@ -2677,24 +2493,24 @@ bool GNSS_LG290P::surveyInReset()
 //----------------------------------------
 bool GNSS_LG290P::surveyInStart()
 {
-    if (online.gnss)
+    _autoBaseStartTimer = millis(); // Stamp when averaging began
+
+    // We may have already started a survey-in from GNSS's previous NVM settings
+    if (gnssInBaseSurveyInMode())
+        return (true); // No changes needed
+
+    bool response = true;
+
+    // Average for a number of seconds (default is 60)
+    response &= _lg290p->setSurveyInMode(settings.observationSeconds);
+
+    if (response == false)
     {
-        bool response = true;
-
-        response &=
-            _lg290p->setSurveyInMode(settings.observationSeconds); // Average for a number of seconds (default is 60)
-
-        if (response == false)
-        {
-            systemPrintln("Survey start failed");
-            return (false);
-        }
-
-        _autoBaseStartTimer = millis(); // Stamp when averaging began
-
-        return (response);
+        systemPrintln("Survey start failed");
+        return (false);
     }
-    return false;
+
+    return (response);
 }
 
 //----------------------------------------
@@ -2751,13 +2567,6 @@ uint32_t GNSS_LG290P::baudGetMinimum()
 uint32_t GNSS_LG290P::baudGetMaximum()
 {
     return (lg290pAllowedRates[lg290pAllowedRatesCount - 1]);
-}
-
-// Set all NMEA message report rates to one value
-void GNSS_LG290P::setNmeaMessageRates(uint8_t msgRate)
-{
-    for (int x = 0; x < MAX_LG290P_NMEA_MSG; x++)
-        settings.lg290pMessageRatesNMEA[x] = msgRate;
 }
 
 // Set all RTCM Rover message report rates to one value
@@ -2852,8 +2661,301 @@ bool lg290pMessageEnabled(char *nmeaSentence, int sentenceLength)
     return (true);
 }
 
+//----------------------------------------
+// List available settings, their type in CSV, and value
+//----------------------------------------
+bool lg290pCommandList(RTK_Settings_Types type,
+                       int settingsIndex,
+                       bool inCommands,
+                       int qualifier,
+                       char * settingName,
+                       char * settingValue)
+{
+    switch (type)
+    {
+        default:
+            return false;
+
+        case tLgMRNmea: {
+            // Record LG290P NMEA rates
+            for (int x = 0; x < rtkSettingsEntries[settingsIndex].qualifier; x++)
+            {
+                snprintf(settingName, sizeof(settingName), "%s%s", rtkSettingsEntries[settingsIndex].name,
+                         lgMessagesNMEA[x].msgTextName);
+
+                getSettingValue(inCommands, settingName, settingValue);
+                commandSendExecuteListResponse(settingName, "tLgMRNmea", settingValue);
+            }
+        }
+        break;
+        case tLgMRRvRT: {
+            // Record LG290P Rover RTCM rates
+            for (int x = 0; x < rtkSettingsEntries[settingsIndex].qualifier; x++)
+            {
+                snprintf(settingName, sizeof(settingName), "%s%s", rtkSettingsEntries[settingsIndex].name,
+                         lgMessagesRTCM[x].msgTextName);
+
+                getSettingValue(inCommands, settingName, settingValue);
+                commandSendExecuteListResponse(settingName, "tLgMRRvRT", settingValue);
+            }
+        }
+        break;
+        case tLgMRBaRT: {
+            // Record LG290P Base RTCM rates
+            for (int x = 0; x < rtkSettingsEntries[settingsIndex].qualifier; x++)
+            {
+                snprintf(settingName, sizeof(settingName), "%s%s", rtkSettingsEntries[settingsIndex].name,
+                         lgMessagesRTCM[x].msgTextName);
+
+                getSettingValue(inCommands, settingName, settingValue);
+                commandSendExecuteListResponse(settingName, "tLgMRBaRT", settingValue);
+            }
+        }
+        break;
+        case tLgMRPqtm: {
+            // Record LG290P PQTM rates
+            for (int x = 0; x < rtkSettingsEntries[settingsIndex].qualifier; x++)
+            {
+                snprintf(settingName, sizeof(settingName), "%s%s", rtkSettingsEntries[settingsIndex].name,
+                         lgMessagesPQTM[x].msgTextName);
+
+                getSettingValue(inCommands, settingName, settingValue);
+                commandSendExecuteListResponse(settingName, "tLgMRPqtm", settingValue);
+            }
+        }
+        break;
+        case tLgConst: {
+            // Record LG290P Constellations
+            for (int x = 0; x < rtkSettingsEntries[settingsIndex].qualifier; x++)
+            {
+                snprintf(settingName, sizeof(settingName), "%s%s", rtkSettingsEntries[settingsIndex].name, lg290pConstellationNames[x]);
+
+                getSettingValue(inCommands, settingName, settingValue);
+                commandSendExecuteListResponse(settingName, "tLgConst", settingValue);
+            }
+        }
+        break;
+    }
+    return true;
+}
+
+//----------------------------------------
+// Add types to a JSON array
+//----------------------------------------
+void lg290pCommandTypeJson(JsonArray &command_types)
+{
+    JsonObject command_types_tLgConst = command_types.add<JsonObject>();
+    command_types_tLgConst["name"] = "tLgConst";
+    command_types_tLgConst["description"] = "LG290P GNSS constellations";
+    command_types_tLgConst["instruction"] = "Enable / disable each GNSS constellation";
+    command_types_tLgConst["prefix"] = "constellation_";
+    JsonArray command_types_tLgConst_keys = command_types_tLgConst["keys"].to<JsonArray>();
+    for (int x = 0; x < MAX_LG290P_CONSTELLATIONS; x++)
+        command_types_tLgConst_keys.add(lg290pConstellationNames[x]);
+    JsonArray command_types_tLgConst_values = command_types_tLgConst["values"].to<JsonArray>();
+    command_types_tLgConst_values.add("0");
+    command_types_tLgConst_values.add("1");
+
+    JsonObject command_types_tLgMRNmea = command_types.add<JsonObject>();
+    command_types_tLgMRNmea["name"] = "tLgMRNmea";
+    command_types_tLgMRNmea["description"] = "LG290P NMEA message rates";
+    command_types_tLgMRNmea["instruction"] = "Enable / disable each NMEA message";
+    command_types_tLgMRNmea["prefix"] = "messageRateNMEA_";
+    JsonArray command_types_tLgMRNmea_keys = command_types_tLgMRNmea["keys"].to<JsonArray>();
+    for (int y = 0; y < MAX_LG290P_NMEA_MSG; y++)
+        command_types_tLgMRNmea_keys.add(lgMessagesNMEA[y].msgTextName);
+    JsonArray command_types_tLgMRNmea_values = command_types_tLgMRNmea["values"].to<JsonArray>();
+    command_types_tLgMRNmea_values.add("0");
+    command_types_tLgMRNmea_values.add("1");
+
+    JsonObject command_types_tLgMRBaRT = command_types.add<JsonObject>();
+    command_types_tLgMRBaRT["name"] = "tLgMRBaRT";
+    command_types_tLgMRBaRT["description"] = "LG290P RTCM message rates - Base";
+    command_types_tLgMRBaRT["instruction"] = "Set the RTCM message interval in seconds for Base (0 = Off)";
+    command_types_tLgMRBaRT["prefix"] = "messageRateRTCMBase_";
+    JsonArray command_types_tLgMRBaRT_keys = command_types_tLgMRBaRT["keys"].to<JsonArray>();
+    for (int x = 0; x < MAX_LG290P_RTCM_MSG; x++)
+        command_types_tLgMRBaRT_keys.add(lgMessagesRTCM[x].msgTextName);
+    command_types_tLgMRBaRT["type"] = "int";
+    command_types_tLgMRBaRT["value min"] = 0;
+    command_types_tLgMRBaRT["value max"] = 1200;
+
+    JsonObject command_types_tLgMRRvRT = command_types.add<JsonObject>();
+    command_types_tLgMRRvRT["name"] = "tLgMRRvRT";
+    command_types_tLgMRRvRT["description"] = "LG290P RTCM message rates - Rover";
+    command_types_tLgMRRvRT["instruction"] = "Set the RTCM message interval in seconds for Rover (0 = Off)";
+    command_types_tLgMRRvRT["prefix"] = "messageRateRTCMRover_";
+    JsonArray command_types_tLgMRRvRT_keys = command_types_tLgMRRvRT["keys"].to<JsonArray>();
+    for (int x = 0; x < MAX_LG290P_RTCM_MSG; x++)
+        command_types_tLgMRRvRT_keys.add(lgMessagesRTCM[x].msgTextName);
+    command_types_tLgMRRvRT["type"] = "int";
+    command_types_tLgMRRvRT["value min"] = 0;
+    command_types_tLgMRRvRT["value max"] = 1200;
+
+    JsonObject command_types_tLgMRPqtm = command_types.add<JsonObject>();
+    command_types_tLgMRPqtm["name"] = "tLgMRPqtm";
+    command_types_tLgMRPqtm["description"] = "LG290P PQTM message rates";
+    command_types_tLgMRPqtm["instruction"] = "Enable / disable each PQTM message";
+    command_types_tLgMRPqtm["prefix"] = "messageRatePQTM_";
+    JsonArray command_types_tLgMRPqtm_keys = command_types_tLgMRPqtm["keys"].to<JsonArray>();
+    for (int x = 0; x < MAX_LG290P_PQTM_MSG; x++)
+        command_types_tLgMRPqtm_keys.add(lgMessagesPQTM[x].msgTextName);
+    JsonArray command_types_tLgMRPqtm_values = command_types_tLgMRPqtm["values"].to<JsonArray>();
+    command_types_tLgMRPqtm_values.add("0");
+    command_types_tLgMRPqtm_values.add("1");
+}
+
+//----------------------------------------
+// Called by gnssCreateString to build settings file string
+//----------------------------------------
+bool lg290pCreateString(RTK_Settings_Types type,
+                        int settingsIndex,
+                        char * newSettings)
+{
+    switch (type)
+    {
+        default:
+            return false;
+
+        case tLgMRNmea: {
+            // Record LG290P NMEA rates
+            for (int x = 0; x < rtkSettingsEntries[settingsIndex].qualifier; x++)
+            {
+                char tempString[50]; // lg290pMessageRatesNMEA_GPGGA=1 Not a float
+                snprintf(tempString, sizeof(tempString), "%s%s,%d,", rtkSettingsEntries[settingsIndex].name,
+                         lgMessagesNMEA[x].msgTextName, settings.lg290pMessageRatesNMEA[x]);
+                stringRecord(newSettings, tempString);
+            }
+        }
+        break;
+        case tLgMRRvRT: {
+            // Record LG290P Rover RTCM rates
+            for (int x = 0; x < rtkSettingsEntries[settingsIndex].qualifier; x++)
+            {
+                char tempString[50]; // lg290pMessageRatesRTCMRover_RTCM1005=2
+                snprintf(tempString, sizeof(tempString), "%s%s,%d,", rtkSettingsEntries[settingsIndex].name,
+                         lgMessagesRTCM[x].msgTextName, settings.lg290pMessageRatesRTCMRover[x]);
+                stringRecord(newSettings, tempString);
+            }
+        }
+        break;
+        case tLgMRBaRT: {
+            // Record LG290P Base RTCM rates
+            for (int x = 0; x < rtkSettingsEntries[settingsIndex].qualifier; x++)
+            {
+                char tempString[50]; // lg290pMessageRatesRTCMBase.RTCM1005=2
+                snprintf(tempString, sizeof(tempString), "%s%s,%d,", rtkSettingsEntries[settingsIndex].name,
+                         lgMessagesRTCM[x].msgTextName, settings.lg290pMessageRatesRTCMBase[x]);
+                stringRecord(newSettings, tempString);
+            }
+        }
+        break;
+        case tLgMRPqtm: {
+            // Record LG290P PQTM rates
+            for (int x = 0; x < rtkSettingsEntries[settingsIndex].qualifier; x++)
+            {
+                char tempString[50]; // lg290pMessageRatesPQTM_EPE=1 Not a float
+                snprintf(tempString, sizeof(tempString), "%s%s,%d,", rtkSettingsEntries[settingsIndex].name,
+                         lgMessagesPQTM[x].msgTextName, settings.lg290pMessageRatesPQTM[x]);
+                stringRecord(newSettings, tempString);
+            }
+        }
+        break;
+        case tLgConst: {
+            // Record LG290P Constellations
+            // lg290pConstellations are uint8_t, but here we have to convert to bool (true / false) so the web
+            // page check boxes are populated correctly. (We can't make it bool, otherwise the 254 initializer
+            // will probably fail...)
+            for (int x = 0; x < rtkSettingsEntries[settingsIndex].qualifier; x++)
+            {
+                char tempString[50]; // lg290pConstellations.GLONASS=true
+                snprintf(tempString, sizeof(tempString), "%s%s,%s,", rtkSettingsEntries[settingsIndex].name,
+                         lg290pConstellationNames[x], ((settings.lg290pConstellations[x] == 0) ? "false" : "true"));
+                stringRecord(newSettings, tempString);
+            }
+        }
+        break;
+    }
+    return true;
+}
+
+//----------------------------------------
+// Return setting value as a string
+//----------------------------------------
+bool lg290pGetSettingValue(RTK_Settings_Types type,
+                           const char * suffix,
+                           int settingsIndex,
+                           int qualifier,
+                           char * settingValueStr)
+{
+    switch (type)
+    {
+        case tLgMRNmea: {
+            for (int x = 0; x < qualifier; x++)
+            {
+                if ((suffix[0] == lgMessagesNMEA[x].msgTextName[0]) &&
+                    (strcmp(suffix, lgMessagesNMEA[x].msgTextName) == 0))
+                {
+                    writeToString(settingValueStr, settings.lg290pMessageRatesNMEA[x]);
+                    return true;
+                }
+            }
+        }
+        break;
+        case tLgMRRvRT: {
+            for (int x = 0; x < qualifier; x++)
+            {
+                if ((suffix[0] == lgMessagesRTCM[x].msgTextName[0]) &&
+                    (strcmp(suffix, lgMessagesRTCM[x].msgTextName) == 0))
+                {
+                    writeToString(settingValueStr, settings.lg290pMessageRatesRTCMRover[x]);
+                    return true;
+                }
+            }
+        }
+        break;
+        case tLgMRBaRT: {
+            for (int x = 0; x < qualifier; x++)
+            {
+                if ((suffix[0] == lgMessagesRTCM[x].msgTextName[0]) &&
+                    (strcmp(suffix, lgMessagesRTCM[x].msgTextName) == 0))
+                {
+                    writeToString(settingValueStr, settings.lg290pMessageRatesRTCMBase[x]);
+                    return true;
+                }
+            }
+        }
+        break;
+        case tLgMRPqtm: {
+            for (int x = 0; x < qualifier; x++)
+            {
+                if ((suffix[0] == lgMessagesPQTM[x].msgTextName[0]) &&
+                    (strcmp(suffix, lgMessagesPQTM[x].msgTextName) == 0))
+                {
+                    writeToString(settingValueStr, settings.lg290pMessageRatesPQTM[x]);
+                    return true;
+                }
+            }
+        }
+        break;
+        case tLgConst: {
+            for (int x = 0; x < qualifier; x++)
+            {
+                if ((suffix[0] == lg290pConstellationNames[x][0]) && (strcmp(suffix, lg290pConstellationNames[x]) == 0))
+                {
+                    writeToString(settingValueStr, settings.lg290pConstellations[x]);
+                    return true;
+                }
+            }
+        }
+        break;
+    }
+    return false;
+}
+
+//----------------------------------------
 // Return true if we detect this receiver type
-bool lg290pIsPresent()
+bool lg290pIsPresentOnFacetFP()
 {
     // Locally instantiate the hardware and library so it will release on exit
 
@@ -2885,6 +2987,171 @@ bool lg290pIsPresent()
 
     serialTestGNSS.end();
     return false;
+}
+
+//----------------------------------------
+// Called by gnssDetectReceiverType to create the GNSS_LG290P class instance
+//----------------------------------------
+void lg290pNewClass()
+{
+    gnss = (GNSS *)new GNSS_LG290P();
+
+    present.gnss_lg290p = true;
+    present.minCN0 = true;
+    present.minElevation = true;
+    present.needsExternalPpl = true; // Uses the PointPerfect Library
+}
+
+//----------------------------------------
+// Called by gnssNewSettingValue to save a LG290P specific setting
+//----------------------------------------
+bool lg290pNewSettingValue(RTK_Settings_Types type,
+                           const char * suffix,
+                           int qualifier,
+                           double d)
+{
+    switch (type)
+    {
+        case tCmnCnst:
+            for (int x = 0; x < MAX_LG290P_CONSTELLATIONS; x++)
+            {
+                if ((suffix[0] == lg290pConstellationNames[x][0]) &&
+                    (strcmp(suffix, lg290pConstellationNames[x]) == 0))
+                {
+                    settings.lg290pConstellations[x] = d;
+                    return true;
+                }
+            }
+            break;
+        case tCmnRtNm:
+            for (int x = 0; x < MAX_LG290P_NMEA_MSG; x++)
+            {
+                if ((suffix[0] == lgMessagesNMEA[x].msgTextName[0]) &&
+                    (strcmp(suffix, lgMessagesNMEA[x].msgTextName) == 0))
+                {
+                    settings.lg290pMessageRatesNMEA[x] = d;
+                    return true;
+                }
+            }
+            break;
+        case tCnRtRtB:
+            for (int x = 0; x < MAX_LG290P_RTCM_MSG; x++)
+            {
+                if ((suffix[0] == lgMessagesRTCM[x].msgTextName[0]) &&
+                    (strcmp(suffix, lgMessagesRTCM[x].msgTextName) == 0))
+                {
+                    settings.lg290pMessageRatesRTCMBase[x] = d;
+                    return true;
+                }
+            }
+            break;
+        case tCnRtRtR:
+            for (int x = 0; x < MAX_LG290P_RTCM_MSG; x++)
+            {
+                if ((suffix[0] == lgMessagesRTCM[x].msgTextName[0]) &&
+                    (strcmp(suffix, lgMessagesRTCM[x].msgTextName) == 0))
+                {
+                    settings.lg290pMessageRatesRTCMRover[x] = d;
+                    return true;
+                }
+            }
+            break;
+        case tLgMRNmea:
+            // Covered by tCmnRtNm
+            break;
+        case tLgMRRvRT:
+            // Covered by tCnRtRtR
+            break;
+        case tLgMRBaRT:
+            // Covered by tCnRtRtB
+            break;
+        case tLgMRPqtm:
+            for (int x = 0; x < qualifier; x++)
+            {
+                if ((suffix[0] == lgMessagesPQTM[x].msgTextName[0]) &&
+                    (strcmp(suffix, lgMessagesPQTM[x].msgTextName) == 0))
+                {
+                    settings.lg290pMessageRatesPQTM[x] = d;
+                    return true;
+                }
+            }
+            break;
+        case tLgConst:
+            // Covered by tCmnCnst
+            break;
+    }
+    return false;
+}
+
+//----------------------------------------
+// Called by gnssSettingsToFile to save LG290P specific settings
+//----------------------------------------
+bool lg290pSettingsToFile(File *settingsFile,
+                          RTK_Settings_Types type,
+                          int settingsIndex)
+{
+    switch (type)
+    {
+        default:
+            return false;
+
+        case tLgMRNmea: {
+            // Record LG290P NMEA rates
+            for (int x = 0; x < rtkSettingsEntries[settingsIndex].qualifier; x++)
+            {
+                char tempString[50]; // lg290pMessageRatesNMEA_GPGGA=2
+                snprintf(tempString, sizeof(tempString), "%s%s=%d", rtkSettingsEntries[settingsIndex].name,
+                         lgMessagesNMEA[x].msgTextName, settings.lg290pMessageRatesNMEA[x]);
+                settingsFile->println(tempString);
+            }
+        }
+        break;
+        case tLgMRRvRT: {
+            // Record LG290P Rover RTCM rates
+            for (int x = 0; x < rtkSettingsEntries[settingsIndex].qualifier; x++)
+            {
+                char tempString[50]; // lg290pMessageRatesRTCMRover_RTCM1005=2
+                snprintf(tempString, sizeof(tempString), "%s%s=%d", rtkSettingsEntries[settingsIndex].name,
+                         lgMessagesRTCM[x].msgTextName, settings.lg290pMessageRatesRTCMRover[x]);
+                settingsFile->println(tempString);
+            }
+        }
+        break;
+        case tLgMRBaRT: {
+            // Record LG290P Base RTCM rates
+            for (int x = 0; x < rtkSettingsEntries[settingsIndex].qualifier; x++)
+            {
+                char tempString[50]; // lg290pMessageRatesRTCMBase_RTCM1005=2
+                snprintf(tempString, sizeof(tempString), "%s%s=%d", rtkSettingsEntries[settingsIndex].name,
+                         lgMessagesRTCM[x].msgTextName, settings.lg290pMessageRatesRTCMBase[x]);
+                settingsFile->println(tempString);
+            }
+        }
+        break;
+        case tLgMRPqtm: {
+            // Record LG290P PQTM rates
+            for (int x = 0; x < rtkSettingsEntries[settingsIndex].qualifier; x++)
+            {
+                char tempString[50]; // lg290pMessageRatesPQTM_EPE=1
+                snprintf(tempString, sizeof(tempString), "%s%s=%d", rtkSettingsEntries[settingsIndex].name,
+                         lgMessagesPQTM[x].msgTextName, settings.lg290pMessageRatesPQTM[x]);
+                settingsFile->println(tempString);
+            }
+        }
+        break;
+        case tLgConst: {
+            // Record LG290P Constellations
+            for (int x = 0; x < rtkSettingsEntries[settingsIndex].qualifier; x++)
+            {
+                char tempString[50]; // lg290pConstellations_GLONASS=1
+                snprintf(tempString, sizeof(tempString), "%s%s=%d", rtkSettingsEntries[settingsIndex].name,
+                         lg290pConstellationNames[x], settings.lg290pConstellations[x]);
+                settingsFile->println(tempString);
+            }
+        }
+        break;
+    }
+    return true;
 }
 
 #endif // COMPILE_LG290P

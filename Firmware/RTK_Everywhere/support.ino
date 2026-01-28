@@ -1,4 +1,8 @@
-// Helper functions to support printing to eiter the serial port or bluetooth connection
+/*=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
+Support.ino
+
+  Helper functions to support printing to eiter the serial port or bluetooth connection
+=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=*/
 
 // If we are printing to all endpoints, BT gets priority
 int systemAvailable()
@@ -61,8 +65,8 @@ void systemWrite(const uint8_t *buffer, uint16_t length)
         bluetoothCommandWrite(buffer, length);
     }
 
-    // We're just adding up the size of the list, don't pass along to serial port
-    else if (printEndpoint == PRINT_ENDPOINT_COUNT)
+    // Count the number of commands, 1 systemPrint call per command
+    else if (printEndpoint == PRINT_ENDPOINT_COUNT_COMMANDS)
     {
         systemWriteCounts++;
     }
@@ -82,15 +86,18 @@ size_t systemWriteGnssDataToUsbSerial(const uint8_t *buffer, uint16_t length)
 // Ensure all serial output has been transmitted, FIFOs are empty
 void systemFlush()
 {
-    if (printEndpoint == PRINT_ENDPOINT_ALL)
+    if ((printEndpoint == PRINT_ENDPOINT_SERIAL)
+        || (printEndpoint == PRINT_ENDPOINT_ALL))
     {
-        Serial.flush();
-        bluetoothFlush();
+        if (forwardGnssDataToUsbSerial == false)
+        {
+            if (usbSerialIsSelected == true) // Only use UART0 if we have the mux on the ESP's UART pointed at the CH34x
+                Serial.flush();
+        }
     }
-    else if (printEndpoint == PRINT_ENDPOINT_BLUETOOTH)
-        bluetoothFlush();
-    else
-        Serial.flush();
+
+    // Flush active Bluetooth device, does nothing when Bluetooth is off
+    bluetoothFlush();
 }
 
 // Output a byte to the serial port
@@ -306,25 +313,15 @@ InputResponse getUserInputString(char *userString, uint16_t stringSize, bool loc
         //=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
         // Keep doing these important things while waiting for the user to enter data
 
-        gnss->update(); // Regularly poll to get latest data
-
-        // Keep the ntripClient alive by pushing GPGGA.
-        // I'm not sure if we want / need to do this, but that's how it was when
-        // the GPGGA push was performed from processUart1Message from gnssReadTask.
-        // Doing it here keeps the user experience the same. It is safe to do it here
-        // because the loop is suspended and networkUpdate / ntripClientUpdate aren't
-        // being called. Maybe we _should_ call networkUpdate() here? Just sayin'...
-        pushGPGGA(nullptr);
-
-        // Keep processing NTP requests
-        if (online.ethernetNTPServer)
-        {
-            ntpServerUpdate();
-        }
+        waitingForMenuInput();
 
         //=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 
-        if (btPrintEchoExit) // User has disconnected from BT. Force exit all menus.
+        // User has disconnected from BT
+        // Or user has selected web config on Torch
+        // Or CLI_EXIT in progress
+        // Force exit all menus.
+        if (forceMenuExit)
             return INPUT_RESPONSE_TIMEOUT;
 
         // Get the next input character
@@ -716,19 +713,9 @@ void checkArrayDefaults()
 // Verify table sizes match enum definitions
 void verifyTables()
 {
-    // Verify the product name table
-    if (productDisplayNamesEntries != (RTK_UNKNOWN + 1))
-        reportFatalError("Fix productDisplayNames to match ProductVariant");
-    if (platformFilePrefixTableEntries != (RTK_UNKNOWN + 1))
-        reportFatalError("Fix platformFilePrefixTable to match ProductVariant");
-    if (platformPrefixTableEntries != (RTK_UNKNOWN + 1))
-        reportFatalError("Fix platformPrefixTable to match ProductVariant");
-    if (platformPreviousStateTableEntries != (RTK_UNKNOWN + 1))
-        reportFatalError("Fix platformPreviousStateTable to match ProductVariant");
-    if (platformProvisionTableEntries != (RTK_UNKNOWN + 1))
-        reportFatalError("Fix platformProvisionTable to match ProductVariant");
-    if (platformRegistrationPageTableEntries != (RTK_UNKNOWN + 1))
-        reportFatalError("Fix platformRegistrationPageTable to match ProductVariant");
+    // Verify the product properties table
+    if (productPropertiesEntries != (RTK_UNKNOWN + 1))
+        reportFatalError("Fix productPropertiesTable to match ProductVariant");
 
     // Verify the measurement scales
     if (measurementScaleEntries != MEASUREMENT_UNITS_MAX)
@@ -751,6 +738,7 @@ void verifyTables()
     webServerVerifyTables();
     pointPerfectVerifyTables();
     wifiVerifyTables();
+    gnssVerifyTables();
 
     if (CORR_NUM >= (int)('x' - 'a'))
         reportFatalError("Too many correction sources");
@@ -915,7 +903,7 @@ InputResponse getNewSetting(const char *settingPrompt, float min, float max, flo
 
         if (response == INPUT_RESPONSE_VALID)
         {
-            if (enteredValue >= min && enteredValue <= max)
+            if ((float)enteredValue >= min && enteredValue <= max)
             {
                 *setting = (float)enteredValue; // Recorded to NVM and file at main menu exit
                 return (INPUT_RESPONSE_VALID);
@@ -1218,3 +1206,80 @@ const char *configPppSpacesToCommas(const char *config)
             commas[i] = ',';
     return (const char *)commas;
 }
+
+void assembleDeviceName()
+{
+    snprintf(serialNumber, sizeof(serialNumber), "%02X%02X%02d", btMACAddress[4], btMACAddress[5], productVariant);
+
+    RTKBrandAttribute *brandAttributes = getBrandAttributeFromProductVariant(productVariant);
+
+    char gnssModelIdentifier[2] = {0};
+    char tiltIdentifier[2] = {0};
+
+    if (productVariant == RTK_FACET_FP)
+    {
+        // Extract the GNSS gnssModelIdentifier
+        for (int index = 0; index < GNSS_SUPPORT_ROUTINES_ENTRIES; index++)
+        {
+            if (settings.detectedGnssReceiver == gnssSupportRoutines[index]._receiver)
+            {
+                snprintf(gnssModelIdentifier, sizeof(gnssModelIdentifier), "%s",
+                         gnssSupportRoutines[index].gnssModelIdentifier);
+                break;
+            }
+        }
+
+        // Form the Tilt identifier
+        if (settings.detectedTilt)
+            snprintf(tiltIdentifier, sizeof(tiltIdentifier), "T");
+    }
+
+    // Set the display name for the OLED: "TX2", "FPLT", "Facet LB"
+    snprintf(displayName, sizeof(displayName), "%s%s%s",
+                productVariantProperties->displayName,
+                gnssModelIdentifier, tiltIdentifier);
+
+    // Set the prefix for broadcast names: "TX2", "FPLT"
+    snprintf(platformPrefix, sizeof(platformPrefix), "%s%s%s",
+                productVariantProperties->name,
+                gnssModelIdentifier, tiltIdentifier);
+
+    // Set the accessory name for MFi: "SparkPNT TX2", "SparkPNT FPLT"
+    snprintf(accessoryName, sizeof(accessoryName), "%s %s", brandAttributes->name,
+             platformPrefix);
+
+    // Set the device name for BT broadcast: "SparkPNT TX2-ABCD07"
+    snprintf(deviceName, sizeof(deviceName), "%s-%s", accessoryName, serialNumber);
+
+    if (strlen(deviceName) > 28) // "SparkPNT Facet v2 LB-ABCD04" is 27 chars. We are just OK
+    {
+        // BLE will fail quietly if broadcast name is more than 28 characters
+        systemPrintf(
+            "ERROR! The Bluetooth device name \"%s\" is %d characters long. It will not work in BLE mode.\r\n",
+            deviceName, strlen(deviceName));
+        reportFatalError("Bluetooth device name is longer than 28 characters.");
+    }
+
+}
+
+const productProperties * getProductPropertiesFromVariant(ProductVariant variant) {
+    for (int i = 0; i < (int)RTK_UNKNOWN; i++) {
+        if (productPropertiesTable[i].productVariant == variant)
+            return &productPropertiesTable[i];
+    }
+    return getProductPropertiesFromVariant(RTK_UNKNOWN);
+}
+
+RTKBrandAttribute * getBrandAttributeFromBrand(RTKBrands_e brand) {
+    for (int i = 0; i < (int)RTKBrands_e::BRAND_NUM; i++) {
+        if (RTKBrandAttributes[i].brand == brand)
+            return &RTKBrandAttributes[i];
+    }
+    return getBrandAttributeFromBrand(DEFAULT_BRAND);
+}
+
+RTKBrandAttribute * getBrandAttributeFromProductVariant(ProductVariant variant) {
+    const productProperties * properties = getProductPropertiesFromVariant(variant);
+    return getBrandAttributeFromBrand(properties->brand);
+}
+

@@ -1,4 +1,4 @@
-/*
+/*=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 UdpServer.ino
 
   The UDP (position, velocity and time) server sits on top of the network layer
@@ -57,9 +57,9 @@ UdpServer.ino
         2. Enable Show Position Information
 
         3. Verify that the displayed coordinates, fix tpe etc. are valid
-*/
+=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=*/
 
-#ifdef COMPILE_NETWORK
+#ifdef COMPILE_UDP_SERVER
 
 //----------------------------------------
 // Constants
@@ -136,13 +136,14 @@ bool udpServerEnabled(const char ** line)
         // Verify the operating mode
         if (NEQ_RTK_MODE(udpServerMode))
         {
-            *line = ", Wrong mode!";
+            if (line)
+                *line = ", Wrong mode!";
             break;
         }
 
         // Verify still enabled
         enabled = settings.enableUdpServer;
-        if (enabled == false)
+        if (line && enabled == false)
             *line = ", Not enabled!";
     } while (0);
     return enabled;
@@ -436,4 +437,4 @@ void udpServerZeroTail()
     udpServerTail = 0;
 }
 
-#endif // COMPILE_NETWORK
+#endif // COMPILE_UDP_SERVER

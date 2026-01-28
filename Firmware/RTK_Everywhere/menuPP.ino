@@ -1,3 +1,7 @@
+/*=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
+menuPP.ino
+=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=*/
+
 #include "mbedtls/ctr_drbg.h"
 #include "mbedtls/ssl.h" //Needed for certificate validation
 
@@ -80,6 +84,8 @@ const PP_Service ppServices[] = {
 };
 
 const int ppServiceCount = sizeof(ppServices) / sizeof(ppServices[0]);
+
+#ifdef  COMPILE_MENU_POINTPERFECT
 
 // Provision device on ThingStream
 // Download keys
@@ -305,16 +311,6 @@ void menuPointPerfect()
     clearBuffer(); // Empty buffer of any newline chars
 }
 
-// Returns string containing the MAC + product variant number
-const char *printDeviceId()
-{
-    static char deviceID[strlen("1234567890ABXX") + 1]; // 12 character MAC + 2 character variant + room for terminator
-    snprintf(deviceID, sizeof(deviceID), "%02X%02X%02X%02X%02X%02X%02X", btMACAddress[0], btMACAddress[1],
-             btMACAddress[2], btMACAddress[3], btMACAddress[4], btMACAddress[5], productVariant);
-
-    return ((const char *)deviceID);
-}
-
 // Present user with list of available services, list depends on platform
 void menuPointPerfectSelectService()
 {
@@ -340,7 +336,10 @@ void menuPointPerfectSelectService()
             {
                 settings.pointPerfectService = incoming - 1; // Align incoming to array
 
-                restartRover = true; // Require a rover restart to enable / disable RTCM for PPL
+                // Request re-config of RTCM Rover messages to enable / disable necessary RTCM messages for PPL
+                if(inRoverMode())
+                    gnssConfigure(GNSS_CONFIG_MESSAGE_RATE_RTCM_ROVER); // Request receiver to use new settings
+
                 settings.requestKeyUpdate =
                     settings.pointPerfectService != PP_NICKNAME_DISABLED; // Force a key update - or don't
 
@@ -502,6 +501,8 @@ void menuPointPerfectKeys()
 
     clearBuffer(); // Empty buffer of any newline chars
 }
+
+#endif  // COMPILE_MENU_POINTPERFECT
 
 // Update any L-Band hardware
 // Check if NEO-D9S is connected. Configure if available.
@@ -781,7 +782,7 @@ void updateLBandCorrections()
                         millis(); // Restart timer for L-Band. Don't immediately reset ZED to achieve fix.
 
                     // Hotstart GNSS to try to get RTK lock
-                    gnss->softwareReset();
+                    gnss->reset();
 
                     if (settings.debugCorrections == true)
                         systemPrintf("Restarting ZED. Number of Float lock restarts: %d\r\n", floatLockRestarts);
@@ -992,7 +993,8 @@ void createZtpRequest(String &str)
     // Build the givenName:   Name vxx.yy - deviceID
     char givenName[100];
     memset(givenName, 0, sizeof(givenName));
-    snprintf(givenName, sizeof(givenName), "%s %s - %s", platformProvisionTable[productVariant], versionString,
+    snprintf(givenName, sizeof(givenName), "%s %s - %s",
+             productVariantProperties->platformProvision, versionString,
              printDeviceId());
     if (strlen(givenName) >= 50)
     {
@@ -1313,7 +1315,8 @@ bool provisioningEnabled(const char **line)
         enabled = pointPerfectIsEnabled();
         if (enabled == false)
         {
-            *line = ", PointPerfect corrections disabled!";
+            if (line)
+                *line = ", PointPerfect corrections disabled!";
             break;
         }
 
@@ -1329,10 +1332,13 @@ bool provisioningEnabled(const char **line)
 
         // Determine if key provisioning is enabled
         enabled = provisioningRunning;
-        if (settings.autoKeyRenewal)
-            *line = ", Key not requested and auto key renewal running later!";
-        else
-            *line = ", Key not requested and auto key renewal is disabled!";
+        if (line)
+        {
+            if (settings.autoKeyRenewal)
+                *line = ", Key not requested and auto key renewal running later!";
+            else
+                *line = ", Key not requested and auto key renewal is disabled!";
+        }
     } while (0);
     return enabled;
 }
@@ -1546,7 +1552,7 @@ void provisioningUpdate()
             systemPrintf("This device has been deactivated. Please contact "
                          "support@sparkfun.com or goto %s to renew the PointPerfect "
                          "subscription. Please reference device ID: %s\r\n",
-                         platformRegistrationPageTable[productVariant], printDeviceId());
+                         productVariantProperties->platformRegistration, printDeviceId());
 
             httpClientModeNeeded = false; // Tell HTTP_Client to give up.
             displayAccountExpired(5 * MILLISECONDS_IN_A_SECOND);
@@ -1558,7 +1564,7 @@ void provisioningUpdate()
             systemPrintf("This device is not whitelisted. Please contact "
                          "support@sparkfun.com or goto %s to get the subscription "
                          "activated. Please reference device ID: %s\r\n",
-                         platformRegistrationPageTable[productVariant], printDeviceId());
+                         productVariantProperties->platformRegistration, printDeviceId());
 
             httpClientModeNeeded = false; // Tell HTTP_Client to give up.
             displayNotListed(5 * MILLISECONDS_IN_A_SECOND);

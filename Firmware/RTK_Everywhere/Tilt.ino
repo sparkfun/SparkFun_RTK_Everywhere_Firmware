@@ -1,4 +1,6 @@
-/*
+/*=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
+Tilt.ino
+
   Once RTK Fix is achieved, and the tilt sensor is activated (ie rocked back and forth) the tilt sensor
   generates binary-encoded lat/lon/alt values that are tilt-compensated. To get these values to the
   GIS Data Collector software, we need to transmit corrected NMEA sentences over Bluetooth. The
@@ -11,7 +13,7 @@
   are already set. We just need to be sure the tilt-compensated values are positive using abs().
   This could lead to problems if the unit is within ~1m of the Equator and Prime Meridian but
   we don't consider those edges cases here.
-*/
+=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=*/
 
 #ifdef COMPILE_IM19_IMU
 
@@ -297,12 +299,13 @@ void beginTilt()
     // Set the distance of the IMU from the center line - x:6.78mm y:10.73mm z:19.25mm
     if (productVariant == RTK_TORCH)
         result &= tiltSensor->sendCommand("LEVER_ARM=-0.00678,-0.01073,-0.0314"); // From stock firmware
-    else if (productVariant == RTK_FLEX)
+    else if (productVariant == RTK_FACET_FP)
     {
         result &= tiltSensor->sendCommand("LEVER_ARM=0.03391,0.00272,0.02370"); // -28.2, 0. -23.7mm
 
-        //Send AT+INSTALL_ANGLE=180,0,0 if the IM19 module is mounted on the back of the GNSS receiver (so the IM19 faces downward instead of upward), before sending the save command.
-        result &= tiltSensor->sendCommand("INSTALL_ANGLE=180,0,-90"); //IMU is mounted facing down
+        // Send AT+INSTALL_ANGLE=180,0,0 if the IM19 module is mounted on the back of the GNSS receiver (so the IM19
+        // faces downward instead of upward), before sending the save command.
+        result &= tiltSensor->sendCommand("INSTALL_ANGLE=180,0,-90"); // IMU is mounted facing down
     }
 
     // Set the overall length of the GNSS setup in meters: rod length 1800mm + internal length 96.45mm + antenna
@@ -321,7 +324,7 @@ void beginTilt()
     // Configure interface type. This allows IM19 to receive Unicore-style binary messages
     if (productVariant == RTK_TORCH)
         result &= tiltSensor->sendCommand("GNSS_CARD=UNICORE");
-    else if (productVariant == RTK_FLEX)
+    else if (productVariant == RTK_FACET_FP)
         result &= tiltSensor->sendCommand("GNSS_CARD=OEM");
 
     // Configure as tilt measurement mode
@@ -551,8 +554,24 @@ void applyCompensationGNS(char *nmeaSentence, int sentenceLength)
         coordinateConvertInput(abs(tiltSensor->getNaviLatitude()), COORDINATE_INPUT_TYPE_DDMM, coordinateStringDDMM,
                                sizeof(coordinateStringDDMM));
 
+        // Check if latitude length has changed
+        if (strlen(coordinateStringDDMM) != (latitudeStop - latitudeStart))
+        {
+            if (settings.enableImuCompensationDebug == true && !inMainMenu)
+                systemPrintf("Compensated latitude length has changed! Orig: %d New: %d\r\n",
+                             (latitudeStop - latitudeStart), strlen(coordinateStringDDMM));
+        }
+
         // Add tilt-compensated Latitude
         strncat(newSentence, coordinateStringDDMM, sizeof(newSentence) - 1);
+
+        // We can't allow the message length to change. Truncate if needed
+        while (strlen(newSentence) > latitudeStop)
+            *(newSentence + strlen(newSentence) - 1) = 0; // Move the NULL terminator
+
+        // We can't allow the message length to change. Pad with zeros if needed
+        while (strlen(newSentence) < latitudeStop)
+            strncat(newSentence, "0", sizeof(newSentence) - 1);
 
         // Add interstitial between end of lat and beginning of lon
         strncat(newSentence, nmeaSentence + latitudeStop, longitudeStart - latitudeStop);
@@ -561,8 +580,24 @@ void applyCompensationGNS(char *nmeaSentence, int sentenceLength)
         coordinateConvertInput(abs(tiltSensor->getNaviLongitude()), COORDINATE_INPUT_TYPE_DDMM, coordinateStringDDMM,
                                sizeof(coordinateStringDDMM));
 
+        // Check if longitude length has changed
+        if (strlen(coordinateStringDDMM) != (longitudeStop - longitudeStart))
+        {
+            if (settings.enableImuCompensationDebug == true && !inMainMenu)
+                systemPrintf("Compensated longitude length has changed! Orig: %d New: %d\r\n",
+                             (longitudeStop - longitudeStart), strlen(coordinateStringDDMM));
+        }
+
         // Add tilt-compensated Longitude
         strncat(newSentence, coordinateStringDDMM, sizeof(newSentence) - 1);
+
+        // We can't allow the message length to change. Truncate if needed
+        while (strlen(newSentence) > longitudeStop)
+            *(newSentence + strlen(newSentence) - 1) = 0; // Move the NULL terminator
+
+        // We can't allow the message length to change. Pad with zeros if needed
+        while (strlen(newSentence) < longitudeStop)
+            strncat(newSentence, "0", sizeof(newSentence) - 1);
 
         // Add interstitial between end of lon and beginning of alt
         strncat(newSentence, nmeaSentence + longitudeStop, altitudeStart - longitudeStop);
@@ -599,8 +634,25 @@ void applyCompensationGNS(char *nmeaSentence, int sentenceLength)
     // Convert altitude double to string
     snprintf(coordinateStringDDMM, sizeof(coordinateStringDDMM), "%0.3f", newAltitude);
 
+    // Check if altitude length has changed
+    if (strlen(coordinateStringDDMM) != (altitudeStop - altitudeStart))
+    {
+        if (settings.enableImuCompensationDebug == true && !inMainMenu)
+            systemPrintf("Compensated altitude length has changed! Orig: %d New: %d\r\n",
+                         (altitudeStop - altitudeStart), strlen(coordinateStringDDMM));
+    }
+
     // Add tilt-compensated Altitude
     strncat(newSentence, coordinateStringDDMM, sizeof(newSentence) - 1);
+
+    // We can't allow the message length to change. Truncate if needed
+    // altitudeStop is the position of the comma.
+    while (strlen(newSentence) > altitudeStop)
+        *(newSentence + strlen(newSentence) - 1) = 0; // Move the NULL terminator
+
+    // We can't allow the message length to change. Pad with zeros if needed
+    while (strlen(newSentence) < altitudeStop)
+        strncat(newSentence, "0", sizeof(newSentence) - 1);
 
     // Add remainder of the sentence up to checksum
     strncat(newSentence, nmeaSentence + altitudeStop, checksumStart - altitudeStop);
@@ -615,13 +667,6 @@ void applyCompensationGNS(char *nmeaSentence, int sentenceLength)
 
     // Add CRC
     strncat(newSentence, coordinateStringDDMM, sizeof(newSentence) - 1);
-
-    if (strlen(newSentence) > sentenceLength)
-    {
-        if (settings.enableImuCompensationDebug == true && !inMainMenu)
-            systemPrintf("New compensated sentence too long! Orig: %d New: %d\r\n", sentenceLength,
-                         strlen(newSentence));
-    }
 
     // Overwrite the original NMEA
     strncpy(nmeaSentence, newSentence, sentenceLength);
@@ -696,8 +741,24 @@ void applyCompensationGLL(char *nmeaSentence, int sentenceLength)
     coordinateConvertInput(abs(tiltSensor->getNaviLatitude()), COORDINATE_INPUT_TYPE_DDMM, coordinateStringDDMM,
                            sizeof(coordinateStringDDMM));
 
+    // Check if latitude length has changed
+    if (strlen(coordinateStringDDMM) != (latitudeStop - latitudeStart))
+    {
+        if (settings.enableImuCompensationDebug == true && !inMainMenu)
+            systemPrintf("Compensated latitude length has changed! Orig: %d New: %d\r\n",
+                         (latitudeStop - latitudeStart), strlen(coordinateStringDDMM));
+    }
+
     // Add tilt-compensated Latitude
     strncat(newSentence, coordinateStringDDMM, sizeof(newSentence) - 1);
+
+    // We can't allow the message length to change. Truncate if needed
+    while (strlen(newSentence) > latitudeStop)
+        *(newSentence + strlen(newSentence) - 1) = 0; // Move the NULL terminator
+
+    // We can't allow the message length to change. Pad with zeros if needed
+    while (strlen(newSentence) < latitudeStop)
+        strncat(newSentence, "0", sizeof(newSentence) - 1);
 
     // Add interstitial between end of lat and beginning of lon
     strncat(newSentence, nmeaSentence + latitudeStop, longitudeStart - latitudeStop);
@@ -706,8 +767,24 @@ void applyCompensationGLL(char *nmeaSentence, int sentenceLength)
     coordinateConvertInput(abs(tiltSensor->getNaviLongitude()), COORDINATE_INPUT_TYPE_DDMM, coordinateStringDDMM,
                            sizeof(coordinateStringDDMM));
 
+    // Check if longitude length has changed
+    if (strlen(coordinateStringDDMM) != (longitudeStop - longitudeStart))
+    {
+        if (settings.enableImuCompensationDebug == true && !inMainMenu)
+            systemPrintf("Compensated longitude length has changed! Orig: %d New: %d\r\n",
+                         (longitudeStop - longitudeStart), strlen(coordinateStringDDMM));
+    }
+
     // Add tilt-compensated Longitude
     strncat(newSentence, coordinateStringDDMM, sizeof(newSentence) - 1);
+
+    // We can't allow the message length to change. Truncate if needed
+    while (strlen(newSentence) > longitudeStop)
+        *(newSentence + strlen(newSentence) - 1) = 0; // Move the NULL terminator
+
+    // We can't allow the message length to change. Pad with zeros if needed
+    while (strlen(newSentence) < longitudeStop)
+        strncat(newSentence, "0", sizeof(newSentence) - 1);
 
     // Add remainder of the sentence up to checksum
     strncat(newSentence, nmeaSentence + longitudeStop, checksumStart - longitudeStop);
@@ -722,13 +799,6 @@ void applyCompensationGLL(char *nmeaSentence, int sentenceLength)
 
     // Add CRC
     strncat(newSentence, coordinateStringDDMM, sizeof(newSentence) - 1);
-
-    if (strlen(newSentence) > sentenceLength)
-    {
-        if (settings.enableImuCompensationDebug == true && !inMainMenu)
-            systemPrintf("New compensated sentence too long! Orig: %d New: %d\r\n", sentenceLength,
-                         strlen(newSentence));
-    }
 
     // Overwrite the original NMEA
     strncpy(nmeaSentence, newSentence, sentenceLength);
@@ -803,8 +873,24 @@ void applyCompensationRMC(char *nmeaSentence, int sentenceLength)
     coordinateConvertInput(abs(tiltSensor->getNaviLatitude()), COORDINATE_INPUT_TYPE_DDMM, coordinateStringDDMM,
                            sizeof(coordinateStringDDMM));
 
+    // Check if latitude length has changed
+    if (strlen(coordinateStringDDMM) != (latitudeStop - latitudeStart))
+    {
+        if (settings.enableImuCompensationDebug == true && !inMainMenu)
+            systemPrintf("Compensated latitude length has changed! Orig: %d New: %d\r\n",
+                         (latitudeStop - latitudeStart), strlen(coordinateStringDDMM));
+    }
+
     // Add tilt-compensated Latitude
     strncat(newSentence, coordinateStringDDMM, sizeof(newSentence) - 1);
+
+    // We can't allow the message length to change. Truncate if needed
+    while (strlen(newSentence) > latitudeStop)
+        *(newSentence + strlen(newSentence) - 1) = 0; // Move the NULL terminator
+
+    // We can't allow the message length to change. Pad with zeros if needed
+    while (strlen(newSentence) < latitudeStop)
+        strncat(newSentence, "0", sizeof(newSentence) - 1);
 
     // Add interstitial between end of lat and beginning of lon
     strncat(newSentence, nmeaSentence + latitudeStop, longitudeStart - latitudeStop);
@@ -813,8 +899,24 @@ void applyCompensationRMC(char *nmeaSentence, int sentenceLength)
     coordinateConvertInput(abs(tiltSensor->getNaviLongitude()), COORDINATE_INPUT_TYPE_DDMM, coordinateStringDDMM,
                            sizeof(coordinateStringDDMM));
 
+    // Check if longitude length has changed
+    if (strlen(coordinateStringDDMM) != (longitudeStop - longitudeStart))
+    {
+        if (settings.enableImuCompensationDebug == true && !inMainMenu)
+            systemPrintf("Compensated longitude length has changed! Orig: %d New: %d\r\n",
+                         (longitudeStop - longitudeStart), strlen(coordinateStringDDMM));
+    }
+
     // Add tilt-compensated Longitude
     strncat(newSentence, coordinateStringDDMM, sizeof(newSentence) - 1);
+
+    // We can't allow the message length to change. Truncate if needed
+    while (strlen(newSentence) > longitudeStop)
+        *(newSentence + strlen(newSentence) - 1) = 0; // Move the NULL terminator
+
+    // We can't allow the message length to change. Pad with zeros if needed
+    while (strlen(newSentence) < longitudeStop)
+        strncat(newSentence, "0", sizeof(newSentence) - 1);
 
     // Add remainder of the sentence up to checksum
     strncat(newSentence, nmeaSentence + longitudeStop, checksumStart - longitudeStop);
@@ -829,13 +931,6 @@ void applyCompensationRMC(char *nmeaSentence, int sentenceLength)
 
     // Add CRC
     strncat(newSentence, coordinateStringDDMM, sizeof(newSentence) - 1);
-
-    if (strlen(newSentence) > sentenceLength)
-    {
-        if (settings.enableImuCompensationDebug == true && !inMainMenu)
-            systemPrintf("New compensated sentence too long! Orig: %d New: %d\r\n", sentenceLength,
-                         strlen(newSentence));
-    }
 
     // Overwrite the original NMEA
     strncpy(nmeaSentence, newSentence, sentenceLength);
@@ -941,8 +1036,24 @@ void applyCompensationGGA(char *nmeaSentence, int sentenceLength)
         coordinateConvertInput(abs(tiltSensor->getNaviLatitude()), COORDINATE_INPUT_TYPE_DDMM, coordinateStringDDMM,
                                sizeof(coordinateStringDDMM));
 
+        // Check if latitude length has changed
+        if (strlen(coordinateStringDDMM) != (latitudeStop - latitudeStart))
+        {
+            if (settings.enableImuCompensationDebug == true && !inMainMenu)
+                systemPrintf("Compensated latitude length has changed! Orig: %d New: %d\r\n",
+                             (latitudeStop - latitudeStart), strlen(coordinateStringDDMM));
+        }
+
         // Add tilt-compensated Latitude
         strncat(newSentence, coordinateStringDDMM, sizeof(newSentence) - 1);
+
+        // We can't allow the message length to change. Truncate if needed
+        while (strlen(newSentence) > latitudeStop)
+            *(newSentence + strlen(newSentence) - 1) = 0; // Move the NULL terminator
+
+        // We can't allow the message length to change. Pad with zeros if needed
+        while (strlen(newSentence) < latitudeStop)
+            strncat(newSentence, "0", sizeof(newSentence) - 1);
 
         // Add interstitial between end of lat and beginning of lon
         strncat(newSentence, nmeaSentence + latitudeStop, longitudeStart - latitudeStop);
@@ -951,8 +1062,24 @@ void applyCompensationGGA(char *nmeaSentence, int sentenceLength)
         coordinateConvertInput(abs(tiltSensor->getNaviLongitude()), COORDINATE_INPUT_TYPE_DDMM, coordinateStringDDMM,
                                sizeof(coordinateStringDDMM));
 
+        // Check if longitude length has changed
+        if (strlen(coordinateStringDDMM) != (longitudeStop - longitudeStart))
+        {
+            if (settings.enableImuCompensationDebug == true && !inMainMenu)
+                systemPrintf("Compensated longitude length has changed! Orig: %d New: %d\r\n",
+                             (longitudeStop - longitudeStart), strlen(coordinateStringDDMM));
+        }
+
         // Add tilt-compensated Longitude
         strncat(newSentence, coordinateStringDDMM, sizeof(newSentence) - 1);
+
+        // We can't allow the message length to change. Truncate if needed
+        while (strlen(newSentence) > longitudeStop)
+            *(newSentence + strlen(newSentence) - 1) = 0; // Move the NULL terminator
+
+        // We can't allow the message length to change. Pad with zeros if needed
+        while (strlen(newSentence) < longitudeStop)
+            strncat(newSentence, "0", sizeof(newSentence) - 1);
 
         // Add interstitial between end of lon and beginning of alt
         strncat(newSentence, nmeaSentence + longitudeStop, altitudeStart - longitudeStop);
@@ -989,8 +1116,25 @@ void applyCompensationGGA(char *nmeaSentence, int sentenceLength)
     // Convert altitude double to string
     snprintf(coordinateStringDDMM, sizeof(coordinateStringDDMM), "%0.4f", newAltitude);
 
+    // Check if altitude length has changed
+    if (strlen(coordinateStringDDMM) != (altitudeStop - altitudeStart))
+    {
+        if (settings.enableImuCompensationDebug == true && !inMainMenu)
+            systemPrintf("Compensated altitude length has changed! Orig: %d New: %d\r\n",
+                         (altitudeStop - altitudeStart), strlen(coordinateStringDDMM));
+    }
+
     // Add tilt-compensated Altitude
     strncat(newSentence, coordinateStringDDMM, sizeof(newSentence) - 1);
+
+    // We can't allow the message length to change. Truncate if needed
+    // altitudeStop is the position of the comma.
+    while (strlen(newSentence) > altitudeStop)
+        *(newSentence + strlen(newSentence) - 1) = 0; // Move the NULL terminator
+
+    // We can't allow the message length to change. Pad with zeros if needed
+    while (strlen(newSentence) < altitudeStop)
+        strncat(newSentence, "0", sizeof(newSentence) - 1);
 
     // Add remainder of the sentence up to checksum
     strncat(newSentence, nmeaSentence + altitudeStop, checksumStart - altitudeStop);
@@ -1006,21 +1150,12 @@ void applyCompensationGGA(char *nmeaSentence, int sentenceLength)
     // Add CRC
     strncat(newSentence, coordinateStringDDMM, sizeof(newSentence) - 1);
 
-    if (strlen(newSentence) > sentenceLength)
-    {
-        if (settings.enableImuCompensationDebug == true && !inMainMenu)
-            systemPrintf("New compensated sentence too long! Orig: %d New: %d\r\n", sentenceLength,
-                         strlen(newSentence));
-    }
-
     // Overwrite the original NMEA
     strncpy(nmeaSentence, newSentence, sentenceLength);
 
     if (settings.enableImuCompensationDebug == true && !inMainMenu)
         systemPrintf("Compensated GNGGA:\r\n%s\r\n", nmeaSentence);
 }
-
-#endif // COMPILE_IM19_IMU
 
 // Determine if a tilt sensor is available or not
 // Records outcome to NVM
@@ -1041,13 +1176,27 @@ void tiltDetect()
     if (settings.testedTilt == true)
         return;
 
-#ifdef COMPILE_IM19_IMU
+    // Skip test if the FacetFP GNSS is unknown
+    if (productVariant == RTK_FACET_FP)
+    {
+        if (settings.detectedGnssReceiver == GNSS_RECEIVER_UNKNOWN)
+        {
+            systemPrintln("FacetFP GNSS is unknown. Skipping tilt autodetection");
+            settings.testedTilt = true;
+            recordSystemSettings();
+            return;
+        }
+    }
+
+    systemPrintln("Beginning tilt autodetection");
+    displayTiltAutodetect(0);
+
     // Locally instantiate the library and hardware so it will release on exit
     IM19 *tiltSensor;
 
     tiltSensor = new IM19();
 
-    // On Flex, ESP UART2 is connected to SW3, then UART3 of the GNSS (where a tilt module resides, if populated)
+    // On Facet FP, ESP UART2 is connected to SW3, then UART3 of the GNSS (where a tilt module resides, if populated)
     HardwareSerial SerialTiltTest(1); // Use UART1 on the ESP32 to communicate with IMU
 
     // Confirm SW3 is in the correct position
@@ -1066,17 +1215,24 @@ void tiltDetect()
         {
             present.imu_im19 = true; // Allow tiltUpdate() to run
             settings.detectedTilt = true;
-            settings.gnssConfiguredRover = false; // Update rover settings
+            gnssConfigure(GNSS_CONFIG_TILT); // Request receiver to use new settings
             break;
         }
     }
 
     SerialTiltTest.end(); // Release UART1 for reuse
 
-#endif // COMPILE_IM19_IMU
-
-    systemPrintf("Tilt sensor %sdetected\r\n", settings.detectedTilt ? "" : "not ");
-    settings.testedTilt = true; //Record this test so we don't do it again
+    if (settings.detectedTilt == true)
+        systemPrintln("Tilt sensor detected");
+    else
+    {
+        systemPrintln("Tilt sensor not detected");
+        displayTiltAutodetectFailed(2000);
+    }
+    
+    settings.testedTilt = true; // Record this test so we don't do it again
     recordSystemSettings();
     return;
 }
+
+#endif // COMPILE_IM19_IMU

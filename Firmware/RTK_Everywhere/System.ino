@@ -1,3 +1,7 @@
+/*=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
+System.ino
+=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=*/
+
 // Initialize PSRAM if available
 void beginPsram()
 {
@@ -21,10 +25,31 @@ void beginPsram()
     }
 }
 
+// Validate the heap
+void rtkValidateHeap(const char *string)
+{
+    // Validate the heap
+    if (heap_caps_check_integrity_all(true) == false)
+    {
+        TaskHandle_t handle;
+        const char *taskName;
+
+        handle = xTaskGetCurrentTaskHandle();
+        taskName = pcTaskGetName(handle);
+        systemPrintf("Task handle 0x%08x %s%s%scalling %s\r\n", handle, taskName ? "(" : "", taskName ? taskName : "",
+                     taskName ? ") " : "", string);
+        systemPrintf("Checking internal heap\r\n");
+        heap_caps_check_integrity(MALLOC_CAP_INTERNAL, true);
+        systemPrintf("Checking PSRAM heap\r\n");
+        heap_caps_check_integrity(MALLOC_CAP_SPIRAM, true);
+        reportFatalError("Corrupt heap!");
+    }
+}
+
 // Free memory to PSRAM when available
 void rtkFree(void *data, const char *text)
 {
-    if (settings.debugMalloc)
+    if (settings.debugMalloc && !inMainMenu)
         systemPrintf("%p: Freeing %s\r\n", data, text);
     free(data);
 }
@@ -47,19 +72,87 @@ void *rtkMalloc(size_t sizeInBytes, const char *text)
     }
 
     // Display the allocation
-    if (settings.debugMalloc)
+    if (data)
     {
-        if (data)
+        if (settings.debugMalloc && !inMainMenu)
             systemPrintf("%p, %s %d bytes allocated: %s\r\n", data, area, sizeInBytes, text);
-        else
-            systemPrintf("Failed to allocate %d bytes from %s: %s\r\n", sizeInBytes, area, text);
     }
+    else
+        systemPrintf("Error: Failed to allocate %d bytes from %s: %s\r\n", sizeInBytes, area, text);
+
+    // If you are trying to trace "CORRUPT HEAP Bad tail" issues, add the tail address here:
+    const uint32_t badTail = 0; // E.g. 0x3f80135c which was being allocated to the oled
+    if (badTail)
+    {
+        union {
+            void *ptr;
+            uint32_t address;
+        } ptr2address;
+        ptr2address.ptr = data;
+        // Align sizeInBytes to multiples of 4: 0->0; 1->4; 4->4; 5->8; 4001->4004
+        uint32_t alignedSize = (sizeInBytes + 3) & (~3);
+        // Look for address == badTail - alignedSize (ignore the canary)
+        if (ptr2address.address == badTail - alignedSize)
+            systemPrintf("rtkMalloc: tail 0x%08x length 0x%04X (%ld) allocated to %s\r\n",
+                         badTail, sizeInBytes, sizeInBytes, text);
+    }
+
+    // If you are trying to trace "CORRUPT HEAP Bad head" issues, add the head address here:
+    const uint32_t badHead = 0; // E.g. 0x3f808ff4 (identifed that 0x3f808048 was allocated to AuthCoPro)
+    if (badHead)
+    {
+        union {
+            void *ptr;
+            uint32_t address;
+        } ptr2address;
+        ptr2address.ptr = data;
+        // Align sizeInBytes to multiples of 4: 0->0; 1->4; 4->4; 5->8; 4001->4004
+        uint32_t alignedSize = (sizeInBytes + 3) & (~3);
+        // Look for badHead == address + alignedSize + two 4-byte canaries:
+        if (badHead == ptr2address.address + alignedSize + 8)
+            systemPrintf("rtkMalloc: head 0x%08x length 0x%04X (%ld) allocated to %s\r\n",
+                         ptr2address.address, sizeInBytes, sizeInBytes, text);
+    }
+
     return data;
+}
+
+// Determine if the address is in the EEPROM (Flash)
+bool rtkIsAddressInEEPROM(void *addr)
+{
+    return ((addr >= (void *)0x3f400000) && (addr <= (void *)0x3f7fffff));
+}
+
+// Determine if the address is in PSRAM (SPI RAM)
+bool rtkIsAddressInPSRAM(void *addr)
+{
+    return ((addr >= (void *)0x3f800000) && (addr <= (void *)0x3fbfffff));
+}
+
+// Determine if the address is in PSRAM or SRAM
+bool rtkIsAddressInRAM(void *addr)
+{
+    return rtkIsAddressInSRAM(addr) || rtkIsAddressInPSRAM(addr);
+}
+
+bool rtkIsAddressInROM(void *addr)
+{
+    return (((addr >= (void *)0x3ff90000) && (addr <= (void *)0x3ff9ffff)) ||
+            ((addr >= (void *)0x40000000) && (addr <= (void *)0x4005ffff)));
+}
+
+// Determine if the address is in SRAM
+bool rtkIsAddressInSRAM(void *addr)
+{
+    return ((addr >= (void *)0x3ffae000) && (addr <= (void *)0x3ffdffff));
 }
 
 // See https://en.cppreference.com/w/cpp/memory/new/operator_delete
 void operator delete(void *ptr) noexcept
 {
+    // free(ptr);
+
+    // Do we still need this?
     rtkFree(ptr, "buffer");
 }
 
@@ -71,6 +164,10 @@ void operator delete[](void *ptr) noexcept
 // See https://en.cppreference.com/w/cpp/memory/new/operator_new
 void *operator new(std::size_t count)
 {
+    // void *data = malloc(count);
+    // return data;
+
+    // Do we still need this?
     return rtkMalloc(count, "new buffer");
 }
 
@@ -88,6 +185,8 @@ void finishDisplay()
     }
     else if (online.display == true)
     {
+        displaySplashNameKnown(); // Display the full RTK product name and firmware version
+
         // Units can boot under 1s. Keep the splash screen up for at least 2s.
         while ((millis() - splashStart) < 2000)
             delay(1);
@@ -115,7 +214,7 @@ void beepOn()
     {
         if (productVariant == RTK_TORCH || productVariant == RTK_TORCH_X2)
             digitalWrite(pin_beeper, HIGH);
-        else if (productVariant == RTK_FLEX)
+        else if (productVariant == RTK_FACET_FP)
             tone(pin_beeper, 523); // NOTE_C5
     }
 }
@@ -127,7 +226,7 @@ void beepOff()
     {
         if (productVariant == RTK_TORCH || productVariant == RTK_TORCH_X2)
             digitalWrite(pin_beeper, LOW);
-        else if (productVariant == RTK_FLEX)
+        else if (productVariant == RTK_FACET_FP)
             noTone(pin_beeper);
     }
 }
@@ -159,7 +258,7 @@ void updateBattery()
             bluetoothSendBatteryPercent(batteryLevelPercent); // Send over dedicated BLE service
 
             // Display the battery data
-            if (settings.enablePrintBatteryMessages)
+            if (settings.enablePrintBatteryMessages && !inMainMenu)
             {
                 char tempStr[25];
                 if (isCharging())
@@ -230,7 +329,10 @@ void updateBattery()
             {
                 int minutesSinceLastCharge = ((millis() - shutdownNoChargeTimer) / 1000) / 60;
                 if (minutesSinceLastCharge > settings.shutdownNoChargeTimeoutMinutes)
+                {
+                    systemPrintln("Shutting down (no charge)...");
                     powerDown(true);
+                }
             }
             else
             {
@@ -274,6 +376,31 @@ bool i2cIsDevicePresent(TwoWire *i2cBus, uint8_t deviceAddress)
     return false;
 }
 
+// Read an I2C device register and check for an expected value
+bool i2cIsDeviceRegisterPresent(TwoWire *i2cBus, uint8_t deviceAddress, uint8_t registerAddress, uint8_t expectedValue)
+{
+    int maxRetries = 3;
+
+    while (maxRetries > 0)
+    {
+        maxRetries--;
+        delay(1);
+
+        i2cBus->beginTransmission(deviceAddress);
+        i2cBus->write(registerAddress);
+        if (i2cBus->endTransmission() != 0)
+            continue;
+
+        i2cBus->requestFrom(deviceAddress, (uint8_t)1);
+        if (i2cBus->available())
+        {
+            return (i2cBus->read() == expectedValue);
+        }
+    }
+
+    return false;
+}
+
 // Create a test file in file structure to make sure we can
 bool createTestFile()
 {
@@ -307,17 +434,14 @@ void reportHeapNow(bool alwaysPrint)
     {
         lastHeapReport = millis();
 
+        rtkValidateHeap("reportHeapNow");
         if (online.psram == true)
-        {
             systemPrintf("FreeHeap: %d / HeapLowestPoint: %d / LargestBlock: %d / Used PSRAM: %d\r\n",
                          ESP.getFreeHeap(), xPortGetMinimumEverFreeHeapSize(),
                          heap_caps_get_largest_free_block(MALLOC_CAP_8BIT), ESP.getPsramSize() - ESP.getFreePsram());
-        }
         else
-        {
             systemPrintf("FreeHeap: %d / HeapLowestPoint: %d / LargestBlock: %d\r\n", ESP.getFreeHeap(),
                          xPortGetMinimumEverFreeHeapSize(), heap_caps_get_largest_free_block(MALLOC_CAP_8BIT));
-        }
     }
 }
 
@@ -789,8 +913,21 @@ const char *coordinatePrintableInputType(CoordinateInputType coordinateInputType
 void reportFatalError(const char *errorMsg)
 {
     displayHalt();
+
+    // Empty the FIFO of any incoming data
+    while (Serial.available())
+        Serial.read();
     while (1)
     {
+        // Allow carriage return to reset the system
+        if (Serial.available() && (Serial.read() == '\r'))
+        {
+            Serial.println("System reset");
+            Serial.flush();
+            ESP.restart();
+        }
+
+        // Periodically display the halted message
         systemPrint("HALTED: ");
         systemPrint(errorMsg);
         systemPrintln();
@@ -848,12 +985,11 @@ bool isUsbAttached()
 {
     if (pin_powerAdapterDetect != PIN_UNDEFINED)
     {
-        if (pin_powerAdapterDetect != PIN_UNDEFINED)
-            // Pin goes low when wall adapter is detected
-            if (readAnalogPinAsDigital(pin_powerAdapterDetect) == HIGH)
-                return false;
-        return true;
+        // Pin goes low when wall adapter is detected
+        if (readAnalogPinAsDigital(pin_powerAdapterDetect) == LOW)
+            return true;
     }
+
     return false;
 }
 
@@ -905,7 +1041,7 @@ void getMacAddresses(uint8_t *macAddress, const char *name, esp_mac_type_t type,
                      macAddress[3], macAddress[4], macAddress[5], name);
 }
 
-// Start the I2C GPIO expander responsible for switches (generally the RTK Flex)
+// Start the I2C GPIO expander responsible for switches (generally the RTK Facet FP)
 void beginGpioExpanderSwitches()
 {
     if (present.gpioExpanderSwitches)
@@ -913,7 +1049,7 @@ void beginGpioExpanderSwitches()
         if (gpioExpanderSwitches == nullptr)
             gpioExpanderSwitches = new SFE_PCA95XX(PCA95XX_PCA9534);
 
-        // In Flex, the GPIO Expander has been assigned address 0x21
+        // In Facet FP, the GPIO Expander has been assigned address 0x21
         if (gpioExpanderSwitches->begin(0x21, *i2c_0) == false)
         {
             systemPrintln("GPIO expander for switches not detected");
@@ -924,11 +1060,10 @@ void beginGpioExpanderSwitches()
 
         // SW1 is on pin 0. Driving it high will disconnect the ESP32 from USB
         // GNSS_RST is on pin 5. Driving it low when an LG290P is connected will kill the I2C bus.
-        // PWRKILL is on pin 7. Driving it low will turn off the system
-        for (int i = 0; i < gpioExpanderNumSwitches; i++)
+        for (uint8_t i = 0; i < gpioExpanderNumSwitches; i++)
         {
-            // Set all pins to low except GNSS RESET and PWRKILL
-            if (i == gpioExpanderSwitch_GNSS_Reset || i == gpioExpanderSwitch_PowerFastOff)
+            // Set all pins to low except GNSS RESET
+            if (i == gpioExpanderSwitch_GNSS_Reset)
                 gpioExpanderSwitches->digitalWrite(i, HIGH);
             else
                 gpioExpanderSwitches->digitalWrite(i, LOW);
@@ -963,7 +1098,65 @@ void gpioExpanderGnssReset()
     }
 }
 
-// The IMU is on UART3 of the Flex module connected to switch 3
+// Detect if a GNSS is present by:
+// Driving gpioExpanderSwitch_GNSS_Reset LOW to place the GNSS in RESET
+// Change gpioExpanderSwitch_GNSS_Reset to INPUT
+// Read the state of gpioExpanderSwitch_GNSS_Reset over the next second
+// If it is pulled high by the GNSS, GNSS is present
+// If it stays low, GNSS is missing
+// But we need to be careful. If we put an LG290P into RESET, it brings down the
+// I2C bus. So, we need to be quick! Drive reset low, then immediately change to
+// INPUT using a direct write - not the read-modify-write through the library.
+bool gpioExpanderDetectGnss()
+{
+    if (online.gpioExpanderSwitches == true)
+    {
+        if (settings.detectedGnssReceiver == GNSS_RECEIVER_UNKNOWN)
+        {
+            // Use 400kHz for speed
+            if (present.i2c0BusSpeed_400 == false)
+                i2c_0->setClock(400000);
+            
+            // Set GNSS Reset LOW
+            gpioExpanderSwitches->digitalWrite(gpioExpanderSwitch_GNSS_Reset, LOW);
+            
+            // Clock is ticking! Be quick!
+            // Set GNSS Reset to INPUT as fast as possible
+            i2c_0->beginTransmission(0x21); // FacetFP TCA9534 is on address 0x21
+            i2c_0->write(0x03); // TCA9534 CONFIGURATION register
+            i2c_0->write((uint8_t)(1 << gpioExpanderSwitch_GNSS_Reset)); // Reset INPUT, all others OUTPUT
+            i2c_0->endTransmission(true);
+
+            // Restore 100kHz
+            if (present.i2c0BusSpeed_400 == false)
+                i2c_0->setClock(100000);
+
+            // Read the Reset pin every 100ms for 1s. If any one read is high, GNSS is present
+            bool flexModuleDetected = false;
+            unsigned long startTime = millis();
+            for (unsigned long timeStep = 100; timeStep <= 1000; timeStep += 100)
+            {
+                while ((millis() - startTime) < timeStep)
+                    delay(10);
+                flexModuleDetected |= (gpioExpanderSwitches->digitalRead(gpioExpanderSwitch_GNSS_Reset) == 1);
+                if (settings.debugGnss)
+                    systemPrintf("GNSS detection: GNSS %sdetected after %ldms\r\n",
+                        flexModuleDetected ? "" : "not ", timeStep );
+                if (flexModuleDetected)
+                    break;
+            }
+
+            // Make GNSS Reset OUTPUT HIGH again
+            gpioExpanderSwitches->digitalWrite(gpioExpanderSwitch_GNSS_Reset, HIGH);
+            gpioExpanderSwitches->pinMode(gpioExpanderSwitch_GNSS_Reset, OUTPUT);
+
+            return (flexModuleDetected);
+        }
+    }
+    return (true); // Default to true so gnssDetectReceiverType() will continue with detection
+}
+
+// The IMU is on UART3 of the Facet FP module connected to switch 3
 void gpioExpanderSelectImu()
 {
     if (online.gpioExpanderSwitches == true)
@@ -977,14 +1170,14 @@ void gpioExpanderSelectLoraConfigure()
         gpioExpanderSwitches->digitalWrite(gpioExpanderSwitch_S3, HIGH);
 }
 
-// Connect Flex GNSS UART2 to LoRa UART0 for normal TX/RX of corrections and data
+// Connect Facet FP GNSS receiver UART2 to LoRa UART0 for normal TX/RX of corrections and data
 void gpioExpanderSelectLoraCommunication()
 {
     if (online.gpioExpanderSwitches == true)
         gpioExpanderSwitches->digitalWrite(gpioExpanderSwitch_S4, HIGH);
 }
 
-// Connect Flex GNSS UART2 to 4-pin JST RADIO port
+// Connect Facet FP GNSS UART2 to 4-pin JST RADIO port
 void gpioExpanderSelectRadioPort()
 {
     if (online.gpioExpanderSwitches == true)

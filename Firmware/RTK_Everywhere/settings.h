@@ -1,5 +1,78 @@
+/*=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
+settings.h
+=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=*/
+
 #ifndef __SETTINGS_H__
 #define __SETTINGS_H__
+
+typedef enum {
+    _bool = 0,
+    _int,
+    _float,
+    _double,
+    _uint8_t,
+    _uint16_t,
+    _uint32_t,
+    _uint64_t,
+    _int8_t,
+    _int16_t,
+    tMuxConn,
+    tSysState,
+    tPulseEdg,
+    tBtRadio,
+    tPerDisp,
+    tCoordInp,
+    tCharArry,
+    _IPString,
+    tUbxMsgRt,
+    tUbxConst,
+    tEspNowPr,
+    tUbMsgRtb,
+    tWiFiNet,
+    tNSCHost,
+    tNSCPort,
+    tNSCUser,
+    tNSCUsrPw,
+    tNSMtPt,
+    tNSMtPtPw,
+
+    tUmMRNmea,
+    tUmMRRvRT,
+    tUmMRBaRT,
+    tUmConst,
+
+    tCorrSPri,
+    tRegCorTp,
+    tMosaicConst,
+    tMosaicMSNmea,
+    tMosaicSINmea,
+    tMosaicMIRvRT,
+    tMosaicMIBaRT,
+    tMosaicMERvRT,
+    tMosaicMEBaRT,
+    tLgMRNmea,
+    tLgMRRvRT,
+    tLgMRBaRT,
+    tLgMRPqtm,
+    tLgConst,
+    tGnssReceiver,
+
+    tCmnCnst,
+    tCmnRtNm,
+    tCnRtRtB,
+    tCnRtRtR,
+
+    tNSCEn,
+
+    // Add new settings types above <---------------->
+    // (Maintain the enum of existing settings types!)
+} RTK_Settings_Types;
+
+#include <LittleFS.h> //Built-in
+
+// Important note: the firmware currently requires SdFat v2.1.1
+// sd->begin will crash second time around with ~v2.2.3
+#include "SdFat.h" //http://librarymanager/All#sdfat_exfat by Bill Greiman.
 
 #include "GNSS.h"
 #include "GNSS_None.h"
@@ -15,39 +88,42 @@
 typedef enum
 {
     STATE_ROVER_NOT_STARTED = 0,        //  0
-    STATE_ROVER_NO_FIX,                 //  1
-    STATE_ROVER_FIX,                    //  2
-    STATE_ROVER_RTK_FLOAT,              //  3
-    STATE_ROVER_RTK_FIX,                //  4
+    STATE_ROVER_CONFIG_WAIT,            //  1
+    STATE_ROVER_NO_FIX,                 //  2
+    STATE_ROVER_FIX,                    //  3
+    STATE_ROVER_RTK_FLOAT,              //  4
+    STATE_ROVER_RTK_FIX,                //  5
 
-    STATE_BASE_CASTER_NOT_STARTED,      //  5, Set override flag
-    STATE_BASE_NOT_STARTED,             //  6
-    STATE_BASE_TEMP_SETTLE,             //  7, User has indicated base, but current pos accuracy is too low
-    STATE_BASE_TEMP_SURVEY_STARTED,     //  8
-    STATE_BASE_TEMP_TRANSMITTING,       //  9
-    STATE_BASE_FIXED_NOT_STARTED,       // 10
-    STATE_BASE_FIXED_TRANSMITTING,      // 11
+    STATE_BASE_CASTER_NOT_STARTED,      //  6, Set override flag
+    STATE_BASE_ASSIST_NOT_STARTED,      //  7
+    STATE_BASE_NOT_STARTED,             //  8
+    STATE_BASE_CONFIG_WAIT,             //  9
+    STATE_BASE_TEMP_SETTLE,             // 10, User has indicated base, but current pos accuracy is too low
+    STATE_BASE_TEMP_SURVEY_STARTED,     // 11
+    STATE_BASE_TEMP_TRANSMITTING,       // 12
+    STATE_BASE_FIXED_NOT_STARTED,       // 13
+    STATE_BASE_FIXED_TRANSMITTING,      // 14
 
-    STATE_DISPLAY_SETUP,                // 12
-    STATE_WEB_CONFIG_NOT_STARTED,       // 13
-    STATE_WEB_CONFIG_WAIT_FOR_NETWORK,  // 14
-    STATE_WEB_CONFIG,                   // 15
-    STATE_TEST,                         // 16
-    STATE_TESTING,                      // 17
-    STATE_PROFILE,                      // 18
+    STATE_DISPLAY_SETUP,                // 15
+    STATE_WEB_CONFIG_NOT_STARTED,       // 16
+    STATE_WEB_CONFIG_WAIT_FOR_NETWORK,  // 17
+    STATE_WEB_CONFIG,                   // 18
+    STATE_TEST,                         // 19
+    STATE_TESTING,                      // 20
+    STATE_PROFILE,                      // 21
 
-    STATE_KEYS_REQUESTED,               // 19
+    STATE_KEYS_REQUESTED,               // 22
 
-    STATE_ESPNOW_PAIRING_NOT_STARTED,   // 20
-    STATE_ESPNOW_PAIRING,               // 21
+    STATE_ESPNOW_PAIRING_NOT_STARTED,   // 23
+    STATE_ESPNOW_PAIRING,               // 24
 
-    STATE_NTPSERVER_NOT_STARTED,        // 22
-    STATE_NTPSERVER_NO_SYNC,            // 23
-    STATE_NTPSERVER_SYNC,               // 24
+    STATE_NTPSERVER_NOT_STARTED,        // 25
+    STATE_NTPSERVER_NO_SYNC,            // 26
+    STATE_NTPSERVER_SYNC,               // 27
 
-    STATE_SHUTDOWN,                     // 25
+    STATE_SHUTDOWN,                     // 28
 
-    STATE_NOT_SET,                      // 26, Must be last on list
+    STATE_NOT_SET,                      // 29, Must be last on list
 } SystemState;
 volatile SystemState systemState = STATE_NOT_SET;
 SystemState lastSystemState = STATE_NOT_SET;
@@ -55,6 +131,7 @@ SystemState requestedSystemState = STATE_NOT_SET;
 bool newSystemStateRequested = false;
 
 // Base modes set with RTK_MODE
+#define RTK_MODE_BASE_UNDECIDED     0
 #define RTK_MODE_BASE_FIXED         0x0001  // 1 << 0
 #define RTK_MODE_BASE_SURVEY_IN     0x0002  // 1 << 1
 #define RTK_MODE_NTP                0x0004  // 1 << 2
@@ -81,7 +158,38 @@ const uint8_t rtkModeNameEntries = sizeof(rtkModeName) / sizeof(rtkModeName[0]);
 #define EQ_RTK_MODE(mode)       (rtkMode && (rtkMode == (mode & rtkMode)))
 #define NEQ_RTK_MODE(mode)      ((rtkMode == 0) || ((mode & rtkMode) == 0))
 
-//Used as part of device ID and whitelists. Do not reorder.
+// Branding support
+typedef enum {
+    BRAND_SPARKFUN = 0,
+    BRAND_SPARKPNT,
+    // Add new brands above this line
+    BRAND_NUM
+} RTKBrands_e;
+
+const RTKBrands_e DEFAULT_BRAND = BRAND_SPARKPNT;
+
+typedef struct
+{
+    const RTKBrands_e brand;
+    const char name[9];
+    const uint8_t logoWidth;
+    const uint8_t logoHeight;
+    const uint8_t * const logoPointer;
+} RTKBrandAttribute;
+
+extern const uint8_t logoSparkFun_Height;
+extern const uint8_t logoSparkFun_Width;
+extern const uint8_t logoSparkFun[];
+extern const uint8_t logoSparkPNT_Height;
+extern const uint8_t logoSparkPNT_Width;
+extern const uint8_t logoSparkPNT[];
+
+RTKBrandAttribute RTKBrandAttributes[RTKBrands_e::BRAND_NUM] = {
+    { BRAND_SPARKFUN, "SparkFun", logoSparkFun_Width, logoSparkFun_Height, logoSparkFun },
+    { BRAND_SPARKPNT, "SparkPNT", logoSparkPNT_Width, logoSparkPNT_Height, logoSparkPNT },
+};
+
+// Product Variant used as part of device ID and whitelists. Do not reorder.
 typedef enum
 {
     RTK_EVK = 0, // 0x00
@@ -90,88 +198,58 @@ typedef enum
     RTK_TORCH = 3, // 0x03
     RTK_FACET_V2_LBAND = 4, // 0x04
     RTK_POSTCARD = 5, // 0x05
-    RTK_FLEX = 6, // 0x06
+    RTK_FACET_FP = 6, // 0x06
     RTK_TORCH_X2 = 7, // 0x07
     // Add new values above this line
     RTK_UNKNOWN
 } ProductVariant;
 ProductVariant productVariant = RTK_UNKNOWN;
 
-const char * const productDisplayNames[] =
+// Product Properties Table
+// ========================
+// name is used to create the BT broadcast deviceName
+// It is formed from: the brand, the name, the 6-character serial number (two MAC octets plus productVariant)
+// Limit name to 12 chars max - to keep the total broadcast length to 28 chars or less
+// E.g.: "SparkPNT Facet v2 LB-ABCD04" is 27 chars
+// SparkPNT Facet FP-ABCD06
+// SparkPNT Torch X2-ABCD07
+// name is also used to create the title for the menus etc.. Include "RTK" if rtkPrefix is true
+// displayName is displayed on the OLED. Keep short - and adjust to match the width of the OLED
+// filePrefix is the settings and log file prefix
+// platformProvision is assembled into the PointPerfect ZTP request (largely deprecated)
+// If rtkPrefix is true, "RTK" is included before the name: on the OLED, in the serial menus, etc.
+// productPlanUID is a 16 character unique identifier for the product plan associated with the MFi accessory
+// defaultSystemState is the default system state - if the actual previous state is unknown
+// platformRegistration is the web page for product registration
+typedef struct
 {
-    // Keep short - these are displayed on the OLED
-    "EVK",
-    "Facet v2",
-    "Facet X5",
-    "Torch",
-    "Facet LB",
-    "Postcard",
-    "Flex",
-    "Torch X2",
-    // Add new values just above this line
-    "Unknown"
-};
-const int productDisplayNamesEntries = sizeof(productDisplayNames) / sizeof(productDisplayNames[0]);
+    ProductVariant productVariant;
+    const RTKBrands_e brand;
+    const char *name;
+    const char *displayName;
+    const char *filePrefix;
+    const char *platformProvision;
+    const bool rtkPrefix;
+    const char *productPlanUID;
+    const SystemState defaultSystemState;
+    const char *platformRegistration;
+} productProperties;
 
-const char * const platformFilePrefixTable[] =
+const productProperties productPropertiesTable[] =
 {
-    "SFE_EVK",
-    "SFE_Facet_v2",
-    "SFE_Facet_mosaic",
-    "SFE_Torch",
-    "SFE_Facet_v2_LBand",
-    "SFE_Postcard",
-    "SFE_Flex",
-    "SFE_Torch_X2",
-    // Add new values just above this line
-    "SFE_Unknown"
+    //productVariant        brand           name            displayName filePrefix              platformProvision   rtkPfx  productPlanUID      defaultSystemState          platformRegistration
+    //==============        =====           ====            =========== ==========              =================   ======  ==============      ==================          ====================
+    { RTK_EVK,              BRAND_SPARKFUN, "EVK",          "EVK",      "SFE_EVK",              "EVK",              true,   "0000000000000000", STATE_ROVER_NOT_STARTED,    "https://www.sparkfun.com/rtk_evk_registration" },
+    { RTK_FACET_MOSAIC,     BRAND_SPARKPNT, "Facet X5",     "Facet X5", "SFE_Facet_mosaic",     "Facet mosaicX5",   true,   "0000000000000000", STATE_ROVER_NOT_STARTED,    "https://www.sparkfun.com/rtk_facet_mosaic_registration" },
+    { RTK_FACET_V2,         BRAND_SPARKPNT, "Facet v2",     "Facet v2", "SFE_Facet_v2",         "Facet v2",         true,   "0000000000000000", STATE_ROVER_NOT_STARTED,    "Unknown" },
+    { RTK_FACET_V2_LBAND,   BRAND_SPARKPNT, "Facet v2 LB",  "Facet LB", "SFE_Facet_v2_LBand",   "Facet v2 LBand",   true,   "0000000000000000", STATE_ROVER_NOT_STARTED,    "Unknown" },
+    { RTK_FACET_FP,         BRAND_SPARKPNT, "FP",           "FP",       "SFE_FP",               "FP",               false,  "e9e877bb278140f0", STATE_ROVER_NOT_STARTED,    "https://www.sparkfun.com/rtk_facet_fp_registration" },
+    { RTK_POSTCARD,         BRAND_SPARKFUN, "Postcard",     "Postcard", "SFE_Postcard",         "Postcard",         true,   "e9e877bb278140f0", STATE_ROVER_NOT_STARTED,    "https://www.sparkfun.com/rtk_postcard_registration" },
+    { RTK_TORCH,            BRAND_SPARKFUN, "Torch",        "Torch",    "SFE_Torch",            "Torch",            true,   "0000000000000000", STATE_ROVER_NOT_STARTED,    "https://www.sparkfun.com/rtk_torch_registration" },
+    { RTK_TORCH_X2,         BRAND_SPARKPNT, "TX2",          "TX2",      "SFE_TX2",              "TX2",              false,  "3407c7ca3d6b4984", STATE_ROVER_NOT_STARTED,    "https://www.sparkfun.com/tx2_registration" },
+    { RTK_UNKNOWN,          DEFAULT_BRAND,  "Unknown",      "Unknown",  "SFE_Unknown",          "Unknown",          true,   "0000000000000000", STATE_ROVER_NOT_STARTED,    "Unknown" },
 };
-const int platformFilePrefixTableEntries = sizeof(platformFilePrefixTable) / sizeof(platformFilePrefixTable[0]);
-
-const char * const platformPrefixTable[] =
-{
-    "EVK",
-    "Facet v2",
-    "Facet mosaicX5",
-    "Torch",
-    "Facet v2 LBand",
-    "Postcard",
-    "Flex",
-    "Torch X2",
-    // Add new values just above this line
-    "Unknown"
-};
-const int platformPrefixTableEntries = sizeof(platformPrefixTable) / sizeof(platformPrefixTable[0]);
-
-const char * const platformProvisionTable[] =
-{
-    "EVK",
-    "Facet v2",
-    "Facet mosaicX5",
-    "Torch",
-    "Facet v2 LBand",
-    "Postcard",
-    "Flex",
-    "Torch X2",
-    // Add new values just above this line
-    "Unknown"
-};
-const int platformProvisionTableEntries = sizeof(platformProvisionTable) / sizeof(platformProvisionTable[0]);
-
-const char * const platformRegistrationPageTable[] =
-{
-    "https://www.sparkfun.com/rtk_evk_registration",
-    "Unknown",
-    "https://www.sparkfun.com/rtk_facet_mosaic_registration",
-    "https://www.sparkfun.com/rtk_torch_registration",
-    "Unknown",
-    "https://www.sparkfun.com/rtk_postcard_registration",
-    "https://www.sparkfun.com/rtk_flex_registration",
-    "https://www.sparkfun.com/rtk_torch_x2_registration",
-    // Add new values just above this line
-    "Unknown"
-};
-const int platformRegistrationPageTableEntries = sizeof(platformRegistrationPageTable) / sizeof(platformRegistrationPageTable[0]);
+const int productPropertiesEntries = sizeof(productPropertiesTable) / sizeof(productPropertiesTable[0]);
 
 // Corrections Priority
 typedef enum
@@ -215,21 +293,7 @@ typedef struct
     uint8_t newProfile; // Only valid when newState == STATE_PROFILE
 } setupButton;
 
-const SystemState platformPreviousStateTable[] =
-{
-    STATE_ROVER_NOT_STARTED,    // EVK
-    STATE_ROVER_NOT_STARTED,    // Facet v2
-    STATE_ROVER_NOT_STARTED,    // Facet mosaic
-    STATE_ROVER_NOT_STARTED,    // Torch
-    STATE_ROVER_NOT_STARTED,    // Facet v2 L-Band
-    STATE_ROVER_NOT_STARTED,    // Postcard
-    STATE_ROVER_NOT_STARTED,    // Flex
-    STATE_ROVER_NOT_STARTED,    // Torch X2
-    // Add new values above this line
-    STATE_ROVER_NOT_STARTED     // Unknown
-};
-const int platformPreviousStateTableEntries = sizeof (platformPreviousStateTable) / sizeof(platformPreviousStateTable[0]);
-
+// OLED Displays
 typedef enum
 {
     DISPLAY_64x48,
@@ -256,17 +320,6 @@ typedef enum
     MUX_I2C_WT,
     MUX_ADC_DAC,
 } muxConnectionType_e;
-
-// GNSS receiver type detected in Flex
-typedef enum
-{
-    GNSS_RECEIVER_LG290P = 0,
-    GNSS_RECEIVER_MOSAIC_X5,
-    GNSS_RECEIVER_X20P,
-    GNSS_RECEIVER_UM980,
-    // Add new values above this line
-    GNSS_RECEIVER_UNKNOWN,
-} gnssReceiverType_e;
 
 // User can enter fixed base coordinates in ECEF or degrees
 typedef enum
@@ -383,141 +436,6 @@ enum PeriodDisplayValues
 #define PERIODIC_SETTING(x) (settings.periodicDisplay & PERIODIC_MASK(x))
 #define PERIODIC_TOGGLE(x) settings.periodicDisplay = settings.periodicDisplay ^ PERIODIC_MASK(x)
 
-#ifdef  COMPILE_NETWORK
-
-// NTRIP Server data
-typedef struct
-{
-    // Network connection used to push RTCM to NTRIP caster
-    NetworkClient *networkClient;
-    volatile uint8_t state;
-
-    // Count of bytes sent by the NTRIP server to the NTRIP caster
-    volatile uint32_t bytesSent;
-
-    // Throttle the time between connection attempts
-    // ms - Max of 4,294,967,295 or 4.3M seconds or 71,000 minutes or 1193 hours or 49 days between attempts
-    volatile uint32_t connectionAttemptTimeout;
-    volatile int connectionAttempts; // Count the number of connection attempts between restarts
-
-    // NTRIP server timer usage:
-    //  * Reconnection delay
-    //  * Measure the connection response time
-    //  * Receive RTCM correction data timeout
-    //  * Monitor last RTCM byte received for frame counting
-    volatile uint32_t timer;
-    volatile uint32_t startTime;
-    volatile int connectionAttemptsTotal; // Count the number of connection attempts absolutely
-
-    // Better debug printing by ntripServerProcessRTCM
-    volatile uint32_t rtcmBytesSent;
-    volatile uint32_t previousMilliseconds;
-
-
-    // Protect all methods that manipulate timer with a mutex - to avoid race conditions
-    // Remember that data is pushed to the servers by
-    // gnssReadTask -> processUart1Message -> processRTCM -> ntripServerProcessRTCM
-    SemaphoreHandle_t serverSemaphore = NULL;
-
-    unsigned long millisSinceTimer()
-    {
-        unsigned long retVal = 0;
-        if (serverSemaphore == NULL)
-            serverSemaphore = xSemaphoreCreateMutex();
-        if (xSemaphoreTake(serverSemaphore, 10 / portTICK_PERIOD_MS) == pdPASS)
-        {
-            retVal = millis() - timer;
-            xSemaphoreGive(serverSemaphore);
-        }
-        return retVal;
-    }
-
-    unsigned long millisSinceStartTime()
-    {
-        unsigned long retVal = 0;
-        if (serverSemaphore == NULL)
-            serverSemaphore = xSemaphoreCreateMutex();
-        if (xSemaphoreTake(serverSemaphore, 10 / portTICK_PERIOD_MS) == pdPASS)
-        {
-            retVal = millis() - startTime;
-            xSemaphoreGive(serverSemaphore);
-        }
-        return retVal;
-    }
-
-    void updateTimerAndBytesSent()
-    {
-        if (serverSemaphore == NULL)
-            serverSemaphore = xSemaphoreCreateMutex();
-        if (xSemaphoreTake(serverSemaphore, 10 / portTICK_PERIOD_MS) == pdPASS)
-        {
-            bytesSent = bytesSent + 1;
-            rtcmBytesSent = rtcmBytesSent + 1;
-            timer = millis();
-            xSemaphoreGive(serverSemaphore);
-        }
-    }
-
-    bool checkBytesSentAndReset(uint32_t timerLimit)
-    {
-        bool retVal = false;
-        if (serverSemaphore == NULL)
-            serverSemaphore = xSemaphoreCreateMutex();
-        if (xSemaphoreTake(serverSemaphore, 10 / portTICK_PERIOD_MS) == pdPASS)
-        {
-            if (((millis() - timer) > timerLimit) && (bytesSent > 0))
-            {
-                retVal = true;
-                bytesSent = 0;
-            }
-            xSemaphoreGive(serverSemaphore);
-        }
-        return retVal;
-    }
-
-    unsigned long getUptime()
-    {
-        unsigned long retVal = 0;
-        if (serverSemaphore == NULL)
-            serverSemaphore = xSemaphoreCreateMutex();
-        if (xSemaphoreTake(serverSemaphore, 10 / portTICK_PERIOD_MS) == pdPASS)
-        {
-            retVal = timer - startTime;
-            xSemaphoreGive(serverSemaphore);
-        }
-        return retVal;
-    }
-
-    void setTimerToMillis()
-    {
-        if (serverSemaphore == NULL)
-            serverSemaphore = xSemaphoreCreateMutex();
-        if (xSemaphoreTake(serverSemaphore, 10 / portTICK_PERIOD_MS) == pdPASS)
-        {
-            timer = millis();
-            xSemaphoreGive(serverSemaphore);
-        }
-    }
-
-    bool checkConnectionAttemptTimeout()
-    {
-        bool retVal = false;
-        if (serverSemaphore == NULL)
-            serverSemaphore = xSemaphoreCreateMutex();
-        if (xSemaphoreTake(serverSemaphore, 10 / portTICK_PERIOD_MS) == pdPASS)
-        {
-            if ((millis() - timer) >= connectionAttemptTimeout)
-            {
-                retVal = true;
-            }
-            xSemaphoreGive(serverSemaphore);
-        }
-        return retVal;
-    }
-} NTRIP_SERVER_DATA;
-
-#endif  // COMPILE_NETWORK
-
 typedef enum
 {
     ESPNOW_OFF = 0,
@@ -535,7 +453,6 @@ typedef enum
     BLUETOOTH_RADIO_SPP = 0,
     BLUETOOTH_RADIO_BLE,
     BLUETOOTH_RADIO_SPP_AND_BLE,
-    BLUETOOTH_RADIO_SPP_ACCESSORY_MODE,
     BLUETOOTH_RADIO_OFF,
 } BluetoothRadioType_e;
 
@@ -581,7 +498,7 @@ typedef enum
     PRINT_ENDPOINT_BLUETOOTH,
     PRINT_ENDPOINT_BLUETOOTH_COMMAND,
     PRINT_ENDPOINT_ALL,
-    PRINT_ENDPOINT_COUNT,
+    PRINT_ENDPOINT_COUNT_COMMANDS,
 } PrintEndpoint;
 PrintEndpoint printEndpoint = PRINT_ENDPOINT_SERIAL; // Controls where the configuration menu gets piped to
 
@@ -809,10 +726,12 @@ struct Settings
     bool enableBeeper = true; // Some platforms have an audible notification
 
     // Bluetooth
+    double accessoryTimeOffset_s = -1.0; // Apply this offset to EA NMEA data via utcAdjust
     BluetoothRadioType_e bluetoothRadioType = BLUETOOTH_RADIO_SPP_AND_BLE;
+    bool clearBtPairings = true; // Clear MFi Accessory SSP pairings
+    char eaProtocol[50] = "com.sparkfun.rtk"; // MFi External Accessory protocol name
     uint16_t sppRxQueueSize = 512 * 4;
     uint16_t sppTxQueueSize = 32;
-    bool clearBtPairings = true; // Clear MFi Accessory SSP pairings
 
     // Corrections
     int correctionsSourcesLifetime_s = 30; // Expire a corrections source if no data is seen for this many seconds
@@ -848,22 +767,13 @@ struct Settings
     bool debugGnss = false;                          // Turn on to display GNSS library debug messages
     bool enablePrintPosition = false;
     uint16_t measurementRateMs = 250;       // Elapsed ms between GNSS measurements. 25ms to 65535ms. Default 4Hz.
-    uint16_t navigationRate =
-        1; // Ratio between number of measurements and navigation solutions. Default 1 for 4Hz (with measurementRate).
-
-    // Signatures to indicate how the GNSS is configured (Once, Base, Rover, etc.)
-    // Bit 0 indicates if the GNSS has been configured previously.
-    // Bits 1 onwards record the state of critical settings.
-    // Configuration is reapplied if any of those critical settings have changed
-    bool gnssConfiguredOnce = false;
-    bool gnssConfiguredBase = false;
-    bool gnssConfiguredRover = false;
 
     // GNSS UART
     uint16_t serialGNSSRxFullThreshold = 50; // RX FIFO full interrupt. Max of ~128. See pinUART2Task().
-    int uartReceiveBufferSize = 1024 * 4; // This buffer is filled automatically as the UART receives characters. EVK needs 4K
+    int uartReceiveBufferSize = 1024 * 2; // This buffer is filled automatically as the UART receives characters
 
     // Hardware
+    uint32_t defaultDoubleTapInterval_ms = 250;
     bool enableExternalHardwareEventLogging = false; // Log when INT/TM2 pin goes low
     uint16_t spiFrequency = 16;                      // By default, use 16MHz SPI
 
@@ -892,8 +802,11 @@ struct Settings
     char mdnsHostName[50] = "rtk";
 
     // Network layer
+    bool debugAppleAccessory = false;  // Enable debugging of the AppleAccessory
     bool debugNetworkLayer = false;    // Enable debugging of the network layer
     bool printNetworkStatus = true;    // Print network status (delays, failovers, IP address)
+    // networkClient _timeout in ms (lib default is 3000). This limits write glitches to about 3.4s
+    uint32_t networkClientWriteTimeout_ms = 250;
 
     // NTP
     bool debugNtp = false;
@@ -927,6 +840,13 @@ struct Settings
     bool debugNtripServerState = false;
     bool enableNtripServer = false;
     bool enableRtcmMessageChecking = false;
+    bool ntripServer_CasterEnabled[NTRIP_SERVER_MAX] =
+    {
+        false,
+        false,
+        false,
+        false,
+    };
     char ntripServer_CasterHost[NTRIP_SERVER_MAX][NTRIP_SERVER_STRING_SIZE] = // It's free...
     {
         "rtk2go.com",
@@ -1037,7 +957,7 @@ struct Settings
 
     // Pulse
     bool enableExternalPulse = true;                           // Send pulse once lock is achieved
-    uint64_t externalPulseLength_us = 100000;                  // us length of pulse, max of 60s = 60 * 1000 * 1000
+    uint64_t externalPulseLength_us = 200000;                  // us length of pulse, max of 60s = 60 * 1000 * 1000
     pulseEdgeType_e externalPulsePolarity = PULSE_RISING_EDGE; // Pulse rises for pulse length, then falls
     uint64_t externalPulseTimeBetweenPulse_us = 1000000;       // us between pulses, max of 60s = 60 * 1000 * 1000
 
@@ -1049,7 +969,7 @@ struct Settings
     // Rover operation
     uint8_t dynamicModel = 254; // Default will be applied by checkGNSSArrayDefaults
     bool enablePrintRoverAccuracy = true;
-    int16_t minCNO = 6;   // Minimum satellite signal level for navigation. ZED-F9P default is 6 dBHz
+    int16_t minCN0 = 6;   // Minimum satellite signal level for navigation. ZED-F9P default is 6 dBHz
     // Minimum elevation (in deg) for a GNSS satellite to be used in NAV
     // Note: we use 8-bit unsigned here, but some platforms (ZED, mosaic-X5) support negative elevation limits
     uint8_t minElev = 10;
@@ -1213,14 +1133,16 @@ struct Settings
         254}; // Mark first record with key so defaults will be applied. Int value for each supported message - Report
               // rates for RTCM Base. Default to Quectel recommended rates.
     int lg290pMessageRatesPQTM[MAX_LG290P_PQTM_MSG] = {254}; // Mark first record with key so defaults will be applied.
-    char configurePPP[30] = "2 1 120 0.10 0.15"; // PQTMCFGPPP: 2,1,120,0.10,0.15 ** Use spaces, not commas! **
 #endif // COMPILE_LG290P
 
+    char configurePPP[30] = "2 1 120 0.10 0.15"; // PQTMCFGPPP: 2,1,120,0.10,0.15 ** Use spaces, not commas! **
     bool debugSettings = false;
     bool enableNtripCaster = false; //When true, respond as a faux NTRIP Caster to incoming TCP connections
     bool baseCasterOverride = false; //When true, user has put device into 'BaseCast' mode. Change settings, but don't save to NVM.
     bool debugCLI = false; //When true, output BLE CLI interactions over serial
     uint16_t cliBlePrintDelay_ms = 50; // Time delayed between prints during a LIST command to avoid overwhelming the BLE connection
+    uint32_t gnssConfigureRequest = 0; // Bitfield containing the change requests for various settings on the GNSS receiver
+    bool debugGnssConfig = false; // Enable to print output during gnssUpdate
 
     // Add new settings to appropriate group above or create new group
     // Then also add to the same group in rtkSettingsEntries below
@@ -1236,66 +1158,6 @@ const char *localizedDistributionTileLevelNames[LOCALIZED_DISTRIBUTION_TILE_LEVE
     "250 x 250km high density",
 };
 
-typedef enum {
-    _bool = 0,
-    _int,
-    _float,
-    _double,
-    _uint8_t,
-    _uint16_t,
-    _uint32_t,
-    _uint64_t,
-    _int8_t,
-    _int16_t,
-    tMuxConn,
-    tSysState,
-    tPulseEdg,
-    tBtRadio,
-    tPerDisp,
-    tCoordInp,
-    tCharArry,
-    _IPString,
-    tUbxMsgRt,
-    tUbxConst,
-    tEspNowPr,
-    tUbMsgRtb,
-    tWiFiNet,
-    tNSCHost,
-    tNSCPort,
-    tNSCUser,
-    tNSCUsrPw,
-    tNSMtPt,
-    tNSMtPtPw,
-
-    tUmMRNmea,
-    tUmMRRvRT,
-    tUmMRBaRT,
-    tUmConst,
-
-    tCorrSPri,
-    tRegCorTp,
-    tMosaicConst,
-    tMosaicMSNmea,
-    tMosaicSINmea,
-    tMosaicMIRvRT,
-    tMosaicMIBaRT,
-    tMosaicMERvRT,
-    tMosaicMEBaRT,
-    tLgMRNmea,
-    tLgMRRvRT,
-    tLgMRBaRT,
-    tLgMRPqtm,
-    tLgConst,
-    tGnssReceiver,
-
-    tCmnCnst,
-    tCmnRtNm,
-    tCnRtRtB,
-    tCnRtRtR,
-    // Add new settings types above <---------------->
-    // (Maintain the enum of existing settings types!)
-} RTK_Settings_Types;
-
 typedef enum
 {
     NON = 0,            // NONE - must be first
@@ -1308,12 +1170,12 @@ typedef enum
     ZED = ZF9 | ZX2,    // Hybrids are possible (enums don't have to be consecutive)
     MSM = L29,          // Platforms which require parameter selection of MSM7 over MSM4
     HAS = L29,          // Platforms which support Galileo HAS
-} Facet_Flex_Variant;
+} Facet_FP_Variant;
 
-typedef bool (* AFTER_CMD)(int cmdIndex);
+typedef bool (* AFTER_CMD)(const char *settingName, void *settingData, int settingType);
 
 // Forward routines
-bool wifiAfterCommand(int cmdIndex);
+bool wifiAfterCommand(const char *settingName, void *settingData, int settingType);
 
 typedef struct
 {
@@ -1326,7 +1188,7 @@ typedef struct
     bool platTorch;
     bool platFacetV2LBand;
     bool platPostcard;
-    Facet_Flex_Variant platFlex;
+    Facet_FP_Variant platFacetFP;
     bool platTorchX2;
     RTK_Settings_Types type;
     int qualifier;
@@ -1369,7 +1231,7 @@ const RTK_Settings_Entry rtkSettingsEntries[] =
 // inWebConfig = Should this setting be sent to the WiFi/Eth Config page
 // inCommands = Should this setting be exposed over the CLI
 // useSuffix = Setting has an additional array to search
-// EVK/Facet V2/Facet mosaic/Torch/Facet V2 L-Band/Postcard/Flex = Is this setting supported on X platform
+// EVK/Facet V2/Facet mosaic/Torch/Facet V2 L-Band/Postcard/Facet FP = Is this setting supported on X platform
 
 //                         F
 //                         a
@@ -1377,24 +1239,23 @@ const RTK_Settings_Entry rtkSettingsEntries[] =
 //    i              a     e
 //    n  i           c     t
 //    W  n  u        e
-//    e  C  s     F  t     V  P       T
-//    b  o  e     a        2  o       o
-//    C  m  S     c  M        s       r
-//    o  m  u     e  o  T  L  t       c
-//    n  a  f     t  s  o  B  c  F    h
-//    f  n  f  E     a  r  a  a  l
-//    i  d  i  v  V  i  c  n  r  e    X
-//    g  s  x  k  2  c  h  d  d  x    2  Type       Qual                Variable                  Name              afterSetCmd
-
+//    e  C  s     F  t     V  P  F    T
+//    b  o  e     a        2  o  a    o
+//    C  m  S     c  M        s  c    r
+//    o  m  u     e  o  T  L  t  e    c
+//    n  a  f     t  s  o  B  c  t    h
+//    f  n  f  E     a  r  a  a        
+//    i  d  i  v  V  i  c  n  r  F    X
+//    g  s  x  k  2  c  h  d  d  P    2  Type       Qual                Variable                  Name              afterSetCmd
     // =======================================================================================================
     // Priority Settings which are not alphabetized in commandIndex
     // =======================================================================================================
 
-    // Detected GNSS Receiver - only for Flex. Save / load first so settingAvailableOnPlatform is correct on Flex
+    // Detected GNSS Receiver - only for Facet FP. Save / load first so settingAvailableOnPlatform is correct on Facet FP
     { 0, 0, 0, 0, 0, 0, 0, 0, 0, ALL, 0, tGnssReceiver,     0, & settings.detectedGnssReceiver, "detectedGnssReceiver", nullptr, },
 
-    // Common settings which use the same name on multiple Flex platforms
-    // We need these - for Flex - because:
+    // Common settings which use the same name on multiple Facet FP platforms
+    // We need these - for Facet FP - because:
     //   During setup, the settings are loaded before we know which GNSS is present
     //   Previously, the setting would be applied to whichever GNSS is matched first alphabetically
     //   We need to apply these settings to all GNSS initially so that when we
@@ -1424,20 +1285,19 @@ const RTK_Settings_Entry rtkSettingsEntries[] =
 //    i              a     e
 //    n  i           c     t
 //    W  n  u        e
-//    e  C  s     F  t     V  P       T
-//    b  o  e     a        2  o       o
-//    C  m  S     c  M        s       r
-//    o  m  u     e  o  T  L  t       c
-//    n  a  f     t  s  o  B  c  F    h
-//    f  n  f  E     a  r  a  a  l
-//    i  d  i  v  V  i  c  n  r  e    X
-//    g  s  x  k  2  c  h  d  d  x    2  Type       Qual                Variable                  Name              afterSetCmd
-
+//    e  C  s     F  t     V  P  F    T
+//    b  o  e     a        2  o  a    o
+//    C  m  S     c  M        s  c    r
+//    o  m  u     e  o  T  L  t  e    c
+//    n  a  f     t  s  o  B  c  t    h
+//    f  n  f  E     a  r  a  a        
+//    i  d  i  v  V  i  c  n  r  F    X
+//    g  s  x  k  2  c  h  d  d  P    2  Type       Qual                Variable                  Name              afterSetCmd
     // Antenna
     { 1, 1, 0, 1, 1, 1, 1, 1, 1, ALL, 1, _int16_t,  0, & settings.antennaHeight_mm, "antennaHeight_mm", nullptr, },
     { 1, 1, 0, 1, 1, 1, 1, 1, 1, ALL, 1, _float,    2, & settings.antennaPhaseCenter_mm, "antennaPhaseCenter_mm", nullptr, },
-    { 1, 1, 0, 1, 1, 1, 0, 1, 1, ALL, 1, _uint16_t, 0, & settings.ARPLoggingInterval_s, "ARPLoggingInterval", nullptr, },
-    { 1, 1, 0, 1, 1, 1, 0, 1, 1, ALL, 1, _bool,     0, & settings.enableARPLogging, "enableARPLogging", nullptr, },
+    { 1, 1, 0, 1, 1, 1, 0, 1, 1, ALL, 0, _uint16_t, 0, & settings.ARPLoggingInterval_s, "ARPLoggingInterval", nullptr, },
+    { 1, 1, 0, 1, 1, 1, 0, 1, 1, ALL, 0, _bool,     0, & settings.enableARPLogging, "enableARPLogging", nullptr, },
 
     // Base operation
     { 1, 1, 0, 1, 1, 1, 1, 1, 1, ALL, 1, tCoordInp, 0, & settings.coordinateInputType, "coordinateInputType", nullptr, },
@@ -1465,24 +1325,26 @@ const RTK_Settings_Entry rtkSettingsEntries[] =
 //    i              a     e
 //    n  i           c     t
 //    W  n  u        e
-//    e  C  s     F  t     V  P       T
-//    b  o  e     a        2  o       o
-//    C  m  S     c  M        s       r
-//    o  m  u     e  o  T  L  t       c
-//    n  a  f     t  s  o  B  c  F    h
-//    f  n  f  E     a  r  a  a  l
-//    i  d  i  v  V  i  c  n  r  e    X
-//    g  s  x  k  2  c  h  d  d  x    2  Type       Qual                Variable                  Name              afterSetCmd
+//    e  C  s     F  t     V  P  F    T
+//    b  o  e     a        2  o  a    o
+//    C  m  S     c  M        s  c    r
+//    o  m  u     e  o  T  L  t  e    c
+//    n  a  f     t  s  o  B  c  t    h
+//    f  n  f  E     a  r  a  a        
+//    i  d  i  v  V  i  c  n  r  F    X
+//    g  s  x  k  2  c  h  d  d  P    2  Type       Qual                Variable                  Name              afterSetCmd
 
 
     // Beeper
     { 1, 1, 0, 0, 0, 0, 1, 0, 0, ALL, 1, _bool,     0, & settings.enableBeeper, "enableBeeper", nullptr, },
 
     // Bluetooth
+    { 0, 0, 0, 0, 0, 0, 0, 0, 1, ALL, 1, _double,   3, & settings.accessoryTimeOffset_s, "accessoryTimeOffset", nullptr, },
     { 1, 1, 0, 1, 1, 1, 1, 1, 1, ALL, 1, tBtRadio,  0, & settings.bluetoothRadioType, "bluetoothRadioType", nullptr, },
+    { 0, 1, 0, 1, 1, 1, 1, 1, 1, ALL, 1, _bool,     0, & settings.clearBtPairings, "clearBtPairings", nullptr, },
+    { 0, 1, 0, 1, 1, 1, 1, 1, 1, ALL, 1, tCharArry, sizeof(settings.eaProtocol), & settings.eaProtocol, "eaProtocol", nullptr, },
     { 0, 0, 0, 1, 1, 1, 1, 1, 1, ALL, 1, _uint16_t, 0, & settings.sppRxQueueSize, "sppRxQueueSize", nullptr, },
     { 0, 0, 0, 1, 1, 1, 1, 1, 1, ALL, 1, _uint16_t, 0, & settings.sppTxQueueSize, "sppTxQueueSize", nullptr, },
-    { 0, 1, 0, 1, 1, 1, 1, 1, 1, ALL, 1, _bool,     0, & settings.clearBtPairings, "clearBtPairings", nullptr, },
 
     // Corrections
     { 1, 1, 0, 1, 1, 1, 1, 1, 1, ALL, 1, _int,      0, & settings.correctionsSourcesLifetime_s, "correctionsSourcesLifetime", nullptr, },
@@ -1497,15 +1359,14 @@ const RTK_Settings_Entry rtkSettingsEntries[] =
 //    i              a     e
 //    n  i           c     t
 //    W  n  u        e
-//    e  C  s     F  t     V  P       T
-//    b  o  e     a        2  o       o
-//    C  m  S     c  M        s       r
-//    o  m  u     e  o  T  L  t       c
-//    n  a  f     t  s  o  B  c  F    h
-//    f  n  f  E     a  r  a  a  l
-//    i  d  i  v  V  i  c  n  r  e    X
-//    g  s  x  k  2  c  h  d  d  x    2  Type       Qual                Variable                  Name              afterSetCmd
-
+//    e  C  s     F  t     V  P  F    T
+//    b  o  e     a        2  o  a    o
+//    C  m  S     c  M        s  c    r
+//    o  m  u     e  o  T  L  t  e    c
+//    n  a  f     t  s  o  B  c  t    h
+//    f  n  f  E     a  r  a  a        
+//    i  d  i  v  V  i  c  n  r  F    X
+//    g  s  x  k  2  c  h  d  d  P    2  Type       Qual                Variable                  Name              afterSetCmd
 
     // Data Port Multiplexer
     { 1, 1, 0, 0, 1, 1, 0, 1, 0, NON, 0, tMuxConn,  0, & settings.dataPortChannel, "dataPortChannel", nullptr, },
@@ -1525,15 +1386,14 @@ const RTK_Settings_Entry rtkSettingsEntries[] =
 //    i              a     e
 //    n  i           c     t
 //    W  n  u        e
-//    e  C  s     F  t     V  P       T
-//    b  o  e     a        2  o       o
-//    C  m  S     c  M        s       r
-//    o  m  u     e  o  T  L  t       c
-//    n  a  f     t  s  o  B  c  F    h
-//    f  n  f  E     a  r  a  a  l
-//    i  d  i  v  V  i  c  n  r  e    X
-//    g  s  x  k  2  c  h  d  d  x    2  Type       Qual                Variable                  Name              afterSetCmd
-
+//    e  C  s     F  t     V  P  F    T
+//    b  o  e     a        2  o  a    o
+//    C  m  S     c  M        s  c    r
+//    o  m  u     e  o  T  L  t  e    c
+//    n  a  f     t  s  o  B  c  t    h
+//    f  n  f  E     a  r  a  a        
+//    i  d  i  v  V  i  c  n  r  F    X
+//    g  s  x  k  2  c  h  d  d  P    2  Type       Qual                Variable                  Name              afterSetCmd
 
     // Ethernet
     { 0, 0, 0, 1, 0, 0, 0, 0, 0, NON, 0, _bool,     0, & settings.enablePrintEthernetDiag, "enablePrintEthernetDiag", nullptr, },
@@ -1554,14 +1414,12 @@ const RTK_Settings_Entry rtkSettingsEntries[] =
 
     // GNSS Receiver
     { 0, 0, 0, 1, 1, 1, 1, 1, 1, ALL, 1, _bool,     0, & settings.debugGnss, "debugGnss", nullptr, },
+    { 0, 0, 0, 1, 1, 1, 1, 1, 1, ALL, 1, _bool,     0, & settings.debugGnssConfig, "debugGnssConfig", nullptr, },
     { 0, 0, 0, 1, 1, 1, 1, 1, 1, ALL, 1, _bool,     0, & settings.enablePrintPosition, "enablePrintPosition", nullptr, },
     { 0, 1, 0, 1, 1, 1, 1, 1, 1, ALL, 1, _uint16_t, 0, & settings.measurementRateMs, "measurementRateMs", nullptr, },
-    { 0, 1, 0, 1, 1, 1, 1, 1, 1, ALL, 1, _uint16_t, 0, & settings.navigationRate, "navigationRate", nullptr, },
-    { 0, 0, 0, 1, 1, 1, 1, 1, 1, ALL, 1, _bool,     0, & settings.gnssConfiguredOnce, "gnssConfiguredOnce", nullptr, },
-    { 0, 0, 0, 1, 1, 1, 1, 1, 1, ALL, 1, _bool,     0, & settings.gnssConfiguredBase, "gnssConfiguredBase", nullptr, },
-    { 0, 0, 0, 1, 1, 1, 1, 1, 1, ALL, 1, _bool,     0, & settings.gnssConfiguredRover, "gnssConfiguredRover", nullptr, },
 
     // Hardware
+    { 0, 1, 0, 1, 1, 1, 1, 1, 1, ALL, 1, _uint32_t, 0, & settings.defaultDoubleTapInterval_ms, "defaultDoubleTapInterval", nullptr, },
     { 1, 1, 0, 1, 1, 1, 0, 1, 0, NON, 0, _bool,     0, & settings.enableExternalHardwareEventLogging, "enableExternalHardwareEventLogging", nullptr, },
     { 0, 0, 0, 1, 1, 1, 0, 1, 1, ALL, 0, _uint16_t, 0, & settings.spiFrequency, "spiFrequency", nullptr, },
 
@@ -1579,15 +1437,14 @@ const RTK_Settings_Entry rtkSettingsEntries[] =
 //    i              a     e
 //    n  i           c     t
 //    W  n  u        e
-//    e  C  s     F  t     V  P       T
-//    b  o  e     a        2  o       o
-//    C  m  S     c  M        s       r
-//    o  m  u     e  o  T  L  t       c
-//    n  a  f     t  s  o  B  c  F    h
-//    f  n  f  E     a  r  a  a  l
-//    i  d  i  v  V  i  c  n  r  e    X
-//    g  s  x  k  2  c  h  d  d  x    2  Type       Qual                Variable                  Name              afterSetCmd
-
+//    e  C  s     F  t     V  P  F    T
+//    b  o  e     a        2  o  a    o
+//    C  m  S     c  M        s  c    r
+//    o  m  u     e  o  T  L  t  e    c
+//    n  a  f     t  s  o  B  c  t    h
+//    f  n  f  E     a  r  a  a        
+//    i  d  i  v  V  i  c  n  r  F    X
+//    g  s  x  k  2  c  h  d  d  P    2  Type       Qual                Variable                  Name              afterSetCmd
 
     // Log file
     { 1, 1, 0, 1, 1, 1, 0, 1, 1, ALL, 0, _bool,     0, & settings.alignedLogFiles, "alignedLogFiles", nullptr, },
@@ -1621,8 +1478,10 @@ const RTK_Settings_Entry rtkSettingsEntries[] =
     { 0, 1, 0, 1, 1, 1, 1, 1, 1, ALL, 1, tCharArry, sizeof(settings.mdnsHostName), & settings.mdnsHostName, "mdnsHostName", nullptr, },
 
     // Network layer
+    { 0, 0, 0, 1, 1, 1, 1, 1, 1, ALL, 1, _bool,     0, & settings.debugAppleAccessory, "debugAppleAccessory", nullptr, },
     { 0, 0, 0, 1, 1, 1, 1, 1, 1, ALL, 1, _bool,     0, & settings.debugNetworkLayer, "debugNetworkLayer", nullptr, },
     { 0, 0, 0, 1, 1, 1, 1, 1, 1, ALL, 1, _bool,     0, & settings.printNetworkStatus, "printNetworkStatus", nullptr, },
+    { 0, 0, 0, 1, 1, 1, 1, 1, 1, ALL, 1, _uint32_t, 0, & settings.networkClientWriteTimeout_ms, "networkClientWriteTimeout", nullptr, },
 
 //                         F
 //                         a
@@ -1630,15 +1489,14 @@ const RTK_Settings_Entry rtkSettingsEntries[] =
 //    i              a     e
 //    n  i           c     t
 //    W  n  u        e
-//    e  C  s     F  t     V  P       T
-//    b  o  e     a        2  o       o
-//    C  m  S     c  M        s       r
-//    o  m  u     e  o  T  L  t       c
-//    n  a  f     t  s  o  B  c  F    h
-//    f  n  f  E     a  r  a  a  l
-//    i  d  i  v  V  i  c  n  r  e    X
-//    g  s  x  k  2  c  h  d  d  x    2  Type       Qual                Variable                  Name              afterSetCmd
-
+//    e  C  s     F  t     V  P  F    T
+//    b  o  e     a        2  o  a    o
+//    C  m  S     c  M        s  c    r
+//    o  m  u     e  o  T  L  t  e    c
+//    n  a  f     t  s  o  B  c  t    h
+//    f  n  f  E     a  r  a  a        
+//    i  d  i  v  V  i  c  n  r  F    X
+//    g  s  x  k  2  c  h  d  d  P    2  Type       Qual                Variable                  Name              afterSetCmd
 
     // NTP (Ethernet Only)
     { 0, 0, 0, 1, 0, 0, 0, 0, 0, NON, 0, _bool,     0, & settings.debugNtp, "debugNtp", nullptr, },
@@ -1667,6 +1525,7 @@ const RTK_Settings_Entry rtkSettingsEntries[] =
     { 0, 0, 0, 1, 1, 1, 1, 1, 1, ALL, 1, _bool,     0, & settings.debugNtripServerState, "debugNtripServerState", nullptr, },
     { 1, 1, 0, 1, 1, 1, 1, 1, 1, ALL, 1, _bool,     0, & settings.enableNtripServer, "enableNtripServer", nullptr, },
     { 0, 0, 0, 1, 1, 1, 1, 1, 1, ALL, 1, _bool,     0, & settings.enableRtcmMessageChecking, "enableRtcmMessageChecking", nullptr, },
+    { 1, 1, 1, 1, 1, 1, 1, 1, 1, ALL, 1, tNSCEn,    NTRIP_SERVER_MAX, & settings.ntripServer_CasterEnabled[0], "ntripServerCasterEnabled_", nullptr, },
     { 1, 1, 1, 1, 1, 1, 1, 1, 1, ALL, 1, tNSCHost,  NTRIP_SERVER_MAX, & settings.ntripServer_CasterHost[0], "ntripServerCasterHost_", nullptr, },
     { 1, 1, 1, 1, 1, 1, 1, 1, 1, ALL, 1, tNSCPort,  NTRIP_SERVER_MAX, & settings.ntripServer_CasterPort[0], "ntripServerCasterPort_", nullptr, },
     { 1, 1, 1, 1, 1, 1, 1, 1, 1, ALL, 1, tNSCUser,  NTRIP_SERVER_MAX, & settings.ntripServer_CasterUser[0], "ntripServerCasterUser_", nullptr, },
@@ -1746,15 +1605,14 @@ const RTK_Settings_Entry rtkSettingsEntries[] =
 //    i              a     e
 //    n  i           c     t
 //    W  n  u        e
-//    e  C  s     F  t     V  P       T
-//    b  o  e     a        2  o       o
-//    C  m  S     c  M        s       r
-//    o  m  u     e  o  T  L  t       c
-//    n  a  f     t  s  o  B  c  F    h
-//    f  n  f  E     a  r  a  a  l
-//    i  d  i  v  V  i  c  n  r  e    X
-//    g  s  x  k  2  c  h  d  d  x    2  Type       Qual                Variable                  Name              afterSetCmd
-
+//    e  C  s     F  t     V  P  F    T
+//    b  o  e     a        2  o  a    o
+//    C  m  S     c  M        s  c    r
+//    o  m  u     e  o  T  L  t  e    c
+//    n  a  f     t  s  o  B  c  t    h
+//    f  n  f  E     a  r  a  a        
+//    i  d  i  v  V  i  c  n  r  F    X
+//    g  s  x  k  2  c  h  d  d  P    2  Type       Qual                Variable                  Name              afterSetCmd
 
     // Pulse Per Second
     { 1, 1, 0, 1, 1, 1, 0, 1, 0, NON, 0, _bool,     0, & settings.enableExternalPulse, "enableExternalPulse", nullptr, },
@@ -1769,7 +1627,7 @@ const RTK_Settings_Entry rtkSettingsEntries[] =
     // Rover operation
     { 1, 1, 0, 1, 1, 1, 1, 1, 0, ALL, 0, _uint8_t,  0, & settings.dynamicModel, "dynamicModel", nullptr, },
     { 0, 0, 0, 1, 1, 1, 1, 1, 1, ALL, 1, _bool,     0, & settings.enablePrintRoverAccuracy, "enablePrintRoverAccuracy", nullptr, },
-    { 0, 1, 0, 1, 1, 1, 1, 1, 1, ALL, 1, _int16_t,  0, & settings.minCNO, "minCNO", nullptr, }, // Not inWebConfig - createSettingsString gets from GNSS
+    { 0, 1, 0, 1, 1, 1, 1, 1, 1, ALL, 1, _int16_t,  0, & settings.minCN0, "minCN0", nullptr, }, // Not inWebConfig - createSettingsString gets from GNSS
     { 1, 1, 0, 1, 1, 1, 1, 1, 1, ALL, 1, _uint8_t,  0, & settings.minElev, "minElev", nullptr, },
 
     // RTC (Real Time Clock)
@@ -1781,15 +1639,14 @@ const RTK_Settings_Entry rtkSettingsEntries[] =
 //    i              a     e
 //    n  i           c     t
 //    W  n  u        e
-//    e  C  s     F  t     V  P       T
-//    b  o  e     a        2  o       o
-//    C  m  S     c  M        s       r
-//    o  m  u     e  o  T  L  t       c
-//    n  a  f     t  s  o  B  c  F    h
-//    f  n  f  E     a  r  a  a  l
-//    i  d  i  v  V  i  c  n  r  e    X
-//    g  s  x  k  2  c  h  d  d  x    2  Type       Qual                Variable                  Name              afterSetCmd
-
+//    e  C  s     F  t     V  P  F    T
+//    b  o  e     a        2  o  a    o
+//    C  m  S     c  M        s  c    r
+//    o  m  u     e  o  T  L  t  e    c
+//    n  a  f     t  s  o  B  c  t    h
+//    f  n  f  E     a  r  a  a        
+//    i  d  i  v  V  i  c  n  r  F    X
+//    g  s  x  k  2  c  h  d  d  P    2  Type       Qual                Variable                  Name              afterSetCmd
 
     // SD Card
     { 0, 0, 0, 1, 1, 1, 0, 1, 1, ALL, 0, _bool,     0, & settings.enablePrintBufferOverrun, "enablePrintBufferOverrun", nullptr, },
@@ -1811,15 +1668,14 @@ const RTK_Settings_Entry rtkSettingsEntries[] =
 //    i              a     e
 //    n  i           c     t
 //    W  n  u        e
-//    e  C  s     F  t     V  P       T
-//    b  o  e     a        2  o       o
-//    C  m  S     c  M        s       r
-//    o  m  u     e  o  T  L  t       c
-//    n  a  f     t  s  o  B  c  F    h
-//    f  n  f  E     a  r  a  a  l
-//    i  d  i  v  V  i  c  n  r  e    X
-//    g  s  x  k  2  c  h  d  d  x    2  Type       Qual                Variable                  Name              afterSetCmd
-
+//    e  C  s     F  t     V  P  F    T
+//    b  o  e     a        2  o  a    o
+//    C  m  S     c  M        s  c    r
+//    o  m  u     e  o  T  L  t  e    c
+//    n  a  f     t  s  o  B  c  t    h
+//    f  n  f  E     a  r  a  a        
+//    i  d  i  v  V  i  c  n  r  F    X
+//    g  s  x  k  2  c  h  d  d  P    2  Type       Qual                Variable                  Name              afterSetCmd
 
     // Setup Button
     { 0, 1, 0, 1, 1, 1, 1, 1, 1, ALL, 1, _bool,     0, & settings.disableSetupButton, "disableSetupButton", nullptr, },
@@ -1852,15 +1708,14 @@ const RTK_Settings_Entry rtkSettingsEntries[] =
 //    i              a     e
 //    n  i           c     t
 //    W  n  u        e
-//    e  C  s     F  t     V  P       T
-//    b  o  e     a        2  o       o
-//    C  m  S     c  M        s       r
-//    o  m  u     e  o  T  L  t       c
-//    n  a  f     t  s  o  B  c  F    h
-//    f  n  f  E     a  r  a  a  l
-//    i  d  i  v  V  i  c  n  r  e    X
-//    g  s  x  k  2  c  h  d  d  x    2  Type       Qual                Variable                  Name              afterSetCmd
-
+//    e  C  s     F  t     V  P  F    T
+//    b  o  e     a        2  o  a    o
+//    C  m  S     c  M        s  c    r
+//    o  m  u     e  o  T  L  t  e    c
+//    n  a  f     t  s  o  B  c  t    h
+//    f  n  f  E     a  r  a  a        
+//    i  d  i  v  V  i  c  n  r  F    X
+//    g  s  x  k  2  c  h  d  d  P    2  Type       Qual                Variable                  Name              afterSetCmd
 
     // ublox GNSS Receiver
 #ifdef COMPILE_ZED
@@ -1881,22 +1736,21 @@ const RTK_Settings_Entry rtkSettingsEntries[] =
 //    i              a     e
 //    n  i           c     t
 //    W  n  u        e
-//    e  C  s     F  t     V  P       T
-//    b  o  e     a        2  o       o
-//    C  m  S     c  M        s       r
-//    o  m  u     e  o  T  L  t       c
-//    n  a  f     t  s  o  B  c  F    h
-//    f  n  f  E     a  r  a  a  l
-//    i  d  i  v  V  i  c  n  r  e    X
-//    g  s  x  k  2  c  h  d  d  x    2  Type       Qual                Variable                  Name              afterSetCmd
-
-    // UM980 GNSS Receiver - TODO these apply to more than UM980
+//    e  C  s     F  t     V  P  F    T
+//    b  o  e     a        2  o  a    o
+//    C  m  S     c  M        s  c    r
+//    o  m  u     e  o  T  L  t  e    c
+//    n  a  f     t  s  o  B  c  t    h
+//    f  n  f  E     a  r  a  a        
+//    i  d  i  v  V  i  c  n  r  F    X
+//    g  s  x  k  2  c  h  d  d  P    2  Type       Qual                Variable                  Name              afterSetCmd
     { 1, 1, 0, 0, 0, 0, 1, 0, 1, HAS, 1, _bool,     0, & settings.enableGalileoHas, "enableGalileoHas", nullptr, },
     { 1, 1, 0, 0, 0, 0, 1, 0, 0, ALL, 0, _bool,     3, & settings.enableMultipathMitigation, "enableMultipathMitigation", nullptr, },
     { 0, 0, 0, 0, 0, 0, 1, 0, 0, ALL, 0, _bool,     0, & settings.enableImuCompensationDebug, "enableImuCompensationDebug", nullptr, },
     { 0, 0, 0, 0, 0, 0, 1, 0, 0, ALL, 0, _bool,     0, & settings.enableImuDebug, "enableImuDebug", nullptr, },
     { 1, 1, 0, 0, 0, 0, 1, 0, 0, ALL, 0, _bool,     0, & settings.enableTiltCompensation, "enableTiltCompensation", nullptr, },
 
+    // UM980 GNSS Receiver
 #ifdef  COMPILE_UM980
     { 1, 1, 1, 0, 0, 0, 1, 0, 0, U98, 0, tUmConst,  MAX_UM980_CONSTELLATIONS, & settings.um980Constellations, "constellation_", gnssCmdUpdateConstellations, },
     { 0, 1, 1, 0, 0, 0, 1, 0, 0, U98, 0, tUmMRNmea, MAX_UM980_NMEA_MSG, & settings.um980MessageRatesNMEA, "messageRateNMEA_", gnssCmdUpdateMessageRates, },
@@ -1910,13 +1764,13 @@ const RTK_Settings_Entry rtkSettingsEntries[] =
     // WiFi
     { 0, 0, 0, 1, 1, 1, 1, 1, 1, ALL, 1, _bool,     0, & settings.debugWebServer, "debugWebServer", nullptr, },
     { 0, 0, 0, 1, 1, 1, 1, 1, 1, ALL, 1, _bool,     0, & settings.debugWifiState, "debugWifiState", nullptr, },
-    { 0, 0, 0, 1, 1, 1, 1, 1, 1, ALL, 1, _bool,     0, & settings.enableCaptivePortal, "enableCaptivePortal", wifiAfterCommand, },
-    { 0, 1, 0, 1, 1, 1, 1, 1, 1, ALL, 1, _uint8_t,  0, & settings.wifiChannel, "wifiChannel", wifiAfterCommand, },
-    { 1, 0, 0, 1, 1, 1, 1, 1, 1, ALL, 1, _bool,     0, & settings.wifiConfigOverAP, "wifiConfigOverAP", wifiAfterCommand, },
-    { 1, 1, 1, 1, 1, 1, 1, 1, 1, ALL, 1, tWiFiNet,  MAX_WIFI_NETWORKS, & settings.wifiNetworks, "wifiNetwork_", wifiAfterCommand, },
+    { 0, 0, 0, 1, 1, 1, 1, 1, 1, ALL, 1, _bool,     0, & settings.enableCaptivePortal, "enableCaptivePortal", nullptr, },
+    { 0, 1, 0, 1, 1, 1, 1, 1, 1, ALL, 1, _uint8_t,  0, & settings.wifiChannel, "wifiChannel", nullptr, },
+    { 1, 0, 0, 1, 1, 1, 1, 1, 1, ALL, 1, _bool,     0, & settings.wifiConfigOverAP, "wifiConfigOverAP", nullptr, },
+    { 1, 1, 1, 1, 1, 1, 1, 1, 1, ALL, 1, tWiFiNet,  MAX_WIFI_NETWORKS, & settings.wifiNetworks, "wifiNetwork_", nullptr, },
     { 0, 0, 0, 1, 1, 1, 1, 1, 1, ALL, 1, _uint32_t, 0, & settings.wifiConnectTimeoutMs, "wifiConnectTimeoutMs", nullptr, },
 
-    { 0, 1, 0, 1, 1, 1, 1, 1, 1, ALL, 1, _bool,     0, & settings.outputTipAltitude, "outputTipAltitude", nullptr, },
+    { 1, 1, 0, 1, 1, 1, 1, 1, 1, ALL, 1, _bool,     0, & settings.outputTipAltitude, "outputTipAltitude", nullptr, },
 
     // Localized distribution
     { 1, 0, 0, 1, 1, 0, 1, 1, 1, ALL, 1, _bool,     0, & settings.useLocalizedDistribution, "useLocalizedDistribution", nullptr, },
@@ -1937,15 +1791,14 @@ const RTK_Settings_Entry rtkSettingsEntries[] =
 //    i              a     e
 //    n  i           c     t
 //    W  n  u        e
-//    e  C  s     F  t     V  P       T
-//    b  o  e     a        2  o       o
-//    C  m  S     c  M        s       r
-//    o  m  u     e  o  T  L  t       c
-//    n  a  f     t  s  o  B  c  F    h
-//    f  n  f  E     a  r  a  a  l
-//    i  d  i  v  V  i  c  n  r  e    X
-//    g  s  x  k  2  c  h  d  d  x    2  Type       Qual                Variable                  Name              afterSetCmd
-
+//    e  C  s     F  t     V  P  F    T
+//    b  o  e     a        2  o  a    o
+//    C  m  S     c  M        s  c    r
+//    o  m  u     e  o  T  L  t  e    c
+//    n  a  f     t  s  o  B  c  t    h
+//    f  n  f  E     a  r  a  a        
+//    i  d  i  v  V  i  c  n  r  F    X
+//    g  s  x  k  2  c  h  d  d  P    2  Type       Qual                Variable                  Name              afterSetCmd
 #ifdef  COMPILE_LG290P
     { 1, 1, 1, 0, 0, 0, 0, 0, 1, L29, 1, tLgConst,  MAX_LG290P_CONSTELLATIONS, & settings.lg290pConstellations, "constellation_", gnssCmdUpdateConstellations, },
     { 0, 1, 1, 0, 0, 0, 0, 0, 1, L29, 1, tLgMRNmea, MAX_LG290P_NMEA_MSG, & settings.lg290pMessageRatesNMEA, "messageRateNMEA_", gnssCmdUpdateMessageRates, },
@@ -1960,7 +1813,7 @@ const RTK_Settings_Entry rtkSettingsEntries[] =
     { 0, 1, 0, 1, 1, 1, 1, 1, 1, ALL, 1, _bool,     0, & settings.baseCasterOverride, "baseCasterOverride", nullptr, },
     { 0, 0, 0, 1, 1, 1, 1, 1, 1, ALL, 1, _bool,     0, & settings.debugCLI, "debugCLI", nullptr, },
     { 0, 0, 0, 1, 1, 1, 1, 1, 1, ALL, 1, _uint16_t, 0, & settings.cliBlePrintDelay_ms, "cliBlePrintDelay_ms", nullptr, },
-
+    { 0, 0, 0, 1, 1, 1, 1, 1, 1, ALL, 1, _uint32_t, 0, & settings.gnssConfigureRequest, "gnssConfigureRequest", nullptr, },
 
     // Add new settings to appropriate group above or create new group
     // Then also add to the same group in settings above
@@ -1970,15 +1823,14 @@ const RTK_Settings_Entry rtkSettingsEntries[] =
 //    i              a     e
 //    n  i           c     t
 //    W  n  u        e
-//    e  C  s     F  t     V  P       T
-//    b  o  e     a        2  o       o
-//    C  m  S     c  M        s       r
-//    o  m  u     e  o  T  L  t       c
-//    n  a  f     t  s  o  B  c  F    h
-//    f  n  f  E     a  r  a  a  l
-//    i  d  i  v  V  i  c  n  r  e    X
-//    g  s  x  k  2  c  h  d  d  x    2  Type       Qual                Variable                  Name              afterSetCmd
-
+//    e  C  s     F  t     V  P  F    T
+//    b  o  e     a        2  o  a    o
+//    C  m  S     c  M        s  c    r
+//    o  m  u     e  o  T  L  t  e    c
+//    n  a  f     t  s  o  B  c  t    h
+//    f  n  f  E     a  r  a  a        
+//    i  d  i  v  V  i  c  n  r  F    X
+//    g  s  x  k  2  c  h  d  d  P    2  Type       Qual                Variable                  Name              afterSetCmd
     /*
     { 1, 1, 0, 1, 1, 1, 1, 1, 1, ALL, 1,     0, & settings., ""},
     */
@@ -1986,50 +1838,9 @@ const RTK_Settings_Entry rtkSettingsEntries[] =
 
 const int numRtkSettingsEntries = sizeof(rtkSettingsEntries) / sizeof(rtkSettingsEntries)[0];
 
-// Branding support
-typedef enum {
-    BRAND_SPARKFUN = 0,
-    BRAND_SPARKPNT,
-    // Add new brands above this line
-    BRAND_NUM
-} RTKBrands_e;
-
-const RTKBrands_e DEFAULT_BRAND = BRAND_SPARKFUN;
-
-typedef struct
-{
-    const RTKBrands_e brand;
-    const char name[9];
-    const uint8_t logoWidth;
-    const uint8_t logoHeight;
-    const uint8_t * const logoPointer;
-} RTKBrandAttribute;
-
-extern const uint8_t logoSparkFun_Height;
-extern const uint8_t logoSparkFun_Width;
-extern const uint8_t logoSparkFun[];
-extern const uint8_t logoSparkPNT_Height;
-extern const uint8_t logoSparkPNT_Width;
-extern const uint8_t logoSparkPNT[];
-
-RTKBrandAttribute RTKBrandAttributes[RTKBrands_e::BRAND_NUM] = {
-    { BRAND_SPARKFUN, "SparkFun", logoSparkFun_Width, logoSparkFun_Height, logoSparkFun },
-    { BRAND_SPARKPNT, "SparkPNT", logoSparkPNT_Width, logoSparkPNT_Height, logoSparkPNT },
-};
-
-RTKBrandAttribute * getBrandAttributeFromBrand(RTKBrands_e brand) {
-    for (int i = 0; i < (int)RTKBrands_e::BRAND_NUM; i++) {
-        if (RTKBrandAttributes[i].brand == brand)
-            return &RTKBrandAttributes[i];
-    }
-    return getBrandAttributeFromBrand(DEFAULT_BRAND);
-}
-
 // Indicate which peripherals are present on a given platform
 struct struct_present
 {
-    RTKBrands_e brand = DEFAULT_BRAND;
-
     bool psram_2mb = false;
     bool psram_4mb = false;
 
@@ -2080,7 +1891,8 @@ struct struct_present
     bool laraPowerControl = false;
     bool antennaShortOpen = false;
 
-    bool button_mode = false;
+    bool button_mode = false; // EVK has a dedicated Mode button but no power
+    bool button_function = false; // Facet FP has both power and Function buttons
     bool button_powerHigh = false; // Button is pressed when high
     bool button_powerLow = false; // Button is pressed when low
     bool gpioExpanderButtons = false; // Available on Portability shield
@@ -2092,11 +1904,14 @@ struct struct_present
     float antennaPhaseCenter_mm = 0.0; // Used to setup tilt compensation
     bool galileoHasCapable = false; // UM980 has HAS capabilities
     bool multipathMitigation = false; // UM980 has MPM, other platforms do not
-    bool minCno = false; // ZED, mosaic, UM980 have minCN0. LG290P does on version >= v5.
+    bool minCN0 = false; // ZED, mosaic, UM980 have minCN0. LG290P does on version >= v5.
     bool minElevation = false; // ZED, mosaic, UM980 have minElevation. LG290P does on versions >= v5.
     bool dynamicModel = false; // ZED, mosaic, UM980 have dynamic models. LG290P does not.
-    bool gpioExpanderSwitches = false; // Used on Flex
-    bool tiltPossible = false; //Flex may have a tilt IMU
+    bool gpioExpanderSwitches = false; // Used on Facet FP
+    bool tiltPossible = false; //Facet FP may have a tilt IMU
+    bool loraDedicatedUart = false; // Platforms may have a dedicated or shared UART interface to the LoRa radio
+
+    const char *gnssUpdatePort = ""; // "CH342 Channel A" etc.
 } present;
 
 // Monitor which devices on the device are on or offline.
@@ -2105,7 +1920,8 @@ struct struct_online
     bool batteryCharger_mp2762a = false;
     bool batteryFuelGauge = false;
     bool bluetooth = false;
-    bool button = false;
+    bool powerButton = false;
+    bool functionButton = false;
     bool display = false;
     bool ethernetNTPServer = false; // EthernetUDP
     bool fs = false;
@@ -2177,18 +1993,23 @@ extern NETWORK_POLL_SEQUENCE laraBootSequence[];
 extern NETWORK_POLL_SEQUENCE laraOffSequence[];
 extern NETWORK_POLL_SEQUENCE laraOnSequence[];
 
+typedef void (* NETWORK_UPDATE_METHOD)();
+extern void ethernetUpdate();
+extern void wifiStationUpdate();
+
 // networkInterfaceTable entry
 typedef struct _NETWORK_TABLE_ENTRY
 {
-    NetworkInterface * netif;       // Network interface object address
-    bool mDNS;                      // Set true to use mDNS service
-    NetIndex_t index;               // Table index, also default priority
-    uint8_t pdState;                // Periodic display state value
-    NETWORK_POLL_SEQUENCE * boot;   // Boot sequence, may be nullptr
-    NETWORK_POLL_SEQUENCE * start;  // Start sequence (Off --> On), may be nullptr
-    NETWORK_POLL_SEQUENCE * stop;   // Stop routine (On --> Off), may be nullptr
-    const char * name;              // Name of the network interface
-    bool * present;                 // Address of present bool or nullptr if always available
+    NetworkInterface * netif;           // Network interface object address
+    bool mDNS;                          // Set true to use mDNS service
+    NetIndex_t index;                   // Table index, also default priority
+    uint8_t pdState;                    // Periodic display state value
+    NETWORK_POLL_SEQUENCE * boot;       // Boot sequence, may be nullptr
+    NETWORK_POLL_SEQUENCE * start;      // Start sequence (Off --> On), may be nullptr
+    NETWORK_POLL_SEQUENCE * stop;       // Stop routine (On --> Off), may be nullptr
+    const char * name;                  // Name of the network interface
+    bool * present;                     // Address of present bool or nullptr if always available
+    NETWORK_UPDATE_METHOD updateMethod; // Update method
 } NETWORK_TABLE_ENTRY;
 
 // List of networks in default priority order!  These entries must match
@@ -2198,24 +2019,24 @@ typedef struct _NETWORK_TABLE_ENTRY
 // as the priority drops to that level. The stop routine is called as the
 // priority rises above that level. The priority will continue to fall or
 // rise until a network is found that is online.
-const NETWORK_TABLE_ENTRY networkInterfaceTable[] =
-{ //     Interface  mDNS    Index                   Periodic State      Boot Sequence           Start Sequence      Stop Sequence       Name                    Present
+NETWORK_TABLE_ENTRY networkInterfaceTable[] =
+{ //     Interface  mDNS    Index                   Periodic State      Boot Sequence           Start Sequence      Stop Sequence       Name                    Present                   Update method
     #ifdef COMPILE_ETHERNET
-        {&ETH,      true,   NETWORK_ETHERNET,       PD_ETHERNET_STATE,  nullptr,                nullptr,            nullptr,            "Ethernet",             &present.ethernet_ws5500},
+        {&ETH,      true,   NETWORK_ETHERNET,       PD_ETHERNET_STATE,  nullptr,                nullptr,            nullptr,            "Ethernet",             &present.ethernet_ws5500, ethernetUpdate},
     #else
-        {nullptr,   false,  NETWORK_ETHERNET,       PD_ETHERNET_STATE,  nullptr,                nullptr,            nullptr,            "Ethernet-NotCompiled", nullptr},
+        {nullptr,   false,  NETWORK_ETHERNET,       PD_ETHERNET_STATE,  nullptr,                nullptr,            nullptr,            "Ethernet-NotCompiled", nullptr,                  nullptr},
     #endif  // COMPILE_ETHERNET
 
     #ifdef COMPILE_WIFI
-        {&WiFi.STA, true,   NETWORK_WIFI_STATION,   PD_WIFI_STATE,      nullptr,                nullptr,            nullptr,            "WiFi Station",         nullptr},
+        {&WiFi.STA, true,   NETWORK_WIFI_STATION,   PD_WIFI_STATE,      nullptr,                nullptr,            nullptr,            "WiFi Station",         nullptr,                  wifiStationUpdate},
     #else
-        {nullptr,   false,  NETWORK_WIFI_STATION,   PD_WIFI_STATE,      nullptr,                nullptr,            nullptr,            "WiFi-NotCompiled",     nullptr},
+        {nullptr,   false,  NETWORK_WIFI_STATION,   PD_WIFI_STATE,      nullptr,                nullptr,            nullptr,            "WiFi-NotCompiled",     nullptr,                  nullptr},
     #endif  // COMPILE_WIFI
 
     #ifdef  COMPILE_CELLULAR
-        {&PPP,      false,  NETWORK_CELLULAR,       PD_CELLULAR_STATE,  laraBootSequence,       laraOnSequence,     laraOffSequence,    "Cellular",             &present.cellular_lara},
+        {&PPP,      false,  NETWORK_CELLULAR,       PD_CELLULAR_STATE,  laraBootSequence,       laraOnSequence,     laraOffSequence,    "Cellular",             &present.cellular_lara,   nullptr},
     #else
-        {nullptr,   false,  NETWORK_CELLULAR,       PD_CELLULAR_STATE,  nullptr,                nullptr,            nullptr,            "Cellular-NotCompiled", nullptr,            },
+        {nullptr,   false,  NETWORK_CELLULAR,       PD_CELLULAR_STATE,  nullptr,                nullptr,            nullptr,            "Cellular-NotCompiled", nullptr,                  nullptr},
     #endif  // COMPILE_CELLULAR
 };
 const int networkInterfaceTableEntries = sizeof(networkInterfaceTable) / sizeof(networkInterfaceTable[0]);
@@ -2230,6 +2051,7 @@ const NetMask_t mDNSUse = 0x3; // One bit per network interface
 struct struct_tasks
 {
     volatile bool gnssUartPinnedTaskRunning = false;
+    volatile bool i2cDetectTaskRunning = false;
     volatile bool i2cPinnedTaskRunning = false;
     volatile bool bluetoothCommandTaskRunning = false;
     volatile bool btReadTaskRunning = false;

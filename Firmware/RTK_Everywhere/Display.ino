@@ -1,3 +1,7 @@
+/*=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
+Display.ino
+=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=*/
+
 //----------------------------------------
 // Constants
 //----------------------------------------
@@ -150,7 +154,7 @@ void beginDisplay(TwoWire *i2cBus)
     {
         i2cAddress = kOLEDMicroDefaultAddress;
 
-        if (productVariant == RTK_FLEX)
+        if (productVariant == RTK_FACET_FP)
             i2cAddress = 0x3C;
 
         if (oled == nullptr)
@@ -189,7 +193,7 @@ void beginDisplay(TwoWire *i2cBus)
             }
 
             // Display the brand LOGO
-            RTKBrandAttribute *brandAttribute = getBrandAttributeFromBrand(present.brand);
+            RTKBrandAttribute *brandAttribute = getBrandAttributeFromProductVariant(productVariant);
             oled->erase();
             x = (oled->getWidth() - brandAttribute->logoWidth) / 2;
             y = (oled->getHeight() - brandAttribute->logoHeight) / 2;
@@ -218,7 +222,8 @@ void displayUpdate()
             forceDisplayUpdate = false;
 
             if (present.displayInverted == false)
-                oled->reset(false); // Incase of previous corruption, force re-alignment of CGRAM. Do not init buffers as it
+                oled->reset(
+                    false); // Incase of previous corruption, force re-alignment of CGRAM. Do not init buffers as it
             //  takes time and causes screen to blink.
 
             oled->erase();
@@ -283,13 +288,23 @@ void displayUpdate()
                 */
 
             case (STATE_ROVER_NOT_STARTED):
-                displayHorizontalAccuracy(&iconPropertyList, &CrossHairProperties,
-                                          0b11111111); // Single crosshair, no blink
-                paintLogging(&iconPropertyList);
-                displaySivVsOpenShort(&iconPropertyList);
-                displayBatteryVsEthernet(&iconPropertyList);
-                displayFullIPAddress(&iconPropertyList); // Bottom left - 128x64 only
-                setRadioIcons(&iconPropertyList);
+                // displayHorizontalAccuracy(&iconPropertyList, &CrossHairProperties,
+                //                           0b11111111); // Single crosshair, no blink
+                // paintLogging(&iconPropertyList);
+                // displaySivVsOpenShort(&iconPropertyList);
+                // displayBatteryVsEthernet(&iconPropertyList);
+                // displayFullIPAddress(&iconPropertyList); // Bottom left - 128x64 only
+                // setRadioIcons(&iconPropertyList);
+                // break;
+            case (STATE_ROVER_CONFIG_WAIT):
+                // displayHorizontalAccuracy(&iconPropertyList, &CrossHairProperties,
+                //                           0b11111111); // Single crosshair, no blink
+                // paintLogging(&iconPropertyList);
+                // displaySivVsOpenShort(&iconPropertyList);
+                // displayBatteryVsEthernet(&iconPropertyList);
+                // displayFullIPAddress(&iconPropertyList); // Bottom left - 128x64 only
+                // setRadioIcons(&iconPropertyList);
+                displayRoverStart(0);
                 break;
             case (STATE_ROVER_NO_FIX):
                 displayHorizontalAccuracy(&iconPropertyList, &CrossHairProperties,
@@ -331,8 +346,10 @@ void displayUpdate()
                 break;
 
             case (STATE_BASE_CASTER_NOT_STARTED):
+            case (STATE_BASE_ASSIST_NOT_STARTED):
             case (STATE_BASE_NOT_STARTED):
-                // Do nothing. Static display shown during state change.
+            case (STATE_BASE_CONFIG_WAIT):
+                displayBaseStart(0); // Show 'Base' while the system configures the Base
                 break;
 
             // Start of base / survey in / NTRIP mode
@@ -364,9 +381,10 @@ void displayUpdate()
                 displayBaseSiv(&iconPropertyList); // 128x64 only
                 break;
             case (STATE_BASE_FIXED_NOT_STARTED):
-                displayBatteryVsEthernet(&iconPropertyList); // Top right
-                displayFullIPAddress(&iconPropertyList);     // Bottom left - 128x64 only
-                setRadioIcons(&iconPropertyList);
+                displayBaseSuccess(0); // Show 'Base Started' while the system configures the Base
+                // displayBatteryVsEthernet(&iconPropertyList); // Top right
+                // displayFullIPAddress(&iconPropertyList);     // Bottom left - 128x64 only
+                // setRadioIcons(&iconPropertyList);
                 break;
             case (STATE_BASE_FIXED_TRANSMITTING):
                 paintLogging(&iconPropertyList);
@@ -378,8 +396,7 @@ void displayUpdate()
                 break;
 
             case (STATE_NTPSERVER_NOT_STARTED):
-            case (STATE_NTPSERVER_NO_SYNC):
-            {
+            case (STATE_NTPSERVER_NO_SYNC): {
                 paintClock(&iconPropertyList, true); // Blink
                 displaySivVsOpenShort(&iconPropertyList);
 
@@ -400,8 +417,7 @@ void displayUpdate()
             }
             break;
 
-            case (STATE_NTPSERVER_SYNC):
-            {
+            case (STATE_NTPSERVER_SYNC): {
                 paintClock(&iconPropertyList, false); // No blink
                 displaySivVsOpenShort(&iconPropertyList);
                 paintLogging(&iconPropertyList, false, true); // No pulse, NTP
@@ -481,6 +497,14 @@ void displayUpdate()
 
 void displaySplash()
 {
+    displaySplashCommon(false); // Full product name not known
+}
+void displaySplashNameKnown()
+{
+    displaySplashCommon(true); // Full product name known
+}
+void displaySplashCommon(bool nameKnown)
+{
     if (online.display == true)
     {
         // Shorten logo display if locally compiled
@@ -495,17 +519,22 @@ void displaySplash()
         oled->display(); // Post a clear display
 
         int fontHeight = 8;
+        int numLines = productVariantProperties->rtkPrefix ? 4 : 3;
         int yPos = (oled->getHeight() - ((fontHeight * 4) + 2 + 5 + 7)) / 2;
 
         // Display the product name
-        RTKBrandAttribute *brandAttributes = getBrandAttributeFromBrand(present.brand);
-        printTextCenter(brandAttributes->name, yPos, QW_FONT_5X7, 1, false); // text, y, font type, kerning, inverted
+        printTextCenter(getBrandAttributeFromProductVariant(productVariant)->name,
+                        yPos, QW_FONT_5X7, 1, false); // text, y, font type, kerning, inverted
 
-        yPos = yPos + fontHeight + 2;
-        printTextCenter("RTK", yPos, QW_FONT_8X16, 1, false);
+        if (productVariantProperties->rtkPrefix)
+        {
+            yPos = yPos + fontHeight + 2;
+            printTextCenter("RTK", yPos, QW_FONT_8X16, 1, false);
+        }
 
         yPos = yPos + fontHeight + 5;
-        printTextCenter(productDisplayNames[productVariant], yPos, QW_FONT_8X16, 1, false);
+        printTextCenter(nameKnown ? displayName : productVariantProperties->name,
+                        yPos, QW_FONT_8X16, 1, false);
 
         yPos = yPos + fontHeight + 7;
         char unitFirmware[50];
@@ -514,8 +543,9 @@ void displaySplash()
 
         oled->display();
 
-        // Start the timer for the splash screen display
-        splashStart = millis();
+        // Retart the timer for the splash screen display
+        if (!nameKnown)
+            splashStart = millis();
     }
 }
 
@@ -917,22 +947,19 @@ void setRadioIcons(std::vector<iconPropertyBlinking> *iconList)
                 paintDynamicModel(iconList);
                 break;
             case (STATE_BASE_TEMP_SETTLE):
-            case (STATE_BASE_TEMP_SURVEY_STARTED):
-            {
+            case (STATE_BASE_TEMP_SURVEY_STARTED): {
                 prop.duty = 0b00001111;
                 prop.icon = BaseTemporaryProperties.iconDisplay[present.display_type];
                 iconList->push_back(prop);
             }
             break;
-            case (STATE_BASE_TEMP_TRANSMITTING):
-            {
+            case (STATE_BASE_TEMP_TRANSMITTING): {
                 prop.duty = 0b11111111;
                 prop.icon = BaseTemporaryProperties.iconDisplay[present.display_type];
                 iconList->push_back(prop);
             }
             break;
-            case (STATE_BASE_FIXED_TRANSMITTING):
-            {
+            case (STATE_BASE_FIXED_TRANSMITTING): {
                 prop.duty = 0b11111111;
                 prop.icon = BaseFixedProperties.iconDisplay[present.display_type];
                 iconList->push_back(prop);
@@ -1253,6 +1280,8 @@ void setModeIcon(std::vector<iconPropertyBlinking> *iconList)
     {
     case (STATE_ROVER_NOT_STARTED):
         break;
+    case (STATE_ROVER_CONFIG_WAIT):
+        break;
     case (STATE_ROVER_NO_FIX):
         paintDynamicModel(iconList);
         break;
@@ -1267,27 +1296,26 @@ void setModeIcon(std::vector<iconPropertyBlinking> *iconList)
         break;
 
     case (STATE_BASE_CASTER_NOT_STARTED):
+    case (STATE_BASE_ASSIST_NOT_STARTED):
     case (STATE_BASE_NOT_STARTED):
+    case (STATE_BASE_CONFIG_WAIT):
         // Do nothing. Static display shown during state change.
         break;
-    case (STATE_BASE_TEMP_SETTLE):
-    {
+    case (STATE_BASE_TEMP_SETTLE): {
         iconPropertyBlinking prop;
         prop.duty = 0b00001111;
         prop.icon = BaseTemporaryProperties.iconDisplay[present.display_type];
         iconList->push_back(prop);
     }
     break;
-    case (STATE_BASE_TEMP_SURVEY_STARTED):
-    {
+    case (STATE_BASE_TEMP_SURVEY_STARTED): {
         iconPropertyBlinking prop;
         prop.duty = 0b00001111;
         prop.icon = BaseTemporaryProperties.iconDisplay[present.display_type];
         iconList->push_back(prop);
     }
     break;
-    case (STATE_BASE_TEMP_TRANSMITTING):
-    {
+    case (STATE_BASE_TEMP_TRANSMITTING): {
         iconPropertyBlinking prop;
         prop.duty = 0b11111111;
         prop.icon = BaseTemporaryProperties.iconDisplay[present.display_type];
@@ -1297,8 +1325,7 @@ void setModeIcon(std::vector<iconPropertyBlinking> *iconList)
     case (STATE_BASE_FIXED_NOT_STARTED):
         // Do nothing. Static display shown during state change.
         break;
-    case (STATE_BASE_FIXED_TRANSMITTING):
-    {
+    case (STATE_BASE_FIXED_TRANSMITTING): {
         iconPropertyBlinking prop;
         prop.duty = 0b11111111;
         prop.icon = BaseFixedProperties.iconDisplay[present.display_type];
@@ -1817,7 +1844,9 @@ void paintLogging(std::vector<iconPropertyBlinking> *iconList, bool pulse, bool 
     prop.icon.bitmap = nullptr;
     prop.duty = 0b11111111;
 
-    if (((online.logging == true) && (logIncreasing || ntpLogIncreasing)) || (present.gnss_mosaicX5 && logIncreasing))
+    // If any logging is taking place, display the logging icon
+    if (((online.logging == true) && (logIncreasing || ntpLogIncreasing))
+        || (present.mosaicMicroSd && logMosaicIncreasing))
     {
         if (NTP)
         {
@@ -2101,8 +2130,6 @@ void displayBaseStart(uint16_t displayTime)
 
         oled->display();
 
-        oled->display();
-
         delay(displayTime);
     }
 }
@@ -2126,6 +2153,24 @@ void displayBaseFail(uint16_t displayTime)
 void displayGNSSFail(uint16_t displayTime)
 {
     displayMessage("GNSS Failed", displayTime);
+}
+
+void displayGNSSAutodetect(uint16_t displayTime)
+{
+    displayMessage("Autodetecting GNSS", displayTime);
+}
+void displayGNSSAutodetectFailed(uint16_t displayTime)
+{
+    displayMessage("Autodetect Failed", displayTime);
+}
+
+void displayTiltAutodetect(uint16_t displayTime)
+{
+    displayMessage("Autodetecting Tilt", displayTime);
+}
+void displayTiltAutodetectFailed(uint16_t displayTime)
+{
+    displayMessage("Autodetect Failed", displayTime);
 }
 
 void displayNoWiFi(uint16_t displayTime)
@@ -2462,8 +2507,8 @@ void paintProfile(uint8_t profileUnit)
 
         if (profileNumber >= 0)
         {
-            settings.gnssConfiguredBase = false; // On the next boot, reapply all settings
-            settings.gnssConfiguredRover = false;
+            gnssConfigureDefaults(); // Set all bits in the request bitfield to cause the GNSS receiver to go through a
+                                     // full (re)configuration
             recordSystemSettings(); // Before switching, we need to record the current settings to LittleFS and SD
 
             recordProfileNumber(
@@ -2525,14 +2570,14 @@ void paintSystemTest()
                 else
                     oled->print("FAIL");
             }
-            else if (present.gnss_mosaicX5)
+            else if (present.mosaicMicroSd)
             {
                 // Facet mosaic has an SD card, but it is connected directly to the mosaic-X5
                 // Calling gnss->update() during the GNSS check will cause sdCardSize to be updated
                 oled->setCursor(xOffset, yOffset); // x, y
                 oled->print("SD:");
 
-                if (sdCardSize > 0)
+                if (mosaicSdCardSize > 0)
                     oled->print("OK");
                 else
                     oled->print("FAIL");
@@ -2601,35 +2646,6 @@ void paintSystemTest()
             oled->print(macAddress);
             oled->print(":");
 
-            // Verify the ESP UART can communicate TX/RX to ZED UART1
-            if (zedUartPassed == false)
-            {
-                systemPrintln("GNSS test");
-
-                setMuxport(MUX_GNSS_UART); // Set mux to UART so we can debug over data port
-                delay(20);
-
-                // Clear out buffer before starting
-                while (serialGNSS->available())
-                    serialGNSS->read();
-                serialGNSS->flush();
-
-#ifdef COMPILE_ZED
-                SFE_UBLOX_GNSS_SERIAL myGNSS;
-
-                // begin() attempts 3 connections
-                if (myGNSS.begin(*serialGNSS) == true)
-                {
-
-                    zedUartPassed = true;
-                    oled->print("OK");
-                }
-                else
-                    oled->print("FAIL");
-#endif // COMPILE_ZED
-            }
-            else
-                oled->print("OK");
         } // End display 1
 
         if (systemTestDisplayNumber == 0)
@@ -2672,8 +2688,7 @@ void paintDisplaySetup()
 {
     constructSetupDisplay(&setupButtons); // Construct the vector (linked list) of buttons
 
-    uint8_t maxButtons =
-        ((present.display_type == DISPLAY_128x64) ? 5 : 4);
+    uint8_t maxButtons = ((present.display_type == DISPLAY_128x64) ? 5 : 4);
 
     uint8_t printedButtons = 0;
 
@@ -2688,10 +2703,7 @@ void paintDisplaySetup()
             {
                 if (it->newState == STATE_PROFILE)
                 {
-                    int nameWidth =
-                        ((present.display_type == DISPLAY_128x64)
-                             ? 17
-                             : 9);
+                    int nameWidth = ((present.display_type == DISPLAY_128x64) ? 17 : 9);
                     char miniProfileName[nameWidth] = {0};
                     snprintf(miniProfileName, sizeof(miniProfileName), "%d_%s", it->newProfile,
                              it->name); // Prefix with index #
@@ -3100,6 +3112,11 @@ void paintEspNowPairing()
 void paintEspNowPaired()
 {
     displayMessage("ESP-NOW Paired", 2000);
+}
+
+void paintMosaicBooting()
+{
+    displayMessage("GNSS Booting", 0);
 }
 
 void displayNtpStart(uint16_t displayTime)

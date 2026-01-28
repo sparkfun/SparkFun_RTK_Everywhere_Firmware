@@ -9,6 +9,8 @@
 ##########
 
 SKETCH=RTK_Everywhere.ino
+ESP_CORE_VERSION=3.0.7
+ESP_IDF_VERSION=idf-release_v5.1-632e0c2a
 
 # Uncomment all five lines for a complete update
 #EXECUTABLES = arduino-config lib-update
@@ -22,6 +24,7 @@ CLEAR=cls
 COPY=copy
 DELETE=del /s
 DIR_LISTING=dir
+ENABLE_EXECUTION=
 TERMINAL_APP=
 TERMINAL_PORT=
 TERMINAL_PORT_LG209P=
@@ -29,14 +32,18 @@ TERMINAL_PORT_TORCH=
 TERMINAL_PARAMS=
 
 # Windows NT generic paths
-USER_DIRECTORY_PATH=C:\Users\$(USERNAME)
-ARDUINO_LIBRARY_PATH=$(USER_DIRECTORY_PATH)\Documents\Arduino\libraries
-HOME_BOARD_PATH=$(USER_DIRECTORY_PATH)\AppData\Local\Arduino15\packages\esp32
+USER_DIRECTORY_PATH=C:\Users\$(USERNAME)\
+TMP_PATH=$(USER_DIRECTORY_PATH)
+ARDUINO_LIBRARY_PATH=$(USER_DIRECTORY_PATH)Documents\Arduino\libraries
+HOME_BOARD_PATH=$(USER_DIRECTORY_PATH)AppData\Local\Arduino15\packages\esp32
 PATCH_SRC_PATH=Patch\
 
 # Windows NT patch source paths
-PARTITION_SRC_PATH=..\$(PARTITION_CSV_FILE).csv
-PATCH_SRC_PATH=Patch\
+FIRMWARE_PATH=..\
+RTK_EVERYWHERE_PATH=.\
+AP_CONFIG_PATH=$(RTK_EVERYWHERE_PATH)AP-Config
+PARTITION_SRC_PATH=$(FIRMWARE_PATH)$(PARTITION_CSV_FILE).csv
+PATCH_SRC_PATH=$(RTK_EVERYWHERE_PATH)Patch\
 
 # Windows NT patch destination paths
 MBED_LIB_DEST_PATH=$(HOME_BOARD_PATH)\tools\esp32-arduino-libs\${{ env.ESP_IDF }}\esp32/lib\
@@ -48,8 +55,8 @@ BUILD_PATH=build\esp32.esp32.esp32\
 RTK_BIN_PATH=$(BUILD_PATH)$(SKETCH).bin
 
 # Windows upload support
-BOOT_LOADER_PATH=$(USER_DIRECTORY_PATH)\SparkFun\SparkFun_RTK_Firmware_Uploader\RTK_Firmware_Uploader\resource\
-ESPTOOL_PATH=$(USER_DIRECTORY_PATH)\Arduino\hardware\espressif\esp32\tools\esptool\
+BOOT_LOADER_PATH=$(USER_DIRECTORY_PATH)SparkFun\SparkFun_RTK_Firmware_Uploader\RTK_Firmware_Uploader\resource\
+ESPTOOL_PATH=$(USER_DIRECTORY_PATH)Arduino\hardware\espressif\esp32\tools\esptool\
 
 else
 # Linux utilities
@@ -57,6 +64,7 @@ CLEAR=clear
 COPY=cp
 DELETE=rm -Rf
 DIR_LISTING=ls
+ENABLE_EXECUTION=chmod +x
 TERMINAL_APP=minicom
 TERMINAL_PORT=/dev/ttyUSB0
 TERMINAL_PORT_LG290P=/dev/ttyACM0
@@ -64,14 +72,18 @@ TERMINAL_PORT_TORCH=/dev/ttyACM1
 TERMINAL_PARAMS=-b 115200 -8 < /dev/tty
 
 # Linux generic paths
-USER_DIRECTORY_PATH=~
-ARDUINO_LIBRARY_PATH=$(USER_DIRECTORY_PATH)/Arduino/libraries
+USER_DIRECTORY_PATH=~/
+TMP_PATH=/tmp/
+ARDUINO_LIBRARY_PATH=$(USER_DIRECTORY_PATH)Arduino/libraries
 ESP_IDF_PATH=$(HOME_BOARD_PATH)/tools/esp32-arduino-libs
-HOME_BOARD_PATH=$(USER_DIRECTORY_PATH)/.arduino15/packages/esp32
+HOME_BOARD_PATH=$(USER_DIRECTORY_PATH).arduino15/packages/esp32
 
 # Linux patch source paths
-PARTITION_SRC_PATH=../$(PARTITION_CSV_FILE).csv
-PATCH_SRC_PATH=Patch/
+FIRMWARE_PATH=../
+RTK_EVERYWHERE_PATH=./
+AP_CONFIG_PATH=$(RTK_EVERYWHERE_PATH)AP-Config
+PARTITION_SRC_PATH=$(FIRMWARE_PATH)$(PARTITION_CSV_FILE).csv
+PATCH_SRC_PATH=$(RTK_EVERYWHERE_PATH)Patch/
 
 # Linux patch destination paths
 BT_LIB_DEST_PATH=$(ESP_IDF_PATH)/$(ESP_IDF_VERSION)/esp32/lib/
@@ -110,40 +122,35 @@ all: $(EXECUTABLES)
 arduino-config:
 	arduino-cli config init --overwrite --additional-urls "https://raw.githubusercontent.com/espressif/arduino-esp32/gh-pages/package_esp32_index.json,https://espressif.github.io/arduino-esp32/package_esp32_dev_index.json"
 
-.PHONY: core-update
+.PHONY: index-update
 
-core-update:
+index-update:
+	fgrep "update-index" $(FIRMWARE_PATH)Dockerfile > $(TMP_PATH)arduino_core_update.sh
+	sed -i 's|RUN arduino-cli|arduino-cli|' $(TMP_PATH)arduino_core_update.sh
+	$(ENABLE_EXECUTION) $(TMP_PATH)arduino_core_update.sh
+	$(TMP_PATH)arduino_core_update.sh
+	rm $(TMP_PATH)arduino_core_update.sh
+
+.PHONY: core-install
+
+core-install:	index-update
 	$(DELETE) $(HOME_BOARD_PATH)
-	arduino-cli core update-index
-	arduino-cli core install esp32:esp32@$(ESP_CORE_VERSION)
+	arduino-cli core install "esp32:esp32@${ESP_CORE_VERSION}"
 
-.PHONY: lib-update
+.PHONY: lib-install
 
-ESP_CORE_VERSION=3.0.7
-ESP_IDF_VERSION=idf-release_v5.1-632e0c2a
+lib-install:	index-update
+	fgrep "lib install" $(FIRMWARE_PATH)Dockerfile > $(TMP_PATH)arduino_library_update.sh
+	sed -i 's|RUN arduino-cli|arduino-cli|' $(TMP_PATH)arduino_library_update.sh
+	$(ENABLE_EXECUTION) $(TMP_PATH)arduino_library_update.sh
+	$(TMP_PATH)arduino_library_update.sh
+	rm $(TMP_PATH)arduino_library_update.sh
 
-lib-update:	core-update
-	arduino-cli lib install \
-		ArduinoJson@7.0.4 \
-		"ArduinoMqttClient"@0.1.8 \
-		ESP32_BleSerial@2.0.1 \
-		"ESP32-OTA-Pull"@1.0.0 \
-		ESP32Time@2.0.0 \
-		JC_Button@2.1.2 \
-		PubSubClient@2.8.0 \
-		"SdFat"@2.1.1 \
-		"SparkFun BQ40Z50 Battery Manager Arduino Library"@1.0.0 \
-		"SparkFun Extensible Message Parser"@1.0.2 \
-		"SparkFun I2C Expander Arduino Library"@1.0.1 \
-		"SparkFun IM19 IMU Arduino Library"@1.0.1 \
-		"SparkFun LG290P Quadband RTK GNSS Arduino Library"@1.0.5
-		"SparkFun LIS2DH12 Arduino Library"@1.0.3 \
-		"SparkFun MAX1704x Fuel Gauge Arduino Library"@1.0.4 \
-		"SparkFun Qwiic OLED Arduino Library"@1.0.13 \
-		"SparkFun u-blox GNSS v3"@3.1.8 \
-		"SparkFun u-blox PointPerfect Library"@1.11.4 \
-		"SparkFun UM980 Triband RTK GNSS Arduino Library"@1.0.4 \
-		SSLClientESP32@2.0.0
+.PHONY: get-idf-version
+
+get-idf-version:
+	ESP_IDF_VERSION=$(ls ~/.arduino15/packages/esp32/tools/esp32-arduino-libs | grep idf-release)
+	echo "ESP IDF Version: ${ESP_IDF_VERSION}"
 
 $(PARTITION_DST_PATH):	$(PARTITION_SRC_PATH)
 	$(COPY)  $(PARTITION_SRC_PATH)  $(PARTITION_DST_PATH)
@@ -154,7 +161,7 @@ partition:	$(PARTITION_DST_PATH)
 
 $(MBED_LIB_DEST_PATH)libmbedtls.a: 	$(PATCH_SRC_PATH)libmbedtls.a  $(ESP_IDF_PATH)
 	$(DIR_LISTING) $(ESP_IDF_PATH)
-	echo ESP_
+	echo "ESP IDF Version: $(ESP_IDF_VERSION)"
 	$(COPY)  $<  $@
 
 $(MBED_LIB_DEST_PATH)libmbedtls_2.a: 	$(PATCH_SRC_PATH)libmbedtls_2.a
@@ -172,17 +179,22 @@ $(BT_LIB_DEST_PATH)libbt.a: 	$(PATCH_SRC_PATH)libbt.a
 .PHONY: patch
 
 patch:
-	touch   $(PATCH_SRC_PATH)libbt.a
 	touch   $(PATCH_SRC_PATH)libmbedtls.a
 	touch   $(PATCH_SRC_PATH)libmbedtls_2.a
 	touch   $(PATCH_SRC_PATH)libmbedcrypto.a
 	touch   $(PATCH_SRC_PATH)libmbedx509.a
+	touch   $(PATCH_SRC_PATH)libbt.a
+	make  $(MBED_LIB_DEST_PATH)libmbedtls.a
+	make  $(MBED_LIB_DEST_PATH)libmbedtls_2.a
+	make  $(MBED_LIB_DEST_PATH)libmbedcrypto.a
+	make  $(MBED_LIB_DEST_PATH)libmbedx509.a
+	make  $(BT_LIB_DEST_PATH)libbt.a
 
-#DEBUG_LEVEL=none
+DEBUG_LEVEL=none
 #DEBUG_LEVEL=error
 #DEBUG_LEVEL=warn
 #DEBUG_LEVEL=info
-DEBUG_LEVEL=debug
+#DEBUG_LEVEL=debug
 #DEBUG_LEVEL=verbose
 
 ENABLE_DEVELOPER=false
@@ -190,13 +202,13 @@ FIRMWARE_VERSION_MAJOR=99
 FIRMWARE_VERSION_MINOR=99
 POINTPERFECT_TOKEN=
 
-form.h:	AP-Config/* AP-Config/src/* AP-Config/src/fonts/*
-	python ../Tools/index_html_zipper.py AP-Config/index.html form.h
-	python ../Tools/main_js_zipper.py AP-Config/src/main.js form.h
+form.h:	$(AP_CONFIG_PATH)/* $(AP_CONFIG_PATH)/src/* $(AP_CONFIG_PATH)/src/fonts/*
+	python ../Tools/index_html_zipper.py $(AP_CONFIG_PATH)/index.html form.h
+	python ../Tools/main_js_zipper.py $(AP_CONFIG_PATH)/src/main.js form.h
 
-$(RTK_BIN_PATH):	RTK_Everywhere.ino   *.ino   *.h   makefile   $(PARTITION_DST_PATH)   $(MBED_LIB_DEST_PATH)libmbedtls.a   $(MBED_LIB_DEST_PATH)libmbedtls_2.a   $(MBED_LIB_DEST_PATH)libmbedcrypto.a   $(MBED_LIB_DEST_PATH)libmbedx509.a   $(BT_LIB_DEST_PATH)libbt.a
+$(RTK_BIN_PATH):	$(SKETCH)   *.ino   *.h   makefile   $(PARTITION_DST_PATH)   $(MBED_LIB_DEST_PATH)libmbedtls.a   $(MBED_LIB_DEST_PATH)libmbedtls_2.a   $(MBED_LIB_DEST_PATH)libmbedcrypto.a   $(MBED_LIB_DEST_PATH)libmbedx509.a   $(BT_LIB_DEST_PATH)libbt.a
 	$(CLEAR)
-	arduino-cli compile --fqbn "esp32:esp32:esp32":DebugLevel=$(DEBUG_LEVEL),PSRAM=enabled RTK_Everywhere.ino \
+	arduino-cli compile --fqbn "esp32:esp32:esp32":DebugLevel=$(DEBUG_LEVEL),PSRAM=enabled $(SKETCH) \
 		--warnings default \
 		--build-property build.partitions=$(PARTITION_CSV_FILE) \
 		--build-property upload.maximum_size=6291456 \

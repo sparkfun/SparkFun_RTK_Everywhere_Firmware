@@ -233,7 +233,6 @@ uint8_t ethernetMACAddress[6]; // Display this address when Ethernet is enabled,
 
 #define platformPrefix      platformPrefixTable[productVariant] // Sets the prefix for broadcast names
 
-bool zedUartPassed = false; //Goes true during testing if ESP can communicate with ZED over UART
 //-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 
 void setup()

@@ -1,3 +1,7 @@
+/*=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
+PointPerfectLibrary.ino
+=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=*/
+
 #ifdef COMPILE_POINTPERFECT_LIBRARY
 
 // Feed the PointPerfect Library with NMEA+RTCM
@@ -152,7 +156,7 @@ void beginPPL()
 
     uint32_t pplConfigOptionsMask;
     pplConfigOptionsMask = PPL_CFG_DEFAULT_CFG; // IP and L-Band support
-    
+
     ePPL_ReturnStatus result = PPL_Initialize(pplConfigOptionsMask);
 
     if (result != ePPL_Success)
@@ -556,8 +560,6 @@ void pointperfectPrintKeyInformation(const char *requestedBy)
                  printDaysFromDuration(settings.pointPerfectNextKeyDuration));
 }
 
-#endif // COMPILE_POINTPERFECT_LIBRARY
-
 void pointperfectPrintNtripInformation(const char *requestedBy)
 {
     // All calls to pointperfectPrintNtripInformation are guarded by settings.debugCorrections
@@ -568,3 +570,5 @@ void pointperfectPrintNtripInformation(const char *requestedBy)
     systemPrintf("  ntripClient_CasterUserPW: %s\r\n", settings.ntripClient_CasterUserPW);
     systemPrintf("  ntripClient_MountPoint: %s\r\n", settings.ntripClient_MountPoint);
 }
+
+#endif // COMPILE_POINTPERFECT_LIBRARY

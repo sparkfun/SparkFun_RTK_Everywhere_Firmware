@@ -1,5 +1,4 @@
-
-/*------------------------------------------------------------------------------
+/*=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 NTP.ino
 
   This module implements the network time protocol (NTP).
@@ -49,9 +48,9 @@ NTP.ino
                     v
                NTP Server
 
-------------------------------------------------------------------------------*/
+=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=*/
 
-#ifdef COMPILE_ETHERNET
+#ifdef COMPILE_NTP
 
 //----------------------------------------
 // Constants
@@ -983,4 +982,4 @@ void ntpValidateTables()
         reportFatalError("Fix ntpServerStateNameEntries to match NTP_STATE");
 }
 
-#endif // COMPILE_ETHERNET
+#endif // COMPILE_NTP

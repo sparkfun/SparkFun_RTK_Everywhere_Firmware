@@ -1,4 +1,6 @@
-/*
+/*=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
+RTK_Everywhere.ino
+
   October 2nd, 2023
   SparkFun Electronics
   Nathan Seidle
@@ -76,11 +78,7 @@
   |                                         |    |             |
   +-----------------------------------------+    +-------------+
 
-*/
-
-// While we wait for the next hardware revisions, Flex and Torch can be manually enabled:
-//#define FLEX_OVERRIDE // Uncomment to force support for Flex
-//#define TORCH_X2_OVERRIDE // Uncomment to force support for Torch X2
+=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=*/
 
 // To reduce compile times, various parts of the firmware can be disabled/removed if they are not
 // needed during development
@@ -88,10 +86,15 @@
 #define COMPILE_WIFI     // Comment out to remove WiFi functionality
 #define COMPILE_ETHERNET // Comment out to remove Ethernet (W5500) support
 #define COMPILE_CELLULAR // Comment out to remove cellular modem support
+#define COMPILE_LORA     // COmment out to remove LoRa functionality
 
 #ifdef COMPILE_BT
 #define COMPILE_AUTHENTICATION // Comment out to disable MFi authentication
 #endif
+
+#ifdef COMPILE_ETHERNET
+#define COMPILE_NTP     // Comment out to disable NTP functionality
+#endif  // COMPILE_ETHERNET
 
 #ifdef COMPILE_WIFI
 #define COMPILE_AP     // Requires WiFi. Comment out to remove Access Point functionality
@@ -110,13 +113,39 @@
 #define COMPILE_IM19_IMU             // Comment out to remove IM19_IMU functionality
 #define COMPILE_POINTPERFECT_LIBRARY // Comment out to remove PPL support
 #define COMPILE_BQ40Z50              // Comment out to remove BQ40Z50 functionality
+#define COMPILE_MP2762A_CHARGER      // Comment out to remove MP2762A charger functionality
 
 #if defined(COMPILE_WIFI) || defined(COMPILE_ETHERNET) || defined(COMPILE_CELLULAR)
 #define COMPILE_NETWORK
-#define COMPILE_MQTT_CLIENT // Comment out to remove MQTT Client functionality
-#define COMPILE_OTA_AUTO    // Comment out to disable automatic over-the-air firmware update
-#define COMPILE_HTTP_CLIENT // Comment out to disable HTTP Client (PointPerfect ZTP) functionality
+#define COMPILE_HTTP_CLIENT     // Comment out to disable HTTP Client (PointPerfect ZTP) functionality
+#define COMPILE_MQTT_CLIENT     // Comment out to remove MQTT Client functionality
+#define COMPILE_NTRIP_CLIENT    // Comment out to remove NTRIP client functionality
+#define COMPILE_NTRIP_SERVER    // Comment out to remove NTRIP server functionality
+#define COMPILE_OTA_AUTO        // Comment out to disable automatic over-the-air firmware update
+#define COMPILE_TCP_CLIENT      // Comment out to remove TCP client functionality
+#define COMPILE_TCP_SERVER      // Comment out to remove TCP server functionality
+#define COMPILE_UDP_SERVER      // Comment out to remove UDP server functionality
 #endif                      // COMPILE_WIFI || COMPILE_ETHERNET || COMPILE_CELLULAR
+
+#define COMPILE_SERIAL_MENUS    // Comment out to remove base menu functionality
+
+#ifdef  COMPILE_SERIAL_MENUS
+#define COMPILE_MENU_BASE           // Comment out to remove base menu functionality
+#define COMPILE_MENU_CORRECTIONS    // Comment out to remove correction priorities menu functionality
+#define COMPILE_MENU_ETHERNET       // Comment out to remove Ethernet menu functionality
+#define COMPILE_MENU_FIRMWARE       // Comment out to remove firmware menu functionality
+#define COMPILE_MENU_GNSS           // Comment out to remove GNSS menu functionality
+#define COMPILE_MENU_INSTRUMENTS    // Comment out to remove instruments menu functionality
+#define COMPILE_MENU_LOGGING        // Comment out to remove logging menus functionality
+#define COMPILE_MENU_MESSAGES       // Comment out to remove messages menu functionality
+#define COMPILE_MENU_PORTS          // Comment out to remove ports menu functionality
+#define COMPILE_MENU_POINTPERFECT   // Comment out to remove PointPerfect menu functionality
+#define COMPILE_MENU_RADIO          // Comment out to remove radio menu functionality
+#define COMPILE_MENU_SYSTEM         // Comment out to remove system menu functionality
+#define COMPILE_MENU_TCP_UDP        // Comment out to remove TCP/UDP menu functionality
+#define COMPILE_MENU_USER_PROFILES  // Comment out to remove user profile menu functionality
+#define COMPILE_MENU_WIFI           // Comment out to remove WiFi menu functionality
+#endif  // COMPILE_SERIAL_MENUS
 
 // Always define ENABLE_DEVELOPER to enable its use in conditional statements
 #ifndef ENABLE_DEVELOPER
@@ -152,6 +181,7 @@
 #include <NetworkClient.h>
 #include <NetworkClientSecure.h>
 #include <NetworkUdp.h>
+#include <lwip/sockets.h>
 #endif // COMPILE_NETWORK
 
 #define RTK_MAX_CONNECTION_MSEC (15 * MILLISECONDS_IN_A_MINUTE)
@@ -180,6 +210,8 @@ const uint16_t HTTPS_PORT = 443;                                                
 #include <PPP.h>
 #endif // COMPILE_CELLULAR
 
+#include <ArduinoJson.h> //http://librarymanager/All#Arduino_JSON_messagepack - Needed for settings.h
+
 #include "settings.h"
 #include <esp_mac.h> // MAC address support
 
@@ -199,10 +231,13 @@ const uint16_t HTTPS_PORT = 443;                                                
 #define SECONDS_IN_AN_HOUR (MINUTES_IN_AN_HOUR * SECONDS_IN_A_MINUTE)
 #define SECONDS_IN_A_DAY (HOURS_IN_A_DAY * SECONDS_IN_AN_HOUR)
 
+const char *debugMessagePrefix = "# => "; // Something ~unique and easy to trigger on
+
 // Hardware connections
 //=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 // These pins are set in beginBoard()
 #define PIN_UNDEFINED -1
+int pin_debug = PIN_UNDEFINED;              // LED on EVK
 int pin_batteryStatusLED = PIN_UNDEFINED;   // LED on Torch
 int pin_baseStatusLED = PIN_UNDEFINED;      // LED on EVK
 int pin_bluetoothStatusLED = PIN_UNDEFINED; // LED on Torch
@@ -214,9 +249,9 @@ int pin_mux1 = PIN_UNDEFINED;
 int pin_mux2 = PIN_UNDEFINED;
 int pin_mux3 = PIN_UNDEFINED;
 int pin_mux4 = PIN_UNDEFINED;
-int pin_powerSenseAndControl = PIN_UNDEFINED; // Power button and power down I/O on Facet
-int pin_modeButton = PIN_UNDEFINED;           // Mode button on EVK
-int pin_powerButton = PIN_UNDEFINED;          // Power and general purpose button on Torch
+
+int pin_modeButton = PIN_UNDEFINED;           // Mode button on EVK, Function button on Facet FP
+int pin_powerButton = PIN_UNDEFINED;          // Power and general purpose button on Torch, Facet
 int pin_powerFastOff = PIN_UNDEFINED;         // Output on Facet
 int pin_muxDAC = PIN_UNDEFINED;
 int pin_muxADC = PIN_UNDEFINED;
@@ -279,22 +314,24 @@ int pin_usbSelect = PIN_UNDEFINED;
 int pin_beeper = PIN_UNDEFINED;
 
 int pin_gpioExpanderInterrupt = PIN_UNDEFINED;
-int gpioExpander_up = 0;
-int gpioExpander_down = 1;
-int gpioExpander_right = 2;
-int gpioExpander_left = 3;
-int gpioExpander_center = 4;
-int gpioExpander_cardDetect = 5;
+const uint8_t gpioExpander_up = 0;
+const uint8_t gpioExpander_down = 1;
+const uint8_t gpioExpander_right = 2;
+const uint8_t gpioExpander_left = 3;
+const uint8_t gpioExpander_center = 4;
+const uint8_t gpioExpander_cardDetect = 5;
+const uint8_t gpioExpander_io6 = 6;
+const uint8_t gpioExpander_io7 = 7;
 
-const int gpioExpanderSwitch_S1 = 0; // Controls U16 switch 1: connect ESP UART0 to CH342 or SW2
-const int gpioExpanderSwitch_S2 = 1; // Controls U17 switch 2: connect SW1 to RS232 Output or GNSS UART4
-const int gpioExpanderSwitch_S3 = 2; // Controls U18 switch 3: connect ESP UART2 to GNSS UART3 or LoRa UART2
-const int gpioExpanderSwitch_S4 = 3; // Controls U19 switch 4: connect GNSS UART2 to 4-pin JST TTL Serial or LoRa UART0
-const int gpioExpanderSwitch_LoraEnable = 4;   // LoRa_EN
-const int gpioExpanderSwitch_GNSS_Reset = 5;   // RST_GNSS
-const int gpioExpanderSwitch_LoraBoot = 6;     // LoRa_BOOT0 - Used for bootloading the STM32 radio IC
-const int gpioExpanderSwitch_PowerFastOff = 7; // PWRKILL
-const int gpioExpanderNumSwitches = 8;
+const uint8_t gpioExpanderSwitch_S1 = 0; // Controls U16 switch 1: connect ESP UART0 to CH342 or SW2
+const uint8_t gpioExpanderSwitch_S2 = 1; // Controls U17 switch 2: connect SW1 to RS232 Output or GNSS UART4
+const uint8_t gpioExpanderSwitch_S3 = 2; // Controls U18 switch 3: connect ESP UART2 to GNSS UART3 or LoRa UART2
+const uint8_t gpioExpanderSwitch_S4 = 3; // Controls U19 switch 4: connect GNSS UART2 to 4-pin JST TTL Serial or LoRa UART0
+const uint8_t gpioExpanderSwitch_LoraEnable = 4;   // LoRa_EN
+const uint8_t gpioExpanderSwitch_GNSS_Reset = 5;   // RST_GNSS
+const uint8_t gpioExpanderSwitch_LoraBoot = 6;     // LoRa_BOOT0 - Used for bootloading the STM32 radio IC
+const uint8_t gpioExpanderSwitch_S5 = 7; // Controls U61 switch 5: connect GNSS UART1 to Port A of CH342
+const uint8_t gpioExpanderNumSwitches = 8;
 
 //=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 
@@ -311,8 +348,6 @@ TwoWire *i2cAuthCoPro = nullptr;
 
 // LittleFS for storing settings for different user profiles
 //-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
-#include <LittleFS.h> //Built-in
-
 #define MAX_PROFILE_COUNT 8
 uint8_t activeProfiles;                    // Bit vector indicating which profiles are active
 uint8_t displayProfile;                    // Profile Unit - Range: 0 - (MAX_PROFILE_COUNT - 1)
@@ -340,12 +375,10 @@ void printTimeStamp(bool always = false); // Header
 
 void beginSPI(bool force = false); // Header
 
-// Important note: the firmware currently requires SdFat v2.1.1
-// sd->begin will crash second time around with ~v2.2.3
-#include "SdFat.h" //http://librarymanager/All#sdfat_exfat by Bill Greiman.
 SdFat *sd;
 
-#define platformFilePrefix platformFilePrefixTable[productVariant] // Sets the prefix for logs and settings files
+#define productVariantProperties getProductPropertiesFromVariant(productVariant)
+#define platformFilePrefix getProductPropertiesFromVariant(productVariant)->filePrefix // Sets the prefix for logs and settings files
 
 SdFile *logFile;                  // File that all GNSS messages sentences are written to
 unsigned long lastUBXLogSyncTime; // Used to record to SD every half second
@@ -403,7 +436,7 @@ bool savePossibleSettings = true; // Save possible vs. available settings. See r
 //-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 #ifdef COMPILE_WIFI
 int packetRSSI;
-RTK_WIFI wifi(false);
+RTK_WIFI wifi(false); // wifi(false); is non-verbose. For verbose, change to wifi(true);
 #endif // COMPILE_WIFI
 
 // WiFi Globals - For other module direct access
@@ -437,8 +470,6 @@ const char *wifiSoftApPassword = nullptr;
 
 // Over-the-Air (OTA) update support
 //-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
-#include <ArduinoJson.h> //http://librarymanager/All#Arduino_JSON_messagepack
-
 #include "esp_ota_ops.h" //Needed for partition counting and updateFromSD
 
 #define OTA_FIRMWARE_JSON_URL_LENGTH 128
@@ -561,6 +592,9 @@ float batteryChargingPercentPerHour;
 #include "bluetoothSelect.h"
 #endif // COMPILE_BT
 
+BluetoothRadioType_e bluetoothRadioPreviousOnType = BLUETOOTH_RADIO_OFF;
+bool bluetoothEnded = false; // Indicates if bluetoothEnd has been called and ESP.restart is needed
+
 // This value controls the data that is output from the USB serial port
 // to the host PC.  By default (false) status and debug messages are output
 // to the USB serial port.  When this value is set to true then the status
@@ -584,8 +618,6 @@ volatile bool forwardGnssDataToUsbSerial;
 // entered then no changes are made and the +++ sequence must be re-entered.
 #define PLUS_PLUS_PLUS_TIMEOUT (2 * 1000) // Milliseconds
 
-#define platformPrefix platformPrefixTable[productVariant] // Sets the prefix for broadcast names
-
 HardwareSerial *serialGNSS = nullptr;  // Don't instantiate until we know what gnssPlatform we're on
 HardwareSerial *serial2GNSS = nullptr; // Don't instantiate until we know what gnssPlatform we're on
 
@@ -593,7 +625,7 @@ volatile bool inDirectConnectMode = false; // Global state to indicate if GNSS/L
 
 #define SERIAL_SIZE_TX 512
 uint8_t wBuffer[SERIAL_SIZE_TX]; // Buffer for writing from incoming SPP to F9P
-const int btReadTaskStackSize = 4000;
+const int btReadTaskStackSize = 3000;
 
 // Array of start-of-sentence offsets into the ring buffer
 #define AMOUNT_OF_RING_BUFFER_DATA_TO_DISCARD (settings.gnssHandlerBufferSize >> 2)
@@ -611,12 +643,12 @@ const int handleGnssDataTaskStackSize = 4000;
 
 TaskHandle_t pinBluetoothTaskHandle; // Dummy task to start hardware on an assigned core
 volatile bool bluetoothPinned;       // This variable is touched by core 0 but checked by core 1. Must be volatile.
+volatile bool sppAccessoryMode;      // Set true when the Accessory needs exclusive access to BT SPP
 
 volatile static int combinedSpaceRemaining; // Overrun indicator
 volatile static uint64_t logFileSize;       // Updated with each write
 int bufferOverruns;                         // Running count of possible data losses since power-on
 
-bool zedUartPassed; // Goes true during testing if ESP can communicate with ZED over UART
 const uint8_t btEscapeCharacter = '+';
 const uint8_t btMaxEscapeCharacters = 3; // Number of characters needed to enter remote command mode over Bluetooth
 
@@ -660,10 +692,12 @@ const int beepTaskUpdatesHz = 20; // Update Beep 20 times a second. Shortest dur
 // Buttons - Interrupt driven and debounce
 //-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 #include <JC_Button.h> //http://librarymanager/All#JC_Button
-Button *userBtn = nullptr;
+Button *powerBtn = nullptr;
+Button *functionBtn = nullptr;
 
 const uint8_t buttonCheckTaskPriority = 1; // 3 being the highest, and 0 being the lowest
 const int buttonTaskStackSize = 2000;
+TaskHandle_t buttonTaskHandle;
 
 const int shutDownButtonTime = 2000; // ms press and hold before shutdown
 bool firstButtonThrownOut = false;
@@ -675,20 +709,19 @@ bool firstButtonThrownOut = false;
 // Because the incoming string is longer than max len, there are multiple callbacks so we
 // use a global to combine the incoming
 #define AP_CONFIG_SETTING_SIZE 20000 // 10000 isn't enough if the SD card contains many files
-char *settingsCSV;                   // Push large array onto heap
+#define AP_FIRMWARE_VERSION_SIZE    256
+
 char *incomingSettings;
 int incomingSettingsSpot;
 unsigned long timeSinceLastIncomingSetting;
 unsigned long lastDynamicDataUpdate;
-bool websocketConnected = false;
 
 #ifdef COMPILE_WIFI
 #ifdef COMPILE_AP
 
 #include "form.h"
 #include <DNSServer.h>       // Needed for the captive portal
-#include <WebServer.h>       // Port 80
-#include <esp_http_server.h> // Needed for web sockets only - on port 81
+#include <esp_http_server.h> // Port 80
 
 #endif // COMPILE_AP
 #endif // COMPILE_WIFI
@@ -715,6 +748,7 @@ float lBandEBNO; // Used on system status menu
 // ESP-NOW Globals - For other module direct access
 bool espNowIncomingRTCM;
 bool espNowOutgoingRTCM;
+bool espnowRequestPair = false; // Modified by states.ino, menuRadio, or CLI
 int espNowRSSI;
 const uint8_t espNowBroadcastAddr[6] = {0xff, 0xff, 0xff, 0xff, 0xff, 0xff};
 
@@ -836,16 +870,18 @@ char *latestEASessionData;
 uint8_t wifiMACAddress[6];     // Display this address in the system menu
 uint8_t btMACAddress[6];       // Display this address when Bluetooth is enabled, otherwise display wifiMACAddress
 uint8_t ethernetMACAddress[6]; // Display this address when Ethernet is enabled, otherwise display wifiMACAddress
-char deviceName[40];           // The serial string that is broadcast. E.g.: 'SparkFun Postcard-ABCD'
-char serialNumber[5];          // The serial number for MFi. Ex: 'BC61'
+char platformPrefix[20];       // The prefix for broadcast names. E.g.: "TX2"
+char displayName[20];          // The product name displayed on OLED. Could be shorter than platformPrefix. E.g.: "Facet LB"
+char serialNumber[7];          // The serial number for MFi. Two MAC octets plus productVariant. Ex: 'ABCD06'
+char accessoryName[40];        // The IdentificationInformation Name for MFi. E.g.: 'SparkPNT TX2'
+char deviceName[40];           // The serial string that is broadcast. E.g.: 'SparkPNT TX2-ABCD06'
 char deviceFirmware[9];        // The firmware version for MFi. Ex: 'v2.2'
 const uint16_t menuTimeout = 60 * 10; // Menus will exit/timeout after this number of seconds
 int systemTime_minutes;               // Used to test if logging is less than max minutes
 uint32_t powerPressedStartTime;       // Times how long the user has been holding the power button, used for power down
 bool inMainMenu;                      // Set true when in the serial config menu system.
 bool btPrintEcho;                     // Set true when in the serial config menu system via Bluetooth.
-bool btPrintEchoExit;                 // When true, exit all config menus.
-bool sendAccessoryHandshakeOnBtConnect = false; // Send accessory handshake on BT connect
+volatile bool forceMenuExit;          // When true, exit all config menus.
 
 bool forceDisplayUpdate = true; // Goes true when setup is pressed, causes the display to refresh in real-time
 uint32_t lastSystemStateUpdate;
@@ -866,6 +902,7 @@ uint32_t lastPrintPosition;   // For periodic display of the position
 uint64_t lastLogSize = 0;
 bool logIncreasing; // Goes true when log file is greater than lastLogSize or logPosition changes
 bool reuseLastLog;  // Goes true if we have a reset due to software (rather than POR)
+bool logMosaicIncreasing; // Goes true when the mosaic SD log is increasing
 
 uint16_t rtcmPacketsSent;    // Used to count RTCM packets sent via processRTCM()
 uint32_t rtcmLastPacketSent; // Time stamp of RTCM going out (to NTRIP Server, ESP-NOW, etc)
@@ -922,8 +959,6 @@ uint32_t triggerTowSubMsR; // Global copy - Millisecond fraction of Time Of Week
 uint32_t triggerAccEst;    // Global copy - Accuracy estimate in nanoseconds
 
 unsigned long splashStart; // Controls how long the splash is displayed for. Currently min of 2s.
-bool restartBase;          // If the user modifies any NTRIP Server settings, we need to restart the base
-bool restartRover; // If the user modifies any NTRIP Client or PointPerfect settings, we need to restart the rover
 
 unsigned long startTime;       // Used for checking longest-running functions
 bool lbandCorrectionsReceived; // Used to display L-Band SIV icon when corrections are successfully decrypted (NEO-D9S
@@ -980,6 +1015,7 @@ int16_t *commandIndex;
 
 bool usbSerialIsSelected = true;      // Goes false when switch U18 is moved from CH34x to LoRa
 unsigned long loraLastIncomingSerial; // Last time a user sent a serial command. Used in LoRa timeouts.
+char loraFirmwareVersion[25] = {'\0'};
 
 //-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 
@@ -1010,6 +1046,7 @@ volatile bool deadManWalking;
 #define DMW_if if (deadManWalking)
 #define DMW_b(string)                                                                                                  \
     {                                                                                                                  \
+        reportHeapNow(true);                                                                                           \
         if (bootTimeIndex < MAX_BOOT_TIME_ENTRIES)                                                                     \
         {                                                                                                              \
             bootTime[bootTimeIndex] = millis();                                                                        \
@@ -1017,12 +1054,15 @@ volatile bool deadManWalking;
         }                                                                                                              \
         bootTimeIndex += 1;                                                                                            \
         DMW_if systemPrintf("%s called\r\n", string);                                                                  \
+        rtkValidateHeap("setup");                                                                                      \
     }
-#define DMW_c(string) DMW_if systemPrintf("%s called\r\n", string);
+#define DMW_l(string) DMW_if systemPrintf("%s called\r\n", string); rtkValidateHeap("loop");
 #define DMW_m(string) DMW_if systemPrintln(string);
+#define DMW_n(string) DMW_if systemPrintf("%s called\r\n", string); rtkValidateHeap("networkUpdate");
 #define DMW_r(string) DMW_if systemPrintf("%s returning\r\n", string);
 #define DMW_rs(string, status) DMW_if systemPrintf("%s returning %d\r\n", string, (int32_t)status);
 #define DMW_st(routine, state) DMW_if routine(state);
+#define DMW_w(string) DMW_if systemPrintf("%s called\r\n", string); rtkValidateHeap("waitingForMenuInput");
 
 #define START_DEAD_MAN_WALKING                                                                                         \
     {                                                                                                                  \
@@ -1088,12 +1128,14 @@ volatile bool deadManWalking;
         }                                                                                                              \
         bootTimeIndex += 1;                                                                                            \
     }
-#define DMW_c(string)
 #define DMW_ds(routine, dataStructure)
+#define DMW_l(string)
 #define DMW_m(string)
+#define DMW_n(string)
 #define DMW_r(string)
 #define DMW_rs(string, status)
 #define DMW_st(routine, state)
+#define DMW_w(string)
 
 #endif // 0
 
@@ -1321,9 +1363,6 @@ void setup()
     DMW_b("beginDisplay");
     beginDisplay(i2cDisplay); // Start display to be able to display any errors
 
-    DMW_b("beginAuthCoPro");
-    beginAuthCoPro(i2cAuthCoPro); // Discover and start authentication coprocessor
-
     DMW_b("verifyTables");
     verifyTables(); // Verify the consistency of the internal tables
 
@@ -1348,17 +1387,24 @@ void setup()
     DMW_b("gnssDetectReceiverType");
     gnssDetectReceiverType(); // If we don't know the receiver from the platform, auto-detect it. Uses settings.
 
+    // Check array defaults - after gnssDetectReceiverType() - before gnss->begin()
+    DMW_b("checkArrayDefaults");
+    checkArrayDefaults(); // Check for uninitialized arrays that won't be initialized by gnssConfigure
+                          // (checkGNSSArrayDefaults)
+    checkGNSSArrayDefaults(); // Check various setting arrays (message rates, etc) to see if they need to be reset to
+                              // defaults
+
     DMW_b("checkUpdateLoraFirmware");
     if (checkUpdateLoraFirmware() == true) // Check if updateLoraFirmware.txt exists
         beginLoraFirmwareUpdate(); // Needs I2C, GPIO Expander Switches, display, buttons, etc.
 
     DMW_b("um980FirmwareCheckUpdate");
     if (um980FirmwareCheckUpdate() == true) // UM980 needs special treatment
-        um980FirmwareBeginUpdate(); // Needs Flex GNSS, I2C, GPIO Expander Switches, display, buttons, etc.
+        um980FirmwareBeginUpdate(); // Needs Facet FP GNSS, I2C, GPIO Expander Switches, display, buttons, etc.
 
     DMW_b("gnssFirmwareCheckUpdate");
     if (gnssFirmwareCheckUpdate() == true) // Check if updateGnssFirmware.txt exists
-        gnssFirmwareBeginUpdate(); // Needs Flex GNSS, I2C, GPIO Expander Switches, display, buttons, etc.
+        gnssFirmwareBeginUpdate(); // Needs Facet FP GNSS, I2C, GPIO Expander Switches, display, buttons, etc.
 
     DMW_b("commandIndexFillActual");
     commandIndexFillActual(); // Shrink the commandIndex table now we're certain what GNSS we have
@@ -1372,7 +1418,7 @@ void setup()
     beginGnssUart2();
 
     DMW_b("gnss->begin");
-    gnss->begin(); // Requires settings. Connect to GNSS to get module type
+    gnss->begin(); // Requires settings - with array defaults
 
     DMW_b("beginRtcmParse");
     beginRtcmParse();
@@ -1380,12 +1426,11 @@ void setup()
     DMW_b("tiltDetect");
     tiltDetect(); // If we don't know if there is a tilt compensation sensor, auto-detect it. Uses settings.
 
+    DMW_b("assembleDeviceName");
+    assembleDeviceName(); // Assemble the BT broadcast deviceName. After GNSS and Tilt are known
+
     // DEBUG_NEARLY_EVERYTHING // Debug nearly all the things
     // DEBUG_THE_ESSENTIALS // Debug the essentials - handy for measuring the boot time after a factory reset
-
-    DMW_b("checkArrayDefaults");
-    checkArrayDefaults(); // Check for uninitialized arrays that won't be initialized by gnssConfigure
-                          // (checkGNSSArrayDefaults)
 
     DMW_b("printPartitionTable");
     if (settings.printPartitionTable)
@@ -1406,14 +1451,11 @@ void setup()
     DMW_b("beginCharger");
     beginCharger(); // Configure battery charger
 
-    DMW_b("gnss->configure");
-    gnss->configure(); // Requires settings. Configure GNSS module
-
     DMW_b("beginExternalEvent");
     gnss->beginExternalEvent(); // Configure the event input
 
-    DMW_b("beginPPS");
-    gnss->beginPPS(); // Configure the time pulse output
+    DMW_b("setPPS");
+    gnss->setPPS(); // Configure the pulse per second pin
 
     DMW_b("beginInterrupts");
     beginInterrupts(); // Begin the TP interrupts
@@ -1424,6 +1466,9 @@ void setup()
     DMW_b("rtcUpdate");
     rtcUpdate(); // The GNSS likely has a time/date. Update ESP32 RTC to match. Needed for PointPerfect key
                  // expiration.
+
+    DMW_b("beginAuthCoPro");
+    beginAuthCoPro(i2cAuthCoPro); // Discover and start authentication coprocessor
 
     systemFlush(); // Complete any previous prints
 
@@ -1497,78 +1542,137 @@ void setup()
 
 void loop()
 {
-    DMW_c("periodicDisplay");
+    DMW_l("periodicDisplay");
     updatePeriodicDisplay();
 
-    DMW_c("gnss->update");
-    gnss->update();
-
-    DMW_c("stateUpdate");
+    DMW_l("stateUpdate");
     stateUpdate();
 
-    DMW_c("updateBattery");
+    DMW_l("updateBattery");
     updateBattery();
 
-    DMW_c("displayUpdate");
+    DMW_l("displayUpdate");
     displayUpdate();
 
-    DMW_c("rtcUpdate");
+    DMW_l("gnssUpdate");
+    gnssUpdate();
+
+    DMW_l("rtcUpdate");
     rtcUpdate(); // Set system time to GNSS once we have fix
 
-    DMW_c("bluetoothUpdate");
+    DMW_l("bluetoothUpdate");
     bluetoothUpdate(); // Check for BLE connections
 
-    DMW_c("sdUpdate");
+    DMW_l("sdUpdate");
     sdUpdate(); // Check if SD needs to be started or is at max capacity
 
-    DMW_c("logUpdate");
+    DMW_l("logUpdate");
     logUpdate(); // Record any new data. Create or close files as needed.
 
-    DMW_c("reportHeap");
+    DMW_l("reportHeap");
     reportHeap(); // If debug enabled, report free heap
 
-    DMW_c("terminalUpdate");
+    DMW_l("terminalUpdate");
     terminalUpdate(); // Menu system via ESP32 USB connection
 
-    DMW_c("networkUpdate");
+    DMW_l("networkUpdate");
     networkUpdate(); // Maintain the network connections
 
-    DMW_c("updateAuthCoPro");
+    DMW_l("updateAuthCoPro");
     updateAuthCoPro(); // Update the Apple Accessory
 
-    DMW_c("updateLBand");
+    DMW_l("updateLBand");
     updateLBand(); // Update L-Band
 
-    DMW_c("updateLBandCorrections");
+    DMW_l("updateLBandCorrections");
     updateLBandCorrections(); // Check if we've recently received PointPerfect corrections or not
 
-    DMW_c("tiltUpdate");
+    DMW_l("tiltUpdate");
     tiltUpdate(); // Check if new lat/lon/alt have been calculated
 
-    DMW_c("espNowUpdate");
+    DMW_l("espNowUpdate");
     espNowUpdate(); // Check if we need to finish sending any RTCM over ESP-NOW radio
 
-    DMW_c("updateLora");
+    DMW_l("updateLora");
     updateLora(); // Check if we need to finish sending any RTCM over LoRa radio
 
-    DMW_c("updatePPL");
+    DMW_l("updatePPL");
     updatePPL(); // Check if we need to get any new RTCM from the PPL
 
-    DMW_c("printReports");
+    DMW_l("printReports");
     printReports(); // Periodically print GNSS coordinates and accuracy if enabled
 
-    DMW_c("otaAutoUpdate");
+    DMW_l("otaAutoUpdate");
     otaUpdate(); // Initiate firmware version checks, scheduled automatic updates, or requested firmware over-the-air
                  // updates
 
-    DMW_c("correctionUpdateSource");
+    DMW_l("correctionUpdateSource");
     correctionUpdateSource(); // Retire expired sources
 
-    DMW_c("updateProvisioning");
+    DMW_l("updateProvisioning");
     provisioningUpdate(); // Check if we should attempt to connect to PointPerfect to get keys / certs / correction
                           // topic etc.
 
+    DMW_l("loopDelay");
     loopDelay(); // A small delay prevents panic if no other I2C or functions are called
+}
+
+// When the user has the menu open, it spends most of its time waiting for getUserInputString
+// getUserInputString calls waitingForMenuInput to keep the essential non-tasks running
+void waitingForMenuInput()
+{
+    // Don't call stateUpdate() here. Wait until we exit the menu before changing state.
+    
+    DMW_w("updateBattery");
+    updateBattery();
+
+    DMW_w("gnssUpdate");
+    gnssUpdate(); // Regularly poll to get latest data
+
+    DMW_w("rtcUpdate");
+    rtcUpdate(); // Set system time to GNSS once we have fix
+
+    DMW_w("bluetoothUpdate");
+    bluetoothUpdate(); // Check for BLE connections
+
+    DMW_w("sdUpdate");
+    sdUpdate(); // Check if SD needs to be started or is at max capacity
+
+    DMW_w("logUpdate");
+    logUpdate(); // Record any new data. Create or close files as needed.
+
+    // Update the network services
+    // Don't call networkUpdate() here. It will spin up WiFi for NTRIP etc. before we're ready
+    DMW_w("mqttClientUpdate");
+    mqttClientUpdate(); // Process any Point Perfect MQTT messages
+    DMW_w("ntpServerUpdate");
+    ntpServerUpdate(); // Process any received NTP requests
+    DMW_w("ntripClientUpdate");
+    ntripClientUpdate(); // Check the NTRIP client connection and move data NTRIP --> GNSS
+    DMW_w("ntripServerUpdate");
+    ntripServerUpdate(); // Check the NTRIP server connection and move data GNSS --> NTRIP
+    DMW_w("tcpClientUpdate");
+    tcpClientUpdate(); // Turn on the TCP client as needed
+    DMW_w("tcpServerUpdate");
+    tcpServerUpdate(); // Turn on the TCP server as needed
+    DMW_w("udpServerUpdate");
+    udpServerUpdate(); // Turn on the UDP server as needed
+    DMW_w("httpClientUpdate");
+    httpClientUpdate(); // Process any Point Perfect HTTP messages
+    DMW_w("webServerUpdate");
+    webServerUpdate(); // Start webServer for web config as needed
+
+    DMW_w("updateAuthCoPro");
+    updateAuthCoPro(); // Keep the AuthCoPro iAP2 machine running
+
+    DMW_w("tiltUpdate");
+    tiltUpdate(); // Check if new lat/lon/alt have been calculated
+
+    DMW_w("espNowUpdate");
+    espNowUpdate(); // Check if we need to finish sending any RTCM over ESP-NOW radio
+
+    DMW_w("updateLora");
+    updateLora(); // Check if we need to finish sending any RTCM over LoRa radio
 }
 
 void loopDelay()
@@ -1592,7 +1696,7 @@ bool logLengthExceeded() // Limit individual files to maxLogLength_minutes
 
     if (nextLogTime_ms == 0) // Keep logging if nextLogTime_ms has not been set
         return false;
-    
+
     // Note: this will roll over every 49.71 days...
     // Solution: https://stackoverflow.com/a/3097744 - see issue #742
     return (!((long)(nextLogTime_ms - millis()) > 0));
@@ -1628,8 +1732,6 @@ void logUpdate()
             blockLogging = true;
             return;
         }
-
-        setLoggingType(); // Determine if we are standard, PPP, or custom. Changes logging icon accordingly.
     }
     else if (online.logging == true && settings.enableLogging == false)
     {
@@ -1650,7 +1752,6 @@ void logUpdate()
                 systemPrintln("Log file: log length reached");
             endLogging(false, true); //(gotSemaphore, releaseSemaphore) Close file. Reset parser stats.
             beginLogging();          // Create new file based on current RTC.
-            setLoggingType();        // Determine if we are standard, PPP, or custom. Changes logging icon accordingly.
         }
     }
 
@@ -1689,7 +1790,11 @@ void logUpdate()
                 else
                 {
                     if ((settings.enablePrintLogFileStatus) && (!inMainMenu))
+                    {
+                        if (pin_debug != PIN_UNDEFINED)
+                            systemPrint(debugMessagePrefix);
                         systemPrintf("No increase in file size: %llu -> %llu\r\n", lastLogSize, logFileSize);
+                    }
                     logIncreasing = false;
 
                     endSD(false, true); // alreadyHaveSemaphore, releaseSemaphore

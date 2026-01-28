@@ -1,8 +1,8 @@
-/*------------------------------------------------------------------------------
+/*=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 GNSS_ZED.h
 
   Declarations and definitions for the GNSS_ZED implementation
-------------------------------------------------------------------------------*/
+=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=*/
 
 #ifndef __GNSS_ZED_H__
 #define __GNSS_ZED_H__
@@ -408,15 +408,15 @@ class GNSS_ZED : GNSS
     //   Returns true when an external event occurs and false if no event
     bool beginExternalEvent();
 
-    // Setup the timepulse output on the PPS pin for external triggering
-    // Outputs
-    //   Returns true if the pin was successfully setup and false upon
-    //   failure
-    bool beginPPS();
-
     bool checkNMEARates();
 
     bool checkPPPRates();
+
+    // Setup the general configuration of the GNSS
+    // Not Rover or Base specific (ie, baud rates)
+    // Outputs:
+    //   Returns true if successfully configured and false upon failure
+    bool configure();
 
     // Configure the Base
     // Outputs:
@@ -425,12 +425,6 @@ class GNSS_ZED : GNSS
 
     // Configure specific aspects of the receiver for NTP mode
     bool configureNtpMode();
-
-    // Setup the general configuration of the GNSS
-    // Not Rover or Base specific (ie, baud rates)
-    // Outputs:
-    //   Returns true if successfully configured and false upon failure
-    bool configureGNSS();
 
     // Configure the Rover
     // Outputs:
@@ -453,14 +447,6 @@ class GNSS_ZED : GNSS
 
     void debuggingEnable();
 
-    void enableGgaForNtrip();
-
-    // Enable RTCM 1230. This is the GLONASS bias sentence and is transmitted
-    // even if there is no GPS fix. We use it to test serial output.
-    // Outputs:
-    //   Returns true if successfully started and false upon failure
-    bool enableRTCMTest();
-
     // Restore the GNSS to the factory settings
     void factoryReset();
 
@@ -472,6 +458,13 @@ class GNSS_ZED : GNSS
     // Outputs:
     //   Returns true if successfully started and false upon failure
     bool fixedBaseStart();
+
+    bool fixRateIsAllowed(uint32_t fixRateMs);
+
+    // Return min/max rate in ms
+    uint32_t fixRateGetMinimumMs();
+
+    uint32_t fixRateGetMaximumMs();
 
     // Return the number of active/enabled messages
     uint8_t getActiveMessageCount();
@@ -497,6 +490,9 @@ class GNSS_ZED : GNSS
 
     // Returns the fix type or zero if not online
     uint8_t getFixType();
+
+    // Returns the geoidal separation
+    double getGeoidalSeparation();
 
     // Returns the hours of 24 hour clock or zero if not online
     uint8_t getHour();
@@ -538,6 +534,10 @@ class GNSS_ZED : GNSS
     // Returns minutes or zero if not online
     uint8_t getMinute();
 
+    // Returns the current mode: Base/Rover/etc
+    // 0 - Rover, 1 - Base Survey-In, 2 - Base Fixed
+    uint8_t getMode();
+
     // Returns month number or zero if not online
     uint8_t getMonth();
 
@@ -576,6 +576,11 @@ class GNSS_ZED : GNSS
 
     // Returns full year, ie 2023, not 23.
     uint16_t getYear();
+
+    // Helper functions for the current mode as read from the GNSS receiver
+    bool gnssInBaseFixedMode();
+    bool gnssInBaseSurveyInMode();
+    bool gnssInRoverMode();
 
     // Antenna Short / Open detection
     bool isAntennaShorted();
@@ -662,6 +667,12 @@ class GNSS_ZED : GNSS
     //   Returns the number of correction data bytes written
     int pushRawData(uint8_t *dataToSend, int dataLength);
 
+    // Set callback functions (PVT, etc) for u-blox library
+    bool registerCallbacks();
+
+    // Hardware or software reset the GNSS
+    bool reset();
+
     uint16_t rtcmBufferAvailable();
 
     // If L-Band is available, but encrypted, allow RTCM through other sources (radio, ESP-NOW) to GNSS receiver
@@ -672,13 +683,19 @@ class GNSS_ZED : GNSS
 
     uint16_t rtcmRead(uint8_t *rtcmBuffer, int rtcmBytesToRead);
 
+    // Set the baud rate on the designated port
+    bool setBaudRate(uint8_t uartNumber, uint32_t baudRate); // From the super class
+
+    bool setBaudRateComm(uint32_t baudRate);
+
+    bool setBaudRateData(uint32_t baudRate);
+
+    bool setBaudRateRadio(uint32_t baudRate);
+
     // Save the current configuration
     // Outputs:
     //   Returns true when the configuration was saved and false upon failure
     bool saveConfiguration();
-
-    // Set the baud rate on the designated port
-    bool setBaudRate(uint8_t uartNumber, uint32_t baudRate); // From the super class
 
     // Enable all the valid constellations and bands for this platform
     bool setConstellations();
@@ -687,12 +704,16 @@ class GNSS_ZED : GNSS
     // Always update if force is true. Otherwise, only update if enable has changed state
     bool setCorrRadioExtPort(bool enable, bool force);
 
-    bool setDataBaudRate(uint32_t baud);
-
     // Set the elevation in degrees
     // Inputs:
     //   elevationDegrees: The elevation value in degrees
     bool setElevation(uint8_t elevationDegrees);
+
+    // Enable or disable HAS E6 capability
+    bool setHighAccuracyService(bool enableGalileoHas);
+
+    // Configure any logging settings - currently mosaic-X5 specific
+    bool setLogging();
 
     // Given a unique string, find first and last records containing that string in message array
     void setMessageOffsets(const ubxMsg *localMessage, const char *messageType, int &startOfBlock, int &endOfBlock);
@@ -700,21 +721,33 @@ class GNSS_ZED : GNSS
     // Given the name of a message, find it, and set the rate
     bool setMessageRateByName(const char *msgName, uint8_t msgRate);
 
-    // Enable all the valid messages for this platform
-    bool setMessages(int maxRetries);
-
-    // Enable all the valid messages for this platform over the USB port
-    bool setMessagesUsb(int maxRetries);
-
     // Set the minimum satellite signal level for navigation.
-    bool setMinCnoRadio(uint8_t cnoValue);
+    bool setMinCN0(uint8_t cnoValue);
+
+    // Set the NMEA messages
+    bool setMessagesNMEA();
+
+    // Set then RTCM Base messages
+    bool setMessagesRTCMBase();
+
+    // Set the RTCM Rover messages
+    bool setMessagesRTCMRover();
 
     // Set the dynamic model to use for RTK
     // Inputs:
     //   modelNumber: Number of the model to use, provided by radio library
     bool setModel(uint8_t modelNumber);
 
-    bool setRadioBaudRate(uint32_t baud);
+    bool setMultipathMitigation(bool enableMultipathMitigation);
+
+    // Given the name of a message, find it, and set the rate
+    bool setNmeaMessageRateByName(const char *msgName, uint8_t msgRate);
+
+    // Setup the timepulse output on the PPS pin for external triggering
+    // Outputs
+    //   Returns true if the pin was successfully setup and false upon
+    //   failure
+    bool setPPS();
 
     // Specify the interval between solutions
     // Inputs:
@@ -724,10 +757,8 @@ class GNSS_ZED : GNSS
     //   failure
     bool setRate(double secondsBetweenSolutions);
 
-    bool setTalkerGNGGA();
-
-    // Hotstart GNSS to try to get RTK lock
-    bool softwareReset();
+    // Enable/disable any output needed for tilt compensation
+    bool setTilt();
 
     bool standby();
 
@@ -766,6 +797,30 @@ class GNSS_ZED : GNSS
 
     void updateCorrectionsSource(uint8_t source);
 };
+
+// Forward routine declarations
+bool zedCommandList(RTK_Settings_Types type,
+                    int settingsIndex,
+                    bool inCommands,
+                    int qualifier,
+                    char * settingName,
+                    char * settingValue);
+void zedCommandTypeJson(JsonArray &command_types);
+bool zedCreateString(RTK_Settings_Types type,
+                     int settingsIndex,
+                     char * newSettings);
+bool zedGetSettingValue(RTK_Settings_Types type,
+                        const char * suffix,
+                        int settingsIndex,
+                        int qualifier,
+                        char * settingValueStr);
+bool zedNewSettingValue(RTK_Settings_Types type,
+                        const char * suffix,
+                        int qualifier,
+                        double d);
+bool zedSettingsToFile(File *settingsFile,
+                       RTK_Settings_Types type,
+                       int settingsIndex);
 
 #endif // COMPILE_ZED
 #endif // __GNSS_ZED_H__

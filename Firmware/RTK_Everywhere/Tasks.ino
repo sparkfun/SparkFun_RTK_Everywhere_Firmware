@@ -1,4 +1,4 @@
-/*------------------------------------------------------------------------------
+/*=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 Tasks.ino
 
   This module implements the high-frequency tasks made by xTaskCreate() and any
@@ -32,17 +32,17 @@ Tasks.ino
             v               v                v               v
         Bluetooth      TCP Client     TCP/UDP Server      SD Card
 
-------------------------------------------------------------------------------*/
+=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=*/
 
 //----------------------------------------
 // Macros
 //----------------------------------------
 
-#define WRAP_OFFSET(offset, increment, arraySize) \
-    {                                             \
-        offset += increment;                      \
-        if (offset >= arraySize)                  \
-            offset -= arraySize;                  \
+#define WRAP_OFFSET(offset, increment, arraySize)                                                                      \
+    {                                                                                                                  \
+        offset += increment;                                                                                           \
+        if (offset >= arraySize)                                                                                       \
+            offset -= arraySize;                                                                                       \
     }
 
 //----------------------------------------
@@ -62,12 +62,7 @@ enum RingBufferConsumers
 };
 
 const char *const ringBufferConsumer[] = {
-    "Bluetooth",
-    "TCP Client",
-    "TCP Server",
-    "SD Card",
-    "UDP Server",
-    "USB Serial",
+    "Bluetooth", "TCP Client", "TCP Server", "SD Card", "UDP Server", "USB Serial",
 };
 
 const int ringBufferConsumerEntries = sizeof(ringBufferConsumer) / sizeof(ringBufferConsumer[0]);
@@ -81,21 +76,13 @@ const int ringBufferConsumerEntries = sizeof(ringBufferConsumer) / sizeof(ringBu
 
 // List the parsers to be included
 SEMP_PARSE_ROUTINE const parserTable[] = {
-    sempNmeaPreamble,
-    sempUnicoreHashPreamble,
-    sempRtcmPreamble,
-    sempUbloxPreamble,
-    sempUnicoreBinaryPreamble,
+    sempNmeaPreamble, sempUnicoreHashPreamble, sempRtcmPreamble, sempUbloxPreamble, sempUnicoreBinaryPreamble,
 };
 const int parserCount = sizeof(parserTable) / sizeof(parserTable[0]);
 
 // List the names of the parsers
 const char *const parserNames[] = {
-    "NMEA",
-    "Unicore Hash_(#)",
-    "RTCM",
-    "u-Blox",
-    "Unicore Binary",
+    "NMEA", "Unicore Hash_(#)", "RTCM", "u-Blox", "Unicore Binary",
 };
 const int parserNameCount = sizeof(parserNames) / sizeof(parserNames[0]);
 
@@ -115,9 +102,9 @@ const char *const spartnParserNames[] = {
 };
 const int spartnParserNameCount = sizeof(spartnParserNames) / sizeof(spartnParserNames[0]);
 
-SEMP_PARSE_ROUTINE const rtcmParserTable[] = { sempRtcmPreamble };
+SEMP_PARSE_ROUTINE const rtcmParserTable[] = {sempRtcmPreamble};
 const int rtcmParserCount = sizeof(rtcmParserTable) / sizeof(rtcmParserTable[0]);
-const char *const rtcmParserNames[] = { "RTCM" };
+const char *const rtcmParserNames[] = {"RTCM"};
 const int rtcmParserNameCount = sizeof(rtcmParserNames) / sizeof(rtcmParserNames[0]);
 
 //----------------------------------------
@@ -153,7 +140,7 @@ void btReadTask(void *e)
 
     unsigned long btLastByteReceived = 0; // Track when the last BT transmission was received.
     const long btMinEscapeTime =
-        2000;                          // Bluetooth serial traffic must stop this amount before an escape char is recognized
+        2000; // Bluetooth serial traffic must stop this amount before an escape char is recognized
     uint8_t btEscapeCharsReceived = 0; // Used to enter remote command mode
 
     // Start notification
@@ -205,7 +192,6 @@ void btReadTask(void *e)
                         addToGnssBuffer(btEscapeCharacter);
                     }
                 }
-
 
                 else // This character is not a command character, pass along to GNSS
                 {
@@ -280,7 +266,8 @@ void sendGnssBuffer()
 {
     if (correctionLastSeen(CORR_BLUETOOTH))
     {
-        sempParseNextBytes(rtcmParse, bluetoothOutgoingToGnss, bluetoothOutgoingToGnssHead); // Parse the data for RTCM1005/1006
+        sempParseNextBytes(rtcmParse, bluetoothOutgoingToGnss,
+                           bluetoothOutgoingToGnssHead); // Parse the data for RTCM1005/1006
         if (gnss->pushRawData(bluetoothOutgoingToGnss, bluetoothOutgoingToGnssHead))
         {
             if ((settings.debugCorrections || PERIODIC_DISPLAY(PD_GNSS_DATA_TX)) && !inMainMenu)
@@ -355,32 +342,46 @@ void feedWdt()
 // time.
 void gnssReadTask(void *e)
 {
+    int bytes;
+
     // Start notification
     task.gnssReadTaskRunning = true;
     if (settings.printTaskStartStop)
         systemPrintln("Task gnssReadTask started");
 
     // Initialize the main parser
+    bytes = psramFound() ? 16384 : 3000;
     rtkParse = sempBeginParser(parserTable, parserCount, parserNames, parserNameCount,
                                0,                   // Scratchpad bytes
-                               3000,                // Buffer length
+                               bytes,               // Buffer length
                                processUart1Message, // eom Call Back
                                "rtkParse");         // Parser Name
     if (!rtkParse)
         reportFatalError("Failed to initialize the parser");
 
     if (settings.debugGnss)
-        sempEnableDebugOutput(rtkParse);
+    {
+        sempEnableDebugOutput(rtkParse); // Standard debug on Serial
+        //sempEnableDebugOutput(rtkParse, &Serial, true); // Verbose debug
+    }
+
+    // Abort NMEA and Unicore Hash on non-printable character
+    // Help faster recovery from UART errors on EVK
+    sempAbortNmeaOnNonPrintable(rtkParse);
+    sempAbortHashOnNonPrintable(rtkParse);
 
     bool sbfParserNeeded = present.gnss_mosaicX5;
-    bool spartnParserNeeded = present.gnss_mosaicX5 && (productVariant != RTK_FLEX);
+    bool spartnParserNeeded = present.gnss_mosaicX5 && (productVariant != RTK_FACET_FP);
 
     if (sbfParserNeeded)
     {
         // Initialize the SBF parser for the mosaic-X5
+        bytes = psramFound() ? 16384 : sempGnssReadBufferSize;
+        if (bytes < sempGnssReadBufferSize)
+            bytes = sempGnssReadBufferSize;
         sbfParse = sempBeginParser(sbfParserTable, sbfParserCount, sbfParserNames, sbfParserNameCount,
                                    0,                      // Scratchpad bytes
-                                   sempGnssReadBufferSize, // Buffer length - 3000 isn't enough!
+                                   bytes,                  // Buffer length
                                    processUart1SBF,        // eom Call Back - in mosaic.ino
                                    "sbfParse");            // Parser Name
         if (!sbfParse)
@@ -396,11 +397,13 @@ void gnssReadTask(void *e)
             sempSbfSetInvalidDataCallback(sbfParse, processNonSBFData);
 
             // Initialize the SPARTN parser for the mosaic-X5
-            spartnParse = sempBeginParser(spartnParserTable, spartnParserCount, spartnParserNames, spartnParserNameCount,
-                                        0,                  // Scratchpad bytes
-                                        1200,               // Buffer length - SPARTN payload is 1024 bytes max
-                                        processUart1SPARTN, // eom Call Back - in mosaic.ino
-                                        "spartnParse");     // Parser Name
+            bytes = 1200; // SPARTN payload is 1024 bytes max
+            spartnParse =
+                sempBeginParser(spartnParserTable, spartnParserCount, spartnParserNames, spartnParserNameCount,
+                                0,                  // Scratchpad bytes
+                                bytes,              // Buffer length
+                                processUart1SPARTN, // eom Call Back - in mosaic.ino
+                                "spartnParse");     // Parser Name
             if (!spartnParse)
                 reportFatalError("Failed to initialize the SPARTN parser");
 
@@ -454,7 +457,7 @@ void gnssReadTask(void *e)
         // to add extra checks, above and beyond the invalidDataCallback, to make sure that doesn't happen.
         // Here we check that the SBF ID and length are expected / valid too.
         //
-        // For Flex mosaic, we need the SBF parser but not the SPARTN parser
+        // For Facet FP mosaic, we need the SBF parser but not the SPARTN parser
 
         if (gnss->isBlocking() == false)
         {
@@ -462,20 +465,33 @@ void gnssReadTask(void *e)
             while (serialGNSS->available())
             {
                 // Read the data from UART1
-                uint8_t incomingData[500];
+                static uint8_t incomingData[256];
                 int bytesIncoming = serialGNSS->read(incomingData, sizeof(incomingData));
                 totalRxByteCount += bytesIncoming;
+
+                if ((bytesIncoming < 0) || (bytesIncoming > sizeof(incomingData)))
+                {
+                    if (settings.debugGnss)
+                        systemPrintf("gnssReadTask: bytesIncoming = %d\r\n", bytesIncoming);
+                }
 
                 for (int x = 0; x < bytesIncoming; x++)
                 {
                     // Update the parser state based on the incoming byte
                     // On mosaic-X5, pass the byte to sbfParse. On all other platforms, pass it straight to rtkParse
-                    sempParseNextByte(sbfParserNeeded ? sbfParse : rtkParse, incomingData[x]);
+                    if (!sbfParserNeeded)
+                    {
+                        //pinDebugOn();
+                        sempParseNextByte(rtkParse, incomingData[x]);
+                        //pinDebugOff();
+                    }
 
                     // See notes above. On the mosaic-X5, check that the incoming SBF blocks have expected IDs and
                     // lengths to help prevent raw L-Band data being misidentified as SBF
-                    if (sbfParserNeeded)
+                    else // if (sbfParserNeeded)
                     {
+                        sempParseNextByte(sbfParse, incomingData[x]);
+
                         SEMP_SCRATCH_PAD *scratchPad = (SEMP_SCRATCH_PAD *)sbfParse->scratchPad;
 
                         // Check if this is Length MSB
@@ -499,7 +515,7 @@ void gnssReadTask(void *e)
                             if (!expected) // SBF is not expected so restart the parsers
                             {
                                 sbfParse->state = sempFirstByte;
-                                if (spartnParserNeeded)                                
+                                if (spartnParserNeeded)
                                     spartnParse->state = sempFirstByte;
                                 if (settings.debugGnss)
                                     systemPrintf("Unexpected SBF block %d - rejected on ID or length\r\n",
@@ -540,7 +556,7 @@ void gnssReadTask(void *e)
                             if (!expected) // SBF is not expected so restart the parsers
                             {
                                 sbfParse->state = sempFirstByte;
-                                if (spartnParserNeeded)                                
+                                if (spartnParserNeeded)
                                     spartnParse->state = sempFirstByte;
                                 if (settings.debugGnss)
                                     systemPrintf("Unexpected EncapsulatedOutput block - rejected\r\n");
@@ -574,6 +590,7 @@ void gnssReadTask(void *e)
 }
 
 // Force the NMEA Talker ID - if needed
+// Note: this places a null directly after the csum, overwriting the \r (if there is one)
 void forceTalkerId(const char *Id, char *msg, size_t maxLen)
 {
     if (msg[2] == *Id)
@@ -581,12 +598,12 @@ void forceTalkerId(const char *Id, char *msg, size_t maxLen)
 
     char oldTalker = msg[2];
     msg[2] = *Id; // Force the Talker ID
-    
+
     // Update the checksum: XOR chars between '$' and '*'
     size_t len = 1;
     uint8_t csum = 0;
     while ((len < maxLen) && (msg[len] != '*'))
-        csum = csum ^ msg[len++]; 
+        csum = csum ^ msg[len++];
 
     if (len >= (maxLen - 3))
     {
@@ -596,10 +613,11 @@ void forceTalkerId(const char *Id, char *msg, size_t maxLen)
     }
 
     len++; // Point at the checksum and update it
-    sprintf(&msg[len], "%02X", csum);
+    sprintf(&msg[len], "%02X", csum); // null-terminate after csum
 }
 
 // Force the RMC COG entry - if needed
+// Note: this places a null directly after the csum, overwriting the \r (if there is one)
 void forceRmcCog(char *msg, size_t maxLen)
 {
     const char *noCog = "0.0";
@@ -638,12 +656,59 @@ void forceRmcCog(char *msg, size_t maxLen)
     len = 1;
     uint8_t csum = 0;
     while ((len < maxLen) && (msg[len] != '*'))
-        csum = csum ^ msg[len++]; 
+        csum = csum ^ msg[len++];
     len++; // Point at the checksum and update it
-    sprintf(&msg[len], "%02X", csum);
+    sprintf(&msg[len], "%02X", csum); // null-terminate after csum
+}
+
+// Replace the RMC Mode Indicator - if needed
+// Location Information expects the Mode Indicator to be:
+// A=Autonomous, D=Differential, E=Approximation, N=Invalid Data
+// ATS throws an error with the F=Float, M=Manual, R=RTK from the LG290P
+// Change unsupported modes to A / D
+// Note: this places a null directly after the csum, overwriting the \r (if there is one)
+void replaceRmcModeIndicator(char *msg, size_t maxLen)
+{
+    if (strstr(msg, "RMC") == nullptr)
+        return; // Nothing to do
+
+    // Find the start of Mode Indicator - at the 12th comma
+    int numCommas = 0;
+    size_t len = 0;
+    while ((numCommas < 12) && (msg[len] != '*') && (len < maxLen))
+    {
+        if (msg[len++] == ',')
+            numCommas++;
+    }
+
+    if (len >= (maxLen - 3)) // Something went horribly wrong
+        return;
+
+    // If the next char is ',' or '*' - there's nothing to do
+    if ((msg[len] == ',') || (msg[len] == '*') || (numCommas < 12))
+        return;
+
+    // If the Mode Indicator is A, D, E or N - there's nothing to do
+    if ((msg[len] == 'A') || (msg[len] == 'D') || (msg[len] == 'E') || (msg[len] == 'N'))
+        return;
+
+    // Replace unsupported mode indicator
+    if (msg[len] == 'M') // Change Manual to Autonomous
+        msg[len] = 'A';
+    else
+        msg[len] = 'D'; // Change everything else to Differential
+
+    // Update the checksum: XOR chars between '$' and '*'
+    len = 1;
+    uint8_t csum = 0;
+    while ((len < maxLen) && (msg[len] != '*'))
+        csum = csum ^ msg[len++];
+    len++; // Point at the checksum and update it
+    sprintf(&msg[len], "%02X", csum); // null-terminate after csum
 }
 
 // Remove the RMC Navigational Status field - if needed
+// Note: this places a null directly after the csum, overwriting the \r (if there is one)
 void removeRmcNavStat(char *msg, size_t maxLen)
 {
     if (strstr(msg, "RMC") == nullptr)
@@ -675,7 +740,7 @@ void removeRmcNavStat(char *msg, size_t maxLen)
     if (msg[asterix] != '*') // Something went horribly wrong
         return;
 
-    // Delete the NavStat
+    // Delete the NavStat - overwrite it with the asterix
     for (size_t i = 0; i < (strlen(msg) + 1 - asterix); i++) // Copy the * CSUM NULL
         msg[len + i] = msg[asterix + i];
 
@@ -683,9 +748,138 @@ void removeRmcNavStat(char *msg, size_t maxLen)
     len = 1;
     uint8_t csum = 0;
     while ((len < maxLen) && (msg[len] != '*'))
-        csum = csum ^ msg[len++]; 
+        csum = csum ^ msg[len++];
     len++; // Point at the checksum and update it
-    sprintf(&msg[len], "%02X", csum);
+    sprintf(&msg[len], "%02X", csum); // null-terminate after csum
+}
+
+// Apply offsetSeconds to the UTC time in GGA / RMC / GST
+// Note: this places a null directly after the csum, overwriting the \r (if there is one)
+void utcAdjust(double offsetSeconds, char *msg, size_t maxLen)
+{
+    if (offsetSeconds == 0.0)
+        return; // Nothing to do
+
+    bool isRMC = (strstr(msg, "RMC") != nullptr);
+
+    // Find the start of UTC - at the 1st comma
+    int numCommas = 0;
+    size_t len = 0;
+    while ((numCommas < 1) && (msg[len] != '*') && (len < maxLen))
+    {
+        if (msg[len++] == ',')
+            numCommas++;
+    }
+
+    if (len >= (maxLen - 3)) // Something went horribly wrong
+        return;
+
+    // Assemble the time
+
+    size_t timestart = len;
+
+    double secondsNow = 0.0;
+    secondsNow += ((double)(msg[len++] - 0x30)) * 36000.0;
+    secondsNow += ((double)(msg[len++] - 0x30)) * 3600.0;
+    secondsNow += ((double)(msg[len++] - 0x30)) * 600.0;
+    secondsNow += ((double)(msg[len++] - 0x30)) * 60.0;
+    secondsNow += ((double)(msg[len++] - 0x30)) * 10.0;
+    secondsNow += ((double)(msg[len++] - 0x30)) * 1.0;
+    int ndp = 0; // Number of decimal places
+    if (msg[len] == '.')
+    {
+        len++;
+        double dp = 0.1;
+        while (msg[len] != ',')
+        {
+            secondsNow += ((double)(msg[len++] - 0x30)) * dp;
+            ndp++;
+            dp *= 0.1;
+        }
+    }
+
+    // Apply the offset
+
+    offsetSeconds = round(offsetSeconds * 1000.0) / 1000.0;
+    secondsNow += offsetSeconds;
+    int dateAdjust = 0;
+    while (secondsNow < 0.0)
+    {
+        secondsNow += 86400.0;
+        dateAdjust -= 1;
+    }
+    while (secondsNow >= 86400.0)
+    {
+        secondsNow -= 86400.0;
+        dateAdjust += 1;
+    }
+
+    // Update the time
+
+    char timeFormat[18];
+    if (ndp > 0)
+        snprintf(timeFormat, sizeof(timeFormat), "%%02d%%02d%%02d.%%0%dd", ndp);
+    else
+        snprintf(timeFormat, sizeof(timeFormat), "%%02d%%02d%%02d");
+    int hours = (int)(secondsNow / 3600.0);
+    secondsNow -= (double)hours * 3600.0;
+    int mins = (int)(secondsNow / 60.0);
+    secondsNow -= (double)mins * 60.0;
+    int secs = (int)(secondsNow);
+    secondsNow -= (double)secs;
+    for (int d = 0; d < ndp; d++)
+        secondsNow *= 10.0;
+    int dps = (int)round(secondsNow);
+    if (ndp > 0)
+        sprintf(&msg[timestart], timeFormat, hours, mins, secs, dps);
+    else
+        sprintf(&msg[timestart], timeFormat, hours, mins, secs);
+    msg[len] = ','; // Restore the comma (it was overwritten by the null)
+
+    // Update the RMC Date
+
+    if (isRMC && (dateAdjust != 0))
+    {
+        while ((numCommas < 9) && (msg[len] != '*') && (len < maxLen))
+        {
+            if (msg[len++] == ',')
+                numCommas++;
+        }
+
+        // Assemble the date
+
+        size_t datestart = len;
+
+        struct tm tm_actual;
+        struct tm *tm = &tm_actual;
+        tm->tm_mday = (((int)(msg[len++] - 0x30)) * 10) + ((int)(msg[len++] - 0x30));
+        tm->tm_mon = (((int)(msg[len++] - 0x30)) * 10) + ((int)(msg[len++] - 0x30)) - 1;
+        tm->tm_year = (((int)(msg[len++] - 0x30)) * 10) + ((int)(msg[len++] - 0x30)) + 100;
+        tm->tm_hour = hours;
+        tm->tm_min = mins;
+        tm->tm_sec = secs;
+        tm->tm_isdst = 0;
+
+        time_t tt = mktime(tm);
+
+        // Adjust the date
+
+        tt += dateAdjust * 86400;
+        tm = localtime(&tt);
+
+        // Update the date
+
+        strftime(&msg[datestart], 7, "%d%m%y", tm);
+        msg[datestart + 6] = ','; // Restore the comma (it was overwritten by the null)
+    }
+
+    // Update the checksum: XOR chars between '$' and '*'
+    len = 1;
+    uint8_t csum = 0;
+    while ((len < maxLen) && (msg[len] != '*'))
+        csum = csum ^ msg[len++];
+    len++; // Point at the checksum and update it
+    sprintf(&msg[len], "%02X", csum); // null-terminate after csum
 }
 
 // Call back from within parser, for end of message
@@ -754,7 +948,8 @@ void processUart1Message(SEMP_PARSE_STATE *parse, uint16_t type)
                 latestGPGGA[parse->length] = 0; // NULL terminate
                 if ((strlen(latestGPGGA) > 10) && (latestGPGGA[strlen(latestGPGGA) - 2] == '\r'))
                     latestGPGGA[strlen(latestGPGGA) - 2] = 0; // Truncate the \r\n
-                forceTalkerId("P",latestGPGGA,latestNmeaMaxLen);
+                forceTalkerId("P", latestGPGGA, latestNmeaMaxLen);
+                utcAdjust(settings.accessoryTimeOffset_s, latestGPGGA, latestNmeaMaxLen);
             }
             else
                 systemPrintf("Increase latestNmeaMaxLen to > %d\r\n", parse->length);
@@ -767,9 +962,11 @@ void processUart1Message(SEMP_PARSE_STATE *parse, uint16_t type)
                 latestGPRMC[parse->length] = 0; // NULL terminate
                 if ((strlen(latestGPRMC) > 10) && (latestGPRMC[strlen(latestGPRMC) - 2] == '\r'))
                     latestGPRMC[strlen(latestGPRMC) - 2] = 0; // Truncate the \r\n
-                forceTalkerId("P",latestGPRMC,latestNmeaMaxLen);
-                forceRmcCog(latestGPRMC,latestNmeaMaxLen);
-                removeRmcNavStat(latestGPRMC,latestNmeaMaxLen);
+                forceTalkerId("P", latestGPRMC, latestNmeaMaxLen);
+                forceRmcCog(latestGPRMC, latestNmeaMaxLen);
+                replaceRmcModeIndicator(latestGPRMC, latestNmeaMaxLen);
+                removeRmcNavStat(latestGPRMC, latestNmeaMaxLen);
+                utcAdjust(settings.accessoryTimeOffset_s, latestGPRMC, latestNmeaMaxLen);
             }
             else
                 systemPrintf("Increase latestNmeaMaxLen to > %d\r\n", parse->length);
@@ -782,7 +979,8 @@ void processUart1Message(SEMP_PARSE_STATE *parse, uint16_t type)
                 latestGPGST[parse->length] = 0; // NULL terminate
                 if ((strlen(latestGPGST) > 10) && (latestGPGST[strlen(latestGPGST) - 2] == '\r'))
                     latestGPGST[strlen(latestGPGST) - 2] = 0; // Truncate the \r\n
-                forceTalkerId("P",latestGPGST,latestNmeaMaxLen);
+                forceTalkerId("P", latestGPGST, latestNmeaMaxLen);
+                utcAdjust(settings.accessoryTimeOffset_s, latestGPGST, latestNmeaMaxLen);
             }
             else
                 systemPrintf("Increase latestNmeaMaxLen to > %d\r\n", parse->length);
@@ -795,13 +993,13 @@ void processUart1Message(SEMP_PARSE_STATE *parse, uint16_t type)
                 latestGPVTG[parse->length] = 0; // NULL terminate
                 if ((strlen(latestGPVTG) > 10) && (latestGPVTG[strlen(latestGPVTG) - 2] == '\r'))
                     latestGPVTG[strlen(latestGPVTG) - 2] = 0; // Truncate the \r\n
-                forceTalkerId("P",latestGPVTG,latestNmeaMaxLen);
+                forceTalkerId("P", latestGPVTG, latestNmeaMaxLen);
             }
             else
                 systemPrintf("Increase latestNmeaMaxLen to > %d\r\n", parse->length);
         }
-        else if ((strstr(sempNmeaGetSentenceName(parse), "GSA") != nullptr)
-                 || (strstr(sempNmeaGetSentenceName(parse), "GSV") != nullptr))
+        else if ((strstr(sempNmeaGetSentenceName(parse), "GSA") != nullptr) ||
+                 (strstr(sempNmeaGetSentenceName(parse), "GSV") != nullptr))
         {
             // If the Apple Accessory is sending the data to the EA Session,
             // discard this GSA / GSV. Bad things would happen if we were to
@@ -809,35 +1007,70 @@ void processUart1Message(SEMP_PARSE_STATE *parse, uint16_t type)
 #ifdef COMPILE_AUTHENTICATION
             if (appleAccessory->latestEASessionDataIsBlocking() == false)
             {
-                size_t spaceAvailable = latestEASessionDataMaxLen - strlen(latestEASessionData);
-                if (spaceAvailable >= 3)
-                    spaceAvailable -= 3; // Leave room for the CR, LF and NULL
-                while (spaceAvailable < parse->length) // If the buffer is full, delete the oldest message(s)
+                do // Use a do loop so we can break out if needed
                 {
-                    const char *lfPtr = strstr(latestEASessionData, "\n"); // Find the first LF
-                    if (lfPtr == nullptr)
-                        break; // Something has gone badly wrong...
-                    lfPtr++; // Point at the byte after the LF
-                    size_t oldLen = lfPtr - latestEASessionData; // This much data is old
-                    size_t newLen = strlen(latestEASessionData) - oldLen; // This much is new (not old)
-                    for (size_t i = 0; i <= newLen; i++) // Move the new data over the old. Include the NULL
-                        latestEASessionData[i] = latestEASessionData[oldLen + i];
-                    spaceAvailable += oldLen;
-                }
-                size_t dataLen = strlen(latestEASessionData);
-                memcpy(&latestEASessionData[dataLen], parse->buffer, parse->length); // Add the new NMEA data
-                dataLen += parse->length;
-                latestEASessionData[dataLen] = 0; // NULL terminate
-                if (latestEASessionData[dataLen - 1] != '\n')
-                {
-                    latestEASessionData[dataLen] = '\r'; // Add CR
-                    latestEASessionData[dataLen + 1] = '\n'; // Add LF
-                    latestEASessionData[dataLen + 2] = 0; // NULL terminate
-                }
+                    // Check the buffer is large enough. Include room for the CR, LF and NULL
+                    if (latestEASessionDataMaxLen < (parse->length + 3))
+                    {
+                        if (settings.debugNetworkLayer && !inMainMenu)
+                            systemPrintf("Increase latestEASessionDataMaxLen to > %d\r\n", parse->length);
+                        break;
+                    }
+
+                    // Use strnlen to get the length of the stored EA session data
+                    size_t latestEASessionDataLen = strnlen(latestEASessionData, latestEASessionDataMaxLen);
+                    if (latestEASessionDataLen == latestEASessionDataMaxLen)
+                    {
+                        if (settings.debugNetworkLayer && !inMainMenu)
+                            systemPrintln("latestEASessionData is full and not NULL-terminated. Discarding buffer contents...");
+                        *latestEASessionData = 0;
+                        latestEASessionDataLen = 0;
+                    }
+
+                    size_t spaceAvailable = latestEASessionDataMaxLen - latestEASessionDataLen;
+                    
+                    // If the buffer is full, delete the oldest message(s). Include room for the CR, LF and NULL
+                    while (spaceAvailable < (parse->length + 3))
+                    {
+                        const char *lfPtr = strstr(latestEASessionData, "\n"); // Find the first LF
+                        if (lfPtr == nullptr)
+                        {
+                            // LF not found. Something has gone badly wrong...
+                            if (settings.debugNetworkLayer && !inMainMenu)
+                                systemPrintln("latestEASessionData does not contain LF. Discarding buffer contents...");
+                            *latestEASessionData = 0;
+                            latestEASessionDataLen = 0;
+                            spaceAvailable = latestEASessionDataMaxLen;
+                        }
+                        else
+                        {
+                            lfPtr++;                                         // Point at the byte after the LF
+                            size_t oldLen = lfPtr - latestEASessionData;     // This much data is old
+                            size_t newLen = latestEASessionDataLen - oldLen; // This much is new (not old)
+                            // Move the new data over the old. Include the NULL
+                            memmove(latestEASessionData, &latestEASessionData[oldLen], newLen + 1);
+                            spaceAvailable += oldLen;
+                            latestEASessionDataLen = newLen;
+                            // if (settings.debugNetworkLayer && !inMainMenu)
+                            //     systemPrintf("latestEASessionData is full. Discarding %d bytes...\r\n", oldLen);
+                        }
+                    }
+
+                    memcpy(&latestEASessionData[latestEASessionDataLen], parse->buffer, parse->length); // Add the new NMEA data
+                    latestEASessionDataLen += parse->length;
+                    if (latestEASessionData[latestEASessionDataLen - 1] != '\n') // Check for LF
+                    {
+                        latestEASessionData[latestEASessionDataLen++] = '\r';     // Add CR
+                        latestEASessionData[latestEASessionDataLen++] = '\n'; // Add LF
+                    }
+                    latestEASessionData[latestEASessionDataLen] = 0;    // NULL terminate
+                    // if (settings.debugNetworkLayer && !inMainMenu)
+                    //     systemPrintf("latestEASessionData: added %d bytes...\r\n", parse->length);
+                } while (0);
             }
-            else if (settings.debugNetworkLayer)
+            else if (settings.debugNetworkLayer && !inMainMenu)
                 systemPrintf("Discarding %d GSA/GSV bytes - latestEASessionDataIsBlocking\r\n", parse->length);
-#endif //COMPILE_AUTHENTICATION
+#endif // COMPILE_AUTHENTICATION
         }
     }
 
@@ -865,8 +1098,17 @@ void processUart1Message(SEMP_PARSE_STATE *parse, uint16_t type)
             // Suppress PQTM/NMEA messages as needed
             if (lg290pMessageEnabled((char *)parse->buffer, parse->length) == false)
             {
-                parse->buffer[0] = 0;
-                parse->length = 0;
+                if (settings.enableNtripClient == true && settings.ntripClient_TransmitGGA == true)
+                {
+                    // GGA is disabled, but the user has enabled the NTRIP Client.
+                    // Allow GGA to get through, unmodified.
+                }
+                else
+                {
+                    // Remove the contents of this message
+                    parse->buffer[0] = 0;
+                    parse->length = 0;
+                }
             }
         }
     }
@@ -887,7 +1129,9 @@ void processUart1Message(SEMP_PARSE_STATE *parse, uint16_t type)
     if (inBaseMode() && type == RTK_RTCM_PARSER_INDEX)
     {
         // Pass data along to NTRIP Server, ESP-NOW radio, or LoRa
+        //pinDebugOn();
         processRTCM(parse->buffer, parse->length);
+        //pinDebugOff();
     }
 
     // Determine if we are using the PPL - UM980, LG290P, or mosaic-X5
@@ -1005,8 +1249,8 @@ void processUart1Message(SEMP_PARSE_STATE *parse, uint16_t type)
 
     // Use a semaphore to prevent handleGnssDataTask from gatecrashing
     if (ringBufferSemaphore == NULL)
-        ringBufferSemaphore = xSemaphoreCreateMutex();  // Create the mutex
-    
+        ringBufferSemaphore = xSemaphoreCreateMutex(); // Create the mutex
+
     // Take the semaphore. Long wait. handleGnssDataTask could block
     // Enable printing of the ring buffer offsets (s d 10) and the SD buffer sizes (s h 7)
     // to see this in action. No more gatecrashing!
@@ -1035,54 +1279,54 @@ void processUart1Message(SEMP_PARSE_STATE *parse, uint16_t type)
                 previousTail -= settings.gnssHandlerBufferSize;
 
             /*  The rbOffsetArray holds the offsets into the ring buffer of the
-            *  start of each of the parsed messages.  A head (rbOffsetHead) and
-            *  tail (rbOffsetTail) offsets are used for this array to insert and
-            *  remove entries.  Typically this task only manipulates the head as
-            *  new messages are placed into the ring buffer.  The handleGnssDataTask
-            *  normally manipulates the tail as data is removed from the buffer.
-            *  However this task will manipulate the tail under two conditions:
-            *
-            *  1.  The ring buffer gets full and data must be discarded
-            *
-            *  2.  The rbOffsetArray is too small to hold all of the message
-            *      offsets for the data in the ring buffer.  The array is full
-            *      when (Head + 1) == Tail
-            *
-            *  Notes:
-            *      The rbOffsetArray is allocated along with the ring buffer in
-            *      Begin.ino
-            *
-            *      The first entry rbOffsetArray[0] is initialized to zero (0)
-            *      in Begin.ino
-            *
-            *      The array always has one entry in it containing the head offset
-            *      which contains a valid offset into the ringBuffer, handled below
-            *
-            *      The empty condition is Tail == Head
-            *
-            *      The amount of data described by the rbOffsetArray is
-            *      rbOffsetArray[Head] - rbOffsetArray[Tail]
-            *
-            *              rbOffsetArray                  ringBuffer
-            *           .-----------------.           .-----------------.
-            *           |                 |           |                 |
-            *           +-----------------+           |                 |
-            *  Tail --> |   Msg 1 Offset  |---------->+-----------------+ <-- Tail n
-            *           +-----------------+           |      Msg 1      |
-            *           |   Msg 2 Offset  |--------.  |                 |
-            *           +-----------------+        |  |                 |
-            *           |   Msg 3 Offset  |------. '->+-----------------+
-            *           +-----------------+      |    |      Msg 2      |
-            *  Head --> |   Head Offset   |--.   |    |                 |
-            *           +-----------------+  |   |    |                 |
-            *           |                 |  |   |    |                 |
-            *           +-----------------+  |   |    |                 |
-            *           |                 |  |   '--->+-----------------+
-            *           +-----------------+  |        |      Msg 3      |
-            *           |                 |  |        |                 |
-            *           +-----------------+  '------->+-----------------+ <-- dataHead
-            *           |                 |           |                 |
-            */
+             *  start of each of the parsed messages.  A head (rbOffsetHead) and
+             *  tail (rbOffsetTail) offsets are used for this array to insert and
+             *  remove entries.  Typically this task only manipulates the head as
+             *  new messages are placed into the ring buffer.  The handleGnssDataTask
+             *  normally manipulates the tail as data is removed from the buffer.
+             *  However this task will manipulate the tail under two conditions:
+             *
+             *  1.  The ring buffer gets full and data must be discarded
+             *
+             *  2.  The rbOffsetArray is too small to hold all of the message
+             *      offsets for the data in the ring buffer.  The array is full
+             *      when (Head + 1) == Tail
+             *
+             *  Notes:
+             *      The rbOffsetArray is allocated along with the ring buffer in
+             *      Begin.ino
+             *
+             *      The first entry rbOffsetArray[0] is initialized to zero (0)
+             *      in Begin.ino
+             *
+             *      The array always has one entry in it containing the head offset
+             *      which contains a valid offset into the ringBuffer, handled below
+             *
+             *      The empty condition is Tail == Head
+             *
+             *      The amount of data described by the rbOffsetArray is
+             *      rbOffsetArray[Head] - rbOffsetArray[Tail]
+             *
+             *              rbOffsetArray                  ringBuffer
+             *           .-----------------.           .-----------------.
+             *           |                 |           |                 |
+             *           +-----------------+           |                 |
+             *  Tail --> |   Msg 1 Offset  |---------->+-----------------+ <-- Tail n
+             *           +-----------------+           |      Msg 1      |
+             *           |   Msg 2 Offset  |--------.  |                 |
+             *           +-----------------+        |  |                 |
+             *           |   Msg 3 Offset  |------. '->+-----------------+
+             *           +-----------------+      |    |      Msg 2      |
+             *  Head --> |   Head Offset   |--.   |    |                 |
+             *           +-----------------+  |   |    |                 |
+             *           |                 |  |   |    |                 |
+             *           +-----------------+  |   |    |                 |
+             *           |                 |  |   '--->+-----------------+
+             *           +-----------------+  |        |      Msg 3      |
+             *           |                 |  |        |                 |
+             *           +-----------------+  '------->+-----------------+ <-- dataHead
+             *           |                 |           |                 |
+             */
 
             // Determine the index for the end of the circular ring buffer
             // offset list
@@ -1191,10 +1435,10 @@ void processUart1Message(SEMP_PARSE_STATE *parse, uint16_t type)
             if (!inMainMenu)
             {
                 if (consumer)
-                    systemPrintf("Ring buffer full: discarding %d bytes, %s could be slow\r\n", discardedBytes, consumer);
+                    systemPrintf("Ring buffer full: discarding %d bytes, %s could be slow\r\n", discardedBytes,
+                                 consumer);
                 else
                     systemPrintf("Ring buffer full: discarding %d bytes\r\n", discardedBytes);
-                Serial.flush(); // TODO - delete me!
             }
 
             // Update the tails. This needs semaphore protection
@@ -1204,10 +1448,10 @@ void processUart1Message(SEMP_PARSE_STATE *parse, uint16_t type)
         if (bytesToCopy > (space + discardedBytes - 1)) // Sanity check
         {
             systemPrintf("Ring buffer update error %s: bytesToCopy (%d) is > space (%d) + discardedBytes (%d) - 1\r\n",
-                        getTimeStamp(), bytesToCopy, space, discardedBytes);
+                         getTimeStamp(), bytesToCopy, space, discardedBytes);
             Serial.flush(); // Flush Serial - the code is about to go bang...!
         }
-        
+
         // Add another message to the ring buffer
         // Account for this message
         // Diagnostic prints are provided by settings.enablePrintSDBuffers and the handleGnssDataTask
@@ -1260,7 +1504,9 @@ void processUart1Message(SEMP_PARSE_STATE *parse, uint16_t type)
     }
     else
     {
-        systemPrintf("processUart1Message could not get ringBuffer semaphore - held by %s\r\n", ringBufferSemaphoreHolder);
+        if (settings.debugGnss && (!inMainMenu))
+            systemPrintf("processUart1Message could not get ringBuffer semaphore - held by %s\r\n",
+                         ringBufferSemaphoreHolder);
     }
 }
 
@@ -1351,12 +1597,27 @@ void handleGnssDataTask(void *e)
             systemPrintln("handleGnssDataTask running");
         }
 
+        //----------------------------------------------------------------------
+        // Send RTCM to consumers
+        //
+        // RTCM has its own storage in rtcmConsumerBuffer (Base.ino)
+        // It does not use the main ringBuffer
+        // But we do the writing here so all traffic generated in the same place
+        //----------------------------------------------------------------------
+
+        startMillis = millis();
+
+        sendRTCMToConsumers();
+
+        if ((millis() - startMillis) > settings.networkClientWriteTimeout_ms)
+            slowConsumer = "RTCM Consumers";
+
         usedSpace = 0;
 
         // Use a semaphore to prevent handleGnssDataTask from gatecrashing
         if (ringBufferSemaphore == NULL)
-            ringBufferSemaphore = xSemaphoreCreateMutex();  // Create the mutex
-        
+            ringBufferSemaphore = xSemaphoreCreateMutex(); // Create the mutex
+
         // Take the semaphore. Short wait. processUart1Message shouldn't block for long
         if (xSemaphoreTake(ringBufferSemaphore, ringBuffer_shortWait_ms) == pdPASS)
         {
@@ -1368,10 +1629,11 @@ void handleGnssDataTask(void *e)
 
             startMillis = millis();
 
-            // Determine BT connection state. Discard the data if in BLUETOOTH_RADIO_SPP_ACCESSORY_MODE
-            bool connected = false;
-            if (settings.bluetoothRadioType != BLUETOOTH_RADIO_SPP_ACCESSORY_MODE)
-                connected = (bluetoothGetState() == BT_CONNECTED);
+            // Determine BT connection state
+            // Note: we don't check sppAccessoryMode here. BLE writes can continue when
+            // the Accessory needs exclusive access to SPP. The SPP writes are skipped
+            // inside bluetoothWrite
+            bool connected = (bluetoothGetState() == BT_CONNECTED);
 
             if (!connected)
                 // Discard the data
@@ -1545,7 +1807,7 @@ void handleGnssDataTask(void *e)
 
             // Block logging during Web Config to avoid SD collisions
             // See issue: https://github.com/sparkfun/SparkFun_RTK_Everywhere_Firmware/issues/693
-            if(webServerIsRunning() == true)
+            if (webServerIsRunning() == true)
                 connected = false;
 
             // If user wants to log, record to SD
@@ -1566,6 +1828,8 @@ void handleGnssDataTask(void *e)
                     {
                         markSemaphore(FUNCTION_WRITESD);
 
+                        //pinDebugOn();
+
                         do // Do the SD write in a do loop so we can break out if needed
                         {
                             if (settings.enablePrintSDBuffers && (!inMainMenu))
@@ -1574,15 +1838,17 @@ void handleGnssDataTask(void *e)
 
                                 int availableUARTSpace = settings.uartReceiveBufferSize - bufferAvailable;
 
-                                systemPrintf("SD Incoming Serial @ %s: %04d\tToRead: %04d\tMovedToBuffer: %04d\tavailableUARTSpace: "
-                                            "%04d\tavailableHandlerSpace: %04d\tToRecord: %04d\tRecorded: %04d\tBO: %d\r\n",
-                                            getTimeStamp(), bufferAvailable, 0, 0, availableUARTSpace, availableHandlerSpace,
-                                            bytesToSend, 0, bufferOverruns);
+                                systemPrintf(
+                                    "SD Incoming Serial @ %s: %04d\tToRead: %04d\tMovedToBuffer: "
+                                    "%04d\tavailableUARTSpace: "
+                                    "%04d\tavailableHandlerSpace: %04d\tToRecord: %04d\tRecorded: %04d\tBO: %d\r\n",
+                                    getTimeStamp(), bufferAvailable, 0, 0, availableUARTSpace, availableHandlerSpace,
+                                    bytesToSend, 0, bufferOverruns);
                             }
 
                             // For the SD card, we need to write everything we've got
                             // to prevent the ARP Write and Events from gatecrashing...
-                            
+
                             int32_t sendTheseBytes = bytesToSend;
 
                             // Reduce bytes to record if we have more then the end of the buffer
@@ -1601,8 +1867,8 @@ void handleGnssDataTask(void *e)
 
                             if (bytesSent != sendTheseBytes)
                             {
-                                systemPrintf("SD write mismatch (1) @ %s: wrote %d bytes of %d\r\n",
-                                             getTimeStamp(), bytesSent, sendTheseBytes);
+                                systemPrintf("SD write mismatch (1) @ %s: wrote %d bytes of %d\r\n", getTimeStamp(),
+                                             bytesSent, sendTheseBytes);
                                 break; // Exit the do loop
                             }
 
@@ -1620,8 +1886,8 @@ void handleGnssDataTask(void *e)
 
                                 if (bytesSent != sendTheseBytes)
                                 {
-                                    systemPrintf("SD write mismatch (2) @ %s: wrote %d bytes of %d\r\n",
-                                                 getTimeStamp(), bytesSent, sendTheseBytes);
+                                    systemPrintf("SD write mismatch (2) @ %s: wrote %d bytes of %d\r\n", getTimeStamp(),
+                                                 bytesSent, sendTheseBytes);
                                     break; // Exit the do loop
                                 }
                             }
@@ -1642,15 +1908,15 @@ void handleGnssDataTask(void *e)
                                 if ((settings.enablePrintLogFileStatus) && (!inMainMenu))
                                     systemPrintln("Log file: recording event");
 
-                                // Record trigger count with Time Of Week of rising edge (ms), Millisecond fraction of Time Of Week of
-                                // rising edge (ns), and accuracy estimate (ns)
+                                // Record trigger count with Time Of Week of rising edge (ms), Millisecond fraction of
+                                // Time Of Week of rising edge (ns), and accuracy estimate (ns)
                                 char eventData[82]; // Max NMEA sentence length is 82
                                 snprintf(eventData, sizeof(eventData), "%lu,%lu,%lu,%lu", triggerCount, triggerTowMsR, triggerTowSubMsR,
                                         triggerAccEst);
 
                                 char nmeaMessage[82]; // Max NMEA sentence length is 82
                                 createNMEASentence(CUSTOM_NMEA_TYPE_EVENT, nmeaMessage, sizeof(nmeaMessage),
-                                                eventData); // textID, buffer, sizeOfBuffer, text
+                                                   eventData); // textID, buffer, sizeOfBuffer, text
 
                                 logFile->write(nmeaMessage, strlen(nmeaMessage));
                                 const char *crlf = "\r\n";
@@ -1682,7 +1948,7 @@ void handleGnssDataTask(void *e)
 
                                 char nmeaMessage[82]; // Max NMEA sentence length is 82
                                 createNMEASentence(CUSTOM_NMEA_TYPE_ARP_ECEF_XYZH, nmeaMessage, sizeof(nmeaMessage),
-                                                ARPData); // textID, buffer, sizeOfBuffer, text
+                                                   ARPData); // textID, buffer, sizeOfBuffer, text
 
                                 logFile->write(nmeaMessage, strlen(nmeaMessage));
                                 const char *crlf = "\r\n";
@@ -1716,10 +1982,13 @@ void handleGnssDataTask(void *e)
                             {
                                 if (deltaMillis > 150)
                                     systemPrintf("Long Write! Time: %ld ms / Location: %ld / Recorded %d bytes / "
-                                                "spaceRemaining %d bytes\r\n",
-                                                deltaMillis, logFileSize, bytesToSend, combinedSpaceRemaining);
+                                                 "spaceRemaining %d bytes\r\n",
+                                                 deltaMillis, logFileSize, bytesToSend, combinedSpaceRemaining);
                             }
-                        } while(0);
+                        } while (0);
+
+
+                        //pinDebugOff();
 
                         xSemaphoreGive(sdCardSemaphore);
                     } // End sdCardSemaphore
@@ -1728,7 +1997,7 @@ void handleGnssDataTask(void *e)
                         char semaphoreHolder[50];
                         getSemaphoreFunction(semaphoreHolder);
                         log_w("sdCardSemaphore failed to yield for SD write, held by %s, Tasks.ino line %d",
-                            semaphoreHolder, __LINE__);
+                              semaphoreHolder, __LINE__);
 
                         feedWdt();
                         taskYIELD();
@@ -1787,7 +2056,9 @@ void handleGnssDataTask(void *e)
         }
         else
         {
-            systemPrintf("handleGnssDataTask could not get ringBuffer semaphore - held by %s\r\n", ringBufferSemaphoreHolder);
+            if (settings.debugGnss && (!inMainMenu))
+                systemPrintf("handleGnssDataTask could not get ringBuffer semaphore - held by %s\r\n",
+                             ringBufferSemaphoreHolder);
         }
 
         //----------------------------------------------------------------------
@@ -1970,9 +2241,14 @@ void buttonCheckTask(void *e)
 {
     // Record the time of the most recent two button releases
     // This allows us to detect single and double presses
-    unsigned long doubleTapInterval = 250; // User must press and release twice within this to create a double tap
 
-    if (present.imu_im19 && (present.display_type == DISPLAY_MAX_NONE))
+    // User must press and release twice within this to create a double tap
+    // 250ms is OK for youngsters. 500ms is better for older fingers
+    // Remember that this also limits how fast you can scroll through the display menu
+    // Set settings.defaultDoubleTapInterval_ms to the minimum for your fingers
+    unsigned long doubleTapInterval = settings.defaultDoubleTapInterval_ms;
+
+    if ((productVariant == RTK_TORCH) || (productVariant == RTK_TORCH_X2))
         doubleTapInterval = 1000; // We are only interested in double taps, so use a longer interval
 
     unsigned long previousButtonRelease = 0;
@@ -2036,7 +2312,7 @@ void buttonCheckTask(void *e)
                 thisButtonRelease = 0;
                 doubleTap = false;
 
-                if (firstButtonThrownOut == false)
+                if (firstButtonThrownOut == false && present.display_type != DISPLAY_MAX_NONE)
                     firstButtonThrownOut = true; // Throw away the first button press
                 else
                     singleTap = true;
@@ -2051,22 +2327,38 @@ void buttonCheckTask(void *e)
         }
 
         // If user presses the center button or right, act as double tap (select)
-        if (buttonLastPressed() == gpioExpander_center || buttonLastPressed() == gpioExpander_right)
+        if (singleTap && online.gpioExpanderButtons)
         {
-            doubleTap = true;
-            singleTap = false;
-            previousButtonRelease = 0;
-            thisButtonRelease = 0;
+            if (buttonLastPressed() == gpioExpander_center || buttonLastPressed() == gpioExpander_right)
+            {
+                doubleTap = true;
+                singleTap = false;
+                previousButtonRelease = 0;
+                thisButtonRelease = 0;
 
-            gpioExpander_lastReleased = 255; // Reset for the next read
+                gpioExpander_lastReleased = 255; // Reset for the next read
+            }
+        }
+        // If user presses the power button (on a dual button system) act as double tap (select)
+        if (singleTap && online.functionButton && online.powerButton)
+        {
+            if (buttonLastPressed() == dualButton_power)
+            {
+                doubleTap = true;
+                singleTap = false;
+                previousButtonRelease = 0;
+                thisButtonRelease = 0;
+
+                dualButton_lastReleased = 255; // Reset for the next read
+            }
         }
 
         // End button checking
 
-        // If in direct connect mode. Note: this is just a flag not a STATE. 
+        // If in direct connect mode. Note: this is just a flag not a STATE.
         if (inDirectConnectMode)
         {
-            // TODO: check if this works on both Torch and Flex. Note: Flex does not yet support buttons
+            // TODO: check if this works on both Torch and Facet FP.
             if (singleTap || doubleTap)
             {
                 // Beep to indicate exit
@@ -2083,18 +2375,45 @@ void buttonCheckTask(void *e)
 
                 // See #763 . Do the file removal in the loop
                 task.endDirectConnectMode = true; // Indicate to loop that direct connection should be ended
+
+                doubleTap = false; // Clean up
+                singleTap = false;
             }
         }
         // Torch is a special case. Handle tilt stop and web config mode
-        else if (productVariant == RTK_TORCH)
-        //else if (present.imu_im19 && (present.display_type == DISPLAY_MAX_NONE)) // TODO delete me
+        else if (productVariant == RTK_TORCH || productVariant == RTK_TORCH_X2)
         {
-            // Platform has no display and tilt corrections, ie RTK Torch
+            // Platform has no display and possibly tilt corrections, ie RTK Torch and RTK Torch X2
+
+            // Print how long the button has been held. Useful for setting the powerButtonPressLimit
+            // static uint16_t longestPress = 0;
+            // // Torch shuts down when powerButtonPressedFor reaches ~2400
+            // //const uint16_t pressDurations[] = { 1900, 1950, 2000, 2050, 2100, 2150, 2200, 2250, 2300, 2350, 2400, 2450, 2500 };
+            // // Torch X2 shuts down when powerButtonPressedFor reaches ~1500
+            // const uint16_t pressDurations[] = { 1000, 1050, 1100, 1150, 1200, 1250, 1300, 1350, 1400, 1450, 1500, 1650, 1700 };
+            // const uint16_t numDurations = sizeof(pressDurations) / sizeof(uint16_t);
+            // for (uint16_t d = longestPress; d < numDurations; d++)
+            // {
+            //     if (powerButtonPressedFor(pressDurations[d]))
+            //     {
+            //         systemPrintf("Torch power button pressed for %dms\r\n", pressDurations[d]);
+            //         longestPress = d + 1;
+            //     }
+            // }
+
+            // Torch X2 shuts down when powerButtonPressedFor reaches ~1500
+            // To allow time for the beep, we need to start shutting down at ~1200
+            uint16_t powerButtonPressLimit = 1200;
+            if (productVariant == RTK_TORCH)
+                powerButtonPressLimit = 2100; // For Torch, it is closer to ~2400
 
             // In in tilt mode, exit on button press
             if ((singleTap || doubleTap) && (tiltIsCorrecting() == true))
             {
                 tiltRequestStop(); // Don't force the hardware off here as it may be in use in another task
+
+                doubleTap = false; // Clean up
+                singleTap = false;
             }
 
             else if (doubleTap)
@@ -2114,6 +2433,7 @@ void buttonCheckTask(void *e)
                         beepOff();
                     }
 
+                    forceMenuExit = true; // Force menu exit to go immediately into web config
                     forceSystemStateUpdate = true; // Immediately go to this new state
                     changeState(STATE_WEB_CONFIG_NOT_STARTED);
                 }
@@ -2133,16 +2453,23 @@ void buttonCheckTask(void *e)
                         beepOff();
                     }
 
+                    // Force menu exit to go immediately into Rover
+                    // (User can open the menu while in web config)
+                    forceMenuExit = true;
+                    
                     forceSystemStateUpdate = true; // Immediately go to this new state
                     changeState(STATE_ROVER_NOT_STARTED);
                 }
+
+                doubleTap = false; // Clean up
             }
 
             // The RTK Torch uses a shutdown IC configured to turn off ~3s
             // Beep shortly before the shutdown IC takes over
-            else if (buttonPressedFor(2100) == true)
+            else if (powerButtonPressedFor(powerButtonPressLimit) == true)
             {
-                systemPrintln("Shutting down");
+                systemPrintln("Shutting down (button)");
+                Serial.flush();
 
                 tickerStop(); // Stop controlling LEDs via ticker task
 
@@ -2162,31 +2489,31 @@ void buttonCheckTask(void *e)
                                 // from firing
                 }
 
+                // If we have fast power off, use it
+                if (present.fastPowerOff == true)
+                    powerDown(false); // Don't display info
+
                 while (1)
                     ;
             }
-        } // End productVariant == Torch
-        else // RTK EVK, RTK Facet v2, RTK Facet mosaic, RTK Postcard
+        } // End productVariant == Torch/Torch X2
+        else // RTK EVK, RTK Facet mosaic, RTK Postcard, RTK Facet FP
         {
             if (systemState == STATE_SHUTDOWN)
             {
                 // Ignore button presses while shutting down
             }
-            else if (buttonPressedFor(shutDownButtonTime))
+            else if (powerButtonPressedFor(shutDownButtonTime))
             {
                 forceSystemStateUpdate = true;
                 requestChangeState(STATE_SHUTDOWN);
 
                 if (inMainMenu)
+                {
+                    systemPrintln("Shutting down (button)");
                     powerDown(true); // State machine is not updated while in menu system so go straight to power down
                                      // as needed
-            }
-            else if ((systemState == STATE_BASE_NOT_STARTED) && (firstRoverStart == true) &&
-                     (buttonPressedFor(500) == true))
-            {
-                lastSetupMenuChange.setTimerToMillis(); // Prevent a timeout during state change
-                forceSystemStateUpdate = true;
-                requestChangeState(STATE_TEST);
+                }
             }
 
             // If the button is disabled, do nothing
@@ -2198,11 +2525,15 @@ void buttonCheckTask(void *e)
                 {
                 // If we are in any running state, change to STATE_DISPLAY_SETUP
                 case STATE_ROVER_NOT_STARTED:
+                case STATE_ROVER_CONFIG_WAIT:
                 case STATE_ROVER_NO_FIX:
                 case STATE_ROVER_FIX:
                 case STATE_ROVER_RTK_FLOAT:
                 case STATE_ROVER_RTK_FIX:
+                case STATE_BASE_CASTER_NOT_STARTED:
+                case STATE_BASE_ASSIST_NOT_STARTED:
                 case STATE_BASE_NOT_STARTED:
+                case STATE_BASE_CONFIG_WAIT:
                 case STATE_BASE_TEMP_SETTLE:
                 case STATE_BASE_TEMP_SURVEY_STARTED:
                 case STATE_BASE_TEMP_TRANSMITTING:
@@ -2278,13 +2609,14 @@ void buttonCheckTask(void *e)
                     // requestChangeState(STATE_BASE_NOT_STARTED);
                     break;
                 } // End singleTap switch (systemState)
+
+                singleTap = false; // Clean up
             } // End singleTap
             else if (doubleTap && (firstRoverStart == false) && (settings.disableSetupButton == false))
             {
                 switch (systemState)
                 {
-                case STATE_DISPLAY_SETUP:
-                {
+                case STATE_DISPLAY_SETUP: {
                     // If we are displaying the setup menu, a single tap will cycle through possible system states - see
                     // above Exit into new system state on double tap Exit display setup into previous state after ~10s
                     // - see updateSystemState()
@@ -2325,8 +2657,10 @@ void buttonCheckTask(void *e)
                     // requestChangeState(STATE_BASE_NOT_STARTED);
                     break;
                 } // End doubleTap switch (systemState)
+
+                doubleTap = false; // Clean up
             } // End doubleTap
-        } // End productVariant != Torch
+        } // End productVariant != (Torch | Torch X2)
 
         feedWdt();
         taskYIELD();
@@ -2336,7 +2670,7 @@ void buttonCheckTask(void *e)
     if (settings.printTaskStartStop)
         systemPrintln("Task buttonCheckTask stopped");
     task.buttonCheckTaskRunning = false;
-    vTaskDelete(NULL);
+    vTaskDelete(buttonTaskHandle);
 }
 
 void idleTask(void *e)
@@ -2570,27 +2904,32 @@ void bluetoothCommandTask(void *pvParameters)
             systemPrintln("bluetoothCommandTask running");
         }
 
-        // Check stream for incoming characters
-        if (bluetoothCommandAvailable() > 0)
+        // Don't process commands while the GNSS is being configured
+        if (!gnssConfigureInProgress)
         {
-            byte incoming = bluetoothCommandRead();
-
-            rxData[rxSpot++] = incoming;
-            rxSpot %= sizeof(rxData); // Wrap
-
-            // Verify presence of trailing \r\n
-            if (rxSpot > 2 && rxData[rxSpot - 1] == '\n' && rxData[rxSpot - 2] == '\r')
+            // Check stream for incoming characters
+            if (bluetoothCommandAvailable() > 0)
             {
-                rxData[rxSpot - 2] = '\0'; // Remove \r\n
-                processCommand(rxData);
-                rxSpot = 0; // Reset
+                byte incoming = bluetoothCommandRead();
+                bleCommandTrafficSeen_millis = millis();
+
+                rxData[rxSpot++] = incoming;
+                rxSpot %= sizeof(rxData); // Wrap
+
+                // Verify presence of trailing \r\n
+                if (rxSpot > 2 && rxData[rxSpot - 1] == '\n' && rxData[rxSpot - 2] == '\r')
+                {
+                    rxData[rxSpot - 2] = '\0'; // Remove \r\n
+                    processCommand(rxData);
+                    rxSpot = 0; // Reset
+                }
             }
         }
 
         if (PERIODIC_DISPLAY(PD_BLUETOOTH_DATA_RX) && !inMainMenu)
         {
             PERIODIC_CLEAR(PD_BLUETOOTH_DATA_RX);
-            systemPrintf("Bluetooth received %d bytes\r\n", rxSpot);
+            systemPrintf("bluetoothCommandTask: %d bytes waiting to be processed\r\n", rxSpot);
         }
 
         if ((settings.enableTaskReports == true) && (!inMainMenu))
@@ -2604,17 +2943,19 @@ void bluetoothCommandTask(void *pvParameters)
     if (settings.printTaskStartStop)
         systemPrintln("Task bluetoothCommandTask stopped");
     task.bluetoothCommandTaskRunning = false;
-    vTaskDelete(NULL);
+    vTaskDelete(bluetoothCommandTaskHandle); // Stop the task
+    bluetoothCommandTaskHandle = nullptr;
 }
 
 void beginRtcmParse()
 {
     // Begin the RTCM parser - which will extract the base location from RTCM1005 / 1006
+    int bytes = psramFound() ? 16384 : 1050;
     rtcmParse = sempBeginParser(rtcmParserTable, rtcmParserCount, rtcmParserNames, rtcmParserNameCount,
-                               0,                   // Scratchpad bytes
-                               1050,                // Buffer length
-                               processRTCMMessage, // eom Call Back
-                               "rtcmParse");         // Parser Name
+                                0,                  // Scratchpad bytes
+                                bytes,              // Buffer length
+                                processRTCMMessage, // eom Call Back
+                                "rtcmParse");       // Parser Name
     if (!rtcmParse)
         reportFatalError("Failed to initialize the RTCM parser");
 

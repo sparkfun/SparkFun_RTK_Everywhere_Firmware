@@ -2,23 +2,27 @@
 
 const char *manufacturer = "SparkFun Electronics";
 const char *hardwareVersion = "1.0.0";
-const char *EAProtocol = "com.sparkfun.rtk";
-//const char *BTTransportName = "com.sparkfun.bt";
 const char *BTTransportName = "Bluetooth";
 const char *LIComponentName = "com.sparkfun.li";
-const char *productPlanUID =
-    "0123456789ABCDEF"; // This comes from the MFi Portal, when you register the product with Apple
+
+const int rfcommChanneliAP2 = 3; // Use RFCOMM channel 3 for iAP2 (using Dual SPP+BLE)
+
+volatile bool sdpCreateRecordEvent = false; // Flag to indicate when the iAP2 record has been created
 
 extern BTSerialInterface *bluetoothSerialSpp;
 
 void transportConnected(bool *isConnected)
 {
-    *isConnected = bluetoothSerialSpp->connected();
+    if (bluetoothSerialSpp)
+        *isConnected = bluetoothSerialSpp->connected();
+    else
+        *isConnected = false;
 }
 
 void transportDisconnect(bool *disconnected)
 {
-    bluetoothSerialSpp->disconnect();
+    if (bluetoothSerialSpp)
+        bluetoothSerialSpp->disconnect();
 }
 
 void beginAuthCoPro(TwoWire *i2cBus)
@@ -36,31 +40,43 @@ void beginAuthCoPro(TwoWire *i2cBus)
         return;
     }
 
-    if (settings.debugNetworkLayer)
-        appleAccessory->enableDebug(&Serial); // Enable debug prints to Serial
+    // Enable debug prints to Serial
+    // AppleAccessory gets its own debug enable. It's a LOT of debug...
+    if (settings.debugAppleAccessory)
+        appleAccessory->enableDebug(&Serial);
 
     // Pass Identity Information, Protocols and Names into the accessory driver
-    appleAccessory->setAccessoryName(deviceName);
-    appleAccessory->setModelIdentifier(platformPrefix);
+    appleAccessory->setAccessoryName((const char *)accessoryName);
+    appleAccessory->setModelIdentifier((const char *)platformPrefix);
     appleAccessory->setManufacturer(manufacturer);
-    appleAccessory->setSerialNumber(serialNumber);
-    appleAccessory->setFirmwareVersion(deviceFirmware);
+    appleAccessory->setSerialNumber((const char *)serialNumber);
+    appleAccessory->setFirmwareVersion((const char *)deviceFirmware);
     appleAccessory->setHardwareVersion(hardwareVersion);
-    appleAccessory->setExternalAccessoryProtocol(EAProtocol);
+    appleAccessory->setExternalAccessoryProtocol((const char *)&settings.eaProtocol);
     appleAccessory->setBluetoothTransportName(BTTransportName);
     appleAccessory->setBluetoothMacAddress(btMACAddress);
     appleAccessory->setLocationInfoComponentName(LIComponentName);
-    appleAccessory->setProductPlanUID(productPlanUID);
+    appleAccessory->setProductPlanUID(productVariantProperties->productPlanUID);
 
     // Pass the pointers for the latest NMEA data into the Accessory driver
     latestGPGGA = (char *)rtkMalloc(latestNmeaMaxLen, "AuthCoPro");
+    *latestGPGGA = 0; // Null-terminate so strlen will work
     latestGPRMC = (char *)rtkMalloc(latestNmeaMaxLen, "AuthCoPro");
+    *latestGPRMC = 0; // Null-terminate so strlen will work
     latestGPGST = (char *)rtkMalloc(latestNmeaMaxLen, "AuthCoPro");
+    *latestGPGST = 0; // Null-terminate so strlen will work
     latestGPVTG = (char *)rtkMalloc(latestNmeaMaxLen, "AuthCoPro");
+    *latestGPVTG = 0; // Null-terminate so strlen will work
     appleAccessory->setNMEApointers(latestGPGGA, latestGPRMC, latestGPGST, latestGPVTG);
 
     // Pass the pointer for additional GSA / GSV EA Session data
     latestEASessionData = (char *)rtkMalloc(latestEASessionDataMaxLen, "AuthCoPro");
+    if (!latestEASessionData)
+    {
+        systemPrintln("latestEASessionData memory allocation failed!");
+        return;
+    }
+    *latestEASessionData = 0; // Null-terminate so strlen will work
     appleAccessory->setEASessionPointer(latestEASessionData);
 
     // Pass the transport connected and disconnect methods into the accessory driver
@@ -80,9 +96,19 @@ void updateAuthCoPro()
 
     if (online.authenticationCoPro) // Coprocessor must be present and online
     {
-        if ((bluetoothGetState() > BT_OFF) && (settings.bluetoothRadioType == BLUETOOTH_RADIO_SPP_ACCESSORY_MODE))
+        // For now, we only support this when in dual SPP+BLE mode
+        if ((bluetoothGetState() > BT_OFF) && (settings.bluetoothRadioType == BLUETOOTH_RADIO_SPP_AND_BLE))
         {
             appleAccessory->update(); // Update the Accessory driver
+
+            // Check if the iAP2 SDP record has been created
+            // If it has, restart the SPP Server using rfcommChanneliAP2
+            if (sdpCreateRecordEvent)
+            {
+                sdpCreateRecordEvent = false;
+                esp_spp_stop_srv();
+                esp_spp_start_srv(ESP_SPP_SEC_NONE, ESP_SPP_ROLE_SLAVE, rfcommChanneliAP2, "ESP32SPP2");
+            }
 
             // Check for a new device connection
             // Note: aclConnected is a one-shot
@@ -90,38 +116,51 @@ void updateAuthCoPro()
             if (bluetoothSerialSpp->aclConnected() == true)
             {
                 char bda_str[18];
-                systemPrintf("Apple Device %s found\r\n", bda2str(bluetoothSerialSpp->aclGetAddress(), bda_str, 18));
+                systemPrintf("Bluetooth device %s found%s\r\n",
+                             bda2str(bluetoothSerialSpp->aclGetAddress(), bda_str, 18),
+                             settings.debugNetworkLayer ? ". Waiting for connection..." : "");
 
-                // We need to connect _almost_ immediately for a successful pairing
-                // This is really brittle.
-                // Having core debug enabled adds enough delay to make this work.
-                // With debug set to none, we need to insert a _small_ delay...
-                // Too much delay and we get Connection Unsuccessful.
-                delay(2);
-
-                int channel = 1;
-                if (settings.debugNetworkLayer)
-                    systemPrintf("Connecting on channel %d\r\n", channel);
-
-                bluetoothSerialSpp->connect(bluetoothSerialSpp->aclGetAddress(), channel); // Blocking for READY_TIMEOUT
+                unsigned long connectionStart = millis();
+                while ((millis() - connectionStart) < 2000)
+                {
+                    if (bluetoothSerialSpp->connected())
+                        break;
+                    delay(10);
+                }
 
                 if (bluetoothSerialSpp->connected())
                 {
-                    systemPrintln("Connected. Sending handshake...");
-                    appleAccessory->startHandshake((Stream *)bluetoothSerialSpp);
-                }
-                else
-                {
-                    systemPrintln("Connection failed / timed out! Handshake will be sent if device connects...");
-                    sendAccessoryHandshakeOnBtConnect = true;
+                    if (settings.debugNetworkLayer)
+                        systemPrintf("Device connected after %ldms. Sending handshake...\r\n", millis() - connectionStart);
+                    sppAccessoryMode = true; // Accessory needs exclusive access to SPP. Disable other reads / writes
+                    unsigned long handshakeStart = millis();
+                    bool handshakeReceived = false;
+                    appleAccessory->startHandshake((Stream *)bluetoothSerialSpp); // Start the handshake
+
+                    // AppleAccessory uses a handshake timeout of 1000ms. One retry is permitted (with v3.1.2).
+                    // So we use a 2200ms timeout here
+                    do {
+                        appleAccessory->update(); // Update the Accessory driver
+                        handshakeReceived = appleAccessory->handshakeReceived(); // One-shot
+                        delay(50);
+                    } while (!handshakeReceived && ((millis() - handshakeStart) < 2200));
+
+                    if (handshakeReceived)
+                    {
+                        if (settings.debugNetworkLayer)
+                            systemPrintf("Handshake received after %ldms. SPP is now in Accessory Mode\r\n", millis() - handshakeStart);
+                    }
+                    else
+                    {
+                        if (settings.debugNetworkLayer)
+                            systemPrintln("No handshake received. Reverting to standard SPP");
+                        sppAccessoryMode = false; // Revert to standard SPP reads / writes
+                        // TODO: do we need to restart SPP with esp_spp_start_srv ?
+                    }
                 }
             }
-
-            // That's all folks!
-            // If a timeout occurred, Handshake is sent by bluetoothUpdate()
-            // Everything else is handled by the Apple Accessory Library
         }
     }
 }
 
-#endif
+#endif // COMPILE_AUTHENTICATION

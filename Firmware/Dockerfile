@@ -49,6 +49,7 @@ RUN pip install pyserial
 # Setup Arduino CLI
 #RUN curl -fsSL https://raw.githubusercontent.com/arduino/arduino-cli/master/install.sh | BINDIR=/usr/local/bin sh
 RUN curl -fsSL https://raw.githubusercontent.com/arduino/arduino-cli/master/install.sh | sh
+#RUN curl -fsSL https://raw.githubusercontent.com/arduino/arduino-cli/master/install.sh | sh -s nightly-latest
 
 # Start config file
 RUN arduino-cli config init --additional-urls https://raw.githubusercontent.com/espressif/arduino-esp32/gh-pages/package_esp32_index.json,https://espressif.github.io/arduino-esp32/package_esp32_dev_index.json
@@ -63,9 +64,9 @@ RUN arduino-cli lib update-index
 RUN arduino-cli core install "esp32:esp32@${CORE_VERSION}"
 
 # Get Known Libraries
-RUN arduino-cli lib install ArduinoJson@7.0.4
+RUN arduino-cli lib install ArduinoJson@7.4.2
 RUN arduino-cli lib install ESP32Time@2.0.0
-RUN arduino-cli lib install ESP32_BleSerial@2.0.1
+#RUN arduino-cli lib install ESP32_BleSerial@3.0.0
 RUN arduino-cli lib install "ESP32-OTA-Pull"@1.0.0
 RUN arduino-cli lib install JC_Button@2.1.2
 RUN arduino-cli lib install PubSubClient@2.8.0
@@ -73,19 +74,25 @@ RUN arduino-cli lib install "SdFat"@2.1.1
 RUN arduino-cli lib install "SparkFun LIS2DH12 Arduino Library"@1.0.3
 RUN arduino-cli lib install "SparkFun MAX1704x Fuel Gauge Arduino Library"@1.0.4
 RUN arduino-cli lib install "SparkFun u-blox GNSS v3"@3.1.10
-RUN arduino-cli lib install "SparkFun Qwiic OLED Arduino Library"@1.0.13
+RUN arduino-cli lib install "SparkFun Qwiic OLED Arduino Library"@1.0.15
 RUN arduino-cli lib install SSLClientESP32@2.0.0
-RUN arduino-cli lib install "SparkFun Extensible Message Parser"@1.0.4
+RUN arduino-cli lib install "SparkFun Extensible Message Parser"@1.0.8
 RUN arduino-cli lib install "SparkFun BQ40Z50 Battery Manager Arduino Library"@1.0.0
 RUN arduino-cli lib install "ArduinoMqttClient"@0.1.8
 RUN arduino-cli lib install "SparkFun u-blox PointPerfect Library"@1.11.4
 RUN arduino-cli lib install "SparkFun IM19 IMU Arduino Library"@1.0.1
-RUN arduino-cli lib install "SparkFun UM980 Triband RTK GNSS Arduino Library"@1.0.5
+RUN arduino-cli lib install "SparkFun UM980 Triband RTK GNSS Arduino Library"@1.0.10
 RUN arduino-cli lib install "SparkFun LG290P Quadband RTK GNSS Arduino Library"@1.0.8
 RUN arduino-cli lib install "SparkFun I2C Expander Arduino Library"@1.0.1
-RUN arduino-cli lib install "SparkFun Apple Accessory Arduino Library"@3.0.9
+RUN arduino-cli lib install "SparkFun Apple Accessory Arduino Library"@3.1.2
 RUN arduino-cli lib install "SparkFun Authentication Coprocessor Arduino Library"@1.0.0
 RUN arduino-cli lib install "SparkFun Toolkit"@1.0.6
+
+# Enable external libs
+RUN arduino-cli config set library.enable_unsafe_install true
+
+# Install SparkFun fork of ESP32_BleSerial
+RUN arduino-cli lib install --git-url https://github.com/sparkfun/ESP32_BleSerial.git
 
 # Copy RTK_Everywhere and build deployment image
 FROM upstream AS deployment
@@ -103,18 +110,19 @@ RUN cd ./RTK_Everywhere/Patch \
     && cp libmbedx509.a "/root/.arduino15/packages/esp32/tools/esp32-arduino-libs/${ESP_IDF}/esp32/lib/libmbedx509.a" \
     && cp libbt.a "/root/.arduino15/packages/esp32/tools/esp32-arduino-libs/${ESP_IDF}/esp32/lib/libbt.a"
 
-# Patch NetworkEvents
-RUN cd ./RTK_Everywhere/Patch \
-    && cp NetworkEvents.* "/root/.arduino15/packages/esp32/hardware/esp32/${CORE_VERSION}/libraries/Network/src/"
-
 # Update form.h with index_html and main_js
 RUN cd ./Tools \
     && python3 index_html_zipper.py ../RTK_Everywhere/AP-Config/index.html ../RTK_Everywhere/form.h \
     && python3 main_js_zipper.py ../RTK_Everywhere/AP-Config/src/main.js ../RTK_Everywhere/form.h
 
+# Patch ESP32_BleSerial - remove the BLE multiple write characteristics
+RUN sed -i 's|txCharacteristic->setWriteNoResponseProperty(true)|//txCharacteristic->setWriteNoResponseProperty(true)|g' /root/Arduino/libraries/ESP32_BleSerial/src/BleBufferedSerial.cpp
+
 # Copy custom RTKEverywhere.csv
-# Use the 16MB partitions by default. 8MB (Postcard) partitions must be compiled separately
+# Use the 16MB version
 RUN cp RTKEverywhere.csv "/root/.arduino15/packages/esp32/hardware/esp32/${CORE_VERSION}/tools/partitions/RTKEverywhere.csv"
+# Use the 8MB version
+#RUN cp RTKEverywhere_8MB.csv "/root/.arduino15/packages/esp32/hardware/esp32/${CORE_VERSION}/tools/partitions/RTKEverywhere.csv"
 
 # Compile Sketch
 RUN cd ./RTK_Everywhere \
