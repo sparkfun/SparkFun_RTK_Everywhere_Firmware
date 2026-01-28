@@ -41,7 +41,8 @@ const GNSS_SUPPORT_ROUTINES gnssSupportRoutines[] =
 {
 #ifdef  COMPILE_LG290P
     {
-        "LG290P",               // _name
+        "LG290P",               // name
+        "L",                    // gnssModelIdentifier for Facet FP deviceName
         GNSS_RECEIVER_LG290P,   // _receiver
         lg290pIsPresentOnFacetFP,  // _present
         lg290pNewClass,         // _newClass
@@ -55,7 +56,8 @@ const GNSS_SUPPORT_ROUTINES gnssSupportRoutines[] =
 #endif  // COMPILE_LG290P
 #ifdef  COMPILE_MOSAICX5
     {
-        "Mosaic-X5",                // _name
+        "Mosaic-X5",                // name
+        "M",                        // gnssModelIdentifier for Facet FP deviceName
         GNSS_RECEIVER_MOSAIC_X5,    // _receiver
         mosaicIsPresentOnFacetFP,      // _present
         mosaicNewClass,             // _newClass
@@ -69,7 +71,8 @@ const GNSS_SUPPORT_ROUTINES gnssSupportRoutines[] =
 #endif  // COMPILE_MOSAICX5
 #ifdef  COMPILE_UM980
     {
-        "UM980",                // _name
+        "UM980",                // name
+        "U",                    // gnssModelIdentifier for Facet FP deviceName
         GNSS_RECEIVER_UNKNOWN,  // _receiver
         nullptr,                // _present
         nullptr,                // _newClass
@@ -82,8 +85,10 @@ const GNSS_SUPPORT_ROUTINES gnssSupportRoutines[] =
     },
 #endif  // COMPILE_UM980
 #ifdef  COMPILE_ZED
+    // TODO: We should expand this to cover both ZED-F9P "F" and ZED-X20P "X"
     {
-        "ZED",                  // _name
+        "ZED",                  // name
+        "F",                    // gnssModelIdentifier for Facet FP deviceName
         GNSS_RECEIVER_UNKNOWN,  // _receiver
         nullptr,                // _present
         nullptr,                // _newClass

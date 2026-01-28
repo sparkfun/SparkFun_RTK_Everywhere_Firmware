@@ -2327,7 +2327,7 @@ void buttonCheckTask(void *e)
         }
 
         // If user presses the center button or right, act as double tap (select)
-        if (online.gpioExpanderButtons == true)
+        if (singleTap && online.gpioExpanderButtons)
         {
             if (buttonLastPressed() == gpioExpander_center || buttonLastPressed() == gpioExpander_right)
             {
@@ -2340,8 +2340,7 @@ void buttonCheckTask(void *e)
             }
         }
         // If user presses the power button (on a dual button system) act as double tap (select)
-        // dualButton_power == gpioExpander_up so this needs to be wrapped:
-        if (online.functionButton == true && online.powerButton == true)
+        if (singleTap && online.functionButton && online.powerButton)
         {
             if (buttonLastPressed() == dualButton_power)
             {
@@ -2376,6 +2375,9 @@ void buttonCheckTask(void *e)
 
                 // See #763 . Do the file removal in the loop
                 task.endDirectConnectMode = true; // Indicate to loop that direct connection should be ended
+
+                doubleTap = false; // Clean up
+                singleTap = false;
             }
         }
         // Torch is a special case. Handle tilt stop and web config mode
@@ -2409,6 +2411,9 @@ void buttonCheckTask(void *e)
             if ((singleTap || doubleTap) && (tiltIsCorrecting() == true))
             {
                 tiltRequestStop(); // Don't force the hardware off here as it may be in use in another task
+
+                doubleTap = false; // Clean up
+                singleTap = false;
             }
 
             else if (doubleTap)
@@ -2455,13 +2460,15 @@ void buttonCheckTask(void *e)
                     forceSystemStateUpdate = true; // Immediately go to this new state
                     changeState(STATE_ROVER_NOT_STARTED);
                 }
+
+                doubleTap = false; // Clean up
             }
 
             // The RTK Torch uses a shutdown IC configured to turn off ~3s
             // Beep shortly before the shutdown IC takes over
             else if (powerButtonPressedFor(powerButtonPressLimit) == true)
             {
-                systemPrintln("Shutting down");
+                systemPrintln("Shutting down (button)");
                 Serial.flush();
 
                 tickerStop(); // Stop controlling LEDs via ticker task
@@ -2502,8 +2509,11 @@ void buttonCheckTask(void *e)
                 requestChangeState(STATE_SHUTDOWN);
 
                 if (inMainMenu)
+                {
+                    systemPrintln("Shutting down (button)");
                     powerDown(true); // State machine is not updated while in menu system so go straight to power down
                                      // as needed
+                }
             }
 
             // If the button is disabled, do nothing
@@ -2599,6 +2609,8 @@ void buttonCheckTask(void *e)
                     // requestChangeState(STATE_BASE_NOT_STARTED);
                     break;
                 } // End singleTap switch (systemState)
+
+                singleTap = false; // Clean up
             } // End singleTap
             else if (doubleTap && (firstRoverStart == false) && (settings.disableSetupButton == false))
             {
@@ -2645,6 +2657,8 @@ void buttonCheckTask(void *e)
                     // requestChangeState(STATE_BASE_NOT_STARTED);
                     break;
                 } // End doubleTap switch (systemState)
+
+                doubleTap = false; // Clean up
             } // End doubleTap
         } // End productVariant != (Torch | Torch X2)
 
@@ -2656,7 +2670,7 @@ void buttonCheckTask(void *e)
     if (settings.printTaskStartStop)
         systemPrintln("Task buttonCheckTask stopped");
     task.buttonCheckTaskRunning = false;
-    vTaskDelete(NULL);
+    vTaskDelete(buttonTaskHandle);
 }
 
 void idleTask(void *e)

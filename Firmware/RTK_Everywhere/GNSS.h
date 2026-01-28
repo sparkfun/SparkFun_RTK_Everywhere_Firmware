@@ -473,6 +473,7 @@ typedef bool (* GNSS_SETTING_TO_FILE)(File *settingsFile,
 typedef struct _GNSS_SUPPORT_ROUTINES
 {
     const char * name;
+    const char * gnssModelIdentifier;
     gnssReceiverType_e _receiver;
     GNSS_PRESENT _present;
     GNSS_NEW_CLASS _newClass;

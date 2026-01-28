@@ -314,24 +314,24 @@ int pin_usbSelect = PIN_UNDEFINED;
 int pin_beeper = PIN_UNDEFINED;
 
 int pin_gpioExpanderInterrupt = PIN_UNDEFINED;
-int gpioExpander_up = 0;
-int gpioExpander_down = 1;
-int gpioExpander_right = 2;
-int gpioExpander_left = 3;
-int gpioExpander_center = 4;
-int gpioExpander_cardDetect = 5;
-int gpioExpander_io6 = 6;
-int gpioExpander_io7 = 7;
+const uint8_t gpioExpander_up = 0;
+const uint8_t gpioExpander_down = 1;
+const uint8_t gpioExpander_right = 2;
+const uint8_t gpioExpander_left = 3;
+const uint8_t gpioExpander_center = 4;
+const uint8_t gpioExpander_cardDetect = 5;
+const uint8_t gpioExpander_io6 = 6;
+const uint8_t gpioExpander_io7 = 7;
 
-const int gpioExpanderSwitch_S1 = 0; // Controls U16 switch 1: connect ESP UART0 to CH342 or SW2
-const int gpioExpanderSwitch_S2 = 1; // Controls U17 switch 2: connect SW1 to RS232 Output or GNSS UART4
-const int gpioExpanderSwitch_S3 = 2; // Controls U18 switch 3: connect ESP UART2 to GNSS UART3 or LoRa UART2
-const int gpioExpanderSwitch_S4 = 3; // Controls U19 switch 4: connect GNSS UART2 to 4-pin JST TTL Serial or LoRa UART0
-const int gpioExpanderSwitch_LoraEnable = 4;   // LoRa_EN
-const int gpioExpanderSwitch_GNSS_Reset = 5;   // RST_GNSS
-const int gpioExpanderSwitch_LoraBoot = 6;     // LoRa_BOOT0 - Used for bootloading the STM32 radio IC
-const int gpioExpanderSwitch_S5 = 7; // Controls U61 switch 5: connect GNSS UART1 to Port A of CH342
-const int gpioExpanderNumSwitches = 8;
+const uint8_t gpioExpanderSwitch_S1 = 0; // Controls U16 switch 1: connect ESP UART0 to CH342 or SW2
+const uint8_t gpioExpanderSwitch_S2 = 1; // Controls U17 switch 2: connect SW1 to RS232 Output or GNSS UART4
+const uint8_t gpioExpanderSwitch_S3 = 2; // Controls U18 switch 3: connect ESP UART2 to GNSS UART3 or LoRa UART2
+const uint8_t gpioExpanderSwitch_S4 = 3; // Controls U19 switch 4: connect GNSS UART2 to 4-pin JST TTL Serial or LoRa UART0
+const uint8_t gpioExpanderSwitch_LoraEnable = 4;   // LoRa_EN
+const uint8_t gpioExpanderSwitch_GNSS_Reset = 5;   // RST_GNSS
+const uint8_t gpioExpanderSwitch_LoraBoot = 6;     // LoRa_BOOT0 - Used for bootloading the STM32 radio IC
+const uint8_t gpioExpanderSwitch_S5 = 7; // Controls U61 switch 5: connect GNSS UART1 to Port A of CH342
+const uint8_t gpioExpanderNumSwitches = 8;
 
 //=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 
@@ -618,8 +618,6 @@ volatile bool forwardGnssDataToUsbSerial;
 // entered then no changes are made and the +++ sequence must be re-entered.
 #define PLUS_PLUS_PLUS_TIMEOUT (2 * 1000) // Milliseconds
 
-#define platformPrefix getProductPropertiesFromVariant(productVariant)->name // Sets the prefix for broadcast names
-
 HardwareSerial *serialGNSS = nullptr;  // Don't instantiate until we know what gnssPlatform we're on
 HardwareSerial *serial2GNSS = nullptr; // Don't instantiate until we know what gnssPlatform we're on
 
@@ -699,6 +697,7 @@ Button *functionBtn = nullptr;
 
 const uint8_t buttonCheckTaskPriority = 1; // 3 being the highest, and 0 being the lowest
 const int buttonTaskStackSize = 2000;
+TaskHandle_t buttonTaskHandle;
 
 const int shutDownButtonTime = 2000; // ms press and hold before shutdown
 bool firstButtonThrownOut = false;
@@ -871,9 +870,11 @@ char *latestEASessionData;
 uint8_t wifiMACAddress[6];     // Display this address in the system menu
 uint8_t btMACAddress[6];       // Display this address when Bluetooth is enabled, otherwise display wifiMACAddress
 uint8_t ethernetMACAddress[6]; // Display this address when Ethernet is enabled, otherwise display wifiMACAddress
-char deviceName[40];           // The serial string that is broadcast. E.g.: 'SparkPNT Facet FP-ABCD06'
-char accessoryName[40];        // The IdentificationInformation Name for MFi. E.g.: 'SparkPNT Facet FP'
+char platformPrefix[20];       // The prefix for broadcast names. E.g.: "TX2"
+char displayName[20];          // The product name displayed on OLED. Could be shorter than platformPrefix. E.g.: "Facet LB"
 char serialNumber[7];          // The serial number for MFi. Two MAC octets plus productVariant. Ex: 'ABCD06'
+char accessoryName[40];        // The IdentificationInformation Name for MFi. E.g.: 'SparkPNT TX2'
+char deviceName[40];           // The serial string that is broadcast. E.g.: 'SparkPNT TX2-ABCD06'
 char deviceFirmware[9];        // The firmware version for MFi. Ex: 'v2.2'
 const uint16_t menuTimeout = 60 * 10; // Menus will exit/timeout after this number of seconds
 int systemTime_minutes;               // Used to test if logging is less than max minutes
@@ -1426,7 +1427,7 @@ void setup()
     tiltDetect(); // If we don't know if there is a tilt compensation sensor, auto-detect it. Uses settings.
 
     DMW_b("assembleDeviceName");
-    assembleDeviceName(); // Assemble the BT broadcast deviceName
+    assembleDeviceName(); // Assemble the BT broadcast deviceName. After GNSS and Tilt are known
 
     // DEBUG_NEARLY_EVERYTHING // Debug nearly all the things
     // DEBUG_THE_ESSENTIALS // Debug the essentials - handy for measuring the boot time after a factory reset

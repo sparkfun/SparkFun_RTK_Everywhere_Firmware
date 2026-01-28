@@ -440,9 +440,9 @@ bool ntripServerConnectCaster(int serverIndex)
     //  * Mount point
     //  * Password
     //  * Agent
-    snprintf(serverBuffer, SERVER_BUFFER_SIZE, "SOURCE %s /%s\r\nSource-Agent: NTRIP SparkFun_RTK_%s/\r\n\r\n",
+    snprintf(serverBuffer, SERVER_BUFFER_SIZE, "SOURCE %s /%s\r\nSource-Agent: NTRIP %s/\r\n\r\n",
              settings.ntripServer_MountPointPW[serverIndex], settings.ntripServer_MountPoint[serverIndex],
-             platformPrefix);
+             deviceName);
     int length = strlen(serverBuffer);
     firmwareVersionGet(&serverBuffer[length], sizeof(serverBuffer) - length, false);
 

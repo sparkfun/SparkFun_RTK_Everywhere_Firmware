@@ -166,7 +166,7 @@ typedef enum {
     BRAND_NUM
 } RTKBrands_e;
 
-const RTKBrands_e DEFAULT_BRAND = BRAND_SPARKFUN;
+const RTKBrands_e DEFAULT_BRAND = BRAND_SPARKPNT;
 
 typedef struct
 {
@@ -243,10 +243,10 @@ const productProperties productPropertiesTable[] =
     { RTK_FACET_MOSAIC,     BRAND_SPARKPNT, "Facet X5",     "Facet X5", "SFE_Facet_mosaic",     "Facet mosaicX5",   true,   "0000000000000000", STATE_ROVER_NOT_STARTED,    "https://www.sparkfun.com/rtk_facet_mosaic_registration" },
     { RTK_FACET_V2,         BRAND_SPARKPNT, "Facet v2",     "Facet v2", "SFE_Facet_v2",         "Facet v2",         true,   "0000000000000000", STATE_ROVER_NOT_STARTED,    "Unknown" },
     { RTK_FACET_V2_LBAND,   BRAND_SPARKPNT, "Facet v2 LB",  "Facet LB", "SFE_Facet_v2_LBand",   "Facet v2 LBand",   true,   "0000000000000000", STATE_ROVER_NOT_STARTED,    "Unknown" },
-    { RTK_FACET_FP,             BRAND_SPARKPNT, "Facet FP",     "Facet FP", "SFE_Facet_FP",         "Facet FP",         false,  "e9e877bb278140f0", STATE_ROVER_NOT_STARTED,    "https://www.sparkfun.com/rtk_facet_fp_registration" },
+    { RTK_FACET_FP,         BRAND_SPARKPNT, "FP",           "FP",       "SFE_FP",               "FP",               false,  "e9e877bb278140f0", STATE_ROVER_NOT_STARTED,    "https://www.sparkfun.com/rtk_facet_fp_registration" },
     { RTK_POSTCARD,         BRAND_SPARKFUN, "Postcard",     "Postcard", "SFE_Postcard",         "Postcard",         true,   "e9e877bb278140f0", STATE_ROVER_NOT_STARTED,    "https://www.sparkfun.com/rtk_postcard_registration" },
     { RTK_TORCH,            BRAND_SPARKFUN, "Torch",        "Torch",    "SFE_Torch",            "Torch",            true,   "0000000000000000", STATE_ROVER_NOT_STARTED,    "https://www.sparkfun.com/rtk_torch_registration" },
-    { RTK_TORCH_X2,         BRAND_SPARKPNT, "Torch X2",     "Torch X2", "SFE_Torch_X2",         "Torch X2",         true,   "3407c7ca3d6b4984", STATE_ROVER_NOT_STARTED,    "https://www.sparkfun.com/rtk_torch_x2_registration" },
+    { RTK_TORCH_X2,         BRAND_SPARKPNT, "TX2",          "TX2",      "SFE_TX2",              "TX2",              false,  "3407c7ca3d6b4984", STATE_ROVER_NOT_STARTED,    "https://www.sparkfun.com/tx2_registration" },
     { RTK_UNKNOWN,          DEFAULT_BRAND,  "Unknown",      "Unknown",  "SFE_Unknown",          "Unknown",          true,   "0000000000000000", STATE_ROVER_NOT_STARTED,    "Unknown" },
 };
 const int productPropertiesEntries = sizeof(productPropertiesTable) / sizeof(productPropertiesTable[0]);
