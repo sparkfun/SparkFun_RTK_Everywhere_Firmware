@@ -21,6 +21,8 @@
 
 TaskHandle_t bluetoothCommandTaskHandle = nullptr; // Task to monitor incoming CLI from BLE
 
+volatile unsigned long bleCommandTrafficSeen_millis = 0;
+
 #ifdef COMPILE_BT
 
 //----------------------------------------
@@ -43,8 +45,6 @@ BleBatteryService bluetoothBatteryService;
 #define BLE_COMMAND_SERVICE_UUID "7e400001-b5a3-f393-e0a9-e50e24dcca9e"
 #define BLE_COMMAND_RX_UUID "7e400002-b5a3-f393-e0a9-e50e24dcca9e"
 #define BLE_COMMAND_TX_UUID "7e400003-b5a3-f393-e0a9-e50e24dcca9e"
-
-volatile unsigned long bleCommandTrafficSeen_millis = 0;
 
 //----------------------------------------
 // Global Bluetooth Routines

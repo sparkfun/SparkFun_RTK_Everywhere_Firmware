@@ -34,7 +34,7 @@ typedef struct
 // Rate = Output once every N position fix(es).
 const lg290pMsg lgMessagesNMEA[] = {
     {"RMC", 1, 0}, {"GGA", 1, 0}, {"GSV", 1, 0}, {"GSA", 1, 0}, {"VTG", 1, 0},
-    {"GLL", 1, 0}, {"GBS", 0, 4}, {"GNS", 0, 4}, {"GST", 1, 4}, {"ZDA", 0, 4},
+    {"GLL", 1, 0}, {"GBS", 0, 104}, {"GNS", 0, 104}, {"GST", 1, 104}, {"ZDA", 0, 104},
 };
 
 const lg290pMsg lgMessagesRTCM[] = {
@@ -44,7 +44,7 @@ const lg290pMsg lgMessagesRTCM[] = {
 
     {"RTCM3-1020", 0, 0},
 
-    {"RTCM3-1033", 0, 4}, // v4 and above
+    {"RTCM3-1033", 0, 104}, // v1.4 and above
 
     {"RTCM3-1041", 0, 0}, {"RTCM3-1042", 0, 0}, {"RTCM3-1044", 0, 0}, {"RTCM3-1046", 0, 0},
 
