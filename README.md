@@ -19,14 +19,17 @@ The line of RTK Everywhere products offered by SparkFun all run identical firmwa
 	<tr align="center">
 		<td><a href="https://www.sparkfun.com/sparkfun-rtk-postcard.html"><img src="docs/img/SparkFun_RTK_Postcard_Small.png"></a></td>
 		<td><a href="https://www.sparkfun.com/products/25662"><img src="docs/img/SparkFun_RTK_Torch.png"></a></td>
+		<td><a href="https://www.sparkfun.com/sparkpnt-tx2.html"><img src="docs/img/SparkPNT_TX2.png"></a></td>
 	</tr>
 	<tr align="center">
 		<td><a href="https://www.sparkfun.com/sparkfun-rtk-postcard.html">SparkFun RTK Postcard (GPS-26916)</a></td>
 		<td><a href="https://www.sparkfun.com/products/25662">SparkFun RTK Torch (GPS-25662)</a></td>
+		<td><a href="https://www.sparkfun.com/sparkpnt-tx2.html">SparkPNT TX2 (GPS-29524)</a></td>
 	</tr>
 	<tr align="center">
 		<td><a href="https://docs.sparkfun.com/SparkFun_RTK_Postcard/">Hookup Guide</a></td>
 		<td><a href="https://docs.sparkfun.com/SparkFun_RTK_Torch/">Hookup Guide</a></td>
+		<td><a href="https://docs.sparkpnt.com/TX2/">Hookup Guide</a></td>
 	</tr>
 </table>
 
@@ -37,11 +40,13 @@ The [SparkFun RTK Facet mosaic](https://www.sparkfun.com/sparkpnt-rtk-facet-mosa
 The [SparkFun RTK Postcard](https://www.sparkfun.com/products/26916) is a scalable DIY RTK device capable of running the RTK Everywhere Firmware. The LG290P RTK module lives at the heart of the RTK Postcard providing 10mm accuracy and L1/L2/L5 reception. Add the [Portability Shield](https://www.sparkfun.com/sparkfun-portability-shield.html) to add a display, battery charging and logging.
 
 The [SparkFun RTK Torch](https://www.sparkfun.com/products/25662) is a centimeter-level GNSS receiver. With RTK enabled, these devices can output your location with 8mm horizontal and vertical [*accuracy*](https://docs.sparkfun.com/SparkFun_RTK_Everywhere_Firmware/accuracy_verification/) at up to 20Hz. It supports Galileo E6 HAS and has built-in tilt compensation too!
+The [SparkPNT TX2](https://www.sparkfun.com/sparkpnt-tx2.html) is the latest generation of the [SparkFun RTK Torch](https://www.sparkfun.com/sparkfun-rtk-torch.html). The perfect entry-level surveying tool, which is now compatible with iOS devices.
 
 This repo houses the [RTK Product Manual](https://docs.sparkfun.com/SparkFun_RTK_Everywhere_Firmware) and the firmware that runs on the SparkFun RTK product line including:
 
-* [SparkFun RTK Torch](https://www.sparkfun.com/products/25662)
-* [SparkFun RTK EVK](https://www.sparkfun.com/products/24342)
+* [SparkPNT TX2](https://www.sparkfun.com/sparkpnt-tx2.html)
+* [SparkFun RTK Torch](https://www.sparkfun.com/sparkfun-rtk-torch.html)
+* [SparkFun RTK EVK](https://www.sparkfun.com/sparkfun-rtk-evk.html)
 
 For compiled binaries of the firmware, please see [SparkFun RTK Everywhere Firmware Binaries](https://github.com/sparkfun/SparkFun_RTK_Everywhere_Firmware_Binaries).
 
