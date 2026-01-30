@@ -69,4 +69,4 @@ The LG290P is the GNSS receiver used on the RTK Postcard. The following describe
 	</figcaption>
 	</figure>
 
-8. Upon power-up, the firmware will be updated. Open the System Menu to confirm the firmware version.
+7. Upon power-up, the firmware will be updated. Open the System Menu to confirm the firmware version.
