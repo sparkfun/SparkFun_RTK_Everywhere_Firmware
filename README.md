@@ -29,7 +29,7 @@ The line of RTK Everywhere products offered by SparkFun all run identical firmwa
 	</tr>
 	<tr align="center">
 		<td><a href="https://docs.sparkfun.com/SparkFun_RTK_Torch/">Hookup Guide</a></td>
-		<td><a href="https://docs.sparkpnt.com/TX2/">Hookup Guide</a></td>
+		<td>Hookup Guide</td>
 	</tr>
 </table>
 

@@ -405,7 +405,7 @@ Replace the silicone boot around the device.
 
 Power on the RTK Facet and take outside to confirm SIV reaches above ~20 satellites and HPA is below ~1.0m.
 
-## Torch
+## Torch and TX2
 
 ### Opening Enclosure
 

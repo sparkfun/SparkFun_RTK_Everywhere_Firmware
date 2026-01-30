@@ -97,11 +97,11 @@ Browser with rtk.local
 
 5. You should be automatically re-directed to the config page but if you are not, open a browser (Chrome is preferred) and type **rtk.local** into the address bar.
 
-## RTK Torch
+## RTK Torch and TX2
 
 To get into browser configuration follow these steps:
 
-1. Power on the RTK Torch
+1. Power on the RTK Torch or TX2
 2. Once the device has started press the Power Button twice within 1 second (double tap).
 3. The device will beep twice indicating it is waiting for incoming connections.
 
@@ -159,6 +159,7 @@ The firmware for the RTK device and the firmware for the GNSS receiver is shown 
 - Facet mosaic: :material-radiobox-blank:{ .support-none title="Feature Not Supported" }
 - Postcard: :material-radiobox-marked:{ .support-full title="Feature Supported" }
 - Torch: :material-radiobox-blank:{ .support-none title="Feature Not Supported" }
+- TX2: :material-radiobox-blank:{ .support-none title="Feature Not Supported" }
 
 </div>
 

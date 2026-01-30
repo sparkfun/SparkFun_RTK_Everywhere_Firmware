@@ -85,6 +85,25 @@ The line of RTK Everywhere products offered by SparkFun all run identical firmwa
 	[Hookup Guide](https://docs.sparkfun.com/SparkFun_RTK_Torch/){ .md-button .md-button--primary }
 	</center>
 
+-   <figure markdown>
+
+	[![Product Image](./img/SparkPNT_TX2.png)](https://www.sparkfun.com/sparkpnt-tx2.html "Go to Product Page")
+	<figcaption markdown>
+
+	[SparkFun RTK Torch (GPS-29524)](https://www.sparkfun.com/sparkpnt-tx2.html)
+	</figcaption>
+	</figure>
+
+	<center>
+
+	[Quickstart Guide](quickstart-tx2.md){ .md-button .md-button--primary }
+	</center>
+
+	<center>
+
+	Hookup Guide *(Coming Soon)*
+	</center>
+
 </div>
 
 Depending on the hardware platform different features may or may not be supported. We will denote each product in each section so that you know what is supported.

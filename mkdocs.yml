@@ -402,7 +402,7 @@ nav:
     - quickstart-facet-mosaic.md
     - quickstart-postcard.md
     - quickstart-torch.md
-    - quickstart-torch_tx2.md
+    - quickstart-tx2.md
   - connecting_bluetooth.md
   - GIS Software:
       - gis_software_android.md
