@@ -15,6 +15,7 @@ Compatibility Icons
 - Facet mosaic: :material-radiobox-blank:{ .support-none title="Feature Not Supported" }
 - Postcard: :material-radiobox-blank:{ .support-none title="Feature Not Supported" }
 - Torch: :material-radiobox-blank:{ .support-none title="Feature Not Supported" }
+- TX2: :material-radiobox-blank:{ .support-none title="Feature Not Supported" }
 
 </div>
 

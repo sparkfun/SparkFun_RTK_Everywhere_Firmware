@@ -15,6 +15,7 @@ Compatibility Icons
 - Facet mosaic: :material-radiobox-indeterminate-variant:{ .support-partial title="Feature Partially Supported" }
 - Postcard: :material-radiobox-indeterminate-variant:{ .support-partial title="Feature Not Supported" }
 - Torch: :material-radiobox-indeterminate-variant:{ .support-partial title="Feature Partially Supported" }
+- TX2: :material-radiobox-indeterminate-variant:{ .support-partial title="Feature Partially Supported" }
 
 </div>
 

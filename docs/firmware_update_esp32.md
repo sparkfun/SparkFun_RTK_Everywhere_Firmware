@@ -15,6 +15,7 @@ Compatibility Icons
 - Facet mosaic: :material-radiobox-indeterminate-variant:{ .support-partial title="Feature Partially Supported" }
 - Postcard: :material-radiobox-marked:{ .support-full title="Feature Supported" }
 - Torch: :material-radiobox-indeterminate-variant:{ .support-partial title="Feature Partially Supported" }
+- TX2: :material-radiobox-indeterminate-variant:{ .support-partial title="Feature Partially Supported" }
 
 </div>
 
@@ -71,6 +72,7 @@ Remember, all SparkFun RTK devices are open source hardware meaning you have tot
 - Facet mosaic: :material-radiobox-marked:{ .support-full title="Feature Supported" }
 - Postcard: :material-radiobox-marked:{ .support-full title="Feature Supported" }
 - Torch: :material-radiobox-marked:{ .support-full title="Feature Supported" }
+- TX2: :material-radiobox-marked:{ .support-full title="Feature Supported" }
 
 </div>
 
@@ -106,6 +108,7 @@ Automatic release firmware update is supported over WiFi. Enabling this feature 
 - Facet mosaic: :material-radiobox-marked:{ .support-full title="Feature Supported" }
 - Postcard: :material-radiobox-marked:{ .support-full title="Feature Supported" }
 - Torch: :material-radiobox-marked:{ .support-full title="Feature Supported" }
+- TX2: :material-radiobox-marked:{ .support-full title="Feature Supported" }
 
 </div>
 
@@ -162,6 +165,7 @@ Compatibility Icons
 - Facet mosaic: :material-radiobox-blank:{ .support-none title="Feature Not Supported" }
 - Postcard: :material-radiobox-marked:{ .support-full title="Feature Supported" }
 - Torch: :material-radiobox-blank:{ .support-none title="Feature Not Supported" }
+- TX2: :material-radiobox-blank:{ .support-none title="Feature Not Supported" }
 
 </div>
 
@@ -193,6 +197,7 @@ In the rare event that a unit is not staying on long enough for new firmware to 
 - Facet mosaic: :material-radiobox-marked:{ .support-full title="Feature Supported" }
 - Postcard: :material-radiobox-marked:{ .support-full title="Feature Supported" }
 - Torch: :material-radiobox-marked:{ .support-full title="Feature Supported" }
+- TX2: :material-radiobox-marked:{ .support-full title="Feature Supported" }
 
 </div>
 
@@ -215,6 +220,7 @@ Firmware may be uploaded to the unit by clicking on 'Upload BIN', selecting the 
 - Facet mosaic: :material-radiobox-marked:{ .support-full title="Feature Supported" }
 - Postcard: :material-radiobox-marked:{ .support-full title="Feature Supported" }
 - Torch: :material-radiobox-marked:{ .support-full title="Feature Supported" }
+- TX2: :material-radiobox-marked:{ .support-full title="Feature Supported" }
 
 </div>
 
