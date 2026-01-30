@@ -25,3 +25,8 @@ Which device are you using?
 - [RTK Torch Quick Start](quickstart-torch.md)
 - [RTK Torch Hookup Guide](https://docs.sparkfun.com/SparkFun_RTK_Torch/)
 
+[![TX2](img/SparkPNT_TX2.png)](quickstart-tx2.md)
+
+- [TX2 Quick Start](quickstart-tx2.md)
+- [TX2 Hookup Guide](https://docs.sparkpnt.com/TX2/)
+

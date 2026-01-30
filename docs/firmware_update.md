@@ -42,3 +42,7 @@ The RTK Devices run a variety of firmware. Please see the device specific pages 
 - [Updating UM980 Firmware](./firmware_update_um980.md)
 - [Updating STM32 Firmware](./firmware_update_stm32.md)
 
+## TX2
+
+- [Updating ESP32 Firmware](./firmware_update_esp32.md)
+- [Updating LG290P Firmware](./firmware_update_lg290p.md)

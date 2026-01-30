@@ -402,6 +402,7 @@ nav:
     - quickstart-facet-mosaic.md
     - quickstart-postcard.md
     - quickstart-torch.md
+    - quickstart-torch_tx2.md
   - connecting_bluetooth.md
   - GIS Software:
       - gis_software_android.md
@@ -448,6 +449,9 @@ nav:
         - firmware_update_esp32.md
         - firmware_update_um980.md
         - firmware_update_stm32.md
+      - Update TX2:
+        - firmware_update_esp32.md
+        - firmware_update_lg290p.md
       - displays.md
       - embeddedsystem_connection.md
       - repair.md
