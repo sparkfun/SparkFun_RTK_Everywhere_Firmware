@@ -8,10 +8,10 @@ The line of RTK Everywhere products offered by SparkFun all run identical firmwa
 
 -   <figure markdown>
 
-	[![Product Image](./img/SparkFun_RTK_EVK.png)](https://www.sparkfun.com/products/24342 "Go to Product Page")
+	[![Product Image](./img/SparkFun_RTK_EVK.png)](https://www.sparkfun.com/sparkfun-rtk-evk.html "Go to Product Page")
 	<figcaption markdown>
 	
-	[SparkFun RTK EVK (GPS-24342)](https://www.sparkfun.com/products/24342)
+	[SparkFun RTK EVK (GPS-24342)](https://www.sparkfun.com/sparkfun-rtk-evk.html)
 	</figcaption>
 	</figure>
 
@@ -68,10 +68,10 @@ The line of RTK Everywhere products offered by SparkFun all run identical firmwa
 
 -   <figure markdown>
 
-	[![Product Image](./img/SparkFun_RTK_Torch.png)](https://www.sparkfun.com/products/25662 "Go to Product Page")
+	[![Product Image](./img/SparkFun_RTK_Torch.png)](https://www.sparkfun.com/sparkfun-rtk-torch.html "Go to Product Page")
 	<figcaption markdown>
 
-	[SparkFun RTK Torch (GPS-25662)](https://www.sparkfun.com/products/25662)
+	[SparkFun RTK Torch (GPS-25662)](https://www.sparkfun.com/sparkfun-rtk-torch.html)
 	</figcaption>
 	</figure>
 
