@@ -68,44 +68,32 @@ const char *const ringBufferConsumer[] = {
 const int ringBufferConsumerEntries = sizeof(ringBufferConsumer) / sizeof(ringBufferConsumer[0]);
 
 // Define the index values into the parserTable
-#define RTK_NMEA_PARSER_INDEX 0
-#define RTK_UNICORE_HASH_PARSER_INDEX 1
-#define RTK_RTCM_PARSER_INDEX 2
-#define RTK_UBLOX_PARSER_INDEX 3
+#define RTK_NMEA_PARSER_INDEX           0
+#define RTK_UNICORE_HASH_PARSER_INDEX   1
+#define RTK_RTCM_PARSER_INDEX           2
+#define RTK_UBLOX_PARSER_INDEX          3
 #define RTK_UNICORE_BINARY_PARSER_INDEX 4
 
 // List the parsers to be included
-SEMP_PARSE_ROUTINE const parserTable[] = {
-    sempNmeaPreamble, sempUnicoreHashPreamble, sempRtcmPreamble, sempUbloxPreamble, sempUnicoreBinaryPreamble,
+const SEMP_PARSER_DESCRIPTION * parserTable[] = {
+    &sempNmeaParserDescription,             // 0
+    &sempUnicoreHashParserDescription,      // 1
+    &sempRtcmParserDescription,             // 2
+    &sempUbloxParserDescription,            // 3
+    &sempUnicoreBinaryParserDescription,    // 4
 };
 const int parserCount = sizeof(parserTable) / sizeof(parserTable[0]);
 
-// List the names of the parsers
-const char *const parserNames[] = {
-    "NMEA", "Unicore Hash_(#)", "RTCM", "u-Blox", "Unicore Binary",
-};
-const int parserNameCount = sizeof(parserNames) / sizeof(parserNames[0]);
-
 // We need a separate parsers for the mosaic-X5: to allow SBF to be separated from L-Band SPARTN;
 // and to allow encapsulated NMEA and RTCMv3 to be parsed without upsetting the SPARTN parser.
-SEMP_PARSE_ROUTINE const sbfParserTable[] = {sempSbfPreamble};
+const SEMP_PARSER_DESCRIPTION * sbfParserTable[] = {&sempSbfParserDescription};
 const int sbfParserCount = sizeof(sbfParserTable) / sizeof(sbfParserTable[0]);
-const char *const sbfParserNames[] = {
-    "SBF",
-};
-const int sbfParserNameCount = sizeof(sbfParserNames) / sizeof(sbfParserNames[0]);
 
-SEMP_PARSE_ROUTINE const spartnParserTable[] = {sempSpartnPreamble};
+const SEMP_PARSER_DESCRIPTION * spartnParserTable[] = {&sempSpartnParserDescription};
 const int spartnParserCount = sizeof(spartnParserTable) / sizeof(spartnParserTable[0]);
-const char *const spartnParserNames[] = {
-    "SPARTN",
-};
-const int spartnParserNameCount = sizeof(spartnParserNames) / sizeof(spartnParserNames[0]);
 
-SEMP_PARSE_ROUTINE const rtcmParserTable[] = {sempRtcmPreamble};
+const SEMP_PARSER_DESCRIPTION * rtcmParserTable[] = {&sempRtcmParserDescription};
 const int rtcmParserCount = sizeof(rtcmParserTable) / sizeof(rtcmParserTable[0]);
-const char *const rtcmParserNames[] = {"RTCM"};
-const int rtcmParserNameCount = sizeof(rtcmParserNames) / sizeof(rtcmParserNames[0]);
 
 //----------------------------------------
 // Locals
@@ -342,7 +330,14 @@ void feedWdt()
 // time.
 void gnssReadTask(void *e)
 {
-    int bytes;
+    size_t bufferLength;
+    uint8_t * rtkBuffer;
+    uint8_t * sbfBuffer;
+    uint8_t * spartnBuffer;
+
+    rtkBuffer = nullptr;
+    sbfBuffer = nullptr;
+
 
     // Start notification
     task.gnssReadTaskRunning = true;
@@ -350,25 +345,25 @@ void gnssReadTask(void *e)
         systemPrintln("Task gnssReadTask started");
 
     // Initialize the main parser
-    bytes = psramFound() ? 16384 : 3000;
-    rtkParse = sempBeginParser(parserTable, parserCount, parserNames, parserNameCount,
-                               0,                   // Scratchpad bytes
-                               bytes,               // Buffer length
+    bufferLength = sempGetBufferLength(parserTable, parserCount, psramFound() ? 16384 : 3000);
+    rtkBuffer = (uint8_t *)rtkMalloc(bufferLength, "SEMP rtkBuffer");
+    rtkParse = sempBeginParser("rtkParse", parserTable, parserCount,
+                               rtkBuffer, bufferLength,
                                processUart1Message, // eom Call Back
-                               "rtkParse");         // Parser Name
+                               output);  // Routine to output an error character
     if (!rtkParse)
         reportFatalError("Failed to initialize the parser");
 
     if (settings.debugGnss)
     {
-        sempEnableDebugOutput(rtkParse); // Standard debug on Serial
-        //sempEnableDebugOutput(rtkParse, &Serial, true); // Verbose debug
+        sempDebugOutputEnable(rtkParse, output); // Standard debug on Serial
+        //sempDebugOutputEnable(rtkParse, output, true); // Verbose debug
     }
 
     // Abort NMEA and Unicore Hash on non-printable character
     // Help faster recovery from UART errors on EVK
-    sempAbortNmeaOnNonPrintable(rtkParse);
-    sempAbortHashOnNonPrintable(rtkParse);
+    sempNmeaAbortOnNonPrintable(rtkParse);
+    sempUnicoreHashAbortOnNonPrintable(rtkParse);
 
     bool sbfParserNeeded = present.gnss_mosaicX5;
     bool spartnParserNeeded = present.gnss_mosaicX5 && (productVariant != RTK_FACET_FP);
@@ -376,14 +371,16 @@ void gnssReadTask(void *e)
     if (sbfParserNeeded)
     {
         // Initialize the SBF parser for the mosaic-X5
-        bytes = psramFound() ? 16384 : sempGnssReadBufferSize;
-        if (bytes < sempGnssReadBufferSize)
-            bytes = sempGnssReadBufferSize;
-        sbfParse = sempBeginParser(sbfParserTable, sbfParserCount, sbfParserNames, sbfParserNameCount,
-                                   0,                      // Scratchpad bytes
-                                   bytes,                  // Buffer length
+        bufferLength = psramFound() ? 16384 : sempGnssReadBufferSize;
+        if (bufferLength < sempGnssReadBufferSize)
+            bufferLength = sempGnssReadBufferSize;
+        bufferLength = sempGetBufferLength(sbfParserTable, sbfParserCount, bufferLength);
+        sbfBuffer = (uint8_t *)rtkMalloc(bufferLength, "SEMP sbfBuffer");
+        sbfParse = sempBeginParser("SEMP sbfBuffer", sbfParserTable, sbfParserCount,
+                                   sbfBuffer,
+                                   bufferLength,
                                    processUart1SBF,        // eom Call Back - in mosaic.ino
-                                   "sbfParse");            // Parser Name
+                                   output); // Routine to output an error character
         if (!sbfParse)
             reportFatalError("Failed to initialize the SBF parser");
 
@@ -394,16 +391,16 @@ void gnssReadTask(void *e)
         if (spartnParserNeeded)
         {
             // Any data which is not SBF will be passed to the SPARTN parser via the invalid data callback
-            sempSbfSetInvalidDataCallback(sbfParse, processNonSBFData);
+            sempSetInvalidDataCallback(sbfParse, processNonSBFData);
 
             // Initialize the SPARTN parser for the mosaic-X5
-            bytes = 1200; // SPARTN payload is 1024 bytes max
+            // SPARTN payload is 1024 bytes max
+            bufferLength = sempGetBufferLength(spartnParserTable, spartnParserCount, 1200);
+            spartnBuffer = (uint8_t *)rtkMalloc(bufferLength, "SEMP spartnBuffer");
             spartnParse =
-                sempBeginParser(spartnParserTable, spartnParserCount, spartnParserNames, spartnParserNameCount,
-                                0,                  // Scratchpad bytes
-                                bytes,              // Buffer length
-                                processUart1SPARTN, // eom Call Back - in mosaic.ino
-                                "spartnParse");     // Parser Name
+                sempBeginParser("SEMP spartnBuffer", spartnParserTable, spartnParserCount,
+                                spartnBuffer, bufferLength, processUart1SPARTN, // eom Call Back - in mosaic.ino
+                                output); // Routine to output an error character
             if (!spartnParse)
                 reportFatalError("Failed to initialize the SPARTN parser");
 
@@ -492,8 +489,6 @@ void gnssReadTask(void *e)
                     {
                         sempParseNextByte(sbfParse, incomingData[x]);
 
-                        SEMP_SCRATCH_PAD *scratchPad = (SEMP_SCRATCH_PAD *)sbfParse->scratchPad;
-
                         // Check if this is Length MSB
                         // Also check parser is running - as invalidDataCallback may have just been called
                         if ((sbfParse->state != sempFirstByte) && (sbfParse->type == 0) && (sbfParse->length == 8))
@@ -501,13 +496,13 @@ void gnssReadTask(void *e)
                             bool expected = false;
                             for (int b = 0; b < MAX_MOSAIC_EXPECTED_SBF; b++) // For each expected SBF block
                             {
-                                if (mosaicExpectedIDs[b].ID == scratchPad->sbf.sbfID) // Check for ID match
+                                if (mosaicExpectedIDs[b].ID == sempSbfGetId(sbfParse)) // Check for ID match
                                 {
                                     expected = true;
                                     if (mosaicExpectedIDs[b].fixedLength)
                                     {
                                         // Check for length match if fixed
-                                        if (mosaicExpectedIDs[b].length != scratchPad->sbf.length)
+                                        if (mosaicExpectedIDs[b].length != sempSbfGetLength(sbfParse))
                                             expected = false;
                                     }
                                 }
@@ -519,7 +514,7 @@ void gnssReadTask(void *e)
                                     spartnParse->state = sempFirstByte;
                                 if (settings.debugGnss)
                                     systemPrintf("Unexpected SBF block %d - rejected on ID or length\r\n",
-                                                 scratchPad->sbf.sbfID);
+                                                 sempSbfGetId(sbfParse));
                                 // We could pass the rejected bytes to the SPARTN parser but this is ~risky
                                 // as the L-Band data could overlap the start of actual SBF. I think it's
                                 // probably safer to discard the data and let both parsers re-sync?
@@ -533,7 +528,7 @@ void gnssReadTask(void *e)
 
                         // Extra checks for EncapsulatedOutput - length is variable but we can compare the length to the
                         // payload length
-                        if ((sbfParse->type == 0) && (sbfParse->length == 18) && (scratchPad->sbf.sbfID == 4097))
+                        if ((sbfParse->type == 0) && (sbfParse->length == 18) && (sempSbfGetId(sbfParse) == 4097))
                         {
                             bool expected = true;
                             if ((sbfParse->buffer[14] != 2) &&
@@ -549,7 +544,7 @@ void gnssReadTask(void *e)
                                 uint16_t remainder = ((N + 20) % 4);
                                 if (remainder > 0)
                                     expectedLength += 4 - remainder; // Include the padding
-                                if (scratchPad->sbf.length != expectedLength)
+                                if (sempSbfGetLength(sbfParse) != expectedLength)
                                     expected = false;
                             }
 
@@ -580,7 +575,12 @@ void gnssReadTask(void *e)
     }
 
     // Done parsing incoming data, free the parse buffer
-    sempStopParser(&rtkParse);
+    if (rtkBuffer)
+        rtkFree(rtkBuffer, "SEMP rtkBuffer");
+    if (sbfBuffer)
+        rtkFree(sbfBuffer, "SEMP sbfBuffer");
+    if (spartnBuffer)
+        rtkFree(spartnBuffer, "SEMP spartnBuffer");
 
     // Stop notification
     if (settings.printTaskStartStop)
@@ -909,28 +909,28 @@ void processUart1Message(SEMP_PARSE_STATE *parse, uint16_t type)
         switch (type)
         {
         case RTK_NMEA_PARSER_INDEX:
-            systemPrintf("%s %s %s, 0x%04x (%d) bytes\r\n", parse->parserName, parserNames[type],
+            systemPrintf("%s %s %s, 0x%04x (%d) bytes\r\n", parse->parserName, parse->parsers[type]->parserName,
                          sempNmeaGetSentenceName(parse), parse->length, parse->length);
             break;
 
         case RTK_UNICORE_HASH_PARSER_INDEX:
-            systemPrintf("%s %s %s, 0x%04x (%d) bytes\r\n", parse->parserName, parserNames[type],
+            systemPrintf("%s %s %s, 0x%04x (%d) bytes\r\n", parse->parserName, parse->parsers[type]->parserName,
                          sempUnicoreHashGetSentenceName(parse), parse->length, parse->length);
             break;
 
         case RTK_RTCM_PARSER_INDEX:
-            systemPrintf("%s %s %d, 0x%04x (%d) bytes\r\n", parse->parserName, parserNames[type],
+            systemPrintf("%s %s %d, 0x%04x (%d) bytes\r\n", parse->parserName, parse->parsers[type]->parserName,
                          sempRtcmGetMessageNumber(parse), parse->length, parse->length);
             break;
 
         case RTK_UBLOX_PARSER_INDEX:
             message = sempUbloxGetMessageNumber(parse);
-            systemPrintf("%s %s %d.%d, 0x%04x (%d) bytes\r\n", parse->parserName, parserNames[type], message >> 8,
+            systemPrintf("%s %s %d.%d, 0x%04x (%d) bytes\r\n", parse->parserName, parse->parsers[type]->parserName, message >> 8,
                          message & 0xff, parse->length, parse->length);
             break;
 
         case RTK_UNICORE_BINARY_PARSER_INDEX:
-            systemPrintf("%s %s, 0x%04x (%d) bytes\r\n", parse->parserName, parserNames[type], parse->length,
+            systemPrintf("%s %s, 0x%04x (%d) bytes\r\n", parse->parserName, parse->parsers[type]->parserName, parse->length,
                          parse->length);
             break;
         }
@@ -1028,7 +1028,7 @@ void processUart1Message(SEMP_PARSE_STATE *parse, uint16_t type)
                     }
 
                     size_t spaceAvailable = latestEASessionDataMaxLen - latestEASessionDataLen;
-                    
+
                     // If the buffer is full, delete the oldest message(s). Include room for the CR, LF and NULL
                     while (spaceAvailable < (parse->length + 3))
                     {
@@ -2456,7 +2456,7 @@ void buttonCheckTask(void *e)
                     // Force menu exit to go immediately into Rover
                     // (User can open the menu while in web config)
                     forceMenuExit = true;
-                    
+
                     forceSystemStateUpdate = true; // Immediately go to this new state
                     changeState(STATE_ROVER_NOT_STARTED);
                 }
@@ -2950,27 +2950,24 @@ void bluetoothCommandTask(void *pvParameters)
 void beginRtcmParse()
 {
     // Begin the RTCM parser - which will extract the base location from RTCM1005 / 1006
-    int bytes = psramFound() ? 16384 : 1050;
-    rtcmParse = sempBeginParser(rtcmParserTable, rtcmParserCount, rtcmParserNames, rtcmParserNameCount,
-                                0,                  // Scratchpad bytes
-                                bytes,              // Buffer length
-                                processRTCMMessage, // eom Call Back
-                                "rtcmParse");       // Parser Name
+    size_t bufferLength = psramFound() ? 16384 : 1050;
+    uint8_t * buffer = (uint8_t *)rtkMalloc(bufferLength, "SEMP rtcmBuffer");
+    rtcmParse = sempBeginParser("rtcmParse", rtcmParserTable, rtcmParserCount,
+                                buffer, bufferLength, processRTCMMessage, // eom Call Back
+                                output); // Routine to output an error character
     if (!rtcmParse)
         reportFatalError("Failed to initialize the RTCM parser");
 
     if (settings.debugNtripClientRtcm)
     {
-        sempEnableDebugOutput(rtcmParse);
-        sempPrintParserConfiguration(rtcmParse);
+        sempDebugOutputEnable(rtcmParse, output);
+        sempPrintParserConfiguration(rtcmParse, output);
     }
 }
 
 // Check and record the base location in RTCM1005/1006
 void processRTCMMessage(SEMP_PARSE_STATE *parse, uint16_t type)
 {
-    SEMP_SCRATCH_PAD *scratchPad = (SEMP_SCRATCH_PAD *)parse->scratchPad;
-
     if (sempRtcmGetMessageNumber(parse) == 1005)
     {
         ARPECEFX = sempRtcmGetSignedBits(parse, 34, 38);
