@@ -58,12 +58,14 @@ bool loadSystemSettingsFromFileSD(char *fileName, const char *findMe = nullptr, 
 void loadSettings()
 {
     // If we have a profile in both LFS and SD, the SD settings will overwrite LFS
+    // This will fail if LFS has been erased. That's OK.
     loadSystemSettingsFromFileLFS(settingsFileName);
 
     // Temp store any variables from LFS that should override SD
     int resetCount = settings.resetCount;
     uint32_t gnssConfigureRequest = settings.gnssConfigureRequest;
 
+    // This will fail if no SD is present. That's OK.
     loadSystemSettingsFromFileSD(settingsFileName);
 
     settings.resetCount = resetCount; // resetCount from LFS should override SD
@@ -115,7 +117,7 @@ void loadSettingsPartial()
 
 void recordSystemSettings()
 {
-    settings.sizeOfSettings = sizeof(settings); // Update to current setting size
+    settings.sizeOfSettings = sizeof(settings); // Update to current setting size. Probably redundant?!
 
     recordSystemSettingsToFileSD(settingsFileName);  // Record to SD if available
     recordSystemSettingsToFileLFS(settingsFileName); // Record to LFS if available
@@ -145,15 +147,16 @@ void recordSystemSettingsToFileSD(char *fileName)
 
             if (sd->exists(fileName))
             {
-                log_d("Removing from SD: %s", fileName);
+                if (settings.debugSettings)
+                    systemPrintf("Removing from SD: %s\r\n", fileName);
                 sd->remove(fileName);
             }
 
             SdFile settingsFile; // FAT32
             if (settingsFile.open(fileName, O_CREAT | O_APPEND | O_WRITE) == false)
             {
-                systemPrintln("Failed to create settings file");
-                break;
+                systemPrintf("Failed to create SD settings file %s\r\n", fileName);
+                break; // /while (online.microSD == true)
             }
 
             sdUpdateFileCreateTimestamp(&settingsFile); // Update the file to create time & date
@@ -164,7 +167,8 @@ void recordSystemSettingsToFileSD(char *fileName)
 
             settingsFile.close();
 
-            log_d("Settings recorded to SD: %s", fileName);
+            if (settings.debugSettings)
+                systemPrintf("Settings recorded to SD: %s\r\n", fileName);
         }
         else
         {
@@ -175,8 +179,8 @@ void recordSystemSettingsToFileSD(char *fileName)
             // on the microSD card, and will not be restored to the expected settings!
             systemPrintf("sdCardSemaphore failed to yield, held by %s, NVM.ino line %d\r\n", semaphoreHolder, __LINE__);
         }
-        break;
-    }
+        break; // /while (online.microSD == true)
+    } // /while (online.microSD == true)
 
     // Release access the SD card
     if (online.microSD && (!wasSdCardOnline))
@@ -193,14 +197,15 @@ void recordSystemSettingsToFileLFS(char *fileName)
     {
         if (LittleFS.exists(fileName))
         {
+            if (settings.debugSettings)
+                    systemPrintf("Removing LittleFS: %s\r\n", fileName);
             LittleFS.remove(fileName);
-            log_d("Removing LittleFS: %s", fileName);
         }
 
         File settingsFile = LittleFS.open(fileName, FILE_WRITE);
         if (!settingsFile)
         {
-            log_d("Failed to write to settings file %s", fileName);
+            systemPrintf("Failed to create LFS settings file %s\r\n", fileName);
         }
         else
         {
@@ -493,9 +498,11 @@ bool loadSystemSettingsFromFileSD(char *fileName, const char *findMe, char *foun
 {
     if ((findMe != nullptr) && (found != nullptr))
         *found = 0; // If searching, set found to NULL
+    else if (settings.debugSettings)
+        systemPrintf("Loading system settings from SD: %s\r\n", fileName);
 
     bool gotSemaphore = false;
-    bool status = false;
+    bool status = false; // Return false - until file is opened
     bool wasSdCardOnline;
 
     // Try to gain access the SD card
@@ -515,36 +522,44 @@ bool loadSystemSettingsFromFileSD(char *fileName, const char *findMe, char *foun
 
             if (!sd->exists(fileName))
             {
-                // log_d("File %s not found", fileName);
-                break;
+                if (settings.debugSettings)
+                    systemPrintf("SD File %s not found\r\n", fileName);
+                break; // /while (online.microSD == true)
             }
 
             SdFile settingsFile; // FAT32
             if (settingsFile.open(fileName, O_READ) == false)
             {
-                systemPrintln("Failed to open settings file");
-                break;
+                systemPrintln("Failed to open SD settings file");
+                break; // /while (online.microSD == true)
             }
 
             char line[100];
             int lineNumber = 0;
+            status = true; // File is open. Default status to true
 
             while (settingsFile.available())
             {
                 // Get the next line from the file
+                // Note: fgets stripts the \r (if there is one) leaving only \n
                 int n = settingsFile.fgets(line, sizeof(line));
+
                 if (n <= 0)
                 {
-                    systemPrintf("Failed to read line %d from settings file\r\n", lineNumber);
+                    systemPrintf("Failed to read line %d from SD settings file\r\n", lineNumber);
                 }
-                else if (line[n - 1] != '\n' && n == (sizeof(line) - 1))
+                else if (line[n - 1] != '\n')
                 {
-                    systemPrintf("Settings line %d too long\r\n", lineNumber);
+                    if (n == (sizeof(line) - 1))
+                        systemPrintf("Settings line %d too long\r\n", lineNumber);
+                    else
+                        systemPrintf("Settings line %d not LF terminated\r\n", lineNumber);
                     if (lineNumber == 0)
                     {
                         // If we can't read the first line of the settings file, give up
-                        systemPrintln("Giving up on settings file");
-                        break;
+                        systemPrintln("Giving up on SD settings file");
+                        status = false;
+                        break; // /while (settingsFile.available())
                     }
                 }
                 else
@@ -554,19 +569,21 @@ bool loadSystemSettingsFromFileSD(char *fileName, const char *findMe, char *foun
                         // parse each line and load into settings
                         if (parseLine(line) == false)
                         {
+                            line[strlen(line) - 1] = 0; // Remove \n for printing
                             systemPrintf("Failed to parse line %d: %s\r\n", lineNumber, line);
                             if (lineNumber == 0)
                             {
                                 // If we can't read the first line of the settings file, give up
-                                systemPrintln("Giving up on settings file");
-                                break;
+                                systemPrintln("Giving up on SD settings file");
+                                status = false;
+                                break; // /while (settingsFile.available())
                             }
                         }
                     }
                     else
                     {
                         // Check if line contains findMe. If it does, return the remainder of the line in found.
-                        // Don't copy the \r or \n
+                        // Don't copy the \n (or \r - but there should not be one)
                         const char *ptr = strstr(line, findMe);
                         if (ptr != nullptr)
                         {
@@ -579,19 +596,22 @@ bool loadSystemSettingsFromFileSD(char *fileName, const char *findMe, char *foun
                                 }
                             }
                             strncpy(found, ptr, len);
-                            break;
+                            break; // /while (settingsFile.available())
                         }
                     }
                 }
 
                 lineNumber++;
+                if (lineNumber > 800) // Arbitrary limit. Catch corrupt files.
+                {
+                    systemPrintf("Max line number exceeded. Giving up reading SD file: %s\r\n", fileName);
+                    // Should we return true or false? Going with true...
+                    break; // /while (settingsFile.available())
+                }
             }
 
             // systemPrintln("Config file read complete");
             settingsFile.close();
-            status = true;
-            break;
-
         } // End Semaphore check
         else
         {
@@ -599,7 +619,7 @@ bool loadSystemSettingsFromFileSD(char *fileName, const char *findMe, char *foun
             // those settings are not overriding the current settings as documented!
             systemPrintf("sdCardSemaphore failed to yield, NVM.ino line %d\r\n", __LINE__);
         }
-        break;
+        break; // /while (online.microSD == true)
     } // End SD online
 
     // Release access the SD card
@@ -618,45 +638,52 @@ bool loadSystemSettingsFromFileSD(char *fileName, const char *findMe, char *foun
 // Don't update settings when searching.
 bool loadSystemSettingsFromFileLFS(char *fileName, const char *findMe, char *found, int len)
 {
-    // log_d("reading setting fileName: %s", fileName);
-
     if ((findMe != nullptr) && (found != nullptr))
         *found = 0; // If searching, set found to NULL
+    else if (settings.debugSettings)
+        systemPrintf("Loading system settings from LFS: %s\r\n", fileName);
 
     if (!LittleFS.exists(fileName))
     {
-        // log_d("settingsFile not found in LittleFS\r\n");
+        if (settings.debugSettings)
+            systemPrintf("settingsFile %s not found in LittleFS\r\n", fileName);
         return (false);
     }
 
     File settingsFile = LittleFS.open(fileName, FILE_READ);
     if (!settingsFile)
     {
-        // log_d("settingsFile not found in LittleFS\r\n");
+        if (settings.debugSettings)
+            systemPrintln("Failed to open LFS settings file");
         return (false);
     }
 
     char line[100];
     int lineNumber = 0;
+    bool status = true; // File is open. Default status to true
 
     while (settingsFile.available())
     {
         // Get the next line from the file
-        int n;
-        n = getLine(&settingsFile, line, sizeof(line));
+        // getLine will remove the \r - to match SD fgets
+        int n = getLine(&settingsFile, line, sizeof(line));
 
         if (n <= 0)
         {
-            systemPrintf("Failed to read line %d from settings file\r\n", lineNumber);
+            systemPrintf("Failed to read line %d from LFS settings file\r\n", lineNumber);
         }
-        else if (line[n - 1] != '\n' && n == (sizeof(line) - 1))
+        else if (line[n - 1] != '\n')
         {
-            systemPrintf("Settings line %d too long\r\n", lineNumber);
+            if (n == (sizeof(line) - 1))
+                systemPrintf("Settings line %d too long\r\n", lineNumber);
+            else
+                systemPrintf("Settings line %d not LF terminated\r\n", lineNumber);
             if (lineNumber == 0)
             {
                 // If we can't read the first line of the settings file, give up
-                systemPrintln("Giving up on settings file");
-                break;
+                systemPrintln("Giving up on LFS settings file");
+                status = false;
+                break; // /while (settingsFile.available())
             }
         }
         else
@@ -666,19 +693,21 @@ bool loadSystemSettingsFromFileLFS(char *fileName, const char *findMe, char *fou
                 // parse each line and load into settings
                 if (parseLine(line) == false)
                 {
+                    line[strlen(line) - 1] = 0; // Remove \n for printing
                     systemPrintf("Failed to parse line %d: %s\r\n", lineNumber, line);
                     if (lineNumber == 0)
                     {
                         // If we can't read the first line of the settings file, give up
-                        systemPrintln("Giving up on settings file");
-                        break;
+                        systemPrintln("Giving up on LFS settings file");
+                        status = false;
+                        break; // /while (settingsFile.available())
                     }
                 }
             }
             else
             {
                 // Check if line contains findMe. If it does, return the remainder of the line in found.
-                // Don't copy the \r or \n
+                // Don't copy the \n (or \r - but there should not be one)
                 const char *ptr = strstr(line, findMe);
                 if (ptr != nullptr)
                 {
@@ -691,7 +720,7 @@ bool loadSystemSettingsFromFileLFS(char *fileName, const char *findMe, char *fou
                         }
                     }
                     strncpy(found, ptr, len);
-                    break; // We are done
+                    break; // /while (settingsFile.available())
                 }
             }
         }
@@ -699,34 +728,38 @@ bool loadSystemSettingsFromFileLFS(char *fileName, const char *findMe, char *fou
         lineNumber++;
         if (lineNumber > 800) // Arbitrary limit. Catch corrupt files.
         {
-            systemPrintf("Max line number exceeded. Giving up reading file: %s\r\n", fileName);
-            break;
+            systemPrintf("Max line number exceeded. Giving up reading LFS file: %s\r\n", fileName);
+            // Should we return true or false? Going with true...
+            break; // /while (settingsFile.available())
         }
     }
 
     settingsFile.close();
-    return (true);
+    return (status);
 }
 
 bool printSystemSettingsFromFileLFS(char *fileName)
 {
-    // log_d("printing setting fileName: %s", fileName);
+    if (settings.debugSettings)
+        systemPrintf("Printing setting fileName: %s\r\n", fileName);
 
     if (!LittleFS.exists(fileName))
     {
-        // log_d("settingsFile not found in LittleFS\r\n");
+        if (settings.debugSettings)
+            systemPrintf("settingsFile %s not found in LittleFS\r\n", fileName);
         return (false);
     }
 
     File settingsFile = LittleFS.open(fileName, FILE_READ);
     if (!settingsFile)
     {
-        // log_d("settingsFile not found in LittleFS\r\n");
+        systemPrintln("Failed to open LFS settings file");
         return (false);
     }
 
     char line[100];
     int lineNumber = 0;
+    bool status = true; // File is open. Default status to true
 
     systemPrintln();
     systemPrintln("--------------------------------------------------------------------------------");
@@ -734,32 +767,38 @@ bool printSystemSettingsFromFileLFS(char *fileName)
     while (settingsFile.available())
     {
         // Get the next line from the file
-        int n;
-        n = getLine(&settingsFile, line, sizeof(line));
+        // getLine will remove the \r - to match SD fgets
+        int n = getLine(&settingsFile, line, sizeof(line));
 
         if (n <= 0)
         {
-            systemPrintf("Failed to read line %d from settings file\r\n", lineNumber);
+            systemPrintf("Failed to read line %d from LFS settings file\r\n", lineNumber);
         }
-        else if (line[n - 1] != '\n' && n == (sizeof(line) - 1))
+        else if (line[n - 1] != '\n')
         {
-            systemPrintf("Settings line %d too long\r\n", lineNumber);
+            if (n == (sizeof(line) - 1))
+                systemPrintf("Settings line %d too long\r\n", lineNumber);
+            else
+                systemPrintf("Settings line %d not LF terminated\r\n", lineNumber);
             if (lineNumber == 0)
             {
                 // If we can't read the first line of the settings file, give up
-                systemPrintln("Giving up on settings file");
-                break;
+                systemPrintln("Giving up on LFS settings file");
+                status = false;
+                break; // /while (settingsFile.available())
             }
         }
         else
         {
+            line[strlen(line) - 1] = 0; // Remove \n for printing
             systemPrintln(line);
         }
 
         lineNumber++;
         if (lineNumber > 800) // Arbitrary limit. Catch corrupt files.
         {
-            systemPrintf("Max line number exceeded. Giving up reading file: %s\r\n", fileName);
+            systemPrintf("Max line number exceeded. Giving up reading LFS file: %s\r\n", fileName);
+            // Should we return true or false? Going with true...
             break;
         }
     }
@@ -768,15 +807,26 @@ bool printSystemSettingsFromFileLFS(char *fileName)
     systemPrintln();
 
     settingsFile.close();
-    return (true);
+    return (status);
 }
 
 // Convert a given line from file into a settingName and value
 // Sets the setting if the name is known
 // The order of variables matches the order found in settings.h
-bool parseLine(char *str)
+// Both fgets and getLine leave theLine terminated with \n only (\r is removed)
+bool parseLine(const char *theLine)
 {
-    char *ptr;
+    // Make a copy. Manipulate the copy, not the original
+    size_t strLen = strnlen(theLine, 100);
+    if (strLen == 100)
+    {
+        if (settings.debugSettings)
+            systemPrintln("parseLine: line too long");
+        return false;
+    }
+    char strCopy[strLen + 1];
+    memcpy(strCopy, theLine, strLen + 1); // Copy the NULL
+    char *strPtr = strCopy;
 
     // A health warning about strtok:
     // strtok will convert any delimiters it finds ("=" in our case) into NULL characters.
@@ -787,23 +837,24 @@ bool parseLine(char *str)
 
     // Set strtok start of line.
     char *preservedPointer;
-    str = strtok_r(str, "=", &preservedPointer);
-    if (!str)
+    strPtr = strtok_r(strPtr, "=", &preservedPointer); // This will blow the = away
+    if (!strPtr)
     {
-        log_d("Fail");
+        if (settings.debugSettings)
+            systemPrintln("parseLine: = fail");
         return false;
     }
 
     // Store this setting name
     char settingName[100];
-    snprintf(settingName, sizeof(settingName), "%s", str);
+    snprintf(settingName, sizeof(settingName), "%s", strPtr);
 
     double d = 0.0;
     char settingString[100] = "";
 
-    // Move pointer to end of line
-    str = strtok_r(nullptr, "\n", &preservedPointer);
-    if (!str)
+    // Move pointer past where the = was
+    strPtr = strtok_r(nullptr, "\n", &preservedPointer); // This will blow the \n away
+    if (!strPtr)
     {
         // This line does not contain a \n or the settingString is zero length
         // so there is nothing to parse
@@ -813,11 +864,11 @@ bool parseLine(char *str)
     {
         // if (strcmp(settingName, "ntripServer_CasterHost") == 0) //Debug
         // if (strcmp(settingName, "profileName") == 0) //Debug
-        //   systemPrintf("Found problem spot raw: %s\r\n", str);
+        //   systemPrintf("Found problem spot raw: %s\r\n", strPtr);
 
         // Assume the value is a string such as 8d8a48b. The leading number causes skipSpace to fail.
         // If settingString has a mix of letters and numbers, just convert to string
-        snprintf(settingString, sizeof(settingString), "%s", str);
+        snprintf(settingString, sizeof(settingString), "%s", strPtr);
 
         // Check if string is mixed: 8a011EF, 192.168.1.1, -102.4, t6-h4$, etc.
         bool hasSymbol = false;
@@ -847,16 +898,22 @@ bool parseLine(char *str)
         else
         {
             // Attempt to convert string to double
-            d = strtod(str, &ptr);
+            char *dblPtr;
+            d = strtod(strPtr, &dblPtr);
 
             if (d == 0.0) // strtod failed, may be string or may be 0 but let it pass
             {
-                snprintf(settingString, sizeof(settingString), "%s", str);
+                snprintf(settingString, sizeof(settingString), "%s", strPtr); // Redundant?
             }
             else
             {
-                if (str == ptr || *skipSpace(ptr))
-                    return false; // Check str pointer
+                // Check that strtod extracted something and that the following character is NULL
+                if ((strPtr == dblPtr) || (*skipSpace(dblPtr) != '\0'))
+                {
+                    if (settings.debugSettings)
+                        systemPrintln("parseLine: strtod fail");
+                    return false;
+                }
             }
         }
     }
@@ -873,14 +930,17 @@ bool parseLine(char *str)
         // If user sets sizeOfSettings to -1 in config file, RTK device will factory reset
         if (d == -1)
         {
-            // Erase file system, erase settings file, reset u-blox module, display message on OLED
+            // Erase file system, erase settings file, reset GNSS, display message on OLED
             factoryReset(true); // We already have the SD semaphore
         }
 
         // Check to see if this setting file is compatible with this version of RTK firmware
         if (d != sizeof(Settings))
-            log_d("Settings size is %d but current firmware expects %d. Attempting to use settings from file.", (int)d,
-                  sizeof(Settings));
+        {
+            if (settings.debugSettings)
+                systemPrintf("Settings size is %d but current firmware expects %d. Attempting to use settings from file\r\n",
+                             (int)d, (int)sizeof(Settings));
+        }
 
         knownSetting = true;
     }
@@ -1195,7 +1255,8 @@ bool parseLine(char *str)
     // Last catch
     if (knownSetting == false)
     {
-        log_d("Unknown / unwanted setting %s", settingName);
+        if (settings.debugSettings)
+            systemPrintf("Unknown / unwanted setting %s\r\n", settingName);
     }
 
     return (true);
@@ -1203,30 +1264,40 @@ bool parseLine(char *str)
 
 // The SD library doesn't have a fgets function like SD fat so recreate it here
 // Read the current line in the file until we hit a EOL char \r or \n
+// fgets removes the \r leaving only \n. getLine does the same thing
 int getLine(File *openFile, char *lineChars, int lineSize)
 {
     int count = 0;
     while (openFile->available())
     {
         byte incoming = openFile->read();
-        if (incoming == '\r' || incoming == '\n')
+
+        if (incoming == '\0')
         {
-            // Sometimes a line has multiple terminators
-            while (openFile->peek() == '\r' || openFile->peek() == '\n')
-                openFile->read(); // Dump it to prevent next line read corruption
-            break;
+            break; // Something bad happened...
         }
-
-        lineChars[count++] = incoming;
-
-        if (count == lineSize - 1)
-            break; // Stop before overrun of buffer
+        else if (incoming == '\r')
+        {
+            // Skip \r. fgets does the same thing
+        }
+        else if (incoming == '\n')
+        {
+            lineChars[count++] = incoming; // Record the \n. fgets does the same thing
+            break; // We are done
+        }
+        else if ((incoming >= ' ') && (incoming <= '~')) // Reject non-printables
+        {
+            lineChars[count++] = incoming; // Record everything else
+            if (count == lineSize - 1)
+                break; // Stop before overrun of buffer
+        }
     }
     lineChars[count] = '\0'; // Terminate string
     return (count);
 }
 
 // Check for extra characters in field or find minus sign.
+// This will skip spaces \t \n \v \f \r
 char *skipSpace(char *str)
 {
     while (isspace(*str))
@@ -1283,7 +1354,8 @@ void recordProfileNumber(uint8_t newProfileNumber)
     File fileProfileNumber = LittleFS.open("/profileNumber.txt", FILE_WRITE);
     if (!fileProfileNumber)
     {
-        log_d("profileNumber.txt failed to open");
+        if (settings.debugSettings)
+            systemPrintln("profileNumber.txt failed to open");
         return;
     }
     fileProfileNumber.write(newProfileNumber);
@@ -1366,7 +1438,8 @@ bool getProfileNameFromUnit(uint8_t profileUnit, char *profileName, uint8_t prof
             located++; // Valid settingFileName but not the unit we are looking for
         }
     }
-    log_d("Profile unit %d not found", profileUnit);
+    if (settings.debugSettings)
+        systemPrintf("Profile unit %d not found\r\n", profileUnit);
 
     return (false);
 }
@@ -1389,7 +1462,8 @@ int8_t getProfileNumberFromUnit(uint8_t profileUnit)
             located++; // Valid settingFileName but not the unit we are looking for
         }
     }
-    log_d("Profile unit %d not found", profileUnit);
+    if (settings.debugSettings)
+        systemPrintf("Profile unit %d not found\r\n", profileUnit);
 
     return (-1);
 }
@@ -1417,19 +1491,22 @@ void recordFile(const char *fileID, char *fileContents, uint32_t fileSize)
     if (LittleFS.exists(fileName))
     {
         LittleFS.remove(fileName);
-        log_d("Removing LittleFS: %s", fileName);
+        if (settings.debugSettings)
+            systemPrintf("Removing LittleFS: %s\r\n", fileName);
     }
 
     File fileToWrite = LittleFS.open(fileName, FILE_WRITE);
     if (!fileToWrite)
     {
-        log_d("Failed to write to file %s", fileName);
+        if (settings.debugSettings)
+            systemPrintf("Failed to write to file %s\r\n", fileName);
     }
     else
     {
         fileToWrite.write((uint8_t *)fileContents, fileSize); // Store cert into file
         fileToWrite.close();
-        log_d("File recorded to LittleFS: %s", fileName);
+        if (settings.debugSettings)
+            systemPrintf("File recorded to LittleFS: %s\r\n", fileName);
     }
 }
 
