@@ -115,7 +115,7 @@ void GNSS_LG290P::begin()
     _lg290p->getFirmwareVersionMajor(lg290pFirmwareVersionMajor);
     _lg290p->getFirmwareVersionMinor(lg290pFirmwareVersionMinor);
 
-    lg290pFirmwareVersionInt = (lg290pFirmwareVersionMajor * 100) + lg290pFirmwareVersionMinor; // v2.1 becomes 201
+    _lg290p->getFirmwareVersion(lg290pFirmwareVersionInt); // v2.1 becomes 201
 
     std::string version, buildDate, buildTime;
     if (_lg290p->getVersionInfo(version, buildDate, buildTime))
