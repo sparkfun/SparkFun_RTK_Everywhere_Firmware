@@ -117,7 +117,7 @@ void loadSettingsPartial()
 
 void recordSystemSettings()
 {
-    settings.sizeOfSettings = sizeof(settings); // Update to current setting size. Probably redundant?!
+    settings.sizeOfSettings = sizeof(settings); // Update to current setting size
 
     recordSystemSettingsToFileSD(settingsFileName);  // Record to SD if available
     recordSystemSettingsToFileLFS(settingsFileName); // Record to LFS if available
