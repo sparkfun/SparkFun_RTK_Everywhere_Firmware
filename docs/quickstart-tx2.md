@@ -41,8 +41,8 @@ Are you using [Android](#android) or [iOS](#ios)?
 	</figcaption>
 	</figure>
 
-5. From your cell phone, open Bluetooth settings and pair it with a new device. You will see a list of available Bluetooth devices. Select the ‘TX2 Rover-3AF1’. The '3AF1' is the last four digits of the device's MAC address and will vary depending on the device (Figure 3).
-F
+4. From your cell phone, open Bluetooth settings and pair it with a new device. You will see a list of available Bluetooth devices. Select the ‘SparkPNT TX2-3AF1’. The '3AF1' is the last four digits of the device's MAC address and will vary depending on the device (Figure 3).
+
 	<figure markdown>
 	![List of Bluetooth devices on Android](./img/QuickStart/SparkPNT_TX2-Available_Devices.png)
 	<figcaption markdown>
@@ -50,23 +50,23 @@ F
 	</figcaption>
 	</figure>
 
-6. Once paired, open SW Maps. Select ‘New Project’ and give your project a name like ‘RTK Project’.
+5. Once paired, open SW Maps. Select ‘New Project’ and give your project a name like ‘RTK Project’.
 
-7. Press the SW Maps icon in the top left corner of the home screen and select **Bluetooth GNSS**. You should see the ‘TX2 Rover-3AF1’ in the list. Select it. Confirm that the *Instrument Model* is **SparkFun RTK**, then press the ‘Connect’ button in the bottom right corner (Figure 4). SW Maps will show a warning that the instrument height is 0m. That’s ok.
+6. Press the SW Maps icon in the top left corner of the home screen and select **Bluetooth GNSS**. You should see the ‘SparkPNT TX2-3AF1’ in the list. Select it. Confirm that the *Instrument Model* is **SparkFun RTK**, then press the ‘Connect’ button in the bottom right corner (Figure 4). SW Maps will show a warning that the instrument height is 0m. That’s ok.
 
 	<figure markdown>
-	![SW Map list of Bluetooth devices](./img/QuickStart/SparkPNT_TX2-SW_Maps_Bluetooth_Small.png)
+	![SW Map list of Bluetooth devices](./img/QuickStart/SparkPNT_TX2-SW_Maps_Bluetooth-Small.png)
 	<figcaption markdown>
 	Figure 4
 	</figcaption>
 	</figure>
 
-8. Once connected, have a look at the Bluetooth LED on the RTK device. You should see the LED turn solid. You’re connected!
+7. Once connected, have a look at the Bluetooth LED on the RTK device. You should see the LED turn solid. You’re connected!
 
-9. Now put the device outside with a clear view of the sky. GNSS doesn’t work indoors or near windows. Press the SW Maps icon in the top left corner of the home screen and select **GNSS Status**. Within about 30 seconds you should see 10 or more satellites in view (SIV) (Figure 5). More SIV is better. We regularly see 30 or more SIV. The horizontal positional accuracy (HPA) will start at around 10 meters and begin to decrease. The lower the HPA the more accurate your position. This accuracy is around 2m in normal mode.
+8. Now put the device outside with a clear view of the sky. GNSS doesn’t work indoors or near windows. Press the SW Maps icon in the top left corner of the home screen and select **GNSS Status**. Within about 30 seconds you should see 10 or more satellites in view (SIV) (Figure 5). More SIV is better. We regularly see 30 or more SIV. The horizontal positional accuracy (HPA) will start at around 10 meters and begin to decrease. The lower the HPA the more accurate your position. This accuracy is around 2m in normal mode.
 
 	<figure markdown>
-	![RTK GNSS Status Window](./img/QuickStart/SparkPNT_TX2-SW_Maps_GNSS_Status_SIV_Small.png)
+	![RTK GNSS Status Window](./img/QuickStart/SparkFun Torch - SW Maps GNSS Status SIV Small.png)
 	<figcaption markdown>
 	Figure 5
 	</figcaption>
@@ -116,7 +116,7 @@ The software options for Apple iOS are much more limited because Apple products 
 7. Now put the device outside with a clear view of the sky. GNSS doesn’t work indoors or near windows. Press the SW Maps icon in the top left corner of the home screen and select **GNSS Status**. Within about 30 seconds you should see 10 or more satellites in view (SIV) (Figure 3). More SIV is better. We regularly see 30 or more SIV. The horizontal positional accuracy (HPA) will start at around 10 meters and begin to decrease. The lower the HPA the more accurate your position. This accuracy is around 2m in normal mode.
 
 	<figure markdown>
-	![RTK GNSS Status Window](./img/QuickStart/SparkPNT_TX2-SW Maps_GNSS_Status_SIV_Small.png)
+	![RTK GNSS Status Window](./img/QuickStart/SparkFun Torch - SW Maps GNSS Status SIV Small.png)
 	<figcaption markdown>
 	Figure 3
 	</figcaption>
@@ -194,7 +194,7 @@ Steps to use PointPerfect:
 After the reboot, the device will connect to WiFi, obtain keys, and begin applying corrections. Assuming you are outside, after a few minutes of receiving PointPerfect corrections to the device, connect to the TX2 over SW Maps (or other) and the device will enter RTK Float, then RTK Fix (usually under 3 minutes). You can now take positional readings with millimeter accuracy!
 
 <figure markdown>
-![SW Maps showing accuracy](./img/SWMaps/SparkPNT_TX2-SW_Maps_PointPerfect_Fix_Accuracy.png)
+![SW Maps showing accuracy](./img/SWMaps/SparkFun Torch - SW Maps PointPerfect Fix Accuracy.png)
 <figcaption markdown>
 SW Maps showing positional accuracy
 </figcaption>
@@ -227,7 +227,7 @@ If you decide to use a service that provides NTRIP (as opposed to PointPerfect) 
 Assuming you are outside, as soon as corrections are sent to the device, the bubble in SW Maps will turn Orange (RTK Float). Once RTK Fix is achieved (usually under 30 seconds) the bubble will turn Green and the HPA will be below 20mm (Figure 2). You can now take positional readings with millimeter accuracy!
 
 <figure markdown>
-![Double crosshair indicating RTK Fix](./img/SWMaps/SparkPNT_TX2 - SW Maps GNSS Status RTK Fix HPA Small.png)
+![Double crosshair indicating RTK Fix](./img/SWMaps/SparkFun Torch - SW Maps GNSS Status RTK Fix HPA Small.png)
 <figcaption markdown>
 Figure 2
 </figcaption>
@@ -247,9 +247,8 @@ RTK Fix will be maintained as long as there is a clear view of the sky and corre
 ## Common Gotchas
 
 - High-precision GNSS works best with a clear view of the sky; it does not work indoors or near a window. GNSS performance is generally *not* affected by clouds or storms. Trees and buildings *can* degrade performance but usually only in very thick canopies or very near tall building walls. GNSS reception is very possible in dense urban centers with skyscrapers but high-precision RTK may be impossible.
-- The location reported by the RTK device is the location of the antenna element; it's *not* the location of the pointy end of the stick. Lat and Long are fairly easy to obtain but if you're capturing altitude be sure to do additional reading on ARPs (antenna reference points) and how to account for the antenna height in your data collection software. The TX2 ARP is [here](https://docs.sparkfun.com/SparkFun_RTK_Torch/hardware_overview/#antenna-reference-point).
-
-	!!! note
-		This rule does not apply when tilt compensation is activated. See the [Tilt Compensation Menu](menu_tilt.md) for more information.
-
+- The location reported by the RTK device is the location of the antenna element; it's *not* the location of the pointy end of the stick. Lat and Long are fairly easy to obtain but if you're capturing altitude be sure to do additional reading on ARPs (antenna reference points) and how to account for the antenna height in your data collection software.
 - An internet connection is required for most types of RTK. RTCM corrections can be transmitted over other types of connections (such as serial telemetry radios). See [Correction Transport](correction_transport.md) for more details.
+- Galileo HAS:
+	- Users should expect a minimum convergence time of ~8-10 min. to establish the position of the device.
+	- Users may notice that the position status remains in **RTK Float** and never reaches an **RTK Fix**; please, be aware of the associated errors.
