@@ -435,6 +435,6 @@ The RTK Torch mainboard
 
 With the mainboard removed, three Phillips head screws hold the mainboard in place. Remove these screws and the mainboard will be released. Remove the battery connector from the bottom side of the mainboard to free it.
 
-### Remoing Battery
+### Removing Battery
 
 The lower 7.2V LiPo battery pack is held in place by a metal retaining plate. Remove the Phillips head screws to release the battery.
