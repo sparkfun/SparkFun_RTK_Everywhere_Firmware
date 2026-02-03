@@ -843,6 +843,7 @@ void gnssFirmwareBeginUpdate()
             delay(300);
             beepOff();
 
+            // Remove the special file. See #763 . Do the file removal in the loop
             gnssFirmwareRemoveUpdate();
 
             systemPrintln("Exiting direct connection (passthrough) mode");
