@@ -203,7 +203,7 @@ SparkFun RTK EVK Mode Menu
 </figcaption>
 </figure>
 
-This mode can be entered from the [System Menu](menu_system.md), using the display menu (if a display is attached), or by setting the *System Initial State* to **BaseCast** via [Browser Config](configure_with_browswer).
+This mode can be entered from the [System Menu](menu_system.md), using the display menu (if a display is attached), or by setting the *System Initial State* to **BaseCast** via [Browser Config](configure_with_browser.md).
 
 ## Assisted Base
 

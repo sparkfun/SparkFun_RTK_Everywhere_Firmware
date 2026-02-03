@@ -17,7 +17,7 @@ The line of RTK Everywhere products offered by SparkFun all run identical firmwa
 
 	<center>
 
-	[Quickstart Guide](https://docs.sparkfun.com/SparkFun_RTK_Everywhere_Firmware/quickstart-evk/){ .md-button .md-button--primary }
+	[Quickstart Guide](quickstart-evk.md){ .md-button .md-button--primary }
 	</center>
 
 	<center>
@@ -36,7 +36,7 @@ The line of RTK Everywhere products offered by SparkFun all run identical firmwa
 
 	<center>
 
-	[Quickstart Guide](https://docs.sparkfun.com/SparkFun_RTK_Everywhere_Firmware/quickstart-facet-mosaic/){ .md-button .md-button--primary }
+	[Quickstart Guide](quickstart-facet-mosaic.md){ .md-button .md-button--primary }
 	</center>
 
 	<center>
@@ -58,7 +58,7 @@ The line of RTK Everywhere products offered by SparkFun all run identical firmwa
 
 	<center>
 
-	[Quickstart Guide](https://docs.sparkfun.com/SparkFun_RTK_Everywhere_Firmware/quickstart-postcard/){ .md-button .md-button--primary }
+	[Quickstart Guide](quickstart-postcard.md){ .md-button .md-button--primary }
 	</center>
 
 	<center>
@@ -77,7 +77,7 @@ The line of RTK Everywhere products offered by SparkFun all run identical firmwa
 
 	<center>
 
-	[Quickstart Guide](https://docs.sparkfun.com/SparkFun_RTK_Everywhere_Firmware/quickstart-torch/){ .md-button .md-button--primary }
+	[Quickstart Guide](quickstart-torch.md){ .md-button .md-button--primary }
 	</center>
 
 	<center>

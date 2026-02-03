@@ -39,7 +39,7 @@ TCP/UDP settings using Web Config
 
 ## TCP Client and Server
 
-The RTK device supports connection over TCP. The TCP Client sits on top of the network layer (WiFi in general, and Ethernet/Cellular on the EVK) and sends position data to one or more computers or cell phones for display. Some Data Collector software (such as [Vespucci](gis_software.md#vespucci)) requires that the SparkFun RTK device connect as a TCP Client. Other software (such as [QGIS](gis_software.md#qgis)) requires that the SparkFun RTK device acts as a TCP Server. Both are supported.
+The RTK device supports connection over TCP. The TCP Client sits on top of the network layer (WiFi in general, and Ethernet/Cellular on the EVK) and sends position data to one or more computers or cell phones for display. Some Data Collector software (such as [Vespucci](gis_software_android.md#vespucci)) requires that the SparkFun RTK device connect as a TCP Client. Other software (such as [QGIS](gis_software_windows.md#qgis)) requires that the SparkFun RTK device acts as a TCP Server. Both are supported.
 
 If either Client or Server is enabled, a port can be designated. By default, the port is 2948 (registered as [*GPS Daemon request/response*](https://tcp-udp-ports.com/port-2948.htm)) but any port 0 to 65535 is supported.
 

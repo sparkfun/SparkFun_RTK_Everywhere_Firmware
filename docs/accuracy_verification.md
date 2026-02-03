@@ -28,7 +28,7 @@ Facet in the field
 
 You’ve got an incredibly powerful GNSS receiver in your hands. How do you verify that you can get really accurate location readings? It's a bit of work but it's a lot of fun and you'll learn a tremendous amount about surveying along the way.
 
-This is, admittedly, a very US-centric tutorial. We hope that it will provide some of the tools and basic guidance to be replicated in other countries. If you have additional sources for GPS/GNSS surveyed monuments in your own country, consider [adding them](/contribute) to this document!
+This is, admittedly, a very US-centric tutorial. We hope that it will provide some of the tools and basic guidance to be replicated in other countries. If you have additional sources for GPS/GNSS surveyed monuments in your own country, consider [adding them](contribute.md) to this document!
 
 This is a replication and confirmation of the procedure done by [RTKLibExplorer in 2018](https://rtklibexplorer.wordpress.com/2018/03/17/measuring-a-survey-marker-with-the-datagnss-d302-rtk/). We modified it to demonstrate a similar process but using u-blox hardware and with a few updates.
 
