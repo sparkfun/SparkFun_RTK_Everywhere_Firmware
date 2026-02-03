@@ -617,7 +617,6 @@ void beginLoraFirmwareUpdate()
         if (Serial.available()) // Note: use if, not while
         {
             serialGNSS->write(Serial.read());
-            lastSerial = millis();
         }
 
         if (serialGNSS->available()) // Note: use if, not while
