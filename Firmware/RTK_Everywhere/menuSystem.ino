@@ -994,7 +994,13 @@ void menuDebugSoftware()
         // Menu exit control
         else if (incoming == 'r')
         {
+            tasksStopGnssUart();
+
+            delay(500);
+
             recordSystemSettings();
+
+            delay(500);
 
             ESP.restart();
         }
