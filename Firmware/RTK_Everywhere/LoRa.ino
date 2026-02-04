@@ -614,12 +614,9 @@ void beginLoraFirmwareUpdate()
     task.endDirectConnectMode = false;
     while (!task.endDirectConnectMode)
     {
-        static unsigned long lastSerial = millis(); // Temporary fix for buttonless Facet FP
-
         if (Serial.available()) // Note: use if, not while
         {
             serialGNSS->write(Serial.read());
-            lastSerial = millis();
         }
 
         if (serialGNSS->available()) // Note: use if, not while

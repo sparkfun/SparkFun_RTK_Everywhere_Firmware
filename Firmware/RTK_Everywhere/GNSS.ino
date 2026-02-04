@@ -818,38 +818,15 @@ void gnssFirmwareBeginUpdate()
     task.endDirectConnectMode = false;
     while (!task.endDirectConnectMode)
     {
-        static unsigned long lastSerial = millis(); // Temporary fix for buttonless Facet FP
-
         if (Serial.available()) // Note: use if, not while
         {
             serialGNSS->write(Serial.read());
-            lastSerial = millis();
         }
 
         if (serialGNSS->available()) // Note: use if, not while
             Serial.write(serialGNSS->read());
 
         // Button task will set task.endDirectConnectMode true
-
-        // Temporary fix for buttonless Facet FP. TODO - remove
-        if ((productVariant == RTK_FACET_FP) && ((millis() - lastSerial) > 30000))
-        {
-            // Beep to indicate exit
-            beepOn();
-            delay(300);
-            beepOff();
-            delay(100);
-            beepOn();
-            delay(300);
-            beepOff();
-
-            gnssFirmwareRemoveUpdate();
-
-            systemPrintln("Exiting direct connection (passthrough) mode");
-            systemFlush(); // Complete prints
-
-            ESP.restart();
-        }
     }
 
     // Remove all the special file. See #763 . Do the file removal in the loop
