@@ -82,7 +82,7 @@ The DATA port on the RTK Postcard is the USB C connector. This connection create
 
 <figure markdown>
 
-[![The USB Connector on the RTK Torch](./img/RTK-Torch_Buttons_Back-Small.png)](./img/RTK-Torch_Buttons_Back.png)
+[![The USB Connector on the RTK Torch](./img/Torch_and_TX2-Buttons_Back-Small.png)](./img/Torch_and_TX2-Buttons_Back.png)
 <figcaption markdown>
 The USB Connector on the RTK Torch or TX2
 </figcaption>
