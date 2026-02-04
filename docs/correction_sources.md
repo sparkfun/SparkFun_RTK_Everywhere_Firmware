@@ -126,7 +126,7 @@ A base can be set on site and surveyed in with high accuracy in about 12 hours. 
 
 ### Remote Internet
 
-A few innovative users have reported using [Eutelsat KONNECT](https://europe.konnect.com/en-DE) or [Starlink Roam](https://www.starlink.com/us/roam) to gain internet connectivity in remote areas to then connect to a standard NTRIP corrections source.
+A few innovative users have reported using [Eutelsat KONNECT](https://europe.konnect.com/en-DE) or [Starlink Roam](https://www.starlink.com/us/roam) to gain internet connectivity in remote areas to then connect to a standard NTRIP corrections source. Checkout our video on how we [put Starlink in a briefcase](https://www.youtube.com/watch?v=vN28yNgJ1pY) and used its $5 standby service for NTRIP based corrections.
 
 ### Post Processing
 
