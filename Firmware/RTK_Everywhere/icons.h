@@ -447,6 +447,34 @@ const uint8_t SIV_Antenna_LBand[] = {0x00, 0x1E, 0x62, 0x84, 0x08, 0x14, 0x22, 0
                                      0x00, 0x10, 0x10, 0x1F, 0x1F, 0x12, 0x12, 0x04, 0x04, 0x05, 0x06, 0x00};
 
 /*
+    SIV_Antenna_PPP [12, 13]
+
+                      1
+             123456789012
+            .------------.
+        0x01|        ****|
+        0x02| **     *  *|
+        0x04| * *    ****|
+        0x08| *  *   *   |
+        0x10| *   *  *   |
+        0x20|  *   *     |
+        0x40|  *    *    |
+        0x80|   *    *   |
+        0x01|   **    *  |
+        0x02|   ****   * |
+        0x04|   **  **** |
+        0x08|   **       |
+        0x10| ******     |
+            '------------'
+*/
+
+const int SIV_Antenna_PPP_Height = 13;
+const int SIV_Antenna_PPP_Width = 12;
+const uint8_t SIV_Antenna_PPP[] = {0x00, 0x1E, 0x62, 0x84, 0x08, 0x10, 0x20, 0x40, 0x9F, 0x05, 0x05, 0x07, 0x00, 0x10, 0x10, 0x1F,
+0x1F, 0x12, 0x12, 0x04, 0x04, 0x05, 0x06, 0x00, 
+};
+
+/*
        Antenna_Short [12, 13]
 
                       1
@@ -1779,6 +1807,7 @@ const uint8_t Corr_IP_Icon[] = {0x00, 0x00, 0x00, 0x80, 0x3C, 0x7E, 0xF7, 0xE3, 
     CORR_BLUETOOTH  : BT_Symbol [7, 14]
     CORR_USB        : Corr_USB_Icon [15, 14]
     CORR_TCP        : Corr_TCP_Icon [15, 14]
+    CORR_PPP_HAS_B2B: SIV_Antenna_PPP [12, 13]
     CORR_LBAND      : SIV_Antenna_LBand [12, 13]
     CORR_IP         : Corr_IP_Icon [15, 14]
 
@@ -1801,6 +1830,7 @@ correctionIconAttribute correctionIconAttributes[CORR_NUM] = {
     { 4, 0, BT_Symbol_Width, BT_Symbol_Height, BT_Symbol },
     { 0, 0, 15, 14, Corr_USB_Icon },
     { 0, 0, 15, 14, Corr_TCP_Icon },
+    { 1, 1, SIV_Antenna_PPP_Width, SIV_Antenna_PPP_Height, SIV_Antenna_PPP },
     { 1, 1, SIV_Antenna_LBand_Width, SIV_Antenna_LBand_Height, SIV_Antenna_LBand },
     { 0, 0, 15, 14, Corr_IP_Icon },
 };
@@ -1951,8 +1981,11 @@ const iconProperties SIVIconProperties = {{{ &SIV_Antenna, SIV_Antenna_Width, SI
 const iconProperties BaseSIVIconProperties = {{{ &SIV_Antenna, SIV_Antenna_Width, SIV_Antenna_Height, SIVIconXPos64x48, SIVIconYPos64x48 },
                                            { &SIV_Antenna, SIV_Antenna_Width, SIV_Antenna_Height, BaseSIVIconXPos128x64, BaseSIVIconYPos128x64 }}};
 
+const iconProperties PppIconProperties = {{{ &SIV_Antenna_PPP, SIV_Antenna_PPP_Width, SIV_Antenna_PPP_Height, SIVIconXPos64x48, SIVIconYPos64x48 },
+                                             { &SIV_Antenna_PPP, SIV_Antenna_PPP_Width, SIV_Antenna_PPP_Height, SIVIconXPos128x64, SIVIconYPos128x64 }}};
 const iconProperties LBandIconProperties = {{{ &SIV_Antenna_LBand, SIV_Antenna_LBand_Width, SIV_Antenna_LBand_Height, SIVIconXPos64x48, SIVIconYPos64x48 },
                                              { &SIV_Antenna_LBand, SIV_Antenna_LBand_Width, SIV_Antenna_LBand_Height, SIVIconXPos128x64, SIVIconYPos128x64 }}};
+
 const iconProperties ShortIconProperties = {{{ &Antenna_Short, Antenna_Short_Width, Antenna_Short_Height, SIVIconXPos64x48, SIVIconYPos64x48 },
                                              { &Antenna_Short, Antenna_Short_Width, Antenna_Short_Height, SIVIconXPos128x64, SIVIconYPos128x64 }}};
 const iconProperties OpenIconProperties = {{{ &Antenna_Open, Antenna_Open_Width, Antenna_Open_Height, SIVIconXPos64x48, SIVIconYPos64x48 },
