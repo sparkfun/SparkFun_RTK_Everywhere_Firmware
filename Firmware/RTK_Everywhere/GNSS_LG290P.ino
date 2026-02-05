@@ -82,14 +82,14 @@ void GNSS_LG290P::begin()
     // Instantiate the library
     _lg290p = new LG290P();
 
-    if (_lg290p->begin(*serialGNSS) == false) // Give the serial port over to the library
+    if (_lg290p->begin(*serialGNSS, "SFE_LG290P_GNSS_Library", output) == false) // Give the serial port over to the library
     {
         if (settings.debugGnss)
             systemPrintln("GNSS LG290P failed to begin. Trying again.");
 
         // Try again with power on delay
         delay(1000);
-        if (_lg290p->begin(*serialGNSS) == false)
+        if (_lg290p->begin(*serialGNSS, "SFE_LG290P_GNSS_Library", output) == false)
         {
             systemPrintln("GNSS LG290P offline");
             displayGNSSFail(1000);
@@ -2978,7 +2978,7 @@ bool lg290pIsPresentOnFacetFP()
         lg290p.enablePrintRxMessages(); // Print incoming processed messages from SEMP
     }
 
-    if (lg290p.begin(serialTestGNSS) == true) // Give the serial port over to the library
+    if (lg290p.begin(serialTestGNSS, "SFE_LG290P_GNSS_Library", output) == true) // Give the serial port over to the library
     {
         if (settings.debugGnss)
             systemPrintln("LG290P detected");
