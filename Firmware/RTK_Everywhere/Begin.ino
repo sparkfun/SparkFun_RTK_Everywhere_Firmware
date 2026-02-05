@@ -753,6 +753,9 @@ void beginBoard()
         present.fastPowerOff = true;
         present.invertedFastPowerOff = true; // Drive POWER_KILL high to cause powerdown
 
+        // Direct connection for gnssFirmwareDirectConnectHardware()
+        present.gnssUpdatePort = "CH342 Channel A";
+
         pin_I2C0_SDA = 15;
         pin_I2C0_SCL = 4;
 
@@ -1462,7 +1465,7 @@ void beginCharger()
 void beginButtons()
 {
     if (present.button_powerHigh == false && present.button_powerLow == false && present.button_mode == false &&
-        present.gpioExpanderButtons == false)
+        present.button_function == false && present.gpioExpanderButtons == false)
         return;
 
     TaskHandle_t taskHandle;

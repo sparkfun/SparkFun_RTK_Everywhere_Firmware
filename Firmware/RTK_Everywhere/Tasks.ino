@@ -2282,41 +2282,26 @@ void buttonCheckTask(void *e)
         {
             previousButtonRelease = thisButtonRelease;
             thisButtonRelease = millis();
-
-            // If we are not currently showing the menu, immediately display it
-            if (showMenu == false && systemState != STATE_DISPLAY_SETUP)
-                showMenu = true;
         }
 
+        // Do we have a double tap?
         if ((previousButtonRelease > 0) && (thisButtonRelease > 0) &&
-            ((thisButtonRelease - previousButtonRelease) <= doubleTapInterval)) // Do we have a double tap?
+            ((thisButtonRelease - previousButtonRelease) <= doubleTapInterval))
         {
-            // Do not register button tap until the system is displaying the menu
-            // If this platform doesn't have a display, then register the button tap
-            if (systemState == STATE_DISPLAY_SETUP || present.display_type == DISPLAY_MAX_NONE)
-            {
-                doubleTap = true;
-                singleTap = false;
-                previousButtonRelease = 0;
-                thisButtonRelease = 0;
-            }
+            doubleTap = true;
+            singleTap = false;
+            previousButtonRelease = 0;
+            thisButtonRelease = 0;
         }
-        else if ((thisButtonRelease > 0) &&
-                 ((millis() - thisButtonRelease) > doubleTapInterval)) // Do we have a single tap?
-        {
-            // Do not register button tap until the system is displaying the menu
-            // If this platform doesn't have a display, then register the button tap
-            if (systemState == STATE_DISPLAY_SETUP || present.display_type == DISPLAY_MAX_NONE)
-            {
-                previousButtonRelease = 0;
-                thisButtonRelease = 0;
-                doubleTap = false;
 
-                if (firstButtonThrownOut == false && present.display_type != DISPLAY_MAX_NONE)
-                    firstButtonThrownOut = true; // Throw away the first button press
-                else
-                    singleTap = true;
-            }
+        // Do we have a single tap?
+        else if ((thisButtonRelease > 0) &&
+                 ((millis() - thisButtonRelease) > doubleTapInterval))
+        {
+            doubleTap = false;
+            singleTap = true;
+            previousButtonRelease = 0;
+            thisButtonRelease = 0;
         }
 
         // else // if ((previousButtonRelease == 0) && (thisButtonRelease > 0)) // Tap in progress?
@@ -2324,6 +2309,18 @@ void buttonCheckTask(void *e)
         {
             doubleTap = false;
             singleTap = false;
+        }
+
+        // If a display is present, throw away the first button press to avoid displaying the
+        // setup prematurely?
+        if (singleTap || doubleTap)
+        {
+            if (firstButtonThrownOut == false && present.display_type != DISPLAY_MAX_NONE)
+            {
+                firstButtonThrownOut = true;
+                doubleTap = false;
+                singleTap = false;
+            }
         }
 
         // If user presses the center button or right, act as double tap (select)
@@ -2358,7 +2355,7 @@ void buttonCheckTask(void *e)
         // If in direct connect mode. Note: this is just a flag not a STATE.
         if (inDirectConnectMode)
         {
-            // TODO: check if this works on both Torch and Facet FP.
+            // TODO: confirm this works on all platforms
             if (singleTap || doubleTap)
             {
                 // Beep to indicate exit
@@ -2380,129 +2377,135 @@ void buttonCheckTask(void *e)
                 singleTap = false;
             }
         }
-        // Torch is a special case. Handle tilt stop and web config mode
-        else if (productVariant == RTK_TORCH || productVariant == RTK_TORCH_X2)
+        // Products with no display are a special case. Handle tilt stop and web config mode
+        else if (present.display_type == DISPLAY_MAX_NONE)
         {
-            // Platform has no display and possibly tilt corrections, ie RTK Torch and RTK Torch X2
-
-            // Print how long the button has been held. Useful for setting the powerButtonPressLimit
-            // static uint16_t longestPress = 0;
-            // // Torch shuts down when powerButtonPressedFor reaches ~2400
-            // //const uint16_t pressDurations[] = { 1900, 1950, 2000, 2050, 2100, 2150, 2200, 2250, 2300, 2350, 2400, 2450, 2500 };
-            // // Torch X2 shuts down when powerButtonPressedFor reaches ~1500
-            // const uint16_t pressDurations[] = { 1000, 1050, 1100, 1150, 1200, 1250, 1300, 1350, 1400, 1450, 1500, 1650, 1700 };
-            // const uint16_t numDurations = sizeof(pressDurations) / sizeof(uint16_t);
-            // for (uint16_t d = longestPress; d < numDurations; d++)
-            // {
-            //     if (powerButtonPressedFor(pressDurations[d]))
-            //     {
-            //         systemPrintf("Torch power button pressed for %dms\r\n", pressDurations[d]);
-            //         longestPress = d + 1;
-            //     }
-            // }
-
-            // Torch X2 shuts down when powerButtonPressedFor reaches ~1500
-            // To allow time for the beep, we need to start shutting down at ~1200
-            uint16_t powerButtonPressLimit = 1200;
-            if (productVariant == RTK_TORCH)
-                powerButtonPressLimit = 2100; // For Torch, it is closer to ~2400
-
-            // In in tilt mode, exit on button press
-            if ((singleTap || doubleTap) && (tiltIsCorrecting() == true))
+            if (productVariant == RTK_TORCH || productVariant == RTK_TORCH_X2)
             {
-                tiltRequestStop(); // Don't force the hardware off here as it may be in use in another task
+                // Platform has no display and possibly tilt corrections, ie RTK Torch and RTK Torch X2
 
-                doubleTap = false; // Clean up
-                singleTap = false;
-            }
+                // Print how long the button has been held. Useful for setting the powerButtonPressLimit
+                // static uint16_t longestPress = 0;
+                // // Torch shuts down when powerButtonPressedFor reaches ~2400
+                // //const uint16_t pressDurations[] = { 1900, 1950, 2000, 2050, 2100, 2150, 2200, 2250, 2300, 2350, 2400, 2450, 2500 };
+                // // Torch X2 shuts down when powerButtonPressedFor reaches ~1500
+                // const uint16_t pressDurations[] = { 1000, 1050, 1100, 1150, 1200, 1250, 1300, 1350, 1400, 1450, 1500, 1650, 1700 };
+                // const uint16_t numDurations = sizeof(pressDurations) / sizeof(uint16_t);
+                // for (uint16_t d = longestPress; d < numDurations; d++)
+                // {
+                //     if (powerButtonPressedFor(pressDurations[d]))
+                //     {
+                //         systemPrintf("Torch power button pressed for %dms\r\n", pressDurations[d]);
+                //         longestPress = d + 1;
+                //     }
+                // }
 
-            else if (doubleTap)
-            {
-                // If we are in Rover/Base mode, enter WiFi Config Mode
-                if (inRoverMode() || inBaseMode())
+                // Torch X2 shuts down when powerButtonPressedFor reaches ~1500
+                // To allow time for the beep, we need to start shutting down at ~1200
+                uint16_t powerButtonPressLimit = 1200;
+                if (productVariant == RTK_TORCH)
+                    powerButtonPressLimit = 2100; // For Torch, it is closer to ~2400
+
+                // In in tilt mode, exit on button press
+                if ((singleTap || doubleTap) && (tiltIsCorrecting() == true))
                 {
+                    tiltRequestStop(); // Don't force the hardware off here as it may be in use in another task
+
+                    doubleTap = false; // Clean up
+                    singleTap = false;
+                }
+
+                else if (doubleTap)
+                {
+                    // If we are in Rover/Base mode, enter WiFi Config Mode
+                    if (inRoverMode() || inBaseMode())
+                    {
+                        // Beep if we are not locally compiled or a release candidate
+                        if (ENABLE_DEVELOPER == false)
+                        {
+                            beepOn();
+                            delay(300);
+                            beepOff();
+                            delay(100);
+                            beepOn();
+                            delay(300);
+                            beepOff();
+                        }
+
+                        forceMenuExit = true; // Force menu exit to go immediately into web config
+                        forceSystemStateUpdate = true; // Immediately go to this new state
+                        changeState(STATE_WEB_CONFIG_NOT_STARTED);
+                    }
+
+                    // If we are in WiFi Config Mode, exit to Rover
+                    else if (inWebConfigMode())
+                    {
+                        // Beep if we are not locally compiled or a release candidate
+                        if (ENABLE_DEVELOPER == false)
+                        {
+                            beepOn();
+                            delay(300);
+                            beepOff();
+                            delay(100);
+                            beepOn();
+                            delay(300);
+                            beepOff();
+                        }
+
+                        // Force menu exit to go immediately into Rover
+                        // (User can open the menu while in web config)
+                        forceMenuExit = true;
+                        
+                        forceSystemStateUpdate = true; // Immediately go to this new state
+                        changeState(STATE_ROVER_NOT_STARTED);
+                    }
+
+                    doubleTap = false; // Clean up
+                }
+
+                // The RTK Torch uses a shutdown IC configured to turn off ~3s
+                // Beep shortly before the shutdown IC takes over
+                else if (powerButtonPressedFor(powerButtonPressLimit) == true)
+                {
+                    systemPrintln("Shutting down (button)");
+                    Serial.flush();
+
+                    tickerStop(); // Stop controlling LEDs via ticker task
+
+                    pinMode(pin_gnssStatusLED, OUTPUT);
+                    pinMode(pin_bluetoothStatusLED, OUTPUT);
+
+                    gnssStatusLedOn();
+                    bluetoothLedOn();
+
                     // Beep if we are not locally compiled or a release candidate
                     if (ENABLE_DEVELOPER == false)
                     {
-                        beepOn();
-                        delay(300);
-                        beepOff();
-                        delay(100);
-                        beepOn();
-                        delay(300);
-                        beepOff();
+                        // Announce powering down
+                        beepMultiple(3, 100, 50); // Number of beeps, length of beep ms, length of quiet ms
+
+                        delay(500); // We will be shutting off during this delay but this prevents another beepMultiple()
+                                    // from firing
                     }
 
-                    forceMenuExit = true; // Force menu exit to go immediately into web config
-                    forceSystemStateUpdate = true; // Immediately go to this new state
-                    changeState(STATE_WEB_CONFIG_NOT_STARTED);
+                    // If we have fast power off, use it
+                    if (present.fastPowerOff == true)
+                        powerDown(false); // Don't display info
+
+                    while (1)
+                        ;
                 }
-
-                // If we are in WiFi Config Mode, exit to Rover
-                else if (inWebConfigMode())
-                {
-                    // Beep if we are not locally compiled or a release candidate
-                    if (ENABLE_DEVELOPER == false)
-                    {
-                        beepOn();
-                        delay(300);
-                        beepOff();
-                        delay(100);
-                        beepOn();
-                        delay(300);
-                        beepOff();
-                    }
-
-                    // Force menu exit to go immediately into Rover
-                    // (User can open the menu while in web config)
-                    forceMenuExit = true;
-                    
-                    forceSystemStateUpdate = true; // Immediately go to this new state
-                    changeState(STATE_ROVER_NOT_STARTED);
-                }
-
-                doubleTap = false; // Clean up
-            }
-
-            // The RTK Torch uses a shutdown IC configured to turn off ~3s
-            // Beep shortly before the shutdown IC takes over
-            else if (powerButtonPressedFor(powerButtonPressLimit) == true)
-            {
-                systemPrintln("Shutting down (button)");
-                Serial.flush();
-
-                tickerStop(); // Stop controlling LEDs via ticker task
-
-                pinMode(pin_gnssStatusLED, OUTPUT);
-                pinMode(pin_bluetoothStatusLED, OUTPUT);
-
-                gnssStatusLedOn();
-                bluetoothLedOn();
-
-                // Beep if we are not locally compiled or a release candidate
-                if (ENABLE_DEVELOPER == false)
-                {
-                    // Announce powering down
-                    beepMultiple(3, 100, 50); // Number of beeps, length of beep ms, length of quiet ms
-
-                    delay(500); // We will be shutting off during this delay but this prevents another beepMultiple()
-                                // from firing
-                }
-
-                // If we have fast power off, use it
-                if (present.fastPowerOff == true)
-                    powerDown(false); // Don't display info
-
-                while (1)
-                    ;
-            }
-        } // End productVariant == Torch/Torch X2
-        else // RTK EVK, RTK Facet mosaic, RTK Postcard, RTK Facet FP
+            } // End productVariant == Torch/Torch X2
+        } // End present.display_type == DISPLAY_MAX_NONE
+        else // Display is present: RTK EVK, RTK Facet mosaic, RTK Postcard, RTK Facet FP
         {
             if (systemState == STATE_SHUTDOWN)
             {
                 // Ignore button presses while shutting down
+                doubleTap = false; // Clean up
+                singleTap = false;
             }
+            // Has the button been held long enough for shutdown?
             else if (powerButtonPressedFor(shutDownButtonTime))
             {
                 forceSystemStateUpdate = true;
@@ -2514,12 +2517,92 @@ void buttonCheckTask(void *e)
                     powerDown(true); // State machine is not updated while in menu system so go straight to power down
                                      // as needed
                 }
-            }
 
+                doubleTap = false; // Clean up
+                singleTap = false;
+            }
             // If the button is disabled, do nothing
-            // If we detect a singleTap, move through menus
-            // If the button was pressed to initially show the menu, then allow immediate entry and show the menu
-            else if ((settings.disableSetupButton == false) && ((singleTap && firstRoverStart == false) || showMenu))
+            else if (settings.disableSetupButton == false)
+            {
+                doubleTap = false; // Clean up
+                singleTap = false;
+            }
+            // If the setup menu is being displayed and we detect a singleTap, move through menus
+            else if ((systemState == STATE_DISPLAY_SETUP) && singleTap && (firstRoverStart == false))
+            {
+                // If we are displaying the setup menu, a single tap will cycle through possible system states
+                // Exit into new system state on double tap - see below
+                // Exit display setup into previous state after ~10s - see updateSystemState()
+                lastSetupMenuChange.setTimerToMillis();
+
+                forceDisplayUpdate = true; // User is interacting so repaint display quickly
+
+                if (online.gpioExpanderButtons == true)
+                {
+                    // React to five different buttons
+                    if (buttonLastPressed() == gpioExpander_up || buttonLastPressed() == gpioExpander_left)
+                    {
+                        if (setupSelectedButton == 0) // Top reached?
+                            setupSelectedButton = setupButtons.size() - 1;
+                        else
+                            setupSelectedButton--;
+                    }
+                    else if (buttonLastPressed() == gpioExpander_down)
+                    {
+                        setupSelectedButton++;
+                        if (setupSelectedButton == setupButtons.size()) // Limit reached?
+                            setupSelectedButton = 0;
+                    }
+                }
+                else
+                {
+                    // React to single mode/setup button
+                    setupSelectedButton++;
+                    if (setupSelectedButton == setupButtons.size()) // Limit reached?
+                        setupSelectedButton = 0;
+                }
+
+                doubleTap = false; // Clean up
+                singleTap = false;
+            } // End STATE_DISPLAY_SETUP singleTap
+            // If the setup menu is being displayed and we detect a doubleTap, change mode and exit
+            else if ((systemState == STATE_DISPLAY_SETUP) && doubleTap && (firstRoverStart == false))
+            {
+                lastSetupMenuChange.setTimerToMillis(); // Prevent a timeout during state change
+                uint8_t thisIsButton = 0;
+                for (auto it = setupButtons.begin(); it != setupButtons.end(); it = std::next(it))
+                {
+                    if (thisIsButton == setupSelectedButton)
+                    {
+                        if (it->newState == STATE_PROFILE)
+                        {
+                            displayProfile = it->newProfile; // paintProfile needs the unit
+                            requestChangeState(STATE_PROFILE);
+                        }
+                        else if (it->newState == STATE_NOT_SET) // Exit
+                        {
+                            firstButtonThrownOut = false;
+                            requestChangeState(lastSystemState);
+                        }
+                        else if (it->newState ==
+                                    STATE_BASE_NOT_STARTED) // User selected Base, clear BaseCast override
+                        {
+                            baseCasterDisableOverride();
+                            requestChangeState(it->newState);
+                        }
+                        else
+                            requestChangeState(it->newState);
+
+                        break;
+                    }
+                    thisIsButton++;
+                }
+
+                doubleTap = false; // Clean up
+                singleTap = false;
+            } // End STATE_DISPLAY_SETUP doubleTap
+            // If the button was pressed to initially show the menu, then show the menu
+            else if (singleTap && (firstRoverStart == false))
             {
                 switch (systemState)
                 {
@@ -2553,41 +2636,6 @@ void buttonCheckTask(void *e)
                     showMenu = false;
                     break;
 
-                case STATE_DISPLAY_SETUP:
-                    // If we are displaying the setup menu, a single tap will cycle through possible system states
-                    // Exit into new system state on double tap - see below
-                    // Exit display setup into previous state after ~10s - see updateSystemState()
-                    lastSetupMenuChange.setTimerToMillis();
-
-                    forceDisplayUpdate = true; // User is interacting so repaint display quickly
-
-                    if (online.gpioExpanderButtons == true)
-                    {
-                        // React to five different buttons
-                        if (buttonLastPressed() == gpioExpander_up || buttonLastPressed() == gpioExpander_left)
-                        {
-                            if (setupSelectedButton == 0) // Top reached?
-                                setupSelectedButton = setupButtons.size() - 1;
-                            else
-                                setupSelectedButton--;
-                        }
-                        else if (buttonLastPressed() == gpioExpander_down)
-                        {
-                            setupSelectedButton++;
-                            if (setupSelectedButton == setupButtons.size()) // Limit reached?
-                                setupSelectedButton = 0;
-                        }
-                    }
-                    else
-                    {
-                        // React to single mode/setup button
-                        setupSelectedButton++;
-                        if (setupSelectedButton == setupButtons.size()) // Limit reached?
-                            setupSelectedButton = 0;
-                    }
-
-                    break;
-
                 case STATE_TEST:
                     // Do nothing. User is releasing the setup button.
                     break;
@@ -2610,57 +2658,10 @@ void buttonCheckTask(void *e)
                     break;
                 } // End singleTap switch (systemState)
 
-                singleTap = false; // Clean up
-            } // End singleTap
-            else if (doubleTap && (firstRoverStart == false) && (settings.disableSetupButton == false))
-            {
-                switch (systemState)
-                {
-                case STATE_DISPLAY_SETUP: {
-                    // If we are displaying the setup menu, a single tap will cycle through possible system states - see
-                    // above Exit into new system state on double tap Exit display setup into previous state after ~10s
-                    // - see updateSystemState()
-                    lastSetupMenuChange.setTimerToMillis(); // Prevent a timeout during state change
-                    uint8_t thisIsButton = 0;
-                    for (auto it = setupButtons.begin(); it != setupButtons.end(); it = std::next(it))
-                    {
-                        if (thisIsButton == setupSelectedButton)
-                        {
-                            if (it->newState == STATE_PROFILE)
-                            {
-                                displayProfile = it->newProfile; // paintProfile needs the unit
-                                requestChangeState(STATE_PROFILE);
-                            }
-                            else if (it->newState == STATE_NOT_SET) // Exit
-                            {
-                                firstButtonThrownOut = false;
-                                requestChangeState(lastSystemState);
-                            }
-                            else if (it->newState ==
-                                     STATE_BASE_NOT_STARTED) // User selected Base, clear BaseCast override
-                            {
-                                baseCasterDisableOverride();
-                                requestChangeState(it->newState);
-                            }
-                            else
-                                requestChangeState(it->newState);
-
-                            break;
-                        }
-                        thisIsButton++;
-                    }
-                }
-                break;
-
-                default:
-                    systemPrintf("buttonCheckTask double tap - untrapped system state: %d\r\n", systemState);
-                    // requestChangeState(STATE_BASE_NOT_STARTED);
-                    break;
-                } // End doubleTap switch (systemState)
-
                 doubleTap = false; // Clean up
-            } // End doubleTap
-        } // End productVariant != (Torch | Torch X2)
+                singleTap = false;
+            } // End singleTap
+        } // End Display is present: RTK EVK, RTK Facet mosaic, RTK Postcard, RTK Facet FP
 
         feedWdt();
         taskYIELD();
