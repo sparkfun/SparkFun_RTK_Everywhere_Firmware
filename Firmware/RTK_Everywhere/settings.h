@@ -1153,8 +1153,6 @@ struct Settings
     uint32_t gnssConfigureRequest = 0; // Bitfield containing the change requests for various settings on the GNSS receiver
     bool debugGnssConfig = false; // Enable to print output during gnssUpdate
 
-    char configurePPP[30] = "2 1 120 0.10 0.15"; // PQTMCFGPPP: 2,1,120,0.10,0.15 ** Use spaces, not commas! **
-
     int pppMode = PPP_MODE_HAS; // 0 = Disable, 1 = B2b PPP, 2 = HAS, 0xFF = Auto
     int pppDatum = 1; // 1 = WGS84, 2 = PPP Original, 3 = CGCS2000
     int pppTimeout = 120; // Seconds without PPP corrections before fallback
@@ -1821,7 +1819,6 @@ const RTK_Settings_Entry rtkSettingsEntries[] =
     { 0, 1, 1, 0, 0, 0, 0, 0, 1, L29, 1, tLgMRBaRT, MAX_LG290P_RTCM_MSG, & settings.lg290pMessageRatesRTCMBase, "messageRateRTCMBase_", gnssCmdUpdateMessageRates, },
     { 0, 1, 1, 0, 0, 0, 0, 0, 1, L29, 1, tLgMRRvRT, MAX_LG290P_RTCM_MSG, & settings.lg290pMessageRatesRTCMRover, "messageRateRTCMRover_", gnssCmdUpdateMessageRates, },
     { 0, 1, 1, 0, 0, 0, 0, 0, 1, L29, 1, tLgMRPqtm, MAX_LG290P_PQTM_MSG, & settings.lg290pMessageRatesPQTM, "messageRatePQTM_", gnssCmdUpdateMessageRates, },
-    { 1, 1, 0, 0, 0, 0, 0, 0, 1, L29, 1, tCharArry, sizeof(settings.configurePPP), & settings.configurePPP, "configurePPP", nullptr, },
 #endif  // COMPILE_LG290P
 
     { 0, 0, 0, 1, 1, 1, 1, 1, 1, ALL, 1, _bool,     0, & settings.debugSettings, "debugSettings", nullptr, },

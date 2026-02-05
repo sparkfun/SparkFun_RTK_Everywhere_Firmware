@@ -1942,9 +1942,9 @@ bool GNSS_LG290P::setHighAccuracyService()
     float currentHorizontalConvergence = 0;
     float currentVerticalConvergence = 0;
 
-    if (_lg290p->getHighAccuracyService(currentMode, currentDatum, currentTimeout, currentHorizontalConvergence, currentVerticalConvergence) == false)
+    if (_lg290p->getPppSettings(currentMode, currentDatum, currentTimeout, currentHorizontalConvergence, currentVerticalConvergence) == false)
     {
-        systemPrintln("Failed to read Galileo E6 HAS configuration");
+        systemPrintln("Failed to read PPP settings");
         return (false);
     }
 
@@ -1955,11 +1955,11 @@ bool GNSS_LG290P::setHighAccuracyService()
         // $PQTMCFGPPP,W,0*
         if (_lg290p->sendOkCommand("$PQTMCFGPPP", ",W,0") == true)
         {
-            systemPrintln("Galileo E6 HAS service disabled");
+            systemPrintln("Galileo E6 HAS/PPP service disabled");
         }
         else
         {
-            systemPrintln("Galileo E6 HAS service failed to disable");
+            systemPrintln("Galileo E6 HAS/PPP service failed to disable");
             result = false;
         }
     }
@@ -1970,15 +1970,13 @@ bool GNSS_LG290P::setHighAccuracyService()
         // $PQTMCFGPPP,W,2,1,120,0.10,0.15*68
         // Enable E6 HAS, WGS84, 120 timeout, 0.10m Horizontal accuracy threshold, 0.15m Vertical threshold
 
-        char paramConfigurePPP[sizeof(settings.configurePPP) + 4];
-        snprintf(paramConfigurePPP, sizeof(paramConfigurePPP), ",W,%s", configPppSpacesToCommas(settings.configurePPP));
-        if (_lg290p->sendOkCommand("$PQTMCFGPPP", paramConfigurePPP) == true)
+        if (_lg290p->setPppSettings(settings.pppMode, settings.pppDatum, settings.pppTimeout, settings.pppHorizontalConvergence, settings.pppVerticalConvergence) == true)
         {
-            systemPrintln("Galileo E6 HAS service enabled");
+            systemPrintln("Galileo E6 HAS/PPP service enabled");
         }
         else
         {
-            systemPrintln("Galileo E6 HAS service failed to enable");
+            systemPrintln("Galileo E6 HAS/PPP service failed to enable");
             result = false;
         }
     }
