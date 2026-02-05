@@ -129,8 +129,8 @@ void GNSS_LG290P::begin()
         // The 03S_PPP_TEMP version has support for testing out E6/HAS PPP, but confusingly was released after v05.
         if (strstr(gnssFirmwareVersion, "PPP_TEMP") != nullptr)
         {
-            present.galileoHasCapable = true;
-            systemPrintln("PPP trial firmware detected. HAS settings will now be available.");
+            present.pppCapable = true;
+            systemPrintln("PPP trial firmware detected. PPP HAS/E6 settings will now be available.");
         }
     }
     if (lg290pFirmwareVersion < 5)
@@ -157,13 +157,13 @@ void GNSS_LG290P::begin()
     // v07 is reportedly the first version to formally support PPP
     if (strstr(gnssFirmwareVersion, "PPP_TEMP") != nullptr)
     {
-        present.galileoHasCapable = true;
-        systemPrintln("PPP trial firmware detected. HAS settings will now be available.");
+        present.pppCapable = true;
+        systemPrintln("PPP trial firmware detected. PPP HAS/E6 settings will now be available.");
     }
 
     if (lg290pFirmwareVersion >= 7)
     {
-        present.galileoHasCapable = true;
+        present.pppCapable = true;
     }
 
     printModuleInfo();
@@ -1326,12 +1326,12 @@ void GNSS_LG290P::menuConstellations()
             systemPrintln();
         }
 
-        if (present.galileoHasCapable)
+        if (present.pppCapable)
         {
-            systemPrintf("%d) PPP Mode: %s\r\n", MAX_LG290P_CONSTELLATIONS + 1, settings.pppMode == PPP_DISABLE ? "Disabled" : settings.pppMode == PPP_HAS ? "HAS"
-                                                                                                                           : settings.pppMode == PPP_B2B   ? "B2B"
-                                                                                                                                                           : "Auto");
-            if (settings.pppMode > PPP_DISABLE)
+            systemPrintf("%d) PPP Mode: %s\r\n", MAX_LG290P_CONSTELLATIONS + 1, settings.pppMode == PPP_MODE_DISABLE ? "Disabled" : settings.pppMode == PPP_MODE_HAS ? "HAS"
+                                                                                                                                : settings.pppMode == PPP_MODE_B2B   ? "B2B"
+                                                                                                                                                                     : "Auto");
+            if (settings.pppMode > PPP_MODE_DISABLE)
             {
                 systemPrintf("%d) PPP Datum: %s\r\n", MAX_LG290P_CONSTELLATIONS + 2, settings.pppDatum == 1 ? "WGS84" : settings.pppDatum == 2 ? "PPP Original"
                                                                                                                     : settings.pppDatum == 3   ? "CGCS2000"
@@ -1353,35 +1353,35 @@ void GNSS_LG290P::menuConstellations()
             settings.lg290pConstellations[incoming] ^= 1;
             gnssConfigure(GNSS_CONFIG_CONSTELLATION); // Request receiver to use new settings
         }
-        else if ((incoming == MAX_LG290P_CONSTELLATIONS + 1) && present.galileoHasCapable)
+        else if ((incoming == MAX_LG290P_CONSTELLATIONS + 1) && present.pppCapable)
         {
             settings.pppMode++;
-            if (settings.pppMode > PPP_AUTO)
-                settings.pppMode = PPP_DISABLE; // Wrap around
-            gnssConfigure(GNSS_CONFIG_HAS_E6);  // Request receiver to use new settings
+            if (settings.pppMode > PPP_MODE_AUTO)
+                settings.pppMode = PPP_MODE_DISABLE; // Wrap around
+            gnssConfigure(GNSS_CONFIG_HAS_E6);       // Request receiver to use new settings
         }
-        else if ((incoming == MAX_LG290P_CONSTELLATIONS + 2) && present.galileoHasCapable)
+        else if ((incoming == MAX_LG290P_CONSTELLATIONS + 2) && present.pppCapable)
         {
             if (getNewSetting("Enter PPP Datum Number (1 = WGS84, 2 = PPP Original, 3 = CGCS2000)", 1, 3, &settings.pppDatum) == INPUT_RESPONSE_VALID)
             {
                 gnssConfigure(GNSS_CONFIG_HAS_E6); // Request receiver to use new settings
             }
         }
-        else if ((incoming == MAX_LG290P_CONSTELLATIONS + 3) && present.galileoHasCapable)
+        else if ((incoming == MAX_LG290P_CONSTELLATIONS + 3) && present.pppCapable)
         {
             if (getNewSetting("Enter PPP Timeout before fallback (seconds)", 90, 180, &settings.pppTimeout) == INPUT_RESPONSE_VALID)
             {
                 gnssConfigure(GNSS_CONFIG_HAS_E6); // Request receiver to use new settings
             }
         }
-        else if ((incoming == MAX_LG290P_CONSTELLATIONS + 4) && present.galileoHasCapable)
+        else if ((incoming == MAX_LG290P_CONSTELLATIONS + 4) && present.pppCapable)
         {
             if (getNewSetting("Enter PPP Horizontal Convergence Accuracy (meters)", 0.0f, 5.0f, &settings.pppHorizontalConvergence) == INPUT_RESPONSE_VALID)
             {
                 gnssConfigure(GNSS_CONFIG_HAS_E6); // Request receiver to use new settings
             }
         }
-        else if ((incoming == MAX_LG290P_CONSTELLATIONS + 5) && present.galileoHasCapable)
+        else if ((incoming == MAX_LG290P_CONSTELLATIONS + 5) && present.pppCapable)
         {
             if (getNewSetting("Enter PPP Vertical Convergence Accuracy (meters)", 0.0f, 5.0f, &settings.pppVerticalConvergence) == INPUT_RESPONSE_VALID)
             {
@@ -1926,39 +1926,30 @@ bool GNSS_LG290P::setElevation(uint8_t elevationDegrees)
 //----------------------------------------
 // Control whether HAS E6 is used in location fixes or not
 //----------------------------------------
-bool GNSS_LG290P::setHighAccuracyService(bool enableGalileoHas)
+bool GNSS_LG290P::setHighAccuracyService()
 {
-    // E6 reception requires version v03/v06 with 'PPP_TEMP' in firmware title
+    // E6 reception requires firmware on the LG290P that supports it
     // Present is set during LG290P begin()
-    if (present.galileoHasCapable == false)
+    if (present.pppCapable == false)
         return (true); // Return true to clear gnssConfigure test
-
-    // TODO - We should read/modify/write on PQTMCFGPPP
 
     bool result = true;
 
-    // Enable E6 and PPP if enabled
-    if (enableGalileoHas)
-    {
-        // $PQTMCFGPPP,R*68
-        // $PQTMCFGPPP,OK,00,2,120,0.10,0.15*0A
+    // Read/modify/write
+    int currentMode = 0;
+    int currentDatum = 0;
+    int currentTimeout = 0;
+    float currentHorizontalConvergence = 0;
+    float currentVerticalConvergence = 0;
 
-        // $PQTMCFGPPP,W,2,1,120,0.10,0.15*68
-        // Enable E6 HAS, WGS84, 120 timeout, 0.10m Horizontal convergence accuracy threshold, 0.15m Vertical
-        // threshold
-        char paramConfigurePPP[sizeof(settings.configurePPP) + 4];
-        snprintf(paramConfigurePPP, sizeof(paramConfigurePPP), ",W,%s", configPppSpacesToCommas(settings.configurePPP));
-        if (_lg290p->sendOkCommand("$PQTMCFGPPP", paramConfigurePPP) == true)
-        {
-            systemPrintln("Galileo E6 HAS service enabled");
-        }
-        else
-        {
-            systemPrintln("Galileo E6 HAS service failed to enable");
-            result = false;
-        }
+    if (_lg290p->getHighAccuracyService(currentMode, currentDatum, currentTimeout, currentHorizontalConvergence, currentVerticalConvergence) == false)
+    {
+        systemPrintln("Failed to read Galileo E6 HAS configuration");
+        return (false);
     }
-    else
+
+    // Do the simple first: if PPP is on, but user wants it off, turn it off
+    if (settings.pppMode == 0 && currentMode > 0)
     {
         // Turn off HAS/E6
         // $PQTMCFGPPP,W,0*
@@ -1969,6 +1960,25 @@ bool GNSS_LG290P::setHighAccuracyService(bool enableGalileoHas)
         else
         {
             systemPrintln("Galileo E6 HAS service failed to disable");
+            result = false;
+        }
+    }
+    
+    // Enable PPP if the user has enabled it
+    else if (settings.pppMode > PPP_MODE_DISABLE && currentMode == 0)
+    {
+        // $PQTMCFGPPP,W,2,1,120,0.10,0.15*68
+        // Enable E6 HAS, WGS84, 120 timeout, 0.10m Horizontal accuracy threshold, 0.15m Vertical threshold
+
+        char paramConfigurePPP[sizeof(settings.configurePPP) + 4];
+        snprintf(paramConfigurePPP, sizeof(paramConfigurePPP), ",W,%s", configPppSpacesToCommas(settings.configurePPP));
+        if (_lg290p->sendOkCommand("$PQTMCFGPPP", paramConfigurePPP) == true)
+        {
+            systemPrintln("Galileo E6 HAS service enabled");
+        }
+        else
+        {
+            systemPrintln("Galileo E6 HAS service failed to enable");
             result = false;
         }
     }

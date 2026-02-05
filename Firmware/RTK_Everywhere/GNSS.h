@@ -364,7 +364,7 @@ class GNSS
     //   elevationDegrees: The elevation value in degrees
     virtual bool setElevation(uint8_t elevationDegrees);
 
-    virtual bool setHighAccuracyService(bool enableGalileoHas);
+    virtual bool setHighAccuracyService();
 
     // Configure any logging settings - currently mosaic-X5 specific
     virtual bool setLogging();

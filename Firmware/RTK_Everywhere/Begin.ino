@@ -186,7 +186,7 @@ void beginBoard()
         present.beeper = true;
         present.gnss_to_uart = true;
         present.needsExternalPpl = true; // Uses the PointPerfect Library
-        present.galileoHasCapable = true;
+        present.pppCapable = true;
         present.multipathMitigation = true; // UM980 has MPM, other platforms do not
         present.minCN0 = true;
         present.minElevation = true;

@@ -360,7 +360,7 @@ void gnssUpdate()
 
         if (gnssConfigureRequested(GNSS_CONFIG_HAS_E6))
         {
-            if (gnss->setHighAccuracyService(settings.enableGalileoHas) == true)
+            if (gnss->setHighAccuracyService() == true)
             {
                 gnssConfigureClear(GNSS_CONFIG_HAS_E6);
                 gnssConfigure(GNSS_CONFIG_SAVE); // Request receiver commit this change to NVM

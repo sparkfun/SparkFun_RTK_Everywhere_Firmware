@@ -50,7 +50,7 @@ void GNSS_UM980::baseRtcmLowDataRate()
         settings.um980MessageRatesRTCMBase[x] = 0;
 
     settings.um980MessageRatesRTCMBase[getRtcmMessageNumberByName("RTCM1005")] =
-        10; // 1005 0.1Hz - Exclude antenna height
+        10;                                                                          // 1005 0.1Hz - Exclude antenna height
     settings.um980MessageRatesRTCMBase[getRtcmMessageNumberByName("RTCM1074")] = 2;  // 1074 0.5Hz
     settings.um980MessageRatesRTCMBase[getRtcmMessageNumberByName("RTCM1084")] = 2;  // 1084 0.5Hz
     settings.um980MessageRatesRTCMBase[getRtcmMessageNumberByName("RTCM1094")] = 2;  // 1094 0.5Hz
@@ -1079,10 +1079,13 @@ void GNSS_UM980::menuConstellations()
             systemPrintln();
         }
 
-        if (present.galileoHasCapable)
+        if (present.pppCapable)
         {
-            systemPrintf("%d) Galileo E6 Corrections: %s\r\n", MAX_UM980_CONSTELLATIONS + 1,
-                         settings.enableGalileoHas ? "Enabled" : "Disabled");
+            if (settings.pppMode == PPP_MODE_HAS)
+            {
+                systemPrintf("%d) Galileo E6 Corrections: %s\r\n", MAX_UM980_CONSTELLATIONS + 1,
+                             settings.pppMode == PPP_MODE_HAS ? "Enabled" : "Disabled");
+            }
         }
 
         systemPrintln("x) Exit");
@@ -1096,9 +1099,13 @@ void GNSS_UM980::menuConstellations()
             settings.um980Constellations[incoming] ^= 1;
             gnssConfigure(GNSS_CONFIG_CONSTELLATION); // Request receiver to use new settings
         }
-        else if ((incoming == MAX_UM980_CONSTELLATIONS + 1) && present.galileoHasCapable)
+        else if ((incoming == MAX_UM980_CONSTELLATIONS + 1) && present.pppCapable)
         {
-            settings.enableGalileoHas ^= 1;
+            if (settings.pppMode == PPP_MODE_DISABLE)
+                settings.pppMode = PPP_MODE_HAS;
+            else    
+                settings.pppMode = PPP_MODE_DISABLE;
+
             gnssConfigure(GNSS_CONFIG_HAS_E6); // Request receiver to use new settings
         }
         else if (incoming == INPUT_RESPONSE_GETNUMBER_EXIT)
@@ -1512,12 +1519,12 @@ bool GNSS_UM980::setElevation(uint8_t elevationDegrees)
 //----------------------------------------
 // Control whether HAS E6 is used in location fixes or not
 //----------------------------------------
-bool GNSS_UM980::setHighAccuracyService(bool enableGalileoHas)
+bool GNSS_UM980::setHighAccuracyService()
 {
     bool result = true;
 
     // Enable E6 and PPP if enabled and possible
-    if (settings.enableGalileoHas)
+    if (settings.pppMode == PPP_MODE_HAS)
     {
         // E6 reception requires version 11833 or greater
         int um980Version = String(_um980->getVersion()).toInt(); // Convert the string response to a value
@@ -2108,62 +2115,66 @@ bool um980CommandList(RTK_Settings_Types type,
                       int settingsIndex,
                       bool inCommands,
                       int qualifier,
-                      char * settingName,
-                      char * settingValue)
+                      char *settingName,
+                      char *settingValue)
 {
     switch (type)
     {
-        default:
-            return false;
+    default:
+        return false;
 
-        case tUmMRNmea: {
-            // Record UM980 NMEA rates
-            for (int x = 0; x < rtkSettingsEntries[settingsIndex].qualifier; x++)
-            {
-                snprintf(settingName, sizeof(settingName), "%s%s", rtkSettingsEntries[settingsIndex].name,
-                         umMessagesNMEA[x].msgTextName);
+    case tUmMRNmea:
+    {
+        // Record UM980 NMEA rates
+        for (int x = 0; x < rtkSettingsEntries[settingsIndex].qualifier; x++)
+        {
+            snprintf(settingName, sizeof(settingName), "%s%s", rtkSettingsEntries[settingsIndex].name,
+                     umMessagesNMEA[x].msgTextName);
 
-                getSettingValue(inCommands, settingName, settingValue);
-                commandSendExecuteListResponse(settingName, "tUmMRNmea", settingValue);
-            }
+            getSettingValue(inCommands, settingName, settingValue);
+            commandSendExecuteListResponse(settingName, "tUmMRNmea", settingValue);
         }
-        break;
-        case tUmMRRvRT: {
-            // Record UM980 Rover RTCM rates
-            for (int x = 0; x < rtkSettingsEntries[settingsIndex].qualifier; x++)
-            {
-                snprintf(settingName, sizeof(settingName), "%s%s", rtkSettingsEntries[settingsIndex].name,
-                         umMessagesRTCM[x].msgTextName);
+    }
+    break;
+    case tUmMRRvRT:
+    {
+        // Record UM980 Rover RTCM rates
+        for (int x = 0; x < rtkSettingsEntries[settingsIndex].qualifier; x++)
+        {
+            snprintf(settingName, sizeof(settingName), "%s%s", rtkSettingsEntries[settingsIndex].name,
+                     umMessagesRTCM[x].msgTextName);
 
-                getSettingValue(inCommands, settingName, settingValue);
-                commandSendExecuteListResponse(settingName, "tUmMRRvRT", settingValue);
-            }
+            getSettingValue(inCommands, settingName, settingValue);
+            commandSendExecuteListResponse(settingName, "tUmMRRvRT", settingValue);
         }
-        break;
-        case tUmMRBaRT: {
-            // Record UM980 Base RTCM rates
-            for (int x = 0; x < rtkSettingsEntries[settingsIndex].qualifier; x++)
-            {
-                snprintf(settingName, sizeof(settingName), "%s%s", rtkSettingsEntries[settingsIndex].name,
-                         umMessagesRTCM[x].msgTextName);
+    }
+    break;
+    case tUmMRBaRT:
+    {
+        // Record UM980 Base RTCM rates
+        for (int x = 0; x < rtkSettingsEntries[settingsIndex].qualifier; x++)
+        {
+            snprintf(settingName, sizeof(settingName), "%s%s", rtkSettingsEntries[settingsIndex].name,
+                     umMessagesRTCM[x].msgTextName);
 
-                getSettingValue(inCommands, settingName, settingValue);
-                commandSendExecuteListResponse(settingName, "tUmMRBaRT", settingValue);
-            }
+            getSettingValue(inCommands, settingName, settingValue);
+            commandSendExecuteListResponse(settingName, "tUmMRBaRT", settingValue);
         }
-        break;
-        case tUmConst: {
-            // Record UM980 Constellations
-            for (int x = 0; x < rtkSettingsEntries[settingsIndex].qualifier; x++)
-            {
-                snprintf(settingName, sizeof(settingName), "%s%s", rtkSettingsEntries[settingsIndex].name,
-                         um980ConstellationCommands[x].textName);
+    }
+    break;
+    case tUmConst:
+    {
+        // Record UM980 Constellations
+        for (int x = 0; x < rtkSettingsEntries[settingsIndex].qualifier; x++)
+        {
+            snprintf(settingName, sizeof(settingName), "%s%s", rtkSettingsEntries[settingsIndex].name,
+                     um980ConstellationCommands[x].textName);
 
-                getSettingValue(inCommands, settingName, settingValue);
-                commandSendExecuteListResponse(settingName, "tUmConst", settingValue);
-            }
+            getSettingValue(inCommands, settingName, settingValue);
+            commandSendExecuteListResponse(settingName, "tUmConst", settingValue);
         }
-        break;
+    }
+    break;
     }
     return true;
 }
@@ -2227,61 +2238,65 @@ void um980CommandTypeJson(JsonArray &command_types)
 //----------------------------------------
 bool um980CreateString(RTK_Settings_Types type,
                        int settingsIndex,
-                       char * newSettings)
+                       char *newSettings)
 {
     switch (type)
     {
-        default:
-            return false;
+    default:
+        return false;
 
-        case tUmMRNmea: {
-            // Record UM980 NMEA rates
-            for (int x = 0; x < rtkSettingsEntries[settingsIndex].qualifier; x++)
-            {
-                char tempString[50]; // um980MessageRatesNMEA_GPDTM=0.05
-                snprintf(tempString, sizeof(tempString), "%s%s,%0.2f,", rtkSettingsEntries[settingsIndex].name,
-                         umMessagesNMEA[x].msgTextName, settings.um980MessageRatesNMEA[x]);
-                stringRecord(newSettings, tempString);
-            }
+    case tUmMRNmea:
+    {
+        // Record UM980 NMEA rates
+        for (int x = 0; x < rtkSettingsEntries[settingsIndex].qualifier; x++)
+        {
+            char tempString[50]; // um980MessageRatesNMEA_GPDTM=0.05
+            snprintf(tempString, sizeof(tempString), "%s%s,%0.2f,", rtkSettingsEntries[settingsIndex].name,
+                     umMessagesNMEA[x].msgTextName, settings.um980MessageRatesNMEA[x]);
+            stringRecord(newSettings, tempString);
         }
-        break;
-        case tUmMRRvRT: {
-            // Record UM980 Rover RTCM rates
-            for (int x = 0; x < rtkSettingsEntries[settingsIndex].qualifier; x++)
-            {
-                char tempString[50]; // um980MessageRatesRTCMRover_RTCM1001=0.2
-                snprintf(tempString, sizeof(tempString), "%s%s,%0.2f,", rtkSettingsEntries[settingsIndex].name,
-                         umMessagesRTCM[x].msgTextName, settings.um980MessageRatesRTCMRover[x]);
-                stringRecord(newSettings, tempString);
-            }
+    }
+    break;
+    case tUmMRRvRT:
+    {
+        // Record UM980 Rover RTCM rates
+        for (int x = 0; x < rtkSettingsEntries[settingsIndex].qualifier; x++)
+        {
+            char tempString[50]; // um980MessageRatesRTCMRover_RTCM1001=0.2
+            snprintf(tempString, sizeof(tempString), "%s%s,%0.2f,", rtkSettingsEntries[settingsIndex].name,
+                     umMessagesRTCM[x].msgTextName, settings.um980MessageRatesRTCMRover[x]);
+            stringRecord(newSettings, tempString);
         }
-        break;
-        case tUmMRBaRT: {
-            // Record UM980 Base RTCM rates
-            for (int x = 0; x < rtkSettingsEntries[settingsIndex].qualifier; x++)
-            {
-                char tempString[50]; // um980MessageRatesRTCMBase.RTCM1001=0.2
-                snprintf(tempString, sizeof(tempString), "%s%s,%0.2f,", rtkSettingsEntries[settingsIndex].name,
-                         umMessagesRTCM[x].msgTextName, settings.um980MessageRatesRTCMBase[x]);
-                stringRecord(newSettings, tempString);
-            }
+    }
+    break;
+    case tUmMRBaRT:
+    {
+        // Record UM980 Base RTCM rates
+        for (int x = 0; x < rtkSettingsEntries[settingsIndex].qualifier; x++)
+        {
+            char tempString[50]; // um980MessageRatesRTCMBase.RTCM1001=0.2
+            snprintf(tempString, sizeof(tempString), "%s%s,%0.2f,", rtkSettingsEntries[settingsIndex].name,
+                     umMessagesRTCM[x].msgTextName, settings.um980MessageRatesRTCMBase[x]);
+            stringRecord(newSettings, tempString);
         }
-        break;
-        case tUmConst: {
-            // Record UM980 Constellations
-            // um980Constellations are uint8_t, but here we have to convert to bool (true / false) so the web
-            // page check boxes are populated correctly. (We can't make it bool, otherwise the 254 initializer
-            // will probably fail...)
-            for (int x = 0; x < rtkSettingsEntries[settingsIndex].qualifier; x++)
-            {
-                char tempString[50]; // um980Constellations.GLONASS=true
-                snprintf(tempString, sizeof(tempString), "%s%s,%s,", rtkSettingsEntries[settingsIndex].name,
-                         um980ConstellationCommands[x].textName,
-                         ((settings.um980Constellations[x] == 0) ? "false" : "true"));
-                stringRecord(newSettings, tempString);
-            }
+    }
+    break;
+    case tUmConst:
+    {
+        // Record UM980 Constellations
+        // um980Constellations are uint8_t, but here we have to convert to bool (true / false) so the web
+        // page check boxes are populated correctly. (We can't make it bool, otherwise the 254 initializer
+        // will probably fail...)
+        for (int x = 0; x < rtkSettingsEntries[settingsIndex].qualifier; x++)
+        {
+            char tempString[50]; // um980Constellations.GLONASS=true
+            snprintf(tempString, sizeof(tempString), "%s%s,%s,", rtkSettingsEntries[settingsIndex].name,
+                     um980ConstellationCommands[x].textName,
+                     ((settings.um980Constellations[x] == 0) ? "false" : "true"));
+            stringRecord(newSettings, tempString);
         }
-        break;
+    }
+    break;
     }
     return true;
 }
@@ -2290,61 +2305,65 @@ bool um980CreateString(RTK_Settings_Types type,
 // Return setting value as a string
 //----------------------------------------
 bool um980GetSettingValue(RTK_Settings_Types type,
-                          const char * suffix,
+                          const char *suffix,
                           int settingsIndex,
                           int qualifier,
-                          char * settingValueStr)
+                          char *settingValueStr)
 {
     switch (type)
     {
-        case tUmMRNmea: {
-            for (int x = 0; x < qualifier; x++)
+    case tUmMRNmea:
+    {
+        for (int x = 0; x < qualifier; x++)
+        {
+            if ((suffix[0] == umMessagesNMEA[x].msgTextName[0]) &&
+                (strcmp(suffix, umMessagesNMEA[x].msgTextName) == 0))
             {
-                if ((suffix[0] == umMessagesNMEA[x].msgTextName[0]) &&
-                    (strcmp(suffix, umMessagesNMEA[x].msgTextName) == 0))
-                {
-                    writeToString(settingValueStr, settings.um980MessageRatesNMEA[x]);
-                    return true;
-                }
+                writeToString(settingValueStr, settings.um980MessageRatesNMEA[x]);
+                return true;
             }
         }
-        break;
-        case tUmMRRvRT: {
-            for (int x = 0; x < qualifier; x++)
+    }
+    break;
+    case tUmMRRvRT:
+    {
+        for (int x = 0; x < qualifier; x++)
+        {
+            if ((suffix[0] == umMessagesRTCM[x].msgTextName[0]) &&
+                (strcmp(suffix, umMessagesRTCM[x].msgTextName) == 0))
             {
-                if ((suffix[0] == umMessagesRTCM[x].msgTextName[0]) &&
-                    (strcmp(suffix, umMessagesRTCM[x].msgTextName) == 0))
-                {
-                    writeToString(settingValueStr, settings.um980MessageRatesRTCMRover[x]);
-                    return true;
-                }
+                writeToString(settingValueStr, settings.um980MessageRatesRTCMRover[x]);
+                return true;
             }
         }
-        break;
-        case tUmMRBaRT: {
-            for (int x = 0; x < qualifier; x++)
+    }
+    break;
+    case tUmMRBaRT:
+    {
+        for (int x = 0; x < qualifier; x++)
+        {
+            if ((suffix[0] == umMessagesRTCM[x].msgTextName[0]) &&
+                (strcmp(suffix, umMessagesRTCM[x].msgTextName) == 0))
             {
-                if ((suffix[0] == umMessagesRTCM[x].msgTextName[0]) &&
-                    (strcmp(suffix, umMessagesRTCM[x].msgTextName) == 0))
-                {
-                    writeToString(settingValueStr, settings.um980MessageRatesRTCMBase[x]);
-                    return true;
-                }
+                writeToString(settingValueStr, settings.um980MessageRatesRTCMBase[x]);
+                return true;
             }
         }
-        break;
-        case tUmConst: {
-            for (int x = 0; x < qualifier; x++)
+    }
+    break;
+    case tUmConst:
+    {
+        for (int x = 0; x < qualifier; x++)
+        {
+            if ((suffix[0] == um980ConstellationCommands[x].textName[0]) &&
+                (strcmp(suffix, um980ConstellationCommands[x].textName) == 0))
             {
-                if ((suffix[0] == um980ConstellationCommands[x].textName[0]) &&
-                    (strcmp(suffix, um980ConstellationCommands[x].textName) == 0))
-                {
-                    writeToString(settingValueStr, settings.um980Constellations[x]);
-                    return true;
-                }
+                writeToString(settingValueStr, settings.um980Constellations[x]);
+                return true;
             }
         }
-        break;
+    }
+    break;
     }
     return false;
 }
@@ -2353,68 +2372,68 @@ bool um980GetSettingValue(RTK_Settings_Types type,
 // Called by gnssNewSettingValue to save a UM980 specific setting
 //----------------------------------------
 bool um980NewSettingValue(RTK_Settings_Types type,
-                          const char * suffix,
+                          const char *suffix,
                           int qualifier,
                           double d)
 {
     switch (type)
     {
-        case tCmnCnst:
-            for (int x = 0; x < MAX_UM980_CONSTELLATIONS; x++)
+    case tCmnCnst:
+        for (int x = 0; x < MAX_UM980_CONSTELLATIONS; x++)
+        {
+            if ((suffix[0] == um980ConstellationCommands[x].textName[0]) &&
+                (strcmp(suffix, um980ConstellationCommands[x].textName) == 0))
             {
-                if ((suffix[0] == um980ConstellationCommands[x].textName[0]) &&
-                    (strcmp(suffix, um980ConstellationCommands[x].textName) == 0))
-                {
-                    settings.um980Constellations[x] = d;
-                    return true;
-                }
+                settings.um980Constellations[x] = d;
+                return true;
             }
-            break;
-        case tCmnRtNm:
-            for (int x = 0; x < MAX_UM980_NMEA_MSG; x++)
+        }
+        break;
+    case tCmnRtNm:
+        for (int x = 0; x < MAX_UM980_NMEA_MSG; x++)
+        {
+            if ((suffix[0] == umMessagesNMEA[x].msgTextName[0]) &&
+                (strcmp(suffix, umMessagesNMEA[x].msgTextName) == 0))
             {
-                if ((suffix[0] == umMessagesNMEA[x].msgTextName[0]) &&
-                    (strcmp(suffix, umMessagesNMEA[x].msgTextName) == 0))
-                {
-                    settings.um980MessageRatesNMEA[x] = d;
-                    return true;
-                }
+                settings.um980MessageRatesNMEA[x] = d;
+                return true;
             }
-            break;
-        case tCnRtRtB:
-            for (int x = 0; x < MAX_UM980_RTCM_MSG; x++)
+        }
+        break;
+    case tCnRtRtB:
+        for (int x = 0; x < MAX_UM980_RTCM_MSG; x++)
+        {
+            if ((suffix[0] == umMessagesRTCM[x].msgTextName[0]) &&
+                (strcmp(suffix, umMessagesRTCM[x].msgTextName) == 0))
             {
-                if ((suffix[0] == umMessagesRTCM[x].msgTextName[0]) &&
-                    (strcmp(suffix, umMessagesRTCM[x].msgTextName) == 0))
-                {
-                    settings.um980MessageRatesRTCMBase[x] = d;
-                    return true;
-                }
+                settings.um980MessageRatesRTCMBase[x] = d;
+                return true;
             }
-            break;
-        case tCnRtRtR:
-            for (int x = 0; x < MAX_UM980_RTCM_MSG; x++)
+        }
+        break;
+    case tCnRtRtR:
+        for (int x = 0; x < MAX_UM980_RTCM_MSG; x++)
+        {
+            if ((suffix[0] == umMessagesRTCM[x].msgTextName[0]) &&
+                (strcmp(suffix, umMessagesRTCM[x].msgTextName) == 0))
             {
-                if ((suffix[0] == umMessagesRTCM[x].msgTextName[0]) &&
-                    (strcmp(suffix, umMessagesRTCM[x].msgTextName) == 0))
-                {
-                    settings.um980MessageRatesRTCMRover[x] = d;
-                    return true;
-                }
+                settings.um980MessageRatesRTCMRover[x] = d;
+                return true;
             }
-            break;
-        case tUmMRNmea:
-            // Covered by tCmnRtNm
-            break;
-        case tUmMRRvRT:
-            // Covered by tCnRtRtR
-            break;
-        case tUmMRBaRT:
-            // Covered by tCnRtRtB
-            break;
-        case tUmConst:
-            // Covered by tCmnCnst
-            break;
+        }
+        break;
+    case tUmMRNmea:
+        // Covered by tCmnRtNm
+        break;
+    case tUmMRRvRT:
+        // Covered by tCnRtRtR
+        break;
+    case tUmMRBaRT:
+        // Covered by tCnRtRtB
+        break;
+    case tUmConst:
+        // Covered by tCmnCnst
+        break;
     }
     return false;
 }
@@ -2428,53 +2447,57 @@ bool um980SettingsToFile(File *settingsFile,
 {
     switch (type)
     {
-        default:
-            return false;
+    default:
+        return false;
 
-        case tUmMRNmea: {
-            // Record UM980 NMEA rates
-            for (int x = 0; x < rtkSettingsEntries[settingsIndex].qualifier; x++)
-            {
-                char tempString[50]; // um980MessageRatesNMEA_GPDTM=0.05
-                snprintf(tempString, sizeof(tempString), "%s%s=%0.2f", rtkSettingsEntries[settingsIndex].name,
-                         umMessagesNMEA[x].msgTextName, settings.um980MessageRatesNMEA[x]);
-                settingsFile->println(tempString);
-            }
+    case tUmMRNmea:
+    {
+        // Record UM980 NMEA rates
+        for (int x = 0; x < rtkSettingsEntries[settingsIndex].qualifier; x++)
+        {
+            char tempString[50]; // um980MessageRatesNMEA_GPDTM=0.05
+            snprintf(tempString, sizeof(tempString), "%s%s=%0.2f", rtkSettingsEntries[settingsIndex].name,
+                     umMessagesNMEA[x].msgTextName, settings.um980MessageRatesNMEA[x]);
+            settingsFile->println(tempString);
         }
-        break;
-        case tUmMRRvRT: {
-            // Record UM980 Rover RTCM rates
-            for (int x = 0; x < rtkSettingsEntries[settingsIndex].qualifier; x++)
-            {
-                char tempString[50]; // um980MessageRatesRTCMRover_RTCM1001=0.2
-                snprintf(tempString, sizeof(tempString), "%s%s=%0.2f", rtkSettingsEntries[settingsIndex].name,
-                         umMessagesRTCM[x].msgTextName, settings.um980MessageRatesRTCMRover[x]);
-                settingsFile->println(tempString);
-            }
+    }
+    break;
+    case tUmMRRvRT:
+    {
+        // Record UM980 Rover RTCM rates
+        for (int x = 0; x < rtkSettingsEntries[settingsIndex].qualifier; x++)
+        {
+            char tempString[50]; // um980MessageRatesRTCMRover_RTCM1001=0.2
+            snprintf(tempString, sizeof(tempString), "%s%s=%0.2f", rtkSettingsEntries[settingsIndex].name,
+                     umMessagesRTCM[x].msgTextName, settings.um980MessageRatesRTCMRover[x]);
+            settingsFile->println(tempString);
         }
-        break;
-        case tUmMRBaRT: {
-            // Record UM980 Base RTCM rates
-            for (int x = 0; x < rtkSettingsEntries[settingsIndex].qualifier; x++)
-            {
-                char tempString[50]; // um980MessageRatesRTCMBase_RTCM1001=0.2
-                snprintf(tempString, sizeof(tempString), "%s%s=%0.2f", rtkSettingsEntries[settingsIndex].name,
-                         umMessagesRTCM[x].msgTextName, settings.um980MessageRatesRTCMBase[x]);
-                settingsFile->println(tempString);
-            }
+    }
+    break;
+    case tUmMRBaRT:
+    {
+        // Record UM980 Base RTCM rates
+        for (int x = 0; x < rtkSettingsEntries[settingsIndex].qualifier; x++)
+        {
+            char tempString[50]; // um980MessageRatesRTCMBase_RTCM1001=0.2
+            snprintf(tempString, sizeof(tempString), "%s%s=%0.2f", rtkSettingsEntries[settingsIndex].name,
+                     umMessagesRTCM[x].msgTextName, settings.um980MessageRatesRTCMBase[x]);
+            settingsFile->println(tempString);
         }
-        break;
-        case tUmConst: {
-            // Record UM980 Constellations
-            for (int x = 0; x < rtkSettingsEntries[settingsIndex].qualifier; x++)
-            {
-                char tempString[50]; // um980Constellations_GLONASS=1
-                snprintf(tempString, sizeof(tempString), "%s%s=%0d", rtkSettingsEntries[settingsIndex].name,
-                         um980ConstellationCommands[x].textName, settings.um980Constellations[x]);
-                settingsFile->println(tempString);
-            }
+    }
+    break;
+    case tUmConst:
+    {
+        // Record UM980 Constellations
+        for (int x = 0; x < rtkSettingsEntries[settingsIndex].qualifier; x++)
+        {
+            char tempString[50]; // um980Constellations_GLONASS=1
+            snprintf(tempString, sizeof(tempString), "%s%s=%0d", rtkSettingsEntries[settingsIndex].name,
+                     um980ConstellationCommands[x].textName, settings.um980Constellations[x]);
+            settingsFile->println(tempString);
         }
-        break;
+    }
+    break;
     }
     return true;
 }

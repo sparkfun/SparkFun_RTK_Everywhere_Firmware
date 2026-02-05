@@ -261,7 +261,7 @@ typedef enum
     CORR_BLUETOOTH,     // 3,  10+km Baseline, Tasks.ino (sendGnssBuffer)
     CORR_USB,           // 4,                  menuMain.ino (terminalUpdate)
     CORR_TCP,           // 5,  10+km Baseline, NtripClient.ino
-    CORR_PPP_HAS_B2B,   // 6, 100+km Baseline, PPP_Client.ino
+    CORR_PPP_MODE_HAS_B2B,   // 6, 100+km Baseline, PPP_Client.ino
     CORR_LBAND,         // 7, 100 km Baseline, menuPP.ino for PMP - PointPerfectLibrary.ino for PPL
     CORR_IP,            // 8, 100+km Baseline, MQTT_Client.ino
     // Add new correction sources just above this line
@@ -363,10 +363,10 @@ typedef enum
 // User can select different PPP modes
 enum
 {
-    PPP_DISABLE = 0,
-    PPP_HAS,
-    PPP_B2B,
-    PPP_AUTO,
+    PPP_MODE_DISABLE = 0,
+    PPP_MODE_HAS,
+    PPP_MODE_B2B,
+    PPP_MODE_AUTO,
 };
 
 // Define the periodic display values
@@ -1057,7 +1057,6 @@ struct Settings
     bool enableImuCompensationDebug = false;
     bool enableImuDebug = false; // Turn on to display IMU library debug messages
     bool enableTiltCompensation = true; // Allow user to disable tilt compensation on the models that have an IMU
-    bool enableGalileoHas = true; // Allow E6 corrections if possible. Also needed on LG290P
 #ifdef COMPILE_UM980
     uint8_t um980Constellations[MAX_UM980_CONSTELLATIONS] = {254}; // Mark first record with key so defaults will be applied.
     float um980MessageRatesNMEA[MAX_UM980_NMEA_MSG] = {254}; // Mark first record with key so defaults will be applied.
@@ -1156,7 +1155,7 @@ struct Settings
 
     char configurePPP[30] = "2 1 120 0.10 0.15"; // PQTMCFGPPP: 2,1,120,0.10,0.15 ** Use spaces, not commas! **
 
-    int pppMode = PPP_HAS; // 0 = Disable, 1 = B2b PPP, 2 = HAS, 0xFF = Auto
+    int pppMode = PPP_MODE_HAS; // 0 = Disable, 1 = B2b PPP, 2 = HAS, 0xFF = Auto
     int pppDatum = 1; // 1 = WGS84, 2 = PPP Original, 3 = CGCS2000
     int pppTimeout = 120; // Seconds without PPP corrections before fallback
     float pppHorizontalConvergence = 0.10; // Meters, required horizontal convergence for PPP fix
@@ -1762,7 +1761,6 @@ const RTK_Settings_Entry rtkSettingsEntries[] =
 //    f  n  f  E     a  r  a  a        
 //    i  d  i  v  V  i  c  n  r  F    X
 //    g  s  x  k  2  c  h  d  d  P    2  Type       Qual                Variable                  Name              afterSetCmd
-    { 1, 1, 0, 0, 0, 0, 1, 0, 1, HAS, 1, _bool,     0, & settings.enableGalileoHas, "enableGalileoHas", nullptr, },
     { 1, 1, 0, 0, 0, 0, 1, 0, 0, ALL, 0, _bool,     3, & settings.enableMultipathMitigation, "enableMultipathMitigation", nullptr, },
     { 0, 0, 0, 0, 0, 0, 1, 0, 0, ALL, 0, _bool,     0, & settings.enableImuCompensationDebug, "enableImuCompensationDebug", nullptr, },
     { 0, 0, 0, 0, 0, 0, 1, 0, 0, ALL, 0, _bool,     0, & settings.enableImuDebug, "enableImuDebug", nullptr, },
@@ -1832,6 +1830,12 @@ const RTK_Settings_Entry rtkSettingsEntries[] =
     { 0, 0, 0, 1, 1, 1, 1, 1, 1, ALL, 1, _bool,     0, & settings.debugCLI, "debugCLI", nullptr, },
     { 0, 0, 0, 1, 1, 1, 1, 1, 1, ALL, 1, _uint16_t, 0, & settings.cliBlePrintDelay_ms, "cliBlePrintDelay_ms", nullptr, },
     { 0, 0, 0, 1, 1, 1, 1, 1, 1, ALL, 1, _uint32_t, 0, & settings.gnssConfigureRequest, "gnssConfigureRequest", nullptr, },
+
+    { 1, 1, 0, 0, 0, 0, 1, 0, 1, HAS, 1, _bool,     0, & settings.pppMode, "pppMode", nullptr, },
+    { 1, 1, 0, 0, 0, 0, 1, 0, 1, HAS, 1, _bool,     0, & settings.pppDatum, "pppDatum", nullptr, },
+    { 1, 1, 0, 0, 0, 0, 1, 0, 1, HAS, 1, _bool,     0, & settings.pppTimeout, "pppTimeout", nullptr, },
+    { 1, 1, 0, 0, 0, 0, 1, 0, 1, HAS, 1, _bool,     0, & settings.pppHorizontalConvergence, "pppHorizontalConvergence", nullptr, },
+    { 1, 1, 0, 0, 0, 0, 1, 0, 1, HAS, 1, _bool,     0, & settings.pppVerticalConvergence, "pppVerticalConvergence", nullptr, },
 
     // Add new settings to appropriate group above or create new group
     // Then also add to the same group in settings above
@@ -1920,7 +1924,7 @@ struct struct_present
     bool needsExternalPpl = false;
 
     float antennaPhaseCenter_mm = 0.0; // Used to setup tilt compensation
-    bool galileoHasCapable = false; // UM980 has HAS capabilities
+    bool pppCapable = false; // Device has the capability to do PPP corrections, currently B2b or E6 HAS
     bool multipathMitigation = false; // UM980 has MPM, other platforms do not
     bool minCN0 = false; // ZED, mosaic, UM980 have minCN0. LG290P does on version >= v5.
     bool minElevation = false; // ZED, mosaic, UM980 have minElevation. LG290P does on versions >= v5.

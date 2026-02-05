@@ -2121,7 +2121,7 @@ bool GNSS_ZED::setElevation(uint8_t elevationDegrees)
 //----------------------------------------
 // Control whether HAS E6 is used in location fixes or not
 //----------------------------------------
-bool GNSS_ZED::setHighAccuracyService(bool enableGalileoHas)
+bool GNSS_ZED::setHighAccuracyService()
 {
     // Not yet supported on this platform
     return (true); // Return true to clear gnssConfigure test

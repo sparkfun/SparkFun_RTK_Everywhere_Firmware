@@ -2196,7 +2196,7 @@ bool GNSS_MOSAIC::setElevation(uint8_t elevationDegrees)
 //----------------------------------------
 // Control whether HAS E6 is used in location fixes or not
 //----------------------------------------
-bool GNSS_MOSAIC::setHighAccuracyService(bool enableGalileoHas)
+bool GNSS_MOSAIC::setHighAccuracyService()
 {
     // Not yet supported on this platform
     return (true); // Return true to clear gnssConfigure test
