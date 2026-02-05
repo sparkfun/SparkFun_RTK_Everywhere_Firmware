@@ -874,14 +874,11 @@ void gnssFirmwareDirectConnectHardware() // Facet FP
 
     gpioExpanderConnectGNSSToESP32(); // Redundant...
 
-    // Remove the special file. See #763 . Do the file removal in the loop
-    gnssFirmwareRemoveUpdate();
-
-    systemPrintln("Exiting GNSS direct connect");
-    systemPrintln("Restarting...");
-    systemFlush(); // Complete prints
-
-    ESP.restart();
+    if (Serial.available()) // buttonCheckTask has its own print
+    {
+        systemPrintln("Exiting GNSS direct connect");
+        systemPrintln("Restarting...");
+    }
 }
 
 //----------------------------------------
