@@ -2256,8 +2256,6 @@ void buttonCheckTask(void *e)
     bool singleTap = false;
     bool doubleTap = false;
 
-    bool showMenu = false;
-
     // Start notification
     task.buttonCheckTaskRunning = true;
     if (settings.printTaskStartStop)
@@ -2634,7 +2632,6 @@ void buttonCheckTask(void *e)
                     requestChangeState(STATE_DISPLAY_SETUP);
                     lastSetupMenuChange.setTimerToMillis();
                     setupSelectedButton = 0; // Highlight the first button
-                    showMenu = false;
                     break;
 
                 case STATE_TEST:
