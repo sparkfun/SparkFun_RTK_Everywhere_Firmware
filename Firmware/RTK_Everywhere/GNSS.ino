@@ -765,19 +765,6 @@ void gnssFirmwareBeginUpdate()
 {
     // Note: UM980 needs its own dedicated update function, due to the T@ and bootloader trigger
 
-    // Note: gnssFirmwareBeginUpdate is called during setup, after identify board. I2C, gpio expanders, buttons
-    //  and display have all been initialized. But, importantly, the UARTs have not yet been started.
-    //  This makes our job much easier...
-
-    // NOTE: QGNSS firmware update fails on LG290P due, I think, to QGNSS doing some kind of autobaud
-    //  detection at the start of the update. I think the delays introduced by serialGNSS->write(Serial.read())
-    //  and Serial.write(serialGNSS->read()) cause the failure, but I'm not sure.
-    //  It seems that LG290P needs a dedicated hardware link from USB to GNSS UART for a successful update.
-    //  This will be added in the next rev of the Facet FP motherboard.
-
-    // NOTE: X20P will expect a baud rate change during the update, unless we force 9600 baud.
-    //  The dedicated hardware link will make X20P firmware updates easy.
-
     // Flag that we are in direct connect mode. Button task will gnssFirmwareRemoveUpdate and exit
     inDirectConnectMode = true;
 
@@ -787,19 +774,43 @@ void gnssFirmwareBeginUpdate()
     // Paint GNSS Update
     paintGnssUpdate();
 
+    // On Facet FP, set SW5 to provide a direct connection from GNSS UART1 to CH342 Channel A
+    if (productVariant == RTK_FACET_FP)
+        gnssFirmwareDirectConnectHardware();
+    else
+        gnssFirmwareDirectConnectSoftware();
+
+    // Remove the special file. See #763 . Do the file removal in the loop
+    gnssFirmwareRemoveUpdate();
+
+    systemFlush(); // Complete prints
+
+    ESP.restart();
+}
+
+//----------------------------------------
+void gnssFirmwareDirectConnectSoftware()
+{
+    // Note: UM980 needs its own dedicated update function, due to the T@ and bootloader trigger
+
+    // Note: gnssFirmwareBeginUpdate is called during setup, after identify board. I2C, gpio expanders, buttons
+    //  and display have all been initialized. But, importantly, the UARTs have not yet been started.
+    //  This makes our job much easier...
+
     // Stop all UART tasks. Redundant
     tasksStopGnssUart();
 
     uint32_t serialBaud = 115200;
 
-    forceGnssCommunicationRate(serialBaud); // On Facet FP, must be called after gnssDetectReceiverType
+    forceGnssCommunicationRate(serialBaud);
 
     systemPrintln();
-    systemPrintf("Entering GNSS direct connect for firmware update and configuration. Disconnect this terminal "
-                 "connection. Use the GNSS manufacturer software "
-                 "to update the firmware. Baudrate: %dbps. Press the %s button to return "
-                 "to normal operation.\r\n",
-                 serialBaud, present.button_mode ? "mode" : "power");
+    systemPrintln("Entering GNSS direct connect for firmware update and configuration");
+    systemPrintln("Disconnect this terminal connection");
+    systemPrintln("Use the GNSS manufacturer software to update the firmware");
+    systemPrintf("Baudrate: %dbps\r\n", serialBaud);
+    systemPrintf("Press the %s button to return to normal operation\r\n",
+                 present.button_mode ? "mode" : "power");
     systemFlush();
 
     Serial.end(); // We must end before we begin otherwise the UART settings are corrupted
@@ -811,7 +822,6 @@ void gnssFirmwareBeginUpdate()
     serialGNSS->setRxBufferSize(settings.uartReceiveBufferSize);
     serialGNSS->setTimeout(settings.serialTimeoutGNSS); // Requires serial traffic on the UART pins for detection
 
-    // This is OK for Facet FP too. We're using the main GNSS pins.
     serialGNSS->begin(serialBaud, SERIAL_8N1, pin_GnssUart_RX, pin_GnssUart_TX);
 
     // Echo everything to/from GNSS
@@ -828,10 +838,47 @@ void gnssFirmwareBeginUpdate()
 
         // Button task will set task.endDirectConnectMode true
     }
+}
 
-    // Remove all the special file. See #763 . Do the file removal in the loop
+//----------------------------------------
+void gnssFirmwareDirectConnectHardware() // Facet FP
+{
+    systemPrintln();
+    systemPrintln("Entering GNSS direct connect for firmware update and configuration");
+    systemPrintf("Use the GNSS manufacturer software to update the firmware via %s\r\n", present.gnssUpdatePort);
+    if (present.gnss_lg290p)
+    {
+        systemPrintln("With QGNSS:");
+        systemPrintln("  Open Tools / Firmware Update");
+        systemPrintln("  Select the .pkg firmware file");
+        systemPrintln("  On the top tool bar, click \"Reboot\" (blue circle-back icon)");
+        systemPrintln("  Then click the green arrow to start the Firmware Update");
+    }
+    systemPrintf("Initial baudrate: %dbps\r\n", settings.dataPortBaud);
+    systemPrintf("Press the %s button or hit any key to return to normal operation\r\n",
+                 present.button_mode ? "mode" : "power");
+    systemFlush();
+
+    gpioExpanderConnectGNSSToCH342();
+
+    while (Serial.available())
+        Serial.read(); // Ensure the buffer is empty
+
+    // Spin our wheels until the user presses a button or kits a key
+    task.endDirectConnectMode = false;
+    while (!task.endDirectConnectMode && !Serial.available())
+    {
+        delay(1);
+        // Button task will set task.endDirectConnectMode true
+    }
+
+    gpioExpanderConnectGNSSToESP32(); // Redundant...
+
+    // Remove the special file. See #763 . Do the file removal in the loop
     gnssFirmwareRemoveUpdate();
 
+    systemPrintln("Exiting GNSS direct connect");
+    systemPrintln("Restarting...");
     systemFlush(); // Complete prints
 
     ESP.restart();
