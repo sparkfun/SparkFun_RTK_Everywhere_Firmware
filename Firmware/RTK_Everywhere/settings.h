@@ -261,7 +261,7 @@ typedef enum
     CORR_BLUETOOTH,     // 3,  10+km Baseline, Tasks.ino (sendGnssBuffer)
     CORR_USB,           // 4,                  menuMain.ino (terminalUpdate)
     CORR_TCP,           // 5,  10+km Baseline, NtripClient.ino
-    CORR_PPP_MODE_HAS_B2B,   // 6, 100+km Baseline, PPP_Client.ino
+    CORR_PPP_HAS_B2B,   // 6, 100+km Baseline, PPP_Client.ino
     CORR_LBAND,         // 7, 100 km Baseline, menuPP.ino for PMP - PointPerfectLibrary.ino for PPL
     CORR_IP,            // 8, 100+km Baseline, MQTT_Client.ino
     // Add new correction sources just above this line
@@ -269,7 +269,7 @@ typedef enum
 } correctionsSource;
 
 typedef uint8_t CORRECTION_ID_T;    // Type holding a correction ID or priority
-typedef uint8_t CORRECTION_MASK_T;  // Type holding a bitmask of correction IDs
+typedef uint16_t CORRECTION_MASK_T;  // Type holding a bitmask of correction IDs
 
 const char * const correctionsSourceNames[CORR_NUM] =
 {
@@ -361,11 +361,12 @@ typedef enum
 } t_errorNumber;
 
 // User can select different PPP modes
+// LG290P has 0/1/2/255, UM980 has enable/disable
 enum
 {
     PPP_MODE_DISABLE = 0,
-    PPP_MODE_HAS,
-    PPP_MODE_B2B,
+    PPP_MODE_B2B, // 1
+    PPP_MODE_HAS, // 2
     PPP_MODE_AUTO = 255
 };
 
@@ -1828,11 +1829,11 @@ const RTK_Settings_Entry rtkSettingsEntries[] =
     { 0, 0, 0, 1, 1, 1, 1, 1, 1, ALL, 1, _uint16_t, 0, & settings.cliBlePrintDelay_ms, "cliBlePrintDelay_ms", nullptr, },
     { 0, 0, 0, 1, 1, 1, 1, 1, 1, ALL, 1, _uint32_t, 0, & settings.gnssConfigureRequest, "gnssConfigureRequest", nullptr, },
 
-    { 1, 1, 0, 0, 0, 0, 1, 0, 1, HAS, 1, _bool,     0, & settings.pppMode, "pppMode", nullptr, },
-    { 1, 1, 0, 0, 0, 0, 1, 0, 1, HAS, 1, _bool,     0, & settings.pppDatum, "pppDatum", nullptr, },
-    { 1, 1, 0, 0, 0, 0, 1, 0, 1, HAS, 1, _bool,     0, & settings.pppTimeout, "pppTimeout", nullptr, },
-    { 1, 1, 0, 0, 0, 0, 1, 0, 1, HAS, 1, _bool,     0, & settings.pppHorizontalConvergence, "pppHorizontalConvergence", nullptr, },
-    { 1, 1, 0, 0, 0, 0, 1, 0, 1, HAS, 1, _bool,     0, & settings.pppVerticalConvergence, "pppVerticalConvergence", nullptr, },
+    { 1, 1, 0, 0, 0, 0, 1, 0, 1, HAS, 1, _int,      0, & settings.pppMode, "pppMode", nullptr, },
+    { 1, 1, 0, 0, 0, 0, 1, 0, 1, HAS, 1, _int,      0, & settings.pppDatum, "pppDatum", nullptr, },
+    { 1, 1, 0, 0, 0, 0, 1, 0, 1, HAS, 1, _int,      0, & settings.pppTimeout, "pppTimeout", nullptr, },
+    { 1, 1, 0, 0, 0, 0, 1, 0, 1, HAS, 1, _float,    0, & settings.pppHorizontalConvergence, "pppHorizontalConvergence", nullptr, },
+    { 1, 1, 0, 0, 0, 0, 1, 0, 1, HAS, 1, _float,    0, & settings.pppVerticalConvergence, "pppVerticalConvergence", nullptr, },
 
     // Add new settings to appropriate group above or create new group
     // Then also add to the same group in settings above

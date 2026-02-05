@@ -41,7 +41,7 @@ void GNSS_LG290P::baseRtcmLowDataRate()
         settings.lg290pMessageRatesRTCMBase[x] = 0;
 
     settings.lg290pMessageRatesRTCMBase[getRtcmMessageNumberByName("RTCM3-1005")] =
-        10;                                                                            // 1005 0.1Hz - Exclude antenna height
+        10; // 1005 0.1Hz - Exclude antenna height
     settings.lg290pMessageRatesRTCMBase[getRtcmMessageNumberByName("RTCM3-107X")] = 2; // 1074 0.5Hz
     settings.lg290pMessageRatesRTCMBase[getRtcmMessageNumberByName("RTCM3-108X")] = 2; // 1084 0.5Hz
     settings.lg290pMessageRatesRTCMBase[getRtcmMessageNumberByName("RTCM3-109X")] = 2; // 1094 0.5Hz
@@ -1216,21 +1216,25 @@ bool GNSS_LG290P::isGgaActive()
 //----------------------------------------
 bool GNSS_LG290P::isPppConverged()
 {
-    // Not supported
+    if (present.pppCapable == false)
+        return (false);
+    if (_lg290p->getPppSolutionType() == 7)
+        return (true);
     return (false);
 }
 
 //----------------------------------------
 bool GNSS_LG290P::isPppConverging()
 {
-    // Not supported
+    if (present.pppCapable == false)
+        return (false);
+    if (_lg290p->getPppSolutionType() == 6)
+        return (true);
     return (false);
 }
 
 //----------------------------------------
-// Some functions (L-Band area frequency determination) merely need to
-// know if we have an RTK Fix.  This function checks to see if the given
-// platform has reached sufficient fix type to be considered valid
+// This function checks to see if the platform has reached sufficient fix type to be considered valid
 //----------------------------------------
 bool GNSS_LG290P::isRTKFix()
 {
@@ -1328,17 +1332,23 @@ void GNSS_LG290P::menuConstellations()
 
         if (present.pppCapable)
         {
-            systemPrintf("%d) PPP Mode: %s\r\n", MAX_LG290P_CONSTELLATIONS + 1, settings.pppMode == PPP_MODE_DISABLE ? "Disabled" : settings.pppMode == PPP_MODE_HAS ? "HAS"
-                                                                                                                                : settings.pppMode == PPP_MODE_B2B   ? "B2B"
-                                                                                                                                                                     : "Auto");
+            systemPrintf("%d) PPP Mode: %s\r\n", MAX_LG290P_CONSTELLATIONS + 1,
+                         settings.pppMode == PPP_MODE_DISABLE ? "Disabled"
+                         : settings.pppMode == PPP_MODE_HAS   ? "HAS"
+                         : settings.pppMode == PPP_MODE_B2B   ? "B2B"
+                                                              : "Auto");
             if (settings.pppMode > PPP_MODE_DISABLE)
             {
-                systemPrintf("%d) PPP Datum: %s\r\n", MAX_LG290P_CONSTELLATIONS + 2, settings.pppDatum == 1 ? "WGS84" : settings.pppDatum == 2 ? "PPP Original"
-                                                                                                                    : settings.pppDatum == 3   ? "CGCS2000"
-                                                                                                                                               : "Unknown");
+                systemPrintf("%d) PPP Datum: %s\r\n", MAX_LG290P_CONSTELLATIONS + 2,
+                             settings.pppDatum == 1   ? "WGS84"
+                             : settings.pppDatum == 2 ? "PPP Original"
+                             : settings.pppDatum == 3 ? "CGCS2000"
+                                                      : "Unknown");
                 systemPrintf("%d) PPP Timeout: %d\r\n", MAX_LG290P_CONSTELLATIONS + 3, settings.pppTimeout);
-                systemPrintf("%d) PPP Horizontal Convergence Accuracy: %0.2f\r\n", MAX_LG290P_CONSTELLATIONS + 4, settings.pppHorizontalConvergence);
-                systemPrintf("%d) PPP Vertical Convergence Accuracy: %0.2f\r\n", MAX_LG290P_CONSTELLATIONS + 5, settings.pppVerticalConvergence);
+                systemPrintf("%d) PPP Horizontal Convergence Accuracy: %0.2f\r\n", MAX_LG290P_CONSTELLATIONS + 4,
+                             settings.pppHorizontalConvergence);
+                systemPrintf("%d) PPP Vertical Convergence Accuracy: %0.2f\r\n", MAX_LG290P_CONSTELLATIONS + 5,
+                             settings.pppVerticalConvergence);
             }
         }
 
@@ -1355,37 +1365,50 @@ void GNSS_LG290P::menuConstellations()
         }
         else if ((incoming == MAX_LG290P_CONSTELLATIONS + 1) && present.pppCapable)
         {
-            settings.pppMode++;
-            if (settings.pppMode > PPP_MODE_AUTO)
-                settings.pppMode = PPP_MODE_DISABLE; // Wrap around
-            gnssConfigure(GNSS_CONFIG_HAS_E6);       // Request receiver to use new settings
+            int newMode = 0;
+            if (getNewSetting("Enter PPP Mode (0 = Disable, 1 = B2b PPP, 2 = E6 HAS, 255 = Auto)", 0, 255, &newMode) ==
+                INPUT_RESPONSE_VALID)
+            {
+                // Check for valid entry
+                if (newMode == PPP_MODE_AUTO || (newMode >= PPP_MODE_DISABLE && newMode <= PPP_MODE_HAS))
+                {
+                    settings.pppMode = newMode;
+                    gnssConfigure(GNSS_CONFIG_PPP); // Request receiver to use new settings
+                }
+                else
+                    systemPrintln("Error: Out of range");
+            }
         }
         else if ((incoming == MAX_LG290P_CONSTELLATIONS + 2) && present.pppCapable)
         {
-            if (getNewSetting("Enter PPP Datum Number (1 = WGS84, 2 = PPP Original, 3 = CGCS2000)", 1, 3, &settings.pppDatum) == INPUT_RESPONSE_VALID)
+            if (getNewSetting("Enter PPP Datum Number (1 = WGS84, 2 = PPP Original, 3 = CGCS2000)", 1, 3,
+                              &settings.pppDatum) == INPUT_RESPONSE_VALID)
             {
-                gnssConfigure(GNSS_CONFIG_HAS_E6); // Request receiver to use new settings
+                gnssConfigure(GNSS_CONFIG_PPP); // Request receiver to use new settings
             }
         }
         else if ((incoming == MAX_LG290P_CONSTELLATIONS + 3) && present.pppCapable)
         {
-            if (getNewSetting("Enter PPP Timeout before fallback (seconds)", 90, 180, &settings.pppTimeout) == INPUT_RESPONSE_VALID)
+            if (getNewSetting("Enter PPP Timeout before fallback (seconds)", 90, 180, &settings.pppTimeout) ==
+                INPUT_RESPONSE_VALID)
             {
-                gnssConfigure(GNSS_CONFIG_HAS_E6); // Request receiver to use new settings
+                gnssConfigure(GNSS_CONFIG_PPP); // Request receiver to use new settings
             }
         }
         else if ((incoming == MAX_LG290P_CONSTELLATIONS + 4) && present.pppCapable)
         {
-            if (getNewSetting("Enter PPP Horizontal Convergence Accuracy (meters)", 0.0f, 5.0f, &settings.pppHorizontalConvergence) == INPUT_RESPONSE_VALID)
+            if (getNewSetting("Enter PPP Horizontal Convergence Accuracy (meters)", 0.0f, 5.0f,
+                              &settings.pppHorizontalConvergence) == INPUT_RESPONSE_VALID)
             {
-                gnssConfigure(GNSS_CONFIG_HAS_E6); // Request receiver to use new settings
+                gnssConfigure(GNSS_CONFIG_PPP); // Request receiver to use new settings
             }
         }
         else if ((incoming == MAX_LG290P_CONSTELLATIONS + 5) && present.pppCapable)
         {
-            if (getNewSetting("Enter PPP Vertical Convergence Accuracy (meters)", 0.0f, 5.0f, &settings.pppVerticalConvergence) == INPUT_RESPONSE_VALID)
+            if (getNewSetting("Enter PPP Vertical Convergence Accuracy (meters)", 0.0f, 5.0f,
+                              &settings.pppVerticalConvergence) == INPUT_RESPONSE_VALID)
             {
-                gnssConfigure(GNSS_CONFIG_HAS_E6); // Request receiver to use new settings
+                gnssConfigure(GNSS_CONFIG_PPP); // Request receiver to use new settings
             }
         }
 
@@ -1942,7 +1965,8 @@ bool GNSS_LG290P::setHighAccuracyService()
     float currentHorizontalConvergence = 0;
     float currentVerticalConvergence = 0;
 
-    if (_lg290p->getPppSettings(currentMode, currentDatum, currentTimeout, currentHorizontalConvergence, currentVerticalConvergence) == false)
+    if (_lg290p->getPppSettings(currentMode, currentDatum, currentTimeout, currentHorizontalConvergence,
+                                currentVerticalConvergence) == false)
     {
         systemPrintln("Failed to read PPP settings");
         return (false);
@@ -1951,33 +1975,49 @@ bool GNSS_LG290P::setHighAccuracyService()
     // Do the simple first: if PPP is on, but user wants it off, turn it off
     if (settings.pppMode == 0 && currentMode > 0)
     {
-        // Turn off HAS/E6
+        // Turn off PPP service
         // $PQTMCFGPPP,W,0*
         if (_lg290p->sendOkCommand("$PQTMCFGPPP", ",W,0") == true)
         {
-            systemPrintln("Galileo E6 HAS/PPP service disabled");
+            systemPrintln("PPP HAS/B2b service disabled");
         }
         else
         {
-            systemPrintln("Galileo E6 HAS/PPP service failed to disable");
+            systemPrintln("PPP HAS/B2b service failed to disable");
             result = false;
         }
     }
-    
-    // Enable PPP if the user has enabled it
-    else if (settings.pppMode > PPP_MODE_DISABLE && currentMode == 0)
+    else
     {
-        // $PQTMCFGPPP,W,2,1,120,0.10,0.15*68
-        // Enable E6 HAS, WGS84, 120 timeout, 0.10m Horizontal accuracy threshold, 0.15m Vertical threshold
+        // Check if a setting has changed
+        bool settingsChanged = false;
 
-        if (_lg290p->setPppSettings(settings.pppMode, settings.pppDatum, settings.pppTimeout, settings.pppHorizontalConvergence, settings.pppVerticalConvergence) == true)
+        if (currentMode != settings.pppMode)
+            settingsChanged = true;
+        if (currentDatum != settings.pppDatum)
+            settingsChanged = true;
+        if (currentTimeout != settings.pppTimeout)
+            settingsChanged = true;
+        if (currentHorizontalConvergence != settings.pppHorizontalConvergence)
+            settingsChanged = true;
+        if (currentVerticalConvergence != settings.pppVerticalConvergence)
+            settingsChanged = true;
+
+        if (settingsChanged)
         {
-            systemPrintln("Galileo E6 HAS/PPP service enabled");
-        }
-        else
-        {
-            systemPrintln("Galileo E6 HAS/PPP service failed to enable");
-            result = false;
+            // $PQTMCFGPPP,W,2,1,120,0.10,0.15*68
+            // Enable E6 HAS, WGS84, 120 timeout, 0.10m Horizontal accuracy threshold, 0.15m Vertical threshold
+
+            if (_lg290p->setPppSettings(settings.pppMode, settings.pppDatum, settings.pppTimeout,
+                                        settings.pppHorizontalConvergence, settings.pppVerticalConvergence) == true)
+            {
+                systemPrintln("PPP HAS/B2b service enabled");
+            }
+            else
+            {
+                systemPrintln("PPP HAS/B2b service failed to enable");
+                result = false;
+            }
         }
     }
 
@@ -2686,11 +2726,7 @@ bool lg290pMessageEnabled(char *nmeaSentence, int sentenceLength)
 //----------------------------------------
 // List available settings, their type in CSV, and value
 //----------------------------------------
-bool lg290pCommandList(RTK_Settings_Types type,
-                       int settingsIndex,
-                       bool inCommands,
-                       int qualifier,
-                       char *settingName,
+bool lg290pCommandList(RTK_Settings_Types type, int settingsIndex, bool inCommands, int qualifier, char *settingName,
                        char *settingValue)
 {
     switch (type)
@@ -2698,8 +2734,7 @@ bool lg290pCommandList(RTK_Settings_Types type,
     default:
         return false;
 
-    case tLgMRNmea:
-    {
+    case tLgMRNmea: {
         // Record LG290P NMEA rates
         for (int x = 0; x < rtkSettingsEntries[settingsIndex].qualifier; x++)
         {
@@ -2711,8 +2746,7 @@ bool lg290pCommandList(RTK_Settings_Types type,
         }
     }
     break;
-    case tLgMRRvRT:
-    {
+    case tLgMRRvRT: {
         // Record LG290P Rover RTCM rates
         for (int x = 0; x < rtkSettingsEntries[settingsIndex].qualifier; x++)
         {
@@ -2724,8 +2758,7 @@ bool lg290pCommandList(RTK_Settings_Types type,
         }
     }
     break;
-    case tLgMRBaRT:
-    {
+    case tLgMRBaRT: {
         // Record LG290P Base RTCM rates
         for (int x = 0; x < rtkSettingsEntries[settingsIndex].qualifier; x++)
         {
@@ -2737,8 +2770,7 @@ bool lg290pCommandList(RTK_Settings_Types type,
         }
     }
     break;
-    case tLgMRPqtm:
-    {
+    case tLgMRPqtm: {
         // Record LG290P PQTM rates
         for (int x = 0; x < rtkSettingsEntries[settingsIndex].qualifier; x++)
         {
@@ -2750,12 +2782,12 @@ bool lg290pCommandList(RTK_Settings_Types type,
         }
     }
     break;
-    case tLgConst:
-    {
+    case tLgConst: {
         // Record LG290P Constellations
         for (int x = 0; x < rtkSettingsEntries[settingsIndex].qualifier; x++)
         {
-            snprintf(settingName, sizeof(settingName), "%s%s", rtkSettingsEntries[settingsIndex].name, lg290pConstellationNames[x]);
+            snprintf(settingName, sizeof(settingName), "%s%s", rtkSettingsEntries[settingsIndex].name,
+                     lg290pConstellationNames[x]);
 
             getSettingValue(inCommands, settingName, settingValue);
             commandSendExecuteListResponse(settingName, "tLgConst", settingValue);
@@ -2835,17 +2867,14 @@ void lg290pCommandTypeJson(JsonArray &command_types)
 //----------------------------------------
 // Called by gnssCreateString to build settings file string
 //----------------------------------------
-bool lg290pCreateString(RTK_Settings_Types type,
-                        int settingsIndex,
-                        char *newSettings)
+bool lg290pCreateString(RTK_Settings_Types type, int settingsIndex, char *newSettings)
 {
     switch (type)
     {
     default:
         return false;
 
-    case tLgMRNmea:
-    {
+    case tLgMRNmea: {
         // Record LG290P NMEA rates
         for (int x = 0; x < rtkSettingsEntries[settingsIndex].qualifier; x++)
         {
@@ -2856,8 +2885,7 @@ bool lg290pCreateString(RTK_Settings_Types type,
         }
     }
     break;
-    case tLgMRRvRT:
-    {
+    case tLgMRRvRT: {
         // Record LG290P Rover RTCM rates
         for (int x = 0; x < rtkSettingsEntries[settingsIndex].qualifier; x++)
         {
@@ -2868,8 +2896,7 @@ bool lg290pCreateString(RTK_Settings_Types type,
         }
     }
     break;
-    case tLgMRBaRT:
-    {
+    case tLgMRBaRT: {
         // Record LG290P Base RTCM rates
         for (int x = 0; x < rtkSettingsEntries[settingsIndex].qualifier; x++)
         {
@@ -2880,8 +2907,7 @@ bool lg290pCreateString(RTK_Settings_Types type,
         }
     }
     break;
-    case tLgMRPqtm:
-    {
+    case tLgMRPqtm: {
         // Record LG290P PQTM rates
         for (int x = 0; x < rtkSettingsEntries[settingsIndex].qualifier; x++)
         {
@@ -2892,8 +2918,7 @@ bool lg290pCreateString(RTK_Settings_Types type,
         }
     }
     break;
-    case tLgConst:
-    {
+    case tLgConst: {
         // Record LG290P Constellations
         // lg290pConstellations are uint8_t, but here we have to convert to bool (true / false) so the web
         // page check boxes are populated correctly. (We can't make it bool, otherwise the 254 initializer
@@ -2914,20 +2939,15 @@ bool lg290pCreateString(RTK_Settings_Types type,
 //----------------------------------------
 // Return setting value as a string
 //----------------------------------------
-bool lg290pGetSettingValue(RTK_Settings_Types type,
-                           const char *suffix,
-                           int settingsIndex,
-                           int qualifier,
+bool lg290pGetSettingValue(RTK_Settings_Types type, const char *suffix, int settingsIndex, int qualifier,
                            char *settingValueStr)
 {
     switch (type)
     {
-    case tLgMRNmea:
-    {
+    case tLgMRNmea: {
         for (int x = 0; x < qualifier; x++)
         {
-            if ((suffix[0] == lgMessagesNMEA[x].msgTextName[0]) &&
-                (strcmp(suffix, lgMessagesNMEA[x].msgTextName) == 0))
+            if ((suffix[0] == lgMessagesNMEA[x].msgTextName[0]) && (strcmp(suffix, lgMessagesNMEA[x].msgTextName) == 0))
             {
                 writeToString(settingValueStr, settings.lg290pMessageRatesNMEA[x]);
                 return true;
@@ -2935,12 +2955,10 @@ bool lg290pGetSettingValue(RTK_Settings_Types type,
         }
     }
     break;
-    case tLgMRRvRT:
-    {
+    case tLgMRRvRT: {
         for (int x = 0; x < qualifier; x++)
         {
-            if ((suffix[0] == lgMessagesRTCM[x].msgTextName[0]) &&
-                (strcmp(suffix, lgMessagesRTCM[x].msgTextName) == 0))
+            if ((suffix[0] == lgMessagesRTCM[x].msgTextName[0]) && (strcmp(suffix, lgMessagesRTCM[x].msgTextName) == 0))
             {
                 writeToString(settingValueStr, settings.lg290pMessageRatesRTCMRover[x]);
                 return true;
@@ -2948,12 +2966,10 @@ bool lg290pGetSettingValue(RTK_Settings_Types type,
         }
     }
     break;
-    case tLgMRBaRT:
-    {
+    case tLgMRBaRT: {
         for (int x = 0; x < qualifier; x++)
         {
-            if ((suffix[0] == lgMessagesRTCM[x].msgTextName[0]) &&
-                (strcmp(suffix, lgMessagesRTCM[x].msgTextName) == 0))
+            if ((suffix[0] == lgMessagesRTCM[x].msgTextName[0]) && (strcmp(suffix, lgMessagesRTCM[x].msgTextName) == 0))
             {
                 writeToString(settingValueStr, settings.lg290pMessageRatesRTCMBase[x]);
                 return true;
@@ -2961,12 +2977,10 @@ bool lg290pGetSettingValue(RTK_Settings_Types type,
         }
     }
     break;
-    case tLgMRPqtm:
-    {
+    case tLgMRPqtm: {
         for (int x = 0; x < qualifier; x++)
         {
-            if ((suffix[0] == lgMessagesPQTM[x].msgTextName[0]) &&
-                (strcmp(suffix, lgMessagesPQTM[x].msgTextName) == 0))
+            if ((suffix[0] == lgMessagesPQTM[x].msgTextName[0]) && (strcmp(suffix, lgMessagesPQTM[x].msgTextName) == 0))
             {
                 writeToString(settingValueStr, settings.lg290pMessageRatesPQTM[x]);
                 return true;
@@ -2974,8 +2988,7 @@ bool lg290pGetSettingValue(RTK_Settings_Types type,
         }
     }
     break;
-    case tLgConst:
-    {
+    case tLgConst: {
         for (int x = 0; x < qualifier; x++)
         {
             if ((suffix[0] == lg290pConstellationNames[x][0]) && (strcmp(suffix, lg290pConstellationNames[x]) == 0))
@@ -3042,18 +3055,14 @@ void lg290pNewClass()
 //----------------------------------------
 // Called by gnssNewSettingValue to save a LG290P specific setting
 //----------------------------------------
-bool lg290pNewSettingValue(RTK_Settings_Types type,
-                           const char *suffix,
-                           int qualifier,
-                           double d)
+bool lg290pNewSettingValue(RTK_Settings_Types type, const char *suffix, int qualifier, double d)
 {
     switch (type)
     {
     case tCmnCnst:
         for (int x = 0; x < MAX_LG290P_CONSTELLATIONS; x++)
         {
-            if ((suffix[0] == lg290pConstellationNames[x][0]) &&
-                (strcmp(suffix, lg290pConstellationNames[x]) == 0))
+            if ((suffix[0] == lg290pConstellationNames[x][0]) && (strcmp(suffix, lg290pConstellationNames[x]) == 0))
             {
                 settings.lg290pConstellations[x] = d;
                 return true;
@@ -3063,8 +3072,7 @@ bool lg290pNewSettingValue(RTK_Settings_Types type,
     case tCmnRtNm:
         for (int x = 0; x < MAX_LG290P_NMEA_MSG; x++)
         {
-            if ((suffix[0] == lgMessagesNMEA[x].msgTextName[0]) &&
-                (strcmp(suffix, lgMessagesNMEA[x].msgTextName) == 0))
+            if ((suffix[0] == lgMessagesNMEA[x].msgTextName[0]) && (strcmp(suffix, lgMessagesNMEA[x].msgTextName) == 0))
             {
                 settings.lg290pMessageRatesNMEA[x] = d;
                 return true;
@@ -3074,8 +3082,7 @@ bool lg290pNewSettingValue(RTK_Settings_Types type,
     case tCnRtRtB:
         for (int x = 0; x < MAX_LG290P_RTCM_MSG; x++)
         {
-            if ((suffix[0] == lgMessagesRTCM[x].msgTextName[0]) &&
-                (strcmp(suffix, lgMessagesRTCM[x].msgTextName) == 0))
+            if ((suffix[0] == lgMessagesRTCM[x].msgTextName[0]) && (strcmp(suffix, lgMessagesRTCM[x].msgTextName) == 0))
             {
                 settings.lg290pMessageRatesRTCMBase[x] = d;
                 return true;
@@ -3085,8 +3092,7 @@ bool lg290pNewSettingValue(RTK_Settings_Types type,
     case tCnRtRtR:
         for (int x = 0; x < MAX_LG290P_RTCM_MSG; x++)
         {
-            if ((suffix[0] == lgMessagesRTCM[x].msgTextName[0]) &&
-                (strcmp(suffix, lgMessagesRTCM[x].msgTextName) == 0))
+            if ((suffix[0] == lgMessagesRTCM[x].msgTextName[0]) && (strcmp(suffix, lgMessagesRTCM[x].msgTextName) == 0))
             {
                 settings.lg290pMessageRatesRTCMRover[x] = d;
                 return true;
@@ -3105,8 +3111,7 @@ bool lg290pNewSettingValue(RTK_Settings_Types type,
     case tLgMRPqtm:
         for (int x = 0; x < qualifier; x++)
         {
-            if ((suffix[0] == lgMessagesPQTM[x].msgTextName[0]) &&
-                (strcmp(suffix, lgMessagesPQTM[x].msgTextName) == 0))
+            if ((suffix[0] == lgMessagesPQTM[x].msgTextName[0]) && (strcmp(suffix, lgMessagesPQTM[x].msgTextName) == 0))
             {
                 settings.lg290pMessageRatesPQTM[x] = d;
                 return true;
@@ -3123,17 +3128,14 @@ bool lg290pNewSettingValue(RTK_Settings_Types type,
 //----------------------------------------
 // Called by gnssSettingsToFile to save LG290P specific settings
 //----------------------------------------
-bool lg290pSettingsToFile(File *settingsFile,
-                          RTK_Settings_Types type,
-                          int settingsIndex)
+bool lg290pSettingsToFile(File *settingsFile, RTK_Settings_Types type, int settingsIndex)
 {
     switch (type)
     {
     default:
         return false;
 
-    case tLgMRNmea:
-    {
+    case tLgMRNmea: {
         // Record LG290P NMEA rates
         for (int x = 0; x < rtkSettingsEntries[settingsIndex].qualifier; x++)
         {
@@ -3144,8 +3146,7 @@ bool lg290pSettingsToFile(File *settingsFile,
         }
     }
     break;
-    case tLgMRRvRT:
-    {
+    case tLgMRRvRT: {
         // Record LG290P Rover RTCM rates
         for (int x = 0; x < rtkSettingsEntries[settingsIndex].qualifier; x++)
         {
@@ -3156,8 +3157,7 @@ bool lg290pSettingsToFile(File *settingsFile,
         }
     }
     break;
-    case tLgMRBaRT:
-    {
+    case tLgMRBaRT: {
         // Record LG290P Base RTCM rates
         for (int x = 0; x < rtkSettingsEntries[settingsIndex].qualifier; x++)
         {
@@ -3168,8 +3168,7 @@ bool lg290pSettingsToFile(File *settingsFile,
         }
     }
     break;
-    case tLgMRPqtm:
-    {
+    case tLgMRPqtm: {
         // Record LG290P PQTM rates
         for (int x = 0; x < rtkSettingsEntries[settingsIndex].qualifier; x++)
         {
@@ -3180,8 +3179,7 @@ bool lg290pSettingsToFile(File *settingsFile,
         }
     }
     break;
-    case tLgConst:
-    {
+    case tLgConst: {
         // Record LG290P Constellations
         for (int x = 0; x < rtkSettingsEntries[settingsIndex].qualifier; x++)
         {
