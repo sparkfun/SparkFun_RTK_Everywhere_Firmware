@@ -1597,15 +1597,9 @@ void beginSystemState()
     {
         // Return to either Rover or Base Not Started. The last state previous to power down.
         systemState = settings.lastState;
-
-        firstRoverStart = true; // Allow user to enter test screen during first rover start
-        if (systemState == STATE_BASE_NOT_STARTED)
-            firstRoverStart = false;
     }
     else if (productVariant == RTK_EVK)
     {
-        firstRoverStart = false; // Screen should have been tested when it was made ;-)
-
         // Return to either NTP, Base or Rover Not Started. The last state previous to power down.
         systemState = settings.lastState;
     }
@@ -1613,16 +1607,9 @@ void beginSystemState()
     {
         // Return to either NTP, Base or Rover Not Started. The last state previous to power down.
         systemState = settings.lastState;
-
-        firstRoverStart = true; // Allow user to enter test screen during first rover start
-        if (systemState == STATE_BASE_NOT_STARTED)
-            firstRoverStart = false;
     }
     else if (productVariant == RTK_TORCH)
     {
-        // Do not allow user to enter test screen during first rover start because there is no screen
-        firstRoverStart = false;
-
         // Return to either Base or Rover Not Started. The last state previous to power down.
         systemState = settings.lastState;
     }
@@ -1630,25 +1617,14 @@ void beginSystemState()
     {
         // Return to either Rover or Base Not Started. The last state previous to power down.
         systemState = settings.lastState;
-
-        firstRoverStart = true; // Allow user to enter test screen during first rover start
-        if (systemState == STATE_BASE_NOT_STARTED)
-            firstRoverStart = false;
     }
     else if (productVariant == RTK_FACET_FP)
     {
         // Return to either Rover or Base Not Started. The last state previous to power down.
         systemState = settings.lastState;
-
-        firstRoverStart = true; // Allow user to enter test screen during first rover start
-        if (systemState == STATE_BASE_NOT_STARTED)
-            firstRoverStart = false;
     }
     else if (productVariant == RTK_TORCH_X2)
     {
-        // Do not allow user to enter test screen during first rover start because there is no screen
-        firstRoverStart = false;
-
         // Return to either Base or Rover Not Started. The last state previous to power down.
         systemState = settings.lastState;
     }

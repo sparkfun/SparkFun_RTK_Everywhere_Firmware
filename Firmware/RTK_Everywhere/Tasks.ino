@@ -2311,17 +2311,17 @@ void buttonCheckTask(void *e)
             singleTap = false;
         }
 
-        // If a display is present, throw away the first button press to avoid displaying the
-        // setup prematurely?
-        if (singleTap || doubleTap)
-        {
-            if (firstButtonThrownOut == false && present.display_type != DISPLAY_MAX_NONE)
-            {
-                firstButtonThrownOut = true;
-                doubleTap = false;
-                singleTap = false;
-            }
-        }
+        // If a display is present, throw away the first button press to avoid re-entering setup?
+        // Seems unnecessary... Commenting it for now... TODO: revisit this
+        // if (singleTap || doubleTap)
+        // {
+        //     if (firstButtonThrownOut == false && present.display_type != DISPLAY_MAX_NONE)
+        //     {
+        //         firstButtonThrownOut = true;
+        //         doubleTap = false;
+        //         singleTap = false;
+        //     }
+        // }
 
         // If user presses the center button or right, act as double tap (select)
         if (singleTap && online.gpioExpanderButtons)
@@ -2497,7 +2497,7 @@ void buttonCheckTask(void *e)
                 }
             } // End productVariant == Torch/Torch X2
         } // End present.display_type == DISPLAY_MAX_NONE
-        else // Display is present: RTK EVK, RTK Facet mosaic, RTK Postcard, RTK Facet FP
+        else // Display is present: RTK EVK, RTK Facet mosaic, RTK Postcard, Facet FP
         {
             if (systemState == STATE_SHUTDOWN)
             {
@@ -2522,13 +2522,13 @@ void buttonCheckTask(void *e)
                 singleTap = false;
             }
             // If the button is disabled, do nothing
-            else if (settings.disableSetupButton == false)
+            else if (settings.disableSetupButton == true)
             {
                 doubleTap = false; // Clean up
                 singleTap = false;
             }
             // If the setup menu is being displayed and we detect a singleTap, move through menus
-            else if ((systemState == STATE_DISPLAY_SETUP) && singleTap && (firstRoverStart == false))
+            else if ((systemState == STATE_DISPLAY_SETUP) && singleTap)
             {
                 // If we are displaying the setup menu, a single tap will cycle through possible system states
                 // Exit into new system state on double tap - see below
@@ -2566,7 +2566,7 @@ void buttonCheckTask(void *e)
                 singleTap = false;
             } // End STATE_DISPLAY_SETUP singleTap
             // If the setup menu is being displayed and we detect a doubleTap, change mode and exit
-            else if ((systemState == STATE_DISPLAY_SETUP) && doubleTap && (firstRoverStart == false))
+            else if ((systemState == STATE_DISPLAY_SETUP) && doubleTap)
             {
                 lastSetupMenuChange.setTimerToMillis(); // Prevent a timeout during state change
                 uint8_t thisIsButton = 0;
@@ -2601,8 +2601,9 @@ void buttonCheckTask(void *e)
                 doubleTap = false; // Clean up
                 singleTap = false;
             } // End STATE_DISPLAY_SETUP doubleTap
-            // If the button was pressed to initially show the menu, then show the menu
-            else if (singleTap && (firstRoverStart == false))
+            // If the button was pressed to show the menu, then show the menu
+            // If we are in STATE_TESTING, exit to Base
+            else if (singleTap)
             {
                 switch (systemState)
                 {
@@ -2653,7 +2654,8 @@ void buttonCheckTask(void *e)
                     break;
 
                 default:
-                    systemPrintf("buttonCheckTask single tap - untrapped system state: %d\r\n", systemState);
+                    systemPrintf("buttonCheckTask single tap - untrapped system state: %s (%d)\r\n",
+                                 getState(systemState), systemState);
                     // requestChangeState(STATE_BASE_NOT_STARTED);
                     break;
                 } // End singleTap switch (systemState)
