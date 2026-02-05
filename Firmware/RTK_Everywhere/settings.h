@@ -366,7 +366,7 @@ enum
     PPP_MODE_DISABLE = 0,
     PPP_MODE_HAS,
     PPP_MODE_B2B,
-    PPP_MODE_AUTO,
+    PPP_MODE_AUTO = 255
 };
 
 // Define the periodic display values
