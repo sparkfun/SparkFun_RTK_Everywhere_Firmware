@@ -864,7 +864,7 @@ void gnssFirmwareDirectConnectHardware() // Facet FP
     while (Serial.available())
         Serial.read(); // Ensure the buffer is empty
 
-    // Spin our wheels until the user presses a button or kits a key
+    // Spin our wheels until the user presses a button or hits a key
     task.endDirectConnectMode = false;
     while (!task.endDirectConnectMode && !Serial.available())
     {
