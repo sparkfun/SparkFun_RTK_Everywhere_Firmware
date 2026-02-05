@@ -15,6 +15,7 @@ Compatibility Icons
 - Facet mosaic: :material-radiobox-marked:{ .support-full title="Feature Supported" }
 - Postcard: :material-radiobox-marked:{ .support-full title="Feature Supported" }
 - Torch: :material-radiobox-marked:{ .support-full title="Feature Supported" }
+- TX2: :material-radiobox-marked:{ .support-full title="Feature Supported" }
 
 </div>
 
@@ -53,7 +54,7 @@ You are welcome to use any correction service! The SparkFun RTK devices are comp
 PointPerfect corrections are obtained by two methods:
 
 - **IP**: Corrections are transmitted over the internet. The RTK device will need access to a WiFi (or optionally an Ethernet/Cellular network on the RTK EVK). For WiFi, this is most commonly a hotspot on a cell phone so this delivery method is used in areas with cellular and/or other WiFi coverage.
-- **L-Band**: Corrections are transmitted from a geosynchronous satellite. Coverage is limited to the US contiguous 48 states. This delivery method requires special equipment thus this method is only compatible with the the [RTK EVK](https://www.sparkfun.com/products/24342) and [RTK Facet mosaic](https://www.sparkfun.com/sparkpnt-rtk-facet-mosaic-l-band.html). This delivery method is most useful in areas with no cellular or internet coverage.
+- **L-Band**: Corrections are transmitted from a geosynchronous satellite. Coverage is limited to the US contiguous 48 states. This delivery method requires special equipment thus this method is only compatible with the the [RTK EVK](https://www.sparkfun.com/sparkfun-rtk-evk.html) and [RTK Facet mosaic](https://www.sparkfun.com/sparkpnt-rtk-facet-mosaic-l-band.html). This delivery method is most useful in areas with no cellular or internet coverage.
     - Sadly, u-blox is suspending the North American L-Band service on December 31st, 2025. A global L-Band service has been announced but with no set availability date at this time.
 
 PointPerfect has the following benefits and challenges:

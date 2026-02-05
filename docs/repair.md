@@ -15,6 +15,7 @@ Compatibility Icons
 - Facet mosaic: :material-radiobox-indeterminate-variant:{ .support-partial title="Feature Partially Supported" }
 - Postcard: :material-radiobox-indeterminate-variant:{ .support-partial title="Feature Not Supported" }
 - Torch: :material-radiobox-indeterminate-variant:{ .support-partial title="Feature Partially Supported" }
+- TX2: :material-radiobox-indeterminate-variant:{ .support-partial title="Feature Partially Supported" }
 
 </div>
 
@@ -404,7 +405,7 @@ Replace the silicone boot around the device.
 
 Power on the RTK Facet and take outside to confirm SIV reaches above ~20 satellites and HPA is below ~1.0m.
 
-## Torch
+## Torch and TX2
 
 ### Opening Enclosure
 
@@ -434,6 +435,6 @@ The RTK Torch mainboard
 
 With the mainboard removed, three Phillips head screws hold the mainboard in place. Remove these screws and the mainboard will be released. Remove the battery connector from the bottom side of the mainboard to free it.
 
-### Remoing Battery
+### Removing Battery
 
 The lower 7.2V LiPo battery pack is held in place by a metal retaining plate. Remove the Phillips head screws to release the battery.

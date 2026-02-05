@@ -15,8 +15,14 @@ Compatibility Icons
 - Facet mosaic: :material-radiobox-blank:{ .support-none title="Feature Not Supported" }
 - Postcard: :material-radiobox-blank:{ .support-none title="Feature Not Supported" }
 - Torch: :material-radiobox-marked:{ .support-full title="Feature Supported" }
+- TX2: :material-radiobox-blank:{ .support-none title="Feature Not Supported" }
 
 </div>
+
+
+!!! warning
+    While the Torch X2 is the latest generation of the Torch product line, it does not support LoRa communication.
+
 
 The STM32WLE firmware runs the 915MHz LoRa radio inside the RTK Torch.
 

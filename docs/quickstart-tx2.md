@@ -1,0 +1,254 @@
+# Quick Start - TX2
+
+<figure markdown>
+![TX2 product image](./img/SparkPNT_TX2.png)
+<figcaption markdown>
+</figcaption>
+</figure>
+
+This quick start guide will get you started in 10 minutes or less. For the full product manual, please proceed to the [**Introduction**](index.md).
+
+Are you using [Android](#android) or [iOS](#ios)?
+
+## Android
+
+1. Download [SW Maps](https://play.google.com/store/apps/details?id=np.com.softwel.swmaps). This may not be the GIS software you intend to do your data collection, but SW Maps is free and makes sure everything is working correctly out of the box.
+
+	<figure markdown>
+	![Download SW Maps](./img/SWMaps/SparkFun RTK SW Maps for Android QR Code.png)
+	<figcaption markdown>
+	Download SW Maps for Android
+	</figcaption>
+	</figure>
+
+2. Mount the hardware:
+
+	- Attach the TX2 to a 5/8" 11-TPI standard surveying pole or to a [monopole](https://www.sparkfun.com/telescopic-surveying-pole.html) using the included [thread adapter](https://www.sparkfun.com/products/17546) if needed (Figure 1).
+
+	<figure markdown>
+	![RTK devices attached to a monopole](./img/SparkPNT_TX2-Attached_to_a_Pole.png)
+	<figcaption markdown>
+	Figure 1
+	</figcaption>
+	</figure>
+
+3. Turn on the TX2 device by pressing the Power button for 3 to 4 seconds until a beep is heard and the two front LEDs illuminate (Figure 2).
+
+	[<figure markdown>
+	![TX2 Power Button Explanation](./img/SparkPNT_TX2-Buttons_Front-Small.png)](./img/SparkPNT_TX2-Buttons_Front.png)
+	<figcaption markdown>
+	Figure 2
+	</figcaption>
+	</figure>
+
+4. From your cell phone, open Bluetooth settings and pair it with a new device. You will see a list of available Bluetooth devices. Select the ‘SparkPNT TX2-3AF1’. The '3AF1' is the last four digits of the device's MAC address and will vary depending on the device (Figure 3).
+
+	<figure markdown>
+	![List of Bluetooth devices on Android](./img/QuickStart/SparkPNT_TX2-Available_Devices.png)
+	<figcaption markdown>
+	Figure 3
+	</figcaption>
+	</figure>
+
+5. Once paired, open SW Maps. Select ‘New Project’ and give your project a name like ‘RTK Project’.
+
+6. Press the SW Maps icon in the top left corner of the home screen and select **Bluetooth GNSS**. You should see the ‘SparkPNT TX2-3AF1’ in the list. Select it. Confirm that the *Instrument Model* is **SparkFun RTK**, then press the ‘Connect’ button in the bottom right corner (Figure 4). SW Maps will show a warning that the instrument height is 0m. That’s ok.
+
+	<figure markdown>
+	![SW Map list of Bluetooth devices](./img/QuickStart/SparkPNT_TX2-SW_Maps_Bluetooth-Small.png)
+	<figcaption markdown>
+	Figure 4
+	</figcaption>
+	</figure>
+
+7. Once connected, have a look at the Bluetooth LED on the RTK device. You should see the LED turn solid. You’re connected!
+
+8. Now put the device outside with a clear view of the sky. GNSS doesn’t work indoors or near windows. Press the SW Maps icon in the top left corner of the home screen and select **GNSS Status**. Within about 30 seconds you should see 10 or more satellites in view (SIV) (Figure 5). More SIV is better. We regularly see 30 or more SIV. The horizontal positional accuracy (HPA) will start at around 10 meters and begin to decrease. The lower the HPA the more accurate your position. This accuracy is around 2m in normal mode.
+
+	<figure markdown>
+	![RTK GNSS Status Window](./img/QuickStart/SparkFun Torch - SW Maps GNSS Status SIV Small.png)
+	<figcaption markdown>
+	Figure 5
+	</figcaption>
+	</figure>
+
+You can now use your RTK device to measure points with good (meter) accuracy. If you need extreme accuracy (down to 8mm) continue reading the [RTK Crash Course](#rtk-crash-course).
+
+## iOS
+
+The software options for Apple iOS are much more limited because Apple products do not support Bluetooth SPP. That's ok! The SparkFun RTK products support Bluetooth Low Energy (BLE) which *does* work with iOS.
+
+1. Download [SW Maps for iOS](https://apps.apple.com/us/app/sw-maps/id6444248083). This may not be the GIS software you intend to do your data collection, but SW Maps is free and makes sure everything is working correctly out of the box.
+
+	<figure markdown>
+	![SW Maps for Apple](./img/SWMaps/SparkFun RTK SW Maps for Apple QR Code.png)
+	<figcaption markdown>
+	Download SW Maps for iOS
+	</figcaption>
+	</figure>
+
+2. Mount the hardware:
+
+	- Attach the TX2 to a 5/8" 11-TPI standard surveying pole or to a [monopole](https://www.amazon.com/AmazonBasics-WT1003-67-Inch-Monopod/dp/B00FAYL1YU) using the included [thread adapter](https://www.sparkfun.com/products/17546) (Figure 1).
+
+	<figure markdown>
+	![RTK devices attached to a monopole](./img/SparkPNT_TX2-Attached_to_a_Pole.png)
+	<figcaption markdown>
+	Figure 1
+	</figcaption>
+	</figure>
+
+3. Turn on the TX2 device by pressing the Power button for 3 to 4 seconds until a beep is heard and the two front LEDs illuminate (Figure 2).
+
+	[<figure markdown>
+	![TX2 Power Button Explanation](./img/SparkPNT_TX2-Buttons_Front-Small.png)](./img/SparkPNT_TX2-Buttons_Front.png)
+	<figcaption markdown>
+	Figure 2
+	</figcaption>
+	</figure>
+
+4. Open SW Maps. Select ‘New Project’ and give your project a name like ‘RTK Project’.
+
+5. Press the SW Maps icon in the top left corner of the home screen and select Bluetooth GNSS. You will need to agree to allow a Bluetooth connection. Set the *Instrument Model* to **Generic NMEA (Bluetooth LE)**. Press 'Scan' and your RTK device should appear. Select it then press the ‘Connect’ button in the bottom left corner.
+
+6. Once connected, have a look at the Bluetooth LED on the RTK device. You should see the LED turn solid. You’re connected!
+
+7. Now put the device outside with a clear view of the sky. GNSS doesn’t work indoors or near windows. Press the SW Maps icon in the top left corner of the home screen and select **GNSS Status**. Within about 30 seconds you should see 10 or more satellites in view (SIV) (Figure 3). More SIV is better. We regularly see 30 or more SIV. The horizontal positional accuracy (HPA) will start at around 10 meters and begin to decrease. The lower the HPA the more accurate your position. This accuracy is around 2m in normal mode.
+
+	<figure markdown>
+	![RTK GNSS Status Window](./img/QuickStart/SparkFun Torch - SW Maps GNSS Status SIV Small.png)
+	<figcaption markdown>
+	Figure 3
+	</figcaption>
+	</figure>
+
+You can now use your RTK device to measure points with good (meter) accuracy. If you need extreme accuracy (down to 8mm) continue reading the [RTK Crash Course](#rtk-crash-course).
+
+## RTK Crash Course
+
+To get millimeter accuracy we need to provide the RTK unit with correction values. Corrections, often called RTCM, help the RTK unit refine its position calculations. RTCM (Radio Technical Commission for Maritime Services) can be obtained from a variety of sources but they fall into three buckets: Commercial, Public, and Civilian Reference Stations.
+
+See [Corrections Sources](correction_sources.md) for a breakdown of the options and the pros and cons of each. For this quickstart, we'll be showing two examples: using PointPerfect for $8 a month; and PointOne Nav for $125/month for "True RTK".
+
+## PointPerfect Corrections
+
+One of the great features of the TX2 is that it has the ability to get corrections from PointPerfect over WiFi. No need for NTRIP credentials! [Contact SparkFun](https://www.sparkfun.com/rtk_torch_registration) with your device ID, pay a small monthly fee of $8 per month (as of this writing) and your device will obtain credentials and start receiving corrections anywhere there is coverage.
+
+[<figure markdown>
+![PointPerfect Coverage map including L-Band and IP delivery methods](./img/PointPerfect/SparkFun RTK Everywhere - PointPerfect Coverage Map Small.png)](https://www.u-blox.com/en/pointperfect-service-coverage)
+<figcaption markdown>
+PointPerfect Coverage map including L-Band and IP delivery methods
+</figcaption>
+</figure>
+
+The PointPerfect IP service is available for various areas of the globe including the contiguous US, EU, South Korea, as well as parts of Brazil, Australia, and Canada. See the [coverage map](https://www.u-blox.com/en/pointperfect-service-coverage) for specifics; the TX2 is compatible with any area that has *IP Coverage* (it is not compatible with L-Band coverage).
+
+Steps to use PointPerfect:
+
+1. [Register](https://www.sparkfun.com/rtk_torch_registration) the device with SparkFun by entering the device ID (this is the ID seen on the [printed stickers](https://docs.sparkfun.com/SparkFun_RTK_Everywhere_Firmware/menu_pointperfect/#registration) included in the kit). It can take up to two business days for registration to complete.
+
+2. Power on the TX2 by pressing and holding the power button for around 4 seconds. The device will emit a short beep and illuminate the LEDs.
+
+3. Put the TX2 into WiFi config mode by double-tapping the power button. You will hear two beeps indicating it is ready to connect to.
+
+4. From your phone, connect to the WiFi network *RTK Config*. You should be redirected to the WiFi Config page. If you are not, open a browser (Chrome is preferred) and type **rtk.local** into the address bar.
+
+	<figure markdown>
+	![SparkFun RTK WiFi Configuration Interface](./img/WiFi Config/SparkFun RTK WiFi Config - Header Block.png)
+	<figcaption markdown>
+	SparkFun RTK WiFi Configuration Interface
+	</figcaption>
+	</figure>
+
+5. Under the *WiFi Configuration* menu, give the device WiFi credentials for your local WiFi. This can be the cellphone hotspot if local WiFi is not available.
+
+	<figure markdown>
+	![WiFi Menu containing one network](./img/WiFi Config/SparkFun RTK WiFi Config - WiFi Menu.png)
+	<figcaption markdown>
+	WiFi Menu containing one network
+	</figcaption>
+	</figure>
+
+6. Under the [*PointPerfect Configuration* menu](menu_pointperfect.md), **Enable PointPefect Corrections** and select your **Geographic Region**. If desired, enable **Localized Corrections** and **AssistNow**.
+
+	<figure markdown>
+	![PointPerfect Configuration Menu](./img/WiFi Config/SparkFun RTK PointPerfect Config.png)
+	<figcaption markdown>
+	PointPerfect Configuration Menu
+	</figcaption>
+	</figure>
+
+	!!! note
+		It is important that you set your Geographic Region correctly, via the menu or web config page, as this determines both the IP correction distribution topic and the L-Band frequency (on L-Band-capable products).
+
+
+7. Click **Save Configuration**. The device will record all settings in a few seconds. Then press **Exit and Reset**. The unit will now reboot.
+
+	<figure markdown>
+	![Saving and All Saved notifications](./img/WiFi Config/SparkFun RTK WiFi Config - Save Steps.png)
+	<figcaption markdown>
+	Saving... then All Saved
+	</figcaption>
+	</figure>
+
+After the reboot, the device will connect to WiFi, obtain keys, and begin applying corrections. Assuming you are outside, after a few minutes of receiving PointPerfect corrections to the device, connect to the TX2 over SW Maps (or other) and the device will enter RTK Float, then RTK Fix (usually under 3 minutes). You can now take positional readings with millimeter accuracy!
+
+<figure markdown>
+![SW Maps showing accuracy](./img/SWMaps/SparkFun Torch - SW Maps PointPerfect Fix Accuracy.png)
+<figcaption markdown>
+SW Maps showing positional accuracy
+</figcaption>
+</figure>
+
+## NTRIP Example
+
+If you decide to use a service that provides NTRIP (as opposed to PointPerfect) we need to feed that data into your SparkFun RTK device. In this example, we will use PointOneNav and SW Maps.
+
+1. Create an account on [PointOneNav](https://app.pointonenav.com/trial?src=sparkfun).
+
+	!!! note
+		This service costs $125/month for "True RTK" at the time of writing.
+
+2. Open SW Maps and connect to the RTK device over Bluetooth.
+
+3. Once connected, open the SW Maps menu again (top left corner) and you will see a new option; click on ‘NTRIP Client'.
+
+4. Enter the credentials provided by PointOneNav and click Connect (Figure 1). Verify that *Send NMEA GGA* is checked.
+
+	<figure markdown>
+	![NTRIP credentials in SW Maps](./img/SWMaps/SparkFun RTK SW Maps - NTRIP Credentials.png)
+	<figcaption markdown>
+	Figure 1
+	</figcaption>
+	</figure>
+
+5. Corrections will be downloaded every second from PointOneNav using your phone’s cellular connection and then sent down to the RTK device over Bluetooth. You don't need a very fast internet connection or a lot of data; it's only about 530 bytes per second.
+
+Assuming you are outside, as soon as corrections are sent to the device, the bubble in SW Maps will turn Orange (RTK Float). Once RTK Fix is achieved (usually under 30 seconds) the bubble will turn Green and the HPA will be below 20mm (Figure 2). You can now take positional readings with millimeter accuracy!
+
+<figure markdown>
+![Double crosshair indicating RTK Fix](./img/SWMaps/SparkFun Torch - SW Maps GNSS Status RTK Fix HPA Small.png)
+<figcaption markdown>
+Figure 2
+</figcaption>
+</figure>
+
+In SW Maps, the position bubble will turn from Blue (regular GNSS fix), then to Orange (RTK Float), then to Green (RTK Fix) (Figure 3).
+
+<figure markdown>
+![Green bubble indicating RTK Fix](./img/SWMaps/SparkFun RTK SW Maps - Green Bubble-1.png)
+<figcaption markdown>
+Figure 3
+</figcaption>
+</figure>
+
+RTK Fix will be maintained as long as there is a clear view of the sky and corrections are delivered to the device every few seconds.
+
+## Common Gotchas
+
+- High-precision GNSS works best with a clear view of the sky; it does not work indoors or near a window. GNSS performance is generally *not* affected by clouds or storms. Trees and buildings *can* degrade performance but usually only in very thick canopies or very near tall building walls. GNSS reception is very possible in dense urban centers with skyscrapers but high-precision RTK may be impossible.
+- The location reported by the RTK device is the location of the antenna element; it's *not* the location of the pointy end of the stick. Lat and Long are fairly easy to obtain but if you're capturing altitude be sure to do additional reading on ARPs (antenna reference points) and how to account for the antenna height in your data collection software.
+- An internet connection is required for most types of RTK. RTCM corrections can be transmitted over other types of connections (such as serial telemetry radios). See [Correction Transport](correction_transport.md) for more details.
+- Galileo HAS:
+	- Users should expect a minimum convergence time of ~8-10 min. to establish the position of the device.
+	- Users may notice that the position status remains in **RTK Float** and never reaches an **RTK Fix**; please, be aware of the associated errors.

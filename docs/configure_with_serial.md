@@ -15,6 +15,7 @@ Compatibility Icons
 - Facet mosaic: :material-radiobox-marked:{ .support-full title="Feature Supported" }
 - Postcard: :material-radiobox-marked:{ .support-full title="Feature Supported" }
 - Torch: :material-radiobox-marked:{ .support-full title="Feature Supported" }
+- TX2: :material-radiobox-marked:{ .support-full title="Feature Supported" }
 
 </div>
 
@@ -77,13 +78,13 @@ SparkFun RTK Postcard serial channels
 
 The DATA port on the RTK Postcard is the USB C connector. This connection creates two serial ports. **SERIAL-A** is used for [Serial Configuration](configure_with_serial.md). **SERIAL-B** is connected to the DATA port of the LG290P to receive NMEA and other data directly. The DATA port is also used for [updating the firmware](firmware_update_lg290p.md) on the LG290P.
 
-### RTK Torch
+### RTK Torch and TX2
 
 <figure markdown>
 
-[![The USB Connector on the RTK Torch](./img/RTK-Torch_Buttons_Back-Small.png)](./img/RTK-Torch_Buttons_Back.png)
+[![The USB Connector on the RTK Torch](./img/Torch_and_TX2-Buttons_Back-Small.png)](./img/Torch_and_TX2-Buttons_Back.png)
 <figcaption markdown>
-The USB Connector on the RTK Torch
+The USB Connector on the RTK Torch or TX2
 </figcaption>
 </figure>
 

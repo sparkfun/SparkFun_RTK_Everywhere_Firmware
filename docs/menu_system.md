@@ -15,6 +15,7 @@ Compatibility Icons
 - Facet mosaic: :material-radiobox-marked:{ .support-full title="Feature Supported" }
 - Postcard: :material-radiobox-marked:{ .support-full title="Feature Supported" }
 - Torch: :material-radiobox-marked:{ .support-full title="Feature Supported" }
+- TX2: :material-radiobox-marked:{ .support-full title="Feature Supported" }
 
 </div>
 
@@ -77,11 +78,11 @@ System Menu Options serial menu
 
 The device can be in Rover, Base, or WiFi Config mode. The selected mode will be entered once the user exits the menu system.
 
-- **B**ase - The device will reconfigure for base mode. It will begin transmitting corrections over Bluetooth, WiFi (NTRIP Server, TCP, etc), or other (ESP-NOW, external radio if compatible, etc).
-- Base**C**aster - The device will reconfigure for base caster mode. It will broadcast a WiFi access point, allow incoming NTRIP Client connections on port 2101. See [BaseCast Mode](menu_base.md#base-cast).
-- **R**over - This is the default mode. The device transmits its NMEA and other messages (if enabled) over Bluetooth. It can receive corrections over Bluetooth (or other transport methods such as NTRIP Client) to achieve RTK Fix.
-- **W**eb Config - The device will shut down GNSS operations and serve a configuration web page over WiFi or ethernet.
-- **S**hut Down - If supported, the device will immediately shut down.
+- <b><u>B</u></b>ase - The device will reconfigure for base mode. It will begin transmitting corrections over Bluetooth, WiFi (NTRIP Server, TCP, etc), or other (ESP-NOW, external radio if compatible, etc).
+- Base<b><u>C</u></b>aster - The device will reconfigure for base caster mode. It will broadcast a WiFi access point, allow incoming NTRIP Client connections on port 2101. See [BaseCast Mode](menu_base.md#base-cast).
+- <b><u>R</u></b>over - This is the default mode. The device transmits its NMEA and other messages (if enabled) over Bluetooth. It can receive corrections over Bluetooth (or other transport methods such as NTRIP Client) to achieve RTK Fix.
+- <b><u>W</u></b>eb Config - The device will shut down GNSS operations and serve a configuration web page over WiFi or ethernet.
+- <b><u>S</u></b>hut Down - If supported, the device will immediately shut down.
 
 ## Settings
 
