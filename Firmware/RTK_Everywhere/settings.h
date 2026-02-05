@@ -261,8 +261,9 @@ typedef enum
     CORR_BLUETOOTH,     // 3,  10+km Baseline, Tasks.ino (sendGnssBuffer)
     CORR_USB,           // 4,                  menuMain.ino (terminalUpdate)
     CORR_TCP,           // 5,  10+km Baseline, NtripClient.ino
-    CORR_LBAND,         // 6, 100 km Baseline, menuPP.ino for PMP - PointPerfectLibrary.ino for PPL
-    CORR_IP,            // 7, 100+km Baseline, MQTT_Client.ino
+    CORR_PPP_HAS_B2B,   // 6, 100+km Baseline, PPP_Client.ino
+    CORR_LBAND,         // 7, 100 km Baseline, menuPP.ino for PMP - PointPerfectLibrary.ino for PPL
+    CORR_IP,            // 8, 100+km Baseline, MQTT_Client.ino
     // Add new correction sources just above this line
     CORR_NUM
 } correctionsSource;
@@ -279,6 +280,7 @@ const char * const correctionsSourceNames[CORR_NUM] =
     "Bluetooth",
     "USB Serial",
     "TCP (NTRIP)",
+    "PPP HAS/B2b",
     "L-Band",
     "IP (PointPerfect/MQTT)",
     // Add new correction sources just above this line
@@ -357,6 +359,15 @@ typedef enum
     ERROR_NO_I2C = 2, // Avoid 0 and 1 as these are bad blink codes
     ERROR_GPS_CONFIG_FAIL,
 } t_errorNumber;
+
+// User can select different PPP modes
+enum
+{
+    PPP_DISABLE = 0,
+    PPP_HAS,
+    PPP_B2B,
+    PPP_AUTO,
+};
 
 // Define the periodic display values
 typedef uint64_t PeriodicDisplay_t;
@@ -1135,7 +1146,6 @@ struct Settings
     int lg290pMessageRatesPQTM[MAX_LG290P_PQTM_MSG] = {254}; // Mark first record with key so defaults will be applied.
 #endif // COMPILE_LG290P
 
-    char configurePPP[30] = "2 1 120 0.10 0.15"; // PQTMCFGPPP: 2,1,120,0.10,0.15 ** Use spaces, not commas! **
     bool debugSettings = false;
     bool enableNtripCaster = false; //When true, respond as a faux NTRIP Caster to incoming TCP connections
     bool baseCasterOverride = false; //When true, user has put device into 'BaseCast' mode. Change settings, but don't save to NVM.
@@ -1143,6 +1153,14 @@ struct Settings
     uint16_t cliBlePrintDelay_ms = 50; // Time delayed between prints during a LIST command to avoid overwhelming the BLE connection
     uint32_t gnssConfigureRequest = 0; // Bitfield containing the change requests for various settings on the GNSS receiver
     bool debugGnssConfig = false; // Enable to print output during gnssUpdate
+
+    char configurePPP[30] = "2 1 120 0.10 0.15"; // PQTMCFGPPP: 2,1,120,0.10,0.15 ** Use spaces, not commas! **
+
+    int pppMode = PPP_HAS; // 0 = Disable, 1 = B2b PPP, 2 = HAS, 0xFF = Auto
+    int pppDatum = 1; // 1 = WGS84, 2 = PPP Original, 3 = CGCS2000
+    int pppTimeout = 120; // Seconds without PPP corrections before fallback
+    float pppHorizontalConvergence = 0.10; // Meters, required horizontal convergence for PPP fix
+    float pppVerticalConvergence = 0.15; // Meters, required vertical convergence for PPP fix
 
     // Add new settings to appropriate group above or create new group
     // Then also add to the same group in rtkSettingsEntries below
