@@ -143,8 +143,8 @@ esp_err_t webServerHandlerListMessages(httpd_req_t *req);
 const GET_PAGE_HANDLER webServerPages[] =
 {
     // Platform specific pages
-    WEB_PAGE( 0, "/src/rtk-setup.png", image_png, rtkSetup_png),    // EVK
-    WEB_PAGE( 1, "/src/rtk-setup.png", image_png, rtkSetupWiFi_png),    // WiFi support
+    WEB_PAGE( 0, "/src/sparkpnt_device_setup.png", image_png, sparkpnt_device_setup_png),
+    WEB_PAGE( 1, "/src/sparkfun_device_setup.png", image_png, sparkfun_device_setup_png),
 
     // Add special pages above this line
 
