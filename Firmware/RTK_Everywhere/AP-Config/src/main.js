@@ -580,7 +580,7 @@ function parseIncoming(msg) {
             // UM980 firmware 11833 and above required for PPP service
             if ((platformPrefix == "Torch")) {
                 if (val >= 11833) {
-                    show("pppSettings"); 
+                    show("pppSettings");
                     hide("pppServiceSettings"); // No sub settings available on UM980
                 }
             }
@@ -2307,19 +2307,20 @@ document.addEventListener("DOMContentLoaded", (event) => {
         adjustHAE();
     });
 
-    ge("pppMode").addEventListener("change", function () {
-        if ((isElementShown("pppSettings") == true)) {
-            if (ge("pppMode").value > 0) {
-                show("pppServiceSettings");
+    // Only show/hide the PPP service settings on platforms that have PPP service settings
+    // ie - Torch *has* PPP service, but no PPP service settings, so do not allow them to be displayed
+    if ((platformPrefix == "TX2") || (platformPrefix == "Postcard") || ((platformPrefix.substring(0, 2) == "FP") && (facetFPGNSS == "LG290P"))) {
+        ge("pppMode").addEventListener("change", function () {
+            if ((isElementShown("pppSettings") == true)) {
+                if (ge("pppMode").value > 0) {
+                    show("pppServiceSettings");
+                }
+                else {
+                    hide("pppServiceSettings");
+                }
             }
-            else {
-                hide("pppServiceSettings");
-            }
-        }
-        else {
-            hide("pppServiceSettings");
-        }
-    });
+        });
+    }
 
     for (let y = 0; y < numCorrectionsSources; y++) {
         var buttonName = "corrPrioButton" + y;
@@ -2351,10 +2352,14 @@ function showHideLoggingDetails() {
 
 //Show settings if the dropdown value is above 'Disabled'
 function updatePppSettings() {
-    if (ge("pppMode").value > 0)
-        show("pppServiceSettings");
-    else
-        hide("pppServiceSettings");
+    // Only show/hide the PPP service settings on platforms that have PPP service settings
+    // ie - Torch *has* PPP service, but no PPP service settings, so do not allow them to be displayed
+    if ((platformPrefix == "TX2") || (platformPrefix == "Postcard") || ((platformPrefix.substring(0, 2) == "FP") && (facetFPGNSS == "LG290P"))) {
+        if (ge("pppMode").value > 0)
+            show("pppServiceSettings");
+        else
+            hide("pppServiceSettings");
+    }
 }
 
 function updateCorrectionsPriorities() {
