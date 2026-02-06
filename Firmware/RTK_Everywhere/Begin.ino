@@ -753,6 +753,9 @@ void beginBoard()
         present.fastPowerOff = true;
         present.invertedFastPowerOff = true; // Drive POWER_KILL high to cause powerdown
 
+        // Direct connection for gnssFirmwareDirectConnectHardware()
+        present.gnssUpdatePort = "CH342 Channel A";
+
         pin_I2C0_SDA = 15;
         pin_I2C0_SCL = 4;
 
@@ -1231,8 +1234,11 @@ void pinGnssUartTask(void *pvParameters)
     if (settings.printTaskStartStop)
         systemPrintln("Task pinGnssUartTask started");
 
+    // Use UART1 on the ESP32 for communication with the GNSS module
+    // Shown as UART1 on these schematics: Torch, Facet FP
+    // Not specified on EVK, Postcard and Facet mosaic-X5
     if (serialGNSS == nullptr)
-        serialGNSS = new HardwareSerial(2); // Use UART2 on the ESP32 for communication with the GNSS module
+        serialGNSS = new HardwareSerial(1);
 
     serialGNSS->setRxBufferSize(settings.uartReceiveBufferSize);
     serialGNSS->setTimeout(settings.serialTimeoutGNSS); // Requires serial traffic on the UART pins for detection
@@ -1266,7 +1272,9 @@ void beginGnssUart2()
     if (present.gnss_to_uart2 == false)
         return;
 
-    serial2GNSS = new HardwareSerial(1); // Use UART1 on the ESP32 to communicate with the mosaic
+    // Use UART2 on the ESP32 to communicate with the mosaic
+    // (UART1 is already allocated to serialGNSS)
+    serial2GNSS = new HardwareSerial(2);
 
     serial2GNSS->setRxBufferSize(1024 * 1);
 
@@ -1462,7 +1470,7 @@ void beginCharger()
 void beginButtons()
 {
     if (present.button_powerHigh == false && present.button_powerLow == false && present.button_mode == false &&
-        present.gpioExpanderButtons == false)
+        present.button_function == false && present.gpioExpanderButtons == false)
         return;
 
     TaskHandle_t taskHandle;
@@ -1594,15 +1602,9 @@ void beginSystemState()
     {
         // Return to either Rover or Base Not Started. The last state previous to power down.
         systemState = settings.lastState;
-
-        firstRoverStart = true; // Allow user to enter test screen during first rover start
-        if (systemState == STATE_BASE_NOT_STARTED)
-            firstRoverStart = false;
     }
     else if (productVariant == RTK_EVK)
     {
-        firstRoverStart = false; // Screen should have been tested when it was made ;-)
-
         // Return to either NTP, Base or Rover Not Started. The last state previous to power down.
         systemState = settings.lastState;
     }
@@ -1610,16 +1612,9 @@ void beginSystemState()
     {
         // Return to either NTP, Base or Rover Not Started. The last state previous to power down.
         systemState = settings.lastState;
-
-        firstRoverStart = true; // Allow user to enter test screen during first rover start
-        if (systemState == STATE_BASE_NOT_STARTED)
-            firstRoverStart = false;
     }
     else if (productVariant == RTK_TORCH)
     {
-        // Do not allow user to enter test screen during first rover start because there is no screen
-        firstRoverStart = false;
-
         // Return to either Base or Rover Not Started. The last state previous to power down.
         systemState = settings.lastState;
     }
@@ -1627,25 +1622,14 @@ void beginSystemState()
     {
         // Return to either Rover or Base Not Started. The last state previous to power down.
         systemState = settings.lastState;
-
-        firstRoverStart = true; // Allow user to enter test screen during first rover start
-        if (systemState == STATE_BASE_NOT_STARTED)
-            firstRoverStart = false;
     }
     else if (productVariant == RTK_FACET_FP)
     {
         // Return to either Rover or Base Not Started. The last state previous to power down.
         systemState = settings.lastState;
-
-        firstRoverStart = true; // Allow user to enter test screen during first rover start
-        if (systemState == STATE_BASE_NOT_STARTED)
-            firstRoverStart = false;
     }
     else if (productVariant == RTK_TORCH_X2)
     {
-        // Do not allow user to enter test screen during first rover start because there is no screen
-        firstRoverStart = false;
-
         // Return to either Base or Rover Not Started. The last state previous to power down.
         systemState = settings.lastState;
     }

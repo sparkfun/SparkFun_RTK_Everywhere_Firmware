@@ -106,8 +106,6 @@ void stateUpdate()
 
             if (online.gnss == false)
             {
-                firstRoverStart = false; // If GNSS is offline, we still need to allow button use
-
                 // Allow a device with a failed GNSS connection to advance through states, including display updates
                 changeState(STATE_ROVER_NO_FIX);
             }
@@ -119,8 +117,6 @@ void stateUpdate()
                 recordSystemSettings(); // Record this state for next POR
 
                 changeState(STATE_ROVER_CONFIG_WAIT);
-
-                firstRoverStart = false; // Do not allow entry into test menu again
             }
         }
         break;
@@ -232,7 +228,6 @@ void stateUpdate()
         case (STATE_BASE_ASSIST_NOT_STARTED): {
             // Mark RTK_MODE as BASE_UNDECIDED to avoid starting NTRIP Client when we do not need it
             RTK_MODE(RTK_MODE_BASE_UNDECIDED);
-            firstRoverStart = false; // If base is starting, no test menu, normal button use.
 
             if (online.gnss == false)
                 return;
@@ -289,7 +284,6 @@ void stateUpdate()
         case (STATE_BASE_NOT_STARTED): {
             // Mark RTK_MODE as BASE_UNDECIDED to avoid starting NTRIP Client when we may not need it
             RTK_MODE(RTK_MODE_BASE_UNDECIDED);
-            firstRoverStart = false; // If base is starting, no test menu, normal button use.
 
             if (online.gnss == false)
                 return;
@@ -626,7 +620,6 @@ void stateUpdate()
 #ifdef COMPILE_NTP
         case (STATE_NTPSERVER_NOT_STARTED): {
             RTK_MODE(RTK_MODE_NTP);
-            firstRoverStart = false; // If NTP is starting, no test menu, normal button use.
 
             if (online.gnss == false)
                 return;
@@ -713,10 +706,13 @@ void requestChangeState(SystemState requestedState)
 }
 
 // Print the current state
-const char *getState(SystemState state, char *buffer)
+const char *getState(SystemState state)
 {
     switch (state)
     {
+    default:
+        return "UNKNOWN";
+        
     case (STATE_ROVER_NOT_STARTED):
         return "STATE_ROVER_NOT_STARTED";
     case (STATE_ROVER_CONFIG_WAIT):
@@ -782,17 +778,11 @@ const char *getState(SystemState state, char *buffer)
     case (STATE_NOT_SET):
         return "STATE_NOT_SET";
     }
-
-    // Handle the unknown case
-    sprintf(buffer, "Unknown: %d", state);
-    return buffer;
 }
 
 // Change states and print the new state
 void changeState(SystemState newState)
 {
-    char string1[30];
-    char string2[30];
     const char *arrow = "";
     const char *asterisk = "";
     const char *initialState = "";
@@ -814,7 +804,7 @@ void changeState(SystemState newState)
             asterisk = "*";
         else
         {
-            initialState = getState(systemState, string1);
+            initialState = getState(systemState);
             arrow = " --> ";
         }
     }
@@ -823,7 +813,7 @@ void changeState(SystemState newState)
     systemState = newState;
     if (settings.enablePrintStates)
     {
-        endingState = getState(newState, string2);
+        endingState = getState(newState);
 
         if (!online.rtc)
             systemPrintf("%s%s%s%s\r\n", asterisk, initialState, arrow, endingState);
