@@ -1399,7 +1399,7 @@ void setup()
         beginLoraFirmwareUpdate(); // Needs I2C, GPIO Expander Switches, display, buttons, etc.
 
     DMW_b("um980FirmwareCheckUpdate");
-    if (um980FirmwareCheckUpdate() == true) // UM980 needs special treatment
+    if (um980FirmwareCheckUpdate() == true) // UM980 needs special treatment - ** before the UARTs are started **
         um980FirmwareBeginUpdate(); // Needs Facet FP GNSS, I2C, GPIO Expander Switches, display, buttons, etc.
 
     DMW_b("gnssFirmwareCheckUpdate");

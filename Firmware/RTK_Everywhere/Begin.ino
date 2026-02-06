@@ -683,7 +683,7 @@ void beginBoard()
         present.gpioExpanderButtons = true;
         present.microSdCardDetectGpioExpanderHigh = true; // CD is on GPIO 5 of expander. High = SD in place.
 
-        // We can't enable here because we don't know if lg290pFirmwareVersion is >= v05
+        // We can't enable here because we don't know if lg290pFirmwareVersion is >= v1.5
         // present.minElevation = true;
         // present.minCN0 = true;
 
@@ -837,7 +837,7 @@ void beginBoard()
         present.invertedFastPowerOff = true; // Drive PWRKILL high to cause powerdown
         present.gnssUpdatePort = "CH342 Channel A";
 
-        // We can't enable GNSS features here because we don't know if lg290pFirmwareVersion is >= v05
+        // We can't enable GNSS features here because we don't know if lg290pFirmwareVersion is >= v1.5
         // present.minElevation = true;
         // present.minCN0 = true;
 

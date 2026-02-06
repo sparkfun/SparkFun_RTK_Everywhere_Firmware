@@ -2499,19 +2499,20 @@ void um980FirmwareBeginUpdate()
     //  This makes our job much easier...
 
     // Flag that we are in direct connect mode. Button task will um980FirmwareRemoveUpdate and exit
-    // inDirectConnectMode = true;
+    inDirectConnectMode = true;
 
     // Paint GNSS Update
-    // paintGnssUpdate();
+    paintGnssUpdate(); // Needed for possible future Facet FP with UM980
 
     // Stop all UART tasks. Redundant
     tasksStopGnssUart();
 
     systemPrintln();
-    systemPrintf("Entering UM980 direct connect for firmware update and configuration. Disconnect this terminal "
-                 "connection. Use "
-                 "UPrecise to update the firmware. Baudrate: 115200bps. Press the %s button to return "
-                 "to normal operation.\r\n",
+    systemPrintln("Entering UM980 direct connect for firmware upgrade and configuration");
+    systemPrintln("Disconnect this terminal connection. The device will restart");
+    systemPrintln("Use UPrecise to update the firmware: Baudrate: 115200bps; ** Hard reset **");
+    systemPrintln("The upgrade takes around 6 minutes to complete");
+    systemPrintf("Press the %s button to return to normal operation\r\n",
                  present.button_mode ? "mode" : "power");
     systemFlush();
 
@@ -2530,14 +2531,15 @@ void um980FirmwareBeginUpdate()
     // UPrecise needs to query the device before entering bootload mode
     // Wait for UPrecise to send bootloader trigger (character T followed by character @) before resetting UM980
     bool inBootMode = false;
+    bool tSeen = false;
 
     // Echo everything to/from UM980
     task.endDirectConnectMode = false;
     while (!task.endDirectConnectMode)
     {
         // Data coming from UM980 to external USB
-        // if (serialGNSS->available()) // Note: use if, not while
-        //    Serial.write(serialGNSS->read());
+        if (serialGNSS->available()) // Note: use if, not while
+           Serial.write(serialGNSS->read());
 
         // Data coming from external USB to UM980
         if (Serial.available()) // Note: use if, not while
@@ -2548,41 +2550,32 @@ void um980FirmwareBeginUpdate()
             // Detect bootload sequence
             if (inBootMode == false && incoming == 'T')
             {
-                byte nextIncoming = Serial.peek();
-                if (nextIncoming == '@')
+                tSeen = true;
+            }
+            // Detect bootload sequence
+            else if (inBootMode == false && tSeen == true)
+            {
+                if (incoming == '@')
                 {
-                    // Reset UM980
-                    gnssReset();
-                    delay(500);
-                    gnssBoot();
-                    delay(500);
+                    gnssReset(); // Reset UM980
+
+                    // Fast beep to indicate start of upgrade
+                    beepOn();
+                    delay(100);
+                    beepOff();
+                    delay(400);
+
+                    gnssBoot(); // Exit Reset
+
+                    // No delay here!
+                    
                     inBootMode = true;
                 }
+
+                tSeen = false;
             }
         }
 
-        // if (digitalRead(pin_powerButton) == HIGH)
-        // {
-        //     while (digitalRead(pin_powerButton) == HIGH)
-        //         delay(100);
-
-        //     // Remove file and reset to exit pass-through mode
-        //     um980FirmwareRemoveUpdate();
-
-        //     // Beep to indicate exit
-        //     beepOn();
-        //     delay(300);
-        //     beepOff();
-        //     delay(100);
-        //     beepOn();
-        //     delay(300);
-        //     beepOff();
-
-        //     systemPrintln("Exiting UM980 passthrough mode");
-        //     systemFlush(); // Complete prints
-
-        //     ESP.restart();
-        // }
         // Button task will set task.endDirectConnectMode true
     }
 
