@@ -1222,7 +1222,7 @@ bool GNSS_LG290P::isPppConverged()
     if (_lg290p->getPppSolutionType() == 7)
     {
         // PPP Corrections are detected. Tell the corrections system about it.
-        lg290MarkPppCorrectionsPresent();
+        markPppCorrectionsPresent();
 
         return (true);
     }
@@ -1239,7 +1239,7 @@ bool GNSS_LG290P::isPppConverging()
     if (_lg290p->getPppSolutionType() == 6)
     {
         // PPP Corrections are detected. Tell the corrections system about it.
-        lg290MarkPppCorrectionsPresent();
+        markPppCorrectionsPresent();
 
         return (true);
     }
@@ -1285,7 +1285,7 @@ bool GNSS_LG290P::isRTKFloat()
 
         // PPP Corrections are detected. Tell the corrections system about it.
         if (_lg290p->getPppSolutionType() == 7)
-            lg290MarkPppCorrectionsPresent();
+            markPppCorrectionsPresent();
 
         if (_lg290p->getFixQuality() == 5)
             return (true);
@@ -3214,9 +3214,10 @@ bool lg290pSettingsToFile(File *settingsFile, RTK_Settings_Types type, int setti
     return true;
 }
 
-// Called when the LG290P detects that PPP corrections are present. This is used to mark 
-// PPP as a corrections source.
-void lg290MarkPppCorrectionsPresent()
+#endif // COMPILE_LG290P
+
+// Called when GNSS detects a PPP signal. This is used to mark PPP as a corrections source.
+void markPppCorrectionsPresent()
 {
     // The GNSS is reporting that PPP is detected/converged.
     // Determine if PPP is the correction source to use
@@ -3231,5 +3232,3 @@ void lg290MarkPppCorrectionsPresent()
             systemPrintln("PPP signal detected, but it is not the top priority");
     }    
 }
-
-#endif // COMPILE_LG290P

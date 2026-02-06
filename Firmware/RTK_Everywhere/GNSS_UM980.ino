@@ -983,8 +983,15 @@ bool GNSS_UM980::isGgaActive()
 bool GNSS_UM980::isPppConverged()
 {
     if (online.gnss)
+    {
         // 69 = Precision Point Positioning
-        return (_um980->getPositionType() == 69);
+        if (_um980->getPositionType() == 69)
+        {
+            markPppCorrectionsPresent(); // PPP Corrections are detected. Tell the corrections system about it.
+
+            return (true);
+        }
+    }
     return (false);
 }
 
@@ -992,8 +999,15 @@ bool GNSS_UM980::isPppConverged()
 bool GNSS_UM980::isPppConverging()
 {
     if (online.gnss)
+    {
         // 68 = PPP solution converging
-        return (_um980->getPositionType() == 68);
+        if (_um980->getPositionType() == 68)
+        {
+            markPppCorrectionsPresent(); // PPP Corrections are detected. Tell the corrections system about it.
+
+            return (true);
+        }
+    }
     return (false);
 }
 
