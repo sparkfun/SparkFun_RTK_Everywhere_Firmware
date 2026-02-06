@@ -27,6 +27,8 @@ menuCorrectionsPriorities.ino
                                                   |               |
    ESPNOW --------------------------------------->|               |
                                                   |               |
+   PPP B2b E6------------------------------------>|               |
+                                                  |               |
    LBAND ---------------------------------------->|               |
                                                   |               |
    LORA ----------------------------------------->|               |
@@ -467,7 +469,7 @@ bool correctionIsSourceActive(CORRECTION_ID_T id)
     bitMask = 1 << id;
     if ((currentMsec - correctionLastSeenMsec[id]) >= timeoutMsec)
     {
-        // Correcions source is actually inactive
+        // Corrections source is actually inactive
         correctionActive &= ~bitMask;
 
         // Update last seen time to support 32-bit roll over of millis()

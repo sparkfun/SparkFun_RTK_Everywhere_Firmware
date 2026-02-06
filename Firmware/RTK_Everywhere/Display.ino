@@ -1716,7 +1716,7 @@ displayCoords paintSIVIcon(std::vector<iconPropertyBlinking> *iconList, const ic
         if (online.gnss)
         {
             // Determine which icon to display
-            if (gnss->isPppConverging() || gnss->isPppConverged())
+            if (settings.pppMode != PPP_MODE_DISABLE)
                 icon = &PppIconProperties;
             else if (lbandCorrectionsReceived || spartnCorrectionsReceived)
                 icon = &LBandIconProperties;

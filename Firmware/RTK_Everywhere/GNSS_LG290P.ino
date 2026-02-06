@@ -1218,8 +1218,15 @@ bool GNSS_LG290P::isPppConverged()
 {
     if (present.pppCapable == false)
         return (false);
+
     if (_lg290p->getPppSolutionType() == 7)
+    {
+        // PPP Corrections are detected. Tell the corrections system about it.
+        lg290MarkPppCorrectionsPresent();
+
         return (true);
+    }
+
     return (false);
 }
 
@@ -1228,8 +1235,15 @@ bool GNSS_LG290P::isPppConverging()
 {
     if (present.pppCapable == false)
         return (false);
+
     if (_lg290p->getPppSolutionType() == 6)
+    {
+        // PPP Corrections are detected. Tell the corrections system about it.
+        lg290MarkPppCorrectionsPresent();
+
         return (true);
+    }
+
     return (false);
 }
 
@@ -1268,6 +1282,10 @@ bool GNSS_LG290P::isRTKFloat()
         // 3 = GPS PPS Mode, fix valid.
         // 4 = Real Time Kinematic (RTK) System used in RTK mode with fixed integers.
         // 5 = Float RTK. Satellite system used in RTK mode, floating integers.
+
+        // PPP Corrections are detected. Tell the corrections system about it.
+        if (_lg290p->getPppSolutionType() == 7)
+            lg290MarkPppCorrectionsPresent();
 
         if (_lg290p->getFixQuality() == 5)
             return (true);
@@ -3192,6 +3210,24 @@ bool lg290pSettingsToFile(File *settingsFile, RTK_Settings_Types type, int setti
     break;
     }
     return true;
+}
+
+// Called when the LG290P detects that PPP corrections are present. This is used to mark 
+// PPP as a corrections source.
+void lg290MarkPppCorrectionsPresent()
+{
+    // The GNSS is reporting that PPP is detected/converged.
+    // Determine if PPP is the correction source to use
+    if (correctionLastSeen(CORR_PPP_HAS_B2B))
+    {
+        if (settings.debugCorrections == true && !inMainMenu)
+            systemPrintln("PPP Signal detected. Using corrections.");
+    }
+    else
+    {
+        if (settings.debugCorrections == true && !inMainMenu)
+            systemPrintln("PPP signal detected, but it is not the top priority");
+    }    
 }
 
 #endif // COMPILE_LG290P
