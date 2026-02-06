@@ -1454,6 +1454,8 @@ void createSettingsString(char *newSettings)
 
     newSettings[0] = '\0'; // Erase current settings string
 
+    stringRecord(newSettings, "productBrand", (char *)getBrandAttributeFromProductVariant(productVariant)->name);
+
     // System Info
     char apPlatformPrefix[80];
     strncpy(apPlatformPrefix, platformPrefix, sizeof(apPlatformPrefix));

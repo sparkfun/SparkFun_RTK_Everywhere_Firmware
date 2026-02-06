@@ -142,11 +142,8 @@ esp_err_t webServerHandlerListMessages(httpd_req_t *req);
 
 const GET_PAGE_HANDLER webServerPages[] =
 {
-    // Platform specific pages
-    WEB_PAGE( 0, "/src/rtk-setup.png", image_png, rtkSetup_png),    // EVK
-    WEB_PAGE( 1, "/src/rtk-setup.png", image_png, rtkSetupWiFi_png),    // WiFi support
-
-    // Add special pages above this line
+    WEB_PAGE( 0, "/src/sparkpnt_device_setup.png", image_png, sparkpnt_device_setup_png),
+    WEB_PAGE( 1, "/src/sparkfun_device_setup.png", image_png, sparkfun_device_setup_png),
 
     // Page icon
     WEB_PAGE( 2, "/favicon.ico", text_plain, favicon_ico),
@@ -194,7 +191,6 @@ const GET_PAGE_HANDLER webServerPages[] =
     WEB_PAGE(28, "/", text_html, index_html),
 };
 
-#define WEB_SOCKETS_SPECIAL_PAGES   2
 const int webServerTotalPages = (sizeof(webServerPages) / sizeof(GET_PAGE_HANDLER));
 
 static const httpd_uri_t webServerPage = {.uri = "/ws",
@@ -296,22 +292,12 @@ bool webServerAssignResources(int httpPort = 80)
                                            webServerHandlerPageNotFound))
             break;
 
-        // Get the product specific web page
-        if (productVariant == RTK_EVK)
-            setupPage = &webServerPages[0];
-        else
-            setupPage = &webServerPages[1];
-
-        // Register the product specific page
-        if (!webServerRegisterPageHandler(&setupPage->_page))
-            break;
-
         // Register the web socket handler
         if (!webServerRegisterPageHandler(&webServerPage))
             break;
 
         // Register the main pages
-        for (i = WEB_SOCKETS_SPECIAL_PAGES; i < webServerTotalPages; i++)
+        for (i = 0; i < webServerTotalPages; i++)
             if (!webServerRegisterPageHandler(&webServerPages[i]._page))
                 break;
         if (i < webServerTotalPages)

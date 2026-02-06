@@ -152,9 +152,16 @@ function parseIncoming(msg) {
                 show("fileManager");
             }
         }
+        else if (id == "productBrand") {
+            if (val == "SparkFun")
+                ge("pageLogo").src = "src/sparkfun_device_setup.png";
+            else
+                ge("pageLogo").src = "src/sparkpnt_device_setup.png";
+        }
         else if (id == "platformPrefix") {
             platformPrefix = val;
             document.title = platformPrefix + " Setup";
+            ge(id).innerHTML = val;
             fullPageUpdate = true;
             initializeArrays();
             correctionText = "";
