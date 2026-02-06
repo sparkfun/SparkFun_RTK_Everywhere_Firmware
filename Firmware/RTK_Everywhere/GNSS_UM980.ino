@@ -1363,12 +1363,14 @@ void GNSS_UM980::printModuleInfo()
     {
         uint8_t modelType = _um980->getModelType();
 
+        snprintf(gnssFirmwareVersion, sizeof(gnssFirmwareVersion), "%s", _um980->getVersion());
+
         if (modelType == 18)
             systemPrint("UM980");
         else
             systemPrintf("Unicore Model Unknown %d", modelType);
 
-        systemPrintf(" firmware: %s\r\n", _um980->getVersion());
+        systemPrintf(" firmware: %s\r\n", gnssFirmwareVersion);
     }
 }
 
