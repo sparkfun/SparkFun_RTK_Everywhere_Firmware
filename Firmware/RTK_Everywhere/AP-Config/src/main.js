@@ -570,9 +570,18 @@ function parseIncoming(msg) {
             }
 
             // LG290P firmware v2.1 required for PPP service
-            if ((platformPrefix == "TX2") || (platformPrefix == "Postcard")) {
+            if ((platformPrefix == "TX2") || (platformPrefix == "Postcard") || ((platformPrefix.substring(0, 2) == "FP") && (facetFPGNSS == "LG290P"))) {
                 if (val >= 201) {
                     show("pppSettings");
+                    show("pppServiceSettings");
+                }
+            }
+
+            // UM980 firmware 11833 and above required for PPP service
+            if ((platformPrefix == "Torch")) {
+                if (val >= 11833) {
+                    show("pppSettings"); 
+                    hide("pppServiceSettings"); // No sub settings available on UM980
                 }
             }
         }
@@ -2299,7 +2308,7 @@ document.addEventListener("DOMContentLoaded", (event) => {
     });
 
     ge("pppMode").addEventListener("change", function () {
-        if ((isElementShown("pppSettings") == true) && (isElementShown("lg290pGnssSettings") == true)) {
+        if ((isElementShown("pppSettings") == true)) {
             if (ge("pppMode").value > 0) {
                 show("pppServiceSettings");
             }
@@ -2308,7 +2317,7 @@ document.addEventListener("DOMContentLoaded", (event) => {
             }
         }
         else {
-            hide("pppServiceSettings"); // Hide on Torch UM980 - i.e. non-LG290P
+            hide("pppServiceSettings");
         }
     });
 
