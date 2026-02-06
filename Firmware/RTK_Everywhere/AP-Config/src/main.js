@@ -1206,9 +1206,13 @@ function validateFields() {
 
     if (isElementShown("pppSettings") == true) {
         if (ge("pppMode").value > 0) {
-            checkElementValue("pppTimeout", 90, 180, "Must be 90 to 180", "collapseGNSSConfig");
-            checkElementValue("pppHorizontalConvergence", 0.0, 5.0, "Must be 0.0 to 5.0", "collapseGNSSConfig");
-            checkElementValue("pppVerticalConvergence", 0.0, 5.0, "Must be 0.0 to 5.0", "collapseGNSSConfig");
+            // Only check PPP service settings on platforms that have PPP service settings
+            // ie - Torch *has* PPP service, but no PPP service settings, so do not check them
+            if ((platformPrefix == "TX2") || (platformPrefix == "Postcard") || ((platformPrefix.substring(0, 2) == "FP") && (facetFPGNSS == "LG290P"))) {
+                checkElementValue("pppTimeout", 90, 180, "Must be 90 to 180", "collapseGNSSConfig");
+                checkElementValue("pppHorizontalConvergence", 0.0, 5.0, "Must be 0.0 to 5.0", "collapseGNSSConfig");
+                checkElementValue("pppVerticalConvergence", 0.0, 5.0, "Must be 0.0 to 5.0", "collapseGNSSConfig");
+            }
         }
     }
 
