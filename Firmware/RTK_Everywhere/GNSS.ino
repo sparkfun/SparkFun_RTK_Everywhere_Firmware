@@ -23,7 +23,7 @@ calculation
   * setMessagesNMEA() - Set the NMEA messages output during Base or Rover mode
   * setMessagesRTCMBase() - Set the RTCM messages output during Base mode
   * setMessagesRTCMRover() - Set the RTCM messages output during Rover mode
-  * setHighAccuracyService() - Set the PPP/HAS E6 capabilities of the receiver
+  * setPppService() - Set the PPP/HAS E6 capabilities of the receiver
   * setMultipathMitigation() - Set the multipath capabilities of the receiver
   * setTilt() - Set the GNSS receiver's output to be compatible with a tilt sensor
   * setCorrRadioExtPort() - Set corrections protocol(s) on the UART connected to the RADIO port
@@ -360,7 +360,7 @@ void gnssUpdate()
 
         if (gnssConfigureRequested(GNSS_CONFIG_PPP))
         {
-            if (gnss->setHighAccuracyService() == true)
+            if (gnss->setPppService() == true)
             {
                 gnssConfigureClear(GNSS_CONFIG_PPP);
                 gnssConfigure(GNSS_CONFIG_SAVE); // Request receiver commit this change to NVM

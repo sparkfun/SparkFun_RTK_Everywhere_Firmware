@@ -1967,7 +1967,7 @@ bool GNSS_LG290P::setElevation(uint8_t elevationDegrees)
 //----------------------------------------
 // Control whether HAS E6 is used in location fixes or not
 //----------------------------------------
-bool GNSS_LG290P::setHighAccuracyService()
+bool GNSS_LG290P::setPppService()
 {
     // E6 reception requires firmware on the LG290P that supports it
     // Present is set during LG290P begin()
@@ -2009,6 +2009,8 @@ bool GNSS_LG290P::setHighAccuracyService()
     {
         // Check if a setting has changed
         bool settingsChanged = false;
+
+        if(settings.pppMode)
 
         if (currentMode != settings.pppMode)
             settingsChanged = true;

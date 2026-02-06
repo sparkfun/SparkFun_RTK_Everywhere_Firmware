@@ -1516,7 +1516,7 @@ bool GNSS_UM980::setElevation(uint8_t elevationDegrees)
 //----------------------------------------
 // Control whether HAS E6 is used in location fixes or not
 //----------------------------------------
-bool GNSS_UM980::setHighAccuracyService()
+bool GNSS_UM980::setPppService()
 {
     bool result = true;
 
