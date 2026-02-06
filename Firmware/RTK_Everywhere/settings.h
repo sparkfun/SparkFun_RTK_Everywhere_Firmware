@@ -1830,10 +1830,10 @@ const RTK_Settings_Entry rtkSettingsEntries[] =
     { 0, 0, 0, 1, 1, 1, 1, 1, 1, ALL, 1, _uint32_t, 0, & settings.gnssConfigureRequest, "gnssConfigureRequest", nullptr, },
 
     { 1, 1, 0, 0, 0, 0, 1, 0, 1, HAS, 1, _int,      0, & settings.pppMode, "pppMode", nullptr, },
-    { 1, 1, 0, 0, 0, 0, 1, 0, 1, HAS, 1, _int,      0, & settings.pppDatum, "pppDatum", nullptr, },
-    { 1, 1, 0, 0, 0, 0, 1, 0, 1, HAS, 1, _int,      0, & settings.pppTimeout, "pppTimeout", nullptr, },
-    { 1, 1, 0, 0, 0, 0, 1, 0, 1, HAS, 1, _float,    0, & settings.pppHorizontalConvergence, "pppHorizontalConvergence", nullptr, },
-    { 1, 1, 0, 0, 0, 0, 1, 0, 1, HAS, 1, _float,    0, & settings.pppVerticalConvergence, "pppVerticalConvergence", nullptr, },
+    { 1, 1, 0, 0, 0, 0, 0, 0, 1, HAS, 1, _int,      0, & settings.pppDatum, "pppDatum", nullptr, },
+    { 1, 1, 0, 0, 0, 0, 0, 0, 1, HAS, 1, _int,      0, & settings.pppTimeout, "pppTimeout", nullptr, },
+    { 1, 1, 0, 0, 0, 0, 0, 0, 1, HAS, 1, _float,    1, & settings.pppHorizontalConvergence, "pppHorizontalConvergence", nullptr, },
+    { 1, 1, 0, 0, 0, 0, 0, 0, 1, HAS, 1, _float,    1, & settings.pppVerticalConvergence, "pppVerticalConvergence", nullptr, },
 
     // Add new settings to appropriate group above or create new group
     // Then also add to the same group in settings above
