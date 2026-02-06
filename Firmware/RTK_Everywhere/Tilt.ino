@@ -265,10 +265,11 @@ void printTiltDebug()
 // Start communication with the IM19 IMU
 void beginTilt()
 {
-
+    // Use UART2 on the ESP32 to receive IMU corrections
+    // Shown as UART2 on these schematics: Torch, Facet FP
     tiltSensor = new IM19();
     if (SerialForTilt == nullptr)
-        SerialForTilt = new HardwareSerial(1); // Use UART1 on the ESP32 to receive IMU corrections
+        SerialForTilt = new HardwareSerial(2);
 
     SerialForTilt->setRxBufferSize(1024 * 1);
 
@@ -1197,7 +1198,7 @@ void tiltDetect()
     tiltSensor = new IM19();
 
     // On Facet FP, ESP UART2 is connected to SW3, then UART3 of the GNSS (where a tilt module resides, if populated)
-    HardwareSerial SerialTiltTest(1); // Use UART1 on the ESP32 to communicate with IMU
+    HardwareSerial SerialTiltTest(2); // Use UART2 on the ESP32 to communicate with IMU
 
     // Confirm SW3 is in the correct position
     gpioExpanderSelectImu();
@@ -1220,7 +1221,7 @@ void tiltDetect()
         }
     }
 
-    SerialTiltTest.end(); // Release UART1 for reuse
+    SerialTiltTest.end(); // Release UART2 for reuse
 
     if (settings.detectedTilt == true)
         systemPrintln("Tilt sensor detected");

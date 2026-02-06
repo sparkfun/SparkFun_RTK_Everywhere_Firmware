@@ -1234,8 +1234,11 @@ void pinGnssUartTask(void *pvParameters)
     if (settings.printTaskStartStop)
         systemPrintln("Task pinGnssUartTask started");
 
+    // Use UART1 on the ESP32 for communication with the GNSS module
+    // Shown as UART1 on these schematics: Torch, Facet FP
+    // Not specified on EVK, Postcard and Facet mosaic-X5
     if (serialGNSS == nullptr)
-        serialGNSS = new HardwareSerial(2); // Use UART2 on the ESP32 for communication with the GNSS module
+        serialGNSS = new HardwareSerial(1);
 
     serialGNSS->setRxBufferSize(settings.uartReceiveBufferSize);
     serialGNSS->setTimeout(settings.serialTimeoutGNSS); // Requires serial traffic on the UART pins for detection
@@ -1269,7 +1272,9 @@ void beginGnssUart2()
     if (present.gnss_to_uart2 == false)
         return;
 
-    serial2GNSS = new HardwareSerial(1); // Use UART1 on the ESP32 to communicate with the mosaic
+    // Use UART2 on the ESP32 to communicate with the mosaic
+    // (UART1 is already allocated to serialGNSS)
+    serial2GNSS = new HardwareSerial(2);
 
     serial2GNSS->setRxBufferSize(1024 * 1);
 

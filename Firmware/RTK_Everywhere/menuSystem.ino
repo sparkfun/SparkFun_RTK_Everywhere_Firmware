@@ -522,7 +522,6 @@ void menuDebugHardware()
         //           ESP32 UART1 to LoRa UART0.
         // On Facet FP:  we need a direct connection from USB to USB Hub to ESP32 UART0 to
         //           ESP32 UART2 to LoRa UART2.
-        //           TODO: check STM32 can be updated via UART2!!
 
         if (present.radio_lora)
             systemPrintln("17) STM32 direct connect for LoRa firmware upgrade");

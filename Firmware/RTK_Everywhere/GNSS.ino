@@ -817,7 +817,7 @@ void gnssFirmwareDirectConnectSoftware()
     Serial.begin(serialBaud);
 
     if (serialGNSS == nullptr)
-        serialGNSS = new HardwareSerial(2); // Use UART2 on the ESP32 for communication with the GNSS module
+        serialGNSS = new HardwareSerial(1); // Use UART1 on the ESP32 for communication with the GNSS module
 
     serialGNSS->setRxBufferSize(settings.uartReceiveBufferSize);
     serialGNSS->setTimeout(settings.serialTimeoutGNSS); // Requires serial traffic on the UART pins for detection
