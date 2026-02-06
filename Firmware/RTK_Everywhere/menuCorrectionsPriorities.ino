@@ -652,3 +652,20 @@ void correctionVerifyTables()
     if (correctionsSourceNamesEntries != CORR_NUM)
         reportFatalError("Fix correctionsSourceNamesEntries to match correctionsSource");
 }
+
+// Called when the GNSS detects a PPP signal. This is used to mark PPP as a corrections source.
+void markPppCorrectionsPresent()
+{
+    // The GNSS is reporting that PPP is detected/converged.
+    // Determine if PPP is the correction source to use
+    if (correctionLastSeen(CORR_PPP_HAS_B2B))
+    {
+        if (settings.debugCorrections == true && !inMainMenu)
+            systemPrintln("PPP Signal detected. Using corrections.");
+    }
+    else
+    {
+        if (settings.debugCorrections == true && !inMainMenu)
+            systemPrintln("PPP signal detected, but it is not the top priority");
+    }    
+}
