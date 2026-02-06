@@ -261,7 +261,7 @@ typedef enum
     CORR_BLUETOOTH,     // 3,  10+km Baseline, Tasks.ino (sendGnssBuffer)
     CORR_USB,           // 4,                  menuMain.ino (terminalUpdate)
     CORR_TCP,           // 5,  10+km Baseline, NtripClient.ino
-    CORR_PPP_HAS_B2B,   // 6, 100+km Baseline, PPP_Client.ino
+    CORR_PPP_HAS_B2B,   // 6, 100+km Baseline
     CORR_LBAND,         // 7, 100 km Baseline, menuPP.ino for PMP - PointPerfectLibrary.ino for PPL
     CORR_IP,            // 8, 100+km Baseline, MQTT_Client.ino
     // Add new correction sources just above this line
