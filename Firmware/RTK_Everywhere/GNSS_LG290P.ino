@@ -173,6 +173,8 @@ void GNSS_LG290P::begin()
     printModuleInfo();
 
     snprintf(gnssUniqueId, sizeof(gnssUniqueId), "%s", getId());
+
+    gnssFirmwareVersionInt = lg290pFirmwareVersionInt; // Tell Web Config what version to use
 }
 
 //----------------------------------------
