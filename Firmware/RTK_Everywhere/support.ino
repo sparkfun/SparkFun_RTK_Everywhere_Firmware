@@ -1197,16 +1197,6 @@ void WeekToWToUnixEpoch(uint64_t *unixEpoch, uint16_t GPSWeek, uint32_t GPSToW)
     *unixEpoch += 315964800;
 }
 
-const char *configPppSpacesToCommas(const char *config)
-{
-    static char commas[sizeof(settings.configurePPP)];
-    snprintf(commas, sizeof(commas), "%s", config);
-    for (size_t i = 0; i < strlen(commas); i++)
-        if (commas[i] == ' ')
-            commas[i] = ',';
-    return (const char *)commas;
-}
-
 void assembleDeviceName()
 {
     snprintf(serialNumber, sizeof(serialNumber), "%02X%02X%02d", btMACAddress[4], btMACAddress[5], productVariant);

@@ -414,9 +414,7 @@ class GNSS_LG290P : GNSS
     //   elevationDegrees: The elevation value in degrees
     bool setElevation(uint8_t elevationDegrees);
 
-    bool setHighAccuracyService(bool enableGalileoHas, const char *configurePPP);
-
-    bool setHighAccuracyService(bool enableGalileoHas);
+    bool setPppService();
 
     // Configure any logging settings - currently mosaic-X5 specific
     bool setLogging();

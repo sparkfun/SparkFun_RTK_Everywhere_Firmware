@@ -23,7 +23,7 @@ calculation
   * setMessagesNMEA() - Set the NMEA messages output during Base or Rover mode
   * setMessagesRTCMBase() - Set the RTCM messages output during Base mode
   * setMessagesRTCMRover() - Set the RTCM messages output during Rover mode
-  * setHighAccuracyService() - Set the PPP/HAS E6 capabilities of the receiver
+  * setPppService() - Set the PPP/HAS E6 capabilities of the receiver
   * setMultipathMitigation() - Set the multipath capabilities of the receiver
   * setTilt() - Set the GNSS receiver's output to be compatible with a tilt sensor
   * setCorrRadioExtPort() - Set corrections protocol(s) on the UART connected to the RADIO port
@@ -125,7 +125,7 @@ enum
     GNSS_CONFIG_MESSAGE_RATE_RTCM_ROVER, // Update RTCM Rover message rates
     GNSS_CONFIG_MESSAGE_RATE_RTCM_BASE,  // Update RTCM Base message rates
     GNSS_CONFIG_MESSAGE_RATE_OTHER,      // Update any other messages (UBX, PQTM, etc)
-    GNSS_CONFIG_HAS_E6,                  // Enable/disable HAS E6 capabilities
+    GNSS_CONFIG_PPP,                  // Enable/disable HAS E6 capabilities
     GNSS_CONFIG_MULTIPATH,
     GNSS_CONFIG_TILT,            // Enable/disable any output needed for tilt compensation
     GNSS_CONFIG_EXT_CORRECTIONS, // Enable / disable corrections protocol(s) on the Radio External port
@@ -155,7 +155,7 @@ static const char *gnssConfigDisplayNames[] = {
     "MESSAGE_RATE_RTCM_ROVER",
     "MESSAGE_RATE_RTCM_BASE",
     "MESSAGE_RATE_RTCM_OTHER",
-    "HAS_E6",
+    "PPP_HAS_B2B",
     "MULTIPATH",
     "TILT",
     "EXT_CORRECTIONS",
@@ -358,11 +358,11 @@ void gnssUpdate()
             }
         }
 
-        if (gnssConfigureRequested(GNSS_CONFIG_HAS_E6))
+        if (gnssConfigureRequested(GNSS_CONFIG_PPP))
         {
-            if (gnss->setHighAccuracyService(settings.enableGalileoHas) == true)
+            if (gnss->setPppService() == true)
             {
-                gnssConfigureClear(GNSS_CONFIG_HAS_E6);
+                gnssConfigureClear(GNSS_CONFIG_PPP);
                 gnssConfigure(GNSS_CONFIG_SAVE); // Request receiver commit this change to NVM
             }
         }

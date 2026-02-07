@@ -998,7 +998,7 @@ class GNSS_MOSAIC : GNSS
     bool setElevation(uint8_t elevationDegrees);
 
     // Enable or disable HAS E6 capability
-    bool setHighAccuracyService(bool enableGalileoHas);
+    bool setPppService();
 
     // Configure any logging settings - currently mosaic-X5 specific
     bool setLogging();

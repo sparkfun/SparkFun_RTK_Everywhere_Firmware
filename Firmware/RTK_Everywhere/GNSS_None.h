@@ -566,7 +566,7 @@ class GNSS_None : public GNSS
     }
 
     // Control whether HAS E6 is used in location fixes or not
-    bool setHighAccuracyService(bool enableGalileoHas)
+    bool setPppService()
     {
         return true;
     }

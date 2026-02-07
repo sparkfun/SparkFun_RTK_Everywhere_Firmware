@@ -130,7 +130,7 @@ class GNSS_UM980 : GNSS
     // Controls the messages that get broadcast over Bluetooth and logged (if enabled)
     void menuMessagesSubtype(float *localMessageRate, const char *messageType);
 
-    bool setHighAccuracyService(bool enableGalileoHas);
+    bool setPppService();
 
     // Set the minimum satellite signal level for navigation.
     bool setMinCN0(uint8_t cnoValue);
