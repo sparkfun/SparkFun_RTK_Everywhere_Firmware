@@ -950,8 +950,6 @@ uint8_t setupSelectedButton =
     0; // In Display Setup, start displaying at this button. This is the selected (highlighted) button.
 std::vector<setupButton> setupButtons; // A vector (linked list) of the setup 'buttons'
 
-bool firstRoverStart; // Used to detect if the user is toggling the power button at POR to enter the test menu
-
 bool newEventToRecord;     // Goes true when INT pin goes high. Currently this is ZED-specific.
 uint32_t triggerCount;     // Global copy - TM2 event counter
 uint32_t triggerTowMsR;    // Global copy - Time Of Week of rising edge (ms)
