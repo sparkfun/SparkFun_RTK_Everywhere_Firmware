@@ -12,7 +12,7 @@ LoRa.ino
     ESP32 (UART0) <-> Switch U18 B0 <-> USB to Serial
     ESP32 (UART0) <-> Switch U18 B1 <-> Switch U11
 
-    Switch U11 B0 <-> STM32 LoRa(UART2)
+    Switch U11 B0 <-> STM32 LoRa(UART2) configuration and data
     Switch U11 B1 <-> UM980 (UART1) - Not generally used
 
     UART2 on the STM32 is used for configuration and pushing data across the link.
@@ -30,18 +30,18 @@ LoRa.ino
 
   Facet FP:
     Facet FP GNSS (UART2) <-> Switch 4 B0 <-> 4-Pin Serial TTL on 1mm JST under microSD
-    Facet FP GNSS (UART2) <-> Switch 4 B1 <-> STM32 LoRa (UART0)
+    Facet FP GNSS (UART2) <-> Switch 4 B1 <-> STM32 LoRa (UART0) over-the-air data only
 
     ESP32 (UART2) <-> Switch 3 B0 <-> Facet FP GNSS Tilt (UART3)
-    ESP32 (UART2) <-> Switch 3 B1 <-> STM32 LoRa (UART2)
+    ESP32 (UART2) <-> Switch 3 B1 <-> STM32 LoRa (UART2) bootloading _and_ configuration
 
     UART0 on the STM32 is used for pushing data across the link.
-    UART2 on the STM32 is used for configuration.
+    UART2 on the STM32 is used for bootloading and configuration.
 
   Printing:
     On Torch, Serial must be used to send and receive data from the radio. At times, this requires disconnecting from
     the USB interface. On Facet FP, SerialForLoRa is used on UART2 to configure and TX/RX data from the radio. If active,
-    SerialForTilt must be ended first.
+    SerialForTilt must be disconnected first.
 
   Updating the STM32 LoRa Firmware:
   Bootloading the STM32 requires a connection to the USB serial. Because it is
@@ -330,7 +330,7 @@ void updateLora()
     }
 }
 
-void beginLora()
+void beginLora() // Called by updateLora LORA_NOT_STARTED
 {
     if (present.radio_lora == true && settings.enableLora == true)
     {
@@ -341,7 +341,7 @@ void beginLora()
 
         delay(100); // Give LoRa radio time to power stabilize
 
-        loraExitBootloader();
+        loraExitBootloader(); // Disables BOOT pin, then resets the STM32
 
         // Torch must share ESP UART0, other platforms have a dedicated UART
         if (present.loraDedicatedUart == true)
@@ -350,7 +350,7 @@ void beginLora()
             // If Tilt is active we will use its serial port
             if (SerialForTilt != nullptr)
             {
-                SerialForLoRa = SerialForTilt;
+                SerialForLoRa = SerialForTilt; // SerialForTilt will be using UART2 (HardwareSerial(2))
             }
             else
             {
@@ -363,7 +363,9 @@ void beginLora()
             }
         }
 
-        loraGetVersion(); // Store firmware version in char array
+        // Store firmware version in char array
+        // loraGetVersion() calls loraEnterCommandMode() which calls muxSelectLoRaCommunication()
+        loraGetVersion();
     }
 }
 
@@ -413,14 +415,17 @@ void muxSelectLoRaCommunication()
     if (productVariant == RTK_TORCH)
     {
         pinMode(pin_muxB, OUTPUT);    // Make really sure we can control this pin
-        digitalWrite(pin_muxA, LOW);  // Connect ESP UART1 to UM980
+        digitalWrite(pin_muxA, LOW);  // Connect ESP UART1 to UM980, Connect U11 to LoRa UART2
         digitalWrite(pin_muxB, HIGH); // Connect ESP UART0 to U11
 
         usbSerialIsSelected = false; // Let other print operations know we are not connected to the CH34x
     }
     else if (productVariant == RTK_FACET_FP)
     {
-        gpioExpanderSelectLoraConfigure(); // Connect ESP to LoRa for sending config commands
+        // Connect ESP to LoRa for sending config commands
+        // Connect ESP32 UART2 -> SW3 -> LoRa UART2
+        // The OTA traffic goes direct from GNSS UART2 <-> LoRa UART0
+        gpioExpanderSelectLoraConfigure();
     }
 }
 
@@ -428,9 +433,10 @@ void muxSelectLoRaCommunication()
 void muxSelectLoRaConfigure()
 {
     if (productVariant == RTK_TORCH)
-        digitalWrite(pin_muxA, HIGH); // Connect ESP UART1 to LoRa UART0
+        digitalWrite(pin_muxA, HIGH); // Connect ESP UART1 to LoRa UART0, Connect U11 to UM980 UART1
     else if (productVariant == RTK_FACET_FP)
-        gpioExpanderSelectLoraConfigure(); // Connect ESP32 UART2 to LoRa UART2
+        // Connect ESP32 UART2 -> SW3 -> LoRa UART2
+        gpioExpanderSelectLoraConfigure();
 }
 
 void loraEnterBootloader()
@@ -443,6 +449,7 @@ void loraEnterBootloader()
     loraReset();
 }
 
+// Disables BOOT pin, then resets the STM32
 void loraExitBootloader()
 {
     if (productVariant == RTK_TORCH || productVariant == RTK_TORCH_X2)
@@ -466,9 +473,9 @@ void loraReset()
     {
         // There is no reset, only a power cycle
         gpioExpanderLoraDisable();
-        delay(50);
+        delay(500);
         gpioExpanderLoraEnable();
-        delay(50);
+        delay(500);
     }
 }
 
@@ -743,7 +750,7 @@ bool loraEnterCommandMode()
     char response[512];
     int responseSpot = 0;
 
-    loraExitBootloader(); // Resets LoRa and runs
+    loraExitBootloader(); // Disables BOOT pin, then resets the STM32
 
     delay(250);
 
@@ -834,6 +841,14 @@ void loraGetVersion()
         {
             // Copy only the version substring
             strncpy(loraFirmwareVersion, &response[strlen("version:")], 5);
+        }
+    }
+    else
+    {
+        if (settings.debugLora == true)
+        {
+            systemPrintln("loraGetVersion : could not enter command mode");
+            systemFlush(); // Complete prints
         }
     }
 }

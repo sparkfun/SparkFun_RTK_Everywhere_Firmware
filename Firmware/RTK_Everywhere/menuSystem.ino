@@ -481,20 +481,20 @@ void menuDebugHardware()
         // On Postcard: firmware can be updated over USB and the CH342 B connection to GNSS
         //              UART1. A hardware GNSS reset may be beneficial, but it is possible
         //              to reset over USB / UART too ($PQTMSRR*4B).
-        // On Facet FP:     mosaic-X5 can be updated over USB via the USB Hub.
-        //              A direct connection can be created from USB to USB Hub to CH342 B to
-        //              ESP32 UART0 to ESP32 UART1 to GNSS UART1.
-        //              ZED-X20P will need a direct connection. Update via USB is not possible.
-        //              LG290P needs a direct connection.
+        // On Facet FP: a direct connection can be created from USB to USB Hub to CH342 A to
+        //              GNSS UART1.
+        //              mosaic-X5 can also be updated over USB via the USB Hub
+        //              ZED-X20P needs the direct connection. Update via USB is not possible.
+        //              LG290P needs the direct connection.
         //              A future UM980 variant will also need a direct connection.
         //              Updates via the 4-pin JST RADIO connector and GNSS UART2 may also be possible.
 
-        if (present.gnss_um980)
-            systemPrintln("13) UM980 direct connect for firmware upgrade");
-        else if ((productVariant == RTK_FACET_FP) && (present.gnss_lg290p || present.gnss_zedx20p))
+        if (productVariant == RTK_FACET_FP)
             systemPrintln("13) GNSS direct connect for firmware update");
+        else if (present.gnss_um980)
+            systemPrintln("13) UM980 direct connect for firmware upgrade"); // Torch
         else if (present.gnss_lg290p)
-            systemPrintln("13) LG290P reset for firmware update");
+            systemPrintln("13) LG290P reset for firmware update"); // Torch X2 / Postcard
 
         systemPrint("14) PSRAM (");
         if (ESP.getPsramSize() == 0)
@@ -522,7 +522,6 @@ void menuDebugHardware()
         //           ESP32 UART1 to LoRa UART0.
         // On Facet FP:  we need a direct connection from USB to USB Hub to ESP32 UART0 to
         //           ESP32 UART2 to LoRa UART2.
-        //           TODO: check STM32 can be updated via UART2!!
 
         if (present.radio_lora)
             systemPrintln("17) STM32 direct connect for LoRa firmware upgrade");
@@ -585,25 +584,25 @@ void menuDebugHardware()
         }
         else if (incoming == 13)
         {
-            if (present.gnss_um980)
-            {
-                // Create a file in LittleFS
-                if (um980CreatePassthrough() == true)
-                {
-                    systemPrintln();
-                    systemPrintln("UM980 passthrough mode has been recorded to LittleFS. Device will now reset.");
-                    systemFlush(); // Complete prints
-
-                    ESP.restart();
-                }
-            }
-            else if ((productVariant == RTK_FACET_FP) && (present.gnss_lg290p || present.gnss_zedx20p))
+            if (productVariant == RTK_FACET_FP)
             {
                 // Create a file in LittleFS
                 if (createGNSSPassthrough() == true)
                 {
                     systemPrintln();
                     systemPrintln("GNSS passthrough mode has been recorded to LittleFS. Device will now reset.");
+                    systemFlush(); // Complete prints
+
+                    ESP.restart();
+                }
+            }
+            else if (present.gnss_um980)
+            {
+                // Create a file in LittleFS
+                if (um980CreatePassthrough() == true)
+                {
+                    systemPrintln();
+                    systemPrintln("UM980 passthrough mode has been recorded to LittleFS. Device will now reset.");
                     systemFlush(); // Complete prints
 
                     ESP.restart();

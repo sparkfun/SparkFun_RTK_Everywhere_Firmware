@@ -90,7 +90,8 @@ var divTables = {
     rtcmMinElevConfig: ["rtcmMinElev"],
     minElevConfig: ["minElev"],
     minCN0Config: ["minCN0"],
-    logToSDCard: ["enableLogging"]
+    logToSDCard: ["enableLogging"],
+    shutdownNoChargeTimeoutMinutesCheckboxDetail: ["shutdownNoChargeTimeoutMinutes"]
 };
 
 function showHideDivs() {
@@ -181,8 +182,6 @@ function parseIncoming(msg) {
                 show("useEnableExtCorrRadio");
                 show("extCorrRadioSPARTNSourceDropdown");
                 hide("enableNmeaOnRadio");
-
-                hide("shutdownNoChargeTimeoutMinutesCheckboxDetail");
 
                 hide("constellationNavic"); //Not supported on ZED
 
@@ -2296,7 +2295,9 @@ document.addEventListener("DOMContentLoaded", (event) => {
             show("shutdownNoChargeTimeoutMinutesDetails");
         }
         else {
+            // If the user unchecks the checkbox, set the timeout to zero
             hide("shutdownNoChargeTimeoutMinutesDetails");
+            ge("shutdownNoChargeTimeoutMinutes").value = 0;
         }
     });
 
