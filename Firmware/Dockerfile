@@ -71,7 +71,6 @@ RUN arduino-cli lib install "ESP32-OTA-Pull"@1.0.0
 RUN arduino-cli lib install JC_Button@2.1.2
 RUN arduino-cli lib install PubSubClient@2.8.0
 RUN arduino-cli lib install "SdFat"@2.1.1
-RUN arduino-cli lib install "SparkFun LIS2DH12 Arduino Library"@1.0.3
 RUN arduino-cli lib install "SparkFun MAX1704x Fuel Gauge Arduino Library"@1.0.4
 RUN arduino-cli lib install "SparkFun u-blox GNSS v3"@3.1.10
 RUN arduino-cli lib install "SparkFun Qwiic OLED Arduino Library"@1.0.15
