@@ -1,8 +1,8 @@
-/*------------------------------------------------------------------------------
+/*=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 GNSS_LG290P.h
 
   Declarations and definitions for the LG290P GNSS receiver and the GNSS_LG290P class
-------------------------------------------------------------------------------*/
+=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=*/
 
 #ifndef __GNSS_LG290P_H__
 #define __GNSS_LG290P_H__
@@ -34,7 +34,7 @@ typedef struct
 // Rate = Output once every N position fix(es).
 const lg290pMsg lgMessagesNMEA[] = {
     {"RMC", 1, 0}, {"GGA", 1, 0}, {"GSV", 1, 0}, {"GSA", 1, 0}, {"VTG", 1, 0},
-    {"GLL", 1, 0}, {"GBS", 0, 4}, {"GNS", 0, 4}, {"GST", 1, 4}, {"ZDA", 0, 4},
+    {"GLL", 1, 0}, {"GBS", 0, 104}, {"GNS", 0, 104}, {"GST", 1, 104}, {"ZDA", 0, 104},
 };
 
 const lg290pMsg lgMessagesRTCM[] = {
@@ -44,7 +44,7 @@ const lg290pMsg lgMessagesRTCM[] = {
 
     {"RTCM3-1020", 0, 0},
 
-    {"RTCM3-1033", 0, 4}, // v4 and above
+    {"RTCM3-1033", 0, 104}, // v1.4 and above
 
     {"RTCM3-1041", 0, 0}, {"RTCM3-1042", 0, 0}, {"RTCM3-1044", 0, 0}, {"RTCM3-1046", 0, 0},
 
@@ -140,9 +140,6 @@ class GNSS_LG290P : GNSS
     //   Returns true when an external event occurs and false if no event
     bool beginExternalEvent();
 
-    // Setup the PPS pin for PPS LED
-    bool setPPS();
-
     bool checkNMEARates();
 
     bool checkPPPRates();
@@ -229,6 +226,9 @@ class GNSS_LG290P : GNSS
 
     // Returns the fix type or zero if not online
     uint8_t getFixType();
+
+    // Returns the geoidal separation
+    double getGeoidalSeparation();
 
     // Returns the hours of 24 hour clock or zero if not online
     uint8_t getHour();
@@ -414,9 +414,7 @@ class GNSS_LG290P : GNSS
     //   elevationDegrees: The elevation value in degrees
     bool setElevation(uint8_t elevationDegrees);
 
-    bool setHighAccuracyService(bool enableGalileoHas, const char *configurePPP);
-
-    bool setHighAccuracyService(bool enableGalileoHas);
+    bool setPppService();
 
     // Configure any logging settings - currently mosaic-X5 specific
     bool setLogging();
@@ -436,6 +434,9 @@ class GNSS_LG290P : GNSS
     bool setModel(uint8_t modelNumber);
 
     bool setMultipathMitigation(bool enableMultipathMitigation);
+
+    // Setup the PPS pin for PPS LED
+    bool setPPS();
 
     // Specify the interval between solutions
     // Inputs:
@@ -468,6 +469,32 @@ class GNSS_LG290P : GNSS
     // Poll routine to update the GNSS state
     void update();
 };
+
+// Forward routine declarations
+bool lg290pCommandList(RTK_Settings_Types type,
+                       int settingsIndex,
+                       bool inCommands,
+                       int qualifier,
+                       char * settingName,
+                       char * settingValue);
+void lg290pCommandTypeJson(JsonArray &command_types);
+bool lg290pCreateString(RTK_Settings_Types type,
+                        int settingsIndex,
+                        char * newSettings);
+bool lg290pGetSettingValue(RTK_Settings_Types type,
+                           const char * suffix,
+                           int qualifier,
+                           int settingsIndex,
+                           char * settingValueStr);
+bool lg290pIsPresentOnFacetFP();
+void lg290pNewClass();
+bool lg290pNewSettingValue(RTK_Settings_Types type,
+                           const char * suffix,
+                           int qualifier,
+                           double d);
+bool lg290pSettingsToFile(File *settingsFile,
+                          RTK_Settings_Types type,
+                          int settingsIndex);
 
 #endif // COMPILE_LG290P
 #endif // __GNSS_LG290P_H__

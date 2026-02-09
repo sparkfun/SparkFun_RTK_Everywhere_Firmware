@@ -1,3 +1,7 @@
+/*=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
+Display.ino
+=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=*/
+
 //----------------------------------------
 // Constants
 //----------------------------------------
@@ -150,7 +154,7 @@ void beginDisplay(TwoWire *i2cBus)
     {
         i2cAddress = kOLEDMicroDefaultAddress;
 
-        if (productVariant == RTK_FLEX)
+        if (productVariant == RTK_FACET_FP)
             i2cAddress = 0x3C;
 
         if (oled == nullptr)
@@ -189,7 +193,7 @@ void beginDisplay(TwoWire *i2cBus)
             }
 
             // Display the brand LOGO
-            RTKBrandAttribute *brandAttribute = getBrandAttributeFromBrand(present.brand);
+            RTKBrandAttribute *brandAttribute = getBrandAttributeFromProductVariant(productVariant);
             oled->erase();
             x = (oled->getWidth() - brandAttribute->logoWidth) / 2;
             y = (oled->getHeight() - brandAttribute->logoHeight) / 2;
@@ -342,6 +346,7 @@ void displayUpdate()
                 break;
 
             case (STATE_BASE_CASTER_NOT_STARTED):
+            case (STATE_BASE_ASSIST_NOT_STARTED):
             case (STATE_BASE_NOT_STARTED):
             case (STATE_BASE_CONFIG_WAIT):
                 displayBaseStart(0); // Show 'Base' while the system configures the Base
@@ -492,6 +497,14 @@ void displayUpdate()
 
 void displaySplash()
 {
+    displaySplashCommon(false); // Full product name not known
+}
+void displaySplashNameKnown()
+{
+    displaySplashCommon(true); // Full product name known
+}
+void displaySplashCommon(bool nameKnown)
+{
     if (online.display == true)
     {
         // Shorten logo display if locally compiled
@@ -506,17 +519,22 @@ void displaySplash()
         oled->display(); // Post a clear display
 
         int fontHeight = 8;
+        int numLines = productVariantProperties->rtkPrefix ? 4 : 3;
         int yPos = (oled->getHeight() - ((fontHeight * 4) + 2 + 5 + 7)) / 2;
 
         // Display the product name
-        RTKBrandAttribute *brandAttributes = getBrandAttributeFromBrand(present.brand);
-        printTextCenter(brandAttributes->name, yPos, QW_FONT_5X7, 1, false); // text, y, font type, kerning, inverted
+        printTextCenter(getBrandAttributeFromProductVariant(productVariant)->name,
+                        yPos, QW_FONT_5X7, 1, false); // text, y, font type, kerning, inverted
 
-        yPos = yPos + fontHeight + 2;
-        printTextCenter("RTK", yPos, QW_FONT_8X16, 1, false);
+        if (productVariantProperties->rtkPrefix)
+        {
+            yPos = yPos + fontHeight + 2;
+            printTextCenter("RTK", yPos, QW_FONT_8X16, 1, false);
+        }
 
         yPos = yPos + fontHeight + 5;
-        printTextCenter(productDisplayNames[productVariant], yPos, QW_FONT_8X16, 1, false);
+        printTextCenter(nameKnown ? displayName : productVariantProperties->name,
+                        yPos, QW_FONT_8X16, 1, false);
 
         yPos = yPos + fontHeight + 7;
         char unitFirmware[50];
@@ -525,8 +543,9 @@ void displaySplash()
 
         oled->display();
 
-        // Start the timer for the splash screen display
-        splashStart = millis();
+        // Retart the timer for the splash screen display
+        if (!nameKnown)
+            splashStart = millis();
     }
 }
 
@@ -1277,6 +1296,7 @@ void setModeIcon(std::vector<iconPropertyBlinking> *iconList)
         break;
 
     case (STATE_BASE_CASTER_NOT_STARTED):
+    case (STATE_BASE_ASSIST_NOT_STARTED):
     case (STATE_BASE_NOT_STARTED):
     case (STATE_BASE_CONFIG_WAIT):
         // Do nothing. Static display shown during state change.
@@ -1696,7 +1716,9 @@ displayCoords paintSIVIcon(std::vector<iconPropertyBlinking> *iconList, const ic
         if (online.gnss)
         {
             // Determine which icon to display
-            if (lbandCorrectionsReceived || spartnCorrectionsReceived)
+            if (settings.pppMode != PPP_MODE_DISABLE)
+                icon = &PppIconProperties;
+            else if (lbandCorrectionsReceived || spartnCorrectionsReceived)
                 icon = &LBandIconProperties;
             else
                 icon = &SIVIconProperties;
@@ -1824,7 +1846,9 @@ void paintLogging(std::vector<iconPropertyBlinking> *iconList, bool pulse, bool 
     prop.icon.bitmap = nullptr;
     prop.duty = 0b11111111;
 
-    if (((online.logging == true) && (logIncreasing || ntpLogIncreasing)) || (present.gnss_mosaicX5 && logIncreasing))
+    // If any logging is taking place, display the logging icon
+    if (((online.logging == true) && (logIncreasing || ntpLogIncreasing))
+        || (present.mosaicMicroSd && logMosaicIncreasing))
     {
         if (NTP)
         {
@@ -2131,6 +2155,24 @@ void displayBaseFail(uint16_t displayTime)
 void displayGNSSFail(uint16_t displayTime)
 {
     displayMessage("GNSS Failed", displayTime);
+}
+
+void displayGNSSAutodetect(uint16_t displayTime)
+{
+    displayMessage("Autodetecting GNSS", displayTime);
+}
+void displayGNSSAutodetectFailed(uint16_t displayTime)
+{
+    displayMessage("Autodetect Failed", displayTime);
+}
+
+void displayTiltAutodetect(uint16_t displayTime)
+{
+    displayMessage("Autodetecting Tilt", displayTime);
+}
+void displayTiltAutodetectFailed(uint16_t displayTime)
+{
+    displayMessage("Autodetect Failed", displayTime);
 }
 
 void displayNoWiFi(uint16_t displayTime)
@@ -2530,14 +2572,14 @@ void paintSystemTest()
                 else
                     oled->print("FAIL");
             }
-            else if (present.gnss_mosaicX5)
+            else if (present.mosaicMicroSd)
             {
                 // Facet mosaic has an SD card, but it is connected directly to the mosaic-X5
                 // Calling gnss->update() during the GNSS check will cause sdCardSize to be updated
                 oled->setCursor(xOffset, yOffset); // x, y
                 oled->print("SD:");
 
-                if (sdCardSize > 0)
+                if (mosaicSdCardSize > 0)
                     oled->print("OK");
                 else
                     oled->print("FAIL");

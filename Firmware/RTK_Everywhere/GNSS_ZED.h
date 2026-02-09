@@ -1,8 +1,8 @@
-/*------------------------------------------------------------------------------
+/*=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 GNSS_ZED.h
 
   Declarations and definitions for the GNSS_ZED implementation
-------------------------------------------------------------------------------*/
+=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=*/
 
 #ifndef __GNSS_ZED_H__
 #define __GNSS_ZED_H__
@@ -412,6 +412,12 @@ class GNSS_ZED : GNSS
 
     bool checkPPPRates();
 
+    // Setup the general configuration of the GNSS
+    // Not Rover or Base specific (ie, baud rates)
+    // Outputs:
+    //   Returns true if successfully configured and false upon failure
+    bool configure();
+
     // Configure the Base
     // Outputs:
     //   Returns true if successfully configured and false upon failure
@@ -419,12 +425,6 @@ class GNSS_ZED : GNSS
 
     // Configure specific aspects of the receiver for NTP mode
     bool configureNtpMode();
-
-    // Setup the general configuration of the GNSS
-    // Not Rover or Base specific (ie, baud rates)
-    // Outputs:
-    //   Returns true if successfully configured and false upon failure
-    bool configure();
 
     // Configure the Rover
     // Outputs:
@@ -490,6 +490,9 @@ class GNSS_ZED : GNSS
 
     // Returns the fix type or zero if not online
     uint8_t getFixType();
+
+    // Returns the geoidal separation
+    double getGeoidalSeparation();
 
     // Returns the hours of 24 hour clock or zero if not online
     uint8_t getHour();
@@ -680,11 +683,6 @@ class GNSS_ZED : GNSS
 
     uint16_t rtcmRead(uint8_t *rtcmBuffer, int rtcmBytesToRead);
 
-    // Save the current configuration
-    // Outputs:
-    //   Returns true when the configuration was saved and false upon failure
-    bool saveConfiguration();
-
     // Set the baud rate on the designated port
     bool setBaudRate(uint8_t uartNumber, uint32_t baudRate); // From the super class
 
@@ -693,6 +691,11 @@ class GNSS_ZED : GNSS
     bool setBaudRateData(uint32_t baudRate);
 
     bool setBaudRateRadio(uint32_t baudRate);
+
+    // Save the current configuration
+    // Outputs:
+    //   Returns true when the configuration was saved and false upon failure
+    bool saveConfiguration();
 
     // Enable all the valid constellations and bands for this platform
     bool setConstellations();
@@ -707,7 +710,7 @@ class GNSS_ZED : GNSS
     bool setElevation(uint8_t elevationDegrees);
 
     // Enable or disable HAS E6 capability
-    bool setHighAccuracyService(bool enableGalileoHas);
+    bool setPppService();
 
     // Configure any logging settings - currently mosaic-X5 specific
     bool setLogging();
@@ -794,6 +797,30 @@ class GNSS_ZED : GNSS
 
     void updateCorrectionsSource(uint8_t source);
 };
+
+// Forward routine declarations
+bool zedCommandList(RTK_Settings_Types type,
+                    int settingsIndex,
+                    bool inCommands,
+                    int qualifier,
+                    char * settingName,
+                    char * settingValue);
+void zedCommandTypeJson(JsonArray &command_types);
+bool zedCreateString(RTK_Settings_Types type,
+                     int settingsIndex,
+                     char * newSettings);
+bool zedGetSettingValue(RTK_Settings_Types type,
+                        const char * suffix,
+                        int settingsIndex,
+                        int qualifier,
+                        char * settingValueStr);
+bool zedNewSettingValue(RTK_Settings_Types type,
+                        const char * suffix,
+                        int qualifier,
+                        double d);
+bool zedSettingsToFile(File *settingsFile,
+                       RTK_Settings_Types type,
+                       int settingsIndex);
 
 #endif // COMPILE_ZED
 #endif // __GNSS_ZED_H__

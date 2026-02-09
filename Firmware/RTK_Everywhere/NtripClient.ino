@@ -1,4 +1,4 @@
-/*------------------------------------------------------------------------------
+/*=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 NtripClient.ino
 
   The NTRIP client sits on top of the network layer and receives correction data
@@ -77,7 +77,7 @@ NtripClient.ino
     * https://emlid.com/ntrip-caster/
     * http://rtk2go.com/
     * private SNIP NTRIP caster
-------------------------------------------------------------------------------*/
+=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=*/
 
 /*=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
   NTRIP Client States:
@@ -200,7 +200,7 @@ unsigned long lastGGAPush;
 
 bool ntripClientForcedShutdown = false; // NTRIP Client was turned off due to an error. Don't allow restart.
 
-bool settingsChanged = false; // Goes true when a menu or command modified the client credentials
+bool ntripClientSettingsHaveChanged = false; // Goes true when a menu or command modified the client credentials
 
 //----------------------------------------
 // NTRIP Client Routines
@@ -245,8 +245,8 @@ bool ntripClientConnect()
     // Set up the server request (GET)
     char serverRequest[SERVER_BUFFER_SIZE];
     int length;
-    snprintf(serverRequest, SERVER_BUFFER_SIZE, "GET /%s HTTP/1.0\r\nUser-Agent: NTRIP SparkFun_RTK_%s_",
-             settings.ntripClient_MountPoint, platformPrefix);
+    snprintf(serverRequest, SERVER_BUFFER_SIZE, "GET /%s HTTP/1.0\r\nUser-Agent: NTRIP %s_",
+             settings.ntripClient_MountPoint, deviceName);
     length = strlen(serverRequest);
     firmwareVersionGet(&serverRequest[length], SERVER_BUFFER_SIZE - 2 - length, false);
     length = strlen(serverRequest);
@@ -396,9 +396,9 @@ bool ntripClientEnabled(const char **line)
         enabled = settings.enableNtripClient;
 
         // Allow restart if settings change
-        if(settingsChanged == true)
+        if(ntripClientSettingsHaveChanged == true)
         {
-            settingsChanged = false;
+            ntripClientSettingsHaveChanged = false;
             ntripClientForcedShutdown = false;
         }
 
@@ -600,7 +600,7 @@ void ntripClientSetState(uint8_t newState)
 // Called from CLI call backs or serial menus to let machine know it can restart the client if it is shut down
 void ntripClientSettingsChanged()
 {
-    settingsChanged = true;
+    ntripClientSettingsHaveChanged = true;
 }
 
 //----------------------------------------
@@ -864,7 +864,7 @@ void ntripClientUpdate()
                                  "Please contact "
                                  "support@sparkfun.com or goto %s to renew the PointPerfect "
                                  "subscription. Please reference device ID: %s\r\n",
-                                 platformRegistrationPageTable[productVariant], printDeviceId());
+                                 productVariantProperties->platformRegistration, printDeviceId());
                 }
                 else
                 {
@@ -916,9 +916,9 @@ void ntripClientUpdate()
             }
 
             // Check if the there have been changes to the client settings
-            if(settingsChanged == true)
+            if(ntripClientSettingsHaveChanged == true)
             {
-                settingsChanged = false;
+                ntripClientSettingsHaveChanged = false;
                 ntripClientRestart();
             }
             // Check for timeout receiving NTRIP data

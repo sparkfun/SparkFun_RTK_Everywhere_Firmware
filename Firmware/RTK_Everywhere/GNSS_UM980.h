@@ -1,9 +1,8 @@
-
-/*------------------------------------------------------------------------------
+/*=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 GNSS_UM980.h
 
   Declarations and definitions for the UM980 GNSS receiver and the GNSS_UM980 class
-------------------------------------------------------------------------------*/
+=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=*/
 
 #ifndef __GNSS_UM980_H__
 #define __GNSS_UM980_H__
@@ -131,7 +130,7 @@ class GNSS_UM980 : GNSS
     // Controls the messages that get broadcast over Bluetooth and logged (if enabled)
     void menuMessagesSubtype(float *localMessageRate, const char *messageType);
 
-    bool setHighAccuracyService(bool enableGalileoHas);
+    bool setPppService();
 
     // Set the minimum satellite signal level for navigation.
     bool setMinCN0(uint8_t cnoValue);
@@ -241,6 +240,9 @@ class GNSS_UM980 : GNSS
 
     // Returns the fix type or zero if not online
     uint8_t getFixType();
+
+    // Returns the geoidal separation
+    double getGeoidalSeparation();
 
     // Returns the hours of 24 hour clock or zero if not online
     uint8_t getHour();
@@ -403,11 +405,6 @@ class GNSS_UM980 : GNSS
 
     uint16_t rtcmRead(uint8_t *rtcmBuffer, int rtcmBytesToRead);
 
-    // Save the current configuration
-    // Outputs:
-    //   Returns true when the configuration was saved and false upon failure
-    bool saveConfiguration();
-
     bool setBaudRate(uint8_t uartNumber, uint32_t baudRate); // From the super class
 
     // Set the baud rate on the GNSS port that interfaces between the ESP32 and the GNSS
@@ -418,6 +415,11 @@ class GNSS_UM980 : GNSS
     bool setBaudRateData(uint32_t baudRate);
 
     bool setBaudRateRadio(uint32_t baudRate);
+
+    // Save the current configuration
+    // Outputs:
+    //   Returns true when the configuration was saved and false upon failure
+    bool saveConfiguration();
 
     // Enable all the valid constellations and bands for this platform
     bool setConstellations();
@@ -495,6 +497,30 @@ class GNSS_UM980 : GNSS
     // Poll routine to update the GNSS state
     void update();
 };
+
+// Forward routine declarations
+bool um980CommandList(RTK_Settings_Types type,
+                      int settingsIndex,
+                      bool inCommands,
+                      int qualifier,
+                      char * settingName,
+                      char * settingValue);
+void um980CommandTypeJson(JsonArray &command_types);
+bool um980CreateString(RTK_Settings_Types type,
+                       int settingsIndex,
+                       char * newSettings);
+bool um980GetSettingValue(RTK_Settings_Types type,
+                          const char * suffix,
+                          int settingsIndex,
+                          int qualifier,
+                          char * settingValueStr);
+bool um980NewSettingValue(RTK_Settings_Types type,
+                          const char * suffix,
+                          int qualifier,
+                          double d);
+bool um980SettingsToFile(File *settingsFile,
+                         RTK_Settings_Types type,
+                         int settingsIndex);
 
 #endif // COMPILE_UM980
 #endif // __GNSS_UM980_H__

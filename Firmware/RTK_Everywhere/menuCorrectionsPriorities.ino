@@ -1,47 +1,49 @@
-//=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
-// menuCorrectionsPriorities.ino
-//
-// Manage the correction sources for the GNSS.  The menu is used to
-// set the priority order of the possible correction sources.
-//
-// As new sources become active (receive correction data), a new
-// correction source is enabled when the new source priority is higher
-// than the current source.  See correctionLastSeen and CorrectionSetSourceId.
-//
-// As the time since last received exceeds settings.correctionsSourcesLifetime_s
-// seconds the correction source transitions from active to inactive.
-// If this source was supplying corrections to the GNSS, correctionIsSourceActive
-// searches for the highest priority active correction source.
-//
-// The correction stack looks like:
-//
-//  Network
-//
-//  Ethernet ---->|           NetworkClient   Corrections
-//                |
-//  WiFi -------->|                  |--> MQTT --->|
-//                +--> IP --> TCP -->+             +--> UART --> GNSS
-//  PPP (LARA) -->|                  |--> NTRIP -->|               ^
-//                                                 |               |
-//  Bluetooth ------------------------------------>|               |
-//                                                 |               |
-//  ESPNOW --------------------------------------->|               |
-//                                                 |               |
-//  LBAND ---------------------------------------->|               |
-//                                                 |               |
-//  LORA ----------------------------------------->|               |
-//                                                 |               |
-//  USB ------------------------------------------>|               |
-//                                                                 |
-//  Serial (Radio Ext) --------------------------------------------'
-//
-// The corrections interface is using:
-//
-//      * available
-//      * read
-//      * write
-//
-//=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
+/*=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
+menuCorrectionsPriorities.ino
+
+  Manage the correction sources for the GNSS.  The menu is used to
+  set the priority order of the possible correction sources.
+
+  As new sources become active (receive correction data), a new
+  correction source is enabled when the new source priority is higher
+  than the current source.  See correctionLastSeen and CorrectionSetSourceId.
+
+  As the time since last received exceeds settings.correctionsSourcesLifetime_s
+  seconds the correction source transitions from active to inactive.
+  If this source was supplying corrections to the GNSS, correctionIsSourceActive
+  searches for the highest priority active correction source.
+
+  The correction stack looks like:
+
+   Network
+
+   Ethernet ---->|           NetworkClient   Corrections
+                 |
+   WiFi -------->|                  |--> MQTT --->|
+                 +--> IP --> TCP -->+             +--> UART --> GNSS
+   PPP (LARA) -->|                  |--> NTRIP -->|               ^
+                                                  |               |
+   Bluetooth ------------------------------------>|               |
+                                                  |               |
+   ESPNOW --------------------------------------->|               |
+                                                  |               |
+   PPP B2b E6------------------------------------>|               |
+                                                  |               |
+   LBAND ---------------------------------------->|               |
+                                                  |               |
+   LORA ----------------------------------------->|               |
+                                                  |               |
+   USB ------------------------------------------>|               |
+                                                                  |
+   Serial (Radio Ext) --------------------------------------------'
+
+  The corrections interface is using:
+
+       * available
+       * read
+       * write
+
+=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=*/
 
 //----------------------------------------
 // Locals
@@ -261,6 +263,8 @@ void correctionPriorityIncrease(CORRECTION_ID_T oldPriority)
 // Correction API
 //----------------------------------------
 
+#ifdef  COMPILE_MENU_CORRECTIONS
+
 //----------------------------------------
 // Set the priority of all correction sources
 // Note: this sets the priority of all possible sources, not just the ones available / in use
@@ -318,6 +322,8 @@ void menuCorrectionsPriorities()
 
     clearBuffer(); // Empty buffer of any newline chars
 }
+
+#endif  // COMPILE_MENU_CORRECTIONS
 
 //----------------------------------------
 // Display the correction priority table
@@ -463,7 +469,7 @@ bool correctionIsSourceActive(CORRECTION_ID_T id)
     bitMask = 1 << id;
     if ((currentMsec - correctionLastSeenMsec[id]) >= timeoutMsec)
     {
-        // Correcions source is actually inactive
+        // Corrections source is actually inactive
         correctionActive &= ~bitMask;
 
         // Update last seen time to support 32-bit roll over of millis()
@@ -645,4 +651,21 @@ void correctionVerifyTables()
     // Verify that the tables are of equal size to prevent bad references
     if (correctionsSourceNamesEntries != CORR_NUM)
         reportFatalError("Fix correctionsSourceNamesEntries to match correctionsSource");
+}
+
+// Called when the GNSS detects a PPP signal. This is used to mark PPP as a corrections source.
+void markPppCorrectionsPresent()
+{
+    // The GNSS is reporting that PPP is detected/converged.
+    // Determine if PPP is the correction source to use
+    if (correctionLastSeen(CORR_PPP_HAS_B2B))
+    {
+        if (settings.debugCorrections == true && !inMainMenu)
+            systemPrintln("PPP Signal detected. Using corrections.");
+    }
+    else
+    {
+        if (settings.debugCorrections == true && !inMainMenu)
+            systemPrintln("PPP signal detected, but it is not the top priority");
+    }    
 }

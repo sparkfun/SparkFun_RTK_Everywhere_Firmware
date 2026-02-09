@@ -1,8 +1,8 @@
-/*------------------------------------------------------------------------------
+/*=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 menuFirmware.ino
 
   This module implements the firmware menu and update code.
-------------------------------------------------------------------------------*/
+=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=*/
 
 //----------------------------------------
 // Constants
@@ -42,6 +42,8 @@ bool newOTAFirmwareAvailable = false;
 //----------------------------------------
 // Menu
 //----------------------------------------
+
+#ifdef  COMPILE_MENU_FIRMWARE
 
 //----------------------------------------
 // Update firmware if bin files found
@@ -90,6 +92,8 @@ void firmwareMenu()
 
     clearBuffer(); // Empty buffer of any newline chars
 }
+
+#endif  // COMPILE_MENU_FIRMWARE
 
 //----------------------------------------
 // Version number comes in as v2.7-Jan 5 2023
@@ -420,7 +424,7 @@ void microSDUpdateFirmware(const char *firmwareFileName)
     // Turn off any tasks so that we are not disrupted
     wifiEspNowOff(__FILE__, __LINE__);
     wifiStopAll();
-    bluetoothStop();
+    bluetoothEnd();
 
     // Delete tasks if running
     tasksStopGnssUart();
@@ -614,7 +618,7 @@ void otaDisplayPercentage(int bytesWritten, int totalLength, bool alwaysDisplay)
         {
             char myProgress[50];
             snprintf(myProgress, sizeof(myProgress), "otaFirmwareStatus,%d,", percent);
-            sendStringToWebsocket(myProgress);
+            webServerSendString(myProgress);
         }
 
         previousPercent = percent;
@@ -880,10 +884,10 @@ void otaUpdate()
                 // is requesting the firmware update via those interfaces, thus we attempt an update
                 // only once, stopping the state machine on failure
 
-                if (websocketConnected)
+                if (webServerIsConnected())
                 {
                     // Report failed connection to web client
-                    sendStringToWebsocket((char *)"newFirmwareVersion,NO_INTERNET,");
+                    webServerSendString((char *)"newFirmwareVersion,NO_INTERNET,");
                     otaUpdateStop();
                 }
 
@@ -937,12 +941,12 @@ void otaUpdate()
                     {
                         otaRequestFirmwareVersionCheck = false;
 
-                        if (websocketConnected)
+                        if (webServerIsConnected())
                         {
                             char newVersionCSV[40];
                             snprintf(newVersionCSV, sizeof(newVersionCSV), "newFirmwareVersion,%s,",
                                      otaReportedVersion);
-                            sendStringToWebsocket(newVersionCSV);
+                            webServerSendString(newVersionCSV);
                         }
 
                         if (bluetoothCommandIsConnected())
@@ -962,8 +966,8 @@ void otaUpdate()
                 else
                 {
                     systemPrintln("Version Check: Firmware is up to date. No new firmware available.");
-                    if (websocketConnected)
-                        sendStringToWebsocket((char *)"newFirmwareVersion,CURRENT,");
+                    if (webServerIsConnected())
+                        webServerSendString((char *)"newFirmwareVersion,CURRENT,");
 
                     otaUpdateStop();
                 }
@@ -972,8 +976,8 @@ void otaUpdate()
             {
                 // Failed to get version number
                 systemPrintln("Failed to get version number from server.");
-                if (websocketConnected)
-                    sendStringToWebsocket((char *)"newFirmwareVersion,NO_SERVER,");
+                if (webServerIsConnected())
+                    webServerSendString((char *)"newFirmwareVersion,NO_SERVER,");
 
                 // Report failure over the CLI
                 if (bluetoothCommandIsConnected())
@@ -991,8 +995,8 @@ void otaUpdate()
             {
                 otaUpdateStop();
 
-                if (websocketConnected)
-                    sendStringToWebsocket((char *)"gettingNewFirmware,ERROR,");
+                if (webServerIsConnected())
+                    webServerSendString((char *)"gettingNewFirmware,ERROR,");
 
                 // Report failure over the CLI
                 if (bluetoothCommandIsConnected())
@@ -1005,8 +1009,8 @@ void otaUpdate()
                 otaUpdateFirmware();
 
                 // Update triggers ESP.restart(). If we get this far, the firmware update has failed
-                if (websocketConnected)
-                    sendStringToWebsocket((char *)"gettingNewFirmware,ERROR,");
+                if (webServerIsConnected())
+                    webServerSendString((char *)"gettingNewFirmware,ERROR,");
 
                 // Report failure over the CLI
                 if (bluetoothCommandIsConnected())
@@ -1053,7 +1057,7 @@ void otaUpdateFirmware()
 
         if (apConfigFirmwareUpdateInProcess)
             // Tell AP page to display reset info
-            sendStringToWebsocket("confirmReset,1,");
+            webServerSendString("confirmReset,1,");
         ESP.restart();
     }
     else if (response == ESP32OTAPull::NO_UPDATE_AVAILABLE)

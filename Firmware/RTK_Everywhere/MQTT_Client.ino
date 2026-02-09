@@ -1,4 +1,4 @@
-/*------------------------------------------------------------------------------
+/*=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 MQTT_Client.ino
 
   The MQTT client sits on top of the network layer and receives correction
@@ -58,7 +58,7 @@ MQTT_Client.ino
                                              v
                                         MQTT Broker
 
-------------------------------------------------------------------------------*/
+=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=*/
 
 // How this works:
 // There are two vectors of topics:
@@ -1020,7 +1020,7 @@ void mqttClientUpdate()
             mqttClientRestart();
             break;
         }
-        
+
         // Check for new data
         mqttClient->poll();
 

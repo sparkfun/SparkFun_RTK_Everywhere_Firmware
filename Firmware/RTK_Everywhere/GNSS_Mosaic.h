@@ -1,8 +1,8 @@
-/*------------------------------------------------------------------------------
+/*=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 GNSS_Mosaic.h
 
   Declarations and definitions for the Mosaic GNSS receiver
-------------------------------------------------------------------------------*/
+=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=*/
 
 #ifndef __GNSS_MOSAIC_H__
 #define __GNSS_MOSAIC_H__
@@ -604,6 +604,13 @@ class GNSS_MOSAIC : GNSS
 
     bool checkPPPRates();
 
+    // On platforms that support / need it (i.e. mosaic-X5), refresh the
+    // COM port by sending an escape sequence or similar to make the
+    // GNSS snap out of it...
+    // Outputs:
+    //   Returns true if successful and false upon failure
+    bool comPortRefresh();
+
     // Configure the Base
     // Outputs:
     //   Returns true if successfully configured and false upon failure
@@ -698,6 +705,9 @@ class GNSS_MOSAIC : GNSS
 
     // Returns the fix type or zero if not online
     uint8_t getFixType();
+
+    // Returns the geoidal separation
+    double getGeoidalSeparation();
 
     // Returns the hours of 24 hour clock or zero if not online
     uint8_t getHour();
@@ -820,7 +830,7 @@ class GNSS_MOSAIC : GNSS
     bool isPresent();
     bool isPresentOnSerial(HardwareSerial *serialPort, const char *command, const char *response, const char *console,
                            int retryLimit = 20);
-    bool mosaicIsPresentOnFlex();
+    bool mosaicIsPresentOnFacetFP();
 
     // Some functions (L-Band area frequency determination) merely need
     // to know if we have an RTK Fix.  This function checks to see if the
@@ -988,7 +998,7 @@ class GNSS_MOSAIC : GNSS
     bool setElevation(uint8_t elevationDegrees);
 
     // Enable or disable HAS E6 capability
-    bool setHighAccuracyService(bool enableGalileoHas);
+    bool setPppService();
 
     // Configure any logging settings - currently mosaic-X5 specific
     bool setLogging();
@@ -1071,4 +1081,30 @@ class GNSS_MOSAIC : GNSS
     void waitSBFReceiverSetup(HardwareSerial *serialPort, unsigned long timeout);
 };
 
-#endif // __GNSS_MOSAIC_H__
+// Forward routine declarations
+bool mosaicCommandList(RTK_Settings_Types type,
+                       int settingsIndex,
+                       bool inCommands,
+                       int qualifier,
+                       char * settingName,
+                       char * settingValue);
+void mosaicCommandTypeJson(JsonArray &command_types);
+bool mosaicCreateString(RTK_Settings_Types type,
+                        int settingsIndex,
+                        char * newSettings);
+bool mosaicpGetSettingValue(RTK_Settings_Types type,
+                            const char * suffix,
+                            int settingsIndex,
+                            int qualifier,
+                            char * settingValueStr);
+bool mosaicIsPresentOnFacetFP();
+void mosaicNewClass();
+bool mosaicNewSettingValue(RTK_Settings_Types type,
+                           const char * suffix,
+                           int qualifier,
+                           double d);
+bool mosaicSettingsToFile(File *settingsFile,
+                          RTK_Settings_Types type,
+                          int settingsIndex);
+
+#endif  // __GNSS_MOSAIC_H__

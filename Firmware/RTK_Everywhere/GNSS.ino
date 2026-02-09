@@ -1,4 +1,4 @@
-/*------------------------------------------------------------------------------
+/*=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 GNSS.ino
 
   GNSS layer implementation
@@ -23,7 +23,7 @@ calculation
   * setMessagesNMEA() - Set the NMEA messages output during Base or Rover mode
   * setMessagesRTCMBase() - Set the RTCM messages output during Base mode
   * setMessagesRTCMRover() - Set the RTCM messages output during Rover mode
-  * setHighAccuracyService() - Set the PPP/HAS E6 capabilities of the receiver
+  * setPppService() - Set the PPP/HAS E6 capabilities of the receiver
   * setMultipathMitigation() - Set the multipath capabilities of the receiver
   * setTilt() - Set the GNSS receiver's output to be compatible with a tilt sensor
   * setCorrRadioExtPort() - Set corrections protocol(s) on the UART connected to the RADIO port
@@ -31,7 +31,77 @@ calculation
   * reset() - Reset the receiver (through software or hardware)
   * factoryReset() - Reset the receiver to factory settings
   There are many more but these form the core of any configuration interface.
-  ------------------------------------------------------------------------------*/
+=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=*/
+
+//----------------------------------------
+// Constants
+//----------------------------------------
+
+const GNSS_SUPPORT_ROUTINES gnssSupportRoutines[] =
+{
+#ifdef  COMPILE_LG290P
+    {
+        "LG290P",               // name
+        "L",                    // gnssModelIdentifier for Facet FP deviceName
+        GNSS_RECEIVER_LG290P,   // _receiver
+        lg290pIsPresentOnFacetFP,  // _present
+        lg290pNewClass,         // _newClass
+        lg290pCommandList,      // _commandList
+        lg290pCommandTypeJson,  // _commandTypeJson
+        lg290pCreateString,     // _createString
+        lg290pGetSettingValue,  // _getSettingValue
+        lg290pNewSettingValue,  // _newSettingValue
+        lg290pSettingsToFile,   // _settingToFile
+    },
+#endif  // COMPILE_LG290P
+#ifdef  COMPILE_MOSAICX5
+    {
+        "Mosaic-X5",                // name
+        "M",                        // gnssModelIdentifier for Facet FP deviceName
+        GNSS_RECEIVER_MOSAIC_X5,    // _receiver
+        mosaicIsPresentOnFacetFP,      // _present
+        mosaicNewClass,             // _newClass
+        mosaicCommandList,          // _commandList
+        mosaicCommandTypeJson,      // _commandTypeJson
+        mosaicCreateString,         // _createString
+        mosaicGetSettingValue,      // _getSettingValue
+        mosaicNewSettingValue,      // _newSettingValue
+        mosaicSettingsToFile,       // _settingToFile
+    },
+#endif  // COMPILE_MOSAICX5
+#ifdef  COMPILE_UM980
+    {
+        "UM980",                // name
+        "U",                    // gnssModelIdentifier for Facet FP deviceName
+        GNSS_RECEIVER_UNKNOWN,  // _receiver
+        nullptr,                // _present
+        nullptr,                // _newClass
+        um980CommandList,       // _commandList
+        um980CommandTypeJson,   // _commandTypeJson
+        um980CreateString,      // _createString
+        um980GetSettingValue,   // _getSettingValue
+        um980NewSettingValue,   // _newSettingValue
+        um980SettingsToFile,    // _settingToFile
+    },
+#endif  // COMPILE_UM980
+#ifdef  COMPILE_ZED
+    // TODO: We should expand this to cover both ZED-F9P "F" and ZED-X20P "X"
+    {
+        "ZED",                  // name
+        "F",                    // gnssModelIdentifier for Facet FP deviceName
+        GNSS_RECEIVER_UNKNOWN,  // _receiver
+        nullptr,                // _present
+        nullptr,                // _newClass
+        zedCommandList,         // _commandList
+        zedCommandTypeJson,     // _commandTypeJson
+        zedCreateString,        // _createString
+        zedGetSettingValue,     // _getSettingValue
+        zedNewSettingValue,     // _newSettingValue
+        zedSettingsToFile,      // _settingToFile
+    },
+#endif  // COMPILE_ZED
+};
+#define GNSS_SUPPORT_ROUTINES_ENTRIES   (sizeof(gnssSupportRoutines) / sizeof(gnssSupportRoutines[0]))
 
 // We may receive a command or the user may change a setting that needs to modify the configuration of the GNSS receiver
 // Because this can take time, we group all the changes together and re-configure the receiver once the user has exited
@@ -55,7 +125,7 @@ enum
     GNSS_CONFIG_MESSAGE_RATE_RTCM_ROVER, // Update RTCM Rover message rates
     GNSS_CONFIG_MESSAGE_RATE_RTCM_BASE,  // Update RTCM Base message rates
     GNSS_CONFIG_MESSAGE_RATE_OTHER,      // Update any other messages (UBX, PQTM, etc)
-    GNSS_CONFIG_HAS_E6,                  // Enable/disable HAS E6 capabilities
+    GNSS_CONFIG_PPP,                  // Enable/disable HAS E6 capabilities
     GNSS_CONFIG_MULTIPATH,
     GNSS_CONFIG_TILT,            // Enable/disable any output needed for tilt compensation
     GNSS_CONFIG_EXT_CORRECTIONS, // Enable / disable corrections protocol(s) on the Radio External port
@@ -85,7 +155,7 @@ static const char *gnssConfigDisplayNames[] = {
     "MESSAGE_RATE_RTCM_ROVER",
     "MESSAGE_RATE_RTCM_BASE",
     "MESSAGE_RATE_RTCM_OTHER",
-    "HAS_E6",
+    "PPP_HAS_B2B",
     "MULTIPATH",
     "TILT",
     "EXT_CORRECTIONS",
@@ -95,6 +165,18 @@ static const char *gnssConfigDisplayNames[] = {
 };
 
 static const int gnssConfigStateEntries = sizeof(gnssConfigDisplayNames) / sizeof(gnssConfigDisplayNames[0]);
+
+volatile bool gnssConfigureInProgress = false;
+
+// On platforms that support / need it (i.e. mosaic-X5), refresh the
+// COM port by sending an escape sequence or similar to make the
+// GNSS snap out of it...
+// Outputs:
+//   Returns true if successful and false upon failure
+bool GNSS::comPortRefresh()
+{
+    return true;
+}
 
 //----------------------------------------
 // Returns true if the antenna is shorted
@@ -145,8 +227,11 @@ void gnssUpdate()
     // Only update the GNSS receiver once the CLI, serial menu, and Web Config interfaces are disconnected
     // This is to avoid multiple reconfigure delays when multiple commands are received, ie enable GPS, disable Galileo,
     // should only trigger one GNSS reconfigure
-    if (bluetoothCommandIsConnected() == false && inMainMenu == false && inWebConfigMode() == false)
+    const unsigned long bleCommandIdleTimeout = 2000; // TODO: check if this is long enough?
+    if ((inMainMenu == false) && (inWebConfigMode() == false)
+        && ((millis() - bleCommandTrafficSeen_millis) > bleCommandIdleTimeout))
     {
+        gnssConfigureInProgress = true; // Set the 'semaphore'
         bool result = true;
 
         // Service requests
@@ -273,11 +358,11 @@ void gnssUpdate()
             }
         }
 
-        if (gnssConfigureRequested(GNSS_CONFIG_HAS_E6))
+        if (gnssConfigureRequested(GNSS_CONFIG_PPP))
         {
-            if (gnss->setHighAccuracyService(settings.enableGalileoHas) == true)
+            if (gnss->setPppService() == true)
             {
-                gnssConfigureClear(GNSS_CONFIG_HAS_E6);
+                gnssConfigureClear(GNSS_CONFIG_PPP);
                 gnssConfigure(GNSS_CONFIG_SAVE); // Request receiver commit this change to NVM
             }
         }
@@ -378,21 +463,34 @@ void gnssUpdate()
 
         // If gnssConfigureRequest bits are still set, the next update will attempt to service them.
 
-        if (settings.gnssConfigureRequest != 0 && settings.debugGnssConfig)
+        if (settings.gnssConfigureRequest != 0)
         {
-            systemPrint("Remaining gnssConfigureRequest: ");
-
-            for (int x = 0; x < GNSS_CONFIG_MAX; x++)
+            if (settings.debugGnssConfig)
             {
-                if (gnssConfigureRequested(x))
-                    systemPrintf("%s ", gnssConfigDisplayNames[x]);
+                systemPrint("Remaining gnssConfigureRequest: ");
+
+                for (int x = 0; x < GNSS_CONFIG_MAX; x++)
+                {
+                    if (gnssConfigureRequested(x))
+                        systemPrintf("%s ", gnssConfigDisplayNames[x]);
+                }
+                systemPrintln();
             }
-            systemPrintln();
+
+            // On Facet FP mosaic-X5:
+            //   If NTRIP has been connected and corrections have been pushed to the GNSS over COM1
+            //   Then the corrections are stopped (e.g. NTRIP is disabled)
+            //   COM1 can ignore incoming commands and the above GNSS configuration fails with a timeout
+            //   The solution is to send the escape sequence
+            gnss->comPortRefresh();
         }
 
         // settings.gnssConfigureRequest was likely changed. Record the current config state to ESP32 NVM
         recordSystemSettings();
-    } // end bluetoothCommandIsConnected(), inMainMenu, inWebConfigMode()
+
+        gnssConfigureInProgress = false; // Clear the 'semaphore'
+
+    } // end bleCommandIdleTimeout, inMainMenu, inWebConfigMode()
 }
 
 //----------------------------------------
@@ -405,14 +503,14 @@ void gnssVerifyTables()
 }
 
 // Given a bit to configure, set that bit in the overall bitfield
-void gnssConfigure(uint8_t configureBit)
+void gnssConfigure(uint32_t configureBit)
 {
     uint32_t mask = (1 << configureBit);
     settings.gnssConfigureRequest |= mask; // Set the bit
 }
 
 // Given a bit to configure, clear that bit from the overall bitfield
-void gnssConfigureClear(uint8_t configureBit)
+void gnssConfigureClear(uint32_t configureBit)
 {
     uint32_t mask = (1 << configureBit);
 
@@ -423,7 +521,7 @@ void gnssConfigureClear(uint8_t configureBit)
 }
 
 // Return true if a given bit is set
-bool gnssConfigureRequested(uint8_t configureBit)
+bool gnssConfigureRequested(uint32_t configureBit)
 {
     uint32_t mask = (1 << configureBit);
 
@@ -526,80 +624,59 @@ static void pushGPGGA(char *ggaData)
 // If we have a previous ID, use it
 void gnssDetectReceiverType()
 {
-    // Currently only the Flex requires GNSS receiver detection
-    if (productVariant != RTK_FLEX)
+    int index;
+
+    // Currently only the Facet FP requires GNSS receiver detection
+    if (productVariant != RTK_FACET_FP)
         return;
 
-    gnssBoot(); // Tell GNSS to run
-
-    // Start auto-detect if NVM is not yet set
-    if (settings.detectedGnssReceiver == GNSS_RECEIVER_UNKNOWN)
+    if (gpioExpanderDetectGnss() == true)
     {
-        // The COMPILE guards prevent else if
-        // Use a do while (0) so we can break when GNSS is detected
-        do
+        gnssBoot(); // Tell GNSS to run
+
+        // Start auto-detect if NVM is not yet set
+        if (settings.detectedGnssReceiver == GNSS_RECEIVER_UNKNOWN)
         {
-#ifdef COMPILE_LG290P
-            systemPrintln("Testing for LG290P");
-            if (lg290pIsPresentOnFlex() == true)
+            systemPrintln("Beginning GNSS autodetection");
+            displayGNSSAutodetect(0);
+
+            for (index = 0; index < GNSS_SUPPORT_ROUTINES_ENTRIES; index++)
             {
-                systemPrintln("Auto-detected GNSS receiver: LG290P");
-                settings.detectedGnssReceiver = GNSS_RECEIVER_LG290P;
-                recordSystemSettings(); // Record the detected GNSS receiver and avoid this test in the future
-                break;
+                if (gnssSupportRoutines[index]._present
+                    && gnssSupportRoutines[index]._present())
+                {
+                    systemPrintf("Auto-detected GNSS receiver: %s\r\n",
+                                gnssSupportRoutines[index].name);
+                    settings.detectedGnssReceiver = gnssSupportRoutines[index]._receiver;
+                    recordSystemSettings(); // Record the detected GNSS receiver and avoid this test in the future
+                    break;
+                }
             }
-#else  // COMPILE_LGP290P
-            systemPrintln("<<<<<<<<<< !!!!!!!!!! LG290P NOT COMPILED !!!!!!!!!! >>>>>>>>>>");
-#endif // COMPILE_LGP290P
+        }
 
-#ifdef COMPILE_MOSAICX5
-            systemPrintln("Testing for mosaic-X5");
-            if (mosaicIsPresentOnFlex() == true) // Note: this changes the COM1 baud from 115200 to 460800
+        if (settings.detectedGnssReceiver != GNSS_RECEIVER_UNKNOWN)
+        {
+            // Create the GNSS class instance
+            for (index = 0; index < GNSS_SUPPORT_ROUTINES_ENTRIES; index++)
             {
-                systemPrintln("Auto-detected GNSS receiver: mosaic-X5");
-                settings.detectedGnssReceiver = GNSS_RECEIVER_MOSAIC_X5;
-                recordSystemSettings(); // Record the detected GNSS receiver and avoid this test in the future
-                break;
+                if (settings.detectedGnssReceiver == gnssSupportRoutines[index]._receiver)
+                {
+                    if (gnssSupportRoutines[index]._newClass)
+                        gnssSupportRoutines[index]._newClass();
+                    return;
+                }
             }
-#else  // COMPILE_MOSAICX5
-            systemPrintln("<<<<<<<<<< !!!!!!!!!! MOSAICX5 NOT COMPILED !!!!!!!!!! >>>>>>>>>>");
-#endif // COMPILE_MOSAICX5
-        } while (0);
-    }
-
-    // Start the detected receiver
-    if (settings.detectedGnssReceiver == GNSS_RECEIVER_LG290P)
-    {
-#ifdef COMPILE_LG290P
-        gnss = (GNSS *)new GNSS_LG290P();
-
-        present.gnss_lg290p = true;
-        present.minCN0 = true;
-        present.minElevation = true;
-        present.needsExternalPpl = true; // Uses the PointPerfect Library
-
-#endif // COMPILE_LGP290P
-    }
-    else if (settings.detectedGnssReceiver == GNSS_RECEIVER_MOSAIC_X5)
-    {
-#ifdef COMPILE_MOSAICX5
-        gnss = (GNSS *)new GNSS_MOSAIC();
-
-        present.gnss_mosaicX5 = true;
-        present.minCN0 = true;
-        present.minElevation = true;
-        present.dynamicModel = true;
-        present.mosaicMicroSd = true;
-        // present.needsExternalPpl = true; // Nope. No L-Band support...
-
-#endif // COMPILE_MOSAICX5
+        }
     }
 
     // Auto ID failed, mark everything as unknown
-    else if (settings.detectedGnssReceiver == GNSS_RECEIVER_UNKNOWN)
-    {
-        gnss = (GNSS *)new GNSS_None();
-    }
+    // Note: there can be only one! If you use "gnss = (GNSS *)new GNSS_None();"
+    // more than once, you get a really obscure linker error and your compilation
+    // will fail... The code above has been rearranged so we only need to use it once.
+    gnss = (GNSS *)new GNSS_None();
+    systemPrintln("Failed to detect or identify a flex module.");
+    settings.enablePrintBatteryMessages = true; // Print _something_ to the console
+    displayGNSSAutodetectFailed(2000);
 }
 
 // Based on the platform, put the GNSS receiver into run mode
@@ -613,7 +690,7 @@ void gnssBoot()
     {
         digitalWrite(pin_GNSS_DR_Reset, HIGH); // Tell LG290P to boot
     }
-    else if (productVariant == RTK_FLEX)
+    else if (productVariant == RTK_FACET_FP)
     {
         gpioExpanderGnssBoot(); // Drive the GNSS reset pin high
     }
@@ -634,9 +711,9 @@ void gnssReset()
     }
     else if (productVariant == RTK_TORCH_X2)
     {
-        digitalWrite(pin_GNSS_Reset, LOW); // Tell LG290P to reset
+        digitalWrite(pin_GNSS_DR_Reset, LOW); // Tell LG290P to reset
     }
-    else if (productVariant == RTK_FLEX)
+    else if (productVariant == RTK_FACET_FP)
     {
         gpioExpanderGnssReset(); // Drive the GNSS reset pin low
     }
@@ -688,19 +765,6 @@ void gnssFirmwareBeginUpdate()
 {
     // Note: UM980 needs its own dedicated update function, due to the T@ and bootloader trigger
 
-    // Note: gnssFirmwareBeginUpdate is called during setup, after identify board. I2C, gpio expanders, buttons
-    //  and display have all been initialized. But, importantly, the UARTs have not yet been started.
-    //  This makes our job much easier...
-
-    // NOTE: QGNSS firmware update fails on LG290P due, I think, to QGNSS doing some kind of autobaud
-    //  detection at the start of the update. I think the delays introduced by serialGNSS->write(Serial.read())
-    //  and Serial.write(serialGNSS->read()) cause the failure, but I'm not sure.
-    //  It seems that LG290P needs a dedicated hardware link from USB to GNSS UART for a successful update.
-    //  This will be added in the next rev of the Flex motherboard.
-
-    // NOTE: X20P will expect a baud rate change during the update, unless we force 9600 baud.
-    //  The dedicated hardware link will make X20P firmware updates easy.
-
     // Flag that we are in direct connect mode. Button task will gnssFirmwareRemoveUpdate and exit
     inDirectConnectMode = true;
 
@@ -710,77 +774,111 @@ void gnssFirmwareBeginUpdate()
     // Paint GNSS Update
     paintGnssUpdate();
 
+    // On Facet FP, set SW5 to provide a direct connection from GNSS UART1 to CH342 Channel A
+    if (productVariant == RTK_FACET_FP)
+        gnssFirmwareDirectConnectHardware();
+    else
+        gnssFirmwareDirectConnectSoftware();
+
+    // Remove the special file. See #763 . Do the file removal in the loop
+    gnssFirmwareRemoveUpdate();
+
+    systemFlush(); // Complete prints
+
+    ESP.restart();
+}
+
+//----------------------------------------
+void gnssFirmwareDirectConnectSoftware()
+{
+    // Note: UM980 needs its own dedicated update function, due to the T@ and bootloader trigger
+
+    // Note: gnssFirmwareBeginUpdate is called during setup, after identify board. I2C, gpio expanders, buttons
+    //  and display have all been initialized. But, importantly, the UARTs have not yet been started.
+    //  This makes our job much easier...
+
     // Stop all UART tasks. Redundant
     tasksStopGnssUart();
 
     uint32_t serialBaud = 115200;
 
-    forceGnssCommunicationRate(serialBaud); // On Flex, must be called after gnssDetectReceiverType
+    forceGnssCommunicationRate(serialBaud);
 
     systemPrintln();
-    systemPrintf("Entering GNSS direct connect for firmware update and configuration. Disconnect this terminal "
-                 "connection. Use the GNSS manufacturer software "
-                 "to update the firmware. Baudrate: %dbps. Press the %s button to return "
-                 "to normal operation.\r\n",
-                 serialBaud, present.button_mode ? "mode" : "power");
+    systemPrintln("Entering GNSS direct connect for firmware update and configuration");
+    systemPrintln("Disconnect this terminal connection");
+    systemPrintln("Use the GNSS manufacturer software to update the firmware");
+    systemPrintf("Baudrate: %dbps\r\n", serialBaud);
+    systemPrintf("Press the %s button to return to normal operation\r\n",
+                 present.button_mode ? "mode" : "power");
     systemFlush();
 
     Serial.end(); // We must end before we begin otherwise the UART settings are corrupted
     Serial.begin(serialBaud);
 
     if (serialGNSS == nullptr)
-        serialGNSS = new HardwareSerial(2); // Use UART2 on the ESP32 for communication with the GNSS module
+        serialGNSS = new HardwareSerial(1); // Use UART1 on the ESP32 for communication with the GNSS module
 
     serialGNSS->setRxBufferSize(settings.uartReceiveBufferSize);
     serialGNSS->setTimeout(settings.serialTimeoutGNSS); // Requires serial traffic on the UART pins for detection
 
-    // This is OK for Flex too. We're using the main GNSS pins.
     serialGNSS->begin(serialBaud, SERIAL_8N1, pin_GnssUart_RX, pin_GnssUart_TX);
 
     // Echo everything to/from GNSS
     task.endDirectConnectMode = false;
     while (!task.endDirectConnectMode)
     {
-        static unsigned long lastSerial = millis(); // Temporary fix for buttonless Flex
-
         if (Serial.available()) // Note: use if, not while
         {
             serialGNSS->write(Serial.read());
-            lastSerial = millis();
         }
 
         if (serialGNSS->available()) // Note: use if, not while
             Serial.write(serialGNSS->read());
 
         // Button task will set task.endDirectConnectMode true
+    }
+}
 
-        // Temporary fix for buttonless Flex. TODO - remove
-        if ((productVariant == RTK_FLEX) && ((millis() - lastSerial) > 30000))
-        {
-            // Beep to indicate exit
-            beepOn();
-            delay(300);
-            beepOff();
-            delay(100);
-            beepOn();
-            delay(300);
-            beepOff();
+//----------------------------------------
+void gnssFirmwareDirectConnectHardware() // Facet FP
+{
+    systemPrintln();
+    systemPrintln("Entering GNSS direct connect for firmware update and configuration");
+    systemPrintf("Use the GNSS manufacturer software to update the firmware via %s\r\n", present.gnssUpdatePort);
+    if (present.gnss_lg290p)
+    {
+        systemPrintln("With QGNSS:");
+        systemPrintln("  Open Tools / Firmware Update");
+        systemPrintln("  Select the .pkg firmware file");
+        systemPrintln("  On the top tool bar, click \"Reboot\" (blue circle-back icon)");
+        systemPrintln("  Then click the green arrow to start the Firmware Update");
+    }
+    systemPrintf("Initial baudrate: %dbps\r\n", settings.dataPortBaud);
+    systemPrintf("Press the %s button or hit any key to return to normal operation\r\n",
+                 present.button_mode ? "mode" : "power");
+    systemFlush();
 
-            gnssFirmwareRemoveUpdate();
+    gpioExpanderConnectGNSSToCH342();
 
-            systemPrintln("Exiting direct connection (passthrough) mode");
-            systemFlush(); // Complete prints
+    while (Serial.available())
+        Serial.read(); // Ensure the buffer is empty
 
-            ESP.restart();
-        }
+    // Spin our wheels until the user presses a button or hits a key
+    task.endDirectConnectMode = false;
+    while (!task.endDirectConnectMode && !Serial.available())
+    {
+        delay(1);
+        // Button task will set task.endDirectConnectMode true
     }
 
-    // Remove all the special file. See #763 . Do the file removal in the loop
-    gnssFirmwareRemoveUpdate();
+    gpioExpanderConnectGNSSToESP32(); // Redundant...
 
-    systemFlush(); // Complete prints
-
-    ESP.restart();
+    if (Serial.available()) // buttonCheckTask has its own print
+    {
+        systemPrintln("Exiting GNSS direct connect");
+        systemPrintln("Restarting...");
+    }
 }
 
 //----------------------------------------
@@ -824,12 +922,120 @@ void gnssFirmwareRemoveUpdateFile(const char *filename)
     if (settings.debugGnssConfig)
         systemPrintf("Removing passthrough file: %s \r\n", filename);
 
-    Serial.println("1");
     if (LittleFS.exists(filename))
     {
-        Serial.println("2");
         delay(50);
 
         LittleFS.remove(filename);
     }
+}
+
+//----------------------------------------
+// List available settings, their type in CSV, and value
+//----------------------------------------
+bool gnssCommandList(RTK_Settings_Types type,
+                     int settingsIndex,
+                     bool inCommands,
+                     int qualifier,
+                     char * settingName,
+                     char * settingValue)
+{
+    for (int index = 0; index < GNSS_SUPPORT_ROUTINES_ENTRIES; index++)
+    {
+        if (gnssSupportRoutines[index]._commandList
+            && gnssSupportRoutines[index]._commandList(type,
+                                                       settingsIndex,
+                                                       inCommands,
+                                                       qualifier,
+                                                       settingName,
+                                                       settingValue))
+            return true;
+    }
+    return false;
+}
+
+//----------------------------------------
+// Add types to a JSON array
+//----------------------------------------
+void gnssCommandTypeJson(JsonArray &command_types)
+{
+    for (int index = 0; index < GNSS_SUPPORT_ROUTINES_ENTRIES; index++)
+    {
+        if (gnssSupportRoutines[index]._commandTypeJson)
+            gnssSupportRoutines[index]._commandTypeJson(command_types);
+    }
+}
+
+//----------------------------------------
+// Called by createSettingsString to build settings file string
+//----------------------------------------
+bool gnssCreateString(RTK_Settings_Types type,
+                      int settingsIndex,
+                      char * newSettings)
+{
+    for (int index = 0; index < GNSS_SUPPORT_ROUTINES_ENTRIES; index++)
+    {
+        if (gnssSupportRoutines[index]._createString
+            && gnssSupportRoutines[index]._createString(type, settingsIndex, newSettings))
+            return true;
+    }
+    return false;
+}
+
+//----------------------------------------
+// Return setting value as a string
+//----------------------------------------
+bool gnssGetSettingValue(RTK_Settings_Types type,
+                         const char * suffix,
+                         int settingsIndex,
+                         int qualifier,
+                         char * settingValueStr)
+{
+    for (int index = 0; index < GNSS_SUPPORT_ROUTINES_ENTRIES; index++)
+    {
+        if (gnssSupportRoutines[index]._getSettingValue
+            && gnssSupportRoutines[index]._getSettingValue(type,
+                                                           suffix,
+                                                           settingsIndex,
+                                                           qualifier,
+                                                           settingValueStr))
+            return true;
+    }
+    return false;
+}
+
+//----------------------------------------
+// Called by parseLine to parse GNSS specific settings
+//----------------------------------------
+bool gnssNewSettingValue(RTK_Settings_Types type,
+                         const char * suffix,
+                         int qualifier,
+                         double d)
+{
+    // We must parse all GNSS. tCmnCnst etc. are present in all GNSS
+    bool retval = false;
+    for (int index = 0; index < GNSS_SUPPORT_ROUTINES_ENTRIES; index++)
+    {
+        if (gnssSupportRoutines[index]._newSettingValue)
+        {
+            retval |= gnssSupportRoutines[index]._newSettingValue(type, suffix, qualifier, d);
+        }
+    }
+    return retval;
+}
+
+//----------------------------------------
+// Called by recordSystemSettingsToFile to save GNSS specific settings
+//----------------------------------------
+bool gnssSettingsToFile(File *settingsFile,
+                        RTK_Settings_Types type,
+                        int settingsIndex)
+{
+    for (int index = 0; index < GNSS_SUPPORT_ROUTINES_ENTRIES; index++)
+    {
+        if (gnssSupportRoutines[index]._settingToFile
+            && gnssSupportRoutines[index]._settingToFile(settingsFile, type, settingsIndex))
+            return true;
+    }
+    return false;
 }

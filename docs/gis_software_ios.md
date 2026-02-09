@@ -279,6 +279,44 @@ ArcGIS Survey123 Map Interface
 
 Returning to the map view, we can now begin gathering point information with millimeter accuracy.
 
+## Diamond Maps
+
+Diamond Maps is *very* easy to use and setup for RTK work. Once the app is installed, open a project.
+
+![Diamond Maps Home Screen](<./img/DiamondMaps/SparkFun RTK Diamond Maps iOS - Map.PNG>)
+
+Above, select the hamburger icon to open the menu.
+
+![Select GPS Status Button](<./img/DiamondMaps/SparkFun RTK Diamond Maps iOS - GPS Menu.PNG>)
+
+Press *GPS Status* to open the settings.
+
+![Press the GPS Select Button](<./img/DiamondMaps/SparkFun RTK Diamond Maps iOS - GPS Select.PNG>)
+
+Press *Select* to open the GPS selection menu.
+
+![Scan for Bluetooth devices button](<./img/DiamondMaps/SparkFun RTK Diamond Maps iOS - Scan Bluetooth.PNG>)
+
+Press the *Scan for Bluetooth Devices* button.
+
+![Selecting a SparkPNT device](<./img/DiamondMaps/SparkFun RTK Diamond Maps iOS - Select Bluetooth.PNG>)
+
+Select the SparkPNT device to connect to.
+
+![GPS output](<./img/DiamondMaps/SparkFun RTK Diamond Maps iOS - GPS Connected.PNG>)
+
+Above, we can see that we have satellites in view, with ~0.82ft accuracy. Click *Setup* for the NTRIP Client.
+
+![NTRIP Client Credentials](<./img/DiamondMaps/SparkFun RTK Diamond Maps iOS - Setup NTRIP.PNG>)
+
+Enter the NTRIP Client Credentials for your RTK network. Do you need access to corrections? SparkFun offers a $15/month service [here](https://www.sparkfun.com/pointperfect).
+
+Double check that **Send GGA* is set correctly. Most services require GGA be sent every 10 to 30 seconds. Once the credentials are entered, press *Start*.
+
+![RTK Fix in Diamond Maps](<./img/DiamondMaps/SparkFun RTK Diamond Maps iOS - Do Work with RTK.PNG>)
+
+Return to the home screen and view the location. Note the accuracy is excellent at 0.03ft.
+
 ## Hotspot Settings
 
 Apple released an iOS update in mid 2024 that changed the default hotspot frequency to 5.5GHz. The RTK product line uses 2.4GHz for WiFi and will not be able to communicate at this frequency. This can be fix by opening *Settings* then **Personal Hotspot**.

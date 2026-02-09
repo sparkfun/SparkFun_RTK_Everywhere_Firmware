@@ -1,21 +1,14 @@
-/*------------------------------------------------------------------------------
+/*=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 GNSS_None.h
 
   Declarations and definitions for the empty GNSS layer
-------------------------------------------------------------------------------*/
+=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=*/
 
 #ifndef __GNSS_None_H__
 #define __GNSS_None_H__
 
 class GNSS_None : public GNSS
 {
-  protected:
-    // Set the minimum satellite signal level for navigation.
-    bool setMinCN0(uint8_t cnoValue)
-    {
-        return false;
-    }
-
   public:
     // Constructor
     GNSS_None() : GNSS()
@@ -122,22 +115,6 @@ class GNSS_None : public GNSS
     {
     }
 
-    // Responds with the messages supported on this platform
-    // Inputs:
-    //   returnText: String to receive message names
-    // Returns message names in the returnText string
-    void getMessageList(String &returnText)
-    {
-    }
-
-    // Responds with the RTCM/Base messages supported on this platform
-    // Inputs:
-    //   returnText: String to receive message names
-    // Returns message names in the returnText string
-    void getMessageListBase(String &returnText)
-    {
-    }
-
     void debuggingDisable()
     {
     }
@@ -232,6 +209,14 @@ class GNSS_None : public GNSS
     uint8_t getFixType()
     {
         return _fixType;
+    }
+
+    // Get the geoidal separation
+    // Outputs:
+    //   Returns the geoidal separation in meters or zero if the GNSS is offline
+    double getGeoidalSeparation()
+    {
+        return _geoidalSeparation;
     }
 
     // Returns the hours of 24 hour clock or zero if not online
@@ -490,10 +475,6 @@ class GNSS_None : public GNSS
     {
     }
 
-    void modifyGst(char *nmeaSentence, uint16_t *sentenceLength)
-    {
-    }
-
     // Print the module type and firmware version
     void printModuleInfo()
     {
@@ -536,22 +517,9 @@ class GNSS_None : public GNSS
         return 0;
     }
 
-    // Save the current configuration
-    // Outputs:
-    //   Returns true when the configuration was saved and false upon failure
-    bool saveConfiguration()
-    {
-        return false;
-    }
-
     bool setBaudRate(uint8_t uartNumber, uint32_t baudRate)
     {
         return false;
-    }
-
-    bool setBaudRateData(uint32_t baud)
-    {
-        return true;
     }
 
     bool setBaudRateComm(uint32_t baud)
@@ -559,9 +527,22 @@ class GNSS_None : public GNSS
         return true;
     }
 
+    bool setBaudRateData(uint32_t baud)
+    {
+        return true;
+    }
+
     bool setBaudRateRadio(uint32_t baud)
     {
         return true;
+    }
+
+    // Save the current configuration
+    // Outputs:
+    //   Returns true when the configuration was saved and false upon failure
+    bool saveConfiguration()
+    {
+        return false;
     }
 
     // Enable all the valid constellations and bands for this platform
@@ -585,7 +566,7 @@ class GNSS_None : public GNSS
     }
 
     // Control whether HAS E6 is used in location fixes or not
-    bool setHighAccuracyService(bool enableGalileoHas)
+    bool setPppService()
     {
         return true;
     }
@@ -610,6 +591,12 @@ class GNSS_None : public GNSS
 
     // Configure RTCM Base messages
     bool setMessagesRTCMRover()
+    {
+        return true;
+    }
+
+    // Set the minimum satellite signal level for navigation.
+    bool setMinCN0(uint8_t cnoValue)
     {
         return true;
     }
@@ -656,6 +643,12 @@ class GNSS_None : public GNSS
     }
 
     bool standby()
+    {
+        return true;
+    }
+
+    // Antenna Short / Open detection
+    bool supportsAntennaShortOpen()
     {
         return true;
     }

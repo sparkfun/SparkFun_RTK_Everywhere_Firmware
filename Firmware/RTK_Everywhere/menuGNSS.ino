@@ -1,3 +1,9 @@
+/*=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
+menuGNSS.ino
+=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=*/
+
+#ifdef  COMPILE_MENU_GNSS
+
 // Configure the basic GNSS reception settings
 // Update rate, constellations, etc
 void menuGNSS()
@@ -399,9 +405,4 @@ void menuGNSS()
     clearBuffer(); // Empty buffer of any newline chars
 }
 
-// Print the NEO firmware version
-void printNEOInfo()
-{
-    if (present.lband_neo == true)
-        systemPrintf("NEO-D9S firmware: %s\r\n", neoFirmwareVersion);
-}
+#endif  // COMPILE_MENU_GNSS

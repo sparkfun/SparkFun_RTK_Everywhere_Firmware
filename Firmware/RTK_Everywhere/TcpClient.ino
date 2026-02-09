@@ -1,4 +1,4 @@
-/*
+/*=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 TcpClient.ino
 
   The (position, velocity and time) client sits on top of the network layer and
@@ -113,7 +113,7 @@ TcpClient.ino
     * https://emlid.com/ntrip-caster/
     * http://rtk2go.com/
     * private SNIP NTRIP caster
-*/
+=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=*/
 
 #ifdef COMPILE_TCP_CLIENT
 
@@ -189,13 +189,14 @@ bool tcpClientEnabled(const char ** line)
         // Verify the operating mode
         if (NEQ_RTK_MODE(tcpClientMode))
         {
-            *line = ", Wrong mode!";
+            if (line)
+                *line = ", Wrong mode!";
             break;
         }
 
         // Verify enabled
         enabled = settings.enableTcpClient;
-        if (enabled == false)
+        if (line && enabled == false)
             *line = ", Not enabled!";
     } while (0);
     return enabled;

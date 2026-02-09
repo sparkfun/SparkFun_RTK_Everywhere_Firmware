@@ -1,10 +1,12 @@
-/*------------------------------------------------------------------------------
+/*=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 GNSS_Mosaic.ino
 
   Class implementation and data for the Mosaic GNSS receiver
-------------------------------------------------------------------------------*/
+=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=*/
 
 #ifdef COMPILE_MOSAICX5
+
+#include "GNSS_Mosaic.h"
 
 //==============================================================================
 // Notes about Septentrio log file formats:
@@ -51,6 +53,9 @@ void printMosaicCardSpace()
 //----------------------------------------
 // Control the messages that get logged to SD
 //----------------------------------------
+
+#ifdef  COMPILE_MENU_LOGGING
+
 void menuLogMosaic()
 {
     if (present.mosaicMicroSd == false) // This may be needed for the G5 P3 ?
@@ -149,6 +154,8 @@ void menuLogMosaic()
     clearBuffer(); // Empty buffer of any newline chars
 }
 
+#endif  // COMPILE_MENU_LOGGING
+
 //==========================================================================
 // GNSS_MOSAIC class implementation
 //==========================================================================
@@ -232,7 +239,7 @@ void GNSS_MOSAIC::begin()
     //   COM3 is N/C (ESP32 UART2 is connected to the IMU)
     //   COM4 TX provides data to the IMU - TODO
 
-    if (productVariant != RTK_FLEX) // productVariant == RTK_FACET_MOSAIC
+    if (productVariant != RTK_FACET_FP) // productVariant == RTK_FACET_MOSAIC
     {
         if (serial2GNSS == nullptr)
         {
@@ -283,7 +290,7 @@ void GNSS_MOSAIC::begin()
         else
             systemPrintln("GNSS mosaic-X5 offline!");
     }
-    else // productVariant == RTK_FLEX
+    else // productVariant == RTK_FACET_FP
     {
         if (serialGNSS == nullptr)
         {
@@ -453,6 +460,30 @@ bool GNSS_MOSAIC::setLogging()
     }
 
     return response;
+}
+
+// On platforms that support / need it (i.e. mosaic-X5), refresh the
+// COM port by sending an escape sequence or similar to make the
+// GNSS snap out of it...
+// Outputs:
+//   Returns true if successful and false upon failure
+bool GNSS_MOSAIC::comPortRefresh()
+{
+    if (productVariant != RTK_FACET_FP) // productVariant == RTK_FACET_MOSAIC
+    {
+        if (serial2GNSS)
+        {
+            return sendWithResponse(serial2GNSS, "SSSSSSSSSSSSSSSSSSSS\n\r", "COM4>"); // Send escape sequence
+        }
+    }
+    else
+    {
+        if (serialGNSS)
+        {
+            return sendWithResponse(serialGNSS, "SSSSSSSSSSSSSSSSSSSS\n\r", "COM1>"); // Send escape sequence
+        }
+    }
+    return true;
 }
 
 //----------------------------------------
@@ -848,6 +879,8 @@ uint8_t GNSS_MOSAIC::getActiveMessageCount()
 //----------------------------------------
 double GNSS_MOSAIC::getAltitude()
 {
+    // _altitude contains the Ellipsoidal height (meters) from SBF Block 4007
+    // We don't need to adjust for the Geoidal Separation (Undulation)
     return _altitude;
 }
 
@@ -943,6 +976,14 @@ uint8_t GNSS_MOSAIC::getFixType()
     //     10: Precise Point Positioning (PPP)
     //     12: Reserved
     return _fixType;
+}
+
+//----------------------------------------
+// Returns the geoidal separation in meters or zero if the GNSS is offline
+//----------------------------------------
+double GNSS_MOSAIC::getGeoidalSeparation()
+{
+    return _geoidalSeparation;
 }
 
 //----------------------------------------
@@ -1272,8 +1313,8 @@ bool GNSS_MOSAIC::isAntennaOpen()
 bool GNSS_MOSAIC::isBlocking()
 {
     // Facet mosaic is non-blocking. It has exclusive access to COM4
-    // Flex (mosaic) is blocking. Suspend the GNSS read task only if needed
-    return _isBlocking && (productVariant == RTK_FLEX);
+    // Facet FP (mosaic) is blocking. Suspend the GNSS read task only if needed
+    return _isBlocking && (productVariant == RTK_FACET_FP);
 }
 
 //----------------------------------------
@@ -2155,7 +2196,7 @@ bool GNSS_MOSAIC::setElevation(uint8_t elevationDegrees)
 //----------------------------------------
 // Control whether HAS E6 is used in location fixes or not
 //----------------------------------------
-bool GNSS_MOSAIC::setHighAccuracyService(bool enableGalileoHas)
+bool GNSS_MOSAIC::setPppService()
 {
     // Not yet supported on this platform
     return (true); // Return true to clear gnssConfigure test
@@ -2520,7 +2561,8 @@ void GNSS_MOSAIC::storeBlock4007(SEMP_PARSE_STATE *parse)
 {
     _latitude = sempSbfGetF8(parse, 16) * 180.0 / PI; // Convert from radians to degrees
     _longitude = sempSbfGetF8(parse, 24) * 180.0 / PI;
-    _altitude = (float)sempSbfGetF8(parse, 32);
+    _altitude = sempSbfGetF8(parse, 32); // Ellipsoidal height
+    _geoidalSeparation = (double)sempSbfGetF4(parse, 40); // Geoid undulation
     _horizontalAccuracy = ((float)sempSbfGetU2(parse, 90)) / 100.0; // Convert from cm to m
 
     // NrSV is the total number of satellites used in the PVT computation.
@@ -2655,12 +2697,6 @@ void GNSS_MOSAIC::storeBlock4059(SEMP_PARSE_STATE *parse)
 
     mosaicSdFreeSpace = mosaicSdCardSize - diskUsage;
 
-    if (!present.microSd) // Overwrite - if this is the only SD card
-    {
-        sdCardSize = mosaicSdCardSize;
-        sdFreeSpace = mosaicSdFreeSpace;
-    }
-
     _diskStatusSeen = true;
 }
 
@@ -2768,47 +2804,53 @@ void GNSS_MOSAIC::update()
     // The only way to get the X5 to recognise the card seems to be to perform a soft reset.
     // Where should we perform the soft reset? updateSD seems the best place...
 
-    // Update the SD card size, free space and logIncreasing
+    // Update the SD card size, free space and logMosaicIncreasing
     static unsigned long sdCardSizeLastCheck = 0;
     const unsigned long sdCardSizeCheckInterval = 5000;   // Matches the interval in logUpdate
     static unsigned long sdCardLastFreeChange = millis(); // X5 is slow to update free. Seems to be about every ~20s?
-    static uint64_t previousFreeSpace = 0;
+    static uint64_t previousMosaicFreeSpace = 0;
     if ((millis() - sdCardSizeLastCheck) > sdCardSizeCheckInterval)
     {
         updateSD(); // Check if the card has been removed / inserted
 
         if (_diskStatusSeen) // Check if the DiskStatus SBF message has been seen
         {
-            // If previousFreeSpace hasn't been initialized, initialize it
-            if (previousFreeSpace == 0)
-                previousFreeSpace = sdFreeSpace;
+            // If previousMosaicFreeSpace hasn't been initialized, initialize it
+            if (previousMosaicFreeSpace == 0)
+                previousMosaicFreeSpace = mosaicSdFreeSpace;
 
-            if (sdFreeSpace < previousFreeSpace)
+            if (mosaicSdFreeSpace < previousMosaicFreeSpace)
             {
-                // The free space is decreasing, so set logIncreasing to true
-                previousFreeSpace = sdFreeSpace;
-                logIncreasing = true;
+                // The free space is decreasing, so set logMosaicIncreasing to true
+                previousMosaicFreeSpace = mosaicSdFreeSpace;
+                logMosaicIncreasing = true;
                 sdCardLastFreeChange = millis();
             }
-            else if (sdFreeSpace == previousFreeSpace)
+            else if (mosaicSdFreeSpace == previousMosaicFreeSpace)
             {
                 // The free space has not changed
                 // X5 is slow to update free. Seems to be about every ~20s?
-                // So only set logIncreasing to false after 30s
+                // So only set logMosaicIncreasing to false after 30s
                 if ((millis() - sdCardLastFreeChange) > 30000)
-                    logIncreasing = false;
+                {
+                    if (settings.enablePrintLogFileMessages)
+                        systemPrintln("mosaic-X5 update: log not increasing, _diskStatusSeen");
+                    logMosaicIncreasing = false;
+                }
             }
-            else // if (sdFreeSpace > previousFreeSpace)
+            else // if (mosaicSdFreeSpace > previousMosaicFreeSpace)
             {
                 // User must have inserted a new SD card?
-                previousFreeSpace = sdFreeSpace;
+                previousMosaicFreeSpace = mosaicSdFreeSpace;
             }
         }
         else
         {
             // Disk status not seen
             // (Unmounting the SD card will prevent _diskStatusSeen from going true)
-            logIncreasing = false;
+            if (settings.enablePrintLogFileMessages)
+                systemPrintln("mosaic-X5 update: log not increasing, !_diskStatusSeen");
+            logMosaicIncreasing = false;
         }
 
         sdCardSizeLastCheck = millis(); // Update the timer
@@ -2877,23 +2919,22 @@ void GNSS_MOSAIC::updateSD()
 //----------------------------------------
 void GNSS_MOSAIC::waitSBFReceiverSetup(HardwareSerial *serialPort, unsigned long timeout)
 {
+    uint8_t * buffer;
+    size_t bufferLength;
+
     // Note: _isBlocking should be set externally - if needed
 
-    SEMP_PARSE_ROUTINE const sbfParserTable[] = {sempSbfPreamble};
+    const SEMP_PARSER_DESCRIPTION * sbfParserTable[] = {&sempSbfParserDescription};
     const int sbfParserCount = sizeof(sbfParserTable) / sizeof(sbfParserTable[0]);
-    const char *const sbfParserNames[] = {
-        "SBF",
-    };
-    const int sbfParserNameCount = sizeof(sbfParserNames) / sizeof(sbfParserNames[0]);
-
     SEMP_PARSE_STATE *sbfParse;
 
     // Initialize the SBF parser for the mosaic-X5
-    sbfParse = sempBeginParser(sbfParserTable, sbfParserCount, sbfParserNames, sbfParserNameCount,
-                               0,                       // Scratchpad bytes
-                               500,                     // Buffer length
+    bufferLength = sempGetBufferLength(sbfParserTable, sbfParserCount, 500);
+    buffer = (uint8_t *)rtkMalloc(bufferLength, "Sbf Buffer");
+    sbfParse = sempBeginParser("Sbf", sbfParserTable, sbfParserCount,
+                               buffer, bufferLength,    // Buffer length
                                processSBFReceiverSetup, // eom Call Back
-                               "Sbf");                  // Parser Name
+                               output);                 // Routine to output an error character
     if (!sbfParse)
         reportFatalError("Failed to initialize the SBF parser");
 
@@ -2907,7 +2948,7 @@ void GNSS_MOSAIC::waitSBFReceiverSetup(HardwareSerial *serialPort, unsigned long
         }
     }
 
-    sempStopParser(&sbfParse);
+    rtkFree(buffer, "Sbf Buffer");
 }
 
 //----------------------------------------
@@ -2937,18 +2978,18 @@ bool GNSS_MOSAIC::isPresent()
     systemPrintln("Starting communication with mosaic-X5");
     paintMosaicBooting();
 
-    if (productVariant != RTK_FLEX) // productVariant == RTK_FACET_MOSAIC
+    if (productVariant != RTK_FACET_FP) // productVariant == RTK_FACET_MOSAIC
     {
         // Set COM4 to: CMD input (only), SBF output (only)
         // Mosaic could still be starting up, so allow many retries
-        return isPresentOnSerial(serial2GNSS, "sdio,COM4,CMD,SBF\n\r", "DataInOut", "COM4>", 20);
+        return isPresentOnSerial(serial2GNSS, "sdio,COM4,CMD,SBF\n\r", "DataInOut", "COM4>", 5);
     }
-    else // productVariant == RTK_FLEX
+    else // productVariant == RTK_FACET_FP
     {
         // Set COM1 to: auto input, RTCMv3+SBF+NMEA+Encapsulate output
         // Mosaic could still be starting up, so allow many retries
         return isPresentOnSerial(serialGNSS, "sdio,COM1,auto,RTCMv3+SBF+NMEA+Encapsulate\n\r", "DataInOut", "COM1>",
-                                 20);
+                                 5);
     }
 }
 
@@ -2964,14 +3005,14 @@ bool GNSS_MOSAIC::isPresentOnSerial(HardwareSerial *serialPort, const char *comm
         if (retries == retryLimit)
             break;
         retries++;
-        sendWithResponse(serialPort, "SSSSSSSSSSSSSSSSSSSS\n\r", console); // Send escape sequence
+        sendWithResponse(serialPort, "SSSSSSSSSSSSSSSSSSSS\n\r", console, 100); // Send escape sequence
     }
 
     if (retries == retryLimit)
     {
         systemPrintln("Could not communicate with mosaic-X5 at selected baud rate. Attempting a soft reset...");
 
-        sendWithResponse(serialPort, "erst,soft,none\n\r", "ResetReceiver");
+        sendWithResponse(serialPort, "erst,soft,none\n\r", "ResetReceiver", 100);
 
         retries = 0;
 
@@ -2980,7 +3021,7 @@ bool GNSS_MOSAIC::isPresentOnSerial(HardwareSerial *serialPort, const char *comm
             if (retries == retryLimit)
                 break;
             retries++;
-            sendWithResponse(serialPort, "SSSSSSSSSSSSSSSSSSSS\n\r", console); // Send escape sequence
+            sendWithResponse(serialPort, "SSSSSSSSSSSSSSSSSSSS\n\r", console, 100); // Send escape sequence
         }
 
         if (retries == retryLimit)
@@ -3058,13 +3099,11 @@ void nmeaExtractStdDeviations(char *nmeaSentence, int sentenceLength)
 // This function mops up any non-SBF data rejected by the SBF parser
 // It is raw L-Band (containing SPARTN), so pass it to the SPARTN parser
 //----------------------------------------
-void processNonSBFData(SEMP_PARSE_STATE *parse)
+void processNonSBFData(const uint8_t * buffer, size_t length)
 {
-    for (uint32_t dataOffset = 0; dataOffset < parse->length; dataOffset++)
-    {
+    for (uint32_t dataOffset = 0; dataOffset < length; dataOffset++)
         // Update the SPARTN parser state based on the non-SBF byte
-        sempParseNextByte(spartnParse, parse->buffer[dataOffset]);
-    }
+        sempParseNextByte(spartnParse, buffer[dataOffset]);
 }
 
 //----------------------------------------
@@ -3245,10 +3284,395 @@ bool mosaicX5waitCR(unsigned long timeout)
 }
 */
 
-#endif // COMPILE_MOSAICX5
+//----------------------------------------
+// List available settings, their type in CSV, and value
+//----------------------------------------
+bool mosaicCommandList(RTK_Settings_Types type,
+                       int settingsIndex,
+                       bool inCommands,
+                       int qualifier,
+                       char * settingName,
+                       char * settingValue)
+{
+    switch (type)
+    {
+        default:
+            return false;
 
-// Test for mosaic on UART1 of the ESP32 on Flex
-bool mosaicIsPresentOnFlex()
+        case tMosaicConst: {
+            // Record Mosaic Constellations
+            for (int x = 0; x < rtkSettingsEntries[settingsIndex].qualifier; x++)
+            {
+                snprintf(settingName, sizeof(settingName), "%s%s", rtkSettingsEntries[settingsIndex].name,
+                         mosaicSignalConstellations[x].configName);
+
+                getSettingValue(inCommands, settingName, settingValue);
+                commandSendExecuteListResponse(settingName, "tMosaicConst", settingValue);
+            }
+        }
+        break;
+        case tMosaicMSNmea: {
+            // Record Mosaic NMEA message streams
+            for (int x = 0; x < rtkSettingsEntries[settingsIndex].qualifier; x++)
+            {
+                snprintf(settingName, sizeof(settingName), "%s%s", rtkSettingsEntries[settingsIndex].name,
+                         mosaicMessagesNMEA[x].msgTextName);
+
+                getSettingValue(inCommands, settingName, settingValue);
+                commandSendExecuteListResponse(settingName, "tMosaicMSNmea", settingValue);
+            }
+        }
+        break;
+        case tMosaicSINmea: {
+            // Record Mosaic NMEA stream intervals
+            for (int x = 0; x < rtkSettingsEntries[settingsIndex].qualifier; x++)
+            {
+                snprintf(settingName, sizeof(settingName), "%s%d", rtkSettingsEntries[settingsIndex].name, x);
+
+                getSettingValue(inCommands, settingName, settingValue);
+                commandSendExecuteListResponse(settingName, "tMosaicSINmea", mosaicMsgRates[atoi(settingValue)].humanName);
+            }
+        }
+        break;
+        case tMosaicMIRvRT: {
+            // Record Mosaic Rover RTCM intervals
+            for (int x = 0; x < rtkSettingsEntries[settingsIndex].qualifier; x++)
+            {
+                snprintf(settingName, sizeof(settingName), "%s%s", rtkSettingsEntries[settingsIndex].name,
+                         mosaicRTCMv3MsgIntervalGroups[x].name);
+
+                getSettingValue(inCommands, settingName, settingValue);
+                commandSendExecuteListResponse(settingName, "tMosaicMIRvRT", settingValue);
+            }
+        }
+        break;
+        case tMosaicMIBaRT: {
+            // Record Mosaic Base RTCM intervals
+            for (int x = 0; x < rtkSettingsEntries[settingsIndex].qualifier; x++)
+            {
+                snprintf(settingName, sizeof(settingName), "%s%s", rtkSettingsEntries[settingsIndex].name,
+                         mosaicRTCMv3MsgIntervalGroups[x].name);
+
+                getSettingValue(inCommands, settingName, settingValue);
+                commandSendExecuteListResponse(settingName, "tMosaicMIBaRT", settingValue);
+            }
+        }
+        break;
+        case tMosaicMERvRT: {
+            // Record Mosaic Rover RTCM enabled
+            for (int x = 0; x < rtkSettingsEntries[settingsIndex].qualifier; x++)
+            {
+                snprintf(settingName, sizeof(settingName), "%s%s", rtkSettingsEntries[settingsIndex].name,
+                         mosaicMessagesRTCMv3[x].name);
+
+                getSettingValue(inCommands, settingName, settingValue);
+                commandSendExecuteListResponse(settingName, "tMosaicMERvRT", settingValue);
+            }
+        }
+        break;
+        case tMosaicMEBaRT: {
+            // Record Mosaic Base RTCM enabled
+            for (int x = 0; x < rtkSettingsEntries[settingsIndex].qualifier; x++)
+            {
+                snprintf(settingName, sizeof(settingName), "%s%s", rtkSettingsEntries[settingsIndex].name,
+                         mosaicMessagesRTCMv3[x].name);
+
+                getSettingValue(inCommands, settingName, settingValue);
+                commandSendExecuteListResponse(settingName, "tMosaicMEBaRT", settingValue);
+            }
+        }
+        break;
+    }
+    return true;
+}
+
+//----------------------------------------
+// Add types to a JSON array
+//----------------------------------------
+void mosaicCommandTypeJson(JsonArray &command_types)
+{
+    JsonObject command_types_tMosaicConst = command_types.add<JsonObject>();
+    command_types_tMosaicConst["name"] = "tMosaicConst";
+    command_types_tMosaicConst["description"] = "mosaic-X5 GNSS constellations";
+    command_types_tMosaicConst["instruction"] = "Enable / disable each GNSS constellation";
+    command_types_tMosaicConst["prefix"] = "constellation_";
+    JsonArray command_types_tMosaicConst_keys = command_types_tMosaicConst["keys"].to<JsonArray>();
+    for (int x = 0; x < MAX_MOSAIC_CONSTELLATIONS; x++)
+        command_types_tMosaicConst_keys.add(mosaicSignalConstellations[x].configName);
+    JsonArray command_types_tMosaicConst_values = command_types_tMosaicConst["values"].to<JsonArray>();
+    command_types_tMosaicConst_values.add("0");
+    command_types_tMosaicConst_values.add("1");
+
+    JsonObject command_types_tMosaicMSNmea = command_types.add<JsonObject>();
+    command_types_tMosaicMSNmea["name"] = "tMosaicMSNmea";
+    command_types_tMosaicMSNmea["description"] = "mosaic-X5 message stream for NMEA";
+    command_types_tMosaicMSNmea["instruction"] = "Select the message stream for each NMEA message (0 = Off)";
+    command_types_tMosaicMSNmea["prefix"] = "messageStreamNMEA_";
+    JsonArray command_types_tMosaicMSNmea_keys = command_types_tMosaicMSNmea["keys"].to<JsonArray>();
+    for (int x = 0; x < MAX_MOSAIC_NMEA_MSG; x++)
+        command_types_tMosaicMSNmea_keys.add(mosaicMessagesNMEA[x].msgTextName);
+    JsonArray command_types_tMosaicMSNmea_values = command_types_tMosaicMSNmea["values"].to<JsonArray>();
+    command_types_tMosaicMSNmea_values.add("0");
+    command_types_tMosaicMSNmea_values.add("1");
+    command_types_tMosaicMSNmea_values.add("2");
+
+    JsonObject command_types_tMosaicSINmea = command_types.add<JsonObject>();
+    command_types_tMosaicSINmea["name"] = "tMosaicSINmea";
+    command_types_tMosaicSINmea["description"] = "mosaic-X5 NMEA message intervals";
+    command_types_tMosaicSINmea["instruction"] = "Set the interval for each NMEA stream";
+    command_types_tMosaicSINmea["prefix"] = "streamIntervalNMEA_";
+    JsonArray command_types_tMosaicSINmea_keys = command_types_tMosaicSINmea["keys"].to<JsonArray>();
+    command_types_tMosaicSINmea_keys.add("1");
+    command_types_tMosaicSINmea_keys.add("2");
+    JsonArray command_types_tMosaicSINmea_values = command_types_tMosaicSINmea["values"].to<JsonArray>();
+    for (int y = 0; y < MAX_MOSAIC_MSG_RATES; y++)
+        command_types_tMosaicSINmea_values.add(mosaicMsgRates[y].humanName);
+
+    JsonObject command_types_tMosaicMIRvRT = command_types.add<JsonObject>();
+    command_types_tMosaicMIRvRT["name"] = "tMosaicMIRvRT";
+    command_types_tMosaicMIRvRT["description"] = "mosaic-X5 RTCM message intervals - Rover";
+    command_types_tMosaicMIRvRT["instruction"] = "Set the RTCM message interval in seconds for Rover";
+    command_types_tMosaicMIRvRT["prefix"] = "messageIntervalRTCMRover_";
+    JsonArray command_types_tMosaicMIRvRT_keys = command_types_tMosaicMIRvRT["keys"].to<JsonArray>();
+    for (int y = 0; y < MAX_MOSAIC_RTCM_V3_INTERVAL_GROUPS; y++)
+        command_types_tMosaicMIRvRT_keys.add(mosaicRTCMv3MsgIntervalGroups[y].name);
+    command_types_tMosaicMIRvRT["type"] = "float";
+    command_types_tMosaicMIRvRT["value min"] = 0.1;
+    command_types_tMosaicMIRvRT["value max"] = 600.0;
+
+    JsonObject command_types_tMosaicMIBaRT = command_types.add<JsonObject>();
+    command_types_tMosaicMIBaRT["name"] = "tMosaicMIBaRT";
+    command_types_tMosaicMIBaRT["description"] = "mosaic-X5 RTCM message intervals - Base";
+    command_types_tMosaicMIBaRT["instruction"] = "Set the RTCM message interval in seconds for Base";
+    command_types_tMosaicMIBaRT["prefix"] = "messageIntervalRTCMBase_";
+    JsonArray command_types_tMosaicMIBaRT_keys = command_types_tMosaicMIBaRT["keys"].to<JsonArray>();
+    for (int y = 0; y < MAX_MOSAIC_RTCM_V3_INTERVAL_GROUPS; y++)
+        command_types_tMosaicMIBaRT_keys.add(mosaicRTCMv3MsgIntervalGroups[y].name);
+    command_types_tMosaicMIBaRT["type"] = "float";
+    command_types_tMosaicMIBaRT["value min"] = 0.1;
+    command_types_tMosaicMIBaRT["value max"] = 600.0;
+
+    JsonObject command_types_tMosaicMERvRT = command_types.add<JsonObject>();
+    command_types_tMosaicMERvRT["name"] = "tMosaicMERvRT";
+    command_types_tMosaicMERvRT["description"] = "mosaic-X5 RTCM message enabled - Rover";
+    command_types_tMosaicMERvRT["instruction"] = "Enable / disable Rover RTCM messages";
+    command_types_tMosaicMERvRT["prefix"] = "messageEnabledRTCMRover_";
+    JsonArray command_types_tMosaicMERvRT_keys = command_types_tMosaicMERvRT["keys"].to<JsonArray>();
+    for (int y = 0; y < MAX_MOSAIC_RTCM_V3_MSG; y++)
+        command_types_tMosaicMERvRT_keys.add(mosaicMessagesRTCMv3[y].name);
+    JsonArray command_types_tMosaicMERvRT_values = command_types_tMosaicMERvRT["values"].to<JsonArray>();
+    command_types_tMosaicMERvRT_values.add("0");
+    command_types_tMosaicMERvRT_values.add("1");
+
+    JsonObject command_types_tMosaicMEBaRT = command_types.add<JsonObject>();
+    command_types_tMosaicMEBaRT["name"] = "tMosaicMEBaRT";
+    command_types_tMosaicMEBaRT["description"] = "mosaic-X5 RTCM message enabled - Base";
+    command_types_tMosaicMEBaRT["instruction"] = "Enable / disable Base RTCM messages";
+    command_types_tMosaicMEBaRT["prefix"] = "messageEnabledRTCMBase_";
+    JsonArray command_types_tMosaicMEBaRT_keys = command_types_tMosaicMEBaRT["keys"].to<JsonArray>();
+    for (int y = 0; y < MAX_MOSAIC_RTCM_V3_MSG; y++)
+        command_types_tMosaicMEBaRT_keys.add(mosaicMessagesRTCMv3[y].name);
+    JsonArray command_types_tMosaicMEBaRT_values = command_types_tMosaicMEBaRT["values"].to<JsonArray>();
+    command_types_tMosaicMEBaRT_values.add("0");
+    command_types_tMosaicMEBaRT_values.add("1");
+}
+
+//----------------------------------------
+// Called by gnssCreateString to build settings file string
+//----------------------------------------
+bool mosaicCreateString(RTK_Settings_Types type,
+                        int settingsIndex,
+                        char * newSettings)
+{
+    switch (type)
+    {
+        default:
+            return false;
+
+        case tMosaicConst: {
+            // Record Mosaic Constellations
+            for (int x = 0; x < rtkSettingsEntries[settingsIndex].qualifier; x++)
+            {
+                char tempString[50];
+                snprintf(tempString, sizeof(tempString), "%s%s,%s,", rtkSettingsEntries[settingsIndex].name,
+                         mosaicSignalConstellations[x].configName,
+                         ((settings.mosaicConstellations[x] == 0) ? "false" : "true"));
+                stringRecord(newSettings, tempString);
+            }
+        }
+        break;
+        case tMosaicMSNmea: {
+            // Record Mosaic NMEA message streams
+            for (int x = 0; x < rtkSettingsEntries[settingsIndex].qualifier; x++)
+            {
+                char tempString[50]; // messageRateNMEA_GGA,1,
+                snprintf(tempString, sizeof(tempString), "%s%s,%0d,", rtkSettingsEntries[settingsIndex].name,
+                         mosaicMessagesNMEA[x].msgTextName, settings.mosaicMessageStreamNMEA[x]);
+                stringRecord(newSettings, tempString);
+            }
+        }
+        break;
+        case tMosaicSINmea: {
+            // Record Mosaic NMEA stream intervals
+            for (int x = 0; x < rtkSettingsEntries[settingsIndex].qualifier; x++)
+            {
+                char tempString[50]; // streamIntervalNMEA_1,10,
+                snprintf(tempString, sizeof(tempString), "%s%d,%0d,", rtkSettingsEntries[settingsIndex].name, x,
+                         settings.mosaicStreamIntervalsNMEA[x]);
+                stringRecord(newSettings, tempString);
+            }
+        }
+        break;
+        case tMosaicMIRvRT: {
+            // Record Mosaic Rover RTCM intervals
+            for (int x = 0; x < rtkSettingsEntries[settingsIndex].qualifier; x++)
+            {
+                char tempString[50];
+                snprintf(tempString, sizeof(tempString), "%s%s,%0.2f,", rtkSettingsEntries[settingsIndex].name,
+                         mosaicRTCMv3MsgIntervalGroups[x].name, settings.mosaicMessageIntervalsRTCMv3Rover[x]);
+                stringRecord(newSettings, tempString);
+            }
+        }
+        break;
+        case tMosaicMIBaRT: {
+            // Record Mosaic Base RTCM intervals
+            for (int x = 0; x < rtkSettingsEntries[settingsIndex].qualifier; x++)
+            {
+                char tempString[50];
+                snprintf(tempString, sizeof(tempString), "%s%s,%0.2f,", rtkSettingsEntries[settingsIndex].name,
+                         mosaicRTCMv3MsgIntervalGroups[x].name, settings.mosaicMessageIntervalsRTCMv3Base[x]);
+                stringRecord(newSettings, tempString);
+            }
+        }
+        break;
+        case tMosaicMERvRT: {
+            // Record Mosaic Rover RTCM enabled
+            for (int x = 0; x < rtkSettingsEntries[settingsIndex].qualifier; x++)
+            {
+                char tempString[50];
+                snprintf(tempString, sizeof(tempString), "%s%s,%s,", rtkSettingsEntries[settingsIndex].name,
+                         mosaicMessagesRTCMv3[x].name,
+                         settings.mosaicMessageEnabledRTCMv3Rover[x] == 0 ? "false" : "true");
+                stringRecord(newSettings, tempString);
+            }
+        }
+        break;
+        case tMosaicMEBaRT: {
+            // Record Mosaic Base RTCM enabled
+            for (int x = 0; x < rtkSettingsEntries[settingsIndex].qualifier; x++)
+            {
+                char tempString[50];
+                snprintf(tempString, sizeof(tempString), "%s%s,%s,", rtkSettingsEntries[settingsIndex].name,
+                         mosaicMessagesRTCMv3[x].name,
+                         settings.mosaicMessageEnabledRTCMv3Base[x] == 0 ? "false" : "true");
+                stringRecord(newSettings, tempString);
+            }
+        }
+        break;
+    }
+    return true;
+}
+
+//----------------------------------------
+// Return setting value as a string
+//----------------------------------------
+bool mosaicGetSettingValue(RTK_Settings_Types type,
+                           const char * suffix,
+                           int settingsIndex,
+                           int qualifier,
+                           char * settingValueStr)
+{
+    switch (type)
+    {
+        case tMosaicConst: {
+            for (int x = 0; x < qualifier; x++)
+            {
+                if ((suffix[0] == mosaicSignalConstellations[x].configName[0]) &&
+                    (strcmp(suffix, mosaicSignalConstellations[x].configName) == 0))
+                {
+                    writeToString(settingValueStr, settings.mosaicConstellations[x]);
+                    return true;
+                }
+            }
+        }
+        break;
+        case tMosaicMSNmea: {
+            for (int x = 0; x < qualifier; x++)
+            {
+                if ((suffix[0] == mosaicMessagesNMEA[x].msgTextName[0]) &&
+                    (strcmp(suffix, mosaicMessagesNMEA[x].msgTextName) == 0))
+                {
+                    writeToString(settingValueStr, settings.mosaicMessageStreamNMEA[x]);
+                    return true;
+                }
+            }
+        }
+        break;
+        case tMosaicSINmea: {
+            int stream;
+            if (sscanf(suffix, "%d", &stream) == 1)
+            {
+                writeToString(settingValueStr, settings.mosaicStreamIntervalsNMEA[stream]);
+                return true;
+            }
+        }
+        break;
+        case tMosaicMIRvRT: {
+            for (int x = 0; x < qualifier; x++)
+            {
+                if ((suffix[0] == mosaicRTCMv3MsgIntervalGroups[x].name[0]) &&
+                    (strcmp(suffix, mosaicRTCMv3MsgIntervalGroups[x].name) == 0))
+                {
+                    writeToString(settingValueStr, settings.mosaicMessageIntervalsRTCMv3Rover[x]);
+                    return true;
+                }
+            }
+        }
+        break;
+        case tMosaicMIBaRT: {
+            for (int x = 0; x < qualifier; x++)
+            {
+                if ((suffix[0] == mosaicRTCMv3MsgIntervalGroups[x].name[0]) &&
+                    (strcmp(suffix, mosaicRTCMv3MsgIntervalGroups[x].name) == 0))
+                {
+                    writeToString(settingValueStr, settings.mosaicMessageIntervalsRTCMv3Base[x]);
+                    return true;
+                }
+            }
+        }
+        break;
+        case tMosaicMERvRT: {
+            for (int x = 0; x < qualifier; x++)
+            {
+                if ((suffix[0] == mosaicMessagesRTCMv3[x].name[0]) &&
+                    (strcmp(suffix, mosaicMessagesRTCMv3[x].name) == 0))
+                {
+                    writeToString(settingValueStr, settings.mosaicMessageEnabledRTCMv3Rover[x]);
+                    return true;
+                }
+            }
+        }
+        break;
+        case tMosaicMEBaRT: {
+            for (int x = 0; x < qualifier; x++)
+            {
+                if ((suffix[0] == mosaicMessagesRTCMv3[x].name[0]) &&
+                    (strcmp(suffix, mosaicMessagesRTCMv3[x].name) == 0))
+                {
+                    writeToString(settingValueStr, settings.mosaicMessageEnabledRTCMv3Base[x]);
+                    return true;
+                }
+            }
+        }
+        break;
+    }
+    return false;
+}
+
+//----------------------------------------
+// Test for mosaic on UART1 of the ESP32 on Facet FP
+//----------------------------------------
+bool mosaicIsPresentOnFacetFP()
 {
     // Locally instantiate the hardware and library so it will release on exit
     HardwareSerial serialTestGNSS(2);
@@ -3297,3 +3721,210 @@ bool mosaicIsPresentOnFlex()
     serialTestGNSS.end();
     return false;
 }
+
+//----------------------------------------
+// Called by gnssDetectReceiverType to create the GNSS_MOSAIC class instance
+//----------------------------------------
+void mosaicNewClass()
+{
+    gnss = (GNSS *)new GNSS_MOSAIC();
+
+    present.gnss_mosaicX5 = true;
+    present.minCN0 = true;
+    present.minElevation = true;
+    present.dynamicModel = true;
+    present.mosaicMicroSd = true;
+    // present.needsExternalPpl = true; // Nope. No L-Band support...
+}
+
+//----------------------------------------
+// Called by gnssNewSettingValue to save a mosaic specific setting
+//----------------------------------------
+bool mosaicNewSettingValue(RTK_Settings_Types type,
+                           const char * suffix,
+                           int qualifier,
+                           double d)
+{
+    switch (type)
+    {
+        case tCmnCnst:
+            for (int x = 0; x < MAX_MOSAIC_CONSTELLATIONS; x++)
+            {
+                if ((suffix[0] == mosaicSignalConstellations[x].configName[0]) &&
+                    (strcmp(suffix, mosaicSignalConstellations[x].configName) == 0))
+                {
+                    settings.mosaicConstellations[x] = d;
+                    return true;
+                }
+            }
+            break;
+        case tMosaicConst:
+            // Covered by tCmnCnst
+            break;
+        case tMosaicMSNmea: {
+            for (int x = 0; x < qualifier; x++)
+            {
+                if ((suffix[0] == mosaicMessagesNMEA[x].msgTextName[0]) &&
+                    (strcmp(suffix, mosaicMessagesNMEA[x].msgTextName) == 0))
+                {
+                    settings.mosaicMessageStreamNMEA[x] = d;
+                    return true;
+                }
+            }
+        }
+        break;
+        case tMosaicSINmea: {
+            int stream;
+            if (sscanf(suffix, "%d", &stream) == 1)
+            {
+                settings.mosaicStreamIntervalsNMEA[stream] = d;
+                return true;
+            }
+        }
+        break;
+        case tMosaicMIRvRT: {
+            for (int x = 0; x < qualifier; x++)
+            {
+                if ((suffix[0] == mosaicRTCMv3MsgIntervalGroups[x].name[0]) &&
+                    (strcmp(suffix, mosaicRTCMv3MsgIntervalGroups[x].name) == 0))
+                {
+                    settings.mosaicMessageIntervalsRTCMv3Rover[x] = d;
+                    return true;
+                }
+            }
+        }
+        break;
+        case tMosaicMIBaRT: {
+            for (int x = 0; x < qualifier; x++)
+            {
+                if ((suffix[0] == mosaicRTCMv3MsgIntervalGroups[x].name[0]) &&
+                    (strcmp(suffix, mosaicRTCMv3MsgIntervalGroups[x].name) == 0))
+                {
+                    settings.mosaicMessageIntervalsRTCMv3Base[x] = d;
+                    return true;
+                }
+            }
+        }
+        break;
+        case tMosaicMERvRT: {
+            for (int x = 0; x < qualifier; x++)
+            {
+                if ((suffix[0] == mosaicMessagesRTCMv3[x].name[0]) &&
+                    (strcmp(suffix, mosaicMessagesRTCMv3[x].name) == 0))
+                {
+                    settings.mosaicMessageEnabledRTCMv3Rover[x] = d;
+                    return true;
+                }
+            }
+        }
+        break;
+        case tMosaicMEBaRT: {
+            for (int x = 0; x < qualifier; x++)
+            {
+                if ((suffix[0] == mosaicMessagesRTCMv3[x].name[0]) &&
+                    (strcmp(suffix, mosaicMessagesRTCMv3[x].name) == 0))
+                {
+                    settings.mosaicMessageEnabledRTCMv3Base[x] = d;
+                    return true;
+                }
+            }
+        }
+        break;
+    }
+    return false;
+}
+
+//----------------------------------------
+// Called by gnssSettingsToFile to save mosaic specific settings
+//----------------------------------------
+bool mosaicSettingsToFile(File *settingsFile,
+                          RTK_Settings_Types type,
+                          int settingsIndex)
+{
+    switch (type)
+    {
+        default:
+            return false;
+
+        case tMosaicConst: {
+            // Record Mosaic Constellations
+            for (int x = 0; x < rtkSettingsEntries[settingsIndex].qualifier; x++)
+            {
+                char tempString[50]; // constellation_GLONASS=1
+                snprintf(tempString, sizeof(tempString), "%s%s=%0d", rtkSettingsEntries[settingsIndex].name,
+                         mosaicSignalConstellations[x].configName, settings.mosaicConstellations[x]);
+                settingsFile->println(tempString);
+            }
+        }
+        break;
+        case tMosaicMSNmea: {
+            // Record Mosaic NMEA message streams
+            for (int x = 0; x < rtkSettingsEntries[settingsIndex].qualifier; x++)
+            {
+                char tempString[50]; // messageStreamNMEA_GGA=1
+                snprintf(tempString, sizeof(tempString), "%s%s=%0d", rtkSettingsEntries[settingsIndex].name,
+                         mosaicMessagesNMEA[x].msgTextName, settings.mosaicMessageStreamNMEA[x]);
+                settingsFile->println(tempString);
+            }
+        }
+        break;
+        case tMosaicSINmea: {
+            // Record Mosaic NMEA stream intervals
+            for (int x = 0; x < rtkSettingsEntries[settingsIndex].qualifier; x++)
+            {
+                char tempString[50]; // streamIntervalNMEA_1=1
+                snprintf(tempString, sizeof(tempString), "%s%d=%0d", rtkSettingsEntries[settingsIndex].name, x,
+                         settings.mosaicStreamIntervalsNMEA[x]);
+                settingsFile->println(tempString);
+            }
+        }
+        break;
+        case tMosaicMIRvRT: {
+            // Record Mosaic Rover RTCM intervals
+            for (int x = 0; x < rtkSettingsEntries[settingsIndex].qualifier; x++)
+            {
+                char tempString[50]; // messageIntervalRTCMRover_RTCM1001=0.2
+                snprintf(tempString, sizeof(tempString), "%s%s=%0.2f", rtkSettingsEntries[settingsIndex].name,
+                         mosaicRTCMv3MsgIntervalGroups[x].name, settings.mosaicMessageIntervalsRTCMv3Rover[x]);
+                settingsFile->println(tempString);
+            }
+        }
+        break;
+        case tMosaicMIBaRT: {
+            // Record Mosaic Base RTCM intervals
+            for (int x = 0; x < rtkSettingsEntries[settingsIndex].qualifier; x++)
+            {
+                char tempString[50]; // messageIntervalRTCMBase_RTCM1001=0.2
+                snprintf(tempString, sizeof(tempString), "%s%s=%0.2f", rtkSettingsEntries[settingsIndex].name,
+                         mosaicRTCMv3MsgIntervalGroups[x].name, settings.mosaicMessageIntervalsRTCMv3Base[x]);
+                settingsFile->println(tempString);
+            }
+        }
+        break;
+        case tMosaicMERvRT: {
+            // Record Mosaic Rover RTCM enabled
+            for (int x = 0; x < rtkSettingsEntries[settingsIndex].qualifier; x++)
+            {
+                char tempString[50]; // messageEnabledRTCMRover_RTCM1001=0
+                snprintf(tempString, sizeof(tempString), "%s%s=%0d", rtkSettingsEntries[settingsIndex].name,
+                         mosaicMessagesRTCMv3[x].name, settings.mosaicMessageEnabledRTCMv3Rover[x]);
+                settingsFile->println(tempString);
+            }
+        }
+        break;
+        case tMosaicMEBaRT: {
+            // Record Mosaic Base RTCM enabled
+            for (int x = 0; x < rtkSettingsEntries[settingsIndex].qualifier; x++)
+            {
+                char tempString[50]; // messageEnabledRTCMBase_RTCM1001=0
+                snprintf(tempString, sizeof(tempString), "%s%s=%0d", rtkSettingsEntries[settingsIndex].name,
+                         mosaicMessagesRTCMv3[x].name, settings.mosaicMessageEnabledRTCMv3Base[x]);
+                settingsFile->println(tempString);
+            }
+        }
+        break;
+    }
+    return true;
+}
+
+#endif // COMPILE_MOSAICX5

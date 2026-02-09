@@ -1,3 +1,7 @@
+/*=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
+LED.ino
+=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=*/
+
 void gnssStatusLedOn()
 {
     if (pin_gnssStatusLED != PIN_UNDEFINED)
@@ -44,6 +48,18 @@ void baseStatusLedOff()
 {
     if (pin_baseStatusLED != PIN_UNDEFINED)
         digitalWrite(pin_baseStatusLED, LOW);
+}
+
+void pinDebugOn()
+{
+    if (pin_debug != PIN_UNDEFINED)
+        digitalWrite(pin_debug, HIGH);
+}
+
+void pinDebugOff()
+{
+    if (pin_debug != PIN_UNDEFINED)
+        digitalWrite(pin_debug, LOW);
 }
 
 void baseStatusLedBlink()

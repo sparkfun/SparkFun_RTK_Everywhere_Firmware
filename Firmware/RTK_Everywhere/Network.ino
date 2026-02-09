@@ -1,4 +1,4 @@
-/*------------------------------------------------------------------------------
+/*=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 Network.ino
 
   This module implements the network layer.  An overview of the network stack
@@ -95,7 +95,7 @@ Network.ino
     * https://emlid.com/ntrip-caster/
     * http://rtk2go.com/
     * private SNIP NTRIP caster
-------------------------------------------------------------------------------*/
+=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=*/
 
 #ifdef COMPILE_NETWORK
 
@@ -177,6 +177,9 @@ NetMask_t networkMdnsRunning;  // Non-zero when mDNS is running
 //----------------------------------------
 // Menu for configuring TCP/UDP interfaces
 //----------------------------------------
+
+#ifdef  COMPILE_MENU_TCP_UDP
+
 void menuTcpUdp()
 {
     while (1)
@@ -353,6 +356,8 @@ void menuTcpUdp()
             printUnknown(incoming);
     }
 }
+
+#endif  // COMPILE_MENU_TCP_UDP
 
 //----------------------------------------
 // Initialize the network layer
@@ -594,6 +599,20 @@ bool networkConsumerIsConnected(NETCONSUMER_t consumer)
     // Validate the consumer
     networkConsumerValidate(consumer);
 
+    // if (consumer == NETCONSUMER_NTRIP_SERVER_1)
+    // {
+    //     index = networkIndexTable[networkPriority];
+    //     systemPrintf("NETCONSUMER_NTRIP_SERVER_1: %ld %d %d %d %d\r\n",
+    //         networkHasInternet_bm,
+    //         networkConsumerPriority[consumer],
+    //         networkPriority,
+    //         index,
+    //         networkInterfaceHasInternet(index)
+    //         );
+    // }
+
+    // NETCONSUMER_NTRIP_SERVER_1: 2 3 3 3 0
+
     // If the client is using the highest priority network and that
     // network is still available then continue as normal
     if (networkHasInternet_bm && (networkConsumerPriority[consumer] == networkPriority))
@@ -821,7 +840,7 @@ void networkDisplayMode()
 
     if (rtkMode == 0)
     {
-        systemPrintf("rtkMode: 0 (Not specified)\r\n");
+        systemPrintf("rtkMode: 0 (Not Specified or Base Undecided)\r\n");
         return;
     }
 
@@ -2450,34 +2469,37 @@ void networkUpdate()
         }
     }
 
-    // Update the WiFi state
-    wifiStationUpdate();
-
-    // Update Ethernet
-    ethernetUpdate();
+    // Walk the list of network priorities in descending order
+    for (priority = 0; priority < NETWORK_OFFLINE; priority++)
+    {
+        // Update the networks in order of priority
+        index = networkIndexTable[priority];
+        if (networkInterfaceTable[index].updateMethod)
+            networkInterfaceTable[index].updateMethod();
+    }
 
     // Update the network services
     // Start or stop mDNS
     networkMulticastDNSUpdate();
 
     // Update the network services
-    DMW_c("mqttClientUpdate");
+    DMW_n("mqttClientUpdate");
     mqttClientUpdate(); // Process any Point Perfect MQTT messages
-    DMW_c("ntpServerUpdate");
+    DMW_n("ntpServerUpdate");
     ntpServerUpdate(); // Process any received NTP requests
-    DMW_c("ntripClientUpdate");
-    ntripClientUpdate(); // Check the NTRIP client connection and move data NTRIP --> ZED
-    DMW_c("ntripServerUpdate");
-    ntripServerUpdate(); // Check the NTRIP server connection and move data ZED --> NTRIP
-    DMW_c("tcpClientUpdate");
+    DMW_n("ntripClientUpdate");
+    ntripClientUpdate(); // Check the NTRIP client connection and move data NTRIP --> GNSS
+    DMW_n("ntripServerUpdate");
+    ntripServerUpdate(); // Check the NTRIP server connection and move data GNSS --> NTRIP
+    DMW_n("tcpClientUpdate");
     tcpClientUpdate(); // Turn on the TCP client as needed
-    DMW_c("tcpServerUpdate");
+    DMW_n("tcpServerUpdate");
     tcpServerUpdate(); // Turn on the TCP server as needed
-    DMW_c("udpServerUpdate");
+    DMW_n("udpServerUpdate");
     udpServerUpdate(); // Turn on the UDP server as needed
-    DMW_c("httpClientUpdate");
+    DMW_n("httpClientUpdate");
     httpClientUpdate(); // Process any Point Perfect HTTP messages
-    DMW_c("webServerUpdate");
+    DMW_n("webServerUpdate");
     webServerUpdate(); // Start webServer for web config as needed
 
     // Periodically display the network interface state
@@ -2646,6 +2668,7 @@ void networkUserRemove(NETCONSUMER_t consumer, const char *fileName, uint32_t li
 {
     NetIndex_t index;
     NETCONSUMER_MASK_t mask;
+    const char * name;
 
     // Validate the consumer
     networkConsumerValidate(consumer);
@@ -2661,7 +2684,10 @@ void networkUserRemove(NETCONSUMER_t consumer, const char *fileName, uint32_t li
     if (netIfUsers[index] & mask)
     {
         if (settings.debugNetworkLayer)
-            systemPrintf("%s removing user %s\r\n", networkInterfaceTable[index].name, networkConsumerTable[consumer]);
+        {
+            name = (index == NETWORK_ANY) ? "ANY" : networkInterfaceTable[index].name;
+            systemPrintf("%s removing user %s\r\n", name, networkConsumerTable[consumer]);
+        }
 
         // The network interface is no longer in use by this consumer
         netIfUsers[index] &= ~mask;
