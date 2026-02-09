@@ -103,7 +103,7 @@
 
     <div class="container">
 
-        <div align="center" class="col-sm-12"><img src="src/rtk-setup.png" alt="SparkFun RTK WiFi Setup"></div>
+        <div align="center" class="col-sm-12"><img id="pageLogo" src="src/sparkpnt_device_setup.png" alt="Device Setup"></div>
 
     </div>
 
@@ -112,9 +112,10 @@
         <div align="center" class="row" style="display:block;">
 
             <div align="center" class="small left">
+                Model: <span id="platformPrefix" style="display:inline;">Loading</span><br>
                 RTK Everywhere Firmware: <span id="rtkFirmwareVersion" style="display:inline;">v0.0</span><br>
-                <span id="gnssFirmwareVersion" style="display:inline;">GNSS Firmware: v0.0</span> <br>
-                <span id="deviceBTID" style="display:inline;">Device Bluetooth ID: 0000</span> <br>
+                <span id="gnssFirmwareVersion" style="display:inline;">GNSS Firmware: v0.0</span><br>
+                <span id="deviceBTID" style="display:inline;">Device Bluetooth ID: 0000</span><br>
                 <span id="coordinatesLLH" style="display:inline;">LLh:
                     <span id="geodeticLat" style="display:inline;">40.09029479</span>,
                     <span id="geodeticLon" style="display:inline;">-105.18505761</span>,
