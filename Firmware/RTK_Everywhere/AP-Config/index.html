@@ -352,27 +352,73 @@
                         </div>
                     </div>
 
-                    <div id="galileoHasSetting">
-                        <div class="form-check mt-3">
-                            <label class="form-check-label" for="enableGalileoHas">Enable Galileo HAS/E6
-                                Corrections</label>
-                            <input class="form-check-input" type="checkbox" value="" id="enableGalileoHas">
-                            <span class="tt" data-bs-placement="right"
-                                title="Use High Accuracy Service corrections provided over the Galileo constellation. Default: Enabled.">
-                                <span class="icon-info-circle text-primary ms-2"></span>
-                            </span>
+                    <div id="pppSettings" style="display:none">
+                        <div id="pppServiceDropdown">
+                            <label for="pppMode">PPP Service:
+                                <span class="tt" data-bs-placement="right"
+                                    title="Use PPP corrections provided over the Galileo or BeiDou constellations. Default: E6 HAS.">
+                                    <span class="icon-info-circle text-primary ms-2"></span>
+                                </span>
+                            </label>
+                            <div class="col-sm-4 col-6">
+                                <select name="pppMode" id="pppMode" class="form-dropdown mb-2">
+                                </select>
+                            </div>
                         </div>
-                        <div id="configurePppSetting">
+
+                        <div id="pppServiceSettings" style="display:none">
+                            <div id="pppDatumDropdown" class="box-margin20 col-sm-3 col- col-form-label">
+                                <label for="pppDatum">Datum:</label>
+                                <select name="pppDatum" id="pppDatum" class="form-dropdown mb-2">
+                                    <option value="1">WGS84</option>
+                                    <option value="2">PPP Original</option>
+                                    <option value="3">CGCS2000</option>
+                                </select>
+                                <span class="tt" data-bs-placement="right"
+                                    title="Select the datum to be used during PPP service. Default: WGS84">
+                                    <span class="icon-info-circle text-primary ms-2"></span>
+                                </span>
+                                <br>
+                            </div>
+
                             <div class="form-group row">
-                                <label for="configurePPP" class="box-margin20 col-sm-3 col-5 col-form-label">Configure PPP:
+                                <label for="pppTimeout" class="box-margin20 col-sm-3 col-5 col-form-label">Timeout:
                                     <span class="tt" data-bs-placement="right"
-                                        title="The configuration string for PPP. Enter values separated by spaces, not commas. Default: 2 1 120 0.10 0.15">
+                                        title="Enter PPP timeout before fallback. 90 to 180 seconds. Default: 120s">
                                         <span class="icon-info-circle text-primary ms-2"></span>
                                     </span>
                                 </label>
                                 <div class="col-sm-8 col-6">
-                                    <input type="text" class="form-control" id="configurePPP">
-                                    <p id="configurePPPError" class="inlineError"></p>
+                                    <input type="text" class="form-control" id="pppTimeout">
+                                    <p id="pppTimeoutError" class="inlineError"></p>
+                                </div>
+                            </div>
+
+                            <div class="form-group row">
+                                <label for="pppHorizontalConvergence"
+                                    class="box-margin20 col-sm-3 col-5 col-form-label">Horizontal Convergence:
+                                    <span class="tt" data-bs-placement="right"
+                                        title="Enter PPP Horizontal Convergence Accuracy. 0.0 to 5.0 meters. Default: 0.1m">
+                                        <span class="icon-info-circle text-primary ms-2"></span>
+                                    </span>
+                                </label>
+                                <div class="col-sm-8 col-6">
+                                    <input type="text" class="form-control" id="pppHorizontalConvergence">
+                                    <p id="pppHorizontalConvergenceError" class="inlineError"></p>
+                                </div>
+                            </div>
+
+                            <div class="form-group row">
+                                <label for="pppVerticalConvergence"
+                                    class="box-margin20 col-sm-3 col-5 col-form-label">Vertical Convergence:
+                                    <span class="tt" data-bs-placement="right"
+                                        title="Enter PPP Horizontal Convergence Accuracy. 0.0 to 5.0 meters. Default: 0.15m">
+                                        <span class="icon-info-circle text-primary ms-2"></span>
+                                    </span>
+                                </label>
+                                <div class="col-sm-8 col-6">
+                                    <input type="text" class="form-control" id="pppVerticalConvergence">
+                                    <p id="pppVerticalConvergenceError" class="inlineError"></p>
                                 </div>
                             </div>
                         </div>
@@ -390,7 +436,8 @@
 
                         <div class="form-group row" id="rtcmMinElevConfig">
                             <div class="form-group row">
-                                <label for="rtcmMinElev" class="col-sm-4 col-6 col-form-label">Min SV Elevation for RTCM:
+                                <label for="rtcmMinElev" class="col-sm-4 col-6 col-form-label">Min SV Elevation for
+                                    RTCM:
                                     <span class="tt" data-bs-placement="right"
                                         title="Minimum elevation in degrees for a GNSS satellite to be used for RTCM corrections. Default: -90">
                                         <span class="icon-info-circle text-primary ms-2"></span>
@@ -905,7 +952,8 @@
 
                                 <div class="form-check mt-3 mb-2 box-margin20">
                                     <label class="form-check-label" for="ntripServerCasterEnabled_0">Enable</label>
-                                    <input class="form-check-input" type="checkbox" value="" id="ntripServerCasterEnabled_0">
+                                    <input class="form-check-input" type="checkbox" value=""
+                                        id="ntripServerCasterEnabled_0">
                                 </div>
 
                                 <div class="form-group row">
@@ -983,7 +1031,8 @@
 
                                 <div class="form-check mt-3 mb-2 box-margin20">
                                     <label class="form-check-label" for="ntripServerCasterEnabled_1">Enable</label>
-                                    <input class="form-check-input" type="checkbox" value="" id="ntripServerCasterEnabled_1">
+                                    <input class="form-check-input" type="checkbox" value=""
+                                        id="ntripServerCasterEnabled_1">
                                 </div>
 
                                 <div class="form-group row">
@@ -1061,7 +1110,8 @@
 
                                 <div class="form-check mt-3 mb-2 box-margin20">
                                     <label class="form-check-label" for="ntripServerCasterEnabled_2">Enable</label>
-                                    <input class="form-check-input" type="checkbox" value="" id="ntripServerCasterEnabled_2">
+                                    <input class="form-check-input" type="checkbox" value=""
+                                        id="ntripServerCasterEnabled_2">
                                 </div>
 
                                 <div class="form-group row">
@@ -1139,7 +1189,8 @@
 
                                 <div class="form-check mt-3 mb-2 box-margin20">
                                     <label class="form-check-label" for="ntripServerCasterEnabled_3">Enable</label>
-                                    <input class="form-check-input" type="checkbox" value="" id="ntripServerCasterEnabled_3">
+                                    <input class="form-check-input" type="checkbox" value=""
+                                        id="ntripServerCasterEnabled_3">
                                 </div>
 
                                 <div class="form-group row">
@@ -1692,8 +1743,9 @@
 
                     <div class="form-check mt-3">
                         <label class="form-check-label" for="enableNtripCaster">NTRIP Caster</label>
-                        <input class="form-check-input" type="checkbox" value="" id="enableNtripCaster" onClick="tcpServerBoxes()">
-                        
+                        <input class="form-check-input" type="checkbox" value="" id="enableNtripCaster"
+                            onClick="tcpServerBoxes()">
+
                         <span class="tt" data-bs-placement="right"
                             title="If enabled, device will emulate an NTRIP caster, allowing inbound NTRIP Clients to connect and get RTCM over the given port.">
                             <span class="icon-info-circle text-primary ms-2"></span>
@@ -1896,6 +1948,7 @@
                     <button type="button" class="btn btn-primary" id="corrPrioButton5">5</button>
                     <button type="button" class="btn btn-primary" id="corrPrioButton6">6</button>
                     <button type="button" class="btn btn-primary" id="corrPrioButton7">7</button>
+                    <button type="button" class="btn btn-primary" id="corrPrioButton8">8</button>
                     <br>
                     <button type="button" id="correctionsPriorityDefaults" class="btn btn-primary"
                         onClick="resetToCorrectionsPriorityDefaults()">Reset to Defaults</button>
@@ -2117,8 +2170,8 @@
 
                         <div id="logFile" class="row">
                             <div class="mb-2">
-                                <label class="form-group box-margin20">Log file name: <span
-                                        id="logFileName" style="display:inline;">SFE_Log.ubx</span>
+                                <label class="form-group box-margin20">Log file name: <span id="logFileName"
+                                        style="display:inline;">SFE_Log.ubx</span>
                                 </label>
                             </div>
                         </div>

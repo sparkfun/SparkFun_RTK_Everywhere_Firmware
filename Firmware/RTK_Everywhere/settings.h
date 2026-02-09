@@ -261,14 +261,15 @@ typedef enum
     CORR_BLUETOOTH,     // 3,  10+km Baseline, Tasks.ino (sendGnssBuffer)
     CORR_USB,           // 4,                  menuMain.ino (terminalUpdate)
     CORR_TCP,           // 5,  10+km Baseline, NtripClient.ino
-    CORR_LBAND,         // 6, 100 km Baseline, menuPP.ino for PMP - PointPerfectLibrary.ino for PPL
-    CORR_IP,            // 7, 100+km Baseline, MQTT_Client.ino
+    CORR_PPP_HAS_B2B,   // 6, 100+km Baseline
+    CORR_LBAND,         // 7, 100 km Baseline, menuPP.ino for PMP - PointPerfectLibrary.ino for PPL
+    CORR_IP,            // 8, 100+km Baseline, MQTT_Client.ino
     // Add new correction sources just above this line
     CORR_NUM
 } correctionsSource;
 
 typedef uint8_t CORRECTION_ID_T;    // Type holding a correction ID or priority
-typedef uint8_t CORRECTION_MASK_T;  // Type holding a bitmask of correction IDs
+typedef uint16_t CORRECTION_MASK_T;  // Type holding a bitmask of correction IDs
 
 const char * const correctionsSourceNames[CORR_NUM] =
 {
@@ -279,6 +280,7 @@ const char * const correctionsSourceNames[CORR_NUM] =
     "Bluetooth",
     "USB Serial",
     "TCP (NTRIP)",
+    "PPP HAS/B2b",
     "L-Band",
     "IP (PointPerfect/MQTT)",
     // Add new correction sources just above this line
@@ -357,6 +359,16 @@ typedef enum
     ERROR_NO_I2C = 2, // Avoid 0 and 1 as these are bad blink codes
     ERROR_GPS_CONFIG_FAIL,
 } t_errorNumber;
+
+// User can select different PPP modes
+// LG290P has 0/1/2/255, UM980 has enable/disable
+enum
+{
+    PPP_MODE_DISABLE = 0,
+    PPP_MODE_B2B, // 1
+    PPP_MODE_HAS, // 2
+    PPP_MODE_AUTO = 255
+};
 
 // Define the periodic display values
 typedef uint64_t PeriodicDisplay_t;
@@ -1046,7 +1058,6 @@ struct Settings
     bool enableImuCompensationDebug = false;
     bool enableImuDebug = false; // Turn on to display IMU library debug messages
     bool enableTiltCompensation = true; // Allow user to disable tilt compensation on the models that have an IMU
-    bool enableGalileoHas = true; // Allow E6 corrections if possible. Also needed on LG290P
 #ifdef COMPILE_UM980
     uint8_t um980Constellations[MAX_UM980_CONSTELLATIONS] = {254}; // Mark first record with key so defaults will be applied.
     float um980MessageRatesNMEA[MAX_UM980_NMEA_MSG] = {254}; // Mark first record with key so defaults will be applied.
@@ -1135,7 +1146,6 @@ struct Settings
     int lg290pMessageRatesPQTM[MAX_LG290P_PQTM_MSG] = {254}; // Mark first record with key so defaults will be applied.
 #endif // COMPILE_LG290P
 
-    char configurePPP[30] = "2 1 120 0.10 0.15"; // PQTMCFGPPP: 2,1,120,0.10,0.15 ** Use spaces, not commas! **
     bool debugSettings = false;
     bool enableNtripCaster = false; //When true, respond as a faux NTRIP Caster to incoming TCP connections
     bool baseCasterOverride = false; //When true, user has put device into 'BaseCast' mode. Change settings, but don't save to NVM.
@@ -1143,6 +1153,12 @@ struct Settings
     uint16_t cliBlePrintDelay_ms = 50; // Time delayed between prints during a LIST command to avoid overwhelming the BLE connection
     uint32_t gnssConfigureRequest = 0; // Bitfield containing the change requests for various settings on the GNSS receiver
     bool debugGnssConfig = false; // Enable to print output during gnssUpdate
+
+    int pppMode = PPP_MODE_HAS; // 0 = Disable, 1 = B2b PPP, 2 = HAS, 0xFF = Auto
+    int pppDatum = 1; // 1 = WGS84, 2 = PPP Original, 3 = CGCS2000
+    int pppTimeout = 120; // Seconds without PPP corrections before fallback
+    float pppHorizontalConvergence = 0.10; // Meters, required horizontal convergence for PPP fix
+    float pppVerticalConvergence = 0.15; // Meters, required vertical convergence for PPP fix
 
     // Add new settings to appropriate group above or create new group
     // Then also add to the same group in rtkSettingsEntries below
@@ -1744,7 +1760,6 @@ const RTK_Settings_Entry rtkSettingsEntries[] =
 //    f  n  f  E     a  r  a  a        
 //    i  d  i  v  V  i  c  n  r  F    X
 //    g  s  x  k  2  c  h  d  d  P    2  Type       Qual                Variable                  Name              afterSetCmd
-    { 1, 1, 0, 0, 0, 0, 1, 0, 1, HAS, 1, _bool,     0, & settings.enableGalileoHas, "enableGalileoHas", nullptr, },
     { 1, 1, 0, 0, 0, 0, 1, 0, 0, ALL, 0, _bool,     3, & settings.enableMultipathMitigation, "enableMultipathMitigation", nullptr, },
     { 0, 0, 0, 0, 0, 0, 1, 0, 0, ALL, 0, _bool,     0, & settings.enableImuCompensationDebug, "enableImuCompensationDebug", nullptr, },
     { 0, 0, 0, 0, 0, 0, 1, 0, 0, ALL, 0, _bool,     0, & settings.enableImuDebug, "enableImuDebug", nullptr, },
@@ -1805,7 +1820,6 @@ const RTK_Settings_Entry rtkSettingsEntries[] =
     { 0, 1, 1, 0, 0, 0, 0, 0, 1, L29, 1, tLgMRBaRT, MAX_LG290P_RTCM_MSG, & settings.lg290pMessageRatesRTCMBase, "messageRateRTCMBase_", gnssCmdUpdateMessageRates, },
     { 0, 1, 1, 0, 0, 0, 0, 0, 1, L29, 1, tLgMRRvRT, MAX_LG290P_RTCM_MSG, & settings.lg290pMessageRatesRTCMRover, "messageRateRTCMRover_", gnssCmdUpdateMessageRates, },
     { 0, 1, 1, 0, 0, 0, 0, 0, 1, L29, 1, tLgMRPqtm, MAX_LG290P_PQTM_MSG, & settings.lg290pMessageRatesPQTM, "messageRatePQTM_", gnssCmdUpdateMessageRates, },
-    { 1, 1, 0, 0, 0, 0, 0, 0, 1, L29, 1, tCharArry, sizeof(settings.configurePPP), & settings.configurePPP, "configurePPP", nullptr, },
 #endif  // COMPILE_LG290P
 
     { 0, 0, 0, 1, 1, 1, 1, 1, 1, ALL, 1, _bool,     0, & settings.debugSettings, "debugSettings", nullptr, },
@@ -1814,6 +1828,12 @@ const RTK_Settings_Entry rtkSettingsEntries[] =
     { 0, 0, 0, 1, 1, 1, 1, 1, 1, ALL, 1, _bool,     0, & settings.debugCLI, "debugCLI", nullptr, },
     { 0, 0, 0, 1, 1, 1, 1, 1, 1, ALL, 1, _uint16_t, 0, & settings.cliBlePrintDelay_ms, "cliBlePrintDelay_ms", nullptr, },
     { 0, 0, 0, 1, 1, 1, 1, 1, 1, ALL, 1, _uint32_t, 0, & settings.gnssConfigureRequest, "gnssConfigureRequest", nullptr, },
+
+    { 1, 1, 0, 0, 0, 0, 1, 0, 1, HAS, 1, _int,      0, & settings.pppMode, "pppMode", nullptr, },
+    { 1, 1, 0, 0, 0, 0, 0, 0, 1, HAS, 1, _int,      0, & settings.pppDatum, "pppDatum", nullptr, },
+    { 1, 1, 0, 0, 0, 0, 0, 0, 1, HAS, 1, _int,      0, & settings.pppTimeout, "pppTimeout", nullptr, },
+    { 1, 1, 0, 0, 0, 0, 0, 0, 1, HAS, 1, _float,    1, & settings.pppHorizontalConvergence, "pppHorizontalConvergence", nullptr, },
+    { 1, 1, 0, 0, 0, 0, 0, 0, 1, HAS, 1, _float,    1, & settings.pppVerticalConvergence, "pppVerticalConvergence", nullptr, },
 
     // Add new settings to appropriate group above or create new group
     // Then also add to the same group in settings above
@@ -1902,7 +1922,7 @@ struct struct_present
     bool needsExternalPpl = false;
 
     float antennaPhaseCenter_mm = 0.0; // Used to setup tilt compensation
-    bool galileoHasCapable = false; // UM980 has HAS capabilities
+    bool pppCapable = false; // Device has the capability to do PPP corrections, currently B2b or E6 HAS
     bool multipathMitigation = false; // UM980 has MPM, other platforms do not
     bool minCN0 = false; // ZED, mosaic, UM980 have minCN0. LG290P does on version >= v5.
     bool minElevation = false; // ZED, mosaic, UM980 have minElevation. LG290P does on versions >= v5.
