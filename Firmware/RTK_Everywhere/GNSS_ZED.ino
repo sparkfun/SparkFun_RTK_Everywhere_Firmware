@@ -3346,4 +3346,93 @@ bool zedSettingsToFile(File *settingsFile,
     return true;
 }
 
+//----------------------------------------
+// Return true if we detect this receiver type
+bool x20pIsPresentOnFacetFP()
+{
+    // Locally instantiate the hardware and library so it will release on exit
+    SFE_UBLOX_GNSS_SUPER zed;
+
+    if (zed.begin(*i2c_0) == false)
+    {
+        if (settings.debugGnss)
+            systemPrintln("GNSS ZED-X20P failed to begin. Trying again.");
+
+        // Try again with small delay
+        delay(100); // Wait for ZED-F9P to power up before it can respond to ACK
+        if (zed.begin(*i2c_0) == false)
+        {
+            if (settings.debugGnss)
+                systemPrintln("GNSS ZED-X20P not detected");
+            return false;
+        }
+    }
+
+    // Increase transactions to reduce transfer time
+    zed.i2cTransactionSize = 128;
+
+    // Check the module name
+    if (zed.getModuleInfo(1100)) // Try to get the module info
+        if (strstr(zed.getModuleName(), "ZED-X20P") != nullptr)
+            return true;
+
+    return false;
+}
+
+//----------------------------------------
+// Called by gnssDetectReceiverType to create the GNSS_ZED class instance
+//----------------------------------------
+void x20pNewClass()
+{
+    gnss = (GNSS *)new GNSS_ZED();
+
+    present.gnss_zedx20p = true;
+    present.minCN0 = true;
+}
+
+//----------------------------------------
+// Return true if we detect this receiver type
+bool f9pIsPresentOnFacetFP()
+{
+    // Locally instantiate the hardware and library so it will release on exit
+    SFE_UBLOX_GNSS_SUPER zed;
+
+    if (zed.begin(*i2c_0) == false)
+    {
+        if (settings.debugGnss)
+            systemPrintln("GNSS ZED-F9P failed to begin. Trying again.");
+
+        // Try again with small delay
+        delay(100); // Wait for ZED-F9P to power up before it can respond to ACK
+        if (zed.begin(*i2c_0) == false)
+        {
+            if (settings.debugGnss)
+                systemPrintln("GNSS ZED-F9P not detected");
+            return false;
+        }
+    }
+
+    // Increase transactions to reduce transfer time
+    zed.i2cTransactionSize = 128;
+
+    // Check the module name
+    if (zed.getModuleInfo(1100)) // Try to get the module info
+        if (strstr(zed.getModuleName(), "ZED-F9P") != nullptr)
+            return true;
+
+    return false;
+}
+
+//----------------------------------------
+// Called by gnssDetectReceiverType to create the GNSS_ZED class instance
+//----------------------------------------
+void f9pNewClass()
+{
+    gnss = (GNSS *)new GNSS_ZED();
+
+    present.gnss_zedf9p = true;
+    present.minCN0 = true;
+}
+
+
 #endif // COMPILE_ZED

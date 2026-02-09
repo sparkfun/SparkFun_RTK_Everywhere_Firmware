@@ -821,6 +821,10 @@ bool zedNewSettingValue(RTK_Settings_Types type,
 bool zedSettingsToFile(File *settingsFile,
                        RTK_Settings_Types type,
                        int settingsIndex);
+bool x20pIsPresentOnFacetFP();
+void x20pNewClass();
+bool f9pIsPresentOnFacetFP();
+void f9pNewClass();
 
 #endif // COMPILE_ZED
 #endif // __GNSS_ZED_H__
