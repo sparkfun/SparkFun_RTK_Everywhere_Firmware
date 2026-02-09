@@ -134,13 +134,13 @@ void menuPortsNoMux()
             if (settings.enableGnssToUsbSerial)
                 systemPrintln("GNSS to USB is enabled. To exit this mode, press +++ to open the configuration menu.");
         }
-        else if ((incoming == 4) && ((present.gnss_zedf9p) || (present.gnss_lg290p)))
+        else if ((incoming == 4) && ((present.gnss_zedf9p) || present.gnss_zedx20p || (present.gnss_lg290p)))
         {
             // Toggle the enable for the external corrections radio
             settings.enableExtCorrRadio ^= 1;
             gnssConfigure(GNSS_CONFIG_EXT_CORRECTIONS); // Request receiver to use new settings
         }
-        else if ((incoming == 5) && (present.gnss_zedf9p))
+        else if ((incoming == 5) && (present.gnss_zedf9p || present.gnss_zedx20p))
         {
             // Toggle the SPARTN source for the external corrections radio
             settings.extCorrRadioSPARTNSource ^= 1;
@@ -197,7 +197,7 @@ void menuPortsMultiplexed()
 
         // Facet v2 has a mux. Radio Ext is UART2
         // Facet mosaic has a mux. Radio Ext is COM2. Data port (COM3) is mux'd.
-        if (present.gnss_zedf9p)
+        if (present.gnss_zedf9p || present.gnss_zedx20p)
         {
             systemPrintf("4) Allow Incoming Corrections on UART2: %s\r\n",
                          settings.enableExtCorrRadio ? "Enabled" : "Disabled");
@@ -285,7 +285,7 @@ void menuPortsMultiplexed()
             settings.enableExtCorrRadio ^= 1;
             gnssConfigure(GNSS_CONFIG_EXT_CORRECTIONS); // Request receiver to use new settings
         }
-        else if ((incoming == 5) && (present.gnss_zedf9p))
+        else if ((incoming == 5) && (present.gnss_zedf9p || present.gnss_zedx20p))
         {
             // Toggle the SPARTN source for the external corrections radio
             settings.extCorrRadioSPARTNSource ^= 1;

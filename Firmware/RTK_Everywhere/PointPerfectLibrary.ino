@@ -39,7 +39,7 @@ void updatePplTask(void *e)
                 {
                     if (correctionLastSeen(pplCorrectionsSource))
                     {
-                        if (present.gnss_zedf9p)
+                        if (present.gnss_zedf9p || present.gnss_zedx20p)
                         {
                             // Set ZED SOURCE to 1 (L-Band) if needed
                             // Note: this is almost certainly redundant. It would only be used if we

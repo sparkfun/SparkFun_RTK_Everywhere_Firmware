@@ -39,6 +39,7 @@ calculation
 
 // The LG290P Serial test is fast. Give that the highest priority
 // Use the LG290P test to give the ZED time to start up. Do ZED next as I2C is quick
+// ZED-X20P does not report the MOD= module name. So, test for F9P first...
 // Mosaic is really slow to boot. Leave that until last
 const GNSS_SUPPORT_ROUTINES gnssSupportRoutines[] =
 {
@@ -96,7 +97,7 @@ const GNSS_SUPPORT_ROUTINES gnssSupportRoutines[] =
         "F",                    // gnssModelIdentifier for Facet FP deviceName
         GNSS_RECEIVER_F9P,      // _receiver
         f9pIsPresentOnFacetFP,  // _present
-        2,                      // _presentPriority : third highest, do X20P first
+        1,                      // _presentPriority : second highest, F9P reports the MOD= device name
         f9pNewClass,            // _newClass
         zedCommandList,         // _commandList
         zedCommandTypeJson,     // _commandTypeJson
@@ -110,7 +111,7 @@ const GNSS_SUPPORT_ROUTINES gnssSupportRoutines[] =
         "X",                    // gnssModelIdentifier for Facet FP deviceName
         GNSS_RECEIVER_X20P,     // _receiver
         x20pIsPresentOnFacetFP, // _present
-        1,                      // _presentPriority : second highest since test is easy on I2C
+        2,                      // _presentPriority : third highest, does not report MOD=
         x20pNewClass,           // _newClass
         zedCommandList,         // _commandList
         zedCommandTypeJson,     // _commandTypeJson

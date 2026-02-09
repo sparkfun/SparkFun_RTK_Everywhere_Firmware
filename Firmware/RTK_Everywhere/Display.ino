@@ -1497,7 +1497,7 @@ void paintDynamicModel(std::vector<iconPropertyBlinking> *iconList)
         prop.icon.bitmap = nullptr; // Use this as the test a valid icon
         prop.duty = 0b11111111;
 
-        if (present.gnss_zedf9p)
+        if (present.gnss_zedf9p || present.gnss_zedx20p)
         {
 #ifdef COMPILE_ZED
             // Display icon associated with current Dynamic Model
@@ -2669,7 +2669,7 @@ void paintSystemTest()
             oled->print(" ");
             oled->print(gnssFirmwareVersionInt);
             oled->print("-");
-            if ((present.gnss_zedf9p) && (gnssFirmwareVersionInt < 150))
+            if ((present.gnss_zedf9p || present.gnss_zedx20p) && (gnssFirmwareVersionInt < 150))
                 oled->print("FAIL");
             else
                 oled->print("OK");

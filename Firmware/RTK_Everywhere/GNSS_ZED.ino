@@ -177,8 +177,10 @@ void GNSS_ZED::begin()
         //"1.32" - ZED-F9P released May, 2022
         //"1.50" - ZED-F9P released July, 2024
         //"1.51" - ZED-F9P released November, 2024
+        //"2.00" - ZED-X20P released May, 2025
+        //"2.02" - ZED-X20P released July, 2025
 
-        const uint8_t knownFirmwareVersions[] = {100, 112, 113, 120, 121, 130, 132, 150, 151};
+        const uint8_t knownFirmwareVersions[] = {100, 112, 113, 120, 121, 130, 132, 150, 151, 200, 202};
         bool knownFirmware = false;
         for (uint8_t i = 0; i < (sizeof(knownFirmwareVersions) / sizeof(knownFirmwareVersions[0])); i++)
         {
@@ -224,7 +226,7 @@ void GNSS_ZED::begin()
             // Callbacks are volatile and must be set after each reset
             registerCallbacks();
 
-            systemPrintln("GNSS ZED-F9P online");
+            systemPrintln("GNSS ZED online");
 
             online.gnss = true;
 
@@ -232,7 +234,7 @@ void GNSS_ZED::begin()
         }
     }
 
-    systemPrintln("GNSS ZED-F9P offline");
+    systemPrintln("GNSS ZED offline");
     displayGNSSFail(1000);
 }
 
@@ -1039,7 +1041,7 @@ uint8_t GNSS_ZED::getMessageNumberByNameSkipChecks(const char *msgName)
 }
 uint8_t GNSS_ZED::getMessageNumberByName(const char *msgName, bool skipPlatformChecks)
 {
-    if (skipPlatformChecks || present.gnss_zedf9p)
+    if (skipPlatformChecks || present.gnss_zedf9p || present.gnss_zedx20p)
     {
         for (int x = 0; x < MAX_UBX_MSG; x++)
         {
@@ -3368,15 +3370,11 @@ bool x20pIsPresentOnFacetFP()
         }
     }
 
-    // Increase transactions to reduce transfer time
-    zed.i2cTransactionSize = 128;
+    // ZED-X20P HPG 2.02 does not report the MOD= module name
+    // How do we disambiguate F9P and X20P?
+    // The F9P does report the MOD module name. Maybe that's the best we can do?
 
-    // Check the module name
-    if (zed.getModuleInfo(1100)) // Try to get the module info
-        if (strstr(zed.getModuleName(), "ZED-X20P") != nullptr)
-            return true;
-
-    return false;
+    return true;
 }
 
 //----------------------------------------
@@ -3416,6 +3414,7 @@ bool f9pIsPresentOnFacetFP()
     zed.i2cTransactionSize = 128;
 
     // Check the module name
+    // ZED-F9P does report the MOD= module name. So, test for F9P first...
     if (zed.getModuleInfo(1100)) // Try to get the module info
         if (strstr(zed.getModuleName(), "ZED-F9P") != nullptr)
             return true;

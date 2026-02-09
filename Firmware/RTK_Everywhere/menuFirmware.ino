@@ -187,6 +187,8 @@ const char *printGnssModuleInfo()
     char gnssMfg[10];
     if (present.gnss_zedf9p)
         strncpy(gnssMfg, "ZED-F9P", sizeof(gnssMfg));
+    else if (present.gnss_zedx20p)
+        strncpy(gnssMfg, "ZED-X20P", sizeof(gnssMfg));
     else if (present.gnss_um980)
         strncpy(gnssMfg, "UM980", sizeof(gnssMfg));
     else if (present.gnss_mosaicX5)

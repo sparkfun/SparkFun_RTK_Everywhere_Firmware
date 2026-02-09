@@ -865,7 +865,7 @@ bool productVariantSupportsAssistNow()
     // Of all GNSS receiver types, only ZED-F9P supports Assist Now
     // gnss_um980, gnss_zedf9p, gnss_mosaicX5, gnss_lg290p, gnss_zedx20p
 
-    if (present.gnss_zedf9p)
+    if (present.gnss_zedf9p || present.gnss_zedx20p)
         return true;
     return false;
 }
@@ -875,7 +875,7 @@ bool productVariantSupportsLbandNA()
     // Of all GNSS receiver types, only ZED-F9P and mosaic-X5 support LBand North America
     // gnss_um980, gnss_zedf9p, gnss_mosaicX5, gnss_lg290p, gnss_zedx20p
 
-    if (present.gnss_zedf9p || present.gnss_mosaicX5)
+    if (present.gnss_zedf9p || present.gnss_zedx20p || present.gnss_mosaicX5)
         return true;
     return false;
 }
