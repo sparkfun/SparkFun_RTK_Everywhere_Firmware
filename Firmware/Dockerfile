@@ -67,7 +67,7 @@ RUN arduino-cli lib install ArduinoJson@7.0.4
 RUN arduino-cli lib install ESP32Time@2.0.0
 RUN arduino-cli lib install ESP32_BleSerial@2.0.1
 RUN arduino-cli lib install "ESP32-OTA-Pull"@1.0.0
-RUN arduino-cli lib install JC_Button@2.1.2
+RUN arduino-cli lib install JC_Button@2.1.6
 RUN arduino-cli lib install PubSubClient@2.8.0
 RUN arduino-cli lib install "SdFat"@2.1.1
 RUN arduino-cli lib install "SparkFun LIS2DH12 Arduino Library"@1.0.3
