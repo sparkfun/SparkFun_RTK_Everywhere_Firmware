@@ -139,13 +139,13 @@ void GNSS_ZED::begin()
 
     if (_zed->begin(*i2c_0) == false)
     {
-        systemPrintln("GNSS ZED-F9P failed to begin. Trying again.");
+        systemPrintln("GNSS ZED failed to begin. Trying again.");
 
         // Try again with power on delay
         delay(1000); // Wait for ZED-F9P to power up before it can respond to ACK
         if (_zed->begin(*i2c_0) == false)
         {
-            systemPrintln("GNSS ZED-F9P offline");
+            systemPrintln("GNSS ZED offline");
             displayGNSSFail(1000);
             return;
         }
@@ -194,9 +194,9 @@ void GNSS_ZED::begin()
             gnssFirmwareVersionInt = 99; // 0.99 invalid firmware version
         }
 
-        // Determine if we have a ZED-F9P or an ZED-F9R
+        // Determine if we have a ZED-F9P or an ZED-X20P
         if (strstr(_zed->getModuleName(), "ZED-F9P") == nullptr)
-            systemPrintf("Unknown ZED module: %s\r\n", _zed->getModuleName());
+            systemPrintf("Unknown ZED module: %s. Could be a X20P\r\n", _zed->getModuleName());
 
         if (strcmp(_zed->getFirmwareType(), "HPG") == 0)
             if ((_zed->getFirmwareVersionHigh() == 1) && (_zed->getFirmwareVersionLow() < 30))
@@ -3372,19 +3372,12 @@ bool x20pIsPresentOnFacetFP()
     // Locally instantiate the hardware and library so it will release on exit
     SFE_UBLOX_GNSS_SUPER zed;
 
-    if (zed.begin(*i2c_0) == false)
+    if (zed.begin(*i2c_0) == false) // .begin will retry 3 times
     {
         if (settings.debugGnss)
-            systemPrintln("GNSS ZED-X20P failed to begin. Trying again.");
+            systemPrintln("GNSS ZED-X20P not detected");
 
-        // Try again with small delay
-        delay(100); // Wait for ZED-F9P to power up before it can respond to ACK
-        if (zed.begin(*i2c_0) == false)
-        {
-            if (settings.debugGnss)
-                systemPrintln("GNSS ZED-X20P not detected");
-            return false;
-        }
+        return false;
     }
 
     // ZED-X20P HPG 2.02 does not report the MOD= module name
@@ -3412,19 +3405,12 @@ bool f9pIsPresentOnFacetFP()
     // Locally instantiate the hardware and library so it will release on exit
     SFE_UBLOX_GNSS_SUPER zed;
 
-    if (zed.begin(*i2c_0) == false)
+    if (zed.begin(*i2c_0) == false) // .begin will retry 3 times
     {
         if (settings.debugGnss)
-            systemPrintln("GNSS ZED-F9P failed to begin. Trying again.");
+            systemPrintln("GNSS ZED-F9P not detected");
 
-        // Try again with small delay
-        delay(100); // Wait for ZED-F9P to power up before it can respond to ACK
-        if (zed.begin(*i2c_0) == false)
-        {
-            if (settings.debugGnss)
-                systemPrintln("GNSS ZED-F9P not detected");
-            return false;
-        }
+        return false;
     }
 
     // Increase transactions to reduce transfer time
