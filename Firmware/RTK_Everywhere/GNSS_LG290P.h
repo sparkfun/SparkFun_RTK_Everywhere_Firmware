@@ -46,7 +46,7 @@ const lg290pMsg lgMessagesNMEA[] = {
     {"GNS", -1, 0, 255, 104}, // Added in v1.1.0 spec. Firmware v1.4 and above
     {"GST", -1, 1, 255, 104}, // Added in v1.1.0 spec. Firmware v1.4 and above
     {"ZDA", -1, 0, 255, 104}, // Added in v1.1.0 spec. Firmware v1.4 and above
-    {"HDT", -1, 1, 255, 104}, // Added in v1.1.0 spec. Firmware v1.4 and above
+    {"HDT", -1, 0, 255, 104}, // Added in v1.1.0 spec. Firmware v1.4 and above
     {"THS", -1, 0, 255, 104}, // Added in v1.1.0 spec. Firmware v1.4 and above
 };
 

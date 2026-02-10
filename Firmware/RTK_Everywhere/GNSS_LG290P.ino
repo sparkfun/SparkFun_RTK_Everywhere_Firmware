@@ -930,17 +930,17 @@ uint8_t GNSS_LG290P::getLoggingType()
     if (lg290pFirmwareVersionInt >= 104)
     {
         // GST *is* available/default
-        if (getActiveNmeaMessageCount() == 7 && getActiveRtcmMessageCount() == 0)
+        if (getActiveNmeaMessageCount() == 7 && getActiveRtcmMessageCount() == 0 && getActivePqtmMessageCount() == 0)
             logType = LOGGING_STANDARD;
-        else if (getActiveNmeaMessageCount() == 7 && getActiveRtcmMessageCount() == 4)
+        else if (getActiveNmeaMessageCount() == 7 && getActiveRtcmMessageCount() == 4 && getActivePqtmMessageCount() == 0)
             logType = LOGGING_PPP;
     }
     else
     {
         // GST is not available in this firmware version
-        if (getActiveNmeaMessageCount() == 6 && getActiveRtcmMessageCount() == 0)
+        if (getActiveNmeaMessageCount() == 6 && getActiveRtcmMessageCount() == 0 && getActivePqtmMessageCount() == 0)
             logType = LOGGING_STANDARD;
-        else if (getActiveNmeaMessageCount() == 6 && getActiveRtcmMessageCount() == 4)
+        else if (getActiveNmeaMessageCount() == 6 && getActiveRtcmMessageCount() == 4 && getActivePqtmMessageCount() == 0)
             logType = LOGGING_PPP;
     }
 
