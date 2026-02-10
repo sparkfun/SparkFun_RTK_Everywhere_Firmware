@@ -125,7 +125,7 @@ void GNSS_LG290P::begin()
     if (lg290pFirmwareVersionInt < 104)
     {
         systemPrintf(
-            "Current LG290P firmware: v%d.%d (full form: %s). GST and DATA port configuration require v4 or newer. "
+            "Current LG290P firmware: v%d.%d (full form: %s). GST and DATA port configuration require v1.4 or newer. "
             "Please "
             "update the "
             "firmware on your LG290P to allow for these features. Please see https://bit.ly/sfe-rtk-lg290p-update\r\n",
@@ -143,7 +143,7 @@ void GNSS_LG290P::begin()
     if (lg290pFirmwareVersionInt < 105)
     {
         systemPrintf(
-            "Current LG290P firmware: v%d.%d (full form: %s). Elevation and CNR mask configuration require v5 or "
+            "Current LG290P firmware: v%d.%d (full form: %s). Elevation and CNR mask configuration require v1.5 or "
             "newer. "
             "Please "
             "update the "
