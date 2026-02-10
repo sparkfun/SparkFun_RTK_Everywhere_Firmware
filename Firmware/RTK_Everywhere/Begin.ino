@@ -1215,6 +1215,14 @@ void forceGnssCommunicationRate(uint32_t &platformGnssCommunicationRate)
             // Mosaic defaults to 115200, but mosaicIsPresentOnFacetFP() increases COM1 to 460800bps
             platformGnssCommunicationRate = 115200 * 4;
         }
+        else if ((settings.detectedGnssReceiver == GNSS_RECEIVER_F9P)
+                 || (settings.detectedGnssReceiver == GNSS_RECEIVER_X20P))
+        {
+            // ZED defaults to 115200. settings.dataPortBaud defaults to 230400
+            // Keep the baud rate at settings.dataPortBaud
+            // especially if Tilt is present and enabled (IM19 needs 115200 baud)
+            // I.e. nothing to do here...
+        }
         else
         {
             // If we don't know the GNSS receiver, default to 115200
