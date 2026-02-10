@@ -52,7 +52,7 @@ const lg290pMsg lgMessagesNMEA[] = {
 
 const lg290pMsg lgMessagesRTCM[] = {
     // In order from the LG29xP Series GNSS Protocol Spec v1.2.0 20260109, Table 6
-    {"RTCM3-1005", -1, 1, 1200, 0},   // RTCM-### must have only the rate
+    {"RTCM3-1005", -1, 1, 1200, 0},   // RTCM-### must have only the rate (no msgVer/Offset)
     {"RTCM3-1006", -1, 0, 1200, 0},   //
     {"RTCM3-1033", -1, 0, 1200, 104}, // Added in v1.1.0 spec. Firmware v1.4 and above
     {"RTCM3-107X", 0, 1, 1200, 0},    // RTCM3-###X Must have rate and msgVer/Offset = 0.
@@ -67,7 +67,7 @@ const lg290pMsg lgMessagesRTCM[] = {
     {"RTCM3-1042", -1, 0, 1, 0},      //
     {"RTCM3-1044", -1, 0, 1, 0},      //
     {"RTCM3-1046", -1, 0, 1, 0},      //
-    {"RTCM3-1230", -1, 0, 1, 201},    // Added in v1.2.0 spec. Firmware v2.1 and above
+    {"RTCM3-1230", -1, 0, 1, 201},    // Added in v1.2.0 spec. Firmware v2.1 and above.
 };
 
 // Quectel Proprietary messages
@@ -84,13 +84,13 @@ const lg290pMsg lgMessagesPQTM[] = {
     {"PQTMPL", 1, 0, 255, 0},  //
     {"PQTMODO", 1, 0, 255, 0}, //
     // {"PQTMTAR", 1, 0, 255, 201},           // Only available on LG580P
-    {"PQTMNAV", 1, 0, 255, 201}, // Added in v1.2.0 spec. Firmware v2.1 and above
-    {"PQTMEOE", 1, 0, 255, 201}, // Added in v1.2.0 spec. Firmware v2.1 and above
+    {"PQTMNAV", 1, 0, 255, 201}, // Added in v1.2.0 spec. Firmware v2.1 and above.
+    {"PQTMEOE", 1, 0, 255, 201}, // Added in v1.2.0 spec. Firmware v2.1 and above.
     // {"PQTMANTENNASTATUS", 1, 0, 255, 201}, // Only supported on LG580P
-    {"PQTMENV", 1, 0, 255, 201},           // Added in v1.2.0 spec. Firmware v2.1 and above
-    {"PQTMRTCMIS", 1, 0, 1, 201},          // Added in v1.2.0 spec. Firmware v2.1 and above
-    {"PQTMPPPNAV", 1, 0, 255, 201},        // Added in v1.2.0 spec. Firmware v2.1 and above
-    {"PQTMJAMMINGSTATUS", 1, 0, 255, 201}, // Added in v1.2.0 spec. Firmware v2.1 and above
+    {"PQTMENV", 1, 0, 255, 201},           // Added in v1.2.0 spec. Firmware v2.1 and above.
+    {"PQTMRTCMIS", 1, 0, 1, 201},          // Added in v1.2.0 spec. Firmware v2.1 and above.
+    {"PQTMPPPNAV", 1, 0, 255, 201},        // Added in v1.2.0 spec. Firmware v2.1 and above.
+    {"PQTMJAMMINGSTATUS", 1, 0, 255, 201}, // Added in v1.2.0 spec. Firmware v2.1 and above.
 };
 
 #define MAX_LG290P_NMEA_MSG (sizeof(lgMessagesNMEA) / sizeof(lg290pMsg))
