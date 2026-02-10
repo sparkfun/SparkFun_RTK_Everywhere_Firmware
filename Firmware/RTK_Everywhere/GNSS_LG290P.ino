@@ -2701,26 +2701,50 @@ bool GNSS_LG290P::setRtcmRoverMessageRateByName(const char *msgName, uint8_t msg
 
 // Given a NMEA or PQTM sentence, determine if it is enabled in settings
 // This is used to signal to the processUart1Message() task to remove messages that are needed
-// by the library to function (ie, PQTMEPE, PQTMPVT, GNGSV) but should not be logged or passed to other consumers
+// by the library to function (ie, PQTMEPE, PQTMPVT, GNGSV) but should not be logged or passed to other consumers.
 // If unknown, allow messages through. Filtering and suppression should be selectively added in.
 bool lg290pMessageEnabled(char *nmeaSentence, int sentenceLength)
 {
-    // Identify message type: PQTM or NMEA
-    char messageType[strlen("PQTM") + 1] = {0};
-    strncpy(messageType, &nmeaSentence[1],
-            4); // Copy four letters, starting in spot 1. Null terminated from array initializer.
+    // Identify message type: PQTM, RTCM, RAW, NAV, or Gx???
 
-    if (strncmp(messageType, "PQTM", sizeof(messageType)) == 0)
+    // Create array with worst case length
+    char sentenceHeader[strlen("PQTMGEOFENCESTATUS") + 1] = {0};
+
+    // Locate the '$'
+    char *start;
+    start = strchr(nmeaSentence, '$');
+
+    // Locate the first ','
+    char *end;
+    end = strchr(start, ',');
+    if (end == nullptr)
+        return (false); // Something went wrong. Do not log/report this sentence.
+
+    int length = end - start - 1; // Remove starting $ and ending ,
+
+    // Copy the sentence header, excluding $ and ,. Null terminated from array initializer.
+    strncpy(sentenceHeader, start + 1, length);
+
+    // Check if this header contains 'PQTM'
+    if (strnstr(sentenceHeader, "PQTM", sizeof(sentenceHeader)) != nullptr)
     {
-        // Identify sentence type
-        char sentenceType[strlen("EPE") + 1] = {0};
-        strncpy(sentenceType, &nmeaSentence[5],
-                3); // Copy three letters, starting in spot 5. Null terminated from array initializer.
+        // Identify the sub-type
 
-        // Find this sentence type in the settings array
+        // Locate the 'PQTM'
+        start = strnstr(sentenceHeader, "PQTM", sizeof(sentenceHeader));
+        end = strchr(sentenceHeader, '\0'); // Point at end of string
+
+        length = end - start; // Remove starting 'PQTM'
+
+        char messageName[length + 1] = {0};
+
+        // Copy the messageName, excluding PQTM. Null terminated from array initializer.
+        strncpy(messageName, start + strlen("PQTM"), length);
+
+        // Find this messageName in the settings array
         for (int messageNumber = 0; messageNumber < MAX_LG290P_PQTM_MSG; messageNumber++)
         {
-            if (strncmp(lgMessagesPQTM[messageNumber].msgTextName, sentenceType, sizeof(sentenceType)) == 0)
+            if (strncmp(lgMessagesPQTM[messageNumber].msgTextName, messageName, sizeof(messageName)) == 0)
             {
                 if (settings.lg290pMessageRatesPQTM[messageNumber] > 0)
                     return (true);
@@ -2728,22 +2752,29 @@ bool lg290pMessageEnabled(char *nmeaSentence, int sentenceLength)
             }
         }
     }
+    // else if (strnstr(sentenceHeader, "RTCM", sizeof(sentenceHeader)) != nullptr) // TODO
+    // else if (strnstr(sentenceHeader, "RAW-", sizeof(sentenceHeader)) != nullptr) // TODO
+    // else if (strnstr(sentenceHeader, "NAV-", sizeof(sentenceHeader)) != nullptr) // TODO
 
-    else // We have to assume $G????
+    else // We assume a Gx??? NMEA type sentenceHeader
     {
-        // Identify sentence type
-        char sentenceType[strlen("GSV") + 1] = {0};
-        strncpy(sentenceType, &nmeaSentence[3],
-                3); // Copy three letters, starting in spot 3. Null terminated from array initializer.
-
-        // Find this sentence type in the settings array
-        for (int messageNumber = 0; messageNumber < MAX_LG290P_NMEA_MSG; messageNumber++)
+        if (sentenceHeader[0] == 'G') // Verify sentenceHeader starts with G
         {
-            if (strncmp(lgMessagesNMEA[messageNumber].msgTextName, sentenceType, sizeof(sentenceType)) == 0)
+            // Identify the messageType type
+            char messageName[strlen("GSV") + 1] = {0};
+
+            // Copy three letters, starting in spot 2. Null terminated from array initializer.
+            strncpy(messageName, &sentenceHeader[2], 3);
+
+            // Find this sentence type in the settings array
+            for (int messageNumber = 0; messageNumber < MAX_LG290P_NMEA_MSG; messageNumber++)
             {
-                if (settings.lg290pMessageRatesNMEA[messageNumber] > 0)
-                    return (true);
-                return (false);
+                if (strncmp(lgMessagesNMEA[messageNumber].msgTextName, messageName, sizeof(messageName)) == 0)
+                {
+                    if (settings.lg290pMessageRatesNMEA[messageNumber] > 0)
+                        return (true);
+                    return (false);
+                }
             }
         }
     }
