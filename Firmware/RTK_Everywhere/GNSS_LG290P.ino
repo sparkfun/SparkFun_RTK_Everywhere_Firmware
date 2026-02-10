@@ -82,7 +82,8 @@ void GNSS_LG290P::begin()
     // Instantiate the library
     _lg290p = new LG290P();
 
-    if (_lg290p->begin(*serialGNSS, "SFE_LG290P_GNSS_Library", output) == false) // Give the serial port over to the library
+    if (_lg290p->begin(*serialGNSS, "SFE_LG290P_GNSS_Library", output) ==
+        false) // Give the serial port over to the library
     {
         if (settings.debugGnss)
             systemPrintln("GNSS LG290P failed to begin. Trying again.");
@@ -124,7 +125,8 @@ void GNSS_LG290P::begin()
     if (lg290pFirmwareVersionInt < 104)
     {
         systemPrintf(
-            "Current LG290P firmware: v%d.%d (full form: %s). GST and DATA port configuration require v4 or newer. Please "
+            "Current LG290P firmware: v%d.%d (full form: %s). GST and DATA port configuration require v4 or newer. "
+            "Please "
             "update the "
             "firmware on your LG290P to allow for these features. Please see https://bit.ly/sfe-rtk-lg290p-update\r\n",
             lg290pFirmwareVersionMajor, lg290pFirmwareVersionMinor, gnssFirmwareVersion);
@@ -141,7 +143,8 @@ void GNSS_LG290P::begin()
     if (lg290pFirmwareVersionInt < 105)
     {
         systemPrintf(
-            "Current LG290P firmware: v%d.%d (full form: %s). Elevation and CNR mask configuration require v5 or newer. "
+            "Current LG290P firmware: v%d.%d (full form: %s). Elevation and CNR mask configuration require v5 or "
+            "newer. "
             "Please "
             "update the "
             "firmware on your LG290P to allow for these features. Please see https://bit.ly/sfe-rtk-lg290p-update\r\n",
@@ -1744,8 +1747,8 @@ void GNSS_LG290P::printModuleInfo()
         std::string version, buildDate, buildTime;
         if (_lg290p->getVersionInfo(version, buildDate, buildTime))
         {
-            systemPrintf("LG290P version: v%d.%d - %s %s %s\r\n", lg290pFirmwareVersionMajor, lg290pFirmwareVersionMinor, version.c_str(),
-                         buildDate.c_str(), buildTime.c_str());
+            systemPrintf("LG290P version: v%d.%d - %s %s %s\r\n", lg290pFirmwareVersionMajor,
+                         lg290pFirmwareVersionMinor, version.c_str(), buildDate.c_str(), buildTime.c_str());
         }
         else
         {
@@ -2016,10 +2019,10 @@ bool GNSS_LG290P::setPppService()
         // Check if a setting has changed
         bool settingsChanged = false;
 
-        if(settings.pppMode)
+        if (settings.pppMode)
 
-        if (currentMode != settings.pppMode)
-            settingsChanged = true;
+            if (currentMode != settings.pppMode)
+                settingsChanged = true;
         if (currentDatum != settings.pppDatum)
             settingsChanged = true;
         if (currentTimeout != settings.pppTimeout)
@@ -3050,7 +3053,8 @@ bool lg290pIsPresentOnFacetFP()
         lg290p.enablePrintRxMessages(); // Print incoming processed messages from SEMP
     }
 
-    if (lg290p.begin(serialTestGNSS, "SFE_LG290P_GNSS_Library", output) == true) // Give the serial port over to the library
+    if (lg290p.begin(serialTestGNSS, "SFE_LG290P_GNSS_Library", output) ==
+        true) // Give the serial port over to the library
     {
         if (settings.debugGnss)
             systemPrintln("LG290P detected");
@@ -3221,4 +3225,3 @@ bool lg290pSettingsToFile(File *settingsFile, RTK_Settings_Types type, int setti
 }
 
 #endif // COMPILE_LG290P
-
