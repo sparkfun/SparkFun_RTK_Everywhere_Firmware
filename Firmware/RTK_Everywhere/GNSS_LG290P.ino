@@ -2089,7 +2089,7 @@ bool GNSS_LG290P::setMessagesNMEA()
             // Check if this NMEA message is supported by the current LG290P firmware
             if (lg290pFirmwareVersionInt >= lgMessagesNMEA[messageNumber].firmwareVersionSupported)
             {
-                // Disable NMEA output on UART3 RADIO
+                // On Postcard: disable NMEA output on UART3 RADIO
                 int msgRate = settings.lg290pMessageRatesNMEA[messageNumber];
                 if ((portNumber == 3) && (settings.enableNmeaOnRadio == false))
                     msgRate = 0;

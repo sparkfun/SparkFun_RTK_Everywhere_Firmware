@@ -13,6 +13,26 @@ Tilt.ino
   are already set. We just need to be sure the tilt-compensated values are positive using abs().
   This could lead to problems if the unit is within ~1m of the Equator and Prime Meridian but
   we don't consider those edges cases here.
+
+  It looks like the IM19 only supports 115200 baud...
+
+  On Torch:
+    The IM19 UART2 is fed by the UM980 UART2
+    The IM19 gets BESTPOSB, PSRVELB, GPGGA at 5Hz at 115200 baud
+    The IM19 outputs the binary NAVI message on UART1. This is connected to ESP32 UART2 (SerialForTilt)
+    tiltSensor->update() checks ESP32 UART2 for the most recent incoming binary data
+
+  On Facet FP:
+    LG290P with Tilt:
+      The IM19 UART2 is fed by the LG290P UART3
+      The IM19 gets GGA, RMC and GST at >= 5Hz at 115200 baud. Messages are enabled by setMessagesNMEA()
+    mosaic-X5 with Tilt:
+      The IM19 UART2 is fed by the X5 UART4
+      mosaic-X5 setTilt() is TODO. We need to create a Stream and output GGA, RMC and GST at 5Hz at 115200 baud
+    ZED-X20P with Tilt:
+      The IM19 UART2 is fed by the X20P UART1 - which also feeds ESP32 UART1
+      The message rates and baud rate need to be configured according to what the IM19 needs
+    
 =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=*/
 
 #ifdef COMPILE_IM19_IMU
@@ -181,6 +201,9 @@ void tiltUpdate()
 */
 void printTiltDebug()
 {
+    if (inMainMenu)
+        return;
+        
     uint32_t naviStatus = tiltSensor->getNaviStatus();
     // systemPrintf("NAVI timestamp: %0.0f lat: %0.4f lon: %0.4f alt: %0.2f\r\n", tiltSensor->getNaviTimestamp(),
     //              tiltSensor->getNaviLatitude(), tiltSensor->getNaviLongitude(), tiltSensor->getNaviAltitude());
