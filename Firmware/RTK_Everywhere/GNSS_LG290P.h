@@ -239,6 +239,9 @@ class GNSS_LG290P : GNSS
     // Return the number of active/enabled RTCM messages
     uint8_t getActiveRtcmMessageCount();
 
+    // Return the number of active/enabled PQTM messages
+    uint8_t getActivePqtmMessageCount();
+
     // Get the altitude
     // Outputs:
     //   Returns the altitude in meters or zero if the GNSS is offline

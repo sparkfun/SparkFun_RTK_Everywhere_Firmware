@@ -559,6 +559,7 @@ uint8_t GNSS_LG290P::getActiveMessageCount()
 
     count += getActiveNmeaMessageCount();
     count += getActiveRtcmMessageCount();
+    count += getActivePqtmMessageCount();
     return (count);
 }
 
@@ -592,6 +593,18 @@ uint8_t GNSS_LG290P::getActiveRtcmMessageCount()
             if (settings.lg290pMessageRatesRTCMBase[x] > 0)
                 count++;
     }
+
+    return (count);
+}
+
+// Return the number of active/enabled extra/other messages
+uint8_t GNSS_LG290P::getActivePqtmMessageCount()
+{
+    uint8_t count = 0;
+
+    for (int x = 0; x < MAX_LG290P_PQTM_MSG; x++)
+        if (settings.lg290pMessageRatesPQTM[x] > 0)
+            count++;
 
     return (count);
 }
@@ -914,20 +927,20 @@ uint8_t GNSS_LG290P::getLoggingType()
 {
     LoggingType logType = LOGGING_CUSTOM;
 
-    if (lg290pFirmwareVersionInt <= 103)
-    {
-        // GST is not available/default
-        if (getActiveNmeaMessageCount() == 6 && getActiveRtcmMessageCount() == 0)
-            logType = LOGGING_STANDARD;
-        else if (getActiveNmeaMessageCount() == 6 && getActiveRtcmMessageCount() == 4)
-            logType = LOGGING_PPP;
-    }
-    else
+    if (lg290pFirmwareVersionInt >= 104)
     {
         // GST *is* available/default
         if (getActiveNmeaMessageCount() == 7 && getActiveRtcmMessageCount() == 0)
             logType = LOGGING_STANDARD;
         else if (getActiveNmeaMessageCount() == 7 && getActiveRtcmMessageCount() == 4)
+            logType = LOGGING_PPP;
+    }
+    else
+    {
+        // GST is not available in this firmware version
+        if (getActiveNmeaMessageCount() == 6 && getActiveRtcmMessageCount() == 0)
+            logType = LOGGING_STANDARD;
+        else if (getActiveNmeaMessageCount() == 6 && getActiveRtcmMessageCount() == 4)
             logType = LOGGING_PPP;
     }
 
