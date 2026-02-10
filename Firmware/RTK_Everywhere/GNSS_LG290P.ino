@@ -1611,7 +1611,7 @@ void GNSS_LG290P::menuMessagesSubtype(int *localMessageRate, const char *message
 
             for (int x = 0; x < endOfBlock; x++)
             {
-                if (lg290pFirmwareVersionInt <= lgMessagesNMEA[x].firmwareVersionSupported)
+                if (lg290pFirmwareVersionInt < lgMessagesNMEA[x].firmwareVersionSupported)
                     systemPrintf("%d) Message %s: %d - Requires firmware update\r\n", x + 1,
                                  lgMessagesNMEA[x].msgTextName, settings.lg290pMessageRatesNMEA[x]);
                 else
@@ -1625,7 +1625,7 @@ void GNSS_LG290P::menuMessagesSubtype(int *localMessageRate, const char *message
 
             for (int x = 0; x < endOfBlock; x++)
             {
-                if (lg290pFirmwareVersionInt <= lgMessagesRTCM[x].firmwareVersionSupported)
+                if (lg290pFirmwareVersionInt < lgMessagesRTCM[x].firmwareVersionSupported)
                     systemPrintf("%d) Message %s: %d - Requires firmware update\r\n", x + 1,
                                  lgMessagesRTCM[x].msgTextName, settings.lg290pMessageRatesRTCMRover[x]);
                 else
@@ -1639,7 +1639,7 @@ void GNSS_LG290P::menuMessagesSubtype(int *localMessageRate, const char *message
 
             for (int x = 0; x < endOfBlock; x++)
             {
-                if (lg290pFirmwareVersionInt <= lgMessagesRTCM[x].firmwareVersionSupported)
+                if (lg290pFirmwareVersionInt < lgMessagesRTCM[x].firmwareVersionSupported)
                     systemPrintf("%d) Message %s: %d - Requires firmware update\r\n", x + 1,
                                  lgMessagesRTCM[x].msgTextName, settings.lg290pMessageRatesRTCMBase[x]);
                 else
@@ -1653,7 +1653,7 @@ void GNSS_LG290P::menuMessagesSubtype(int *localMessageRate, const char *message
 
             for (int x = 0; x < endOfBlock; x++)
             {
-                if (lg290pFirmwareVersionInt <= lgMessagesPQTM[x].firmwareVersionSupported)
+                if (lg290pFirmwareVersionInt < lgMessagesPQTM[x].firmwareVersionSupported)
                     systemPrintf("%d) Message %s: %d - Requires firmware update\r\n", x + 1,
                                  lgMessagesPQTM[x].msgTextName, settings.lg290pMessageRatesPQTM[x]);
                 else
