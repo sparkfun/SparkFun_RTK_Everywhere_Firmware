@@ -20,42 +20,76 @@ const char *lg290pConstellationNames[] = {
 #define MAX_LG290P_CONSTELLATIONS (6)
 
 // Struct to describe support messages on the LG290P
-// Each message will have the serial command and its default value
 typedef struct
 {
-    const char msgTextName[11];
-    const float msgDefaultRate;
+    const char msgTextName[strlen("GEOFENCESTATUS") + 1]; // Printable/Human readable name
+    const float msgDefaultRate; // Default rate for 'factory' settings
+    const int msgMaxRate; // Maximum allowed N message rate
     const uint8_t firmwareVersionSupported; // The minimum version this message is supported.
                                             // 0 = all versions.
-                                            // 9999 = Not supported
+                                            // 104 = Supported in v1.4 and later
 } lg290pMsg;
 
 // Static array containing all the compatible messages
 // Rate = Output once every N position fix(es).
 const lg290pMsg lgMessagesNMEA[] = {
-    {"RMC", 1, 0}, {"GGA", 1, 0}, {"GSV", 1, 0}, {"GSA", 1, 0}, {"VTG", 1, 0},
-    {"GLL", 1, 0}, {"GBS", 0, 104}, {"GNS", 0, 104}, {"GST", 1, 104}, {"ZDA", 0, 104},
+    // In order from the LG29xP Series GNSS Protocol Spec v1.2.0 20260109, Table 6
+    {"RMC", 1, 255, 0},   // Firmware v1.0 to v1.6, N = 1. v2.1, N = 0-255
+    {"GGA", 1, 255, 0},   //
+    {"GSV", 1, 255, 0},   //
+    {"GSA", 1, 255, 0},   //
+    {"VTG", 1, 255, 0},   //
+    {"GLL", 1, 255, 0},   //
+    {"GBS", 0, 255, 104}, // Added in v1.1.0 spec. Firmware v1.4 and above
+    {"GNS", 0, 255, 104}, // Added in v1.1.0 spec. Firmware v1.4 and above
+    {"GST", 1, 255, 104}, // Added in v1.1.0 spec. Firmware v1.4 and above
+    {"ZDA", 0, 255, 104}, // Added in v1.1.0 spec. Firmware v1.4 and above
+    {"HDT", 1, 255, 104}, // Added in v1.1.0 spec. Firmware v1.4 and above
+    {"THS", 0, 255, 104}, // Added in v1.1.0 spec. Firmware v1.4 and above
 };
 
 const lg290pMsg lgMessagesRTCM[] = {
-    {"RTCM3-1005", 1, 0}, {"RTCM3-1006", 0, 0},
-
-    {"RTCM3-1019", 0, 0},
-
-    {"RTCM3-1020", 0, 0},
-
-    {"RTCM3-1033", 0, 104}, // v1.4 and above
-
-    {"RTCM3-1041", 0, 0}, {"RTCM3-1042", 0, 0}, {"RTCM3-1044", 0, 0}, {"RTCM3-1046", 0, 0},
-
-    {"RTCM3-107X", 1, 0}, {"RTCM3-108X", 1, 0}, {"RTCM3-109X", 1, 0}, {"RTCM3-111X", 1, 0},
-    {"RTCM3-112X", 1, 0}, {"RTCM3-113X", 1, 0},
+    // In order from the LG29xP Series GNSS Protocol Spec v1.2.0 20260109, Table 6
+    {"RTCM3-1005", 1, 1200, 0},   //
+    {"RTCM3-1006", 0, 1200, 0},   //
+    {"RTCM3-1033", 0, 1200, 104}, // Added in v1.1.0 spec. Firmware v1.4 and above
+    {"RTCM3-107X", 1, 1200, 0},   //
+    {"RTCM3-108X", 1, 1200, 0},   //
+    {"RTCM3-109X", 1, 1200, 0},   //
+    {"RTCM3-111X", 1, 1200, 0},   //
+    {"RTCM3-112X", 1, 1200, 0},   //
+    {"RTCM3-113X", 1, 1200, 0},   //
+    {"RTCM3-1019", 0, 1, 0},      //
+    {"RTCM3-1020", 0, 1, 0},      //
+    {"RTCM3-1041", 0, 1, 0},      //
+    {"RTCM3-1042", 0, 1, 0},      //
+    {"RTCM3-1044", 0, 1, 0},      //
+    {"RTCM3-1046", 0, 1, 0},      //
+    {"RTCM3-1230", 0, 1, 201},    // Added in v1.2.0 spec. Firmware v2.1 and above
 };
 
 // Quectel Proprietary messages
+// Any message type not identified here will not be allowed through the 'allowed' filter.
+// See lg290pMessageEnabled() for filter operation.
 const lg290pMsg lgMessagesPQTM[] = {
-    {"EPE", 0, 0},
-    {"PVT", 0, 0},
+    // In order from the LG29xP Series GNSS Protocol Spec v1.2.0 20260109, Table 6
+    {"EPE", 0, 255, 0},             //
+    {"VEL", 0, 255, 0},             //
+    {"GEOFENCESTATUS", 0, 255, 0},  //
+    {"TXT", 0, 255, 0},             //
+    {"SVINSTATUS", 0, 255, 0},      //
+    {"PVT", 0, 255, 0},             //
+    {"DOP", 0, 255, 0},             //
+    {"PL", 0, 255, 0},              //
+    {"ODO", 0, 255, 0},             //
+    {"TAR", 0, 255, 201},           // Added in v1.2.0 spec. Firmware v2.1 and above
+    {"NAV", 0, 255, 201},           // Added in v1.2.0 spec. Firmware v2.1 and above
+    {"EOE", 0, 255, 201},           // Added in v1.2.0 spec. Firmware v2.1 and above
+    {"ANTENNASTATUS", 0, 255, 201}, // Added in v1.2.0 spec. Firmware v2.1 and above
+    {"ENV", 0, 255, 201},           // Added in v1.2.0 spec. Firmware v2.1 and above
+    {"RTCMIS", 0, 1, 201},          // Added in v1.2.0 spec. Firmware v2.1 and above
+    {"PPPNAV", 0, 255, 201},        // Added in v1.2.0 spec. Firmware v2.1 and above
+    {"JAMMINGSTATUS", 0, 255, 201}, // Added in v1.2.0 spec. Firmware v2.1 and above
 };
 
 #define MAX_LG290P_NMEA_MSG (sizeof(lgMessagesNMEA) / sizeof(lg290pMsg))
