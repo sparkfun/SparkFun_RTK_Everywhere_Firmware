@@ -1691,11 +1691,11 @@ void GNSS_LG290P::menuMessagesSubtype(int *localMessageRate, const char *message
 
             int newSetting = 0;
 
-            // Message rates are 1 for NMEA, and 1-1200 for most RTCM messages
-            // TODO Limit input range on RTCM 1019, 1020, 1041-1046
+            // Message rates maxes are set within lgMessagesPQTM
             if (strcmp(messageType, "NMEA") == 0)
             {
-                if (getNewSetting(messageString, 0, 1, &newSetting) == INPUT_RESPONSE_VALID)
+                if (getNewSetting(messageString, 0, lgMessagesPQTM[incoming].msgMaxRate, &newSetting) ==
+                    INPUT_RESPONSE_VALID)
                 {
                     settings.lg290pMessageRatesNMEA[incoming] = newSetting;
                     gnssConfigure(GNSS_CONFIG_MESSAGE_RATE_NMEA); // Configure receiver to use new setting
@@ -1703,7 +1703,8 @@ void GNSS_LG290P::menuMessagesSubtype(int *localMessageRate, const char *message
             }
             if (strcmp(messageType, "RTCMRover") == 0)
             {
-                if (getNewSetting(messageString, 0, 1200, &newSetting) == INPUT_RESPONSE_VALID)
+                if (getNewSetting(messageString, 0, lgMessagesPQTM[incoming].msgMaxRate, &newSetting) ==
+                    INPUT_RESPONSE_VALID)
                 {
                     settings.lg290pMessageRatesRTCMRover[incoming] = newSetting;
                     gnssConfigure(GNSS_CONFIG_MESSAGE_RATE_RTCM_ROVER); // Configure receiver to use new setting
@@ -1711,7 +1712,8 @@ void GNSS_LG290P::menuMessagesSubtype(int *localMessageRate, const char *message
             }
             if (strcmp(messageType, "RTCMBase") == 0)
             {
-                if (getNewSetting(messageString, 0, 1200, &newSetting) == INPUT_RESPONSE_VALID)
+                if (getNewSetting(messageString, 0, lgMessagesPQTM[incoming].msgMaxRate, &newSetting) ==
+                    INPUT_RESPONSE_VALID)
                 {
                     settings.lg290pMessageRatesRTCMBase[incoming] = newSetting;
                     gnssConfigure(GNSS_CONFIG_MESSAGE_RATE_RTCM_BASE); // Configure receiver to use new setting
@@ -1719,7 +1721,8 @@ void GNSS_LG290P::menuMessagesSubtype(int *localMessageRate, const char *message
             }
             if (strcmp(messageType, "PQTM") == 0)
             {
-                if (getNewSetting(messageString, 0, 1, &newSetting) == INPUT_RESPONSE_VALID)
+                if (getNewSetting(messageString, 0, lgMessagesPQTM[incoming].msgMaxRate, &newSetting) ==
+                    INPUT_RESPONSE_VALID)
                 {
                     settings.lg290pMessageRatesPQTM[incoming] = newSetting;
                     gnssConfigure(GNSS_CONFIG_MESSAGE_RATE_OTHER); // Configure receiver to use new setting
