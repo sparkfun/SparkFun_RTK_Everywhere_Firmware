@@ -929,10 +929,11 @@ uint8_t GNSS_LG290P::getLoggingType()
 
     if (lg290pFirmwareVersionInt >= 104)
     {
-        // GST *is* available/default
+        // GST *is* available in this firmware version
         if (getActiveNmeaMessageCount() == 7 && getActiveRtcmMessageCount() == 0 && getActivePqtmMessageCount() == 0)
             logType = LOGGING_STANDARD;
-        else if (getActiveNmeaMessageCount() == 7 && getActiveRtcmMessageCount() == 4 && getActivePqtmMessageCount() == 0)
+        else if (getActiveNmeaMessageCount() == 7 && getActiveRtcmMessageCount() == 4 &&
+                 getActivePqtmMessageCount() == 0)
             logType = LOGGING_PPP;
     }
     else
@@ -940,7 +941,8 @@ uint8_t GNSS_LG290P::getLoggingType()
         // GST is not available in this firmware version
         if (getActiveNmeaMessageCount() == 6 && getActiveRtcmMessageCount() == 0 && getActivePqtmMessageCount() == 0)
             logType = LOGGING_STANDARD;
-        else if (getActiveNmeaMessageCount() == 6 && getActiveRtcmMessageCount() == 4 && getActivePqtmMessageCount() == 0)
+        else if (getActiveNmeaMessageCount() == 6 && getActiveRtcmMessageCount() == 4 &&
+                 getActivePqtmMessageCount() == 0)
             logType = LOGGING_PPP;
     }
 
@@ -2741,7 +2743,7 @@ bool lg290pMessageEnabled(char *nmeaSentence, int sentenceLength)
     // Identify message type: PQTM, RTCM, RAW, NAV, or Gx???
 
     // Create array with worst case length
-    char sentenceHeader[strlen("PQTMGEOFENCESTATUS") + 1] = {0};
+    char sentenceHeader[strlen("$PQTMGEOFENCESTATUS,") + 1] = {0};
 
     // Locate the '$'
     char *start;
