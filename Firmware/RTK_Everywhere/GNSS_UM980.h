@@ -447,6 +447,9 @@ class GNSS_UM980 : GNSS
     // Turn on all the enabled RTCM Base messages on COM3
     bool setMessagesRTCMBase();
 
+    // Turn on all the enabled Extra/Other messages
+    bool setMessagesOther();
+
     // Set the dynamic model to use for RTK
     // Inputs:
     //   modelNumber: Number of the model to use, provided by radio library

@@ -2357,6 +2357,14 @@ bool GNSS_ZED::setMessagesRTCMRover()
 }
 
 //----------------------------------------
+// Enable/disable any extra messages according to the various extra arrays
+//----------------------------------------
+bool GNSS_ZED::setMessagesOther()
+{
+    return (true);
+}
+
+//----------------------------------------
 // Set the minimum satellite signal level for navigation.
 //----------------------------------------
 bool GNSS_ZED::setMinCN0(uint8_t cnoValue)

@@ -23,6 +23,7 @@ calculation
   * setMessagesNMEA() - Set the NMEA messages output during Base or Rover mode
   * setMessagesRTCMBase() - Set the RTCM messages output during Base mode
   * setMessagesRTCMRover() - Set the RTCM messages output during Rover mode
+  * setMessagesOther(); - Set extra/other messages that should be logged and reported to consumers (Bluetooth, TCP, etc)
   * setPppService() - Set the PPP/HAS E6 capabilities of the receiver
   * setMultipathMitigation() - Set the multipath capabilities of the receiver
   * setTilt() - Set the GNSS receiver's output to be compatible with a tilt sensor

@@ -462,6 +462,9 @@ class GNSS_LG290P : GNSS
     // Set the RTCM Rover messages
     bool setMessagesRTCMRover();
 
+    // Turn on all the enabled Extra/Other messages
+    bool setMessagesOther();
+
     // Set the dynamic model to use for RTK
     // Inputs:
     //   modelNumber: Number of the model to use, provided by radio library

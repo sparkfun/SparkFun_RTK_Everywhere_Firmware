@@ -378,6 +378,9 @@ class GNSS
     // Enable/disable messages according to the NMEA array
     virtual bool setMessagesRTCMRover();
 
+    // Turn on all the enabled Extra/Other messages
+    virtual bool setMessagesOther();
+
     // Set the minimum satellite signal level for navigation.
     virtual bool setMinCN0(uint8_t cnoValue);
 

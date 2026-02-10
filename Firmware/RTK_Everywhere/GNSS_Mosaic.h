@@ -1012,6 +1012,9 @@ class GNSS_MOSAIC : GNSS
     // Turn on all the enabled RTCM Rover messages on COM1, COM2 and USB1 (if enabled)
     bool setMessagesRTCMRover();
 
+    // Turn on all the enabled Extra/Other messages on COM1, COM2 and USB1 (if enabled)
+    bool setMessagesOther();
+
     // Set the dynamic model to use for RTK
     // Inputs:
     //   modelNumber: Number of the model to use, provided by radio library
