@@ -37,7 +37,7 @@ calculation
 // Constants
 //----------------------------------------
 
-// The LG290P Serial test is fast. Give that the highest priority
+// The LG290P Serial test is fast. Give that the highest presentPriority
 // Use the LG290P test to give the ZED time to start up. Do ZED next as I2C is quick
 // ZED-X20P does not report the MOD= module name. So, test for F9P first...
 // Mosaic is really slow to boot. Leave that until last
@@ -521,6 +521,18 @@ void gnssVerifyTables()
 {
     if (gnssConfigStateEntries != GNSS_CONFIG_MAX)
         reportFatalError("Fix gnssConfigStateEntries to match GNSS Config Enum");
+
+#ifdef COMPILE_ZED
+    // Many ZED support functions (e.g. getMessageNumberByName) return uint8_t
+    if (MAX_UBX_MSG > 255)
+        reportFatalError("Fix ZED support functions to match MAX_UBX_MSG");
+    // Validate ZED MAX_UBX_MSG_RTCM. Not great, but something...
+    GNSS_ZED zed;
+    if (MAX_UBX_MSG_RTCM
+        != (zed.getMessageNumberByNameSkipChecks("RXM_COR")
+            - zed.getMessageNumberByNameSkipChecks("RTCM_1005")))
+        reportFatalError("Fix MAX_UBX_MSG_RTCM to match RTCM messages");
+#endif
 }
 
 // Given a bit to configure, set that bit in the overall bitfield

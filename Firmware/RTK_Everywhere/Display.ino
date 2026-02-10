@@ -1716,7 +1716,7 @@ displayCoords paintSIVIcon(std::vector<iconPropertyBlinking> *iconList, const ic
         if (online.gnss)
         {
             // Determine which icon to display
-            if (settings.pppMode != PPP_MODE_DISABLE)
+            if (present.pppCapable && (settings.pppMode != PPP_MODE_DISABLE))
                 icon = &PppIconProperties;
             else if (lbandCorrectionsReceived || spartnCorrectionsReceived)
                 icon = &LBandIconProperties;
@@ -2669,7 +2669,8 @@ void paintSystemTest()
             oled->print(" ");
             oled->print(gnssFirmwareVersionInt);
             oled->print("-");
-            if ((present.gnss_zedf9p || present.gnss_zedx20p) && (gnssFirmwareVersionInt < 150))
+            if ((present.gnss_zedf9p && (gnssFirmwareVersionInt < 150))
+                || (present.gnss_zedx20p && (gnssFirmwareVersionInt < 202)))
                 oled->print("FAIL");
             else
                 oled->print("OK");

@@ -134,7 +134,7 @@ void menuPortsNoMux()
             if (settings.enableGnssToUsbSerial)
                 systemPrintln("GNSS to USB is enabled. To exit this mode, press +++ to open the configuration menu.");
         }
-        else if ((incoming == 4) && ((present.gnss_zedf9p) || present.gnss_zedx20p || (present.gnss_lg290p)))
+        else if ((incoming == 4) && (present.gnss_zedf9p || present.gnss_zedx20p || present.gnss_lg290p))
         {
             // Toggle the enable for the external corrections radio
             settings.enableExtCorrRadio ^= 1;

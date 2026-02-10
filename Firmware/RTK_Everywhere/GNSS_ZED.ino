@@ -1138,7 +1138,7 @@ uint8_t GNSS_ZED::getNAV2MessageCount()
     int startOfBlock = 0;
     int endOfBlock = 0;
 
-    setMessageOffsets(&ubxMessages[0], "NAV2", startOfBlock,
+    setMessageOffsets(&ubxMessages[0], "NAV2_", startOfBlock,
                       endOfBlock); // Find start and stop of given messageType in message array
 
     for (int x = 0; x < (endOfBlock - startOfBlock); x++)
@@ -1147,7 +1147,7 @@ uint8_t GNSS_ZED::getNAV2MessageCount()
             enabledMessages++;
     }
 
-    setMessageOffsets(&ubxMessages[0], "NMEANAV2", startOfBlock,
+    setMessageOffsets(&ubxMessages[0], "NMEANAV2_", startOfBlock,
                       endOfBlock); // Find start and stop of given messageType in message array
 
     for (int x = 0; x < (endOfBlock - startOfBlock); x++)
@@ -1695,21 +1695,21 @@ void GNSS_ZED::menuMessages()
             menuMessagesSubtype(settings.ubxMessageRates,
                                 "NMEA_"); // The following _ avoids listing NMEANAV2 messages
         else if (incoming == 2)
-            menuMessagesSubtype(settings.ubxMessageRates, "RTCM");
+            menuMessagesSubtype(settings.ubxMessageRates, "RTCM_");
         else if (incoming == 3)
-            menuMessagesSubtype(settings.ubxMessageRates, "RXM");
+            menuMessagesSubtype(settings.ubxMessageRates, "RXM_");
         else if (incoming == 4)
             menuMessagesSubtype(settings.ubxMessageRates, "NAV_"); // The following _ avoids listing NAV2 messages
         else if (incoming == 5)
-            menuMessagesSubtype(settings.ubxMessageRates, "NAV2");
+            menuMessagesSubtype(settings.ubxMessageRates, "NAV2_");
         else if (incoming == 6)
-            menuMessagesSubtype(settings.ubxMessageRates, "NMEANAV2");
+            menuMessagesSubtype(settings.ubxMessageRates, "NMEANAV2_");
         else if (incoming == 7)
-            menuMessagesSubtype(settings.ubxMessageRates, "MON");
+            menuMessagesSubtype(settings.ubxMessageRates, "MON_");
         else if (incoming == 8)
-            menuMessagesSubtype(settings.ubxMessageRates, "TIM");
+            menuMessagesSubtype(settings.ubxMessageRates, "TIM_");
         else if (incoming == 9)
-            menuMessagesSubtype(settings.ubxMessageRates, "PUBX");
+            menuMessagesSubtype(settings.ubxMessageRates, "PUBX_");
         else if (incoming == 10)
         {
             setGNSSMessageRates(settings.ubxMessageRates, 0); // Turn off all messages
@@ -2145,13 +2145,11 @@ bool GNSS_ZED::setLogging()
 void GNSS_ZED::setMessageOffsets(const ubxMsg *localMessage, const char *messageType, int &startOfBlock,
                                  int &endOfBlock)
 {
-    char messageNamePiece[40];                                               // UBX_RTCM
-    snprintf(messageNamePiece, sizeof(messageNamePiece), "%s", messageType); // Put UBX_ infront of type
-
-    // Find the first occurrence
+    // Find the first occurrence of a message name which starts with messageType
     for (startOfBlock = 0; startOfBlock < MAX_UBX_MSG; startOfBlock++)
     {
-        if (strstr(localMessage[startOfBlock].msgTextName, messageNamePiece) != nullptr)
+        if (strstr(localMessage[startOfBlock].msgTextName, messageType)
+            == localMessage[startOfBlock].msgTextName)
             break;
     }
     if (startOfBlock == MAX_UBX_MSG)
@@ -2165,7 +2163,8 @@ void GNSS_ZED::setMessageOffsets(const ubxMsg *localMessage, const char *message
     // Find the last occurrence
     for (endOfBlock = startOfBlock + 1; endOfBlock < MAX_UBX_MSG; endOfBlock++)
     {
-        if (strstr(localMessage[endOfBlock].msgTextName, messageNamePiece) == nullptr)
+        if (strstr(localMessage[endOfBlock].msgTextName, messageType)
+            != localMessage[endOfBlock].msgTextName)
             break;
     }
 }
@@ -2300,17 +2299,20 @@ bool GNSS_ZED::setMessagesRTCMBase()
     // Update RTCM message rates for all interfaces. This is 12 * 5 = 60 valsets.
     for (int x = 0; x < MAX_UBX_MSG_RTCM; x++)
     {
-        response &= _zed->addCfgValset(ubxMessages[firstRTCMRecord + x].msgConfigKey - 1,
-                                       settings.ubxMessageRatesBase[x]); // UBLOX_CFG UART1 - 1 = I2C
-        response &= _zed->addCfgValset(ubxMessages[firstRTCMRecord + x].msgConfigKey,
-                                       settings.ubxMessageRatesBase[x]); // UBLOX_CFG UART1
-        response &= _zed->addCfgValset(ubxMessages[firstRTCMRecord + x].msgConfigKey + 1,
-                                       settings.ubxMessageRatesBase[x]); // UBLOX_CFG UART1 + 1 = UART2
-        response &= _zed->addCfgValset(ubxMessages[firstRTCMRecord + x].msgConfigKey + 2,
-                                       settings.ubxMessageRatesBase[x]); // UBLOX_CFG UART1 + 2 = USB
-        // Disable messages on SPI
-        response &= _zed->addCfgValset(ubxMessages[firstRTCMRecord + x].msgConfigKey + 3,
-                                       0); // UBLOX_CFG UART1 + 3 = SPI
+        if (messageSupported(firstRTCMRecord + x))
+        {
+            response &= _zed->addCfgValset(ubxMessages[firstRTCMRecord + x].msgConfigKey - 1,
+                                        settings.ubxMessageRatesBase[x]); // UBLOX_CFG UART1 - 1 = I2C
+            response &= _zed->addCfgValset(ubxMessages[firstRTCMRecord + x].msgConfigKey,
+                                        settings.ubxMessageRatesBase[x]); // UBLOX_CFG UART1
+            response &= _zed->addCfgValset(ubxMessages[firstRTCMRecord + x].msgConfigKey + 1,
+                                        settings.ubxMessageRatesBase[x]); // UBLOX_CFG UART1 + 1 = UART2
+            response &= _zed->addCfgValset(ubxMessages[firstRTCMRecord + x].msgConfigKey + 2,
+                                        settings.ubxMessageRatesBase[x]); // UBLOX_CFG UART1 + 2 = USB
+            // Disable messages on SPI
+            response &= _zed->addCfgValset(ubxMessages[firstRTCMRecord + x].msgConfigKey + 3,
+                                        0); // UBLOX_CFG UART1 + 3 = SPI
+        }
     }
 
     response &= _zed->sendCfgValset(); // Closing value
@@ -2340,17 +2342,20 @@ bool GNSS_ZED::setMessagesRTCMRover()
     // Update RTCM message rates for all interfaces. This is 12 * 5 = 60 valsets.
     for (int x = 0; x < MAX_UBX_MSG_RTCM; x++)
     {
-        // Disable RTCM on all interfaces but UART1
-        response &= _zed->addCfgValset(ubxMessages[firstRTCMRecord + x].msgConfigKey - 1,
-                                       0); // UBLOX_CFG UART1 - 1 = I2C
-        response &= _zed->addCfgValset(ubxMessages[firstRTCMRecord + x].msgConfigKey,
-                                       settings.ubxMessageRates[firstRTCMRecord + x]); // UBLOX_CFG UART1
-        response &= _zed->addCfgValset(ubxMessages[firstRTCMRecord + x].msgConfigKey + 1,
-                                       0); // UBLOX_CFG UART1 + 1 = UART2
-        response &= _zed->addCfgValset(ubxMessages[firstRTCMRecord + x].msgConfigKey + 2,
-                                       0); // UBLOX_CFG UART1 + 2 = USB
-        response &= _zed->addCfgValset(ubxMessages[firstRTCMRecord + x].msgConfigKey + 3,
-                                       0); // UBLOX_CFG UART1 + 3 = SPI
+        if (messageSupported(firstRTCMRecord + x))
+        {
+            // Disable RTCM on all interfaces but UART1
+            response &= _zed->addCfgValset(ubxMessages[firstRTCMRecord + x].msgConfigKey - 1,
+                                            0); // UBLOX_CFG UART1 - 1 = I2C
+            response &= _zed->addCfgValset(ubxMessages[firstRTCMRecord + x].msgConfigKey,
+                                            settings.ubxMessageRates[firstRTCMRecord + x]); // UBLOX_CFG UART1
+            response &= _zed->addCfgValset(ubxMessages[firstRTCMRecord + x].msgConfigKey + 1,
+                                            0); // UBLOX_CFG UART1 + 1 = UART2
+            response &= _zed->addCfgValset(ubxMessages[firstRTCMRecord + x].msgConfigKey + 2,
+                                            0); // UBLOX_CFG UART1 + 2 = USB
+            response &= _zed->addCfgValset(ubxMessages[firstRTCMRecord + x].msgConfigKey + 3,
+                                            0); // UBLOX_CFG UART1 + 3 = SPI
+        }
     }
 
     response &= _zed->sendCfgValset(); // Closing
@@ -2457,7 +2462,8 @@ bool GNSS_ZED::setRate(double secondsBetweenSolutions)
         if (measurementFrequency < 1.0)
             measurementFrequency = 1.0;
 
-        log_d("Adjusting GSV setting to %f", measurementFrequency);
+        if (settings.debugGnss)
+            systemPrintf("Adjusting GSV setting to %f\r\n", measurementFrequency);
 
         setMessageRateByName("NMEA_GSV", measurementFrequency); // Update GSV setting in file
         response &= _zed->addCfgValset(ubxMessages[gsvRecordNumber].msgConfigKey,
@@ -2933,8 +2939,13 @@ bool messageSupported(int messageNumber)
 {
     bool messageSupported = false;
 
-    if (gnssFirmwareVersionInt >= ubxMessages[messageNumber].f9pFirmwareVersionSupported)
-        messageSupported = true;
+    if (present.gnss_zedf9p)
+        if (gnssFirmwareVersionInt >= ubxMessages[messageNumber].f9pFirmwareVersionSupported)
+            messageSupported = true;
+
+    if (present.gnss_zedx20p)
+        if (gnssFirmwareVersionInt >= ubxMessages[messageNumber].x20pFirmwareVersionSupported)
+            messageSupported = true;
 
     return (messageSupported);
 }
@@ -2957,8 +2968,13 @@ bool commandSupported(const uint32_t key)
     }
     else
     {
-        if (gnssFirmwareVersionInt >= ubxCommands[commandNumber].f9pFirmwareVersionSupported)
-            commandSupported = true;
+        if (present.gnss_zedf9p)
+            if (gnssFirmwareVersionInt >= ubxCommands[commandNumber].f9pFirmwareVersionSupported)
+                commandSupported = true;
+
+        if (present.gnss_zedx20p)
+            if (gnssFirmwareVersionInt >= ubxCommands[commandNumber].x20pFirmwareVersionSupported)
+                commandSupported = true;
     }
     return (commandSupported);
 }
