@@ -1047,10 +1047,11 @@ uint8_t GNSS_ZED::getMessageNumberByName(const char *msgName, bool skipPlatformC
                 return (x);
         }
     }
-    else
+    else if (settings.debugSettings)
         systemPrintln("getMessageNumberByName() Platform not supported");
 
-    systemPrintf("getMessageNumberByName: %s not found\r\n", msgName);
+    if (settings.debugSettings)
+        systemPrintf("getMessageNumberByName: %s not found\r\n", msgName);
     return (0);
 }
 
