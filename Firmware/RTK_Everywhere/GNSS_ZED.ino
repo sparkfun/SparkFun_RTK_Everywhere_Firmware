@@ -196,7 +196,7 @@ void GNSS_ZED::begin()
 
         // Determine if we have a ZED-F9P or an ZED-X20P
         if (strstr(_zed->getModuleName(), "ZED-F9P") == nullptr)
-            systemPrintf("Unknown ZED module: %s. Could be a X20P\r\n", _zed->getModuleName());
+            systemPrintf("Unknown ZED module: %s. Could be X20P\r\n", _zed->getModuleName());
 
         if (strcmp(_zed->getFirmwareType(), "HPG") == 0)
             if ((_zed->getFirmwareVersionHigh() == 1) && (_zed->getFirmwareVersionLow() < 30))
