@@ -2919,23 +2919,22 @@ void GNSS_MOSAIC::updateSD()
 //----------------------------------------
 void GNSS_MOSAIC::waitSBFReceiverSetup(HardwareSerial *serialPort, unsigned long timeout)
 {
+    uint8_t * buffer;
+    size_t bufferLength;
+
     // Note: _isBlocking should be set externally - if needed
 
-    SEMP_PARSE_ROUTINE const sbfParserTable[] = {sempSbfPreamble};
+    const SEMP_PARSER_DESCRIPTION * sbfParserTable[] = {&sempSbfParserDescription};
     const int sbfParserCount = sizeof(sbfParserTable) / sizeof(sbfParserTable[0]);
-    const char *const sbfParserNames[] = {
-        "SBF",
-    };
-    const int sbfParserNameCount = sizeof(sbfParserNames) / sizeof(sbfParserNames[0]);
-
     SEMP_PARSE_STATE *sbfParse;
 
     // Initialize the SBF parser for the mosaic-X5
-    sbfParse = sempBeginParser(sbfParserTable, sbfParserCount, sbfParserNames, sbfParserNameCount,
-                               0,                       // Scratchpad bytes
-                               500,                     // Buffer length
+    bufferLength = sempGetBufferLength(sbfParserTable, sbfParserCount, 500);
+    buffer = (uint8_t *)rtkMalloc(bufferLength, "Sbf Buffer");
+    sbfParse = sempBeginParser("Sbf", sbfParserTable, sbfParserCount,
+                               buffer, bufferLength,    // Buffer length
                                processSBFReceiverSetup, // eom Call Back
-                               "Sbf");                  // Parser Name
+                               output);                 // Routine to output an error character
     if (!sbfParse)
         reportFatalError("Failed to initialize the SBF parser");
 
@@ -2949,7 +2948,7 @@ void GNSS_MOSAIC::waitSBFReceiverSetup(HardwareSerial *serialPort, unsigned long
         }
     }
 
-    sempStopParser(&sbfParse);
+    rtkFree(buffer, "Sbf Buffer");
 }
 
 //----------------------------------------
@@ -3100,13 +3099,11 @@ void nmeaExtractStdDeviations(char *nmeaSentence, int sentenceLength)
 // This function mops up any non-SBF data rejected by the SBF parser
 // It is raw L-Band (containing SPARTN), so pass it to the SPARTN parser
 //----------------------------------------
-void processNonSBFData(SEMP_PARSE_STATE *parse)
+void processNonSBFData(const uint8_t * buffer, size_t length)
 {
-    for (uint32_t dataOffset = 0; dataOffset < parse->length; dataOffset++)
-    {
+    for (uint32_t dataOffset = 0; dataOffset < length; dataOffset++)
         // Update the SPARTN parser state based on the non-SBF byte
-        sempParseNextByte(spartnParse, parse->buffer[dataOffset]);
-    }
+        sempParseNextByte(spartnParse, buffer[dataOffset]);
 }
 
 //----------------------------------------

@@ -950,8 +950,6 @@ uint8_t setupSelectedButton =
     0; // In Display Setup, start displaying at this button. This is the selected (highlighted) button.
 std::vector<setupButton> setupButtons; // A vector (linked list) of the setup 'buttons'
 
-bool firstRoverStart; // Used to detect if the user is toggling the power button at POR to enter the test menu
-
 bool newEventToRecord;     // Goes true when INT pin goes high. Currently this is ZED-specific.
 uint32_t triggerCount;     // Global copy - TM2 event counter
 uint32_t triggerTowMsR;    // Global copy - Time Of Week of rising edge (ms)
@@ -1451,11 +1449,14 @@ void setup()
     DMW_b("beginCharger");
     beginCharger(); // Configure battery charger
 
-    DMW_b("beginExternalEvent");
-    gnss->beginExternalEvent(); // Configure the event input
+    if (online.gnss) // TODO: Add online.gnss protection in the GNSS classes
+    {
+        DMW_b("beginExternalEvent");
+        gnss->beginExternalEvent(); // Configure the event input
 
-    DMW_b("setPPS");
-    gnss->setPPS(); // Configure the pulse per second pin
+        DMW_b("setPPS");
+        gnss->setPPS(); // Configure the pulse per second pin
+    }
 
     DMW_b("beginInterrupts");
     beginInterrupts(); // Begin the TP interrupts
@@ -1622,7 +1623,7 @@ void loop()
 void waitingForMenuInput()
 {
     // Don't call stateUpdate() here. Wait until we exit the menu before changing state.
-    
+
     DMW_w("updateBattery");
     updateBattery();
 
@@ -2011,5 +2012,31 @@ void getSemaphoreFunction(char *functionName)
     case FUNCTION_ARPWRITE:
         strcpy(functionName, "ARP Write");
         break;
+    }
+}
+
+//----------------------------------------
+// Output a buffer of data
+//
+// Inputs:
+//   buffer: Address of a buffer of data to output
+//   length: Number of bytes of data to output
+//----------------------------------------
+void output(uint8_t * buffer, size_t length)
+{
+    size_t bytesWritten;
+
+    if (Serial)
+    {
+        while (length)
+        {
+            // Wait until space is available in the FIFO
+            while (Serial.availableForWrite() == 0);
+
+            // Output the character
+            bytesWritten = Serial.write(buffer, length);
+            buffer += bytesWritten;
+            length -= bytesWritten;
+        }
     }
 }

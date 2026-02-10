@@ -85,14 +85,14 @@ void GNSS_UM980::begin()
         // times
         _um980->enableBinaryBeforeFix();
 
-    if (_um980->begin(*serialGNSS) == false) // Give the serial port over to the library
+    if (_um980->begin(*serialGNSS, "SFE_Unicore_GNSS_Library", output) == false) // Give the serial port over to the library
     {
         if (settings.debugGnssConfig)
             systemPrintln("GNSS UM980 failed to begin. Trying again.");
 
         // Try again with power on delay
         delay(1000);
-        if (_um980->begin(*serialGNSS) == false)
+        if (_um980->begin(*serialGNSS, "SFE_Unicore_GNSS_Library", output) == false)
         {
             systemPrintln("GNSS UM980 offline");
             displayGNSSFail(1000);
@@ -2522,7 +2522,7 @@ void um980FirmwareBeginUpdate()
     muxSelectUm980();
 
     if (serialGNSS == nullptr)
-        serialGNSS = new HardwareSerial(2); // Use UART2 on the ESP32 for communication with the GNSS module
+        serialGNSS = new HardwareSerial(1); // Use UART1 on the ESP32 for communication with the GNSS module
 
     serialGNSS->setRxBufferSize(settings.uartReceiveBufferSize);
     serialGNSS->setTimeout(settings.serialTimeoutGNSS); // Requires serial traffic on the UART pins for detection

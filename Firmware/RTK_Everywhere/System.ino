@@ -1214,3 +1214,17 @@ void gpioExpanderLoraBootDisable()
     if (online.gpioExpanderSwitches == true)
         gpioExpanderSwitches->digitalWrite(gpioExpanderSwitch_LoraBoot, LOW);
 }
+
+// Connect Facet FP GNSS receiver UART1 to CH342 for firmware upgrade with baud rate changes
+void gpioExpanderConnectGNSSToCH342()
+{
+    if (online.gpioExpanderSwitches == true)
+        gpioExpanderSwitches->digitalWrite(gpioExpanderSwitch_S5, HIGH);
+}
+
+// Connect Facet FP GNSS receiver UART1 to ESP32 UART1 for normal comms
+void gpioExpanderConnectGNSSToESP32()
+{
+    if (online.gpioExpanderSwitches == true)
+        gpioExpanderSwitches->digitalWrite(gpioExpanderSwitch_S5, LOW);
+}
