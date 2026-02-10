@@ -799,28 +799,14 @@ class GNSS_ZED : GNSS
 };
 
 // Forward routine declarations
-bool zedCommandList(RTK_Settings_Types type,
-                    int settingsIndex,
-                    bool inCommands,
-                    int qualifier,
-                    char * settingName,
-                    char * settingValue);
+bool zedCommandList(RTK_Settings_Types type, int settingsIndex, bool inCommands, int qualifier, char *settingName,
+                    char *settingValue);
 void zedCommandTypeJson(JsonArray &command_types);
-bool zedCreateString(RTK_Settings_Types type,
-                     int settingsIndex,
-                     char * newSettings);
-bool zedGetSettingValue(RTK_Settings_Types type,
-                        const char * suffix,
-                        int settingsIndex,
-                        int qualifier,
-                        char * settingValueStr);
-bool zedNewSettingValue(RTK_Settings_Types type,
-                        const char * suffix,
-                        int qualifier,
-                        double d);
-bool zedSettingsToFile(File *settingsFile,
-                       RTK_Settings_Types type,
-                       int settingsIndex);
+bool zedCreateString(RTK_Settings_Types type, int settingsIndex, char *newSettings);
+bool zedGetSettingValue(RTK_Settings_Types type, const char *suffix, int settingsIndex, int qualifier,
+                        char *settingValueStr);
+bool zedNewSettingValue(RTK_Settings_Types type, const char *suffix, int qualifier, double d);
+bool zedSettingsToFile(File *settingsFile, RTK_Settings_Types type, int settingsIndex);
 
 #endif // COMPILE_ZED
 #endif // __GNSS_ZED_H__
