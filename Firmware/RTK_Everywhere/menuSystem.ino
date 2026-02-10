@@ -994,13 +994,9 @@ void menuDebugSoftware()
         // Menu exit control
         else if (incoming == 'r')
         {
-            tasksStopGnssUart();
+            tasksStopGnssUart(); // Stop tasks writing data to SD
 
-            delay(500);
-
-            recordSystemSettings();
-
-            delay(500);
+            recordSystemSettings(); // Save settings now SD writing is stopped
 
             ESP.restart();
         }
