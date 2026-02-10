@@ -342,11 +342,12 @@ void GNSS_LG290P::createMessageList(String &returnText)
         returnText += "messageRateRTCMRover_" + String(lgMessagesRTCM[messageNumber].msgTextName) + "," +
                       String(settings.lg290pMessageRatesRTCMRover[messageNumber]) + ",";
     }
+    
+    //Pass any extra messages
     for (int messageNumber = 0; messageNumber < MAX_LG290P_PQTM_MSG; messageNumber++)
     {
-        // messageRatePQTM is unique to the LG290P. So we can use true/false and a checkbox
         returnText += "messageRatePQTM_" + String(lgMessagesPQTM[messageNumber].msgTextName) + "," +
-                      String(settings.lg290pMessageRatesPQTM[messageNumber] ? "true" : "false") + ",";
+                      String(settings.lg290pMessageRatesPQTM[messageNumber]) + ",";
     }
 }
 
