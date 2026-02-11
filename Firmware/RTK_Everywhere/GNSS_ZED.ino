@@ -2581,7 +2581,8 @@ bool GNSS_ZED::setTilt()
         recordSystemSettings(); // Save modified settings
     }
 
-    return response;}
+    return response;
+}
 
 //----------------------------------------
 bool GNSS_ZED::standby()
