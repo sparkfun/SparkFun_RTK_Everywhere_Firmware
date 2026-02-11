@@ -1210,8 +1210,8 @@ void forceGnssCommunicationRate(uint32_t &platformGnssCommunicationRate)
                  || (settings.detectedGnssReceiver == GNSS_RECEIVER_X20P))
         {
             // ZED defaults to 115200. settings.dataPortBaud defaults to 230400
-            // Keep the baud rate at settings.dataPortBaud
-            // especially if Tilt is present and enabled (IM19 needs 115200 baud)
+            // Keep the baud rate at settings.dataPortBaud for now
+            // gnss->setTilt() will set serialGNSS to 115200 if needed
             // I.e. nothing to do here...
         }
         else

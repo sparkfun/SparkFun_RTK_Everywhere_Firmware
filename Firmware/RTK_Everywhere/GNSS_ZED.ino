@@ -2204,6 +2204,8 @@ bool GNSS_ZED::setMessagesNMEA()
     int maxRetries = MAX_SET_MESSAGES_RETRIES;
 
     bool gpggaEnabled = false;
+    bool gpgstEnabled = false;
+    bool gprmcEnabled = false;
 
     bool success = true;
 
@@ -2230,6 +2232,10 @@ bool GNSS_ZED::setMessagesNMEA()
                 {
                     if (strcmp(ubxMessages[messageNumber].msgTextName, "NMEA_GGA") == 0)
                         gpggaEnabled = true;
+                    if (strcmp(ubxMessages[messageNumber].msgTextName, "NMEA_GST") == 0)
+                        gpgstEnabled = true;
+                    if (strcmp(ubxMessages[messageNumber].msgTextName, "NMEA_RMC") == 0)
+                        gprmcEnabled = true;
                 }
             }
             messageNumber++;
@@ -2245,10 +2251,46 @@ bool GNSS_ZED::setMessagesNMEA()
         }
     }
 
+    // If this is Facet FP, we may need to enable NMEA for Tilt IMU
+    if (variantHousingProperties->tiltPossible == true)
+    {
+        if (present.imu_im19 == true && settings.enableTiltCompensation == true)
+        {
+            // Regardless of user settings, enable GGA, RMC, GST on UART1
+            if (gpggaEnabled == false)
+            {
+                // Enable GGA over UART1. Tell the module to output GGA every interfval
+                if (settings.debugGnssConfig)
+                    systemPrintln("Enabling GGA for Tilt");
+                gpggaEnabled = _zed->setVal8(UBLOX_CFG_MSGOUT_NMEA_ID_GGA_UART1, 1,
+                                             VAL_LAYER_ALL);
+                response &= gpggaEnabled;
+            }
+            if (gpgstEnabled == false)
+            {
+                // Enable GST over UART1. Tell the module to output GST every interfval
+                if (settings.debugGnssConfig)
+                    systemPrintln("Enabling GST for Tilt");
+                gpgstEnabled = _zed->setVal8(UBLOX_CFG_MSGOUT_NMEA_ID_GST_UART1, 1,
+                                             VAL_LAYER_ALL);
+                response &= gpgstEnabled;
+            }
+            if (gprmcEnabled == false)
+            {
+                // Enable RMC over UART1. Tell the module to output RMC every interfval
+                if (settings.debugGnssConfig)
+                    systemPrintln("Enabling RMC for Tilt");
+                gprmcEnabled = _zed->setVal8(UBLOX_CFG_MSGOUT_NMEA_ID_RMC_UART1, 1,
+                                             VAL_LAYER_ALL);
+                response &= gprmcEnabled;
+            }
+        }
+    }
+
     // Enable GGA if needed for other services
     if (gpggaEnabled == false)
     {
-        // Enable GGA for NTRIP
+        // Enable GGA for NTRIP - at reduced rate if necessary
         if (settings.enableNtripClient == true && settings.ntripClient_TransmitGGA == true)
         {
             float measurementFrequency = (1000.0 / settings.measurementRateMs);
@@ -2256,8 +2298,9 @@ bool GNSS_ZED::setMessagesNMEA()
                 measurementFrequency = 0.2; // 0.2Hz * 5 = 1 measurement every 5 seconds
             if (settings.debugGnssConfig)
                 systemPrintf("Adjusting GGA setting to %f\r\n", measurementFrequency);
-            response &= _zed->setVal8(UBLOX_CFG_MSGOUT_NMEA_ID_GGA_UART1, measurementFrequency,
-                                      VAL_LAYER_ALL); // Enable GGA over UART1. Tell the module to output GGA every second
+            gpggaEnabled = _zed->setVal8(UBLOX_CFG_MSGOUT_NMEA_ID_GGA_UART1, measurementFrequency,
+                                         VAL_LAYER_ALL); // Enable GGA over UART1. Tell the module to output GGA every second
+            response &= gpggaEnabled;
         }
     }
 
@@ -2492,9 +2535,51 @@ bool GNSS_ZED::setRate(double secondsBetweenSolutions)
 //----------------------------------------
 bool GNSS_ZED::setTilt()
 {
-    // Not yet available on this platform
-    return true;
-}
+    if (variantHousingProperties->tiltPossible == false)
+        return (true); // No tilt on this platform. Report success to clear request.
+
+    if (present.imu_im19 == false)
+        return (true); // No tilt on this platform. Report success to clear request.
+
+    bool response = true;
+
+    // Tilt is present
+    if (settings.enableTiltCompensation == true)
+    {
+        // If enabled, configure GNSS to support the tilt sensor
+
+        // gnss->setTilt() is called by gnssUpdate() from the loop
+        // i.e. well after serialGNSS->begin is called
+        // serialGNSS could be running 
+
+        // Tilt sensor requires 5Hz at a minimum
+        if (settings.measurementRateMs > 200)
+        {
+            systemPrintln("Increasing GNSS measurement rate to 5Hz for tilt support");
+            settings.measurementRateMs = 200;
+            gnssConfigure(GNSS_CONFIG_FIX_RATE);
+        }
+
+        // On the ZED-X20P Tilt Flex module, UART 1 of the GNSS is connected to the IMU UART 1
+        // We need to enforce 115200 baud on UART1
+        response &= setBaudRateData(115200);
+
+        if (response == false && settings.debugGnssConfig)
+            systemPrintln("setTilt: setBaudRateData failed.");
+        else
+        {
+            if (settings.debugGnssConfig)
+                systemPrintln("Setting GNSS UART1 to 115200 baud for Tilt");
+            serialGNSS->end(); // End serialGNSS so we can change the baud rate
+            serialGNSS->begin(115200, SERIAL_8N1, pin_GnssUart_RX, pin_GnssUart_TX);
+            settings.dataPortBaud = 115200; // Update settings to match
+        }
+
+        // Enable of GGA, RMC, GST for tilt sensor is done in setMessagesNMEA()
+        // Do we need to call gnssConfigure(GNSS_CONFIG_MESSAGE_RATE_NMEA); ? TODO
+    }
+
+    return response;}
 
 //----------------------------------------
 bool GNSS_ZED::standby()
