@@ -23,11 +23,11 @@ const char *lg290pConstellationNames[] = {
 typedef struct
 {
     const char msgTextName[strlen("PQTMGEOFENCESTATUS") + 1]; // Printable/Human readable name
-    const float
+    const int
         msgVersionOffset; // 'MsgVer' or 'Offset' for a given message. Varies depending on the message. -1 of omitted.
-    const float msgDefaultRate;             // Default rate for 'factory' settings
+    const int msgDefaultRate;             // Default rate for 'factory' settings
     const int msgMaxRate;                   // Maximum allowed N message rate
-    const uint8_t firmwareVersionSupported; // The minimum version this message is supported.
+    const int firmwareVersionSupported; // The minimum version this message is supported.
                                             // 0 = all versions.
                                             // 104 = Supported in v1.4 and later
 } lg290pMsg;
