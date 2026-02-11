@@ -2577,6 +2577,8 @@ bool GNSS_ZED::setTilt()
 
         // Enable of GGA, RMC, GST for tilt sensor is done in setMessagesNMEA()
         // Do we need to call gnssConfigure(GNSS_CONFIG_MESSAGE_RATE_NMEA); ? TODO
+
+        recordSystemSettings(); // Save modified settings
     }
 
     return response;}
