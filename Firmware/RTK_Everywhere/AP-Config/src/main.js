@@ -2127,11 +2127,8 @@ document.addEventListener("DOMContentLoaded", (event) => {
             hide("ecefConfig");
             show("geodeticConfig");
 
-            if ((platformPrefix == "Facet mosaicX5") || (platformPrefix == "Facet v2 LBand")) {
+            if ((platformPrefix == "Facet mosaicX5") || (platformPrefix == "Facet v2 LBand") || (platformPrefix == "Facet v2")) {
                 ge("antennaPhaseCenter_mm").value = 68.5; //Average of L1/L2
-            }
-            else if (platformPrefix == "Facet v2") {
-                ge("antennaPhaseCenter_mm").value = 69.6; //Average of L1/L2
             }
             else if (platformPrefix == "Torch") {
                 ge("antennaPhaseCenter_mm").value = 116.5; //Average of L1/L2
@@ -2143,7 +2140,7 @@ document.addEventListener("DOMContentLoaded", (event) => {
                 ge("antennaPhaseCenter_mm").value = 42.0; //Average of L1/L2
             }
             else if (platformPrefix.substring(0, 2) == "FP") {
-                ge("antennaPhaseCenter_mm").value = 68.5; //Average of L1/L2 - TBC
+                ge("antennaPhaseCenter_mm").value = 62.0; //APC from drawings - TBC
             }
             else {
                 ge("antennaPhaseCenter_mm").value = 0.0;

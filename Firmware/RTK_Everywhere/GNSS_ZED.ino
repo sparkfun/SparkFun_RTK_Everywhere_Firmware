@@ -1850,7 +1850,7 @@ void GNSS_ZED::menuMessagesSubtype(uint8_t *localMessageRate, const char *messag
 //----------------------------------------
 void GNSS_ZED::printModuleInfo()
 {
-    systemPrintf("ZED-F9P firmware: %s\r\n", gnssFirmwareVersion);
+    systemPrintf("ZED firmware: %s\r\n", gnssFirmwareVersion);
 }
 
 //----------------------------------------

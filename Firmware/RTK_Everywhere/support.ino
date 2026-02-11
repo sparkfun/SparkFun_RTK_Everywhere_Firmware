@@ -1273,3 +1273,11 @@ RTKBrandAttribute * getBrandAttributeFromProductVariant(ProductVariant variant) 
     return getBrandAttributeFromBrand(properties->brand);
 }
 
+const productHousingProperties * getProductHousingPropertiesFromVariant(ProductVariant variant) {
+    const productProperties * properties = getProductPropertiesFromVariant(variant);
+    for (int i = 0; i < productHousingEntries; i++) {
+        if (productHousingPropertiesTable[i].housing == properties->housing)
+            return &productHousingPropertiesTable[i];
+    }
+    return getProductHousingPropertiesFromVariant(RTK_UNKNOWN);    
+}

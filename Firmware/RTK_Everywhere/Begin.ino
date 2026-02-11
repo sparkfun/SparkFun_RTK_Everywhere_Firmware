@@ -177,7 +177,6 @@ void beginBoard()
 
         present.psram_2mb = true;
         present.gnss_um980 = true;
-        present.antennaPhaseCenter_mm = 116.5; // Default to Torch helical APC, average of L1/L2
         present.radio_lora = true;
         present.fuelgauge_bq40z50 = true;
         present.charger_mp2762a = true;
@@ -285,7 +284,6 @@ void beginBoard()
         // Pin defs etc. for EVK v1.1
         present.psram_4mb = true;
         present.gnss_zedf9p = true;
-        present.antennaPhaseCenter_mm = 42.0; // Default to NGS certified SPK6615H APC, average of L1/L2
         present.lband_neo = true;
         present.cellular_lara = true;
         present.ethernet_ws5500 = true;
@@ -417,7 +415,6 @@ void beginBoard()
 
         present.psram_4mb = true;
         present.gnss_zedf9p = true;
-        present.antennaPhaseCenter_mm = 68.5; // Default to L-Band element APC, average of L1/L2
         present.lband_neo = true;
         present.microSd = true;
         present.microSdCardDetectLow = true;
@@ -499,7 +496,6 @@ void beginBoard()
 
         present.psram_4mb = true;
         present.gnss_zedf9p = true;
-        present.antennaPhaseCenter_mm = 69.6; // Default to NGS certified RTK Facet element APC, average of L1/L2
         present.microSd = true;
         present.microSdCardDetectLow = true;
         present.display_i2c0 = true;
@@ -595,7 +591,6 @@ void beginBoard()
 
         present.psram_4mb = true;
         present.gnss_mosaicX5 = true;
-        present.antennaPhaseCenter_mm = 68.5; // Default to L-Band element APC, average of L1/L2
         present.display_i2c0 = true;
         present.display_type = DISPLAY_64x48;
         present.i2c0BusSpeed_400 = true;
@@ -667,7 +662,6 @@ void beginBoard()
 
         present.psram_2mb = true;
         present.gnss_lg290p = true;
-        present.antennaPhaseCenter_mm = 37.5; // APC of SPK-6E helical L1/L2/L5 antenna
         present.needsExternalPpl = true;      // Uses the PointPerfect Library
         present.gnss_to_uart = true;
         present.gnssUpdatePort = "CH342 Channel B";
@@ -729,7 +723,6 @@ void beginBoard()
     {
         present.psram_2mb = true;
 
-        present.antennaPhaseCenter_mm = 62.0; // APC from drawings
         present.fuelgauge_bq40z50 = true;
 
         present.radio_lora = true;
@@ -748,7 +741,6 @@ void beginBoard()
         // present.i2c0BusSpeed_400 = true; // The BQ40Z50 fuel gauge requires 100kHz
         present.display_type = DISPLAY_128x64;
         present.displayInverted = true;
-        present.tiltPossible = true;
 
         present.fastPowerOff = true;
         present.invertedFastPowerOff = true; // Drive POWER_KILL high to cause powerdown
@@ -830,7 +822,6 @@ void beginBoard()
 
         present.psram_2mb = true;
         present.gnss_lg290p = true;
-        present.antennaPhaseCenter_mm = 116.5; // Default to Torch helical APC, average of L1/L2
         present.fuelgauge_bq40z50 = true;
         present.button_powerLow = true; // Button is pressed when low
         present.beeper = true;

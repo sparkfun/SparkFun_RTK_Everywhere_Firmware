@@ -263,7 +263,7 @@ void checkGNSSArrayDefaults()
     // (This was in beginSystemState - for the Torch / UM980 only. Weird...)
     if (defaultsApplied)
     {
-        settings.antennaPhaseCenter_mm = present.antennaPhaseCenter_mm;
+        settings.antennaPhaseCenter_mm = variantHousingProperties->antennaPhaseCenter_mm;
     }
 
     // If defaults were applied, also default the non-array settings for this particular GNSS receiver

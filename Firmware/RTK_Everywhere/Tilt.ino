@@ -320,22 +320,17 @@ void beginTilt()
     // Use serial port 1 as the main output with combined navigation data output
     result &= tiltSensor->sendCommand("NAVI_OUTPUT=UART1,ON");
 
-    // Set the distance of the IMU from the center line - x:6.78mm y:10.73mm z:19.25mm
-    if (productVariant == RTK_TORCH)
-        result &= tiltSensor->sendCommand("LEVER_ARM=-0.00678,-0.01073,-0.0314"); // From stock firmware
-    else if (productVariant == RTK_FACET_FP)
-    {
-        result &= tiltSensor->sendCommand("LEVER_ARM=0.03391,0.00272,0.02370"); // -28.2, 0. -23.7mm
+    // If defined, set the IMU installation angle - before LEVER_ARM2
+    // "the AT+INSTALL_ANGLE command must be sent firstly"
+    if (strlen(variantHousingProperties->installAngle) > 0)
+        result &= tiltSensor->sendCommand(variantHousingProperties->installAngle);
 
-        // Send AT+INSTALL_ANGLE=180,0,0 if the IM19 module is mounted on the back of the GNSS receiver (so the IM19
-        // faces downward instead of upward), before sending the save command.
-        result &= tiltSensor->sendCommand("INSTALL_ANGLE=180,0,-90"); // IMU is mounted facing down
-    }
+    // Set the LEVER_ARM(2) distance of the antenna ARP from the IMU
+    result &= tiltSensor->sendCommand(variantHousingProperties->leverArm);
 
     // Set the overall length of the GNSS setup in meters: rod length 1800mm + internal length 96.45mm + antenna
     // POC 19.25mm = 1915.7mm
     char clubVector[strlen("CLUB_VECTOR=0,0,1.916") + 1];
-    // antennaPhaseCenter_mm assigned in begin()
 
     snprintf(clubVector, sizeof(clubVector), "CLUB_VECTOR=0,0,%0.3f",
              (settings.antennaHeight_mm + settings.antennaPhaseCenter_mm) / 1000.0);
@@ -345,11 +340,8 @@ void beginTilt()
 
     result &= tiltSensor->sendCommand(clubVector);
 
-    // Configure interface type. This allows IM19 to receive Unicore-style binary messages
-    if (productVariant == RTK_TORCH)
-        result &= tiltSensor->sendCommand("GNSS_CARD=UNICORE");
-    else if (productVariant == RTK_FACET_FP)
-        result &= tiltSensor->sendCommand("GNSS_CARD=OEM");
+    // Configure interface type
+    result &= tiltSensor->sendCommand(variantHousingProperties->gnssCard);
 
     // Configure as tilt measurement mode
     result &= tiltSensor->sendCommand("WORK_MODE=408"); // From stock firmware
@@ -1186,7 +1178,7 @@ void applyCompensationGGA(char *nmeaSentence, int sentenceLength)
 void tiltDetect()
 {
     // Only test platforms that may have a tilt sensor on board
-    if (present.tiltPossible == false)
+    if (variantHousingProperties->tiltPossible == false)
         return;
 
     // Skip test if previously detected as present

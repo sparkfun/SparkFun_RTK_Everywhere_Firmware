@@ -205,6 +205,38 @@ typedef enum
 } ProductVariant;
 ProductVariant productVariant = RTK_UNKNOWN;
 
+typedef enum
+{
+    RTK_HOUSING_EVK = 0,    // EVK with SPK6615H
+    RTK_HOUSING_FACET,      // Facet mosaic-X5
+    RTK_HOUSING_FP,         // Facet FP
+    RTK_HOUSING_POSTCARD,   // Postcard with SPK-6E helical
+    RTK_HOUSING_TORCH,      // Torch / Torch X2
+    // Add new housing variants above this line
+    RTK_HOUSING_MAX_NONE,
+} ProductVariantHousing;
+
+typedef struct
+{
+    const ProductVariantHousing housing;
+    const float antennaPhaseCenter_mm;
+    const bool tiltPossible;
+    const char *leverArm;
+    const char *installAngle;
+    const char *gnssCard;
+} productHousingProperties;
+
+const productHousingProperties productHousingPropertiesTable[] =
+{
+    {RTK_HOUSING_EVK,       42.0,   false,  "", "", ""}, // Default to NGS certified SPK6615H APC, average of L1/L2
+    {RTK_HOUSING_FACET,     68.5,   false,  "", "", ""}, // Default to L-Band element APC, average of L1/L2
+    {RTK_HOUSING_FP,        62.0,   true,   "LEVER_ARM2=0.03391,0.00272,0.02370", "INSTALL_ANGLE=0,180,0", "GNSS_CARD=OEM"}, // APC from drawings - TBC
+    {RTK_HOUSING_POSTCARD,  37.5,   false,  "", "", ""}, // APC of SPK-6E helical L1/L2/L5 antenna
+    {RTK_HOUSING_TORCH,     116.5,  true,   "LEVER_ARM=-0.00678,-0.01073,-0.0314", "", "GNSS_CARD=UNICORE"}, // Default to Torch helical APC, average of L1/L2
+    {RTK_HOUSING_MAX_NONE,  0.0,    false,  "", "", ""},
+};
+const int productHousingEntries = sizeof(productHousingPropertiesTable) / sizeof(productHousingPropertiesTable[0]);
+
 // Product Properties Table
 // ========================
 // name is used to create the BT broadcast deviceName
@@ -225,6 +257,7 @@ typedef struct
 {
     ProductVariant productVariant;
     const RTKBrands_e brand;
+    const ProductVariantHousing housing;
     const char *name;
     const char *displayName;
     const char *filePrefix;
@@ -237,17 +270,17 @@ typedef struct
 
 const productProperties productPropertiesTable[] =
 {
-    //productVariant        brand           name            displayName filePrefix              platformProvision   rtkPfx  productPlanUID      defaultSystemState          platformRegistration
-    //==============        =====           ====            =========== ==========              =================   ======  ==============      ==================          ====================
-    { RTK_EVK,              BRAND_SPARKFUN, "EVK",          "EVK",      "SFE_EVK",              "EVK",              true,   "0000000000000000", STATE_ROVER_NOT_STARTED,    "https://www.sparkfun.com/rtk_evk_registration" },
-    { RTK_FACET_MOSAIC,     BRAND_SPARKPNT, "Facet X5",     "Facet X5", "SFE_Facet_mosaic",     "Facet mosaicX5",   true,   "0000000000000000", STATE_ROVER_NOT_STARTED,    "https://www.sparkfun.com/rtk_facet_mosaic_registration" },
-    { RTK_FACET_V2,         BRAND_SPARKPNT, "Facet v2",     "Facet v2", "SFE_Facet_v2",         "Facet v2",         true,   "0000000000000000", STATE_ROVER_NOT_STARTED,    "Unknown" },
-    { RTK_FACET_V2_LBAND,   BRAND_SPARKPNT, "Facet v2 LB",  "Facet LB", "SFE_Facet_v2_LBand",   "Facet v2 LBand",   true,   "0000000000000000", STATE_ROVER_NOT_STARTED,    "Unknown" },
-    { RTK_FACET_FP,         BRAND_SPARKPNT, "FP",           "FP",       "SFE_FP",               "FP",               false,  "e9e877bb278140f0", STATE_ROVER_NOT_STARTED,    "https://www.sparkfun.com/rtk_facet_fp_registration" },
-    { RTK_POSTCARD,         BRAND_SPARKFUN, "Postcard",     "Postcard", "SFE_Postcard",         "Postcard",         true,   "e9e877bb278140f0", STATE_ROVER_NOT_STARTED,    "https://www.sparkfun.com/rtk_postcard_registration" },
-    { RTK_TORCH,            BRAND_SPARKPNT, "Torch",        "Torch",    "SFE_Torch",            "Torch",            true,   "0000000000000000", STATE_ROVER_NOT_STARTED,    "https://www.sparkfun.com/rtk_torch_registration" },
-    { RTK_TORCH_X2,         BRAND_SPARKPNT, "TX2",          "TX2",      "SFE_TX2",              "TX2",              false,  "3407c7ca3d6b4984", STATE_ROVER_NOT_STARTED,    "https://www.sparkfun.com/tx2_registration" },
-    { RTK_UNKNOWN,          DEFAULT_BRAND,  "Unknown",      "Unknown",  "SFE_Unknown",          "Unknown",          true,   "0000000000000000", STATE_ROVER_NOT_STARTED,    "Unknown" },
+    //productVariant        brand           housing                 name            displayName filePrefix              platformProvision   rtkPfx  productPlanUID      defaultSystemState          platformRegistration
+    //==============        =====           =======                 ====            =========== ==========              =================   ======  ==============      ==================          ====================
+    { RTK_EVK,              BRAND_SPARKFUN, RTK_HOUSING_EVK,        "EVK",          "EVK",      "SFE_EVK",              "EVK",              true,   "0000000000000000", STATE_ROVER_NOT_STARTED,    "https://www.sparkfun.com/rtk_evk_registration" },
+    { RTK_FACET_MOSAIC,     BRAND_SPARKPNT, RTK_HOUSING_FACET,      "Facet X5",     "Facet X5", "SFE_Facet_mosaic",     "Facet mosaicX5",   true,   "0000000000000000", STATE_ROVER_NOT_STARTED,    "https://www.sparkfun.com/rtk_facet_mosaic_registration" },
+    { RTK_FACET_V2,         BRAND_SPARKPNT, RTK_HOUSING_FACET,      "Facet v2",     "Facet v2", "SFE_Facet_v2",         "Facet v2",         true,   "0000000000000000", STATE_ROVER_NOT_STARTED,    "Unknown" },
+    { RTK_FACET_V2_LBAND,   BRAND_SPARKPNT, RTK_HOUSING_FACET,      "Facet v2 LB",  "Facet LB", "SFE_Facet_v2_LBand",   "Facet v2 LBand",   true,   "0000000000000000", STATE_ROVER_NOT_STARTED,    "Unknown" },
+    { RTK_FACET_FP,         BRAND_SPARKPNT, RTK_HOUSING_FP,         "FP",           "FP",       "SFE_FP",               "FP",               false,  "e9e877bb278140f0", STATE_ROVER_NOT_STARTED,    "https://www.sparkfun.com/rtk_facet_fp_registration" },
+    { RTK_POSTCARD,         BRAND_SPARKFUN, RTK_HOUSING_POSTCARD,   "Postcard",     "Postcard", "SFE_Postcard",         "Postcard",         true,   "e9e877bb278140f0", STATE_ROVER_NOT_STARTED,    "https://www.sparkfun.com/rtk_postcard_registration" },
+    { RTK_TORCH,            BRAND_SPARKPNT, RTK_HOUSING_TORCH,      "Torch",        "Torch",    "SFE_Torch",            "Torch",            true,   "0000000000000000", STATE_ROVER_NOT_STARTED,    "https://www.sparkfun.com/rtk_torch_registration" },
+    { RTK_TORCH_X2,         BRAND_SPARKPNT, RTK_HOUSING_TORCH,      "TX2",          "TX2",      "SFE_TX2",              "TX2",              false,  "3407c7ca3d6b4984", STATE_ROVER_NOT_STARTED,    "https://www.sparkfun.com/tx2_registration" },
+    { RTK_UNKNOWN,          DEFAULT_BRAND,  RTK_HOUSING_MAX_NONE,   "Unknown",      "Unknown",  "SFE_Unknown",          "Unknown",          true,   "0000000000000000", STATE_ROVER_NOT_STARTED,    "Unknown" },
 };
 const int productPropertiesEntries = sizeof(productPropertiesTable) / sizeof(productPropertiesTable[0]);
 
@@ -1921,14 +1954,12 @@ struct struct_present
 
     bool needsExternalPpl = false;
 
-    float antennaPhaseCenter_mm = 0.0; // Used to setup tilt compensation
     bool pppCapable = false; // Device has the capability to do PPP corrections, currently B2b or E6 HAS
     bool multipathMitigation = false; // UM980 has MPM, other platforms do not
     bool minCN0 = false; // ZED, mosaic, UM980 have minCN0. LG290P does on version >= v5.
     bool minElevation = false; // ZED, mosaic, UM980 have minElevation. LG290P does on versions >= v5.
     bool dynamicModel = false; // ZED, mosaic, UM980 have dynamic models. LG290P does not.
     bool gpioExpanderSwitches = false; // Used on Facet FP
-    bool tiltPossible = false; //Facet FP may have a tilt IMU
     bool loraDedicatedUart = false; // Platforms may have a dedicated or shared UART interface to the LoRa radio
 
     const char *gnssUpdatePort = ""; // "CH342 Channel A" etc.

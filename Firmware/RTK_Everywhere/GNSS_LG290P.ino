@@ -2147,7 +2147,7 @@ bool GNSS_LG290P::setMessagesNMEA()
     }
 
     // If this is Facet FP, we may need to enable NMEA for Tilt IMU
-    if (present.tiltPossible == true)
+    if (variantHousingProperties->tiltPossible == true)
     {
         if (present.imu_im19 == true && settings.enableTiltCompensation == true)
         {
@@ -2525,7 +2525,7 @@ bool GNSS_LG290P::setRate(double secondsBetweenSolutions)
 //----------------------------------------
 bool GNSS_LG290P::setTilt()
 {
-    if (present.tiltPossible == false)
+    if (variantHousingProperties->tiltPossible == false)
         return (true); // No tilt on this platform. Report success to clear request.
 
     if (present.imu_im19 == false)
