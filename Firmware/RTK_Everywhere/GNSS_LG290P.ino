@@ -2943,14 +2943,15 @@ void lg290pCommandTypeJson(JsonArray &command_types)
     JsonObject command_types_tLgMRPqtm = command_types.add<JsonObject>();
     command_types_tLgMRPqtm["name"] = "tLgMRPqtm";
     command_types_tLgMRPqtm["description"] = "LG290P PQTM message rates";
-    command_types_tLgMRPqtm["instruction"] = "Enable / disable each PQTM message";
+    command_types_tLgMRPqtm["instruction"] = "Set the interval in seconds for each PQTM message (0 = Off)";
     command_types_tLgMRPqtm["prefix"] = "messageRatePQTM_";
     JsonArray command_types_tLgMRPqtm_keys = command_types_tLgMRPqtm["keys"].to<JsonArray>();
     for (int x = 0; x < MAX_LG290P_PQTM_MSG; x++)
         command_types_tLgMRPqtm_keys.add(lgMessagesPQTM[x].msgTextName);
     JsonArray command_types_tLgMRPqtm_values = command_types_tLgMRPqtm["values"].to<JsonArray>();
-    command_types_tLgMRPqtm_values.add("0");
-    command_types_tLgMRPqtm_values.add("1");
+    command_types_tLgMRPqtm["type"] = "int";
+    command_types_tLgMRPqtm["value min"] = 0;
+    command_types_tLgMRPqtm["value max"] = 255;
 }
 
 //----------------------------------------
