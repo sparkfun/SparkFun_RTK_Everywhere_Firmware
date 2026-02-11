@@ -2290,24 +2290,6 @@ void displayRoverFail(uint16_t displayTime)
     }
 }
 
-void displayAccelFail(uint16_t displayTime)
-{
-    if (online.display == true)
-    {
-        oled->erase();
-
-        uint8_t fontHeight = 15;
-        uint8_t yPos = oled->getHeight() / 2 - fontHeight;
-
-        printTextCenter("Accel", yPos, QW_FONT_8X16, 1, false);               // text, y, font type, kerning, inverted
-        printTextCenter("Failed", yPos + fontHeight, QW_FONT_8X16, 1, false); // text, y, font type, kerning, inverted
-
-        oled->display();
-
-        delay(displayTime);
-    }
-}
-
 // When user enters serial config menu the display will freeze so show splash while config happens
 void displaySerialConfig()
 {
