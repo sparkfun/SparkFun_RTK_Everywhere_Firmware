@@ -595,6 +595,12 @@ class GNSS_None : public GNSS
         return true;
     }
 
+    // Configure Extra/Other
+    bool setMessagesOther()
+    {
+        return true;
+    }
+
     // Set the minimum satellite signal level for navigation.
     bool setMinCN0(uint8_t cnoValue)
     {

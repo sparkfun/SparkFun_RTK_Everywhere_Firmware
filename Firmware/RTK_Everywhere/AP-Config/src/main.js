@@ -715,17 +715,20 @@ function parseIncoming(msg) {
             addInitialSetting(id, val);
         }
         else if (id.includes("messageRatePQTM")) {
-            // messageRatePQTM_EPE
+            // messageRatePQTM_*
             var messageName = id;
+            var messageRate = val;
             var messageNameLabel = "";
 
             var messageData = messageName.split('_');
             messageNameLabel = messageData[1];
 
-            messageText += "<div class='form-check mt-3'>";
-            messageText += "<label class='form-check-label' for='" + messageName + "'>Enable " + messageNameLabel + "</label>";
-            messageText += "<input class='form-check-input' type='checkbox' id='" + messageName + "'>";
-            messageText += "</div>";
+            messageText += "<div class='form-group row' id='msg" + messageName + "'>";
+            messageText += "<label for='" + messageName + "' class='col-sm-4 col-6 col-form-label'>" + messageNameLabel + ":</label>";
+            messageText += "<div class='col-sm-4 col-4'><input type='number' class='form-control'";
+            messageText += " id='" + messageName + "' value='" + messageRate + "'>";
+            messageText += "<p id='" + messageName + "Error' class='inlineError'></p>";
+            messageText += "</div></div>";
 
             // Save the name and value as we can't set 'checked' yet. messageText has not yet been added to innerHTML
             savedCheckboxNames.push(messageName);
@@ -1163,6 +1166,9 @@ function checkMessageValueUM980Base(id) {
 function checkMessageValueLG290P01(id) {
     checkElementValue(id, 0, 1, "Must be between 0 and 1", "collapseGNSSConfigMsg");
 }
+function checkMessageValueLG290P0255(id) {
+    checkElementValue(id, 0, 255, "Must be between 0 and 255", "collapseGNSSConfigMsg");
+}
 
 function checkMessageValueLG290P01200(id) {
     checkElementValue(id, 0, 1200, "Must be between 0 and 1200", "collapseGNSSConfigMsg");
@@ -1283,6 +1289,8 @@ function validateFields() {
             var messageName = messages[x].id;
             checkMessageValueLG290P01(messageName);
         }
+
+        // TODO - Some RTCM messages are 0 to 1, some are 0 to 1200.
         var messages = document.querySelectorAll('input[id^=messageRateRTCMRover_]');
         for (let x = 0; x < messages.length; x++) {
             var messageName = messages[x].id;
@@ -1292,6 +1300,12 @@ function validateFields() {
         for (let x = 0; x < messages.length; x++) {
             var messageName = messages[x].id;
             checkMessageValueLG290P01200(messageName);
+        }
+        
+        var messages = document.querySelectorAll('input[id^=messageRatePQTM_]');
+        for (let x = 0; x < messages.length; x++) {
+            var messageName = messages[x].id;
+            checkMessageValueLG290P0255(messageName);
         }
     }
 

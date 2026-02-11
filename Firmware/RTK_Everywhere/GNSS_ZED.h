@@ -733,6 +733,9 @@ class GNSS_ZED : GNSS
     // Set the RTCM Rover messages
     bool setMessagesRTCMRover();
 
+    // Turn on all the enabled Extra/Other messages
+    bool setMessagesOther();
+
     // Set the dynamic model to use for RTK
     // Inputs:
     //   modelNumber: Number of the model to use, provided by radio library
@@ -799,28 +802,14 @@ class GNSS_ZED : GNSS
 };
 
 // Forward routine declarations
-bool zedCommandList(RTK_Settings_Types type,
-                    int settingsIndex,
-                    bool inCommands,
-                    int qualifier,
-                    char * settingName,
-                    char * settingValue);
+bool zedCommandList(RTK_Settings_Types type, int settingsIndex, bool inCommands, int qualifier, char *settingName,
+                    char *settingValue);
 void zedCommandTypeJson(JsonArray &command_types);
-bool zedCreateString(RTK_Settings_Types type,
-                     int settingsIndex,
-                     char * newSettings);
-bool zedGetSettingValue(RTK_Settings_Types type,
-                        const char * suffix,
-                        int settingsIndex,
-                        int qualifier,
-                        char * settingValueStr);
-bool zedNewSettingValue(RTK_Settings_Types type,
-                        const char * suffix,
-                        int qualifier,
-                        double d);
-bool zedSettingsToFile(File *settingsFile,
-                       RTK_Settings_Types type,
-                       int settingsIndex);
+bool zedCreateString(RTK_Settings_Types type, int settingsIndex, char *newSettings);
+bool zedGetSettingValue(RTK_Settings_Types type, const char *suffix, int settingsIndex, int qualifier,
+                        char *settingValueStr);
+bool zedNewSettingValue(RTK_Settings_Types type, const char *suffix, int qualifier, double d);
+bool zedSettingsToFile(File *settingsFile, RTK_Settings_Types type, int settingsIndex);
 
 #endif // COMPILE_ZED
 #endif // __GNSS_ZED_H__

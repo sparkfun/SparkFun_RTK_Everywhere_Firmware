@@ -1751,6 +1751,14 @@ bool GNSS_UM980::setMessagesRTCMBase()
 }
 
 //----------------------------------------
+// Enable/disable any extra messages according to the various extra arrays
+//----------------------------------------
+bool GNSS_UM980::setMessagesOther()
+{
+    return (true);
+}
+
+//----------------------------------------
 // Set the RTCM Rover messages on COM3
 //----------------------------------------
 bool GNSS_UM980::setMessagesRTCMRover()

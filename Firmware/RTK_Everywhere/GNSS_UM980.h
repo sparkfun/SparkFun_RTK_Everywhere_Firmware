@@ -211,7 +211,7 @@ class GNSS_UM980 : GNSS
 
     bool fixRateIsAllowed(uint32_t fixRateMs);
 
-    //Return min/max rate in ms
+    // Return min/max rate in ms
     uint32_t fixRateGetMinimumMs();
 
     uint32_t fixRateGetMaximumMs();
@@ -315,7 +315,7 @@ class GNSS_UM980 : GNSS
     // Returns full year, ie 2023, not 23.
     uint16_t getYear();
 
-    // Helper functions for the current mode as read from the GNSS receiver 
+    // Helper functions for the current mode as read from the GNSS receiver
     bool gnssInBaseFixedMode();
     bool gnssInBaseSurveyInMode();
     bool gnssInRoverMode();
@@ -447,6 +447,9 @@ class GNSS_UM980 : GNSS
     // Turn on all the enabled RTCM Base messages on COM3
     bool setMessagesRTCMBase();
 
+    // Turn on all the enabled Extra/Other messages
+    bool setMessagesOther();
+
     // Set the dynamic model to use for RTK
     // Inputs:
     //   modelNumber: Number of the model to use, provided by radio library
@@ -499,28 +502,14 @@ class GNSS_UM980 : GNSS
 };
 
 // Forward routine declarations
-bool um980CommandList(RTK_Settings_Types type,
-                      int settingsIndex,
-                      bool inCommands,
-                      int qualifier,
-                      char * settingName,
-                      char * settingValue);
+bool um980CommandList(RTK_Settings_Types type, int settingsIndex, bool inCommands, int qualifier, char *settingName,
+                      char *settingValue);
 void um980CommandTypeJson(JsonArray &command_types);
-bool um980CreateString(RTK_Settings_Types type,
-                       int settingsIndex,
-                       char * newSettings);
-bool um980GetSettingValue(RTK_Settings_Types type,
-                          const char * suffix,
-                          int settingsIndex,
-                          int qualifier,
-                          char * settingValueStr);
-bool um980NewSettingValue(RTK_Settings_Types type,
-                          const char * suffix,
-                          int qualifier,
-                          double d);
-bool um980SettingsToFile(File *settingsFile,
-                         RTK_Settings_Types type,
-                         int settingsIndex);
+bool um980CreateString(RTK_Settings_Types type, int settingsIndex, char *newSettings);
+bool um980GetSettingValue(RTK_Settings_Types type, const char *suffix, int settingsIndex, int qualifier,
+                          char *settingValueStr);
+bool um980NewSettingValue(RTK_Settings_Types type, const char *suffix, int qualifier, double d);
+bool um980SettingsToFile(File *settingsFile, RTK_Settings_Types type, int settingsIndex);
 
 #endif // COMPILE_UM980
 #endif // __GNSS_UM980_H__

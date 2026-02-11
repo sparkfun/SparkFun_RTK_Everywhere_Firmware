@@ -21,7 +21,7 @@ typedef enum
 class GNSS
 {
   protected:
-    double _altitude;           // Altitude in meters
+    double _altitude;          // Altitude in meters
     double _geoidalSeparation; // Geoidal separation in meters
     float _horizontalAccuracy; // Horizontal position accuracy in meters
     double _latitude;          // Latitude in degrees
@@ -144,7 +144,7 @@ class GNSS
 
     virtual bool fixRateIsAllowed(uint32_t fixRateMs);
 
-    //Return min/max rate in ms
+    // Return min/max rate in ms
     virtual uint32_t fixRateGetMinimumMs();
 
     virtual uint32_t fixRateGetMaximumMs();
@@ -247,7 +247,7 @@ class GNSS
     // Returns full year, ie 2023, not 23.
     virtual uint16_t getYear();
 
-    // Helper functions for the current mode as read from the GNSS receiver 
+    // Helper functions for the current mode as read from the GNSS receiver
     // Not to be confused with inRoverMode() and inBaseMode() used in States.ino
     virtual bool gnssInBaseFixedMode();
     virtual bool gnssInBaseSurveyInMode();
@@ -378,6 +378,9 @@ class GNSS
     // Enable/disable messages according to the NMEA array
     virtual bool setMessagesRTCMRover();
 
+    // Turn on all the enabled Extra/Other messages
+    virtual bool setMessagesOther();
+
     // Set the minimum satellite signal level for navigation.
     virtual bool setMinCN0(uint8_t cnoValue);
 
@@ -431,49 +434,35 @@ bool gnssCmdUpdateConstellations(const char *settingName, void *settingData, int
 bool gnssCmdUpdateMessageRates(const char *settingName, void *settingData, int settingType);
 
 // Determine if the GNSS receiver is present
-typedef bool (* GNSS_PRESENT)();
+typedef bool (*GNSS_PRESENT)();
 
 // Create the GNSS class instance
-typedef void (* GNSS_NEW_CLASS)();
+typedef void (*GNSS_NEW_CLASS)();
 
 // List available settings, their type in CSV, and value
-typedef bool (* GNSS_COMMAND_LIST)(RTK_Settings_Types type,
-                                   int settingsIndex,
-                                   bool inCommands,
-                                   int qualifier,
-                                   char * settingName,
-                                   char * settingValue);
+typedef bool (*GNSS_COMMAND_LIST)(RTK_Settings_Types type, int settingsIndex, bool inCommands, int qualifier,
+                                  char *settingName, char *settingValue);
 
 // Add types to a JSON array
-typedef void (* GNSS_COMMAND_TYPE_JSON)(JsonArray &command_types);
+typedef void (*GNSS_COMMAND_TYPE_JSON)(JsonArray &command_types);
 
 // Create string for settings
-typedef bool (* GNSS_CREATE_STRING)(RTK_Settings_Types type,
-                                    int settingsIndex,
-                                    char * newSettings);
+typedef bool (*GNSS_CREATE_STRING)(RTK_Settings_Types type, int settingsIndex, char *newSettings);
 
 // Return setting value as a string
-typedef bool (* GNSS_GET_SETTING_VALUE)(RTK_Settings_Types type,
-                                        const char * suffix,
-                                        int settingsIndex,
-                                        int qualifier,
-                                        char * settingValueStr);
+typedef bool (*GNSS_GET_SETTING_VALUE)(RTK_Settings_Types type, const char *suffix, int settingsIndex, int qualifier,
+                                       char *settingValueStr);
 
 // Update a setting value
-typedef bool (* GNSS_NEW_SETTING_VALUE)(RTK_Settings_Types type,
-                                        const char * suffix,
-                                        int qualifier,
-                                        double d);
+typedef bool (*GNSS_NEW_SETTING_VALUE)(RTK_Settings_Types type, const char *suffix, int qualifier, double d);
 
 // Write settings to a file
-typedef bool (* GNSS_SETTING_TO_FILE)(File *settingsFile,
-                                      RTK_Settings_Types type,
-                                      int settingsIndex);
+typedef bool (*GNSS_SETTING_TO_FILE)(File *settingsFile, RTK_Settings_Types type, int settingsIndex);
 
 typedef struct _GNSS_SUPPORT_ROUTINES
 {
-    const char * name;
-    const char * gnssModelIdentifier;
+    const char *name;
+    const char *gnssModelIdentifier;
     gnssReceiverType_e _receiver;
     GNSS_PRESENT _present;
     GNSS_NEW_CLASS _newClass;
