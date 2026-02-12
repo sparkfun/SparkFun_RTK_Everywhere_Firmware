@@ -2600,7 +2600,6 @@ void buttonCheckTask(void *e)
                 singleTap = false;
             } // End STATE_DISPLAY_SETUP doubleTap
             // If the button was pressed to show the menu, then show the menu
-            // If we are in STATE_TESTING, exit to Base
             else if (singleTap)
             {
                 switch (systemState)
@@ -2632,17 +2631,6 @@ void buttonCheckTask(void *e)
                     requestChangeState(STATE_DISPLAY_SETUP);
                     lastSetupMenuChange.setTimerToMillis();
                     setupSelectedButton = 0; // Highlight the first button
-                    break;
-
-                case STATE_TEST:
-                    // Do nothing. User is releasing the setup button.
-                    break;
-
-                case STATE_TESTING:
-                    // If we are in testing, return to Base Not Started
-                    lastSetupMenuChange.setTimerToMillis(); // Prevent a timeout during state change
-                    baseCasterDisableOverride();    // Leave Caster mode
-                    requestChangeState(STATE_BASE_NOT_STARTED);
                     break;
 
                 case STATE_PROFILE:

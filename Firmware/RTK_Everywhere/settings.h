@@ -108,22 +108,20 @@ typedef enum
     STATE_WEB_CONFIG_NOT_STARTED,       // 16
     STATE_WEB_CONFIG_WAIT_FOR_NETWORK,  // 17
     STATE_WEB_CONFIG,                   // 18
-    STATE_TEST,                         // 19
-    STATE_TESTING,                      // 20
-    STATE_PROFILE,                      // 21
+    STATE_PROFILE,                      // 19
 
-    STATE_KEYS_REQUESTED,               // 22
+    STATE_KEYS_REQUESTED,               // 20
 
-    STATE_ESPNOW_PAIRING_NOT_STARTED,   // 23
-    STATE_ESPNOW_PAIRING,               // 24
+    STATE_ESPNOW_PAIRING_NOT_STARTED,   // 21
+    STATE_ESPNOW_PAIRING,               // 22
 
-    STATE_NTPSERVER_NOT_STARTED,        // 25
-    STATE_NTPSERVER_NO_SYNC,            // 26
-    STATE_NTPSERVER_SYNC,               // 27
+    STATE_NTPSERVER_NOT_STARTED,        // 23
+    STATE_NTPSERVER_NO_SYNC,            // 24
+    STATE_NTPSERVER_SYNC,               // 25
 
-    STATE_SHUTDOWN,                     // 28
+    STATE_SHUTDOWN,                     // 26
 
-    STATE_NOT_SET,                      // 29, Must be last on list
+    STATE_NOT_SET,                      // 27, Must be last on list
 } SystemState;
 volatile SystemState systemState = STATE_NOT_SET;
 SystemState lastSystemState = STATE_NOT_SET;
