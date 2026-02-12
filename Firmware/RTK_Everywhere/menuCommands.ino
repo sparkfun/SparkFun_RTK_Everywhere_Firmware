@@ -2887,6 +2887,16 @@ bool settingAvailableOnPlatform(int i)
                 break;
             if ((rtkSettingsEntries[i].platFacetFP == MX5) && (settings.detectedGnssReceiver == GNSS_RECEIVER_MOSAIC_X5))
                 break;
+            if ((rtkSettingsEntries[i].platFacetFP == ZED)
+                && ((settings.detectedGnssReceiver == GNSS_RECEIVER_F9P)
+                    || (settings.detectedGnssReceiver == GNSS_RECEIVER_X20P)))
+                break;
+            if ((rtkSettingsEntries[i].platFacetFP == ZF9)
+                && (settings.detectedGnssReceiver == GNSS_RECEIVER_F9P))
+                break;
+            if ((rtkSettingsEntries[i].platFacetFP == ZX2)
+                && (settings.detectedGnssReceiver == GNSS_RECEIVER_X20P))
+                break;
         }
         if ((productVariant == RTK_TORCH_X2) && rtkSettingsEntries[i].platTorchX2)
             break;

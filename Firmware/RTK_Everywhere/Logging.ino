@@ -271,7 +271,7 @@ bool beginLogging(const char *customFileName)
                 {
                     // u-blox platforms use ubx file extension for logs, all others use TXT
                     char fileExtension[4] = "ubx";
-                    if (present.gnss_zedf9p == false)
+                    if (!present.gnss_zedf9p && !present.gnss_zedx20p)
                         strncpy(fileExtension, "txt", sizeof(fileExtension));
 
                     snprintf(logFileName, sizeof(logFileName), "/%s_%02d%02d%02d_%02d%02d%02d.%s", // SdFat library

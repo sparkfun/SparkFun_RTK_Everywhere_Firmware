@@ -30,7 +30,7 @@ void checkGNSSArrayDefaults()
     bool defaultsApplied = false;
 
 #ifdef COMPILE_ZED
-    if (present.gnss_zedf9p)
+    if (present.gnss_zedf9p || present.gnss_zedx20p)
     {
         if (settings.dynamicModel == 254)
         {
@@ -263,7 +263,7 @@ void checkGNSSArrayDefaults()
     // (This was in beginSystemState - for the Torch / UM980 only. Weird...)
     if (defaultsApplied)
     {
-        settings.antennaPhaseCenter_mm = present.antennaPhaseCenter_mm;
+        settings.antennaPhaseCenter_mm = variantHousingProperties->antennaPhaseCenter_mm;
     }
 
     // If defaults were applied, also default the non-array settings for this particular GNSS receiver
@@ -275,7 +275,7 @@ void checkGNSSArrayDefaults()
             settings.surveyInStartingAccuracy = 2.0; // Default 2m
             settings.measurementRateMs = 500;        // Default 2Hz.
         }
-        else if (present.gnss_zedf9p)
+        else if (present.gnss_zedf9p || present.gnss_zedx20p)
         {
             settings.minCN0 = 6;                     // Default 6 dBHz
             settings.surveyInStartingAccuracy = 1.0; // Default 1m

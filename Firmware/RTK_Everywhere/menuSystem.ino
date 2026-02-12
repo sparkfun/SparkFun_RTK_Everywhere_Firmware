@@ -542,8 +542,6 @@ void menuDebugHardware()
 
         systemPrintln("e) Erase LittleFS");
 
-        systemPrintln("t) Test Screen");
-
         systemPrintln("r) Force system reset");
 
         systemPrintln("x) Exit");
@@ -694,10 +692,6 @@ void menuDebugHardware()
             systemPrintln("Erasing LittleFS and resetting");
             LittleFS.format();
             ESP.restart();
-        }
-        else if (incoming == 't')
-        {
-            requestChangeState(STATE_TEST); // We'll enter test mode once exiting all serial menus
         }
 
         // Menu exit control

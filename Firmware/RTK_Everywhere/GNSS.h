@@ -14,6 +14,7 @@ typedef enum
     GNSS_RECEIVER_MOSAIC_X5,
     GNSS_RECEIVER_X20P,
     GNSS_RECEIVER_UM980,
+    GNSS_RECEIVER_F9P,
     // Add new values above this line
     GNSS_RECEIVER_UNKNOWN,
 } gnssReceiverType_e;
@@ -465,6 +466,7 @@ typedef struct _GNSS_SUPPORT_ROUTINES
     const char *gnssModelIdentifier;
     gnssReceiverType_e _receiver;
     GNSS_PRESENT _present;
+    int8_t _presentPriority; // -1 : no priority; 0 : highest priority; 1 : next highest
     GNSS_NEW_CLASS _newClass;
     GNSS_COMMAND_LIST _commandList;
     GNSS_COMMAND_TYPE_JSON _commandTypeJson;

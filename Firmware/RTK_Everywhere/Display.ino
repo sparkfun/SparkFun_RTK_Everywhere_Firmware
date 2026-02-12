@@ -451,12 +451,6 @@ void displayUpdate()
             case (STATE_WEB_CONFIG):
                 displayWebConfig(iconPropertyList); // Display IP, subnet mask, etc.
                 break;
-            case (STATE_TEST):
-                paintSystemTest();
-                break;
-            case (STATE_TESTING):
-                paintSystemTest();
-                break;
 
             case (STATE_KEYS_REQUESTED):
                 // Do nothing. Quick, fall through state.
@@ -1497,7 +1491,7 @@ void paintDynamicModel(std::vector<iconPropertyBlinking> *iconList)
         prop.icon.bitmap = nullptr; // Use this as the test a valid icon
         prop.duty = 0b11111111;
 
-        if (present.gnss_zedf9p)
+        if (present.gnss_zedf9p || present.gnss_zedx20p)
         {
 #ifdef COMPILE_ZED
             // Display icon associated with current Dynamic Model
@@ -1716,7 +1710,7 @@ displayCoords paintSIVIcon(std::vector<iconPropertyBlinking> *iconList, const ic
         if (online.gnss)
         {
             // Determine which icon to display
-            if (settings.pppMode != PPP_MODE_DISABLE)
+            if (present.pppCapable && (settings.pppMode != PPP_MODE_DISABLE))
                 icon = &PppIconProperties;
             else if (lbandCorrectionsReceived || spartnCorrectionsReceived)
                 icon = &LBandIconProperties;
@@ -2510,160 +2504,6 @@ void paintProfile(uint8_t profileUnit)
     snprintf(profileMessage, sizeof(profileMessage), "Invalid profile%d", profileUnit);
     displayMessage(profileMessage, 2000);
     ESP.restart(); // Something bad happened. Restart...
-}
-
-// Display unit self-tests until user presses a button to exit
-// Allows operator to check:
-//  Display alignment
-//  Internal connections to: SD, Fuel gauge, GNSS
-//  External connections: Loop back test on DATA
-void paintSystemTest()
-{
-    if (online.display == true)
-    {
-        // Toggle between two displays
-        if ((millis() - systemTestDisplayTime) > 3000)
-        {
-            systemTestDisplayTime = millis();
-            systemTestDisplayNumber++;
-            systemTestDisplayNumber %= 2;
-        }
-
-        // Tests to run: SD, batt, GNSS firmware, mux, IMU, LBand, LARA
-
-        if (systemTestDisplayNumber == 1)
-        {
-            int xOffset = 2;
-            int yOffset = 2;
-
-            int charHeight = 7;
-
-            drawFrame(); // Outside edge
-
-            oled->setFont(QW_FONT_5X7); // Set font to smallest
-
-            if (present.microSd)
-            {
-                oled->setCursor(xOffset, yOffset); // x, y
-                oled->print("SD:");
-
-                if (online.microSD == false)
-                    beginSD(); // Test if SD is present
-                if (online.microSD == true)
-                    oled->print("OK");
-                else
-                    oled->print("FAIL");
-            }
-            else if (present.mosaicMicroSd)
-            {
-                // Facet mosaic has an SD card, but it is connected directly to the mosaic-X5
-                // Calling gnss->update() during the GNSS check will cause sdCardSize to be updated
-                oled->setCursor(xOffset, yOffset); // x, y
-                oled->print("SD:");
-
-                if (mosaicSdCardSize > 0)
-                    oled->print("OK");
-                else
-                    oled->print("FAIL");
-            }
-
-            if (present.fuelgauge_max17048 || present.fuelgauge_bq40z50)
-            {
-                oled->setCursor(xOffset, yOffset + (2 * charHeight)); // x, y
-                oled->print("Batt:");
-                if (online.batteryFuelGauge == true)
-                    oled->print("OK");
-                else
-                    oled->print("FAIL");
-            }
-
-            oled->setCursor(xOffset, yOffset + (3 * charHeight)); // x, y
-            oled->print("GNSS:");
-            if (online.gnss == true)
-            {
-                gnss->update(); // Regularly poll to get latest data
-
-                int satsInView = gnss->getSatellitesInView();
-                if (satsInView > 5)
-                {
-                    oled->print("OK");
-                    oled->print("/");
-                    oled->print(satsInView);
-                }
-                else
-                    oled->print("FAIL");
-            }
-            else
-                oled->print("FAIL");
-
-            if (present.portDataMux == true)
-            {
-                oled->setCursor(xOffset, yOffset + (4 * charHeight)); // x, y
-                oled->print("Mux:");
-
-                // Set mux to channel 3 and toggle pin and verify with loop back jumper wire inserted by test technician
-
-                setMuxport(MUX_ADC_DAC); // Set mux to DAC so we can toggle back/forth
-                pinMode(pin_muxDAC, OUTPUT);
-                pinMode(pin_muxADC, INPUT_PULLUP);
-
-                digitalWrite(pin_muxDAC, HIGH);
-                if (readAnalogPinAsDigital(pin_muxADC) == HIGH)
-                {
-                    digitalWrite(pin_muxDAC, LOW);
-                    if (readAnalogPinAsDigital(pin_muxADC) == LOW)
-                        oled->print("OK");
-                    else
-                        oled->print("FAIL");
-                }
-                else
-                    oled->print("FAIL");
-            }
-
-            // Get the last two digits of MAC
-            char macAddress[5];
-            const uint8_t *rtkMacAddress = networkGetMacAddress();
-            snprintf(macAddress, sizeof(macAddress), "%02X%02X", rtkMacAddress[4], rtkMacAddress[5]);
-
-            // Display MAC address
-            oled->setCursor(xOffset, yOffset + (5 * charHeight)); // x, y
-            oled->print(macAddress);
-            oled->print(":");
-
-        } // End display 1
-
-        if (systemTestDisplayNumber == 0)
-        {
-            int xOffset = 2;
-            int yOffset = 2;
-
-            int charHeight = 7;
-
-            drawFrame(); // Outside edge
-
-            // Test ZED Firmware, L-Band
-
-            oled->setFont(QW_FONT_5X7); // Set font to smallest
-
-            oled->setCursor(xOffset, yOffset); // x, y
-            oled->print("GNSS Firm:");
-            oled->setCursor(xOffset, yOffset + (1 * charHeight)); // x, y
-            oled->print(" ");
-            oled->print(gnssFirmwareVersionInt);
-            oled->print("-");
-            if ((present.gnss_zedf9p) && (gnssFirmwareVersionInt < 150))
-                oled->print("FAIL");
-            else
-                oled->print("OK");
-
-            oled->setCursor(xOffset, yOffset + (2 * charHeight)); // x, y
-            oled->print("LBand:");
-            if ((online.lband_neo == true) || (present.gnss_mosaicX5))
-                oled->print("OK");
-            else
-                oled->print("FAIL");
-        } // End display 0
-    }
 }
 
 // Show different menu 'buttons'.

@@ -32,7 +32,7 @@ void menuGNSS()
         if (present.dynamicModel) // ZED, mosaic, UM980 have dynamic models. LG290P does not.
         {
             systemPrint("3) Set dynamic model: ");
-            if (present.gnss_zedf9p)
+            if (present.gnss_zedf9p || present.gnss_zedx20p)
             {
                 switch (settings.dynamicModel)
                 {
@@ -216,7 +216,7 @@ void menuGNSS()
         }
         else if (incoming == 3 && present.dynamicModel)
         {
-            if (present.gnss_zedf9p)
+            if (present.gnss_zedf9p || present.gnss_zedx20p)
             {
                 systemPrintln("Enter the dynamic model to use: ");
                 systemPrintln("1) Portable");
@@ -246,7 +246,7 @@ void menuGNSS()
             int dynamicModel = getUserInputNumber(); // Returns EXIT, TIMEOUT, or long
             if ((dynamicModel != INPUT_RESPONSE_GETNUMBER_EXIT) && (dynamicModel != INPUT_RESPONSE_GETNUMBER_TIMEOUT))
             {
-                if (present.gnss_zedf9p)
+                if (present.gnss_zedf9p || present.gnss_zedx20p)
                 {
 #ifdef COMPILE_ZED
                     uint8_t maxModel = DYN_MODEL_WRIST;

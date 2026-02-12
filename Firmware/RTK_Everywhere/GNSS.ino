@@ -38,13 +38,19 @@ calculation
 // Constants
 //----------------------------------------
 
-const GNSS_SUPPORT_ROUTINES gnssSupportRoutines[] = {
-#ifdef COMPILE_LG290P
+// The LG290P Serial test is fast. Give that the highest presentPriority
+// Use the LG290P test to give the ZED time to start up. Do ZED next as I2C is quick
+// ZED-X20P does not report the MOD= module name. So, test for F9P first...
+// Mosaic is really slow to boot. Leave that until last
+const GNSS_SUPPORT_ROUTINES gnssSupportRoutines[] =
+{
+#ifdef  COMPILE_LG290P
     {
         "LG290P",                 // name
         "L",                      // gnssModelIdentifier for Facet FP deviceName
         GNSS_RECEIVER_LG290P,     // _receiver
         lg290pIsPresentOnFacetFP, // _present
+        0,                        // _presentPriority : highest
         lg290pNewClass,           // _newClass
         lg290pCommandList,        // _commandList
         lg290pCommandTypeJson,    // _commandTypeJson
@@ -60,6 +66,7 @@ const GNSS_SUPPORT_ROUTINES gnssSupportRoutines[] = {
         "M",                      // gnssModelIdentifier for Facet FP deviceName
         GNSS_RECEIVER_MOSAIC_X5,  // _receiver
         mosaicIsPresentOnFacetFP, // _present
+        -1,                       // _presentPriority
         mosaicNewClass,           // _newClass
         mosaicCommandList,        // _commandList
         mosaicCommandTypeJson,    // _commandTypeJson
@@ -75,6 +82,7 @@ const GNSS_SUPPORT_ROUTINES gnssSupportRoutines[] = {
         "U",                   // gnssModelIdentifier for Facet FP deviceName
         GNSS_RECEIVER_UNKNOWN, // _receiver
         nullptr,               // _present
+        -1,                    // _presentPriority
         nullptr,               // _newClass
         um980CommandList,      // _commandList
         um980CommandTypeJson,  // _commandTypeJson
@@ -85,19 +93,33 @@ const GNSS_SUPPORT_ROUTINES gnssSupportRoutines[] = {
     },
 #endif // COMPILE_UM980
 #ifdef COMPILE_ZED
-    // TODO: We should expand this to cover both ZED-F9P "F" and ZED-X20P "X"
     {
         "ZED",                 // name
         "F",                   // gnssModelIdentifier for Facet FP deviceName
-        GNSS_RECEIVER_UNKNOWN, // _receiver
-        nullptr,               // _present
-        nullptr,               // _newClass
+        GNSS_RECEIVER_F9P,     // _receiver
+        f9pIsPresentOnFacetFP, // _present
+        1,                     // _presentPriority : second highest, F9P reports the MOD= device name
+        f9pNewClass,           // _newClass
         zedCommandList,        // _commandList
         zedCommandTypeJson,    // _commandTypeJson
         zedCreateString,       // _createString
         zedGetSettingValue,    // _getSettingValue
         zedNewSettingValue,    // _newSettingValue
         zedSettingsToFile,     // _settingToFile
+    },
+    {
+        "ZED",                  // name
+        "X",                    // gnssModelIdentifier for Facet FP deviceName
+        GNSS_RECEIVER_X20P,     // _receiver
+        x20pIsPresentOnFacetFP, // _present
+        2,                      // _presentPriority : third highest, does not report MOD=
+        x20pNewClass,           // _newClass
+        zedCommandList,         // _commandList
+        zedCommandTypeJson,     // _commandTypeJson
+        zedCreateString,        // _createString
+        zedGetSettingValue,     // _getSettingValue
+        zedNewSettingValue,     // _newSettingValue
+        zedSettingsToFile,      // _settingToFile
     },
 #endif // COMPILE_ZED
 };
@@ -502,6 +524,18 @@ void gnssVerifyTables()
 {
     if (gnssConfigStateEntries != GNSS_CONFIG_MAX)
         reportFatalError("Fix gnssConfigStateEntries to match GNSS Config Enum");
+
+#ifdef COMPILE_ZED
+    // Many ZED support functions (e.g. getMessageNumberByName) return uint8_t
+    if (MAX_UBX_MSG > 255)
+        reportFatalError("Fix ZED support functions to match MAX_UBX_MSG");
+    // Validate ZED MAX_UBX_MSG_RTCM. Not great, but something...
+    GNSS_ZED zed;
+    if (MAX_UBX_MSG_RTCM
+        != (zed.getMessageNumberByNameSkipChecks("RXM_COR")
+            - zed.getMessageNumberByNameSkipChecks("RTCM_1005")))
+        reportFatalError("Fix MAX_UBX_MSG_RTCM to match RTCM messages");
+#endif
 }
 
 // Given a bit to configure, set that bit in the overall bitfield
@@ -642,12 +676,37 @@ void gnssDetectReceiverType()
             systemPrintln("Beginning GNSS autodetection");
             displayGNSSAutodetect(0);
 
+            // Construct a vector of GNSS _present tests by priority:
+            //  0 : highest priority
+            //  1 : next highest priority
+            // -1 : no priority
+            // If two entries have the same _presentPriority, they will prioritised by order
+            std::vector<int> gnssPresentByPriority;
+            gnssPresentByPriority.clear(); // Redundant?
+            for (int8_t priority = 0; priority < GNSS_SUPPORT_ROUTINES_ENTRIES; priority++)
+            {
+                for (index = 0; index < GNSS_SUPPORT_ROUTINES_ENTRIES; index++)
+                {
+                    if ((gnssSupportRoutines[index]._present)
+                        && (gnssSupportRoutines[index]._presentPriority == priority))
+                        gnssPresentByPriority.push_back(index);
+                }
+            }
             for (index = 0; index < GNSS_SUPPORT_ROUTINES_ENTRIES; index++)
             {
-                if (gnssSupportRoutines[index]._present && gnssSupportRoutines[index]._present())
+                if ((gnssSupportRoutines[index]._present)
+                    && (gnssSupportRoutines[index]._presentPriority < 0)) // -1 is "no priority"
+                    gnssPresentByPriority.push_back(index);
+            }
+
+            // Step through the _present detection routines in order of priority
+            for (auto it = gnssPresentByPriority.begin(); it != gnssPresentByPriority.end(); it = std::next(it))
+            {
+                if (gnssSupportRoutines[*it]._present())
                 {
-                    systemPrintf("Auto-detected GNSS receiver: %s\r\n", gnssSupportRoutines[index].name);
-                    settings.detectedGnssReceiver = gnssSupportRoutines[index]._receiver;
+                    systemPrintf("Auto-detected GNSS receiver: %s\r\n",
+                                gnssSupportRoutines[*it].name);
+                    settings.detectedGnssReceiver = gnssSupportRoutines[*it]._receiver;
                     recordSystemSettings(); // Record the detected GNSS receiver and avoid this test in the future
                     break;
                 }

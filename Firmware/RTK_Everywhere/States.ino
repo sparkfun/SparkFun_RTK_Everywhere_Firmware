@@ -565,23 +565,6 @@ void stateUpdate()
         }
         break;
 
-        // Setup device for testing
-        case (STATE_TEST): {
-            // Debounce entry into test menu
-            if ((millis() - lastTestMenuChange) > 500)
-            {
-                RTK_MODE(RTK_MODE_TESTING);
-                changeState(STATE_TESTING);
-            }
-        }
-        break;
-
-        // Display testing screen - do nothing
-        case (STATE_TESTING): {
-            // Exit via button press task
-        }
-        break;
-
         case (STATE_PROFILE): {
             // Do nothing - display only
         }
@@ -751,10 +734,6 @@ const char *getState(SystemState state)
     case (STATE_WEB_CONFIG_WAIT_FOR_NETWORK):
     case (STATE_WEB_CONFIG):
         return "STATE_WEB_CONFIG";
-    case (STATE_TEST):
-        return "STATE_TEST";
-    case (STATE_TESTING):
-        return "STATE_TESTING";
     case (STATE_PROFILE):
         return "STATE_PROFILE";
 

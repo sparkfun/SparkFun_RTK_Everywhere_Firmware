@@ -582,7 +582,7 @@ int mqttClientProcessMessage(uint8_t *mqttData, uint16_t mqttCount, int bytesPus
     }
 
     // Correction data from PP can go direct to GNSS
-    if (present.gnss_zedf9p)
+    if (present.gnss_zedf9p || present.gnss_zedx20p)
         bytesPushed = mqttClientProcessZedMessage(mqttData, mqttCount, bytesPushed, topic);
 
     // For the UM980 or LG290P, we have to pass the data through the PPL first

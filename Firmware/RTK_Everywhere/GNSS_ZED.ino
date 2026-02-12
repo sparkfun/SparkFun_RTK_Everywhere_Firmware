@@ -139,13 +139,13 @@ void GNSS_ZED::begin()
 
     if (_zed->begin(*i2c_0) == false)
     {
-        systemPrintln("GNSS ZED-F9P failed to begin. Trying again.");
+        systemPrintln("GNSS ZED failed to begin. Trying again.");
 
         // Try again with power on delay
         delay(1000); // Wait for ZED-F9P to power up before it can respond to ACK
         if (_zed->begin(*i2c_0) == false)
         {
-            systemPrintln("GNSS ZED-F9P offline");
+            systemPrintln("GNSS ZED offline");
             displayGNSSFail(1000);
             return;
         }
@@ -177,8 +177,10 @@ void GNSS_ZED::begin()
         //"1.32" - ZED-F9P released May, 2022
         //"1.50" - ZED-F9P released July, 2024
         //"1.51" - ZED-F9P released November, 2024
+        //"2.00" - ZED-X20P released May, 2025
+        //"2.02" - ZED-X20P released July, 2025
 
-        const uint8_t knownFirmwareVersions[] = {100, 112, 113, 120, 121, 130, 132, 150, 151};
+        const uint8_t knownFirmwareVersions[] = {100, 112, 113, 120, 121, 130, 132, 150, 151, 200, 202};
         bool knownFirmware = false;
         for (uint8_t i = 0; i < (sizeof(knownFirmwareVersions) / sizeof(knownFirmwareVersions[0])); i++)
         {
@@ -192,9 +194,9 @@ void GNSS_ZED::begin()
             gnssFirmwareVersionInt = 99; // 0.99 invalid firmware version
         }
 
-        // Determine if we have a ZED-F9P or an ZED-F9R
+        // Determine if we have a ZED-F9P or an ZED-X20P
         if (strstr(_zed->getModuleName(), "ZED-F9P") == nullptr)
-            systemPrintf("Unknown ZED module: %s\r\n", _zed->getModuleName());
+            systemPrintf("Unknown ZED module: %s. Could be X20P\r\n", _zed->getModuleName());
 
         if (strcmp(_zed->getFirmwareType(), "HPG") == 0)
             if ((_zed->getFirmwareVersionHigh() == 1) && (_zed->getFirmwareVersionLow() < 30))
@@ -224,7 +226,7 @@ void GNSS_ZED::begin()
             // Callbacks are volatile and must be set after each reset
             registerCallbacks();
 
-            systemPrintln("GNSS ZED-F9P online");
+            systemPrintln("GNSS ZED online");
 
             online.gnss = true;
 
@@ -232,7 +234,7 @@ void GNSS_ZED::begin()
         }
     }
 
-    systemPrintln("GNSS ZED-F9P offline");
+    systemPrintln("GNSS ZED offline");
     displayGNSSFail(1000);
 }
 
@@ -1039,7 +1041,7 @@ uint8_t GNSS_ZED::getMessageNumberByNameSkipChecks(const char *msgName)
 }
 uint8_t GNSS_ZED::getMessageNumberByName(const char *msgName, bool skipPlatformChecks)
 {
-    if (skipPlatformChecks || present.gnss_zedf9p)
+    if (skipPlatformChecks || present.gnss_zedf9p || present.gnss_zedx20p)
     {
         for (int x = 0; x < MAX_UBX_MSG; x++)
         {
@@ -1136,7 +1138,7 @@ uint8_t GNSS_ZED::getNAV2MessageCount()
     int startOfBlock = 0;
     int endOfBlock = 0;
 
-    setMessageOffsets(&ubxMessages[0], "NAV2", startOfBlock,
+    setMessageOffsets(&ubxMessages[0], "NAV2_", startOfBlock,
                       endOfBlock); // Find start and stop of given messageType in message array
 
     for (int x = 0; x < (endOfBlock - startOfBlock); x++)
@@ -1145,7 +1147,7 @@ uint8_t GNSS_ZED::getNAV2MessageCount()
             enabledMessages++;
     }
 
-    setMessageOffsets(&ubxMessages[0], "NMEANAV2", startOfBlock,
+    setMessageOffsets(&ubxMessages[0], "NMEANAV2_", startOfBlock,
                       endOfBlock); // Find start and stop of given messageType in message array
 
     for (int x = 0; x < (endOfBlock - startOfBlock); x++)
@@ -1693,21 +1695,21 @@ void GNSS_ZED::menuMessages()
             menuMessagesSubtype(settings.ubxMessageRates,
                                 "NMEA_"); // The following _ avoids listing NMEANAV2 messages
         else if (incoming == 2)
-            menuMessagesSubtype(settings.ubxMessageRates, "RTCM");
+            menuMessagesSubtype(settings.ubxMessageRates, "RTCM_");
         else if (incoming == 3)
-            menuMessagesSubtype(settings.ubxMessageRates, "RXM");
+            menuMessagesSubtype(settings.ubxMessageRates, "RXM_");
         else if (incoming == 4)
             menuMessagesSubtype(settings.ubxMessageRates, "NAV_"); // The following _ avoids listing NAV2 messages
         else if (incoming == 5)
-            menuMessagesSubtype(settings.ubxMessageRates, "NAV2");
+            menuMessagesSubtype(settings.ubxMessageRates, "NAV2_");
         else if (incoming == 6)
-            menuMessagesSubtype(settings.ubxMessageRates, "NMEANAV2");
+            menuMessagesSubtype(settings.ubxMessageRates, "NMEANAV2_");
         else if (incoming == 7)
-            menuMessagesSubtype(settings.ubxMessageRates, "MON");
+            menuMessagesSubtype(settings.ubxMessageRates, "MON_");
         else if (incoming == 8)
-            menuMessagesSubtype(settings.ubxMessageRates, "TIM");
+            menuMessagesSubtype(settings.ubxMessageRates, "TIM_");
         else if (incoming == 9)
-            menuMessagesSubtype(settings.ubxMessageRates, "PUBX");
+            menuMessagesSubtype(settings.ubxMessageRates, "PUBX_");
         else if (incoming == 10)
         {
             setGNSSMessageRates(settings.ubxMessageRates, 0); // Turn off all messages
@@ -1848,7 +1850,7 @@ void GNSS_ZED::menuMessagesSubtype(uint8_t *localMessageRate, const char *messag
 //----------------------------------------
 void GNSS_ZED::printModuleInfo()
 {
-    systemPrintf("ZED-F9P firmware: %s\r\n", gnssFirmwareVersion);
+    systemPrintf("ZED firmware: %s\r\n", gnssFirmwareVersion);
 }
 
 //----------------------------------------
@@ -2143,13 +2145,11 @@ bool GNSS_ZED::setLogging()
 void GNSS_ZED::setMessageOffsets(const ubxMsg *localMessage, const char *messageType, int &startOfBlock,
                                  int &endOfBlock)
 {
-    char messageNamePiece[40];                                               // UBX_RTCM
-    snprintf(messageNamePiece, sizeof(messageNamePiece), "%s", messageType); // Put UBX_ infront of type
-
-    // Find the first occurrence
+    // Find the first occurrence of a message name which starts with messageType
     for (startOfBlock = 0; startOfBlock < MAX_UBX_MSG; startOfBlock++)
     {
-        if (strstr(localMessage[startOfBlock].msgTextName, messageNamePiece) != nullptr)
+        if (strstr(localMessage[startOfBlock].msgTextName, messageType)
+            == localMessage[startOfBlock].msgTextName)
             break;
     }
     if (startOfBlock == MAX_UBX_MSG)
@@ -2163,7 +2163,8 @@ void GNSS_ZED::setMessageOffsets(const ubxMsg *localMessage, const char *message
     // Find the last occurrence
     for (endOfBlock = startOfBlock + 1; endOfBlock < MAX_UBX_MSG; endOfBlock++)
     {
-        if (strstr(localMessage[endOfBlock].msgTextName, messageNamePiece) == nullptr)
+        if (strstr(localMessage[endOfBlock].msgTextName, messageType)
+            != localMessage[endOfBlock].msgTextName)
             break;
     }
 }
@@ -2203,6 +2204,8 @@ bool GNSS_ZED::setMessagesNMEA()
     int maxRetries = MAX_SET_MESSAGES_RETRIES;
 
     bool gpggaEnabled = false;
+    bool gpgstEnabled = false;
+    bool gprmcEnabled = false;
 
     bool success = true;
 
@@ -2229,6 +2232,10 @@ bool GNSS_ZED::setMessagesNMEA()
                 {
                     if (strcmp(ubxMessages[messageNumber].msgTextName, "NMEA_GGA") == 0)
                         gpggaEnabled = true;
+                    if (strcmp(ubxMessages[messageNumber].msgTextName, "NMEA_GST") == 0)
+                        gpgstEnabled = true;
+                    if (strcmp(ubxMessages[messageNumber].msgTextName, "NMEA_RMC") == 0)
+                        gprmcEnabled = true;
                 }
             }
             messageNumber++;
@@ -2244,10 +2251,46 @@ bool GNSS_ZED::setMessagesNMEA()
         }
     }
 
+    // If this is Facet FP, we may need to enable NMEA for Tilt IMU
+    if (variantHousingProperties->tiltPossible == true)
+    {
+        if (present.imu_im19 == true && settings.enableTiltCompensation == true)
+        {
+            // Regardless of user settings, enable GGA, RMC, GST on UART1
+            if (gpggaEnabled == false)
+            {
+                // Enable GGA over UART1. Tell the module to output GGA every interfval
+                if (settings.debugGnssConfig)
+                    systemPrintln("Enabling GGA for Tilt");
+                gpggaEnabled = _zed->setVal8(UBLOX_CFG_MSGOUT_NMEA_ID_GGA_UART1, 1,
+                                             VAL_LAYER_ALL);
+                response &= gpggaEnabled;
+            }
+            if (gpgstEnabled == false)
+            {
+                // Enable GST over UART1. Tell the module to output GST every interfval
+                if (settings.debugGnssConfig)
+                    systemPrintln("Enabling GST for Tilt");
+                gpgstEnabled = _zed->setVal8(UBLOX_CFG_MSGOUT_NMEA_ID_GST_UART1, 1,
+                                             VAL_LAYER_ALL);
+                response &= gpgstEnabled;
+            }
+            if (gprmcEnabled == false)
+            {
+                // Enable RMC over UART1. Tell the module to output RMC every interfval
+                if (settings.debugGnssConfig)
+                    systemPrintln("Enabling RMC for Tilt");
+                gprmcEnabled = _zed->setVal8(UBLOX_CFG_MSGOUT_NMEA_ID_RMC_UART1, 1,
+                                             VAL_LAYER_ALL);
+                response &= gprmcEnabled;
+            }
+        }
+    }
+
     // Enable GGA if needed for other services
     if (gpggaEnabled == false)
     {
-        // Enable GGA for NTRIP
+        // Enable GGA for NTRIP - at reduced rate if necessary
         if (settings.enableNtripClient == true && settings.ntripClient_TransmitGGA == true)
         {
             float measurementFrequency = (1000.0 / settings.measurementRateMs);
@@ -2255,8 +2298,9 @@ bool GNSS_ZED::setMessagesNMEA()
                 measurementFrequency = 0.2; // 0.2Hz * 5 = 1 measurement every 5 seconds
             if (settings.debugGnssConfig)
                 systemPrintf("Adjusting GGA setting to %f\r\n", measurementFrequency);
-            response &= _zed->setVal8(UBLOX_CFG_MSGOUT_NMEA_ID_GGA_UART1, measurementFrequency,
-                                      VAL_LAYER_ALL); // Enable GGA over UART1. Tell the module to output GGA every second
+            gpggaEnabled = _zed->setVal8(UBLOX_CFG_MSGOUT_NMEA_ID_GGA_UART1, measurementFrequency,
+                                         VAL_LAYER_ALL); // Enable GGA over UART1. Tell the module to output GGA every second
+            response &= gpggaEnabled;
         }
     }
 
@@ -2298,17 +2342,20 @@ bool GNSS_ZED::setMessagesRTCMBase()
     // Update RTCM message rates for all interfaces. This is 12 * 5 = 60 valsets.
     for (int x = 0; x < MAX_UBX_MSG_RTCM; x++)
     {
-        response &= _zed->addCfgValset(ubxMessages[firstRTCMRecord + x].msgConfigKey - 1,
-                                       settings.ubxMessageRatesBase[x]); // UBLOX_CFG UART1 - 1 = I2C
-        response &= _zed->addCfgValset(ubxMessages[firstRTCMRecord + x].msgConfigKey,
-                                       settings.ubxMessageRatesBase[x]); // UBLOX_CFG UART1
-        response &= _zed->addCfgValset(ubxMessages[firstRTCMRecord + x].msgConfigKey + 1,
-                                       settings.ubxMessageRatesBase[x]); // UBLOX_CFG UART1 + 1 = UART2
-        response &= _zed->addCfgValset(ubxMessages[firstRTCMRecord + x].msgConfigKey + 2,
-                                       settings.ubxMessageRatesBase[x]); // UBLOX_CFG UART1 + 2 = USB
-        // Disable messages on SPI
-        response &= _zed->addCfgValset(ubxMessages[firstRTCMRecord + x].msgConfigKey + 3,
-                                       0); // UBLOX_CFG UART1 + 3 = SPI
+        if (messageSupported(firstRTCMRecord + x))
+        {
+            response &= _zed->addCfgValset(ubxMessages[firstRTCMRecord + x].msgConfigKey - 1,
+                                        settings.ubxMessageRatesBase[x]); // UBLOX_CFG UART1 - 1 = I2C
+            response &= _zed->addCfgValset(ubxMessages[firstRTCMRecord + x].msgConfigKey,
+                                        settings.ubxMessageRatesBase[x]); // UBLOX_CFG UART1
+            response &= _zed->addCfgValset(ubxMessages[firstRTCMRecord + x].msgConfigKey + 1,
+                                        settings.ubxMessageRatesBase[x]); // UBLOX_CFG UART1 + 1 = UART2
+            response &= _zed->addCfgValset(ubxMessages[firstRTCMRecord + x].msgConfigKey + 2,
+                                        settings.ubxMessageRatesBase[x]); // UBLOX_CFG UART1 + 2 = USB
+            // Disable messages on SPI
+            response &= _zed->addCfgValset(ubxMessages[firstRTCMRecord + x].msgConfigKey + 3,
+                                        0); // UBLOX_CFG UART1 + 3 = SPI
+        }
     }
 
     response &= _zed->sendCfgValset(); // Closing value
@@ -2338,17 +2385,20 @@ bool GNSS_ZED::setMessagesRTCMRover()
     // Update RTCM message rates for all interfaces. This is 12 * 5 = 60 valsets.
     for (int x = 0; x < MAX_UBX_MSG_RTCM; x++)
     {
-        // Disable RTCM on all interfaces but UART1
-        response &= _zed->addCfgValset(ubxMessages[firstRTCMRecord + x].msgConfigKey - 1,
-                                       0); // UBLOX_CFG UART1 - 1 = I2C
-        response &= _zed->addCfgValset(ubxMessages[firstRTCMRecord + x].msgConfigKey,
-                                       settings.ubxMessageRates[firstRTCMRecord + x]); // UBLOX_CFG UART1
-        response &= _zed->addCfgValset(ubxMessages[firstRTCMRecord + x].msgConfigKey + 1,
-                                       0); // UBLOX_CFG UART1 + 1 = UART2
-        response &= _zed->addCfgValset(ubxMessages[firstRTCMRecord + x].msgConfigKey + 2,
-                                       0); // UBLOX_CFG UART1 + 2 = USB
-        response &= _zed->addCfgValset(ubxMessages[firstRTCMRecord + x].msgConfigKey + 3,
-                                       0); // UBLOX_CFG UART1 + 3 = SPI
+        if (messageSupported(firstRTCMRecord + x))
+        {
+            // Disable RTCM on all interfaces but UART1
+            response &= _zed->addCfgValset(ubxMessages[firstRTCMRecord + x].msgConfigKey - 1,
+                                            0); // UBLOX_CFG UART1 - 1 = I2C
+            response &= _zed->addCfgValset(ubxMessages[firstRTCMRecord + x].msgConfigKey,
+                                            settings.ubxMessageRates[firstRTCMRecord + x]); // UBLOX_CFG UART1
+            response &= _zed->addCfgValset(ubxMessages[firstRTCMRecord + x].msgConfigKey + 1,
+                                            0); // UBLOX_CFG UART1 + 1 = UART2
+            response &= _zed->addCfgValset(ubxMessages[firstRTCMRecord + x].msgConfigKey + 2,
+                                            0); // UBLOX_CFG UART1 + 2 = USB
+            response &= _zed->addCfgValset(ubxMessages[firstRTCMRecord + x].msgConfigKey + 3,
+                                            0); // UBLOX_CFG UART1 + 3 = SPI
+        }
     }
 
     response &= _zed->sendCfgValset(); // Closing
@@ -2463,7 +2513,8 @@ bool GNSS_ZED::setRate(double secondsBetweenSolutions)
         if (measurementFrequency < 1.0)
             measurementFrequency = 1.0;
 
-        log_d("Adjusting GSV setting to %f", measurementFrequency);
+        if (settings.debugGnss)
+            systemPrintf("Adjusting GSV setting to %f\r\n", measurementFrequency);
 
         setMessageRateByName("NMEA_GSV", measurementFrequency); // Update GSV setting in file
         response &= _zed->addCfgValset(ubxMessages[gsvRecordNumber].msgConfigKey,
@@ -2492,8 +2543,53 @@ bool GNSS_ZED::setRate(double secondsBetweenSolutions)
 //----------------------------------------
 bool GNSS_ZED::setTilt()
 {
-    // Not yet available on this platform
-    return true;
+    if (variantHousingProperties->tiltPossible == false)
+        return (true); // No tilt on this platform. Report success to clear request.
+
+    if (present.imu_im19 == false)
+        return (true); // No tilt on this platform. Report success to clear request.
+
+    bool response = true;
+
+    // Tilt is present
+    if (settings.enableTiltCompensation == true)
+    {
+        // If enabled, configure GNSS to support the tilt sensor
+
+        // gnss->setTilt() is called by gnssUpdate() from the loop
+        // i.e. well after serialGNSS->begin is called
+        // serialGNSS could be running 
+
+        // Tilt sensor requires 5Hz at a minimum
+        if (settings.measurementRateMs > 200)
+        {
+            systemPrintln("Increasing GNSS measurement rate to 5Hz for tilt support");
+            settings.measurementRateMs = 200;
+            gnssConfigure(GNSS_CONFIG_FIX_RATE);
+        }
+
+        // On the ZED-X20P Tilt Flex module, UART 1 of the GNSS is connected to the IMU UART 1
+        // We need to enforce 115200 baud on UART1
+        response &= setBaudRateData(115200);
+
+        if (response == false && settings.debugGnssConfig)
+            systemPrintln("setTilt: setBaudRateData failed.");
+        else
+        {
+            if (settings.debugGnssConfig)
+                systemPrintln("Setting GNSS UART1 to 115200 baud for Tilt");
+            serialGNSS->end(); // End serialGNSS so we can change the baud rate
+            serialGNSS->begin(115200, SERIAL_8N1, pin_GnssUart_RX, pin_GnssUart_TX);
+            settings.dataPortBaud = 115200; // Update settings to match
+        }
+
+        // Enable of GGA, RMC, GST for tilt sensor is done in setMessagesNMEA()
+        // Do we need to call gnssConfigure(GNSS_CONFIG_MESSAGE_RATE_NMEA); ? TODO
+
+        recordSystemSettings(); // Save modified settings
+    }
+
+    return response;
 }
 
 //----------------------------------------
@@ -2939,8 +3035,13 @@ bool messageSupported(int messageNumber)
 {
     bool messageSupported = false;
 
-    if (gnssFirmwareVersionInt >= ubxMessages[messageNumber].f9pFirmwareVersionSupported)
-        messageSupported = true;
+    if (present.gnss_zedf9p)
+        if (gnssFirmwareVersionInt >= ubxMessages[messageNumber].f9pFirmwareVersionSupported)
+            messageSupported = true;
+
+    if (present.gnss_zedx20p)
+        if (gnssFirmwareVersionInt >= ubxMessages[messageNumber].x20pFirmwareVersionSupported)
+            messageSupported = true;
 
     return (messageSupported);
 }
@@ -2963,8 +3064,13 @@ bool commandSupported(const uint32_t key)
     }
     else
     {
-        if (gnssFirmwareVersionInt >= ubxCommands[commandNumber].f9pFirmwareVersionSupported)
-            commandSupported = true;
+        if (present.gnss_zedf9p)
+            if (gnssFirmwareVersionInt >= ubxCommands[commandNumber].f9pFirmwareVersionSupported)
+                commandSupported = true;
+
+        if (present.gnss_zedx20p)
+            if (gnssFirmwareVersionInt >= ubxCommands[commandNumber].x20pFirmwareVersionSupported)
+                commandSupported = true;
     }
     return (commandSupported);
 }
@@ -3354,5 +3460,77 @@ bool zedSettingsToFile(File *settingsFile,
     }
     return true;
 }
+
+//----------------------------------------
+// Return true if we detect this receiver type
+bool x20pIsPresentOnFacetFP()
+{
+    // Locally instantiate the hardware and library so it will release on exit
+    SFE_UBLOX_GNSS_SUPER zed;
+
+    if (zed.begin(*i2c_0) == false) // .begin will retry 3 times
+    {
+        if (settings.debugGnss)
+            systemPrintln("GNSS ZED-X20P not detected");
+
+        return false;
+    }
+
+    // ZED-X20P HPG 2.02 does not report the MOD= module name
+    // How do we disambiguate F9P and X20P?
+    // The F9P does report the MOD module name. Maybe that's the best we can do?
+
+    return true;
+}
+
+//----------------------------------------
+// Called by gnssDetectReceiverType to create the GNSS_ZED class instance
+//----------------------------------------
+void x20pNewClass()
+{
+    gnss = (GNSS *)new GNSS_ZED();
+
+    present.gnss_zedx20p = true;
+    present.minCN0 = true;
+}
+
+//----------------------------------------
+// Return true if we detect this receiver type
+bool f9pIsPresentOnFacetFP()
+{
+    // Locally instantiate the hardware and library so it will release on exit
+    SFE_UBLOX_GNSS_SUPER zed;
+
+    if (zed.begin(*i2c_0) == false) // .begin will retry 3 times
+    {
+        if (settings.debugGnss)
+            systemPrintln("GNSS ZED-F9P not detected");
+
+        return false;
+    }
+
+    // Increase transactions to reduce transfer time
+    zed.i2cTransactionSize = 128;
+
+    // Check the module name
+    // ZED-F9P does report the MOD= module name. So, test for F9P first...
+    if (zed.getModuleInfo(1100)) // Try to get the module info
+        if (strstr(zed.getModuleName(), "ZED-F9P") != nullptr)
+            return true;
+
+    return false;
+}
+
+//----------------------------------------
+// Called by gnssDetectReceiverType to create the GNSS_ZED class instance
+//----------------------------------------
+void f9pNewClass()
+{
+    gnss = (GNSS *)new GNSS_ZED();
+
+    present.gnss_zedf9p = true;
+    present.minCN0 = true;
+}
+
 
 #endif // COMPILE_ZED
