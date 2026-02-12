@@ -91,8 +91,8 @@ const GNSS_SUPPORT_ROUTINES gnssSupportRoutines[] =
         um980NewSettingValue,  // _newSettingValue
         um980SettingsToFile,   // _settingToFile
     },
-#endif  // COMPILE_UM980
-#ifdef  COMPILE_ZED
+#endif // COMPILE_UM980
+#ifdef COMPILE_ZED
     {
         "ZED",                 // name
         "F",                   // gnssModelIdentifier for Facet FP deviceName
