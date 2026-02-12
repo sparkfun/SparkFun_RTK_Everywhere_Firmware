@@ -184,8 +184,8 @@ void cellularStart(NetIndex_t index, uintptr_t parameter, bool debug)
 
     displayMessage("Cellular Start", 500);
 
-    // Starting the cellular modem
-    CELLULAR.begin(CELLULAR_MODEM_MODEL);
+    // Starting the cellular modem - using UART2 and 115200 baud. (The GNSS is using UART1...)
+    CELLULAR.begin(CELLULAR_MODEM_MODEL, 2, 115200);
 
     // Specify the timer expiration date - for the SIM check delay
     laraTimer = millis() + parameter;
