@@ -1,3 +1,5 @@
+volatile bool sdpCreateRecordEvent = false; // Flag to indicate when the iAP2 record has been created
+
 #ifdef COMPILE_AUTHENTICATION
 
 const char *manufacturer = "SparkFun Electronics";
@@ -6,8 +8,6 @@ const char *BTTransportName = "Bluetooth";
 const char *LIComponentName = "com.sparkfun.li";
 
 const int rfcommChanneliAP2 = 3; // Use RFCOMM channel 3 for iAP2 (using Dual SPP+BLE)
-
-volatile bool sdpCreateRecordEvent = false; // Flag to indicate when the iAP2 record has been created
 
 extern BTSerialInterface *bluetoothSerialSpp;
 
