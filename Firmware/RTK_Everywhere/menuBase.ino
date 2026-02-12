@@ -277,11 +277,18 @@ void menuBase()
         }
         else if (settings.fixedBase == true && settings.fixedBaseCoordinateType == COORD_TYPE_GEODETIC && incoming == 6)
         {
-            if (getNewSetting(
+            char arpPrompt[300];
+            snprintf(arpPrompt, sizeof(arpPrompt),
                     "Enter the antenna phase center (the distance between the ARP and the APC) in millimeters. "
                     "Common antennas "
-                    "Torch/X2=116.5, Facet mosaic=68.5, EVK=42.0, Postcard=37.5, Facet FP=62.0",
-                    -200.0, 200.0, &settings.antennaPhaseCenter_mm) == INPUT_RESPONSE_VALID)
+                    "Torch/X2=%.1f, Facet mosaic=%.1f, EVK=%.1f, Postcard=%.1f, Facet FP=%.1f",
+                    getProductHousingPropertiesFromVariant(RTK_TORCH)->antennaPhaseCenter_mm,
+                    getProductHousingPropertiesFromVariant(RTK_FACET_MOSAIC)->antennaPhaseCenter_mm,
+                    getProductHousingPropertiesFromVariant(RTK_EVK)->antennaPhaseCenter_mm,
+                    getProductHousingPropertiesFromVariant(RTK_POSTCARD)->antennaPhaseCenter_mm,
+                    getProductHousingPropertiesFromVariant(RTK_FACET_FP)->antennaPhaseCenter_mm);
+            if (getNewSetting((const char *)&arpPrompt[0], -200.0, 200.0,
+                &settings.antennaPhaseCenter_mm) == INPUT_RESPONSE_VALID)
             {
                 // Change GNSS receiver configuration if the receiver is in Base mode, otherwise, just change setting
                 // This prevents a user, while in Rover mode but changing a Base setting, from entering Base mode
