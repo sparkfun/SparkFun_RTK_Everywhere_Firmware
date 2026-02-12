@@ -1954,7 +1954,7 @@ bool i2cBusInitialization(TwoWire *i2cBus, int sda, int scl, int clockKHz)
             }
 
             case 0x3C: {
-                systemPrintf("  0x%02X - SSD1306 OLED Driver (Facet fP)\r\n", addr);
+                systemPrintf("  0x%02X - SSD1306 OLED Driver (Facet FP)\r\n", addr);
                 break;
             }
 
