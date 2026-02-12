@@ -279,9 +279,9 @@ void menuBase()
         {
             char arpPrompt[300];
             snprintf(arpPrompt, sizeof(arpPrompt),
-                    "Enter the antenna phase center (the distance between the ARP and the APC) in millimeters. "
-                    "Common antennas "
-                    "Torch/X2=%.1f, Facet mosaic=%.1f, EVK=%.1f, Postcard=%.1f, Facet FP=%.1f",
+                    "Enter the antenna phase center (the distance between the ARP and the APC) in millimeters\r\n"
+                    "Common antennas: "
+                    "Torch/X2=%.1f, Facet mosaic=%.1f, EVK=%.1f, Postcard=%.1f, Facet FP=%.1f\r\n",
                     getProductHousingPropertiesFromVariant(RTK_TORCH)->antennaPhaseCenter_mm,
                     getProductHousingPropertiesFromVariant(RTK_FACET_MOSAIC)->antennaPhaseCenter_mm,
                     getProductHousingPropertiesFromVariant(RTK_EVK)->antennaPhaseCenter_mm,
