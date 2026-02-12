@@ -23,6 +23,7 @@ calculation
   * setMessagesNMEA() - Set the NMEA messages output during Base or Rover mode
   * setMessagesRTCMBase() - Set the RTCM messages output during Base mode
   * setMessagesRTCMRover() - Set the RTCM messages output during Rover mode
+  * setMessagesOther(); - Set extra/other messages that should be logged and reported to consumers (Bluetooth, TCP, etc)
   * setPppService() - Set the PPP/HAS E6 capabilities of the receiver
   * setMultipathMitigation() - Set the multipath capabilities of the receiver
   * setTilt() - Set the GNSS receiver's output to be compatible with a tilt sensor
@@ -45,66 +46,66 @@ const GNSS_SUPPORT_ROUTINES gnssSupportRoutines[] =
 {
 #ifdef  COMPILE_LG290P
     {
-        "LG290P",               // name
-        "L",                    // gnssModelIdentifier for Facet FP deviceName
-        GNSS_RECEIVER_LG290P,   // _receiver
-        lg290pIsPresentOnFacetFP,  // _present
-        0,                      // _presentPriority : highest
-        lg290pNewClass,         // _newClass
-        lg290pCommandList,      // _commandList
-        lg290pCommandTypeJson,  // _commandTypeJson
-        lg290pCreateString,     // _createString
-        lg290pGetSettingValue,  // _getSettingValue
-        lg290pNewSettingValue,  // _newSettingValue
-        lg290pSettingsToFile,   // _settingToFile
+        "LG290P",                 // name
+        "L",                      // gnssModelIdentifier for Facet FP deviceName
+        GNSS_RECEIVER_LG290P,     // _receiver
+        lg290pIsPresentOnFacetFP, // _present
+        0,                        // _presentPriority : highest
+        lg290pNewClass,           // _newClass
+        lg290pCommandList,        // _commandList
+        lg290pCommandTypeJson,    // _commandTypeJson
+        lg290pCreateString,       // _createString
+        lg290pGetSettingValue,    // _getSettingValue
+        lg290pNewSettingValue,    // _newSettingValue
+        lg290pSettingsToFile,     // _settingToFile
     },
-#endif  // COMPILE_LG290P
-#ifdef  COMPILE_MOSAICX5
+#endif // COMPILE_LG290P
+#ifdef COMPILE_MOSAICX5
     {
-        "Mosaic-X5",                // name
-        "M",                        // gnssModelIdentifier for Facet FP deviceName
-        GNSS_RECEIVER_MOSAIC_X5,    // _receiver
-        mosaicIsPresentOnFacetFP,   // _present
-        -1,                         // _presentPriority
-        mosaicNewClass,             // _newClass
-        mosaicCommandList,          // _commandList
-        mosaicCommandTypeJson,      // _commandTypeJson
-        mosaicCreateString,         // _createString
-        mosaicGetSettingValue,      // _getSettingValue
-        mosaicNewSettingValue,      // _newSettingValue
-        mosaicSettingsToFile,       // _settingToFile
+        "Mosaic-X5",              // name
+        "M",                      // gnssModelIdentifier for Facet FP deviceName
+        GNSS_RECEIVER_MOSAIC_X5,  // _receiver
+        mosaicIsPresentOnFacetFP, // _present
+        -1,                       // _presentPriority
+        mosaicNewClass,           // _newClass
+        mosaicCommandList,        // _commandList
+        mosaicCommandTypeJson,    // _commandTypeJson
+        mosaicCreateString,       // _createString
+        mosaicGetSettingValue,    // _getSettingValue
+        mosaicNewSettingValue,    // _newSettingValue
+        mosaicSettingsToFile,     // _settingToFile
     },
-#endif  // COMPILE_MOSAICX5
-#ifdef  COMPILE_UM980
+#endif // COMPILE_MOSAICX5
+#ifdef COMPILE_UM980
     {
-        "UM980",                // name
-        "U",                    // gnssModelIdentifier for Facet FP deviceName
-        GNSS_RECEIVER_UNKNOWN,  // _receiver
-        nullptr,                // _present
-        -1,                     // _presentPriority
-        nullptr,                // _newClass
-        um980CommandList,       // _commandList
-        um980CommandTypeJson,   // _commandTypeJson
-        um980CreateString,      // _createString
-        um980GetSettingValue,   // _getSettingValue
-        um980NewSettingValue,   // _newSettingValue
-        um980SettingsToFile,    // _settingToFile
+        "UM980",               // name
+        "U",                   // gnssModelIdentifier for Facet FP deviceName
+        GNSS_RECEIVER_UNKNOWN, // _receiver
+        nullptr,               // _present
+        -1,                    // _presentPriority
+        nullptr,               // _newClass
+        um980CommandList,      // _commandList
+        um980CommandTypeJson,  // _commandTypeJson
+        um980CreateString,     // _createString
+        um980GetSettingValue,  // _getSettingValue
+        um980NewSettingValue,  // _newSettingValue
+        um980SettingsToFile,   // _settingToFile
     },
 #endif  // COMPILE_UM980
 #ifdef  COMPILE_ZED
     {
-        "ZED",                  // name
-        "F",                    // gnssModelIdentifier for Facet FP deviceName
-        GNSS_RECEIVER_F9P,      // _receiver
-        f9pIsPresentOnFacetFP,  // _present
-        1,                      // _presentPriority : second highest, F9P reports the MOD= device name
-        f9pNewClass,            // _newClass
-        zedCommandList,         // _commandList
-        zedCommandTypeJson,     // _commandTypeJson
-        zedCreateString,        // _createString
-        zedGetSettingValue,     // _getSettingValue
-        zedNewSettingValue,     // _newSettingValue
-        zedSettingsToFile,      // _settingToFile
+        "ZED",                 // name
+        "F",                   // gnssModelIdentifier for Facet FP deviceName
+        GNSS_RECEIVER_F9P,     // _receiver
+        f9pIsPresentOnFacetFP, // _present
+        1,                     // _presentPriority : second highest, F9P reports the MOD= device name
+        f9pNewClass,           // _newClass
+        zedCommandList,        // _commandList
+        zedCommandTypeJson,    // _commandTypeJson
+        zedCreateString,       // _createString
+        zedGetSettingValue,    // _getSettingValue
+        zedNewSettingValue,    // _newSettingValue
+        zedSettingsToFile,     // _settingToFile
     },
     {
         "ZED",                  // name
@@ -120,9 +121,9 @@ const GNSS_SUPPORT_ROUTINES gnssSupportRoutines[] =
         zedNewSettingValue,     // _newSettingValue
         zedSettingsToFile,      // _settingToFile
     },
-#endif  // COMPILE_ZED
+#endif // COMPILE_ZED
 };
-#define GNSS_SUPPORT_ROUTINES_ENTRIES   (sizeof(gnssSupportRoutines) / sizeof(gnssSupportRoutines[0]))
+#define GNSS_SUPPORT_ROUTINES_ENTRIES (sizeof(gnssSupportRoutines) / sizeof(gnssSupportRoutines[0]))
 
 // We may receive a command or the user may change a setting that needs to modify the configuration of the GNSS receiver
 // Because this can take time, we group all the changes together and re-configure the receiver once the user has exited
@@ -146,7 +147,7 @@ enum
     GNSS_CONFIG_MESSAGE_RATE_RTCM_ROVER, // Update RTCM Rover message rates
     GNSS_CONFIG_MESSAGE_RATE_RTCM_BASE,  // Update RTCM Base message rates
     GNSS_CONFIG_MESSAGE_RATE_OTHER,      // Update any other messages (UBX, PQTM, etc)
-    GNSS_CONFIG_PPP,                  // Enable/disable HAS E6 capabilities
+    GNSS_CONFIG_PPP,                     // Enable/disable HAS E6 capabilities
     GNSS_CONFIG_MULTIPATH,
     GNSS_CONFIG_TILT,            // Enable/disable any output needed for tilt compensation
     GNSS_CONFIG_EXT_CORRECTIONS, // Enable / disable corrections protocol(s) on the Radio External port
@@ -249,8 +250,8 @@ void gnssUpdate()
     // This is to avoid multiple reconfigure delays when multiple commands are received, ie enable GPS, disable Galileo,
     // should only trigger one GNSS reconfigure
     const unsigned long bleCommandIdleTimeout = 2000; // TODO: check if this is long enough?
-    if ((inMainMenu == false) && (inWebConfigMode() == false)
-        && ((millis() - bleCommandTrafficSeen_millis) > bleCommandIdleTimeout))
+    if ((inMainMenu == false) && (inWebConfigMode() == false) &&
+        ((millis() - bleCommandTrafficSeen_millis) > bleCommandIdleTimeout))
     {
         gnssConfigureInProgress = true; // Set the 'semaphore'
         bool result = true;
@@ -436,10 +437,12 @@ void gnssUpdate()
 
         if (gnssConfigureRequested(GNSS_CONFIG_MESSAGE_RATE_OTHER))
         {
-            // TODO - It is not clear where LG290P PQTM messages are being enabled
-            gnssConfigureClear(GNSS_CONFIG_MESSAGE_RATE_OTHER);
-            gnssConfigure(GNSS_CONFIG_SAVE); // Request receiver commit this change to NVM
-            setLoggingType();                // Update Standard, PPP, or custom for icon selection
+            if (gnss->setMessagesOther() == true)
+            {
+                gnssConfigureClear(GNSS_CONFIG_MESSAGE_RATE_OTHER);
+                gnssConfigure(GNSS_CONFIG_SAVE); // Request receiver commit this change to NVM
+                setLoggingType();                // Update Standard, PPP, or custom for icon selection
+            }
         }
 
         if (gnssConfigureRequested(GNSS_CONFIG_TILT))
@@ -865,8 +868,7 @@ void gnssFirmwareDirectConnectSoftware()
     systemPrintln("Disconnect this terminal connection");
     systemPrintln("Use the GNSS manufacturer software to update the firmware");
     systemPrintf("Baudrate: %dbps\r\n", serialBaud);
-    systemPrintf("Press the %s button to return to normal operation\r\n",
-                 present.button_mode ? "mode" : "power");
+    systemPrintf("Press the %s button to return to normal operation\r\n", present.button_mode ? "mode" : "power");
     systemFlush();
 
     Serial.end(); // We must end before we begin otherwise the UART settings are corrupted
@@ -989,22 +991,14 @@ void gnssFirmwareRemoveUpdateFile(const char *filename)
 //----------------------------------------
 // List available settings, their type in CSV, and value
 //----------------------------------------
-bool gnssCommandList(RTK_Settings_Types type,
-                     int settingsIndex,
-                     bool inCommands,
-                     int qualifier,
-                     char * settingName,
-                     char * settingValue)
+bool gnssCommandList(RTK_Settings_Types type, int settingsIndex, bool inCommands, int qualifier, char *settingName,
+                     char *settingValue)
 {
     for (int index = 0; index < GNSS_SUPPORT_ROUTINES_ENTRIES; index++)
     {
-        if (gnssSupportRoutines[index]._commandList
-            && gnssSupportRoutines[index]._commandList(type,
-                                                       settingsIndex,
-                                                       inCommands,
-                                                       qualifier,
-                                                       settingName,
-                                                       settingValue))
+        if (gnssSupportRoutines[index]._commandList &&
+            gnssSupportRoutines[index]._commandList(type, settingsIndex, inCommands, qualifier, settingName,
+                                                    settingValue))
             return true;
     }
     return false;
@@ -1025,14 +1019,12 @@ void gnssCommandTypeJson(JsonArray &command_types)
 //----------------------------------------
 // Called by createSettingsString to build settings file string
 //----------------------------------------
-bool gnssCreateString(RTK_Settings_Types type,
-                      int settingsIndex,
-                      char * newSettings)
+bool gnssCreateString(RTK_Settings_Types type, int settingsIndex, char *newSettings)
 {
     for (int index = 0; index < GNSS_SUPPORT_ROUTINES_ENTRIES; index++)
     {
-        if (gnssSupportRoutines[index]._createString
-            && gnssSupportRoutines[index]._createString(type, settingsIndex, newSettings))
+        if (gnssSupportRoutines[index]._createString &&
+            gnssSupportRoutines[index]._createString(type, settingsIndex, newSettings))
             return true;
     }
     return false;
@@ -1041,20 +1033,13 @@ bool gnssCreateString(RTK_Settings_Types type,
 //----------------------------------------
 // Return setting value as a string
 //----------------------------------------
-bool gnssGetSettingValue(RTK_Settings_Types type,
-                         const char * suffix,
-                         int settingsIndex,
-                         int qualifier,
-                         char * settingValueStr)
+bool gnssGetSettingValue(RTK_Settings_Types type, const char *suffix, int settingsIndex, int qualifier,
+                         char *settingValueStr)
 {
     for (int index = 0; index < GNSS_SUPPORT_ROUTINES_ENTRIES; index++)
     {
-        if (gnssSupportRoutines[index]._getSettingValue
-            && gnssSupportRoutines[index]._getSettingValue(type,
-                                                           suffix,
-                                                           settingsIndex,
-                                                           qualifier,
-                                                           settingValueStr))
+        if (gnssSupportRoutines[index]._getSettingValue &&
+            gnssSupportRoutines[index]._getSettingValue(type, suffix, settingsIndex, qualifier, settingValueStr))
             return true;
     }
     return false;
@@ -1063,10 +1048,7 @@ bool gnssGetSettingValue(RTK_Settings_Types type,
 //----------------------------------------
 // Called by parseLine to parse GNSS specific settings
 //----------------------------------------
-bool gnssNewSettingValue(RTK_Settings_Types type,
-                         const char * suffix,
-                         int qualifier,
-                         double d)
+bool gnssNewSettingValue(RTK_Settings_Types type, const char *suffix, int qualifier, double d)
 {
     // We must parse all GNSS. tCmnCnst etc. are present in all GNSS
     bool retval = false;
@@ -1083,14 +1065,12 @@ bool gnssNewSettingValue(RTK_Settings_Types type,
 //----------------------------------------
 // Called by recordSystemSettingsToFile to save GNSS specific settings
 //----------------------------------------
-bool gnssSettingsToFile(File *settingsFile,
-                        RTK_Settings_Types type,
-                        int settingsIndex)
+bool gnssSettingsToFile(File *settingsFile, RTK_Settings_Types type, int settingsIndex)
 {
     for (int index = 0; index < GNSS_SUPPORT_ROUTINES_ENTRIES; index++)
     {
-        if (gnssSupportRoutines[index]._settingToFile
-            && gnssSupportRoutines[index]._settingToFile(settingsFile, type, settingsIndex))
+        if (gnssSupportRoutines[index]._settingToFile &&
+            gnssSupportRoutines[index]._settingToFile(settingsFile, type, settingsIndex))
             return true;
     }
     return false;

@@ -114,13 +114,19 @@ bool sdCardPresent(void)
     {
         if (online.gpioExpanderButtons == true)
         {
-            static uint32_t lastExpanderCheck = 0;
+            // The boot time is low enough that the SD card is not detected during beginSD() in setup(). 
+            // This leads to a variety of problems. Force a first check.
+            static bool firstCheck = false; // One shot
+            
+            static uint32_t lastExpanderCheck = 0; 
             static bool lastPresenceResult = false;
 
             // Avoid constantly checking I2C bus for SD presence
             // Update status every 1000ms
-            if (millis() - lastExpanderCheck > 1000)
+            if (millis() - lastExpanderCheck > 1000 || firstCheck == false)
             {
+                firstCheck = true;
+
                 lastExpanderCheck = millis();
 
                 if (io.digitalRead(gpioExpander_cardDetect) == GPIO_EXPANDER_CARD_INSERTED)

@@ -2485,6 +2485,14 @@ bool GNSS_MOSAIC::setMessagesRTCMRover()
 }
 
 //----------------------------------------
+// Enable/disable any extra messages according to the various extra arrays
+//----------------------------------------
+bool GNSS_MOSAIC::setMessagesOther()
+{
+    return (true);
+}
+
+//----------------------------------------
 // Set the dynamic model to use for RTK
 // Inputs:
 //   modelNumber: Number of the model to use, provided by radio library
