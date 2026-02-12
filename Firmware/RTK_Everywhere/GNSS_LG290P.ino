@@ -2111,10 +2111,12 @@ bool GNSS_LG290P::setMessagesNMEA()
             // Check if this NMEA message is supported by the current LG290P firmware
             if (lg290pFirmwareVersionInt >= lgMessagesNMEA[messageNumber].firmwareVersionSupported)
             {
-                // On Postcard: disable NMEA output on UART3 RADIO
                 int msgRate = settings.lg290pMessageRatesNMEA[messageNumber];
 
-                // Disable NMEA output on UART3 RADIO
+                // On Postcard: disable NMEA output on UART3 RADIO
+                // On TX2: disable NMEA output on UART3 CH342 Channel A
+                // On Facet FP LG290P with Tilt: UART3 feeds the IMU. GGA/GST/RMC will be enabled below.
+                //                               It is OK to disable it here.
                 if ((portNumber == 3) && (settings.enableNmeaOnRadio == false))
                     msgRate = 0;
 
@@ -2194,8 +2196,7 @@ bool GNSS_LG290P::setMessagesNMEA()
                 // GST not supported below 1.4
                 systemPrintf(
                     "Current LG290P firmware: v%d.%d (full form: %s). Tilt compensation requires GST on firmware v1.4 "
-                    "or newer. Please "
-                    "update the "
+                    "or newer. Please update the "
                     "firmware on your LG290P to allow for these features. Please see "
                     "https://bit.ly/sfe-rtk-lg290p-update\r\n Marking tilt compensation offline.",
                     lg290pFirmwareVersionMajor, lg290pFirmwareVersionMinor, gnssFirmwareVersion);
