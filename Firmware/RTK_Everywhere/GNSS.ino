@@ -733,7 +733,7 @@ void gnssDetectReceiverType()
     // more than once, you get a really obscure linker error and your compilation
     // will fail... The code above has been rearranged so we only need to use it once.
     gnss = (GNSS *)new GNSS_None();
-    systemPrintln("Failed to detect or identify a flex module.");
+    systemPrintln("Failed to detect or identify a Flex module.");
     settings.enablePrintBatteryMessages = true; // Print _something_ to the console
     displayGNSSAutodetectFailed(2000);
 }

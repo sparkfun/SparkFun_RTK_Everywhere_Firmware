@@ -805,7 +805,7 @@ bool loraEnterCommandMode()
     }
 
     muxSelectUsb(); // Connect USB
-    systemPrintln("No command mode");
+    systemPrintln("LoRa Error: Unable to enter command mode");
     return (false);
 }
 
