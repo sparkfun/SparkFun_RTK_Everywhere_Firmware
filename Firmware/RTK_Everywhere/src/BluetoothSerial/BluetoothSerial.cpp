@@ -12,6 +12,24 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+/*
+  When migrating from a previous BluetoothSerial.cpp to a new version,
+  apply the following changes:
+  * Replace RX_QUEUE_SIZE/TX_QUEUE_SIZE with rxQueueSize/txQueueSize
+  * Modify _init_bt
+  *   Add rxQueueSize/txQueueSize to function declaration
+  *   Add _aclConnected = true to _init_bt
+  * Modify begin()
+  *   Add rxQueueSize/txQueueSize to function declaration
+  *   Add rxQueueSize/txQueueSize to_init_bt() called
+  * Add _aclConnected and _aclAddress.
+  * Modify ESP_BT_GAP_ACL_CONN_CMPL_STAT_EVT
+  * Modify memrelease() with (esp_bt_mode_t)mode
+  * Add aclConnected() and aclGetAddress()
+  * Remove ARDUHAL_LOG_LEVEL guards from bda2str. 
+  * Remove static from bda2str.
+*/
+
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
 #include "sdkconfig.h"
