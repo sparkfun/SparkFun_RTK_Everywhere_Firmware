@@ -270,7 +270,6 @@ void updatePPL()
 
                 // Report which data source may be fouling the RTCM generation from the PPL
                 // SPARTN correction data can be coming from MQTT (IP) or mosaic-X5 L-Band
-                // (NEO-D9S L-Band SPARTN goes straight to the ZED-F9P, not via the PPL)
                 // For Torch, we get GNSS + MQTT
                 // For mosaic-X5, we get GNSS + L-Band SPARTN
                 // Only print the MQTT / SPARTN stale messages if corrections have been received at least once

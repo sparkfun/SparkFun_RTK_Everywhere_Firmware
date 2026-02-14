@@ -1881,11 +1881,6 @@ bool i2cBusInitialization(TwoWire *i2cBus, int sda, int scl, int clockKHz)
                 break;
             }
 
-            case 0x43: {
-                systemPrintf("  0x%02X - u-blox NEO-D9S Correction Data Receiver\r\n", addr);
-                break;
-            }
-
             case 0x5C: {
                 systemPrintf("  0x%02X - MP27692A Power Management / Charger\r\n", addr);
                 break;
