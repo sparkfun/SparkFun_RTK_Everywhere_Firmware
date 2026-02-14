@@ -10,7 +10,6 @@ GNSS_ZED.ino
 
 //----------------------------------------
 // If we have decryption keys, configure module
-// Note: don't check online.lband_neo here. We could be using ip corrections
 //----------------------------------------
 void GNSS_ZED::applyPointPerfectKeys()
 {
@@ -411,16 +410,6 @@ bool GNSS_ZED::configure()
     response &= _zed->addCfgValset(UBLOX_CFG_I2CINPROT_UBX, 1);
     response &= _zed->addCfgValset(UBLOX_CFG_I2CINPROT_NMEA, 1);
     response &= _zed->addCfgValset(UBLOX_CFG_I2CINPROT_RTCM3X, 1);
-
-    if (commandSupported(UBLOX_CFG_I2CINPROT_SPARTN))
-    {
-        if (present.lband_neo)
-            response &=
-                _zed->addCfgValset(UBLOX_CFG_I2CINPROT_SPARTN,
-                                   1); // We push NEO-D9S correction data (SPARTN) to ZED-F9P over the I2C interface
-        else
-            response &= _zed->addCfgValset(UBLOX_CFG_I2CINPROT_SPARTN, 0);
-    }
 
     // The USB port on the ZED may be used for RTCM to/from the computer (as an NTRIP caster or client)
     // So let's be sure all protocols are on for the USB port
@@ -1459,36 +1448,6 @@ bool GNSS_ZED::lBandCommunicationDisable()
 {
     bool response = true;
 
-#ifdef COMPILE_L_BAND
-
-    response &= _zed->setRXMCORcallbackPtr(
-        nullptr); // Disable callback to check if the PMP data is being decrypted successfully
-
-    response &= i2cLBand.setRXMPMPmessageCallbackPtr(nullptr); // Disable PMP callback no matter the platform
-
-    if (present.lband_neo)
-    {
-        response &= i2cLBand.newCfgValset();
-
-        response &=
-            i2cLBand.addCfgValset(UBLOX_CFG_MSGOUT_UBX_RXM_PMP_I2C, 0); // Disable UBX-RXM-PMP from NEO's I2C port
-
-        // TODO: change this as needed for Facet v2 LBand
-        response &= i2cLBand.addCfgValset(UBLOX_CFG_UART2OUTPROT_UBX, 0); // Disable UBX output from NEO's UART2
-
-        // TODO: change this as needed for Facet v2 LBand
-        response &= i2cLBand.addCfgValset(UBLOX_CFG_MSGOUT_UBX_RXM_PMP_UART2, 0); // Disable UBX-RXM-PMP on NEO's UART2
-
-        response &= i2cLBand.sendCfgValset();
-    }
-    else
-    {
-        systemPrintln("zedEnableLBandCorrections: Unknown platform");
-        return (false);
-    }
-
-#endif
-
     return (response);
 }
 
@@ -1528,39 +1487,6 @@ bool GNSS_ZED::lBandCommunicationEnable()
     */
 
     bool response = true;
-
-#ifdef COMPILE_L_BAND
-
-    response &= _zed->setRXMCORcallbackPtr(
-        &checkRXMCOR); // Enable callback to check if the PMP data is being decrypted successfully
-
-    if (present.lband_neo)
-    {
-        response &= i2cLBand.setRXMPMPmessageCallbackPtr(&pushRXMPMP); // Enable PMP callback to push raw PMP over I2C
-
-        response &= i2cLBand.newCfgValset();
-
-        response &= i2cLBand.addCfgValset(UBLOX_CFG_MSGOUT_UBX_RXM_PMP_I2C, 1); // Enable UBX-RXM-PMP on NEO's I2C port
-
-        response &= i2cLBand.addCfgValset(UBLOX_CFG_UART1OUTPROT_UBX, 0); // Disable UBX output on NEO's UART1
-
-        response &= i2cLBand.addCfgValset(UBLOX_CFG_MSGOUT_UBX_RXM_PMP_UART1, 0); // Disable UBX-RXM-PMP on NEO's UART1
-
-        // TODO: change this as needed for Facet v2 LBand
-        response &= i2cLBand.addCfgValset(UBLOX_CFG_UART2OUTPROT_UBX, 0); // Disable UBX output on NEO's UART2
-
-        // TODO: change this as needed for Facet v2 LBand
-        response &= i2cLBand.addCfgValset(UBLOX_CFG_MSGOUT_UBX_RXM_PMP_UART2, 0); // Disable UBX-RXM-PMP on NEO's UART2
-
-        response &= i2cLBand.sendCfgValset();
-    }
-    else
-    {
-        systemPrintln("zedEnableLBandCorrections: Unknown platform");
-        return (false);
-    }
-
-#endif
 
     return (response);
 }

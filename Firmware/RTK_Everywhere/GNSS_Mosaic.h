@@ -578,7 +578,6 @@ class GNSS_MOSAIC : GNSS
     }
 
     // If we have decryption keys, configure module
-    // Note: don't check online.lband_neo here. We could be using ip corrections
     void applyPointPerfectKeys();
 
     // Set RTCM for base mode to defaults (1005/MSM4 1Hz & 1033 0.1Hz)

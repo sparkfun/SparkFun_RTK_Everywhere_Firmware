@@ -120,11 +120,6 @@ sed -i 's|#define COMPILE_ZED|//#define COMPILE_ZED|' RTK_Everywhere.ino
 make
 git reset --hard --quiet  HEAD
 
-# L-Band
-sed -i 's|#define COMPILE_L_BAND|//#define COMPILE_L_BAND|' RTK_Everywhere.ino
-make
-git reset --hard --quiet  HEAD
-
 # IM19_IMU
 sed -i 's|#define COMPILE_IM19_IMU|//#define COMPILE_IM19_IMU|' RTK_Everywhere.ino
 make

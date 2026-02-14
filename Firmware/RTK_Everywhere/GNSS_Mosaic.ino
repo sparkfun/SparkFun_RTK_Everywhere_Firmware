@@ -162,7 +162,6 @@ void menuLogMosaic()
 
 //----------------------------------------
 // If we have decryption keys, configure module
-// Note: don't check online.lband_neo here. We could be using ip corrections
 //----------------------------------------
 void GNSS_MOSAIC::applyPointPerfectKeys()
 {

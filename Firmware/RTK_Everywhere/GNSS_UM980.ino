@@ -23,7 +23,6 @@ bool um980MessagesEnabled_RTCM_Base = false;  // Goes true when we enable RTCM B
 
 //----------------------------------------
 // If we have decryption keys, configure module
-// Note: don't check online.lband_neo here. We could be using ip corrections
 //----------------------------------------
 void GNSS_UM980::applyPointPerfectKeys()
 {

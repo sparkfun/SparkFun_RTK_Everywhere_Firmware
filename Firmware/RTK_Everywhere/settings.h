@@ -194,7 +194,7 @@ typedef enum
     RTK_FACET_V2 = 1, // 0x01 - No L-Band
     RTK_FACET_MOSAIC = 2, // 0x02
     RTK_TORCH = 3, // 0x03
-    RTK_FACET_V2_LBAND = 4, // 0x04
+    //RTK_FACET_V2_LBAND = 4, // 0x04
     RTK_POSTCARD = 5, // 0x05
     RTK_FACET_FP = 6, // 0x06
     RTK_TORCH_X2 = 7, // 0x07
@@ -273,7 +273,6 @@ const productProperties productPropertiesTable[] =
     { RTK_EVK,              BRAND_SPARKFUN, RTK_HOUSING_EVK,        "EVK",          "EVK",      "SFE_EVK",              "EVK",              true,   "0000000000000000", STATE_ROVER_NOT_STARTED,    "https://www.sparkfun.com/rtk_evk_registration" },
     { RTK_FACET_MOSAIC,     BRAND_SPARKPNT, RTK_HOUSING_FACET,      "Facet X5",     "Facet X5", "SFE_Facet_mosaic",     "Facet mosaicX5",   true,   "0000000000000000", STATE_ROVER_NOT_STARTED,    "https://www.sparkfun.com/rtk_facet_mosaic_registration" },
     { RTK_FACET_V2,         BRAND_SPARKPNT, RTK_HOUSING_FACET,      "Facet v2",     "Facet v2", "SFE_Facet_v2",         "Facet v2",         true,   "0000000000000000", STATE_ROVER_NOT_STARTED,    "Unknown" },
-    { RTK_FACET_V2_LBAND,   BRAND_SPARKPNT, RTK_HOUSING_FACET,      "Facet v2 LB",  "Facet LB", "SFE_Facet_v2_LBand",   "Facet v2 LBand",   true,   "0000000000000000", STATE_ROVER_NOT_STARTED,    "Unknown" },
     { RTK_FACET_FP,         BRAND_SPARKPNT, RTK_HOUSING_FP,         "FP",           "FP",       "SFE_FP",               "FP",               false,  "e9e877bb278140f0", STATE_ROVER_NOT_STARTED,    "https://www.sparkfun.com/rtk_facet_fp_registration" },
     { RTK_POSTCARD,         BRAND_SPARKFUN, RTK_HOUSING_POSTCARD,   "Postcard",     "Postcard", "SFE_Postcard",         "Postcard",         true,   "e9e877bb278140f0", STATE_ROVER_NOT_STARTED,    "https://www.sparkfun.com/rtk_postcard_registration" },
     { RTK_TORCH,            BRAND_SPARKPNT, RTK_HOUSING_TORCH,      "Torch",        "Torch",    "SFE_Torch",            "Torch",            true,   "0000000000000000", STATE_ROVER_NOT_STARTED,    "https://www.sparkfun.com/rtk_torch_registration" },
@@ -714,7 +713,7 @@ enum PP_NickName
 {
     PP_NICKNAME_DISABLED = 0,
     PP_NICKNAME_FLEX_RTCM, // 1
-    PP_NICKNAME_FLEX_LBAND_NA, // 2
+    //PP_NICKNAME_FLEX_LBAND_NA, // 2
     PP_NICKNAME_GLOBAL, // 3
     PP_NICKNAME_LIVE, // 4
     PP_NICKNAME_IP_MQTT, // 5
@@ -969,7 +968,6 @@ struct Settings
     bool debugPpCertificate = false; // Debug Point Perfect certificate management
     int geographicRegion = 0; // Default to US - first entry in Regional_Information_Table
     uint64_t lastKeyAttempt = 0;     // Epoch time of last attempt at obtaining keys
-    uint16_t lbandFixTimeout_seconds = 180; // Number of seconds of no L-Band fix before resetting ZED
     char pointPerfectBrokerHost[50] = ""; // pp.services.u-blox.com
     char pointPerfectClientID[50] = ""; // Obtained during ZTP
     char pointPerfectCurrentKey[33] = ""; // 32 hexadecimal digits = 128 bits = 16 Bytes
@@ -1233,7 +1231,6 @@ typedef struct
     bool platFacetV2;
     bool platFacetMosaic;
     bool platTorch;
-    bool platFacetV2LBand;
     bool platPostcard;
     Facet_FP_Variant platFacetFP;
     bool platTorchX2;
@@ -1280,26 +1277,24 @@ const RTK_Settings_Entry rtkSettingsEntries[] =
 // useSuffix = Setting has an additional array to search
 // EVK/Facet V2/Facet mosaic/Torch/Facet V2 L-Band/Postcard/Facet FP = Is this setting supported on X platform
 
-//                         F
-//                         a
-//                   F     c
-//    i              a     e
-//    n  i           c     t
+//                   F
+//    i              a
+//    n  i           c
 //    W  n  u        e
-//    e  C  s     F  t     V  P  F    T
-//    b  o  e     a        2  o  a    o
-//    C  m  S     c  M        s  c    r
-//    o  m  u     e  o  T  L  t  e    c
-//    n  a  f     t  s  o  B  c  t    h
-//    f  n  f  E     a  r  a  a        
-//    i  d  i  v  V  i  c  n  r  F    X
-//    g  s  x  k  2  c  h  d  d  P    2  Type       Qual                Variable                  Name              afterSetCmd
+//    e  C  s     F  t     P  F    T
+//    b  o  e     a        o  a    o
+//    C  m  S     c  M     s  c    r
+//    o  m  u     e  o  T  t  e    c
+//    n  a  f     t  s  o  c  t    h
+//    f  n  f  E     a  r  a        
+//    i  d  i  v  V  i  c  r  F    X
+//    g  s  x  k  2  c  h  d  P    2  Type       Qual                Variable                  Name              afterSetCmd
     // =======================================================================================================
     // Priority Settings which are not alphabetized in commandIndex
     // =======================================================================================================
 
     // Detected GNSS Receiver - only for Facet FP. Save / load first so settingAvailableOnPlatform is correct on Facet FP
-    { 0, 0, 0, 0, 0, 0, 0, 0, 0, ALL, 0, tGnssReceiver,     0, & settings.detectedGnssReceiver, "detectedGnssReceiver", nullptr, },
+    { 0, 0, 0, 0, 0, 0, 0, 0, ALL, 0, tGnssReceiver,     0, & settings.detectedGnssReceiver, "detectedGnssReceiver", nullptr, },
 
     // Common settings which use the same name on multiple Facet FP platforms
     // We need these - for Facet FP - because:
@@ -1312,273 +1307,261 @@ const RTK_Settings_Entry rtkSettingsEntries[] =
     // constellation_ is common to all GNSS, but not all support (e.g.) NavIC
     // messageRateNMEA_, messageRateRTCMBase_, and messageRateRTCMRover_ are common to UM980 and LG290P
     // The qualifier is defined inside updateSettingWithValue, parseLine
-    { 0, 0, 1, 1, 1, 1, 1, 1, 1, ALL, 1, tCmnCnst,  0, nullptr, "constellation_", gnssCmdUpdateConstellations, },
-    { 0, 0, 1, 1, 1, 1, 1, 1, 1, ALL, 1, tCmnRtNm,  0, nullptr, "messageRateNMEA_", gnssCmdUpdateMessageRates, },
-    { 0, 0, 1, 1, 1, 1, 1, 1, 1, ALL, 1, tCnRtRtB,  0, nullptr, "messageRateRTCMBase_", gnssCmdUpdateMessageRates, },
-    { 0, 0, 1, 1, 1, 1, 1, 1, 1, ALL, 1, tCnRtRtR,  0, nullptr, "messageRateRTCMRover_", gnssCmdUpdateMessageRates, },
+    { 0, 0, 1, 1, 1, 1, 1, 1, ALL, 1, tCmnCnst,  0, nullptr, "constellation_", gnssCmdUpdateConstellations, },
+    { 0, 0, 1, 1, 1, 1, 1, 1, ALL, 1, tCmnRtNm,  0, nullptr, "messageRateNMEA_", gnssCmdUpdateMessageRates, },
+    { 0, 0, 1, 1, 1, 1, 1, 1, ALL, 1, tCnRtRtB,  0, nullptr, "messageRateRTCMBase_", gnssCmdUpdateMessageRates, },
+    { 0, 0, 1, 1, 1, 1, 1, 1, ALL, 1, tCnRtRtR,  0, nullptr, "messageRateRTCMRover_", gnssCmdUpdateMessageRates, },
 
     // <--- Insert any new essential "priority" (non-sorted) settings above this line --->
 
     // endOfPrioritySettings is a special 'null' entry which does not appear in commandIndex
-    { 0, 0, 0, 0, 0, 0, 0, 0, 0, NON, 0, _bool,     0, nullptr, "endOfPrioritySettings", nullptr, },
+    { 0, 0, 0, 0, 0, 0, 0, 0, NON, 0, _bool,     0, nullptr, "endOfPrioritySettings", nullptr, },
 
     // =======================================================================================================
     // Everything below here will be sorted (alphabetized) in commandIndex
     // =======================================================================================================
 
-//                         F
-//                         a
-//                   F     c
-//    i              a     e
-//    n  i           c     t
+//                   F
+//    i              a
+//    n  i           c
 //    W  n  u        e
-//    e  C  s     F  t     V  P  F    T
-//    b  o  e     a        2  o  a    o
-//    C  m  S     c  M        s  c    r
-//    o  m  u     e  o  T  L  t  e    c
-//    n  a  f     t  s  o  B  c  t    h
-//    f  n  f  E     a  r  a  a        
-//    i  d  i  v  V  i  c  n  r  F    X
-//    g  s  x  k  2  c  h  d  d  P    2  Type       Qual                Variable                  Name              afterSetCmd
+//    e  C  s     F  t     P  F    T
+//    b  o  e     a        o  a    o
+//    C  m  S     c  M     s  c    r
+//    o  m  u     e  o  T  t  e    c
+//    n  a  f     t  s  o  c  t    h
+//    f  n  f  E     a  r  a        
+//    i  d  i  v  V  i  c  r  F    X
+//    g  s  x  k  2  c  h  d  P    2  Type       Qual                Variable                  Name              afterSetCmd
     // Antenna
-    { 1, 1, 0, 1, 1, 1, 1, 1, 1, ALL, 1, _int16_t,  0, & settings.antennaHeight_mm, "antennaHeight_mm", nullptr, },
-    { 1, 1, 0, 1, 1, 1, 1, 1, 1, ALL, 1, _float,    2, & settings.antennaPhaseCenter_mm, "antennaPhaseCenter_mm", nullptr, },
-    { 1, 1, 0, 1, 1, 1, 0, 1, 1, ALL, 0, _uint16_t, 0, & settings.ARPLoggingInterval_s, "ARPLoggingInterval", nullptr, },
-    { 1, 1, 0, 1, 1, 1, 0, 1, 1, ALL, 0, _bool,     0, & settings.enableARPLogging, "enableARPLogging", nullptr, },
+    { 1, 1, 0, 1, 1, 1, 1, 1, ALL, 1, _int16_t,  0, & settings.antennaHeight_mm, "antennaHeight_mm", nullptr, },
+    { 1, 1, 0, 1, 1, 1, 1, 1, ALL, 1, _float,    2, & settings.antennaPhaseCenter_mm, "antennaPhaseCenter_mm", nullptr, },
+    { 1, 1, 0, 1, 1, 1, 0, 1, ALL, 0, _uint16_t, 0, & settings.ARPLoggingInterval_s, "ARPLoggingInterval", nullptr, },
+    { 1, 1, 0, 1, 1, 1, 0, 1, ALL, 0, _bool,     0, & settings.enableARPLogging, "enableARPLogging", nullptr, },
 
     // Base operation
-    { 1, 1, 0, 1, 1, 1, 1, 1, 1, ALL, 1, tCoordInp, 0, & settings.coordinateInputType, "coordinateInputType", nullptr, },
-    { 1, 1, 0, 1, 1, 1, 1, 1, 1, ALL, 1, _double,   4, & settings.fixedAltitude, "fixedAltitude", nullptr, },
-    { 0, 1, 0, 1, 1, 1, 1, 1, 1, ALL, 1, _bool,     0, & settings.fixedBase, "fixedBase", nullptr, },
-    { 0, 1, 0, 1, 1, 1, 1, 1, 1, ALL, 1, _bool,     0, & settings.fixedBaseCoordinateType, "fixedBaseCoordinateType", nullptr, },
-    { 1, 1, 0, 1, 1, 1, 1, 1, 1, ALL, 1, _double,   3, & settings.fixedEcefX, "fixedEcefX", nullptr, },
-    { 1, 1, 0, 1, 1, 1, 1, 1, 1, ALL, 1, _double,   3, & settings.fixedEcefY, "fixedEcefY", nullptr, },
-    { 1, 1, 0, 1, 1, 1, 1, 1, 1, ALL, 1, _double,   3, & settings.fixedEcefZ, "fixedEcefZ", nullptr, },
-    { 1, 1, 0, 1, 1, 1, 1, 1, 1, ALL, 1, _double,   9, & settings.fixedLat, "fixedLat", nullptr, },
-    { 1, 1, 0, 1, 1, 1, 1, 1, 1, ALL, 1, _double,   9, & settings.fixedLong, "fixedLong", nullptr, },
-    { 1, 1, 0, 1, 1, 1, 1, 1, 1, ALL, 1, _int,      0, & settings.observationSeconds, "observationSeconds", nullptr, },
-    { 1, 1, 0, 1, 1, 1, 1, 1, 1, ALL, 1, _float,    2, & settings.observationPositionAccuracy, "observationPositionAccuracy", nullptr, },
-    { 0, 1, 0, 1, 1, 0, 1, 1, 1, ALL, 1, _float,    1, & settings.surveyInStartingAccuracy, "surveyInStartingAccuracy", nullptr, },
-    { 1, 1, 0, 0, 0, 0, 0, 0, 1, MSM, 1, _bool,     0, & settings.useMSM7, "useMSM7",  nullptr, },
-    { 1, 1, 0, 0, 0, 0, 0, 0, 1, MSM, 1, _int,      0, & settings.rtcmMinElev, "rtcmMinElev",  nullptr, },
+    { 1, 1, 0, 1, 1, 1, 1, 1, ALL, 1, tCoordInp, 0, & settings.coordinateInputType, "coordinateInputType", nullptr, },
+    { 1, 1, 0, 1, 1, 1, 1, 1, ALL, 1, _double,   4, & settings.fixedAltitude, "fixedAltitude", nullptr, },
+    { 0, 1, 0, 1, 1, 1, 1, 1, ALL, 1, _bool,     0, & settings.fixedBase, "fixedBase", nullptr, },
+    { 0, 1, 0, 1, 1, 1, 1, 1, ALL, 1, _bool,     0, & settings.fixedBaseCoordinateType, "fixedBaseCoordinateType", nullptr, },
+    { 1, 1, 0, 1, 1, 1, 1, 1, ALL, 1, _double,   3, & settings.fixedEcefX, "fixedEcefX", nullptr, },
+    { 1, 1, 0, 1, 1, 1, 1, 1, ALL, 1, _double,   3, & settings.fixedEcefY, "fixedEcefY", nullptr, },
+    { 1, 1, 0, 1, 1, 1, 1, 1, ALL, 1, _double,   3, & settings.fixedEcefZ, "fixedEcefZ", nullptr, },
+    { 1, 1, 0, 1, 1, 1, 1, 1, ALL, 1, _double,   9, & settings.fixedLat, "fixedLat", nullptr, },
+    { 1, 1, 0, 1, 1, 1, 1, 1, ALL, 1, _double,   9, & settings.fixedLong, "fixedLong", nullptr, },
+    { 1, 1, 0, 1, 1, 1, 1, 1, ALL, 1, _int,      0, & settings.observationSeconds, "observationSeconds", nullptr, },
+    { 1, 1, 0, 1, 1, 1, 1, 1, ALL, 1, _float,    2, & settings.observationPositionAccuracy, "observationPositionAccuracy", nullptr, },
+    { 0, 1, 0, 1, 1, 0, 1, 1, ALL, 1, _float,    1, & settings.surveyInStartingAccuracy, "surveyInStartingAccuracy", nullptr, },
+    { 1, 1, 0, 0, 0, 0, 0, 1, MSM, 1, _bool,     0, & settings.useMSM7, "useMSM7",  nullptr, },
+    { 1, 1, 0, 0, 0, 0, 0, 1, MSM, 1, _int,      0, & settings.rtcmMinElev, "rtcmMinElev",  nullptr, },
 
     // Battery
-    { 0, 0, 0, 0, 1, 1, 1, 1, 1, ALL, 1, _bool,     0, & settings.enablePrintBatteryMessages, "enablePrintBatteryMessages", nullptr, },
-    { 1, 1, 0, 0, 1, 1, 1, 1, 1, ALL, 1, _uint32_t, 0, & settings.shutdownNoChargeTimeoutMinutes, "shutdownNoChargeTimeoutMinutes", nullptr, },
+    { 0, 0, 0, 0, 1, 1, 1, 1, ALL, 1, _bool,     0, & settings.enablePrintBatteryMessages, "enablePrintBatteryMessages", nullptr, },
+    { 1, 1, 0, 0, 1, 1, 1, 1, ALL, 1, _uint32_t, 0, & settings.shutdownNoChargeTimeoutMinutes, "shutdownNoChargeTimeoutMinutes", nullptr, },
 
-//                         F
-//                         a
-//                   F     c
-//    i              a     e
-//    n  i           c     t
+//                   F
+//    i              a
+//    n  i           c
 //    W  n  u        e
-//    e  C  s     F  t     V  P  F    T
-//    b  o  e     a        2  o  a    o
-//    C  m  S     c  M        s  c    r
-//    o  m  u     e  o  T  L  t  e    c
-//    n  a  f     t  s  o  B  c  t    h
-//    f  n  f  E     a  r  a  a        
-//    i  d  i  v  V  i  c  n  r  F    X
-//    g  s  x  k  2  c  h  d  d  P    2  Type       Qual                Variable                  Name              afterSetCmd
+//    e  C  s     F  t     P  F    T
+//    b  o  e     a        o  a    o
+//    C  m  S     c  M     s  c    r
+//    o  m  u     e  o  T  t  e    c
+//    n  a  f     t  s  o  c  t    h
+//    f  n  f  E     a  r  a        
+//    i  d  i  v  V  i  c  r  F    X
+//    g  s  x  k  2  c  h  d  P    2  Type       Qual                Variable                  Name              afterSetCmd
 
 
     // Beeper
-    { 1, 1, 0, 0, 0, 0, 1, 0, 0, ALL, 1, _bool,     0, & settings.enableBeeper, "enableBeeper", nullptr, },
+    { 1, 1, 0, 0, 0, 0, 1, 0, ALL, 1, _bool,     0, & settings.enableBeeper, "enableBeeper", nullptr, },
 
     // Bluetooth
-    { 0, 0, 0, 0, 0, 0, 0, 0, 1, ALL, 1, _double,   3, & settings.accessoryTimeOffset_s, "accessoryTimeOffset", nullptr, },
-    { 1, 1, 0, 1, 1, 1, 1, 1, 1, ALL, 1, tBtRadio,  0, & settings.bluetoothRadioType, "bluetoothRadioType", nullptr, },
-    { 0, 1, 0, 1, 1, 1, 1, 1, 1, ALL, 1, _bool,     0, & settings.clearBtPairings, "clearBtPairings", nullptr, },
-    { 0, 1, 0, 1, 1, 1, 1, 1, 1, ALL, 1, tCharArry, sizeof(settings.eaProtocol), & settings.eaProtocol, "eaProtocol", nullptr, },
-    { 0, 0, 0, 1, 1, 1, 1, 1, 1, ALL, 1, _uint16_t, 0, & settings.sppRxQueueSize, "sppRxQueueSize", nullptr, },
-    { 0, 0, 0, 1, 1, 1, 1, 1, 1, ALL, 1, _uint16_t, 0, & settings.sppTxQueueSize, "sppTxQueueSize", nullptr, },
+    { 0, 0, 0, 0, 0, 0, 0, 1, ALL, 1, _double,   3, & settings.accessoryTimeOffset_s, "accessoryTimeOffset", nullptr, },
+    { 1, 1, 0, 1, 1, 1, 1, 1, ALL, 1, tBtRadio,  0, & settings.bluetoothRadioType, "bluetoothRadioType", nullptr, },
+    { 0, 1, 0, 1, 1, 1, 1, 1, ALL, 1, _bool,     0, & settings.clearBtPairings, "clearBtPairings", nullptr, },
+    { 0, 1, 0, 1, 1, 1, 1, 1, ALL, 1, tCharArry, sizeof(settings.eaProtocol), & settings.eaProtocol, "eaProtocol", nullptr, },
+    { 0, 0, 0, 1, 1, 1, 1, 1, ALL, 1, _uint16_t, 0, & settings.sppRxQueueSize, "sppRxQueueSize", nullptr, },
+    { 0, 0, 0, 1, 1, 1, 1, 1, ALL, 1, _uint16_t, 0, & settings.sppTxQueueSize, "sppTxQueueSize", nullptr, },
 
     // Corrections
-    { 1, 1, 0, 1, 1, 1, 1, 1, 1, ALL, 1, _int,      0, & settings.correctionsSourcesLifetime_s, "correctionsSourcesLifetime", nullptr, },
-    { 1, 1, 1, 1, 1, 1, 1, 1, 1, ALL, 1, tCorrSPri, CORR_NUM, & settings.correctionsSourcesPriority, "correctionsPriority_", nullptr, },
-    { 0, 0, 0, 1, 1, 1, 1, 1, 1, ALL, 1, _bool,     0, & settings.debugCorrections, "debugCorrections", nullptr, },
-    { 1, 1, 0, 1, 1, 1, 0, 1, 1, ALL, 0, _uint8_t,  0, & settings.enableExtCorrRadio, "enableExtCorrRadio", nullptr, }, // uint8_t needed for 254
-    { 1, 1, 0, 1, 1, 0, 0, 1, 0, NON, 0, _uint8_t,  0, & settings.extCorrRadioSPARTNSource, "extCorrRadioSPARTNSource", nullptr, },
+    { 1, 1, 0, 1, 1, 1, 1, 1, ALL, 1, _int,      0, & settings.correctionsSourcesLifetime_s, "correctionsSourcesLifetime", nullptr, },
+    { 1, 1, 1, 1, 1, 1, 1, 1, ALL, 1, tCorrSPri, CORR_NUM, & settings.correctionsSourcesPriority, "correctionsPriority_", nullptr, },
+    { 0, 0, 0, 1, 1, 1, 1, 1, ALL, 1, _bool,     0, & settings.debugCorrections, "debugCorrections", nullptr, },
+    { 1, 1, 0, 1, 1, 1, 0, 1, ALL, 0, _uint8_t,  0, & settings.enableExtCorrRadio, "enableExtCorrRadio", nullptr, }, // uint8_t needed for 254
+    { 1, 1, 0, 1, 1, 0, 0, 0, NON, 0, _uint8_t,  0, & settings.extCorrRadioSPARTNSource, "extCorrRadioSPARTNSource", nullptr, },
 
-//                         F
-//                         a
-//                   F     c
-//    i              a     e
-//    n  i           c     t
+//                   F
+//    i              a
+//    n  i           c
 //    W  n  u        e
-//    e  C  s     F  t     V  P  F    T
-//    b  o  e     a        2  o  a    o
-//    C  m  S     c  M        s  c    r
-//    o  m  u     e  o  T  L  t  e    c
-//    n  a  f     t  s  o  B  c  t    h
-//    f  n  f  E     a  r  a  a        
-//    i  d  i  v  V  i  c  n  r  F    X
-//    g  s  x  k  2  c  h  d  d  P    2  Type       Qual                Variable                  Name              afterSetCmd
+//    e  C  s     F  t     P  F    T
+//    b  o  e     a        o  a    o
+//    C  m  S     c  M     s  c    r
+//    o  m  u     e  o  T  t  e    c
+//    n  a  f     t  s  o  c  t    h
+//    f  n  f  E     a  r  a        
+//    i  d  i  v  V  i  c  r  F    X
+//    g  s  x  k  2  c  h  d  P    2  Type       Qual                Variable                  Name              afterSetCmd
 
     // Data Port Multiplexer
-    { 1, 1, 0, 0, 1, 1, 0, 1, 0, NON, 0, tMuxConn,  0, & settings.dataPortChannel, "dataPortChannel", nullptr, },
+    { 1, 1, 0, 0, 1, 1, 0, 0, NON, 0, tMuxConn,  0, & settings.dataPortChannel, "dataPortChannel", nullptr, },
 
     // Display
-    { 0, 0, 0, 1, 1, 1, 0, 1, 1, ALL, 0, _bool,     0, & settings.enableResetDisplay, "enableResetDisplay", nullptr, },
+    { 0, 0, 0, 1, 1, 1, 0, 1, ALL, 0, _bool,     0, & settings.enableResetDisplay, "enableResetDisplay", nullptr, },
 
     // ESP Now
-    { 0, 0, 0, 1, 1, 1, 1, 1, 1, ALL, 1, _bool,     0, & settings.debugEspNow, "debugEspNow", nullptr, },
-    { 1, 1, 0, 1, 1, 1, 1, 1, 1, ALL, 1, _bool,     0, & settings.enableEspNow, "enableEspNow", nullptr, },
-    { 1, 1, 0, 1, 1, 1, 1, 1, 1, ALL, 1, _uint8_t,  0, & settings.espnowPeerCount, "espnowPeerCount", nullptr, },
-    { 1, 1, 1, 1, 1, 1, 1, 1, 1, ALL, 1, tEspNowPr, ESPNOW_MAX_PEERS, & settings.espnowPeers[0][0], "espnowPeer_", nullptr, },
+    { 0, 0, 0, 1, 1, 1, 1, 1, ALL, 1, _bool,     0, & settings.debugEspNow, "debugEspNow", nullptr, },
+    { 1, 1, 0, 1, 1, 1, 1, 1, ALL, 1, _bool,     0, & settings.enableEspNow, "enableEspNow", nullptr, },
+    { 1, 1, 0, 1, 1, 1, 1, 1, ALL, 1, _uint8_t,  0, & settings.espnowPeerCount, "espnowPeerCount", nullptr, },
+    { 1, 1, 1, 1, 1, 1, 1, 1, ALL, 1, tEspNowPr, ESPNOW_MAX_PEERS, & settings.espnowPeers[0][0], "espnowPeer_", nullptr, },
 
-//                         F
-//                         a
-//                   F     c
-//    i              a     e
-//    n  i           c     t
+//                   F
+//    i              a
+//    n  i           c
 //    W  n  u        e
-//    e  C  s     F  t     V  P  F    T
-//    b  o  e     a        2  o  a    o
-//    C  m  S     c  M        s  c    r
-//    o  m  u     e  o  T  L  t  e    c
-//    n  a  f     t  s  o  B  c  t    h
-//    f  n  f  E     a  r  a  a        
-//    i  d  i  v  V  i  c  n  r  F    X
-//    g  s  x  k  2  c  h  d  d  P    2  Type       Qual                Variable                  Name              afterSetCmd
+//    e  C  s     F  t     P  F    T
+//    b  o  e     a        o  a    o
+//    C  m  S     c  M     s  c    r
+//    o  m  u     e  o  T  t  e    c
+//    n  a  f     t  s  o  c  t    h
+//    f  n  f  E     a  r  a        
+//    i  d  i  v  V  i  c  r  F    X
+//    g  s  x  k  2  c  h  d  P    2  Type       Qual                Variable                  Name              afterSetCmd
 
     // Ethernet
-    { 0, 0, 0, 1, 0, 0, 0, 0, 0, NON, 0, _bool,     0, & settings.enablePrintEthernetDiag, "enablePrintEthernetDiag", nullptr, },
-    { 1, 1, 0, 1, 0, 0, 0, 0, 0, NON, 0, _bool,     0, & settings.ethernetDHCP, "ethernetDHCP", nullptr, },
-    { 1, 1, 0, 1, 0, 0, 0, 0, 0, NON, 0, _IPString, 0, & settings.ethernetDNS, "ethernetDNS", nullptr, },
-    { 1, 1, 0, 1, 0, 0, 0, 0, 0, NON, 0, _IPString, 0, & settings.ethernetGateway, "ethernetGateway", nullptr, },
-    { 1, 1, 0, 1, 0, 0, 0, 0, 0, NON, 0, _IPString, 0, & settings.ethernetIP, "ethernetIP", nullptr, },
-    { 1, 1, 0, 1, 0, 0, 0, 0, 0, NON, 0, _IPString, 0, & settings.ethernetSubnet, "ethernetSubnet", nullptr, },
+    { 0, 0, 0, 1, 0, 0, 0, 0, NON, 0, _bool,     0, & settings.enablePrintEthernetDiag, "enablePrintEthernetDiag", nullptr, },
+    { 1, 1, 0, 1, 0, 0, 0, 0, NON, 0, _bool,     0, & settings.ethernetDHCP, "ethernetDHCP", nullptr, },
+    { 1, 1, 0, 1, 0, 0, 0, 0, NON, 0, _IPString, 0, & settings.ethernetDNS, "ethernetDNS", nullptr, },
+    { 1, 1, 0, 1, 0, 0, 0, 0, NON, 0, _IPString, 0, & settings.ethernetGateway, "ethernetGateway", nullptr, },
+    { 1, 1, 0, 1, 0, 0, 0, 0, NON, 0, _IPString, 0, & settings.ethernetIP, "ethernetIP", nullptr, },
+    { 1, 1, 0, 1, 0, 0, 0, 0, NON, 0, _IPString, 0, & settings.ethernetSubnet, "ethernetSubnet", nullptr, },
 
     // Firmware
-    { 1, 1, 0, 1, 1, 1, 1, 1, 1, ALL, 1, _uint32_t, 0, & settings.autoFirmwareCheckMinutes, "autoFirmwareCheckMinutes", nullptr, },
-    { 0, 0, 0, 1, 1, 1, 1, 1, 1, ALL, 1, _bool,     0, & settings.debugFirmwareUpdate, "debugFirmwareUpdate", nullptr, },
-    { 1, 1, 0, 1, 1, 1, 1, 1, 1, ALL, 1, _bool,     0, & settings.enableAutoFirmwareUpdate, "enableAutoFirmwareUpdate", nullptr, },
+    { 1, 1, 0, 1, 1, 1, 1, 1, ALL, 1, _uint32_t, 0, & settings.autoFirmwareCheckMinutes, "autoFirmwareCheckMinutes", nullptr, },
+    { 0, 0, 0, 1, 1, 1, 1, 1, ALL, 1, _bool,     0, & settings.debugFirmwareUpdate, "debugFirmwareUpdate", nullptr, },
+    { 1, 1, 0, 1, 1, 1, 1, 1, ALL, 1, _bool,     0, & settings.enableAutoFirmwareUpdate, "enableAutoFirmwareUpdate", nullptr, },
 
     // GNSS UART
-    { 0, 0, 0, 1, 1, 1, 1, 1, 1, ALL, 1, _uint16_t, 0, & settings.serialGNSSRxFullThreshold, "serialGNSSRxFullThreshold", nullptr, },
-    { 0, 0, 0, 1, 1, 1, 1, 1, 1, ALL, 1, _int,      0, & settings.uartReceiveBufferSize, "uartReceiveBufferSize", nullptr, },
+    { 0, 0, 0, 1, 1, 1, 1, 1, ALL, 1, _uint16_t, 0, & settings.serialGNSSRxFullThreshold, "serialGNSSRxFullThreshold", nullptr, },
+    { 0, 0, 0, 1, 1, 1, 1, 1, ALL, 1, _int,      0, & settings.uartReceiveBufferSize, "uartReceiveBufferSize", nullptr, },
 
     // GNSS Receiver
-    { 0, 0, 0, 1, 1, 1, 1, 1, 1, ALL, 1, _bool,     0, & settings.debugGnss, "debugGnss", nullptr, },
-    { 0, 0, 0, 1, 1, 1, 1, 1, 1, ALL, 1, _bool,     0, & settings.debugGnssConfig, "debugGnssConfig", nullptr, },
-    { 0, 0, 0, 1, 1, 1, 1, 1, 1, ALL, 1, _bool,     0, & settings.enablePrintPosition, "enablePrintPosition", nullptr, },
-    { 0, 1, 0, 1, 1, 1, 1, 1, 1, ALL, 1, _uint16_t, 0, & settings.measurementRateMs, "measurementRateMs", nullptr, },
+    { 0, 0, 0, 1, 1, 1, 1, 1, ALL, 1, _bool,     0, & settings.debugGnss, "debugGnss", nullptr, },
+    { 0, 0, 0, 1, 1, 1, 1, 1, ALL, 1, _bool,     0, & settings.debugGnssConfig, "debugGnssConfig", nullptr, },
+    { 0, 0, 0, 1, 1, 1, 1, 1, ALL, 1, _bool,     0, & settings.enablePrintPosition, "enablePrintPosition", nullptr, },
+    { 0, 1, 0, 1, 1, 1, 1, 1, ALL, 1, _uint16_t, 0, & settings.measurementRateMs, "measurementRateMs", nullptr, },
 
     // Hardware
-    { 0, 1, 0, 1, 1, 1, 1, 1, 1, ALL, 1, _uint32_t, 0, & settings.defaultDoubleTapInterval_ms, "defaultDoubleTapInterval", nullptr, },
-    { 1, 1, 0, 1, 1, 1, 0, 1, 0, NON, 0, _bool,     0, & settings.enableExternalHardwareEventLogging, "enableExternalHardwareEventLogging", nullptr, },
-    { 0, 0, 0, 1, 1, 1, 0, 1, 1, ALL, 0, _uint16_t, 0, & settings.spiFrequency, "spiFrequency", nullptr, },
+    { 0, 1, 0, 1, 1, 1, 1, 1, ALL, 1, _uint32_t, 0, & settings.defaultDoubleTapInterval_ms, "defaultDoubleTapInterval", nullptr, },
+    { 1, 1, 0, 1, 1, 1, 0, 0, NON, 0, _bool,     0, & settings.enableExternalHardwareEventLogging, "enableExternalHardwareEventLogging", nullptr, },
+    { 0, 0, 0, 1, 1, 1, 0, 1, ALL, 0, _uint16_t, 0, & settings.spiFrequency, "spiFrequency", nullptr, },
 
     // HTTP
-    { 0, 0, 0, 1, 1, 1, 1, 1, 1, ALL, 1, _bool,     0, & settings.debugHttpClientData, "debugHttpClientData", nullptr, },
-    { 0, 0, 0, 1, 1, 1, 1, 1, 1, ALL, 1, _bool,     0, & settings.debugHttpClientState, "debugHttpClientState", nullptr, },
+    { 0, 0, 0, 1, 1, 1, 1, 1, ALL, 1, _bool,     0, & settings.debugHttpClientData, "debugHttpClientData", nullptr, },
+    { 0, 0, 0, 1, 1, 1, 1, 1, ALL, 1, _bool,     0, & settings.debugHttpClientState, "debugHttpClientState", nullptr, },
 
     // IMU
-    { 0, 0, 0, 0, 0, 0, 0, 0, 0, ALL, 0, _bool,     0, & settings.detectedTilt, "detectedTilt", nullptr, },
-    { 0, 0, 0, 0, 0, 0, 0, 0, 0, ALL, 0, _bool,     0, & settings.testedTilt, "testedTilt", nullptr, },
+    { 0, 0, 0, 0, 0, 0, 0, 0, ALL, 0, _bool,     0, & settings.detectedTilt, "detectedTilt", nullptr, },
+    { 0, 0, 0, 0, 0, 0, 0, 0, ALL, 0, _bool,     0, & settings.testedTilt, "testedTilt", nullptr, },
 
-//                         F
-//                         a
-//                   F     c
-//    i              a     e
-//    n  i           c     t
+//                   F
+//    i              a
+//    n  i           c
 //    W  n  u        e
-//    e  C  s     F  t     V  P  F    T
-//    b  o  e     a        2  o  a    o
-//    C  m  S     c  M        s  c    r
-//    o  m  u     e  o  T  L  t  e    c
-//    n  a  f     t  s  o  B  c  t    h
-//    f  n  f  E     a  r  a  a        
-//    i  d  i  v  V  i  c  n  r  F    X
-//    g  s  x  k  2  c  h  d  d  P    2  Type       Qual                Variable                  Name              afterSetCmd
+//    e  C  s     F  t     P  F    T
+//    b  o  e     a        o  a    o
+//    C  m  S     c  M     s  c    r
+//    o  m  u     e  o  T  t  e    c
+//    n  a  f     t  s  o  c  t    h
+//    f  n  f  E     a  r  a        
+//    i  d  i  v  V  i  c  r  F    X
+//    g  s  x  k  2  c  h  d  P    2  Type       Qual                Variable                  Name              afterSetCmd
 
     // Log file
-    { 1, 1, 0, 1, 1, 1, 0, 1, 1, ALL, 0, _bool,     0, & settings.alignedLogFiles, "alignedLogFiles", nullptr, },
-    { 1, 1, 0, 1, 1, 1, 0, 1, 1, ALL, 0, _bool,     0, & settings.enableLogging, "enableLogging", nullptr, },
-    { 0, 0, 0, 1, 1, 1, 0, 1, 1, ALL, 0, _bool,     0, & settings.enablePrintLogFileMessages, "enablePrintLogFileMessages", nullptr, },
-    { 0, 0, 0, 1, 1, 1, 0, 1, 1, ALL, 0, _bool,     0, & settings.enablePrintLogFileStatus, "enablePrintLogFileStatus", nullptr, },
-    { 1, 1, 0, 1, 1, 1, 0, 1, 1, ALL, 0, _int,      0, & settings.maxLogLength_minutes, "maxLogLength", nullptr, },
-    { 1, 1, 0, 1, 1, 1, 0, 1, 1, ALL, 0, _int,      0, & settings.maxLogTime_minutes, "maxLogTime", nullptr, },
+    { 1, 1, 0, 1, 1, 1, 0, 1, ALL, 0, _bool,     0, & settings.alignedLogFiles, "alignedLogFiles", nullptr, },
+    { 1, 1, 0, 1, 1, 1, 0, 1, ALL, 0, _bool,     0, & settings.enableLogging, "enableLogging", nullptr, },
+    { 0, 0, 0, 1, 1, 1, 0, 1, ALL, 0, _bool,     0, & settings.enablePrintLogFileMessages, "enablePrintLogFileMessages", nullptr, },
+    { 0, 0, 0, 1, 1, 1, 0, 1, ALL, 0, _bool,     0, & settings.enablePrintLogFileStatus, "enablePrintLogFileStatus", nullptr, },
+    { 1, 1, 0, 1, 1, 1, 0, 1, ALL, 0, _int,      0, & settings.maxLogLength_minutes, "maxLogLength", nullptr, },
+    { 1, 1, 0, 1, 1, 1, 0, 1, ALL, 0, _int,      0, & settings.maxLogTime_minutes, "maxLogTime", nullptr, },
 
     // Mosaic
 #ifdef  COMPILE_MOSAICX5
-    { 1, 1, 1, 0, 0, 1, 0, 0, 0, MX5, 0, tMosaicConst,  MAX_MOSAIC_CONSTELLATIONS, & settings.mosaicConstellations, "constellation_", gnssCmdUpdateConstellations, },
-    { 1, 1, 1, 0, 0, 1, 0, 0, 0, MX5, 0, tMosaicMSNmea, MAX_MOSAIC_NMEA_MSG, & settings.mosaicMessageStreamNMEA, "messageStreamNMEA_", gnssCmdUpdateMessageRates, },
-    { 1, 1, 1, 0, 0, 1, 0, 0, 0, MX5, 0, tMosaicSINmea, MOSAIC_NUM_NMEA_STREAMS, & settings.mosaicStreamIntervalsNMEA, "streamIntervalNMEA_", gnssCmdUpdateMessageRates, },
-    { 1, 1, 1, 0, 0, 1, 0, 0, 0, MX5, 0, tMosaicMIRvRT, MAX_MOSAIC_RTCM_V3_INTERVAL_GROUPS, & settings.mosaicMessageIntervalsRTCMv3Rover, "messageIntervalRTCMRover_", gnssCmdUpdateMessageRates, },
-    { 1, 1, 1, 0, 0, 1, 0, 0, 0, MX5, 0, tMosaicMIBaRT, MAX_MOSAIC_RTCM_V3_INTERVAL_GROUPS, & settings.mosaicMessageIntervalsRTCMv3Base, "messageIntervalRTCMBase_", gnssCmdUpdateMessageRates, },
-    { 1, 1, 1, 0, 0, 1, 0, 0, 0, MX5, 0, tMosaicMERvRT, MAX_MOSAIC_RTCM_V3_MSG, & settings.mosaicMessageEnabledRTCMv3Rover, "messageEnabledRTCMRover_", gnssCmdUpdateMessageRates, },
-    { 1, 1, 1, 0, 0, 1, 0, 0, 0, MX5, 0, tMosaicMEBaRT, MAX_MOSAIC_RTCM_V3_MSG, & settings.mosaicMessageEnabledRTCMv3Base, "messageEnabledRTCMBase_", gnssCmdUpdateMessageRates, },
-    { 1, 1, 0, 0, 0, 1, 0, 0, 0, MX5, 0, _bool,     0, & settings.enableLoggingRINEX, "enableLoggingRINEX", nullptr, },
-    { 1, 1, 0, 0, 0, 1, 0, 0, 0, MX5, 0, _uint8_t,  0, & settings.RINEXFileDuration, "RINEXFileDuration", nullptr, },
-    { 1, 1, 0, 0, 0, 1, 0, 0, 0, MX5, 0, _uint8_t,  0, & settings.RINEXObsInterval, "RINEXObsInterval", nullptr, },
-    { 1, 1, 0, 0, 0, 1, 0, 0, 0, NON, 0, _bool,     0, & settings.externalEventPolarity, "externalEventPolarity", nullptr, },
+    { 1, 1, 1, 0, 0, 1, 0, 0, MX5, 0, tMosaicConst,  MAX_MOSAIC_CONSTELLATIONS, & settings.mosaicConstellations, "constellation_", gnssCmdUpdateConstellations, },
+    { 1, 1, 1, 0, 0, 1, 0, 0, MX5, 0, tMosaicMSNmea, MAX_MOSAIC_NMEA_MSG, & settings.mosaicMessageStreamNMEA, "messageStreamNMEA_", gnssCmdUpdateMessageRates, },
+    { 1, 1, 1, 0, 0, 1, 0, 0, MX5, 0, tMosaicSINmea, MOSAIC_NUM_NMEA_STREAMS, & settings.mosaicStreamIntervalsNMEA, "streamIntervalNMEA_", gnssCmdUpdateMessageRates, },
+    { 1, 1, 1, 0, 0, 1, 0, 0, MX5, 0, tMosaicMIRvRT, MAX_MOSAIC_RTCM_V3_INTERVAL_GROUPS, & settings.mosaicMessageIntervalsRTCMv3Rover, "messageIntervalRTCMRover_", gnssCmdUpdateMessageRates, },
+    { 1, 1, 1, 0, 0, 1, 0, 0, MX5, 0, tMosaicMIBaRT, MAX_MOSAIC_RTCM_V3_INTERVAL_GROUPS, & settings.mosaicMessageIntervalsRTCMv3Base, "messageIntervalRTCMBase_", gnssCmdUpdateMessageRates, },
+    { 1, 1, 1, 0, 0, 1, 0, 0, MX5, 0, tMosaicMERvRT, MAX_MOSAIC_RTCM_V3_MSG, & settings.mosaicMessageEnabledRTCMv3Rover, "messageEnabledRTCMRover_", gnssCmdUpdateMessageRates, },
+    { 1, 1, 1, 0, 0, 1, 0, 0, MX5, 0, tMosaicMEBaRT, MAX_MOSAIC_RTCM_V3_MSG, & settings.mosaicMessageEnabledRTCMv3Base, "messageEnabledRTCMBase_", gnssCmdUpdateMessageRates, },
+    { 1, 1, 0, 0, 0, 1, 0, 0, MX5, 0, _bool,     0, & settings.enableLoggingRINEX, "enableLoggingRINEX", nullptr, },
+    { 1, 1, 0, 0, 0, 1, 0, 0, MX5, 0, _uint8_t,  0, & settings.RINEXFileDuration, "RINEXFileDuration", nullptr, },
+    { 1, 1, 0, 0, 0, 1, 0, 0, MX5, 0, _uint8_t,  0, & settings.RINEXObsInterval, "RINEXObsInterval", nullptr, },
+    { 1, 1, 0, 0, 0, 1, 0, 0, NON, 0, _bool,     0, & settings.externalEventPolarity, "externalEventPolarity", nullptr, },
 #endif  // COMPILE_MOSAICX5
 
     // MQTT
-    { 0, 0, 0, 1, 1, 1, 1, 1, 1, ALL, 1, _bool,     0, & settings.debugMqttClientData, "debugMqttClientData", nullptr, },
-    { 0, 0, 0, 1, 1, 1, 1, 1, 1, ALL, 1, _bool,     0, & settings.debugMqttClientState, "debugMqttClientState", nullptr, },
+    { 0, 0, 0, 1, 1, 1, 1, 1, ALL, 1, _bool,     0, & settings.debugMqttClientData, "debugMqttClientData", nullptr, },
+    { 0, 0, 0, 1, 1, 1, 1, 1, ALL, 1, _bool,     0, & settings.debugMqttClientState, "debugMqttClientState", nullptr, },
 
     // Multicast DNS
-    { 0, 0, 0, 1, 1, 1, 1, 1, 1, ALL, 1, _bool,     0, & settings.mdnsEnable, "mdnsEnable", nullptr, },
-    { 0, 1, 0, 1, 1, 1, 1, 1, 1, ALL, 1, tCharArry, sizeof(settings.mdnsHostName), & settings.mdnsHostName, "mdnsHostName", nullptr, },
+    { 0, 0, 0, 1, 1, 1, 1, 1, ALL, 1, _bool,     0, & settings.mdnsEnable, "mdnsEnable", nullptr, },
+    { 0, 1, 0, 1, 1, 1, 1, 1, ALL, 1, tCharArry, sizeof(settings.mdnsHostName), & settings.mdnsHostName, "mdnsHostName", nullptr, },
 
     // Network layer
-    { 0, 0, 0, 1, 1, 1, 1, 1, 1, ALL, 1, _bool,     0, & settings.debugAppleAccessory, "debugAppleAccessory", nullptr, },
-    { 0, 0, 0, 1, 1, 1, 1, 1, 1, ALL, 1, _bool,     0, & settings.debugNetworkLayer, "debugNetworkLayer", nullptr, },
-    { 0, 0, 0, 1, 1, 1, 1, 1, 1, ALL, 1, _bool,     0, & settings.printNetworkStatus, "printNetworkStatus", nullptr, },
-    { 0, 0, 0, 1, 1, 1, 1, 1, 1, ALL, 1, _uint32_t, 0, & settings.networkClientWriteTimeout_ms, "networkClientWriteTimeout", nullptr, },
+    { 0, 0, 0, 1, 1, 1, 1, 1, ALL, 1, _bool,     0, & settings.debugAppleAccessory, "debugAppleAccessory", nullptr, },
+    { 0, 0, 0, 1, 1, 1, 1, 1, ALL, 1, _bool,     0, & settings.debugNetworkLayer, "debugNetworkLayer", nullptr, },
+    { 0, 0, 0, 1, 1, 1, 1, 1, ALL, 1, _bool,     0, & settings.printNetworkStatus, "printNetworkStatus", nullptr, },
+    { 0, 0, 0, 1, 1, 1, 1, 1, ALL, 1, _uint32_t, 0, & settings.networkClientWriteTimeout_ms, "networkClientWriteTimeout", nullptr, },
 
-//                         F
-//                         a
-//                   F     c
-//    i              a     e
-//    n  i           c     t
+//                   F
+//    i              a
+//    n  i           c
 //    W  n  u        e
-//    e  C  s     F  t     V  P  F    T
-//    b  o  e     a        2  o  a    o
-//    C  m  S     c  M        s  c    r
-//    o  m  u     e  o  T  L  t  e    c
-//    n  a  f     t  s  o  B  c  t    h
-//    f  n  f  E     a  r  a  a        
-//    i  d  i  v  V  i  c  n  r  F    X
-//    g  s  x  k  2  c  h  d  d  P    2  Type       Qual                Variable                  Name              afterSetCmd
+//    e  C  s     F  t     P  F    T
+//    b  o  e     a        o  a    o
+//    C  m  S     c  M     s  c    r
+//    o  m  u     e  o  T  t  e    c
+//    n  a  f     t  s  o  c  t    h
+//    f  n  f  E     a  r  a        
+//    i  d  i  v  V  i  c  r  F    X
+//    g  s  x  k  2  c  h  d  P    2  Type       Qual                Variable                  Name              afterSetCmd
 
     // NTP (Ethernet Only)
-    { 0, 0, 0, 1, 0, 0, 0, 0, 0, NON, 0, _bool,     0, & settings.debugNtp, "debugNtp", nullptr, },
-    { 0, 1, 0, 1, 0, 0, 0, 0, 0, NON, 0, _bool,     0, & settings.enableNTPFile, "enableNTPFile", nullptr, },
-    { 1, 1, 0, 1, 0, 0, 0, 0, 0, NON, 0, _uint16_t, 0, & settings.ethernetNtpPort, "ethernetNtpPort", nullptr, },
-    { 1, 1, 0, 1, 0, 0, 0, 0, 0, NON, 0, _uint8_t,  0, & settings.ntpPollExponent, "ntpPollExponent", nullptr, },
-    { 1, 1, 0, 1, 0, 0, 0, 0, 0, NON, 0, _int8_t,   0, & settings.ntpPrecision, "ntpPrecision", nullptr, },
-    { 1, 1, 0, 1, 0, 0, 0, 0, 0, NON, 0, tCharArry, sizeof(settings.ntpReferenceId), & settings.ntpReferenceId, "ntpReferenceId", nullptr, },
-    { 1, 1, 0, 1, 0, 0, 0, 0, 0, NON, 0, _uint32_t, 0, & settings.ntpRootDelay, "ntpRootDelay", nullptr, },
-    { 1, 1, 0, 1, 0, 0, 0, 0, 0, NON, 0, _uint32_t, 0, & settings.ntpRootDispersion, "ntpRootDispersion", nullptr, },
+    { 0, 0, 0, 1, 0, 0, 0, 0, NON, 0, _bool,     0, & settings.debugNtp, "debugNtp", nullptr, },
+    { 0, 1, 0, 1, 0, 0, 0, 0, NON, 0, _bool,     0, & settings.enableNTPFile, "enableNTPFile", nullptr, },
+    { 1, 1, 0, 1, 0, 0, 0, 0, NON, 0, _uint16_t, 0, & settings.ethernetNtpPort, "ethernetNtpPort", nullptr, },
+    { 1, 1, 0, 1, 0, 0, 0, 0, NON, 0, _uint8_t,  0, & settings.ntpPollExponent, "ntpPollExponent", nullptr, },
+    { 1, 1, 0, 1, 0, 0, 0, 0, NON, 0, _int8_t,   0, & settings.ntpPrecision, "ntpPrecision", nullptr, },
+    { 1, 1, 0, 1, 0, 0, 0, 0, NON, 0, tCharArry, sizeof(settings.ntpReferenceId), & settings.ntpReferenceId, "ntpReferenceId", nullptr, },
+    { 1, 1, 0, 1, 0, 0, 0, 0, NON, 0, _uint32_t, 0, & settings.ntpRootDelay, "ntpRootDelay", nullptr, },
+    { 1, 1, 0, 1, 0, 0, 0, 0, NON, 0, _uint32_t, 0, & settings.ntpRootDispersion, "ntpRootDispersion", nullptr, },
 
     // NTRIP Client
-    { 0, 0, 0, 1, 1, 1, 1, 1, 1, ALL, 1, _bool,     0, & settings.debugNtripClientRtcm, "debugNtripClientRtcm", nullptr, },
-    { 0, 0, 0, 1, 1, 1, 1, 1, 1, ALL, 1, _bool,     0, & settings.debugNtripClientState, "debugNtripClientState", nullptr, },
-    { 1, 1, 0, 1, 1, 1, 1, 1, 1, ALL, 1, _bool,     0, & settings.enableNtripClient, "enableNtripClient", nullptr, },
-    { 1, 1, 0, 1, 1, 1, 1, 1, 1, ALL, 1, tCharArry, sizeof(settings.ntripClient_CasterHost), & settings.ntripClient_CasterHost, "ntripClientCasterHost", nullptr, },
-    { 1, 1, 0, 1, 1, 1, 1, 1, 1, ALL, 1, _uint16_t, 0, & settings.ntripClient_CasterPort, "ntripClientCasterPort", nullptr, },
-    { 1, 1, 0, 1, 1, 1, 1, 1, 1, ALL, 1, tCharArry, sizeof(settings.ntripClient_CasterUser), & settings.ntripClient_CasterUser, "ntripClientCasterUser", nullptr, },
-    { 1, 1, 0, 1, 1, 1, 1, 1, 1, ALL, 1, tCharArry, sizeof(settings.ntripClient_CasterUserPW), & settings.ntripClient_CasterUserPW, "ntripClientCasterUserPW", nullptr, },
-    { 1, 1, 0, 1, 1, 1, 1, 1, 1, ALL, 1, tCharArry, sizeof(settings.ntripClient_MountPoint), & settings.ntripClient_MountPoint, "ntripClientMountPoint", nullptr, },
-    { 1, 1, 0, 1, 1, 1, 1, 1, 1, ALL, 1, tCharArry, sizeof(settings.ntripClient_MountPointPW), & settings.ntripClient_MountPointPW, "ntripClientMountPointPW", nullptr, },
-    { 1, 1, 0, 1, 1, 1, 1, 1, 1, ALL, 1, _bool,     0, & settings.ntripClient_TransmitGGA, "ntripClientTransmitGGA", nullptr, },
+    { 0, 0, 0, 1, 1, 1, 1, 1, ALL, 1, _bool,     0, & settings.debugNtripClientRtcm, "debugNtripClientRtcm", nullptr, },
+    { 0, 0, 0, 1, 1, 1, 1, 1, ALL, 1, _bool,     0, & settings.debugNtripClientState, "debugNtripClientState", nullptr, },
+    { 1, 1, 0, 1, 1, 1, 1, 1, ALL, 1, _bool,     0, & settings.enableNtripClient, "enableNtripClient", nullptr, },
+    { 1, 1, 0, 1, 1, 1, 1, 1, ALL, 1, tCharArry, sizeof(settings.ntripClient_CasterHost), & settings.ntripClient_CasterHost, "ntripClientCasterHost", nullptr, },
+    { 1, 1, 0, 1, 1, 1, 1, 1, ALL, 1, _uint16_t, 0, & settings.ntripClient_CasterPort, "ntripClientCasterPort", nullptr, },
+    { 1, 1, 0, 1, 1, 1, 1, 1, ALL, 1, tCharArry, sizeof(settings.ntripClient_CasterUser), & settings.ntripClient_CasterUser, "ntripClientCasterUser", nullptr, },
+    { 1, 1, 0, 1, 1, 1, 1, 1, ALL, 1, tCharArry, sizeof(settings.ntripClient_CasterUserPW), & settings.ntripClient_CasterUserPW, "ntripClientCasterUserPW", nullptr, },
+    { 1, 1, 0, 1, 1, 1, 1, 1, ALL, 1, tCharArry, sizeof(settings.ntripClient_MountPoint), & settings.ntripClient_MountPoint, "ntripClientMountPoint", nullptr, },
+    { 1, 1, 0, 1, 1, 1, 1, 1, ALL, 1, tCharArry, sizeof(settings.ntripClient_MountPointPW), & settings.ntripClient_MountPointPW, "ntripClientMountPointPW", nullptr, },
+    { 1, 1, 0, 1, 1, 1, 1, 1, ALL, 1, _bool,     0, & settings.ntripClient_TransmitGGA, "ntripClientTransmitGGA", nullptr, },
 
     // NTRIP Server
-    { 0, 0, 0, 1, 1, 1, 1, 1, 1, ALL, 1, _bool,     0, & settings.debugNtripServerRtcm, "debugNtripServerRtcm", nullptr, },
-    { 0, 0, 0, 1, 1, 1, 1, 1, 1, ALL, 1, _bool,     0, & settings.debugNtripServerState, "debugNtripServerState", nullptr, },
-    { 1, 1, 0, 1, 1, 1, 1, 1, 1, ALL, 1, _bool,     0, & settings.enableNtripServer, "enableNtripServer", nullptr, },
-    { 0, 0, 0, 1, 1, 1, 1, 1, 1, ALL, 1, _bool,     0, & settings.enableRtcmMessageChecking, "enableRtcmMessageChecking", nullptr, },
-    { 1, 1, 1, 1, 1, 1, 1, 1, 1, ALL, 1, tNSCEn,    NTRIP_SERVER_MAX, & settings.ntripServer_CasterEnabled[0], "ntripServerCasterEnabled_", nullptr, },
-    { 1, 1, 1, 1, 1, 1, 1, 1, 1, ALL, 1, tNSCHost,  NTRIP_SERVER_MAX, & settings.ntripServer_CasterHost[0], "ntripServerCasterHost_", nullptr, },
-    { 1, 1, 1, 1, 1, 1, 1, 1, 1, ALL, 1, tNSCPort,  NTRIP_SERVER_MAX, & settings.ntripServer_CasterPort[0], "ntripServerCasterPort_", nullptr, },
-    { 1, 1, 1, 1, 1, 1, 1, 1, 1, ALL, 1, tNSCUser,  NTRIP_SERVER_MAX, & settings.ntripServer_CasterUser[0], "ntripServerCasterUser_", nullptr, },
-    { 1, 1, 1, 1, 1, 1, 1, 1, 1, ALL, 1, tNSCUsrPw, NTRIP_SERVER_MAX, & settings.ntripServer_CasterUserPW[0], "ntripServerCasterUserPW_", nullptr, },
-    { 1, 1, 1, 1, 1, 1, 1, 1, 1, ALL, 1, tNSMtPt,   NTRIP_SERVER_MAX, & settings.ntripServer_MountPoint[0], "ntripServerMountPoint_", nullptr, },
-    { 1, 1, 1, 1, 1, 1, 1, 1, 1, ALL, 1, tNSMtPtPw, NTRIP_SERVER_MAX, & settings.ntripServer_MountPointPW[0], "ntripServerMountPointPW_", nullptr, },
+    { 0, 0, 0, 1, 1, 1, 1, 1, ALL, 1, _bool,     0, & settings.debugNtripServerRtcm, "debugNtripServerRtcm", nullptr, },
+    { 0, 0, 0, 1, 1, 1, 1, 1, ALL, 1, _bool,     0, & settings.debugNtripServerState, "debugNtripServerState", nullptr, },
+    { 1, 1, 0, 1, 1, 1, 1, 1, ALL, 1, _bool,     0, & settings.enableNtripServer, "enableNtripServer", nullptr, },
+    { 0, 0, 0, 1, 1, 1, 1, 1, ALL, 1, _bool,     0, & settings.enableRtcmMessageChecking, "enableRtcmMessageChecking", nullptr, },
+    { 1, 1, 1, 1, 1, 1, 1, 1, ALL, 1, tNSCEn,    NTRIP_SERVER_MAX, & settings.ntripServer_CasterEnabled[0], "ntripServerCasterEnabled_", nullptr, },
+    { 1, 1, 1, 1, 1, 1, 1, 1, ALL, 1, tNSCHost,  NTRIP_SERVER_MAX, & settings.ntripServer_CasterHost[0], "ntripServerCasterHost_", nullptr, },
+    { 1, 1, 1, 1, 1, 1, 1, 1, ALL, 1, tNSCPort,  NTRIP_SERVER_MAX, & settings.ntripServer_CasterPort[0], "ntripServerCasterPort_", nullptr, },
+    { 1, 1, 1, 1, 1, 1, 1, 1, ALL, 1, tNSCUser,  NTRIP_SERVER_MAX, & settings.ntripServer_CasterUser[0], "ntripServerCasterUser_", nullptr, },
+    { 1, 1, 1, 1, 1, 1, 1, 1, ALL, 1, tNSCUsrPw, NTRIP_SERVER_MAX, & settings.ntripServer_CasterUserPW[0], "ntripServerCasterUserPW_", nullptr, },
+    { 1, 1, 1, 1, 1, 1, 1, 1, ALL, 1, tNSMtPt,   NTRIP_SERVER_MAX, & settings.ntripServer_MountPoint[0], "ntripServerMountPoint_", nullptr, },
+    { 1, 1, 1, 1, 1, 1, 1, 1, ALL, 1, tNSMtPtPw, NTRIP_SERVER_MAX, & settings.ntripServer_MountPointPW[0], "ntripServerMountPointPW_", nullptr, },
 
 //                         F
 //                         a
@@ -1596,294 +1579,280 @@ const RTK_Settings_Entry rtkSettingsEntries[] =
 //    g  s  x  k  2  c  h  d  d  Type    Qual  Variable                  Name               afterSetCmd
 
     // OS
-    { 0, 0, 0, 1, 1, 1, 1, 1, 1, ALL, 1, _uint8_t,  0, & settings.bluetoothInterruptsCore, "bluetoothInterruptsCore", nullptr, },
-    { 0, 0, 0, 1, 1, 1, 1, 1, 1, ALL, 1, _uint8_t,  0, & settings.btReadTaskCore, "btReadTaskCore", nullptr, },
-    { 0, 0, 0, 1, 1, 1, 1, 1, 1, ALL, 1, _uint8_t,  0, & settings.btReadTaskPriority, "btReadTaskPriority", nullptr, },
-    { 0, 0, 0, 1, 1, 1, 1, 1, 1, ALL, 1, _bool,     0, & settings.debugMalloc, "debugMalloc", nullptr, },
-    { 0, 0, 0, 1, 1, 1, 1, 1, 1, ALL, 1, _bool,     0, & settings.enableHeapReport, "enableHeapReport", nullptr, },
-    { 0, 0, 0, 1, 1, 1, 1, 1, 1, ALL, 1, _bool,     0, & settings.enablePrintIdleTime, "enablePrintIdleTime", nullptr, },
-    { 0, 0, 0, 1, 1, 1, 1, 1, 1, ALL, 1, _bool,     0, & settings.enablePsram, "enablePsram", nullptr, },
-    { 0, 0, 0, 1, 1, 1, 1, 1, 1, ALL, 1, _bool,     0, & settings.enableTaskReports, "enableTaskReports", nullptr, },
-    { 0, 0, 0, 1, 1, 1, 1, 1, 1, ALL, 1, _uint8_t,  0, & settings.gnssReadTaskCore, "gnssReadTaskCore", nullptr, },
-    { 0, 0, 0, 1, 1, 1, 1, 1, 1, ALL, 1, _uint8_t,  0, & settings.gnssReadTaskPriority, "gnssReadTaskPriority", nullptr, },
-    { 0, 0, 0, 1, 1, 1, 1, 1, 1, ALL, 1, _uint8_t,  0, & settings.gnssUartInterruptsCore, "gnssUartInterruptsCore", nullptr, },
-    { 0, 0, 0, 1, 1, 1, 1, 1, 1, ALL, 1, _bool,     0, & settings.haltOnPanic, "haltOnPanic", nullptr, },
-    { 0, 0, 0, 1, 1, 1, 1, 1, 1, ALL, 1, _uint8_t,  0, & settings.handleGnssDataTaskCore, "handleGnssDataTaskCore", nullptr, },
-    { 0, 0, 0, 1, 1, 1, 1, 1, 1, ALL, 1, _uint8_t,  0, & settings.handleGnssDataTaskPriority, "handleGnssDataTaskPriority", nullptr, },
-    { 0, 0, 0, 1, 1, 1, 1, 1, 1, ALL, 1, _uint8_t,  0, & settings.i2cInterruptsCore, "i2cInterruptsCore", nullptr, },
-    { 0, 1, 0, 1, 1, 1, 1, 1, 1, ALL, 1, _uint8_t,  0, & settings.measurementScale, "measurementScale", nullptr, }, //Don't show on Config
-    { 0, 0, 0, 1, 1, 1, 1, 1, 1, ALL, 1, _bool,     0, & settings.printBootTimes, "printBootTimes", nullptr, },
-    { 0, 0, 0, 1, 1, 1, 1, 1, 1, ALL, 1, _bool,     0, & settings.printPartitionTable, "printPartitionTable", nullptr, },
-    { 0, 0, 0, 1, 1, 1, 1, 1, 1, ALL, 1, _bool,     0, & settings.printTaskStartStop, "printTaskStartStop", nullptr, },
-    { 0, 0, 0, 1, 1, 1, 1, 1, 1, ALL, 1, _uint16_t, 0, & settings.psramMallocLevel, "psramMallocLevel", nullptr, },
-    { 1, 1, 0, 1, 1, 1, 1, 1, 1, ALL, 1, _uint32_t, 0, & settings.rebootMinutes, "rebootMinutes", nullptr, },
-    { 0, 0, 0, 1, 1, 1, 1, 1, 1, ALL, 1, _int,      0, & settings.resetCount, "resetCount", nullptr, },
+    { 0, 0, 0, 1, 1, 1, 1, 1, ALL, 1, _uint8_t,  0, & settings.bluetoothInterruptsCore, "bluetoothInterruptsCore", nullptr, },
+    { 0, 0, 0, 1, 1, 1, 1, 1, ALL, 1, _uint8_t,  0, & settings.btReadTaskCore, "btReadTaskCore", nullptr, },
+    { 0, 0, 0, 1, 1, 1, 1, 1, ALL, 1, _uint8_t,  0, & settings.btReadTaskPriority, "btReadTaskPriority", nullptr, },
+    { 0, 0, 0, 1, 1, 1, 1, 1, ALL, 1, _bool,     0, & settings.debugMalloc, "debugMalloc", nullptr, },
+    { 0, 0, 0, 1, 1, 1, 1, 1, ALL, 1, _bool,     0, & settings.enableHeapReport, "enableHeapReport", nullptr, },
+    { 0, 0, 0, 1, 1, 1, 1, 1, ALL, 1, _bool,     0, & settings.enablePrintIdleTime, "enablePrintIdleTime", nullptr, },
+    { 0, 0, 0, 1, 1, 1, 1, 1, ALL, 1, _bool,     0, & settings.enablePsram, "enablePsram", nullptr, },
+    { 0, 0, 0, 1, 1, 1, 1, 1, ALL, 1, _bool,     0, & settings.enableTaskReports, "enableTaskReports", nullptr, },
+    { 0, 0, 0, 1, 1, 1, 1, 1, ALL, 1, _uint8_t,  0, & settings.gnssReadTaskCore, "gnssReadTaskCore", nullptr, },
+    { 0, 0, 0, 1, 1, 1, 1, 1, ALL, 1, _uint8_t,  0, & settings.gnssReadTaskPriority, "gnssReadTaskPriority", nullptr, },
+    { 0, 0, 0, 1, 1, 1, 1, 1, ALL, 1, _uint8_t,  0, & settings.gnssUartInterruptsCore, "gnssUartInterruptsCore", nullptr, },
+    { 0, 0, 0, 1, 1, 1, 1, 1, ALL, 1, _bool,     0, & settings.haltOnPanic, "haltOnPanic", nullptr, },
+    { 0, 0, 0, 1, 1, 1, 1, 1, ALL, 1, _uint8_t,  0, & settings.handleGnssDataTaskCore, "handleGnssDataTaskCore", nullptr, },
+    { 0, 0, 0, 1, 1, 1, 1, 1, ALL, 1, _uint8_t,  0, & settings.handleGnssDataTaskPriority, "handleGnssDataTaskPriority", nullptr, },
+    { 0, 0, 0, 1, 1, 1, 1, 1, ALL, 1, _uint8_t,  0, & settings.i2cInterruptsCore, "i2cInterruptsCore", nullptr, },
+    { 0, 1, 0, 1, 1, 1, 1, 1, ALL, 1, _uint8_t,  0, & settings.measurementScale, "measurementScale", nullptr, }, //Don't show on Config
+    { 0, 0, 0, 1, 1, 1, 1, 1, ALL, 1, _bool,     0, & settings.printBootTimes, "printBootTimes", nullptr, },
+    { 0, 0, 0, 1, 1, 1, 1, 1, ALL, 1, _bool,     0, & settings.printPartitionTable, "printPartitionTable", nullptr, },
+    { 0, 0, 0, 1, 1, 1, 1, 1, ALL, 1, _bool,     0, & settings.printTaskStartStop, "printTaskStartStop", nullptr, },
+    { 0, 0, 0, 1, 1, 1, 1, 1, ALL, 1, _uint16_t, 0, & settings.psramMallocLevel, "psramMallocLevel", nullptr, },
+    { 1, 1, 0, 1, 1, 1, 1, 1, ALL, 1, _uint32_t, 0, & settings.rebootMinutes, "rebootMinutes", nullptr, },
+    { 0, 0, 0, 1, 1, 1, 1, 1, ALL, 1, _int,      0, & settings.resetCount, "resetCount", nullptr, },
 
     // Periodic Display
-    { 0, 0, 0, 1, 1, 1, 1, 1, 1, ALL, 1, tPerDisp,  0, & settings.periodicDisplay, "periodicDisplay", nullptr, },
-    { 0, 0, 0, 1, 1, 1, 1, 1, 1, ALL, 1, _uint32_t, 0, & settings.periodicDisplayInterval, "periodicDisplayInterval", nullptr, },
+    { 0, 0, 0, 1, 1, 1, 1, 1, ALL, 1, tPerDisp,  0, & settings.periodicDisplay, "periodicDisplay", nullptr, },
+    { 0, 0, 0, 1, 1, 1, 1, 1, ALL, 1, _uint32_t, 0, & settings.periodicDisplayInterval, "periodicDisplayInterval", nullptr, },
 
     // Point Perfect
-    { 1, 1, 0, 1, 1, 1, 1, 1, 1, ALL, 1, _bool,     0, & settings.autoKeyRenewal, "autoKeyRenewal", nullptr, },
-    { 0, 0, 0, 1, 1, 1, 1, 1, 1, ALL, 1, _bool,     0, & settings.debugPpCertificate, "debugPpCertificate", nullptr, },
-    { 1, 0, 0, 1, 1, 1, 1, 1, 1, ALL, 1, _int,      0, & settings.geographicRegion, "geographicRegion", nullptr, },
-    { 0, 0, 0, 1, 1, 1, 1, 1, 1, ALL, 1, _uint64_t, 0, & settings.lastKeyAttempt, "lastKeyAttempt", nullptr, },
-    { 0, 1, 0, 1, 1, 1, 1, 1, 1, ALL, 1, _uint16_t, 0, & settings.lbandFixTimeout_seconds, "lbandFixTimeout", nullptr, },
-    { 0, 0, 0, 1, 1, 1, 1, 1, 1, ALL, 1, tCharArry, sizeof(settings.pointPerfectBrokerHost), & settings.pointPerfectBrokerHost, "pointPerfectBrokerHost", nullptr, },
-    { 0, 0, 0, 1, 1, 1, 1, 1, 1, ALL, 1, tCharArry, sizeof(settings.pointPerfectClientID), & settings.pointPerfectClientID, "pointPerfectClientID", nullptr, },
-    { 0, 0, 0, 1, 1, 1, 1, 1, 1, ALL, 1, tCharArry, sizeof(settings.pointPerfectCurrentKey), & settings.pointPerfectCurrentKey, "pointPerfectCurrentKey", nullptr, },
-    { 0, 0, 0, 1, 1, 1, 1, 1, 1, ALL, 1, _uint64_t, 0, & settings.pointPerfectCurrentKeyDuration, "pointPerfectCurrentKeyDuration", nullptr, },
-    { 0, 0, 0, 1, 1, 1, 1, 1, 1, ALL, 1, _uint64_t, 0, & settings.pointPerfectCurrentKeyStart, "pointPerfectCurrentKeyStart", nullptr, },
-    { 1, 1, 0, 1, 1, 1, 1, 1, 1, ALL, 1, tCharArry, sizeof(settings.pointPerfectDeviceProfileToken), & settings.pointPerfectDeviceProfileToken, "pointPerfectDeviceProfileToken", nullptr, },
-    { 0, 0, 0, 1, 1, 1, 1, 1, 1, ALL, 1, tCharArry, sizeof(settings.pointPerfectKeyDistributionTopic), & settings.pointPerfectKeyDistributionTopic, "pointPerfectKeyDistributionTopic", nullptr, },
-    { 0, 0, 0, 1, 1, 1, 1, 1, 1, ALL, 1, tCharArry, sizeof(settings.pointPerfectNextKey), & settings.pointPerfectNextKey, "pointPerfectNextKey", nullptr, },
-    { 0, 0, 0, 1, 1, 1, 1, 1, 1, ALL, 1, _uint64_t, 0, & settings.pointPerfectNextKeyDuration, "pointPerfectNextKeyDuration", nullptr, },
-    { 0, 0, 0, 1, 1, 1, 1, 1, 1, ALL, 1, _uint64_t, 0, & settings.pointPerfectNextKeyStart, "pointPerfectNextKeyStart", nullptr, },
-    { 0, 1, 0, 1, 1, 1, 1, 1, 1, ALL, 1, _uint16_t, 0, & settings.pplFixTimeoutS, "pplFixTimeoutS", nullptr, },
-    { 0, 0, 1, 1, 1, 1, 1, 1, 1, ALL, 1, tRegCorTp, numRegionalAreas, & settings.regionalCorrectionTopics, "regionalCorrectionTopics_", nullptr, },
-    { 1, 1, 0, 1, 1, 1, 1, 1, 1, ALL, 1, _uint8_t, 0, & settings.pointPerfectService, "pointPerfectService", nullptr, },
+    { 1, 1, 0, 1, 1, 1, 1, 1, ALL, 1, _bool,     0, & settings.autoKeyRenewal, "autoKeyRenewal", nullptr, },
+    { 0, 0, 0, 1, 1, 1, 1, 1, ALL, 1, _bool,     0, & settings.debugPpCertificate, "debugPpCertificate", nullptr, },
+    { 1, 0, 0, 1, 1, 1, 1, 1, ALL, 1, _int,      0, & settings.geographicRegion, "geographicRegion", nullptr, },
+    { 0, 0, 0, 1, 1, 1, 1, 1, ALL, 1, _uint64_t, 0, & settings.lastKeyAttempt, "lastKeyAttempt", nullptr, },
+    { 0, 0, 0, 1, 1, 1, 1, 1, ALL, 1, tCharArry, sizeof(settings.pointPerfectBrokerHost), & settings.pointPerfectBrokerHost, "pointPerfectBrokerHost", nullptr, },
+    { 0, 0, 0, 1, 1, 1, 1, 1, ALL, 1, tCharArry, sizeof(settings.pointPerfectClientID), & settings.pointPerfectClientID, "pointPerfectClientID", nullptr, },
+    { 0, 0, 0, 1, 1, 1, 1, 1, ALL, 1, tCharArry, sizeof(settings.pointPerfectCurrentKey), & settings.pointPerfectCurrentKey, "pointPerfectCurrentKey", nullptr, },
+    { 0, 0, 0, 1, 1, 1, 1, 1, ALL, 1, _uint64_t, 0, & settings.pointPerfectCurrentKeyDuration, "pointPerfectCurrentKeyDuration", nullptr, },
+    { 0, 0, 0, 1, 1, 1, 1, 1, ALL, 1, _uint64_t, 0, & settings.pointPerfectCurrentKeyStart, "pointPerfectCurrentKeyStart", nullptr, },
+    { 1, 1, 0, 1, 1, 1, 1, 1, ALL, 1, tCharArry, sizeof(settings.pointPerfectDeviceProfileToken), & settings.pointPerfectDeviceProfileToken, "pointPerfectDeviceProfileToken", nullptr, },
+    { 0, 0, 0, 1, 1, 1, 1, 1, ALL, 1, tCharArry, sizeof(settings.pointPerfectKeyDistributionTopic), & settings.pointPerfectKeyDistributionTopic, "pointPerfectKeyDistributionTopic", nullptr, },
+    { 0, 0, 0, 1, 1, 1, 1, 1, ALL, 1, tCharArry, sizeof(settings.pointPerfectNextKey), & settings.pointPerfectNextKey, "pointPerfectNextKey", nullptr, },
+    { 0, 0, 0, 1, 1, 1, 1, 1, ALL, 1, _uint64_t, 0, & settings.pointPerfectNextKeyDuration, "pointPerfectNextKeyDuration", nullptr, },
+    { 0, 0, 0, 1, 1, 1, 1, 1, ALL, 1, _uint64_t, 0, & settings.pointPerfectNextKeyStart, "pointPerfectNextKeyStart", nullptr, },
+    { 0, 1, 0, 1, 1, 1, 1, 1, ALL, 1, _uint16_t, 0, & settings.pplFixTimeoutS, "pplFixTimeoutS", nullptr, },
+    { 0, 0, 1, 1, 1, 1, 1, 1, ALL, 1, tRegCorTp, numRegionalAreas, & settings.regionalCorrectionTopics, "regionalCorrectionTopics_", nullptr, },
+    { 1, 1, 0, 1, 1, 1, 1, 1, ALL, 1, _uint8_t, 0, & settings.pointPerfectService, "pointPerfectService", nullptr, },
 
     // Profiles
-    { 1, 1, 0, 1, 1, 1, 1, 1, 1, ALL, 1, tCharArry, sizeof(settings.profileName), & settings.profileName, "profileName", nullptr, },
+    { 1, 1, 0, 1, 1, 1, 1, 1, ALL, 1, tCharArry, sizeof(settings.profileName), & settings.profileName, "profileName", nullptr, },
 
-//                         F
-//                         a
-//                   F     c
-//    i              a     e
-//    n  i           c     t
+//                   F
+//    i              a
+//    n  i           c
 //    W  n  u        e
-//    e  C  s     F  t     V  P  F    T
-//    b  o  e     a        2  o  a    o
-//    C  m  S     c  M        s  c    r
-//    o  m  u     e  o  T  L  t  e    c
-//    n  a  f     t  s  o  B  c  t    h
-//    f  n  f  E     a  r  a  a        
-//    i  d  i  v  V  i  c  n  r  F    X
-//    g  s  x  k  2  c  h  d  d  P    2  Type       Qual                Variable                  Name              afterSetCmd
+//    e  C  s     F  t     P  F    T
+//    b  o  e     a        o  a    o
+//    C  m  S     c  M     s  c    r
+//    o  m  u     e  o  T  t  e    c
+//    n  a  f     t  s  o  c  t    h
+//    f  n  f  E     a  r  a        
+//    i  d  i  v  V  i  c  r  F    X
+//    g  s  x  k  2  c  h  d  P    2  Type       Qual                Variable                  Name              afterSetCmd
 
     // Pulse Per Second
-    { 1, 1, 0, 1, 1, 1, 0, 1, 0, NON, 0, _bool,     0, & settings.enableExternalPulse, "enableExternalPulse", nullptr, },
-    { 1, 1, 0, 1, 1, 1, 0, 1, 0, NON, 0, _uint64_t, 0, & settings.externalPulseLength_us, "externalPulseLength", nullptr, },
-    { 1, 1, 0, 1, 1, 1, 0, 1, 0, NON, 0, tPulseEdg, 0, & settings.externalPulsePolarity, "externalPulsePolarity", nullptr, },
-    { 1, 1, 0, 1, 1, 1, 0, 1, 0, NON, 0, _uint64_t, 0, & settings.externalPulseTimeBetweenPulse_us, "externalPulseTimeBetweenPulse", nullptr, },
+    { 1, 1, 0, 1, 1, 1, 0, 0, NON, 0, _bool,     0, & settings.enableExternalPulse, "enableExternalPulse", nullptr, },
+    { 1, 1, 0, 1, 1, 1, 0, 0, NON, 0, _uint64_t, 0, & settings.externalPulseLength_us, "externalPulseLength", nullptr, },
+    { 1, 1, 0, 1, 1, 1, 0, 0, NON, 0, tPulseEdg, 0, & settings.externalPulsePolarity, "externalPulsePolarity", nullptr, },
+    { 1, 1, 0, 1, 1, 1, 0, 0, NON, 0, _uint64_t, 0, & settings.externalPulseTimeBetweenPulse_us, "externalPulseTimeBetweenPulse", nullptr, },
 
     // Ring Buffer
-    { 0, 0, 0, 1, 1, 1, 1, 1, 1, ALL, 1, _bool,     0, & settings.enablePrintRingBufferOffsets, "enablePrintRingBufferOffsets", nullptr, },
-    { 0, 0, 0, 1, 1, 1, 1, 1, 1, ALL, 1, _int,      0, & settings.gnssHandlerBufferSize, "gnssHandlerBufferSize", nullptr, },
+    { 0, 0, 0, 1, 1, 1, 1, 1, ALL, 1, _bool,     0, & settings.enablePrintRingBufferOffsets, "enablePrintRingBufferOffsets", nullptr, },
+    { 0, 0, 0, 1, 1, 1, 1, 1, ALL, 1, _int,      0, & settings.gnssHandlerBufferSize, "gnssHandlerBufferSize", nullptr, },
 
     // Rover operation
-    { 1, 1, 0, 1, 1, 1, 1, 1, 0, ALL, 0, _uint8_t,  0, & settings.dynamicModel, "dynamicModel", nullptr, },
-    { 0, 0, 0, 1, 1, 1, 1, 1, 1, ALL, 1, _bool,     0, & settings.enablePrintRoverAccuracy, "enablePrintRoverAccuracy", nullptr, },
-    { 0, 1, 0, 1, 1, 1, 1, 1, 1, ALL, 1, _int16_t,  0, & settings.minCN0, "minCN0", nullptr, }, // Not inWebConfig - createSettingsString gets from GNSS
-    { 1, 1, 0, 1, 1, 1, 1, 1, 1, ALL, 1, _uint8_t,  0, & settings.minElev, "minElev", nullptr, },
+    { 1, 1, 0, 1, 1, 1, 1, 0, ALL, 0, _uint8_t,  0, & settings.dynamicModel, "dynamicModel", nullptr, },
+    { 0, 0, 0, 1, 1, 1, 1, 1, ALL, 1, _bool,     0, & settings.enablePrintRoverAccuracy, "enablePrintRoverAccuracy", nullptr, },
+    { 0, 1, 0, 1, 1, 1, 1, 1, ALL, 1, _int16_t,  0, & settings.minCN0, "minCN0", nullptr, }, // Not inWebConfig - createSettingsString gets from GNSS
+    { 1, 1, 0, 1, 1, 1, 1, 1, ALL, 1, _uint8_t,  0, & settings.minElev, "minElev", nullptr, },
 
     // RTC (Real Time Clock)
-    { 0, 0, 0, 1, 1, 1, 1, 1, 1, ALL, 1, _bool,     0, & settings.enablePrintRtcSync, "enablePrintRtcSync", nullptr, },
+    { 0, 0, 0, 1, 1, 1, 1, 1, ALL, 1, _bool,     0, & settings.enablePrintRtcSync, "enablePrintRtcSync", nullptr, },
 
-//                         F
-//                         a
-//                   F     c
-//    i              a     e
-//    n  i           c     t
+//                   F
+//    i              a
+//    n  i           c
 //    W  n  u        e
-//    e  C  s     F  t     V  P  F    T
-//    b  o  e     a        2  o  a    o
-//    C  m  S     c  M        s  c    r
-//    o  m  u     e  o  T  L  t  e    c
-//    n  a  f     t  s  o  B  c  t    h
-//    f  n  f  E     a  r  a  a        
-//    i  d  i  v  V  i  c  n  r  F    X
-//    g  s  x  k  2  c  h  d  d  P    2  Type       Qual                Variable                  Name              afterSetCmd
+//    e  C  s     F  t     P  F    T
+//    b  o  e     a        o  a    o
+//    C  m  S     c  M     s  c    r
+//    o  m  u     e  o  T  t  e    c
+//    n  a  f     t  s  o  c  t    h
+//    f  n  f  E     a  r  a        
+//    i  d  i  v  V  i  c  r  F    X
+//    g  s  x  k  2  c  h  d  P    2  Type       Qual                Variable                  Name              afterSetCmd
 
     // SD Card
-    { 0, 0, 0, 1, 1, 1, 0, 1, 1, ALL, 0, _bool,     0, & settings.enablePrintBufferOverrun, "enablePrintBufferOverrun", nullptr, },
-    { 0, 0, 0, 1, 1, 1, 0, 1, 1, ALL, 0, _bool,     0, & settings.enablePrintSDBuffers, "enablePrintSDBuffers", nullptr, },
-    { 0, 0, 0, 1, 1, 1, 0, 1, 1, ALL, 0, _bool,     0, & settings.enableSD, "enableSD", nullptr, },
-    { 0, 0, 0, 1, 1, 1, 0, 1, 1, ALL, 0, _bool,     0, & settings.forceResetOnSDFail, "forceResetOnSDFail", nullptr, },
+    { 0, 0, 0, 1, 1, 1, 0, 1, ALL, 0, _bool,     0, & settings.enablePrintBufferOverrun, "enablePrintBufferOverrun", nullptr, },
+    { 0, 0, 0, 1, 1, 1, 0, 1, ALL, 0, _bool,     0, & settings.enablePrintSDBuffers, "enablePrintSDBuffers", nullptr, },
+    { 0, 0, 0, 1, 1, 1, 0, 1, ALL, 0, _bool,     0, & settings.enableSD, "enableSD", nullptr, },
+    { 0, 0, 0, 1, 1, 1, 0, 1, ALL, 0, _bool,     0, & settings.forceResetOnSDFail, "forceResetOnSDFail", nullptr, },
 
     // Serial
-    { 1, 1, 0, 1, 1, 1, 1, 1, 1, ALL, 1, _uint32_t, 0, & settings.dataPortBaud, "dataPortBaud", nullptr, },
-    { 0, 0, 0, 1, 1, 1, 1, 1, 1, ALL, 1, _bool,     0, & settings.echoUserInput, "echoUserInput", nullptr, },
-    { 1, 1, 0, 1, 1, 1, 1, 1, 1, ALL, 1, _bool,     0, & settings.enableGnssToUsbSerial, "enableGnssToUsbSerial", nullptr, },
-    { 1, 1, 0, 1, 1, 1, 1, 1, 1, ALL, 1, _uint32_t, 0, & settings.radioPortBaud, "radioPortBaud", nullptr, },
-    { 0, 0, 0, 1, 1, 1, 1, 1, 1, ALL, 1, _int16_t,  0, & settings.serialTimeoutGNSS, "serialTimeoutGNSS", nullptr, },
-    { 1, 1, 0, 0, 0, 1, 0, 0, 1, ALL, 0, _bool,     0, & settings.enableNmeaOnRadio, "enableNmeaOnRadio", nullptr, },
+    { 1, 1, 0, 1, 1, 1, 1, 1, ALL, 1, _uint32_t, 0, & settings.dataPortBaud, "dataPortBaud", nullptr, },
+    { 0, 0, 0, 1, 1, 1, 1, 1, ALL, 1, _bool,     0, & settings.echoUserInput, "echoUserInput", nullptr, },
+    { 1, 1, 0, 1, 1, 1, 1, 1, ALL, 1, _bool,     0, & settings.enableGnssToUsbSerial, "enableGnssToUsbSerial", nullptr, },
+    { 1, 1, 0, 1, 1, 1, 1, 1, ALL, 1, _uint32_t, 0, & settings.radioPortBaud, "radioPortBaud", nullptr, },
+    { 0, 0, 0, 1, 1, 1, 1, 1, ALL, 1, _int16_t,  0, & settings.serialTimeoutGNSS, "serialTimeoutGNSS", nullptr, },
+    { 1, 1, 0, 0, 0, 1, 0, 1, ALL, 0, _bool,     0, & settings.enableNmeaOnRadio, "enableNmeaOnRadio", nullptr, },
 
-//                         F
-//                         a
-//                   F     c
-//    i              a     e
-//    n  i           c     t
+//                   F
+//    i              a
+//    n  i           c
 //    W  n  u        e
-//    e  C  s     F  t     V  P  F    T
-//    b  o  e     a        2  o  a    o
-//    C  m  S     c  M        s  c    r
-//    o  m  u     e  o  T  L  t  e    c
-//    n  a  f     t  s  o  B  c  t    h
-//    f  n  f  E     a  r  a  a        
-//    i  d  i  v  V  i  c  n  r  F    X
-//    g  s  x  k  2  c  h  d  d  P    2  Type       Qual                Variable                  Name              afterSetCmd
+//    e  C  s     F  t     P  F    T
+//    b  o  e     a        o  a    o
+//    C  m  S     c  M     s  c    r
+//    o  m  u     e  o  T  t  e    c
+//    n  a  f     t  s  o  c  t    h
+//    f  n  f  E     a  r  a        
+//    i  d  i  v  V  i  c  r  F    X
+//    g  s  x  k  2  c  h  d  P    2  Type       Qual                Variable                  Name              afterSetCmd
 
     // Setup Button
-    { 0, 1, 0, 1, 1, 1, 1, 1, 1, ALL, 1, _bool,     0, & settings.disableSetupButton, "disableSetupButton", nullptr, },
+    { 0, 1, 0, 1, 1, 1, 1, 1, ALL, 1, _bool,     0, & settings.disableSetupButton, "disableSetupButton", nullptr, },
 
     // State
-    { 0, 0, 0, 1, 1, 1, 1, 1, 1, ALL, 1, _bool,     0, & settings.enablePrintDuplicateStates, "enablePrintDuplicateStates", nullptr, },
-    { 0, 0, 0, 1, 1, 1, 1, 1, 1, ALL, 1, _bool,     0, & settings.enablePrintStates, "enablePrintStates", nullptr, },
-    { 0, 1, 0, 1, 1, 1, 1, 1, 1, ALL, 1, tSysState, 0, & settings.lastState, "lastState", nullptr, }, // Not inWebConfig - must be changed to 0:3 by createSettingsString
+    { 0, 0, 0, 1, 1, 1, 1, 1, ALL, 1, _bool,     0, & settings.enablePrintDuplicateStates, "enablePrintDuplicateStates", nullptr, },
+    { 0, 0, 0, 1, 1, 1, 1, 1, ALL, 1, _bool,     0, & settings.enablePrintStates, "enablePrintStates", nullptr, },
+    { 0, 1, 0, 1, 1, 1, 1, 1, ALL, 1, tSysState, 0, & settings.lastState, "lastState", nullptr, }, // Not inWebConfig - must be changed to 0:3 by createSettingsString
 
     // TCP Client
-    { 0, 0, 0, 1, 1, 1, 1, 1, 1, ALL, 1, _bool,     0, & settings.debugTcpClient, "debugTcpClient", nullptr, },
-    { 1, 1, 0, 1, 1, 1, 1, 1, 1, ALL, 1, _bool,     0, & settings.enableTcpClient, "enableTcpClient", nullptr, },
-    { 1, 1, 0, 1, 1, 1, 1, 1, 1, ALL, 1, tCharArry, sizeof(settings.tcpClientHost), & settings.tcpClientHost, "tcpClientHost", nullptr, },
-    { 1, 1, 0, 1, 1, 1, 1, 1, 1, ALL, 1, _uint16_t, 0, & settings.tcpClientPort, "tcpClientPort", nullptr, },
+    { 0, 0, 0, 1, 1, 1, 1, 1, ALL, 1, _bool,     0, & settings.debugTcpClient, "debugTcpClient", nullptr, },
+    { 1, 1, 0, 1, 1, 1, 1, 1, ALL, 1, _bool,     0, & settings.enableTcpClient, "enableTcpClient", nullptr, },
+    { 1, 1, 0, 1, 1, 1, 1, 1, ALL, 1, tCharArry, sizeof(settings.tcpClientHost), & settings.tcpClientHost, "tcpClientHost", nullptr, },
+    { 1, 1, 0, 1, 1, 1, 1, 1, ALL, 1, _uint16_t, 0, & settings.tcpClientPort, "tcpClientPort", nullptr, },
 
     // TCP Server
-    { 0, 0, 0, 1, 1, 1, 1, 1, 1, ALL, 1, _bool,     0, & settings.debugTcpServer, "debugTcpServer", nullptr, },
-    { 1, 1, 0, 1, 1, 1, 1, 1, 1, ALL, 1, _bool,     0, & settings.enableTcpServer, "enableTcpServer", nullptr, },
-    { 1, 1, 0, 1, 1, 1, 1, 1, 1, ALL, 1, _uint16_t, 0, & settings.tcpServerPort, "tcpServerPort", nullptr, },
-    { 1, 1, 0, 1, 1, 1, 1, 1, 1, ALL, 1, _bool,     0, & settings.tcpOverWiFiStation, "tcpOverWiFiStation", nullptr, },
+    { 0, 0, 0, 1, 1, 1, 1, 1, ALL, 1, _bool,     0, & settings.debugTcpServer, "debugTcpServer", nullptr, },
+    { 1, 1, 0, 1, 1, 1, 1, 1, ALL, 1, _bool,     0, & settings.enableTcpServer, "enableTcpServer", nullptr, },
+    { 1, 1, 0, 1, 1, 1, 1, 1, ALL, 1, _uint16_t, 0, & settings.tcpServerPort, "tcpServerPort", nullptr, },
+    { 1, 1, 0, 1, 1, 1, 1, 1, ALL, 1, _bool,     0, & settings.tcpOverWiFiStation, "tcpOverWiFiStation", nullptr, },
 
     // Time Zone
-    { 0, 0, 0, 1, 1, 1, 1, 1, 1, ALL, 1, _int8_t,   0, & settings.timeZoneHours, "timeZoneHours", nullptr, },
-    { 0, 0, 0, 1, 1, 1, 1, 1, 1, ALL, 1, _int8_t,   0, & settings.timeZoneMinutes, "timeZoneMinutes", nullptr, },
-    { 0, 0, 0, 1, 1, 1, 1, 1, 1, ALL, 1, _int8_t,   0, & settings.timeZoneSeconds, "timeZoneSeconds", nullptr, },
+    { 0, 0, 0, 1, 1, 1, 1, 1, ALL, 1, _int8_t,   0, & settings.timeZoneHours, "timeZoneHours", nullptr, },
+    { 0, 0, 0, 1, 1, 1, 1, 1, ALL, 1, _int8_t,   0, & settings.timeZoneMinutes, "timeZoneMinutes", nullptr, },
+    { 0, 0, 0, 1, 1, 1, 1, 1, ALL, 1, _int8_t,   0, & settings.timeZoneSeconds, "timeZoneSeconds", nullptr, },
 
-//                         F
-//                         a
-//                   F     c
-//    i              a     e
-//    n  i           c     t
+//                   F
+//    i              a
+//    n  i           c
 //    W  n  u        e
-//    e  C  s     F  t     V  P  F    T
-//    b  o  e     a        2  o  a    o
-//    C  m  S     c  M        s  c    r
-//    o  m  u     e  o  T  L  t  e    c
-//    n  a  f     t  s  o  B  c  t    h
-//    f  n  f  E     a  r  a  a        
-//    i  d  i  v  V  i  c  n  r  F    X
-//    g  s  x  k  2  c  h  d  d  P    2  Type       Qual                Variable                  Name              afterSetCmd
+//    e  C  s     F  t     P  F    T
+//    b  o  e     a        o  a    o
+//    C  m  S     c  M     s  c    r
+//    o  m  u     e  o  T  t  e    c
+//    n  a  f     t  s  o  c  t    h
+//    f  n  f  E     a  r  a        
+//    i  d  i  v  V  i  c  r  F    X
+//    g  s  x  k  2  c  h  d  P    2  Type       Qual                Variable                  Name              afterSetCmd
 
     // ublox GNSS Receiver
 #ifdef COMPILE_ZED
-    { 1, 1, 1, 1, 1, 0, 0, 1, 0, ZED, 0, tUbxConst, MAX_UBX_CONSTELLATIONS, & settings.ubxConstellations[0], "constellation_", gnssCmdUpdateConstellations, },
-    { 0, 1, 1, 1, 1, 0, 0, 1, 0, ZED, 0, tUbxMsgRt, MAX_UBX_MSG, & settings.ubxMessageRates[0], "ubxMessageRate_", gnssCmdUpdateMessageRates, },
-    { 0, 1, 1, 1, 1, 0, 0, 1, 0, ZED, 0, tUbMsgRtb, MAX_UBX_MSG_RTCM, & settings.ubxMessageRatesBase[0], "ubxMessageRateBase_", gnssCmdUpdateMessageRates, },
+    { 1, 1, 1, 1, 1, 0, 0, 0, ZED, 0, tUbxConst, MAX_UBX_CONSTELLATIONS, & settings.ubxConstellations[0], "constellation_", gnssCmdUpdateConstellations, },
+    { 0, 1, 1, 1, 1, 0, 0, 0, ZED, 0, tUbxMsgRt, MAX_UBX_MSG, & settings.ubxMessageRates[0], "ubxMessageRate_", gnssCmdUpdateMessageRates, },
+    { 0, 1, 1, 1, 1, 0, 0, 0, ZED, 0, tUbMsgRtb, MAX_UBX_MSG_RTCM, & settings.ubxMessageRatesBase[0], "ubxMessageRateBase_", gnssCmdUpdateMessageRates, },
 #endif // COMPILE_ZED
 
     // UDP Server
-    { 0, 0, 0, 1, 1, 1, 1, 1, 1, ALL, 1, _bool,     0, & settings.debugUdpServer, "debugUdpServer", nullptr, },
-    { 1, 1, 0, 1, 1, 1, 1, 1, 1, ALL, 1, _bool,     0, & settings.enableUdpServer, "enableUdpServer", nullptr, },
-    { 1, 1, 0, 1, 1, 1, 1, 1, 1, ALL, 1, _uint16_t, 0, & settings.udpServerPort, "udpServerPort", nullptr, },
-    { 1, 1, 0, 1, 1, 1, 1, 1, 1, ALL, 1, _bool,     0, & settings.udpOverWiFiStation, "udpOverWiFiStation", nullptr, },
+    { 0, 0, 0, 1, 1, 1, 1, 1, ALL, 1, _bool,     0, & settings.debugUdpServer, "debugUdpServer", nullptr, },
+    { 1, 1, 0, 1, 1, 1, 1, 1, ALL, 1, _bool,     0, & settings.enableUdpServer, "enableUdpServer", nullptr, },
+    { 1, 1, 0, 1, 1, 1, 1, 1, ALL, 1, _uint16_t, 0, & settings.udpServerPort, "udpServerPort", nullptr, },
+    { 1, 1, 0, 1, 1, 1, 1, 1, ALL, 1, _bool,     0, & settings.udpOverWiFiStation, "udpOverWiFiStation", nullptr, },
 
-//                         F
-//                         a
-//                   F     c
-//    i              a     e
-//    n  i           c     t
+//                   F
+//    i              a
+//    n  i           c
 //    W  n  u        e
-//    e  C  s     F  t     V  P  F    T
-//    b  o  e     a        2  o  a    o
-//    C  m  S     c  M        s  c    r
-//    o  m  u     e  o  T  L  t  e    c
-//    n  a  f     t  s  o  B  c  t    h
-//    f  n  f  E     a  r  a  a        
-//    i  d  i  v  V  i  c  n  r  F    X
-//    g  s  x  k  2  c  h  d  d  P    2  Type       Qual                Variable                  Name              afterSetCmd
-    { 1, 1, 0, 0, 0, 0, 1, 0, 0, ALL, 0, _bool,     3, & settings.enableMultipathMitigation, "enableMultipathMitigation", nullptr, },
-    { 0, 0, 0, 0, 0, 0, 1, 0, 0, ALL, 0, _bool,     0, & settings.enableImuCompensationDebug, "enableImuCompensationDebug", nullptr, },
-    { 0, 0, 0, 0, 0, 0, 1, 0, 0, ALL, 0, _bool,     0, & settings.enableImuDebug, "enableImuDebug", nullptr, },
-    { 1, 1, 0, 0, 0, 0, 1, 0, 0, ALL, 0, _bool,     0, & settings.enableTiltCompensation, "enableTiltCompensation", nullptr, },
+//    e  C  s     F  t     P  F    T
+//    b  o  e     a        o  a    o
+//    C  m  S     c  M     s  c    r
+//    o  m  u     e  o  T  t  e    c
+//    n  a  f     t  s  o  c  t    h
+//    f  n  f  E     a  r  a        
+//    i  d  i  v  V  i  c  r  F    X
+//    g  s  x  k  2  c  h  d  P    2  Type       Qual                Variable                  Name              afterSetCmd
+    { 1, 1, 0, 0, 0, 0, 1, 0, ALL, 0, _bool,     3, & settings.enableMultipathMitigation, "enableMultipathMitigation", nullptr, },
+    { 0, 0, 0, 0, 0, 0, 1, 0, ALL, 0, _bool,     0, & settings.enableImuCompensationDebug, "enableImuCompensationDebug", nullptr, },
+    { 0, 0, 0, 0, 0, 0, 1, 0, ALL, 0, _bool,     0, & settings.enableImuDebug, "enableImuDebug", nullptr, },
+    { 1, 1, 0, 0, 0, 0, 1, 0, ALL, 0, _bool,     0, & settings.enableTiltCompensation, "enableTiltCompensation", nullptr, },
 
     // UM980 GNSS Receiver
 #ifdef  COMPILE_UM980
-    { 1, 1, 1, 0, 0, 0, 1, 0, 0, U98, 0, tUmConst,  MAX_UM980_CONSTELLATIONS, & settings.um980Constellations, "constellation_", gnssCmdUpdateConstellations, },
-    { 0, 1, 1, 0, 0, 0, 1, 0, 0, U98, 0, tUmMRNmea, MAX_UM980_NMEA_MSG, & settings.um980MessageRatesNMEA, "messageRateNMEA_", gnssCmdUpdateMessageRates, },
-    { 0, 1, 1, 0, 0, 0, 1, 0, 0, U98, 0, tUmMRBaRT, MAX_UM980_RTCM_MSG, & settings.um980MessageRatesRTCMBase, "messageRateRTCMBase_", gnssCmdUpdateMessageRates, },
-    { 0, 1, 1, 0, 0, 0, 1, 0, 0, U98, 0, tUmMRRvRT, MAX_UM980_RTCM_MSG, & settings.um980MessageRatesRTCMRover, "messageRateRTCMRover_", gnssCmdUpdateMessageRates, },
+    { 1, 1, 1, 0, 0, 0, 1, 0, U98, 0, tUmConst,  MAX_UM980_CONSTELLATIONS, & settings.um980Constellations, "constellation_", gnssCmdUpdateConstellations, },
+    { 0, 1, 1, 0, 0, 0, 1, 0, U98, 0, tUmMRNmea, MAX_UM980_NMEA_MSG, & settings.um980MessageRatesNMEA, "messageRateNMEA_", gnssCmdUpdateMessageRates, },
+    { 0, 1, 1, 0, 0, 0, 1, 0, U98, 0, tUmMRBaRT, MAX_UM980_RTCM_MSG, & settings.um980MessageRatesRTCMBase, "messageRateRTCMBase_", gnssCmdUpdateMessageRates, },
+    { 0, 1, 1, 0, 0, 0, 1, 0, U98, 0, tUmMRRvRT, MAX_UM980_RTCM_MSG, & settings.um980MessageRatesRTCMRover, "messageRateRTCMRover_", gnssCmdUpdateMessageRates, },
 #endif  // COMPILE_UM980
 
     // Web Server
-    { 0, 0, 0, 1, 1, 1, 1, 1, 1, ALL, 1, _uint16_t, 0, & settings.httpPort, "httpPort", nullptr, },
+    { 0, 0, 0, 1, 1, 1, 1, 1, ALL, 1, _uint16_t, 0, & settings.httpPort, "httpPort", nullptr, },
 
     // WiFi
-    { 0, 0, 0, 1, 1, 1, 1, 1, 1, ALL, 1, _bool,     0, & settings.debugWebServer, "debugWebServer", nullptr, },
-    { 0, 0, 0, 1, 1, 1, 1, 1, 1, ALL, 1, _bool,     0, & settings.debugWifiState, "debugWifiState", nullptr, },
-    { 0, 0, 0, 1, 1, 1, 1, 1, 1, ALL, 1, _bool,     0, & settings.enableCaptivePortal, "enableCaptivePortal", nullptr, },
-    { 0, 1, 0, 1, 1, 1, 1, 1, 1, ALL, 1, _uint8_t,  0, & settings.wifiChannel, "wifiChannel", nullptr, },
-    { 1, 0, 0, 1, 1, 1, 1, 1, 1, ALL, 1, _bool,     0, & settings.wifiConfigOverAP, "wifiConfigOverAP", nullptr, },
-    { 1, 1, 1, 1, 1, 1, 1, 1, 1, ALL, 1, tWiFiNet,  MAX_WIFI_NETWORKS, & settings.wifiNetworks, "wifiNetwork_", nullptr, },
-    { 0, 0, 0, 1, 1, 1, 1, 1, 1, ALL, 1, _uint32_t, 0, & settings.wifiConnectTimeoutMs, "wifiConnectTimeoutMs", nullptr, },
+    { 0, 0, 0, 1, 1, 1, 1, 1, ALL, 1, _bool,     0, & settings.debugWebServer, "debugWebServer", nullptr, },
+    { 0, 0, 0, 1, 1, 1, 1, 1, ALL, 1, _bool,     0, & settings.debugWifiState, "debugWifiState", nullptr, },
+    { 0, 0, 0, 1, 1, 1, 1, 1, ALL, 1, _bool,     0, & settings.enableCaptivePortal, "enableCaptivePortal", nullptr, },
+    { 0, 1, 0, 1, 1, 1, 1, 1, ALL, 1, _uint8_t,  0, & settings.wifiChannel, "wifiChannel", nullptr, },
+    { 1, 0, 0, 1, 1, 1, 1, 1, ALL, 1, _bool,     0, & settings.wifiConfigOverAP, "wifiConfigOverAP", nullptr, },
+    { 1, 1, 1, 1, 1, 1, 1, 1, ALL, 1, tWiFiNet,  MAX_WIFI_NETWORKS, & settings.wifiNetworks, "wifiNetwork_", nullptr, },
+    { 0, 0, 0, 1, 1, 1, 1, 1, ALL, 1, _uint32_t, 0, & settings.wifiConnectTimeoutMs, "wifiConnectTimeoutMs", nullptr, },
 
-    { 1, 1, 0, 1, 1, 1, 1, 1, 1, ALL, 1, _bool,     0, & settings.outputTipAltitude, "outputTipAltitude", nullptr, },
+    { 1, 1, 0, 1, 1, 1, 1, 1, ALL, 1, _bool,     0, & settings.outputTipAltitude, "outputTipAltitude", nullptr, },
 
     // Localized distribution
-    { 1, 0, 0, 1, 1, 0, 1, 1, 1, ALL, 1, _bool,     0, & settings.useLocalizedDistribution, "useLocalizedDistribution", nullptr, },
-    { 1, 0, 0, 1, 1, 0, 1, 1, 1, ALL, 1, _uint8_t,  0, & settings.localizedDistributionTileLevel, "localizedDistributionTileLevel", nullptr, },
-    { 1, 0, 0, 1, 1, 0, 1, 1, 1, ALL, 1, _bool,     0, & settings.useAssistNow, "useAssistNow", nullptr, },
+    { 1, 0, 0, 1, 1, 0, 1, 1, ALL, 1, _bool,     0, & settings.useLocalizedDistribution, "useLocalizedDistribution", nullptr, },
+    { 1, 0, 0, 1, 1, 0, 1, 1, ALL, 1, _uint8_t,  0, & settings.localizedDistributionTileLevel, "localizedDistributionTileLevel", nullptr, },
+    { 1, 0, 0, 1, 1, 0, 1, 1, ALL, 1, _bool,     0, & settings.useAssistNow, "useAssistNow", nullptr, },
 
-    { 1, 1, 0, 1, 1, 1, 1, 1, 1, ALL, 1, _bool,     0, & settings.requestKeyUpdate, "requestKeyUpdate", nullptr, },
+    { 1, 1, 0, 1, 1, 1, 1, 1, ALL, 1, _bool,     0, & settings.requestKeyUpdate, "requestKeyUpdate", nullptr, },
 
     // LoRa
-    { 1, 1, 0, 0, 0, 0, 1, 0, 0, ALL, 0, _bool,     0, & settings.enableLora, "enableLora", nullptr, },
-    { 1, 1, 0, 0, 0, 0, 1, 0, 0, ALL, 0, _float,    3, & settings.loraCoordinationFrequency, "loraCoordinationFrequency", nullptr, },
-    { 0, 0, 0, 0, 0, 0, 1, 0, 0, ALL, 0, _bool,     3, & settings.debugLora, "debugLora", nullptr, },
-    { 1, 1, 0, 0, 0, 0, 1, 0, 0, ALL, 0, _int,      3, & settings.loraSerialInteractionTimeout_s, "loraSerialInteractionTimeout_s", nullptr, },
+    { 1, 1, 0, 0, 0, 0, 1, 0, ALL, 0, _bool,     0, & settings.enableLora, "enableLora", nullptr, },
+    { 1, 1, 0, 0, 0, 0, 1, 0, ALL, 0, _float,    3, & settings.loraCoordinationFrequency, "loraCoordinationFrequency", nullptr, },
+    { 0, 0, 0, 0, 0, 0, 1, 0, ALL, 0, _bool,     3, & settings.debugLora, "debugLora", nullptr, },
+    { 1, 1, 0, 0, 0, 0, 1, 0, ALL, 0, _int,      3, & settings.loraSerialInteractionTimeout_s, "loraSerialInteractionTimeout_s", nullptr, },
 
-//                         F
-//                         a
-//                   F     c
-//    i              a     e
-//    n  i           c     t
+//                   F
+//    i              a
+//    n  i           c
 //    W  n  u        e
-//    e  C  s     F  t     V  P  F    T
-//    b  o  e     a        2  o  a    o
-//    C  m  S     c  M        s  c    r
-//    o  m  u     e  o  T  L  t  e    c
-//    n  a  f     t  s  o  B  c  t    h
-//    f  n  f  E     a  r  a  a        
-//    i  d  i  v  V  i  c  n  r  F    X
-//    g  s  x  k  2  c  h  d  d  P    2  Type       Qual                Variable                  Name              afterSetCmd
+//    e  C  s     F  t     P  F    T
+//    b  o  e     a        o  a    o
+//    C  m  S     c  M     s  c    r
+//    o  m  u     e  o  T  t  e    c
+//    n  a  f     t  s  o  c  t    h
+//    f  n  f  E     a  r  a        
+//    i  d  i  v  V  i  c  r  F    X
+//    g  s  x  k  2  c  h  d  P    2  Type       Qual                Variable                  Name              afterSetCmd
 #ifdef  COMPILE_LG290P
-    { 1, 1, 1, 0, 0, 0, 0, 0, 1, L29, 1, tLgConst,  MAX_LG290P_CONSTELLATIONS, & settings.lg290pConstellations, "constellation_", gnssCmdUpdateConstellations, },
-    { 0, 1, 1, 0, 0, 0, 0, 0, 1, L29, 1, tLgMRNmea, MAX_LG290P_NMEA_MSG, & settings.lg290pMessageRatesNMEA, "messageRateNMEA_", gnssCmdUpdateMessageRates, },
-    { 0, 1, 1, 0, 0, 0, 0, 0, 1, L29, 1, tLgMRBaRT, MAX_LG290P_RTCM_MSG, & settings.lg290pMessageRatesRTCMBase, "messageRateRTCMBase_", gnssCmdUpdateMessageRates, },
-    { 0, 1, 1, 0, 0, 0, 0, 0, 1, L29, 1, tLgMRRvRT, MAX_LG290P_RTCM_MSG, & settings.lg290pMessageRatesRTCMRover, "messageRateRTCMRover_", gnssCmdUpdateMessageRates, },
-    { 0, 1, 1, 0, 0, 0, 0, 0, 1, L29, 1, tLgMRPqtm, MAX_LG290P_PQTM_MSG, & settings.lg290pMessageRatesPQTM, "messageRatePQTM_", gnssCmdUpdateMessageRates, },
+    { 1, 1, 1, 0, 0, 0, 0, 1, L29, 1, tLgConst,  MAX_LG290P_CONSTELLATIONS, & settings.lg290pConstellations, "constellation_", gnssCmdUpdateConstellations, },
+    { 0, 1, 1, 0, 0, 0, 0, 1, L29, 1, tLgMRNmea, MAX_LG290P_NMEA_MSG, & settings.lg290pMessageRatesNMEA, "messageRateNMEA_", gnssCmdUpdateMessageRates, },
+    { 0, 1, 1, 0, 0, 0, 0, 1, L29, 1, tLgMRBaRT, MAX_LG290P_RTCM_MSG, & settings.lg290pMessageRatesRTCMBase, "messageRateRTCMBase_", gnssCmdUpdateMessageRates, },
+    { 0, 1, 1, 0, 0, 0, 0, 1, L29, 1, tLgMRRvRT, MAX_LG290P_RTCM_MSG, & settings.lg290pMessageRatesRTCMRover, "messageRateRTCMRover_", gnssCmdUpdateMessageRates, },
+    { 0, 1, 1, 0, 0, 0, 0, 1, L29, 1, tLgMRPqtm, MAX_LG290P_PQTM_MSG, & settings.lg290pMessageRatesPQTM, "messageRatePQTM_", gnssCmdUpdateMessageRates, },
 #endif  // COMPILE_LG290P
 
-    { 0, 0, 0, 1, 1, 1, 1, 1, 1, ALL, 1, _bool,     0, & settings.debugSettings, "debugSettings", nullptr, },
-    { 1, 1, 0, 1, 1, 1, 1, 1, 1, ALL, 1, _bool,     0, & settings.enableNtripCaster, "enableNtripCaster", nullptr, },
-    { 0, 1, 0, 1, 1, 1, 1, 1, 1, ALL, 1, _bool,     0, & settings.baseCasterOverride, "baseCasterOverride", nullptr, },
-    { 0, 0, 0, 1, 1, 1, 1, 1, 1, ALL, 1, _bool,     0, & settings.debugCLI, "debugCLI", nullptr, },
-    { 0, 0, 0, 1, 1, 1, 1, 1, 1, ALL, 1, _uint16_t, 0, & settings.cliBlePrintDelay_ms, "cliBlePrintDelay_ms", nullptr, },
-    { 0, 0, 0, 1, 1, 1, 1, 1, 1, ALL, 1, _uint32_t, 0, & settings.gnssConfigureRequest, "gnssConfigureRequest", nullptr, },
+    { 0, 0, 0, 1, 1, 1, 1, 1, ALL, 1, _bool,     0, & settings.debugSettings, "debugSettings", nullptr, },
+    { 1, 1, 0, 1, 1, 1, 1, 1, ALL, 1, _bool,     0, & settings.enableNtripCaster, "enableNtripCaster", nullptr, },
+    { 0, 1, 0, 1, 1, 1, 1, 1, ALL, 1, _bool,     0, & settings.baseCasterOverride, "baseCasterOverride", nullptr, },
+    { 0, 0, 0, 1, 1, 1, 1, 1, ALL, 1, _bool,     0, & settings.debugCLI, "debugCLI", nullptr, },
+    { 0, 0, 0, 1, 1, 1, 1, 1, ALL, 1, _uint16_t, 0, & settings.cliBlePrintDelay_ms, "cliBlePrintDelay_ms", nullptr, },
+    { 0, 0, 0, 1, 1, 1, 1, 1, ALL, 1, _uint32_t, 0, & settings.gnssConfigureRequest, "gnssConfigureRequest", nullptr, },
 
-    { 1, 1, 0, 0, 0, 0, 1, 0, 1, HAS, 1, _int,      0, & settings.pppMode, "pppMode", nullptr, },
-    { 1, 1, 0, 0, 0, 0, 0, 0, 1, HAS, 1, _int,      0, & settings.pppDatum, "pppDatum", nullptr, },
-    { 1, 1, 0, 0, 0, 0, 0, 0, 1, HAS, 1, _int,      0, & settings.pppTimeout, "pppTimeout", nullptr, },
-    { 1, 1, 0, 0, 0, 0, 0, 0, 1, HAS, 1, _float,    1, & settings.pppHorizontalConvergence, "pppHorizontalConvergence", nullptr, },
-    { 1, 1, 0, 0, 0, 0, 0, 0, 1, HAS, 1, _float,    1, & settings.pppVerticalConvergence, "pppVerticalConvergence", nullptr, },
+    { 1, 1, 0, 0, 0, 0, 1, 1, HAS, 1, _int,      0, & settings.pppMode, "pppMode", nullptr, },
+    { 1, 1, 0, 0, 0, 0, 0, 1, HAS, 1, _int,      0, & settings.pppDatum, "pppDatum", nullptr, },
+    { 1, 1, 0, 0, 0, 0, 0, 1, HAS, 1, _int,      0, & settings.pppTimeout, "pppTimeout", nullptr, },
+    { 1, 1, 0, 0, 0, 0, 0, 1, HAS, 1, _float,    1, & settings.pppHorizontalConvergence, "pppHorizontalConvergence", nullptr, },
+    { 1, 1, 0, 0, 0, 0, 0, 1, HAS, 1, _float,    1, & settings.pppVerticalConvergence, "pppVerticalConvergence", nullptr, },
 
     // Add new settings to appropriate group above or create new group
     // Then also add to the same group in settings above
-//                         F
-//                         a
-//                   F     c
-//    i              a     e
-//    n  i           c     t
+
+//                   F
+//    i              a
+//    n  i           c
 //    W  n  u        e
-//    e  C  s     F  t     V  P  F    T
-//    b  o  e     a        2  o  a    o
-//    C  m  S     c  M        s  c    r
-//    o  m  u     e  o  T  L  t  e    c
-//    n  a  f     t  s  o  B  c  t    h
-//    f  n  f  E     a  r  a  a        
-//    i  d  i  v  V  i  c  n  r  F    X
-//    g  s  x  k  2  c  h  d  d  P    2  Type       Qual                Variable                  Name              afterSetCmd
+//    e  C  s     F  t     P  F    T
+//    b  o  e     a        o  a    o
+//    C  m  S     c  M     s  c    r
+//    o  m  u     e  o  T  t  e    c
+//    n  a  f     t  s  o  c  t    h
+//    f  n  f  E     a  r  a        
+//    i  d  i  v  V  i  c  r  F    X
+//    g  s  x  k  2  c  h  d  P    2  Type       Qual                Variable                  Name              afterSetCmd
     /*
-    { 1, 1, 0, 1, 1, 1, 1, 1, 1, ALL, 1,     0, & settings., ""},
+    { 1, 1, 0, 1, 1, 1, 1, 1, ALL, 1,     0, & settings., ""},
     */
 };
 
@@ -1895,7 +1864,6 @@ struct struct_present
     bool psram_2mb = false;
     bool psram_4mb = false;
 
-    bool lband_neo = false;
     bool cellular_lara = false;
     bool ethernet_ws5500 = false;
     bool radio_lora = false;
@@ -1980,7 +1948,6 @@ struct struct_online
     bool httpClient = false;
     bool i2c = false;
     bool lband_gnss = false;
-    bool lband_neo = false;
     bool pointPerfectKeysApplied = false;
     bool logging = false;
     bool loraRadio = false;

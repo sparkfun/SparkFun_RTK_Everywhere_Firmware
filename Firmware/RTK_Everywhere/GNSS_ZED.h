@@ -302,7 +302,6 @@ class GNSS_ZED : GNSS
     uint8_t aStatus = SFE_UBLOX_ANTENNA_STATUS_DONTKNOW;
 
     // If we have decryption keys, configure module
-    // Note: don't check online.lband_neo here. We could be using ip corrections
     void applyPointPerfectKeys();
 
     // Set RTCM for base mode to defaults (1005/1074/1084/1094/1124 1Hz & 1230 0.1Hz)
