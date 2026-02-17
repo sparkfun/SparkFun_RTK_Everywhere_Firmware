@@ -2847,32 +2847,6 @@ uint32_t GNSS_ZED::baudGetMaximum()
     return (zedAllowedRates[zedAllowedRatesCount - 1]);
 }
 
-// Check if the PMP data is being decrypted successfully
-// TODO: this needs more work:
-//   If the user is feeding in RTCM3 on UART2, that gets reported
-//   If the user is feeding in unencrypted SPARTN on UART2, that gets reported too
-void checkRXMCOR(UBX_RXM_COR_data_t *ubxDataStruct)
-{
-    if (settings.debugCorrections == true && !inMainMenu && zedCorrectionsSource == 1) // Only print for L-Band
-        systemPrintf("L-Band Eb/N0[dB] (>9 is good): %0.2f\r\n", ubxDataStruct->ebno * pow(2, -3));
-
-    lBandEBNO = ubxDataStruct->ebno * pow(2, -3);
-
-    if (ubxDataStruct->statusInfo.bits.msgEncrypted == 2) // If the message was encrypted
-    {
-        if (ubxDataStruct->statusInfo.bits.msgDecrypted == 2) // Successfully decrypted
-        {
-            lbandCorrectionsReceived = true;
-            lastLBandDecryption = millis();
-        }
-        else
-        {
-            if (settings.debugCorrections == true && !inMainMenu)
-                systemPrintln("PMP decryption failed");
-        }
-    }
-}
-
 // ZED-F9x call back
 void eventTriggerReceived(UBX_TIM_TM2_data_t *ubxDataStruct)
 {
