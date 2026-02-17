@@ -1,9 +1,11 @@
-/*
+/*=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
+States.ino
+
   This is the main state machine for the device. It's big but controls each step of the system.
   See system state diagram for a visual representation of how states can change to/from.
   Statemachine diagram:
   https://lucid.app/lucidchart/53519501-9fa5-4352-aa40-673f88ca0c9b/edit?invitationId=inv_ebd4b988-513d-4169-93fd-c291851108f8
-*/
+=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=*/
 
 static uint32_t lastStateTime = 0;
 
@@ -11,7 +13,7 @@ static uint32_t lastStateTime = 0;
 // A user pressing the mode button (change between rover/base) is handled by buttonCheckTask()
 void stateUpdate()
 {
-    if (millis() - lastSystemStateUpdate > 500 || forceSystemStateUpdate == true)
+    if (((millis() - lastSystemStateUpdate) > 500) || (forceSystemStateUpdate == true))
     {
         lastSystemStateUpdate = millis();
         forceSystemStateUpdate = false;
@@ -88,47 +90,47 @@ void stateUpdate()
         */
         case (STATE_ROVER_NOT_STARTED): {
             RTK_MODE(RTK_MODE_ROVER);
-            if (online.gnss == false)
-            {
-                firstRoverStart = false; // If GNSS is offline, we still need to allow button use
-                return;
-            }
 
             baseStatusLedOff();
 
-            // Configure for rover mode
-            displayRoverStart(0);
-            if (gnss->configureRover() == false)
-            {
-                settings.gnssConfiguredRover = false; // On the next boot, reapply all settings
-                recordSystemSettings();           // Record this state for next POR
-
-                systemPrintln("Rover config failed");
-                displayRoverFail(1000);
-                return;
-            }
+            gnssConfigure(GNSS_CONFIG_ROVER); // Request reconfigure to rover mode
 
             setMuxport(settings.dataPortChannel); // Return mux to original channel
 
-            bluetoothStart(); // Turn on Bluetooth with 'Rover' name
+            webServerStop(); // Stop the web config server
 
-            webServerStop();             // Stop the web config server
+            // Start Bluetooth if it is not already started
+            bluetoothStartWithSettings();
+
             baseCasterDisableOverride(); // Disable casting overrides
 
-            // Start the UART connected to the GNSS receiver for NMEA and UBX data (enables logging)
-            if (tasksStartGnssUart() == false)
-                displayRoverFail(1000);
-            else
+            if (online.gnss == false)
             {
-                settings.gnssConfiguredBase = false; // When the mode changes, reapply all settings
+                firstRoverStart = false; // If GNSS is offline, we still need to allow button use
+
+                // Allow a device with a failed GNSS connection to advance through states, including display updates
+                changeState(STATE_ROVER_NO_FIX);
+            }
+
+            // Start the UART connected to the GNSS receiver for NMEA data (enables logging)
+            else if (tasksStartGnssUart() == true)
+            {
                 settings.lastState = STATE_ROVER_NOT_STARTED;
                 recordSystemSettings(); // Record this state for next POR
 
-                displayRoverSuccess(500);
-
-                changeState(STATE_ROVER_NO_FIX);
+                changeState(STATE_ROVER_CONFIG_WAIT);
 
                 firstRoverStart = false; // Do not allow entry into test menu again
+            }
+        }
+        break;
+
+        case (STATE_ROVER_CONFIG_WAIT): {
+            if (gnssConfigureComplete())
+            {
+                systemPrintln("Rover configured");
+                displayRoverSuccess(500); // Show 'Rover Started'
+                changeState(STATE_ROVER_NO_FIX);
             }
         }
         break;
@@ -164,6 +166,17 @@ void stateUpdate()
         break;
 
             /*
+                              .-----------------------------------.
+                              |  STATE_BASE_ASSIST_NOT_STARTED    |
+                              |            Text: 'Base'           |
+                              '-----------------------------------'
+                                                |
+                                                | Copy current position into settings
+                                                | Set fixedBase true
+                                                | STATE_BASE_NOT_STARTED falls into
+                                                | STATE_BASE_FIXED_NOT_STARTED
+                                                |
+                                                V
                               .-----------------------------------.
                   startBase() |      STATE_BASE_NOT_STARTED       |
                  .------------|            Text: 'Base'           |
@@ -208,13 +221,74 @@ void stateUpdate()
         case (STATE_BASE_CASTER_NOT_STARTED): {
             baseCasterEnableOverride();
 
-            wifiSoftApSsid = "RTK Caster";
+            changeState(STATE_BASE_NOT_STARTED);
+        }
+        break;
+
+        // User wants to switch to fixed base, using the current position as
+        // the fixed base position.
+        // Note: this works when switching from Rover (e.g. with RTK Fix)
+        //       or when switching from Temporary Base (after Survey-In)
+        case (STATE_BASE_ASSIST_NOT_STARTED): {
+            // Mark RTK_MODE as BASE_UNDECIDED to avoid starting NTRIP Client when we do not need it
+            RTK_MODE(RTK_MODE_BASE_UNDECIDED);
+            firstRoverStart = false; // If base is starting, no test menu, normal button use.
+
+            if (online.gnss == false)
+                return;
+
+            // Copy current position into fixed base position
+            settings.fixedBase = true;
+            if (settings.fixedBaseCoordinateType == COORD_TYPE_GEODETIC)
+            {
+                settings.fixedLat = gnss->getLatitude();
+                settings.fixedLong = gnss->getLongitude();
+
+                // See issue #809
+                // gnss->getAltitude() will always return Height above ellipsoid
+                // even if the underlying library getAltitude does not
+                settings.fixedAltitude = gnss->getAltitude();
+
+                // Subtract the antennaHeight and antennaPhaseCenter
+                // settings.fixedAltitude is the pole tip altitude, not the GNSS antenna altitude
+                settings.fixedAltitude -= ((settings.antennaHeight_mm + settings.antennaPhaseCenter_mm) / 1000.0);
+
+                systemPrint("Switching to Fixed Base mode using:");
+                systemPrint(" Lat: ");
+                systemPrint(settings.fixedLat, haeNumberOfDecimals);
+                systemPrint(", Lon: ");
+                systemPrint(settings.fixedLong, haeNumberOfDecimals);
+                systemPrint(", Alt: ");
+                systemPrintln(settings.fixedAltitude, 4);
+            }
+            else
+            {
+                double ecefX = 0;
+                double ecefY = 0;
+                double ecefZ = 0;
+                // Don't subtract antennaHeight_mm + antennaPhaseCenter_mm
+                geodeticToEcef(gnss->getLatitude(), gnss->getLongitude(), gnss->getAltitude(), &ecefX, &ecefY, &ecefZ);
+                settings.fixedEcefX = ecefX;
+                settings.fixedEcefY = ecefY;
+                settings.fixedEcefZ = ecefZ;
+
+                systemPrint("Switching to Fixed Base mode using ECEF: ");
+                systemPrint(settings.fixedEcefX, 4);
+                systemPrint(",");
+                systemPrint(settings.fixedEcefY, 4);
+                systemPrint(",");
+                systemPrintln(settings.fixedEcefZ, 4);
+            }
+
+            // STATE_BASE_NOT_STARTED will record settings for next POR
+
             changeState(STATE_BASE_NOT_STARTED);
         }
         break;
 
         case (STATE_BASE_NOT_STARTED): {
-            RTK_MODE(RTK_MODE_BASE_SURVEY_IN);
+            // Mark RTK_MODE as BASE_UNDECIDED to avoid starting NTRIP Client when we may not need it
+            RTK_MODE(RTK_MODE_BASE_UNDECIDED);
             firstRoverStart = false; // If base is starting, no test menu, normal button use.
 
             if (online.gnss == false)
@@ -222,42 +296,49 @@ void stateUpdate()
 
             baseStatusLedOff();
 
-            displayBaseStart(0); // Show 'Base'
-
-            bluetoothStop();
-            bluetoothStart(); // Restart Bluetooth with 'Base' identifier
+            gnssConfigure(GNSS_CONFIG_BASE); // Request reconfigure to base mode
 
             webServerStop(); // Stop the web config server
 
-            // Start the UART connected to the GNSS receiver for NMEA and UBX data (enables logging)
-            if (tasksStartGnssUart() && gnss->configureBase())
+            // Start Bluetooth if it is not already started
+            bluetoothStartWithSettings();
+
+            // Start the UART connected to the GNSS receiver for NMEA data (enables logging)
+            if (tasksStartGnssUart())
             {
-                // settings.gnssConfiguredBase is set by gnss->configureBase()
-                settings.gnssConfiguredRover = false; // When the mode changes, reapply all settings
                 settings.lastState = STATE_BASE_NOT_STARTED; // Record this state for next POR
-                recordSystemSettings(); // Record this state for next POR
+                recordSystemSettings();                      // Record this state for next POR
 
-                displayBaseSuccess(500); // Show 'Base Started'
-
-                if (settings.fixedBase == false)
-                    changeState(STATE_BASE_TEMP_SETTLE);
-                else
-                    changeState(STATE_BASE_FIXED_NOT_STARTED);
-            }
-            else
-            {
-                settings.gnssConfiguredBase = false; // On the next boot, reapply all settings
-                recordSystemSettings();          // Record this state for next POR
-
-                displayBaseFail(1000);
+                changeState(STATE_BASE_CONFIG_WAIT);
             }
         }
         break;
 
-        // Wait for horz acc of 5m or less before starting survey in
+        case (STATE_BASE_CONFIG_WAIT): {
+            if (gnssConfigureComplete())
+            {
+                systemPrintln("Base configured");
+                displayBaseSuccess(500); // Show 'Base Started'
+
+                if (settings.fixedBase == false)
+                {
+                    changeState(STATE_BASE_TEMP_SETTLE);
+                    RTK_MODE(RTK_MODE_BASE_SURVEY_IN); // Now allow NTRIP Client to start
+                }
+                else
+                {
+                    gnssConfigure(GNSS_CONFIG_BASE_FIXED); // Request start of fixed base
+                    changeState(STATE_BASE_FIXED_NOT_STARTED);
+                    RTK_MODE(RTK_MODE_BASE_FIXED); // Now allow NTRIP Server to start
+                }
+            }
+        }
+        break;
+
+        // Wait for horizontal accuracy to reach a certain level before starting survey in
         case (STATE_BASE_TEMP_SETTLE): {
             // Blink base LED slowly while we wait for first fix
-            if (millis() - lastBaseLEDupdate > 1000)
+            if ((millis() - lastBaseLEDupdate) > 1000)
             {
                 lastBaseLEDupdate = millis();
 
@@ -267,29 +348,27 @@ void stateUpdate()
             int siv = gnss->getSatellitesInView();
             float hpa = gnss->getHorizontalAccuracy();
 
-            // Check for <1m horz accuracy before starting surveyIn
+            // Check for horizontal accuracy threshold before starting survey in
             char accuracy[20];
             char temp[20];
             const char *units = getHpaUnits(hpa, temp, sizeof(temp), 2, true);
-            // gnssGetSurveyInStartingAccuracy is 10m max
-            const char *accUnits =
-                getHpaUnits(gnss->getSurveyInStartingAccuracy(), accuracy, sizeof(accuracy), 2, false);
+
+            // surveyInStartingAccuracy is 10m max
+            const char *accUnits = getHpaUnits(settings.surveyInStartingAccuracy, accuracy, sizeof(accuracy), 2, false);
+
             systemPrintf("Waiting for Horz Accuracy < %s (%s): %s%s%s%s, SIV: %d\r\n", accuracy, accUnits, temp,
                          (accUnits != units) ? " (" : "", (accUnits != units) ? units : "",
                          (accUnits != units) ? ")" : "", siv);
 
             // On the mosaic-X5, the HPA is undefined while the GNSS is determining its fixed position
             // We need to skip the HPA check...
-            if ((hpa > 0.0 && hpa < gnss->getSurveyInStartingAccuracy()) || present.gnss_mosaicX5)
+            if ((hpa > 0.0 && hpa < settings.surveyInStartingAccuracy) || present.gnss_mosaicX5)
             {
-                displaySurveyStart(0); // Show 'Survey'
+                gnssConfigure(GNSS_CONFIG_BASE_SURVEY); // Request reconfigure to base survey in mode
 
-                if (gnss->surveyInStart() == true) // Begin survey
-                {
-                    displaySurveyStarted(500); // Show 'Survey Started'
+                displaySurveyStarted(500); // Show 'Survey Started'
 
-                    changeState(STATE_BASE_TEMP_SURVEY_STARTED);
-                }
+                changeState(STATE_BASE_TEMP_SURVEY_STARTED);
             }
         }
         break;
@@ -297,7 +376,7 @@ void stateUpdate()
         // Check survey status until it completes or 15 minutes elapses and we go back to rover
         case (STATE_BASE_TEMP_SURVEY_STARTED): {
             // Blink base LED quickly during survey in
-            if (millis() - lastBaseLEDupdate > 500)
+            if ((millis() - lastBaseLEDupdate) > 500)
             {
                 lastBaseLEDupdate = millis();
 
@@ -363,7 +442,7 @@ void stateUpdate()
                   = false |        Text: "Base Started"       |
             .-------------|                                   |
             |             '-----------------------------------'
-            V                               |
+            V                                 |
           STATE_ROVER_NOT_STARTED             | startBase() = true
           (Rover diagram)                     V
                           .-----------------------------------.
@@ -376,21 +455,12 @@ void stateUpdate()
         */
 
         // User has switched to base with fixed option enabled. Let's configure and try to get there.
-        // If fixed base fails, we'll handle it here
+        // If fixed base fails, gnssConfigure() will attempt again
         case (STATE_BASE_FIXED_NOT_STARTED): {
-            RTK_MODE(RTK_MODE_BASE_FIXED);
-            bool response = gnss->fixedBaseStart();
-            if (response == true)
+            if (gnssConfigureComplete())
             {
                 baseStatusLedOn(); // Turn on the base/status LED
                 changeState(STATE_BASE_FIXED_TRANSMITTING);
-            }
-            else
-            {
-                systemPrintln("Fixed base start failed");
-                displayBaseFail(1000);
-
-                changeState(STATE_ROVER_NOT_STARTED); // Return to rover mode to avoid being in fixed base mode
             }
         }
         break;
@@ -401,7 +471,7 @@ void stateUpdate()
         break;
 
         case (STATE_DISPLAY_SETUP): {
-            if (millis() - lastSetupMenuChange > 10000) // Exit Setup after 10s
+            if (lastSetupMenuChange.millisSinceUpdate() > 10000) // Exit Setup after 10s
             {
                 firstButtonThrownOut = false;
                 changeState(lastSystemState); // Return to the last system state
@@ -422,7 +492,7 @@ void stateUpdate()
 
             displayWebConfigNotStarted(); // Display immediately while we wait for server to start
 
-            bluetoothStop(); // Bluetooth must be stopped to allow enough RAM for AP+STA (firmware check)
+            bluetoothEnd(); // Bluetooth must end to allow enough RAM for AP+STA (firmware check)
             wifiEspNowOff(__FILE__, __LINE__); // We don't need ESP-NOW during web config
 
             // The GNSS UART task is left running to allow GNSS receivers to obtain LLh data for 1Hz page updates
@@ -431,7 +501,6 @@ void stateUpdate()
             for (int serverIndex = 0; serverIndex < NTRIP_SERVER_MAX; serverIndex++)
                 ntripServerStop(serverIndex, true); // Do not allocate new wifiClient
 
-            wifiSoftApSsid = "RTK Config";
             webServerStart(); // Start the webserver state machine for web config
 
             RTK_MODE(RTK_MODE_WEB_CONFIG);
@@ -442,28 +511,31 @@ void stateUpdate()
         case (STATE_WEB_CONFIG): {
             if (incomingSettingsSpot > 0)
             {
-                // Allow for 750ms before we parse buffer for all data to arrive
-                if (millis() - timeSinceLastIncomingSetting > 750)
+                // Allow for 250ms before we parse buffer for all data to arrive
+                if ((millis() - timeSinceLastIncomingSetting) > 250)
                 {
-                    bool changed;
+                    // Confirm receipt so the web interface stops sending the config blob
+                    if (settings.debugWebServer == true)
+                        systemPrintln("Sending receipt confirmation of settings");
+                    webServerSendString("confirmDataReceipt,1,");
 
-                    currentlyParsingData =
-                        true; // Disallow new data to flow from websocket while we are parsing the current data
+                    // Disallow new data to flow from websocket while we are parsing the current data
+                    currentlyParsingData = true;
 
                     systemPrint("Parsing: ");
                     for (int x = 0; x < incomingSettingsSpot; x++)
                         systemWrite(incomingSettings[x]);
                     systemPrintln();
 
-                    //Create temporary copy of Settings, so that we can check if they change while parsing
-                    //Useful for detecting when we need to change WiFi station settings
+                    // Create temporary copy of Settings, so that we can check if they change while parsing
+                    // Useful for detecting when we need to change WiFi station settings
                     wifiSettingsClone();
-                    
-                    parseIncomingSettings();
-                    
-                    settings.gnssConfiguredOnce = false; // On the next boot, reapply all settings
-                    settings.gnssConfiguredBase = false;
-                    settings.gnssConfiguredRover = false;
+
+                    webServerParseIncomingSettings();
+
+                    gnssConfigureDefaults(); // Set all bits in the request bitfield to cause the GNSS receiver to go
+                                             // through a full (re)configuration
+
                     recordSystemSettings(); // Record these settings to unit
 
                     // Clear buffer
@@ -477,27 +549,19 @@ void stateUpdate()
 #ifdef COMPILE_WIFI
 #ifdef COMPILE_AP
             // Handle dynamic requests coming from web config page
-            if (websocketConnected == true)
+            if (webServerIsConnected() == true)
             {
                 // Update the coordinates on the AP page
-                if (millis() - lastDynamicDataUpdate > 1000)
+                if ((millis() - lastDynamicDataUpdate) > 1000)
                 {
                     lastDynamicDataUpdate = millis();
-                    createDynamicDataString(settingsCSV);
-
-                    sendStringToWebsocket(settingsCSV);
+                    webServerSendSettings();
                 }
 
                 // If a firmware version was requested, and obtained, report it back to the web page
                 if (strlen(otaReportedVersion) > 0)
                 {
-                    createFirmwareVersionString(settingsCSV);
-
-                    if (settings.debugWebServer)
-                        systemPrintf("WebServer: Firmware version requested. Sending: %s\r\n", settingsCSV);
-
-                    sendStringToWebsocket(settingsCSV);
-
+                    webServerSendFirmwareVersion();
                     otaReportedVersion[0] = '\0'; // Zero out the reported version
                 }
             }
@@ -510,13 +574,8 @@ void stateUpdate()
         // Setup device for testing
         case (STATE_TEST): {
             // Debounce entry into test menu
-            if (millis() - lastTestMenuChange > 500)
+            if ((millis() - lastTestMenuChange) > 500)
             {
-                tasksStopGnssUart(); // Stop absoring GNSS serial via task
-                zedUartPassed = false;
-
-                gnss->enableRTCMTest();
-
                 RTK_MODE(RTK_MODE_TESTING);
                 changeState(STATE_TESTING);
             }
@@ -542,10 +601,11 @@ void stateUpdate()
 
         case (STATE_ESPNOW_PAIRING_NOT_STARTED): {
 #ifdef COMPILE_ESPNOW
+
             paintEspNowPairing();
 
-            // Start ESP-Now if needed, put ESP-Now into broadcast state
-            espNowBeginPairing();
+            // Let the ESP-NOW state machine know we want to start pairing
+            espnowRequestPair = true;
 
             changeState(STATE_ESPNOW_PAIRING);
 #else  // COMPILE_ESPNOW
@@ -555,19 +615,15 @@ void stateUpdate()
         break;
 
         case (STATE_ESPNOW_PAIRING): {
-            if (espNowProcessRxPairedMessage() == true)
-            {
-                paintEspNowPaired();
-
+            // The ESP-NOW state machine handles the pairing process
+            // Once it exits the pairing process, return to last system state
+            if (espNowIsPairing())
                 // Return to the previous state
                 changeState(lastSystemState);
-            }
-            else
-                espNowSendPairMessage(espNowBroadcastAddr); // Send unit's MAC address over broadcast, no ack, no encryption
         }
         break;
 
-#ifdef COMPILE_ETHERNET
+#ifdef COMPILE_NTP
         case (STATE_NTPSERVER_NOT_STARTED): {
             RTK_MODE(RTK_MODE_NTP);
             firstRoverStart = false; // If NTP is starting, no test menu, normal button use.
@@ -577,12 +633,12 @@ void stateUpdate()
 
             displayNtpStart(500); // Show 'NTP'
 
-            // Start UART connected to the GNSS receiver for NMEA and UBX data (enables logging)
+            // Start UART connected to the GNSS receiver for NMEA data (enables logging)
             if (tasksStartGnssUart() && ntpConfigureUbloxModule())
             {
                 settings.lastState = STATE_NTPSERVER_NOT_STARTED; // Record this state for next POR
-                settings.gnssConfiguredBase = false; // On the next boot, reapply all settings
-                settings.gnssConfiguredRover = false;
+                gnssConfigureDefaults(); // Set all bits in the request bitfield to cause the GNSS receiver to go
+                                         // through a full (re)configuration
                 recordSystemSettings();
 
                 if (online.ethernetNTPServer)
@@ -630,7 +686,7 @@ void stateUpdate()
         }
         break;
 
-#endif // COMPILE_ETHERNET
+#endif // COMPILE_NTP
 
         case (STATE_SHUTDOWN): {
             forceDisplayUpdate = true;
@@ -663,6 +719,8 @@ const char *getState(SystemState state, char *buffer)
     {
     case (STATE_ROVER_NOT_STARTED):
         return "STATE_ROVER_NOT_STARTED";
+    case (STATE_ROVER_CONFIG_WAIT):
+        return "STATE_ROVER_CONFIG_WAIT";
     case (STATE_ROVER_NO_FIX):
         return "STATE_ROVER_NO_FIX";
     case (STATE_ROVER_FIX):
@@ -673,8 +731,12 @@ const char *getState(SystemState state, char *buffer)
         return "STATE_ROVER_RTK_FIX";
     case (STATE_BASE_CASTER_NOT_STARTED):
         return "STATE_BASE_CASTER_NOT_STARTED";
+    case (STATE_BASE_ASSIST_NOT_STARTED):
+        return "STATE_BASE_ASSIST_NOT_STARTED";
     case (STATE_BASE_NOT_STARTED):
         return "STATE_BASE_NOT_STARTED";
+    case (STATE_BASE_CONFIG_WAIT):
+        return "STATE_BASE_CONFIG_WAIT";
     case (STATE_BASE_TEMP_SETTLE):
         return "STATE_BASE_TEMP_SETTLE";
     case (STATE_BASE_TEMP_SURVEY_STARTED):
@@ -685,10 +747,12 @@ const char *getState(SystemState state, char *buffer)
         return "STATE_BASE_FIXED_NOT_STARTED";
     case (STATE_BASE_FIXED_TRANSMITTING):
         return "STATE_BASE_FIXED_TRANSMITTING";
+
     case (STATE_DISPLAY_SETUP):
         return "STATE_DISPLAY_SETUP";
     case (STATE_WEB_CONFIG_NOT_STARTED):
         return "STATE_WEB_CONFIG_NOT_STARTED";
+    case (STATE_WEB_CONFIG_WAIT_FOR_NETWORK):
     case (STATE_WEB_CONFIG):
         return "STATE_WEB_CONFIG";
     case (STATE_TEST):
@@ -764,16 +828,8 @@ void changeState(SystemState newState)
         if (!online.rtc)
             systemPrintf("%s%s%s%s\r\n", asterisk, initialState, arrow, endingState);
         else
-        {
             // Timestamp the state change
-            //          1         2
-            // 12345678901234567890123456
-            // YYYY-mm-dd HH:MM:SS.xxxrn0
-            struct tm timeinfo = rtc.getTimeStruct();
-            char s[30];
-            strftime(s, sizeof(s), "%Y-%m-%d %H:%M:%S", &timeinfo);
-            systemPrintf("%s%s%s%s, %s.%03ld\r\n", asterisk, initialState, arrow, endingState, s, rtc.getMillis());
-        }
+            systemPrintf("%s%s%s%s, %s\r\n", asterisk, initialState, arrow, endingState, getTimeStamp());
     }
 }
 
@@ -785,13 +841,16 @@ typedef struct _RTK_MODE_ENTRY
     SystemState last;
 } RTK_MODE_ENTRY;
 
-const RTK_MODE_ENTRY stateModeTable[] = {{"Rover", STATE_ROVER_NOT_STARTED, STATE_ROVER_RTK_FIX},
-                                         {"Base", STATE_BASE_NOT_STARTED, STATE_BASE_FIXED_TRANSMITTING},
-                                         {"Setup", STATE_DISPLAY_SETUP, STATE_PROFILE},
-                                         {"ESPNOW Pairing", STATE_ESPNOW_PAIRING_NOT_STARTED, STATE_ESPNOW_PAIRING},
-                                         {"Provisioning", STATE_KEYS_REQUESTED, STATE_KEYS_REQUESTED},
-                                         {"NTP", STATE_NTPSERVER_NOT_STARTED, STATE_NTPSERVER_SYNC},
-                                         {"Shutdown", STATE_SHUTDOWN, STATE_SHUTDOWN}};
+const RTK_MODE_ENTRY stateModeTable[] = {
+    {"Rover", STATE_ROVER_NOT_STARTED, STATE_ROVER_RTK_FIX},
+    {"Base Caster", STATE_BASE_CASTER_NOT_STARTED, STATE_BASE_CASTER_NOT_STARTED},
+    {"Base Assist", STATE_BASE_ASSIST_NOT_STARTED, STATE_BASE_ASSIST_NOT_STARTED},
+    {"Base", STATE_BASE_NOT_STARTED, STATE_BASE_FIXED_TRANSMITTING},
+    {"Setup", STATE_DISPLAY_SETUP, STATE_PROFILE}, // Covers SETUP, WEB_CONFIG, TEST
+    {"Provisioning", STATE_KEYS_REQUESTED, STATE_KEYS_REQUESTED},
+    {"ESPNOW Pairing", STATE_ESPNOW_PAIRING_NOT_STARTED, STATE_ESPNOW_PAIRING},
+    {"NTP", STATE_NTPSERVER_NOT_STARTED, STATE_NTPSERVER_SYNC},
+    {"Shutdown", STATE_SHUTDOWN, STATE_SHUTDOWN}};
 const int stateModeTableEntries = sizeof(stateModeTable) / sizeof(stateModeTable[0]);
 
 const char *stateToRtkMode(SystemState state)
@@ -819,7 +878,7 @@ bool inRoverMode()
 
 bool inBaseMode()
 {
-    if (systemState >= STATE_BASE_NOT_STARTED && systemState <= STATE_BASE_FIXED_TRANSMITTING)
+    if (systemState >= STATE_BASE_CASTER_NOT_STARTED && systemState <= STATE_BASE_FIXED_TRANSMITTING)
         return (true);
     return (false);
 }
@@ -851,9 +910,16 @@ void constructSetupDisplay(std::vector<setupButton> *buttons)
 {
     buttons->clear();
 
+    // Can't use inBaseMode() or inRoverMode() here because we are in STATE_DISPLAY_SETUP
     addSetupButton(buttons, "Base", STATE_BASE_NOT_STARTED);
     addSetupButton(buttons, "BaseCast", STATE_BASE_CASTER_NOT_STARTED);
+    if (present.display_type == DISPLAY_128x64)
+        addSetupButton(buttons, "BaseAssist", STATE_BASE_ASSIST_NOT_STARTED);
+    else
+        addSetupButton(buttons, "BaseAsst", STATE_BASE_ASSIST_NOT_STARTED);
+
     addSetupButton(buttons, "Rover", STATE_ROVER_NOT_STARTED);
+
     if (present.ethernet_ws5500 == true)
     {
         addSetupButton(buttons, "NTP", STATE_NTPSERVER_NOT_STARTED);
@@ -884,5 +950,6 @@ void constructSetupDisplay(std::vector<setupButton> *buttons)
             }
         }
     }
+
     addSetupButton(buttons, "Exit", STATE_NOT_SET);
 }

@@ -1,3 +1,7 @@
+/*=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
+Display.ino
+=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=*/
+
 //----------------------------------------
 // Constants
 //----------------------------------------
@@ -84,10 +88,10 @@ enum ICON_POSITION_t
 };
 
 // WiFi icons
-const iconProperty * wifiIconTable[ICON_POSITION_MAX][4]
-{   //          0                       1                       2                       3
-    {&WiFiSymbol0Left64x48,  &WiFiSymbol1Left64x48,  &WiFiSymbol2Left64x48,  &WiFiSymbol3Left64x48},
-    {&WiFiSymbol0128x64,     &WiFiSymbol1128x64,     &WiFiSymbol2128x64,     &WiFiSymbol3128x64},
+const iconProperty *wifiIconTable[ICON_POSITION_MAX][4]{
+    //          0                       1                       2                       3
+    {&WiFiSymbol0Left64x48, &WiFiSymbol1Left64x48, &WiFiSymbol2Left64x48, &WiFiSymbol3Left64x48},
+    {&WiFiSymbol0128x64, &WiFiSymbol1128x64, &WiFiSymbol2128x64, &WiFiSymbol3128x64},
     {&WiFiSymbol0Right64x48, &WiFiSymbol1Right64x48, &WiFiSymbol2Right64x48, &WiFiSymbol3Right64x48},
 };
 //----------------------------------------
@@ -97,9 +101,9 @@ const iconProperty * wifiIconTable[ICON_POSITION_MAX][4]
 static QwiicCustomOLED *oled = nullptr;
 
 // Fonts
+#include <res/qw_fnt_31x48.h>
 #include <res/qw_fnt_5x7.h>
 #include <res/qw_fnt_8x16.h>
-#include <res/qw_fnt_31x48.h>
 #include <res/qw_fnt_largenum.h>
 
 // Icons
@@ -149,6 +153,10 @@ void beginDisplay(TwoWire *i2cBus)
     if (present.display_type == DISPLAY_128x64)
     {
         i2cAddress = kOLEDMicroDefaultAddress;
+
+        if (productVariant == RTK_FACET_FP)
+            i2cAddress = 0x3C;
+
         if (oled == nullptr)
             oled = new QwiicCustomOLED;
         if (!oled)
@@ -178,8 +186,14 @@ void beginDisplay(TwoWire *i2cBus)
 
             systemPrintln("Display started");
 
+            if (present.displayInverted == true)
+            {
+                oled->flipVertical(true);
+                oled->flipHorizontal(true);
+            }
+
             // Display the brand LOGO
-            RTKBrandAttribute *brandAttribute = getBrandAttributeFromBrand(present.brand);
+            RTKBrandAttribute *brandAttribute = getBrandAttributeFromProductVariant(productVariant);
             oled->erase();
             x = (oled->getWidth() - brandAttribute->logoWidth) / 2;
             y = (oled->getHeight() - brandAttribute->logoHeight) / 2;
@@ -202,17 +216,19 @@ void displayUpdate()
     if (online.display == true)
     {
         static unsigned long lastDisplayUpdate = 0;
-        if (millis() - lastDisplayUpdate > 500 || forceDisplayUpdate == true) // Update display at 2Hz
+        if (((millis() - lastDisplayUpdate) > 500) || (forceDisplayUpdate == true)) // Update display at 2Hz
         {
             lastDisplayUpdate = millis();
             forceDisplayUpdate = false;
 
-            oled->reset(false); // Incase of previous corruption, force re-alignment of CGRAM. Do not init buffers as it
-                                // takes time and causes screen to blink.
+            if (present.displayInverted == false)
+                oled->reset(
+                    false); // Incase of previous corruption, force re-alignment of CGRAM. Do not init buffers as it
+            //  takes time and causes screen to blink.
 
             oled->erase();
 
-            iconPropertyList.clear();                           // Redundant?
+            iconPropertyList.clear(); // Redundant?
 
             switch (systemState)
             {
@@ -272,13 +288,23 @@ void displayUpdate()
                 */
 
             case (STATE_ROVER_NOT_STARTED):
-                displayHorizontalAccuracy(&iconPropertyList, &CrossHairProperties,
-                                          0b11111111); // Single crosshair, no blink
-                paintLogging(&iconPropertyList);
-                displaySivVsOpenShort(&iconPropertyList);
-                displayBatteryVsEthernet(&iconPropertyList);
-                displayFullIPAddress(&iconPropertyList); // Bottom left - 128x64 only
-                setRadioIcons(&iconPropertyList);
+                // displayHorizontalAccuracy(&iconPropertyList, &CrossHairProperties,
+                //                           0b11111111); // Single crosshair, no blink
+                // paintLogging(&iconPropertyList);
+                // displaySivVsOpenShort(&iconPropertyList);
+                // displayBatteryVsEthernet(&iconPropertyList);
+                // displayFullIPAddress(&iconPropertyList); // Bottom left - 128x64 only
+                // setRadioIcons(&iconPropertyList);
+                // break;
+            case (STATE_ROVER_CONFIG_WAIT):
+                // displayHorizontalAccuracy(&iconPropertyList, &CrossHairProperties,
+                //                           0b11111111); // Single crosshair, no blink
+                // paintLogging(&iconPropertyList);
+                // displaySivVsOpenShort(&iconPropertyList);
+                // displayBatteryVsEthernet(&iconPropertyList);
+                // displayFullIPAddress(&iconPropertyList); // Bottom left - 128x64 only
+                // setRadioIcons(&iconPropertyList);
+                displayRoverStart(0);
                 break;
             case (STATE_ROVER_NO_FIX):
                 displayHorizontalAccuracy(&iconPropertyList, &CrossHairProperties,
@@ -320,8 +346,10 @@ void displayUpdate()
                 break;
 
             case (STATE_BASE_CASTER_NOT_STARTED):
+            case (STATE_BASE_ASSIST_NOT_STARTED):
             case (STATE_BASE_NOT_STARTED):
-                // Do nothing. Static display shown during state change.
+            case (STATE_BASE_CONFIG_WAIT):
+                displayBaseStart(0); // Show 'Base' while the system configures the Base
                 break;
 
             // Start of base / survey in / NTRIP mode
@@ -353,9 +381,10 @@ void displayUpdate()
                 displayBaseSiv(&iconPropertyList); // 128x64 only
                 break;
             case (STATE_BASE_FIXED_NOT_STARTED):
-                displayBatteryVsEthernet(&iconPropertyList); // Top right
-                displayFullIPAddress(&iconPropertyList);     // Bottom left - 128x64 only
-                setRadioIcons(&iconPropertyList);
+                displayBaseSuccess(0); // Show 'Base Started' while the system configures the Base
+                // displayBatteryVsEthernet(&iconPropertyList); // Top right
+                // displayFullIPAddress(&iconPropertyList);     // Bottom left - 128x64 only
+                // setRadioIcons(&iconPropertyList);
                 break;
             case (STATE_BASE_FIXED_TRANSMITTING):
                 paintLogging(&iconPropertyList);
@@ -468,6 +497,14 @@ void displayUpdate()
 
 void displaySplash()
 {
+    displaySplashCommon(false); // Full product name not known
+}
+void displaySplashNameKnown()
+{
+    displaySplashCommon(true); // Full product name known
+}
+void displaySplashCommon(bool nameKnown)
+{
     if (online.display == true)
     {
         // Shorten logo display if locally compiled
@@ -482,17 +519,22 @@ void displaySplash()
         oled->display(); // Post a clear display
 
         int fontHeight = 8;
+        int numLines = productVariantProperties->rtkPrefix ? 4 : 3;
         int yPos = (oled->getHeight() - ((fontHeight * 4) + 2 + 5 + 7)) / 2;
 
         // Display the product name
-        RTKBrandAttribute *brandAttributes = getBrandAttributeFromBrand(present.brand);
-        printTextCenter(brandAttributes->name, yPos, QW_FONT_5X7, 1, false); // text, y, font type, kerning, inverted
+        printTextCenter(getBrandAttributeFromProductVariant(productVariant)->name,
+                        yPos, QW_FONT_5X7, 1, false); // text, y, font type, kerning, inverted
 
-        yPos = yPos + fontHeight + 2;
-        printTextCenter("RTK", yPos, QW_FONT_8X16, 1, false);
+        if (productVariantProperties->rtkPrefix)
+        {
+            yPos = yPos + fontHeight + 2;
+            printTextCenter("RTK", yPos, QW_FONT_8X16, 1, false);
+        }
 
         yPos = yPos + fontHeight + 5;
-        printTextCenter(productDisplayNames[productVariant], yPos, QW_FONT_8X16, 1, false);
+        printTextCenter(nameKnown ? displayName : productVariantProperties->name,
+                        yPos, QW_FONT_8X16, 1, false);
 
         yPos = yPos + fontHeight + 7;
         char unitFirmware[50];
@@ -501,8 +543,9 @@ void displaySplash()
 
         oled->display();
 
-        // Start the timer for the splash screen display
-        splashStart = millis();
+        // Retart the timer for the splash screen display
+        if (!nameKnown)
+            splashStart = millis();
     }
 }
 
@@ -653,15 +696,15 @@ void setRadioIcons(std::vector<iconPropertyBlinking> *iconList)
         if (present.display_type == DISPLAY_64x48)
         {
             // There are three spots for icons in the Wireless area, left/center/right
-            // There are three radios that could be active: Bluetooth (always indicated), WiFi (if enabled), ESP-Now (if
+            // There are three radios that could be active: Bluetooth (always indicated), WiFi (if enabled), ESP-NOW (if
             // enabled) Because of lack of space we will indicate the Base/Rover if only two radios or less are active
             //
             // Top left corner - Radio icon indicators take three spots (left/center/right)
             // Allowed icon combinations:
             // Bluetooth + Rover/Base
             // WiFi + Bluetooth + Rover/Base
-            // ESP-Now + Bluetooth + Rover/Base
-            // ESP-Now + Bluetooth + WiFi
+            // ESP-NOW + Bluetooth + Rover/Base
+            // ESP-NOW + Bluetooth + WiFi
 
             // Count the number of radios in use
             uint8_t numberOfRadios = 1; // Bluetooth always indicated.
@@ -750,7 +793,7 @@ void setRadioIcons(std::vector<iconPropertyBlinking> *iconList)
             // WiFi : Columns 34 - 46
             if (wifiStationRunning && networkInterfaceHasInternet(NETWORK_WIFI_STATION))
             {
-                //Display solid icon based on RSSI
+                // Display solid icon based on RSSI
                 displayWiFiIcon(iconList, prop, ICON_POSITION_CENTER, 0b11111111);
             }
             else if (wifiStationRunning && (networkInterfaceHasInternet(NETWORK_WIFI_STATION) == false))
@@ -758,7 +801,7 @@ void setRadioIcons(std::vector<iconPropertyBlinking> *iconList)
                 // We are not connected, blink icon
                 displayWiFiFullIcon(iconList, prop, ICON_POSITION_CENTER, 0b01010101);
             }
-            else if(wifiSoftApRunning)
+            else if (wifiSoftApRunning)
             {
                 // We are in AP mode, solid WiFi icon
                 displayWiFiIcon(iconList, prop, ICON_POSITION_CENTER, 0b11111111);
@@ -1237,6 +1280,8 @@ void setModeIcon(std::vector<iconPropertyBlinking> *iconList)
     {
     case (STATE_ROVER_NOT_STARTED):
         break;
+    case (STATE_ROVER_CONFIG_WAIT):
+        break;
     case (STATE_ROVER_NO_FIX):
         paintDynamicModel(iconList);
         break;
@@ -1251,7 +1296,9 @@ void setModeIcon(std::vector<iconPropertyBlinking> *iconList)
         break;
 
     case (STATE_BASE_CASTER_NOT_STARTED):
+    case (STATE_BASE_ASSIST_NOT_STARTED):
     case (STATE_BASE_NOT_STARTED):
+    case (STATE_BASE_CONFIG_WAIT):
         // Do nothing. Static display shown during state change.
         break;
     case (STATE_BASE_TEMP_SETTLE): {
@@ -1728,7 +1775,7 @@ void nudgeAndPrintSIV(displayCoords textCoords, uint8_t siv)
     {
         // On 128x64, there's no need to nudge
         oled->setCursor(textCoords.x, textCoords.y); // x, y
-        oled->print(siv); // 1 or 2 digits
+        oled->print(siv);                            // 1 or 2 digits
     }
 }
 
@@ -1797,7 +1844,9 @@ void paintLogging(std::vector<iconPropertyBlinking> *iconList, bool pulse, bool 
     prop.icon.bitmap = nullptr;
     prop.duty = 0b11111111;
 
-    if (((online.logging == true) && (logIncreasing || ntpLogIncreasing)) || (present.gnss_mosaicX5 && logIncreasing))
+    // If any logging is taking place, display the logging icon
+    if (((online.logging == true) && (logIncreasing || ntpLogIncreasing))
+        || (present.mosaicMicroSd && logMosaicIncreasing))
     {
         if (NTP)
         {
@@ -1904,7 +1953,7 @@ void paintRTCM(std::vector<iconPropertyBlinking> *iconList)
     if (present.display_type == DISPLAY_64x48)
         yPos = yPos - 1; // Move text up by 1 pixel on 64x48. Note: this is brittle.
 
-    if(settings.baseCasterOverride == true)
+    if (settings.baseCasterOverride == true)
         printTextAt("BaseCast", xPos + 4, yPos, QW_FONT_8X16, 1); // text, y, font type, kerning
     else if (casting)
         printTextAt("Casting", xPos + 4, yPos, QW_FONT_8X16, 1); // text, y, font type, kerning
@@ -1972,7 +2021,7 @@ void paintIPAddress()
     char ipAddress[16];
     snprintf(ipAddress, sizeof(ipAddress), "%s",
 #ifdef COMPILE_ETHERNET
-             ETH.localIP().toString());
+             ETH.localIP().toString().c_str());
 #else  // COMPILE_ETHERNET
              "0.0.0.0");
 #endif // COMPILE_ETHERNET
@@ -2012,7 +2061,7 @@ void displayFullIPAddress(std::vector<iconPropertyBlinking> *iconList) // Bottom
 {
     static IPAddress ipAddress;
     NetPriority_t priority;
-    static NetPriority_t previousPriority;
+    static NetPriority_t previousPriority = NETWORK_NONE;
 
     // Max width: 15*6 = 90 pixels (6 pixels per character, nnn.nnn.nnn.nnn)
     if (present.display_type == DISPLAY_128x64)
@@ -2032,7 +2081,7 @@ void displayFullIPAddress(std::vector<iconPropertyBlinking> *iconList) // Bottom
             // Display the IP address when it is available
             if (ipAddress != IPAddress((uint32_t)0))
             {
-                snprintf(myAddress, sizeof(myAddress), "%s", ipAddress.toString());
+                snprintf(myAddress, sizeof(myAddress), "%s", ipAddress.toString().c_str());
 
                 oled->setFont(QW_FONT_5X7); // Set font to smallest
                 oled->setCursor(0, 55);
@@ -2081,8 +2130,6 @@ void displayBaseStart(uint16_t displayTime)
 
         oled->display();
 
-        oled->display();
-
         delay(displayTime);
     }
 }
@@ -2106,6 +2153,24 @@ void displayBaseFail(uint16_t displayTime)
 void displayGNSSFail(uint16_t displayTime)
 {
     displayMessage("GNSS Failed", displayTime);
+}
+
+void displayGNSSAutodetect(uint16_t displayTime)
+{
+    displayMessage("Autodetecting GNSS", displayTime);
+}
+void displayGNSSAutodetectFailed(uint16_t displayTime)
+{
+    displayMessage("Autodetect Failed", displayTime);
+}
+
+void displayTiltAutodetect(uint16_t displayTime)
+{
+    displayMessage("Autodetecting Tilt", displayTime);
+}
+void displayTiltAutodetectFailed(uint16_t displayTime)
+{
+    displayMessage("Autodetect Failed", displayTime);
 }
 
 void displayNoWiFi(uint16_t displayTime)
@@ -2315,9 +2380,7 @@ void displaySDFail(uint16_t displayTime)
 }
 
 // Display the full WiFi icon
-void displayWiFiFullIcon(std::vector<iconPropertyBlinking> *iconList,
-                         iconPropertyBlinking prop,
-                         uint8_t position,
+void displayWiFiFullIcon(std::vector<iconPropertyBlinking> *iconList, iconPropertyBlinking prop, uint8_t position,
                          uint8_t dutyCycle)
 {
     prop.duty = dutyCycle;
@@ -2326,9 +2389,7 @@ void displayWiFiFullIcon(std::vector<iconPropertyBlinking> *iconList,
 }
 
 // Display the WiFi icon based upon RSSI value
-void displayWiFiIcon(std::vector<iconPropertyBlinking> *iconList,
-                     iconPropertyBlinking prop,
-                     uint8_t position,
+void displayWiFiIcon(std::vector<iconPropertyBlinking> *iconList, iconPropertyBlinking prop, uint8_t position,
                      uint8_t dutyCycle)
 {
 #ifdef COMPILE_WIFI
@@ -2403,10 +2464,9 @@ void displayHalt()
     {
         oled->erase(); // Clear the display's internal buffer
         int yPos = (oled->getHeight() - 16) / 2;
-        QwiicFont * font = (oled->getWidth() > 64) ? (QwiicFont *)&QW_FONT_31X48
-                                                   : (QwiicFont *)&QW_FONT_8X16;
+        QwiicFont *font = (oled->getWidth() > 64) ? (QwiicFont *)&QW_FONT_31X48 : (QwiicFont *)&QW_FONT_8X16;
         printTextCenter("Halt", yPos, *font, 1, false); // text, y, font type, kerning, inverted
-        oled->display(); // Push internal buffer to display
+        oled->display();                                // Push internal buffer to display
     }
 }
 
@@ -2447,8 +2507,8 @@ void paintProfile(uint8_t profileUnit)
 
         if (profileNumber >= 0)
         {
-            settings.gnssConfiguredBase = false; // On the next boot, reapply all settings
-            settings.gnssConfiguredRover = false;
+            gnssConfigureDefaults(); // Set all bits in the request bitfield to cause the GNSS receiver to go through a
+                                     // full (re)configuration
             recordSystemSettings(); // Before switching, we need to record the current settings to LittleFS and SD
 
             recordProfileNumber(
@@ -2478,7 +2538,7 @@ void paintSystemTest()
     if (online.display == true)
     {
         // Toggle between two displays
-        if (millis() - systemTestDisplayTime > 3000)
+        if ((millis() - systemTestDisplayTime) > 3000)
         {
             systemTestDisplayTime = millis();
             systemTestDisplayNumber++;
@@ -2496,7 +2556,7 @@ void paintSystemTest()
 
             drawFrame(); // Outside edge
 
-            oled->setFont(QW_FONT_5X7);        // Set font to smallest
+            oled->setFont(QW_FONT_5X7); // Set font to smallest
 
             if (present.microSd)
             {
@@ -2510,14 +2570,14 @@ void paintSystemTest()
                 else
                     oled->print("FAIL");
             }
-            else if (present.gnss_mosaicX5)
+            else if (present.mosaicMicroSd)
             {
                 // Facet mosaic has an SD card, but it is connected directly to the mosaic-X5
                 // Calling gnss->update() during the GNSS check will cause sdCardSize to be updated
                 oled->setCursor(xOffset, yOffset); // x, y
                 oled->print("SD:");
 
-                if (sdCardSize > 0)
+                if (mosaicSdCardSize > 0)
                     oled->print("OK");
                 else
                     oled->print("FAIL");
@@ -2586,35 +2646,6 @@ void paintSystemTest()
             oled->print(macAddress);
             oled->print(":");
 
-            // Verify the ESP UART can communicate TX/RX to ZED UART1
-            if (zedUartPassed == false)
-            {
-                systemPrintln("GNSS test");
-
-                setMuxport(MUX_GNSS_UART); // Set mux to UART so we can debug over data port
-                delay(20);
-
-                // Clear out buffer before starting
-                while (serialGNSS->available())
-                    serialGNSS->read();
-                serialGNSS->flush();
-
-#ifdef COMPILE_ZED
-                SFE_UBLOX_GNSS_SERIAL myGNSS;
-
-                // begin() attempts 3 connections
-                if (myGNSS.begin(*serialGNSS) == true)
-                {
-
-                    zedUartPassed = true;
-                    oled->print("OK");
-                }
-                else
-                    oled->print("FAIL");
-#endif // COMPILE_ZED
-            }
-            else
-                oled->print("OK");
         } // End display 1
 
         if (systemTestDisplayNumber == 0)
@@ -2794,11 +2825,12 @@ void displayMessage(const char *message, uint16_t displayTime)
         // Count words based on spaces
         uint8_t wordCount = 0;
         strncpy(temp, message, sizeof(temp) - 1); // strtok modifies the message so make copy
-        char *token = strtok(temp, " ");
+        char *preservedPointer;
+        char *token = strtok_r(temp, " ", &preservedPointer);
         while (token != nullptr)
         {
             wordCount++;
-            token = strtok(nullptr, " ");
+            token = strtok_r(nullptr, " ", &preservedPointer);
         }
 
         uint8_t yPos = (oled->getHeight() / 2) - (fontHeight / 2);
@@ -2810,11 +2842,11 @@ void displayMessage(const char *message, uint16_t displayTime)
         // drawFrame();
 
         strncpy(temp, message, sizeof(temp) - 1);
-        token = strtok(temp, " ");
+        token = strtok_r(temp, " ", &preservedPointer);
         while (token != nullptr)
         {
             printTextCenter(token, yPos, QW_FONT_8X16, 1, false); // text, y, font type, kerning, inverted
-            token = strtok(nullptr, " ");
+            token = strtok_r(nullptr, " ", &preservedPointer);
             yPos += fontHeight;
         }
 
@@ -3072,14 +3104,19 @@ void paintKeyProvisionFail(uint16_t displayTime)
     }
 }
 
-// Show screen while ESP-Now is pairing
+// Show screen while ESP-NOW is pairing
 void paintEspNowPairing()
 {
-    displayMessage("ESP-Now Pairing", 0);
+    displayMessage("ESP-NOW Pairing", 2000);
 }
 void paintEspNowPaired()
 {
-    displayMessage("ESP-Now Paired", 2000);
+    displayMessage("ESP-NOW Paired", 2000);
+}
+
+void paintMosaicBooting()
+{
+    displayMessage("GNSS Booting", 0);
 }
 
 void displayNtpStart(uint16_t displayTime)
@@ -3187,7 +3224,7 @@ void displayWebConfig(std::vector<iconPropertyBlinking> &iconPropertyList)
 
     // Toggle display back and forth for long SSIDs and IPs
     // Run the timer no matter what, but load firstHalf/lastHalf with the same thing if strlen < maxWidth
-    if (millis() - ssidDisplayTimer > 2000)
+    if ((millis() - ssidDisplayTimer) > 2000)
     {
         ssidDisplayTimer = millis();
         ssidDisplayFirstHalf = !ssidDisplayFirstHalf;
@@ -3198,8 +3235,8 @@ void displayWebConfig(std::vector<iconPropertyBlinking> &iconPropertyList)
 #ifndef COMPILE_ETHERNET
     strcpy(mySSID, "!Compiled");
     strcpy(myIP, "0.0.0.0");
-#endif  // COMPILE_ETHERNET
-#else   // COMPILE_WIFI
+#endif // COMPILE_ETHERNET
+#else  // COMPILE_WIFI
     if (wifi.softApOnline())
     {
         setWiFiIcon(&iconPropertyList); // Blink WiFi in center
@@ -3218,10 +3255,10 @@ void displayWebConfig(std::vector<iconPropertyBlinking> &iconPropertyList)
         strcpy(mySSID, "Error");
         strcpy(myIP, "0.0.0.0");
     }
-#endif  // COMPILE_ETHERNET
-#endif  // COMPILE_WIFI
+#endif // COMPILE_ETHERNET
+#endif // COMPILE_WIFI
 
-#ifdef  COMPILE_ETHERNET
+#ifdef COMPILE_ETHERNET
     if (networkInterfaceHasInternet(NETWORK_ETHERNET))
     {
         yPos = displayEthernetIcon();
@@ -3233,13 +3270,13 @@ void displayWebConfig(std::vector<iconPropertyBlinking> &iconPropertyList)
 #ifdef COMPILE_WIFI
         setWiFiIcon(&iconPropertyList); // Blink WiFi in center
         displaySsid = false;
-#else   // COMPILE_WIFI
+#else  // COMPILE_WIFI
         yPos = displayEthernetIcon();
-#endif  // COMPILE_WIFI
+#endif // COMPILE_WIFI
         strcpy(mySSID, "Error");
         strcpy(myIP, "0.0.0.0");
     }
-#endif  // COMPILE_ETHERNET
+#endif // COMPILE_ETHERNET
 
     // Trim SSID to a max length
     mySSID[SSID_LENGTH] = 0;
@@ -3268,4 +3305,31 @@ void displayWebConfig(std::vector<iconPropertyBlinking> &iconPropertyList)
     yPos = yPos + fontHeight + 1;
 
     printTextCenter(myIP, yPos, QW_FONT_5X7, 1, false);
+}
+
+// Show GNSS update - button exit
+void paintGnssUpdate()
+{
+    paintGenericUpdate("GNSS");
+}
+void paintLoRaUpdate()
+{
+    paintGenericUpdate("LoRa");
+}
+void paintGenericUpdate(const char *device)
+{
+    if (online.display)
+    {
+        oled->erase(); // Clear the display's internal buffer
+        int yPos = (oled->getHeight() - 38) / 2;
+        uint8_t fontHeight = 8;
+        printTextCenter(device, yPos, QW_FONT_5X7, 1, false); // text, y, font type, kerning, inverted
+        yPos = yPos + fontHeight + 1;
+        printTextCenter("Update", yPos, QW_FONT_5X7, 1, false);
+        yPos = yPos + fontHeight + 3;
+        printTextCenter("Button", yPos, QW_FONT_5X7, 1, true); // text, y, font type, kerning, inverted
+        yPos = yPos + fontHeight + 1;
+        printTextCenter("To Exit", yPos, QW_FONT_5X7, 1, true);
+        oled->display(); // Push internal buffer to display
+    }
 }

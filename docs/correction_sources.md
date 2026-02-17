@@ -15,6 +15,7 @@ Compatibility Icons
 - Facet mosaic: :material-radiobox-marked:{ .support-full title="Feature Supported" }
 - Postcard: :material-radiobox-marked:{ .support-full title="Feature Supported" }
 - Torch: :material-radiobox-marked:{ .support-full title="Feature Supported" }
+- TX2: :material-radiobox-marked:{ .support-full title="Feature Supported" }
 
 </div>
 
@@ -98,6 +99,7 @@ Compatibility Icons
 - Facet mosaic: :material-radiobox-indeterminate-variant:{ .support-partial title="Feature Partially Supported" }
 - Postcard: :material-radiobox-indeterminate-variant:{ .support-partial title="Feature Partially Supported" }
 - Torch: :material-radiobox-marked:{ .support-full title="Feature Supported" }
+- TX2: :material-radiobox-marked:{ .support-full title="Feature Supported" }
 
 </div>
 
@@ -126,7 +128,7 @@ A base can be set on site and surveyed in with high accuracy in about 12 hours. 
 
 ### Remote Internet
 
-A few innovative users have reported using [Eutelsat KONNECT](https://europe.konnect.com/en-DE) or [Starlink Roam](https://www.starlink.com/us/roam) to gain internet connectivity in remote areas to then connect to a standard NTRIP corrections source.
+A few innovative users have reported using [Eutelsat KONNECT](https://europe.konnect.com/en-DE) or [Starlink Roam](https://www.starlink.com/us/roam) to gain internet connectivity in remote areas to then connect to a standard NTRIP corrections source. Checkout our video on how we [put Starlink in a briefcase](https://www.youtube.com/watch?v=vN28yNgJ1pY) and used its $5 standby service for NTRIP based corrections.
 
 ### Post Processing
 

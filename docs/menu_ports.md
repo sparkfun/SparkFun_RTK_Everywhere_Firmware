@@ -15,6 +15,7 @@ Compatibility Icons
 - Facet mosaic: :material-radiobox-marked:{ .support-full title="Feature Supported" }
 - Postcard: :material-radiobox-marked:{ .support-full title="Feature Supported" }
 - Torch: :material-radiobox-indeterminate-variant:{ .support-partial title="Feature Partially Supported" }
+- TX2: :material-radiobox-indeterminate-variant:{ .support-partial title="Feature Partially Supported" }
 
 </div>
 
@@ -37,7 +38,7 @@ Baud rate configuration of the RADIO and DATA ports
 The RADIO and DATA ports vary between RTK devices: 
 
 * The RTK Facet mosaic L-Band has both RADIO and DATA ports.
-* The RTK Torch does not have a RADIO or DATA port, but can output NMEA over USB.
+* The RTK Torch and TX2 do not have a RADIO or DATA port, but can output NMEA over USB.
 * The RTK Postcard has both RADIO and DATA ports.
 * The RTK EVK has only a RADIO port.
 
@@ -95,7 +96,7 @@ The DATA port on the RTK Postcard is the USB C connector. This connection create
 
 ## Output GNSS Data over USB
 
-Enabling **Output GNSS data to USB serial** will pipe all GNSS output (generally NMEA but also RTCM) to the USB serial connection. This permits a wired connection to be made on devices, such as the RTK Torch, that have only one external port (USB).
+Enabling **Output GNSS data to USB serial** will pipe all GNSS output (generally NMEA but also RTCM) to the USB serial connection. This permits a wired connection to be made on devices, such as the RTK Torch or TX2, that have only one external port (USB).
 
 !!! note
 	To exit this mode, press **+++** to open the configuration menu.

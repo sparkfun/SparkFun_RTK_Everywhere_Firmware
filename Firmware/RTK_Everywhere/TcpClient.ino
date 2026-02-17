@@ -1,4 +1,4 @@
-/*
+/*=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 TcpClient.ino
 
   The (position, velocity and time) client sits on top of the network layer and
@@ -113,9 +113,9 @@ TcpClient.ino
     * https://emlid.com/ntrip-caster/
     * http://rtk2go.com/
     * private SNIP NTRIP caster
-*/
+=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=*/
 
-#ifdef COMPILE_NETWORK
+#ifdef COMPILE_TCP_CLIENT
 
 //----------------------------------------
 // Constants
@@ -189,13 +189,14 @@ bool tcpClientEnabled(const char ** line)
         // Verify the operating mode
         if (NEQ_RTK_MODE(tcpClientMode))
         {
-            *line = ", Wrong mode!";
+            if (line)
+                *line = ", Wrong mode!";
             break;
         }
 
         // Verify enabled
         enabled = settings.enableTcpClient;
-        if (enabled == false)
+        if (line && enabled == false)
             *line = ", Not enabled!";
     } while (0);
     return enabled;
@@ -249,6 +250,9 @@ int32_t tcpClientSendData(uint16_t dataHead)
                 bytesToSend = dataHead - tcpClientTail;
                 if (bytesToSend < 0)
                     bytesToSend += settings.gnssHandlerBufferSize;
+
+                while(tcpClient->available())
+                    tcpClient->read(); // Absorb any unwanted incoming traffic
             }
 
             // Failed to write the data
@@ -571,7 +575,7 @@ void tcpClientUpdate()
     }
 
     // Periodically display the TCP client state
-    if (PERIODIC_DISPLAY(PD_TCP_CLIENT_STATE))
+    if (PERIODIC_DISPLAY(PD_TCP_CLIENT_STATE) && !inMainMenu)
     {
         systemPrintf("TCP Client state: %s%s\r\n",
                      tcpClientStateName[tcpClientState], line);
@@ -596,4 +600,4 @@ void tcpClientZeroTail()
     tcpClientTail = 0;
 }
 
-#endif // COMPILE_NETWORK
+#endif // COMPILE_TCP_CLIENT

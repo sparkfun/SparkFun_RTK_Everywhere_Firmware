@@ -1,3 +1,7 @@
+/*=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
+Ethernet.ino
+=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=*/
+
 #ifdef COMPILE_ETHERNET
 
 //----------------------------------------
@@ -9,6 +13,9 @@ arduino_event_id_t ethernetLastEvent = ARDUINO_EVENT_ETH_STOP; // Save the last 
 //----------------------------------------
 // Get the Ethernet parameters
 //----------------------------------------
+
+#ifdef  COMPILE_MENU_ETHERNET
+
 void menuEthernet()
 {
     if (present.ethernet_ws5500 == false)
@@ -129,6 +136,8 @@ void menuEthernet()
     }
 }
 
+#endif  // COMPILE_MENU_ETHERNET
+
 //=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 // Ethernet routines
 //=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
@@ -188,6 +197,9 @@ void ethernetEvent(arduino_event_id_t event, arduino_event_info_t info)
     case ARDUINO_EVENT_ETH_DISCONNECTED:
         if (settings.enablePrintEthernetDiag && (!inMainMenu))
             systemPrintln("ETH Disconnected");
+
+        ethernetRestartRequested = true; // Perform ETH.end() to disconnect TCP resources
+
         break;
 
     case ARDUINO_EVENT_ETH_STOP:
@@ -233,6 +245,20 @@ const char *ethernetGetEventName(arduino_event_id_t event)
         return "ARDUINO_EVENT_ETH_DISCONNECTED";
     case ARDUINO_EVENT_ETH_STOP:
         return "ARDUINO_EVENT_ETH_STOP";
+    }
+}
+
+//----------------------------------------
+// Update Ethernet. Restart if requested
+//----------------------------------------
+void ethernetUpdate()
+{
+    if (ethernetRestartRequested)
+    {
+        if (settings.enablePrintEthernetDiag && (!inMainMenu))
+            systemPrintln("Restarting Ethernet");
+        ethernetRestart();
+        ethernetRestartRequested = false;
     }
 }
 

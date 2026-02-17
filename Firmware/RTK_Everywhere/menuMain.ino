@@ -1,102 +1,8 @@
-// Check to see if we've received serial over USB
-// Report status if ~ received, otherwise present config menu
-void terminalUpdate()
-{
-    char buffer[128];
-    static uint32_t lastPeriodicDisplay;
-    int length;
-    static bool passRtcmToGnss;
-    static uint32_t rtcmTimer;
+/*=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
+menuMain.ino
+=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=*/
 
-    // Check for USB serial input
-    if (systemAvailable())
-    {
-        byte incoming = systemRead();
-
-        // Is this the start of an RTCM correction message
-        if (incoming == 0xd3)
-        {
-            // Enable RTCM reception
-            passRtcmToGnss = true;
-
-            // Start the RTCM timer
-            rtcmTimer = millis();
-            rtcmLastPacketReceived = rtcmTimer;
-
-            // Tell the display about the serial RTCM message
-            usbSerialIncomingRtcm = true;
-
-            // Read the beginning of the RTCM correction message
-            buffer[0] = incoming;
-            length = Serial.readBytes(&buffer[1], sizeof(buffer) - 1) + 1;
-
-            // Push RTCM to GNSS module over I2C / SPI
-            if (correctionLastSeen(CORR_USB))
-                gnss->pushRawData((uint8_t *)buffer, length);
-        }
-
-        // Does incoming data consist of RTCM correction messages
-        if (passRtcmToGnss && ((millis() - rtcmTimer) < RTCM_CORRECTION_INPUT_TIMEOUT))
-        {
-            // Renew the RTCM timer
-            rtcmTimer = millis();
-            rtcmLastPacketReceived = rtcmTimer;
-
-            // Tell the display about the serial RTCM message
-            usbSerialIncomingRtcm = true;
-
-            // Read more of the RTCM correction message
-            buffer[0] = incoming;
-            length = Serial.readBytes(&buffer[1], sizeof(buffer) - 1) + 1;
-
-            // Push RTCM to GNSS module over I2C / SPI
-            if (correctionLastSeen(CORR_USB))
-                gnss->pushRawData((uint8_t *)buffer, length);
-        }
-        else
-        {
-            // Allow regular serial input
-            passRtcmToGnss = false;
-
-            if (incoming == '~')
-            {
-                // Output custom GNTXT message with all current system data
-                printCurrentConditionsNMEA();
-            }
-            else
-            {
-                // When outputting GNSS data to USB serial, check for +++
-                if (!forwardGnssDataToUsbSerial)
-                    menuMain(); // Present user menu
-                else
-                {
-                    static uint32_t plusTimeout;
-                    static uint8_t plusCount;
-
-                    // Reset plusCount on timeout
-                    if ((millis() - plusTimeout) > PLUS_PLUS_PLUS_TIMEOUT)
-                        plusCount = 0;
-
-                    // Check for + input
-                    if (incoming != '+')
-                        // Must start over looking for +++
-                        plusCount = 0;
-                    else
-                    {
-                        // + entered, check for the +++ sequence
-                        plusCount++;
-                        if (plusCount < 3)
-                            // Restart the timeout
-                            plusTimeout = millis();
-                        else
-                            // +++ was entered, display the main menu
-                            menuMain(); // Present user menu
-                    }
-                }
-            }
-        }
-    }
-}
+#ifdef  COMPILE_SERIAL_MENUS
 
 // Display the main menu configuration options
 void menuMain()
@@ -105,6 +11,11 @@ void menuMain()
     forwardGnssDataToUsbSerial = false;
 
     inMainMenu = true;
+
+    // Clear forceMenuExit on entering the menu, to prevent dropping straight
+    // through if the BT connection was dropped while we had the menu closed
+    forceMenuExit = false;
+
     displaySerialConfig(); // Display 'Serial Config' while user is configuring
 
     if (settings.debugGnss == true)
@@ -113,21 +24,15 @@ void menuMain()
         gnss->debuggingDisable();
     }
 
-    // Check for remote app config entry into command mode
-    if (runCommandMode == true)
-    {
-        runCommandMode = false;
-        menuCommands();
-        return;
-    }
-
     while (1)
     {
         systemPrintln();
         char versionString[21];
         firmwareVersionGet(versionString, sizeof(versionString), true);
-        RTKBrandAttribute *brandAttributes = getBrandAttributeFromBrand(present.brand);
-        systemPrintf("%s RTK %s %s\r\n", brandAttributes->name, platformPrefix, versionString);
+        systemPrintf("%s %s%s %s\r\n", getBrandAttributeFromProductVariant(productVariant)->name,
+            productVariantProperties->rtkPrefix ? "RTK " : "",
+            platformPrefix, versionString);
+        systemPrintf("Mode: %s\r\n", stateToRtkMode(systemState));
 
 #ifdef COMPILE_BT
 
@@ -222,12 +127,8 @@ void menuMain()
             menuBase();
         else if (incoming == 4)
             menuPorts();
-#ifdef COMPILE_MOSAICX5
-        else if (incoming == 5 && productVariant == RTK_FACET_MOSAIC)
-            menuLogMosaic();
-#endif                                                         // COMPILE_MOSAICX5
         else if (incoming == 5 && productVariant != RTK_TORCH) // Torch does not have logging
-            menuLog();
+            menuLogSelection();
         else if (incoming == 6)
             menuWiFi();
         else if (incoming == 7)
@@ -269,33 +170,16 @@ void menuMain()
             printUnknown(incoming);
     }
 
-    // Reboot as base only if currently operating as a base station
-    if (restartBase == true && inBaseMode() == true)
-    {
-        restartBase = false;
-        settings.gnssConfiguredBase = false; // Reapply configuration
-        requestChangeState(STATE_BASE_NOT_STARTED); // Restart base upon exit for latest changes to take effect
-    }
-
-    if (restartRover == true && inRoverMode() == true)
-    {
-        restartRover = false;
-        settings.gnssConfiguredRover = false; // Reapply configuration
-        requestChangeState(STATE_ROVER_NOT_STARTED); // Restart rover upon exit for latest changes to take effect
-    }
-
-    gnss->saveConfiguration();
-
-    recordSystemSettings(); // Once all menus have exited, record the new settings to LittleFS and config file
-
     if (settings.debugGnss == true)
     {
         // Re-enable GNSS debug once we exit config menus
         gnss->debuggingEnable();
     }
 
-    clearBuffer();           // Empty buffer of any newline chars
-    btPrintEchoExit = false; // We are out of the menu system
+    recordSystemSettings(); // Once all menus have exited, record the new settings to LittleFS and config file
+
+    clearBuffer();         // Empty buffer of any newline chars
+    forceMenuExit = false; // We are out of the menu system
     inMainMenu = false;
 
     // Change the USB serial output behavior if necessary
@@ -308,6 +192,10 @@ void menuMain()
     // While in LoRa mode, we need to know when the last serial interaction was
     loraLastIncomingSerial = millis();
 }
+
+#endif  // COMPILE_SERIAL_MENUS
+
+#ifdef  COMPILE_MENU_USER_PROFILES
 
 // Change system wide settings based on current user profile
 // Ways to change the GNSS settings:
@@ -396,19 +284,28 @@ void menuUserProfiles()
                 // Remove profile from LittleFS
                 if (LittleFS.exists(settingsFileName))
                     LittleFS.remove(settingsFileName);
+                if (LittleFS.exists(stationCoordinateECEFFileName))
+                    LittleFS.remove(stationCoordinateECEFFileName);
+                if (LittleFS.exists(stationCoordinateGeodeticFileName))
+                    LittleFS.remove(stationCoordinateGeodeticFileName);
 
                 // Remove profile from SD if available
                 if (online.microSD == true)
                 {
                     if (sd->exists(settingsFileName))
                         sd->remove(settingsFileName);
+                    if (sd->exists(stationCoordinateECEFFileName))
+                        sd->remove(stationCoordinateECEFFileName);
+                    if (sd->exists(stationCoordinateGeodeticFileName))
+                        sd->remove(stationCoordinateGeodeticFileName);
                 }
 
-                recordProfileNumber(0); // Move to Profile1
-                profileNumber = 0;
+                gnssConfigureDefaults(); // Set all bits in the request bitfield to cause the GNSS receiver to go through a
+                                         // full (re)configuration
 
-                snprintf(settingsFileName, sizeof(settingsFileName), "/%s_Settings_%d.txt", platformFilePrefix,
-                         profileNumber); // Update file name with new profileNumber
+                recordProfileNumber(0); // Move to Profile1
+
+                setSettingsFileName(); // Update file name with new profileNumber. Also updates station coordinates file names
 
                 // We need to load these settings from file so that we can record a profile name change correctly
                 bool responseLFS = loadSystemSettingsFromFileLFS(settingsFileName);
@@ -429,7 +326,7 @@ void menuUserProfiles()
         else if (incoming == MAX_PROFILE_COUNT + 4)
         {
             // Print profile
-            systemPrintf("Select the profile to be printed (1-%d): ",MAX_PROFILE_COUNT);
+            systemPrintf("Select the profile to be printed (1-%d): ", MAX_PROFILE_COUNT);
 
             int printThis = getUserInputNumber(); // Returns EXIT, TIMEOUT, or long
 
@@ -465,131 +362,15 @@ void menuUserProfiles()
     clearBuffer(); // Empty buffer of any newline chars
 }
 
-// Change the active profile number, without unit reset
-void changeProfileNumber(byte newProfileNumber)
-{
-    settings.gnssConfiguredBase = false; // On the next boot, reapply all settings
-    settings.gnssConfiguredRover = false;
-    recordSystemSettings(); // Before switching, we need to record the current settings to LittleFS and SD
+#endif  // COMPILE_MENU_USER_PROFILES
 
-    recordProfileNumber(newProfileNumber);
-    profileNumber = newProfileNumber;
-    setSettingsFileName(); // Load the settings file name into memory (enabled profile name delete)
-
-    // We need to load these settings from file so that we can record a profile name change correctly
-    bool responseLFS = loadSystemSettingsFromFileLFS(settingsFileName);
-    bool responseSD = loadSystemSettingsFromFileSD(settingsFileName);
-
-    // If this is an empty/new profile slot, overwrite our current settings with defaults
-    if (responseLFS == false && responseSD == false)
-    {
-        systemPrintln("No profile found: Applying default settings");
-        settingsToDefaults();
-    }
-}
-
-// Erase all settings. Upon restart, unit will use defaults
-void factoryReset(bool alreadyHasSemaphore)
-{
-    displaySystemReset(); // Display friendly message on OLED
-
-    tasksStopGnssUart();
-
-    // Attempt to write to file system. This avoids collisions with file writing from other functions like
-    // recordSystemSettingsToFile() and gnssSerialReadTask() if (settings.enableSD && online.microSD)
-    // Don't check settings.enableSD - it could be corrupt
-    if (online.microSD)
-    {
-        if (alreadyHasSemaphore == true || xSemaphoreTake(sdCardSemaphore, fatSemaphore_longWait_ms) == pdPASS)
-        {
-            // Remove this specific settings file. Don't remove the other profiles.
-            sd->remove(settingsFileName);
-
-            sd->remove(stationCoordinateECEFFileName); // Remove station files
-            sd->remove(stationCoordinateGeodeticFileName);
-
-            xSemaphoreGive(sdCardSemaphore);
-
-            systemPrintln("Settings files deleted...");
-        } // End sdCardSemaphore
-        else
-        {
-            char semaphoreHolder[50];
-            getSemaphoreFunction(semaphoreHolder);
-
-            // An error occurs when a settings file is on the microSD card and it is not
-            // deleted, as such the settings on the microSD card will be loaded when the
-            // RTK reboots, resulting in failure to achieve the factory reset condition
-            systemPrintf("sdCardSemaphore failed to yield, held by %s, menuMain.ino line %d\r\n", semaphoreHolder, __LINE__);
-        }
-    }
-    else
-    {
-        systemPrintln("microSD not online. Unable to delete settings files...");
-    }
-
-    tiltSensorFactoryReset();
-
-    systemPrintln("Formatting internal file system...");
-    LittleFS.format();
-
-    if (online.gnss == true)
-    {
-        systemPrintln("Resetting the GNSS to factory defaults. This could take a few seconds...");
-        gnss->factoryReset();
-    }
-    else
-        systemPrintln("GNSS not online. Unable to factoryReset...");
-
-    systemPrintln("Settings erased successfully. Rebooting. Goodbye!");
-    delay(2000);
-    ESP.restart();
-}
-
-// Display the Bluetooth radio menu item
-void mmDisplayBluetoothRadioMenu(char menuChar, BluetoothRadioType_e bluetoothUserChoice)
-{
-    systemPrintf("%c) Set Bluetooth Mode: ", menuChar);
-    if (bluetoothUserChoice == BLUETOOTH_RADIO_SPP_AND_BLE)
-        systemPrintln("Dual");
-    else if (bluetoothUserChoice == BLUETOOTH_RADIO_SPP)
-        systemPrintln("Classic");
-    else if (bluetoothUserChoice == BLUETOOTH_RADIO_BLE)
-        systemPrintln("BLE");
-    else
-        systemPrintln("Off");
-}
-
-// Select the Bluetooth protocol
-BluetoothRadioType_e mmChangeBluetoothProtocol(BluetoothRadioType_e bluetoothUserChoice)
-{
-    // Change Bluetooth protocol
-    if (bluetoothUserChoice == BLUETOOTH_RADIO_SPP_AND_BLE)
-        bluetoothUserChoice = BLUETOOTH_RADIO_SPP;
-    else if (bluetoothUserChoice == BLUETOOTH_RADIO_SPP)
-        bluetoothUserChoice = BLUETOOTH_RADIO_BLE;
-    else if (bluetoothUserChoice == BLUETOOTH_RADIO_BLE)
-        bluetoothUserChoice = BLUETOOTH_RADIO_OFF;
-    else if (bluetoothUserChoice == BLUETOOTH_RADIO_OFF)
-        bluetoothUserChoice = BLUETOOTH_RADIO_SPP_AND_BLE;
-    return bluetoothUserChoice;
-}
-
-// Restart Bluetooth radio if settings have changed
-void mmSetBluetoothProtocol(BluetoothRadioType_e bluetoothUserChoice)
-{
-    if (bluetoothUserChoice != settings.bluetoothRadioType)
-    {
-        bluetoothStop();
-        settings.bluetoothRadioType = bluetoothUserChoice;
-        bluetoothStart();
-    }
-}
+#ifdef  COMPILE_MENU_RADIO
 
 // Configure the internal radio, if available
 void menuRadio()
 {
     BluetoothRadioType_e bluetoothUserChoice = settings.bluetoothRadioType;
+    bool clearBtPairings = settings.clearBtPairings;
 
     while (1)
     {
@@ -597,7 +378,7 @@ void menuRadio()
         systemPrintln("Menu: Radios");
 
 #ifndef COMPILE_ESPNOW
-        systemPrintln("1) **ESP-Now Not Compiled**");
+        systemPrintln("1) **ESP-NOW Not Compiled**");
 #else  // COMPILE_ESPNOW
         if (settings.enableEspNow == false)
             systemPrintln("1) ESP-NOW Radio: Disabled");
@@ -623,7 +404,16 @@ void menuRadio()
             else
                 systemPrintln("  No Paired Radios - Broadcast Enabled");
 
-            systemPrintln("2) Pair radios");
+            if (espNowState == ESPNOW_BROADCASTING || espNowState == ESPNOW_PAIRED)
+                systemPrintf("2) Pairing: %s\r\n", espnowRequestPair ? "Requested" : "Not requested");
+            else if (espNowState == ESPNOW_PAIRING)
+            {
+                if (espnowRequestPair == true)
+                    systemPrintln("2) (Pairing in process) Stop pairing");
+                else
+                    systemPrintln("2) Pairing stopped");
+            }
+
             systemPrintln("3) Forget all radios");
 
             systemPrintf("4) Current channel: %d\r\n", wifiChannel);
@@ -645,7 +435,10 @@ void menuRadio()
             }
             else
             {
-                loraGetVersion();
+                //Allow state machine to run to get version number
+                for (int x = 0; x < 4; x++)
+                    updateLora();
+
                 if (strlen(loraFirmwareVersion) < 3)
                 {
                     strncpy(loraFirmwareVersion, "Unknown", sizeof(loraFirmwareVersion));
@@ -664,6 +457,14 @@ void menuRadio()
         // Display Bluetooth menu
         mmDisplayBluetoothRadioMenu('b', bluetoothUserChoice);
 
+        // If in BLUETOOTH_RADIO_SPP_AND_BLE, allow user to delete all pairings and set EA Protocol name
+        if (bluetoothUserChoice == BLUETOOTH_RADIO_SPP_AND_BLE)
+        {
+            systemPrintf("a) Accessory time offset: %.3fs\r\n", settings.accessoryTimeOffset_s);
+            systemPrintf("c) Clear BT pairings: %s\r\n", clearBtPairings ? "Yes" : "No");
+            systemPrintf("e) EA Protocol name: %s\r\n", settings.eaProtocol);
+        }
+
         systemPrintln("x) Exit");
 
         byte incoming = getUserInputCharacterNumber();
@@ -672,19 +473,49 @@ void menuRadio()
         if (incoming == 'b')
             bluetoothUserChoice = mmChangeBluetoothProtocol(bluetoothUserChoice);
 
+        // Allow user to adjust the accessory mode time offset
+        else if ((incoming == 'a') && (bluetoothUserChoice == BLUETOOTH_RADIO_SPP_AND_BLE))
+        {
+            systemPrint("Enter new Accessory time offset: ");
+            double tOffset;
+            if (getUserInputDouble(&tOffset) == INPUT_RESPONSE_VALID)
+                settings.accessoryTimeOffset_s = tOffset;
+        }
+
+        // Allow user to clear BT pairings - when BTClassicSerial is next begun
+        else if ((incoming == 'c') && (bluetoothUserChoice == BLUETOOTH_RADIO_SPP_AND_BLE))
+            clearBtPairings ^= 1;
+
+        // Allow user to modify the External Accessory protocol name
+        else if ((incoming == 'e') && (bluetoothUserChoice == BLUETOOTH_RADIO_SPP_AND_BLE))
+        {
+            systemPrint("Enter new protocol name: ");
+            getUserInputString(settings.eaProtocol, sizeof(settings.eaProtocol));
+            recordSystemSettings();
+            systemPrintln("\r\n** Please reconnect to the Device to apply the changes **");
+        }
+
         else if (incoming == 1)
         {
             settings.enableEspNow ^= 1;
 
             // Start ESP-NOW so that getChannel runs correctly
             if (settings.enableEspNow == true)
-                wifiEspNowOn(__FILE__, __LINE__);
+                wifiEspNowOn(__FILE__, __LINE__); // Handles espNowStart
             else
-                wifiEspNowOff(__FILE__, __LINE__);
+                wifiEspNowOff(__FILE__, __LINE__); // Handles espNowStop
         }
         else if (settings.enableEspNow == true && incoming == 2)
         {
-            espNowStaticPairing();
+            if (espNowIsBroadcasting() == true || espNowIsPaired() == true)
+            {
+                espnowRequestPair ^= 1;
+            }
+            else if (espNowIsPairing() == true)
+            {
+                espnowRequestPair = false;
+                systemPrintln("Pairing stop requested");
+            }
         }
         else if (settings.enableEspNow == true && incoming == 3)
         {
@@ -696,6 +527,8 @@ void menuRadio()
                 {
                     for (int x = 0; x < settings.espnowPeerCount; x++)
                         espNowRemovePeer(settings.espnowPeers[x]);
+
+                    espNowStart(); // Restart ESP-NOW to enable broadcastMAC
                 }
                 settings.espnowPeerCount = 0;
                 systemPrintln("Radios forgotten");
@@ -706,7 +539,7 @@ void menuRadio()
             if (getNewSetting("Enter the WiFi channel to use for ESP-NOW communication", 1, 14,
                               &settings.wifiChannel) == INPUT_RESPONSE_VALID)
             {
-                wifiEspNowSetChannel(settings.wifiChannel);
+                wifiEspNowChannelSet(settings.wifiChannel);
                 if (settings.wifiChannel)
                 {
                     if (settings.wifiChannel == wifiChannel)
@@ -752,7 +585,7 @@ void menuRadio()
             if (wifiEspNowRunning == false)
                 wifiEspNowOn(__FILE__, __LINE__);
 
-            uint8_t espNowData[] =
+            const uint8_t espNowData[] =
                 "This is the long string to test how quickly we can send one string to the other unit. I am going to "
                 "need a much longer sentence if I want to get a long amount of data into one transmission. This is "
                 "nearing 200 characters but needs to be near 250.";
@@ -765,13 +598,12 @@ void menuRadio()
             if (wifiEspNowRunning == false)
                 wifiEspNowOn(__FILE__, __LINE__);
 
-            uint8_t espNowData[] =
+            const uint8_t espNowData[] =
                 "This is the long string to test how quickly we can send one string to the other unit. I am going to "
                 "need a much longer sentence if I want to get a long amount of data into one transmission. This is "
                 "nearing 200 characters but needs to be near 250.";
-            uint8_t broadcastMac[6] = {0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF};
 #ifdef COMPILE_ESPNOW
-            esp_now_send(broadcastMac, (uint8_t *)&espNowData, sizeof(espNowData)); // Send packet over broadcast
+            esp_now_send(espNowBroadcastAddr, (uint8_t *)&espNowData, sizeof(espNowData)); // Send packet over broadcast
 #endif
         }
 
@@ -801,12 +633,14 @@ void menuRadio()
             printUnknown(incoming);
     }
 
-    wifiEspNowOn(__FILE__, __LINE__);
+    wifiEspNowOn(__FILE__, __LINE__); // Turn on the hardware if settings.enableEspNow is true
 
-    // Restart Bluetooth radio if settings have changed
-    mmSetBluetoothProtocol(bluetoothUserChoice);
+    // Update Bluetooth radio if settings have changed
+    bluetoothApplySettings(bluetoothUserChoice, clearBtPairings);
 
     // LoRa radio state machine will start/stop radio upon next updateLora in loop()
 
     clearBuffer(); // Empty buffer of any newline chars
 }
+
+#endif  // COMPILE_MENU_RADIO

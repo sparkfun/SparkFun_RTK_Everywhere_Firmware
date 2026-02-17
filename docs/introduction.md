@@ -8,16 +8,16 @@ The line of RTK Everywhere products offered by SparkFun all run identical firmwa
 
 -   <figure markdown>
 
-	[![Product Image](./img/SparkFun_RTK_EVK.png)](https://www.sparkfun.com/products/24342 "Go to Product Page")
+	[![Product Image](./img/SparkFun_RTK_EVK.png)](https://www.sparkfun.com/sparkfun-rtk-evk.html "Go to Product Page")
 	<figcaption markdown>
 	
-	[SparkFun RTK EVK (GPS-24342)](https://www.sparkfun.com/products/24342)
+	[SparkFun RTK EVK (GPS-24342)](https://www.sparkfun.com/sparkfun-rtk-evk.html)
 	</figcaption>
 	</figure>
 
 	<center>
 
-	[Quickstart Guide](https://docs.sparkfun.com/SparkFun_RTK_Everywhere_Firmware/quickstart-evk/){ .md-button .md-button--primary }
+	[Quickstart Guide](quickstart-evk.md){ .md-button .md-button--primary }
 	</center>
 
 	<center>
@@ -36,7 +36,7 @@ The line of RTK Everywhere products offered by SparkFun all run identical firmwa
 
 	<center>
 
-	[Quickstart Guide](https://docs.sparkfun.com/SparkFun_RTK_Everywhere_Firmware/quickstart-facet-mosaic/){ .md-button .md-button--primary }
+	[Quickstart Guide](quickstart-facet-mosaic.md){ .md-button .md-button--primary }
 	</center>
 
 	<center>
@@ -58,7 +58,7 @@ The line of RTK Everywhere products offered by SparkFun all run identical firmwa
 
 	<center>
 
-	[Quickstart Guide](https://docs.sparkfun.com/SparkFun_RTK_Everywhere_Firmware/quickstart-postcard/){ .md-button .md-button--primary }
+	[Quickstart Guide](quickstart-postcard.md){ .md-button .md-button--primary }
 	</center>
 
 	<center>
@@ -68,21 +68,40 @@ The line of RTK Everywhere products offered by SparkFun all run identical firmwa
 
 -   <figure markdown>
 
-	[![Product Image](./img/SparkFun_RTK_Torch.png)](https://www.sparkfun.com/products/25662 "Go to Product Page")
+	[![Product Image](./img/SparkFun_RTK_Torch.png)](https://www.sparkfun.com/sparkfun-rtk-torch.html "Go to Product Page")
 	<figcaption markdown>
 
-	[SparkFun RTK Torch (GPS-25662)](https://www.sparkfun.com/products/25662)
+	[SparkFun RTK Torch (GPS-25662)](https://www.sparkfun.com/sparkfun-rtk-torch.html)
 	</figcaption>
 	</figure>
 
 	<center>
 
-	[Quickstart Guide](https://docs.sparkfun.com/SparkFun_RTK_Everywhere_Firmware/quickstart-torch/){ .md-button .md-button--primary }
+	[Quickstart Guide](quickstart-torch.md){ .md-button .md-button--primary }
 	</center>
 
 	<center>
 
 	[Hookup Guide](https://docs.sparkfun.com/SparkFun_RTK_Torch/){ .md-button .md-button--primary }
+	</center>
+
+-   <figure markdown>
+
+	[![Product Image](./img/SparkPNT_TX2.png)](https://www.sparkfun.com/sparkpnt-tx2.html "Go to Product Page")
+	<figcaption markdown>
+
+	[SparkFun RTK Torch (GPS-29524)](https://www.sparkfun.com/sparkpnt-tx2.html)
+	</figcaption>
+	</figure>
+
+	<center>
+
+	[Quickstart Guide](quickstart-tx2.md){ .md-button .md-button--primary }
+	</center>
+
+	<center>
+
+	Hookup Guide *(Coming Soon)*
 	</center>
 
 </div>

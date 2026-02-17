@@ -1,3 +1,7 @@
+/*=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
+menuPP.ino
+=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=*/
+
 #include "mbedtls/ctr_drbg.h"
 #include "mbedtls/ssl.h" //Needed for certificate validation
 
@@ -44,7 +48,7 @@ enum PP_DeliveryMethod
 {
     PP_DELIVERY_NTRIP = 0,    // Delivery over an internet connection (essentially TCP)
     PP_DELIVERY_MQTT,         // Delivery over an internet connection using MQTT (deprecated)
-    PP_DELIVERY_LBAND_NA,     // Delivery over L-Band signal, North America coverage
+    PP_DELIVERY_LBAND_NA,     // Delivery over L-Band signal, North America coverage (deprecated)
     PP_DELIVERY_LBAND_GLOBAL, // Delivery over L-Band signal, global coverage
     PP_DELIVERY_NONE,
 };
@@ -60,7 +64,7 @@ enum PP_Encoding
 // Each service will have a printable name, delivery method, and encoding
 typedef struct
 {
-    const char serviceName[30];
+    const char serviceName[40];
     PP_ModelType modelType;
     PP_DeliveryMethod deliveryMethod;
     PP_Encoding encoding;
@@ -68,11 +72,11 @@ typedef struct
 
 // The various services offered by PointPerfect
 const PP_Service ppServices[] = {
-    {"Disabled", PP_MODEL_NONE, PP_DELIVERY_NONE, PP_ENCODING_NONE},        // Do not use PointPerfect corrections
-    {"Flex NTRIP/RTCM", PP_MODEL_SSR, PP_DELIVERY_NTRIP, PP_ENCODING_RTCM}, // Uses "ZTP-RTCM-100" profile
-    {"Flex L-Band North America", PP_MODEL_SSR, PP_DELIVERY_LBAND_NA, PP_ENCODING_SPARTN}, // Uses "ZTP-LBand" profile
-    {"Global", PP_MODEL_SSR, PP_DELIVERY_LBAND_GLOBAL, PP_ENCODING_SPARTN},                // Uses "ZTP-Global" profile
-    {"Live", PP_MODEL_OSR, PP_DELIVERY_NTRIP, PP_ENCODING_RTCM},                           // Uses "ZTP-Live" profile
+    {"Disabled", PP_MODEL_NONE, PP_DELIVERY_NONE, PP_ENCODING_NONE},                                    // Do not use PointPerfect corrections
+    {"Flex NTRIP/RTCM", PP_MODEL_SSR, PP_DELIVERY_NTRIP, PP_ENCODING_RTCM},                             // Uses "ZTP-RTCM-100" profile
+    {"Flex L-Band North America (Deprecated)", PP_MODEL_SSR, PP_DELIVERY_LBAND_NA, PP_ENCODING_SPARTN}, // Uses "ZTP-LBand" profile
+    {"Global", PP_MODEL_SSR, PP_DELIVERY_LBAND_GLOBAL, PP_ENCODING_SPARTN},                             // Uses "ZTP-Global" profile
+    {"Live", PP_MODEL_OSR, PP_DELIVERY_NTRIP, PP_ENCODING_RTCM},                                        // Uses "ZTP-Live" profile
     {"Flex MQTT (Deprecated)", PP_MODEL_SSR, PP_DELIVERY_MQTT,
      PP_ENCODING_SPARTN}, // Uses "ZTP-IP" profile, now deprecated
     // "ZTP-RTCM-100-Trial" profile deprecated
@@ -80,6 +84,8 @@ const PP_Service ppServices[] = {
 };
 
 const int ppServiceCount = sizeof(ppServices) / sizeof(ppServices[0]);
+
+#ifdef  COMPILE_MENU_POINTPERFECT
 
 // Provision device on ThingStream
 // Download keys
@@ -151,8 +157,6 @@ void menuPointPerfect()
         //     We also receive the full list of regional correction topics: /pp/ip/us , /pp/ip/eu , etc.
         //     We need to subscribe to our regional correction topic and push the data to the PPL
         //     RTCM from the PPL is pushed to the GNSS receiver (ie, UM980, LG290P)
-        //   We do not need the user to tell us which pointPerfectCorrectionsSource to use.
-        //   We identify the service level during ZTP and record it to settings (pointPerfectService)
 
         systemPrintf("1) Select PointPerfect Service: %s\r\n", ppServices[settings.pointPerfectService].serviceName);
 
@@ -181,26 +185,31 @@ void menuPointPerfect()
                     systemPrintln("Requested");
                 else
                     systemPrintln("Not requested");
-                systemPrint("5) Use localized distribution: ");
-                if (settings.useLocalizedDistribution == true)
-                    systemPrintln("Enabled");
-                else
-                    systemPrintln("Disabled");
-                if (settings.useLocalizedDistribution)
+
+                // Avoid showing features that are only available for the MQTT service
+                if (pointPerfectMqttNeeded())
                 {
-                    systemPrint("6) Localized distribution tile level: ");
-                    systemPrint(settings.localizedDistributionTileLevel);
-                    systemPrint(" (");
-                    systemPrint(localizedDistributionTileLevelNames[settings.localizedDistributionTileLevel]);
-                    systemPrintln(")");
-                }
-                if (productVariantSupportsAssistNow())
-                {
-                    systemPrint("a) Use AssistNow: ");
-                    if (settings.useAssistNow == true)
+                    systemPrint("5) Use localized distribution: ");
+                    if (settings.useLocalizedDistribution == true)
                         systemPrintln("Enabled");
                     else
                         systemPrintln("Disabled");
+                    if (settings.useLocalizedDistribution)
+                    {
+                        systemPrint("6) Localized distribution tile level: ");
+                        systemPrint(settings.localizedDistributionTileLevel);
+                        systemPrint(" (");
+                        systemPrint(localizedDistributionTileLevelNames[settings.localizedDistributionTileLevel]);
+                        systemPrintln(")");
+                    }
+                    if (productVariantSupportsAssistNow())
+                    {
+                        systemPrint("a) Use AssistNow: ");
+                        if (settings.useAssistNow == true)
+                            systemPrintln("Enabled");
+                        else
+                            systemPrintln("Disabled");
+                    }
                 }
 
                 systemPrintln("c) Clear the Keys");
@@ -302,16 +311,6 @@ void menuPointPerfect()
     clearBuffer(); // Empty buffer of any newline chars
 }
 
-// Returns string containing the MAC + product variant number
-const char *printDeviceId()
-{
-    static char deviceID[strlen("1234567890ABXX") + 1]; // 12 character MAC + 2 character variant + room for terminator
-    snprintf(deviceID, sizeof(deviceID), "%02X%02X%02X%02X%02X%02X%02X", btMACAddress[0], btMACAddress[1],
-             btMACAddress[2], btMACAddress[3], btMACAddress[4], btMACAddress[5], productVariant);
-
-    return ((const char *)deviceID);
-}
-
 // Present user with list of available services, list depends on platform
 void menuPointPerfectSelectService()
 {
@@ -337,7 +336,10 @@ void menuPointPerfectSelectService()
             {
                 settings.pointPerfectService = incoming - 1; // Align incoming to array
 
-                restartRover = true; // Require a rover restart to enable / disable RTCM for PPL
+                // Request re-config of RTCM Rover messages to enable / disable necessary RTCM messages for PPL
+                if(inRoverMode())
+                    gnssConfigure(GNSS_CONFIG_MESSAGE_RATE_RTCM_ROVER); // Request receiver to use new settings
+
                 settings.requestKeyUpdate =
                     settings.pointPerfectService != PP_NICKNAME_DISABLED; // Force a key update - or don't
 
@@ -499,6 +501,8 @@ void menuPointPerfectKeys()
 
     clearBuffer(); // Empty buffer of any newline chars
 }
+
+#endif  // COMPILE_MENU_POINTPERFECT
 
 // Update any L-Band hardware
 // Check if NEO-D9S is connected. Configure if available.
@@ -748,7 +752,7 @@ void updateLBandCorrections()
         i2cLBand.checkCallbacks(); // Check if any L-Band callbacks are waiting to be processed.
 
         // If a certain amount of time has elapsed between last decryption, turn off L-Band icon
-        if (lbandCorrectionsReceived == true && millis() - lastLBandDecryption > (5 * MILLISECONDS_IN_A_SECOND))
+        if ((lbandCorrectionsReceived == true) && ((millis() - lastLBandDecryption) > (5 * MILLISECONDS_IN_A_SECOND)))
             lbandCorrectionsReceived = false;
 
         // If we don't get an L-Band fix within Timeout, hot-start ZED-F9x
@@ -757,7 +761,7 @@ void updateLBandCorrections()
             if (lbandTimeFloatStarted == 0)
                 lbandTimeFloatStarted = millis();
 
-            if (millis() - lbandLastReport > MILLISECONDS_IN_A_SECOND)
+            if ((millis() - lbandLastReport) > MILLISECONDS_IN_A_SECOND)
             {
                 lbandLastReport = millis();
 
@@ -778,7 +782,7 @@ void updateLBandCorrections()
                         millis(); // Restart timer for L-Band. Don't immediately reset ZED to achieve fix.
 
                     // Hotstart GNSS to try to get RTK lock
-                    gnss->softwareReset();
+                    gnss->reset();
 
                     if (settings.debugCorrections == true)
                         systemPrintf("Restarting ZED. Number of Float lock restarts: %d\r\n", floatLockRestarts);
@@ -858,73 +862,42 @@ bool pointPerfectNtripNeeded(uint8_t pointPerfectService)
 
 bool productVariantSupportsAssistNow()
 {
-    if (productVariant == RTK_EVK)
-        return true;
-    if (productVariant == RTK_FACET_V2)
-        return false; // TODO - will require specific module lookup
-    if (productVariant == RTK_FACET_MOSAIC)
-        return false;
-    if (productVariant == RTK_TORCH)
-        return false;
-    if (productVariant == RTK_POSTCARD)
-        return false;
+    // Of all GNSS receiver types, only ZED-F9P supports Assist Now
+    // gnss_um980, gnss_zedf9p, gnss_mosaicX5, gnss_lg290p, gnss_zedx20p
 
-    systemPrintln("Uncaught productVariantSupportsAssistNow()");
+    if (present.gnss_zedf9p)
+        return true;
     return false;
 }
 
 bool productVariantSupportsLbandNA()
 {
-    if (productVariant == RTK_EVK)
-        return true;
-    if (productVariant == RTK_FACET_V2)
-        return false; // TODO - will require specific module lookup
-    if (productVariant == RTK_FACET_MOSAIC)
-        return true;
-    if (productVariant == RTK_TORCH)
-        return false;
-    if (productVariant == RTK_POSTCARD)
-        return false;
+    // Of all GNSS receiver types, only ZED-F9P and mosaic-X5 support LBand North America
+    // gnss_um980, gnss_zedf9p, gnss_mosaicX5, gnss_lg290p, gnss_zedx20p
 
-    systemPrintln("Uncaught productVariantSupportsLbandNA()");
+    if (present.gnss_zedf9p || present.gnss_mosaicX5)
+        return true;
     return false;
 }
 
 bool productVariantSupportsLbandGlobal()
 {
-    return false; // As of June 2025, LBand Global is not yet available
-
-    if (productVariant == RTK_EVK)
-        return false;
-    if (productVariant == RTK_FACET_V2)
-        return false; // TODO - will require specific module lookup
-    if (productVariant == RTK_FACET_MOSAIC)
+    // Of all GNSS receiver types, only ZED-X20P supports LBand Global
+    // gnss_um980, gnss_zedf9p, gnss_mosaicX5, gnss_lg290p, gnss_zedx20p
+    if (present.gnss_zedx20p)
         return true;
-    if (productVariant == RTK_TORCH)
-        return false;
-    if (productVariant == RTK_POSTCARD)
-        return false;
-
-    systemPrintln("Uncaught productVariantSupportsLbandGlobal()");
     return false;
 }
 
 // Returns true if this platform requires the PointPerfect Library to run to use the corrections from PointPerfect
 bool productVariantNeedsPpl()
 {
-    if (productVariant == RTK_EVK)
-        return false;
-    if (productVariant == RTK_FACET_V2)
-        return false; // TODO - will require specific module lookup
-    if (productVariant == RTK_FACET_MOSAIC)
-        return true;
-    if (productVariant == RTK_TORCH)
-        return true;
-    if (productVariant == RTK_POSTCARD)
-        return true;
+    // Of all GNSS receiver types, all require PPL except ZED units
+    // gnss_um980, gnss_zedf9p, gnss_mosaicX5, gnss_lg290p, gnss_zedx20p
 
-    systemPrintln("Uncaught productVariantNeedsPpl()");
-    return false;
+    if (present.gnss_zedf9p || present.gnss_zedx20p)
+        return (false);
+    return (true);
 }
 
 // Given a service nick name, return whether this platform supports it
@@ -933,11 +906,6 @@ bool productVariantSupportsService(uint8_t ppNickName)
 {
     if (ppNickName == PP_NICKNAME_DISABLED)
         return true;
-    else if (ppNickName == PP_NICKNAME_FLEX_RTCM)
-    {
-        // All platforms support RTCM over NTRIP/TCP
-        return true;
-    }
     else if (ppNickName == PP_NICKNAME_FLEX_RTCM)
     {
         // All platforms support RTCM over NTRIP/TCP
@@ -1025,7 +993,8 @@ void createZtpRequest(String &str)
     // Build the givenName:   Name vxx.yy - deviceID
     char givenName[100];
     memset(givenName, 0, sizeof(givenName));
-    snprintf(givenName, sizeof(givenName), "%s %s - %s", platformProvisionTable[productVariant], versionString,
+    snprintf(givenName, sizeof(givenName), "%s %s - %s",
+             productVariantProperties->platformProvision, versionString,
              printDeviceId());
     if (strlen(givenName) >= 50)
     {
@@ -1346,7 +1315,8 @@ bool provisioningEnabled(const char **line)
         enabled = pointPerfectIsEnabled();
         if (enabled == false)
         {
-            *line = ", PointPerfect corrections disabled!";
+            if (line)
+                *line = ", PointPerfect corrections disabled!";
             break;
         }
 
@@ -1362,10 +1332,13 @@ bool provisioningEnabled(const char **line)
 
         // Determine if key provisioning is enabled
         enabled = provisioningRunning;
-        if (settings.autoKeyRenewal)
-            *line = ", Key not requested and auto key renewal running later!";
-        else
-            *line = ", Key not requested and auto key renewal is disabled!";
+        if (line)
+        {
+            if (settings.autoKeyRenewal)
+                *line = ", Key not requested and auto key renewal running later!";
+            else
+                *line = ", Key not requested and auto key renewal is disabled!";
+        }
     } while (0);
     return enabled;
 }
@@ -1506,13 +1479,15 @@ void provisioningUpdate()
     switch (provisioningState)
     {
     default:
-    case PROVISIONING_OFF: {
+    case PROVISIONING_OFF:
+    {
         // If RTC is not online after provisioningTimeout_ms, try to provision anyway
         if (enabled && rtcOnline)
             provisioningSetState(PROVISIONING_CHECK_REMAINING);
     }
     break;
-    case PROVISIONING_CHECK_REMAINING: {
+    case PROVISIONING_CHECK_REMAINING:
+    {
         if (provisioningKeysNeeded() == false)
             provisioningSetState(PROVISIONING_KEYS_REMAINING);
         else
@@ -1525,7 +1500,8 @@ void provisioningUpdate()
     break;
 
     // Wait for connection to the network
-    case PROVISIONING_WAIT_FOR_NETWORK: {
+    case PROVISIONING_WAIT_FOR_NETWORK:
+    {
         // Stop waiting if PointPerfect has been disabled
         if (enabled == false)
             provisioningStop(__FILE__, __LINE__);
@@ -1550,9 +1526,10 @@ void provisioningUpdate()
     }
     break;
 
-    case PROVISIONING_STARTED: {
+    case PROVISIONING_STARTED:
+    {
         // Only leave this state if we timeout or ZTP is complete
-        if (millis() > (provisioningStartTime_millis + provisioningTimeout_ms))
+        if ((millis() - provisioningStartTime_millis) > provisioningTimeout_ms)
         {
             httpClientModeNeeded = false; // Tell HTTP_Client to give up. (But it probably already has...)
             paintKeyUpdateFail(5 * MILLISECONDS_IN_A_SECOND);
@@ -1575,7 +1552,7 @@ void provisioningUpdate()
             systemPrintf("This device has been deactivated. Please contact "
                          "support@sparkfun.com or goto %s to renew the PointPerfect "
                          "subscription. Please reference device ID: %s\r\n",
-                         platformRegistrationPageTable[productVariant], printDeviceId());
+                         productVariantProperties->platformRegistration, printDeviceId());
 
             httpClientModeNeeded = false; // Tell HTTP_Client to give up.
             displayAccountExpired(5 * MILLISECONDS_IN_A_SECOND);
@@ -1587,7 +1564,7 @@ void provisioningUpdate()
             systemPrintf("This device is not whitelisted. Please contact "
                          "support@sparkfun.com or goto %s to get the subscription "
                          "activated. Please reference device ID: %s\r\n",
-                         platformRegistrationPageTable[productVariant], printDeviceId());
+                         productVariantProperties->platformRegistration, printDeviceId());
 
             httpClientModeNeeded = false; // Tell HTTP_Client to give up.
             displayNotListed(5 * MILLISECONDS_IN_A_SECOND);
@@ -1616,7 +1593,8 @@ void provisioningUpdate()
         }
     }
     break;
-    case PROVISIONING_KEYS_REMAINING: {
+    case PROVISIONING_KEYS_REMAINING:
+    {
 
         // Report expiration of keys if this PointPerfect service uses them
         if (pointPerfectServiceUsesKeys() == true)
@@ -1654,7 +1632,7 @@ void provisioningUpdate()
     }
 
     // Periodically display the provisioning state
-    if (PERIODIC_DISPLAY(PD_PROVISIONING_STATE))
+    if (PERIODIC_DISPLAY(PD_PROVISIONING_STATE) && !inMainMenu)
     {
         systemPrintf("Provisioning state: %s%s\r\n", provisioningStateName[provisioningState], line);
         PERIODIC_CLEAR(PD_PROVISIONING_STATE);

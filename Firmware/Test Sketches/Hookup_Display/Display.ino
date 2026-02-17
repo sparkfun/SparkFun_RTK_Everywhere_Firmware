@@ -474,8 +474,8 @@ void updateDisplay(bool doUpdate)
       //Allowed icon combinations:
       //Bluetooth + Rover/Base
       //WiFi + Bluetooth + Rover/Base
-      //ESP-Now + Bluetooth + Rover/Base
-      //ESP-Now + Bluetooth + WiFi
+      //ESP-NOW + Bluetooth + Rover/Base
+      //ESP-NOW + Bluetooth + WiFi
       //See setRadioIcons() for the icon selection logic
 
       //Left spot
@@ -2102,14 +2102,14 @@ void displayBitmap(uint8_t x, uint8_t y, uint8_t imageWidth, uint8_t imageHeight
   oled.bitmap(x, y, x + imageWidth, y + imageHeight, (uint8_t *)imageData, imageWidth, imageHeight);
 }
 
-//Show screen while ESP-Now is pairing
+//Show screen while ESP-NOW is pairing
 void paintEspNowPairing()
 {
-  displayMessage("ESP-Now Pairing", 0);
+  displayMessage("ESP-NOW Pairing", 0);
 }
 void paintEspNowPaired()
 {
-  displayMessage("ESP-Now Paired", 2000);
+  displayMessage("ESP-NOW Paired", 2000);
 }
 
 void displayNtpStart(uint16_t displayTime)

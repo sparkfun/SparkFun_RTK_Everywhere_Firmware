@@ -1,30 +1,14 @@
-/*------------------------------------------------------------------------------
+/*=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 GNSS_None.h
 
   Declarations and definitions for the empty GNSS layer
-------------------------------------------------------------------------------*/
+=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=*/
 
 #ifndef __GNSS_None_H__
 #define __GNSS_None_H__
 
 class GNSS_None : public GNSS
 {
-  protected:
-    // Setup the general configuration of the GNSS
-    // Not Rover or Base specific (ie, baud rates)
-    // Outputs:
-    //   Returns true if successfully configured and false upon failure
-    bool configureGNSS()
-    {
-        return false;
-    }
-
-    // Set the minimum satellite signal level for navigation.
-    bool setMinCnoRadio(uint8_t cnoValue)
-    {
-        return false;
-    }
-
   public:
     // Constructor
     GNSS_None() : GNSS()
@@ -48,13 +32,16 @@ class GNSS_None : public GNSS
     }
 
     // Check if a given baud rate is supported by this module
-    bool baudIsAllowed(uint32_t baudRate) {
+    bool baudIsAllowed(uint32_t baudRate)
+    {
         return false;
     }
-    uint32_t baudGetMinimum() {
+    uint32_t baudGetMinimum()
+    {
         return 0;
     }
-    uint32_t baudGetMaximum() {
+    uint32_t baudGetMaximum()
+    {
         return 0;
     }
 
@@ -71,21 +58,21 @@ class GNSS_None : public GNSS
         return false;
     }
 
-    // Setup the timepulse output on the PPS pin for external triggering
-    // Outputs
-    //   Returns true if the pin was successfully setup and false upon
-    //   failure
-    bool beginPPS()
-    {
-        return false;
-    }
-
     bool checkNMEARates()
     {
         return false;
     }
 
     bool checkPPPRates()
+    {
+        return false;
+    }
+
+    // Setup the general configuration of the GNSS
+    // Not Rover or Base specific (ie, baud rates)
+    // Outputs:
+    //   Returns true if successfully configured and false upon failure
+    bool configure()
     {
         return false;
     }
@@ -118,7 +105,6 @@ class GNSS_None : public GNSS
     // Returns message names in the returnText string
     void createMessageList(String &returnText)
     {
-
     }
 
     // Responds with the RTCM/Base messages supported on this platform
@@ -126,23 +112,6 @@ class GNSS_None : public GNSS
     //   returnText: String to receive message names
     // Returns message names in the returnText string
     void createMessageListBase(String &returnText)
-    {
-
-    }
-
-    // Responds with the messages supported on this platform
-    // Inputs:
-    //   returnText: String to receive message names
-    // Returns message names in the returnText string
-    void getMessageList(String &returnText)
-    {
-    }
-
-    // Responds with the RTCM/Base messages supported on this platform
-    // Inputs:
-    //   returnText: String to receive message names
-    // Returns message names in the returnText string
-    void getMessageListBase(String &returnText)
     {
     }
 
@@ -152,19 +121,6 @@ class GNSS_None : public GNSS
 
     void debuggingEnable()
     {
-    }
-
-    void enableGgaForNtrip()
-    {
-    }
-
-    // Enable RTCM 1230. This is the GLONASS bias sentence and is transmitted
-    // even if there is no GPS fix. We use it to test serial output.
-    // Outputs:
-    //   Returns true if successfully started and false upon failure
-    bool enableRTCMTest()
-    {
-        return false;
     }
 
     // Restore the GNSS to the factory settings
@@ -188,6 +144,22 @@ class GNSS_None : public GNSS
     bool fixedBaseStart()
     {
         return false;
+    }
+
+    bool fixRateIsAllowed(uint32_t fixRateMs)
+    {
+        return false;
+    }
+
+    // Return min/max rate in ms
+    uint32_t fixRateGetMinimumMs()
+    {
+        return 0;
+    }
+
+    uint32_t fixRateGetMaximumMs()
+    {
+        return 0;
     }
 
     // Return the number of active/enabled messages
@@ -237,6 +209,14 @@ class GNSS_None : public GNSS
     uint8_t getFixType()
     {
         return _fixType;
+    }
+
+    // Get the geoidal separation
+    // Outputs:
+    //   Returns the geoidal separation in meters or zero if the GNSS is offline
+    double getGeoidalSeparation()
+    {
+        return _geoidalSeparation;
     }
 
     // Returns the hours of 24 hour clock or zero if not online
@@ -298,6 +278,12 @@ class GNSS_None : public GNSS
         return _minute;
     }
 
+    // Returns the current mode: Base/Rover/etc
+    uint8_t getMode()
+    {
+        return 0;
+    }
+
     // Returns month number or zero if not online
     uint8_t getMonth()
     {
@@ -357,11 +343,6 @@ class GNSS_None : public GNSS
         return 0;
     }
 
-    float getSurveyInStartingAccuracy()
-    {
-        return 0;
-    }
-
     // Returns timing accuracy or zero if not online
     uint32_t getTimeAccuracy()
     {
@@ -372,6 +353,20 @@ class GNSS_None : public GNSS
     uint16_t getYear()
     {
         return _year;
+    }
+
+    // Helper functions for the current mode as read from the GNSS receiver
+    bool gnssInBaseFixedMode()
+    {
+        return false;
+    }
+    bool gnssInBaseSurveyInMode()
+    {
+        return false;
+    }
+    bool gnssInRoverMode()
+    {
+        return false;
     }
 
     bool isBlocking()
@@ -480,10 +475,6 @@ class GNSS_None : public GNSS
     {
     }
 
-    void modifyGst(char *nmeaSentence, uint16_t *sentenceLength)
-    {
-    }
-
     // Print the module type and firmware version
     void printModuleInfo()
     {
@@ -500,6 +491,12 @@ class GNSS_None : public GNSS
         return dataLength;
     }
 
+    // Hardware or software reset the GNSS receiver
+    bool reset()
+    {
+        return true;
+    }
+
     uint16_t rtcmBufferAvailable()
     {
         return 0;
@@ -510,7 +507,7 @@ class GNSS_None : public GNSS
     {
     }
 
-    // If L-Band is available, but encrypted, allow RTCM through other sources (radio, ESP-Now) to GNSS receiver
+    // If L-Band is available, but encrypted, allow RTCM through other sources (radio, ESP-NOW) to GNSS receiver
     void rtcmOnGnssEnable()
     {
     }
@@ -520,22 +517,32 @@ class GNSS_None : public GNSS
         return 0;
     }
 
+    bool setBaudRate(uint8_t uartNumber, uint32_t baudRate)
+    {
+        return false;
+    }
+
+    bool setBaudRateComm(uint32_t baud)
+    {
+        return true;
+    }
+
+    bool setBaudRateData(uint32_t baud)
+    {
+        return true;
+    }
+
+    bool setBaudRateRadio(uint32_t baud)
+    {
+        return true;
+    }
+
     // Save the current configuration
     // Outputs:
     //   Returns true when the configuration was saved and false upon failure
     bool saveConfiguration()
     {
         return false;
-    }
-
-    // Set the baud rate on the GNSS port that interfaces between the ESP32 and the GNSS
-    // This just sets the GNSS side
-    // Used during Bluetooth testing
-    // Inputs:
-    //   baudRate: The desired baudrate
-    bool setBaudrate(uint32_t baudRate)
-    {
-        return true;
     }
 
     // Enable all the valid constellations and bands for this platform
@@ -550,11 +557,6 @@ class GNSS_None : public GNSS
         return true;
     }
 
-    bool setDataBaudRate(uint32_t baud)
-    {
-        return true;
-    }
-
     // Set the elevation in degrees
     // Inputs:
     //   elevationDegrees: The elevation value in degrees
@@ -563,14 +565,38 @@ class GNSS_None : public GNSS
         return true;
     }
 
-    // Enable all the valid messages for this platform
-    bool setMessages(int maxRetries)
+    // Control whether HAS E6 is used in location fixes or not
+    bool setHighAccuracyService(bool enableGalileoHas)
     {
         return true;
     }
 
-    // Enable all the valid messages for this platform over the USB port
-    bool setMessagesUsb(int maxRetries)
+    // Configure device-direct logging. Currently mosaic-X5 specific.
+    bool setLogging()
+    {
+        return true;
+    }
+
+    // Configure NMEA messages
+    bool setMessagesNMEA()
+    {
+        return true;
+    }
+
+    // Configure RTCM Base messages
+    bool setMessagesRTCMBase()
+    {
+        return true;
+    }
+
+    // Configure RTCM Base messages
+    bool setMessagesRTCMRover()
+    {
+        return true;
+    }
+
+    // Set the minimum satellite signal level for navigation.
+    bool setMinCN0(uint8_t cnoValue)
     {
         return true;
     }
@@ -583,9 +609,21 @@ class GNSS_None : public GNSS
         return true;
     }
 
-    bool setRadioBaudRate(uint32_t baud)
+    bool setMultipathMitigation(bool enableMultipathMitigation)
     {
         return true;
+    }
+
+    // Given the name of a message, find it, and set the rate
+    bool setNmeaMessageRateByName(const char *msgName, uint8_t msgRate)
+    {
+        return true;
+    }
+
+    // Configure the Pulse-per-second pin based on user settings
+    bool setPPS()
+    {
+        return false;
     }
 
     // Specify the interval between solutions
@@ -599,18 +637,18 @@ class GNSS_None : public GNSS
         return true;
     }
 
-    bool setTalkerGNGGA()
-    {
-        return true;
-    }
-
-    // Hotstart GNSS to try to get RTK lock
-    bool softwareReset()
+    bool setTilt()
     {
         return true;
     }
 
     bool standby()
+    {
+        return true;
+    }
+
+    // Antenna Short / Open detection
+    bool supportsAntennaShortOpen()
     {
         return true;
     }

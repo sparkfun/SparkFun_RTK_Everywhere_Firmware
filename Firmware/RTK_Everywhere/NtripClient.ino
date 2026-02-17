@@ -1,4 +1,4 @@
-/*------------------------------------------------------------------------------
+/*=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 NtripClient.ino
 
   The NTRIP client sits on top of the network layer and receives correction data
@@ -77,7 +77,7 @@ NtripClient.ino
     * https://emlid.com/ntrip-caster/
     * http://rtk2go.com/
     * private SNIP NTRIP caster
-------------------------------------------------------------------------------*/
+=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=*/
 
 /*=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
   NTRIP Client States:
@@ -117,7 +117,7 @@ NtripClient.ino
 
   =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=*/
 
-#ifdef COMPILE_NETWORK
+#ifdef COMPILE_NTRIP_CLIENT
 
 //----------------------------------------
 // Constants
@@ -138,7 +138,7 @@ static const uint32_t NTRIP_CLIENT_RESPONSE_TIMEOUT = 10 * 1000; // Milliseconds
 static const uint32_t NTRIP_CLIENT_RECEIVE_DATA_TIMEOUT = 30 * 1000; // Milliseconds
 
 // Most incoming data is around 500 bytes but may be larger
-static const int RTCM_DATA_SIZE = 512 * 4;
+static const size_t RTCM_DATA_SIZE = 512 * 4;
 
 // NTRIP client server request buffer size
 static const int SERVER_BUFFER_SIZE = CREDENTIALS_BUFFER_SIZE + 3;
@@ -200,6 +200,8 @@ unsigned long lastGGAPush;
 
 bool ntripClientForcedShutdown = false; // NTRIP Client was turned off due to an error. Don't allow restart.
 
+bool ntripClientSettingsHaveChanged = false; // Goes true when a menu or command modified the client credentials
+
 //----------------------------------------
 // NTRIP Client Routines
 //----------------------------------------
@@ -216,10 +218,11 @@ bool ntripClientConnect()
     char hostname[51];
     strncpy(hostname, settings.ntripClient_CasterHost,
             sizeof(hostname) - 1); // strtok modifies string to be parsed so we create a copy
-    char *token = strtok(hostname, "//");
+    char *preservedPointer;
+    char *token = strtok_r(hostname, "//", &preservedPointer);
     if (token != nullptr)
     {
-        token = strtok(nullptr, "//"); // Advance to data after //
+        token = strtok_r(nullptr, "//", &preservedPointer); // Advance to data after //
         if (token != nullptr)
             strcpy(settings.ntripClient_CasterHost, token);
     }
@@ -228,7 +231,8 @@ bool ntripClientConnect()
         systemPrintf("NTRIP Client connecting to %s:%d\r\n", settings.ntripClient_CasterHost,
                      settings.ntripClient_CasterPort);
 
-    int connectResponse = ntripClient->connect(settings.ntripClient_CasterHost, settings.ntripClient_CasterPort);
+    int connectResponse = ntripClient->connect(settings.ntripClient_CasterHost, settings.ntripClient_CasterPort,
+                                               NTRIP_CLIENT_RESPONSE_TIMEOUT);
 
     if (connectResponse < 1)
     {
@@ -241,14 +245,14 @@ bool ntripClientConnect()
     // Set up the server request (GET)
     char serverRequest[SERVER_BUFFER_SIZE];
     int length;
-    snprintf(serverRequest, SERVER_BUFFER_SIZE, "GET /%s HTTP/1.0\r\nUser-Agent: NTRIP SparkFun_RTK_%s_",
-             settings.ntripClient_MountPoint, platformPrefix);
+    snprintf(serverRequest, SERVER_BUFFER_SIZE, "GET /%s HTTP/1.0\r\nUser-Agent: NTRIP %s_",
+             settings.ntripClient_MountPoint, deviceName);
     length = strlen(serverRequest);
     firmwareVersionGet(&serverRequest[length], SERVER_BUFFER_SIZE - 2 - length, false);
     length = strlen(serverRequest);
     serverRequest[length++] = '\r';
     serverRequest[length++] = '\n';
-    serverRequest[length++] = 0;
+    serverRequest[length] = 0;
 
     // Set up the credentials
     char credentials[CREDENTIALS_BUFFER_SIZE];
@@ -391,6 +395,13 @@ bool ntripClientEnabled(const char **line)
         // Verify still enabled
         enabled = settings.enableNtripClient;
 
+        // Allow restart if settings change
+        if(ntripClientSettingsHaveChanged == true)
+        {
+            ntripClientSettingsHaveChanged = false;
+            ntripClientForcedShutdown = false;
+        }
+
         // Determine if the shutdown is being forced
         if (enabled && ntripClientForcedShutdown)
         {
@@ -494,6 +505,34 @@ void ntripClientPrintStatus()
 }
 
 //----------------------------------------
+// Push GGA string to the NTRIP caster
+//----------------------------------------
+void ntripClientPushGGA(const char * ggaString)
+{
+    // Wait until the client has been created
+    if (ntripClient != nullptr)
+    {
+        // Provide the caster with our current position as needed
+        if (ntripClient->connected() && settings.ntripClient_TransmitGGA == true)
+        {
+            if ((millis() - lastGGAPush) > NTRIPCLIENT_MS_BETWEEN_GGA)
+            {
+                lastGGAPush = millis();
+
+                if ((settings.debugNtripClientRtcm || PERIODIC_DISPLAY(PD_NTRIP_CLIENT_GGA)) && !inMainMenu)
+                {
+                    PERIODIC_CLEAR(PD_NTRIP_CLIENT_GGA);
+                    systemPrintf("NTRIP Client pushing GGA to server: %s", ggaString);
+                }
+
+                // Push the current GGA sentence to caster
+                ntripClient->write((const uint8_t *)ggaString, strlen(ggaString));
+            }
+        }
+    }
+}
+
+//----------------------------------------
 // Determine if NTRIP client data is available
 //----------------------------------------
 int ntripClientReceiveDataAvailable()
@@ -558,6 +597,12 @@ void ntripClientSetState(uint8_t newState)
     }
 }
 
+// Called from CLI call backs or serial menus to let machine know it can restart the client if it is shut down
+void ntripClientSettingsChanged()
+{
+    ntripClientSettingsHaveChanged = true;
+}
+
 //----------------------------------------
 // Start the NTRIP client
 //----------------------------------------
@@ -595,8 +640,9 @@ void ntripClientStop(bool shutdown)
         // Mark the Client stop so that we don't immediately attempt re-connect to Caster
         ntripClientTimer = millis();
 
-    // Return the Main Talker ID to "GN".
-    gnss->setTalkerGNGGA();
+    // If we modified the GGA report rate, return it to whatever is in settings
+    if (settings.ntripClient_TransmitGGA == true)
+        gnssConfigure(GNSS_CONFIG_MESSAGE_RATE_NMEA); // Request configure so that GGA returns to user defined setting
 
     // Determine the next NTRIP client state
     online.ntripClient = false;
@@ -657,7 +703,8 @@ void ntripClientUpdate()
         {
             // Allocate the ntripClient structure
             networkUseDefaultInterface();
-            ntripClient = new NetworkClient();
+            if (!ntripClient)
+                ntripClient = new NetworkClient();
             if (!ntripClient)
             {
                 // Failed to allocate the ntripClient structure
@@ -717,7 +764,7 @@ void ntripClientUpdate()
         if (ntripClientReceiveDataAvailable() < strlen("ICY 200 OK")) // Wait until at least a few bytes have arrived
         {
             // Check for response timeout
-            if (millis() - ntripClientTimer > NTRIP_CLIENT_RESPONSE_TIMEOUT)
+            if ((millis() - ntripClientTimer) > NTRIP_CLIENT_RESPONSE_TIMEOUT)
             {
                 // NTRIP web service did not respond
                 if (ntripClientConnectLimitReached()) // Updates ntripClientConnectionAttemptTimeout
@@ -759,6 +806,7 @@ void ntripClientUpdate()
                 {
                     systemPrintf("Caster may not have mountpoint %s. Caster responded with problem: %s\r\n",
                                  settings.ntripClient_MountPoint, response);
+                    systemPrintln("ntripClient shutdown. Please update the mountpoint and reconnect");
 
                     // Stop NTRIP client operations
                     ntripClientForceShutdown();
@@ -792,9 +840,7 @@ void ntripClientUpdate()
 
                     if (settings.ntripClient_TransmitGGA == true)
                     {
-                        // Set the Main Talker ID to "GP". The NMEA GGA messages will be GPGGA instead of GNGGA
-                        // Tell the module to output GGA every 5 seconds
-                        gnss->enableGgaForNtrip();
+                        gnssConfigure(GNSS_CONFIG_MESSAGE_RATE_NMEA); // Request configure so that GGA gets enabled
 
                         lastGGAPush =
                             millis() - NTRIPCLIENT_MS_BETWEEN_GGA; // Force immediate transmission of GGA message
@@ -803,6 +849,7 @@ void ntripClientUpdate()
                     // We don't use a task because we use I2C hardware (and don't have a semaphore).
                     online.ntripClient = true;
                     ntripClientStartTime = millis();
+                    ntripClient->setConnectionTimeout(NTRIP_CLIENT_RECEIVE_DATA_TIMEOUT);
                     ntripClientSetState(NTRIP_CLIENT_CONNECTED);
                 }
             }
@@ -817,7 +864,7 @@ void ntripClientUpdate()
                                  "Please contact "
                                  "support@sparkfun.com or goto %s to renew the PointPerfect "
                                  "subscription. Please reference device ID: %s\r\n",
-                                 platformRegistrationPageTable[productVariant], printDeviceId());
+                                 productVariantProperties->platformRegistration, printDeviceId());
                 }
                 else
                 {
@@ -868,8 +915,14 @@ void ntripClientUpdate()
                     systemPrintln("NTRIP Client resetting connection attempt counter and timeout");
             }
 
+            // Check if the there have been changes to the client settings
+            if(ntripClientSettingsHaveChanged == true)
+            {
+                ntripClientSettingsHaveChanged = false;
+                ntripClientRestart();
+            }
             // Check for timeout receiving NTRIP data
-            if (ntripClientReceiveDataAvailable() == 0)
+            else if (ntripClientReceiveDataAvailable() == 0)
             {
                 // Don't fail during retransmission attempts
                 if ((millis() - ntripClientTimer) > NTRIP_CLIENT_RECEIVE_DATA_TIMEOUT)
@@ -919,6 +972,7 @@ void ntripClientUpdate()
                         {
                             // Push RTCM to GNSS module over I2C / SPI
                             gnss->pushRawData(rtcmData, rtcmCount);
+                            sempParseNextBytes(rtcmParse, rtcmData, rtcmCount); // Parse the data for RTCM1005/1006
 
                             if ((settings.debugCorrections || settings.debugNtripClientRtcm ||
                                  PERIODIC_DISPLAY(PD_NTRIP_CLIENT_DATA)) &&
@@ -943,12 +997,15 @@ void ntripClientUpdate()
                     }
                 }
             }
+
+            // Now that the ntripClient->read is complete, write GPGGA if needed and available. See #695
+            pushGPGGA(nullptr);
         }
         break;
     }
 
     // Periodically display the NTRIP client state
-    if (PERIODIC_DISPLAY(PD_NTRIP_CLIENT_STATE))
+    if (PERIODIC_DISPLAY(PD_NTRIP_CLIENT_STATE) && !inMainMenu)
     {
         systemPrintf("NTRIP Client state: %s%s\r\n", ntripClientStateName[ntripClientState], line);
         PERIODIC_CLEAR(PD_NTRIP_CLIENT_STATE);
@@ -964,4 +1021,4 @@ void ntripClientValidateTables()
         reportFatalError("Fix ntripClientStateNameEntries to match NTRIPClientState");
 }
 
-#endif // COMPILE_NETWORK
+#endif  // COMPILE_NTRIP_CLIENT

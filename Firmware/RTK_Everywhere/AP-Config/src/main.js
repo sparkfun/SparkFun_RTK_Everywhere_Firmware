@@ -1,4 +1,4 @@
-var gateway = `ws://${window.location.hostname}:81/ws`;
+var gateway = `ws://${window.location.hostname}:80/ws`;
 var websocket;
 
 window.addEventListener('load', onLoad);
@@ -21,6 +21,7 @@ function ge(e) {
 var fixedLat = 0;
 var fixedLong = 0;
 var platformPrefix = "";
+var facetFPGNSS = "";
 var geodeticLat = 40.01;
 var geodeticLon = -105.19;
 var geodeticAlt = 1500.1;
@@ -59,6 +60,8 @@ const numCorrectionsSources = 8;
 var correctionsSourceNames = [];
 var correctionsSourcePriorities = [];
 
+// Note: if you add a new array here, add it to initializeArrays() too
+
 const CoordinateTypes = {
     COORDINATE_INPUT_TYPE_DD: 0, //Default DD.ddddddddd
     COORDINATE_INPUT_TYPE_DDMM: 1, //DDMM.mmmmm
@@ -78,6 +81,57 @@ const CoordinateTypes = {
 var convertedCoordinate = 0.0;
 var coordinateInputType = CoordinateTypes.COORDINATE_INPUT_TYPE_DD;
 
+var initialSettings = {};
+
+var receivedSettings = [];
+
+var divTables = {
+    galileoHasSetting: ["enableGalileoHas"],
+    lg290pGnssSettings: ["useMSM7", "rtcmMinElev"],
+    rtcmMinElevConfig: ["rtcmMinElev"],
+    minElevConfig: ["minElev"],
+    minCN0Config: ["minCN0"],
+    logToSDCard: ["enableLogging"]
+};
+
+function showHideDivs() {
+    let len = receivedSettings.length;
+    for (var key in divTables) {
+        if (divTables.hasOwnProperty(key)) {
+            var showMe = false;
+            var settings = divTables[key];
+            //console.log("key: " + key + ", settings: " + settings);
+            for (let j=0; j < settings.length; j++) {
+                for (let i=0; i < len; i++) {
+                    if (receivedSettings[i] === settings[j]) {
+                        showMe = true;
+                    }
+                }
+            }
+            if (showMe == true) {
+                //console.log("showing: " + key);
+                show(key);
+            }
+            else {
+                hide(key);
+            }
+        }
+    }
+}
+
+function initializeArrays() {
+    // Initialize (empty) all existing arrays by setting their length to zero
+    savedMessageNames.length = 0;
+    savedMessageValues.length = 0;
+    savedCheckboxNames.length = 0;
+    savedCheckboxValues.length = 0;
+    recordsECEF.length = 0;
+    recordsGeodetic.length = 0;
+    correctionsSourceNames.length = 0;
+    correctionsSourcePriorities.length = 0;
+    receivedSettings.length = 0;
+}
+
 function parseIncoming(msg) {
     //console.log("Incoming message: " + msg);
 
@@ -86,6 +140,7 @@ function parseIncoming(msg) {
         var id = data[x];
         var val = data[x + 1];
         //console.log("id: " + id + ", val: " + val);
+        receivedSettings.push(id);
 
         //Special commands
         if (id.includes("sdMounted")) {
@@ -99,8 +154,9 @@ function parseIncoming(msg) {
         }
         else if (id == "platformPrefix") {
             platformPrefix = val;
-            document.title = "RTK " + platformPrefix + " Setup";
+            document.title = platformPrefix + " Setup";
             fullPageUpdate = true;
+            initializeArrays();
             correctionText = "";
 
             if (platformPrefix == "EVK") {
@@ -110,18 +166,16 @@ function parseIncoming(msg) {
                 show("ntpConfig");
                 show("portsConfig");
                 hide("externalPortOptions");
-                show("logToSDCard");
-                hide("galileoHasSetting");
                 hide("tiltConfig");
                 hide("beeperControl");
-                show("useAssistNowCheckbox");
                 show("measurementRateInput");
                 hide("mosaicNMEAStreamDropdowns");
                 show("surveyInSettings");
-                show("useLocalizedDistributionCheckbox");
+
                 show("useEnableExtCorrRadio");
                 show("extCorrRadioSPARTNSourceDropdown");
                 hide("enableNmeaOnRadio");
+
                 hide("shutdownNoChargeTimeoutMinutesCheckboxDetail");
 
                 hide("constellationNavic"); //Not supported on ZED
@@ -131,7 +185,9 @@ function parseIncoming(msg) {
                 select.add(newOption, undefined);
                 newOption = new Option('Flex NTRIP/RTCM', '1');
                 select.add(newOption, undefined);
-                newOption = new Option('Flex L-Band North America', '2');
+                newOption = new Option('Flex L-Band North America (Deprecated)', '2');
+                select.add(newOption, undefined);
+                newOption = new Option('Flex MQTT (Deprecated)', '5');
                 select.add(newOption, undefined);
             }
             else if ((platformPrefix == "Facet v2") || (platformPrefix == "Facet v2 LBand")) {
@@ -141,15 +197,11 @@ function parseIncoming(msg) {
                 hide("ntpConfig");
                 show("portsConfig");
                 show("externalPortOptions");
-                show("logToSDCard");
-                hide("galileoHasSetting");
                 hide("tiltConfig");
                 hide("beeperControl");
-                show("useAssistNowCheckbox");
                 show("measurementRateInput");
                 hide("mosaicNMEAStreamDropdowns");
                 show("surveyInSettings");
-                show("useLocalizedDistributionCheckbox");
                 show("useEnableExtCorrRadio");
                 show("extCorrRadioSPARTNSourceDropdown");
                 hide("enableNmeaOnRadio");
@@ -163,15 +215,12 @@ function parseIncoming(msg) {
                 hide("ntpConfig");
                 show("portsConfig");
                 show("externalPortOptions");
-                show("logToSDCard");
-                hide("galileoHasSetting");
                 hide("tiltConfig");
                 hide("beeperControl");
-                hide("useAssistNowCheckbox");
                 hide("measurementRateInput");
                 show("mosaicNMEAStreamDropdowns");
                 hide("surveyInSettings");
-                hide("useLocalizedDistributionCheckbox");
+
                 show("useEnableExtCorrRadio");
                 hide("extCorrRadioSPARTNSourceDropdown");
                 show("enableNmeaOnRadio");
@@ -203,7 +252,9 @@ function parseIncoming(msg) {
                 select.add(newOption, undefined);
                 newOption = new Option('Flex NTRIP/RTCM', '1');
                 select.add(newOption, undefined);
-                newOption = new Option('Flex L-Band North America', '2');
+                newOption = new Option('Flex L-Band North America (Deprecated)', '2');
+                select.add(newOption, undefined);
+                newOption = new Option('Flex MQTT (Deprecated)', '5');
                 select.add(newOption, undefined);
             }
             else if (platformPrefix == "Torch") {
@@ -217,12 +268,9 @@ function parseIncoming(msg) {
                 // No DATA port on Torch
                 hide("externalPortOptions");
 
-                hide("logToSDCard");
-
                 hide("constellationSbas"); //Not supported on UM980
                 hide("constellationNavic"); //Not supported on UM980
 
-                show("useAssistNowCheckbox"); //Does the PPL use MGA? Not sure...
                 show("measurementRateInput");
 
                 show("loraConfig");
@@ -242,6 +290,8 @@ function parseIncoming(msg) {
                 select.add(newOption, undefined);
                 newOption = new Option('Flex NTRIP/RTCM', '1');
                 select.add(newOption, undefined);
+                newOption = new Option('Flex MQTT (Deprecated)', '5');
+                select.add(newOption, undefined);
             }
             else if (platformPrefix == "Postcard") {
                 show("baseConfig");
@@ -250,17 +300,13 @@ function parseIncoming(msg) {
                 hide("ntpConfig");
                 show("portsConfig");
                 show("externalPortOptions");
-                show("logToSDCard");
 
-                hide("galileoHasSetting");
                 hide("tiltConfig");
                 hide("beeperControl");
 
-                show("useAssistNowCheckbox");
                 show("measurementRateInput");
                 hide("mosaicNMEAStreamDropdowns");
                 show("surveyInSettings");
-                show("useLocalizedDistributionCheckbox");
                 show("useEnableExtCorrRadio");
                 hide("extCorrRadioSPARTNSourceDropdown");
                 show("enableNmeaOnRadio");
@@ -269,8 +315,6 @@ function parseIncoming(msg) {
                 show("constellationNavic");
 
                 hide("dynamicModelDropdown"); //Not supported on LG290P
-                hide("minElevConfig"); //Not supported on LG290P
-                hide("minCNOConfig"); //Not supported on LG290P
 
                 ge("rtcmRateInfoText").setAttribute('data-bs-original-title', 'RTCM is transmitted by the base at a default of 1Hz for messages 1005, 1074, 1084, 1094, 1114, 1124, 1134. This can be lowered for radios with low bandwidth or tailored to transmit any/all RTCM messages. Limits: 0 to 20. Note: The measurement rate is overridden to 1Hz when in Base mode.');
 
@@ -279,8 +323,157 @@ function parseIncoming(msg) {
                 select.add(newOption, undefined);
                 newOption = new Option('Flex NTRIP/RTCM', '1');
                 select.add(newOption, undefined);
+                newOption = new Option('Flex MQTT (Deprecated)', '5');
+                select.add(newOption, undefined);
 
-                console.log("Change baud list");
+                ge("radioPortBaud").options.length = 0; //Remove all from list
+                select = ge("radioPortBaud");
+                newOption = new Option('9600', '9600');
+                select.add(newOption, undefined);
+                newOption = new Option('115200', '115200');
+                select.add(newOption, undefined);
+                newOption = new Option('230400', '230400');
+                select.add(newOption, undefined);
+                newOption = new Option('460800', '460800');
+                select.add(newOption, undefined);
+                newOption = new Option('921600', '921600');
+                select.add(newOption, undefined);
+
+                ge("dataPortBaud").options.length = 0; //Remove all from list
+                select = ge("dataPortBaud");
+                newOption = new Option('9600', '9600');
+                select.add(newOption, undefined);
+                newOption = new Option('115200', '115200');
+                select.add(newOption, undefined);
+                newOption = new Option('230400', '230400');
+                select.add(newOption, undefined);
+                newOption = new Option('460800', '460800');
+                select.add(newOption, undefined);
+                newOption = new Option('921600', '921600');
+                select.add(newOption, undefined);
+            }
+            else if (platformPrefix == "TX2") {
+                show("baseConfig");
+                show("ppConfig");
+                hide("ethernetConfig");
+                hide("ntpConfig");
+                show("portsConfig");
+
+                // No RADIO port on Torch X2
+                // No DATA port on Torch X2
+                hide("externalPortOptions");
+
+                hide("constellationSbas"); //Not supported on LG290P
+                show("constellationNavic");
+                hide("tiltConfig"); //Not supported on Torch X2
+
+                show("measurementRateInput");
+
+                hide("mosaicNMEAStreamDropdowns");
+                show("surveyInSettings");
+
+                hide("useEnableExtCorrRadio"); //No External Radio connector on Torch X2
+                hide("extCorrRadioSPARTNSourceDropdown");
+                hide("enableNmeaOnRadio");
+
+                hide("dynamicModelDropdown"); //Not supported on LG290P
+
+                ge("rtcmRateInfoText").setAttribute('data-bs-original-title', 'RTCM is transmitted by the base at a default of 1Hz for messages 1005, 1074, 1084, 1094, 1124, and 0.1Hz for 1033. This can be lowered for radios with low bandwidth or tailored to transmit any/all RTCM messages. Limits: 0 to 20. Note: The measurement rate is overridden to 1Hz when in Base mode.');
+
+                select = ge("pointPerfectService");
+                let newOption = new Option('Disabled', '0');
+                select.add(newOption, undefined);
+                newOption = new Option('Flex NTRIP/RTCM', '1');
+                select.add(newOption, undefined);
+                newOption = new Option('Flex MQTT (Deprecated)', '5');
+                select.add(newOption, undefined);
+            }
+        }
+        else if (id == "facetFPGNSS") {
+            facetFPGNSS = val;
+
+            if (facetFPGNSS == "Mosaic-X5") {
+                show("baseConfig");
+                show("ppConfig");
+                hide("ethernetConfig");
+                hide("ntpConfig");
+                show("portsConfig");
+                show("externalPortOptions");
+                hide("tiltConfig");
+                show("beeperControl");
+                hide("measurementRateInput");
+                show("mosaicNMEAStreamDropdowns");
+                hide("surveyInSettings");
+
+                show("useEnableExtCorrRadio");
+                hide("extCorrRadioSPARTNSourceDropdown");
+                show("enableNmeaOnRadio");
+
+                select = ge("dynamicModel");
+                let newOption = new Option('Static', '0');
+                select.add(newOption, undefined);
+                newOption = new Option('Quasistatic', '1');
+                select.add(newOption, undefined);
+                newOption = new Option('Pedestrian', '2');
+                select.add(newOption, undefined);
+                newOption = new Option('Automotive', '3');
+                select.add(newOption, undefined);
+                newOption = new Option('Race Car', '4');
+                select.add(newOption, undefined);
+                newOption = new Option('Heavy Machinery', '5');
+                select.add(newOption, undefined);
+                newOption = new Option('UAV', '6');
+                select.add(newOption, undefined);
+                newOption = new Option('Unlimited', '7');
+                select.add(newOption, undefined);
+
+                ge("messageRateInfoText").setAttribute('data-bs-original-title', 'The GNSS can output NMEA and RTCMv3 at different rates. For NMEA: select a stream for each message, and set an interval for each stream. For RTCMv3: set an interval for each message group, and enable individual messages.');
+                ge("rtcmRateInfoText").setAttribute('data-bs-original-title', 'RTCM is transmitted by the base at a default of 1Hz for messages 1005, MSM4, and 0.1Hz for 1033. This can be lowered for radios with low bandwidth or tailored to transmit any/all RTCM messages. Limits: 0.1 to 600.');
+                ge("enableExtCorrRadioInfoText").setAttribute('data-bs-original-title', 'Enable external radio corrections: RTCMv3 on mosaic COM2. Default: False');
+
+                select = ge("pointPerfectService");
+                newOption = new Option('Disabled', '0');
+                select.add(newOption, undefined);
+                newOption = new Option('Flex NTRIP/RTCM', '1');
+                select.add(newOption, undefined);
+                newOption = new Option('Flex L-Band North America (Deprecated)', '2');
+                select.add(newOption, undefined);
+                newOption = new Option('Flex MQTT (Deprecated)', '5');
+                select.add(newOption, undefined);
+            }
+            else if (facetFPGNSS == "LG290P") {
+                show("baseConfig");
+                show("ppConfig");
+                hide("ethernetConfig");
+                hide("ntpConfig");
+                show("portsConfig");
+                show("externalPortOptions");
+
+                hide("tiltConfig");
+                show("beeperControl");
+
+                show("measurementRateInput");
+                hide("mosaicNMEAStreamDropdowns");
+                show("surveyInSettings");
+                show("useEnableExtCorrRadio");
+                hide("extCorrRadioSPARTNSourceDropdown");
+                show("enableNmeaOnRadio");
+
+                hide("constellationSbas"); //Not supported on LG290P
+                show("constellationNavic");
+
+                hide("dynamicModelDropdown"); //Not supported on LG290P
+
+                ge("rtcmRateInfoText").setAttribute('data-bs-original-title', 'RTCM is transmitted by the base at a default of 1Hz for messages 1005, 1074, 1084, 1094, 1114, 1124, 1134. This can be lowered for radios with low bandwidth or tailored to transmit any/all RTCM messages. Limits: 0 to 20. Note: The measurement rate is overridden to 1Hz when in Base mode.');
+
+                select = ge("pointPerfectService");
+                let newOption = new Option('Disabled', '0');
+                select.add(newOption, undefined);
+                newOption = new Option('Flex NTRIP/RTCM', '1');
+                select.add(newOption, undefined);
+                newOption = new Option('Flex MQTT (Deprecated)', '5');
+                select.add(newOption, undefined);
+
                 ge("radioPortBaud").options.length = 0; //Remove all from list
                 select = ge("radioPortBaud");
                 newOption = new Option('9600', '9600');
@@ -334,7 +527,7 @@ function parseIncoming(msg) {
                 select.add(newOption, undefined);
                 if (val >= 121) {
                     select = ge("dynamicModel");
-                    let newOption = new Option('Mower', '11');
+                    newOption = new Option('Mower', '11');
                     select.add(newOption, undefined);
                     newOption = new Option('E-Scooter', '12');
                     select.add(newOption, undefined);
@@ -460,6 +653,29 @@ function parseIncoming(msg) {
             messageText += " id='" + messageName + "' value='" + messageRate + "'>";
             messageText += "<p id='" + messageName + "Error' class='inlineError'></p>";
             messageText += "</div></div>";
+
+            // Add this rate to initialSettings - if it has not been added before
+            addInitialSetting(id, val);
+        }
+        else if (id.includes("messageRatePQTM")) {
+            // messageRatePQTM_EPE
+            var messageName = id;
+            var messageNameLabel = "";
+
+            var messageData = messageName.split('_');
+            messageNameLabel = messageData[1];
+
+            messageText += "<div class='form-check mt-3'>";
+            messageText += "<label class='form-check-label' for='" + messageName + "'>Enable " + messageNameLabel + "</label>";
+            messageText += "<input class='form-check-input' type='checkbox' id='" + messageName + "'>";
+            messageText += "</div>";
+
+            // Save the name and value as we can't set 'checked' yet. messageText has not yet been added to innerHTML
+            savedCheckboxNames.push(messageName);
+            savedCheckboxValues.push(val);
+
+            // Add to initialSettings - if it has not been added before. Val will be "true" / "false"
+            addInitialSetting(id, val);
         }
         else if (id.includes("messageRate") || id.includes("messageIntervalRTCM")) {
             // messageRateNMEA_GPDTM
@@ -468,7 +684,6 @@ function parseIncoming(msg) {
             // messageIntervalRTCMRover_RTCM1230
             // messageIntervalRTCMBase_RTCM1230
             var messageName = id;
-            var messageRate = parseFloat(val);
             var messageNameLabel = "";
             var qualifier = "";
             if (id.includes("messageIntervalRTCM")) {
@@ -480,10 +695,15 @@ function parseIncoming(msg) {
 
             messageText += "<div class='form-group row' id='msg" + messageName + "'>";
             messageText += "<label for='" + messageName + "' class='col-sm-4 col-6 col-form-label'>" + messageNameLabel + qualifier + ":</label>";
-            messageText += "<div class='col-sm-4 col-4'><input type='number' class='form-control'";
-            messageText += " id='" + messageName + "' value='" + messageRate + "'>";
+            messageText += "<div class='col-sm-4 col-4'><input type='number'";
+            messageText += getDecimalPlacesStep(val);
+            messageText += " class='form-control'";
+            messageText += " id='" + messageName + "' value='" + val + "'>";
             messageText += "<p id='" + messageName + "Error' class='inlineError'></p>";
             messageText += "</div></div>";
+
+            // Add this rate to initialSettings - if it has not been added before
+            addInitialSetting(id, val);
         }
         else if (id.includes("messageStreamNMEA")) {
             // messageStreamNMEA_GGA
@@ -505,6 +725,9 @@ function parseIncoming(msg) {
             // Save the name and value as we can't set the value yet. messageText has not yet been added to innerHTML
             savedMessageNames.push(messageName);
             savedMessageValues.push(val);
+
+            // Add this to initialSettings - if it has not been added before
+            addInitialSetting(id, val);
         }
         else if (id.includes("messageEnabledRTCM")) {
             // messageEnabledRTCMRover_RTCM1230
@@ -523,6 +746,9 @@ function parseIncoming(msg) {
             // Save the name and value as we can't set 'checked' yet. messageText has not yet been added to innerHTML
             savedCheckboxNames.push(messageName);
             savedCheckboxValues.push(val);
+
+            // Add this to initialSettings - if it has not been added before
+            addInitialSetting(id, val);
         }
         else if (id.includes("correctionsPriority")) {
             var correctionName = id;
@@ -592,6 +818,16 @@ function parseIncoming(msg) {
             ge("antennaHeight_m").value = val / 1000.0;
         }
 
+        //enableExtCorrRadio should be bool but is sent as uint8_t because it _could_ be 254
+        else if (id.includes("enableExtCorrRadio")) {
+            if (val == 0) {
+                ge(id).checked = false;
+            }
+            else {
+                ge(id).checked = true;
+            }
+        }
+
         //Check boxes / radio buttons
         else if (val == "true") {
             try {
@@ -647,7 +883,7 @@ function parseIncoming(msg) {
         ge("enableARPLogging").dispatchEvent(new CustomEvent('change'));
         ge("enableAutoFirmwareUpdate").dispatchEvent(new CustomEvent('change'));
         ge("enableAutoReset").dispatchEvent(new CustomEvent('change'));
-        ge("useLocalizedDistribution").dispatchEvent(new CustomEvent('change'));
+        ge("enableGalileoHas").dispatchEvent(new CustomEvent('change'));
 
         updateECEFList();
         updateGeodeticList();
@@ -657,6 +893,52 @@ function parseIncoming(msg) {
         dhcpEthernet();
         updateLatLong();
         updateCorrectionsPriorities();
+
+        // Create copy of settings, send only changes when 'Save Configuration' is pressed
+        saveInitialSettings(); 
+
+        // Show / hide divs based on received settings
+        showHideDivs();
+    }
+}
+
+// Save the current state of settings
+function saveInitialSettings() {
+    initialSettings = {}; // Clear previous settings
+
+    // Save input boxes and dropdowns
+    var clsElements = document.querySelectorAll(".form-control, .form-dropdown");
+    for (let x = 0; x < clsElements.length; x++) {
+        initialSettings[clsElements[x].id] = clsElements[x].value;
+    }
+
+    // Save checkboxes and radio buttons
+    clsElements = document.querySelectorAll(".form-check-input:not(.fileManagerCheck), .form-radio");
+    for (let x = 0; x < clsElements.length; x++) {
+        // Store boolean values for easy comparison
+        initialSettings[clsElements[x].id] = clsElements[x].checked.toString();
+    }
+
+    // Save corrections priorities
+    for (let x = 0; x < numCorrectionsSources; x++) {
+        initialSettings["correctionsPriority_" + correctionsSourceNames[x]] = correctionsSourcePriorities[x].toString();
+    }
+
+    // Note: recordsECEF and recordsGeodetic change very little so instead
+    // of creating copy here, we will resend any entered coordinates every time.
+}
+
+// Add this setting to initialSettings - if it has not been added before
+function addInitialSetting(id, val) {
+    var seen = false;
+    for (let x = 0; x < initialSettings.length; x++) {
+        if (initialSettings[x] === id) {
+            seen = true;
+        }
+    }
+    if (seen == false) {
+        //console.log("Adding " + id + ":" + val + " to initialSettings");
+        initialSettings[id] = val;
     }
 }
 
@@ -668,39 +950,101 @@ function show(id) {
     ge(id).style.display = "block";
 }
 
-//Create CSV of all setting data
+function isElementShown(id) {
+    if (ge(id).style.display == "block") {
+        return (true);
+    }
+    return (false);
+}
+
+//Create CSV of all setting data that has changed from the original given to us
 function sendData() {
     var settingCSV = "";
+    var changedCount = 0;
 
-    //Input boxes
+    // Check input boxes and dropdowns
     var clsElements = document.querySelectorAll(".form-control, .form-dropdown");
     for (let x = 0; x < clsElements.length; x++) {
-        settingCSV += clsElements[x].id + "," + clsElements[x].value + ",";
+        var id = clsElements[x].id;
+        var currentValue = clsElements[x].value;
+        if (initialSettings[id] !== currentValue) {
+            settingCSV += id + "," + currentValue + ",";
+            changedCount++;
+            // updateInitialSettings will update initialSettings with the currentValue
+        }
     }
 
-    //Check boxes, radio buttons
-    //Remove file manager files
+    // Check boxes, radio buttons
     clsElements = document.querySelectorAll(".form-check-input:not(.fileManagerCheck), .form-radio");
     for (let x = 0; x < clsElements.length; x++) {
-        settingCSV += clsElements[x].id + "," + clsElements[x].checked + ",";
+        var id = clsElements[x].id;
+        // Store boolean as string 'true'/'false' for consistent comparison with initialSettings
+        var currentValue = clsElements[x].checked.toString();
+        if (initialSettings[id] !== currentValue) {
+            settingCSV += id + "," + currentValue + ",";
+            changedCount++;
+            // updateInitialSettings will update initialSettings with the currentValue
+        }
     }
 
+    // Records (ECEF and Geodetic) - For simplicity, we send the full list if any list element exists.
     for (let x = 0; x < recordsECEF.length; x++) {
         settingCSV += "stationECEF" + x + ',' + recordsECEF[x] + ",";
     }
-
     for (let x = 0; x < recordsGeodetic.length; x++) {
         settingCSV += "stationGeodetic" + x + ',' + recordsGeodetic[x] + ",";
     }
 
+    // Corrections Priorities
     for (let x = 0; x < correctionsSourceNames.length; x++) {
-        settingCSV += "correctionsPriority_" + correctionsSourceNames[x] + ',' + correctionsSourcePriorities[x] + ",";
+        var id = "correctionsPriority_" + correctionsSourceNames[x];
+        var currentValue = correctionsSourcePriorities[x].toString();
+        if (initialSettings[id] !== currentValue) {
+            settingCSV += id + ',' + currentValue + ",";
+            changedCount++;
+            // updateInitialSettings will update initialSettings with the currentValue
+        }
     }
 
-    console.log("Sending: " + settingCSV);
-    websocket.send(settingCSV);
+    console.log("Sending " + changedCount + " changed settings: " + settingCSV);
 
-    sendDataTimeout = setTimeout(sendData, 2000);
+    var result = false;
+
+    // Only send if there are changes (plus the always-sent records)
+    if (settingCSV.length > 0) {
+        websocket.send(settingCSV);
+        sendDataTimeout = setTimeout(sendData, 2000);
+        result = true;
+    }
+
+    return result;
+}
+
+//Once the changes have been sent, update initialSettings to avoid sending duplicates
+function updateInitialSettings() {
+    // Check input boxes and dropdowns
+    var clsElements = document.querySelectorAll(".form-control, .form-dropdown");
+    for (let x = 0; x < clsElements.length; x++) {
+        var id = clsElements[x].id;
+        var currentValue = clsElements[x].value;
+        initialSettings[id] = currentValue;
+    }
+
+    // Check boxes, radio buttons
+    clsElements = document.querySelectorAll(".form-check-input:not(.fileManagerCheck), .form-radio");
+    for (let x = 0; x < clsElements.length; x++) {
+        var id = clsElements[x].id;
+        // Store boolean as string 'true'/'false' for consistent comparison with initialSettings
+        var currentValue = clsElements[x].checked.toString();
+        initialSettings[id] = currentValue;
+    }
+
+    // Corrections Priorities
+    for (let x = 0; x < correctionsSourceNames.length; x++) {
+        var id = "correctionsPriority_" + correctionsSourceNames[x];
+        var currentValue = correctionsSourcePriorities[x].toString();
+        initialSettings[id] = currentValue;
+    }
 }
 
 function showError(id, errorText) {
@@ -759,6 +1103,14 @@ function checkMessageValueUM980Base(id) {
     checkElementValue(id, 0, 65, "Must be between 0 and 65", "collapseGNSSConfigMsgBase");
 }
 
+function checkMessageValueLG290P01(id) {
+    checkElementValue(id, 0, 1, "Must be between 0 and 1", "collapseGNSSConfigMsg");
+}
+
+function checkMessageValueLG290P01200(id) {
+    checkElementValue(id, 0, 1200, "Must be between 0 and 1200", "collapseGNSSConfigMsg");
+}
+
 function collapseSection(section, caret) {
     ge(section).classList.remove('show');
     ge(caret).classList.remove('icon-caret-down');
@@ -794,24 +1146,19 @@ function validateFields() {
     checkConstellations();
 
     checkElementValue("minElev", 0, 90, "Must be between 0 and 90", "collapseGNSSConfig");
-    checkElementValue("minCNO", 0, 90, "Must be between 0 and 90", "collapseGNSSConfig");
-
+    checkElementValue("minCN0", 0, 90, "Must be between 0 and 90", "collapseGNSSConfig");
+    if (isElementShown("lg290pGnssSettings") == true) {
+        checkElementValue("rtcmMinElev", -90, 90, "Must be between -90 and 90", "collapseGNSSConfig");
+    }
+    if (isElementShown("configurePppSetting") == true) {
+        checkElementStringSpacesNoCommas("configurePPP", 1, 30, "Must be 1 to 30 characters. Separated by spaces. Commas not allowed", "collapseGNSSConfig");
+    }
     if (ge("enableNtripClient").checked == true) {
         checkElementString("ntripClientCasterHost", 1, 45, "Must be 1 to 45 characters", "collapseGNSSConfig");
         checkElementValue("ntripClientCasterPort", 1, 99999, "Must be 1 to 99999", "collapseGNSSConfig");
         checkElementString("ntripClientMountPoint", 1, 30, "Must be 1 to 30 characters", "collapseGNSSConfig");
         checkElementCasterUser("ntripClientCasterHost", "ntripClientCasterUser", "rtk2go.com", "User must use their email address", "collapseGNSSConfig");
     }
-    // Don't overwrite with the defaults here. User may want to disable NTRIP but not lose the existing settings.
-    // else {
-    //     clearElement("ntripClientCasterHost", "rtk2go.com");
-    //     clearElement("ntripClientCasterPort", 2101);
-    //     clearElement("ntripClientMountPoint", "bldr_SparkFun1");
-    //     clearElement("ntripClientMountPointPW");
-    //     clearElement("ntripClientCasterUser", "test@test.com");
-    //     clearElement("ntripClientCasterUserPW", "");
-    //     ge("ntripClientTransmitGGA").checked = true;
-    // }
 
     //Check all UBX message boxes
     //match all ids starting with ubxMessageRate_
@@ -848,8 +1195,8 @@ function validateFields() {
         }
     }
 
-    //Check Facet mosaicX5 RTCM intervals
-    else if (platformPrefix == "Facet mosaicX5") {
+    //Check Mosaic-X5 RTCM intervals
+    else if ((platformPrefix == "Facet mosaicX5") || ((platformPrefix.substring(0,2) == "FP") && (facetFPGNSS == "Mosaic-X5"))) {
         var messages = document.querySelectorAll('input[id^=messageIntervalRTCMRover]');
         for (let x = 0; x < messages.length; x++) {
             var messageName = messages[x].id;
@@ -862,36 +1209,37 @@ function validateFields() {
         }
     }
 
+    //Check all LG290P message boxes
+    else if ((platformPrefix == "Postcard") || (platformPrefix == "TX2") || ((platformPrefix.substring(0,2) == "FP") && (facetFPGNSS == "LG290P"))) {
+        var messages = document.querySelectorAll('input[id^=messageRateNMEA_]');
+        for (let x = 0; x < messages.length; x++) {
+            var messageName = messages[x].id;
+            checkMessageValueLG290P01(messageName);
+        }
+        var messages = document.querySelectorAll('input[id^=messageRateRTCMRover_]');
+        for (let x = 0; x < messages.length; x++) {
+            var messageName = messages[x].id;
+            checkMessageValueLG290P01200(messageName);
+        }
+        var messages = document.querySelectorAll('input[id^=messageRateRTCMBase_]');
+        for (let x = 0; x < messages.length; x++) {
+            var messageName = messages[x].id;
+            checkMessageValueLG290P01200(messageName);
+        }
+    }
+
     //Base Config
     if (ge("baseTypeSurveyIn").checked == true) {
         checkElementValue("observationSeconds", 60, 600, "Must be between 60 to 600", "collapseBaseConfig");
         checkElementValue("observationPositionAccuracy", 1, 5.1, "Must be between 1.0 to 5.0", "collapseBaseConfig");
-
-        clearElement("fixedEcefX", -1280206.568);
-        clearElement("fixedEcefY", -4716804.403);
-        clearElement("fixedEcefZ", 4086665.484);
-        clearElement("fixedLatText", 40.09029479);
-        clearElement("fixedLongText", -105.18505761);
-        clearElement("fixedAltitude", 1560.089);
     }
     else {
-        clearElement("observationSeconds", 60);
-        clearElement("observationPositionAccuracy", 5.0);
-
         if (ge("fixedBaseCoordinateTypeECEF").checked == true) {
-            clearElement("fixedLatText", 40.09029479);
-            clearElement("fixedLongText", -105.18505761);
-            clearElement("fixedAltitude", 1560.089);
-
             checkElementValue("fixedEcefX", -7000000, 7000000, "Must be -7000000 to 7000000", "collapseBaseConfig");
             checkElementValue("fixedEcefY", -7000000, 7000000, "Must be -7000000 to 7000000", "collapseBaseConfig");
             checkElementValue("fixedEcefZ", -7000000, 7000000, "Must be -7000000 to 7000000", "collapseBaseConfig");
         }
         else {
-            clearElement("fixedEcefX", -1280206.568);
-            clearElement("fixedEcefY", -4716804.403);
-            clearElement("fixedEcefZ", 4086665.484);
-
             checkLatLong(); //Verify Lat/Long input type
             checkElementValue("fixedAltitude", -11034, 8849, "Must be -11034 to 8849", "collapseBaseConfig");
 
@@ -926,33 +1274,6 @@ function validateFields() {
         checkElementString("ntripServerMountPoint_3", 0, 49, "Must be 0 to 49 characters", "ntripServerConfig3");
         checkElementString("ntripServerMountPointPW_3", 0, 49, "Must be 0 to 49 characters", "ntripServerConfig3");
     }
-    // Don't overwrite with the defaults here. User may want to disable NTRIP but not lose the existing settings.
-    // else {
-    //     clearElement("ntripServerCasterHost_0", "rtk2go.com");
-    //     clearElement("ntripServerCasterPort_0", 2101);
-    //     clearElement("ntripServerCasterUser_0", "test@test.com");
-    //     clearElement("ntripServerCasterUserPW_0", "");
-    //     clearElement("ntripServerMountPoint_0", "bldr_dwntwn2");
-    //     clearElement("ntripServerMountPointPW_0", "WR5wRo4H");
-    //     clearElement("ntripServerCasterHost_1", "");
-    //     clearElement("ntripServerCasterPort_1", 0);
-    //     clearElement("ntripServerCasterUser_1", "");
-    //     clearElement("ntripServerCasterUserPW_1", "");
-    //     clearElement("ntripServerMountPoint_1", "");
-    //     clearElement("ntripServerMountPointPW_1", "");
-    //     clearElement("ntripServerCasterHost_2", "");
-    //     clearElement("ntripServerCasterPort_2", 0);
-    //     clearElement("ntripServerCasterUser_2", "");
-    //     clearElement("ntripServerCasterUserPW_2", "");
-    //     clearElement("ntripServerMountPoint_2", "");
-    //     clearElement("ntripServerMountPointPW_2", "");
-    //     clearElement("ntripServerCasterHost_3", "");
-    //     clearElement("ntripServerCasterPort_3", 0);
-    //     clearElement("ntripServerCasterUser_3", "");
-    //     clearElement("ntripServerCasterUserPW_3", "");
-    //     clearElement("ntripServerMountPoint_3", "");
-    //     clearElement("ntripServerMountPointPW_3", "");
-    // }
 
     //PointPerfect Config
     checkPointPerfectService();
@@ -1003,40 +1324,24 @@ function validateFields() {
 
     //System Config
     if (ge("enableLogging").checked == true) {
-        checkElementValue("maxLogTime", 1, 1051200, "Must be 1 to 1,051,200", "collapseSystemConfig");
-        checkElementValue("maxLogLength", 1, 1051200, "Must be 1 to 1,051,200", "collapseSystemConfig");
-    }
-    else {
-        clearElement("maxLogTime", 60 * 24);
-        clearElement("maxLogLength", 60 * 24);
+        checkElementValue("maxLogTime", 0, 1051200, "Must be 0 to 1,051,200", "collapseSystemConfig");
+        checkElementValue("maxLogLength", 0, 2880, "Must be 0 to 2880", "collapseSystemConfig");
     }
 
     if (ge("enableARPLogging").checked == true) {
         checkElementValue("ARPLoggingInterval", 1, 600, "Must be 1 to 600", "collapseSystemConfig");
     }
-    else {
-        clearElement("ARPLoggingInterval", 10);
-    }
 
     if (ge("enableAutoFirmwareUpdate").checked == true) {
         checkElementValue("autoFirmwareCheckMinutes", 1, 999999, "Must be 1 to 999999", "collapseSystemConfig");
-    }
-    else {
-        clearElement("autoFirmwareCheckMinutes", 0);
     }
 
     if (ge("enableAutoReset").checked == true) {
         checkElementValue("rebootMinutes", 0, 4294967, "Must be 0 to 4,294,967", "collapseSystemConfig");
     }
-    else {
-        clearElement("rebootMinutes", 0); //0 = disable
-    }
 
     if (ge("shutdownNoChargeTimeoutMinutesCheckbox").checked == true) {
         checkElementValue("shutdownNoChargeTimeoutMinutes", 0, 604800, "Must be 0 to 604,800", "collapseSystemConfig");
-    }
-    else {
-        clearElement("shutdownNoChargeTimeoutMinutes", 0); //0 = disable
     }
 
     //Ethernet
@@ -1078,9 +1383,15 @@ function changeProfile() {
 
         currentProfileNumber = document.querySelector('input[name=profileRadio]:checked').value;
 
-        sendData();
         clearError('saveBtn');
-        showSuccess('saveBtn', "Saving...");
+        var dataSent = sendData();
+        if (dataSent == true) {
+            showSuccess('saveBtn', "Saving...");
+        }
+        else {
+            // If nothing changed, immediately report success.
+            showSuccess('saveBtn', "No changes detected.");
+        }
 
         websocket.send("setProfile," + currentProfileNumber + ",");
 
@@ -1117,8 +1428,14 @@ function saveConfig() {
     }
     else {
         clearError('saveBtn');
-        sendData();
-        showSuccess('saveBtn', "Saving...");
+        var dataSent = sendData();
+        if (dataSent == true) {
+            showSuccess('saveBtn', "Saving...");
+        }
+        else {
+            // If nothing changed, immediately report success.
+            showSuccess('saveBtn', "No changes detected.");
+        }
     }
 
 }
@@ -1279,6 +1596,19 @@ function checkElementString(id, min, max, errorText, collapseID) {
         clearError(id);
 }
 
+function checkElementStringSpacesNoCommas(id, min, max, errorText, collapseID) {
+    value = ge(id).value;
+    var commas = value.split(',');
+    var spaces = value.split(' ');
+    if ((value.length < min) || (value.length > max) || (commas.length > 1) || (spaces.length == 1)) {
+        ge(id + 'Error').innerHTML = 'Error: ' + errorText;
+        ge(collapseID).classList.add('show');
+        errorCount++;
+    }
+    else
+        clearError(id);
+}
+
 function checkElementIPAddress(id, errorText, collapseID) {
     value = ge(id).value;
     var data = value.split('.');
@@ -1378,6 +1708,12 @@ function zeroMessages() {
         var messageName = messages[x].id;
         ge(messageName).checked = false;
     }
+    //match messageRatePQTM_
+    messages = document.querySelectorAll('input[id^=messageRatePQTM_]');
+    for (let x = 0; x < messages.length; x++) {
+        var messageName = messages[x].id;
+        ge(messageName).checked = false;
+    }
 }
 
 function zeroBaseMessages() {
@@ -1423,7 +1759,7 @@ function resetToSurveyingDefaults() {
         ge("messageRateNMEA_GPGSV").value = 1.0;
         ge("messageRateNMEA_GPRMC").value = 0.5;
     }
-    else if (platformPrefix == "Facet mosaicX5") {
+    else if ((platformPrefix == "Facet mosaicX5") || ((platformPrefix.substring(0,2) == "FP") && (facetFPGNSS == "Mosaic-X5"))) {
         ge("streamIntervalNMEA_0").value = 6; //msec500
         ge("streamIntervalNMEA_1").value = 7; //sec1
         ge("messageStreamNMEA_GGA").value = 1;
@@ -1433,6 +1769,15 @@ function resetToSurveyingDefaults() {
         ge("messageStreamNMEA_RMC").value = 1;
 
         ge("messageIntervalRTCMRover_RTCM1033").value = 10.0;
+    }
+    else if ((platformPrefix == "Postcard") || (platformPrefix == "TX2") || ((platformPrefix.substring(0,2) == "FP") && (facetFPGNSS == "LG290P"))) {
+        ge("messageRateNMEA_RMC").value = 1;
+        ge("messageRateNMEA_GGA").value = 1;
+        ge("messageRateNMEA_GSV").value = 1;
+        ge("messageRateNMEA_GSA").value = 1;
+        ge("messageRateNMEA_VTG").value = 1;
+        ge("messageRateNMEA_GLL").value = 1;
+        ge("messageRateNMEA_GST").value = 1; //Supported on >= v4
     }
 }
 function resetToLoggingDefaults() {
@@ -1448,18 +1793,41 @@ function resetToLoggingDefaults() {
         ge("ubxMessageRate_RXM_SFRBX").value = 1;
     }
     else if (platformPrefix == "Torch") {
-        ge("messageRateNMEA_GPGGA").value = 0.5;
-        ge("messageRateNMEA_GPGSA").value = 0.5;
-        ge("messageRateNMEA_GPGST").value = 0.5;
-        ge("messageRateNMEA_GPGSV").value = 1.0;
-        ge("messageRateNMEA_GPRMC").value = 0.5;
+        ge("messageRateNMEA_GPGGA").value = 1;
+        ge("messageRateNMEA_GPGSA").value = 1;
+        ge("messageRateNMEA_GPGST").value = 1;
+        ge("messageRateNMEA_GPGSV").value = 5; // Limit to 1 per 5 seconds
+        ge("messageRateNMEA_GPRMC").value = 1;
 
-        ge("messageRateRTCMRover_RTCM1019").value = 1.0;
-        ge("messageRateRTCMRover_RTCM1020").value = 1.0;
-        ge("messageRateRTCMRover_RTCM1042").value = 1.0;
-        ge("messageRateRTCMRover_RTCM1046").value = 1.0;
+        ge("messageRateRTCMRover_RTCM1019").value = 30;
+        ge("messageRateRTCMRover_RTCM1020").value = 30;
+        ge("messageRateRTCMRover_RTCM1042").value = 30;
+        ge("messageRateRTCMRover_RTCM1046").value = 30;
+
+        ge("messageRateRTCMRover_RTCM1074").value = 30;
+        ge("messageRateRTCMRover_RTCM1084").value = 30;
+        ge("messageRateRTCMRover_RTCM1094").value = 30;
+        ge("messageRateRTCMRover_RTCM1124").value = 30;
     }
-    else if (platformPrefix == "Facet mosaicX5") {
+    else if ((platformPrefix == "Postcard") || (platformPrefix == "TX2") || ((platformPrefix.substring(0,2) == "FP") && (facetFPGNSS == "LG290P"))) {
+        ge("messageRateNMEA_RMC").value = 1;
+        ge("messageRateNMEA_GGA").value = 1;
+        ge("messageRateNMEA_GSV").value = 1;
+        ge("messageRateNMEA_GSA").value = 1;
+        ge("messageRateNMEA_VTG").value = 1;
+        ge("messageRateNMEA_GLL").value = 1;
+        ge("messageRateNMEA_GST").value = 1; // Supported on >= v4
+
+        ge("messageRateRTCMRover_RTCM3-1005").value = 1;
+
+        ge("messageRateRTCMRover_RTCM3-107X").value = 1;
+        ge("messageRateRTCMRover_RTCM3-108X").value = 1;
+        ge("messageRateRTCMRover_RTCM3-109X").value = 1;
+        ge("messageRateRTCMRover_RTCM3-111X").value = 1;
+        ge("messageRateRTCMRover_RTCM3-112X").value = 1;
+        ge("messageRateRTCMRover_RTCM3-113X").value = 1;
+    }
+    else if ((platformPrefix == "Facet mosaicX5") || ((platformPrefix.substring(0,2) == "FP") && (facetFPGNSS == "Mosaic-X5"))) {
         ge("streamIntervalNMEA_0").value = 6; //msec500
         ge("streamIntervalNMEA_1").value = 7; //sec1
         ge("messageStreamNMEA_GGA").value = 1;
@@ -1503,7 +1871,17 @@ function resetToRTCMDefaults() {
         ge("messageRateRTCMBase_RTCM1094").value = 1.0;
         ge("messageRateRTCMBase_RTCM1124").value = 1.0;
     }
-    else if (platformPrefix == "Facet mosaicX5") {
+    else if ((platformPrefix == "Postcard") || (platformPrefix == "TX2") || ((platformPrefix.substring(0,2) == "FP") && (facetFPGNSS == "LG290P"))) {
+        ge("messageRateRTCMBase_RTCM3-1005").value = 1;
+
+        ge("messageRateRTCMBase_RTCM3-107X").value = 1;
+        ge("messageRateRTCMBase_RTCM3-108X").value = 1;
+        ge("messageRateRTCMBase_RTCM3-109X").value = 1;
+        ge("messageRateRTCMBase_RTCM3-111X").value = 1;
+        ge("messageRateRTCMBase_RTCM3-112X").value = 1;
+        ge("messageRateRTCMBase_RTCM3-113X").value = 1;
+    }
+    else if ((platformPrefix == "Facet mosaicX5") || ((platformPrefix.substring(0,2) == "FP") && (facetFPGNSS == "Mosaic-X5"))) {
         ge("messageIntervalRTCMBase_RTCM1033").value = 10.0;
 
         ge("messageEnabledRTCMBase_RTCM1005").checked = true;
@@ -1538,7 +1916,17 @@ function resetToRTCMLowBandwidth() {
         ge("messageRateRTCMBase_RTCM1094").value = 2.0;
         ge("messageRateRTCMBase_RTCM1124").value = 2.0;
     }
-    else if (platformPrefix == "Facet mosaicX5") {
+    else if ((platformPrefix == "Postcard") || (platformPrefix == "TX2") || ((platformPrefix.substring(0,2) == "FP") && (facetFPGNSS == "LG290P"))) {
+        ge("messageRateRTCMBase_RTCM3-1005").value = 10;
+
+        ge("messageRateRTCMBase_RTCM3-107X").value = 2;
+        ge("messageRateRTCMBase_RTCM3-108X").value = 2;
+        ge("messageRateRTCMBase_RTCM3-109X").value = 2;
+        ge("messageRateRTCMBase_RTCM3-111X").value = 2;
+        ge("messageRateRTCMBase_RTCM3-112X").value = 2;
+        ge("messageRateRTCMBase_RTCM3-113X").value = 2;
+    }
+    else if ((platformPrefix == "Facet mosaicX5") || ((platformPrefix.substring(0,2) == "FP") && (facetFPGNSS == "Mosaic-X5"))) {
         ge("messageIntervalRTCMBase_RTCM1005|6").value = 10.0;
         ge("messageIntervalRTCMBase_RTCM1033").value = 10.0;
         ge("messageIntervalRTCMBase_MSM4").value = 2.0;
@@ -1594,6 +1982,8 @@ function confirmDataReceipt() {
     else {
         console.log("Unknown owner of confirmDataReceipt");
     }
+    //Now update initialSettings to avoid sending the changes again
+    updateInitialSettings();
 }
 
 function firmwareUploadWait() {
@@ -1679,8 +2069,14 @@ document.addEventListener("DOMContentLoaded", (event) => {
             else if (platformPrefix == "Torch") {
                 ge("antennaPhaseCenter_mm").value = 116.5; //Average of L1/L2
             }
+            else if (platformPrefix == "TX2") {
+                ge("antennaPhaseCenter_mm").value = 116.5; //Average of L1/L2
+            }
             else if (platformPrefix == "EVK") {
                 ge("antennaPhaseCenter_mm").value = 42.0; //Average of L1/L2
+            }
+            else if (platformPrefix.substring(0,2) == "FP") {
+                ge("antennaPhaseCenter_mm").value = 68.5; //Average of L1/L2 - TBC
             }
             else {
                 ge("antennaPhaseCenter_mm").value = 0.0;
@@ -1739,15 +2135,6 @@ document.addEventListener("DOMContentLoaded", (event) => {
         }
         else { //"pointPerfectService").value == 0 //Disabled
             hide("ppSettingsLBandNAConfig");
-        }
-    });
-
-    ge("useLocalizedDistribution").addEventListener("change", function () {
-        if (ge("useLocalizedDistribution").checked) {
-            show("localizedDistributionTileLevelDropdown");
-        }
-        else {
-            hide("localizedDistributionTileLevelDropdown");
         }
     });
 
@@ -1859,6 +2246,20 @@ document.addEventListener("DOMContentLoaded", (event) => {
 
     ge("fixedHAEAPC").addEventListener("change", function () {
         adjustHAE();
+    });
+
+    ge("enableGalileoHas").addEventListener("change", function () {
+        if ((isElementShown("galileoHasSetting") == true) && (isElementShown("lg290pGnssSettings") == true)) {
+            if (ge("enableGalileoHas").checked == true) {
+                show("configurePppSetting");
+            }
+            else {
+                hide("configurePppSetting");
+            }
+        }
+        else {
+            hide("configurePppSetting"); // Hide on Torch UM980 - i.e. non-LG290P
+        }
     });
 
     for (let y = 0; y < numCorrectionsSources; y++) {
@@ -2026,7 +2427,7 @@ function updateECEFList() {
 
     $("#StationCoordinatesECEF option").each(function () {
         var parts = $(this).text().split(' ');
-        var nickname = parts[0].substring(0, 15);
+        var nickname = parts[0].substring(0, 19);
         $(this).text(nickname + ': ' + parts[1] + ' ' + parts[2] + ' ' + parts[3]).text;
     });
 }
@@ -2156,7 +2557,7 @@ function updateGeodeticList() {
 
     $("#StationCoordinatesGeodetic option").each(function () {
         var parts = $(this).text().split(' ');
-        var nickname = parts[0].substring(0, 15);
+        var nickname = parts[0].substring(0, 19);
 
         if (parts.length >= 7) {
             $(this).text(nickname + ': ' + parts[1] + ' ' + parts[2] + ' ' + parts[3]
@@ -2198,6 +2599,7 @@ function getFileList() {
     }
 }
 
+//Called when user clicks the Message Rates button
 function getMessageList() {
     if (obtainedMessageList == false) {
         obtainedMessageList = true;
@@ -2237,6 +2639,9 @@ function getMessageList() {
     }
 }
 
+//Get the Base message rates
+//We (currently) don't include savedMessageNames/Values here as only the mosaic-X5
+//NMEA streams need those, and those are covered by getMessageList
 function getMessageListBase() {
     if (obtainedMessageListBase == false) {
         obtainedMessageListBase = true;
@@ -2782,4 +3187,24 @@ function printableInputType(coordinateInputType) {
             break;
     }
     return ("Unknown");
+}
+
+//Given a number as string, return the step based on the number of decimal places
+function getDecimalPlacesStep(theVal) {
+    var theStep = "";
+    var decimalPlaces = 0;
+    if (theVal.includes(".")) {
+        var intDec = theVal.split('.');
+        decimalPlaces = intDec[1].length;
+    }
+
+    if (decimalPlaces > 0) {
+        theStep = " step='0.";
+        for (let i = 1; i < decimalPlaces; i++) {
+            theStep += "0";
+        }
+        theStep += "1'";
+    }
+
+    return (theStep);
 }

@@ -1,8 +1,8 @@
-/*------------------------------------------------------------------------------
+/*=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 GNSS_LG290P.h
 
   Declarations and definitions for the LG290P GNSS receiver and the GNSS_LG290P class
-------------------------------------------------------------------------------*/
+=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=*/
 
 #ifndef __GNSS_LG290P_H__
 #define __GNSS_LG290P_H__
@@ -34,7 +34,7 @@ typedef struct
 // Rate = Output once every N position fix(es).
 const lg290pMsg lgMessagesNMEA[] = {
     {"RMC", 1, 0}, {"GGA", 1, 0}, {"GSV", 1, 0}, {"GSA", 1, 0}, {"VTG", 1, 0},
-    {"GLL", 1, 0}, {"GBS", 0, 4}, {"GNS", 0, 4}, {"GST", 1, 4}, {"ZDA", 0, 4},
+    {"GLL", 1, 0}, {"GBS", 0, 104}, {"GNS", 0, 104}, {"GST", 1, 104}, {"ZDA", 0, 104},
 };
 
 const lg290pMsg lgMessagesRTCM[] = {
@@ -44,7 +44,7 @@ const lg290pMsg lgMessagesRTCM[] = {
 
     {"RTCM3-1020", 0, 0},
 
-    {"RTCM3-1033", 0, 4}, // v4 and above
+    {"RTCM3-1033", 0, 104}, // v1.4 and above
 
     {"RTCM3-1041", 0, 0}, {"RTCM3-1042", 0, 0}, {"RTCM3-1044", 0, 0}, {"RTCM3-1046", 0, 0},
 
@@ -82,16 +82,7 @@ class GNSS_LG290P : GNSS
     // Not Rover or Base specific (ie, baud rates)
     // Outputs:
     //   Returns true if successfully configured and false upon failure
-    bool configureGNSS();
-
-    // Turn on all the enabled NMEA messages on COM3
-    bool enableNMEA();
-
-    // Turn on all the enabled RTCM Rover messages on COM3
-    bool enableRTCMRover();
-
-    // Turn on all the enabled RTCM Base messages on COM3
-    bool enableRTCMBase();
+    bool configure();
 
     uint8_t getActiveNmeaMessageCount();
 
@@ -109,7 +100,16 @@ class GNSS_LG290P : GNSS
     void menuMessagesSubtype(int *localMessageRate, const char *messageType);
 
     // Set the minimum satellite signal level for navigation.
-    bool setMinCnoRadio(uint8_t cnoValue);
+    bool setMinCN0(uint8_t cnoValue);
+
+    // Given the name of a message, find it, and set the rate
+    bool setNmeaMessageRateByName(const char *msgName, uint8_t msgRate);
+
+    // Set all RTCM Rover message report rates to one value
+    void setRtcmRoverMessageRates(uint8_t msgRate);
+
+    // Given the name of a message, find it, and set the rate
+    bool setRtcmRoverMessageRateByName(const char *msgName, uint8_t msgRate);
 
   public:
     // Constructor
@@ -139,12 +139,6 @@ class GNSS_LG290P : GNSS
     // Outputs:
     //   Returns true when an external event occurs and false if no event
     bool beginExternalEvent();
-
-    // Setup the timepulse output on the PPS pin for external triggering
-    // Outputs
-    //   Returns true if the pin was successfully setup and false upon
-    //   failure
-    bool beginPPS();
 
     bool checkNMEARates();
 
@@ -181,14 +175,6 @@ class GNSS_LG290P : GNSS
 
     bool disableSurveyIn(bool saveAndReset);
 
-    void enableGgaForNtrip();
-
-    // Enable RTCM 1230. This is the GLONASS bias sentence and is transmitted
-    // even if there is no GPS fix. We use it to test serial output.
-    // Outputs:
-    //   Returns true if successfully started and false upon failure
-    bool enableRTCMTest();
-
     bool enterConfigMode(unsigned long waitForSemaphoreTimeout_millis);
 
     bool exitConfigMode();
@@ -205,6 +191,13 @@ class GNSS_LG290P : GNSS
     //   Returns true if successfully started and false upon failure
     bool fixedBaseStart();
 
+    bool fixRateIsAllowed(uint32_t fixRateMs);
+
+    // Return min/max rate in ms
+    uint32_t fixRateGetMinimumMs();
+
+    uint32_t fixRateGetMaximumMs();
+
     // Return the number of active/enabled messages
     uint8_t getActiveMessageCount();
 
@@ -216,8 +209,12 @@ class GNSS_LG290P : GNSS
     //   Returns the altitude in meters or zero if the GNSS is offline
     double getAltitude();
 
+    uint32_t getBaudRate(uint8_t uartNumber);
+
     // Returns the carrier solution or zero if not online
     uint8_t getCarrierSolution();
+
+    uint32_t getCommBaudRate();
 
     uint32_t getDataBaudRate();
 
@@ -229,6 +226,9 @@ class GNSS_LG290P : GNSS
 
     // Returns the fix type or zero if not online
     uint8_t getFixType();
+
+    // Returns the geoidal separation
+    double getGeoidalSeparation();
 
     // Returns the hours of 24 hour clock or zero if not online
     uint8_t getHour();
@@ -258,9 +258,6 @@ class GNSS_LG290P : GNSS
 
     // Returns two digits of milliseconds or zero if not online
     uint8_t getMillisecond();
-
-    // Get the minimum satellite signal level for navigation.
-    uint8_t getMinCno();
 
     // Returns minutes or zero if not online
     uint8_t getMinute();
@@ -299,17 +296,16 @@ class GNSS_LG290P : GNSS
     // Return the number of seconds the survey-in process has been running
     int getSurveyInObservationTime();
 
-    float getSurveyInStartingAccuracy();
-
     // Returns timing accuracy or zero if not online
     uint32_t getTimeAccuracy();
 
     // Returns full year, ie 2023, not 23.
     uint16_t getYear();
 
-    // Returns true if the device is in Rover mode
-    // Currently the only two modes are Rover or Base
-    bool inRoverMode();
+    // Helper functions for the current mode as read from the GNSS receiver
+    bool gnssInBaseFixedMode();
+    bool gnssInBaseSurveyInMode();
+    bool gnssInRoverMode();
 
     bool isBlocking();
 
@@ -380,12 +376,15 @@ class GNSS_LG290P : GNSS
     //   Returns the number of correction data bytes written
     int pushRawData(uint8_t *dataToSend, int dataLength);
 
+    // Hardware or software reset the GNSS
+    bool reset();
+
     uint16_t rtcmBufferAvailable();
 
     // If LBand is being used, ignore any RTCM that may come in from the GNSS
     void rtcmOnGnssDisable();
 
-    // If L-Band is available, but encrypted, allow RTCM through other sources (radio, ESP-Now) to GNSS receiver
+    // If L-Band is available, but encrypted, allow RTCM through other sources (radio, ESP-NOW) to GNSS receiver
     void rtcmOnGnssEnable();
 
     uint16_t rtcmRead(uint8_t *rtcmBuffer, int rtcmBytesToRead);
@@ -395,12 +394,13 @@ class GNSS_LG290P : GNSS
     //   Returns true when the configuration was saved and false upon failure
     bool saveConfiguration();
 
-    // Set the baud rate on the GNSS port that interfaces between the ESP32 and the GNSS
-    // This just sets the GNSS side
-    // Used during Bluetooth testing
-    // Inputs:
-    //   baudRate: The desired baudrate
-    bool setBaudrate(uint32_t baudRate);
+    bool setBaudRate(uint8_t uartNumber, uint32_t baudRate);
+
+    bool setBaudRateComm(uint32_t baudRate);
+
+    bool setBaudRateData(uint32_t baudRate);
+
+    bool setBaudRateRadio(uint32_t baudRate);
 
     // Enable all the valid constellations and bands for this platform
     bool setConstellations();
@@ -409,25 +409,36 @@ class GNSS_LG290P : GNSS
     // Always update if force is true. Otherwise, only update if enable has changed state
     bool setCorrRadioExtPort(bool enable, bool force);
 
-    bool setDataBaudRate(uint32_t baud);
-
     // Set the elevation in degrees
     // Inputs:
     //   elevationDegrees: The elevation value in degrees
     bool setElevation(uint8_t elevationDegrees);
 
-    // Enable all the valid messages for this platform
-    bool setMessages(int maxRetries);
+    bool setHighAccuracyService(bool enableGalileoHas, const char *configurePPP);
 
-    // Enable all the valid messages for this platform over the USB port
-    bool setMessagesUsb(int maxRetries);
+    bool setHighAccuracyService(bool enableGalileoHas);
+
+    // Configure any logging settings - currently mosaic-X5 specific
+    bool setLogging();
+
+    // Set the NMEA messages
+    bool setMessagesNMEA();
+
+    // Set then RTCM Base messages
+    bool setMessagesRTCMBase();
+
+    // Set the RTCM Rover messages
+    bool setMessagesRTCMRover();
 
     // Set the dynamic model to use for RTK
     // Inputs:
     //   modelNumber: Number of the model to use, provided by radio library
     bool setModel(uint8_t modelNumber);
 
-    bool setRadioBaudRate(uint32_t baud);
+    bool setMultipathMitigation(bool enableMultipathMitigation);
+
+    // Setup the PPS pin for PPS LED
+    bool setPPS();
 
     // Specify the interval between solutions
     // Inputs:
@@ -437,10 +448,8 @@ class GNSS_LG290P : GNSS
     //   failure
     bool setRate(double secondsBetweenSolutions);
 
-    bool setTalkerGNGGA();
-
-    // Hotstart GNSS to try to get RTK lock
-    bool softwareReset();
+    // Enable/disable any output needed for tilt compensation
+    bool setTilt();
 
     bool standby();
 
@@ -459,12 +468,35 @@ class GNSS_LG290P : GNSS
     // we can pass data back into the LG290P library to allow it to update its own variables
     void lg290pUpdate(uint8_t *incomingBuffer, int bufferLength);
 
-    // Return the baud rate of UART2, connected to the ESP32 UART1
-    uint32_t getCommBaudRate();
-
     // Poll routine to update the GNSS state
     void update();
 };
+
+// Forward routine declarations
+bool lg290pCommandList(RTK_Settings_Types type,
+                       int settingsIndex,
+                       bool inCommands,
+                       int qualifier,
+                       char * settingName,
+                       char * settingValue);
+void lg290pCommandTypeJson(JsonArray &command_types);
+bool lg290pCreateString(RTK_Settings_Types type,
+                        int settingsIndex,
+                        char * newSettings);
+bool lg290pGetSettingValue(RTK_Settings_Types type,
+                           const char * suffix,
+                           int qualifier,
+                           int settingsIndex,
+                           char * settingValueStr);
+bool lg290pIsPresentOnFacetFP();
+void lg290pNewClass();
+bool lg290pNewSettingValue(RTK_Settings_Types type,
+                           const char * suffix,
+                           int qualifier,
+                           double d);
+bool lg290pSettingsToFile(File *settingsFile,
+                          RTK_Settings_Types type,
+                          int settingsIndex);
 
 #endif // COMPILE_LG290P
 #endif // __GNSS_LG290P_H__

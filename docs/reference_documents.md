@@ -14,3 +14,6 @@ This is a list of technical documents pertaining to each RTK Everywhere based pr
 - RTK Torch
 	- [Resources / Datasheets](https://docs.sparkfun.com/SparkFun_RTK_Torch/reference_documents/)
 	- [Hookup Guide](https://docs.sparkfun.com/SparkFun_RTK_Torch/)
+- TX2
+	- [Resources / Datasheets](https://docs.sparkpnt.com/TX2/reference_documents/)
+	- [Hookup Guide](https://docs.sparkpnt.com/TX2/)

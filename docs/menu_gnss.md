@@ -15,6 +15,7 @@ Compatibility Icons
 - Facet mosaic: :material-radiobox-marked:{ .support-full title="Feature Supported" }
 - Postcard: :material-radiobox-marked:{ .support-full title="Feature Supported" }
 - Torch: :material-radiobox-marked:{ .support-full title="Feature Supported" }
+- TX2: :material-radiobox-marked:{ .support-full title="Feature Supported" }
 
 </div>
 
@@ -39,7 +40,7 @@ Measurement Frequency can be set by either Hz or by seconds between measurements
 
 ## Dynamic Model
 
-The Dynamic Model can be changed but it is recommended to leave it as *Survey*. For more information, please see the list of [reference documents](reference_documents.md) for your platform.
+The Dynamic Model can be changed but it is recommended to leave it as *Portable*. For more information, please see the list of [reference documents](reference_documents.md) for your platform.
 
 ## Min SV Elevation and C/N0
 
@@ -113,6 +114,7 @@ Compatibility Icons
 - Facet mosaic: :material-radiobox-indeterminate-variant:{ .support-partial title="Feature Partially Supported" }
 - Postcard: :material-radiobox-blank:{ .support-none title="Feature Not Supported" }
 - Torch: :material-radiobox-marked:{ .support-full title="Feature Supported" }
+- TX2: :material-radiobox-marked:{ .support-full title="Feature Supported" }
 
 </div>
 
