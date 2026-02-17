@@ -941,8 +941,9 @@ bool GNSS_UM980::isDgpsFixed()
 }
 
 //----------------------------------------
-// Some functions (L-Band area frequency determination) merely need to know if we have a valid fix, not what type of fix
-// This function checks to see if the given platform has reached sufficient fix type to be considered valid
+// Some functions merely need to know if we have an RTK Float.
+// This function checks to see if the given platform has reached sufficient
+// fix type to be considered valid.
 //----------------------------------------
 bool GNSS_UM980::isFixed()
 {
@@ -1011,9 +1012,9 @@ bool GNSS_UM980::isPppConverging()
 }
 
 //----------------------------------------
-// Some functions (L-Band area frequency determination) merely need to
-// know if we have an RTK Fix.  This function checks to see if the given
-// platform has reached sufficient fix type to be considered valid
+// Some functions merely need to know if we have an RTK Float.
+// This function checks to see if the given platform has reached sufficient
+// fix type to be considered valid.
 //----------------------------------------
 bool GNSS_UM980::isRTKFix()
 {
@@ -1024,9 +1025,9 @@ bool GNSS_UM980::isRTKFix()
 }
 
 //----------------------------------------
-// Some functions (L-Band area frequency determination) merely need to
-// know if we have an RTK Float.  This function checks to see if the
-// given platform has reached sufficient fix type to be considered valid
+// Some functions merely need to know if we have an RTK Float.
+// This function checks to see if the given platform has reached sufficient
+// fix type to be considered valid.
 //----------------------------------------
 bool GNSS_UM980::isRTKFloat()
 {

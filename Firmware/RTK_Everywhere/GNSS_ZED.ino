@@ -1346,8 +1346,9 @@ bool GNSS_ZED::isDgpsFixed()
 }
 
 //----------------------------------------
-// Some functions (L-Band area frequency determination) merely need to know if we have a valid fix, not what type of fix
-// This function checks to see if the given platform has reached sufficient fix type to be considered valid
+// Some functions merely need to know if we have an RTK Float.
+// This function checks to see if the given platform has reached sufficient
+// fix type to be considered valid.
 //----------------------------------------
 bool GNSS_ZED::isFixed()
 {
@@ -1381,9 +1382,9 @@ bool GNSS_ZED::isPppConverging()
 }
 
 //----------------------------------------
-// Some functions (L-Band area frequency determination) merely need to
-// know if we have an RTK Fix.  This function checks to see if the given
-// platform has reached sufficient fix type to be considered valid
+// Some functions merely need to know if we have an RTK Float.
+// This function checks to see if the given platform has reached sufficient
+// fix type to be considered valid.
 //----------------------------------------
 bool GNSS_ZED::isRTKFix()
 {
@@ -1394,9 +1395,9 @@ bool GNSS_ZED::isRTKFix()
 }
 
 //----------------------------------------
-// Some functions (L-Band area frequency determination) merely need to
-// know if we have an RTK Float.  This function checks to see if the
-// given platform has reached sufficient fix type to be considered valid
+// Some functions merely need to know if we have an RTK Float.
+// This function checks to see if the given platform has reached sufficient
+// fix type to be considered valid.
 //----------------------------------------
 bool GNSS_ZED::isRTKFloat()
 {

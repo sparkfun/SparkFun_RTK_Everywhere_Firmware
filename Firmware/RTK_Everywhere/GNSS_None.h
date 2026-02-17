@@ -9,7 +9,7 @@ GNSS_None.h
 
 class GNSS_None : public GNSS
 {
-  public:
+public:
     // Constructor
     GNSS_None() : GNSS()
     {
@@ -397,10 +397,9 @@ class GNSS_None : public GNSS
         return false;
     }
 
-    // Some functions (L-Band area frequency determination) merely need
-    // to know if we have a valid fix, not what type of fix
-    // This function checks to see if the given platform has reached
-    // sufficient fix type to be considered valid
+    // Some functions merely need to know if we have an RTK Float.
+    // This function checks to see if the given platform has reached sufficient
+    // fix type to be considered valid.
     bool isFixed()
     {
         return false;
@@ -422,18 +421,17 @@ class GNSS_None : public GNSS
         return false;
     }
 
-    // Some functions (L-Band area frequency determination) merely need
-    // to know if we have an RTK Fix.  This function checks to see if the
-    // given platform has reached sufficient fix type to be considered valid
+    // Some functions merely need to know if we have an RTK Float.
+    // This function checks to see if the given platform has reached sufficient
+    // fix type to be considered valid.
     bool isRTKFix()
     {
         return false;
     }
 
-    // Some functions (L-Band area frequency determination) merely need
-    // to know if we have an RTK Float.  This function checks to see if
-    // the given platform has reached sufficient fix type to be considered
-    // valid
+    // Some functions merely need to know if we have an RTK Float.
+    // This function checks to see if the given platform has reached sufficient
+    // fix type to be considered valid.
     bool isRTKFloat()
     {
         return false;

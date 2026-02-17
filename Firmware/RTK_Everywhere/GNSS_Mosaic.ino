@@ -1364,10 +1364,9 @@ bool GNSS_MOSAIC::isDgpsFixed()
 }
 
 //----------------------------------------
-// Some functions (L-Band area frequency determination) merely need
-// to know if we have a valid fix, not what type of fix
-// This function checks to see if the given platform has reached
-// sufficient fix type to be considered valid
+// Some functions merely need to know if we have an RTK Float.
+// This function checks to see if the given platform has reached sufficient 
+// fix type to be considered valid.
 //----------------------------------------
 bool GNSS_MOSAIC::isFixed()
 {
@@ -1417,9 +1416,9 @@ bool GNSS_MOSAIC::isPppConverging()
 }
 
 //----------------------------------------
-// Some functions (L-Band area frequency determination) merely need
-// to know if we have an RTK Fix.  This function checks to see if the
-// given platform has reached sufficient fix type to be considered valid
+// Some functions merely need to know if we have an RTK Float.
+// This function checks to see if the given platform has reached sufficient 
+// fix type to be considered valid.
 //----------------------------------------
 bool GNSS_MOSAIC::isRTKFix()
 {
@@ -1428,10 +1427,9 @@ bool GNSS_MOSAIC::isRTKFix()
 }
 
 //----------------------------------------
-// Some functions (L-Band area frequency determination) merely need
-// to know if we have an RTK Float.  This function checks to see if
-// the given platform has reached sufficient fix type to be considered
-// valid
+// Some functions merely need to know if we have an RTK Float.
+// This function checks to see if the given platform has reached sufficient 
+// fix type to be considered valid.
 //----------------------------------------
 bool GNSS_MOSAIC::isRTKFloat()
 {
