@@ -8,7 +8,7 @@ void menuPorts()
 {
     if (present.portDataMux == true)
     {
-        // RTK Facet mosaic, Facet v2 L-Band, Facet v2
+        // RTK Facet mosaic-X5
         menuPortsMultiplexed();
     }
     else if (productVariant == RTK_TORCH || productVariant == RTK_TORCH_X2)
@@ -195,7 +195,7 @@ void menuPortsMultiplexed()
             systemPrintln("3) Configure External Triggers");
         }
 
-        // Facet v2 has a mux. Radio Ext is UART2
+        // TODO: On FP, external corrections are piped to X20P UART2?
         // Facet mosaic has a mux. Radio Ext is COM2. Data port (COM3) is mux'd.
         if (present.gnss_zedf9p || present.gnss_zedx20p)
         {

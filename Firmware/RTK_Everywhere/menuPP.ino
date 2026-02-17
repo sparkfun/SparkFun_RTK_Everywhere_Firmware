@@ -131,20 +131,10 @@ void menuPointPerfect()
         }
 
         // How this works:
-        //   There are four PointPerfect corrections plans: IP-only, L-Band-only, L-Band+IP, SSR-RTCM
-        //   For L-Band-only - e.g. Facet mosaic or Facet v2 L-Band
-        //     During ZTP Provisioning, we receive the UBX-format key distribution topic /pp/ubx/0236/Lb
-        //     There are no regional correction topics for L-Band-only
-        //     Facet v2 L-Band pushes the keys to the ZED and pushes PMP from the NEO to the ZED
-        //     Facet mosaic pushes the current key and raw L-Band to the PPL, then pushes RTCM to the X5
+        //   There are two PointPerfect corrections plans: IP-only, SSR-RTCM
         //   For SSR-RTCM - e.g. Any user/platform that opts for cheap SSR-RTCM over NTRIP
         //     During ZTP Provisioning, we receive NTRIP credentials and overwrite any existing NTRIP Client
         //     There are no regional corrections - we pass GGA back to caster instead
-        //   For L-Band+IP - e.g. EVK:
-        //     During ZTP Provisioning, we receive the UBX-format key distribution topic /pp/ubx/0236/Lb
-        //     We also receive the full list of regional correction topics: /pp/Lb/us , /pp/Lb/eu , etc.
-        //     We can subscribe to the topic and push IP data to the ZED - using UBLOX_CFG_SPARTN_USE_SOURCE 0
-        //     Or we can push PMP data from the NEO to the ZED - using UBLOX_CFG_SPARTN_USE_SOURCE 1
         //   For IP-only - e.g. Old way of getting corrections:
         //     During ZTP Provisioning, we receive the UBX-format key distribution topic /pp/ubx/0236/ip
         //     We also receive the full list of regional correction topics: /pp/ip/us , /pp/ip/eu , etc.

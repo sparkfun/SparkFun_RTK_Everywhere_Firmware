@@ -2867,8 +2867,6 @@ bool settingAvailableOnPlatform(int i)
         // Verify that the command is available on the platform
         if ((productVariant == RTK_EVK) && rtkSettingsEntries[i].platEvk)
             break;
-        if ((productVariant == RTK_FACET_V2) && rtkSettingsEntries[i].platFacetV2)
-            break;
         if ((productVariant == RTK_FACET_MOSAIC) && rtkSettingsEntries[i].platFacetMosaic)
             break;
         if ((productVariant == RTK_TORCH) && rtkSettingsEntries[i].platTorch)
@@ -2931,8 +2929,6 @@ bool settingPossibleOnPlatform(int i)
     {
         // Verify that the command is available on the platform
         if ((productVariant == RTK_EVK) && rtkSettingsEntries[i].platEvk)
-            break;
-        if ((productVariant == RTK_FACET_V2) && rtkSettingsEntries[i].platFacetV2)
             break;
         if ((productVariant == RTK_FACET_MOSAIC) && rtkSettingsEntries[i].platFacetMosaic)
             break;
