@@ -950,9 +950,8 @@ uint32_t triggerAccEst;    // Global copy - Accuracy estimate in nanoseconds
 unsigned long splashStart; // Controls how long the splash is displayed for. Currently min of 2s.
 
 unsigned long startTime;       // Used for checking longest-running functions
-bool lbandCorrectionsReceived; // Used to display L-Band SIV icon when corrections are successfully decrypted (NEO-D9S
-                               // only)
-unsigned long lastLBandDecryption;   // Timestamp of last successfully decrypted PMP message from NEO-D9S
+bool lbandCorrectionsReceived; // Used to display L-Band SIV icon when corrections are successfully decrypted
+unsigned long lastLBandDecryption;   // Timestamp of last successfully decrypted message
 volatile bool mqttMessageReceived;   // Goes true when the subscribed MQTT channel reports back
 unsigned long systemTestDisplayTime; // Timestamp for swapping the graphic during testing
 uint8_t systemTestDisplayNumber;     // Tracks which test screen we're looking at

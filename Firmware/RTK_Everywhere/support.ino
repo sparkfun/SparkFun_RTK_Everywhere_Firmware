@@ -714,7 +714,7 @@ void checkArrayDefaults()
 void verifyTables()
 {
     // Verify the product properties table
-    if (productPropertiesEntries != (RTK_UNKNOWN + 1))
+    if (productPropertiesEntries != productVariantCount)
         reportFatalError("Fix productPropertiesTable to match ProductVariant");
 
     // Verify the measurement scales

@@ -203,6 +203,10 @@ typedef enum
 } ProductVariant;
 ProductVariant productVariant = RTK_UNKNOWN;
 
+// Must match the contents of ProductVariant
+static const ProductVariant allVariants[] = { RTK_EVK, RTK_FACET_V2, RTK_FACET_MOSAIC, RTK_TORCH, RTK_POSTCARD, RTK_FACET_FP, RTK_TORCH_X2, RTK_UNKNOWN};
+#define productVariantCount (sizeof(allVariants) / sizeof(allVariants[0]))
+
 typedef enum
 {
     RTK_HOUSING_EVK = 0,    // EVK with SPK6615H
