@@ -1376,11 +1376,11 @@ void paintHorizontalAccuracy(displayCoords textCoords)
     {
         oled->print(">30m");
     }
-    else if (hpa > 9.9)
+    else if (hpa >= 10.0)
     {
         oled->print(hpa, 1); // Print down to decimeter
     }
-    else if (hpa > 1.0)
+    else if (hpa >= 1.0)
     {
         oled->print(hpa, 2); // Print down to centimeter
     }
