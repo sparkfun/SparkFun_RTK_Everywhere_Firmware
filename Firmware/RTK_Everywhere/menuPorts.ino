@@ -73,13 +73,11 @@ void menuPortsNoMux()
         systemPrintf("3) Output GNSS data to USB serial: %s\r\n",
                      settings.enableGnssToUsbSerial ? "Enabled" : "Disabled");
 
-        // EVK has no mux. LG290P has no mux.
+        // EVK has no mux. Postcard has no mux.
         if (productVariant == RTK_EVK)
         {
             systemPrintf("4) Allow incoming corrections on UART2: %s\r\n",
                          settings.enableExtCorrRadio ? "Enabled" : "Disabled");
-            systemPrintf("5) Source of SPARTN corrections radio on UART2: %s\r\n",
-                         settings.extCorrRadioSPARTNSource == 0 ? "IP" : "L-Band");
         }
         else if (productVariant == RTK_POSTCARD)
         {
@@ -140,11 +138,7 @@ void menuPortsNoMux()
             settings.enableExtCorrRadio ^= 1;
             gnssConfigure(GNSS_CONFIG_EXT_CORRECTIONS); // Request receiver to use new settings
         }
-        else if ((incoming == 5) && (present.gnss_zedf9p || present.gnss_zedx20p))
-        {
-            // Toggle the SPARTN source for the external corrections radio
-            settings.extCorrRadioSPARTNSource ^= 1;
-        }
+
         else if ((incoming == 5) && (present.gnss_lg290p))
         {
             settings.enableNmeaOnRadio ^= 1;
@@ -201,8 +195,6 @@ void menuPortsMultiplexed()
         {
             systemPrintf("4) Allow Incoming Corrections on UART2: %s\r\n",
                          settings.enableExtCorrRadio ? "Enabled" : "Disabled");
-            systemPrintf("5) Source of SPARTN corrections radio on UART2: %s\r\n",
-                         settings.extCorrRadioSPARTNSource == 0 ? "IP" : "L-Band");
         }
         else if (productVariant == RTK_FACET_MOSAIC)
         {
@@ -284,11 +276,6 @@ void menuPortsMultiplexed()
             // Toggle the enable for the external corrections radio
             settings.enableExtCorrRadio ^= 1;
             gnssConfigure(GNSS_CONFIG_EXT_CORRECTIONS); // Request receiver to use new settings
-        }
-        else if ((incoming == 5) && (present.gnss_zedf9p || present.gnss_zedx20p))
-        {
-            // Toggle the SPARTN source for the external corrections radio
-            settings.extCorrRadioSPARTNSource ^= 1;
         }
         else if ((incoming == 5) && (present.gnss_mosaicX5))
         {
