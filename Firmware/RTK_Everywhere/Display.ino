@@ -504,7 +504,7 @@ void displaySplashCommon(bool nameKnown)
         // Shorten logo display if locally compiled
         if (ENABLE_DEVELOPER == false)
         {
-            // Finish displaying the SparkFun LOGO
+            // Finish displaying the logo
             while ((millis() - splashStart) < minSplashFor)
                 delay(10);
         }
@@ -537,7 +537,7 @@ void displaySplashCommon(bool nameKnown)
 
         oled->display();
 
-        // Retart the timer for the splash screen display
+        // Restart the timer for the splash screen display
         if (!nameKnown)
             splashStart = millis();
     }
