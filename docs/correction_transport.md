@@ -128,8 +128,8 @@ Compatibility Icons
 
 <div class="grid cards fill" markdown>
 
-- EVK: :material-radiobox-marked:{ .support-full title="Feature Supported" }
-- Facet mosaic: :material-radiobox-marked:{ .support-full title="Feature Supported" }
+- EVK: :material-radiobox-marked:{ .support-full title="Feature Not Supported" }
+- Facet mosaic: :material-radiobox-marked:{ .support-full title="Feature Not Supported" }
 - Postcard: :material-radiobox-blank:{ .support-none title="Feature Not Supported" }
 - Torch: :material-radiobox-blank:{ .support-none title="Feature Not Supported" }
 - TX2: :material-radiobox-blank:{ .support-none title="Feature Not Supported" }
@@ -142,7 +142,9 @@ A variety of companies provide GNSS RTK corrections broadcast from satellites ov
 
 These corrections are not as accurate as a fixed base station, and the corrections can require a monthly subscription fee, but you cannot beat the ease of use!
 
-L-Band reception requires specialized RF receivers capable of demodulating the satellite transmissions. The RTK EVK has a built-in NEO-D9S corrections receiver. The RTK Everywhere firmware supports this and will tune the NEO-D9S to the correct frequency if you are in the US or EU. The PointPerfect L-Band corrections are encrypted and require a subscription and valid keys in order to work. The EVK comes with a one month free subscription to PointPerfect L-Band + IP, providing built-in support for L-Band corrections and IP corrections via Ethernet or WiFi.
+L-Band reception requires specialized RF receivers capable of demodulating the satellite transmissions. The RTK EVK has a built-in NEO-D9S corrections receiver. The RTK Everywhere firmware supports this and will tune the NEO-D9S to the correct frequency if you are in the US or EU. 
+
+**Note:** For many years, u-blox provided a service called PointPerfect L-Band that was compatible with certain SparkFun RTK products (specifically RTK Facet mosaic L-Band, RTK EVK, and RTK Facet L-Band). Unfortunately, in July of 2025 u-blox announced the L-Band service to North America would be discontinued on December 31st, 2025. These products still function as high precision receivers, but they will need to switch to an internet based correction services to obtain an RTK Fix. See [Using PointPerfect Flex](using_pointperfect_flex.md) for more information.
 
 ## LoRa
 
