@@ -415,6 +415,7 @@ nav:
       - configure_with_bluetooth.md
       - configure_with_browser.md
       - configure_with_cli.md
+      - configure_from_display.md
       - configure_with_ethernet.md
       - configure_with_ethernet_over_usb.md
       - configure_with_rxtools.md
