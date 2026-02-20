@@ -50,7 +50,7 @@ Select Model: DGPS
 </figcaption>
 </figure>
 
-Select DGPS if you'd like to connect to an NTRIP Caster. If you are using the RTK Facet L-Band, or do not need RTK fix type precision, leave the model as Generic.
+Select DGPS if you'd like to connect to an NTRIP Caster. If you do not need RTK fix type precision, leave the model as Generic.
 
 <figure markdown>
 ![Bluetooth Settings](./img/SurvPC/SparkFun%20RTK%20Software%20-%20SurvPC%20Rover%20Comms.jpg)
@@ -102,7 +102,7 @@ You are welcome to enter the ARP (antenna reference point) and surveying stick l
 **NTRIP Client**
 
 !!! note
-	If you are using a radio to connect Base to Rover, or if you are using the RTK Facet L-Band you do not need to set up NTRIP; the device will achieve RTK fixes and output extremely accurate location data by itself. But if L-Band corrections are not available, or you are not using a radio link, the NTRIP Client can provide corrections to this Rover.
+	If you are using a radio to connect Base to Rover you do not need to set up NTRIP; the device will achieve RTK fixes and output extremely accurate location data by itself. But if you are not using a radio link, the NTRIP Client can provide corrections to this Rover.
 
 <figure markdown>
 ![RTK Submenu](./img/SurvPC/SparkFun%20RTK%20Software%20-%20SurvPC%20NTRIP%20Client.jpg)
@@ -214,10 +214,8 @@ Be sure to see [Correction Sources](correction_sources.md).
 
 Don't have access to an NTRIP Caster or other RTCM correction source? There are a few options.
 
-The [SparkFun RTK Facet L-Band](https://www.sparkfun.com/products/20000) gets corrections via an encrypted signal from geosynchronous satellites. This device gets RTK Fix without the need for a WiFi or cellular connection.
-
-Also, you can use a 2nd RTK product operating in Base mode to provide the correction data. Check out [Creating a Permanent Base](permanent_base.md).
+You can use a 2nd RTK product operating in Base mode to provide the correction data. Check out [Creating a Permanent Base](permanent_base.md).
 
 If you're the DIY sort, you can create your own low-cost base station using an ESP32 and a ZED-F9P breakout board. Check out [How to Build a DIY GNSS Reference Station](https://learn.sparkfun.com/tutorials/how-to-build-a-diy-gnss-reference-station).
 
-There are services available as well. [Syklark](https://www.swiftnav.com/skylark) provides RTCM coverage for $49 a month (as of writing) and is extremely easy to set up and use. [Point One](https://app.pointonenav.com/trial?utm_source=sparkfun) also offers RTK NTRIP service with a free 14 day trial and easy to use front end.
+There are services available as well. See [Using PointPerfect Flex](using_pointperfect_flex.md) for a $15/month option. [Syklark](https://www.swiftnav.com/skylark) provides RTCM coverage for $49 a month (as of writing) and is extremely easy to set up and use. [Point One](https://app.pointonenav.com/trial?utm_source=sparkfun) also offers RTK NTRIP service with a free 14 day trial and easy to use front end.
