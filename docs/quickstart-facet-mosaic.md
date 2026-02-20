@@ -116,7 +116,7 @@ You can now use your RTK device to measure points with good (meter) accuracy. If
 
 To get millimeter accuracy we need to provide the RTK unit with correction values. Corrections, often called RTCM, help the RTK unit refine its position calculations. RTCM (Radio Technical Commission for Maritime Services) can be obtained from a variety of sources but they fall into three buckets: Commercial, Public, and Civilian Reference Stations.
 
-See [Corrections Sources](correction_sources.md) for a breakdown of the options and the pros and cons of each. For this quickstart, we'll be showing two examples: using PointPerfect L-Band for $50 a month; and PointOne Nav for $125/month for "True RTK".
+See [Corrections Sources](correction_sources.md) for a breakdown of the options and the pros and cons of each. For this quickstart, we'll be showing two examples: using PointPerfect L-Band for $50 a month; and PointOne Nav for $150/month for "True RTK".
 
 ## PointPerfect Corrections over L-Band
 
@@ -129,7 +129,7 @@ If you decide to use a service that provides NTRIP (as opposed to PointPerfect) 
 1. Create an account on [PointOneNav](https://app.pointonenav.com/trial?src=sparkfun).
 
 	!!! note
-		This service costs $125/month for "True RTK" at the time of writing.
+		This service costs $150/month for "True RTK" at the time of writing.
 
 2. Open SW Maps and connect to the RTK device over Bluetooth.
 
