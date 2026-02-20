@@ -183,7 +183,7 @@ For more information about coordinate formats, check out this [online converter]
 <figure markdown>
 ![SparkFun RTK EVK Mode Menu](./img/Displays/SparkFun_RTK_Postcard_BaseCasting.png)
 <figcaption markdown>
-SparkFun RTK EVK Mode Menu
+Device in Base Cast Mode
 </figcaption>
 </figure>
 
@@ -199,7 +199,7 @@ This is helpful when using the RTK device in conjunction with a drone controller
 <figure markdown>
 ![SparkFun RTK EVK Mode Menu](./img/Displays/SparkFun_RTK_Postcard_BaseCast.png)
 <figcaption markdown>
-SparkFun RTK EVK Mode Menu
+BaseCast Menu Option
 </figcaption>
 </figure>
 
