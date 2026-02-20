@@ -149,6 +149,9 @@ plugins:
   # Default search plugin
   - search
 
+  # Needed for including content in quickstart guides
+  - include-markdown
+
   # Allows formatting (code block, icons, etc.) in headings and titles
   - typeset
 
