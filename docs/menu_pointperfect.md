@@ -128,5 +128,5 @@ PointPerfect Menu
 </figure>
 
 - **1** - Select the type of PointPerfect service.
-- **2** - Use WiFi to update the credentials. Requires the device ID be put on the RTCM allow list.
+- **2** - Use WiFi to obtain NTRIP credentials. Requires the device ID be put on the RTCM allow list.
 - **i** - Display the Device ID. This is needed when a SparkFun RTK device needs to be added to the PointPerfect system. This is needed when first registering the device, or modifying a subscription.

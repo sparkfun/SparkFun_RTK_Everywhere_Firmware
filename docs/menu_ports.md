@@ -37,7 +37,7 @@ Baud rate configuration of the RADIO and DATA ports
 
 The RADIO and DATA ports vary between RTK devices: 
 
-* The RTK Facet mosaic L-Band has both RADIO and DATA ports.
+* The RTK Facet mosaic has both RADIO and DATA ports.
 * The RTK Torch and TX2 do not have a RADIO or DATA port, but can output NMEA over USB.
 * The RTK Postcard has both RADIO and DATA ports.
 * The RTK EVK has only a RADIO port.
