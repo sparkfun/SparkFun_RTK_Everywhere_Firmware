@@ -3134,8 +3134,8 @@ Compatibility Icons
 
 <div class="grid cards fill">
 <ul>
-<li>EVK: <span class="twemoji support-full" title="Feature Supported"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 20a8 8 0 0 1-8-8 8 8 0 0 1 8-8 8 8 0 0 1 8 8 8 8 0 0 1-8 8m0-18A10 10 0 0 0 2 12a10 10 0 0 0 10 10 10 10 0 0 0 10-10A10 10 0 0 0 12 2m0 5a5 5 0 0 0-5 5 5 5 0 0 0 5 5 5 5 0 0 0 5-5 5 5 0 0 0-5-5"/></svg></span></li>
-<li>Facet mosaic: <span class="twemoji support-full" title="Feature Supported"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 20a8 8 0 0 1-8-8 8 8 0 0 1 8-8 8 8 0 0 1 8 8 8 8 0 0 1-8 8m0-18A10 10 0 0 0 2 12a10 10 0 0 0 10 10 10 10 0 0 0 10-10A10 10 0 0 0 12 2m0 5a5 5 0 0 0-5 5 5 5 0 0 0 5 5 5 5 0 0 0 5-5 5 5 0 0 0-5-5"/></svg></span></li>
+<li>EVK: <span class="twemoji support-full" title="Feature Not Supported"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 20a8 8 0 0 1-8-8 8 8 0 0 1 8-8 8 8 0 0 1 8 8 8 8 0 0 1-8 8m0-18A10 10 0 0 0 2 12a10 10 0 0 0 10 10 10 10 0 0 0 10-10A10 10 0 0 0 12 2m0 5a5 5 0 0 0-5 5 5 5 0 0 0 5 5 5 5 0 0 0 5-5 5 5 0 0 0-5-5"/></svg></span></li>
+<li>Facet mosaic: <span class="twemoji support-full" title="Feature Not Supported"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 20a8 8 0 0 1-8-8 8 8 0 0 1 8-8 8 8 0 0 1 8 8 8 8 0 0 1-8 8m0-18A10 10 0 0 0 2 12a10 10 0 0 0 10 10 10 10 0 0 0 10-10A10 10 0 0 0 12 2m0 5a5 5 0 0 0-5 5 5 5 0 0 0 5 5 5 5 0 0 0 5-5 5 5 0 0 0-5-5"/></svg></span></li>
 <li>Postcard: <span class="twemoji support-none" title="Feature Not Supported"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 20a8 8 0 0 1-8-8 8 8 0 0 1 8-8 8 8 0 0 1 8 8 8 8 0 0 1-8 8m0-18A10 10 0 0 0 2 12a10 10 0 0 0 10 10 10 10 0 0 0 10-10A10 10 0 0 0 12 2"/></svg></span></li>
 <li>Torch: <span class="twemoji support-none" title="Feature Not Supported"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 20a8 8 0 0 1-8-8 8 8 0 0 1 8-8 8 8 0 0 1 8 8 8 8 0 0 1-8 8m0-18A10 10 0 0 0 2 12a10 10 0 0 0 10 10 10 10 0 0 0 10-10A10 10 0 0 0 12 2"/></svg></span></li>
 <li>TX2: <span class="twemoji support-none" title="Feature Not Supported"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 20a8 8 0 0 1-8-8 8 8 0 0 1 8-8 8 8 0 0 1 8 8 8 8 0 0 1-8 8m0-18A10 10 0 0 0 2 12a10 10 0 0 0 10 10 10 10 0 0 0 10-10A10 10 0 0 0 12 2"/></svg></span></li>
@@ -3144,7 +3144,8 @@ Compatibility Icons
 <p>What if you are in the field, far away from WiFi, cellular, radio, or any other data connection? Look to the sky!</p>
 <p>A variety of companies provide GNSS RTK corrections broadcast from satellites over a spectrum called L-Band. <a href="https://en.wikipedia.org/wiki/L_band" target="_blank" rel="noopener">L-Band</a> is any frequency from 1 to 2 GHz. These frequencies have the ability to penetrate clouds, fog, and other natural weather phenomena making them particularly useful for location applications.</p>
 <p>These corrections are not as accurate as a fixed base station, and the corrections can require a monthly subscription fee, but you cannot beat the ease of use!</p>
-<p>L-Band reception requires specialized RF receivers capable of demodulating the satellite transmissions. The RTK EVK has a built-in NEO-D9S corrections receiver. The RTK Everywhere firmware supports this and will tune the NEO-D9S to the correct frequency if you are in the US or EU. The PointPerfect L-Band corrections are encrypted and require a subscription and valid keys in order to work. The EVK comes with a one month free subscription to PointPerfect L-Band + IP, providing built-in support for L-Band corrections and IP corrections via Ethernet or WiFi.</p>
+<p>L-Band reception requires specialized RF receivers capable of demodulating the satellite transmissions. The RTK EVK has a built-in NEO-D9S corrections receiver. The RTK Everywhere firmware supports this and will tune the NEO-D9S to the correct frequency if you are in the US or EU. </p>
+<p><strong>Note:</strong> For many years, u-blox provided a service called PointPerfect L-Band that was compatible with certain SparkFun RTK products (specifically RTK Facet mosaic L-Band, RTK EVK, and RTK Facet L-Band). Unfortunately, in July of 2025 u-blox announced the L-Band service to North America would be discontinued on December 31st, 2025. These products still function as high precision receivers, but they will need to switch to an internet based correction services to obtain an RTK Fix. See <a href="../using_pointperfect_flex/">Using PointPerfect Flex</a> for more information.</p>
 <h2 id="lora">LoRa<a class="headerlink" href="#lora" title="Permanent link"></a></h2>
 <!--
 Compatibility Icons
@@ -3266,7 +3267,7 @@ Compatibility Icons
     <span class="md-icon" title="Last update">
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M21 13.1c-.1 0-.3.1-.4.2l-1 1 2.1 2.1 1-1c.2-.2.2-.6 0-.8l-1.3-1.3c-.1-.1-.2-.2-.4-.2m-1.9 1.8-6.1 6V23h2.1l6.1-6.1zM12.5 7v5.2l4 2.4-1 1L11 13V7zM11 21.9c-5.1-.5-9-4.8-9-9.9C2 6.5 6.5 2 12 2c5.3 0 9.6 4.1 10 9.3-.3-.1-.6-.2-1-.2s-.7.1-1 .2C19.6 7.2 16.2 4 12 4c-4.4 0-8 3.6-8 8 0 4.1 3.1 7.5 7.1 7.9l-.1.2z"/></svg>
     </span>
-    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-timeago" title="January 30, 2026 21:18:51 UTC"><span class="timeago" datetime="2026-01-30T21:18:51+00:00" locale="en"></span></span><span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-iso_date" title="January 30, 2026 21:18:51 UTC">2026-01-30</span>
+    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-timeago" title="February 20, 2026 21:57:47 UTC"><span class="timeago" datetime="2026-02-20T21:57:47+00:00" locale="en"></span></span><span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-iso_date" title="February 20, 2026 21:57:47 UTC">2026-02-20</span>
   </span>
 
     
@@ -3299,14 +3300,14 @@ Compatibility Icons
           <img src="https://avatars.githubusercontent.com/u/117102?v=4&amp;size=72" alt="nseidle">
         </a>
       
-        <a href="https://github.com/PaulZC" class="md-author" title="@PaulZC" target="_blank" rel="noopener">
-          
-          <img src="https://avatars.githubusercontent.com/u/5690545?v=4&amp;size=72" alt="PaulZC">
-        </a>
-      
         <a href="https://github.com/santaimpersonator" class="md-author" title="@santaimpersonator" target="_blank" rel="noopener">
           
           <img src="https://avatars.githubusercontent.com/u/36016723?v=4&amp;size=72" alt="santaimpersonator">
+        </a>
+      
+        <a href="https://github.com/PaulZC" class="md-author" title="@PaulZC" target="_blank" rel="noopener">
+          
+          <img src="https://avatars.githubusercontent.com/u/5690545?v=4&amp;size=72" alt="PaulZC">
         </a>
       
       
