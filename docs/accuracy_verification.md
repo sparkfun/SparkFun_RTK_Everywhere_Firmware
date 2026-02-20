@@ -180,7 +180,7 @@ Not a bad view!
 
 You will need to decide how cheap you want your setup to be. I went too cheap; my tripod doesn’t have a hook on the bottom so the string with a bolt (I didn’t even have a plumb bob) to center above the marker was not central to the Facet. The height measurement from the mark to the ARP (bottom of the Facet) was done with a tape measure, in other words, not very accurate. But *it works*!
 
-Find the monument and locate your Facet (or RTK Surveyor, Express, Express Plus, Facet L-Band, etc) over the monument. Using a tape measure or other tool, measure the distance from the top of the monument to the bottom of the Facet. In this example, it was 45 ¾” or 1162mm. Obviously, millimeters matter here but don't let 'perfection' be the enemy of 'done'.
+Find the monument and locate your RTK FAcet (or RTK Torch, TX2, Surveyor, Express, Express Plus, RTK mosaic, etc) over the monument. Using a tape measure or other tool, measure the distance from the top of the monument to the bottom of the Facet. In this example, it was 45 ¾” or 1162mm. Obviously, millimeters matter here but don't let 'perfection' be the enemy of 'done'.
 
 <figure markdown>
 ![L-Band Facet ARP](./img/SparkFun_RTK_Facet_L-Band_ARP.jpg)
@@ -265,7 +265,7 @@ Feel free to look at and make a copy of the [SparkFun example](https://docs.goog
 ## How do I get 10mm?!
 
 - Use the best equipment. Our mechanical setup was rickety and cheap. Use a surveyor’s bipod setup, with a bubble level, and a prism pole to accurately level the RTK receiver and measure the distance to the monument.
-- Use an antenna that is NGS calibrated to obtain accurate ARPs. The [SparkFun SPK6618H antenna](https://www.sparkfun.com/gnss-multi-band-l1-l2-l5-surveying-antenna-tnc-spk6618h.html) has been calibrated and we are in the process of calibrating the RTK Facet and RTK Facet L-Band.
+- Use an antenna that is NGS calibrated to obtain accurate ARPs. The [SparkFun SPK6618H antenna](https://www.sparkfun.com/gnss-multi-band-l1-l2-l5-surveying-antenna-tnc-spk6618h.html), the [SparkFun RTK Facet](https://www.sparkfun.com/sparkfun-rtk-facet.html), the [SparkPNT Torch](https://www.sparkfun.com/sparkfun-rtk-torch.html), and [SparkPNT TX2](https://www.sparkfun.com/sparkpnt-tx2.html) have all been calibrated.
 - Use an accurate base. A temporary or ‘survey-in’ base will not be accurate. The base needs 24 hours of logging with a [PPP analysis](https://learn.sparkfun.com/tutorials/how-to-build-a-diy-gnss-reference-station/all#gather-raw-gnss-data).
 - Be within 10km of your base. A baseline that is more than 10km will introduce inaccuracies to the RTK fix readings.
 - Correction services are not as accurate as a fixed base. While services such as Skylark and PointPerfect are *convenient*, they use models to estimate the overall isotropic disturbance. A local, fixed base will outperform a correction service.
