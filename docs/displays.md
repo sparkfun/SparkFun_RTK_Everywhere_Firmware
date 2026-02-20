@@ -19,7 +19,7 @@ Compatibility Icons
 
 </div>
 
-A variety of RTK devices utilize a 0.96" or 1.3" high-contrast OLED display. While small, the display packs various situational data that can be helpful in the field. This section describes each possible display state.
+A variety of RTK devices utilize a 0.96" or 1.3" high-contrast OLED display. See [Configure From Display](configure_from_display.md) for information about how the navigation works on each model. While small, the display packs various situational data that can be helpful in the field. This section describes each possible display state.
 
 <figure markdown>
 ![RTK EVK - 1.3" OLED](./img/Displays/SparkFun_RTK_EVK_LBand_Indicator.png)

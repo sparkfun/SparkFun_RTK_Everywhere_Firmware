@@ -1,4 +1,4 @@
-# Configure From Display
+# Configure from Display
 
 <!--
 Compatibility Icons
@@ -20,7 +20,7 @@ Compatibility Icons
 </div>
 
 <figure markdown>
-![Configuring from the display](./img/DisplayConfig/SparkFun RTK Everywhere Menu on Display.png)
+![Configuring from the display](<./img/DisplayConfig/SparkFun RTK Everywhere Menu on Display.png>)
 <figcaption markdown>
 Configuration from the Display
 </figcaption>
@@ -31,7 +31,7 @@ On devices that have an external display, pressing buttons can navigate through 
 ## RTK EVK
 
 <figure markdown>
-![EVK front face](.img/DisplayConfig/SparkFun RTK Everywhere EVK Front.png)
+![EVK front face](<.img/DisplayConfig/SparkFun RTK Everywhere EVK Front.png>)
 <figcaption markdown>
 Front face of the RTK EVK
 </figcaption>
@@ -42,18 +42,18 @@ The RTK EVK has a 1.3" OLED with a MODE button and a recessed RESET button. Pres
 ## RTK Facet mosaic
 
 <figure markdown>
-![Facet mosaic front face](.img/DisplayConfig/SparkFun RTK Everywhere mosaic Front.png)
+![Facet mosaic front face](<.img/DisplayConfig/SparkFun RTK Everywhere mosaic Front.png>)
 <figcaption markdown>
 Front face of the RTK Facet mosaic
 </figcaption>
 </figure>
 
-The RTK Facet mosaic has a 0.93" OLED with a single POWER/SETUP button. Pressing the button will display the configuration menu. Single-tapping the button will advance the menu. Double-tapping the button will select the highlighted item. If there is no button press for 2 seconds, the menu will exit.
+The RTK Facet mosaic has a 0.96" OLED with a single POWER/SETUP button. Pressing the button will display the configuration menu. Single-tapping the button will advance the menu. Double-tapping the button will select the highlighted item. If there is no button press for 2 seconds, the menu will exit.
 
 ## RTK Postcard
 
 <figure markdown>
-![Postcard with display](.img/DisplayConfig/SparkFun RTK Everywhere Postcard Display.png)
+![Postcard with display](<.img/DisplayConfig/SparkFun RTK Everywhere Postcard Display.png>)
 <figcaption markdown>
 Portability shield shown mounted to the RTK Postcard
 </figcaption>
