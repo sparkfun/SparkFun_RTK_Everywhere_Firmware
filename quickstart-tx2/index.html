@@ -696,45 +696,6 @@
   
 </li>
       
-        <li class="md-nav__item">
-  <a href="#pointperfect-corrections" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        <span class="md-typeset">
-          PointPerfect Corrections<a class="headerlink" href="#pointperfect-corrections" title="Permanent link"></a>
-        </span>
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#ntrip-example" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        <span class="md-typeset">
-          NTRIP Example<a class="headerlink" href="#ntrip-example" title="Permanent link"></a>
-        </span>
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#common-gotchas" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        <span class="md-typeset">
-          Common Gotchas<a class="headerlink" href="#common-gotchas" title="Permanent link"></a>
-        </span>
-      
-    </span>
-  </a>
-  
-</li>
-      
     </ul>
   
 </nav>
@@ -2888,45 +2849,6 @@
   
 </li>
       
-        <li class="md-nav__item">
-  <a href="#pointperfect-corrections" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        <span class="md-typeset">
-          PointPerfect Corrections<a class="headerlink" href="#pointperfect-corrections" title="Permanent link"></a>
-        </span>
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#ntrip-example" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        <span class="md-typeset">
-          NTRIP Example<a class="headerlink" href="#ntrip-example" title="Permanent link"></a>
-        </span>
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#common-gotchas" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        <span class="md-typeset">
-          Common Gotchas<a class="headerlink" href="#common-gotchas" title="Permanent link"></a>
-        </span>
-      
-    </span>
-  </a>
-  
-</li>
-      
     </ul>
   
 </nav>
@@ -3105,128 +3027,83 @@ Figure 3
 <p>You can now use your RTK device to measure points with good (meter) accuracy. If you need extreme accuracy (down to 8mm) continue reading the <a href="#rtk-crash-course">RTK Crash Course</a>.</p>
 <h2 id="rtk-crash-course">RTK Crash Course<a class="headerlink" href="#rtk-crash-course" title="Permanent link"></a></h2>
 <p>To get millimeter accuracy we need to provide the RTK unit with correction values. Corrections, often called RTCM, help the RTK unit refine its position calculations. RTCM (Radio Technical Commission for Maritime Services) can be obtained from a variety of sources but they fall into three buckets: Commercial, Public, and Civilian Reference Stations.</p>
-<p>See <a href="../correction_sources/">Corrections Sources</a> for a breakdown of the options and the pros and cons of each. For this quickstart, we'll be showing two examples: using PointPerfect for $15 a month; and PointOne Nav for $150/month for "True RTK".</p>
-<h2 id="pointperfect-corrections">PointPerfect Corrections<a class="headerlink" href="#pointperfect-corrections" title="Permanent link"></a></h2>
-<p>One of the great features of the TX2 is that it has the ability to get corrections from PointPerfect over WiFi. No need for NTRIP credentials! <a href="https://www.sparkfun.com/rtk_torch_registration" target="_blank" rel="noopener">Contact SparkFun</a> with your device ID, pay a small monthly fee of $15 per month (as of this writing) and your device will obtain credentials and start receiving corrections anywhere there is coverage.</p>
-<p><a href="https://www.u-blox.com/en/pointperfect-service-coverage" target="_blank" rel="noopener"><figure markdown>
-<img alt="PointPerfect Coverage map including L-Band and IP delivery methods" src="../img/PointPerfect/SparkFun%20RTK%20Everywhere%20-%20PointPerfect%20Coverage%20Map%20Small.png" /></a></p>
-<figcaption>
-<p>PointPerfect Coverage map including L-Band and IP delivery methods</p>
-</figcaption>
-</figure>
-<p>The PointPerfect IP service is available for various areas of the globe including the contiguous US, EU, South Korea, as well as parts of Brazil, Australia, and Canada. See the <a href="https://www.u-blox.com/en/pointperfect-service-coverage" target="_blank" rel="noopener">coverage map</a> for specifics; the TX2 is compatible with any area that has <em>IP Coverage</em> (it is not compatible with L-Band coverage).</p>
-<p>Steps to use PointPerfect:</p>
-<ol>
-<li>
-<p><a href="https://www.sparkfun.com/rtk_torch_registration" target="_blank" rel="noopener">Register</a> the device with SparkFun by entering the device ID (this is the ID seen on the <a href="https://docs.sparkfun.com/SparkFun_RTK_Everywhere_Firmware/menu_pointperfect/#registration" target="_blank" rel="noopener">printed stickers</a> included in the kit). It can take up to two business days for registration to complete.</p>
-</li>
-<li>
-<p>Power on the TX2 by pressing and holding the power button for around 4 seconds. The device will emit a short beep and illuminate the LEDs.</p>
-</li>
-<li>
-<p>Put the TX2 into WiFi config mode by double-tapping the power button. You will hear two beeps indicating it is ready to connect to.</p>
-</li>
-<li>
-<p>From your phone, connect to the WiFi network <em>RTK Config</em>. You should be redirected to the WiFi Config page. If you are not, open a browser (Chrome is preferred) and type <strong>rtk.local</strong> into the address bar.</p>
-<p><figure markdown>
-<img alt="SparkFun RTK WiFi Configuration Interface" src="../img/WiFi%20Config/SparkFun%20RTK%20WiFi%20Config%20-%20Header%20Block.png" />
-<figcaption markdown>
-SparkFun RTK WiFi Configuration Interface
-</figcaption>
-</figure></p>
-</li>
-<li>
-<p>Under the <em>WiFi Configuration</em> menu, give the device WiFi credentials for your local WiFi. This can be the cellphone hotspot if local WiFi is not available.</p>
-<p><figure markdown>
-<img alt="WiFi Menu containing one network" src="../img/WiFi%20Config/SparkFun%20RTK%20WiFi%20Config%20-%20WiFi%20Menu.png" />
-<figcaption markdown>
-WiFi Menu containing one network
-</figcaption>
-</figure></p>
-</li>
-<li>
-<p>Under the <a href="../menu_pointperfect/"><em>PointPerfect Configuration</em> menu</a>, <strong>Enable PointPefect Corrections</strong> and select your <strong>Geographic Region</strong>. If desired, enable <strong>Localized Corrections</strong> and <strong>AssistNow</strong>.</p>
-<p><figure markdown>
-<img alt="PointPerfect Configuration Menu" src="../img/WiFi%20Config/SparkFun%20RTK%20PointPerfect%20Config.png" />
-<figcaption markdown>
-PointPerfect Configuration Menu
-</figcaption>
-</figure></p>
-<div class="admonition note">
-<p class="admonition-title">Note</p>
-<p>It is important that you set your Geographic Region correctly, via the menu or web config page, as this determines both the IP correction distribution topic and the L-Band frequency (on L-Band-capable products).</p>
+<p>To get millimeter accuracy we need to provide the RTK unit with correction values. See <a href="../correction_sources/">Corrections Sources</a> for a breakdown of the options and the pros and cons of each. For this quickstart, we'll be showing how to use PointPerfect Flex for $15 a month.</p>
+<h1 id="using-pointperfect-flex">Using PointPerfect Flex<a class="headerlink" href="#using-pointperfect-flex" title="Permanent link"></a></h1>
+<!--
+Compatibility Icons
+====================================================================================
+
+:material-radiobox-marked:{ .support-full title="Feature Supported" }
+:material-radiobox-indeterminate-variant:{ .support-partial title="Feature Partially Supported" }
+:material-radiobox-blank:{ .support-none title="Feature Not Supported" }
+-->
+
+<div class="grid cards fill">
+<ul>
+<li>EVK: <span class="twemoji support-full" title="Feature Supported"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 20a8 8 0 0 1-8-8 8 8 0 0 1 8-8 8 8 0 0 1 8 8 8 8 0 0 1-8 8m0-18A10 10 0 0 0 2 12a10 10 0 0 0 10 10 10 10 0 0 0 10-10A10 10 0 0 0 12 2m0 5a5 5 0 0 0-5 5 5 5 0 0 0 5 5 5 5 0 0 0 5-5 5 5 0 0 0-5-5"/></svg></span></li>
+<li>Facet mosaic: <span class="twemoji support-full" title="Feature Supported"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 20a8 8 0 0 1-8-8 8 8 0 0 1 8-8 8 8 0 0 1 8 8 8 8 0 0 1-8 8m0-18A10 10 0 0 0 2 12a10 10 0 0 0 10 10 10 10 0 0 0 10-10A10 10 0 0 0 12 2m0 5a5 5 0 0 0-5 5 5 5 0 0 0 5 5 5 5 0 0 0 5-5 5 5 0 0 0-5-5"/></svg></span></li>
+<li>Postcard: <span class="twemoji support-full" title="Feature Supported"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 20a8 8 0 0 1-8-8 8 8 0 0 1 8-8 8 8 0 0 1 8 8 8 8 0 0 1-8 8m0-18A10 10 0 0 0 2 12a10 10 0 0 0 10 10 10 10 0 0 0 10-10A10 10 0 0 0 12 2m0 5a5 5 0 0 0-5 5 5 5 0 0 0 5 5 5 5 0 0 0 5-5 5 5 0 0 0-5-5"/></svg></span></li>
+<li>Torch: <span class="twemoji support-full" title="Feature Supported"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 20a8 8 0 0 1-8-8 8 8 0 0 1 8-8 8 8 0 0 1 8 8 8 8 0 0 1-8 8m0-18A10 10 0 0 0 2 12a10 10 0 0 0 10 10 10 10 0 0 0 10-10A10 10 0 0 0 12 2m0 5a5 5 0 0 0-5 5 5 5 0 0 0 5 5 5 5 0 0 0 5-5 5 5 0 0 0-5-5"/></svg></span></li>
+<li>TX2: <span class="twemoji support-full" title="Feature Supported"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 20a8 8 0 0 1-8-8 8 8 0 0 1 8-8 8 8 0 0 1 8 8 8 8 0 0 1-8 8m0-18A10 10 0 0 0 2 12a10 10 0 0 0 10 10 10 10 0 0 0 10-10A10 10 0 0 0 12 2m0 5a5 5 0 0 0-5 5 5 5 0 0 0 5 5 5 5 0 0 0 5-5 5 5 0 0 0-5-5"/></svg></span></li>
+</ul>
 </div>
-</li>
-<li>
-<p>Click <strong>Save Configuration</strong>. The device will record all settings in a few seconds. Then press <strong>Exit and Reset</strong>. The unit will now reboot.</p>
-<p><figure markdown>
-<img alt="Saving and All Saved notifications" src="../img/WiFi%20Config/SparkFun%20RTK%20WiFi%20Config%20-%20Save%20Steps.png" />
-<figcaption markdown>
-Saving... then All Saved
-</figcaption>
-</figure></p>
-</li>
-</ol>
-<p>After the reboot, the device will connect to WiFi, obtain keys, and begin applying corrections. Assuming you are outside, after a few minutes of receiving PointPerfect corrections to the device, connect to the TX2 over SW Maps (or other) and the device will enter RTK Float, then RTK Fix (usually under 3 minutes). You can now take positional readings with millimeter accuracy!</p>
+<p>To get millimeter accuracy we need to provide the RTK unit with correction values. Corrections, often called RTCM, help the RTK unit refine its position calculations. There are multiple options for <a href="http://docs.sparkfun.com/SparkFun_RTK_Everywhere_Firmware/correction_sources/" target="_blank" rel="noopener">correction sources</a>, but this tutorial focuses on PointPerfect. PointPerfect Flex over NTRIP is $15 per month and is an <a href="https://docs.sparkfun.com/SparkFun_RTK_Everywhere_Firmware/correction_sources/#osr-vs-ssr" target="_blank" rel="noopener">SSR based service</a> meaning there are no base stations or 'dead-air' gaps in the coverage map. The PointPerfect Flex service is available for various areas of the globe including the Europe, the contiguous USA, Canada, Brazil regions, South Korea, and Australia regions, including up to 12 nautical miles (roughly 22 kilometers) off coastlines. See the <a href="https://www.u-blox.com/en/pointperfect-service-coverage" target="_blank" rel="noopener">coverage map</a> for specifics.</p>
 <figure>
-<p><img alt="SW Maps showing accuracy" src="../img/SWMaps/SparkFun%20Torch%20-%20SW%20Maps%20PointPerfect%20Fix%20Accuracy.png" /></p>
+<p><a href="https://www.u-blox.com/en/pointperfect-service-coverage" target="_blank" rel="noopener"><img alt="PointPerfect Flex Coverage Map" src="../img/PointPerfect/SparkFun%20RTK%20Everywhere%20-%20PointPerfect%20Coverage%20Map%20Small.png" /></a></p>
 <figcaption>
-<p>SW Maps showing positional accuracy</p>
+<p>PointPerfect Flex Coverage Map</p>
 </figcaption>
 </figure>
-<h2 id="ntrip-example">NTRIP Example<a class="headerlink" href="#ntrip-example" title="Permanent link"></a></h2>
-<p>If you decide to use a service that provides NTRIP (as opposed to PointPerfect) we need to feed that data into your SparkFun RTK device. In this example, we will use PointOneNav and SW Maps.</p>
-<ol>
-<li>
-<p>Create an account on <a href="https://app.pointonenav.com/trial?src=sparkfun" target="_blank" rel="noopener">PointOneNav</a>.</p>
-<div class="admonition note">
-<p class="admonition-title">Note</p>
-<p>This service costs $150/month for "True RTK" at the time of writing.</p>
-</div>
-</li>
-<li>
-<p>Open SW Maps and connect to the RTK device over Bluetooth.</p>
-</li>
-<li>
-<p>Once connected, open the SW Maps menu again (top left corner) and you will see a new option; click on ‘NTRIP Client'.</p>
-</li>
-<li>
-<p>Enter the credentials provided by PointOneNav and click Connect (Figure 1). Verify that <em>Send NMEA GGA</em> is checked.</p>
-<p><figure markdown>
-<img alt="NTRIP credentials in SW Maps" src="../img/SWMaps/SparkFun%20RTK%20SW%20Maps%20-%20NTRIP%20Credentials.png" />
-<figcaption markdown>
-Figure 1
-</figcaption>
-</figure></p>
-</li>
-<li>
-<p>Corrections will be downloaded every second from PointOneNav using your phone’s cellular connection and then sent down to the RTK device over Bluetooth. You don't need a very fast internet connection or a lot of data; it's only about 530 bytes per second.</p>
-</li>
-</ol>
-<p>Assuming you are outside, as soon as corrections are sent to the device, the bubble in SW Maps will turn Orange (RTK Float). Once RTK Fix is achieved (usually under 30 seconds) the bubble will turn Green and the HPA will be below 20mm (Figure 2). You can now take positional readings with millimeter accuracy!</p>
-<figure>
-<p><img alt="Double crosshair indicating RTK Fix" src="../img/SWMaps/SparkFun%20Torch%20-%20SW%20Maps%20GNSS%20Status%20RTK%20Fix%20HPA%20Small.png" /></p>
-<figcaption>
-<p>Figure 2</p>
-</figcaption>
-</figure>
-<p>In SW Maps, the position bubble will turn from Blue (regular GNSS fix), then to Orange (RTK Float), then to Green (RTK Fix) (Figure 3).</p>
-<figure>
-<p><img alt="Green bubble indicating RTK Fix" src="../img/SWMaps/SparkFun%20RTK%20SW%20Maps%20-%20Green%20Bubble-1.png" /></p>
-<figcaption>
-<p>Figure 3</p>
-</figcaption>
-</figure>
-<p>RTK Fix will be maintained as long as there is a clear view of the sky and corrections are delivered to the device every few seconds.</p>
+<h2 id="getting-access">Getting Access<a class="headerlink" href="#getting-access" title="Permanent link"></a></h2>
+<p>PointPerfect Flex over NTRIP requires a set of user name, password, and mount point credentials. Please <a href="https://www.sparkfun.com/pointperfect" target="_blank" rel="noopener">contact SparkFun</a> to setup a monthly subscription.</p>
+<p>An <em>NTRIP Client</em> is a small app that connects to the corrections server to get the corrections. Most GIS apps have an NTRIP Client built in.</p>
+<h2 id="using-ntrip-on-a-phone">Using NTRIP on a Phone<a class="headerlink" href="#using-ntrip-on-a-phone" title="Permanent link"></a></h2>
+<p>The easiest way is to use the service is with a cell phone. For this example, we'll use an Android phone with SW Maps but any GIS app with a built-in NTRIP Client (most do) can connect to PointPerfect.</p>
+<p><img alt="Corrections flowing over Bluetooth" src="../img/Corrections/SparkFun%20RTK%20Everywhere%20-%20Correction%20Data%20Flow%20NTRIP.png" /></p>
+<p>In the above image, the phone is running the NTRIP Client and the corrections are downloaded from the internet using the phone's cellular connection. Those connections are sent over Bluetooth to the RTK device. The RTK device gets a high-precision solution and transmits the GPS location back to the phone over Bluetooth. The phone displays the location in an app allowing work to be done.</p>
+<p><img alt="NTRIP Client button in SW Maps" src="../img/Corrections/SparkFun%20RTK%20Everywhere%20-%20SW%20Maps%20NTRIP%20Client.png" /></p>
+<p>Above, in SW Maps select the NTRIP Client. This is the small cloud icon.</p>
+<p><img alt="Entering details into NTRIP Client" src="../img/Corrections/SparkFun%20RTK%20Everywhere%20-%20SW%20Maps%20NTRIP%20Client%20Details%20Entered.png" /></p>
+<p>In the NTRIP Client detail window, enter the following information:</p>
+<div class="highlight"><pre><span></span><code>NTRIP Version: V1
+NTRIP Server: ppntrip.services.u-blox.com
+NTRIP Port: 2101
+Mount Point: NEAR-RTCM
+Username: (provided when service was set up)
+Password: (provided when service was set up) 
+Send NMEA GGA to Base Station: Please confirm this option is checked
+</code></pre></div>
+<p>The information can be copy/pasted from email or manually entered. Be careful to enter the data correctly. Once the credentials are entered, click Save and then Exit the NTRIP Client details window. </p>
+<p><img alt="Receiver connect button" src="../img/Corrections/SparkFun%20RTK%20Everywhere%20-%20SW%20Maps%20NTRIP%20Client%20Connect%20Receiver.png" /></p>
+<p>Next, turn on the RTK device and connect to it over Bluetooth by clicking on the receiver button (shown above). </p>
+<p><img alt="List of NTRIP Clients" src="../img/Corrections/SparkFun%20RTK%20Everywhere%20-%20SW%20Maps%20NTRIP%20Client%20Connect%20Button.png" /></p>
+<p>Once connected, tap the NTRIP Client (cloud) icon again to open the menu. A list of clients will be shown, select the one you just entered and click 'Connect'.</p>
+<p><img alt="NTRIP Client showing data rate more than zero" src="../img/Corrections/SparkFun%20RTK%20Everywhere%20-%20SW%20Maps%20NTRIP%20Client%20Data%20Rate.png" /></p>
+<p>Confirm that the Data Rate section shows more than 0 bytes per second over a few seconds. The number will bounce around, but every second a few hundred bytes of correction data should be downloaded and sent to the RTK device over Bluetooth. This indicates the NTRIP connection was successful.</p>
+<p><img alt="alt text" src="../img/Corrections/SparkFun%20RTK%20Everywhere%20-%20SW%20Maps%20NTRIP%20Client%20RTK%20Fix.png" /></p>
+<p>Close the NTRIP Client window returning to the main app screen and proceed outdoors and get a clear view of the sky. Above we see a successful high-precision RTK Fix with 16mm horizontal accuracy. Now you can proceed with GIS work.</p>
+<p><img alt="NTRIP with connection failed" src="../img/Corrections/SparkFun%20RTK%20Everywhere%20-%20SW%20Maps%20NTRIP%20Client%20Connection%20Failed.png" /></p>
+<p>Above, if you get a 'Connection Failed' error it is likely that username or password was incorrect. Double check you credentials and try again.</p>
+<h2 id="no-cellular-coverage">No Cellular Coverage?<a class="headerlink" href="#no-cellular-coverage" title="Permanent link"></a></h2>
+<p><img alt="A device getting corrections over WiFi" src="../img/Corrections/SparkFun%20RTK%20Everywhere%20-%20Correction%20Data%20Flow%20NTRIP%20over%20Starlink.png" /></p>
+<p>What if you don't have cellular connectivity? Corrections can be obtained over any internet connection. <a href="https://www.starlink.com/us/roam" target="_blank" rel="noopener">Starlink Roam</a> or <a href="https://europe.konnect.com/en-DE" target="_blank" rel="noopener">Eutelsat KONNECT</a> can provide internet over satellite. Once WiFi is available at the job site the RTK device can be configured to connect to WiFi and get the corrections over its built-in NTRIP Client. See the <a href="http://docs.sparkfun.com/SparkFun_RTK_Everywhere_Firmware/menu_gnss/#ntrip-client" target="_blank" rel="noopener">NTRIP Client docs</a> for more information.</p>
 <h2 id="common-gotchas">Common Gotchas<a class="headerlink" href="#common-gotchas" title="Permanent link"></a></h2>
 <ul>
 <li>High-precision GNSS works best with a clear view of the sky; it does not work indoors or near a window. GNSS performance is generally <em>not</em> affected by clouds or storms. Trees and buildings <em>can</em> degrade performance but usually only in very thick canopies or very near tall building walls. GNSS reception is very possible in dense urban centers with skyscrapers but high-precision RTK may be impossible.</li>
-<li>The location reported by the RTK device is the location of the antenna element; it's <em>not</em> the location of the pointy end of the stick. Lat and Long are fairly easy to obtain but if you're capturing altitude be sure to do additional reading on ARPs (antenna reference points) and how to account for the antenna height in your data collection software.</li>
-<li>An internet connection is required for most types of RTK. RTCM corrections can be transmitted over other types of connections (such as serial telemetry radios). See <a href="../correction_transport/">Correction Transport</a> for more details.</li>
-<li>Galileo HAS:<ul>
+<li>The location reported by the RTK device is the location of the antenna element; it's <em>not</em> the location of the pointy end of the stick. Lat and Long are fairly easy to obtain but if you're capturing altitude be sure to do additional reading on ARPs (antenna reference points) and how to account for the antenna height in your data collection software. The Torch ARP is <a href="https://docs.sparkfun.com/SparkFun_RTK_Torch/hardware_overview/#antenna-reference-point" target="_blank" rel="noopener">here</a>.</li>
+<li>
+<p>Galileo HAS:</p>
+<ul>
 <li>Users should expect a minimum convergence time of ~8-10 min. to establish the position of the device.</li>
 <li>Users may notice that the position status remains in <strong>RTK Float</strong> and never reaches an <strong>RTK Fix</strong>; please, be aware of the associated errors.</li>
 </ul>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>This rule does not apply when tilt compensation is activated. See the <a href="../menu_tilt/">Tilt Compensation Menu</a> for more information.</p>
+</div>
+</li>
+<li>
+<p>An internet connection is required for most types of RTK. RTCM corrections can be transmitted over other types of connections (such as serial telemetry radios). See <a href="../correction_transport/">Correction Transport</a> for more details.</p>
 </li>
 </ul>
 
@@ -3251,7 +3128,7 @@ Figure 1
     <span class="md-icon" title="Last update">
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M21 13.1c-.1 0-.3.1-.4.2l-1 1 2.1 2.1 1-1c.2-.2.2-.6 0-.8l-1.3-1.3c-.1-.1-.2-.2-.4-.2m-1.9 1.8-6.1 6V23h2.1l6.1-6.1zM12.5 7v5.2l4 2.4-1 1L11 13V7zM11 21.9c-5.1-.5-9-4.8-9-9.9C2 6.5 6.5 2 12 2c5.3 0 9.6 4.1 10 9.3-.3-.1-.6-.2-1-.2s-.7.1-1 .2C19.6 7.2 16.2 4 12 4c-4.4 0-8 3.6-8 8 0 4.1 3.1 7.5 7.1 7.9l-.1.2z"/></svg>
     </span>
-    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-timeago" title="February 20, 2026 18:44:56 UTC"><span class="timeago" datetime="2026-02-20T18:44:56+00:00" locale="en"></span></span><span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-iso_date" title="February 20, 2026 18:44:56 UTC">2026-02-20</span>
+    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-timeago" title="February 20, 2026 21:32:05 UTC"><span class="timeago" datetime="2026-02-20T21:32:05+00:00" locale="en"></span></span><span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-iso_date" title="February 20, 2026 21:32:05 UTC">2026-02-20</span>
   </span>
 
     
