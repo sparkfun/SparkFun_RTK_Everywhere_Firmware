@@ -1317,11 +1317,11 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#assisted-base" class="md-nav__link">
+  <a href="#local-base-setup" class="md-nav__link">
     <span class="md-ellipsis">
       
         <span class="md-typeset">
-          Assisted Base<a class="headerlink" href="#assisted-base" title="Permanent link"></a>
+          Local Base Setup<a class="headerlink" href="#local-base-setup" title="Permanent link"></a>
         </span>
       
     </span>
@@ -2688,7 +2688,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../permanent_base/" class="md-nav__link">
+      <a href="../local_base/" class="md-nav__link">
         
   
   
@@ -2696,7 +2696,7 @@
     
   
     <span class="md-typeset">
-      Creating a Permanent Base<a class="headerlink" href="#creating-a-permanent-base" title="Permanent link"></a>
+      Creating a Local Base<a class="headerlink" href="#creating-a-local-base" title="Permanent link"></a>
     </span>
   
 
@@ -2941,11 +2941,11 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#assisted-base" class="md-nav__link">
+  <a href="#local-base-setup" class="md-nav__link">
     <span class="md-ellipsis">
       
         <span class="md-typeset">
-          Assisted Base<a class="headerlink" href="#assisted-base" title="Permanent link"></a>
+          Local Base Setup<a class="headerlink" href="#local-base-setup" title="Permanent link"></a>
         </span>
       
     </span>
@@ -3162,10 +3162,8 @@ Compatibility Icons
 </figcaption>
 </figure>
 <p>This mode can be entered from the <a href="../menu_system/">System Menu</a>, using the display menu (if a display is attached), or by setting the <em>System Initial State</em> to <strong>BaseCast</strong> via <a href="../configure_with_browser/">Browser Config</a>.</p>
-<h2 id="assisted-base">Assisted Base<a class="headerlink" href="#assisted-base" title="Permanent link"></a></h2>
-<p>An Assisted Base is where a temporary base is set up to Survey-In its location but is simultaneously provided RTCM corrections so that its Survey-In is done with very precise readings. An assisted base running a Survey-In removes much of the relative inaccuracies from a Rover-Base system. We've found an Assisted Base varies as little as 50mm RMS between intra-day tests, with accuracy within 65mm of a PPP of the same location, same day.</p>
-<p>To set up an assisted base the RTK device should be located in a good reception area and provided with RTCM corrections. Let it obtain RTK Fix from a fixed position (on a tripod, for example) in <em>Rover</em> mode. Once an RTK fix is achieved, change the device to temporary <em>Base</em> mode (also called Survey-In). The device will take 60 seconds of positional readings, at which point the fixed position of the base will be set using RTK augmented coordinates. At this point, corrections provided to the base can be discontinued. The Base will begin outputting very accurate RTCM corrections that can be relayed to a rover that is in a less optimal reception setting.</p>
-<p>Similarly, the RTK Facet L-Band can be set up as a relay: the L-Band device can be located in a good reception area, and then transmit very accurate corrections to a rover via Radio or internet link. Because the RTK Facet L-Band can generate its own corrections, you do not need to provide them during Survey-In. To set up an assisted base, set up an RTK Facet L-Band unit with a clear view of the sky, and let it obtain RTK Fix from a fixed position in <em>Rover</em> mode. Once an RTK fix is achieved, change the device to temporary <em>Base</em> mode. The device will take 60 seconds of positional readings, at which point the fixed position will be set using RTK fixed coordinates. The RTK Facet L-Band will then output very accurate RTCM corrections that can be relayed to a rover that is in a less optimal reception setting.</p>
+<h2 id="local-base-setup">Local Base Setup<a class="headerlink" href="#local-base-setup" title="Permanent link"></a></h2>
+<p>For more information about different types of bases and how to set one up, please refer to the <a href="../local_base/">Creating a Local Base</a> documentation.</p>
 
 
 
@@ -3188,7 +3186,7 @@ Compatibility Icons
     <span class="md-icon" title="Last update">
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M21 13.1c-.1 0-.3.1-.4.2l-1 1 2.1 2.1 1-1c.2-.2.2-.6 0-.8l-1.3-1.3c-.1-.1-.2-.2-.4-.2m-1.9 1.8-6.1 6V23h2.1l6.1-6.1zM12.5 7v5.2l4 2.4-1 1L11 13V7zM11 21.9c-5.1-.5-9-4.8-9-9.9C2 6.5 6.5 2 12 2c5.3 0 9.6 4.1 10 9.3-.3-.1-.6-.2-1-.2s-.7.1-1 .2C19.6 7.2 16.2 4 12 4c-4.4 0-8 3.6-8 8 0 4.1 3.1 7.5 7.1 7.9l-.1.2z"/></svg>
     </span>
-    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-timeago" title="February 3, 2026 16:58:18 UTC"><span class="timeago" datetime="2026-02-03T16:58:18+00:00" locale="en"></span></span><span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-iso_date" title="February 3, 2026 16:58:18 UTC">2026-02-03</span>
+    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-timeago" title="February 20, 2026 18:28:57 UTC"><span class="timeago" datetime="2026-02-20T18:28:57+00:00" locale="en"></span></span><span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-iso_date" title="February 20, 2026 18:28:57 UTC">2026-02-20</span>
   </span>
 
     
@@ -3216,11 +3214,6 @@ Compatibility Icons
     
     <nav>
       
-        <a href="https://github.com/PaulZC" class="md-author" title="@PaulZC" target="_blank" rel="noopener">
-          
-          <img src="https://avatars.githubusercontent.com/u/5690545?v=4&amp;size=72" alt="PaulZC">
-        </a>
-      
         <a href="https://github.com/nseidle" class="md-author" title="@nseidle" target="_blank" rel="noopener">
           
           <img src="https://avatars.githubusercontent.com/u/117102?v=4&amp;size=72" alt="nseidle">
@@ -3229,6 +3222,11 @@ Compatibility Icons
         <a href="https://github.com/santaimpersonator" class="md-author" title="@santaimpersonator" target="_blank" rel="noopener">
           
           <img src="https://avatars.githubusercontent.com/u/36016723?v=4&amp;size=72" alt="santaimpersonator">
+        </a>
+      
+        <a href="https://github.com/PaulZC" class="md-author" title="@PaulZC" target="_blank" rel="noopener">
+          
+          <img src="https://avatars.githubusercontent.com/u/5690545?v=4&amp;size=72" alt="PaulZC">
         </a>
       
       

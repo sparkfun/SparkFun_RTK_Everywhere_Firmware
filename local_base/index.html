@@ -12,13 +12,13 @@
         <meta name="author" content="SparkFun Electronics">
       
       
-        <link rel="canonical" href="https://docs.sparkfun.com/SparkFun_RTK_Everywhere_Firmware/quickstart-evk/">
+        <link rel="canonical" href="https://docs.sparkfun.com/SparkFun_RTK_Everywhere_Firmware/local_base/">
       
       
-        <link rel="prev" href="../introduction/">
+        <link rel="prev" href="../correction_transport/">
       
       
-        <link rel="next" href="../quickstart-facet-mosaic/">
+        <link rel="next" href="../using_pointperfect_flex/">
       
       
         
@@ -29,7 +29,7 @@
     
     
       
-        <title>Quick Start - RTK EVK - SparkFun RTK Everywhere Product Manual</title>
+        <title>Creating a Local Base - SparkFun RTK Everywhere Product Manual</title>
       
     
     
@@ -206,7 +206,7 @@
     <div data-md-component="skip">
       
         
-        <a href="#quick-start-rtk-evk" class="md-skip">
+        <a href="#creating-a-local-base" class="md-skip">
           Skip to content
         </a>
       
@@ -242,7 +242,7 @@
         <div class="md-header__topic" data-md-component="header-topic">
           <span class="md-ellipsis">
             
-              Quick Start - RTK EVK
+              Creating a Local Base
             
           </span>
         </div>
@@ -422,20 +422,18 @@
       
   
   
-    
   
   
-  
     
     
     
     
     
-    <li class="md-nav__item md-nav__item--active md-nav__item--nested">
+    <li class="md-nav__item md-nav__item--nested">
       
         
         
-        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2" checked>
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2" >
         
           
           <label class="md-nav__link" for="__nav_2" id="__nav_2_label" tabindex="0">
@@ -456,7 +454,7 @@
             <span class="md-nav__icon md-icon"></span>
           </label>
         
-        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_2_label" aria-expanded="true">
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_2_label" aria-expanded="false">
           <label class="md-nav__title" for="__nav_2">
             <span class="md-nav__icon md-icon"></span>
             
@@ -471,39 +469,10 @@
                 
   
   
-    
   
   
-  
-    <li class="md-nav__item md-nav__item--active">
-      
-      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
-      
-      
-        
-      
-      
-        <label class="md-nav__link md-nav__link--active" for="__toc">
-          
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    <span class="md-typeset">
-      Quick Start - RTK EVK<a class="headerlink" href="#quick-start-rtk-evk" title="Permanent link"></a>
-    </span>
-  
-
-    
-  </span>
-  
-  
-
-          <span class="md-nav__icon md-icon"></span>
-        </label>
-      
-      <a href="./" class="md-nav__link md-nav__link--active">
+    <li class="md-nav__item">
+      <a href="../quickstart-evk/" class="md-nav__link">
         
   
   
@@ -521,91 +490,6 @@
   
 
       </a>
-      
-        
-
-<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
-  
-  
-  
-    
-  
-  
-    <label class="md-nav__title" for="__toc">
-      <span class="md-nav__icon md-icon"></span>
-      Table of contents
-    </label>
-    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
-      
-        <li class="md-nav__item">
-  <a href="#android" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        <span class="md-typeset">
-          Android<a class="headerlink" href="#android" title="Permanent link"></a>
-        </span>
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#ios" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        <span class="md-typeset">
-          iOS<a class="headerlink" href="#ios" title="Permanent link"></a>
-        </span>
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#rtk-crash-course" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        <span class="md-typeset">
-          RTK Crash Course<a class="headerlink" href="#rtk-crash-course" title="Permanent link"></a>
-        </span>
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#pointperfect-corrections" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        <span class="md-typeset">
-          PointPerfect Corrections<a class="headerlink" href="#pointperfect-corrections" title="Permanent link"></a>
-        </span>
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#common-gotchas" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        <span class="md-typeset">
-          Common Gotchas<a class="headerlink" href="#common-gotchas" title="Permanent link"></a>
-        </span>
-      
-    </span>
-  </a>
-  
-</li>
-      
-    </ul>
-  
-</nav>
-      
     </li>
   
 
@@ -2552,18 +2436,20 @@
       
   
   
+    
   
   
+  
     
     
     
     
     
-    <li class="md-nav__item md-nav__item--nested">
+    <li class="md-nav__item md-nav__item--active md-nav__item--nested">
       
         
         
-        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_8" >
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_8" checked>
         
           
           <label class="md-nav__link" for="__nav_8" id="__nav_8_label" tabindex="0">
@@ -2584,7 +2470,7 @@
             <span class="md-nav__icon md-icon"></span>
           </label>
         
-        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_8_label" aria-expanded="false">
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_8_label" aria-expanded="true">
           <label class="md-nav__title" for="__nav_8">
             <span class="md-nav__icon md-icon"></span>
             
@@ -2659,10 +2545,39 @@
                 
   
   
+    
   
   
-    <li class="md-nav__item">
-      <a href="../local_base/" class="md-nav__link">
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    <span class="md-typeset">
+      Creating a Local Base<a class="headerlink" href="#creating-a-local-base" title="Permanent link"></a>
+    </span>
+  
+
+    
+  </span>
+  
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
         
   
   
@@ -2680,6 +2595,161 @@
   
 
       </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#temporary-bases" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        <span class="md-typeset">
+          Temporary Bases<a class="headerlink" href="#temporary-bases" title="Permanent link"></a>
+        </span>
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Temporary Bases">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#survey-in-base" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        <span class="md-typeset">
+          Survey-In Base<a class="headerlink" href="#survey-in-base" title="Permanent link"></a>
+        </span>
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#assisted-base" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        <span class="md-typeset">
+          Assisted Base<a class="headerlink" href="#assisted-base" title="Permanent link"></a>
+        </span>
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#site-located-base" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        <span class="md-typeset">
+          Site Located Base<a class="headerlink" href="#site-located-base" title="Permanent link"></a>
+        </span>
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Site Located Base">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#how-to-complete-a-site-located-temporary-base" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        <span class="md-typeset">
+          How to Complete a Site Located Temporary Base<a class="headerlink" href="#how-to-complete-a-site-located-temporary-base" title="Permanent link"></a>
+        </span>
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#permanent-bases" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        <span class="md-typeset">
+          Permanent Bases<a class="headerlink" href="#permanent-bases" title="Permanent link"></a>
+        </span>
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Permanent Bases">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#rtk-mosaic" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        <span class="md-typeset">
+          RTK mosaic<a class="headerlink" href="#rtk-mosaic" title="Permanent link"></a>
+        </span>
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#rtk-reference-station" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        <span class="md-typeset">
+          RTK Reference Station<a class="headerlink" href="#rtk-reference-station" title="Permanent link"></a>
+        </span>
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#diy-base-station" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        <span class="md-typeset">
+          DIY Base Station<a class="headerlink" href="#diy-base-station" title="Permanent link"></a>
+        </span>
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
     </li>
   
 
@@ -2837,67 +2907,137 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#android" class="md-nav__link">
+  <a href="#temporary-bases" class="md-nav__link">
     <span class="md-ellipsis">
       
         <span class="md-typeset">
-          Android<a class="headerlink" href="#android" title="Permanent link"></a>
+          Temporary Bases<a class="headerlink" href="#temporary-bases" title="Permanent link"></a>
+        </span>
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Temporary Bases">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#survey-in-base" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        <span class="md-typeset">
+          Survey-In Base<a class="headerlink" href="#survey-in-base" title="Permanent link"></a>
         </span>
       
     </span>
   </a>
   
 </li>
-      
-        <li class="md-nav__item">
-  <a href="#ios" class="md-nav__link">
+        
+          <li class="md-nav__item">
+  <a href="#assisted-base" class="md-nav__link">
     <span class="md-ellipsis">
       
         <span class="md-typeset">
-          iOS<a class="headerlink" href="#ios" title="Permanent link"></a>
+          Assisted Base<a class="headerlink" href="#assisted-base" title="Permanent link"></a>
         </span>
       
     </span>
   </a>
   
 </li>
-      
-        <li class="md-nav__item">
-  <a href="#rtk-crash-course" class="md-nav__link">
+        
+          <li class="md-nav__item">
+  <a href="#site-located-base" class="md-nav__link">
     <span class="md-ellipsis">
       
         <span class="md-typeset">
-          RTK Crash Course<a class="headerlink" href="#rtk-crash-course" title="Permanent link"></a>
+          Site Located Base<a class="headerlink" href="#site-located-base" title="Permanent link"></a>
+        </span>
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Site Located Base">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#how-to-complete-a-site-located-temporary-base" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        <span class="md-typeset">
+          How to Complete a Site Located Temporary Base<a class="headerlink" href="#how-to-complete-a-site-located-temporary-base" title="Permanent link"></a>
         </span>
       
     </span>
   </a>
   
 </li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
       
         <li class="md-nav__item">
-  <a href="#pointperfect-corrections" class="md-nav__link">
+  <a href="#permanent-bases" class="md-nav__link">
     <span class="md-ellipsis">
       
         <span class="md-typeset">
-          PointPerfect Corrections<a class="headerlink" href="#pointperfect-corrections" title="Permanent link"></a>
+          Permanent Bases<a class="headerlink" href="#permanent-bases" title="Permanent link"></a>
+        </span>
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Permanent Bases">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#rtk-mosaic" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        <span class="md-typeset">
+          RTK mosaic<a class="headerlink" href="#rtk-mosaic" title="Permanent link"></a>
         </span>
       
     </span>
   </a>
   
 </li>
-      
-        <li class="md-nav__item">
-  <a href="#common-gotchas" class="md-nav__link">
+        
+          <li class="md-nav__item">
+  <a href="#rtk-reference-station" class="md-nav__link">
     <span class="md-ellipsis">
       
         <span class="md-typeset">
-          Common Gotchas<a class="headerlink" href="#common-gotchas" title="Permanent link"></a>
+          RTK Reference Station<a class="headerlink" href="#rtk-reference-station" title="Permanent link"></a>
         </span>
       
     </span>
   </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#diy-base-station" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        <span class="md-typeset">
+          DIY Base Station<a class="headerlink" href="#diy-base-station" title="Permanent link"></a>
+        </span>
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
   
 </li>
       
@@ -2942,7 +3082,7 @@
 
 
   
-    <a href="https://github.com/sparkfun/SparkFun_RTK_Everywhere_Firmware/edit/main/docs/quickstart-evk.md" title="Edit this page" class="md-content__button md-icon" rel="edit noopener" target="_blank">
+    <a href="https://github.com/sparkfun/SparkFun_RTK_Everywhere_Firmware/edit/main/docs/local_base.md" title="Edit this page" class="md-content__button md-icon" rel="edit noopener" target="_blank">
       
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M8 12h8v2H8zm2 8H6V4h7v5h5v3.1l2-2V8l-6-6H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h4zm-2-2h4.1l.9-.9V16H8zm12.2-5c.1 0 .3.1.4.2l1.3 1.3c.2.2.2.6 0 .8l-1 1-2.1-2.1 1-1c.1-.1.2-.2.4-.2m0 3.9L14.1 23H12v-2.1l6.1-6.1z"/></svg>
     </a>
@@ -2950,244 +3090,88 @@
   
 
 
-<h1 id="quick-start-rtk-evk">Quick Start - RTK EVK<a class="headerlink" href="#quick-start-rtk-evk" title="Permanent link"></a></h1>
-<figure>
-<p><img alt="RTK EVK" src="../img/SparkFun_RTK_EVK.png" /></p>
-<figcaption></figcaption>
-</figure>
-<p>This quick start guide will get you started in 10 minutes or less. For the full product manual, please proceed to the <a href="../"><strong>Introduction</strong></a>.</p>
-<p>Are you using <a href="#android">Android</a> or <a href="#ios">iOS</a>?</p>
-<h2 id="android">Android<a class="headerlink" href="#android" title="Permanent link"></a></h2>
-<ol>
-<li>
-<p>Download <a href="https://play.google.com/store/apps/details?id=np.com.softwel.swmaps" target="_blank" rel="noopener">SW Maps</a>. This may not be the GIS software you intend to do your data collection, but SW Maps is free and makes sure everything is working correctly out of the box.</p>
-<p><figure markdown>
-<img alt="Download SW Maps" src="../img/SWMaps/SparkFun%20RTK%20SW%20Maps%20for%20Android%20QR%20Code.png" />
-<figcaption markdown>
-Download SW Maps for Android
-</figcaption>
-</figure></p>
-</li>
-<li>
-<p>Connect the antennas.</p>
-<ul>
-<li>The RTK EVK has its own <a href="http://docs.sparkfun.com/SparkFun_RTK_EVK/" target="_blank" rel="noopener">hookup guide</a> which has a dedicated section on <a href="https://docs.sparkfun.com/SparkFun_RTK_EVK/hardware_hookup/" target="_blank" rel="noopener">hardware hookup</a>. As a minimum:</li>
-<li>Position the L1/L2/L5 GNSS antenna outside, with a clear view of the sky</li>
-<li>Connect the GNSS antenna to the EVK using the supplied TNC-SMA cable</li>
-<li>Attach the combined WiFi and Bluetooth® antenna</li>
-</ul>
-<p><figure markdown>
-<img alt="RTK EVK kit" src="../img/SparkFun_RTK_EVK_Kit.jpg" />
-<figcaption markdown>
-Figure 1
-</figcaption>
-</figure></p>
-</li>
-<li>
-<p>Provide power.</p>
-<ul>
-<li>Connect a power source. The EVK can be powered by: either of the two USB-C ports on the front panel; Power-over-Ethernet; or a DC voltage source (9V-36V) via the VIN screw terminals on the rear.</li>
-<li>The simplest way is to connect the provided USB power supply to one of the USB-C ports using the provided cable.</li>
-<li>
-<p>The EVK will power on and begin to acquire satellites.</p>
-<p><figure markdown>
-<img alt="RTK EVK assembled" src="../img/SparkFun_RTK_EVK.jpg" />
-<figcaption markdown>
-Figure 2
-</figcaption>
-</figure></p>
-</li>
-</ul>
-</li>
-<li>
-<p>From your cell phone, open Bluetooth settings and pair it with a new device. You will see a list of available Bluetooth devices. Select the ‘EVK Rover-3AF1’. The '3AF1' is the last four digits of the device's MAC address and will vary depending on the device (Figure 3).</p>
-<p><figure markdown>
-<img alt="List of Bluetooth devices on Android" src="../img/QuickStart/SparkFun%20Torch%20-%20Available%20Devices.png" />
-<figcaption markdown>
-Figure 3
-</figcaption>
-</figure></p>
-</li>
-<li>
-<p>Once paired, open SW Maps. Select ‘New Project’ and give your project a name like ‘RTK Project’.</p>
-</li>
-<li>
-<p>Press the SW Maps icon in the top left corner of the home screen and select <strong>Bluetooth GNSS</strong>. You should see the ‘EVK Rover-3AF1’ in the list. Select it. Confirm that the <em>Instrument Model</em> is <strong>SparkFun RTK</strong>, then press the ‘Connect’ button in the bottom right corner (Figure 4). SW Maps will show a warning that the instrument height is 0m. That’s ok.</p>
-<p><figure markdown>
-<img alt="SW Map list of Bluetooth devices" src="../img/QuickStart/SparkFun%20Torch%20-%20SW%20Maps%20Bluetooth%20Small.png" />
-<figcaption markdown>
-Figure 4
-</figcaption>
-</figure></p>
-</li>
-<li>
-<p>Make sure the GNSS antenna is outside with a clear view of the sky. GNSS doesn’t work indoors or near windows. Press the SW Maps icon in the top left corner of the home screen and select <strong>GNSS Status</strong>. Within about 30 seconds you should see 10 or more satellites in view (SIV) (Figure 5). More SIV is better. We regularly see 30 or more SIV. The horizontal positional accuracy (HPA) will decrease as more satellites are acquired. The lower the HPA the more accurate your position.</p>
-<p><figure markdown>
-<img alt="RTK GNSS Status Window" src="../img/QuickStart/SparkFun%20Torch%20-%20SW%20Maps%20GNSS%20Status%20SIV%20Small.png" />
-<figcaption markdown>
-Figure 5
-</figcaption>
-</figure></p>
-</li>
-</ol>
-<p>To improve the accuracy (down to 1.4cm), you now need to enable the PointPerfect corrections. Continue reading the <a href="#rtk-crash-course">RTK Crash Course</a>.</p>
-<h2 id="ios">iOS<a class="headerlink" href="#ios" title="Permanent link"></a></h2>
-<p>The software options for Apple iOS are much more limited because Apple products do not support Bluetooth SPP. That's ok! The SparkFun RTK products support Bluetooth Low Energy (BLE) which <em>does</em> work with iOS.</p>
-<ol>
-<li>
-<p>Download <a href="https://apps.apple.com/us/app/sw-maps/id6444248083" target="_blank" rel="noopener">SW Maps for iOS</a>. This may not be the GIS software you intend to do your data collection, but SW Maps is free and makes sure everything is working correctly out of the box.</p>
-<p><figure markdown>
-<img alt="SW Maps for Apple" src="../img/SWMaps/SparkFun%20RTK%20SW%20Maps%20for%20Apple%20QR%20Code.png" />
-<figcaption markdown>
-Download SW Maps for iOS
-</figcaption>
-</figure></p>
-</li>
-<li>
-<p>Connect the antennas.</p>
-<ul>
-<li>The RTK EVK has its own <a href="http://docs.sparkfun.com/SparkFun_RTK_EVK/" target="_blank" rel="noopener">hookup guide</a> which has a dedicated section on <a href="https://docs.sparkfun.com/SparkFun_RTK_EVK/hardware_hookup/" target="_blank" rel="noopener">hardware hookup</a>. As a minimum:</li>
-<li>Position the L1/L2/L5 GNSS antenna outside, with a clear view of the sky</li>
-<li>Connect the GNSS antenna to the EVK using the supplied TNC-SMA cable</li>
-<li>
-<p>Attach the combined WiFi and Bluetooth® antenna</p>
-<p><figure markdown>
-<img alt="RTK EVK kit" src="../img/SparkFun_RTK_EVK_Kit.jpg" />
-<figcaption markdown>
-Figure 1
-</figcaption>
-</figure></p>
-</li>
-</ul>
-</li>
-<li>
-<p>Provide power.</p>
-<ul>
-<li>Connect a power source. The EVK can be powered by: either of the two USB-C ports on the front panel; Power-over-Ethernet; or a DC voltage source (9V-36V) via the VIN screw terminals on the rear.</li>
-<li>The simplest way is to connect the provided USB power supply to one of the USB-C ports using the provided cable.</li>
-<li>
-<p>The EVK will power on and begin to acquire satellites.</p>
-<p><figure markdown>
-<img alt="RTK EVK assembled" src="../img/SparkFun_RTK_EVK.jpg" />
-<figcaption markdown>
-Figure 2
-</figcaption>
-</figure></p>
-</li>
-</ul>
-</li>
-<li>
-<p>Open SW Maps. Select ‘New Project’ and give your project a name like ‘RTK Project’.</p>
-</li>
-<li>
-<p>Press the SW Maps icon in the top left corner of the home screen and select <em>Bluetooth GNSS</em>. You will need to agree to allow a Bluetooth connection. Set the <em>Instrument Model</em> to <strong>Generic NMEA (Bluetooth LE)</strong>. Press 'Scan' and your RTK device should appear.</p>
-<p><figure markdown>
-<img alt="RTK EVK SW Maps (iOS)" src="../img/SparkFun_EVK_SWMaps_iOS_1.png" />
-<figcaption markdown>
-Figure 3
-</figcaption>
-</figure></p>
-</li>
-<li>
-<p>Select it then press the ‘Connect’ button in the bottom right corner.</p>
-<p><figure markdown>
-<img alt="RTK EVK SW Maps (iOS)" src="../img/SparkFun_EVK_SWMaps_iOS_2.png" />
-<figcaption markdown>
-Figure 4
-</figcaption>
-</figure></p>
-</li>
-<li>
-<p>Make sure the GNSS antenna is outside with a clear view of the sky. GNSS doesn’t work indoors or near windows. Press the SW Maps icon in the top left corner of the home screen and select <strong>GNSS Status</strong>. Within about 30 seconds you should see 10 or more satellites in view (SIV) (Figure 5). More SIV is better. We regularly see 30 or more SIV. The horizontal positional accuracy (HPA) will decrease as more satellites are acquired. The lower the HPA the more accurate your position.</p>
-<p><figure markdown>
-<img alt="RTK GNSS Status Window" src="../img/QuickStart/SparkFun%20Torch%20-%20SW%20Maps%20GNSS%20Status%20SIV%20Small.png" />
-<figcaption markdown>
-Figure 5
-</figcaption>
-</figure></p>
-</li>
-</ol>
-<p>To improve the accuracy (down to 1.4cm), you now need to enable the PointPerfect corrections. Continue reading the <a href="#rtk-crash-course">RTK Crash Course</a>.</p>
-<h2 id="rtk-crash-course">RTK Crash Course<a class="headerlink" href="#rtk-crash-course" title="Permanent link"></a></h2>
-<p>To get centimeter accuracy we need to provide the RTK unit with correction values. Corrections, often called RTCM, help the RTK unit refine its position calculations. RTCM (Radio Technical Commission for Maritime Services) can be obtained from a variety of sources but they fall into three buckets: Commercial, Public, and Civilian Reference Stations.</p>
-<p>See <a href="../correction_sources/">Corrections Sources</a> for a breakdown of the options and the pros and cons of each. For this quickstart, we'll be showing you how to enable PointPerfect corrections using your one month free subscription to the L-Band + IP service.</p>
-<h2 id="pointperfect-corrections">PointPerfect Corrections<a class="headerlink" href="#pointperfect-corrections" title="Permanent link"></a></h2>
-<p>One of the great features of the RTK EVK is that it has the ability to get corrections from PointPerfect over Ethernet or WiFi. No need for NTRIP credentials! <a href="https://www.sparkfun.com/rtk_evk_registration" target="_blank" rel="noopener">Contact SparkFun</a> with your device ID, pay a monthly fee of $60 per month (as of this writing) and your device will obtain credentials and start receiving corrections anywhere there is coverage. $60 per month sounds like a lot, but this is a subscription to the premium PointPerfect L-Band + IP service. The subscription allows you to use IP-based corrections over Ethernet or WiFi, and L-Band corrections using the built-in NEO-D9S L-Band receiver. We really like u-blox's new Localized Distribution service where IP corrections are generated for your exact location, improving performance and minimising your network traffic.</p>
-<p><a href="https://www.u-blox.com/en/pointperfect-service-coverage" target="_blank" rel="noopener"><figure markdown>
-<img alt="PointPerfect Coverage map including L-Band and IP delivery methods" src="../img/PointPerfect/SparkFun%20RTK%20Everywhere%20-%20PointPerfect%20Coverage%20Map%20Small.png" /></a></p>
+<h1 id="creating-a-local-base">Creating a Local Base<a class="headerlink" href="#creating-a-local-base" title="Permanent link"></a></h1>
+<p>This section show various options to create your own base station. This is ideal if your Rover will stay within ~20km (12 miles) of the base station.</p>
+<p>If setting up a local base setup is too inconvenient, consider using a paid service such as <a href="../using_pointperfect_flex/">PointPerfect Flex</a></p>
+<h2 id="temporary-bases">Temporary Bases<a class="headerlink" href="#temporary-bases" title="Permanent link"></a></h2>
+<p>Temporary Bases are generally setup for a short amount of time (a day or less) and require less up-front work than a permanent base, but generally have lower accuracy.</p>
+<h3 id="survey-in-base">Survey-In Base<a class="headerlink" href="#survey-in-base" title="Permanent link"></a></h3>
+<p>A Survey-In Base is the default mode for a device when it enters Base mode. The GNSS receiver will monitor its location for approximately 60 seconds. After 60 seconds, generally speaking, the readings are averaged together and that location result is used as the 'fixed' location. All rovers receiving the corrections from this base will be relatively very accurate, but the absolutely accuracy will be low. Said differently, if the Survey-In result is incorrectly 0.7 meters to the west, all rover locations will be 0.7m +/-10mm to the west.</p>
+<h3 id="assisted-base">Assisted Base<a class="headerlink" href="#assisted-base" title="Permanent link"></a></h3>
+<p>An Assisted Base is where a temporary base is set up to Survey-In its location but is simultaneously provided RTCM corrections so that its Survey-In is done with very precise readings. An assisted base running a Survey-In removes much of the relative inaccuracies from a Rover-Base system. We've found an Assisted Base varies as little as 50mm RMS between intra-day tests, with accuracy within 65mm of a PPP of the same location, same day.</p>
+<p>To set up an assisted base the RTK device should be located in a good reception area and provided with RTCM corrections. Let it obtain RTK Fix from a fixed position (on a tripod, for example) in Rover mode. Once an RTK fix is achieved, change the device to temporary Base mode (also called Survey-In). The device will take 60 seconds of positional readings, at which point the fixed position of the base will be set using RTK augmented coordinates. At this point, corrections provided to the base can be discontinued. The Base will begin outputting very accurate RTCM corrections that can be relayed to a rover that is in a less optimal reception setting.</p>
+<p>Similarly, a PPP service such as Galileo HAS or BeiDou B2b can be used to increase the accuracy during the Survey-In. The RTK device should be located in a good reception area and allowed to reach PPP convergence (10+ minutes). Once converge, change the device to temporary Base mode (also called Survey-In). The device will take 60 seconds of positional readings, at which point the fixed position of the base will be set using PPP augmented coordinates. The Base will begin outputting very accurate RTCM corrections that can be relayed to a rover that is in a less optimal reception setting.</p>
+<h3 id="site-located-base">Site Located Base<a class="headerlink" href="#site-located-base" title="Permanent link"></a></h3>
+<p>A site located temporary base is when a RTK device is deployed over a position, commonly a stake in the ground, each day that work needs to get done, then the equipment is removed to prevent theft or abuse. A site located base has nearly the accuracy of a permanent base, but requires a one-time investment of a few hours of work to configure.</p>
+<p>The first step is to log raw GNSS data for a few hours, then submit it to a processing service to remove as many ambiguities and increase the location accuracy as much possible. With a few hours of logging, location accuracies can be better than 10mm. Once the staked location is known, a base can be quickly redeployed over that known spot during future site visits. The benefit of this longer, logged site survey over a 'Survey-In' style base is the increase in absolute accuracy.</p>
+<p>Each day that work needs to be done, the RTK device should be carefully located over the stake or monument with the known coordinates. The RTK device is configured to operate in 'Fixed Base' mode with the coordinates reported by the PPP service, and the base will immediately begin transmitting corrections over whatever transport methods are enable: for example, NTRIP Server, ESP-NOW, LoRa, WiFi AP, etc. Any rover receiving corrections from this type of base will be both relatively and absolutely accurate with the accuracy reported in PPP service report.</p>
+<h4 id="how-to-complete-a-site-located-temporary-base">How to Complete a Site Located Temporary Base<a class="headerlink" href="#how-to-complete-a-site-located-temporary-base" title="Permanent link"></a></h4>
+<p>Any of the SparkPNT products can be used to do a site located base. For products that have a microSD interface, the raw satellite data is recorded to the log file. For products that don't have a microSD interface, the device must be connected over USB to an external device capable of logging - this is most often a laptop or tablet.</p>
+<p><img alt="Enabling raw logging" src="../img/Base/SparkFun%20RTK%20Base%20Raw%20Signal%20Logging%20on%20Postcard.png" /></p>
+<p>Above, the Messages Menu, shown on the RTK Postcard, allow PPP logging to be enabled.</p>
+<p><img alt="Logging icon shown" src="../img/Base/SparkFun%20RTK%20Base%20Logging%20Icon.png" /></p>
+<p>Above, the RTK Postcard displays the 'P' logging icon indicating raw signals are being logged.</p>
+<p>For the RTK Postcard and RTK EVK, raw logging must be enabled and a microSD card inserted. Once enabled, the logging icon should show a 'P'.</p>
+<p>For the RTK Torch, raw logging must be enabled, then the USB port must be configured for GNSS output. Once complete, you will see a stream of NMEA sentences in readable characters, as well as a mix of non-readable binary characters.</p>
+<p>For the RTK Facet mosaic, a RINEX output stream must be created and a microSD card inserted.</p>
+<p>Logging of data should run for as many hours as is possible. 4 hours is generally considered a minimum, with diminishing returns after 12 hours. The PPP service report will include an estimate of the inaccuracy so if greater accuracy is needed, a longer survey can be re-run.</p>
+<p>Once a log of raw GNSS data is obtained, it needs to be processed with RTKCONV. </p>
+<p><strong>Note:</strong> RTK Facet mosaic users can skip the following RTKCONV step because a RINEX file was directly recorded and can be used with most post processing services.</p>
+<p><img alt="Settings in RTKCONV" src="../img/Base/SparkFun%20RTK%20Base%20RTKCONV.png" /></p>
+<p>We must convert the RTCM contained in the log files to RINEX data the post processing services understand. Download <a href="https://github.com/tomojitakasu/RTKLIB/releases" target="_blank" rel="noopener">RTKLIB</a>. As of writing, this was v2.4.3. RTKLIB is a collection of tools commonly used to manipulate raw GNSS data. Navigate to the bin folder and open <em>RTKCONV</em>. Select the log file that needs to be converted to RINEX. In the above example, the text file is RTCM 3 format, and we enabled 30 second intervals. This decimation process is important: it selects a reading every 30 seconds, removing any extra readings in between. Most PPP services automatically decimate to 30 seconds so this will not result in accuracy loss but will <em>significantly</em> reduce your file sizes allowing much faster processing.</p>
+<p><img alt="RTKCONV Options" src="../img/Base/SparkFun%20RTK%20Base%20RTKCONV%20options.png" /></p>
+<p>Above, press the <strong>Options</strong> button and be sure all GNSS signals are enabled and the GPS, GLO, and GAL constellations are selected. Not all PPP services can use this extra data but it's better to have recorded them. If you used a SparkFun SPK6618H (antenna code <code>SFESPK6618H</code>) or TOP106 antenna (antenna code <code>SFETOP106</code>), you can include an antenna code for additional ambiguity resolution. </p>
+<p>Press convert. </p>
+<p><img alt="Start time window" src="../img/Base/SparkFun%20RTK%20Base%20RTKCONV%20Start%20Time.png" /></p>
+<p>When the Start Time window opens, press the File Time button and then OK.</p>
+<p><img alt="OBS output file" src="../img/Base/SparkFun%20RTK%20Base%20RTKCONV%20OBS%20File.png" /></p>
+<p>Once complete, an OBS file should be output. Zip the OBS file with the ZIP tool of your choice.</p>
+<p><img alt="CSRS Login" src="../img/Base/SparkFun%20RTK%20Base%20RTKCONV%20CSRS%20Login.png" /></p>
+<p>Log in to <a href="https://webapp.csrs-scrs.nrcan-rncan.gc.ca/geod/tools-outils/ppp.php" target="_blank" rel="noopener">CSRS</a>.</p>
+<p><img alt="Settings in the CSRS" src="../img/Base/SparkFun%20RTK%20Base%20RTKCONV%20CSRS%20Settings.png" /></p>
+<p>Enter your email address and select ITRF as the Processing Mode. Upload the ZIP file of the OBS. Processing can take a few minutes up to a few hours.</p>
+<p><img alt="Output from CSRS" src="../img/Base/SparkFun%20RTK%20Base%20RTKCONV%20CSRS%20Output.png" /></p>
+<p>Above, we see the location as well as the accuracy estimate of 4mm, 3mm, and 14mm of the lat/lon/alt. When work needs to be done at the site, the RTK device is set on the known location, then configured as a 'Fixed Base' with the PPP location coordinates.</p>
+<h2 id="permanent-bases">Permanent Bases<a class="headerlink" href="#permanent-bases" title="Permanent link"></a></h2>
+<p>Permanent Bases are the gold-standard for accuracy. They require extra work to set up, but can used for years with proper maintenance. </p>
+<h3 id="rtk-mosaic">RTK mosaic<a class="headerlink" href="#rtk-mosaic" title="Permanent link"></a></h3>
+<p><a href="https://www.sparkfun.com/products/23748" target="_blank" rel="noopener"><figure markdown>
+<img alt="SparkFun RTK mosaic base station kit" src="https://cdn.sparkfun.com/r/455-455/assets/parts/2/4/0/7/2/23748-RTK-Mosaic-X5-Kit-All-Feature-1.png"></a></p>
 <figcaption>
-<p>PointPerfect Coverage map including L-Band and IP delivery methods</p>
+<p>SparkFun RTK mosaic base station kit</p>
 </figcaption>
 </figure>
-<p>The PointPerfect IP service is available for various areas of the globe including the contiguous US, EU, South Korea, as well as parts of Brazil, Australia, and Canada. See the <a href="https://www.u-blox.com/en/pointperfect-service-coverage" target="_blank" rel="noopener">coverage map</a> for specifics; the RTK EVK is compatible with all areas as it supports both L-Band and IP coverage.</p>
-<p>Steps to use PointPerfect:</p>
-<ol>
-<li>
-<p><a href="https://www.sparkfun.com/rtk_evk_registration" target="_blank" rel="noopener">Register</a> the device with SparkFun by entering the device ID (this is the ID seen on the <a href="https://docs.sparkfun.com/SparkFun_RTK_Everywhere_Firmware/menu_pointperfect/#registration" target="_blank" rel="noopener">printed stickers</a> included in the kit). It can take up to two business days for registration to complete.</p>
-</li>
-<li>
-<p>Put the RTK EVK into WiFi config mode by clicking the Mode button on the front panel. The first click opens the mode menu, successive clicks select the next menu option. Keep clicking until <strong>Cfg WiFi</strong> is highlighted, then do a quick double-click to select it.</p>
-<p><figure markdown>
-<img alt="SparkFun RTK EVK Mode Menu" src="../img/Displays/24342-RTK-EVK-Action-Screen_GIF_750ms.gif" />
-<figcaption markdown>
-SparkFun RTK EVK Mode Menu
-</figcaption>
-</figure></p>
-</li>
-<li>
-<p>From your phone, connect to the WiFi network <em>RTK Config</em>. You should be redirected to the WiFi Config page. If you are not, open a browser (Chrome is preferred) and type <strong>rtk.local</strong> into the address bar. The IP Address will be <strong>192.168.4.1</strong>.</p>
-<p><figure markdown>
-<img alt="SparkFun RTK WiFi Configuration Interface" src="../img/WiFi%20Config/SparkFun%20RTK%20WiFi%20Config%20-%20Header%20Block.png" />
-<figcaption markdown>
-SparkFun RTK WiFi Configuration Interface
-</figcaption>
-</figure></p>
-</li>
-<li>
-<p>Under the <em>WiFi Configuration</em> menu, give the device WiFi credentials for your local WiFi. This can be the cellphone hotspot if local WiFi is not available. If you will be using Ethernet, you can skip this step.</p>
-<p><figure markdown>
-<img alt="WiFi Menu containing one network" src="../img/WiFi%20Config/SparkFun%20RTK%20WiFi%20Config%20-%20WiFi%20Menu.png" />
-<figcaption markdown>
-WiFi Menu containing one network
-</figcaption>
-</figure></p>
-</li>
-<li>
-<p>Under the <a href="../menu_pointperfect/"><em>PointPerfect Configuration</em> menu</a>, <strong>Enable PointPefect Corrections</strong> and select your <strong>Geographic Region</strong>. If desired, enable <strong>Localized Corrections</strong> and <strong>AssistNow</strong>.</p>
-<p><figure markdown>
-<img alt="PointPerfect Configuration Menu" src="../img/WiFi%20Config/SparkFun%20RTK%20PointPerfect%20Config.png" />
-<figcaption markdown>
-PointPerfect Configuration Menu
-</figcaption>
-</figure></p>
-<div class="admonition note">
-<p class="admonition-title">Note</p>
-<p>It is important that you set your Geographic Region correctly, via the menu or web config page, as this determines both the IP correction distribution topic and the L-Band frequency (on L-Band-capable products).</p>
-</div>
-</li>
-<li>
-<p>Click <strong>Save Configuration</strong>. The device will record all settings in a few seconds. Then press <strong>Exit and Reset</strong>. The unit will now reboot.</p>
-<p><figure markdown>
-<img alt="Saving and All Saved notifications" src="../img/WiFi%20Config/SparkFun%20RTK%20WiFi%20Config%20-%20Save%20Steps.png" />
-<figcaption markdown>
-Saving... then All Saved
-</figcaption>
-</figure></p>
-</li>
-</ol>
-<p>After the reboot, the device will connect to WiFi using your credentials. If you are using Ethernet instead, ensure the Ethernet cable is connected. The RTK will connect to PointPerfect, obtain keys, and begin applying corrections. Assuming your antenna is outside, after a few minutes of receiving PointPerfect corrections the device will enter RTK Float, then RTK Fix (usually under 3 minutes). Connect to the RTK EVK over SW Maps (or other) and view your position with millimeter accuracy!</p>
-<figure>
-<p><img alt="SW Maps showing accuracy" src="../img/SWMaps/SparkFun%20Torch%20-%20SW%20Maps%20PointPerfect%20Fix%20Accuracy.png" /></p>
+<p>This is the premium RTK base station. The <a href="https://www.sparkfun.com/products/23748" target="_blank" rel="noopener">RTK mosaic</a> is multi-band/multi-signal/multi-constellation capable, includes all the bits you need (minus the antenna mounting hardware) to have a fully fledged CORS (continuously operating reference station). Additionally, the RTK mosaic is capable of transmitting to up to four Casters so you can push correction data simultaneously to your own caster (say RTK2Go) and to casters that may generate some income (ie, <a href="https://www.onocoy.com/" target="_blank" rel="noopener">Onocoy</a> or <a href="https://geodnet.com/" target="_blank" rel="noopener">Geodnet</a>).</p>
+<p><a href="https://www.sparkfun.com/products/21257" target="_blank" rel="noopener"><figure markdown>
+<img alt="SPK6618H antenna on a magnetic mount" src="https://docs.sparkfun.com/SparkFun_RTK_mosaic-X5/assets/img/hookup_guide/assembly-gnss-mount_location.jpg"></a></p>
 <figcaption>
-<p>SW Maps showing positional accuracy</p>
+<p>Magnetic antenna mount</p>
 </figcaption>
 </figure>
-<h2 id="common-gotchas">Common Gotchas<a class="headerlink" href="#common-gotchas" title="Permanent link"></a></h2>
-<ul>
-<li>High-precision GNSS works best with a clear view of the sky; it does not work indoors or near a window. GNSS performance is generally <em>not</em> affected by clouds or storms. Trees and buildings <em>can</em> degrade performance but usually only in very thick canopies or very near tall building walls. GNSS reception is very possible in dense urban centers with skyscrapers but high-precision RTK may be impossible.</li>
-<li>The location reported by the RTK device is the location of the antenna element. Lat and Long are fairly easy to obtain but if you're capturing altitude be sure to do additional reading on ARPs (antenna reference points) and how to account for the antenna height in your data collection software.</li>
-<li>An internet connection is required for most types of RTK. RTCM corrections can be transmitted over other types of connections (such as serial telemetry radios). The RTK EVK also supports PointPerfect L-Band geostationary satellite corrections through the built-in NEO-D9S corrections receiver. The L-Band corrections are encrypted and keys are required but, once your unit has them, corrections will be available for up to eight weeks. See <a href="../correction_transport/">Correction Transport</a> for more details.</li>
-</ul>
+<p>If you've got a metal roof or parapet, the <a href="https://www.sparkfun.com/products/21257" target="_blank" rel="noopener">magentic mount</a> makes installation even easier.</p>
+<h3 id="rtk-reference-station">RTK Reference Station<a class="headerlink" href="#rtk-reference-station" title="Permanent link"></a></h3>
+<p><a href="https://www.sparkfun.com/products/22429" target="_blank" rel="noopener"><figure markdown>
+<img alt="SparkFun RTK mosaic base station kit" src="https://cdn.sparkfun.com/assets/parts/2/2/5/2/3/SparkFun_GNSS_RTK_Reference_Station_-_12.jpg"></a></p>
+<figcaption>
+<p>SparkFun RTK Reference Station kit</p>
+</figcaption>
+</figure>
+<p>The <a href="https://www.sparkfun.com/products/22429" target="_blank" rel="noopener">RTK Reference Station</a> is similar to the RTK mosaic; it has all the parts you need and is a very capable CORS. While being slightly cheaper in price, it is only dual band (L1/L2) capable so the corrections are not <em>quite</em> as good as the tri-band <a href="https://www.sparkfun.com/products/23748" target="_blank" rel="noopener">RTK mosaic</a>. Additionally, the RTK Reference Station is only capable of transmitting to a single Caster so you can't push correction data simultaneously to say <a href="https://rtk2go.com/" target="_blank" rel="noopener">RTK2Go</a> and <a href="https://www.onocoy.com/" target="_blank" rel="noopener">Onocoy</a> at the same time.</p>
+<p><a href="https://www.sparkfun.com/products/21257" target="_blank" rel="noopener"><figure markdown>
+<img alt="SPK6618H antenna on a magnetic mount" src="https://docs.sparkfun.com/SparkFun_RTK_mosaic-X5/assets/img/hookup_guide/assembly-gnss-mount_location.jpg"></a></p>
+<figcaption>
+<p>Magnetic antenna mount</p>
+</figcaption>
+</figure>
+<p>If you've got a metal roof or parapet, the <a href="https://www.sparkfun.com/products/21257" target="_blank" rel="noopener">magnetic mount</a> makes installation even easier.</p>
+<h3 id="diy-base-station">DIY Base Station<a class="headerlink" href="#diy-base-station" title="Permanent link"></a></h3>
+<figure>
+<p><img alt="SparkFun Base Station Enclosure" src="../img/Corrections/Roof_Enclosure.jpg" /></p>
+<figcaption>
+<p>The base station at SparkFun</p>
+</figcaption>
+</figure>
+<p>If you're looking to build a base station on the cheap, or if you're more of a DIYer, checkout our <a href="https://learn.sparkfun.com/tutorials/how-to-build-a-diy-gnss-reference-station/all" target="_blank" rel="noopener">How to Build a DIY GNSS Reference Station</a>. This will go into depth about how to bring various pieces together to build your own continuously operating GNSS reference station (CORS).</p>
 
 
 
@@ -3210,7 +3194,7 @@ Saving... then All Saved
     <span class="md-icon" title="Last update">
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M21 13.1c-.1 0-.3.1-.4.2l-1 1 2.1 2.1 1-1c.2-.2.2-.6 0-.8l-1.3-1.3c-.1-.1-.2-.2-.4-.2m-1.9 1.8-6.1 6V23h2.1l6.1-6.1zM12.5 7v5.2l4 2.4-1 1L11 13V7zM11 21.9c-5.1-.5-9-4.8-9-9.9C2 6.5 6.5 2 12 2c5.3 0 9.6 4.1 10 9.3-.3-.1-.6-.2-1-.2s-.7.1-1 .2C19.6 7.2 16.2 4 12 4c-4.4 0-8 3.6-8 8 0 4.1 3.1 7.5 7.1 7.9l-.1.2z"/></svg>
     </span>
-    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-timeago" title="February 7, 2025 00:03:09 UTC"><span class="timeago" datetime="2025-02-07T00:03:09+00:00" locale="en"></span></span><span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-iso_date" title="February 7, 2025 00:03:09 UTC">2025-02-07</span>
+    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-timeago" title="February 20, 2026 18:27:06 UTC"><span class="timeago" datetime="2026-02-20T18:27:06+00:00" locale="en"></span></span><span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-iso_date" title="February 20, 2026 18:27:06 UTC">2026-02-20</span>
   </span>
 
     
@@ -3220,7 +3204,7 @@ Saving... then All Saved
     <span class="md-icon" title="Created">
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M14.47 15.08 11 13V7h1.5v5.25l3.08 1.83c-.41.28-.79.62-1.11 1m-1.39 4.84c-.36.05-.71.08-1.08.08-4.42 0-8-3.58-8-8s3.58-8 8-8 8 3.58 8 8c0 .37-.03.72-.08 1.08.69.1 1.33.32 1.92.64.1-.56.16-1.13.16-1.72 0-5.5-4.5-10-10-10S2 6.5 2 12s4.47 10 10 10c.59 0 1.16-.06 1.72-.16-.32-.59-.54-1.23-.64-1.92M18 15v3h-3v2h3v3h2v-3h3v-2h-3v-3z"/></svg>
     </span>
-    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-timeago" title="July 10, 2024 10:44:37 UTC"><span class="timeago" datetime="2024-07-10T10:44:37+00:00" locale="en"></span></span><span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-iso_date" title="July 10, 2024 10:44:37 UTC">2024-07-10</span>
+    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-timeago" title="February 20, 2026 18:27:06 UTC"><span class="timeago" datetime="2026-02-20T18:27:06+00:00" locale="en"></span></span><span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-iso_date" title="February 20, 2026 18:27:06 UTC">2026-02-20</span>
   </span>
 
     
@@ -3238,14 +3222,9 @@ Saving... then All Saved
     
     <nav>
       
-        <a href="https://github.com/santaimpersonator" class="md-author" title="@santaimpersonator" target="_blank" rel="noopener">
+        <a href="https://github.com/nseidle" class="md-author" title="@nseidle" target="_blank" rel="noopener">
           
-          <img src="https://avatars.githubusercontent.com/u/36016723?v=4&amp;size=72" alt="santaimpersonator">
-        </a>
-      
-        <a href="https://github.com/PaulZC" class="md-author" title="@PaulZC" target="_blank" rel="noopener">
-          
-          <img src="https://avatars.githubusercontent.com/u/5690545?v=4&amp;size=72" alt="PaulZC">
+          <img src="https://avatars.githubusercontent.com/u/117102?v=4&amp;size=72" alt="nseidle">
         </a>
       
       
