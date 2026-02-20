@@ -3321,7 +3321,7 @@ Compatibility Icons
 </figure>
 <p>Once a receiver is selected, its status will be shown in the GPS Setup window. Additionally, an NTRIP Client is available for corrections.</p>
 <p><strong>NTRIP Client</strong></p>
-<p>If you’re using a serial radio to connect a Base to a Rover for your correction data, or if you're using the RTK Facet L-Band with built-in corrections, you can skip this part.</p>
+<p>If you’re using a serial radio to connect a Base to a Rover for your correction data.</p>
 <figure>
 <p><img alt="NTRIP Settings" src="../img/DiamondMaps/SparkFun%20RTK%20Diamond%20Maps%20-%20NTRIP%20Settings.png" /></p>
 <figcaption></figcaption>
@@ -3368,7 +3368,7 @@ Compatibility Icons
 </figure>
 <p>You will be shown a list of paired devices. Select the RTK device you'd like to connect to then click 'Connect'. The RTK device will connect and the MAC address shown on the RTK device OLED will change to the Bluetooth icon indicating a link is open.</p>
 <p><strong>NTRIP Client</strong></p>
-<p>If you’re using a serial radio to connect a Base to a Rover for your correction data, or if you're using the RTK Facet L-Band with built-in corrections, you can skip this part.</p>
+<p>If you’re using a serial radio to connect a Base to a Rover for your correction data.</p>
 <figure>
 <p><img alt="Set up corrections" src="../img/FieldGenius/Field%20Genius%208.png" /></p>
 <figcaption></figcaption>
@@ -3710,7 +3710,7 @@ Compatibility Icons
 </figure>
 <p>You can open the GNSS Status sub-menu to view the current data.</p>
 <p><strong>NTRIP Client</strong></p>
-<p>If you’re using a serial radio to connect a Base to a Rover for your correction data, or if you're using the RTK Facet L-Band with built-in corrections, you can skip this part.</p>
+<p>If you’re using a serial radio to connect a Base to a Rover for your correction data.</p>
 <p>We need to send RTCM correction data from the phone back to the RTK device so that it can improve its fix accuracy. This is the amazing power of the SparkFun RTK products and SW Maps. Your phone can be the radio link! From the main SW Maps menu select NTRIP Client. Not there? Be sure the 'SparkFun RTK' instrument was automatically selected connecting. Disconnect and change the instrument to 'SparkFun RTK' to enable the NTRIP Connection option.</p>
 <figure>
 <p><img alt="SW Maps NTRIP Connection menu" src="../img/SWMaps/SparkFun_RTK_Surveyor_-_SW_Maps_NTRIP_Connection.jpg" /></p>
@@ -3766,10 +3766,9 @@ Compatibility Icons
 <h2 id="where-do-i-get-rtk-corrections">Where do I get RTK Corrections?<a class="headerlink" href="#where-do-i-get-rtk-corrections" title="Permanent link"></a></h2>
 <p>Be sure to see <a href="../correction_sources/">Correction Sources</a>.</p>
 <p>Don't have access to an NTRIP Caster or other RTCM correction source? There are a few options.</p>
-<p>The <a href="https://www.sparkfun.com/products/20000" target="_blank" rel="noopener">SparkFun RTK Facet L-Band</a> gets corrections via an encrypted signal from geosynchronous satellites. This device gets RTK Fix without the need for a WiFi or cellular connection.</p>
-<p>Also, you can use a 2nd RTK product operating in Base mode to provide the correction data. Check out <a href="../permanent_base/">Creating a Permanent Base</a>.</p>
+<p>You can use a 2nd RTK product operating in Base mode to provide the correction data. Check out <a href="../permanent_base/">Creating a Permanent Base</a>.</p>
 <p>If you're the DIY sort, you can create your own low-cost base station using an ESP32 and a ZED-F9P breakout board. Check out <a href="https://learn.sparkfun.com/tutorials/how-to-build-a-diy-gnss-reference-station" target="_blank" rel="noopener">How to Build a DIY GNSS Reference Station</a>.</p>
-<p>There are services available as well. <a href="https://www.swiftnav.com/skylark" target="_blank" rel="noopener">Syklark</a> provides RTCM coverage for $49 a month (as of writing) and is extremely easy to set up and use. <a href="https://app.pointonenav.com/trial?utm_source=sparkfun" target="_blank" rel="noopener">Point One</a> also offers RTK NTRIP service with a free 14 day trial and easy to use front end.</p>
+<p>There are services available as well. See <a href="../using_pointperfect_flex/">Using PointPerfect Flex</a> for a $15/month option. <a href="https://www.swiftnav.com/skylark" target="_blank" rel="noopener">Syklark</a> provides RTCM coverage for $49 a month (as of writing) and is extremely easy to set up and use. <a href="https://app.pointonenav.com/trial?utm_source=sparkfun" target="_blank" rel="noopener">Point One</a> also offers RTK NTRIP service with a free 14 day trial and easy to use front end.</p>
 
 
 
@@ -3792,7 +3791,7 @@ Compatibility Icons
     <span class="md-icon" title="Last update">
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M21 13.1c-.1 0-.3.1-.4.2l-1 1 2.1 2.1 1-1c.2-.2.2-.6 0-.8l-1.3-1.3c-.1-.1-.2-.2-.4-.2m-1.9 1.8-6.1 6V23h2.1l6.1-6.1zM12.5 7v5.2l4 2.4-1 1L11 13V7zM11 21.9c-5.1-.5-9-4.8-9-9.9C2 6.5 6.5 2 12 2c5.3 0 9.6 4.1 10 9.3-.3-.1-.6-.2-1-.2s-.7.1-1 .2C19.6 7.2 16.2 4 12 4c-4.4 0-8 3.6-8 8 0 4.1 3.1 7.5 7.1 7.9l-.1.2z"/></svg>
     </span>
-    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-timeago" title="February 3, 2026 16:58:18 UTC"><span class="timeago" datetime="2026-02-03T16:58:18+00:00" locale="en"></span></span><span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-iso_date" title="February 3, 2026 16:58:18 UTC">2026-02-03</span>
+    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-timeago" title="February 20, 2026 22:31:44 UTC"><span class="timeago" datetime="2026-02-20T22:31:44+00:00" locale="en"></span></span><span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-iso_date" title="February 20, 2026 22:31:44 UTC">2026-02-20</span>
   </span>
 
     
@@ -3825,14 +3824,14 @@ Compatibility Icons
           <img src="https://avatars.githubusercontent.com/u/117102?v=4&amp;size=72" alt="nseidle">
         </a>
       
-        <a href="https://github.com/PaulZC" class="md-author" title="@PaulZC" target="_blank" rel="noopener">
-          
-          <img src="https://avatars.githubusercontent.com/u/5690545?v=4&amp;size=72" alt="PaulZC">
-        </a>
-      
         <a href="https://github.com/santaimpersonator" class="md-author" title="@santaimpersonator" target="_blank" rel="noopener">
           
           <img src="https://avatars.githubusercontent.com/u/36016723?v=4&amp;size=72" alt="santaimpersonator">
+        </a>
+      
+        <a href="https://github.com/PaulZC" class="md-author" title="@PaulZC" target="_blank" rel="noopener">
+          
+          <img src="https://avatars.githubusercontent.com/u/5690545?v=4&amp;size=72" alt="PaulZC">
         </a>
       
       
