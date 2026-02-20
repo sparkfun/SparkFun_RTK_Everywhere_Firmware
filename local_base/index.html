@@ -2669,11 +2669,11 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#assisted-base" class="md-nav__link">
+  <a href="#augmented-survey-in-base" class="md-nav__link">
     <span class="md-ellipsis">
       
         <span class="md-typeset">
-          Assisted Base<a class="headerlink" href="#assisted-base" title="Permanent link"></a>
+          Augmented Survey-In Base<a class="headerlink" href="#augmented-survey-in-base" title="Permanent link"></a>
         </span>
       
     </span>
@@ -2964,11 +2964,11 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#assisted-base" class="md-nav__link">
+  <a href="#augmented-survey-in-base" class="md-nav__link">
     <span class="md-ellipsis">
       
         <span class="md-typeset">
-          Assisted Base<a class="headerlink" href="#assisted-base" title="Permanent link"></a>
+          Augmented Survey-In Base<a class="headerlink" href="#augmented-survey-in-base" title="Permanent link"></a>
         </span>
       
     </span>
@@ -3127,9 +3127,9 @@
 <p>Temporary Bases are generally setup for a short amount of time (a day or less) and require less up-front work than a permanent base, but generally have lower accuracy.</p>
 <h3 id="survey-in-base">Survey-In Base<a class="headerlink" href="#survey-in-base" title="Permanent link"></a></h3>
 <p>A Survey-In Base is the default mode for a device when it enters Base mode. The GNSS receiver will monitor its location for approximately 60 seconds. After 60 seconds, generally speaking, the readings are averaged together and that location result is used as the 'fixed' location. All rovers receiving the corrections from this base will be relatively very accurate, but the absolutely accuracy will be low. Said differently, if the Survey-In result is incorrectly 0.7 meters to the west, all rover locations will be 0.7m +/-10mm to the west.</p>
-<h3 id="assisted-base">Assisted Base<a class="headerlink" href="#assisted-base" title="Permanent link"></a></h3>
-<p>An Assisted Base is where a temporary base is set up to Survey-In its location but is simultaneously provided RTCM corrections so that its Survey-In is done with very precise readings. An assisted base running a Survey-In removes much of the relative inaccuracies from a Rover-Base system. We've found an Assisted Base varies as little as 50mm RMS between intra-day tests, with accuracy within 65mm of a PPP of the same location, same day.</p>
-<p>To set up an assisted base the RTK device should be located in a good reception area and provided with RTCM corrections. Let it obtain RTK Fix from a fixed position (on a tripod, for example) in Rover mode. Once an RTK fix is achieved, change the device to temporary Base mode (also called Survey-In). The device will take 60 seconds of positional readings, at which point the fixed position of the base will be set using RTK augmented coordinates. At this point, corrections provided to the base can be discontinued. The Base will begin outputting very accurate RTCM corrections that can be relayed to a rover that is in a less optimal reception setting.</p>
+<h3 id="augmented-survey-in-base">Augmented Survey-In Base<a class="headerlink" href="#augmented-survey-in-base" title="Permanent link"></a></h3>
+<p>An Augmented Survey-In Base is where a temporary base is set up to Survey-In its location but is simultaneously provided RTCM corrections so that its Survey-In is done with very precise readings. An augmented base running a Survey-In removes much of the relative inaccuracies from a Rover-Base system. We've found an Augmented Base varies as little as 50mm RMS between intra-day tests, with accuracy within 65mm of a PPP of the same location, same day.</p>
+<p>To set up an augmented base the RTK device should be located in a good reception area and provided with RTCM corrections. Let it obtain RTK Fix from a fixed position (on a tripod, for example) in Rover mode. Once an RTK fix is achieved, change the device to temporary Base mode (also called Survey-In). The device will take 60 seconds of positional readings, at which point the fixed position of the base will be set using RTK augmented coordinates. At this point, corrections provided to the base can be discontinued. The Base will begin outputting very accurate RTCM corrections that can be relayed to a rover that is in a less optimal reception setting.</p>
 <p>Similarly, a PPP service such as Galileo HAS or BeiDou B2b can be used to increase the accuracy during the Survey-In. The RTK device should be located in a good reception area and allowed to reach PPP convergence (10+ minutes). Once converge, change the device to temporary Base mode (also called Survey-In). The device will take 60 seconds of positional readings, at which point the fixed position of the base will be set using PPP augmented coordinates. The Base will begin outputting very accurate RTCM corrections that can be relayed to a rover that is in a less optimal reception setting.</p>
 <h3 id="site-located-base">Site Located Base<a class="headerlink" href="#site-located-base" title="Permanent link"></a></h3>
 <p>A site located temporary base is when a RTK device is deployed over a position, commonly a stake in the ground, each day that work needs to get done, then the equipment is removed to prevent theft or abuse. A site located base has nearly the accuracy of a permanent base, but requires a one-time investment of a few hours of work to configure.</p>
@@ -3224,7 +3224,7 @@
     <span class="md-icon" title="Last update">
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M21 13.1c-.1 0-.3.1-.4.2l-1 1 2.1 2.1 1-1c.2-.2.2-.6 0-.8l-1.3-1.3c-.1-.1-.2-.2-.4-.2m-1.9 1.8-6.1 6V23h2.1l6.1-6.1zM12.5 7v5.2l4 2.4-1 1L11 13V7zM11 21.9c-5.1-.5-9-4.8-9-9.9C2 6.5 6.5 2 12 2c5.3 0 9.6 4.1 10 9.3-.3-.1-.6-.2-1-.2s-.7.1-1 .2C19.6 7.2 16.2 4 12 4c-4.4 0-8 3.6-8 8 0 4.1 3.1 7.5 7.1 7.9l-.1.2z"/></svg>
     </span>
-    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-timeago" title="February 20, 2026 18:27:06 UTC"><span class="timeago" datetime="2026-02-20T18:27:06+00:00" locale="en"></span></span><span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-iso_date" title="February 20, 2026 18:27:06 UTC">2026-02-20</span>
+    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-timeago" title="February 20, 2026 23:33:32 UTC"><span class="timeago" datetime="2026-02-20T23:33:32+00:00" locale="en"></span></span><span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-iso_date" title="February 20, 2026 23:33:32 UTC">2026-02-20</span>
   </span>
 
     
