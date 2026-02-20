@@ -702,7 +702,7 @@ bool menuCommonBaseCoords()
                 systemPrintln("Enter the Antenna Phase Center in mm.");
                 systemPrintln("APC is the distance from the base of the antenna to the antenna phase center.");
                 systemPrintln("This is usually printed on the side of the antenna and is calculated during antenna calibration.");
-                systemPrintln("Common APCs: Torch(117mm) EVK(42mm) Facet mosaic(69mm) Facet L-Band v2(69mm) Facet v2(70mm):");
+                systemPrintln("Common APCs: Torch(129mm) EVK(42mm) Facet mosaic(69mm) Facet L-Band v2(69mm) Facet v2(70mm):");
                 double apc;
                 if (getUserInputDouble(&apc) == INPUT_RESPONSE_VALID)
                     antennaPhaseCenter_mm = apc;

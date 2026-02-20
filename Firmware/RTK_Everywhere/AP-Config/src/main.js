@@ -2145,10 +2145,10 @@ document.addEventListener("DOMContentLoaded", (event) => {
                 ge("antennaPhaseCenter_mm").value = 68.5; //Average of L1/L2
             }
             else if (platformPrefix == "Torch") {
-                ge("antennaPhaseCenter_mm").value = 116.5; //Average of L1/L2
+                ge("antennaPhaseCenter_mm").value = 129.0; //Average of L1/L2
             }
             else if (platformPrefix == "TX2") {
-                ge("antennaPhaseCenter_mm").value = 116.5; //Average of L1/L2
+                ge("antennaPhaseCenter_mm").value = 129.0; //Average of L1/L2
             }
             else if (platformPrefix == "EVK") {
                 ge("antennaPhaseCenter_mm").value = 42.0; //Average of L1/L2
