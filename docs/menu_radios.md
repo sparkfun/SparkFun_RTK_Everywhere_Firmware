@@ -187,10 +187,10 @@ The *Seconds without user serial that must elapse before LoRa radio goes into de
 
 The device can operate in a variety of Bluetooth modes. Use this menu to select between the following:
 
-* *Dual (Default)* - Broadcast over Classic Bluetooth (SPP) and Bluetooth Low Energy (BLE)
-* *Classic* - Broadcast over Classic Bluetooth (SPP) only
-* *BLE* - Broadcast over Bluetooth Low Energy (BLE) only
-* *Off* - Disable the Bluetooth radio
+* **Dual (Default)** - Broadcast over Classic Bluetooth (SPP) and Bluetooth Low Energy (BLE)
+* **Classic** - Broadcast over Classic Bluetooth (SPP) only
+* **BLE** - Broadcast over Bluetooth Low Energy (BLE) only
+* **Off** - Disable the Bluetooth radio
 
 ## Accessory Time Offset
 
