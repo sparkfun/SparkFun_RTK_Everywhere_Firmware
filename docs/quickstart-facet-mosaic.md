@@ -116,58 +116,16 @@ You can now use your RTK device to measure points with good (meter) accuracy. If
 
 To get millimeter accuracy we need to provide the RTK unit with correction values. Corrections, often called RTCM, help the RTK unit refine its position calculations. RTCM (Radio Technical Commission for Maritime Services) can be obtained from a variety of sources but they fall into three buckets: Commercial, Public, and Civilian Reference Stations.
 
-See [Corrections Sources](correction_sources.md) for a breakdown of the options and the pros and cons of each. For this quickstart, we'll be showing two examples: using PointPerfect L-Band for $50 a month; and PointOne Nav for $150/month for "True RTK".
+To get millimeter accuracy we need to provide the RTK unit with correction values. See [Corrections Sources](correction_sources.md) for a breakdown of the options and the pros and cons of each. For this quickstart, we'll be showing how to use PointPerfect Flex for $15 a month.
 
-## PointPerfect Corrections over L-Band
-
-**Note:** In July of 2025 u-blox announced the L-Band service to North America would be discontinued on December 31st, 2025. RTK Facet mosaic units, with a paid subscription to the L-Band service, can still use this signal up to December 31st, 2025, but afterward they will need to switch to an internet based correction services to obtain an RTK Fix. Please see [Correction Sources](correction_sources.md) for more information.
-
-## NTRIP Example
-
-If you decide to use a service that provides NTRIP (as opposed to PointPerfect) we need to feed that data into your SparkFun RTK device. In this example, we will use PointOneNav and SW Maps.
-
-1. Create an account on [PointOneNav](https://app.pointonenav.com/trial?src=sparkfun).
-
-	!!! note
-		This service costs $150/month for "True RTK" at the time of writing.
-
-2. Open SW Maps and connect to the RTK device over Bluetooth.
-
-3. Once connected, open the SW Maps menu again (top left corner) and you will see a new option; click on ‘NTRIP Client'.
-
-4. Enter the credentials provided by PointOneNav and click Connect (Figure 1). Verify that *Send NMEA GGA* is checked.
-
-	<figure markdown>
-	![NTRIP credentials in SW Maps](./img/SWMaps/SparkFun RTK SW Maps - NTRIP Credentials.png)
-	<figcaption markdown>
-	Figure 1
-	</figcaption>
-	</figure>
-
-5. Corrections will be downloaded every second from PointOneNav using your phone’s cellular connection and then sent down to the RTK device over Bluetooth. You don't need a very fast internet connection or a lot of data; it's only about 530 bytes per second.
-
-Assuming you are outside, as soon as corrections are sent to the device, the bubble in SW Maps will turn Orange (RTK Float). Once RTK Fix is achieved (usually under 30 seconds) the bubble will turn Green and the HPA will be below 20mm (Figure 2). You can now take positional readings with millimeter accuracy!
-
-<figure markdown>
-![Double crosshair indicating RTK Fix](./img/SWMaps/SparkFun Torch - SW Maps GNSS Status RTK Fix HPA Small.png)
-<figcaption markdown>
-Figure 2
-</figcaption>
-</figure>
-
-In SW Maps, the position bubble will turn from Blue (regular GNSS fix), then to Orange (RTK Float), then to Green (RTK Fix) (Figure 3).
-
-<figure markdown>
-![Green bubble indicating RTK Fix](./img/SWMaps/SparkFun RTK SW Maps - Green Bubble-1.png)
-<figcaption markdown>
-Figure 3
-</figcaption>
-</figure>
-
-RTK Fix will be maintained as long as there is a clear view of the sky and corrections are delivered to the device every few seconds.
+{% include "using_pointperfect_flex.md" %}
 
 ## Common Gotchas
 
 - High-precision GNSS works best with a clear view of the sky; it does not work indoors or near a window. GNSS performance is generally *not* affected by clouds or storms. Trees and buildings *can* degrade performance but usually only in very thick canopies or very near tall building walls. GNSS reception is very possible in dense urban centers with skyscrapers but high-precision RTK may be impossible.
-- The location reported by the RTK device is the location of the antenna element; it's *not* the location of the pointy end of the stick. Lat and Long are fairly easy to obtain but if you're capturing altitude be sure to do additional reading on ARPs (antenna reference points) and how to account for the antenna height in your data collection software.
+- The location reported by the RTK device is the location of the antenna element; it's *not* the location of the pointy end of the stick. Lat and Long are fairly easy to obtain but if you're capturing altitude be sure to do additional reading on ARPs (antenna reference points) and how to account for the antenna height in your data collection software. The Torch ARP is [here](https://docs.sparkfun.com/SparkFun_RTK_Torch/hardware_overview/#antenna-reference-point).
+
+	!!! note
+		This rule does not apply when tilt compensation is activated. See the [Tilt Compensation Menu](menu_tilt.md) for more information.
+
 - An internet connection is required for most types of RTK. RTCM corrections can be transmitted over other types of connections (such as serial telemetry radios). See [Correction Transport](correction_transport.md) for more details.

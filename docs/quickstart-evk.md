@@ -154,84 +154,16 @@ To improve the accuracy (down to 1.4cm), you now need to enable the PointPerfect
 
 To get centimeter accuracy we need to provide the RTK unit with correction values. Corrections, often called RTCM, help the RTK unit refine its position calculations. RTCM (Radio Technical Commission for Maritime Services) can be obtained from a variety of sources but they fall into three buckets: Commercial, Public, and Civilian Reference Stations.
 
-See [Corrections Sources](correction_sources.md) for a breakdown of the options and the pros and cons of each. For this quickstart, we'll be showing you how to enable PointPerfect corrections using your one month free subscription to the L-Band + IP service.
+To get millimeter accuracy we need to provide the RTK unit with correction values. See [Corrections Sources](correction_sources.md) for a breakdown of the options and the pros and cons of each. For this quickstart, we'll be showing how to use PointPerfect Flex for $15 a month.
 
-## PointPerfect Corrections
-
-One of the great features of the RTK EVK is that it has the ability to get corrections from PointPerfect over Ethernet or WiFi. No need for NTRIP credentials! [Contact SparkFun](https://www.sparkfun.com/rtk_evk_registration) with your device ID, pay a monthly fee of $60 per month (as of this writing) and your device will obtain credentials and start receiving corrections anywhere there is coverage. $60 per month sounds like a lot, but this is a subscription to the premium PointPerfect L-Band + IP service. The subscription allows you to use IP-based corrections over Ethernet or WiFi, and L-Band corrections using the built-in NEO-D9S L-Band receiver. We really like u-blox's new Localized Distribution service where IP corrections are generated for your exact location, improving performance and minimising your network traffic.
-
-[<figure markdown>
-![PointPerfect Coverage map including L-Band and IP delivery methods](./img/PointPerfect/SparkFun RTK Everywhere - PointPerfect Coverage Map Small.png)](https://www.u-blox.com/en/pointperfect-service-coverage)
-<figcaption markdown>
-PointPerfect Coverage map including L-Band and IP delivery methods
-</figcaption>
-</figure>
-
-The PointPerfect IP service is available for various areas of the globe including the contiguous US, EU, South Korea, as well as parts of Brazil, Australia, and Canada. See the [coverage map](https://www.u-blox.com/en/pointperfect-service-coverage) for specifics; the RTK EVK is compatible with all areas as it supports both L-Band and IP coverage.
-
-Steps to use PointPerfect:
-
-1. [Register](https://www.sparkfun.com/rtk_evk_registration) the device with SparkFun by entering the device ID (this is the ID seen on the [printed stickers](https://docs.sparkfun.com/SparkFun_RTK_Everywhere_Firmware/menu_pointperfect/#registration) included in the kit). It can take up to two business days for registration to complete.
-
-2. Put the RTK EVK into WiFi config mode by clicking the Mode button on the front panel. The first click opens the mode menu, successive clicks select the next menu option. Keep clicking until **Cfg WiFi** is highlighted, then do a quick double-click to select it.
-
-	<figure markdown>
-	![SparkFun RTK EVK Mode Menu](./img/Displays/24342-RTK-EVK-Action-Screen_GIF_750ms.gif)
-	<figcaption markdown>
-	SparkFun RTK EVK Mode Menu
-	</figcaption>
-	</figure>
-
-3. From your phone, connect to the WiFi network *RTK Config*. You should be redirected to the WiFi Config page. If you are not, open a browser (Chrome is preferred) and type **rtk.local** into the address bar. The IP Address will be **192.168.4.1**.
-
-	<figure markdown>
-	![SparkFun RTK WiFi Configuration Interface](./img/WiFi Config/SparkFun RTK WiFi Config - Header Block.png)
-	<figcaption markdown>
-	SparkFun RTK WiFi Configuration Interface
-	</figcaption>
-	</figure>
-
-4. Under the *WiFi Configuration* menu, give the device WiFi credentials for your local WiFi. This can be the cellphone hotspot if local WiFi is not available. If you will be using Ethernet, you can skip this step.
-
-	<figure markdown>
-	![WiFi Menu containing one network](./img/WiFi Config/SparkFun RTK WiFi Config - WiFi Menu.png)
-	<figcaption markdown>
-	WiFi Menu containing one network
-	</figcaption>
-	</figure>
-
-5. Under the [*PointPerfect Configuration* menu](menu_pointperfect.md), **Enable PointPefect Corrections** and select your **Geographic Region**. If desired, enable **Localized Corrections** and **AssistNow**.
-
-	<figure markdown>
-	![PointPerfect Configuration Menu](./img/WiFi Config/SparkFun RTK PointPerfect Config.png)
-	<figcaption markdown>
-	PointPerfect Configuration Menu
-	</figcaption>
-	</figure>
-
-	!!! note
-		It is important that you set your Geographic Region correctly, via the menu or web config page, as this determines both the IP correction distribution topic and the L-Band frequency (on L-Band-capable products).
-
-6. Click **Save Configuration**. The device will record all settings in a few seconds. Then press **Exit and Reset**. The unit will now reboot.
-
-	<figure markdown>
-	![Saving and All Saved notifications](./img/WiFi Config/SparkFun RTK WiFi Config - Save Steps.png)
-	<figcaption markdown>
-	Saving... then All Saved
-	</figcaption>
-	</figure>
-
-After the reboot, the device will connect to WiFi using your credentials. If you are using Ethernet instead, ensure the Ethernet cable is connected. The RTK will connect to PointPerfect, obtain keys, and begin applying corrections. Assuming your antenna is outside, after a few minutes of receiving PointPerfect corrections the device will enter RTK Float, then RTK Fix (usually under 3 minutes). Connect to the RTK EVK over SW Maps (or other) and view your position with millimeter accuracy!
-
-<figure markdown>
-![SW Maps showing accuracy](./img/SWMaps/SparkFun Torch - SW Maps PointPerfect Fix Accuracy.png)
-<figcaption markdown>
-SW Maps showing positional accuracy
-</figcaption>
-</figure>
+{% include "using_pointperfect_flex.md" %}
 
 ## Common Gotchas
 
 - High-precision GNSS works best with a clear view of the sky; it does not work indoors or near a window. GNSS performance is generally *not* affected by clouds or storms. Trees and buildings *can* degrade performance but usually only in very thick canopies or very near tall building walls. GNSS reception is very possible in dense urban centers with skyscrapers but high-precision RTK may be impossible.
-- The location reported by the RTK device is the location of the antenna element. Lat and Long are fairly easy to obtain but if you're capturing altitude be sure to do additional reading on ARPs (antenna reference points) and how to account for the antenna height in your data collection software.
-- An internet connection is required for most types of RTK. RTCM corrections can be transmitted over other types of connections (such as serial telemetry radios). The RTK EVK also supports PointPerfect L-Band geostationary satellite corrections through the built-in NEO-D9S corrections receiver. The L-Band corrections are encrypted and keys are required but, once your unit has them, corrections will be available for up to eight weeks. See [Correction Transport](correction_transport.md) for more details.
+- The location reported by the RTK device is the location of the antenna element; it's *not* the location of the pointy end of the stick. Lat and Long are fairly easy to obtain but if you're capturing altitude be sure to do additional reading on ARPs (antenna reference points) and how to account for the antenna height in your data collection software. The Torch ARP is [here](https://docs.sparkfun.com/SparkFun_RTK_Torch/hardware_overview/#antenna-reference-point).
+
+	!!! note
+		This rule does not apply when tilt compensation is activated. See the [Tilt Compensation Menu](menu_tilt.md) for more information.
+
+- An internet connection is required for most types of RTK. RTCM corrections can be transmitted over other types of connections (such as serial telemetry radios). See [Correction Transport](correction_transport.md) for more details.
