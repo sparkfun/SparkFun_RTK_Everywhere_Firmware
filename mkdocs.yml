@@ -459,7 +459,7 @@ nav:
   - RTK Corrections:
       - correction_sources.md
       - correction_transport.md
-      - permanent_base.md
+      - local_base.md
       - using_pointperfect_flex.md
       - accuracy_verification.md
   - reference_documents.md
