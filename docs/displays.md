@@ -139,54 +139,6 @@ Once WiFi connects the device will attempt to connect to the NTRIP mount point. 
 !!! note
 	During NTRIP transmission WiFi is turned on and Bluetooth is turned off. You should not need to know the location information of the base so Bluetooth should not be needed. If necessary, USB can be connected to the USB port to view detailed location and ZED-F9P configuration information.
 
-## L-Band
-
-<!--
-Compatibility Icons
-====================================================================================
-
-:material-radiobox-marked:{ .support-full title="Feature Supported" }
-:material-radiobox-indeterminate-variant:{ .support-partial title="Feature Partially Supported" }
-:material-radiobox-blank:{ .support-none title="Feature Not Supported" }
--->
-
-<div class="grid cards fill" markdown>
-
-- EVK: :material-radiobox-marked:{ .support-full title="Feature Supported" }
-- Facet mosaic: :material-radiobox-marked:{ .support-full title="Feature Supported" }
-- Postcard: :material-radiobox-blank:{ .support-none title="Feature Not Supported" }
-- Torch: :material-radiobox-blank:{ .support-none title="Feature Not Supported" }
-- TX2: :material-radiobox-blank:{ .support-none title="Feature Not Supported" }
-
-</div>
-
-L-Band decryption keys are valid for a maximum of 56 days. During that time, the RTK Facet L-Band can operate normally without the need for WiFi access. However, when the keys are set to expire in 28 days or less, the RTK Facet L-Band will attempt to log in to the 'Home' WiFi at each power on. If WiFi is not available, it will continue normal operation.
-
-<figure markdown>
-![Display showing 14 days until L-Band Keys Expire](./img/Displays/SparkFun_RTK_LBand_DayToExpire.jpg)
-<figcaption markdown>
-Display showing 14 days until L-Band Keys Expire
-</figcaption>
-</figure>
-
-The unit will display various messages to aid the user in obtaining keys as needed.
-
-<figure markdown>
-![Three-pronged satellite dish indicating L-Band reception](./img/Displays/SparkFun_RTK_LBand_Indicator.jpg)
-<figcaption markdown>
-Three-pronged satellite dish indicating L-Band reception
-</figcaption>
-</figure>
-
-<figure markdown>
-![Three-pronged satellite dish indicating L-Band reception on RTK EVK](./img/Displays/SparkFun_RTK_EVK_LBand_Indicator.png)
-<figcaption markdown>
-Three-pronged satellite dish indicating L-Band reception on RTK EVK
-</figcaption>
-</figure>
-
-Upon successful reception and decryption of L-Band corrections, the satellite dish icon will increase to a three-pronged icon. As the unit's fix increases the cross-hair will indicate a basic 3D solution, a double blinking cross-hair will indicate a floating RTK solution, and a solid double cross-hair will indicate a fixed RTK solution.
-
 ## Antenna Detection
 
 <!--
@@ -237,35 +189,41 @@ In the 1.3" screenshot below, RTK corrections are being delivered by PointPerfec
 <figure markdown>
 ![RTK Everywhere corrections source icon](./img/Corrections/SparkFun%20RTK%20Corrections%20Source%20Icon.png)
 <figcaption markdown>
-RTK Everywhere - with PointPerfect (IP / MQTT) corrections
+PointPerfect (IP / MQTT) corrections
 </figcaption>
 </figure>
+
+In the 1.3" screenshot below, PPP services are enabled, and the PPP signal is detected over HAS E6:
+
+![RTK Postcard receiving PPP signal](<img/Displays/SparkFun RTK Postcard PPP Enabled Icon.png>)
+
+<figcaption markdown>
+PPP Corrections
+</figcaption>
 
 In the 0.96" screenshot below, RTK corrections are being delivered by NTRIP (RTK2go / SNIP):
 
 <figure markdown>
 ![RTK Everywhere corrections source icon](./img/Corrections/SparkFun%20RTK%20Corrections%20Source%20Icon%2064x48.png)
 <figcaption markdown>
-RTK Everywhere - with NTRIP (RTK2go / SNIP) corrections
+NTRIP (RTK2go / SNIP) corrections
 </figcaption>
 </figure>
 
 Each corrections source has a unique icon:
 
-From left to right: External Radio; ESP-NOW; LoRa Radio; Bluetooth
-
 <figure markdown>
 ![RTK Everywhere corrections source icons](./img/Corrections/SparkFun%20RTK%20Corrections%20Source%20Icons%201.png)
 <figcaption markdown>
-RTK Everywhere corrections source icons
+From left to right: External Radio; ESP-NOW; LoRa Radio; Bluetooth; PPP
 </figcaption>
 </figure>
-
-From left to right: USB Serial; TCP (NTRIP); L-Band; IP (PointPerfect/MQTT)
 
 <figure markdown>
 ![RTK Everywhere corrections source icons](./img/Corrections/SparkFun%20RTK%20Corrections%20Source%20Icons%202.png)
 <figcaption markdown>
-RTK Everywhere corrections source icons
+From left to right: USB Serial; TCP (NTRIP); L-Band; IP (PointPerfect/MQTT)
 </figcaption>
 </figure>
+
+
