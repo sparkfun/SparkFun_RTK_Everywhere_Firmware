@@ -149,6 +149,9 @@ plugins:
   # Default search plugin
   - search
 
+  # Needed for including content in quickstart guides
+  - include-markdown
+
   # Allows formatting (code block, icons, etc.) in headings and titles
   - typeset
 
@@ -459,7 +462,7 @@ nav:
   - RTK Corrections:
       - correction_sources.md
       - correction_transport.md
-      - permanent_base.md
+      - local_base.md
       - using_pointperfect_flex.md
       - accuracy_verification.md
   - reference_documents.md

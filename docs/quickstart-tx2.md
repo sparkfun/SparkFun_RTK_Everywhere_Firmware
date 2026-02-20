@@ -128,11 +128,11 @@ You can now use your RTK device to measure points with good (meter) accuracy. If
 
 To get millimeter accuracy we need to provide the RTK unit with correction values. Corrections, often called RTCM, help the RTK unit refine its position calculations. RTCM (Radio Technical Commission for Maritime Services) can be obtained from a variety of sources but they fall into three buckets: Commercial, Public, and Civilian Reference Stations.
 
-See [Corrections Sources](correction_sources.md) for a breakdown of the options and the pros and cons of each. For this quickstart, we'll be showing two examples: using PointPerfect for $8 a month; and PointOne Nav for $125/month for "True RTK".
+See [Corrections Sources](correction_sources.md) for a breakdown of the options and the pros and cons of each. For this quickstart, we'll be showing two examples: using PointPerfect for $15 a month; and PointOne Nav for $150/month for "True RTK".
 
 ## PointPerfect Corrections
 
-One of the great features of the TX2 is that it has the ability to get corrections from PointPerfect over WiFi. No need for NTRIP credentials! [Contact SparkFun](https://www.sparkfun.com/rtk_torch_registration) with your device ID, pay a small monthly fee of $8 per month (as of this writing) and your device will obtain credentials and start receiving corrections anywhere there is coverage.
+One of the great features of the TX2 is that it has the ability to get corrections from PointPerfect over WiFi. No need for NTRIP credentials! [Contact SparkFun](https://www.sparkfun.com/rtk_torch_registration) with your device ID, pay a small monthly fee of $15 per month (as of this writing) and your device will obtain credentials and start receiving corrections anywhere there is coverage.
 
 [<figure markdown>
 ![PointPerfect Coverage map including L-Band and IP delivery methods](./img/PointPerfect/SparkFun RTK Everywhere - PointPerfect Coverage Map Small.png)](https://www.u-blox.com/en/pointperfect-service-coverage)
@@ -207,7 +207,7 @@ If you decide to use a service that provides NTRIP (as opposed to PointPerfect) 
 1. Create an account on [PointOneNav](https://app.pointonenav.com/trial?src=sparkfun).
 
 	!!! note
-		This service costs $125/month for "True RTK" at the time of writing.
+		This service costs $150/month for "True RTK" at the time of writing.
 
 2. Open SW Maps and connect to the RTK device over Bluetooth.
 
