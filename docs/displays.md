@@ -195,11 +195,12 @@ PointPerfect (IP / MQTT) corrections
 
 In the 1.3" screenshot below, PPP services are enabled, and the PPP signal is detected over HAS E6:
 
-![RTK Postcard receiving PPP signal](<img/Displays/SparkFun RTK Postcard PPP Enabled Icon.png>)
-
+<figure markdown>
+![RTK Postcard receiving PPP signal](<>./img/Displays/SparkFun RTK Postcard PPP Enabled Icon.png>)
 <figcaption markdown>
 PPP Corrections
 </figcaption>
+</figure>
 
 In the 0.96" screenshot below, RTK corrections are being delivered by NTRIP (RTK2go / SNIP):
 
