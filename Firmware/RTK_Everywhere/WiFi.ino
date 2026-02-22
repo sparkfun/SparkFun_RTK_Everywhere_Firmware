@@ -26,15 +26,12 @@ static const char *wifiAuthorizationName[] = {
     "WAPI_PSK",
     "OWE",
     "WPA3_ENT_192",
-
-    // Compatible with ESP32 core v3.2.1, 16 reported, 18 listed here:
-    // https://github.com/espressif/esp-idf/blob/master/components/esp_wifi/include/esp_wifi_types_generic.h#L86
-    //"WPA3_EXT_PSK",
-    //"WPA3_EXT_PSK_MIXED_MODE",
-    //"DPP",
-    //"WPA3_ENTERPRISE",
-    //"WPA2_WPA3_ENTERPRISE",
-    //"WPA_ENTERPRISE",
+    "WPA3_ENT_PSK",
+    "WPA3_EXT_PSK_MIXED_MODE",
+    "DPP",
+    "WPA3_ENTERPRISE",
+    "WPA2_WPA3_ENTERPRISE",
+    "WPA_ENTERPRISE",
 };
 static const int wifiAuthorizationNameEntries = sizeof(wifiAuthorizationName) / sizeof(wifiAuthorizationName[0]);
 
