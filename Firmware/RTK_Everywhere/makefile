@@ -9,8 +9,8 @@
 ##########
 
 SKETCH=RTK_Everywhere.ino
-ESP_CORE_VERSION=3.0.7
-ESP_IDF_VERSION=idf-release_v5.1-632e0c2a
+ESP_CORE_VERSION=3.3.7
+ESP_IDF_VERSION=$(ESP_CORE_VERSION)
 
 # Uncomment all five lines for a complete update
 #EXECUTABLES = arduino-config lib-update
@@ -46,7 +46,7 @@ PARTITION_SRC_PATH=$(FIRMWARE_PATH)$(PARTITION_CSV_FILE).csv
 PATCH_SRC_PATH=$(RTK_EVERYWHERE_PATH)Patch\
 
 # Windows NT patch destination paths
-MBED_LIB_DEST_PATH=$(HOME_BOARD_PATH)\tools\esp32-arduino-libs\${{ env.ESP_IDF }}\esp32/lib\
+MBED_LIB_DEST_PATH=$(HOME_BOARD_PATH)\tools\esp32-arduino-libs\${{ env.ESP_IDF }}\lib\
 NET_EVENT_PATCH_PATH=$(HOME_BOARD_PATH)\hardware\esp32\$(ESP_CORE_VERSION)\libraries\Network\src\
 PARTITION_DST_PATH=$(HOME_BOARD_PATH)\hardware\esp32\$(ESP_CORE_VERSION)\tools\partitions\$(PARTITION_CSV_FILE).csv
 
@@ -75,7 +75,7 @@ TERMINAL_PARAMS=-b 115200 -8 < /dev/tty
 USER_DIRECTORY_PATH=~/
 TMP_PATH=/tmp/
 ARDUINO_LIBRARY_PATH=$(USER_DIRECTORY_PATH)Arduino/libraries
-ESP_IDF_PATH=$(HOME_BOARD_PATH)/tools/esp32-arduino-libs
+ESP_IDF_PATH=$(HOME_BOARD_PATH)/tools/esp32-libs
 HOME_BOARD_PATH=$(USER_DIRECTORY_PATH).arduino15/packages/esp32
 
 # Linux patch source paths
@@ -86,8 +86,8 @@ PARTITION_SRC_PATH=$(FIRMWARE_PATH)$(PARTITION_CSV_FILE).csv
 PATCH_SRC_PATH=$(RTK_EVERYWHERE_PATH)Patch/
 
 # Linux patch destination paths
-BT_LIB_DEST_PATH=$(ESP_IDF_PATH)/$(ESP_IDF_VERSION)/esp32/lib/
-MBED_LIB_DEST_PATH=$(ESP_IDF_PATH)/$(ESP_IDF_VERSION)/esp32/lib/
+BT_LIB_DEST_PATH=$(ESP_IDF_PATH)/$(ESP_IDF_VERSION)/lib/
+MBED_LIB_DEST_PATH=$(ESP_IDF_PATH)/$(ESP_IDF_VERSION)/lib/
 NET_EVENT_PATCH_PATH=$(HOME_BOARD_PATH)/hardware/esp32/$(ESP_CORE_VERSION)/libraries/Network/src/
 PARTITION_DST_PATH=$(HOME_BOARD_PATH)/hardware/esp32/$(ESP_CORE_VERSION)/tools/partitions/$(PARTITION_CSV_FILE).csv
 
@@ -149,7 +149,7 @@ lib-install:	index-update
 .PHONY: get-idf-version
 
 get-idf-version:
-	ESP_IDF_VERSION=$(ls ~/.arduino15/packages/esp32/tools/esp32-arduino-libs | grep idf-release)
+	ESP_IDF_VERSION=$(ls ~/.arduino15/packages/esp32/tools/esp32-libs | grep idf-release)
 	echo "ESP IDF Version: ${ESP_IDF_VERSION}"
 
 $(PARTITION_DST_PATH):	$(PARTITION_SRC_PATH)
