@@ -212,9 +212,7 @@ docker container rm rtk_everywhere
 docker build -t rtk_everywhere_firmware --no-cache-filter deployment^
  --build-arg FIRMWARE_VERSION_MAJOR=99^
  --build-arg FIRMWARE_VERSION_MINOR=99^
- --build-arg POINTPERFECT_LBAND_TOKEN="0xAA,0xBB,<<=YOUR TOKEN IN C HEX FORMAT=>>,0x02,0x03"^
  --build-arg POINTPERFECT_IP_TOKEN="0xAA,0xBB,<<=YOUR TOKEN IN C HEX FORMAT=>>,0x02,0x03"^
- --build-arg POINTPERFECT_LBAND_IP_TOKEN="0xAA,0xBB,<<=YOUR TOKEN IN C HEX FORMAT=>>,0x02,0x03"^
  --build-arg POINTPERFECT_RTCM_TOKEN="0xAA,0xBB,<<=YOUR TOKEN IN C HEX FORMAT=>>,0x02,0x03"^
  --build-arg ENABLE_DEVELOPER=false^
  --build-arg DEBUG_LEVEL=none^

@@ -1431,7 +1431,7 @@ void beginSystemState()
         settings.lastState = systemState;
     }
 
-    else if (productVariant == RTK_EVK)
+    if (productVariant == RTK_EVK)
     {
         // Return to either NTP, Base or Rover Not Started. The last state previous to power down.
         systemState = settings.lastState;

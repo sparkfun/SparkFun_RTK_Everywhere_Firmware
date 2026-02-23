@@ -1253,7 +1253,7 @@ void assembleDeviceName()
 }
 
 const productProperties * getProductPropertiesFromVariant(ProductVariant variant) {
-    for (int i = 0; i < (int)RTK_UNKNOWN; i++) {
+    for (int i = 0; i < productPropertiesEntries; i++) {
         if (productPropertiesTable[i].productVariant == variant)
             return &productPropertiesTable[i];
     }
