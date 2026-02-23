@@ -67,8 +67,6 @@ void um980UnicoreHandler(uint8_t * buffer, int length) {}
 
 #ifndef COMPILE_ZED
 
-// void checkRXMCOR() {}
-// void pushRXMPMP() {}
 void convertGnssTimeToEpoch(uint32_t *epochSecs, uint32_t *epochMicros) {
     systemPrintln("**Epoch not compiled** ZED not included so time will be invalid");
 }

@@ -10,7 +10,6 @@ GNSS_ZED.ino
 
 //----------------------------------------
 // If we have decryption keys, configure module
-// Note: don't check online.lband_neo here. We could be using ip corrections
 //----------------------------------------
 void GNSS_ZED::applyPointPerfectKeys()
 {
@@ -18,15 +17,6 @@ void GNSS_ZED::applyPointPerfectKeys()
     {
         if (settings.debugCorrections)
             systemPrintln("ZED-F9P not available");
-        return;
-    }
-
-    // NEO-D9S encrypted PMP messages are only supported on ZED-F9P firmware v1.30 and above
-    if (gnssFirmwareVersionInt < 130)
-    {
-        systemPrintln("Error: PointPerfect corrections currently supported by ZED-F9P firmware v1.30 and above. "
-                      "Please upgrade your ZED firmware: "
-                      "https://learn.sparkfun.com/tutorials/how-to-upgrade-firmware-of-a-u-blox-gnss-receiver");
         return;
     }
 
@@ -411,16 +401,6 @@ bool GNSS_ZED::configure()
     response &= _zed->addCfgValset(UBLOX_CFG_I2CINPROT_UBX, 1);
     response &= _zed->addCfgValset(UBLOX_CFG_I2CINPROT_NMEA, 1);
     response &= _zed->addCfgValset(UBLOX_CFG_I2CINPROT_RTCM3X, 1);
-
-    if (commandSupported(UBLOX_CFG_I2CINPROT_SPARTN))
-    {
-        if (present.lband_neo)
-            response &=
-                _zed->addCfgValset(UBLOX_CFG_I2CINPROT_SPARTN,
-                                   1); // We push NEO-D9S correction data (SPARTN) to ZED-F9P over the I2C interface
-        else
-            response &= _zed->addCfgValset(UBLOX_CFG_I2CINPROT_SPARTN, 0);
-    }
 
     // The USB port on the ZED may be used for RTCM to/from the computer (as an NTRIP caster or client)
     // So let's be sure all protocols are on for the USB port
@@ -1366,8 +1346,9 @@ bool GNSS_ZED::isDgpsFixed()
 }
 
 //----------------------------------------
-// Some functions (L-Band area frequency determination) merely need to know if we have a valid fix, not what type of fix
-// This function checks to see if the given platform has reached sufficient fix type to be considered valid
+// Some functions merely need to know if we have an RTK Float.
+// This function checks to see if the given platform has reached sufficient
+// fix type to be considered valid.
 //----------------------------------------
 bool GNSS_ZED::isFixed()
 {
@@ -1401,9 +1382,9 @@ bool GNSS_ZED::isPppConverging()
 }
 
 //----------------------------------------
-// Some functions (L-Band area frequency determination) merely need to
-// know if we have an RTK Fix.  This function checks to see if the given
-// platform has reached sufficient fix type to be considered valid
+// Some functions merely need to know if we have an RTK Float.
+// This function checks to see if the given platform has reached sufficient
+// fix type to be considered valid.
 //----------------------------------------
 bool GNSS_ZED::isRTKFix()
 {
@@ -1414,9 +1395,9 @@ bool GNSS_ZED::isRTKFix()
 }
 
 //----------------------------------------
-// Some functions (L-Band area frequency determination) merely need to
-// know if we have an RTK Float.  This function checks to see if the
-// given platform has reached sufficient fix type to be considered valid
+// Some functions merely need to know if we have an RTK Float.
+// This function checks to see if the given platform has reached sufficient
+// fix type to be considered valid.
 //----------------------------------------
 bool GNSS_ZED::isRTKFloat()
 {
@@ -1459,36 +1440,6 @@ bool GNSS_ZED::lBandCommunicationDisable()
 {
     bool response = true;
 
-#ifdef COMPILE_L_BAND
-
-    response &= _zed->setRXMCORcallbackPtr(
-        nullptr); // Disable callback to check if the PMP data is being decrypted successfully
-
-    response &= i2cLBand.setRXMPMPmessageCallbackPtr(nullptr); // Disable PMP callback no matter the platform
-
-    if (present.lband_neo)
-    {
-        response &= i2cLBand.newCfgValset();
-
-        response &=
-            i2cLBand.addCfgValset(UBLOX_CFG_MSGOUT_UBX_RXM_PMP_I2C, 0); // Disable UBX-RXM-PMP from NEO's I2C port
-
-        // TODO: change this as needed for Facet v2 LBand
-        response &= i2cLBand.addCfgValset(UBLOX_CFG_UART2OUTPROT_UBX, 0); // Disable UBX output from NEO's UART2
-
-        // TODO: change this as needed for Facet v2 LBand
-        response &= i2cLBand.addCfgValset(UBLOX_CFG_MSGOUT_UBX_RXM_PMP_UART2, 0); // Disable UBX-RXM-PMP on NEO's UART2
-
-        response &= i2cLBand.sendCfgValset();
-    }
-    else
-    {
-        systemPrintln("zedEnableLBandCorrections: Unknown platform");
-        return (false);
-    }
-
-#endif
-
     return (response);
 }
 
@@ -1497,70 +1448,7 @@ bool GNSS_ZED::lBandCommunicationDisable()
 //----------------------------------------
 bool GNSS_ZED::lBandCommunicationEnable()
 {
-    /*
-        Paul's Notes on (NEO-D9S) L-Band:
-
-        Torch will receive PointPerfect SPARTN via IP, run it through the PPL, and feed RTCM to the UM980. No L-Band...
-
-        The EVK v1.1 PCB has ZED-F9P and NEO-D9S:
-            Both ZED and NEO are on the i2c_0 I2C bus (the OLED is on i2c_1)
-            ZED UART1 is connected to the ESP32 (pins 25 and 33) only
-            ZED UART2 is connected to the I/O connector only
-            NEO UART1 is connected to test points only
-            NEO UART2 is not connected
-
-        Facet v2 L-Band v2.1 PCB:
-            Both ZED and NEO are on the I2C bus
-            ZED UART1 is connected to the ESP32 (pins 14 and 13) and also to the DATA connector via the Mux (output
-            only)
-            ZED UART2 is connected to the RADIO connector only
-            NEO UART1 is not connected
-            NEO UART2 TX is connected to ESP32 pin 4
-            If the ESP32 has a UART spare - and it probably does - the PMP data can go over this connection and
-            avoid having double-PMP traffic on I2C. Neat huh?!
-
-        Facet mosaic v1.2 PCB:
-            X5 COM1 is connected to the ESP32 (pins 13 and 14) - RTCM from PPL, Encapsulated NMEA and RTCM to PPL
-            and Bluetooth, raw L-Band to PPL
-            X5 COM2 is connected to the RADIO connector only
-            X5 COM3 is connected to the DATA connector via the Mux (I/O)
-            X5 COM4 is connected to the ESP32 (pins 4 and 25) - control from ESP32 to X5
-    */
-
     bool response = true;
-
-#ifdef COMPILE_L_BAND
-
-    response &= _zed->setRXMCORcallbackPtr(
-        &checkRXMCOR); // Enable callback to check if the PMP data is being decrypted successfully
-
-    if (present.lband_neo)
-    {
-        response &= i2cLBand.setRXMPMPmessageCallbackPtr(&pushRXMPMP); // Enable PMP callback to push raw PMP over I2C
-
-        response &= i2cLBand.newCfgValset();
-
-        response &= i2cLBand.addCfgValset(UBLOX_CFG_MSGOUT_UBX_RXM_PMP_I2C, 1); // Enable UBX-RXM-PMP on NEO's I2C port
-
-        response &= i2cLBand.addCfgValset(UBLOX_CFG_UART1OUTPROT_UBX, 0); // Disable UBX output on NEO's UART1
-
-        response &= i2cLBand.addCfgValset(UBLOX_CFG_MSGOUT_UBX_RXM_PMP_UART1, 0); // Disable UBX-RXM-PMP on NEO's UART1
-
-        // TODO: change this as needed for Facet v2 LBand
-        response &= i2cLBand.addCfgValset(UBLOX_CFG_UART2OUTPROT_UBX, 0); // Disable UBX output on NEO's UART2
-
-        // TODO: change this as needed for Facet v2 LBand
-        response &= i2cLBand.addCfgValset(UBLOX_CFG_MSGOUT_UBX_RXM_PMP_UART2, 0); // Disable UBX-RXM-PMP on NEO's UART2
-
-        response &= i2cLBand.sendCfgValset();
-    }
-    else
-    {
-        systemPrintln("zedEnableLBandCorrections: Unknown platform");
-        return (false);
-    }
-
-#endif
 
     return (response);
 }
@@ -2065,12 +1953,6 @@ bool GNSS_ZED::setConstellations()
 // Always update if force is true. Otherwise, only update if enable has changed state
 bool GNSS_ZED::setCorrRadioExtPort(bool enable, bool force)
 {
-    // The user can feed in SPARTN (IP) or PMP (L-Band) corrections on UART2
-    // The ZED needs to know which... We could work it out from the MON-COMMS
-    // msgs count for each protIds. But only when the protocol is enabled.
-    // Much easier to ask the user to define what the source is
-    if (enable)
-        updateCorrectionsSource(settings.extCorrRadioSPARTNSource);
 
     if (force || (enable != _corrRadioExtPortEnabled))
     {
@@ -2957,58 +2839,6 @@ uint32_t GNSS_ZED::baudGetMinimum()
 uint32_t GNSS_ZED::baudGetMaximum()
 {
     return (zedAllowedRates[zedAllowedRatesCount - 1]);
-}
-
-// When new PMP message arrives from NEO-D9S push it back to ZED-F9P
-void pushRXMPMP(UBX_RXM_PMP_message_data_t *pmpData)
-{
-    uint16_t payloadLen = ((uint16_t)pmpData->lengthMSB << 8) | (uint16_t)pmpData->lengthLSB;
-
-    if (correctionLastSeen(CORR_LBAND))
-    {
-#ifdef COMPILE_ZED
-        GNSS_ZED *zed = (GNSS_ZED *)gnss;
-        zed->updateCorrectionsSource(1); // Set SOURCE to 1 (L-Band) if needed
-#endif                                   // COMPILE_ZED
-
-        if (settings.debugCorrections == true && !inMainMenu)
-            systemPrintf("Pushing %d bytes of RXM-PMP data to GNSS\r\n", payloadLen);
-
-        gnss->pushRawData(&pmpData->sync1,
-                          (size_t)payloadLen + 6);         // Push the sync chars, class, ID, length and payload
-        gnss->pushRawData(&pmpData->checksumA, (size_t)2); // Push the checksum bytes
-    }
-    else
-    {
-        if (settings.debugCorrections == true && !inMainMenu)
-            systemPrintf("NOT pushing %d bytes of RXM-PMP data to GNSS due to priority\r\n", payloadLen);
-    }
-}
-
-// Check if the PMP data is being decrypted successfully
-// TODO: this needs more work:
-//   If the user is feeding in RTCM3 on UART2, that gets reported
-//   If the user is feeding in unencrypted SPARTN on UART2, that gets reported too
-void checkRXMCOR(UBX_RXM_COR_data_t *ubxDataStruct)
-{
-    if (settings.debugCorrections == true && !inMainMenu && zedCorrectionsSource == 1) // Only print for L-Band
-        systemPrintf("L-Band Eb/N0[dB] (>9 is good): %0.2f\r\n", ubxDataStruct->ebno * pow(2, -3));
-
-    lBandEBNO = ubxDataStruct->ebno * pow(2, -3);
-
-    if (ubxDataStruct->statusInfo.bits.msgEncrypted == 2) // If the message was encrypted
-    {
-        if (ubxDataStruct->statusInfo.bits.msgDecrypted == 2) // Successfully decrypted
-        {
-            lbandCorrectionsReceived = true;
-            lastLBandDecryption = millis();
-        }
-        else
-        {
-            if (settings.debugCorrections == true && !inMainMenu)
-                systemPrintln("PMP decryption failed");
-        }
-    }
 }
 
 // ZED-F9x call back

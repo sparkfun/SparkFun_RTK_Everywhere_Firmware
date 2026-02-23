@@ -481,9 +481,6 @@ void recordSystemSettingsToFile(File *settingsFile)
 
     settingsFile->printf("%s=%s\r\n", "gnssUniqueId", gnssUniqueId);
 
-    if (present.lband_neo == true)
-        settingsFile->printf("%s=%s\r\n", "neoFirmwareVersion", neoFirmwareVersion);
-
     // Firmware URLs
     settingsFile->printf("%s=%s\r\n", "otaRcFirmwareJsonUrl", otaRcFirmwareJsonUrl);
     settingsFile->printf("%s=%s\r\n", "otaFirmwareJsonUrl", otaFirmwareJsonUrl);

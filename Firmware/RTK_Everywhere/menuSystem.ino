@@ -62,32 +62,6 @@ void menuSystem()
                 systemPrintln("Offline");
         }
 
-        if (present.lband_neo == true)
-        {
-            systemPrint("NEO-D9S L-Band: ");
-
-            if (online.lband_neo == true)
-                systemPrintln("Online - ");
-            else
-                systemPrintln("Offline - ");
-
-            if (online.pointPerfectKeysApplied == true)
-                systemPrint("Keys Good");
-            else
-                systemPrint("No Keys");
-
-            systemPrint(" / Corrections Received");
-            if (lbandCorrectionsReceived == false)
-                systemPrint(" Failed");
-
-            if (zedCorrectionsSource == 1) // Only print for L-Band
-                systemPrintf(" / Eb/N0[dB] (>9 is good): %0.2f", lBandEBNO);
-
-            systemPrint(" - ");
-
-            printNEOInfo();
-        }
-
         if (present.gnss_mosaicX5 == true)
         {
             systemPrint("mosaic-X5 L-Band: ");
@@ -1033,13 +1007,6 @@ void menuOperation()
         systemPrint("4) GNSS Serial RX Full Threshold: ");
         systemPrintln(settings.serialGNSSRxFullThreshold);
 
-        // L-Band
-        systemPrint("5) Set L-Band RTK Fix Timeout (seconds): ");
-        if (settings.lbandFixTimeout_seconds > 0)
-            systemPrintln(settings.lbandFixTimeout_seconds);
-        else
-            systemPrintln("Disabled - no resets");
-
         // SPI
         systemPrint("6) SPI/SD Interface Frequency: ");
         systemPrint(settings.spiFrequency);
@@ -1126,11 +1093,7 @@ void menuOperation()
         {
             getNewSetting("Enter Serial GNSS RX Full Threshold", 1, 127, &settings.serialGNSSRxFullThreshold);
         }
-        else if (incoming == 5)
-        {
-            getNewSetting("Enter number of seconds in RTK float before hot-start", 0, 3600,
-                          &settings.lbandFixTimeout_seconds); // Arbitrary 60 minute limit
-        }
+
         else if (incoming == 6)
         {
             getNewSetting("Enter SPI frequency in MHz", 1, 16, &settings.spiFrequency);

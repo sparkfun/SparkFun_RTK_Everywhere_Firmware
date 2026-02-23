@@ -106,10 +106,6 @@ RTK_Everywhere.ino
 #define COMPILE_UM980 // Comment out to remove UM980 functionality
 #define COMPILE_ZED      // Comment out to remove ZED-F9x functionality
 
-#ifdef  COMPILE_ZED
-#define COMPILE_L_BAND   // Comment out to remove L-Band functionality
-#endif                   // COMPILE_ZED
-
 #define COMPILE_IM19_IMU             // Comment out to remove IM19_IMU functionality
 #define COMPILE_POINTPERFECT_LIBRARY // Comment out to remove PPL support
 #define COMPILE_BQ40Z50              // Comment out to remove BQ40Z50 functionality
@@ -156,10 +152,10 @@ RTK_Everywhere.ino
 
 // If no token is available at compile time, mark this firmware as version 'd99.99'
 // TOKENS are passed in from compiler extra flags
-#ifndef POINTPERFECT_LBAND_TOKEN
+#ifndef POINTPERFECT_IP_TOKEN
 #define FIRMWARE_VERSION_MAJOR 99
 #define FIRMWARE_VERSION_MINOR 99
-#endif // POINTPERFECT_LBAND_TOKEN
+#endif // POINTPERFECT_IP_TOKEN
 
 // Define the RTK board identifier:
 //  This is an int which is unique to this variant of the RTK hardware which allows us
@@ -515,12 +511,6 @@ int wifiOriginalMaxConnectionAttempts = wifiMaxConnectionAttempts; // Modified d
 GNSS *gnss;
 
 char neoFirmwareVersion[20]; // Output to system status menu.
-
-#ifdef COMPILE_L_BAND
-static SFE_UBLOX_GNSS_SUPER i2cLBand; // NEO-D9S
-
-void checkRXMCOR(UBX_RXM_COR_data_t *ubxDataStruct);
-#endif
 
 volatile struct timeval
     gnssSyncTv; // This holds the time the RTC was sync'd to GNSS time via Time Pulse interrupt - used by NTP
@@ -960,9 +950,8 @@ uint32_t triggerAccEst;    // Global copy - Accuracy estimate in nanoseconds
 unsigned long splashStart; // Controls how long the splash is displayed for. Currently min of 2s.
 
 unsigned long startTime;       // Used for checking longest-running functions
-bool lbandCorrectionsReceived; // Used to display L-Band SIV icon when corrections are successfully decrypted (NEO-D9S
-                               // only)
-unsigned long lastLBandDecryption;   // Timestamp of last successfully decrypted PMP message from NEO-D9S
+bool lbandCorrectionsReceived; // Used to display L-Band SIV icon when corrections are successfully decrypted
+unsigned long lastLBandDecryption;   // Timestamp of last successfully decrypted message
 volatile bool mqttMessageReceived;   // Goes true when the subscribed MQTT channel reports back
 unsigned long systemTestDisplayTime; // Timestamp for swapping the graphic during testing
 uint8_t systemTestDisplayNumber;     // Tracks which test screen we're looking at
@@ -1583,11 +1572,8 @@ void loop()
     DMW_l("updateAuthCoPro");
     updateAuthCoPro(); // Update the Apple Accessory
 
-    DMW_l("updateLBand");
-    updateLBand(); // Update L-Band
-
-    DMW_l("updateLBandCorrections");
-    updateLBandCorrections(); // Check if we've recently received PointPerfect corrections or not
+    //DMW_l("updateLBand");
+    //updateLBand(); // Update L-Band
 
     DMW_l("tiltUpdate");
     tiltUpdate(); // Check if new lat/lon/alt have been calculated

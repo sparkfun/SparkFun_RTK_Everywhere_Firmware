@@ -661,13 +661,6 @@ void printFileList()
     }
 }
 
-// Print the NEO firmware version
-void printNEOInfo()
-{
-    if (present.lband_neo == true)
-        systemPrintf("NEO-D9S firmware: %s\r\n", neoFirmwareVersion);
-}
-
 // Given a filename and char array, append to file
 void recordLineToLFS(const char *fileName, const char *lineData)
 {

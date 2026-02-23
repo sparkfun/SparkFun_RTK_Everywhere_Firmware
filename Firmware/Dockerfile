@@ -22,13 +22,9 @@ ARG WARNINGS=default
 
 # If you have your own u-blox PointPerfect token(s), define them here
 # or pass in as args when building the Dockerfile
-# POINTPERFECT_LBAND_TOKEN is the token for the deprecated u-blox L-band SPARTN service
 # POINTPERFECT_IP_TOKEN is the token for the deprecated u-blox IP SPARTN service
-# POINTPERFECT_LBAND_IP_TOKEN is the token for the deprecated u-blox combined L-band and IP SPARTN service
 # POINTPERFECT_RTCM_TOKEN is the token for the u-blox RTCM over NTRIP service
-ARG POINTPERFECT_LBAND_TOKEN=0xAA,0xBB,0xCC,0xDD,0x00,0x11,0x22,0x33,0x0A,0x0B,0x0C,0x0D,0x00,0x01,0x02,0x03
 ARG POINTPERFECT_IP_TOKEN=0xAA,0xBB,0xCC,0xDD,0x00,0x11,0x22,0x33,0x0A,0x0B,0x0C,0x0D,0x00,0x01,0x02,0x03
-ARG POINTPERFECT_LBAND_IP_TOKEN=0xAA,0xBB,0xCC,0xDD,0x00,0x11,0x22,0x33,0x0A,0x0B,0x0C,0x0D,0x00,0x01,0x02,0x03
 ARG POINTPERFECT_RTCM_TOKEN=0xAA,0xBB,0xCC,0xDD,0x00,0x11,0x22,0x33,0x0A,0x0B,0x0C,0x0D,0x00,0x01,0x02,0x03
 
 # Get curl and python3
@@ -143,9 +139,8 @@ RUN cd ./RTK_Everywhere \
     --build-property build.partitions=RTKEverywhere \
     --build-property upload.maximum_size=4055040 \
     --build-property "compiler.cpp.extra_flags=-MMD -c \
-    \"-DPOINTPERFECT_LBAND_TOKEN=${POINTPERFECT_LBAND_TOKEN}\" \
     \"-DPOINTPERFECT_IP_TOKEN=${POINTPERFECT_IP_TOKEN}\" \
-    \"-DPOINTPERFECT_LBAND_IP_TOKEN=${POINTPERFECT_LBAND_IP_TOKEN}\" \
+
     \"-DPOINTPERFECT_RTCM_TOKEN=${POINTPERFECT_RTCM_TOKEN}\"  \
     \"-DFIRMWARE_VERSION_MAJOR=${FIRMWARE_VERSION_MAJOR}\" \
     \"-DFIRMWARE_VERSION_MINOR=${FIRMWARE_VERSION_MINOR}\" \

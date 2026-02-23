@@ -180,7 +180,6 @@ function parseIncoming(msg) {
                 show("surveyInSettings");
 
                 show("useEnableExtCorrRadio");
-                show("extCorrRadioSPARTNSourceDropdown");
                 hide("enableNmeaOnRadio");
 
                 hide("constellationNavic"); //Not supported on ZED
@@ -190,29 +189,10 @@ function parseIncoming(msg) {
                 select.add(newOption, undefined);
                 newOption = new Option('Flex NTRIP/RTCM', '1');
                 select.add(newOption, undefined);
-                newOption = new Option('Flex L-Band North America (Deprecated)', '2');
-                select.add(newOption, undefined);
                 newOption = new Option('Flex MQTT (Deprecated)', '5');
                 select.add(newOption, undefined);
             }
-            else if ((platformPrefix == "Facet v2") || (platformPrefix == "Facet v2 LBand")) {
-                show("baseConfig");
-                show("ppConfig");
-                hide("ethernetConfig");
-                hide("ntpConfig");
-                show("portsConfig");
-                show("externalPortOptions");
-                hide("tiltConfig");
-                hide("beeperControl");
-                show("measurementRateInput");
-                hide("mosaicNMEAStreamDropdowns");
-                show("surveyInSettings");
-                show("useEnableExtCorrRadio");
-                show("extCorrRadioSPARTNSourceDropdown");
-                hide("enableNmeaOnRadio");
 
-                hide("constellationNavic"); //Not supported on ZED
-            }
             else if (platformPrefix == "Facet mosaicX5") {
                 show("baseConfig");
                 show("ppConfig");
@@ -227,7 +207,6 @@ function parseIncoming(msg) {
                 hide("surveyInSettings");
 
                 show("useEnableExtCorrRadio");
-                hide("extCorrRadioSPARTNSourceDropdown");
                 show("enableNmeaOnRadio");
 
                 select = ge("dynamicModel");
@@ -256,8 +235,6 @@ function parseIncoming(msg) {
                 newOption = new Option('Disabled', '0');
                 select.add(newOption, undefined);
                 newOption = new Option('Flex NTRIP/RTCM', '1');
-                select.add(newOption, undefined);
-                newOption = new Option('Flex L-Band North America (Deprecated)', '2');
                 select.add(newOption, undefined);
                 newOption = new Option('Flex MQTT (Deprecated)', '5');
                 select.add(newOption, undefined);
@@ -319,7 +296,6 @@ function parseIncoming(msg) {
                 hide("mosaicNMEAStreamDropdowns");
                 show("surveyInSettings");
                 show("useEnableExtCorrRadio");
-                hide("extCorrRadioSPARTNSourceDropdown");
                 show("enableNmeaOnRadio");
 
                 hide("constellationSbas"); //Not supported on LG290P
@@ -394,7 +370,6 @@ function parseIncoming(msg) {
                 show("surveyInSettings");
 
                 hide("useEnableExtCorrRadio"); //No External Radio connector on Torch X2
-                hide("extCorrRadioSPARTNSourceDropdown");
                 hide("enableNmeaOnRadio");
 
                 hide("dynamicModelDropdown"); //Not supported on LG290P
@@ -437,7 +412,6 @@ function parseIncoming(msg) {
                 hide("surveyInSettings");
 
                 show("useEnableExtCorrRadio");
-                hide("extCorrRadioSPARTNSourceDropdown");
                 show("enableNmeaOnRadio");
 
                 select = ge("dynamicModel");
@@ -467,8 +441,6 @@ function parseIncoming(msg) {
                 select.add(newOption, undefined);
                 newOption = new Option('Flex NTRIP/RTCM', '1');
                 select.add(newOption, undefined);
-                newOption = new Option('Flex L-Band North America (Deprecated)', '2');
-                select.add(newOption, undefined);
                 newOption = new Option('Flex MQTT (Deprecated)', '5');
                 select.add(newOption, undefined);
             }
@@ -487,7 +459,6 @@ function parseIncoming(msg) {
                 hide("mosaicNMEAStreamDropdowns");
                 show("surveyInSettings");
                 show("useEnableExtCorrRadio");
-                hide("extCorrRadioSPARTNSourceDropdown");
                 show("enableNmeaOnRadio");
 
                 hide("constellationSbas"); //Not supported on LG290P
@@ -544,7 +515,7 @@ function parseIncoming(msg) {
         }
         else if (id.includes("gnssFirmwareVersionInt")) {
             //Modify settings due to firmware limitations
-            if ((platformPrefix == "EVK") || (platformPrefix == "Facet v2") || (platformPrefix == "Facet v2 LBand")) {
+            if (platformPrefix == "EVK") {
                 select = ge("dynamicModel");
                 let newOption = new Option('Portable', '0');
                 select.add(newOption, undefined);
@@ -1235,7 +1206,7 @@ function validateFields() {
 
     //Check all UBX message boxes
     //match all ids starting with ubxMessageRate_
-    if ((platformPrefix == "EVK") || (platformPrefix == "Facet v2") || (platformPrefix == "Facet v2 LBand")) {
+    if (platformPrefix == "EVK") {
         var ubxMessages = document.querySelectorAll('input[id^=ubxMessageRate_]');
         for (let x = 0; x < ubxMessages.length; x++) {
             var messageName = ubxMessages[x].id;
@@ -1826,7 +1797,7 @@ function zeroBaseMessages() {
 
 function resetToSurveyingDefaults() {
     zeroMessages();
-    if ((platformPrefix == "EVK") || (platformPrefix == "Facet v2") || (platformPrefix == "Facet v2 LBand")) {
+    if (platformPrefix == "EVK") {
         ge("ubxMessageRate_NMEA_GGA").value = 1;
         ge("ubxMessageRate_NMEA_GSA").value = 1;
         ge("ubxMessageRate_NMEA_GST").value = 1;
@@ -1863,7 +1834,7 @@ function resetToSurveyingDefaults() {
 }
 function resetToLoggingDefaults() {
     zeroMessages();
-    if ((platformPrefix == "EVK") || (platformPrefix == "Facet v2") || (platformPrefix == "Facet v2 LBand")) {
+    if (platformPrefix == "EVK") {
         ge("ubxMessageRate_NMEA_GGA").value = 1;
         ge("ubxMessageRate_NMEA_GSA").value = 1;
         ge("ubxMessageRate_NMEA_GST").value = 1;
@@ -1928,7 +1899,7 @@ function resetToLoggingDefaults() {
 
 function resetToRTCMDefaults() {
     zeroBaseMessages();
-    if ((platformPrefix == "EVK") || (platformPrefix == "Facet v2") || (platformPrefix == "Facet v2 LBand")) {
+    if (platformPrefix == "EVK") {
         ge("ubxMessageRateBase_RTCM_1005").value = 1;
         ge("ubxMessageRateBase_RTCM_1074").value = 1;
         ge("ubxMessageRateBase_RTCM_1077").value = 0;
@@ -1973,7 +1944,7 @@ function resetToRTCMDefaults() {
 
 function resetToRTCMLowBandwidth() {
     zeroBaseMessages();
-    if ((platformPrefix == "EVK") || (platformPrefix == "Facet v2") || (platformPrefix == "Facet v2 LBand")) {
+    if (platformPrefix == "EVK") {
         ge("ubxMessageRateBase_RTCM_1005").value = 10;
         ge("ubxMessageRateBase_RTCM_1074").value = 2;
         ge("ubxMessageRateBase_RTCM_1077").value = 0;
@@ -2141,7 +2112,7 @@ document.addEventListener("DOMContentLoaded", (event) => {
             hide("ecefConfig");
             show("geodeticConfig");
 
-            if ((platformPrefix == "Facet mosaicX5") || (platformPrefix == "Facet v2 LBand") || (platformPrefix == "Facet v2")) {
+            if (platformPrefix == "Facet mosaicX5") {
                 ge("antennaPhaseCenter_mm").value = 68.5; //Average of L1/L2
             }
             else if (platformPrefix == "Torch") {
@@ -2201,18 +2172,6 @@ document.addEventListener("DOMContentLoaded", (event) => {
         else {
             hide("dataPortBaudDropdown");
             hide("externalPulseConfig");
-        }
-    });
-
-    ge("pointPerfectService").addEventListener("change", function () {
-        if (ge("pointPerfectService").value == 1) { //Flex RTCM 
-            hide("ppSettingsLBandNAConfig");
-        }
-        else if (ge("pointPerfectService").value == 2) { //Flex L-Band NA
-            show("ppSettingsLBandNAConfig");
-        }
-        else { //"pointPerfectService").value == 0 //Disabled
-            hide("ppSettingsLBandNAConfig");
         }
     });
 

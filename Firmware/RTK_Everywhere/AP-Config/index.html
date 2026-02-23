@@ -1316,60 +1316,6 @@
                         <p id="pointPerfectServiceError" class="inlineError"></p>
                     </div>
 
-                    <div id="ppSettingsLBandNAConfig">
-                        <div>
-                            Days until keys expire: <p id="daysRemaining" style="display:inline;">No Keys</p>
-                        </div>
-
-                        <div class="form-check mt-3">
-                            <label class="form-check-label" for="requestKeyUpdate"
-                                id="pointPerfectKeyUpdateLabel">Request Key Update</label>
-                            <input class="form-check-input" type="checkbox" value="" id="requestKeyUpdate">
-                            <span class="tt" data-bs-placement="right"
-                                title="When checked, the PointPerfect keys will be requested and updated at the next opportunity. Default: Disabled">
-                                <span class="icon-info-circle text-primary ms-2"></span>
-                            </span>
-                        </div>
-
-                        <div id="geographicRegionDropdown">
-                            <label for="geographicRegion">Geographic Region:</label>
-                            <select name="geographicRegion" id="geographicRegion" class="form-dropdown mb-2">
-                                <option value="0">US</option>
-                                <option value="1">EU</option>
-                                <option value="2">AU</option>
-                                <option value="3">KR</option>
-                                <option value="4">Japan</option>
-                            </select>
-                            <span class="tt" data-bs-placement="right"
-                                title="Select your geographic region. This defines the L-Band frequency and Regional Correction topic. Default: US">
-                                <span class="icon-info-circle text-primary ms-2"></span>
-                            </span>
-                            <br>
-                        </div>
-
-                        <div class="form-check mt-3">
-                            <label class="form-check-label" for="autoKeyRenewal">Auto Key Renewal </label>
-                            <input class="form-check-input" type="checkbox" value="" id="autoKeyRenewal">
-                            <span class="tt" data-bs-placement="right"
-                                title="When keys drop below 28 days to expiry, automatically attempt to connect to 'Home' network, once a day, to renew keys. Default: Enabled">
-                                <span class="icon-info-circle text-primary ms-2"></span>
-                            </span>
-                        </div>
-
-                        <div class="form-group row">
-                            <label for="pointPerfectDeviceProfileToken"
-                                class="box-margin20 col-sm-3 col-4 col-form-label">Device Profile Token:
-                                <span class="tt" data-bs-placement="right"
-                                    title="If your organization has a corporate ThingStream and PointPerfect account, this is where you put your custom device profile token. Default: Empty - Use the SparkFun Token">
-                                    <span class="icon-info-circle text-primary ms-2"></span>
-                                </span>
-                            </label>
-                            <div class="col-sm-8 col-7">
-                                <input type="text" class="form-control" id="pointPerfectDeviceProfileToken">
-                                <p id="pointPerfectDeviceProfileTokenError" class="inlineError"></p>
-                            </div>
-                        </div>
-                    </div>
                 </div>
             </div>
 
@@ -1526,19 +1472,6 @@
                                     <input class="form-check-input" type="checkbox" value="" id="enableExtCorrRadio">
                                     <span class="tt" data-bs-placement="right" id="enableExtCorrRadioInfoText"
                                         title="Enable external radio corrections: RTCM/UBX/SPARTN on ZED-F9P UART2. Default: False">
-                                        <span class="icon-info-circle text-primary ms-2"></span>
-                                    </span>
-                                </div>
-
-                                <div id="extCorrRadioSPARTNSourceDropdown" class="mt-3">
-                                    <label for="extCorrRadioSPARTNSource">External SPARTN Source: </label>
-                                    <select name="extCorrRadioSPARTNSourceType" id="extCorrRadioSPARTNSource"
-                                        class="form-dropdown">
-                                        <option value="1">L-Band</option>
-                                        <option value="0">IP</option>
-                                    </select>
-                                    <span class="tt" data-bs-placement="right"
-                                        title="When SPARTN corrections are provided on UART2, this defines the source. For NEO-D9C: select L-Band. Default: IP.">
                                         <span class="icon-info-circle text-primary ms-2"></span>
                                     </span>
                                 </div>
@@ -1993,7 +1926,7 @@
                         <label for="antennaPhaseCenter_mm" class="col-sm-4 col-6 col-form-label">Antenna Phase
                             Center (mm):
                             <span class="tt" data-bs-placement="right"
-                                title="APC is the distance from the base of the antenna to the antenna phase center. This is usually printed on the side of the antenna and is calculated during antenna calibration. Amount is added to HAE before starting fixed base. Common APCs: Torch(129mm) EVK(42mm) Facet mosaic(69mm) Facet L-Band v2(69mm) Facet v2(70mm)">
+                                title="APC is the distance from the base of the antenna to the antenna phase center. This is usually printed on the side of the antenna and is calculated during antenna calibration. Amount is added to HAE before starting fixed base. Common APCs: Torch(129mm) EVK(42mm) Facet mosaic(69mm)">
                                 <span class="icon-info-circle text-primary ms-2"></span>
                             </span>
                         </label>

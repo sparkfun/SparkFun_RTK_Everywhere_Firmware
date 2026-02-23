@@ -578,7 +578,6 @@ class GNSS_MOSAIC : GNSS
     }
 
     // If we have decryption keys, configure module
-    // Note: don't check online.lband_neo here. We could be using ip corrections
     void applyPointPerfectKeys();
 
     // Set RTCM for base mode to defaults (1005/MSM4 1Hz & 1033 0.1Hz)
@@ -811,10 +810,9 @@ class GNSS_MOSAIC : GNSS
     // Return true if GNSS receiver has a higher quality DGPS fix than 3D
     bool isDgpsFixed();
 
-    // Some functions (L-Band area frequency determination) merely need
-    // to know if we have a valid fix, not what type of fix
-    // This function checks to see if the given platform has reached
-    // sufficient fix type to be considered valid
+    // Some functions merely need to know if we have an RTK Float.
+    // This function checks to see if the given platform has reached sufficient 
+    // fix type to be considered valid.
     bool isFixed();
 
     // Used in tpISR() for time pulse synchronization
@@ -832,15 +830,14 @@ class GNSS_MOSAIC : GNSS
                            int retryLimit = 20);
     bool mosaicIsPresentOnFacetFP();
 
-    // Some functions (L-Band area frequency determination) merely need
-    // to know if we have an RTK Fix.  This function checks to see if the
-    // given platform has reached sufficient fix type to be considered valid
+    // Some functions merely need to know if we have an RTK Float.
+    // This function checks to see if the given platform has reached sufficient 
+    // fix type to be considered valid.
     bool isRTKFix();
 
-    // Some functions (L-Band area frequency determination) merely need
-    // to know if we have an RTK Float.  This function checks to see if
-    // the given platform has reached sufficient fix type to be considered
-    // valid
+    // Some functions merely need to know if we have an RTK Float.
+    // This function checks to see if the given platform has reached sufficient 
+    // fix type to be considered valid.
     bool isRTKFloat();
 
     // Determine if the survey-in operation is complete

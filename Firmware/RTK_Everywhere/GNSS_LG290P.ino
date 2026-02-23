@@ -16,7 +16,6 @@ int lg290pFirmwareVersionInt = 0;
 
 //----------------------------------------
 // If we have decryption keys, configure module
-// Note: don't check online.lband_neo here. We could be using ip corrections
 //----------------------------------------
 void GNSS_LG290P::applyPointPerfectKeys()
 {
@@ -1199,8 +1198,9 @@ bool GNSS_LG290P::isDgpsFixed()
 }
 
 //----------------------------------------
-// Some functions (L-Band area frequency determination) merely need to know if we have a valid fix, not what type of
-// fix This function checks to see if the given platform has reached sufficient fix type to be considered valid
+// Some functions merely need to know if we have an RTK Float.
+// This function checks to see if the given platform has reached sufficient 
+// fix type to be considered valid.
 //----------------------------------------
 bool GNSS_LG290P::isFixed()
 {
@@ -1293,9 +1293,9 @@ bool GNSS_LG290P::isRTKFix()
 }
 
 //----------------------------------------
-// Some functions (L-Band area frequency determination) merely need to
-// know if we have an RTK Float.  This function checks to see if the
-// given platform has reached sufficient fix type to be considered valid
+// Some functions merely need to know if we have an RTK Float.
+// This function checks to see if the given platform has reached sufficient 
+// fix type to be considered valid.
 //----------------------------------------
 bool GNSS_LG290P::isRTKFloat()
 {

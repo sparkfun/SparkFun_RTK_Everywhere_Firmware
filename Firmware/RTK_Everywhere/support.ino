@@ -713,7 +713,7 @@ void checkArrayDefaults()
 void verifyTables()
 {
     // Verify the product properties table
-    if (productPropertiesEntries != (RTK_UNKNOWN + 1))
+    if (productPropertiesEntries != productVariantCount)
         reportFatalError("Fix productPropertiesTable to match ProductVariant");
 
     // Verify the measurement scales
@@ -1250,10 +1250,8 @@ void assembleDeviceName()
     }
 }
 
-const productProperties *getProductPropertiesFromVariant(ProductVariant variant)
-{
-    for (int i = 0; i < (int)RTK_UNKNOWN; i++)
-    {
+const productProperties * getProductPropertiesFromVariant(ProductVariant variant) {
+    for (int i = 0; i < productPropertiesEntries; i++) {
         if (productPropertiesTable[i].productVariant == variant)
             return &productPropertiesTable[i];
     }

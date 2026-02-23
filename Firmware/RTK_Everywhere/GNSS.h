@@ -63,7 +63,6 @@ class GNSS
     }
 
     // If we have decryption keys, configure module
-    // Note: don't check online.lband_neo here. We could be using ip corrections
     virtual void applyPointPerfectKeys();
 
     // Set RTCM for base mode to defaults (1005/1074/1084/1094/1124 1Hz & 1230 0.1Hz)
@@ -272,10 +271,9 @@ class GNSS
     // Return true if GNSS receiver has a higher quality DGPS fix than 3D
     virtual bool isDgpsFixed();
 
-    // Some functions (L-Band area frequency determination) merely need
-    // to know if we have a valid fix, not what type of fix
-    // This function checks to see if the given platform has reached
-    // sufficient fix type to be considered valid
+    // Some functions merely need to know if we have an RTK Float.
+    // This function checks to see if the given platform has reached sufficient
+    // fix type to be considered valid.
     virtual bool isFixed();
 
     // Used in tpISR() for time pulse synchronization
@@ -285,15 +283,14 @@ class GNSS
 
     virtual bool isPppConverging();
 
-    // Some functions (L-Band area frequency determination) merely need
-    // to know if we have an RTK Fix.  This function checks to see if the
-    // given platform has reached sufficient fix type to be considered valid
+    // Some functions merely need to know if we have an RTK Float.
+    // This function checks to see if the given platform has reached sufficient
+    // fix type to be considered valid.
     virtual bool isRTKFix();
 
-    // Some functions (L-Band area frequency determination) merely need
-    // to know if we have an RTK Float.  This function checks to see if
-    // the given platform has reached sufficient fix type to be considered
-    // valid
+    // Some functions merely need to know if we have an RTK Float.
+    // This function checks to see if the given platform has reached sufficient
+    // fix type to be considered valid.
     virtual bool isRTKFloat();
 
     // Determine if the survey-in operation is complete

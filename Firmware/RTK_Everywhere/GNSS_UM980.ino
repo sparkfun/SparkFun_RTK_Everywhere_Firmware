@@ -23,7 +23,6 @@ bool um980MessagesEnabled_RTCM_Base = false;  // Goes true when we enable RTCM B
 
 //----------------------------------------
 // If we have decryption keys, configure module
-// Note: don't check online.lband_neo here. We could be using ip corrections
 //----------------------------------------
 void GNSS_UM980::applyPointPerfectKeys()
 {
@@ -942,8 +941,9 @@ bool GNSS_UM980::isDgpsFixed()
 }
 
 //----------------------------------------
-// Some functions (L-Band area frequency determination) merely need to know if we have a valid fix, not what type of fix
-// This function checks to see if the given platform has reached sufficient fix type to be considered valid
+// Some functions merely need to know if we have an RTK Float.
+// This function checks to see if the given platform has reached sufficient
+// fix type to be considered valid.
 //----------------------------------------
 bool GNSS_UM980::isFixed()
 {
@@ -1012,9 +1012,9 @@ bool GNSS_UM980::isPppConverging()
 }
 
 //----------------------------------------
-// Some functions (L-Band area frequency determination) merely need to
-// know if we have an RTK Fix.  This function checks to see if the given
-// platform has reached sufficient fix type to be considered valid
+// Some functions merely need to know if we have an RTK Float.
+// This function checks to see if the given platform has reached sufficient
+// fix type to be considered valid.
 //----------------------------------------
 bool GNSS_UM980::isRTKFix()
 {
@@ -1025,9 +1025,9 @@ bool GNSS_UM980::isRTKFix()
 }
 
 //----------------------------------------
-// Some functions (L-Band area frequency determination) merely need to
-// know if we have an RTK Float.  This function checks to see if the
-// given platform has reached sufficient fix type to be considered valid
+// Some functions merely need to know if we have an RTK Float.
+// This function checks to see if the given platform has reached sufficient
+// fix type to be considered valid.
 //----------------------------------------
 bool GNSS_UM980::isRTKFloat()
 {
