@@ -2455,7 +2455,7 @@ void buttonCheckTask(void *e)
                         forceMenuExit = true;
                         
                         forceSystemStateUpdate = true; // Immediately go to this new state
-                        changeState(STATE_ROVER_NOT_STARTED);
+                        changeState(settings.lastState);
                     }
 
                     doubleTap = false; // Clean up
