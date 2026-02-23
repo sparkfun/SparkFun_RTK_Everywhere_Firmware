@@ -701,11 +701,23 @@ bool menuCommonBaseCoords()
             {
                 systemPrintln("Enter the Antenna Phase Center in mm.");
                 systemPrintln("APC is the distance from the base of the antenna to the antenna phase center.");
-                systemPrintln("This is usually printed on the side of the antenna and is calculated during antenna calibration.");
-                systemPrintln("Common APCs: Torch(117mm) EVK(42mm) Facet mosaic(69mm):");
-                double apc;
-                if (getUserInputDouble(&apc) == INPUT_RESPONSE_VALID)
-                    antennaPhaseCenter_mm = apc;
+                systemPrintln(
+                    "This is usually printed on the side of the antenna and is calculated during antenna calibration.");
+
+                char apcPrompt[300];
+                snprintf(apcPrompt, sizeof(apcPrompt),
+                         "Common APCs: EVK=%.1f, Facet FP=%.1f, Facet mosaic=%.1f, Postcard=%.1f, Torch/X2=%.1f\r\n",
+                         getProductHousingPropertiesFromVariant(RTK_EVK)->antennaPhaseCenter_mm,
+                         getProductHousingPropertiesFromVariant(RTK_FACET_FP)->antennaPhaseCenter_mm,
+                         getProductHousingPropertiesFromVariant(RTK_FACET_MOSAIC)->antennaPhaseCenter_mm,
+                         getProductHousingPropertiesFromVariant(RTK_POSTCARD)->antennaPhaseCenter_mm,
+                         getProductHousingPropertiesFromVariant(RTK_TORCH)->antennaPhaseCenter_mm);
+
+                if (getNewSetting((const char *)&apcPrompt[0], -200.0, 200.0, &antennaPhaseCenter_mm) ==
+                    INPUT_RESPONSE_VALID)
+                {
+                    // Nothing to do. antennaPhaseCenter_mm was modified if the input was inbounds.
+                }
             }
         }
         else if ((incoming >= (COMMON_COORDINATES_MAX_STATIONS + 1))

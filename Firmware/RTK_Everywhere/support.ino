@@ -86,8 +86,7 @@ size_t systemWriteGnssDataToUsbSerial(const uint8_t *buffer, uint16_t length)
 // Ensure all serial output has been transmitted, FIFOs are empty
 void systemFlush()
 {
-    if ((printEndpoint == PRINT_ENDPOINT_SERIAL)
-        || (printEndpoint == PRINT_ENDPOINT_ALL))
+    if ((printEndpoint == PRINT_ENDPOINT_SERIAL) || (printEndpoint == PRINT_ENDPOINT_ALL))
     {
         if (forwardGnssDataToUsbSerial == false)
         {
@@ -1226,13 +1225,13 @@ void assembleDeviceName()
 
     // Set the display name for the OLED: "TX2", "FPLT", "Facet LB"
     snprintf(displayName, sizeof(displayName), "%s%s%s",
-                productVariantProperties->displayName,
-                gnssModelIdentifier, tiltIdentifier);
+             productVariantProperties->displayName,
+             gnssModelIdentifier, tiltIdentifier);
 
     // Set the prefix for broadcast names: "TX2", "FPLT"
     snprintf(platformPrefix, sizeof(platformPrefix), "%s%s%s",
-                productVariantProperties->name,
-                gnssModelIdentifier, tiltIdentifier);
+             productVariantProperties->name,
+             gnssModelIdentifier, tiltIdentifier);
 
     // Set the accessory name for MFi: "SparkPNT TX2", "SparkPNT FPLT"
     snprintf(accessoryName, sizeof(accessoryName), "%s %s", brandAttributes->name,
@@ -1249,7 +1248,6 @@ void assembleDeviceName()
             deviceName, strlen(deviceName));
         reportFatalError("Bluetooth device name is longer than 28 characters.");
     }
-
 }
 
 const productProperties * getProductPropertiesFromVariant(ProductVariant variant) {
@@ -1260,24 +1258,29 @@ const productProperties * getProductPropertiesFromVariant(ProductVariant variant
     return getProductPropertiesFromVariant(RTK_UNKNOWN);
 }
 
-RTKBrandAttribute * getBrandAttributeFromBrand(RTKBrands_e brand) {
-    for (int i = 0; i < (int)RTKBrands_e::BRAND_NUM; i++) {
+RTKBrandAttribute *getBrandAttributeFromBrand(RTKBrands_e brand)
+{
+    for (int i = 0; i < (int)RTKBrands_e::BRAND_NUM; i++)
+    {
         if (RTKBrandAttributes[i].brand == brand)
             return &RTKBrandAttributes[i];
     }
     return getBrandAttributeFromBrand(DEFAULT_BRAND);
 }
 
-RTKBrandAttribute * getBrandAttributeFromProductVariant(ProductVariant variant) {
-    const productProperties * properties = getProductPropertiesFromVariant(variant);
+RTKBrandAttribute *getBrandAttributeFromProductVariant(ProductVariant variant)
+{
+    const productProperties *properties = getProductPropertiesFromVariant(variant);
     return getBrandAttributeFromBrand(properties->brand);
 }
 
-const productHousingProperties * getProductHousingPropertiesFromVariant(ProductVariant variant) {
-    const productProperties * properties = getProductPropertiesFromVariant(variant);
-    for (int i = 0; i < productHousingEntries; i++) {
+const productHousingProperties *getProductHousingPropertiesFromVariant(ProductVariant variant)
+{
+    const productProperties *properties = getProductPropertiesFromVariant(variant);
+    for (int i = 0; i < productHousingEntries; i++)
+    {
         if (productHousingPropertiesTable[i].housing == properties->housing)
             return &productHousingPropertiesTable[i];
     }
-    return getProductHousingPropertiesFromVariant(RTK_UNKNOWN);    
+    return getProductHousingPropertiesFromVariant(RTK_UNKNOWN);
 }
