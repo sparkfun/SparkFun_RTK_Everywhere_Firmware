@@ -709,9 +709,18 @@ uint8_t GNSS_UM980::getMode()
 {
     if (online.gnss)
     {
-        int mode = _um980->getMode();
-        if (settings.debugGnssConfig)
-            systemPrintf("getMode(): %d\r\n", mode);
+        // getMode can fail returning < 0. Try a few times.
+        int mode = 0;
+        uint8_t maxTries = 4;
+        for (int tries = 0; tries < maxTries; tries++)
+        {
+            mode = _um980->getMode();
+            if (settings.debugGnssConfig)
+                systemPrintf("getMode(): %d\r\n", mode);
+
+            if (mode >= 0)
+                break;
+        }
 
         return (mode);
     }
