@@ -230,7 +230,7 @@ const productHousingProperties productHousingPropertiesTable[] =
     {RTK_HOUSING_FACET,     68.5,   false,  "", "", ""}, // Default to L-Band element APC, average of L1/L2
     {RTK_HOUSING_FP,        62.0,   true,   "LEVER_ARM2=0.03391,0.00272,0.02370", "INSTALL_ANGLE=0,180,0", "GNSS_CARD=OEM"}, // APC from drawings - TBC
     {RTK_HOUSING_POSTCARD,  37.5,   false,  "", "", ""}, // APC of SPK-6E helical L1/L2/L5 antenna
-    {RTK_HOUSING_TORCH,     116.5,  true,   "LEVER_ARM=-0.00678,-0.01073,-0.0314", "", "GNSS_CARD=UNICORE"}, // Default to Torch helical APC, average of L1/L2
+    {RTK_HOUSING_TORCH,     129.0,  true,   "LEVER_ARM=-0.00678,-0.01073,-0.0314", "", "GNSS_CARD=UNICORE"}, // Default to Torch helical APC, NGS certified average of L1/L2
     {RTK_HOUSING_MAX_NONE,  0.0,    false,  "", "", ""},
 };
 const int productHousingEntries = sizeof(productHousingPropertiesTable) / sizeof(productHousingPropertiesTable[0]);
