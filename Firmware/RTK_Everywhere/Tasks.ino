@@ -2123,8 +2123,18 @@ void tickerGnssLedUpdate()
     {
         // Update the GNSS LED according to our state
 
+        // Blinking during RTK Float or PPP Converging
+        if (gnss->isRTKFloat() == true || gnss->isPppConverging())
+        {
+            // Blink at a 500ms on, 500ms off.
+            if(ledCallCounter >= 10)
+                ledcWrite(pin_gnssStatusLED, 255);
+            else 
+                ledcWrite(pin_gnssStatusLED, 0);
+        }
+
         // Solid once RTK Fix is achieved, or PPP converges
-        if (gnss->isRTKFix() == true || gnss->isPppConverged())
+        else if (gnss->isRTKFix() == true || gnss->isPppConverged())
         {
             ledcWrite(pin_gnssStatusLED, 255);
         }
