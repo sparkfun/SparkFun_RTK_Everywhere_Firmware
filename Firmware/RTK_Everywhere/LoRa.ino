@@ -415,7 +415,7 @@ void muxSelectUsb()
     if (productVariant == RTK_TORCH)
     {
         pinMode(pin_muxB, OUTPUT);   // Make really sure we can control this pin
-        digitalWrite(pin_muxA, LOW);  // Control U12: Connect UM980 UART3 to ESP UART1. Control U11: Connect U18-B1 to LoRa UART2
+        digitalWrite(pin_muxA, LOW);  // Control U12: Connect ESP UART1 to UM980 UART3. Control U11: Connect U18-B1 to LoRa UART2
         digitalWrite(pin_muxB, LOW); // Control U18: Connect ESP UART0 to CH340 Serial
 
         usbSerialIsSelected = true; // Let other print operations know we are connected to the CH34x
@@ -428,7 +428,7 @@ void muxSelectLoRaCommunication()
     if (productVariant == RTK_TORCH)
     {
         pinMode(pin_muxB, OUTPUT);    // Make really sure we can control this pin
-        digitalWrite(pin_muxA, LOW);  // Control U12: Connect UM980 UART3 to ESP UART1. Control U11: Connect U18-B1 to LoRa UART2
+        digitalWrite(pin_muxA, LOW);  // Control U12: Connect ESP UART1 to UM980 UART3. Control U11: Connect U18-B1 to LoRa UART2
         digitalWrite(pin_muxB, HIGH); // Control U18: Connect ESP UART0 to U11
 
         usbSerialIsSelected = false; // Let other print operations know we are not connected to the CH34x
@@ -446,7 +446,7 @@ void muxSelectLoRaCommunication()
 void muxSelectLoRaConfigure()
 {
     if (productVariant == RTK_TORCH)
-        digitalWrite(pin_muxA, HIGH); // Control U12: Connect UM980 UART3 to LoRa UART0. Control U11: Connect U18-B1 to UM980 UART1
+        digitalWrite(pin_muxA, HIGH); // Control U12: Connect ESP UART1 to LoRa UART0. Control U11: Connect U18-B1 to UM980 UART1
     else if (productVariant == RTK_FACET_FP)
         // Connect ESP32 UART2 -> SW3 -> LoRa UART2
         gpioExpanderSelectLoraConfigure();
