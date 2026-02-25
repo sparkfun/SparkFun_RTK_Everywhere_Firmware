@@ -28,6 +28,9 @@ LoRa.ino
     for X seconds before re-entering the dedicated listening mode. Any serial traffic from USB during this time
     resets the timeout.
 
+    Why not connect UM980 UART3 directly to LoRa UART0 and avoid the switching? UART3 is the primary connection
+    to the ESP32 for sending NMEA/RTCM/rtc to the consumers Bluetooth being the primary (also logging, TCP, etc).
+
   Facet FP:
     Facet FP GNSS (UART2) <-> Switch 4 B0 <-> 4-Pin Serial TTL on 1mm JST under microSD
     Facet FP GNSS (UART2) <-> Switch 4 B1 <-> STM32 LoRa (UART0) over-the-air data only
@@ -40,8 +43,8 @@ LoRa.ino
 
   Printing:
     On Torch, Serial must be used to send and receive data from the radio. At times, this requires disconnecting from
-    the USB interface. On Facet FP, SerialForLoRa is used on UART2 to configure and TX/RX data from the radio. If active,
-    SerialForTilt must be disconnected first.
+    the USB interface. On Facet FP, SerialForLoRa is used on UART2 to configure and TX/RX data from the radio. If
+    active, SerialForTilt must be disconnected first.
 
   Updating the STM32 LoRa Firmware:
   Bootloading the STM32 requires a connection to the USB serial. Because it is
