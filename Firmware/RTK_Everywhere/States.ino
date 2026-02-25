@@ -828,7 +828,7 @@ const char *stateToRtkMode(SystemState state)
 
     static char modeName[20];
 
-    strncpy(modeName, "Unknown Mode", sizeof(modeName) - 1); // Always reset to unknown
+    strncpy(modeName, "Unknown Mode", sizeof(modeName) - 1); // Reset to unknown at each function call
 
     // Walk the RTK mode table
     for (int index = 0; index < stateModeTableEntries; index++)
