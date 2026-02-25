@@ -486,7 +486,7 @@ void stateUpdate()
 
             displayWebConfigNotStarted(); // Display immediately while we wait for server to start
 
-            bluetoothEnd(); // Bluetooth must end to allow enough RAM for AP+STA (firmware check)
+            bluetoothEnd();                    // Bluetooth must end to allow enough RAM for AP+STA (firmware check)
             wifiEspNowOff(__FILE__, __LINE__); // We don't need ESP-NOW during web config
 
             // The GNSS UART task is left running to allow GNSS receivers to obtain LLh data for 1Hz page updates
@@ -695,7 +695,7 @@ const char *getState(SystemState state)
     {
     default:
         return "UNKNOWN";
-        
+
     case (STATE_ROVER_NOT_STARTED):
         return "STATE_ROVER_NOT_STARTED";
     case (STATE_ROVER_CONFIG_WAIT):
@@ -826,16 +826,26 @@ const char *stateToRtkMode(SystemState state)
 {
     const RTK_MODE_ENTRY *mode;
 
+    static char modeName[20];
+
+    strncpy(modeName, "Unknown Mode", sizeof(modeName) - 1); // Always reset to unknown
+
     // Walk the RTK mode table
     for (int index = 0; index < stateModeTableEntries; index++)
     {
         mode = &stateModeTable[index];
         if ((state >= mode->first) && (state <= mode->last))
-            return mode->modeName;
+            snprintf(modeName, sizeof(modeName), "%s", mode->modeName);
     }
 
-    // Unknown mode
-    return "Unknown Mode";
+    // Base Cast mode looks like Base mode to the table lookup, but we want to report it differently
+    if (state >= STATE_BASE_NOT_STARTED && state <= STATE_BASE_FIXED_TRANSMITTING)
+    {
+        if (settings.baseCasterOverride == true)
+            return "Base Caster";
+    }
+
+    return modeName;
 }
 
 bool inRoverMode()
