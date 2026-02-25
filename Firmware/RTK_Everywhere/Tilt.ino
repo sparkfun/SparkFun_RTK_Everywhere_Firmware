@@ -89,7 +89,11 @@ void tiltUpdate()
         break;
 
     case TILT_STARTED:
-        // Waiting for user to rock unit back and forth (RTK Fix required for isInitialized)
+        // RTK Fix required for isInitialized so don't check tilt until we have RTK Fix.
+        if(gnss->isRTKFix() == false)
+            break;
+
+        // Waiting for user to rock unit back and forth 
         tiltSensor->update(); // Check for the most recent incoming binary data
 
         // Check IMU state at 1Hz
