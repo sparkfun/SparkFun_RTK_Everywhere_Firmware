@@ -29,7 +29,8 @@ LoRa.ino
     resets the timeout.
 
     Why not connect UM980 UART3 directly to LoRa UART0 and avoid the switching? UART3 is the primary connection
-    to the ESP32 for sending NMEA/RTCM/rtc to the consumers Bluetooth being the primary (also logging, TCP, etc).
+    to the ESP32 for ingesting NMEA/RTCM/rtc and then sending to the consumers, Bluetooth being the primary 
+    (also logging, TCP, etc). For this reason, we must always return pin_MuxA to low (connect UM980 UART3 to ESP32 UART1).
 
   Facet FP:
     Facet FP GNSS (UART2) <-> Switch 4 B0 <-> 4-Pin Serial TTL on 1mm JST under microSD
@@ -399,7 +400,7 @@ void muxSelectUm980()
 {
     // On a possible Facet FP UM980 variant, UM980 UART1 will be hardwired to ESP32 UART0. No muxes to change
     if (productVariant == RTK_TORCH)
-        digitalWrite(pin_muxA, LOW); // Connect ESP UART1 to UM980
+        digitalWrite(pin_muxA, LOW); // Control U18: Connect ESP UART1 to UM980 UART3. Control U11: Connect U18-B1 to LoRa UART2.
 }
 
 void muxSelectUsb()
@@ -407,7 +408,8 @@ void muxSelectUsb()
     if (productVariant == RTK_TORCH)
     {
         pinMode(pin_muxB, OUTPUT);   // Make really sure we can control this pin
-        digitalWrite(pin_muxB, LOW); // Connect ESP UART0 to CH340 Serial
+        digitalWrite(pin_muxA, LOW);  // Control U12: Connect UM980 UART3 to ESP UART1. Control U11: Connect U18-B1 to LoRa UART2
+        digitalWrite(pin_muxB, LOW); // Control U18: Connect ESP UART0 to CH340 Serial
 
         usbSerialIsSelected = true; // Let other print operations know we are connected to the CH34x
     }
@@ -418,8 +420,8 @@ void muxSelectLoRaCommunication()
     if (productVariant == RTK_TORCH)
     {
         pinMode(pin_muxB, OUTPUT);    // Make really sure we can control this pin
-        digitalWrite(pin_muxA, LOW);  // Connect ESP UART1 to UM980, Connect U11 to LoRa UART2
-        digitalWrite(pin_muxB, HIGH); // Connect ESP UART0 to U11
+        digitalWrite(pin_muxA, LOW);  // Control U12: Connect UM980 UART3 to ESP UART1. Control U11: Connect U18-B1 to LoRa UART2
+        digitalWrite(pin_muxB, HIGH); // Control U18: Connect ESP UART0 to U11
 
         usbSerialIsSelected = false; // Let other print operations know we are not connected to the CH34x
     }
@@ -436,7 +438,7 @@ void muxSelectLoRaCommunication()
 void muxSelectLoRaConfigure()
 {
     if (productVariant == RTK_TORCH)
-        digitalWrite(pin_muxA, HIGH); // Connect ESP UART1 to LoRa UART0, Connect U11 to UM980 UART1
+        digitalWrite(pin_muxA, HIGH); // Control U12: Connect UM980 UART3 to LoRa UART0. Control U11: Connect U18-B1 to UM980 UART1
     else if (productVariant == RTK_FACET_FP)
         // Connect ESP32 UART2 -> SW3 -> LoRa UART2
         gpioExpanderSelectLoraConfigure();
