@@ -108,7 +108,14 @@ void updateLora()
     case (LORA_NOT_STARTED):
         beginLora();
 
-        if (inBaseMode())
+        if (inBaseMode() && settings.fixedBase == true)
+        {
+            if (settings.debugLora == true)
+                systemPrintln("LoRa: Moving to TX");
+
+            loraState = LORA_TX;
+        }
+        else if (inBaseMode() && settings.fixedBase == false)
         {
             if (settings.debugLora == true)
                 systemPrintln("LoRa: Moving to TX Settling");
@@ -414,6 +421,7 @@ void muxSelectUsb()
         usbSerialIsSelected = true; // Let other print operations know we are connected to the CH34x
     }
 }
+
 // Connect ESP32 to LoRa for regular transmissions
 void muxSelectLoRaCommunication()
 {
@@ -866,7 +874,6 @@ void loraProcessRTCM(uint8_t *rtcmData, uint16_t dataLength)
         if (productVariant == RTK_TORCH)
         {
             // Send this data to the LoRa radio
-
             systemFlush();                // Complete prints
             muxSelectLoRaCommunication(); // Connect the LoRa radio to ESP32 UART0 (shared with USB)
 
@@ -884,7 +891,10 @@ void loraProcessRTCM(uint8_t *rtcmData, uint16_t dataLength)
 void loraWrite(uint8_t *data, uint16_t dataLength)
 {
     if (productVariant == RTK_TORCH)
+    {
         Serial.write(data, dataLength);
+        Serial.flush(); // Ensure all data is sent before we switch back to USB
+    }
     else if (productVariant == RTK_FACET_FP)
         SerialForLoRa->write(data, dataLength);
 }
