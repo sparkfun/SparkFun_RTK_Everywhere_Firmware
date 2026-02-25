@@ -1462,8 +1462,8 @@ const RTK_Settings_Entry rtkSettingsEntries[] =
     { 0, 0, 0, 1, 1, 1, 1, ALL, 1, _bool,     0, & settings.debugHttpClientState, "debugHttpClientState", nullptr, },
 
     // IMU
-    { 0, 0, 0, 0, 0, 0, 0, ALL, 0, _bool,     0, & settings.detectedTilt, "detectedTilt", nullptr, },
-    { 0, 0, 0, 0, 0, 0, 0, ALL, 0, _bool,     0, & settings.testedTilt, "testedTilt", nullptr, },
+    { 0, 0, 0, 0, 0, 1, 0, ALL, 0, _bool,     0, & settings.detectedTilt, "detectedTilt", nullptr, },
+    { 0, 0, 0, 0, 0, 1, 0, ALL, 0, _bool,     0, & settings.testedTilt, "testedTilt", nullptr, },
 
 //                F
 //    i           a
