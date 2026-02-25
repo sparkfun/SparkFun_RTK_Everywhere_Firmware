@@ -2093,6 +2093,13 @@ bool GNSS_ZED::setMessagesNMEA()
 
     bool response = true;
     int messageNumber = 0;
+    int previousMessageNumber = 0;
+    int numRetries = 3;
+
+    // Send the VALSET messages in batches by Class
+    int groupMessageClass = -1;
+    int thisMessageClass;
+    const bool sendIndividually = false; // Set true to send each VALSET individually. Useful for debug
 
     while (messageNumber < MAX_UBX_MSG)
     {
@@ -2100,6 +2107,11 @@ bool GNSS_ZED::setMessagesNMEA()
 
         do
         {
+            thisMessageClass = (int)ubxMessages[messageNumber].msgClass;
+
+            if (groupMessageClass != thisMessageClass)
+                groupMessageClass = thisMessageClass;
+
             if (messageSupported(messageNumber))
             {
                 uint8_t rate = settings.ubxMessageRates[messageNumber];
@@ -2120,16 +2132,34 @@ bool GNSS_ZED::setMessagesNMEA()
                         gprmcEnabled = true;
                 }
             }
+            
             messageNumber++;
-        } while (((messageNumber % 43) < 42) &&
-                 (messageNumber < MAX_UBX_MSG)); // Limit 1st batch to 42. Batches after that will be (up to) 43
-                                                 // in size. It's a HHGTTG thing.
+
+            if (messageNumber < MAX_UBX_MSG)
+                thisMessageClass = (int)ubxMessages[messageNumber].msgClass;
+
+        } while ((!sendIndividually) && (messageNumber < MAX_UBX_MSG)
+                 && (groupMessageClass == thisMessageClass)); // Send in batches by Class
 
         if (_zed->sendCfgValset() == false)
         {
-            systemPrintf("sendCfg failed at messageNumber %d %s.\r\n", messageNumber - 1,
+            systemPrintf("sendCfg failed at messageNumber %d %s\r\n", messageNumber - 1,
                          (messageNumber - 1) < MAX_UBX_MSG ? ubxMessages[messageNumber - 1].msgTextName : "");
-            response &= false; // If any one of the Valset fails, report failure overall
+
+            if (numRetries > 0)
+            {
+                numRetries--;
+                messageNumber = previousMessageNumber;
+                systemPrintf("Retrying sendCfg from messageNumber %d %s\r\n", messageNumber,
+                             ubxMessages[messageNumber].msgTextName);
+            }
+            else
+                response &= false; // If any one of the Valset fails, report failure overall
+        }
+        else
+        {
+            // Success
+            previousMessageNumber = messageNumber;
         }
     }
 
