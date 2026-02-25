@@ -1028,6 +1028,12 @@ void forceGnssCommunicationRate(uint32_t &platformGnssCommunicationRate)
         // LG290P communicates at 460800bps.
         platformGnssCommunicationRate = 115200 * 4;
     }
+    else if (productVariant == RTK_EVK)
+    {
+        // ZED defaults to 115200. settings.dataPortBaud defaults to 230400
+        // Keep the baud rate at settings.dataPortBaud for now
+        // I.e. nothing to do here...?
+    }
     else if (productVariant == RTK_FACET_FP)
     {
         if (settings.detectedGnssReceiver == GNSS_RECEIVER_LG290P)
