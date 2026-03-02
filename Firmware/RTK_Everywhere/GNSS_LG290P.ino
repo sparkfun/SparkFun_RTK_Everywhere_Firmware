@@ -1388,9 +1388,9 @@ void GNSS_LG290P::menuConstellations()
                              : settings.pppDatum == 3 ? "CGCS2000"
                                                       : "Unknown");
                 systemPrintf("%d) PPP Timeout: %d\r\n", MAX_LG290P_CONSTELLATIONS + 3, settings.pppTimeout);
-                systemPrintf("%d) PPP Horizontal Convergence Accuracy: %0.2f\r\n", MAX_LG290P_CONSTELLATIONS + 4,
+                systemPrintf("%d) PPP Horizontal Convergence Accuracy: %0.3f\r\n", MAX_LG290P_CONSTELLATIONS + 4,
                              settings.pppHorizontalConvergence);
-                systemPrintf("%d) PPP Vertical Convergence Accuracy: %0.2f\r\n", MAX_LG290P_CONSTELLATIONS + 5,
+                systemPrintf("%d) PPP Vertical Convergence Accuracy: %0.3f\r\n", MAX_LG290P_CONSTELLATIONS + 5,
                              settings.pppVerticalConvergence);
             }
         }
