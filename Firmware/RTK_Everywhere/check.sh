@@ -13,8 +13,8 @@ set -e
 git reset --hard --quiet HEAD
 make
 
-# MFi authentication
-sed -i 's|#define COMPILE_AUTHENTICATION|//#define COMPILE_AUTHENTICATION|' RTK_Everywhere.ino
+# MFi authentication - requires Private libraries
+sed -i 's|//#define COMPILE_AUTHENTICATION|#define COMPILE_AUTHENTICATION|' RTK_Everywhere.ino
 make
 git reset --hard --quiet HEAD
 
