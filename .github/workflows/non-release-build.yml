@@ -63,6 +63,8 @@ jobs:
             --build-arg POINTPERFECT_RTCM_TOKEN="${{ secrets.POINTPERFECT_RTCM_TOKEN }}" \
             --build-arg ENABLE_DEVELOPER=${{ env.ENABLE_DEVELOPER }} \
             --build-arg DEBUG_LEVEL=${{ env.DEBUG_LEVEL }} \
+            --build-arg COMPILE_AUTHENTICATION=true \
+            --build-arg GIT_TOKEN=${{ secrets.GITHUB_TOKEN }} \
             .
           docker create --name=rtk_everywhere rtk_everywhere_firmware:latest
           mkdir ./build
