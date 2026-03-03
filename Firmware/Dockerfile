@@ -27,9 +27,14 @@ ARG WARNINGS=default
 ARG POINTPERFECT_IP_TOKEN=0xAA,0xBB,0xCC,0xDD,0x00,0x11,0x22,0x33,0x0A,0x0B,0x0C,0x0D,0x00,0x01,0x02,0x03
 ARG POINTPERFECT_RTCM_TOKEN=0xAA,0xBB,0xCC,0xDD,0x00,0x11,0x22,0x33,0x0A,0x0B,0x0C,0x0D,0x00,0x01,0x02,0x03
 
+# Enable Accessory / Authentication functionality
+ARG COMPILE_AUTHENTICATION=false
+ARG DEPLOY_ACCESSORY_LIBRARY
+ARG DEPLOY_AUTHENTICATION_LIBRARY
+
 # Get curl and python3
 RUN apt-get update \
-    && apt-get install -y curl python3 python3-pip python3-venv \
+    && apt-get install -y curl python3 python3-pip python3-venv git \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
 
@@ -77,7 +82,6 @@ RUN arduino-cli lib install "SparkFun IM19 IMU Arduino Library"@1.0.1
 RUN arduino-cli lib install "SparkFun UM980 Triband RTK GNSS Arduino Library"@2.0.0
 RUN arduino-cli lib install "SparkFun LG290P Quadband RTK GNSS Arduino Library"@3.0.1
 RUN arduino-cli lib install "SparkFun I2C Expander Arduino Library"@1.0.1
-RUN arduino-cli lib install "SparkFun Apple Accessory Arduino Library"@3.1.2
 
 # Install the depends last. See:
 # https://community.sparkfun.com/t/rtk-everywhere-firmware-no-longer-builds-for-me/68045
@@ -89,23 +93,60 @@ RUN arduino-cli lib install ArduinoJson@7.4.2
 # "SparkFun LG290P Quadband RTK GNSS Arduino Library"@3.0.1 depends=SparkFun Extensible Message Parser (>=2.0.0)
 RUN arduino-cli lib install "SparkFun Extensible Message Parser"@2.0.2
 
-# "SparkFun Apple Accessory Arduino Library"@3.1.2 depends=SparkFun Toolkit (>=1.0.6), SparkFun Authentication Coprocessor Arduino Library
-RUN arduino-cli lib install "SparkFun Authentication Coprocessor Arduino Library"@1.0.0
-
-# "SparkFun Authentication Coprocessor Arduino Library"@1.0.0 depends=SparkFun Toolkit (>=1.0.6)
-RUN arduino-cli lib install "SparkFun Toolkit"@1.0.6
-
 # Enable external libs
 RUN arduino-cli config set library.enable_unsafe_install true
 
 # Install SparkFun fork of ESP32_BleSerial
 RUN arduino-cli lib install --git-url https://github.com/sparkfun/ESP32_BleSerial.git
 
+# The Accessory and Authentication Coprocessor libraries depends=SparkFun Toolkit (>=1.0.6)
+RUN arduino-cli lib install "SparkFun Toolkit"@1.0.6
+
+# ===========================================================================================
+
 # Copy RTK_Everywhere and build deployment image
 FROM upstream AS deployment
 
 # Add the source files
 ADD . .
+
+# Install private accessory and authentication coprocessor libraries
+RUN if [ "$COMPILE_AUTHENTICATION" = "false" ] ; \
+    then echo 'Skipping COMPILE_AUTHENTICATION'; \
+    else \
+    cd ./RTK_Everywhere \
+    && sed -i 's|//#define COMPILE_AUTHENTICATION|#define COMPILE_AUTHENTICATION|g' RTK_Everywhere.ino \
+    && cd .. \
+    && rm -rf ~/.ssh \
+    && if [ -d "~/.ssh" ] ; then rmdir ~/.ssh ; else echo 'No .ssh' ; fi \
+    && mkdir -pm0700 ~/.ssh \
+    && touch ~/.ssh/id_ed25519_accessory \
+    && chmod 600 ~/.ssh/id_ed25519_accessory \
+    && echo "$DEPLOY_ACCESSORY_LIBRARY" > ~/.ssh/id_ed25519_accessory \
+    && touch ~/.ssh/id_ed25519_authentication \
+    && chmod 600 ~/.ssh/id_ed25519_authentication \
+    && echo "$DEPLOY_AUTHENTICATION_LIBRARY" > ~/.ssh/id_ed25519_authentication \
+    && touch ~/.ssh/config \
+    && echo 'Host gitaccessorylib' > ~/.ssh/config \
+    && echo '  HostName github.com' >> ~/.ssh/config \
+    && echo '  User git' >> ~/.ssh/config \
+    && echo '  IdentityFile ~/.ssh/id_ed25519_accessory' >> ~/.ssh/config \
+    && echo '  IdentitiesOnly yes' >> ~/.ssh/config \
+    && echo '  StrictHostKeyChecking no' >> ~/.ssh/config \
+    && cd /root/Arduino/libraries \
+    && rm -rf SparkFun_Apple_Accessory_Arduino_Library \
+    && git clone git@gitaccessorylib:sparkfun/SparkFun_Apple_Accessory_Arduino_Library.git \
+    && rm ~/.ssh/config \
+    && touch ~/.ssh/config \
+    && echo 'Host gitauthenticationlib' > ~/.ssh/config \
+    && echo '  HostName github.com' >> ~/.ssh/config \
+    && echo '  User git' >> ~/.ssh/config \
+    && echo '  IdentityFile ~/.ssh/id_ed25519_authentication' >> ~/.ssh/config \
+    && echo '  IdentitiesOnly yes' >> ~/.ssh/config \
+    && echo '  StrictHostKeyChecking no' >> ~/.ssh/config \
+    && rm -rf SparkFun_Authentication_Coprocessor_Arduino_Library \
+    && git clone git@gitauthenticationlib:sparkfun/SparkFun_Authentication_Coprocessor_Arduino_Library.git \
+    ; fi
 
 # Patch libmbedtls and libbt
 RUN cd ./RTK_Everywhere/Patch \
@@ -140,12 +181,13 @@ RUN cd ./RTK_Everywhere \
     --build-property upload.maximum_size=4055040 \
     --build-property "compiler.cpp.extra_flags=-MMD -c \
     \"-DPOINTPERFECT_IP_TOKEN=${POINTPERFECT_IP_TOKEN}\" \
-
     \"-DPOINTPERFECT_RTCM_TOKEN=${POINTPERFECT_RTCM_TOKEN}\"  \
     \"-DFIRMWARE_VERSION_MAJOR=${FIRMWARE_VERSION_MAJOR}\" \
     \"-DFIRMWARE_VERSION_MINOR=${FIRMWARE_VERSION_MINOR}\" \
     \"-DENABLE_DEVELOPER=${ENABLE_DEVELOPER}\"" \
     --export-binaries
+
+# ===========================================================================================
 
 # Copy the compile output. List the files
 FROM deployment AS output

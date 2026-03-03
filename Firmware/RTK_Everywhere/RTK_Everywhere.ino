@@ -89,7 +89,7 @@ RTK_Everywhere.ino
 #define COMPILE_LORA     // COmment out to remove LoRa functionality
 
 #ifdef COMPILE_BT
-#define COMPILE_AUTHENTICATION // Comment out to disable MFi authentication
+//#define COMPILE_AUTHENTICATION // Uncomment to enable MFi authentication (uses Private libraries)
 #endif
 
 #ifdef COMPILE_ETHERNET
@@ -836,11 +836,6 @@ SFE_PCA95XX *gpioExpanderSwitches = nullptr;
 SparkFunAppleAccessoryDriver *appleAccessory; // Instantiated by beginAuthCoPro
 
 const char *sdp_service_name = "iAP2";
-
-// UUID : Big-Endian
-//static const uint8_t  UUID_IAP2[] = {0x00, 0x00, 0x00, 0x00, 0xDE, 0xCA, 0xFA, 0xDE, 0xDE, 0xCA, 0xDE, 0xAF, 0xDE, 0xCA, 0xCA, 0xFF};
-// UUID : Little-Endian
-static const uint8_t  UUID_IAP2[] = {0xFF, 0xCA, 0xCA, 0xDE, 0xAF, 0xDE, 0xCA, 0xDE, 0xDE, 0xFA, 0xCA, 0xDE, 0x00, 0x00, 0x00, 0x00};
 
 #endif
 
