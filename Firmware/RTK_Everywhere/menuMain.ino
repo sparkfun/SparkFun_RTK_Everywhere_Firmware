@@ -462,7 +462,6 @@ void menuRadio()
         {
             systemPrintf("a) Accessory time offset: %.3fs\r\n", settings.accessoryTimeOffset_s);
             systemPrintf("c) Clear BT pairings: %s\r\n", clearBtPairings ? "Yes" : "No");
-            systemPrintf("e) EA Protocol name: %s\r\n", settings.eaProtocol);
         }
 
         systemPrintln("x) Exit");
@@ -485,15 +484,6 @@ void menuRadio()
         // Allow user to clear BT pairings - when BTClassicSerial is next begun
         else if ((incoming == 'c') && (bluetoothUserChoice == BLUETOOTH_RADIO_SPP_AND_BLE))
             clearBtPairings ^= 1;
-
-        // Allow user to modify the External Accessory protocol name
-        else if ((incoming == 'e') && (bluetoothUserChoice == BLUETOOTH_RADIO_SPP_AND_BLE))
-        {
-            systemPrint("Enter new protocol name: ");
-            getUserInputString(settings.eaProtocol, sizeof(settings.eaProtocol));
-            recordSystemSettings();
-            systemPrintln("\r\n** Please reconnect to the Device to apply the changes **");
-        }
 
         else if (incoming == 1)
         {

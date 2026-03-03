@@ -514,6 +514,8 @@ void menuDebugHardware()
 
         systemPrintln("23) Reset GNSS Config");
 
+        systemPrintf("24) EA Protocol name: %s\r\n", settings.eaProtocol);
+
         systemPrintln("e) Erase LittleFS");
 
         systemPrintln("r) Force system reset");
@@ -659,6 +661,14 @@ void menuDebugHardware()
         {
             // Set all bits in the request bitfield to cause the GNSS receiver to go through a full (re)configuration
             gnssConfigureDefaults();
+        }
+
+        else if (incoming == 24)
+        {
+            systemPrint("Enter new protocol name: ");
+            getUserInputString(settings.eaProtocol, sizeof(settings.eaProtocol));
+            recordSystemSettings();
+            systemPrintln("\r\n** Please reconnect to the Device to apply the changes **");
         }
 
         else if (incoming == 'e')
