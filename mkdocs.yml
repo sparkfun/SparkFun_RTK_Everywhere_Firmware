@@ -439,6 +439,8 @@ nav:
       - menu_tilt.md
       - menu_userprofiles.md
       - menu_wifi.md
+      - Debug Menus:
+        - menu_debug_hardware.md
   - Hardware:
       - Update EVK:
         - firmware_update_esp32.md

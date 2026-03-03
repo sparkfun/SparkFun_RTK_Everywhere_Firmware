@@ -68,7 +68,7 @@ Above, we see the device has achieved an RTK Fix with 7mm horizontal accuracy.
 ![Two devices shown in Bluetooth listing](./img/FieldMaps/SparkFun RTK iOS Field Maps - Dual Bluetooth.png)
 </figure>
 
-Open Bluetooth settings and connect to the second SparkPNT device. The first listing represent the connection to SW Maps over BLE. The second connection is made over Bluetooth Classic (completed over MFi).
+Open Bluetooth settings and connect to the second SparkPNT device. The first listing represents the connection to SW Maps over BLE. The second listing is for connecting over Bluetooth Classic (completed over MFi).
 
 <figure markdown>
 ![Opening the profile](./img/FieldMaps/SparkFun RTK iOS Field Maps - Main.png)
