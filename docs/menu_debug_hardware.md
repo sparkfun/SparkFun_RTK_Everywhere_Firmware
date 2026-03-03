@@ -1,4 +1,4 @@
-# Debug Hardware Menu
+# Hardware
 
 <!--
 Compatibility Icons
@@ -19,6 +19,9 @@ Compatibility Icons
 
 </div>
 
+!!! note
+	The debug menus are meant for debugging and development, and not for regular configuration. The unit will not be damaged if these settings are modified, but support is limited. 
+
 <figure markdown>
 ![Hardware Debug Menu](./img/Terminal/SparkFun RTK Everywhere - System Menu Hardware Debug.png)
 <figcaption markdown>
@@ -26,10 +29,7 @@ Hardware Debug Menu
 </figcaption>
 </figure>
 
-!!! note
-	The debug menus are meant for debugging and development, and not for regular configuration. The unit will not be damaged if these settings are modified, but support is limited. 
-
-From the System Menu, pressing H will enter the Hardward Debug Menu. This menu will report the status of the microSD card. While you can enable logging, you cannot begin logging until a microSD card is inserted. Any FAT16 or FAT32 formatted microSD card up to 128GB will work. We regularly use the [SparkX brand 1GB cards](https://www.sparkfun.com/products/15107) but note that these log files can get very large (>500MB) so plan accordingly.
+From the System Menu, pressing H will enter the Hardware Debug Menu. This menu controls various advanced settings, mostly used to enable the printing of verbose debugging messages.
 
 - 1 - Turn on/off the regular battery status message over serial config.
 - 3 - Turn on/off the display of TP time sync information.

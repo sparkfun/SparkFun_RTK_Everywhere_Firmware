@@ -25,7 +25,7 @@ There are a variety of 3rd party apps available for GIS and surveying for [Andro
 
 Currently, ArcGIS Field Maps only works with MFi certified SparkPNT devices. As of writing, the TX2 is MFi certified.
 
-ArcGIS Field Maps does not have a built-in NTRIP Caster so to get corrections into the SparkPNT device we will use SW Maps over BLE. Install [SW Maps](https://apps.apple.com/us/app/sw-maps/id6444248083) from the app store.
+ArcGIS Field Maps does not have a built-in NTRIP Client so to get corrections into the SparkPNT device we will use SW Maps over BLE. Install [SW Maps](https://apps.apple.com/us/app/sw-maps/id6444248083) from the app store.
 
 <figure markdown>
 ![Connect to the device in SW Maps](./img/FieldMaps/SparkFun RTK iOS Field Maps - Connect SW Maps.png)
@@ -50,7 +50,7 @@ Once connected, close the device settings and from the main window (shown above)
 ![Enter credentials](./img/FieldMaps/SparkFun RTK iOS Field Maps - SW Maps NTRIP Credentials.png)
 </figure>
 
-Enter the credentials for the NTRIP Caster. Any correction service is compatible. Shown above are settings used for PointPerfect ($15/month). [Contact us](https://www.sparkfun.com/pointperfect) to setup service.
+Enter the credentials for the NTRIP Caster. Any correction service is compatible. Shown above are settings used for PointPerfect ($15/month). [Contact us](https://www.sparkfun.com/pointperfect) to setup service or see [Correction Sources](correction_sources.md) for a list of available providers.
 
 <figure markdown>
 ![Data flowing through NTRIP Client](./img/FieldMaps/SparkFun RTK iOS Field Maps - SW Maps NTRIP Data Rate.png)
@@ -98,7 +98,7 @@ Above, select the SparkFun Electronics provider type.
 ![Entering antenna height](./img/FieldMaps/SparkFun RTK iOS Field Maps - Antenna Height.png)
 </figure>
 
-Above, take your time entering the antenna height information. This value, in meters, is the combined value of the pole length that will be used (1.8m is common) plus the antenna phase center (APC) of the RTK device. Above, the SparkPNT TX2 is shown: 1.8m pole + 129mm APC = 1.929m. If your antenna height is entered incorrectly, the vertical component of your location recordings will be inaccurate.
+On this step, take your time entering the antenna height information. This value, in meters, is the combined value of the **pole length** that will be used (1.8m is common) plus the **antenna phase center** (APC) of the RTK device. Above, the SparkPNT TX2 is shown: 1.8m pole + 129mm APC = 1.929m. If your antenna height is entered incorrectly, the vertical component of your location recordings will be inaccurate. Click Done once complete.
 
 <figure markdown>
 ![Select SparkFun as the provider](./img/FieldMaps/SparkFun RTK iOS Field Maps - Select Provider.png)
@@ -110,7 +110,7 @@ Select the SparkFun provider.
 ![Field Maps showing RTK Fix](./img/FieldMaps/SparkFun RTK iOS Field Maps - Location Bubble.png)
 </figure>
 
-Return to the home screen and open 'World Imagery'. Confirm the device is report ~1 to 2cm GPS accuracy. You can now commence with work.
+Return to the home screen and open 'World Imagery'. Confirm the device is reporting ~1 to 2cm GPS accuracy. You can now commence with work.
 
 ## ArcGIS QuickCapture
 
