@@ -29,7 +29,7 @@ Hardware Debug Menu
 </figcaption>
 </figure>
 
-From the System Menu, pressing H will enter the Hardware Debug Menu. This menu controls various advanced settings, mostly used to enable the printing of verbose debugging messages.
+From the System Menu, pressing 'h' will enter the Hardware Debug Menu. This menu controls various advanced settings, mostly used to enable the printing of verbose debugging messages.
 
 - 1 - Turn on/off the regular battery status message over serial config.
 - 3 - Turn on/off the display of TP time sync information.
