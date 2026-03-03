@@ -29,7 +29,8 @@ ARG POINTPERFECT_RTCM_TOKEN=0xAA,0xBB,0xCC,0xDD,0x00,0x11,0x22,0x33,0x0A,0x0B,0x
 
 # Enable Accessory / Authentication functionality
 ARG COMPILE_AUTHENTICATION=false
-ARG GIT_TOKEN
+ARG DEPLOY_ACCESSORY_LIBRARY
+ARG DEPLOY_AUTHENTICATION_LIBRARY
 
 # Get curl and python3
 RUN apt-get update \
@@ -115,11 +116,30 @@ RUN if [ "$COMPILE_AUTHENTICATION" = "false" ] ; \
     else \
     cd ./RTK_Everywhere \
     && sed -i 's|//#define COMPILE_AUTHENTICATION|#define COMPILE_AUTHENTICATION|g' RTK_Everywhere.ino \
+    && cd .. \
+    && rm -rf ~/.ssh \
+    && if [ -d "~/.ssh" ] ; then rmdir ~/.ssh ; else echo 'No .ssh' ; fi \
+    && mkdir -pm0700 ~/.ssh \
+    && touch ~/.ssh/id_ed25519_accessory \
+    && chmod 600 ~/.ssh/id_ed25519_accessory \
+    && echo $DEPLOY_ACCESSORY_LIBRARY > ~/.ssh/id_ed25519_accessory \
+    && touch ~/.ssh/id_ed25519_authentication \
+    && chmod 600 ~/.ssh/id_ed25519_authentication \
+    && echo $DEPLOY_AUTHENTICATION_LIBRARY > ~/.ssh/id_ed25519_authentication \
+    && touch ~/.ssh/config \
+    && echo "Host gitaccessorylib" > ~/.ssh/config \
+    && echo "  Hostname github.com" >> ~/.ssh/config \
+    && echo "  IdentityFile ~/.ssh/id_ed25519_accessory" >> ~/.ssh/config \
+    && echo "  IdentitiesOnly yes" >> ~/.ssh/config \
+    && echo "Host gitauthenticationlib" >> ~/.ssh/config \
+    && echo "  Hostname github.com" >> ~/.ssh/config \
+    && echo "  IdentityFile ~/.ssh/id_ed25519_authentication" >> ~/.ssh/config \
+    && echo "  IdentitiesOnly yes" >> ~/.ssh/config \
     && cd /root/Arduino/libraries \
     && rm -rf SparkFun_Apple_Accessory_Arduino_Library \
-    && git clone https://$GIT_TOKEN@github.com/sparkfun/SparkFun_Apple_Accessory_Arduino_Library.git \
+    && git clone git@gitaccessorylib:sparkfun/SparkFun_Apple_Accessory_Arduino_Library.git \
     && rm -rf SparkFun_Authentication_Coprocessor_Arduino_Library \
-    && git clone https://$GIT_TOKEN@github.com/sparkfun/SparkFun_Authentication_Coprocessor_Arduino_Library.git \
+    && git clone git@gitauthenticationlib:sparkfun/SparkFun_Authentication_Coprocessor_Arduino_Library.git \
     ; fi
 
 # Patch libmbedtls and libbt
