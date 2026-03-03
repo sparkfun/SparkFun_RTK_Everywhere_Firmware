@@ -122,24 +122,26 @@ RUN if [ "$COMPILE_AUTHENTICATION" = "false" ] ; \
     && mkdir -pm0700 ~/.ssh \
     && touch ~/.ssh/id_ed25519_accessory \
     && chmod 600 ~/.ssh/id_ed25519_accessory \
-    && echo '$DEPLOY_ACCESSORY_LIBRARY' > ~/.ssh/id_ed25519_accessory \
+    && echo "$DEPLOY_ACCESSORY_LIBRARY" > ~/.ssh/id_ed25519_accessory \
     && touch ~/.ssh/id_ed25519_authentication \
     && chmod 600 ~/.ssh/id_ed25519_authentication \
-    && echo '$DEPLOY_AUTHENTICATION_LIBRARY' > ~/.ssh/id_ed25519_authentication \
+    && echo "$DEPLOY_AUTHENTICATION_LIBRARY" > ~/.ssh/id_ed25519_authentication \
     && touch ~/.ssh/config \
     && echo 'Host gitaccessorylib' > ~/.ssh/config \
     && echo '  HostName github.com' >> ~/.ssh/config \
     && echo '  User git' >> ~/.ssh/config \
     && echo '  IdentityFile ~/.ssh/id_ed25519_accessory' >> ~/.ssh/config \
     && echo '  IdentitiesOnly yes' >> ~/.ssh/config \
-    && echo 'Host gitauthenticationlib' >> ~/.ssh/config \
+    && cd /root/Arduino/libraries \
+    && rm -rf SparkFun_Apple_Accessory_Arduino_Library \
+    && git clone git@gitaccessorylib:sparkfun/SparkFun_Apple_Accessory_Arduino_Library.git \
+    && rm ~/.ssh/config \
+    && touch ~/.ssh/config \
+    && echo 'Host gitauthenticationlib' > ~/.ssh/config \
     && echo '  HostName github.com' >> ~/.ssh/config \
     && echo '  User git' >> ~/.ssh/config \
     && echo '  IdentityFile ~/.ssh/id_ed25519_authentication' >> ~/.ssh/config \
     && echo '  IdentitiesOnly yes' >> ~/.ssh/config \
-    && cd /root/Arduino/libraries \
-    && rm -rf SparkFun_Apple_Accessory_Arduino_Library \
-    && git clone git@gitaccessorylib:sparkfun/SparkFun_Apple_Accessory_Arduino_Library.git \
     && rm -rf SparkFun_Authentication_Coprocessor_Arduino_Library \
     && git clone git@gitauthenticationlib:sparkfun/SparkFun_Authentication_Coprocessor_Arduino_Library.git \
     ; fi
