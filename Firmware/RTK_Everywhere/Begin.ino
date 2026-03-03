@@ -1557,7 +1557,7 @@ void pinI2CDetectTask(void *pvParameters)
     // 0x08 - HUSB238 - USB C PD Sink Controller
     bool husb238Present = i2cIsDevicePresent(i2c_0, 0x08);
 
-    // 0x10 - MFI343S00177 Authentication Coprocessor
+    // 0x10 - Authentication Coprocessor
     // The authentication coprocessor can be asleep. It needs special treatment
     bool mfiPresent = i2cIsDeviceRegisterPresent(i2c_0, 0x10, 0x00, 0x07);
 
@@ -1729,7 +1729,7 @@ bool i2cBusInitialization(TwoWire *i2cBus, int sda, int scl, int clockKHz)
                     deviceFound = true;
                 }
 
-                systemPrintf("  0x%02X - MFI343S00177 Authentication Coprocessor\r\n", addr);
+                systemPrintf("  0x%02X - Authentication Coprocessor\r\n", addr);
                 i2cAuthCoPro = i2cBus; // Record the bus
             }
         }
