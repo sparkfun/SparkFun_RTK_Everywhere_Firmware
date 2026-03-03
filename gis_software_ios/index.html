@@ -1919,7 +1919,7 @@
     
   
     <span class="md-typeset">
-      Debug Hardware Menu<a class="headerlink" href="#debug-hardware-menu" title="Permanent link"></a>
+      Hardware<a class="headerlink" href="#hardware" title="Permanent link"></a>
     </span>
   
 
@@ -3217,7 +3217,7 @@ Compatibility Icons
 <p>There are a variety of 3rd party apps available for GIS and surveying for <a href="../gis_software_android/">Android</a>, <a href="./">iOS</a>, and <a href="../gis_software_windows/">Windows</a>. We will cover a few examples below that should give you an idea of how to get the incoming NMEA data into the software of your choice.</p>
 <h2 id="arcgis-field-maps">ArcGIS Field Maps<a class="headerlink" href="#arcgis-field-maps" title="Permanent link"></a></h2>
 <p>Currently, ArcGIS Field Maps only works with MFi certified SparkPNT devices. As of writing, the TX2 is MFi certified.</p>
-<p>ArcGIS Field Maps does not have a built-in NTRIP Caster so to get corrections into the SparkPNT device we will use SW Maps over BLE. Install <a href="https://apps.apple.com/us/app/sw-maps/id6444248083" target="_blank" rel="noopener">SW Maps</a> from the app store.</p>
+<p>ArcGIS Field Maps does not have a built-in NTRIP Client so to get corrections into the SparkPNT device we will use SW Maps over BLE. Install <a href="https://apps.apple.com/us/app/sw-maps/id6444248083" target="_blank" rel="noopener">SW Maps</a> from the app store.</p>
 <figure>
 <p><img alt="Connect to the device in SW Maps" src="../img/FieldMaps/SparkFun%20RTK%20iOS%20Field%20Maps%20-%20Connect%20SW%20Maps.png" /></p>
 </figure>
@@ -3233,7 +3233,7 @@ Compatibility Icons
 <figure>
 <p><img alt="Enter credentials" src="../img/FieldMaps/SparkFun%20RTK%20iOS%20Field%20Maps%20-%20SW%20Maps%20NTRIP%20Credentials.png" /></p>
 </figure>
-<p>Enter the credentials for the NTRIP Caster. Any correction service is compatible. Shown above are settings used for PointPerfect ($15/month). <a href="https://www.sparkfun.com/pointperfect" target="_blank" rel="noopener">Contact us</a> to setup service.</p>
+<p>Enter the credentials for the NTRIP Caster. Any correction service is compatible. Shown above are settings used for PointPerfect ($15/month). <a href="https://www.sparkfun.com/pointperfect" target="_blank" rel="noopener">Contact us</a> to setup service or see <a href="../correction_sources/">Correction Sources</a> for a list of available providers.</p>
 <figure>
 <p><img alt="Data flowing through NTRIP Client" src="../img/FieldMaps/SparkFun%20RTK%20iOS%20Field%20Maps%20-%20SW%20Maps%20NTRIP%20Data%20Rate.png" /></p>
 </figure>
@@ -3265,7 +3265,7 @@ Compatibility Icons
 <figure>
 <p><img alt="Entering antenna height" src="../img/FieldMaps/SparkFun%20RTK%20iOS%20Field%20Maps%20-%20Antenna%20Height.png" /></p>
 </figure>
-<p>Above, take your time entering the antenna height information. This value, in meters, is the combined value of the pole length that will be used (1.8m is common) plus the antenna phase center (APC) of the RTK device. Above, the SparkPNT TX2 is shown: 1.8m pole + 129mm APC = 1.929m. If your antenna height is entered incorrectly, the vertical component of your location recordings will be inaccurate.</p>
+<p>On this step, take your time entering the antenna height information. This value, in meters, is the combined value of the <strong>pole length</strong> that will be used (1.8m is common) plus the <strong>antenna phase center</strong> (APC) of the RTK device. Above, the SparkPNT TX2 is shown: 1.8m pole + 129mm APC = 1.929m. If your antenna height is entered incorrectly, the vertical component of your location recordings will be inaccurate. Click Done once complete.</p>
 <figure>
 <p><img alt="Select SparkFun as the provider" src="../img/FieldMaps/SparkFun%20RTK%20iOS%20Field%20Maps%20-%20Select%20Provider.png" /></p>
 </figure>
@@ -3273,7 +3273,7 @@ Compatibility Icons
 <figure>
 <p><img alt="Field Maps showing RTK Fix" src="../img/FieldMaps/SparkFun%20RTK%20iOS%20Field%20Maps%20-%20Location%20Bubble.png" /></p>
 </figure>
-<p>Return to the home screen and open 'World Imagery'. Confirm the device is report ~1 to 2cm GPS accuracy. You can now commence with work.</p>
+<p>Return to the home screen and open 'World Imagery'. Confirm the device is reporting ~1 to 2cm GPS accuracy. You can now commence with work.</p>
 <h2 id="arcgis-quickcapture">ArcGIS QuickCapture<a class="headerlink" href="#arcgis-quickcapture" title="Permanent link"></a></h2>
 <figure>
 <p><img alt="ArcGIS QuickCapture splash screen" src="../img/QuickCapture/SparkFun%20RTK%20QuickCapture%20-%20Main%20Window.png" /></p>
@@ -3701,7 +3701,7 @@ Compatibility Icons
     <span class="md-icon" title="Last update">
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M21 13.1c-.1 0-.3.1-.4.2l-1 1 2.1 2.1 1-1c.2-.2.2-.6 0-.8l-1.3-1.3c-.1-.1-.2-.2-.4-.2m-1.9 1.8-6.1 6V23h2.1l6.1-6.1zM12.5 7v5.2l4 2.4-1 1L11 13V7zM11 21.9c-5.1-.5-9-4.8-9-9.9C2 6.5 6.5 2 12 2c5.3 0 9.6 4.1 10 9.3-.3-.1-.6-.2-1-.2s-.7.1-1 .2C19.6 7.2 16.2 4 12 4c-4.4 0-8 3.6-8 8 0 4.1 3.1 7.5 7.1 7.9l-.1.2z"/></svg>
     </span>
-    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-timeago" title="March 3, 2026 23:17:09 UTC"><span class="timeago" datetime="2026-03-03T23:17:09+00:00" locale="en"></span></span><span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-iso_date" title="March 3, 2026 23:17:09 UTC">2026-03-03</span>
+    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-timeago" title="March 3, 2026 23:23:07 UTC"><span class="timeago" datetime="2026-03-03T23:23:07+00:00" locale="en"></span></span><span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-iso_date" title="March 3, 2026 23:23:07 UTC">2026-03-03</span>
   </span>
 
     
