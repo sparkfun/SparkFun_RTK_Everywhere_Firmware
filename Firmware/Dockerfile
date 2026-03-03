@@ -132,6 +132,7 @@ RUN if [ "$COMPILE_AUTHENTICATION" = "false" ] ; \
     && echo '  User git' >> ~/.ssh/config \
     && echo '  IdentityFile ~/.ssh/id_ed25519_accessory' >> ~/.ssh/config \
     && echo '  IdentitiesOnly yes' >> ~/.ssh/config \
+    && echo '  StrictHostKeyChecking no' >> ~/.ssh/config \
     && cd /root/Arduino/libraries \
     && rm -rf SparkFun_Apple_Accessory_Arduino_Library \
     && git clone git@gitaccessorylib:sparkfun/SparkFun_Apple_Accessory_Arduino_Library.git \
@@ -142,6 +143,7 @@ RUN if [ "$COMPILE_AUTHENTICATION" = "false" ] ; \
     && echo '  User git' >> ~/.ssh/config \
     && echo '  IdentityFile ~/.ssh/id_ed25519_authentication' >> ~/.ssh/config \
     && echo '  IdentitiesOnly yes' >> ~/.ssh/config \
+    && echo '  StrictHostKeyChecking no' >> ~/.ssh/config \
     && rm -rf SparkFun_Authentication_Coprocessor_Arduino_Library \
     && git clone git@gitauthenticationlib:sparkfun/SparkFun_Authentication_Coprocessor_Arduino_Library.git \
     ; fi
