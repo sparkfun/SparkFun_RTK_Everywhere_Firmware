@@ -1,4 +1,4 @@
-# Debug Software Menu
+# Software
 
 <!--
 Compatibility Icons
@@ -19,4 +19,16 @@ Compatibility Icons
 
 </div>
 
-TODO
+!!! note
+	The debug menus are meant for debugging and development, and not for regular configuration. The unit will not be damaged if these settings are modified, but support is limited. 
+
+<figure markdown>
+![Software Debug Menu](./img/Terminal/SparkFun RTK Everywhere - System Menu Software Debug.png)
+<figcaption markdown>
+Software Debug Menu
+</figcaption>
+</figure>
+
+From the System Menu, pressing 'd' will enter the Software Debug Menu. This menu controls various advanced settings, mostly used to enable the printing of verbose debugging messages.
+
+- 1 - 
