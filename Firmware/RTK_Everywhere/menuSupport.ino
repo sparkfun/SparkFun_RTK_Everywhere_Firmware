@@ -44,6 +44,17 @@ void checkGNSSArrayDefaults()
             settings.enableExtCorrRadio = true;
         }
 
+        if (settings.ubxConstellationsEnabled[0] == 254)
+        {
+            defaultsApplied = true;
+
+            // Reset constellations to defaults
+            for (int x = 0; x < MAX_UBX_CONSTELLATIONS; x++)
+            {
+                settings.ubxConstellationsEnabled[x] = 1;
+            }
+        }
+
         if (settings.ubxMessageRates[0] == 254)
         {
             defaultsApplied = true;
