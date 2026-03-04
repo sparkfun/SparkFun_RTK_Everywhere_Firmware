@@ -1891,115 +1891,118 @@ bool GNSS_ZED::setConstellations()
     if (online.gnss == false)
         return (false);
 
-    bool response = true;
-
-    response &= _zed->newCfgValset(VAL_LAYER_ALL);
-
+    bool overallResponse = true;
     int gnssIndex = 0;
     bool enableMe = false;
-    
+
     // GPS
     gnssIndex = ubxConstellationIDToIndex(SFE_UBLOX_GNSS_ID_GPS); // Get the index in the constellation array for GPS
     if (constellationSupported(gnssIndex)) // If this ZED platform supports GPS, enable or disable GPS
     {
         enableMe = settings.ubxConstellationsEnabled[gnssIndex];
-        response &= _zed->addCfgValset(ubxConstellations[gnssIndex].configKey, enableMe);
+        bool response = _zed->addCfgValset(ubxConstellations[gnssIndex].configKey, enableMe);
         response &= _zed->addCfgValset(UBLOX_CFG_SIGNAL_GPS_L1CA_ENA, enableMe);
         response &= _zed->addCfgValset(UBLOX_CFG_SIGNAL_GPS_L2C_ENA, enableMe);
+        response &= _zed->sendCfgValset();
+        if (response == false)
+        {
+            if (settings.debugGnssConfig == true && !inMainMenu)
+                systemPrintln("Failed to set GPS constellations");
+            overallResponse = false;
+        }
     }
-
-    response &= _zed->sendCfgValset();
-    if (response == false)
-    {
-        if (settings.debugGnssConfig == true && !inMainMenu)
-            systemPrintln("Failed to set GPS constellations");
-        response = true;
-    }
-    response &= _zed->newCfgValset(VAL_LAYER_ALL);
 
     // SBAS
     gnssIndex = ubxConstellationIDToIndex(SFE_UBLOX_GNSS_ID_SBAS);
     if (constellationSupported(gnssIndex)) // If this ZED platform supports SBAS, enable or disable SBAS
     {
         enableMe = settings.ubxConstellationsEnabled[gnssIndex];
+        bool response = _zed->newCfgValset(VAL_LAYER_ALL);
         response &= _zed->addCfgValset(ubxConstellations[gnssIndex].configKey, enableMe);
         response &= _zed->addCfgValset(UBLOX_CFG_SIGNAL_SBAS_L1CA_ENA, enableMe);
+        response &= _zed->sendCfgValset();
+        if (response == false)
+        {
+            if (settings.debugGnssConfig == true && !inMainMenu)
+                systemPrintln("Failed to set SBAS constellations");
+            overallResponse = false;
+        }
     }
-
-    response &= _zed->sendCfgValset();
-    if (response == false)
-    {
-        if (settings.debugGnssConfig == true && !inMainMenu)
-            systemPrintln("Failed to set SBAS constellations");
-        response = true;
-    }
-    response &= _zed->newCfgValset(VAL_LAYER_ALL);
 
     // GAL
     gnssIndex = ubxConstellationIDToIndex(SFE_UBLOX_GNSS_ID_GALILEO);
-    enableMe = settings.ubxConstellationsEnabled[gnssIndex];
-    response &= _zed->addCfgValset(ubxConstellations[gnssIndex].configKey, enableMe);
-    response &= _zed->addCfgValset(UBLOX_CFG_SIGNAL_GAL_E1_ENA, enableMe);
-    response &= _zed->addCfgValset(UBLOX_CFG_SIGNAL_GAL_E5B_ENA, enableMe);
-
-    response &= _zed->sendCfgValset();
-    if (response == false)
+    if (constellationSupported(gnssIndex))
     {
-        if (settings.debugGnssConfig == true && !inMainMenu)
-            systemPrintln("Failed to set GAL constellations");
-        response = true;
+        enableMe = settings.ubxConstellationsEnabled[gnssIndex];
+        bool response = _zed->newCfgValset(VAL_LAYER_ALL);
+        response &= _zed->addCfgValset(ubxConstellations[gnssIndex].configKey, enableMe);
+        response &= _zed->addCfgValset(UBLOX_CFG_SIGNAL_GAL_E1_ENA, enableMe);
+        response &= _zed->addCfgValset(UBLOX_CFG_SIGNAL_GAL_E5B_ENA, enableMe);
+        response &= _zed->sendCfgValset();
+        if (response == false)
+        {
+            if (settings.debugGnssConfig == true && !inMainMenu)
+                systemPrintln("Failed to set GAL constellations");
+            overallResponse = false;
+        }
     }
-    response &= _zed->newCfgValset(VAL_LAYER_ALL);
 
     // BDS
     gnssIndex = ubxConstellationIDToIndex(SFE_UBLOX_GNSS_ID_BEIDOU);
-    enableMe = settings.ubxConstellationsEnabled[gnssIndex];
-    response &= _zed->addCfgValset(ubxConstellations[gnssIndex].configKey, enableMe);
-    response &= _zed->addCfgValset(UBLOX_CFG_SIGNAL_BDS_B1_ENA, enableMe);
-    response &= _zed->addCfgValset(UBLOX_CFG_SIGNAL_BDS_B2_ENA, enableMe);
-
-    response &= _zed->sendCfgValset();
-    if (response == false)
+    if (constellationSupported(gnssIndex))
     {
-        if (settings.debugGnssConfig == true && !inMainMenu)
-            systemPrintln("Failed to set BDS constellations");
-        response = true;
+        enableMe = settings.ubxConstellationsEnabled[gnssIndex];
+        bool response = _zed->newCfgValset(VAL_LAYER_ALL);
+        response &= _zed->addCfgValset(ubxConstellations[gnssIndex].configKey, enableMe);
+        response &= _zed->addCfgValset(UBLOX_CFG_SIGNAL_BDS_B1_ENA, enableMe);
+        response &= _zed->addCfgValset(UBLOX_CFG_SIGNAL_BDS_B2_ENA, enableMe);
+        response &= _zed->sendCfgValset();
+        if (response == false)
+        {
+            if (settings.debugGnssConfig == true && !inMainMenu)
+                systemPrintln("Failed to set BDS constellations");
+            overallResponse = false;
+        }
     }
-    response &= _zed->newCfgValset(VAL_LAYER_ALL);
 
     // QZSS
     gnssIndex = ubxConstellationIDToIndex(SFE_UBLOX_GNSS_ID_QZSS);
-    enableMe = settings.ubxConstellationsEnabled[gnssIndex];
-    response &= _zed->addCfgValset(ubxConstellations[gnssIndex].configKey, enableMe);
-    response &= _zed->addCfgValset(UBLOX_CFG_SIGNAL_QZSS_L1CA_ENA, enableMe);
-    // UBLOX_CFG_SIGNAL_QZSS_L1S_ENA not supported on F9R in v1.21 and below
-    response &= _zed->addCfgValset(UBLOX_CFG_SIGNAL_QZSS_L1S_ENA, enableMe);
-    response &= _zed->addCfgValset(UBLOX_CFG_SIGNAL_QZSS_L2C_ENA, enableMe);
-
-    response &= _zed->sendCfgValset();
-    if (response == false)
+    if (constellationSupported(gnssIndex))
     {
-        if (settings.debugGnssConfig == true && !inMainMenu)
-            systemPrintln("Failed to set QZSS constellations");
-        response = true;
+        enableMe = settings.ubxConstellationsEnabled[gnssIndex];
+        bool response = _zed->newCfgValset(VAL_LAYER_ALL);
+        response &= _zed->addCfgValset(ubxConstellations[gnssIndex].configKey, enableMe);
+        response &= _zed->addCfgValset(UBLOX_CFG_SIGNAL_QZSS_L1CA_ENA, enableMe);
+        response &= _zed->addCfgValset(UBLOX_CFG_SIGNAL_QZSS_L1S_ENA, enableMe);
+        response &= _zed->addCfgValset(UBLOX_CFG_SIGNAL_QZSS_L2C_ENA, enableMe);
+        response &= _zed->sendCfgValset();
+        if (response == false)
+        {
+            if (settings.debugGnssConfig == true && !inMainMenu)
+                systemPrintln("Failed to set QZSS constellations");
+            overallResponse = false;
+        }
     }
-    response &= _zed->newCfgValset(VAL_LAYER_ALL);
 
     // GLO
     gnssIndex = ubxConstellationIDToIndex(SFE_UBLOX_GNSS_ID_GLONASS);
-    enableMe = settings.ubxConstellationsEnabled[gnssIndex];
-    response &= _zed->addCfgValset(ubxConstellations[gnssIndex].configKey, enableMe);
-    response &= _zed->addCfgValset(UBLOX_CFG_SIGNAL_GLO_L1_ENA, enableMe);
-    response &= _zed->addCfgValset(UBLOX_CFG_SIGNAL_GLO_L2_ENA, enableMe);
-
-    response &= _zed->sendCfgValset();
-    if (response == false)
+    if (constellationSupported(gnssIndex))
     {
-        if (settings.debugGnssConfig == true && !inMainMenu)
-            systemPrintln("Failed to set GLO constellations");
+        enableMe = settings.ubxConstellationsEnabled[gnssIndex];
+        bool response = _zed->newCfgValset(VAL_LAYER_ALL);
+        response &= _zed->addCfgValset(ubxConstellations[gnssIndex].configKey, enableMe);
+        response &= _zed->addCfgValset(UBLOX_CFG_SIGNAL_GLO_L1_ENA, enableMe);
+        response &= _zed->addCfgValset(UBLOX_CFG_SIGNAL_GLO_L2_ENA, enableMe);
+        response &= _zed->sendCfgValset();
+        if (response == false)
+        {
+            if (settings.debugGnssConfig == true && !inMainMenu)
+                systemPrintln("Failed to set GLO constellations");
+            overallResponse = false;
+        }
     }
 
-    return (response);
+    return (overallResponse);
 }
 
 // Enable / disable corrections protocol(s) on the Radio External port
@@ -2939,7 +2942,8 @@ void eventTriggerReceived(UBX_TIM_TM2_data_t *ubxDataStruct)
     }
 }
 
-// Given a constellation in ubxConstellations, return true if this constellation is supported on this platform and firmware version
+// Given a constellation in ubxConstellations, return true if this constellation is supported on this platform and
+// firmware version
 bool constellationSupported(int constellationNumber)
 {
     bool constellationSupported = false;
@@ -3233,8 +3237,7 @@ bool zedGetSettingValue(RTK_Settings_Types type, const char *suffix, int setting
     case tUbxConst: {
         for (int x = 0; x < qualifier; x++)
         {
-            if ((suffix[0] == ubxConstellations[x].textName[0]) &&
-                (strcmp(suffix, ubxConstellations[x].textName) == 0))
+            if ((suffix[0] == ubxConstellations[x].textName[0]) && (strcmp(suffix, ubxConstellations[x].textName) == 0))
             {
                 writeToString(settingValueStr, settings.ubxConstellationsEnabled[x]);
                 return true;
@@ -3282,8 +3285,7 @@ bool zedNewSettingValue(RTK_Settings_Types type, const char *suffix, int qualifi
     case tCmnCnst:
         for (int x = 0; x < MAX_UBX_CONSTELLATIONS; x++)
         {
-            if ((suffix[0] == ubxConstellations[x].textName[0]) &&
-                (strcmp(suffix, ubxConstellations[x].textName) == 0))
+            if ((suffix[0] == ubxConstellations[x].textName[0]) && (strcmp(suffix, ubxConstellations[x].textName) == 0))
             {
                 settings.ubxConstellationsEnabled[x] = d;
                 return true;
