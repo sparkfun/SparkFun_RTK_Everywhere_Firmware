@@ -127,6 +127,7 @@ void GNSS_ZED::begin()
     if (_zed == nullptr)
         _zed = new SFE_UBLOX_GNSS_SUPER();
 
+    _zed->setPacketCfgPayloadSize(320); // Fix for X20P sending 9 MON VER extensions
     if (_zed->begin(*i2c_0) == false)
     {
         systemPrintln("GNSS ZED failed to begin. Trying again.");
