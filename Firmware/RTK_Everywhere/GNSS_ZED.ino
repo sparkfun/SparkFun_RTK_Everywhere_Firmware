@@ -3143,7 +3143,12 @@ void zedCommandTypeJson(JsonArray &command_types)
     command_types_tUbxConst["prefix"] = "constellation_";
     JsonArray command_types_tUbxConst_keys = command_types_tUbxConst["keys"].to<JsonArray>();
     for (int x = 0; x < MAX_UBX_CONSTELLATIONS; x++)
-        command_types_tUbxConst_keys.add(ubxConstellations[x].textName);
+    {
+        // Only add constellations which are supported on this platform and firmware version
+        if (constellationSupported(x) == true)
+            command_types_tUbxConst_keys.add(ubxConstellations[x].textName);
+    }
+
     JsonArray command_types_tUbxConst_values = command_types_tUbxConst["values"].to<JsonArray>();
     command_types_tUbxConst_values.add("0");
     command_types_tUbxConst_values.add("1");
@@ -3189,10 +3194,14 @@ bool zedCreateString(RTK_Settings_Types type, int settingsIndex, char *newSettin
         // Record constellation settings
         for (int x = 0; x < rtkSettingsEntries[settingsIndex].qualifier; x++)
         {
-            char tempString[50];
-            snprintf(tempString, sizeof(tempString), "%s%s,%s,", rtkSettingsEntries[settingsIndex].name,
-                     ubxConstellations[x].textName, settings.ubxConstellationsEnabled[x] ? "true" : "false");
-            stringRecord(newSettings, tempString);
+            // Only report constellations which are supported on this platform and firmware version
+            if (constellationSupported(x) == true)
+            {
+                char tempString[50];
+                snprintf(tempString, sizeof(tempString), "%s%s,%s,", rtkSettingsEntries[settingsIndex].name,
+                         ubxConstellations[x].textName, settings.ubxConstellationsEnabled[x] ? "true" : "false");
+                stringRecord(newSettings, tempString);
+            }
         }
     }
     break;
@@ -3204,6 +3213,7 @@ bool zedCreateString(RTK_Settings_Types type, int settingsIndex, char *newSettin
             snprintf(tempString, sizeof(tempString), "%s%s,%d,", rtkSettingsEntries[settingsIndex].name,
                      ubxMessages[x].msgTextName, settings.ubxMessageRates[x]);
             stringRecord(newSettings, tempString);
+            Serial.printf("Adding to settings string: %s", tempString);
         }
     }
     break;
@@ -3285,10 +3295,14 @@ bool zedNewSettingValue(RTK_Settings_Types type, const char *suffix, int qualifi
     case tCmnCnst:
         for (int x = 0; x < MAX_UBX_CONSTELLATIONS; x++)
         {
-            if ((suffix[0] == ubxConstellations[x].textName[0]) && (strcmp(suffix, ubxConstellations[x].textName) == 0))
+            if (constellationSupported(x) == true)
             {
-                settings.ubxConstellationsEnabled[x] = d;
-                return true;
+                if ((suffix[0] == ubxConstellations[x].textName[0]) &&
+                    (strcmp(suffix, ubxConstellations[x].textName) == 0))
+                {
+                    settings.ubxConstellationsEnabled[x] = d;
+                    return true;
+                }
             }
         }
         break;
@@ -3337,10 +3351,14 @@ bool zedSettingsToFile(File *settingsFile, RTK_Settings_Types type, int settings
         // Record constellation settings
         for (int x = 0; x < rtkSettingsEntries[settingsIndex].qualifier; x++)
         {
-            char tempString[50]; // constellation_BeiDou=1
-            snprintf(tempString, sizeof(tempString), "%s%s=%d", rtkSettingsEntries[settingsIndex].name,
-                     ubxConstellations[x].textName, settings.ubxConstellationsEnabled[x]);
-            settingsFile->println(tempString);
+            // Only record constellations which are supported on this platform and firmware version
+            if (constellationSupported(x) == true)
+            {
+                char tempString[50]; // constellation_BeiDou=1
+                snprintf(tempString, sizeof(tempString), "%s%s=%d", rtkSettingsEntries[settingsIndex].name,
+                         ubxConstellations[x].textName, settings.ubxConstellationsEnabled[x]);
+                settingsFile->println(tempString);
+            }
         }
     }
     break;
