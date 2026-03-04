@@ -683,6 +683,7 @@ void gnssDetectReceiverType()
             // If two entries have the same _presentPriority, they will prioritised by order
             std::vector<int> gnssPresentByPriority;
             gnssPresentByPriority.clear(); // Redundant?
+            
             for (int8_t priority = 0; priority < GNSS_SUPPORT_ROUTINES_ENTRIES; priority++)
             {
                 for (index = 0; index < GNSS_SUPPORT_ROUTINES_ENTRIES; index++)
@@ -692,6 +693,7 @@ void gnssDetectReceiverType()
                         gnssPresentByPriority.push_back(index);
                 }
             }
+            
             for (index = 0; index < GNSS_SUPPORT_ROUTINES_ENTRIES; index++)
             {
                 if ((gnssSupportRoutines[index]._present)
