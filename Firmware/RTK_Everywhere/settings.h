@@ -1064,16 +1064,7 @@ struct Settings
 
     // UBX
 #ifdef COMPILE_ZED
-    ubxConstellation ubxConstellations[MAX_UBX_CONSTELLATIONS] = { // Constellations monitored/used for fix
-        {UBLOX_CFG_SIGNAL_BDS_ENA, SFE_UBLOX_GNSS_ID_BEIDOU, true, "BeiDou"},
-        {UBLOX_CFG_SIGNAL_GAL_ENA, SFE_UBLOX_GNSS_ID_GALILEO, true, "Galileo"},
-        {UBLOX_CFG_SIGNAL_GLO_ENA, SFE_UBLOX_GNSS_ID_GLONASS, true, "GLONASS"},
-        {UBLOX_CFG_SIGNAL_GPS_ENA, SFE_UBLOX_GNSS_ID_GPS, true, "GPS"},
-        //{UBLOX_CFG_SIGNAL_QZSS_ENA, SFE_UBLOX_GNSS_ID_IMES, false, "IMES"}, //Not yet supported? Config key does not
-        // exist?
-        {UBLOX_CFG_SIGNAL_QZSS_ENA, SFE_UBLOX_GNSS_ID_QZSS, true, "QZSS"},
-        {UBLOX_CFG_SIGNAL_SBAS_ENA, SFE_UBLOX_GNSS_ID_SBAS, true, "SBAS"},
-    };
+    uint8_t ubxConstellationsEnabled[MAX_UBX_CONSTELLATIONS] = {254}; // Mark first record with key so defaults will be applied. 
     uint8_t ubxMessageRates[MAX_UBX_MSG] = {254}; // Mark first record with key so defaults will be applied.
     uint8_t ubxMessageRatesBase[MAX_UBX_MSG_RTCM] = {
         254}; // Mark first record with key so defaults will be applied. Int value for each supported message - Report
@@ -1740,7 +1731,7 @@ const RTK_Settings_Entry rtkSettingsEntries[] =
 
     // ublox GNSS Receiver
 #ifdef COMPILE_ZED
-    { 1, 1, 1, 1, 0, 0, 0, ZED, 0, tUbxConst, MAX_UBX_CONSTELLATIONS, & settings.ubxConstellations[0], "constellation_", gnssCmdUpdateConstellations, },
+    { 1, 1, 1, 1, 0, 0, 0, ZED, 0, tUbxConst, MAX_UBX_CONSTELLATIONS, & settings.ubxConstellationsEnabled[0], "constellation_", gnssCmdUpdateConstellations, },
     { 0, 1, 1, 1, 0, 0, 0, ZED, 0, tUbxMsgRt, MAX_UBX_MSG, & settings.ubxMessageRates[0], "ubxMessageRate_", gnssCmdUpdateMessageRates, },
     { 0, 1, 1, 1, 0, 0, 0, ZED, 0, tUbMsgRtb, MAX_UBX_MSG_RTCM, & settings.ubxMessageRatesBase[0], "ubxMessageRateBase_", gnssCmdUpdateMessageRates, },
 #endif // COMPILE_ZED
