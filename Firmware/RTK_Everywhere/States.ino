@@ -290,7 +290,7 @@ void stateUpdate()
 
             baseStatusLedOff();
 
-            gnssConfigure(GNSS_CONFIG_BASE); // Request reconfigure to base mode
+            gnssConfigure(GNSS_CONFIG_BASE); // Request reconfigure to base mode via gnss->configureBase()
 
             webServerStop(); // Stop the web config server
 

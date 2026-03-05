@@ -112,7 +112,7 @@ class GNSS_UM980 : GNSS
     //   Returns true if successfully configured and false upon failure
     bool configure();
 
-    // Turn off all NMEA and RTCM
+    // Turn off all NMEA and RTCM on all ports
     void disableAllOutput();
 
     uint8_t getActiveNmeaMessageCount();
