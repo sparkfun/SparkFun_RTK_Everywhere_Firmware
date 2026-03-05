@@ -270,6 +270,17 @@ void gnssUpdate()
             }
         }
 
+        // For some receivers (ie, UM980) changing the model changes to Rover/Base.
+        // Configure model before setting the mode and message rates
+        if (gnssConfigureRequested(GNSS_CONFIG_MODEL))
+        {
+            if (gnss->setModel(settings.dynamicModel) == true)
+            {
+                gnssConfigureClear(GNSS_CONFIG_MODEL);
+                gnssConfigure(GNSS_CONFIG_SAVE); // Request receiver commit this change to NVM
+            }
+        }
+
         if (gnssConfigureRequested(GNSS_CONFIG_ROVER))
         {
             if (gnss->configureRover() == true)
@@ -320,17 +331,6 @@ void gnssUpdate()
             if (gnss->setBaudRateData(settings.dataPortBaud) == true)
             {
                 gnssConfigureClear(GNSS_CONFIG_BAUD_RATE_DATA);
-                gnssConfigure(GNSS_CONFIG_SAVE); // Request receiver commit this change to NVM
-            }
-        }
-
-        // For some receivers (ie, UM980) changing the model changes to Rover/Base.
-        // Configure model before setting message rates
-        if (gnssConfigureRequested(GNSS_CONFIG_MODEL))
-        {
-            if (gnss->setModel(settings.dynamicModel) == true)
-            {
-                gnssConfigureClear(GNSS_CONFIG_MODEL);
                 gnssConfigure(GNSS_CONFIG_SAVE); // Request receiver commit this change to NVM
             }
         }

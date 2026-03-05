@@ -172,11 +172,25 @@ bool GNSS_UM980::checkPPPRates()
 //----------------------------------------
 bool GNSS_UM980::configureBase()
 {
-    // If we are already in the appropriate base mode, no changes needed
-    if (settings.fixedBase == false && gnssInBaseSurveyInMode())
-        return (true);
-    if (settings.fixedBase == true && gnssInBaseFixedMode())
-        return (true);
+    // If the UM980 is powered up in Base Survey-In (BASE TIME) mode, it will output zero
+    // deviations, which means that getHorizontalAccuracy() returns zero, hpa is zero
+    // and the survey-in never starts. We never leave STATE_BASE_TEMP_SETTLE...
+    // What to do?
+    // Previous firmware always sent a setModel which would put the UM980 into (e.g.)
+    // MODE ROVER SURVEY first, before later surveyInStart() sets MODE BASE TIME
+    // Let's do the same thing here with a static flag
+    static bool firstTime = true;
+
+    if (firstTime)
+        firstTime = false;
+    else // Skip these checks first time around. We need the setModel
+    {
+        // If we are already in the appropriate base mode, no changes needed
+        if (settings.fixedBase == false && gnssInBaseSurveyInMode())
+            return (true);
+        if (settings.fixedBase == true && gnssInBaseFixedMode())
+            return (true);
+    }
 
     // Assume we are changing from Rover to Base, request any additional config changes
 
