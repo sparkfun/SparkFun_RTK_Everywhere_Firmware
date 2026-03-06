@@ -1109,9 +1109,17 @@ void gpioExpanderGnssReset()
 // INPUT using a direct write - not the read-modify-write through the library.
 bool gpioExpanderDetectGnss()
 {
+    return gpioExpanderDetectGnssCommon(false);
+}
+bool gpioExpanderDetectGnssForced()
+{
+    return gpioExpanderDetectGnssCommon(true);
+}
+bool gpioExpanderDetectGnssCommon(bool forceDetection)
+{
     if (online.gpioExpanderSwitches == true)
     {
-        if (settings.detectedGnssReceiver == GNSS_RECEIVER_UNKNOWN)
+        if (forceDetection || (settings.detectedGnssReceiver == GNSS_RECEIVER_UNKNOWN))
         {
             // Use 400kHz for speed
             if (present.i2c0BusSpeed_400 == false)
@@ -1119,6 +1127,10 @@ bool gpioExpanderDetectGnss()
             
             // Set GNSS Reset LOW
             gpioExpanderSwitches->digitalWrite(gpioExpanderSwitch_GNSS_Reset, LOW);
+
+            // Flex LG290P with Tilt does not reset unless we delay just a little...
+            if (forceDetection)
+                delayMicroseconds(50); // 250 OK. 100 OK. 50 OK. 25 OK. 10 not OK.
             
             // Clock is ticking! Be quick!
             // Set GNSS Reset to INPUT as fast as possible

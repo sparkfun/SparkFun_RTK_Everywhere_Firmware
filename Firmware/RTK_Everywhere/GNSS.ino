@@ -899,8 +899,12 @@ void gnssFirmwareDirectConnectSoftware()
 }
 
 //----------------------------------------
-void gnssFirmwareDirectConnectHardware() // Facet FP
+void gnssFirmwareDirectConnectHardware() // Facet FP only
 {
+    uint32_t platformGnssCommunicationRate =
+        settings.dataPortBaud;
+    forceGnssCommunicationRate(platformGnssCommunicationRate);
+
     systemPrintln();
     systemPrintln("Entering GNSS direct connect for firmware update and configuration");
     systemPrintf("Use the GNSS manufacturer software to update the firmware via %s\r\n", present.gnssUpdatePort);
@@ -911,9 +915,12 @@ void gnssFirmwareDirectConnectHardware() // Facet FP
         systemPrintln("  Select the .pkg firmware file");
         systemPrintln("  On the top tool bar, click \"Reboot\" (blue circle-back icon)");
         systemPrintln("  Then click the green arrow to start the Firmware Update");
+        systemPrintln("  Hit R to reset the GNSS manually if needed - after starting the Update");
     }
-    systemPrintf("Initial baudrate: %dbps\r\n", settings.dataPortBaud);
-    systemPrintf("Press the %s button or hit any key to return to normal operation\r\n",
+    else
+        systemPrintln("Hit R to reset the GNSS manually if needed");
+    systemPrintf("Initial baudrate: %dbps\r\n", platformGnssCommunicationRate);
+    systemPrintf("Press the %s button or hit any key (except R) to return to normal operation\r\n",
                  present.button_mode ? "mode" : "power");
     systemFlush();
 
@@ -924,15 +931,29 @@ void gnssFirmwareDirectConnectHardware() // Facet FP
 
     // Spin our wheels until the user presses a button or hits a key
     task.endDirectConnectMode = false;
-    while (!task.endDirectConnectMode && !Serial.available())
+    while (1)
     {
         delay(1);
-        // Button task will set task.endDirectConnectMode true
+
+         // Button task will set task.endDirectConnectMode true
+        if (task.endDirectConnectMode)
+            break; // Break on button push
+
+        if (Serial.available())
+        {
+            char c = Serial.read();
+            if ((c == 'r') || (c == 'R'))
+                // If the GNSS is a LG290P, putting it into reset will bring down I2C
+                // So use the fast GNSS-detect routine to do the reset
+                gpioExpanderDetectGnssForced();
+            else
+                break; // Break on any other character
+        }
     }
 
     gpioExpanderConnectGNSSToESP32(); // Redundant...
 
-    if (Serial.available()) // buttonCheckTask has its own print
+    if (!task.endDirectConnectMode) // buttonCheckTask has its own print
     {
         systemPrintln("Exiting GNSS direct connect");
         systemPrintln("Restarting...");
