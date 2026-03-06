@@ -113,6 +113,17 @@ void updateLora()
             if (settings.debugLora == true)
                 systemPrintln("LoRa: Moving to TX");
 
+            // Paul's notes:
+            // This is weird. If the code follows this path,
+            // loraSetupTransmit() is never called... I can
+            // only assume that the LoRa defaults to TX (MODE=0)
+            // and that the frequency etc. is somehow already
+            // correct?
+            // TODO: check if we should be calling loraSetupTransmit()
+            //       here?
+            // Also, it would be nice to add proper changeState code
+            // so the loraState changes are more apparent.
+
             loraState = LORA_TX;
         }
         else if (inBaseMode() && settings.fixedBase == false)
@@ -124,7 +135,14 @@ void updateLora()
         }
         else if (present.loraDedicatedUart == true)
         {
-            // If we have a dedicated UART, we do not need to test for an attached USB cable
+            // If we have a dedicated UART, we do not need to test for an attached USB cable.
+            // We also don't need the dedicated listening mode. LORA_RX_DEDICATED will ignore
+            // settings.loraSerialInteractionTimeout_s
+
+            if (settings.debugLora == true)
+                systemPrintln("LoRa: Moving to RX Dedicated");
+
+            loraSetupReceive();
 
             // Confirm LoRa radio is directly connected to GNSS
             gpioExpanderSelectLoraCommunication();
@@ -592,10 +610,11 @@ void beginLoraFirmwareUpdate()
     paintLoRaUpdate();
 
     systemPrintln();
-    systemPrintln("Entering STM32 direct connect for firmware update. Disconnect this terminal connection. Use "
-                  "'STM32CubeProgrammer' to update the "
-                  "firmware. Baudrate: 57600bps. Parity: None. RTS/DTR: High. Press the power button to return "
-                  "to normal operation.");
+    systemPrintln("Entering STM32 direct connect for firmware update");
+    systemPrintln("Disconnect this terminal connection");
+    systemPrintln("Use 'STM32CubeProgrammer' to update the firmware:");
+    systemPrintln("Baudrate: 57600bps. Parity: None. RTS/DTR: High");
+    systemPrintln("Press the power button to return to normal operation");
 
     systemFlush(); // Complete prints
 
