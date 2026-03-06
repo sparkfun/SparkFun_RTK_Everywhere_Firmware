@@ -1767,9 +1767,10 @@ bool GNSS_UM980::setMessagesRTCMBase()
         || ((millis() - um980MessagesEnabled_NMEA.millis) > um980MessagesEnabled_NMEA.refresh))
     {
         // If this function was called by itself (without NMEA running previously) then
-        // force call NMEA enable here. It will disableAllOutput(), enable NMEA and request
-        // a gnssConfigure(GNSS_CONFIG_MESSAGE_RATE_RTCM_BASE / ROVER
-        return setMessagesNMEA();
+        // force call NMEA enable here
+        setMessagesNMEA();
+
+        // Fall through. Set the messages now
     }
 
     for (int messageNumber = 0; messageNumber < MAX_UM980_RTCM_MSG; messageNumber++)
@@ -1823,9 +1824,10 @@ bool GNSS_UM980::setMessagesRTCMRover()
         || ((millis() - um980MessagesEnabled_NMEA.millis) > um980MessagesEnabled_NMEA.refresh))
     {
         // If this function was called by itself (without NMEA running previously) then
-        // force call NMEA enable here. It will disableAllOutput(), enable NMEA and request
-        // a gnssConfigure(GNSS_CONFIG_MESSAGE_RATE_RTCM_BASE / ROVER
-        return setMessagesNMEA();
+        // force call NMEA enable here
+        setMessagesNMEA();
+
+        // Fall through. Set the messages now
     }
 
     for (int messageNumber = 0; messageNumber < MAX_UM980_RTCM_MSG; messageNumber++)
