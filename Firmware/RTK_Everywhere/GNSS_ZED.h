@@ -11,28 +11,31 @@ GNSS_ZED.h
 
 #include <SparkFun_u-blox_GNSS_v3.h> //http://librarymanager/All#SparkFun_u-blox_GNSS_v3
 
-// Each constellation will have its config key, enable, and a visible name
+const int MAX_UBX_CONSTELLATION_SIGNALS = 3;
+
+// Each constellation will have its config key, enable, a visible name, and available signals
 typedef struct
 {
-    uint32_t configKey;
-    uint8_t gnssID;
-    char textName[30];
+    const uint32_t configKey;
+    const uint8_t gnssID;
+    const char *textName;
     const uint16_t f9pFirmwareVersionSupported; // The minimum version this message is supported
     const uint16_t x20pFirmwareVersionSupported; // 0 = all versions. 9999 = Not supported
+    const uint32_t CONSTELLATION_SIGNAL[MAX_UBX_CONSTELLATION_SIGNALS];
 } ubxConstellation;
 
 // Static array containing all the compatible constellations
 const ubxConstellation ubxConstellations[] = { // Constellations monitored/used for fix
-    {UBLOX_CFG_SIGNAL_BDS_ENA, SFE_UBLOX_GNSS_ID_BEIDOU, "BeiDou", 0, 0,},
-    {UBLOX_CFG_SIGNAL_GAL_ENA, SFE_UBLOX_GNSS_ID_GALILEO, "Galileo", 0, 0,},
-    {UBLOX_CFG_SIGNAL_GLO_ENA, SFE_UBLOX_GNSS_ID_GLONASS, "GLONASS", 0, 9999,}, //X20P does not support GLO
-    {UBLOX_CFG_SIGNAL_GPS_ENA, SFE_UBLOX_GNSS_ID_GPS, "GPS", 0, 0,},
-    //{UBLOX_CFG_SIGNAL_QZSS_ENA, SFE_UBLOX_GNSS_ID_IMES, false, "IMES", 9999, 9999,}, //Not yet supported? Config key does not
+    {UBLOX_CFG_SIGNAL_BDS_ENA, SFE_UBLOX_GNSS_ID_BEIDOU, "BeiDou", 0, 0, {0,0,0},},
+    {UBLOX_CFG_SIGNAL_GAL_ENA, SFE_UBLOX_GNSS_ID_GALILEO, "Galileo", 0, 0, {0,0,0},},
+    {UBLOX_CFG_SIGNAL_GLO_ENA, SFE_UBLOX_GNSS_ID_GLONASS, "GLONASS", 0, 9999, {0,0,0},}, //X20P does not support GLO
+    {UBLOX_CFG_SIGNAL_GPS_ENA, SFE_UBLOX_GNSS_ID_GPS, "GPS", 0, 0, {0,0,0},},
+    //{UBLOX_CFG_SIGNAL_QZSS_ENA, SFE_UBLOX_GNSS_ID_IMES, false, "IMES", 9999, 9999, {0,0,0},}, //Not yet supported? Config key does not
     // exist?
-    {UBLOX_CFG_SIGNAL_QZSS_ENA, SFE_UBLOX_GNSS_ID_QZSS, "QZSS", 0, 0,},
-    {UBLOX_CFG_SIGNAL_SBAS_ENA, SFE_UBLOX_GNSS_ID_SBAS, "SBAS", 113, 0,}, // v1.12 ZED-F9P firmware does not allow for SBAS control
+    {UBLOX_CFG_SIGNAL_QZSS_ENA, SFE_UBLOX_GNSS_ID_QZSS, "QZSS", 0, 0, {UBLOX_CFG_SIGNAL_QZSS_L1CA_ENA, UBLOX_CFG_SIGNAL_QZSS_L1S_ENA, UBLOX_CFG_SIGNAL_QZSS_L2C_ENA},},
+    {UBLOX_CFG_SIGNAL_SBAS_ENA, SFE_UBLOX_GNSS_ID_SBAS, "SBAS", 113, 0, {0,0,0},}, // v1.12 ZED-F9P firmware does not allow for SBAS control
 };
-#define MAX_UBX_CONSTELLATIONS (sizeof(ubxConstellations) / sizeof(ubxConstellation))
+const int MAX_UBX_CONSTELLATIONS = (sizeof(ubxConstellations) / sizeof(ubxConstellation));
 
 #define UBX_ID_NOT_AVAILABLE 0xFF
 
