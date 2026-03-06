@@ -17,7 +17,12 @@ GNSS_UM980.ino
 
 #include "GNSS_UM980.h"
 
-bool um980MessagesEnabled_NMEA = false;       // Goes true when we enable NMEA messages
+struct {
+    bool enabled = false;               // Goes true when we enable NMEA messages
+    unsigned long millis = 0;           // Set to millis when we enable NMEA messages
+    const unsigned long refresh = 5000; // Refresh after this many millis
+} um980MessagesEnabled_NMEA;
+
 bool um980MessagesEnabled_RTCM_Rover = false; // Goes true when we enable RTCM Rover messages
 bool um980MessagesEnabled_RTCM_Base = false;  // Goes true when we enable RTCM Base messages
 
@@ -167,20 +172,35 @@ bool GNSS_UM980::checkPPPRates()
 //----------------------------------------
 bool GNSS_UM980::configureBase()
 {
-    // If we are already in the appropriate base mode, no changes needed
-    if (settings.fixedBase == false && gnssInBaseSurveyInMode())
-        return (true);
-    if (settings.fixedBase == true && gnssInBaseFixedMode())
-        return (true);
+    // If the UM980 is powered up in Base Survey-In (BASE TIME) mode, it will output zero
+    // deviations, which means that getHorizontalAccuracy() returns zero, hpa is zero
+    // and the survey-in never starts. We never leave STATE_BASE_TEMP_SETTLE...
+    // What to do?
+    // Previous firmware always sent a setModel which would put the UM980 into (e.g.)
+    // MODE ROVER SURVEY first, before later surveyInStart() sets MODE BASE TIME
+    // Let's do the same thing here with a static flag
+    static bool firstTime = true;
+
+    if (firstTime)
+        firstTime = false;
+    else // Skip these checks first time around. We need the setModel
+    {
+        // If we are already in the appropriate base mode, no changes needed
+        if (settings.fixedBase == false && gnssInBaseSurveyInMode())
+            return (true);
+        if (settings.fixedBase == true && gnssInBaseFixedMode())
+            return (true);
+    }
 
     // Assume we are changing from Rover to Base, request any additional config changes
 
     // Set the dynamic mode. This will cancel any base averaging mode and is needed
     // to allow a freshly started device to settle in regular GNSS reception mode before issuing
     // a surveyInStart().
+    // gnss->setModel(settings.dynamicModel) sets the model
     gnssConfigure(GNSS_CONFIG_MODEL);
 
-    // Request a change to Base RTCM
+    // Request a change to Base RTCM. gnss->setMessagesRTCMBase() sets the messages
     gnssConfigure(GNSS_CONFIG_MESSAGE_RATE_RTCM_BASE);
 
     return (true);
@@ -197,7 +217,7 @@ bool GNSS_UM980::configureOnce()
     // Read, modify, write
 
     // Output must be disabled before sending SIGNALGROUP command in order to get the OK response
-    disableAllOutput(); // Disable COM1/2/3
+    disableAllOutput(); // Disable all output on all ports: COM1/2/3
 
     if (_um980->sendCommand("CONFIG SIGNALGROUP 2") == false)
     {
@@ -1649,8 +1669,9 @@ bool GNSS_UM980::setMessagesNMEA()
     if (settings.debugGnssConfig == true)
         systemPrintln("setMessagesNMEA disabling output");
 
-    disableAllOutput();
-    um980MessagesEnabled_NMEA = false;
+    disableAllOutput(); // Disable all NMEA and RTCM output on all ports...
+
+    um980MessagesEnabled_NMEA.enabled = false;
 
     if (um980MessagesEnabled_RTCM_Rover == true || um980MessagesEnabled_RTCM_Base == true)
     {
@@ -1714,7 +1735,10 @@ bool GNSS_UM980::setMessagesNMEA()
     }
 
     if (response == true)
-        um980MessagesEnabled_NMEA = true;
+    {
+        um980MessagesEnabled_NMEA.enabled = true;
+        um980MessagesEnabled_NMEA.millis = millis();
+    }
 
     return (response);
 }
@@ -1726,11 +1750,27 @@ bool GNSS_UM980::setMessagesRTCMBase()
 {
     bool response = true;
 
-    if (um980MessagesEnabled_NMEA == false)
+    // Here's the dilemma:
+    // If we don't call disableAllOutput() (UNLOG) here via setMessagesNMEA(), the _um980->setRTCMPortMessage
+    // can and do fail. Repeatedly. On the logic analyzer, I see RTCM being retried multiple times before it
+    // eventually succeeds.
+    // But if we did call disableAllOutput() (UNLOG) here, then all output would be stopped - including NMEA -
+    // and we would have to call setMessagesNMEA() to restart NMEA.
+    // setMessagesNMEA() calls gnssConfigure(GNSS_CONFIG_MESSAGE_RATE_RTCM_BASE / ROVER to ensure RTCM is
+    // restarted.
+    // I think the best compromise is to (re)call setMessagesNMEA() if it is more than um980MessagesRefresh_millis
+    // since the NMEA messages were last started.
+    // This covers the firmware starting in Rover mode and later being switched to Base mode
+    // If the firmware starts in Base mode, um980MessagesEnabled_NMEA.enabled will be false causing NMEA to be set
+
+    if ((um980MessagesEnabled_NMEA.enabled == false)
+        || ((millis() - um980MessagesEnabled_NMEA.millis) > um980MessagesEnabled_NMEA.refresh))
     {
         // If this function was called by itself (without NMEA running previously) then
-        // force call NMEA enable here. It will disable all output, then should um980MessagesEnabled_NMEA = true.
+        // force call NMEA enable here
         setMessagesNMEA();
+
+        // Fall through. Set the messages now
     }
 
     for (int messageNumber = 0; messageNumber < MAX_UM980_RTCM_MSG; messageNumber++)
@@ -1778,11 +1818,16 @@ bool GNSS_UM980::setMessagesRTCMRover()
     bool rtcm1042Enabled = false;
     bool rtcm1046Enabled = false;
 
-    if (um980MessagesEnabled_NMEA == false)
+    // See notes in setMessagesRTCMBase() above
+
+    if ((um980MessagesEnabled_NMEA.enabled == false)
+        || ((millis() - um980MessagesEnabled_NMEA.millis) > um980MessagesEnabled_NMEA.refresh))
     {
         // If this function was called by itself (without NMEA running previously) then
-        // force call NMEA enable here. It will disable all output, then should um980MessagesEnabled_NMEA = true.
+        // force call NMEA enable here
         setMessagesNMEA();
+
+        // Fall through. Set the messages now
     }
 
     for (int messageNumber = 0; messageNumber < MAX_UM980_RTCM_MSG; messageNumber++)

@@ -1185,10 +1185,6 @@ void tiltDetect()
     if (variantHousingProperties->tiltPossible == false)
         return;
 
-    // Only test platforms that may have a tilt sensor on board
-    if (present.imu_im19 == false)
-        return;
-
     // Skip test if previously detected as present
     if (settings.detectedTilt == true)
     {
