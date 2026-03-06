@@ -560,7 +560,7 @@ void beginBoard()
         present.fuelgauge_bq40z50 = true;
 
         present.radio_lora = true;
-        present.loraDedicatedUart = true;
+        present.loraDedicatedUart = true; // Direct connection from GNSS UART2 to LoRa UART0
 
         present.button_powerLow = true; // Button is pressed when low
         present.button_function = true; // Function or Fn button. Low when pressed
