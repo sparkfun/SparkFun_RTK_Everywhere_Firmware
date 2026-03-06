@@ -541,9 +541,24 @@ bool loadSystemSettingsFromFileSD(char *fileName, const char *findMe, char *foun
                 // Note: fgets stripts the \r (if there is one) leaving only \n
                 int n = settingsFile.fgets(line, sizeof(line));
 
-                if (n <= 0)
+                // Handle the file error
+                if (n < 0)
                 {
-                    systemPrintf("Failed to read line %d from SD settings file\r\n", lineNumber);
+                    systemPrintf("Hard read error at line %d in file %s!\r\n", lineNumber, fileName);
+                    if (findMe)
+                        strncpy(found, "SD Card Read Error!", len);
+                    break;
+                }
+
+                // Handle non-printable data in file
+                else if (n == 0)
+                {
+                    systemPrintf("Line %d contains non-printable data in file %s!\r\n", lineNumber, fileName);
+                    if (findMe)
+                    {
+                        strncpy(found, "SD Card Corrupt File!", len);
+                        break;
+                    }
                 }
                 else if (line[n - 1] != '\n')
                 {
@@ -555,6 +570,8 @@ bool loadSystemSettingsFromFileSD(char *fileName, const char *findMe, char *foun
                     {
                         // If we can't read the first line of the settings file, give up
                         systemPrintln("Giving up on SD settings file");
+                        if (findMe)
+                            strncpy(found, "SD Card Line too long!", len);
                         status = false;
                         break; // /while (settingsFile.available())
                     }
@@ -602,6 +619,12 @@ bool loadSystemSettingsFromFileSD(char *fileName, const char *findMe, char *foun
                 if (lineNumber > 800) // Arbitrary limit. Catch corrupt files.
                 {
                     systemPrintf("Max line number exceeded. Giving up reading SD file: %s\r\n", fileName);
+                    if (findMe)
+                    {
+                        strncpy(found, "SD Card Too Many Lines!", len);
+                        break;
+                    }
+
                     // Should we return true or false? Going with true...
                     break; // /while (settingsFile.available())
                 }
@@ -669,6 +692,8 @@ bool loadSystemSettingsFromFileLFS(char *fileName, const char *findMe, char *fou
         if (n < 0)
         {
             systemPrintf("Hard read error at line %d in file %s!\r\n", lineNumber, fileName);
+            if (findMe)
+                strncpy(found, "LFS Read Error!", len);
             break;
         }
 
@@ -676,7 +701,11 @@ bool loadSystemSettingsFromFileLFS(char *fileName, const char *findMe, char *fou
         else if (n == 0)
         {
             systemPrintf("Line %d contains non-printable data in file %s!\r\n", lineNumber, fileName);
-//            break;
+            if (findMe)
+            {
+                strncpy(found, "LFS Bad Character!", len);
+                break;
+            }
         }
         else if (line[n - 1] != '\n')
         {
@@ -688,6 +717,8 @@ bool loadSystemSettingsFromFileLFS(char *fileName, const char *findMe, char *fou
             {
                 // If we can't read the first line of the settings file, give up
                 systemPrintln("Giving up on LFS settings file");
+                if (findMe)
+                    strncpy(found, "LFS Line too long!", len);
                 status = false;
                 break; // /while (settingsFile.available())
             }
@@ -735,6 +766,12 @@ bool loadSystemSettingsFromFileLFS(char *fileName, const char *findMe, char *fou
         if (lineNumber > 800) // Arbitrary limit. Catch corrupt files.
         {
             systemPrintf("Max line number exceeded. Giving up reading LFS file: %s\r\n", fileName);
+            if (findMe)
+            {
+                strncpy(found, "LFS Too Many Lines!", len);
+                break;
+            }
+
             // Should we return true or false? Going with true...
             break; // /while (settingsFile.available())
         }
