@@ -211,9 +211,10 @@ typedef enum
 {
     RTK_HOUSING_EVK = 0,    // EVK with SPK6615H
     RTK_HOUSING_FACET,      // Facet mosaic-X5
-    RTK_HOUSING_FP,         // Facet FP
+    RTK_HOUSING_FP,         // Facet FP - tilt possible
     RTK_HOUSING_POSTCARD,   // Postcard with SPK-6E helical
-    RTK_HOUSING_TORCH,      // Torch / Torch X2
+    RTK_HOUSING_TORCH,      // Torch - with tilt
+    RTK_HOUSING_TX2,        // Torch X2 - no tilt
     // Add new housing variants above this line
     RTK_HOUSING_MAX_NONE,
 } ProductVariantHousing;
@@ -235,6 +236,7 @@ const productHousingProperties productHousingPropertiesTable[] =
     {RTK_HOUSING_FP,        62.0,   true,   "LEVER_ARM2=0.03391,0.00272,0.02370", "INSTALL_ANGLE=0,180,0", "GNSS_CARD=OEM"}, // APC from drawings - TBC
     {RTK_HOUSING_POSTCARD,  37.5,   false,  "", "", ""}, // APC of SPK-6E helical L1/L2/L5 antenna
     {RTK_HOUSING_TORCH,     129.0,  true,   "LEVER_ARM=-0.00678,-0.01073,-0.0314", "", "GNSS_CARD=UNICORE"}, // Default to Torch helical APC, NGS certified average of L1/L2
+    {RTK_HOUSING_TX2,       129.0,  false,  "", "", ""}, // Default to Torch helical APC, NGS certified average of L1/L2
     {RTK_HOUSING_MAX_NONE,  0.0,    false,  "", "", ""},
 };
 const int productHousingEntries = sizeof(productHousingPropertiesTable) / sizeof(productHousingPropertiesTable[0]);
@@ -279,7 +281,7 @@ const productProperties productPropertiesTable[] =
     { RTK_FACET_FP,         BRAND_SPARKPNT, RTK_HOUSING_FP,         "FP",           "FP",       "SFE_FP",               "FP",               false,  "e9e877bb278140f0", STATE_ROVER_NOT_STARTED,    "https://www.sparkfun.com/rtk_facet_fp_registration" },
     { RTK_POSTCARD,         BRAND_SPARKFUN, RTK_HOUSING_POSTCARD,   "Postcard",     "Postcard", "SFE_Postcard",         "Postcard",         true,   "e9e877bb278140f0", STATE_ROVER_NOT_STARTED,    "https://www.sparkfun.com/rtk_postcard_registration" },
     { RTK_TORCH,            BRAND_SPARKPNT, RTK_HOUSING_TORCH,      "Torch",        "Torch",    "SFE_Torch",            "Torch",            true,   "0000000000000000", STATE_ROVER_NOT_STARTED,    "https://www.sparkfun.com/rtk_torch_registration" },
-    { RTK_TORCH_X2,         BRAND_SPARKPNT, RTK_HOUSING_TORCH,      "TX2",          "TX2",      "SFE_TX2",              "TX2",              false,  "3407c7ca3d6b4984", STATE_ROVER_NOT_STARTED,    "https://www.sparkfun.com/tx2_registration" },
+    { RTK_TORCH_X2,         BRAND_SPARKPNT, RTK_HOUSING_TX2,        "TX2",          "TX2",      "SFE_TX2",              "TX2",              false,  "3407c7ca3d6b4984", STATE_ROVER_NOT_STARTED,    "https://www.sparkfun.com/tx2_registration" },
     { RTK_UNKNOWN,          DEFAULT_BRAND,  RTK_HOUSING_MAX_NONE,   "Unknown",      "Unknown",  "SFE_Unknown",          "Unknown",          true,   "0000000000000000", STATE_ROVER_NOT_STARTED,    "Unknown" },
 };
 const int productPropertiesEntries = sizeof(productPropertiesTable) / sizeof(productPropertiesTable[0]);
