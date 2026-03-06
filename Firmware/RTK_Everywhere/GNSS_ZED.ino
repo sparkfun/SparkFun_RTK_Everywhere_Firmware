@@ -1499,8 +1499,10 @@ void GNSS_ZED::menuConstellations()
 
         for (int x = 0; x < MAX_UBX_CONSTELLATIONS; x++)
         {
-            systemPrintf("%d) Constellation %s: ", x + 1, settings.ubxConstellations[x].textName);
-            if (settings.ubxConstellations[x].enabled)
+            if (constellationSupported(x) == false)
+                continue;
+            systemPrintf("%d) Constellation %s: ", x + 1, ubxConstellations[x].textName);
+            if (settings.ubxConstellationsEnabled[x])
                 systemPrint("Enabled");
             else
                 systemPrint("Disabled");
@@ -1515,19 +1517,19 @@ void GNSS_ZED::menuConstellations()
         {
             incoming--; // Align choice to constellation array of 0 to 5
 
-            settings.ubxConstellations[incoming].enabled ^= 1;
+            settings.ubxConstellationsEnabled[incoming] ^= 1;
 
             // 3.10.6: To avoid cross-correlation issues, it is recommended that GPS and QZSS are always both enabled or
             // both disabled.
             if (incoming == ubxConstellationIDToIndex(SFE_UBLOX_GNSS_ID_GPS)) // Match QZSS to GPS
             {
-                settings.ubxConstellations[ubxConstellationIDToIndex(SFE_UBLOX_GNSS_ID_QZSS)].enabled =
-                    settings.ubxConstellations[incoming].enabled;
+                settings.ubxConstellationsEnabled[ubxConstellationIDToIndex(SFE_UBLOX_GNSS_ID_QZSS)] =
+                    settings.ubxConstellationsEnabled[incoming];
             }
             if (incoming == ubxConstellationIDToIndex(SFE_UBLOX_GNSS_ID_QZSS)) // Match GPS to QZSS
             {
-                settings.ubxConstellations[ubxConstellationIDToIndex(SFE_UBLOX_GNSS_ID_GPS)].enabled =
-                    settings.ubxConstellations[incoming].enabled;
+                settings.ubxConstellationsEnabled[ubxConstellationIDToIndex(SFE_UBLOX_GNSS_ID_GPS)] =
+                    settings.ubxConstellationsEnabled[incoming];
             }
 
             gnssConfigure(GNSS_CONFIG_CONSTELLATION); // Request receiver to use new settings
@@ -1889,65 +1891,41 @@ bool GNSS_ZED::setConstellations()
     if (online.gnss == false)
         return (false);
 
-    bool response = true;
+    bool overallResponse = true;
+    int gnssIndex = 0;
+    bool enableMe = false;
 
-    response &= _zed->newCfgValset(VAL_LAYER_ALL);
-
-    // GPS
-    int gnssIndex = ubxConstellationIDToIndex(SFE_UBLOX_GNSS_ID_GPS);
-    bool enableMe = settings.ubxConstellations[gnssIndex].enabled;
-    response &= _zed->addCfgValset(settings.ubxConstellations[gnssIndex].configKey, enableMe);
-    response &= _zed->addCfgValset(UBLOX_CFG_SIGNAL_GPS_L1CA_ENA, enableMe);
-    response &= _zed->addCfgValset(UBLOX_CFG_SIGNAL_GPS_L2C_ENA, enableMe);
-
-    // SBAS
-    // v1.12 ZED-F9P firmware does not allow for SBAS control
-    // Also, if we can't identify the version (99), skip SBAS enable
-    if ((gnssFirmwareVersionInt == 112) || (gnssFirmwareVersionInt == 99))
+    // Step through each constellation enabling the constellation and any signals as needed
+    for (int gnssIndex = 0; gnssIndex < MAX_UBX_CONSTELLATIONS; gnssIndex++)
     {
-        // Skip
+        if (constellationSupported(gnssIndex))
+        {
+            enableMe = settings.ubxConstellationsEnabled[gnssIndex];
+
+            // Start a cfgValset, enable or disable the constellation.
+            bool response = _zed->newCfgValset(VAL_LAYER_ALL);
+            response &= _zed->addCfgValset(ubxConstellations[gnssIndex].configKey, enableMe);
+
+            //Add any constellation specific signals
+            for (int c = 0; c < MAX_UBX_CONSTELLATION_SIGNALS; c++)
+            {
+                if (ubxConstellations[gnssIndex].CONSTELLATION_SIGNAL[c] > 0)
+                    response &= _zed->addCfgValset(ubxConstellations[gnssIndex].CONSTELLATION_SIGNAL[c], enableMe);
+            }
+
+            // Send it
+            response &= _zed->sendCfgValset();
+            
+            if (response == false)
+            {
+                if (settings.debugGnssConfig == true && !inMainMenu)
+                    systemPrintf("Failed to set %s constellation\r\n", ubxConstellations[gnssIndex].textName);
+                overallResponse = false;
+            }
+        }
     }
-    else
-    {
-        gnssIndex = ubxConstellationIDToIndex(SFE_UBLOX_GNSS_ID_SBAS);
-        enableMe = settings.ubxConstellations[gnssIndex].enabled;
-        response &= _zed->addCfgValset(settings.ubxConstellations[gnssIndex].configKey, enableMe);
-        response &= _zed->addCfgValset(UBLOX_CFG_SIGNAL_SBAS_L1CA_ENA, enableMe);
-    }
 
-    // GAL
-    gnssIndex = ubxConstellationIDToIndex(SFE_UBLOX_GNSS_ID_GALILEO);
-    enableMe = settings.ubxConstellations[gnssIndex].enabled;
-    response &= _zed->addCfgValset(settings.ubxConstellations[gnssIndex].configKey, enableMe);
-    response &= _zed->addCfgValset(UBLOX_CFG_SIGNAL_GAL_E1_ENA, enableMe);
-    response &= _zed->addCfgValset(UBLOX_CFG_SIGNAL_GAL_E5B_ENA, enableMe);
-
-    // BDS
-    gnssIndex = ubxConstellationIDToIndex(SFE_UBLOX_GNSS_ID_BEIDOU);
-    enableMe = settings.ubxConstellations[gnssIndex].enabled;
-    response &= _zed->addCfgValset(settings.ubxConstellations[gnssIndex].configKey, enableMe);
-    response &= _zed->addCfgValset(UBLOX_CFG_SIGNAL_BDS_B1_ENA, enableMe);
-    response &= _zed->addCfgValset(UBLOX_CFG_SIGNAL_BDS_B2_ENA, enableMe);
-
-    // QZSS
-    gnssIndex = ubxConstellationIDToIndex(SFE_UBLOX_GNSS_ID_QZSS);
-    enableMe = settings.ubxConstellations[gnssIndex].enabled;
-    response &= _zed->addCfgValset(settings.ubxConstellations[gnssIndex].configKey, enableMe);
-    response &= _zed->addCfgValset(UBLOX_CFG_SIGNAL_QZSS_L1CA_ENA, enableMe);
-    // UBLOX_CFG_SIGNAL_QZSS_L1S_ENA not supported on F9R in v1.21 and below
-    response &= _zed->addCfgValset(UBLOX_CFG_SIGNAL_QZSS_L1S_ENA, enableMe);
-    response &= _zed->addCfgValset(UBLOX_CFG_SIGNAL_QZSS_L2C_ENA, enableMe);
-
-    // GLO
-    gnssIndex = ubxConstellationIDToIndex(SFE_UBLOX_GNSS_ID_GLONASS);
-    enableMe = settings.ubxConstellations[gnssIndex].enabled;
-    response &= _zed->addCfgValset(settings.ubxConstellations[gnssIndex].configKey, enableMe);
-    response &= _zed->addCfgValset(UBLOX_CFG_SIGNAL_GLO_L1_ENA, enableMe);
-    response &= _zed->addCfgValset(UBLOX_CFG_SIGNAL_GLO_L2_ENA, enableMe);
-
-    response &= _zed->sendCfgValset();
-
-    return (response);
+    return (overallResponse);
 }
 
 // Enable / disable corrections protocol(s) on the Radio External port
@@ -2031,8 +2009,7 @@ void GNSS_ZED::setMessageOffsets(const ubxMsg *localMessage, const char *message
     // Find the first occurrence of a message name which starts with messageType
     for (startOfBlock = 0; startOfBlock < MAX_UBX_MSG; startOfBlock++)
     {
-        if (strstr(localMessage[startOfBlock].msgTextName, messageType)
-            == localMessage[startOfBlock].msgTextName)
+        if (strstr(localMessage[startOfBlock].msgTextName, messageType) == localMessage[startOfBlock].msgTextName)
             break;
     }
     if (startOfBlock == MAX_UBX_MSG)
@@ -2046,8 +2023,7 @@ void GNSS_ZED::setMessageOffsets(const ubxMsg *localMessage, const char *message
     // Find the last occurrence
     for (endOfBlock = startOfBlock + 1; endOfBlock < MAX_UBX_MSG; endOfBlock++)
     {
-        if (strstr(localMessage[endOfBlock].msgTextName, messageType)
-            != localMessage[endOfBlock].msgTextName)
+        if (strstr(localMessage[endOfBlock].msgTextName, messageType) != localMessage[endOfBlock].msgTextName)
             break;
     }
 }
@@ -2133,14 +2109,14 @@ bool GNSS_ZED::setMessagesNMEA()
                         gprmcEnabled = true;
                 }
             }
-            
+
             messageNumber++;
 
             if (messageNumber < MAX_UBX_MSG)
                 thisMessageClass = (int)ubxMessages[messageNumber].msgClass;
 
-        } while ((!sendIndividually) && (messageNumber < MAX_UBX_MSG)
-                 && (groupMessageClass == thisMessageClass)); // Send in batches by Class
+        } while ((!sendIndividually) && (messageNumber < MAX_UBX_MSG) &&
+                 (groupMessageClass == thisMessageClass)); // Send in batches by Class
 
         if (_zed->sendCfgValset() == false)
         {
@@ -2175,8 +2151,7 @@ bool GNSS_ZED::setMessagesNMEA()
                 // Enable GGA over UART1. Tell the module to output GGA every interfval
                 if (settings.debugGnssConfig)
                     systemPrintln("Enabling GGA for Tilt");
-                gpggaEnabled = _zed->setVal8(UBLOX_CFG_MSGOUT_NMEA_ID_GGA_UART1, 1,
-                                             VAL_LAYER_ALL);
+                gpggaEnabled = _zed->setVal8(UBLOX_CFG_MSGOUT_NMEA_ID_GGA_UART1, 1, VAL_LAYER_ALL);
                 response &= gpggaEnabled;
             }
             if (gpgstEnabled == false)
@@ -2184,8 +2159,7 @@ bool GNSS_ZED::setMessagesNMEA()
                 // Enable GST over UART1. Tell the module to output GST every interfval
                 if (settings.debugGnssConfig)
                     systemPrintln("Enabling GST for Tilt");
-                gpgstEnabled = _zed->setVal8(UBLOX_CFG_MSGOUT_NMEA_ID_GST_UART1, 1,
-                                             VAL_LAYER_ALL);
+                gpgstEnabled = _zed->setVal8(UBLOX_CFG_MSGOUT_NMEA_ID_GST_UART1, 1, VAL_LAYER_ALL);
                 response &= gpgstEnabled;
             }
             if (gprmcEnabled == false)
@@ -2193,8 +2167,7 @@ bool GNSS_ZED::setMessagesNMEA()
                 // Enable RMC over UART1. Tell the module to output RMC every interfval
                 if (settings.debugGnssConfig)
                     systemPrintln("Enabling RMC for Tilt");
-                gprmcEnabled = _zed->setVal8(UBLOX_CFG_MSGOUT_NMEA_ID_RMC_UART1, 1,
-                                             VAL_LAYER_ALL);
+                gprmcEnabled = _zed->setVal8(UBLOX_CFG_MSGOUT_NMEA_ID_RMC_UART1, 1, VAL_LAYER_ALL);
                 response &= gprmcEnabled;
             }
         }
@@ -2211,8 +2184,9 @@ bool GNSS_ZED::setMessagesNMEA()
                 measurementFrequency = 0.2; // 0.2Hz * 5 = 1 measurement every 5 seconds
             if (settings.debugGnssConfig)
                 systemPrintf("Adjusting GGA setting to %f\r\n", measurementFrequency);
-            gpggaEnabled = _zed->setVal8(UBLOX_CFG_MSGOUT_NMEA_ID_GGA_UART1, measurementFrequency,
-                                         VAL_LAYER_ALL); // Enable GGA over UART1. Tell the module to output GGA every second
+            gpggaEnabled =
+                _zed->setVal8(UBLOX_CFG_MSGOUT_NMEA_ID_GGA_UART1, measurementFrequency,
+                              VAL_LAYER_ALL); // Enable GGA over UART1. Tell the module to output GGA every second
             response &= gpggaEnabled;
         }
     }
@@ -2258,16 +2232,16 @@ bool GNSS_ZED::setMessagesRTCMBase()
         if (messageSupported(firstRTCMRecord + x))
         {
             response &= _zed->addCfgValset(ubxMessages[firstRTCMRecord + x].msgConfigKey - 1,
-                                        settings.ubxMessageRatesBase[x]); // UBLOX_CFG UART1 - 1 = I2C
+                                           settings.ubxMessageRatesBase[x]); // UBLOX_CFG UART1 - 1 = I2C
             response &= _zed->addCfgValset(ubxMessages[firstRTCMRecord + x].msgConfigKey,
-                                        settings.ubxMessageRatesBase[x]); // UBLOX_CFG UART1
+                                           settings.ubxMessageRatesBase[x]); // UBLOX_CFG UART1
             response &= _zed->addCfgValset(ubxMessages[firstRTCMRecord + x].msgConfigKey + 1,
-                                        settings.ubxMessageRatesBase[x]); // UBLOX_CFG UART1 + 1 = UART2
+                                           settings.ubxMessageRatesBase[x]); // UBLOX_CFG UART1 + 1 = UART2
             response &= _zed->addCfgValset(ubxMessages[firstRTCMRecord + x].msgConfigKey + 2,
-                                        settings.ubxMessageRatesBase[x]); // UBLOX_CFG UART1 + 2 = USB
+                                           settings.ubxMessageRatesBase[x]); // UBLOX_CFG UART1 + 2 = USB
             // Disable messages on SPI
             response &= _zed->addCfgValset(ubxMessages[firstRTCMRecord + x].msgConfigKey + 3,
-                                        0); // UBLOX_CFG UART1 + 3 = SPI
+                                           0); // UBLOX_CFG UART1 + 3 = SPI
         }
     }
 
@@ -2302,15 +2276,15 @@ bool GNSS_ZED::setMessagesRTCMRover()
         {
             // Disable RTCM on all interfaces but UART1
             response &= _zed->addCfgValset(ubxMessages[firstRTCMRecord + x].msgConfigKey - 1,
-                                            0); // UBLOX_CFG UART1 - 1 = I2C
+                                           0); // UBLOX_CFG UART1 - 1 = I2C
             response &= _zed->addCfgValset(ubxMessages[firstRTCMRecord + x].msgConfigKey,
-                                            settings.ubxMessageRates[firstRTCMRecord + x]); // UBLOX_CFG UART1
+                                           settings.ubxMessageRates[firstRTCMRecord + x]); // UBLOX_CFG UART1
             response &= _zed->addCfgValset(ubxMessages[firstRTCMRecord + x].msgConfigKey + 1,
-                                            0); // UBLOX_CFG UART1 + 1 = UART2
+                                           0); // UBLOX_CFG UART1 + 1 = UART2
             response &= _zed->addCfgValset(ubxMessages[firstRTCMRecord + x].msgConfigKey + 2,
-                                            0); // UBLOX_CFG UART1 + 2 = USB
+                                           0); // UBLOX_CFG UART1 + 2 = USB
             response &= _zed->addCfgValset(ubxMessages[firstRTCMRecord + x].msgConfigKey + 3,
-                                            0); // UBLOX_CFG UART1 + 3 = SPI
+                                           0); // UBLOX_CFG UART1 + 3 = SPI
         }
     }
 
@@ -2471,7 +2445,7 @@ bool GNSS_ZED::setTilt()
 
         // gnss->setTilt() is called by gnssUpdate() from the loop
         // i.e. well after serialGNSS->begin is called
-        // serialGNSS could be running 
+        // serialGNSS could be running
 
         // Tilt sensor requires 5Hz at a minimum
         if (settings.measurementRateMs > 200)
@@ -2793,12 +2767,12 @@ bool GNSS_ZED::surveyInStart()
     return (true);
 }
 
-//----------------------------------------
+// Given a library based constellation ID, return the index in the ubxConstellations struct, or -1 if not found
 int GNSS_ZED::ubxConstellationIDToIndex(int id)
 {
     for (int x = 0; x < MAX_UBX_CONSTELLATIONS; x++)
     {
-        if (settings.ubxConstellations[x].gnssID == id)
+        if (ubxConstellations[x].gnssID == id)
             return x;
     }
 
@@ -2891,6 +2865,23 @@ void eventTriggerReceived(UBX_TIM_TM2_data_t *ubxDataStruct)
     }
 }
 
+// Given a constellation in ubxConstellations, return true if this constellation is supported on this platform and
+// firmware version
+bool constellationSupported(int constellationNumber)
+{
+    bool constellationSupported = false;
+
+    if (present.gnss_zedf9p)
+        if (gnssFirmwareVersionInt >= ubxConstellations[constellationNumber].f9pFirmwareVersionSupported)
+            constellationSupported = true;
+
+    if (present.gnss_zedx20p)
+        if (gnssFirmwareVersionInt >= ubxConstellations[constellationNumber].x20pFirmwareVersionSupported)
+            constellationSupported = true;
+
+    return (constellationSupported);
+}
+
 // Given a spot in the ubxMsg array, return true if this message is supported on this platform and firmware version
 bool messageSupported(int messageNumber)
 {
@@ -2906,6 +2897,7 @@ bool messageSupported(int messageNumber)
 
     return (messageSupported);
 }
+
 // Given a command key, return true if that key is supported on this platform and fimrware version
 bool commandSupported(const uint32_t key)
 {
@@ -3011,56 +3003,53 @@ void zedPushGPGGA(NMEA_GGA_data_t *nmeaData)
 //----------------------------------------
 // List available settings, their type in CSV, and value
 //----------------------------------------
-bool zedCommandList(RTK_Settings_Types type,
-                    int settingsIndex,
-                    bool inCommands,
-                    int qualifier,
-                    char * settingName,
-                    char * settingValue)
+bool zedCommandList(RTK_Settings_Types type, int settingsIndex, bool inCommands, int qualifier, char *settingName,
+                    char *settingValue)
 {
     switch (type)
     {
-        default:
-            return false;
+    default:
+        return false;
 
-        case tUbxConst: {
-            // Record constellation settings
-            for (int x = 0; x < rtkSettingsEntries[settingsIndex].qualifier; x++)
-            {
-                snprintf(settingName, sizeof(settingName), "%s%s", rtkSettingsEntries[settingsIndex].name,
-                         settings.ubxConstellations[x].textName);
+    case tUbxConst: {
+        // Record constellation settings
+        for (int x = 0; x < rtkSettingsEntries[settingsIndex].qualifier; x++)
+        {
+            snprintf(settingName, sizeof(settingName), "%s%s", rtkSettingsEntries[settingsIndex].name,
+                     ubxConstellations[x].textName);
 
-                getSettingValue(inCommands, settingName, settingValue);
-                commandSendExecuteListResponse(settingName, "tUbxConst", settingValue);
-            }
+            getSettingValue(inCommands, settingName, settingValue);
+            commandSendExecuteListResponse(settingName, "tUbxConst", settingValue);
         }
-        break;
-        case tUbxMsgRt: {
-            // Record message settings
-            for (int x = 0; x < rtkSettingsEntries[settingsIndex].qualifier; x++)
-            {
-                snprintf(settingName, sizeof(settingName), "%s%s", rtkSettingsEntries[settingsIndex].name, ubxMessages[x].msgTextName);
+    }
+    break;
+    case tUbxMsgRt: {
+        // Record message settings
+        for (int x = 0; x < rtkSettingsEntries[settingsIndex].qualifier; x++)
+        {
+            snprintf(settingName, sizeof(settingName), "%s%s", rtkSettingsEntries[settingsIndex].name,
+                     ubxMessages[x].msgTextName);
 
-                getSettingValue(inCommands, settingName, settingValue);
-                commandSendExecuteListResponse(settingName, "tUbxMsgRt", settingValue);
-            }
+            getSettingValue(inCommands, settingName, settingValue);
+            commandSendExecuteListResponse(settingName, "tUbxMsgRt", settingValue);
         }
-        break;
-        case tUbMsgRtb: {
-            // Record message settings
-            GNSS_ZED *zed = (GNSS_ZED *)gnss;
-            int firstRTCMRecord = zed->getMessageNumberByName("RTCM_1005");
+    }
+    break;
+    case tUbMsgRtb: {
+        // Record message settings
+        GNSS_ZED *zed = (GNSS_ZED *)gnss;
+        int firstRTCMRecord = zed->getMessageNumberByName("RTCM_1005");
 
-            for (int x = 0; x < rtkSettingsEntries[settingsIndex].qualifier; x++)
-            {
-                snprintf(settingName, sizeof(settingName), "%s%s", rtkSettingsEntries[settingsIndex].name,
-                         ubxMessages[firstRTCMRecord + x].msgTextName);
+        for (int x = 0; x < rtkSettingsEntries[settingsIndex].qualifier; x++)
+        {
+            snprintf(settingName, sizeof(settingName), "%s%s", rtkSettingsEntries[settingsIndex].name,
+                     ubxMessages[firstRTCMRecord + x].msgTextName);
 
-                getSettingValue(inCommands, settingName, settingValue);
-                commandSendExecuteListResponse(settingName, "tUbMsgRtb", settingValue);
-            }
+            getSettingValue(inCommands, settingName, settingValue);
+            commandSendExecuteListResponse(settingName, "tUbMsgRtb", settingValue);
         }
-        break;
+    }
+    break;
     }
     return true;
 }
@@ -3077,7 +3066,12 @@ void zedCommandTypeJson(JsonArray &command_types)
     command_types_tUbxConst["prefix"] = "constellation_";
     JsonArray command_types_tUbxConst_keys = command_types_tUbxConst["keys"].to<JsonArray>();
     for (int x = 0; x < MAX_UBX_CONSTELLATIONS; x++)
-        command_types_tUbxConst_keys.add(settings.ubxConstellations[x].textName);
+    {
+        // Only add constellations which are supported on this platform and firmware version
+        if (constellationSupported(x) == true)
+            command_types_tUbxConst_keys.add(ubxConstellations[x].textName);
+    }
+
     JsonArray command_types_tUbxConst_values = command_types_tUbxConst["values"].to<JsonArray>();
     command_types_tUbxConst_values.add("0");
     command_types_tUbxConst_values.add("1");
@@ -3112,53 +3106,55 @@ void zedCommandTypeJson(JsonArray &command_types)
 //----------------------------------------
 // Called by gnssCreateString to build settings file string
 //----------------------------------------
-bool zedCreateString(RTK_Settings_Types type,
-                     int settingsIndex,
-                     char * newSettings)
+bool zedCreateString(RTK_Settings_Types type, int settingsIndex, char *newSettings)
 {
     switch (type)
     {
-        default:
-            return false;
+    default:
+        return false;
 
-        case tUbxConst: {
-            // Record constellation settings
-            for (int x = 0; x < rtkSettingsEntries[settingsIndex].qualifier; x++)
+    case tUbxConst: {
+        // Record constellation settings
+        for (int x = 0; x < rtkSettingsEntries[settingsIndex].qualifier; x++)
+        {
+            // Only report constellations which are supported on this platform and firmware version
+            if (constellationSupported(x) == true)
             {
                 char tempString[50];
                 snprintf(tempString, sizeof(tempString), "%s%s,%s,", rtkSettingsEntries[settingsIndex].name,
-                         settings.ubxConstellations[x].textName,
-                         settings.ubxConstellations[x].enabled ? "true" : "false");
+                         ubxConstellations[x].textName, settings.ubxConstellationsEnabled[x] ? "true" : "false");
                 stringRecord(newSettings, tempString);
             }
         }
-        break;
-        case tUbxMsgRt: {
-            // Record message settings
-            for (int x = 0; x < rtkSettingsEntries[settingsIndex].qualifier; x++)
-            {
-                char tempString[50];
-                snprintf(tempString, sizeof(tempString), "%s%s,%d,", rtkSettingsEntries[settingsIndex].name,
-                         ubxMessages[x].msgTextName, settings.ubxMessageRates[x]);
-                stringRecord(newSettings, tempString);
-            }
+    }
+    break;
+    case tUbxMsgRt: {
+        // Record message settings
+        for (int x = 0; x < rtkSettingsEntries[settingsIndex].qualifier; x++)
+        {
+            char tempString[50];
+            snprintf(tempString, sizeof(tempString), "%s%s,%d,", rtkSettingsEntries[settingsIndex].name,
+                     ubxMessages[x].msgTextName, settings.ubxMessageRates[x]);
+            stringRecord(newSettings, tempString);
+            Serial.printf("Adding to settings string: %s", tempString);
         }
-        break;
-        case tUbMsgRtb: {
-            // Locate the first record
-            GNSS_ZED *zed = (GNSS_ZED *)gnss;
-            int firstRTCMRecord = zed->getMessageNumberByName("RTCM_1005");
+    }
+    break;
+    case tUbMsgRtb: {
+        // Locate the first record
+        GNSS_ZED *zed = (GNSS_ZED *)gnss;
+        int firstRTCMRecord = zed->getMessageNumberByName("RTCM_1005");
 
-            // Record message settings
-            for (int x = 0; x < rtkSettingsEntries[settingsIndex].qualifier; x++)
-            {
-                char tempString[50];
-                snprintf(tempString, sizeof(tempString), "%s%s,%d,", rtkSettingsEntries[settingsIndex].name,
-                         ubxMessages[firstRTCMRecord + x].msgTextName, settings.ubxMessageRatesBase[x]);
-                stringRecord(newSettings, tempString);
-            }
+        // Record message settings
+        for (int x = 0; x < rtkSettingsEntries[settingsIndex].qualifier; x++)
+        {
+            char tempString[50];
+            snprintf(tempString, sizeof(tempString), "%s%s,%d,", rtkSettingsEntries[settingsIndex].name,
+                     ubxMessages[firstRTCMRecord + x].msgTextName, settings.ubxMessageRatesBase[x]);
+            stringRecord(newSettings, tempString);
         }
-        break;
+    }
+    break;
     }
     return true;
 }
@@ -3166,52 +3162,48 @@ bool zedCreateString(RTK_Settings_Types type,
 //----------------------------------------
 // Return setting value as a string
 //----------------------------------------
-bool zedGetSettingValue(RTK_Settings_Types type,
-                        const char * suffix,
-                        int settingsIndex,
-                        int qualifier,
-                        char * settingValueStr)
+bool zedGetSettingValue(RTK_Settings_Types type, const char *suffix, int settingsIndex, int qualifier,
+                        char *settingValueStr)
 {
     switch (type)
     {
-        case tUbxConst: {
-            for (int x = 0; x < qualifier; x++)
+    case tUbxConst: {
+        for (int x = 0; x < qualifier; x++)
+        {
+            if ((suffix[0] == ubxConstellations[x].textName[0]) && (strcmp(suffix, ubxConstellations[x].textName) == 0))
             {
-                if ((suffix[0] == settings.ubxConstellations[x].textName[0]) &&
-                    (strcmp(suffix, settings.ubxConstellations[x].textName) == 0))
-                {
-                    writeToString(settingValueStr, settings.ubxConstellations[x].enabled);
-                    return true;
-                }
+                writeToString(settingValueStr, settings.ubxConstellationsEnabled[x]);
+                return true;
             }
         }
-        break;
-        case tUbxMsgRt: {
-            for (int x = 0; x < qualifier; x++)
+    }
+    break;
+    case tUbxMsgRt: {
+        for (int x = 0; x < qualifier; x++)
+        {
+            if ((suffix[0] == ubxMessages[x].msgTextName[0]) && (strcmp(suffix, ubxMessages[x].msgTextName) == 0))
             {
-                if ((suffix[0] == ubxMessages[x].msgTextName[0]) && (strcmp(suffix, ubxMessages[x].msgTextName) == 0))
-                {
-                    writeToString(settingValueStr, settings.ubxMessageRates[x]);
-                    return true;
-                }
+                writeToString(settingValueStr, settings.ubxMessageRates[x]);
+                return true;
             }
         }
-        break;
-        case tUbMsgRtb: {
-            GNSS_ZED *zed = (GNSS_ZED *)gnss;
-            int firstRTCMRecord = zed->getMessageNumberByName("RTCM_1005");
+    }
+    break;
+    case tUbMsgRtb: {
+        GNSS_ZED *zed = (GNSS_ZED *)gnss;
+        int firstRTCMRecord = zed->getMessageNumberByName("RTCM_1005");
 
-            for (int x = 0; x < qualifier; x++)
+        for (int x = 0; x < qualifier; x++)
+        {
+            if ((suffix[0] == ubxMessages[firstRTCMRecord + x].msgTextName[0]) &&
+                (strcmp(suffix, ubxMessages[firstRTCMRecord + x].msgTextName) == 0))
             {
-                if ((suffix[0] == ubxMessages[firstRTCMRecord + x].msgTextName[0]) &&
-                    (strcmp(suffix, ubxMessages[firstRTCMRecord + x].msgTextName) == 0))
-                {
-                    writeToString(settingValueStr, settings.ubxMessageRatesBase[x]);
-                    return true;
-                }
+                writeToString(settingValueStr, settings.ubxMessageRatesBase[x]);
+                return true;
             }
         }
-        break;
+    }
+    break;
     }
     return false;
 }
@@ -3219,52 +3211,51 @@ bool zedGetSettingValue(RTK_Settings_Types type,
 //----------------------------------------
 // Called by gnssNewSettingValue to save a ZED specific setting
 //----------------------------------------
-bool zedNewSettingValue(RTK_Settings_Types type,
-                        const char * suffix,
-                        int qualifier,
-                        double d)
+bool zedNewSettingValue(RTK_Settings_Types type, const char *suffix, int qualifier, double d)
 {
     switch (type)
     {
-        case tCmnCnst:
-            for (int x = 0; x < MAX_UBX_CONSTELLATIONS; x++)
+    case tCmnCnst:
+        for (int x = 0; x < MAX_UBX_CONSTELLATIONS; x++)
+        {
+            if (constellationSupported(x) == true)
             {
-                if ((suffix[0] == settings.ubxConstellations[x].textName[0]) &&
-                    (strcmp(suffix, settings.ubxConstellations[x].textName) == 0))
+                if ((suffix[0] == ubxConstellations[x].textName[0]) &&
+                    (strcmp(suffix, ubxConstellations[x].textName) == 0))
                 {
-                    settings.ubxConstellations[x].enabled = d;
+                    settings.ubxConstellationsEnabled[x] = d;
                     return true;
                 }
             }
-            break;
-        case tUbxConst:
-            // Covered by ttCmnCnst
-            break;
-        case tUbxMsgRt:
-            for (int x = 0; x < qualifier; x++)
+        }
+        break;
+    case tUbxConst:
+        // Covered by ttCmnCnst
+        break;
+    case tUbxMsgRt:
+        for (int x = 0; x < qualifier; x++)
+        {
+            if ((suffix[0] == ubxMessages[x].msgTextName[0]) && (strcmp(suffix, ubxMessages[x].msgTextName) == 0))
             {
-                if ((suffix[0] == ubxMessages[x].msgTextName[0]) &&
-                    (strcmp(suffix, ubxMessages[x].msgTextName) == 0))
-                {
-                    settings.ubxMessageRates[x] = (uint8_t)d;
-                    return true;
-                }
+                settings.ubxMessageRates[x] = (uint8_t)d;
+                return true;
             }
-            break;
-        case tUbMsgRtb:
-            GNSS_ZED *zed = (GNSS_ZED *)gnss;
-            int firstRTCMRecord = zed->getMessageNumberByName("RTCM_1005");
+        }
+        break;
+    case tUbMsgRtb:
+        GNSS_ZED *zed = (GNSS_ZED *)gnss;
+        int firstRTCMRecord = zed->getMessageNumberByName("RTCM_1005");
 
-            for (int x = 0; x < qualifier; x++)
+        for (int x = 0; x < qualifier; x++)
+        {
+            if ((suffix[0] == ubxMessages[firstRTCMRecord + x].msgTextName[0]) &&
+                (strcmp(suffix, ubxMessages[firstRTCMRecord + x].msgTextName) == 0))
             {
-                if ((suffix[0] == ubxMessages[firstRTCMRecord + x].msgTextName[0]) &&
-                    (strcmp(suffix, ubxMessages[firstRTCMRecord + x].msgTextName) == 0))
-                {
-                    settings.ubxMessageRatesBase[x] = (uint8_t)d;
-                    return true;
-                }
+                settings.ubxMessageRatesBase[x] = (uint8_t)d;
+                return true;
             }
-            break;
+        }
+        break;
     }
     return false;
 }
@@ -3272,52 +3263,54 @@ bool zedNewSettingValue(RTK_Settings_Types type,
 //----------------------------------------
 // Called by gnssSettingsToFile to save ZED specific settings
 //----------------------------------------
-bool zedSettingsToFile(File *settingsFile,
-                       RTK_Settings_Types type,
-                       int settingsIndex)
+bool zedSettingsToFile(File *settingsFile, RTK_Settings_Types type, int settingsIndex)
 {
     switch (type)
     {
-        default:
-            return false;
+    default:
+        return false;
 
-        case tUbxConst: {
-            // Record constellation settings
-            for (int x = 0; x < rtkSettingsEntries[settingsIndex].qualifier; x++)
+    case tUbxConst: {
+        // Record constellation settings
+        for (int x = 0; x < rtkSettingsEntries[settingsIndex].qualifier; x++)
+        {
+            // Only record constellations which are supported on this platform and firmware version
+            if (constellationSupported(x) == true)
             {
                 char tempString[50]; // constellation_BeiDou=1
                 snprintf(tempString, sizeof(tempString), "%s%s=%d", rtkSettingsEntries[settingsIndex].name,
-                         settings.ubxConstellations[x].textName, settings.ubxConstellations[x].enabled);
+                         ubxConstellations[x].textName, settings.ubxConstellationsEnabled[x]);
                 settingsFile->println(tempString);
             }
         }
-        break;
-        case tUbxMsgRt: {
-            // Record message settings
-            for (int x = 0; x < rtkSettingsEntries[settingsIndex].qualifier; x++)
-            {
-                char tempString[50]; // ubxMessageRate_UBX_NMEA_DTM=5
-                snprintf(tempString, sizeof(tempString), "%s%s=%d", rtkSettingsEntries[settingsIndex].name,
-                         ubxMessages[x].msgTextName, settings.ubxMessageRates[x]);
-                settingsFile->println(tempString);
-            }
+    }
+    break;
+    case tUbxMsgRt: {
+        // Record message settings
+        for (int x = 0; x < rtkSettingsEntries[settingsIndex].qualifier; x++)
+        {
+            char tempString[50]; // ubxMessageRate_UBX_NMEA_DTM=5
+            snprintf(tempString, sizeof(tempString), "%s%s=%d", rtkSettingsEntries[settingsIndex].name,
+                     ubxMessages[x].msgTextName, settings.ubxMessageRates[x]);
+            settingsFile->println(tempString);
         }
-        break;
-        case tUbMsgRtb: {
-            // Record message settings
+    }
+    break;
+    case tUbMsgRtb: {
+        // Record message settings
 
-            GNSS_ZED *zed = (GNSS_ZED *)gnss;
-            int firstRTCMRecord = zed->getMessageNumberByName("RTCM_1005");
+        GNSS_ZED *zed = (GNSS_ZED *)gnss;
+        int firstRTCMRecord = zed->getMessageNumberByName("RTCM_1005");
 
-            for (int x = 0; x < rtkSettingsEntries[settingsIndex].qualifier; x++)
-            {
-                char tempString[50]; // ubxMessageRateBase_UBX_NMEA_DTM=5
-                snprintf(tempString, sizeof(tempString), "%s%s=%d", rtkSettingsEntries[settingsIndex].name,
-                         ubxMessages[firstRTCMRecord + x].msgTextName, settings.ubxMessageRatesBase[x]);
-                settingsFile->println(tempString);
-            }
+        for (int x = 0; x < rtkSettingsEntries[settingsIndex].qualifier; x++)
+        {
+            char tempString[50]; // ubxMessageRateBase_UBX_NMEA_DTM=5
+            snprintf(tempString, sizeof(tempString), "%s%s=%d", rtkSettingsEntries[settingsIndex].name,
+                     ubxMessages[firstRTCMRecord + x].msgTextName, settings.ubxMessageRatesBase[x]);
+            settingsFile->println(tempString);
         }
-        break;
+    }
+    break;
     }
     return true;
 }
@@ -3392,6 +3385,5 @@ void f9pNewClass()
     present.gnss_zedf9p = true;
     present.minCN0 = true;
 }
-
 
 #endif // COMPILE_ZED
