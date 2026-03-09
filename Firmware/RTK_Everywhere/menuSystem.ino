@@ -201,6 +201,10 @@ void menuSystem()
 
         systemPrintln("h) Debug hardware");
 
+#ifdef  COMPILE_MENU_USER_PROFILES
+        systemPrintln("l) Debug LFS and SD card files");
+#endif  // COMPILE_MENU_USER_PROFILES
+
         systemPrintln("n) Debug network");
 
         systemPrintln("o) Configure operation");
@@ -282,6 +286,12 @@ void menuSystem()
         }
         else if (incoming == 'h')
             menuDebugHardware();
+
+#ifdef  COMPILE_MENU_USER_PROFILES
+        else if (incoming == 'l')
+            menuDebugFiles();
+#endif  // COMPILE_MENU_USER_PROFILES
+
         else if (incoming == 'n')
             menuDebugNetwork();
         else if (incoming == 'o')
@@ -409,6 +419,162 @@ void menuSystem()
 
     clearBuffer(); // Empty buffer of any newline chars
 }
+
+#ifdef  COMPILE_MENU_USER_PROFILES
+
+// Debug LFS and SD card files
+void menuDebugFiles()
+{
+    char fileName[60];
+    bool filePresent;
+    bool gotSemaphore;
+    uint8_t profile = profileNumber;
+    const char * profileNumberFileName = "/profileNumber.txt";
+    bool sdActive = false;
+    bool wasSdCardOnline = false;
+    int x;
+
+    while (1)
+    {
+        systemPrintln();
+        systemPrintln("Menu: Debug NVM and SD card files");
+
+        // Try to gain access the SD card
+        gotSemaphore = false;
+        if (sdActive)
+        {
+            wasSdCardOnline = online.microSD;
+            if (online.microSD == false)
+                beginSD();
+
+            if (online.microSD)
+            {
+                // Attempt to access file system. This avoids collisions with file writing from other functions like
+                // recordSystemSettingsToFile() and gnssSerialReadTask()
+                if (xSemaphoreTake(sdCardSemaphore, fatSemaphore_longWait_ms) == pdPASS)
+                {
+                    gotSemaphore = true;
+                    markSemaphore(FUNCTION_FILE_EXISTS);
+                }
+            }
+        }
+
+        // List available profiles
+        for (x = 0; x < MAX_PROFILE_COUNT; x++)
+        {
+            // Get the file name
+            getProfileFileName(x, fileName, sizeof(fileName));
+
+            // Determine if the file is present
+            filePresent = false;
+            if (sdActive)
+            {
+                if (online.microSD && gotSemaphore)
+                    filePresent = sd->exists(fileName);
+            }
+            else
+                filePresent = LittleFS.exists(fileName);
+            if (filePresent)
+                systemPrintf("%d) Select %s%s%s\r\n",
+                             x, sdActive ? "SD" : "NVM", fileName,
+                             (x == profile) ? " <- Current" : "");
+        }
+
+        // Check for profileNumber.txt
+        strcpy(fileName, profileNumberFileName);
+        filePresent = false;
+        if (sdActive)
+        {
+            if (online.microSD && gotSemaphore)
+                filePresent = sd->exists(fileName);
+        }
+        else
+            filePresent = LittleFS.exists(fileName);
+        if (filePresent)
+            systemPrintf("%d) Dump %s%s\r\n",
+                         x, sdActive ? "SD" : "NVM", fileName);
+        x += 1;
+
+        // *** Start of menu ***
+        // Support file dumping
+        getProfileFileName(profile, fileName, sizeof(fileName));
+        systemPrintf("d) Dump file: %s%s\r\n",
+                     sdActive ? "SD" : "NVM", fileName);
+
+        // Support directory listings
+        systemPrintf("l) List %s files\r\n", sdActive ? "SD" : "NVM");
+
+        // Toggle between NVM and SD card
+        if (online.microSD)
+            systemPrintf("t) Toggle between NVM and SD\r\n");
+
+        // Release access the SD card
+        if (sdActive)
+        {
+            if (online.microSD && (!wasSdCardOnline))
+                endSD(gotSemaphore, true);
+            else if (gotSemaphore)
+                xSemaphoreGive(sdCardSemaphore);
+        }
+
+        // Exit
+        // *** End of menu ***
+        systemPrintln("x) Exit");
+
+        // Get menu choice
+        byte incoming = getUserInputCharacterNumber();
+
+        // Check for a profile number
+        if ((incoming >= 0) && (incoming < MAX_PROFILE_COUNT))
+            profile = incoming;
+
+        // Dump profileNumber.txt
+        if (incoming == MAX_PROFILE_COUNT)
+        {
+            if (sdActive)
+                sdCardDumpFile(profileNumberFileName);
+            else
+                nvmDumpFile(profileNumberFileName);
+        }
+
+        // Dump the file if requested
+        else if (incoming == 'd')
+        {
+            getProfileFileName(profile, fileName, sizeof(fileName));
+            if (sdActive)
+                sdCardDumpFile(fileName);
+            else
+                nvmDumpFile(fileName);
+        }
+
+        // List the files in the file system
+        else if (incoming == 'l')
+        {
+            if (sdActive)
+                sdCardDirectoryListing();
+            else
+                nvmDirectoryListing();
+        }
+
+        // Toggle the selection between NVM and the SD card
+        else if (incoming == 't')
+            sdActive = ! sdActive;
+
+        // All done with this menu
+        else if (incoming == 'x')
+            break;
+        else if (incoming == INPUT_RESPONSE_GETNUMBER_EXIT)
+            break;
+        else if (incoming == INPUT_RESPONSE_GETNUMBER_TIMEOUT)
+            break;
+        else
+            printUnknown(incoming);
+    }
+
+    clearBuffer(); // Empty buffer of any newline chars
+}
+
+#endif  // COMPILE_MENU_USER_PROFILES
 
 // Toggle debug settings for hardware
 void menuDebugHardware()

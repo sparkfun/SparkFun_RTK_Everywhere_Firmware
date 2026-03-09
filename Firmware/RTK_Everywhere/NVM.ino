@@ -1359,6 +1359,18 @@ void recordProfileNumber(uint8_t newProfileNumber)
     fileProfileNumber.close();
 }
 
+bool getProfileFileName(int profileNumber, char * fileName, size_t nameLength)
+{
+    size_t bytesNeeded;
+    bool success;
+
+    bytesNeeded = snprintf(fileName, nameLength, "/%s_Settings_%d.txt", platformFilePrefix, profileNumber);
+    success = (bytesNeeded <= nameLength);
+    if ((success == false) && settings.debugSettings)
+        systemPrintf("ERROR: fileName buffer too small, must be >= %d bytes\r\n", bytesNeeded);
+    return success;
+}
+
 // Populate profileNames[][] based on names found in LittleFS and SD
 // If both SD and LittleFS contain a profile, SD wins.
 uint8_t loadProfileNames()
@@ -1372,7 +1384,7 @@ uint8_t loadProfileNames()
     for (int x = 0; x < MAX_PROFILE_COUNT; x++)
     {
         char fileName[60];
-        snprintf(fileName, sizeof(fileName), "/%s_Settings_%d.txt", platformFilePrefix, x);
+        getProfileFileName(x, fileName, sizeof(fileName));
 
         if (getProfileName(fileName, profileNames[x], sizeof(profileNames[x])) == true)
             // Mark this profile as active
@@ -1536,4 +1548,133 @@ bool loadFile(const char *fileID, char *fileContents, bool debug)
     else if (debug)
         systemPrintf("Failed to read from LittleFS: %s\r\n", fileName);
     return false;
+}
+
+//----------------------------------------
+// List the files in NVM
+void nvmDirectoryListing()
+{
+    File rootDir;
+    bool directory;
+    File file;
+    bool headerDisplayed;
+    const char * name;
+    size_t size;
+
+    // Display the partition name
+    systemPrintf("\nNVM Partition spiffs using LittleFS\r\n");
+
+    // Start at the beginning of the directory
+    rootDir = LittleFS.open("/", FILE_READ);
+    if (rootDir)
+    {
+        // List the contents of the directory
+        headerDisplayed = false;
+        while (1)
+        {
+            // Open the next file
+            file = rootDir.openNextFile();
+            if (!file)
+            {
+                if (headerDisplayed == false)
+                    systemPrintf("No NVM files found\r\n");
+                break;
+            }
+
+            // Get the file attributes
+            name = file.name();
+            size = file.size();
+            directory = file.isDirectory();
+
+            // Done with this file
+            file.close();
+
+            // Display the attributes
+            if (headerDisplayed == false)
+            {
+                headerDisplayed = true;
+                systemPrintf("      Size   Dir   File Name\r\n");
+                //                     1                  1         2
+                //            1234567890   123   12345678901234567890
+                systemPrintf("----------   ---   --------------------\r\n");
+            }
+
+            // Display the file attributes
+            systemPrintf("%10d   %s   %s\r\n", size, directory ? "Dir" : "   ", name);
+        }
+
+        // Close the directory
+        close(rootDir);
+    }
+}
+
+//----------------------------------------
+// Dump an NVM file
+void nvmDumpFile(const char * fileName)
+{
+    uint8_t * buffer = nullptr;
+    const size_t bufferLength = 8192;
+    ssize_t bytesRead;
+    File file;
+    size_t offset;
+
+    do
+    {
+        // Attempt to open the file
+        file = LittleFS.open(fileName, FILE_READ);
+        if (! file)
+        {
+            systemPrintf("ERROR: Failed to open NVM file %s\r\n", fileName);
+            break;
+        }
+
+        // Allocate the buffer
+        buffer = (uint8_t *)rtkMalloc(bufferLength, "NVM file dump buffer");
+        if (buffer == nullptr)
+        {
+            systemPrintf("ERROR: Failed to allocate the dump buffer\r\n");
+            break;
+        }
+
+        // Display the file name
+        systemPrintf("NVM file %s dump:\r\n", fileName);
+
+        // Walk the contents of the file
+        offset = 0;
+        while (file.available())
+        {
+            // Read some data
+            bytesRead = 0;
+            do
+            {
+                int data = file.read();
+                if (data < 0)
+                {
+                    if (bytesRead == 0)
+                        bytesRead = data;
+                    break;
+                }
+                buffer[bytesRead] = (uint8_t)data;
+                bytesRead += 1;
+            } while ((bytesRead > 0) && (bytesRead < bufferLength));
+            if (bytesRead < 0)
+            {
+                systemPrintf("ERROR: Hard read error at offset %ld in NVM file %s\r\n",
+                             offset, fileName);
+                break;
+            }
+
+            // Display the data
+            dumpBuffer(offset, buffer, bytesRead);
+            offset += bytesRead;
+        }
+    } while (0);
+
+    // Done with the file
+    if (file)
+        file.close();
+
+    // Done with the buffer
+    if (buffer)
+        rtkFree(buffer, "NVM file dump buffer");
 }
