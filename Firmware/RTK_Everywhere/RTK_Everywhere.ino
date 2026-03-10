@@ -1994,6 +1994,12 @@ void getSemaphoreFunction(char *functionName)
     case FUNCTION_ARPWRITE:
         strcpy(functionName, "ARP Write");
         break;
+    case FUNCTION_FILE_EXISTS:
+        strcpy(functionName, "File Exists");
+        break;
+    case FUNCTION_FILE_DUMP:
+        strcpy(functionName, "File Dump");
+        break;
     }
 }
 

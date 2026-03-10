@@ -590,6 +590,8 @@ typedef enum
     FUNCTION_PRINT_FILE_LIST,
     FUNCTION_NTPEVENT,
     FUNCTION_ARPWRITE,
+    FUNCTION_FILE_EXISTS,
+    FUNCTION_FILE_DUMP,
 } SemaphoreFunction;
 
 // Print the base coordinates in different formats, depending on the type the user has entered
