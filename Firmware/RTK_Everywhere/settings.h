@@ -1602,16 +1602,16 @@ const RTK_Settings_Entry rtkSettingsEntries[] =
     { 0, 0, 0, 1, 1, 1, 1, ALL, 1, _uint32_t, 0, & settings.periodicDisplayInterval, "periodicDisplayInterval", nullptr, },
 
     // Point Perfect
-    { 1, 1, 0, 1, 1, 1, 1, ALL, 1, _bool,     0, & settings.autoKeyRenewal, "autoKeyRenewal", nullptr, },
+    { 0, 1, 0, 1, 1, 1, 1, ALL, 1, _bool,     0, & settings.autoKeyRenewal, "autoKeyRenewal", nullptr, },
     { 0, 0, 0, 1, 1, 1, 1, ALL, 1, _bool,     0, & settings.debugPpCertificate, "debugPpCertificate", nullptr, },
-    { 1, 0, 0, 1, 1, 1, 1, ALL, 1, _int,      0, & settings.geographicRegion, "geographicRegion", nullptr, },
+    { 0, 0, 0, 1, 1, 1, 1, ALL, 1, _int,      0, & settings.geographicRegion, "geographicRegion", nullptr, },
     { 0, 0, 0, 1, 1, 1, 1, ALL, 1, _uint64_t, 0, & settings.lastKeyAttempt, "lastKeyAttempt", nullptr, },
     { 0, 0, 0, 1, 1, 1, 1, ALL, 1, tCharArry, sizeof(settings.pointPerfectBrokerHost), & settings.pointPerfectBrokerHost, "pointPerfectBrokerHost", nullptr, },
     { 0, 0, 0, 1, 1, 1, 1, ALL, 1, tCharArry, sizeof(settings.pointPerfectClientID), & settings.pointPerfectClientID, "pointPerfectClientID", nullptr, },
     { 0, 0, 0, 1, 1, 1, 1, ALL, 1, tCharArry, sizeof(settings.pointPerfectCurrentKey), & settings.pointPerfectCurrentKey, "pointPerfectCurrentKey", nullptr, },
     { 0, 0, 0, 1, 1, 1, 1, ALL, 1, _uint64_t, 0, & settings.pointPerfectCurrentKeyDuration, "pointPerfectCurrentKeyDuration", nullptr, },
     { 0, 0, 0, 1, 1, 1, 1, ALL, 1, _uint64_t, 0, & settings.pointPerfectCurrentKeyStart, "pointPerfectCurrentKeyStart", nullptr, },
-    { 1, 1, 0, 1, 1, 1, 1, ALL, 1, tCharArry, sizeof(settings.pointPerfectDeviceProfileToken), & settings.pointPerfectDeviceProfileToken, "pointPerfectDeviceProfileToken", nullptr, },
+    { 0, 1, 0, 1, 1, 1, 1, ALL, 1, tCharArry, sizeof(settings.pointPerfectDeviceProfileToken), & settings.pointPerfectDeviceProfileToken, "pointPerfectDeviceProfileToken", nullptr, },
     { 0, 0, 0, 1, 1, 1, 1, ALL, 1, tCharArry, sizeof(settings.pointPerfectKeyDistributionTopic), & settings.pointPerfectKeyDistributionTopic, "pointPerfectKeyDistributionTopic", nullptr, },
     { 0, 0, 0, 1, 1, 1, 1, ALL, 1, tCharArry, sizeof(settings.pointPerfectNextKey), & settings.pointPerfectNextKey, "pointPerfectNextKey", nullptr, },
     { 0, 0, 0, 1, 1, 1, 1, ALL, 1, _uint64_t, 0, & settings.pointPerfectNextKeyDuration, "pointPerfectNextKeyDuration", nullptr, },
@@ -1786,11 +1786,11 @@ const RTK_Settings_Entry rtkSettingsEntries[] =
     { 1, 1, 0, 1, 1, 1, 1, ALL, 1, _bool,     0, & settings.outputTipAltitude, "outputTipAltitude", nullptr, },
 
     // Localized distribution
-    { 1, 0, 0, 1, 0, 1, 1, ALL, 1, _bool,     0, & settings.useLocalizedDistribution, "useLocalizedDistribution", nullptr, },
-    { 1, 0, 0, 1, 0, 1, 1, ALL, 1, _uint8_t,  0, & settings.localizedDistributionTileLevel, "localizedDistributionTileLevel", nullptr, },
-    { 1, 0, 0, 1, 0, 1, 1, ALL, 1, _bool,     0, & settings.useAssistNow, "useAssistNow", nullptr, },
+    { 0, 0, 0, 1, 0, 1, 1, ALL, 1, _bool,     0, & settings.useLocalizedDistribution, "useLocalizedDistribution", nullptr, },
+    { 0, 0, 0, 1, 0, 1, 1, ALL, 1, _uint8_t,  0, & settings.localizedDistributionTileLevel, "localizedDistributionTileLevel", nullptr, },
+    { 0, 0, 0, 1, 0, 1, 1, ALL, 1, _bool,     0, & settings.useAssistNow, "useAssistNow", nullptr, },
 
-    { 1, 1, 0, 1, 1, 1, 1, ALL, 1, _bool,     0, & settings.requestKeyUpdate, "requestKeyUpdate", nullptr, },
+    { 0, 1, 0, 1, 1, 1, 1, ALL, 1, _bool,     0, & settings.requestKeyUpdate, "requestKeyUpdate", nullptr, },
 
     // LoRa
     { 1, 1, 0, 0, 0, 1, 0, ALL, 0, _bool,     0, & settings.enableLora, "enableLora", nullptr, },
