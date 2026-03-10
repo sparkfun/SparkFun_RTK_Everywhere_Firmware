@@ -7,7 +7,7 @@ void changeProfileNumber(byte newProfileNumber)
 {
     gnssConfigureDefaults(); // Set all bits in the request bitfield to cause the GNSS receiver to go through a full
                              // (re)configuration
-    recordSystemSettings(); // Before switching, we need to record the current settings to LittleFS and SD
+    recordSystemSettings();  // Before switching, we need to record the current settings to LittleFS and SD
 
     recordProfileNumber(newProfileNumber);
     setSettingsFileName(); // Load the settings file name into memory (enabled profile name delete)
@@ -51,7 +51,7 @@ void checkGNSSArrayDefaults()
             // Reset constellations to defaults
             for (int x = 0; x < MAX_UBX_CONSTELLATIONS; x++)
             {
-                settings.ubxConstellationsEnabled[x] = 1;
+                settings.ubxConstellationsEnabled[x] = constellationSupported(x);
             }
         }
 
@@ -579,8 +579,8 @@ void printCurrentConditionsNMEA()
 const char *printDeviceId()
 {
     static char deviceID[strlen("1234567890ABXX") + 1]; // 12 character MAC + 2 character variant + room for terminator
-    snprintf(deviceID, sizeof(deviceID), "%02X%02X%02X%02X%s", btMACAddress[0], btMACAddress[1],
-             btMACAddress[2], btMACAddress[3], serialNumber);
+    snprintf(deviceID, sizeof(deviceID), "%02X%02X%02X%02X%s", btMACAddress[0], btMACAddress[1], btMACAddress[2],
+             btMACAddress[3], serialNumber);
 
     return ((const char *)deviceID);
 }
