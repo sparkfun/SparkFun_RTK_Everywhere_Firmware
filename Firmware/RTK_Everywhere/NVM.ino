@@ -527,7 +527,7 @@ bool loadSystemSettingsFromFileSD(char *fileName, const char *findMe, char *foun
             SdFile settingsFile; // FAT32
             if (settingsFile.open(fileName, O_READ) == false)
             {
-                systemPrintln("Failed to open SD settings file");
+                systemPrintf("Failed to open settings SD file %s\r\n", fileName);
                 break; // /while (online.microSD == true)
             }
 
@@ -541,20 +541,37 @@ bool loadSystemSettingsFromFileSD(char *fileName, const char *findMe, char *foun
                 // Note: fgets stripts the \r (if there is one) leaving only \n
                 int n = settingsFile.fgets(line, sizeof(line));
 
-                if (n <= 0)
+                // Handle the file error
+                if (n < 0)
                 {
-                    systemPrintf("Failed to read line %d from SD settings file\r\n", lineNumber);
+                    systemPrintf("Hard read error at line %d in SD file %s!\r\n", lineNumber, fileName);
+                    if (findMe)
+                        strncpy(found, "SD Card Read Error!", len);
+                    break;
+                }
+
+                // Handle non-printable data in file
+                else if (n == 0)
+                {
+                    systemPrintf("Line %d contains non-printable data in SD file %s!\r\n", lineNumber, fileName);
+                    if (findMe)
+                    {
+                        strncpy(found, "SD Card corrupt file!", len);
+                        break;
+                    }
                 }
                 else if (line[n - 1] != '\n')
                 {
                     if (n == (sizeof(line) - 1))
-                        systemPrintf("Settings line %d too long\r\n", lineNumber);
+                        systemPrintf("SD settings file %s line %d too long\r\n", fileName, lineNumber);
                     else
-                        systemPrintf("Settings line %d not LF terminated\r\n", lineNumber);
+                        systemPrintf("SD settings file %s line %d not LF terminated\r\n", fileName, lineNumber);
                     if (lineNumber == 0)
                     {
                         // If we can't read the first line of the settings file, give up
-                        systemPrintln("Giving up on SD settings file");
+                        systemPrintf("Giving up on SD settings file %s\r\n", fileName);
+                        if (findMe)
+                            strncpy(found, "SD Card file line too long!", len);
                         status = false;
                         break; // /while (settingsFile.available())
                     }
@@ -567,11 +584,11 @@ bool loadSystemSettingsFromFileSD(char *fileName, const char *findMe, char *foun
                         if (parseLine(line) == false)
                         {
                             line[strlen(line) - 1] = 0; // Remove \n for printing
-                            systemPrintf("Failed to parse line %d: %s\r\n", lineNumber, line);
+                            systemPrintf("Failed to parse SD file %s line %d: %s\r\n", fileName, lineNumber, line);
                             if (lineNumber == 0)
                             {
                                 // If we can't read the first line of the settings file, give up
-                                systemPrintln("Giving up on SD settings file");
+                                systemPrintf("Giving up on SD settings file %s\r\n", fileName);
                                 status = false;
                                 break; // /while (settingsFile.available())
                             }
@@ -602,6 +619,12 @@ bool loadSystemSettingsFromFileSD(char *fileName, const char *findMe, char *foun
                 if (lineNumber > 800) // Arbitrary limit. Catch corrupt files.
                 {
                     systemPrintf("Max line number exceeded. Giving up reading SD file: %s\r\n", fileName);
+                    if (findMe)
+                    {
+                        strncpy(found, "SD Card file too many lines!", len);
+                        break;
+                    }
+
                     // Should we return true or false? Going with true...
                     break; // /while (settingsFile.available())
                 }
@@ -668,26 +691,34 @@ bool loadSystemSettingsFromFileLFS(char *fileName, const char *findMe, char *fou
         // Handle the file error
         if (n < 0)
         {
-            systemPrintf("Hard read error at line %d in file %s!\r\n", lineNumber, fileName);
+            systemPrintf("Hard read error at line %d in LFS file %s!\r\n", lineNumber, fileName);
+            if (findMe)
+                strncpy(found, "LFS Read Error!", len);
             break;
         }
 
         // Handle non-printable data in file
         else if (n == 0)
         {
-            systemPrintf("Line %d contains non-printable data in file %s!\r\n", lineNumber, fileName);
-//            break;
+            systemPrintf("Line %d contains non-printable data in LFS file %s!\r\n", lineNumber, fileName);
+            if (findMe)
+            {
+                strncpy(found, "LFS Bad Character!", len);
+                break;
+            }
         }
         else if (line[n - 1] != '\n')
         {
             if (n == (sizeof(line) - 1))
-                systemPrintf("Settings line %d too long\r\n", lineNumber);
+                systemPrintf("LFS settings file %s line %d too long\r\n", fileName, lineNumber);
             else
-                systemPrintf("Settings line %d not LF terminated\r\n", lineNumber);
+                systemPrintf("LSF settings file %s line %d not LF terminated\r\n", fileName, lineNumber);
             if (lineNumber == 0)
             {
                 // If we can't read the first line of the settings file, give up
-                systemPrintln("Giving up on LFS settings file");
+                systemPrintf("Giving up on LFS settings file %s\r\n", fileName);
+                if (findMe)
+                    strncpy(found, "LFS Line too long!", len);
                 status = false;
                 break; // /while (settingsFile.available())
             }
@@ -700,11 +731,11 @@ bool loadSystemSettingsFromFileLFS(char *fileName, const char *findMe, char *fou
                 if (parseLine(line) == false)
                 {
                     line[strlen(line) - 1] = 0; // Remove \n for printing
-                    systemPrintf("Failed to parse line %d: %s\r\n", lineNumber, line);
+                    systemPrintf("Failed to parse LFS file %s line %d: %s\r\n", fileName, lineNumber, line);
                     if (lineNumber == 0)
                     {
                         // If we can't read the first line of the settings file, give up
-                        systemPrintln("Giving up on LFS settings file");
+                        systemPrintf("Giving up on LFS settings file %s\r\n", fileName);
                         status = false;
                         break; // /while (settingsFile.available())
                     }
@@ -735,6 +766,12 @@ bool loadSystemSettingsFromFileLFS(char *fileName, const char *findMe, char *fou
         if (lineNumber > 800) // Arbitrary limit. Catch corrupt files.
         {
             systemPrintf("Max line number exceeded. Giving up reading LFS file: %s\r\n", fileName);
+            if (findMe)
+            {
+                strncpy(found, "LFS Too Many Lines!", len);
+                break;
+            }
+
             // Should we return true or false? Going with true...
             break; // /while (settingsFile.available())
         }
