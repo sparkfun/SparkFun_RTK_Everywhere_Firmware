@@ -518,7 +518,6 @@ void displaySplashCommon(bool nameKnown)
         }
 
         oled->erase();
-        oled->display(); // Post a clear display
 
         int fontHeight = 8;
         int numLines = productVariantProperties->rtkPrefix ? 4 : 3;
