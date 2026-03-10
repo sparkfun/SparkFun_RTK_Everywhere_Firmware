@@ -491,7 +491,15 @@ void displayUpdate()
 
 void displaySplash()
 {
-    displaySplashCommon(false); // Full product name not known
+    if (settings.detectedGnssReceiver == GNSS_RECEIVER_UNKNOWN)
+    {
+        displaySplashCommon(false); // Full product name not known
+    }
+    else
+    {
+        assembleDeviceName();
+        displaySplashCommon(true); // Full product name known
+    }
 }
 void displaySplashNameKnown()
 {
