@@ -665,9 +665,18 @@ bool loadSystemSettingsFromFileLFS(char *fileName, const char *findMe, char *fou
         // getLine will remove the \r - to match SD fgets
         int n = getLine(&settingsFile, line, sizeof(line));
 
-        if (n <= 0)
+        // Handle the file error
+        if (n < 0)
         {
-            systemPrintf("Failed to read line %d from LFS settings file\r\n", lineNumber);
+            systemPrintf("Hard read error at line %d in file %s!\r\n", lineNumber, fileName);
+            break;
+        }
+
+        // Handle non-printable data in file
+        else if (n == 0)
+        {
+            systemPrintf("Line %d contains non-printable data in file %s!\r\n", lineNumber, fileName);
+//            break;
         }
         else if (line[n - 1] != '\n')
         {
@@ -767,9 +776,18 @@ bool printSystemSettingsFromFileLFS(char *fileName)
         // getLine will remove the \r - to match SD fgets
         int n = getLine(&settingsFile, line, sizeof(line));
 
-        if (n <= 0)
+        // Handle the file error
+        if (n < 0)
         {
-            systemPrintf("Failed to read line %d from LFS settings file\r\n", lineNumber);
+            systemPrintf("Hard read error at line %d in file %s!\r\n", lineNumber, fileName);
+            break;
+        }
+
+        // Handle non-printable data in file
+        else if (n == 0)
+        {
+            systemPrintf("Line %d contains non-printable data in file %s!\r\n", lineNumber, fileName);
+//            break;
         }
         else if (line[n - 1] != '\n')
         {
@@ -1265,10 +1283,17 @@ bool parseLine(const char *theLine)
 int getLine(File *openFile, char *lineChars, int lineSize)
 {
     int count = 0;
-    while (openFile->available())
+    while (openFile->available() > 0)
     {
-        byte incoming = openFile->read();
+        // Read the next byte from the file
+        int data = openFile->read();
 
+        // Handle any file errors
+        if (data < 0)
+            return data;
+
+        // Get the data byte
+        byte incoming = (byte)data;
         if (incoming == '\0')
         {
             break; // Something bad happened...
