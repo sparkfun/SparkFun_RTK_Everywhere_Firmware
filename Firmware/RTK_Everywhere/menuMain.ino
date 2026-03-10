@@ -281,21 +281,87 @@ void menuUserProfiles()
             {
                 // Remove profile from LittleFS
                 if (LittleFS.exists(settingsFileName))
-                    LittleFS.remove(settingsFileName);
+                {
+                    if (LittleFS.remove(settingsFileName))
+                    {
+                        if (settings.debugSettings)
+                            systemPrintf("Deleted LFS file %s\r\n", settingsFileName);
+                    }
+                    else
+                    {
+                        if (settings.debugSettings)
+                            systemPrintf("Failed to deleted LFS file %s\r\n", settingsFileName);
+                    }
+                }
                 if (LittleFS.exists(stationCoordinateECEFFileName))
-                    LittleFS.remove(stationCoordinateECEFFileName);
+                {
+                    if (LittleFS.remove(stationCoordinateECEFFileName))
+                    {
+                        if (settings.debugSettings)
+                            systemPrintf("Deleted LFS file %s\r\n", stationCoordinateECEFFileName);
+                    }
+                    else
+                    {
+                        if (settings.debugSettings)
+                            systemPrintf("Failed to deleted LFS file %s\r\n", stationCoordinateECEFFileName);
+                    }
+                }
                 if (LittleFS.exists(stationCoordinateGeodeticFileName))
-                    LittleFS.remove(stationCoordinateGeodeticFileName);
+                {
+                    if (LittleFS.remove(stationCoordinateGeodeticFileName))
+                    {
+                        if (settings.debugSettings)
+                            systemPrintf("Deleted LFS file %s\r\n", stationCoordinateGeodeticFileName);
+                    }
+                    else
+                    {
+                        if (settings.debugSettings)
+                            systemPrintf("Failed to deleted LFS file %s\r\n", stationCoordinateGeodeticFileName);
+                    }
+                }
 
                 // Remove profile from SD if available
                 if (online.microSD == true)
                 {
                     if (sd->exists(settingsFileName))
-                        sd->remove(settingsFileName);
+                    {
+                        if (sd->remove(settingsFileName))
+                        {
+                            if (settings.debugSettings)
+                                systemPrintf("Deleted SD card file %s\r\n", settingsFileName);
+                        }
+                        else
+                        {
+                            if (settings.debugSettings)
+                                systemPrintf("Failed to deleted SD card file %s\r\n", settingsFileName);
+                        }
+                    }
                     if (sd->exists(stationCoordinateECEFFileName))
-                        sd->remove(stationCoordinateECEFFileName);
+                    {
+                        if (sd->remove(stationCoordinateECEFFileName))
+                        {
+                            if (settings.debugSettings)
+                                systemPrintf("Deleted SD card file %s\r\n", stationCoordinateECEFFileName);
+                        }
+                        else
+                        {
+                            if (settings.debugSettings)
+                                systemPrintf("Failed to deleted SD card file %s\r\n", stationCoordinateECEFFileName);
+                        }
+                    }
                     if (sd->exists(stationCoordinateGeodeticFileName))
-                        sd->remove(stationCoordinateGeodeticFileName);
+                    {
+                        if (sd->remove(stationCoordinateGeodeticFileName))
+                        {
+                            if (settings.debugSettings)
+                                systemPrintf("Deleted SD card file %s\r\n", stationCoordinateGeodeticFileName);
+                        }
+                        else
+                        {
+                            if (settings.debugSettings)
+                                systemPrintf("Failed to deleted SD card file %s\r\n", stationCoordinateGeodeticFileName);
+                        }
+                    }
                 }
 
                 gnssConfigureDefaults(); // Set all bits in the request bitfield to cause the GNSS receiver to go through a
