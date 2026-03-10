@@ -2,7 +2,7 @@ FROM ubuntu:latest AS upstream
 
 ARG DEBIAN_FRONTEND=noninteractive
 
-ARG CORE_VERSION=3.0.7
+ARG CORE_VERSION=3.3.7
 
 ARG FIRMWARE_VERSION_MAJOR=99
 ARG FIRMWARE_VERSION_MINOR=99
@@ -150,13 +150,13 @@ RUN if [ "$COMPILE_AUTHENTICATION" = "false" ] ; \
 
 # Patch libmbedtls and libbt
 RUN cd ./RTK_Everywhere/Patch \
-    && ESP_IDF=$(ls /root/.arduino15/packages/esp32/tools/esp32-arduino-libs | grep idf-release) \
+    && ESP_IDF=$(ls /root/.arduino15/packages/esp32/tools/esp32-libs | grep idf-release) \
     && echo "ESP IDF Version: ${ESP_IDF}" \
-    && cp libmbedtls.a "/root/.arduino15/packages/esp32/tools/esp32-arduino-libs/${ESP_IDF}/esp32/lib/libmbedtls.a" \
-    && cp libmbedtls_2.a "/root/.arduino15/packages/esp32/tools/esp32-arduino-libs/${ESP_IDF}/esp32/lib/libmbedtls_2.a" \
-    && cp libmbedcrypto.a "/root/.arduino15/packages/esp32/tools/esp32-arduino-libs/${ESP_IDF}/esp32/lib/libmbedcrypto.a" \
-    && cp libmbedx509.a "/root/.arduino15/packages/esp32/tools/esp32-arduino-libs/${ESP_IDF}/esp32/lib/libmbedx509.a" \
-    && cp libbt.a "/root/.arduino15/packages/esp32/tools/esp32-arduino-libs/${ESP_IDF}/esp32/lib/libbt.a"
+    && cp libmbedtls.a "/root/.arduino15/packages/esp32/tools/esp32-libs/${ESP_IDF}/lib/libmbedtls.a" \
+    && cp libmbedtls_2.a "/root/.arduino15/packages/esp32/tools/esp32-libs/${ESP_IDF}/lib/libmbedtls_2.a" \
+    && cp libmbedcrypto.a "/root/.arduino15/packages/esp32/tools/esp32-libs/${ESP_IDF}/lib/libmbedcrypto.a" \
+    && cp libmbedx509.a "/root/.arduino15/packages/esp32/tools/esp32-libs/${ESP_IDF}/lib/libmbedx509.a" \
+    && cp libbt.a "/root/.arduino15/packages/esp32/tools/esp32-libs/${ESP_IDF}/lib/libbt.a"
 
 # Update form.h with index_html and main_js
 RUN cd ./Tools \
