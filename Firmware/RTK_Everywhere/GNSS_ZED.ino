@@ -1892,7 +1892,6 @@ bool GNSS_ZED::setConstellations()
         return (false);
 
     bool overallResponse = true;
-    int gnssIndex = 0;
     bool enableMe = false;
 
     // Step through each constellation enabling the constellation and any signals as needed
