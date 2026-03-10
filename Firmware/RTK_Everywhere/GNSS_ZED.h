@@ -32,7 +32,7 @@ const ubxConstellation ubxConstellations[] = { // Constellations monitored/used 
     {UBLOX_CFG_SIGNAL_GPS_ENA, SFE_UBLOX_GNSS_ID_GPS, "GPS", 0, 0, {0,0,0},},
     //{UBLOX_CFG_SIGNAL_QZSS_ENA, SFE_UBLOX_GNSS_ID_IMES, false, "IMES", 9999, 9999, {0,0,0},}, //Not yet supported? Config key does not
     // exist?
-    {UBLOX_CFG_SIGNAL_QZSS_ENA, SFE_UBLOX_GNSS_ID_QZSS, "QZSS", 0, 0, {UBLOX_CFG_SIGNAL_QZSS_L1CA_ENA, UBLOX_CFG_SIGNAL_QZSS_L1S_ENA, UBLOX_CFG_SIGNAL_QZSS_L2C_ENA},},
+    {UBLOX_CFG_SIGNAL_QZSS_ENA, SFE_UBLOX_GNSS_ID_QZSS, "QZSS", 0, 0, {UBLOX_CFG_SIGNAL_QZSS_L1CA_ENA, 0, 0},},
     {UBLOX_CFG_SIGNAL_SBAS_ENA, SFE_UBLOX_GNSS_ID_SBAS, "SBAS", 113, 0, {0,0,0},}, // v1.12 ZED-F9P firmware does not allow for SBAS control
 };
 const int MAX_UBX_CONSTELLATIONS = (sizeof(ubxConstellations) / sizeof(ubxConstellation));
