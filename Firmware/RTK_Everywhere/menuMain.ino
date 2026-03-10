@@ -193,8 +193,6 @@ void menuMain()
     loraLastIncomingSerial = millis();
 }
 
-#endif  // COMPILE_SERIAL_MENUS
-
 #ifdef  COMPILE_MENU_USER_PROFILES
 
 // Change system wide settings based on current user profile
@@ -634,3 +632,4 @@ void menuRadio()
 }
 
 #endif  // COMPILE_MENU_RADIO
+#endif  // COMPILE_SERIAL_MENUS
