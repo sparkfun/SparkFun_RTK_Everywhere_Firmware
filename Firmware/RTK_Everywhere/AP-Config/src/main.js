@@ -567,7 +567,6 @@ function parseIncoming(msg) {
             || id.includes("sdSize")
             || id.includes("hardwareID")
             || id.includes("gnssFirmwareVersion")
-            || id.includes("daysRemaining")
             || id.includes("profile0Name")
             || id.includes("profile1Name")
             || id.includes("profile2Name")
@@ -1523,8 +1522,6 @@ function checkPointPerfectService() {
 
     }
     else {
-        clearElement("pointPerfectDeviceProfileToken", "");
-        ge("autoKeyRenewal").checked = true;
         clearError("pointPerfectService");
     }
 }

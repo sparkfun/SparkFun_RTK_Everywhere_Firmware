@@ -1816,17 +1816,16 @@ void createSettingsString(char *newSettings)
     // Add Device ID used for corrections
     stringRecord(newSettings, "hardwareID", (char *)printDeviceId());
 
-    // Add Days Remaining for corrections
-    char apDaysRemaining[20];
-    if (strlen(settings.pointPerfectCurrentKey) > 0)
-    {
-        int daysRemaining = daysFromEpoch(settings.pointPerfectNextKeyStart + settings.pointPerfectNextKeyDuration + 1);
-        snprintf(apDaysRemaining, sizeof(apDaysRemaining), "%d", daysRemaining);
-    }
-    else
-        snprintf(apDaysRemaining, sizeof(apDaysRemaining), "No Keys");
-
-    stringRecord(newSettings, "daysRemaining", apDaysRemaining);
+    // Add Days Remaining for these keys
+    // char apDaysRemaining[20];
+    // if (strlen(settings.pointPerfectCurrentKey) > 0)
+    // {
+    //     int daysRemaining = daysFromEpoch(settings.pointPerfectNextKeyStart + settings.pointPerfectNextKeyDuration + 1);
+    //     snprintf(apDaysRemaining, sizeof(apDaysRemaining), "%d", daysRemaining);
+    // }
+    // else
+    //     snprintf(apDaysRemaining, sizeof(apDaysRemaining), "No Keys");
+    // stringRecord(newSettings, "daysRemaining", apDaysRemaining);
 
     // Current coordinates come from HPPOSLLH call back
     stringRecord(newSettings, "geodeticLat", gnss->getLatitude(), haeNumberOfDecimals);
