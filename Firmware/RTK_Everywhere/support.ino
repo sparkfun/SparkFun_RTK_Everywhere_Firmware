@@ -1222,8 +1222,8 @@ void assembleDeviceName()
             }
         }
 
-        // Form the Tilt identifier. Use present.imu_im19, not settings.detectedTilt
-        if (present.imu_im19)
+        // Form the Tilt identifier.
+        if (settings.detectedTilt)
             snprintf(tiltIdentifier, sizeof(tiltIdentifier), "T");
     }
 
