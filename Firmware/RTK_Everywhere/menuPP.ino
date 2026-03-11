@@ -20,9 +20,9 @@ menuPP.ino
 #define POINTPERFECT_LIVE_TOKEN DEVELOPMENT_TOKEN
 #endif // POINTPERFECT_IP_TOKEN
 
-static const uint8_t developmentToken[16] = {DEVELOPMENT_TOKEN};         // Token in HEX form
-static const uint8_t ppIpToken[16] = {POINTPERFECT_IP_TOKEN};            // Token in HEX form
-static const uint8_t ppRtcmToken[16] = {POINTPERFECT_RTCM_TOKEN};        // Token in HEX form
+static const uint8_t developmentToken[16] = {DEVELOPMENT_TOKEN};  // Token in HEX form
+static const uint8_t ppIpToken[16] = {POINTPERFECT_IP_TOKEN};     // Token in HEX form
+static const uint8_t ppRtcmToken[16] = {POINTPERFECT_RTCM_TOKEN}; // Token in HEX form
 static const uint8_t ppGlobalToken[16] = {0};
 //{POINTPERFECT_GLOBAL_TOKEN};                                             // Token in HEX form
 static const uint8_t ppLiveToken[16] = {0};
@@ -67,10 +67,10 @@ typedef struct
 
 // The various services offered by PointPerfect
 const PP_Service ppServices[] = {
-    {"Disabled", PP_MODEL_NONE, PP_DELIVERY_NONE, PP_ENCODING_NONE},                                    // Do not use PointPerfect corrections
-    {"Flex NTRIP/RTCM", PP_MODEL_SSR, PP_DELIVERY_NTRIP, PP_ENCODING_RTCM},                             // Uses "ZTP-RTCM-100" profile
-    {"Global", PP_MODEL_SSR, PP_DELIVERY_LBAND_GLOBAL, PP_ENCODING_SPARTN},                             // Uses "ZTP-Global" profile
-    {"Live", PP_MODEL_OSR, PP_DELIVERY_NTRIP, PP_ENCODING_RTCM},                                        // Uses "ZTP-Live" profile
+    {"Disabled", PP_MODEL_NONE, PP_DELIVERY_NONE, PP_ENCODING_NONE},        // Do not use PointPerfect corrections
+    {"Flex NTRIP/RTCM", PP_MODEL_SSR, PP_DELIVERY_NTRIP, PP_ENCODING_RTCM}, // Uses "ZTP-RTCM-100" profile
+    {"Global", PP_MODEL_SSR, PP_DELIVERY_LBAND_GLOBAL, PP_ENCODING_SPARTN}, // Uses "ZTP-Global" profile
+    {"Live", PP_MODEL_OSR, PP_DELIVERY_NTRIP, PP_ENCODING_RTCM},            // Uses "ZTP-Live" profile
     {"Flex MQTT (Deprecated)", PP_MODEL_SSR, PP_DELIVERY_MQTT,
      PP_ENCODING_SPARTN}, // Uses "ZTP-IP" profile, now deprecated
     // "ZTP-RTCM-100-Trial" profile deprecated
@@ -78,7 +78,7 @@ const PP_Service ppServices[] = {
 
 const int ppServiceCount = sizeof(ppServices) / sizeof(ppServices[0]);
 
-#ifdef  COMPILE_MENU_POINTPERFECT
+#ifdef COMPILE_MENU_POINTPERFECT
 
 // Provision device on ThingStream
 // Download keys
@@ -320,7 +320,7 @@ void menuPointPerfectSelectService()
                 settings.pointPerfectService = incoming - 1; // Align incoming to array
 
                 // Request re-config of RTCM Rover messages to enable / disable necessary RTCM messages for PPL
-                if(inRoverMode())
+                if (inRoverMode())
                     gnssConfigure(GNSS_CONFIG_MESSAGE_RATE_RTCM_ROVER); // Request receiver to use new settings
 
                 settings.requestKeyUpdate =
@@ -485,7 +485,7 @@ void menuPointPerfectKeys()
     clearBuffer(); // Empty buffer of any newline chars
 }
 
-#endif  // COMPILE_MENU_POINTPERFECT
+#endif // COMPILE_MENU_POINTPERFECT
 
 // Update any L-Band hardware
 // If GNSS is mosaic-X5, configure LBandBeam1
@@ -1246,15 +1246,13 @@ void provisioningUpdate()
     switch (provisioningState)
     {
     default:
-    case PROVISIONING_OFF:
-    {
+    case PROVISIONING_OFF: {
         // If RTC is not online after provisioningTimeout_ms, try to provision anyway
         if (enabled && rtcOnline)
             provisioningSetState(PROVISIONING_CHECK_REMAINING);
     }
     break;
-    case PROVISIONING_CHECK_REMAINING:
-    {
+    case PROVISIONING_CHECK_REMAINING: {
         if (provisioningKeysNeeded() == false)
             provisioningSetState(PROVISIONING_KEYS_REMAINING);
         else
@@ -1267,8 +1265,7 @@ void provisioningUpdate()
     break;
 
     // Wait for connection to the network
-    case PROVISIONING_WAIT_FOR_NETWORK:
-    {
+    case PROVISIONING_WAIT_FOR_NETWORK: {
         // Stop waiting if PointPerfect has been disabled
         if (enabled == false)
             provisioningStop(__FILE__, __LINE__);
@@ -1293,8 +1290,7 @@ void provisioningUpdate()
     }
     break;
 
-    case PROVISIONING_STARTED:
-    {
+    case PROVISIONING_STARTED: {
         // Only leave this state if we timeout or ZTP is complete
         if ((millis() - provisioningStartTime_millis) > provisioningTimeout_ms)
         {
@@ -1360,8 +1356,7 @@ void provisioningUpdate()
         }
     }
     break;
-    case PROVISIONING_KEYS_REMAINING:
-    {
+    case PROVISIONING_KEYS_REMAINING: {
 
         // Report expiration of keys if this PointPerfect service uses them
         if (pointPerfectServiceUsesKeys() == true)
