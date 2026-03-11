@@ -754,7 +754,72 @@ const char *printDaysFromDuration(long long duration)
 // Create a ZTP request to be sent to thingstream JSON API
 void createZtpRequest(String &str)
 {
+    // Assume failure
+    str = "";
 
+    // Get the firmware version string
+    char versionString[9];
+    firmwareVersionGet(versionString, sizeof(versionString), false);
+
+    // Build the givenName:   Name vxx.yy - deviceID
+    char givenName[100];
+    memset(givenName, 0, sizeof(givenName));
+    snprintf(givenName, sizeof(givenName), "%s %s - %s", productVariantProperties->platformProvision, versionString,
+             printDeviceId());
+    if (strlen(givenName) >= 50)
+    {
+        systemPrintf("Error: GivenName '%s' too long: %d bytes\r\n", givenName, strlen(givenName));
+        return;
+    }
+
+    // Get the token
+    char tokenString[37] = "\0";
+    if (strlen(settings.pointPerfectDeviceProfileToken) == 0)
+    {
+        // Use the built-in SparkFun tokens
+        ztpGetToken(tokenString);
+
+        if (memcmp(ppRtcmToken, developmentToken, sizeof(developmentToken)) == 0)
+            systemPrintln("Warning: Using the development token!");
+
+        if (settings.debugCorrections == true)
+        {
+            char tokenChar = tokenString[4];
+            tokenString[4] = 0; // Clip token to first four characters
+            systemPrintf("Using token: %s\r\n", tokenString);
+            tokenString[4] = tokenChar; // Return token to original state
+        }
+    }
+    else
+    {
+        // Use the user's custom token
+        strncpy(tokenString, settings.pointPerfectDeviceProfileToken, sizeof(tokenString));
+        systemPrintf("Using custom token: %s\r\n", tokenString);
+    }
+
+    // Build the JSON request
+    JsonDocument json;
+    json["tags"][0] = "ztp";
+    json["token"] = tokenString;
+    json["hardwareId"] = printDeviceId();
+    json["givenName"] = givenName;
+
+    // Debug the request
+    if (settings.debugCorrections == true)
+    {
+        char tokenChar;
+        systemPrintln("{");
+        tokenChar = tokenString[4];
+        tokenString[4] = 0;
+        systemPrintf("  token: %s\r\n", tokenString);
+        tokenString[4] = tokenChar;
+        systemPrintf("  givenName: %s\r\n", givenName);
+        systemPrintf("  hardwareId: %s\r\n", printDeviceId());
+        systemPrintln("}");
+    }
+
+    // Convert the JSON to a string
+    serializeJson(json, str);
 }
 
 // Find thing3 in (*jsonZtp)[thing1][n][thing2]. Return n on success. Return -1 on error / not found.
