@@ -3026,7 +3026,7 @@ bool GNSS_MOSAIC::isPresentOnSerial(HardwareSerial *serialPort, const char *comm
             if (retries == retryLimit)
                 break;
             retries++;
-            sendWithResponse(serialPort, "SSSSSSSSSSSSSSSSSSSS\n\r", console, 100); // Send escape sequence
+            sendWithResponse(serialPort, "SSSSSSSSSSSSSSSSSSSS\n\r", console, 1000); // Send escape sequence
         }
 
         if (retries == retryLimit)
