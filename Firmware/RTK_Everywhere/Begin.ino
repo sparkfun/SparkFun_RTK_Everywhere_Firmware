@@ -939,6 +939,13 @@ void beginSD()
 
 void endSD(bool alreadyHaveSemaphore, bool releaseSemaphore)
 {
+    // Stop size check if running
+    while (task.sdSizeCheckTaskRunning == true)
+    {
+        task.sdSizeCheckTaskStopRequest = true;
+        delay(1000);
+    }
+
     // Disable logging
     endLogging(alreadyHaveSemaphore, false);
 
