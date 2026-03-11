@@ -1041,6 +1041,11 @@ void forceGnssCommunicationRate(uint32_t &platformGnssCommunicationRate)
         // Keep the baud rate at settings.dataPortBaud for now
         // I.e. nothing to do here...?
     }
+    else if (productVariant == RTK_FACET_MOSAIC)
+    {
+            // Mosaic defaults to 115200
+            platformGnssCommunicationRate = 115200;
+    }
     else if (productVariant == RTK_FACET_FP)
     {
         if (settings.detectedGnssReceiver == GNSS_RECEIVER_LG290P)
