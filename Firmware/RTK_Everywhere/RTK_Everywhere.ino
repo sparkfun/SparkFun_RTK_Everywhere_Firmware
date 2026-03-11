@@ -418,10 +418,8 @@ LoggingType loggingType = LOGGING_UNKNOWN;
 SdFile *managerTempFile = nullptr; // File used for uploading or downloading in the file manager section of AP config
 bool managerFileOpen = false;
 
-TaskHandle_t sdSizeCheckTaskHandle;        // Store handles so that we can delete the task once the size is found
 const uint8_t sdSizeCheckTaskPriority = 0; // 3 being the highest, and 0 being the lowest
 const int sdSizeCheckStackSize = 3000;
-bool sdSizeCheckTaskComplete;
 
 char logFileName[sizeof("SFE_Reference_Station_230101_120101.ubx_plusExtraSpace")] = {0};
 

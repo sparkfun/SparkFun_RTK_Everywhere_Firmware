@@ -2851,7 +2851,7 @@ void sdSizeCheckTask(void *e)
 
                 outOfSDSpace = false;
 
-                sdSizeCheckTaskComplete = true;
+                task.sdSizeCheckTaskStopRequest = true; // We're done, stop the task.
             }
             else
             {
