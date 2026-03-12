@@ -94,7 +94,7 @@ const GNSS_SUPPORT_ROUTINES gnssSupportRoutines[] =
 #endif // COMPILE_UM980
 #ifdef COMPILE_ZED
     {
-        "ZED",                 // name
+        "ZED-F9P",             // name
         "F",                   // gnssModelIdentifier for Facet FP deviceName
         GNSS_RECEIVER_F9P,     // _receiver
         f9pIsPresentOnFacetFP, // _present
@@ -108,7 +108,7 @@ const GNSS_SUPPORT_ROUTINES gnssSupportRoutines[] =
         zedSettingsToFile,     // _settingToFile
     },
     {
-        "ZED",                  // name
+        "ZED-X20P",             // name
         "X",                    // gnssModelIdentifier for Facet FP deviceName
         GNSS_RECEIVER_X20P,     // _receiver
         x20pIsPresentOnFacetFP, // _present

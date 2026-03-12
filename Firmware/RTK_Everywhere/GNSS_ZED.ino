@@ -221,6 +221,8 @@ void GNSS_ZED::begin()
 
             online.gnss = true;
 
+            present.dynamicModel = true; // EVK and FPX ZED modules support dynamic model configuration
+
             return;
         }
     }
