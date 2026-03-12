@@ -91,7 +91,10 @@ var divTables = {
     minElevConfig: ["minElev"],
     minCN0Config: ["minCN0"],
     logToSDCard: ["enableLogging"],
-    shutdownNoChargeTimeoutMinutesCheckboxDetail: ["shutdownNoChargeTimeoutMinutes"]
+    shutdownNoChargeTimeoutMinutesCheckboxDetail: ["shutdownNoChargeTimeoutMinutes"],
+    constellation_SBAS: ["constellationSbas"],
+    constellation_NavIC: ["constellationNavic"],
+    constellation_GLONASS: ["constellationGlonass"],
 };
 
 function showHideDivs() {
@@ -182,8 +185,6 @@ function parseIncoming(msg) {
                 show("useEnableExtCorrRadio");
                 hide("enableNmeaOnRadio");
 
-                hide("constellationNavic"); //Not supported on ZED
-
                 select = ge("pointPerfectService");
                 let newOption = new Option('Disabled', '0');
                 select.add(newOption, undefined);
@@ -250,9 +251,6 @@ function parseIncoming(msg) {
                 // No DATA port on Torch
                 hide("externalPortOptions");
 
-                hide("constellationSbas"); //Not supported on UM980
-                hide("constellationNavic"); //Not supported on UM980
-
                 show("measurementRateInput");
 
                 show("loraConfig");
@@ -297,9 +295,6 @@ function parseIncoming(msg) {
                 show("surveyInSettings");
                 show("useEnableExtCorrRadio");
                 show("enableNmeaOnRadio");
-
-                hide("constellationSbas"); //Not supported on LG290P
-                show("constellationNavic");
 
                 hide("dynamicModelDropdown"); //Not supported on LG290P
 
@@ -360,8 +355,6 @@ function parseIncoming(msg) {
                 // No DATA port on Torch X2
                 hide("externalPortOptions");
 
-                hide("constellationSbas"); //Not supported on LG290P
-                show("constellationNavic");
                 hide("tiltConfig"); //Not supported on Torch X2
 
                 show("measurementRateInput");
@@ -461,9 +454,6 @@ function parseIncoming(msg) {
                 show("useEnableExtCorrRadio");
                 show("enableNmeaOnRadio");
 
-                hide("constellationSbas"); //Not supported on LG290P
-                show("constellationNavic");
-
                 hide("dynamicModelDropdown"); //Not supported on LG290P
 
                 ge("rtcmRateInfoText").setAttribute('data-bs-original-title', 'RTCM is transmitted by the base at a default of 1Hz for messages 1005, 1074, 1084, 1094, 1114, 1124, 1134. This can be lowered for radios with low bandwidth or tailored to transmit any/all RTCM messages. Limits: 0 to 20. Note: The measurement rate is overridden to 1Hz when in Base mode.');
@@ -512,10 +502,35 @@ function parseIncoming(msg) {
                 newOption = new Option('921600', '921600');
                 select.add(newOption, undefined);
             }
+            else if (facetFPGNSS.substring(0, 3) == "ZED") {
+                show("baseConfig");
+                show("ppConfig");
+                hide("ethernetConfig");
+                hide("ntpConfig");
+                show("portsConfig");
+                show("externalPortOptions");
+
+                hide("tiltConfig");
+                show("beeperControl");
+
+                show("measurementRateInput");
+                hide("mosaicNMEAStreamDropdowns");
+                show("surveyInSettings");
+                show("useEnableExtCorrRadio");
+                show("enableNmeaOnRadio");
+
+                select = ge("pointPerfectService");
+                let newOption = new Option('Disabled', '0');
+                select.add(newOption, undefined);
+                newOption = new Option('Flex NTRIP/RTCM', '1');
+                select.add(newOption, undefined);
+                newOption = new Option('Flex MQTT (Deprecated)', '5');
+                select.add(newOption, undefined);
+            }
         }
         else if (id.includes("gnssFirmwareVersionInt")) {
             //Modify settings due to firmware limitations
-            if (platformPrefix == "EVK") {
+            if ((platformPrefix == "EVK") || ((platformPrefix.substring(0, 2) == "FP") && (facetFPGNSS.substring(0, 3) == "ZED"))) {
                 select = ge("dynamicModel");
                 let newOption = new Option('Portable', '0');
                 select.add(newOption, undefined);
@@ -537,12 +552,25 @@ function parseIncoming(msg) {
                 select.add(newOption, undefined);
                 newOption = new Option('Bike', '10');
                 select.add(newOption, undefined);
-                if (val >= 121) {
-                    select = ge("dynamicModel");
-                    newOption = new Option('Mower', '11');
-                    select.add(newOption, undefined);
-                    newOption = new Option('E-Scooter', '12');
-                    select.add(newOption, undefined);
+
+                if (platformPrefix == "EVK") {
+                    //Mower and E-Scooter supported on EVK HPG 1.21 and above
+                    if (val >= 121) {
+                        select = ge("dynamicModel");
+                        newOption = new Option('Mower', '11');
+                        select.add(newOption, undefined);
+                        newOption = new Option('E-Scooter', '12');
+                        select.add(newOption, undefined);
+                    }
+                }
+
+                if (((platformPrefix.substring(0, 2) == "FP") && (facetFPGNSS.substring(0, 3) == "ZED"))) {
+                    // Mower supported on X20P HPG 2.02 and above
+                    if (val >= 202) {
+                        select = ge("dynamicModel");
+                        newOption = new Option('Mower', '11');
+                        select.add(newOption, undefined);
+                    }
                 }
             }
 
@@ -1271,7 +1299,7 @@ function validateFields() {
             var messageName = messages[x].id;
             checkMessageValueLG290P01200(messageName);
         }
-        
+
         var messages = document.querySelectorAll('input[id^=messageRatePQTM_]');
         for (let x = 0; x < messages.length; x++) {
             var messageName = messages[x].id;
@@ -1794,7 +1822,7 @@ function zeroBaseMessages() {
 
 function resetToSurveyingDefaults() {
     zeroMessages();
-    if (platformPrefix == "EVK") {
+    if ((platformPrefix == "EVK") || ((platformPrefix.substring(0, 2) == "FP") && (facetFPGNSS.substring(0, 3) == "ZED"))) {
         ge("ubxMessageRate_NMEA_GGA").value = 1;
         ge("ubxMessageRate_NMEA_GSA").value = 1;
         ge("ubxMessageRate_NMEA_GST").value = 1;
@@ -1831,7 +1859,7 @@ function resetToSurveyingDefaults() {
 }
 function resetToLoggingDefaults() {
     zeroMessages();
-    if (platformPrefix == "EVK") {
+    if ((platformPrefix == "EVK") || ((platformPrefix.substring(0, 2) == "FP") && (facetFPGNSS.substring(0, 3) == "ZED"))) {
         ge("ubxMessageRate_NMEA_GGA").value = 1;
         ge("ubxMessageRate_NMEA_GSA").value = 1;
         ge("ubxMessageRate_NMEA_GST").value = 1;
@@ -1896,7 +1924,7 @@ function resetToLoggingDefaults() {
 
 function resetToRTCMDefaults() {
     zeroBaseMessages();
-    if (platformPrefix == "EVK") {
+    if ((platformPrefix == "EVK") || ((platformPrefix.substring(0, 2) == "FP") && (facetFPGNSS.substring(0, 3) == "ZED"))) {
         ge("ubxMessageRateBase_RTCM_1005").value = 1;
         ge("ubxMessageRateBase_RTCM_1074").value = 1;
         ge("ubxMessageRateBase_RTCM_1077").value = 0;
@@ -1941,7 +1969,7 @@ function resetToRTCMDefaults() {
 
 function resetToRTCMLowBandwidth() {
     zeroBaseMessages();
-    if (platformPrefix == "EVK") {
+    if ((platformPrefix == "EVK") || ((platformPrefix.substring(0, 2) == "FP") && (facetFPGNSS.substring(0, 3) == "ZED"))) {
         ge("ubxMessageRateBase_RTCM_1005").value = 10;
         ge("ubxMessageRateBase_RTCM_1074").value = 2;
         ge("ubxMessageRateBase_RTCM_1077").value = 0;
