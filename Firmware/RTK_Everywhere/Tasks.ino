@@ -1446,7 +1446,7 @@ void processUart1Message(SEMP_PARSE_STATE *parse, uint16_t type)
         {
             systemPrintf("Ring buffer update error %s: bytesToCopy (%d) is > space (%d) + discardedBytes (%d) - 1\r\n",
                          getTimeStamp(), bytesToCopy, space, discardedBytes);
-            Serial.flush(); // Flush Serial - the code is about to go bang...!
+            systemFlush(); // Flush Serial - the code is about to go bang...!
         }
 
         // Add another message to the ring buffer
@@ -2472,7 +2472,7 @@ void buttonCheckTask(void *e)
                 else if (powerButtonPressedFor(powerButtonPressLimit) == true)
                 {
                     systemPrintln("Shutting down (button)");
-                    Serial.flush();
+                    systemFlush();
 
                     tickerStop(); // Stop controlling LEDs via ticker task
 
@@ -2515,9 +2515,30 @@ void buttonCheckTask(void *e)
                 forceSystemStateUpdate = true;
                 requestChangeState(STATE_SHUTDOWN);
 
+                systemPrintln("Shutting down (button)");
+                systemFlush();
+
+                if (productVariant == RTK_FACET_FP)
+                {
+                    tickerStop(); // Stop controlling LEDs via ticker task
+
+                    pinMode(pin_gnssStatusLED, OUTPUT);
+                    pinMode(pin_bluetoothStatusLED, OUTPUT);
+
+                    gnssStatusLedOn();
+                    bluetoothLedOn();
+
+                    // Beep if we are not locally compiled or a release candidate
+                    if (ENABLE_DEVELOPER == false)
+                    {
+                        // Announce powering down
+                        beepMultiple(3, 100, 50); // Number of beeps, length of beep ms, length of quiet ms
+
+                    }
+                }
+
                 if (inMainMenu)
                 {
-                    systemPrintln("Shutting down (button)");
                     powerDown(true); // State machine is not updated while in menu system so go straight to power down
                                      // as needed
                 }
