@@ -1,5 +1,36 @@
 /*=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 Base.ino
+
+         RTCM Buffers
+    0   .-------------. <--- rtcmConsumerBufferPtr
+        |             |
+        |             |
+        |             |
+        |             |
+    1   +-------------+ <--- rtcmConsumerBufferTail
+        |  RTCM Data  |   |
+        |     xxx     |   V  rtcmConsumerBufferLengths[1]
+        |   -------   |  ---
+        |             |
+    2   +-------------+  ---
+        |  RTCM Data  |   |
+        |     yyy     |   V  rtcmConsumerBufferLengths[2]
+        |   -------   |  ---
+        |             |
+    3   +-------------+ <--- rtcmConsumerBufferHead
+        |             |
+        |             |
+        |             |
+        |             |
+    4   +-------------+
+              ***
+   15   +-------------+  --- rtcmConsumerBufferEntries - 1
+        |             |   |
+        |             |   | rtcmConsumerBufferEntrySize
+        |             |   |
+        |             |   V
+        '-------------'  ---  rtcmConsumerBufferEntries
+
 =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=*/
 
 // Enough storage for two rounds of RTCM 1074,1084,1094,1124,1005
