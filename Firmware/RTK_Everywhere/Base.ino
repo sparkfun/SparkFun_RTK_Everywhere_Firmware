@@ -33,7 +33,7 @@ Base.ino
 
 =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=*/
 
-// Enough storage for two rounds of RTCM 1074,1084,1094,1124,1005
+// Enough storage for two rounds of RTCM 1005,1074,1084,1094,1124
 // To help prevent the "no increase in file size" and "due to lack of RTCM" glitch:
 // RTCM is stored in PSRAM by the processUart1Message task and written by sendRTCMToConsumers
 const uint8_t rtcmConsumerBufferEntries = 16;
