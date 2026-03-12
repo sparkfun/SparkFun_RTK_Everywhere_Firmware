@@ -682,6 +682,8 @@ void menuDebugHardware()
 
         systemPrintf("24) EA Protocol name: %s\r\n", settings.eaProtocol);
 
+        systemPrintf("25) RTCM buffer debugging: %s\r\n", settings.debugRtcmBuffers ? "Enabled" : "Disabled");
+
         systemPrintln("e) Erase LittleFS");
 
         systemPrintln("r) Force system reset");
@@ -836,6 +838,9 @@ void menuDebugHardware()
             recordSystemSettings();
             systemPrintln("\r\n** Please reconnect to the Device to apply the changes **");
         }
+
+        else if (incoming == 25)
+            settings.debugRtcmBuffers ^= 1;
 
         else if (incoming == 'e')
         {

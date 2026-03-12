@@ -48,15 +48,18 @@ uint8_t *rtcmConsumerBufferPtr = nullptr;
 //----------------------------------------
 bool rtcmConsumerBufferAllocated()
 {
+    size_t bufferLength;
+
     if (rtcmConsumerBufferPtr == nullptr)
     {
-        rtcmConsumerBufferPtr = (uint8_t *)rtkMalloc(
-            (size_t)rtcmConsumerBufferEntrySize * (size_t)rtcmConsumerBufferEntries,
-            "ntripBuffer");
+        bufferLength = (size_t)rtcmConsumerBufferEntrySize * (size_t)rtcmConsumerBufferEntries;
+        rtcmConsumerBufferPtr = (uint8_t *)rtkMalloc(bufferLength, "ntripBuffer");
         for (uint8_t i = 0; i < rtcmConsumerBufferEntries; i++)
             rtcmConsumerBufferLengths[i] = 0;
         rtcmConsumerBufferHead = 0;
         rtcmConsumerBufferTail = 0;
+        if (settings.debugRtcmBuffers && rtcmConsumerBufferPtr)
+            systemPrintf("RTCM buffer allocated: %p, %d bytes\r\n", rtcmConsumerBufferPtr, bufferLength);
     }
     if (rtcmConsumerBufferPtr == nullptr)
     {
@@ -106,6 +109,8 @@ void storeRTCMForConsumers(uint8_t *rtcmData, uint16_t dataLength)
         dest += (size_t)rtcmConsumerBufferEntrySize * (size_t)rtcmConsumerBufferHead;
         memcpy(dest, rtcmData, dataLength); // Store the RTCM
         rtcmConsumerBufferLengths[rtcmConsumerBufferHead] = dataLength; // Store the length
+        if (settings.debugRtcmBuffers)
+            systemPrintf("Filling RTCM Buffer %d: %4d bytes\r\n", rtcmConsumerBufferHead, dataLength);
         rtcmConsumerBufferHead = rtcmConsumerBufferHead + 1; // Increment the Head
         rtcmConsumerBufferHead = rtcmConsumerBufferHead % rtcmConsumerBufferEntries; // Wrap
     }
@@ -128,16 +133,19 @@ void sendRTCMToConsumers()
     {
         uint8_t *dest = rtcmConsumerBufferPtr;
         dest += (size_t)rtcmConsumerBufferEntrySize * (size_t)rtcmConsumerBufferTail;
+        size_t dataLength = rtcmConsumerBufferLengths[rtcmConsumerBufferTail];
+        if (settings.debugRtcmBuffers)
+            systemPrintf("Sending RTCM Buffer %d: %4d bytes\r\n", rtcmConsumerBufferTail, dataLength);
 
         // NTRIP Server
         for (int serverIndex = 0; serverIndex < NTRIP_SERVER_MAX; serverIndex++)
-            ntripServerSendRTCM(serverIndex, dest, rtcmConsumerBufferLengths[rtcmConsumerBufferTail]);
+            ntripServerSendRTCM(serverIndex, dest, dataLength);
 
         // LoRa
-        loraProcessRTCM(dest, rtcmConsumerBufferLengths[rtcmConsumerBufferTail]);
+        loraProcessRTCM(dest, dataLength);
 
         // ESP-NOW
-        for (uint16_t x = 0; x < rtcmConsumerBufferLengths[rtcmConsumerBufferTail]; x++)
+        for (uint16_t x = 0; x < dataLength; x++)
             espNowProcessRTCM(dest[x]);
 
         rtcmConsumerBufferTail = rtcmConsumerBufferTail + 1; // Increment the Tail
