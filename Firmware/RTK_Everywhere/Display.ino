@@ -2171,9 +2171,9 @@ void displayTiltAutodetect(uint16_t displayTime)
 {
     displayMessage("Autodetecting Tilt", displayTime);
 }
-void displayTiltAutodetectFailed(uint16_t displayTime)
+void displayTiltNotDetected(uint16_t displayTime)
 {
-    displayMessage("Autodetect Failed", displayTime);
+    displayMessage("No Tilt", displayTime);
 }
 
 void displayNoWiFi(uint16_t displayTime)

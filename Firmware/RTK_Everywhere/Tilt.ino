@@ -1247,7 +1247,7 @@ void tiltDetect()
     else
     {
         systemPrintln("Tilt sensor not detected");
-        displayTiltAutodetectFailed(2000);
+        displayTiltNotDetected(2000);
     }
     
     settings.testedTilt = true; // Record this test so we don't do it again
