@@ -1024,6 +1024,9 @@ struct Settings
     // RTC (Real Time Clock)
     bool enablePrintRtcSync = false;
 
+    // RTCM buffers
+    bool debugRtcmBuffers = false;
+
     // SD Card
     bool enablePrintBufferOverrun = false;
     bool enablePrintSDBuffers = false;
@@ -1068,7 +1071,7 @@ struct Settings
 
     // UBX
 #ifdef COMPILE_ZED
-    uint8_t ubxConstellationsEnabled[MAX_UBX_CONSTELLATIONS] = {254}; // Mark first record with key so defaults will be applied. 
+    uint8_t ubxConstellationsEnabled[MAX_UBX_CONSTELLATIONS] = {254}; // Mark first record with key so defaults will be applied.
     uint8_t ubxMessageRates[MAX_UBX_MSG] = {254}; // Mark first record with key so defaults will be applied.
     uint8_t ubxMessageRatesBase[MAX_UBX_MSG_RTCM] = {
         254}; // Mark first record with key so defaults will be applied. Int value for each supported message - Report
@@ -1282,7 +1285,7 @@ const RTK_Settings_Entry rtkSettingsEntries[] =
 //    C  m  S     M     s  c    r
 //    o  m  u     o  T  t  e    c
 //    n  a  f     s  o  c  t    h
-//    f  n  f  E  a  r  a        
+//    f  n  f  E  a  r  a
 //    i  d  i  v  i  c  r  F    X
 //    g  s  x  k  c  h  d  P    2  Type       Qual                Variable                  Name              afterSetCmd
     // =======================================================================================================
@@ -1326,7 +1329,7 @@ const RTK_Settings_Entry rtkSettingsEntries[] =
 //    C  m  S     M     s  c    r
 //    o  m  u     o  T  t  e    c
 //    n  a  f     s  o  c  t    h
-//    f  n  f  E  a  r  a        
+//    f  n  f  E  a  r  a
 //    i  d  i  v  i  c  r  F    X
 //    g  s  x  k  c  h  d  P    2  Type       Qual                Variable                  Name              afterSetCmd
     // Antenna
@@ -1364,7 +1367,7 @@ const RTK_Settings_Entry rtkSettingsEntries[] =
 //    C  m  S     M     s  c    r
 //    o  m  u     o  T  t  e    c
 //    n  a  f     s  o  c  t    h
-//    f  n  f  E  a  r  a        
+//    f  n  f  E  a  r  a
 //    i  d  i  v  i  c  r  F    X
 //    g  s  x  k  c  h  d  P    2  Type       Qual                Variable                  Name              afterSetCmd
 
@@ -1395,7 +1398,7 @@ const RTK_Settings_Entry rtkSettingsEntries[] =
 //    C  m  S     M     s  c    r
 //    o  m  u     o  T  t  e    c
 //    n  a  f     s  o  c  t    h
-//    f  n  f  E  a  r  a        
+//    f  n  f  E  a  r  a
 //    i  d  i  v  i  c  r  F    X
 //    g  s  x  k  c  h  d  P    2  Type       Qual                Variable                  Name              afterSetCmd
 
@@ -1420,7 +1423,7 @@ const RTK_Settings_Entry rtkSettingsEntries[] =
 //    C  m  S     M     s  c    r
 //    o  m  u     o  T  t  e    c
 //    n  a  f     s  o  c  t    h
-//    f  n  f  E  a  r  a        
+//    f  n  f  E  a  r  a
 //    i  d  i  v  i  c  r  F    X
 //    g  s  x  k  c  h  d  P    2  Type       Qual                Variable                  Name              afterSetCmd
 
@@ -1469,7 +1472,7 @@ const RTK_Settings_Entry rtkSettingsEntries[] =
 //    C  m  S     M     s  c    r
 //    o  m  u     o  T  t  e    c
 //    n  a  f     s  o  c  t    h
-//    f  n  f  E  a  r  a        
+//    f  n  f  E  a  r  a
 //    i  d  i  v  i  c  r  F    X
 //    g  s  x  k  c  h  d  P    2  Type       Qual                Variable                  Name              afterSetCmd
 
@@ -1519,7 +1522,7 @@ const RTK_Settings_Entry rtkSettingsEntries[] =
 //    C  m  S     M     s  c    r
 //    o  m  u     o  T  t  e    c
 //    n  a  f     s  o  c  t    h
-//    f  n  f  E  a  r  a        
+//    f  n  f  E  a  r  a
 //    i  d  i  v  i  c  r  F    X
 //    g  s  x  k  c  h  d  P    2  Type       Qual                Variable                  Name              afterSetCmd
 
@@ -1632,7 +1635,7 @@ const RTK_Settings_Entry rtkSettingsEntries[] =
 //    C  m  S     M     s  c    r
 //    o  m  u     o  T  t  e    c
 //    n  a  f     s  o  c  t    h
-//    f  n  f  E  a  r  a        
+//    f  n  f  E  a  r  a
 //    i  d  i  v  i  c  r  F    X
 //    g  s  x  k  c  h  d  P    2  Type       Qual                Variable                  Name              afterSetCmd
 
@@ -1655,6 +1658,9 @@ const RTK_Settings_Entry rtkSettingsEntries[] =
     // RTC (Real Time Clock)
     { 0, 0, 0, 1, 1, 1, 1, ALL, 1, _bool,     0, & settings.enablePrintRtcSync, "enablePrintRtcSync", nullptr, },
 
+    // RTCM Buffers
+    { 0, 0, 0, 1, 1, 1, 1, ALL, 1, _bool,     0, & settings.debugRtcmBuffers, "debugRtcmBuffers", nullptr, },
+
 //                F
 //    i           a
 //    n  i        c
@@ -1664,7 +1670,7 @@ const RTK_Settings_Entry rtkSettingsEntries[] =
 //    C  m  S     M     s  c    r
 //    o  m  u     o  T  t  e    c
 //    n  a  f     s  o  c  t    h
-//    f  n  f  E  a  r  a        
+//    f  n  f  E  a  r  a
 //    i  d  i  v  i  c  r  F    X
 //    g  s  x  k  c  h  d  P    2  Type       Qual                Variable                  Name              afterSetCmd
 
@@ -1691,7 +1697,7 @@ const RTK_Settings_Entry rtkSettingsEntries[] =
 //    C  m  S     M     s  c    r
 //    o  m  u     o  T  t  e    c
 //    n  a  f     s  o  c  t    h
-//    f  n  f  E  a  r  a        
+//    f  n  f  E  a  r  a
 //    i  d  i  v  i  c  r  F    X
 //    g  s  x  k  c  h  d  P    2  Type       Qual                Variable                  Name              afterSetCmd
 
@@ -1729,7 +1735,7 @@ const RTK_Settings_Entry rtkSettingsEntries[] =
 //    C  m  S     M     s  c    r
 //    o  m  u     o  T  t  e    c
 //    n  a  f     s  o  c  t    h
-//    f  n  f  E  a  r  a        
+//    f  n  f  E  a  r  a
 //    i  d  i  v  i  c  r  F    X
 //    g  s  x  k  c  h  d  P    2  Type       Qual                Variable                  Name              afterSetCmd
 
@@ -1755,7 +1761,7 @@ const RTK_Settings_Entry rtkSettingsEntries[] =
 //    C  m  S     M     s  c    r
 //    o  m  u     o  T  t  e    c
 //    n  a  f     s  o  c  t    h
-//    f  n  f  E  a  r  a        
+//    f  n  f  E  a  r  a
 //    i  d  i  v  i  c  r  F    X
 //    g  s  x  k  c  h  d  P    2  Type       Qual                Variable                  Name              afterSetCmd
     { 1, 1, 0, 0, 0, 1, 0, ALL, 0, _bool,     3, & settings.enableMultipathMitigation, "enableMultipathMitigation", nullptr, },
@@ -1807,7 +1813,7 @@ const RTK_Settings_Entry rtkSettingsEntries[] =
 //    C  m  S     M     s  c    r
 //    o  m  u     o  T  t  e    c
 //    n  a  f     s  o  c  t    h
-//    f  n  f  E  a  r  a        
+//    f  n  f  E  a  r  a
 //    i  d  i  v  i  c  r  F    X
 //    g  s  x  k  c  h  d  P    2  Type       Qual                Variable                  Name              afterSetCmd
 #ifdef  COMPILE_LG290P
@@ -1843,7 +1849,7 @@ const RTK_Settings_Entry rtkSettingsEntries[] =
 //    C  m  S     M     s  c    r
 //    o  m  u     o  T  t  e    c
 //    n  a  f     s  o  c  t    h
-//    f  n  f  E  a  r  a        
+//    f  n  f  E  a  r  a
 //    i  d  i  v  i  c  r  F    X
 //    g  s  x  k  c  h  d  P    2  Type       Qual                Variable                  Name              afterSetCmd
     /*

@@ -1,8 +1,39 @@
 /*=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 Base.ino
+
+         RTCM Buffers
+    0   .-------------. <--- rtcmConsumerBufferPtr
+        |             |
+        |             |
+        |             |
+        |             |
+    1   +-------------+ <--- rtcmConsumerBufferTail
+        |  RTCM Data  |   |
+        |     xxx     |   V  rtcmConsumerBufferLengths[1]
+        |   -------   |  ---
+        |             |
+    2   +-------------+  ---
+        |  RTCM Data  |   |
+        |     yyy     |   V  rtcmConsumerBufferLengths[2]
+        |   -------   |  ---
+        |             |
+    3   +-------------+ <--- rtcmConsumerBufferHead
+        |             |
+        |             |
+        |             |
+        |             |
+    4   +-------------+
+              ***
+   15   +-------------+  --- rtcmConsumerBufferEntries - 1
+        |             |   |
+        |             |   | rtcmConsumerBufferEntrySize
+        |             |   |
+        |             |   V
+        '-------------'  ---  rtcmConsumerBufferEntries
+
 =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=*/
 
-// Enough storage for two rounds of RTCM 1074,1084,1094,1124,1005
+// Enough storage for two rounds of RTCM 1005,1074,1084,1094,1124
 // To help prevent the "no increase in file size" and "due to lack of RTCM" glitch:
 // RTCM is stored in PSRAM by the processUart1Message task and written by sendRTCMToConsumers
 const uint8_t rtcmConsumerBufferEntries = 16;
@@ -17,15 +48,18 @@ uint8_t *rtcmConsumerBufferPtr = nullptr;
 //----------------------------------------
 bool rtcmConsumerBufferAllocated()
 {
+    size_t bufferLength;
+
     if (rtcmConsumerBufferPtr == nullptr)
     {
-        rtcmConsumerBufferPtr = (uint8_t *)rtkMalloc(
-            (size_t)rtcmConsumerBufferEntrySize * (size_t)rtcmConsumerBufferEntries,
-            "ntripBuffer");
+        bufferLength = (size_t)rtcmConsumerBufferEntrySize * (size_t)rtcmConsumerBufferEntries;
+        rtcmConsumerBufferPtr = (uint8_t *)rtkMalloc(bufferLength, "ntripBuffer");
         for (uint8_t i = 0; i < rtcmConsumerBufferEntries; i++)
             rtcmConsumerBufferLengths[i] = 0;
         rtcmConsumerBufferHead = 0;
         rtcmConsumerBufferTail = 0;
+        if (settings.debugRtcmBuffers && rtcmConsumerBufferPtr)
+            systemPrintf("RTCM buffer allocated: %p, %d bytes\r\n", rtcmConsumerBufferPtr, bufferLength);
     }
     if (rtcmConsumerBufferPtr == nullptr)
     {
@@ -75,6 +109,8 @@ void storeRTCMForConsumers(uint8_t *rtcmData, uint16_t dataLength)
         dest += (size_t)rtcmConsumerBufferEntrySize * (size_t)rtcmConsumerBufferHead;
         memcpy(dest, rtcmData, dataLength); // Store the RTCM
         rtcmConsumerBufferLengths[rtcmConsumerBufferHead] = dataLength; // Store the length
+        if (settings.debugRtcmBuffers)
+            systemPrintf("Filling RTCM Buffer %d: %4d bytes\r\n", rtcmConsumerBufferHead, dataLength);
         rtcmConsumerBufferHead = rtcmConsumerBufferHead + 1; // Increment the Head
         rtcmConsumerBufferHead = rtcmConsumerBufferHead % rtcmConsumerBufferEntries; // Wrap
     }
@@ -97,20 +133,39 @@ void sendRTCMToConsumers()
     {
         uint8_t *dest = rtcmConsumerBufferPtr;
         dest += (size_t)rtcmConsumerBufferEntrySize * (size_t)rtcmConsumerBufferTail;
+        size_t dataLength = rtcmConsumerBufferLengths[rtcmConsumerBufferTail];
+        if (settings.debugRtcmBuffers)
+            systemPrintf("Sending RTCM Buffer %d: %4d bytes\r\n", rtcmConsumerBufferTail, dataLength);
 
         // NTRIP Server
         for (int serverIndex = 0; serverIndex < NTRIP_SERVER_MAX; serverIndex++)
-            ntripServerSendRTCM(serverIndex, dest, rtcmConsumerBufferLengths[rtcmConsumerBufferTail]);
+            ntripServerSendRTCM(serverIndex, dest, dataLength);
 
         // LoRa
-        loraProcessRTCM(dest, rtcmConsumerBufferLengths[rtcmConsumerBufferTail]);
+        loraProcessRTCM(dest, dataLength);
 
         // ESP-NOW
-        for (uint16_t x = 0; x < rtcmConsumerBufferLengths[rtcmConsumerBufferTail]; x++)
+        for (uint16_t x = 0; x < dataLength; x++)
             espNowProcessRTCM(dest[x]);
 
         rtcmConsumerBufferTail = rtcmConsumerBufferTail + 1; // Increment the Tail
         rtcmConsumerBufferTail = rtcmConsumerBufferTail % rtcmConsumerBufferEntries; // Wrap
+
+        // Account for this packet
+        rtcmLastPacketSent = millis();
+        rtcmPacketsSent++;
+
+        // Check for too many digits
+        if (settings.enableResetDisplay == true)
+        {
+            if (rtcmPacketsSent > 99)
+                rtcmPacketsSent = 1; // Trim to two digits to avoid overlap
+        }
+        else
+        {
+            if (rtcmPacketsSent > 999)
+                rtcmPacketsSent = 1; // Trim to three digits to avoid log icon and increasing bar
+        }
     }
 }
 
@@ -121,21 +176,6 @@ void sendRTCMToConsumers()
 void processRTCM(uint8_t *rtcmData, uint16_t dataLength)
 {
     storeRTCMForConsumers(rtcmData, dataLength);
-
-    rtcmLastPacketSent = millis();
-    rtcmPacketsSent++;
-
-    // Check for too many digits
-    if (settings.enableResetDisplay == true)
-    {
-        if (rtcmPacketsSent > 99)
-            rtcmPacketsSent = 1; // Trim to two digits to avoid overlap
-    }
-    else
-    {
-        if (rtcmPacketsSent > 999)
-            rtcmPacketsSent = 1; // Trim to three digits to avoid log icon and increasing bar
-    }
 }
 
 //------------------------------
