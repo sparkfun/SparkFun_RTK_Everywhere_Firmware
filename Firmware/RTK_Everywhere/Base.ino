@@ -142,6 +142,22 @@ void sendRTCMToConsumers()
 
         rtcmConsumerBufferTail = rtcmConsumerBufferTail + 1; // Increment the Tail
         rtcmConsumerBufferTail = rtcmConsumerBufferTail % rtcmConsumerBufferEntries; // Wrap
+
+        // Account for this packet
+        rtcmLastPacketSent = millis();
+        rtcmPacketsSent++;
+
+        // Check for too many digits
+        if (settings.enableResetDisplay == true)
+        {
+            if (rtcmPacketsSent > 99)
+                rtcmPacketsSent = 1; // Trim to two digits to avoid overlap
+        }
+        else
+        {
+            if (rtcmPacketsSent > 999)
+                rtcmPacketsSent = 1; // Trim to three digits to avoid log icon and increasing bar
+        }
     }
 }
 
@@ -152,21 +168,6 @@ void sendRTCMToConsumers()
 void processRTCM(uint8_t *rtcmData, uint16_t dataLength)
 {
     storeRTCMForConsumers(rtcmData, dataLength);
-
-    rtcmLastPacketSent = millis();
-    rtcmPacketsSent++;
-
-    // Check for too many digits
-    if (settings.enableResetDisplay == true)
-    {
-        if (rtcmPacketsSent > 99)
-            rtcmPacketsSent = 1; // Trim to two digits to avoid overlap
-    }
-    else
-    {
-        if (rtcmPacketsSent > 999)
-            rtcmPacketsSent = 1; // Trim to three digits to avoid log icon and increasing bar
-    }
 }
 
 //------------------------------
