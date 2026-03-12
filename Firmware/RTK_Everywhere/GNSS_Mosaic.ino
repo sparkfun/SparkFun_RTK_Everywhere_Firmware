@@ -46,7 +46,8 @@ void printMosaicCardSpace()
         // On Flex mosaic-X5, the internal mosaic SD card is not accessible
         char myString[70];
         snprintf(myString, sizeof(myString), "SD card size: %s / Free space: %s", sdCardSizeChar, sdFreeSpaceChar);
-        systemPrintln(myString);
+        if(!inMainMenu)
+            systemPrintln(myString);
     }
 }
 

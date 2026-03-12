@@ -612,7 +612,8 @@ void ntripClientStart()
     reportHeapNow(settings.debugNtripClientState);
 
     // Start the NTRIP client
-    systemPrintln("NTRIP Client start");
+    if(!inMainMenu)
+        systemPrintln("NTRIP Client start");
     ntripClientStop(false);
     if (ntripClientEnabled(nullptr))
         networkConsumerAdd(NETCONSUMER_NTRIP_CLIENT, NETWORK_ANY, __FILE__, __LINE__);
