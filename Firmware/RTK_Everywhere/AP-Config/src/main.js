@@ -92,9 +92,9 @@ var divTables = {
     minCN0Config: ["minCN0"],
     logToSDCard: ["enableLogging"],
     shutdownNoChargeTimeoutMinutesCheckboxDetail: ["shutdownNoChargeTimeoutMinutes"],
-    constellation_SBAS: ["constellationSbas"],
-    constellation_NavIC: ["constellationNavic"],
-    constellation_GLONASS: ["constellationGlonass"],
+    constellationSbas: ["constellation_SBAS"],
+    constellationNavic: ["constellation_NavIC"],
+    constellationGlonass: ["constellation_GLONASS"],
 };
 
 function showHideDivs() {
@@ -194,7 +194,8 @@ function parseIncoming(msg) {
                 select.add(newOption, undefined);
             }
 
-            else if (platformPrefix == "Facet mosaicX5") {
+            else if (platformPrefix == "Facet X5") {
+                console.log("runng mosaic");
                 show("baseConfig");
                 show("ppConfig");
                 hide("ethernetConfig");
@@ -1267,7 +1268,7 @@ function validateFields() {
     }
 
     //Check Mosaic-X5 RTCM intervals
-    else if ((platformPrefix == "Facet mosaicX5") || ((platformPrefix.substring(0, 2) == "FP") && (facetFPGNSS == "Mosaic-X5"))) {
+    else if ((platformPrefix == "Facet X5") || ((platformPrefix.substring(0, 2) == "FP") && (facetFPGNSS == "Mosaic-X5"))) {
         var messages = document.querySelectorAll('input[id^=messageIntervalRTCMRover]');
         for (let x = 0; x < messages.length; x++) {
             var messageName = messages[x].id;
@@ -1836,7 +1837,7 @@ function resetToSurveyingDefaults() {
         ge("messageRateNMEA_GPGSV").value = 1.0;
         ge("messageRateNMEA_GPRMC").value = 0.5;
     }
-    else if ((platformPrefix == "Facet mosaicX5") || ((platformPrefix.substring(0, 2) == "FP") && (facetFPGNSS == "Mosaic-X5"))) {
+    else if ((platformPrefix == "Facet X5") || ((platformPrefix.substring(0, 2) == "FP") && (facetFPGNSS == "Mosaic-X5"))) {
         ge("streamIntervalNMEA_0").value = 6; //msec500
         ge("streamIntervalNMEA_1").value = 7; //sec1
         ge("messageStreamNMEA_GGA").value = 1;
@@ -1904,7 +1905,7 @@ function resetToLoggingDefaults() {
         ge("messageRateRTCMRover_RTCM3-112X").value = 1;
         ge("messageRateRTCMRover_RTCM3-113X").value = 1;
     }
-    else if ((platformPrefix == "Facet mosaicX5") || ((platformPrefix.substring(0, 2) == "FP") && (facetFPGNSS == "Mosaic-X5"))) {
+    else if ((platformPrefix == "Facet X5") || ((platformPrefix.substring(0, 2) == "FP") && (facetFPGNSS == "Mosaic-X5"))) {
         ge("streamIntervalNMEA_0").value = 6; //msec500
         ge("streamIntervalNMEA_1").value = 7; //sec1
         ge("messageStreamNMEA_GGA").value = 1;
@@ -1958,7 +1959,7 @@ function resetToRTCMDefaults() {
         ge("messageRateRTCMBase_RTCM3-112X").value = 1;
         ge("messageRateRTCMBase_RTCM3-113X").value = 1;
     }
-    else if ((platformPrefix == "Facet mosaicX5") || ((platformPrefix.substring(0, 2) == "FP") && (facetFPGNSS == "Mosaic-X5"))) {
+    else if ((platformPrefix == "Facet X5") || ((platformPrefix.substring(0, 2) == "FP") && (facetFPGNSS == "Mosaic-X5"))) {
         ge("messageIntervalRTCMBase_RTCM1033").value = 10.0;
 
         ge("messageEnabledRTCMBase_RTCM1005").checked = true;
@@ -2003,7 +2004,7 @@ function resetToRTCMLowBandwidth() {
         ge("messageRateRTCMBase_RTCM3-112X").value = 2;
         ge("messageRateRTCMBase_RTCM3-113X").value = 2;
     }
-    else if ((platformPrefix == "Facet mosaicX5") || ((platformPrefix.substring(0, 2) == "FP") && (facetFPGNSS == "Mosaic-X5"))) {
+    else if ((platformPrefix == "Facet X5") || ((platformPrefix.substring(0, 2) == "FP") && (facetFPGNSS == "Mosaic-X5"))) {
         ge("messageIntervalRTCMBase_RTCM1005|6").value = 10.0;
         ge("messageIntervalRTCMBase_RTCM1033").value = 10.0;
         ge("messageIntervalRTCMBase_MSM4").value = 2.0;
@@ -2137,7 +2138,7 @@ document.addEventListener("DOMContentLoaded", (event) => {
             hide("ecefConfig");
             show("geodeticConfig");
 
-            if (platformPrefix == "Facet mosaicX5") {
+            if (platformPrefix == "Facet X5") {
                 ge("antennaPhaseCenter_mm").value = 68.5; //Average of L1/L2
             }
             else if (platformPrefix == "Torch") {
@@ -2337,7 +2338,7 @@ document.addEventListener("DOMContentLoaded", (event) => {
 })
 
 function showHideLoggingDetails() {
-    if (platformPrefix == "Facet mosaicX5") {
+    if (platformPrefix == "Facet X5") {
         if (ge("enableLogging").checked) {
             show("enableLoggingDetailsMosaic");
         }
