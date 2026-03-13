@@ -1043,8 +1043,8 @@ void forceGnssCommunicationRate(uint32_t &platformGnssCommunicationRate)
     }
     else if (productVariant == RTK_FACET_MOSAIC)
     {
-            // Mosaic defaults to 115200
-            platformGnssCommunicationRate = 115200;
+            // Start the hardware at the dataPortBaud rate. This is similarly set in GNSS_MOSAIC::begin().
+            platformGnssCommunicationRate = settings.dataPortBaud;
     }
     else if (productVariant == RTK_FACET_FP)
     {

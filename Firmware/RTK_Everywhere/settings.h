@@ -1032,7 +1032,7 @@ struct Settings
 
     // Serial
     uint32_t dataPortBaud =
-        (115200 * 2); // Default to 230400bps. This limits GNSS fixes at 4Hz but allows SD buffer to be reduced to 6k.
+        (115200 * 2); // Default to 230400bps. This interface can be a bottleneck at high fix rates but allows the SD buffer to be reduced to 6k.
     bool echoUserInput = true;
     bool enableGnssToUsbSerial = false;
     uint32_t radioPortBaud = 57600;       // Default to 57600bps to support connection to SiK1000 type telemetry radios
