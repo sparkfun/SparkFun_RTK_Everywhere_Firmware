@@ -95,6 +95,7 @@ var divTables = {
     constellationSbas: ["constellation_SBAS"],
     constellationNavic: ["constellation_NavIC"],
     constellationGlonass: ["constellation_GLONASS"],
+    tiltConfig: ["enableTiltCompensation"],
 };
 
 function showHideDivs() {
@@ -176,7 +177,6 @@ function parseIncoming(msg) {
                 show("ntpConfig");
                 show("portsConfig");
                 hide("externalPortOptions");
-                hide("tiltConfig");
                 hide("beeperControl");
                 show("measurementRateInput");
                 hide("mosaicNMEAStreamDropdowns");
@@ -202,7 +202,6 @@ function parseIncoming(msg) {
                 hide("ntpConfig");
                 show("portsConfig");
                 show("externalPortOptions");
-                hide("tiltConfig");
                 hide("beeperControl");
                 hide("measurementRateInput");
                 show("mosaicNMEAStreamDropdowns");
@@ -288,7 +287,6 @@ function parseIncoming(msg) {
                 show("portsConfig");
                 show("externalPortOptions");
 
-                hide("tiltConfig");
                 hide("beeperControl");
 
                 show("measurementRateInput");
@@ -356,8 +354,6 @@ function parseIncoming(msg) {
                 // No DATA port on Torch X2
                 hide("externalPortOptions");
 
-                hide("tiltConfig"); //Not supported on Torch X2
-
                 show("measurementRateInput");
 
                 hide("mosaicNMEAStreamDropdowns");
@@ -399,7 +395,6 @@ function parseIncoming(msg) {
                 hide("ntpConfig");
                 show("portsConfig");
                 show("externalPortOptions");
-                hide("tiltConfig");
                 show("beeperControl");
                 hide("measurementRateInput");
                 show("mosaicNMEAStreamDropdowns");
@@ -446,7 +441,6 @@ function parseIncoming(msg) {
                 show("portsConfig");
                 show("externalPortOptions");
 
-                hide("tiltConfig");
                 show("beeperControl");
 
                 show("measurementRateInput");
@@ -511,7 +505,6 @@ function parseIncoming(msg) {
                 show("portsConfig");
                 show("externalPortOptions");
 
-                hide("tiltConfig");
                 show("beeperControl");
 
                 show("measurementRateInput");
