@@ -516,6 +516,13 @@ void menuRadio()
                 systemPrintf("12) Seconds without user serial that must elapse before LoRa radio goes into dedicated "
                              "listening mode: %d\r\n",
                              settings.loraSerialInteractionTimeout_s);
+                if (settings.debugLora == true)
+                {
+                    systemPrintf("13) Direct connect ESP to LoRa\r\n");
+                    systemPrintf("14) Connect LoRa to GNSS UART2 (standard comm path)\r\n");
+                    systemPrintf("15) Enter LoRa RX test mode\r\n");
+                    systemPrintf("16) Transmit test data\r\n");
+                }
             }
         }
 
@@ -659,7 +666,7 @@ void menuRadio()
                 "nearing 200 characters but needs to be near 250.";
 #ifdef COMPILE_ESPNOW
             esp_now_send(espNowBroadcastAddr, (uint8_t *)&espNowData, sizeof(espNowData)); // Send packet over broadcast
-#endif
+#endif                                                                                     // COMPILE_ESPNOW
         }
 
         else if (present.radio_lora == true && incoming == 10)
@@ -676,6 +683,35 @@ void menuRadio()
             getNewSetting("Enter the number of seconds without user serial that must elapse before LoRa radio goes "
                           "into dedicated listening mode",
                           10, 600, &settings.loraSerialInteractionTimeout_s);
+        }
+        else if (present.radio_lora == true && settings.enableLora == true && incoming == 13 &&
+                 settings.debugLora == true)
+        {
+            systemPrintf("Switching to direct communication with LoRa\r\n");
+            muxSelectLoRaCommunication(); // Both Torch and FP, connect ESP32 LoRa UART
+        }
+        else if (present.radio_lora == true && settings.enableLora == true && incoming == 14 &&
+                 settings.debugLora == true)
+        {
+            systemPrintf("Switching LoRa to connect to GNSS UART3\r\n");
+            
+            // Connect Facet FP GNSS receiver UART2 to LoRa UART0 for normal TX/RX of corrections and data
+            gpioExpanderSelectLoraCommunication(); 
+        }
+        else if (present.radio_lora == true && settings.enableLora == true && incoming == 15 &&
+                 settings.debugLora == true)
+        {
+            systemPrintf("Changing to LoRa RX test mode\r\n");
+#ifdef COMPILE_LORA
+            loraState = LORA_RX_TEST;
+#endif // COMPILE_LORA
+        }
+        else if (present.radio_lora == true && settings.enableLora == true && incoming == 16 &&
+                 settings.debugLora == true)
+        {
+            uint8_t testData[] = "This is a test string to see if we can send data over LoRa.";
+            systemPrintf("Sending: %s\r\n", testData);
+            loraWrite(testData, strlen((char *)testData));
         }
 
         else if (incoming == 'x')

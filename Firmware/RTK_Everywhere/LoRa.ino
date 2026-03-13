@@ -29,8 +29,9 @@ LoRa.ino
     resets the timeout.
 
     Why not connect UM980 UART3 directly to LoRa UART0 and avoid the switching? UART3 is the primary connection
-    to the ESP32 for ingesting NMEA/RTCM/rtc and then sending to the consumers, Bluetooth being the primary 
-    (also logging, TCP, etc). For this reason, we must always return pin_MuxA to low (connect UM980 UART3 to ESP32 UART1).
+    to the ESP32 for ingesting NMEA/RTCM/rtc and then sending to the consumers, Bluetooth being the primary
+    (also logging, TCP, etc). For this reason, we must always return pin_MuxA to low (connect UM980 UART3 to ESP32
+UART1).
 
   Facet FP:
     Facet FP GNSS (UART2) <-> Switch 4 B0 <-> 4-Pin Serial TTL on 1mm JST under microSD
@@ -67,7 +68,8 @@ LoRa.ino
 enum LoraState
 {
     LORA_OFF = 0,
-    LORA_NOT_STARTED,
+    LORA_FAILED_SETUP,         // LoRa failed setup. Do not attempt to start the radio again.
+    LORA_NOT_STARTED,          // The setting is disabled
     LORA_TX_SETTLING,          // Do not transmit while surveying in to avoid RF cross-talk
     LORA_TX,                   // Send RTCM over LoRa when it's received from the GNSS (share UART0 with prints)
     LORA_RX_DEDICATED,         // For platforms with separate/dedicated connections to the the LoRa radio.
@@ -76,6 +78,7 @@ enum LoraState
                                // monitoring USB.
     LORA_RX_SHARED_USB_TIMEOUT, // USB cable has been connected for more than loraSerialInteractionTimeout_s so ignore
                                 // USB. Insert new states here
+    LORA_RX_TEST,               // For testing the LoRa link. Print received data to system output
     LORA_STATE_MAX              // Last entry in the state list
 };
 
@@ -100,6 +103,10 @@ void updateLora()
     default:
         systemPrintln("Unknown LoRa State");
 
+    case (LORA_FAILED_SETUP):
+        // Do not attempt to set up the LoRa radio again.
+        break;
+
     case (LORA_OFF):
         if (settings.enableLora == true)
             loraState = LORA_NOT_STARTED;
@@ -109,6 +116,13 @@ void updateLora()
         beginLora();
 
         if (inBaseMode() && settings.fixedBase == true)
+        {
+            if (settings.debugLora == true)
+                systemPrintln("LoRa: Moving to TX");
+
+            loraState = LORA_TX;
+        }
+        else if (inBaseAssistMode() && settings.fixedBase == false)
         {
             if (settings.debugLora == true)
                 systemPrintln("LoRa: Moving to TX");
@@ -125,6 +139,11 @@ void updateLora()
         else if (present.loraDedicatedUart == true)
         {
             // If we have a dedicated UART, we do not need to test for an attached USB cable
+
+            if (settings.debugLora == true)
+                systemPrintln("LoRa: Moving to RX Dedicated");
+
+            loraSetupReceive(); // Enters command mode
 
             // Confirm LoRa radio is directly connected to GNSS
             gpioExpanderSelectLoraCommunication();
@@ -175,7 +194,11 @@ void updateLora()
         }
 
         if (inBaseMode() == false)
+        {
+            if (settings.debugLora == true)
+                systemPrintln("LoRa: Moving to Not Started");
             loraState = LORA_NOT_STARTED; // Force restart to move to other modes
+        }
 
         break;
 
@@ -338,6 +361,19 @@ void updateLora()
             loraState = LORA_NOT_STARTED; // Force restart to move to TX mode
 
         break;
+
+        // Only used for testing the link during debug mode
+    case (LORA_RX_TEST):
+        if (loraAvailable())
+        {
+            systemPrint("LoRa test data received:");
+            while (loraAvailable())
+            {
+                systemWrite(loraRead());
+            }
+            systemPrintln();
+        }
+        break;
     }
 }
 
@@ -407,15 +443,17 @@ void muxSelectUm980()
 {
     // On a possible Facet FP UM980 variant, UM980 UART1 will be hardwired to ESP32 UART0. No muxes to change
     if (productVariant == RTK_TORCH)
-        digitalWrite(pin_muxA, LOW); // Control U18: Connect ESP UART1 to UM980 UART3. Control U11: Connect U18-B1 to LoRa UART2.
+        digitalWrite(pin_muxA,
+                     LOW); // Control U18: Connect ESP UART1 to UM980 UART3. Control U11: Connect U18-B1 to LoRa UART2.
 }
 
 void muxSelectUsb()
 {
     if (productVariant == RTK_TORCH)
     {
-        pinMode(pin_muxB, OUTPUT);   // Make really sure we can control this pin
-        digitalWrite(pin_muxA, LOW);  // Control U12: Connect ESP UART1 to UM980 UART3. Control U11: Connect U18-B1 to LoRa UART2
+        pinMode(pin_muxB, OUTPUT); // Make really sure we can control this pin
+        digitalWrite(pin_muxA,
+                     LOW); // Control U12: Connect ESP UART1 to UM980 UART3. Control U11: Connect U18-B1 to LoRa UART2
         digitalWrite(pin_muxB, LOW); // Control U18: Connect ESP UART0 to CH340 Serial
 
         usbSerialIsSelected = true; // Let other print operations know we are connected to the CH34x
@@ -427,8 +465,9 @@ void muxSelectLoRaCommunication()
 {
     if (productVariant == RTK_TORCH)
     {
-        pinMode(pin_muxB, OUTPUT);    // Make really sure we can control this pin
-        digitalWrite(pin_muxA, LOW);  // Control U12: Connect ESP UART1 to UM980 UART3. Control U11: Connect U18-B1 to LoRa UART2
+        pinMode(pin_muxB, OUTPUT); // Make really sure we can control this pin
+        digitalWrite(pin_muxA,
+                     LOW); // Control U12: Connect ESP UART1 to UM980 UART3. Control U11: Connect U18-B1 to LoRa UART2
         digitalWrite(pin_muxB, HIGH); // Control U18: Connect ESP UART0 to U11
 
         usbSerialIsSelected = false; // Let other print operations know we are not connected to the CH34x
@@ -446,7 +485,8 @@ void muxSelectLoRaCommunication()
 void muxSelectLoRaConfigure()
 {
     if (productVariant == RTK_TORCH)
-        digitalWrite(pin_muxA, HIGH); // Control U12: Connect ESP UART1 to LoRa UART0. Control U11: Connect U18-B1 to UM980 UART1
+        digitalWrite(pin_muxA,
+                     HIGH); // Control U12: Connect ESP UART1 to LoRa UART0. Control U11: Connect U18-B1 to UM980 UART1
     else if (productVariant == RTK_FACET_FP)
         // Connect ESP32 UART2 -> SW3 -> LoRa UART2
         gpioExpanderSelectLoraConfigure();
@@ -672,6 +712,7 @@ void loraSetup(bool transmit)
         int responseLength = sizeof(response);
 
         bool configureSuccess = true;
+        bool overallSuccess = true;
 
         // Enable transmit mode
         // response and responseLength are modified
@@ -681,6 +722,13 @@ void loraSetup(bool transmit)
         else
             configureSuccess &= loraSendCommand("AT+MODE=1", response, &responseLength); // 0 - Transmit, 1 - Receive
 
+        overallSuccess &= configureSuccess;
+        if (configureSuccess == false && settings.debugLora)
+        {
+            systemPrintln("Failed to set mode");
+            configureSuccess = true; // Reset
+        }
+
         // Set frequency
         responseLength = sizeof(response);
 
@@ -689,8 +737,22 @@ void loraSetup(bool transmit)
                  settings.loraCoordinationFrequency);
         configureSuccess &= loraSendCommand(command, response, &responseLength);
 
+        overallSuccess &= configureSuccess;
+        if (configureSuccess == false && settings.debugLora)
+        {
+            systemPrintln("Failed to set frequency");
+            configureSuccess = true; // Reset
+        }
+
         responseLength = sizeof(response);
         configureSuccess &= loraSendCommand("AT+TRANS", response, &responseLength);
+
+        overallSuccess &= configureSuccess;
+        if (configureSuccess == false && settings.debugLora)
+        {
+            systemPrintln("Failed to set trans");
+            configureSuccess = true; // Reset
+        }
 
         if (configureSuccess == false)
             systemPrintln("LoRa radio failed to configure");

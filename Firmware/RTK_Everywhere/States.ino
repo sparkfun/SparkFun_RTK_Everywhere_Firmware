@@ -852,6 +852,13 @@ bool inBaseMode()
     return (false);
 }
 
+bool inBaseAssistMode()
+{
+    if (systemState == STATE_BASE_ASSIST_NOT_STARTED)
+        return (true);
+    return (false);
+}
+
 bool inWebConfigMode()
 {
     if (systemState >= STATE_WEB_CONFIG_NOT_STARTED && systemState <= STATE_WEB_CONFIG)
