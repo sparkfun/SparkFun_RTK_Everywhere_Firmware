@@ -619,15 +619,19 @@ int AsciiToNibble(int data)
 }
 
 // Dump a buffer in hex and ASCII
-void dumpBuffer(uint8_t *buffer, uint16_t length)
+void dumpBuffer(uint8_t *buffer, size_t length)
+{
+    dumpBuffer(0, buffer, length);
+}
+
+// Dump a buffer in hex and ASCII
+void dumpBuffer(size_t offset, uint8_t *buffer, size_t length)
 {
     int bytes;
     uint8_t *end;
     int index;
-    uint16_t offset;
 
     end = &buffer[length];
-    offset = 0;
     while (buffer < end)
     {
         // Determine the number of bytes to display on the line
@@ -1218,8 +1222,8 @@ void assembleDeviceName()
             }
         }
 
-        // Form the Tilt identifier. Use present.imu_im19, not settings.detectedTilt
-        if (present.imu_im19)
+        // Form the Tilt identifier.
+        if (settings.detectedTilt)
             snprintf(tiltIdentifier, sizeof(tiltIdentifier), "T");
     }
 

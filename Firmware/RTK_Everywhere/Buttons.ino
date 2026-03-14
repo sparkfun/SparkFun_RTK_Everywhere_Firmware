@@ -34,6 +34,12 @@ void powerOnCheck()
 // then don't display a shutdown screen
 void powerDown(bool displayInfo)
 {
+    if (displayInfo == true)
+    {
+        displayShutdown();
+        delay(2000);
+    }
+
     // Disable SD card use
     endSD(false, false);
 
@@ -41,12 +47,6 @@ void powerDown(bool displayInfo)
 
     // Prevent other tasks from logging, even if access to the microSD card was denied
     online.logging = false;
-
-    if (displayInfo == true)
-    {
-        displayShutdown();
-        delay(2000);
-    }
 
     if (present.peripheralPowerControl == true)
         peripheralsOff();

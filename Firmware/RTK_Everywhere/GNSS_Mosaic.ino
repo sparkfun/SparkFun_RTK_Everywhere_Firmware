@@ -46,7 +46,8 @@ void printMosaicCardSpace()
         // On Flex mosaic-X5, the internal mosaic SD card is not accessible
         char myString[70];
         snprintf(myString, sizeof(myString), "SD card size: %s / Free space: %s", sdCardSizeChar, sdFreeSpaceChar);
-        systemPrintln(myString);
+        if(!inMainMenu)
+            systemPrintln(myString);
     }
 }
 
@@ -3026,7 +3027,7 @@ bool GNSS_MOSAIC::isPresentOnSerial(HardwareSerial *serialPort, const char *comm
             if (retries == retryLimit)
                 break;
             retries++;
-            sendWithResponse(serialPort, "SSSSSSSSSSSSSSSSSSSS\n\r", console, 100); // Send escape sequence
+            sendWithResponse(serialPort, "SSSSSSSSSSSSSSSSSSSS\n\r", console, 1000); // Send escape sequence
         }
 
         if (retries == retryLimit)

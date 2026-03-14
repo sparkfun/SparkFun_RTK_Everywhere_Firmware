@@ -1182,7 +1182,7 @@ SettingValueResponse updateSettingWithValue(bool inCommands, const char *setting
     // setProfile was used in the original Web Config interface
     else if (strcmp(settingName, "setProfile") == 0)
     {
-        char * settingsCsvList;
+        char *settingsCsvList;
 
         // Change to new profile
         if (settings.debugWebServer == true)
@@ -1229,7 +1229,7 @@ SettingValueResponse updateSettingWithValue(bool inCommands, const char *setting
 
     else if (strcmp(settingName, "resetProfile") == 0)
     {
-        char * settingsCsvList;
+        char *settingsCsvList;
 
         settingsToDefaults(); // Overwrite our current settings with defaults
 
@@ -1789,44 +1789,50 @@ void createSettingsString(char *newSettings)
     stringRecord(newSettings, "minCN0", settings.minCN0);
     stringRecord(newSettings, "enableRCFirmware", enableRCFirmware);
 
-    // Add SD Characteristics
-    char sdCardSizeChar[20];
-    String cardSize;
-    char sdFreeSpaceChar[20];
-    String freeSpace;
     if (present.microSd)
     {
-        stringHumanReadableSize(cardSize, sdCardSize);
-        cardSize.toCharArray(sdCardSizeChar, sizeof(sdCardSizeChar));
-        stringHumanReadableSize(freeSpace, sdFreeSpace);
-        freeSpace.toCharArray(sdFreeSpaceChar, sizeof(sdFreeSpaceChar));
-    }
-    else if (present.mosaicMicroSd)
-    {
-        stringHumanReadableSize(cardSize, mosaicSdCardSize);
-        cardSize.toCharArray(sdCardSizeChar, sizeof(sdCardSizeChar));
-        stringHumanReadableSize(freeSpace, mosaicSdFreeSpace);
-        freeSpace.toCharArray(sdFreeSpaceChar, sizeof(sdFreeSpaceChar));
-    }
+        stringRecord(newSettings, "sdMounted", online.microSD);
+        
+        if (online.microSD)
+        {
+            // Add SD Characteristics
+            char sdCardSizeChar[20];
+            String cardSize;
+            char sdFreeSpaceChar[20];
+            String freeSpace;
+            if (present.microSd)
+            {
+                stringHumanReadableSize(cardSize, sdCardSize);
+                cardSize.toCharArray(sdCardSizeChar, sizeof(sdCardSizeChar));
+                stringHumanReadableSize(freeSpace, sdFreeSpace);
+                freeSpace.toCharArray(sdFreeSpaceChar, sizeof(sdFreeSpaceChar));
+            }
+            else if (present.mosaicMicroSd)
+            {
+                stringHumanReadableSize(cardSize, mosaicSdCardSize);
+                cardSize.toCharArray(sdCardSizeChar, sizeof(sdCardSizeChar));
+                stringHumanReadableSize(freeSpace, mosaicSdFreeSpace);
+                freeSpace.toCharArray(sdFreeSpaceChar, sizeof(sdFreeSpaceChar));
+            }
 
-    stringRecord(newSettings, "sdFreeSpace", sdFreeSpaceChar);
-    stringRecord(newSettings, "sdSize", sdCardSizeChar);
-    stringRecord(newSettings, "sdMounted", online.microSD);
+            stringRecord(newSettings, "sdFreeSpace", sdFreeSpaceChar);
+            stringRecord(newSettings, "sdSize", sdCardSizeChar);
+        }
+    }
 
     // Add Device ID used for corrections
     stringRecord(newSettings, "hardwareID", (char *)printDeviceId());
 
-    // Add Days Remaining for corrections
-    char apDaysRemaining[20];
-    if (strlen(settings.pointPerfectCurrentKey) > 0)
-    {
-        int daysRemaining = daysFromEpoch(settings.pointPerfectNextKeyStart + settings.pointPerfectNextKeyDuration + 1);
-        snprintf(apDaysRemaining, sizeof(apDaysRemaining), "%d", daysRemaining);
-    }
-    else
-        snprintf(apDaysRemaining, sizeof(apDaysRemaining), "No Keys");
-
-    stringRecord(newSettings, "daysRemaining", apDaysRemaining);
+    // Add Days Remaining for these keys
+    // char apDaysRemaining[20];
+    // if (strlen(settings.pointPerfectCurrentKey) > 0)
+    // {
+    //     int daysRemaining = daysFromEpoch(settings.pointPerfectNextKeyStart + settings.pointPerfectNextKeyDuration + 1);
+    //     snprintf(apDaysRemaining, sizeof(apDaysRemaining), "%d", daysRemaining);
+    // }
+    // else
+    //     snprintf(apDaysRemaining, sizeof(apDaysRemaining), "No Keys");
+    // stringRecord(newSettings, "daysRemaining", apDaysRemaining);
 
     // Current coordinates come from HPPOSLLH call back
     stringRecord(newSettings, "geodeticLat", gnss->getLatitude(), haeNumberOfDecimals);

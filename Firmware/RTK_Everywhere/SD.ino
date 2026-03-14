@@ -48,9 +48,6 @@ void sdUpdate()
     if (online.microSD && sdCardSize == 0)
         beginSDSizeCheckTask(); // Start task to determine SD card size
 
-    if (sdSizeCheckTaskComplete == true)
-        deleteSDSizeCheckTask();
-
     // Check if SD card is still present
     if (sdCardPresent() == false && online.microSD == true)
     {
@@ -114,11 +111,11 @@ bool sdCardPresent(void)
     {
         if (online.gpioExpanderButtons == true)
         {
-            // The boot time is low enough that the SD card is not detected during beginSD() in setup(). 
+            // The boot time is low enough that the SD card is not detected during beginSD() in setup().
             // This leads to a variety of problems. Force a first check.
             static bool firstCheck = false; // One shot
-            
-            static uint32_t lastExpanderCheck = 0; 
+
+            static uint32_t lastExpanderCheck = 0;
             static bool lastPresenceResult = false;
 
             // Avoid constantly checking I2C bus for SD presence
@@ -335,4 +332,162 @@ void sdUpdateFileCreateTimestamp(SdFile *dataFile)
     if (online.rtc == true)
         dataFile->timestamp(T_CREATE, rtc.getYear(), rtc.getMonth() + 1, rtc.getDay(), rtc.getHour(true),
                             rtc.getMinute(), rtc.getSecond()); // ESP32Time returns month:0-11
+}
+
+//----------------------------------------
+// SD card directory listing
+void sdCardDirectoryListing()
+{
+    SdFile sdRootDir;
+    char fileName[60];
+    bool directory;
+    SdFile sdFile;
+    bool headerDisplayed;
+    const char * name;
+    size_t size;
+
+    // Display the partition name
+    systemPrintf("\nSD Card Files\r\n");
+
+    // Start at the beginning of the directory
+    if (sdRootDir.open("/"))
+    {
+        // List the contents of the directory
+        headerDisplayed = false;
+        while (1)
+        {
+            // Open the next file
+            if (!sdFile.openNext(&sdRootDir, O_RDONLY))
+            {
+                if (headerDisplayed == false)
+                    systemPrintf("No SD card files found\r\n");
+                break;
+            }
+
+            // Get the file attributes
+            sdFile.getName(fileName, sizeof(fileName));
+            size = sdFile.fileSize();
+            directory = sdFile.isDir();
+
+            // Done with this file
+            sdFile.close();
+
+            // Display the attributes
+            if (headerDisplayed == false)
+            {
+                headerDisplayed = true;
+                systemPrintf("      Size   Dir   File Name\r\n");
+                //                     1                  1         2
+                //            1234567890   123   12345678901234567890
+                systemPrintf("----------   ---   --------------------\r\n");
+            }
+
+            // Display the file attributes
+            systemPrintf("%10d   %s   %s\r\n", size, directory ? "Dir" : "   ", fileName);
+        }
+
+        // Close the directory
+        sdRootDir.close();
+    }
+}
+
+//----------------------------------------
+// Dump an SD card file
+void sdCardDumpFile(const char * fileName)
+{
+    uint8_t * buffer = nullptr;
+    const size_t bufferLength = 8192;
+    ssize_t bytesRead;
+    SdFile file;
+    bool gotSemaphore;
+    size_t offset;
+    bool wasSdCardOnline;
+
+    do
+    {
+        // Allocate the buffer
+        buffer = (uint8_t *)rtkMalloc(bufferLength, "SD card file dump buffer");
+        if (buffer == nullptr)
+        {
+            systemPrintf("ERROR: Failed to allocate the dump buffer\r\n");
+            break;
+        }
+
+        // Attempt to bring the SD card online
+        wasSdCardOnline = online.microSD;
+        gotSemaphore = false;
+        if (online.microSD != true)
+            beginSD();
+
+        // Attempt to get access to the SD card
+        if (online.microSD == false)
+        {
+            systemPrintf("ERROR: SD card is offline\r\n");
+            break;
+        }
+
+        // Attempt to access file system. This avoids collisions with file writing from other functions like
+        // recordSystemSettingsToFile() and gnssSerialReadTask()
+        if (xSemaphoreTake(sdCardSemaphore, fatSemaphore_longWait_ms) != pdPASS)
+        {
+            systemPrintf("ERROR: Failed to get the sdCardSemaphore\r\n");
+            break;
+        }
+        gotSemaphore = true;
+        markSemaphore(FUNCTION_FILE_DUMP);
+
+        // Attempt to open the file
+        if (file.open(fileName, O_READ) == false)
+        {
+            systemPrintf("ERROR: Failed to open SD card file %s\r\n", fileName);
+            break;
+        }
+
+        // Display the file name
+        systemPrintf("SD card file %s dump:\r\n", fileName);
+
+        // Walk the contents of the file
+        offset = 0;
+        while (file.available())
+        {
+            // Read some data
+            bytesRead = 0;
+            do
+            {
+                int data = file.read();
+                if (data < 0)
+                {
+                    if (bytesRead == 0)
+                        bytesRead = data;
+                    break;
+                }
+                buffer[bytesRead] = (uint8_t)data;
+                bytesRead += 1;
+            } while ((bytesRead > 0) && (bytesRead < bufferLength));
+            if (bytesRead < 0)
+            {
+                systemPrintf("ERROR: Hard read error at offset %ld in SD file %s\r\n",
+                             offset, fileName);
+                break;
+            }
+
+            // Display the data
+            dumpBuffer(offset, buffer, bytesRead);
+            offset += bytesRead;
+        }
+
+        // Done with the file
+        if (file)
+            file.close();
+    } while (0);
+
+    // Done with the SD card
+    if (online.microSD && (!wasSdCardOnline))
+        endSD(gotSemaphore, true);
+    else if (gotSemaphore)
+        xSemaphoreGive(sdCardSemaphore);
+
+    // Done with the buffer
+    if (buffer)
+        rtkFree(buffer, "SD card file dump buffer");
 }

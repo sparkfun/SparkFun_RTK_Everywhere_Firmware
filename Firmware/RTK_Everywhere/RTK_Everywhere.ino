@@ -107,7 +107,7 @@ RTK_Everywhere.ino
 #define COMPILE_ZED      // Comment out to remove ZED-F9x functionality
 
 #define COMPILE_IM19_IMU             // Comment out to remove IM19_IMU functionality
-#define COMPILE_POINTPERFECT_LIBRARY // Comment out to remove PPL support
+// #define COMPILE_POINTPERFECT_LIBRARY // Comment out to remove PPL support
 #define COMPILE_BQ40Z50              // Comment out to remove BQ40Z50 functionality
 #define COMPILE_MP2762A_CHARGER      // Comment out to remove MP2762A charger functionality
 
@@ -418,10 +418,8 @@ LoggingType loggingType = LOGGING_UNKNOWN;
 SdFile *managerTempFile = nullptr; // File used for uploading or downloading in the file manager section of AP config
 bool managerFileOpen = false;
 
-TaskHandle_t sdSizeCheckTaskHandle;        // Store handles so that we can delete the task once the size is found
 const uint8_t sdSizeCheckTaskPriority = 0; // 3 being the highest, and 0 being the lowest
 const int sdSizeCheckStackSize = 3000;
-bool sdSizeCheckTaskComplete;
 
 char logFileName[sizeof("SFE_Reference_Station_230101_120101.ubx_plusExtraSpace")] = {0};
 
@@ -1846,7 +1844,8 @@ void rtcUpdate()
                     if ((millis() - lastErrorMsec) > (30 * 1000))
                     {
                         lastErrorMsec = millis();
-                        systemPrintln("No GNSS date/time available for system RTC.");
+                        if(!inMainMenu)
+                            systemPrintln("No GNSS date/time available for system RTC.");
                     }
                 } // End timeValid
             } // End lastRTCAttempt
@@ -1993,6 +1992,12 @@ void getSemaphoreFunction(char *functionName)
         break;
     case FUNCTION_ARPWRITE:
         strcpy(functionName, "ARP Write");
+        break;
+    case FUNCTION_FILE_EXISTS:
+        strcpy(functionName, "File Exists");
+        break;
+    case FUNCTION_FILE_DUMP:
+        strcpy(functionName, "File Dump");
         break;
     }
 }

@@ -527,7 +527,7 @@ bool loadSystemSettingsFromFileSD(char *fileName, const char *findMe, char *foun
             SdFile settingsFile; // FAT32
             if (settingsFile.open(fileName, O_READ) == false)
             {
-                systemPrintln("Failed to open SD settings file");
+                systemPrintf("Failed to open settings SD file %s\r\n", fileName);
                 break; // /while (online.microSD == true)
             }
 
@@ -541,20 +541,37 @@ bool loadSystemSettingsFromFileSD(char *fileName, const char *findMe, char *foun
                 // Note: fgets stripts the \r (if there is one) leaving only \n
                 int n = settingsFile.fgets(line, sizeof(line));
 
-                if (n <= 0)
+                // Handle the file error
+                if (n < 0)
                 {
-                    systemPrintf("Failed to read line %d from SD settings file\r\n", lineNumber);
+                    systemPrintf("Hard read error at line %d in SD file %s!\r\n", lineNumber, fileName);
+                    if (findMe)
+                        strncpy(found, "SD Card Read Error!", len);
+                    break;
+                }
+
+                // Handle non-printable data in file
+                else if (n == 0)
+                {
+                    systemPrintf("Line %d contains non-printable data in SD file %s!\r\n", lineNumber, fileName);
+                    if (findMe)
+                    {
+                        strncpy(found, "SD Card corrupt file!", len);
+                        break;
+                    }
                 }
                 else if (line[n - 1] != '\n')
                 {
                     if (n == (sizeof(line) - 1))
-                        systemPrintf("Settings line %d too long\r\n", lineNumber);
+                        systemPrintf("SD settings file %s line %d too long\r\n", fileName, lineNumber);
                     else
-                        systemPrintf("Settings line %d not LF terminated\r\n", lineNumber);
+                        systemPrintf("SD settings file %s line %d not LF terminated\r\n", fileName, lineNumber);
                     if (lineNumber == 0)
                     {
                         // If we can't read the first line of the settings file, give up
-                        systemPrintln("Giving up on SD settings file");
+                        systemPrintf("Giving up on SD settings file %s\r\n", fileName);
+                        if (findMe)
+                            strncpy(found, "SD Card file line too long!", len);
                         status = false;
                         break; // /while (settingsFile.available())
                     }
@@ -567,11 +584,11 @@ bool loadSystemSettingsFromFileSD(char *fileName, const char *findMe, char *foun
                         if (parseLine(line) == false)
                         {
                             line[strlen(line) - 1] = 0; // Remove \n for printing
-                            systemPrintf("Failed to parse line %d: %s\r\n", lineNumber, line);
+                            systemPrintf("Failed to parse SD file %s line %d: %s\r\n", fileName, lineNumber, line);
                             if (lineNumber == 0)
                             {
                                 // If we can't read the first line of the settings file, give up
-                                systemPrintln("Giving up on SD settings file");
+                                systemPrintf("Giving up on SD settings file %s\r\n", fileName);
                                 status = false;
                                 break; // /while (settingsFile.available())
                             }
@@ -602,6 +619,12 @@ bool loadSystemSettingsFromFileSD(char *fileName, const char *findMe, char *foun
                 if (lineNumber > 800) // Arbitrary limit. Catch corrupt files.
                 {
                     systemPrintf("Max line number exceeded. Giving up reading SD file: %s\r\n", fileName);
+                    if (findMe)
+                    {
+                        strncpy(found, "SD Card file too many lines!", len);
+                        break;
+                    }
+
                     // Should we return true or false? Going with true...
                     break; // /while (settingsFile.available())
                 }
@@ -665,20 +688,37 @@ bool loadSystemSettingsFromFileLFS(char *fileName, const char *findMe, char *fou
         // getLine will remove the \r - to match SD fgets
         int n = getLine(&settingsFile, line, sizeof(line));
 
-        if (n <= 0)
+        // Handle the file error
+        if (n < 0)
         {
-            systemPrintf("Failed to read line %d from LFS settings file\r\n", lineNumber);
+            systemPrintf("Hard read error at line %d in LFS file %s!\r\n", lineNumber, fileName);
+            if (findMe)
+                strncpy(found, "LFS Read Error!", len);
+            break;
+        }
+
+        // Handle non-printable data in file
+        else if (n == 0)
+        {
+            systemPrintf("Line %d contains non-printable data in LFS file %s!\r\n", lineNumber, fileName);
+            if (findMe)
+            {
+                strncpy(found, "LFS Bad Character!", len);
+                break;
+            }
         }
         else if (line[n - 1] != '\n')
         {
             if (n == (sizeof(line) - 1))
-                systemPrintf("Settings line %d too long\r\n", lineNumber);
+                systemPrintf("LFS settings file %s line %d too long\r\n", fileName, lineNumber);
             else
-                systemPrintf("Settings line %d not LF terminated\r\n", lineNumber);
+                systemPrintf("LSF settings file %s line %d not LF terminated\r\n", fileName, lineNumber);
             if (lineNumber == 0)
             {
                 // If we can't read the first line of the settings file, give up
-                systemPrintln("Giving up on LFS settings file");
+                systemPrintf("Giving up on LFS settings file %s\r\n", fileName);
+                if (findMe)
+                    strncpy(found, "LFS Line too long!", len);
                 status = false;
                 break; // /while (settingsFile.available())
             }
@@ -691,11 +731,11 @@ bool loadSystemSettingsFromFileLFS(char *fileName, const char *findMe, char *fou
                 if (parseLine(line) == false)
                 {
                     line[strlen(line) - 1] = 0; // Remove \n for printing
-                    systemPrintf("Failed to parse line %d: %s\r\n", lineNumber, line);
+                    systemPrintf("Failed to parse LFS file %s line %d: %s\r\n", fileName, lineNumber, line);
                     if (lineNumber == 0)
                     {
                         // If we can't read the first line of the settings file, give up
-                        systemPrintln("Giving up on LFS settings file");
+                        systemPrintf("Giving up on LFS settings file %s\r\n", fileName);
                         status = false;
                         break; // /while (settingsFile.available())
                     }
@@ -726,6 +766,12 @@ bool loadSystemSettingsFromFileLFS(char *fileName, const char *findMe, char *fou
         if (lineNumber > 800) // Arbitrary limit. Catch corrupt files.
         {
             systemPrintf("Max line number exceeded. Giving up reading LFS file: %s\r\n", fileName);
+            if (findMe)
+            {
+                strncpy(found, "LFS Too Many Lines!", len);
+                break;
+            }
+
             // Should we return true or false? Going with true...
             break; // /while (settingsFile.available())
         }
@@ -767,9 +813,18 @@ bool printSystemSettingsFromFileLFS(char *fileName)
         // getLine will remove the \r - to match SD fgets
         int n = getLine(&settingsFile, line, sizeof(line));
 
-        if (n <= 0)
+        // Handle the file error
+        if (n < 0)
         {
-            systemPrintf("Failed to read line %d from LFS settings file\r\n", lineNumber);
+            systemPrintf("Hard read error at line %d in file %s!\r\n", lineNumber, fileName);
+            break;
+        }
+
+        // Handle non-printable data in file
+        else if (n == 0)
+        {
+            systemPrintf("Line %d contains non-printable data in file %s!\r\n", lineNumber, fileName);
+//            break;
         }
         else if (line[n - 1] != '\n')
         {
@@ -1265,10 +1320,17 @@ bool parseLine(const char *theLine)
 int getLine(File *openFile, char *lineChars, int lineSize)
 {
     int count = 0;
-    while (openFile->available())
+    while (openFile->available() > 0)
     {
-        byte incoming = openFile->read();
+        // Read the next byte from the file
+        int data = openFile->read();
 
+        // Handle any file errors
+        if (data < 0)
+            return data;
+
+        // Get the data byte
+        byte incoming = (byte)data;
         if (incoming == '\0')
         {
             break; // Something bad happened...
@@ -1359,6 +1421,18 @@ void recordProfileNumber(uint8_t newProfileNumber)
     fileProfileNumber.close();
 }
 
+bool getProfileFileName(int profileNumber, char * fileName, size_t nameLength)
+{
+    size_t bytesNeeded;
+    bool success;
+
+    bytesNeeded = snprintf(fileName, nameLength, "/%s_Settings_%d.txt", platformFilePrefix, profileNumber);
+    success = (bytesNeeded <= nameLength);
+    if ((success == false) && settings.debugSettings)
+        systemPrintf("ERROR: fileName buffer too small, must be >= %d bytes\r\n", bytesNeeded);
+    return success;
+}
+
 // Populate profileNames[][] based on names found in LittleFS and SD
 // If both SD and LittleFS contain a profile, SD wins.
 uint8_t loadProfileNames()
@@ -1372,7 +1446,7 @@ uint8_t loadProfileNames()
     for (int x = 0; x < MAX_PROFILE_COUNT; x++)
     {
         char fileName[60];
-        snprintf(fileName, sizeof(fileName), "/%s_Settings_%d.txt", platformFilePrefix, x);
+        getProfileFileName(x, fileName, sizeof(fileName));
 
         if (getProfileName(fileName, profileNames[x], sizeof(profileNames[x])) == true)
             // Mark this profile as active
@@ -1536,4 +1610,133 @@ bool loadFile(const char *fileID, char *fileContents, bool debug)
     else if (debug)
         systemPrintf("Failed to read from LittleFS: %s\r\n", fileName);
     return false;
+}
+
+//----------------------------------------
+// List the files in NVM
+void nvmDirectoryListing()
+{
+    File rootDir;
+    bool directory;
+    File file;
+    bool headerDisplayed;
+    const char * name;
+    size_t size;
+
+    // Display the partition name
+    systemPrintf("\nNVM Partition spiffs using LittleFS\r\n");
+
+    // Start at the beginning of the directory
+    rootDir = LittleFS.open("/", FILE_READ);
+    if (rootDir)
+    {
+        // List the contents of the directory
+        headerDisplayed = false;
+        while (1)
+        {
+            // Open the next file
+            file = rootDir.openNextFile();
+            if (!file)
+            {
+                if (headerDisplayed == false)
+                    systemPrintf("No NVM files found\r\n");
+                break;
+            }
+
+            // Get the file attributes
+            name = file.name();
+            size = file.size();
+            directory = file.isDirectory();
+
+            // Done with this file
+            file.close();
+
+            // Display the attributes
+            if (headerDisplayed == false)
+            {
+                headerDisplayed = true;
+                systemPrintf("      Size   Dir   File Name\r\n");
+                //                     1                  1         2
+                //            1234567890   123   12345678901234567890
+                systemPrintf("----------   ---   --------------------\r\n");
+            }
+
+            // Display the file attributes
+            systemPrintf("%10d   %s   %s\r\n", size, directory ? "Dir" : "   ", name);
+        }
+
+        // Close the directory
+        close(rootDir);
+    }
+}
+
+//----------------------------------------
+// Dump an NVM file
+void nvmDumpFile(const char * fileName)
+{
+    uint8_t * buffer = nullptr;
+    const size_t bufferLength = 8192;
+    ssize_t bytesRead;
+    File file;
+    size_t offset;
+
+    do
+    {
+        // Attempt to open the file
+        file = LittleFS.open(fileName, FILE_READ);
+        if (! file)
+        {
+            systemPrintf("ERROR: Failed to open NVM file %s\r\n", fileName);
+            break;
+        }
+
+        // Allocate the buffer
+        buffer = (uint8_t *)rtkMalloc(bufferLength, "NVM file dump buffer");
+        if (buffer == nullptr)
+        {
+            systemPrintf("ERROR: Failed to allocate the dump buffer\r\n");
+            break;
+        }
+
+        // Display the file name
+        systemPrintf("NVM file %s dump:\r\n", fileName);
+
+        // Walk the contents of the file
+        offset = 0;
+        while (file.available())
+        {
+            // Read some data
+            bytesRead = 0;
+            do
+            {
+                int data = file.read();
+                if (data < 0)
+                {
+                    if (bytesRead == 0)
+                        bytesRead = data;
+                    break;
+                }
+                buffer[bytesRead] = (uint8_t)data;
+                bytesRead += 1;
+            } while ((bytesRead > 0) && (bytesRead < bufferLength));
+            if (bytesRead < 0)
+            {
+                systemPrintf("ERROR: Hard read error at offset %ld in NVM file %s\r\n",
+                             offset, fileName);
+                break;
+            }
+
+            // Display the data
+            dumpBuffer(offset, buffer, bytesRead);
+            offset += bytesRead;
+        }
+    } while (0);
+
+    // Done with the file
+    if (file)
+        file.close();
+
+    // Done with the buffer
+    if (buffer)
+        rtkFree(buffer, "NVM file dump buffer");
 }

@@ -491,7 +491,15 @@ void displayUpdate()
 
 void displaySplash()
 {
-    displaySplashCommon(false); // Full product name not known
+    if (settings.detectedGnssReceiver == GNSS_RECEIVER_UNKNOWN)
+    {
+        displaySplashCommon(false); // Full product name not known
+    }
+    else
+    {
+        assembleDeviceName();
+        displaySplashCommon(true); // Full product name known
+    }
 }
 void displaySplashNameKnown()
 {
@@ -510,7 +518,6 @@ void displaySplashCommon(bool nameKnown)
         }
 
         oled->erase();
-        oled->display(); // Post a clear display
 
         int fontHeight = 8;
         int numLines = productVariantProperties->rtkPrefix ? 4 : 3;
@@ -2164,9 +2171,9 @@ void displayTiltAutodetect(uint16_t displayTime)
 {
     displayMessage("Autodetecting Tilt", displayTime);
 }
-void displayTiltAutodetectFailed(uint16_t displayTime)
+void displayTiltNotDetected(uint16_t displayTime)
 {
-    displayMessage("Autodetect Failed", displayTime);
+    displayMessage("No Tilt", displayTime);
 }
 
 void displayNoWiFi(uint16_t displayTime)

@@ -20,9 +20,9 @@ menuPP.ino
 #define POINTPERFECT_LIVE_TOKEN DEVELOPMENT_TOKEN
 #endif // POINTPERFECT_IP_TOKEN
 
-static const uint8_t developmentToken[16] = {DEVELOPMENT_TOKEN};         // Token in HEX form
-static const uint8_t ppIpToken[16] = {POINTPERFECT_IP_TOKEN};            // Token in HEX form
-static const uint8_t ppRtcmToken[16] = {POINTPERFECT_RTCM_TOKEN};        // Token in HEX form
+static const uint8_t developmentToken[16] = {DEVELOPMENT_TOKEN};  // Token in HEX form
+static const uint8_t ppIpToken[16] = {POINTPERFECT_IP_TOKEN};     // Token in HEX form
+static const uint8_t ppRtcmToken[16] = {POINTPERFECT_RTCM_TOKEN}; // Token in HEX form
 static const uint8_t ppGlobalToken[16] = {0};
 //{POINTPERFECT_GLOBAL_TOKEN};                                             // Token in HEX form
 static const uint8_t ppLiveToken[16] = {0};
@@ -67,10 +67,10 @@ typedef struct
 
 // The various services offered by PointPerfect
 const PP_Service ppServices[] = {
-    {"Disabled", PP_MODEL_NONE, PP_DELIVERY_NONE, PP_ENCODING_NONE},                                    // Do not use PointPerfect corrections
-    {"Flex NTRIP/RTCM", PP_MODEL_SSR, PP_DELIVERY_NTRIP, PP_ENCODING_RTCM},                             // Uses "ZTP-RTCM-100" profile
-    {"Global", PP_MODEL_SSR, PP_DELIVERY_LBAND_GLOBAL, PP_ENCODING_SPARTN},                             // Uses "ZTP-Global" profile
-    {"Live", PP_MODEL_OSR, PP_DELIVERY_NTRIP, PP_ENCODING_RTCM},                                        // Uses "ZTP-Live" profile
+    {"Disabled", PP_MODEL_NONE, PP_DELIVERY_NONE, PP_ENCODING_NONE},        // Do not use PointPerfect corrections
+    {"Flex NTRIP/RTCM", PP_MODEL_SSR, PP_DELIVERY_NTRIP, PP_ENCODING_RTCM}, // Uses "ZTP-RTCM-100" profile
+    {"Global", PP_MODEL_SSR, PP_DELIVERY_LBAND_GLOBAL, PP_ENCODING_SPARTN}, // Uses "ZTP-Global" profile
+    {"Live", PP_MODEL_OSR, PP_DELIVERY_NTRIP, PP_ENCODING_RTCM},            // Uses "ZTP-Live" profile
     {"Flex MQTT (Deprecated)", PP_MODEL_SSR, PP_DELIVERY_MQTT,
      PP_ENCODING_SPARTN}, // Uses "ZTP-IP" profile, now deprecated
     // "ZTP-RTCM-100-Trial" profile deprecated
@@ -78,7 +78,7 @@ const PP_Service ppServices[] = {
 
 const int ppServiceCount = sizeof(ppServices) / sizeof(ppServices[0]);
 
-#ifdef  COMPILE_MENU_POINTPERFECT
+#ifdef COMPILE_MENU_POINTPERFECT
 
 // Provision device on ThingStream
 // Download keys
@@ -320,7 +320,7 @@ void menuPointPerfectSelectService()
                 settings.pointPerfectService = incoming - 1; // Align incoming to array
 
                 // Request re-config of RTCM Rover messages to enable / disable necessary RTCM messages for PPL
-                if(inRoverMode())
+                if (inRoverMode())
                     gnssConfigure(GNSS_CONFIG_MESSAGE_RATE_RTCM_ROVER); // Request receiver to use new settings
 
                 settings.requestKeyUpdate =
@@ -485,7 +485,7 @@ void menuPointPerfectKeys()
     clearBuffer(); // Empty buffer of any newline chars
 }
 
-#endif  // COMPILE_MENU_POINTPERFECT
+#endif // COMPILE_MENU_POINTPERFECT
 
 // Update any L-Band hardware
 // If GNSS is mosaic-X5, configure LBandBeam1
@@ -754,7 +754,72 @@ const char *printDaysFromDuration(long long duration)
 // Create a ZTP request to be sent to thingstream JSON API
 void createZtpRequest(String &str)
 {
+    // Assume failure
+    str = "";
 
+    // Get the firmware version string
+    char versionString[9];
+    firmwareVersionGet(versionString, sizeof(versionString), false);
+
+    // Build the givenName:   Name vxx.yy - deviceID
+    char givenName[100];
+    memset(givenName, 0, sizeof(givenName));
+    snprintf(givenName, sizeof(givenName), "%s %s - %s", productVariantProperties->platformProvision, versionString,
+             printDeviceId());
+    if (strlen(givenName) >= 50)
+    {
+        systemPrintf("Error: GivenName '%s' too long: %d bytes\r\n", givenName, strlen(givenName));
+        return;
+    }
+
+    // Get the token
+    char tokenString[37] = "\0";
+    if (strlen(settings.pointPerfectDeviceProfileToken) == 0)
+    {
+        // Use the built-in SparkFun tokens
+        ztpGetToken(tokenString);
+
+        if (memcmp(ppRtcmToken, developmentToken, sizeof(developmentToken)) == 0)
+            systemPrintln("Warning: Using the development token!");
+
+        if (settings.debugCorrections == true)
+        {
+            char tokenChar = tokenString[4];
+            tokenString[4] = 0; // Clip token to first four characters
+            systemPrintf("Using token: %s\r\n", tokenString);
+            tokenString[4] = tokenChar; // Return token to original state
+        }
+    }
+    else
+    {
+        // Use the user's custom token
+        strncpy(tokenString, settings.pointPerfectDeviceProfileToken, sizeof(tokenString));
+        systemPrintf("Using custom token: %s\r\n", tokenString);
+    }
+
+    // Build the JSON request
+    JsonDocument json;
+    json["tags"][0] = "ztp";
+    json["token"] = tokenString;
+    json["hardwareId"] = printDeviceId();
+    json["givenName"] = givenName;
+
+    // Debug the request
+    if (settings.debugCorrections == true)
+    {
+        char tokenChar;
+        systemPrintln("{");
+        tokenChar = tokenString[4];
+        tokenString[4] = 0;
+        systemPrintf("  token: %s\r\n", tokenString);
+        tokenString[4] = tokenChar;
+        systemPrintf("  givenName: %s\r\n", givenName);
+        systemPrintf("  hardwareId: %s\r\n", printDeviceId());
+        systemPrintln("}");
+    }
+
+    // Convert the JSON to a string
+    serializeJson(json, str);
 }
 
 // Find thing3 in (*jsonZtp)[thing1][n][thing2]. Return n on success. Return -1 on error / not found.
@@ -1181,15 +1246,13 @@ void provisioningUpdate()
     switch (provisioningState)
     {
     default:
-    case PROVISIONING_OFF:
-    {
+    case PROVISIONING_OFF: {
         // If RTC is not online after provisioningTimeout_ms, try to provision anyway
         if (enabled && rtcOnline)
             provisioningSetState(PROVISIONING_CHECK_REMAINING);
     }
     break;
-    case PROVISIONING_CHECK_REMAINING:
-    {
+    case PROVISIONING_CHECK_REMAINING: {
         if (provisioningKeysNeeded() == false)
             provisioningSetState(PROVISIONING_KEYS_REMAINING);
         else
@@ -1202,8 +1265,7 @@ void provisioningUpdate()
     break;
 
     // Wait for connection to the network
-    case PROVISIONING_WAIT_FOR_NETWORK:
-    {
+    case PROVISIONING_WAIT_FOR_NETWORK: {
         // Stop waiting if PointPerfect has been disabled
         if (enabled == false)
             provisioningStop(__FILE__, __LINE__);
@@ -1228,8 +1290,7 @@ void provisioningUpdate()
     }
     break;
 
-    case PROVISIONING_STARTED:
-    {
+    case PROVISIONING_STARTED: {
         // Only leave this state if we timeout or ZTP is complete
         if ((millis() - provisioningStartTime_millis) > provisioningTimeout_ms)
         {
@@ -1295,8 +1356,7 @@ void provisioningUpdate()
         }
     }
     break;
-    case PROVISIONING_KEYS_REMAINING:
-    {
+    case PROVISIONING_KEYS_REMAINING: {
 
         // Report expiration of keys if this PointPerfect service uses them
         if (pointPerfectServiceUsesKeys() == true)

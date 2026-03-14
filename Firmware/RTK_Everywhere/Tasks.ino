@@ -68,31 +68,31 @@ const char *const ringBufferConsumer[] = {
 const int ringBufferConsumerEntries = sizeof(ringBufferConsumer) / sizeof(ringBufferConsumer[0]);
 
 // Define the index values into the parserTable
-#define RTK_NMEA_PARSER_INDEX           0
-#define RTK_UNICORE_HASH_PARSER_INDEX   1
-#define RTK_RTCM_PARSER_INDEX           2
-#define RTK_UBLOX_PARSER_INDEX          3
+#define RTK_NMEA_PARSER_INDEX 0
+#define RTK_UNICORE_HASH_PARSER_INDEX 1
+#define RTK_RTCM_PARSER_INDEX 2
+#define RTK_UBLOX_PARSER_INDEX 3
 #define RTK_UNICORE_BINARY_PARSER_INDEX 4
 
 // List the parsers to be included
-const SEMP_PARSER_DESCRIPTION * parserTable[] = {
-    &sempNmeaParserDescription,             // 0
-    &sempUnicoreHashParserDescription,      // 1
-    &sempRtcmParserDescription,             // 2
-    &sempUbloxParserDescription,            // 3
-    &sempUnicoreBinaryParserDescription,    // 4
+const SEMP_PARSER_DESCRIPTION *parserTable[] = {
+    &sempNmeaParserDescription,          // 0
+    &sempUnicoreHashParserDescription,   // 1
+    &sempRtcmParserDescription,          // 2
+    &sempUbloxParserDescription,         // 3
+    &sempUnicoreBinaryParserDescription, // 4
 };
 const int parserCount = sizeof(parserTable) / sizeof(parserTable[0]);
 
 // We need a separate parsers for the mosaic-X5: to allow SBF to be separated from L-Band SPARTN;
 // and to allow encapsulated NMEA and RTCMv3 to be parsed without upsetting the SPARTN parser.
-const SEMP_PARSER_DESCRIPTION * sbfParserTable[] = {&sempSbfParserDescription};
+const SEMP_PARSER_DESCRIPTION *sbfParserTable[] = {&sempSbfParserDescription};
 const int sbfParserCount = sizeof(sbfParserTable) / sizeof(sbfParserTable[0]);
 
-const SEMP_PARSER_DESCRIPTION * spartnParserTable[] = {&sempSpartnParserDescription};
+const SEMP_PARSER_DESCRIPTION *spartnParserTable[] = {&sempSpartnParserDescription};
 const int spartnParserCount = sizeof(spartnParserTable) / sizeof(spartnParserTable[0]);
 
-const SEMP_PARSER_DESCRIPTION * rtcmParserTable[] = {&sempRtcmParserDescription};
+const SEMP_PARSER_DESCRIPTION *rtcmParserTable[] = {&sempRtcmParserDescription};
 const int rtcmParserCount = sizeof(rtcmParserTable) / sizeof(rtcmParserTable[0]);
 
 //----------------------------------------
@@ -331,13 +331,12 @@ void feedWdt()
 void gnssReadTask(void *e)
 {
     size_t bufferLength;
-    uint8_t * rtkBuffer;
-    uint8_t * sbfBuffer;
-    uint8_t * spartnBuffer;
+    uint8_t *rtkBuffer;
+    uint8_t *sbfBuffer;
+    uint8_t *spartnBuffer;
 
     rtkBuffer = nullptr;
     sbfBuffer = nullptr;
-
 
     // Start notification
     task.gnssReadTaskRunning = true;
@@ -347,17 +346,16 @@ void gnssReadTask(void *e)
     // Initialize the main parser
     bufferLength = sempGetBufferLength(parserTable, parserCount, psramFound() ? 16384 : 3000);
     rtkBuffer = (uint8_t *)rtkMalloc(bufferLength, "SEMP rtkBuffer");
-    rtkParse = sempBeginParser("rtkParse", parserTable, parserCount,
-                               rtkBuffer, bufferLength,
+    rtkParse = sempBeginParser("rtkParse", parserTable, parserCount, rtkBuffer, bufferLength,
                                processUart1Message, // eom Call Back
-                               output);  // Routine to output an error character
+                               output);             // Routine to output an error character
     if (!rtkParse)
         reportFatalError("Failed to initialize the parser");
 
     if (settings.debugGnss)
     {
         sempDebugOutputEnable(rtkParse, output); // Standard debug on Serial
-        //sempDebugOutputEnable(rtkParse, output, true); // Verbose debug
+        // sempDebugOutputEnable(rtkParse, output, true); // Verbose debug
     }
 
     // Abort NMEA and Unicore Hash on non-printable character
@@ -376,11 +374,9 @@ void gnssReadTask(void *e)
             bufferLength = sempGnssReadBufferSize;
         bufferLength = sempGetBufferLength(sbfParserTable, sbfParserCount, bufferLength);
         sbfBuffer = (uint8_t *)rtkMalloc(bufferLength, "SEMP sbfBuffer");
-        sbfParse = sempBeginParser("SEMP sbfBuffer", sbfParserTable, sbfParserCount,
-                                   sbfBuffer,
-                                   bufferLength,
-                                   processUart1SBF,        // eom Call Back - in mosaic.ino
-                                   output); // Routine to output an error character
+        sbfParse = sempBeginParser("SEMP sbfBuffer", sbfParserTable, sbfParserCount, sbfBuffer, bufferLength,
+                                   processUart1SBF, // eom Call Back - in mosaic.ino
+                                   output);         // Routine to output an error character
         if (!sbfParse)
             reportFatalError("Failed to initialize the SBF parser");
 
@@ -397,10 +393,9 @@ void gnssReadTask(void *e)
             // SPARTN payload is 1024 bytes max
             bufferLength = sempGetBufferLength(spartnParserTable, spartnParserCount, 1200);
             spartnBuffer = (uint8_t *)rtkMalloc(bufferLength, "SEMP spartnBuffer");
-            spartnParse =
-                sempBeginParser("SEMP spartnBuffer", spartnParserTable, spartnParserCount,
-                                spartnBuffer, bufferLength, processUart1SPARTN, // eom Call Back - in mosaic.ino
-                                output); // Routine to output an error character
+            spartnParse = sempBeginParser("SEMP spartnBuffer", spartnParserTable, spartnParserCount, spartnBuffer,
+                                          bufferLength, processUart1SPARTN, // eom Call Back - in mosaic.ino
+                                          output);                          // Routine to output an error character
             if (!spartnParse)
                 reportFatalError("Failed to initialize the SPARTN parser");
 
@@ -478,9 +473,9 @@ void gnssReadTask(void *e)
                     // On mosaic-X5, pass the byte to sbfParse. On all other platforms, pass it straight to rtkParse
                     if (!sbfParserNeeded)
                     {
-                        //pinDebugOn();
+                        // pinDebugOn();
                         sempParseNextByte(rtkParse, incomingData[x]);
-                        //pinDebugOff();
+                        // pinDebugOff();
                     }
 
                     // See notes above. On the mosaic-X5, check that the incoming SBF blocks have expected IDs and
@@ -612,7 +607,7 @@ void forceTalkerId(const char *Id, char *msg, size_t maxLen)
         return;
     }
 
-    len++; // Point at the checksum and update it
+    len++;                            // Point at the checksum and update it
     sprintf(&msg[len], "%02X", csum); // null-terminate after csum
 }
 
@@ -657,7 +652,7 @@ void forceRmcCog(char *msg, size_t maxLen)
     uint8_t csum = 0;
     while ((len < maxLen) && (msg[len] != '*'))
         csum = csum ^ msg[len++];
-    len++; // Point at the checksum and update it
+    len++;                            // Point at the checksum and update it
     sprintf(&msg[len], "%02X", csum); // null-terminate after csum
 }
 
@@ -703,7 +698,7 @@ void replaceRmcModeIndicator(char *msg, size_t maxLen)
     uint8_t csum = 0;
     while ((len < maxLen) && (msg[len] != '*'))
         csum = csum ^ msg[len++];
-    len++; // Point at the checksum and update it
+    len++;                            // Point at the checksum and update it
     sprintf(&msg[len], "%02X", csum); // null-terminate after csum
 }
 
@@ -749,7 +744,7 @@ void removeRmcNavStat(char *msg, size_t maxLen)
     uint8_t csum = 0;
     while ((len < maxLen) && (msg[len] != '*'))
         csum = csum ^ msg[len++];
-    len++; // Point at the checksum and update it
+    len++;                            // Point at the checksum and update it
     sprintf(&msg[len], "%02X", csum); // null-terminate after csum
 }
 
@@ -878,7 +873,7 @@ void utcAdjust(double offsetSeconds, char *msg, size_t maxLen)
     uint8_t csum = 0;
     while ((len < maxLen) && (msg[len] != '*'))
         csum = csum ^ msg[len++];
-    len++; // Point at the checksum and update it
+    len++;                            // Point at the checksum and update it
     sprintf(&msg[len], "%02X", csum); // null-terminate after csum
 }
 
@@ -925,13 +920,13 @@ void processUart1Message(SEMP_PARSE_STATE *parse, uint16_t type)
 
         case RTK_UBLOX_PARSER_INDEX:
             message = sempUbloxGetMessageNumber(parse);
-            systemPrintf("%s %s %d.%d, 0x%04x (%d) bytes\r\n", parse->parserName, parse->parsers[type]->parserName, message >> 8,
-                         message & 0xff, parse->length, parse->length);
+            systemPrintf("%s %s %d.%d, 0x%04x (%d) bytes\r\n", parse->parserName, parse->parsers[type]->parserName,
+                         message >> 8, message & 0xff, parse->length, parse->length);
             break;
 
         case RTK_UNICORE_BINARY_PARSER_INDEX:
-            systemPrintf("%s %s, 0x%04x (%d) bytes\r\n", parse->parserName, parse->parsers[type]->parserName, parse->length,
-                         parse->length);
+            systemPrintf("%s %s, 0x%04x (%d) bytes\r\n", parse->parserName, parse->parsers[type]->parserName,
+                         parse->length, parse->length);
             break;
         }
     }
@@ -1022,7 +1017,8 @@ void processUart1Message(SEMP_PARSE_STATE *parse, uint16_t type)
                     if (latestEASessionDataLen == latestEASessionDataMaxLen)
                     {
                         if (settings.debugNetworkLayer && !inMainMenu)
-                            systemPrintln("latestEASessionData is full and not NULL-terminated. Discarding buffer contents...");
+                            systemPrintln(
+                                "latestEASessionData is full and not NULL-terminated. Discarding buffer contents...");
                         *latestEASessionData = 0;
                         latestEASessionDataLen = 0;
                     }
@@ -1056,14 +1052,15 @@ void processUart1Message(SEMP_PARSE_STATE *parse, uint16_t type)
                         }
                     }
 
-                    memcpy(&latestEASessionData[latestEASessionDataLen], parse->buffer, parse->length); // Add the new NMEA data
+                    memcpy(&latestEASessionData[latestEASessionDataLen], parse->buffer,
+                           parse->length); // Add the new NMEA data
                     latestEASessionDataLen += parse->length;
                     if (latestEASessionData[latestEASessionDataLen - 1] != '\n') // Check for LF
                     {
-                        latestEASessionData[latestEASessionDataLen++] = '\r';     // Add CR
+                        latestEASessionData[latestEASessionDataLen++] = '\r'; // Add CR
                         latestEASessionData[latestEASessionDataLen++] = '\n'; // Add LF
                     }
-                    latestEASessionData[latestEASessionDataLen] = 0;    // NULL terminate
+                    latestEASessionData[latestEASessionDataLen] = 0; // NULL terminate
                     // if (settings.debugNetworkLayer && !inMainMenu)
                     //     systemPrintf("latestEASessionData: added %d bytes...\r\n", parse->length);
                 } while (0);
@@ -1129,9 +1126,9 @@ void processUart1Message(SEMP_PARSE_STATE *parse, uint16_t type)
     if (inBaseMode() && type == RTK_RTCM_PARSER_INDEX)
     {
         // Pass data along to NTRIP Server, ESP-NOW radio, or LoRa
-        //pinDebugOn();
+        // pinDebugOn();
         processRTCM(parse->buffer, parse->length);
-        //pinDebugOff();
+        // pinDebugOff();
     }
 
     // Determine if we are using the PPL - UM980, LG290P, or mosaic-X5
@@ -1449,7 +1446,7 @@ void processUart1Message(SEMP_PARSE_STATE *parse, uint16_t type)
         {
             systemPrintf("Ring buffer update error %s: bytesToCopy (%d) is > space (%d) + discardedBytes (%d) - 1\r\n",
                          getTimeStamp(), bytesToCopy, space, discardedBytes);
-            Serial.flush(); // Flush Serial - the code is about to go bang...!
+            systemFlush(); // Flush Serial - the code is about to go bang...!
         }
 
         // Add another message to the ring buffer
@@ -1828,7 +1825,7 @@ void handleGnssDataTask(void *e)
                     {
                         markSemaphore(FUNCTION_WRITESD);
 
-                        //pinDebugOn();
+                        // pinDebugOn();
 
                         do // Do the SD write in a do loop so we can break out if needed
                         {
@@ -1911,8 +1908,8 @@ void handleGnssDataTask(void *e)
                                 // Record trigger count with Time Of Week of rising edge (ms), Millisecond fraction of
                                 // Time Of Week of rising edge (ns), and accuracy estimate (ns)
                                 char eventData[82]; // Max NMEA sentence length is 82
-                                snprintf(eventData, sizeof(eventData), "%lu,%lu,%lu,%lu", triggerCount, triggerTowMsR, triggerTowSubMsR,
-                                        triggerAccEst);
+                                snprintf(eventData, sizeof(eventData), "%lu,%lu,%lu,%lu", triggerCount, triggerTowMsR,
+                                         triggerTowSubMsR, triggerAccEst);
 
                                 char nmeaMessage[82]; // Max NMEA sentence length is 82
                                 createNMEASentence(CUSTOM_NMEA_TYPE_EVENT, nmeaMessage, sizeof(nmeaMessage),
@@ -1960,8 +1957,8 @@ void handleGnssDataTask(void *e)
                             logFileSize = logFile->fileSize(); // Update file size
 
                             // Force file sync every 60s - or every two seconds if the size is not increasing
-                            if (((logFileSize == lastLogSize) && ((millis() - lastUBXLogSyncTime) > 2000))
-                                || ((millis() - lastUBXLogSyncTime) > 60000))
+                            if (((logFileSize == lastLogSize) && ((millis() - lastUBXLogSyncTime) > 2000)) ||
+                                ((millis() - lastUBXLogSyncTime) > 60000))
                             {
                                 baseStatusLedBlink(); // Blink LED to indicate logging activity
 
@@ -1987,8 +1984,7 @@ void handleGnssDataTask(void *e)
                             }
                         } while (0);
 
-
-                        //pinDebugOff();
+                        // pinDebugOff();
 
                         xSemaphoreGive(sdCardSemaphore);
                     } // End sdCardSemaphore
@@ -2127,9 +2123,9 @@ void tickerGnssLedUpdate()
         if (gnss->isRTKFloat() == true || gnss->isPppConverging())
         {
             // Blink at a 500ms on, 500ms off.
-            if(ledCallCounter >= 10)
+            if (ledCallCounter >= 10)
                 ledcWrite(pin_gnssStatusLED, 255);
-            else 
+            else
                 ledcWrite(pin_gnssStatusLED, 0);
         }
 
@@ -2303,8 +2299,7 @@ void buttonCheckTask(void *e)
         }
 
         // Do we have a single tap?
-        else if ((thisButtonRelease > 0) &&
-                 ((millis() - thisButtonRelease) > doubleTapInterval))
+        else if ((thisButtonRelease > 0) && ((millis() - thisButtonRelease) > doubleTapInterval))
         {
             doubleTap = false;
             singleTap = true;
@@ -2395,11 +2390,12 @@ void buttonCheckTask(void *e)
                 // Print how long the button has been held. Useful for setting the powerButtonPressLimit
                 // static uint16_t longestPress = 0;
                 // // Torch shuts down when powerButtonPressedFor reaches ~2400
-                // //const uint16_t pressDurations[] = { 1900, 1950, 2000, 2050, 2100, 2150, 2200, 2250, 2300, 2350, 2400, 2450, 2500 };
+                // //const uint16_t pressDurations[] = { 1900, 1950, 2000, 2050, 2100, 2150, 2200, 2250, 2300, 2350,
+                // 2400, 2450, 2500 };
                 // // Torch X2 shuts down when powerButtonPressedFor reaches ~1500
-                // const uint16_t pressDurations[] = { 1000, 1050, 1100, 1150, 1200, 1250, 1300, 1350, 1400, 1450, 1500, 1650, 1700 };
-                // const uint16_t numDurations = sizeof(pressDurations) / sizeof(uint16_t);
-                // for (uint16_t d = longestPress; d < numDurations; d++)
+                // const uint16_t pressDurations[] = { 1000, 1050, 1100, 1150, 1200, 1250, 1300, 1350, 1400, 1450, 1500,
+                // 1650, 1700 }; const uint16_t numDurations = sizeof(pressDurations) / sizeof(uint16_t); for (uint16_t
+                // d = longestPress; d < numDurations; d++)
                 // {
                 //     if (powerButtonPressedFor(pressDurations[d]))
                 //     {
@@ -2440,7 +2436,7 @@ void buttonCheckTask(void *e)
                             beepOff();
                         }
 
-                        forceMenuExit = true; // Force menu exit to go immediately into web config
+                        forceMenuExit = true;          // Force menu exit to go immediately into web config
                         forceSystemStateUpdate = true; // Immediately go to this new state
                         changeState(STATE_WEB_CONFIG_NOT_STARTED);
                     }
@@ -2463,7 +2459,7 @@ void buttonCheckTask(void *e)
                         // Force menu exit to go immediately into Rover
                         // (User can open the menu while in web config)
                         forceMenuExit = true;
-                        
+
                         forceSystemStateUpdate = true; // Immediately go to this new state
                         changeState(settings.lastState);
                     }
@@ -2476,7 +2472,7 @@ void buttonCheckTask(void *e)
                 else if (powerButtonPressedFor(powerButtonPressLimit) == true)
                 {
                     systemPrintln("Shutting down (button)");
-                    Serial.flush();
+                    systemFlush();
 
                     tickerStop(); // Stop controlling LEDs via ticker task
 
@@ -2492,8 +2488,8 @@ void buttonCheckTask(void *e)
                         // Announce powering down
                         beepMultiple(3, 100, 50); // Number of beeps, length of beep ms, length of quiet ms
 
-                        delay(500); // We will be shutting off during this delay but this prevents another beepMultiple()
-                                    // from firing
+                        delay(500); // We will be shutting off during this delay but this prevents another
+                                    // beepMultiple() from firing
                     }
 
                     // If we have fast power off, use it
@@ -2519,9 +2515,30 @@ void buttonCheckTask(void *e)
                 forceSystemStateUpdate = true;
                 requestChangeState(STATE_SHUTDOWN);
 
+                systemPrintln("Shutting down (button)");
+                systemFlush();
+
+                if (productVariant == RTK_FACET_FP)
+                {
+                    tickerStop(); // Stop controlling LEDs via ticker task
+
+                    pinMode(pin_gnssStatusLED, OUTPUT);
+                    pinMode(pin_bluetoothStatusLED, OUTPUT);
+
+                    gnssStatusLedOn();
+                    bluetoothLedOn();
+
+                    // Beep if we are not locally compiled or a release candidate
+                    if (ENABLE_DEVELOPER == false)
+                    {
+                        // Announce powering down
+                        beepMultiple(3, 100, 50); // Number of beeps, length of beep ms, length of quiet ms
+
+                    }
+                }
+
                 if (inMainMenu)
                 {
-                    systemPrintln("Shutting down (button)");
                     powerDown(true); // State machine is not updated while in menu system so go straight to power down
                                      // as needed
                 }
@@ -2592,8 +2609,7 @@ void buttonCheckTask(void *e)
                             firstButtonThrownOut = false;
                             requestChangeState(lastSystemState);
                         }
-                        else if (it->newState ==
-                                    STATE_BASE_NOT_STARTED) // User selected Base, clear BaseCast override
+                        else if (it->newState == STATE_BASE_NOT_STARTED) // User selected Base, clear BaseCast override
                         {
                             baseCasterDisableOverride();
                             requestChangeState(it->newState);
@@ -2851,7 +2867,7 @@ void sdSizeCheckTask(void *e)
 
                 outOfSDSpace = false;
 
-                sdSizeCheckTaskComplete = true;
+                task.sdSizeCheckTaskStopRequest = true; // We're done, stop the task.
             }
             else
             {
@@ -2949,10 +2965,10 @@ void beginRtcmParse()
 {
     // Begin the RTCM parser - which will extract the base location from RTCM1005 / 1006
     size_t bufferLength = psramFound() ? 16384 : 1050;
-    uint8_t * buffer = (uint8_t *)rtkMalloc(bufferLength, "SEMP rtcmBuffer");
-    rtcmParse = sempBeginParser("rtcmParse", rtcmParserTable, rtcmParserCount,
-                                buffer, bufferLength, processRTCMMessage, // eom Call Back
-                                output); // Routine to output an error character
+    uint8_t *buffer = (uint8_t *)rtkMalloc(bufferLength, "SEMP rtcmBuffer");
+    rtcmParse = sempBeginParser("rtcmParse", rtcmParserTable, rtcmParserCount, buffer, bufferLength,
+                                processRTCMMessage, // eom Call Back
+                                output);            // Routine to output an error character
     if (!rtcmParse)
         reportFatalError("Failed to initialize the RTCM parser");
 

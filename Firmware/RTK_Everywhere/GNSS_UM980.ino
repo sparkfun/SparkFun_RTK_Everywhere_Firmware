@@ -237,7 +237,7 @@ bool GNSS_UM980::configureOnce()
                 systemPrintln("UM980 rebooting");
         }
 
-        systemPrintln("UM980 has completed reboot.");
+        systemPrintln("UM980 has completed reboot");
     }
 
     if (response)

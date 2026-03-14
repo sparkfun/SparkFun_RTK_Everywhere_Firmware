@@ -939,6 +939,13 @@ void beginSD()
 
 void endSD(bool alreadyHaveSemaphore, bool releaseSemaphore)
 {
+    // Stop size check if running
+    while (task.sdSizeCheckTaskRunning == true)
+    {
+        task.sdSizeCheckTaskStopRequest = true;
+        delay(1000);
+    }
+
     // Disable logging
     endLogging(alreadyHaveSemaphore, false);
 
@@ -1033,6 +1040,11 @@ void forceGnssCommunicationRate(uint32_t &platformGnssCommunicationRate)
         // ZED defaults to 115200. settings.dataPortBaud defaults to 230400
         // Keep the baud rate at settings.dataPortBaud for now
         // I.e. nothing to do here...?
+    }
+    else if (productVariant == RTK_FACET_MOSAIC)
+    {
+            // Start the hardware at the dataPortBaud rate. This is similarly set in GNSS_MOSAIC::begin().
+            platformGnssCommunicationRate = settings.dataPortBaud;
     }
     else if (productVariant == RTK_FACET_FP)
     {
@@ -1833,29 +1845,12 @@ bool i2cBusInitialization(TwoWire *i2cBus, int sda, int scl, int clockKHz)
 // Start task to determine SD card size
 void beginSDSizeCheckTask()
 {
-    if (sdSizeCheckTaskHandle == nullptr)
-    {
-        xTaskCreate(sdSizeCheckTask,         // Function to call
-                    "SDSizeCheck",           // Just for humans
-                    sdSizeCheckStackSize,    // Stack Size
-                    nullptr,                 // Task input parameter
-                    sdSizeCheckTaskPriority, // Priority
-                    &sdSizeCheckTaskHandle); // Task handle
-
-        log_d("sdSizeCheck Task started");
-    }
-}
-
-void deleteSDSizeCheckTask()
-{
-    // Delete task once it's complete
-    if (sdSizeCheckTaskHandle != nullptr)
-    {
-        vTaskDelete(sdSizeCheckTaskHandle);
-        sdSizeCheckTaskHandle = nullptr;
-        sdSizeCheckTaskComplete = false;
-        log_d("sdSizeCheck Task deleted");
-    }
+    xTaskCreate(sdSizeCheckTask,         // Function to call
+                "SDSizeCheck",           // Just for humans
+                sdSizeCheckStackSize,    // Stack Size
+                nullptr,                 // Task input parameter
+                sdSizeCheckTaskPriority, // Priority
+                nullptr); // Task handle
 }
 
 // =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-

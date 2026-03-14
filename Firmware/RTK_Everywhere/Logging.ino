@@ -441,7 +441,8 @@ bool beginLogging(const char *customFileName)
                 return (false);
             }
 
-            systemPrintf("Log file name: %s\r\n", logFileName);
+            if(!inMainMenu)
+                systemPrintf("Log file name: %s\r\n", logFileName);
             online.logging = true;
         } // online.sd, enable.logging, online.rtc
     } // online.logging

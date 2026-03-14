@@ -2,7 +2,7 @@
 menuMain.ino
 =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=*/
 
-#ifdef  COMPILE_SERIAL_MENUS
+#ifdef COMPILE_SERIAL_MENUS
 
 // Display the main menu configuration options
 void menuMain()
@@ -30,8 +30,7 @@ void menuMain()
         char versionString[21];
         firmwareVersionGet(versionString, sizeof(versionString), true);
         systemPrintf("%s %s%s %s\r\n", getBrandAttributeFromProductVariant(productVariant)->name,
-            productVariantProperties->rtkPrefix ? "RTK " : "",
-            platformPrefix, versionString);
+                     productVariantProperties->rtkPrefix ? "RTK " : "", platformPrefix, versionString);
         systemPrintf("Mode: %s\r\n", stateToRtkMode(systemState));
 
 #ifdef COMPILE_BT
@@ -193,9 +192,7 @@ void menuMain()
     loraLastIncomingSerial = millis();
 }
 
-#endif  // COMPILE_SERIAL_MENUS
-
-#ifdef  COMPILE_MENU_USER_PROFILES
+#ifdef COMPILE_MENU_USER_PROFILES
 
 // Change system wide settings based on current user profile
 // Ways to change the GNSS settings:
@@ -283,29 +280,97 @@ void menuUserProfiles()
             {
                 // Remove profile from LittleFS
                 if (LittleFS.exists(settingsFileName))
-                    LittleFS.remove(settingsFileName);
+                {
+                    if (LittleFS.remove(settingsFileName))
+                    {
+                        if (settings.debugSettings)
+                            systemPrintf("Deleted LFS file %s\r\n", settingsFileName);
+                    }
+                    else
+                    {
+                        if (settings.debugSettings)
+                            systemPrintf("Failed to deleted LFS file %s\r\n", settingsFileName);
+                    }
+                }
                 if (LittleFS.exists(stationCoordinateECEFFileName))
-                    LittleFS.remove(stationCoordinateECEFFileName);
+                {
+                    if (LittleFS.remove(stationCoordinateECEFFileName))
+                    {
+                        if (settings.debugSettings)
+                            systemPrintf("Deleted LFS file %s\r\n", stationCoordinateECEFFileName);
+                    }
+                    else
+                    {
+                        if (settings.debugSettings)
+                            systemPrintf("Failed to deleted LFS file %s\r\n", stationCoordinateECEFFileName);
+                    }
+                }
                 if (LittleFS.exists(stationCoordinateGeodeticFileName))
-                    LittleFS.remove(stationCoordinateGeodeticFileName);
+                {
+                    if (LittleFS.remove(stationCoordinateGeodeticFileName))
+                    {
+                        if (settings.debugSettings)
+                            systemPrintf("Deleted LFS file %s\r\n", stationCoordinateGeodeticFileName);
+                    }
+                    else
+                    {
+                        if (settings.debugSettings)
+                            systemPrintf("Failed to deleted LFS file %s\r\n", stationCoordinateGeodeticFileName);
+                    }
+                }
 
                 // Remove profile from SD if available
                 if (online.microSD == true)
                 {
                     if (sd->exists(settingsFileName))
-                        sd->remove(settingsFileName);
+                    {
+                        if (sd->remove(settingsFileName))
+                        {
+                            if (settings.debugSettings)
+                                systemPrintf("Deleted SD card file %s\r\n", settingsFileName);
+                        }
+                        else
+                        {
+                            if (settings.debugSettings)
+                                systemPrintf("Failed to deleted SD card file %s\r\n", settingsFileName);
+                        }
+                    }
                     if (sd->exists(stationCoordinateECEFFileName))
-                        sd->remove(stationCoordinateECEFFileName);
+                    {
+                        if (sd->remove(stationCoordinateECEFFileName))
+                        {
+                            if (settings.debugSettings)
+                                systemPrintf("Deleted SD card file %s\r\n", stationCoordinateECEFFileName);
+                        }
+                        else
+                        {
+                            if (settings.debugSettings)
+                                systemPrintf("Failed to deleted SD card file %s\r\n", stationCoordinateECEFFileName);
+                        }
+                    }
                     if (sd->exists(stationCoordinateGeodeticFileName))
-                        sd->remove(stationCoordinateGeodeticFileName);
+                    {
+                        if (sd->remove(stationCoordinateGeodeticFileName))
+                        {
+                            if (settings.debugSettings)
+                                systemPrintf("Deleted SD card file %s\r\n", stationCoordinateGeodeticFileName);
+                        }
+                        else
+                        {
+                            if (settings.debugSettings)
+                                systemPrintf("Failed to deleted SD card file %s\r\n",
+                                             stationCoordinateGeodeticFileName);
+                        }
+                    }
                 }
 
-                gnssConfigureDefaults(); // Set all bits in the request bitfield to cause the GNSS receiver to go through a
-                                         // full (re)configuration
+                gnssConfigureDefaults(); // Set all bits in the request bitfield to cause the GNSS receiver to go
+                                         // through a full (re)configuration
 
                 recordProfileNumber(0); // Move to Profile1
 
-                setSettingsFileName(); // Update file name with new profileNumber. Also updates station coordinates file names
+                setSettingsFileName(); // Update file name with new profileNumber. Also updates station coordinates file
+                                       // names
 
                 // We need to load these settings from file so that we can record a profile name change correctly
                 bool responseLFS = loadSystemSettingsFromFileLFS(settingsFileName);
@@ -362,9 +427,9 @@ void menuUserProfiles()
     clearBuffer(); // Empty buffer of any newline chars
 }
 
-#endif  // COMPILE_MENU_USER_PROFILES
+#endif // COMPILE_MENU_USER_PROFILES
 
-#ifdef  COMPILE_MENU_RADIO
+#ifdef COMPILE_MENU_RADIO
 
 // Configure the internal radio, if available
 void menuRadio()
@@ -435,7 +500,7 @@ void menuRadio()
             }
             else
             {
-                //Allow state machine to run to get version number
+                // Allow state machine to run to get version number
                 for (int x = 0; x < 4; x++)
                     updateLora();
 
@@ -635,4 +700,5 @@ void menuRadio()
     clearBuffer(); // Empty buffer of any newline chars
 }
 
-#endif  // COMPILE_MENU_RADIO
+#endif // COMPILE_MENU_RADIO
+#endif // COMPILE_SERIAL_MENUS
