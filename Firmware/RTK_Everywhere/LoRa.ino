@@ -700,14 +700,21 @@ void loraSetup(bool transmit)
         else
             configureSuccess &= loraSendCommand("AT+MODE=1", response, &responseLength); // 0 - Transmit, 1 - Receive
 
+        // On Facet FP, we need to send AT+DPRT=0 to set the data port to UART1
+        if (productVariant == RTK_FACET_FP)
+        {
+            responseLength = sizeof(response);
+            configureSuccess &= loraSendCommand("AT+DPRT=0", response, &responseLength);
+        }
+
         // Set frequency
         responseLength = sizeof(response);
-
         char command[100];
         snprintf(command, sizeof(command), "AT+FRQ=%0.3f %0.3f\r\n", settings.loraCoordinationFrequency,
                  settings.loraCoordinationFrequency);
         configureSuccess &= loraSendCommand(command, response, &responseLength);
 
+        // Enter TRANSfer
         responseLength = sizeof(response);
         configureSuccess &= loraSendCommand("AT+TRANS", response, &responseLength);
 
