@@ -1651,6 +1651,8 @@ bool GNSS_UM980::setMinCN0(uint8_t cn0Value)
 
 //----------------------------------------
 // Turn on all the enabled NMEA messages on COM3
+// NOTE: This is specific to Torch where ESP32 is connected to COM3
+// TODO: Update this if we add UM980 on Facet FP
 //----------------------------------------
 bool GNSS_UM980::setMessagesNMEA()
 {
@@ -1734,6 +1736,9 @@ bool GNSS_UM980::setMessagesNMEA()
         }
     }
 
+    // We called disableAllOutput() above. So we also need to restart NMEA for Tilt on COM2
+    response &= setTilt(); // Returns true if present.imu_im19 is false, which it should never be...
+
     if (response == true)
     {
         um980MessagesEnabled_NMEA.enabled = true;
@@ -1745,6 +1750,8 @@ bool GNSS_UM980::setMessagesNMEA()
 
 //----------------------------------------
 // Configure RTCM Base messages on COM3 (the connection between ESP32 and UM980)
+// NOTE: This is specific to Torch where ESP32 is connected to COM3
+// TODO: Update this if we add UM980 on Facet FP
 //----------------------------------------
 bool GNSS_UM980::setMessagesRTCMBase()
 {
@@ -1809,6 +1816,8 @@ bool GNSS_UM980::setMessagesOther()
 
 //----------------------------------------
 // Set the RTCM Rover messages on COM3
+// NOTE: This is specific to Torch where ESP32 is connected to COM3
+// TODO: Update this if we add UM980 on Facet FP
 //----------------------------------------
 bool GNSS_UM980::setMessagesRTCMRover()
 {
@@ -2001,6 +2010,8 @@ bool GNSS_UM980::setRate(double secondsBetweenSolutions)
 
 //----------------------------------------
 // Enable/disable any output needed for tilt compensation
+// NOTE: This is specific to Torch where the IM19 is connected to COM2
+// TODO: Update this if we add UM980 on Facet FP
 //----------------------------------------
 bool GNSS_UM980::setTilt()
 {
@@ -2013,7 +2024,8 @@ bool GNSS_UM980::setTilt()
     // The UM980 does not have a way to read the currently enabled messages so we do only a write
     if (settings.enableTiltCompensation == true)
     {
-        // Configure UM980 to output binary and NMEA reports out COM2, connected to IM19 COM3
+        // Configure UM980 to output binary and NMEA reports out COM2,
+        // connected to IM19 COM2 (GNSS_PORT=PHYSICAL_UART2)
         response &= _um980->sendCommand("BESTPOSB COM2 0.2"); // 5Hz
         response &= _um980->sendCommand("PSRVELB COM2 0.2");
         response &= _um980->setNMEAPortMessage("GPGGA", "COM2", 0.2); // 5Hz
