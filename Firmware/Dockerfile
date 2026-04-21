@@ -116,6 +116,7 @@ RUN if [ "$COMPILE_AUTHENTICATION" = "false" ] ; \
     else \
     cd ./RTK_Everywhere \
     && sed -i 's|//#define COMPILE_AUTHENTICATION|#define COMPILE_AUTHENTICATION|g' RTK_Everywhere.ino \
+    && sed -i 's|// #define COMPILE_AUTHENTICATION|#define COMPILE_AUTHENTICATION|g' RTK_Everywhere.ino \
     && cd .. \
     && rm -rf ~/.ssh \
     && if [ -d "~/.ssh" ] ; then rmdir ~/.ssh ; else echo 'No .ssh' ; fi \
