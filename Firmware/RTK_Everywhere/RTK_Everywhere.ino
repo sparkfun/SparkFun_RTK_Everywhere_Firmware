@@ -89,7 +89,7 @@ RTK_Everywhere.ino
 #define COMPILE_LORA     // COmment out to remove LoRa functionality
 
 #ifdef COMPILE_BT
-#define COMPILE_AUTHENTICATION // Uncomment to enable MFi authentication (uses Private libraries)
+//#define COMPILE_AUTHENTICATION // Uncomment to enable MFi authentication (uses Private libraries)
 #endif
 
 #ifdef COMPILE_ETHERNET
