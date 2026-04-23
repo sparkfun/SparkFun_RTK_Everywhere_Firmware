@@ -2027,6 +2027,26 @@
         
       
       
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    <span class="md-typeset">
+      Updating mosaic-X5 Firmware<a class="headerlink" href="#updating-mosaic-x5-firmware" title="Permanent link"></a>
+    </span>
+  
+
+    
+  </span>
+  
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
       <a href="./" class="md-nav__link md-nav__link--active">
         
   
@@ -2045,6 +2065,57 @@
   
 
       </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#mosaic-x5-firmware-4151" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        <span class="md-typeset">
+          mosaic-X5 Firmware 4.15.1<a class="headerlink" href="#mosaic-x5-firmware-4151" title="Permanent link"></a>
+        </span>
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="mosaic-X5 Firmware 4.15.1">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#useful-links" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        <span class="md-typeset">
+          Useful links<a class="headerlink" href="#useful-links" title="Permanent link"></a>
+        </span>
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+    </ul>
+  
+</nav>
       
     </li>
   
@@ -2843,6 +2914,46 @@
     
   
   
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#mosaic-x5-firmware-4151" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        <span class="md-typeset">
+          mosaic-X5 Firmware 4.15.1<a class="headerlink" href="#mosaic-x5-firmware-4151" title="Permanent link"></a>
+        </span>
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="mosaic-X5 Firmware 4.15.1">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#useful-links" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        <span class="md-typeset">
+          Useful links<a class="headerlink" href="#useful-links" title="Permanent link"></a>
+        </span>
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+    </ul>
+  
 </nav>
                   </div>
                 </div>
@@ -2963,7 +3074,7 @@ Compatibility Icons
 <p>The Septentrio mosaic-X5 is the GNSS receiver inside the RTK Facet mosaic. The following describes how to update the firmware on the mosaic-X5.</p>
 <ol>
 <li>
-<p>Download the latest mosaic-X5 firmware <a href="https://www.septentrio.com/en/products/gnss-receivers/gnss-receiver-modules/mosaic-x5#resources" target="_blank" rel="noopener">from Septentrio product page</a>. As of the time of writing, the latest mosaic-X5 firmware is v4.14.10.1. Note: Septentrio has made updates in v4.15 and onwards that require the user to change the default username/password; <a href="https://community.sparkfun.com/t/new-septentrio-mosaic-x5-v4-15-1-firmware-has-password-security-added-any-implications-for-the-esp-32/68574/4?u=alexander-puckhaber" target="_blank" rel="noopener">this may affect how the ESP-32 interacts with it</a>.</p>
+<p>As of the time of writing, we recommend using mosaic-X5 firmware <a href="https://www.septentrio.com/resources/mosaic-X5/mosaic-X5_fwp_4.14.10.1.zip" target="_blank" rel="noopener">v4.14.10.1</a> on all SparkFun / SparkPNT products running RTK Everywhere Firmware. Septentrio released v4.15.1 of the mosaic-X5 firmware in October 2025, but it includes a mandatory username and password for IP-based interfaces (webUI, Ethernet-over-USB, TCP, etc.) and requires changes to daily workflow. More details can be found <a href="#mosaic-x5-firmware-4151">below</a>.</p>
 </li>
 <li>
 <p>Connect a USB-C cable between your computer and the RTK Facet mosaic.</p>
@@ -3011,6 +3122,53 @@ Firmware update complete
 </figure></p>
 </li>
 </ol>
+<h3 id="mosaic-x5-firmware-4151">mosaic-X5 Firmware 4.15.1<a class="headerlink" href="#mosaic-x5-firmware-4151" title="Permanent link"></a></h3>
+<p>Quoting Septentrio:</p>
+<p>"As part of ongoing efforts to enhance device security and standardize access control, firmware released after August 1st 2025 introduces a mandatory user login requirement across all IP-based interfaces. This change affects how users access the system through the webUI, RxTools and command-line interfaces (CLI)."</p>
+<p>On the mosaic-X5, the mandatory user-defined username and password were introduced in firmware v4.15.1 (released in October 2025).</p>
+<p>If you upgrade to 4.15.1, you are required to:</p>
+<ul>
+<li>Create a secure user account (user-defined username and password) using factory credentials the first time you log in</li>
+<li>Thereafter, log in using that user-defined username and password on all IP-based interfaces</li>
+</ul>
+<p>This includes the webUI interface on Ethernet-over-USB (192.168.3.1). But, importantly, <em>excludes</em> the COM and USB (virtual COM) ports - unless you also change the default access level for the those interfaces.</p>
+<p>This has caused issues for some users, e.g. as discussed in <a href="https://community.sparkfun.com/t/new-septentrio-mosaic-x5-v4-15-1-firmware-has-password-security-added-any-implications-for-the-esp-32/68574" target="_blank" rel="noopener">this forum post</a>.</p>
+<p>We recently updated the <a href="https://www.sparkfun.com/sparkfun-rtk-mosaic-x5.html" target="_blank" rel="noopener">SparkFun RTK mosaic-X5</a> firmware so that the X5 username and password can be entered into the ESP32 firmware <em><strong>if needed</strong></em>. More details can be found in the <a href="https://docs.sparkfun.com/SparkFun_RTK_mosaic-X5/software_overview/#esp32-firmware-update" target="_blank" rel="noopener">Release Notes</a>.</p>
+<p>We currently do not plan to include that same feature in RTK Everywhere Firmware since:</p>
+<ul>
+<li>The Log-in procedure only applies to IP-based interfaces</li>
+<li>It does not apply to the COM ports - unless you also change the default access level for the COM ports</li>
+<li>This means the ESP32 does not need the user-defined username and password to communicate on COM - unless the default access level for the COM ports has been changed</li>
+<li>Even if the ESP32 were to have the username and password and were to <em>login</em> on COM using those, it does not remove the need to log in on IP interfaces. You still need to log in on each IP interface individually and separately</li>
+</ul>
+<p>The default access level per interface are as shown below. Do not change the access level for the COM and USB ports unless you want to make life really complicated for yourself...</p>
+<figure>
+<p><img alt="Default Access Level v4.15.1" src="../img/mosaic-X5/Default_Access_Level_4.15.1.png" /></p>
+<figcaption>
+<p>Default Access Level Per Interface with firmware 4.15.1</p>
+</figcaption>
+</figure>
+<p>If you have upgraded to 4.15.1 and want to downgrade to 4.14.10.1, you need to:</p>
+<ul>
+<li>Perform a <strong>FactoryReset</strong> as described in <a href="https://customersupport.septentrio.com/s/article/How-can-I-recover-connection-to-my-receiver-if-I-ve-lost-my-credentials" target="_blank" rel="noopener">Cybersecurity guidelines: How can I recover connection to my receiver if I’ve lost my credentials?</a><ul>
+<li>This is easiest if you connect to the X5 over USB and use a Terminal Emulator / Serial Console to issue the command on one of the USB virtual COM ports (USB1 or USB2)</li>
+<li>You need to power cycle the RTK / X5 after sending the <strong>FactoryReset</strong></li>
+<li>The <strong>FactoryReset</strong> will delete the user-defined username and password</li>
+</ul>
+</li>
+<li>When the factory reset is complete, <strong>do not</strong> enter a new username and password</li>
+<li>After the reset, it is possible to downgrade to 4.14.10.1 using RxTools RxUpgrade<ul>
+<li>RxUpgrade can connect on all of the X5's interfaces but it is easiest to use the USB virtual COM ports (USB1 or USB2)</li>
+<li>If you try to connect using TCP (Ethernet-over-USB, 192.168.3.1), you will need to log in and will be back where you started from</li>
+<li>Likewise, if you try to downgrade through the X5's webUI Admin tab, as described above, you will need to log in and will be back where you started from</li>
+</ul>
+</li>
+</ul>
+<h4 id="useful-links">Useful links<a class="headerlink" href="#useful-links" title="Permanent link"></a></h4>
+<p><a href="https://www.septentrio.com/resources/mosaic-X5/mosaic-X5_fwp_4.14.10.1.zip" target="_blank" rel="noopener">mosaic-X5 v4.14.10.1 firmware</a></p>
+<p><a href="https://customersupport.septentrio.com/s/article/Cybersecurity-guidelines-Log-in-procedure" target="_blank" rel="noopener">Cybersecurity guidelines: Log-in procedure</a></p>
+<p><a href="https://customersupport.septentrio.com/s/article/How-can-I-recover-connection-to-my-receiver-if-I-ve-lost-my-credentials" target="_blank" rel="noopener">Cybersecurity guidelines: How can I recover connection to my receiver if I’ve lost my credentials?</a></p>
+<p><a href="../configure_with_rxtools/">RxTools</a></p>
 
 
 
@@ -3033,7 +3191,7 @@ Firmware update complete
     <span class="md-icon" title="Last update">
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M21 13.1c-.1 0-.3.1-.4.2l-1 1 2.1 2.1 1-1c.2-.2.2-.6 0-.8l-1.3-1.3c-.1-.1-.2-.2-.4-.2m-1.9 1.8-6.1 6V23h2.1l6.1-6.1zM12.5 7v5.2l4 2.4-1 1L11 13V7zM11 21.9c-5.1-.5-9-4.8-9-9.9C2 6.5 6.5 2 12 2c5.3 0 9.6 4.1 10 9.3-.3-.1-.6-.2-1-.2s-.7.1-1 .2C19.6 7.2 16.2 4 12 4c-4.4 0-8 3.6-8 8 0 4.1 3.1 7.5 7.1 7.9l-.1.2z"/></svg>
     </span>
-    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-timeago" title="April 21, 2026 17:39:18 UTC"><span class="timeago" datetime="2026-04-21T17:39:18+00:00" locale="en"></span></span><span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-iso_date" title="April 21, 2026 17:39:18 UTC">2026-04-21</span>
+    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-timeago" title="April 23, 2026 14:41:17 UTC"><span class="timeago" datetime="2026-04-23T14:41:17+00:00" locale="en"></span></span><span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-iso_date" title="April 23, 2026 14:41:17 UTC">2026-04-23</span>
   </span>
 
     
@@ -3061,6 +3219,11 @@ Firmware update complete
     
     <nav>
       
+        <a href="https://github.com/PaulZC" class="md-author" title="@PaulZC" target="_blank" rel="noopener">
+          
+          <img src="https://avatars.githubusercontent.com/u/5690545?v=4&amp;size=72" alt="PaulZC">
+        </a>
+      
         <a href="https://github.com/Alexander-Puckhaber" class="md-author" title="@Alexander-Puckhaber" target="_blank" rel="noopener">
           
           <img src="https://avatars.githubusercontent.com/u/206560362?v=4&amp;size=72" alt="Alexander-Puckhaber">
@@ -3074,11 +3237,6 @@ Firmware update complete
         <a href="https://github.com/santaimpersonator" class="md-author" title="@santaimpersonator" target="_blank" rel="noopener">
           
           <img src="https://avatars.githubusercontent.com/u/36016723?v=4&amp;size=72" alt="santaimpersonator">
-        </a>
-      
-        <a href="https://github.com/PaulZC" class="md-author" title="@PaulZC" target="_blank" rel="noopener">
-          
-          <img src="https://avatars.githubusercontent.com/u/5690545?v=4&amp;size=72" alt="PaulZC">
         </a>
       
       
