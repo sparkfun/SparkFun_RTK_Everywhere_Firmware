@@ -921,15 +921,6 @@ int tcpServerWrite(const uint8_t *buffer, int length)
     return (tcpServerClient[tcpServerRemoteClientIndex]->write(buffer, length));
 }
 
-// Flush data to the TCP server client
-void tcpServerFlush()
-{
-    if (tcpServerInRemoteConfig() == false)
-        return; // No client in remote config mode
-
-    tcpServerClient[tcpServerRemoteClientIndex]->flush();
-}
-
 // Returns true if a remote client is in remote config mode
 bool tcpServerInRemoteConfig()
 {

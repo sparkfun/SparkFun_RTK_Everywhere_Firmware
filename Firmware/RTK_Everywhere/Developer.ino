@@ -270,7 +270,6 @@ void tcpServerZeroTail() {}
 uint8_t tcpServerDataAvailable() {return 0;}
 uint8_t tcpServerRead() {return 0;}
 int tcpServerWrite(const uint8_t *buffer, int length) {return 0;}
-void tcpServerFlush() {}
 bool tcpServerInRemoteConfig() {return false;}
 void tcpServerDisableEndpoint() {}
 

@@ -125,9 +125,6 @@ void systemFlush()
 
     // Flush active Bluetooth device, does nothing when Bluetooth is off
     bluetoothFlush();
-
-    // Flush active TCP client, does nothing when no client is connected
-    tcpServerFlush();
 }
 
 // Output a byte to the serial port
